@@ -46,6 +46,10 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       return;
     }
     if (app.panelOpen && !app.playWhilePanelOpen) return;
+    if (app.awaitingBegin) {
+      app.begin();
+      return;
+    }
     if (scene.finisherButtonHit(g.x, g.y)) {
       app.finisher();
       return;
@@ -131,7 +135,7 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
     const k = e.key;
     if (k === ' ' || k === 'j' || k === 'k' || k === 'Enter') {
       e.preventDefault();
-      if (app.run.phase === 'fight' && !app.userPaused) app.barTap(e.timeStamp);
+      if (app.run.phase === 'fight' && !app.userPaused && !app.awaitingBegin) app.barTap(e.timeStamp);
       else down(-1, -1, e.timeStamp, -1);
     } else if (k === 'f' || k === 'ArrowUp') app.finisher();
     else if (k === 'p' || k === 'Escape') {

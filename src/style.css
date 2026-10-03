@@ -46,15 +46,16 @@ body {
 #hud {
   position: fixed;
   top: calc(env(safe-area-inset-top) + 6px);
-  right: calc(env(safe-area-inset-right) + 6px);
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   gap: 8px;
   z-index: 30;
 }
 
 .hud-btn {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   padding: 8px;
   border: 2px solid var(--ink);
   background: rgba(42, 36, 64, 0.85);
@@ -101,7 +102,7 @@ body {
   gap: 8px;
   padding: 6px 10px;
   padding-left: calc(env(safe-area-inset-left) + 10px);
-  padding-right: calc(env(safe-area-inset-right) + 96px);
+  padding-right: calc(env(safe-area-inset-right) + 10px);
   border-bottom: 1px solid var(--line);
 }
 .dbg-title {

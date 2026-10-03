@@ -4,6 +4,7 @@ interface Cq3Window {
   __cq3?: {
     ready: boolean;
     app: {
+      awaitingBegin: boolean;
       layout: { scale: number };
       run: { phase: string; combat: { tick: number } | null };
       lastTap: { outcome: string } | null;
@@ -27,6 +28,9 @@ test('loads, starts a fight, taps, no console errors', async ({ page }) => {
 
   await page.mouse.click(437, 200); // tap to start
   await expect.poll(() => page.evaluate(() => (window as Cq3Window).__cq3!.app.run.phase)).toBe('fight');
+  await page.waitForTimeout(150);
+  await page.mouse.click(437, 200); // "TAP TO BEGIN!"
+  await expect.poll(() => page.evaluate(() => (window as Cq3Window).__cq3!.app.awaitingBegin)).toBe(false);
 
   for (let i = 0; i < 8; i++) {
     await page.mouse.click(300, 330);

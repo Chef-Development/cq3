@@ -28,6 +28,9 @@ export class App {
   hidden = false;
   lastTap: TapResult | null = null;
   sceneReady = false;
+  /** Each new fight waits for a "TAP TO BEGIN!" tap before the clock runs. */
+  awaitingBegin = false;
+  private begunCombat: unknown = null;
   phaseSince = 0;
 
   constructor(
@@ -61,6 +64,7 @@ export class App {
       !this.userPaused &&
       !this.hidden &&
       !this.calibrating &&
+      !this.awaitingBegin &&
       (!this.panelOpen || this.playWhilePanelOpen)
     );
   }
@@ -124,8 +128,17 @@ export class App {
     this.afterPhaseChange(prev);
   }
 
+  begin(): void {
+    this.awaitingBegin = false;
+    this.syncClock(performance.now());
+  }
+
   private afterPhaseChange(prev: Phase): void {
     const now = performance.now();
+    if (this.run.phase === 'fight' && this.run.combat && this.run.combat !== this.begunCombat) {
+      this.begunCombat = this.run.combat;
+      this.awaitingBegin = true;
+    }
     if (this.run.phase !== prev) {
       this.phaseSince = now;
       this.view?.onPhase(prev, this.run.phase);

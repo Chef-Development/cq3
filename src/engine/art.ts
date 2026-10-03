@@ -2,14 +2,15 @@
 // 1px dark outline; the hero's sword is drawn per pose so one body gives many animation frames.
 import type Phaser from 'phaser';
 
-const OUTLINE = '#140c1c';
+const OUTLINE = '#1a1020';
 type Grid = (string | null)[][];
+type Pal = Record<string, string>;
 
 function grid(w: number, h: number): Grid {
   return Array.from({ length: h }, () => Array<string | null>(w).fill(null));
 }
 
-function stamp(g: Grid, rows: string[], pal: Record<string, string>, ox: number, oy: number): void {
+function stamp(g: Grid, rows: string[], pal: Pal, ox: number, oy: number): void {
   rows.forEach((r, y) =>
     [...r].forEach((ch, x) => {
       if (ch === '.' || ch === ' ') return;
@@ -50,51 +51,65 @@ function toCanvas(g: Grid): HTMLCanvasElement {
   return c;
 }
 
+const whiteOut = (pal: Pal): Pal => Object.fromEntries(Object.keys(pal).map((k) => [k, '#ffffff']));
+
 // ------------------------------------------------------------------ hero (Rowan, a blade hero)
 
-export const HERO_W = 46;
-export const HERO_H = 42;
-export const HERO_FEET_X = 17; // x of the feet center inside the frame
+export const HERO_W = 42;
+export const HERO_H = 34;
+export const HERO_FEET_X = 16; // x of the feet center inside the frame
 
-const HERO_PAL = {
-  h: '#9a3e1e',
-  H: '#6a2814',
-  s: '#f2c8a0',
-  S: '#d09a78',
-  e: '#140c1c',
-  b: '#3a6bc8',
-  B: '#26468a',
-  l: '#5a8ae0',
-  r: '#d8343a',
-  R: '#9a2026',
+const HERO_PAL: Pal = {
+  h: '#a8461e',
+  H: '#6e2a12',
+  g: '#d8743a',
+  s: '#f6cfa6',
+  S: '#d49a78',
+  e: '#1a1020',
+  b: '#3a6bd0',
+  B: '#26468e',
+  l: '#6a9af0',
+  m: '#e2e8f2',
+  M: '#8890a8',
+  r: '#e03a3a',
+  R: '#9e2026',
   y: '#f2c230',
-  w: '#5a3a20',
-  d: '#3a2414',
+  w: '#6a4424',
+  p: '#34345a',
+  P: '#22223c',
+  d: '#5a361c',
+  D: '#36200e',
 };
 
-// 16x21, facing right. The front hand is at (12, 12).
+// 20x27, facing right. The sword hand is at (15, 14).
 const HERO_BODY = [
-  '......hhhhh.....',
-  '....hhhhhhhh....',
-  '...hhhhhhhhhh...',
-  '...hHhhhhsshh...',
-  '..hHhhsssssh....',
-  '..hHhssssess....',
-  '...hhsssssSs....',
-  '....hSssss......',
-  '.....rrrrss.....',
-  '...rrRbbbbrr....',
-  '..rrblllbbbbb...',
-  '..rRblbbbBbbb...',
-  '.rrbbbbbbBbbss..',
-  '.rR.bbbbbBbbss..',
-  '.R..yyyywyyy....',
-  '....bbbbbbbb....',
-  '....BBBB.BBB....',
-  '....BBB...BB....',
-  '....BBB...BB....',
-  '....ddd...dd....',
-  '...dddd..ddd....',
+  '.....hhhhhh.........',
+  '....hggghhhh........',
+  '...hgghhhhhhh.......',
+  '...hhhhhhhhhhh......',
+  '..hHhhhhhhhhhs......',
+  '..hHhhhhhssssss.....',
+  '..HHhhhhsssesss.....',
+  '..HHhhhhssssssS.....',
+  '...Hhhhhsssssss.....',
+  '....HHhSssssSS......',
+  '.....HSSsssS........',
+  '.....rrrrrrrr.......',
+  '...rrRrrrrrrrr......',
+  '..mmmbbbbbbblbb.....',
+  '.mmmMbblllbbbbbss...',
+  '.MmMbbbllbbbbBbss...',
+  '.rRbbbbbbbbbbBb.....',
+  'rR..bbbbbbbbbBb.....',
+  'r...wwwwwywwwww.....',
+  '....bbbbbBbbbbb.....',
+  '....BbbbbBBbbbB.....',
+  '....pppp...pppp.....',
+  '....pppP...pppP.....',
+  '....pppP...pppP.....',
+  '....dddd...dddd.....',
+  '...ddddd...ddddd....',
+  '...DDDDD...DDDDD....',
 ];
 
 interface Pose {
@@ -107,41 +122,37 @@ interface Pose {
 }
 
 export const HERO_POSES: Record<string, Pose> = {
-  idle0: { angle: -58 },
-  idle1: { angle: -55, bodyDy: 1 },
-  dash: { angle: 165, bodyDx: 1, handDx: -3, handDy: 1 },
-  slashA: { angle: 18, handDx: 2, len: 17 },
-  slashB: { angle: -12, handDx: 2, handDy: -1, len: 17 },
-  windup: { angle: -125, handDx: -2, handDy: -2 },
+  idle0: { angle: -60 },
+  idle1: { angle: -57, bodyDy: 1 },
+  dash: { angle: 168, bodyDx: 1, handDx: -3, handDy: 1 },
+  slashA: { angle: 20, handDx: 2, len: 16 },
+  slashB: { angle: -10, handDx: 2, handDy: -1, len: 16 },
+  windup: { angle: -128, handDx: -2, handDy: -2 },
   parry: { angle: -95, handDx: 2, handDy: -2 },
   hurt: { angle: 115, bodyDx: -1, bodyDy: 1, handDx: -1, handDy: 2 },
-  leap: { angle: -88, bodyDy: -1, handDx: 0, handDy: -4, len: 18 },
+  leap: { angle: -88, bodyDy: -1, handDy: -4, len: 17 },
 };
 
 function heroFrame(p: Pose): HTMLCanvasElement {
   const g = grid(HERO_W, HERO_H);
-  const bx = HERO_FEET_X - 8 + (p.bodyDx ?? 0);
+  const bx = HERO_FEET_X - 10 + (p.bodyDx ?? 0);
   const by = HERO_H - HERO_BODY.length + (p.bodyDy ?? 0);
   stamp(g, HERO_BODY, HERO_PAL, bx, by);
-  const hx = bx + 12.5 + (p.handDx ?? 0);
-  const hy = by + 12.5 + (p.handDy ?? 0);
+  const hx = bx + 15.5 + (p.handDx ?? 0);
+  const hy = by + 14.5 + (p.handDy ?? 0);
   const a = (p.angle * Math.PI) / 180;
   const dx = Math.cos(a);
   const dy = Math.sin(a);
   const px = -dy;
   const py = dx;
-  const len = p.len ?? 15;
-  // grip
-  for (let i = -2; i <= 0; i++) put(g, hx + dx * i, hy + dy * i, '#5a3a20');
-  // blade: bright edge + shaded edge
+  const len = p.len ?? 14;
+  for (let i = -2; i <= 0; i++) put(g, hx + dx * i, hy + dy * i, '#6a4424'); // grip
   for (let i = 2; i <= len; i++) {
-    put(g, hx + dx * i, hy + dy * i, i === len ? '#ffffff' : '#e8eef8');
-    if (i < len) put(g, hx + dx * i + px, hy + dy * i + py, '#8890a8');
+    put(g, hx + dx * i, hy + dy * i, i >= len - 1 ? '#ffffff' : '#eef3fa');
+    if (i < len - 1) put(g, hx + dx * i + px, hy + dy * i + py, '#9098b0');
   }
-  // crossguard
-  for (let k = -2; k <= 2; k++) put(g, hx + dx * 1 + px * k, hy + dy * 1 + py * k, '#f2c230');
-  // hand on top
-  put(g, hx, hy, '#f2c8a0');
+  for (let k = -2; k <= 2; k++) put(g, hx + dx + px * k, hy + dy + py * k, k === 0 ? '#c83a3a' : '#f2c230'); // crossguard + gem
+  put(g, hx, hy, '#f6cfa6');
   return toCanvas(g);
 }
 
@@ -155,12 +166,12 @@ function slimeFrame(rx: number, ry: number, squash: number, lean: number, flash 
   const RY = ry * (1 - 0.2 * squash);
   const cx = W / 2;
   const base = H - 2;
-  const body = flash ? '#ffffff' : '#4fc4a0';
-  const dark = flash ? '#ffffff' : '#2e8a6e';
-  const deep = flash ? '#ffffff' : '#1e6450';
-  const light = flash ? '#ffffff' : '#8ff0cc';
+  const body = flash ? '#ffffff' : '#5ed0a8';
+  const dark = flash ? '#ffffff' : '#34967a';
+  const deep = flash ? '#ffffff' : '#20664f';
+  const light = flash ? '#ffffff' : '#a8f6d8';
   for (let y = 0; y < H; y++) {
-    const v = (base - y) / RY; // 0 at the bottom, 1 at the top
+    const v = (base - y) / RY;
     if (v < 0 || v > 1) continue;
     const half = RX * Math.sqrt(1 - v * v) * (v < 0.15 ? 0.92 + v * 0.5 : 1);
     const shift = lean * v * rx * 0.35;
@@ -168,79 +179,87 @@ function slimeFrame(rx: number, ry: number, squash: number, lean: number, flash 
       const u = (x - (cx + shift)) / RX;
       if (Math.abs(u) > Math.sqrt(1 - v * v) + 0.02) continue;
       let col = body;
-      if (v < 0.18 || u > 0.55) col = dark;
-      if (v < 0.07) col = deep;
-      if (u < -0.15 && u > -0.5 && v > 0.55 && v < 0.8) col = light;
+      if (v < 0.2 || u > 0.55) col = dark;
+      if (v < 0.08) col = deep;
+      if (u < -0.15 && u > -0.5 && v > 0.55 && v < 0.82) col = light;
       put(g, x, y, col);
     }
   }
   if (!flash) {
-    // eyes look left, toward the hero
     const ey = Math.round(base - RY * 0.55);
-    const ex = Math.round(cx - RX * 0.35 + lean * rx * 0.2);
+    const ex = Math.round(cx - RX * 0.38 + lean * rx * 0.2);
     const eh = Math.max(2, Math.round(ry / 4));
+    const gap = Math.max(3, Math.round(rx / 3));
     for (let k = 0; k < eh; k++) {
-      put(g, ex, ey + k, '#140c1c');
-      put(g, ex + Math.max(3, Math.round(rx / 3)), ey + k, '#140c1c');
+      put(g, ex, ey + k, '#1a1020');
+      put(g, ex + gap, ey + k, '#1a1020');
     }
     put(g, ex, ey, '#ffffff');
+    put(g, ex + gap, ey, '#ffffff');
+    put(g, ex + Math.round(gap / 2), ey + eh + 1, '#20664f'); // little mouth
   }
   return toCanvas(g);
 }
 
 // ------------------------------------------------------------------ boar and bandit (maps, facing left)
 
-const BOAR_PAL = { b: '#8a5a34', l: '#a8784a', B: '#5e3a20', k: '#3a2414', p: '#e8a0a0', t: '#f4f0e0', e: '#140c1c', d: '#2a1a0e' };
+const BOAR_PAL: Pal = { b: '#9a6238', l: '#be8450', B: '#6a3e1e', k: '#3e2412', p: '#f0a8a8', P: '#c87878', t: '#fff6e0', e: '#1a1020', d: '#2a180a' };
 const BOAR_TOP = [
-  '......kk..kkkkkk........',
-  '.....kbbkkllllllkkk.....',
-  '....kbbblllllllllbbkk...',
-  '...bbbbbbbbbbbbbbbbbbb..',
-  '..bbebbbbbbbbbbbbbbbbbb.',
-  '.bbbbbbbbbbbbbbbbbbbbbb.',
-  'ppbbbbbbbbbbbbbbbbbbbbbk',
-  'ppbbbbbbbbbbbbbbbbbbbbk.',
-  'tpbBbbbbbbbbbbbbbbbbbb..',
-  '.tBBbbbbbbbbbbbbbbbbbb..',
-  '...BBBBBBBBBBBBBBBBBBB..',
+  '..........kk.kk..kkk..........',
+  '........kkbbkkbbbkkbkk........',
+  '......kbbbbbbbbbbbbbbbkk......',
+  '.....bbbllllllllllllbbbbk.....',
+  '....bblllllllllllllllbbbbk....',
+  '...bbelbbbbbbbbbbbbbbbbbbbk...',
+  '..bbbbbbbbbbbbbbbbbbbbbbbbbb..',
+  '.ppbbbbbbbbbbbbbbbbbbbbbbbbbk.',
+  'pPpPbbbbbbbbbbbbbbbbbbbbbbbbbk',
+  'pppPbbbbbbbbbbbbbbbbbbbbbbbbk.',
+  'tppbbbBbbbbbbbbbbbbbbbbbbbbb..',
+  't.tbBBBbbbbbbbbbbbbbbbbbbbbb..',
+  '.t..BBBBBBBBBBBBBBBBBBBBBBB...',
 ];
-const BOAR_LEGS_IDLE = ['...BB.BB.......BB.BB....', '...BB.BB.......BB.BB....', '...dd.dd.......dd.dd....'];
-const BOAR_LEGS_RUN = ['..BB...BB.....BB...BB...', '.BB.....BB...BB.....BB..', '.dd......dd.dd.......dd.'];
+const BOAR_LEGS_IDLE = ['....BBB.BBB.........BBB.BBB...', '....BBB.BBB.........BBB.BBB...', '....ddd.ddd.........ddd.ddd...'];
+const BOAR_LEGS_RUN = ['...BBB...BBB.......BBB...BBB..', '..BBB.....BBB.....BBB.....BBB.', '..ddd......ddd...ddd......ddd.'];
 
-const BANDIT_PAL = { c: '#5a4a6a', C: '#3a2e48', s: '#d8a880', m: '#c83a3a', e: '#140c1c', w: '#8a6a3a', k: '#2a2030', d: '#e8eef8', D: '#8890a8' };
+const BANDIT_PAL: Pal = { c: '#5e4e70', C: '#3e304e', s: '#e0b088', m: '#d23c3c', e: '#1a1020', w: '#8a6a3a', k: '#2a2030', d: '#eef3fa', D: '#9098b0' };
 const BANDIT = [
-  '......ccccc.......',
-  '.....ccccccc......',
-  '....ccccccccc.....',
-  '....cCsssssCc.....',
-  '....cmmmmmmmc.....',
-  '....memmemmmc.....',
-  '....csssssscc.....',
-  '.....cssssc.......',
-  '....ccccccccc.....',
-  '...cccccccccccc...',
-  '..scccccCccccccc..',
-  '.DsccccCcccccccc..',
-  'd..cccccCcccccc...',
-  '...ccwwwwwwwcc....',
-  '...cccccCcccccc...',
-  '...ccccc.ccccc....',
-  '...CCCC...CCCC....',
-  '...CCC.....CCC....',
-  '...kkk.....kkk....',
-  '..kkkk.....kkkk...',
+  '.......cccccc.......',
+  '......cccccccc......',
+  '.....ccCCCCCCcc.....',
+  '....ccCsssssCccc....',
+  '....cCsssssssCcc....',
+  '....cmmmmmmmmmcc....',
+  '....mmemmmemmmcc....',
+  '....cmmmmmmmmmcc....',
+  '....cCsssssssCc.....',
+  '.....cCssssCcc......',
+  '....ccccccccccc.....',
+  '...ccccccCccccccc...',
+  '..ccccccCcccccccccc.',
+  '.sscccccCcccccccccc.',
+  'dsscccccCccccccccc..',
+  'D..cccccCccccccccc..',
+  '...cwwwwwwwwwwwc....',
+  '...cccccccCcccccc...',
+  '...cccccc..cccccc...',
+  '...CCCCC....CCCCC...',
+  '...CCCC......CCCC...',
+  '...kkkk......kkkk...',
+  '..kkkkk......kkkkk..',
 ];
-const BANDIT_ATTACK_ARM = ['...cccccCccccccc..', 'dDsscccCcccccccc..', '...cccccCcccccc...'];
+const BANDIT_ATTACK_ARM = ['..ccccccCcccccccccc.', 'Ddsss.ccCcccccccccc.', '...ccccCccccccccc...', '...cccccCccccccccc..'];
 
-function mapFrame(rows: string[], pal: Record<string, string>, flash = false): HTMLCanvasElement {
+function mapFrame(rows: string[], pal: Pal, flash = false): HTMLCanvasElement {
   const w = Math.max(...rows.map((r) => r.length)) + 2;
   const g = grid(w, rows.length + 2);
-  stamp(g, rows, flash ? Object.fromEntries(Object.keys(pal).map((k) => [k, '#ffffff'])) : pal, 1, 1);
+  stamp(g, rows, flash ? whiteOut(pal) : pal, 1, 1);
   return toCanvas(g);
 }
 
-// ------------------------------------------------------------------ icons for blocks
+// ------------------------------------------------------------------ icons
 
+/** Single-color 5x5 icons drawn on blocks. */
 export const ICONS: Record<string, string[]> = {
   drop: ['..#..', '.###.', '#####', '#####', '.###.'],
   tusk: ['#....', '#....', '.#...', '..##.', '....#'],
@@ -250,7 +269,35 @@ export const ICONS: Record<string, string[]> = {
   speed: ['..#.#', '.#.#.', '#.#..', '.#.#.', '..#.#'],
 };
 
-// ------------------------------------------------------------------ background (dusk, layered)
+/** Multi-color HUD icons (k = outline). */
+export const HUD_ICONS: Record<string, { rows: string[]; pal: Record<string, number> }> = {
+  heart: {
+    rows: ['.kk.kk.', 'krrkrrk', 'krwrrrk', 'krrrrrk', '.krrrk.', '..krk..', '...k...'],
+    pal: { k: 0x1a1020, r: 0xe23a3a, w: 0xffb0b0 },
+  },
+  skull: {
+    rows: ['.kkkkk.', 'kwwwwwk', 'kwkwkwk', 'kwkwkwk', 'kwwkwwk', '.kwwwk.', '.kwkwk.', '..kkk..'],
+    pal: { k: 0x1a1020, w: 0xf2ecdc },
+  },
+  sword: {
+    rows: ['.....kk', '....kwk', '...kwk.', 'k.kwk..', 'kkwk...', '.kyk...', 'kk.kk..'],
+    pal: { k: 0x1a1020, w: 0xe2e8f2, y: 0xf2c230 },
+  },
+  crit: {
+    rows: ['.kkk.', '.kgk.', '.kgk.', '.kgk.', '.kkk.', '.kgk.', '.kkk.'],
+    pal: { k: 0x1a1020, g: 0x6ae05a },
+  },
+  bolt: {
+    rows: ['..kkk', '.kyk.', 'kyykk', 'kkyyk', '.kyk.', 'kyk..', 'kk...'],
+    pal: { k: 0x1a1020, y: 0x6ac8ff },
+  },
+  potion: {
+    rows: ['.kkk.', '..k..', '.kpk.', 'kpppk', 'kpwpk', 'kpppk', '.kkk.'],
+    pal: { k: 0x1a1020, p: 0xe05ab0, w: 0xffc0e8 },
+  },
+};
+
+// ------------------------------------------------------------------ background (bright forest clearing, framed)
 
 const BAYER = [
   [0, 8, 2, 10],
@@ -259,92 +306,143 @@ const BAYER = [
   [15, 7, 13, 5],
 ];
 
-function drawBackground(w: number, h: number, horizon: number): HTMLCanvasElement {
+function drawBackground(w: number, h: number, ground: number): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
   const ctx = c.getContext('2d')!;
-  // sky: dithered bands from deep violet to warm horizon
-  const stops = ['#1a1238', '#2e1f52', '#4a2a66', '#7a3a6e', '#b85a62', '#e88a5a'];
+  let seed = 23;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const px = (x: number, y: number, col: string) => {
+    ctx.fillStyle = col;
+    ctx.fillRect(x, y, 1, 1);
+  };
+  const horizon = ground - 30;
+
+  // sky
+  const stops = ['#58aee8', '#6ebcee', '#86caf2', '#9ed6f4', '#b8e2f6', '#d2eef8'];
   const bands = stops.length - 1;
   for (let y = 0; y < horizon; y++) {
     const f = (y / horizon) * bands;
     const i = Math.min(bands - 1, Math.floor(f));
     const t = f - i;
-    for (let x = 0; x < w; x++) {
-      const pick = t * 16 > BAYER[y % 4][x % 4] ? stops[i + 1] : stops[i];
-      ctx.fillStyle = pick;
-      ctx.fillRect(x, y, 1, 1);
-    }
+    for (let x = 0; x < w; x++) px(x, y, t * 16 > BAYER[y % 4][x % 4] ? stops[i + 1] : stops[i]);
   }
-  let seed = 11;
-  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  ctx.fillStyle = '#f0e8ff';
-  for (let i = 0; i < 50; i++) ctx.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * horizon * 0.35), 1, 1);
-  // setting sun
-  const sx = Math.round(w * 0.62);
-  const sy = horizon - 30;
-  for (let y = -12; y <= 12; y++)
-    for (let x = -12; x <= 12; x++) {
-      const d = Math.sqrt(x * x + y * y);
-      if (d > 12) continue;
-      if ((y + 12) % 4 === 3 && y > 0) continue; // retro sun stripes
-      ctx.fillStyle = d > 10 ? '#ffb86a' : '#ffe0a0';
-      ctx.fillRect(sx + x, sy + y, 1, 1);
-    }
-  // far mountains
-  const ridge = (base: number, amp: number, f1: number, f2: number, col: string, ph: number) => {
-    ctx.fillStyle = col;
+  // sun beams from the top left
+  ctx.globalAlpha = 0.16;
+  ctx.fillStyle = '#ffffff';
+  for (const [x0, wd] of [
+    [40, 14],
+    [90, 8],
+    [150, 18],
+    [230, 10],
+  ])
+    for (let y = 0; y < horizon; y++) ctx.fillRect(Math.round(x0 + y * 0.55), y, wd, 1);
+  ctx.globalAlpha = 1;
+
+  // puffy clouds along the horizon
+  const puff = (cx: number, cy: number, r: number) => {
+    for (let y = -r; y <= r; y++)
+      for (let x = -r; x <= r; x++) {
+        if (x * x + y * y > r * r) continue;
+        px(cx + x, cy + y, y > r * 0.35 ? '#d6ecf6' : '#ffffff');
+      }
+  };
+  for (let x = -10; x < w + 10; x += 9) puff(x, horizon - 26 + Math.round(Math.sin(x / 23) * 4), 6 + Math.round(rnd() * 5));
+
+  // far mountains, sunlit on their left-facing slopes
+  const ridgeY = (x: number, base: number, amp: number, f1: number, f2: number, ph: number) =>
+    Math.round(base - amp * (0.6 * Math.abs(Math.sin(x / f1 + ph)) + 0.4 * Math.sin(x / f2 + ph * 2)));
+  const ridge = (base: number, amp: number, f1: number, f2: number, col: string, hi: string, ph: number) => {
     for (let x = 0; x < w; x++) {
-      const y = Math.round(base - amp * (0.6 * Math.abs(Math.sin(x / f1 + ph)) + 0.4 * Math.sin(x / f2 + ph * 2)));
+      const y = ridgeY(x, base, amp, f1, f2, ph);
+      ctx.fillStyle = col;
       ctx.fillRect(x, y, 1, horizon - y + 1);
+      if (ridgeY(x - 1, base, amp, f1, f2, ph) > y) px(x, y, hi);
     }
   };
-  ridge(horizon - 14, 26, 37, 13, '#5a3a72', 0.3);
-  ridge(horizon - 6, 14, 23, 9, '#3e2c5c', 1.7);
-  // pine forest silhouette
-  ctx.fillStyle = '#22203e';
-  for (let x = -4; x < w; x += 7 + Math.floor(rnd() * 5)) {
-    const th = 12 + Math.floor(rnd() * 12);
-    for (let k = 0; k < th; k++) {
-      const half = Math.floor((k / th) * 5) + 1;
-      ctx.fillRect(x - half + 3, horizon - th + k, half * 2, 1);
-    }
+  ridge(horizon - 16, 22, 41, 15, '#8cc4b0', '#b4e0cc', 0.4);
+  ridge(horizon - 6, 12, 27, 11, '#6aac84', '#8ccaa0', 1.9);
+
+  // distant stone tower (generic ruin)
+  const tx = Math.round(w * 0.68);
+  const ty = horizon - 30;
+  ctx.fillStyle = '#c8c4b4';
+  ctx.fillRect(tx, ty, 9, 26);
+  ctx.fillStyle = '#a8a494';
+  ctx.fillRect(tx + 6, ty, 3, 26);
+  for (let k = 0; k < 9; k += 3) ctx.fillRect(tx + k, ty - 2, 2, 2);
+  ctx.fillStyle = '#5a6a8a';
+  ctx.fillRect(tx + 3, ty + 6, 2, 3);
+  ctx.fillRect(tx + 3, ty + 14, 2, 3);
+
+  // tree line: round canopies
+  const canopy = (cx: number, cy: number, r: number, dark: string, mid: string, light: string) => {
+    for (let y = -r; y <= r; y++)
+      for (let x = -r; x <= r; x++) {
+        if (x * x + y * y > r * r) continue;
+        px(cx + x, cy + y, x + y < -r * 0.5 ? light : x + y > r * 0.5 ? dark : mid);
+      }
+  };
+  for (let x = -6; x < w + 6; x += 7 + Math.floor(rnd() * 6)) canopy(x, horizon - 2 - Math.floor(rnd() * 6), 6 + Math.floor(rnd() * 4), '#2e6e3e', '#3e8a4a', '#5aa85a');
+  for (let x = -6; x < w + 6; x += 9 + Math.floor(rnd() * 6)) canopy(x, horizon + 3, 5 + Math.floor(rnd() * 3), '#2a6438', '#367c44', '#4e9a54');
+
+  // meadow
+  for (let y = horizon + 6; y < ground - 8; y++) {
+    const t = (y - horizon) / Math.max(1, ground - 8 - horizon);
+    for (let x = 0; x < w; x++) px(x, y, t * 16 > BAYER[y % 4][x % 4] ? '#5ea844' : '#78bc50');
   }
-  ctx.fillRect(0, horizon - 3, w, 3);
-  // ground
-  ctx.fillStyle = '#3e6a3a';
-  ctx.fillRect(0, horizon, w, 2);
-  ctx.fillStyle = '#2e4e2e';
-  ctx.fillRect(0, horizon + 2, w, h - horizon - 2);
-  ctx.fillStyle = '#5a8a46';
-  for (let x = 0; x < w; x += 2) if (rnd() < 0.6) ctx.fillRect(x, horizon - 1, 1, 1 + (rnd() < 0.3 ? 1 : 0));
-  // dirt path where the fight happens
-  ctx.fillStyle = '#5a4630';
-  ctx.fillRect(0, horizon + 4, w, Math.max(3, h - horizon - 8));
-  ctx.fillStyle = '#6e563a';
-  for (let i = 0; i < 90; i++) ctx.fillRect(Math.floor(rnd() * w), horizon + 5 + Math.floor(rnd() * Math.max(1, h - horizon - 10)), 2, 1);
-  ctx.fillStyle = '#243c26';
-  for (let i = 0; i < 40; i++) ctx.fillRect(Math.floor(rnd() * w), horizon + 2 + Math.floor(rnd() * 2), 1, 1);
+  for (let i = 0; i < 70; i++) {
+    const x = Math.floor(rnd() * w);
+    const y = horizon + 8 + Math.floor(rnd() * Math.max(1, ground - 18 - horizon));
+    px(x, y, rnd() < 0.5 ? '#ffffff' : '#a8d0ff');
+  }
+
+  // dirt path the fight happens on
+  for (let y = ground - 8; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const edge = y < ground - 6;
+      px(x, y, edge ? '#5a9a3a' : (x * 7 + y * 13) % 29 === 0 ? '#8a6a40' : y > ground + 2 ? '#a07a4c' : '#b48c5a');
+    }
+  for (let x = 0; x < w; x += 2) if (rnd() < 0.7) px(x, ground - 9, '#4a8a30');
+  for (let i = 0; i < 50; i++) {
+    ctx.fillStyle = '#c8a070';
+    ctx.fillRect(Math.floor(rnd() * w), ground - 4 + Math.floor(rnd() * Math.max(1, h - ground + 4)), 2, 1);
+  }
+
+  // framing trees on both edges, leaves over the top corners
+  const trunk = (x0: number, width: number) => {
+    for (let x = x0; x < x0 + width; x++)
+      for (let y = 0; y < h; y++) {
+        const k = x - x0;
+        px(x, y, k === 0 || k === width - 1 ? '#22160c' : (k + Math.floor(y / 5)) % 6 === 0 ? '#5e4228' : k < width / 3 ? '#4a321e' : '#3a2616');
+      }
+  };
+  trunk(-2, 18);
+  trunk(w - 16, 18);
+  for (let i = 0; i < 26; i++) {
+    const left = i % 2 === 0;
+    const cx = left ? Math.floor(rnd() * 60) - 6 : w - Math.floor(rnd() * 60) + 6;
+    canopy(cx, Math.floor(rnd() * 14) - 4, 7 + Math.floor(rnd() * 5), '#1e4a26', '#2a6232', '#3a7a3e');
+  }
   return c;
 }
 
 function drawClouds(w: number): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = w;
-  c.height = 30;
+  c.height = 26;
   const ctx = c.getContext('2d')!;
   let seed = 5;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 5; i++) {
     const cx = Math.floor(rnd() * w);
-    const cy = 6 + Math.floor(rnd() * 18);
-    const len = 20 + Math.floor(rnd() * 30);
-    for (let k = 0; k < 4; k++) {
-      const yy = cy + k;
-      const inset = Math.abs(k - 1) * 4;
-      ctx.fillStyle = k === 0 ? '#c88aa0' : k === 3 ? '#6a3a6a' : '#9a5a82';
-      for (let x = cx + inset; x < cx + len - inset; x++) ctx.fillRect(((x % w) + w) % w, yy, 1, 1);
+    const cy = 6 + Math.floor(rnd() * 12);
+    const len = 22 + Math.floor(rnd() * 26);
+    for (let k = 0; k < 5; k++) {
+      const inset = Math.abs(k - 1.5) * 3;
+      ctx.fillStyle = k >= 3 ? '#d6ecf6' : '#ffffff';
+      for (let x = Math.round(cx + inset); x < cx + len - inset; x++) ctx.fillRect(((x % w) + w) % w, cy + k, 1, 1);
     }
   }
   return c;
@@ -352,16 +450,15 @@ function drawClouds(w: number): HTMLCanvasElement {
 
 // ------------------------------------------------------------------ build
 
-export function buildArt(scene: Phaser.Scene, w: number, h: number, horizon: number): void {
+export function buildArt(scene: Phaser.Scene, w: number, h: number, ground: number): void {
   const add = (key: string, canvas: HTMLCanvasElement) => {
     if (scene.textures.exists(key)) scene.textures.remove(key);
     scene.textures.addCanvas(key, canvas);
   };
   for (const [name, pose] of Object.entries(HERO_POSES)) add(`hero_${name}`, heroFrame(pose));
-  // slimes: idle0/1 squish, windup (tall), attack (lean left), hurt (squashed), flash
   const slimes: Array<[string, number, number]> = [
-    ['slime', 9, 8],
-    ['bigslime', 17, 14],
+    ['slime', 13, 11],
+    ['bigslime', 25, 21],
   ];
   for (const [key, rx, ry] of slimes) {
     add(`${key}_idle0`, slimeFrame(rx, ry, 0, 0));
@@ -374,18 +471,62 @@ export function buildArt(scene: Phaser.Scene, w: number, h: number, horizon: num
   const boarIdle = [...BOAR_TOP, ...BOAR_LEGS_IDLE];
   const boarRun = [...BOAR_TOP, ...BOAR_LEGS_RUN];
   add('boar_idle0', mapFrame(boarIdle, BOAR_PAL));
-  add('boar_idle1', mapFrame(['.'.repeat(24), ...BOAR_TOP, BOAR_LEGS_IDLE[1], BOAR_LEGS_IDLE[2]], BOAR_PAL));
+  add('boar_idle1', mapFrame(['.'.repeat(30), ...BOAR_TOP, BOAR_LEGS_IDLE[1], BOAR_LEGS_IDLE[2]], BOAR_PAL));
   add('boar_windup', mapFrame(boarRun, BOAR_PAL));
   add('boar_attack', mapFrame(boarRun, BOAR_PAL));
   add('boar_hurt', mapFrame(boarIdle, BOAR_PAL));
   add('boar_flash', mapFrame(boarIdle, BOAR_PAL, true));
-  const banditAttack = [...BANDIT.slice(0, 10), ...BANDIT_ATTACK_ARM, ...BANDIT.slice(13)];
+  const banditAttack = [...BANDIT.slice(0, 12), ...BANDIT_ATTACK_ARM, ...BANDIT.slice(16)];
   add('bandit_idle0', mapFrame(BANDIT, BANDIT_PAL));
-  add('bandit_idle1', mapFrame(['.'.repeat(18), ...BANDIT.slice(0, 8), ...BANDIT.slice(9)], BANDIT_PAL));
+  add('bandit_idle1', mapFrame(['.'.repeat(20), ...BANDIT.slice(0, 10), ...BANDIT.slice(11)], BANDIT_PAL));
   add('bandit_windup', mapFrame(BANDIT, BANDIT_PAL));
   add('bandit_attack', mapFrame(banditAttack, BANDIT_PAL));
   add('bandit_hurt', mapFrame(BANDIT, BANDIT_PAL));
   add('bandit_flash', mapFrame(BANDIT, BANDIT_PAL, true));
-  add('bg', drawBackground(w, h, horizon));
+  add('bg', drawBackground(w, h, ground));
   add('clouds', drawClouds(w));
+}
+
+/** Bottom panel: a wooden band holding the bar, over a stone strip (CQ2-style composition, original art). */
+export function buildPanel(scene: Phaser.Scene, w: number, h: number, bandH: number): void {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d')!;
+  const fill = (x: number, y: number, ww: number, hh: number, col: string) => {
+    ctx.fillStyle = col;
+    ctx.fillRect(x, y, ww, hh);
+  };
+  let seed = 41;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  // wood planks
+  fill(0, 0, w, bandH, '#7a4a28');
+  const plankH = Math.ceil(bandH / 3);
+  for (let p = 0; p < 3; p++) {
+    const y0 = p * plankH;
+    fill(0, y0, w, 1, '#94603a');
+    fill(0, y0 + plankH - 1, w, 1, '#4e2c14');
+    for (let i = 0; i < 40; i++) fill(Math.floor(rnd() * w), y0 + 2 + Math.floor(rnd() * (plankH - 4)), 3 + Math.floor(rnd() * 8), 1, '#6a3e20');
+    for (let x = (p * 37) % 70; x < w; x += 70) {
+      fill(x, y0, 1, plankH, '#4e2c14');
+      fill(x + 3, y0 + 3, 1, 1, '#3a200e');
+      fill(x - 4, y0 + plankH - 4, 1, 1, '#3a200e');
+    }
+  }
+  fill(0, 0, w, 2, '#2e1a0c');
+  fill(0, 2, w, 1, '#b07a48');
+  // stone strip
+  fill(0, bandH, w, h - bandH, '#5c5c68');
+  fill(0, bandH, w, 2, '#2a2a32');
+  fill(0, bandH + 2, w, 1, '#8a8a96');
+  for (let row = 0; bandH + 3 + row * 9 < h; row++) {
+    const y0 = bandH + 3 + row * 9;
+    fill(0, y0 + 8, w, 1, '#44444e');
+    for (let x = (row % 2) * 9; x < w; x += 18) {
+      fill(x, y0, 1, 8, '#44444e');
+      fill(x + 1, y0, 16, 1, '#6c6c78');
+    }
+  }
+  if (scene.textures.exists('panel')) scene.textures.remove('panel');
+  scene.textures.addCanvas('panel', c);
 }
