@@ -49,6 +49,11 @@ npm run icons        # regenerate public/icons
 
 Playwright uses the preinstalled Chromium (`PLAYWRIGHT_BROWSERS_PATH`); never run `playwright install`.
 
+## Backlog
+
+Meta-game features the playtester wants later (loot, chest roll, map, loadout, upgrades) are listed in
+`docs/backlog.md`.
+
 ## Deploy
 
 - `.github/workflows/deploy.yml`: on push to **any** branch, run tests, build, publish `dist/` to the
