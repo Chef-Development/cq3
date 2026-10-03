@@ -39,9 +39,9 @@ export const DEFAULT_TUNING = {
     missSelfDamage: 3, // Classic mode: damage for tapping empty bar
   },
   blocks: {
-    attackWidth: 0.075, // yellow/green width (fraction of bar)
-    redWidth: 0.065,
-    trapWidth: 0.075,
+    attackWidth: 0.1, // yellow/green width (fraction of bar)
+    redWidth: 0.09,
+    trapWidth: 0.1,
     redTravelSec: 2.5, // right end -> left end
     impactGraceMs: 60, // red block sits at the left end this long (still blockable) before hitting
     trapLifeSec: 4,
@@ -50,14 +50,14 @@ export const DEFAULT_TUNING = {
     bombRadius: 0.2, // fraction of bar, measured from the bomb's center
     bombDamage: 15, // to every enemy when a bomb is tapped
     bombHitMult: 1.5, // bomb that reaches you hits this much harder
-    maxStatic: 6, // max yellow/green/purple on the bar
+    maxStatic: 7, // max yellow/green/purple on the bar
     minAttack: 2, // if fewer yellow/green than this are on the bar, add one right away
     maxRed: 3,
     spawnRateMult: 1, // >1 = slower spawns
     groupSpawnMult: 1.6, // extra spawn interval multiplier when 2+ enemies share the screen
     openingSpawns: 3, // yellow blocks placed at the start of a fight
-    minGap: 0.025, // min empty space between static blocks
-    edgeMargin: 0.04,
+    minGap: 0, // min empty space between static blocks (0 = they may touch)
+    edgeMargin: 0.02,
   },
   hero: {
     maxHp: 100,

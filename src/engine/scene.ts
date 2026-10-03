@@ -8,10 +8,10 @@ import { buildFont, FONT, FONT_BOLD, fontText, textWidth } from './font';
 import { GAME_H, GAME_W } from './layout';
 
 const COL = {
-  yellow: [0xf2c230, 0xffe680, 0xb08a10],
-  green: [0x4fc45a, 0xa4f2a8, 0x2e8a3a],
-  red: [0xe0463c, 0xff8a7a, 0x9a2a24],
-  purple: [0x9b4fd6, 0xd6a4ff, 0x6a2a9a],
+  yellow: [0xe8b42c, 0xfff0a0, 0xa87414],
+  green: [0x48c050, 0xb0f4a8, 0x2a7a32],
+  red: [0xd83434, 0xff8a7a, 0x8a1a1a],
+  purple: [0x9a4ad8, 0xdab0ff, 0x5a2888],
 } as const;
 const kindCol = (k: BlockKind) => (k === 'yellow' ? COL.yellow : k === 'green' ? COL.green : k === 'purple' ? COL.purple : COL.red);
 const ENEMY_COL: Record<string, number> = { slime: 0x4fc4a0, bigslime: 0x4fc4a0, boar: 0x8a5a34, bandit: 0x5a4a6a };
@@ -152,6 +152,8 @@ export class FightScene extends Phaser.Scene implements View {
   private slashes: Array<{ x: number; y: number; at: number; big: boolean; dir: number; color: number }> = [];
   private rings: Array<{ x: number; y: number; at: number; r: number; color: number; world: boolean }> = [];
   private explodeFx: { x: number; r: number; until: number } | null = null;
+  private beams: Array<{ x: number; at: number; color: number }> = [];
+  private stars: Array<{ x: number; y: number; at: number; r: number; color: number }> = [];
   private heroHpShown = 0;
   private lastMilestone = 0;
 
@@ -228,6 +230,8 @@ export class FightScene extends Phaser.Scene implements View {
     this.pending = [];
     this.slashes = [];
     this.rings = [];
+    this.beams = [];
+    this.stars = [];
     this.back.removeAll(true);
     this.actors.removeAll(true);
     this.fxLayer.removeAll(true);
@@ -269,11 +273,14 @@ export class FightScene extends Phaser.Scene implements View {
     return -1;
   }
 
+  /** Boost choices: a wooden panel with three stacked buttons (hit-tested by index). */
+  private boostPanel(): Rect {
+    return { x: Math.round(GAME_W / 2 - 85), y: 25, w: 170, h: 148 };
+  }
+
   private cardRect(i: number): Rect {
-    const w = 112;
-    const gap = 10;
-    const x0 = Math.round(GAME_W / 2 - (w * 3 + gap * 2) / 2);
-    return { x: x0 + i * (w + gap), y: 74, w, h: 64 };
+    const p = this.boostPanel();
+    return { x: p.x + 10, y: p.y + 24 + i * 41, w: p.w - 20, h: 35 };
   }
 
   // ------------------------------------------------------------------ events
@@ -295,6 +302,7 @@ export class FightScene extends Phaser.Scene implements View {
           const perfect = e.perfect;
           this.judge(x, perfect ? 'PERFECT!' : e.crit ? 'CRIT!' : 'HIT', perfect ? 0xfff07a : e.crit ? 0xff9a3a : WHITE, perfect || e.crit);
           this.cursorPulse(perfect ? 0xfff07a : kindCol(e.kind)[1]);
+          this.cursorHit(x, perfect ? 0x6aff5a : WHITE);
           if (perfect) this.sparkle(x, this.bar.y + this.bar.h / 2);
           this.comboPopAt = now;
           this.milestone(e.combo);
@@ -305,6 +313,7 @@ export class FightScene extends Phaser.Scene implements View {
           const x = this.barX(e.pos);
           this.judge(x, e.perfect ? 'PERFECT!' : e.cracked ? 'CRACK' : 'BLOCK', e.perfect ? 0xfff07a : 0x7ae0ff, e.perfect);
           this.cursorPulse(0x7ae0ff);
+          this.cursorHit(x, e.perfect ? 0x6aff5a : 0x7ae0ff);
           this.comboPopAt = now;
           this.milestone(e.combo);
           this.heroParry(e.ownerId, e.cracked);
@@ -344,7 +353,7 @@ export class FightScene extends Phaser.Scene implements View {
             this.h.hurtUntil = this.anim + 220;
             this.h.flashUntil = this.anim + J.flashMs * 1.5;
             this.h.flashColor = 0xff3030;
-            if (e.damage > 0 || this.app.settings.godMode) this.floatNum(this.h.x, this.ground - 40, `-${e.damage}`, 0xff5a5a, 1);
+            if (e.damage > 0 || this.app.settings.godMode) this.floatNum(this.h.x, this.ground - 40, `${e.damage}`, 0xff4a4a, 2);
             this.burst(this.h.x + 4, this.ground - 16, 0xff5a5a, e.source === 'miss' ? 3 : 10, true);
             this.shake(e.source === 'miss' ? J.shakeMinPx : J.shakeMaxPx, J.shakeMs);
           });
@@ -455,9 +464,10 @@ export class FightScene extends Phaser.Scene implements View {
     v.knockUntil = this.anim + (crit || finisher ? 140 : 90);
     if (!v.dieAt) this.setEnemyPose(v, 'hurt', 140);
     const big = crit || finisher;
-    const col = finisher ? 0xff8a2a : crit ? 0xffd23a : perfect ? 0xfff07a : WHITE;
-    this.floatNum(v.x + rand(-6, 6), v.y - v.img.displayHeight - 6, `${damage}${crit ? '!' : ''}`, col, big ? 2 : 1);
-    this.slashes.push({ x: v.x, y: cy, at: this.anim, big, dir: this.h.alt ? 1 : -1, color: crit ? 0xffd23a : WHITE });
+    const col = finisher ? 0xff8a2a : crit ? 0xffb020 : perfect ? 0xfff07a : 0xffe040;
+    if (big) this.stars.push({ x: v.x, y: cy - 8, at: this.anim, r: finisher ? 30 : 22, color: finisher ? 0xffb03a : 0xfff07a });
+    this.floatNum(v.x + rand(-6, 6), v.y - v.img.displayHeight - 8, `${damage}`, col, big ? 3 : 2);
+    this.slashes.push({ x: v.x, y: cy, at: this.anim, big, dir: this.h.alt ? 1 : -1, color: crit ? 0xffd23a : 0x6ab4ff });
     this.burst(v.x - 4, cy, WHITE, big ? 14 : 7, true, big ? 1.5 : 1, true);
     if (big) this.ring(v.x, cy, 26, col, true);
     this.shake(big ? J.shakeMaxPx : J.shakeMinPx, J.shakeMs * (big ? 1.4 : 0.7));
@@ -565,6 +575,14 @@ export class FightScene extends Phaser.Scene implements View {
   private cursorPulse(color: number): void {
     this.cursorPulseAt = performance.now();
     this.cursorPulseColor = color;
+  }
+
+  /** Ring + vertical beam shooting up from the bar where a block was hit. */
+  private cursorHit(x: number, color: number): void {
+    const y = this.bar.y + this.bar.h / 2;
+    this.ring(x, y, 18, color, false);
+    this.beams.push({ x: Math.round(x), at: performance.now(), color });
+    this.burst(x, y, WHITE, 8, false, 1.3, true);
   }
 
   private ring(x: number, y: number, r: number, color: number, world: boolean): void {
@@ -826,16 +844,39 @@ export class FightScene extends Phaser.Scene implements View {
         this.slashes.splice(i, 1);
         continue;
       }
-      const r = s.big ? 20 : 13;
+      const r = s.big ? 24 : 18;
       const span = Math.PI * (0.25 + 0.75 * ease(clamp01(k * 1.6)));
       const a0 = s.dir > 0 ? -Math.PI * 0.85 : -Math.PI * 0.15 - span;
-      const thick = s.big ? 3 : 2;
+      const thick = s.big ? 5 : 4;
       for (let j = 0; j <= 24; j++) {
         const ang = a0 + (span * j) / 24;
         const w = Math.max(1, Math.round(thick * Math.sin((j / 24) * Math.PI) * (1 - k)));
-        g.fillStyle(j > 16 ? s.color : WHITE, 1 - k * 0.6);
+        g.fillStyle(j > 8 ? s.color : WHITE, 1 - k * 0.6);
         g.fillRect(Math.round(s.x + Math.cos(ang) * r), Math.round(s.y + Math.sin(ang) * r * 0.75), w, w);
       }
+    }
+    // crit / finisher starbursts behind the numbers
+    for (let i = this.stars.length - 1; i >= 0; i--) {
+      const st = this.stars[i];
+      const k = (this.anim - st.at) / 260;
+      if (k >= 1) {
+        this.stars.splice(i, 1);
+        continue;
+      }
+      const r = st.r * (0.5 + 0.5 * ease(clamp01(k * 2)));
+      const star = (rad: number) => {
+        const pts: Phaser.Math.Vector2[] = [];
+        for (let p = 0; p < 20; p++) {
+          const ang = (p / 20) * Math.PI * 2 + st.at;
+          const rr = p % 2 ? rad * 0.55 : rad;
+          pts.push(new Phaser.Math.Vector2(Math.round(st.x + Math.cos(ang) * rr), Math.round(st.y + Math.sin(ang) * rr * 0.85)));
+        }
+        return pts;
+      };
+      g.fillStyle(st.color, 1 - k);
+      g.fillPoints(star(r), true);
+      g.fillStyle(WHITE, 1 - k);
+      g.fillPoints(star(r * 0.6), true);
     }
     this.drawRings(g, now, true);
     this.drawParticles(g, now, true);
@@ -898,7 +939,17 @@ export class FightScene extends Phaser.Scene implements View {
     }
   }
 
-  private hudBar(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, frac: number, ghost: number, fill = 0x64c83c, hi = 0xa8f070, lo = 0x3e9228): void {
+  private hudBar(
+    g: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    frac: number,
+    ghost: number,
+    o: { fill?: number; hi?: number; lo?: number; bg?: number; mirror?: boolean } = {},
+  ): void {
+    const fill = o.fill ?? 0x64c83c;
     g.fillStyle(INK, 1);
     g.fillRect(x - 2, y - 1, w + 4, h + 2);
     g.fillRect(x - 1, y - 2, w + 2, h + 4);
@@ -906,18 +957,29 @@ export class FightScene extends Phaser.Scene implements View {
     g.fillRect(x - 1, y - 1, w + 2, h + 2);
     g.fillStyle(0x8a8ea0, 1);
     g.fillRect(x - 1, y + h, w + 2, 1);
-    g.fillStyle(0x24242e, 1);
+    g.fillStyle(o.bg ?? 0xb82828, 1);
     g.fillRect(x, y, w, h);
     const gw = Math.round(w * clamp01(ghost));
     const fw = Math.round(w * clamp01(frac));
+    const at = (len: number) => (o.mirror ? x + w - len : x);
     g.fillStyle(WHITE, 0.9);
-    g.fillRect(x, y, gw, h);
+    g.fillRect(at(gw), y, gw, h);
     g.fillStyle(fill, 1);
-    g.fillRect(x, y, fw, h);
-    g.fillStyle(hi, 1);
-    g.fillRect(x, y, fw, 2);
-    g.fillStyle(lo, 1);
-    g.fillRect(x, y + h - 2, fw, 2);
+    g.fillRect(at(fw), y, fw, h);
+    g.fillStyle(o.hi ?? 0xa8f070, 1);
+    g.fillRect(at(fw), y, fw, 2);
+    g.fillStyle(o.lo ?? 0x3e9228, 1);
+    g.fillRect(at(fw), y + h - 2, fw, 2);
+  }
+
+  /** Filled rectangle with corners rounded by roughly `r` pixels. */
+  private roundRect(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, r: number, color: number): void {
+    g.fillStyle(color, 1);
+    for (let i = 0; i < h; i++) {
+      const d = Math.min(i, h - 1 - i);
+      const inset = d >= r ? 0 : Math.round(r - Math.sqrt(Math.max(0, r * r - (r - d - 0.5) ** 2)));
+      g.fillRect(x + inset, y + i, w - inset * 2, 1);
+    }
   }
 
   private hudIcon(g: Phaser.GameObjects.Graphics, key: string, x: number, y: number, scale = 1): void {
@@ -955,7 +1017,7 @@ export class FightScene extends Phaser.Scene implements View {
     if (target) {
       const v = this.enemies.get(target.id);
       const bx = this.R - 104;
-      this.hudBar(g, bx, 15, 86, 10, target.hp / target.maxHp, (v?.hpShown ?? target.hp) / target.maxHp);
+      this.hudBar(g, bx, 15, 86, 10, target.hp / target.maxHp, (v?.hpShown ?? target.hp) / target.maxHp, { mirror: true });
       this.hudIcon(g, 'skull', this.R - 16, 12, 2);
       this.hudIcon(g, 'sword', this.R - 11, 31);
     }
@@ -982,7 +1044,7 @@ export class FightScene extends Phaser.Scene implements View {
 
     // finisher meter on the stone strip, combo count to its left
     const m = this.meter;
-    this.hudBar(g, m.x, m.y, m.w, m.h, c.meter, c.meter, ready ? (pulse ? 0xffffff : 0x7ad8ff) : 0x3ab0ff, 0xa8e4ff, 0x1e78c8);
+    this.hudBar(g, m.x, m.y, m.w, m.h, c.meter, c.meter, { fill: ready ? (pulse ? 0xffffff : 0x7ad8ff) : 0x3ab0ff, hi: 0xa8e4ff, lo: 0x1e78c8, bg: 0x1e1e2a });
     this.hudIcon(g, 'bolt', this.L + 6, m.y - 1);
   }
 
@@ -992,22 +1054,18 @@ export class FightScene extends Phaser.Scene implements View {
     const c = this.app.run.combat;
     const B = this.bar;
     const bx = now < this.barShakeUntil ? Math.round(rand(-2, 2)) : 0;
-    // metal frame with rounded corners and rivets
-    const fx = B.x - 4 + bx;
+    // metal frame: a capsule with rivets at both ends
+    const fx = B.x - 8 + bx;
     const fy = B.y - 4;
-    const fw = B.w + 8;
+    const fw = B.w + 16;
     const fh = B.h + 8;
-    g.fillStyle(INK, 1);
-    g.fillRect(fx - 1, fy + 1, fw + 2, fh - 2);
-    g.fillRect(fx + 1, fy - 1, fw - 2, fh + 2);
-    g.fillRect(fx, fy, fw, fh);
-    g.fillStyle(0xc4c8d6, 1);
-    g.fillRect(fx + 1, fy + 1, fw - 2, fh - 2);
+    this.roundRect(g, fx - 1, fy - 1, fw + 2, fh + 2, 8, INK);
+    this.roundRect(g, fx, fy, fw, fh, 7, 0xc4c8d6);
     g.fillStyle(0xf2f4fa, 1);
-    g.fillRect(fx + 2, fy + 1, fw - 4, 1);
+    g.fillRect(fx + 6, fy + 1, fw - 12, 1);
     g.fillStyle(0x7c8096, 1);
-    g.fillRect(fx + 2, fy + fh - 2, fw - 4, 1);
-    for (const rx of [fx + 1, fx + fw - 4]) {
+    g.fillRect(fx + 6, fy + fh - 2, fw - 12, 1);
+    for (const rx of [fx + 3, fx + fw - 6]) {
       g.fillStyle(0x7c8096, 1);
       g.fillRect(rx + 1, fy + fh / 2 - 2, 1, 4);
       g.fillRect(rx, fy + fh / 2 - 1, 3, 2);
@@ -1026,10 +1084,9 @@ export class FightScene extends Phaser.Scene implements View {
     g.fillRect(B.x + bx, B.y, 2, B.h);
     if (!c) return;
 
-    const perfectFrac = this.app.tuning.judge.perfectFrac;
     const group = c.enemies.length > 1;
-    for (const b of c.blocks) if (!isRed(b.kind)) this.drawBlock(g, b, c, t, now, perfectFrac, group, bx);
-    for (const b of c.blocks) if (isRed(b.kind)) this.drawBlock(g, b, c, t, now, perfectFrac, group, bx);
+    for (const b of c.blocks) if (!isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
+    for (const b of c.blocks) if (isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
 
     if (this.explodeFx && now < this.explodeFx.until) {
       const k = 1 - (this.explodeFx.until - now) / 260;
@@ -1074,71 +1131,89 @@ export class FightScene extends Phaser.Scene implements View {
       g.fillRect(cx, cy, 1, 1);
     }
 
+    for (let i = this.beams.length - 1; i >= 0; i--) {
+      const bm = this.beams[i];
+      const k = (now - bm.at) / 200;
+      if (k >= 1) {
+        this.beams.splice(i, 1);
+        continue;
+      }
+      const top = Math.round(this.ground - 40 - 30 * k);
+      const w = Math.max(1, Math.round(4 * (1 - k)));
+      g.fillStyle(bm.color, 0.9 * (1 - k));
+      g.fillRect(bm.x - Math.floor(w / 2), top, w, B.y - top);
+      g.fillStyle(WHITE, 0.9 * (1 - k));
+      g.fillRect(bm.x, top, 1, B.y - top);
+    }
     this.drawRings(g, now, false);
     this.drawParticles(g, now, false);
   }
 
-  private drawBlock(g: Phaser.GameObjects.Graphics, b: Block, c: Combat, t: number, now: number, perfectFrac: number, group: boolean, bx: number): void {
+  private drawBlock(g: Phaser.GameObjects.Graphics, b: Block, c: Combat, t: number, now: number, group: boolean, bx: number): void {
     const B = this.bar;
     const pos = c.blockPosAt(b, t);
-    const w = Math.max(4, Math.round(b.width * B.w));
+    // Chunky bricks that stick out above and below the track; 1px seam when they touch.
+    const w = Math.max(6, Math.round(b.width * B.w) - 1);
     const x = Math.round(B.x + pos * B.w - w / 2) + bx;
-    const y = B.y + 2;
-    const h = B.h - 4;
+    const h = B.h + 10;
+    const y = B.y - 5;
     if (b.kind === 'purple' && b.life < 1 && Math.floor(now / 90) % 2 === 0) return;
     const [base, light, dark] = kindCol(b.kind);
     if (b.push > 0)
       for (let i = 1; i <= 3; i++) {
-        g.fillStyle(light, 0.45 / i);
-        g.fillRect(x - i * 6, y + 2, w, h - 4);
+        g.fillStyle(light, 0.4 / i);
+        g.fillRect(x - i * 6, y + 3, w, h - 6);
       }
     const impacting = b.impactTimer >= 0 && Math.floor(now / 40) % 2 === 0;
-    // fresh blocks pop in
     const age = c.time - b.bornAt;
-    const grow = age < 0.08 ? Math.round((1 - age / 0.08) * 3) : 0;
+    const grow = age < 0.08 ? Math.round((1 - age / 0.08) * 3) : 0; // fresh blocks pop in
+    const X = x - grow;
+    const Y = y - grow;
+    const W = w + grow * 2;
+    const H = h + grow * 2;
     g.fillStyle(INK, 1);
-    g.fillRect(x - 1 - grow, y - 1 - grow, w + 2 + grow * 2, h + 2 + grow * 2);
+    g.fillRect(X - 1, Y, W + 2, H);
+    g.fillRect(X, Y - 1, W, H + 2);
     g.fillStyle(impacting ? WHITE : base, 1);
-    g.fillRect(x - grow, y - grow, w + grow * 2, h + grow * 2);
-    g.fillStyle(light, 1);
-    g.fillRect(x, y, w, 2);
-    g.fillRect(x, y, 1, h);
+    g.fillRect(X, Y, W, H);
+    g.fillStyle(impacting ? WHITE : light, 1);
+    g.fillRect(X + 1, Y, W - 2, 2);
+    g.fillRect(X, Y + 1, 1, H - 3);
     g.fillStyle(dark, 1);
-    g.fillRect(x, y + h - 2, w, 2);
-    g.fillRect(x + w - 1, y, 1, h);
-    // perfect zone
-    const pw = Math.max(1, Math.round(w * perfectFrac));
-    g.fillStyle(light, 0.5);
-    g.fillRect(Math.round(x + (w - pw) / 2), y + 2, pw, h - 4);
+    g.fillRect(X + 1, Y + H - 3, W - 2, 3);
+    g.fillRect(X + W - 1, Y + 1, 1, H - 3);
+    g.fillStyle(WHITE, 1);
+    g.fillRect(X + W - 4, Y + 1, 2, 1);
+    g.fillRect(X + 2, Y + H - 4, 2, 1);
     if (b.kind === 'shield') {
       g.fillStyle(0xdfe6f2, 1);
-      g.fillRect(x, y, 2, h);
-      g.fillRect(x + w - 2, y, 2, h);
+      g.fillRect(X + 1, Y + 2, 2, H - 5);
+      g.fillRect(X + W - 3, Y + 2, 2, H - 5);
       if (b.taps <= 1) {
         g.fillStyle(INK, 1);
-        g.fillRect(x + 3, y + 2, 1, 4);
-        g.fillRect(x + 4, y + 6, 1, 3);
-        g.fillRect(x + 3, y + 9, 1, 3);
+        g.fillRect(X + 5, Y + 3, 1, 5);
+        g.fillRect(X + 6, Y + 8, 1, 4);
+        g.fillRect(X + 5, Y + 12, 1, 4);
       }
     }
-    const cx = Math.round(x + w / 2 - 2.5);
+    const cx = Math.round(X + W / 2 - 2.5);
+    const cy = Math.round(Y + H / 2 - 3);
     if (isRed(b.kind)) {
       const variant = b.kind === 'red' ? null : ICONS[b.kind];
       const owner = c.enemyById(b.ownerId);
-      const ownerIcon = owner ? ICONS[this.app.tuning.enemies[owner.key].icon] : null;
+      const ownerIcon = group && owner ? ICONS[this.app.tuning.enemies[owner.key].icon] : null;
       if (variant) {
-        this.icon(g, variant, cx, y + h - 7, b.kind === 'speed' ? 0xffe680 : INK);
-        if (group && ownerIcon) this.icon(g, ownerIcon, cx, y + 1, WHITE);
-      } else if (ownerIcon) this.icon(g, ownerIcon, cx, y + Math.round((h - 5) / 2), WHITE);
+        this.icon(g, variant, cx, ownerIcon ? cy + 3 : cy, b.kind === 'speed' ? 0xffe680 : INK);
+        if (ownerIcon) this.icon(g, ownerIcon, cx, cy - 5, WHITE);
+      } else if (ownerIcon) this.icon(g, ownerIcon, cx, cy, WHITE);
     } else if (b.kind === 'purple') {
-      g.fillStyle(INK, 1);
-      g.fillRect(cx + 1, y + 2, 3, 1);
-      g.fillRect(cx + 2, y + 3, 1, 4);
-      g.fillRect(cx + 2, y + 8, 1, 1);
+      g.fillStyle(WHITE, 1);
+      g.fillRect(cx + 2, cy - 1, 2, 5);
+      g.fillRect(cx + 2, cy + 6, 2, 2);
     } else if (b.kind === 'green') {
       g.fillStyle(WHITE, 1);
-      g.fillRect(cx + 2, y + 2, 1, 5);
-      g.fillRect(cx, y + 4, 5, 1);
+      g.fillRect(cx + 2, cy - 1, 2, 8);
+      g.fillRect(cx - 1, cy + 2, 8, 2);
     }
   }
 
@@ -1178,7 +1253,7 @@ export class FightScene extends Phaser.Scene implements View {
     const combo = c?.combo ?? 0;
     const broke = now < this.comboBreakUntil;
     const pk = (now - this.comboPopAt) / 140;
-    const pop = pk < 1 && !broke ? 2 : 1;
+    const pop = pk < 1 && !broke ? 3 : 2;
     const comboCol = broke ? 0xff5a5a : combo >= 50 ? 0xff6a3a : combo >= 25 ? 0xffa03a : combo >= 10 ? 0xffd23a : WHITE;
     const my = this.meter.y + this.meter.h / 2;
     this.setText('combo', broke ? 'X' : `${combo}`, this.L + 15, my, comboCol, pop, 0, 0.5);
@@ -1228,24 +1303,32 @@ export class FightScene extends Phaser.Scene implements View {
       this.setText('ovLine2', 'TAP RED TO BLOCK - AVOID PURPLE', cx, 106, 0xff8a7a, 1, 0.5, 0.5);
       this.setText('ovLine3', 'TAP TO START!', cx, 126, WHITE, 2, 0.5, 0.5, blink);
     } else if (ph === 'boost') {
-      dim(0.72);
-      const won = run.combat?.result === 'won';
-      this.setText('ovTitle', won ? 'VICTORY!' : 'ENEMY DOWN!', cx, 40, 0xffd23a, 3, 0.5, 0.5);
-      this.setText('ovSub', 'CHOOSE A BOOST', cx, 60, WHITE, 1, 0.5, 0.5);
-      hide('ovLine1', 'ovLine2', 'ovLine3');
+      dim(0.35);
+      hide('ovSub', 'ovLine1', 'ovLine2', 'ovLine3');
+      const p = this.boostPanel();
+      this.roundRect(g, p.x - 2, p.y - 2, p.w + 4, p.h + 4, 4, INK);
+      this.roundRect(g, p.x, p.y, p.w, p.h, 3, 0x7a4a28);
+      g.fillStyle(0x94603a, 1);
+      for (let yy = p.y + 2; yy < p.y + p.h; yy += 12) g.fillRect(p.x + 3, yy, p.w - 6, 1);
+      g.fillStyle(0x5a3418, 1);
+      g.fillRect(p.x + 3, p.y + 19, p.w - 6, 1);
+      this.setText('ovTitle', 'CHOOSE A BOOST', cx, p.y + 11, WHITE, 1, 0.5, 0.5);
       run.boostChoices.forEach((id, i) => {
         const r = this.cardRect(i);
-        g.fillStyle(INK, 1);
-        g.fillRect(r.x - 2, r.y - 2, r.w + 4, r.h + 5);
-        g.fillStyle(0x2a2450, 1);
-        g.fillRect(r.x, r.y, r.w, r.h);
-        g.fillStyle(0x4a4280, 1);
-        g.fillRect(r.x, r.y, r.w, 2);
+        this.roundRect(g, r.x - 1, r.y - 1, r.w + 2, r.h + 3, 3, INK);
+        this.roundRect(g, r.x, r.y, r.w, r.h, 2, 0x58c840);
+        g.fillStyle(0xa8f080, 1);
+        g.fillRect(r.x + 2, r.y + 1, r.w - 4, 2);
+        g.fillStyle(0x2e8a22, 1);
+        g.fillRect(r.x + 2, r.y + r.h - 3, r.w - 4, 2);
+        g.fillStyle(0xd0d4e0, 1);
+        g.fillRect(r.x + 1, r.y + 1, 1, r.h - 3);
+        g.fillRect(r.x + r.w - 2, r.y + 1, 1, r.h - 3);
         const [name, val] = boostLabel(this.app.tuning, id);
         const a = this.boostTexts[i * 2];
         const b = this.boostTexts[i * 2 + 1];
-        a.setText(fontText(name)).setPosition(r.x + r.w / 2, r.y + 14).setTint(WHITE).setOrigin(0.5, 0.5).setScale(1).setVisible(true);
-        b.setText(fontText(val)).setPosition(r.x + r.w / 2, r.y + 40).setTint(0xffd23a).setOrigin(0.5, 0.5).setScale(2).setVisible(true);
+        a.setText(fontText(name)).setPosition(r.x + r.w / 2, r.y + 13).setTint(WHITE).setOrigin(0.5, 0.5).setScale(2).setVisible(true);
+        b.setText(fontText(val)).setPosition(r.x + r.w / 2, r.y + 28).setTint(0xfff07a).setOrigin(0.5, 0.5).setScale(1).setVisible(true);
       });
     } else if (ph === 'levelClear') {
       dim(0.65);
