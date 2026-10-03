@@ -53,63 +53,60 @@ function toCanvas(g: Grid): HTMLCanvasElement {
 
 const whiteOut = (pal: Pal): Pal => Object.fromEntries(Object.keys(pal).map((k) => [k, '#ffffff']));
 
-// ------------------------------------------------------------------ hero (Rowan, a blade hero)
+// ------------------------------------------------------------------ hero (Rowan, an armored blade knight)
 
-export const HERO_W = 42;
-export const HERO_H = 34;
-export const HERO_FEET_X = 16; // x of the feet center inside the frame
+export const HERO_W = 50;
+export const HERO_H = 38;
+export const HERO_FEET_X = 17; // x of the feet center inside the frame
 
 const HERO_PAL: Pal = {
-  h: '#a8461e',
-  H: '#6e2a12',
-  g: '#d8743a',
-  s: '#f6cfa6',
-  S: '#d49a78',
-  e: '#1a1020',
-  b: '#3a6bd0',
+  r: '#e8443a', // plume
+  R: '#a82228',
+  q: '#ff8a6a',
+  g: '#f2c230', // gold trim
+  G: '#b07e18',
+  s: '#eef2f8', // steel
+  m: '#b4bccc',
+  M: '#737b94',
+  v: '#1a1020', // visor slit
+  e: '#8ef0ff', // glowing eyes
+  b: '#3a6bd0', // tabard
   B: '#26468e',
   l: '#6a9af0',
-  m: '#e2e8f2',
-  M: '#8890a8',
-  r: '#e03a3a',
-  R: '#9e2026',
-  y: '#f2c230',
-  w: '#6a4424',
-  p: '#34345a',
-  P: '#22223c',
-  d: '#5a361c',
+  d: '#5a361c', // boots
   D: '#36200e',
 };
 
-// 20x27, facing right. The sword hand is at (15, 14).
+// 24x28, facing right: big crested great-helm, steel pauldrons, blue tabard, sturdy legs.
+// The sword hand is at (18, 18).
 const HERO_BODY = [
-  '.....hhhhhh.........',
-  '....hggghhhh........',
-  '...hgghhhhhhh.......',
-  '...hhhhhhhhhhh......',
-  '..hHhhhhhhhhhs......',
-  '..hHhhhhhssssss.....',
-  '..HHhhhhsssesss.....',
-  '..HHhhhhssssssS.....',
-  '...Hhhhhsssssss.....',
-  '....HHhSssssSS......',
-  '.....HSSsssS........',
-  '.....rrrrrrrr.......',
-  '...rrRrrrrrrrr......',
-  '..mmmbbbbbbblbb.....',
-  '.mmmMbblllbbbbbss...',
-  '.MmMbbbllbbbbBbss...',
-  '.rRbbbbbbbbbbBb.....',
-  'rR..bbbbbbbbbBb.....',
-  'r...wwwwwywwwww.....',
-  '....bbbbbBbbbbb.....',
-  '....BbbbbBBbbbB.....',
-  '....pppp...pppp.....',
-  '....pppP...pppP.....',
-  '....pppP...pppP.....',
-  '....dddd...dddd.....',
-  '...ddddd...ddddd....',
-  '...DDDDD...DDDDD....',
+  '.......qrr..............',
+  '.....qrrrRr.............',
+  '...qrrRRrrrr............',
+  '..rrR...ggggg...........',
+  '.rR....gssssmgg.........',
+  '.R....gsssssssmg........',
+  '.....gssssssssmmg.......',
+  '.....gsssssssssmmg......',
+  '....gsssssssssssmM......',
+  '....gGGGGGGGGGGGGG......',
+  '....smssvvvvvvvvvM......',
+  '....smssvveevveevM......',
+  '....smsssvvvvvvvmM......',
+  '....mmsssssssssssM......',
+  '.....MmsssssssmmM.......',
+  '...sssMMmmmmmmMMsss.....',
+  '..ssmmsbblllbbbsmmss....',
+  '..smmMsbbgbbbbbsmmMs....',
+  '..MMMMsbbgbbbbbsMMMM....',
+  '...MM.bbbgbbbbbb.MM.....',
+  '......ggggggggggg.......',
+  '......bbbbbBbbbbb.......',
+  '......bbbbb.bbbbb.......',
+  '......mmmms.mmmms.......',
+  '......MmmmM.MmmmM.......',
+  '.....dddddd.dddddd......',
+  '.....DDDDDD.DDDDDD......',
 ];
 
 interface Pose {
@@ -119,40 +116,47 @@ interface Pose {
   handDx?: number;
   handDy?: number;
   len?: number;
+  behind?: boolean; // draw the sword behind the body
 }
 
 export const HERO_POSES: Record<string, Pose> = {
-  idle0: { angle: -60 },
-  idle1: { angle: -57, bodyDy: 1 },
-  dash: { angle: 168, bodyDx: 1, handDx: -3, handDy: 1 },
-  slashA: { angle: 20, handDx: 2, len: 16 },
-  slashB: { angle: -10, handDx: 2, handDy: -1, len: 16 },
-  windup: { angle: -128, handDx: -2, handDy: -2 },
-  parry: { angle: -95, handDx: 2, handDy: -2 },
-  hurt: { angle: 115, bodyDx: -1, bodyDy: 1, handDx: -1, handDy: 2 },
-  leap: { angle: -88, bodyDy: -1, handDy: -4, len: 17 },
+  idle0: { angle: -14 },
+  idle1: { angle: -12, bodyDy: 1 },
+  dash: { angle: 172, bodyDx: 1, handDx: -4, handDy: 1, behind: true },
+  slashA: { angle: 28, handDx: 2, len: 21 },
+  slashB: { angle: -4, handDx: 3, len: 21 },
+  windup: { angle: -140, handDx: -4, handDy: -2, behind: true },
+  parry: { angle: -95, handDx: 2, handDy: -3 },
+  hurt: { angle: 140, bodyDx: -1, bodyDy: 1, handDx: -3, handDy: 1, behind: true },
+  leap: { angle: -86, bodyDy: -1, handDy: -5, len: 21 },
 };
 
 function heroFrame(p: Pose): HTMLCanvasElement {
   const g = grid(HERO_W, HERO_H);
-  const bx = HERO_FEET_X - 10 + (p.bodyDx ?? 0);
+  const bx = HERO_FEET_X - 11 + (p.bodyDx ?? 0);
   const by = HERO_H - HERO_BODY.length + (p.bodyDy ?? 0);
-  stamp(g, HERO_BODY, HERO_PAL, bx, by);
-  const hx = bx + 15.5 + (p.handDx ?? 0);
-  const hy = by + 14.5 + (p.handDy ?? 0);
+  if (!p.behind) stamp(g, HERO_BODY, HERO_PAL, bx, by);
+  const hx = bx + 18.5 + (p.handDx ?? 0);
+  const hy = by + 18.5 + (p.handDy ?? 0);
   const a = (p.angle * Math.PI) / 180;
   const dx = Math.cos(a);
   const dy = Math.sin(a);
   const px = -dy;
   const py = dx;
-  const len = p.len ?? 14;
-  for (let i = -2; i <= 0; i++) put(g, hx + dx * i, hy + dy * i, '#6a4424'); // grip
+  const len = p.len ?? 19;
+  // broadsword: grip, wide crossguard, 3px blade with a bright edge and a blue fuller
+  for (let i = -3; i <= 0; i++) put(g, hx + dx * i, hy + dy * i, i === -3 ? '#f2c230' : '#5a361c');
   for (let i = 2; i <= len; i++) {
-    put(g, hx + dx * i, hy + dy * i, i >= len - 1 ? '#ffffff' : '#eef3fa');
+    const tip = i >= len - 1;
+    put(g, hx + dx * i - px, hy + dy * i - py, tip ? '#ffffff' : '#ffffff');
+    put(g, hx + dx * i, hy + dy * i, tip ? '#ffffff' : '#7ec8ff');
     if (i < len - 1) put(g, hx + dx * i + px, hy + dy * i + py, '#9098b0');
   }
-  for (let k = -2; k <= 2; k++) put(g, hx + dx + px * k, hy + dy + py * k, k === 0 ? '#c83a3a' : '#f2c230'); // crossguard + gem
-  put(g, hx, hy, '#f6cfa6');
+  for (let k = -3; k <= 3; k++) put(g, hx + dx + px * k, hy + dy + py * k, k === 0 ? '#e8443a' : '#f2c230');
+  if (p.behind) stamp(g, HERO_BODY, HERO_PAL, bx, by);
+  // gauntlet over the grip
+  put(g, hx, hy, '#eef2f8');
+  put(g, hx - dx, hy - dy, '#b4bccc');
   return toCanvas(g);
 }
 
