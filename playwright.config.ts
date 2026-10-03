@@ -6,8 +6,8 @@ export default defineConfig({
   reporter: [['list']],
   use: {
     baseURL: 'http://localhost:4173',
-    // iPhone 16 Pro: 402x874 CSS px at 3x.
-    viewport: { width: 402, height: 874 },
+    // iPhone 16 Pro held sideways: 874x402 CSS px at 3x.
+    viewport: { width: 874, height: 402 },
     deviceScaleFactor: 3,
     isMobile: true,
     hasTouch: true,

@@ -21,15 +21,15 @@ test('loads, starts a fight, taps, no console errors', async ({ page }) => {
   await page.goto('/cq3/');
   await page.waitForFunction(() => (window as Cq3Window).__cq3?.ready === true);
 
-  // iPhone 16 Pro: 201x437 canvas at 6x = 1206x2622 device px.
+  // iPhone 16 Pro (landscape): 437x201 canvas at 6x = 2622x1206 device px.
   expect(await page.evaluate(() => (window as Cq3Window).__cq3!.app.layout.scale)).toBe(6);
   expect(await page.evaluate(() => (window as Cq3Window).__cq3!.app.run.phase)).toBe('title');
 
-  await page.mouse.click(201, 500); // tap to start
+  await page.mouse.click(437, 200); // tap to start
   await expect.poll(() => page.evaluate(() => (window as Cq3Window).__cq3!.app.run.phase)).toBe('fight');
 
   for (let i = 0; i < 8; i++) {
-    await page.mouse.click(201, 640);
+    await page.mouse.click(300, 330);
     await page.waitForTimeout(120);
   }
   const state = await page.evaluate(() => {

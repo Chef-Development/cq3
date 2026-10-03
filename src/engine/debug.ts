@@ -120,6 +120,16 @@ export function installDebug(app: App): DebugUi {
     );
     seg(
       modes,
+      'Music',
+      'music',
+      [
+        [true, 'On'],
+        [false, 'Off'],
+      ],
+      () => app.applyAudioSettings(),
+    );
+    seg(
+      modes,
       'Silent switch',
       'audioIgnoresSilentSwitch',
       [

@@ -43,6 +43,7 @@ export class App {
     this.audio.muted = this.settings.muted;
     this.audio.ignoreSilentSwitch = this.settings.audioIgnoresSilentSwitch;
     this.audio.applySession();
+    this.audio.setMusicOn(this.settings.music);
   }
 
   save(): void {
@@ -174,6 +175,9 @@ export class App {
           break;
         case 'meterFull':
           a.ready2();
+          break;
+        case 'speedUp':
+          a.speedUp();
           break;
         case 'kill':
           a.kill();

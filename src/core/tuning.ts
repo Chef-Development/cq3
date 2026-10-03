@@ -14,8 +14,8 @@ export interface EnemyDef {
   interval: number; // seconds between spawns from its pattern
   pattern: string; // block codes, cycled in order
   icon: 'drop' | 'tusk' | 'mask'; // small icon drawn on its red blocks
-  sprite: 'slime' | 'boar' | 'bandit';
-  scale: number; // sprite pixel scale in a 1-on-1 fight (one less in group fights)
+  sprite: 'slime' | 'bigslime' | 'boar' | 'bandit';
+  scale: number; // sprite pixel scale
 }
 
 export interface LevelDef {
@@ -26,7 +26,7 @@ export interface LevelDef {
 
 export const DEFAULT_TUNING = {
   cursor: {
-    basePassSec: 1.4, // seconds for one left->right pass at base speed
+    basePassSec: 1.1, // seconds for one left->right pass at base speed
     speedPerHit: 0.02, // +2% speed per combo hit (linear)
     maxSpeedMult: 2.5, // cap on total cursor speed multiplier
     speedBlockBonus: 0.15, // +15% per blocked Speed block, until you take damage
@@ -39,9 +39,9 @@ export const DEFAULT_TUNING = {
     missSelfDamage: 3, // Classic mode: damage for tapping empty bar
   },
   blocks: {
-    attackWidth: 0.1, // yellow/green width (fraction of bar)
-    redWidth: 0.08,
-    trapWidth: 0.1,
+    attackWidth: 0.075, // yellow/green width (fraction of bar)
+    redWidth: 0.065,
+    trapWidth: 0.075,
     redTravelSec: 2.5, // right end -> left end
     impactGraceMs: 60, // red block sits at the left end this long (still blockable) before hitting
     trapLifeSec: 4,
@@ -50,12 +50,13 @@ export const DEFAULT_TUNING = {
     bombRadius: 0.2, // fraction of bar, measured from the bomb's center
     bombDamage: 15, // to every enemy when a bomb is tapped
     bombHitMult: 1.5, // bomb that reaches you hits this much harder
-    maxStatic: 4, // max yellow/green/purple on the bar
+    maxStatic: 6, // max yellow/green/purple on the bar
+    minAttack: 2, // if fewer yellow/green than this are on the bar, add one right away
     maxRed: 3,
     spawnRateMult: 1, // >1 = slower spawns
     groupSpawnMult: 1.6, // extra spawn interval multiplier when 2+ enemies share the screen
-    openingSpawns: 2, // yellow blocks placed at the start of a fight
-    minGap: 0.03, // min empty space between static blocks
+    openingSpawns: 3, // yellow blocks placed at the start of a fight
+    minGap: 0.025, // min empty space between static blocks
     edgeMargin: 0.04,
   },
   hero: {
@@ -109,47 +110,47 @@ export const DEFAULT_TUNING = {
   enemies: {
     slime: {
       name: 'SLIME',
-      hp: 100,
+      hp: 150,
       atk: 8,
       special: 16,
-      interval: 1.0,
-      pattern: 'YYRYGYRYYR',
+      interval: 0.7,
+      pattern: 'YYRYGYYRYYGR',
       icon: 'drop',
       sprite: 'slime',
-      scale: 3,
+      scale: 2,
     },
     boar: {
       name: 'BOAR',
-      hp: 160,
+      hp: 220,
       atk: 10,
       special: 20,
-      interval: 0.95,
-      pattern: 'YRYSGYFRYS',
+      interval: 0.65,
+      pattern: 'YRYSGYYFRYYS',
       icon: 'tusk',
       sprite: 'boar',
-      scale: 3,
+      scale: 2,
     },
     bandit: {
       name: 'BANDIT',
-      hp: 200,
+      hp: 280,
       atk: 12,
       special: 24,
-      interval: 0.9,
-      pattern: 'YRPYGBYRPY',
+      interval: 0.6,
+      pattern: 'YRPYGYBYRYPY',
       icon: 'mask',
       sprite: 'bandit',
-      scale: 3,
+      scale: 2,
     },
     bigSlime: {
       name: 'BIG SLIME',
-      hp: 380,
+      hp: 520,
       atk: 14,
       special: 28,
-      interval: 0.85,
-      pattern: 'YRSGPYFBYRGP',
+      interval: 0.55,
+      pattern: 'YRSGYPYFBYRGYP',
       icon: 'drop',
-      sprite: 'slime',
-      scale: 5,
+      sprite: 'bigslime',
+      scale: 2,
     },
   } as Record<string, EnemyDef>,
   levels: [
@@ -169,6 +170,7 @@ export interface Settings {
   calibrationMs: number; // average tap lateness; subtracted from tap timestamps
   audioIgnoresSilentSwitch: boolean;
   muted: boolean;
+  music: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -180,6 +182,7 @@ export const DEFAULT_SETTINGS: Settings = {
   calibrationMs: 0,
   audioIgnoresSilentSwitch: true,
   muted: false,
+  music: true,
 };
 
 export function cloneTuning(t: Tuning = DEFAULT_TUNING): Tuning {
@@ -272,6 +275,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('blocks.bombDamage', 'Bomb dmg', 0, 80, 1),
         s('blocks.bombHitMult', 'Bomb hit x', 1, 3, 0.1),
         s('blocks.maxStatic', 'Max static', 1, 8, 1),
+        s('blocks.minAttack', 'Min attack blocks', 0, 6, 1),
         s('blocks.maxRed', 'Max red', 1, 6, 1),
         s('blocks.spawnRateMult', 'Spawn interval x', 0.3, 3, 0.05),
         s('blocks.groupSpawnMult', 'Group interval x', 0.5, 4, 0.1),

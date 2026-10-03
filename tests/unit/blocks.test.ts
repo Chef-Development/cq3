@@ -169,6 +169,13 @@ describe('block types', () => {
     expect(relaxed.c.hero.hp).toBe(100);
   });
 
+  it('refills the bar when fewer than minAttack attack blocks are left', () => {
+    const { c, t } = setup({ spawning: true, tune: (t) => (t.enemies.slime.interval = 100) });
+    expect(c.blocks.filter((b) => b.kind === 'yellow').length).toBe(0);
+    c.advanceTo(0.5);
+    expect(c.blocks.filter((b) => b.kind === 'yellow' || b.kind === 'green').length).toBe(t.blocks.minAttack);
+  });
+
   it('pattern spawns are deterministic for a seed', () => {
     const run = () => {
       const { c } = setup({ spawning: true, enemies: ['bigSlime'] });

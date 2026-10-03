@@ -159,6 +159,7 @@ export class Combat {
   readonly groupFight: boolean;
 
   private nextId = 1;
+  private refillTimer = 0;
   private spawnRng: Rng;
   private critRng: Rng;
   private hT = new Float64Array(HIST);
@@ -336,6 +337,13 @@ export class Combat {
   private updateSpawners(): void {
     const B = this.tuning.blocks;
     const groupMult = this.groupFight ? B.groupSpawnMult : 1;
+    // Keep the bar stocked: a fast player should never stare at an empty bar.
+    this.refillTimer -= DT;
+    if (this.refillTimer <= 0) {
+      const attacks = this.blocks.reduce((n, b) => n + (isAttack(b.kind) ? 1 : 0), 0);
+      const front = this.frontEnemy();
+      if (front && attacks < B.minAttack && this.trySpawn('yellow', front.id)) this.refillTimer = 0.12;
+    }
     for (const e of this.enemies) {
       if (!e.alive) continue;
       e.spawnTimer -= DT;

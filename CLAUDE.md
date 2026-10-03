@@ -19,8 +19,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   enemy stats and block patterns, plus the slider metadata for the debug panel. Don't hard-code gameplay
   numbers elsewhere. New numbers need a slider entry in `sliderGroups`.
 - **Settings/tuning persistence** goes through `src/engine/storage.ts` (localStorage, always try/catch).
-- Portrait canvas 201x437, integer-scaled (6x on iPhone 16 Pro), pixel art, no smoothing. Safe areas come
-  from `env(safe-area-inset-*)` (see `src/engine/layout.ts`).
+- Landscape (like CQ2) canvas 437x201, integer-scaled (6x on an iPhone 16 Pro held sideways), pixel art, no
+  smoothing. Safe areas (Dynamic Island left/right, home indicator) come from `env(safe-area-inset-*)`
+  (see `src/engine/layout.ts`).
 
 ## Layout
 
@@ -30,7 +31,7 @@ src/core/      tuning.ts (all numbers), combat.ts (sim), run.ts (levels/boosts/r
 src/engine/    app.ts (time + input glue), scene.ts (Phaser rendering + juice), input.ts,
                debug.ts (tuning panel), calibrate.ts, audio.ts, art.ts, font.ts, layout.ts, storage.ts
 tests/unit/    Vitest tests for src/core
-tests/smoke/   Playwright smoke test (402x874 @3x)
+tests/smoke/   Playwright smoke test (874x402 @3x, landscape)
 scripts/       make-icons.mjs, sw-template.js (service worker, precache list injected at build)
 ```
 

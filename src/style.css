@@ -79,7 +79,7 @@ body {
   left: 0;
   right: 0;
   top: 0;
-  height: 56%;
+  height: 62%;
   z-index: 20;
   background: rgba(14, 11, 26, 0.96);
   border-bottom: 2px solid var(--line);
@@ -100,6 +100,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
+  padding-left: calc(env(safe-area-inset-left) + 10px);
   padding-right: calc(env(safe-area-inset-right) + 96px);
   border-bottom: 1px solid var(--line);
 }
@@ -115,7 +116,7 @@ body {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   touch-action: pan-y;
-  padding: 4px 10px calc(env(safe-area-inset-bottom) + 16px);
+  padding: 4px calc(env(safe-area-inset-right) + 10px) 16px calc(env(safe-area-inset-left) + 10px);
 }
 
 .dbg-btn {
@@ -283,7 +284,7 @@ body {
 #rotate {
   display: none;
 }
-@media (orientation: landscape) and (max-height: 500px) {
+@media (orientation: portrait) and (max-width: 600px) {
   #rotate {
     display: flex;
     position: fixed;

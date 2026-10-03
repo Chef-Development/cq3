@@ -1,7 +1,8 @@
 // Integer-scaled, letterboxed canvas placement and safe-area insets in game pixels.
+// Landscape: 437x201 game px = 2622x1206 device px at 6x on an iPhone 16 Pro.
 
-export const GAME_W = 201;
-export const GAME_H = 437;
+export const GAME_W = 437;
+export const GAME_H = 201;
 
 export interface ScreenLayout {
   scale: number; // device pixels per game pixel
@@ -10,22 +11,26 @@ export interface ScreenLayout {
   cssH: number;
   left: number;
   top: number;
-  safeTop: number; // game px covered by notch / status bar
-  safeBottom: number; // game px covered by the home indicator
+  // game px hidden behind the notch / Dynamic Island / home indicator
+  safeTop: number;
+  safeBottom: number;
+  safeLeft: number;
+  safeRight: number;
 }
 
 let probe: HTMLDivElement | null = null;
 
-function insets(): { top: number; bottom: number } {
+function insets(): { top: number; bottom: number; left: number; right: number } {
   if (!probe) {
     probe = document.createElement('div');
     probe.style.cssText =
       'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;' +
-      'padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);';
+      'padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);';
     document.body.appendChild(probe);
   }
   const cs = getComputedStyle(probe);
-  return { top: parseFloat(cs.paddingTop) || 0, bottom: parseFloat(cs.paddingBottom) || 0 };
+  const n = (v: string) => parseFloat(v) || 0;
+  return { top: n(cs.paddingTop), bottom: n(cs.paddingBottom), left: n(cs.paddingLeft), right: n(cs.paddingRight) };
 }
 
 export function computeLayout(): ScreenLayout {
@@ -41,7 +46,7 @@ export function computeLayout(): ScreenLayout {
   const top = Math.round((vh * dpr - GAME_H * scale) / 2) / dpr;
   const ins = insets();
   const toGame = GAME_W / cssW;
-  const bottomGap = vh - (top + cssH);
+  const gap = { right: vw - (left + cssW), bottom: vh - (top + cssH) };
   return {
     scale,
     dpr,
@@ -50,7 +55,9 @@ export function computeLayout(): ScreenLayout {
     left,
     top,
     safeTop: Math.ceil(Math.max(0, ins.top - top) * toGame),
-    safeBottom: Math.ceil(Math.max(0, ins.bottom - bottomGap) * toGame),
+    safeBottom: Math.ceil(Math.max(0, ins.bottom - gap.bottom) * toGame),
+    safeLeft: Math.ceil(Math.max(0, ins.left - left) * toGame),
+    safeRight: Math.ceil(Math.max(0, ins.right - gap.right) * toGame),
   };
 }
 
