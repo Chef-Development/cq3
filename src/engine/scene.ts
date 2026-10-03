@@ -1,7 +1,7 @@
 // Phaser scene (landscape 437x201): renders the core state and plays the juice. Reads input only through App.
 import Phaser from 'phaser';
 import { isRed, type Block, type BlockKind, type Combat, type CombatEvent } from '../core/combat';
-import { boostLabel, type Phase } from '../core/run';
+import { boostLabel, type BoostId, type Phase } from '../core/run';
 import type { App, View } from './app';
 import { buildArt, buildPanel, HERO_FEET_X, HERO_W, HUD_ICONS, ICONS } from './art';
 import { buildFont, FONT, FONT_BOLD, fontText, textWidth } from './font';
@@ -19,7 +19,8 @@ const ENEMY_COL: Record<string, number> = { slime: 0x4fc4a0, bigslime: 0x4fc4a0,
 const WHITE = 0xffffff;
 const INK = 0x0a0812;
 const SPRITE_SCALE = 1;
-const BAND_H = 40;
+const BOOST_ICON: Record<BoostId, string> = { maxHp: 'heart', damage: 'sword', crit: 'crit', critDmg: 'crit', comboPower: 'bolt', heal: 'potion' };
+const BAND_H = 32;
 const DASH_MS = 70;
 const RETURN_MS = 190;
 const ENGAGE_MS = 750;
@@ -230,14 +231,15 @@ export class FightScene extends Phaser.Scene implements View {
     this.L = l.safeLeft;
     this.R = GAME_W - l.safeRight;
     this.B = GAME_H - l.safeBottom;
-    this.splitY = Math.round(this.B - 58);
-    this.ground = this.splitY - 12;
-    this.heroHome = Math.round(GAME_W / 2 - 74);
-    const btnW = 52;
-    this.button = { x: this.R - btnW - 4, y: this.splitY + 6, w: btnW, h: BAND_H - 11 };
-    const barX = this.L + 44;
-    this.bar = { x: barX, y: this.splitY + 12, w: this.button.x - 12 - barX, h: 16 };
-    this.meter = { x: this.bar.x, y: this.splitY + BAND_H + 4, w: this.bar.w, h: 10 };
+    this.splitY = Math.round(this.B - 46);
+    this.ground = this.splitY - 9;
+    this.heroHome = Math.round(GAME_W / 2 - 56);
+    const btnW = 44;
+    this.button = { x: this.R - btnW - 3, y: this.splitY + 5, w: btnW, h: BAND_H - 10 };
+    const barX = this.L + 30;
+    this.bar = { x: barX, y: this.splitY + 10, w: this.button.x - 11 - barX, h: 12 };
+    const meterX = this.L + 46;
+    this.meter = { x: meterX, y: this.splitY + BAND_H + 3, w: this.button.x - 11 - meterX, h: 8 };
 
     // Tear down everything built for the previous layout before regenerating textures.
     for (const f of this.floaters) f.t.destroy();
@@ -321,12 +323,12 @@ export class FightScene extends Phaser.Scene implements View {
 
   /** Boost choices: a wooden panel with three stacked buttons (hit-tested by index). */
   private boostPanel(): Rect {
-    return { x: Math.round(GAME_W / 2 - 85), y: 25, w: 170, h: 148 };
+    return { x: Math.round(GAME_W / 2 - 78), y: 17, w: 156, h: 116 };
   }
 
   private cardRect(i: number): Rect {
     const p = this.boostPanel();
-    return { x: p.x + 10, y: p.y + 24 + i * 41, w: p.w - 20, h: 35 };
+    return { x: p.x + 8, y: p.y + 20 + i * 31, w: p.w - 16, h: 28 };
   }
 
   // ------------------------------------------------------------------ events
@@ -410,7 +412,7 @@ export class FightScene extends Phaser.Scene implements View {
             this.h.hurtUntil = this.anim + 220;
             this.h.flashUntil = this.anim + J.flashMs * 1.5;
             this.h.flashColor = 0xff3030;
-            if (e.damage > 0 || this.app.settings.godMode) this.floatNum(this.h.x, this.ground - 40, `${e.damage}`, 0xff4a4a, 2);
+            if (e.damage > 0 || this.app.settings.godMode) this.floatNum(this.h.x, this.ground - 40, `${e.damage}`, 0xff4a4a, 1);
             this.burst(this.h.x + 4, this.ground - 16, 0xff5a5a, e.source === 'miss' ? 3 : 10, true);
             this.shake(e.source === 'miss' ? J.shakeMinPx : J.shakeMaxPx, J.shakeMs);
           });
@@ -443,9 +445,9 @@ export class FightScene extends Phaser.Scene implements View {
             if (boss) {
               this.burst(v.x, cy, 0xff8a2a, 30, true, 1.6);
               for (const [ms, r, col] of [
-                [90, 56, 0xff8a2a],
-                [180, 72, 0xffd23a],
-                [270, 88, 0xff5a3a],
+                [90, 44, 0xff8a2a],
+                [180, 58, 0xffd23a],
+                [270, 72, 0xff5a3a],
               ] as const)
                 this.later(ms, () => this.ring(v.x, cy, r, col, true));
               this.screenFlash(0xffe0a0, now, 220);
@@ -458,7 +460,7 @@ export class FightScene extends Phaser.Scene implements View {
         case 'explode':
           this.explodeFx = { x: this.barX(e.pos), r: e.radius * this.bar.w, until: now + 260 };
           this.shake(J.shakeMaxPx, J.shakeMs * 1.5);
-          this.floatNum(GAME_W / 2, 60, 'BOOM!', 0xff8a3a, 2);
+          this.floatNum(GAME_W / 2, 44, 'BOOM!', 0xff8a3a, 2);
           break;
         case 'finisher':
           this.heroFinisher(e.damage);
@@ -467,7 +469,7 @@ export class FightScene extends Phaser.Scene implements View {
           this.petAttack(e.enemyId, e.damage);
           break;
         case 'heal':
-          this.floatNum(this.h.x, this.ground - 44, `+${e.amount}`, 0xff7aa8, 2);
+          this.floatNum(this.h.x, this.ground - 44, `+${e.amount}`, 0xff7aa8, 1);
           this.burst(this.h.x, this.ground - 16, 0xff7aa8, 10, true, 0.8);
           this.app.audio.heal();
           break;
@@ -549,7 +551,7 @@ export class FightScene extends Phaser.Scene implements View {
     const big = crit || finisher;
     const col = finisher ? 0xff8a2a : crit ? 0xffb020 : perfect ? 0xfff07a : 0xffe040;
     if (big) this.stars.push({ x: v.x, y: cy - 8, at: this.anim, r: finisher ? 30 : 22, color: finisher ? 0xffb03a : 0xfff07a });
-    this.floatNum(v.x + rand(-6, 6), v.y - v.img.displayHeight - 8, `${damage}`, col, big ? 3 : 2);
+    this.floatNum(v.x + rand(-6, 6), v.y - v.img.displayHeight - 8, `${damage}`, col, big ? 2 : 1);
     this.slashes.push({ x: v.x, y: cy, at: this.anim, big, dir: this.h.alt ? 1 : -1, color: crit ? 0xffd23a : 0x6ab4ff });
     this.burst(v.x - 4, cy, WHITE, big ? 14 : 7, true, big ? 1.5 : 1, true);
     if (big) this.ring(v.x, cy, 26, col, true);
@@ -587,7 +589,7 @@ export class FightScene extends Phaser.Scene implements View {
     h.t0 = this.anim;
     h.lastAction = this.anim + SUPER_MS;
     this.superAt = this.anim;
-    this.floatNum(GAME_W / 2, 66, 'FINISHER!', 0xffb03a, 3);
+    this.floatNum(GAME_W / 2, 44, 'FINISHER!', 0xffb03a, 3);
     // A whirlwind of hits, then the big number.
     const hits: Array<[number, boolean]> = [
       [0.36, false],
@@ -626,8 +628,8 @@ export class FightScene extends Phaser.Scene implements View {
 
   /** Coins pop out, then home in on the coin counter; the counter ticks up as each one lands. */
   private drawCoins(g: Phaser.GameObjects.Graphics, now: number): void {
-    const tx = this.L + 110;
-    const ty = 9;
+    const tx = this.L + 95;
+    const ty = 7;
     for (let i = this.coinFlights.length - 1; i >= 0; i--) {
       const f = this.coinFlights[i];
       const age = (now - f.born) / 1000;
@@ -673,7 +675,7 @@ export class FightScene extends Phaser.Scene implements View {
       const cy = v.y - v.img.displayHeight / 2;
       v.flashUntil = this.anim + 50;
       v.knockUntil = this.anim + 60;
-      this.floatNum(v.x + rand(-4, 4), v.y - v.img.displayHeight - 8, `${damage}`, 0x6aff5a, 2);
+      this.floatNum(v.x + rand(-4, 4), v.y - v.img.displayHeight - 8, `${damage}`, 0x6aff5a, 1);
       this.burst(v.x - 6, cy, 0xb8e4ff, 8, true, 1, true);
       this.app.audio.pet();
       Object.assign(P, { state: 'back', t0: this.anim, fromX: P.x, fromY: P.y });
@@ -740,7 +742,7 @@ export class FightScene extends Phaser.Scene implements View {
     for (const [n, label] of marks)
       if (combo >= n && this.lastMilestone < n) {
         this.lastMilestone = n;
-        this.floatNum(GAME_W / 2, 44, `${n} COMBO - ${label}`, 0xffd23a, 1);
+        this.floatNum(GAME_W / 2, 30, `${n} COMBO - ${label}`, 0xffd23a, 1);
         this.app.audio.ready2();
       }
   }
@@ -844,8 +846,8 @@ export class FightScene extends Phaser.Scene implements View {
   // ------------------------------------------------------------------ enemies
 
   private enemyX(slot: number, count: number): number {
-    if (count === 1) return Math.round(GAME_W / 2 + 74);
-    return Math.round(GAME_W / 2 + 40 + slot * 42);
+    if (count === 1) return Math.round(GAME_W / 2 + 58);
+    return Math.round(GAME_W / 2 + 26 + slot * 34);
   }
 
   private syncEnemies(force = false): void {
@@ -1274,24 +1276,24 @@ export class FightScene extends Phaser.Scene implements View {
     const H = run.hero;
     const maxHp = T.hero.maxHp + H.bonusMaxHp;
     this.heroHpShown += (H.hp - this.heroHpShown) * 0.2;
-    this.hudBar(g, this.L + 17, 5, 86, 10, H.hp / maxHp, this.heroHpShown / maxHp);
-    this.hudIcon(g, 'heart', this.L + 3, 3, 2);
-    ['sword', 'crit', 'bolt', 'potion'].forEach((k, i) => this.hudIcon(g, k, this.L + 6, 21 + i * 10));
-    this.hudIcon(g, 'coin', this.L + 107, 5);
+    this.hudBar(g, this.L + 18, 4, 68, 9, H.hp / maxHp, this.heroHpShown / maxHp);
+    this.hudIcon(g, 'heart', this.L + 2, 1, 2);
+    ['sword', 'crit', 'bolt', 'potion'].forEach((k, i) => this.hudIcon(g, k, this.L + 5, 18 + i * 9));
+    this.hudIcon(g, 'coin', this.L + 92, 3);
     if (H.abilityTimer > 0) {
       g.fillStyle(0x9af0a0, 1);
-      g.fillRect(this.L + 17, 17, Math.round(86 * (H.abilityTimer / Math.max(0.01, T.hero.abilitySec))), 1);
+      g.fillRect(this.L + 18, 15, Math.round(68 * (H.abilityTimer / Math.max(0.01, T.hero.abilitySec))), 1);
     }
     if (!c) return;
     // enemy (the current target): HP bar with a skull, attack stat below
     const target = run.phase === 'levelClear' ? null : (c.currentTarget() ?? c.enemies[0]);
     if (target) {
       const v = this.enemies.get(target.id);
-      const bx = this.R - 104;
-      this.hudBar(g, bx, 15, 86, 10, target.hp / target.maxHp, (v?.hpShown ?? target.hp) / target.maxHp, { mirror: true });
-      this.hudIcon(g, 'skull', this.R - 16, 12, 2);
-      if (this.app.tuning.enemies[target.key].boss) this.hudIcon(g, 'crown', this.R - 16, 3, 2);
-      this.hudIcon(g, 'sword', this.R - 11, 31);
+      const bx = this.R - 86;
+      this.hudBar(g, bx, 13, 68, 9, target.hp / target.maxHp, (v?.hpShown ?? target.hp) / target.maxHp, { mirror: true });
+      this.hudIcon(g, 'skull', this.R - 15, 9, 2);
+      if (this.app.tuning.enemies[target.key].boss) this.hudIcon(g, 'crown', this.R - 15, 0, 2);
+      this.hudIcon(g, 'sword', this.R - 10, 27);
     }
 
     // finisher button on the wooden band
@@ -1321,7 +1323,7 @@ export class FightScene extends Phaser.Scene implements View {
       g.fillStyle(WHITE, 0.35);
       g.fillRect(m.x, m.y, m.w, m.h);
     }
-    this.hudIcon(g, 'bolt', this.L + 6, m.y - 1);
+    this.hudIcon(g, 'bolt', m.x - 9, m.y);
   }
 
   private drawBar(t: number, now: number): void {
@@ -1507,9 +1509,9 @@ export class FightScene extends Phaser.Scene implements View {
     const maxHp = T.hero.maxHp + H.bonusMaxHp;
     const lvl = run.level;
     const stageInfo = lvl.stages.length > 1 ? ` - ${run.stageIndex + 1}/${lvl.stages.length}` : '';
-    this.setText('level', `${lvl.name}${stageInfo}`, GAME_W / 2, 24, 0xf2f4fa, 1, 0.5, 0, run.phase !== 'levelClear');
-    this.setText('heroHp', `${Math.ceil(H.hp)}/${maxHp}`, this.L + 60, 10, WHITE, 1, 0.5, 0.5);
-    this.setText('coins', `${this.coinsShown}`, this.L + 116, 9, 0xffe680, 1, 0, 0.5);
+    this.setText('level', `${lvl.name}${stageInfo}`, GAME_W / 2, 17, 0xf2f4fa, 1, 0.5, 0, run.phase !== 'levelClear' && run.phase !== 'title');
+    this.setText('heroHp', `${Math.ceil(H.hp)}/${maxHp}`, this.L + 52, 8.5, WHITE, 1, 0.5, 0.5);
+    this.setText('coins', `${this.coinsShown}`, this.L + 101, 7, 0xffe680, 1, 0, 0.5);
     const crit = T.hero.critChance + H.bonusCrit + (H.abilityTimer > 0 ? T.hero.abilityCritBonus : 0);
     const stats = [
       `${Math.round(T.hero.atk * (1 + H.bonusDmg))}`,
@@ -1517,14 +1519,14 @@ export class FightScene extends Phaser.Scene implements View {
       `${T.hero.comboPower + H.bonusComboPower}`,
       `${H.revives}`,
     ];
-    stats.forEach((v, i) => this.setText(`stat${i}`, v, this.L + 15, 25 + i * 10, i === 1 && H.abilityTimer > 0 ? 0x9af0a0 : WHITE, 1, 0, 0.5));
-    this.setText('ability', 'KEEN EDGE', this.L + 15 + textWidth(stats[1], 1, true) + 4, 35, 0x9af0a0, 1, 0, 0.5, H.abilityTimer > 0);
+    stats.forEach((v, i) => this.setText(`stat${i}`, v, this.L + 14, 21.5 + i * 9, i === 1 && H.abilityTimer > 0 ? 0x9af0a0 : WHITE, 1, 0, 0.5));
+    this.setText('ability', 'KEEN EDGE', this.L + 14 + textWidth(stats[1], 1, true) + 4, 30.5, 0x9af0a0, 1, 0, 0.5, H.abilityTimer > 0);
     const target = c && run.phase !== 'levelClear' ? (c.currentTarget() ?? c.enemies[0]) : null;
     if (target && c) {
       const def = T.enemies[target.key];
-      this.setText('enemyName', def.name, this.R - 61, 4, def.boss ? 0xffd23a : WHITE, 1, 0.5, 0);
-      this.setText('enemyHp', `${Math.ceil(target.hp)}/${target.maxHp}`, this.R - 61, 20, WHITE, 1, 0.5, 0.5);
-      this.setText('enemyAtk', `${def.atk}`, this.R - 14, 35, WHITE, 1, 1, 0.5);
+      this.setText('enemyName', def.name, this.R - 52, 2, def.boss ? 0xffd23a : WHITE, 1, 0.5, 0);
+      this.setText('enemyHp', `${Math.ceil(target.hp)}/${target.maxHp}`, this.R - 52, 17.5, WHITE, 1, 0.5, 0.5);
+      this.setText('enemyAtk', `${def.atk}`, this.R - 13, 31, WHITE, 1, 1, 0.5);
     } else ['enemyName', 'enemyHp', 'enemyAtk'].forEach((k) => this.txt[k].setVisible(false));
 
     const combo = c?.combo ?? 0;
@@ -1533,10 +1535,10 @@ export class FightScene extends Phaser.Scene implements View {
     const pop = pk < 1 && !broke ? 3 : 2;
     const comboCol = broke ? 0xff5a5a : combo >= 50 ? 0xff6a3a : combo >= 25 ? 0xffa03a : combo >= 10 ? 0xffd23a : WHITE;
     const my = this.meter.y + this.meter.h / 2;
-    this.setText('combo', broke ? 'X' : `${combo}`, this.L + 15, my, comboCol, pop, 0, 0.5);
+    this.setText('combo', broke ? 'X' : `${combo}`, this.L + 4, this.B, comboCol, pop, 0, 1);
     this.txt.comboLabel.setVisible(false);
     const sp = c ? c.speedMult() : 1;
-    this.setText('speed', `SPD x${sp.toFixed(2)}`, this.button.x + this.button.w / 2, my, sp > 1.01 ? 0xffd080 : 0xc8c8d4, 1, 0.5, 0.5);
+    this.setText('speed', `SPD x${sp.toFixed(2)}`, this.R - 2, my, sp > 1.01 ? 0xffd080 : 0xc8c8d4, 1, 1, 0.5);
     if (S.comboTiers && c) {
       const tm = combo >= T.tiers.t3 ? T.tiers.m3 : combo >= T.tiers.t2 ? T.tiers.m2 : combo >= T.tiers.t1 ? T.tiers.m1 : 1;
       this.setText('tier', `DMG x${tm}`, this.meter.x + this.meter.w, this.meter.y - 6, tm > 1 ? 0xffd23a : 0xc8c8d4, 1, 1, 0.5);
@@ -1557,8 +1559,9 @@ export class FightScene extends Phaser.Scene implements View {
       0.5,
       ready && fight,
     );
-    const label = S.finisherInput === 'button' ? (ready ? 'FINISH!' : 'FINISH') : ready ? 'SWIPE ^' : 'SWIPE';
-    this.setText('button', label, b.x + b.w / 2, b.y + b.h / 2, ready ? WHITE : 0x9a8070, 1, 0.5, 0.5, fight);
+    const label = S.finisherInput === 'button' ? (ready ? 'GO!' : 'FINISH') : ready ? 'UP!' : 'SWIPE';
+    this.txt.button.setFont(ready ? FONT_BOLD : FONT);
+    this.setText('button', label, b.x + b.w / 2, b.y + b.h / 2, ready ? WHITE : 0x9a8070, ready ? 2 : 1, 0.5, 0.5, fight);
 
     const d = this.app.lastTap;
     this.setText('debug', d ? `TAP ${d.outcome} ${d.cursorPos.toFixed(3)}  CAL ${S.calibrationMs}MS` : `CAL ${S.calibrationMs}MS`, GAME_W / 2, this.meter.y + 9, 0xc8c8d4, 1, 0.5, 0, this.app.panelOpen);
@@ -1586,16 +1589,16 @@ export class FightScene extends Phaser.Scene implements View {
     if (!(ph === 'fight' && this.app.awaitingBegin && !this.app.userPaused)) this.txt.begin.setVisible(false);
     if (ph === 'fight' && now < this.bannerUntil) {
       const k = (this.bannerUntil - now) / 1800;
-      this.setText('banner', this.banner, cx, 60, WHITE, 2, 0.5, 0.5, true);
+      this.setText('banner', this.banner, cx, 40, WHITE, 2, 0.5, 0.5, true);
       this.txt.banner.setAlpha(k < 0.15 ? k / 0.15 : 1);
     } else this.txt.banner.setVisible(false);
     if (ph === 'title') {
       dim(0.6);
-      this.setText('ovTitle', 'COMBO QUEST 3', cx, 50, 0xffd23a, 3, 0.5, 0.5);
-      this.setText('ovSub', 'WORKING TITLE - FEEL PROTOTYPE', cx, 74, 0xd8d4f0, 1, 0.5, 0.5);
-      this.setText('ovLine1', 'TAP WHEN THE LINE IS ON A BLOCK', cx, 94, WHITE, 1, 0.5, 0.5);
-      this.setText('ovLine2', 'TAP RED TO BLOCK - AVOID PURPLE', cx, 106, 0xff8a7a, 1, 0.5, 0.5);
-      this.setText('ovLine3', 'TAP TO START!', cx, 126, WHITE, 2, 0.5, 0.5, blink);
+      this.setText('ovTitle', 'COMBO QUEST 3', cx, 32, 0xffd23a, 3, 0.5, 0.5);
+      this.setText('ovSub', 'WORKING TITLE - FEEL PROTOTYPE', cx, 50, 0xd8d4f0, 1, 0.5, 0.5);
+      this.setText('ovLine1', 'TAP WHEN THE LINE IS ON A BLOCK', cx, 64, WHITE, 1, 0.5, 0.5);
+      this.setText('ovLine2', 'TAP RED TO BLOCK - AVOID PURPLE', cx, 74, 0xff8a7a, 1, 0.5, 0.5);
+      this.setText('ovLine3', 'TAP TO START!', cx, 92, WHITE, 2, 0.5, 0.5, blink);
     } else if (ph === 'boost') {
       dim(0.35);
       hide('ovSub', 'ovLine1', 'ovLine2', 'ovLine3');
@@ -1606,7 +1609,7 @@ export class FightScene extends Phaser.Scene implements View {
       for (let yy = p.y + 2; yy < p.y + p.h; yy += 12) g.fillRect(p.x + 3, yy, p.w - 6, 1);
       g.fillStyle(0x5a3418, 1);
       g.fillRect(p.x + 3, p.y + 19, p.w - 6, 1);
-      this.setText('ovTitle', 'CHOOSE A BOOST', cx, p.y + 11, WHITE, 1, 0.5, 0.5);
+      this.setText('ovTitle', 'CHOOSE A BOOST', cx, p.y + 10, WHITE, 1, 0.5, 0.5);
       run.boostChoices.forEach((id, i) => {
         const r = this.cardRect(i);
         this.roundRect(g, r.x - 1, r.y - 1, r.w + 2, r.h + 3, 3, INK);
@@ -1621,27 +1624,30 @@ export class FightScene extends Phaser.Scene implements View {
         const [name, val] = boostLabel(this.app.tuning, id);
         const a = this.boostTexts[i * 2];
         const b = this.boostTexts[i * 2 + 1];
-        a.setText(fontText(name)).setPosition(r.x + r.w / 2, r.y + 13).setTint(WHITE).setOrigin(0.5, 0.5).setScale(2).setVisible(true);
-        b.setText(fontText(val)).setPosition(r.x + r.w / 2, r.y + 28).setTint(0xfff07a).setOrigin(0.5, 0.5).setScale(1).setVisible(true);
+        g.fillStyle(0x2e8a22, 1);
+        g.fillRect(r.x + 5, r.y + 5, 18, 18);
+        this.hudIcon(g, BOOST_ICON[id], r.x + 7, r.y + 7, 2);
+        a.setText(fontText(name)).setPosition(r.x + 29, r.y + 10).setTint(WHITE).setOrigin(0, 0.5).setScale(1).setVisible(true);
+        b.setText(fontText(val)).setPosition(r.x + 29, r.y + 19).setTint(0xfff07a).setOrigin(0, 0.5).setScale(1).setVisible(true);
       });
     } else if (ph === 'levelClear') {
       const opened = !!this.chestOpenAt;
-      this.setText('ovTitle', opened ? `${run.level.name} CLEAR!` : 'TREASURE CHEST', cx, 40, opened ? 0xffd23a : WHITE, 2, 0.5, 0.5);
-      this.setText('ovLine1', opened ? 'TAP TO CONTINUE' : 'TAP THE CHEST TO CONTINUE', cx, 62, WHITE, 1, 0.5, 0.5, opened ? blink : true);
+      this.setText('ovTitle', opened ? `${run.level.name} CLEAR!` : 'TREASURE CHEST', cx, 28, opened ? 0xffd23a : WHITE, 2, 0.5, 0.5);
+      this.setText('ovLine1', opened ? 'TAP TO CONTINUE' : 'TAP THE CHEST TO CONTINUE', cx, 44, WHITE, 1, 0.5, 0.5, opened ? blink : true);
       hide('ovSub', 'ovLine2', 'ovLine3');
     } else if (ph === 'defeat') {
       dim(0.65);
-      this.setText('ovTitle', 'DEFEATED', cx, 60, 0xff5a5a, 3, 0.5, 0.5);
-      this.setText('ovSub', 'ROWAN FALLS...', cx, 84, WHITE, 1, 0.5, 0.5);
-      this.setText('ovLine1', 'TAP TO RETRY LEVEL', cx, 110, 0xffd23a, 2, 0.5, 0.5, blink);
+      this.setText('ovTitle', 'DEFEATED', cx, 38, 0xff5a5a, 3, 0.5, 0.5);
+      this.setText('ovSub', 'ROWAN FALLS...', cx, 56, WHITE, 1, 0.5, 0.5);
+      this.setText('ovLine1', 'TAP TO RETRY LEVEL', cx, 76, 0xffd23a, 2, 0.5, 0.5, blink);
       hide('ovLine2', 'ovLine3');
     } else if (this.app.awaitingBegin) {
       hide(...ov);
-      this.setText('begin', 'TAP TO BEGIN!', cx, 66, WHITE, 2, 0.5, 0.5, true);
+      this.setText('begin', 'TAP TO BEGIN!', cx, 44, WHITE, 2, 0.5, 0.5, true);
     } else if (this.app.userPaused) {
       dim(0.55);
-      this.setText('ovTitle', 'PAUSED', cx, 66, WHITE, 3, 0.5, 0.5);
-      this.setText('ovSub', 'TAP TO RESUME', cx, 92, 0xffd23a, 1, 0.5, 0.5, blink);
+      this.setText('ovTitle', 'PAUSED', cx, 40, WHITE, 3, 0.5, 0.5);
+      this.setText('ovSub', 'TAP TO RESUME', cx, 60, 0xffd23a, 1, 0.5, 0.5, blink);
       hide('ovLine1', 'ovLine2', 'ovLine3');
     } else hide(...ov);
   }

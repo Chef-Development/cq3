@@ -19,8 +19,8 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   enemy stats and block patterns, plus the slider metadata for the debug panel. Don't hard-code gameplay
   numbers elsewhere. New numbers need a slider entry in `sliderGroups`.
 - **Settings/tuning persistence** goes through `src/engine/storage.ts` (localStorage, always try/catch).
-- Landscape (like CQ2) canvas 437x201, integer-scaled (6x on an iPhone 16 Pro held sideways), pixel art, no
-  smoothing. Safe areas (Dynamic Island left/right, home indicator) come from `env(safe-area-inset-*)`
+- Landscape (like CQ2) canvas 327x150, integer-scaled (8x on an iPhone 16 Pro held sideways) so pixels are
+  big and chunky like the reference; pixel art, no smoothing. Safe areas (Dynamic Island left/right, home indicator) come from `env(safe-area-inset-*)`
   (see `src/engine/layout.ts`).
 
 ## Layout

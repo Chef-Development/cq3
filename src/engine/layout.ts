@@ -1,8 +1,9 @@
 // Integer-scaled, letterboxed canvas placement and safe-area insets in game pixels.
-// Landscape: 437x201 game px = 2622x1206 device px at 6x on an iPhone 16 Pro.
+// Landscape: 327x150 game px, 8x device px on an iPhone 16 Pro (2616x1200 of its 2622x1206).
+// Big chunky pixels on purpose: about the same on-screen pixel size as the reference game.
 
-export const GAME_W = 437;
-export const GAME_H = 201;
+export const GAME_W = 327;
+export const GAME_H = 150;
 
 export interface ScreenLayout {
   scale: number; // device pixels per game pixel
