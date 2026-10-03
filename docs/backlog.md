@@ -11,6 +11,10 @@ milestone. Build these with original art and names only.
 - **Kingdom map:** a world map with locked regions, a kingdom level, timed rewards, and buttons for
   upgrades, chests, loadout and shop.
 - **Loadout:** pick a hero, a companion and an item, each with a level.
+- **Heroes:** a scroll-style roster you page through with arrows. Each hero has a level, a one-line bio,
+  three ability icons (the first unlocked, the rest locked/grey), four stats (attack, finisher charge, HP,
+  combo power) and a "Lvl Up" button priced in gems, or Get/Locked for heroes you don't own yet. Heroes
+  differ in kit, e.g. a sky-diving lancer, a gun-and-sword sailor, a fire mage, an ice brute.
 - **Upgrades:** a tree unlocked by kingdom level, where coins buy permanent stat upgrades (e.g. "+15% combo
   power", attack, health).
 - **Combat extras already in M1:** heal on kill, coins from kills, companion (Pip), boss marker, stage
