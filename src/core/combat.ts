@@ -99,7 +99,9 @@ export type CombatEvent =
   | { type: 'spawn'; id: number; kind: BlockKind; ownerId: number }
   | { type: 'windup'; enemyId: number }
   | { type: 'heroHurt'; damage: number; source: 'red' | 'bomb' | 'trap' | 'miss'; enemyId: number }
-  | { type: 'enemyHurt'; enemyId: number; damage: number; crit: boolean; source: 'hit' | 'bomb' | 'finisher' }
+  | { type: 'enemyHurt'; enemyId: number; damage: number; crit: boolean; source: 'hit' | 'bomb' | 'finisher' | 'pet' }
+  | { type: 'heal'; amount: number }
+  | { type: 'pet'; enemyId: number; damage: number }
   | { type: 'kill'; enemyId: number }
   | { type: 'explode'; pos: number; radius: number }
   | { type: 'finisher'; damage: number; combo: number }
@@ -157,6 +159,8 @@ export class Combat {
   result: null | 'won' | 'lost' = null;
   spawning: boolean;
   readonly groupFight: boolean;
+  /** Attack hits since the companion last pecked. */
+  petCharge = 0;
 
   private nextId = 1;
   private refillTimer = 0;
@@ -504,6 +508,7 @@ export class Combat {
     }
     if (crit) this.startHitStop();
     if (target) this.damageEnemy(target, damage, crit, 'hit');
+    this.companionTick();
     return 'hit';
   }
 
@@ -657,7 +662,21 @@ export class Combat {
     }
   }
 
-  private damageEnemy(e: Enemy, dmg: number, crit: boolean, source: 'hit' | 'bomb' | 'finisher'): void {
+  /** The companion pecks the current target after every `companion.everyHits` attack hits. */
+  private companionTick(): void {
+    const P = this.tuning.companion;
+    if (P.everyHits <= 0 || this.result) return;
+    this.petCharge++;
+    if (this.petCharge < P.everyHits) return;
+    this.petCharge = 0;
+    const target = this.currentTarget();
+    const dmg = Math.round(P.damage);
+    if (!target || dmg <= 0) return;
+    this.events.push({ type: 'pet', enemyId: target.id, damage: dmg });
+    this.damageEnemy(target, dmg, false, 'pet');
+  }
+
+  private damageEnemy(e: Enemy, dmg: number, crit: boolean, source: 'hit' | 'bomb' | 'finisher' | 'pet'): void {
     if (!e.alive) return;
     e.hp = Math.max(0, e.hp - dmg);
     this.events.push({ type: 'enemyHurt', enemyId: e.id, damage: dmg, crit, source });
@@ -665,6 +684,11 @@ export class Combat {
     e.alive = false;
     for (const b of this.blocks.slice()) if (b.ownerId === e.id && !isAttack(b.kind)) this.removeBlock(b, 'owner');
     this.events.push({ type: 'kill', enemyId: e.id });
+    const heal = Math.min(heroMaxHp(this.tuning, this.hero) - this.hero.hp, Math.round(heroMaxHp(this.tuning, this.hero) * this.tuning.hero.healOnKill));
+    if (heal > 0 && this.hero.hp > 0) {
+      this.hero.hp += heal;
+      this.events.push({ type: 'heal', amount: heal });
+    }
     this.killQueue.push(e.id);
     if (this.enemies.every((x) => !x.alive)) {
       this.result = 'won';

@@ -15,6 +15,7 @@ export interface EnemyDef {
   pattern: string; // block codes, cycled in order
   icon: 'drop' | 'tusk' | 'mask'; // small icon drawn on its red blocks
   boss?: boolean; // crowned skull in the HUD
+  coins: number; // dropped when it dies
   sprite: 'slime' | 'bigslime' | 'boar' | 'bandit';
   scale: number; // sprite pixel scale
 }
@@ -73,6 +74,7 @@ export const DEFAULT_TUNING = {
     comboPower: 2, // finisher damage = combo x comboPower
     reviveHpFrac: 0.5,
     revivesPerLevel: 1,
+    healOnKill: 0.15, // fraction of max HP restored by every kill
   },
   meter: {
     perHit: 0.08,
@@ -90,6 +92,11 @@ export const DEFAULT_TUNING = {
     m2: 2,
     t3: 50,
     m3: 3,
+  },
+  companion: {
+    // Pip the owl: swoops in for a peck after every N attack hits (0 = no companion)
+    everyHits: 4,
+    damage: 6,
   },
   boosts: {
     maxHp: 20,
@@ -120,6 +127,7 @@ export const DEFAULT_TUNING = {
       icon: 'drop',
       sprite: 'slime',
       scale: 2,
+      coins: 10,
     },
     boar: {
       name: 'BOAR',
@@ -131,6 +139,7 @@ export const DEFAULT_TUNING = {
       icon: 'tusk',
       sprite: 'boar',
       scale: 2,
+      coins: 15,
     },
     bandit: {
       name: 'BANDIT',
@@ -142,6 +151,7 @@ export const DEFAULT_TUNING = {
       icon: 'mask',
       sprite: 'bandit',
       scale: 2,
+      coins: 20,
     },
     bigSlime: {
       name: 'BIG SLIME',
@@ -153,6 +163,7 @@ export const DEFAULT_TUNING = {
       icon: 'drop',
       sprite: 'bigslime',
       scale: 2,
+      coins: 60,
       boss: true,
     },
   } as Record<string, EnemyDef>,
@@ -313,6 +324,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('hero.comboPower', 'Combo power', 0, 10, 0.5),
         s('hero.reviveHpFrac', 'Revive HP', 0.1, 1, 0.05),
         s('hero.revivesPerLevel', 'Revives/level', 0, 3, 1),
+        s('hero.healOnKill', 'Heal on kill', 0, 1, 0.05),
       ],
     },
     {
@@ -352,6 +364,10 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       sliders: [s('swipe.minDistPx', 'Min dist (px)', 10, 200, 5), s('swipe.maxMs', 'Max time (ms)', 80, 800, 10)],
     },
     {
+      title: 'Companion (Pip)',
+      sliders: [s('companion.everyHits', 'Peck every N hits', 0, 12, 1), s('companion.damage', 'Peck damage', 0, 60, 1)],
+    },
+    {
       title: 'Juice',
       sliders: [
         s('juice.hitStopMs', 'Hit-stop (ms)', 0, 200, 5),
@@ -371,6 +387,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s(`enemies.${key}.atk`, 'Attack', 0, 80, 1),
         s(`enemies.${key}.special`, 'Special', 0, 150, 1),
         s(`enemies.${key}.interval`, 'Spawn every (s)', 0.2, 4, 0.05),
+        s(`enemies.${key}.coins`, 'Coins', 0, 200, 1),
       ],
     });
   }

@@ -261,6 +261,21 @@ function mapFrame(rows: string[], pal: Pal, flash = false): HTMLCanvasElement {
   return toCanvas(g);
 }
 
+// ------------------------------------------------------------------ Pip, the companion owl (facing right)
+
+const PIP_PAL: Pal = { b: '#4a8ad8', B: '#2e5aa0', c: '#e0f0ff', w: '#ffffff', e: '#1a1020', y: '#f2c230', t: '#6ab0ff' };
+const PIP_HEAD = [
+  '..t......t..',
+  '..bb....bb..',
+  '.bbbbbbbbbb.',
+  '.bbwwbbbwwb.',
+  '.bbwebbbweb.',
+  '.bbbbbyybbb.',
+];
+const PIP_IDLE = [...PIP_HEAD, 'BbbbbyybbbbB', 'BBcccccccbBB', 'BBcccccccBBB', '.BccccccccB.', '..bbbbbbbb..', '...y....y...'];
+const PIP_FLAP = [...PIP_HEAD, '.bbbbyybbbb.', 'bbcccccccbbb', 'BBcccccccbBB', 'B.ccccccccB.', '..bbbbbbbb..', '...y....y...'];
+const PIP_DIVE = [...PIP_HEAD, 'BBBbbyybbbb.', 'BBBcccccccbb', '.BBccccccccb', '..ccccccccb.', '...bbbbbbb..', '........yy..'];
+
 // ------------------------------------------------------------------ treasure chest (level clear)
 
 const CHEST_PAL: Pal = { l: '#d08a4c', b: '#a0622e', d: '#6a3e1c', y: '#f2c230', Y: '#b07e18', e: '#5ae070', c: '#fff0a0', C: '#f2c230' };
@@ -306,6 +321,10 @@ export const HUD_ICONS: Record<string, { rows: string[]; pal: Record<string, num
   heart: {
     rows: ['.kk.kk.', 'krrkrrk', 'krwrrrk', 'krrrrrk', '.krrrk.', '..krk..', '...k...'],
     pal: { k: 0x1a1020, r: 0xe23a3a, w: 0xffb0b0 },
+  },
+  coin: {
+    rows: ['.kkkkk.', 'kyyyyyk', 'kywyyYk', 'kywyyYk', 'kyyyyYk', 'kYYYYYk', '.kkkkk.'],
+    pal: { k: 0x1a1020, y: 0xf2c230, Y: 0xb07e18, w: 0xfff6c0 },
   },
   crown: {
     rows: ['k.k.k.k', 'kykykyk', 'kyyyyyk', 'kgkgkgk', 'kkkkkkk'],
@@ -519,6 +538,9 @@ export function buildArt(scene: Phaser.Scene, w: number, h: number, ground: numb
   add('bandit_attack', mapFrame(banditAttack, BANDIT_PAL));
   add('bandit_hurt', mapFrame(BANDIT, BANDIT_PAL));
   add('bandit_flash', mapFrame(BANDIT, BANDIT_PAL, true));
+  add('pip_idle0', mapFrame(PIP_IDLE, PIP_PAL));
+  add('pip_idle1', mapFrame(PIP_FLAP, PIP_PAL));
+  add('pip_dive', mapFrame(PIP_DIVE, PIP_PAL));
   add('chest_closed', mapFrame(CHEST_CLOSED, CHEST_PAL));
   add('chest_open', mapFrame(CHEST_OPEN, CHEST_PAL));
   add('bg', drawBackground(w, h, ground));

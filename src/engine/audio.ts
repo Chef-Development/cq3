@@ -527,6 +527,30 @@ export class Synth {
   }
 
   /** Cursor got faster. */
+  /** Coin pickup: a bright two-note ding. */
+  coin(): void {
+    if (!this.ready) return;
+    const t = this.ctx!.currentTime;
+    this.tone({ type: 'square', f: 1975.53, at: t, dur: 0.05, gain: 0.035 });
+    this.tone({ type: 'square', f: 2637.02, at: t + 0.05, dur: 0.12, gain: 0.035 });
+    this.tone({ type: 'sine', f: 2637.02, at: t + 0.05, dur: 0.18, gain: 0.05, rev: 0.25 });
+  }
+
+  /** Companion peck: a quick chirp. */
+  pet(): void {
+    if (!this.ready) return;
+    const t = this.ctx!.currentTime;
+    this.tone({ type: 'triangle', f: 1400, f1: 2400, at: t, dur: 0.06, gain: 0.08 });
+    this.tone({ type: 'triangle', f: 1800, f1: 2800, at: t + 0.06, dur: 0.05, gain: 0.06 });
+  }
+
+  /** Heal: a soft rising sparkle. */
+  heal(): void {
+    if (!this.ready) return;
+    const t = this.ctx!.currentTime;
+    [784, 987.77, 1318.51].forEach((f, i) => this.tone({ type: 'sine', f, at: t + i * 0.05, dur: 0.22, gain: 0.07, rev: 0.4 }));
+  }
+
   speedUp(): void {
     if (!this.ready) return;
     const t = this.ctx!.currentTime;

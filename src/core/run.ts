@@ -68,6 +68,8 @@ export class Run {
   combat: Combat | null = null;
   boostChoices: BoostId[] = [];
   pendingBoosts = 0;
+  /** Coins collected this session (kept across levels). */
+  coins = 0;
   private rng: Rng;
   private seed: number;
 
@@ -119,6 +121,7 @@ export class Run {
       return;
     }
     if (c.killQueue.length) {
+      for (const id of c.killQueue) this.coins += this.tuning.enemies[c.enemyById(id)?.key ?? '']?.coins ?? 0;
       this.pendingBoosts += c.killQueue.length;
       c.killQueue.length = 0;
       this.boostChoices = rollBoosts(this.rng);

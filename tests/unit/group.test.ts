@@ -153,3 +153,48 @@ describe('run flow: boosts, stages, revive', () => {
     expect(r.hero.hp).toBe(100);
   });
 });
+
+describe('kill rewards and companion', () => {
+  it('heals a fraction of max HP on every kill, capped at max', () => {
+    const { c, t } = setup({ enemies: ['slime', 'slime'], tune: (t) => ((t.hero.healOnKill = 0.15), (t.cursor.speedPerHit = 0)) });
+    c.hero.hp = 50;
+    c.enemies[0].hp = 1;
+    c.spawnBlock('yellow', 0.5);
+    c.spawnBlock('yellow', 0.65);
+    c.advanceTo(1);
+    c.tap(timeAt(t, 0.53));
+    expect(c.hero.hp).toBe(65);
+    expect(c.drainEvents().some((e) => e.type === 'heal' && e.amount === 15)).toBe(true);
+    c.hero.hp = 95;
+    c.enemies[1].hp = 1;
+    c.advanceTo(1.1);
+    c.tap(timeAt(t, 0.66));
+    expect(c.hero.hp).toBe(100);
+  });
+
+  it('the companion pecks the target after every N attack hits', () => {
+    const { c, t } = setup({ tune: (t) => ((t.companion.everyHits = 2), (t.companion.damage = 6), (t.cursor.speedPerHit = 0)) });
+    c.spawnBlock('yellow', 0.2);
+    c.spawnBlock('yellow', 0.5);
+    c.advanceTo(0.35);
+    c.tap(timeAt(t, 0.23));
+    expect(c.enemies[0].hp).toBe(70);
+    c.advanceTo(0.8);
+    c.tap(timeAt(t, 0.53));
+    expect(c.enemies[0].hp).toBe(80 - 10 - 10 - 6);
+    expect(c.drainEvents().filter((e) => e.type === 'pet')).toHaveLength(1);
+  });
+
+  it('collects coins for every kill across the run', () => {
+    const t = cloneTuning();
+    t.juice.hitStopMs = 0;
+    const r = new Run(t, { ...DEFAULT_SETTINGS }, 3);
+    r.startLevel(0);
+    const c = r.combat!;
+    c.meter = 1;
+    c.combo = 200;
+    c.finisher();
+    r.sync();
+    expect(r.coins).toBe(t.enemies.slime.coins);
+  });
+});

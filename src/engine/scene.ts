@@ -26,6 +26,8 @@ const ENGAGE_MS = 750;
 const LEAP_MS = 260;
 const SUPER_MS = 760;
 const ENTER_MS = 900;
+const PIP_SWOOP_MS = 140;
+const PIP_BACK_MS = 280;
 
 interface Rect {
   x: number;
@@ -164,6 +166,12 @@ export class FightScene extends Phaser.Scene implements View {
   private banner = '';
   private bannerUntil = 0;
   private chest: Phaser.GameObjects.Image | null = null;
+  private pip!: Phaser.GameObjects.Image;
+  private pipAnim = { state: 'idle' as 'idle' | 'swoop' | 'back', t0: 0, x: 0, y: 0, fromX: 0, fromY: 0, toX: 0, toY: 0 };
+  private coinsShown = 0;
+  private coinsPending = 0; // coins from kills whose burst hasn't spawned yet
+  private coinFlights: Array<{ x0: number; y0: number; vx: number; vy: number; born: number; value: number }> = [];
+  private lastCoinSound = 0;
   private chestAt = 0;
   private chestOpenAt = 0;
 
@@ -188,7 +196,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.gTop = this.add.graphics().setDepth(30);
     const mk = (key: string, depth = 12, bold = false) => (this.txt[key] = this.add.bitmapText(0, 0, bold ? FONT_BOLD : FONT, '').setDepth(depth));
     ['level', 'ability', 'comboLabel', 'speed', 'tier', 'debug', 'enemyName'].forEach((k) => mk(k));
-    ['heroHp', 'enemyHp', 'stat0', 'stat1', 'stat2', 'stat3', 'enemyAtk', 'combo', 'button', 'meterLabel'].forEach((k) => mk(k, 12, true));
+    ['heroHp', 'enemyHp', 'stat0', 'stat1', 'stat2', 'stat3', 'enemyAtk', 'combo', 'button', 'meterLabel', 'coins'].forEach((k) => mk(k, 12, true));
     ['ovTitle', 'ovSub', 'ovLine1', 'ovLine2', 'ovLine3', 'begin', 'banner'].forEach((k) => mk(k, 32, true));
     for (let i = 0; i < 6; i++) this.boostTexts.push(this.add.bitmapText(0, 0, FONT_BOLD, '').setDepth(32));
     this.lastNow = performance.now();
@@ -256,8 +264,14 @@ export class FightScene extends Phaser.Scene implements View {
     this.back.add(this.gSuper);
     this.gShadow = this.add.graphics();
     this.back.add(this.gShadow);
+    this.pip = this.add.image(this.heroHome - 20, this.ground - 30, 'pip_idle0').setOrigin(0.5, 0.5);
+    this.actors.add(this.pip);
+    this.pipAnim = { state: 'idle', t0: 0, x: this.heroHome - 20, y: this.ground - 30, fromX: 0, fromY: 0, toX: 0, toY: 0 };
     this.hero = this.add.image(this.heroHome, this.ground, 'hero_idle0').setScale(SPRITE_SCALE);
     this.actors.add(this.hero);
+    this.coinFlights = [];
+    this.coinsPending = 0;
+    this.coinsShown = this.app.run.coins;
     this.gFx = this.add.graphics();
     this.fxLayer.add(this.gFx);
     this.enemies.clear();
@@ -410,11 +424,18 @@ export class FightScene extends Phaser.Scene implements View {
         }
         case 'kill': {
           const id = e.enemyId;
+          const coins = this.app.tuning.enemies[c.enemyById(id)?.key ?? '']?.coins ?? 0;
+          this.coinsPending += coins;
           this.later(this.h.state === 'dash' ? DASH_MS : 0, () => {
             const v = this.enemies.get(id);
-            if (!v) return;
+            if (!v) {
+              this.coinsPending -= coins;
+              return;
+            }
             v.dieAt = this.anim;
             const cy = v.y - v.img.displayHeight / 2;
+            this.coinsPending -= coins;
+            this.dropCoins(v.x, cy, coins);
             const boss = !!this.app.tuning.enemies[c.enemyById(id)?.key ?? '']?.boss;
             this.burst(v.x, cy, ENEMY_COL[v.sprite] ?? WHITE, boss ? 60 : 26, true, boss ? 1.9 : 1.4);
             this.burst(v.x, cy, 0xffffff, boss ? 24 : 12, true, 1.2);
@@ -441,6 +462,14 @@ export class FightScene extends Phaser.Scene implements View {
           break;
         case 'finisher':
           this.heroFinisher(e.damage);
+          break;
+        case 'pet':
+          this.petAttack(e.enemyId, e.damage);
+          break;
+        case 'heal':
+          this.floatNum(this.h.x, this.ground - 44, `+${e.amount}`, 0xff7aa8, 2);
+          this.burst(this.h.x, this.ground - 16, 0xff7aa8, 10, true, 0.8);
+          this.app.audio.heal();
           break;
         case 'ability':
           this.floatNum(this.h.x, this.ground - 46, 'KEEN EDGE', 0x9af0a0, 1);
@@ -583,6 +612,95 @@ export class FightScene extends Phaser.Scene implements View {
           this.freeze(110);
         } else this.shake(J.shakeMinPx + 1, 80);
       });
+  }
+
+  private dropCoins(x: number, y: number, total: number): void {
+    if (total <= 0) return;
+    const n = Math.max(3, Math.min(10, Math.round(total / 5)));
+    const now = performance.now();
+    for (let i = 0; i < n; i++) {
+      const value = Math.floor(total / n) + (i < total % n ? 1 : 0);
+      this.coinFlights.push({ x0: x, y0: y, vx: rand(-60, 60), vy: rand(-110, -60), born: now + i * 25, value });
+    }
+  }
+
+  /** Coins pop out, then home in on the coin counter; the counter ticks up as each one lands. */
+  private drawCoins(g: Phaser.GameObjects.Graphics, now: number): void {
+    const tx = this.L + 110;
+    const ty = 9;
+    for (let i = this.coinFlights.length - 1; i >= 0; i--) {
+      const f = this.coinFlights[i];
+      const age = (now - f.born) / 1000;
+      if (age < 0) continue;
+      const T1 = 0.28;
+      const T2 = 0.42;
+      let x: number;
+      let y: number;
+      const pop = (t: number) => ({ x: f.x0 + f.vx * t, y: f.y0 + f.vy * t + 260 * t * t });
+      if (age < T1) ({ x, y } = pop(age));
+      else {
+        const p = pop(T1);
+        const k = ease(clamp01((age - T1) / T2));
+        x = p.x + (tx - p.x) * k;
+        y = p.y + (ty - p.y) * k;
+        if (k >= 1) {
+          this.coinFlights.splice(i, 1);
+          this.coinsShown += f.value;
+          if (now - this.lastCoinSound > 55) {
+            this.lastCoinSound = now;
+            this.app.audio.coin();
+          }
+          continue;
+        }
+      }
+      const X = Math.round(x);
+      const Y = Math.round(y);
+      g.fillStyle(INK, 1);
+      g.fillRect(X - 2, Y - 1, 5, 3);
+      g.fillRect(X - 1, Y - 2, 3, 5);
+      g.fillStyle(Math.floor(now / 60 + i) % 2 ? 0xf2c230 : 0xfff6c0, 1);
+      g.fillRect(X - 1, Y - 1, 3, 3);
+    }
+    if (!this.coinFlights.length && this.coinsPending <= 0) this.coinsShown = this.app.run.coins;
+  }
+
+  private petAttack(enemyId: number, damage: number): void {
+    const v = this.enemies.get(enemyId);
+    if (!v) return;
+    const P = this.pipAnim;
+    Object.assign(P, { state: 'swoop', t0: this.anim, fromX: P.x, fromY: P.y, toX: v.homeX - v.img.displayWidth / 2 - 2, toY: v.y - v.img.displayHeight * 0.6 });
+    this.later(PIP_SWOOP_MS, () => {
+      const cy = v.y - v.img.displayHeight / 2;
+      v.flashUntil = this.anim + 50;
+      v.knockUntil = this.anim + 60;
+      this.floatNum(v.x + rand(-4, 4), v.y - v.img.displayHeight - 8, `${damage}`, 0x6aff5a, 2);
+      this.burst(v.x - 6, cy, 0xb8e4ff, 8, true, 1, true);
+      this.app.audio.pet();
+      Object.assign(P, { state: 'back', t0: this.anim, fromX: P.x, fromY: P.y });
+    });
+  }
+
+  private updatePip(): void {
+    const P = this.pipAnim;
+    const a = this.anim;
+    const homeX = this.heroHome - 22;
+    const homeY = this.ground - 32 + Math.sin(a / 260) * 2;
+    let tex = Math.floor(a / 110) % 2 ? 'pip_idle1' : 'pip_idle0';
+    if (P.state === 'swoop') {
+      const k = clamp01((a - P.t0) / PIP_SWOOP_MS);
+      P.x = P.fromX + (P.toX - P.fromX) * ease(k);
+      P.y = P.fromY + (P.toY - P.fromY) * ease(k) - Math.sin(k * Math.PI) * 10;
+      tex = 'pip_dive';
+    } else if (P.state === 'back') {
+      const k = clamp01((a - P.t0) / PIP_BACK_MS);
+      P.x = P.fromX + (homeX - P.fromX) * ease(k);
+      P.y = P.fromY + (homeY - P.fromY) * ease(k) - Math.sin(k * Math.PI) * 14;
+      if (k >= 1) P.state = 'idle';
+    } else {
+      P.x = homeX;
+      P.y = homeY;
+    }
+    this.pip.setTexture(tex).setPosition(Math.round(P.x), Math.round(P.y)).setVisible(this.app.tuning.companion.everyHits > 0);
   }
 
   private heroReturn(): void {
@@ -794,7 +912,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.drawBar(t, now);
     this.drawTexts(now);
     this.drawOverlay(now);
-    this.updateFloaters(now);
+    this.updateFloatersAndCoins(now);
   }
 
   private updateHero(): void {
@@ -867,6 +985,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.clouds[1].setX(Math.round(GAME_W - drift));
 
     this.updateHero();
+    this.updatePip();
     this.drawSuper(now);
     if (this.chest) {
       const k = clamp01((this.anim - this.chestAt) / 600);
@@ -1158,6 +1277,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.hudBar(g, this.L + 17, 5, 86, 10, H.hp / maxHp, this.heroHpShown / maxHp);
     this.hudIcon(g, 'heart', this.L + 3, 3, 2);
     ['sword', 'crit', 'bolt', 'potion'].forEach((k, i) => this.hudIcon(g, k, this.L + 6, 21 + i * 10));
+    this.hudIcon(g, 'coin', this.L + 107, 5);
     if (H.abilityTimer > 0) {
       g.fillStyle(0x9af0a0, 1);
       g.fillRect(this.L + 17, 17, Math.round(86 * (H.abilityTimer / Math.max(0.01, T.hero.abilitySec))), 1);
@@ -1389,6 +1509,7 @@ export class FightScene extends Phaser.Scene implements View {
     const stageInfo = lvl.stages.length > 1 ? ` - ${run.stageIndex + 1}/${lvl.stages.length}` : '';
     this.setText('level', `${lvl.name}${stageInfo}`, GAME_W / 2, 24, 0xf2f4fa, 1, 0.5, 0, run.phase !== 'levelClear');
     this.setText('heroHp', `${Math.ceil(H.hp)}/${maxHp}`, this.L + 60, 10, WHITE, 1, 0.5, 0.5);
+    this.setText('coins', `${this.coinsShown}`, this.L + 116, 9, 0xffe680, 1, 0, 0.5);
     const crit = T.hero.critChance + H.bonusCrit + (H.abilityTimer > 0 ? T.hero.abilityCritBonus : 0);
     const stats = [
       `${Math.round(T.hero.atk * (1 + H.bonusDmg))}`,
@@ -1523,6 +1644,11 @@ export class FightScene extends Phaser.Scene implements View {
       this.setText('ovSub', 'TAP TO RESUME', cx, 92, 0xffd23a, 1, 0.5, 0.5, blink);
       hide('ovLine1', 'ovLine2', 'ovLine3');
     } else hide(...ov);
+  }
+
+  private updateFloatersAndCoins(now: number): void {
+    this.drawCoins(this.gTop, now);
+    this.updateFloaters(now);
   }
 
   private updateFloaters(now: number): void {
