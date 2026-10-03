@@ -1,0 +1,370 @@
+// THE tuning file. Every tunable number in the game lives here.
+// CQ2's real values are undocumented, so everything below is a starting guess.
+// The debug panel edits a live copy of this object; "Copy tuning as JSON" exports it.
+
+export type BlockCode = 'Y' | 'G' | 'R' | 'S' | 'B' | 'F' | 'P';
+// Y yellow attack, G green attack+ability, R red enemy attack,
+// S shield red (2 taps), B bomb red, F speed red, P purple trap.
+
+export interface EnemyDef {
+  name: string;
+  hp: number;
+  atk: number; // damage when one of its red blocks reaches the left end
+  special: number; // damage when the player taps one of its purple traps
+  interval: number; // seconds between spawns from its pattern
+  pattern: string; // block codes, cycled in order
+  icon: 'drop' | 'tusk' | 'mask'; // small icon drawn on its red blocks
+  sprite: 'slime' | 'boar' | 'bandit';
+  scale: number; // sprite scale (Big Slime = 2)
+}
+
+export interface LevelDef {
+  name: string;
+  // Each stage is the list of enemies on screen at the same time.
+  stages: string[][];
+}
+
+export const DEFAULT_TUNING = {
+  cursor: {
+    basePassSec: 1.4, // seconds for one left->right pass at base speed
+    speedPerHit: 0.02, // +2% speed per combo hit (linear)
+    maxSpeedMult: 2.5, // cap on total cursor speed multiplier
+    speedBlockBonus: 0.15, // +15% per blocked Speed block, until you take damage
+    widthFrac: 0.012, // cursor width as a fraction of the bar
+  },
+  judge: {
+    perfectFrac: 0.3, // central 30% of a block = PERFECT
+    graceMs: 20, // extra hit window on each side, in time at the current cursor speed
+    maxRewindMs: 300, // how far back a tap timestamp may be judged
+    missSelfDamage: 3, // Classic mode: damage for tapping empty bar
+  },
+  blocks: {
+    attackWidth: 0.1, // yellow/green width (fraction of bar)
+    redWidth: 0.08,
+    trapWidth: 0.1,
+    redTravelSec: 2.5, // right end -> left end
+    impactGraceMs: 60, // red block sits at the left end this long (still blockable) before hitting
+    trapLifeSec: 4,
+    attackLifeSec: 0, // 0 = yellow/green stay until hit
+    shieldHits: 2,
+    bombRadius: 0.2, // fraction of bar, measured from the bomb's center
+    bombDamage: 15, // to every enemy when a bomb is tapped
+    bombHitMult: 1.5, // bomb that reaches you hits this much harder
+    maxStatic: 4, // max yellow/green/purple on the bar
+    maxRed: 3,
+    spawnRateMult: 1, // >1 = slower spawns
+    groupSpawnMult: 1.6, // extra spawn interval multiplier when 2+ enemies share the screen
+    openingSpawns: 2, // yellow blocks placed at the start of a fight
+    minGap: 0.03, // min empty space between static blocks
+    edgeMargin: 0.04,
+  },
+  hero: {
+    maxHp: 100,
+    atk: 10,
+    greenMult: 1.5,
+    critChance: 0.05,
+    critDmg: 2, // crit damage multiplier
+    perfectCritBonus: 0.25, // added crit chance on a PERFECT hit
+    abilityCritBonus: 0.1, // Rowan's green ability: +10% crit chance...
+    abilitySec: 3, // ...for 3 s
+    comboPower: 2, // finisher damage = combo x comboPower
+    reviveHpFrac: 0.5,
+    revivesPerLevel: 1,
+  },
+  meter: {
+    perHit: 0.08,
+    perGreen: 0.16,
+    perBlock: 0.05,
+    perfectBonus: 0.04,
+    finisherPushback: 0.4, // red blocks pushed back this fraction of the bar
+  },
+  tiers: {
+    // Combo tiers (toggle in settings): damage multiplier at combo thresholds
+    t1: 10,
+    m1: 1.5,
+    t2: 25,
+    m2: 2,
+    t3: 50,
+    m3: 3,
+  },
+  boosts: {
+    maxHp: 20,
+    damage: 0.2, // +20% damage
+    crit: 0.05,
+    critDmg: 0.5,
+    comboPower: 1,
+  },
+  swipe: {
+    minDistPx: 40, // CSS px upward
+    maxMs: 300,
+  },
+  juice: {
+    hitStopMs: 50, // freeze on crits and finishers
+    shakeMinPx: 2,
+    shakeMaxPx: 4,
+    shakeMs: 120,
+    flashMs: 70,
+  },
+  enemies: {
+    slime: {
+      name: 'SLIME',
+      hp: 80,
+      atk: 8,
+      special: 16,
+      interval: 1.0,
+      pattern: 'YYRYGYRYYR',
+      icon: 'drop',
+      sprite: 'slime',
+      scale: 1,
+    },
+    boar: {
+      name: 'BOAR',
+      hp: 120,
+      atk: 10,
+      special: 20,
+      interval: 0.95,
+      pattern: 'YRYSGYFRYS',
+      icon: 'tusk',
+      sprite: 'boar',
+      scale: 1,
+    },
+    bandit: {
+      name: 'BANDIT',
+      hp: 140,
+      atk: 12,
+      special: 24,
+      interval: 0.9,
+      pattern: 'YRPYGBYRPY',
+      icon: 'mask',
+      sprite: 'bandit',
+      scale: 1,
+    },
+    bigSlime: {
+      name: 'BIG SLIME',
+      hp: 260,
+      atk: 14,
+      special: 28,
+      interval: 0.85,
+      pattern: 'YRSGPYFBYRGP',
+      icon: 'drop',
+      sprite: 'slime',
+      scale: 2,
+    },
+  } as Record<string, EnemyDef>,
+  levels: [
+    { name: 'LEVEL 1', stages: [['slime'], ['boar'], ['bandit'], ['bigSlime']] },
+    { name: 'LEVEL 2', stages: [['slime', 'slime', 'bandit']] },
+  ] as LevelDef[],
+};
+
+export type Tuning = typeof DEFAULT_TUNING;
+
+export interface Settings {
+  mode: 'classic' | 'relaxed'; // empty-bar tap: self-damage + combo break, or combo break only
+  finisherInput: 'button' | 'swipe';
+  comboTiers: boolean;
+  targeting: 'auto' | 'tap';
+  godMode: boolean;
+  calibrationMs: number; // average tap lateness; subtracted from tap timestamps
+  audioIgnoresSilentSwitch: boolean;
+  muted: boolean;
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  mode: 'classic',
+  finisherInput: 'button',
+  comboTiers: false,
+  targeting: 'auto',
+  godMode: false,
+  calibrationMs: 0,
+  audioIgnoresSilentSwitch: true,
+  muted: false,
+};
+
+export function cloneTuning(t: Tuning = DEFAULT_TUNING): Tuning {
+  return JSON.parse(JSON.stringify(t)) as Tuning;
+}
+
+/** Deep-merge `src` onto `dst`, only for keys that exist in `dst` with the same primitive type. */
+export function mergeKnown(dst: unknown, src: unknown): void {
+  if (!isObj(dst) || !isObj(src)) return;
+  for (const key of Object.keys(dst)) {
+    if (!(key in src)) continue;
+    const d = dst[key];
+    const s = src[key];
+    if (Array.isArray(d)) {
+      if (key === 'levels' && Array.isArray(s)) dst[key] = s;
+      continue;
+    }
+    if (isObj(d)) {
+      if (key === 'enemies' && isObj(s)) {
+        // keep enemy set fixed, merge per-enemy values
+        for (const ek of Object.keys(d)) mergeKnown(d[ek], s[ek]);
+      } else mergeKnown(d, s);
+    } else if (typeof d === typeof s) {
+      if (typeof s === 'number' && !Number.isFinite(s)) continue;
+      dst[key] = s;
+    }
+  }
+}
+
+function isObj(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+// ---- Slider metadata for the debug panel (same file so every number stays in one place) ----
+
+export interface SliderDef {
+  path: string; // dot path into Tuning
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+}
+
+export interface SliderGroup {
+  title: string;
+  sliders: SliderDef[];
+}
+
+const s = (path: string, label: string, min: number, max: number, step: number): SliderDef => ({
+  path,
+  label,
+  min,
+  max,
+  step,
+});
+
+export function sliderGroups(t: Tuning): SliderGroup[] {
+  const groups: SliderGroup[] = [
+    {
+      title: 'Cursor',
+      sliders: [
+        s('cursor.basePassSec', 'Base pass (s)', 0.5, 3, 0.05),
+        s('cursor.speedPerHit', 'Speed per hit', 0, 0.1, 0.005),
+        s('cursor.maxSpeedMult', 'Max speed x', 1, 4, 0.1),
+        s('cursor.speedBlockBonus', 'Speed block bonus', 0, 0.5, 0.01),
+        s('cursor.widthFrac', 'Cursor width', 0, 0.05, 0.002),
+      ],
+    },
+    {
+      title: 'Judgment',
+      sliders: [
+        s('judge.perfectFrac', 'Perfect zone', 0.05, 1, 0.05),
+        s('judge.graceMs', 'Grace (ms)', 0, 80, 1),
+        s('judge.maxRewindMs', 'Max rewind (ms)', 0, 600, 10),
+        s('judge.missSelfDamage', 'Miss self-dmg', 0, 20, 1),
+      ],
+    },
+    {
+      title: 'Blocks',
+      sliders: [
+        s('blocks.attackWidth', 'Attack width', 0.03, 0.25, 0.005),
+        s('blocks.redWidth', 'Red width', 0.03, 0.25, 0.005),
+        s('blocks.trapWidth', 'Trap width', 0.03, 0.25, 0.005),
+        s('blocks.redTravelSec', 'Red travel (s)', 0.8, 6, 0.1),
+        s('blocks.impactGraceMs', 'Impact grace (ms)', 0, 200, 5),
+        s('blocks.trapLifeSec', 'Trap life (s)', 1, 10, 0.5),
+        s('blocks.attackLifeSec', 'Attack life (s, 0=inf)', 0, 12, 0.5),
+        s('blocks.shieldHits', 'Shield taps', 1, 4, 1),
+        s('blocks.bombRadius', 'Bomb radius', 0.05, 0.6, 0.01),
+        s('blocks.bombDamage', 'Bomb dmg', 0, 80, 1),
+        s('blocks.bombHitMult', 'Bomb hit x', 1, 3, 0.1),
+        s('blocks.maxStatic', 'Max static', 1, 8, 1),
+        s('blocks.maxRed', 'Max red', 1, 6, 1),
+        s('blocks.spawnRateMult', 'Spawn interval x', 0.3, 3, 0.05),
+        s('blocks.groupSpawnMult', 'Group interval x', 0.5, 4, 0.1),
+        s('blocks.openingSpawns', 'Opening blocks', 0, 4, 1),
+        s('blocks.minGap', 'Min gap', 0, 0.1, 0.005),
+        s('blocks.edgeMargin', 'Edge margin', 0, 0.2, 0.01),
+      ],
+    },
+    {
+      title: 'Hero (Rowan)',
+      sliders: [
+        s('hero.maxHp', 'Max HP', 10, 400, 5),
+        s('hero.atk', 'Attack', 1, 60, 1),
+        s('hero.greenMult', 'Green x', 1, 4, 0.1),
+        s('hero.critChance', 'Crit chance', 0, 1, 0.01),
+        s('hero.critDmg', 'Crit dmg x', 1, 5, 0.1),
+        s('hero.perfectCritBonus', 'Perfect crit +', 0, 1, 0.01),
+        s('hero.abilityCritBonus', 'Ability crit +', 0, 1, 0.01),
+        s('hero.abilitySec', 'Ability (s)', 0, 10, 0.5),
+        s('hero.comboPower', 'Combo power', 0, 10, 0.5),
+        s('hero.reviveHpFrac', 'Revive HP', 0.1, 1, 0.05),
+        s('hero.revivesPerLevel', 'Revives/level', 0, 3, 1),
+      ],
+    },
+    {
+      title: 'Meter / Finisher',
+      sliders: [
+        s('meter.perHit', 'Per hit', 0, 0.5, 0.01),
+        s('meter.perGreen', 'Per green', 0, 0.5, 0.01),
+        s('meter.perBlock', 'Per block', 0, 0.5, 0.01),
+        s('meter.perfectBonus', 'Perfect bonus', 0, 0.3, 0.01),
+        s('meter.finisherPushback', 'Red pushback', 0, 1, 0.05),
+      ],
+    },
+    {
+      title: 'Combo tiers',
+      sliders: [
+        s('tiers.t1', 'Tier 1 at', 1, 100, 1),
+        s('tiers.m1', 'Tier 1 x', 1, 5, 0.1),
+        s('tiers.t2', 'Tier 2 at', 1, 150, 1),
+        s('tiers.m2', 'Tier 2 x', 1, 5, 0.1),
+        s('tiers.t3', 'Tier 3 at', 1, 200, 1),
+        s('tiers.m3', 'Tier 3 x', 1, 8, 0.1),
+      ],
+    },
+    {
+      title: 'Boosts',
+      sliders: [
+        s('boosts.maxHp', 'Max HP +', 0, 100, 5),
+        s('boosts.damage', 'Damage +', 0, 1, 0.05),
+        s('boosts.crit', 'Crit +', 0, 0.3, 0.01),
+        s('boosts.critDmg', 'Crit dmg +', 0, 2, 0.1),
+        s('boosts.comboPower', 'Combo power +', 0, 5, 0.5),
+      ],
+    },
+    {
+      title: 'Swipe finisher',
+      sliders: [s('swipe.minDistPx', 'Min dist (px)', 10, 200, 5), s('swipe.maxMs', 'Max time (ms)', 80, 800, 10)],
+    },
+    {
+      title: 'Juice',
+      sliders: [
+        s('juice.hitStopMs', 'Hit-stop (ms)', 0, 200, 5),
+        s('juice.shakeMinPx', 'Shake min px', 0, 8, 1),
+        s('juice.shakeMaxPx', 'Shake max px', 0, 8, 1),
+        s('juice.shakeMs', 'Shake (ms)', 0, 400, 10),
+        s('juice.flashMs', 'Hit flash (ms)', 0, 200, 5),
+      ],
+    },
+  ];
+  for (const key of Object.keys(t.enemies)) {
+    const e = t.enemies[key];
+    groups.push({
+      title: `Enemy: ${e.name}`,
+      sliders: [
+        s(`enemies.${key}.hp`, 'HP', 5, 1500, 5),
+        s(`enemies.${key}.atk`, 'Attack', 0, 80, 1),
+        s(`enemies.${key}.special`, 'Special', 0, 150, 1),
+        s(`enemies.${key}.interval`, 'Spawn every (s)', 0.2, 4, 0.05),
+      ],
+    });
+  }
+  return groups;
+}
+
+export function getPath(obj: unknown, path: string): number {
+  let cur: unknown = obj;
+  for (const k of path.split('.')) cur = (cur as Record<string, unknown>)[k];
+  return cur as number;
+}
+
+export function setPath(obj: unknown, path: string, value: number): void {
+  const keys = path.split('.');
+  let cur = obj as Record<string, unknown>;
+  for (let i = 0; i < keys.length - 1; i++) cur = cur[keys[i]] as Record<string, unknown>;
+  cur[keys[keys.length - 1]] = value;
+}
