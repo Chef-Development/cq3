@@ -15,6 +15,9 @@ export function setup(opts: { enemies?: string[]; tune?: (t: Tuning) => void; se
   t.hero.abilityCritBonus = 0;
   t.juice.hitStopMs = 0;
   t.blocks.openingSpawns = 0;
+  // Pin the numbers the assertions use so tuning the defaults doesn't break tests.
+  t.enemies.slime.hp = 80;
+  t.enemies.bandit.hp = 140;
   opts.tune?.(t);
   const s: Settings = { ...DEFAULT_SETTINGS, ...opts.settings };
   const c = new Combat({ tuning: t, settings: s, hero: newHero(t), enemies: opts.enemies ?? ['slime'], seed: 42, spawning: opts.spawning ?? false });

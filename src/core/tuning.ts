@@ -15,7 +15,7 @@ export interface EnemyDef {
   pattern: string; // block codes, cycled in order
   icon: 'drop' | 'tusk' | 'mask'; // small icon drawn on its red blocks
   sprite: 'slime' | 'boar' | 'bandit';
-  scale: number; // sprite scale (Big Slime = 2)
+  scale: number; // sprite pixel scale in a 1-on-1 fight (one less in group fights)
 }
 
 export interface LevelDef {
@@ -108,47 +108,47 @@ export const DEFAULT_TUNING = {
   enemies: {
     slime: {
       name: 'SLIME',
-      hp: 80,
+      hp: 100,
       atk: 8,
       special: 16,
       interval: 1.0,
       pattern: 'YYRYGYRYYR',
       icon: 'drop',
       sprite: 'slime',
-      scale: 1,
+      scale: 3,
     },
     boar: {
       name: 'BOAR',
-      hp: 120,
+      hp: 160,
       atk: 10,
       special: 20,
       interval: 0.95,
       pattern: 'YRYSGYFRYS',
       icon: 'tusk',
       sprite: 'boar',
-      scale: 1,
+      scale: 3,
     },
     bandit: {
       name: 'BANDIT',
-      hp: 140,
+      hp: 200,
       atk: 12,
       special: 24,
       interval: 0.9,
       pattern: 'YRPYGBYRPY',
       icon: 'mask',
       sprite: 'bandit',
-      scale: 1,
+      scale: 3,
     },
     bigSlime: {
       name: 'BIG SLIME',
-      hp: 260,
+      hp: 380,
       atk: 14,
       special: 28,
       interval: 0.85,
       pattern: 'YRSGPYFBYRGP',
       icon: 'drop',
       sprite: 'slime',
-      scale: 2,
+      scale: 5,
     },
   } as Record<string, EnemyDef>,
   levels: [

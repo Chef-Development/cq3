@@ -23,7 +23,7 @@ export function boostLabel(t: Tuning, id: BoostId): [string, string] {
     case 'comboPower':
       return ['COMBO PWR', `+${b.comboPower}`];
     case 'heal':
-      return ['FULL HEAL', 'HP MAX'];
+      return ['HEAL', 'FULL'];
   }
 }
 

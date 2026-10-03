@@ -1,0 +1,298 @@
+:root {
+  --ink: #0a0812;
+  --panel: #16122a;
+  --line: #3a3050;
+  --text: #e8e4ff;
+  --dim: #9a94b0;
+  --accent: #ffd23a;
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  font: 13px/1.35 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  color: var(--text);
+}
+
+#game {
+  position: fixed;
+  inset: 0;
+}
+
+#game canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+
+#hud {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 6px);
+  right: calc(env(safe-area-inset-right) + 6px);
+  display: flex;
+  gap: 8px;
+  z-index: 30;
+}
+
+.hud-btn {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border: 2px solid var(--ink);
+  background: rgba(42, 36, 64, 0.85);
+  box-shadow: inset 0 2px 0 #4a4280;
+  color: var(--text);
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.hud-btn svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+  display: block;
+}
+.hud-btn.on {
+  background: #ff9a2a;
+  color: var(--ink);
+}
+
+#debug {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 56%;
+  z-index: 20;
+  background: rgba(14, 11, 26, 0.96);
+  border-bottom: 2px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+}
+#debug[hidden],
+#calib[hidden] {
+  display: none;
+}
+
+.dbg-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  padding-right: calc(env(safe-area-inset-right) + 96px);
+  border-bottom: 1px solid var(--line);
+}
+.dbg-title {
+  flex: 1;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: var(--accent);
+}
+.dbg-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: 4px 10px calc(env(safe-area-inset-bottom) + 16px);
+}
+
+.dbg-btn {
+  font: inherit;
+  color: var(--text);
+  background: #2a2450;
+  border: 2px solid var(--ink);
+  box-shadow: inset 0 2px 0 #4a4280;
+  padding: 7px 10px;
+  min-height: 34px;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.dbg-btn:active {
+  background: #3a3470;
+}
+.dbg-btn.wide {
+  width: 100%;
+  margin: 6px 0;
+}
+
+.dbg-sec {
+  border-bottom: 1px solid var(--line);
+  padding: 4px 0;
+}
+.dbg-sec summary {
+  padding: 8px 0;
+  font-weight: bold;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.dbg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0;
+}
+.dbg-row.slider {
+  display: block;
+}
+.dbg-label {
+  color: var(--dim);
+}
+.dbg-slabel {
+  display: flex;
+  justify-content: space-between;
+  color: var(--dim);
+}
+.dbg-val {
+  color: var(--text);
+}
+.dbg-row input[type='range'] {
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  touch-action: pan-x;
+  accent-color: #ff9a2a;
+}
+.dbg-seg {
+  display: flex;
+}
+.dbg-segbtn {
+  font: inherit;
+  color: var(--dim);
+  background: #1e1a36;
+  border: 2px solid var(--ink);
+  padding: 6px 10px;
+  min-height: 32px;
+  touch-action: manipulation;
+}
+.dbg-segbtn.on {
+  background: #ff9a2a;
+  color: var(--ink);
+}
+.dbg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 6px 0;
+}
+.dbg-foot {
+  color: var(--dim);
+  padding: 10px 0;
+  font-size: 11px;
+}
+
+#calib {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(8, 6, 16, 0.97);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+.cal-box {
+  width: min(92vw, 380px);
+  text-align: center;
+}
+.cal-title {
+  color: var(--accent);
+  font-size: 20px;
+  letter-spacing: 3px;
+  font-weight: bold;
+}
+.cal-help {
+  color: var(--dim);
+}
+.cal-bar {
+  position: relative;
+  height: 40px;
+  margin: 24px 6px;
+  background: #2a2440;
+  border: 3px solid var(--ink);
+}
+.cal-bar.tap {
+  background: #3a3460;
+}
+.cal-mark {
+  position: absolute;
+  left: calc(50% - 12px);
+  width: 24px;
+  top: 4px;
+  bottom: 4px;
+  background: #f2c230;
+}
+.cal-mark.flash {
+  background: #fff;
+}
+.cal-cursor {
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  width: 4px;
+  margin-left: -2px;
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+.cal-status {
+  min-height: 3em;
+  margin: 8px 0 16px;
+}
+.cal-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  top: 40%;
+  transform: translateX(-50%);
+  background: #ff9a2a;
+  color: var(--ink);
+  padding: 8px 14px;
+  border: 2px solid var(--ink);
+  z-index: 60;
+  font-weight: bold;
+}
+
+#rotate {
+  display: none;
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  #rotate {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #0a0812;
+    color: var(--accent);
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+}
