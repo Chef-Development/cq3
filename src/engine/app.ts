@@ -14,6 +14,7 @@ export interface View {
 }
 
 const MAX_CATCHUP_S = 0.25;
+export const INTRO_MS = 1100;
 
 export class App {
   readonly clock = new SimClock();
@@ -30,6 +31,8 @@ export class App {
   sceneReady = false;
   /** Each new fight waits for a "TAP TO BEGIN!" tap before the clock runs. */
   awaitingBegin = false;
+  /** Later stages of a level: the clock waits while the next enemy walks in (performance.now ms). */
+  introUntil = 0;
   private begunCombat: unknown = null;
   phaseSince = 0;
 
@@ -65,6 +68,7 @@ export class App {
       !this.hidden &&
       !this.calibrating &&
       !this.awaitingBegin &&
+      performance.now() >= this.introUntil &&
       (!this.panelOpen || this.playWhilePanelOpen)
     );
   }
@@ -137,7 +141,8 @@ export class App {
     const now = performance.now();
     if (this.run.phase === 'fight' && this.run.combat && this.run.combat !== this.begunCombat) {
       this.begunCombat = this.run.combat;
-      this.awaitingBegin = true;
+      if (this.run.stageIndex === 0) this.awaitingBegin = true;
+      else this.introUntil = now + INTRO_MS;
     }
     if (this.run.phase !== prev) {
       this.phaseSince = now;

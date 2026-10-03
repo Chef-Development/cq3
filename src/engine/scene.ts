@@ -25,6 +25,7 @@ const RETURN_MS = 190;
 const ENGAGE_MS = 750;
 const LEAP_MS = 260;
 const SUPER_MS = 760;
+const ENTER_MS = 900;
 
 interface Rect {
   x: number;
@@ -48,6 +49,7 @@ interface EnemyView {
   dieAt: number;
   phase: number;
   hpShown: number;
+  enterAt: number; // anim time the walk-in started (0 = done)
 }
 
 interface HeroAnim {
@@ -159,6 +161,8 @@ export class FightScene extends Phaser.Scene implements View {
   private stars: Array<{ x: number; y: number; at: number; r: number; color: number }> = [];
   private heroHpShown = 0;
   private lastMilestone = 0;
+  private banner = '';
+  private bannerUntil = 0;
 
   constructor() {
     super('fight');
@@ -182,7 +186,7 @@ export class FightScene extends Phaser.Scene implements View {
     const mk = (key: string, depth = 12, bold = false) => (this.txt[key] = this.add.bitmapText(0, 0, bold ? FONT_BOLD : FONT, '').setDepth(depth));
     ['level', 'ability', 'comboLabel', 'speed', 'tier', 'debug', 'enemyName'].forEach((k) => mk(k));
     ['heroHp', 'enemyHp', 'stat0', 'stat1', 'stat2', 'stat3', 'enemyAtk', 'combo', 'button', 'meterLabel'].forEach((k) => mk(k, 12, true));
-    ['ovTitle', 'ovSub', 'ovLine1', 'ovLine2', 'ovLine3', 'begin'].forEach((k) => mk(k, 32, true));
+    ['ovTitle', 'ovSub', 'ovLine1', 'ovLine2', 'ovLine3', 'begin', 'banner'].forEach((k) => mk(k, 32, true));
     for (let i = 0; i < 6; i++) this.boostTexts.push(this.add.bitmapText(0, 0, FONT_BOLD, '').setDepth(32));
     this.lastNow = performance.now();
     this.onLayout();
@@ -690,6 +694,11 @@ export class FightScene extends Phaser.Scene implements View {
       for (const v of this.enemies.values()) v.img.destroy();
       this.enemies.clear();
       this.h = this.freshHero();
+      const run = this.app.run;
+      if (run.stageIndex > 0) {
+        this.banner = `${run.stageIndex} OUT OF ${run.level.stages.length} DEFEATED!`;
+        this.bannerUntil = performance.now() + 1800;
+      }
     }
     this.lastCombat = c;
     for (const e of c.enemies) {
@@ -713,6 +722,7 @@ export class FightScene extends Phaser.Scene implements View {
         dieAt: 0,
         phase: Math.random() * 1000,
         hpShown: e.hp,
+        enterAt: this.anim + e.slot * 120,
       });
     }
     this.heroHpShown = this.app.run.hero.hp;
@@ -832,6 +842,15 @@ export class FightScene extends Phaser.Scene implements View {
         const e = c.enemyById(v.id);
         if (!e) continue;
         let x = v.homeX;
+        let walkBob = 0;
+        if (v.enterAt) {
+          const k = (a - v.enterAt) / ENTER_MS;
+          if (k >= 1) v.enterAt = 0;
+          else {
+            x = GAME_W + 30 + (v.homeX - GAME_W - 30) * ease(clamp01(k));
+            walkBob = Math.floor(a / 90) % 2;
+          }
+        }
         if (v.lunge) {
           const k = (a - v.lunge.t0) / v.lunge.ms;
           if (k >= 1) v.lunge = null;
@@ -849,7 +868,7 @@ export class FightScene extends Phaser.Scene implements View {
           if (k >= 1) v.img.setVisible(false);
           continue;
         }
-        v.img.setTexture(`${v.sprite}_${pose}`).setPosition(Math.round(x), v.y).setScale(SPRITE_SCALE).setAlpha(1);
+        v.img.setTexture(`${v.sprite}_${pose}`).setPosition(Math.round(x), v.y - walkBob).setScale(SPRITE_SCALE).setAlpha(1);
         shadow(x, v.img.displayWidth * 0.8, 0.3);
         v.hpShown += (e.hp - v.hpShown) * 0.25;
         if (c.enemies.length > 1) {
@@ -1097,6 +1116,7 @@ export class FightScene extends Phaser.Scene implements View {
       const bx = this.R - 104;
       this.hudBar(g, bx, 15, 86, 10, target.hp / target.maxHp, (v?.hpShown ?? target.hp) / target.maxHp, { mirror: true });
       this.hudIcon(g, 'skull', this.R - 16, 12, 2);
+      if (this.app.tuning.enemies[target.key].boss) this.hudIcon(g, 'crown', this.R - 16, 3, 2);
       this.hudIcon(g, 'sword', this.R - 11, 31);
     }
 
@@ -1327,7 +1347,7 @@ export class FightScene extends Phaser.Scene implements View {
     const target = c ? (c.currentTarget() ?? c.enemies[0]) : null;
     if (target && c) {
       const def = T.enemies[target.key];
-      this.setText('enemyName', def.name, this.R - 61, 4, WHITE, 1, 0.5, 0);
+      this.setText('enemyName', def.name, this.R - 61, 4, def.boss ? 0xffd23a : WHITE, 1, 0.5, 0);
       this.setText('enemyHp', `${Math.ceil(target.hp)}/${target.maxHp}`, this.R - 61, 20, WHITE, 1, 0.5, 0.5);
       this.setText('enemyAtk', `${def.atk}`, this.R - 14, 35, WHITE, 1, 1, 0.5);
     } else ['enemyName', 'enemyHp', 'enemyAtk'].forEach((k) => this.txt[k].setVisible(false));
@@ -1389,6 +1409,11 @@ export class FightScene extends Phaser.Scene implements View {
     const blink = Math.floor(now / 450) % 2 === 0;
     const cx = GAME_W / 2;
     if (!(ph === 'fight' && this.app.awaitingBegin && !this.app.userPaused)) this.txt.begin.setVisible(false);
+    if (ph === 'fight' && now < this.bannerUntil) {
+      const k = (this.bannerUntil - now) / 1800;
+      this.setText('banner', this.banner, cx, 60, WHITE, 2, 0.5, 0.5, true);
+      this.txt.banner.setAlpha(k < 0.15 ? k / 0.15 : 1);
+    } else this.txt.banner.setVisible(false);
     if (ph === 'title') {
       dim(0.6);
       this.setText('ovTitle', 'COMBO QUEST 3', cx, 50, 0xffd23a, 3, 0.5, 0.5);

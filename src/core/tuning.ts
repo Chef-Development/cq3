@@ -14,6 +14,7 @@ export interface EnemyDef {
   interval: number; // seconds between spawns from its pattern
   pattern: string; // block codes, cycled in order
   icon: 'drop' | 'tusk' | 'mask'; // small icon drawn on its red blocks
+  boss?: boolean; // crowned skull in the HUD
   sprite: 'slime' | 'bigslime' | 'boar' | 'bandit';
   scale: number; // sprite pixel scale
 }
@@ -152,6 +153,7 @@ export const DEFAULT_TUNING = {
       icon: 'drop',
       sprite: 'bigslime',
       scale: 2,
+      boss: true,
     },
   } as Record<string, EnemyDef>,
   levels: [

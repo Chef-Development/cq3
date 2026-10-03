@@ -279,6 +279,10 @@ export const HUD_ICONS: Record<string, { rows: string[]; pal: Record<string, num
     rows: ['.kk.kk.', 'krrkrrk', 'krwrrrk', 'krrrrrk', '.krrrk.', '..krk..', '...k...'],
     pal: { k: 0x1a1020, r: 0xe23a3a, w: 0xffb0b0 },
   },
+  crown: {
+    rows: ['k.k.k.k', 'kykykyk', 'kyyyyyk', 'kgkgkgk', 'kkkkkkk'],
+    pal: { k: 0x1a1020, y: 0xf2c230, g: 0xe8443a },
+  },
   skull: {
     rows: ['.kkkkk.', 'kwwwwwk', 'kwkwkwk', 'kwkwkwk', 'kwwkwwk', '.kwwwk.', '.kwkwk.', '..kkk..'],
     pal: { k: 0x1a1020, w: 0xf2ecdc },
