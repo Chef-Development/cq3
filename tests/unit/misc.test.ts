@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { computeCalibration, tapOffsets } from '../../src/core/calibration';
 import { isSwipeUp } from '../../src/core/swipe';
-import { cloneTuning, DEFAULT_TUNING, getPath, mergeKnown, setPath, sliderGroups } from '../../src/core/tuning';
+import { cloneTuning, DEFAULT_TUNING, getPath, mergeKnown, setPath, sliderGroups, tuningDiff } from '../../src/core/tuning';
 
 describe('calibration', () => {
   it('averages tap lateness against the nearest beat', () => {
@@ -52,6 +52,18 @@ describe('tuning data', () => {
     expect('ghost' in t.enemies).toBe(false);
     setPath(t, 'enemies.boar.atk', 33);
     expect(t.enemies.boar.atk).toBe(33);
+  });
+
+  it('saves only changed values, and they round-trip', () => {
+    const t = cloneTuning();
+    expect(tuningDiff(t, DEFAULT_TUNING)).toBeUndefined();
+    t.cursor.basePassSec = 0.9;
+    t.enemies.boar.hp = 999;
+    const diff = tuningDiff(t, DEFAULT_TUNING);
+    expect(diff).toEqual({ cursor: { basePassSec: 0.9 }, enemies: { boar: { hp: 999 } } });
+    const back = cloneTuning();
+    mergeKnown(back, JSON.parse(JSON.stringify(diff)));
+    expect(back).toEqual(t);
   });
 
   it('enemy patterns only use the blocks each enemy is meant to have', () => {

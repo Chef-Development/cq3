@@ -1,7 +1,8 @@
 // localStorage helpers. Every access is wrapped: storage can be missing or throw (private mode, quota).
-import { cloneTuning, DEFAULT_SETTINGS, mergeKnown, type Settings, type Tuning } from '../core/tuning';
+import { cloneTuning, DEFAULT_SETTINGS, DEFAULT_TUNING, mergeKnown, tuningDiff, type Settings, type Tuning } from '../core/tuning';
 
-const TUNING_KEY = 'cq3.tuning.v1';
+// v2: only values changed from the defaults are stored, so new defaults reach players.
+const TUNING_KEY = 'cq3.tuning.v2';
 const SETTINGS_KEY = 'cq3.settings.v1';
 
 function read(key: string): unknown {
@@ -38,14 +39,16 @@ export function loadSettings(): Settings {
 let timer: number | undefined;
 export function saveSoon(t: Tuning, s: Settings): void {
   window.clearTimeout(timer);
-  timer = window.setTimeout(() => {
-    write(TUNING_KEY, t);
-    write(SETTINGS_KEY, s);
-  }, 250);
+  timer = window.setTimeout(() => saveNow(t, s), 250);
 }
 
 export function saveNow(t: Tuning, s: Settings): void {
   window.clearTimeout(timer);
-  write(TUNING_KEY, t);
+  write(TUNING_KEY, tuningDiff(t, DEFAULT_TUNING) ?? {});
   write(SETTINGS_KEY, s);
+  try {
+    window.localStorage.removeItem('cq3.tuning.v1');
+  } catch {
+    /* ignore */
+  }
 }

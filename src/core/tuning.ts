@@ -212,6 +212,17 @@ export function mergeKnown(dst: unknown, src: unknown): void {
   }
 }
 
+/** Only the values in `t` that differ from `base` (so saved tuning doesn't pin old defaults). */
+export function tuningDiff(t: unknown, base: unknown): unknown {
+  if (Array.isArray(t) || !isObj(t) || !isObj(base)) return JSON.stringify(t) === JSON.stringify(base) ? undefined : t;
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(t)) {
+    const d = tuningDiff(t[k], base[k]);
+    if (d !== undefined) out[k] = d;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 function isObj(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
