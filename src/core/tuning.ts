@@ -77,6 +77,7 @@ export const DEFAULT_TUNING = {
     perBlock: 0.05,
     perfectBonus: 0.04,
     finisherPushback: 0.4, // red blocks pushed back this fraction of the bar
+    pushbackSec: 0.25, // ...sliding back over this long (so you can see it happen)
   },
   tiers: {
     // Combo tiers (toggle in settings): damage multiplier at combo thresholds
@@ -303,6 +304,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('meter.perBlock', 'Per block', 0, 0.5, 0.01),
         s('meter.perfectBonus', 'Perfect bonus', 0, 0.3, 0.01),
         s('meter.finisherPushback', 'Red pushback', 0, 1, 0.05),
+        s('meter.pushbackSec', 'Pushback time (s)', 0, 1, 0.05),
       ],
     },
     {

@@ -92,11 +92,30 @@ describe('finisher', () => {
     c.speedStacks = 1;
     expect(c.finisher()).toBe(true);
     expect(c.enemies[0].hp).toBe(80 - 10 * t.hero.comboPower);
-    expect(r1.pos).toBeCloseTo(0.7);
+    // reds slide back visibly over pushbackSec instead of teleporting
+    c.advanceTo(t.meter.pushbackSec / 2);
+    expect(r1.pos).toBeGreaterThan(0.35);
+    expect(r1.pos).toBeLessThan(0.65);
+    c.advanceTo(t.meter.pushbackSec + 0.05);
+    expect(r1.pos).toBeCloseTo(0.7, 2);
     expect(r2.pos).toBeCloseTo(1 - r2.width / 2);
     expect(c.combo).toBe(0);
     expect(c.meter).toBe(0);
     expect(c.speedMult()).toBe(1);
+  });
+
+  it('pushed reds stay spaced out instead of stacking at the right end', () => {
+    const { c, t } = setup({ tune: (t) => (t.blocks.redTravelSec = 10000) });
+    const reds = [0.62, 0.75, 0.88].map((p) => c.spawnBlock('red', p));
+    c.meter = 1;
+    c.finisher();
+    c.advanceTo(t.meter.pushbackSec + 0.05);
+    const pos = reds.map((r) => r.pos).sort((a, b) => a - b);
+    expect(pos[2]).toBeCloseTo(1 - reds[0].width / 2, 2);
+    for (let i = 1; i < pos.length; i++) expect(pos[i] - pos[i - 1]).toBeGreaterThanOrEqual(reds[0].width + t.blocks.minGap - 1e-4);
+    // and they start sliding left again afterwards
+    c.advanceTo(t.meter.pushbackSec + 1);
+    expect(reds.every((r) => r.vel < 0)).toBe(true);
   });
 
   it('uses boosted combo power and combo tiers', () => {

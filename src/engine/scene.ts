@@ -652,6 +652,13 @@ export class FightScene extends Phaser.Scene implements View {
     const h = B.h - 4;
     if (b.kind === 'purple' && b.life < 1 && Math.floor(now / 90) % 2 === 0) return;
     const [base, light, dark] = kindCol(b.kind);
+    if (b.push > 0) {
+      // finisher pushback: motion trail on the side it came from
+      for (let i = 1; i <= 3; i++) {
+        g.fillStyle(light, 0.45 / i);
+        g.fillRect(x - i * 5, y + 2, w, h - 4);
+      }
+    }
     const impacting = b.impactTimer >= 0 && Math.floor(now / 40) % 2 === 0;
     g.fillStyle(INK, 1);
     g.fillRect(x - 1, y - 1, w + 2, h + 2);
@@ -754,8 +761,9 @@ export class FightScene extends Phaser.Scene implements View {
     const run = this.app.run;
     const ph = run.phase;
     if (now < this.screenFlashUntil) {
+      // Scene only: the bar must stay readable.
       g.fillStyle(this.screenFlashColor, Math.min(0.6, (this.screenFlashUntil - now) / 250));
-      g.fillRect(0, 0, GAME_W, GAME_H);
+      g.fillRect(0, 0, GAME_W, this.splitY);
     }
     const ov = ['ovTitle', 'ovSub', 'ovLine1', 'ovLine2', 'ovLine3'];
     const hideOv = () => ov.forEach((k) => this.txt[k].setVisible(false));

@@ -34,6 +34,7 @@ export interface Block {
   bornAt: number; // sim time
   life: number; // seconds left (Infinity = until hit)
   impactTimer: number; // -1 = sliding; >=0 = sitting at the left end, about to hit
+  push: number; // distance still to slide right after a finisher (0 = none)
 }
 
 export interface Enemy {
@@ -296,7 +297,16 @@ export class Combat {
       if (this.result) return;
       if (isRed(b.kind)) {
         const half = b.width / 2;
-        if (b.impactTimer < 0) {
+        if (b.push > 0) {
+          // Finisher pushback: slide right, then resume the normal leftward travel.
+          const T = this.tuning.meter;
+          const speed = T.pushbackSec > 0 ? T.finisherPushback / T.pushbackSec : Infinity;
+          const d = Math.min(b.push, speed * DT);
+          b.push -= d;
+          if (b.push < 1e-9) b.push = 0;
+          b.pos = Math.min(1 - half, b.pos + d);
+          b.vel = b.push > 0 ? speed : -(1 - b.width) / B.redTravelSec;
+        } else if (b.impactTimer < 0) {
           b.vel = -(1 - b.width) / B.redTravelSec;
           b.pos += b.vel * DT;
           if (b.pos <= half) {
@@ -395,6 +405,7 @@ export class Combat {
       bornAt: this.time,
       life: kind === 'purple' ? B.trapLifeSec : isAttack(kind) && B.attackLifeSec > 0 ? B.attackLifeSec : Infinity,
       impactTimer: -1,
+      push: 0,
     };
     this.blocks.push(b);
     this.events.push({ type: 'spawn', id: b.id, kind, ownerId });
@@ -536,11 +547,23 @@ export class Combat {
     let dmg = combo * (T.hero.comboPower + this.hero.bonusComboPower);
     if (this.settings.comboTiers) dmg *= tierMult(T, combo);
     dmg = Math.round(dmg);
-    for (const b of this.blocks) {
-      if (!isRed(b.kind)) continue;
-      b.pos = Math.min(1 - b.width / 2, b.pos + T.meter.finisherPushback);
+    // Push every red block back, keeping them spaced out so they don't pile up at the right end.
+    const reds = this.blocks.filter((b) => isRed(b.kind)).sort((a, b) => b.pos + b.push - (a.pos + a.push));
+    let limit = 1;
+    for (const b of reds) {
+      const from = b.pos;
+      let target = Math.min(from + b.push + T.meter.finisherPushback, limit - b.width / 2);
+      target = Math.max(target, from);
+      limit = target - b.width / 2 - T.blocks.minGap;
       b.impactTimer = -1;
-      b.vel = -(1 - b.width) / T.blocks.redTravelSec;
+      if (T.meter.pushbackSec > 0) {
+        b.push = target - from;
+        b.vel = b.push > 0 ? T.meter.finisherPushback / T.meter.pushbackSec : -(1 - b.width) / T.blocks.redTravelSec;
+      } else {
+        b.pos = target;
+        b.push = 0;
+        b.vel = -(1 - b.width) / T.blocks.redTravelSec;
+      }
     }
     this.meter = 0;
     this.combo = 0;
