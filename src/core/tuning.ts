@@ -39,9 +39,10 @@ export const DEFAULT_TUNING = {
     missSelfDamage: 3, // Classic mode: damage for tapping empty bar
   },
   blocks: {
-    attackWidth: 0.1, // yellow/green width (fraction of bar)
+    attackWidth: 0.12, // yellow width (fraction of bar)
+    greenWidth: 0.075,
     redWidth: 0.09,
-    trapWidth: 0.1,
+    trapWidth: 0.09,
     redTravelSec: 2.5, // right end -> left end
     impactGraceMs: 60, // red block sits at the left end this long (still blockable) before hitting
     trapLifeSec: 4,
@@ -274,7 +275,8 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
     {
       title: 'Blocks',
       sliders: [
-        s('blocks.attackWidth', 'Attack width', 0.03, 0.25, 0.005),
+        s('blocks.attackWidth', 'Yellow width', 0.03, 0.25, 0.005),
+        s('blocks.greenWidth', 'Green width', 0.03, 0.25, 0.005),
         s('blocks.redWidth', 'Red width', 0.03, 0.25, 0.005),
         s('blocks.trapWidth', 'Trap width', 0.03, 0.25, 0.005),
         s('blocks.redTravelSec', 'Red travel (s)', 0.8, 6, 0.1),

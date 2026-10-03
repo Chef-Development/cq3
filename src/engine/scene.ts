@@ -24,6 +24,7 @@ const DASH_MS = 70;
 const RETURN_MS = 190;
 const ENGAGE_MS = 750;
 const LEAP_MS = 260;
+const SUPER_MS = 760;
 
 interface Rect {
   x: number;
@@ -50,7 +51,7 @@ interface EnemyView {
 }
 
 interface HeroAnim {
-  state: 'idle' | 'dash' | 'engaged' | 'return' | 'leap';
+  state: 'idle' | 'dash' | 'engaged' | 'return' | 'leap' | 'super';
   x: number;
   y: number;
   fromX: number;
@@ -122,6 +123,8 @@ export class FightScene extends Phaser.Scene implements View {
   private fxLayer!: Phaser.GameObjects.Container;
   private clouds: Phaser.GameObjects.Image[] = [];
   private gShadow!: Phaser.GameObjects.Graphics;
+  private gSuper!: Phaser.GameObjects.Graphics;
+  private superAt = -1e9;
   private gFx!: Phaser.GameObjects.Graphics;
   private gPanel!: Phaser.GameObjects.Graphics;
   private gBar!: Phaser.GameObjects.Graphics;
@@ -178,7 +181,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.gTop = this.add.graphics().setDepth(30);
     const mk = (key: string, depth = 12, bold = false) => (this.txt[key] = this.add.bitmapText(0, 0, bold ? FONT_BOLD : FONT, '').setDepth(depth));
     ['level', 'ability', 'comboLabel', 'speed', 'tier', 'debug', 'enemyName'].forEach((k) => mk(k));
-    ['heroHp', 'enemyHp', 'stat0', 'stat1', 'stat2', 'stat3', 'enemyAtk', 'combo', 'button'].forEach((k) => mk(k, 12, true));
+    ['heroHp', 'enemyHp', 'stat0', 'stat1', 'stat2', 'stat3', 'enemyAtk', 'combo', 'button', 'meterLabel'].forEach((k) => mk(k, 12, true));
     ['ovTitle', 'ovSub', 'ovLine1', 'ovLine2', 'ovLine3', 'begin'].forEach((k) => mk(k, 32, true));
     for (let i = 0; i < 6; i++) this.boostTexts.push(this.add.bitmapText(0, 0, FONT_BOLD, '').setDepth(32));
     this.lastNow = performance.now();
@@ -219,7 +222,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.button = { x: this.R - btnW - 4, y: this.splitY + 6, w: btnW, h: BAND_H - 11 };
     const barX = this.L + 44;
     this.bar = { x: barX, y: this.splitY + 12, w: this.button.x - 12 - barX, h: 16 };
-    this.meter = { x: this.bar.x, y: this.splitY + BAND_H + 6, w: this.bar.w, h: 6 };
+    this.meter = { x: this.bar.x, y: this.splitY + BAND_H + 4, w: this.bar.w, h: 10 };
 
     // Tear down everything built for the previous layout before regenerating textures.
     for (const f of this.floaters) f.t.destroy();
@@ -242,6 +245,8 @@ export class FightScene extends Phaser.Scene implements View {
     this.back.add(this.add.image(0, 0, 'bg').setOrigin(0, 0));
     this.clouds = [0, 1].map((i) => this.add.image(i * GAME_W, 4, 'clouds').setOrigin(0, 0).setAlpha(0.95));
     this.back.add(this.clouds);
+    this.gSuper = this.add.graphics();
+    this.back.add(this.gSuper);
     this.gShadow = this.add.graphics();
     this.back.add(this.gShadow);
     this.hero = this.add.image(this.heroHome, this.ground, 'hero_idle0').setScale(SPRITE_SCALE);
@@ -311,7 +316,8 @@ export class FightScene extends Phaser.Scene implements View {
         }
         case 'block': {
           const x = this.barX(e.pos);
-          this.judge(x, e.perfect ? 'PERFECT!' : e.cracked ? 'CRACK' : 'BLOCK', e.perfect ? 0xfff07a : 0x7ae0ff, e.perfect);
+          if (e.perfect || e.cracked) this.judge(x, e.perfect ? 'PERFECT!' : 'CRACK', e.perfect ? 0xfff07a : 0x7ae0ff, e.perfect);
+          if (!e.cracked) this.addFloater(this.h.x + 8, this.ground - 50, 'BLOCK!', WHITE, 2, true, 0, -16, 0, 620, true);
           this.cursorPulse(0x7ae0ff);
           this.cursorHit(x, e.perfect ? 0x6aff5a : 0x7ae0ff);
           this.comboPopAt = now;
@@ -494,22 +500,41 @@ export class FightScene extends Phaser.Scene implements View {
   private heroFinisher(damage: number): void {
     const c = this.app.run.combat;
     const h = this.h;
+    const J = this.app.tuning.juice;
     const alive = c ? c.enemies.filter((e) => e.alive) : [];
     const views = alive.map((e) => this.enemies.get(e.id)).filter((v): v is EnemyView => !!v);
     const front = views.slice().sort((a, b) => a.homeX - b.homeX)[0];
-    h.state = 'leap';
+    h.state = 'super';
     h.fromX = h.x;
-    h.toX = front ? this.standX(front) : h.x + 60;
+    h.toX = front ? front.homeX - 8 : h.x + 80;
     h.t0 = this.anim;
-    h.lastAction = this.anim + LEAP_MS;
-    this.floatNum(GAME_W / 2, 58, 'FINISHER!', 0xffb03a, 2);
-    this.later(LEAP_MS * 0.75, () => {
-      this.screenFlash(WHITE, performance.now(), 180);
-      for (const v of views) this.enemyHurtFx(v.id, damage, false, false, true);
-      for (const v of views) this.slashes.push({ x: v.x, y: v.y - v.img.displayHeight / 2, at: this.anim, big: true, dir: -1, color: 0xffb03a });
-      this.shake(this.app.tuning.juice.shakeMaxPx, this.app.tuning.juice.shakeMs * 2);
-      this.freeze(110);
-    });
+    h.lastAction = this.anim + SUPER_MS;
+    this.superAt = this.anim;
+    this.floatNum(GAME_W / 2, 66, 'FINISHER!', 0xffb03a, 3);
+    // A whirlwind of hits, then the big number.
+    const hits: Array<[number, boolean]> = [
+      [0.36, false],
+      [0.48, false],
+      [0.62, true],
+    ];
+    for (const [k, last] of hits)
+      this.later(SUPER_MS * k, () => {
+        for (const v of views) {
+          const cy = v.y - v.img.displayHeight / 2;
+          if (last) this.enemyHurtFx(v.id, damage, false, false, true);
+          else {
+            v.flashUntil = this.anim + 50;
+            v.knockUntil = this.anim + 60;
+            this.burst(v.x, cy, WHITE, 8, true, 1.2, true);
+          }
+          this.slashes.push({ x: v.x, y: cy, at: this.anim, big: last, dir: last ? -1 : 1, color: 0x6ab4ff });
+        }
+        if (last) {
+          this.screenFlash(WHITE, performance.now(), 160);
+          this.shake(J.shakeMaxPx, J.shakeMs * 2);
+          this.freeze(110);
+        } else this.shake(J.shakeMinPx + 1, 80);
+      });
   }
 
   private heroReturn(): void {
@@ -731,6 +756,15 @@ export class FightScene extends Phaser.Scene implements View {
       h.x = h.fromX + (h.toX - h.fromX) * ease(k);
       yOff = -Math.sin(k * Math.PI) * 24;
       if (k >= 1) h.state = 'engaged';
+    } else if (h.state === 'super') {
+      const k = clamp01((a - h.t0) / SUPER_MS);
+      if (k < 0.3) h.x = h.fromX + (h.toX - h.fromX) * ease(k / 0.3);
+      else if (k < 0.75) h.x = h.toX + Math.sin(a / 25) * 3;
+      else h.x = h.toX + (this.heroHome - h.toX) * ease((k - 0.75) / 0.25);
+      if (k >= 1) {
+        h.state = 'idle';
+        h.x = this.heroHome;
+      }
     } else if (h.state === 'return') {
       const k = clamp01((a - h.t0) / RETURN_MS);
       h.x = h.fromX + (h.toX - h.fromX) * ease(k);
@@ -753,6 +787,8 @@ export class FightScene extends Phaser.Scene implements View {
     else pose = Math.floor(a / 420) % 2 ? 'idle1' : 'idle0';
     const knock = a < h.hurtUntil ? -4 : 0;
     h.y = yOff;
+    const spinning = h.state === 'super' && a - h.t0 > SUPER_MS * 0.06 && a - h.t0 < SUPER_MS * 0.94;
+    this.hero.setVisible(!spinning);
     this.hero.setTexture(`hero_${pose}`);
     this.hero.setFlipX(flip);
     this.hero.setOrigin((flip ? HERO_W - HERO_FEET_X : HERO_FEET_X) / HERO_W, 1);
@@ -777,6 +813,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.clouds[1].setX(Math.round(GAME_W - drift));
 
     this.updateHero();
+    this.drawSuper(now);
     const shadow = (x: number, w: number, alpha = 0.35) => {
       sh.fillStyle(0x000000, alpha);
       sh.fillRect(Math.round(x - w / 2), this.ground - 1, Math.round(w), 2);
@@ -880,6 +917,47 @@ export class FightScene extends Phaser.Scene implements View {
     }
     this.drawRings(g, now, true);
     this.drawParticles(g, now, true);
+  }
+
+  /** Finisher special: the sky swaps to a streaked blue backdrop while the hero whirls through the enemies. */
+  private drawSuper(now: number): void {
+    const g = this.gSuper;
+    g.clear();
+    const k = (this.anim - this.superAt) / SUPER_MS;
+    if (k < 0 || k >= 1) return;
+    const alpha = k < 0.08 ? k / 0.08 : k > 0.86 ? (1 - k) / 0.14 : 1;
+    const bottom = this.ground - 8;
+    const bands = [0x1022a8, 0x1a3cc8, 0x2a62dc, 0x3a8ae8, 0x48b4f0, 0x5ad8f4];
+    const bh = Math.ceil(bottom / bands.length);
+    bands.forEach((col, i) => {
+      g.fillStyle(col, alpha);
+      g.fillRect(0, i * bh, GAME_W, Math.min(bh, bottom - i * bh));
+    });
+    for (let i = 0; i < 18; i++) {
+      const y = 4 + ((i * 37) % Math.max(1, bottom - 8));
+      const len = 18 + ((i * 53) % 46);
+      const speed = 0.5 + (i % 3) * 0.25;
+      const x = ((((i * 97 - now * speed) % (GAME_W + 80)) + GAME_W + 80) % (GAME_W + 80)) - 40;
+      g.fillStyle(WHITE, alpha * (i % 2 ? 0.85 : 0.5));
+      g.fillRect(Math.round(x), y, len, i % 4 === 0 ? 2 : 1);
+    }
+    // whirlwind where the hero is
+    const h = this.h;
+    if (h.state !== 'super') return;
+    const fx = this.gFx;
+    const cx = h.x + 2;
+    // a tornado: stacked spinning rings, wider at the top
+    for (let arc = 0; arc < 5; arc++) {
+      const base = this.anim / 30 + arc * 1.7;
+      const r = 7 + arc * 4;
+      const cy = this.ground - 4 - arc * 7;
+      for (let j = 0; j < 18; j++) {
+        const ang = base + j * 0.17;
+        fx.fillStyle(j < 6 ? WHITE : j < 12 ? 0xb8e4ff : 0x5aa8f0, 1 - j / 20);
+        fx.fillRect(Math.round(cx + Math.cos(ang) * r), Math.round(cy + Math.sin(ang) * r * 0.35), 3, 2);
+      }
+    }
+    if (Math.random() < 0.5) this.burst(cx, this.ground - 2, 0xd8c8a0, 1, true, 0.6);
   }
 
   private drawRings(g: Phaser.GameObjects.Graphics, now: number, world: boolean): void {
@@ -1044,7 +1122,11 @@ export class FightScene extends Phaser.Scene implements View {
 
     // finisher meter on the stone strip, combo count to its left
     const m = this.meter;
-    this.hudBar(g, m.x, m.y, m.w, m.h, c.meter, c.meter, { fill: ready ? (pulse ? 0xffffff : 0x7ad8ff) : 0x3ab0ff, hi: 0xa8e4ff, lo: 0x1e78c8, bg: 0x1e1e2a });
+    this.hudBar(g, m.x, m.y, m.w, m.h, c.meter, c.meter, { fill: ready ? 0x5ac8ff : 0x3ab0ff, hi: ready ? 0xd8f6ff : 0xa8e4ff, lo: 0x1e78c8, bg: 0x1e1e2a });
+    if (ready && pulse) {
+      g.fillStyle(WHITE, 0.35);
+      g.fillRect(m.x, m.y, m.w, m.h);
+    }
     this.hudIcon(g, 'bolt', this.L + 6, m.y - 1);
   }
 
@@ -1268,8 +1350,20 @@ export class FightScene extends Phaser.Scene implements View {
     const ready = !!c?.finisherReady;
     const b = this.button;
     const fight = run.phase === 'fight';
+    const swipeMode = S.finisherInput === 'swipe';
+    this.setText(
+      'meterLabel',
+      swipeMode ? 'SWIPE UP!' : 'FINISHER READY!',
+      this.meter.x + this.meter.w / 2,
+      this.meter.y + this.meter.h / 2,
+      Math.floor(now / 150) % 2 ? 0xffe040 : 0xffb020,
+      1,
+      0.5,
+      0.5,
+      ready && fight,
+    );
     const label = S.finisherInput === 'button' ? (ready ? 'FINISH!' : 'FINISH') : ready ? 'SWIPE ^' : 'SWIPE';
-    this.setText('button', label, b.x + b.w / 2, b.y + b.h / 2, ready ? INK : 0x9a8070, 1, 0.5, 0.5, fight);
+    this.setText('button', label, b.x + b.w / 2, b.y + b.h / 2, ready ? WHITE : 0x9a8070, 1, 0.5, 0.5, fight);
 
     const d = this.app.lastTap;
     this.setText('debug', d ? `TAP ${d.outcome} ${d.cursorPos.toFixed(3)}  CAL ${S.calibrationMs}MS` : `CAL ${S.calibrationMs}MS`, GAME_W / 2, this.meter.y + 9, 0xc8c8d4, 1, 0.5, 0, this.app.panelOpen);

@@ -382,7 +382,7 @@ export class Combat {
       this.spawnBlock(kind, p, ownerId);
       return true;
     }
-    const w = kind === 'purple' ? B.trapWidth : B.attackWidth;
+    const w = this.widthFor(kind);
     const statics = this.blocks.filter((b) => !isRed(b.kind));
     if (statics.length >= B.maxStatic) return false;
     const lo = B.edgeMargin + w / 2;
@@ -398,10 +398,15 @@ export class Combat {
     return false;
   }
 
+  widthFor(kind: BlockKind): number {
+    const B = this.tuning.blocks;
+    return isRed(kind) ? B.redWidth : kind === 'purple' ? B.trapWidth : kind === 'green' ? B.greenWidth : B.attackWidth;
+  }
+
   /** Place a block directly (also used by tests and the debug panel). */
   spawnBlock(kind: BlockKind, pos: number, ownerId: number = this.enemies[0]?.id ?? 0): Block {
     const B = this.tuning.blocks;
-    const width = isRed(kind) ? B.redWidth : kind === 'purple' ? B.trapWidth : B.attackWidth;
+    const width = this.widthFor(kind);
     const b: Block = {
       id: this.nextId++,
       kind,
