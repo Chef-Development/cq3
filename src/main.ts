@@ -30,10 +30,15 @@ const relayout = () => {
   app.relayout();
   if (game.canvas) applyCanvasLayout(game.canvas, app.layout);
 };
-game.events.once(Phaser.Core.Events.READY, () => {
-  relayout();
-  (window as unknown as { __cq3: unknown }).__cq3 = { app, game, ready: true };
-});
+game.events.once(Phaser.Core.Events.READY, relayout);
+// Debug/test handle (used by the Playwright smoke test).
+(window as unknown as { __cq3: unknown }).__cq3 = {
+  app,
+  game,
+  get ready() {
+    return app.sceneReady;
+  },
+};
 window.addEventListener('resize', relayout);
 window.addEventListener('orientationchange', () => window.setTimeout(relayout, 250));
 window.visualViewport?.addEventListener('resize', relayout);

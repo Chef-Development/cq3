@@ -129,6 +129,7 @@ export class FightScene extends Phaser.Scene implements View {
     for (let i = 0; i < 6; i++) this.boostTexts.push(this.add.bitmapText(0, 0, FONT, '').setDepth(32));
     this.onLayout();
     this.heroHpShown = this.app.run.hero.hp;
+    this.app.sceneReady = true;
   }
 
   // ------------------------------------------------------------------ layout

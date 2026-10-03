@@ -27,6 +27,7 @@ export class App {
   calibrating = false;
   hidden = false;
   lastTap: TapResult | null = null;
+  sceneReady = false;
   phaseSince = 0;
 
   constructor(
