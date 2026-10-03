@@ -141,8 +141,8 @@ export class App {
     const now = performance.now();
     if (this.run.phase === 'fight' && this.run.combat && this.run.combat !== this.begunCombat) {
       this.begunCombat = this.run.combat;
-      if (this.run.stageIndex === 0) this.awaitingBegin = true;
-      else this.introUntil = now + INTRO_MS;
+      this.awaitingBegin = this.run.stageIndex === 0;
+      this.introUntil = this.awaitingBegin ? 0 : now + INTRO_MS;
     }
     if (this.run.phase !== prev) {
       this.phaseSince = now;

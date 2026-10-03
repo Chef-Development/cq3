@@ -33,7 +33,7 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
         return;
       }
       case 'levelClear':
-        if (now - app.phaseSince > 700) app.setPhase(() => run.nextLevel());
+        if (now - app.phaseSince > 700 && !scene.levelClearTap()) app.setPhase(() => run.nextLevel());
         return;
       case 'defeat':
         if (now - app.phaseSince > 700) app.setPhase(() => run.retry());

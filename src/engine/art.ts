@@ -261,6 +261,34 @@ function mapFrame(rows: string[], pal: Pal, flash = false): HTMLCanvasElement {
   return toCanvas(g);
 }
 
+// ------------------------------------------------------------------ treasure chest (level clear)
+
+const CHEST_PAL: Pal = { l: '#d08a4c', b: '#a0622e', d: '#6a3e1c', y: '#f2c230', Y: '#b07e18', e: '#5ae070', c: '#fff0a0', C: '#f2c230' };
+const CHEST_BODY = [
+  'yyyyyyyyyyyyyyyyyy',
+  'bbbbYbbbyybbbYbbbb',
+  'bbbbYbbyeeybbYbbbb',
+  'bbbbYbbbyybbbYbbbb',
+  'bbbbYbbbbbbbbYbbbb',
+  'ddddYddddddddYdddd',
+];
+const CHEST_CLOSED = [
+  '...llllllllllll...',
+  '.llbbYbbbbbbbYbbl.',
+  'lbbbbYbbbbbbbYbbbl',
+  'bbbbbYbbbbbbbYbbbb',
+  'ddddddddddddddddddd'.slice(0, 18),
+  ...CHEST_BODY,
+];
+const CHEST_OPEN = [
+  '..llllllllllllll..',
+  '.dbbbYbbbbbbbYbbd.',
+  '.dddddddddddddddd.',
+  'cCcCccCcCcCccCcCcC',
+  'CcccCcCccCcCccCccc',
+  ...CHEST_BODY,
+];
+
 // ------------------------------------------------------------------ icons
 
 /** Single-color 5x5 icons drawn on blocks. */
@@ -491,6 +519,8 @@ export function buildArt(scene: Phaser.Scene, w: number, h: number, ground: numb
   add('bandit_attack', mapFrame(banditAttack, BANDIT_PAL));
   add('bandit_hurt', mapFrame(BANDIT, BANDIT_PAL));
   add('bandit_flash', mapFrame(BANDIT, BANDIT_PAL, true));
+  add('chest_closed', mapFrame(CHEST_CLOSED, CHEST_PAL));
+  add('chest_open', mapFrame(CHEST_OPEN, CHEST_PAL));
   add('bg', drawBackground(w, h, ground));
   add('clouds', drawClouds(w));
 }

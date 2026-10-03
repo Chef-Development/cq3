@@ -163,6 +163,9 @@ export class FightScene extends Phaser.Scene implements View {
   private lastMilestone = 0;
   private banner = '';
   private bannerUntil = 0;
+  private chest: Phaser.GameObjects.Image | null = null;
+  private chestAt = 0;
+  private chestOpenAt = 0;
 
   constructor() {
     super('fight');
@@ -277,6 +280,26 @@ export class FightScene extends Phaser.Scene implements View {
     return null;
   }
 
+  /** Level clear: the first tap bursts the chest open (returns true = consumed); the next one moves on. */
+  levelClearTap(): boolean {
+    if (!this.chest) return false;
+    if (!this.chestOpenAt) {
+      if (this.anim - this.chestAt < 550) return true;
+      this.chestOpenAt = this.anim;
+      this.chest.setTexture('chest_open');
+      const x = this.chest.x;
+      const y = this.ground - 18;
+      this.burst(x, y, 0xf2c230, 30, true, 1.6);
+      this.burst(x, y, 0x5ae070, 12, true, 1.4);
+      this.burst(x, y, WHITE, 10, true, 1.2, true);
+      this.ring(x, y, 34, 0xffe680, true);
+      this.shake(this.app.tuning.juice.shakeMaxPx, 160);
+      this.app.audio.kill();
+      return true;
+    }
+    return this.anim - this.chestOpenAt < 400;
+  }
+
   boostCardAt(x: number, y: number): number {
     for (let i = 0; i < 3; i++) if (inRect(this.cardRect(i), x, y)) return i;
     return -1;
@@ -296,6 +319,16 @@ export class FightScene extends Phaser.Scene implements View {
 
   onPhase(_prev: Phase, next: Phase): void {
     if (next === 'fight') this.syncEnemies(true);
+    if (next === 'levelClear') {
+      this.chest?.destroy();
+      this.chest = this.add.image(GAME_W / 2, -30, 'chest_closed').setOrigin(0.5, 1).setScale(2);
+      this.actors.add(this.chest);
+      this.chestAt = this.anim;
+      this.chestOpenAt = 0;
+    } else if (this.chest) {
+      this.chest.destroy();
+      this.chest = null;
+    }
     if (next !== 'fight' && this.h.state !== 'idle') this.heroReturn();
   }
 
@@ -382,11 +415,22 @@ export class FightScene extends Phaser.Scene implements View {
             if (!v) return;
             v.dieAt = this.anim;
             const cy = v.y - v.img.displayHeight / 2;
-            this.burst(v.x, cy, ENEMY_COL[v.sprite] ?? WHITE, 26, true, 1.4);
-            this.burst(v.x, cy, 0xffffff, 12, true, 1.2);
+            const boss = !!this.app.tuning.enemies[c.enemyById(id)?.key ?? '']?.boss;
+            this.burst(v.x, cy, ENEMY_COL[v.sprite] ?? WHITE, boss ? 60 : 26, true, boss ? 1.9 : 1.4);
+            this.burst(v.x, cy, 0xffffff, boss ? 24 : 12, true, 1.2);
             this.ring(v.x, cy, 40, 0xffe680, true);
-            this.shake(J.shakeMaxPx, J.shakeMs * 1.8);
-            this.freeze(90);
+            if (boss) {
+              this.burst(v.x, cy, 0xff8a2a, 30, true, 1.6);
+              for (const [ms, r, col] of [
+                [90, 56, 0xff8a2a],
+                [180, 72, 0xffd23a],
+                [270, 88, 0xff5a3a],
+              ] as const)
+                this.later(ms, () => this.ring(v.x, cy, r, col, true));
+              this.screenFlash(0xffe0a0, now, 220);
+            }
+            this.shake(J.shakeMaxPx, J.shakeMs * (boss ? 3 : 1.8));
+            this.freeze(boss ? 170 : 90);
           });
           break;
         }
@@ -824,6 +868,16 @@ export class FightScene extends Phaser.Scene implements View {
 
     this.updateHero();
     this.drawSuper(now);
+    if (this.chest) {
+      const k = clamp01((this.anim - this.chestAt) / 600);
+      const bounce = k < 0.6 ? (k / 0.6) ** 2 : 1 - Math.abs(Math.sin((k - 0.6) * Math.PI * 2.5)) * 0.12 * (1 - k);
+      this.chest.setY(Math.round(-30 + (this.ground + 30) * bounce));
+      if (!this.chestOpenAt && Math.random() < 0.25) {
+        const sx = this.chest.x + rand(-20, 20);
+        const sy = this.chest.y - rand(4, 30);
+        this.particles.push({ x: sx, y: sy, vx: 0, vy: -12, g: 0, born: now, life: 420, color: Math.random() < 0.5 ? 0xfff0a0 : WHITE, size: 1, world: true, streak: false });
+      }
+    }
     const shadow = (x: number, w: number, alpha = 0.35) => {
       sh.fillStyle(0x000000, alpha);
       sh.fillRect(Math.round(x - w / 2), this.ground - 1, Math.round(w), 2);
@@ -1110,7 +1164,7 @@ export class FightScene extends Phaser.Scene implements View {
     }
     if (!c) return;
     // enemy (the current target): HP bar with a skull, attack stat below
-    const target = c.currentTarget() ?? c.enemies[0];
+    const target = run.phase === 'levelClear' ? null : (c.currentTarget() ?? c.enemies[0]);
     if (target) {
       const v = this.enemies.get(target.id);
       const bx = this.R - 104;
@@ -1333,7 +1387,7 @@ export class FightScene extends Phaser.Scene implements View {
     const maxHp = T.hero.maxHp + H.bonusMaxHp;
     const lvl = run.level;
     const stageInfo = lvl.stages.length > 1 ? ` - ${run.stageIndex + 1}/${lvl.stages.length}` : '';
-    this.setText('level', `${lvl.name}${stageInfo}`, GAME_W / 2, 24, 0xf2f4fa, 1, 0.5, 0);
+    this.setText('level', `${lvl.name}${stageInfo}`, GAME_W / 2, 24, 0xf2f4fa, 1, 0.5, 0, run.phase !== 'levelClear');
     this.setText('heroHp', `${Math.ceil(H.hp)}/${maxHp}`, this.L + 60, 10, WHITE, 1, 0.5, 0.5);
     const crit = T.hero.critChance + H.bonusCrit + (H.abilityTimer > 0 ? T.hero.abilityCritBonus : 0);
     const stats = [
@@ -1344,7 +1398,7 @@ export class FightScene extends Phaser.Scene implements View {
     ];
     stats.forEach((v, i) => this.setText(`stat${i}`, v, this.L + 15, 25 + i * 10, i === 1 && H.abilityTimer > 0 ? 0x9af0a0 : WHITE, 1, 0, 0.5));
     this.setText('ability', 'KEEN EDGE', this.L + 15 + textWidth(stats[1], 1, true) + 4, 35, 0x9af0a0, 1, 0, 0.5, H.abilityTimer > 0);
-    const target = c ? (c.currentTarget() ?? c.enemies[0]) : null;
+    const target = c && run.phase !== 'levelClear' ? (c.currentTarget() ?? c.enemies[0]) : null;
     if (target && c) {
       const def = T.enemies[target.key];
       this.setText('enemyName', def.name, this.R - 61, 4, def.boss ? 0xffd23a : WHITE, 1, 0.5, 0);
@@ -1450,11 +1504,10 @@ export class FightScene extends Phaser.Scene implements View {
         b.setText(fontText(val)).setPosition(r.x + r.w / 2, r.y + 28).setTint(0xfff07a).setOrigin(0.5, 0.5).setScale(1).setVisible(true);
       });
     } else if (ph === 'levelClear') {
-      dim(0.65);
-      this.setText('ovTitle', 'LEVEL CLEAR!', cx, 60, 0xffd23a, 3, 0.5, 0.5);
-      this.setText('ovSub', `${run.level.name} DONE`, cx, 84, WHITE, 1, 0.5, 0.5);
-      this.setText('ovLine1', 'TAP FOR NEXT LEVEL', cx, 110, 0xffd23a, 2, 0.5, 0.5, blink);
-      hide('ovLine2', 'ovLine3');
+      const opened = !!this.chestOpenAt;
+      this.setText('ovTitle', opened ? `${run.level.name} CLEAR!` : 'TREASURE CHEST', cx, 40, opened ? 0xffd23a : WHITE, 2, 0.5, 0.5);
+      this.setText('ovLine1', opened ? 'TAP TO CONTINUE' : 'TAP THE CHEST TO CONTINUE', cx, 62, WHITE, 1, 0.5, 0.5, opened ? blink : true);
+      hide('ovSub', 'ovLine2', 'ovLine3');
     } else if (ph === 'defeat') {
       dim(0.65);
       this.setText('ovTitle', 'DEFEATED', cx, 60, 0xff5a5a, 3, 0.5, 0.5);
