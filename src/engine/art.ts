@@ -261,20 +261,85 @@ function mapFrame(rows: string[], pal: Pal, flash = false): HTMLCanvasElement {
   return toCanvas(g);
 }
 
-// ------------------------------------------------------------------ Pip, the companion owl (facing right)
+// ------------------------------------------------------------------ Pip, the companion owl (round, big-eyed)
 
-const PIP_PAL: Pal = { b: '#4a8ad8', B: '#2e5aa0', c: '#e0f0ff', w: '#ffffff', e: '#1a1020', y: '#f2c230', t: '#6ab0ff' };
-const PIP_HEAD = [
-  '..t......t..',
-  '..bb....bb..',
-  '.bbbbbbbbbb.',
-  '.bbwwbbbwwb.',
-  '.bbwebbbweb.',
-  '.bbbbbyybbb.',
-];
-const PIP_IDLE = [...PIP_HEAD, 'BbbbbyybbbbB', 'BBcccccccbBB', 'BBcccccccBBB', '.BccccccccB.', '..bbbbbbbb..', '...y....y...'];
-const PIP_FLAP = [...PIP_HEAD, '.bbbbyybbbb.', 'bbcccccccbbb', 'BBcccccccbBB', 'B.ccccccccB.', '..bbbbbbbb..', '...y....y...'];
-const PIP_DIVE = [...PIP_HEAD, 'BBBbbyybbbb.', 'BBBcccccccbb', '.BBccccccccb', '..ccccccccb.', '...bbbbbbb..', '........yy..'];
+const PIP_PAL: Pal = { b: '#4a8ad8', B: '#2e5aa0', d: '#22467e', c: '#e6f2ff', C: '#a8c4e8', w: '#ffffff', e: '#1a1020', y: '#f2c230', Y: '#b07e18', t: '#7ab8ff' };
+export const PIP_W = 26;
+export const PIP_H = 24;
+
+/** wing: 'down' (folded), 'up' (flap), 'back' (swept for a dive). */
+function owlFrame(wing: 'down' | 'up' | 'back', flash = false): HTMLCanvasElement {
+  const g = grid(PIP_W, PIP_H);
+  const pal = flash ? whiteOut(PIP_PAL) : PIP_PAL;
+  const P = (x: number, y: number, k: string) => put(g, x, y, pal[k]);
+  const cx = 13;
+  const cy = 12;
+  // body: a plump egg, darker on the lower right
+  for (let y = -10; y <= 10; y++)
+    for (let x = -9; x <= 9; x++) {
+      if ((x * x) / 81 + (y * y) / 100 > 1) continue;
+      P(cx + x, cy + y, x * 0.6 + y > 7 ? 'B' : 'b');
+    }
+  // ear tufts
+  for (const s of [-1, 1]) {
+    P(cx + s * 6, cy - 10, 't');
+    P(cx + s * 7, cy - 11, 't');
+    P(cx + s * 7, cy - 10, 'b');
+    P(cx + s * 5, cy - 10, 'b');
+  }
+  // belly with chevrons
+  for (let y = -4; y <= 6; y++)
+    for (let x = -6; x <= 6; x++) {
+      if ((x * x) / 36 + (y * y) / 36 > 1) continue;
+      P(cx + x, cy + 3 + y, (y + 6) % 3 === 0 && Math.abs(x) % 3 === 1 ? 'C' : 'c');
+    }
+  // big eyes looking right
+  for (const ex of [cx - 4, cx + 4]) {
+    for (let y = -3; y <= 3; y++) for (let x = -3; x <= 3; x++) if (x * x + y * y <= 10) P(ex + x, cy - 4 + y, 'w');
+    P(ex + 1, cy - 5, 'e');
+    P(ex + 2, cy - 5, 'e');
+    P(ex + 1, cy - 4, 'e');
+    P(ex + 2, cy - 4, 'e');
+    P(ex + 1, cy - 3, 'e');
+  }
+  P(cx - 1, cy - 1, 'y');
+  P(cx, cy - 1, 'y');
+  P(cx, cy, 'Y');
+  // feet
+  for (const fx of [cx - 3, cx + 3]) {
+    P(fx - 1, cy + 10, 'y');
+    P(fx, cy + 10, 'y');
+    P(fx + 1, cy + 10, 'Y');
+  }
+  // wings
+  for (const s of [-1, 1]) {
+    const wx = cx + s * 9;
+    if (wing === 'down')
+      for (let y = 0; y < 9; y++) {
+        P(wx, cy - 1 + y, 'd');
+        P(wx - s, cy - 1 + y, 'B');
+        if (y > 2 && y < 7) P(wx + s, cy + y, 'd');
+      }
+    else if (wing === 'up')
+      for (let i = 0; i < 9; i++) {
+        P(wx + s * Math.floor(i / 2), cy - 1 - i, 'd');
+        P(wx + s * Math.floor(i / 2) - s, cy - i, 'B');
+        P(wx + s * Math.floor(i / 2) + s, cy - 2 - i, 'b');
+      }
+    else if (s > 0)
+      for (let y = 0; y < 7; y++) {
+        P(wx, cy + 1 + y, 'd');
+        P(wx - 1, cy + 1 + y, 'B');
+      }
+    else
+      for (let i = 0; i < 4; i++) {
+        P(wx - i, cy - 5 + i * 2, 'b');
+        P(wx - i, cy - 4 + i * 2, 'B');
+        P(wx - i, cy - 3 + i * 2, 'd');
+      }
+  }
+  return toCanvas(g);
+}
 
 // ------------------------------------------------------------------ treasure chest (level clear)
 
@@ -352,137 +417,6 @@ export const HUD_ICONS: Record<string, { rows: string[]; pal: Record<string, num
   },
 };
 
-// ------------------------------------------------------------------ background (bright forest clearing, framed)
-
-const BAYER = [
-  [0, 8, 2, 10],
-  [12, 4, 14, 6],
-  [3, 11, 1, 9],
-  [15, 7, 13, 5],
-];
-
-function drawBackground(w: number, h: number, ground: number): HTMLCanvasElement {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  const ctx = c.getContext('2d')!;
-  let seed = 23;
-  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const px = (x: number, y: number, col: string) => {
-    ctx.fillStyle = col;
-    ctx.fillRect(x, y, 1, 1);
-  };
-  const horizon = ground - 30;
-
-  // sky
-  const stops = ['#58aee8', '#6ebcee', '#86caf2', '#9ed6f4', '#b8e2f6', '#d2eef8'];
-  const bands = stops.length - 1;
-  for (let y = 0; y < horizon; y++) {
-    const f = (y / horizon) * bands;
-    const i = Math.min(bands - 1, Math.floor(f));
-    const t = f - i;
-    for (let x = 0; x < w; x++) px(x, y, t * 16 > BAYER[y % 4][x % 4] ? stops[i + 1] : stops[i]);
-  }
-  // sun beams from the top left
-  ctx.globalAlpha = 0.16;
-  ctx.fillStyle = '#ffffff';
-  for (const [x0, wd] of [
-    [40, 14],
-    [90, 8],
-    [150, 18],
-    [230, 10],
-  ])
-    for (let y = 0; y < horizon; y++) ctx.fillRect(Math.round(x0 + y * 0.55), y, wd, 1);
-  ctx.globalAlpha = 1;
-
-  // puffy clouds along the horizon
-  const puff = (cx: number, cy: number, r: number) => {
-    for (let y = -r; y <= r; y++)
-      for (let x = -r; x <= r; x++) {
-        if (x * x + y * y > r * r) continue;
-        px(cx + x, cy + y, y > r * 0.35 ? '#d6ecf6' : '#ffffff');
-      }
-  };
-  for (let x = -10; x < w + 10; x += 9) puff(x, horizon - 26 + Math.round(Math.sin(x / 23) * 4), 6 + Math.round(rnd() * 5));
-
-  // far mountains, sunlit on their left-facing slopes
-  const ridgeY = (x: number, base: number, amp: number, f1: number, f2: number, ph: number) =>
-    Math.round(base - amp * (0.6 * Math.abs(Math.sin(x / f1 + ph)) + 0.4 * Math.sin(x / f2 + ph * 2)));
-  const ridge = (base: number, amp: number, f1: number, f2: number, col: string, hi: string, ph: number) => {
-    for (let x = 0; x < w; x++) {
-      const y = ridgeY(x, base, amp, f1, f2, ph);
-      ctx.fillStyle = col;
-      ctx.fillRect(x, y, 1, horizon - y + 1);
-      if (ridgeY(x - 1, base, amp, f1, f2, ph) > y) px(x, y, hi);
-    }
-  };
-  ridge(horizon - 16, 22, 41, 15, '#8cc4b0', '#b4e0cc', 0.4);
-  ridge(horizon - 6, 12, 27, 11, '#6aac84', '#8ccaa0', 1.9);
-
-  // distant stone tower (generic ruin)
-  const tx = Math.round(w * 0.68);
-  const ty = horizon - 30;
-  ctx.fillStyle = '#c8c4b4';
-  ctx.fillRect(tx, ty, 9, 26);
-  ctx.fillStyle = '#a8a494';
-  ctx.fillRect(tx + 6, ty, 3, 26);
-  for (let k = 0; k < 9; k += 3) ctx.fillRect(tx + k, ty - 2, 2, 2);
-  ctx.fillStyle = '#5a6a8a';
-  ctx.fillRect(tx + 3, ty + 6, 2, 3);
-  ctx.fillRect(tx + 3, ty + 14, 2, 3);
-
-  // tree line: round canopies
-  const canopy = (cx: number, cy: number, r: number, dark: string, mid: string, light: string) => {
-    for (let y = -r; y <= r; y++)
-      for (let x = -r; x <= r; x++) {
-        if (x * x + y * y > r * r) continue;
-        px(cx + x, cy + y, x + y < -r * 0.5 ? light : x + y > r * 0.5 ? dark : mid);
-      }
-  };
-  for (let x = -6; x < w + 6; x += 7 + Math.floor(rnd() * 6)) canopy(x, horizon - 2 - Math.floor(rnd() * 6), 6 + Math.floor(rnd() * 4), '#2e6e3e', '#3e8a4a', '#5aa85a');
-  for (let x = -6; x < w + 6; x += 9 + Math.floor(rnd() * 6)) canopy(x, horizon + 3, 5 + Math.floor(rnd() * 3), '#2a6438', '#367c44', '#4e9a54');
-
-  // meadow
-  for (let y = horizon + 6; y < ground - 8; y++) {
-    const t = (y - horizon) / Math.max(1, ground - 8 - horizon);
-    for (let x = 0; x < w; x++) px(x, y, t * 16 > BAYER[y % 4][x % 4] ? '#5ea844' : '#78bc50');
-  }
-  for (let i = 0; i < 70; i++) {
-    const x = Math.floor(rnd() * w);
-    const y = horizon + 8 + Math.floor(rnd() * Math.max(1, ground - 18 - horizon));
-    px(x, y, rnd() < 0.5 ? '#ffffff' : '#a8d0ff');
-  }
-
-  // dirt path the fight happens on
-  for (let y = ground - 8; y < h; y++)
-    for (let x = 0; x < w; x++) {
-      const edge = y < ground - 6;
-      px(x, y, edge ? '#5a9a3a' : (x * 7 + y * 13) % 29 === 0 ? '#8a6a40' : y > ground + 2 ? '#a07a4c' : '#b48c5a');
-    }
-  for (let x = 0; x < w; x += 2) if (rnd() < 0.7) px(x, ground - 9, '#4a8a30');
-  for (let i = 0; i < 50; i++) {
-    ctx.fillStyle = '#c8a070';
-    ctx.fillRect(Math.floor(rnd() * w), ground - 4 + Math.floor(rnd() * Math.max(1, h - ground + 4)), 2, 1);
-  }
-
-  // framing trees on both edges, leaves over the top corners
-  const trunk = (x0: number, width: number) => {
-    for (let x = x0; x < x0 + width; x++)
-      for (let y = 0; y < h; y++) {
-        const k = x - x0;
-        px(x, y, k === 0 || k === width - 1 ? '#22160c' : (k + Math.floor(y / 5)) % 6 === 0 ? '#5e4228' : k < width / 3 ? '#4a321e' : '#3a2616');
-      }
-  };
-  trunk(-2, 18);
-  trunk(w - 16, 18);
-  for (let i = 0; i < 26; i++) {
-    const left = i % 2 === 0;
-    const cx = left ? Math.floor(rnd() * 60) - 6 : w - Math.floor(rnd() * 60) + 6;
-    canopy(cx, Math.floor(rnd() * 14) - 4, 7 + Math.floor(rnd() * 5), '#1e4a26', '#2a6232', '#3a7a3e');
-  }
-  return c;
-}
-
 function drawClouds(w: number): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = w;
@@ -505,7 +439,7 @@ function drawClouds(w: number): HTMLCanvasElement {
 
 // ------------------------------------------------------------------ build
 
-export function buildArt(scene: Phaser.Scene, w: number, h: number, ground: number): void {
+export function buildArt(scene: Phaser.Scene, w: number): void {
   const add = (key: string, canvas: HTMLCanvasElement) => {
     if (scene.textures.exists(key)) scene.textures.remove(key);
     scene.textures.addCanvas(key, canvas);
@@ -538,12 +472,11 @@ export function buildArt(scene: Phaser.Scene, w: number, h: number, ground: numb
   add('bandit_attack', mapFrame(banditAttack, BANDIT_PAL));
   add('bandit_hurt', mapFrame(BANDIT, BANDIT_PAL));
   add('bandit_flash', mapFrame(BANDIT, BANDIT_PAL, true));
-  add('pip_idle0', mapFrame(PIP_IDLE, PIP_PAL));
-  add('pip_idle1', mapFrame(PIP_FLAP, PIP_PAL));
-  add('pip_dive', mapFrame(PIP_DIVE, PIP_PAL));
+  add('pip_idle0', owlFrame('down'));
+  add('pip_idle1', owlFrame('up'));
+  add('pip_dive', owlFrame('back'));
   add('chest_closed', mapFrame(CHEST_CLOSED, CHEST_PAL));
   add('chest_open', mapFrame(CHEST_OPEN, CHEST_PAL));
-  add('bg', drawBackground(w, h, ground));
   add('clouds', drawClouds(w));
 }
 

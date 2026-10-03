@@ -95,7 +95,7 @@ export type CombatEvent =
   | { type: 'block'; kind: BlockKind; pos: number; perfect: boolean; cracked: boolean; ownerId: number; combo: number }
   | { type: 'trap'; pos: number; damage: number; enemyId: number }
   | { type: 'miss'; pos: number; selfDamage: boolean }
-  | { type: 'remove'; id: number; kind: BlockKind; pos: number; ownerId: number; reason: RemoveReason }
+  | { type: 'remove'; id: number; kind: BlockKind; pos: number; width: number; ownerId: number; reason: RemoveReason }
   | { type: 'spawn'; id: number; kind: BlockKind; ownerId: number }
   | { type: 'windup'; enemyId: number }
   | { type: 'heroHurt'; damage: number; source: 'red' | 'bomb' | 'trap' | 'miss'; enemyId: number }
@@ -434,7 +434,7 @@ export class Combat {
     const i = this.blocks.indexOf(b);
     if (i < 0) return;
     this.blocks.splice(i, 1);
-    this.events.push({ type: 'remove', id: b.id, kind: b.kind, pos: b.pos, ownerId: b.ownerId, reason });
+    this.events.push({ type: 'remove', id: b.id, kind: b.kind, pos: b.pos, width: b.width, ownerId: b.ownerId, reason });
   }
 
   // ---------------------------------------------------------------- input

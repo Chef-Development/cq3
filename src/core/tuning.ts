@@ -22,6 +22,8 @@ export interface EnemyDef {
 
 export interface LevelDef {
   name: string;
+  theme?: 'forest' | 'ruins'; // backdrop
+
   // Each stage is the list of enemies on screen at the same time.
   stages: string[][];
 }
@@ -168,8 +170,8 @@ export const DEFAULT_TUNING = {
     },
   } as Record<string, EnemyDef>,
   levels: [
-    { name: 'LEVEL 1', stages: [['slime'], ['boar'], ['bandit'], ['bigSlime']] },
-    { name: 'LEVEL 2', stages: [['slime', 'slime', 'bandit']] },
+    { name: 'LEVEL 1', theme: 'forest', stages: [['slime'], ['boar'], ['bandit'], ['bigSlime']] },
+    { name: 'LEVEL 2', theme: 'ruins', stages: [['slime', 'slime', 'bandit']] },
   ] as LevelDef[],
 };
 
