@@ -15,6 +15,9 @@ milestone. Build these with original art and names only.
   three ability icons (the first unlocked, the rest locked/grey), four stats (attack, finisher charge, HP,
   combo power) and a "Lvl Up" button priced in gems, or Get/Locked for heroes you don't own yet. Heroes
   differ in kit, e.g. a sky-diving lancer, a gun-and-sword sailor, a fire mage, an ice brute.
+- **Companions:** the same scroll roster for pets (e.g. a wolf, a dragon and a golden dragon, a little
+  mech), each with a level, a joke bio, a role tag (e.g. "Damage"), three ability icons (first unlocked) and
+  Lvl Up (gems) or Get/Locked. M1's Pip would become the first companion.
 - **Upgrades:** a tree unlocked by kingdom level, where coins buy permanent stat upgrades (e.g. "+15% combo
   power", attack, health).
 - **Combat extras already in M1:** heal on kill, coins from kills, companion (Pip), boss marker, stage
