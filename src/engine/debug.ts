@@ -92,10 +92,16 @@ export function installDebug(app: App): DebugUi {
       ['classic', 'Classic'],
       ['relaxed', 'Relaxed'],
     ]);
-    seg(modes, 'Finisher', 'finisherInput', [
-      ['button', 'Button'],
-      ['swipe', 'Swipe up'],
-    ]);
+    seg(
+      modes,
+      'Finisher',
+      'finisherInput',
+      [
+        ['swipe', 'Swipe'],
+        ['button', 'Button'],
+      ],
+      () => app.relayout(),
+    );
     seg(modes, 'Combo tiers', 'comboTiers', [
       [false, 'Off'],
       [true, 'On'],

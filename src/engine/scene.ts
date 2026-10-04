@@ -329,7 +329,10 @@ export class FightScene extends Phaser.Scene implements View {
     const btnW = 44;
     this.button = { x: this.R - btnW - 3, y: this.splitY + 5, w: btnW, h: BAND_H - 10 };
     const barX = this.L + 30;
-    this.bar = { x: barX, y: this.splitY + 10, w: this.button.x - 11 - barX, h: 12 };
+    // the finisher is a swipe by default: no button, so the bar spans the whole band
+    const swipe = this.app.settings.finisherInput === 'swipe';
+    const barEnd = swipe ? this.R - 30 : this.button.x - 11;
+    this.bar = { x: barX, y: this.splitY + 10, w: barEnd - barX, h: 12 };
     const meterX = this.L + 46;
     this.meter = { x: meterX, y: this.splitY + BAND_H + 3, w: this.button.x - 11 - meterX, h: 8 };
 
@@ -1856,8 +1859,8 @@ export class FightScene extends Phaser.Scene implements View {
       : swipe
         ? ([0x5a5e70, 0x464a5c, 0x363a4a, 0x26283a] as const)
         : ([0x8a90a6, 0x6e7488, 0x585e72, 0x3e4254] as const);
-    this.button3d(g, b, face, false, ready);
-    if (ready) {
+    if (!swipe) this.button3d(g, b, face, false, ready);
+    if (ready && !swipe) {
       // pulsing glow rings: one more ring per stack
       for (let r = 0; r < Math.min(3, stacks); r++) {
         const k = ((now + r * 180) % 560) / 560;
@@ -1974,6 +1977,29 @@ export class FightScene extends Phaser.Scene implements View {
       g.fillStyle(WHITE, 1);
       g.fillRect(cx - 2, sy, 4, 1);
       g.fillRect(cx, sy - 2, 1, 4);
+    }
+
+    // swipe hint: an arrow streak sweeping across above the bar while a finisher is banked
+    if (c.finisherReady && this.app.settings.finisherInput === 'swipe') {
+      const cyc = (now % 1100) / 1100;
+      if (cyc < 0.65) {
+        const k = ease(cyc / 0.65);
+        const [col, hi] = stackCol(c.stacks);
+        const hx = Math.round(B.x + 10 + (B.w - 40) * k);
+        const hy = B.y - 13;
+        const a = cyc < 0.1 ? cyc / 0.1 : cyc > 0.5 ? (0.65 - cyc) / 0.15 : 1;
+        for (let i = 0; i < 26; i++) {
+          g.fillStyle(i < 8 ? WHITE : i < 16 ? hi : col, a * (1 - i / 28));
+          g.fillRect(hx - i, hy - (i < 4 ? 1 : 0), 1, i < 4 ? 3 : i < 14 ? 2 : 1);
+        }
+        g.fillStyle(INK, a);
+        g.fillRect(hx + 1, hy - 3, 1, 7);
+        g.fillStyle(WHITE, a);
+        for (let j = 0; j < 4; j++) {
+          g.fillRect(hx + 1 + j, hy - 3 + j, 2, 1);
+          g.fillRect(hx + 1 + j, hy + 3 - j, 2, 1);
+        }
+      }
     }
 
     for (let i = this.beams.length - 1; i >= 0; i--) {
@@ -2285,7 +2311,7 @@ export class FightScene extends Phaser.Scene implements View {
     );
     const label = S.finisherInput === 'button' ? (ready ? (stacks > 1 ? `x${stacks}` : 'GO!') : 'Finish') : ready ? `x${stacks}` : 'Swipe';
     this.txt.button.setFont(ready ? FONT_BOLD : FONT);
-    this.setText('button', label, b.x + b.w / 2, b.y + b.h / 2, ready ? WHITE : 0xd0d4e0, ready ? 2 : 1, 0.5, 0.5, fight);
+    this.setText('button', label, b.x + b.w / 2, b.y + b.h / 2, ready ? WHITE : 0xd0d4e0, ready ? 2 : 1, 0.5, 0.5, fight && !swipeMode);
 
     const d = this.app.lastTap;
     this.setText('debug', d ? `TAP ${d.outcome} ${d.cursorPos.toFixed(3)}  CAL ${S.calibrationMs}MS` : `CAL ${S.calibrationMs}MS`, GAME_W / 2, this.meter.y + 9, 0xc8c8d4, 1, 0.5, 0, this.app.panelOpen);

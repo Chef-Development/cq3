@@ -153,6 +153,25 @@ describe('run flow: boosts, stages, revive', () => {
 });
 
 describe('kill rewards and companion', () => {
+  it('every kill permanently raises attack, max HP and combo power', () => {
+    const { c, t } = setup({ enemies: ['slime', 'slime'], tune: (t) => ((t.kill.atk = 1), (t.kill.maxHp = 5), (t.kill.comboPower = 0.5)) });
+    c.enemies[0].hp = 1;
+    c.spawnBlock('yellow', 0.3);
+    c.spawnBlock('yellow', 0.7);
+    c.advanceTo(timeAt(t, 0.3));
+    c.tap(timeAt(t, 0.3));
+    expect(c.hero.bonusAtk).toBe(1);
+    expect(c.hero.bonusMaxHp).toBe(5);
+    expect(c.hero.hp).toBe(105);
+    expect(c.hero.bonusComboPower).toBe(0.5);
+    expect(c.drainEvents().find((e) => e.type === 'statGain')).toMatchObject({ atk: 1, maxHp: 5, comboPower: 0.5 });
+    // and the next hit uses the new attack (the cursor sped up a little with the combo)
+    const at = c.time + (0.7 - c.cursorPosAt(c.time)) / c.cursorSpeed();
+    c.advanceTo(at);
+    c.tap(at);
+    expect(c.enemies[1].hp).toBe(80 - (t.hero.atk + 1));
+  });
+
   it('heals a fraction of max HP on every kill, capped at max', () => {
     const { c, t } = setup({ enemies: ['slime', 'slime'], tune: (t) => ((t.hero.healOnKill = 0.15), (t.cursor.speedPerHit = 0)) });
     c.hero.hp = 50;

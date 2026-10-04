@@ -88,8 +88,6 @@ export const DEFAULT_TUNING = {
     perfectBonus: 0.03,
     maxStacks: 5,
     stackExp: 1.9, // finisher damage grows as stacks ^ stackExp (2 stacks = ~3.7x, 3 = ~8x)
-    finisherPushback: 0.4, // red blocks pushed back this fraction of the bar
-    pushbackSec: 0.25, // ...sliding back over this long (so you can see it happen)
   },
   tiers: {
     // Combo tiers (toggle in settings): damage multiplier at combo thresholds
@@ -99,6 +97,12 @@ export const DEFAULT_TUNING = {
     m2: 2,
     t3: 50,
     m3: 3,
+  },
+  kill: {
+    // Every kill permanently raises the hero's stats for the rest of the run (the icons rain into the HUD).
+    atk: 1,
+    maxHp: 5,
+    comboPower: 0.5,
   },
   companion: {
     // Pip the owl: swoops in for a peck after every N attack hits (0 = no companion)
@@ -113,8 +117,8 @@ export const DEFAULT_TUNING = {
     comboPower: 1,
   },
   swipe: {
-    minDistPx: 40, // CSS px upward
-    maxMs: 300,
+    minDistPx: 36, // CSS px in any direction
+    maxMs: 350,
   },
   juice: {
     hitStopMs: 50, // freeze on crits and finishers
@@ -196,7 +200,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   mode: 'classic',
-  finisherInput: 'button',
+  finisherInput: 'swipe',
   comboTiers: false,
   targeting: 'auto',
   godMode: false,
@@ -345,8 +349,6 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('meter.perfectBonus', 'Perfect bonus', 0, 0.3, 0.01),
         s('meter.maxStacks', 'Max stacks', 1, 9, 1),
         s('meter.stackExp', 'Stack exponent', 1, 3, 0.05),
-        s('meter.finisherPushback', 'Red pushback', 0, 1, 0.05),
-        s('meter.pushbackSec', 'Pushback time (s)', 0, 1, 0.05),
       ],
     },
     {
@@ -373,6 +375,10 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
     {
       title: 'Swipe finisher',
       sliders: [s('swipe.minDistPx', 'Min dist (px)', 10, 200, 5), s('swipe.maxMs', 'Max time (ms)', 80, 800, 10)],
+    },
+    {
+      title: 'Kill rewards',
+      sliders: [s('kill.atk', 'Attack +', 0, 10, 1), s('kill.maxHp', 'Max HP +', 0, 50, 1), s('kill.comboPower', 'Combo power +', 0, 3, 0.25)],
     },
     {
       title: 'Companion (Pip)',

@@ -26,6 +26,9 @@ export function setup(opts: { enemies?: string[]; tune?: (t: Tuning) => void; se
   t.blocks.minGap = 0.03;
   t.hero.healOnKill = 0;
   t.companion.everyHits = 0;
+  t.kill.atk = 0;
+  t.kill.maxHp = 0;
+  t.kill.comboPower = 0;
   opts.tune?.(t);
   const s: Settings = { ...DEFAULT_SETTINGS, ...opts.settings };
   const c = new Combat({ tuning: t, settings: s, hero: newHero(t), enemies: opts.enemies ?? ['slime'], seed: 42, spawning: opts.spawning ?? false });

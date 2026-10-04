@@ -51,6 +51,7 @@ export interface Enemy {
 
 export interface Hero {
   hp: number;
+  bonusAtk: number; // flat attack gained from kills
   bonusMaxHp: number;
   bonusDmg: number;
   bonusCrit: number;
@@ -63,6 +64,7 @@ export interface Hero {
 export function newHero(t: Tuning): Hero {
   return {
     hp: t.hero.maxHp,
+    bonusAtk: 0,
     bonusMaxHp: 0,
     bonusDmg: 0,
     bonusCrit: 0,
@@ -74,6 +76,8 @@ export function newHero(t: Tuning): Hero {
 }
 
 export const heroMaxHp = (t: Tuning, h: Hero): number => t.hero.maxHp + h.bonusMaxHp;
+/** Attack after kill gains and damage boosts. */
+export const heroAtk = (t: Tuning, h: Hero): number => (t.hero.atk + h.bonusAtk) * (1 + h.bonusDmg);
 
 export function tierMult(t: Tuning, combo: number): number {
   const c = t.tiers;
@@ -89,7 +93,7 @@ export function phaseToPos(phase: number): number {
   return p <= 1 ? p : 2 - p;
 }
 
-export type RemoveReason = 'hit' | 'bomb' | 'expire' | 'impact' | 'owner' | 'revive';
+export type RemoveReason = 'hit' | 'bomb' | 'expire' | 'impact' | 'owner' | 'revive' | 'finisher';
 
 export type CombatEvent =
   | { type: 'hit'; kind: BlockKind; pos: number; perfect: boolean; crit: boolean; damage: number; enemyId: number; combo: number }
@@ -102,6 +106,7 @@ export type CombatEvent =
   | { type: 'heroHurt'; damage: number; source: 'red' | 'bomb' | 'trap' | 'miss'; enemyId: number }
   | { type: 'enemyHurt'; enemyId: number; damage: number; crit: boolean; source: 'hit' | 'bomb' | 'finisher' | 'pet' }
   | { type: 'heal'; amount: number }
+  | { type: 'statGain'; enemyId: number; atk: number; maxHp: number; comboPower: number }
   | { type: 'pet'; enemyId: number; damage: number }
   | { type: 'kill'; enemyId: number }
   | { type: 'explode'; pos: number; radius: number }
@@ -450,12 +455,27 @@ export class Combat {
     const none: TapResult = { outcome: 'none', perfect: false, cursorPos: 0, blockId: 0 };
     if (this.result) return none;
     const J = this.tuning.judge;
+    const { chosen, d, cpos } = this.pick(t);
+    if (!chosen) {
+      this.miss(cpos);
+      return { outcome: 'miss', perfect: false, cursorPos: cpos, blockId: 0 };
+    }
+    const perfect = d <= (J.perfectFrac * chosen.width) / 2;
+    let outcome: TapOutcome;
+    if (chosen.kind === 'purple') outcome = this.triggerTrap(chosen);
+    else if (isRed(chosen.kind)) outcome = this.blockRed(chosen, perfect);
+    else outcome = this.hitAttack(chosen, perfect);
+    return { outcome, perfect: outcome === 'trap' ? false : perfect, cursorPos: cpos, blockId: chosen.id };
+  }
+
+  /** The block a tap at time t would land on (nearest under the cursor; purple only if nothing else is). */
+  private pick(t: number): { chosen: Block | null; d: number; cpos: number } {
+    const J = this.tuning.judge;
     const now = this.time;
     t = Math.min(now + DT, Math.max(now - J.maxRewindMs / 1000, t));
     const cpos = this.cursorPosAt(t);
     const graceDist = this.speedAtTime(t) * (J.graceMs / 1000);
     const cursorHalf = this.tuning.cursor.widthFrac / 2;
-
     let best: Block | null = null;
     let bestD = Infinity;
     let trap: Block | null = null;
@@ -468,19 +488,13 @@ export class Combat {
         if (d < trapD) (trap = b), (trapD = d);
       } else if (d < bestD) (best = b), (bestD = d);
     }
-    // Purple only triggers when nothing else is under the cursor.
     const chosen = best ?? trap;
-    if (!chosen) {
-      this.miss(cpos);
-      return { outcome: 'miss', perfect: false, cursorPos: cpos, blockId: 0 };
-    }
-    const d = chosen === best ? bestD : trapD;
-    const perfect = d <= (J.perfectFrac * chosen.width) / 2;
-    let outcome: TapOutcome;
-    if (chosen.kind === 'purple') outcome = this.triggerTrap(chosen);
-    else if (isRed(chosen.kind)) outcome = this.blockRed(chosen, perfect);
-    else outcome = this.hitAttack(chosen, perfect);
-    return { outcome, perfect: outcome === 'trap' ? false : perfect, cursorPos: cpos, blockId: chosen.id };
+    return { chosen, d: chosen === best ? bestD : trapD, cpos };
+  }
+
+  /** Whether a tap at time t would land on nothing (lets input hold back a would-be miss that may be a swipe). */
+  wouldMiss(t: number): boolean {
+    return !this.result && !this.pick(t).chosen;
   }
 
   /** Cursor speed (bar units/s) that was in effect at time t. */
@@ -503,7 +517,7 @@ export class Combat {
     const critChance =
       T.hero.critChance + H.bonusCrit + (H.abilityTimer > 0 ? T.hero.abilityCritBonus : 0) + (perfect ? T.hero.perfectCritBonus : 0);
     const crit = this.critRng.next() < critChance;
-    const damage = Math.max(1, Math.round(T.hero.atk * (1 + H.bonusDmg) * mult * (crit ? T.hero.critDmg + H.bonusCritDmg : 1)));
+    const damage = Math.max(1, Math.round(heroAtk(T, H) * mult * (crit ? T.hero.critDmg + H.bonusCritDmg : 1)));
     this.events.push({ type: 'hit', kind: b.kind, pos: b.pos, perfect, crit, damage, enemyId: target?.id ?? 0, combo: this.combo });
     if (green) {
       H.abilityTimer = T.hero.abilitySec;
@@ -593,7 +607,7 @@ export class Combat {
     if (stacks < 1) return 0;
     const T = this.tuning;
     const H = this.hero;
-    let dmg = T.hero.atk * (1 + H.bonusDmg) * (T.hero.comboPower + H.bonusComboPower) * Math.pow(stacks, T.meter.stackExp);
+    let dmg = heroAtk(T, H) * (T.hero.comboPower + H.bonusComboPower) * Math.pow(stacks, T.meter.stackExp);
     if (this.settings.comboTiers) dmg *= tierMult(T, this.combo);
     return Math.round(dmg);
   }
@@ -601,29 +615,11 @@ export class Combat {
   /** Fire the finisher with every banked stack. */
   finisher(): boolean {
     if (this.result || this.stacks < 1) return false;
-    const T = this.tuning;
     const combo = this.combo;
     const stacks = this.stacks;
     const dmg = this.finisherDamage(stacks);
-    // Push every red block back, keeping them spaced out so they don't pile up at the right end.
-    const reds = this.blocks.filter((b) => isRed(b.kind)).sort((a, b) => b.pos + b.push - (a.pos + a.push));
-    let limit = 1;
-    for (const b of reds) {
-      const from = b.pos;
-      let target = Math.min(from + b.push + T.meter.finisherPushback, limit - b.width / 2);
-      target = Math.max(target, from);
-      limit = target - b.width / 2 - T.blocks.minGap;
-      b.impactTimer = -1;
-      if (T.meter.pushbackSec > 0) {
-        b.push = target - from;
-        b.pushSpeed = T.meter.finisherPushback / T.meter.pushbackSec;
-        b.vel = b.push > 0 ? b.pushSpeed : -(1 - b.width) / T.blocks.redTravelSec;
-      } else {
-        b.pos = target;
-        b.push = 0;
-        b.vel = -(1 - b.width) / T.blocks.redTravelSec;
-      }
-    }
+    // Every red block on the bar is knocked off it; the enemies keep attacking on their normal schedule.
+    for (const b of this.blocks.slice()) if (isRed(b.kind)) this.removeBlock(b, 'finisher');
     this.meter = 0;
     this.stacks = 0;
     this.combo = 0;
@@ -738,6 +734,15 @@ export class Combat {
     e.alive = false;
     for (const b of this.blocks.slice()) if (b.ownerId === e.id && !isAttack(b.kind)) this.removeBlock(b, 'owner');
     this.events.push({ type: 'kill', enemyId: e.id });
+    // kill rewards: permanent stat gains for the rest of the run
+    const K = this.tuning.kill;
+    if (this.hero.hp > 0 && (K.atk || K.maxHp || K.comboPower)) {
+      this.hero.bonusAtk += K.atk;
+      this.hero.bonusMaxHp += K.maxHp;
+      this.hero.hp += K.maxHp;
+      this.hero.bonusComboPower += K.comboPower;
+      this.events.push({ type: 'statGain', enemyId: e.id, atk: K.atk, maxHp: K.maxHp, comboPower: K.comboPower });
+    }
     const heal = Math.min(heroMaxHp(this.tuning, this.hero) - this.hero.hp, Math.round(heroMaxHp(this.tuning, this.hero) * this.tuning.hero.healOnKill));
     if (heal > 0 && this.hero.hp > 0) {
       this.hero.hp += heal;

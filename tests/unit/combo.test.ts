@@ -125,42 +125,36 @@ describe('finisher', () => {
     expect(c.stacks).toBe(0);
   });
 
-  it('uses every stack, pushes reds back 40%, resets speed, consumes combo', () => {
-    const { c, t } = setup({ tune: (t) => ((t.blocks.redTravelSec = 10000), (t.enemies.slime.hp = 1000)) });
-    const r1 = c.spawnBlock('red', 0.3);
-    const r2 = c.spawnBlock('red', 0.8);
+  it('uses every stack, knocks every red off the bar, resets speed, consumes combo', () => {
+    const { c } = setup({ tune: (t) => ((t.blocks.redTravelSec = 10000), (t.enemies.slime.hp = 1000)) });
+    c.spawnBlock('red', 0.3);
+    c.spawnBlock('shield', 0.8);
+    const y = c.spawnBlock('yellow', 0.5);
     c.stacks = 2;
     c.combo = 10;
     c.speedStacks = 1;
     const dmg = c.finisherDamage();
     expect(c.finisher()).toBe(true);
     expect(c.enemies[0].hp).toBe(1000 - dmg);
-    expect(c.drainEvents().find((e) => e.type === 'finisher')).toMatchObject({ damage: dmg, combo: 10, stacks: 2 });
-    // reds slide back visibly over pushbackSec instead of teleporting
-    c.advanceTo(t.meter.pushbackSec / 2);
-    expect(r1.pos).toBeGreaterThan(0.35);
-    expect(r1.pos).toBeLessThan(0.65);
-    c.advanceTo(t.meter.pushbackSec + 0.05);
-    expect(r1.pos).toBeCloseTo(0.7, 2);
-    expect(r2.pos).toBeCloseTo(1 - r2.width / 2);
+    const ev = c.drainEvents();
+    expect(ev.find((e) => e.type === 'finisher')).toMatchObject({ damage: dmg, combo: 10, stacks: 2 });
+    expect(ev.filter((e) => e.type === 'remove' && e.reason === 'finisher')).toHaveLength(2);
+    expect(c.blocks).toEqual([y]);
     expect(c.combo).toBe(0);
     expect(c.stacks).toBe(0);
     expect(c.meter).toBe(0);
     expect(c.speedMult()).toBe(1);
   });
 
-  it('pushed reds stay spaced out instead of stacking at the right end', () => {
-    const { c, t } = setup({ tune: (t) => (t.blocks.redTravelSec = 10000) });
-    const reds = [0.62, 0.75, 0.88].map((p) => c.spawnBlock('red', p));
+  it('enemies keep attacking on schedule after a finisher', () => {
+    const { c } = setup({ spawning: true, tune: (t) => ((t.enemies.slime.hp = 5000), (t.enemies.slime.pattern = 'R'), (t.enemies.slime.interval = 0.5)) });
+    c.advanceTo(1.2);
+    expect(c.blocks.some((b) => b.kind === 'red')).toBe(true);
     c.stacks = 1;
     c.finisher();
-    c.advanceTo(t.meter.pushbackSec + 0.05);
-    const pos = reds.map((r) => r.pos).sort((a, b) => a - b);
-    expect(pos[2]).toBeCloseTo(1 - reds[0].width / 2, 2);
-    for (let i = 1; i < pos.length; i++) expect(pos[i] - pos[i - 1]).toBeGreaterThanOrEqual(reds[0].width + t.blocks.minGap - 1e-4);
-    // and they start sliding left again afterwards
-    c.advanceTo(t.meter.pushbackSec + 1);
-    expect(reds.every((r) => r.vel < 0)).toBe(true);
+    expect(c.blocks.some((b) => b.kind === 'red')).toBe(false);
+    c.advanceTo(1.8);
+    expect(c.blocks.some((b) => b.kind === 'red')).toBe(true);
   });
 
   it('uses boosted combo power and combo tiers', () => {

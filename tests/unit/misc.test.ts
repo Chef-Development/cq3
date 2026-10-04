@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { computeCalibration, tapOffsets } from '../../src/core/calibration';
-import { isSwipeUp } from '../../src/core/swipe';
+import { isSwipe } from '../../src/core/swipe';
 import { cloneTuning, DEFAULT_TUNING, getPath, mergeKnown, setPath, sliderGroups, tuningDiff } from '../../src/core/tuning';
 
 describe('calibration', () => {
@@ -22,12 +22,12 @@ describe('calibration', () => {
 });
 
 describe('swipe', () => {
-  it('needs enough upward distance within the time limit', () => {
-    expect(isSwipeUp(0, -50, 120, 40, 300)).toBe(true);
-    expect(isSwipeUp(0, -30, 120, 40, 300)).toBe(false);
-    expect(isSwipeUp(0, -60, 400, 40, 300)).toBe(false);
-    expect(isSwipeUp(80, -50, 120, 40, 300)).toBe(false); // mostly sideways
-    expect(isSwipeUp(0, 60, 120, 40, 300)).toBe(false); // down
+  it('a quick flick in any direction', () => {
+    expect(isSwipe(0, -50, 120, 40, 300)).toBe(true); // up
+    expect(isSwipe(60, 0, 120, 40, 300)).toBe(true); // across
+    expect(isSwipe(-30, 30, 120, 40, 300)).toBe(true); // diagonal
+    expect(isSwipe(0, -30, 120, 40, 300)).toBe(false); // too short
+    expect(isSwipe(0, -60, 400, 40, 300)).toBe(false); // too slow
   });
 });
 

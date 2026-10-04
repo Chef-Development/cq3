@@ -115,6 +115,22 @@ export class App {
     this.flush();
   }
 
+  /** Whether a tap with this pointer timestamp would land on nothing (see input's swipe handling). */
+  wouldMiss(wallTs: number): boolean {
+    const now = performance.now();
+    this.update(now);
+    const c = this.run.combat;
+    if (!c || !this.clock.running) return false;
+    const ts = Math.abs(now - wallTs) < 1000 ? wallTs : now;
+    return c.wouldMiss(tapSimTime(this.clock, ts, this.settings.calibrationMs));
+  }
+
+  /** Start the fight now instead of waiting for the enemy's walk-in to finish. */
+  skipIntro(): void {
+    this.introUntil = 0;
+    this.syncClock(performance.now());
+  }
+
   finisher(): boolean {
     const now = performance.now();
     this.update(now);

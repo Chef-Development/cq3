@@ -1,5 +1,5 @@
 // Pointer/keyboard routing. Bar taps are judged by event.timeStamp (see App.barTap), not by frame.
-import { isSwipeUp } from '../core/swipe';
+import { isSwipe } from '../core/swipe';
 import type { App } from './app';
 import { clientToGame } from './layout';
 import type { FightScene } from './scene';
@@ -7,14 +7,23 @@ import type { FightScene } from './scene';
 const inUi = (t: EventTarget | null): boolean => t instanceof Element && !!t.closest('[data-ui]');
 
 export function installInput(app: App, getScene: () => FightScene | null, ui: { togglePanel(): void; refreshHud(): void }): void {
-  let swipe: { id: number; x: number; y: number; ts: number; timer: number } | null = null;
+  // A touch that might become a finisher swipe. Taps that land on a block are judged immediately; only a tap
+  // that would miss is held back (until it's clearly not a swipe), so a swipe never costs you your stacks.
+  let swipe: { id: number; x: number; y: number; ts: number; timer: number; held: boolean } | null = null;
 
   const resolveSwipeAsTap = () => {
     if (!swipe) return;
     const s = swipe;
     window.clearTimeout(s.timer);
     swipe = null;
-    app.barTap(s.ts);
+    if (s.held) app.barTap(s.ts);
+  };
+
+  const fireSwipe = () => {
+    if (!swipe) return;
+    window.clearTimeout(swipe.timer);
+    swipe = null;
+    app.finisher();
   };
 
   const down = (clientX: number, clientY: number, ts: number, pointerId: number) => {
@@ -50,7 +59,12 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       app.begin();
       return;
     }
-    if (scene.finisherButtonHit(g.x, g.y)) {
+    if (now < app.introUntil) {
+      // the next enemy is still walking in: a tap starts the fight right away instead of being ignored
+      app.skipIntro();
+      return;
+    }
+    if (scene.finisherButtonHit(g.x, g.y) && app.combat?.finisherReady) {
       app.finisher();
       return;
     }
@@ -62,10 +76,11 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       }
     }
     if (app.settings.finisherInput === 'swipe' && app.combat?.finisherReady) {
-      // Hold the tap until we know whether this is a swipe; it is still judged at its own timestamp.
       resolveSwipeAsTap();
+      const held = app.wouldMiss(ts);
+      if (!held) app.barTap(ts);
       const wait = Math.min(app.tuning.swipe.maxMs, app.tuning.judge.maxRewindMs - 20);
-      swipe = { id: pointerId, x: clientX, y: clientY, ts, timer: window.setTimeout(resolveSwipeAsTap, Math.max(0, wait)) };
+      swipe = { id: pointerId, x: clientX, y: clientY, ts, held, timer: window.setTimeout(resolveSwipeAsTap, Math.max(0, wait)) };
       return;
     }
     app.barTap(ts);
@@ -85,25 +100,18 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
   const swipeCheck = (e: PointerEvent): boolean => {
     if (!swipe || e.pointerId !== swipe.id) return false;
     const S = app.tuning.swipe;
-    return isSwipeUp(e.clientX - swipe.x, e.clientY - swipe.y, e.timeStamp - swipe.ts, S.minDistPx, S.maxMs);
+    return isSwipe(e.clientX - swipe.x, e.clientY - swipe.y, e.timeStamp - swipe.ts, S.minDistPx, S.maxMs);
   };
 
   window.addEventListener('pointermove', (e) => {
-    if (swipeCheck(e)) {
-      window.clearTimeout(swipe!.timer);
-      swipe = null;
-      app.finisher();
-    }
+    if (swipeCheck(e)) fireSwipe();
   });
 
   window.addEventListener('pointerup', (e) => {
     app.audio.unlock();
     if (!swipe || e.pointerId !== swipe.id) return;
-    if (swipeCheck(e)) {
-      window.clearTimeout(swipe.timer);
-      swipe = null;
-      app.finisher();
-    } else resolveSwipeAsTap();
+    if (swipeCheck(e)) fireSwipe();
+    else resolveSwipeAsTap();
   });
   window.addEventListener('pointercancel', (e) => {
     if (swipe && e.pointerId === swipe.id) resolveSwipeAsTap();

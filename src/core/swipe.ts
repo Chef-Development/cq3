@@ -1,5 +1,4 @@
-/** Swipe-up finisher gesture classification (pure; distances in CSS px, dy negative = up). */
-export function isSwipeUp(dx: number, dy: number, elapsedMs: number, minDistPx: number, maxMs: number): boolean {
-  const up = -dy;
-  return up >= minDistPx && Math.abs(dx) <= up && elapsedMs <= maxMs;
+/** Finisher swipe classification (pure; distances in CSS px): a quick flick in any direction. */
+export function isSwipe(dx: number, dy: number, elapsedMs: number, minDistPx: number, maxMs: number): boolean {
+  return Math.hypot(dx, dy) >= minDistPx && elapsedMs <= maxMs;
 }
