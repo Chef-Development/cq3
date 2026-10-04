@@ -207,3 +207,16 @@ describe('save storage', () => {
     expect(loadRunSave(run.tuning)).toBeNull();
   });
 });
+
+describe('boss music cue', () => {
+  it('is on while a boss is alive in a fight, and off otherwise', () => {
+    const run = fresh();
+    expect(run.bossFight).toBe(false);
+    run.startLevel(0);
+    expect(run.bossFight).toBe(false);
+    run.startStage(3);
+    expect(run.bossFight).toBe(true);
+    killStage(run);
+    expect(run.bossFight).toBe(false);
+  });
+});

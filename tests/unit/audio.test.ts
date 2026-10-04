@@ -22,15 +22,18 @@ async function render(play: (s: Synth, at: number) => void, len: number, tune?: 
 
 const results = new Map<string, Measure>();
 let music: Measure;
+let bossMusic: Measure;
 
 beforeAll(async () => {
   for (const e of SFX) results.set(e.id, await render(e.play, e.len));
   music = await render((s, at) => s.scheduleMusic(at, 48), 48 * (60 / 130 / 4));
+  bossMusic = await render((s, at) => s.scheduleMusic(at, 128, 'boss'), 128 * (60 / 150 / 4));
   if (process.env.AUDIO_REPORT) {
     const row = (m: Measure) => [m.peak, m.loud, m.mean, m.energy, m.phoneLoud, m.phoneMean, m.phoneEnergy, m.lowEnergy].map((v) => v.toFixed(2).padStart(7)).join(' ');
     console.log(`${'sound'.padEnd(16)}    peak    loud    mean  energy  phLoud  phMean phEnerg   lowEn`);
     for (const e of SFX) console.log(`${e.id.padEnd(16)} ${row(results.get(e.id)!)}`);
     console.log(`${'music'.padEnd(16)} ${row(music)}`);
+    console.log(`${'boss music'.padEnd(16)} ${row(bossMusic)}`);
   }
 }, 120_000);
 
@@ -41,15 +44,22 @@ describe('rendered sound levels', () => {
       expect(m.peak, `${e.id} peak`).toBeLessThan(0.99);
       expect(m.peak, `${e.id} peak`).toBeGreaterThan(0.02);
     }
-    expect(music.peak).toBeLessThan(0.99);
-    expect(music.peak).toBeGreaterThan(0.05);
+    for (const m of [music, bossMusic]) {
+      expect(m.peak).toBeLessThan(0.99);
+      expect(m.peak).toBeGreaterThan(0.05);
+    }
   });
 
   it('impacts are not quieter than the music, on phone speakers too', () => {
     for (const e of SFX.filter((x) => x.tier)) {
       const m = results.get(e.id)!;
-      expect(m.loud, `${e.id} loudness vs music`).toBeGreaterThanOrEqual(music.loud);
-      expect(m.phoneLoud, `${e.id} phone loudness vs music`).toBeGreaterThanOrEqual(music.phoneLoud);
+      for (const [name, mus] of [
+        ['music', music],
+        ['boss music', bossMusic],
+      ] as const) {
+        expect(m.loud, `${e.id} loudness vs ${name}`).toBeGreaterThanOrEqual(mus.loud);
+        expect(m.phoneLoud, `${e.id} phone loudness vs ${name}`).toBeGreaterThanOrEqual(mus.phoneLoud);
+      }
     }
   });
 

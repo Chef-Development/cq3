@@ -115,6 +115,12 @@ export class Run {
     this.phase = 'fight';
   }
 
+  /** A boss is alive on screen (the music switches to the boss theme). */
+  get bossFight(): boolean {
+    const c = this.combat;
+    return this.phase === 'fight' && !!c && c.enemies.some((e) => e.alive && !!this.tuning.enemies[e.key]?.boss);
+  }
+
   /** The run's random state (stage seeds and boost rolls), for saving. */
   get randomState(): { seed: number; rng: number } {
     return { seed: this.seed, rng: this.rng.state };

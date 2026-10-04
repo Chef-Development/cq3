@@ -89,4 +89,17 @@ test('a run survives a reload: Continue picks it back up', async ({ page }) => {
     return { phase: app.run.phase, stage: app.run.stageIndex, hp: app.run.hero.hp, enemyHp: app.run.combat.enemies[0].hp, waiting: app.awaitingBegin };
   });
   expect(after).toEqual({ phase: 'fight', stage: 2, hp: 42, enemyHp: 99, waiting: true });
+
+  // the boss stage switches the music to the boss theme, and the next level switches it back
+  const track = () => page.evaluate(() => (window as unknown as { __cq3: { app: any } }).__cq3.app.audio.currentTrack);
+  await page.evaluate(() => {
+    const app = (window as unknown as { __cq3: { app: any } }).__cq3.app;
+    app.setPhase(() => app.run.startLevel(0, 3));
+  });
+  await expect.poll(track).toBe('boss');
+  await page.evaluate(() => {
+    const app = (window as unknown as { __cq3: { app: any } }).__cq3.app;
+    app.setPhase(() => app.run.startLevel(1));
+  });
+  await expect.poll(track).toBe('battle');
 });

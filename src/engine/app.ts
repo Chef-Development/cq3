@@ -201,6 +201,7 @@ export class App {
       this.view?.onPhase(prev, this.run.phase);
     }
     this.syncClock(now);
+    this.audio.setTrack(this.run.bossFight ? 'boss' : 'battle');
     this.saveRun();
   }
 

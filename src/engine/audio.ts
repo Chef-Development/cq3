@@ -92,40 +92,88 @@ const PENTA = [0, 2, 4, 7, 9];
 const HIT_BASE = 523.25; // C5
 const HIT_TOP = 13; // G7, ~2.6 octaves up; past it the blip trills between the top two notes
 
-// ---- Music: original 8-bar loop in A minor, 130 BPM, 16th-note grid ----
-const BPM = 130;
-const STEP = 60 / BPM / 4;
-const LOOP_STEPS = 8 * 16;
+// ---- Music: two original 8-bar loops on a 16th-note grid. The battle theme, and a boss theme that takes over
+// when a boss is on screen. ----
 const LOOKAHEAD = 0.12;
 const TICK_MS = 25;
 
-const SONG: { root: number; arp: number[] }[] = [
-  { root: 45, arp: [57, 60, 64, 69] }, // Am
-  { root: 41, arp: [57, 60, 65, 69] }, // F
-  { root: 48, arp: [55, 60, 64, 67] }, // C
-  { root: 43, arp: [55, 59, 62, 67] }, // G
-  { root: 45, arp: [57, 60, 64, 69] }, // Am
-  { root: 41, arp: [57, 60, 65, 69] }, // F
-  { root: 38, arp: [57, 62, 65, 69] }, // Dm
-  { root: 40, arp: [56, 59, 64, 68] }, // E
-];
-const ARP = [0, 1, 2, 3, 2, 1, 2, 3, 0, 1, 2, 3, 2, 3, 1, 2];
-type Note = [number, number] | null; // [semitones above root, length in steps]
-const BASS: Note[] = [[0, 2], null, [0, 1], [12, 1], null, [0, 1], [12, 2], null, [0, 2], null, [0, 1], [12, 1], null, [0, 1], [12, 1], [7, 1]];
-const BASS_TURN: Note[] = [...BASS.slice(0, 12), [0, 1], [2, 1], [4, 1], [7, 1]];
-// Lead per bar: [step, midi, length in steps].
-const LEAD: [number, number, number][][] = [
-  [[0, 69, 3], [3, 72, 3], [6, 76, 2], [8, 81, 4], [12, 79, 2], [14, 76, 2]],
-  [[0, 77, 3], [3, 76, 3], [6, 72, 2], [8, 69, 6], [14, 72, 2]],
-  [[0, 79, 3], [3, 76, 3], [6, 72, 2], [8, 76, 2], [10, 79, 2], [12, 84, 4]],
-  [[0, 83, 3], [3, 81, 3], [6, 79, 2], [8, 74, 6]],
-  [[0, 69, 3], [3, 72, 3], [6, 76, 2], [8, 81, 2], [10, 83, 2], [12, 84, 4]],
-  [[0, 81, 3], [3, 79, 3], [6, 77, 2], [8, 72, 4], [12, 77, 2], [14, 81, 2]],
-  [[0, 81, 3], [3, 77, 3], [6, 74, 2], [8, 77, 2], [10, 81, 2], [12, 86, 4]],
-  [[0, 83, 3], [3, 80, 3], [6, 76, 2], [8, 74, 2], [10, 76, 2], [12, 71, 2], [14, 68, 2]],
-];
-const LEAD_AT: Note[] = new Array<Note>(LOOP_STEPS).fill(null);
-LEAD.forEach((bar, b) => bar.forEach(([s, m, len]) => (LEAD_AT[b * 16 + s] = [m, len])));
+type Note = [number, number] | null; // [semitones above root (bass) or midi (lead), length in steps]
+export type MusicTrack = 'battle' | 'boss';
+
+interface Track {
+  step: number; // seconds per 16th
+  song: { root: number; arp: number[] }[]; // one chord per bar
+  arp: number[]; // which chord tone each 16th of the arpeggio plays
+  bass: (bar: number) => Note[];
+  lead: Note[]; // per step: [midi, length]
+}
+
+const leadSteps = (bars: [number, number, number][][]): Note[] => {
+  const at = new Array<Note>(bars.length * 16).fill(null);
+  bars.forEach((bar, b) => bar.forEach(([st, m, len]) => (at[b * 16 + st] = [m, len])));
+  return at;
+};
+
+// Battle: A minor, 130 BPM.
+const BATTLE_BASS: Note[] = [[0, 2], null, [0, 1], [12, 1], null, [0, 1], [12, 2], null, [0, 2], null, [0, 1], [12, 1], null, [0, 1], [12, 1], [7, 1]];
+const BATTLE_TURN: Note[] = [...BATTLE_BASS.slice(0, 12), [0, 1], [2, 1], [4, 1], [7, 1]];
+const BATTLE: Track = {
+  step: 60 / 130 / 4,
+  song: [
+    { root: 45, arp: [57, 60, 64, 69] }, // Am
+    { root: 41, arp: [57, 60, 65, 69] }, // F
+    { root: 48, arp: [55, 60, 64, 67] }, // C
+    { root: 43, arp: [55, 59, 62, 67] }, // G
+    { root: 45, arp: [57, 60, 64, 69] }, // Am
+    { root: 41, arp: [57, 60, 65, 69] }, // F
+    { root: 38, arp: [57, 62, 65, 69] }, // Dm
+    { root: 40, arp: [56, 59, 64, 68] }, // E
+  ],
+  arp: [0, 1, 2, 3, 2, 1, 2, 3, 0, 1, 2, 3, 2, 3, 1, 2],
+  bass: (bar) => (bar === 7 ? BATTLE_TURN : BATTLE_BASS),
+  // per bar: [step, midi, length in steps]
+  lead: leadSteps([
+    [[0, 69, 3], [3, 72, 3], [6, 76, 2], [8, 81, 4], [12, 79, 2], [14, 76, 2]],
+    [[0, 77, 3], [3, 76, 3], [6, 72, 2], [8, 69, 6], [14, 72, 2]],
+    [[0, 79, 3], [3, 76, 3], [6, 72, 2], [8, 76, 2], [10, 79, 2], [12, 84, 4]],
+    [[0, 83, 3], [3, 81, 3], [6, 79, 2], [8, 74, 6]],
+    [[0, 69, 3], [3, 72, 3], [6, 76, 2], [8, 81, 2], [10, 83, 2], [12, 84, 4]],
+    [[0, 81, 3], [3, 79, 3], [6, 77, 2], [8, 72, 4], [12, 77, 2], [14, 81, 2]],
+    [[0, 81, 3], [3, 77, 3], [6, 74, 2], [8, 77, 2], [10, 81, 2], [12, 86, 4]],
+    [[0, 83, 3], [3, 80, 3], [6, 76, 2], [8, 74, 2], [10, 76, 2], [12, 71, 2], [14, 68, 2]],
+  ]),
+};
+
+// Boss: D minor, 150 BPM, a galloping bass and a darker, climbing lead.
+const GALLOP: Note[] = [[0, 1], null, [0, 1], [0, 1], [0, 1], null, [0, 1], [0, 1], [0, 1], null, [0, 1], [0, 1], [0, 1], [12, 1], [10, 1], [7, 1]];
+const GALLOP_TURN: Note[] = [...GALLOP.slice(0, 8), [0, 1], [3, 1], [5, 1], [7, 1], [8, 1], [7, 1], [5, 1], [4, 1]];
+const BOSS: Track = {
+  step: 60 / 150 / 4,
+  song: [
+    { root: 38, arp: [62, 65, 69, 74] }, // Dm
+    { root: 34, arp: [62, 65, 70, 74] }, // Bb
+    { root: 36, arp: [64, 67, 72, 76] }, // C
+    { root: 33, arp: [61, 64, 69, 73] }, // A
+    { root: 38, arp: [62, 65, 69, 74] }, // Dm
+    { root: 34, arp: [62, 65, 70, 74] }, // Bb
+    { root: 31, arp: [62, 67, 70, 74] }, // Gm
+    { root: 33, arp: [61, 64, 67, 73] }, // A7
+  ],
+  arp: [0, 1, 2, 1, 0, 1, 2, 3, 0, 1, 2, 1, 3, 2, 1, 0],
+  bass: (bar) => (bar === 7 ? GALLOP_TURN : GALLOP),
+  lead: leadSteps([
+    [[0, 74, 4], [4, 77, 2], [6, 76, 2], [8, 74, 4], [12, 69, 4]],
+    [[0, 70, 4], [4, 74, 2], [6, 72, 2], [8, 70, 6], [14, 69, 2]],
+    [[0, 72, 3], [3, 76, 3], [6, 79, 2], [8, 77, 4], [12, 76, 4]],
+    [[0, 73, 4], [4, 76, 4], [8, 81, 6], [14, 79, 2]],
+    [[0, 74, 2], [2, 77, 2], [4, 81, 4], [8, 82, 2], [10, 81, 2], [12, 77, 4]],
+    [[0, 82, 4], [4, 81, 2], [6, 77, 2], [8, 74, 6], [14, 77, 2]],
+    [[0, 79, 3], [3, 77, 3], [6, 74, 2], [8, 70, 4], [12, 74, 4]],
+    [[0, 73, 2], [2, 76, 2], [4, 79, 2], [6, 81, 2], [8, 85, 8]],
+  ]),
+};
+const TRACKS: Record<MusicTrack, Track> = { battle: BATTLE, boss: BOSS };
+const LOOP_STEPS = 8 * 16;
 
 const hz = (midi: number): number => 440 * Math.pow(2, (midi - 69) / 12);
 
@@ -262,6 +310,8 @@ export class Synth {
   private musicTimer: ReturnType<typeof setInterval> | null = null;
   private musicManaged = false; // startMusic/stopMusic was called: unlock() no longer auto-starts
   private musicStep = 0;
+  private track: MusicTrack = 'battle';
+  private nextTrack: MusicTrack = 'battle'; // switches on the next beat
   private musicNext = 0;
   private musicResync = true;
   private musicDucked = false;
@@ -965,11 +1015,22 @@ export class Synth {
     else this.stopMusic();
   }
 
-  /** Schedule `steps` 16th notes of the battle track from ctx time `at` (tests render the music this way). */
-  scheduleMusic(at: number, steps: number): void {
+  /** Battle theme, or the boss theme while a boss is on screen. Takes over on the next beat. */
+  setTrack(name: MusicTrack): void {
+    this.nextTrack = name;
+    if (this.musicTimer === null) this.track = name;
+  }
+
+  get currentTrack(): MusicTrack {
+    return this.track;
+  }
+
+  /** Schedule `steps` 16th notes of a track from ctx time `at` (tests render the music this way). */
+  scheduleMusic(at: number, steps: number, name: MusicTrack = 'battle'): void {
     if (!this.ctx || !this.graph) return;
     if (!this.rig) this.rig = this.buildRig(this.ctx, at);
-    for (let i = 0; i < steps; i++) this.playStep(this.rig, i % LOOP_STEPS, at + i * STEP);
+    const tr = TRACKS[name];
+    for (let i = 0; i < steps; i++) this.playStep(this.rig, tr, name, i % LOOP_STEPS, at + i * tr.step);
   }
 
   private fade(bus: GainNode, target: number, time: number): void {
@@ -1028,29 +1089,42 @@ export class Synth {
       this.musicResync = false;
     }
     while (this.musicNext < now + LOOKAHEAD) {
-      this.playStep(rig, this.musicStep, this.musicNext);
-      this.musicNext += STEP;
+      if (this.nextTrack !== this.track && this.musicStep % 4 === 0) {
+        // the boss arrives (or leaves): the other theme starts from its top, on the beat
+        this.track = this.nextTrack;
+        this.musicStep = 0;
+      }
+      const tr = TRACKS[this.track];
+      this.playStep(rig, tr, this.track, this.musicStep, this.musicNext);
+      this.musicNext += tr.step;
       this.musicStep = (this.musicStep + 1) % LOOP_STEPS;
     }
   };
 
-  private playStep(rig: MusicRig, step: number, t: number): void {
+  private playStep(rig: MusicRig, tr: Track, name: MusicTrack, step: number, t: number): void {
     const bar = step >> 4;
     const s = step & 15;
-    const chord = SONG[bar];
+    const chord = tr.song[bar];
+    const STEP = tr.step;
 
-    const b = (bar === 7 ? BASS_TURN : BASS)[s];
+    const b = tr.bass(bar)[s];
     if (b) this.bassNote(rig, hz(chord.root + b[0]), t, b[1] * STEP * 0.92);
 
-    this.tone({ type: 'pulse12', f: hz(chord.arp[ARP[s]]), at: t, dur: STEP * 0.85, gain: 0.3, out: rig.bus });
+    this.tone({ type: 'pulse12', f: hz(chord.arp[tr.arp[s]]), at: t, dur: STEP * 0.85, gain: 0.3, out: rig.bus });
 
-    const l = LEAD_AT[step];
+    const l = tr.lead[step];
     if (l) {
       const len = l[1] * STEP;
       this.tone({ type: 'pulse25', f: hz(l[0]), at: t, attack: 0.005, hold: len * 0.45, dur: len * 0.95, gain: 0.42, scoop: -30, out: rig.bus });
+      // the boss lead is doubled an octave down for weight
+      if (name === 'boss') this.tone({ type: 'square', f: hz(l[0] - 12), at: t, attack: 0.005, hold: len * 0.4, dur: len * 0.9, gain: 0.12, out: rig.bus });
     }
 
-    // Drums.
+    if (name === 'boss') this.bossDrums(rig, bar, s, t);
+    else this.battleDrums(rig, bar, s, t);
+  }
+
+  private battleDrums(rig: MusicRig, bar: number, s: number, t: number): void {
     const fill = bar === 7 && s >= 12;
     if (s === 0 || s === 8 || s === 10 || (s === 3 && bar % 2 === 1)) {
       this.tone({ type: 'sine', f: 165, f1: 48, glide: 0.08, at: t, dur: 0.18, gain: 0.7, out: rig.bus });
@@ -1066,6 +1140,20 @@ export class Synth {
       const vel = s % 4 === 2 ? 0.9 : s % 2 === 0 ? 0.55 : 0.28;
       this.noise({ at: t, dur: open ? 0.11 : 0.035, gain: 0.3 * (open ? 0.8 : vel), out: rig.hats });
     }
+  }
+
+  /** Boss drums: driving kicks (double-time in the second half), a rolling snare fill, crashes every 4 bars. */
+  private bossDrums(rig: MusicRig, bar: number, s: number, t: number): void {
+    const fill = bar === 7 && s >= 8;
+    const kick = bar >= 4 ? s % 2 === 0 && !fill : s === 0 || s === 3 || s === 6 || s === 8 || s === 10 || s === 14;
+    if (kick || (fill && s % 4 === 0)) this.tone({ type: 'sine', f: 170, f1: 46, glide: 0.07, at: t, dur: 0.15, gain: 0.62, out: rig.bus });
+    const snare = s === 4 || s === 12 ? 1 : fill ? 0.3 + (s - 8) * 0.09 : 0;
+    if (snare) {
+      this.noise({ at: t, dur: 0.12, gain: 0.8 * snare, out: rig.snare });
+      this.tone({ type: 'triangle', f: 240, f1: 150, glide: 0.05, at: t, dur: 0.07, gain: 0.35 * snare, out: rig.bus });
+    }
+    if ((bar === 0 || bar === 4) && s === 0) this.noise({ at: t, dur: 0.5, gain: 0.45, out: rig.hats });
+    else if (!fill && s % 2 === 0) this.noise({ at: t, dur: 0.035, gain: 0.3 * (s % 4 === 2 ? 0.9 : 0.5), out: rig.hats });
   }
 
   /** Triangle bass with a quiet square layer (so it reads on phone speakers), through the bass lowpass. */

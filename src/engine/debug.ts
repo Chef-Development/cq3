@@ -168,6 +168,19 @@ export function installDebug(app: App): DebugUi {
       lg.appendChild(b);
     }
     lab.appendChild(lg);
+    const mg = el('div', 'dbg-grid');
+    for (const [name, label] of [
+      ['battle', 'Music: battle theme'],
+      ['boss', 'Music: boss theme'],
+    ] as const) {
+      const b = el('button', 'dbg-btn', label);
+      b.onclick = () => {
+        app.audio.unlock();
+        app.audio.setTrack(name);
+      };
+      mg.appendChild(b);
+    }
+    lab.appendChild(mg);
     for (const sd of IMPACT_SOUND_SLIDERS)
       slider(lab, sd.label, sd.min, sd.max, sd.step, () => getPath(app.tuning, sd.path), (v) => {
         setPath(app.tuning, sd.path, v);
