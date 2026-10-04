@@ -29,7 +29,12 @@ test('loads, plays the intro, walks the map, starts a fight, taps, no console er
   expect(await a((x) => x.layout.scale)).toBe(8);
   expect(await a((x) => x.run.phase)).toBe('title');
 
-  await tapGame(page, 163, 75); // no save: a tap starts a new run, with the intro
+  await tapGame(page, 163, 75); // no save: a tap starts a new run on the kingdom's world map
+  await expect.poll(() => a((x) => x.run.phase)).toBe('world');
+  await page.waitForTimeout(350);
+  await page.screenshot({ path: 'test-results/world.png' });
+  const gm = (await a((x) => x.view.worldMap.greenmarch())) as { x: number; y: number };
+  await tapGame(page, gm.x, gm.y); // into Greenmarch: the intro plays
   await expect.poll(() => a((x) => x.run.phase)).toBe('scene');
   expect(await a((x) => x.storyId)).toBe('intro');
   await page.waitForTimeout(300);
@@ -138,8 +143,8 @@ test('every enemy fights and uses each special without errors', async ({ page })
 test('a run survives a reload: Continue picks the fight back up', async ({ page }) => {
   await ready(page);
   const a = app(page);
-  await tapGame(page, 163, 75); // no save yet: any tap starts a new run
   await a((x) => {
+    x.startRegion();
     x.storySkip();
     x.storySkip();
     x.setPhase(() => x.run.chooseNode(x.run.choices()[0]));

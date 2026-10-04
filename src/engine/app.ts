@@ -3,11 +3,12 @@ import { STORY } from '../data/story';
 import { SimClock, tapSimTime } from '../core/clock';
 import type { CombatEvent, TapResult } from '../core/combat';
 import { Run, type Phase } from '../core/run';
+import { recordAct, recordRegion, type Progress } from '../core/progress';
 import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import type { Settings, Tuning } from '../core/tuning';
 import { Synth, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, type ScreenLayout } from './layout';
-import { clearRunSave, loadRunSave, saveSoon, writeRunSave } from './storage';
+import { clearRunSave, loadProgress, loadRunSave, saveSoon, writeProgress, writeRunSave } from './storage';
 
 export interface View {
   /** Returns how long (ms) the next phase change should wait so a kill / finisher animation can play out. */
@@ -40,6 +41,8 @@ export class App {
   storyOverlay: string | null = null;
   /** Which box of the current story scene is on screen. */
   storyBox = 0;
+  /** Progress kept across runs (acts cleared, pendulum weights home): the world map shows it. */
+  progress: Progress = loadProgress();
   /** The run saved by an earlier session (offered as Continue on the title screen). */
   savedRun: RunSave | null = null;
   private begunCombat: unknown = null;
@@ -173,17 +176,24 @@ export class App {
     });
   }
 
+  /** New run: the world map first (pick Greenmarch to start). */
   newRun(): void {
     clearRunSave();
     this.savedRun = null;
     this.storyBox = 0;
+    this.setPhase(() => this.run.toWorld());
+  }
+
+  /** From the world map: start a run in Greenmarch (the intro, then Act 1). */
+  startRegion(): void {
+    this.storyBox = 0;
     this.setPhase(() => this.run.newRun());
   }
 
-  /** Back to the title screen (after the victory). */
-  toTitle(): void {
+  /** Back to the world map (after the victory). */
+  toWorld(): void {
     this.storyOverlay = null;
-    this.setPhase(() => (this.run.phase = 'title'));
+    this.setPhase(() => this.run.toWorld());
   }
 
   /** The story scene on screen: a mid-fight one, or the run's (null when there is none). */
@@ -244,6 +254,11 @@ export class App {
     }
     this.syncClock(now);
     this.audio.setTrack(this.track());
+    // progress across runs: acts cleared and the region's weight
+    let progressed = false;
+    if (this.run.phase === 'actClear') progressed = recordAct(this.progress, this.run.actIndex);
+    if (this.run.phase === 'victory') progressed = recordRegion(this.progress) || progressed;
+    if (progressed) writeProgress(this.progress);
     if (this.run.phase === 'victory') {
       clearRunSave();
       this.savedRun = null;

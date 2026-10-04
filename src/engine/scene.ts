@@ -18,6 +18,8 @@ import { MapView } from './view/map';
 import { NodeScreens } from './view/nodes';
 import { Overlays } from './view/overlays';
 import { StoryView } from './view/story';
+import { WorldView } from './view/world';
+import { buildWorldArt } from './art-world';
 import { BAND_H, COL, DASH_MS, DEATH_CHARGE_MS, inRect, kindCol, stackCol, tintGrad, WHITE, type Pending, type Rect } from './view/shared';
 import { Stage } from './view/stage';
 
@@ -59,6 +61,7 @@ export class FightScene extends Phaser.Scene implements View {
   readonly mapView = new MapView(this);
   readonly story = new StoryView(this);
   readonly nodes = new NodeScreens(this);
+  readonly worldMap = new WorldView(this);
 
   constructor() {
     super('fight');
@@ -125,6 +128,10 @@ export class FightScene extends Phaser.Scene implements View {
     this.stage.clearAmbient();
     this.panelImg?.destroy();
     buildArt(this, GAME_W);
+    buildWorldArt((key, canvas) => {
+      if (this.textures.exists(key)) this.textures.remove(key);
+      this.textures.addCanvas(key, canvas);
+    }, GAME_W, GAME_H);
     this.stage.buildTextures();
     buildPanel(this, GAME_W, GAME_H - this.splitY, BAND_H);
     this.panelImg = this.add.image(0, this.splitY, 'panel').setOrigin(0, 0).setDepth(9);
@@ -133,6 +140,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.mapView.build();
     this.story.build();
     this.nodes.build();
+    this.worldMap.build();
     this.stage.build();
     this.fighters.build();
     this.hud.reset();
@@ -191,6 +199,10 @@ export class FightScene extends Phaser.Scene implements View {
   onReroll(): void {
     this.app.audio.shopBuy();
     this.app.phaseSince = performance.now() - 250; // the cards pop in again
+  }
+
+  worldTap(x: number, y: number): void {
+    this.worldMap.tap(x, y);
   }
 
   /** Treasure, rest, shop and event screens. */
@@ -538,6 +550,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.barView.draw(t, now);
     this.hud.drawTexts(now);
     this.overlays.draw(now);
+    this.worldMap.draw(now);
     this.mapView.draw(now);
     this.nodes.draw(now);
     this.story.draw(now);

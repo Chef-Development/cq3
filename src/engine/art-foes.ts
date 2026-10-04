@@ -1494,6 +1494,241 @@ function golemParts(pose: string): Part[] {
   return [...parts, ...extra];
 }
 
+// ------------------------------------------------------------------ boarking (Boar King: the final boss)
+
+// dark fur, hue-shifted: shadows lean purple, highlights lean orange; the mane is near black
+const KFUR = ['#1e0e18', '#3a1a22', '#5e3030', '#844a38', '#a86a48', '#c88e5e'];
+const KMANE = ['#0e0812', '#1e1018', '#2e1622', '#46222e', '#66323a', '#8a4a48'];
+const VELVET = ['#3a0c1c', '#6a1424', '#a02430', '#d03c3c', '#f06a5a'];
+const IVORY = ['#6a5a4a', '#a8967a', '#d8c8a8', '#f4ead4', '#fffcf0'];
+const BRASS = ['#6e4a14', '#b07c22', '#e0b040', '#f8dc70', '#fffad0'];
+const KING_PAL: Pal = {
+  0: KFUR[0], 1: KFUR[1], 2: KFUR[2], 3: KFUR[3], 4: KFUR[4], 5: KFUR[5],
+  m: KMANE[0], n: KMANE[1], N: KMANE[2], o: KMANE[3], O: KMANE[4], Q: KMANE[5],
+  v: VELVET[1], V: VELVET[2], R: VELVET[3], q: VELVET[0],
+  i: IVORY[1], I: IVORY[2], j: IVORY[3], J: IVORY[4], z: IVORY[0],
+  G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14', Z: '#5a3410', r: '#e8443a', c: '#4aa0f0',
+  B: BRASS[2], b: BRASS[1], W: BRASS[4], X: BRASS[3], k: '#2a140c', // brass bob in its bezel
+  p: '#a85458', P: '#d88078', t: '#5a2430', // snout disc, nostril
+  e: '#ff5a3a', E: '#ffd0a0', K: '#140c1c', // eye
+  s: '#d89a9a', S: '#7a3a44', // scars
+  h: '#2a1c24', H: '#5a4650', // hooves
+  w: '#ffffff', u: '#c8d8e8', // steam
+  d: '#b49a70', D: '#e8d4a8', // dust
+  f: '#f4ece6', F: '#140c1c', // ermine
+};
+
+type Mask = (x: number, y: number) => boolean;
+const ell = (cx: number, cy: number, rx: number, ry: number): Mask => (x, y) => ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1;
+const anyOf = (...m: Mask[]): Mask => (x, y) => m.some((f) => f(x, y));
+function poly(pts: [number, number][]): Mask {
+  return (x, y) => {
+    const px = x + 0.5;
+    const py = y + 0.5;
+    let inside = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const [xi, yi] = pts[i];
+      const [xj, yj] = pts[j];
+      if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  };
+}
+
+/** Tone digits (0-5) for a rounded form: lit from the top left around (cx, cy), dark rim underneath. */
+function roundTones(w: number, h: number, m: Mask, cx: number, cy: number, rx: number, ry: number): string[] {
+  const rows: string[] = [];
+  for (let y = 0; y < h; y++) {
+    let r = '';
+    for (let x = 0; x < w; x++) {
+      if (!m(x, y)) {
+        r += '.';
+        continue;
+      }
+      const nx = Math.max(-1, Math.min(1, (x + 0.5 - cx) / rx));
+      const ny = Math.max(-1, Math.min(1, (y + 0.5 - cy) / ry));
+      const nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
+      const lam = (-0.45 * nx - 0.7 * ny + 0.55 * nz) / 0.94;
+      let t = lam > 0.8 ? 5 : lam > 0.52 ? 4 : lam > 0.18 ? 3 : lam > -0.25 ? 2 : 1;
+      if (!m(x, y + 1)) t = Math.min(t, 1);
+      else if (!m(x, y + 2)) t = Math.min(t, 2);
+      else if (!m(x + 1, y)) t = Math.max(1, t - 1);
+      else if (!m(x, y - 1) && lam > 0) t = Math.max(t, 4);
+      r += String(t);
+    }
+    rows.push(r);
+  }
+  return rows;
+}
+
+const KW = 56;
+const KH = 44;
+// the body (frame coordinates): high humped shoulders, the back sloping down to a round rump
+const KING_BODY_MASK = anyOf(ell(35, 26, 19, 10), ell(27, 18, 13, 10), ell(46, 25, 8.5, 9), ell(21, 27, 8, 8));
+// the head: a heavy wedge sloping down to the snout
+const KING_HEAD_MASK = poly([[1, 21], [6, 17], [14, 11], [22, 10], [25, 12], [27, 16], [27, 25], [24, 31], [20, 33], [9, 34], [3, 32], [1, 29]]);
+const KING_HEAD = roundTones(KW, KH, KING_HEAD_MASK, 9, 12, 18, 19);
+// the body a tone darker than the head, with fur strokes raked down and back
+const KING_BODY = roundTones(KW, KH, KING_BODY_MASK, 30, 13, 26, 19).map((r, y) =>
+  [...r]
+    .map((c, x) => {
+      if (c === '.') return c;
+      let t = Math.min(4, +c);
+      if (t >= 2 && hash2(x - Math.floor(y / 2), 7) < 0.12 && hash2(Math.floor((x - y / 2) / 1), y >> 1) < 0.5) t -= 1;
+      return String(t);
+    })
+    .join(''),
+);
+
+/** The bristly mane over the hump and down the spine: a dark mass with spikes leaning back, lit at the tips. */
+function kingMane(bristle = 1, dy = 0): Part {
+  const pts: Record<string, [number, number][]> = { m: [], n: [], N: [], o: [], O: [], Q: [] };
+  for (let x = 15; x <= 49; x++) {
+    let top = 0;
+    while (top < KH && !KING_BODY_MASK(x, top)) top++;
+    const base = x % 3 === 0 ? 7 : x % 3 === 1 ? 5 : 3;
+    const fade = x < 20 ? 0.8 : x > 36 ? Math.max(0.3, (50 - x) / 14) : 1;
+    const hgt = Math.max(1, Math.round(base * fade * bristle));
+    const depth = Math.round(5 * fade);
+    for (let k = -depth; k < hgt; k++) {
+      const yy = top - k + dy;
+      const xx = x + Math.floor(Math.max(0, k) / 2);
+      const t = k < -2 ? 'm' : k < 0 ? 'n' : k >= hgt - 1 ? 'Q' : k >= hgt - 2 ? 'O' : k > 1 ? 'o' : 'N';
+      pts[t].push([xx, yy]);
+    }
+  }
+  return dots(Object.entries(pts).filter(([, p]) => p.length) as [string, [number, number][]][]);
+}
+
+/** The mane's ruff down the back of the head and neck, hiding the seam: spikes sweeping back. */
+function kingRuff(ox: number, oy: number): Part {
+  const pts: Record<string, [number, number][]> = { n: [], N: [], o: [], O: [], Q: [] };
+  for (let y = 10; y <= 31; y++) {
+    const bx = 22 + Math.round(4 * Math.sin(((y - 9) / 23) * Math.PI));
+    const len = y % 3 === 0 ? 6 : y % 3 === 1 ? 4 : 3;
+    for (let k = 0; k < len; k++) {
+      const t = k < 2 ? 'n' : k >= len - 1 ? (y < 20 ? 'Q' : 'O') : k >= len - 2 ? 'O' : 'o';
+      pts[k < 1 ? 'N' : t].push([ox + bx + k, oy + y - Math.floor(k / 2)]);
+    }
+  }
+  return dots(Object.entries(pts).filter(([, p]) => p.length) as [string, [number, number][]][]);
+}
+
+/** A thick leg w x h with a hoof, lit on the left; `dark` for the far legs, `slant` px of lean over its height. */
+function kingLeg(w: number, h: number, dark = false, slant = 0): string[] {
+  const rows: string[] = [];
+  for (let y = 0; y < h; y++) {
+    const sh = Math.round((slant * y) / (h - 1));
+    const pad = slant < 0 ? -slant : 0;
+    let r = '.'.repeat(pad + sh);
+    if (y >= h - 2) r += 'h' + 'hH'.padEnd(w - 1, 'h');
+    else for (let x = 0; x < w; x++) r += String(Math.max(0, (x === 0 ? 4 : x === w - 1 ? 1 : x === w - 2 ? 2 : 3) - (dark ? 1 : 0)));
+    rows.push(r);
+  }
+  return rows;
+}
+
+// crown: gold band with a point either side over a velvet cap; the brass pendulum bob hangs from the centre
+// finial in a dark bezel (brass is yellower than the crown's gold)
+const KING_CROWN = [
+  'G......G......g',
+  'Gg....gGy....gy',
+  'Gg.....k.....gy',
+  'GgV...kkk...Vgy',
+  'GgVV.kXWBk.VVyY',
+  'GgVVkXWBBbkVVyY',
+  'GgVVkXBBBbkVVyY',
+  'GgVVkBBBbbkVvyY',
+  'GgVv.kbbbk.vvyY',
+  'GgVvv.kkk.vvvyY',
+  'GgggggggggggyyY',
+  'yryyyycyyyyyrYZ',
+  'YYYYYYYYYYYYYZZ',
+];
+// the near tusk curling up past the snout
+const KING_TUSK = ['.J..', 'Jj..', 'Jj..', 'Jji.', 'Jji.', 'jjI.', 'jII.', '.IIz', '.IIiz', '..iiizz', '....zzz'];
+const KING_EAR = ['.....o', '....oO', '...o32', '..oP23', '.oPp23', 'o2223.'];
+const KING_EYE = ['KKKKK', '.KKeE', '..KKK'];
+const KING_SNOUT = ['.pP', 'pPP', 'tPp', 'pPp', 'pPp', 'tPp', 'pPP', '.pp'];
+
+function kingParts(pose: string): Part[] {
+  let bx = 0; // body offset
+  let by = 0;
+  let hx = 0; // head offset (with crown and tusk)
+  let hy = 0;
+  let eye = KING_EYE;
+  let bristle = 1;
+  // legs: [x, slant] for far front, far back, near front, near back
+  let legs: [number, number][] = [[21, 0], [38, 0], [13, 0], [45, 0]];
+  const extra: Part[] = [];
+  switch (pose) {
+    case 'idle1':
+      by = 1;
+      hy = 1;
+      break;
+    case 'windup':
+      bx = 2;
+      by = 1;
+      hx = 2;
+      hy = 2;
+      bristle = 1.2;
+      extra.push([['.w', 'wu', 'u.'], 0, 20]);
+      break;
+    case 'attack':
+      bx = -2;
+      hx = -2;
+      hy = 1;
+      legs = [[23, -4], [36, 3], [14, -5], [46, 4]];
+      break;
+    case 'hurt':
+      bx = 2;
+      hx = 3;
+      hy = -1;
+      eye = ['KKKKK', '.KKKK', '.....'];
+      break;
+    case 'tell':
+      // head down, hackles up, steam from the snout, a front hoof pawing up dust
+      bx = 1;
+      hx = 1;
+      hy = 2;
+      bristle = 1.35;
+      legs = [[21, 0], [38, 0], [-99, 0], [45, 0]];
+      extra.push([['.ww.', 'wwuw', '.uu.'], 0, 16], [['ww', 'u.'], 2, 20]);
+      // the near front leg lifted and scraping back, kicking up dust
+      extra.push([['333.', '33332', '.3332', '..321', '..hHh'], 16, 34, { edge: KFUR[0] }], [['..D.', '.DdD', 'dDdd'], 21, 39]);
+      break;
+  }
+  const H = (rows: string[], x: number, y: number, o?: PartOpts): Part => [rows, x + hx, y + hy + 2, o];
+  const legPart = ([x, sl]: [number, number], dark: boolean): Part[] => (x < -50 ? [] : [[kingLeg(5, 13, dark, sl), x + Math.min(0, sl), 30]]);
+  const parts: Part[] = [
+    ...legPart(legs[0], true),
+    ...legPart(legs[1], true),
+    ...legPart(legs[2], false),
+    ...legPart(legs[3], false),
+  ];
+  parts.push(
+    [['.mn', 'mnN', 'nN.'], 52 + bx, 21 + by], // tail tuft
+    [KING_BODY, bx, by, { edge: KFUR[0] }],
+    kingMane(bristle, by),
+    // scars: claw marks raked across the flank
+    [['..sS', '.sS.', 'sS..', 's...'], 40 + bx, 21 + by],
+    [['..sS', '.sS.', 'sS..'], 44 + bx, 22 + by],
+    H(KING_EAR, 19, 6),
+    H(KING_HEAD, 0, 0, { edge: KFUR[0] }),
+    kingRuff(hx, hy + 2),
+    H(['5555544', '.000001', '......0'], 8, 17), // heavy brow and its shadow
+    H(KING_SNOUT, 0, 21),
+    H(eye, 9, 18),
+    H(['.....s', '....sS', '...sS.', '..sS..'], 13, 23), // a scar across the cheek
+    H(['.5554', '55443'], 3, 19), // lit ridge of the snout
+    H(['0000000', '......00'], 6, 30), // the mouth line
+    H(KING_TUSK, 3, 22),
+    H(KING_CROWN, 9, 0),
+    ...extra,
+  );
+  return parts;
+}
+
 // ------------------------------------------------------------------ build
 
 interface SpriteDef {
@@ -1514,6 +1749,7 @@ export function buildFoeArt(add: Add): void {
     piglet: { W: 18, H: 13, pal: PIG_PAL, shades: PIG_SHADES, parts: pigParts },
     shaman: { W: 28, H: 28, pal: SHAMAN_PAL, shades: SHAMAN_SHADES, parts: shamanParts },
     captain: { W: 34, H: 38, pal: CAPTAIN_PAL, shades: CAPTAIN_SHADES, parts: captainParts },
+    boarking: { W: KW, H: KH, pal: KING_PAL, shades: {}, parts: kingParts },
     golem: { W: 46, H: 50, pal: GOLEM_PAL, shades: {}, parts: golemParts },
     knight: { W: 30, H: 34, pal: KNIGHT_PAL, shades: KNIGHT_SHADES, parts: knightParts, extras: ['guard'] },
   };

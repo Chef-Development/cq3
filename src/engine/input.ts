@@ -72,7 +72,10 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
         if (now - app.phaseSince > 700) app.setPhase(() => run.retry());
         return;
       case 'victory':
-        if (now - app.phaseSince > 1500) app.toTitle();
+        if (now - app.phaseSince > 1500) app.toWorld();
+        return;
+      case 'world':
+        if (now - app.phaseSince > 300) scene.worldTap(clientX < 0 ? -1 : g.x, g.y);
         return;
     }
     if (app.storyOverlay) {

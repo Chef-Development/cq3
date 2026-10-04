@@ -1,4 +1,5 @@
 // localStorage helpers. Every access is wrapped: storage can be missing or throw (private mode, quota).
+import { readProgress, type Progress } from '../core/progress';
 import { readSave, type RunSave } from '../core/save';
 import { cloneTuning, DEFAULT_SETTINGS, DEFAULT_TUNING, mergeKnown, tuningDiff, type Settings, type Tuning } from '../core/tuning';
 
@@ -10,6 +11,8 @@ const OLD_SETTINGS_KEY = 'cq3.settings.v1';
 // The run in progress (see core/save.ts). v3: Greenmarch's acts; runs saved by the level builds are dropped.
 const RUN_KEY = 'cq3.run.v3';
 const OLD_RUN_KEY = 'cq3.run.v1';
+// Progress across runs (see core/progress.ts).
+const PROGRESS_KEY = 'cq3.progress.v1';
 
 function read(key: string): unknown {
   try {
@@ -87,4 +90,12 @@ export function clearRunSave(): void {
   } catch {
     /* ignore */
   }
+}
+
+export function loadProgress(): Progress {
+  return readProgress(read(PROGRESS_KEY));
+}
+
+export function writeProgress(p: Progress): void {
+  write(PROGRESS_KEY, p);
 }

@@ -232,7 +232,7 @@ export class Overlays {
     const cx = GAME_W / 2;
     if (!(ph === 'fight' && s.app.awaitingBegin && !s.app.userPaused)) txt.begin.setVisible(false);
     if (ph !== 'title') hide('tCont', 'tContSub', 'tNew');
-    if (ph === 'scene' || ph === 'map' || ph === 'rest' || ph === 'shop' || ph === 'event') hide(...ov);
+    if (ph === 'world' || ph === 'scene' || ph === 'map' || ph === 'rest' || ph === 'shop' || ph === 'event') hide(...ov);
     if (ph === 'fight' && now < this.bannerUntil) {
       const k = (this.bannerUntil - now) / 1800;
       s.setText('banner', this.banner, cx, 40, WHITE, 2, 0.5, 0.5, true);
@@ -333,7 +333,7 @@ export class Overlays {
       s.setText('ovTitle', 'Greenmarch is saved!', cx, 32, 0xffd23a, 2, 0.5, 0.5);
       s.setText('ovSub', 'The first weight is home. Eleven to go.', cx, 50, WHITE, 1, 0.5, 0.5);
       s.setText('ovLine1', 'Next: the Frostpeaks (coming soon)', cx, 62, 0x9ad8ff, 1, 0.5, 0.5);
-      s.setText('ovLine2', 'Tap to return to the title', cx, 84, 0xfff07a, 1, 0.5, 0.5, since > 1500 && blink);
+      s.setText('ovLine2', 'Tap to return to the kingdom map', cx, 84, 0xfff07a, 1, 0.5, 0.5, since > 1500 && blink);
       hide('ovLine3');
       // a little shower of golden sparks
       if (Math.random() < 0.5) s.fx.particles.push({ x: rand(20, GAME_W - 20), y: -2, vx: rand(-10, 10), vy: rand(20, 40), g: 30, born: now, life: 2200, color: Math.random() < 0.5 ? 0xffe680 : WHITE, size: 1, world: false, streak: false });

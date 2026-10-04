@@ -10,7 +10,7 @@ import { actSeed, buildActMap, type ActMap, type MapNode } from './map';
 import { Rng } from './rng';
 import type { ActScale, Settings, Tuning } from './tuning';
 
-export type Phase = 'title' | 'scene' | 'map' | 'fight' | 'boost' | 'treasure' | 'rest' | 'shop' | 'event' | 'actClear' | 'defeat' | 'victory';
+export type Phase = 'title' | 'world' | 'scene' | 'map' | 'fight' | 'boost' | 'treasure' | 'rest' | 'shop' | 'event' | 'actClear' | 'defeat' | 'victory';
 /** Where a run of story scenes leads. */
 export type SceneThen = 'map' | 'fight' | 'victory';
 
@@ -218,6 +218,12 @@ export class Run {
   choices(): number[] {
     const n = this.node;
     return n ? n.next.slice() : this.map.rows[0].slice();
+  }
+
+  /** The kingdom's world map (between runs): pick a region. */
+  toWorld(): void {
+    this.combat = null;
+    this.phase = 'world';
   }
 
   /** A new run: the intro, Act 1's opening scene, then the map. */

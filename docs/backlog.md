@@ -8,8 +8,11 @@ milestone. Build these with original art and names only.
   Open button.
 - **Chest opening:** a big chest on a stage; "tap the chest to roll" spins a slot-machine reel of prizes
   that slows and lands on one, then a reveal with light rays ("You won 10 gems!").
-- **Kingdom map:** a world map with locked regions, a kingdom level, timed rewards, and buttons for
-  upgrades, chests, loadout and shop.
+- **Kingdom map:** the reference's main map is an illustrated island with regions as landmarks, padlocks on
+  locked regions, flags on cleared ones, a kingdom level, timed rewards, and buttons for upgrades, chests,
+  loadout and shop. *M3a built our own version of the map itself* (a painted island kingdom, Greenmarch playable,
+  locked regions, a flag per act cleared, the Great Pendulum's weights counter). Still to come: the kingdom level,
+  timed rewards and those buttons.
 - **Loadout:** pick a hero, a companion and an item, each with a level.
 - **Heroes:** a scroll-style roster you page through with arrows. Each hero has a level, a one-line bio,
   three ability icons (the first unlocked, the rest locked/grey), four stats (attack, finisher charge, HP,

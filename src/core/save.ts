@@ -13,7 +13,7 @@ import type { Tuning } from './tuning';
 // v3: Greenmarch's acts and node maps replaced the levels. Older saves (v1, v2) can't be resumed and are dropped.
 export const SAVE_VERSION = 3;
 
-type SavedPhase = Exclude<Phase, 'title' | 'victory'>;
+type SavedPhase = Exclude<Phase, 'title' | 'world' | 'victory'>;
 const PHASES: SavedPhase[] = ['scene', 'map', 'fight', 'boost', 'treasure', 'rest', 'shop', 'event', 'actClear', 'defeat'];
 
 export interface RunSave {
@@ -41,9 +41,9 @@ export interface RunSave {
 
 const HERO_KEYS: Array<keyof Hero> = ['hp', 'bonusAtk', 'bonusMaxHp', 'bonusDmg', 'bonusCrit', 'bonusCritDmg', 'bonusComboPower', 'bonusPet', 'revives', 'abilityTimer'];
 
-/** Snapshot of a run in progress (null on the title screen and after the victory, where there's nothing to resume). */
+/** Snapshot of a run in progress (null on the title screen, the world map and after the victory: nothing to resume). */
 export function snapshotRun(run: Run, now = Date.now()): RunSave | null {
-  if (run.phase === 'title' || run.phase === 'victory') return null;
+  if (run.phase === 'title' || run.phase === 'world' || run.phase === 'victory') return null;
   const c = run.combat;
   let phase: SavedPhase = run.phase;
   let coins = run.coins;
