@@ -28,11 +28,16 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 ```
 src/core/      tuning.ts (all numbers), combat.ts (sim), run.ts (levels/boosts/revive),
                clock.ts, calibration.ts, swipe.ts, rng.ts
-src/engine/    app.ts (time + input glue), scene.ts (Phaser rendering + juice), input.ts,
-               debug.ts (tuning panel), calibrate.ts, audio.ts, art.ts (sprites), backdrop.ts (level
-               backdrops per theme), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
+src/engine/    app.ts (time + input glue), scene.ts (Phaser scene: layout, layers, anim clock, routes core
+               events to view/), input.ts, debug.ts (tuning panel), calibrate.ts, audio.ts, art.ts (sprites),
+               backdrop.ts (level backdrops per theme), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
+src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemies, Pip, finisher show, deaths),
+               effects.ts (particles, floaters, sparks, debris, camera shake/kick/freeze/flash), bar.ts (timing
+               bar, blocks, cursor), hud.ts (stats, meter, coins, stat rain), overlays.ts (title, boost, chest,
+               defeat, pause), pixels.ts (pixel drawing primitives), shared.ts (constants, helpers, types)
 tests/unit/    Vitest tests for src/core
-tests/smoke/   Playwright smoke test (874x402 @3x, landscape)
+tests/smoke/   Playwright smoke test (874x402 @3x, landscape) and screenshot regression tests (screens.spec.ts:
+               fake clock + seeded Math.random, so renders are pixel-exact)
 scripts/       make-icons.mjs, sw-template.js (service worker, precache list injected at build)
 ```
 
@@ -44,7 +49,9 @@ npm run dev          # local dev server (also on LAN for phone testing)
 npm test             # unit tests (Vitest)
 npm run typecheck
 npm run build        # typecheck + production build to dist/ (+ dist/sw.js)
-npm run smoke        # Playwright smoke test; builds and serves dist itself
+npm run smoke        # Playwright smoke + screenshot tests; builds and serves dist itself
+npm run screens      # screenshot tests only; EXACT=1 for a zero-tolerance compare
+npm run screens:update  # refresh the baselines after an intentional visual change (look at them first)
 npm run icons        # regenerate public/icons
 ```
 
