@@ -210,6 +210,8 @@ describe('block types', () => {
         t.blocks.trapLifeSec = 0.5;
         t.blocks.widthMin = 0.6;
         t.blocks.widthMax = 1.5;
+        t.blocks.redWidthMin = 0.9;
+        t.blocks.redWidthMax = 1.25;
         t.enemies.bigSlime.hp = 1e6;
         t.enemies.bigSlime.interval = 0.2;
         t.blocks.maxStatic = 8;
@@ -228,14 +230,18 @@ describe('block types', () => {
     for (const kind of ['yellow', 'green', 'red', 'purple'] as const) {
       const list = widths.get(kind) ?? [];
       const base = c.widthFor(kind);
+      const red = kind === 'red';
+      const [lo, hi] = red ? [t.blocks.redWidthMin, t.blocks.redWidthMax] : [t.blocks.widthMin, t.blocks.widthMax];
       expect(list.length, kind).toBeGreaterThan(2);
       for (const w of list) {
-        expect(w, kind).toBeGreaterThanOrEqual(base * t.blocks.widthMin - 1e-9);
-        expect(w, kind).toBeLessThanOrEqual(base * t.blocks.widthMax + 1e-9);
+        expect(w, kind).toBeGreaterThanOrEqual(base * lo - 1e-9);
+        expect(w, kind).toBeLessThanOrEqual(base * hi + 1e-9);
       }
       const spread = Math.max(...list) / Math.min(...list);
-      expect(spread, `${kind} widths should vary`).toBeGreaterThan(1.4);
+      expect(spread, `${kind} widths should vary`).toBeGreaterThan(red ? 1.15 : 1.4);
     }
+    // red attacks never get thin: always at least 90% of their (wider) base
+    expect(Math.min(...(widths.get('red') ?? [1]))).toBeGreaterThanOrEqual(c.widthFor('red') * 0.9 - 1e-9);
   });
 
   it('pattern spawns are deterministic for a seed', () => {

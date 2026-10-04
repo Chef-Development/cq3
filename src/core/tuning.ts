@@ -50,10 +50,12 @@ export const DEFAULT_TUNING = {
   blocks: {
     attackWidth: 0.07, // yellow width (fraction of bar); narrow like the reference, timing has to be sharp
     greenWidth: 0.05,
-    redWidth: 0.06,
+    redWidth: 0.075, // red attacks (and shields, bombs, speed) move, so they stay wider...
     trapWidth: 0.06,
     widthMin: 0.7, // every spawned block's width is its kind's width times a random factor in [widthMin, widthMax]
     widthMax: 1.4,
+    redWidthMin: 0.9, // ...and vary less: never thin enough to slip through
+    redWidthMax: 1.25,
     redTravelSec: 2.5, // right end -> left end
     impactGraceMs: 60, // red block sits at the left end this long (still blockable) before hitting
     trapLifeSec: 4,
@@ -381,6 +383,8 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('blocks.trapWidth', 'Trap width', 0.02, 0.25, 0.005),
         s('blocks.widthMin', 'Width varies from x', 0.3, 1, 0.05),
         s('blocks.widthMax', '...to x', 1, 2.5, 0.05),
+        s('blocks.redWidthMin', 'Red width varies from x', 0.3, 1.5, 0.05),
+        s('blocks.redWidthMax', '...to x (red)', 0.5, 2.5, 0.05),
         s('blocks.redTravelSec', 'Red travel (s)', 0.8, 6, 0.1),
         s('blocks.impactGraceMs', 'Impact grace (ms)', 0, 200, 5),
         s('blocks.trapLifeSec', 'Trap life (s)', 1, 10, 0.5),

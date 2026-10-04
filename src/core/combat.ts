@@ -405,7 +405,8 @@ export class Combat {
   trySpawn(kind: BlockKind, ownerId: number): boolean {
     const B = this.tuning.blocks;
     // blocks come in varied widths: some small, some big, for every kind
-    const w = this.widthFor(kind) * this.spawnRng.range(Math.min(B.widthMin, B.widthMax), Math.max(B.widthMin, B.widthMax));
+    const [vLo, vHi] = isRed(kind) ? [B.redWidthMin, B.redWidthMax] : [B.widthMin, B.widthMax];
+    const w = this.widthFor(kind) * this.spawnRng.range(Math.min(vLo, vHi), Math.max(vLo, vHi));
     if (isRed(kind)) {
       const reds = this.blocks.filter((b) => isRed(b.kind));
       if (reds.length >= B.maxRed) return false;

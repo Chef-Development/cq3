@@ -24,7 +24,9 @@
    - **Varied block widths:** blocks of every kind now come in varied widths, 0.7x to 1.4x their base width, per
      spawn.
    - **Narrower blocks:** "The bars are too big, I'm a 20 year old". Blocks are about 40% narrower: yellow 0.07,
-     green 0.05, red and trap 0.06 of the bar. Timing has to be sharper.
+     green 0.05, trap 0.06 of the bar. Timing has to be sharper.
+   - **Red attacks:** next, "the red attacks get too thin". Reds (and shields, bombs, speed) are 0.075 wide and vary
+     only 0.9-1.25x, so a moving attack is never a sliver.
    - **Boss music:** boss fights have their own music, an original second loop that takes over when a boss stage
      starts and hands back afterwards. The note ("the music changes during a boss fight") was read as describing
      the reference game.
@@ -113,14 +115,14 @@ The bot (`src/core/bot.ts`) plays the real simulation:
 
 | 85% player | Before (M1 numbers, same rules) | Now |
 |---|---|---|
-| Level 1: first-try clear | 100% | **87%** (1.15 tries on average) |
-| Level 1: fight per stage | 4 / 4 / 5 / 6 s | **9 / 13 / 16 / 44 s** (a ramp from a quick Slime to the boss) |
-| Level 2: first-try clear | 100% (one 5 s fight) | **61%** (1.6 tries) |
-| Level 2: fight per stage | 5 s | **17 / 20 / 23 / 36 s** |
+| Level 1: first-try clear | 100% | **84%** (1.2 tries on average) |
+| Level 1: fight per stage | 4 / 4 / 5 / 6 s | **9 / 13 / 16 / 43 s** (a ramp from a quick Slime to the boss) |
+| Level 2: first-try clear | 100% (one 5 s fight) | **68%** (1.5 tries) |
+| Level 2: fight per stage | 5 s | **17 / 20 / 22 / 36 s** |
 | Boss HP ÷ one max-stack finisher | 0.21 (one-shot every time) | **2.6** (Level 1) and **3.2** (Level 2), 0% one-shots |
-| Finisher share of damage | 32% / 52% | 25% / 38% |
+| Finisher share of damage | 32% / 52% | 25% / 39% |
 
-- **70% player:** 22% / 35% first-try clears, about 2.3-2.8 tries per level. **95% player:** 99% / 89%.
+- **70% player:** 24% / 42% first-try clears, about 2.1-2.7 tries per level. **95% player:** 100% / 91%.
 - **About these numbers:** the bot's accuracy is its share of well-timed taps, so the narrower blocks barely change
   its numbers. For a person, narrower blocks mean sharper timing is needed to reach the same accuracy.
 
@@ -135,7 +137,7 @@ The bot (`src/core/bot.ts`) plays the real simulation:
   - enemy HP 350 / 600 / 900 / 3000
   - attack 12 / 16 / 18 / 22
   - Level 2: HP x2.8, attack x1.5
-  - block widths yellow 0.07, green 0.05, red and trap 0.06 (varied 0.7-1.4x)
+  - block widths yellow 0.07, green 0.05, trap 0.06 (varied 0.7-1.4x), red attacks 0.075 (varied 0.9-1.25x)
   - stack exponent 1.7
   - combo power 5, growing from boosts only (+0.5 per boost)
   - damage boost +15%
@@ -149,7 +151,8 @@ The bot (`src/core/bot.ts`) plays the real simulation:
 - **Cursor:** 1.1 s per pass, +2% speed per combo hit, capped at 2.5x.
 - **Taps:** judged by the pointer timestamp, with up to 300 ms of rewind and a calibration offset.
 - **Perfect:** the center 30% of a block.
-- **Block widths:** yellow 0.07, green 0.05, red and trap 0.06 of the bar, each varied 0.7-1.4x per spawn.
+- **Block widths:** yellow 0.07, green 0.05, trap 0.06 of the bar (varied 0.7-1.4x per spawn); red attacks 0.075
+  (varied 0.9-1.25x).
 - **Block kinds:**
   - yellow: attack for 10
   - green: 1.5x, plus +10% crit for 3 s
