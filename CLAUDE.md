@@ -26,7 +26,8 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   hit-stop, shake, white frames, music duck). Impact sounds play from the view when the blow lands on screen.
   New sounds go in the `SFX` catalog so the Sound lab and the level tests pick them up.
 - **Balance:** combat numbers were set with the bot; `tests/unit/bot.test.ts` guards the targets. Re-run
-  `npm run balance` after changing them.
+  `npm run balance` after changing them. Levels ramp from easy to tough; later levels scale enemies with
+  `levels[i].hpMult/atkMult` and bring more enemies, and the hero carries upgrades from level to level.
 - Landscape (like CQ2) canvas 327x150, integer-scaled (8x on an iPhone 16 Pro held sideways) so pixels are
   big and chunky like the reference; pixel art, no smoothing. Safe areas (Dynamic Island left/right, home indicator) come from `env(safe-area-inset-*)`
   (see `src/engine/layout.ts`).

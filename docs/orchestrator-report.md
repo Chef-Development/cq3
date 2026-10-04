@@ -4,7 +4,7 @@
 - **Branch:** `claude/eloquent-cannon-tc28lq`, PR Chef-Development/cq3#2 into `main`. It contains all of M1 (the
   old `claude/brave-ride-j1xgle` branch, PR Chef-Development/cq3#1, now marked superseded) plus this pass, so
   merging #2 merges both.
-- **Stack:** Phaser 4.2.1 + TypeScript + Vite. 103 Vitest unit tests (`npm test`, runs in CI). 4 Playwright tests:
+- **Stack:** Phaser 4.2.1 + TypeScript + Vite. 113 Vitest unit tests (`npm test`, runs in CI). 4 Playwright tests:
   a smoke test, a save/reload test, and pixel-exact screenshots of the title and a fight. GitHub Actions publishes
   to `gh-pages`.
 
@@ -19,11 +19,25 @@
 3. **Mid-run save.** The run autosaves on every phase change and on visibilitychange/pagehide. The title offers
    Continue (showing the level and stage) or New run (which needs a second tap).
 4. **Balance bot and new defaults** (`npm run balance`, report in `docs/balance.md`). Details below.
-5. **Two mid-pass requests from the playtester:**
-   - Blocks of every kind now come in varied widths: 0.65x to 1.45x their base width, per spawn.
-   - Boss fights have their own music: an original second loop that takes over when a boss stage starts and hands
-     back afterwards. The request ("the music changes during a boss fight") was read as describing the reference
-     game.
+5. **Requests from the playtester during the pass** (each describing how the reference game works, with "do what
+   you deem fit, the sequel needs to build"):
+   - **Varied block widths:** blocks of every kind now come in varied widths, 0.65x to 1.45x their base width, per
+     spawn.
+   - **Boss music:** boss fights have their own music, an original second loop that takes over when a boss stage
+     starts and hands back afterwards. The note ("the music changes during a boss fight") was read as describing
+     the reference game.
+   - **Stronger reward cards.** The reference shows them as blue cards. Ours go further:
+     - each card rolls common (green), rare (blue, 2x, 15%) or epic (purple and gold, 3x, 4%);
+     - rare and epic cards get a gold rim, a shimmer, a RARE/EPIC tag and a sting;
+     - a boss kill always offers at least one rare;
+     - a new Companion Power boost makes Pip peck harder.
+   - **Enemies ramp up through a level, and later levels bring more enemies:**
+     - Level 1 now ramps from a quick 350-HP Slime to a 3000-HP boss.
+     - Level 2 is four stages: 2 Slimes, Boar + Slime, Bandit + Boar + Slime, then the Big Slime with 2 adds.
+       Enemy HP is x2.8 and attack x1.6 (per-level multipliers in tuning).
+     - The hero now keeps every upgrade into the next level, healed at the chest. A retry restarts the level with
+       the hero as they entered it.
+     - The debug "Jump to" grants the upgrades a player would have earned on the way.
 
 ## Impact overhaul
 
@@ -83,7 +97,7 @@ Every impact gets ±4% pitch and timing variation. A final limiter and soft clip
   - removing the body costs more than 3 dB on the phone;
   - the sub changes phone loudness by less than 1 dB.
 
-## Balance (1,000 runs per level per accuracy)
+## Balance (1,000 whole runs per accuracy; full report in `docs/balance.md`)
 
 The bot (`src/core/bot.ts`) plays the real simulation:
 
@@ -91,32 +105,39 @@ The bot (`src/core/bot.ts`) plays the real simulation:
 - Accuracy is the share of well-timed taps. The rest land 60-200 ms off, wherever that is.
 - Accuracy slips 6% per 1x of cursor speed.
 - It cashes in the finisher when waiting for another stack isn't worth the risk of a combo break.
+- It takes the rarest boost card (Full Heal when hurt).
+- It plays whole runs: it retries a lost level with the hero as they entered it, and carries upgrades into the next
+  level.
 
-| | Before: 70% / 85% / 95% | After: 70% / 85% / 95% |
+| 85% player | Before (M1 numbers, same rules) | Now |
 |---|---|---|
-| Level 1 win rate | 100% / 100% / 100% | 30% / **89%** / 100% |
-| Level 1 fight length (avg) | 6 / 5 / 4 s | 31 / **26** / 18 s |
-| Level 1 per stage (85%) | 4 / 5 / 5 / 7 s | **21 / 24 / 24 / 36 s** |
-| Finisher share of damage, Level 1 | 26% / 33% / 40% | 22% / 31% / 48% |
-| Boss HP ÷ one max-stack finisher | 0.22 (one-shot every time) | **2.1** (0% one-shots) |
-| Level 2 win rate | 100% / 100% / 100% | 78% / 98% / 100% |
+| Level 1: first-try clear | 100% | **87%** (1.14 tries on average) |
+| Level 1: fight per stage | 4 / 4 / 5 / 6 s | **8 / 12 / 14 / 40 s** (a ramp from a quick Slime to the boss) |
+| Level 2: first-try clear | 100% (one 5 s fight) | **70%** (1.5 tries) |
+| Level 2: fight per stage | 5 s | **15 / 18 / 20 / 34 s** |
+| Boss HP ÷ one max-stack finisher | 0.21 (one-shot every time) | **2.6** (Level 1) and **3.2** (Level 2), 0% one-shots |
+| Finisher share of damage | 32% / 52% | 28% / 44% |
+
+**70% player:** 39% / 37% first-try clears, about 2.3 tries per level. **95% player:** 100% / 91%.
 
 - **Targets met:**
-  - 85% wins Level 1 in the 80-90% band (89%).
-  - Fights fall within 20-60 s.
-  - The boss needs at least two max-stack finishers.
-  - Fights get longer stage by stage even as attack (×1.42) and combo power (×1.25) grow by the boss, so there is no
-    snowball.
+  - 85% clears Level 1 in the 80-90% band.
+  - Each boss needs at least two max-stack finishers.
+  - Fights get longer through each level even though the hero grows, so there is no snowball.
+  - Level 2 is a step up even with carried upgrades.
+- **Fight-length target:** the planning chat's 20-60 s now holds for the late fights and bosses. First fights are
+  short on purpose, per the playtester.
 - **Changed defaults:**
-  - enemy HP 950 / 1150 / 1500 / 2800
-  - attack 10 / 13 / 15 / 17
-  - stack exponent 1.9 → 1.7
-  - combo power 6 → 5
-  - combo power per kill 0.5 → 0.25
-  - heal on kill 15% → 20%
-  - miss self-damage 3 → 1
+  - enemy HP 350 / 600 / 900 / 3000
+  - attack 12 / 16 / 18 / 22
+  - Level 2: HP x2.8, attack x1.6
+  - stack exponent 1.7
+  - combo power 5, growing from boosts only (+0.5 per boost)
+  - damage boost +15%
+  - heal on kill 20%
+  - miss self-damage 1
   - bomb damage 40
-  - group spawn interval ×0.8
+  - group spawn interval x0.8
 
 ## Combat rules (current defaults)
 
@@ -134,16 +155,23 @@ The bot (`src/core/bot.ts`) plays the real simulation:
   - purple: a trap
 - **Finisher:** about 6 hits per stack, up to 5 stacks. Damage = attack × combo power (5) × stacks^1.7, which is
   50 / 162 / 324 / 771 at 1 / 2 / 3 / 5 stacks. Any miss or hit taken loses all stacks.
-- **Kill rewards:** heal 20%, coins, +1 attack, +5 max HP, +0.25 combo power, then 1 of 3 boosts.
-- **Level 1:** Slime → Boar → Bandit → Big Slime (boss, boss music).
-- **Level 2:** one group fight against 2 Slimes and a Bandit.
+- **Kill rewards:** heal 20%, coins, +1 attack, +5 max HP, then 1 of 3 boost cards (common / rare x2 / epic x3).
+- **Boosts:** max HP +20, damage +15%, crit +5%, crit damage +0.5x, combo power +0.5, Companion Power +4, or Full
+  Heal (rare and epic Full Heal also add max HP).
+- **Level 1:** Slime 350 → Boar 600 → Bandit 900 → Big Slime 3000 (boss, boss music).
+- **Level 2:** four stages with enemy HP x2.8 and attack x1.6:
+  - 2 Slimes
+  - Boar + Slime
+  - Bandit + Boar + Slime
+  - Big Slime + 2 Slimes
+- **Between levels:** the hero keeps every upgrade and is healed at the chest.
 
 ## Architecture
 
 - **`src/core`** has no Phaser or DOM, runs at 120 Hz and uses a seeded RNG.
   - `combat.ts`, `run.ts` and `tuning.ts`, plus:
   - `impact.ts`: tier weights, feel and voice parameters, finisher timing.
-  - `save.ts`: snapshot, validation, restore.
+  - `save.ts`: snapshot, validation, restore (version 2; version 1 saves still load).
   - `bot.ts`: balance bot and summary.
 - **`src/engine`:**
   - `app.ts`: time, input, save and music cues.
@@ -161,7 +189,8 @@ The bot (`src/core/bot.ts`) plays the real simulation:
 
 - How the new impacts sound through the phone speaker, and with headphones; the sub layer only matters on headphones.
 - Whether the music duck and the 1-2 frame white flash feel good or too much (both are tunable under Impact).
-- The new fight length (about 25 s instead of 5 s): it was a planning-chat target, so check it feels right.
+- The new pacing: a quick first fight ramping to a 35-40 s boss. Level 2 should feel like a step up.
+- Rare and epic cards: do they show up often enough and feel special?
 - Continue after iOS reloads the app.
 - Boss music switching.
 - Tap latency, swipe reliability, and frame rate (unchanged from M1, still not confirmed).
@@ -170,8 +199,8 @@ The bot (`src/core/bot.ts`) plays the real simulation:
 
 1. **Playtest the impacts on the phone and tune with the Sound lab.** If the tuned values should become defaults,
    use "Copy tuning as JSON" in the panel and paste them to the planning chat.
-2. **Level 2 is easier than Level 1** (one fight with a fresh hero). It needs more stages or its own boss to be a
-   step up. Content is still thin: 4 enemy types that differ only in block pattern.
-3. **70%-accuracy players lose Level 1 most of the time** in Classic mode. Relaxed mode (misses don't hurt) helps.
-   An easier difficulty setting may be worth adding.
+2. **Content is thin:** 4 enemy types that differ only in block pattern, reused across both levels. A Level 3 and
+   enemies with distinct specials would carry the ramp further.
+3. **70%-accuracy players need about 2-3 tries per level** in Classic mode. Relaxed mode (misses don't hurt)
+   helps. An easier difficulty setting may be worth adding.
 4. **Coins buy nothing yet.** The meta-game in `docs/backlog.md` is deferred at the playtester's request.
