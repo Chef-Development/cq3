@@ -442,7 +442,9 @@ export class MapView {
         ring(gg, x, y + 2, 9 + 4 * k, 5.4 + 2.4 * k, 0xfff8c0, 0.8 * (1 - k));
         ring(gg, x, y + 2, 10, 6, 0xffe680, 0.9);
         bounce = target ? 0 : Math.abs(Math.sin(now / 190)) * 2.4;
-        this.label(NODE_NAME[n.type] ?? '', x, y + 13, NODE_COL[n.type] ?? WHITE);
+        // fights say how many foes wait there (they come one after another)
+        const foes = n.type === 'fight' || n.type === 'elite' ? n.enemies.length : 0;
+        this.label(`${NODE_NAME[n.type] ?? ''}${foes > 1 ? ` x${foes}` : ''}`, x, y + 13, NODE_COL[n.type] ?? WHITE);
       }
       if (visited) {
         // been here: Rowan's pennant, and what's left (an open chest, embers, the stall)
