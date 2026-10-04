@@ -33,7 +33,8 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 - **Impacts** (hits, blocks, bombs, finisher blows, kills) are tiered by one weight each in `tuning.impact`, which
   drives both the layered sound (`audio.ts`: crack, saturated body, tail, sub) and the visuals (`fx.impact()`:
   hit-stop, shake, white frames, music duck). Impact sounds play from the view when the blow lands on screen.
-  New sounds go in the `SFX` catalog so the Sound lab and the level tests pick them up.
+  New sounds go in the `SFX` catalog so the Sound lab and the level tests pick them up. Each place has a seeded
+  ambience bed (`audio.setAmbience`, cued with the music in `app.ts`) that sits well under the music and impacts.
 - **Balance:** combat numbers were set with the bot, which plays whole acts picking map nodes at random and aims
   like a person (a timing error in ms, reaction time, a thumb's tap rate; the real judge decides each tap), so thin
   or fast blocks and a fast cursor are as hard for it as for a player. `tests/unit/bot.test.ts` guards the targets:

@@ -261,6 +261,9 @@ export class MapView {
     const dur = Math.max(WALK_MIN, Math.min(WALK_MAX, pts.length * WALK_MS_PER_PX));
     this.walk = { id, pts, at: performance.now(), dur };
     s.app.audio.mapSelect();
+    // Rowan's footsteps along the road, about one every 150 ms
+    const t0 = s.app.audio.ctx?.currentTime;
+    if (t0 !== undefined) for (let i = 0; 80 + i * 150 < dur; i++) s.app.audio.footstep(i, t0 + 0.08 + i * 0.15);
     window.setTimeout(() => {
       this.walk = null;
       if (s.app.run.phase === 'map') s.app.setPhase(() => s.app.run.chooseNode(id));
