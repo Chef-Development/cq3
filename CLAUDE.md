@@ -9,8 +9,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 
 - **Original assets only.** No CQ2 art, names, music, sounds or code. Art is drawn from character maps in
   `src/engine/art.ts` (hero, Pip, first enemies), `art-foes.ts` (Greenmarch enemies), `art-story.ts` (portraits, map
-  icons), `art-world.ts` (the kingdom world map), `backdrop.ts` and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
-  are synthesized in `src/engine/audio.ts`, icons come from `scripts/make-icons.mjs`.
+  icons), `art-world.ts` (the kingdom world map), `art-map.ts` (act map landscapes, map-scale Rowan, node props),
+  `art-stage.ts` (per-act fight lighting), `backdrop.ts` and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
+  are synthesized in `src/engine/audio.ts`, icons come from `scripts/make-icons.mjs` (art in `scripts/icon-art.mjs`).
 - **Content is data.** Enemies (stats, base pattern, 0-2 special moves; a boss's HP-gated phase changes come on top), the region's acts and encounters, events and
   story scenes live in `src/data/` (plain data, no logic). A special = a telegraph (0.6-1.0 s wind-up pose + its own
   sound) then reusable actions (`src/core/specials.ts`: formation, heal, shell, summon, split, cursor, guard, phase,
@@ -59,16 +60,17 @@ src/core/      tuning.ts (numbers), combat.ts (sim), specials.ts (special-move a
                calibration.ts, swipe.ts, rng.ts
 src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Phaser scene: layout, layers, anim
                clock, routes core events to view/), input.ts, debug.ts (tuning panel, Sound lab, Jump to),
-               calibrate.ts, audio.ts, art.ts / art-foes.ts / art-story.ts / art-world.ts (sprites, portraits, map
-               icons, the world map),
+               calibrate.ts, audio.ts (sounds, music, ambience), art.ts / art-foes.ts / art-story.ts / art-world.ts /
+               art-map.ts / art-stage.ts (sprites, portraits, the world map, act map landscapes, fight lighting),
                backdrop.ts (forest, ruins, hollow), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
 src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemies, Pip, telegraphs, summons,
                finisher show, deaths), effects.ts (particles, floaters, camera), bar.ts (timing bar, blocks,
                telegraph previews, cursor), hud.ts (stats, meter, coins, stat rain), overlays.ts (title, boost,
                chest, defeat, victory, pause), world.ts (kingdom world map), map.ts (act map), story.ts (scenes),
                nodes.ts (rest, shop, events),
-               ui.ts (text pool, panels), icons.ts, pixels.ts, shared.ts
-tests/unit/    Vitest tests for src/core and src/data (specials, map, run, save, bot targets, content checks), plus
+               ui.ts (text pool, panels), transition.ts (screen wipes), icons.ts, pixels.ts (panels, gauges,
+               buttons), shared.ts
+tests/unit/    Vitest tests for src/core and src/data (specials, waves, map, run, save, bot targets, content checks), plus
                audio.test.ts: renders every sound on an OfflineAudioContext (node-web-audio-api) and checks levels
                (no clipping, impacts >= music, tiers get heavier, telegraphs read over the music)
 tests/balance/ npm run balance: the bot plays 1,000 whole runs per accuracy and writes docs/balance.md

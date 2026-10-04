@@ -6,8 +6,8 @@
 - **Phone tuning:** the task said "make the tuning from the phone the defaults", but no JSON was pasted (the
   placeholder was still there). The defaults are the bot-balanced numbers below. Paste the JSON from "Copy tuning
   as JSON" and it can be applied in minutes.
-- **Tests:** 188 Vitest unit tests (`npm test`, in CI), 3 Playwright smoke tests (intro, map, fight, every enemy's
-  specials in the real game, reload), 5 pixel-exact screenshot tests.
+- **Tests:** 207 Vitest unit tests (`npm test`, in CI), 3 Playwright smoke tests (intro, map, fight, every enemy's
+  specials in the real game, reload), 5 pixel-exact screenshot tests (baselines refreshed after the visual pass).
 
 ## Playtest round 1 (after M3a)
 
@@ -27,7 +27,38 @@ for a player"; and the world map and act map should be "a lot more lively".
    0.75 s apart at 1.2x (was 3 thin ones 0.22 s apart at 1.7x). Boar Charge: 1.4x and wider (was 2x). The wolves'
    Howl and the Boar King's double charge now come one after the other; the archer's volley is spread wider.
 4. **Easier Act 1, gentler ramp:** see the balance section.
-5. **Livelier maps:** see "Kingdom world map" and the act map below.
+5. **Taps clear attacks first** (playtester request): a red, shield, bomb or speed block under the cursor always takes
+   the tap, even over a nearer yellow or a trap.
+6. **Fights are runs of foes** (playtester request: "multiple enemies in a row, like enemy 3/11, scaling the further
+   in the act you are"). A fight node holds waves from the act's pools, one after another: Act 1 has 2 waves in the
+   first row up to 4 before the boss, Act 2 3-5, Act 3 3-6 (a wave is one pool group, so later fights can be 10+
+   foes). An elite comes after 1-2 escort waves; the boss fights alone. The next wave walks in 1.2 s after one falls
+   (fliers drop in). The HUD shows a foe counter (skulls up to 8, "Foe 3/11" beyond), and the act map labels the
+   nodes ("Fight x3"). Mid-fight saves keep the wave (save v4). Per-enemy HP, coins and kill growth were lowered to
+   fit, kills heal 1%, and each act has a pace (spawn interval x1.1 / x0.85 / x0.75).
+7. **Livelier maps:**
+   - *World map:* animated sea, ships, a whale and fish, gulls, cloud shadows, a smoking volcano, snow, mist, a
+     turning windmill, sheep and a cart. Rowan waits at Greenmarch under a "Tap to begin!" plate, with Pip once
+     they've met. The Pendulum swings wider as weights come home. Tapping a region or the capital shows its plate.
+   - *Act map:* a painted landscape per act (sunny meadow with a stream and windmill; mossy ruins at dusk; an
+     autumn hollow at sunset) with real roads, worn boot-printed paths and shimmering next roads. Each fight node
+     shows its enemy, plus campfires, chests, a market stall, a pulsing "?" and a lair per boss. Rowan walks the
+     road with Pip and footsteps.
+8. **"More modern, less light and empty"** (playtester): the palette was all bright mid-tones with nothing dark to
+   anchor it, the fighters stood small in an empty strip, the HUD was bare numbers floating over the art, little
+   moved, and there was silence between hits. Changes:
+   - *Fight stage:* per-act lighting (warm sun, cool moon and rain, low sunset), vignette and darker ground,
+     light pools and flickering torches, drifting mist, a dark swaying foreground frame, contact shadows and rim
+     light on every fighter, ambient life, dust, sparks and rubble on hits.
+   - *UI:* navy panels with bevels and gold trim, chunky HP gauges with a damage ghost, a hero portrait plate, a
+     combo counter, a finisher strip with stack gems, a new title (big Rowan and Pip, chrome logo), restyled boost,
+     node, story and result screens, and a quick wipe or iris between screens.
+   - *Sound:* fuller music (sub bass, pads, a real drum kit, stereo echo and reverb, ducking under the kick) at the
+     same peak level, and a seeded ambience bed for every place (birds and wind, rain and drips, crickets and
+     torches, sea and gulls). New UI sounds: whoosh, panel, coin tick, footsteps.
+9. **New home-screen icon:** a close-up of Rowan with his sword and a "3" badge (re-add the shortcut to see it).
+10. **Saved tuning reset once:** the tuning key moved to v3, so changes saved against the old numbers are dropped and
+    the new defaults reach the phone.
 
 ## What M3a adds
 
@@ -100,25 +131,26 @@ for a player"; and the world map and act map should be "a lot more lively".
 
 ## Balance (1,000 whole runs per player, random node choices; full report in docs/balance.md)
 
-After playtest round 1 the bot plays like a person (see above), so these are a player's odds, not a machine's.
+The bot plays like a person (see above). Targets are set for a **typical player (70%)**: that player hits 70% of plain
+yellow blocks at the starting speed (a 60 ms timing spread).
 
 | Player (timing spread) | Act 1 first try | Act 2 first try | Act 3 first try | Boar King first fight won |
 |---|---|---|---|---|
-| 55% (83 ms) | 85% | 49% | 18% | 18% |
-| 70% (60 ms) | 96% | 76% | 37% | 37% |
-| **85% (42 ms)** | **100%** | **92%** | 62% | **62%** |
-| 95% (28 ms) | 100% | 99% | 89% | 89% |
+| 55% (83 ms) | 95% | 52% | 40% | 43% |
+| **70% (60 ms)** | **100%** | **85%** | 69% | **70%** |
+| 85% (42 ms) | 100% | 98% | 93% | 93% |
+| 95% (28 ms) | 100% | 100% | 100% | 100% |
 
-- **Targets:** Act 1 is a gentle start for everyone; Act 2 is a step up (80-90% first try for an 85% player); the
-  Boar King wins about 35-50% of first fights against an 85% player. With retries, 98% clear Act 3.
-- **No boss can be one-shot:** the Bandit Captain's call for help and the Ruin Golem's new Fortify are half-HP
-  phase gates (like the Boar King's phases), so a max-stack finisher stops at 50%.
-- **Fight length (85% player):** Act 1 normal fights about 8 s, elites 20 s, the Bandit Captain 35 s; Act 2 13 / 21 /
-  61 s; Act 3 10 / 14 s and the Boar King about 64 s.
-- **Where runs end:** almost only at the Boar King; in Act 2 at the elites and the Golem.
-- **Numbers:** Act 1 enemies have about 40% of their M3a HP and lower attack (Slime 200, Crow 170, Boar 280, Bandit 360,
-  elites 700-750, Captain 1,800; attack 7-15). Acts scale HP x1 / x2.5 / x3 and attack x1 / x1.7 / x2.3, with +4% enemy
-  HP per map row. Kill growth, boosts, shop prices and healing are unchanged from M3a.
+- **Act 1 is a gentle start** for everyone; Act 2 is a step up; the Boar King is the real test. With retries, 97% of
+  typical players clear Act 3.
+- **No boss can be one-shot:** the Bandit Captain's call for help, the Ruin Golem's new Fortify (half damage until two
+  plate blocks break) and the Boar King's phases are half-HP gates a finisher can't skip.
+- **Fight length (70% player):** normal fights 17 / 26 / 22 s (2-6 waves), elites 33 / 28 / 22 s, bosses 41 / 58 / 58 s.
+- **Skilled players breeze through** (85%: 100 / 98 / 93%). Taps clearing attacks first made defence much easier, so
+  later acts hit harder per hit (attack x1 / x4 / x6.6) rather than sending more thin reds. If the playtester wants
+  more challenge, `acts[i].atkMult` and `acts[i].pace` are the sliders to try first.
+- **Numbers:** Act 1 enemies 90-190 HP (Slime 110, Crow 90, Boar 150, Bandit 190), elites 700-750, Captain 1,800;
+  acts scale HP x1 / x1.8 / x2.3, +4% enemy HP per map row.
 
 ## Still unverified on the iPhone (everything was checked in headless Chromium and Node)
 
@@ -126,8 +158,11 @@ After playtest round 1 the bot plays like a person (see above), so these are a p
   sliders.
 - The Hedge Knight's guard (yellows countered): fair, or too punishing?
 - The Stomp's 0.5 s cursor freeze: does it feel like a mechanic or a lag spike?
+- The new difficulty: is Act 1 now relaxing, and do Acts 2-3 still ask something? Are 10+ foe fights in Act 3 too
+  long? Is the foe counter readable?
 - The act map and the world map on the phone: node icons, labels and tap targets at 8x; and the pace of fight,
-  map, fight.
+  map, fight. The new HUD at 8x, the screen wipes (too quick or too slow?), and the ambience/music balance on the
+  phone speaker.
 - Story text size (the small font) and the typing speed.
 - The new sounds and the map theme on the phone speaker.
 
