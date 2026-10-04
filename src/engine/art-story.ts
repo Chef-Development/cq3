@@ -1,4 +1,5 @@
-// Story and map art (see docs/art-style.md): dialogue portraits, the map's node icons and the map marker.
+// Story and map art (see docs/art-style.md): dialogue portraits and the node icons (`mapicon_*`, the act map's
+// fallback when an enemy has no mini sprite; the act map's own art is in art-map.ts).
 // Portraits are 40x40 busts on a transparent background (the scene draws the frame): forms are painted as
 // lit volumes (light from the top left, hue-shifted ramps), details are stamped from small character maps,
 // and toCanvas adds the 1px ink outline. Rowan and Pip face right; the villains face left.
@@ -616,7 +617,7 @@ function narrator(): HTMLCanvasElement {
   return toCanvas(g);
 }
 
-// ------------------------------------------------------------------ map icons (13x13 + outline) and the marker
+// ------------------------------------------------------------------ map icons (13x13 + outline)
 
 const ICON_PAL: Pal = {
   // steel, gold, wood
@@ -742,19 +743,6 @@ const ICON_MAPS: Record<string, string[]> = {
   ],
 };
 
-const MARKER = [
-  '...rqq.....',
-  '..Rrrqq....',
-  '.Rr.Rrq....',
-  '.R..sSSs...',
-  '...sSWSSm..',
-  '...yGgggy..',
-  '...sskkkk..',
-  '...mmkekk..',
-  '...mmmmmM..',
-  '....MmmM...',
-];
-
 export function buildStoryArt(add: Add): void {
   add('portrait_rowan', rowan());
   add('portrait_pip', pip());
@@ -767,7 +755,4 @@ export function buildStoryArt(add: Add): void {
     stamp(g, ICON_MAPS[m], ICON_PAL, 1, 1);
     add(`mapicon_${m}`, toCanvas(g));
   }
-  const mk = grid(13, 13);
-  stamp(mk, MARKER, { ...ICON_PAL, e: '#4ad8ff', k: '#1c1430' }, 1, 1);
-  add('mapmarker', toCanvas(mk));
 }
