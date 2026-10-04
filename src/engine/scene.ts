@@ -176,6 +176,7 @@ export class FightScene extends Phaser.Scene implements View {
   private front!: Phaser.GameObjects.Container;
   private bgImg!: Phaser.GameObjects.Image;
   private fgImg!: Phaser.GameObjects.Image;
+  private frameImg!: Phaser.GameObjects.Image;
   private gBack!: Phaser.GameObjects.Graphics;
   private gAmb!: Phaser.GameObjects.Graphics;
   private backdrops = {} as Record<Theme, Backdrop>;
@@ -337,6 +338,9 @@ export class FightScene extends Phaser.Scene implements View {
     this.back.add(this.bgImg);
     this.clouds = [0, 1].map((i) => this.add.image(i * GAME_W, 4, 'clouds').setOrigin(0, 0).setAlpha(0.95));
     this.back.add(this.clouds);
+    // framing trees/canopies drawn over the drifting clouds
+    this.frameImg = this.add.image(0, 0, 'frame_forest').setOrigin(0, 0);
+    this.back.add(this.frameImg);
     this.gBack = this.add.graphics();
     this.back.add(this.gBack);
     this.fgImg = this.add.image(0, 0, 'fg_forest').setOrigin(0, 0);
@@ -371,6 +375,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.ambient = [];
     this.bgImg.setTexture(`bg_${theme}`);
     this.fgImg.setTexture(`fg_${theme}`);
+    this.frameImg.setTexture(`frame_${theme}`);
     for (const cl of this.clouds) {
       if (theme === 'ruins') cl.setTint(0x6a7090).setAlpha(0.45);
       else cl.clearTint().setAlpha(0.95);
