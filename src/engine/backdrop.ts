@@ -1,7 +1,8 @@
 // Original level backdrops, painted into pixel buffers at boot. Each theme gives a background texture
-// (`bg_<theme>`, opaque, framing included), a foreground strip drawn in front of the actors
-// (`fg_<theme>`), the framing trees alone (`frame_<theme>`, transparent elsewhere: optional, for drawing
-// them again above the drifting clouds) and the spots the scene animates on top (torch flames).
+// (`bg_<theme>`, opaque, framing included), the framing trees alone (`frame_<theme>`, transparent elsewhere: drawn
+// again above the drifting clouds), the dark foreground nearest the camera in FG_FRAMES sway frames
+// (`fg_<theme>_<f>` in front of the actors, `fgo_<theme>_<f>` its last rows hanging over the top of the bar's band)
+// and the spots the scene animates on top (torch flames). The light over all of it is in art-stage.ts.
 //
 // How the painting works (see docs/art-style.md): every layer is built from organic shapes (scalloped
 // leaf clumps, ridged massifs, uneven masonry) lit from the top left and quantised onto short,
@@ -466,6 +467,17 @@ function cornerCanopy(p: Pix, cx: number, dir: number, reach: number, seed: numb
   }
 }
 
+/** Shade what was painted since `before` between y0 and y1, deepest at y1 (the foot of a tree line). */
+function understory(p: Pix, before: Int32Array, y0: number, y1: number, to: Col, amt: number, base = 0): void {
+  for (let y = Math.max(0, y0); y < Math.min(p.h, y1 + 4); y++) {
+    const k = base + (amt - base) * Math.pow(clamp01((y - y0) / (y1 - y0)), 1.4);
+    for (let x = 0; x < p.w; x++) {
+      const i = y * p.w + x;
+      if (p.buf[i] !== before[i]) p.buf[i] = mix(p.buf[i], to, k);
+    }
+  }
+}
+
 /** Pixels that changed since `before` (the framing layer, drawn again above the drifting clouds). */
 function changed(p: Pix, before: Int32Array): Pix {
   const f = new Pix(p.w, p.h, -1);
@@ -473,16 +485,9 @@ function changed(p: Pix, before: Int32Array): Pix {
   return f;
 }
 
-/** Fern / bush clump for a bottom corner of the foreground strip. */
-function fern(f: Pix, fx: number, dir: number, h: number, leaf: Ramp, ink: Col, seed: number): void {
-  const bl: Blob[] = [];
-  for (let i = 0; i < 9; i++) bl.push({ x: fx + dir * (i * 2.2 - 4), y: h - 2 - Math.sin((i / 8) * Math.PI) * 9, rx: 4, ry: 3.2 });
-  mass(f, bl, { ramp: leaf, seed, bump: 0.25, tex: 0.3, vgrad: 0.25, light: -0.05, outline: ink, form: { x: fx + dir * 6, y: h - 8, rx: 14, ry: 10 }, formMix: 0.4 });
-}
-
 // ------------------------------------------------------------------ forest (Level 1): bright woodland clearing
 
-function forest(w: number, h: number, G: number): [Pix, Pix, Pix, Backdrop] {
+function forest(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const p = new Pix(w, h, 0);
   const rnd = rng(23);
   const hz = col('#d4ecf2');
@@ -636,14 +641,20 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Pix, Backdrop] {
     jobs.sort((a, b) => b[0] - a[0]);
     for (const [, job] of jobs) job();
   };
+  const beforeTrees = p.buf.slice();
   plant(G - 18, 0.2, 1.1, 0, 4, 31);
   plant(G - 15, 0, 0.95, 6, 22, 37);
+  // the woods fall into cool shade toward their feet; only the crowns' tops stay in the sun
+  understory(p, beforeTrees, G - 52, G - 13, col('#0a1c26'), 0.72, 0.16);
   // bushes along the foot of the tree line
   const bushR = ramp('#1d4630', '#295c36', '#39763c', '#4f9046', '#6eac52');
   for (let x = 4; x < w; x += 16 + rnd() * 26) {
     const rx = 4 + rnd() * 4;
     tree(p, rnd, x, G - 15, rx, 3.5, 2.3, { ramp: bushR, seed: Math.round(x) + 1, bump: 0.2, tex: 0.25, vgrad: 0.3, floor: G - 13 });
   }
+  // the meadow behind the path lies in the trees' shade
+  for (let y = mTop; y < G - 7; y++)
+    for (let x = 0; x < w; x++) p.tint(x, y, (c) => mix(c, col('#0c2426'), 0.5 - ((y - mTop) / (G - 7 - mTop)) * 0.22));
   // grass tufts and flower clusters in the meadow
   const tuftR = ramp('#2e6a32', '#3e8038', '#5a9c42', '#86c052');
   for (let i = 0; i < 44; i++) tuft(p, Math.floor(rnd() * w), mTop + 5 + Math.floor(rnd() * 6), 2 + Math.floor(rnd() * 2), tuftR, i);
@@ -694,6 +705,36 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Pix, Backdrop] {
     tuft(p, x + 1, G - 7, 3, tuftR, x);
   }
 
+  // a short, weathered signpost at the meadow's edge pointing down the road to the castle (low: HP bars float above)
+  {
+    const px = Math.round(w * 0.47);
+    const base = G - 8;
+    const outl = col('#2a1810');
+    for (let y = base - 10; y < base; y++) {
+      p.set(px, y, woodR[3]);
+      p.set(px + 1, y, woodR[1]);
+      p.set(px + 2, y, outl);
+    }
+    const board = (x0: number, x1: number, y0: number, dir: number) => {
+      for (let y = y0; y < y0 + 4; y++)
+        for (let x = x0; x <= x1; x++) {
+          const tip = dir > 0 ? x1 - x : x - x0; // the pointed end
+          if (tip < 2 && (y === y0 || y === y0 + 3) && tip < 1) continue;
+          const edgeB = y === y0 + 3 || (dir > 0 ? tip === 0 && y !== y0 + 1 && y !== y0 + 2 : x === x1);
+          let c = y === y0 ? woodR[4] : y === y0 + 3 ? woodR[1] : woodR[2 + (hash(x, y, 5) > 0.7 ? 1 : 0)];
+          if (edgeB) c = outl;
+          if (y === y0 + 1 + (x % 3 === 0 ? 1 : 0) && x > x0 + 2 && x < x1 - 2 && hash(x, 7, 3) > 0.45) c = woodR[0]; // carved letters
+          p.set(x, y, c);
+        }
+    };
+    board(px - 4, px + 8, base - 9, 1);
+    p.set(px, base - 11, woodR[4]);
+    p.set(px + 1, base - 11, woodR[2]);
+    for (let x = px - 2; x <= px + 4; x++) p.set(x, base, meadowR[0]);
+    tuft(p, px - 1, base, 3, tuftR, 5);
+    tuft(p, px + 3, base, 2, tuftR, 6);
+  }
+
   // light shafts through the canopy gap
   shafts(
     p,
@@ -720,6 +761,23 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Pix, Backdrop] {
       if ((y === G + 2 || y === G + 6) && noise(x * 0.12, y, 4) > 0.45) v -= 0.15;
       p.set(x, y, pick(dirtR, v, x, y, 0.2));
     }
+  // dappled sunlight through the leaves: warm, irregular pools on the dirt
+  for (let y = pathTop + 2; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const n = fbm(x * 0.075, y * 0.32, 33);
+      if (n > 0.62) p.tint(x, y, (c) => fade(c, col('#f2d49c'), Math.min(1, (n - 0.62) * 4.5) * 0.55, x, y, 2, 0.7));
+      else if (n < 0.36) p.tint(x, y, (c) => mix(c, col('#4a3020'), 0.16));
+    }
+  // worn wheel ruts: compacted, darker tracks with a sunlit lip on their far side, grass sprouting between them
+  for (const ry of [G - 3, G + 3])
+    for (let x = 0; x < w; x++) {
+      if (noise(x * 0.08, ry * 0.5, 13) < 0.24) continue; // the track fades in and out
+      const yy = ry + Math.round((noise(x * 0.025, ry, 9) - 0.5) * 2.4);
+      p.set(x, yy - 1, pick(dirtR, 0.86, x, yy - 1, 0.5));
+      p.set(x, yy, dirtR[1]);
+      p.set(x, yy + 1, hash(x, yy, 3) > 0.5 ? dirtR[2] : dirtR[1]);
+    }
+  for (let i = 0; i < 16; i++) tuft(p, Math.floor(rnd() * w), G + 1, 1 + Math.floor(rnd() * 2), tuftR, i + 90);
   // grass edge overhanging the path, with a soft shadow under it
   for (let x = 0; x < w; x++) {
     const len = 1 + Math.floor(noise(x * 0.35, 5, 6) * 2.4) + (hash(x, 9, 1) > 0.75 ? 1 : 0);
@@ -785,24 +843,12 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Pix, Backdrop] {
   cornerCanopy(p, w - 4, -1, 86, 6, frameLeaf, vineR);
   const frame = changed(p, before);
 
-  // foreground strip: tufts and flowers along the bottom edge, ferns in the corners
-  const f = new Pix(w, h, -1);
-  const fgR = ramp('#1c4a22', '#2a6428', '#3e8030', '#5ea03c');
-  for (let x = 0; x < w; x += 2 + Math.floor(hash(x, 1, 77) * 4)) tuft(f, x, h, 2 + Math.floor(hash(x, 2, 77) * 3), fgR, x);
-  for (let i = 0; i < 9; i++) {
-    const x = 30 + Math.floor(hash(i, 3, 77) * (w - 60));
-    f.set(x, h - 4, petals[i % 3]);
-    f.set(x, h - 3, fgR[1]);
-  }
-  const fernR = ramp('#10281a', '#1a3a20', '#285428', '#3a6e30', '#56883a');
-  fern(f, 4, 1, h, fernR, ink, 7);
-  fern(f, w - 4, -1, h, fernR, ink, 8);
-  return [p, f, frame, { torches: [] }];
+  return [p, frame, { torches: [] }];
 }
 
 // ------------------------------------------------------------------ ruins (Level 2): moonlit, rainy, torches
 
-function ruins(w: number, h: number, G: number): [Pix, Pix, Pix, Backdrop] {
+function ruins(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const p = new Pix(w, h, 0);
   const rnd = rng(91);
   const hz = col('#4a6870');
@@ -1203,16 +1249,7 @@ function ruins(w: number, h: number, G: number): [Pix, Pix, Pix, Backdrop] {
   cornerCanopy(p, w - 2, -1, 80, 16, canopyR, mossR);
   const frame = changed(p, before);
 
-  // foreground strip: dark rubble and grass along the bottom, ferns in the corners
-  const f = new Pix(w, h, -1);
-  const fgR = ramp('#0c1a16', '#14281e', '#1e3a28', '#2c5032');
-  for (let x = 0; x < w; x += 3 + Math.floor(hash(x, 1, 55) * 5)) tuft(f, x, h, 2 + Math.floor(hash(x, 2, 55) * 3), fgR, x);
-  const fgRock = ramp('#0e141c', '#18222c', '#243440', '#344a54');
-  for (let i = 0; i < 7; i++) pebble(f, 24 + Math.floor(hash(i, 4, 55) * (w - 48)), h - 2, 2 + (i % 2), 1, fgRock, ink);
-  const fernR = ramp('#060e10', '#0c1a18', '#14281e', '#1e3a28', '#2e5232');
-  fern(f, 4, 1, h, fernR, ink, 9);
-  fern(f, w - 4, -1, h, fernR, ink, 10);
-  return [p, f, frame, { torches }];
+  return [p, frame, { torches }];
 }
 
 // ------------------------------------------------------------------ hollow (Level 3): the Boar King's den at sunset
@@ -1271,7 +1308,7 @@ function toadstool(p: Pix, x: number, y: number, r: number, cap: Ramp, stem: Ram
   for (let xx = -r; xx <= r + 1; xx++) if (p.get(x + xx, y) !== stem[2]) p.set(x + xx, y, shadow);
 }
 
-function hollow(w: number, h: number, G: number): [Pix, Pix, Pix, Backdrop] {
+function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const p = new Pix(w, h, 0);
   const rnd = rng(57);
   const ink = col('#140c1c');
@@ -1670,26 +1707,229 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Pix, Backdrop] {
   cornerCanopy(p, w - 4, -1, 84, 26, canopyR, strandR);
   const frame = changed(p, before);
 
-  // foreground strip: drifts of fallen leaves along the bottom edge, toadstools and bracken in the corners
-  const f = new Pix(w, h, -1);
-  const fgLeaf = ramp('#2a0e18', '#4a1622', '#782424', '#a83c28', '#d0642c');
-  for (let x = 30; x < w - 30; x += 14 + Math.floor(hash(x, 1, 91) * 22)) {
-    const r = 2 + hash(x, 2, 91) * 2;
-    mass(f, [{ x, y: h + 0.5, rx: r * 1.5, ry: r }], { ramp: fgLeaf, seed: x + 3, bump: 0.3, tex: 0.4, vgrad: 0.3, light: -0.05, outline: ink });
+  return [p, frame, { torches }];
+}
+
+// ------------------------------------------------------------------ foreground: dark plants nearest the camera
+
+/** Rows the foreground hangs down over the top of the bar's band (drawn above it, in its own texture). */
+export const FG_OVERLAP = 4;
+/** The foreground sways through these frames (blade tips lean -1, 0, +1 px in a wave along the strip). */
+export const FG_FRAMES = 4;
+const SWAY = [0, 1, 0, -1];
+
+interface FgLook {
+  blade: Ramp; // base -> lit tip
+  rim: Col; // the lit tip / top-left edge
+  bush: Ramp;
+  ink: Col;
+}
+
+/** One blade of grass (or a dry stalk): 1-2 px wide, curving with `lean`, its tip pushed by `sway`. */
+function blade(p: Pix, x: number, base: number, hgt: number, lean: number, sway: number, L: FgLook, wide: boolean): void {
+  for (let k = 0; k < hgt; k++) {
+    const t = k / Math.max(1, hgt - 1);
+    const bx = x + Math.round(lean * t * t * hgt * 0.35 + sway * t * t);
+    const c = k >= hgt - 1 ? L.rim : pick(L.blade, 0.1 + t * 0.85, bx, base - k);
+    p.set(bx, base - k, c);
+    if (wide && t < 0.55) p.set(bx + 1, base - k, L.blade[0]);
   }
+}
+
+/** A fern frond: a spine that rises and curls over toward `dir`, with leaflets shrinking toward the tip. */
+function frond(p: Pix, x: number, base: number, len: number, dir: number, sway: number, L: FgLook): void {
+  let fx = x;
+  let fy = base;
+  let ang = -Math.PI / 2 + dir * 0.3;
+  const curl = dir * 1.25;
+  for (let i = 0; i < len; i++) {
+    const t = i / len;
+    fx += Math.cos(ang);
+    fy += Math.sin(ang);
+    ang += (curl / len) * (0.6 + t);
+    const px = Math.round(fx + sway * t * t);
+    const py = Math.round(fy);
+    p.set(px, py, t > 0.8 ? L.blade[2] : L.blade[1]);
+    if (i % 2 === 0 && t < 0.92) {
+      const leaf = Math.max(1, Math.round((1 - t) * 4));
+      // leaflets hang off both sides of the spine, perpendicular, drooping a little
+      const nx = -Math.sin(ang);
+      const ny = Math.cos(ang);
+      for (let s = 1; s <= leaf; s++) {
+        p.set(Math.round(px + nx * s), Math.round(py + ny * s + s * 0.3), s === leaf ? L.blade[1] : L.blade[2]);
+        p.set(Math.round(px - nx * s), Math.round(py - ny * s + s * 0.3), s === 1 ? L.rim : L.blade[3]);
+      }
+    }
+  }
+}
+
+/** How much of a bottom corner x is in: 1 at the edge, 0 past `cl` px from the left / `cr` px from the right. */
+const cornerness = (x: number, w: number, cl: number, cr: number) => Math.max(clamp01(1 - x / cl), clamp01(1 - (w - 1 - x) / cr));
+
+/**
+ * The near ground's dark lip along the bottom edge (a bumpy mound line, lit along its top here and there), and the
+ * grass on it: dense and tall in the corners, short and sparse where the fighters stand. The left corner reaches
+ * further in (no enemy stands there).
+ */
+function grassStrip(p: Pix, w: number, h: number, frame: number, L: FgLook, seed: number, tall = 1): void {
+  const H = h + FG_OVERLAP;
+  for (let x = 0; x < w; x++) {
+    const c = cornerness(x, w, 90, 46);
+    const top = Math.round(h - 1 - (1 + noise(x * 0.18, 1, seed) * 2.6 + c * c * 6 + (noise(x * 0.5, 2, seed) - 0.5) * 1.5));
+    for (let y = top; y < H; y++) p.set(x, y, y === top ? (noise(x * 0.3, 3, seed) > 0.55 ? L.blade[2] : L.blade[1]) : y < top + 2 ? L.bush[1] : L.bush[0]);
+  }
+  for (let x = -2; x < w + 2; ) {
+    const c = cornerness(x, w, 90, 46);
+    const hgt = Math.round((3 + hash(x, 1, seed) * 4 + c * c * (8 + hash(x, 2, seed) * 10)) * tall);
+    const phase = Math.floor(hash(x, 3, seed) * 2 + x / 46);
+    const sway = hgt >= 5 ? SWAY[(frame + phase) % 4] * (hgt >= 12 ? 2 : 1) : 0;
+    const lean = (hash(x, 4, seed) - 0.5) * 1.6 + (x < w / 2 ? 0.3 : -0.3) * c;
+    const base = h - 1 + (c > 0.3 || hash(x, 6, seed) > 0.84 ? FG_OVERLAP : 1);
+    blade(p, x, base, hgt + (base > h ? FG_OVERLAP - 1 : 0), lean, sway, L, hgt >= 9);
+    x += c > 0.3 ? 1 + Math.floor(hash(x, 5, seed) * 2) : 1 + Math.floor(hash(x, 5, seed) * 3);
+  }
+}
+
+/** A dark bush mound in a bottom corner (leaf clumps lit from the top left, inked edge). */
+function cornerBush(p: Pix, cx: number, dir: number, base: number, size: number, L: FgLook, seed: number): void {
+  const r2 = rng(seed);
+  const bl: Blob[] = [];
   for (let i = 0; i < 12; i++) {
-    const x = 26 + Math.floor(hash(i, 3, 91) * (w - 52));
-    const y = h - 3 - Math.floor(hash(i, 4, 91) * 3);
-    f.set(x, y, leafCols[i % leafCols.length]);
-    f.set(x + 1, y, leafCols[(i + 2) % leafCols.length]);
+    const t = r2();
+    const r = (3.2 + (1 - t) * 4.2 + r2() * 2) * size;
+    bl.push({ x: cx + dir * t * 34 * size + (r2() - 0.5) * 4, y: base - (1 - t) * 15 * size - r2() * 5 + 2, rx: r, ry: r * 0.84 });
   }
-  const fernR = ramp('#140810', '#2a1018', '#4a1c1e', '#6e2c22', '#94442a');
-  fern(f, 4, 1, h, fernR, ink, 12);
-  fern(f, w - 4, -1, h, fernR, ink, 13);
-  toadstool(f, 24, h - 1, 2, capRed, stemR, ink, true);
-  toadstool(f, 28, h, 1, capRed, stemR, ink, true);
-  toadstool(f, w - 25, h - 1, 2, capBrown, stemR, ink, false);
-  return [p, f, frame, { torches }];
+  mass(p, bl, { ramp: L.bush, seed, bump: 0.24, tex: 0.3, vgrad: 0.3, light: -0.02, shadow: 0.3, outline: L.ink, form: { x: cx + dir * 8, y: base - 10, rx: 30 * size, ry: 16 * size }, formMix: 0.45 });
+}
+
+/** Backlight: the scene's light catches the top edges of the foreground's silhouettes (and some left edges). */
+function backlight(p: Pix, rim: Col, mid: Col, seed: number): void {
+  const src = p.buf.slice();
+  const at = (x: number, y: number) => (x >= 0 && y >= 0 && x < p.w && y < p.h ? src[y * p.w + x] : -1);
+  for (let y = 1; y < p.h; y++)
+    for (let x = 0; x < p.w; x++) {
+      if (at(x, y) < 0) continue;
+      const lit = noise(x * 0.3, y * 0.2, seed) > 0.5;
+      if (at(x, y - 1) < 0) p.set(x, y, lit ? rim : mid);
+      else if (at(x, y - 2) < 0 && lit) p.set(x, y, mid);
+      else if (at(x - 1, y) < 0 && at(x - 1, y - 1) < 0 && lit) p.set(x, y, mid);
+    }
+}
+
+/**
+ * The foreground nearest the camera, for one theme and sway frame: near-black plants (and rubble or roots)
+ * along the bottom edge, heavy in the corners, low between the fighters so their feet stay clear. The texture
+ * is FG_OVERLAP rows taller than the stage: those rows hang over the top of the bar's band.
+ */
+function foreground(theme: Theme, w: number, h: number, frame: number): Pix {
+  const H = h + FG_OVERLAP;
+  const p = new Pix(w, H, -1);
+  const ink = col('#06040a');
+  if (theme === 'forest') {
+    const L: FgLook = { blade: ramp('#06120c', '#0c1e14', '#14301c', '#1e4426'), rim: col('#3e7034'), bush: ramp('#040a08', '#08140e', '#0e2016', '#16301e', '#22462a', '#346034'), ink };
+    cornerBush(p, -8, 1, H, 1.45, L, 3);
+    cornerBush(p, w + 8, -1, H, 1.05, L, 4);
+    for (const [x, d, len] of [
+      [6, 1, 30],
+      [20, 1, 24],
+      [36, 1, 19],
+      [52, 1, 13],
+      [w - 8, -1, 26],
+      [w - 20, -1, 17],
+    ] as const)
+      frond(p, x, H - 1, len, d, SWAY[(frame + (x > w / 2 ? 2 : 0)) % 4], L);
+    grassStrip(p, w, h, frame, L, 77);
+    // a few flower heads in the shade, one dab of colour each
+    const petals = [col('#c87a9a'), col('#d8c070'), col('#a8a0d8'), col('#e0d8c8')];
+    for (let i = 0; i < 7; i++) {
+      const x = 46 + Math.floor(hash(i, 3, 78) * (w - 92));
+      const y = h - 4 - Math.floor(hash(i, 4, 78) * 3);
+      const s = SWAY[(frame + Math.floor(x / 46)) % 4];
+      for (let k = y + 1; k < h; k++) p.set(x, k, L.blade[1]);
+      p.set(x + (y < h - 5 ? s : 0), y, petals[i % petals.length]);
+      p.set(x + 1 + (y < h - 5 ? s : 0), y, L.blade[2]);
+    }
+  } else if (theme === 'ruins') {
+    const L: FgLook = { blade: ramp('#030808', '#071210', '#0c1c18', '#142a24'), rim: col('#2e5450'), bush: ramp('#020406', '#05090e', '#0a1218', '#121e26', '#1c2e38', '#2a4250'), ink };
+    // tumbled blocks in the left corner, a broken column stump in the right
+    const block = (x0: number, y0: number, bw: number, bh: number) => {
+      for (let y = y0; y < y0 + bh; y++)
+        for (let x = x0; x < x0 + bw; x++) {
+          const top = y === y0;
+          const left = x === x0;
+          const edge = x === x0 + bw - 1 || y === y0 + bh - 1;
+          let c = top ? L.bush[4] : left ? L.bush[3] : pick(L.bush, 0.35 + (noise(x * 0.4, y * 0.4, 3) - 0.5) * 0.3, x, y);
+          if (edge) c = ink;
+          if (top && hash(x, y, 9) > 0.55) c = L.blade[3];
+          p.set(x, y, c);
+        }
+    };
+    block(-3, H - 13, 17, 13);
+    block(10, H - 8, 13, 8);
+    block(-2, H - 21, 11, 8);
+    const c0 = w - 19;
+    for (let y = H - 26; y < H; y++)
+      for (let x = c0; x < w + 1; x++) {
+        const k = x - c0;
+        const jag = H - 26 + Math.floor(hash(x, 1, 5) * 4) + (k > 12 ? 3 : 0);
+        if (y < jag) continue;
+        let v = 0.82 - k * 0.05 + (noise(x * 0.3, y * 0.2, 4) - 0.5) * 0.2;
+        if (k > 1 && k % 4 === 2) v -= 0.25;
+        p.set(x, y, k === 0 || y === jag ? (k === 0 ? ink : L.bush[5]) : pick(L.bush, v, x, y));
+      }
+    for (let i = 0; i < 6; i++) pebble(p, 30 + Math.floor(hash(i, 4, 55) * (w - 60)), h - 1 + (i % 3 === 0 ? 2 : 0), 2 + (i % 2), 1, ramp('#06080e', '#0e141c', '#18222c', '#243440'), ink);
+    for (const [x, d, len] of [
+      [16, 1, 14],
+      [24, 1, 10],
+      [w - 22, -1, 13],
+    ] as const)
+      frond(p, x, H - 1, len, d, SWAY[(frame + (x > w / 2 ? 2 : 0)) % 4], L);
+    grassStrip(p, w, h, frame, L, 55, 0.85);
+  } else {
+    const L: FgLook = { blade: ramp('#12040a', '#220a10', '#381218', '#521c1c'), rim: col('#c4602e'), bush: ramp('#0a0306', '#14060c', '#200a12', '#32121a', '#4a1c1e', '#6a2c22'), ink };
+    // a great root arching out of the ground in each corner, lit along its top by the low sun
+    const arch = (x0: number, dir: number, span: number, rise: number, th: number) => {
+      for (let i = 0; i <= span; i++) {
+        const t = i / span;
+        const x = Math.round(x0 + dir * i);
+        const yc = H - 1 - Math.sin(t * Math.PI) * rise;
+        const r = th * (1 - Math.abs(t - 0.4) * 0.6);
+        for (let y = Math.floor(yc - r); y <= Math.ceil(yc + r * 0.6); y++) {
+          const ny = (y + 0.5 - yc) / r;
+          if (ny < -1 || ny > 0.6) continue;
+          let v = 0.5 - ny * 0.6;
+          if (noise(x * 0.5, y * 0.4, x0) > 0.68) v -= 0.25;
+          p.set(x, y, ny < -0.75 ? L.rim : ny > 0.45 ? ink : pick(L.bush, v, x, y));
+        }
+      }
+    };
+    cornerBush(p, -8, 1, H, 0.8, L, 12);
+    cornerBush(p, w + 8, -1, H, 0.8, L, 13);
+    arch(2, 1, 34, 11, 3);
+    arch(w - 3, -1, 30, 9, 3);
+    for (const [x, d, len] of [
+      [8, 1, 17],
+      [30, 1, 12],
+      [w - 10, -1, 18],
+      [w - 30, -1, 11],
+    ] as const)
+      frond(p, x, H - 1, len, d, SWAY[(frame + (x > w / 2 ? 2 : 0)) % 4], L);
+    // drifts of dead leaves along the bottom
+    const leafR = ramp('#1e060c', '#360c14', '#561a1a', '#7a2c20');
+    for (let x = 40; x < w - 40; x += 18 + Math.floor(hash(x, 1, 91) * 26)) {
+      const r = 2 + hash(x, 2, 91) * 2.5;
+      mass(p, [{ x, y: h + 1, rx: r * 1.6, ry: r }], { ramp: leafR, seed: x + 3, bump: 0.3, tex: 0.4, vgrad: 0.3, light: -0.05, outline: ink });
+    }
+    grassStrip(p, w, h, frame, L, 91, 0.9);
+    const capRed = ramp('#2a0610', '#5a0e18', '#8a1e22', '#b83a2e', '#e06a44');
+    const stemR = ramp('#3a2228', '#6a5050', '#9a8478', '#c8b4a0');
+    toadstool(p, 40, h, 2, capRed, stemR, ink, true);
+    toadstool(p, 44, h + 1, 1, capRed, stemR, ink, true);
+    toadstool(p, w - 42, h, 2, capRed, stemR, ink, true);
+  }
+  const [rim, mid] = theme === 'forest' ? [col('#5e9a3c'), col('#25492a')] : theme === 'ruins' ? [col('#40707e'), col('#1a3640')] : [col('#c45a30'), col('#5e1e1e')];
+  backlight(p, rim, mid, theme.length);
+  return p;
 }
 
 export function buildBackdrops(scene: Phaser.Scene, w: number, h: number, ground: number): Record<Theme, Backdrop> {
@@ -1703,10 +1943,19 @@ export function buildBackdrops(scene: Phaser.Scene, w: number, h: number, ground
     ['ruins', ruins],
     ['hollow', hollow],
   ] as const) {
-    const [bg, fg, frame, info] = make(w, h, ground);
+    const [bg, frame, info] = make(w, h, ground);
     add(`bg_${theme}`, bg.canvas());
-    add(`fg_${theme}`, fg.canvas());
     add(`frame_${theme}`, frame.canvas());
+    for (let f = 0; f < FG_FRAMES; f++) {
+      // the stage part goes in front of the actors; the last rows hang over the band (see FG_OVERLAP)
+      const fg = foreground(theme, w, h, f);
+      const top = new Pix(w, h, -1);
+      top.buf.set(fg.buf.subarray(0, w * h));
+      const over = new Pix(w, FG_OVERLAP, -1);
+      over.buf.set(fg.buf.subarray(w * h));
+      add(`fg_${theme}_${f}`, top.canvas());
+      add(`fgo_${theme}_${f}`, over.canvas());
+    }
     out[theme] = info;
   }
   return out;

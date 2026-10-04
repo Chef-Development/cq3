@@ -1,6 +1,8 @@
 // The fighters: Rowan's choreography (dash, slash, parry, finisher whirlwind), the enemies (walk-in, poses,
-// knockback, death burst), Pip the owl, and the finisher's streaked backdrop.
+// knockback, death burst), Pip the owl, and the finisher's streaked backdrop. Every fighter stands in the act's
+// light: a soft contact shadow cast away from it, and a rim of its colour along the edges that face it.
 import Phaser from 'phaser';
+import { rimMask, STAGE_LIGHT } from '../art-stage';
 import type { Combat } from '../../core/combat';
 import { FINISHER_BLOW_AT, finisherStrikeAt, finisherStrikes, type ImpactFeel } from '../../core/impact';
 import type { FightScene } from '../scene';
@@ -34,6 +36,8 @@ import {
 } from './shared';
 
 type G = Phaser.GameObjects.Graphics;
+/** A new wave's enemies hop (or drop) in over this long. */
+const WAVE_IN_MS = 460;
 
 export class Fighters {
   h: HeroAnim;
@@ -53,6 +57,13 @@ export class Fighters {
   lastBurstAt = -1e9;
   /** Enemies born from a split: id -> the x they pop out from. */
   private splitFrom = new Map<number, number>();
+  /** Enemies arriving with a new wave (hop in from the right, or drop in for fliers): id -> landed yet. */
+  private waveIn = new Map<number, boolean>();
+  /** Rim-light companions (ADD), drawn right above their fighter. */
+  private heroRim!: Phaser.GameObjects.Image;
+  private pipRim!: Phaser.GameObjects.Image;
+  private enemyRims = new Map<number, Phaser.GameObjects.Image>();
+  private hurtSeen = 0;
 
   constructor(private readonly s: FightScene) {
     this.h = this.freshHero();
@@ -86,26 +97,63 @@ export class Fighters {
     this.gShadow = s.add.graphics();
     s.back.add(this.gShadow);
     this.pip = s.add.image(s.heroHome - 30, s.ground - 24, 'pip_idle0').setOrigin(0.5, 0.5);
-    s.actors.add(this.pip);
+    this.pipRim = this.makeRim();
+    s.actors.add([this.pip, this.pipRim]);
     this.pipAnim = { state: 'idle', t0: 0, x: s.heroHome - 30, y: s.ground - 24, fromX: 0, fromY: 0, toX: 0, toY: 0 };
     this.ghosts = [0, 1, 2].map(() => s.add.image(0, 0, 'hero_dash').setVisible(false).setTintMode(Phaser.TintModes.FILL));
     s.actors.add(this.ghosts);
     this.ghostTrail = [];
     this.superFinalAt = -1e9;
     this.hero = s.add.image(s.heroHome, s.ground, 'hero_idle0').setScale(SPRITE_SCALE);
-    s.actors.add(this.hero);
+    this.heroRim = this.makeRim();
+    s.actors.add([this.hero, this.heroRim]);
+  }
+
+  private makeRim(): Phaser.GameObjects.Image {
+    return this.s.add.image(0, 0, '__DEFAULT').setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
+  }
+
+  /** The rim-light mask of a sprite frame for the current theme (painted the first time it is needed). */
+  private rimKey(key: string): string | null {
+    if (key.endsWith('_flash') || key.startsWith('__')) return null;
+    const theme = this.s.app.run.theme;
+    const rk = `${key}~rim_${theme}`;
+    const tex = this.s.textures;
+    if (tex.exists(rk)) return rk;
+    if (!tex.exists(key)) return null;
+    const L = STAGE_LIGHT[theme];
+    const src = tex.get(key).getSourceImage() as HTMLCanvasElement;
+    const mask = src instanceof HTMLCanvasElement ? rimMask(src, L.rimLeft, L.rimTop) : null;
+    if (!mask) return null;
+    tex.addCanvas(rk, mask);
+    return rk;
+  }
+
+  /** Lay a fighter's rim light over it (same frame, place, origin and scale), or hide it. */
+  private syncRim(src: Phaser.GameObjects.Image, rim: Phaser.GameObjects.Image | undefined, on = true): void {
+    if (!rim) return;
+    const rk = on && src.visible && !src.flipX && src.alpha > 0 ? this.rimKey(src.texture.key) : null;
+    if (!rk) return void rim.setVisible(false);
+    const L = STAGE_LIGHT[this.s.app.run.theme];
+    rim.setTexture(rk).setPosition(src.x, src.y).setOrigin(src.originX, src.originY).setScale(src.scaleX, src.scaleY);
+    rim.setTint(L.rim).setAlpha(src.alpha * L.rimAmt).setVisible(true);
   }
 
   /** Forget every enemy view and reset the hero (their images went with the old layout). */
   reset(): void {
     this.enemies.clear();
+    this.enemyRims.clear();
+    this.waveIn.clear();
     this.h = this.freshHero();
   }
 
   /** A new fight: old enemy views go, the hero starts fresh. */
   newFight(): void {
     for (const v of this.enemies.values()) v.img.destroy();
+    for (const r of this.enemyRims.values()) r.destroy();
     this.enemies.clear();
+    this.enemyRims.clear();
+    this.waveIn.clear();
     this.splitFrom.clear();
     this.h = this.freshHero();
     this.superFinalAt = -1e9;
@@ -118,17 +166,25 @@ export class Fighters {
     return Math.round(GAME_W / 2 + 16 + slot * 31);
   }
 
-  /** Add a view for every living enemy that doesn't have one yet (they walk in from the right). */
-  addEnemies(c: Combat): void {
+  /**
+   * Add a view for every living enemy that doesn't have one yet (they walk in from the right). `walkIn`: a new wave
+   * arriving: they hop in quickly from off-screen right (fliers drop in from above) and land with a dust puff.
+   */
+  addEnemies(c: Combat, walkIn = false): void {
     const s = this.s;
+    let n = 0;
     for (const e of c.enemies) {
       if (this.enemies.has(e.id) || !e.alive) continue;
       const def = s.app.tuning.enemies[e.key];
       const img = s.add.image(0, 0, `${def.sprite}_idle0`).setOrigin(0.5, 1).setScale(SPRITE_SCALE);
-      s.actors.add(img);
+      const rim = this.makeRim();
+      s.actors.add([img, rim]);
+      this.enemyRims.set(e.id, rim);
       const x = this.homeFor(e.slot, c);
       const from = this.splitFrom.get(e.id);
       this.splitFrom.delete(e.id);
+      const wave = walkIn && from === undefined;
+      if (wave) this.waveIn.set(e.id, false);
       this.enemies.set(e.id, {
         id: e.id,
         sprite: def.sprite,
@@ -148,13 +204,13 @@ export class Fighters {
         dieAt: 0,
         phase: Math.random() * 1000,
         hpShown: e.hp,
-        enterAt: s.anim + (from === undefined ? Math.min(2, e.slot) * 120 : 0),
+        enterAt: s.anim + (wave ? n++ * 110 : from === undefined ? Math.min(2, e.slot) * 120 : 0),
         fly: def.fly ?? 0,
         tellAt: 0,
         tellUntil: 0,
         fleeAt: 0,
         popAt: 0,
-        enterFrom: from ?? GAME_W + 30,
+        enterFrom: from ?? GAME_W + (wave ? 20 : 30),
       });
     }
   }
@@ -210,13 +266,15 @@ export class Fighters {
       h.toX = target;
       h.t0 = s.anim;
       arrive = Math.abs(target - h.x) > 6 ? DASH_MS : 0;
-      s.fx.burst(h.x - 6, s.ground - 2, 0xc8b090, 4, true, 0.5);
+      // he pushes off: dust thrown back behind his heels
+      s.fx.dust(h.x - 4, s.ground, 4, -1, 0.9);
       if (arrive) s.app.audio.swish(); // the tap's instant feedback while the dash closes in
     }
     s.later(arrive, () => {
       if (h.state === 'dash') {
         h.state = 'engaged';
         h.x = h.toX;
+        s.fx.dust(h.x + 6, s.ground, 3, 1, 0.7); // skids to a stop
       }
       this.setHeroPose(slash, 110);
       h.lungeAt = s.anim;
@@ -257,6 +315,16 @@ export class Fighters {
     fx.burst(hx, cy, WHITE, (big ? 14 : 8) + tier * 2, true, big ? 1.6 : 1.1, true);
     fx.chips(hx, cy, 6, [WHITE, col, ENEMY_COL[v.sprite] ?? WHITE], big ? 10 : 5, 0);
     if (big) fx.ring(v.x, cy, 28, col, true);
+    // light: a bloom at the contact point that also lights the ground; the enemy's feet scrape back in the dust
+    const I = s.app.tuning.impact;
+    const heavy = clamp01((feel.knockPx - I.knockLight) / Math.max(1, I.knockHeavy - I.knockLight));
+    const feet = v.y + v.fly;
+    fx.glow(hx, cy, 9 + heavy * 14 + (big ? 4 : 0), big ? 0xffc060 : 0xfff0c0, 150 + heavy * 120, v.fly ? undefined : feet);
+    if (!v.fly) fx.dust(v.x + v.img.displayWidth * 0.3, feet, 2 + Math.round(heavy * 5), 1, 0.7 + heavy * 0.6);
+    if (heavy > 0.3 || finisher) {
+      fx.rubble(v.x, s.ground, 3 + Math.round(heavy * 7), 0.7 + heavy * 0.5);
+      fx.shock(v.x, s.ground, 18 + heavy * 22, big ? 0xffd890 : 0xfff0c0);
+    }
     // the camera jolts along with the knockback
     fx.kick(Math.round(1 + feel.knockPx * 0.2), 60 + feel.hitStopMs * 0.3);
   }
@@ -274,6 +342,8 @@ export class Fighters {
     fx.burst(sx, sy, 0x7ae0ff, cracked ? 6 : 10, true, 1, true);
     fx.burst(sx, sy, WHITE, 4, true, 0.8, true);
     fx.ring(sx, sy, 14, 0x7ae0ff, true);
+    fx.glow(sx, sy, cracked ? 12 : 16, 0x7ae0ff, 170, s.ground);
+    if (cracked) fx.dust(h.x - 4, s.ground, 4, -1, 1); // shoved back on his heels
     const v = this.enemies.get(ownerId);
     if (v && !v.dieAt) {
       v.knockUntil = s.anim + 80;
@@ -349,6 +419,7 @@ export class Fighters {
         fx.burst(v.x, cy, col, 16 + n * 8, true, 1.6 + n * 0.15);
       }
       fx.screenFlash(n >= 3 ? 0xfff0c0 : WHITE, performance.now(), 160 + 40 * n);
+      fx.shock(h.toX + 8, s.ground, 50 + n * 12, hi);
       fx.kick(6, 160);
     });
   }
@@ -370,6 +441,10 @@ export class Fighters {
       const col = ENEMY_COL[v.sprite] ?? WHITE;
       fx.explodePixels(v, boss);
       fx.flashes.push({ x: v.x, y: cy, r: boss ? 34 : 20, at: s.anim });
+      fx.glow(v.x, cy, boss ? 44 : 28, 0xfff0c0, boss ? 420 : 300, s.ground);
+      fx.dust(v.x, s.ground, boss ? 14 : 8, 0, boss ? 1.6 : 1.1);
+      fx.rubble(v.x, s.ground, boss ? 14 : 6, boss ? 1.3 : 0.9);
+      fx.shock(v.x, s.ground, boss ? 70 : 42);
       for (let i = 0; i < (boss ? 10 : 6); i++) {
         const a = (i / (boss ? 10 : 6)) * Math.PI * 2 + rand(-0.3, 0.3);
         const d = rand(4, boss ? 18 : 10);
@@ -472,6 +547,7 @@ export class Fighters {
     const reach = Math.max(10, v.homeX - v.img.displayWidth / 2 - (this.h.x + 20));
     v.lunge = { t0: this.s.anim, dist: reach * strength, ms: 260 };
     this.setEnemyPose(v, 'attack', 200);
+    if (!v.fly) this.s.fx.dust(v.x + v.img.displayWidth * 0.3, v.y, 3, 1, 0.8); // it kicks off toward Rowan
   }
 
   // ------------------------------------------------------------------ per frame
@@ -500,6 +576,7 @@ export class Fighters {
     // Pip joins in Act 1's opening scene, not before
     const beforePip = s.app.storyId === 'intro';
     this.pip.setTexture(tex).setPosition(Math.round(P.x), Math.round(P.y)).setVisible(s.app.tuning.companion.everyHits > 0 && !beforePip);
+    this.syncRim(this.pip, this.pipRim);
   }
 
   updateHero(): void {
@@ -546,6 +623,11 @@ export class Fighters {
     } else if (h.state === 'engaged') pose = 'windup';
     else pose = Math.floor(a / 420) % 2 ? 'idle1' : 'idle0';
     const knock = a < h.hurtUntil ? -4 : 0;
+    if (knock && h.hurtUntil !== this.hurtSeen) {
+      // knocked back a step: his heels scuff the dust
+      this.hurtSeen = h.hurtUntil;
+      s.fx.dust(h.x - 4, s.ground, 3, -1, 0.8);
+    }
     h.y = yOff;
     const spinning = h.state === 'super' && a - h.t0 > this.superMs * 0.06 && a - h.t0 < this.superMs * 0.94;
     this.hero.setVisible(!spinning);
@@ -570,12 +652,34 @@ export class Fighters {
       gh.setTexture(tr.tex).setFlipX(tr.flip).setOrigin(this.hero.originX, 1).setPosition(tr.x, tr.y);
       gh.setTint(i === 0 ? 0xbfe8ff : 0x6ab4ff).setAlpha((0.5 - i * 0.14) * (1 - age / 140)).setVisible(true);
     });
-    if (a < h.flashUntil) this.hero.setTint(h.flashColor).setTintMode(Phaser.TintModes.FILL);
+    const flashing = a < h.flashUntil;
+    if (flashing) this.hero.setTint(h.flashColor).setTintMode(Phaser.TintModes.FILL);
     else this.hero.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
+    this.syncRim(this.hero, this.heroRim, !flashing);
   }
 
   clearShadows(): void {
     this.gShadow.clear();
+  }
+
+  /**
+   * A soft contact shadow on the ground under a fighter: layered ellipses, darkest at the core, cast away from the
+   * act's light (offset and stretched). `lift`: how high above the ground it is (the shadow shrinks and fades).
+   */
+  private shadow(x: number, feetY: number, w: number, lift = 0, alpha = 1): void {
+    const L = STAGE_LIGHT[this.s.app.run.theme];
+    const sh = this.gShadow;
+    const k = clamp01(1 - lift / 50);
+    const sw = Math.max(4, w * (0.5 + 0.5 * k) * L.shadowLen);
+    const a = alpha * (0.3 + 0.7 * k);
+    const cx = Math.round(x + L.shadowDx * (0.5 + 0.5 * k));
+    const y = Math.round(feetY) - 1;
+    sh.fillStyle(L.shadow, 0.2 * a);
+    sh.fillEllipse(cx, y, Math.round(sw + 10), 6);
+    sh.fillStyle(L.shadow, 0.28 * a);
+    sh.fillEllipse(cx, y, Math.round(sw + 3), 4);
+    sh.fillStyle(L.shadow, 0.4 * a);
+    sh.fillEllipse(cx - 1, y, Math.round(sw * 0.66), 3);
   }
 
   /** Ground shadows, the Keen Edge sparkle, and every enemy (walk-in, lunge, knockback, squash, death charge, HP bars). */
@@ -583,13 +687,10 @@ export class Fighters {
     const s = this.s;
     const run = s.app.run;
     const c = run.combat;
-    const sh = this.gShadow;
-    const shadow = (x: number, w: number, alpha = 0.35) => {
-      sh.fillStyle(0x000000, alpha);
-      sh.fillRect(Math.round(x - w / 2), s.ground - 1, Math.round(w), 2);
-      sh.fillRect(Math.round(x - w / 2 + 2), s.ground + 1, Math.round(w - 4), 1);
-    };
-    shadow(this.h.x + 1, 16 * (1 + this.h.y / 60), 0.3);
+    // Rowan (hidden while he whirls: the tornado stands on the ground instead), and Pip's small, faint shadow below him
+    const spin = !this.hero.visible && this.h.state === 'super';
+    this.shadow(this.h.x + 1, s.ground, spin ? 26 : 15, -this.h.y, spin ? 0.8 : 1);
+    if (this.pip.visible) this.shadow(this.pip.x, s.ground, 12, s.ground - this.pip.y - 8, 0.75);
     if (run.hero.abilityTimer > 0 && Math.floor(now / 90) % 2 === 0) {
       g.fillStyle(0x9af0a0, 1);
       for (let i = 0; i < 2; i++) g.fillRect(Math.round(this.h.x + rand(-11, 11)), Math.round(s.ground - rand(3, 30)), 1, 2);
@@ -604,17 +705,38 @@ export class Fighters {
       if (e.alive && !v.dieAt) v.homeX += (this.homeFor(e.slot, c) - v.homeX) * 0.12;
       let x = v.homeX;
       let walkBob = 0;
+      const wave = this.waveIn.get(v.id);
       if (v.enterAt) {
-        const k = (a - v.enterAt) / (v.enterFrom < GAME_W ? 260 : ENTER_MS);
-        if (k >= 1) v.enterAt = 0;
-        else {
+        const k = (a - v.enterAt) / (wave !== undefined ? WAVE_IN_MS : v.enterFrom < GAME_W ? 260 : ENTER_MS);
+        if (k >= 1) {
+          v.enterAt = 0;
+          if (wave === false) {
+            // a wave lands: a puff of dust (and a soft thump of air under a flier)
+            this.waveIn.delete(v.id);
+            s.fx.dust(x, v.y + v.fly, v.fly ? 4 : 7, 0, v.fly ? 0.8 : 1.1);
+            if (!v.fly) s.fx.shock(x, s.ground, 16, 0xe8dcc0);
+          }
+        } else if (wave !== undefined) {
+          const q = clamp01(k);
+          if (v.fly) {
+            // fliers drop in from above the stage, swinging in from the right a little
+            x = v.homeX + (1 - ease(q)) * 36;
+            walkBob = Math.round((1 - ease(q)) * (v.y + 30));
+          } else {
+            // walkers come in from off-screen right in three quick hops
+            x = v.enterFrom + (v.homeX - v.enterFrom) * ease(q);
+            walkBob = Math.round(Math.abs(Math.sin(q * Math.PI * 3)) * 6 * (1 - q * 0.4));
+          }
+        } else {
           x = v.enterFrom + (v.homeX - v.enterFrom) * ease(clamp01(k));
           walkBob = v.enterFrom < GAME_W ? Math.round(Math.sin(clamp01(k) * Math.PI) * 8) : Math.floor(a / 90) % 2;
         }
       }
+      const rim = this.enemyRims.get(v.id);
       if (v.popAt) {
         // split apart: a quick white swell, then gone
         const q = (a - v.popAt) / 160;
+        rim?.setVisible(false);
         if (q >= 1) {
           v.img.setVisible(false);
           continue;
@@ -627,11 +749,14 @@ export class Fighters {
         const q = (a - v.fleeAt) / 600;
         if (q >= 1) {
           v.img.setVisible(false);
+          rim?.setVisible(false);
           continue;
         }
         const fx = x + (GAME_W + 40 - x) * q * q;
         v.img.setTexture(`${v.sprite}_${Math.floor(a / 80) % 2 ? 'idle0' : 'attack'}`).setFlipX(true).setScale(SPRITE_SCALE).setPosition(Math.round(fx), v.y - (Math.floor(a / 70) % 2)).setAlpha(1);
-        if (Math.random() < 0.3) s.fx.burst(fx - 4, s.ground - 1, 0xd8c8a0, 1, true, 0.4);
+        rim?.setVisible(false);
+        if (!v.fly) this.shadow(fx, v.y, v.img.displayWidth * 0.8);
+        if (Math.random() < 0.25) s.fx.dust(fx - 4, s.ground, 1, -1, 0.6);
         continue;
       }
       if (v.lunge) {
@@ -656,12 +781,15 @@ export class Fighters {
         const q = (a - v.dieAt) / DEATH_CHARGE_MS;
         if (q >= 1) {
           v.img.setVisible(false);
+          rim?.setVisible(false);
           continue;
         }
         const flick = Math.floor((a - v.dieAt) / 35) % 2 === 0;
         v.img.setTexture(`${v.sprite}_${flick ? 'flash' : 'hurt'}`).setAlpha(1).setVisible(true);
         v.img.setScale(SPRITE_SCALE * (1 + 0.2 * q), SPRITE_SCALE * (1 + 0.14 * q));
         v.img.setPosition(Math.round(x + rand(-1.5, 1.5)), v.y);
+        this.syncRim(v.img, rim);
+        this.shadow(x, v.y + v.fly, v.img.displayWidth * (v.fly ? 0.5 : 0.8), v.fly);
         continue;
       }
       // squash on impact: wide and short for a few frames, then a little stretch back
@@ -674,7 +802,8 @@ export class Fighters {
       // the boss enraged: a red pulse
       if (e.phase >= 3) v.img.setTint(Math.floor(a / 160) % 2 ? 0xffb0a0 : 0xffffff);
       else v.img.clearTint();
-      shadow(x, v.img.displayWidth * (v.fly ? 0.5 : 0.8), v.fly ? 0.2 : 0.3);
+      this.syncRim(v.img, rim, !flash);
+      this.shadow(x, v.y + v.fly, v.img.displayWidth * (v.fly ? 0.5 : 0.8), v.fly + walkBob - hover);
       const cy = v.y - v.img.displayHeight / 2;
       if (tellK >= 0) {
         // the countdown: a ring closing in on the enemy, and a bouncing "!"
