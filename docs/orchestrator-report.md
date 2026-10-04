@@ -1,4 +1,4 @@
-# Combo Quest 3: status report (M3a, Region 1 "Greenmarch")
+# Combo Quest 3: status report (M3a, Region 1 "Greenmarch", plus playtest round 1)
 
 - **Live build:** https://chef-development.github.io/cq3/ (installable PWA, landscape). Every push deploys.
 - **Branch:** `claude/eloquent-cannon-tc28lq`, PR Chef-Development/cq3#2 into `main`. PR #2 had not been merged when
@@ -8,6 +8,26 @@
   as JSON" and it can be applied in minutes.
 - **Tests:** 188 Vitest unit tests (`npm test`, in CI), 3 Playwright smoke tests (intro, map, fight, every enemy's
   specials in the real game, reload), 5 pixel-exact screenshot tests.
+
+## Playtest round 1 (after M3a)
+
+The playtester: "level one can't have a 700 hp boar, and the attacks it throws are way too hard"; the Crow's wave of
+3 thin, fast reds was "almost a guaranteed hit" (one crossing, a tiny window); "you calibrated it for a machine, not
+for a player"; and the world map and act map should be "a lot more lively".
+
+1. **The bot now plays like a person.** It used to land a fixed share of taps inside any block, however thin or fast,
+   so it couldn't feel what the playtester felt. Now each tap is aimed at the moment the cursor crosses the block's
+   center with a human timing error in milliseconds (a normal spread set by the player's accuracy, plus 3% lapses),
+   a 250 ms reaction time for blocks that pop up, and a thumb's tap rate (140 ms); the real judge decides what the
+   tap hits. Re-measured with it, M3a's Act 1 was 45% first try for an 85% player (not the 75% reported before).
+2. **Fairer judging:** the grace window is now a time window at the speed the cursor and the block close at, and
+   blocking reds gets 40 ms a side (attacking yellows keep 20 ms, so they stay sharp). New slider: Red grace.
+3. **Fair red waves:** reds are never thinner than normal, fast ones are wider, and reds in a wave are spaced so the
+   cursor meets them one at a time (a data test checks every formation at 1.5x cursor speed). Crow Dive: 3 wide reds
+   0.75 s apart at 1.2x (was 3 thin ones 0.22 s apart at 1.7x). Boar Charge: 1.4x and wider (was 2x). The wolves'
+   Howl and the Boar King's double charge now come one after the other; the archer's volley is spread wider.
+4. **Easier Act 1, gentler ramp:** see the balance section.
+5. **Livelier maps:** see "Kingdom world map" and the act map below.
 
 ## What M3a adds
 
@@ -38,18 +58,18 @@
    | Enemy | Special(s) | What it does to the bar |
    |---|---|---|
    | Slime | Split | Once below 50% HP, it splits into 2 Slimelets (a big enough hit kills it first) |
-   | Boar | Charge | Paws the ground, then one red at 2x speed |
+   | Boar | Charge | Paws the ground, then one wide red at 1.4x speed |
    | Bandit | Smoke | 2 purple traps right beside yellow blocks |
-   | Crow (flies) | Dive | 3 small fast reds in quick succession |
-   | Goblin Archer | Volley | 3 reds at once across the right half |
+   | Crow (flies) | Dive | 3 wide reds, one after another, a little faster than usual |
+   | Goblin Archer | Volley | 3 reds at once across the bar's right side |
    | Mushroom Shaman | Spores | Pink heal blocks: tap them, or it and its allies heal |
    | Shell Beetle | Shell Up | Your hits deal 50% until you break its 2 teal shell blocks |
-   | Wolf (pairs) | Howl | Both wolves' next reds arrive together, back to back |
+   | Wolf (pairs) | Howl | A red from each wolf, one right after the other |
    | Big Slime (elite) | Split + Spores | Splits into 2 Slimes; spreads spores |
    | Hedge Knight (elite) | Guard | Shield up 2 s: tapping yellow is countered like a trap (yellows get a shield mark) |
-   | Bandit Captain (Act 1) | Bombs, Call | Throws bomb pairs; at 50% HP calls 2 Bandits |
-   | Ruin Golem (Act 2) | Wall of Stone, Stomp | A huge 3-tap shield block; Stomp (foot raised) freezes the cursor 0.5 s |
-   | Boar King (Act 3) | 3 phases | P1 frequent Charges. P2 (66%): 2 Piglets, he takes half damage while they live. P3 (33%): enraged, cursor never below 1.2x, Charges in pairs. A short scene at each change; damage can't skip a phase |
+   | Bandit Captain (Act 1) | Bombs, Call | Throws bomb pairs; at 50% HP calls 2 Bandits (damage can't skip it) |
+   | Ruin Golem (Act 2) | Wall of Stone, Stomp, Fortify | A huge 3-tap shield block; Stomp (foot raised) freezes the cursor 0.5 s; at 50% HP Fortify: half damage until 2 plate blocks break |
+   | Boar King (Act 3) | 3 phases | P1 frequent Charges. P2 (66%): 2 Piglets, he takes half damage while they live. P3 (33%): enraged, cursor never below 1.2x, Charges two at a time. A short scene at each change; damage can't skip a phase |
 
 5. **Story**: portrait + text box, the text types out, tap to finish or advance, Skip, 6 boxes max, 2 lines each.
    Scenes: intro (the Great Pendulum, the Clockless King, Rowan asleep on watch), Act 1 (Pip: "I'm not a pet.
@@ -78,26 +98,27 @@
 8. **Debug panel**: "Jump to" any act's map, or straight into a fight with any enemy, carrying a typical hero for
    that act. The Sound lab plays all three themes.
 
-## Balance (1,000 whole runs per accuracy, random node choices; full report in docs/balance.md)
+## Balance (1,000 whole runs per player, random node choices; full report in docs/balance.md)
 
-| Player | Act 1 first try | Act 2 first try | Act 3 first try | Boar King first fight won |
+After playtest round 1 the bot plays like a person (see above), so these are a player's odds, not a machine's.
+
+| Player (timing spread) | Act 1 first try | Act 2 first try | Act 3 first try | Boar King first fight won |
 |---|---|---|---|---|
-| 70% | 23% | 58% | 32% | 34% |
-| **85%** | **75%** | **82%** | 56% | **56%** |
-| 95% | 95% | 94% | 80% | 81% |
+| 55% (83 ms) | 85% | 49% | 18% | 18% |
+| 70% (60 ms) | 96% | 76% | 37% | 37% |
+| **85% (42 ms)** | **100%** | **92%** | 62% | **62%** |
+| 95% (28 ms) | 100% | 99% | 89% | 89% |
 
-- **Targets met for an 85% player:** acts 1 and 2 land in 70-85%, and the Boar King in 40-60%. Act 3's first-try
-  clear can't be higher than the boss's, so it sits at 56%. With retries, 94% clear Act 3.
-- **Bosses:** each has 2.8-3.8x the HP of one max-stack finisher; none was ever one-shot.
-- **Fight length (85% player):** normal fights 12-14 s, elites 18-31 s, the mini-bosses 49-55 s, the Boar King
-  about 61 s.
-- **Where runs end:** in Act 1 it's mostly the elites (the hero has few upgrades yet); in Act 3 it's the Boar King.
-- **Changed numbers:**
-  - kills heal 5% (was 20%), so HP carries from node to node and rests matter;
-  - kill growth is +0.5 attack and +2 max HP (was +1 and +5), because an act has many kills;
-  - enemy HP is about 1.5x the old Level 1 values;
-  - acts scale HP x1 / x1.5 / x2.1 and attack x1 / x1.25 / x1.5, with +4% enemy HP per map row.
-- **70% players** need about 2-3 tries per act. This is by design: the playtester asked for a challenge.
+- **Targets:** Act 1 is a gentle start for everyone; Act 2 is a step up (80-90% first try for an 85% player); the
+  Boar King wins about 35-50% of first fights against an 85% player. With retries, 98% clear Act 3.
+- **No boss can be one-shot:** the Bandit Captain's call for help and the Ruin Golem's new Fortify are half-HP
+  phase gates (like the Boar King's phases), so a max-stack finisher stops at 50%.
+- **Fight length (85% player):** Act 1 normal fights about 8 s, elites 20 s, the Bandit Captain 35 s; Act 2 13 / 21 /
+  61 s; Act 3 10 / 14 s and the Boar King about 64 s.
+- **Where runs end:** almost only at the Boar King; in Act 2 at the elites and the Golem.
+- **Numbers:** Act 1 enemies have about 40% of their M3a HP and lower attack (Slime 200, Crow 170, Boar 280, Bandit 360,
+  elites 700-750, Captain 1,800; attack 7-15). Acts scale HP x1 / x2.5 / x3 and attack x1 / x1.7 / x2.3, with +4% enemy
+  HP per map row. Kill growth, boosts, shop prices and healing are unchanged from M3a.
 
 ## Still unverified on the iPhone (everything was checked in headless Chromium and Node)
 
