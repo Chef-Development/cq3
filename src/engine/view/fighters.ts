@@ -61,6 +61,10 @@ export class Fighters {
   private waveIn = new Map<number, boolean>();
   /** Rim-light companions (ADD), drawn right above their fighter. */
   private heroRim!: Phaser.GameObjects.Image;
+  /** The title screen shows big showcase versions of Rowan and Pip: the stage's own stay hidden (rims and shadows too). */
+  private get showcase(): boolean {
+    return this.s.app.run.phase === 'title';
+  }
   private pipRim!: Phaser.GameObjects.Image;
   private enemyRims = new Map<number, Phaser.GameObjects.Image>();
   private hurtSeen = 0;
@@ -575,7 +579,7 @@ export class Fighters {
     }
     // Pip joins in Act 1's opening scene, not before
     const beforePip = s.app.storyId === 'intro';
-    this.pip.setTexture(tex).setPosition(Math.round(P.x), Math.round(P.y)).setVisible(s.app.tuning.companion.everyHits > 0 && !beforePip);
+    this.pip.setTexture(tex).setPosition(Math.round(P.x), Math.round(P.y)).setVisible(s.app.tuning.companion.everyHits > 0 && !beforePip && !this.showcase);
     this.syncRim(this.pip, this.pipRim);
   }
 
@@ -630,7 +634,7 @@ export class Fighters {
     }
     h.y = yOff;
     const spinning = h.state === 'super' && a - h.t0 > this.superMs * 0.06 && a - h.t0 < this.superMs * 0.94;
-    this.hero.setVisible(!spinning);
+    this.hero.setVisible(!spinning && !this.showcase);
     this.hero.setTexture(`hero_${pose}`);
     this.hero.setFlipX(flip);
     this.hero.setOrigin((flip ? HERO_W - HERO_FEET_X : HERO_FEET_X) / HERO_W, 1);
@@ -689,7 +693,7 @@ export class Fighters {
     const c = run.combat;
     // Rowan (hidden while he whirls: the tornado stands on the ground instead), and Pip's small, faint shadow below him
     const spin = !this.hero.visible && this.h.state === 'super';
-    this.shadow(this.h.x + 1, s.ground, spin ? 26 : 15, -this.h.y, spin ? 0.8 : 1);
+    if (!this.showcase) this.shadow(this.h.x + 1, s.ground, spin ? 26 : 15, -this.h.y, spin ? 0.8 : 1);
     if (this.pip.visible) this.shadow(this.pip.x, s.ground, 12, s.ground - this.pip.y - 8, 0.75);
     if (run.hero.abilityTimer > 0 && Math.floor(now / 90) % 2 === 0) {
       g.fillStyle(0x9af0a0, 1);

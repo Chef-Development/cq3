@@ -380,10 +380,7 @@ export class Overlays {
       g.fillStyle(0x0a0618, 0.42 * (1 - y / 72) ** 1.6);
       g.fillRect(0, y, GAME_W, 4);
     }
-    // the stage's own hero and owl make way for the big showcase versions
-    const f = s.fighters as unknown as { hero?: Phaser.GameObjects.Image; pip?: Phaser.GameObjects.Image };
-    f.hero?.setVisible(false);
-    f.pip?.setVisible(false);
+    // (the stage's own hero and owl stay hidden on the title: fighters.ts makes way for these big showcase versions)
 
     // Rowan and Pip, 2x, slide in from the left; Rowan flourishes his sword now and then
     const hk = easeBack(since / TITLE_IN.heroes, 1.2);

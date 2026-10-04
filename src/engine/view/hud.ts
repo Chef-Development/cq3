@@ -14,14 +14,8 @@ import { tag, TextPool } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
 
-/**
- * Foes beaten and foes in this fight's wave (the counter hides for a single foe).
- * TODO(merge): read c.foesBeaten / c.foesTotal directly once the core exposes them.
- */
-const foeCount = (c: Combat): { beaten: number; total: number } => {
-  const w = c as unknown as { foesBeaten?: number; foesTotal?: number };
-  return { beaten: w.foesBeaten ?? 0, total: w.foesTotal ?? 1 };
-};
+/** The fight's foe counter: foes beaten so far and every foe in its waves. */
+const foeCount = (c: Combat): { beaten: number; total: number } => ({ beaten: c.foesBeaten, total: c.foesTotal });
 
 /** Where the portrait's face sits inside its 40x40 texture (top-left of the 18x18 window shown in the badge). */
 const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6] };

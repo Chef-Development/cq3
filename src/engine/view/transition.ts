@@ -37,6 +37,7 @@ export class Transition {
     if (!k) return;
     this.kind = k;
     this.at = performance.now();
+    this.s.app.audio.whoosh(k === 'wipe' && (next === 'map' || next === 'world'));
   }
 
   /** True while a transition covers part of the screen. */
