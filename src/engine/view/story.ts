@@ -106,14 +106,9 @@ export class StoryView {
     g.fillStyle(WHITE, 0.08);
     g.fillRect(fx + 3, fy + 3, fw - 6, Math.round((fw - 6) / 2));
     const bob = typing && Math.floor(now / 140) % 2 === 0 ? 1 : 0;
-    this.portrait
-      ?.setTexture(`portrait_${box.who}`)
-      .setPosition(Math.round(fx + fw / 2), fy + fw - 2 - bob)
-      .setVisible(true)
-      .setCrop(0, 0, 1000, 1000);
-    // keep the portrait inside its frame
     if (this.portrait) {
-      const p = this.portrait;
+      const p = this.portrait.setTexture(`portrait_${box.who}`).setPosition(Math.round(fx + fw / 2), fy + fw - 2 - bob).setVisible(true);
+      // keep the portrait inside its frame
       const over = Math.max(0, p.height - (fw - 4));
       p.setCrop(0, over, p.width, p.height - over);
     }

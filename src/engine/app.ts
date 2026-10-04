@@ -212,7 +212,7 @@ export class App {
     if (this.storyOverlay) {
       this.storyOverlay = null;
       this.syncClock(performance.now());
-    } else this.setPhase(() => this.run.skipScenes());
+    } else this.setPhase(() => this.run.advanceScene()); // ends this scene (the next queued one still plays)
   }
 
   /** Save the run in progress (after every stage, and whenever the page is hidden). */

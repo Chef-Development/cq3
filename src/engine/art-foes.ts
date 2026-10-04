@@ -1,7 +1,7 @@
 // Greenmarch enemies (see docs/art-style.md): character maps with an automatic ink outline, facing left.
 // Every sprite has the frames the fighters view uses: idle0, idle1, windup, attack, hurt, flash, tell
 // (the special's telegraph wind-up), plus a few extras (knight_guard, beetle_shell).
-import { grid, slimeFrame, stampShaded, toCanvas, type Pal, type Shade } from './art';
+import { grid, overlay, slimeFrame, stampShaded, toCanvas, type Pal, type Shade } from './art';
 
 type Add = (key: string, canvas: HTMLCanvasElement) => void;
 
@@ -901,6 +901,583 @@ function shamanParts(pose: string): Part[] {
   ];
 }
 
+// ------------------------------------------------------------------ knight (Hedge Knight: armor overgrown with leaves)
+
+// tarnished steel, hue-shifted: shadows lean teal, highlights lean warm
+const ARMOR = ['#161c26', '#2a3440', '#465462', '#6e7e8a', '#a4b2b4', '#e2ead8'];
+const LEAF = ['#12261e', '#1e3c2a', '#2e5a32', '#4a7e36', '#78a83c', '#b4d058'];
+const KNIGHT_PAL: Pal = {
+  k: '#140c1c', E: '#d8ff6a', e: '#6ab83a', // visor slit, glowing eyes
+  K: ARMOR[1], // breathing holes
+  d: '#3a2416', D: '#6e4426', // belt
+  G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14', // gold rim, buckle
+  L: LEAF[5], l: LEAF[4], // leaf emblem
+  A: '#eef3fa', C: '#7c86a6', T: '#ffffff', // sword blade: lit edge, shaded edge, tip
+  h: '#4e2c16', // grip
+  0: LEAF[0], 1: LEAF[1], 2: LEAF[2], 3: LEAF[3], 4: LEAF[4], 5: LEAF[5],
+};
+const KNIGHT_SHADES: Record<string, Shade> = {
+  a: { ramp: ARMOR, same: 'kEeKdDgy', top: [5, 4], left: [4], right: [1, 2], bottom: [1, 2], mid: 3 },
+  f: { ramp: LEAF, top: [5, 4], left: [4], right: [2], bottom: [1, 2], mid: 3 },
+  q: { ramp: ['#0c1a16', '#14301e', '#1e4628', '#2c5e30', '#3e7634', '#5a9038'], same: 'Ll', top: [4], left: [4], right: [1, 2], bottom: [1, 2], mid: 3 },
+  v: { ramp: ARMOR, top: [4], left: [4], right: [2], bottom: [1], mid: 3 }, // arm
+};
+// great helm, 11 wide, visor slit at the front with a green glow behind it
+const KNIGHT_HELM = [
+  '...aaaaaa..',
+  '..aaaaaaaa.',
+  '.aaaaaaaaaa',
+  '.aaaaaaaaaa',
+  'kkEkkkaaaaa',
+  'aaaaaaaaaaa',
+  '.aKaKaaaaaa',
+  '.aaaaaaaaa.',
+  '..aaaaaaa..',
+];
+// a crest of hedge leaves sprouting from the helm and sweeping back (0-5 = LEAF ramp)
+const KNIGHT_CREST = [
+  '.......45.45..',
+  '...45.454454..',
+  '..45444443343.',
+  '.4544334432332',
+  '..43322332221.',
+  '...221..121...',
+];
+// body: broad shoulders, belt, tassets; the leaves are laid over it as separate clumps
+const KNIGHT_BODY = [
+  '...aaaaaaaa...',
+  '..aaaaaaaaaaa.',
+  '.aaaaaaaaaaaaa',
+  '.aaaaaaaaaaaaa',
+  '.aaaaaaaaaaaaa',
+  '..aaaaaaaaaaa.',
+  '..aaaaaaaaaaa.',
+  '..ddddDgDdddd.',
+  '.aaaaaaaaaaaaa',
+  '.aaaaaaaaaaaa.',
+  '..aaaa..aaaa..',
+];
+// hedge clumps growing over the armor (0-5 = LEAF ramp)
+const HEDGE: Record<string, string[]> = {
+  big: ['..45.4..', '.454443.', '45443332', '.4332321', '..21.1..'],
+  mid: ['.45.', '4543', '3332', '.21.'],
+  small: ['45', '32'],
+  vine: ['4....', '.3...', '..32.', '....2'],
+};
+const KNIGHT_LEGS: Record<string, string[]> = {
+  stand: [
+    '..aaa..aaa.',
+    '..aaa..aaa.',
+    '..aaa..aaa.',
+    '..aaa..aaa.',
+    '..aaa..aaa.',
+    '..aaa..aaa.',
+    '.aaaa.aaaa.',
+    'aaaaa.aaaa.',
+  ],
+  lunge: [
+    '.aaa....aaa',
+    '.aaa....aaa',
+    'aaa......aaa',
+    'aaa......aaa',
+    'aaa.......aaa',
+    'aaa.......aaa',
+    'aaaa......aaaa',
+    'aaaa......aaaa',
+  ],
+  brace: [
+    '.aaa...aaa.',
+    'aaa.....aaa',
+    'aaa.....aaa',
+    'aaa......aaa',
+    'aaa......aaa',
+    'aaaa.....aaaa',
+    'aaaa.....aaaa',
+    '..............',
+  ],
+};
+// kite shield, front on: gold rim, hedge-green face, a big pale leaf
+const KITE = [
+  'GGGGGGGGGGy',
+  'GqqqqqqqqqY',
+  'GqqqqLqqqqY',
+  'GqqqLLLqqqY',
+  'GqqLLlLLqqY',
+  'GqqLLlLLqqY',
+  'GqqLLlLLqqY',
+  '.GqqLlLqqY.',
+  '.GqqqlqqqY.',
+  '.GqqqlqqqY.',
+  '..GqqqqqY..',
+  '..GqqqqqY..',
+  '...GqqqY...',
+  '...GqqqY...',
+  '....GqY....',
+  '.....Y.....',
+];
+
+/** A straight sword: hand at (hx, hy), blade toward (dx, dy) (8-way), `len` px long. */
+function knightSword(hx: number, hy: number, dx: number, dy: number, len: number): Part {
+  const A: [number, number][] = [];
+  const C: [number, number][] = [];
+  const g: [number, number][] = [];
+  const diag = dx !== 0 && dy !== 0;
+  for (let i = 2; i < len + 2; i++) {
+    const x = hx + dx * i;
+    const y = hy + dy * i;
+    A.push([x, y]);
+    // second px: below a horizontal blade, right of a vertical one, beside a diagonal one
+    if (i < len + 1) C.push(diag ? [x + (dx < 0 ? 1 : -1), y] : dy === 0 ? [x, y + 1] : [x + 1, y]);
+  }
+  const px = -dy;
+  const py = dx;
+  for (let k = -2; k <= 2; k++) g.push([hx + dx + px * k, hy + dy + py * k]);
+  return dots([
+    ['C', C],
+    ['A', A],
+    ['g', g],
+    ['T', [A[A.length - 1]]],
+    ['h', [[hx, hy], [hx - dx, hy - dy]]],
+    ['y', [[hx - dx * 2, hy - dy * 2]]],
+  ]);
+}
+
+function knightParts(pose: string): Part[] {
+  const F = 32;
+  let x = 0;
+  let y = 0;
+  let legs = KNIGHT_LEGS.stand;
+  let lx = 10;
+  let helm = KNIGHT_HELM;
+  let sh: [number, number] = [3, 13]; // shield top-left
+  let hand: [number, number] = [22, 19]; // sword hand
+  let sw: [number, number, number] = [0, -1, 12]; // sword direction and length
+  const extra: Part[] = [];
+  switch (pose) {
+    case 'idle1':
+      y = 1;
+      sh = [3, 14];
+      hand = [22, 20];
+      break;
+    case 'windup':
+      x = 1;
+      y = 1;
+      sh = [4, 15];
+      hand = [21, 11];
+      sw = [1, -1, 10];
+      break;
+    case 'attack':
+      x = -2;
+      y = 1;
+      legs = KNIGHT_LEGS.lunge;
+      lx = 8;
+      sh = [5, 16];
+      hand = [10, 15];
+      sw = [-1, 0, 13];
+      break;
+    case 'hurt':
+      x = 2;
+      helm = swap(KNIGHT_HELM, [['E', 'k']]);
+      sh = [5, 14];
+      hand = [23, 20];
+      sw = [1, -1, 10];
+      break;
+    case 'tell':
+      // the shield heaved up high
+      sh = [3, 1];
+      helm = swap(KNIGHT_HELM, [['E', 'e']]);
+      break;
+    case 'guard':
+      // braced behind the shield, squared up in front
+      x = 1;
+      y = 2;
+      legs = KNIGHT_LEGS.brace;
+      lx = 9;
+      sh = [6, 11];
+      hand = [22, 21];
+      sw = [0, 1, 8];
+      helm = swap(KNIGHT_HELM, [['E', 'e']]);
+      break;
+  }
+  const by = 12 + y;
+  const ly = F - legs.length + 1;
+  const leafy = { edge: LEAF[0] };
+  return [
+    [legs, lx, ly],
+    [HEDGE.small, lx + 7, ly + 2, leafy],
+    [KNIGHT_BODY, 8 + x, by],
+    [HEDGE.big, 15 + x, by, leafy],
+    [HEDGE.vine, 14 + x, by + 4, leafy],
+    [HEDGE.small, 19 + x, by + 8, leafy],
+    [helm, 10 + x, 4 + y],
+    [KNIGHT_CREST, 11 + x, 0 + y, leafy],
+    [HEDGE.small, 19 + x, 9 + y, leafy],
+    knightSword(hand[0], hand[1], ...sw),
+    limb(19 + x, by + 3, hand[0] - 1, hand[1] - 1, 'v'),
+    [['aa', 'aa'], hand[0] - 1, hand[1] - 1],
+    [KITE, sh[0], sh[1]],
+    ...extra,
+  ];
+}
+
+// ------------------------------------------------------------------ captain (Bandit Captain: tricorn, eyepatch, bombs)
+
+// the bandit's purple, plus a darker hat
+const CPURPLE = ['#1e1430', '#36244e', '#523a72', '#7a5a9a', '#a888c8'];
+const CAPTAIN_PAL: Pal = {
+  // hat (explicit tones) and gold trim
+  b: CPURPLE[4], B: CPURPLE[3], n: CPURPLE[2], N: CPURPLE[1],
+  G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14',
+  // plume
+  W: '#ffffff', w: '#ece6f8', v: '#a898c8',
+  // face: skin, nose, eye, patch and strap, moustache, mouth, gold tooth
+  S: '#f2b888', s: '#d88a5a', z: '#a0583a', k: '#140c1c', p: '#1c1430', P: '#4e3e62',
+  m: '#2a1810', M: '#5a3420', r: '#4a1020', t: '#fff4e0',
+  // scarf and sash
+  R: '#8a1a22', q: '#d03030', Q: '#f05a48',
+  // boots and trousers
+  d: '#2a1810', D: '#4a2c18', T: '#262438', u: '#3c3a56',
+  // bomb: body, cap, fuse, sparks
+  a: '#2e2a44', A: '#4a4668', e: '#8a88b0', o: '#1a1628', f: '#c8a878', F: '#ffd84a', x: '#ff8a3a',
+};
+const CAPTAIN_SHADES: Record<string, Shade> = {
+  c: { ramp: CPURPLE, same: 'gGyYRqQ', top: [4, 3], left: [3], right: [1, 1], bottom: [0, 1], mid: 2 },
+  h: { ramp: CPURPLE, top: [3], left: [3], right: [1], bottom: [1], mid: 2 }, // sleeve
+};
+// tricorn, 21 wide: crown dome, the brim turned up into points front and back, gold trim on its edge
+const TRICORN = [
+  '.......bbbbbb........',
+  '.....bbBBBBBBnn......',
+  'G...bBBBBBBBBBnn....G',
+  'gG..bBBBBBBBBBBnn..gy',
+  '.gG.BBBBBBBBBBBnnngyY',
+  '..gGGgggggggggggggyY.',
+  '...BBBBBBBBBBnnnnnn..',
+  '....NNNNNNNNNNNNNN...',
+];
+// a big white plume sweeping back from the band, its barbs ragged underneath
+const PLUME = [
+  '..........WWW.',
+  '.......WWWwwwW',
+  '.....WWwwwwvvw',
+  '...WWwwwvvv.v.',
+  '..Wwwvv.v.....',
+  '.Wwv..........',
+  'Wv............',
+];
+// face, 3/4 to the left: a sly eye, a patch over the other with its strap, handlebar moustache, gold tooth
+const CAPTAIN_FACE = [
+  '..mSSSSSSmm',
+  '.SSSSSSSSsm',
+  '.SkSSSpppPm',
+  'SSSSSSpPpsm',
+  'zsSSSSSSssm',
+  '.mmmSSmmmsm',
+  '.m.mrtgrs..',
+  '....sSSs...',
+];
+// a gold epaulette on the far shoulder
+const EPAULET = ['.GGgy.', 'GgggyY', 'y.y.Y.'];
+// long coat: red scarf, gold-trimmed lapels over a pale shirt, red sash, tails parted over the legs
+const CAPTAIN_COAT = [
+  '....qQqqR.......',
+  '..cRqqqRRRcc....',
+  '.ccgRqRRgccccc..',
+  'cccgtqRtgcccccc.',
+  'cccgtttgcccccccc',
+  'ccccgtgccccccccc',
+  'cccccgcccccccccc',
+  'ccqqQqqqqqqRRccc',
+  'ccRRRRRRRRRRRqcc',
+  'cccgc.ccccccqRcc',
+  'ccgc...cccccqRcc',
+  'ccgc...ccccccRRc',
+  'cgc.....cccccccc',
+  'cgc.....ccccccc.',
+];
+const CAPTAIN_LEGS: Record<string, string[]> = {
+  stand: [
+    '....TTu..TTu....',
+    '....TTu..TTu....',
+    '....TTu..TTu....',
+    '....TTu..TTu....',
+    '...DDDDd.DDDDd..',
+    '...DDDd..DDDd...',
+    '...dddd..dddd...',
+    '..ddddd.ddddd...',
+  ],
+  lunge: [
+    '...TTu.....TTu..',
+    '...TTu.....TTu..',
+    '..TTu.......TTu.',
+    '..TTu.......TTu.',
+    '.DDDDd.....DDDDd',
+    '.DDDd.......DDDd',
+    '.dddd.......dddd',
+    'ddddd.......dddd',
+  ],
+};
+// round bomb with a capped fuse
+const BOMB = ['...ff', '..AA.', '.aAAa.', 'aeWaaa', 'aeAaao', 'aAaaao', 'aaaaoo', '.aooo.'];
+const SPARK = ['x.F', '.W.', 'F.x'];
+
+function captainParts(pose: string): Part[] {
+  const F = 36;
+  let x = 0;
+  let y = 0;
+  let legs = CAPTAIN_LEGS.stand;
+  let lx = 9;
+  let face = CAPTAIN_FACE;
+  let hat = TRICORN;
+  let hand: [number, number] = [6, 22]; // bomb hand
+  let bomb: [number, number] | null = [2, 15]; // bomb top-left
+  let lit = false;
+  let back = false; // throwing with the far arm, from behind the body
+  const extra: Part[] = [];
+  switch (pose) {
+    case 'idle1':
+      y = 1;
+      hand = [6, 23];
+      bomb = [2, 16];
+      break;
+    case 'windup':
+      // the bomb cocked back over the shoulder
+      x = 1;
+      y = 1;
+      hand = [27, 13];
+      bomb = [26, 6];
+      lit = true;
+      back = true;
+      break;
+    case 'attack':
+      // the throw: arm flung forward, the bomb away
+      x = -1;
+      legs = CAPTAIN_LEGS.lunge;
+      lx = 8;
+      hand = [5, 17];
+      bomb = [0, 8];
+      lit = true;
+      break;
+    case 'hurt':
+      x = 2;
+      face = swap(CAPTAIN_FACE, [['k', 'z']]);
+      hat = leanBack(TRICORN, 4, 2);
+      hand = [8, 24];
+      bomb = [4, 17];
+      break;
+    case 'tell':
+      // the lit bomb hoisted high, fuse spitting sparks
+      hand = [6, 10];
+      bomb = [2, 3];
+      lit = true;
+      face = swap(CAPTAIN_FACE, [['mrtgrs', 'mrttgr']]);
+      break;
+  }
+  const arm: Part[] = [];
+  if (bomb) {
+    arm.push([BOMB, bomb[0], bomb[1]]);
+    if (lit) arm.push([SPARK, bomb[0] + 3, bomb[1] - 2]);
+  }
+  if (back) arm.unshift(limb(22 + x, 19 + y, hand[0], hand[1] + 1, 'h'));
+  else arm.push(limb(12 + x, 19 + y, hand[0] + 1, hand[1], 'h', { edge: CPURPLE[0] }));
+  arm.push([['SS', 'ss'], hand[0], hand[1]]);
+  return [
+    ...(back ? arm : []),
+    [legs, lx, F - legs.length + 1],
+    [CAPTAIN_COAT, 9 + x, 16 + y],
+    [EPAULET, 18 + x, 16 + y],
+    [face, 10 + x, 9 + y],
+    [PLUME, 20 + x, 0 + y],
+    [hat, 6 + x, 3 + y],
+    ...(back ? [] : arm),
+    ...extra,
+  ];
+}
+
+// ------------------------------------------------------------------ golem (Ruin Golem: mossy stone blocks, teal runes)
+
+// weathered stone, hue-shifted: shadows lean blue-violet, highlights lean warm beige (as the portrait)
+const STONE = ['#1c1c2c', '#34344a', '#545264', '#78747c', '#a09a96', '#c8c0b2'];
+const MOSS = ['#1a3626', '#2a5230', '#447436', '#6e9c3c', '#a8c850'];
+const RUNE = ['#14524e', '#22a098', '#62e4d4', '#d8fff6'];
+const GOLEM_PAL: Pal = {
+  0: STONE[0], 1: STONE[1], 2: STONE[2], 3: STONE[3], 4: STONE[4], 5: STONE[5],
+  A: MOSS[0], B: MOSS[1], C: MOSS[2], D: MOSS[3], E: MOSS[4],
+  r: RUNE[0], t: RUNE[1], u: RUNE[2], U: RUNE[3],
+  p: '#ff8ac0', P: '#c04a8a', y: '#ffe070', // a little flower in the moss
+  w: '#e8e0d0', // dust
+};
+
+/** Cheap deterministic hash in [0, 1). */
+function hash2(x: number, y: number): number {
+  let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/**
+ * A worn stone block in explicit tones (0-5 = STONE): a lit front face, a darker side face `side` px wide on
+ * the right, lit top and left rims, dark bottom and right rims, chamfered corners, a few chips.
+ */
+function stoneBlock(w: number, h: number, side = 0, cut = 2, seed = 1): string[] {
+  const inside = (x: number, y: number) =>
+    x >= 0 && y >= 0 && x < w && y < h && x + y >= cut && w - 1 - x + y >= cut && w - 1 - x + (h - 1 - y) >= cut - 1 && x + (h - 1 - y) >= cut - 1;
+  const rows: string[] = [];
+  for (let y = 0; y < h; y++) {
+    let r = '';
+    for (let x = 0; x < w; x++) {
+      if (!inside(x, y)) {
+        r += '.';
+        continue;
+      }
+      const sideFace = x >= w - side;
+      let t = sideFace ? 2 : 3;
+      if (!inside(x, y - 1)) t = sideFace ? 4 : 5;
+      else if (!inside(x, y - 2) && !sideFace) t = 4;
+      else if (!inside(x, y + 1)) t = sideFace ? 0 : 1;
+      else if (!inside(x + 1, y)) t = 1;
+      else if (!inside(x - 1, y)) t = 4;
+      else if (side && x === w - side) t = 1;
+      else {
+        // chips: 2x1 clusters a tone up or down
+        const c = hash2(Math.floor(x / 2) + seed * 31, y + seed * 17);
+        if (c < 0.1) t += 1;
+        else if (c > 0.9) t -= 1;
+      }
+      r += String(t);
+    }
+    rows.push(r);
+  }
+  return rows;
+}
+
+/** Moss draped over the top of a block w wide: a lit cushion with drips hanging down. */
+function mossTop(w: number, seed = 1): string[] {
+  const rows = [Array(w).fill('.'), Array(w).fill('.'), Array(w).fill('.'), Array(w).fill('.')];
+  for (let x = 0; x < w; x++) {
+    const hgt = 1 + Math.floor(hash2(Math.floor(x / 2), seed) * 2.4);
+    const lit = x < w * 0.7;
+    rows[0][x] = x === 0 || x === w - 1 ? '.' : lit ? 'E' : 'D';
+    for (let k = 1; k <= hgt && k < 4; k++) rows[k][x] = k === hgt ? 'B' : lit ? 'D' : 'C';
+  }
+  return rows.map((r) => r.join(''));
+}
+
+const crack = (pts: [number, number][], ox: number, oy: number): Part =>
+  dots([
+    ['4', pts.map(([x, y]) => [ox + x - 1, oy + y] as [number, number])],
+    ['0', pts.map(([x, y]) => [ox + x, oy + y] as [number, number])],
+  ]);
+
+// the head: a heavy brow over two rune eyes, a squared nose, a carved mouth slot
+function golemHead(eyes: 'lit' | 'dim' | 'blaze'): string[] {
+  let h = stoneBlock(13, 12, 3, 3, 4);
+  const E = eyes === 'dim' ? ['rtr', 'rrr'] : eyes === 'blaze' ? ['uUu', 'UUU'] : ['tut', 'uUu'];
+  h = overlay(h, ['5555555555', '0000000001'], 1, 4); // brow ledge and its shadow
+  h = overlay(h, E, 1, 5);
+  h = overlay(h, E.map((r) => r.slice(0, 2)), 6, 5);
+  h = overlay(h, ['22222', '11111'], 1, 9); // mouth slot
+  h = overlay(h, ['.1.1.'], 1, 10);
+  return h;
+}
+const GOLEM_NOSE = ['54', '542', '432', '.11'];
+const CHEST_RUNE = ['t...t...t', 'ut.tut.tu', 'uuuuUuuuu', 'ttttttttt', 'r.r.r.r.r'];
+
+function golemParts(pose: string): Part[] {
+  const F = 48;
+  let x = 0;
+  let y = 0;
+  let eyes: 'lit' | 'dim' | 'blaze' = 'lit';
+  // near arm: shoulder, elbow and fist positions (block top-lefts)
+  let upper: [number, number] = [5, 26];
+  let fore: [number, number] = [3, 33];
+  let fist: [number, number] = [2, 39];
+  let nearLeg: [number, number, number] = [14, 38, 0]; // x, top, lift
+  let farFist: [number, number] = [32, 38];
+  const extra: Part[] = [];
+  switch (pose) {
+    case 'idle1':
+      y = 1;
+      upper = [5, 27];
+      fore = [3, 34];
+      fist = [2, 40];
+      farFist = [32, 39];
+      break;
+    case 'windup':
+      // rears back, the near fist hauled up beside the head
+      x = 2;
+      y = 1;
+      upper = [12, 18];
+      fore = [16, 10];
+      fist = [16, 2];
+      break;
+    case 'attack':
+      // a straight punch, the whole weight behind it
+      x = -2;
+      y = 2;
+      upper = [3, 25];
+      fore = [-1, 27];
+      fist = [1, 24];
+      eyes = 'blaze';
+      break;
+    case 'hurt':
+      x = 3;
+      eyes = 'dim';
+      extra.push([['.45', '432', '21.'], 2, 8], [['43', '21'], 0, 14]);
+      break;
+    case 'tell':
+      // the near foot hauled up high for a stomp, arms flung wide for balance
+      x = 1;
+      y = -1;
+      nearLeg = [10, 30, 1];
+      upper = [2, 22];
+      fore = [0, 18];
+      fist = [0, 11];
+      farFist = [34, 32];
+      eyes = 'blaze';
+      break;
+  }
+  const chestX = 12 + x;
+  const chestY = 16 + y;
+  const seam = { edge: STONE[0] };
+  const parts: Part[] = [];
+  // far side, behind: arm, shoulder, leg
+  parts.push([stoneBlock(9, 10, 3, 2, 7), 31 + x, 24 + y, seam]);
+  parts.push([stoneBlock(11, 9, 3, 2, 8), farFist[0], farFist[1], seam]);
+  parts.push([stoneBlock(16, 13, 5, 3, 9), 26 + x, 13 + y, seam]);
+  parts.push([mossTop(14, 3), 27 + x, 13 + y]);
+  parts.push([stoneBlock(9, 11, 3, 1, 10), 25, F - 10, seam]);
+  parts.push([stoneBlock(11, 4, 3, 1, 11), 25, F - 3, seam]);
+  // hips and chest
+  parts.push([stoneBlock(20, 8, 5, 2, 12), 13 + x, 34 + y, seam]);
+  parts.push([stoneBlock(22, 20, 6, 3, 13), chestX, chestY, seam]);
+  parts.push([CHEST_RUNE, chestX + 4, chestY + 6]);
+  parts.push(crack([[0, 0], [1, 1], [1, 2], [2, 3]], chestX + 17, chestY + 3));
+  parts.push(crack([[0, 0], [0, 1], [1, 2]], chestX + 3, chestY + 14));
+  // near leg (lifted in the tell: the thigh swung forward, the foot hanging under the knee)
+  if (nearLeg[2]) {
+    parts.push([stoneBlock(12, 8, 3, 2, 14), nearLeg[0] + 2, nearLeg[1], seam]);
+    parts.push([stoneBlock(9, 9, 3, 2, 15), nearLeg[0], nearLeg[1] + 6, seam]);
+    parts.push([stoneBlock(11, 4, 3, 1, 16), nearLeg[0] - 1, nearLeg[1] + 14, seam]);
+  } else {
+    parts.push([stoneBlock(9, 11, 3, 1, 14), nearLeg[0], F - 10, seam]);
+    parts.push([stoneBlock(12, 4, 3, 1, 16), nearLeg[0] - 1, F - 3, seam]);
+  }
+  // head, low and forward between the shoulders
+  parts.push([golemHead(eyes), 8 + x, 7 + y, seam]);
+  parts.push([GOLEM_NOSE, 6 + x, 12 + y]);
+  parts.push([mossTop(11, 5), 9 + x, 7 + y]);
+  parts.push([['.p.', 'pyp', '.P.'], 15 + x, 4 + y]);
+  // near arm, in front
+  parts.push([stoneBlock(15, 12, 4, 3, 17), 3 + x, 15 + y, seam]);
+  parts.push([mossTop(12, 6), 4 + x, 15 + y]);
+  parts.push(crack([[0, 0], [1, 1], [1, 2]], 9 + x, 19 + y));
+  parts.push([stoneBlock(9, 9, 3, 2, 18), upper[0] + x, upper[1] + y, seam]);
+  parts.push([stoneBlock(10, 8, 3, 2, 19), fore[0] + x, fore[1] + y, seam]);
+  parts.push([stoneBlock(12, 9, 3, 2, 20), fist[0] + x, fist[1] + y, seam]);
+  return [...parts, ...extra];
+}
+
 // ------------------------------------------------------------------ build
 
 interface SpriteDef {
@@ -920,6 +1497,9 @@ export function buildFoeArt(add: Add): void {
     archer: { W: 26, H: 26, pal: ARCHER_PAL, shades: ARCHER_SHADES, parts: archerParts },
     piglet: { W: 18, H: 13, pal: PIG_PAL, shades: PIG_SHADES, parts: pigParts },
     shaman: { W: 28, H: 28, pal: SHAMAN_PAL, shades: SHAMAN_SHADES, parts: shamanParts },
+    captain: { W: 34, H: 38, pal: CAPTAIN_PAL, shades: CAPTAIN_SHADES, parts: captainParts },
+    golem: { W: 46, H: 50, pal: GOLEM_PAL, shades: {}, parts: golemParts },
+    knight: { W: 30, H: 34, pal: KNIGHT_PAL, shades: KNIGHT_SHADES, parts: knightParts, extras: ['guard'] },
   };
   for (const name of FOE_SPRITES) {
     const d = defs[name];

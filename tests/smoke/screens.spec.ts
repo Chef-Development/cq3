@@ -11,7 +11,8 @@ interface Cq3Window {
       setPhase(fn: () => void): void;
       begin(): void;
       barTap(ts: number): void;
-      run: { startLevel(i: number): void };
+      storySkip(): void;
+      run: { newRun(): void; skipScenes(): void; chooseNode(id: number): boolean; choices(): number[]; enterAct(i: number): void; coins: number };
     };
   };
 }
@@ -71,12 +72,50 @@ test('title screen', async ({ page }) => {
   await expect(page).toHaveScreenshot('title.png', shot);
 });
 
+test('story scene and map', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => {
+    const app = (window as Cq3Window).__cq3!.app;
+    app.setPhase(() => app.run.newRun());
+  });
+  await frames(page, 160); // the first box has typed itself out
+  await expect(page).toHaveScreenshot('story.png', shot);
+  await page.evaluate(() => {
+    const app = (window as Cq3Window).__cq3!.app;
+    app.setPhase(() => app.run.skipScenes());
+  });
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('map.png', shot);
+});
+
+test('Act 3 map', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => {
+    const app = (window as Cq3Window).__cq3!.app;
+    app.setPhase(() => {
+      app.run.newRun();
+      app.run.skipScenes();
+      app.run.enterAct(2);
+      app.run.skipScenes();
+      app.run.coins = 87;
+    });
+  });
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('map-act3.png', shot);
+});
+
 test('fight', async ({ page }) => {
   await boot(page);
   await frames(page, 10);
   await page.evaluate(() => {
     const app = (window as Cq3Window).__cq3!.app;
-    app.setPhase(() => app.run.startLevel(0));
+    app.setPhase(() => {
+      app.run.newRun();
+      app.run.skipScenes();
+      app.run.chooseNode(app.run.choices()[0]);
+    });
   });
   await frames(page, 20);
   await page.evaluate(() => (window as Cq3Window).__cq3!.app.begin());
