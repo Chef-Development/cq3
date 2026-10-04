@@ -1,27 +1,62 @@
 // Headless player for balancing (pure; no DOM). It plays the real simulation tick by tick like a person would:
 // it aims at whichever block the cursor reaches next (never a purple trap on purpose), taps no faster than a
-// thumb can, and a share of its taps equal to its accuracy are well timed (landing inside the block, often in
-// the perfect zone). The rest are mistimed by 60-200 ms and land wherever they land: empty bar, a trap, another
-// block. Accuracy slips a little as the cursor speeds up. It reads telegraphs like a person: it holds off yellow
-// while a shield is raised (as often as its accuracy) and waits out a frozen cursor. It swipes the finisher when
-// it would kill, at max stacks, or when holding on for one more stack isn't worth the risk of a combo break.
+// thumb can, and only at blocks it has had time to see. Its taps are aimed at the moment the cursor crosses the
+// block's center, off by a human timing error in milliseconds (a normal spread, plus the odd lapse), and the real
+// judge decides what they hit. So thin blocks, fast reds and a fast cursor are as hard for it as for a person:
+// a block it crosses in 60 ms is missed far more often than one it crosses in 150 ms. "Accuracy" names the player:
+// the share of plain yellow blocks (nominal width) they hit at the starting cursor speed.
+// It reads telegraphs like a person: it holds off yellow while a shield is raised (as often as its accuracy) and
+// waits out a frozen cursor. It swipes the finisher when it would kill, at max stacks, or when holding on for one
+// more stack isn't worth the risk of a combo break.
 // Between fights it walks the act's map picking nodes at random, takes Full Heal when hurt (otherwise the rarest
 // card), rests, buys what it can afford at shops, and picks event choices at random.
 
 import { eventById } from '../data/events';
 import type { NodeType } from '../data/types';
-import { DT, heroMaxHp, type Combat, type CombatEvent } from './combat';
+import { DT, heroMaxHp, isRed, type Combat, type CombatEvent } from './combat';
 import { Rng } from './rng';
 import { RARITIES, Run } from './run';
 import { DEFAULT_SETTINGS, type Settings, type Tuning } from './tuning';
 
 export interface BotOptions {
-  accuracy: number; // share of well-timed taps (0..1)
+  accuracy: number; // share of plain yellow blocks hit at the starting cursor speed (0..1); sets the timing spread
   seed: number;
   gapMs?: number; // fastest tap rate (ms between taps)
-  speedPenalty?: number; // accuracy lost per 1x of cursor speed above base
+  reactMs?: number; // a block must have been on the bar this long before it can be tapped
+  lapse?: number; // share of taps that go badly wrong (80-250 ms off): a glance away, a late thumb
   maxStageSec?: number; // a fight running longer than this counts as a loss
 }
+
+/** Inverse of the standard normal CDF (Acklam's approximation; |error| < 1e-8 over (0, 1)). */
+function normInv(p: number): number {
+  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239];
+  const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572];
+  const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  const lo = 0.02425;
+  if (p < lo) {
+    const q = Math.sqrt(-2 * Math.log(p));
+    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  if (p > 1 - lo) return -normInv(1 - p);
+  const q = p - 0.5;
+  const r = q * q;
+  return ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q) / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+}
+
+/**
+ * A player's timing spread (seconds, one standard deviation) from their accuracy: the spread at which they hit
+ * `accuracy` of plain yellow blocks (nominal width, plus the cursor's width and the judge's grace) at the starting
+ * cursor speed, lapses included.
+ */
+export function timingSpread(t: Tuning, accuracy: number, lapse = DEFAULT_LAPSE): number {
+  const v = 1 / t.cursor.basePassSec;
+  const half = (t.blocks.attackWidth + t.cursor.widthFrac) / 2 / v + t.judge.graceMs / 1000;
+  const p = Math.min(0.999, Math.max(0.05, accuracy / (1 - lapse)));
+  return half / normInv((1 + p) / 2);
+}
+
+const DEFAULT_LAPSE = 0.03;
 
 export interface FightStats {
   act: number;
@@ -48,6 +83,8 @@ export interface FightStats {
   hpEnd: number;
   /** Boss fights: boss HP divided by what one max-stack finisher would deal at the fight's start. */
   bossVsMaxFinisher?: number;
+  /** Boss fights: one max-stack finisher could kill the boss outright (enough damage, and no phase gate to stop it). */
+  bossOneShot?: boolean;
 }
 
 export interface ActAttempt {
@@ -200,8 +237,10 @@ function newFight(run: Run, c: Combat): FightStats {
     hpEnd: 0,
   };
   if (boss) {
-    const hp = c.enemies.reduce((m, e) => Math.max(m, T.enemies[e.key].boss ? e.hp : 0), 0);
-    st.bossVsMaxFinisher = hp / Math.max(1, c.finisherDamage(Math.max(1, Math.round(T.meter.maxStacks))));
+    const b = c.enemies.find((e) => T.enemies[e.key].boss)!;
+    const maxFin = Math.max(1, c.finisherDamage(Math.max(1, Math.round(T.meter.maxStacks))));
+    st.bossVsMaxFinisher = b.hp / maxFin;
+    st.bossOneShot = c.hpFloor(b) <= 0 && c.damageTaken(b, maxFin, 'finisher') >= b.hp;
   }
   return st;
 }
@@ -212,11 +251,13 @@ interface Pending {
 }
 
 /** Run the fight until it is won (the reward phase comes up), lost, or it times out. */
-function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats {
+export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats {
   const T = run.tuning;
   const st = newFight(run, c);
-  const gap = (o.gapMs ?? 120) / 1000;
+  const gap = (o.gapMs ?? 140) / 1000;
   const maxSec = o.maxStageSec ?? 600;
+  const react = (o.reactMs ?? 250) / 1000;
+  const aim: Aim = { sigma: timingSpread(T, o.accuracy, o.lapse ?? DEFAULT_LAPSE), react, reactRed: react * 0.7, gap, lapse: o.lapse ?? DEFAULT_LAPSE };
   const hpLeft = new Map(c.enemies.map((e) => [e.id, e.hp]));
   let pending: Pending | null = null;
   let busyUntil = c.time;
@@ -273,7 +314,7 @@ function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats {
       busyUntil = t + 0.3; // the swipe itself takes a moment
     }
     // wait out a finisher's stopped cursor and a frozen one
-    if (!pending && t >= busyUntil && c.cursorHold <= 0 && c.freeze <= 0) pending = plan(c, rng, o, gauss, readsGuard && guardSeen > 0);
+    if (!pending && t >= busyUntil && c.cursorHold <= 0 && c.freeze <= 0) pending = plan(c, rng, aim, gauss, readsGuard && guardSeen > 0);
     tally(c.drainEvents());
     st.seconds = t;
     run.sync();
@@ -298,8 +339,20 @@ function wantsFinisher(c: Combat, risk: number): boolean {
   return survive * (c.finisherDamage(c.stacks + 1) / Math.max(1, c.finisherDamage())) < 1;
 }
 
-/** Pick the next block the cursor will reach (not a trap; not a yellow while a raised shield is read) and schedule a tap. */
-function plan(c: Combat, rng: Rng, o: BotOptions, gauss: () => number, avoidYellow: boolean): Pending | null {
+interface Aim {
+  sigma: number; // timing spread (s)
+  react: number; // s a block must have been visible for
+  reactRed: number; // the same for reds
+  gap: number; // s between taps
+  lapse: number;
+}
+
+/**
+ * Pick the next block the cursor will reach (not a trap; not a yellow while a raised shield is read; not one that
+ * appeared too recently to react to) and schedule a tap at the moment the cursor crosses its center, plus a human
+ * timing error. The judge decides what the tap actually lands on.
+ */
+function plan(c: Combat, rng: Rng, aim: Aim, gauss: () => number, avoidYellow: boolean): Pending | null {
   const t = c.time;
   const cpos = c.cursorPosAt(t);
   const phase = ((c.phaseAt(t) % 2) + 2) % 2;
@@ -307,25 +360,24 @@ function plan(c: Combat, rng: Rng, o: BotOptions, gauss: () => number, avoidYell
   const v = c.cursorSpeed();
   const toWall = dir > 0 ? (1 - cpos) / v : cpos / v;
   const guarded = avoidYellow && !!c.guarder();
-  let best: { tau: number; id: number; hw: number; rel: number } | null = null;
+  let best: { tau: number; id: number } | null = null;
+  let red: { tau: number; id: number } | null = null;
   for (const b of c.blocks) {
     if (b.kind === 'purple' || (guarded && b.kind === 'yellow')) continue;
     const rel = v * dir - b.vel; // closing speed (bar units/s)
     const tau = (b.pos - cpos) / rel;
     if (!(tau >= 0) || tau > Math.min(toWall, 0.6)) continue;
-    if (!best || tau < best.tau) best = { tau, id: b.id, hw: b.width / 2, rel: Math.abs(rel) };
+    // it popped up right in front of the cursor: no time to react (reds always come in from the right end, where
+    // a player is watching for them, so they are noticed a little sooner)
+    if (b.bornAt > t + tau - (isRed(b.kind) ? aim.reactRed : aim.react)) continue;
+    if (!best || tau < best.tau) best = { tau, id: b.id };
+    if (isRed(b.kind) && (!red || tau < red.tau)) red = { tau, id: b.id };
   }
   if (!best) return null;
-  const acc = Math.max(0, o.accuracy - (o.speedPenalty ?? 0.06) * (c.speedMult() - 1));
-  if (rng.next() < acc) {
-    // well timed: lands inside the block, closer to its center the better the player
-    const sd = best.hw * Math.max(0.15, 1.3 - o.accuracy);
-    const err = Math.max(-0.9 * best.hw, Math.min(0.9 * best.hw, gauss() * sd));
-    return { at: Math.max(t + DT, t + best.tau + err / best.rel), blockId: best.id };
-  }
-  // mistimed: 60-200 ms early or late
-  const off = (rng.next() < 0.5 ? -1 : 1) * (0.06 + rng.next() * 0.14);
-  return { at: Math.max(t + DT, t + best.tau + off), blockId: best.id };
+  // defence first: skip a block if tapping it would leave no time to block the red right behind it
+  if (red && red.id !== best.id && red.tau - best.tau < aim.gap) best = red;
+  const err = rng.next() < aim.lapse ? (rng.next() < 0.5 ? -1 : 1) * (0.08 + rng.next() * 0.17) : gauss() * aim.sigma;
+  return { at: Math.max(t + DT, t + best.tau + err), blockId: best.id };
 }
 
 export interface ActRow {
@@ -343,7 +395,7 @@ export interface ActRow {
   bossSec: number;
   finisherShare: number; // finisher damage / all damage
   bossVsMaxFinisher: number; // boss HP / one max-stack finisher at the hero's stats when the boss appears
-  bossOneShotRate: number; // share of boss fights a single max-stack finisher could win
+  bossOneShotRate: number; // share of boss fights a single max-stack finisher could win (phase gates stop one)
   hpAtBoss: number; // hero HP share going into the boss
   missRate: number;
   counterRate: number; // countered yellow taps per guard seen... per fight with a knight
@@ -397,7 +449,7 @@ export function balance(tuning: Tuning, accuracies: number[], runs: number, seed
               if (f.bossVsMaxFinisher !== undefined) {
                 bossRatio += f.bossVsMaxFinisher;
                 bossRatioN++;
-                if (f.bossVsMaxFinisher <= 1) oneShot++;
+                if (f.bossOneShot) oneShot++;
               }
               hpAtBoss += f.hpStart;
               hpAtBossN++;

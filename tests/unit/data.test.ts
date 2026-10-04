@@ -50,6 +50,39 @@ describe('region data', () => {
     }
   });
 
+  it("every red attack is fair to a thumb: never thin, a wide enough window even at 1.5x cursor speed, waves spaced so each red can be blocked on its own", () => {
+    const T = DEFAULT_TUNING;
+    const v = 1.5 / T.cursor.basePassSec; // the cursor at 1.5x, heading into the reds
+    const RED = ['red', 'shield', 'bomb', 'speed'];
+    for (const [key, e] of Object.entries(ENEMIES))
+      for (const s of e.specials)
+        for (const a of s.actions) {
+          if (a.type !== 'formation') continue;
+          const reds = a.blocks.filter((b) => RED.includes(b.kind));
+          const at = (b: (typeof reds)[number]) => {
+            const w = T.blocks.redWidth * (b.width ?? 1) * T.blocks.redWidthMin;
+            const vel = ((1 - w) / T.blocks.redTravelSec) * (b.speed ?? 1);
+            return { w, vel, closing: v + vel };
+          };
+          for (const b of reds) {
+            const name = `${key}.${s.id}`;
+            expect(b.width ?? 1, `${name}: never thinner than a normal red`).toBeGreaterThanOrEqual(1);
+            if ((b.speed ?? 1) > 1) expect(b.width ?? 1, `${name}: a fast red is wider`).toBeGreaterThan(1);
+            expect(b.pair, `${name}: no back-to-back reds`).toBeFalsy();
+            const { w, closing } = at(b);
+            const windowSec = (w + T.cursor.widthFrac) / closing + (2 * T.judge.redGraceMs) / 1000;
+            expect(windowSec, `${name}: blocking window`).toBeGreaterThanOrEqual(0.12);
+          }
+          // in a wave, the cursor meets one red at a time: at least 0.16 s apart (a thumb taps about every 0.14 s)
+          for (let i = 0; i < reds.length; i++)
+            for (let j = i + 1; j < reds.length; j++) {
+              const [p, q] = [reds[i], reds[j]];
+              const gap = p.at !== undefined && q.at !== undefined ? Math.abs(p.at - q.at) : Math.abs((q.delay ?? 0) - (p.delay ?? 0)) * Math.min(at(p).vel, at(q).vel);
+              expect(gap / Math.max(at(p).closing, at(q).closing), `${key}.${s.id}: reds ${i} and ${j} too close`).toBeGreaterThanOrEqual(0.16);
+            }
+        }
+  });
+
   it('every scene the region names exists', () => {
     const ids = [GREENMARCH.introScene, GREENMARCH.victoryScene, ...GREENMARCH.acts.flatMap((a) => [a.startScene, a.bossScene])];
     for (const id of ids) expect(STORY[id ?? ''], id).toBeDefined();

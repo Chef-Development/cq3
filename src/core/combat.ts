@@ -830,8 +830,12 @@ export class Combat {
     const J = this.tuning.judge;
     const now = this.time;
     t = Math.min(now + DT, Math.max(now - J.maxRewindMs / 1000, t));
-    const cpos = this.cursorPosAt(t);
-    const graceDist = this.speedAtTime(t) * (J.graceMs / 1000);
+    const phase = this.phaseAt(t);
+    const cpos = phaseToPos(phase);
+    // the grace is a time window: it scales with the speed the cursor and the block close at (a red racing at
+    // the cursor gets as many milliseconds as a still yellow; never less space than the cursor's own speed gives)
+    const v = this.speedAtTime(t);
+    const vSigned = ((phase % 2) + 2) % 2 < 1 ? v : -v;
     const cursorHalf = this.tuning.cursor.widthFrac / 2;
     let best: Block | null = null;
     let bestD = Infinity;
@@ -840,6 +844,7 @@ export class Combat {
     for (const b of this.blocks) {
       if (b.bornAt > t + 1e-9) continue;
       const d = Math.abs(cpos - this.blockPosAt(b, t));
+      const graceDist = Math.max(v, Math.abs(vSigned - b.vel)) * ((isRed(b.kind) ? J.redGraceMs : J.graceMs) / 1000);
       if (d > b.width / 2 + cursorHalf + graceDist) continue;
       if (b.kind === 'purple') {
         if (d < trapD) (trap = b), (trapD = d);

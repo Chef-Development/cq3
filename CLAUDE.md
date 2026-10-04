@@ -11,7 +11,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `src/engine/art.ts` (hero, Pip, first enemies), `art-foes.ts` (Greenmarch enemies), `art-story.ts` (portraits, map
   icons), `art-world.ts` (the kingdom world map), `backdrop.ts` and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
   are synthesized in `src/engine/audio.ts`, icons come from `scripts/make-icons.mjs`.
-- **Content is data.** Enemies (stats, base pattern, 0-2 special moves), the region's acts and encounters, events and
+- **Content is data.** Enemies (stats, base pattern, 0-2 special moves; a boss's HP-gated phase changes come on top), the region's acts and encounters, events and
   story scenes live in `src/data/` (plain data, no logic). A special = a telegraph (0.6-1.0 s wind-up pose + its own
   sound) then reusable actions (`src/core/specials.ts`: formation, heal, shell, summon, split, cursor, guard, phase,
   protect). New actions need a unit test in `tests/unit/specials.test.ts`. Story boxes: max 6 per scene, 2 lines each
@@ -33,10 +33,13 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   drives both the layered sound (`audio.ts`: crack, saturated body, tail, sub) and the visuals (`fx.impact()`:
   hit-stop, shake, white frames, music duck). Impact sounds play from the view when the blow lands on screen.
   New sounds go in the `SFX` catalog so the Sound lab and the level tests pick them up.
-- **Balance:** combat numbers were set with the bot, which plays whole acts picking map nodes at random;
-  `tests/unit/bot.test.ts` guards the targets (85% player: acts 1-2 first try ~70-85%, Boar King first fight
-  ~40-60%). Re-run `npm run balance` after changing them. Acts scale enemies with `acts[i].hpMult/atkMult` (plus
-  `map.rowHp` per map row); HP carries from node to node; dying restarts the act with the hero as they entered it.
+- **Balance:** combat numbers were set with the bot, which plays whole acts picking map nodes at random and aims
+  like a person (a timing error in ms, reaction time, a thumb's tap rate; the real judge decides each tap), so thin
+  or fast blocks and a fast cursor are as hard for it as for a player. `tests/unit/bot.test.ts` guards the targets:
+  Act 1 is a gentle start (85% player ~100% first try, 70% ~95%), Act 2 ~80-90% first try for an 85% player, the Boar
+  King's first fight won ~50-65%. Re-run `npm run balance` after changing them. Red formations must stay blockable
+  by a thumb (`tests/unit/data.test.ts`: never thinner than a normal red, waves spaced >= 0.16 s at 1.5x cursor).
+  Acts scale enemies with `acts[i].hpMult/atkMult` (plus `map.rowHp` per map row); HP carries from node to node; dying restarts the act with the hero as they entered it.
 - Landscape (like CQ2) canvas 327x150, integer-scaled (8x on an iPhone 16 Pro held sideways) so pixels are
   big and chunky like the reference; pixel art, no smoothing. Safe areas (Dynamic Island left/right, home indicator) come from `env(safe-area-inset-*)`
   (see `src/engine/layout.ts`).

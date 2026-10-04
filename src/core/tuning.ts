@@ -26,7 +26,8 @@ export const DEFAULT_TUNING = {
   },
   judge: {
     perfectFrac: 0.3, // central 30% of a block = PERFECT
-    graceMs: 20, // extra hit window on each side, in time at the current cursor speed
+    graceMs: 20, // extra hit window on each side, in time (at the speed the cursor and the block close at)
+    redGraceMs: 40, // the same for blocking red attacks: defending is forgiving, attacking stays sharp
     maxRewindMs: 300, // how far back a tap timestamp may be judged
     missSelfDamage: 1, // Classic mode: damage for tapping empty bar
   },
@@ -320,6 +321,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       sliders: [
         s('judge.perfectFrac', 'Perfect zone', 0.05, 1, 0.05),
         s('judge.graceMs', 'Grace (ms)', 0, 80, 1),
+        s('judge.redGraceMs', 'Red grace (ms)', 0, 120, 1),
         s('judge.maxRewindMs', 'Max rewind (ms)', 0, 600, 10),
         s('judge.missSelfDamage', 'Miss self-dmg', 0, 20, 1),
       ],

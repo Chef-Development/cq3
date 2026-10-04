@@ -40,6 +40,7 @@ describe('boost rarity', () => {
     run.skipScenes();
     const c = run.combat!;
     c.enemies[0].hp = 10;
+    c.enemies[0].uses.fill(1); // its half-HP call has been made (it gates the HP until then)
     c.stacks = 1;
     c.finisher();
     run.sync();

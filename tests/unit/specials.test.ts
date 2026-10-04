@@ -77,7 +77,8 @@ describe('telegraphs', () => {
 
   it('every special has a 0.6-1.0 s telegraph, a name, a sound and something to do', () => {
     for (const [key, e] of Object.entries(DEFAULT_TUNING.enemies)) {
-      expect(e.specials.length, key).toBeLessThanOrEqual(key === 'boarKing' ? 4 : 2); // the boss's phases count as specials
+      // 0-2 moves; a boss's phase changes (HP-gated specials) come on top
+      expect(e.specials.filter((s) => !(e.boss && s.gate)).length, key).toBeLessThanOrEqual(2);
       for (const s of e.specials) {
         expect(s.tell, `${key}.${s.id}`).toBeGreaterThanOrEqual(0.6);
         expect(s.tell, `${key}.${s.id}`).toBeLessThanOrEqual(1.0);
@@ -97,48 +98,48 @@ describe('telegraphs', () => {
 describe('formation action', () => {
   const quiet = (t: typeof DEFAULT_TUNING) => (t.blocks.redTravelSec = 50);
 
-  it('Boar: Charge sends one red at double speed', () => {
-    const { c } = setup({ enemies: ['boar'], tune: quiet });
+  it('Boar: Charge sends one fast, wide red', () => {
+    const { c, t } = setup({ enemies: ['boar'], tune: quiet });
     fire(c, c.enemies[0], 'charge');
     const [r] = reds(c);
-    expect(r.speed).toBe(2);
-    expect(r.vel).toBeCloseTo(2 * c.redVel(r.width), 6);
+    expect(r.speed).toBe(1.4);
+    expect(r.width).toBeCloseTo(t.blocks.redWidth * 1.2, 6);
+    expect(r.vel).toBeCloseTo(1.4 * c.redVel(r.width), 6);
     expect(r.pos).toBeCloseTo(1 - r.width / 2, 6);
   });
 
-  it('Crow: Dive sends three small, fast reds in quick succession', () => {
+  it('Crow: Dive sends three quick, wide reds one after another', () => {
     const { c, t } = setup({ enemies: ['crow'] });
     fire(c, c.enemies[0], 'dive');
     expect(reds(c)).toHaveLength(1);
-    c.advanceTo(0.23);
+    c.advanceTo(0.76);
     expect(reds(c)).toHaveLength(2);
-    c.advanceTo(0.46);
+    c.advanceTo(1.51);
     const rs = reds(c);
     expect(rs).toHaveLength(3);
     for (const r of rs) {
-      expect(r.width).toBeCloseTo(t.blocks.redWidth * 0.65, 6);
-      expect(r.speed).toBe(1.7);
+      expect(r.width).toBeCloseTo(t.blocks.redWidth * 1.15, 6);
+      expect(r.speed).toBe(1.2);
     }
     expect(rs[0].pos).toBeLessThan(rs[1].pos);
     expect(rs[1].pos).toBeLessThan(rs[2].pos);
   });
 
-  it('Goblin Archer: Volley puts three reds across the right half at once', () => {
+  it("Goblin Archer: Volley puts three reds across the bar's right side at once", () => {
     const { c } = setup({ enemies: ['archer'], tune: quiet });
     fire(c, c.enemies[0], 'volley');
     const pos = reds(c)
       .map((r) => r.pos)
       .sort();
     expect(pos).toHaveLength(3);
-    expect(pos[0]).toBeGreaterThan(0.5);
-    expect(pos[0]).toBeCloseTo(0.62, 2);
-    expect(pos[1]).toBeCloseTo(0.79, 2);
+    expect(pos[0]).toBeCloseTo(0.38, 2);
+    expect(pos[1]).toBeCloseTo(0.66, 2);
     expect(pos[2]).toBeLessThanOrEqual(1);
   });
 
   it('a volley shifts a red over when another red is already there', () => {
     const { c } = setup({ enemies: ['archer'], tune: quiet });
-    c.spawnBlock('red', 0.79, c.enemies[0].id);
+    c.spawnBlock('red', 0.66, c.enemies[0].id);
     fire(c, c.enemies[0], 'volley');
     const rs = reds(c);
     expect(rs).toHaveLength(4);
@@ -166,20 +167,33 @@ describe('formation action', () => {
     for (const p of traps) expect(yellows.some((y) => Math.abs(Math.abs(y.pos - p.pos) - (y.width + p.width) / 2) < 1e-6)).toBe(true);
   });
 
-  it('Wolf: Howl sends a pair of reds that arrive together, one from each wolf', () => {
-    const { c } = setup({ enemies: ['wolf', 'wolf'], tune: quiet });
+  it('Wolf: Howl sends a red from each wolf, one right after the other', () => {
+    const { c } = setup({ enemies: ['wolf', 'wolf'] });
     const [a, b] = c.enemies;
     fire(c, a, 'howl');
+    expect(reds(c)).toHaveLength(1);
+    c.advanceTo(0.9);
     const rs = reds(c).sort((x, y) => x.pos - y.pos);
     expect(rs).toHaveLength(2);
     expect(new Set(rs.map((r) => r.ownerId))).toEqual(new Set([a.id, b.id]));
-    expect(rs[1].pos - rs[0].pos).toBeCloseTo((rs[0].width + rs[1].width) / 2, 6); // touching
     expect(rs[0].vel).toBeCloseTo(rs[1].vel, 6);
     // a lone wolf howls both reds itself
     b.alive = false;
     c.blocks.length = 0;
     fire(c, a, 'howl');
+    c.advanceTo(c.time + 0.9);
     expect(reds(c).every((r) => r.ownerId === a.id)).toBe(true);
+  });
+
+  it('a pair entry lands touching the block before it (both from the partner when one is named)', () => {
+    const { c } = setup({ enemies: ['wolf', 'wolf'], tune: quiet });
+    const [a, b] = c.enemies;
+    runAction(c, a, { type: 'formation', blocks: [{ kind: 'red' }, { kind: 'red', pair: true, partner: true }] });
+    const rs = reds(c).sort((x, y) => x.pos - y.pos);
+    expect(rs).toHaveLength(2);
+    expect(new Set(rs.map((r) => r.ownerId))).toEqual(new Set([a.id, b.id]));
+    expect(rs[1].pos - rs[0].pos).toBeCloseTo((rs[0].width + rs[1].width) / 2, 6); // touching
+    expect(rs[0].vel).toBeCloseTo(rs[1].vel, 6);
   });
 
   it('Ruin Golem: a huge shield block that takes three taps', () => {
@@ -195,7 +209,7 @@ describe('formation action', () => {
     const { c } = setup({ enemies: ['captain'] });
     fire(c, c.enemies[0], 'bombs');
     expect(reds(c).map((r) => r.kind)).toEqual(['bomb']);
-    c.advanceTo(0.45);
+    c.advanceTo(0.9);
     expect(reds(c).map((r) => r.kind)).toEqual(['bomb', 'bomb']);
   });
 
@@ -402,7 +416,7 @@ describe('cursor and guard', () => {
     const { c, t } = setup({ enemies: ['knight'], tune: (t) => (t.cursor.speedPerHit = 0) });
     const knight = c.enemies[0];
     fire(c, knight, 'guard');
-    expect(knight.guard).toBe(2);
+    expect(knight.guard).toBe(1.6);
     c.spawnBlock('yellow', 0.2);
     c.spawnBlock('green', 0.45);
     c.advanceTo(timeAt(t, 0.2) - 0.02);
@@ -415,7 +429,7 @@ describe('cursor and guard', () => {
     c.advanceTo(timeAt(t, 0.45) - 0.02);
     expect(c.tap(timeAt(t, 0.45)).outcome).toBe('hit');
     expect(knight.hp).toBeLessThan(knight.maxHp);
-    // the shield drops after 2 s; yellow hits again
+    // the shield drops after 1.6 s; yellow hits again
     c.advanceTo(2.1);
     expect(knight.guard).toBe(0);
     expect(of(c.drainEvents(), 'guardOff')).toHaveLength(1);
@@ -461,7 +475,7 @@ describe('Boar King', () => {
     expect(c.damageTaken(k, 100, 'hit')).toBe(100);
   });
 
-  it('phase 3 at 33%: enraged (the cursor never drops below 1.2x) and Charges come in pairs', () => {
+  it('phase 3 at 33%: enraged (the cursor never drops below 1.2x) and Charges come two at a time', () => {
     const { c, k } = king();
     k.phase = 2;
     k.uses[sp(c, k, 'piglets')] = 1;
@@ -475,10 +489,10 @@ describe('Boar King', () => {
     c.tuning.blocks.redTravelSec = 2.8;
     const ev = until(c, 'special', 10);
     expect(of(ev, 'special')[0]).toMatchObject({ special: 'doubleCharge' });
-    c.advanceTo(c.time + 0.4);
+    c.advanceTo(c.time + 0.65);
     const rs = reds(c);
     expect(rs).toHaveLength(2);
-    expect(rs.every((r) => r.speed === 2)).toBe(true);
+    expect(rs.every((r) => r.speed === 1.6)).toBe(true);
   });
 
   it('the phase scenes are named in the data', () => {

@@ -12,7 +12,7 @@ describe('balance bot', () => {
   it('a near-perfect player clears Act 1; a very sloppy one does not', () => {
     const t = cloneTuning();
     for (const seed of [1, 2, 3]) expect(playAct(botRun(t, seed), new Rng(seed), { accuracy: 1, seed }).won).toBe(true);
-    const sloppy = [1, 2, 3, 4, 5].filter((seed) => playAct(botRun(t, seed), new Rng(seed), { accuracy: 0.3, seed }).won).length;
+    const sloppy = [1, 2, 3, 4, 5].filter((seed) => playAct(botRun(t, seed), new Rng(seed), { accuracy: 0.2, seed }).won).length;
     expect(sloppy).toBeLessThanOrEqual(1);
   });
 
@@ -46,26 +46,33 @@ describe('balance bot', () => {
 });
 
 describe('balance targets (guards the defaults; the full report is npm run balance)', () => {
-  // 150 runs at 85% accuracy (about 4 s); the bands are a little wider than the targets to allow for sampling
+  // The bot aims like a person (a timing spread in ms, reaction time, a thumb's tap rate), so these are a player's
+  // odds. 150 runs per row (a few seconds); the bands are a little wider than the targets to allow for sampling.
   const [a1, a2, a3] = balance(cloneTuning(), [0.85], 150, 9);
+  const [casual] = balance(cloneTuning(), [0.7], 150, 9, 6, 1);
 
-  it('an 85% player clears Acts 1 and 2 first try about 70-85% of the time', () => {
-    for (const r of [a1, a2]) {
-      expect(r.firstTry, `act ${r.act + 1}`).toBeGreaterThanOrEqual(0.62);
-      expect(r.firstTry, `act ${r.act + 1}`).toBeLessThanOrEqual(0.9);
-    }
+  it('Act 1 is a gentle start: nearly every 85% player and 9 in 10 casual (70%) players clear it first try', () => {
+    expect(a1.firstTry).toBeGreaterThanOrEqual(0.95);
+    expect(casual.firstTry).toBeGreaterThanOrEqual(0.88);
   });
 
-  it('the Boar King wins his first fight against an 85% player about half the time (40-60%)', () => {
-    expect(a3.bossFirstTry).toBeGreaterThanOrEqual(0.36);
-    expect(a3.bossFirstTry).toBeLessThanOrEqual(0.66);
-    expect(a3.clearRate).toBeGreaterThan(0.85); // but retries get there
+  it('then it ramps: an 85% player clears Act 2 first try about 80-90% of the time', () => {
+    expect(a2.firstTry).toBeGreaterThanOrEqual(0.76);
+    expect(a2.firstTry).toBeLessThanOrEqual(0.96);
+    expect(a2.firstTry).toBeLessThanOrEqual(a1.firstTry);
   });
 
-  it('every boss takes at least two max-stack finishers; none can be one-shot', () => {
+  it('the Boar King loses his first fight to an 85% player about 50-65% of the time', () => {
+    expect(a3.bossFirstTry).toBeGreaterThanOrEqual(0.48);
+    expect(a3.bossFirstTry).toBeLessThanOrEqual(0.72);
+    expect(a3.firstTry).toBeLessThan(a2.firstTry);
+    expect(a3.clearRate).toBeGreaterThan(0.9); // but retries get there
+  });
+
+  it('no boss can be one-shot: the mini-bosses take 1.3+ max-stack finishers, the Boar King 2.5+', () => {
     for (const r of [a1, a2, a3]) {
-      expect(r.bossVsMaxFinisher, `act ${r.act + 1}`).toBeGreaterThan(2);
-      expect(r.bossOneShotRate).toBe(0);
+      expect(r.bossVsMaxFinisher, `act ${r.act + 1}`).toBeGreaterThan(r === a3 ? 2.5 : 1.3);
+      expect(r.bossOneShotRate, `act ${r.act + 1}`).toBe(0);
     }
   });
 
@@ -73,9 +80,11 @@ describe('balance targets (guards the defaults; the full report is npm run balan
     for (const r of [a1, a2, a3]) {
       expect(r.fightSec).toBeLessThan(r.eliteSec);
       expect(r.eliteSec).toBeLessThan(r.bossSec);
-      expect(r.fightSec).toBeGreaterThan(8);
+      expect(r.fightSec).toBeGreaterThan(6);
     }
-    expect(a3.bossSec).toBeGreaterThan(a1.bossSec);
+    expect(a1.fightSec).toBeLessThan(12); // Act 1's fights are short and sweet
+    expect(a3.bossSec).toBeGreaterThan(a2.bossSec);
+    expect(a2.bossSec).toBeGreaterThan(a1.bossSec);
   });
 
   it('the specials keep coming: several per minute in every act', () => {
