@@ -1,5 +1,5 @@
-// Web Audio synth: every sound effect and all the music (battle, boss and map themes) are generated in code (no
-// samples).
+// Web Audio synth: every sound effect, all the music (battle, boss and map themes) and the ambience beds (forest,
+// ruins, hollow, act map, world map) are generated in code (no samples).
 // Unlocked on the first user gesture. Also runs on an OfflineAudioContext (tests render every sound).
 //
 // Graph:
@@ -7,7 +7,9 @@
 //   impact sub layer ---------------------------------------------> limiter (so it never pumps the compressor)
 //   bell/finisher/kill voices -> reverb sends -> highpass -> convolver -> return -> master
 //   crunchy voices -> drive -> waveshaper (soft clip + bit steps) -> lowpass -> master
-//   music voices -> music bus (one per run, tuning.impact.music, ducked under big impacts) -> master
+//   music parts (drums, bass, pad, arp, lead, fx) -> mix (+ ping-pong echo, hall reverb) -> music bus (one per run,
+//     tuning.impact.music, ducked under big impacts) -> master
+//   ambience beds and events -> stereo spots -> fade (crossfades places) -> ambience out (ducked too) -> master
 //   metronome -> click out -> destination (dry and uncompressed, so calibration timing stays exact)
 //
 // Impacts are layered (see core/impact.ts): a 0-5 ms crack, a saturated 120-600 Hz body whose harmonics carry
@@ -69,6 +71,7 @@ interface NoiseOpts {
   out?: AudioNode;
   rev?: number;
   minTail?: number;
+  buf?: AudioBuffer; // noise source (defaults to the 1 s white noise)
 }
 
 interface Graph {
@@ -81,16 +84,97 @@ interface Graph {
   pulse25: PeriodicWave;
   pulse12: PeriodicWave;
   sends: Map<number, GainNode>;
+  hall?: AudioBuffer; // the music reverb's impulse (made on first use)
+  pink?: AudioBuffer; // 6 s of stereo pink noise for the ambience beds (made on first use)
 }
 
+/** One run of the music: persistent part buses, sends and effects; the notes are short voices into them. */
 interface MusicRig {
-  bus: GainNode;
+  bus: GainNode; // tuning.impact.music, ducked under big impacts
+  drums: GainNode; // kick (after its drive), snare body
+  kick: GainNode; // into a soft-clip drive, so the kick's harmonics reach a phone speaker
+  snare: BiquadFilterNode; // snare and clap noise (with a little hall)
+  hats: BiquadFilterNode; // hats and shaker, a little right
+  perc: GainNode; // woodblock, a little left
   bass: BiquadFilterNode;
-  hats: BiquadFilterNode;
-  snare: BiquadFilterNode;
+  bassDuck: GainNode; // sidechain: the bass gets out of the kick's way
+  padL: GainNode; // pad voices, detuned against each other across the stereo field
+  padR: GainNode;
+  padTone: BiquadFilterNode; // pad lowpass: opens up over the last bar into the loop point
+  padDuck: GainNode; // sidechain: the pad dips under every kick
+  arpL: StereoPannerNode; // the arpeggio alternates sides
+  arpR: StereoPannerNode;
+  lead: BiquadFilterNode;
+  fx: GainNode; // crash and riser (mostly hall)
+  echo: GainNode; // ping-pong echo input (dotted 8ths)
+  echoL: DelayNode;
+  echoR: DelayNode;
+  echoFb: GainNode[]; // the echo's feedback (per track)
+  echoAt: [number, number]; // the echo's delay time and feedback now (each track glides them to its own)
+  nodes: AudioNode[]; // everything above, for the teardown
+  riser: GainNode | null; // the riser into the loop point (faded if the track changes under it)
+}
+
+/** Places with their own sound bed under the music. */
+export type Ambience = 'forest' | 'ruins' | 'hollow' | 'map' | 'world';
+export const AMBIENCES: Ambience[] = ['forest', 'ruins', 'hollow', 'map', 'world'];
+
+/** A looping filtered-noise layer of an ambience (wind, rain, fire, surf), nudged at random by gusts. */
+interface Bed {
+  filter: BiquadFilterNode;
+  gain: GainNode;
+  g: number; // resting level
+  f: number; // resting filter frequency
+  gust: [number, number]; // level multiplier range a gust moves to
+  sway: [number, number]; // filter frequency multiplier range
+  tau: number; // how long a gust's glide takes (s)
+  at: [number, number]; // level and filter frequency the last glide ended on
+}
+
+/** An ambience playing: its beds, its stereo spots (events play from one), and the events' next times. */
+interface AmbRig {
+  name: Ambience;
+  fade: GainNode;
+  spots: AudioNode[]; // inputs at fixed places in the stereo field, near (bright) to far (dull)
+  echo: AudioNode | null; // the ruins' cave echo
+  beds: Bed[];
+  nodes: AudioNode[];
+  srcs: AudioScheduledSourceNode[];
+  events: Record<string, AmbEvent>;
+  next: Map<string, number>; // ctx time of each event kind's next occurrence
+  rand: () => number; // seeded, so a place's sequence of events repeats exactly (tests, screenshots)
+}
+
+interface AmbEvent {
+  every: [number, number]; // seconds between occurrences (uniform)
+  /** Plays at t; may return how long it lasts (added before the next one). */
+  play: (r: AmbRig, t: number) => number | void;
 }
 
 const MASTER_LEVEL = 0.8;
+/** The whole band's level under the music bus (tuning.impact.music sets the volume on top). */
+const MUSIC_TRIM = 1;
+
+// ---- Ambience: looping filtered-noise beds (wind, rain, fire, surf) that drift with random gusts, and synthesized
+// events (birds, drips, crickets, an owl, gulls, waves) at seeded random times, scheduled ahead like the music. ----
+/** Ambience level at the default music volume (it follows the music volume slider). */
+const AMB_LEVEL = 1;
+const AMB_TICK_MS = 120;
+const AMB_LOOKAHEAD = 0.6;
+const AMB_FADE_IN = 1.6;
+const AMB_FADE_OUT = 1.2;
+/** Where ambience events come from: [pan, lowpass Hz] (duller reads as further away). */
+const SPOTS: [number, number][] = [
+  [-0.75, 4200], // far left
+  [-0.35, 9000], // near left
+  [0.05, 3000], // far, middle
+  [0.4, 8000], // near right
+  [0.8, 5000], // far right
+];
+const ALL_SPOTS = [0, 1, 2, 3, 4] as const;
+const FAR_SPOTS = [0, 2, 4] as const;
+/** How much of each ambience goes to the reverb. */
+const AMB_WET: Record<Ambience, number> = { forest: 0.18, ruins: 0.55, hollow: 0.25, map: 0.12, world: 0.15 };
 
 // Hit melody: major pentatonic, wrapping up an octave every 5 combo steps.
 const PENTA = [0, 2, 4, 7, 9];
@@ -98,12 +182,29 @@ const HIT_BASE = 523.25; // C5
 const HIT_TOP = 13; // G7, ~2.6 octaves up; past it the blip trills between the top two notes
 
 // ---- Music: three original 8-bar loops on a 16th-note grid. The battle theme, a boss theme that takes over when a
-// boss is on screen, and a calm map theme for the node map and story scenes. ----
+// boss is on screen, and a calm map theme for the node map and story scenes. Each is a small band: a sub + plucked
+// saw bass, a soft stereo pad on the chords (ducked by the kick, its filter opening into the loop point under a
+// noise riser), the arpeggio alternating sides, a filtered lead with a ping-pong echo, a synthesized kit (driven
+// kick, snare + clap, swung hats) and a hall reverb. ----
 const LOOKAHEAD = 0.12;
 const TICK_MS = 25;
 
 type Note = [number, number] | null; // [semitones above root (bass) or midi (lead), length in steps]
 export type MusicTrack = 'battle' | 'boss' | 'map';
+
+/** Per-track sound of the band (levels are per voice, into the music bus). */
+interface Feel {
+  pad: number; // pad level per oscillator
+  padHz: number; // pad lowpass at rest (opens about 3x over the last bar)
+  padShift: number; // semitones from the arpeggio's chord tones to the pad voicing
+  padAttack: number; // s
+  bass: number; // bass level
+  bassHz: [number, number]; // the bass pluck's filter: from, settling to
+  sub: number; // sine sub under the bass (share of the bass level)
+  leadHz: number; // lead lowpass
+  swing: number; // offbeat 16ths of the hats/shaker land late by this share of a step
+  echo: number; // echo feedback
+}
 
 interface Track {
   step: number; // seconds per 16th
@@ -111,6 +212,7 @@ interface Track {
   arp: number[]; // which chord tone each 16th of the arpeggio plays
   bass: (bar: number) => Note[];
   lead: Note[]; // per step: [midi, length]
+  feel: Feel;
 }
 
 const leadSteps = (bars: [number, number, number][][]): Note[] => {
@@ -147,6 +249,7 @@ const BATTLE: Track = {
     [[0, 81, 3], [3, 77, 3], [6, 74, 2], [8, 77, 2], [10, 81, 2], [12, 86, 4]],
     [[0, 83, 3], [3, 80, 3], [6, 76, 2], [8, 74, 2], [10, 76, 2], [12, 71, 2], [14, 68, 2]],
   ]),
+  feel: { pad: 0.16, padHz: 1300, padShift: 0, padAttack: 0.18, bass: 0.41, bassHz: [1800, 480], sub: 1.25, leadHz: 3400, swing: 0.12, echo: 0.36 },
 };
 
 // Boss: D minor, 150 BPM, a galloping bass and a darker, climbing lead.
@@ -176,6 +279,7 @@ const BOSS: Track = {
     [[0, 79, 3], [3, 77, 3], [6, 74, 2], [8, 70, 4], [12, 74, 4]],
     [[0, 73, 2], [2, 76, 2], [4, 79, 2], [6, 81, 2], [8, 85, 8]],
   ]),
+  feel: { pad: 0.16, padHz: 1200, padShift: -12, padAttack: 0.12, bass: 0.38, bassHz: [2000, 520], sub: 1.4, leadHz: 3000, swing: 0, echo: 0.3 },
 };
 // Map: F major, 100 BPM. Calm and adventurous: a music-box arpeggio in 8ths, a walking bass in quarters, a soft
 // flute-like lead and light percussion (see mapStep).
@@ -218,6 +322,7 @@ const MAP: Track = {
     [[0, 70, 4], [4, 74, 2], [6, 79, 2], [8, 77, 4], [12, 76, 4]],
     [[0, 79, 6], [6, 77, 2], [8, 76, 4], [12, 74, 2], [14, 76, 2]],
   ]),
+  feel: { pad: 0.13, padHz: 950, padShift: 0, padAttack: 0.45, bass: 0.32, bassHz: [1000, 340], sub: 1.2, leadHz: 4200, swing: 0.16, echo: 0.4 },
 };
 const TRACKS: Record<MusicTrack, Track> = { battle: BATTLE, boss: BOSS, map: MAP };
 const LOOP_STEPS = 8 * 16;
@@ -280,6 +385,7 @@ interface VoiceOpts {
   vib?: { rate: number; cents: number; rate1?: number; cents1?: number }; // pitch LFO, ramping to rate1/cents1
   trem?: { rate: number; depth: number; rate1?: number; wave?: OscillatorType }; // amplitude LFO (depth 0..1)
   rate?: number; // noise playback rate (<1 = darker)
+  buf?: AudioBuffer; // noise source (defaults to the 1 s white noise)
   out?: AudioNode; // defaults to master
   rev?: number; // reverb send level
 }
@@ -315,6 +421,65 @@ function impulse(ctx: Ctx, seconds: number, rand: () => number): AudioBuffer {
   for (let ch = 0; ch < 2; ch++) {
     const d = buf.getChannelData(ch);
     for (let i = 0; i < len; i++) d[i] = (rand() * 2 - 1) * Math.pow(1 - i / len, 3) * (i < fadeIn ? i / fadeIn : 1);
+  }
+  return buf;
+}
+
+/** Seeded 0..1 random (mulberry32): the ambience's timing and the generated buffers repeat exactly. */
+function mulberry(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    let t = (s = (s + 0x6d2b79f5) >>> 0);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** The music's hall: decorrelated stereo noise after a 12 ms pre-delay, decaying 60 dB over `seconds` and losing
+ *  its highs as it goes (a one-pole lowpass closing over the tail), so it blooms without fizz. */
+function hallImpulse(ctx: Ctx, seconds: number): AudioBuffer {
+  const rate = ctx.sampleRate;
+  const len = Math.floor(rate * seconds);
+  const pre = Math.floor(rate * 0.012);
+  const buf = ctx.createBuffer(2, len, rate);
+  for (let ch = 0; ch < 2; ch++) {
+    const rand = mulberry(0x5eed + ch * 977);
+    const d = buf.getChannelData(ch);
+    let lp = 0;
+    for (let i = pre; i < len; i++) {
+      const k = (i - pre) / (len - pre);
+      lp += (0.8 - 0.7 * k) * (rand() * 2 - 1 - lp);
+      d[i] = lp * Math.exp(-6.9 * k) * Math.min(1, (i - pre) / (rate * 0.004));
+    }
+  }
+  return buf;
+}
+
+/** Stereo pink noise (Paul Kellet's filter), decorrelated channels, looping without a seam: wind, rain, surf. */
+function pinkNoise(ctx: Ctx, seconds: number): AudioBuffer {
+  const rate = ctx.sampleRate;
+  const xf = Math.floor(rate * 0.05);
+  const len = Math.floor(rate * seconds);
+  const buf = ctx.createBuffer(2, len, rate);
+  for (let ch = 0; ch < 2; ch++) {
+    const rand = mulberry(0x9a1e + ch * 131);
+    const raw = new Float32Array(len + xf);
+    let [b0, b1, b2, b3, b4, b5, b6] = [0, 0, 0, 0, 0, 0, 0];
+    for (let i = 0; i < raw.length; i++) {
+      const w = rand() * 2 - 1;
+      b0 = 0.99886 * b0 + w * 0.0555179;
+      b1 = 0.99332 * b1 + w * 0.0750759;
+      b2 = 0.969 * b2 + w * 0.153852;
+      b3 = 0.8665 * b3 + w * 0.3104856;
+      b4 = 0.55 * b4 + w * 0.5329522;
+      b5 = -0.7616 * b5 - w * 0.016898;
+      raw[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+      b6 = w * 0.115926;
+    }
+    // the tail past `len` fades into the head, so sample len-1 runs straight on into sample 0
+    for (let i = 0; i < xf; i++) raw[i] = raw[i] * (i / xf) + raw[len + i] * (1 - i / xf);
+    buf.getChannelData(ch).set(raw.subarray(0, len));
   }
   return buf;
 }
@@ -426,6 +591,15 @@ export class Synth {
   private duckUntil = 0; // music stays silent while metronome clicks are scheduled
   private impactDuckUntil = 0; // an impact dipped the music until this ctx time
   private musicLevelSet = -1;
+  private musicFresh = true; // the next step starts a track: reset the echo time and the pad filter
+
+  private amb: AmbRig | null = null; // the ambience playing
+  private ambWant: Ambience | null = null; // the ambience the game asked for
+  private ambTimer: ReturnType<typeof setInterval> | null = null;
+  private ambOut: GainNode | null = null; // every ambience goes through here (level, impact ducks)
+  private ambRev: GainNode | null = null; // ambience -> the reverb
+  private ambLevelSet = -1;
+  private ambStarts = 0; // seeds each ambience start
 
   constructor(o: SynthOptions = {}) {
     this.tuning = o.tuning ?? DEFAULT_TUNING;
@@ -449,6 +623,12 @@ export class Synth {
 
   private get musicLevel(): number {
     return Math.max(0, this.tuning.impact.music);
+  }
+
+  /** The ambience follows the music volume slider, so it stays under the music at any setting. It doesn't follow
+   *  the music on/off switch: with the music off, the places still sound alive. */
+  private get ambLevel(): number {
+    return (AMB_LEVEL * this.musicLevel) / Math.max(0.01, DEFAULT_TUNING.impact.music);
   }
 
   private ensure(): Ctx | null {
@@ -482,6 +662,7 @@ export class Synth {
       src.start(0);
     }
     if (this.musicOn && !this.musicManaged) this.startMusic();
+    if (this.ambTimer === null) this.startAmbience();
   }
 
   applySession(): void {
@@ -566,7 +747,7 @@ export class Synth {
     const gr = this.graph!;
     const t = (o.at ?? ctx.currentTime) + (o.delay ?? 0);
     const src = ctx.createBufferSource();
-    src.buffer = gr.noise;
+    src.buffer = o.buf ?? gr.noise;
     src.loop = true;
     if (o.rate) src.playbackRate.value = o.rate;
     const { g, end } = this.env(o.gain * this.trim, t, o.attack ?? 0.001, o.hold ?? 0, o.dur, o.minTail);
@@ -610,8 +791,9 @@ export class Synth {
   }
 
   /** A shaped voice (oscillator or noise) with breakpoint pitch, gain and filter curves, plus optional vibrato
-   *  and tremolo. The building block of the telegraphs, whose sounds change shape over their whole length. */
-  private voice(o: VoiceOpts): void {
+   *  and tremolo. The building block of the telegraphs, whose sounds change shape over their whole length. Returns
+   *  its envelope gain (to cut it short). */
+  private voice(o: VoiceOpts): GainNode {
     const ctx = this.ctx!;
     const gr = this.graph!;
     const t = o.at;
@@ -634,7 +816,7 @@ export class Synth {
     let src: AudioScheduledSourceNode;
     if (o.type === 'noise') {
       const b = ctx.createBufferSource();
-      b.buffer = gr.noise;
+      b.buffer = o.buf ?? gr.noise;
       b.loop = true;
       if (o.rate) b.playbackRate.value = o.rate;
       src = b;
@@ -680,6 +862,7 @@ export class Synth {
     if (o.type === 'noise') (src as AudioBufferSourceNode).start(t, this.rand() * 0.9);
     else src.start(t);
     src.stop(end + 0.02);
+    return g;
   }
 
   /** Short clicks at the given ctx times: one noise voice through a resonant bandpass, its gain spiking at each. */
@@ -864,18 +1047,19 @@ export class Synth {
     this.tone({ type: 'triangle', f, at: t, delay: 0.003, dur: 0.14, gain: 0.2 * level });
   }
 
-  /** Dip the music under a big impact; it swells back over `ms`. */
+  /** Dip the music (and the ambience under it) under a big impact; they swell back over `ms`. */
   duckMusic(depth: number, ms: number, at?: number): void {
-    const rig = this.rig;
-    if (!rig || !this.ctx || depth <= 0 || this.musicDucked) return;
+    if (!this.ctx || depth <= 0) return;
     const t = this.now(at);
-    const level = this.musicLevel;
-    const p = rig.bus.gain;
-    p.cancelScheduledValues(t);
-    p.setValueAtTime(p.value, t);
-    p.linearRampToValueAtTime(level * (1 - Math.min(1, depth)), t + 0.012);
-    p.setTargetAtTime(level, t + 0.04 + (ms / 1000) * 0.25, Math.max(0.01, ms / 3000));
+    const dip = (p: AudioParam, level: number) => {
+      p.cancelScheduledValues(t);
+      p.setValueAtTime(p.value, t);
+      p.linearRampToValueAtTime(level * (1 - Math.min(1, depth)), t + 0.012);
+      p.setTargetAtTime(level, t + 0.04 + (ms / 1000) * 0.25, Math.max(0.01, ms / 3000));
+    };
     this.impactDuckUntil = t + ms / 1000;
+    if (this.ambOut) dip(this.ambOut.gain, this.ambLevel);
+    if (this.rig && !this.musicDucked) dip(this.rig.bus.gain, this.musicLevel);
   }
 
   // ---------------------------------------------------------------- sfx
@@ -1185,6 +1369,75 @@ export class Synth {
     const t = this.now(at);
     this.tone({ type: 'triangle', f: 2000, f1: 1300, glide: 0.025, at: t, dur: 0.035, gain: 0.07 });
     this.noise({ at: t, dur: 0.012, gain: 0.04, filter: 'highpass', f: 5000 });
+  }
+
+  /** A screen transition: a soft swoosh of air sweeping across the stereo field, left to right and rising (`back`:
+   *  right to left, falling), with a faint low swell under it. */
+  whoosh(back = false, at?: number): void {
+    if (!this.ready) return;
+    const ctx = this.ctx!;
+    const t = this.now(at);
+    const d = 0.36;
+    const pan = ctx.createStereoPanner();
+    pan.pan.setValueAtTime(back ? 0.7 : -0.7, t);
+    pan.pan.linearRampToValueAtTime(back ? -0.7 : 0.7, t + d);
+    pan.connect(this.graph!.master);
+    const [f0, f1] = back ? [2600, 380] : [380, 2600];
+    this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, f0], [d, f1]], q: 1.1, amp: [[d * 0.55, 0.3], [d, 0]], out: pan, rev: 0.25 });
+    this.voice({ at: t, type: 'noise', filter: 'highpass', ff: [[0, back ? 5000 : 2500], [d, back ? 2500 : 6000]], amp: [[d * 0.5, 0.05], [d * 0.9, 0]], out: pan });
+    this.tone({ type: 'sine', f: back ? 150 : 95, f1: back ? 85 : 150, glide: d, at: t, attack: d * 0.5, dur: d, gain: 0.08 });
+    this.disposeAt(t + d + 0.1, pan);
+  }
+
+  /** A panel or menu opens: a quick, soft rising "bloop" with a breath of air. */
+  panelOpen(at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    this.tone({ type: 'sine', f: 520, f1: 900, glide: 0.05, at: t, attack: 0.004, dur: 0.09, gain: 0.13 });
+    this.tone({ type: 'triangle', f: 1320, at: t + 0.045, attack: 0.003, dur: 0.12, gain: 0.05, rev: 0.25 });
+    this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 1200], [0.08, 4000]], q: 1.2, amp: [[0.04, 0.05], [0.09, 0]] });
+  }
+
+  /** A panel or menu closes: the open sound turned around, falling and a touch softer. */
+  panelClose(at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    this.tone({ type: 'sine', f: 880, f1: 480, glide: 0.06, at: t, attack: 0.003, dur: 0.1, gain: 0.12 });
+    this.tone({ type: 'triangle', f: 990, at: t, attack: 0.002, dur: 0.06, gain: 0.035 });
+    this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 3500], [0.08, 1000]], q: 1.2, amp: [[0.02, 0.05], [0.09, 0]] });
+  }
+
+  /** A soft footstep on a dirt road (the act map's walk): a muffled thud with a little grit, quiet. Odd `i` is the
+   *  other foot (a touch lighter); every step's pitch varies a little so a walk never repeats exactly. */
+  footstep(i = 0, at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    const k = (i % 2 ? 0.94 : 1.04) * (1 + (this.rand() - 0.5) * 0.16);
+    const v = i % 2 ? 0.8 : 1;
+    this.noise({ at: t, dur: 0.07, attack: 0.003, gain: 0.32 * v, filter: 'lowpass', f: 650 * k, f1: 260 * k, rate: 0.7 });
+    this.tone({ type: 'triangle', f: 170 * k, f1: 90 * k, glide: 0.04, at: t, attack: 0.002, dur: 0.06, gain: 0.1 * v });
+    this.noise({ at: t + 0.006, dur: 0.045, attack: 0.002, gain: 0.07 * v, filter: 'bandpass', f: 2000 * k, q: 1.1 });
+    this.ticks(
+      Array.from({ length: 3 }, () => t + 0.004 + this.rand() * 0.04),
+      { gain: 0.05 * v, f: 3200 * k, q: 1.5, ms: 3 },
+    );
+  }
+
+  /** One tick of a coin counter rolling up: a tiny metallic tick, a little higher for each `i` (up to 12). */
+  coinTick(i = 0, at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    const f = 2800 * Math.pow(2, Math.min(12, Math.max(0, i)) / 24);
+    this.tone({ type: 'sine', f, at: t, attack: 0.001, dur: 0.045, gain: 0.07 });
+    this.tone({ type: 'sine', f: f * 2.76, at: t, attack: 0.001, dur: 0.02, gain: 0.03 });
+    this.noise({ at: t, dur: 0.008, gain: 0.03, filter: 'highpass', f: 7000 });
+  }
+
+  /** Disconnect `nodes` once ctx time passes `at` (a real context; an offline graph ends with its render). */
+  private disposeAt(at: number, ...nodes: AudioNode[]): void {
+    const ctx = this.ctx;
+    if (this.offline || !ctx) return;
+    setTimeout(() => nodes.forEach((n) => n.disconnect()), Math.max(0, at - ctx.currentTime) * 1000 + 100);
   }
 
   // ---------------------------------------------------------------- telegraphs
@@ -1818,6 +2071,7 @@ export class Synth {
     this.musicStep = 0;
     this.musicResync = true;
     this.musicDucked = false;
+    this.musicFresh = true;
     this.musicTimer = setInterval(this.tick, TICK_MS);
     this.tick();
   }
@@ -1834,10 +2088,7 @@ export class Synth {
     if (!rig) return;
     if (this.ctx) this.fade(rig.bus, 0, 0.12);
     setTimeout(() => {
-      rig.bus.disconnect();
-      rig.bass.disconnect();
-      rig.hats.disconnect();
-      rig.snare.disconnect();
+      for (const n of rig.nodes) n.disconnect();
     }, 300);
   }
 
@@ -1863,7 +2114,7 @@ export class Synth {
     if (!this.ctx || !this.graph) return;
     if (!this.rig) this.rig = this.buildRig(this.ctx, at);
     const tr = TRACKS[name];
-    for (let i = 0; i < steps; i++) this.playStep(this.rig, tr, name, i % LOOP_STEPS, at + i * tr.step);
+    for (let i = 0; i < steps; i++) this.playStep(this.rig, tr, name, i % LOOP_STEPS, at + i * tr.step, i === 0);
   }
 
   private fade(bus: GainNode, target: number, time: number): void {
@@ -1874,19 +2125,113 @@ export class Synth {
     p.linearRampToValueAtTime(target, t + time);
   }
 
+  /** The music's persistent graph: a bus per part, the pad's stereo pair, sidechain and filter, the ping-pong echo
+   *  and the hall. About 40 nodes, built once per music run. */
   private buildRig(ctx: Ctx, at?: number): MusicRig {
-    const bus = ctx.createGain();
-    bus.gain.value = 0;
-    bus.connect(this.graph!.master);
-    const filter = (type: BiquadFilterType, f: number, q: number): BiquadFilterNode => {
-      const n = ctx.createBiquadFilter();
+    const gr = this.graph!;
+    const nodes: AudioNode[] = [];
+    const keep = <T extends AudioNode>(n: T): T => {
+      nodes.push(n);
+      return n;
+    };
+    const gain = (v: number, to?: AudioNode): GainNode => {
+      const g = keep(ctx.createGain());
+      g.gain.value = v;
+      if (to) g.connect(to);
+      return g;
+    };
+    const filter = (type: BiquadFilterType, f: number, q: number, to: AudioNode): BiquadFilterNode => {
+      const n = keep(ctx.createBiquadFilter());
       n.type = type;
       n.frequency.value = f;
       n.Q.value = q;
-      n.connect(bus);
+      n.connect(to);
       return n;
     };
-    const rig = { bus, bass: filter('lowpass', 1000, 0), hats: filter('highpass', 7500, 0), snare: filter('bandpass', 2200, 0.6) };
+    const pan = (p: number, to: AudioNode): StereoPannerNode => {
+      const n = keep(ctx.createStereoPanner());
+      n.pan.value = p;
+      n.connect(to);
+      return n;
+    };
+    const send = (from: AudioNode, to: AudioNode, level: number) => from.connect(gain(level, to));
+
+    const bus = gain(0, gain(MUSIC_TRIM, gr.master));
+    // the hall: a long, dark reverb for the music alone (ducked with it)
+    gr.hall ??= hallImpulse(ctx, 2.2);
+    const conv = keep(ctx.createConvolver());
+    conv.buffer = gr.hall;
+    conv.connect(gain(0.6, bus));
+    const verb = filter('highpass', 320, 0.7, conv);
+    // ping-pong echo: left, then right, a little darker each time round (dotted 8ths, set per track)
+    const merge = keep(ctx.createChannelMerger(2));
+    merge.connect(gain(0.55, bus));
+    const echoL = keep(ctx.createDelay(1));
+    const echoR = keep(ctx.createDelay(1));
+    echoL.connect(merge, 0, 0);
+    echoR.connect(merge, 0, 1);
+    const fb1 = gain(0.35, echoR);
+    echoL.connect(fb1);
+    const fb2 = gain(0.35, echoL);
+    echoR.connect(filter('lowpass', 2400, 0.5, fb2));
+    const echo = gain(1, filter('highpass', 380, 0.7, echoL));
+
+    const drums = gain(1, bus);
+    const kick = gain(1);
+    const drive = keep(ctx.createWaveShaper());
+    drive.curve = this.driveCurve(2) as Float32Array<ArrayBuffer>;
+    kick.connect(drive);
+    drive.connect(drums);
+    const snare = filter('bandpass', 1800, 0.7, drums);
+    send(snare, verb, 0.35);
+    const hats = filter('highpass', 6500, 0.6, pan(0.3, bus));
+    const perc = gain(1, pan(-0.35, bus));
+    send(perc, verb, 0.3);
+    const bassDuck = gain(1, bus);
+    const bass = filter('lowpass', 1600, 0.6, bassDuck);
+    const padDuck = gain(1, bus);
+    send(padDuck, verb, 0.6);
+    const padTone = filter('lowpass', 1200, 0.9, padDuck);
+    const padMerge = keep(ctx.createChannelMerger(2));
+    padMerge.connect(padTone);
+    const padL = gain(1);
+    padL.connect(padMerge, 0, 0);
+    const padR = gain(1);
+    padR.connect(padMerge, 0, 1);
+    const arpTone = filter('lowpass', 3600, 0.5, bus);
+    send(arpTone, echo, 0.25);
+    send(arpTone, verb, 0.2);
+    const lead = filter('lowpass', 3400, 0.6, bus);
+    send(lead, echo, 0.32);
+    send(lead, verb, 0.3);
+    const fx = gain(1, bus);
+    send(fx, verb, 0.8);
+
+    const rig: MusicRig = {
+      bus,
+      drums,
+      kick,
+      snare,
+      hats,
+      perc,
+      bass,
+      bassDuck,
+      padL,
+      padR,
+      padTone,
+      padDuck,
+      arpL: pan(-0.55, arpTone),
+      arpR: pan(0.55, arpTone),
+      lead,
+      fx,
+      echo,
+      echoL,
+      echoR,
+      echoFb: [fb1, fb2],
+      echoAt: [0, 0.35],
+      nodes,
+      riser: null,
+    };
     this.musicLevelSet = this.musicLevel;
     if (at !== undefined) bus.gain.setValueAtTime(this.musicLevel, at);
     else this.fade(bus, this.musicLevel, 0.06);
@@ -1899,7 +2244,10 @@ export class Synth {
       this.musicResync = true;
       return;
     }
-    if (!this.rig) this.rig = this.buildRig(ctx);
+    if (!this.rig) {
+      this.rig = this.buildRig(ctx);
+      this.musicFresh = true;
+    }
     const rig = this.rig;
     const now = ctx.currentTime;
     if (now < this.duckUntil) {
@@ -1926,72 +2274,214 @@ export class Synth {
         // the boss arrives (or leaves), or we go to or from the map: the other theme starts from its top, on the beat
         this.track = this.nextTrack;
         this.musicStep = 0;
+        this.musicFresh = true;
       }
       const tr = TRACKS[this.track];
-      this.playStep(rig, tr, this.track, this.musicStep, this.musicNext);
+      this.playStep(rig, tr, this.track, this.musicStep, this.musicNext, this.musicFresh);
+      this.musicFresh = false;
       this.musicNext += tr.step;
       this.musicStep = (this.musicStep + 1) % LOOP_STEPS;
     }
   };
 
-  private playStep(rig: MusicRig, tr: Track, name: MusicTrack, step: number, t: number): void {
-    if (name === 'map') return this.mapStep(rig, tr, step, t);
+  private playStep(rig: MusicRig, tr: Track, name: MusicTrack, step: number, t: number, fresh = false): void {
     const bar = step >> 4;
     const s = step & 15;
     const chord = tr.song[bar];
     const STEP = tr.step;
+    if (fresh) this.trackStart(rig, tr, t);
+    if (s === 0) this.padChord(rig, tr, chord.arp, bar, t);
+    // a noise riser over the last two beats, into the loop point
+    if (bar === 7 && s === 8) this.riser(rig, 8 * STEP, t, name === 'map' ? 0.45 : 1);
+    if (name === 'map') return this.mapStep(rig, tr, step, t);
 
     const b = tr.bass(bar)[s];
-    if (b) this.bassNote(rig, hz(chord.root + b[0]), t, b[1] * STEP * 0.92);
+    if (b) this.bassNote(rig, tr.feel, hz(chord.root + b[0]), t, b[1] * STEP * 0.92);
 
-    this.tone({ type: 'pulse12', f: hz(chord.arp[tr.arp[s]]), at: t, dur: STEP * 0.85, gain: 0.3, out: rig.bus });
+    // the arpeggio: a soft pulse pluck, alternating sides
+    this.tone({ type: 'pulse25', f: hz(chord.arp[tr.arp[s]]), at: t, attack: 0.003, dur: STEP * 0.9, gain: name === 'boss' ? 0.7 : 0.8, out: s % 2 ? rig.arpR : rig.arpL });
 
     const l = tr.lead[step];
     if (l) {
       const len = l[1] * STEP;
-      this.tone({ type: 'pulse25', f: hz(l[0]), at: t, attack: 0.005, hold: len * 0.45, dur: len * 0.95, gain: 0.42, scoop: -30, out: rig.bus });
+      this.leadNote(rig, l[0], t, len, 0.3, l[1] >= 4);
       // the boss lead is doubled an octave down for weight
-      if (name === 'boss') this.tone({ type: 'square', f: hz(l[0] - 12), at: t, attack: 0.005, hold: len * 0.4, dur: len * 0.9, gain: 0.12, out: rig.bus });
+      if (name === 'boss') this.leadNote(rig, l[0] - 12, t, len, 0.13, false, 'sawtooth');
     }
 
-    if (name === 'boss') this.bossDrums(rig, bar, s, t);
-    else this.battleDrums(rig, bar, s, t);
+    if (name === 'boss') this.bossDrums(rig, tr.feel, bar, s, t, STEP);
+    else this.battleDrums(rig, tr.feel, bar, s, t, STEP);
   }
 
-  private battleDrums(rig: MusicRig, bar: number, s: number, t: number): void {
+  /** A track takes over: the echo glides to its tempo, the pad filter and any riser from the last one reset.
+   *  (Scheduled automation here and in the ambience uses explicit ramps, never setTargetAtTime: the offline renderer
+   *  the tests use applies a setTargetAtTime curve before its start time.) */
+  private trackStart(rig: MusicRig, tr: Track, t: number): void {
+    const [time, fb] = rig.echoAt;
+    const glide = (p: AudioParam, from: number, to: number) => {
+      p.cancelScheduledValues(t);
+      p.setValueAtTime(from, t);
+      p.linearRampToValueAtTime(to, t + 0.05);
+    };
+    for (const d of [rig.echoL, rig.echoR]) glide(d.delayTime, time, 3 * tr.step);
+    for (const g of rig.echoFb) glide(g.gain, fb, tr.feel.echo);
+    rig.echoAt = [3 * tr.step, tr.feel.echo];
+    const f = rig.padTone.frequency;
+    f.cancelScheduledValues(t);
+    f.setValueAtTime(tr.feel.padHz, t);
+    rig.lead.frequency.setValueAtTime(tr.feel.leadHz, t);
+    if (rig.riser) {
+      rig.riser.gain.cancelScheduledValues(t);
+      rig.riser.gain.setValueAtTime(0, t);
+      rig.riser = null;
+    }
+  }
+
+  /** The bar's chord on the pad: three notes, each a pair of saws detuned against each other, one per side. The
+   *  pad's filter opens over the last bar and settles back at the top of the loop. */
+  private padChord(rig: MusicRig, tr: Track, arp: number[], bar: number, t: number): void {
+    const fl = tr.feel;
+    const len = 16 * tr.step;
+    const f = rig.padTone.frequency;
+    if (bar === 7) {
+      f.setValueAtTime(fl.padHz, t);
+      f.exponentialRampToValueAtTime(fl.padHz * 3.2, t + len);
+    } else if (bar === 0) f.exponentialRampToValueAtTime(fl.padHz, t + 0.35);
+    for (const m of arp.slice(0, 3)) {
+      const pf = hz(m + fl.padShift);
+      for (const [out, det] of [
+        [rig.padL, -7],
+        [rig.padR, 7],
+      ] as const)
+        this.tone({ type: 'sawtooth', f: pf, detune: det, at: t, attack: fl.padAttack, hold: len - fl.padAttack, dur: len + 0.5, minTail: 0.5, gain: fl.pad, out });
+    }
+  }
+
+  /** A lead note: a pulse with a quieter detuned layer (a light chorus), scooping up into pitch, vibrato blooming on
+   *  long notes; through the lead lowpass into the echo and the hall. */
+  private leadNote(rig: MusicRig, m: number, t: number, len: number, level: number, vib: boolean, wave: Wave = 'pulse25'): void {
+    const ctx = this.ctx!;
+    const f = hz(m);
+    const end = t + len * 0.95 + 0.04;
+    const a = this.osc(wave, f);
+    const b = this.osc('sawtooth', f);
+    a.detune.setValueAtTime(-30, t);
+    a.detune.linearRampToValueAtTime(0, t + 0.03);
+    b.detune.setValueAtTime(-22, t);
+    b.detune.linearRampToValueAtTime(8, t + 0.03);
+    const bl = ctx.createGain();
+    bl.gain.value = 0.3;
+    b.connect(bl);
+    const { g } = this.env(level, t, 0.006, len * 0.5, len * 0.95, 0.04);
+    a.connect(g);
+    bl.connect(g);
+    g.connect(rig.lead);
+    const nodes: AudioNode[] = [a, b, bl, g];
+    if (vib) {
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = 5.4;
+      const depth = ctx.createGain();
+      depth.gain.setValueAtTime(0, t);
+      depth.gain.linearRampToValueAtTime(0, t + 0.15);
+      depth.gain.linearRampToValueAtTime(14, t + len);
+      lfo.connect(depth);
+      depth.connect(a.detune);
+      depth.connect(b.detune);
+      lfo.start(t);
+      lfo.stop(end);
+      nodes.push(lfo, depth);
+    }
+    a.onended = () => nodes.forEach((n) => n.disconnect());
+    a.start(t);
+    b.start(t);
+    a.stop(end);
+    b.stop(end);
+  }
+
+  /** An oscillator of any of the synth's waves (pulses come from the precomputed periodic waves). */
+  private osc(type: Wave, f: number): OscillatorNode {
+    const o = this.ctx!.createOscillator();
+    if (type === 'pulse25') o.setPeriodicWave(this.graph!.pulse25);
+    else if (type === 'pulse12') o.setPeriodicWave(this.graph!.pulse12);
+    else o.type = type;
+    o.frequency.value = f;
+    return o;
+  }
+
+  /** A noise riser (band sweeping up, swelling) over `d` seconds into the loop point. */
+  private riser(rig: MusicRig, d: number, t: number, level: number): void {
+    rig.riser = this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 450], [d, 7000]], q: 1.3, amp: [[d * 0.5, 0.05 * level], [d * 0.97, 0.2 * level], [d + 0.015, 0]], out: rig.fx });
+  }
+
+  /** Kick: a sine thump with a fast pitch drop into a soft-clip drive, a knock and a click (what a phone speaker
+   *  plays of it); the pad and the bass duck under it and breathe back (sidechain). */
+  private kick(rig: MusicRig, t: number, v: number, pitch = 1, duck = 0.3): void {
+    this.tone({ type: 'sine', f: 150 * pitch, f1: 46 * pitch, glide: 0.06, at: t, attack: 0.001, hold: 0.025, dur: 0.22, gain: 0.42 * v, out: rig.kick });
+    // the knock: a short triangle an octave up, where a phone speaker can play it
+    this.tone({ type: 'triangle', f: 300 * pitch, f1: 110 * pitch, glide: 0.035, at: t, attack: 0.001, dur: 0.07, gain: 0.16 * v, out: rig.drums });
+    this.noise({ at: t, dur: 0.01, attack: 0.0005, gain: 0.2 * v, filter: 'highpass', f: 2500, out: rig.drums });
+    // (kicks are at least 0.2 s apart, so each dip has recovered before the next)
+    const p = rig.padDuck.gain;
+    p.setValueAtTime(1, t);
+    p.linearRampToValueAtTime(duck, t + 0.01);
+    p.linearRampToValueAtTime(1, t + 0.17);
+    const b = rig.bassDuck.gain;
+    b.setValueAtTime(1, t);
+    b.linearRampToValueAtTime(0.4 + duck * 0.5, t + 0.006);
+    b.linearRampToValueAtTime(1, t + 0.1);
+  }
+
+  /** Snare: a noise crack and a short tonal body; on the backbeat a clap layered over it (three quick bursts). */
+  private snare(rig: MusicRig, t: number, v: number, clap: boolean): void {
+    this.noise({ at: t, dur: 0.17, attack: 0.001, gain: 1.6 * v, out: rig.snare });
+    this.tone({ type: 'triangle', f: 210, f1: 150, glide: 0.05, at: t, dur: 0.09, gain: 0.55 * v, out: rig.drums });
+    if (clap) this.ticks([t - 0.012, t - 0.005, t + 0.003], { gain: 1.1 * v, f: 1400, q: 1.1, ms: 7, out: rig.snare });
+  }
+
+  private hat(rig: MusicRig, t: number, v: number, open = false): void {
+    this.noise({ at: t, attack: 0.001, dur: open ? 0.16 : 0.04, gain: 0.75 * v, out: rig.hats });
+  }
+
+  private crash(rig: MusicRig, t: number, v: number): void {
+    this.noise({ at: t, dur: 1.5, attack: 0.002, gain: 0.2 * v, filter: 'highpass', f: 4500, out: rig.fx });
+  }
+
+  /** A low tom (the boss fill): a pitch-falling triangle and a thud of noise. */
+  private tom(rig: MusicRig, t: number, f: number, v: number): void {
+    this.tone({ type: 'triangle', f, f1: f * 0.62, glide: 0.12, at: t, attack: 0.002, dur: 0.28, gain: 0.42 * v, out: rig.drums });
+    this.noise({ at: t, dur: 0.06, gain: 0.2 * v, filter: 'bandpass', f: f * 4, q: 1, out: rig.drums });
+  }
+
+  private battleDrums(rig: MusicRig, fl: Feel, bar: number, s: number, t: number, STEP: number): void {
     const fill = bar === 7 && s >= 12;
-    if (s === 0 || s === 8 || s === 10 || (s === 3 && bar % 2 === 1)) {
-      this.tone({ type: 'sine', f: 165, f1: 48, glide: 0.08, at: t, dur: 0.18, gain: 0.7, out: rig.bus });
-    }
-    const snare = s === 4 || s === 12 ? 1 : fill ? 0.35 + (s - 12) * 0.2 : 0;
-    if (snare) {
-      this.noise({ at: t, dur: 0.13, gain: 0.8 * snare, out: rig.snare });
-      this.tone({ type: 'triangle', f: 230, f1: 160, glide: 0.05, at: t, dur: 0.07, gain: 0.35 * snare, out: rig.bus });
-    }
-    if (bar === 0 && s === 0) this.noise({ at: t, dur: 0.45, gain: 0.45, out: rig.hats }); // crash at the top of the loop
+    if (s === 0 || s === 8 || s === 10 || (s === 3 && bar % 2 === 1)) this.kick(rig, t, s === 0 || s === 8 ? 1 : 0.8);
+    // backbeat with a clap, ghost notes for the groove, a roll into the loop
+    const snare = s === 4 || s === 12 ? 1 : fill ? 0.35 + (s - 12) * 0.2 : s === 7 || (s === 15 && bar % 2 === 0) ? 0.16 : 0;
+    if (snare) this.snare(rig, t, snare, s === 4 || s === 12);
+    if (bar === 0 && s === 0) this.crash(rig, t, 1); // crash at the top of the loop
     else if (!fill) {
       const open = s === 14 && bar % 2 === 1;
-      const vel = s % 4 === 2 ? 0.9 : s % 2 === 0 ? 0.55 : 0.28;
-      this.noise({ at: t, dur: open ? 0.11 : 0.035, gain: 0.3 * (open ? 0.8 : vel), out: rig.hats });
+      const vel = s % 4 === 2 ? 0.9 : s % 2 === 0 ? 0.55 : 0.3;
+      this.hat(rig, t + (s % 2 ? fl.swing * STEP : 0), open ? 0.75 : vel, open);
     }
   }
 
-  /** Boss drums: driving kicks (double-time in the second half), a rolling snare fill, crashes every 4 bars. */
-  private bossDrums(rig: MusicRig, bar: number, s: number, t: number): void {
+  /** Boss drums: driving kicks (double-time in the second half), a snare roll over falling toms into the loop,
+   *  crashes every 4 bars. */
+  private bossDrums(rig: MusicRig, fl: Feel, bar: number, s: number, t: number, STEP: number): void {
     const fill = bar === 7 && s >= 8;
     const kick = bar >= 4 ? s % 2 === 0 && !fill : s === 0 || s === 3 || s === 6 || s === 8 || s === 10 || s === 14;
-    if (kick || (fill && s % 4 === 0)) this.tone({ type: 'sine', f: 170, f1: 46, glide: 0.07, at: t, dur: 0.15, gain: 0.62, out: rig.bus });
-    const snare = s === 4 || s === 12 ? 1 : fill ? 0.3 + (s - 8) * 0.09 : 0;
-    if (snare) {
-      this.noise({ at: t, dur: 0.12, gain: 0.8 * snare, out: rig.snare });
-      this.tone({ type: 'triangle', f: 240, f1: 150, glide: 0.05, at: t, dur: 0.07, gain: 0.35 * snare, out: rig.bus });
-    }
-    if ((bar === 0 || bar === 4) && s === 0) this.noise({ at: t, dur: 0.5, gain: 0.45, out: rig.hats });
-    else if (!fill && s % 2 === 0) this.noise({ at: t, dur: 0.035, gain: 0.3 * (s % 4 === 2 ? 0.9 : 0.5), out: rig.hats });
+    if (kick || (fill && s % 4 === 0)) this.kick(rig, t, s % 4 === 0 ? 1 : 0.8, 1.05);
+    const snare = s === 4 || s === 12 ? 1 : fill ? 0.25 + (s - 8) * 0.08 : 0;
+    if (snare) this.snare(rig, t, snare, s === 4 || s === 12);
+    if (fill && s % 2 === 0) this.tom(rig, t, 150 - (s - 8) * 9, 0.7 + (s - 8) * 0.04);
+    if ((bar === 0 || bar === 4) && s === 0) this.crash(rig, t, 1);
+    else if (!fill && s % 2 === 0) this.hat(rig, t, s % 4 === 2 ? 0.9 : 0.5);
+    else if (!fill && bar >= 4) this.hat(rig, t + fl.swing * STEP, 0.25);
   }
 
-  /** The map theme's voices: walking bass, a music-box arpeggio on the 8ths, and a soft flute-like lead whose
-   *  longer notes bloom into a gentle vibrato. */
+  /** The map theme's voices: walking bass, a music-box arpeggio on the 8ths (alternating sides), and a soft
+   *  flute-like lead whose longer notes bloom into a gentle vibrato. */
   private mapStep(rig: MusicRig, tr: Track, step: number, t: number): void {
     const bar = step >> 4;
     const s = step & 15;
@@ -1999,12 +2489,13 @@ export class Synth {
     const STEP = tr.step;
 
     const b = tr.bass(bar)[s];
-    if (b) this.bassNote(rig, hz(chord.root + b[0]), t, b[1] * STEP * 0.85, 0.36);
+    if (b) this.bassNote(rig, tr.feel, hz(chord.root + b[0]), t, b[1] * STEP * 0.85);
 
     if (s % 2 === 0) {
       const f = hz(chord.arp[tr.arp[s]]);
-      this.tone({ type: 'triangle', f, at: t, dur: STEP * 2.2, gain: 0.3, out: rig.bus });
-      this.tone({ type: 'sine', f: f * 2, at: t, dur: STEP * 1.4, gain: 0.11, out: rig.bus });
+      const out = s % 4 ? rig.arpR : rig.arpL;
+      this.tone({ type: 'triangle', f, at: t, dur: STEP * 2.2, gain: 0.45, out });
+      this.tone({ type: 'sine', f: f * 2, at: t, dur: STEP * 1.4, gain: 0.18, out });
     }
 
     const l = tr.lead[step];
@@ -2012,57 +2503,565 @@ export class Synth {
       const len = l[1] * STEP;
       const f = hz(l[0]);
       const vib = l[1] >= 4 ? { rate: 5.2, cents: 0, cents1: 16 } : undefined;
-      const amp: Pts = [[0.025, 0.36], [len * 0.55, 0.29], [len * 0.97, 0]];
-      this.voice({ at: t, type: 'triangle', f: [[0, f]], vib, amp, out: rig.bus });
-      this.voice({ at: t, type: 'pulse25', f: [[0, f]], vib, amp: scalePts(amp, 0.16), out: rig.bus });
+      const amp: Pts = [[0.03, 0.3], [len * 0.55, 0.24], [len * 0.97, 0]];
+      this.voice({ at: t, type: 'triangle', f: [[0, f]], vib, amp, out: rig.lead });
+      this.voice({ at: t, type: 'pulse25', f: [[0, f]], vib, amp: scalePts(amp, 0.14), out: rig.lead });
     }
 
-    this.mapDrums(rig, bar, s, t);
+    this.mapDrums(rig, tr.feel, bar, s, t, STEP);
   }
 
-  /** Map percussion, light: a soft kick on 1 and 3, a woodblock on 2 and 4, a shaker on the 8ths, a small fill
-   *  into the loop and a chime at its top. */
-  private mapDrums(rig: MusicRig, bar: number, s: number, t: number): void {
+  /** Map percussion, light: a soft low kick on 1 and 3 (the pad breathes with it), a woodblock on 2 and 4, a swung
+   *  shaker on the 8ths, a small fill into the loop and a chime at its top. */
+  private mapDrums(rig: MusicRig, fl: Feel, bar: number, s: number, t: number, STEP: number): void {
     const fill = bar === 7 && s >= 10;
-    if (s === 0 || s === 8 || (s === 14 && bar % 2 === 1 && !fill)) this.tone({ type: 'sine', f: 120, f1: 50, glide: 0.08, at: t, dur: 0.16, gain: s === 14 ? 0.2 : 0.32, out: rig.bus });
+    if (s === 0 || s === 8 || (s === 14 && bar % 2 === 1 && !fill)) this.kick(rig, t, s === 14 ? 0.3 : 0.5, 0.8, 0.6);
     const block = s === 4 || s === 12 ? 1 : fill && (s === 10 || s >= 13) ? 0.7 : 0;
     if (block) {
       const f = fill ? 760 + (s - 10) * 60 : 820;
-      this.tone({ type: 'triangle', f, f1: f * 0.92, glide: 0.04, at: t, dur: 0.05, gain: 0.22 * block, out: rig.bus });
-      this.noise({ at: t, dur: 0.03, gain: 0.18 * block, out: rig.snare });
+      this.tone({ type: 'triangle', f, f1: f * 0.92, glide: 0.04, at: t, dur: 0.05, gain: 0.2 * block, out: rig.perc });
+      this.noise({ at: t, dur: 0.03, gain: 0.12 * block, filter: 'bandpass', f: 2200, out: rig.perc });
     }
-    if (s % 2 === 0 && !fill) this.noise({ at: t, attack: 0.01, dur: 0.045, gain: s % 4 === 2 ? 0.14 : 0.07, out: rig.hats });
-    if (bar === 0 && s === 0) this.bell(hz(89), t, 0.025, 0.5);
+    if (!fill) this.noise({ at: t + (s % 2 ? fl.swing * STEP : 0), attack: 0.01, dur: 0.045, gain: s % 4 === 2 ? 0.4 : s % 2 ? 0.1 : 0.2, out: rig.hats });
+    if (bar === 0 && s === 0) {
+      // a chime at the top of the loop, into the hall
+      const f = hz(89);
+      this.tone({ type: 'sine', f, at: t, dur: 0.9, gain: 0.05, out: rig.fx });
+      this.tone({ type: 'sine', f: f * 2.76, at: t, dur: 0.35, gain: 0.02, out: rig.fx });
+    }
   }
 
-  /** Triangle bass with a quiet square layer (so it reads on phone speakers), through the bass lowpass. */
-  private bassNote(rig: MusicRig, f: number, t: number, dur: number, level = 0.55): void {
+  /** Bass: a saw whose resonant lowpass plucks shut (the growl a phone speaker can play) over a sine sub an octave
+   *  down (on the fundamental for the lowest notes): the weight on headphones, ducked under the kick with the rest. */
+  private bassNote(rig: MusicRig, fl: Feel, f: number, t: number, dur: number): void {
     const ctx = this.ctx!;
-    const tri = ctx.createOscillator();
-    tri.type = 'triangle';
-    tri.frequency.value = f;
-    const sq = ctx.createOscillator();
-    sq.type = 'square';
-    sq.frequency.value = f;
-    const sqLevel = ctx.createGain();
-    sqLevel.gain.value = 0.35;
-    const { g, end } = this.env(level, t, 0.004, dur * 0.5, dur);
-    tri.connect(g);
-    sq.connect(sqLevel);
-    sqLevel.connect(g);
+    const saw = this.osc('sawtooth', f);
+    const sub = this.osc('sine', f >= 80 ? f / 2 : f);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.Q.value = 2.5;
+    lp.frequency.setValueAtTime(fl.bassHz[0], t);
+    lp.frequency.exponentialRampToValueAtTime(fl.bassHz[1], t + Math.min(0.14, dur));
+    const subLevel = ctx.createGain();
+    subLevel.gain.value = fl.sub;
+    const { g, end } = this.env(fl.bass, t, 0.004, dur * 0.6, dur, 0.04);
+    saw.connect(lp);
+    lp.connect(g);
+    sub.connect(subLevel);
+    subLevel.connect(g);
     g.connect(rig.bass);
-    tri.onended = () => {
-      tri.disconnect();
-      sq.disconnect();
-      sqLevel.disconnect();
+    saw.onended = () => {
+      for (const n of [saw, sub, lp, subLevel, g]) n.disconnect();
+    };
+    saw.start(t);
+    sub.start(t);
+    saw.stop(end + 0.02);
+    sub.stop(end + 0.02);
+  }
+
+  // ---------------------------------------------------------------- ambience
+
+  /** The place's sound bed under the music; crossfades from the last one (null: none). It plays while the sound is
+   *  on, the page is visible and the context runs (the music switch doesn't stop it). */
+  setAmbience(name: Ambience | null): void {
+    this.ambWant = name;
+    this.startAmbience();
+  }
+
+  /** The ambience timer runs once there is a (real) context: from the first unlock on. */
+  private startAmbience(): void {
+    if (this.offline || !this.ctx) return;
+    if (this.ambTimer === null) this.ambTimer = setInterval(this.ambTick, AMB_TICK_MS);
+    this.ambTick();
+  }
+
+  get currentAmbience(): Ambience | null {
+    return this.ambWant;
+  }
+
+  /** Schedule `seconds` of an ambience from ctx time `at`, fading out at the end (tests and the Sound lab). */
+  scheduleAmbience(at: number, seconds: number, name: Ambience): void {
+    if (!this.ctx || !this.graph) return;
+    const r = this.buildAmb(name, at, 0.15);
+    this.ambSchedule(r, at, at + seconds);
+    this.endAmb(r, at + seconds - 0.4, 0.4);
+  }
+
+  private ensureAmbOut(): GainNode {
+    if (!this.ambOut) {
+      const ctx = this.ctx!;
+      const gr = this.graph!;
+      const out = ctx.createGain();
+      out.gain.value = this.ambLevel;
+      out.connect(gr.master);
+      const rev = ctx.createGain();
+      rev.gain.value = 0;
+      out.connect(rev);
+      rev.connect(gr.revIn);
+      this.ambOut = out;
+      this.ambRev = rev;
+      this.ambLevelSet = this.ambLevel;
+    }
+    return this.ambOut;
+  }
+
+  private readonly ambTick = (): void => {
+    const ctx = this.ctx;
+    if (!ctx || !this.graph) return;
+    const now = ctx.currentTime;
+    // fade out while muted, hidden or calibrating (and before the context is unlocked)
+    const live = ctx.state === 'running' && !this._muted && !(typeof document !== 'undefined' && document.hidden) && now >= this.duckUntil;
+    const want = live ? this.ambWant : null;
+    if (this.amb && this.amb.name !== want) {
+      this.endAmb(this.amb, now, AMB_FADE_OUT);
+      this.amb = null;
+    }
+    if (!want) return;
+    const out = this.ensureAmbOut();
+    if (this.ambLevel !== this.ambLevelSet && now > this.impactDuckUntil) {
+      // the music volume slider moved
+      out.gain.setTargetAtTime(this.ambLevel, now, 0.1);
+      this.ambLevelSet = this.ambLevel;
+    }
+    this.amb ??= this.buildAmb(want, now + 0.02, AMB_FADE_IN);
+    this.ambSchedule(this.amb, now, now + AMB_LOOKAHEAD);
+  };
+
+  /** Build an ambience's beds and stereo spots, fading in from `t`. */
+  private buildAmb(name: Ambience, t: number, fadeIn: number): AmbRig {
+    const ctx = this.ctx!;
+    const gr = this.graph!;
+    gr.pink ??= pinkNoise(ctx, 6);
+    const out = this.ensureAmbOut();
+    const wet = this.ambRev!.gain;
+    const v = wet.value;
+    wet.cancelScheduledValues(t);
+    wet.setValueAtTime(v, t);
+    wet.linearRampToValueAtTime(AMB_WET[name], t + 0.5);
+    const nodes: AudioNode[] = [];
+    const fade = ctx.createGain();
+    fade.gain.setValueAtTime(0, t);
+    fade.gain.linearRampToValueAtTime(1, t + fadeIn);
+    fade.connect(out);
+    nodes.push(fade);
+    const spots = SPOTS.map(([p, f]) => {
+      const pan = ctx.createStereoPanner();
+      pan.pan.value = p;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = f;
+      lp.Q.value = 0.5;
+      pan.connect(lp);
+      lp.connect(fade);
+      nodes.push(pan, lp);
+      return pan;
+    });
+    const r: AmbRig = {
+      name,
+      fade,
+      spots,
+      echo: null,
+      beds: [],
+      nodes,
+      srcs: [],
+      events: this.ambEvents(name),
+      next: new Map(),
+      rand: mulberry(0xa3b1 + 7919 * this.ambStarts++ + 31 * AMBIENCES.indexOf(name)),
+    };
+    this.ambBeds(r, t);
+    for (const [k, e] of Object.entries(r.events)) r.next.set(k, t + 0.2 + r.rand() * e.every[1] * 0.5);
+    return r;
+  }
+
+  /** Play every event of the ambience that falls before `until` (ones that slipped before `from` are skipped). */
+  private ambSchedule(r: AmbRig, from: number, until: number): void {
+    for (const [k, e] of Object.entries(r.events)) {
+      let at = r.next.get(k)!;
+      while (at < until) {
+        const extra = at >= from - 0.05 ? (e.play(r, at) ?? 0) : 0;
+        at += extra + e.every[0] + r.rand() * (e.every[1] - e.every[0]);
+      }
+      r.next.set(k, at);
+    }
+  }
+
+  /** Fade an ambience out from `t` over `time`, then stop its beds and tear it down. */
+  private endAmb(r: AmbRig, t: number, time: number): void {
+    const p = r.fade.gain;
+    const v = this.offline ? 1 : p.value;
+    p.cancelScheduledValues(t);
+    p.setValueAtTime(v, t);
+    p.linearRampToValueAtTime(0, t + time);
+    for (const s of r.srcs) s.stop(t + time + 0.05);
+    if (!this.offline) setTimeout(() => r.nodes.forEach((n) => n.disconnect()), (t + time - this.ctx!.currentTime) * 1000 + 600);
+  }
+
+  /** A looping layer of pink noise through a filter: wind, rain, fire, surf. Stereo (the noise's channels differ). */
+  private bed(r: AmbRig, t: number, o: { type: BiquadFilterType; f: number; q?: number; g: number; gust?: [number, number]; sway?: [number, number]; tau?: number; rate?: number }): Bed {
+    const ctx = this.ctx!;
+    const src = ctx.createBufferSource();
+    src.buffer = this.graph!.pink!;
+    src.loop = true;
+    src.playbackRate.value = o.rate ?? 1;
+    const filter = ctx.createBiquadFilter();
+    filter.type = o.type;
+    filter.frequency.value = o.f;
+    filter.Q.value = o.q ?? 0.7;
+    const gain = ctx.createGain();
+    gain.gain.value = o.g;
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(r.fade);
+    src.start(t, r.rand() * 5);
+    r.srcs.push(src);
+    r.nodes.push(src, filter, gain);
+    const b: Bed = { filter, gain, g: o.g, f: o.f, gust: o.gust ?? [1, 1], sway: o.sway ?? [1, 1], tau: o.tau ?? 1, at: [o.g, o.f] };
+    r.beds.push(b);
+    return b;
+  }
+
+  /** Gusts: every bed (or just `only`) glides to a new level and brightness over its `tau` (at most 1.1 s, shorter
+   *  than the time to the next gust, so each glide starts from where the last one ended). */
+  private gust(r: AmbRig, t: number, only?: Bed): void {
+    for (const b of only ? [only] : r.beds) {
+      if (!only && b.tau < 0.1) continue; // a flickering bed has its own event (two would interleave their glides)
+      const [g0, g1] = b.gust;
+      const [s0, s1] = b.sway;
+      const d = Math.min(b.tau, 1.1);
+      if (g0 !== g1) {
+        const g = b.g * (g0 + r.rand() * (g1 - g0));
+        b.gain.gain.setValueAtTime(b.at[0], t);
+        b.gain.gain.linearRampToValueAtTime(g, t + d);
+        b.at[0] = g;
+      }
+      if (s0 !== s1) {
+        const f = b.f * (s0 + r.rand() * (s1 - s0));
+        b.filter.frequency.setValueAtTime(b.at[1], t);
+        b.filter.frequency.exponentialRampToValueAtTime(f, t + d);
+        b.at[1] = f;
+      }
+    }
+  }
+
+  private spot(r: AmbRig, from: readonly number[] = ALL_SPOTS): AudioNode {
+    return r.spots[from[Math.floor(r.rand() * from.length)]];
+  }
+
+  private ambBeds(r: AmbRig, t: number): void {
+    switch (r.name) {
+      case 'forest':
+        this.bed(r, t, { type: 'bandpass', f: 1300, q: 0.5, g: 0.05, gust: [0.35, 1.6], sway: [0.7, 1.5], tau: 0.9 }); // wind in the grass
+        this.bed(r, t, { type: 'lowpass', f: 320, q: 0.5, g: 0.1, gust: [0.5, 1.4], sway: [0.8, 1.3], tau: 1.5 }); // the wind's body
+        this.bed(r, t, { type: 'highpass', f: 5000, q: 0.5, g: 0.012, gust: [0.3, 1.8], tau: 0.7 }); // leaves high in the canopy
+        break;
+      case 'ruins':
+        this.bed(r, t, { type: 'bandpass', f: 430, q: 5, g: 0.16, gust: [0.35, 1.5], sway: [0.75, 1.35], tau: 2.2 }); // wind moaning in the arches
+        this.bed(r, t, { type: 'bandpass', f: 1150, q: 9, g: 0.08, gust: [0.1, 1.4], sway: [0.85, 1.2], tau: 1.6 }); // a whistle through a crack
+        this.bed(r, t, { type: 'bandpass', f: 4200, q: 0.6, g: 0.02, gust: [0.8, 1.2], tau: 2 }); // soft rain on stone
+        this.bed(r, t, { type: 'lowpass', f: 150, q: 0.5, g: 0.1, gust: [0.7, 1.3], tau: 3 }); // the hall's low room tone
+        r.echo = this.caveEcho(r);
+        break;
+      case 'hollow':
+        this.bed(r, t, { type: 'lowpass', f: 260, q: 0.5, g: 0.09, gust: [0.5, 1.5], sway: [0.8, 1.3], tau: 1.8 }); // low wind
+        this.bed(r, t, { type: 'bandpass', f: 380, q: 0.8, g: 0.03, gust: [0.55, 1.4], tau: 0.07 }); // the torches' roar (flickers)
+        this.bed(r, t, { type: 'highpass', f: 3000, q: 0.5, g: 0.006, gust: [0.5, 1.5], tau: 1 }); // air in the leaves
+        break;
+      case 'map':
+        this.bed(r, t, { type: 'bandpass', f: 850, q: 0.5, g: 0.035, gust: [0.3, 1.7], sway: [0.7, 1.4], tau: 1.2 }); // a breeze
+        this.bed(r, t, { type: 'lowpass', f: 300, q: 0.5, g: 0.05, gust: [0.6, 1.4], tau: 2 });
+        break;
+      case 'world':
+        this.bed(r, t, { type: 'lowpass', f: 420, q: 0.5, g: 0.06, gust: [0.7, 1.3], tau: 2.5 }); // the sea's low roar
+        this.bed(r, t, { type: 'bandpass', f: 1100, q: 0.4, g: 0.025, gust: [0.3, 1.7], sway: [0.7, 1.4], tau: 1.2 }); // breeze off the sea
+        break;
+    }
+  }
+
+  /** The ruins' drips: dry from one leak on the right, and through a dark cave echo answering from the left. */
+  private caveEcho(r: AmbRig): AudioNode {
+    const ctx = this.ctx!;
+    const input = ctx.createGain();
+    input.connect(r.spots[3]);
+    const dl = ctx.createDelay(1);
+    dl.delayTime.value = 0.29;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 2600;
+    const fb = ctx.createGain();
+    fb.gain.value = 0.45;
+    const wet = ctx.createGain();
+    wet.gain.value = 0.7;
+    input.connect(dl);
+    dl.connect(lp);
+    lp.connect(fb);
+    fb.connect(dl);
+    lp.connect(wet);
+    wet.connect(r.spots[0]);
+    r.nodes.push(input, dl, lp, fb, wet);
+    return input;
+  }
+
+  private ambEvents(name: Ambience): Record<string, AmbEvent> {
+    const gust: AmbEvent = { every: [1.2, 3.5], play: (r, t) => this.gust(r, t) };
+    switch (name) {
+      case 'forest':
+        return {
+          gust,
+          bird: { every: [1.2, 4.5], play: (r, t) => this.birdCall(r, t, 1) },
+          rustle: { every: [3, 8], play: (r, t) => this.rustle(r, t, 1) },
+          peck: { every: [16, 36], play: (r, t) => this.woodpecker(r, t) },
+        };
+      case 'ruins':
+        return {
+          gust,
+          drip: { every: [0.6, 2.4], play: (r, t) => this.drip(r, t) },
+          patter: { every: [0.2, 0.6], play: (r, t) => this.patter(r, t) },
+          creak: { every: [9, 20], play: (r, t) => this.creak(r, t) },
+          pebbles: { every: [14, 30], play: (r, t) => this.pebbles(r, t) },
+        };
+      case 'hollow':
+        return {
+          gust,
+          flicker: { every: [0.08, 0.25], play: (r, t) => this.gust(r, t, r.beds[1]) },
+          cricket1: { every: [0.4, 2.5], play: (r, t) => this.cricket(r, t, 0) },
+          cricket2: { every: [0.8, 3.5], play: (r, t) => this.cricket(r, t, 1) },
+          cricket3: { every: [2, 6], play: (r, t) => this.cricket(r, t, 2) },
+          crackle: { every: [0.2, 0.8], play: (r, t) => this.crackle(r, t) },
+          pop: { every: [3, 9], play: (r, t) => this.firePop(r, t) },
+          owl: { every: [12, 26], play: (r, t) => this.owl(r, t) },
+        };
+      case 'map':
+        return {
+          gust,
+          bird: { every: [5, 12], play: (r, t) => this.birdCall(r, t, 0.85) },
+          rustle: { every: [6, 14], play: (r, t) => this.rustle(r, t, 0.5) },
+        };
+      case 'world':
+        return {
+          gust,
+          wave: { every: [3.2, 5.8], play: (r, t) => this.wave(r, t) },
+          gull: { every: [4, 11], play: (r, t) => this.gulls(r, t) },
+        };
+    }
+  }
+
+  /** A run of short notes on one oscillator (birdsong, crickets, an owl): [start offset, length, from Hz, to Hz,
+   *  level], one oscillator and one gain for the whole call. Returns how long it lasts. */
+  private whistle(out: AudioNode, t: number, notes: [number, number, number, number, number][], attack = 0.012): number {
+    const ctx = this.ctx!;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    osc.frequency.setValueAtTime(notes[0][2], t);
+    let end = t;
+    for (const [dt, len, f0, f1, v] of notes) {
+      const s = Math.max(end, t + dt);
+      osc.frequency.setValueAtTime(f0, s);
+      osc.frequency.exponentialRampToValueAtTime(f1, s + len);
+      g.gain.setValueAtTime(0, s);
+      g.gain.linearRampToValueAtTime(v, s + Math.min(attack, len * 0.3));
+      g.gain.linearRampToValueAtTime(v * 0.7, s + len * 0.6);
+      g.gain.linearRampToValueAtTime(0, s + len);
+      end = s + len;
+    }
+    osc.connect(g);
+    g.connect(out);
+    osc.onended = () => {
+      osc.disconnect();
       g.disconnect();
     };
-    tri.start(t);
-    sq.start(t);
-    tri.stop(end + 0.02);
-    sq.stop(end + 0.02);
+    osc.start(t);
+    osc.stop(end + 0.02);
+    return end - t;
+  }
+
+  /** A bird in the trees: a trill, a slow sliding whistle, a few quick chips or a soft dove further off; sometimes
+   *  another answers from a different tree. `k` < 1: fewer, quieter and further away (the act map). */
+  private birdCall(r: AmbRig, t: number, k: number): number {
+    const rnd = r.rand;
+    const out = this.spot(r, k < 1 ? FAR_SPOTS : ALL_SPOTS);
+    const kind = Math.floor(rnd() * 4);
+    const g = 0.03 * k;
+    const notes: [number, number, number, number, number][] = [];
+    if (kind === 0) {
+      const f = 3200 + rnd() * 1500;
+      const n = 5 + Math.floor(rnd() * 5);
+      const st = 0.055 + rnd() * 0.02;
+      for (let i = 0; i < n; i++) {
+        const fi = f * (i % 2 ? 1.12 : 1);
+        notes.push([i * st, st * 0.7, fi, fi * 1.18, g * (1 - i / (n * 1.6))]);
+      }
+    } else if (kind === 1) {
+      const base = 1900 + rnd() * 900;
+      let at = 0;
+      for (let i = 0, n = 2 + Math.floor(rnd() * 3); i < n; i++) {
+        const d = 0.12 + rnd() * 0.16;
+        const f0 = base * (1 + (rnd() - 0.4) * 0.35);
+        notes.push([at, d, f0, f0 * (0.8 + rnd() * 0.45), g * 0.9]);
+        at += d + 0.06 + rnd() * 0.08;
+      }
+    } else if (kind === 2) {
+      for (let i = 0, n = 2 + Math.floor(rnd() * 3); i < n; i++) notes.push([i * (0.09 + rnd() * 0.04), 0.04, 5200 - rnd() * 600, 2900, g]);
+    } else {
+      const f = 520 + rnd() * 90;
+      for (const [dt, d, m, v] of [
+        [0, 0.22, 1, 0.6],
+        [0.32, 0.36, 1.08, 1],
+        [0.78, 0.26, 0.96, 0.7],
+      ])
+        notes.push([dt, d, f * m, f * m * 0.94, g * 1.4 * v]);
+    }
+    const len = this.whistle(out, t, notes, kind === 3 ? 0.05 : 0.012);
+    if (kind < 3 && rnd() < 0.3) {
+      const k2 = 1.04 + rnd() * 0.08;
+      this.whistle(this.spot(r, FAR_SPOTS), t + len + 0.3 + rnd() * 0.6, notes.map(([dt, d, f0, f1, v]): [number, number, number, number, number] => [dt, d, f0 * k2, f1 * k2, v * 0.7]));
+    }
+    return len;
+  }
+
+  /** Leaves stirred by the wind: a swell of airy noise and a few leaf crackles. */
+  private rustle(r: AmbRig, t: number, k: number): number {
+    const d = 0.5 + r.rand() * 0.9;
+    const out = this.spot(r);
+    this.voice({ at: t, type: 'noise', buf: this.graph!.pink, filter: 'bandpass', ff: [[0, 2600 + r.rand() * 1500], [d, 1800]], q: 0.9, trem: { rate: 7 + r.rand() * 6, depth: 0.6 }, amp: [[d * 0.35, 0.1 * k], [d, 0]], out });
+    this.ticks(
+      Array.from({ length: 4 + Math.floor(r.rand() * 6) }, () => t + r.rand() * d),
+      { gain: 0.07 * k, f: 4500, q: 1.2, ms: 5, out },
+    );
+    return d;
+  }
+
+  private woodpecker(r: AmbRig, t: number): number {
+    const n = 8 + Math.floor(r.rand() * 7);
+    const gap = 1 / (14 + r.rand() * 5);
+    this.ticks(
+      Array.from({ length: n }, (_, i) => t + i * gap),
+      { gain: 0.15, f: 1100 + r.rand() * 400, q: 5, ms: 9, out: this.spot(r, FAR_SPOTS) },
+    );
+    return n * gap;
+  }
+
+  /** A drop of water: a sine whose pitch flicks up as the bubble closes, ringing on in the cave echo. */
+  private drip(r: AmbRig, t: number): void {
+    const out = r.echo ?? this.spot(r);
+    const drop = (at: number, f: number, v: number) => this.tone({ type: 'sine', f, f1: f * 1.9, glide: 0.02, at, attack: 0.0015, dur: 0.06, gain: v, out });
+    const f = 900 + r.rand() * 1400;
+    drop(t, f, 0.07 + r.rand() * 0.05);
+    if (r.rand() < 0.25) drop(t + 0.12 + r.rand() * 0.2, f * (0.85 + r.rand() * 0.3), 0.05);
+  }
+
+  /** Rain spattering on the stones nearby: a handful of tiny ticks. */
+  private patter(r: AmbRig, t: number): number {
+    const d = 0.5;
+    this.ticks(
+      Array.from({ length: 3 + Math.floor(r.rand() * 6) }, () => t + r.rand() * d),
+      { gain: 0.08, f: 3000 + r.rand() * 3000, q: 0.8, ms: 3, out: this.spot(r) },
+    );
+    return d;
+  }
+
+  /** Somewhere in the ruins a stone shifts: a slow grinding creak, far off. */
+  private creak(r: AmbRig, t: number): number {
+    const d = 0.8 + r.rand() * 0.9;
+    const out = this.spot(r, FAR_SPOTS);
+    const f = 55 + r.rand() * 30;
+    this.voice({ at: t, type: 'sawtooth', f: [[0, f], [d * 0.6, f * 1.35], [d, f * 0.9]], trem: { rate: 16 + r.rand() * 10, depth: 0.85, wave: 'sawtooth' }, filter: 'bandpass', ff: [[0, 650], [d, 900]], q: 5, amp: [[d * 0.3, 0.14], [d * 0.8, 0.18], [d, 0]], out });
+    this.voice({ at: t, type: 'noise', buf: this.graph!.pink, rate: 0.5, filter: 'bandpass', ff: [[0, 300], [d, 500]], q: 1.5, trem: { rate: 11, depth: 0.6 }, amp: [[d * 0.4, 0.07], [d, 0]], out });
+    return d;
+  }
+
+  /** A few pebbles skittering down a wall, bouncing faster as they settle. */
+  private pebbles(r: AmbRig, t: number): number {
+    const times: number[] = [];
+    let at = t;
+    let gap = 0.13 + r.rand() * 0.05;
+    for (let i = 0, n = 6 + Math.floor(r.rand() * 4); i < n; i++, gap *= 0.72) {
+      times.push(at);
+      at += gap;
+    }
+    this.ticks(times, { gain: 0.18, f: 2200 + r.rand() * 800, q: 3, ms: 8, out: this.spot(r, FAR_SPOTS) });
+    return at - t;
+  }
+
+  /** One cricket's phrase: chirps of three or four quick pulses a few times a second, then it rests. */
+  private cricket(r: AmbRig, t: number, i: number): number {
+    const f = [4400, 4900, 5600][i];
+    const pulses = 3 + (i % 2);
+    const gap = 0.32 + 0.1 * i + r.rand() * 0.05;
+    const v = i === 2 ? 0.022 : 0.036;
+    const notes: [number, number, number, number, number][] = [];
+    for (let c = 0, n = 3 + Math.floor(r.rand() * 6); c < n; c++) for (let p = 0; p < pulses; p++) notes.push([c * gap + p * 0.034, 0.02, f, f * 0.985, v]);
+    return this.whistle(r.spots[[1, 4, 0][i]], t, notes, 0.005);
+  }
+
+  /** The torches crackling: a few sharp ticks from one of the two flames. */
+  private crackle(r: AmbRig, t: number): number {
+    const d = 0.6;
+    this.ticks(
+      Array.from({ length: 1 + Math.floor(r.rand() * 5) }, () => t + r.rand() * d),
+      { gain: 0.18, f: 1800 + r.rand() * 2200, q: 1.2, ms: 4 + r.rand() * 4, out: r.spots[r.rand() < 0.5 ? 1 : 3] },
+    );
+    return d * 0.5;
+  }
+
+  /** A knot in the torch wood pops, throwing sparks. */
+  private firePop(r: AmbRig, t: number): void {
+    const out = r.spots[r.rand() < 0.5 ? 1 : 3];
+    this.tone({ type: 'triangle', f: 240, f1: 110, glide: 0.03, at: t, dur: 0.05, gain: 0.12, out });
+    this.noise({ at: t, dur: 0.035, gain: 0.2, filter: 'bandpass', f: 1600, q: 0.9, out });
+    this.ticks(
+      Array.from({ length: 3 }, (_, i) => t + 0.03 + i * 0.04 + r.rand() * 0.03),
+      { gain: 0.1, f: 5000, q: 1.5, ms: 3, out },
+    );
+  }
+
+  /** An owl in the dark: "hoo ... hu-hu-hoooo", soft and far off. */
+  private owl(r: AmbRig, t: number): number {
+    const f = 360 + r.rand() * 50;
+    const g = 0.045;
+    return this.whistle(
+      this.spot(r, FAR_SPOTS),
+      t,
+      [
+        [0, 0.42, f, f * 0.93, g],
+        [0.95, 0.14, f * 0.97, f * 0.95, g * 0.6],
+        [1.2, 0.18, f, f * 0.96, g * 0.7],
+        [1.5, 0.7, f * 1.02, f * 0.9, g],
+      ],
+      0.06,
+    );
+  }
+
+  /** A wave rolls in, breaks and draws back, its foam fizzing (wide, not from one spot). */
+  private wave(r: AmbRig, t: number): number {
+    const pink = this.graph!.pink;
+    const up = 1.4 + r.rand() * 0.8;
+    const back = 2.2 + r.rand() * 1.2;
+    const k = 0.7 + r.rand() * 0.5;
+    this.voice({ at: t, type: 'noise', buf: pink, filter: 'lowpass', ff: [[0, 260], [up, 1300], [up + back, 300]], q: 0.4, amp: [[up * 0.7, 0.07 * k], [up, 0.11 * k], [up + back, 0]], out: r.fade });
+    this.voice({ at: t + up * 0.85, type: 'noise', buf: pink, filter: 'highpass', ff: [[0, 2200], [back, 4500]], q: 0.5, amp: [[0.25, 0.035 * k], [back, 0]], out: r.fade });
+    return up;
+  }
+
+  /** Gulls over the coast: one to four rough "kee-ow" cries, or a laughing run of short ones. */
+  private gulls(r: AmbRig, t: number): number {
+    const out = this.spot(r);
+    const f = 1050 + r.rand() * 300;
+    const laugh = r.rand() < 0.4;
+    let at = t;
+    for (let i = 0, n = 1 + Math.floor(r.rand() * 4); i < n; i++) {
+      const d = laugh ? 0.12 : 0.28 + r.rand() * 0.12;
+      const fi = f * (laugh ? 1 - i * 0.04 : 1 + (r.rand() - 0.5) * 0.1);
+      this.voice({ at, type: 'sawtooth', f: [[0, fi * 0.8], [d * 0.25, fi * 1.45], [d, fi * 0.95]], vib: { rate: 28, cents: 30 }, filter: 'bandpass', ff: [[0, 1900]], q: 1.4, amp: [[d * 0.2, 0.045], [d * 0.7, 0.03], [d, 0]], out });
+      at += d + (laugh ? 0.05 : 0.15 + r.rand() * 0.3);
+    }
+    return at - t;
   }
 }
+
+const AMB_PREVIEW = 8;
+const AMB_LABEL: Record<Ambience, string> = { forest: 'forest', ruins: 'ruins', hollow: 'hollow', map: 'act map', world: 'world map' };
 
 /** Every sound effect, for the Sound lab and the loudness tests. `tier` marks the impacts (lightest first). */
 export interface SfxEntry {
@@ -2103,6 +3102,13 @@ export const SFX: SfxEntry[] = [
   { id: 'heal', label: 'Heal', len: 0.7, play: (s, at) => s.heal(at) },
   { id: 'pet', label: 'Pip peck', len: 0.3, play: (s, at) => s.pet(at) },
   { id: 'ui', label: 'UI click', len: 0.2, play: (s, at) => s.uiClick(at) },
+  { id: 'whoosh', label: 'Screen whoosh', len: 0.6, play: (s, at) => s.whoosh(false, at) },
+  { id: 'whooshBack', label: 'Screen whoosh (back)', len: 0.6, play: (s, at) => s.whoosh(true, at) },
+  { id: 'panelOpen', label: 'Panel opens', len: 0.3, play: (s, at) => s.panelOpen(at) },
+  { id: 'panelClose', label: 'Panel closes', len: 0.3, play: (s, at) => s.panelClose(at) },
+  { id: 'footstep', label: 'Footstep', len: 0.2, play: (s, at) => s.footstep(0, at) },
+  { id: 'footsteps', label: 'Footsteps (a walk)', len: 0.8, play: (s, at) => [0, 1, 2, 3].forEach((i) => s.footstep(i, at + i * 0.15)) },
+  { id: 'coinTick', label: 'Coin counter', len: 0.8, play: (s, at) => [0, 1, 2, 3, 4, 5, 6, 7].forEach((i) => s.coinTick(i, at + i * 0.07)) },
   // enemy special moves: the telegraphs (at a 0.8 s wind-up), then the actions
   ...TELL_SOUNDS.map((k): SfxEntry => ({ id: `tell-${k}`, label: `Tell: ${k.replace(/[A-Z]/g, (c) => ' ' + c.toLowerCase())}`, len: 1.2, play: (s, at) => s.telegraph(k, 0.8, at) })),
   { id: 'stompLand', label: 'Stomp lands', len: 1.4, play: (s, at) => s.stompLand(at) },
@@ -2121,4 +3127,6 @@ export const SFX: SfxEntry[] = [
   { id: 'eventSting', label: 'Event sting', len: 1.3, play: (s, at) => s.eventSting(at) },
   { id: 'textBlip', label: 'Dialogue blip', len: 0.15, play: (s, at) => s.textBlip(at) },
   { id: 'victory', label: 'Region cleared', len: 3.2, play: (s, at) => s.victory(at) },
+  // the places' ambience beds (8 s of each, as it starts: the first bird, drip or wave comes within a second or two)
+  ...AMBIENCES.map((a): SfxEntry => ({ id: `amb-${a}`, label: `Ambience: ${AMB_LABEL[a]} (8 s)`, len: AMB_PREVIEW, play: (s, at) => s.scheduleAmbience(at, AMB_PREVIEW, a) })),
 ];

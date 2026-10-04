@@ -6,7 +6,7 @@ import { Run, type Phase } from '../core/run';
 import { recordAct, recordRegion, type Progress } from '../core/progress';
 import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import type { Settings, Tuning } from '../core/tuning';
-import { Synth, type MusicTrack, type TellSound } from './audio';
+import { Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, type ScreenLayout } from './layout';
 import { clearRunSave, loadProgress, loadRunSave, saveSoon, writeProgress, writeRunSave } from './storage';
 
@@ -58,6 +58,7 @@ export class App {
     this.savedRun = loadRunSave(tuning);
     this.layout = computeLayout();
     this.applyAudioSettings();
+    this.cueAudio();
   }
 
   applyAudioSettings(): void {
@@ -253,7 +254,7 @@ export class App {
       this.view?.onPhase(prev, this.run.phase);
     }
     this.syncClock(now);
-    this.audio.setTrack(this.track());
+    this.cueAudio();
     // progress across runs: acts cleared and the region's weight
     let progressed = false;
     if (this.run.phase === 'actClear') progressed = recordAct(this.progress, this.run.actIndex);
@@ -263,6 +264,20 @@ export class App {
       clearRunSave();
       this.savedRun = null;
     } else this.saveRun();
+  }
+
+  /** The music and the place's ambience under it, for the phase we're in. */
+  private cueAudio(): void {
+    this.audio.setTrack(this.track());
+    this.audio.setAmbience(this.ambience());
+  }
+
+  /** The sea and gulls on the title and the world map, a breeze over the act map, and the act's own place (forest,
+   *  ruins, hollow) in its fights, nodes and scenes. */
+  private ambience(): Ambience {
+    const p = this.run.phase;
+    if (p === 'title' || p === 'world') return 'world';
+    return p === 'map' ? 'map' : this.run.theme;
   }
 
   /** Battle theme in fights, the boss theme while a boss is alive, the map theme everywhere else. */
