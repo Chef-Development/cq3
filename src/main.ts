@@ -3,6 +3,7 @@ import './style.css';
 import { App } from './engine/app';
 import { installDebug } from './engine/debug';
 import { installInput } from './engine/input';
+import { hudButtonImages } from './engine/chrome';
 import { applyCanvasLayout, GAME_H, GAME_W } from './engine/layout';
 import { FightScene } from './engine/scene';
 import { loadSettings, loadTuning } from './engine/storage';
@@ -26,9 +27,14 @@ const game = new Phaser.Game({
 game.scene.add('fight', FightScene, true, { app });
 const getScene = () => game.scene.getScene('fight') as FightScene | null;
 
+const rootStyle = document.documentElement.style;
+for (const [k, v] of Object.entries(hudButtonImages())) rootStyle.setProperty(`--img-${k}`, `url(${v})`);
 const relayout = () => {
   app.relayout();
   if (game.canvas) applyCanvasLayout(game.canvas, app.layout);
+  // DOM HUD buttons are pixel art too: size them in game pixels.
+  rootStyle.setProperty('--gpx', `${app.layout.scale / app.layout.dpr}px`);
+  rootStyle.setProperty('--game-top', `${app.layout.top}px`);
 };
 game.events.once(Phaser.Core.Events.READY, relayout);
 // Debug/test handle (used by the Playwright smoke test).

@@ -45,34 +45,41 @@ body {
 
 #hud {
   position: fixed;
-  top: calc(env(safe-area-inset-top) + 6px);
+  top: calc(var(--game-top, 0px) + var(--gpx, 2.667px) * 2);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 8px;
+  gap: calc(var(--gpx, 2.667px) * 3);
   z-index: 30;
 }
 
 .hud-btn {
-  width: 34px;
-  height: 34px;
-  padding: 8px;
-  border: 2px solid var(--ink);
-  background: rgba(42, 36, 64, 0.85);
-  box-shadow: inset 0 2px 0 #4a4280;
-  color: var(--text);
+  width: calc(var(--gpx, 2.667px) * 14);
+  height: calc(var(--gpx, 2.667px) * 15);
+  padding: 0;
+  border: 0;
+  background: transparent no-repeat 0 0 / 100% 100%;
+  image-rendering: pixelated;
   touch-action: manipulation;
   cursor: pointer;
 }
 .hud-btn svg {
-  width: 100%;
-  height: 100%;
-  fill: currentColor;
-  display: block;
+  display: none;
 }
-.hud-btn.on {
-  background: #ff9a2a;
-  color: var(--ink);
+.hud-btn:active {
+  transform: translateY(var(--gpx, 2.667px));
+}
+#btn-pause {
+  background-image: var(--img-pause);
+}
+#btn-pause.on {
+  background-image: var(--img-pauseOn);
+}
+#btn-gear {
+  background-image: var(--img-gear);
+}
+#btn-gear.on {
+  background-image: var(--img-gearOn);
 }
 
 #debug {
