@@ -63,6 +63,10 @@ accuracy, ${Math.round((Date.now() - t0) / 1000)} s to run.
   combo break.
 - It takes Full Heal when below half HP, otherwise the rarest boost card. Classic mode (misses cost HP).
 
+**About accuracy.** The bot's accuracy is the share of its taps that are well timed. It doesn't get worse on narrower
+blocks the way a person does, so blocks narrowed for a harder game show up here mainly as mistimed taps landing on
+empty bar more often. For a person, the same blocks mean sharper timing to reach the same accuracy.
+
 **A run** is played the way a person plays it:
 
 - Level 1 starts with a fresh hero. A defeat means a retry with the hero as they entered the level (up to 6 tries).
@@ -92,6 +96,7 @@ ${table(b)}
 |---|---|---|---|
 | Enemy HP (Slime / Boar / Bandit / Big Slime) | 150 / 220 / 280 / 520 | 350 / 600 / 900 / 3000 | A ramp: a quick first fight, a real boss |
 | Enemy attack | 8 / 10 / 12 / 14 | 12 / 16 / 18 / 22 | Pressure: 85% clears Level 1 first try about 9 times in 10 |
+| Block widths (yellow / green / red / trap) | 0.12 / 0.075 / 0.09 / 0.09, varied 0.65-1.45x | 0.07 / 0.05 / 0.06 / 0.06, varied 0.7-1.4x | The playtester (20) found the blocks too big and too easy: sharper timing |
 | Level 2 | one fight: 2 Slimes + Bandit | 4 stages, 2 then 2 then 3 then the boss with 2 adds; enemy HP x${L.hpMult}, attack x${L.atkMult} | More enemies, still easy to tough |
 | Hero between levels | fresh every level | keeps every upgrade, healed at the chest; a retry starts from the level's entry | The upgrades carry the run |
 | Boost cards | all the same | rare (blue, x2, 15%) and epic (gold, x3, 4%); boss kills always offer a rare | Something to hope for |

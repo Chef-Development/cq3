@@ -48,12 +48,12 @@ export const DEFAULT_TUNING = {
     missSelfDamage: 1, // Classic mode: damage for tapping empty bar
   },
   blocks: {
-    attackWidth: 0.12, // yellow width (fraction of bar)
-    greenWidth: 0.075,
-    redWidth: 0.09,
-    trapWidth: 0.09,
-    widthMin: 0.65, // every spawned block's width is its kind's width times a random factor in [widthMin, widthMax]
-    widthMax: 1.45,
+    attackWidth: 0.07, // yellow width (fraction of bar); narrow like the reference, timing has to be sharp
+    greenWidth: 0.05,
+    redWidth: 0.06,
+    trapWidth: 0.06,
+    widthMin: 0.7, // every spawned block's width is its kind's width times a random factor in [widthMin, widthMax]
+    widthMax: 1.4,
     redTravelSec: 2.5, // right end -> left end
     impactGraceMs: 60, // red block sits at the left end this long (still blockable) before hitting
     trapLifeSec: 4,
@@ -241,7 +241,7 @@ export const DEFAULT_TUNING = {
       name: 'Level 2',
       theme: 'ruins',
       hpMult: 2.8,
-      atkMult: 1.6,
+      atkMult: 1.5,
       // more enemies at once, still easy to tough, and the boss brings adds
       stages: [['slime', 'slime'], ['boar', 'slime'], ['bandit', 'boar', 'slime'], ['bigSlime', 'slime', 'slime']],
     },
@@ -375,10 +375,10 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
     {
       title: 'Blocks',
       sliders: [
-        s('blocks.attackWidth', 'Yellow width', 0.03, 0.25, 0.005),
-        s('blocks.greenWidth', 'Green width', 0.03, 0.25, 0.005),
-        s('blocks.redWidth', 'Red width', 0.03, 0.25, 0.005),
-        s('blocks.trapWidth', 'Trap width', 0.03, 0.25, 0.005),
+        s('blocks.attackWidth', 'Yellow width', 0.02, 0.25, 0.005),
+        s('blocks.greenWidth', 'Green width', 0.02, 0.25, 0.005),
+        s('blocks.redWidth', 'Red width', 0.02, 0.25, 0.005),
+        s('blocks.trapWidth', 'Trap width', 0.02, 0.25, 0.005),
         s('blocks.widthMin', 'Width varies from x', 0.3, 1, 0.05),
         s('blocks.widthMax', '...to x', 1, 2.5, 0.05),
         s('blocks.redTravelSec', 'Red travel (s)', 0.8, 6, 0.1),
