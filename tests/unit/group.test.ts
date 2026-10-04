@@ -77,6 +77,7 @@ describe('run flow: boosts, stages, revive', () => {
     const t = cloneTuning();
     t.hero.critChance = 0;
     t.juice.hitStopMs = 0;
+    t.enemies.slime.hp = 150; // a 5-stack finisher kills it outright
     return new Run(t, { ...DEFAULT_SETTINGS }, 7);
   };
 
@@ -205,6 +206,7 @@ describe('kill rewards and companion', () => {
   it('collects coins for every kill across the run', () => {
     const t = cloneTuning();
     t.juice.hitStopMs = 0;
+    t.enemies.slime.hp = 150; // a 5-stack finisher kills it outright
     const r = new Run(t, { ...DEFAULT_SETTINGS }, 3);
     r.startLevel(0);
     const c = r.combat!;

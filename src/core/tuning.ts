@@ -1,5 +1,7 @@
 // THE tuning file. Every tunable number in the game lives here.
-// CQ2's real values are undocumented, so everything below is a starting guess.
+// CQ2's real values are undocumented. Combat numbers were balanced with the headless bot (npm run balance,
+// docs/balance.md): an 85%-accurate player wins Level 1 about 85-90% of the time, fights last 20-40 s, and the
+// boss needs at least two max-stack finishers.
 // The debug panel edits a live copy of this object; "Copy tuning as JSON" exports it.
 
 export type BlockCode = 'Y' | 'G' | 'R' | 'S' | 'B' | 'F' | 'P';
@@ -40,7 +42,7 @@ export const DEFAULT_TUNING = {
     perfectFrac: 0.3, // central 30% of a block = PERFECT
     graceMs: 20, // extra hit window on each side, in time at the current cursor speed
     maxRewindMs: 300, // how far back a tap timestamp may be judged
-    missSelfDamage: 3, // Classic mode: damage for tapping empty bar
+    missSelfDamage: 1, // Classic mode: damage for tapping empty bar
   },
   blocks: {
     attackWidth: 0.12, // yellow width (fraction of bar)
@@ -57,13 +59,13 @@ export const DEFAULT_TUNING = {
     shieldKnockback: 0.2, // a cracked shield is knocked back this fraction of the bar...
     knockbackSec: 0.14, // ...over this long, then resumes its travel
     bombRadius: 0.2, // fraction of bar, measured from the bomb's center
-    bombDamage: 15, // to every enemy when a bomb is tapped
+    bombDamage: 40, // to every enemy when a bomb is tapped
     bombHitMult: 1.5, // bomb that reaches you hits this much harder
     maxStatic: 7, // max yellow/green/purple on the bar
     minAttack: 2, // if fewer yellow/green than this are on the bar, add one right away
     maxRed: 3,
     spawnRateMult: 1, // >1 = slower spawns
-    groupSpawnMult: 1.6, // extra spawn interval multiplier when 2+ enemies share the screen
+    groupSpawnMult: 0.8, // spawn interval multiplier when 2+ enemies share the screen (<1 = busier)
     openingSpawns: 3, // yellow blocks placed at the start of a fight
     minGap: 0, // min empty space between static blocks (0 = they may touch)
     edgeMargin: 0.02,
@@ -77,10 +79,10 @@ export const DEFAULT_TUNING = {
     perfectCritBonus: 0.25, // added crit chance on a PERFECT hit
     abilityCritBonus: 0.1, // Rowan's green ability: +10% crit chance...
     abilitySec: 3, // ...for 3 s
-    comboPower: 6, // finisher damage = attack x comboPower x stacks ^ meter.stackExp
+    comboPower: 5, // finisher damage = attack x comboPower x stacks ^ meter.stackExp
     reviveHpFrac: 0.5,
     revivesPerLevel: 1,
-    healOnKill: 0.15, // fraction of max HP restored by every kill
+    healOnKill: 0.2, // fraction of max HP restored by every kill
   },
   meter: {
     // The meter fills once per stack; keep the combo going to bank more stacks (a combo break loses them all).
@@ -89,7 +91,7 @@ export const DEFAULT_TUNING = {
     perBlock: 0.12,
     perfectBonus: 0.03,
     maxStacks: 5,
-    stackExp: 1.9, // finisher damage grows as stacks ^ stackExp (2 stacks = ~3.7x, 3 = ~8x)
+    stackExp: 1.7, // finisher damage grows as stacks ^ stackExp (2 stacks = 3.2x, 3 = 6.5x, 5 = 15x)
   },
   tiers: {
     // Combo tiers (toggle in settings): damage multiplier at combo thresholds
@@ -104,7 +106,7 @@ export const DEFAULT_TUNING = {
     // Every kill permanently raises the hero's stats for the rest of the run (the icons rain into the HUD).
     atk: 1,
     maxHp: 5,
-    comboPower: 0.5,
+    comboPower: 0.25,
   },
   companion: {
     // Pip the owl: swoops in for a peck after every N attack hits (0 = no companion)
@@ -177,8 +179,8 @@ export const DEFAULT_TUNING = {
   enemies: {
     slime: {
       name: 'Slime',
-      hp: 150,
-      atk: 8,
+      hp: 950,
+      atk: 10,
       special: 16,
       interval: 0.7,
       pattern: 'YYRYGYYRYYGR',
@@ -189,8 +191,8 @@ export const DEFAULT_TUNING = {
     },
     boar: {
       name: 'Boar',
-      hp: 220,
-      atk: 10,
+      hp: 1150,
+      atk: 13,
       special: 20,
       interval: 0.65,
       pattern: 'YRYSGYYFRYYS',
@@ -201,8 +203,8 @@ export const DEFAULT_TUNING = {
     },
     bandit: {
       name: 'Bandit',
-      hp: 280,
-      atk: 12,
+      hp: 1500,
+      atk: 15,
       special: 24,
       interval: 0.6,
       pattern: 'YRPYGYBYRYPY',
@@ -213,8 +215,8 @@ export const DEFAULT_TUNING = {
     },
     bigSlime: {
       name: 'Big Slime',
-      hp: 520,
-      atk: 14,
+      hp: 2800,
+      atk: 17,
       special: 28,
       interval: 0.55,
       pattern: 'YRSGYPYFBYRGYP',
@@ -499,7 +501,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
     groups.push({
       title: `Enemy: ${e.name}`,
       sliders: [
-        s(`enemies.${key}.hp`, 'HP', 5, 1500, 5),
+        s(`enemies.${key}.hp`, 'HP', 5, 6000, 5),
         s(`enemies.${key}.atk`, 'Attack', 0, 80, 1),
         s(`enemies.${key}.special`, 'Special', 0, 150, 1),
         s(`enemies.${key}.interval`, 'Spawn every (s)', 0.2, 4, 0.05),

@@ -13,7 +13,8 @@
     "smoke": "playwright test",
     "icons": "node scripts/make-icons.mjs",
     "screens": "playwright test screens",
-    "screens:update": "playwright test screens --update-snapshots"
+    "screens:update": "playwright test screens --update-snapshots",
+    "balance": "vitest run --config vitest.balance.config.ts tests/balance/balance.run.ts"
   },
   "dependencies": {
     "phaser": "^4.2.1"

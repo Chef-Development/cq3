@@ -95,8 +95,8 @@ describe('finisher', () => {
     expect(c.meter).toBe(1);
   });
 
-  it('damage grows exponentially with stacks (2 stacks ~ 3.7x one)', () => {
-    const { c, t } = setup();
+  it('damage grows as stacks ^ stackExp (exponent 1.9: 2 stacks ~ 3.7x one, 3 stacks ~ 8x)', () => {
+    const { c, t } = setup({ tune: (t) => (t.meter.stackExp = 1.9) });
     const one = c.finisherDamage(1);
     expect(one).toBe(t.hero.atk * t.hero.comboPower);
     expect(c.finisherDamage(2) / one).toBeCloseTo(Math.pow(2, t.meter.stackExp), 1);
