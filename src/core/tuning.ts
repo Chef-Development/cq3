@@ -1,7 +1,8 @@
 // THE tuning file. Every tunable number in the game lives here.
 // CQ2's real values are undocumented. Combat numbers were balanced with the headless bot (npm run balance,
-// docs/balance.md): an 85%-accurate player wins Level 1 about 85-90% of the time, fights last 20-40 s, and the
-// boss needs at least two max-stack finishers.
+// docs/balance.md): enemies ramp from a quick first fight to a tough boss in every level, later levels scale
+// enemy HP/attack up and bring more enemies, the hero carries upgrades between levels, an 85%-accurate player
+// clears Level 1 first try about 85-90% of the time, and each boss needs at least two max-stack finishers.
 // The debug panel edits a live copy of this object; "Copy tuning as JSON" exports it.
 
 export type BlockCode = 'Y' | 'G' | 'R' | 'S' | 'B' | 'F' | 'P';
@@ -25,8 +26,10 @@ export interface EnemyDef {
 export interface LevelDef {
   name: string;
   theme?: 'forest' | 'ruins'; // backdrop
+  hpMult: number; // every enemy's HP in this level is scaled by this...
+  atkMult: number; // ...and its attack (and trap) damage by this
 
-  // Each stage is the list of enemies on screen at the same time.
+  // Each stage is the list of enemies on screen at the same time; stages ramp from easy to tough.
   stages: string[][];
 }
 
@@ -106,7 +109,7 @@ export const DEFAULT_TUNING = {
     // Every kill permanently raises the hero's stats for the rest of the run (the icons rain into the HUD).
     atk: 1,
     maxHp: 5,
-    comboPower: 0.25,
+    comboPower: 0, // finisher growth comes from boosts only, so max-stack finishers never outgrow the bosses
   },
   companion: {
     // Pip the owl: swoops in for a peck after every N attack hits (0 = no companion)
@@ -115,10 +118,15 @@ export const DEFAULT_TUNING = {
   },
   boosts: {
     maxHp: 20,
-    damage: 0.2, // +20% damage
+    damage: 0.15, // +15% damage
     crit: 0.05,
     critDmg: 0.5,
-    comboPower: 1,
+    comboPower: 0.5,
+    pet: 4, // Companion Power: Pip's pecks hit this much harder
+    rareChance: 0.15, // each card's chance to be rare (blue, rareMult x stronger)...
+    epicChance: 0.04, // ...or epic (gold, epicMult x). A boss kill always offers at least one rare.
+    rareMult: 2,
+    epicMult: 3,
   },
   swipe: {
     minDistPx: 36, // CSS px in any direction
@@ -179,8 +187,8 @@ export const DEFAULT_TUNING = {
   enemies: {
     slime: {
       name: 'Slime',
-      hp: 950,
-      atk: 10,
+      hp: 350,
+      atk: 12,
       special: 16,
       interval: 0.7,
       pattern: 'YYRYGYYRYYGR',
@@ -191,8 +199,8 @@ export const DEFAULT_TUNING = {
     },
     boar: {
       name: 'Boar',
-      hp: 1150,
-      atk: 13,
+      hp: 600,
+      atk: 16,
       special: 20,
       interval: 0.65,
       pattern: 'YRYSGYYFRYYS',
@@ -203,8 +211,8 @@ export const DEFAULT_TUNING = {
     },
     bandit: {
       name: 'Bandit',
-      hp: 1500,
-      atk: 15,
+      hp: 900,
+      atk: 18,
       special: 24,
       interval: 0.6,
       pattern: 'YRPYGYBYRYPY',
@@ -215,8 +223,8 @@ export const DEFAULT_TUNING = {
     },
     bigSlime: {
       name: 'Big Slime',
-      hp: 2800,
-      atk: 17,
+      hp: 3000,
+      atk: 22,
       special: 28,
       interval: 0.55,
       pattern: 'YRSGYPYFBYRGYP',
@@ -228,8 +236,15 @@ export const DEFAULT_TUNING = {
     },
   } as Record<string, EnemyDef>,
   levels: [
-    { name: 'Level 1', theme: 'forest', stages: [['slime'], ['boar'], ['bandit'], ['bigSlime']] },
-    { name: 'Level 2', theme: 'ruins', stages: [['slime', 'slime', 'bandit']] },
+    { name: 'Level 1', theme: 'forest', hpMult: 1, atkMult: 1, stages: [['slime'], ['boar'], ['bandit'], ['bigSlime']] },
+    {
+      name: 'Level 2',
+      theme: 'ruins',
+      hpMult: 2.8,
+      atkMult: 1.6,
+      // more enemies at once, still easy to tough, and the boss brings adds
+      stages: [['slime', 'slime'], ['boar', 'slime'], ['bandit', 'boar', 'slime'], ['bigSlime', 'slime', 'slime']],
+    },
   ] as LevelDef[],
 };
 
@@ -433,6 +448,11 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('boosts.crit', 'Crit +', 0, 0.3, 0.01),
         s('boosts.critDmg', 'Crit dmg +', 0, 2, 0.1),
         s('boosts.comboPower', 'Combo power +', 0, 5, 0.5),
+        s('boosts.pet', 'Companion power +', 0, 20, 1),
+        s('boosts.rareChance', 'Rare card chance', 0, 1, 0.01),
+        s('boosts.epicChance', 'Epic card chance', 0, 1, 0.01),
+        s('boosts.rareMult', 'Rare x', 1, 5, 0.25),
+        s('boosts.epicMult', 'Epic x', 1, 6, 0.25),
       ],
     },
     {
@@ -496,6 +516,12 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       ],
     },
   ];
+  t.levels.forEach((lvl, i) =>
+    groups.push({
+      title: `Level: ${lvl.name}`,
+      sliders: [s(`levels.${i}.hpMult`, 'Enemy HP x', 0.2, 5, 0.05), s(`levels.${i}.atkMult`, 'Enemy attack x', 0.2, 5, 0.05)],
+    }),
+  );
   for (const key of Object.keys(t.enemies)) {
     const e = t.enemies[key];
     groups.push({

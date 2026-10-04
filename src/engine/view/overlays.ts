@@ -1,14 +1,21 @@
 // Overlays and menus: title screen, boost choice, level-clear chest, defeat, pause, "TAP TO BEGIN!",
 // the stage banner, and the screen flash.
 import Phaser from 'phaser';
-import { boostLabel, type Phase } from '../../core/run';
+import { boostLabel, type Phase, type Rarity } from '../../core/run';
 import { saveLabel } from '../../core/save';
 import type { FightScene } from '../scene';
 import { buildBoard, buildCrest } from '../chrome';
 import { FONT_BOLD, fontText, textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
 import { button3d, hudIcon, iconSize, rows } from './pixels';
-import { BOOST_ICON, clamp01, inRect, INK, rand, WHITE, type Rect } from './shared';
+import { BOOST_ICON, clamp01, ease, inRect, INK, rand, WHITE, type Rect } from './shared';
+
+/** Boost card looks per rarity: button face [hi, base, lo, deep], icon well [fill, top line], tag. */
+const CARD: Record<Rarity, { face: readonly [number, number, number, number]; well: [number, number]; tag: string }> = {
+  common: { face: [0x8af06a, 0x5ad848, 0x3aaa34, 0x247a26], well: [0x2a8a2e, 0x1e6a24], tag: '' },
+  rare: { face: [0x8ac8ff, 0x3a8ae8, 0x2a62c8, 0x1a3c8a], well: [0x2456b0, 0x1a3c8a], tag: 'RARE' },
+  epic: { face: [0xf0b8ff, 0xb05ae0, 0x8a3ac0, 0x5a1a8a], well: [0x6a2aa8, 0x4a1a7a], tag: 'EPIC' },
+};
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -28,7 +35,8 @@ export class Overlays {
   constructor(private readonly s: FightScene) {}
 
   createTexts(): void {
-    for (let i = 0; i < 6; i++) this.boostTexts.push(this.s.add.bitmapText(0, 0, FONT_BOLD, '').setDepth(32));
+    // per card: name, value, rarity tag
+    for (let i = 0; i < 9; i++) this.boostTexts.push(this.s.add.bitmapText(0, 0, FONT_BOLD, '').setDepth(32));
   }
 
   /** Regenerate the boost board and title crest for a new layout. */
@@ -50,6 +58,11 @@ export class Overlays {
 
   onPhase(next: Phase): void {
     const s = this.s;
+    if (next === 'boost') {
+      // a rare or epic card on offer gets a sting
+      const best = s.app.run.boostChoices.reduce((m, o) => (o.rarity === 'epic' ? 2 : o.rarity === 'rare' ? Math.max(m, 1) : m), 0);
+      if (best > 0) s.later(120, () => s.app.audio.rareSting(best === 2));
+    }
     if (next === 'levelClear') {
       this.chest?.destroy();
       this.chest = s.add.image(GAME_W / 2, -30, 'chest_closed').setOrigin(0.5, 1).setScale(2);
@@ -129,6 +142,37 @@ export class Overlays {
   private cardRect(i: number): Rect {
     const p = this.boostPanel();
     return { x: p.x + 8, y: p.y + 20 + i * 31, w: p.w - 16, h: 28 };
+  }
+
+  /** Rare and epic cards: a gold rim, a light band sweeping across, and (epic) twinkles around the edge. */
+  private fancyCard(g: G, r: Rect, rarity: Rarity, t: number): void {
+    g.fillStyle(0xf2c230, 1);
+    g.fillRect(r.x + 2, r.y + 1, r.w - 4, 1);
+    g.fillRect(r.x + 2, r.y + r.h - 2, r.w - 4, 1);
+    g.fillRect(r.x + 1, r.y + 2, 1, r.h - 4);
+    g.fillRect(r.x + r.w - 2, r.y + 2, 1, r.h - 4);
+    const cyc = (t % 1600) / 1600;
+    if (cyc < 0.45) {
+      // a slanted shimmer crossing the face
+      const sx = r.x + 2 + (r.w + 16) * (cyc / 0.45) - 12;
+      g.fillStyle(WHITE, rarity === 'epic' ? 0.45 : 0.32);
+      for (let y = 2; y < r.h - 2; y++) {
+        const x = Math.round(sx + (r.h - y) * 0.5);
+        const x0 = Math.max(r.x + 2, x);
+        const x1 = Math.min(r.x + r.w - 2, x + 4);
+        if (x1 > x0) g.fillRect(x0, r.y + y, x1 - x0, 1);
+      }
+    }
+    if (rarity === 'epic')
+      for (let i = 0; i < 4; i++) {
+        const q = ((t / 700 + i * 0.37) % 1 + 1) % 1;
+        const px = Math.round(r.x + 4 + ((i * 53 + Math.floor(t / 700) * 17) % (r.w - 8)));
+        const py = i % 2 ? r.y - 1 : r.y + r.h;
+        const arm = q < 0.5 ? 1 : 0;
+        g.fillStyle(q < 0.5 ? WHITE : 0xffe680, 1 - q);
+        g.fillRect(px - arm, py, arm * 2 + 1, 1);
+        g.fillRect(px, py - arm, 1, arm * 2 + 1);
+      }
   }
 
   draw(now: number): void {
@@ -212,20 +256,29 @@ export class Overlays {
       gc.fillStyle(0xc48a52, 1);
       gc.fillRect(p.x + 4, p.y + 19, p.w - 8, 1);
       s.setText('ovTitle', 'CHOOSE A BOOST', cx, p.y + 10, WHITE, 1, 0.5, 0.5);
-      run.boostChoices.forEach((id, i) => {
-        const r = this.cardRect(i);
-        button3d(gc, r, [0x8af06a, 0x5ad848, 0x3aaa34, 0x247a26]);
+      const since = now - s.app.phaseSince;
+      run.boostChoices.forEach((offer, i) => {
+        const look = CARD[offer.rarity];
+        // the cards pop up one after another
+        const k = ease(clamp01((since - i * 70) / 200));
+        const r0 = this.cardRect(i);
+        const r = { ...r0, y: r0.y + Math.round((1 - k) * 16) };
+        button3d(gc, r, look.face);
+        if (offer.rarity !== 'common') this.fancyCard(gc, r, offer.rarity, now + i * 300);
         // icon well
-        rows(gc, r.x + 4, r.y + 4, 20, r.h - 7, 2, 0x2a8a2e);
-        gc.fillStyle(0x1e6a24, 1);
+        rows(gc, r.x + 4, r.y + 4, 20, r.h - 7, 2, look.well[0]);
+        gc.fillStyle(look.well[1], 1);
         gc.fillRect(r.x + 5, r.y + 4, 18, 1);
-        const [iw, ih] = iconSize(BOOST_ICON[id]);
-        hudIcon(gc, BOOST_ICON[id], r.x + 4 + ((20 - iw) >> 1), r.y + 4 + ((r.h - 7 - ih) >> 1));
-        const [name, val] = boostLabel(s.app.tuning, id);
-        const a = this.boostTexts[i * 2];
-        const b = this.boostTexts[i * 2 + 1];
+        const icon = BOOST_ICON[offer.id];
+        const [iw, ih] = iconSize(icon);
+        hudIcon(gc, icon, r.x + 4 + ((20 - iw) >> 1), r.y + 4 + ((r.h - 7 - ih) >> 1));
+        const [name, val] = boostLabel(s.app.tuning, offer);
+        const a = this.boostTexts[i * 3];
+        const b = this.boostTexts[i * 3 + 1];
+        const tag = this.boostTexts[i * 3 + 2];
         a.setText(fontText(name)).setPosition(r.x + 29, r.y + 10).setTint(WHITE).setOrigin(0, 0.5).setScale(1).setVisible(true);
         b.setText(fontText(val)).setPosition(r.x + 29, r.y + 19).setTint(0xfff07a).setOrigin(0, 0.5).setScale(1).setVisible(true);
+        if (look.tag) tag.setText(fontText(look.tag)).setPosition(r.x + r.w - 5, r.y + 19).setTint(0xffe680).setOrigin(1, 0.5).setScale(1).setVisible(true);
       });
     } else if (ph === 'levelClear') {
       const opened = !!this.chestOpenAt;

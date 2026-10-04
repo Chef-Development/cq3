@@ -97,7 +97,7 @@ describe('mid-run save', () => {
 
   it('a group fight keeps who is already dead', () => {
     const run = fresh();
-    run.startLevel(1);
+    run.startLevel(1, 2); // three enemies at once
     const c = run.combat!;
     c.enemies[1].hp = 0;
     c.enemies[1].alive = false;
@@ -161,9 +161,24 @@ describe('mid-run save', () => {
     }
     // a save from before the levels were edited no longer fits
     const t = cloneTuning();
-    t.levels = [{ name: 'Only', stages: [['slime']] }];
+    t.levels = [{ name: 'Only', hpMult: 1, atkMult: 1, stages: [['slime']] }];
     expect(validSave(good, t)).toBe(false);
     expect(validSave(good, cloneTuning())).toBe(true);
+  });
+
+  it('a save from before boost rarities (v1) still loads, as common cards', () => {
+    const run = fresh();
+    run.startLevel(0);
+    killStage(run);
+    run.sync();
+    const v2 = viaJson(snapshotRun(run)) as RunSave;
+    const { bonusPet: _drop, ...oldHero } = v2.hero;
+    const v1 = { ...v2, v: 1, hero: oldHero, boostChoices: v2.boostChoices.map((o) => o.id) };
+    const back = fresh();
+    expect(restoreRun(back, v1)).toBe(true);
+    expect(back.phase).toBe('boost');
+    expect(back.boostChoices).toEqual(v2.boostChoices.map((o) => ({ id: o.id, rarity: 'common' })));
+    expect(back.hero.bonusPet).toBe(0);
   });
 
   it('labels the Continue button', () => {
@@ -171,6 +186,8 @@ describe('mid-run save', () => {
     run.startLevel(0, 2);
     expect(saveLabel(snapshotRun(run)!, run.tuning)).toBe('Level 1 - 3/4');
     run.startLevel(1);
+    expect(saveLabel(snapshotRun(run)!, run.tuning)).toBe('Level 2 - 1/4');
+    run.tuning.levels[1].stages = [['slime']];
     expect(saveLabel(snapshotRun(run)!, run.tuning)).toBe('Level 2');
   });
 });

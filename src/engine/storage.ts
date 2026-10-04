@@ -1,5 +1,5 @@
 // localStorage helpers. Every access is wrapped: storage can be missing or throw (private mode, quota).
-import { validSave, type RunSave } from '../core/save';
+import { readSave, type RunSave } from '../core/save';
 import { cloneTuning, DEFAULT_SETTINGS, DEFAULT_TUNING, mergeKnown, tuningDiff, type Settings, type Tuning } from '../core/tuning';
 
 // v2: only values changed from the defaults are stored, so new defaults reach players.
@@ -31,6 +31,11 @@ export function loadTuning(): Tuning {
   const t = cloneTuning();
   const saved = read(TUNING_KEY);
   if (saved) mergeKnown(t, saved);
+  // levels saved before they had difficulty multipliers
+  for (const l of t.levels) {
+    l.hpMult ??= 1;
+    l.atkMult ??= 1;
+  }
   return t;
 }
 
@@ -68,8 +73,7 @@ export function saveNow(t: Tuning, s: Settings): void {
 
 /** The saved run, if there is one this build can resume. */
 export function loadRunSave(t: Tuning): RunSave | null {
-  const s = read(RUN_KEY);
-  return validSave(s, t) ? s : null;
+  return readSave(read(RUN_KEY), t);
 }
 
 export function writeRunSave(s: RunSave): void {

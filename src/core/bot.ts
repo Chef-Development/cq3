@@ -4,11 +4,12 @@
 // the perfect zone). The rest are mistimed by 60-200 ms and land wherever they land: empty bar, a trap, another
 // block. Accuracy slips a little as the cursor speeds up. It swipes the finisher when it would kill, at max
 // stacks, or when holding on for one more stack isn't worth the risk of a combo break losing them all (judged
-// from how often its own combos have been breaking).
+// from how often its own combos have been breaking). From the boost cards it takes Full Heal when hurt, otherwise
+// the rarest card.
 
 import { DT, type Combat, type CombatEvent } from './combat';
 import { Rng } from './rng';
-import { Run } from './run';
+import { RARITIES, Run } from './run';
 import { DEFAULT_SETTINGS, type Settings, type Tuning } from './tuning';
 
 export interface BotOptions {
@@ -49,12 +50,48 @@ export interface LevelStats {
 
 const BOT_SETTINGS: Settings = { ...DEFAULT_SETTINGS, mode: 'classic', comboTiers: false, targeting: 'auto', godMode: false };
 
-/** Play one level from its first stage with a fresh hero (the way the game starts every level). */
+/** Play one level from its first stage with a fresh hero. */
 export function playLevel(tuning: Tuning, levelIndex: number, o: BotOptions): LevelStats {
   const rng = new Rng(o.seed ^ 0x2545f491);
   const run = new Run(tuning, { ...BOT_SETTINGS }, o.seed);
   run.startLevel(levelIndex);
-  const out: LevelStats = { level: levelIndex, won: false, stages: [], revivesUsed: 0 };
+  return playAttempt(run, rng, o);
+}
+
+export interface RunStats {
+  /** Per level reached: every attempt (a retry follows each defeat) and whether it was cleared. */
+  levels: Array<{ level: number; attempts: LevelStats[]; cleared: boolean }>;
+}
+
+/**
+ * Play a whole run the way a person would: Level 1 with a fresh hero, retrying after a defeat (with the hero as
+ * they entered the level), then each next level with the hero and upgrades they earned. Gives up on a level
+ * after `maxAttempts`.
+ */
+export function playRun(tuning: Tuning, o: BotOptions, maxAttempts = 6): RunStats {
+  const rng = new Rng(o.seed ^ 0x2545f491);
+  const run = new Run(tuning, { ...BOT_SETTINGS }, o.seed);
+  run.startLevel(0);
+  const out: RunStats = { levels: [] };
+  for (let L = 0; L < tuning.levels.length; L++) {
+    const entry = { level: L, attempts: [] as LevelStats[], cleared: false };
+    out.levels.push(entry);
+    for (let a = 0; a < maxAttempts && !entry.cleared; a++) {
+      if (a > 0) run.retry();
+      const res = playAttempt(run, rng, o);
+      entry.attempts.push(res);
+      entry.cleared = res.won;
+    }
+    if (!entry.cleared) break;
+    if (L + 1 < tuning.levels.length) run.nextLevel();
+  }
+  return out;
+}
+
+/** From the start of a level until it is cleared, lost or a stage times out. */
+function playAttempt(run: Run, rng: Rng, o: BotOptions): LevelStats {
+  const tuning = run.tuning;
+  const out: LevelStats = { level: run.levelIndex, won: false, stages: [], revivesUsed: 0 };
   const startRevives = run.hero.revives;
   let guard = 0;
   while (guard++ < 100) {
@@ -68,9 +105,14 @@ export function playLevel(tuning: Tuning, levelIndex: number, o: BotOptions): Le
       fight(run, c, st, rng, o);
       if (run.phase === 'fight') break; // timed out
     } else if (run.phase === 'boost') {
-      const heal = run.boostChoices.indexOf('heal');
+      // Full Heal when hurt; otherwise the strongest card, a random one among equals
+      const offers = run.boostChoices;
+      const heal = offers.findIndex((b) => b.id === 'heal');
       const hurt = run.hero.hp < (tuning.hero.maxHp + run.hero.bonusMaxHp) * 0.5;
-      run.pickBoost(hurt && heal >= 0 ? heal : rng.int(run.boostChoices.length));
+      const rank = (i: number) => RARITIES.indexOf(offers[i].rarity);
+      const best = Math.max(...offers.map((_, i) => rank(i)));
+      const top = offers.map((_, i) => i).filter((i) => rank(i) === best);
+      run.pickBoost(hurt && heal >= 0 ? heal : top[rng.int(top.length)]);
     } else {
       out.won = run.phase === 'levelClear';
       break;
@@ -219,30 +261,35 @@ export interface BalanceRow {
   accuracy: number;
   level: number;
   runs: number;
-  winRate: number;
+  reached: number; // runs that got to this level
+  winRate: number; // cleared on the first attempt (of those that reached it)
+  clearRate: number; // cleared within the attempts allowed
+  attempts: number; // average attempts to clear it (of those that cleared)
   avgFightSec: number; // per stage, stages that were won
   minFightSec: number; // shortest stage average
   maxFightSec: number; // longest stage average
   finisherShare: number; // finisher damage / all damage
   bossMaxFinishers: number; // average max-stack finishers used in won boss fights
-  bossVsMaxFinisher: number; // average boss HP / one max-stack finisher (needs >= 2 when this is >= ~1.5-2)
+  bossVsMaxFinisher: number; // average boss HP / one max-stack finisher at the hero's stats when the boss appears
   bossOneShotRate: number; // share of boss fights a single max-stack finisher could win
   stageSec: number[]; // average seconds per stage index (won stages)
   missRate: number; // misses per tap
   perfectRate: number;
   tapsPerSec: number;
   hitsTakenPerMin: number; // enemy attacks (and traps) that landed
-  bossAtkGrowth: number; // hero attack going into the boss / at the start of the level
+  heroAtk: number; // average hero attack entering the level (carried upgrades included)
+  bossAtkGrowth: number; // hero attack going into the boss / entering the level
   bossComboPowerGrowth: number;
-  lostAt: number[]; // runs lost, per stage index
+  lostAt: number[]; // lost attempts, per stage index
 }
 
-/** Play `runs` levels per accuracy and summarise. */
-export function balance(tuning: Tuning, levels: number[], accuracies: number[], runs: number, seed = 1): BalanceRow[] {
+/** Play `runs` whole runs per accuracy and summarise every level. */
+export function balance(tuning: Tuning, accuracies: number[], runs: number, seed = 1, maxAttempts = 6): BalanceRow[] {
   const rows: BalanceRow[] = [];
-  for (const acc of accuracies)
-    for (const level of levels) {
-      let wins = 0;
+  for (const acc of accuracies) {
+    const results = Array.from({ length: runs }, (_, r) => playRun(tuning, { accuracy: acc, seed: (seed * 7919 + r * 104729 + Math.round(acc * 1000)) >>> 0 }, maxAttempts));
+    for (let level = 0; level < tuning.levels.length; level++) {
+      const entries = results.map((res) => res.levels[level]).filter((e) => !!e);
       let dmg = 0;
       let fin = 0;
       let taps = 0;
@@ -257,56 +304,63 @@ export function balance(tuning: Tuning, levels: number[], accuracies: number[], 
       let oneShot = 0;
       let secs = 0;
       let taken = 0;
+      let atkStart = 0;
       let atkGrowth = 0;
       let cpGrowth = 0;
       let growthN = 0;
       const lostAt: number[] = [];
-      for (let r = 0; r < runs; r++) {
-        const res = playLevel(tuning, level, { accuracy: acc, seed: (seed * 7919 + r * 104729 + level * 31 + Math.round(acc * 1000)) >>> 0 });
-        if (res.won) wins++;
-        else {
-          const last = res.stages[res.stages.length - 1]?.stage ?? 0;
-          lostAt[last] = (lostAt[last] ?? 0) + 1;
-        }
-        const first = res.stages[0];
-        for (const s of res.stages) {
-          secs += s.seconds;
-          taken += s.hitsTaken + s.traps;
-          if (s.boss && first) {
-            atkGrowth += s.heroAtk / first.heroAtk;
-            cpGrowth += s.comboPower / first.comboPower;
-            growthN++;
+      for (const e of entries) {
+        atkStart += e.attempts[0]?.stages[0]?.heroAtk ?? 0;
+        for (const att of e.attempts) {
+          if (!att.won) {
+            const last = att.stages[att.stages.length - 1]?.stage ?? 0;
+            lostAt[last] = (lostAt[last] ?? 0) + 1;
           }
-          dmg += s.damage;
-          fin += s.finisherDamage;
-          taps += s.taps;
-          misses += s.misses;
-          perfects += s.perfects;
-          if (s.won) {
-            stageSum[s.stage] = (stageSum[s.stage] ?? 0) + s.seconds;
-            stageN[s.stage] = (stageN[s.stage] ?? 0) + 1;
-          }
-          if (s.bossVsMaxFinisher !== undefined) {
-            bossRatio += s.bossVsMaxFinisher;
-            bossRatioN++;
-            if (s.bossVsMaxFinisher <= 1) oneShot++;
-            if (s.won) {
-              bossFights++;
-              bossMax += s.maxStackFinishers;
+          const first = att.stages[0];
+          for (const st of att.stages) {
+            secs += st.seconds;
+            taken += st.hitsTaken + st.traps;
+            if (st.boss && first) {
+              atkGrowth += st.heroAtk / first.heroAtk;
+              cpGrowth += st.comboPower / first.comboPower;
+              growthN++;
+            }
+            dmg += st.damage;
+            fin += st.finisherDamage;
+            taps += st.taps;
+            misses += st.misses;
+            perfects += st.perfects;
+            if (st.won) {
+              stageSum[st.stage] = (stageSum[st.stage] ?? 0) + st.seconds;
+              stageN[st.stage] = (stageN[st.stage] ?? 0) + 1;
+            }
+            if (st.bossVsMaxFinisher !== undefined) {
+              bossRatio += st.bossVsMaxFinisher;
+              bossRatioN++;
+              if (st.bossVsMaxFinisher <= 1) oneShot++;
+              if (st.won) {
+                bossFights++;
+                bossMax += st.maxStackFinishers;
+              }
             }
           }
         }
       }
+      const cleared = entries.filter((e) => e.cleared);
       const stageSec = stageSum.map((v, i) => v / Math.max(1, stageN[i]));
       const wonStages = stageN.reduce((a, b) => a + (b ?? 0), 0);
+      const n = Math.max(1, entries.length);
       rows.push({
         accuracy: acc,
         level,
         runs,
-        winRate: wins / runs,
+        reached: entries.length,
+        winRate: entries.filter((e) => e.attempts[0]?.won).length / n,
+        clearRate: cleared.length / n,
+        attempts: cleared.length ? cleared.reduce((a, e) => a + e.attempts.length, 0) / cleared.length : NaN,
         avgFightSec: stageSum.reduce((a, b) => a + (b ?? 0), 0) / Math.max(1, wonStages),
-        minFightSec: Math.min(...stageSec),
-        maxFightSec: Math.max(...stageSec),
+        minFightSec: stageSec.length ? Math.min(...stageSec) : NaN,
+        maxFightSec: stageSec.length ? Math.max(...stageSec) : NaN,
         finisherShare: dmg ? fin / dmg : 0,
         bossMaxFinishers: bossFights ? bossMax / bossFights : NaN,
         bossVsMaxFinisher: bossRatioN ? bossRatio / bossRatioN : NaN,
@@ -316,10 +370,12 @@ export function balance(tuning: Tuning, levels: number[], accuracies: number[], 
         perfectRate: taps ? perfects / taps : 0,
         tapsPerSec: secs ? taps / secs : 0,
         hitsTakenPerMin: secs ? (taken / secs) * 60 : 0,
+        heroAtk: atkStart / n,
         bossAtkGrowth: growthN ? atkGrowth / growthN : NaN,
         bossComboPowerGrowth: growthN ? cpGrowth / growthN : NaN,
-        lostAt: Array.from({ length: stageSec.length }, (_, i) => lostAt[i] ?? 0),
+        lostAt: Array.from({ length: Math.max(stageSec.length, lostAt.length) }, (_, i) => lostAt[i] ?? 0),
       });
     }
+  }
   return rows;
 }

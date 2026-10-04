@@ -1,6 +1,7 @@
 // Debug / tuning panel (DOM). Every change applies live and is saved to localStorage.
 import { impactFeel, impactWeight } from '../core/impact';
 import { cloneTuning, DEFAULT_SETTINGS, getPath, IMPACT_SOUND_SLIDERS, mergeKnown, setPath, sliderGroups, type Settings } from '../core/tuning';
+import { heroFor } from '../core/run';
 import type { App } from './app';
 import { SFX } from './audio';
 import { runCalibration } from './calibrate';
@@ -194,7 +195,8 @@ export function installDebug(app: App): DebugUi {
         const names = stage.map((k) => app.tuning.enemies[k]?.name ?? k).join(' + ');
         const b = el('button', 'dbg-btn', `${lvl.name.replace(/level /i, 'L')}: ${names}`);
         b.onclick = () => {
-          app.setPhase(() => app.run.startLevel(li, si));
+          // arrive with the upgrades a player would have earned on the way
+          app.setPhase(() => app.run.startLevel(li, si, li > 0 || si > 0 ? heroFor(app.tuning, li, si) : undefined));
           setOpen(false);
         };
         jg.appendChild(b);
@@ -302,10 +304,11 @@ export function installDebug(app: App): DebugUi {
     const c = app.run.combat;
     const m = /^enemies\.(\w+)\.hp$/.exec(path);
     if (m && c) {
+      const hp = Math.max(1, Math.round(v * (app.run.level.hpMult ?? 1)));
       for (const e of c.enemies)
         if (e.key === m[1] && e.alive) {
-          e.hp = Math.max(1, Math.round((e.hp / e.maxHp) * v));
-          e.maxHp = v;
+          e.hp = Math.max(1, Math.round((e.hp / e.maxHp) * hp));
+          e.maxHp = hp;
         }
     }
     if (path === 'hero.maxHp') {

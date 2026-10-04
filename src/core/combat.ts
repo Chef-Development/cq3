@@ -44,6 +44,8 @@ export interface Enemy {
   slot: number; // 0 = front (closest to the hero)
   hp: number;
   maxHp: number;
+  atk: number; // its red blocks' damage (level-scaled)
+  special: number; // its traps' damage (level-scaled)
   alive: boolean;
   spawnTimer: number;
   seq: number;
@@ -57,6 +59,7 @@ export interface Hero {
   bonusCrit: number;
   bonusCritDmg: number;
   bonusComboPower: number;
+  bonusPet: number; // extra damage on the companion's pecks (Companion Power boosts)
   revives: number;
   abilityTimer: number;
 }
@@ -70,6 +73,7 @@ export function newHero(t: Tuning): Hero {
     bonusCrit: 0,
     bonusCritDmg: 0,
     bonusComboPower: 0,
+    bonusPet: 0,
     revives: t.hero.revivesPerLevel,
     abilityTimer: 0,
   };
@@ -147,6 +151,9 @@ export interface CombatOptions {
   spawning?: boolean; // false = no pattern spawns (tests)
   /** Resume a saved fight: each enemy's HP (front first); 0 = already dead. */
   enemyHp?: number[];
+  /** The level's enemy scaling (LevelDef.hpMult / atkMult). */
+  hpMult?: number;
+  atkMult?: number;
 }
 
 export class Combat {
@@ -204,8 +211,10 @@ export class Combat {
         id: this.nextId++,
         key,
         slot,
-        hp: def.hp,
-        maxHp: def.hp,
+        hp: Math.max(1, Math.round(def.hp * (o.hpMult ?? 1))),
+        maxHp: Math.max(1, Math.round(def.hp * (o.hpMult ?? 1))),
+        atk: Math.round(def.atk * (o.atkMult ?? 1)),
+        special: Math.round(def.special * (o.atkMult ?? 1)),
         alive: true,
         spawnTimer: def.interval * 0.6 + slot * 0.35,
         seq: 0,
@@ -351,7 +360,7 @@ export class Combat {
   private impact(b: Block): void {
     this.removeBlock(b, 'impact');
     const owner = this.enemyById(b.ownerId);
-    const atk = owner ? this.tuning.enemies[owner.key].atk : 0;
+    const atk = owner ? owner.atk : 0;
     const bomb = b.kind === 'bomb';
     this.heroDamage(atk * (bomb ? this.tuning.blocks.bombHitMult : 1), bomb ? 'bomb' : 'red', b.ownerId);
   }
@@ -600,7 +609,7 @@ export class Combat {
   private triggerTrap(b: Block): TapOutcome {
     this.removeBlock(b, 'hit');
     const owner = this.enemyById(b.ownerId);
-    const damage = owner ? this.tuning.enemies[owner.key].special : 0;
+    const damage = owner ? owner.special : 0;
     this.events.push({ type: 'trap', pos: b.pos, damage, enemyId: b.ownerId });
     this.heroDamage(damage, 'trap', b.ownerId);
     return 'trap';
@@ -731,7 +740,7 @@ export class Combat {
     if (this.petCharge < P.everyHits) return;
     this.petCharge = 0;
     const target = this.currentTarget();
-    const dmg = Math.round(P.damage);
+    const dmg = Math.round(P.damage + this.hero.bonusPet);
     if (!target || dmg <= 0) return;
     this.events.push({ type: 'pet', enemyId: target.id, damage: dmg });
     this.damageEnemy(target, dmg, false, 'pet');

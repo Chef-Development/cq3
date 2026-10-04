@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Run } from '../../src/core/run';
+import { rarityMult, Run } from '../../src/core/run';
 import { cloneTuning, DEFAULT_SETTINGS } from '../../src/core/tuning';
 import { setup, timeAt } from './helpers';
 
@@ -90,18 +90,19 @@ describe('run flow: boosts, stages, revive', () => {
     r.sync();
     expect(r.phase).toBe('boost');
     expect(r.boostChoices).toHaveLength(3);
-    expect(new Set(r.boostChoices).size).toBe(3);
-    const i = r.boostChoices.indexOf('damage');
+    expect(new Set(r.boostChoices.map((b) => b.id)).size).toBe(3);
+    const i = r.boostChoices.findIndex((b) => b.id === 'damage');
+    const offer = r.boostChoices[i >= 0 ? i : 0];
     r.pickBoost(i >= 0 ? i : 0);
     expect(r.phase).toBe('fight');
     expect(r.stageIndex).toBe(1);
     expect(r.combat!.enemies[0].key).toBe('boar');
-    if (i >= 0) expect(r.hero.bonusDmg).toBeCloseTo(0.2);
+    if (i >= 0) expect(r.hero.bonusDmg).toBeCloseTo(r.tuning.boosts.damage * rarityMult(r.tuning, offer.rarity));
   });
 
   it('group: a kill shows boosts then resumes the same fight', () => {
     const r = make();
-    r.startLevel(1);
+    r.startLevel(1, 2); // three enemies at once
     const c = r.combat!;
     expect(c.enemies).toHaveLength(3);
     c.enemies[0].hp = 1;
@@ -115,16 +116,55 @@ describe('run flow: boosts, stages, revive', () => {
     expect(r.combat).toBe(c);
   });
 
+  it('later levels scale enemy HP and attack', () => {
+    const r = make();
+    r.startLevel(1, 2);
+    const L = r.tuning.levels[1];
+    const e = r.combat!.enemies.find((x) => x.key === 'bandit')!;
+    expect(e.maxHp).toBe(Math.round(r.tuning.enemies.bandit.hp * L.hpMult));
+    expect(e.atk).toBe(Math.round(r.tuning.enemies.bandit.atk * L.atkMult));
+  });
+
+  it('the hero carries their upgrades into the next level, rested; a retry starts from there', () => {
+    const r = make();
+    r.startLevel(0, 3);
+    r.hero.bonusAtk = 3;
+    r.hero.bonusMaxHp = 15;
+    r.hero.hp = 20;
+    r.hero.revives = 0;
+    r.nextLevel();
+    expect(r.levelIndex).toBe(1);
+    expect(r.hero.bonusAtk).toBe(3);
+    expect(r.hero.hp).toBe(115);
+    expect(r.hero.revives).toBe(r.tuning.hero.revivesPerLevel);
+    r.hero.bonusAtk = 9;
+    r.hero.hp = 1;
+    r.retry();
+    expect(r.hero.bonusAtk).toBe(3);
+    expect(r.hero.hp).toBe(115);
+    r.nextLevel(); // past the last level: a new run
+    expect(r.levelIndex).toBe(0);
+    expect(r.hero.bonusAtk).toBe(0);
+  });
+
   it('boost effects', () => {
     const r = make();
     r.startLevel(0);
     r.hero.hp = 10;
     r.phase = 'boost';
     r.pendingBoosts = 2;
-    r.boostChoices = ['heal', 'maxHp', 'crit'];
+    r.boostChoices = [
+      { id: 'heal', rarity: 'common' },
+      { id: 'maxHp', rarity: 'common' },
+      { id: 'crit', rarity: 'common' },
+    ];
     r.pickBoost(0);
     expect(r.hero.hp).toBe(100);
-    r.boostChoices = ['maxHp', 'crit', 'critDmg'];
+    r.boostChoices = [
+      { id: 'maxHp', rarity: 'common' },
+      { id: 'crit', rarity: 'common' },
+      { id: 'critDmg', rarity: 'common' },
+    ];
     r.pickBoost(0);
     expect(r.hero.hp).toBe(120);
   });

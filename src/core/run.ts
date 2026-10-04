@@ -6,58 +6,118 @@ import type { Settings, Tuning } from './tuning';
 
 export type Phase = 'title' | 'fight' | 'boost' | 'levelClear' | 'defeat';
 
-export type BoostId = 'maxHp' | 'damage' | 'crit' | 'critDmg' | 'comboPower' | 'heal';
-export const BOOST_IDS: BoostId[] = ['maxHp', 'damage', 'crit', 'critDmg', 'comboPower', 'heal'];
+export type BoostId = 'maxHp' | 'damage' | 'crit' | 'critDmg' | 'comboPower' | 'pet' | 'heal';
+export const BOOST_IDS: BoostId[] = ['maxHp', 'damage', 'crit', 'critDmg', 'comboPower', 'pet', 'heal'];
 
-export function boostLabel(t: Tuning, id: BoostId): [string, string] {
+/** Boost cards come in three strengths: common (green), rare (blue, x2) and epic (gold, x3). */
+export type Rarity = 'common' | 'rare' | 'epic';
+export const RARITIES: Rarity[] = ['common', 'rare', 'epic'];
+
+export interface BoostOffer {
+  id: BoostId;
+  rarity: Rarity;
+}
+
+/** How many times stronger than common a card of this rarity is. */
+export function rarityMult(t: Tuning, r: Rarity): number {
+  return r === 'epic' ? t.boosts.epicMult : r === 'rare' ? t.boosts.rareMult : 1;
+}
+
+const round1 = (v: number) => Math.round(v * 10) / 10;
+
+/** Max HP a Full Heal card adds on top of the heal (rare and epic only). */
+const healBonusHp = (t: Tuning, r: Rarity) => Math.round(t.boosts.maxHp * (rarityMult(t, r) - 1) * 0.5);
+
+export function boostLabel(t: Tuning, o: BoostOffer): [string, string] {
   const b = t.boosts;
-  switch (id) {
+  const m = rarityMult(t, o.rarity);
+  switch (o.id) {
     case 'maxHp':
-      return ['Max HP', `+${b.maxHp}`];
+      return ['Max HP', `+${Math.round(b.maxHp * m)}`];
     case 'damage':
-      return ['Damage', `+${Math.round(b.damage * 100)}%`];
+      return ['Damage', `+${Math.round(b.damage * m * 100)}%`];
     case 'crit':
-      return ['Crit Chance', `+${Math.round(b.crit * 100)}%`];
+      return ['Crit Chance', `+${Math.round(b.crit * m * 100)}%`];
     case 'critDmg':
-      return ['Crit Damage', `+${b.critDmg}x`];
+      return ['Crit Damage', `+${round1(b.critDmg * m)}x`];
     case 'comboPower':
-      return ['Combo Power', `+${b.comboPower}`];
+      return ['Combo Power', `+${round1(b.comboPower * m)}`];
+    case 'pet':
+      return ['Companion Power', `Pip +${Math.round(b.pet * m)} dmg`];
     case 'heal':
-      return ['Full Heal', 'HP to max'];
+      return ['Full Heal', o.rarity === 'common' ? 'HP to max' : `+${healBonusHp(t, o.rarity)} max HP`];
   }
 }
 
-export function applyBoost(t: Tuning, h: Hero, id: BoostId): void {
+export function applyBoost(t: Tuning, h: Hero, o: BoostOffer): void {
   const b = t.boosts;
-  switch (id) {
+  const m = rarityMult(t, o.rarity);
+  switch (o.id) {
     case 'maxHp':
-      h.bonusMaxHp += b.maxHp;
-      h.hp += b.maxHp;
+      h.bonusMaxHp += Math.round(b.maxHp * m);
+      h.hp += Math.round(b.maxHp * m);
       break;
     case 'damage':
-      h.bonusDmg += b.damage;
+      h.bonusDmg += b.damage * m;
       break;
     case 'crit':
-      h.bonusCrit += b.crit;
+      h.bonusCrit += b.crit * m;
       break;
     case 'critDmg':
-      h.bonusCritDmg += b.critDmg;
+      h.bonusCritDmg += b.critDmg * m;
       break;
     case 'comboPower':
-      h.bonusComboPower += b.comboPower;
+      h.bonusComboPower += b.comboPower * m;
+      break;
+    case 'pet':
+      h.bonusPet += Math.round(b.pet * m);
       break;
     case 'heal':
+      h.bonusMaxHp += healBonusHp(t, o.rarity);
       h.hp = heroMaxHp(t, h);
       break;
   }
   h.hp = Math.min(h.hp, heroMaxHp(t, h));
 }
 
-export function rollBoosts(rng: Rng, n = 3): BoostId[] {
+/**
+ * Three different boosts, each rolled common, rare or epic (tuning boosts.rareChance / epicChance).
+ * `atLeastRare` (a boss kill) upgrades one card to rare if none came up rare or better.
+ */
+export function rollBoosts(rng: Rng, t: Tuning, atLeastRare = false, n = 3): BoostOffer[] {
   const pool = BOOST_IDS.slice();
-  const out: BoostId[] = [];
-  while (out.length < n && pool.length) out.push(pool.splice(rng.int(pool.length), 1)[0]);
+  const out: BoostOffer[] = [];
+  while (out.length < n && pool.length) {
+    const id = pool.splice(rng.int(pool.length), 1)[0];
+    const r = rng.next();
+    const rarity: Rarity = r < t.boosts.epicChance ? 'epic' : r < t.boosts.epicChance + t.boosts.rareChance ? 'rare' : 'common';
+    out.push({ id, rarity });
+  }
+  if (atLeastRare && out.length && out.every((o) => o.rarity === 'common')) out[rng.int(out.length)].rarity = 'rare';
   return out;
+}
+
+/**
+ * A hero who has fought their way to `levelIndex`/`stageIndex`: every earlier kill's rewards plus one common boost
+ * per kill (taken in turn). The debug panel's "Jump to" uses it so later stages aren't tried with a fresh hero.
+ */
+export function heroFor(t: Tuning, levelIndex: number, stageIndex: number): Hero {
+  const h = newHero(t);
+  const order: BoostId[] = ['damage', 'maxHp', 'comboPower', 'crit', 'pet', 'critDmg'];
+  let kills = 0;
+  t.levels.forEach((lvl, li) =>
+    lvl.stages.forEach((stage, si) => {
+      if (li < levelIndex || (li === levelIndex && si < stageIndex)) kills += stage.length;
+    }),
+  );
+  for (let k = 0; k < kills; k++) {
+    h.bonusAtk += t.kill.atk;
+    h.bonusMaxHp += t.kill.maxHp;
+    h.bonusComboPower += t.kill.comboPower;
+    applyBoost(t, h, { id: order[k % order.length], rarity: 'common' });
+  }
+  h.hp = heroMaxHp(t, h);
+  return h;
 }
 
 export class Run {
@@ -65,8 +125,10 @@ export class Run {
   levelIndex = 0;
   stageIndex = 0;
   hero: Hero;
+  /** The hero as they entered the current level: a retry starts from here. */
+  levelHero: Hero;
   combat: Combat | null = null;
-  boostChoices: BoostId[] = [];
+  boostChoices: BoostOffer[] = [];
   pendingBoosts = 0;
   /** Coins collected this session (kept across levels). */
   coins = 0;
@@ -81,15 +143,18 @@ export class Run {
     this.seed = seed >>> 0;
     this.rng = new Rng(this.seed ^ 0xa5a5a5);
     this.hero = newHero(tuning);
+    this.levelHero = { ...this.hero };
   }
 
   get level() {
     return this.tuning.levels[this.levelIndex];
   }
 
-  startLevel(levelIndex: number, stageIndex = 0): void {
+  /** Start a level. `hero` carries a hero (and their upgrades) in from the last level; default a fresh one. */
+  startLevel(levelIndex: number, stageIndex = 0, hero?: Hero): void {
     this.levelIndex = Math.max(0, Math.min(this.tuning.levels.length - 1, levelIndex));
-    this.hero = newHero(this.tuning);
+    this.hero = hero ? { ...hero, abilityTimer: 0, revives: this.tuning.hero.revivesPerLevel } : newHero(this.tuning);
+    this.levelHero = { ...this.hero };
     this.combat = null;
     this.startStage(stageIndex);
   }
@@ -109,6 +174,8 @@ export class Run {
       seed: this.seed,
       carry,
       enemyHp: resume?.enemyHp,
+      hpMult: this.level.hpMult,
+      atkMult: this.level.atkMult,
     });
     this.boostChoices = [];
     this.pendingBoosts = 0;
@@ -140,27 +207,32 @@ export class Run {
       return;
     }
     if (c.killQueue.length) {
-      for (const id of c.killQueue) this.coins += this.tuning.enemies[c.enemyById(id)?.key ?? '']?.coins ?? 0;
+      let boss = false;
+      for (const id of c.killQueue) {
+        const def = this.tuning.enemies[c.enemyById(id)?.key ?? ''];
+        this.coins += def?.coins ?? 0;
+        boss ||= !!def?.boss;
+      }
       this.pendingBoosts += c.killQueue.length;
       c.killQueue.length = 0;
-      this.boostChoices = rollBoosts(this.rng);
+      this.boostChoices = rollBoosts(this.rng, this.tuning, boss); // a boss always leaves something rare
       this.phase = 'boost';
     }
   }
 
   /** Roll a fresh set of boost choices. */
-  rollChoices(): BoostId[] {
-    return rollBoosts(this.rng);
+  rollChoices(): BoostOffer[] {
+    return rollBoosts(this.rng, this.tuning);
   }
 
   pickBoost(index: number): void {
     if (this.phase !== 'boost') return;
-    const id = this.boostChoices[index];
-    if (!id) return;
-    applyBoost(this.tuning, this.hero, id);
+    const offer = this.boostChoices[index];
+    if (!offer) return;
+    applyBoost(this.tuning, this.hero, offer);
     this.pendingBoosts--;
     if (this.pendingBoosts > 0) {
-      this.boostChoices = rollBoosts(this.rng);
+      this.boostChoices = rollBoosts(this.rng, this.tuning);
       return;
     }
     this.boostChoices = [];
@@ -170,11 +242,16 @@ export class Run {
     } else this.phase = 'fight';
   }
 
+  /** On to the next level: the hero keeps every upgrade and rests to full HP at the chest. After the last
+   *  level the run starts over with a fresh hero. */
   nextLevel(): void {
-    this.startLevel((this.levelIndex + 1) % this.tuning.levels.length);
+    const next = (this.levelIndex + 1) % this.tuning.levels.length;
+    if (next === 0) return this.startLevel(0);
+    this.startLevel(next, 0, { ...this.hero, hp: heroMaxHp(this.tuning, this.hero) });
   }
 
+  /** After a defeat: the level again, with the hero as they entered it. */
   retry(): void {
-    this.startLevel(this.levelIndex);
+    this.startLevel(this.levelIndex, 0, this.levelHero);
   }
 }

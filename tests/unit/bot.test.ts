@@ -25,28 +25,41 @@ describe('balance bot', () => {
   });
 
   it('better accuracy misses less and wins more', () => {
-    const [lo, hi] = balance(cloneTuning(), [0], [0.7, 0.95], 30, 5);
+    const [lo, hi] = balance(cloneTuning(), [0.7, 0.95], 30, 5).filter((r) => r.level === 0);
     expect(hi.missRate).toBeLessThan(lo.missRate);
     expect(hi.winRate).toBeGreaterThanOrEqual(lo.winRate);
   });
 });
 
 describe('balance targets (guards the defaults; the full report is npm run balance)', () => {
-  const [row] = balance(cloneTuning(), [0], [0.85], 80, 9);
+  const [l1, l2] = balance(cloneTuning(), [0.85], 80, 9);
 
-  it('an 85% player wins Level 1 most of the time, but not always', () => {
-    expect(row.winRate).toBeGreaterThanOrEqual(0.7);
-    expect(row.winRate).toBeLessThanOrEqual(0.98);
+  it('an 85% player clears Level 1 first try most of the time, but not always', () => {
+    expect(l1.winRate).toBeGreaterThanOrEqual(0.7);
+    expect(l1.winRate).toBeLessThanOrEqual(0.98);
   });
 
-  it('fights last about 20-60 s, the boss longest (no snowball)', () => {
-    expect(Math.min(...row.stageSec)).toBeGreaterThanOrEqual(17);
-    expect(Math.max(...row.stageSec)).toBeLessThanOrEqual(60);
-    expect(row.stageSec[3]).toBe(Math.max(...row.stageSec));
+  it('enemies ramp up through each level: a short first fight, the boss longest', () => {
+    for (const r of [l1, l2]) {
+      const s = r.stageSec;
+      expect(s[0]).toBeLessThanOrEqual(20);
+      expect(s[s.length - 1]).toBe(Math.max(...s));
+      expect(s[s.length - 1]).toBeGreaterThanOrEqual(20);
+      expect(s[s.length - 1]).toBeLessThanOrEqual(60);
+      for (let i = 1; i < s.length; i++) expect(s[i]).toBeGreaterThanOrEqual(s[i - 1] * 0.9);
+    }
   });
 
-  it('the boss takes at least two max-stack finishers', () => {
-    expect(row.bossVsMaxFinisher).toBeGreaterThan(1.5);
-    expect(row.bossOneShotRate).toBe(0);
+  it('Level 2 is a step up, even with the upgrades carried in', () => {
+    expect(l2.heroAtk).toBeGreaterThan(l1.heroAtk);
+    expect(l2.winRate).toBeLessThan(l1.winRate);
+    expect(l2.winRate).toBeGreaterThanOrEqual(0.45);
+  });
+
+  it('every boss takes at least two max-stack finishers', () => {
+    for (const r of [l1, l2]) {
+      expect(r.bossVsMaxFinisher).toBeGreaterThan(1.5);
+      expect(r.bossOneShotRate).toBe(0);
+    }
   });
 });

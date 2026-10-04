@@ -359,7 +359,7 @@ export class Hud {
       const tv = s.fighters.enemies.get(target.id);
       const hpNow = s.anim < s.fighters.superFinalAt && tv ? tv.hpShown : target.hp;
       s.setText('enemyHp', `${Math.ceil(hpNow)}/${target.maxHp}`, s.R - 52, 17.5, WHITE, 1, 0.5, 0.5);
-      s.setText('enemyAtk', `${def.atk}`, s.R - 17, 31, WHITE, 1, 1, 0.5);
+      s.setText('enemyAtk', `${target.atk}`, s.R - 17, 31, WHITE, 1, 1, 0.5);
     } else ['enemyName', 'enemyHp', 'enemyAtk'].forEach((k) => txt[k].setVisible(false));
 
     const combo = c?.combo ?? 0;

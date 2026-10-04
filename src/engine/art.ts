@@ -967,6 +967,22 @@ export const HUD_ICONS: Record<string, { rows: string[]; pal: Record<string, num
     ]),
     pal: { k: INK_N, h: 0x98663a, H: 0x6e4426, a: 0x8a6ab0, A: 0xc8b0e8, W: 0xffffff, p: 0xff7ac8, P: 0xd03a98 },
   },
+  // 9x12: one of Pip's blue feathers (Companion Power)
+  feather: {
+    rows: outlined([
+      '....WNn',
+      '...WNnB',
+      '..WNnnB',
+      '.WNnnB.',
+      '.NnnB..',
+      'WnnB...',
+      'NnB....',
+      'qB.....',
+      'q......',
+      'q......',
+    ]),
+    pal: { k: INK_N, W: 0xe0f2ff, N: 0x6aaef0, n: 0x3a78d8, B: 0x1a2e70, q: 0xf2ecd8 },
+  },
 };
 
 /** Drifting cumulus band (w x 26), seamless when tiled horizontally. No outline: it is backdrop. */

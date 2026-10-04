@@ -817,6 +817,22 @@ export class Synth {
     this.bell(hz(base + 24), t + 0.18, 0.05, 0.5);
   }
 
+  /** A rare (or epic) boost card is on offer: a bright rising run that sparkles, longer and higher for epic. */
+  rareSting(epic = false, at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    const notes = epic ? [76, 79, 84, 88, 91, 96] : [79, 83, 86, 91];
+    notes.forEach((m, i) => {
+      const s = t + i * 0.055;
+      this.tone({ type: 'square', f: hz(m), at: s, dur: 0.08, gain: 0.035 });
+      this.tone({ type: 'sine', f: hz(m), at: s, dur: i === notes.length - 1 ? 0.6 : 0.25, gain: 0.11, rev: 0.45 });
+    });
+    const end = t + notes.length * 0.055;
+    this.bell(hz(notes[notes.length - 1] + 12), end, epic ? 0.08 : 0.06, 0.6);
+    if (epic) this.bell(hz(notes[notes.length - 1] + 19), end + 0.08, 0.05, 0.6);
+    this.noise({ at: t, dur: 0.35, attack: 0.15, gain: 0.05, filter: 'highpass', f: 6000 });
+  }
+
   /** Banked stacks were lost to a combo break: a glassy shatter falling in pitch. */
   stackLost(stacks: number, at?: number): void {
     if (!this.ready) return;
@@ -1216,6 +1232,8 @@ export const SFX: SfxEntry[] = [
   { id: 'stackLost', label: 'Stacks lost', len: 0.9, play: (s, at) => s.stackLost(3, at) },
   { id: 'speedUp', label: 'Speed up', len: 0.6, play: (s, at) => s.speedUp(at) },
   { id: 'milestone', label: 'Combo milestone', len: 0.8, play: (s, at) => s.ready2(at) },
+  { id: 'rare', label: 'Rare boost card', len: 1, play: (s, at) => s.rareSting(false, at) },
+  { id: 'epic', label: 'Epic boost card', len: 1.2, play: (s, at) => s.rareSting(true, at) },
   { id: 'jingle', label: 'Kill jingle', len: 1.5, play: (s, at) => s.kill(at) },
   { id: 'coin', label: 'Coin', len: 0.5, play: (s, at) => s.coin(at) },
   { id: 'statUp', label: 'Stat up', len: 0.4, play: (s, at) => s.statUp(0, at) },
