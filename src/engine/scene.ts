@@ -136,6 +136,17 @@ interface Pending {
 }
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
+/** Scale an RGB color toward black (f < 1) or white (f > 1). */
+const shade = (c: number, f: number) => {
+  const ch = (v: number) => Math.max(0, Math.min(255, Math.round(f <= 1 ? v * f : v + (255 - v) * (f - 1))));
+  return (ch((c >> 16) & 255) << 16) | (ch((c >> 8) & 255) << 8) | ch(c & 255);
+};
+/** Text gets a gentle top-to-bottom gradient (lit top, deeper bottom), like the reference's lettering. */
+const tintGrad = (t: Phaser.GameObjects.BitmapText, c: number) => {
+  const top = shade(c, 1.12);
+  const bot = shade(c, 0.78);
+  t.setTint(top, top, bot, bot);
+};
 const ease = (k: number) => 1 - (1 - k) * (1 - k);
 const clamp01 = (k: number) => Math.max(0, Math.min(1, k));
 const inRect = (r: Rect, x: number, y: number, pad = 0) => x >= r.x - pad && x <= r.x + r.w + pad && y >= r.y - pad && y <= r.y + r.h + pad;
@@ -914,7 +925,8 @@ export class FightScene extends Phaser.Scene implements View {
   private addFloater(x: number, y: number, text: string, color: number, scale: number, pop: boolean, vx: number, vy: number, g: number, life: number, world: boolean): void {
     const t = this.pool.pop() ?? this.add.bitmapText(0, 0, FONT, '');
     t.setFont(FONT_BOLD);
-    t.setText(fontText(text)).setTint(color).setOrigin(0.5, 0.5).setVisible(true).setAlpha(1).setScale(scale);
+    t.setText(fontText(text)).setOrigin(0.5, 0.5).setVisible(true).setAlpha(1).setScale(scale);
+    tintGrad(t, color);
     if (t.parentContainer) t.parentContainer.remove(t);
     if (world) {
       this.fxLayer.add(t);
@@ -1945,7 +1957,8 @@ export class FightScene extends Phaser.Scene implements View {
 
   private setText(key: string, s: string, x: number, y: number, color = WHITE, scale = 1, ox = 0, oy = 0, visible = true): void {
     const t = this.txt[key];
-    t.setText(fontText(s)).setPosition(Math.round(x), Math.round(y)).setTint(color).setScale(scale).setOrigin(ox, oy).setVisible(visible);
+    t.setText(fontText(s)).setPosition(Math.round(x), Math.round(y)).setScale(scale).setOrigin(ox, oy).setVisible(visible);
+    tintGrad(t, color);
   }
 
   private drawTexts(now: number): void {
