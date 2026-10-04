@@ -97,6 +97,18 @@ export class BarView {
     g.fillStyle(0xff9a80, 0.5);
     g.fillRect(B.x + bx + 2, B.y + 1, 1, B.h - 2);
     if (!c) return;
+    if (c.finisherReady && s.app.run.phase === 'fight') {
+      // a finisher is banked: the capsule glows in the stacks' color, pulsing faster with more stacks
+      const [, hi] = stackCol(c.stacks);
+      const k = 0.5 - 0.5 * Math.cos((now / (520 - Math.min(4, c.stacks) * 60)) * Math.PI * 2);
+      for (let i = 0; i < 2; i++) {
+        g.fillStyle(hi, (0.85 - i * 0.4) * (0.45 + 0.55 * k));
+        g.fillRect(B.x - 4 + bx, B.y - 7 - i, B.w + 8, 1);
+        g.fillRect(B.x - 4 + bx, B.y + B.h + 6 + i, B.w + 8, 1);
+        g.fillRect(B.x - 11 - i + bx, B.y - 1, 1, B.h + 2);
+        g.fillRect(B.x + B.w + 11 + i + bx, B.y - 1, 1, B.h + 2);
+      }
+    }
 
     const group = c.enemies.length > 1;
     this.drawGhosts(g, c, now, bx);
