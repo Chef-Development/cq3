@@ -11,7 +11,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "smoke": "playwright test",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "screens": "playwright test screens",
+    "screens:update": "playwright test screens --update-snapshots"
   },
   "dependencies": {
     "phaser": "^4.2.1"
