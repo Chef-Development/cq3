@@ -79,7 +79,6 @@ function render(W: number, H: number, pal: Pal, shades: Record<string, Shade>, p
 const swap = (rows: string[], pairs: [string, string][]) =>
   rows.map((r) => pairs.reduce((s, [a, b]) => s.split(a).join(b), r));
 
-const mirror = (rows: string[]) => rows.map((r) => [...r].reverse().join(''));
 
 /** A part from loose points in frame coordinates: [letter, [[x, y], ...]] pairs, later ones on top. */
 function dots(spec: [string, [number, number][]][], opts?: PartOpts): Part {
