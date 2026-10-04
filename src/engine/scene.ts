@@ -2022,7 +2022,7 @@ export class FightScene extends Phaser.Scene implements View {
     );
     const label = S.finisherInput === 'button' ? (ready ? 'GO!' : 'Finish') : ready ? 'UP!' : 'Swipe';
     this.txt.button.setFont(ready ? FONT_BOLD : FONT);
-    this.setText('button', label, b.x + b.w / 2, b.y + b.h / 2, ready ? WHITE : 0x9a8070, ready ? 2 : 1, 0.5, 0.5, fight);
+    this.setText('button', label, b.x + b.w / 2, b.y + b.h / 2, ready ? WHITE : 0xd0d4e0, ready ? 2 : 1, 0.5, 0.5, fight);
 
     const d = this.app.lastTap;
     this.setText('debug', d ? `TAP ${d.outcome} ${d.cursorPos.toFixed(3)}  CAL ${S.calibrationMs}MS` : `CAL ${S.calibrationMs}MS`, GAME_W / 2, this.meter.y + 9, 0xc8c8d4, 1, 0.5, 0, this.app.panelOpen);
