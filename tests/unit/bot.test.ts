@@ -32,7 +32,7 @@ describe('balance bot', () => {
 });
 
 describe('balance targets (guards the defaults; the full report is npm run balance)', () => {
-  const [l1, l2] = balance(cloneTuning(), [0.85], 80, 9);
+  const [l1, l2] = balance(cloneTuning(), [0.85], 150, 9);
 
   it('an 85% player clears Level 1 first try most of the time, but not always', () => {
     expect(l1.winRate).toBeGreaterThanOrEqual(0.7);

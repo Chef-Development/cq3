@@ -205,7 +205,7 @@ function fight(run: Run, c: Combat, st: StageStats, rng: Rng, o: BotOptions): vo
       c.finisher();
       busyUntil = t + 0.3; // the swipe itself takes a moment
     }
-    if (!pending && t >= busyUntil) pending = plan(c, rng, o, gauss);
+    if (!pending && t >= busyUntil && c.cursorHold <= 0) pending = plan(c, rng, o, gauss); // wait out a finisher's stopped cursor
     tally(c.drainEvents());
     st.seconds = t;
     run.sync();

@@ -96,7 +96,9 @@ ${table(b)}
 |---|---|---|---|
 | Enemy HP (Slime / Boar / Bandit / Big Slime) | 150 / 220 / 280 / 520 | 350 / 600 / 900 / 3000 | A ramp: a quick first fight, a real boss |
 | Enemy attack | 8 / 10 / 12 / 14 | 12 / 16 / 18 / 22 | Pressure: 85% clears Level 1 first try about 9 times in 10 |
-| Block widths (yellow / green / red / trap) | 0.12 / 0.075 / 0.09 / 0.09, varied 0.65-1.45x | 0.07 / 0.05 / 0.075 / 0.06, varied 0.7-1.4x (red attacks 0.9-1.25x) | The playtester (20) found the blocks too big and too easy, then the red attacks too thin: sharp timing, fair blocks |
+| Block widths (yellow / green / red / trap) | 0.12 / 0.075 / 0.09 / 0.09, varied 0.65-1.45x | 0.07 / 0.05 / 0.09 / 0.06, varied 0.7-1.4x (red attacks 0.9-1.25x) | The playtester (20) found the blocks too big and too easy, then the red attacks too thin and too hard: sharp timing, fair attacks |
+| Red attack travel time | 2.5 s | 2.8 s | Attacks come in slightly slower |
+| Cursor during the finisher | keeps moving | stops for the show, then restarts from the left | The playtester's call; taps during the show are ignored |
 | Level 2 | one fight: 2 Slimes + Bandit | 4 stages, 2 then 2 then 3 then the boss with 2 adds; enemy HP x${L.hpMult}, attack x${L.atkMult} | More enemies, still easy to tough |
 | Hero between levels | fresh every level | keeps every upgrade, healed at the chest; a retry starts from the level's entry | The upgrades carry the run |
 | Boost cards | all the same | rare (blue, x2, 15%) and epic (gold, x3, 4%); boss kills always offer a rare | Something to hope for |
@@ -109,7 +111,8 @@ ${table(b)}
 
 ## Reading it
 
-- **85% player, Level 1:**
+- **85% player, Level 1:** (easier than the planning chat's 80-90% band since the playtester found the attacks too
+  hard; their feel wins)
   - wins ${pct(a1.winRate)} first try;
   - fights ramp ${a1.stageSec.map((x) => x.toFixed(0)).join(' / ')} s from the first Slime to the boss, and nearly every loss is at the boss;
   - attack grows x${num(a1.bossAtkGrowth)} by the boss, and fights still get longer, so there is no snowball.

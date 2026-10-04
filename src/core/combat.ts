@@ -1,6 +1,7 @@
 // Deterministic combat simulation. No Phaser imports: Phaser only renders this state and feeds input.
 // Time is in seconds of simulation time, advanced in fixed 1/120 s ticks.
 
+import { finisherShowMs } from './impact';
 import { Rng } from './rng';
 import type { BlockCode, Settings, Tuning } from './tuning';
 
@@ -122,7 +123,8 @@ export type CombatEvent =
   | { type: 'revive' }
   | { type: 'defeat' }
   | { type: 'won' }
-  | { type: 'hitStop'; ms: number };
+  | { type: 'hitStop'; ms: number }
+  | { type: 'cursorReset' };
 
 export type TapOutcome = 'hit' | 'block' | 'crack' | 'trap' | 'miss' | 'none';
 
@@ -168,6 +170,8 @@ export class Combat {
   speedStacks = 0;
   meter = 0; // progress toward the next finisher stack, 0..1
   stacks = 0; // banked finisher stacks
+  /** Seconds the cursor stays stopped during the finisher; when it runs out the cursor restarts from the left. */
+  cursorHold = 0;
   blocks: Block[] = [];
   enemies: Enemy[];
   targetId: number | null = null;
@@ -253,7 +257,7 @@ export class Combat {
   }
 
   private phaseVelNow(): number {
-    return this.hitStop > 0 || this.result ? 0 : this.cursorSpeed();
+    return this.hitStop > 0 || this.result || this.cursorHold > 0 ? 0 : this.cursorSpeed();
   }
 
   private motionVelNow(): number {
@@ -318,7 +322,15 @@ export class Combat {
       return this.record();
     }
     this.motionTime += DT;
-    this.cursorPhase += this.cursorSpeed() * DT;
+    if (this.cursorHold > 0) {
+      // stopped for the finisher; then back to the start, moving right
+      this.cursorHold -= DT;
+      if (this.cursorHold <= 1e-9) {
+        this.cursorHold = 0;
+        this.cursorPhase = 0;
+        this.events.push({ type: 'cursorReset' });
+      }
+    } else this.cursorPhase += this.cursorSpeed() * DT;
     if (this.hero.abilityTimer > 0) this.hero.abilityTimer = Math.max(0, this.hero.abilityTimer - DT);
     this.updateBlocks();
     if (this.spawning && !this.result) this.updateSpawners();
@@ -474,7 +486,7 @@ export class Combat {
    */
   tap(t: number): TapResult {
     const none: TapResult = { outcome: 'none', perfect: false, cursorPos: 0, blockId: 0 };
-    if (this.result) return none;
+    if (this.result || this.cursorHold > 0) return none; // taps don't count while the finisher has the cursor stopped
     const J = this.tuning.judge;
     const { chosen, d, cpos } = this.pick(t);
     if (!chosen) {
@@ -515,7 +527,7 @@ export class Combat {
 
   /** Whether a tap at time t would land on nothing (lets input hold back a would-be miss that may be a swipe). */
   wouldMiss(t: number): boolean {
-    return !this.result && !this.pick(t).chosen;
+    return !this.result && this.cursorHold <= 0 && !this.pick(t).chosen;
   }
 
   /** Cursor speed (bar units/s) that was in effect at time t. */
@@ -646,6 +658,8 @@ export class Combat {
     this.combo = 0;
     this.speedStacks = 0;
     this.events.push({ type: 'finisher', damage: dmg, combo, stacks });
+    // the cursor stops while the finisher plays out, then restarts from the left
+    this.cursorHold = (finisherShowMs(stacks) / 1000) * Math.max(0, this.tuning.meter.finisherHold);
     this.startHitStop();
     if (dmg > 0) for (const e of this.enemies) if (e.alive) this.damageEnemy(e, dmg, false, 'finisher');
     return true;

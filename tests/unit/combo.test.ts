@@ -1,3 +1,4 @@
+import { finisherShowMs } from '../../src/core/impact';
 import { describe, expect, it } from 'vitest';
 import { setup, timeAt } from './helpers';
 
@@ -172,5 +173,45 @@ describe('finisher', () => {
     c.finisher();
     expect(c.enemies.map((e) => e.hp)).toEqual([80 - t.hero.atk, 80 - t.hero.atk, 140 - t.hero.atk]);
     expect(c.hitStop).toBeCloseTo(0.05);
+  });
+});
+
+describe('finisher stops the cursor', () => {
+  it('the cursor stops for the finisher show, taps are ignored, then it restarts from the left', () => {
+    const { c, t } = setup({ tune: (t) => ((t.meter.finisherHold = 1), (t.enemies.slime.hp = 5000)) });
+    c.advanceTo(0.5);
+    const at = c.cursorPosAt(c.time);
+    c.stacks = 2;
+    c.finisher();
+    expect(c.cursorHold).toBeCloseTo(finisherShowMs(2) / 1000);
+    c.drainEvents();
+    c.advanceTo(c.time + 0.4);
+    expect(c.cursorPosAt(c.time)).toBeCloseTo(at, 5); // stopped where it was
+    c.spawnBlock('yellow', at);
+    expect(c.tap(c.time).outcome).toBe('none'); // ignored: no hit, no miss
+    expect(c.wouldMiss(c.time)).toBe(false);
+    expect(c.hero.hp).toBe(t.hero.maxHp);
+    let reset = false;
+    for (let i = 0; i < 400 && !reset; i++) {
+      c.step();
+      reset = c.drainEvents().some((e) => e.type === 'cursorReset');
+    }
+    expect(reset).toBe(true);
+    expect(c.cursorHold).toBe(0);
+    const p0 = c.cursorPosAt(c.time);
+    expect(p0).toBeLessThan(0.01); // back at the start...
+    c.advanceTo(c.time + 0.1);
+    expect(c.cursorPosAt(c.time)).toBeGreaterThan(p0); // ...moving right
+  });
+
+  it('can be turned off', () => {
+    const { c } = setup({ tune: (t) => ((t.meter.finisherHold = 0), (t.enemies.slime.hp = 5000)) });
+    c.advanceTo(0.3);
+    c.stacks = 1;
+    c.finisher();
+    expect(c.cursorHold).toBe(0);
+    const p = c.cursorPosAt(c.time);
+    c.advanceTo(c.time + 0.2);
+    expect(c.cursorPosAt(c.time)).not.toBeCloseTo(p, 3);
   });
 });

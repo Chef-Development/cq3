@@ -337,6 +337,12 @@ export class FightScene extends Phaser.Scene implements View {
           fx.screenFlash(0x9af0a0, now, 320);
           fx.floatNum(this.heroHome + 10, this.ground - 50, 'Revived!', 0x9af0a0, 2);
           break;
+        case 'cursorReset':
+          // the finisher is done: the cursor snaps back to the start of the bar
+          bar.cursorPulse(0x9ad8ff);
+          fx.ring(bar.x(0), barMid, 14, 0x9ad8ff, false);
+          this.app.audio.swish();
+          break;
         case 'defeat':
           hold = Math.max(hold, 900);
           break;

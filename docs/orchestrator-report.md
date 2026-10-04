@@ -25,8 +25,12 @@
      spawn.
    - **Narrower blocks:** "The bars are too big, I'm a 20 year old". Blocks are about 40% narrower: yellow 0.07,
      green 0.05, trap 0.06 of the bar. Timing has to be sharper.
-   - **Red attacks:** next, "the red attacks get too thin". Reds (and shields, bombs, speed) are 0.075 wide and vary
-     only 0.9-1.25x, so a moving attack is never a sliver.
+   - **Red attacks:** next, "the red attacks get too thin", then "the attacks seem a bit difficult". Reds (and
+     shields, bombs, speed) are now 0.09 wide, vary only 0.9-1.25x, and take 2.8 s to cross the bar instead of
+     2.5 s.
+   - **Combo attack:** "during a combo attack the slider should stop moving and reset to the beginning". When the
+     swipe finisher fires, the cursor stops for the length of the finisher show (`meter.finisherHold`), taps
+     during it are ignored, and then the cursor restarts from the left with a small cue.
    - **Boss music:** boss fights have their own music, an original second loop that takes over when a boss stage
      starts and hands back afterwards. The note ("the music changes during a boss fight") was read as describing
      the reference game.
@@ -115,19 +119,22 @@ The bot (`src/core/bot.ts`) plays the real simulation:
 
 | 85% player | Before (M1 numbers, same rules) | Now |
 |---|---|---|
-| Level 1: first-try clear | 100% | **84%** (1.2 tries on average) |
-| Level 1: fight per stage | 4 / 4 / 5 / 6 s | **9 / 13 / 16 / 43 s** (a ramp from a quick Slime to the boss) |
-| Level 2: first-try clear | 100% (one 5 s fight) | **68%** (1.5 tries) |
-| Level 2: fight per stage | 5 s | **17 / 20 / 22 / 36 s** |
+| Level 1: first-try clear | 100% | **93%** (1.08 tries on average) |
+| Level 1: fight per stage | 4 / 4 / 5 / 6 s | **9 / 13 / 16 / 44 s** (a ramp from a quick Slime to the boss) |
+| Level 2: first-try clear | 100% (one 5 s fight) | **87%** (1.15 tries) |
+| Level 2: fight per stage | 5 s | **17 / 18 / 20 / 37 s** |
 | Boss HP ÷ one max-stack finisher | 0.21 (one-shot every time) | **2.6** (Level 1) and **3.2** (Level 2), 0% one-shots |
-| Finisher share of damage | 32% / 52% | 25% / 39% |
+| Finisher share of damage | 32% / 52% | 26% / 44% |
 
-- **70% player:** 24% / 42% first-try clears, about 2.1-2.7 tries per level. **95% player:** 100% / 91%.
+- **70% player:** 44% / 62% first-try clears, about 1.6-2 tries per level. **95% player:** 100% / 98%.
+- **Easier than planned, on purpose:** after the playtester found the attacks too hard, Level 1 sits above the
+  planning chat's 80-90% band (93%). Their feel on the phone outranks the guessed target. Level 2 is still a step
+  up.
 - **About these numbers:** the bot's accuracy is its share of well-timed taps, so the narrower blocks barely change
   its numbers. For a person, narrower blocks mean sharper timing is needed to reach the same accuracy.
 
 - **Targets met:**
-  - 85% clears Level 1 in the 80-90% band.
+  - 85% clears Level 1 most of the time (93%, above the 80-90% band, at the playtester's request).
   - Each boss needs at least two max-stack finishers.
   - Fights get longer through each level even though the hero grows, so there is no snowball.
   - Level 2 is a step up even with carried upgrades.
@@ -137,7 +144,9 @@ The bot (`src/core/bot.ts`) plays the real simulation:
   - enemy HP 350 / 600 / 900 / 3000
   - attack 12 / 16 / 18 / 22
   - Level 2: HP x2.8, attack x1.5
-  - block widths yellow 0.07, green 0.05, trap 0.06 (varied 0.7-1.4x), red attacks 0.075 (varied 0.9-1.25x)
+  - block widths yellow 0.07, green 0.05, trap 0.06 (varied 0.7-1.4x), red attacks 0.09 (varied 0.9-1.25x)
+  - red attacks cross the bar in 2.8 s
+  - the cursor stops during the finisher, then restarts from the left
   - stack exponent 1.7
   - combo power 5, growing from boosts only (+0.5 per boost)
   - damage boost +15%
@@ -151,8 +160,8 @@ The bot (`src/core/bot.ts`) plays the real simulation:
 - **Cursor:** 1.1 s per pass, +2% speed per combo hit, capped at 2.5x.
 - **Taps:** judged by the pointer timestamp, with up to 300 ms of rewind and a calibration offset.
 - **Perfect:** the center 30% of a block.
-- **Block widths:** yellow 0.07, green 0.05, trap 0.06 of the bar (varied 0.7-1.4x per spawn); red attacks 0.075
-  (varied 0.9-1.25x).
+- **Block widths:** yellow 0.07, green 0.05, trap 0.06 of the bar (varied 0.7-1.4x per spawn); red attacks 0.09
+  (varied 0.9-1.25x), crossing the bar in 2.8 s.
 - **Block kinds:**
   - yellow: attack for 10
   - green: 1.5x, plus +10% crit for 3 s
@@ -162,7 +171,8 @@ The bot (`src/core/bot.ts`) plays the real simulation:
   - speed: blocking it speeds up the cursor
   - purple: a trap
 - **Finisher:** about 6 hits per stack, up to 5 stacks. Damage = attack × combo power (5) × stacks^1.7, which is
-  50 / 162 / 324 / 771 at 1 / 2 / 3 / 5 stacks. Any miss or hit taken loses all stacks.
+  50 / 162 / 324 / 771 at 1 / 2 / 3 / 5 stacks. Any miss or hit taken loses all stacks. While the finisher plays,
+  the cursor stops (taps are ignored), then it restarts from the left.
 - **Kill rewards:** heal 20%, coins, +1 attack, +5 max HP, then 1 of 3 boost cards (common / rare x2 / epic x3).
 - **Boosts:** max HP +20, damage +15%, crit +5%, crit damage +0.5x, combo power +0.5, Companion Power +4, or Full
   Heal (rare and epic Full Heal also add max HP).

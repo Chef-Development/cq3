@@ -28,6 +28,7 @@ export function setup(opts: { enemies?: string[]; tune?: (t: Tuning) => void; se
   t.blocks.widthMax = 1;
   t.blocks.redWidthMin = 1;
   t.blocks.redWidthMax = 1;
+  t.meter.finisherHold = 0; // the cursor keeps moving after a finisher unless a test stops it
   t.hero.healOnKill = 0;
   t.companion.everyHits = 0;
   t.kill.atk = 0;
