@@ -590,6 +590,26 @@ export class Synth {
     this.bell(2093, t + 0.42, 0.05, 0.5);
   }
 
+  /** An enemy bursts apart: a crunchy pop on top of a soft boom. */
+  enemyPop(boss: boolean): void {
+    if (!this.ready) return;
+    const t = this.ctx!.currentTime;
+    const crunch = this.graph!.crunch;
+    this.tone({ type: 'sine', f: boss ? 140 : 190, f1: 32, glide: 0.35, at: t, dur: boss ? 0.6 : 0.4, gain: 0.8 });
+    this.noise({ at: t, dur: 0.3, gain: 0.55, filter: 'lowpass', f: 3800, f1: 260, sweep: 0.25, out: crunch });
+    this.noise({ at: t, dur: 0.05, gain: 0.35, filter: 'highpass', f: 3000 });
+    for (let i = 0; i < 4; i++) this.tone({ type: 'square', f: hz(84 - i * 5), at: t + 0.02 + i * 0.025, dur: 0.05, gain: 0.03 });
+  }
+
+  /** A stat icon reached the HUD: a quick rising blip (higher for each one in a row). */
+  statUp(i: number): void {
+    if (!this.ready) return;
+    const t = this.ctx!.currentTime;
+    const f = hz(79 + Math.min(12, i * 2));
+    this.tone({ type: 'square', f, f1: f * 1.5, glide: 0.06, at: t, dur: 0.07, gain: 0.03 });
+    this.tone({ type: 'sine', f: f * 2, at: t + 0.03, dur: 0.14, gain: 0.05, rev: 0.3 });
+  }
+
   /** Cursor got faster. */
   /** Coin pickup: a bright two-note ding. */
   coin(): void {

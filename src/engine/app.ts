@@ -15,7 +15,7 @@ export interface View {
 }
 
 const MAX_CATCHUP_S = 0.25;
-export const INTRO_MS = 1100;
+export const INTRO_MS = 800;
 
 export class App {
   readonly clock = new SimClock();
@@ -228,9 +228,7 @@ export class App {
         case 'speedUp':
           a.speedUp();
           break;
-        case 'kill':
-          a.kill();
-          break;
+        // 'kill' sounds play from the scene when the enemy actually bursts (after the finisher's last blow)
       }
     }
   }

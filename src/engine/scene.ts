@@ -20,10 +20,24 @@ const BOMB_COL = [0xf28a2a, 0xffd890, 0xa04a10] as const;
 const deepOf = (k: BlockKind) => (k === 'yellow' ? 0x7a4410 : k === 'green' ? 0x14622a : k === 'purple' ? 0x3a1a60 : 0x5a1020);
 
 /** How a block leaves the bar: never instantly. */
-type DyingStyle = 'pop' | 'shatter' | 'crunch' | 'fade' | 'zip';
-const DYING_MS: Record<DyingStyle, number> = { pop: 270, shatter: 360, crunch: 220, fade: 260, zip: 200 };
+type DyingStyle = 'pop' | 'shatter' | 'crunch' | 'fade' | 'zip' | 'fly';
+const DYING_MS: Record<DyingStyle, number> = { pop: 270, shatter: 360, crunch: 220, fade: 260, zip: 200, fly: 420 };
 const dyingStyle = (kind: BlockKind, reason: RemoveReason): DyingStyle =>
-  reason === 'hit' ? (isRed(kind) ? 'shatter' : 'pop') : reason === 'bomb' ? 'shatter' : reason === 'impact' ? 'crunch' : reason === 'expire' ? 'fade' : 'zip';
+  reason === 'finisher'
+    ? 'fly'
+    : reason === 'hit'
+      ? isRed(kind)
+        ? 'shatter'
+        : 'pop'
+      : reason === 'bomb'
+        ? 'shatter'
+        : reason === 'impact'
+          ? 'crunch'
+          : reason === 'expire'
+            ? 'fade'
+            : 'zip';
+/** A dying enemy flashes and swells this long before it bursts. */
+const DEATH_CHARGE_MS = 150;
 
 interface Dying {
   x: number; // center, game px
@@ -59,7 +73,7 @@ const stackCol = (n: number) => STACK_COL[Math.max(0, Math.min(STACK_COL.length 
 const FINISHER_NAME = ['', 'Finisher!', 'Double Finisher!', 'Triple Finisher!', 'Quad Finisher!', 'MAX FINISHER!'];
 /** Slash color by combo tier: the longer the streak, the hotter the blade. */
 const comboSlashCol = (combo: number) => (combo >= 50 ? 0xff6ad8 : combo >= 25 ? 0xffd23a : combo >= 10 ? 0x5af0ff : 0x6ab4ff);
-const ENTER_MS = 900;
+const ENTER_MS = 700;
 const PIP_SWOOP_MS = 140;
 const PIP_BACK_MS = 280;
 
@@ -121,6 +135,7 @@ interface Floater {
   scale: number;
   pop: boolean;
   count?: { to: number; dur: number; at?: number }; // a number that counts up from 0
+  icon?: string; // HUD icon drawn in front of the text
 }
 
 interface Particle {
@@ -148,6 +163,28 @@ interface Ambient {
   life: number;
   color: number;
   phase: number;
+}
+
+interface RainIcon {
+  key: string; // HUD icon
+  stat: 'atk' | 'maxHp' | 'comboPower';
+  amt: number; // share of the stat gain this icon delivers
+  total: number; // the whole gain for that stat (shown once)
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  phase: 'wait' | 'fall' | 'rest' | 'fly';
+  t: number; // performance.now() the current phase started
+  delay: number; // ms before it starts falling
+  floor: number;
+  fx: number;
+  fy: number;
+  tx: number; // HUD target
+  ty: number;
+  row: number; // statPulse index
+  idx: number;
+  first: boolean; // shows the "+N" when it lands
 }
 
 interface Pending {
@@ -217,6 +254,17 @@ export class FightScene extends Phaser.Scene implements View {
   private kickUntil = 0;
   private stackPopAt = -1e9;
   private stackLostAt = -1e9;
+  private debris: Array<{ x: number; y: number; vx: number; vy: number; color: number; born: number; life: number; bounces: number; floor: number }> = [];
+  private puffs: Array<{ x: number; y: number; r: number; at: number; life: number; color: number }> = [];
+  private flashes: Array<{ x: number; y: number; r: number; at: number }> = [];
+  private lastWorldAnim = 0;
+  private rain: RainIcon[] = [];
+  private lastRainNow = 0;
+  private statPending = { atk: 0, maxHp: 0, comboPower: 0 };
+  private statPulse = [-1e9, -1e9, -1e9, -1e9, -1e9]; // stat rows 0..3, then the HP bar
+  private burstAt = new Map<number, number>(); // enemy id -> anim time it bursts
+  private lastBurstAt = -1e9;
+  private pixelCache = new Map<string, ImageData>();
   private gFx!: Phaser.GameObjects.Graphics;
   private gPanel!: Phaser.GameObjects.Graphics;
   private gBar!: Phaser.GameObjects.Graphics;
@@ -392,6 +440,11 @@ export class FightScene extends Phaser.Scene implements View {
     this.ghostTrail = [];
     this.sparks = [];
     this.superFinalAt = -1e9;
+    this.debris = [];
+    this.puffs = [];
+    this.flashes = [];
+    this.rain = [];
+    this.statPending = { atk: 0, maxHp: 0, comboPower: 0 };
     this.hero = this.add.image(this.heroHome, this.ground, 'hero_idle0').setScale(SPRITE_SCALE);
     this.actors.add(this.hero);
     this.coinFlights = [];
@@ -511,7 +564,7 @@ export class FightScene extends Phaser.Scene implements View {
         case 'block': {
           const x = this.barX(e.pos);
           if (e.perfect) this.judge(x, 'Perfect!', 0xfff07a, true, e.cracked ? 6 : 0);
-          if (!e.cracked) this.replaceFloater('block', () => this.addFloater(this.h.x - 12, this.ground - 50, 'Block!', WHITE, 2, true, 0, -16, 0, 520, true));
+          if (!e.cracked) this.replaceFloater('block', () => this.addFloater(this.h.x - 4, this.ground - 44, 'Block!', WHITE, 1, true, 0, -18, 0, 520, true));
           this.cursorPulse(0x7ae0ff);
           this.cursorHit(x, e.perfect ? 0x6aff5a : 0x7ae0ff);
           this.comboPopAt = now;
@@ -566,39 +619,26 @@ export class FightScene extends Phaser.Scene implements View {
         }
         case 'kill': {
           const id = e.enemyId;
-          const coins = this.app.tuning.enemies[c.enemyById(id)?.key ?? '']?.coins ?? 0;
-          const isBoss = !!this.app.tuning.enemies[c.enemyById(id)?.key ?? '']?.boss;
+          const def = this.app.tuning.enemies[c.enemyById(id)?.key ?? ''];
+          const coins = def?.coins ?? 0;
+          const isBoss = !!def?.boss;
           this.coinsPending += coins;
           // a finisher kill waits for the last blow; a normal kill for the hero's dash to land
           const delay = Math.max(this.h.state === 'dash' ? DASH_MS : 0, this.superFinalAt > this.anim ? this.superFinalAt - this.anim + 20 : 0);
-          hold = Math.max(hold, delay * 1.3 + (isBoss ? 1300 : 900));
-          this.later(delay, () => {
-            const v = this.enemies.get(id);
-            if (!v) {
-              this.coinsPending -= coins;
-              return;
-            }
-            v.dieAt = this.anim;
-            const cy = v.y - v.img.displayHeight / 2;
-            this.coinsPending -= coins;
-            this.dropCoins(v.x, cy, coins);
-            const boss = !!this.app.tuning.enemies[c.enemyById(id)?.key ?? '']?.boss;
-            this.burst(v.x, cy, ENEMY_COL[v.sprite] ?? WHITE, boss ? 60 : 26, true, boss ? 1.9 : 1.4);
-            this.burst(v.x, cy, 0xffffff, boss ? 24 : 12, true, 1.2);
-            this.ring(v.x, cy, 40, 0xffe680, true);
-            if (boss) {
-              this.burst(v.x, cy, 0xff8a2a, 30, true, 1.6);
-              for (const [ms, r, col] of [
-                [90, 44, 0xff8a2a],
-                [180, 58, 0xffd23a],
-                [270, 72, 0xff5a3a],
-              ] as const)
-                this.later(ms, () => this.ring(v.x, cy, r, col, true));
-              this.screenFlash(0xffe0a0, now, 220);
-            }
-            this.shake(J.shakeMaxPx, J.shakeMs * (boss ? 3 : 1.8));
-            this.freeze(boss ? 170 : 90);
-          });
+          // hold the boost choice until the burst, the coins and the stat rain have played out
+          hold = Math.max(hold, delay * 1.3 + (isBoss ? 2300 : 1900));
+          this.burstAt.set(id, this.anim + delay + DEATH_CHARGE_MS);
+          this.lastBurstAt = this.anim + delay + DEATH_CHARGE_MS;
+          this.later(delay, () => this.enemyDeath(id, coins, isBoss));
+          break;
+        }
+        case 'statGain': {
+          this.statPending.atk += e.atk;
+          this.statPending.maxHp += e.maxHp;
+          this.statPending.comboPower += e.comboPower;
+          const at = (this.burstAt.get(e.enemyId) ?? this.anim) + 200 - this.anim;
+          const ev = e;
+          this.later(at, () => this.statRain(ev.enemyId, ev.atk, ev.maxHp, ev.comboPower));
           break;
         }
         case 'explode':
@@ -613,11 +653,17 @@ export class FightScene extends Phaser.Scene implements View {
         case 'pet':
           this.petAttack(e.enemyId, e.damage);
           break;
-        case 'heal':
-          this.floatNum(this.h.x, this.ground - 44, `+${e.amount}`, 0xff7aa8, 1);
-          this.burst(this.h.x, this.ground - 16, 0xff7aa8, 10, true, 0.8);
-          this.app.audio.heal();
+        case 'heal': {
+          // healing comes from the kill: it lands just after the burst
+          const amount = e.amount;
+          this.later(Math.max(0, this.lastBurstAt - this.anim + 180), () => {
+            this.iconFloat(this.h.x + 2, this.ground - 46, `+${amount}`, 0xff7aa8, 'heart');
+            this.burst(this.h.x, this.ground - 16, 0xff7aa8, 12, true, 0.8);
+            this.statPulse[4] = performance.now();
+            this.app.audio.heal();
+          });
           break;
+        }
         case 'ability':
           this.floatNum(this.h.x, this.ground - 46, 'Keen Edge', 0x9af0a0, 1);
           break;
@@ -737,9 +783,10 @@ export class FightScene extends Phaser.Scene implements View {
     this.burst(hx, cy, WHITE, (big ? 14 : 8) + tier * 2, true, big ? 1.6 : 1.1, true);
     this.chips(hx, cy, 6, [WHITE, col, ENEMY_COL[v.sprite] ?? WHITE], big ? 10 : 5, 0);
     if (big) this.ring(v.x, cy, 28, col, true);
-    this.kick(big ? 4 : 2, big ? 110 : 70);
+    this.kick(big ? 3 : 1, big ? 110 : 60);
     if (big) this.shake(J.shakeMaxPx, J.shakeMs * 1.4);
-    this.freeze(big ? 90 : 50);
+    // a short hit-stop on every hit, longer on crits (scene only: the bar keeps running)
+    this.freeze(big ? 70 : 28);
   }
 
   private heroParry(ownerId: number, cracked: boolean): void {
@@ -829,6 +876,255 @@ export class FightScene extends Phaser.Scene implements View {
     });
   }
 
+  /** An enemy dies: it flashes and swells, then bursts into its own pixels with a flash, smoke and coins. */
+  private enemyDeath(id: number, coins: number, boss: boolean): void {
+    const v = this.enemies.get(id);
+    if (!v) {
+      this.coinsPending -= coins;
+      return;
+    }
+    v.dieAt = this.anim;
+    this.later(DEATH_CHARGE_MS, () => {
+      const J = this.app.tuning.juice;
+      const cy = v.y - v.img.displayHeight / 2;
+      const col = ENEMY_COL[v.sprite] ?? WHITE;
+      this.explodePixels(v, boss);
+      this.flashes.push({ x: v.x, y: cy, r: boss ? 34 : 20, at: this.anim });
+      for (let i = 0; i < (boss ? 10 : 6); i++) {
+        const a = (i / (boss ? 10 : 6)) * Math.PI * 2 + rand(-0.3, 0.3);
+        const d = rand(4, boss ? 18 : 10);
+        this.puffs.push({ x: v.x + Math.cos(a) * d, y: cy + Math.sin(a) * d * 0.6, r: rand(4, boss ? 10 : 7), at: this.anim + rand(0, 60), life: rand(380, 560), color: i % 3 === 0 ? 0xffffff : 0xd8d4e0 });
+      }
+      this.stars.push({ x: v.x, y: cy, at: this.anim, r: boss ? 40 : 26, color: col });
+      this.burst(v.x, cy, WHITE, boss ? 24 : 12, true, 1.5, true);
+      this.ring(v.x, cy, boss ? 52 : 36, 0xffe680, true);
+      if (boss) {
+        for (const [ms, r, c2] of [
+          [90, 48, 0xff8a2a],
+          [180, 64, 0xffd23a],
+          [270, 80, 0xff5a3a],
+        ] as const)
+          this.later(ms, () => this.ring(v.x, cy, r, c2, true));
+        this.screenFlash(0xffe0a0, performance.now(), 240);
+      }
+      this.coinsPending -= coins;
+      this.dropCoins(v.x, cy, coins);
+      if (coins > 0) this.later(120, () => this.iconFloat(v.x + 22, cy - 26, `+${coins}`, 0xffe066, 'coin'));
+      this.shake(J.shakeMaxPx + (boss ? 2 : 1), J.shakeMs * (boss ? 3 : 2));
+      this.kick(5, 140);
+      this.freeze(boss ? 150 : 80);
+      this.app.audio.enemyPop(boss);
+      this.later(140, () => this.app.audio.kill());
+    });
+  }
+
+  /** Fling the enemy's own pixels (2x2 chunks of its sprite) outward; they bounce on the ground and fade. */
+  private explodePixels(v: EnemyView, boss: boolean): void {
+    const key = `${v.sprite}_idle0`;
+    let data = this.pixelCache.get(key);
+    if (!data) {
+      const src = this.textures.get(key).getSourceImage() as HTMLCanvasElement;
+      const ctx = src.getContext?.('2d');
+      if (!ctx) return;
+      data = ctx.getImageData(0, 0, src.width, src.height);
+      this.pixelCache.set(key, data);
+    }
+    const W = data.width;
+    const H = data.height;
+    const ox = Math.round(v.x - W / 2);
+    const oy = v.y - H;
+    const cx = v.x;
+    const cy = v.y - H * 0.55;
+    for (let y = 0; y < H; y += 2)
+      for (let x = 0; x < W; x += 2) {
+        const i = (y * W + x) * 4;
+        if (data.data[i + 3] < 128) continue;
+        const color = (data.data[i] << 16) | (data.data[i + 1] << 8) | data.data[i + 2];
+        if (color === 0x1a1020 && Math.random() < 0.65) continue; // fewer outline chunks
+        const px = ox + x;
+        const py = oy + y;
+        const dx = px - cx;
+        const dy = py - cy;
+        const d = Math.hypot(dx, dy) || 1;
+        const sp = rand(45, 130) * (boss ? 1.35 : 1);
+        this.debris.push({
+          x: px,
+          y: py,
+          vx: (dx / d) * sp + rand(-25, 25),
+          vy: (dy / d) * sp * 0.7 - rand(70, 170),
+          color,
+          born: this.anim,
+          life: rand(650, 1150),
+          bounces: 0,
+          floor: this.ground + Math.round(rand(-3, 3)),
+        });
+      }
+    if (this.debris.length > 1100) this.debris.splice(0, this.debris.length - 1100);
+  }
+
+  /** Debris chunks, smoke puffs and burst flashes (world space, on the scene clock so hit-stop freezes them). */
+  private drawDebris(g: Phaser.GameObjects.Graphics): void {
+    const dt = Math.min(0.05, Math.max(0, (this.anim - this.lastWorldAnim) / 1000));
+    this.lastWorldAnim = this.anim;
+    for (let i = this.flashes.length - 1; i >= 0; i--) {
+      const f = this.flashes[i];
+      const k = (this.anim - f.at) / 200;
+      if (k >= 1) {
+        this.flashes.splice(i, 1);
+        continue;
+      }
+      const r = f.r * (k < 0.35 ? ease(k / 0.35) : 1 - (k - 0.35) * 0.6);
+      g.fillStyle(0xfff6d0, 0.9 * (1 - k));
+      g.fillCircle(Math.round(f.x), Math.round(f.y), Math.max(1, r));
+      g.fillStyle(WHITE, 1 - k);
+      g.fillCircle(Math.round(f.x), Math.round(f.y), Math.max(1, r * 0.6));
+    }
+    for (let i = this.puffs.length - 1; i >= 0; i--) {
+      const p = this.puffs[i];
+      const k = (this.anim - p.at) / p.life;
+      if (k >= 1) {
+        this.puffs.splice(i, 1);
+        continue;
+      }
+      if (k < 0) continue;
+      const r = p.r * (0.6 + 0.8 * ease(k));
+      g.fillStyle(p.color, 0.75 * (1 - k));
+      g.fillCircle(Math.round(p.x), Math.round(p.y - 8 * k), Math.max(1, r));
+    }
+    for (let i = this.debris.length - 1; i >= 0; i--) {
+      const d = this.debris[i];
+      const age = this.anim - d.born;
+      if (age > d.life) {
+        this.debris.splice(i, 1);
+        continue;
+      }
+      if (dt > 0) {
+        d.vy += 620 * dt;
+        d.x += d.vx * dt;
+        d.y += d.vy * dt;
+        if (d.y >= d.floor && d.vy > 0) {
+          d.y = d.floor;
+          if (d.bounces < 2) {
+            d.vy = -d.vy * 0.36;
+            d.vx *= 0.55;
+            d.bounces++;
+          } else {
+            d.vy = 0;
+            d.vx *= 0.7;
+          }
+        }
+      }
+      const k = age / d.life;
+      g.fillStyle(d.color, k < 0.65 ? 1 : 1 - (k - 0.65) / 0.35);
+      g.fillRect(Math.round(d.x), Math.round(d.y) - 1, 2, 2);
+    }
+  }
+
+  /** A rising "+N" with a HUD icon in front of it. */
+  private iconFloat(x: number, y: number, text: string, color: number, icon: string): void {
+    this.addFloater(x + 6, y, text, color, 1, true, 0, -30, 20, 1000, true);
+    const f = this.floaters[this.floaters.length - 1];
+    if (f) f.icon = icon;
+  }
+
+  /** Stat upgrades rain down where the enemy died, bounce, then fly into their HUD slots and tick the stats up. */
+  private statRain(enemyId: number, atk: number, maxHp: number, comboPower: number): void {
+    const v = this.enemies.get(enemyId);
+    const boss = !!(v && this.app.tuning.enemies[this.app.run.combat?.enemyById(enemyId)?.key ?? '']?.boss);
+    const x0 = v ? v.x : GAME_W / 2 + 40;
+    const per = boss ? 3 : 2;
+    const items: Array<[RainIcon['stat'], string, number, number, number, number]> = [];
+    // [stat, icon, amount, target x, target y, pulse row]
+    if (atk) items.push(['atk', 'sword', atk, this.L + 9, 24, 0]);
+    if (comboPower) items.push(['comboPower', 'bolt', comboPower, this.L + 9, 54, 2]);
+    if (maxHp) items.push(['maxHp', 'heart', maxHp, this.L + 9, 8, 4]);
+    let idx = 0;
+    const now = performance.now();
+    for (const [stat, key, amt, tx, ty, row] of items)
+      for (let k = 0; k < per; k++) {
+        this.rain.push({
+          key,
+          stat,
+          amt: amt / per,
+          total: amt,
+          x: x0 + rand(-24, 24),
+          y: rand(8, 22),
+          vx: rand(-20, 20),
+          vy: rand(70, 110),
+          phase: 'wait',
+          t: now,
+          delay: idx * 45,
+          floor: this.ground - 6 + rand(-2, 2),
+          fx: 0,
+          fy: 0,
+          tx,
+          ty,
+          row,
+          idx,
+          first: k === 0,
+        });
+        idx++;
+      }
+  }
+
+  /** Rain icons fall, bounce, rest a beat, then arc into the HUD (screen space, real time). */
+  private drawRain(g: Phaser.GameObjects.Graphics, now: number): void {
+    const dt = Math.min(0.05, Math.max(0, (now - this.lastRainNow) / 1000));
+    this.lastRainNow = now;
+    for (let i = this.rain.length - 1; i >= 0; i--) {
+      const r = this.rain[i];
+      const age = now - r.t;
+      if (r.phase === 'wait') {
+        if (age < r.delay) continue;
+        r.phase = 'fall';
+        r.t = now;
+      } else if (r.phase === 'fall') {
+        r.vy += 900 * dt;
+        r.x += r.vx * dt;
+        r.y += r.vy * dt;
+        if (r.y >= r.floor && r.vy > 0) {
+          r.y = r.floor;
+          if (r.vy > 120) r.vy = -r.vy * 0.38;
+          else {
+            r.phase = 'rest';
+            r.t = now;
+            this.burst(r.x, r.y + 5, 0xd8c8a0, 3, true, 0.4);
+          }
+        }
+      } else if (r.phase === 'rest') {
+        if (age > 70) {
+          r.phase = 'fly';
+          r.t = now;
+          r.fx = r.x;
+          r.fy = r.y;
+        }
+      } else {
+        const k = Math.min(1, age / 320);
+        const e = k * k * (3 - 2 * k);
+        r.x = r.fx + (r.tx - r.fx) * e;
+        r.y = r.fy + (r.ty - r.fy) * e - Math.sin(k * Math.PI) * 26;
+        if (k >= 1) {
+          this.rain.splice(i, 1);
+          this.statPending[r.stat] = Math.max(0, this.statPending[r.stat] - r.amt);
+          if (this.statPending[r.stat] < 1e-6) this.statPending[r.stat] = 0;
+          this.statPulse[r.row] = now;
+          this.sparkle(r.tx, r.ty);
+          this.app.audio.statUp(r.idx);
+          if (r.first) {
+            const label = r.stat === 'maxHp' ? `+${Math.round(r.total)} HP` : `+${Math.round(r.total * 10) / 10}`;
+            this.addFloater(r.stat === 'maxHp' ? this.L + 100 : this.L + 46, r.ty, label, 0x9af06a, 1, true, 0, -14, 0, 700, false);
+          }
+          continue;
+        }
+      }
+      const [w, h] = this.iconSize(r.key);
+      const glow = r.phase === 'fly' ? 0.5 : 0.25;
+      g.fillStyle(WHITE, glow);
+      g.fillCircle(Math.round(r.x), Math.round(r.y), Math.max(w, h) * 0.7);
+      this.hudIcon(g, r.key, Math.round(r.x - w / 2), Math.round(r.y - h / 2));
+    }
+  }
+
   private dropCoins(x: number, y: number, total: number): void {
     if (total <= 0) return;
     const n = Math.max(3, Math.min(10, Math.round(total / 5)));
@@ -883,7 +1179,8 @@ export class FightScene extends Phaser.Scene implements View {
         g.fillRect(X - spin + 1, Y + 2, spin * 2, 1);
       }
     }
-    if (!this.coinFlights.length && this.coinsPending <= 0) this.coinsShown = this.app.run.coins;
+    // the run banks coins when the phase moves on (after the kill animation), so never count down to it
+    if (!this.coinFlights.length && this.coinsPending <= 0) this.coinsShown = Math.max(this.coinsShown, this.app.run.coins);
   }
 
   private petAttack(enemyId: number, damage: number): void {
@@ -989,6 +1286,8 @@ export class FightScene extends Phaser.Scene implements View {
       this.chips(x - w / 2, mid, 4, [base, light, WHITE], 9, 1);
     } else if (style === 'zip') {
       this.chips(x, mid, w, [WHITE, light], 5, 0);
+    } else if (style === 'fly') {
+      this.chips(x, mid, w, [WHITE, light, base], 8, 1);
     }
   }
 
@@ -1081,6 +1380,7 @@ export class FightScene extends Phaser.Scene implements View {
   }
 
   private killFloater(f: Floater): void {
+    f.icon = undefined;
     f.t.setVisible(false);
     if (f.t.parentContainer) f.t.parentContainer.remove(f.t);
     this.pool.push(f.t);
@@ -1338,10 +1638,16 @@ export class FightScene extends Phaser.Scene implements View {
         let pose = a < v.poseUntil ? v.pose : Math.floor((a + v.phase) / 380) % 2 ? 'idle1' : 'idle0';
         if (flash) pose = 'flash';
         if (v.dieAt) {
-          const k = (a - v.dieAt) / 380;
-          v.img.setTexture(`${v.sprite}_flash`).setAlpha(Math.max(0, 1 - k)).setScale(SPRITE_SCALE * (1 + k * 0.3), SPRITE_SCALE * (1 - k * 0.5));
-          v.img.setPosition(Math.round(x), v.y);
-          if (k >= 1) v.img.setVisible(false);
+          // charge: flicker between white and hurt, swell and tremble, then burst (the pixels take over)
+          const q = (a - v.dieAt) / DEATH_CHARGE_MS;
+          if (q >= 1) {
+            v.img.setVisible(false);
+            continue;
+          }
+          const flick = Math.floor((a - v.dieAt) / 35) % 2 === 0;
+          v.img.setTexture(`${v.sprite}_${flick ? 'flash' : 'hurt'}`).setAlpha(1).setVisible(true);
+          v.img.setScale(SPRITE_SCALE * (1 + 0.2 * q), SPRITE_SCALE * (1 + 0.14 * q));
+          v.img.setPosition(Math.round(x + rand(-1.5, 1.5)), v.y);
           continue;
         }
         // squash on impact: wide and short for a few frames, then a little stretch back
@@ -1438,6 +1744,7 @@ export class FightScene extends Phaser.Scene implements View {
       g.fillPoints(star(r * 0.45), true);
     }
     this.drawRings(g, now, true);
+    this.drawDebris(g);
     this.drawSparks(g);
     this.drawParticles(g, now, true);
   }
@@ -1817,10 +2124,13 @@ export class FightScene extends Phaser.Scene implements View {
     if (title) return;
     // hero: heart + HP bar, stat column
     const H = run.hero;
-    const maxHp = T.hero.maxHp + H.bonusMaxHp;
-    this.heroHpShown += (H.hp - this.heroHpShown) * 0.2;
-    this.hudBar(g, this.L + 19, 4, 66, 8, H.hp / maxHp, this.heroHpShown / maxHp);
-    this.hudIcon(g, 'heart', this.L + 2, 1);
+    // stat gains from a kill show up as their icons land (statPending holds back what's still in the air)
+    const maxHp = T.hero.maxHp + H.bonusMaxHp - this.statPending.maxHp;
+    const hpNow = Math.min(maxHp, H.hp - this.statPending.maxHp);
+    this.heroHpShown += (hpNow - this.heroHpShown) * 0.2;
+    this.hudBar(g, this.L + 19, 4, 66, 8, hpNow / maxHp, this.heroHpShown / maxHp);
+    const hp = (now - this.statPulse[4]) / 300;
+    this.hudIcon(g, 'heart', this.L + 2, hp >= 0 && hp < 1 && Math.floor(hp * 6) % 2 === 0 ? 0 : 1);
     ['sword', 'crit', 'bolt', 'potion'].forEach((k, i) => {
       const [w, h] = this.iconSize(k);
       this.hudIcon(g, k, this.L + 3 + ((12 - w) >> 1), Math.round(24.5 + i * 15 - h / 2));
@@ -2188,13 +2498,15 @@ export class FightScene extends Phaser.Scene implements View {
             this.slab(g, x, mid - (H0 * s) / 2, d.w * s, H0 * s, flash, WHITE, light);
             break;
           }
+          // the halves pop up and apart, spin, shrink away and fall (fully opaque until the very end)
           const q = (k - A) / (1 - A);
-          const alpha = q < 0.55 ? 1 : 1 - (q - 0.55) / 0.45;
+          const alpha = q < 0.8 ? 1 : 1 - (q - 0.8) / 0.2;
           const hw = d.w / 2;
+          const sc = 1 - 0.75 * q;
           for (const side of [-1, 1]) {
-            const cx = x + side * (hw / 2 + 2 + 16 * ease(q));
-            const cy = mid + 26 * q * q - 6 * Math.sin(q * Math.PI);
-            const rot = side * 1.1 * q;
+            const cx = x + side * (hw / 2 + 2 + 22 * ease(q));
+            const cy = mid - 20 * Math.sin(Math.min(1, q * 1.4) * Math.PI * 0.5) + 34 * q * q;
+            const rot = side * 2.2 * q;
             const quad = (pad: number) => {
               const pts: Phaser.Math.Vector2[] = [];
               for (const [ux, uy] of [
@@ -2203,8 +2515,8 @@ export class FightScene extends Phaser.Scene implements View {
                 [1, 1],
                 [-1, 1],
               ]) {
-                const px = ux * (hw / 2 + pad);
-                const py = uy * (H0 / 2 + pad);
+                const px = ux * ((hw / 2) * sc + pad);
+                const py = uy * ((H0 / 2) * sc + pad);
                 pts.push(new Phaser.Math.Vector2(Math.round(cx + px * Math.cos(rot) - py * Math.sin(rot)), Math.round(cy + px * Math.sin(rot) + py * Math.cos(rot))));
               }
               return pts;
@@ -2213,6 +2525,12 @@ export class FightScene extends Phaser.Scene implements View {
             g.fillPoints(quad(1), true);
             g.fillStyle(q < 0.15 ? flash : base, alpha);
             g.fillPoints(quad(0), true);
+            if (sc > 0.4) {
+              g.fillStyle(light, alpha);
+              g.fillPoints(quad(-Math.max(1, Math.round(2 * sc))), true);
+              g.fillStyle(base, alpha);
+              g.fillPoints(quad(-Math.max(2, Math.round(3 * sc))), true);
+            }
           }
           break;
         }
@@ -2237,6 +2555,19 @@ export class FightScene extends Phaser.Scene implements View {
           this.slab(g, x, mid - h / 2, d.w * (1 + 0.25 * k), Math.max(1, h), k < 0.4 ? WHITE : light, WHITE, base, 1 - k * 0.3);
           break;
         }
+        case 'fly': {
+          // knocked off the bar by the finisher: flies right and up out of the bar, tumbling, with a trail
+          const fx = x + (this.R + 20 - x) * k * k;
+          const fy = mid - 40 * Math.sin(k * Math.PI * 0.6) * (0.6 + 0.4 * ((d.x * 7) % 1));
+          const w = d.w * (1 - 0.5 * k);
+          const h = H0 * (1 - 0.4 * k) * Math.abs(Math.cos(k * Math.PI * 1.5)) + 3;
+          for (let tr = 1; tr <= 3; tr++) {
+            g.fillStyle(light, 0.25 / tr);
+            g.fillRect(Math.round(fx - tr * 7 - w / 2), Math.round(fy - h / 2), Math.round(w), Math.round(h));
+          }
+          this.slab(g, fx, fy - h / 2, w, h, k < 0.2 ? WHITE : base, light, dark, 1 - k * 0.5);
+          break;
+        }
       }
     }
   }
@@ -2253,20 +2584,26 @@ export class FightScene extends Phaser.Scene implements View {
     const S = this.app.settings;
     const H = run.hero;
     const T = this.app.tuning;
-    const maxHp = T.hero.maxHp + H.bonusMaxHp;
+    const maxHp = T.hero.maxHp + H.bonusMaxHp - this.statPending.maxHp;
     const lvl = run.level;
     const stageInfo = lvl.stages.length > 1 ? ` - ${run.stageIndex + 1}/${lvl.stages.length}` : '';
     this.setText('level', `${lvl.name}${stageInfo}`, GAME_W / 2, 17, 0xf2f4fa, 1, 0.5, 0, run.phase !== 'levelClear' && run.phase !== 'title');
-    this.setText('heroHp', `${Math.ceil(H.hp)}/${maxHp}`, this.L + 52, 8.5, WHITE, 1, 0.5, 0.5);
+    const hpPulse = now - this.statPulse[4] < 300;
+    this.setText('heroHp', `${Math.ceil(Math.min(maxHp, H.hp - this.statPending.maxHp))}/${maxHp}`, this.L + 52, 8.5, hpPulse ? 0xc8ff9a : WHITE, 1, 0.5, 0.5);
     this.setText('coins', `${this.coinsShown}`, this.L + 103, 7, 0xffe680, 1, 0, 0.5);
     const crit = T.hero.critChance + H.bonusCrit + (H.abilityTimer > 0 ? T.hero.abilityCritBonus : 0);
+    const cp = T.hero.comboPower + H.bonusComboPower - this.statPending.comboPower;
     const stats = [
-      `${Math.round(T.hero.atk * (1 + H.bonusDmg))}`,
+      `${Math.round((T.hero.atk + H.bonusAtk - this.statPending.atk) * (1 + H.bonusDmg))}`,
       `${Math.round(crit * 100)}%`,
-      `${T.hero.comboPower + H.bonusComboPower}`,
+      `${Math.round(cp * 10) / 10}`,
       `${H.revives}`,
     ];
-    stats.forEach((v, i) => this.setText(`stat${i}`, v, this.L + 20, 24.5 + i * 15, i === 1 && H.abilityTimer > 0 ? 0x9af0a0 : WHITE, 1, 0, 0.5));
+    stats.forEach((v, i) => {
+      const pulse = (now - this.statPulse[i]) / 320;
+      const col = pulse >= 0 && pulse < 1 ? (Math.floor(pulse * 6) % 2 ? WHITE : 0x9af06a) : i === 1 && H.abilityTimer > 0 ? 0x9af0a0 : WHITE;
+      this.setText(`stat${i}`, v, this.L + 20, 24.5 + i * 15, col, 1, 0, 0.5);
+    });
     this.setText('ability', 'Keen Edge', this.L + 20 + textWidth(stats[1], 1, true) + 4, 39.5, 0x9af0a0, 1, 0, 0.5, H.abilityTimer > 0);
     const target = c && run.phase !== 'levelClear' ? (c.currentTarget() ?? c.enemies[0]) : null;
     if (target && c) {
@@ -2419,6 +2756,7 @@ export class FightScene extends Phaser.Scene implements View {
 
   private updateFloatersAndCoins(now: number): void {
     this.drawCoins(this.gTop, now);
+    this.drawRain(this.gTop, now);
     this.updateFloaters(now);
   }
 
@@ -2443,6 +2781,12 @@ export class FightScene extends Phaser.Scene implements View {
       f.t.setScale(popS);
       f.t.setPosition(Math.round(f.x + f.vx * s), Math.round(f.y + f.vy * s + 0.5 * f.g * s * s));
       f.t.setAlpha(k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3);
+      if (f.icon && k < 0.85) {
+        const [iw, ih] = this.iconSize(f.icon);
+        const wx = f.t.parentContainer ? this.world.x : 0;
+        const wy = f.t.parentContainer ? this.world.y : 0;
+        this.hudIcon(this.gTop, f.icon, Math.round(f.t.x - f.t.displayWidth / 2 - iw - 1 + wx), Math.round(f.t.y - ih / 2 + wy));
+      }
     }
   }
 }

@@ -121,7 +121,7 @@ export const DEFAULT_TUNING = {
     maxMs: 350,
   },
   juice: {
-    hitStopMs: 50, // freeze on crits and finishers
+    hitStopMs: 40, // freeze on crits and finishers
     shakeMinPx: 2,
     shakeMaxPx: 4,
     shakeMs: 120,
