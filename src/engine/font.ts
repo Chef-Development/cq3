@@ -400,3 +400,27 @@ export function textWidth(s: string, scale = 1, bold = false): number {
   }
   return best * scale;
 }
+
+/**
+ * The fill pixels of one line of text (no outline, no shadow), letters GAP px apart, rows from the cap line
+ * down through the descenders. For art built from the font (the title logo).
+ */
+export function glyphMask(s: string, bold = true): { w: number; h: number; on: (x: number, y: number) => boolean } {
+  const map = bold ? BOLD : SMALL;
+  const m = bold ? BOLD_M : SMALL_M;
+  const h = m.cap + m.desc;
+  const line = fontText(s).split('\n')[0] ?? '';
+  const cells: Array<{ x: number; rows: string[] }> = [];
+  let x = 0;
+  for (const c of line) {
+    cells.push({ x, rows: map[c] });
+    x += map[c][0].length + GAP;
+  }
+  const w = Math.max(0, x - GAP);
+  const grid = new Uint8Array(w * h);
+  for (const { x: cx, rows } of cells)
+    rows.forEach((r, y) => {
+      for (let i = 0; i < r.length; i++) if (r[i] === '#') grid[y * w + cx + i] = 1;
+    });
+  return { w, h, on: (px, py) => px >= 0 && py >= 0 && px < w && py < h && grid[py * w + px] === 1 };
+}

@@ -2,7 +2,19 @@
 import type Phaser from 'phaser';
 import { HUD_ICONS } from '../art';
 import { cornerInset } from '../chrome';
-import { clamp01, INK, WHITE, type Rect } from './shared';
+import { MINI_ICONS } from './icons';
+import { clamp01, INK, mix, WHITE, type Rect } from './shared';
+
+/** UI ramps, dark to light: the navy of every panel, and the gold of their trims. */
+export const NAVY = [0x0b0814, 0x130f22, 0x1b1530, 0x241d3e, 0x2f2650, 0x413668, 0x5e5090, 0x8a7cc0] as const;
+export const GOLD = [0x5a3410, 0x9a5a14, 0xd8901c, 0xf2c230, 0xfff0a0] as const;
+/** Gauge fills [hi, base, lo, deep]. */
+export const RAMP = {
+  hp: [0xc8ff8a, 0x62d444, 0x2e9a34, 0x1a6a2a],
+  hpLow: [0xffd0a0, 0xff6a3a, 0xc02a2a, 0x7a1220],
+  foe: [0xffb0a0, 0xf0503c, 0xb0242c, 0x6a0f1e],
+  boss: [0xffd0ff, 0xc060f0, 0x7a2ab8, 0x4a1478],
+} as const;
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -11,7 +23,13 @@ export function rows(g: G, x: number, y: number, w: number, h: number, r: number
   g.fillStyle(color, alpha);
   for (let i = 0; i < h; i++) {
     const k = cornerInset(i, h, r);
-    if (w - k * 2 > 0) g.fillRect(x + k, y + i, w - k * 2, 1);
+    if (k === 0) {
+      // the straight middle in one rect (same pixels, far fewer draw commands)
+      let j = i + 1;
+      while (j < h && cornerInset(j, h, r) === 0) j++;
+      if (w > 0) g.fillRect(x, y + i, w, j - i);
+      i = j - 1;
+    } else if (w - k * 2 > 0) g.fillRect(x + k, y + i, w - k * 2, 1);
   }
 }
 
@@ -67,6 +85,206 @@ export function hudBar(
   }
 }
 
+/** Fill rows i0..i1-1 of a rounded w x h box (corner insets respected). */
+export function band(g: G, x: number, y: number, w: number, h: number, r: number, i0: number, i1: number, color: number, alpha = 1): void {
+  g.fillStyle(color, alpha);
+  const end = Math.min(h, i1);
+  for (let i = Math.max(0, i0); i < end; i++) {
+    const k = cornerInset(i, h, r);
+    if (k === 0) {
+      let j = i + 1;
+      while (j < end && cornerInset(j, h, r) === 0) j++;
+      if (w > 0) g.fillRect(x, y + i, w, j - i);
+      i = j - 1;
+    } else if (w - k * 2 > 0) g.fillRect(x + k, y + i, w - k * 2, 1);
+  }
+}
+
+export interface PanelOpts {
+  alpha?: number;
+  r?: number;
+  /** A gold line just inside the top edge (true) or all round ('full'). */
+  trim?: boolean | 'full';
+  shadow?: boolean;
+  /** Body tones, top to bottom, and the bevel (light top/left edge). */
+  tones?: readonly [number, number, number];
+  bevel?: number;
+  /** Outline color (ink by default; a colored rim for highlighted panels). */
+  rim?: number;
+}
+
+/**
+ * The game's panel: drop shadow, ink outline, a body that is lighter on top and darker at the bottom, a 1 px
+ * light bevel on the top and left edges, a dark bottom edge and (optionally) a gold trim line.
+ */
+export function panel(g: G, r: Rect, o: PanelOpts = {}): void {
+  const a = o.alpha ?? 1;
+  const rad = o.r ?? 3;
+  const { x, y, w, h } = r;
+  const [top, mid, bot] = o.tones ?? [NAVY[4], NAVY[3], NAVY[2]];
+  if (o.shadow !== false) rows(g, x - 1, y + 2, w + 2, h + 1, rad, INK, 0.5 * a);
+  rows(g, x - 1, y - 1, w + 2, h + 2, rad, o.rim ?? INK, a);
+  const ir = Math.max(1, rad - 1);
+  rows(g, x, y, w, h, ir, mid, a);
+  const th = Math.max(2, Math.round(h * 0.4));
+  band(g, x, y, w, h, ir, 0, th, top, a);
+  band(g, x, y, w, h, ir, h - Math.max(2, Math.round(h * 0.25)), h, bot, a);
+  // bevel: light top row and left column, dark bottom row and right column
+  const bev = o.bevel ?? NAVY[6];
+  band(g, x, y, w, h, ir, 0, 1, bev, a);
+  g.fillStyle(mix(bev, top, 0.45), a);
+  g.fillRect(x, y + ir + 1, 1, h - ir * 2 - 2);
+  band(g, x, y, w, h, ir, h - 1, h, NAVY[0], a);
+  g.fillStyle(NAVY[1], a);
+  g.fillRect(x + w - 1, y + ir + 1, 1, h - ir * 2 - 2);
+  if (o.trim) {
+    g.fillStyle(GOLD[2], a);
+    g.fillRect(x + 3, y + 2, w - 6, 1);
+    if (o.trim === 'full') {
+      g.fillRect(x + 3, y + h - 3, w - 6, 1);
+      g.fillRect(x + 2, y + 3, 1, h - 6);
+      g.fillRect(x + w - 3, y + 3, 1, h - 6);
+      g.fillStyle(GOLD[4], a);
+      for (const [px, py] of [
+        [x + 2, y + 2],
+        [x + w - 3, y + 2],
+        [x + 2, y + h - 3],
+        [x + w - 3, y + h - 3],
+      ])
+        g.fillRect(px, py, 1, 1);
+    }
+  }
+}
+
+/** A dark inset well (holds a gauge, a value, an icon): inner shadow on top, a faint light lip at the bottom. */
+export function well(g: G, x: number, y: number, w: number, h: number, r = 2, fill: number = NAVY[0], alpha = 1): void {
+  rows(g, x, y, w, h, r, fill, alpha);
+  band(g, x, y, w, h, r, 0, 1, INK, alpha);
+  band(g, x, y, w, h, r, h - 1, h, NAVY[3], alpha * 0.9);
+}
+
+export interface GaugeOpts {
+  ramp?: readonly [number, number, number, number];
+  /** Drains toward the left end (enemy bars fill from the right). */
+  mirror?: boolean;
+  /** Pixels between segment notches (0 = none). */
+  seg?: number;
+  /** 0..1: the fill brightens (low HP pulse, a full meter). */
+  glow?: number;
+  ghostCol?: number;
+  trough?: number;
+}
+
+/**
+ * A chunky gauge (HP, meters): ink outline, dark trough with an inner shadow, a lagging "ghost" of recent loss,
+ * a 4-tone fill with a shine line, segment notches and a bright cap at the fill's end. x, y, w, h = the trough.
+ */
+export function gauge(g: G, x: number, y: number, w: number, h: number, frac: number, ghost: number, o: GaugeOpts = {}): void {
+  rows(g, x - 1, y - 1, w + 2, h + 2, 1, INK);
+  g.fillStyle(o.trough ?? 0x1c1228, 1);
+  g.fillRect(x, y, w, h);
+  g.fillStyle(0x0c0614, 1);
+  g.fillRect(x, y, w, 1);
+  g.fillStyle(0x2e2040, 1);
+  g.fillRect(x, y + h - 1, w, 1);
+  const fw = Math.round(w * clamp01(frac));
+  const gw = Math.round(w * clamp01(ghost));
+  const at = (len: number) => (o.mirror ? x + w - len : x);
+  if (gw > fw) {
+    g.fillStyle(o.ghostCol ?? 0xfff2c8, 1);
+    g.fillRect(o.mirror ? at(gw) : x + fw, y, gw - fw, h);
+  }
+  if (fw <= 0) return;
+  const [hi, base, lo, deep] = o.ramp ?? RAMP.hp;
+  const fx = at(fw);
+  g.fillStyle(base, 1);
+  g.fillRect(fx, y, fw, h);
+  g.fillStyle(hi, 1);
+  g.fillRect(fx, y, fw, Math.max(1, Math.floor(h * 0.3)));
+  if (h >= 5) {
+    g.fillStyle(lo, 1);
+    g.fillRect(fx, y + h - 2, fw, 1);
+  }
+  g.fillStyle(deep, 1);
+  g.fillRect(fx, y + h - 1, fw, 1);
+  // shine: a bright line along the top, broken near the ends
+  if (fw > 4) {
+    g.fillStyle(WHITE, 0.55);
+    g.fillRect(fx + 1, y + 1, fw - 3, 1);
+  }
+  if (o.seg && o.seg >= 3) {
+    g.fillStyle(deep, 0.6);
+    for (let sx = o.seg; sx < w; sx += o.seg) {
+      const px = o.mirror ? x + w - sx : x + sx;
+      if (px > fx && px < fx + fw - 1) g.fillRect(px, y + 2, 1, h - 3);
+    }
+  }
+  // bright cap at the moving end
+  g.fillStyle(WHITE, 0.75);
+  g.fillRect(o.mirror ? fx : fx + fw - 1, y, 1, h - 1);
+  if (o.glow && o.glow > 0) {
+    g.fillStyle(WHITE, 0.45 * clamp01(o.glow));
+    g.fillRect(fx, y, fw, h);
+  }
+}
+
+/** A soft rectangular glow (stacked translucent rounded rects) around r. */
+export function glow(g: G, r: Rect, color: number, alpha: number, spread = 3): void {
+  for (let i = spread; i >= 1; i--) rows(g, r.x - i, r.y - i, r.w + i * 2, r.h + i * 2, Math.min(4, i + 1), color, (alpha * (spread + 1 - i)) / (spread + 1) / 2);
+}
+
+/** Chevron pointing right (dir 1) or left (-1), h rows tall, 2 px thick, with an optional ink rim. */
+export function chevron(g: G, x: number, y: number, h: number, color: number, alpha = 1, dir = 1, ink = true): void {
+  const half = Math.floor(h / 2);
+  if (ink) {
+    g.fillStyle(INK, alpha);
+    for (let i = 0; i < h; i++) {
+      const d = half - Math.abs(i - half);
+      g.fillRect((dir > 0 ? x + d : x - d) - 1, y + i - 1, 4, 3);
+    }
+  }
+  g.fillStyle(color, alpha);
+  for (let i = 0; i < h; i++) {
+    const d = half - Math.abs(i - half);
+    g.fillRect(dir > 0 ? x + d : x - d, y + i, 2, 1);
+  }
+}
+
+/** A faceted gem (banked finisher stacks): 7 x 7 inside a 1 px ink rim; lit, or an empty socket. */
+export function gem(g: G, x: number, y: number, lit: boolean, col: readonly [number, number, number], alpha = 1): void {
+  const span = [
+    [2, 4],
+    [1, 5],
+    [0, 6],
+    [0, 6],
+    [0, 6],
+    [1, 5],
+    [2, 4],
+  ];
+  g.fillStyle(INK, alpha);
+  g.fillRect(x + 2, y - 1, 3, 1);
+  g.fillRect(x + 2, y + 7, 3, 1);
+  span.forEach(([a, b], i) => g.fillRect(x + a - 1, y + i, b - a + 3, 1));
+  const [c, hi, lo] = col;
+  span.forEach(([a, b], i) => {
+    g.fillStyle(lit ? (i < 3 ? c : lo) : i < 2 ? 0x06040c : NAVY[2], alpha);
+    g.fillRect(x + a, y + i, b - a + 1, 1);
+  });
+  if (lit) {
+    g.fillStyle(hi, alpha);
+    g.fillRect(x + 1, y + 2, 2, 1);
+    g.fillRect(x + 2, y + 1, 2, 1);
+    g.fillStyle(WHITE, alpha);
+    g.fillRect(x + 2, y + 2, 1, 1);
+    g.fillStyle(mix(lo, INK, 0.35), alpha);
+    g.fillRect(x + 3, y + 5, 2, 1);
+  } else {
+    g.fillStyle(NAVY[4], alpha);
+    g.fillRect(x + 1, y + 5, 5, 1);
+    g.fillRect(x + 2, y + 6, 3, 1);
+  }
+}
+
 /** Small rounded HP bar over an enemy in a group fight. */
 export function hpBar(g: G, x: number, y: number, w: number, h: number, frac: number, ghost: number, color: number): void {
   rows(g, x - 1, y - 1, w + 2, h + 2, 1, INK);
@@ -82,13 +300,20 @@ export function hpBar(g: G, x: number, y: number, w: number, h: number, frac: nu
 }
 
 /**
- * A chunky reference-style button: ink outline, 1 px light rim (white top/left, grey bottom/right), a face that
- * is lighter on top and darker at the bottom, and a drop shadow.
+ * A chunky button: ink outline, a 2 px slab of its deep color under the face (it reads as a physical key that
+ * sinks when pressed), 1 px light rim (white top/left, grey bottom/right), a face that is lighter on top and
+ * darker at the bottom, specular dashes and a drop shadow.
  */
 export function button3d(g: G, r: Rect, face: readonly [number, number, number, number], pressed = false, rim = true): void {
-  const y = r.y + (pressed ? 1 : 0);
-  if (!pressed) rows(g, r.x - 1, r.y + 1, r.w + 2, r.h + 2, 3, INK, 0.45);
-  rows(g, r.x - 1, y - 1, r.w + 2, r.h + 2, 3, INK);
+  const depth = pressed ? 0 : 2;
+  const y = r.y + (pressed ? 2 : 0);
+  rows(g, r.x - 1, r.y + 3, r.w + 2, r.h + 1, 3, INK, 0.4);
+  rows(g, r.x - 1, y - 1, r.w + 2, r.h + 2 + depth, 3, INK);
+  if (depth) {
+    rows(g, r.x, y + 2, r.w, r.h - 2 + depth, 2, mix(face[3], INK, 0.35));
+    g.fillStyle(face[3], 1);
+    g.fillRect(r.x + 2, y + r.h, r.w - 4, 1);
+  }
   if (rim) {
     rows(g, r.x, y, r.w, r.h, 2, 0xc8d0dc);
     g.fillStyle(WHITE, 1);
@@ -174,20 +399,42 @@ export function icon(g: G, iconRows: string[], x: number, y: number, color: numb
   });
 }
 
+const iconDef = (key: string) => HUD_ICONS[key] ?? MINI_ICONS[key];
+
 export function iconSize(key: string): [number, number] {
-  const r = HUD_ICONS[key].rows;
+  const r = iconDef(key).rows;
   return [Math.max(...r.map((s) => s.length)), r.length];
 }
 
-/** Multi-color HUD icon (see art.ts HUD_ICONS). */
-export function hudIcon(g: G, key: string, x: number, y: number, scale = 1): void {
-  const ic = HUD_ICONS[key];
+/** Each icon as horizontal runs of one color, grouped by color: [color, x, y, w] (built once per icon). */
+const iconRuns = new Map<string, Array<[number, number, number, number]>>();
+function runsOf(key: string): Array<[number, number, number, number]> {
+  let runs = iconRuns.get(key);
+  if (runs) return runs;
+  const ic = iconDef(key);
+  runs = [];
   ic.rows.forEach((r, yy) => {
-    for (let xx = 0; xx < r.length; xx++) {
+    for (let xx = 0; xx < r.length; ) {
       const col = ic.pal[r[xx]];
-      if (col === undefined) continue;
-      g.fillStyle(col, 1);
-      g.fillRect(x + xx * scale, y + yy * scale, scale, scale);
+      let n = 1;
+      while (xx + n < r.length && r[xx + n] === r[xx]) n++;
+      if (col !== undefined) runs!.push([col, xx, yy, n]);
+      xx += n;
     }
   });
+  runs.sort((a, b) => a[0] - b[0]);
+  iconRuns.set(key, runs);
+  return runs;
+}
+
+/** Multi-color HUD icon (see art.ts HUD_ICONS, and the small ones in icons.ts MINI_ICONS). */
+export function hudIcon(g: G, key: string, x: number, y: number, scale = 1, alpha = 1): void {
+  let cur = -1;
+  for (const [col, rx, ry, rw] of runsOf(key)) {
+    if (col !== cur) {
+      g.fillStyle(col, alpha);
+      cur = col;
+    }
+    g.fillRect(x + rx * scale, y + ry * scale, rw * scale, scale);
+  }
 }

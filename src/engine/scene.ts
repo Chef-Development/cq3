@@ -23,6 +23,7 @@ import { buildWorldArt } from './art-world';
 import { buildMapArt } from './art-map';
 import { BAND_H, COL, DASH_MS, DEATH_CHARGE_MS, inRect, kindCol, stackCol, tintGrad, WHITE, type Pending, type Rect } from './view/shared';
 import { Stage } from './view/stage';
+import { Transition } from './view/transition';
 
 export class FightScene extends Phaser.Scene implements View {
   app!: App;
@@ -63,6 +64,7 @@ export class FightScene extends Phaser.Scene implements View {
   readonly story = new StoryView(this);
   readonly nodes = new NodeScreens(this);
   readonly worldMap = new WorldView(this);
+  readonly transition = new Transition(this);
 
   constructor() {
     super('fight');
@@ -113,8 +115,8 @@ export class FightScene extends Phaser.Scene implements View {
     const swipe = this.app.settings.finisherInput === 'swipe';
     const barEnd = swipe ? this.R - 30 : this.button.x - 11;
     this.bar = { x: barX, y: this.splitY + 10, w: barEnd - barX, h: 12 };
-    const meterX = this.L + 46;
-    this.meter = { x: meterX, y: this.splitY + BAND_H + 3, w: this.button.x - 11 - meterX, h: 8 };
+    const meterX = this.L + 17;
+    this.meter = { x: meterX, y: this.splitY + BAND_H + 3, w: this.R - 70 - meterX, h: 8 };
 
     // Tear down everything built for the previous layout before regenerating textures.
     this.fx.destroyText();
@@ -243,6 +245,7 @@ export class FightScene extends Phaser.Scene implements View {
     if (next === 'fight') this.syncCombat(true);
     if (next === 'actClear' || next === 'map' || next === 'scene') this.stage.applyTheme();
     if (next === 'victory') this.app.audio.victory();
+    this.transition.onPhase(_prev, next);
     this.overlays.onPhase(next);
     this.nodes.onPhase(next);
     if (next !== 'fight' && this.fighters.h.state !== 'idle') this.fighters.heroReturn();
@@ -568,6 +571,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.hud.drawCoins(this.gTop, now);
     this.hud.drawRain(this.gTop, now);
     this.fx.updateFloaters(now);
+    this.transition.draw(now);
   }
 
   private drawWorld(now: number): void {

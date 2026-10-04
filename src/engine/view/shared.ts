@@ -211,4 +211,22 @@ export const tintGrad = (t: Phaser.GameObjects.BitmapText, c: number) => {
 };
 export const ease = (k: number) => 1 - (1 - k) * (1 - k);
 export const clamp01 = (k: number) => Math.max(0, Math.min(1, k));
+/** Ease out with a little overshoot past 1 before settling (panels sliding in). */
+export const easeBack = (k: number, over = 1.6) => {
+  const t = clamp01(k) - 1;
+  return 1 + t * t * ((over + 1) * t + over);
+};
+export const easeOut3 = (k: number) => 1 - (1 - clamp01(k)) ** 3;
+export const easeInOut = (k: number) => {
+  const t = clamp01(k);
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+};
+/** 0..1 triangle-free pulse: 0 at rest, smoothly up to 1 and back over `period` ms. */
+export const pulse = (now: number, period: number, phase = 0) => 0.5 - 0.5 * Math.cos(((now + phase) / period) * Math.PI * 2);
+/** Linear mix of two RGB colors. */
+export const mix = (a: number, b: number, k: number) => {
+  const t = clamp01(k);
+  const ch = (s: number) => Math.round(((a >> s) & 255) * (1 - t) + ((b >> s) & 255) * t);
+  return (ch(16) << 16) | (ch(8) << 8) | ch(0);
+};
 export const inRect = (r: Rect, x: number, y: number, pad = 0) => x >= r.x - pad && x <= r.x + r.w + pad && y >= r.y - pad && y <= r.y + r.h + pad;
