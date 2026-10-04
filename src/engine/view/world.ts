@@ -435,7 +435,8 @@ export class WorldView {
     g.fillRect(h.x - 3, h.y, 7, 1);
     g.fillRect(h.x - 2, h.y + 1, 5, 1);
     this.hero.setTexture(`wm_hero${Math.floor(t * 1.7) % 2}`).setPosition(h.x, h.y + 1 - hop);
-    // Pip circles Rowan, passing behind him and back in front
+    // Pip circles Rowan, passing behind him and back in front (once they've met: Pip joins at the start of Act 1)
+    this.pip.setVisible(P.actsCleared > 0);
     const pa = t * 1.5;
     const px = h.x + Math.cos(pa) * 10;
     const py = h.y - 12 + Math.sin(pa) * 2.5 + Math.sin(t * 5.3) * 0.8 - hop * 1.5;
