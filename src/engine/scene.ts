@@ -20,6 +20,7 @@ import { Overlays } from './view/overlays';
 import { StoryView } from './view/story';
 import { WorldView } from './view/world';
 import { buildWorldArt } from './art-world';
+import { buildMapArt } from './art-map';
 import { BAND_H, COL, DASH_MS, DEATH_CHARGE_MS, inRect, kindCol, stackCol, tintGrad, WHITE, type Pending, type Rect } from './view/shared';
 import { Stage } from './view/stage';
 
@@ -129,6 +130,10 @@ export class FightScene extends Phaser.Scene implements View {
     this.panelImg?.destroy();
     buildArt(this, GAME_W);
     buildWorldArt((key, canvas) => {
+      if (this.textures.exists(key)) this.textures.remove(key);
+      this.textures.addCanvas(key, canvas);
+    }, GAME_W, GAME_H);
+    buildMapArt((key, canvas) => {
       if (this.textures.exists(key)) this.textures.remove(key);
       this.textures.addCanvas(key, canvas);
     }, GAME_W, GAME_H);
