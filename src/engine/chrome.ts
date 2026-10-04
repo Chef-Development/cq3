@@ -222,3 +222,97 @@ export function hudButtonImages(): Record<'pause' | 'pauseOn' | 'gear' | 'gearOn
   };
   return { pause: make('pause', false), pauseOn: make('pause', true), gear: make('gear', false), gearOn: make('gear', true) };
 }
+
+/** Title crest (texture 'crest'): a gold-rimmed red shield with a big steel "3" over two crossed swords. */
+export function buildCrest(scene: Phaser.Scene): void {
+  const W = 44;
+  const H = 42;
+  const [c, p] = canvas(W, H, 3);
+  const g: (string | null)[][] = Array.from({ length: H }, () => Array<string | null>(W).fill(null));
+  const put = (x: number, y: number, col: string) => {
+    x = Math.round(x);
+    y = Math.round(y);
+    if (x >= 0 && y >= 0 && x < W && y < H) g[y][x] = col;
+  };
+  // crossed swords behind the shield
+  for (const dir of [1, -1]) {
+    const x0 = dir > 0 ? 6 : W - 7;
+    for (let i = 0; i < 34; i++) {
+      const x = x0 + dir * i * 0.92;
+      const y = 4 + i * 0.92;
+      const blade = i < 26;
+      put(x, y, blade ? (i < 2 ? '#ffffff' : '#d6deee') : '#6e4426');
+      put(x + dir, y, blade ? '#8a94b0' : '#4a2c18');
+      if (i === 26) for (let k = -3; k <= 3; k++) put(x + k * 0.7 * dir, y - k * 0.7, '#f2c230');
+    }
+  }
+  // shield: flat top, curved sides meeting in a point
+  const sx = 9;
+  const sy = 6;
+  const sw = 26;
+  const sh = 31;
+  const inShield = (x: number, y: number, inset: number) => {
+    const u = x - sx;
+    const v = y - sy;
+    if (v < inset || v >= sh - inset) return false;
+    const t = v / sh;
+    const half = (sw / 2) * (t < 0.45 ? 1 : Math.sqrt(Math.max(0, 1 - ((t - 0.45) / 0.55) ** 2))) - inset;
+    return Math.abs(u + 0.5 - sw / 2) <= half;
+  };
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      if (!inShield(x, y, 0)) continue;
+      const rim = !inShield(x, y, 2);
+      const v = (y - sy) / sh;
+      const u = (x - sx) / sw;
+      if (rim) put(x, y, u + v * 0.3 < 0.45 ? '#fff0a0' : u + v * 0.3 < 0.8 ? '#f2c230' : '#b07018');
+      else put(x, y, u < 0.5 ? (v < 0.5 ? '#e8443a' : '#c8303a') : v < 0.5 ? '#c8303a' : '#a01c28');
+    }
+  // big chunky "3" (steel, lit from the top left) with a deep-red inner outline
+  const three = [
+    '########.',
+    '#########',
+    '.......##',
+    '.......##',
+    '..######.',
+    '..######.',
+    '.......##',
+    '.......##',
+    '#########',
+    '########.',
+  ];
+  const tx = sx + 8;
+  const ty = sy + 7;
+  const mask = new Set<string>();
+  three.forEach((row, yy) =>
+    [...row].forEach((ch, xx) => {
+      if (ch !== '#') return;
+      for (const dy of [0, 1]) mask.add(`${tx + xx},${ty + Math.floor(yy * 1.5) + dy}`);
+    }),
+  );
+  for (const key of mask) {
+    const [x, y] = key.split(',').map(Number);
+    for (const [dx, dy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+      [1, 1],
+    ])
+      if (!mask.has(`${x + dx},${y + dy}`)) put(x + dx, y + dy, '#4a0f1a');
+  }
+  for (const key of mask) {
+    const [x, y] = key.split(',').map(Number);
+    const v = (y - ty) / 15;
+    put(x, y, v < 0.2 ? '#ffffff' : v < 0.55 ? '#d6deee' : v < 0.8 ? '#b8c2d8' : '#8a94b0');
+  }
+  // outline everything
+  const filled = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && g[y][x] !== null;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      if (filled(x, y)) p.px(x, y, g[y][x]!);
+      else if (filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1)) p.px(x, y, INK);
+    }
+  if (scene.textures.exists('crest')) scene.textures.remove('crest');
+  scene.textures.addCanvas('crest', c);
+}

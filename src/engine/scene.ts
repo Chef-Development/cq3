@@ -4,7 +4,7 @@ import { isRed, type Block, type BlockKind, type Combat, type CombatEvent, type 
 import { boostLabel, type BoostId, type Phase } from '../core/run';
 import type { App, View } from './app';
 import { buildArt, HERO_FEET_X, HERO_W, HUD_ICONS, ICONS } from './art';
-import { buildBarFrame, buildBoard, buildPanel, cornerInset } from './chrome';
+import { buildBarFrame, buildBoard, buildCrest, buildPanel, cornerInset } from './chrome';
 import { buildBackdrops, type Backdrop, type Theme } from './backdrop';
 import { buildFont, FONT, FONT_BOLD, fontText, textWidth } from './font';
 import { GAME_H, GAME_W } from './layout';
@@ -156,6 +156,7 @@ export class FightScene extends Phaser.Scene implements View {
   private barImg: Phaser.GameObjects.Image | null = null;
   private boardImg: Phaser.GameObjects.Image | null = null;
   private gCards!: Phaser.GameObjects.Graphics;
+  private crestImg: Phaser.GameObjects.Image | null = null;
   // objects
   private world!: Phaser.GameObjects.Container;
   private back!: Phaser.GameObjects.Container;
@@ -318,6 +319,9 @@ export class FightScene extends Phaser.Scene implements View {
     buildBoard(this, 'board_boost', bp.w, bp.h);
     this.boardImg?.destroy();
     this.boardImg = this.add.image(bp.x, bp.y, 'board_boost').setOrigin(0, 0).setDepth(31).setVisible(false);
+    buildCrest(this);
+    this.crestImg?.destroy();
+    this.crestImg = this.add.image(0, 0, 'crest').setOrigin(0.5, 0.5).setDepth(31).setVisible(false);
     this.bgImg = this.add.image(0, 0, 'bg_forest').setOrigin(0, 0);
     this.back.add(this.bgImg);
     this.clouds = [0, 1].map((i) => this.add.image(i * GAME_W, 4, 'clouds').setOrigin(0, 0).setAlpha(0.95));
@@ -1566,6 +1570,9 @@ export class FightScene extends Phaser.Scene implements View {
     const c = run.combat;
     const T = this.app.tuning;
     g.clear();
+    const title = run.phase === 'title';
+    this.barImg?.setVisible(!title);
+    if (title) return;
     // hero: heart + HP bar, stat column
     const H = run.hero;
     const maxHp = T.hero.maxHp + H.bonusMaxHp;
@@ -1639,6 +1646,7 @@ export class FightScene extends Phaser.Scene implements View {
     const c = this.app.run.combat;
     const B = this.bar;
     const bx = now < this.barShakeUntil ? Math.round(rand(-2, 2)) : 0;
+    if (this.app.run.phase === 'title') return;
     this.barImg?.setX(B.x - 9 + bx);
     // the left end is where enemy attacks land: a warm warning glow
     g.fillStyle(0xe0463c, 0.85);
@@ -2005,6 +2013,9 @@ export class FightScene extends Phaser.Scene implements View {
 
     const d = this.app.lastTap;
     this.setText('debug', d ? `TAP ${d.outcome} ${d.cursorPos.toFixed(3)}  CAL ${S.calibrationMs}MS` : `CAL ${S.calibrationMs}MS`, GAME_W / 2, this.meter.y + 9, 0xc8c8d4, 1, 0.5, 0, this.app.panelOpen);
+
+    if (run.phase === 'title')
+      for (const k of ['heroHp', 'coins', 'stat0', 'stat1', 'stat2', 'stat3', 'ability', 'enemyName', 'enemyHp', 'enemyAtk', 'combo', 'speed', 'tier', 'meterLabel', 'button']) this.txt[k].setVisible(false);
   }
 
   private drawOverlay(now: number): void {
@@ -2022,6 +2033,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.boostTexts.forEach((t) => t.setVisible(false));
     this.gCards.clear();
     this.boardImg?.setVisible(false);
+    this.crestImg?.setVisible(false);
     const dim = (a: number) => {
       g.fillStyle(0x05040a, a);
       g.fillRect(0, 0, GAME_W, GAME_H);
@@ -2035,12 +2047,25 @@ export class FightScene extends Phaser.Scene implements View {
       this.txt.banner.setAlpha(k < 0.15 ? k / 0.15 : 1);
     } else this.txt.banner.setVisible(false);
     if (ph === 'title') {
-      dim(0.6);
-      this.setText('ovTitle', 'Combo Quest 3', cx, 32, 0xffd23a, 3, 0.5, 0.5);
-      this.setText('ovSub', 'Working title - feel prototype', cx, 50, 0xd8d4f0, 1, 0.5, 0.5);
-      this.setText('ovLine1', 'Tap when the line is on a block', cx, 64, WHITE, 1, 0.5, 0.5);
-      this.setText('ovLine2', 'Tap red to block - avoid purple', cx, 74, 0xff8a7a, 1, 0.5, 0.5);
-      this.setText('ovLine3', 'TAP TO START!', cx, 92, WHITE, 2, 0.5, 0.5, blink);
+      dim(0.3);
+      // logo: steel-gradient title with the crest, a tag line, how-to on a dark ribbon, blinking start prompt
+      const title = 'Combo Quest';
+      const tw = textWidth(title, 3, true);
+      const crestW = 44;
+      const lx = Math.round(cx - (tw + crestW - 6) / 2);
+      const bob = Math.round(Math.sin(now / 500) * 1.5);
+      this.setText('ovTitle', title, lx, 30 + bob, WHITE, 3, 0, 0.5);
+      this.txt.ovTitle.setTint(0xffffff, 0xffffff, 0x9aa8c8, 0x9aa8c8);
+      this.crestImg?.setVisible(true).setPosition(lx + tw - 6 + crestW / 2, 30 + bob);
+      this.setText('ovSub', 'Working title - feel prototype', cx, 53, 0xffe680, 1, 0.5, 0.5);
+      g.fillStyle(INK, 0.55);
+      g.fillRect(0, 62, GAME_W, 22);
+      g.fillStyle(INK, 0.3);
+      g.fillRect(0, 61, GAME_W, 1);
+      g.fillRect(0, 84, GAME_W, 1);
+      this.setText('ovLine1', 'Tap when the line is on a block', cx, 68, WHITE, 1, 0.5, 0.5);
+      this.setText('ovLine2', 'Tap red to block - avoid purple', cx, 78, 0xff9a80, 1, 0.5, 0.5);
+      this.setText('ovLine3', 'TAP TO START!', cx, 97, WHITE, 2, 0.5, 0.5, blink);
     } else if (ph === 'boost') {
       dim(0.35);
       hide('ovSub', 'ovLine1', 'ovLine2', 'ovLine3');
