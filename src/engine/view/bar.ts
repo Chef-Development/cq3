@@ -101,6 +101,7 @@ export class BarView {
     const group = c.enemies.length > 1;
     this.drawGhosts(g, c, now, bx);
     for (const b of c.blocks) if (!isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
+    this.drawGuard(g, c, t, now, bx);
     for (const b of c.blocks) if (isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
 
     this.drawDying(g, bx);
@@ -322,12 +323,19 @@ export class BarView {
         }
       }
     }
+  }
+
+  /** A shield going up (blinking) or up: the yellows are off limits, so each one gets a steel shield mark. */
+  private drawGuard(g: G, c: Combat, t: number, now: number, bx: number): void {
+    const B = this.s.bar;
+    const tg = c.telegraph;
+    const owner = tg ? c.enemyById(tg.enemyId) : undefined;
+    const sp = owner ? c.specialsOf(owner)[tg!.index] : undefined;
     const guardSoon = !!sp && sp.actions.some((a) => a.type === 'guard');
-    if (c.guarder() || (guardSoon && blink)) {
-      // the yellows are off limits: a steel shield over each one
+    if (c.guarder() || (guardSoon && Math.floor(now / 110) % 2 === 0)) {
       for (const b of c.blocks) {
         if (b.kind !== 'yellow') continue;
-        const x = Math.round(B.x + c.blockPosAt(b, s.app.renderTime(performance.now())) * B.w) + bx;
+        const x = Math.round(B.x + c.blockPosAt(b, t) * B.w) + bx;
         const y = B.y + B.h / 2;
         g.fillStyle(0x3a1a60, c.guarder() ? 0.55 : 0.3);
         const w = Math.max(6, Math.round(b.width * B.w) - 1);
