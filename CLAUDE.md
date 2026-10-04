@@ -53,7 +53,7 @@ Playwright uses the preinstalled Chromium (`PLAYWRIGHT_BROWSERS_PATH`); never ru
 ## Backlog
 
 Meta-game features the playtester wants later (loot, chest roll, map, loadout, upgrades) are listed in
-`docs/backlog.md`.
+`docs/backlog.md`. The latest status report for the planning chat is `docs/orchestrator-report.md`.
 
 ## Deploy
 
