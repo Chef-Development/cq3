@@ -13,17 +13,17 @@ export function boostLabel(t: Tuning, id: BoostId): [string, string] {
   const b = t.boosts;
   switch (id) {
     case 'maxHp':
-      return ['MAX HP', `+${b.maxHp}`];
+      return ['Max HP', `+${b.maxHp}`];
     case 'damage':
-      return ['DAMAGE', `+${Math.round(b.damage * 100)}%`];
+      return ['Damage', `+${Math.round(b.damage * 100)}%`];
     case 'crit':
-      return ['CRIT', `+${Math.round(b.crit * 100)}%`];
+      return ['Crit Chance', `+${Math.round(b.crit * 100)}%`];
     case 'critDmg':
-      return ['CRIT DMG', `+${b.critDmg}X`];
+      return ['Crit Damage', `+${b.critDmg}x`];
     case 'comboPower':
-      return ['COMBO PWR', `+${b.comboPower}`];
+      return ['Combo Power', `+${b.comboPower}`];
     case 'heal':
-      return ['FULL HEAL', 'HP TO MAX'];
+      return ['Full Heal', 'HP to max'];
   }
 }
 

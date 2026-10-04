@@ -439,7 +439,7 @@ export class FightScene extends Phaser.Scene implements View {
         case 'hit': {
           const x = this.barX(e.pos);
           const perfect = e.perfect;
-          this.judge(x, perfect ? 'PERFECT!' : e.crit ? 'CRIT!' : 'HIT', perfect ? 0xfff07a : e.crit ? 0xff9a3a : WHITE, perfect || e.crit);
+          this.judge(x, perfect ? 'Perfect!' : e.crit ? 'Crit!' : 'Hit', perfect ? 0xfff07a : e.crit ? 0xff9a3a : WHITE, perfect || e.crit);
           this.cursorPulse(perfect ? 0xfff07a : kindCol(e.kind)[1]);
           this.cursorHit(x, perfect ? 0x6aff5a : WHITE);
           if (perfect) this.sparkle(x, this.bar.y + this.bar.h / 2);
@@ -450,8 +450,8 @@ export class FightScene extends Phaser.Scene implements View {
         }
         case 'block': {
           const x = this.barX(e.pos);
-          if (e.perfect || e.cracked) this.judge(x, e.perfect ? 'PERFECT!' : 'CRACK', e.perfect ? 0xfff07a : 0x7ae0ff, e.perfect);
-          if (!e.cracked) this.addFloater(this.h.x + 8, this.ground - 50, 'BLOCK!', WHITE, 2, true, 0, -16, 0, 620, true);
+          if (e.perfect || e.cracked) this.judge(x, e.perfect ? 'Perfect!' : 'Crack', e.perfect ? 0xfff07a : 0x7ae0ff, e.perfect);
+          if (!e.cracked) this.addFloater(this.h.x + 8, this.ground - 50, 'Block!', WHITE, 2, true, 0, -16, 0, 620, true);
           this.cursorPulse(0x7ae0ff);
           this.cursorHit(x, e.perfect ? 0x6aff5a : 0x7ae0ff);
           this.comboPopAt = now;
@@ -461,12 +461,12 @@ export class FightScene extends Phaser.Scene implements View {
           break;
         }
         case 'trap':
-          this.judge(this.barX(e.pos), 'TRAP!', COL.purple[1], true);
+          this.judge(this.barX(e.pos), 'Trap!', COL.purple[1], true);
           this.enemyLunge(e.enemyId, 1);
           this.screenFlash(COL.purple[0], now, 160);
           break;
         case 'miss':
-          this.judge(this.barX(e.pos), 'MISS', 0x9a94b0, false);
+          this.judge(this.barX(e.pos), 'Miss', 0x9a94b0, false);
           this.barShakeUntil = now + 140;
           if (this.h.state === 'idle') this.setHeroPose('windup', 120);
           break;
@@ -547,21 +547,21 @@ export class FightScene extends Phaser.Scene implements View {
           this.app.audio.heal();
           break;
         case 'ability':
-          this.floatNum(this.h.x, this.ground - 46, 'KEEN EDGE', 0x9af0a0, 1);
+          this.floatNum(this.h.x, this.ground - 46, 'Keen Edge', 0x9af0a0, 1);
           break;
         case 'speedUp':
-          this.judge(this.bar.x + this.bar.w / 2, 'SPEED UP!', 0xff9a3a, true, -14);
+          this.judge(this.bar.x + this.bar.w / 2, 'Speed up!', 0xff9a3a, true, -14);
           break;
         case 'comboBreak':
           this.comboBreakUntil = now + 420;
           this.lastMilestone = 0;
           break;
         case 'meterFull':
-          this.judge(this.button.x + this.button.w / 2, 'READY!', 0xffb03a, true, -2);
+          this.judge(this.button.x + this.button.w / 2, 'Ready!', 0xffb03a, true, -2);
           break;
         case 'revive':
           this.screenFlash(0x9af0a0, now, 320);
-          this.floatNum(this.heroHome + 10, this.ground - 50, 'REVIVED!', 0x9af0a0, 2);
+          this.floatNum(this.heroHome + 10, this.ground - 50, 'Revived!', 0x9af0a0, 2);
           break;
       }
     }
@@ -813,16 +813,16 @@ export class FightScene extends Phaser.Scene implements View {
 
   private milestone(combo: number): void {
     const marks: Array<[number, string]> = [
-      [10, 'NICE!'],
-      [25, 'GREAT!'],
-      [50, 'AWESOME!'],
-      [75, 'INSANE!'],
-      [100, 'GODLIKE!'],
+      [10, 'Nice!'],
+      [25, 'Great!'],
+      [50, 'Awesome!'],
+      [75, 'Insane!'],
+      [100, 'Godlike!'],
     ];
     for (const [n, label] of marks)
       if (combo >= n && this.lastMilestone < n) {
         this.lastMilestone = n;
-        this.floatNum(GAME_W / 2, 30, `${n} COMBO - ${label}`, 0xffd23a, 1);
+        this.floatNum(GAME_W / 2, 30, `${n} Combo - ${label}`, 0xffd23a, 1);
         this.app.audio.ready2();
       }
   }
@@ -1960,7 +1960,7 @@ export class FightScene extends Phaser.Scene implements View {
       `${H.revives}`,
     ];
     stats.forEach((v, i) => this.setText(`stat${i}`, v, this.L + 20, 24.5 + i * 15, i === 1 && H.abilityTimer > 0 ? 0x9af0a0 : WHITE, 1, 0, 0.5));
-    this.setText('ability', 'KEEN EDGE', this.L + 20 + textWidth(stats[1], 1, true) + 4, 39.5, 0x9af0a0, 1, 0, 0.5, H.abilityTimer > 0);
+    this.setText('ability', 'Keen Edge', this.L + 20 + textWidth(stats[1], 1, true) + 4, 39.5, 0x9af0a0, 1, 0, 0.5, H.abilityTimer > 0);
     const target = c && run.phase !== 'levelClear' ? (c.currentTarget() ?? c.enemies[0]) : null;
     if (target && c) {
       const def = T.enemies[target.key];
@@ -1990,7 +1990,7 @@ export class FightScene extends Phaser.Scene implements View {
     const swipeMode = S.finisherInput === 'swipe';
     this.setText(
       'meterLabel',
-      swipeMode ? 'SWIPE UP!' : 'FINISHER READY!',
+      swipeMode ? 'Swipe up!' : 'Finisher ready!',
       this.meter.x + this.meter.w / 2,
       this.meter.y + this.meter.h / 2,
       Math.floor(now / 150) % 2 ? 0xffe040 : 0xffb020,
@@ -1999,7 +1999,7 @@ export class FightScene extends Phaser.Scene implements View {
       0.5,
       ready && fight,
     );
-    const label = S.finisherInput === 'button' ? (ready ? 'GO!' : 'FINISH') : ready ? 'UP!' : 'SWIPE';
+    const label = S.finisherInput === 'button' ? (ready ? 'GO!' : 'Finish') : ready ? 'UP!' : 'Swipe';
     this.txt.button.setFont(ready ? FONT_BOLD : FONT);
     this.setText('button', label, b.x + b.w / 2, b.y + b.h / 2, ready ? WHITE : 0x9a8070, ready ? 2 : 1, 0.5, 0.5, fight);
 
@@ -2036,10 +2036,10 @@ export class FightScene extends Phaser.Scene implements View {
     } else this.txt.banner.setVisible(false);
     if (ph === 'title') {
       dim(0.6);
-      this.setText('ovTitle', 'COMBO QUEST 3', cx, 32, 0xffd23a, 3, 0.5, 0.5);
-      this.setText('ovSub', 'WORKING TITLE - FEEL PROTOTYPE', cx, 50, 0xd8d4f0, 1, 0.5, 0.5);
-      this.setText('ovLine1', 'TAP WHEN THE LINE IS ON A BLOCK', cx, 64, WHITE, 1, 0.5, 0.5);
-      this.setText('ovLine2', 'TAP RED TO BLOCK - AVOID PURPLE', cx, 74, 0xff8a7a, 1, 0.5, 0.5);
+      this.setText('ovTitle', 'Combo Quest 3', cx, 32, 0xffd23a, 3, 0.5, 0.5);
+      this.setText('ovSub', 'Working title - feel prototype', cx, 50, 0xd8d4f0, 1, 0.5, 0.5);
+      this.setText('ovLine1', 'Tap when the line is on a block', cx, 64, WHITE, 1, 0.5, 0.5);
+      this.setText('ovLine2', 'Tap red to block - avoid purple', cx, 74, 0xff8a7a, 1, 0.5, 0.5);
       this.setText('ovLine3', 'TAP TO START!', cx, 92, WHITE, 2, 0.5, 0.5, blink);
     } else if (ph === 'boost') {
       dim(0.35);
@@ -2072,14 +2072,14 @@ export class FightScene extends Phaser.Scene implements View {
       });
     } else if (ph === 'levelClear') {
       const opened = !!this.chestOpenAt;
-      this.setText('ovTitle', opened ? `${run.level.name} CLEAR!` : 'TREASURE CHEST', cx, 28, opened ? 0xffd23a : WHITE, 2, 0.5, 0.5);
-      this.setText('ovLine1', opened ? 'TAP TO CONTINUE' : 'TAP THE CHEST TO CONTINUE', cx, 44, WHITE, 1, 0.5, 0.5, opened ? blink : true);
+      this.setText('ovTitle', opened ? `${run.level.name} clear!` : 'Treasure Chest', cx, 28, opened ? 0xffd23a : WHITE, 2, 0.5, 0.5);
+      this.setText('ovLine1', opened ? 'Tap to continue' : 'Tap the chest to continue', cx, 44, WHITE, 1, 0.5, 0.5, opened ? blink : true);
       hide('ovSub', 'ovLine2', 'ovLine3');
     } else if (ph === 'defeat') {
       dim(0.65);
       this.setText('ovTitle', 'DEFEATED', cx, 38, 0xff5a5a, 3, 0.5, 0.5);
-      this.setText('ovSub', 'ROWAN FALLS...', cx, 56, WHITE, 1, 0.5, 0.5);
-      this.setText('ovLine1', 'TAP TO RETRY LEVEL', cx, 76, 0xffd23a, 2, 0.5, 0.5, blink);
+      this.setText('ovSub', 'Rowan falls...', cx, 56, WHITE, 1, 0.5, 0.5);
+      this.setText('ovLine1', 'Tap to retry level', cx, 76, 0xffd23a, 2, 0.5, 0.5, blink);
       hide('ovLine2', 'ovLine3');
     } else if (this.app.awaitingBegin) {
       hide(...ov);
@@ -2087,7 +2087,7 @@ export class FightScene extends Phaser.Scene implements View {
     } else if (this.app.userPaused) {
       dim(0.55);
       this.setText('ovTitle', 'PAUSED', cx, 40, WHITE, 3, 0.5, 0.5);
-      this.setText('ovSub', 'TAP TO RESUME', cx, 60, 0xffd23a, 1, 0.5, 0.5, blink);
+      this.setText('ovSub', 'Tap to resume', cx, 60, 0xffd23a, 1, 0.5, 0.5, blink);
       hide('ovLine1', 'ovLine2', 'ovLine3');
     } else hide(...ov);
   }

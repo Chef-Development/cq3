@@ -144,7 +144,7 @@ export function installDebug(app: App): DebugUi {
     app.tuning.levels.forEach((lvl, li) =>
       lvl.stages.forEach((stage, si) => {
         const names = stage.map((k) => app.tuning.enemies[k]?.name ?? k).join(' + ');
-        const b = el('button', 'dbg-btn', `${lvl.name.replace('LEVEL ', 'L')}: ${names}`);
+        const b = el('button', 'dbg-btn', `${lvl.name.replace(/level /i, 'L')}: ${names}`);
         b.onclick = () => {
           app.setPhase(() => app.run.startLevel(li, si));
           setOpen(false);

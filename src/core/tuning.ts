@@ -120,7 +120,7 @@ export const DEFAULT_TUNING = {
   },
   enemies: {
     slime: {
-      name: 'SLIME',
+      name: 'Slime',
       hp: 150,
       atk: 8,
       special: 16,
@@ -132,7 +132,7 @@ export const DEFAULT_TUNING = {
       coins: 10,
     },
     boar: {
-      name: 'BOAR',
+      name: 'Boar',
       hp: 220,
       atk: 10,
       special: 20,
@@ -144,7 +144,7 @@ export const DEFAULT_TUNING = {
       coins: 15,
     },
     bandit: {
-      name: 'BANDIT',
+      name: 'Bandit',
       hp: 280,
       atk: 12,
       special: 24,
@@ -156,7 +156,7 @@ export const DEFAULT_TUNING = {
       coins: 20,
     },
     bigSlime: {
-      name: 'BIG SLIME',
+      name: 'Big Slime',
       hp: 520,
       atk: 14,
       special: 28,
@@ -170,8 +170,8 @@ export const DEFAULT_TUNING = {
     },
   } as Record<string, EnemyDef>,
   levels: [
-    { name: 'LEVEL 1', theme: 'forest', stages: [['slime'], ['boar'], ['bandit'], ['bigSlime']] },
-    { name: 'LEVEL 2', theme: 'ruins', stages: [['slime', 'slime', 'bandit']] },
+    { name: 'Level 1', theme: 'forest', stages: [['slime'], ['boar'], ['bandit'], ['bigSlime']] },
+    { name: 'Level 2', theme: 'ruins', stages: [['slime', 'slime', 'bandit']] },
   ] as LevelDef[],
 };
 
