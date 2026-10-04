@@ -12,7 +12,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // ---------------------------------------------------------------- Act 1, Meadow Road
   slime: {
     name: 'Slime',
-    hp: 300,
+    hp: 450,
     atk: 12,
     special: 16,
     interval: 0.75,
@@ -27,7 +27,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   slimelet: {
     name: 'Slimelet',
-    hp: 90,
+    hp: 120,
     atk: 7,
     special: 10,
     interval: 0.9,
@@ -39,7 +39,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   crow: {
     name: 'Crow',
-    hp: 240,
+    hp: 360,
     atk: 9,
     special: 14,
     interval: 0.7,
@@ -55,7 +55,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   boar: {
     name: 'Boar',
-    hp: 480,
+    hp: 720,
     atk: 16,
     special: 20,
     interval: 0.65,
@@ -70,7 +70,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   bandit: {
     name: 'Bandit',
-    hp: 620,
+    hp: 930,
     atk: 17,
     special: 22,
     interval: 0.6,
@@ -133,7 +133,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   captain: {
     name: 'Bandit Captain',
-    hp: 2600,
+    hp: 3000,
     atk: 20,
     special: 26,
     interval: 0.6,
@@ -152,7 +152,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // ---------------------------------------------------------------- Act 2, Old Ruins
   archer: {
     name: 'Goblin Archer',
-    hp: 420,
+    hp: 630,
     atk: 13,
     special: 18,
     interval: 0.7,
@@ -175,7 +175,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   shaman: {
     name: 'Mushroom Shaman',
-    hp: 460,
+    hp: 690,
     atk: 12,
     special: 18,
     interval: 0.75,
@@ -198,7 +198,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   beetle: {
     name: 'Shell Beetle',
-    hp: 560,
+    hp: 840,
     atk: 15,
     special: 20,
     interval: 0.75,
@@ -213,7 +213,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   golem: {
     name: 'Ruin Golem',
-    hp: 3400,
+    hp: 4000,
     atk: 24,
     special: 30,
     interval: 0.7,
@@ -232,7 +232,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // ---------------------------------------------------------------- Act 3, Boar King's Hollow
   wolf: {
     name: 'Wolf',
-    hp: 380,
+    hp: 570,
     atk: 11,
     special: 16,
     interval: 0.75,
@@ -247,8 +247,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   boarKing: {
     name: 'Boar King',
-    hp: 5600,
-    atk: 24,
+    hp: 6000,
+    atk: 32,
     special: 30,
     interval: 0.55,
     pattern: 'YRYSRYGYFRYY',
@@ -286,7 +286,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   piglet: {
     name: 'Piglet',
-    hp: 260,
+    hp: 390,
     atk: 8,
     special: 12,
     interval: 0.9,

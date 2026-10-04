@@ -28,8 +28,8 @@ export const GREENMARCH: RegionDef = {
     {
       name: 'Old Ruins',
       theme: 'ruins',
-      hpMult: 1.7,
-      atkMult: 1.3,
+      hpMult: 1.5,
+      atkMult: 1.25,
       rows: 7,
       fights: {
         early: [['archer'], ['beetle'], ['shaman', 'slime']],
@@ -44,8 +44,8 @@ export const GREENMARCH: RegionDef = {
     {
       name: "Boar King's Hollow",
       theme: 'hollow',
-      hpMult: 2.6,
-      atkMult: 1.6,
+      hpMult: 2.1,
+      atkMult: 1.5,
       rows: 7,
       fights: {
         early: [['wolf', 'wolf'], ['boar', 'crow'], ['shaman', 'boar']],

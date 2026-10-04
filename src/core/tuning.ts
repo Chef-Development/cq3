@@ -70,7 +70,7 @@ export const DEFAULT_TUNING = {
     comboPower: 5, // finisher damage = attack x comboPower x stacks ^ meter.stackExp
     reviveHpFrac: 0.5,
     revivesPerAct: 1, // a revive per act (refilled at each act's start)
-    healOnKill: 0.2, // fraction of max HP restored by every kill
+    healOnKill: 0.05, // fraction of max HP restored by every kill (small: HP carries from node to node, rests matter)
   },
   meter: {
     // The meter fills once per stack; keep the combo going to bank more stacks (a combo break loses them all).
@@ -93,8 +93,9 @@ export const DEFAULT_TUNING = {
   },
   kill: {
     // Every kill permanently raises the hero's stats for the rest of the run (the icons rain into the HUD).
-    atk: 1,
-    maxHp: 5,
+    // Small: an act has many kills, and the boost picks after each fight carry most of the growth.
+    atk: 0.5,
+    maxHp: 2,
     comboPower: 0, // finisher growth comes from boosts only, so max-stack finishers never outgrow the bosses
   },
   companion: {
@@ -415,7 +416,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
     },
     {
       title: 'Kill rewards',
-      sliders: [s('kill.atk', 'Attack +', 0, 10, 1), s('kill.maxHp', 'Max HP +', 0, 50, 1), s('kill.comboPower', 'Combo power +', 0, 3, 0.25)],
+      sliders: [s('kill.atk', 'Attack +', 0, 5, 0.25), s('kill.maxHp', 'Max HP +', 0, 20, 1), s('kill.comboPower', 'Combo power +', 0, 3, 0.25)],
     },
     {
       title: 'Companion (Pip)',

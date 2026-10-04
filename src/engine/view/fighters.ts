@@ -7,6 +7,7 @@ import type { FightScene } from '../scene';
 import { HERO_FEET_X, HERO_W, ICONS } from '../art';
 import { GAME_W } from '../layout';
 import { hpBar, icon } from './pixels';
+import { FOE_ICONS } from './icons';
 import {
   clamp01,
   comboSlashCol,
@@ -24,6 +25,7 @@ import {
   rand,
   RETURN_MS,
   SPRITE_SCALE,
+  INK,
   stackCol,
   superMsFor,
   WHITE,
@@ -49,6 +51,8 @@ export class Fighters {
   superFinalAt = -1e9; // anim time of the finisher's last blow
   burstAt = new Map<number, number>(); // enemy id -> anim time it bursts
   lastBurstAt = -1e9;
+  /** Enemies born from a split: id -> the x they pop out from. */
+  private splitFrom = new Map<number, number>();
 
   constructor(private readonly s: FightScene) {
     this.h = this.freshHero();
@@ -102,14 +106,16 @@ export class Fighters {
   newFight(): void {
     for (const v of this.enemies.values()) v.img.destroy();
     this.enemies.clear();
+    this.splitFrom.clear();
     this.h = this.freshHero();
     this.superFinalAt = -1e9;
     this.superAt = -1e9;
   }
 
-  private enemyX(slot: number, count: number): number {
-    if (count === 1) return Math.round(GAME_W / 2 + 44);
-    return Math.round(GAME_W / 2 + 18 + slot * 32);
+  /** Where an enemy stands: centered when it fights alone, in a row by slot in a group (summons join the row). */
+  private homeFor(slot: number, c: Combat): number {
+    if (c.enemies.length === 1) return Math.round(GAME_W / 2 + 44);
+    return Math.round(GAME_W / 2 + 16 + slot * 31);
   }
 
   /** Add a view for every living enemy that doesn't have one yet (they walk in from the right). */
@@ -120,14 +126,16 @@ export class Fighters {
       const def = s.app.tuning.enemies[e.key];
       const img = s.add.image(0, 0, `${def.sprite}_idle0`).setOrigin(0.5, 1).setScale(SPRITE_SCALE);
       s.actors.add(img);
-      const x = this.enemyX(e.slot, c.enemies.length);
+      const x = this.homeFor(e.slot, c);
+      const from = this.splitFrom.get(e.id);
+      this.splitFrom.delete(e.id);
       this.enemies.set(e.id, {
         id: e.id,
         sprite: def.sprite,
         img,
         homeX: x,
         x,
-        y: s.ground + (c.enemies.length > 1 ? (e.slot % 2) * 3 : 0),
+        y: s.ground + (c.enemies.length > 1 ? (e.slot % 2) * 3 : 0) - (def.fly ?? 0),
         pose: 'idle0',
         poseUntil: 0,
         flashUntil: 0,
@@ -140,7 +148,13 @@ export class Fighters {
         dieAt: 0,
         phase: Math.random() * 1000,
         hpShown: e.hp,
-        enterAt: s.anim + e.slot * 120,
+        enterAt: s.anim + (from === undefined ? Math.min(2, e.slot) * 120 : 0),
+        fly: def.fly ?? 0,
+        tellAt: 0,
+        tellUntil: 0,
+        fleeAt: 0,
+        popAt: 0,
+        enterFrom: from ?? GAME_W + 30,
       });
     }
   }
@@ -170,7 +184,8 @@ export class Fighters {
     return Math.round(v.homeX - v.img.displayWidth / 2 - 12);
   }
 
-  heroAttack(enemyId: number, damage: number, crit: boolean, perfect: boolean, combo: number): void {
+  /** Rowan dashes in and slashes (`ward`: he cracks a shell block, so no hit sound and no damage number). */
+  heroAttack(enemyId: number, damage: number, crit: boolean, perfect: boolean, combo: number, ward = false): void {
     const s = this.s;
     const v = this.enemies.get(enemyId);
     const h = this.h;
@@ -179,7 +194,7 @@ export class Fighters {
     const slash = h.alt ? 'slashA' : 'slashB';
     // the blow's sound and weight land together, when the sword connects
     const land = () => {
-      s.app.audio.hit(combo, crit, perfect);
+      if (!ward) s.app.audio.hit(combo, crit, perfect);
       return s.fx.impact(s.fx.weight(crit ? 'crit' : perfect ? 'perfect' : 'hit'));
     };
     if (!v) {
@@ -236,7 +251,7 @@ export class Fighters {
     const recent = s.anim - v.numAt < 260;
     v.numLevel = recent ? (v.numLevel + 1) % 3 : 0;
     v.numAt = s.anim;
-    fx.floatNum(v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2), v.y - v.img.displayHeight - 10 - v.numLevel * 11, `${damage}`, col, numScale);
+    if (damage > 0) fx.floatNum(v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2), v.y - v.img.displayHeight - 10 - v.numLevel * 11, `${damage}`, col, numScale);
     const tier = combo >= 50 ? 3 : combo >= 25 ? 2 : combo >= 10 ? 1 : 0;
     fx.slashes.push({ x: v.x, y: cy, at: s.anim, big: big || tier >= 2, dir: this.h.alt ? 1 : -1, color: crit ? 0xffd23a : comboSlashCol(combo) });
     fx.burst(hx, cy, WHITE, (big ? 14 : 8) + tier * 2, true, big ? 1.6 : 1.1, true);
@@ -397,6 +412,51 @@ export class Fighters {
     });
   }
 
+  /** An enemy winds up its special: the 'tell' pose, a countdown ring, a "!" and the special's name. */
+  telegraph(enemyId: number, name: string, sec: number): void {
+    const s = this.s;
+    const v = this.enemies.get(enemyId);
+    if (!v || v.dieAt) return;
+    v.tellAt = s.anim;
+    v.tellUntil = s.anim + sec * 1000;
+    s.fx.addFloater(v.homeX, Math.max(30, v.y - v.img.displayHeight - 16), name, 0xff9a3a, 1, true, 0, -6, 0, sec * 1000 + 250, true);
+  }
+
+  tellOver(enemyId: number): void {
+    const v = this.enemies.get(enemyId);
+    if (v) v.tellUntil = 0;
+  }
+
+  /** The special fires: the enemy strikes a pose. */
+  special(enemyId: number): void {
+    const v = this.enemies.get(enemyId);
+    if (!v || v.dieAt) return;
+    v.tellUntil = 0;
+    this.setEnemyPose(v, 'attack', 240);
+    v.kickAt = this.s.anim;
+    v.kickDist = -3;
+  }
+
+  /** A slime splits: it bursts with a splat and its children pop out where it stood. */
+  splitApart(enemyId: number, ids: number[]): void {
+    const s = this.s;
+    const v = this.enemies.get(enemyId);
+    if (!v) return;
+    v.popAt = s.anim;
+    for (const id of ids) this.splitFrom.set(id, v.x);
+    const cy = v.y - v.img.displayHeight / 2;
+    s.fx.burst(v.x, cy, ENEMY_COL[v.sprite] ?? WHITE, 18, true, 1.3);
+    s.fx.burst(v.x, cy, WHITE, 8, true, 1.1, true);
+    s.fx.ring(v.x, cy, 22, ENEMY_COL[v.sprite] ?? WHITE, true);
+    s.app.audio.split();
+  }
+
+  /** A linked summon runs off when its summoner falls. */
+  flee(enemyId: number): void {
+    const v = this.enemies.get(enemyId);
+    if (v && !v.dieAt) v.fleeAt = this.s.anim;
+  }
+
   heroReturn(): void {
     const h = this.h;
     if (h.state === 'idle') return;
@@ -437,7 +497,9 @@ export class Fighters {
       P.x += (homeX - P.x) * 0.12;
       P.y = homeY;
     }
-    this.pip.setTexture(tex).setPosition(Math.round(P.x), Math.round(P.y)).setVisible(s.app.tuning.companion.everyHits > 0);
+    // Pip joins in Act 1's opening scene, not before
+    const beforePip = s.app.storyId === 'intro';
+    this.pip.setTexture(tex).setPosition(Math.round(P.x), Math.round(P.y)).setVisible(s.app.tuning.companion.everyHits > 0 && !beforePip);
   }
 
   updateHero(): void {
@@ -538,15 +600,39 @@ export class Fighters {
     for (const v of this.enemies.values()) {
       const e = c.enemyById(v.id);
       if (!e) continue;
+      // summons and splits rearrange the row: everyone slides to their new spot
+      if (e.alive && !v.dieAt) v.homeX += (this.homeFor(e.slot, c) - v.homeX) * 0.12;
       let x = v.homeX;
       let walkBob = 0;
       if (v.enterAt) {
-        const k = (a - v.enterAt) / ENTER_MS;
+        const k = (a - v.enterAt) / (v.enterFrom < GAME_W ? 260 : ENTER_MS);
         if (k >= 1) v.enterAt = 0;
         else {
-          x = GAME_W + 30 + (v.homeX - GAME_W - 30) * ease(clamp01(k));
-          walkBob = Math.floor(a / 90) % 2;
+          x = v.enterFrom + (v.homeX - v.enterFrom) * ease(clamp01(k));
+          walkBob = v.enterFrom < GAME_W ? Math.round(Math.sin(clamp01(k) * Math.PI) * 8) : Math.floor(a / 90) % 2;
         }
+      }
+      if (v.popAt) {
+        // split apart: a quick white swell, then gone
+        const q = (a - v.popAt) / 160;
+        if (q >= 1) {
+          v.img.setVisible(false);
+          continue;
+        }
+        v.img.setTexture(`${v.sprite}_flash`).setScale(SPRITE_SCALE * (1 + 0.5 * q), SPRITE_SCALE * (1 - 0.3 * q)).setPosition(Math.round(x), v.y).setAlpha(1 - q);
+        continue;
+      }
+      if (v.fleeAt) {
+        // runs off to the right, facing away
+        const q = (a - v.fleeAt) / 600;
+        if (q >= 1) {
+          v.img.setVisible(false);
+          continue;
+        }
+        const fx = x + (GAME_W + 40 - x) * q * q;
+        v.img.setTexture(`${v.sprite}_${Math.floor(a / 80) % 2 ? 'idle0' : 'attack'}`).setFlipX(true).setScale(SPRITE_SCALE).setPosition(Math.round(fx), v.y - (Math.floor(a / 70) % 2)).setAlpha(1);
+        if (Math.random() < 0.3) s.fx.burst(fx - 4, s.ground - 1, 0xd8c8a0, 1, true, 0.4);
+        continue;
       }
       if (v.lunge) {
         const k = (a - v.lunge.t0) / v.lunge.ms;
@@ -559,6 +645,11 @@ export class Fighters {
       v.x = x;
       const flash = a < v.flashUntil;
       let pose = a < v.poseUntil ? v.pose : Math.floor((a + v.phase) / 380) % 2 ? 'idle1' : 'idle0';
+      const has = (p: string) => s.textures.exists(`${v.sprite}_${p}`);
+      // a special's wind-up, a raised guard and a closed shell hold their own poses
+      if (a < v.tellUntil && has('tell')) pose = 'tell';
+      else if (e.guard > 0 && has('guard') && pose !== 'hurt') pose = 'guard';
+      else if (e.shell < 1 && has('shell') && pose !== 'hurt') pose = 'shell';
       if (flash) pose = 'flash';
       if (v.dieAt) {
         // charge: flicker between white and hurt, swell and tremble, then burst (the pixels take over)
@@ -576,17 +667,61 @@ export class Fighters {
       // squash on impact: wide and short for a few frames, then a little stretch back
       const sq = (a - v.kickAt) / 150;
       const amt = sq >= 0 && sq < 1 ? Math.sin(sq * Math.PI) * (sq < 0.5 ? 0.16 : -0.06) * Math.min(1.6, v.kickDist / 8) : 0;
-      v.img.setTexture(`${v.sprite}_${pose}`).setPosition(Math.round(x), v.y - walkBob).setScale(SPRITE_SCALE * (1 + amt), SPRITE_SCALE * (1 - amt)).setAlpha(1);
-      shadow(x, v.img.displayWidth * 0.8, 0.3);
+      const hover = v.fly ? Math.round(Math.sin((a + v.phase) / 260) * 2) : 0;
+      const tellK = a < v.tellUntil ? (a - v.tellAt) / Math.max(1, v.tellUntil - v.tellAt) : -1;
+      const tremble = tellK > 0.6 ? Math.round(Math.sin(a / 18)) : 0; // shakes as the special is about to land
+      v.img.setTexture(`${v.sprite}_${pose}`).setFlipX(false).setPosition(Math.round(x) + tremble, v.y - walkBob + hover).setScale(SPRITE_SCALE * (1 + amt), SPRITE_SCALE * (1 - amt)).setAlpha(1);
+      // the boss enraged: a red pulse
+      if (e.phase >= 3) v.img.setTint(Math.floor(a / 160) % 2 ? 0xffb0a0 : 0xffffff);
+      else v.img.clearTint();
+      shadow(x, v.img.displayWidth * (v.fly ? 0.5 : 0.8), v.fly ? 0.2 : 0.3);
+      const cy = v.y - v.img.displayHeight / 2;
+      if (tellK >= 0) {
+        // the countdown: a ring closing in on the enemy, and a bouncing "!"
+        const r = Math.round(8 + (1 - tellK) * 18 + v.img.displayWidth * 0.3);
+        const col = Math.floor(a / 90) % 2 ? 0xff5a3a : 0xffd23a;
+        g.fillStyle(col, 0.35 + 0.5 * tellK);
+        const n = Math.max(16, r * 2);
+        for (let i = 0; i < n; i++) {
+          if (i % 3 === 2) continue;
+          const ang = (i / n) * Math.PI * 2 + a / 400;
+          g.fillRect(Math.round(x + Math.cos(ang) * r), Math.round(cy + Math.sin(ang) * r * 0.7), 2, 1);
+        }
+        const ex = Math.round(x);
+        const ey = Math.round(v.y - v.img.displayHeight - 8 - Math.abs(Math.sin(a / 110)) * 3);
+        g.fillStyle(INK, 1);
+        g.fillRect(ex - 2, ey - 1, 5, 8);
+        g.fillRect(ex - 2, ey + 8, 5, 4);
+        g.fillStyle(col, 1);
+        g.fillRect(ex - 1, ey, 3, 6);
+        g.fillRect(ex - 1, ey + 9, 3, 2);
+      }
+      if (e.protect < 1 && c.summonsAlive(e.id)) {
+        // shielded by its summons: a golden aura
+        const n = 40;
+        const rx = v.img.displayWidth * 0.62;
+        const ry = v.img.displayHeight * 0.62;
+        for (let i = 0; i < n; i++) {
+          if ((i + Math.floor(a / 120)) % 4 >= 2) continue;
+          const ang = (i / n) * Math.PI * 2;
+          g.fillStyle(0xffe680, 0.7);
+          g.fillRect(Math.round(x + Math.cos(ang) * rx), Math.round(cy + Math.sin(ang) * ry), 1, 1);
+        }
+      }
+      if (e.shell < 1) {
+        // a shell bubble while its ward blocks stand
+        g.fillStyle(0x7af0e0, 0.25 + 0.15 * Math.sin(a / 150));
+        g.fillCircle(Math.round(x), Math.round(cy), Math.round(v.img.displayWidth * 0.55));
+      }
       if (a >= this.superFinalAt) v.hpShown += (e.hp - v.hpShown) * 0.25;
-      if (c.enemies.length > 1) {
+      if (c.enemies.length > 1 && e.alive) {
         const bw = Math.max(26, Math.round(v.img.displayWidth * 0.7));
         const bx = Math.round(v.homeX - bw / 2);
         const by = Math.round(v.y - v.img.displayHeight - 8);
         hpBar(g, bx, by, bw, 3, e.hp / e.maxHp, v.hpShown / e.maxHp, 0xe0463c);
         const def = s.app.tuning.enemies[e.key];
         const isTarget = target?.id === e.id;
-        icon(g, ICONS[def.icon], bx - 9, by - 2, 0xff8a7a);
+        icon(g, FOE_ICONS[def.icon] ?? ICONS.drop, bx - 9, by - 2, 0xff8a7a);
         if (isTarget) {
           const tx = Math.round(v.homeX);
           const ty = by - 8 + (Math.floor(now / 250) % 2);

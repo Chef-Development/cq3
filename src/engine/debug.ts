@@ -173,6 +173,7 @@ export function installDebug(app: App): DebugUi {
     for (const [name, label] of [
       ['battle', 'Music: battle theme'],
       ['boss', 'Music: boss theme'],
+      ['map', 'Music: map theme'],
     ] as const) {
       const b = el('button', 'dbg-btn', label);
       b.onclick = () => {
@@ -190,18 +191,39 @@ export function installDebug(app: App): DebugUi {
 
     const jump = section('Jump to');
     const jg = el('div', 'dbg-grid');
-    app.tuning.levels.forEach((lvl, li) =>
-      lvl.stages.forEach((stage, si) => {
-        const names = stage.map((k) => app.tuning.enemies[k]?.name ?? k).join(' + ');
-        const b = el('button', 'dbg-btn', `${lvl.name.replace(/level /i, 'L')}: ${names}`);
-        b.onclick = () => {
-          // arrive with the upgrades a player would have earned on the way
-          app.setPhase(() => app.run.startLevel(li, si, li > 0 || si > 0 ? heroFor(app.tuning, li, si) : undefined));
-          setOpen(false);
-        };
+    const go = (fn: () => void) => {
+      app.setPhase(fn);
+      setOpen(false);
+    };
+    app.run.region.acts.forEach((act, a) => {
+      const b = el('button', 'dbg-btn', `Act ${a + 1}: ${act.name} (map)`);
+      // arrive with the upgrades a player would have earned on the way
+      b.onclick = () =>
+        go(() => {
+          app.run.hero = heroFor(app.tuning, a);
+          app.run.enterAct(a);
+        });
+      jg.appendChild(b);
+    });
+    // a fight against each enemy, in the act it first shows up in
+    const seen = new Set<string>();
+    app.run.region.acts.forEach((act, a) => {
+      const groups: Array<[string[], 'fight' | 'elite' | 'boss']> = [
+        ...[...act.fights.early, ...act.fights.late].map((g): [string[], 'fight'] => [g, 'fight']),
+        ...act.elites.map((g): [string[], 'elite'] => [g, 'elite']),
+        [act.boss, 'boss'],
+      ];
+      for (const [g, type] of groups) {
+        const key = g[0];
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const enemies = key === 'wolf' ? ['wolf', 'wolf'] : type === 'fight' ? [key] : g;
+        const names = enemies.map((k) => app.tuning.enemies[k]?.name ?? k).join(' + ');
+        const b = el('button', 'dbg-btn', `A${a + 1}: ${names}`);
+        b.onclick = () => go(() => app.run.debugFight(a, enemies, type, heroFor(app.tuning, a)));
         jg.appendChild(b);
-      }),
-    );
+      }
+    });
     jump.appendChild(jg);
 
     const cal = section('Calibration');
@@ -253,7 +275,6 @@ export function installDebug(app: App): DebugUi {
     resetT.onclick = () => {
       if (!window.confirm('Reset all tuning numbers to defaults?')) return;
       mergeKnown(app.tuning, cloneTuning());
-      app.tuning.levels = cloneTuning().levels;
       saveNow(app.tuning, app.settings);
       rebuild();
       toast('Tuning reset');
@@ -304,7 +325,8 @@ export function installDebug(app: App): DebugUi {
     const c = app.run.combat;
     const m = /^enemies\.(\w+)\.hp$/.exec(path);
     if (m && c) {
-      const hp = Math.max(1, Math.round(v * (app.run.level.hpMult ?? 1)));
+      const n = app.run.node;
+      const hp = Math.max(1, Math.round(v * app.run.actScale.hpMult * (1 + app.tuning.map.rowHp * (n?.row ?? 0))));
       for (const e of c.enemies)
         if (e.key === m[1] && e.alive) {
           e.hp = Math.max(1, Math.round((e.hp / e.maxHp) * hp));

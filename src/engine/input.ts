@@ -44,7 +44,7 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       case 'scene':
         if (now - app.phaseSince < 250) return;
         if (scene.storySkipAt(g.x, g.y)) app.storySkip();
-        else app.storyNext();
+        else if (!scene.storyReveal()) app.storyNext();
         return;
       case 'map': {
         // keyboard: the first choice
@@ -78,7 +78,7 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
     if (app.storyOverlay) {
       // a boss's mid-fight scene: tap through it (or skip it), then the fight goes on
       if (scene.storySkipAt(g.x, g.y)) app.storySkip();
-      else app.storyNext();
+      else if (!scene.storyReveal()) app.storyNext();
       return;
     }
     if (app.userPaused) {

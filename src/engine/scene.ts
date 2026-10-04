@@ -14,7 +14,10 @@ import { BarView } from './view/bar';
 import { Effects } from './view/effects';
 import { Fighters } from './view/fighters';
 import { Hud } from './view/hud';
+import { MapView } from './view/map';
+import { NodeScreens } from './view/nodes';
 import { Overlays } from './view/overlays';
+import { StoryView } from './view/story';
 import { BAND_H, COL, DASH_MS, DEATH_CHARGE_MS, inRect, kindCol, stackCol, tintGrad, WHITE, type Pending, type Rect } from './view/shared';
 import { Stage } from './view/stage';
 
@@ -45,6 +48,7 @@ export class FightScene extends Phaser.Scene implements View {
   private lastNow = 0;
   private pending: Pending[] = [];
   private lastCombat: Combat | null = null;
+  private pauseShown = true;
   // modules
   readonly fx = new Effects(this);
   readonly barView = new BarView(this);
@@ -52,6 +56,9 @@ export class FightScene extends Phaser.Scene implements View {
   readonly fighters = new Fighters(this);
   readonly hud = new Hud(this);
   readonly overlays = new Overlays(this);
+  readonly mapView = new MapView(this);
+  readonly story = new StoryView(this);
+  readonly nodes = new NodeScreens(this);
 
   constructor() {
     super('fight');
@@ -123,6 +130,9 @@ export class FightScene extends Phaser.Scene implements View {
     this.panelImg = this.add.image(0, this.splitY, 'panel').setOrigin(0, 0).setDepth(9);
     this.barView.build();
     this.overlays.build();
+    this.mapView.build();
+    this.story.build();
+    this.nodes.build();
     this.stage.build();
     this.fighters.build();
     this.hud.reset();
@@ -157,6 +167,44 @@ export class FightScene extends Phaser.Scene implements View {
     return this.overlays.titleTap(x, y);
   }
 
+  storySkipAt(x: number, y: number): boolean {
+    return this.story.storySkipAt(x, y);
+  }
+
+  /** A tap while a story box is still typing shows the whole box (true = the tap is used up). */
+  storyReveal(): boolean {
+    return this.story.reveal();
+  }
+
+  mapNodeAt(x: number, y: number): number | null {
+    return this.mapView.nodeAt(x, y);
+  }
+
+  chooseNode(id: number): void {
+    this.mapView.choose(id);
+  }
+
+  rerollAt(x: number, y: number): boolean {
+    return this.overlays.rerollAt(x, y);
+  }
+
+  onReroll(): void {
+    this.app.audio.shopBuy();
+    this.app.phaseSince = performance.now() - 250; // the cards pop in again
+  }
+
+  /** Treasure, rest, shop and event screens. */
+  nodeTap(x: number, y: number): void {
+    if (this.app.run.phase === 'treasure') this.overlays.treasureTap();
+    else this.nodes.tap(x, y);
+  }
+
+  /** The fight HUD and the bar show in fights, and over the boost pick and the defeat screen. */
+  fightHud(): boolean {
+    const ph = this.app.run.phase;
+    return ph === 'fight' || ph === 'boost' || ph === 'defeat';
+  }
+
   // ------------------------------------------------------------------ helpers for the modules
 
   /** Run fn after `ms` of scene time (so hit-stop delays it too). */
@@ -175,7 +223,10 @@ export class FightScene extends Phaser.Scene implements View {
 
   onPhase(_prev: Phase, next: Phase): void {
     if (next === 'fight') this.syncCombat(true);
+    if (next === 'actClear' || next === 'map' || next === 'scene') this.stage.applyTheme();
+    if (next === 'victory') this.app.audio.victory();
     this.overlays.onPhase(next);
+    this.nodes.onPhase(next);
     if (next !== 'fight' && this.fighters.h.state !== 'idle') this.fighters.heroReturn();
   }
 
@@ -337,6 +388,94 @@ export class FightScene extends Phaser.Scene implements View {
           fx.screenFlash(0x9af0a0, now, 320);
           fx.floatNum(this.heroHome + 10, this.ground - 50, 'Revived!', 0x9af0a0, 2);
           break;
+        case 'telegraph':
+          f.telegraph(e.enemyId, e.name, e.sec);
+          break;
+        case 'tellCancel':
+          f.tellOver(e.enemyId);
+          break;
+        case 'special':
+          f.special(e.enemyId);
+          break;
+        case 'counter': {
+          // a yellow tapped while the shield was up: the knight bashes Rowan
+          const x = bar.x(e.pos);
+          fx.judge(x, 'Countered!', 0xc8a0ff, true);
+          fx.screenFlash(COL.purple[0], now, 160);
+          f.enemyLunge(e.enemyId, 0.9);
+          this.app.audio.counter();
+          bar.shakeUntil = now + 160;
+          break;
+        }
+        case 'wardBreak': {
+          const x = bar.x(e.pos);
+          fx.judge(x, e.left ? 'Crack!' : 'Shell broken!', 0x7af0e0, true, e.perfect ? -6 : 0);
+          bar.cursorPulse(0x7af0e0);
+          bar.cursorHit(x, 0x7af0e0);
+          hud.comboPopAt = now;
+          hud.milestone(e.combo);
+          f.heroAttack(e.enemyId, 0, false, e.perfect, e.combo, true);
+          this.app.audio.wardBreak(e.left === 0);
+          break;
+        }
+        case 'shellOn': {
+          const v = f.enemies.get(e.enemyId);
+          if (v) fx.ring(v.x, v.y - v.img.displayHeight / 2, 20, 0x7af0e0, true);
+          break;
+        }
+        case 'shellOff': {
+          const v = f.enemies.get(e.enemyId);
+          if (v) fx.chips(v.x, v.y - v.img.displayHeight / 2, 16, [0x7af0e0, 0xa8f0e0, WHITE], 12, 0);
+          break;
+        }
+        case 'guardOn': {
+          const v = f.enemies.get(e.enemyId);
+          if (v) fx.addFloater(v.x, Math.max(30, v.y - v.img.displayHeight - 10), "Don't hit yellow!", 0xc8a0ff, 1, true, 0, -6, 0, e.sec * 1000, true);
+          break;
+        }
+        case 'enemyHeal': {
+          const v = f.enemies.get(e.enemyId);
+          if (v) {
+            fx.floatNum(v.x, v.y - v.img.displayHeight - 6, `+${e.amount}`, 0x9af06a, 1);
+            fx.burst(v.x, v.y - v.img.displayHeight / 2, 0x9af06a, 8, true, 0.8);
+          }
+          break;
+        }
+        case 'sporeHeal':
+          fx.judge(bar.x(e.pos), 'Spores heal!', 0xff9ae0, true);
+          this.app.audio.sporeHeal();
+          break;
+        case 'summon':
+          this.app.audio.summonArrive();
+          this.later(0, () => this.fighters.addEnemies(c));
+          break;
+        case 'split':
+          f.splitApart(e.enemyId, e.ids);
+          this.fighters.addEnemies(c);
+          break;
+        case 'flee':
+          f.flee(e.enemyId);
+          break;
+        case 'freeze': {
+          // the stomp lands: the ground shakes and the cursor freezes
+          this.app.audio.stompLand();
+          fx.shake(J.shakeMaxPx + 2, 300);
+          fx.judge(bar.x(c.cursorPosAt(c.time)), 'Frozen!', 0xbfe8ff, true, -10);
+          fx.burst(GAME_W / 2 + 44, this.ground - 2, 0xc8b090, 16, true, 1.2);
+          break;
+        }
+        case 'cursorFloor':
+          fx.floatNum(this.bar.x + this.bar.w / 2, this.splitY - 10, 'Enraged: faster!', 0xff5a3a, 1);
+          break;
+        case 'phase': {
+          const v = f.enemies.get(e.enemyId);
+          if (v) {
+            fx.screenFlash(e.phase >= 3 ? 0xff5a3a : 0xffe0a0, now, 260);
+            fx.ring(v.x, v.y - v.img.displayHeight / 2, 40, e.phase >= 3 ? 0xff5a3a : 0xffd23a, true);
+            fx.shake(J.shakeMaxPx, 260);
+          }
+          break;
+        }
         case 'cursorReset':
           // the finisher is done: the cursor snaps back to the start of the bar
           bar.cursorPulse(0x9ad8ff);
@@ -361,7 +500,9 @@ export class FightScene extends Phaser.Scene implements View {
       this.barView.newFight();
       this.stage.applyTheme();
       const run = this.app.run;
-      if (run.stageIndex > 0) this.overlays.showBanner(`${run.stageIndex} OUT OF ${run.level.stages.length} DEFEATED!`);
+      const type = run.node?.type;
+      if (type === 'elite') this.overlays.showBanner('ELITE!');
+      else if (type === 'boss') this.overlays.showBanner(this.app.tuning.enemies[c.enemies[0].key]?.name.toUpperCase() ?? 'BOSS');
     }
     this.lastCombat = c;
     this.fighters.addEnemies(c);
@@ -384,12 +525,22 @@ export class FightScene extends Phaser.Scene implements View {
         p.fn();
       }
     }
+    // the pause button only makes sense in a fight
+    const pause = this.app.run.phase === 'fight';
+    if (pause !== this.pauseShown) {
+      this.pauseShown = pause;
+      const b = document.getElementById('btn-pause');
+      if (b) b.style.visibility = pause ? 'visible' : 'hidden';
+    }
     const t = this.app.renderTime(now);
     this.drawWorld(now);
     this.hud.drawPanel(now);
     this.barView.draw(t, now);
     this.hud.drawTexts(now);
     this.overlays.draw(now);
+    this.mapView.draw(now);
+    this.nodes.draw(now);
+    this.story.draw(now);
     this.hud.drawCoins(this.gTop, now);
     this.hud.drawRain(this.gTop, now);
     this.fx.updateFloaters(now);

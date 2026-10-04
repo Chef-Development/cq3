@@ -227,9 +227,10 @@ export class Hud {
     const c = run.combat;
     const T = s.app.tuning;
     g.clear();
-    const title = run.phase === 'title';
-    s.barView.img?.setVisible(!title);
-    if (title) return;
+    // the fight HUD shows in fights (and over the boost pick and defeat that follow one)
+    const shown = s.fightHud();
+    s.barView.img?.setVisible(shown);
+    if (!shown) return;
     // hero: heart + HP bar, stat column
     const H = run.hero;
     // stat gains from a kill show up as their icons land (statPending holds back what's still in the air)
@@ -250,7 +251,7 @@ export class Hud {
     }
     if (!c) return;
     // enemy (the current target): HP bar with a skull, attack stat below
-    const target = run.phase === 'levelClear' ? null : (c.currentTarget() ?? c.enemies[0]);
+    const target = run.phase === 'fight' ? (c.currentTarget() ?? null) : null;
     if (target) {
       const v = s.fighters.enemies.get(target.id);
       const bx = s.R - 86;
@@ -258,6 +259,13 @@ export class Hud {
       hudBar(g, bx + 1, 13, 66, 8, shownHp / target.maxHp, (v?.hpShown ?? target.hp) / target.maxHp, { mirror: true });
       hudIcon(g, 'skull', s.R - 14, 8);
       if (T.enemies[target.key].boss) hudIcon(g, 'crown', s.R - 14, 2);
+      // statuses: a shell or protection halves the damage it takes
+      if (target.shell < 1 || (target.protect < 1 && c.summonsAlive(target.id))) {
+        const k = Math.floor(now / 300) % 2;
+        g.fillStyle(k ? 0x9ad8ff : 0x4aa0f0, 1);
+        g.fillRect(bx - 6, 14, 4, 5);
+        g.fillRect(bx - 5, 19, 2, 1);
+      }
       hudIcon(g, 'sword', s.R - 15, 25);
     }
 
@@ -332,9 +340,9 @@ export class Hud {
     const T = s.app.tuning;
     const txt = s.txt;
     const maxHp = T.hero.maxHp + H.bonusMaxHp - this.statPending.maxHp;
-    const lvl = run.level;
-    const stageInfo = lvl.stages.length > 1 ? ` - ${run.stageIndex + 1}/${lvl.stages.length}` : '';
-    s.setText('level', `${lvl.name}${stageInfo}`, GAME_W / 2, 17, 0xf2f4fa, 1, 0.5, 0, run.phase !== 'levelClear' && run.phase !== 'title');
+    const node = run.node;
+    const where = node ? ` - ${node.row + 1}/${run.map.rows.length}` : '';
+    s.setText('level', `Act ${run.actIndex + 1}${where}`, GAME_W / 2, 17, 0xf2f4fa, 1, 0.5, 0, run.phase === 'fight');
     const hpPulse = now - this.statPulse[4] < 300;
     s.setText('heroHp', `${Math.ceil(Math.min(maxHp, H.hp - this.statPending.maxHp))}/${maxHp}`, s.L + 52, 8.5, hpPulse ? 0xc8ff9a : WHITE, 1, 0.5, 0.5);
     s.setText('coins', `${this.coinsShown}`, s.L + 103, 7, 0xffe680, 1, 0, 0.5);
@@ -352,10 +360,10 @@ export class Hud {
       s.setText(`stat${i}`, v, s.L + 20, 24.5 + i * 15, col, 1, 0, 0.5);
     });
     s.setText('ability', 'Keen Edge', s.L + 20 + textWidth(stats[1], 1, true) + 4, 39.5, 0x9af0a0, 1, 0, 0.5, H.abilityTimer > 0);
-    const target = c && run.phase !== 'levelClear' ? (c.currentTarget() ?? c.enemies[0]) : null;
+    const target = c && run.phase === 'fight' ? c.currentTarget() : null;
     if (target && c) {
       const def = T.enemies[target.key];
-      s.setText('enemyName', def.name, s.R - 52, 2, def.boss ? 0xffd23a : WHITE, 1, 0.5, 0);
+      s.setText('enemyName', def.name, s.R - 52, 2, def.boss ? 0xffd23a : def.elite ? 0xffa060 : WHITE, 1, 0.5, 0);
       const tv = s.fighters.enemies.get(target.id);
       const hpNow = s.anim < s.fighters.superFinalAt && tv ? tv.hpShown : target.hp;
       s.setText('enemyHp', `${Math.ceil(hpNow)}/${target.maxHp}`, s.R - 52, 17.5, WHITE, 1, 0.5, 0.5);
@@ -400,7 +408,7 @@ export class Hud {
     const d = s.app.lastTap;
     s.setText('debug', d ? `TAP ${d.outcome} ${d.cursorPos.toFixed(3)}  CAL ${S.calibrationMs}MS` : `CAL ${S.calibrationMs}MS`, GAME_W / 2, s.meter.y + 9, 0xc8c8d4, 1, 0.5, 0, s.app.panelOpen);
 
-    if (run.phase === 'title')
-      for (const k of ['heroHp', 'coins', 'stat0', 'stat1', 'stat2', 'stat3', 'ability', 'enemyName', 'enemyHp', 'enemyAtk', 'combo', 'speed', 'tier', 'meterLabel', 'button']) txt[k].setVisible(false);
+    if (!s.fightHud())
+      for (const k of ['level', 'heroHp', 'coins', 'stat0', 'stat1', 'stat2', 'stat3', 'ability', 'enemyName', 'enemyHp', 'enemyAtk', 'combo', 'speed', 'tier', 'meterLabel', 'button']) txt[k].setVisible(false);
   }
 }

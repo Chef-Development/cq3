@@ -1486,7 +1486,6 @@ export class Synth {
    *  a burst of breath. */
   private tellPhase(t: number, T: number): void {
     const crunch = this.graph!.crunch;
-    const end = T + 0.15;
     this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 2500], [0.28 * T, 4500]], q: 1.2, amp: [[0.25 * T, 0.35], [0.3 * T, 0]] });
     const r = t + 0.3 * T;
     const rd = 0.7 * T + 0.15;

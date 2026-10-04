@@ -472,6 +472,22 @@ export class Run {
     else this.playScenes([this.region.victoryScene], 'victory');
   }
 
+  /**
+   * Debug (the tuning panel's "Jump to"): a fight against `enemies` in act `act`, on a node of that type
+   * (a fight node mid-act, an elite, or the boss), with `hero`.
+   */
+  debugFight(act: number, enemies: string[], type: 'fight' | 'elite' | 'boss', hero: Hero): void {
+    this.hero = { ...hero };
+    this.enterAct(act);
+    const m = this.map;
+    const target = type === 'boss' ? m.nodes[m.boss] : (m.nodes.find((n) => n.type === type && n.row >= 3) ?? m.nodes.find((n) => n.row === 3)!);
+    target.enemies = enemies.slice();
+    const path = [target.id];
+    while (m.nodes[path[0]].row > 0) path.unshift(m.nodes.find((p) => p.next.includes(path[0]))!.id);
+    this.path = path;
+    this.startFight();
+  }
+
   /** After a defeat: the act again from its start, with the hero (and coins) as they entered it. */
   retry(): void {
     this.hero = { ...this.actHero, abilityTimer: 0 };

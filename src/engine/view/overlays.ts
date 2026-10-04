@@ -1,5 +1,5 @@
-// Overlays and menus: title screen, boost choice, level-clear chest, defeat, pause, "TAP TO BEGIN!",
-// the stage banner, and the screen flash.
+// Overlays and menus: title screen, boost choice (with a reroll), the treasure / act-clear chest, defeat, the
+// victory, pause, "TAP TO BEGIN!", the fight banner, and the screen flash.
 import Phaser from 'phaser';
 import { boostLabel, type Phase, type Rarity } from '../../core/run';
 import { saveLabel } from '../../core/save';
@@ -11,7 +11,7 @@ import { button3d, hudIcon, iconSize, rows } from './pixels';
 import { BOOST_ICON, clamp01, ease, inRect, INK, rand, WHITE, type Rect } from './shared';
 
 /** Boost card looks per rarity: button face [hi, base, lo, deep], icon well [fill, top line], tag. */
-const CARD: Record<Rarity, { face: readonly [number, number, number, number]; well: [number, number]; tag: string }> = {
+export const CARD: Record<Rarity, { face: readonly [number, number, number, number]; well: [number, number]; tag: string }> = {
   common: { face: [0x8af06a, 0x5ad848, 0x3aaa34, 0x247a26], well: [0x2a8a2e, 0x1e6a24], tag: '' },
   rare: { face: [0x8ac8ff, 0x3a8ae8, 0x2a62c8, 0x1a3c8a], well: [0x2456b0, 0x1a3c8a], tag: 'RARE' },
   epic: { face: [0xf0b8ff, 0xb05ae0, 0x8a3ac0, 0x5a1a8a], well: [0x6a2aa8, 0x4a1a7a], tag: 'EPIC' },
@@ -36,7 +36,8 @@ export class Overlays {
 
   createTexts(): void {
     // per card: name, value, rarity tag
-    for (let i = 0; i < 9; i++) this.boostTexts.push(this.s.add.bitmapText(0, 0, FONT_BOLD, '').setDepth(32));
+    // per card: name, value, rarity tag; then the reroll label
+    for (let i = 0; i < 10; i++) this.boostTexts.push(this.s.add.bitmapText(0, 0, FONT_BOLD, '').setDepth(32));
   }
 
   /** Regenerate the boost board and title crest for a new layout. */
@@ -63,7 +64,7 @@ export class Overlays {
       const best = s.app.run.boostChoices.reduce((m, o) => (o.rarity === 'epic' ? 2 : o.rarity === 'rare' ? Math.max(m, 1) : m), 0);
       if (best > 0) s.later(120, () => s.app.audio.rareSting(best === 2));
     }
-    if (next === 'levelClear') {
+    if (next === 'actClear' || next === 'treasure') {
       this.chest?.destroy();
       this.chest = s.add.image(GAME_W / 2, -30, 'chest_closed').setOrigin(0.5, 1).setScale(2);
       s.actors.add(this.chest);
@@ -75,7 +76,21 @@ export class Overlays {
     }
   }
 
-  /** Level clear: the first tap bursts the chest open (returns true = consumed); the next one moves on. */
+  /** Treasure: the first tap bursts the chest open and spills its coins; then the boost pick comes up. */
+  treasureTap(): void {
+    const s = this.s;
+    if (this.chestOpenAt || !this.levelClearTap()) return;
+    if (!this.chestOpenAt) return;
+    const coins = s.app.run.treasure?.coins ?? 0;
+    const x = this.chest?.x ?? 0;
+    s.hud.dropCoins(x, s.ground - 20, coins);
+    s.fx.iconFloat(x + 18, s.ground - 44, `+${coins}`, 0xffe066, 'coin');
+    s.later(900, () => {
+      if (s.app.run.phase === 'treasure') s.app.setPhase(() => s.app.run.openTreasure());
+    });
+  }
+
+  /** Act clear (and treasure): the first tap bursts the chest open (returns true = consumed); the next one moves on. */
   levelClearTap(): boolean {
     const s = this.s;
     if (!this.chest) return false;
@@ -127,6 +142,16 @@ export class Overlays {
       this.s.app.audio.uiClick();
     }
     return null;
+  }
+
+  /** The reroll button on the boost board (shown while the run has rerolls bought at a shop). */
+  private rerollRect(): Rect {
+    const p = this.boostPanel();
+    return { x: p.x + p.w - 50, y: p.y + 4, w: 44, h: 12 };
+  }
+
+  rerollAt(x: number, y: number): boolean {
+    return this.s.app.run.rerolls > 0 && inRect(this.rerollRect(), x, y, 3);
   }
 
   boostCardAt(x: number, y: number): number {
@@ -207,6 +232,7 @@ export class Overlays {
     const cx = GAME_W / 2;
     if (!(ph === 'fight' && s.app.awaitingBegin && !s.app.userPaused)) txt.begin.setVisible(false);
     if (ph !== 'title') hide('tCont', 'tContSub', 'tNew');
+    if (ph === 'scene' || ph === 'map' || ph === 'rest' || ph === 'shop' || ph === 'event') hide(...ov);
     if (ph === 'fight' && now < this.bannerUntil) {
       const k = (this.bannerUntil - now) / 1800;
       s.setText('banner', this.banner, cx, 40, WHITE, 2, 0.5, 0.5, true);
@@ -223,7 +249,7 @@ export class Overlays {
       s.setText('ovTitle', title, lx, 30 + bob, WHITE, 3, 0, 0.5);
       txt.ovTitle.setTint(0xffffff, 0xffffff, 0x9aa8c8, 0x9aa8c8);
       this.crestImg?.setVisible(true).setPosition(lx + tw - 6 + crestW / 2, 30 + bob);
-      s.setText('ovSub', 'Working title - feel prototype', cx, 53, 0xffe680, 1, 0.5, 0.5);
+      s.setText('ovSub', 'Region 1: Greenmarch', cx, 53, 0xffe680, 1, 0.5, 0.5);
       g.fillStyle(INK, 0.55);
       g.fillRect(0, 62, GAME_W, 22);
       g.fillStyle(INK, 0.3);
@@ -241,7 +267,7 @@ export class Overlays {
         button3d(gc, cont, [0x8af06a, 0x5ad848, 0x3aaa34, 0x247a26]);
         button3d(gc, fresh, armed ? [0xff9a8a, 0xe0463c, 0xb02a2a, 0x7a1a1a] : [0x8a90a6, 0x6e7488, 0x585e72, 0x3e4254]);
         s.setText('tCont', 'Continue', cont.x + cont.w / 2, cont.y + 8, WHITE, 1, 0.5, 0.5);
-        s.setText('tContSub', saveLabel(save, s.app.tuning), cont.x + cont.w / 2, cont.y + 17, 0xfff07a, 1, 0.5, 0.5);
+        s.setText('tContSub', saveLabel(save, s.app.run), cont.x + cont.w / 2, cont.y + 17, 0xfff07a, 1, 0.5, 0.5);
         s.setText('tNew', armed ? 'Tap again' : 'New run', fresh.x + fresh.w / 2, fresh.y + fresh.h / 2, WHITE, 1, 0.5, 0.5);
       } else hide('tCont', 'tContSub', 'tNew');
     } else if (ph === 'boost') {
@@ -255,7 +281,13 @@ export class Overlays {
       gc.fillRect(p.x + 4, p.y + 18, p.w - 8, 1);
       gc.fillStyle(0xc48a52, 1);
       gc.fillRect(p.x + 4, p.y + 19, p.w - 8, 1);
-      s.setText('ovTitle', 'CHOOSE A BOOST', cx, p.y + 10, WHITE, 1, 0.5, 0.5);
+      s.setText('ovTitle', 'CHOOSE A BOOST', run.rerolls > 0 ? p.x + 52 : cx, p.y + 10, WHITE, 1, 0.5, 0.5);
+      if (run.rerolls > 0) {
+        const rr = this.rerollRect();
+        button3d(gc, rr, [0x8ac8ff, 0x3a8ae8, 0x2a62c8, 0x1a3c8a]);
+        const b = this.boostTexts[9];
+        b.setText(fontText(`Reroll x${run.rerolls}`)).setPosition(rr.x + rr.w / 2, rr.y + rr.h / 2).setTint(WHITE).setOrigin(0.5, 0.5).setScale(1).setVisible(true);
+      }
       const since = now - s.app.phaseSince;
       run.boostChoices.forEach((offer, i) => {
         const look = CARD[offer.rarity];
@@ -280,18 +312,34 @@ export class Overlays {
         b.setText(fontText(val)).setPosition(r.x + 29, r.y + 19).setTint(0xfff07a).setOrigin(0, 0.5).setScale(1).setVisible(true);
         if (look.tag) tag.setText(fontText(look.tag)).setPosition(r.x + r.w - 5, r.y + 19).setTint(0xffe680).setOrigin(1, 0.5).setScale(1).setVisible(true);
       });
-    } else if (ph === 'levelClear') {
+    } else if (ph === 'actClear') {
       const opened = !!this.chestOpenAt;
-      s.setText('ovTitle', opened ? `${run.level.name} clear!` : 'Treasure Chest', cx, 28, opened ? 0xffd23a : WHITE, 2, 0.5, 0.5);
+      s.setText('ovTitle', opened ? `Act ${run.actIndex + 1} clear!` : run.act.name, cx, 28, opened ? 0xffd23a : WHITE, 2, 0.5, 0.5);
       s.setText('ovLine1', opened ? 'Tap to continue' : 'Tap the chest to continue', cx, 44, WHITE, 1, 0.5, 0.5, opened ? blink : true);
+      hide('ovSub', 'ovLine2', 'ovLine3');
+    } else if (ph === 'treasure') {
+      s.setText('ovTitle', 'Treasure!', cx, 28, 0xffd23a, 2, 0.5, 0.5);
+      s.setText('ovLine1', 'Tap the chest', cx, 44, WHITE, 1, 0.5, 0.5, !this.chestOpenAt);
       hide('ovSub', 'ovLine2', 'ovLine3');
     } else if (ph === 'defeat') {
       dim(0.65);
       s.setText('ovTitle', 'DEFEATED', cx, 38, 0xff5a5a, 3, 0.5, 0.5);
-      s.setText('ovSub', 'Rowan falls...', cx, 56, WHITE, 1, 0.5, 0.5);
-      s.setText('ovLine1', 'Tap to retry level', cx, 76, 0xffd23a, 2, 0.5, 0.5, blink);
+      s.setText('ovSub', `Rowan falls... back to the start of Act ${run.actIndex + 1}`, cx, 56, WHITE, 1, 0.5, 0.5);
+      s.setText('ovLine1', 'Tap to retry the act', cx, 76, 0xffd23a, 2, 0.5, 0.5, blink);
       hide('ovLine2', 'ovLine3');
-    } else if (s.app.awaitingBegin) {
+    } else if (ph === 'victory') {
+      dim(0.55);
+      const since = now - s.app.phaseSince;
+      s.setText('ovTitle', 'Greenmarch is saved!', cx, 32, 0xffd23a, 2, 0.5, 0.5);
+      s.setText('ovSub', 'The first weight is home. Eleven to go.', cx, 50, WHITE, 1, 0.5, 0.5);
+      s.setText('ovLine1', 'Next: the Frostpeaks (coming soon)', cx, 62, 0x9ad8ff, 1, 0.5, 0.5);
+      s.setText('ovLine2', 'Tap to return to the title', cx, 84, 0xfff07a, 1, 0.5, 0.5, since > 1500 && blink);
+      hide('ovLine3');
+      // a little shower of golden sparks
+      if (Math.random() < 0.5) s.fx.particles.push({ x: rand(20, GAME_W - 20), y: -2, vx: rand(-10, 10), vy: rand(20, 40), g: 30, born: now, life: 2200, color: Math.random() < 0.5 ? 0xffe680 : WHITE, size: 1, world: false, streak: false });
+    } else if (ph === 'fight' && s.app.storyOverlay) {
+      hide(...ov);
+    } else if (ph === 'fight' && s.app.awaitingBegin) {
       hide(...ov);
       s.setText('begin', 'TAP TO BEGIN!', cx, 44, WHITE, 2, 0.5, 0.5, true);
     } else if (s.app.userPaused) {

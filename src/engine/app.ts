@@ -42,8 +42,6 @@ export class App {
   storyBox = 0;
   /** The run saved by an earlier session (offered as Continue on the title screen). */
   savedRun: RunSave | null = null;
-  /** The next fight is a resumed one: wait for a tap instead of walking the enemy in. */
-  private resuming = false;
   private begunCombat: unknown = null;
   private syncHoldUntil = 0; // performance.now() until which phase changes wait (kill animations)
   phaseSince = 0;
@@ -169,12 +167,10 @@ export class App {
   continueRun(): void {
     const save = this.savedRun;
     if (!save) return this.newRun();
-    this.resuming = true;
     this.storyBox = 0;
     this.setPhase(() => {
       if (!restoreRun(this.run, save)) this.run.newRun();
     });
-    this.resuming = false;
   }
 
   newRun(): void {

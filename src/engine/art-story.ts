@@ -217,9 +217,9 @@ function rowan(): HTMLCanvasElement {
 function pip(): HTMLCanvasElement {
   const g = grid(P, P);
   const PB = ['#14204a', '#1e3c8a', '#2a6ad8', '#4aa0f0', '#9ad8ff'];
-  // ear tufts
-  stamp(g, ['l....', 'bl...', 'bbl..', 'Bbbl.', 'BBbbl'], { l: PB[4], b: PB[3], B: PB[2] }, 6, 3);
-  stamp(g, ['....b', '...bB', '..bBB', '.bBBn', 'bBBnn'], { b: PB[3], B: PB[2], n: PB[1] }, 28, 3);
+  // ear tufts, their bases buried in the head
+  stamp(g, ['l......', 'bl.....', 'bbl....', 'Bbbl...', 'BBbbl..', '.BBbbl.', '..BBbbl'], { l: PB[4], b: PB[3], B: PB[2] }, 6, 3);
+  stamp(g, ['......b', '.....bB', '....bBB', '...bBBn', '..bBBnn', '.bBBnn.', 'bBBnn..'], { b: PB[3], B: PB[2], n: PB[1] }, 26, 3);
   const body = ell(20, 23.5, 17, 16);
   fill(g, body, sphere(PB, 16, 18, 20, 19, 0.04));
   rimShade(g, body, PB[0]);
@@ -246,6 +246,7 @@ function pip(): HTMLCanvasElement {
   fill(g, or(ell(16.5, 20.5, 2, 2.2), ell(28.3, 20.5, 1.7, 2)), () => INK);
   put(g, 15, 19, '#ffffff');
   put(g, 16, 19, '#ffffff');
+  put(g, 16, 18, '#ffd84a'); // no pupil nub above the glint (it read as a heart)
   put(g, 27, 19, '#ffffff');
   // lids: flat and heavy (unimpressed), the far brow cocked up
   for (let x = 10; x <= 32; x++)
@@ -512,19 +513,38 @@ function boarKing(): HTMLCanvasElement {
   stroke(g, tusk, (t) => 1.6 - t * 1.2, (x, y) => (x + y < 32 ? IVORY[4] : x + y < 36 ? IVORY[3] : IVORY[2]));
   // fierce little eye under a scowling brow (low toward the snout)
   stamp(g, ['....kk', '..kkk.', 'kkk...', '.krW..', '.kkk..'], { k: '#1a0c12', r: '#ff5a3a', W: '#ffe0a0' }, 13, 15);
-  // crown, with the first pendulum weight set in its front
+  // crown: a red velvet cap in a gold band with a point either side. The first pendulum weight (the story's
+  // MacGuffin, a round brass bob) is its centrepiece, hung from the middle point in a dark bezel so it reads
+  // as a separate object at 1x; brass is yellower than the crown's gold.
+  const BRASS = ['#6e4a14', '#b07c22', '#e0b040', '#f8dc70', '#fffad0'];
+  fill(g, and(ell(18, 9.5, 7.5, 6.5), (_x, y) => y <= 9), sphere(VELVET, 14, 5, 9, 7, -0.12));
   stamp(
     g,
-    ['G.....G.....g', 'Gg...gGg...gy', 'GgG.gGggg.gyy', 'ggggggggggyyy', 'yryyy...yyryY', 'YYYYYYYYYYYYz'],
+    [
+      'G.............g',
+      'G.............y',
+      'Gg...........gy',
+      'Gg...........yY',
+      'Ggy.........gyY',
+      'Ggy.........yyY',
+      'Ggyy.......gyYY',
+      'GgggggggggggyyY',
+      'yryyyyyyyyyyrYz',
+      'YYYYYYYYYYYYYzz',
+    ],
     { G: GOLD[4], g: GOLD[3], y: GOLD[2], Y: GOLD[1], z: GOLD[0], r: '#e8443a' },
-    12,
-    4,
+    11,
+    2,
   );
-  const bob = ell(18.5, 8, 3.6, 3.6);
-  fill(g, bob, sphere(['#6a3a10', '#a8661c', '#d89a34', '#f6cc62', '#fff2b0'], 17.3, 6.8, 4.4, 4.4, 0.06));
-  fill(g, and(bob, not(ell(18.5, 8, 2.6, 2.6))), (x, y) => (x + y > 27 ? '#6a3a10' : null));
-  put(g, 17, 6, '#ffffff');
-  put(g, 16, 7, '#fff2b0');
+  fill(g, ell(18.5, 5.5, 4.5, 4.5), () => '#2a140c');
+  stamp(
+    g,
+    ['..443..', '.4WW32.', '4WW3322', '4333221', '3332211', '.32110.', '..121..'],
+    { W: '#ffffff', 4: BRASS[4], 3: BRASS[3], 2: BRASS[2], 1: BRASS[1], 0: BRASS[0] },
+    15,
+    2,
+  );
+  stamp(g, ['gGy'], { G: GOLD[4], g: GOLD[3], y: GOLD[2] }, 17, 0); // the lug it hangs from
   return toCanvas(g);
 }
 
@@ -693,32 +713,32 @@ const ICON_MAPS: Record<string, string[]> = {
   event: [
     '..PpppppppP..',
     '.aPPPPPPPPPa.',
-    '..ppppppppp..',
-    '..pppuuupp...',
-    '..ppuIIiup...',
-    '..ppuupIup...',
-    '..pppppiup...',
-    '..ppppIup....',
-    '..pppuip.p...',
-    '..pppppppp...',
-    '..pppuIup....',
+    '..ppppppppP..',
+    '..pppiiuppP..',
+    '..ppiuppiuP..',
+    '..pppppiupP..',
+    '..ppppiuppP..',
+    '..ppppiuppP..',
+    '..ppppppppP..',
+    '..ppppiuppP..',
+    '..ppppppppP..',
     '.aPPPPPPPPPa.',
     '..PpppppppP..',
   ],
   boss: [
-    '.G...g...g...',
-    '.Gg.gvg.gy...',
-    '.GgGgggggy...',
-    '.yyyyyyyyY...',
-    '.BBBBBBBbb...',
-    'BBBBBBBBbbc..',
-    'BkkkBBkkkbc..',
-    'BkkkBBkkkbc..',
-    'bBkbBkbkbbc..',
-    '.bbbbkbbbc...',
-    '..BkBkBkc....',
-    '..bkbkbkc....',
-    '...cccc......',
+    '..G...g...g..',
+    '..Gg.gvg.gy..',
+    '..GgGgggggy..',
+    '..yyyyyyyyY..',
+    '..BBBBBBBbb..',
+    '.BBBBBBBBbbc.',
+    '.BkkkBBkkkbc.',
+    '.BkkkBBkkkbc.',
+    '.bBkbBkbkbbc.',
+    '..bbbbkbbbc..',
+    '...BkBkBkc...',
+    '...bkbkbkc...',
+    '....cccc.....',
   ],
 };
 

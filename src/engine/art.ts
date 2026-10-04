@@ -390,6 +390,8 @@ export interface SlimeOpts {
   face: Face;
   flash?: boolean;
   crown?: boolean;
+  /** About to split: a notch at the top and a crease running down between the eyes. */
+  crease?: boolean;
 }
 
 export function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElement {
@@ -412,10 +414,19 @@ export function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElem
     const k = (v - 0.7) / 0.3;
     return ell * (1 - k * 0.6) + cone * k * 0.6;
   };
+  // the crease sits between the eyes (see the face below)
+  const creaseX = cx + ((big ? 0.08 : 0.14) - 0.36) / 2 * RX;
+  const notch = (x: number, v: number) => {
+    if (!o.crease) return false;
+    if (v > 0.9) return true; // flattened lobe tops
+    const k = (v - 0.72) / 0.28;
+    return k > 0 && Math.abs(x + 0.5 - creaseX - shiftAt(v)) < k * (big ? 4.5 : 3.2);
+  };
   const inside = (x: number, y: number) => {
     if (y < 0 || y >= base) return false;
     const v = (base - (y + 0.5)) / RY;
     if (v < 0 || v > 1) return false;
+    if (notch(x, v)) return false;
     const u = (x + 0.5 - cx - shiftAt(v)) / RX;
     return Math.abs(u) * RX <= width(v) * RX - (y === base - 1 ? 1 : 0);
   };
@@ -454,6 +465,17 @@ export function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElem
       if (off(x, y, 1, 0) && !off(x, y, 0, 1) && base - y < RY * 0.65 && u > 0.2) col = SLIME_RIM;
       put(g, x, y, col);
     }
+  if (o.crease && !o.flash) {
+    // the groove: its left wall faces away from the light, its right wall catches it
+    for (let y = 0; y < base; y++) {
+      const v = (base - (y + 0.5)) / RY;
+      const xc = Math.floor(creaseX + shiftAt(v));
+      if (v < 0.6 && v > 0.16) continue;
+      if (!inside(xc, y) || !inside(xc, y - 1) && !inside(xc + 1, y - 1) && v < 0.6) continue;
+      put(g, xc, y, R[1]);
+      if (inside(xc + 1, y) && v > 0.6) put(g, xc + 1, y, R[4]);
+    }
+  }
   if (!o.flash) {
     const P = (u: number, v: number, dx: number, dy: number, col: string) => {
       const yy = base - v * RY;
@@ -472,6 +494,16 @@ export function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElem
     );
     P(-0.72, 0.4, 0, 0, R[4]);
     if (big) P(-0.72, 0.4, 0, 1, R[4]);
+    if (o.crease) {
+      // the right half is becoming its own blob: it gets its own glint
+      const gx = Math.round(creaseX) + (big ? 4 : 2);
+      let gy = 0;
+      while (gy < base && !inside(gx, gy)) gy++;
+      gy += big ? 3 : 2;
+      put(g, gx, gy, R[5]);
+      put(g, gx + 1, gy, R[4]);
+      put(g, gx, gy + 1, R[4]);
+    }
     // bubbles in the jelly: a 1px speck or a 2x2 bubble with a glint
     const bub = (u: number, v: number, r: number) => {
       P(u, v, 0, 0, r > 1 ? R[5] : R[4]);
@@ -509,7 +541,16 @@ export function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElem
     // little gold crown on the boss, riding the top of the jelly
     const C: Pal = { G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14', r: '#e8443a', b: '#4aa0f0' };
     const rows = ['g...g...g', 'gG.ggg.gy', 'gGgrgbgyy', 'ggGgggyyY', 'YyyyyyyYY'];
-    stamp(g, rows, o.flash ? whiteOut(C) : C, Math.round(cx + shiftAt(1) - 5), Math.round(base - RY) - 3);
+    let x0 = Math.round(cx + shiftAt(1) - 5);
+    let y0 = Math.round(base - RY) - 3;
+    if (o.crease) {
+      // it slides onto the right half, riding that lobe's top
+      x0 = Math.round(creaseX) + 3;
+      let top = 0;
+      while (top < base && !inside(x0 + 4, top)) top++;
+      y0 = top - 3;
+    }
+    stamp(g, rows, o.flash ? whiteOut(C) : C, x0, y0);
   }
   return toCanvas(g);
 }
@@ -674,19 +715,63 @@ export function overlay(rows: string[], piece: string[], x: number, y: number): 
   return out;
 }
 
+const BOAR_TELL_PAL: Pal = { ...BOAR_PAL, u: '#b49a70', U: '#e8d4a8' }; // kicked-up dust
+// The Charge tell: head dropped low, hackles up, steam snorting from the snout, the far legs planted.
+// The near front hoof is lifted, scraping back and kicking up dust. Same 32x20 map size as the other frames.
+const BOAR_TELL_ROWS = [
+  '...............n..n..n..........',
+  '...............nn.nn.nn.........',
+  '.............nnNnnNnnNn.........',
+  '...........nnNNNNNNNNNNn........',
+  '.........lnNNNbbbbbbbbNNNn......',
+  '........LlnNbbbbbbbbbbbbbbn.....',
+  '.ww....LlxNbbbbbbbbbbbbbbbNn....',
+  'wwWw..LllxNbbbbbbbbbbbbbbbbNn...',
+  '.WW..LlllcxNbbbbbbbbbbbbbbbbbNnn',
+  '....LllllcxNbbbbbbfbbbbbbbbbbbn.',
+  'ww.Llllllccxbbbbbbbfbbbbbbbbbb..',
+  'W.Lllcerlccxbbbbbbbbbbbbbbfbbbb.',
+  '.ppllceeccccxbbbfbbbbbbbbbbfbbb.',
+  'pppLlcccccccxbbbbfbbbbbbbbbbbbb.',
+  'poplctcccccxbbbbbbbbbbbbbbbbbb..',
+  'ppppdtccccxbbbbbbbbbbbbbbbbbbb..',
+  '.ppTtddddxbbbbbbbbbbbbbbbbbbbb..',
+  '...xxdddxbbb.lcd.....bbb.bbb....',
+  '.....xx..bbb..hHhUu..bbb.bbb....',
+  '.........hHh....uUUu.hHh.hHh....',
+];
+
 // the dagger raised high for a stab (windup), replacing the low dagger
 const BANDIT_RAISED = ['.W..', '.w..', '.m..', 'GGY.', '.Ss.', '..43', '...4'];
+// the Smoke tell: a clay smoke bomb held up, its fuse lit and spitting sparks
+const BANDIT_BOMB = [
+  '.z.z...',
+  '..Wz...',
+  '.z.u...',
+  '...ue..',
+  '..eeAA.',
+  '.eeAAAa',
+  '.eAAAaa',
+  '.AAAaaa',
+  '..SsSa.',
+  '...Ss..',
+  '....43.',
+  '....43.',
+  '.....4.',
+];
+const BANDIT_TELL_PAL: Pal = { ...BANDIT_PAL, e: '#c8c4d8', A: '#8a84a6', a: '#4e4868', u: '#e8d0a0', z: '#ffb02a' };
 
-function banditRows(arm: string[], legs: string[], o: FoeOpts & { raise?: boolean } = {}): string[] {
+function banditRows(arm: string[], legs: string[], o: FoeOpts & { raise?: boolean; bomb?: boolean } = {}): string[] {
   let top = BANDIT_TOP.map((r) => shiftRow(r, o.dx ?? 0));
   if (o.hurt) top = top.map((r) => r.replace('sSkSSkS', 'skkSkkS'));
   let armRows = arm.map((r) => shiftRow(r, o.dx ?? 0));
   const cut = 5 + (o.dx ?? 0);
-  if (o.raise) armRows = armRows.map((r) => '.'.repeat(cut) + r.slice(cut));
+  if (o.raise || o.bomb) armRows = armRows.map((r) => '.'.repeat(cut) + r.slice(cut));
   const blank = '.'.repeat(26);
   const bob = o.bob ?? 0;
   let body = [...top, ...armRows];
   if (o.raise) body = overlay(body, BANDIT_RAISED, 1 + (o.dx ?? 0), 5);
+  if (o.bomb) body = overlay(body, BANDIT_BOMB, o.dx ?? 0, 0);
   return [...Array(bob).fill(blank), ...body, ...legs.slice(bob)];
 }
 
@@ -1080,15 +1165,17 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
     add(`${key}_attack`, slimeFrame(rx, ry, { squash: 0.25, lean: -1, face: 'attack', crown }));
     add(`${key}_hurt`, slimeFrame(rx, ry, { squash: 0.8, lean: 0.4, face: 'hurt', crown }));
     add(`${key}_flash`, slimeFrame(rx, ry, { squash: 0.8, lean: 0.4, face: 'hurt', crown, flash: true }));
+    add(`${key}_tell`, slimeFrame(rx, ry, { squash: 1, lean: 0, face: 'angry', crown, crease: true }));
   }
   const BL = BOAR_LEGS;
-  const boar = (rows: string[], flash = false) => mapFrame(rows, BOAR_PAL, flash, BOAR_SHADES);
+  const boar = (rows: string[], flash = false) => mapFrame(rows, BOAR_TELL_PAL, flash, BOAR_SHADES);
   add('boar_idle0', boar(boarRows(BL.stand)));
   add('boar_idle1', boar(boarRows(BL.stand, { bob: 1 })));
   add('boar_windup', boar(boarRows(BL.trot, { dx: 1, bob: 1, angry: true })));
   add('boar_attack', boar(boarRows(BL.trot, { dx: -1 })));
   add('boar_hurt', boar(boarRows(BL.stand, { dx: 1, hurt: true })));
   add('boar_flash', boar(boarRows(BL.stand, { dx: 1, hurt: true }), true));
+  add('boar_tell', boar(BOAR_TELL_ROWS));
   const BA = BANDIT_ARM;
   const BG = BANDIT_LEGS;
   add('bandit_idle0', mapFrame(banditRows(BA.ready, BG.stand), BANDIT_PAL));
@@ -1097,6 +1184,7 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   add('bandit_attack', mapFrame(banditRows(BA.stab, BG.lunge, { dx: -1 }), BANDIT_PAL));
   add('bandit_hurt', mapFrame(banditRows(BA.ready, BG.stand, { dx: 1, hurt: true }), BANDIT_PAL));
   add('bandit_flash', mapFrame(banditRows(BA.ready, BG.stand, { dx: 1, hurt: true }), BANDIT_PAL, true));
+  add('bandit_tell', mapFrame(banditRows(BA.ready, BG.stand, { dx: 1, bomb: true }), BANDIT_TELL_PAL));
   add('pip_idle0', owlFrame('down'));
   add('pip_idle1', owlFrame('up'));
   add('pip_dive', owlFrame('back'));

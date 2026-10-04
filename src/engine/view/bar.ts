@@ -5,6 +5,7 @@ import type { FightScene } from '../scene';
 import { ICONS } from '../art';
 import { buildBarFrame } from '../chrome';
 import { brick, ellipse, icon, rows, slab } from './pixels';
+import { BLOCK_ICONS, FOE_ICONS } from './icons';
 import { BOMB_COL, deepOf, DYING_MS, dyingStyle, ease, INK, kindCol, rand, stackCol, WHITE, type Dying } from './shared';
 
 type G = Phaser.GameObjects.Graphics;
@@ -88,7 +89,7 @@ export class BarView {
     const c = s.app.run.combat;
     const B = s.bar;
     const bx = now < this.shakeUntil ? Math.round(rand(-2, 2)) : 0;
-    if (s.app.run.phase === 'title') return;
+    if (!s.fightHud()) return;
     this.img?.setX(B.x - 9 + bx);
     // the left end is where enemy attacks land: a warm warning glow
     g.fillStyle(0xe0463c, 0.85);
@@ -98,6 +99,7 @@ export class BarView {
     if (!c) return;
 
     const group = c.enemies.length > 1;
+    this.drawGhosts(g, c, now, bx);
     for (const b of c.blocks) if (!isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
     for (const b of c.blocks) if (isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
 
@@ -112,9 +114,10 @@ export class BarView {
 
     // cursor: a blue blade with silver caps (trail at speed, pulse on hits)
     const speed = c.speedMult();
-    const hot = speed >= s.app.tuning.cursor.maxSpeedMult - 0.01;
-    const blade = hot ? 0xff8a2a : 0x3a8ae8;
-    const core = hot ? 0xffd080 : 0x9ad8ff;
+    const hot = speed >= s.app.tuning.cursor.maxSpeedMult - 0.01 || c.minSpeed > 0;
+    const frozen = c.freeze > 0;
+    const blade = frozen ? 0xbfe8ff : hot ? 0xff8a2a : 0x3a8ae8;
+    const core = frozen ? WHITE : hot ? 0xffd080 : 0x9ad8ff;
     if (speed > 1.2) {
       for (let i = 1; i <= 3; i++) {
         const px = Math.round(B.x + c.cursorPosAt(t - i * 0.01) * B.w) + bx;
@@ -128,6 +131,12 @@ export class BarView {
       const pw = Math.round(2 + 6 * (1 - pk));
       g.fillStyle(this.cursorPulseColor, 0.6 * (1 - pk));
       g.fillRect(cx - pw, B.y - 3, pw * 2 + 1, B.h + 6);
+    }
+    if (frozen) {
+      // frozen by a Stomp: an icy halo and frost flakes
+      g.fillStyle(0xbfe8ff, 0.35);
+      g.fillRect(cx - 4, B.y - 4, 9, B.h + 8);
+      if (Math.random() < 0.5) s.fx.particles.push({ x: cx + rand(-4, 4), y: B.y + rand(0, B.h), vx: rand(-10, 10), vy: rand(-14, -4), g: 0, born: now, life: 300, color: WHITE, size: 1, world: false, streak: false });
     }
     // a glowing blade: ink capsule, lit left edge, white-hot core, deep right edge
     const top = B.y - 7;
@@ -206,7 +215,7 @@ export class BarView {
     const x = Math.round(B.x + pos * B.w - w / 2) + bx;
     const h = B.h + 10;
     const y = B.y - 5;
-    if (b.kind === 'purple' && b.life < 1 && Math.floor(now / 90) % 2 === 0) return;
+    if ((b.kind === 'purple' || b.kind === 'spore') && b.life < 1 && Math.floor(now / 90) % 2 === 0) return;
     const [base, light, dark] = kindCol(b.kind);
     if (b.push > 0)
       for (let i = 1; i <= 3; i++) {
@@ -241,11 +250,19 @@ export class BarView {
     if (isRed(b.kind)) {
       const variant = b.kind === 'red' ? null : ICONS[b.kind];
       const owner = c.enemyById(b.ownerId);
-      const ownerIcon = group && owner ? ICONS[s.app.tuning.enemies[owner.key].icon] : null;
+      const ownerIcon = group && owner ? (FOE_ICONS[s.app.tuning.enemies[owner.key].icon] ?? null) : null;
       if (variant) {
         icon(g, variant, cx, ownerIcon ? Y + 12 : cy, b.kind === 'speed' ? 0xffe680 : INK);
         if (ownerIcon) icon(g, ownerIcon, cx, Y + 3, WHITE);
       } else if (ownerIcon) icon(g, ownerIcon, cx, cy, WHITE);
+    } else if (b.kind === 'spore' || b.kind === 'ward') {
+      // a spore to pop before it heals the enemies; a shell piece to break
+      icon(g, BLOCK_ICONS[b.kind], cx, cy, WHITE);
+      if (b.kind === 'spore' && Math.floor(now / 200) % 2 === 0) {
+        g.fillStyle(0xffd0f0, 0.6);
+        g.fillRect(X + 1, Y - 2 - (Math.floor(now / 100) % 3), 1, 1);
+        g.fillRect(X + W - 2, Y - 1 - (Math.floor(now / 130) % 3), 1, 1);
+      }
     } else if (b.kind === 'purple' || b.kind === 'green') {
       // white symbol with a dark rim: "+" heals, "!" is a trap
       const mx = Math.round(X + W / 2);
@@ -264,6 +281,70 @@ export class BarView {
       for (const [x0, y0, w0, h0] of parts) g.fillRect(x0 - 1, y0 - 1, w0 + 2, h0 + 2);
       g.fillStyle(WHITE, 1);
       for (const [x0, y0, w0, h0] of parts) g.fillRect(x0, y0, w0, h0);
+    }
+  }
+
+  /**
+   * While a special winds up, show where its reds will land (blinking outlines), and warn the yellows when a
+   * shield is going up or is up (tapping them is countered).
+   */
+  private drawGhosts(g: G, c: Combat, now: number, bx: number): void {
+    const s = this.s;
+    const B = s.bar;
+    const blink = Math.floor(now / 110) % 2 === 0;
+    const tg = c.telegraph;
+    const owner = tg ? c.enemyById(tg.enemyId) : undefined;
+    const sp = owner ? c.specialsOf(owner)[tg!.index] : undefined;
+    if (sp && blink) {
+      for (const a of sp.actions) {
+        if (a.type !== 'formation') continue;
+        let prev: { pos: number; w: number } | null = null;
+        for (const e of a.blocks) {
+          const kind = e.kind as BlockKind;
+          if (!isRed(kind)) continue;
+          const w = c.widthFor(kind) * (e.width ?? 1);
+          const pos: number = e.pair && prev ? prev.pos - (prev.w + w) / 2 : (e.at ?? 1 - w / 2);
+          prev = { pos, w };
+          const px = Math.round(B.x + pos * B.w - (w * B.w) / 2) + bx;
+          const pw = Math.max(6, Math.round(w * B.w) - 1);
+          const col = kind === 'bomb' ? 0xf28a2a : 0xff5a3a;
+          g.fillStyle(col, 0.35);
+          g.fillRect(px, B.y - 5, pw, B.h + 10);
+          g.fillStyle(col, 0.9);
+          for (let x = px; x < px + pw; x += 2) {
+            g.fillRect(x, B.y - 6, 1, 1);
+            g.fillRect(x, B.y + B.h + 5, 1, 1);
+          }
+          for (let y = B.y - 6; y < B.y + B.h + 6; y += 2) {
+            g.fillRect(px, y, 1, 1);
+            g.fillRect(px + pw - 1, y, 1, 1);
+          }
+        }
+      }
+    }
+    const guardSoon = !!sp && sp.actions.some((a) => a.type === 'guard');
+    if (c.guarder() || (guardSoon && blink)) {
+      // the yellows are off limits: a steel shield over each one
+      for (const b of c.blocks) {
+        if (b.kind !== 'yellow') continue;
+        const x = Math.round(B.x + c.blockPosAt(b, s.app.renderTime(performance.now())) * B.w) + bx;
+        const y = B.y + B.h / 2;
+        g.fillStyle(0x3a1a60, c.guarder() ? 0.55 : 0.3);
+        const w = Math.max(6, Math.round(b.width * B.w) - 1);
+        g.fillRect(Math.round(x - w / 2), B.y - 5, w, B.h + 10);
+        if (!c.guarder()) continue;
+        g.fillStyle(INK, 1);
+        g.fillRect(x - 4, y - 5, 9, 8);
+        g.fillRect(x - 3, y + 3, 7, 2);
+        g.fillRect(x - 1, y + 5, 3, 1);
+        g.fillStyle(0xc8d0e0, 1);
+        g.fillRect(x - 3, y - 4, 7, 6);
+        g.fillRect(x - 2, y + 2, 5, 2);
+        g.fillRect(x, y + 4, 1, 1);
+        g.fillStyle(0x6a2aa8, 1);
+        g.fillRect(x - 3, y - 1, 7, 1);
+        g.fillRect(x, y - 4, 1, 7);
+      }
     }
   }
 

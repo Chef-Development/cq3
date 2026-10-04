@@ -758,6 +758,149 @@ function archerParts(pose: string): Part[] {
   return [...parts, ...extra];
 }
 
+// ------------------------------------------------------------------ shaman (mushroom folk with a crooked staff)
+
+// magenta cap, hue-shifted: shadows lean violet, highlights lean pink
+const CAP = ['#2a0c30', '#501650', '#7e1e68', '#ac2c7c', '#d85a92', '#ff9cb4'];
+// deep teal robe (the cap's complement)
+const ROBE = ['#0e1a26', '#16343a', '#1e5050', '#2c7064', '#4c967a', '#80bc94'];
+const STEM = ['#4a3440', '#7a6070', '#a89098', '#d4c4bc', '#f4ece0'];
+const SHAMAN_PAL: Pal = {
+  0: CAP[0], 1: CAP[1], 2: CAP[2], 3: CAP[3], 4: CAP[4], 5: CAP[5],
+  O: '#fff4e4', o: '#e0b8c8', // cap spots, lit and shaded
+  g: '#3e1438', G: '#6e3454', // gills under the cap
+  f: '#2e1a30', F: '#46304a', // face in the cap's shadow
+  E: '#eaff8a', e: '#8ad040', // glowing eyes
+  N: STEM[3], n: STEM[2], // nose
+  w: '#e8f0d8', W: '#a4b894', // lichen beard
+  h: STEM[3], H: STEM[1], // hands
+  s: WOOD[3], S: WOOD[1], // staff
+  d: '#4e2c16', D: '#8e5a2e', y: '#f2c230', // rope belt, bead
+  b: '#2a1810', B: '#4a3024', // feet
+  L: '#f4ffc8', l: '#b4f05a', j: '#5aa83a', // spore glow
+};
+const SHAMAN_SHADES: Record<string, Shade> = {
+  r: { ramp: ROBE, same: 'dDy', top: [4], left: [4], right: [1, 2], bottom: [1], mid: 3 },
+  v: { ramp: ROBE, top: [4], left: [4], right: [2], bottom: [2], mid: 3 }, // sleeve
+};
+// 20 wide, hand-shaded dome (0-5 = CAP ramp) with big pale spots, gills underneath
+const SHAMAN_CAP = [
+  '.......455443.......',
+  '....445554OO4332....',
+  '..344OO544OO433322..',
+  '.344OOO44433333oo21.',
+  '33444O333333333oo221',
+  '3OO33333OO3333222221',
+  '23O33333oo332oo22111',
+  '.122222222222111110.',
+  '..gGgGgGgGgGgGgGgg..',
+];
+// face in the cap's shadow: glowing eyes, a bulb nose catching the light, a wispy lichen beard
+const SHAMAN_FACE = [
+  '..fffffffF',
+  '.fEffEffFF',
+  'NNefefffF.',
+  'Nnnfwfff..',
+  '.wwwwwff..',
+  '..wWwwW...',
+  '..wwWw....',
+  '...wW.....',
+  '....w.....',
+];
+const SHAMAN_ROBE = [
+  '...rrrrrr...',
+  '..rrrrrrrr..',
+  '..rrrrrrrrr.',
+  '.rrrrrrrrrr.',
+  '.rdDdyddddr.',
+  '.rrrrrrrrrrr',
+  'rrrrrrrrrrrr',
+  'rrrrrrrrrrrr',
+  'rrrrrrrrrrrr',
+];
+const SHAMAN_FEET = ['bB...bB'];
+const SPORE = ['.lL', 'lLl', '.l.'];
+const SPORE_SM = ['lL', 'jl'];
+
+/** A 1px line from (x0, y0) to (x1, y1) in frame coordinates. */
+function line(x0: number, y0: number, x1: number, y1: number, ch: string, opts?: PartOpts): Part {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= n; i++) pts.push([Math.round(x0 + ((x1 - x0) * i) / (n || 1)), Math.round(y0 + ((y1 - y0) * i) / (n || 1))]);
+  return dots([[ch, pts]], opts);
+}
+
+/** The crooked staff from its foot (x0, y0) to the top of its shaft (x1, y1); a glowing bulb hangs off the hook. */
+function staff(x0: number, y0: number, x1: number, y1: number): Part[] {
+  const P = (pts: [number, number][]) => pts.map(([dx, dy]) => [x1 + dx, y1 + dy] as [number, number]);
+  return [
+    line(x0, y0, x1, y1, 's'),
+    dots([
+      ['s', P([[0, -1], [-1, -2], [-2, -2], [-3, -1]])],
+      ['S', P([[0, 2], [-3, 0]])],
+      ['l', P([[-4, 1], [-3, 2], [-4, 2]])],
+      ['L', P([[-3, 1]])],
+    ]),
+  ];
+}
+
+function shamanParts(pose: string): Part[] {
+  const F = 26;
+  let x = 0; // upper body offset
+  let y = 0;
+  let face = SHAMAN_FACE;
+  let cap = SHAMAN_CAP;
+  let st: [number, number, number, number] = [6, 26, 6, 10]; // staff foot and top
+  let hand: [number, number] = [5, 18];
+  const extra: Part[] = [];
+  switch (pose) {
+    case 'idle1':
+      y = 1;
+      hand = [5, 19];
+      break;
+    case 'windup':
+      // rears back, the staff lifted off the ground
+      x = 1;
+      y = 1;
+      st = [7, 23, 7, 7];
+      hand = [6, 15];
+      break;
+    case 'attack':
+      // thrusts the staff at the hero, a burst of spores off the bulb
+      x = -1;
+      st = [9, 22, 3, 12];
+      hand = [5, 16];
+      extra.push([SPORE, 0, 13], [SPORE_SM, 2, 17]);
+      break;
+    case 'hurt':
+      x = 2;
+      y = 1;
+      st = [8, 26, 7, 11];
+      hand = [6, 18];
+      // knocked back, the cap jolted crooked, eyes squeezed to dim slits
+      face = swap(SHAMAN_FACE, [['E', 'n'], ['e', 'f']]);
+      cap = leanBack(SHAMAN_CAP, 3, 2);
+      break;
+    case 'tell':
+      // the staff thrust up high, spores swirling off the glowing bulb
+      st = [7, 20, 6, 4];
+      hand = [5, 11];
+      face = swap(SHAMAN_FACE, [['E', 'L'], ['e', 'l']]);
+      extra.push([SPORE, 0, 0], [SPORE_SM, 9, 1], [SPORE_SM, 1, 8]);
+      break;
+  }
+  return [
+    [SHAMAN_FEET, 12, F],
+    [SHAMAN_ROBE.slice(y), 11 + x, 17 + y],
+    [face, 10 + x, 14 + y],
+    [cap, 5 + x, 5 + y],
+    ...staff(...st),
+    limb(12 + x, 18 + y, hand[0] + 2, hand[1], 'v'),
+    [['hh', 'hH'], hand[0], hand[1]],
+    ...extra,
+  ];
+}
+
 // ------------------------------------------------------------------ build
 
 interface SpriteDef {
@@ -776,6 +919,7 @@ export function buildFoeArt(add: Add): void {
     beetle: { W: 32, H: 20, pal: BEETLE_PAL, shades: BEETLE_SHADES, parts: beetleParts, extras: ['shell'] },
     archer: { W: 26, H: 26, pal: ARCHER_PAL, shades: ARCHER_SHADES, parts: archerParts },
     piglet: { W: 18, H: 13, pal: PIG_PAL, shades: PIG_SHADES, parts: pigParts },
+    shaman: { W: 28, H: 28, pal: SHAMAN_PAL, shades: SHAMAN_SHADES, parts: shamanParts },
   };
   for (const name of FOE_SPRITES) {
     const d = defs[name];

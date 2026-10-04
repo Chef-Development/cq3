@@ -44,3 +44,41 @@ describe('balance bot', () => {
     expect(hi.firstTry).toBeGreaterThanOrEqual(lo.firstTry);
   });
 });
+
+describe('balance targets (guards the defaults; the full report is npm run balance)', () => {
+  // 150 runs at 85% accuracy (about 4 s); the bands are a little wider than the targets to allow for sampling
+  const [a1, a2, a3] = balance(cloneTuning(), [0.85], 150, 9);
+
+  it('an 85% player clears Acts 1 and 2 first try about 70-85% of the time', () => {
+    for (const r of [a1, a2]) {
+      expect(r.firstTry, `act ${r.act + 1}`).toBeGreaterThanOrEqual(0.62);
+      expect(r.firstTry, `act ${r.act + 1}`).toBeLessThanOrEqual(0.9);
+    }
+  });
+
+  it('the Boar King wins his first fight against an 85% player about half the time (40-60%)', () => {
+    expect(a3.bossFirstTry).toBeGreaterThanOrEqual(0.36);
+    expect(a3.bossFirstTry).toBeLessThanOrEqual(0.66);
+    expect(a3.clearRate).toBeGreaterThan(0.85); // but retries get there
+  });
+
+  it('every boss takes at least two max-stack finishers; none can be one-shot', () => {
+    for (const r of [a1, a2, a3]) {
+      expect(r.bossVsMaxFinisher, `act ${r.act + 1}`).toBeGreaterThan(2);
+      expect(r.bossOneShotRate).toBe(0);
+    }
+  });
+
+  it('fights grow longer: normal < elite < boss, and the Boar King is the longest', () => {
+    for (const r of [a1, a2, a3]) {
+      expect(r.fightSec).toBeLessThan(r.eliteSec);
+      expect(r.eliteSec).toBeLessThan(r.bossSec);
+      expect(r.fightSec).toBeGreaterThan(8);
+    }
+    expect(a3.bossSec).toBeGreaterThan(a1.bossSec);
+  });
+
+  it('the specials keep coming: several per minute in every act', () => {
+    for (const r of [a1, a2, a3]) expect(r.specialsPerMin).toBeGreaterThan(6);
+  });
+});
