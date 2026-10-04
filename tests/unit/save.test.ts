@@ -1,194 +1,235 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Run } from '../../src/core/run';
-import { restoreRun, saveLabel, snapshotRun, validSave, type RunSave } from '../../src/core/save';
+import { readSave, restoreRun, saveLabel, snapshotRun, validSave, type RunSave } from '../../src/core/save';
 import { cloneTuning, DEFAULT_SETTINGS, type Tuning } from '../../src/core/tuning';
 
-const fresh = (t: Tuning = cloneTuning()) => new Run(t, { ...DEFAULT_SETTINGS }, 5);
+const fresh = (t: Tuning = cloneTuning(), seed = 5) => new Run(t, { ...DEFAULT_SETTINGS }, seed);
 /** JSON round trip, the way it goes through localStorage. */
 const viaJson = (s: RunSave | null): unknown => JSON.parse(JSON.stringify(s));
 
-/** Kill the whole current stage with one big finisher. */
-function killStage(run: Run): void {
-  const c = run.combat!;
-  c.stacks = 5;
-  for (const e of c.enemies) e.hp = Math.min(e.hp, 10);
-  c.finisher();
+/** Act 1's map, scenes skipped. */
+function onMap(seed = 5): Run {
+  const r = fresh(cloneTuning(), seed);
+  r.newRun();
+  r.skipScenes();
+  return r;
 }
 
-describe('mid-run save', () => {
-  it('nothing to save on the title screen', () => {
-    expect(snapshotRun(fresh())).toBeNull();
+function goTo(r: Run, type: string): void {
+  const m = r.map;
+  const target = m.nodes.find((n) => n.type === type)!;
+  const path = [target.id];
+  while (m.nodes[path[0]].row > 0) path.unshift(m.nodes.find((p) => p.next.includes(path[0]))!.id);
+  r.path = path.slice(0, -1);
+  r.phase = 'map';
+  r.chooseNode(target.id);
+}
+
+/** A copy of the run restored from its save (through JSON). */
+function reload(r: Run): Run {
+  const back = new Run(r.tuning, { ...DEFAULT_SETTINGS }, 99);
+  expect(restoreRun(back, viaJson(snapshotRun(r, 1000)))).toBe(true);
+  return back;
+}
+
+describe('save at every node', () => {
+  it('nothing to save on the title screen or after the victory', () => {
+    const r = fresh();
+    expect(snapshotRun(r)).toBeNull();
+    r.phase = 'victory';
+    expect(snapshotRun(r)).toBeNull();
   });
 
-  it('a fight round-trips: level, stage, hero, coins, enemy HP and combo', () => {
-    const run = fresh();
-    run.startLevel(0);
-    run.startStage(2);
-    const c = run.combat!;
-    Object.assign(run.hero, { hp: 61, bonusAtk: 3, bonusMaxHp: 10, bonusDmg: 0.2, bonusCrit: 0.05, bonusCritDmg: 0.5, bonusComboPower: 1.5, revives: 0 });
-    run.coins = 45;
-    c.enemies[0].hp = 123;
-    c.combo = 7;
-    c.meter = 0.5;
-    c.stacks = 2;
-    const save = snapshotRun(run, 1000)!;
-    expect(save.phase).toBe('fight');
-
-    const back = fresh();
-    expect(restoreRun(back, viaJson(save))).toBe(true);
-    expect(back.phase).toBe('fight');
-    expect(back.levelIndex).toBe(0);
-    expect(back.stageIndex).toBe(2);
-    expect(back.hero).toEqual({ ...run.hero, abilityTimer: 0 });
+  it('the map round-trips: act, path, hero, coins, the act-start checkpoint', () => {
+    const r = onMap();
+    r.chooseNode(r.map.rows[0][0]);
+    r.phase = 'map';
+    Object.assign(r.hero, { hp: 61, bonusAtk: 3, bonusMaxHp: 10, bonusDmg: 0.2 });
+    r.coins = 45;
+    r.rerolls = 1;
+    const back = reload(r);
+    expect(back.phase).toBe('map');
+    expect(back.actIndex).toBe(0);
+    expect(back.map).toEqual(r.map);
+    expect(back.path).toEqual(r.path);
+    expect(back.choices()).toEqual(r.choices());
+    expect(back.hero).toEqual({ ...r.hero, abilityTimer: 0 });
+    expect(back.actHero).toEqual({ ...r.actHero, abilityTimer: 0 });
     expect(back.coins).toBe(45);
-    expect(back.combat!.enemies[0].key).toBe('bandit');
-    expect(back.combat!.enemies[0].hp).toBe(123);
-    expect(back.combat!.combo).toBe(7);
-    expect(back.combat!.meter).toBe(0.5);
-    expect(back.combat!.stacks).toBe(2);
-    expect(back.combat!.result).toBeNull();
-    expect(back.randomState).toEqual(run.randomState);
-    // and it saves the same again
-    expect(snapshotRun(back, 1000)).toEqual(save);
+    expect(back.rerolls).toBe(1);
+    expect(back.randomState).toEqual(r.randomState);
+    expect(snapshotRun(back, 1000)).toEqual(snapshotRun(r, 1000));
   });
 
-  it('the restored hero is the run hero the fight uses (damage lands on it)', () => {
-    const run = fresh();
-    run.startLevel(0);
-    run.hero.hp = 50;
-    const back = fresh();
-    restoreRun(back, viaJson(snapshotRun(run)));
-    expect(back.combat!.hero).toBe(back.hero);
+  it('a later act keeps its own map', () => {
+    const r = onMap();
+    r.enterAct(2);
+    r.skipScenes();
+    r.chooseNode(r.map.rows[0][1]);
+    const back = reload(r);
+    expect(back.actIndex).toBe(2);
+    expect(back.theme).toBe('hollow');
+    expect(back.map).toEqual(r.map);
+    expect(back.node?.id).toBe(r.node?.id);
   });
 
-  it('a boost choice round-trips and moves on to the next stage', () => {
-    const run = fresh();
-    run.startLevel(0);
-    killStage(run);
-    run.sync();
-    expect(run.phase).toBe('boost');
-    const save = snapshotRun(run)!;
-    const back = fresh();
-    expect(restoreRun(back, viaJson(save))).toBe(true);
-    expect(back.phase).toBe('boost');
-    expect(back.boostChoices).toEqual(run.boostChoices);
-    expect(back.pendingBoosts).toBe(1);
-    expect(back.coins).toBe(run.coins);
-    back.pickBoost(0);
+  it('a story scene round-trips (and leads where it should)', () => {
+    const r = fresh();
+    r.newRun();
+    r.advanceScene();
+    const back = reload(r);
+    expect(back.phase).toBe('scene');
+    expect(back.sceneQueue).toEqual(['act1']);
+    back.advanceScene();
+    expect(back.phase).toBe('map');
+  });
+
+  it('a fight round-trips with its summons, boss phase and used specials', () => {
+    const r = onMap();
+    r.enterAct(2);
+    r.skipScenes();
+    goTo(r, 'boss');
+    r.skipScenes();
+    const c = r.combat!;
+    const king = c.enemies[0];
+    king.hp = 3000;
+    king.phase = 2;
+    king.uses[1] = 1;
+    king.protect = 0.5;
+    c.addEnemy('piglet', { summoner: king.id });
+    c.addEnemy('piglet', { summoner: king.id });
+    c.enemies[2].hp = 0;
+    c.enemies[2].alive = false;
+    r.hero.hp = 77;
+    const back = reload(r);
+    const e = back.combat!.enemies;
     expect(back.phase).toBe('fight');
-    expect(back.stageIndex).toBe(1);
+    expect(e.map((x) => x.key)).toEqual(['boarKing', 'piglet', 'piglet']);
+    expect(e.map((x) => x.alive)).toEqual([true, true, false]);
+    expect(e[0]).toMatchObject({ hp: 3000, phase: 2, protect: 0.5 });
+    expect(e[0].uses).toEqual(king.uses);
+    expect(e[1].summoner).toBe(e[0].id);
+    expect(back.combat!.summonsAlive(e[0].id)).toBe(true);
+    expect(back.combat!.hero).toBe(back.hero);
+    expect(back.hero.hp).toBe(77);
+    expect(back.fightSeed).toBe(r.fightSeed);
+    expect(back.bossFight).toBe(true);
   });
 
-  it('a kill still waiting on its animation keeps its coins and boost', () => {
-    const run = fresh();
-    run.startLevel(0);
-    killStage(run); // no run.sync(): the view holds the phase change while the enemy bursts
-    const save = snapshotRun(run)!;
-    expect(save.phase).toBe('boost');
-    expect(save.pendingBoosts).toBe(1);
-    expect(save.coins).toBe(run.tuning.enemies.slime.coins);
+  it('a split slime stays split', () => {
+    const r = onMap();
+    r.chooseNode(r.map.rows[0].find((id) => r.map.nodes[id].enemies[0] === 'slime') ?? r.map.rows[0][0]);
+    const c = r.combat!;
+    if (c.enemies[0].key !== 'slime') return;
+    c.useSpecial(c.enemies[0], 0);
+    const back = reload(r);
+    expect(back.combat!.enemies.map((x) => [x.key, x.alive])).toEqual(c.enemies.map((x) => [x.key, x.alive]));
+  });
+
+  it('a kill still waiting on its animation keeps its coins, and the reward comes up', () => {
+    const r = onMap();
+    r.chooseNode(r.map.rows[0][0]);
+    const c = r.combat!;
+    for (const e of c.enemies) e.hp = 1;
+    c.stacks = 1;
+    c.finisher(); // no r.sync(): the view holds the phase change while the enemy bursts
+    const coins = c.enemies.reduce((n, e) => n + r.tuning.enemies[e.key].coins, 0);
+    const save = snapshotRun(r)!;
+    expect(save.coins).toBe(coins);
     const back = fresh();
     restoreRun(back, viaJson(save));
     expect(back.phase).toBe('boost');
+    expect(back.coins).toBe(coins);
     expect(back.boostChoices).toHaveLength(3);
-    back.pickBoost(1);
-    expect(back.stageIndex).toBe(1);
   });
 
-  it('a group fight keeps who is already dead', () => {
-    const run = fresh();
-    run.startLevel(1, 2); // three enemies at once
-    const c = run.combat!;
-    c.enemies[1].hp = 0;
-    c.enemies[1].alive = false;
-    c.enemies[2].hp = 77;
-    const back = fresh();
-    restoreRun(back, viaJson(snapshotRun(run)));
-    const e = back.combat!.enemies;
-    expect(e.map((x) => x.alive)).toEqual([true, false, true]);
-    expect(e[2].hp).toBe(77);
-    expect(back.combat!.frontEnemy()?.id).toBe(e[0].id);
+  it('a boost pick round-trips, and the boss reward still leads to the act clear', () => {
+    const r = onMap();
+    goTo(r, 'boss');
+    r.skipScenes();
+    const c = r.combat!;
+    c.enemies[0].uses = c.enemies[0].uses.map(() => 1);
+    c.enemies[0].hp = 1;
+    c.stacks = 1;
+    c.finisher();
+    r.sync();
+    expect(r.phase).toBe('boost');
+    const back = reload(r);
+    expect(back.phase).toBe('boost');
+    expect(back.boostChoices).toEqual(r.boostChoices);
+    back.pickBoost(0);
+    expect(back.phase).toBe('actClear');
+    const again = reload(back);
+    expect(again.phase).toBe('actClear');
+    again.nextAct();
+    expect(again.actIndex).toBe(1);
   });
 
-  it('the level-clear chest round-trips, then the next level starts', () => {
-    const run = fresh();
-    run.startLevel(0, 3);
-    killStage(run);
-    run.sync();
-    run.pickBoost(0);
-    expect(run.phase).toBe('levelClear');
-    const back = fresh();
-    restoreRun(back, viaJson(snapshotRun(run)));
-    expect(back.phase).toBe('levelClear');
-    back.nextLevel();
-    expect(back.levelIndex).toBe(1);
-    expect(back.phase).toBe('fight');
+  it('shop, event, treasure and rest round-trip', () => {
+    for (const type of ['shop', 'event', 'treasure', 'rest']) {
+      const r = onMap();
+      goTo(r, type);
+      if (type === 'shop') {
+        r.coins = 500;
+        r.buy(3);
+      }
+      const back = reload(r);
+      expect(back.phase).toBe(type);
+      if (type === 'shop') expect(back.shop).toEqual(r.shop);
+      if (type === 'event') expect(back.event).toEqual(r.event);
+      if (type === 'treasure') expect(back.treasure).toEqual(r.treasure);
+      expect(back.node?.id).toBe(r.node?.id);
+    }
   });
 
-  it('a save from the defeat screen retries the level', () => {
-    const run = fresh();
-    run.startLevel(1);
-    run.phase = 'defeat';
-    run.coins = 30;
-    const back = fresh();
-    restoreRun(back, viaJson(snapshotRun(run)));
-    expect(back.phase).toBe('fight');
-    expect(back.levelIndex).toBe(1);
-    expect(back.stageIndex).toBe(0);
+  it("a save from the defeat screen starts the act over", () => {
+    const r = onMap();
+    r.coins = 30;
+    r.actCoins = 12;
+    r.chooseNode(r.map.rows[0][0]);
+    r.phase = 'defeat';
+    const back = reload(r);
+    expect(back.phase).toBe('map');
+    expect(back.path).toEqual([]);
+    expect(back.coins).toBe(12);
     expect(back.hero.hp).toBe(back.tuning.hero.maxHp);
-    expect(back.coins).toBe(30);
   });
 
-  it('rejects saves it cannot resume, and leaves the run alone', () => {
-    const run = fresh();
-    run.startLevel(0, 2);
-    const good = viaJson(snapshotRun(run)) as RunSave;
+  it("rejects saves it can't resume, and leaves the run alone", () => {
+    const r = onMap();
+    r.chooseNode(r.map.rows[0][0]);
+    const good = viaJson(snapshotRun(r)) as RunSave;
+    const n = r.map.nodes[r.path[0]];
     const bad: unknown[] = [
       null,
       'nope',
-      { ...good, v: 99 },
-      { ...good, levelIndex: 7 },
-      { ...good, stageIndex: 9 },
-      { ...good, enemyHp: [1, 2] },
+      { ...good, v: 2 }, // the old levels
+      { ...good, act: 7 },
+      { ...good, path: [n.next[0]] }, // not a path from row 0
       { ...good, phase: 'title' },
       { ...good, hero: { ...good.hero, hp: 'x' } },
-      { ...good, boostChoices: ['laser'] },
+      { ...good, fight: { ...good.fight!, foes: [{ ...good.fight!.foes[0], key: 'dragon' }] } },
+      { ...good, phase: 'boost', boost: { choices: [{ id: 'laser', rarity: 'common' }], min: false, then: 'map' } },
+      { ...good, phase: 'event', event: { id: 'nope', choice: -1, outcome: -1, boost: null } },
     ];
     for (const b of bad) {
       const back = fresh();
       expect(restoreRun(back, b)).toBe(false);
       expect(back.phase).toBe('title');
     }
-    // a save from before the levels were edited no longer fits
-    const t = cloneTuning();
-    t.levels = [{ name: 'Only', hpMult: 1, atkMult: 1, stages: [['slime']] }];
-    expect(validSave(good, t)).toBe(false);
-    expect(validSave(good, cloneTuning())).toBe(true);
-  });
-
-  it('a save from before boost rarities (v1) still loads, as common cards', () => {
-    const run = fresh();
-    run.startLevel(0);
-    killStage(run);
-    run.sync();
-    const v2 = viaJson(snapshotRun(run)) as RunSave;
-    const { bonusPet: _drop, ...oldHero } = v2.hero;
-    const v1 = { ...v2, v: 1, hero: oldHero, boostChoices: v2.boostChoices.map((o) => o.id) };
-    const back = fresh();
-    expect(restoreRun(back, v1)).toBe(true);
-    expect(back.phase).toBe('boost');
-    expect(back.boostChoices).toEqual(v2.boostChoices.map((o) => ({ id: o.id, rarity: 'common' })));
-    expect(back.hero.bonusPet).toBe(0);
+    expect(validSave(good, r)).toBe(true);
+    expect(readSave(good, r.tuning)).not.toBeNull();
   });
 
   it('labels the Continue button', () => {
-    const run = fresh();
-    run.startLevel(0, 2);
-    expect(saveLabel(snapshotRun(run)!, run.tuning)).toBe('Level 1 - 3/4');
-    run.startLevel(1);
-    expect(saveLabel(snapshotRun(run)!, run.tuning)).toBe('Level 2 - 1/4');
-    run.tuning.levels[1].stages = [['slime']];
-    expect(saveLabel(snapshotRun(run)!, run.tuning)).toBe('Level 2');
+    const r = onMap();
+    expect(saveLabel(snapshotRun(r)!, r)).toBe('Act 1 - 1/8');
+    r.chooseNode(r.map.rows[0][0]);
+    r.phase = 'map';
+    r.chooseNode(r.choices()[0]);
+    expect(saveLabel(snapshotRun(r)!, r)).toBe('Act 1 - 2/8');
+    r.phase = 'actClear';
+    expect(saveLabel(snapshotRun(r)!, r)).toBe('Act 1 clear');
   });
 });
 
@@ -210,14 +251,14 @@ describe('save storage', () => {
 
   it('writes, reads back, validates and clears', async () => {
     const { clearRunSave, loadRunSave, writeRunSave } = await import('../../src/engine/storage');
-    const run = fresh();
-    run.startLevel(0, 1);
+    const run = onMap();
+    run.chooseNode(run.map.rows[0][0]);
     const save = snapshotRun(run)!;
     writeRunSave(save);
     expect(loadRunSave(run.tuning)).toEqual(save);
-    store.set('cq3.run.v1', '{broken');
+    store.set('cq3.run.v3', '{broken');
     expect(loadRunSave(run.tuning)).toBeNull();
-    store.set('cq3.run.v1', JSON.stringify({ ...save, levelIndex: 9 }));
+    store.set('cq3.run.v3', JSON.stringify({ ...save, act: 9 }));
     expect(loadRunSave(run.tuning)).toBeNull();
     writeRunSave(save);
     clearRunSave();
@@ -226,14 +267,19 @@ describe('save storage', () => {
 });
 
 describe('boss music cue', () => {
-  it('is on while a boss is alive in a fight, and off otherwise', () => {
-    const run = fresh();
+  it('is on while a mini-boss or the boss is alive in a fight, and off otherwise', () => {
+    const run = onMap();
     expect(run.bossFight).toBe(false);
-    run.startLevel(0);
+    run.chooseNode(run.map.rows[0][0]);
     expect(run.bossFight).toBe(false);
-    run.startStage(3);
+    goTo(run, 'boss');
+    run.skipScenes();
     expect(run.bossFight).toBe(true);
-    killStage(run);
+    const c = run.combat!;
+    c.enemies[0].uses = c.enemies[0].uses.map(() => 1);
+    c.enemies[0].hp = 1;
+    c.stacks = 1;
+    c.finisher();
     expect(run.bossFight).toBe(false);
   });
 });

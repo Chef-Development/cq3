@@ -7,8 +7,8 @@ export interface Setup {
   s: Settings;
 }
 
-/** A combat with no automatic spawns, no crits and no hit-stop, so tests control every block. */
-export function setup(opts: { enemies?: string[]; tune?: (t: Tuning) => void; settings?: Partial<Settings>; spawning?: boolean } = {}): Setup {
+/** A combat with no automatic spawns (and no specials unless asked), no crits and no hit-stop, so tests control every block. */
+export function setup(opts: { enemies?: string[]; tune?: (t: Tuning) => void; settings?: Partial<Settings>; spawning?: boolean; specials?: boolean } = {}): Setup {
   const t = cloneTuning();
   t.hero.critChance = 0;
   t.hero.perfectCritBonus = 0;
@@ -36,7 +36,7 @@ export function setup(opts: { enemies?: string[]; tune?: (t: Tuning) => void; se
   t.kill.comboPower = 0;
   opts.tune?.(t);
   const s: Settings = { ...DEFAULT_SETTINGS, ...opts.settings };
-  const c = new Combat({ tuning: t, settings: s, hero: newHero(t), enemies: opts.enemies ?? ['slime'], seed: 42, spawning: opts.spawning ?? false });
+  const c = new Combat({ tuning: t, settings: s, hero: newHero(t), enemies: opts.enemies ?? ['slime'], seed: 42, spawning: opts.spawning ?? false, specials: opts.specials });
   return { c, t, s };
 }
 

@@ -28,14 +28,23 @@ describe('boost rarity', () => {
     t.boosts.rareChance = 0;
     t.boosts.epicChance = 0;
     expect(rollBoosts(new Rng(1), t, true).some((o) => o.rarity === 'rare')).toBe(true);
+    expect(rollBoosts(new Rng(1), t, 'epic').filter((o) => o.rarity === 'epic')).toHaveLength(1);
+    expect(rollBoosts(new Rng(1), t).every((o) => o.rarity === 'common')).toBe(true);
+    // the act's boss leaves a rare pick
     const run = new Run(t, { ...DEFAULT_SETTINGS }, 2);
-    run.startLevel(0, 3);
+    run.newRun();
+    run.skipScenes();
+    run.path = [run.map.rows[run.map.rows.length - 2][0]];
+    run.phase = 'map';
+    run.chooseNode(run.map.boss);
+    run.skipScenes();
     const c = run.combat!;
     c.enemies[0].hp = 10;
     c.stacks = 1;
     c.finisher();
     run.sync();
     expect(run.phase).toBe('boost');
+    expect(run.boostThen).toBe('actClear');
     expect(run.boostChoices.filter((o) => o.rarity !== 'common')).toHaveLength(1);
   });
 
@@ -67,12 +76,13 @@ describe('boost rarity', () => {
 
   it('jumping ahead (debug) brings the upgrades a player would have earned', () => {
     const t = cloneTuning();
-    const kills = t.levels[0].stages.reduce((n, st) => n + st.length, 0);
-    const h = heroFor(t, 1, 0);
-    expect(h.bonusAtk).toBe(kills * t.kill.atk);
-    expect(h.bonusMaxHp).toBeGreaterThanOrEqual(kills * t.kill.maxHp);
-    expect(h.hp).toBe(t.hero.maxHp + h.bonusMaxHp);
-    expect(heroFor(t, 0, 0)).toEqual(newHero(t));
+    const a1 = heroFor(t, 1);
+    const a2 = heroFor(t, 2);
+    expect(a1.bonusAtk).toBeGreaterThan(0);
+    expect(a2.bonusAtk).toBeGreaterThan(a1.bonusAtk);
+    expect(a2.bonusDmg).toBeGreaterThan(a1.bonusDmg);
+    expect(a1.hp).toBe(t.hero.maxHp + a1.bonusMaxHp);
+    expect(heroFor(t, 0)).toEqual(newHero(t));
   });
 
   it('Companion Power makes Pip peck harder', () => {

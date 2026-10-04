@@ -6,6 +6,9 @@ import { buildBackdrops, type Backdrop, type Theme } from '../backdrop';
 import { GAME_W } from '../layout';
 import { rand, type Ambient } from './shared';
 
+const HOLLOW_LEAVES = [0xe0702c, 0xc8402a, 0xf2b040, 0x9a2a2a, 0xf08a3a];
+const FIREFLY = 0xe0ff8a;
+
 export class Stage {
   private backdrops = {} as Record<Theme, Backdrop>;
   private theme: Theme = 'forest';
@@ -46,10 +49,10 @@ export class Stage {
     s.front.add([this.gAmb, this.fgImg]);
   }
 
-  /** Each level has its own backdrop (tuning.levels[i].theme; default: forest first, then ruins). */
+  /** Each act has its own backdrop (Run.theme: forest, ruins, hollow). */
   applyTheme(): void {
     const run = this.s.app.run;
-    const theme: Theme = run.level.theme ?? (run.levelIndex === 0 ? 'forest' : 'ruins');
+    const theme: Theme = run.theme;
     if (!this.backdrops[theme]) return;
     this.theme = theme;
     this.ambient = [];
@@ -57,6 +60,8 @@ export class Stage {
     this.fgImg.setTexture(`fg_${theme}`);
     this.frameImg.setTexture(`frame_${theme}`);
     for (const cl of this.clouds) {
+      // the hollow's sunset sky has its own painted wisps: no drifting cumulus
+      cl.setVisible(theme !== 'hollow');
       if (theme === 'ruins') cl.setTint(0x6a7090).setAlpha(0.45);
       else cl.clearTint().setAlpha(0.95);
     }
@@ -68,7 +73,7 @@ export class Stage {
     this.clouds[1].setX(Math.round(GAME_W - drift));
   }
 
-  /** Living backdrop: torches flicker; leaves, motes, rain and embers drift through the scene. */
+  /** Living backdrop: torches flicker; leaves, motes, fireflies, rain and embers drift through the scene. */
   drawAmbient(): void {
     const a = this.s.anim;
     const ground = this.s.ground;
@@ -104,6 +109,15 @@ export class Stage {
           this.ambient.push({ kind: 'leaf', x: rand(0, W), y: top - 2, vx: rand(4, 14), vy: rand(10, 18), born: a, life: 9000, color: [0x5aa84c, 0x8ac850, 0xe8c048][Math.floor(Math.random() * 3)], phase: rand(0, 6) });
         else this.ambient.push({ kind: 'mote', x: rand(20, W - 20), y: rand(30, bottom), vx: rand(-3, 3), vy: rand(-6, -2), born: a, life: rand(2500, 4500), color: Math.random() < 0.6 ? 0xffffff : 0xfff0a0, phase: rand(0, 6) });
         this.nextAmbient += 260;
+      } else if (theme === 'hollow') {
+        // autumn leaves tumbling from the canopy; fireflies waking low over the floor; warm dust in the low sun
+        const r = Math.random();
+        if (r < 0.5)
+          this.ambient.push({ kind: 'leaf', x: rand(-10, W - 30), y: top - 2, vx: rand(6, 16), vy: rand(9, 16), born: a, life: 10000, color: HOLLOW_LEAVES[Math.floor(Math.random() * HOLLOW_LEAVES.length)], phase: rand(0, 6) });
+        else if (r < 0.8)
+          this.ambient.push({ kind: 'mote', x: rand(24, W - 24), y: rand(ground - 40, ground - 6), vx: rand(-4, 4), vy: rand(-4, 1), born: a, life: rand(3000, 5200), color: Math.random() < 0.6 ? FIREFLY : 0xffd870, phase: rand(0, 6) });
+        else this.ambient.push({ kind: 'mote', x: rand(20, W * 0.6), y: rand(24, bottom - 20), vx: rand(1, 5), vy: rand(-4, -1), born: a, life: rand(2500, 4000), color: 0xffc890, phase: rand(0, 6) });
+        this.nextAmbient += 250;
       } else {
         this.ambient.push({ kind: 'rain', x: rand(-20, W), y: rand(-10, 20), vx: 50, vy: 260, born: a, life: 900, color: 0x9ab8e8, phase: 0 });
         this.nextAmbient += 22;
@@ -131,8 +145,17 @@ export class Stage {
         g.fillRect(Math.round(x), Math.round(y), flat ? 2 : 1, flat ? 1 : 2);
       } else if (p.kind === 'mote') {
         const k = age / p.life;
-        g.fillStyle(p.color, Math.sin(k * Math.PI) * (0.5 + 0.5 * Math.sin(t * 6 + p.phase)));
-        g.fillRect(Math.round(x + Math.sin(t * 1.5 + p.phase) * 3), Math.round(y), 1, 1);
+        const al = Math.sin(k * Math.PI) * (0.5 + 0.5 * Math.sin(t * 6 + p.phase));
+        const mx = Math.round(x + Math.sin(t * 1.5 + p.phase) * 3);
+        const my = Math.round(y);
+        if (p.color === FIREFLY) {
+          // a soft green-gold halo around the firefly
+          g.fillStyle(p.color, al * 0.3);
+          g.fillRect(mx - 1, my, 3, 1);
+          g.fillRect(mx, my - 1, 1, 3);
+        }
+        g.fillStyle(p.color, al);
+        g.fillRect(mx, my, 1, 1);
       } else if (p.kind === 'rain') {
         g.fillStyle(p.color, 0.45);
         g.fillRect(Math.round(x), Math.round(y), 1, 3);

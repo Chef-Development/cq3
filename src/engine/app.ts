@@ -1,10 +1,11 @@
 // Glue between browser time/input and the deterministic core. No rendering here.
+import { STORY } from '../data/story';
 import { SimClock, tapSimTime } from '../core/clock';
 import type { CombatEvent, TapResult } from '../core/combat';
 import { Run, type Phase } from '../core/run';
 import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import type { Settings, Tuning } from '../core/tuning';
-import { Synth } from './audio';
+import { Synth, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, type ScreenLayout } from './layout';
 import { clearRunSave, loadRunSave, saveSoon, writeRunSave } from './storage';
 
@@ -33,8 +34,12 @@ export class App {
   sceneReady = false;
   /** Each new fight waits for a "TAP TO BEGIN!" tap before the clock runs. */
   awaitingBegin = false;
-  /** Later stages of a level: the clock waits while the next enemy walks in (performance.now ms). */
+  /** The clock waits while enemies walk in (performance.now ms; a tap skips it). */
   introUntil = 0;
+  /** A story scene shown in the middle of a fight (a boss changing phase): the fight waits for it. */
+  storyOverlay: string | null = null;
+  /** Which box of the current story scene is on screen. */
+  storyBox = 0;
   /** The run saved by an earlier session (offered as Continue on the title screen). */
   savedRun: RunSave | null = null;
   /** The next fight is a resumed one: wait for a tap instead of walking the enemy in. */
@@ -77,6 +82,7 @@ export class App {
       !this.hidden &&
       !this.calibrating &&
       !this.awaitingBegin &&
+      !this.storyOverlay &&
       performance.now() >= this.introUntil &&
       (!this.panelOpen || this.playWhilePanelOpen)
     );
@@ -164,8 +170,9 @@ export class App {
     const save = this.savedRun;
     if (!save) return this.newRun();
     this.resuming = true;
+    this.storyBox = 0;
     this.setPhase(() => {
-      if (!restoreRun(this.run, save)) this.run.startLevel(0);
+      if (!restoreRun(this.run, save)) this.run.newRun();
     });
     this.resuming = false;
   }
@@ -173,7 +180,43 @@ export class App {
   newRun(): void {
     clearRunSave();
     this.savedRun = null;
-    this.setPhase(() => this.run.startLevel(0));
+    this.storyBox = 0;
+    this.setPhase(() => this.run.newRun());
+  }
+
+  /** Back to the title screen (after the victory). */
+  toTitle(): void {
+    this.storyOverlay = null;
+    this.setPhase(() => (this.run.phase = 'title'));
+  }
+
+  /** The story scene on screen: a mid-fight one, or the run's (null when there is none). */
+  get storyId(): string | null {
+    if (this.storyOverlay) return this.storyOverlay;
+    return this.run.phase === 'scene' ? (this.run.sceneQueue[0] ?? null) : null;
+  }
+
+  /** Tap on a story box: the next box, or the end of the scene. */
+  storyNext(): void {
+    const id = this.storyId;
+    if (!id) return;
+    this.storyBox++;
+    this.audio.textBlip();
+    if (this.storyBox < (STORY[id]?.length ?? 0)) return;
+    this.storyBox = 0;
+    if (this.storyOverlay) {
+      this.storyOverlay = null;
+      this.syncClock(performance.now());
+    } else this.setPhase(() => this.run.advanceScene());
+  }
+
+  storySkip(): void {
+    this.storyBox = 0;
+    this.audio.uiClick();
+    if (this.storyOverlay) {
+      this.storyOverlay = null;
+      this.syncClock(performance.now());
+    } else this.setPhase(() => this.run.skipScenes());
   }
 
   /** Save the run in progress (after every stage, and whenever the page is hidden). */
@@ -192,17 +235,30 @@ export class App {
   private afterPhaseChange(prev: Phase): void {
     const now = performance.now();
     if (this.run.phase === 'fight' && this.run.combat && this.run.combat !== this.begunCombat) {
+      // every fight from the map waits for TAP TO BEGIN (resumed ones too)
       this.begunCombat = this.run.combat;
-      this.awaitingBegin = this.run.stageIndex === 0 || this.resuming;
-      this.introUntil = this.awaitingBegin ? 0 : now + INTRO_MS;
+      this.awaitingBegin = true;
+      this.introUntil = 0;
     }
+    if (this.run.phase !== 'fight') this.storyOverlay = null;
     if (this.run.phase !== prev) {
       this.phaseSince = now;
+      if (this.run.phase === 'scene' || prev === 'scene') this.storyBox = 0;
       this.view?.onPhase(prev, this.run.phase);
     }
     this.syncClock(now);
-    this.audio.setTrack(this.run.bossFight ? 'boss' : 'battle');
-    this.saveRun();
+    this.audio.setTrack(this.track());
+    if (this.run.phase === 'victory') {
+      clearRunSave();
+      this.savedRun = null;
+    } else this.saveRun();
+  }
+
+  /** Battle theme in fights, the boss theme while a boss is alive, the map theme everywhere else. */
+  private track(): MusicTrack {
+    const r = this.run;
+    if (r.phase !== 'fight') return 'map';
+    return r.bossFight ? 'boss' : 'battle';
   }
 
   flush(): void {
@@ -250,6 +306,23 @@ export class App {
         case 'speedUp':
           a.speedUp();
           break;
+        case 'telegraph':
+          a.telegraph(e.sound as TellSound, e.sec);
+          break;
+        case 'freeze':
+          a.freeze();
+          break;
+        case 'phase': {
+          // a boss changes phase: its scene plays while the fight waits
+          const def = this.tuning.enemies[this.run.combat?.enemyById(e.enemyId)?.key ?? ''];
+          const scene = def?.phaseScenes?.[e.phase];
+          if (scene && STORY[scene]) {
+            this.storyOverlay = scene;
+            this.storyBox = 0;
+            this.syncClock(performance.now());
+          }
+          break;
+        }
         // 'kill' sounds play from the scene when the enemy actually bursts (after the finisher's last blow)
       }
     }

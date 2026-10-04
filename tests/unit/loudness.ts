@@ -1,5 +1,6 @@
 // Loudness measurement for rendered sounds: ITU-R BS.1770 K-weighting, short-window loudness, peak, and a crude
-// "phone speaker" filter (4th-order high-pass at 300 Hz: an iPhone speaker barely reproduces anything below).
+// "phone speaker" filter (4th-order high-pass at 300 Hz: an iPhone speaker barely reproduces anything below), a
+// windowed loudness envelope, and a coarse octave-band spectrogram to tell sounds apart by numbers.
 
 type Biquad = { b0: number; b1: number; b2: number; a1: number; a2: number };
 
@@ -97,6 +98,73 @@ export function measure(channels: Float32Array[], fs: number): Measure {
   const ph = stats([...phone, ...kw]);
   const low = stats([lowpass(fs, 100, 0.5412), lowpass(fs, 100, 1.3066)]);
   return { peak, loud: full.loud, mean: full.mean, energy: full.energy, phoneLoud: ph.loud, phoneMean: ph.mean, phoneEnergy: ph.energy, lowEnergy: low.energy };
+}
+
+function bandpass(fs: number, f0: number, q: number): Biquad {
+  const w = (2 * Math.PI * f0) / fs;
+  const alpha = Math.sin(w) / (2 * q);
+  const c = Math.cos(w);
+  const a0 = 1 + alpha;
+  return { b0: alpha / a0, b1: 0, b2: -alpha / a0, a1: (-2 * c) / a0, a2: (1 - alpha) / a0 };
+}
+
+/** Phone-speaker loudness (dB, K-weighted) of consecutive `win`-second windows from the start of the buffer. */
+export function envelope(channels: Float32Array[], fs: number, win = 0.05): number[] {
+  const filters = [highpass(fs, 300, 0.5412), highpass(fs, 300, 1.3066), ...kWeighting(fs)];
+  const sq = new Float64Array(channels[0].length);
+  for (const ch of channels) {
+    let y = ch;
+    for (const f of filters) y = run(y, f);
+    for (let i = 0; i < y.length; i++) sq[i] += y[i] * y[i];
+  }
+  const n = Math.round(fs * win);
+  const out: number[] = [];
+  for (let s = 0; s + n <= sq.length; s += n) {
+    let e = 0;
+    for (let i = s; i < s + n; i++) e += sq[i];
+    out.push(-0.691 + 10 * Math.log10(Math.max(e / n, 1e-12)));
+  }
+  return out;
+}
+
+/** Octave bands (center Hz) of the spectrogram below. */
+export const BANDS = [125, 250, 500, 1000, 2000, 4000, 8000];
+
+/** A coarse spectrogram: energy (dB) per octave band (rows, BANDS) per time slice (columns) of [t0, t1) seconds.
+ *  `phone`: as heard through the phone speaker filter (what's left of the 125 and 250 Hz bands is mostly gone). */
+export function spectrogram(channels: Float32Array[], fs: number, t0: number, t1: number, slices = 10, phone = false): number[][] {
+  if (phone) channels = channels.map((ch) => run(run(ch, highpass(fs, 300, 0.5412)), highpass(fs, 300, 1.3066)));
+  const i0 = Math.round(t0 * fs);
+  const i1 = Math.min(channels[0].length, Math.round(t1 * fs));
+  const per = Math.max(1, Math.floor((i1 - i0) / slices));
+  return BANDS.map((f) => {
+    const sq = new Float64Array(channels[0].length);
+    for (const ch of channels) {
+      const y = run(run(ch, bandpass(fs, f, 1.41)), bandpass(fs, f, 1.41));
+      for (let i = 0; i < y.length; i++) sq[i] += y[i] * y[i];
+    }
+    const row: number[] = [];
+    for (let k = 0; k < slices; k++) {
+      let e = 0;
+      for (let i = i0 + k * per; i < i0 + (k + 1) * per; i++) e += sq[i];
+      row.push(10 * Math.log10(Math.max(e / per, 1e-12)));
+    }
+    return row;
+  });
+}
+
+/** How different two spectrograms are (RMS dB over the cells), each normalised to its loudest cell and floored
+ *  `floor` dB under it, so level differences don't count but spectral shape and rhythm do. */
+export function spectralDistance(a: number[][], b: number[][], floor = 36): number {
+  const norm = (g: number[][]) => {
+    const max = Math.max(...g.flat());
+    return g.flat().map((v) => Math.max(-floor, v - max));
+  };
+  const x = norm(a);
+  const y = norm(b);
+  let sum = 0;
+  for (let i = 0; i < x.length; i++) sum += (x[i] - y[i]) ** 2;
+  return Math.sqrt(sum / x.length);
 }
 
 /** Seeded 0..1 random (mulberry32). */

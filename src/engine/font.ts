@@ -8,7 +8,7 @@
 // Glyph fills are pure white: BitmapText tint (multiply) recolors the fill and keeps the outline dark.
 // Text box (what Phaser measures, what origins refer to): top outline + caps + bottom outline + shadow,
 // i.e. FONT_BOLD_H = 10 and FONT_H = 8 at scale 1; descenders hang below the box.
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 
 export const FONT = 'px';
 export const FONT_BOLD = 'pxb';

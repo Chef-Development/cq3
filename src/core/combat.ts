@@ -1,28 +1,18 @@
 // Deterministic combat simulation. No Phaser imports: Phaser only renders this state and feeds input.
 // Time is in seconds of simulation time, advanced in fixed 1/120 s ticks.
 
+import type { FormationEntry, SpecialDef } from '../data/types';
+import { CODE_KIND, isAttack, isRed, type BlockKind } from './blocks';
 import { finisherShowMs } from './impact';
 import { Rng } from './rng';
+import { fireSpecial, placeEntry } from './specials';
 import type { BlockCode, Settings, Tuning } from './tuning';
+
+export { CODE_KIND, isAttack, isRed, type BlockKind } from './blocks';
 
 export const SIM_HZ = 120;
 export const DT = 1 / SIM_HZ;
 const HIST = 128; // ~1 s of cursor history for rewinding tap timestamps
-
-export type BlockKind = 'yellow' | 'green' | 'red' | 'shield' | 'bomb' | 'speed' | 'purple';
-
-export const CODE_KIND: Record<BlockCode, BlockKind> = {
-  Y: 'yellow',
-  G: 'green',
-  R: 'red',
-  S: 'shield',
-  B: 'bomb',
-  F: 'speed',
-  P: 'purple',
-};
-
-export const isRed = (k: BlockKind): boolean => k === 'red' || k === 'shield' || k === 'bomb' || k === 'speed';
-export const isAttack = (k: BlockKind): boolean => k === 'yellow' || k === 'green';
 
 export interface Block {
   id: number;
@@ -37,6 +27,8 @@ export interface Block {
   impactTimer: number; // -1 = sliding; >=0 = sitting at the left end, about to hit
   push: number; // distance still to slide right (finisher pushback or shield knockback; 0 = none)
   pushSpeed: number; // bar units per second while pushed
+  speed: number; // reds: times the normal travel speed (a Charge is 2)
+  heal: number; // spores: share of max HP the enemies heal if it expires unbroken
 }
 
 export interface Enemy {
@@ -50,6 +42,34 @@ export interface Enemy {
   alive: boolean;
   spawnTimer: number;
   seq: number;
+  phase: number; // boss phase (1 = the start)
+  uses: number[]; // per special: times it has fired
+  timers: number[]; // per special: seconds until a timed special may start again
+  shell: number; // attack-hit damage multiplier while its ward blocks stand (1 = no shell)
+  guard: number; // seconds its shield stays raised (yellow taps are countered)
+  protect: number; // damage multiplier while its linked summons live (1 = none)
+  summoner: number; // id of the enemy that summoned it with a link (0 = none); it flees if that one falls
+  split: boolean; // split into smaller enemies (gone, not killed)
+  fled: boolean; // its summoner fell and it ran off (gone, not killed)
+}
+
+/** A special being telegraphed: the enemy winds up for `total` seconds, then the special's actions fire. */
+export interface Telegraph {
+  enemyId: number;
+  index: number; // into the enemy's specials
+  left: number;
+  total: number;
+}
+
+/** An enemy as saved mid-fight (see core/save.ts). */
+export interface SavedFoe {
+  key: string;
+  hp: number; // 0 = dead or gone
+  maxHp: number;
+  phase: number;
+  uses: number[];
+  summoner: number; // index of its summoner in the saved list (-1 = none)
+  protect: number;
 }
 
 export interface Hero {
@@ -75,7 +95,7 @@ export function newHero(t: Tuning): Hero {
     bonusCritDmg: 0,
     bonusComboPower: 0,
     bonusPet: 0,
-    revives: t.hero.revivesPerLevel,
+    revives: t.hero.revivesPerAct,
     abilityTimer: 0,
   };
 }
@@ -98,17 +118,38 @@ export function phaseToPos(phase: number): number {
   return p <= 1 ? p : 2 - p;
 }
 
-export type RemoveReason = 'hit' | 'bomb' | 'expire' | 'impact' | 'owner' | 'revive' | 'finisher';
+export type RemoveReason = 'hit' | 'bomb' | 'expire' | 'impact' | 'owner' | 'revive' | 'finisher' | 'counter';
+export type HurtSource = 'red' | 'bomb' | 'trap' | 'miss' | 'counter';
 
 export type CombatEvent =
   | { type: 'hit'; kind: BlockKind; pos: number; perfect: boolean; crit: boolean; damage: number; enemyId: number; combo: number }
   | { type: 'block'; kind: BlockKind; pos: number; perfect: boolean; cracked: boolean; ownerId: number; combo: number; knock: number }
   | { type: 'trap'; pos: number; damage: number; enemyId: number }
+  | { type: 'counter'; pos: number; damage: number; enemyId: number }
+  | { type: 'wardBreak'; pos: number; enemyId: number; left: number; perfect: boolean; combo: number }
   | { type: 'miss'; pos: number; selfDamage: boolean }
   | { type: 'remove'; id: number; kind: BlockKind; pos: number; width: number; ownerId: number; reason: RemoveReason }
-  | { type: 'spawn'; id: number; kind: BlockKind; ownerId: number }
+  | { type: 'spawn'; id: number; kind: BlockKind; ownerId: number; special: boolean }
   | { type: 'windup'; enemyId: number }
-  | { type: 'heroHurt'; damage: number; source: 'red' | 'bomb' | 'trap' | 'miss'; enemyId: number }
+  | { type: 'telegraph'; enemyId: number; special: string; name: string; sound: string; sec: number }
+  | { type: 'tellCancel'; enemyId: number }
+  | { type: 'special'; enemyId: number; special: string }
+  | { type: 'enemyHeal'; enemyId: number; amount: number }
+  | { type: 'sporeHeal'; pos: number; enemyId: number }
+  | { type: 'shellOn'; enemyId: number }
+  | { type: 'shellOff'; enemyId: number }
+  | { type: 'guardOn'; enemyId: number; sec: number }
+  | { type: 'guardOff'; enemyId: number }
+  | { type: 'protectOn'; enemyId: number }
+  | { type: 'protectOff'; enemyId: number }
+  | { type: 'summon'; enemyId: number; ids: number[] }
+  | { type: 'split'; enemyId: number; ids: number[] }
+  | { type: 'flee'; enemyId: number }
+  | { type: 'freeze'; sec: number }
+  | { type: 'thaw' }
+  | { type: 'cursorFloor'; mult: number }
+  | { type: 'phase'; enemyId: number; phase: number }
+  | { type: 'heroHurt'; damage: number; source: HurtSource; enemyId: number }
   | { type: 'enemyHurt'; enemyId: number; damage: number; crit: boolean; source: 'hit' | 'bomb' | 'finisher' | 'pet' }
   | { type: 'heal'; amount: number }
   | { type: 'statGain'; enemyId: number; atk: number; maxHp: number; comboPower: number }
@@ -126,7 +167,7 @@ export type CombatEvent =
   | { type: 'hitStop'; ms: number }
   | { type: 'cursorReset' };
 
-export type TapOutcome = 'hit' | 'block' | 'crack' | 'trap' | 'miss' | 'none';
+export type TapOutcome = 'hit' | 'block' | 'crack' | 'trap' | 'counter' | 'ward' | 'miss' | 'none';
 
 export interface TapResult {
   outcome: TapOutcome;
@@ -151,9 +192,12 @@ export interface CombatOptions {
   seed: number;
   carry?: Partial<Carry>;
   spawning?: boolean; // false = no pattern spawns (tests)
+  specials?: boolean; // enemies use their special moves (default: same as spawning)
   /** Resume a saved fight: each enemy's HP (front first); 0 = already dead. */
   enemyHp?: number[];
-  /** The level's enemy scaling (LevelDef.hpMult / atkMult). */
+  /** Resume a saved fight with its summons, phases and used specials (replaces `enemies` / `enemyHp`). */
+  restore?: SavedFoe[];
+  /** The act's enemy scaling (and the map row's HP ramp). */
   hpMult?: number;
   atkMult?: number;
 }
@@ -172,6 +216,19 @@ export class Combat {
   stacks = 0; // banked finisher stacks
   /** Seconds the cursor stays stopped during the finisher; when it runs out the cursor restarts from the left. */
   cursorHold = 0;
+  /** Seconds the cursor stays frozen in place (a Stomp); taps still count, judged where it stands. */
+  freeze = 0;
+  /** The cursor speed multiplier never drops below this for the rest of the fight (an enraged boss). */
+  minSpeed = 0;
+  /** The special being telegraphed (one at a time, so each one can be read). */
+  telegraph: Telegraph | null = null;
+  /** Seconds until the next telegraph may start. */
+  tellCooldown = 0;
+  /** Formation blocks waiting for their delay (motion time) or for room on the bar. */
+  queue: Array<{ at: number; ownerId: number; entry: FormationEntry; tries: number }> = [];
+  specialsOn: boolean;
+  readonly hpMult: number;
+  readonly atkMult: number;
   blocks: Block[] = [];
   enemies: Enemy[];
   targetId: number | null = null;
@@ -179,6 +236,7 @@ export class Combat {
   killQueue: number[] = [];
   result: null | 'won' | 'lost' = null;
   spawning: boolean;
+  /** The fight started with more than one enemy (spawns come a little faster). */
   readonly groupFight: boolean;
   /** Attack hits since the companion last pecked. */
   petCharge = 0;
@@ -200,6 +258,9 @@ export class Combat {
     this.settings = o.settings;
     this.hero = o.hero;
     this.spawning = o.spawning ?? true;
+    this.specialsOn = o.specials ?? this.spawning;
+    this.hpMult = o.hpMult ?? 1;
+    this.atkMult = o.atkMult ?? 1;
     this.spawnRng = new Rng(o.seed);
     this.critRng = new Rng(o.seed ^ 0x5bd1e995);
     this.combo = o.carry?.combo ?? 0;
@@ -207,24 +268,26 @@ export class Combat {
     this.stacks = o.carry?.stacks ?? 0;
     this.speedStacks = o.carry?.speedStacks ?? 0;
     this.cursorPhase = o.carry?.cursorPhase ?? 0;
-    this.groupFight = o.enemies.length > 1;
-    this.enemies = o.enemies.map((key, slot) => {
-      const def = this.tuning.enemies[key];
-      if (!def) throw new Error(`Unknown enemy ${key}`);
-      return {
-        id: this.nextId++,
-        key,
-        slot,
-        hp: Math.max(1, Math.round(def.hp * (o.hpMult ?? 1))),
-        maxHp: Math.max(1, Math.round(def.hp * (o.hpMult ?? 1))),
-        atk: Math.round(def.atk * (o.atkMult ?? 1)),
-        special: Math.round(def.special * (o.atkMult ?? 1)),
-        alive: true,
-        spawnTimer: def.interval * 0.6 + slot * 0.35,
-        seq: 0,
-      };
-    });
-    if (o.enemyHp)
+    if (o.restore) {
+      this.enemies = o.restore.map((f, slot) => {
+        const e = this.makeEnemy(f.key, slot);
+        e.maxHp = Math.max(1, Math.round(f.maxHp));
+        e.hp = Math.max(0, Math.min(e.maxHp, Math.round(f.hp)));
+        e.alive = e.hp > 0;
+        e.phase = Math.max(1, Math.round(f.phase));
+        f.uses.forEach((u, i) => {
+          if (i < e.uses.length) e.uses[i] = Math.max(0, Math.round(u));
+        });
+        e.protect = f.protect > 0 && f.protect < 1 ? f.protect : 1;
+        return e;
+      });
+      o.restore.forEach((f, i) => {
+        const s = this.enemies[f.summoner];
+        if (s && f.summoner !== i) this.enemies[i].summoner = s.id;
+      });
+    } else this.enemies = o.enemies.map((key, slot) => this.makeEnemy(key, slot));
+    this.groupFight = this.enemies.length > 1;
+    if (o.enemyHp && !o.restore)
       this.enemies.forEach((e, i) => {
         const hp = o.enemyHp![i];
         if (hp === undefined || !Number.isFinite(hp)) return;
@@ -239,6 +302,54 @@ export class Combat {
     this.record();
   }
 
+  /** A fresh enemy of kind `key` (scaled by this fight's HP and attack multipliers). */
+  private makeEnemy(key: string, slot: number, hp?: number): Enemy {
+    const def = this.tuning.enemies[key];
+    if (!def) throw new Error(`Unknown enemy ${key}`);
+    const max = Math.max(1, Math.round(hp ?? def.hp * this.hpMult));
+    return {
+      id: this.nextId++,
+      key,
+      slot,
+      hp: max,
+      maxHp: max,
+      atk: Math.round(def.atk * this.atkMult),
+      special: Math.round(def.special * this.atkMult),
+      alive: true,
+      spawnTimer: def.interval * 0.6 + slot * 0.35,
+      seq: 0,
+      phase: 1,
+      uses: def.specials.map(() => 0),
+      timers: def.specials.map((sp) => (sp.every !== undefined ? (sp.first ?? sp.every) : 0)),
+      shell: 1,
+      guard: 0,
+      protect: 1,
+      summoner: 0,
+      split: false,
+      fled: false,
+    };
+  }
+
+  /**
+   * Bring a new enemy into the fight (a summon or a split). Returns null when the screen is full
+   * (tuning.specials.maxEnemies). It takes the first free slot, unless `slot` asks for one.
+   */
+  addEnemy(key: string, o: { summoner?: number; hp?: number; slot?: number } = {}): Enemy | null {
+    if (this.result || !this.tuning.enemies[key]) return null;
+    const alive = this.enemies.filter((e) => e.alive);
+    if (alive.length >= Math.max(1, Math.round(this.tuning.specials.maxEnemies))) return null;
+    let slot = o.slot ?? -1;
+    if (slot < 0 || alive.some((e) => e.slot === slot)) {
+      slot = 0;
+      while (alive.some((e) => e.slot === slot)) slot++;
+    }
+    const e = this.makeEnemy(key, slot, o.hp);
+    e.summoner = o.summoner ?? 0;
+    e.spawnTimer = this.tuning.enemies[key].interval * 0.8;
+    this.enemies.push(e);
+    return e;
+  }
+
   get time(): number {
     return this.tick * DT;
   }
@@ -248,7 +359,7 @@ export class Combat {
   speedMult(): number {
     const c = this.tuning.cursor;
     const m = (1 + c.speedPerHit * this.combo) * (1 + c.speedBlockBonus * this.speedStacks);
-    return Math.min(c.maxSpeedMult, m);
+    return Math.max(this.minSpeed, Math.min(c.maxSpeedMult, m));
   }
 
   /** Cursor speed in bar-widths per second (one pass = 1 unit of phase). */
@@ -257,7 +368,7 @@ export class Combat {
   }
 
   private phaseVelNow(): number {
-    return this.hitStop > 0 || this.result || this.cursorHold > 0 ? 0 : this.cursorSpeed();
+    return this.hitStop > 0 || this.result || this.cursorHold > 0 || this.freeze > 0 ? 0 : this.cursorSpeed();
   }
 
   private motionVelNow(): number {
@@ -330,11 +441,185 @@ export class Combat {
         this.cursorPhase = 0;
         this.events.push({ type: 'cursorReset' });
       }
+    } else if (this.freeze > 0) {
+      // frozen by a Stomp: it stays where it is, then moves on
+      this.freeze -= DT;
+      if (this.freeze <= 1e-9) {
+        this.freeze = 0;
+        this.events.push({ type: 'thaw' });
+      }
     } else this.cursorPhase += this.cursorSpeed() * DT;
     if (this.hero.abilityTimer > 0) this.hero.abilityTimer = Math.max(0, this.hero.abilityTimer - DT);
     this.updateBlocks();
+    if (!this.result) this.updateStatuses();
+    if (!this.result) this.updateQueue();
+    if (this.specialsOn && !this.result) this.updateSpecials();
     if (this.spawning && !this.result) this.updateSpawners();
     this.record();
+  }
+
+  // ---------------------------------------------------------------- specials
+
+  specialsOf(e: Enemy): SpecialDef[] {
+    return this.tuning.enemies[e.key]?.specials ?? [];
+  }
+
+  /** Whether special `i` of enemy `e` can be used in the enemy's current phase. */
+  inPhase(e: Enemy, i: number): boolean {
+    const sp = this.specialsOf(e)[i];
+    return !!sp && (!sp.phases || sp.phases.includes(e.phase));
+  }
+
+  /** Statuses run out: a raised guard drops, a shell with no ward blocks left ends, protection ends with its summons. */
+  private updateStatuses(): void {
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      if (e.guard > 0) {
+        e.guard -= DT;
+        if (e.guard <= 1e-9) {
+          e.guard = 0;
+          this.events.push({ type: 'guardOff', enemyId: e.id });
+        }
+      }
+      if (e.shell < 1 && !this.blocks.some((b) => b.kind === 'ward' && b.ownerId === e.id)) this.endShell(e);
+      if (e.protect < 1 && !this.summonsAlive(e.id)) {
+        e.protect = 1;
+        this.events.push({ type: 'protectOff', enemyId: e.id });
+      }
+    }
+  }
+
+  /** Delayed formation blocks land (or wait for room). */
+  private updateQueue(): void {
+    for (const q of this.queue.slice()) {
+      if (this.motionTime + 1e-9 < q.at) continue;
+      const owner = this.enemyById(q.ownerId);
+      if (!owner || !owner.alive) {
+        this.queue.splice(this.queue.indexOf(q), 1);
+        continue;
+      }
+      if (placeEntry(this, owner, q.entry, null) || q.tries++ >= 40) this.queue.splice(this.queue.indexOf(q), 1);
+      else q.at = this.motionTime + 0.05; // no room yet (a red at the spawn point): try again shortly
+    }
+  }
+
+  /** A telegraph counts down and fires; specials whose time has come start telegraphing. */
+  private updateSpecials(): void {
+    const tg = this.telegraph;
+    if (tg) {
+      const e = this.enemyById(tg.enemyId);
+      if (!e || !e.alive) {
+        this.telegraph = null;
+        this.events.push({ type: 'tellCancel', enemyId: tg.enemyId });
+      } else {
+        tg.left -= DT;
+        if (tg.left <= 1e-9) {
+          this.telegraph = null;
+          this.tellCooldown = this.tuning.specials.tellGap;
+          this.useSpecial(e, tg.index);
+        }
+      }
+    }
+    if (this.tellCooldown > 0) this.tellCooldown = Math.max(0, this.tellCooldown - DT);
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      const sps = this.specialsOf(e);
+      for (let i = 0; i < sps.length; i++) {
+        const sp = sps[i];
+        if (!this.inPhase(e, i)) continue;
+        if (sp.hpBelow !== undefined) {
+          if (!e.uses[i] && e.hp < sp.hpBelow * e.maxHp && this.canTelegraph(e, i)) this.startTelegraph(e, i);
+        } else if (sp.every !== undefined) {
+          if (this.telegraph?.enemyId !== e.id) e.timers[i] -= DT;
+          if (e.timers[i] <= 0 && this.canTelegraph(e, i)) this.startTelegraph(e, i);
+        }
+      }
+    }
+  }
+
+  private canTelegraph(e: Enemy, i: number): boolean {
+    if (this.telegraph || this.result) return false;
+    // a boss phase change cuts in line; everything else waits for the gap after the last special
+    const sp = this.specialsOf(e)[i];
+    return this.tellCooldown <= 0 || !!sp?.gate;
+  }
+
+  /** Start winding up special `i`: the view shows the pose, the name and plays the sound; the actions follow. */
+  startTelegraph(e: Enemy, i: number): void {
+    const sp = this.specialsOf(e)[i];
+    if (!sp || !e.alive) return;
+    const sec = Math.max(0, sp.tell);
+    this.telegraph = { enemyId: e.id, index: i, left: sec, total: sec };
+    this.events.push({ type: 'telegraph', enemyId: e.id, special: sp.id, name: sp.name, sound: sp.sound, sec });
+    if (sec <= 0) {
+      this.telegraph = null;
+      this.useSpecial(e, i);
+    }
+  }
+
+  /** Fire special `i` now (after its telegraph; tests call it directly). */
+  useSpecial(e: Enemy, i: number): void {
+    const sp = this.specialsOf(e)[i];
+    if (!sp || !e.alive || this.result) return;
+    e.uses[i]++;
+    if (sp.every !== undefined) {
+      const j = this.tuning.specials.jitter;
+      e.timers[i] = sp.every * (1 + j * (2 * this.spawnRng.next() - 1));
+    }
+    this.events.push({ type: 'special', enemyId: e.id, special: sp.id });
+    fireSpecial(this, e, sp);
+  }
+
+  /** Random number from the fight's spawn stream (formation placement uses it). */
+  rand(): number {
+    return this.spawnRng.next();
+  }
+
+  /** Whether `id` has living linked summons. */
+  summonsAlive(id: number): boolean {
+    return this.enemies.some((x) => x.alive && x.summoner === id);
+  }
+
+  /** Heal an enemy (never above its max HP). */
+  healEnemy(e: Enemy, amount: number): void {
+    if (!e.alive) return;
+    const heal = Math.min(e.maxHp - e.hp, Math.max(0, Math.round(amount)));
+    if (heal <= 0) return;
+    e.hp += heal;
+    this.events.push({ type: 'enemyHeal', enemyId: e.id, amount: heal });
+  }
+
+  endShell(e: Enemy): void {
+    if (e.shell >= 1) return;
+    e.shell = 1;
+    for (const b of this.blocks.slice()) if (b.kind === 'ward' && b.ownerId === e.id) this.removeBlock(b, 'owner');
+    this.events.push({ type: 'shellOff', enemyId: e.id });
+  }
+
+  /** Remove an enemy without a kill (it split, or fled): its pending attacks go with it, or to `heir`. */
+  retire(e: Enemy, how: 'split' | 'fled', heir?: Enemy): void {
+    if (!e.alive) return;
+    e.alive = false;
+    e.hp = 0;
+    if (how === 'split') e.split = true;
+    else e.fled = true;
+    if (this.telegraph?.enemyId === e.id) this.telegraph = null;
+    for (const b of this.blocks.slice()) {
+      if (b.ownerId !== e.id || isAttack(b.kind)) continue;
+      if (heir) b.ownerId = heir.id;
+      else this.removeBlock(b, 'owner');
+    }
+    this.queue = this.queue.filter((q) => q.ownerId !== e.id || !!heir);
+    for (const q of this.queue) if (q.ownerId === e.id && heir) q.ownerId = heir.id;
+    if (how === 'fled') this.events.push({ type: 'flee', enemyId: e.id });
+    this.checkWon();
+  }
+
+  private checkWon(): void {
+    if (!this.result && this.enemies.every((x) => !x.alive)) {
+      this.result = 'won';
+      this.events.push({ type: 'won' });
+    }
   }
 
   private updateBlocks(): void {
@@ -349,9 +634,9 @@ export class Combat {
           b.push -= d;
           if (b.push < 1e-9) b.push = 0;
           b.pos = Math.min(1 - half, b.pos + d);
-          b.vel = b.push > 0 ? b.pushSpeed : -(1 - b.width) / B.redTravelSec;
+          b.vel = b.push > 0 ? b.pushSpeed : this.redVel(b.width, b.speed);
         } else if (b.impactTimer < 0) {
-          b.vel = -(1 - b.width) / B.redTravelSec;
+          b.vel = this.redVel(b.width, b.speed);
           b.pos += b.vel * DT;
           if (b.pos <= half) {
             b.pos = half;
@@ -364,9 +649,25 @@ export class Combat {
         }
       } else if (b.life !== Infinity) {
         b.life -= DT;
-        if (b.life <= 0) this.removeBlock(b, 'expire');
+        if (b.life <= 0) {
+          this.removeBlock(b, 'expire');
+          if (b.kind === 'spore') this.sporeHeal(b);
+        }
       }
     }
+  }
+
+  /** Red travel velocity (bar units per second, leftward) for a block of width w at `speed` times normal. */
+  redVel(w: number, speed = 1): number {
+    return (-(1 - w) / this.tuning.blocks.redTravelSec) * Math.max(0.1, speed);
+  }
+
+  /** A spore left unbroken: its enemy and that enemy's allies heal. */
+  private sporeHeal(b: Block): void {
+    const owner = this.enemyById(b.ownerId);
+    if (!owner || !owner.alive || b.heal <= 0) return;
+    this.events.push({ type: 'sporeHeal', pos: b.pos, enemyId: owner.id });
+    for (const e of this.enemies) if (e.alive) this.healEnemy(e, e.maxHp * b.heal);
   }
 
   private impact(b: Block): void {
@@ -388,7 +689,7 @@ export class Combat {
       if (front && attacks < B.minAttack && this.trySpawn('yellow', front.id)) this.refillTimer = 0.12;
     }
     for (const e of this.enemies) {
-      if (!e.alive) continue;
+      if (!e.alive || this.telegraph?.enemyId === e.id) continue; // busy winding up a special
       e.spawnTimer -= DT;
       if (e.spawnTimer > 0) continue;
       const def = this.tuning.enemies[e.key];
@@ -429,17 +730,24 @@ export class Combat {
     }
     const statics = this.blocks.filter((b) => !isRed(b.kind));
     if (statics.length >= B.maxStatic) return false;
+    const p = this.freeSpot(w);
+    if (p === null) return false;
+    this.spawnBlock(kind, p, ownerId, w);
+    return true;
+  }
+
+  /** A random spot (block center) where a static block of width w fits without touching the others, or null. */
+  freeSpot(w: number, tries = 16): number | null {
+    const B = this.tuning.blocks;
+    const statics = this.blocks.filter((b) => !isRed(b.kind));
     const lo = B.edgeMargin + w / 2;
     const hi = 1 - B.edgeMargin - w / 2;
-    if (hi < lo) return false;
-    for (let tries = 0; tries < 16; tries++) {
+    if (hi < lo) return null;
+    for (let k = 0; k < tries; k++) {
       const p = this.spawnRng.range(lo, hi);
-      if (statics.every((s) => Math.abs(s.pos - p) >= (s.width + w) / 2 + B.minGap)) {
-        this.spawnBlock(kind, p, ownerId, w);
-        return true;
-      }
+      if (statics.every((s) => Math.abs(s.pos - p) >= (s.width + w) / 2 + B.minGap)) return p;
     }
-    return false;
+    return null;
   }
 
   /** A kind's base width (spawns vary around it, see trySpawn). */
@@ -448,30 +756,44 @@ export class Combat {
     return isRed(kind) ? B.redWidth : kind === 'purple' ? B.trapWidth : kind === 'green' ? B.greenWidth : B.attackWidth;
   }
 
+  /** Queue a formation block to land after `delay` seconds (motion time). */
+  enqueue(ownerId: number, entry: FormationEntry, delay: number): void {
+    this.queue.push({ at: this.motionTime + Math.max(0, delay), ownerId, entry, tries: 0 });
+  }
+
   /** Place a block directly (also used by tests and the debug panel). Width defaults to the kind's base width. */
-  spawnBlock(kind: BlockKind, pos: number, ownerId: number = this.enemies[0]?.id ?? 0, width = this.widthFor(kind)): Block {
+  spawnBlock(
+    kind: BlockKind,
+    pos: number,
+    ownerId: number = this.enemies[0]?.id ?? 0,
+    width = this.widthFor(kind),
+    o: { speed?: number; taps?: number; life?: number; heal?: number; special?: boolean } = {},
+  ): Block {
     const B = this.tuning.blocks;
+    const speed = o.speed ?? 1;
     const b: Block = {
       id: this.nextId++,
       kind,
       ownerId,
       pos: Math.min(1 - width / 2, Math.max(width / 2, pos)),
       width,
-      vel: isRed(kind) ? -(1 - width) / B.redTravelSec : 0,
-      taps: kind === 'shield' ? Math.max(1, Math.round(B.shieldHits)) : 1,
+      vel: isRed(kind) ? this.redVel(width, speed) : 0,
+      taps: o.taps ?? (kind === 'shield' ? Math.max(1, Math.round(B.shieldHits)) : 1),
       bornAt: this.time,
-      life: kind === 'purple' ? B.trapLifeSec : isAttack(kind) && B.attackLifeSec > 0 ? B.attackLifeSec : Infinity,
+      life: o.life ?? (kind === 'purple' ? B.trapLifeSec : isAttack(kind) && B.attackLifeSec > 0 ? B.attackLifeSec : Infinity),
       impactTimer: -1,
       push: 0,
       pushSpeed: 0,
+      speed,
+      heal: o.heal ?? 0,
     };
     this.blocks.push(b);
-    this.events.push({ type: 'spawn', id: b.id, kind, ownerId });
-    if (isRed(kind)) this.events.push({ type: 'windup', enemyId: ownerId });
+    this.events.push({ type: 'spawn', id: b.id, kind, ownerId, special: !!o.special });
+    if (isRed(kind) && !o.special) this.events.push({ type: 'windup', enemyId: ownerId });
     return b;
   }
 
-  private removeBlock(b: Block, reason: RemoveReason): void {
+  removeBlock(b: Block, reason: RemoveReason): void {
     const i = this.blocks.indexOf(b);
     if (i < 0) return;
     this.blocks.splice(i, 1);
@@ -497,8 +819,10 @@ export class Combat {
     let outcome: TapOutcome;
     if (chosen.kind === 'purple') outcome = this.triggerTrap(chosen);
     else if (isRed(chosen.kind)) outcome = this.blockRed(chosen, perfect);
+    else if (chosen.kind === 'yellow' && this.guarder()) outcome = this.counter(chosen);
+    else if (chosen.kind === 'ward') outcome = this.breakWard(chosen, perfect);
     else outcome = this.hitAttack(chosen, perfect);
-    return { outcome, perfect: outcome === 'trap' ? false : perfect, cursorPos: cpos, blockId: chosen.id };
+    return { outcome, perfect: outcome === 'trap' || outcome === 'counter' ? false : perfect, cursorPos: cpos, blockId: chosen.id };
   }
 
   /** The block a tap at time t would land on (nearest under the cursor; purple only if nothing else is). */
@@ -614,9 +938,36 @@ export class Combat {
     } else {
       b.pos = target;
       b.push = 0;
-      b.vel = -(1 - b.width) / this.tuning.blocks.redTravelSec;
+      b.vel = this.redVel(b.width, b.speed);
     }
     return moved;
+  }
+
+  /** The living enemy whose shield is raised (Guard), if any. */
+  guarder(): Enemy | null {
+    return this.enemies.find((e) => e.alive && e.guard > 0) ?? null;
+  }
+
+  /** A yellow tapped while a shield is raised: countered like a purple trap. */
+  private counter(b: Block): TapOutcome {
+    const g = this.guarder()!;
+    this.removeBlock(b, 'counter');
+    this.events.push({ type: 'counter', pos: b.pos, damage: g.special, enemyId: g.id });
+    this.heroDamage(g.special, 'counter', g.id);
+    return 'counter';
+  }
+
+  /** A shell block broken: counts toward the combo; when the last one goes, the shell is off. */
+  private breakWard(b: Block, perfect: boolean): TapOutcome {
+    const T = this.tuning;
+    this.removeBlock(b, 'hit');
+    this.combo++;
+    this.addMeter(T.meter.perHit + (perfect ? T.meter.perfectBonus : 0));
+    const left = this.blocks.filter((x) => x.kind === 'ward' && x.ownerId === b.ownerId).length;
+    this.events.push({ type: 'wardBreak', pos: b.pos, enemyId: b.ownerId, left, perfect, combo: this.combo });
+    const owner = this.enemyById(b.ownerId);
+    if (owner && left === 0) this.endShell(owner);
+    return 'ward';
   }
 
   private triggerTrap(b: Block): TapOutcome {
@@ -728,7 +1079,7 @@ export class Combat {
     this.stacks = 0;
   }
 
-  private heroDamage(amount: number, source: 'red' | 'bomb' | 'trap' | 'miss', enemyId: number): void {
+  private heroDamage(amount: number, source: HurtSource, enemyId: number): void {
     const H = this.hero;
     const dmg = this.settings.godMode ? 0 : Math.max(0, Math.round(amount));
     H.hp = Math.max(0, H.hp - dmg);
@@ -761,13 +1112,38 @@ export class Combat {
     this.damageEnemy(target, dmg, false, 'pet');
   }
 
+  /** Damage after shells (attack hits) and summon protection. */
+  damageTaken(e: Enemy, dmg: number, source: 'hit' | 'bomb' | 'finisher' | 'pet'): number {
+    let mult = 1;
+    if (source === 'hit' && e.shell < 1) mult *= e.shell;
+    if (e.protect < 1 && this.summonsAlive(e.id)) mult *= e.protect;
+    return mult === 1 ? dmg : Math.max(1, Math.round(dmg * mult));
+  }
+
+  /** HP an enemy can't be taken below yet: a boss phase change (a gated special) has to fire first. */
+  hpFloor(e: Enemy): number {
+    let floor = 0;
+    this.specialsOf(e).forEach((sp, i) => {
+      if (sp.gate && sp.hpBelow !== undefined && !e.uses[i]) floor = Math.max(floor, Math.ceil(sp.hpBelow * e.maxHp) - 1);
+    });
+    return floor;
+  }
+
   private damageEnemy(e: Enemy, dmg: number, crit: boolean, source: 'hit' | 'bomb' | 'finisher' | 'pet'): void {
     if (!e.alive) return;
-    e.hp = Math.max(0, e.hp - dmg);
+    dmg = this.damageTaken(e, dmg, source);
+    const floor = Math.min(e.hp, this.hpFloor(e));
+    const dealt = Math.min(dmg, e.hp - floor);
+    e.hp -= dealt;
     this.events.push({ type: 'enemyHurt', enemyId: e.id, damage: dmg, crit, source });
     if (e.hp > 0) return;
     e.alive = false;
+    if (this.telegraph?.enemyId === e.id) {
+      this.telegraph = null;
+      this.events.push({ type: 'tellCancel', enemyId: e.id });
+    }
     for (const b of this.blocks.slice()) if (b.ownerId === e.id && !isAttack(b.kind)) this.removeBlock(b, 'owner');
+    this.queue = this.queue.filter((q) => q.ownerId !== e.id);
     this.events.push({ type: 'kill', enemyId: e.id });
     // kill rewards: permanent stat gains for the rest of the run
     const K = this.tuning.kill;
@@ -784,10 +1160,22 @@ export class Combat {
       this.events.push({ type: 'heal', amount: heal });
     }
     this.killQueue.push(e.id);
-    if (this.enemies.every((x) => !x.alive)) {
-      this.result = 'won';
-      this.events.push({ type: 'won' });
-    }
+    // linked summons run off when their summoner falls
+    for (const x of this.enemies) if (x.alive && x.summoner === e.id) this.retire(x, 'fled');
+    this.checkWon();
+  }
+
+  /** The enemies as they stand, for a mid-fight save (summons and splits included; gone ones saved with 0 HP). */
+  saveFoes(): SavedFoe[] {
+    return this.enemies.map((e) => ({
+      key: e.key,
+      hp: e.alive ? e.hp : 0,
+      maxHp: e.maxHp,
+      phase: e.phase,
+      uses: e.uses.slice(),
+      summoner: e.summoner ? this.enemies.findIndex((x) => x.id === e.summoner) : -1,
+      protect: e.protect,
+    }));
   }
 
   carry(): Carry {

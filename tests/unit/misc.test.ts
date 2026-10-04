@@ -68,9 +68,12 @@ describe('tuning data', () => {
 
   it('enemy patterns only use the blocks each enemy is meant to have', () => {
     const t = DEFAULT_TUNING.enemies;
+    for (const e of Object.values(t)) expect([...e.pattern].every((ch) => 'YGRSBFP'.includes(ch)), e.name).toBe(true);
     expect(new Set(t.slime.pattern)).toEqual(new Set(['Y', 'G', 'R']));
-    expect(new Set(t.boar.pattern)).toEqual(new Set(['Y', 'G', 'R', 'S', 'F']));
-    expect(new Set(t.bandit.pattern)).toEqual(new Set(['Y', 'G', 'R', 'P', 'B']));
+    expect(new Set(t.boar.pattern)).toEqual(new Set(['Y', 'G', 'R', 'S']));
+    expect(new Set(t.bandit.pattern)).toEqual(new Set(['Y', 'G', 'R', 'P']));
+    expect(t.captain.pattern).toContain('B'); // the captain throws bombs
+    expect(t.golem.pattern).toContain('S'); // the golem builds walls
     expect(new Set(t.bigSlime.pattern)).toEqual(new Set(['Y', 'G', 'R', 'S', 'B', 'F', 'P']));
   });
 });

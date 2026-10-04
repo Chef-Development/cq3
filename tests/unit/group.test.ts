@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { rarityMult, Run } from '../../src/core/run';
-import { cloneTuning, DEFAULT_SETTINGS } from '../../src/core/tuning';
 import { setup, timeAt } from './helpers';
 
 const group = ['slime', 'slime', 'bandit'];
@@ -72,127 +70,6 @@ describe('group targeting', () => {
   });
 });
 
-describe('run flow: boosts, stages, revive', () => {
-  const make = () => {
-    const t = cloneTuning();
-    t.hero.critChance = 0;
-    t.juice.hitStopMs = 0;
-    t.enemies.slime.hp = 150; // a 5-stack finisher kills it outright
-    return new Run(t, { ...DEFAULT_SETTINGS }, 7);
-  };
-
-  it('kill -> pick 1 of 3 boosts -> next enemy, boosts persist', () => {
-    const r = make();
-    r.startLevel(0);
-    const c = r.combat!;
-    c.stacks = 5;
-    c.finisher();
-    r.sync();
-    expect(r.phase).toBe('boost');
-    expect(r.boostChoices).toHaveLength(3);
-    expect(new Set(r.boostChoices.map((b) => b.id)).size).toBe(3);
-    const i = r.boostChoices.findIndex((b) => b.id === 'damage');
-    const offer = r.boostChoices[i >= 0 ? i : 0];
-    r.pickBoost(i >= 0 ? i : 0);
-    expect(r.phase).toBe('fight');
-    expect(r.stageIndex).toBe(1);
-    expect(r.combat!.enemies[0].key).toBe('boar');
-    if (i >= 0) expect(r.hero.bonusDmg).toBeCloseTo(r.tuning.boosts.damage * rarityMult(r.tuning, offer.rarity));
-  });
-
-  it('group: a kill shows boosts then resumes the same fight', () => {
-    const r = make();
-    r.startLevel(1, 2); // three enemies at once
-    const c = r.combat!;
-    expect(c.enemies).toHaveLength(3);
-    c.enemies[0].hp = 1;
-    c.spawnBlock('yellow', 0.5);
-    c.advanceTo(1);
-    c.tap(0.7);
-    r.sync();
-    expect(r.phase).toBe('boost');
-    r.pickBoost(0);
-    expect(r.phase).toBe('fight');
-    expect(r.combat).toBe(c);
-  });
-
-  it('later levels scale enemy HP and attack', () => {
-    const r = make();
-    r.startLevel(1, 2);
-    const L = r.tuning.levels[1];
-    const e = r.combat!.enemies.find((x) => x.key === 'bandit')!;
-    expect(e.maxHp).toBe(Math.round(r.tuning.enemies.bandit.hp * L.hpMult));
-    expect(e.atk).toBe(Math.round(r.tuning.enemies.bandit.atk * L.atkMult));
-  });
-
-  it('the hero carries their upgrades into the next level, rested; a retry starts from there', () => {
-    const r = make();
-    r.startLevel(0, 3);
-    r.hero.bonusAtk = 3;
-    r.hero.bonusMaxHp = 15;
-    r.hero.hp = 20;
-    r.hero.revives = 0;
-    r.nextLevel();
-    expect(r.levelIndex).toBe(1);
-    expect(r.hero.bonusAtk).toBe(3);
-    expect(r.hero.hp).toBe(115);
-    expect(r.hero.revives).toBe(r.tuning.hero.revivesPerLevel);
-    r.hero.bonusAtk = 9;
-    r.hero.hp = 1;
-    r.retry();
-    expect(r.hero.bonusAtk).toBe(3);
-    expect(r.hero.hp).toBe(115);
-    r.nextLevel(); // past the last level: a new run
-    expect(r.levelIndex).toBe(0);
-    expect(r.hero.bonusAtk).toBe(0);
-  });
-
-  it('boost effects', () => {
-    const r = make();
-    r.startLevel(0);
-    r.hero.hp = 10;
-    r.phase = 'boost';
-    r.pendingBoosts = 2;
-    r.boostChoices = [
-      { id: 'heal', rarity: 'common' },
-      { id: 'maxHp', rarity: 'common' },
-      { id: 'crit', rarity: 'common' },
-    ];
-    r.pickBoost(0);
-    expect(r.hero.hp).toBe(100);
-    r.boostChoices = [
-      { id: 'maxHp', rarity: 'common' },
-      { id: 'crit', rarity: 'common' },
-      { id: 'critDmg', rarity: 'common' },
-    ];
-    r.pickBoost(0);
-    expect(r.hero.hp).toBe(120);
-  });
-
-  it('one revive per level, then defeat', () => {
-    const r = make();
-    r.startLevel(0);
-    const c = r.combat!;
-    c.spawning = false;
-    r.hero.hp = 1;
-    c.spawnBlock('red', 0.05);
-    c.advanceTo(0.5);
-    r.sync();
-    expect(r.phase).toBe('fight');
-    expect(r.hero.hp).toBe(50);
-    expect(r.hero.revives).toBe(0);
-    r.hero.hp = 1;
-    c.spawnBlock('red', 0.05);
-    c.advanceTo(1);
-    r.sync();
-    expect(r.phase).toBe('defeat');
-    r.retry();
-    expect(r.phase).toBe('fight');
-    expect(r.hero.revives).toBe(1);
-    expect(r.hero.hp).toBe(100);
-  });
-});
-
 describe('kill rewards and companion', () => {
   it('every kill permanently raises attack, max HP and combo power', () => {
     const { c, t } = setup({ enemies: ['slime', 'slime'], tune: (t) => ((t.kill.atk = 1), (t.kill.maxHp = 5), (t.kill.comboPower = 0.5)) });
@@ -241,18 +118,5 @@ describe('kill rewards and companion', () => {
     c.tap(timeAt(t, 0.53));
     expect(c.enemies[0].hp).toBe(80 - 10 - 10 - 6);
     expect(c.drainEvents().filter((e) => e.type === 'pet')).toHaveLength(1);
-  });
-
-  it('collects coins for every kill across the run', () => {
-    const t = cloneTuning();
-    t.juice.hitStopMs = 0;
-    t.enemies.slime.hp = 150; // a 5-stack finisher kills it outright
-    const r = new Run(t, { ...DEFAULT_SETTINGS }, 3);
-    r.startLevel(0);
-    const c = r.combat!;
-    c.stacks = 5;
-    c.finisher();
-    r.sync();
-    expect(r.coins).toBe(t.enemies.slime.coins);
   });
 });

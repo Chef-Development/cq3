@@ -7,8 +7,9 @@ const TUNING_KEY = 'cq3.tuning.v2';
 // v2: the finisher became a swipe by default, so older saved settings drop their finisher choice.
 const SETTINGS_KEY = 'cq3.settings.v2';
 const OLD_SETTINGS_KEY = 'cq3.settings.v1';
-// The run in progress (see core/save.ts).
-const RUN_KEY = 'cq3.run.v1';
+// The run in progress (see core/save.ts). v3: Greenmarch's acts; runs saved by the level builds are dropped.
+const RUN_KEY = 'cq3.run.v3';
+const OLD_RUN_KEY = 'cq3.run.v1';
 
 function read(key: string): unknown {
   try {
@@ -31,11 +32,6 @@ export function loadTuning(): Tuning {
   const t = cloneTuning();
   const saved = read(TUNING_KEY);
   if (saved) mergeKnown(t, saved);
-  // levels saved before they had difficulty multipliers
-  for (const l of t.levels) {
-    l.hpMult ??= 1;
-    l.atkMult ??= 1;
-  }
   return t;
 }
 
@@ -78,6 +74,11 @@ export function loadRunSave(t: Tuning): RunSave | null {
 
 export function writeRunSave(s: RunSave): void {
   write(RUN_KEY, s);
+  try {
+    window.localStorage.removeItem(OLD_RUN_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function clearRunSave(): void {

@@ -2,12 +2,15 @@
 // it aims at whichever block the cursor reaches next (never a purple trap on purpose), taps no faster than a
 // thumb can, and a share of its taps equal to its accuracy are well timed (landing inside the block, often in
 // the perfect zone). The rest are mistimed by 60-200 ms and land wherever they land: empty bar, a trap, another
-// block. Accuracy slips a little as the cursor speeds up. It swipes the finisher when it would kill, at max
-// stacks, or when holding on for one more stack isn't worth the risk of a combo break losing them all (judged
-// from how often its own combos have been breaking). From the boost cards it takes Full Heal when hurt, otherwise
-// the rarest card.
+// block. Accuracy slips a little as the cursor speeds up. It reads telegraphs like a person: it holds off yellow
+// while a shield is raised (as often as its accuracy) and waits out a frozen cursor. It swipes the finisher when
+// it would kill, at max stacks, or when holding on for one more stack isn't worth the risk of a combo break.
+// Between fights it walks the act's map picking nodes at random, takes Full Heal when hurt (otherwise the rarest
+// card), rests, buys what it can afford at shops, and picks event choices at random.
 
-import { DT, type Combat, type CombatEvent } from './combat';
+import { eventById } from '../data/events';
+import type { NodeType } from '../data/types';
+import { DT, heroMaxHp, type Combat, type CombatEvent } from './combat';
 import { Rng } from './rng';
 import { RARITIES, Run } from './run';
 import { DEFAULT_SETTINGS, type Settings, type Tuning } from './tuning';
@@ -17,15 +20,17 @@ export interface BotOptions {
   seed: number;
   gapMs?: number; // fastest tap rate (ms between taps)
   speedPenalty?: number; // accuracy lost per 1x of cursor speed above base
-  maxStageSec?: number; // a stage running longer than this counts as a loss
+  maxStageSec?: number; // a fight running longer than this counts as a loss
 }
 
-export interface StageStats {
-  stage: number;
+export interface FightStats {
+  act: number;
+  row: number;
+  type: NodeType; // fight, elite or boss
   enemies: string[];
   boss: boolean;
   won: boolean;
-  seconds: number; // sim time from the start of the stage to its last kill
+  seconds: number; // sim time from the start of the fight to its end
   damage: number; // HP actually removed from enemies
   finisherDamage: number;
   finishers: number;
@@ -34,99 +39,146 @@ export interface StageStats {
   misses: number;
   perfects: number;
   traps: number;
+  counters: number; // yellow taps countered by a raised shield
+  specials: number; // enemy specials fired
   hitsTaken: number;
-  heroAtk: number; // attack and combo power going into the stage (kill growth and boosts included)
+  heroAtk: number; // attack and combo power going into the fight
   comboPower: number;
-  /** Boss stages: boss HP divided by what one max-stack finisher would deal at the stage's start. */
+  hpStart: number; // hero HP share going in, and coming out
+  hpEnd: number;
+  /** Boss fights: boss HP divided by what one max-stack finisher would deal at the fight's start. */
   bossVsMaxFinisher?: number;
 }
 
-export interface LevelStats {
-  level: number;
+export interface ActAttempt {
+  act: number;
   won: boolean;
-  stages: StageStats[];
+  fights: FightStats[];
+  nodes: NodeType[]; // the path walked
   revivesUsed: number;
+  reachedBoss: boolean;
+  lostAt: NodeType | null;
 }
 
 const BOT_SETTINGS: Settings = { ...DEFAULT_SETTINGS, mode: 'classic', comboTiers: false, targeting: 'auto', godMode: false };
 
-/** Play one level from its first stage with a fresh hero. */
-export function playLevel(tuning: Tuning, levelIndex: number, o: BotOptions): LevelStats {
-  const rng = new Rng(o.seed ^ 0x2545f491);
-  const run = new Run(tuning, { ...BOT_SETTINGS }, o.seed);
-  run.startLevel(levelIndex);
-  return playAttempt(run, rng, o);
+export interface RunStats {
+  /** Per act reached: every attempt (a retry from the act's start follows each defeat) and whether it was cleared. */
+  acts: Array<{ act: number; attempts: ActAttempt[]; cleared: boolean }>;
 }
 
-export interface RunStats {
-  /** Per level reached: every attempt (a retry follows each defeat) and whether it was cleared. */
-  levels: Array<{ level: number; attempts: LevelStats[]; cleared: boolean }>;
+/** A new run that skips the opening scenes (ready on Act 1's map). */
+export function botRun(tuning: Tuning, seed: number): Run {
+  const run = new Run(tuning, { ...BOT_SETTINGS }, seed);
+  run.newRun();
+  run.skipScenes();
+  return run;
 }
 
 /**
- * Play a whole run the way a person would: Level 1 with a fresh hero, retrying after a defeat (with the hero as
- * they entered the level), then each next level with the hero and upgrades they earned. Gives up on a level
- * after `maxAttempts`.
+ * Play the whole region the way a person would: each act from its start, retrying from the act's start after a
+ * defeat (with the hero as they entered it), then on to the next act with the upgrades earned. Gives up on an
+ * act after `maxAttempts`.
  */
-export function playRun(tuning: Tuning, o: BotOptions, maxAttempts = 6): RunStats {
+export function playRun(tuning: Tuning, o: BotOptions, maxAttempts = 6, acts = tuning.acts.length): RunStats {
   const rng = new Rng(o.seed ^ 0x2545f491);
-  const run = new Run(tuning, { ...BOT_SETTINGS }, o.seed);
-  run.startLevel(0);
-  const out: RunStats = { levels: [] };
-  for (let L = 0; L < tuning.levels.length; L++) {
-    const entry = { level: L, attempts: [] as LevelStats[], cleared: false };
-    out.levels.push(entry);
-    for (let a = 0; a < maxAttempts && !entry.cleared; a++) {
-      if (a > 0) run.retry();
-      const res = playAttempt(run, rng, o);
+  const run = botRun(tuning, o.seed);
+  const out: RunStats = { acts: [] };
+  for (let a = 0; a < acts; a++) {
+    const entry = { act: a, attempts: [] as ActAttempt[], cleared: false };
+    out.acts.push(entry);
+    for (let k = 0; k < maxAttempts && !entry.cleared; k++) {
+      if (k > 0) run.retry();
+      const res = playAct(run, rng, o);
       entry.attempts.push(res);
       entry.cleared = res.won;
     }
     if (!entry.cleared) break;
-    if (L + 1 < tuning.levels.length) run.nextLevel();
+    if (run.phase === 'actClear') {
+      run.nextAct();
+      run.skipScenes();
+    }
   }
   return out;
 }
 
-/** From the start of a level until it is cleared, lost or a stage times out. */
-function playAttempt(run: Run, rng: Rng, o: BotOptions): LevelStats {
-  const tuning = run.tuning;
-  const out: LevelStats = { level: run.levelIndex, won: false, stages: [], revivesUsed: 0 };
+/** One attempt at the current act, from wherever the run stands until the act is cleared or lost. */
+export function playAct(run: Run, rng: Rng, o: BotOptions): ActAttempt {
+  const T = run.tuning;
+  const out: ActAttempt = { act: run.actIndex, won: false, fights: [], nodes: [], revivesUsed: 0, reachedBoss: false, lostAt: null };
   const startRevives = run.hero.revives;
-  let guard = 0;
-  while (guard++ < 100) {
-    if (run.phase === 'fight') {
-      const c = run.combat!;
-      let st = out.stages.find((s) => s.stage === run.stageIndex);
-      if (!st) {
-        st = newStage(run, c);
-        out.stages.push(st);
+  for (let guard = 0; guard < 200; guard++) {
+    const ph = run.phase;
+    if (ph === 'scene') run.skipScenes();
+    else if (ph === 'map') {
+      const ch = run.choices();
+      run.chooseNode(ch[rng.int(ch.length)]);
+      const n = run.node!;
+      out.nodes.push(n.type);
+      if (n.type === 'boss') out.reachedBoss = true;
+    } else if (ph === 'fight') {
+      const st = fight(run, run.combat!, rng, o);
+      out.fights.push(st);
+      if (run.phase === 'fight') {
+        run.phase = 'defeat'; // timed out
       }
-      fight(run, c, st, rng, o);
-      if (run.phase === 'fight') break; // timed out
-    } else if (run.phase === 'boost') {
+    } else if (ph === 'boost') {
       // Full Heal when hurt; otherwise the strongest card, a random one among equals
       const offers = run.boostChoices;
       const heal = offers.findIndex((b) => b.id === 'heal');
-      const hurt = run.hero.hp < (tuning.hero.maxHp + run.hero.bonusMaxHp) * 0.5;
+      const hurt = run.hero.hp < heroMaxHp(T, run.hero) * 0.5;
       const rank = (i: number) => RARITIES.indexOf(offers[i].rarity);
       const best = Math.max(...offers.map((_, i) => rank(i)));
       const top = offers.map((_, i) => i).filter((i) => rank(i) === best);
       run.pickBoost(hurt && heal >= 0 ? heal : top[rng.int(top.length)]);
-    } else {
-      out.won = run.phase === 'levelClear';
+    } else if (ph === 'treasure') run.openTreasure();
+    else if (ph === 'rest') run.rest();
+    else if (ph === 'shop') {
+      shop(run);
+      run.leaveShop();
+    } else if (ph === 'event') {
+      // a random choice it can afford
+      const order = (eventById(run.event?.id ?? '')?.choices ?? []).map((_, i) => i);
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = rng.int(i + 1);
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      for (const i of order) if (run.chooseEvent(i)) break;
+      run.endEvent();
+      if (run.phase === 'event') {
+        run.event = null;
+        run.phase = 'map';
+      }
+    } else if (ph === 'actClear' || ph === 'victory') {
+      out.won = true;
       break;
-    }
+    } else if (ph === 'defeat') {
+      out.lostAt = run.node?.type ?? null;
+      break;
+    } else break;
   }
   out.revivesUsed = startRevives - run.hero.revives;
   return out;
 }
 
-function newStage(run: Run, c: Combat): StageStats {
+/** Shop policy: a potion when hurt, then the rarest boost cards it can afford. */
+function shop(run: Run): void {
   const T = run.tuning;
+  const potion = run.shop.findIndex((i) => i.kind === 'potion');
+  if (run.hero.hp < heroMaxHp(T, run.hero) * 0.6 && potion >= 0) run.buy(potion);
+  const cards = run.shop.map((item, i) => ({ item, i })).filter((x) => x.item.kind === 'boost' && x.item.offer);
+  cards.sort((a, b) => RARITIES.indexOf(b.item.offer!.rarity) - RARITIES.indexOf(a.item.offer!.rarity));
+  for (const { i } of cards) run.buy(i);
+}
+
+function newFight(run: Run, c: Combat): FightStats {
+  const T = run.tuning;
+  const n = run.node!;
   const boss = c.enemies.some((e) => T.enemies[e.key].boss);
-  const st: StageStats = {
-    stage: run.stageIndex,
+  const st: FightStats = {
+    act: run.actIndex,
+    row: n.row,
+    type: n.type,
     enemies: c.enemies.map((e) => e.key),
     boss,
     won: false,
@@ -139,9 +191,13 @@ function newStage(run: Run, c: Combat): StageStats {
     misses: 0,
     perfects: 0,
     traps: 0,
+    counters: 0,
+    specials: 0,
     hitsTaken: 0,
     heroAtk: (T.hero.atk + run.hero.bonusAtk) * (1 + run.hero.bonusDmg),
     comboPower: T.hero.comboPower + run.hero.bonusComboPower,
+    hpStart: run.hero.hp / heroMaxHp(T, run.hero),
+    hpEnd: 0,
   };
   if (boss) {
     const hp = c.enemies.reduce((m, e) => Math.max(m, T.enemies[e.key].boss ? e.hp : 0), 0);
@@ -155,9 +211,10 @@ interface Pending {
   blockId: number;
 }
 
-/** Run the fight until the stage's next kill is banked (phase leaves 'fight'), it is lost, or it times out. */
-function fight(run: Run, c: Combat, st: StageStats, rng: Rng, o: BotOptions): void {
+/** Run the fight until it is won (the reward phase comes up), lost, or it times out. */
+function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats {
   const T = run.tuning;
+  const st = newFight(run, c);
   const gap = (o.gapMs ?? 120) / 1000;
   const maxSec = o.maxStageSec ?? 600;
   const hpLeft = new Map(c.enemies.map((e) => [e.id, e.hp]));
@@ -165,6 +222,9 @@ function fight(run: Run, c: Combat, st: StageStats, rng: Rng, o: BotOptions): vo
   let busyUntil = c.time;
   let breaks = 0;
   let combos = 0; // combo-building actions (hits and blocks), to estimate how risky waiting is
+  // whether it reads the current raised shield and holds off yellow (a person mostly does)
+  let readsGuard = true;
+  let guardSeen = 0;
   const gauss = () => Math.sqrt(-2 * Math.log(1 - rng.next())) * Math.cos(2 * Math.PI * rng.next());
 
   const tally = (events: CombatEvent[]) => {
@@ -175,15 +235,22 @@ function fight(run: Run, c: Combat, st: StageStats, rng: Rng, o: BotOptions): vo
         hpLeft.set(e.enemyId, left - dealt);
         st.damage += dealt;
         if (e.source === 'finisher') st.finisherDamage += dealt;
-      } else if (e.type === 'finisher') {
+      } else if (e.type === 'enemyHeal') hpLeft.set(e.enemyId, (hpLeft.get(e.enemyId) ?? 0) + e.amount);
+      else if (e.type === 'summon' || e.type === 'split') for (const id of e.ids) hpLeft.set(id, c.enemyById(id)?.hp ?? 0);
+      else if (e.type === 'finisher') {
         st.finishers++;
         if (e.stacks >= Math.round(T.meter.maxStacks)) st.maxStackFinishers++;
       } else if (e.type === 'comboBreak') breaks++;
       else if (e.type === 'miss') st.misses++;
       else if (e.type === 'trap') st.traps++;
-      else if (e.type === 'heroHurt' && e.source !== 'miss') st.hitsTaken++;
-      if ((e.type === 'hit' || e.type === 'block') && e.perfect) st.perfects++;
-      if (e.type === 'hit' || e.type === 'block') combos++;
+      else if (e.type === 'counter') st.counters++;
+      else if (e.type === 'special') st.specials++;
+      else if (e.type === 'guardOn') {
+        guardSeen++;
+        readsGuard = rng.next() < o.accuracy;
+      } else if (e.type === 'heroHurt' && e.source !== 'miss') st.hitsTaken++;
+      if ((e.type === 'hit' || e.type === 'block' || e.type === 'wardBreak') && e.perfect) st.perfects++;
+      if (e.type === 'hit' || e.type === 'block' || e.type === 'wardBreak') combos++;
     }
   };
 
@@ -205,12 +272,15 @@ function fight(run: Run, c: Combat, st: StageStats, rng: Rng, o: BotOptions): vo
       c.finisher();
       busyUntil = t + 0.3; // the swipe itself takes a moment
     }
-    if (!pending && t >= busyUntil && c.cursorHold <= 0) pending = plan(c, rng, o, gauss); // wait out a finisher's stopped cursor
+    // wait out a finisher's stopped cursor and a frozen one
+    if (!pending && t >= busyUntil && c.cursorHold <= 0 && c.freeze <= 0) pending = plan(c, rng, o, gauss, readsGuard && guardSeen > 0);
     tally(c.drainEvents());
     st.seconds = t;
     run.sync();
   }
-  st.won = c.enemies.every((e) => !e.alive);
+  st.won = run.phase !== 'defeat' && c.result === 'won';
+  st.hpEnd = run.hero.hp / heroMaxHp(T, run.hero);
+  return st;
 }
 
 /**
@@ -228,17 +298,18 @@ function wantsFinisher(c: Combat, risk: number): boolean {
   return survive * (c.finisherDamage(c.stacks + 1) / Math.max(1, c.finisherDamage())) < 1;
 }
 
-/** Pick the next block the cursor will reach (not a trap) and schedule a tap for it. */
-function plan(c: Combat, rng: Rng, o: BotOptions, gauss: () => number): Pending | null {
+/** Pick the next block the cursor will reach (not a trap; not a yellow while a raised shield is read) and schedule a tap. */
+function plan(c: Combat, rng: Rng, o: BotOptions, gauss: () => number, avoidYellow: boolean): Pending | null {
   const t = c.time;
   const cpos = c.cursorPosAt(t);
   const phase = ((c.phaseAt(t) % 2) + 2) % 2;
   const dir = phase < 1 ? 1 : -1;
   const v = c.cursorSpeed();
   const toWall = dir > 0 ? (1 - cpos) / v : cpos / v;
+  const guarded = avoidYellow && !!c.guarder();
   let best: { tau: number; id: number; hw: number; rel: number } | null = null;
   for (const b of c.blocks) {
-    if (b.kind === 'purple') continue;
+    if (b.kind === 'purple' || (guarded && b.kind === 'yellow')) continue;
     const rel = v * dir - b.vel; // closing speed (bar units/s)
     const tau = (b.pos - cpos) / rel;
     if (!(tau >= 0) || tau > Math.min(toWall, 0.6)) continue;
@@ -257,123 +328,112 @@ function plan(c: Combat, rng: Rng, o: BotOptions, gauss: () => number): Pending 
   return { at: Math.max(t + DT, t + best.tau + off), blockId: best.id };
 }
 
-export interface BalanceRow {
+export interface ActRow {
   accuracy: number;
-  level: number;
+  act: number;
   runs: number;
-  reached: number; // runs that got to this level
-  winRate: number; // cleared on the first attempt (of those that reached it)
+  reached: number; // runs that got to this act
+  firstTry: number; // cleared on the first attempt (of those that reached it)
   clearRate: number; // cleared within the attempts allowed
   attempts: number; // average attempts to clear it (of those that cleared)
-  avgFightSec: number; // per stage, stages that were won
-  minFightSec: number; // shortest stage average
-  maxFightSec: number; // longest stage average
+  bossFirstTry: number; // the first fight against the act's boss was won (of runs that ever reached the boss)
+  bossReach: number; // first attempts that reached the boss
+  fightSec: number; // average seconds per won fight, by node type
+  eliteSec: number;
+  bossSec: number;
   finisherShare: number; // finisher damage / all damage
-  bossMaxFinishers: number; // average max-stack finishers used in won boss fights
-  bossVsMaxFinisher: number; // average boss HP / one max-stack finisher at the hero's stats when the boss appears
+  bossVsMaxFinisher: number; // boss HP / one max-stack finisher at the hero's stats when the boss appears
   bossOneShotRate: number; // share of boss fights a single max-stack finisher could win
-  stageSec: number[]; // average seconds per stage index (won stages)
-  missRate: number; // misses per tap
-  perfectRate: number;
-  tapsPerSec: number;
-  hitsTakenPerMin: number; // enemy attacks (and traps) that landed
-  heroAtk: number; // average hero attack entering the level (carried upgrades included)
-  bossAtkGrowth: number; // hero attack going into the boss / entering the level
-  bossComboPowerGrowth: number;
-  lostAt: number[]; // lost attempts, per stage index
+  hpAtBoss: number; // hero HP share going into the boss
+  missRate: number;
+  counterRate: number; // countered yellow taps per guard seen... per fight with a knight
+  hitsTakenPerMin: number;
+  specialsPerMin: number;
+  heroAtk: number; // hero attack entering the act
+  lostAt: Record<string, number>; // lost attempts by node type
 }
 
-/** Play `runs` whole runs per accuracy and summarise every level. */
-export function balance(tuning: Tuning, accuracies: number[], runs: number, seed = 1, maxAttempts = 6): BalanceRow[] {
-  const rows: BalanceRow[] = [];
+/** Play `runs` whole runs per accuracy and summarise every act. */
+export function balance(tuning: Tuning, accuracies: number[], runs: number, seed = 1, maxAttempts = 6, acts = tuning.acts.length): ActRow[] {
+  const rows: ActRow[] = [];
   for (const acc of accuracies) {
-    const results = Array.from({ length: runs }, (_, r) => playRun(tuning, { accuracy: acc, seed: (seed * 7919 + r * 104729 + Math.round(acc * 1000)) >>> 0 }, maxAttempts));
-    for (let level = 0; level < tuning.levels.length; level++) {
-      const entries = results.map((res) => res.levels[level]).filter((e) => !!e);
-      let dmg = 0;
-      let fin = 0;
-      let taps = 0;
-      let misses = 0;
-      let perfects = 0;
-      const stageSum: number[] = [];
-      const stageN: number[] = [];
-      let bossFights = 0;
-      let bossMax = 0;
+    const results = Array.from({ length: runs }, (_, r) => playRun(tuning, { accuracy: acc, seed: (seed * 7919 + r * 104729 + Math.round(acc * 1000)) >>> 0 }, maxAttempts, acts));
+    for (let act = 0; act < acts; act++) {
+      const entries = results.map((res) => res.acts[act]).filter((e) => !!e);
+      const n = Math.max(1, entries.length);
+      const sum = { fin: 0, dmg: 0, taps: 0, misses: 0, secs: 0, taken: 0, specials: 0, counters: 0, knightFights: 0 };
+      const by: Record<string, { s: number; n: number }> = { fight: { s: 0, n: 0 }, elite: { s: 0, n: 0 }, boss: { s: 0, n: 0 } };
       let bossRatio = 0;
       let bossRatioN = 0;
       let oneShot = 0;
-      let secs = 0;
-      let taken = 0;
-      let atkStart = 0;
-      let atkGrowth = 0;
-      let cpGrowth = 0;
-      let growthN = 0;
-      const lostAt: number[] = [];
+      let hpAtBoss = 0;
+      let hpAtBossN = 0;
+      let bossFirstN = 0;
+      let bossFirstWon = 0;
+      let atk = 0;
+      const lostAt: Record<string, number> = {};
       for (const e of entries) {
-        atkStart += e.attempts[0]?.stages[0]?.heroAtk ?? 0;
+        atk += e.attempts[0]?.fights[0]?.heroAtk ?? 0;
+        let bossSeen = false;
         for (const att of e.attempts) {
-          if (!att.won) {
-            const last = att.stages[att.stages.length - 1]?.stage ?? 0;
-            lostAt[last] = (lostAt[last] ?? 0) + 1;
-          }
-          const first = att.stages[0];
-          for (const st of att.stages) {
-            secs += st.seconds;
-            taken += st.hitsTaken + st.traps;
-            if (st.boss && first) {
-              atkGrowth += st.heroAtk / first.heroAtk;
-              cpGrowth += st.comboPower / first.comboPower;
-              growthN++;
+          if (!att.won && att.lostAt) lostAt[att.lostAt] = (lostAt[att.lostAt] ?? 0) + 1;
+          for (const f of att.fights) {
+            sum.fin += f.finisherDamage;
+            sum.dmg += f.damage;
+            sum.taps += f.taps;
+            sum.misses += f.misses;
+            sum.secs += f.seconds;
+            sum.taken += f.hitsTaken + f.traps + f.counters;
+            sum.specials += f.specials;
+            if (f.enemies.includes('knight')) {
+              sum.knightFights++;
+              sum.counters += f.counters;
             }
-            dmg += st.damage;
-            fin += st.finisherDamage;
-            taps += st.taps;
-            misses += st.misses;
-            perfects += st.perfects;
-            if (st.won) {
-              stageSum[st.stage] = (stageSum[st.stage] ?? 0) + st.seconds;
-              stageN[st.stage] = (stageN[st.stage] ?? 0) + 1;
+            if (f.won && by[f.type]) {
+              by[f.type].s += f.seconds;
+              by[f.type].n++;
             }
-            if (st.bossVsMaxFinisher !== undefined) {
-              bossRatio += st.bossVsMaxFinisher;
-              bossRatioN++;
-              if (st.bossVsMaxFinisher <= 1) oneShot++;
-              if (st.won) {
-                bossFights++;
-                bossMax += st.maxStackFinishers;
+            if (f.type === 'boss') {
+              if (f.bossVsMaxFinisher !== undefined) {
+                bossRatio += f.bossVsMaxFinisher;
+                bossRatioN++;
+                if (f.bossVsMaxFinisher <= 1) oneShot++;
+              }
+              hpAtBoss += f.hpStart;
+              hpAtBossN++;
+              if (!bossSeen) {
+                bossSeen = true;
+                bossFirstN++;
+                if (f.won) bossFirstWon++;
               }
             }
           }
         }
       }
       const cleared = entries.filter((e) => e.cleared);
-      const stageSec = stageSum.map((v, i) => v / Math.max(1, stageN[i]));
-      const wonStages = stageN.reduce((a, b) => a + (b ?? 0), 0);
-      const n = Math.max(1, entries.length);
       rows.push({
         accuracy: acc,
-        level,
+        act,
         runs,
         reached: entries.length,
-        winRate: entries.filter((e) => e.attempts[0]?.won).length / n,
+        firstTry: entries.filter((e) => e.attempts[0]?.won).length / n,
         clearRate: cleared.length / n,
         attempts: cleared.length ? cleared.reduce((a, e) => a + e.attempts.length, 0) / cleared.length : NaN,
-        avgFightSec: stageSum.reduce((a, b) => a + (b ?? 0), 0) / Math.max(1, wonStages),
-        minFightSec: stageSec.length ? Math.min(...stageSec) : NaN,
-        maxFightSec: stageSec.length ? Math.max(...stageSec) : NaN,
-        finisherShare: dmg ? fin / dmg : 0,
-        bossMaxFinishers: bossFights ? bossMax / bossFights : NaN,
+        bossFirstTry: bossFirstN ? bossFirstWon / bossFirstN : NaN,
+        bossReach: entries.filter((e) => e.attempts[0]?.reachedBoss).length / n,
+        fightSec: by.fight.n ? by.fight.s / by.fight.n : NaN,
+        eliteSec: by.elite.n ? by.elite.s / by.elite.n : NaN,
+        bossSec: by.boss.n ? by.boss.s / by.boss.n : NaN,
+        finisherShare: sum.dmg ? sum.fin / sum.dmg : 0,
         bossVsMaxFinisher: bossRatioN ? bossRatio / bossRatioN : NaN,
         bossOneShotRate: bossRatioN ? oneShot / bossRatioN : NaN,
-        stageSec,
-        missRate: taps ? misses / taps : 0,
-        perfectRate: taps ? perfects / taps : 0,
-        tapsPerSec: secs ? taps / secs : 0,
-        hitsTakenPerMin: secs ? (taken / secs) * 60 : 0,
-        heroAtk: atkStart / n,
-        bossAtkGrowth: growthN ? atkGrowth / growthN : NaN,
-        bossComboPowerGrowth: growthN ? cpGrowth / growthN : NaN,
-        lostAt: Array.from({ length: Math.max(stageSec.length, lostAt.length) }, (_, i) => lostAt[i] ?? 0),
+        hpAtBoss: hpAtBossN ? hpAtBoss / hpAtBossN : NaN,
+        missRate: sum.taps ? sum.misses / sum.taps : 0,
+        counterRate: sum.knightFights ? sum.counters / sum.knightFights : 0,
+        hitsTakenPerMin: sum.secs ? (sum.taken / sum.secs) * 60 : 0,
+        specialsPerMin: sum.secs ? (sum.specials / sum.secs) * 60 : 0,
+        heroAtk: atk / n,
+        lostAt,
       });
     }
   }

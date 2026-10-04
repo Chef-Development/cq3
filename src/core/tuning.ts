@@ -1,36 +1,19 @@
-// THE tuning file. Every tunable number in the game lives here.
-// CQ2's real values are undocumented. Combat numbers were balanced with the headless bot (npm run balance,
-// docs/balance.md): enemies ramp from a quick first fight to a tough boss in every level, later levels scale
-// enemy HP/attack up and bring more enemies, the hero carries upgrades between levels, an 85%-accurate player
-// clears Level 1 first try about 85-90% of the time, and each boss needs at least two max-stack finishers.
+// THE tuning file. Every system number lives here; content (enemies and their specials, the region's acts,
+// events, story) lives in src/data/ and is pulled in below (enemies, act scaling) so the debug panel can edit
+// it live. Numbers were balanced with the headless bot (npm run balance, docs/balance.md).
 // The debug panel edits a live copy of this object; "Copy tuning as JSON" exports it.
 
-export type BlockCode = 'Y' | 'G' | 'R' | 'S' | 'B' | 'F' | 'P';
-// Y yellow attack, G green attack+ability, R red enemy attack,
-// S shield red (2 taps), B bomb red, F speed red, P purple trap.
+import { ENEMIES } from '../data/enemies';
+import { GREENMARCH } from '../data/greenmarch';
+import type { ActDef } from '../data/types';
 
-export interface EnemyDef {
+export type { BlockCode, EnemyDef, ActDef } from '../data/types';
+
+/** The acts' enemy scaling, as tuned live (structure and encounters stay in src/data/greenmarch.ts). */
+export interface ActScale {
   name: string;
-  hp: number;
-  atk: number; // damage when one of its red blocks reaches the left end
-  special: number; // damage when the player taps one of its purple traps
-  interval: number; // seconds between spawns from its pattern
-  pattern: string; // block codes, cycled in order
-  icon: 'drop' | 'tusk' | 'mask'; // small icon drawn on its red blocks
-  boss?: boolean; // crowned skull in the HUD
-  coins: number; // dropped when it dies
-  sprite: 'slime' | 'bigslime' | 'boar' | 'bandit';
-  scale: number; // sprite pixel scale
-}
-
-export interface LevelDef {
-  name: string;
-  theme?: 'forest' | 'ruins'; // backdrop
-  hpMult: number; // every enemy's HP in this level is scaled by this...
-  atkMult: number; // ...and its attack (and trap) damage by this
-
-  // Each stage is the list of enemies on screen at the same time; stages ramp from easy to tough.
-  stages: string[][];
+  hpMult: number;
+  atkMult: number;
 }
 
 export const DEFAULT_TUNING = {
@@ -86,7 +69,7 @@ export const DEFAULT_TUNING = {
     abilitySec: 3, // ...for 3 s
     comboPower: 5, // finisher damage = attack x comboPower x stacks ^ meter.stackExp
     reviveHpFrac: 0.5,
-    revivesPerLevel: 1,
+    revivesPerAct: 1, // a revive per act (refilled at each act's start)
     healOnKill: 0.2, // fraction of max HP restored by every kill
   },
   meter: {
@@ -187,68 +170,24 @@ export const DEFAULT_TUNING = {
     variation: 0.04, // +/- random pitch and timing, so repeats never sound identical
     music: 0.18, // music volume
   },
-  enemies: {
-    slime: {
-      name: 'Slime',
-      hp: 350,
-      atk: 12,
-      special: 16,
-      interval: 0.7,
-      pattern: 'YYRYGYYRYYGR',
-      icon: 'drop',
-      sprite: 'slime',
-      scale: 2,
-      coins: 10,
-    },
-    boar: {
-      name: 'Boar',
-      hp: 600,
-      atk: 16,
-      special: 20,
-      interval: 0.65,
-      pattern: 'YRYSGYYFRYYS',
-      icon: 'tusk',
-      sprite: 'boar',
-      scale: 2,
-      coins: 15,
-    },
-    bandit: {
-      name: 'Bandit',
-      hp: 900,
-      atk: 18,
-      special: 24,
-      interval: 0.6,
-      pattern: 'YRPYGYBYRYPY',
-      icon: 'mask',
-      sprite: 'bandit',
-      scale: 2,
-      coins: 20,
-    },
-    bigSlime: {
-      name: 'Big Slime',
-      hp: 3000,
-      atk: 22,
-      special: 28,
-      interval: 0.55,
-      pattern: 'YRSGYPYFBYRGYP',
-      icon: 'drop',
-      sprite: 'bigslime',
-      scale: 2,
-      coins: 60,
-      boss: true,
-    },
-  } as Record<string, EnemyDef>,
-  levels: [
-    { name: 'Level 1', theme: 'forest', hpMult: 1, atkMult: 1, stages: [['slime'], ['boar'], ['bandit'], ['bigSlime']] },
-    {
-      name: 'Level 2',
-      theme: 'ruins',
-      hpMult: 2.8,
-      atkMult: 1.5,
-      // more enemies at once, still easy to tough, and the boss brings adds
-      stages: [['slime', 'slime'], ['boar', 'slime'], ['bandit', 'boar', 'slime'], ['bigSlime', 'slime', 'slime']],
-    },
-  ] as LevelDef[],
+  specials: {
+    tellGap: 0.5, // seconds after one telegraph's action before the next telegraph may start (one at a time)
+    jitter: 0.15, // +/- share of a timed special's interval, so they don't tick like clockwork
+    maxEnemies: 4, // summons and splits stop at this many enemies on screen
+  },
+  map: {
+    restHeal: 0.3, // a rest node heals this share of max HP
+    treasureCoins: 25, // a treasure chest holds this many coins (+/- 40%) and a rare-or-better boost card
+    rowHp: 0.04, // enemies get this much more HP per map row (the act's fights ramp up)
+    priceCommon: 30, // shop prices
+    priceRare: 60,
+    priceEpic: 110,
+    pricePotion: 35, // a potion heals potionHeal of max HP
+    potionHeal: 0.4,
+    priceReroll: 20, // one reroll of the next 1-of-3 boost pick
+  },
+  enemies: cloneData(ENEMIES),
+  acts: GREENMARCH.acts.map((a: ActDef): ActScale => ({ name: a.name, hpMult: a.hpMult, atkMult: a.atkMult })),
 };
 
 export type Tuning = typeof DEFAULT_TUNING;
@@ -277,6 +216,10 @@ export const DEFAULT_SETTINGS: Settings = {
   music: true,
 };
 
+function cloneData<T>(v: T): T {
+  return JSON.parse(JSON.stringify(v)) as T;
+}
+
 export function cloneTuning(t: Tuning = DEFAULT_TUNING): Tuning {
   return JSON.parse(JSON.stringify(t)) as Tuning;
 }
@@ -289,7 +232,12 @@ export function mergeKnown(dst: unknown, src: unknown): void {
     const d = dst[key];
     const s = src[key];
     if (Array.isArray(d)) {
-      if (key === 'levels' && Array.isArray(s)) dst[key] = s;
+      // arrays keep their shape (acts, specials, formations): merge element by element
+      if (Array.isArray(s))
+        d.forEach((item, i) => {
+          if (isObj(item)) mergeKnown(item, s[i]);
+          else if (typeof item === typeof s[i] && !(typeof s[i] === 'number' && !Number.isFinite(s[i]))) d[i] = s[i];
+        });
       continue;
     }
     if (isObj(d)) {
@@ -419,7 +367,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('hero.abilitySec', 'Ability (s)', 0, 10, 0.5),
         s('hero.comboPower', 'Combo power', 0, 20, 0.5),
         s('hero.reviveHpFrac', 'Revive HP', 0.1, 1, 0.05),
-        s('hero.revivesPerLevel', 'Revives/level', 0, 3, 1),
+        s('hero.revivesPerAct', 'Revives/act', 0, 3, 1),
         s('hero.healOnKill', 'Heal on kill', 0, 1, 0.05),
       ],
     },
@@ -522,10 +470,34 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       ],
     },
   ];
-  t.levels.forEach((lvl, i) =>
+  groups.push(
+    {
+      title: 'Specials',
+      sliders: [
+        s('specials.tellGap', 'Gap between telegraphs (s)', 0, 3, 0.05),
+        s('specials.jitter', 'Interval jitter +/-', 0, 0.5, 0.01),
+        s('specials.maxEnemies', 'Max enemies on screen', 1, 5, 1),
+      ],
+    },
+    {
+      title: 'Map and nodes',
+      sliders: [
+        s('map.restHeal', 'Rest heals', 0, 1, 0.05),
+        s('map.treasureCoins', 'Treasure coins', 0, 200, 5),
+        s('map.rowHp', 'Enemy HP + per row', 0, 0.2, 0.01),
+        s('map.priceCommon', 'Shop: common card', 0, 300, 5),
+        s('map.priceRare', 'Shop: rare card', 0, 300, 5),
+        s('map.priceEpic', 'Shop: epic card', 0, 400, 5),
+        s('map.pricePotion', 'Shop: potion', 0, 200, 5),
+        s('map.potionHeal', 'Potion heals', 0, 1, 0.05),
+        s('map.priceReroll', 'Shop: reroll', 0, 200, 5),
+      ],
+    },
+  );
+  t.acts.forEach((a, i) =>
     groups.push({
-      title: `Level: ${lvl.name}`,
-      sliders: [s(`levels.${i}.hpMult`, 'Enemy HP x', 0.2, 5, 0.05), s(`levels.${i}.atkMult`, 'Enemy attack x', 0.2, 5, 0.05)],
+      title: `Act ${i + 1}: ${a.name}`,
+      sliders: [s(`acts.${i}.hpMult`, 'Enemy HP x', 0.2, 6, 0.05), s(`acts.${i}.atkMult`, 'Enemy attack x', 0.2, 5, 0.05)],
     }),
   );
   for (const key of Object.keys(t.enemies)) {
@@ -533,11 +505,16 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
     groups.push({
       title: `Enemy: ${e.name}`,
       sliders: [
-        s(`enemies.${key}.hp`, 'HP', 5, 6000, 5),
+        s(`enemies.${key}.hp`, 'HP', 5, 9000, 5),
         s(`enemies.${key}.atk`, 'Attack', 0, 80, 1),
-        s(`enemies.${key}.special`, 'Special', 0, 150, 1),
+        s(`enemies.${key}.special`, 'Trap / counter dmg', 0, 150, 1),
         s(`enemies.${key}.interval`, 'Spawn every (s)', 0.2, 4, 0.05),
-        s(`enemies.${key}.coins`, 'Coins', 0, 200, 1),
+        s(`enemies.${key}.coins`, 'Coins', 0, 300, 1),
+        ...e.specials.flatMap((sp, i) => [
+          s(`enemies.${key}.specials.${i}.tell`, `${sp.id}: telegraph (s)`, 0.3, 1.5, 0.05),
+          ...(sp.every !== undefined ? [s(`enemies.${key}.specials.${i}.every`, `${sp.id}: every (s)`, 1, 30, 0.5)] : []),
+          ...(sp.hpBelow !== undefined ? [s(`enemies.${key}.specials.${i}.hpBelow`, `${sp.id}: below HP`, 0.05, 0.95, 0.01)] : []),
+        ]),
       ],
     });
   }

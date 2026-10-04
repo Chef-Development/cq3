@@ -3,16 +3,18 @@
 // hue-shifted. The hero is composed per pose from a body, legs, a cape and a pre-drawn sword at
 // clean 8-way pixel slopes; the slimes are shaded from their shape; HUD icons are native-size maps.
 import type Phaser from 'phaser';
+import { buildFoeArt } from './art-foes';
+import { buildStoryArt } from './art-story';
 
-const OUTLINE = '#140c1c';
-type Grid = (string | null)[][];
-type Pal = Record<string, string>;
+export const OUTLINE = '#140c1c';
+export type Grid = (string | null)[][];
+export type Pal = Record<string, string>;
 
-function grid(w: number, h: number): Grid {
+export function grid(w: number, h: number): Grid {
   return Array.from({ length: h }, () => Array<string | null>(w).fill(null));
 }
 
-function stamp(g: Grid, rows: string[], pal: Pal, ox: number, oy: number): void {
+export function stamp(g: Grid, rows: string[], pal: Pal, ox: number, oy: number): void {
   rows.forEach((r, y) =>
     [...r].forEach((ch, x) => {
       if (ch === '.' || ch === ' ') return;
@@ -23,14 +25,14 @@ function stamp(g: Grid, rows: string[], pal: Pal, ox: number, oy: number): void 
   );
 }
 
-function put(g: Grid, x: number, y: number, c: string): void {
+export function put(g: Grid, x: number, y: number, c: string): void {
   x = Math.round(x);
   y = Math.round(y);
   if (y >= 0 && y < g.length && x >= 0 && x < g[0].length) g[y][x] = c;
 }
 
 /** Render a grid to a canvas with a 1px outline around every filled pixel. */
-function toCanvas(g: Grid): HTMLCanvasElement {
+export function toCanvas(g: Grid): HTMLCanvasElement {
   const h = g.length;
   const w = g[0].length;
   const c = document.createElement('canvas');
@@ -53,13 +55,13 @@ function toCanvas(g: Grid): HTMLCanvasElement {
   return c;
 }
 
-const whiteOut = (pal: Pal): Pal => Object.fromEntries(Object.keys(pal).map((k) => [k, '#ffffff']));
+export const whiteOut = (pal: Pal): Pal => Object.fromEntries(Object.keys(pal).map((k) => [k, '#ffffff']));
 
 /**
  * A material shaded from its own shape (light from the top left): each list gives the ramp index
  * for pixels 1, 2, ... px in from that edge of the form; everything else gets `mid`.
  */
-interface Shade {
+export interface Shade {
   ramp: string[]; // dark to light
   same?: string; // other map letters that belong to the same form (details drawn on it)
   top?: number[];
@@ -94,7 +96,7 @@ function shadeTone(rows: string[], x: number, y: number, ch: string, s: Shade): 
 }
 
 /** Stamp a map, shading the letters listed in `shades` automatically. */
-function stampShaded(g: Grid, rows: string[], pal: Pal, shades: Record<string, Shade>, ox: number, oy: number, flash = false): void {
+export function stampShaded(g: Grid, rows: string[], pal: Pal, shades: Record<string, Shade>, ox: number, oy: number, flash = false): void {
   rows.forEach((r, y) =>
     [...r].forEach((ch, x) => {
       if (ch === '.' || ch === ' ') return;
@@ -382,7 +384,7 @@ const SLIME_FACE_BIG: Record<Face, string[][]> = {
   ],
 };
 
-interface SlimeOpts {
+export interface SlimeOpts {
   squash: number; // + wider/shorter, - taller/narrower
   lean: number; // top shifts by this fraction (+ right, - left)
   face: Face;
@@ -390,7 +392,7 @@ interface SlimeOpts {
   crown?: boolean;
 }
 
-function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElement {
+export function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElement {
   const big = rx > 16;
   const W = Math.ceil(rx * 2.5) + 4;
   // tight frames (the scene places hit effects and numbers from the frame size): room for the
@@ -626,14 +628,14 @@ const BANDIT_LEGS: Record<string, string[]> = {
   ],
 };
 
-function mapFrame(rows: string[], pal: Pal, flash = false, shades: Record<string, Shade> = {}): HTMLCanvasElement {
+export function mapFrame(rows: string[], pal: Pal, flash = false, shades: Record<string, Shade> = {}): HTMLCanvasElement {
   const w = Math.max(...rows.map((r) => r.length)) + 2;
   const g = grid(w, rows.length + 2);
   stampShaded(g, rows, pal, shades, 1, 1, flash);
   return toCanvas(g);
 }
 
-const shiftRow = (r: string, d: number) => (d > 0 ? '.'.repeat(d) + r.slice(0, r.length - d) : r.slice(-d) + '.'.repeat(-d));
+export const shiftRow = (r: string, d: number) => (d > 0 ? '.'.repeat(d) + r.slice(0, r.length - d) : r.slice(-d) + '.'.repeat(-d));
 
 interface FoeOpts {
   dx?: number; // shift the body (not the legs) left/right
@@ -658,7 +660,7 @@ function boarRows(legs: string[], o: FoeOpts = {}): string[] {
 }
 
 /** Paint the non-'.' pixels of `piece` over `rows` at (x, y). */
-function overlay(rows: string[], piece: string[], x: number, y: number): string[] {
+export function overlay(rows: string[], piece: string[], x: number, y: number): string[] {
   const out = [...rows];
   piece.forEach((pr, j) => {
     const r = out[y + j];
@@ -752,7 +754,7 @@ const PIP_WING: Record<'down' | 'up' | 'back', { rows: string[]; x: number; y: n
   back: { rows: ['BBBB...', 'BNNnBB.', '.BBnnnB', '...BBBB'], x: -6, y: 8 },
 };
 
-const flipRows = (rows: string[]) => rows.map((r) => [...r].reverse().join(''));
+export const flipRows = (rows: string[]) => rows.map((r) => [...r].reverse().join(''));
 
 /** wing: 'down' (folded), 'up' (flap), 'back' (swept for a dive). */
 function owlFrame(wing: 'down' | 'up' | 'back', flash = false): HTMLCanvasElement {
@@ -1101,4 +1103,6 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   add('chest_closed', mapFrame(CHEST_CLOSED, CHEST_PAL));
   add('chest_open', mapFrame(CHEST_OPEN, CHEST_PAL));
   add('clouds', drawClouds(w));
+  buildFoeArt(add);
+  buildStoryArt(add);
 }

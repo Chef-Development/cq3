@@ -9,8 +9,8 @@
 // dithering is only used for broad gradients: sky, mist, light shafts and torch light.
 import type Phaser from 'phaser';
 
-export type Theme = 'forest' | 'ruins';
-export const THEMES: Theme[] = ['forest', 'ruins'];
+export type Theme = 'forest' | 'ruins' | 'hollow';
+export const THEMES: Theme[] = ['forest', 'ruins', 'hollow'];
 
 export interface Backdrop {
   torches: Array<{ x: number; y: number }>; // flame base, game px
@@ -1215,6 +1215,483 @@ function ruins(w: number, h: number, G: number): [Pix, Pix, Pix, Backdrop] {
   return [p, f, frame, { torches }];
 }
 
+// ------------------------------------------------------------------ hollow (Level 3): the Boar King's den at sunset
+
+/** A small hand-drawn bit (bones, a tusk) stamped into a backdrop; '.' is transparent. */
+function bits(p: Pix, rows: string[], pal: Record<string, Col>, x: number, y: number): void {
+  rows.forEach((r, j) => [...r].forEach((ch, i) => ch !== '.' && pal[ch] !== undefined && p.set(x + i, y + j, pal[ch])));
+}
+
+/** Crooked trunk and limbs (gnarled trees); returns the twig tips so leaf clumps can hang on them. */
+function gnarled(p: Pix, x: number, base: number, hgt: number, th: number, r: Ramp, seed: number, depth = 3): Array<[number, number]> {
+  const r2 = rng(seed);
+  const tips: Array<[number, number]> = [];
+  const limb = (bx: number, by: number, ang: number, len: number, t: number, d: number) => {
+    for (let i = 0; i < len; i++) {
+      bx += Math.sin(ang);
+      by -= Math.cos(ang);
+      ang += (r2() - 0.5) * 0.4;
+      const x0 = Math.round(bx - t / 2);
+      for (let k = 0; k < t; k++) p.set(x0 + k, Math.round(by), k === 0 && t > 1 ? r[2] : k === t - 1 && t > 2 ? r[0] : r[1]);
+    }
+    if (d > 0) {
+      limb(bx, by, ang - 0.45 - r2() * 0.45, len * 0.64, Math.max(1, t - 1), d - 1);
+      limb(bx, by, ang + 0.4 + r2() * 0.45, len * 0.6, Math.max(1, t - 1), d - 1);
+    } else tips.push([bx, by]);
+  };
+  // a flared foot so the tree stands on its base
+  for (let k = -1 - Math.ceil(th / 2); k <= Math.ceil(th / 2) + 1; k++) p.set(x + k, base, r[1]);
+  limb(x, base + 1, (r2() - 0.5) * 0.5, hgt * 0.42, th, depth);
+  return tips;
+}
+
+/** Toadstool standing on y: a domed cap lit from the top left (optional pale spots) on a pale stem. */
+function toadstool(p: Pix, x: number, y: number, r: number, cap: Ramp, stem: Ramp, shadow: Col, spots: boolean): void {
+  const sh = Math.max(1, r);
+  for (let k = 1; k <= sh; k++) {
+    p.set(x, y - k, stem[2]);
+    if (r > 1) p.set(x + 1, y - k, stem[1]);
+  }
+  const cy = y - sh;
+  const cx = x + (r > 1 ? 0.5 : 0);
+  for (let yy = -r; yy <= 0; yy++)
+    for (let xx = Math.floor(-r - 1.5); xx <= r + 1.5; xx++) {
+      const dx = (x + xx + 0.5 - (cx + 0.5)) / (r + 1);
+      const dy = (yy - 0.3) / (r + 0.6);
+      if (dx * dx + dy * dy > 1) continue;
+      let v = 0.62 - dx * 0.35 + dy * 0.5;
+      if (yy === 0) v = 0.12; // the shaded rim / gills
+      p.set(x + xx, cy + yy, pick(cap, v, x + xx, cy + yy));
+    }
+  if (spots && r > 1) {
+    p.set(x - 1, cy - r + 1, stem[3]);
+    p.set(x + 1, cy - 1, stem[3]);
+    if (r > 2) p.set(x + 2, cy - r + 1, stem[3]);
+  }
+  for (let xx = -r; xx <= r + 1; xx++) if (p.get(x + xx, y) !== stem[2]) p.set(x + xx, y, shadow);
+}
+
+function hollow(w: number, h: number, G: number): [Pix, Pix, Pix, Backdrop] {
+  const p = new Pix(w, h, 0);
+  const rnd = rng(57);
+  const ink = col('#140c1c');
+
+  // sunset sky: deep violet overhead, rose, then gold at the horizon; a wide glow around the low sun
+  const skyR = ramp('#20123a', '#301746', '#451c50', '#5e2457', '#7c2e5c', '#9c3a5e', '#bc4c5e', '#d8645c', '#ec845c', '#f8a862', '#fdcb78');
+  const sunX = Math.round(w * 0.24);
+  const sunY = G - 38;
+  const skyBot = G - 12;
+  for (let y = 0; y < skyBot; y++)
+    for (let x = 0; x < w; x++) {
+      const d = Math.hypot((x - sunX) * 0.5, (y - sunY) * 1.25);
+      const glow = Math.max(0, 1 - d / 64) ** 1.7;
+      p.set(x, y, pick(skyR, (y / (G - 26)) * 0.84 + glow * 0.3, x, y, 0.3));
+    }
+  // the sun: a soft halo and a pale disc, sinking behind the far hills
+  const sunHalo = col('#ffe4a0');
+  for (let y = sunY - 26; y <= sunY + 26; y++)
+    for (let x = sunX - 34; x <= sunX + 34; x++) {
+      const d = Math.hypot(x + 0.5 - sunX, (y + 0.5 - sunY) * 1.15);
+      if (d > 30) continue;
+      p.tint(x, y, (c) => fade(c, sunHalo, Math.pow(1 - d / 30, 2.2) * 0.75, x, y, 3, 0.7));
+    }
+  const sunR = ramp('#ffc46a', '#ffdc8c', '#fff0be', '#fffbe6');
+  const sr = 8;
+  for (let y = -sr; y <= sr; y++)
+    for (let x = -sr; x <= sr; x++) {
+      const d = Math.hypot(x, y);
+      if (d > sr + 0.3) continue;
+      p.set(sunX + x, sunY + y, sunR[d > sr - 1 ? 0 : d > sr - 2.5 ? 1 : x + y < -3 ? 3 : 2]);
+    }
+
+  // long wisps of cloud, lit along their undersides by the sinking sun
+  const cloudR = ramp('#3a1a4a', '#542254', '#742c5a', '#983a5c', '#bc4e5c', '#dc6a5c', '#f29062', '#ffbc7c', '#ffe0a0');
+  const wisp = (x0: number, y0: number, len: number, thick: number, seed: number) => {
+    const r2 = rng(seed);
+    const bl: Blob[] = [];
+    const n = Math.max(3, Math.round(len / 9));
+    for (let i = 0; i < n; i++) {
+      const f = i / (n - 1);
+      const t = Math.sin(f * Math.PI);
+      bl.push({ x: x0 + f * len + (r2() - 0.5) * 4, y: y0 - t * thick * 0.6 + (r2() - 0.5) * 1.5, rx: 6 + t * len * 0.16, ry: 0.9 + t * thick * (0.5 + r2() * 0.4) });
+    }
+    const inside = (x: number, y: number) =>
+      bl.some((b) => ((x + 0.5 - b.x) / b.rx) ** 2 + ((y + 0.5 - b.y) / b.ry) ** 2 <= 1 + (noise(x * 0.25, y * 0.6, seed) - 0.5) * 0.7);
+    for (let y = Math.floor(y0 - thick * 2); y <= y0 + thick + 2; y++)
+      for (let x = Math.floor(x0 - 12); x <= x0 + len + 12; x++) {
+        if (!inside(x, y)) continue;
+        let below = 0;
+        while (below < 3 && inside(x, y + below + 1)) below++;
+        const near = clamp01(1 - Math.hypot((x - sunX) * 0.6, (y - sunY) * 1.4) / 120);
+        const v = 0.16 + near * 0.55 + (below === 0 ? 0.3 : below === 1 ? 0.14 : 0) - (inside(x, y - 1) ? 0 : 0.06);
+        p.set(x, y, pick(cloudR, v, x, y, 0.15));
+      }
+  };
+  for (const [fx, fy, len, th] of [
+    [-0.04, 0.2, 84, 3],
+    [0.3, 0.13, 62, 2.5],
+    [0.62, 0.08, 90, 3.5],
+    [0.47, 0.3, 46, 2],
+    [0.08, 0.42, 58, 2.5],
+    [0.74, 0.34, 70, 3],
+    [0.33, 0.5, 40, 1.6],
+    [0.86, 0.52, 44, 1.8],
+  ])
+    wisp(Math.round(fx * w), Math.round(fy * (G - 40)) + 4, len, th, Math.round(fx * 100 + fy * 1000));
+
+  // far hills with a fringe of tiny trees, almost lost in the rose haze
+  const hz = col('#d87a6c');
+  const farR = haze(ramp('#4a2248', '#5c2a4e', '#703456', '#86405c'), hz, 0.52);
+  const far: Blob[] = [];
+  for (let x = -10; x < w + 10; x += 14 + rnd() * 12) far.push({ x, y: G - 27 - Math.sin(x / 41 + 1) * 4, rx: 16 + rnd() * 10, ry: 6 + rnd() * 3 });
+  for (let x = -10; x < w + 10; x += 20) far.push({ x, y: G - 16, rx: 16, ry: 6 }); // hide the horizon line
+  for (let x = -4; x < w + 4; x += 2.5 + rnd() * 3) far.push({ x, y: G - 32 - Math.sin(x / 41 + 1) * 4 + rnd() * 3, rx: 1.8 + rnd() * 1.6, ry: 2.4 + rnd() * 2 });
+  mass(p, far, { ramp: farR, seed: 5, bump: 0.12, tex: 0.12, vgrad: 0.45, light: 0.06, shadow: 0.08, floor: G - 14 });
+
+  // mist pooled in the valley
+  const mistC = col('#e8a49c');
+  const mist = (yc: number, half: number, amt: number, seed: number) => {
+    for (let y = Math.floor(yc - half); y <= yc + half; y++)
+      for (let x = 0; x < w; x++) {
+        const k = (1 - Math.abs(y - yc) / half) * (0.6 + (fbm(x * 0.03, y * 0.2, seed) - 0.5) * 1.1);
+        if (k > 0) p.tint(x, y, (c) => fade(c, mistC, k * amt, x, y, 3, 0.6));
+      }
+  };
+  mist(G - 26, 8, 0.6, 31);
+
+  // gnarled autumn trees in layers: far ones nearly sky-coloured, nearer ones deep plum with warm crowns
+  const crowns = [
+    ramp('#3a1426', '#5e1c2c', '#8a2a30', '#b43e30', '#d8603a', '#f08c48'), // crimson
+    ramp('#3e1a22', '#62261e', '#8e3c1e', '#bc5c22', '#e08a2c', '#f6b848'), // amber
+    ramp('#2c1428', '#46203a', '#68283e', '#8e3640', '#b44c44', '#d6704c'), // rust-plum
+  ];
+  const barkFar = ramp('#2a1428', '#3a1c30', '#4c2636');
+  const grove = (base: number, hzAmt: number, s: number, seed: number, avoid: Array<[number, number]>) => {
+    const r2 = rng(seed);
+    for (let x = -4 + r2() * 10; x < w + 8; x += (20 + r2() * 24) * s) {
+      if (avoid.some(([a, b]) => x > a && x < b)) continue;
+      const tx = Math.round(x);
+      const hg = (26 + r2() * 16) * s;
+      const bark = haze(barkFar, hz, hzAmt);
+      const tips = gnarled(p, tx, base, hg, Math.max(2, Math.round(3 * s)), bark, seed + tx, 3);
+      if (r2() < 0.18) continue; // a bare, dead one now and then
+      const lr = haze(crowns[Math.floor(r2() * crowns.length)], hz, hzAmt);
+      const bl: Blob[] = [];
+      for (const [bx, by] of tips) {
+        const r = (3 + r2() * 2.5) * s;
+        bl.push({ x: bx + (r2() - 0.5) * 2, y: by + 1, rx: r, ry: r * 0.8 });
+      }
+      const cx = tips.reduce((a, t) => a + t[0], 0) / tips.length;
+      const cy = tips.reduce((a, t) => a + t[1], 0) / tips.length;
+      mass(p, bl, { ramp: lr, seed: tx, bump: 0.22, tex: 0.25, vgrad: 0.25, shadow: 0.25, form: { x: cx - 4, y: cy, rx: 18 * s, ry: 12 * s }, formMix: 0.4 });
+    }
+  };
+  const cx = Math.round(w * 0.5); // the den tree
+  grove(G - 22, 0.62, 0.7, 11, [[sunX - 16, sunX + 12]]);
+  mist(G - 21, 6, 0.45, 37);
+  grove(G - 15, 0.34, 0.95, 17, [
+    [sunX - 14, sunX + 16],
+    [cx - 30, cx + 30],
+  ]);
+  // undergrowth at the foot of the grove, gaps letting the low sun through
+  const brushR = haze(ramp('#2a1226', '#3e1a2c', '#5a2430', '#7a3232', '#9a4636'), hz, 0.3);
+  const brush: Blob[] = [];
+  for (let x = -6; x < w + 6; x += 3 + rnd() * 4) {
+    if (noise(x * 0.06, 2, 19) < 0.38) continue;
+    brush.push({ x, y: G - 15 + rnd() * 2, rx: 3 + rnd() * 3, ry: 2.5 + rnd() * 2.5 });
+  }
+  mass(p, brush, { ramp: brushR, seed: 19, bump: 0.25, tex: 0.25, vgrad: 0.35, shadow: 0.2, floor: G - 13 });
+  mist(G - 16, 4, 0.35, 43);
+
+  // the forest floor behind the road: leaf litter
+  const floorR = ramp('#24121e', '#321824', '#44202a', '#5a2a2e', '#723a32', '#8c4c36');
+  const leafR = ramp('#5a1e24', '#8e3024', '#c0522a', '#e0822e', '#f4b040');
+  const gTop = G - 14;
+  for (let y = gTop; y < G - 7; y++)
+    for (let x = 0; x < w; x++) {
+      if (y === gTop && hash(x, y, 4) > 0.5) continue;
+      const t = (y - gTop) / (G - 7 - gTop);
+      const n = fbm(x * 0.12, y * 0.35, 51);
+      let c = pick(floorR, 0.25 + t * 0.4 + (n - 0.5) * 0.6, x, y, 0.25);
+      const l = noise(x * 0.3, y * 0.6, 53);
+      if (l > 0.75) c = pick(leafR, (l - 0.75) * 2.2 + (y - gTop) * 0.03, x, y);
+      p.set(x, y, c);
+    }
+  // ---- the Boar King's den: a colossal, twisted hollow tree rising out of the frame
+  const dBase = G - 14;
+  const barkD = ramp('#1a0e1c', '#281424', '#3a1c2a', '#4e262e', '#663232', '#7e4236', '#9a5a3e');
+  const rimC = col('#e4783e'); // sunset rim light on the sun-facing edge
+  const twist = (y: number) => Math.sin(y * 0.045 + 0.6) * 4 + Math.sin(y * 0.12) * 1.2;
+  const halfW = (y: number) => {
+    const t = y / dBase;
+    return 15 + t * 5 + Math.pow(Math.max(0, t - 0.62) / 0.38, 2.2) * 17 + (noise(y * 0.2, 3, 21) - 0.5) * 2;
+  };
+  // the opening: an organic, almond-shaped hollow between two root buttresses
+  const mTop = dBase - 25;
+  const mx = cx + twist(dBase) - 1;
+  const mouthHalf = (y: number) => {
+    if (y < mTop) return -1;
+    const t = (y - mTop) / (dBase - mTop);
+    return (t < 0.55 ? Math.sin((t / 0.55) * Math.PI * 0.5) ** 0.8 : 1 + (t - 0.55) * 0.35) * 9.5 + (noise(y * 0.4, 7, 9) - 0.5) * 1.6;
+  };
+  const inMouth = (x: number, y: number) => y >= mTop && y <= dBase && Math.abs(x + 0.5 - mx) < mouthHalf(y);
+  const holR = ramp('#0a050c', '#140812', '#220c16', '#381218', '#561c1a', '#7c2c1c', '#a8461e');
+  for (let y = 0; y <= dBase; y++) {
+    const c = cx + twist(y);
+    const hw = halfW(y);
+    const xl = Math.round(c - hw);
+    const xr = Math.round(c + hw);
+    for (let x = xl; x <= xr; x++) {
+      if (inMouth(x, y)) {
+        // dark inside, with a deep ember glow low in the den
+        const g = Math.max(0, 1 - Math.hypot((x + 0.5 - mx - 1) / 8, (y - dBase) / 13));
+        let v = 0.06 + g * g * 0.75;
+        if (!inMouth(x - 1, y) || !inMouth(x - 2, y)) v = Math.min(v, 0.05); // the lip's shadow on the left
+        p.set(x, y, pick(holR, v, x, y, 0.4));
+        continue;
+      }
+      const nx = (x + 0.5 - c) / hw;
+      let v = 0.16 + 0.66 * lambert(nx * 0.95, 0.15);
+      // fibrous strands wrapped round the trunk, spiralling with its twist: lit crests, dark grooves
+      const ph = (Math.asin(Math.max(-1, Math.min(1, nx))) / Math.PI + 0.5) * 9 + y * 0.035 + (noise(x * 0.2, y * 0.06, 33) - 0.5) * 1.2;
+      const fr = ph - Math.floor(ph);
+      if (fr > 0.78) v -= 0.32;
+      else if (fr < 0.28) v += 0.12;
+      // the right inner wall of the hollow catches the low sun
+      if (inMouth(x - 1, y) || inMouth(x - 2, y)) v = 0.7;
+      else if (inMouth(x + 1, y)) v = 0.2;
+      let cc = pick(barkD, v, x, y, 0.12);
+      if (x === xr || (y === dBase && x > xl)) cc = barkD[0];
+      else if (x - xl < 2 && nx < -0.85) cc = x === xl ? mix(rimC, barkD[3], 0.35) : mix(rimC, barkD[4], 0.6);
+      p.set(x, y, cc);
+    }
+  }
+  // a burl and a knot hole up the trunk
+  const knot = (kx: number, ky: number, rx: number, ry: number) => {
+    for (let y = -ry - 1; y <= ry + 1; y++)
+      for (let x = -rx - 1; x <= rx + 1; x++) {
+        const d = Math.hypot(x / (rx + 1), y / (ry + 1));
+        if (d > 1) continue;
+        const inner = Math.hypot(x / rx, y / ry) <= 0.8;
+        p.set(kx + x, ky + y, inner ? (y < 0 ? holR[0] : holR[1]) : y + x < 0 ? barkD[1] : barkD[5]);
+      }
+  };
+  knot(Math.round(cx + twist(30) + 6), 30, 2, 3);
+  knot(Math.round(cx + twist(12) - 7), 12, 1, 2);
+  // giant limbs heading out of frame
+  const limb = (x0: number, y0: number, dir: number, len: number, rise: number, th: number) => {
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const yy = Math.round(y0 - rise * Math.sin(t * Math.PI * 0.5) + Math.sin(i * 0.4) * 0.8);
+      const thk = Math.max(2, Math.round(th * (1 - t * 0.6)));
+      for (let k = 0; k < thk; k++) p.set(x0 + dir * i, yy + k, k === 0 ? barkD[4] : k === thk - 1 ? barkD[0] : barkD[2]);
+    }
+  };
+  limb(Math.round(cx - 12), 16, -1, 36, 16, 6);
+  limb(Math.round(cx + 14), 10, 1, 40, 12, 6);
+  limb(Math.round(cx - 6), 6, -1, 20, 8, 4);
+  // its autumn crown spills in from the top edge
+  const crownR = ramp('#2c1024', '#4a1a2c', '#741e2e', '#a0302e', '#c84e30', '#e67a36', '#f8aa46');
+  const top: Blob[] = [];
+  for (let i = 0; i < 26; i++) {
+    const t = rnd();
+    const x = cx - 62 + t * 124;
+    const r = 4 + rnd() * 4.5;
+    top.push({ x, y: -3 + Math.abs(t - 0.5) * 12 + rnd() * 9, rx: r, ry: r * 0.8 });
+  }
+  mass(p, top, { ramp: crownR, seed: 77, bump: 0.22, tex: 0.3, vgrad: 0.2, shadow: 0.3, form: { x: cx - 20, y: 0, rx: 70, ry: 20 }, formMix: 0.4 });
+  for (let i = 0; i < 6; i++) {
+    const vx = Math.round(cx - 50 + rnd() * 100);
+    let vy = 0;
+    while (vy < 30 && crownR.includes(p.get(vx, vy))) vy++;
+    if (vy > 2) vine(p, vx, vy - 1, 2 + Math.floor(rnd() * 5), ramp('#3a1222', '#7a2a2a', '#c45a30', '#f09a44'), i);
+  }
+  // great roots spreading over the floor
+  const rootR = barkD;
+  const bigRoot = (x0: number, dir: number, len: number, th: number, seed: number) => {
+    for (let i = 0; i <= len; i++) {
+      const t = i / len;
+      const x = Math.round(x0 + dir * i);
+      const r = th * (1 - t * 0.75);
+      const yc = dBase - th * 0.6 + t * (th * 0.6 + 2) + Math.sin(t * 5 + seed) * 0.6;
+      for (let y = Math.floor(yc - r); y <= Math.ceil(yc + r * 0.5); y++) {
+        const ny = (y + 0.5 - yc) / r;
+        if (ny < -1 || ny > 0.5) continue;
+        let v = 0.65 - ny * 0.55 - (dir > 0 ? t * 0.1 : 0);
+        if (ny > 0.25) v = 0.08;
+        if (noise(x * 0.5, y * 0.4, seed) > 0.7) v -= 0.2;
+        p.set(x, y, pick(rootR, v, x, y));
+      }
+    }
+  };
+  bigRoot(Math.round(cx - halfW(dBase) + 6), -1, 26, 6, 1);
+  bigRoot(Math.round(cx - halfW(dBase) + 14), -1, 12, 4, 2);
+  bigRoot(Math.round(cx + halfW(dBase) - 6), 1, 28, 6, 3);
+  bigRoot(Math.round(cx + halfW(dBase) - 12), 1, 14, 4, 4);
+
+  // the den mouth's floor: trampled dark earth
+  for (let y = dBase - 1; y <= dBase + 2; y++)
+    for (let x = Math.round(mx - 10); x <= mx + 10; x++) if (Math.abs(x + 0.5 - mx) < 11 - (y - dBase) * 0.5) p.set(x, y, y === dBase - 1 ? holR[3] : pick(floorR, 0.2, x, y));
+  // bones and a broken tusk by the den
+  const boneP = { a: col('#f0e2c8'), b: col('#c8ac8c'), c: col('#8a6a5a'), s: floorR[0] };
+  bits(p, ['a...a', 'baaab', 'c...c', '.sss.'], boneP, Math.round(mx + 13), dBase - 1);
+  bits(p, ['a.', 'ab', '.ba', '..bc', '...c'], boneP, Math.round(mx - 20), dBase - 3);
+  bits(p, ['....a', '...ab', '.aab.', 'abc..', 'ss...'], boneP, Math.round(mx + 22), dBase - 2);
+  // toadstools in clusters at the roots and along the litter
+  const capRed = ramp('#4a0e1c', '#8a1a22', '#c8302c', '#ee5a3a', '#ff9a6a');
+  const capBrown = ramp('#3a1a1a', '#5e2e22', '#8a4a2a', '#b06c38', '#d49450');
+  const stemR = ramp('#6a4a4a', '#b49a8a', '#e6d4bc', '#fff4e0');
+  for (const [mxx, r, red] of [
+    [cx - 36, 2, 1],
+    [cx - 32, 1, 1],
+    [cx + 34, 2, 0],
+    [cx + 38, 1, 0],
+    [cx + 40, 1, 0],
+    [Math.round(w * 0.12), 2, 1],
+    [Math.round(w * 0.15), 1, 1],
+    [Math.round(w * 0.86), 2, 0],
+    [Math.round(w * 0.89), 1, 1],
+  ] as const)
+    toadstool(p, mxx, gTop + 4 + (r === 1 ? 1 : 0), r, red ? capRed : capBrown, stemR, floorR[0], red === 1);
+
+  // low sunlight raking across the floor from the left
+  shafts(
+    p,
+    [
+      [-20, 16, 0.9],
+      [30, 8, 0.7],
+      [72, 12, 0.8],
+    ],
+    1.9,
+    G - 46,
+    G - 6,
+    col('#ffc080'),
+    0.14,
+  );
+
+  // torches staked at the den mouth (flames are animated by the stage)
+  const torches: Backdrop['torches'] = [];
+  const warm = col('#ff9040');
+  const woodR = ramp('#24120e', '#4a2616', '#6e3e20', '#946036');
+  const ironR = ramp('#120e10', '#2a2224', '#4a3a34', '#6e5a4a');
+  for (const dx of [-17, 17]) {
+    const tx = Math.round(mx + dx);
+    const ty = dBase - 13;
+    torchLight(p, tx + 0.5, dBase + 1, 26, 9, warm, 0.22);
+    torchLight(p, tx + 0.5, ty - 2, 16, 16, warm, 0.16);
+    for (let y = ty + 2; y <= dBase + 1; y++) {
+      p.set(tx, y, lighten(woodR[2], warm, 0.12));
+      p.set(tx + 1, y, woodR[1]);
+    }
+    // iron cage holding the pitch-soaked wrap
+    for (let x = tx - 1; x <= tx + 2; x++) p.set(x, ty + 2, ironR[x === tx - 1 ? 3 : 2]);
+    p.set(tx - 1, ty + 1, ironR[3]);
+    p.set(tx + 2, ty + 1, ironR[1]);
+    p.set(tx, ty + 1, col('#5a2a18'));
+    p.set(tx + 1, ty + 1, col('#3a1a14'));
+    p.set(tx, ty, col('#ffd070'));
+    p.set(tx + 1, ty, col('#e0702c'));
+    torches.push({ x: tx, y: ty });
+  }
+
+  // the road: packed dark earth, calm where the actors stand
+  const roadR = ramp('#26141e', '#341a24', '#44222a', '#562c2e', '#6a3832', '#7e4636');
+  const roadTop = G - 8;
+  for (let y = roadTop; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const t = (y - roadTop) / (h - roadTop);
+      let v = 0.62 - t * 0.12 + (fbm(x * 0.05, y * 0.3, 61) - 0.5) * 0.28;
+      if ((y === G + 3 || y === G + 7) && noise(x * 0.12, y, 4) > 0.5) v -= 0.14;
+      p.set(x, y, pick(roadR, v, x, y, 0.2));
+    }
+  // leaf litter overhanging the road edge, with a soft shadow below it
+  for (let x = 0; x < w; x++) {
+    const len = 1 + Math.floor(noise(x * 0.3, 5, 8) * 2.4) + (hash(x, 9, 2) > 0.8 ? 1 : 0);
+    for (let k = 0; k < len; k++) p.set(x, roadTop + k, k === len - 1 ? floorR[2] : hash(x, k, 5) > 0.7 ? leafR[2] : floorR[3 + (hash(x, k, 3) > 0.5 ? 1 : 0)]);
+    p.set(x, roadTop + len, roadR[1]);
+    if (hash(x, 4, 6) > 0.5) p.set(x, roadTop + len + 1, roadR[2]);
+  }
+  // fallen leaves and pebbles, kept off the line the actors stand on
+  const leafCols = [leafR[1], leafR[2], leafR[3], leafR[4], capRed[2]];
+  for (let i = 0; i < 46; i++) {
+    const x = Math.floor(rnd() * w);
+    const y = rnd() < 0.35 ? G - 5 + Math.floor(rnd() * 3) : G + 3 + Math.floor(rnd() * Math.max(1, h - G - 4));
+    const c = leafCols[Math.floor(rnd() * leafCols.length)];
+    p.set(x, y, c);
+    p.set(x + 1, y, rnd() < 0.5 ? c : mix(c, roadR[0], 0.5));
+    if (rnd() < 0.3) p.set(x + 1, y - 1, c);
+  }
+  const pebR = ramp('#4a2a2c', '#6e4440', '#946656', '#b88a70');
+  for (let i = 0; i < 12; i++) pebble(p, Math.floor(rnd() * w), G + 4 + Math.floor(rnd() * Math.max(1, h - G - 5)), 1, 0, pebR, roadR[0]);
+  // the framing trees shade the ground near the edges (cooler, toward plum)
+  const shade = col('#1e1024');
+  for (let y = gTop; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const e = Math.min(x, w - 1 - x);
+      if (e < 44) p.tint(x, y, (c) => fade(c, shade, ((44 - e) / 44) ** 1.5 * 0.6, x, y, 3, 0.5));
+    }
+
+  // framing: gnarled old trunks at both edges under a blazing autumn canopy, dead-leaf strands hanging
+  const before = p.buf.slice();
+  const frameBark = ramp('#110a12', '#1e1018', '#2c1820', '#3e2228', '#54302e', '#6c4034');
+  const lichen = ramp('#2e1418', '#4a1e1e', '#6a2c24'); // red autumn ivy
+  trunk(p, 7, 0, G + 2, 15, 18, -2, { ramp: frameBark, seed: 23, outline: ink, moss: lichen, flare: 6, wobble: 5 });
+  trunk(p, w - 7, 0, G + 2, 14, 17, 2, { ramp: frameBark, seed: 29, outline: ink, moss: lichen, flare: 6, wobble: 5 });
+  root(p, 17, G - 1, 1, 10, frameBark, ink);
+  root(p, 12, G + 1, 1, 7, frameBark, ink);
+  root(p, w - 17, G - 1, -1, 10, frameBark, ink);
+  root(p, w - 11, G + 1, -1, 7, frameBark, ink);
+  // knots on the trunks
+  for (const [kx, ky] of [
+    [8, 40],
+    [w - 9, 56],
+  ]) {
+    for (let y = -2; y <= 2; y++)
+      for (let x = -1; x <= 2; x++) {
+        if (Math.abs(y) === 2 && (x === -1 || x === 2)) continue;
+        p.set(kx + x, ky + y, Math.abs(y) < 2 && x >= 0 && x <= 1 ? (y < 0 ? holR[0] : holR[2]) : y < 0 ? frameBark[1] : frameBark[4]);
+      }
+  }
+  // crooked branches reaching in under the canopy
+  for (const [bx, by, dir, len] of [
+    [12, 20, 1, 26],
+    [w - 12, 15, -1, 30],
+  ])
+    for (let i = 0; i < len; i++) {
+      const y = Math.round(by - i * 0.4 + Math.sin(i * 0.35) * 2);
+      p.set(bx + dir * i, y, frameBark[4]);
+      p.set(bx + dir * i, y + 1, frameBark[2]);
+      if (i < len * 0.7) p.set(bx + dir * i, y + 2, ink);
+      if (i === Math.round(len * 0.55)) for (let k = 1; k < 5; k++) p.set(bx + dir * (i + k), y - k, frameBark[3]); // a twig
+    }
+  const canopyR = ramp('#1a0a18', '#2e1022', '#4c162a', '#74202e', '#a0342e', '#c8562e', '#e88438');
+  const strandR = ramp('#2a0e1c', '#5a1a26', '#9a3a2a', '#d4742e');
+  cornerCanopy(p, 4, 1, 84, 25, canopyR, strandR);
+  cornerCanopy(p, w - 4, -1, 84, 26, canopyR, strandR);
+  const frame = changed(p, before);
+
+  // foreground strip: drifts of fallen leaves along the bottom edge, toadstools and bracken in the corners
+  const f = new Pix(w, h, -1);
+  const fgLeaf = ramp('#2a0e18', '#4a1622', '#782424', '#a83c28', '#d0642c');
+  for (let x = 30; x < w - 30; x += 14 + Math.floor(hash(x, 1, 91) * 22)) {
+    const r = 2 + hash(x, 2, 91) * 2;
+    mass(f, [{ x, y: h + 0.5, rx: r * 1.5, ry: r }], { ramp: fgLeaf, seed: x + 3, bump: 0.3, tex: 0.4, vgrad: 0.3, light: -0.05, outline: ink });
+  }
+  for (let i = 0; i < 12; i++) {
+    const x = 26 + Math.floor(hash(i, 3, 91) * (w - 52));
+    const y = h - 3 - Math.floor(hash(i, 4, 91) * 3);
+    f.set(x, y, leafCols[i % leafCols.length]);
+    f.set(x + 1, y, leafCols[(i + 2) % leafCols.length]);
+  }
+  const fernR = ramp('#140810', '#2a1018', '#4a1c1e', '#6e2c22', '#94442a');
+  fern(f, 4, 1, h, fernR, ink, 12);
+  fern(f, w - 4, -1, h, fernR, ink, 13);
+  toadstool(f, 24, h - 1, 2, capRed, stemR, ink, true);
+  toadstool(f, 28, h, 1, capRed, stemR, ink, true);
+  toadstool(f, w - 25, h - 1, 2, capBrown, stemR, ink, false);
+  return [p, f, frame, { torches }];
+}
+
 export function buildBackdrops(scene: Phaser.Scene, w: number, h: number, ground: number): Record<Theme, Backdrop> {
   const add = (key: string, canvas: HTMLCanvasElement) => {
     if (scene.textures.exists(key)) scene.textures.remove(key);
@@ -1224,6 +1701,7 @@ export function buildBackdrops(scene: Phaser.Scene, w: number, h: number, ground
   for (const [theme, make] of [
     ['forest', forest],
     ['ruins', ruins],
+    ['hollow', hollow],
   ] as const) {
     const [bg, fg, frame, info] = make(w, h, ground);
     add(`bg_${theme}`, bg.canvas());

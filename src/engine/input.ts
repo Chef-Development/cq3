@@ -41,17 +41,45 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
         else if (pick === 'new') app.newRun();
         return;
       }
-      case 'boost': {
-        const i = scene.boostCardAt(g.x, g.y);
-        if (i >= 0 && now - app.phaseSince > 400) app.setPhase(() => run.pickBoost(i));
+      case 'scene':
+        if (now - app.phaseSince < 250) return;
+        if (scene.storySkipAt(g.x, g.y)) app.storySkip();
+        else app.storyNext();
+        return;
+      case 'map': {
+        // keyboard: the first choice
+        const id = clientX < 0 ? (run.choices()[0] ?? null) : scene.mapNodeAt(g.x, g.y);
+        if (id !== null && now - app.phaseSince > 300) scene.chooseNode(id);
         return;
       }
-      case 'levelClear':
-        if (now - app.phaseSince > 700 && !scene.levelClearTap()) app.setPhase(() => run.nextLevel());
+      case 'boost': {
+        if (now - app.phaseSince < 400) return;
+        const i = clientX < 0 ? 0 : scene.boostCardAt(g.x, g.y);
+        if (i >= 0) app.setPhase(() => run.pickBoost(i));
+        else if (scene.rerollAt(g.x, g.y) && run.rerollBoosts()) scene.onReroll();
+        return;
+      }
+      case 'treasure':
+      case 'rest':
+      case 'shop':
+      case 'event':
+        if (now - app.phaseSince > 300) scene.nodeTap(clientX < 0 ? -1 : g.x, g.y);
+        return;
+      case 'actClear':
+        if (now - app.phaseSince > 700 && !scene.levelClearTap()) app.setPhase(() => run.nextAct());
         return;
       case 'defeat':
         if (now - app.phaseSince > 700) app.setPhase(() => run.retry());
         return;
+      case 'victory':
+        if (now - app.phaseSince > 1500) app.toTitle();
+        return;
+    }
+    if (app.storyOverlay) {
+      // a boss's mid-fight scene: tap through it (or skip it), then the fight goes on
+      if (scene.storySkipAt(g.x, g.y)) app.storySkip();
+      else app.storyNext();
+      return;
     }
     if (app.userPaused) {
       app.userPaused = false;
