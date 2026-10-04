@@ -63,6 +63,7 @@ export class Fighters {
   private heroRim!: Phaser.GameObjects.Image;
   private pipRim!: Phaser.GameObjects.Image;
   private enemyRims = new Map<number, Phaser.GameObjects.Image>();
+  private hurtSeen = 0;
 
   constructor(private readonly s: FightScene) {
     this.h = this.freshHero();
@@ -546,6 +547,7 @@ export class Fighters {
     const reach = Math.max(10, v.homeX - v.img.displayWidth / 2 - (this.h.x + 20));
     v.lunge = { t0: this.s.anim, dist: reach * strength, ms: 260 };
     this.setEnemyPose(v, 'attack', 200);
+    if (!v.fly) this.s.fx.dust(v.x + v.img.displayWidth * 0.3, v.y, 3, 1, 0.8); // it kicks off toward Rowan
   }
 
   // ------------------------------------------------------------------ per frame
@@ -621,6 +623,11 @@ export class Fighters {
     } else if (h.state === 'engaged') pose = 'windup';
     else pose = Math.floor(a / 420) % 2 ? 'idle1' : 'idle0';
     const knock = a < h.hurtUntil ? -4 : 0;
+    if (knock && h.hurtUntil !== this.hurtSeen) {
+      // knocked back a step: his heels scuff the dust
+      this.hurtSeen = h.hurtUntil;
+      s.fx.dust(h.x - 4, s.ground, 3, -1, 0.8);
+    }
     h.y = yOff;
     const spinning = h.state === 'super' && a - h.t0 > this.superMs * 0.06 && a - h.t0 < this.superMs * 0.94;
     this.hero.setVisible(!spinning);

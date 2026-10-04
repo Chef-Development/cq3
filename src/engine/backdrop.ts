@@ -1,7 +1,8 @@
 // Original level backdrops, painted into pixel buffers at boot. Each theme gives a background texture
-// (`bg_<theme>`, opaque, framing included), a foreground strip drawn in front of the actors
-// (`fg_<theme>`), the framing trees alone (`frame_<theme>`, transparent elsewhere: optional, for drawing
-// them again above the drifting clouds) and the spots the scene animates on top (torch flames).
+// (`bg_<theme>`, opaque, framing included), the framing trees alone (`frame_<theme>`, transparent elsewhere: drawn
+// again above the drifting clouds), the dark foreground nearest the camera in FG_FRAMES sway frames
+// (`fg_<theme>_<f>` in front of the actors, `fgo_<theme>_<f>` its last rows hanging over the top of the bar's band)
+// and the spots the scene animates on top (torch flames). The light over all of it is in art-stage.ts.
 //
 // How the painting works (see docs/art-style.md): every layer is built from organic shapes (scalloped
 // leaf clumps, ridged massifs, uneven masonry) lit from the top left and quantised onto short,

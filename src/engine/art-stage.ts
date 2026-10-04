@@ -32,7 +32,7 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     shade: 0x2c3c5a,
     vignette: 0.6,
     floor: 0.5,
-    top: 0.32,
+    top: 0.4,
     rim: 0xfff0b8,
     rimAmt: 0.75,
     rimLeft: 0.6,
@@ -42,7 +42,7 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     shadowLen: 1.1,
     dust: [0xc8a878, 0xa88a60, 0xe0c898],
     pool: 0xffe0a0,
-    poolAmt: 0.16,
+    poolAmt: 0.2,
   },
   // moonlight from the top left, braziers below
   ruins: {
@@ -145,7 +145,7 @@ function grade(w: number, h: number, G: number, L: StageLight): Rgba {
       const r = Math.sqrt(ex * ex + ey * ey * 1.5);
       const kv = L.vignette * ss(0.5, 1.32, r);
       const kf = L.floor * Math.pow(clamp01((y - G - 1) / (h - G - 1)), 1.25);
-      const kt = L.top * Math.pow(clamp01(1 - y / (h * 0.32)), 2);
+      const kt = L.top * Math.pow(clamp01(1 - y / (h * 0.36)), 2);
       const k = 1 - (1 - kv) * (1 - kf) * (1 - kt);
       out.set(x, y, L.shade, k);
     }
@@ -175,7 +175,7 @@ function rays(w: number, h: number, G: number, theme: Theme): Rgba {
         const along = ss(8, 40, d) * (1 - ss(120, 260, d));
         const bloom = Math.pow(clamp01(1 - d / 46), 2.2) * 0.9;
         const ground = 1 - ss(G - 10, G + 6, y) * 0.7;
-        const a = (v * along * 0.2 + bloom * 0.42) * ground;
+        const a = (v * along * 0.18 + bloom * 0.34) * ground;
         out.set(x, y, 0xffb070, a);
       }
     return out;
@@ -281,8 +281,6 @@ export function rimMask(src: HTMLCanvasElement, left: number, top: number): HTML
 
 // ------------------------------------------------------------------ build
 
-export const RAYS_DRIFT = 4; // the ray layers are this much wider on each side, so they can sway
-
 /** Paint every stage texture for the current layout (stage height h, feet line G). */
 export function buildStageArt(scene: Phaser.Scene, w: number, h: number, G: number): void {
   const add = (key: string, canvas: HTMLCanvasElement) => {
@@ -297,8 +295,8 @@ export function buildStageArt(scene: Phaser.Scene, w: number, h: number, G: numb
   }
   // drifting cloud shadows over the meadow; mist banks in the ruins and the hollow (two depths each)
   add('st_cloudshade', patches(w, h, G - 26, h, 0x1c2a40, 0.36, 5, 0.47, 0.026, 0.1).canvas());
-  add('st_mist_ruins', patches(w, h, G - 30, G + 4, 0x7e98b0, 0.38, 11, 0.42, 0.02, 0.12).canvas());
+  add('st_mist_ruins', patches(w, h, G - 30, G + 4, 0x7e98b0, 0.3, 11, 0.44, 0.02, 0.12).canvas());
   add('st_mist_ruins_near', patches(w, h, G - 6, h, 0x6a84a0, 0.22, 17, 0.5, 0.014, 0.16).canvas());
-  add('st_mist_hollow', patches(w, h, G - 28, G + 2, 0xf0a8a0, 0.3, 23, 0.44, 0.02, 0.12).canvas());
-  add('st_mist_hollow_near', patches(w, h, G - 4, h, 0xc87a86, 0.18, 29, 0.52, 0.014, 0.16).canvas());
+  add('st_mist_hollow', patches(w, h, G - 28, G + 2, 0xe8a098, 0.17, 23, 0.48, 0.02, 0.12).canvas());
+  add('st_mist_hollow_near', patches(w, h, G - 4, h, 0xb86a7a, 0.12, 29, 0.54, 0.014, 0.16).canvas());
 }
