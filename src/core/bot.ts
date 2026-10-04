@@ -277,7 +277,7 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
         st.damage += dealt;
         if (e.source === 'finisher') st.finisherDamage += dealt;
       } else if (e.type === 'enemyHeal') hpLeft.set(e.enemyId, (hpLeft.get(e.enemyId) ?? 0) + e.amount);
-      else if (e.type === 'summon' || e.type === 'split') for (const id of e.ids) hpLeft.set(id, c.enemyById(id)?.hp ?? 0);
+      else if (e.type === 'summon' || e.type === 'split' || e.type === 'wave') for (const id of e.ids) hpLeft.set(id, c.enemyById(id)?.hp ?? 0);
       else if (e.type === 'finisher') {
         st.finishers++;
         if (e.stacks >= Math.round(T.meter.maxStacks)) st.maxStackFinishers++;

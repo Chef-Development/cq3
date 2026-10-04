@@ -181,7 +181,10 @@ function split(c: Combat, e: Enemy, into: string, count: number, hpFrac: number)
   const kids: Enemy[] = [];
   for (let i = 0; i < count; i++) {
     const k = c.addEnemy(into, { hp, slot: i === 0 ? e.slot : undefined });
-    if (k) kids.push(k);
+    if (k) {
+      k.parent = e.id;
+      kids.push(k);
+    }
   }
   e.alive = true;
   c.retire(e, 'split', kids[0]);

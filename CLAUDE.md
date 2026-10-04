@@ -21,14 +21,15 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   renders core state and feeds input into it.
 - **Timing.** Taps are judged by the pointer event's `timeStamp` mapped to sim time (`SimClock`), minus the
   calibration offset, against the cursor/block positions *at that moment* (core keeps ~1 s of history and
-  rewinds). Never judge by the frame a tap was processed on.
+  rewinds). Never judge by the frame a tap was processed on. An attack (red, shield, bomb) under the cursor always
+  takes the tap first; the grace window is time at the closing speed (reds get more).
 - **Data-driven tuning.** System numbers live in `src/core/tuning.ts` (`DEFAULT_TUNING`), plus the slider metadata for
   the debug panel; it also pulls in a live copy of the enemies and the acts' HP/attack scaling from `src/data/`, so
   the panel can edit them. Don't hard-code gameplay numbers elsewhere. New numbers need a slider entry in
   `sliderGroups`.
 - **Settings/tuning persistence** goes through `src/engine/storage.ts` (localStorage, always try/catch). So does
   the mid-run save (`core/save.ts`): it autosaves at every node (every phase change) and when the page is hidden;
-  bump `SAVE_VERSION` if `RunSave` changes shape (v3 = Greenmarch; older saves are dropped).
+  bump `SAVE_VERSION` if `RunSave` changes shape (v4 = waves of foes; older saves are dropped).
 - **Impacts** (hits, blocks, bombs, finisher blows, kills) are tiered by one weight each in `tuning.impact`, which
   drives both the layered sound (`audio.ts`: crack, saturated body, tail, sub) and the visuals (`fx.impact()`:
   hit-stop, shake, white frames, music duck). Impact sounds play from the view when the blow lands on screen.
@@ -36,10 +37,11 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 - **Balance:** combat numbers were set with the bot, which plays whole acts picking map nodes at random and aims
   like a person (a timing error in ms, reaction time, a thumb's tap rate; the real judge decides each tap), so thin
   or fast blocks and a fast cursor are as hard for it as for a player. `tests/unit/bot.test.ts` guards the targets:
-  Act 1 is a gentle start (85% player ~100% first try, 70% ~95%), Act 2 ~80-90% first try for an 85% player, the Boar
-  King's first fight won ~50-65%. Re-run `npm run balance` after changing them. Red formations must stay blockable
+  set for a typical 70% player: Act 1 ~100% first try, Act 2 ~85-90%, the Boar King's first fight won ~65-75%; a
+  skilled 85% player clears every act first try most of the time. Re-run `npm run balance` after changing them. Red formations must stay blockable
   by a thumb (`tests/unit/data.test.ts`: never thinner than a normal red, waves spaced >= 0.16 s at 1.5x cursor).
-  Acts scale enemies with `acts[i].hpMult/atkMult` (plus `map.rowHp` per map row); HP carries from node to node; dying restarts the act with the hero as they entered it.
+  Fights are waves of foes, one after another (`acts[i].waves` in the data: more per fight the deeper the row; the HUD
+  shows "foe 3/7"). Acts scale enemies with `acts[i].hpMult/atkMult/pace` (plus `map.rowHp` per map row); HP carries from node to node; dying restarts the act with the hero as they entered it.
 - Landscape (like CQ2) canvas 327x150, integer-scaled (8x on an iPhone 16 Pro held sideways) so pixels are
   big and chunky like the reference; pixel art, no smoothing. Safe areas (Dynamic Island left/right, home indicator) come from `env(safe-area-inset-*)`
   (see `src/engine/layout.ts`).

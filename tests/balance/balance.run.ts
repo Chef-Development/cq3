@@ -38,8 +38,8 @@ it('balance report', () => {
   const rows = balance(t, ACCURACIES, RUNS);
   const at = (acc: number, act: number) => rows.find((r) => r.accuracy === acc && r.act === act)!;
   const [a1, a2, a3] = [0, 1, 2].map((a) => at(0.85, a));
-  const c1 = at(0.7, 0);
-  const b1 = at(0.55, 0);
+  const [c1, c2, c3] = [0, 1, 2].map((a) => at(0.7, a));
+  const [b1, b2] = [0, 1].map((a) => at(0.55, a));
   const ms = (acc: number) => Math.round(timingSpread(t, acc) * 1000);
   const md = `# Balance report: Region 1, Greenmarch
 
@@ -65,16 +65,18 @@ accuracy, ${Math.round((Date.now() - t0) / 1000)} s to run.
   rests, buys a potion when hurt and then the rarest cards it can afford, and picks event choices at random.
 - A lost act is retried from its start (up to 6 tries), with the hero and coins as they entered it; a cleared act
   carries the hero (healed to full) into the next.
+- Fights are runs of foes, one wave after another (Act 1: 2 foes in the first row up to 4 before the boss; Act 2:
+  3-5; Act 3: 3-6; an elite comes after an escort). A tap that overlaps an attack always blocks it first.
 
-## Targets (the playtester found Act 1 too hard: a gentle start, then a ramp)
+## Targets (the playtester found Act 1 too hard: a gentle start, then a ramp; set for a typical 70% player)
 
 | Target | Result |
 |---|---|
-| Act 1 is a gentle start: nearly everyone clears it first try | 85% player **${pct(a1.firstTry)}**, 70% player **${pct(c1.firstTry)}**, 55% player **${pct(b1.firstTry)}** |
-| Act 2: an 85% player clears it first try about 80-90% of the time | **${pct(a2.firstTry)}** |
-| The Boar King wins his first fight against an 85% player about 35-50% of the time | the player wins **${pct(a3.bossFirstTry)}** of first fights; ${pct(a3.clearRate)} clear Act 3 within 6 tries |
-| No boss can be one-shot by a max-stack finisher | boss HP / max finisher ${num(a1.bossVsMaxFinisher)} / ${num(a2.bossVsMaxFinisher)} / ${num(a3.bossVsMaxFinisher)}; one-shots ${pct(a1.bossOneShotRate)} / ${pct(a2.bossOneShotRate)} / ${pct(a3.bossOneShotRate)} (the mini-bosses' half-HP moves are phase gates) |
-| Mini-bosses | Bandit Captain ${pct(a1.bossFirstTry)} and Ruin Golem ${pct(a2.bossFirstTry)} first-fight wins (85% player) |
+| Act 1 is a gentle start: nearly everyone clears it first try | 70% player **${pct(c1.firstTry)}**, 55% player **${pct(b1.firstTry)}**, 85% player **${pct(a1.firstTry)}** |
+| Act 2: a typical (70%) player clears it first try about 85-90% of the time | **${pct(c2.firstTry)}** (55% player ${pct(b2.firstTry)}, 85% player ${pct(a2.firstTry)}) |
+| The Boar King: a typical player wins the first fight about 65-75% of the time | **${pct(c3.bossFirstTry)}**; ${pct(c3.clearRate)} clear Act 3 within 6 tries (85% player: ${pct(a3.bossFirstTry)} first fights won) |
+| No boss can be one-shot by a max-stack finisher | boss HP / max finisher ${num(c1.bossVsMaxFinisher)} / ${num(c2.bossVsMaxFinisher)} / ${num(c3.bossVsMaxFinisher)}; one-shots ${pct(c1.bossOneShotRate)} / ${pct(c2.bossOneShotRate)} / ${pct(c3.bossOneShotRate)} (each boss has a phase gate that damage can't skip) |
+| Fights are runs of foes, more the deeper the row | normal fights ${sec(c1.fightSec)} / ${sec(c2.fightSec)} / ${sec(c3.fightSec)}, bosses ${sec(c1.bossSec)} / ${sec(c2.bossSec)} / ${sec(c3.bossSec)} (70% player) |
 
 ## Results
 

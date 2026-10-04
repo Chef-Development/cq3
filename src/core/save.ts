@@ -10,8 +10,9 @@ import { actSeed, buildActMap, validPath } from './map';
 import { BOOST_IDS, RARITIES, type BoostOffer, type EventState, type Phase, type Rarity, type Run, type SceneThen, type ShopItem } from './run';
 import type { Tuning } from './tuning';
 
-// v3: Greenmarch's acts and node maps replaced the levels. Older saves (v1, v2) can't be resumed and are dropped.
-export const SAVE_VERSION = 3;
+// v3: Greenmarch's acts and node maps replaced the levels. v4: fights are waves of foes (the save keeps the wave).
+// Older saves can't be resumed and are dropped.
+export const SAVE_VERSION = 4;
 
 type SavedPhase = Exclude<Phase, 'title' | 'world' | 'victory'>;
 const PHASES: SavedPhase[] = ['scene', 'map', 'fight', 'boost', 'treasure', 'rest', 'shop', 'event', 'actClear', 'defeat'];
@@ -31,7 +32,7 @@ export interface RunSave {
   actRerolls: number;
   scenes: string[];
   sceneThen: SceneThen;
-  fight: { foes: SavedFoe[]; seed: number } | null;
+  fight: { foes: SavedFoe[]; seed: number; wave: number } | null;
   boost: { choices: BoostOffer[]; min: boolean | Rarity; then: 'map' | 'actClear' } | null;
   shop: ShopItem[];
   event: EventState | null;
@@ -52,7 +53,7 @@ export function snapshotRun(run: Run, now = Date.now()): RunSave | null {
     // kills whose reward is still waiting for the kill animation: bank their coins now
     coins += c.killQueue.reduce((n, id) => n + (run.tuning.enemies[c.enemyById(id)?.key ?? '']?.coins ?? 0), 0);
     if (c.result === 'lost') phase = 'defeat';
-    else fight = { foes: c.saveFoes(), seed: run.fightSeed };
+    else fight = { foes: c.saveFoes(), seed: run.fightSeed, wave: c.waveIndex };
   }
   return {
     v: SAVE_VERSION,
@@ -100,7 +101,7 @@ export function readSave(data: unknown, t: Tuning, region: RegionDef = GREENMARC
   if (needsNode.includes(s.phase) && !node) return null;
   if (s.phase === 'fight') {
     const f = s.fight;
-    if (!f || !num(f.seed) || !Array.isArray(f.foes) || !f.foes.length) return null;
+    if (!f || !num(f.seed) || !num(f.wave) || f.wave < 0 || f.wave >= Math.max(1, node!.waves.length) || !Array.isArray(f.foes) || !f.foes.length) return null;
     for (const e of f.foes) if (!e || !t.enemies[e.key] || ![e.hp, e.maxHp, e.phase, e.summoner, e.protect].every(num) || !Array.isArray(e.uses) || !e.uses.every(num)) return null;
   }
   if (s.phase === 'boost' && (!s.boost || !Array.isArray(s.boost.choices) || !s.boost.choices.every(offerOk) || !['map', 'actClear'].includes(s.boost.then))) return null;

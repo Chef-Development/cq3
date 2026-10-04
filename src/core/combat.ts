@@ -51,6 +51,9 @@ export interface Enemy {
   summoner: number; // id of the enemy that summoned it with a link (0 = none); it flees if that one falls
   split: boolean; // split into smaller enemies (gone, not killed)
   fled: boolean; // its summoner fell and it ran off (gone, not killed)
+  wave: number; // the wave it came in with (summons and splits join the wave they appear in)
+  member: boolean; // one of its wave's own foes (counted in "foe 3/7"), not a summon or a split
+  parent: number; // id of the enemy it split from (0 = none)
 }
 
 /** A special being telegraphed: the enemy winds up for `total` seconds, then the special's actions fire. */
@@ -70,6 +73,8 @@ export interface SavedFoe {
   uses: number[];
   summoner: number; // index of its summoner in the saved list (-1 = none)
   protect: number;
+  member?: boolean; // one of the wave's own foes (missing in older saves: the first ones in the list)
+  parent?: number; // index of the enemy it split from in the saved list (-1 = none)
 }
 
 export interface Hero {
@@ -164,6 +169,8 @@ export type CombatEvent =
   | { type: 'revive' }
   | { type: 'defeat' }
   | { type: 'won' }
+  | { type: 'waveClear'; index: number } // a wave fell; the next walks in after tuning.waves.gapSec
+  | { type: 'wave'; index: number; total: number; ids: number[] } // the next wave walks in
   | { type: 'hitStop'; ms: number }
   | { type: 'cursorReset' };
 
@@ -189,6 +196,10 @@ export interface CombatOptions {
   settings: Settings;
   hero: Hero;
   enemies: string[]; // enemy keys, front first
+  /** Foes that come one wave after another (each wave fights at once); replaces `enemies` when given. */
+  waves?: string[][];
+  /** Resume at this wave (with `restore` holding that wave's foes). */
+  wave?: number;
   seed: number;
   carry?: Partial<Carry>;
   spawning?: boolean; // false = no pattern spawns (tests)
@@ -200,6 +211,8 @@ export interface CombatOptions {
   /** The act's enemy scaling (and the map row's HP ramp). */
   hpMult?: number;
   atkMult?: number;
+  /** The act's pace: enemies' spawn intervals are scaled by this (<1 = busier). */
+  pace?: number;
 }
 
 export class Combat {
@@ -229,6 +242,7 @@ export class Combat {
   specialsOn: boolean;
   readonly hpMult: number;
   readonly atkMult: number;
+  readonly pace: number;
   blocks: Block[] = [];
   enemies: Enemy[];
   targetId: number | null = null;
@@ -236,8 +250,14 @@ export class Combat {
   killQueue: number[] = [];
   result: null | 'won' | 'lost' = null;
   spawning: boolean;
-  /** The fight started with more than one enemy (spawns come a little faster). */
-  readonly groupFight: boolean;
+  /** The current wave has more than one enemy (spawns come a little faster). */
+  groupFight: boolean;
+  /** The fight's waves of foes (a fight without waves is one wave), the one on screen, and the countdown to the next. */
+  readonly waves: string[][];
+  waveIndex = 0;
+  nextWaveIn = -1;
+  /** Foes in earlier waves that are no longer in `enemies` (a restored fight). */
+  private beatenBefore = 0;
   /** Attack hits since the companion last pecked. */
   petCharge = 0;
 
@@ -261,6 +281,7 @@ export class Combat {
     this.specialsOn = o.specials ?? this.spawning;
     this.hpMult = o.hpMult ?? 1;
     this.atkMult = o.atkMult ?? 1;
+    this.pace = o.pace ?? 1;
     this.spawnRng = new Rng(o.seed);
     this.critRng = new Rng(o.seed ^ 0x5bd1e995);
     this.combo = o.carry?.combo ?? 0;
@@ -268,9 +289,13 @@ export class Combat {
     this.stacks = o.carry?.stacks ?? 0;
     this.speedStacks = o.carry?.speedStacks ?? 0;
     this.cursorPhase = o.carry?.cursorPhase ?? 0;
+    this.waves = o.waves?.length ? o.waves.map((w) => w.slice()) : [o.enemies.slice()];
+    this.waveIndex = Math.max(0, Math.min(this.waves.length - 1, Math.round(o.wave ?? 0)));
+    for (let i = 0; i < this.waveIndex; i++) this.beatenBefore += this.waves[i].length;
     if (o.restore) {
       this.enemies = o.restore.map((f, slot) => {
         const e = this.makeEnemy(f.key, slot);
+        e.member = f.member ?? slot < this.waves[this.waveIndex].length;
         e.maxHp = Math.max(1, Math.round(f.maxHp));
         e.hp = Math.max(0, Math.min(e.maxHp, Math.round(f.hp)));
         e.alive = e.hp > 0;
@@ -284,8 +309,10 @@ export class Combat {
       o.restore.forEach((f, i) => {
         const s = this.enemies[f.summoner];
         if (s && f.summoner !== i) this.enemies[i].summoner = s.id;
+        const p = this.enemies[f.parent ?? -1];
+        if (p && f.parent !== i) this.enemies[i].parent = p.id;
       });
-    } else this.enemies = o.enemies.map((key, slot) => this.makeEnemy(key, slot));
+    } else this.enemies = this.waves[this.waveIndex].map((key, slot) => Object.assign(this.makeEnemy(key, slot), { member: true }));
     this.groupFight = this.enemies.length > 1;
     if (o.enemyHp && !o.restore)
       this.enemies.forEach((e, i) => {
@@ -294,8 +321,11 @@ export class Combat {
         e.hp = Math.max(0, Math.min(e.maxHp, Math.round(hp)));
         e.alive = e.hp > 0;
       });
-    if (this.enemies.every((e) => !e.alive)) this.result = 'won';
-    if (this.spawning) {
+    if (this.enemies.every((e) => !e.alive)) {
+      if (this.waveIndex < this.waves.length - 1) this.nextWaveIn = 0; // saved between waves: the next one comes right in
+      else this.result = 'won';
+    }
+    if (this.spawning && this.frontEnemy()) {
       const front = this.frontEnemy() ?? this.enemies[0];
       for (let i = 0; i < this.tuning.blocks.openingSpawns; i++) this.trySpawn('yellow', front.id);
     }
@@ -327,6 +357,9 @@ export class Combat {
       summoner: 0,
       split: false,
       fled: false,
+      wave: this.waveIndex,
+      member: false,
+      parent: 0,
     };
   }
 
@@ -450,6 +483,7 @@ export class Combat {
       }
     } else this.cursorPhase += this.cursorSpeed() * DT;
     if (this.hero.abilityTimer > 0) this.hero.abilityTimer = Math.max(0, this.hero.abilityTimer - DT);
+    if (this.nextWaveIn >= 0 && (this.nextWaveIn -= DT) <= 1e-9) this.nextWave();
     this.updateBlocks();
     if (!this.result) this.updateStatuses();
     if (!this.result) this.updateQueue();
@@ -616,10 +650,50 @@ export class Combat {
   }
 
   private checkWon(): void {
-    if (!this.result && this.enemies.every((x) => !x.alive)) {
-      this.result = 'won';
-      this.events.push({ type: 'won' });
+    if (this.result || this.nextWaveIn >= 0 || !this.enemies.every((x) => !x.alive)) return;
+    if (this.waveIndex < this.waves.length - 1) {
+      // the wave fell: a short breath, then the next one walks in
+      this.nextWaveIn = Math.max(0, this.tuning.waves.gapSec);
+      this.events.push({ type: 'waveClear', index: this.waveIndex });
+      return;
     }
+    this.result = 'won';
+    this.events.push({ type: 'won' });
+  }
+
+  /** The next wave walks in (its foes take the front slots). */
+  private nextWave(): void {
+    this.nextWaveIn = -1;
+    this.waveIndex++;
+    this.telegraph = null;
+    const ids: number[] = [];
+    this.waves[this.waveIndex].forEach((key, slot) => {
+      const e = this.makeEnemy(key, slot);
+      e.member = true;
+      this.enemies.push(e);
+      ids.push(e.id);
+    });
+    this.groupFight = ids.length > 1;
+    this.events.push({ type: 'wave', index: this.waveIndex, total: this.waves.length, ids });
+  }
+
+  /** Every foe in the fight's waves (summons and splits not counted). */
+  get foesTotal(): number {
+    return this.waves.reduce((n, w) => n + w.length, 0);
+  }
+
+  /** Foes beaten so far: gone (killed, fled, or split with none of its pieces left). */
+  get foesBeaten(): number {
+    const lives = (id: number): boolean => this.enemies.some((x) => x.alive && (x.id === id || (x.parent !== 0 && this.descends(x, id))));
+    return this.beatenBefore + this.enemies.filter((e) => e.member && !lives(e.id)).length;
+  }
+
+  private descends(e: Enemy, ancestor: number): boolean {
+    for (let p = e.parent, guard = 0; p && guard < 16; guard++) {
+      if (p === ancestor) return true;
+      p = this.enemyById(p)?.parent ?? 0;
+    }
+    return false;
   }
 
   private updateBlocks(): void {
@@ -704,7 +778,7 @@ export class Combat {
       }
       if (this.trySpawn(kind, e.id)) {
         e.seq++;
-        e.spawnTimer = Math.max(e.spawnTimer, 0) + def.interval * B.spawnRateMult * groupMult;
+        e.spawnTimer = Math.max(e.spawnTimer, 0) + def.interval * B.spawnRateMult * groupMult * this.pace;
       } else if (isRed(kind)) {
         e.spawnTimer = 0.1; // spawn point busy or too many reds: retry shortly
       } else {
@@ -825,7 +899,11 @@ export class Combat {
     return { outcome, perfect: outcome === 'trap' || outcome === 'counter' ? false : perfect, cursorPos: cpos, blockId: chosen.id };
   }
 
-  /** The block a tap at time t would land on (nearest under the cursor; purple only if nothing else is). */
+  /**
+   * The block a tap at time t would land on: an attack (a red, shield, bomb or speed block) under the cursor always
+   * comes first, even over a nearer block, so a tap never hits a yellow while an attack it overlaps gets through;
+   * then the nearest other block; a purple trap only if nothing else is there.
+   */
   private pick(t: number): { chosen: Block | null; d: number; cpos: number } {
     const J = this.tuning.judge;
     const now = this.time;
@@ -837,6 +915,8 @@ export class Combat {
     const v = this.speedAtTime(t);
     const vSigned = ((phase % 2) + 2) % 2 < 1 ? v : -v;
     const cursorHalf = this.tuning.cursor.widthFrac / 2;
+    let red: Block | null = null;
+    let redD = Infinity;
     let best: Block | null = null;
     let bestD = Infinity;
     let trap: Block | null = null;
@@ -846,12 +926,15 @@ export class Combat {
       const d = Math.abs(cpos - this.blockPosAt(b, t));
       const graceDist = Math.max(v, Math.abs(vSigned - b.vel)) * ((isRed(b.kind) ? J.redGraceMs : J.graceMs) / 1000);
       if (d > b.width / 2 + cursorHalf + graceDist) continue;
-      if (b.kind === 'purple') {
+      if (isRed(b.kind)) {
+        if (d < redD) (red = b), (redD = d);
+      } else if (b.kind === 'purple') {
         if (d < trapD) (trap = b), (trapD = d);
       } else if (d < bestD) (best = b), (bestD = d);
     }
-    const chosen = best ?? trap;
-    return { chosen, d: chosen === best ? bestD : trapD, cpos };
+    if (red) return { chosen: red, d: redD, cpos };
+    if (best) return { chosen: best, d: bestD, cpos };
+    return { chosen: trap, d: trapD, cpos };
   }
 
   /** Whether a tap at time t would land on nothing (lets input hold back a would-be miss that may be a swipe). */
@@ -1003,7 +1086,7 @@ export class Combat {
 
   /** Fire the finisher with every banked stack. */
   finisher(): boolean {
-    if (this.result || this.stacks < 1) return false;
+    if (!this.finisherReady) return false;
     const combo = this.combo;
     const stacks = this.stacks;
     const dmg = this.finisherDamage(stacks);
@@ -1022,7 +1105,7 @@ export class Combat {
   }
 
   get finisherReady(): boolean {
-    return this.stacks >= 1 && !this.result;
+    return this.stacks >= 1 && !this.result && this.enemies.some((e) => e.alive); // not between waves: it would hit nobody
   }
 
   // ---------------------------------------------------------------- targeting
@@ -1172,14 +1255,18 @@ export class Combat {
 
   /** The enemies as they stand, for a mid-fight save (summons and splits included; gone ones saved with 0 HP). */
   saveFoes(): SavedFoe[] {
-    return this.enemies.map((e) => ({
+    // the current wave's foes, with its summons and splits (earlier waves are all beaten)
+    const list = this.enemies.filter((e) => e.wave === this.waveIndex);
+    return list.map((e) => ({
       key: e.key,
       hp: e.alive ? e.hp : 0,
       maxHp: e.maxHp,
       phase: e.phase,
       uses: e.uses.slice(),
-      summoner: e.summoner ? this.enemies.findIndex((x) => x.id === e.summoner) : -1,
+      summoner: e.summoner ? list.findIndex((x) => x.id === e.summoner) : -1,
       protect: e.protect,
+      member: e.member,
+      parent: e.parent ? list.findIndex((x) => x.id === e.parent) : -1,
     }));
   }
 

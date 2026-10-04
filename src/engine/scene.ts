@@ -461,6 +461,11 @@ export class FightScene extends Phaser.Scene implements View {
           this.app.audio.summonArrive();
           this.later(0, () => this.fighters.addEnemies(c));
           break;
+        case 'wave':
+          // the next foes of the fight walk in
+          this.app.audio.summonArrive();
+          this.fighters.addEnemies(c);
+          break;
         case 'split':
           f.splitApart(e.enemyId, e.ids);
           this.fighters.addEnemies(c);

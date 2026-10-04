@@ -14,6 +14,7 @@ export interface ActScale {
   name: string;
   hpMult: number;
   atkMult: number;
+  pace: number;
 }
 
 export const DEFAULT_TUNING = {
@@ -71,7 +72,7 @@ export const DEFAULT_TUNING = {
     comboPower: 5, // finisher damage = attack x comboPower x stacks ^ meter.stackExp
     reviveHpFrac: 0.5,
     revivesPerAct: 1, // a revive per act (refilled at each act's start)
-    healOnKill: 0.05, // fraction of max HP restored by every kill (small: HP carries from node to node, rests matter)
+    healOnKill: 0.01, // fraction of max HP restored by every kill (tiny: HP carries from node to node, rests matter)
   },
   meter: {
     // The meter fills once per stack; keep the combo going to bank more stacks (a combo break loses them all).
@@ -95,8 +96,8 @@ export const DEFAULT_TUNING = {
   kill: {
     // Every kill permanently raises the hero's stats for the rest of the run (the icons rain into the HUD).
     // Small: an act has many kills, and the boost picks after each fight carry most of the growth.
-    atk: 0.5,
-    maxHp: 2,
+    atk: 0.25,
+    maxHp: 1,
     comboPower: 0, // finisher growth comes from boosts only, so max-stack finishers never outgrow the bosses
   },
   companion: {
@@ -177,6 +178,9 @@ export const DEFAULT_TUNING = {
     jitter: 0.15, // +/- share of a timed special's interval, so they don't tick like clockwork
     maxEnemies: 4, // summons and splits stop at this many enemies on screen
   },
+  waves: {
+    gapSec: 1.2, // a fight's foes come one wave after another: the next walks in this long after a wave falls
+  },
   map: {
     restHeal: 0.3, // a rest node heals this share of max HP
     treasureCoins: 25, // a treasure chest holds this many coins (+/- 40%) and a rare-or-better boost card
@@ -189,7 +193,7 @@ export const DEFAULT_TUNING = {
     priceReroll: 20, // one reroll of the next 1-of-3 boost pick
   },
   enemies: cloneData(ENEMIES),
-  acts: GREENMARCH.acts.map((a: ActDef): ActScale => ({ name: a.name, hpMult: a.hpMult, atkMult: a.atkMult })),
+  acts: GREENMARCH.acts.map((a: ActDef): ActScale => ({ name: a.name, hpMult: a.hpMult, atkMult: a.atkMult, pace: a.pace })),
 };
 
 export type Tuning = typeof DEFAULT_TUNING;
@@ -483,6 +487,10 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       ],
     },
     {
+      title: 'Waves',
+      sliders: [s('waves.gapSec', 'Next wave after (s)', 0, 3, 0.05)],
+    },
+    {
       title: 'Map and nodes',
       sliders: [
         s('map.restHeal', 'Rest heals', 0, 1, 0.05),
@@ -500,7 +508,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
   t.acts.forEach((a, i) =>
     groups.push({
       title: `Act ${i + 1}: ${a.name}`,
-      sliders: [s(`acts.${i}.hpMult`, 'Enemy HP x', 0.2, 6, 0.05), s(`acts.${i}.atkMult`, 'Enemy attack x', 0.2, 5, 0.05)],
+      sliders: [s(`acts.${i}.hpMult`, 'Enemy HP x', 0.2, 6, 0.05), s(`acts.${i}.atkMult`, 'Enemy attack x', 0.2, 8, 0.05), s(`acts.${i}.pace`, 'Spawn interval x', 0.4, 2, 0.05)],
     }),
   );
   for (const key of Object.keys(t.enemies)) {

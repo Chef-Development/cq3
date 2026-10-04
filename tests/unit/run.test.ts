@@ -1,5 +1,6 @@
 // Region flow: scenes, the act map, fights and rewards, treasure, rest, shop, events, dying and the next act.
 import { describe, expect, it } from 'vitest';
+import { toLastWave } from './helpers';
 import type { NodeType } from '../../src/data/types';
 import { heroMaxHp } from '../../src/core/combat';
 import { Run, rarityMult } from '../../src/core/run';
@@ -36,6 +37,7 @@ function goTo(r: Run, type: NodeType): boolean {
 /** Win the current fight at once. */
 function win(r: Run): void {
   const c = r.combat!;
+  toLastWave(c);
   for (const e of c.enemies) {
     e.uses = e.uses.map(() => 1); // past any boss phase gates
     e.hp = Math.min(e.hp, 5);
@@ -79,13 +81,15 @@ describe('the map', () => {
     expect(r.phase).toBe('fight');
   });
 
-  it("a fight uses the node's enemies, scaled by the act and the row", () => {
+  it("a fight uses the node's waves of enemies, scaled by the act and the row", () => {
     const r = onMap();
     goTo(r, 'elite');
     const n = r.node!;
     const c = r.combat!;
-    expect(c.enemies.map((e) => e.key)).toEqual(n.enemies);
-    const k = n.enemies[0];
+    expect(c.waves).toEqual(n.waves);
+    expect(c.enemies.map((e) => e.key)).toEqual(n.waves[0]);
+    expect(c.foesTotal).toBe(n.enemies.length);
+    const k = n.waves[0][0];
     const mult = r.tuning.acts[0].hpMult * (1 + r.tuning.map.rowHp * n.row);
     expect(c.enemies[0].maxHp).toBe(Math.round(r.tuning.enemies[k].hp * mult));
     expect(c.enemies[0].atk).toBe(Math.round(r.tuning.enemies[k].atk * r.tuning.acts[0].atkMult));
@@ -107,10 +111,11 @@ describe('the map', () => {
     expect(r.boostChoices.filter((o) => o.rarity === 'rare')).toHaveLength(1);
   });
 
-  it('collects coins for every kill', () => {
+  it('collects coins for every kill, in every wave', () => {
     const r = onMap();
     r.chooseNode(r.map.rows[0][0]);
-    const keys = r.combat!.enemies.map((e) => e.key);
+    const keys = r.node!.enemies;
+    expect(r.node!.waves.length).toBeGreaterThan(1);
     win(r);
     expect(r.coins).toBe(keys.reduce((n, k) => n + r.tuning.enemies[k].coins, 0));
   });

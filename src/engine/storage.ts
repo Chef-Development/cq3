@@ -3,12 +3,14 @@ import { readProgress, type Progress } from '../core/progress';
 import { readSave, type RunSave } from '../core/save';
 import { cloneTuning, DEFAULT_SETTINGS, DEFAULT_TUNING, mergeKnown, tuningDiff, type Settings, type Tuning } from '../core/tuning';
 
-// v2: only values changed from the defaults are stored, so new defaults reach players.
-const TUNING_KEY = 'cq3.tuning.v2';
+// Only values changed from the defaults are stored, so new defaults reach players. v3: every enemy and act was
+// rebalanced (waves of foes, a player-calibrated bot), so changes saved against the old numbers are dropped.
+const TUNING_KEY = 'cq3.tuning.v3';
+const OLD_TUNING_KEY = 'cq3.tuning.v2';
 // v2: the finisher became a swipe by default, so older saved settings drop their finisher choice.
 const SETTINGS_KEY = 'cq3.settings.v2';
 const OLD_SETTINGS_KEY = 'cq3.settings.v1';
-// The run in progress (see core/save.ts). v3: Greenmarch's acts; runs saved by the level builds are dropped.
+// The run in progress (see core/save.ts; the save carries its own version, older ones are dropped).
 const RUN_KEY = 'cq3.run.v3';
 const OLD_RUN_KEY = 'cq3.run.v1';
 // Progress across runs (see core/progress.ts).
@@ -33,6 +35,11 @@ function write(key: string, value: unknown): void {
 
 export function loadTuning(): Tuning {
   const t = cloneTuning();
+  try {
+    window.localStorage.removeItem(OLD_TUNING_KEY);
+  } catch {
+    /* ignore */
+  }
   const saved = read(TUNING_KEY);
   if (saved) mergeKnown(t, saved);
   return t;

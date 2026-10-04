@@ -14,14 +14,14 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // ---------------------------------------------------------------- Act 1, Meadow Road
   slime: {
     name: 'Slime',
-    hp: 200,
+    hp: 110,
     atk: 8,
     special: 10,
     interval: 0.75,
     pattern: 'YYRYGYYRYY',
     icon: 'drop',
     sprite: 'slime',
-    coins: 8,
+    coins: 4,
     specials: [
       // once, below half HP: two small slimes (a big enough hit kills it before it can)
       { id: 'split', name: 'Split!', tell: 0.7, sound: 'split', hpBelow: 0.5, actions: [{ type: 'split', into: 'slimelet', count: 2, hpFrac: 0.55 }] },
@@ -29,26 +29,26 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   slimelet: {
     name: 'Slimelet',
-    hp: 55,
+    hp: 35,
     atk: 5,
     special: 7,
     interval: 0.9,
     pattern: 'YRYY',
     icon: 'drop',
     sprite: 'slimelet',
-    coins: 3,
+    coins: 1,
     specials: [],
   },
   crow: {
     name: 'Crow',
-    hp: 170,
+    hp: 90,
     atk: 7,
     special: 9,
     interval: 0.7,
     pattern: 'YRYYGRY',
     icon: 'wing',
     sprite: 'crow',
-    coins: 8,
+    coins: 4,
     fly: 14,
     specials: [
       // three swooping reds, one after another (a little quicker than usual, and wider for it)
@@ -57,14 +57,14 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   boar: {
     name: 'Boar',
-    hp: 280,
+    hp: 150,
     atk: 10,
     special: 12,
     interval: 0.65,
     pattern: 'YRYSGYYRYY',
     icon: 'tusk',
     sprite: 'boar',
-    coins: 12,
+    coins: 6,
     specials: [
       // paws the ground, then one fast, wide red
       { id: 'charge', name: 'Charge!', tell: 0.9, sound: 'charge', first: 4.5, every: 8, actions: [{ type: 'formation', blocks: [{ kind: 'red', speed: 1.4, width: 1.2 }] }] },
@@ -72,14 +72,14 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   bandit: {
     name: 'Bandit',
-    hp: 360,
+    hp: 190,
     atk: 11,
     special: 12,
     interval: 0.6,
     pattern: 'YRPYGYYRYY',
     icon: 'mask',
     sprite: 'bandit',
-    coins: 15,
+    coins: 7,
     specials: [
       // two purple traps dropped right beside yellow blocks
       {
@@ -154,14 +154,14 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // ---------------------------------------------------------------- Act 2, Old Ruins
   archer: {
     name: 'Goblin Archer',
-    hp: 290,
+    hp: 160,
     atk: 9,
     special: 11,
     interval: 0.7,
     pattern: 'YYRYGYRY',
     icon: 'arrow',
     sprite: 'archer',
-    coins: 12,
+    coins: 6,
     specials: [
       // three reds at once, spread across the bar's right side
       {
@@ -177,14 +177,14 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   shaman: {
     name: 'Mushroom Shaman',
-    hp: 310,
+    hp: 170,
     atk: 8,
     special: 10,
     interval: 0.75,
     pattern: 'YYGYRYPY',
     icon: 'spore',
     sprite: 'shaman',
-    coins: 14,
+    coins: 7,
     specials: [
       // heal blocks: tap them to pop them; the ones left unbroken heal it and its allies
       {
@@ -200,14 +200,14 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   beetle: {
     name: 'Shell Beetle',
-    hp: 390,
+    hp: 210,
     atk: 10,
     special: 12,
     interval: 0.75,
     pattern: 'YSYGYYRY',
     icon: 'shell',
     sprite: 'beetle',
-    coins: 14,
+    coins: 7,
     specials: [
       // yellow (and green) hits deal half until both shell blocks are broken
       { id: 'shell', name: 'Shell Up!', tell: 0.8, sound: 'shell', first: 2.5, every: 9, actions: [{ type: 'shell', target: 'self', mult: 0.5, blocks: 2 }] },
@@ -215,7 +215,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   golem: {
     name: 'Ruin Golem',
-    hp: 1900,
+    hp: 2300,
     atk: 16,
     special: 18,
     interval: 0.7,
@@ -237,14 +237,14 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // ---------------------------------------------------------------- Act 3, Boar King's Hollow
   wolf: {
     name: 'Wolf',
-    hp: 260,
+    hp: 140,
     atk: 8,
     special: 10,
     interval: 0.75,
     pattern: 'YRYYGRY',
     icon: 'fang',
     sprite: 'wolf',
-    coins: 10,
+    coins: 5,
     specials: [
       // the pack attacks as one: a red from each wolf, one right after the other
       { id: 'howl', name: 'Howl!', tell: 0.9, sound: 'howl', first: 4, every: 8, actions: [{ type: 'formation', blocks: [{ kind: 'red' }, { kind: 'red', partner: true, delay: 0.85 }] }] },
@@ -252,8 +252,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   boarKing: {
     name: 'Boar King',
-    hp: 3200,
-    atk: 26,
+    hp: 4300,
+    atk: 18,
     special: 20,
     interval: 0.55,
     pattern: 'YRYSRYGYFRYY',
@@ -298,7 +298,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     pattern: 'YRYY',
     icon: 'tusk',
     sprite: 'piglet',
-    coins: 4,
+    coins: 2,
     specials: [],
   },
 };

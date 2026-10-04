@@ -198,7 +198,7 @@ export class Run {
 
   /** The act's live-tuned enemy scaling. */
   get actScale(): ActScale {
-    return this.tuning.acts[this.actIndex] ?? { name: this.act.name, hpMult: 1, atkMult: 1 };
+    return this.tuning.acts[this.actIndex] ?? { name: this.act.name, hpMult: 1, atkMult: 1, pace: 1 };
   }
 
   get theme() {
@@ -307,7 +307,7 @@ export class Run {
   }
 
   /** The current node's fight. `restore` resumes a saved one. */
-  startFight(restore?: { foes: SavedFoe[]; seed: number }): void {
+  startFight(restore?: { foes: SavedFoe[]; seed: number; wave?: number }): void {
     const n = this.node;
     if (!n) return;
     this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
@@ -317,10 +317,13 @@ export class Run {
       settings: this.settings,
       hero: this.hero,
       enemies: n.enemies,
+      waves: n.waves.length ? n.waves : [n.enemies],
+      wave: restore?.wave,
       seed: this.fightSeed,
       restore: restore?.foes,
       hpMult: this.actScale.hpMult * (1 + this.tuning.map.rowHp * n.row),
       atkMult: this.actScale.atkMult,
+      pace: this.actScale.pace,
     });
     this.boostChoices = [];
     this.phase = 'fight';
@@ -488,6 +491,7 @@ export class Run {
     const m = this.map;
     const target = type === 'boss' ? m.nodes[m.boss] : (m.nodes.find((n) => n.type === type && n.row >= 3) ?? m.nodes.find((n) => n.row === 3)!);
     target.enemies = enemies.slice();
+    target.waves = [enemies.slice()];
     const path = [target.id];
     while (m.nodes[path[0]].row > 0) path.unshift(m.nodes.find((p) => p.next.includes(path[0]))!.id);
     this.path = path;

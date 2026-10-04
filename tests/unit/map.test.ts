@@ -61,16 +61,31 @@ describe('act maps', () => {
     }
   });
 
-  it('fights and elites name their enemies; events name an event; rests come no earlier than row 4', () => {
+  it('fights hold waves of foes from the pools (more the deeper the row); an elite comes after its escort; events name an event; rests come no earlier than row 4', () => {
     for (const [a, m] of maps(30)) {
       const act = GREENMARCH.acts[a];
+      const W = act.waves;
+      const names = (pool: string[][]) => pool.map((g) => g.join('+'));
       for (const n of m.nodes) {
-        if (n.type === 'fight') expect([...act.fights.early, ...act.fights.late].map((g) => g.join('+'))).toContain(n.enemies.join('+'));
-        if (n.type === 'elite') expect(act.elites.map((g) => g.join('+'))).toContain(n.enemies.join('+'));
+        expect(n.enemies).toEqual(n.waves.flat());
+        if (n.type === 'fight') {
+          const expected = Math.round(W.first + ((W.last - W.first) * n.row) / (act.rows - 1));
+          expect(n.waves, `act ${a + 1} row ${n.row}`).toHaveLength(expected);
+          for (const w of n.waves) expect(names(n.row < 3 ? act.fights.early : act.fights.late)).toContain(w.join('+'));
+          for (let i = 1; i < n.waves.length; i++) expect(n.waves[i].join('+')).not.toBe(n.waves[i - 1].join('+'));
+        }
+        if (n.type === 'elite') {
+          expect(n.waves).toHaveLength(W.eliteEscort + 1);
+          expect(names(act.elites)).toContain(n.waves.at(-1)!.join('+'));
+          for (const w of n.waves.slice(0, -1)) expect(names(act.fights.late)).toContain(w.join('+'));
+        }
+        if (n.type === 'boss') expect(n.waves).toEqual([act.boss]);
         if (n.type === 'event') expect(n.event).not.toBe('');
         if (n.type === 'rest') expect(n.row).toBeGreaterThanOrEqual(3);
-        if (n.type === 'fight' && n.row < 3) expect(act.fights.early.map((g) => g.join('+'))).toContain(n.enemies.join('+'));
       }
+      // the first fights are short, the last ones long
+      const fights = m.nodes.filter((n) => n.type === 'fight');
+      expect(Math.min(...fights.filter((n) => n.row === 0).map((n) => n.waves.length))).toBe(W.first);
     }
   });
 

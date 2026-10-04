@@ -74,7 +74,14 @@ export interface ActDef {
   theme: Theme;
   hpMult: number; // enemy HP in this act is scaled by this...
   atkMult: number; // ...and enemy attack (and trap) damage by this
+  pace: number; // enemies' spawn intervals are scaled by this (<1 = a busier bar)
   rows: number; // map rows before the boss row
+  /**
+   * A fight node's foes come in waves, one after another ("foe 3/7"): `first` waves in the first row, ramping to
+   * `last` in the row before the boss. An elite comes after `eliteEscort` waves of ordinary foes; the boss alone.
+   * Each wave is one group from the fight pools (most are a single enemy).
+   */
+  waves: { first: number; last: number; eliteEscort: number };
   fights: { early: string[][]; late: string[][] }; // early: the first 3 rows
   elites: string[][];
   boss: string[];

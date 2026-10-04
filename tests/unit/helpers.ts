@@ -42,3 +42,14 @@ export function setup(opts: { enemies?: string[]; tune?: (t: Tuning) => void; se
 
 /** Sim time when the cursor (at base speed, first pass) is at bar position p. */
 export const timeAt = (t: Tuning, p: number): number => p * t.cursor.basePassSec;
+
+/** Beat every wave but the last (each falls to a finisher, then the next walks in); the last wave is left on screen. */
+export function toLastWave(c: Combat): void {
+  for (let k = 0; k < 30 && c.waveIndex < c.waves.length - 1; k++) {
+    for (const e of c.enemies) if (e.alive) (e.uses = e.uses.map(() => 1)), (e.hp = 1);
+    c.stacks = Math.max(1, c.stacks);
+    c.finisher();
+    c.advanceTo(c.time + c.tuning.waves.gapSec + 0.05);
+  }
+  c.drainEvents();
+}

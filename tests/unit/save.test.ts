@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { toLastWave } from './helpers';
 import { Run } from '../../src/core/run';
 import { readSave, restoreRun, saveLabel, snapshotRun, validSave, type RunSave } from '../../src/core/save';
 import { cloneTuning, DEFAULT_SETTINGS, type Tuning } from '../../src/core/tuning';
@@ -130,10 +131,13 @@ describe('save at every node', () => {
     const r = onMap();
     r.chooseNode(r.map.rows[0][0]);
     const c = r.combat!;
+    toLastWave(c);
+    r.sync();
+    const before = r.coins;
     for (const e of c.enemies) e.hp = 1;
     c.stacks = 1;
     c.finisher(); // no r.sync(): the view holds the phase change while the enemy bursts
-    const coins = c.enemies.reduce((n, e) => n + r.tuning.enemies[e.key].coins, 0);
+    const coins = before + c.enemies.filter((e) => e.wave === c.waveIndex).reduce((n, e) => n + r.tuning.enemies[e.key].coins, 0);
     const save = snapshotRun(r)!;
     expect(save.coins).toBe(coins);
     const back = fresh();

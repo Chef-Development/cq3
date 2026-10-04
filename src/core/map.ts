@@ -14,7 +14,8 @@ export interface MapNode {
   of: number; // nodes in its row
   type: NodeType;
   next: number[]; // ids in the next row
-  enemies: string[]; // fight, elite and boss nodes
+  waves: string[][]; // fight, elite and boss nodes: the foes, one wave after another (each wave fights at once)
+  enemies: string[]; // every foe in its waves, in order
   event: string; // event nodes
 }
 
@@ -52,7 +53,7 @@ export function buildActMap(act: ActDef, seed: number): ActMap {
   const nodes: MapNode[] = [];
   const rows: number[][] = [];
   const node = (row: number, col: number, of: number): MapNode => {
-    const n: MapNode = { id: nodes.length, row, col, of, type: 'fight', next: [], enemies: [], event: '' };
+    const n: MapNode = { id: nodes.length, row, col, of, type: 'fight', next: [], waves: [], enemies: [], event: '' };
     nodes.push(n);
     return n;
   };
@@ -122,23 +123,37 @@ export function buildActMap(act: ActDef, seed: number): ActMap {
     if (spots.length) spots[rng.int(spots.length)].type = t;
   }
 
-  // what each node holds
+  // what each node holds: fights get waves of foes (more the deeper the row), an elite comes after an escort
   let events: string[] = [];
+  const W = act.waves;
+  const wavesAt = (r: number) => Math.max(1, Math.round(W.first + ((W.last - W.first) * r) / Math.max(1, R - 1)));
+  /** `n` groups from `pool`, never the same group twice in a row. */
+  const pickWaves = (pool: string[][], n: number): string[][] => {
+    const out: string[][] = [];
+    for (let i = 0; i < n; i++) {
+      const prev = out[i - 1]?.join('+');
+      const ok = pool.filter((p) => p.join('+') !== prev);
+      out.push((ok.length ? ok : pool)[rng.int((ok.length ? ok : pool).length)].slice());
+    }
+    return out;
+  };
   for (let r = 0; r <= R; r++) {
     const used: string[] = [];
     for (const id of rows[r]) {
       const n = nodes[id];
-      if (n.type === 'boss') n.enemies = act.boss.slice();
-      else if (n.type === 'fight' || n.type === 'elite') {
-        const pool = n.type === 'elite' ? act.elites : r < 3 ? act.fights.early : act.fights.late;
-        const fresh = pool.filter((p) => !used.includes(p.join('+')));
-        const pick = (fresh.length ? fresh : pool)[rng.int((fresh.length ? fresh : pool).length)];
-        n.enemies = pick.slice();
-        used.push(pick.join('+'));
+      if (n.type === 'boss') n.waves = [act.boss.slice()];
+      else if (n.type === 'fight') n.waves = pickWaves(r < 3 ? act.fights.early : act.fights.late, wavesAt(r));
+      else if (n.type === 'elite') {
+        // a different elite on each node of the row where it can be
+        const fresh = act.elites.filter((p) => !used.includes(p.join('+')));
+        const elite = (fresh.length ? fresh : act.elites)[rng.int((fresh.length ? fresh : act.elites).length)];
+        used.push(elite.join('+'));
+        n.waves = [...pickWaves(act.fights.late, Math.max(0, Math.round(W.eliteEscort))), elite.slice()];
       } else if (n.type === 'event') {
         if (!events.length) events = EVENT_IDS.slice();
         n.event = events.splice(rng.int(events.length), 1)[0];
       }
+      n.enemies = n.waves.flat();
     }
   }
   return { nodes, rows, boss: boss.id };

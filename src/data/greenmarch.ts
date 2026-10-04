@@ -14,7 +14,9 @@ export const GREENMARCH: RegionDef = {
       theme: 'forest',
       hpMult: 1,
       atkMult: 1,
+      pace: 1.1,
       rows: 7,
+      waves: { first: 2, last: 4, eliteEscort: 1 },
       fights: {
         early: [['slime'], ['crow'], ['boar']],
         late: [['bandit'], ['slime', 'crow'], ['boar', 'slime'], ['bandit', 'crow']],
@@ -28,9 +30,11 @@ export const GREENMARCH: RegionDef = {
     {
       name: 'Old Ruins',
       theme: 'ruins',
-      hpMult: 2.5,
-      atkMult: 1.7,
+      hpMult: 1.8,
+      atkMult: 4,
+      pace: 0.85,
       rows: 7,
+      waves: { first: 3, last: 5, eliteEscort: 2 },
       fights: {
         early: [['archer'], ['beetle'], ['shaman', 'slime']],
         late: [['beetle', 'archer'], ['shaman', 'bandit'], ['crow', 'archer'], ['beetle', 'shaman']],
@@ -44,9 +48,11 @@ export const GREENMARCH: RegionDef = {
     {
       name: "Boar King's Hollow",
       theme: 'hollow',
-      hpMult: 3,
-      atkMult: 2.3,
+      hpMult: 2.3,
+      atkMult: 6.6,
+      pace: 0.75,
       rows: 7,
+      waves: { first: 3, last: 6, eliteEscort: 2 },
       fights: {
         early: [['wolf', 'wolf'], ['boar', 'crow'], ['shaman', 'boar']],
         late: [['wolf', 'wolf', 'archer'], ['beetle', 'boar'], ['boar', 'bandit'], ['wolf', 'wolf', 'shaman']],
