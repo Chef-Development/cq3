@@ -79,7 +79,6 @@ function render(W: number, H: number, pal: Pal, shades: Record<string, Shade>, p
 const swap = (rows: string[], pairs: [string, string][]) =>
   rows.map((r) => pairs.reduce((s, [a, b]) => s.split(a).join(b), r));
 
-
 /** A part from loose points in frame coordinates: [letter, [[x, y], ...]] pairs, later ones on top. */
 function dots(spec: [string, [number, number][]][], opts?: PartOpts): Part {
   const all = spec.flatMap(([, p]) => p);
@@ -462,6 +461,8 @@ function wolfParts(pose: string): Part[] {
       tail = WOLF_TAIL.up;
       break;
   }
+  // feet on the ground: ignore empty rows at the bottom of a legs map
+  while (legs.length && !/[^.]/.test(legs[legs.length - 1])) legs = legs.slice(0, -1);
   const ly = F - legs.length + 1;
   return [
     [tail, bx + 16, by + 1],
@@ -990,9 +991,9 @@ const KNIGHT_LEGS: Record<string, string[]> = {
     'aaa.....aaa',
     'aaa......aaa',
     'aaa......aaa',
-    'aaaa.....aaaa',
-    'aaaa.....aaaa',
-    '..............',
+    'aaa.......aaa',
+    'aaaa......aaaa',
+    'aaaa......aaaa',
   ],
 };
 // kite shield, front on: gold rim, hedge-green face, a big pale leaf
@@ -1059,11 +1060,12 @@ function knightParts(pose: string): Part[] {
       hand = [22, 20];
       break;
     case 'windup':
+      // the sword hauled up overhead
       x = 1;
       y = 1;
       sh = [4, 15];
-      hand = [21, 11];
-      sw = [1, -1, 10];
+      hand = [21, 12];
+      sw = [0, -1, 11];
       break;
     case 'attack':
       x = -2;
@@ -1071,15 +1073,15 @@ function knightParts(pose: string): Part[] {
       legs = KNIGHT_LEGS.lunge;
       lx = 8;
       sh = [5, 16];
-      hand = [10, 15];
-      sw = [-1, 0, 13];
+      hand = [12, 15];
+      sw = [-1, 0, 11];
       break;
     case 'hurt':
       x = 2;
       helm = swap(KNIGHT_HELM, [['E', 'k']]);
       sh = [5, 14];
-      hand = [23, 20];
-      sw = [1, -1, 10];
+      hand = [23, 21];
+      sw = [1, -1, 6];
       break;
     case 'tell':
       // the shield heaved up high
@@ -1599,19 +1601,30 @@ function kingMane(bristle = 1, dy = 0): Part {
   return dots(Object.entries(pts).filter(([, p]) => p.length) as [string, [number, number][]][]);
 }
 
-/** The mane's ruff down the back of the head and neck, hiding the seam: spikes sweeping back. */
-function kingRuff(ox: number, oy: number): Part {
-  const pts: Record<string, [number, number][]> = { n: [], N: [], o: [], O: [], Q: [] };
-  for (let y = 10; y <= 31; y++) {
-    const bx = 22 + Math.round(4 * Math.sin(((y - 9) / 23) * Math.PI));
-    const len = y % 3 === 0 ? 6 : y % 3 === 1 ? 4 : 3;
-    for (let k = 0; k < len; k++) {
-      const t = k < 2 ? 'n' : k >= len - 1 ? (y < 20 ? 'Q' : 'O') : k >= len - 2 ? 'O' : 'o';
-      pts[k < 1 ? 'N' : t].push([ox + bx + k, oy + y - Math.floor(k / 2)]);
-    }
-  }
-  return dots(Object.entries(pts).filter(([, p]) => p.length) as [string, [number, number][]][]);
-}
+// the mane's ruff down the back of the head and neck, hiding the seam: a dark mass, spikes sweeping back
+const KING_RUFF = [
+  '..oO.....',
+  '.noOQ....',
+  'nNooOQ...',
+  'nnNoo....',
+  'nnNooOQ..',
+  'nnnNooO..',
+  'nnnNoO...',
+  'nnnnNooOQ',
+  'nnnnNoo..',
+  'nnnnNooO.',
+  'nnnnnNoOQ',
+  'nnnnnNo..',
+  'nnnnNooO.',
+  'nnnnNoOQ.',
+  'nnnnNo...',
+  'nnnNooO..',
+  'nnnNoO...',
+  'nnNoo....',
+  'nnNoO....',
+  '.nNo.....',
+  '..nN.....',
+];
 
 /** A thick leg w x h with a hoof, lit on the left; `dark` for the far legs, `slant` px of lean over its height. */
 function kingLeg(w: number, h: number, dark = false, slant = 0): string[] {
@@ -1630,7 +1643,7 @@ function kingLeg(w: number, h: number, dark = false, slant = 0): string[] {
 // crown: gold band with a point either side over a velvet cap; the brass pendulum bob hangs from the centre
 // finial in a dark bezel (brass is yellower than the crown's gold)
 const KING_CROWN = [
-  'G......G......g',
+  'r......G......r',
   'Gg....gGy....gy',
   'Gg.....k.....gy',
   'GgV...kkk...Vgy',
@@ -1666,7 +1679,7 @@ function kingParts(pose: string): Part[] {
       hy = 1;
       break;
     case 'windup':
-      bx = 2;
+      bx = 1;
       by = 1;
       hx = 2;
       hy = 2;
@@ -1680,7 +1693,7 @@ function kingParts(pose: string): Part[] {
       legs = [[23, -4], [36, 3], [14, -5], [46, 4]];
       break;
     case 'hurt':
-      bx = 2;
+      bx = 1;
       hx = 3;
       hy = -1;
       eye = ['KKKKK', '.KKKK', '.....'];
@@ -1714,7 +1727,7 @@ function kingParts(pose: string): Part[] {
     [['..sS', '.sS.', 'sS..'], 44 + bx, 22 + by],
     H(KING_EAR, 19, 6),
     H(KING_HEAD, 0, 0, { edge: KFUR[0] }),
-    kingRuff(hx, hy + 2),
+    H(KING_RUFF, 22, 9),
     H(['5555544', '.000001', '......0'], 8, 17), // heavy brow and its shadow
     H(KING_SNOUT, 0, 21),
     H(eye, 9, 18),
@@ -1731,12 +1744,49 @@ function kingParts(pose: string): Part[] {
 // ------------------------------------------------------------------ build
 
 interface SpriteDef {
+  /** Design canvas the parts are laid out on (feet near the bottom); the textures are cropped to fit. */
   W: number;
   H: number;
   pal: Pal;
   shades: Record<string, Shade>;
   parts: (pose: string) => Part[];
   extras?: string[];
+}
+
+/** Room around the design canvas, so a pose that strays past it is never clipped. */
+const PAD = 8;
+
+/**
+ * Render every pose of a sprite, then crop them all to the union of their pixels (outline included): every
+ * frame of a sprite is the same size, as tight as the widest pose allows, with nothing clipped.
+ */
+function fitFrames(d: SpriteDef, poses: string[]): [string, HTMLCanvasElement][] {
+  const full = poses.map((pose): [string, HTMLCanvasElement] => {
+    const parts = d.parts(pose === 'flash' ? 'hurt' : pose).map(([rows, x, y, o]): Part => [rows, x + PAD, y + PAD, o]);
+    return [pose, render(d.W + PAD * 2, d.H + PAD * 2, d.pal, d.shades, parts, pose === 'flash')];
+  });
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -1;
+  let y1 = -1;
+  for (const [, c] of full) {
+    const px = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+    for (let y = 0; y < c.height; y++)
+      for (let x = 0; x < c.width; x++)
+        if (px[(y * c.width + x) * 4 + 3]) {
+          x0 = Math.min(x0, x);
+          y0 = Math.min(y0, y);
+          x1 = Math.max(x1, x);
+          y1 = Math.max(y1, y);
+        }
+  }
+  return full.map(([pose, c]) => {
+    const out = document.createElement('canvas');
+    out.width = x1 - x0 + 1;
+    out.height = y1 - y0 + 1;
+    out.getContext('2d')!.drawImage(c, -x0, -y0);
+    return [pose, out];
+  });
 }
 
 export function buildFoeArt(add: Add): void {
@@ -1767,12 +1817,8 @@ export function buildFoeArt(add: Add): void {
         add('slimelet_tell', slimeFrame(rx, ry, { squash: 1, lean: 0, face: 'angry' }));
         continue;
       }
-      for (const pose of FOE_POSES) add(`${name}_${pose}`, render(7, 6, {}, {}, [[['#####', '#####', '#####', '#####'], 1, 1, { pal: { '#': pose === 'flash' ? '#ffffff' : '#7a6a9a' } }]]));
       continue;
     }
-    for (const pose of [...FOE_POSES, ...(d.extras ?? [])]) {
-      const p = pose === 'flash' ? 'hurt' : pose;
-      add(`${name}_${pose}`, render(d.W, d.H, d.pal, d.shades, d.parts(p), pose === 'flash'));
-    }
+    for (const [pose, c] of fitFrames(d, [...FOE_POSES, ...(d.extras ?? [])])) add(`${name}_${pose}`, c);
   }
 }
