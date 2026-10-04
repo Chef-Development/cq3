@@ -66,8 +66,7 @@ describe('group targeting', () => {
 
   it('winning requires every enemy dead', () => {
     const { c } = setup({ enemies: group });
-    c.meter = 1;
-    c.combo = 100;
+    c.stacks = 5;
     c.finisher();
     expect(c.result).toBe('won');
   });
@@ -85,8 +84,7 @@ describe('run flow: boosts, stages, revive', () => {
     const r = make();
     r.startLevel(0);
     const c = r.combat!;
-    c.meter = 1;
-    c.combo = 100;
+    c.stacks = 5;
     c.finisher();
     r.sync();
     expect(r.phase).toBe('boost');
@@ -191,8 +189,7 @@ describe('kill rewards and companion', () => {
     const r = new Run(t, { ...DEFAULT_SETTINGS }, 3);
     r.startLevel(0);
     const c = r.combat!;
-    c.meter = 1;
-    c.combo = 200;
+    c.stacks = 5;
     c.finisher();
     r.sync();
     expect(r.coins).toBe(t.enemies.slime.coins);

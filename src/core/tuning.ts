@@ -52,6 +52,8 @@ export const DEFAULT_TUNING = {
     trapLifeSec: 4,
     attackLifeSec: 0, // 0 = yellow/green stay until hit
     shieldHits: 2,
+    shieldKnockback: 0.2, // a cracked shield is knocked back this fraction of the bar...
+    knockbackSec: 0.14, // ...over this long, then resumes its travel
     bombRadius: 0.2, // fraction of bar, measured from the bomb's center
     bombDamage: 15, // to every enemy when a bomb is tapped
     bombHitMult: 1.5, // bomb that reaches you hits this much harder
@@ -73,16 +75,19 @@ export const DEFAULT_TUNING = {
     perfectCritBonus: 0.25, // added crit chance on a PERFECT hit
     abilityCritBonus: 0.1, // Rowan's green ability: +10% crit chance...
     abilitySec: 3, // ...for 3 s
-    comboPower: 2, // finisher damage = combo x comboPower
+    comboPower: 6, // finisher damage = attack x comboPower x stacks ^ meter.stackExp
     reviveHpFrac: 0.5,
     revivesPerLevel: 1,
     healOnKill: 0.15, // fraction of max HP restored by every kill
   },
   meter: {
-    perHit: 0.08,
-    perGreen: 0.16,
-    perBlock: 0.05,
-    perfectBonus: 0.04,
+    // The meter fills once per stack; keep the combo going to bank more stacks (a combo break loses them all).
+    perHit: 0.16,
+    perGreen: 0.24,
+    perBlock: 0.12,
+    perfectBonus: 0.03,
+    maxStacks: 5,
+    stackExp: 1.9, // finisher damage grows as stacks ^ stackExp (2 stacks = ~3.7x, 3 = ~8x)
     finisherPushback: 0.4, // red blocks pushed back this fraction of the bar
     pushbackSec: 0.25, // ...sliding back over this long (so you can see it happen)
   },
@@ -299,6 +304,8 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('blocks.trapLifeSec', 'Trap life (s)', 1, 10, 0.5),
         s('blocks.attackLifeSec', 'Attack life (s, 0=inf)', 0, 12, 0.5),
         s('blocks.shieldHits', 'Shield taps', 1, 4, 1),
+        s('blocks.shieldKnockback', 'Shield knockback', 0, 0.6, 0.01),
+        s('blocks.knockbackSec', 'Knockback time (s)', 0, 0.5, 0.01),
         s('blocks.bombRadius', 'Bomb radius', 0.05, 0.6, 0.01),
         s('blocks.bombDamage', 'Bomb dmg', 0, 80, 1),
         s('blocks.bombHitMult', 'Bomb hit x', 1, 3, 0.1),
@@ -323,7 +330,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('hero.perfectCritBonus', 'Perfect crit +', 0, 1, 0.01),
         s('hero.abilityCritBonus', 'Ability crit +', 0, 1, 0.01),
         s('hero.abilitySec', 'Ability (s)', 0, 10, 0.5),
-        s('hero.comboPower', 'Combo power', 0, 10, 0.5),
+        s('hero.comboPower', 'Combo power', 0, 20, 0.5),
         s('hero.reviveHpFrac', 'Revive HP', 0.1, 1, 0.05),
         s('hero.revivesPerLevel', 'Revives/level', 0, 3, 1),
         s('hero.healOnKill', 'Heal on kill', 0, 1, 0.05),
@@ -336,6 +343,8 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('meter.perGreen', 'Per green', 0, 0.5, 0.01),
         s('meter.perBlock', 'Per block', 0, 0.5, 0.01),
         s('meter.perfectBonus', 'Perfect bonus', 0, 0.3, 0.01),
+        s('meter.maxStacks', 'Max stacks', 1, 9, 1),
+        s('meter.stackExp', 'Stack exponent', 1, 3, 0.05),
         s('meter.finisherPushback', 'Red pushback', 0, 1, 0.05),
         s('meter.pushbackSec', 'Pushback time (s)', 0, 1, 0.05),
       ],

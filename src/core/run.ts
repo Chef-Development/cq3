@@ -105,7 +105,7 @@ export class Run {
       hero: this.hero,
       enemies: stages[this.stageIndex],
       seed: this.seed,
-      carry: carry ? { combo: carry.combo, meter: carry.meter, speedStacks: carry.speedStacks } : undefined,
+      carry: carry ? { combo: carry.combo, meter: carry.meter, stacks: carry.stacks, speedStacks: carry.speedStacks } : undefined,
     });
     this.boostChoices = [];
     this.pendingBoosts = 0;

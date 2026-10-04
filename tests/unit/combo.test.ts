@@ -64,34 +64,78 @@ describe('combo and speed rules', () => {
 });
 
 describe('finisher', () => {
-  it('needs a full meter', () => {
+  it('needs at least one banked stack', () => {
     const { c } = setup();
     c.meter = 0.99;
     expect(c.finisher()).toBe(false);
   });
 
-  it('meter fills per hit and reports when full', () => {
-    const { c, t } = setup({ tune: (t) => (t.meter.perHit = 0.5) });
+  it('a full meter banks a stack and starts filling the next one', () => {
+    const { c, t } = setup({ tune: (t) => (t.meter.perHit = 0.6) });
     c.spawnBlock('yellow', 0.2);
     c.spawnBlock('yellow', 0.5);
     c.advanceTo(0.35);
     c.tap(timeAt(t, 0.23));
     c.advanceTo(0.8);
     c.tap(timeAt(t, 0.53));
-    expect(c.meter).toBe(1);
+    expect(c.stacks).toBe(1);
+    expect(c.meter).toBeCloseTo(0.2);
     expect(c.finisherReady).toBe(true);
-    expect(c.drainEvents().some((e) => e.type === 'meterFull')).toBe(true);
+    expect(c.drainEvents().filter((e) => e.type === 'meterFull')).toEqual([{ type: 'meterFull', stacks: 1 }]);
   });
 
-  it('deals combo x combo power, pushes reds back 40%, resets speed, consumes combo', () => {
-    const { c, t } = setup({ tune: (t) => (t.blocks.redTravelSec = 10000) });
+  it('stacks cap at maxStacks with the meter held full', () => {
+    const { c, t } = setup({ tune: (t) => ((t.meter.perHit = 1), (t.meter.maxStacks = 2)) });
+    for (const p of [0.15, 0.4, 0.65]) c.spawnBlock('yellow', p);
+    for (const p of [0.15, 0.4, 0.65]) {
+      c.advanceTo(timeAt(t, p));
+      c.tap(timeAt(t, p));
+    }
+    expect(c.stacks).toBe(2);
+    expect(c.meter).toBe(1);
+  });
+
+  it('damage grows exponentially with stacks (2 stacks ~ 3.7x one)', () => {
+    const { c, t } = setup();
+    const one = c.finisherDamage(1);
+    expect(one).toBe(t.hero.atk * t.hero.comboPower);
+    expect(c.finisherDamage(2) / one).toBeCloseTo(Math.pow(2, t.meter.stackExp), 1);
+    expect(c.finisherDamage(3)).toBeGreaterThan(8 * one - 1);
+  });
+
+  it('a combo break loses every banked stack and the meter', () => {
+    const { c } = setup({ settings: { mode: 'relaxed' } });
+    c.stacks = 3;
+    c.meter = 0.5;
+    c.combo = 20;
+    c.advanceTo(0.1);
+    c.tap(0.1); // empty bar
+    expect(c.stacks).toBe(0);
+    expect(c.meter).toBe(0);
+    expect(c.finisherReady).toBe(false);
+    expect(c.drainEvents().find((e) => e.type === 'comboBreak')).toMatchObject({ lost: 20, lostStacks: 3 });
+  });
+
+  it('taking a hit also loses the stacks', () => {
+    const { c, t } = setup();
+    c.stacks = 2;
+    c.spawnBlock('red', 0.05);
+    c.advanceTo(1);
+    expect(c.hero.hp).toBe(100 - t.enemies.slime.atk);
+    expect(c.stacks).toBe(0);
+  });
+
+  it('uses every stack, pushes reds back 40%, resets speed, consumes combo', () => {
+    const { c, t } = setup({ tune: (t) => ((t.blocks.redTravelSec = 10000), (t.enemies.slime.hp = 1000)) });
     const r1 = c.spawnBlock('red', 0.3);
     const r2 = c.spawnBlock('red', 0.8);
-    c.meter = 1;
+    c.stacks = 2;
     c.combo = 10;
     c.speedStacks = 1;
+    const dmg = c.finisherDamage();
     expect(c.finisher()).toBe(true);
-    expect(c.enemies[0].hp).toBe(80 - 10 * t.hero.comboPower);
+    expect(c.enemies[0].hp).toBe(1000 - dmg);
+    expect(c.drainEvents().find((e) => e.type === 'finisher')).toMatchObject({ damage: dmg, combo: 10, stacks: 2 });
     // reds slide back visibly over pushbackSec instead of teleporting
     c.advanceTo(t.meter.pushbackSec / 2);
     expect(r1.pos).toBeGreaterThan(0.35);
@@ -100,6 +144,7 @@ describe('finisher', () => {
     expect(r1.pos).toBeCloseTo(0.7, 2);
     expect(r2.pos).toBeCloseTo(1 - r2.width / 2);
     expect(c.combo).toBe(0);
+    expect(c.stacks).toBe(0);
     expect(c.meter).toBe(0);
     expect(c.speedMult()).toBe(1);
   });
@@ -107,7 +152,7 @@ describe('finisher', () => {
   it('pushed reds stay spaced out instead of stacking at the right end', () => {
     const { c, t } = setup({ tune: (t) => (t.blocks.redTravelSec = 10000) });
     const reds = [0.62, 0.75, 0.88].map((p) => c.spawnBlock('red', p));
-    c.meter = 1;
+    c.stacks = 1;
     c.finisher();
     c.advanceTo(t.meter.pushbackSec + 0.05);
     const pos = reds.map((r) => r.pos).sort((a, b) => a - b);
@@ -121,18 +166,17 @@ describe('finisher', () => {
   it('uses boosted combo power and combo tiers', () => {
     const { c, t } = setup({ settings: { comboTiers: true }, tune: (t) => (t.enemies.slime.hp = 1000) });
     c.hero.bonusComboPower = 1;
-    c.meter = 1;
+    c.stacks = 1;
     c.combo = 25;
     c.finisher();
-    expect(c.enemies[0].hp).toBe(1000 - 25 * (t.hero.comboPower + 1) * t.tiers.m2);
+    expect(c.enemies[0].hp).toBe(1000 - t.hero.atk * (t.hero.comboPower + 1) * t.tiers.m2);
   });
 
   it('hits every enemy and triggers hit-stop', () => {
-    const { c } = setup({ enemies: ['slime', 'slime', 'bandit'], tune: (t) => (t.juice.hitStopMs = 50) });
-    c.meter = 1;
-    c.combo = 5;
+    const { c, t } = setup({ enemies: ['slime', 'slime', 'bandit'], tune: (t) => ((t.juice.hitStopMs = 50), (t.hero.comboPower = 1)) });
+    c.stacks = 1;
     c.finisher();
-    expect(c.enemies.map((e) => e.hp)).toEqual([70, 70, 130]);
+    expect(c.enemies.map((e) => e.hp)).toEqual([80 - t.hero.atk, 80 - t.hero.atk, 140 - t.hero.atk]);
     expect(c.hitStop).toBeCloseTo(0.05);
   });
 });

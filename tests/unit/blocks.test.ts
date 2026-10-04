@@ -73,16 +73,40 @@ describe('block types', () => {
     expect(c.hero.hp).toBe(100);
   });
 
-  it('shield: needs 2 taps', () => {
+  it('shield: needs 2 taps, and the first one knocks it back', () => {
     const { c, t } = setup({ tune: slowReds });
     const b = c.spawnBlock('shield', 0.5);
     c.advanceTo(1);
     expect(c.tap(timeAt(t, 0.5)).outcome).toBe('crack');
     expect(c.blocks).toContain(b);
     expect(c.combo).toBe(1);
-    expect(c.tap(timeAt(t, 0.51)).outcome).toBe('block');
+    // it slides right over knockbackSec instead of carrying on at the same pace
+    c.advanceTo(1 + t.blocks.knockbackSec / 2);
+    expect(b.pos).toBeGreaterThan(0.55);
+    c.advanceTo(1 + t.blocks.knockbackSec + 0.02);
+    expect(b.pos).toBeCloseTo(0.5 + t.blocks.shieldKnockback, 2);
+    expect(b.vel).toBeLessThan(0);
+    // the cursor is back over it on the way back (second pass)
+    const p = b.pos;
+    const t2 = (2 - p) * t.cursor.basePassSec;
+    c.advanceTo(t2 - 0.01);
+    expect(c.tap(t2).outcome).toBe('block');
     expect(c.blocks).not.toContain(b);
     expect(c.combo).toBe(2);
+  });
+
+  it('shield knockback stops short of the red block behind it and resets the impact timer', () => {
+    const { c, t } = setup({ tune: slowReds });
+    const s = c.spawnBlock('shield', 0.04);
+    const r = c.spawnBlock('red', 0.2);
+    s.impactTimer = 0.03; // sitting at the left end, about to land
+    c.advanceTo(0.02);
+    expect(c.tap(timeAt(t, 0.04)).outcome).toBe('crack');
+    expect(s.impactTimer).toBe(-1);
+    c.advanceTo(0.5);
+    expect(s.pos).toBeLessThanOrEqual(r.pos - (r.width + s.width) / 2 - t.blocks.minGap + 1e-3);
+    expect(s.pos).toBeGreaterThan(0.08);
+    expect(c.hero.hp).toBe(100);
   });
 
   it('bomb: destroys every block in radius (yours too) and damages every enemy', () => {

@@ -34,7 +34,8 @@ export interface Block {
   bornAt: number; // sim time
   life: number; // seconds left (Infinity = until hit)
   impactTimer: number; // -1 = sliding; >=0 = sitting at the left end, about to hit
-  push: number; // distance still to slide right after a finisher (0 = none)
+  push: number; // distance still to slide right (finisher pushback or shield knockback; 0 = none)
+  pushSpeed: number; // bar units per second while pushed
 }
 
 export interface Enemy {
@@ -92,7 +93,7 @@ export type RemoveReason = 'hit' | 'bomb' | 'expire' | 'impact' | 'owner' | 'rev
 
 export type CombatEvent =
   | { type: 'hit'; kind: BlockKind; pos: number; perfect: boolean; crit: boolean; damage: number; enemyId: number; combo: number }
-  | { type: 'block'; kind: BlockKind; pos: number; perfect: boolean; cracked: boolean; ownerId: number; combo: number }
+  | { type: 'block'; kind: BlockKind; pos: number; perfect: boolean; cracked: boolean; ownerId: number; combo: number; knock: number }
   | { type: 'trap'; pos: number; damage: number; enemyId: number }
   | { type: 'miss'; pos: number; selfDamage: boolean }
   | { type: 'remove'; id: number; kind: BlockKind; pos: number; width: number; ownerId: number; reason: RemoveReason }
@@ -104,11 +105,11 @@ export type CombatEvent =
   | { type: 'pet'; enemyId: number; damage: number }
   | { type: 'kill'; enemyId: number }
   | { type: 'explode'; pos: number; radius: number }
-  | { type: 'finisher'; damage: number; combo: number }
+  | { type: 'finisher'; damage: number; combo: number; stacks: number }
   | { type: 'ability' }
   | { type: 'speedUp'; mult: number }
-  | { type: 'comboBreak'; lost: number }
-  | { type: 'meterFull' }
+  | { type: 'comboBreak'; lost: number; lostStacks: number }
+  | { type: 'meterFull'; stacks: number }
   | { type: 'revive' }
   | { type: 'defeat' }
   | { type: 'won' }
@@ -126,6 +127,7 @@ export interface TapResult {
 export interface Carry {
   combo: number;
   meter: number;
+  stacks: number;
   speedStacks: number;
   cursorPhase: number;
 }
@@ -150,7 +152,8 @@ export class Combat {
   cursorPhase = 0;
   combo = 0;
   speedStacks = 0;
-  meter = 0;
+  meter = 0; // progress toward the next finisher stack, 0..1
+  stacks = 0; // banked finisher stacks
   blocks: Block[] = [];
   enemies: Enemy[];
   targetId: number | null = null;
@@ -183,6 +186,7 @@ export class Combat {
     this.critRng = new Rng(o.seed ^ 0x5bd1e995);
     this.combo = o.carry?.combo ?? 0;
     this.meter = o.carry?.meter ?? 0;
+    this.stacks = o.carry?.stacks ?? 0;
     this.speedStacks = o.carry?.speedStacks ?? 0;
     this.cursorPhase = o.carry?.cursorPhase ?? 0;
     this.groupFight = o.enemies.length > 1;
@@ -303,14 +307,12 @@ export class Combat {
       if (isRed(b.kind)) {
         const half = b.width / 2;
         if (b.push > 0) {
-          // Finisher pushback: slide right, then resume the normal leftward travel.
-          const T = this.tuning.meter;
-          const speed = T.pushbackSec > 0 ? T.finisherPushback / T.pushbackSec : Infinity;
-          const d = Math.min(b.push, speed * DT);
+          // Pushed back (finisher or shield knockback): slide right, then resume the normal leftward travel.
+          const d = Math.min(b.push, b.pushSpeed * DT);
           b.push -= d;
           if (b.push < 1e-9) b.push = 0;
           b.pos = Math.min(1 - half, b.pos + d);
-          b.vel = b.push > 0 ? speed : -(1 - b.width) / B.redTravelSec;
+          b.vel = b.push > 0 ? b.pushSpeed : -(1 - b.width) / B.redTravelSec;
         } else if (b.impactTimer < 0) {
           b.vel = -(1 - b.width) / B.redTravelSec;
           b.pos += b.vel * DT;
@@ -423,6 +425,7 @@ export class Combat {
       life: kind === 'purple' ? B.trapLifeSec : isAttack(kind) && B.attackLifeSec > 0 ? B.attackLifeSec : Infinity,
       impactTimer: -1,
       push: 0,
+      pushSpeed: 0,
     };
     this.blocks.push(b);
     this.events.push({ type: 'spawn', id: b.id, kind, ownerId });
@@ -518,11 +521,12 @@ export class Combat {
     this.addMeter(T.meter.perBlock + (perfect ? T.meter.perfectBonus : 0));
     if (b.taps > 1) {
       b.taps--;
-      this.events.push({ type: 'block', kind: b.kind, pos: b.pos, perfect, cracked: true, ownerId: b.ownerId, combo: this.combo });
+      const knock = this.knockBack(b, T.blocks.shieldKnockback, T.blocks.knockbackSec);
+      this.events.push({ type: 'block', kind: b.kind, pos: b.pos, perfect, cracked: true, ownerId: b.ownerId, combo: this.combo, knock });
       return 'crack';
     }
     this.removeBlock(b, 'hit');
-    this.events.push({ type: 'block', kind: b.kind, pos: b.pos, perfect, cracked: false, ownerId: b.ownerId, combo: this.combo });
+    this.events.push({ type: 'block', kind: b.kind, pos: b.pos, perfect, cracked: false, ownerId: b.ownerId, combo: this.combo, knock: 0 });
     if (b.kind === 'speed') {
       this.speedStacks++;
       this.events.push({ type: 'speedUp', mult: this.speedMult() });
@@ -541,6 +545,33 @@ export class Combat {
     if (dmg > 0) for (const e of this.enemies) if (e.alive) this.damageEnemy(e, dmg, false, 'bomb');
   }
 
+  /**
+   * Knock a red block back to the right by `dist` (bar units) over `sec`, stopping short of the next red block
+   * behind it. Returns the distance it will travel.
+   */
+  private knockBack(b: Block, dist: number, sec: number): number {
+    const gap = this.tuning.blocks.minGap;
+    let limit = 1 - b.width / 2;
+    for (const o of this.blocks) {
+      if (o === b || !isRed(o.kind)) continue;
+      const oPos = o.pos + o.push;
+      if (oPos > b.pos) limit = Math.min(limit, oPos - (o.width + b.width) / 2 - gap);
+    }
+    const target = Math.max(b.pos, Math.min(b.pos + b.push + dist, limit));
+    const moved = target - b.pos;
+    b.impactTimer = -1;
+    b.push = moved;
+    if (sec > 0 && b.push > 0) {
+      b.pushSpeed = dist / sec;
+      b.vel = b.pushSpeed;
+    } else {
+      b.pos = target;
+      b.push = 0;
+      b.vel = -(1 - b.width) / this.tuning.blocks.redTravelSec;
+    }
+    return moved;
+  }
+
   private triggerTrap(b: Block): TapOutcome {
     this.removeBlock(b, 'hit');
     const owner = this.enemyById(b.ownerId);
@@ -557,14 +588,23 @@ export class Combat {
     else this.breakCombo();
   }
 
-  /** Fire the finisher if the meter is full. */
+  /** Damage the finisher would deal right now (0 if no stacks are banked). */
+  finisherDamage(stacks = this.stacks): number {
+    if (stacks < 1) return 0;
+    const T = this.tuning;
+    const H = this.hero;
+    let dmg = T.hero.atk * (1 + H.bonusDmg) * (T.hero.comboPower + H.bonusComboPower) * Math.pow(stacks, T.meter.stackExp);
+    if (this.settings.comboTiers) dmg *= tierMult(T, this.combo);
+    return Math.round(dmg);
+  }
+
+  /** Fire the finisher with every banked stack. */
   finisher(): boolean {
-    if (this.result || this.meter < 1) return false;
+    if (this.result || this.stacks < 1) return false;
     const T = this.tuning;
     const combo = this.combo;
-    let dmg = combo * (T.hero.comboPower + this.hero.bonusComboPower);
-    if (this.settings.comboTiers) dmg *= tierMult(T, combo);
-    dmg = Math.round(dmg);
+    const stacks = this.stacks;
+    const dmg = this.finisherDamage(stacks);
     // Push every red block back, keeping them spaced out so they don't pile up at the right end.
     const reds = this.blocks.filter((b) => isRed(b.kind)).sort((a, b) => b.pos + b.push - (a.pos + a.push));
     let limit = 1;
@@ -576,7 +616,8 @@ export class Combat {
       b.impactTimer = -1;
       if (T.meter.pushbackSec > 0) {
         b.push = target - from;
-        b.vel = b.push > 0 ? T.meter.finisherPushback / T.meter.pushbackSec : -(1 - b.width) / T.blocks.redTravelSec;
+        b.pushSpeed = T.meter.finisherPushback / T.meter.pushbackSec;
+        b.vel = b.push > 0 ? b.pushSpeed : -(1 - b.width) / T.blocks.redTravelSec;
       } else {
         b.pos = target;
         b.push = 0;
@@ -584,16 +625,17 @@ export class Combat {
       }
     }
     this.meter = 0;
+    this.stacks = 0;
     this.combo = 0;
     this.speedStacks = 0;
-    this.events.push({ type: 'finisher', damage: dmg, combo });
+    this.events.push({ type: 'finisher', damage: dmg, combo, stacks });
     this.startHitStop();
     if (dmg > 0) for (const e of this.enemies) if (e.alive) this.damageEnemy(e, dmg, false, 'finisher');
     return true;
   }
 
   get finisherReady(): boolean {
-    return this.meter >= 1 && !this.result;
+    return this.stacks >= 1 && !this.result;
   }
 
   // ---------------------------------------------------------------- targeting
@@ -625,10 +667,19 @@ export class Combat {
 
   // ---------------------------------------------------------------- damage
 
+  /** Fill the meter; every time it fills, bank a stack (up to meter.maxStacks; the last one stays full). */
   private addMeter(x: number): void {
-    const before = this.meter;
-    this.meter = Math.min(1, this.meter + x);
-    if (before < 1 && this.meter >= 1) this.events.push({ type: 'meterFull' });
+    const max = Math.max(1, Math.round(this.tuning.meter.maxStacks));
+    if (this.stacks >= max) {
+      this.meter = 1;
+      return;
+    }
+    this.meter += x;
+    while (this.meter >= 1 - 1e-9 && this.stacks < max) {
+      this.stacks++;
+      this.meter = this.stacks >= max ? 1 : Math.max(0, this.meter - 1);
+      this.events.push({ type: 'meterFull', stacks: this.stacks });
+    }
   }
 
   private startHitStop(): void {
@@ -638,9 +689,12 @@ export class Combat {
     this.events.push({ type: 'hitStop', ms: this.tuning.juice.hitStopMs });
   }
 
+  /** A miss or a hit taken breaks the combo and loses every banked stack and the meter. */
   private breakCombo(): void {
-    if (this.combo > 0) this.events.push({ type: 'comboBreak', lost: this.combo });
+    if (this.combo > 0 || this.stacks > 0 || this.meter > 0) this.events.push({ type: 'comboBreak', lost: this.combo, lostStacks: this.stacks });
     this.combo = 0;
+    this.meter = 0;
+    this.stacks = 0;
   }
 
   private heroDamage(amount: number, source: 'red' | 'bomb' | 'trap' | 'miss', enemyId: number): void {
@@ -697,7 +751,7 @@ export class Combat {
   }
 
   carry(): Carry {
-    return { combo: this.combo, meter: this.meter, speedStacks: this.speedStacks, cursorPhase: this.cursorPhase };
+    return { combo: this.combo, meter: this.meter, stacks: this.stacks, speedStacks: this.speedStacks, cursorPhase: this.cursorPhase };
   }
 
   drainEvents(): CombatEvent[] {
