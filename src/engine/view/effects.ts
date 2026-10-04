@@ -1,12 +1,14 @@
-// Juice: particles, floating text, rings, sparks, starbursts, slashes, pixel debris, and the camera
-// (shake, kick, hit-stop freeze, screen flash). Everything is fire-and-forget; the scene draws it each frame.
+// Juice: particles, floating text, rings, sparks, starbursts, slashes, pixel debris, ground dust and rubble, light
+// (glows at the contact point, flashes lighting the ground, ground shockwaves), and the camera (shake, kick, hit-stop
+// freeze, screen flash). Everything is fire-and-forget; the scene draws it each frame.
 import Phaser from 'phaser';
+import { STAGE_LIGHT } from '../art-stage';
 import { impactFeel, impactWeight, type ImpactFeel, type ImpactTier } from '../../core/impact';
 import type { FightScene } from '../scene';
 import { FONT, FONT_BOLD, fontText, textWidth } from '../font';
 import { GAME_W } from '../layout';
 import { hudIcon, iconSize } from './pixels';
-import { clamp01, ease, INK, rand, tintGrad, WHITE, type EnemyView, type Floater, type Particle } from './shared';
+import { clamp01, ease, INK, rand, shade as shadeCol, tintGrad, WHITE, type EnemyView, type Floater, type Particle } from './shared';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -21,7 +23,15 @@ export class Effects {
   slashes: Array<{ x: number; y: number; at: number; big: boolean; dir: number; color: number }> = [];
   flashes: Array<{ x: number; y: number; r: number; at: number }> = [];
   puffs: Array<{ x: number; y: number; r: number; at: number; life: number; color: number }> = [];
-  debris: Array<{ x: number; y: number; vx: number; vy: number; color: number; born: number; life: number; bounces: number; floor: number }> = [];
+  debris: Array<{ x: number; y: number; vx: number; vy: number; color: number; born: number; life: number; bounces: number; floor: number; size?: number }> = [];
+  /** Soft dust puffs kicked off the ground (scene clock). */
+  dusts: Array<{ x: number; y: number; vx: number; vy: number; r: number; at: number; life: number; color: number }> = [];
+  /** Light: glows (ADD, over the actors) and flashes lighting the ground under them (ADD, behind the actors). */
+  glows: Array<{ x: number; y: number; r: number; at: number; life: number; color: number; ground: boolean }> = [];
+  /** Flattened rings running along the ground. */
+  shocks: Array<{ x: number; y: number; r: number; at: number; color: number }> = [];
+  private gGlow: G | null = null;
+  private gGround: G | null = null;
   private lastWorldAnim = 0;
   private pixelCache = new Map<string, ImageData>();
   // camera
@@ -37,6 +47,15 @@ export class Effects {
   impactFlashPending = false;
 
   constructor(private readonly s: FightScene) {}
+
+  /** Light layers for a new layout (the containers were just emptied): ground light behind the actors, glows over them. */
+  build(): void {
+    const s = this.s;
+    this.gGround = s.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
+    s.back.add(this.gGround);
+    this.gGlow = s.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
+    s.fxLayer.add(this.gGlow);
+  }
 
   /** Drop the floating text objects (the scene is about to rebuild its textures). */
   destroyText(): void {
@@ -56,6 +75,9 @@ export class Effects {
     this.debris = [];
     this.puffs = [];
     this.flashes = [];
+    this.dusts = [];
+    this.glows = [];
+    this.shocks = [];
   }
 
   // ------------------------------------------------------------------ camera
@@ -161,6 +183,43 @@ export class Effects {
     const now = performance.now();
     for (let i = 0; i < 10; i++)
       this.particles.push({ x: x + rand(-8, 8), y: y + rand(-6, 6), vx: rand(-30, 30), vy: rand(-80, -30), g: 60, born: now, life: rand(300, 600), color: i % 2 ? 0xfff07a : WHITE, size: 1, world: false, streak: false });
+  }
+
+  private dustCols(): readonly number[] {
+    return STAGE_LIGHT[this.s.app.run.theme]?.dust ?? STAGE_LIGHT.forest.dust;
+  }
+
+  /** Dust kicked off the ground at (x, y): soft puffs that roll out (dir -1 left, 1 right, 0 both ways) and rise. */
+  dust(x: number, y: number, n: number, dir: number, size = 1): void {
+    const cols = this.dustCols();
+    const at = this.s.anim;
+    for (let i = 0; i < n; i++) {
+      const d = dir || (i % 2 ? 1 : -1);
+      this.dusts.push({ x: x + rand(-3, 3), y: y - rand(0, 2), vx: d * rand(10, 42) * size, vy: -rand(4, 16) * size, r: rand(1.5, 3.2) * size, at: at + rand(0, 40), life: rand(360, 620) * (0.8 + size * 0.2), color: cols[i % cols.length] });
+    }
+    if (this.dusts.length > 160) this.dusts.splice(0, this.dusts.length - 160);
+  }
+
+  /** Chunks of the ground thrown up by a heavy blow: they arc, bounce and settle. */
+  rubble(x: number, y: number, n: number, power = 1): void {
+    const cols = this.dustCols();
+    const at = this.s.anim;
+    for (let i = 0; i < n; i++) {
+      const c = cols[i % cols.length];
+      this.debris.push({ x: x + rand(-6, 6), y: y - 1, vx: rand(-60, 70) * power, vy: -rand(70, 160) * power, color: i % 3 === 0 ? shadeCol(c, 0.6) : c, born: at, life: rand(500, 900), bounces: 0, floor: y + Math.round(rand(-1, 3)), size: i % 4 === 0 ? 2 : 1 });
+    }
+  }
+
+  /** A bloom of light at a contact point (over the actors), and optionally light thrown on the ground below it. */
+  glow(x: number, y: number, r: number, color: number, life = 160, groundY?: number): void {
+    const at = this.s.anim;
+    this.glows.push({ x, y, r, at, life, color, ground: false });
+    if (groundY !== undefined) this.glows.push({ x, y: groundY, r: r * 1.8, at, life: life * 1.3, color, ground: true });
+  }
+
+  /** A ring running out along the ground (flattened by the view angle). */
+  shock(x: number, y: number, r: number, color = 0xfff0c0): void {
+    this.shocks.push({ x, y, r, at: this.s.anim, color });
   }
 
   /** A judgment word over the bar. Only one at a time: a new one replaces the last. */
@@ -271,12 +330,83 @@ export class Effects {
 
   /** Slashes, starbursts, world rings, debris, sparks and world particles, in that order (world layer). */
   drawWorld(g: G, now: number): void {
+    this.drawLight(g);
     this.drawSlashes(g);
     this.drawStars(g);
     this.drawRings(g, now, true);
     this.drawDebris(g);
     this.drawSparks(g);
     this.drawParticles(g, now, true);
+  }
+
+  /** Glows, ground light, shockwaves and dust (scene clock: hit-stop holds them). */
+  private drawLight(g: G): void {
+    const anim = this.s.anim;
+    const gl = this.gGlow;
+    const gg = this.gGround;
+    gl?.clear();
+    gg?.clear();
+    for (let i = this.glows.length - 1; i >= 0; i--) {
+      const o = this.glows[i];
+      const k = (anim - o.at) / o.life;
+      if (k >= 1) {
+        this.glows.splice(i, 1);
+        continue;
+      }
+      if (k < 0) continue;
+      const a = k < 0.15 ? 1 : 1 - (k - 0.15) / 0.85;
+      const x = Math.round(o.x);
+      const y = Math.round(o.y);
+      if (o.ground) {
+        // light thrown across the floor: a flat, soft ellipse
+        if (!gg) continue;
+        for (let j = 0; j < 4; j++) {
+          const f = 1 - j * 0.24;
+          gg.fillStyle(o.color, 0.13 * a);
+          gg.fillEllipse(x, y, Math.round(o.r * 2 * f), Math.max(2, Math.round(o.r * 0.5 * f)));
+        }
+      } else if (gl) {
+        const r = o.r * (0.7 + 0.3 * Math.min(1, k * 5));
+        for (let j = 0; j < 4; j++) {
+          gl.fillStyle(o.color, 0.12 * a);
+          gl.fillCircle(x, y, Math.max(1, Math.round(r * (1 - j * 0.22))));
+        }
+      }
+    }
+    for (let i = this.shocks.length - 1; i >= 0; i--) {
+      const sh = this.shocks[i];
+      const k = (anim - sh.at) / 300;
+      if (k >= 1) {
+        this.shocks.splice(i, 1);
+        continue;
+      }
+      if (k < 0) continue;
+      const rx = Math.max(2, Math.round(sh.r * ease(k)));
+      const ry = Math.max(1, Math.round(rx * 0.22));
+      g.lineStyle(k < 0.4 ? 2 : 1, sh.color, 0.75 * (1 - k));
+      g.strokeEllipse(Math.round(sh.x), Math.round(sh.y), rx * 2, ry * 2);
+      gg?.fillStyle(sh.color, 0.08 * (1 - k));
+      gg?.fillEllipse(Math.round(sh.x), Math.round(sh.y), rx * 2, ry * 2 + 2);
+    }
+    for (let i = this.dusts.length - 1; i >= 0; i--) {
+      const d = this.dusts[i];
+      const age = (anim - d.at) / 1000;
+      const k = (age * 1000) / d.life;
+      if (k >= 1) {
+        this.dusts.splice(i, 1);
+        continue;
+      }
+      if (k < 0) continue;
+      // rolls out fast and slows (drag), drifts up, swells and thins
+      const roll = (1 - Math.exp(-age * 5)) / 5;
+      const x = Math.round(d.x + d.vx * roll);
+      const y = Math.round(d.y + d.vy * age);
+      const r = Math.max(1, Math.round(d.r * (0.6 + 0.9 * ease(k))));
+      g.fillStyle(d.color, 0.55 * (1 - k));
+      g.fillCircle(x, y, r);
+      g.fillStyle(shadeCol(d.color, 1.18), 0.4 * (1 - k));
+      g.fillCircle(x - Math.ceil(r / 3), y - Math.ceil(r / 3), Math.max(1, Math.round(r * 0.55)));
+    }
   }
 
   /** Slash arcs: tapered crescents (outer colored edge, bright inner core), sweeping open then thinning out. */
@@ -407,8 +537,9 @@ export class Effects {
         }
       }
       const k = age / d.life;
+      const sz = d.size ?? 2;
       g.fillStyle(d.color, k < 0.65 ? 1 : 1 - (k - 0.65) / 0.35);
-      g.fillRect(Math.round(d.x), Math.round(d.y) - 1, 2, 2);
+      g.fillRect(Math.round(d.x), Math.round(d.y) - sz + 1, sz, sz);
     }
   }
 

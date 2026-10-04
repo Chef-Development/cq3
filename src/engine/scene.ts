@@ -145,6 +145,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.fighters.build();
     this.hud.reset();
     this.hud.resetCoins();
+    this.fx.build();
     this.gFx = this.add.graphics();
     this.fxLayer.add(this.gFx);
     this.fighters.reset();
