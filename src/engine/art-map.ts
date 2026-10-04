@@ -1409,39 +1409,40 @@ function distToEdge(c: Ctx, x: number, y: number): number {
 function stream(p: Pix, c: Ctx): void {
   const cols = c.spec.cols;
   if (cols.length < 4) return;
-  const ph = hash(c.seed, 1, 1) * 6;
-  const course = (x0: number, amp: number) => (y: number) => x0 + Math.sin(y * 0.055 + ph) * amp + Math.sin(y * 0.17 + ph * 2) * 1.2;
+  const ph0 = hash(c.seed, 1, 1) * 6;
+  const course = (x0: number, amp: number, ph: number) => (y: number) => x0 + Math.sin(y * 0.055 + ph) * amp + Math.sin(y * 0.17 + ph * 2) * 1.2;
   // run it where the roads cross it most squarely (the shortest bridges), near the middle of the map
   const mid = Math.floor(cols.length / 2) - 1;
-  let cx = course((cols[mid] + cols[mid + 1]) / 2, 2);
+  let cx = course((cols[mid] + cols[mid + 1]) / 2, 2, ph0);
   let best = 1e9;
   for (let k = 1; k < cols.length - 2; k++)
     for (let off = -6; off <= 6; off += 2)
-      for (const amp of [1, 2.5, 4]) {
-        const f = course((cols[k] + cols[k + 1]) / 2 + off, amp);
-        // keep well clear of the clearings
-        if (c.spec.pads.some((q) => Math.abs(q.x - f(q.y + 2)) < q.r + 6)) continue;
-        let worst = 0;
-        const wet: Pt[] = [];
-        for (const t of c.spec.trails) {
-          let n = 0;
-          let sx = 0;
-          let sy = 0;
-          for (const [x, y] of t)
-            if (Math.abs(x - f(y)) <= 4) {
-              n++;
-              sx += x;
-              sy += y;
-            }
-          worst = Math.max(worst, n);
-          if (n) wet.push([sx / n, sy / n]);
+      for (const amp of [1, 2.5, 4])
+        for (const dph of [0, 1.6, 3.2, 4.8]) {
+          const f = course((cols[k] + cols[k + 1]) / 2 + off, amp, ph0 + dph);
+          // keep well clear of the clearings
+          if (c.spec.pads.some((q) => Math.abs(q.x - f(q.y + 2)) < q.r + 6)) continue;
+          let worst = 0;
+          const wet: Pt[] = [];
+          for (const t of c.spec.trails) {
+            let n = 0;
+            let sx = 0;
+            let sy = 0;
+            for (const [x, y] of t)
+              if (Math.abs(x - f(y)) <= 4) {
+                n++;
+                sx += x;
+                sy += y;
+              }
+            worst = Math.max(worst, n);
+            if (n) wet.push([sx / n, sy / n]);
+          }
+          // two bridges on top of each other read as a tangle
+          let crowd = 0;
+          for (let i = 0; i < wet.length; i++) for (let j = i + 1; j < wet.length; j++) if (Math.hypot(wet[i][0] - wet[j][0], wet[i][1] - wet[j][1]) < 15) crowd += 6;
+          const score = worst + crowd + Math.abs(k - mid) * 1.5 + Math.abs(off) * 0.15 - amp * 0.3;
+          if (score < best) (best = score), (cx = f);
         }
-        // two bridges on top of each other read as a tangle
-        let crowd = 0;
-        for (let i = 0; i < wet.length; i++) for (let j = i + 1; j < wet.length; j++) if (Math.hypot(wet[i][0] - wet[j][0], wet[i][1] - wet[j][1]) < 9) crowd += 6;
-        const score = worst + crowd + Math.abs(k - mid) * 1.5 + Math.abs(off) * 0.15 - amp * 0.3;
-        if (score < best) (best = score), (cx = f);
-      }
   const { W, H } = c;
   for (let y = 0; y < H; y++) {
     const m = cx(y);
