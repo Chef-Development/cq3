@@ -47,6 +47,8 @@ export const DEFAULT_TUNING = {
     greenWidth: 0.075,
     redWidth: 0.09,
     trapWidth: 0.09,
+    widthMin: 0.65, // every spawned block's width is its kind's width times a random factor in [widthMin, widthMax]
+    widthMax: 1.45,
     redTravelSec: 2.5, // right end -> left end
     impactGraceMs: 60, // red block sits at the left end this long (still blockable) before hitting
     trapLifeSec: 4,
@@ -360,6 +362,8 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('blocks.greenWidth', 'Green width', 0.03, 0.25, 0.005),
         s('blocks.redWidth', 'Red width', 0.03, 0.25, 0.005),
         s('blocks.trapWidth', 'Trap width', 0.03, 0.25, 0.005),
+        s('blocks.widthMin', 'Width varies from x', 0.3, 1, 0.05),
+        s('blocks.widthMax', '...to x', 1, 2.5, 0.05),
         s('blocks.redTravelSec', 'Red travel (s)', 0.8, 6, 0.1),
         s('blocks.impactGraceMs', 'Impact grace (ms)', 0, 200, 5),
         s('blocks.trapLifeSec', 'Trap life (s)', 1, 10, 0.5),

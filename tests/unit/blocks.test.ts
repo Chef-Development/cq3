@@ -200,6 +200,44 @@ describe('block types', () => {
     expect(c.blocks.filter((b) => b.kind === 'yellow' || b.kind === 'green').length).toBe(t.blocks.minAttack);
   });
 
+  it('spawned blocks come in varied widths, for every kind', () => {
+    const { c, t } = setup({
+      spawning: true,
+      enemies: ['bigSlime'],
+      settings: { godMode: true },
+      tune: (t) => {
+        t.blocks.attackLifeSec = 0.5; // short-lived blocks keep the bar churning
+        t.blocks.trapLifeSec = 0.5;
+        t.blocks.widthMin = 0.6;
+        t.blocks.widthMax = 1.5;
+        t.enemies.bigSlime.hp = 1e6;
+        t.enemies.bigSlime.interval = 0.2;
+        t.blocks.maxStatic = 8;
+        t.blocks.maxRed = 6;
+      },
+    });
+    const widths = new Map<string, number[]>();
+    for (let i = 1; i <= 2400; i++) {
+      c.advanceTo(i / 120);
+      for (const b of c.blocks) {
+        const list = widths.get(b.kind) ?? [];
+        if (!list.includes(b.width)) list.push(b.width);
+        widths.set(b.kind, list);
+      }
+    }
+    for (const kind of ['yellow', 'green', 'red', 'purple'] as const) {
+      const list = widths.get(kind) ?? [];
+      const base = c.widthFor(kind);
+      expect(list.length, kind).toBeGreaterThan(2);
+      for (const w of list) {
+        expect(w, kind).toBeGreaterThanOrEqual(base * t.blocks.widthMin - 1e-9);
+        expect(w, kind).toBeLessThanOrEqual(base * t.blocks.widthMax + 1e-9);
+      }
+      const spread = Math.max(...list) / Math.min(...list);
+      expect(spread, `${kind} widths should vary`).toBeGreaterThan(1.4);
+    }
+  });
+
   it('pattern spawns are deterministic for a seed', () => {
     const run = () => {
       const { c } = setup({ spawning: true, enemies: ['bigSlime'] });

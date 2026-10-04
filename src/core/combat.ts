@@ -392,19 +392,19 @@ export class Combat {
     }
   }
 
-  /** Spawn a block from a pattern (random free position for static blocks, right end for reds). */
+  /** Spawn a block from a pattern (random free position for static blocks, right end for reds), at a random width. */
   trySpawn(kind: BlockKind, ownerId: number): boolean {
     const B = this.tuning.blocks;
+    // blocks come in varied widths: some small, some big, for every kind
+    const w = this.widthFor(kind) * this.spawnRng.range(Math.min(B.widthMin, B.widthMax), Math.max(B.widthMin, B.widthMax));
     if (isRed(kind)) {
-      const w = B.redWidth;
       const reds = this.blocks.filter((b) => isRed(b.kind));
       if (reds.length >= B.maxRed) return false;
       const p = 1 - w / 2;
       if (reds.some((r) => Math.abs(r.pos - p) < (r.width + w) / 2 + B.minGap)) return false;
-      this.spawnBlock(kind, p, ownerId);
+      this.spawnBlock(kind, p, ownerId, w);
       return true;
     }
-    const w = this.widthFor(kind);
     const statics = this.blocks.filter((b) => !isRed(b.kind));
     if (statics.length >= B.maxStatic) return false;
     const lo = B.edgeMargin + w / 2;
@@ -413,22 +413,22 @@ export class Combat {
     for (let tries = 0; tries < 16; tries++) {
       const p = this.spawnRng.range(lo, hi);
       if (statics.every((s) => Math.abs(s.pos - p) >= (s.width + w) / 2 + B.minGap)) {
-        this.spawnBlock(kind, p, ownerId);
+        this.spawnBlock(kind, p, ownerId, w);
         return true;
       }
     }
     return false;
   }
 
+  /** A kind's base width (spawns vary around it, see trySpawn). */
   widthFor(kind: BlockKind): number {
     const B = this.tuning.blocks;
     return isRed(kind) ? B.redWidth : kind === 'purple' ? B.trapWidth : kind === 'green' ? B.greenWidth : B.attackWidth;
   }
 
-  /** Place a block directly (also used by tests and the debug panel). */
-  spawnBlock(kind: BlockKind, pos: number, ownerId: number = this.enemies[0]?.id ?? 0): Block {
+  /** Place a block directly (also used by tests and the debug panel). Width defaults to the kind's base width. */
+  spawnBlock(kind: BlockKind, pos: number, ownerId: number = this.enemies[0]?.id ?? 0, width = this.widthFor(kind)): Block {
     const B = this.tuning.blocks;
-    const width = this.widthFor(kind);
     const b: Block = {
       id: this.nextId++,
       kind,
