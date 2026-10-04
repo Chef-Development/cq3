@@ -1,4 +1,5 @@
 // localStorage helpers. Every access is wrapped: storage can be missing or throw (private mode, quota).
+import { validSave, type RunSave } from '../core/save';
 import { cloneTuning, DEFAULT_SETTINGS, DEFAULT_TUNING, mergeKnown, tuningDiff, type Settings, type Tuning } from '../core/tuning';
 
 // v2: only values changed from the defaults are stored, so new defaults reach players.
@@ -6,6 +7,8 @@ const TUNING_KEY = 'cq3.tuning.v2';
 // v2: the finisher became a swipe by default, so older saved settings drop their finisher choice.
 const SETTINGS_KEY = 'cq3.settings.v2';
 const OLD_SETTINGS_KEY = 'cq3.settings.v1';
+// The run in progress (see core/save.ts).
+const RUN_KEY = 'cq3.run.v1';
 
 function read(key: string): unknown {
   try {
@@ -58,6 +61,24 @@ export function saveNow(t: Tuning, s: Settings): void {
   try {
     window.localStorage.removeItem('cq3.tuning.v1');
     window.localStorage.removeItem(OLD_SETTINGS_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** The saved run, if there is one this build can resume. */
+export function loadRunSave(t: Tuning): RunSave | null {
+  const s = read(RUN_KEY);
+  return validSave(s, t) ? s : null;
+}
+
+export function writeRunSave(s: RunSave): void {
+  write(RUN_KEY, s);
+}
+
+export function clearRunSave(): void {
+  try {
+    window.localStorage.removeItem(RUN_KEY);
   } catch {
     /* ignore */
   }

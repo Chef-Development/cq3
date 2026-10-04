@@ -33,9 +33,14 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
     const run = app.run;
     const g = clientToGame(app.layout, clientX, clientY);
     switch (run.phase) {
-      case 'title':
-        app.setPhase(() => run.startLevel(0));
+      case 'title': {
+        if (!app.savedRun) return app.newRun();
+        // a run was saved: Continue or New run (keyboard: Space/Enter continues)
+        const pick = clientX < 0 ? 'continue' : scene.titleTap(g.x, g.y);
+        if (pick === 'continue') app.continueRun();
+        else if (pick === 'new') app.newRun();
         return;
+      }
       case 'boost': {
         const i = scene.boostCardAt(g.x, g.y);
         if (i >= 0 && now - app.phaseSince > 400) app.setPhase(() => run.pickBoost(i));

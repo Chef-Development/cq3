@@ -2,10 +2,11 @@
 import { SimClock, tapSimTime } from '../core/clock';
 import type { CombatEvent, TapResult } from '../core/combat';
 import { Run, type Phase } from '../core/run';
+import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import type { Settings, Tuning } from '../core/tuning';
 import { Synth } from './audio';
 import { computeLayout, type ScreenLayout } from './layout';
-import { saveSoon } from './storage';
+import { clearRunSave, loadRunSave, saveSoon, writeRunSave } from './storage';
 
 export interface View {
   /** Returns how long (ms) the next phase change should wait so a kill / finisher animation can play out. */
@@ -34,6 +35,10 @@ export class App {
   awaitingBegin = false;
   /** Later stages of a level: the clock waits while the next enemy walks in (performance.now ms). */
   introUntil = 0;
+  /** The run saved by an earlier session (offered as Continue on the title screen). */
+  savedRun: RunSave | null = null;
+  /** The next fight is a resumed one: wait for a tap instead of walking the enemy in. */
+  private resuming = false;
   private begunCombat: unknown = null;
   private syncHoldUntil = 0; // performance.now() until which phase changes wait (kill animations)
   phaseSince = 0;
@@ -44,6 +49,7 @@ export class App {
   ) {
     this.run = new Run(tuning, settings, (Date.now() & 0xffffff) | 1);
     this.audio.tuning = tuning; // live: the impact sliders apply to the next sound
+    this.savedRun = loadRunSave(tuning);
     this.layout = computeLayout();
     this.applyAudioSettings();
   }
@@ -153,6 +159,31 @@ export class App {
     this.afterPhaseChange(prev);
   }
 
+  /** Title screen: pick the saved run back up (or start fresh if it can't be resumed). */
+  continueRun(): void {
+    const save = this.savedRun;
+    if (!save) return this.newRun();
+    this.resuming = true;
+    this.setPhase(() => {
+      if (!restoreRun(this.run, save)) this.run.startLevel(0);
+    });
+    this.resuming = false;
+  }
+
+  newRun(): void {
+    clearRunSave();
+    this.savedRun = null;
+    this.setPhase(() => this.run.startLevel(0));
+  }
+
+  /** Save the run in progress (after every stage, and whenever the page is hidden). */
+  saveRun(): void {
+    const s = snapshotRun(this.run);
+    if (!s) return;
+    writeRunSave(s);
+    this.savedRun = s;
+  }
+
   begin(): void {
     this.awaitingBegin = false;
     this.syncClock(performance.now());
@@ -162,7 +193,7 @@ export class App {
     const now = performance.now();
     if (this.run.phase === 'fight' && this.run.combat && this.run.combat !== this.begunCombat) {
       this.begunCombat = this.run.combat;
-      this.awaitingBegin = this.run.stageIndex === 0;
+      this.awaitingBegin = this.run.stageIndex === 0 || this.resuming;
       this.introUntil = this.awaitingBegin ? 0 : now + INTRO_MS;
     }
     if (this.run.phase !== prev) {
@@ -170,6 +201,7 @@ export class App {
       this.view?.onPhase(prev, this.run.phase);
     }
     this.syncClock(now);
+    this.saveRun();
   }
 
   flush(): void {

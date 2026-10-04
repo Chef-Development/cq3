@@ -145,6 +145,8 @@ export interface CombatOptions {
   seed: number;
   carry?: Partial<Carry>;
   spawning?: boolean; // false = no pattern spawns (tests)
+  /** Resume a saved fight: each enemy's HP (front first); 0 = already dead. */
+  enemyHp?: number[];
 }
 
 export class Combat {
@@ -209,8 +211,17 @@ export class Combat {
         seq: 0,
       };
     });
+    if (o.enemyHp)
+      this.enemies.forEach((e, i) => {
+        const hp = o.enemyHp![i];
+        if (hp === undefined || !Number.isFinite(hp)) return;
+        e.hp = Math.max(0, Math.min(e.maxHp, Math.round(hp)));
+        e.alive = e.hp > 0;
+      });
+    if (this.enemies.every((e) => !e.alive)) this.result = 'won';
     if (this.spawning) {
-      for (let i = 0; i < this.tuning.blocks.openingSpawns; i++) this.trySpawn('yellow', this.enemies[0].id);
+      const front = this.frontEnemy() ?? this.enemies[0];
+      for (let i = 0; i < this.tuning.blocks.openingSpawns; i++) this.trySpawn('yellow', front.id);
     }
     this.record();
   }

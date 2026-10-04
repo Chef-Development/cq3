@@ -77,7 +77,7 @@ export class FightScene extends Phaser.Scene implements View {
     const mk = (key: string, depth = 12, bold = false) => (this.txt[key] = this.add.bitmapText(0, 0, bold ? FONT_BOLD : FONT, '').setDepth(depth));
     ['level', 'ability', 'comboLabel', 'speed', 'tier', 'debug', 'enemyName'].forEach((k) => mk(k));
     ['heroHp', 'enemyHp', 'stat0', 'stat1', 'stat2', 'stat3', 'enemyAtk', 'combo', 'button', 'meterLabel', 'coins'].forEach((k) => mk(k, 12, true));
-    ['ovTitle', 'ovSub', 'ovLine1', 'ovLine2', 'ovLine3', 'begin', 'banner'].forEach((k) => mk(k, 32, true));
+    ['ovTitle', 'ovSub', 'ovLine1', 'ovLine2', 'ovLine3', 'begin', 'banner', 'tCont', 'tContSub', 'tNew'].forEach((k) => mk(k, 32, true));
     this.overlays.createTexts();
     this.lastNow = performance.now();
     this.onLayout();
@@ -151,6 +151,10 @@ export class FightScene extends Phaser.Scene implements View {
 
   boostCardAt(x: number, y: number): number {
     return this.overlays.boostCardAt(x, y);
+  }
+
+  titleTap(x: number, y: number): 'continue' | 'new' | null {
+    return this.overlays.titleTap(x, y);
   }
 
   // ------------------------------------------------------------------ helpers for the modules

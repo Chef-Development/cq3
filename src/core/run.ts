@@ -1,6 +1,6 @@
 // Level / stage flow, boosts and revive bookkeeping. Pure TypeScript, no Phaser.
 
-import { Combat, heroMaxHp, newHero, type Hero } from './combat';
+import { Combat, heroMaxHp, newHero, type Carry, type Hero } from './combat';
 import { Rng } from './rng';
 import type { Settings, Tuning } from './tuning';
 
@@ -94,22 +94,35 @@ export class Run {
     this.startStage(stageIndex);
   }
 
-  startStage(stageIndex: number): void {
+  /** Start a stage. `resume` rebuilds a saved one: its seed, the enemies' HP and the combo carried in. */
+  startStage(stageIndex: number, resume?: { seed: number; enemyHp: number[]; carry: Partial<Carry> }): void {
     const stages = this.level.stages;
     this.stageIndex = Math.max(0, Math.min(stages.length - 1, stageIndex));
-    const carry = this.combat?.carry();
-    this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
+    const prev = this.combat?.carry();
+    const carry = resume ? resume.carry : prev ? { combo: prev.combo, meter: prev.meter, stacks: prev.stacks, speedStacks: prev.speedStacks } : undefined;
+    this.seed = resume ? resume.seed >>> 0 : (this.seed * 1664525 + 1013904223) >>> 0;
     this.combat = new Combat({
       tuning: this.tuning,
       settings: this.settings,
       hero: this.hero,
       enemies: stages[this.stageIndex],
       seed: this.seed,
-      carry: carry ? { combo: carry.combo, meter: carry.meter, stacks: carry.stacks, speedStacks: carry.speedStacks } : undefined,
+      carry,
+      enemyHp: resume?.enemyHp,
     });
     this.boostChoices = [];
     this.pendingBoosts = 0;
     this.phase = 'fight';
+  }
+
+  /** The run's random state (stage seeds and boost rolls), for saving. */
+  get randomState(): { seed: number; rng: number } {
+    return { seed: this.seed, rng: this.rng.state };
+  }
+
+  set randomState(v: { seed: number; rng: number }) {
+    this.seed = v.seed >>> 0;
+    this.rng.state = v.rng;
   }
 
   /** Call after every combat interaction: moves to boost/defeat phases as needed. */
@@ -127,6 +140,11 @@ export class Run {
       this.boostChoices = rollBoosts(this.rng);
       this.phase = 'boost';
     }
+  }
+
+  /** Roll a fresh set of boost choices. */
+  rollChoices(): BoostId[] {
+    return rollBoosts(this.rng);
   }
 
   pickBoost(index: number): void {

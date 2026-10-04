@@ -54,8 +54,11 @@ document.addEventListener('visibilitychange', () => {
   app.hidden = document.hidden;
   if (document.hidden && app.run.phase === 'fight') app.userPaused = true;
   app.syncClock(now);
+  // iOS often reloads a home-screen app after you switch away: save the run as it stands
+  if (document.hidden) app.saveRun();
   ui.refreshHud();
 });
+window.addEventListener('pagehide', () => app.saveRun());
 
 const ui = installDebug(app);
 installInput(app, getScene, ui);

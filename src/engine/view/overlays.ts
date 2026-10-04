@@ -2,6 +2,7 @@
 // the stage banner, and the screen flash.
 import Phaser from 'phaser';
 import { boostLabel, type Phase } from '../../core/run';
+import { saveLabel } from '../../core/save';
 import type { FightScene } from '../scene';
 import { buildBoard, buildCrest } from '../chrome';
 import { FONT_BOLD, fontText, textWidth } from '../font';
@@ -21,6 +22,8 @@ export class Overlays {
   private chestOpenAt = 0;
   private banner = '';
   private bannerUntil = 0;
+  /** New run over a saved one needs a second tap within this time. */
+  private newRunArmedUntil = 0;
 
   constructor(private readonly s: FightScene) {}
 
@@ -94,6 +97,25 @@ export class Overlays {
     }
   }
 
+  /** Title screen with a saved run: Continue (left) and New run (right). */
+  private titleButtons(): { cont: Rect; fresh: Rect } {
+    const cx = Math.round(GAME_W / 2);
+    return { cont: { x: cx - 112, y: 89, w: 120, h: 24 }, fresh: { x: cx + 16, y: 89, w: 96, h: 24 } };
+  }
+
+  /** Which title button a tap hits. New run arms on the first tap and only fires on the second. */
+  titleTap(x: number, y: number): 'continue' | 'new' | null {
+    const b = this.titleButtons();
+    if (inRect(b.cont, x, y, 3)) return 'continue';
+    if (inRect(b.fresh, x, y, 3)) {
+      const now = performance.now();
+      if (now < this.newRunArmedUntil) return 'new';
+      this.newRunArmedUntil = now + 2500;
+      this.s.app.audio.uiClick();
+    }
+    return null;
+  }
+
   boostCardAt(x: number, y: number): number {
     for (let i = 0; i < 3; i++) if (inRect(this.cardRect(i), x, y)) return i;
     return -1;
@@ -140,6 +162,7 @@ export class Overlays {
     const blink = Math.floor(now / 450) % 2 === 0;
     const cx = GAME_W / 2;
     if (!(ph === 'fight' && s.app.awaitingBegin && !s.app.userPaused)) txt.begin.setVisible(false);
+    if (ph !== 'title') hide('tCont', 'tContSub', 'tNew');
     if (ph === 'fight' && now < this.bannerUntil) {
       const k = (this.bannerUntil - now) / 1800;
       s.setText('banner', this.banner, cx, 40, WHITE, 2, 0.5, 0.5, true);
@@ -164,7 +187,19 @@ export class Overlays {
       g.fillRect(0, 84, GAME_W, 1);
       s.setText('ovLine1', 'Tap when the line is on a block', cx, 68, WHITE, 1, 0.5, 0.5);
       s.setText('ovLine2', 'Tap red to block - avoid purple', cx, 78, 0xff9a80, 1, 0.5, 0.5);
-      s.setText('ovLine3', 'TAP TO START!', cx, 97, WHITE, 2, 0.5, 0.5, blink);
+      const save = s.app.savedRun;
+      s.setText('ovLine3', 'TAP TO START!', cx, 97, WHITE, 2, 0.5, 0.5, blink && !save);
+      if (save) {
+        // a run was saved: Continue it, or start over (that takes a second tap)
+        const { cont, fresh } = this.titleButtons();
+        const gc = this.gCards;
+        const armed = now < this.newRunArmedUntil;
+        button3d(gc, cont, [0x8af06a, 0x5ad848, 0x3aaa34, 0x247a26]);
+        button3d(gc, fresh, armed ? [0xff9a8a, 0xe0463c, 0xb02a2a, 0x7a1a1a] : [0x8a90a6, 0x6e7488, 0x585e72, 0x3e4254]);
+        s.setText('tCont', 'Continue', cont.x + cont.w / 2, cont.y + 8, WHITE, 1, 0.5, 0.5);
+        s.setText('tContSub', saveLabel(save, s.app.tuning), cont.x + cont.w / 2, cont.y + 17, 0xfff07a, 1, 0.5, 0.5);
+        s.setText('tNew', armed ? 'Tap again' : 'New run', fresh.x + fresh.w / 2, fresh.y + fresh.h / 2, WHITE, 1, 0.5, 0.5);
+      } else hide('tCont', 'tContSub', 'tNew');
     } else if (ph === 'boost') {
       dim(0.35);
       hide('ovSub', 'ovLine1', 'ovLine2', 'ovLine3');
