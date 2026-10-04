@@ -1317,9 +1317,10 @@ function hash2(x: number, y: number): number {
 
 /**
  * A worn stone block in explicit tones (0-5 = STONE): a lit front face, a darker side face `side` px wide on
- * the right, lit top and left rims, dark bottom and right rims, chamfered corners, a few chips.
+ * the right, lit top and left rims, dark bottom and right rims, chamfered corners, a few chips. `dark` blocks
+ * (the far side of the body) sit a tone lower.
  */
-function stoneBlock(w: number, h: number, side = 0, cut = 2, seed = 1): string[] {
+function stoneBlock(w: number, h: number, side = 0, cut = 2, seed = 1, dark = false): string[] {
   const inside = (x: number, y: number) =>
     x >= 0 && y >= 0 && x < w && y < h && x + y >= cut && w - 1 - x + y >= cut && w - 1 - x + (h - 1 - y) >= cut - 1 && x + (h - 1 - y) >= cut - 1;
   const rows: string[] = [];
@@ -1333,17 +1334,18 @@ function stoneBlock(w: number, h: number, side = 0, cut = 2, seed = 1): string[]
       const sideFace = x >= w - side;
       let t = sideFace ? 2 : 3;
       if (!inside(x, y - 1)) t = sideFace ? 4 : 5;
-      else if (!inside(x, y - 2) && !sideFace) t = 4;
       else if (!inside(x, y + 1)) t = sideFace ? 0 : 1;
       else if (!inside(x + 1, y)) t = 1;
       else if (!inside(x - 1, y)) t = 4;
       else if (side && x === w - side) t = 1;
+      else if (!inside(x, y - 2) && !sideFace) t = 4;
       else {
         // chips: 2x1 clusters a tone up or down
         const c = hash2(Math.floor(x / 2) + seed * 31, y + seed * 17);
-        if (c < 0.1) t += 1;
-        else if (c > 0.9) t -= 1;
+        if (c < 0.08) t += 1;
+        else if (c > 0.92) t -= 1;
       }
+      if (dark) t = Math.max(0, t - 1);
       r += String(t);
     }
     rows.push(r);
@@ -1352,12 +1354,12 @@ function stoneBlock(w: number, h: number, side = 0, cut = 2, seed = 1): string[]
 }
 
 /** Moss draped over the top of a block w wide: a lit cushion with drips hanging down. */
-function mossTop(w: number, seed = 1): string[] {
+function mossTop(w: number, seed = 1, dark = false): string[] {
   const rows = [Array(w).fill('.'), Array(w).fill('.'), Array(w).fill('.'), Array(w).fill('.')];
-  for (let x = 0; x < w; x++) {
-    const hgt = 1 + Math.floor(hash2(Math.floor(x / 2), seed) * 2.4);
-    const lit = x < w * 0.7;
-    rows[0][x] = x === 0 || x === w - 1 ? '.' : lit ? 'E' : 'D';
+  for (let x = 1; x < w - 1; x++) {
+    const hgt = 1 + Math.floor(hash2(Math.floor(x / 2), seed) * 2.6);
+    const lit = x < w * 0.7 && !dark;
+    rows[0][x] = lit ? 'E' : 'D';
     for (let k = 1; k <= hgt && k < 4; k++) rows[k][x] = k === hgt ? 'B' : lit ? 'D' : 'C';
   }
   return rows.map((r) => r.join(''));
@@ -1369,112 +1371,126 @@ const crack = (pts: [number, number][], ox: number, oy: number): Part =>
     ['0', pts.map(([x, y]) => [ox + x, oy + y] as [number, number])],
   ]);
 
-// the head: a heavy brow over two rune eyes, a squared nose, a carved mouth slot
+// the head: a heavy brow over two rune eyes, a carved mouth slot
 function golemHead(eyes: 'lit' | 'dim' | 'blaze'): string[] {
-  let h = stoneBlock(13, 12, 3, 3, 4);
-  const E = eyes === 'dim' ? ['rtr', 'rrr'] : eyes === 'blaze' ? ['uUu', 'UUU'] : ['tut', 'uUu'];
-  h = overlay(h, ['5555555555', '0000000001'], 1, 4); // brow ledge and its shadow
+  let h = stoneBlock(14, 12, 4, 2, 4);
+  const E = eyes === 'dim' ? ['rrt', 'rrr'] : eyes === 'blaze' ? ['uUU', 'UUu'] : ['tuu', 'uUu'];
+  h = overlay(h, ['5555555555', '0000000001'], 0, 4); // brow ledge and its shadow
   h = overlay(h, E, 1, 5);
   h = overlay(h, E.map((r) => r.slice(0, 2)), 6, 5);
-  h = overlay(h, ['22222', '11111'], 1, 9); // mouth slot
-  h = overlay(h, ['.1.1.'], 1, 10);
+  h = overlay(h, ['0000000', '1212121', '.22222.'], 1, 8); // mouth slot with stubby teeth
   return h;
 }
-const GOLEM_NOSE = ['54', '542', '432', '.11'];
+// a squared nose jutting off the front of the face
+const GOLEM_NOSE = ['54', '543', '4321', '.11.'];
+// the old king's crown, carved in the chest and still glowing
 const CHEST_RUNE = ['t...t...t', 'ut.tut.tu', 'uuuuUuuuu', 'ttttttttt', 'r.r.r.r.r'];
+// finger grooves on a fist's front face
+const KNUCKLES = ['1.1.1.', '2.2.2.', '......'];
+
+type Blk = [w: number, h: number, side: number, cut: number, seed: number, dark?: boolean];
+const GOLEM_BLOCKS: Record<string, Blk> = {
+  farFist: [11, 9, 4, 2, 20, true],
+  farFore: [9, 10, 3, 1, 21, true],
+  farUpper: [8, 8, 3, 1, 22, true],
+  farShoulder: [13, 10, 4, 3, 23, true],
+  farLeg: [8, 10, 3, 1, 24, true],
+  farFoot: [11, 4, 3, 1, 25, true],
+  hips: [18, 7, 5, 1, 26],
+  chest: [21, 19, 6, 3, 27],
+  nearLeg: [9, 10, 3, 1, 28],
+  nearFoot: [12, 4, 3, 1, 29],
+  nearShoulder: [13, 10, 4, 3, 30],
+  nearUpper: [8, 8, 3, 1, 31],
+  nearFore: [10, 10, 3, 1, 32],
+  nearFist: [12, 9, 4, 2, 33],
+};
+type GolemPose = Record<string, [number, number]>;
+const GOLEM_IDLE: GolemPose = {
+  farShoulder: [29, 13], farUpper: [32, 21], farFore: [32, 27], farFist: [31, 35],
+  farLeg: [25, 37], farFoot: [24, 45],
+  hips: [14, 31], chest: [12, 14],
+  nearLeg: [15, 37], nearFoot: [13, 45],
+  head: [10, 3],
+  nearShoulder: [5, 13], nearUpper: [6, 21], nearFore: [4, 27], nearFist: [3, 35],
+};
+const UPPER = ['farShoulder', 'farUpper', 'farFore', 'farFist', 'hips', 'chest', 'head', 'nearShoulder', 'nearUpper', 'nearFore', 'nearFist'];
+
+/** Move the named blocks of a pose by (dx, dy). */
+function shiftPose(p: GolemPose, names: string[], dx: number, dy: number): GolemPose {
+  const out = { ...p };
+  for (const n of names) out[n] = [p[n][0] + dx, p[n][1] + dy];
+  return out;
+}
 
 function golemParts(pose: string): Part[] {
-  const F = 48;
-  let x = 0;
-  let y = 0;
+  let P = GOLEM_IDLE;
   let eyes: 'lit' | 'dim' | 'blaze' = 'lit';
-  // near arm: shoulder, elbow and fist positions (block top-lefts)
-  let upper: [number, number] = [5, 26];
-  let fore: [number, number] = [3, 33];
-  let fist: [number, number] = [2, 39];
-  let nearLeg: [number, number, number] = [14, 38, 0]; // x, top, lift
-  let farFist: [number, number] = [32, 38];
   const extra: Part[] = [];
   switch (pose) {
     case 'idle1':
-      y = 1;
-      upper = [5, 27];
-      fore = [3, 34];
-      fist = [2, 40];
-      farFist = [32, 39];
+      P = shiftPose(P, UPPER, 0, 1);
       break;
     case 'windup':
       // rears back, the near fist hauled up beside the head
-      x = 2;
-      y = 1;
-      upper = [12, 18];
-      fore = [16, 10];
-      fist = [16, 2];
+      P = shiftPose(P, UPPER, 2, 1);
+      P = { ...P, nearUpper: [15, 17], nearFore: [20, 10], nearFist: [24, 2] };
       break;
     case 'attack':
       // a straight punch, the whole weight behind it
-      x = -2;
-      y = 2;
-      upper = [3, 25];
-      fore = [-1, 27];
-      fist = [1, 24];
+      P = shiftPose(P, UPPER, -2, 2);
+      P = { ...P, nearUpper: [5, 22], nearFore: [1, 23], nearFist: [1, 21] };
       eyes = 'blaze';
       break;
     case 'hurt':
-      x = 3;
+      P = shiftPose(P, UPPER, 3, 0);
       eyes = 'dim';
-      extra.push([['.45', '432', '21.'], 2, 8], [['43', '21'], 0, 14]);
+      extra.push([['.45', '432', '21.'], 2, 6], [['43', '21'], 0, 12]);
       break;
     case 'tell':
       // the near foot hauled up high for a stomp, arms flung wide for balance
-      x = 1;
-      y = -1;
-      nearLeg = [10, 30, 1];
-      upper = [2, 22];
-      fore = [0, 18];
-      fist = [0, 11];
-      farFist = [34, 32];
+      P = shiftPose(P, UPPER, 2, -1);
+      P = {
+        ...P,
+        nearLeg: [9, 27], nearFoot: [7, 35],
+        nearUpper: [3, 18], nearFore: [1, 11], nearFist: [1, 3],
+        farUpper: [35, 19], farFore: [36, 23], farFist: [34, 29],
+      };
       eyes = 'blaze';
       break;
   }
-  const chestX = 12 + x;
-  const chestY = 16 + y;
   const seam = { edge: STONE[0] };
-  const parts: Part[] = [];
-  // far side, behind: arm, shoulder, leg
-  parts.push([stoneBlock(9, 10, 3, 2, 7), 31 + x, 24 + y, seam]);
-  parts.push([stoneBlock(11, 9, 3, 2, 8), farFist[0], farFist[1], seam]);
-  parts.push([stoneBlock(16, 13, 5, 3, 9), 26 + x, 13 + y, seam]);
-  parts.push([mossTop(14, 3), 27 + x, 13 + y]);
-  parts.push([stoneBlock(9, 11, 3, 1, 10), 25, F - 10, seam]);
-  parts.push([stoneBlock(11, 4, 3, 1, 11), 25, F - 3, seam]);
-  // hips and chest
-  parts.push([stoneBlock(20, 8, 5, 2, 12), 13 + x, 34 + y, seam]);
-  parts.push([stoneBlock(22, 20, 6, 3, 13), chestX, chestY, seam]);
-  parts.push([CHEST_RUNE, chestX + 4, chestY + 6]);
-  parts.push(crack([[0, 0], [1, 1], [1, 2], [2, 3]], chestX + 17, chestY + 3));
-  parts.push(crack([[0, 0], [0, 1], [1, 2]], chestX + 3, chestY + 14));
-  // near leg (lifted in the tell: the thigh swung forward, the foot hanging under the knee)
-  if (nearLeg[2]) {
-    parts.push([stoneBlock(12, 8, 3, 2, 14), nearLeg[0] + 2, nearLeg[1], seam]);
-    parts.push([stoneBlock(9, 9, 3, 2, 15), nearLeg[0], nearLeg[1] + 6, seam]);
-    parts.push([stoneBlock(11, 4, 3, 1, 16), nearLeg[0] - 1, nearLeg[1] + 14, seam]);
-  } else {
-    parts.push([stoneBlock(9, 11, 3, 1, 14), nearLeg[0], F - 10, seam]);
-    parts.push([stoneBlock(12, 4, 3, 1, 16), nearLeg[0] - 1, F - 3, seam]);
+  const blk = (n: string): Part => {
+    const [w, h, side, cut, seed, dark] = GOLEM_BLOCKS[n];
+    return [stoneBlock(w, h, side, cut, seed, dark), P[n][0], P[n][1], seam];
+  };
+  const at = (n: string, dx: number, dy: number, rows: string[]): Part => [rows, P[n][0] + dx, P[n][1] + dy];
+  const parts: Part[] = [
+    blk('farFore'), blk('farUpper'), blk('farFist'),
+    blk('farShoulder'), at('farShoulder', 1, 0, mossTop(12, 3, true)),
+    blk('farLeg'), blk('farFoot'),
+    blk('hips'),
+    blk('chest'),
+    at('chest', 5, 6, CHEST_RUNE),
+    crack([[0, 0], [1, 1], [1, 2], [2, 3]], P.chest[0] + 16, P.chest[1] + 3),
+    crack([[0, 0], [0, 1], [1, 2]], P.chest[0] + 4, P.chest[1] + 13),
+  ];
+  if (pose === 'tell') {
+    // the thigh swung up level, the shin hanging, the foot well off the ground
+    parts.push([stoneBlock(11, 8, 3, 1, 34), P.nearLeg[0] + 3, P.nearLeg[1] - 2, seam]);
   }
-  // head, low and forward between the shoulders
-  parts.push([golemHead(eyes), 8 + x, 7 + y, seam]);
-  parts.push([GOLEM_NOSE, 6 + x, 12 + y]);
-  parts.push([mossTop(11, 5), 9 + x, 7 + y]);
-  parts.push([['.p.', 'pyp', '.P.'], 15 + x, 4 + y]);
-  // near arm, in front
-  parts.push([stoneBlock(15, 12, 4, 3, 17), 3 + x, 15 + y, seam]);
-  parts.push([mossTop(12, 6), 4 + x, 15 + y]);
-  parts.push(crack([[0, 0], [1, 1], [1, 2]], 9 + x, 19 + y));
-  parts.push([stoneBlock(9, 9, 3, 2, 18), upper[0] + x, upper[1] + y, seam]);
-  parts.push([stoneBlock(10, 8, 3, 2, 19), fore[0] + x, fore[1] + y, seam]);
-  parts.push([stoneBlock(12, 9, 3, 2, 20), fist[0] + x, fist[1] + y, seam]);
+  parts.push(
+    blk('nearLeg'), blk('nearFoot'),
+    [golemHead(eyes), P.head[0], P.head[1], seam],
+    at('head', -2, 6, GOLEM_NOSE),
+    at('head', 1, 0, mossTop(12, 5)),
+    at('head', 8, -3, ['.p.', 'pyp', '.P.']),
+    blk('nearUpper'), blk('nearFore'),
+    at('nearFore', 2, 3, ['tu', 'ut', 'tu']),
+    blk('nearShoulder'), at('nearShoulder', 1, 0, mossTop(11, 6)),
+    crack([[0, 0], [1, 1], [1, 2]], P.nearShoulder[0] + 6, P.nearShoulder[1] + 4),
+    blk('nearFist'), at('nearFist', 2, 4, KNUCKLES),
+  );
   return [...parts, ...extra];
 }
 
