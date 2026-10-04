@@ -2,6 +2,7 @@
 // knockback, death burst), Pip the owl, and the finisher's streaked backdrop.
 import Phaser from 'phaser';
 import type { Combat } from '../../core/combat';
+import { FINISHER_BLOW_AT, finisherStrikeAt, finisherStrikes, type ImpactFeel } from '../../core/impact';
 import type { FightScene } from '../scene';
 import { HERO_FEET_X, HERO_W, ICONS } from '../art';
 import { GAME_W } from '../layout';
@@ -169,15 +170,21 @@ export class Fighters {
     return Math.round(v.homeX - v.img.displayWidth / 2 - 12);
   }
 
-  heroAttack(enemyId: number, damage: number, crit: boolean, perfect: boolean): void {
+  heroAttack(enemyId: number, damage: number, crit: boolean, perfect: boolean, combo: number): void {
     const s = this.s;
     const v = this.enemies.get(enemyId);
     const h = this.h;
     h.lastAction = s.anim;
     h.alt = !h.alt;
     const slash = h.alt ? 'slashA' : 'slashB';
+    // the blow's sound and weight land together, when the sword connects
+    const land = () => {
+      s.app.audio.hit(combo, crit, perfect);
+      return s.fx.impact(s.fx.weight(crit ? 'crit' : perfect ? 'perfect' : 'hit'));
+    };
     if (!v) {
       this.setHeroPose(slash, 110);
+      land();
       return;
     }
     const target = this.standX(v);
@@ -189,6 +196,7 @@ export class Fighters {
       h.t0 = s.anim;
       arrive = Math.abs(target - h.x) > 6 ? DASH_MS : 0;
       s.fx.burst(h.x - 6, s.ground - 2, 0xc8b090, 4, true, 0.5);
+      if (arrive) s.app.audio.swish(); // the tap's instant feedback while the dash closes in
     }
     s.later(arrive, () => {
       if (h.state === 'dash') {
@@ -197,23 +205,26 @@ export class Fighters {
       }
       this.setHeroPose(slash, 110);
       h.lungeAt = s.anim;
-      this.enemyHurtFx(enemyId, damage, crit, perfect);
+      this.enemyHurtFx(enemyId, damage, crit, perfect, land());
     });
   }
 
-  enemyHurtFx(enemyId: number, damage: number, crit: boolean, perfect: boolean, finisher = false, scale = 0): void {
+  /**
+   * The enemy shows a blow: white flash and knockback sized by the impact's feel, sparks, slash, number.
+   * (The impact itself, hit-stop, shake and sound, is applied once by the caller, even when several enemies are hit.)
+   */
+  enemyHurtFx(enemyId: number, damage: number, crit: boolean, perfect: boolean, feel: ImpactFeel, finisher = false, scale = 0): void {
     const s = this.s;
     const fx = s.fx;
     const v = this.enemies.get(enemyId);
     if (!v) return;
-    const J = s.app.tuning.juice;
     const combo = s.app.run.combat?.combo ?? 0;
     const cy = v.y - v.img.displayHeight / 2;
     const big = crit || finisher;
-    v.flashUntil = s.anim + J.flashMs;
+    v.flashUntil = s.anim + feel.flashMs;
     v.knockUntil = s.anim + (big ? 140 : 90);
     v.kickAt = s.anim;
-    v.kickDist = finisher ? 14 : crit ? 10 : 6;
+    v.kickDist = feel.knockPx;
     if (!v.dieAt) this.setEnemyPose(v, 'hurt', 160);
     const col = finisher ? 0xff8a2a : crit ? 0xffb020 : perfect ? 0xfff07a : 0xffe040;
     // contact point: the enemy's front edge, at chest height
@@ -231,18 +242,18 @@ export class Fighters {
     fx.burst(hx, cy, WHITE, (big ? 14 : 8) + tier * 2, true, big ? 1.6 : 1.1, true);
     fx.chips(hx, cy, 6, [WHITE, col, ENEMY_COL[v.sprite] ?? WHITE], big ? 10 : 5, 0);
     if (big) fx.ring(v.x, cy, 28, col, true);
-    fx.kick(big ? 3 : 1, big ? 110 : 60);
-    if (big) fx.shake(J.shakeMaxPx, J.shakeMs * 1.4);
-    // a short hit-stop on every hit, longer on crits (scene only: the bar keeps running)
-    fx.freeze(big ? 70 : 28);
+    // the camera jolts along with the knockback
+    fx.kick(Math.round(1 + feel.knockPx * 0.2), 60 + feel.hitStopMs * 0.3);
   }
 
-  heroParry(ownerId: number, cracked: boolean): void {
+  heroParry(ownerId: number, cracked: boolean, perfect: boolean): void {
     const s = this.s;
     const fx = s.fx;
     const h = this.h;
     h.lastAction = s.anim;
     this.setHeroPose('parry', 150);
+    s.app.audio.block(cracked, perfect);
+    const feel = fx.impact(fx.weight('block') * (cracked ? 0.9 : 1));
     const sx = h.x + 10;
     const sy = s.ground - 22;
     fx.burst(sx, sy, 0x7ae0ff, cracked ? 6 : 10, true, 1, true);
@@ -251,9 +262,10 @@ export class Fighters {
     const v = this.enemies.get(ownerId);
     if (v && !v.dieAt) {
       v.knockUntil = s.anim + 80;
+      v.kickAt = s.anim;
+      v.kickDist = feel.knockPx * 0.5; // the parried enemy is shoved back a little
       this.setEnemyPose(v, 'attack', 90);
     }
-    fx.shake(s.app.tuning.juice.shakeMinPx, 60);
   }
 
   /**
@@ -265,7 +277,6 @@ export class Fighters {
     const s = this.s;
     const fx = s.fx;
     const h = this.h;
-    const J = s.app.tuning.juice;
     const n = Math.max(1, Math.min(5, stacks));
     const views = [...this.enemies.values()].filter((v) => !v.dieAt);
     const front = views.slice().sort((a, b) => a.homeX - b.homeX)[0];
@@ -278,14 +289,14 @@ export class Fighters {
     h.t0 = s.anim;
     h.lastAction = s.anim + ms;
     this.superAt = s.anim;
-    const finalK = 0.8;
+    const finalK = FINISHER_BLOW_AT;
     this.superFinalAt = s.anim + ms * finalK;
     const [col, hi] = stackCol(n);
     fx.addFloater(GAME_W / 2, 42, FINISHER_NAME[n] ?? 'Finisher!', n === 1 ? 0xffe680 : hi, n >= 2 ? 3 : 2, true, 0, -6, 0, ms * 0.95, true);
     // the flurry: 1 + 2n quick strikes between 30% and 70% of the show
-    const strikes = 1 + 2 * n;
+    const strikes = finisherStrikes(n);
     for (let st = 0; st < strikes; st++) {
-      const k = 0.3 + (0.4 * st) / Math.max(1, strikes - 1);
+      const k = finisherStrikeAt(st, strikes);
       s.later(ms * k, () => {
         for (const v of views) {
           const cy = v.y - v.img.displayHeight / 2 + rand(-6, 4);
@@ -303,8 +314,10 @@ export class Fighters {
     }
     // the last blow
     s.later(ms * finalK, () => {
+      s.app.audio.finisherBoom(n);
+      const feel = fx.impact(fx.weight('finisher', n));
       for (const v of views) {
-        this.enemyHurtFx(v.id, damage, false, false, true, 3);
+        this.enemyHurtFx(v.id, damage, false, false, feel, true, 3);
         // the damage number (the floater enemyHurtFx just made) counts up over the enemy, hangs longer, rises slowly
         const num = fx.floaters[fx.floaters.length - 1];
         if (num && damage > 0) {
@@ -320,11 +333,8 @@ export class Fighters {
         fx.stars.push({ x: v.x, y: cy - 6, at: s.anim, r: 30 + n * 6, color: col });
         fx.burst(v.x, cy, col, 16 + n * 8, true, 1.6 + n * 0.15);
       }
-      s.app.audio.finisherBoom(n);
       fx.screenFlash(n >= 3 ? 0xfff0c0 : WHITE, performance.now(), 160 + 40 * n);
-      fx.shake(J.shakeMaxPx + n, J.shakeMs * (1.6 + 0.4 * n));
       fx.kick(6, 160);
-      fx.freeze(110 + 30 * n);
     });
   }
 
@@ -339,7 +349,8 @@ export class Fighters {
     }
     v.dieAt = s.anim;
     s.later(DEATH_CHARGE_MS, () => {
-      const J = s.app.tuning.juice;
+      s.app.audio.enemyPop(boss);
+      fx.impact(fx.weight(boss ? 'bossKill' : 'kill'));
       const cy = v.y - v.img.displayHeight / 2;
       const col = ENEMY_COL[v.sprite] ?? WHITE;
       fx.explodePixels(v, boss);
@@ -364,10 +375,7 @@ export class Fighters {
       s.hud.coinsPending -= coins;
       s.hud.dropCoins(v.x, cy, coins);
       if (coins > 0) s.later(120, () => fx.iconFloat(v.x + 22, cy - 26, `+${coins}`, 0xffe066, 'coin'));
-      fx.shake(J.shakeMaxPx + (boss ? 2 : 1), J.shakeMs * (boss ? 3 : 2));
       fx.kick(5, 140);
-      fx.freeze(boss ? 150 : 80);
-      s.app.audio.enemyPop(boss);
       s.later(140, () => s.app.audio.kill());
     });
   }
@@ -567,7 +575,7 @@ export class Fighters {
       }
       // squash on impact: wide and short for a few frames, then a little stretch back
       const sq = (a - v.kickAt) / 150;
-      const amt = sq >= 0 && sq < 1 ? Math.sin(sq * Math.PI) * (sq < 0.5 ? 0.16 : -0.06) * (v.kickDist / 8) : 0;
+      const amt = sq >= 0 && sq < 1 ? Math.sin(sq * Math.PI) * (sq < 0.5 ? 0.16 : -0.06) * Math.min(1.6, v.kickDist / 8) : 0;
       v.img.setTexture(`${v.sprite}_${pose}`).setPosition(Math.round(x), v.y - walkBob).setScale(SPRITE_SCALE * (1 + amt), SPRITE_SCALE * (1 - amt)).setAlpha(1);
       shadow(x, v.img.displayWidth * 0.8, 0.3);
       if (a >= this.superFinalAt) v.hpShown += (e.hp - v.hpShown) * 0.25;

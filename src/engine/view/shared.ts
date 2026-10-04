@@ -53,7 +53,7 @@ export const RETURN_MS = 190;
 export const ENGAGE_MS = 750;
 export const LEAP_MS = 260;
 /** Finisher show length grows with the number of stacks spent. */
-export const superMsFor = (stacks: number) => 560 + 170 * Math.min(5, Math.max(1, stacks));
+export { finisherShowMs as superMsFor } from '../../core/impact';
 /** Color per finisher stack: [fill, highlight, shade]. Stack 1 blue, 2 violet, 3 gold, 4 crimson, 5 white-hot. */
 const STACK_COL: ReadonlyArray<readonly [number, number, number]> = [
   [0x2a8ae0, 0x7ad0ff, 0x1a5ab0],

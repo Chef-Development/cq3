@@ -121,6 +121,12 @@ export class Overlays {
       g.fillStyle(s.fx.screenFlashColor, Math.min(0.6, (s.fx.screenFlashUntil - now) / 260));
       g.fillRect(0, 0, GAME_W, s.splitY);
     }
+    if (now < s.fx.impactFlashUntil || s.fx.impactFlashPending) {
+      // heavy impact: the scene goes white for a frame or two
+      s.fx.impactFlashPending = false;
+      g.fillStyle(WHITE, 0.82);
+      g.fillRect(0, 0, GAME_W, s.splitY);
+    }
     const ov = ['ovTitle', 'ovSub', 'ovLine1', 'ovLine2', 'ovLine3'];
     const hide = (...keys: string[]) => keys.forEach((k) => txt[k].setVisible(false));
     this.boostTexts.forEach((t) => t.setVisible(false));

@@ -1,6 +1,8 @@
 // Debug / tuning panel (DOM). Every change applies live and is saved to localStorage.
-import { cloneTuning, DEFAULT_SETTINGS, getPath, mergeKnown, setPath, sliderGroups, type Settings } from '../core/tuning';
+import { impactFeel, impactWeight } from '../core/impact';
+import { cloneTuning, DEFAULT_SETTINGS, getPath, IMPACT_SOUND_SLIDERS, mergeKnown, setPath, sliderGroups, type Settings } from '../core/tuning';
 import type { App } from './app';
+import { SFX } from './audio';
 import { runCalibration } from './calibrate';
 import { saveNow } from './storage';
 
@@ -61,7 +63,7 @@ export function installDebug(app: App): DebugUi {
 
     const section = (title: string) => {
       const s = el('details', 'dbg-sec');
-      s.open = title === 'Modes' || title === 'Jump to';
+      s.open = title === 'Modes' || title === 'Jump to' || title === 'Sound lab';
       s.appendChild(el('summary', undefined, title));
       body.appendChild(s);
       return s;
@@ -144,6 +146,33 @@ export function installDebug(app: App): DebugUi {
       ],
       () => app.applyAudioSettings(),
     );
+
+    // Sound lab: play every sound effect and tune the impact layers by ear, on the phone
+    const lab = section('Sound lab');
+    lab.appendChild(el('div', 'dbg-note', 'Tap to play. Impacts are listed lightest first. Turn the phone up and try with and without headphones.'));
+    const lg = el('div', 'dbg-grid');
+    for (const e of SFX) {
+      const b = el('button', e.tier ? 'dbg-btn impact' : 'dbg-btn', e.label);
+      b.onclick = () => {
+        const a = app.audio;
+        a.unlock();
+        const ctx = a.ctx;
+        if (!ctx) return;
+        const at = ctx.currentTime + 0.03;
+        e.play(a, at);
+        if (e.tier) {
+          const feel = impactFeel(app.tuning, impactWeight(app.tuning, e.tier, e.stacks ?? 1));
+          a.duckMusic(feel.duck, feel.duckMs, at);
+        }
+      };
+      lg.appendChild(b);
+    }
+    lab.appendChild(lg);
+    for (const sd of IMPACT_SOUND_SLIDERS)
+      slider(lab, sd.label, sd.min, sd.max, sd.step, () => getPath(app.tuning, sd.path), (v) => {
+        setPath(app.tuning, sd.path, v);
+        app.save();
+      });
 
     const jump = section('Jump to');
     const jg = el('div', 'dbg-grid');

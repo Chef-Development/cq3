@@ -121,11 +121,56 @@ export const DEFAULT_TUNING = {
     maxMs: 350,
   },
   juice: {
-    hitStopMs: 40, // freeze on crits and finishers
-    shakeMinPx: 2,
-    shakeMaxPx: 4,
+    hitStopMs: 40, // the simulation (cursor and reds) freezes this long on crits and finishers
+    shakeMinPx: 2, // small shakes outside the impact tiers (a miss)
+    shakeMaxPx: 4, // big shakes outside the impact tiers (taking a hit, the chest)
     shakeMs: 120,
-    flashMs: 70,
+    flashMs: 70, // the hero's red flash when hurt
+  },
+  impact: {
+    // Every impact has a weight from 0 (lightest) to 1 (heaviest); its sound and visuals scale with it.
+    hit: 0.1,
+    perfect: 0.18,
+    block: 0.3,
+    crit: 0.4,
+    bomb: 0.5,
+    finisher: 0.55, // 1 stack...
+    finisherStack: 0.06, // ...plus this per extra stack (5 stacks = 0.79)
+    kill: 0.85,
+    bossKill: 1,
+    hurt: 0.45, // taking a hit (sound only)
+    curve: 1.3, // visual ramps follow weight ^ curve (higher keeps light hits subtler)
+    // visuals, from the lightest impact to the heaviest
+    hitStopLight: 28, // ms the scene freezes (the bar keeps running)
+    hitStopHeavy: 150,
+    shakeLight: 0.5, // px
+    shakeHeavy: 7,
+    shakeMsLight: 60,
+    shakeMsHeavy: 450,
+    knockLight: 5, // px the enemy is knocked back
+    knockHeavy: 20,
+    flashLight: 45, // ms the enemy flashes white
+    flashHeavy: 150,
+    frameFlash1: 0.4, // from this weight, a 1-frame white impact flash...
+    frameFlash2: 0.75, // ...and 2 frames from this one
+    duckFrom: 0.4, // impacts at least this heavy duck the music...
+    duckDepth: 0.75, // ...by up to this much...
+    duckMs: 380, // ...and it comes back over about this long
+    // sound layers (also in the Sound lab)
+    crack: 1, // 0-5 ms transient
+    body: 1, // 120-600 Hz saturated thump: carries the weight on phone speakers
+    tail: 1, // noise and debris tail
+    sub: 0.5, // deep sine: only adds on headphones
+    combo: 0.5, // the musical blip that climbs with the combo
+    drive: 1, // body saturation
+    bodyHzLight: 320, // the body's pitch drop ends here...
+    bodyHzHeavy: 140,
+    bodyMsLight: 70, // ...and it lasts this long
+    bodyMsHeavy: 320,
+    tailMsLight: 90,
+    tailMsHeavy: 750,
+    variation: 0.04, // +/- random pitch and timing, so repeats never sound identical
+    music: 0.18, // music volume
   },
   enemies: {
     slime: {
@@ -275,6 +320,18 @@ const s = (path: string, label: string, min: number, max: number, step: number):
   step,
 });
 
+/** The impact sound-layer levels: in the Impact group and in the gear panel's Sound lab. */
+export const IMPACT_SOUND_SLIDERS: SliderDef[] = [
+  s('impact.crack', 'Layer: crack', 0, 2, 0.05),
+  s('impact.body', 'Layer: body', 0, 2, 0.05),
+  s('impact.tail', 'Layer: tail', 0, 2, 0.05),
+  s('impact.sub', 'Layer: sub (headphones)', 0, 2, 0.05),
+  s('impact.combo', 'Layer: combo notes', 0, 2, 0.05),
+  s('impact.drive', 'Body drive', 0, 3, 0.05),
+  s('impact.variation', 'Variation (+/-)', 0, 0.15, 0.005),
+  s('impact.music', 'Music volume', 0, 0.6, 0.01),
+];
+
 export function sliderGroups(t: Tuning): SliderGroup[] {
   const groups: SliderGroup[] = [
     {
@@ -385,13 +442,51 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       sliders: [s('companion.everyHits', 'Peck every N hits', 0, 12, 1), s('companion.damage', 'Peck damage', 0, 60, 1)],
     },
     {
+      title: 'Impact',
+      sliders: [
+        s('impact.hit', 'Weight: hit', 0, 1, 0.01),
+        s('impact.perfect', 'Weight: perfect', 0, 1, 0.01),
+        s('impact.block', 'Weight: block', 0, 1, 0.01),
+        s('impact.crit', 'Weight: crit', 0, 1, 0.01),
+        s('impact.bomb', 'Weight: bomb', 0, 1, 0.01),
+        s('impact.finisher', 'Weight: finisher x1', 0, 1, 0.01),
+        s('impact.finisherStack', 'Weight: per extra stack', 0, 0.25, 0.01),
+        s('impact.kill', 'Weight: kill', 0, 1, 0.01),
+        s('impact.bossKill', 'Weight: boss kill', 0, 1, 0.01),
+        s('impact.hurt', 'Weight: hurt (sound)', 0, 1, 0.01),
+        s('impact.curve', 'Visual curve', 0.5, 3, 0.05),
+        s('impact.hitStopLight', 'Hit-stop light (ms)', 0, 200, 1),
+        s('impact.hitStopHeavy', 'Hit-stop heavy (ms)', 0, 300, 5),
+        s('impact.shakeLight', 'Shake light (px)', 0, 8, 0.1),
+        s('impact.shakeHeavy', 'Shake heavy (px)', 0, 12, 0.5),
+        s('impact.shakeMsLight', 'Shake light (ms)', 0, 400, 10),
+        s('impact.shakeMsHeavy', 'Shake heavy (ms)', 0, 1000, 10),
+        s('impact.knockLight', 'Knockback light (px)', 0, 30, 1),
+        s('impact.knockHeavy', 'Knockback heavy (px)', 0, 40, 1),
+        s('impact.flashLight', 'Enemy flash light (ms)', 0, 200, 5),
+        s('impact.flashHeavy', 'Enemy flash heavy (ms)', 0, 400, 5),
+        s('impact.frameFlash1', '1-frame flash from', 0, 1.05, 0.01),
+        s('impact.frameFlash2', '2-frame flash from', 0, 1.05, 0.01),
+        s('impact.duckFrom', 'Music duck from', 0, 1.05, 0.01),
+        s('impact.duckDepth', 'Music duck depth', 0, 1, 0.05),
+        s('impact.duckMs', 'Music duck (ms)', 50, 1500, 10),
+        ...IMPACT_SOUND_SLIDERS,
+        s('impact.bodyHzLight', 'Body pitch light (Hz)', 60, 700, 5),
+        s('impact.bodyHzHeavy', 'Body pitch heavy (Hz)', 40, 700, 5),
+        s('impact.bodyMsLight', 'Body light (ms)', 20, 400, 5),
+        s('impact.bodyMsHeavy', 'Body heavy (ms)', 20, 1000, 10),
+        s('impact.tailMsLight', 'Tail light (ms)', 20, 600, 10),
+        s('impact.tailMsHeavy', 'Tail heavy (ms)', 50, 2000, 10),
+      ],
+    },
+    {
       title: 'Juice',
       sliders: [
-        s('juice.hitStopMs', 'Hit-stop (ms)', 0, 200, 5),
-        s('juice.shakeMinPx', 'Shake min px', 0, 8, 1),
-        s('juice.shakeMaxPx', 'Shake max px', 0, 8, 1),
-        s('juice.shakeMs', 'Shake (ms)', 0, 400, 10),
-        s('juice.flashMs', 'Hit flash (ms)', 0, 200, 5),
+        s('juice.hitStopMs', 'Sim freeze: crit/fin (ms)', 0, 200, 5),
+        s('juice.shakeMinPx', 'Shake: miss (px)', 0, 8, 1),
+        s('juice.shakeMaxPx', 'Shake: hurt (px)', 0, 8, 1),
+        s('juice.shakeMs', 'Shake: hurt (ms)', 0, 400, 10),
+        s('juice.flashMs', 'Hero hurt flash (ms)', 0, 200, 5),
       ],
     },
   ];

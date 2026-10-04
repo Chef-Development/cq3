@@ -207,6 +207,18 @@ body {
   gap: 6px;
   margin: 6px 0;
 }
+.dbg-btn.impact {
+  background: #5a2a1a;
+  box-shadow: inset 0 2px 0 #8a4a2a;
+}
+.dbg-btn.impact:active {
+  background: #7a3a24;
+}
+.dbg-note {
+  color: var(--dim);
+  font-size: 11px;
+  margin: 2px 0 6px;
+}
 .dbg-foot {
   color: var(--dim);
   padding: 10px 0;

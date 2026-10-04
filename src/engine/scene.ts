@@ -194,7 +194,7 @@ export class FightScene extends Phaser.Scene implements View {
           if (perfect) fx.sparkle(x, barMid);
           hud.comboPopAt = now;
           hud.milestone(e.combo);
-          f.heroAttack(e.enemyId, e.damage, e.crit, perfect);
+          f.heroAttack(e.enemyId, e.damage, e.crit, perfect, e.combo);
           break;
         }
         case 'block': {
@@ -205,7 +205,7 @@ export class FightScene extends Phaser.Scene implements View {
           bar.cursorHit(x, e.perfect ? 0x6aff5a : 0x7ae0ff);
           hud.comboPopAt = now;
           hud.milestone(e.combo);
-          f.heroParry(e.ownerId, e.cracked);
+          f.heroParry(e.ownerId, e.cracked, e.perfect);
           if (e.cracked) {
             // knocked back: a clang, sparks flying right, the bar jolts
             fx.burst(x, barMid, 0xc8d0e0, 6, false);
@@ -238,6 +238,7 @@ export class FightScene extends Phaser.Scene implements View {
           if (e.source === 'red' || e.source === 'bomb') f.enemyLunge(e.enemyId, 0.8);
           const delay = e.source === 'red' || e.source === 'bomb' ? 70 : 0;
           this.later(delay, () => {
+            if (e.source !== 'miss') this.app.audio.hurt(); // lands with the enemy's blow
             const h = f.h;
             h.hurtUntil = this.anim + 220;
             h.flashUntil = this.anim + J.flashMs * 1.5;
@@ -251,7 +252,7 @@ export class FightScene extends Phaser.Scene implements View {
         }
         case 'enemyHurt': {
           if (e.source !== 'bomb') break; // hits and finishers show damage when the blow lands
-          f.enemyHurtFx(e.enemyId, e.damage, false, false);
+          f.enemyHurtFx(e.enemyId, e.damage, false, false, fx.feel(fx.weight('bomb')));
           break;
         }
         case 'kill': {
@@ -280,7 +281,8 @@ export class FightScene extends Phaser.Scene implements View {
         }
         case 'explode':
           bar.explodeFx = { x: bar.x(e.pos), r: e.radius * this.bar.w, until: now + 260 };
-          fx.shake(J.shakeMaxPx, J.shakeMs * 1.5);
+          this.app.audio.explode();
+          fx.impact(fx.weight('bomb'));
           fx.floatNum(GAME_W / 2, 44, 'BOOM!', 0xff8a3a, 2);
           break;
         case 'finisher':

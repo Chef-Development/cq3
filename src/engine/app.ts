@@ -43,6 +43,7 @@ export class App {
     readonly settings: Settings,
   ) {
     this.run = new Run(tuning, settings, (Date.now() & 0xffffff) | 1);
+    this.audio.tuning = tuning; // live: the impact sliders apply to the next sound
     this.layout = computeLayout();
     this.applyAudioSettings();
   }
@@ -195,29 +196,17 @@ export class App {
   private sounds(events: CombatEvent[]): void {
     const a = this.audio;
     for (const e of events) {
+      // Impacts (hits, blocks, bombs, the finisher's blows, kills, taking a hit) play from the scene, the moment
+      // the blow lands on screen, together with their hit-stop and shake.
       switch (e.type) {
-        case 'hit':
-          a.hit(e.combo, e.crit);
-          if (e.perfect) a.perfect();
-          break;
-        case 'block':
-          a.block(e.cracked);
-          if (e.perfect) a.perfect();
-          break;
         case 'miss':
           a.miss();
-          break;
-        case 'heroHurt':
-          if (e.source !== 'miss') a.hurt();
           break;
         case 'finisher':
           a.finisherStart(e.stacks);
           break;
         case 'windup':
           a.windup();
-          break;
-        case 'explode':
-          a.explode();
           break;
         case 'meterFull':
           a.stackUp(e.stacks);

@@ -43,9 +43,15 @@ test('loads, starts a fight, taps, no console errors', async ({ page }) => {
   expect(state.tick).toBeGreaterThan(60);
   expect(state.tap).not.toBeNull();
 
-  // Tuning panel opens and closes without errors.
+  // Tuning panel opens; every Sound lab button plays without errors; it closes again.
   await page.click('#btn-gear');
   await expect(page.locator('#debug')).toBeVisible();
+  const lab = page.locator('details', { has: page.locator('summary', { hasText: 'Sound lab' }) });
+  const buttons = lab.locator('.dbg-grid button');
+  expect(await buttons.count()).toBeGreaterThan(25);
+  for (let i = 0; i < (await buttons.count()); i++) await buttons.nth(i).click();
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => (window as unknown as { __cq3: { app: { audio: { ctx: { state: string } | null } } } }).__cq3.app.audio.ctx?.state)).toBe('running');
   await page.click('#btn-gear');
   await expect(page.locator('#debug')).toBeHidden();
 

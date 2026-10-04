@@ -1,6 +1,7 @@
 // Juice: particles, floating text, rings, sparks, starbursts, slashes, pixel debris, and the camera
 // (shake, kick, hit-stop freeze, screen flash). Everything is fire-and-forget; the scene draws it each frame.
 import Phaser from 'phaser';
+import { impactFeel, impactWeight, type ImpactFeel, type ImpactTier } from '../../core/impact';
 import type { FightScene } from '../scene';
 import { FONT, FONT_BOLD, fontText, textWidth } from '../font';
 import { GAME_W } from '../layout';
@@ -31,6 +32,9 @@ export class Effects {
   private kickUntil = 0;
   screenFlashUntil = 0;
   screenFlashColor = WHITE;
+  /** Full-scene white impact frames on heavy hits: shown until this time (and for at least one frame). */
+  impactFlashUntil = 0;
+  impactFlashPending = false;
 
   constructor(private readonly s: FightScene) {}
 
@@ -76,6 +80,33 @@ export class Effects {
   screenFlash(color: number, now: number, ms: number): void {
     this.screenFlashColor = color;
     this.screenFlashUntil = now + ms;
+  }
+
+  /** Weight of an impact tier (finisher: grows with stacks). */
+  weight(tier: ImpactTier, stacks = 1): number {
+    return impactWeight(this.s.app.tuning, tier, stacks);
+  }
+
+  /** How an impact of weight w looks (no side effects). */
+  feel(w: number): ImpactFeel {
+    return impactFeel(this.s.app.tuning, w);
+  }
+
+  /**
+   * An impact of weight w lands: hit-stop, shake, white impact frames and a music dip, all scaled by the weight.
+   * Returns the feel so the caller can knock back and flash whatever was hit to match.
+   */
+  impact(w: number): ImpactFeel {
+    const f = this.feel(w);
+    this.freeze(f.hitStopMs);
+    this.shake(f.shakePx, f.shakeMs);
+    if (f.frames > 0) {
+      // 1 or 2 frames at 60 fps (the frame it lands on counts): time-based, so 120 Hz screens show the same length
+      this.impactFlashUntil = Math.max(this.impactFlashUntil, performance.now() + ((f.frames - 0.5) * 1000) / 60);
+      this.impactFlashPending = true;
+    }
+    if (f.duck > 0) this.s.app.audio.duckMusic(f.duck, f.duckMs);
+    return f;
   }
 
   /** Shake and kick move the whole world container. */
