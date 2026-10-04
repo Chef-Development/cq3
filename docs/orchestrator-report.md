@@ -6,7 +6,8 @@
 - **Phone tuning:** the task said "make the tuning from the phone the defaults", but no JSON was pasted (the
   placeholder was still there). The defaults are the bot-balanced numbers below. Paste the JSON from "Copy tuning
   as JSON" and it can be applied in minutes.
-- **Tests:** 185 Vitest unit tests (`npm test`, in CI), 3 Playwright smoke tests, 6 pixel-exact screenshot tests.
+- **Tests:** 188 Vitest unit tests (`npm test`, in CI), 3 Playwright smoke tests (intro, map, fight, every enemy's
+  specials in the real game, reload), 5 pixel-exact screenshot tests.
 
 ## What M3a adds
 
@@ -66,7 +67,15 @@
    - a map theme; a distinct telegraph sound for every special (16); sounds for the stomp, freeze, guard counter,
      shell breaks, spores, split, summons, map, shop, rest, events, dialogue and a victory fanfare. They are all
      in the Sound lab, and the audio tests check their levels.
-7. **Debug panel**: "Jump to" any act's map, or straight into a fight with any enemy, carrying a typical hero for
+7. **Kingdom world map** (from the playtester's screenshot of the reference's main map; our own version): a painted
+   island kingdom between runs. Greenmarch is playable; four other regions (the Frostpeaks, Ashfell, Duskmire and
+   Noonspire) sit behind padlocks, and tapping one rattles its padlock. The Great Pendulum's clock tower stands in
+   the capital. A flag is planted on Greenmarch for each act cleared, and a "Weights home: x/12" counter tracks
+   the pendulum weights recovered. This progress is kept across runs (`core/progress.ts`).
+   - Flow: New run → world map → Greenmarch → intro → Act 1. After the victory you return to the map.
+   - The reference's kingdom level, currencies, timed rewards and upgrade/chest/loadout/shop buttons stay in
+     docs/backlog.md (gear, camp and gacha come later).
+8. **Debug panel**: "Jump to" any act's map, or straight into a fight with any enemy, carrying a typical hero for
    that act. The Sound lab plays all three themes.
 
 ## Balance (1,000 whole runs per accuracy, random node choices; full report in docs/balance.md)
@@ -96,7 +105,8 @@
   sliders.
 - The Hedge Knight's guard (yellows countered): fair, or too punishing?
 - The Stomp's 0.5 s cursor freeze: does it feel like a mechanic or a lag spike?
-- The map on the phone: node icons and tap targets at 8x; and the pace of fight, map, fight.
+- The act map and the world map on the phone: node icons, labels and tap targets at 8x; and the pace of fight,
+  map, fight.
 - Story text size (the small font) and the typing speed.
 - The new sounds and the map theme on the phone speaker.
 

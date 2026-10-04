@@ -12,6 +12,7 @@ interface Cq3Window {
       begin(): void;
       barTap(ts: number): void;
       storySkip(): void;
+      newRun(): void;
       run: { newRun(): void; skipScenes(): void; chooseNode(id: number): boolean; choices(): number[]; enterAct(i: number): void; coins: number };
     };
   };
@@ -70,6 +71,14 @@ test('title screen', async ({ page }) => {
   await boot(page);
   await frames(page, 30);
   await expect(page).toHaveScreenshot('title.png', shot);
+});
+
+test('kingdom world map', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.newRun());
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('world.png', shot);
 });
 
 test('story scene and map', async ({ page }) => {

@@ -16,15 +16,15 @@ export interface Backdrop {
   torches: Array<{ x: number; y: number }>; // flame base, game px
 }
 
-// ------------------------------------------------------------------ colour + noise toolkit
+// ------------------------------------------------------------------ colour + noise toolkit (also used by art-world.ts)
 
-type Col = number; // 0xRRGGBB
-type Ramp = Col[]; // dark -> light
+export type Col = number; // 0xRRGGBB
+export type Ramp = Col[]; // dark -> light
 
-const col = (s: string): Col => parseInt(s.slice(1), 16);
-const ramp = (...s: string[]): Ramp => s.map(col);
+export const col = (s: string): Col => parseInt(s.slice(1), 16);
+export const ramp = (...s: string[]): Ramp => s.map(col);
 
-function mix(a: Col, b: Col, t: number): Col {
+export function mix(a: Col, b: Col, t: number): Col {
   const ar = a >> 16;
   const ag = (a >> 8) & 255;
   const ab = a & 255;
@@ -36,14 +36,14 @@ function mix(a: Col, b: Col, t: number): Col {
 }
 
 /** Additive light (torch glow): a + l * k per channel. */
-function lighten(a: Col, l: Col, k: number): Col {
+export function lighten(a: Col, l: Col, k: number): Col {
   const r = Math.min(255, (a >> 16) + Math.round((l >> 16) * k));
   const g = Math.min(255, ((a >> 8) & 255) + Math.round(((l >> 8) & 255) * k));
   const b = Math.min(255, (a & 255) + Math.round((l & 255) * k));
   return (r << 16) | (g << 8) | b;
 }
 
-const haze = (r: Ramp, to: Col, t: number): Ramp => r.map((c) => mix(c, to, t));
+export const haze = (r: Ramp, to: Col, t: number): Ramp => r.map((c) => mix(c, to, t));
 
 const BAYER = [
   [0, 8, 2, 10],
@@ -51,11 +51,11 @@ const BAYER = [
   [3, 11, 1, 9],
   [15, 7, 13, 5],
 ];
-const bay = (x: number, y: number) => (BAYER[y & 3][x & 3] + 0.5) / 16;
-const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+export const bay = (x: number, y: number) => (BAYER[y & 3][x & 3] + 0.5) / 16;
+export const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 /** t (0..1) quantised to `steps` levels; `band` > 0 dithers that fraction of each step boundary. */
-function level(t: number, steps: number, x: number, y: number, band: number): number {
+export function level(t: number, steps: number, x: number, y: number, band: number): number {
   const f = clamp01(t) * steps;
   const i = Math.min(steps - 1, Math.floor(f));
   const fr = f - i;
@@ -64,15 +64,15 @@ function level(t: number, steps: number, x: number, y: number, band: number): nu
 }
 
 /** Value v (0..1) on a ramp, hard-edged or with a dithered band at each step. */
-const pick = (r: Ramp, v: number, x: number, y: number, band = 0): Col => r[level(v, r.length - 1, x, y, band)];
+export const pick = (r: Ramp, v: number, x: number, y: number, band = 0): Col => r[level(v, r.length - 1, x, y, band)];
 
 /** Dithered step toward `to` (mist, halos). */
-const fade = (c: Col, to: Col, t: number, x: number, y: number, steps = 3, band = 0.6): Col => {
+export const fade = (c: Col, to: Col, t: number, x: number, y: number, steps = 3, band = 0.6): Col => {
   const q = level(t, steps, x, y, band) / steps;
   return q > 0 ? mix(c, to, q) : c;
 };
 
-function hash(x: number, y: number, s: number): number {
+export function hash(x: number, y: number, s: number): number {
   let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ Math.imul(s | 0, 1442695041);
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   h ^= h >>> 16;
@@ -80,7 +80,7 @@ function hash(x: number, y: number, s: number): number {
 }
 
 /** Smooth value noise, 0..1. */
-function noise(x: number, y: number, s: number): number {
+export function noise(x: number, y: number, s: number): number {
   const xi = Math.floor(x);
   const yi = Math.floor(y);
   let fx = x - xi;
@@ -93,15 +93,15 @@ function noise(x: number, y: number, s: number): number {
   const d = hash(xi + 1, yi + 1, s);
   return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
 }
-const fbm = (x: number, y: number, s: number) => noise(x, y, s) * 0.6 + noise(x * 2.1, y * 2.1, s + 7) * 0.28 + noise(x * 4.3, y * 4.3, s + 13) * 0.12;
+export const fbm = (x: number, y: number, s: number) => noise(x, y, s) * 0.6 + noise(x * 2.1, y * 2.1, s + 7) * 0.28 + noise(x * 4.3, y * 4.3, s + 13) * 0.12;
 
-function rng(seed: number): () => number {
+export function rng(seed: number): () => number {
   let s = seed;
   return () => (s = (s * 16807) % 2147483647) / 2147483647;
 }
 
 /** RGB pixel buffer; -1 = transparent. */
-class Pix {
+export class Pix {
   readonly buf: Int32Array;
   constructor(
     readonly w: number,
@@ -143,14 +143,14 @@ class Pix {
 
 // ------------------------------------------------------------------ shape painters
 
-interface Blob {
+export interface Blob {
   x: number;
   y: number;
   rx: number;
   ry: number;
 }
 
-interface Mass {
+export interface Mass {
   ramp: Ramp; // dark -> light
   seed: number;
   bump?: number; // scallop depth of each clump's rim
@@ -172,7 +172,7 @@ const LIGHT = (() => {
   return v.map((c) => c / n);
 })();
 
-function lambert(nx: number, ny: number): number {
+export function lambert(nx: number, ny: number): number {
   const r2 = nx * nx + ny * ny;
   const s = r2 > 1 ? 1 / Math.sqrt(r2) : 1;
   const nz = Math.sqrt(Math.max(0, 1 - r2));
@@ -184,7 +184,7 @@ function lambert(nx: number, ny: number): number {
  * below and cast a curved shadow on them, which gives the scalloped look; each clump is lit like a small
  * sphere from the top left and its rim is scalloped into leaf bumps.
  */
-function mass(p: Pix, blobs: Blob[], o: Mass): void {
+export function mass(p: Pix, blobs: Blob[], o: Mass): void {
   if (!blobs.length) return;
   const order = blobs.slice().sort((a, b) => (o.frontLow ? a.y - b.y : b.y - a.y));
   const bump = o.bump ?? 0.16;
@@ -245,7 +245,7 @@ function mass(p: Pix, blobs: Blob[], o: Mass): void {
 }
 
 /** Clumps filling an elliptical crown, on a jittered grid so the rim is evenly scalloped. */
-function crown(rnd: () => number, cx: number, cy: number, rx: number, ry: number, size: number): Blob[] {
+export function crown(rnd: () => number, cx: number, cy: number, rx: number, ry: number, size: number): Blob[] {
   const out: Blob[] = [];
   const step = size * 1.05;
   for (let y = -ry + size * 0.7; y <= ry - size * 0.5; y += step * 0.85)
@@ -261,12 +261,12 @@ function crown(rnd: () => number, cx: number, cy: number, rx: number, ry: number
 }
 
 /** Leafy crown lit as one volume (clump light blended with the whole crown's). */
-function tree(p: Pix, rnd: () => number, cx: number, cy: number, rx: number, ry: number, size: number, o: Mass): void {
+export function tree(p: Pix, rnd: () => number, cx: number, cy: number, rx: number, ry: number, size: number, o: Mass): void {
   mass(p, crown(rnd, cx, cy, rx, ry, size), { form: { x: cx - rx * 0.1, y: cy, rx: rx * 1.1, ry: ry * 1.1 }, ...o });
 }
 
 /** Conifer: tiers of drooping, scalloped boughs, wider toward the base. */
-function conifer(p: Pix, rnd: () => number, cx: number, base: number, hgt: number, wid: number, o: Mass): void {
+export function conifer(p: Pix, rnd: () => number, cx: number, base: number, hgt: number, wid: number, o: Mass): void {
   const out: Blob[] = [];
   const tiers = Math.max(3, Math.round(hgt / 3.4));
   for (let t = 0; t < tiers; t++) {
@@ -329,7 +329,7 @@ function root(p: Pix, x: number, y: number, dir: number, len: number, r: Ramp, o
 }
 
 /** Mountain massif: peak (x, y), slopes in px down per px across; lit face left of a wobbly ridge. */
-function massif(p: Pix, mx: number, my: number, sl: number, sr: number, base: number, r: Ramp, seed: number, snow?: Ramp): void {
+export function massif(p: Pix, mx: number, my: number, sl: number, sr: number, base: number, r: Ramp, seed: number, snow?: Ramp): void {
   const xa = Math.floor(mx - (base - my) / sl);
   const xb = Math.ceil(mx + (base - my) / sr);
   for (let x = Math.max(0, xa); x <= Math.min(p.w - 1, xb); x++) {
@@ -349,7 +349,7 @@ function massif(p: Pix, mx: number, my: number, sl: number, sr: number, base: nu
 }
 
 /** Grass tuft: 3-5 blades fanning out, lit blades on the left. */
-function tuft(p: Pix, x: number, y: number, hgt: number, r: Ramp, seed: number): void {
+export function tuft(p: Pix, x: number, y: number, hgt: number, r: Ramp, seed: number): void {
   const n = 3 + Math.floor(hash(x, y, seed) * 3);
   for (let i = 0; i < n; i++) {
     const off = i - (n - 1) / 2;
@@ -363,7 +363,7 @@ function tuft(p: Pix, x: number, y: number, hgt: number, r: Ramp, seed: number):
 }
 
 /** Small stone: lit top-left, contact shadow under it. */
-function pebble(p: Pix, x: number, y: number, rw: number, rh: number, r: Ramp, shadow: Col): void {
+export function pebble(p: Pix, x: number, y: number, rw: number, rh: number, r: Ramp, shadow: Col): void {
   for (let yy = -rh; yy <= rh; yy++)
     for (let xx = -rw; xx <= rw; xx++) {
       if ((xx * xx) / (rw * rw + 0.4) + (yy * yy) / (rh * rh + 0.4) > 1) continue;
@@ -374,7 +374,7 @@ function pebble(p: Pix, x: number, y: number, rw: number, rh: number, r: Ramp, s
 }
 
 /** Boulder: a lumpy dome standing on `base`, lit from the top left, with a moss cap and contact shadow. */
-function rock(p: Pix, cx: number, base: number, rx: number, ry: number, r: Ramp, moss: Ramp, shadow: Col, seed: number): void {
+export function rock(p: Pix, cx: number, base: number, rx: number, ry: number, r: Ramp, moss: Ramp, shadow: Col, seed: number): void {
   const topAt = (x: number) => {
     const dx = (x + 0.5 - cx) / rx;
     return Math.abs(dx) >= 1 ? Infinity : base - ry * Math.sqrt(1 - dx * dx) * (0.85 + noise(x * 0.5, 1, seed) * 0.3);
@@ -413,7 +413,7 @@ function shafts(p: Pix, list: Array<[number, number, number]>, slope: number, y0
 }
 
 /** Warm torch light pooled around a point (static part; the scene adds a flickering glow on top). */
-function torchLight(p: Pix, cx: number, cy: number, rx: number, ry: number, warm: Col, k: number): void {
+export function torchLight(p: Pix, cx: number, cy: number, rx: number, ry: number, warm: Col, k: number): void {
   for (let y = Math.floor(cy - ry); y <= cy + ry; y++)
     for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
       const d = Math.hypot((x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry);
