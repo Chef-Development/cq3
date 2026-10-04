@@ -478,6 +478,70 @@ export class Synth {
     this.bell(2093, T + 0.04, 0.07, 0.6);
   }
 
+  /** Finisher wind-up: a rising whoosh that gets longer and brighter with more stacks. */
+  finisherStart(stacks: number): void {
+    if (!this.ready) return;
+    const t = this.ctx!.currentTime;
+    const n = Math.max(1, Math.min(5, stacks));
+    const d = 0.18 + 0.05 * n;
+    this.noise({ at: t, dur: d + 0.02, attack: d * 0.9, gain: 0.45, filter: 'bandpass', f: 260, f1: 4000 + 800 * n, sweep: d, q: 2.2 });
+    this.tone({ type: 'sawtooth', f: 110, f1: 660 + 110 * n, glide: d, at: t, attack: d * 0.8, dur: d + 0.02, gain: 0.06 });
+    for (let i = 0; i < n; i++) this.tone({ type: 'sine', f: hz(72 + 4 * i), at: t + i * 0.05, dur: 0.18, gain: 0.05, rev: 0.4 });
+  }
+
+  /** One strike of the finisher's flurry (i of n): a swish plus a hit that climbs in pitch. */
+  finisherStrike(i: number, n: number): void {
+    if (!this.ready) return;
+    const t = this.ctx!.currentTime;
+    const k = n > 1 ? i / (n - 1) : 0;
+    this.noise({ at: t, dur: 0.07, gain: 0.5, filter: 'bandpass', f: 5200, f1: 900, sweep: 0.06, q: 1.4 });
+    this.tone({ type: 'triangle', f: hz(67 + Math.round(k * 12)), at: t, delay: 0.004, dur: 0.1, gain: 0.16 });
+    this.tone({ type: 'sine', f: 240, f1: 60, glide: 0.06, at: t, dur: 0.1, gain: 0.4 });
+  }
+
+  /** The finisher's last blow: a boom and a major stab, bigger for more stacks. */
+  finisherBoom(stacks: number): void {
+    if (!this.ready) return;
+    const t = this.ctx!.currentTime;
+    const n = Math.max(1, Math.min(5, stacks));
+    const crunch = this.graph!.crunch;
+    this.tone({ type: 'sine', f: 160, f1: 28, glide: 0.5 + 0.08 * n, at: t, dur: 0.75 + 0.1 * n, gain: 0.95 });
+    this.noise({ at: t, dur: 0.5 + 0.08 * n, gain: 0.7, filter: 'lowpass', f: 4500, f1: 300, sweep: 0.4, out: crunch });
+    this.noise({ at: t, dur: 0.06, gain: 0.4, filter: 'highpass', f: 2500 });
+    this.noise({ at: t, dur: 0.9 + 0.15 * n, gain: 0.3, filter: 'lowpass', f: 900, f1: 120, rate: 0.5, rev: 0.4 });
+    // the chord climbs a step per stack
+    const root = 60 + [0, 2, 4, 7, 9][n - 1];
+    [0, 4, 7, 12].forEach((iv, i) =>
+      this.tone({ type: 'square', f: hz(root + 12 + iv), at: t, delay: 0.01, dur: 0.6 + 0.1 * n, hold: 0.05, gain: 0.05, rev: 0.5, detune: i % 2 ? 6 : -6 }),
+    );
+    this.tone({ type: 'triangle', f: hz(root), at: t, dur: 0.7, hold: 0.05, gain: 0.22, rev: 0.3 });
+    if (n >= 3) this.tone({ type: 'square', f: hz(root + 24), at: t, delay: 0.12, dur: 0.6, gain: 0.035, rev: 0.6 });
+    this.bell(hz(root + 36), t + 0.04, 0.07, 0.6);
+    if (n >= 2) this.bell(hz(root + 43), t + 0.12, 0.05, 0.6);
+  }
+
+  /** A finisher stack was banked: a rising arpeggio that starts higher for every stack. */
+  stackUp(stacks: number): void {
+    if (!this.ready) return;
+    const t = this.ctx!.currentTime;
+    const base = 72 + 2 * Math.min(6, stacks - 1);
+    [0, 4, 7, 12].forEach((iv, i) => {
+      const at = t + i * 0.045;
+      this.tone({ type: 'square', f: hz(base + iv), at, dur: 0.07, gain: 0.035 });
+      this.tone({ type: 'sine', f: hz(base + iv), at, dur: i === 3 ? 0.5 : 0.22, gain: 0.12, rev: 0.35 });
+    });
+    this.bell(hz(base + 24), t + 0.18, 0.05, 0.5);
+  }
+
+  /** Banked stacks were lost to a combo break: a glassy shatter falling in pitch. */
+  stackLost(stacks: number): void {
+    if (!this.ready) return;
+    const t = this.ctx!.currentTime;
+    this.noise({ at: t, dur: 0.25, gain: 0.35, filter: 'highpass', f: 3500, f1: 1500, sweep: 0.2 });
+    for (let i = 0; i < 3 + Math.min(3, stacks); i++) this.bell(hz(96 - i * 3 - Math.floor(Math.random() * 2)), t + i * 0.035, 0.05, 0.3);
+    this.tone({ type: 'triangle', f: hz(67), f1: hz(55), glide: 0.3, at: t + 0.05, dur: 0.35, gain: 0.12 });
+  }
+
   windup(): void {
     if (!this.ready) return;
     const t = this.ctx!.currentTime;

@@ -44,7 +44,21 @@ const DASH_MS = 70;
 const RETURN_MS = 190;
 const ENGAGE_MS = 750;
 const LEAP_MS = 260;
-const SUPER_MS = 760;
+/** Finisher show length grows with the number of stacks spent. */
+const superMsFor = (stacks: number) => 560 + 170 * Math.min(5, Math.max(1, stacks));
+/** Color per finisher stack: [fill, highlight, shade]. Stack 1 blue, 2 violet, 3 gold, 4 crimson, 5 white-hot. */
+const STACK_COL: ReadonlyArray<readonly [number, number, number]> = [
+  [0x2a8ae0, 0x7ad0ff, 0x1a5ab0],
+  [0x3aa0ff, 0xa8e4ff, 0x1a5ab0],
+  [0xa060ff, 0xe0c0ff, 0x5a2ab0],
+  [0xffb020, 0xfff0a0, 0xa86010],
+  [0xff4a6a, 0xffb0c0, 0xa01a3a],
+  [0xf6f2ff, 0xffffff, 0xb0a0e0],
+];
+const stackCol = (n: number) => STACK_COL[Math.max(0, Math.min(STACK_COL.length - 1, n))];
+const FINISHER_NAME = ['', 'Finisher!', 'Double Finisher!', 'Triple Finisher!', 'Quad Finisher!', 'MAX FINISHER!'];
+/** Slash color by combo tier: the longer the streak, the hotter the blade. */
+const comboSlashCol = (combo: number) => (combo >= 50 ? 0xff6ad8 : combo >= 25 ? 0xffd23a : combo >= 10 ? 0x5af0ff : 0x6ab4ff);
 const ENTER_MS = 900;
 const PIP_SWOOP_MS = 140;
 const PIP_BACK_MS = 280;
@@ -67,6 +81,10 @@ interface EnemyView {
   poseUntil: number;
   flashUntil: number;
   knockUntil: number;
+  kickAt: number; // anim time of the last hit (spring knockback + squash)
+  kickDist: number;
+  numAt: number; // anim time of the last damage number (for cascading)
+  numLevel: number;
   lunge: { t0: number; dist: number; ms: number } | null;
   dieAt: number;
   phase: number;
@@ -88,6 +106,7 @@ interface HeroAnim {
   hurtUntil: number;
   flashUntil: number;
   flashColor: number;
+  lungeAt: number; // anim time of the last slash (small forward lunge)
 }
 
 interface Floater {
@@ -101,6 +120,7 @@ interface Floater {
   life: number;
   scale: number;
   pop: boolean;
+  count?: { to: number; dur: number; at?: number }; // a number that counts up from 0
 }
 
 interface Particle {
@@ -187,6 +207,16 @@ export class FightScene extends Phaser.Scene implements View {
   private gShadow!: Phaser.GameObjects.Graphics;
   private gSuper!: Phaser.GameObjects.Graphics;
   private superAt = -1e9;
+  private superMs = superMsFor(1);
+  private superStacks = 1;
+  private superFinalAt = -1e9; // anim time of the finisher's last blow
+  private sparks: Array<{ x: number; y: number; at: number; size: number; color: number }> = [];
+  private ghosts: Phaser.GameObjects.Image[] = [];
+  private ghostTrail: Array<{ x: number; y: number; tex: string; flip: boolean; at: number }> = [];
+  private kickDx = 0;
+  private kickUntil = 0;
+  private stackPopAt = -1e9;
+  private stackLostAt = -1e9;
   private gFx!: Phaser.GameObjects.Graphics;
   private gPanel!: Phaser.GameObjects.Graphics;
   private gBar!: Phaser.GameObjects.Graphics;
@@ -282,6 +312,7 @@ export class FightScene extends Phaser.Scene implements View {
       hurtUntil: 0,
       flashUntil: 0,
       flashColor: WHITE,
+      lungeAt: -1e9,
     };
   }
 
@@ -353,6 +384,11 @@ export class FightScene extends Phaser.Scene implements View {
     this.pip = this.add.image(this.heroHome - 30, this.ground - 24, 'pip_idle0').setOrigin(0.5, 0.5);
     this.actors.add(this.pip);
     this.pipAnim = { state: 'idle', t0: 0, x: this.heroHome - 30, y: this.ground - 24, fromX: 0, fromY: 0, toX: 0, toY: 0 };
+    this.ghosts = [0, 1, 2].map(() => this.add.image(0, 0, 'hero_dash').setVisible(false).setTintMode(Phaser.TintModes.FILL));
+    this.actors.add(this.ghosts);
+    this.ghostTrail = [];
+    this.sparks = [];
+    this.superFinalAt = -1e9;
     this.hero = this.add.image(this.heroHome, this.ground, 'hero_idle0').setScale(SPRITE_SCALE);
     this.actors.add(this.hero);
     this.coinFlights = [];
@@ -449,17 +485,18 @@ export class FightScene extends Phaser.Scene implements View {
     if (next !== 'fight' && this.h.state !== 'idle') this.heroReturn();
   }
 
-  onEvents(events: CombatEvent[]): void {
+  onEvents(events: CombatEvent[]): number {
     const now = performance.now();
     const c = this.app.run.combat;
-    if (!c) return;
+    if (!c) return 0;
     const J = this.app.tuning.juice;
+    let hold = 0;
     for (const e of events) {
       switch (e.type) {
         case 'hit': {
           const x = this.barX(e.pos);
           const perfect = e.perfect;
-          this.judge(x, perfect ? 'Perfect!' : e.crit ? 'Crit!' : 'Hit', perfect ? 0xfff07a : e.crit ? 0xff9a3a : WHITE, perfect || e.crit);
+          if (perfect || e.crit) this.judge(x, perfect ? 'Perfect!' : 'Crit!', perfect ? 0xfff07a : 0xff9a3a, true);
           this.cursorPulse(perfect ? 0xfff07a : kindCol(e.kind)[1]);
           this.cursorHit(x, perfect ? 0x6aff5a : WHITE);
           if (perfect) this.sparkle(x, this.bar.y + this.bar.h / 2);
@@ -470,14 +507,21 @@ export class FightScene extends Phaser.Scene implements View {
         }
         case 'block': {
           const x = this.barX(e.pos);
-          if (e.perfect || e.cracked) this.judge(x, e.perfect ? 'Perfect!' : 'Crack', e.perfect ? 0xfff07a : 0x7ae0ff, e.perfect);
-          if (!e.cracked) this.addFloater(this.h.x + 8, this.ground - 50, 'Block!', WHITE, 2, true, 0, -16, 0, 620, true);
+          if (e.perfect) this.judge(x, 'Perfect!', 0xfff07a, true, e.cracked ? 6 : 0);
+          if (!e.cracked) this.replaceFloater('block', () => this.addFloater(this.h.x - 12, this.ground - 50, 'Block!', WHITE, 2, true, 0, -16, 0, 520, true));
           this.cursorPulse(0x7ae0ff);
           this.cursorHit(x, e.perfect ? 0x6aff5a : 0x7ae0ff);
           this.comboPopAt = now;
           this.milestone(e.combo);
           this.heroParry(e.ownerId, e.cracked);
-          if (e.cracked) this.burst(x, this.bar.y + this.bar.h / 2, 0xc8d0e0, 5, false);
+          if (e.cracked) {
+            // knocked back: a clang, sparks flying right, the bar jolts
+            this.burst(x, this.bar.y + this.bar.h / 2, 0xc8d0e0, 6, false);
+            this.chips(x + 6, this.bar.y + this.bar.h / 2, 4, [WHITE, 0xffe680, 0xc8d0e0], 10, 1);
+            this.sparks.push({ x, y: this.bar.y + this.bar.h / 2, at: this.anim, size: 9, color: 0x9ad8ff });
+            this.judge(x, 'Clang!', 0x9ad8ff, true, -6);
+            this.barShakeUntil = now + 90;
+          }
           break;
         }
         case 'trap':
@@ -520,8 +564,12 @@ export class FightScene extends Phaser.Scene implements View {
         case 'kill': {
           const id = e.enemyId;
           const coins = this.app.tuning.enemies[c.enemyById(id)?.key ?? '']?.coins ?? 0;
+          const isBoss = !!this.app.tuning.enemies[c.enemyById(id)?.key ?? '']?.boss;
           this.coinsPending += coins;
-          this.later(this.h.state === 'dash' ? DASH_MS : 0, () => {
+          // a finisher kill waits for the last blow; a normal kill for the hero's dash to land
+          const delay = Math.max(this.h.state === 'dash' ? DASH_MS : 0, this.superFinalAt > this.anim ? this.superFinalAt - this.anim + 20 : 0);
+          hold = Math.max(hold, delay * 1.3 + (isBoss ? 1300 : 900));
+          this.later(delay, () => {
             const v = this.enemies.get(id);
             if (!v) {
               this.coinsPending -= coins;
@@ -556,7 +604,8 @@ export class FightScene extends Phaser.Scene implements View {
           this.floatNum(GAME_W / 2, 44, 'BOOM!', 0xff8a3a, 2);
           break;
         case 'finisher':
-          this.heroFinisher(e.damage);
+          this.heroFinisher(e.damage, e.stacks);
+          hold = Math.max(hold, this.superMs);
           break;
         case 'pet':
           this.petAttack(e.enemyId, e.damage);
@@ -575,16 +624,33 @@ export class FightScene extends Phaser.Scene implements View {
         case 'comboBreak':
           this.comboBreakUntil = now + 420;
           this.lastMilestone = 0;
+          if (e.lostStacks > 0) {
+            // the banked stacks shatter out of the meter
+            this.stackLostAt = now;
+            const m = this.meter;
+            this.chips(m.x + m.w / 2, m.y + m.h / 2, m.w, [stackCol(e.lostStacks)[0], stackCol(e.lostStacks)[1], WHITE], 18, 0);
+            this.addFloater(m.x + m.w / 2, m.y - 10, `x${e.lostStacks} lost!`, 0xff5a5a, 1, true, 0, -20, 0, 800, false);
+          }
           break;
-        case 'meterFull':
-          this.judge(this.button.x + this.button.w / 2, 'Ready!', 0xffb03a, true, -2);
+        case 'meterFull': {
+          const [col] = stackCol(e.stacks);
+          this.stackPopAt = now;
+          const m = this.meter;
+          const bt = this.button;
+          this.addFloater(bt.x + bt.w / 2 - 6, this.splitY - 8, e.stacks >= this.app.tuning.meter.maxStacks ? `x${e.stacks} MAX!` : `x${e.stacks}!`, stackCol(e.stacks)[1], 2, true, 0, -22, 0, 750, false);
+          this.chips(m.x + m.w / 2, m.y, m.w * 0.8, [WHITE, stackCol(e.stacks)[1], col], 12, -1);
           break;
+        }
         case 'revive':
           this.screenFlash(0x9af0a0, now, 320);
           this.floatNum(this.heroHome + 10, this.ground - 50, 'Revived!', 0x9af0a0, 2);
           break;
+        case 'defeat':
+          hold = Math.max(hold, 900);
+          break;
       }
     }
+    return hold;
   }
 
   // ------------------------------------------------------------------ choreography
@@ -629,27 +695,48 @@ export class FightScene extends Phaser.Scene implements View {
         h.x = h.toX;
       }
       this.setHeroPose(slash, 110);
+      h.lungeAt = this.anim;
       this.enemyHurtFx(enemyId, damage, crit, perfect);
     });
   }
 
-  private enemyHurtFx(enemyId: number, damage: number, crit: boolean, perfect: boolean, finisher = false): void {
+  /** Camera kick: the world jolts by dx px and springs back. */
+  private kick(dx: number, ms: number): void {
+    this.kickDx = dx;
+    this.kickUntil = performance.now() + ms;
+  }
+
+  private enemyHurtFx(enemyId: number, damage: number, crit: boolean, perfect: boolean, finisher = false, scale = 0): void {
     const v = this.enemies.get(enemyId);
     if (!v) return;
     const J = this.app.tuning.juice;
+    const combo = this.app.run.combat?.combo ?? 0;
     const cy = v.y - v.img.displayHeight / 2;
-    v.flashUntil = this.anim + J.flashMs;
-    v.knockUntil = this.anim + (crit || finisher ? 140 : 90);
-    if (!v.dieAt) this.setEnemyPose(v, 'hurt', 140);
     const big = crit || finisher;
+    v.flashUntil = this.anim + J.flashMs;
+    v.knockUntil = this.anim + (big ? 140 : 90);
+    v.kickAt = this.anim;
+    v.kickDist = finisher ? 14 : crit ? 10 : 6;
+    if (!v.dieAt) this.setEnemyPose(v, 'hurt', 160);
     const col = finisher ? 0xff8a2a : crit ? 0xffb020 : perfect ? 0xfff07a : 0xffe040;
-    if (big) this.stars.push({ x: v.x, y: cy - 8, at: this.anim, r: finisher ? 30 : 22, color: finisher ? 0xffb03a : 0xfff07a });
-    this.floatNum(v.x + rand(-6, 6), v.y - v.img.displayHeight - 8, `${damage}`, col, big ? 2 : 1);
-    this.slashes.push({ x: v.x, y: cy, at: this.anim, big, dir: this.h.alt ? 1 : -1, color: crit ? 0xffd23a : 0x6ab4ff });
-    this.burst(v.x - 4, cy, WHITE, big ? 14 : 7, true, big ? 1.5 : 1, true);
-    if (big) this.ring(v.x, cy, 26, col, true);
-    this.shake(big ? J.shakeMaxPx : J.shakeMinPx, J.shakeMs * (big ? 1.4 : 0.7));
-    this.freeze(big ? 80 : 45);
+    // contact point: the enemy's front edge, at chest height
+    const hx = Math.round(v.x - v.img.displayWidth * 0.3);
+    if (big) this.stars.push({ x: v.x, y: cy - 8, at: this.anim, r: finisher ? 34 : 24, color: finisher ? 0xffb03a : 0xfff07a });
+    this.sparks.push({ x: hx, y: cy, at: this.anim, size: finisher ? 18 : crit ? 14 : 10, color: big ? 0xfff07a : 0xbfe8ff });
+    const numScale = scale || (finisher ? 3 : 2);
+    // quick successive numbers cascade upward and alternate sides instead of piling on each other
+    const recent = this.anim - v.numAt < 260;
+    v.numLevel = recent ? (v.numLevel + 1) % 3 : 0;
+    v.numAt = this.anim;
+    this.floatNum(v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2), v.y - v.img.displayHeight - 10 - v.numLevel * 11, `${damage}`, col, numScale);
+    const tier = combo >= 50 ? 3 : combo >= 25 ? 2 : combo >= 10 ? 1 : 0;
+    this.slashes.push({ x: v.x, y: cy, at: this.anim, big: big || tier >= 2, dir: this.h.alt ? 1 : -1, color: crit ? 0xffd23a : comboSlashCol(combo) });
+    this.burst(hx, cy, WHITE, (big ? 14 : 8) + tier * 2, true, big ? 1.6 : 1.1, true);
+    this.chips(hx, cy, 6, [WHITE, col, ENEMY_COL[v.sprite] ?? WHITE], big ? 10 : 5, 0);
+    if (big) this.ring(v.x, cy, 28, col, true);
+    this.kick(big ? 4 : 2, big ? 110 : 70);
+    if (big) this.shake(J.shakeMaxPx, J.shakeMs * 1.4);
+    this.freeze(big ? 90 : 50);
   }
 
   private heroParry(ownerId: number, cracked: boolean): void {
@@ -669,44 +756,74 @@ export class FightScene extends Phaser.Scene implements View {
     this.shake(this.app.tuning.juice.shakeMinPx, 60);
   }
 
-  private heroFinisher(damage: number): void {
-    const c = this.app.run.combat;
+  /**
+   * The finisher show, scaled by the stacks spent: the hero dashes in and whirls through the enemies with a
+   * flurry of strikes (more stacks = more strikes, a longer show and a hotter backdrop), then lands one huge
+   * blow whose number counts up. Kills and the HP bars wait for that last blow.
+   */
+  private heroFinisher(damage: number, stacks: number): void {
     const h = this.h;
     const J = this.app.tuning.juice;
-    const alive = c ? c.enemies.filter((e) => e.alive) : [];
-    const views = alive.map((e) => this.enemies.get(e.id)).filter((v): v is EnemyView => !!v);
+    const n = Math.max(1, Math.min(5, stacks));
+    const views = [...this.enemies.values()].filter((v) => !v.dieAt);
     const front = views.slice().sort((a, b) => a.homeX - b.homeX)[0];
+    this.superMs = superMsFor(n);
+    this.superStacks = n;
+    const ms = this.superMs;
     h.state = 'super';
     h.fromX = h.x;
     h.toX = front ? front.homeX - 8 : h.x + 80;
     h.t0 = this.anim;
-    h.lastAction = this.anim + SUPER_MS;
+    h.lastAction = this.anim + ms;
     this.superAt = this.anim;
-    this.floatNum(GAME_W / 2, 44, 'FINISHER!', 0xffb03a, 3);
-    // A whirlwind of hits, then the big number.
-    const hits: Array<[number, boolean]> = [
-      [0.36, false],
-      [0.48, false],
-      [0.62, true],
-    ];
-    for (const [k, last] of hits)
-      this.later(SUPER_MS * k, () => {
+    const finalK = 0.8;
+    this.superFinalAt = this.anim + ms * finalK;
+    const [col, hi] = stackCol(n);
+    this.addFloater(GAME_W / 2, 42, FINISHER_NAME[n] ?? 'Finisher!', n === 1 ? 0xffe680 : hi, n >= 2 ? 3 : 2, true, 0, -6, 0, ms * 0.95, true);
+    // the flurry: 1 + 2n quick strikes between 30% and 70% of the show
+    const strikes = 1 + 2 * n;
+    for (let s = 0; s < strikes; s++) {
+      const k = 0.3 + (0.4 * s) / Math.max(1, strikes - 1);
+      this.later(ms * k, () => {
         for (const v of views) {
-          const cy = v.y - v.img.displayHeight / 2;
-          if (last) this.enemyHurtFx(v.id, damage, false, false, true);
-          else {
-            v.flashUntil = this.anim + 50;
-            v.knockUntil = this.anim + 60;
-            this.burst(v.x, cy, WHITE, 8, true, 1.2, true);
-          }
-          this.slashes.push({ x: v.x, y: cy, at: this.anim, big: last, dir: last ? -1 : 1, color: 0x6ab4ff });
+          const cy = v.y - v.img.displayHeight / 2 + rand(-6, 4);
+          v.flashUntil = this.anim + 40;
+          v.kickAt = this.anim;
+          v.kickDist = 4;
+          this.slashes.push({ x: v.x + rand(-4, 4), y: cy, at: this.anim, big: s % 2 === 1, dir: s % 2 ? 1 : -1, color: s % 3 === 2 ? hi : col });
+          this.sparks.push({ x: v.x + rand(-8, 4), y: cy, at: this.anim, size: 8, color: hi });
+          this.burst(v.x, cy, WHITE, 5, true, 1.3, true);
         }
-        if (last) {
-          this.screenFlash(WHITE, performance.now(), 160);
-          this.shake(J.shakeMaxPx, J.shakeMs * 2);
-          this.freeze(110);
-        } else this.shake(J.shakeMinPx + 1, 80);
+        this.app.audio.finisherStrike(s, strikes);
+        this.kick(s % 2 ? 2 : -2, 60);
+        this.freeze(25);
       });
+    }
+    // the last blow
+    this.later(ms * finalK, () => {
+      for (const v of views) {
+        this.enemyHurtFx(v.id, damage, false, false, true, 3);
+        // the damage number (the floater enemyHurtFx just made) counts up over the enemy, hangs longer, rises slowly
+        const num = this.floaters[this.floaters.length - 1];
+        if (num && damage > 0) {
+          num.y = Math.max(34, v.y - v.img.displayHeight / 2 - 4);
+          num.count = { to: damage, dur: 260 + 50 * n };
+          num.life = 1300 + 100 * n;
+          num.vy = -28;
+          num.g = 20;
+          num.vx = 0;
+        }
+        const cy = v.y - v.img.displayHeight / 2;
+        for (let r = 0; r < n; r++) this.later(r * 70, () => this.ring(v.x, cy, 30 + r * 14, r % 2 ? hi : col, true));
+        this.stars.push({ x: v.x, y: cy - 6, at: this.anim, r: 30 + n * 6, color: col });
+        this.burst(v.x, cy, col, 16 + n * 8, true, 1.6 + n * 0.15);
+      }
+      this.app.audio.finisherBoom(n);
+      this.screenFlash(n >= 3 ? 0xfff0c0 : WHITE, performance.now(), 160 + 40 * n);
+      this.shake(J.shakeMaxPx + n, J.shakeMs * (1.6 + 0.4 * n));
+      this.kick(6, 160);
+      this.freeze(110 + 30 * n);
+    });
   }
 
   private dropCoins(x: number, y: number, total: number): void {
@@ -842,7 +959,7 @@ export class FightScene extends Phaser.Scene implements View {
     for (const [n, label] of marks)
       if (combo >= n && this.lastMilestone < n) {
         this.lastMilestone = n;
-        this.floatNum(GAME_W / 2, 30, `${n} Combo - ${label}`, 0xffd23a, 1);
+        this.addFloater(GAME_W / 2 + 10, 36, `${n} Combo - ${label}`, 0xffd23a, 1, true, 0, -14, 0, 900, true);
         this.app.audio.ready2();
       }
   }
@@ -878,7 +995,7 @@ export class FightScene extends Phaser.Scene implements View {
     for (let i = 0; i < n; i++) {
       const vx = dir === 1 ? rand(40, 140) : rand(-90, 90);
       const vy = dir === -1 ? rand(-190, -80) : rand(-150, 10);
-      this.particles.push({ x: x + rand(-spread / 2, spread / 2), y: y + rand(-2, 2), vx, vy, g: 520, born: now, life: rand(260, 460), color: colors[i % colors.length], size: i % 3 === 0 ? 2 : 1, world: false, streak: false, shape: 'shard' });
+      this.particles.push({ x: x + rand(-spread / 2, spread / 2), y: y + rand(-2, 2), vx, vy, g: 520, born: now, life: rand(220, 380), color: colors[i % colors.length], size: i % 4 === 0 ? 2 : 1, world: false, streak: false, shape: 'shard' });
     }
   }
 
@@ -915,16 +1032,33 @@ export class FightScene extends Phaser.Scene implements View {
     this.rings.push({ x, y, at: performance.now(), r, color, world });
   }
 
+  /** A judgment word over the bar. Only one at a time: a new one replaces the last. */
   private judge(x: number, text: string, color: number, pop: boolean, dy = 0): void {
     const w = textWidth(text, 1, true);
     x = Math.max(w / 2 + 2, Math.min(GAME_W - w / 2 - 2, x));
-    this.addFloater(x, this.bar.y - 10 + dy, text, color, 1, false, 0, pop ? -40 : -26, pop ? 60 : 0, 520, false);
+    this.replaceFloater('judge', () => this.addFloater(x, this.bar.y - 10 + dy, text, color, 1, false, 0, pop ? -40 : -26, pop ? 60 : 0, 520, false));
+  }
+
+  private singles: Record<string, Floater | undefined> = {};
+
+  /** Spawn a floater that replaces the previous one with the same key (if it's still alive). */
+  private replaceFloater(key: string, make: () => void): void {
+    const prev = this.singles[key];
+    if (prev) {
+      const i = this.floaters.indexOf(prev);
+      if (i >= 0) {
+        this.killFloater(prev);
+        this.floaters.splice(i, 1);
+      }
+    }
+    make();
+    this.singles[key] = this.floaters[this.floaters.length - 1];
   }
 
   private floatNum(x: number, y: number, text: string, color: number, scale: number): void {
     const w = textWidth(text, scale, true);
     x = Math.max(w / 2 + 2, Math.min(GAME_W - w / 2 - 2, x));
-    this.addFloater(x, y, text, color, scale, true, rand(-14, 14), -70, 160, 760, true);
+    this.addFloater(x, y, text, color, scale, true, rand(-6, 6), -60, 140, 760, true);
   }
 
   private addFloater(x: number, y: number, text: string, color: number, scale: number, pop: boolean, vx: number, vy: number, g: number, life: number, world: boolean): void {
@@ -993,6 +1127,8 @@ export class FightScene extends Phaser.Scene implements View {
       for (const v of this.enemies.values()) v.img.destroy();
       this.enemies.clear();
       this.h = this.freshHero();
+      this.superFinalAt = -1e9;
+      this.superAt = -1e9;
       this.blockSeen.clear();
       this.applyTheme();
       const run = this.app.run;
@@ -1019,6 +1155,10 @@ export class FightScene extends Phaser.Scene implements View {
         poseUntil: 0,
         flashUntil: 0,
         knockUntil: 0,
+        kickAt: -1e9,
+        kickDist: 0,
+        numAt: -1e9,
+        numLevel: 0,
         lunge: null,
         dieAt: 0,
         phase: Math.random() * 1000,
@@ -1068,7 +1208,7 @@ export class FightScene extends Phaser.Scene implements View {
       yOff = -Math.sin(k * Math.PI) * 24;
       if (k >= 1) h.state = 'engaged';
     } else if (h.state === 'super') {
-      const k = clamp01((a - h.t0) / SUPER_MS);
+      const k = clamp01((a - h.t0) / this.superMs);
       if (k < 0.3) h.x = h.fromX + (h.toX - h.fromX) * ease(k / 0.3);
       else if (k < 0.75) h.x = h.toX + Math.sin(a / 25) * 3;
       else h.x = h.toX + (this.heroHome - h.toX) * ease((k - 0.75) / 0.25);
@@ -1098,12 +1238,29 @@ export class FightScene extends Phaser.Scene implements View {
     else pose = Math.floor(a / 420) % 2 ? 'idle1' : 'idle0';
     const knock = a < h.hurtUntil ? -4 : 0;
     h.y = yOff;
-    const spinning = h.state === 'super' && a - h.t0 > SUPER_MS * 0.06 && a - h.t0 < SUPER_MS * 0.94;
+    const spinning = h.state === 'super' && a - h.t0 > this.superMs * 0.06 && a - h.t0 < this.superMs * 0.94;
     this.hero.setVisible(!spinning);
     this.hero.setTexture(`hero_${pose}`);
     this.hero.setFlipX(flip);
     this.hero.setOrigin((flip ? HERO_W - HERO_FEET_X : HERO_FEET_X) / HERO_W, 1);
-    this.hero.setPosition(Math.round(h.x + knock), Math.round(this.ground + yOff));
+    // a small forward lunge on every slash
+    const lk = (a - h.lungeAt) / 90;
+    const lunge = lk >= 0 && lk < 1 ? Math.round(4 * Math.sin(lk * Math.PI)) : 0;
+    this.hero.setPosition(Math.round(h.x + knock + lunge), Math.round(this.ground + yOff));
+    // afterimages while dashing, returning or leaping
+    const moving = (h.state === 'dash' || h.state === 'return' || h.state === 'leap' || (h.state === 'super' && !spinning)) && this.hero.visible;
+    const last = this.ghostTrail[this.ghostTrail.length - 1];
+    if (moving && (!last || a - last.at > 22)) {
+      this.ghostTrail.push({ x: this.hero.x, y: this.hero.y, tex: `hero_${pose}`, flip, at: a });
+      if (this.ghostTrail.length > 3) this.ghostTrail.shift();
+    }
+    this.ghosts.forEach((gh, i) => {
+      const tr = this.ghostTrail[this.ghostTrail.length - 1 - i];
+      const age = tr ? a - tr.at : 1e9;
+      if (!tr || age > 140) return void gh.setVisible(false);
+      gh.setTexture(tr.tex).setFlipX(tr.flip).setOrigin(this.hero.originX, 1).setPosition(tr.x, tr.y);
+      gh.setTint(i === 0 ? 0xbfe8ff : 0x6ab4ff).setAlpha((0.5 - i * 0.14) * (1 - age / 140)).setVisible(true);
+    });
     if (a < h.flashUntil) this.hero.setTint(h.flashColor).setTintMode(Phaser.TintModes.FILL);
     else this.hero.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
   }
@@ -1115,10 +1272,11 @@ export class FightScene extends Phaser.Scene implements View {
     const sh = this.gShadow;
     g.clear();
     sh.clear();
+    const kx = now < this.kickUntil ? Math.round(this.kickDx * Math.sin(((this.kickUntil - now) / 110) * Math.PI * 0.5)) : 0;
     if (now < this.shakeUntil) {
       const m = Math.round(this.shakeMag);
-      this.world.setPosition(Math.round(rand(-m, m)), Math.round(rand(-m, m)));
-    } else this.world.setPosition(0, 0);
+      this.world.setPosition(Math.round(rand(-m, m)) + kx, Math.round(rand(-m, m)));
+    } else this.world.setPosition(kx, 0);
     const drift = (now * 0.004) % GAME_W;
     this.clouds[0].setX(Math.round(-drift));
     this.clouds[1].setX(Math.round(GAME_W - drift));
@@ -1169,7 +1327,9 @@ export class FightScene extends Phaser.Scene implements View {
           if (k >= 1) v.lunge = null;
           else x -= v.lunge.dist * (k < 0.3 ? ease(k / 0.3) : 1 - ease((k - 0.3) / 0.7));
         }
-        if (a < v.knockUntil) x += 4;
+        // spring knockback: pushed away from the hero, overshoots back, settles
+        const kk = (a - v.kickAt) / 260;
+        if (kk >= 0 && kk < 1) x += Math.round(v.kickDist * Math.exp(-4.5 * kk) * Math.cos(kk * Math.PI * 2.2));
         v.x = x;
         const flash = a < v.flashUntil;
         let pose = a < v.poseUntil ? v.pose : Math.floor((a + v.phase) / 380) % 2 ? 'idle1' : 'idle0';
@@ -1181,9 +1341,12 @@ export class FightScene extends Phaser.Scene implements View {
           if (k >= 1) v.img.setVisible(false);
           continue;
         }
-        v.img.setTexture(`${v.sprite}_${pose}`).setPosition(Math.round(x), v.y - walkBob).setScale(SPRITE_SCALE).setAlpha(1);
+        // squash on impact: wide and short for a few frames, then a little stretch back
+        const sq = (a - v.kickAt) / 150;
+        const amt = sq >= 0 && sq < 1 ? Math.sin(sq * Math.PI) * (sq < 0.5 ? 0.16 : -0.06) * (v.kickDist / 8) : 0;
+        v.img.setTexture(`${v.sprite}_${pose}`).setPosition(Math.round(x), v.y - walkBob).setScale(SPRITE_SCALE * (1 + amt), SPRITE_SCALE * (1 - amt)).setAlpha(1);
         shadow(x, v.img.displayWidth * 0.8, 0.3);
-        v.hpShown += (e.hp - v.hpShown) * 0.25;
+        if (a >= this.superFinalAt) v.hpShown += (e.hp - v.hpShown) * 0.25;
         if (c.enemies.length > 1) {
           const bw = Math.max(26, Math.round(v.img.displayWidth * 0.7));
           const bx = Math.round(v.homeX - bw / 2);
@@ -1272,7 +1435,43 @@ export class FightScene extends Phaser.Scene implements View {
       g.fillPoints(star(r * 0.45), true);
     }
     this.drawRings(g, now, true);
+    this.drawSparks(g);
     this.drawParticles(g, now, true);
+  }
+
+  /** Impact sparks: a big 4-point star at the contact point that flips between + and x for a few frames. */
+  private drawSparks(g: Phaser.GameObjects.Graphics): void {
+    for (let i = this.sparks.length - 1; i >= 0; i--) {
+      const sp = this.sparks[i];
+      const k = (this.anim - sp.at) / 130;
+      if (k >= 1) {
+        this.sparks.splice(i, 1);
+        continue;
+      }
+      if (k < 0) continue;
+      const r = Math.max(2, Math.round(sp.size * (k < 0.3 ? 0.6 + k * 1.4 : 1 - (k - 0.3) * 1.2)));
+      const diag = Math.floor(k * 6) % 2 === 1;
+      const x = Math.round(sp.x);
+      const y = Math.round(sp.y);
+      const arm = (len: number, w: number, col: number) => {
+        g.fillStyle(col, 1);
+        for (let d = -len; d <= len; d++) {
+          const t = Math.max(1, Math.round(w * (1 - Math.abs(d) / (len + 1))));
+          if (diag) {
+            g.fillRect(x + d - Math.floor(t / 2), y + d - Math.floor(t / 2), t, t);
+            g.fillRect(x + d - Math.floor(t / 2), y - d - Math.floor(t / 2), t, t);
+          } else {
+            g.fillRect(x + d, y - Math.floor(t / 2), 1, t);
+            g.fillRect(x - Math.floor(t / 2), y + d, t, 1);
+          }
+        }
+      };
+      arm(r + 1, 5, INK);
+      arm(r, 3, sp.color);
+      arm(Math.max(1, r - 2), 1, WHITE);
+      g.fillStyle(WHITE, 1);
+      g.fillRect(x - 1, y - 1, 3, 3);
+    }
   }
 
   /** Living backdrop: torches flicker; leaves, motes, rain and embers drift through the scene. */
@@ -1352,26 +1551,43 @@ export class FightScene extends Phaser.Scene implements View {
     if (this.ambient.length > 160) this.ambient.splice(0, this.ambient.length - 160);
   }
 
-  /** Finisher special: the sky swaps to a streaked blue backdrop while the hero whirls through the enemies. */
+  /**
+   * Finisher special: the sky swaps to a streaked backdrop while the hero whirls through the enemies. Its colors
+   * heat up with the stacks spent (blue, violet, gold, crimson, then a cycling rainbow), with radial speed lines.
+   */
   private drawSuper(now: number): void {
     const g = this.gSuper;
     g.clear();
-    const k = (this.anim - this.superAt) / SUPER_MS;
+    const k = (this.anim - this.superAt) / this.superMs;
     if (k < 0 || k >= 1) return;
+    const n = this.superStacks;
     const alpha = k < 0.08 ? k / 0.08 : k > 0.86 ? (1 - k) / 0.14 : 1;
     const bottom = this.ground - 8;
-    const bands = [0x1022a8, 0x1a3cc8, 0x2a62dc, 0x3a8ae8, 0x48b4f0, 0x5ad8f4];
+    const PAL: Record<number, number[]> = {
+      1: [0x1022a8, 0x1a3cc8, 0x2a62dc, 0x3a8ae8, 0x48b4f0, 0x5ad8f4],
+      2: [0x2a0e6a, 0x441a9a, 0x6a2ac8, 0x8a4ae0, 0xb07af0, 0xd8b0ff],
+      3: [0x6a2a08, 0x9a420a, 0xc86a10, 0xe8941a, 0xf8c040, 0xffe890],
+      4: [0x5a0a1e, 0x8a1230, 0xb81c3e, 0xe0344e, 0xf86a6a, 0xffb0a0],
+    };
+    let bands = PAL[Math.min(4, n)];
+    if (n >= 5) {
+      // white-hot: cycle through every palette
+      const cyc = [PAL[1], PAL[2], PAL[3], PAL[4]];
+      bands = cyc[Math.floor(this.anim / 90) % cyc.length];
+    }
     const bh = Math.ceil(bottom / bands.length);
     bands.forEach((col, i) => {
       g.fillStyle(col, alpha);
       g.fillRect(0, i * bh, GAME_W, Math.min(bh, bottom - i * bh));
     });
-    for (let i = 0; i < 18; i++) {
+    const lines = 14 + n * 4;
+    const hiCol = stackCol(n)[1];
+    for (let i = 0; i < lines; i++) {
       const y = 4 + ((i * 37) % Math.max(1, bottom - 8));
-      const len = 18 + ((i * 53) % 46);
-      const speed = 0.5 + (i % 3) * 0.25;
+      const len = 18 + ((i * 53) % 46) + n * 4;
+      const speed = 0.5 + (i % 3) * 0.25 + n * 0.08;
       const x = ((((i * 97 - now * speed) % (GAME_W + 80)) + GAME_W + 80) % (GAME_W + 80)) - 40;
-      g.fillStyle(WHITE, alpha * (i % 2 ? 0.85 : 0.5));
+      g.fillStyle(i % 3 === 0 ? hiCol : WHITE, alpha * (i % 2 ? 0.85 : 0.5));
       g.fillRect(Math.round(x), y, len, i % 4 === 0 ? 2 : 1);
     }
     // whirlwind where the hero is
@@ -1379,14 +1595,15 @@ export class FightScene extends Phaser.Scene implements View {
     if (h.state !== 'super') return;
     const fx = this.gFx;
     const cx = h.x + 2;
-    // a tornado: stacked spinning rings, wider at the top
-    for (let arc = 0; arc < 5; arc++) {
+    const [c1, c2] = stackCol(n);
+    // a tornado: stacked spinning rings, wider at the top (taller with more stacks)
+    for (let arc = 0; arc < 4 + n; arc++) {
       const base = this.anim / 30 + arc * 1.7;
       const r = 7 + arc * 4;
-      const cy = this.ground - 4 - arc * 7;
+      const cy = this.ground - 4 - arc * 6;
       for (let j = 0; j < 18; j++) {
         const ang = base + j * 0.17;
-        fx.fillStyle(j < 6 ? WHITE : j < 12 ? 0xb8e4ff : 0x5aa8f0, 1 - j / 20);
+        fx.fillStyle(j < 6 ? WHITE : j < 12 ? c2 : c1, 1 - j / 20);
         fx.fillRect(Math.round(cx + Math.cos(ang) * r), Math.round(cy + Math.sin(ang) * r * 0.35), 3, 2);
       }
     }
@@ -1616,51 +1833,71 @@ export class FightScene extends Phaser.Scene implements View {
     if (target) {
       const v = this.enemies.get(target.id);
       const bx = this.R - 86;
-      this.hudBar(g, bx + 1, 13, 66, 8, target.hp / target.maxHp, (v?.hpShown ?? target.hp) / target.maxHp, { mirror: true });
+      const shownHp = this.anim < this.superFinalAt && v ? v.hpShown : target.hp;
+      this.hudBar(g, bx + 1, 13, 66, 8, shownHp / target.maxHp, (v?.hpShown ?? target.hp) / target.maxHp, { mirror: true });
       this.hudIcon(g, 'skull', this.R - 14, 8);
       if (this.app.tuning.enemies[target.key].boss) this.hudIcon(g, 'crown', this.R - 14, 2);
       this.hudIcon(g, 'sword', this.R - 15, 25);
     }
 
-    // finisher button on the wooden band
+    // finisher button on the wooden band: gray until a stack is banked, then the color of the stacks it holds
     const b = this.button;
     const ready = c.finisherReady;
+    const stacks = c.stacks;
     const swipe = this.app.settings.finisherInput === 'swipe';
-    const pulse = ready && Math.floor(now / 140) % 2 === 0;
+    const pulse = ready && Math.floor(now / (160 - stacks * 15)) % 2 === 0;
+    const [sc, sh, sd] = stackCol(Math.max(1, stacks));
     const face = ready
-      ? pulse
-        ? ([0xfff6c0, 0xffe066, 0xf2b030, 0xb07018] as const)
-        : ([0xffe680, 0xf2c230, 0xd8901c, 0x9a5a14] as const)
+      ? stacks <= 1
+        ? pulse
+          ? ([0xfff6c0, 0xffe066, 0xf2b030, 0xb07018] as const)
+          : ([0xffe680, 0xf2c230, 0xd8901c, 0x9a5a14] as const)
+        : ([pulse ? WHITE : sh, sc, sd, shade(sd, 0.7)] as const)
       : swipe
         ? ([0x5a5e70, 0x464a5c, 0x363a4a, 0x26283a] as const)
         : ([0x8a90a6, 0x6e7488, 0x585e72, 0x3e4254] as const);
     this.button3d(g, b, face, false, ready);
     if (ready) {
-      // pulsing glow ring
-      const k = (now % 560) / 560;
-      this.rows(g, b.x - 3 - Math.round(k * 3), b.y - 3 - Math.round(k * 3), b.w + 6 + Math.round(k * 6), b.h + 6 + Math.round(k * 6), 4, 0xffe066, 0.45 * (1 - k));
+      // pulsing glow rings: one more ring per stack
+      for (let r = 0; r < Math.min(3, stacks); r++) {
+        const k = ((now + r * 180) % 560) / 560;
+        this.rows(g, b.x - 3 - Math.round(k * 4), b.y - 3 - Math.round(k * 4), b.w + 6 + Math.round(k * 8), b.h + 6 + Math.round(k * 8), 4, stacks <= 1 ? 0xffe066 : sh, 0.45 * (1 - k));
+      }
     }
 
-    // finisher meter on the stone strip, combo count to its left
+    // finisher meter on the stone strip: the next stack fills over the color of the banked ones
     const m = this.meter;
+    const maxed = stacks >= this.app.tuning.meter.maxStacks;
+    const [fc, fh, fl] = stackCol(maxed ? stacks : stacks + 1);
+    const [bc, bh, bl] = stackCol(stacks);
     this.hudBar(g, m.x, m.y, m.w, m.h, c.meter, c.meter, {
-      fill: ready ? 0x5ac8ff : 0x2a8ae0,
-      hi: ready ? 0xe0f6ff : 0x7ad0ff,
-      lo: 0x1a5ab0,
-      bg: 0x161624,
-      bgHi: 0x22223a,
-      bgLo: 0x0e0e18,
+      fill: fc,
+      hi: fh,
+      lo: fl,
+      bg: stacks > 0 ? bc : 0x161624,
+      bgHi: stacks > 0 ? bh : 0x22223a,
+      bgLo: stacks > 0 ? bl : 0x0e0e18,
       frame: false,
     });
+    if (stacks > 0) {
+      // the banked layer is dimmed so the filling layer reads on top of it
+      g.fillStyle(INK, 0.35);
+      g.fillRect(m.x + Math.round(m.w * c.meter), m.y, m.w - Math.round(m.w * c.meter), m.h);
+    }
     if (ready) {
-      // shimmer sweeping across a full meter
-      const sx = m.x + ((now / 3) % (m.w + 20)) - 10;
+      // shimmer sweeping across, faster with more stacks
+      const sx = m.x + ((now / (3.2 - stacks * 0.4)) % (m.w + 20)) - 10;
       g.fillStyle(WHITE, 0.55);
       for (let i = 0; i < 4; i++) if (sx + i - 2 >= m.x && sx + i - 2 < m.x + m.w) g.fillRect(Math.round(sx + i - 2), m.y, 2, m.h);
-      if (pulse) {
-        g.fillStyle(WHITE, 0.2);
-        g.fillRect(m.x, m.y, m.w, m.h);
-      }
+    }
+    // flash when a stack is banked
+    const pk = (now - this.stackPopAt) / 240;
+    if (pk >= 0 && pk < 1) this.rows(g, m.x - 2, m.y - 2, m.w + 4, m.h + 4, 2, WHITE, 0.7 * (1 - pk));
+    // red flash when stacks are lost
+    const lk = (now - this.stackLostAt) / 360;
+    if (lk >= 0 && lk < 1) {
+      g.fillStyle(0xff3030, 0.6 * (1 - lk));
+      g.fillRect(m.x, m.y, m.w, m.h);
     }
     this.hudIcon(g, 'bolt', m.x - 11, m.y - 2);
   }
@@ -1905,7 +2142,7 @@ export class FightScene extends Phaser.Scene implements View {
           } else {
             const q = (k - A) / (1 - A);
             const w = d.w * 1.3 * (1 - q) ** 1.6;
-            const h = H0 * (1.3 + 2.1 * ease(q));
+            const h = H0 * (1.25 + 1.5 * ease(q));
             const bottom = mid + H0 * 0.65 * (1 - q * 0.6);
             const fill = q < 0.3 ? light : base;
             this.slab(g, x, bottom - h, w, h, fill, q < 0.3 ? WHITE : light, dark, 1 - q * 0.45);
@@ -2009,7 +2246,9 @@ export class FightScene extends Phaser.Scene implements View {
     if (target && c) {
       const def = T.enemies[target.key];
       this.setText('enemyName', def.name, this.R - 52, 2, def.boss ? 0xffd23a : WHITE, 1, 0.5, 0);
-      this.setText('enemyHp', `${Math.ceil(target.hp)}/${target.maxHp}`, this.R - 52, 17.5, WHITE, 1, 0.5, 0.5);
+      const tv = this.enemies.get(target.id);
+      const hpNow = this.anim < this.superFinalAt && tv ? tv.hpShown : target.hp;
+      this.setText('enemyHp', `${Math.ceil(hpNow)}/${target.maxHp}`, this.R - 52, 17.5, WHITE, 1, 0.5, 0.5);
       this.setText('enemyAtk', `${def.atk}`, this.R - 17, 31, WHITE, 1, 1, 0.5);
     } else ['enemyName', 'enemyHp', 'enemyAtk'].forEach((k) => this.txt[k].setVisible(false));
 
@@ -2032,18 +2271,19 @@ export class FightScene extends Phaser.Scene implements View {
     const b = this.button;
     const fight = run.phase === 'fight';
     const swipeMode = S.finisherInput === 'swipe';
+    const stacks = c?.stacks ?? 0;
     this.setText(
       'meterLabel',
-      swipeMode ? 'Swipe up!' : 'Finisher ready!',
+      `${swipeMode ? 'SWIPE!' : 'FINISHER'} x${stacks}`,
       this.meter.x + this.meter.w / 2,
       this.meter.y + this.meter.h / 2,
-      Math.floor(now / 150) % 2 ? 0xffe040 : 0xffb020,
+      Math.floor(now / 150) % 2 ? WHITE : stackCol(stacks)[1],
       1,
       0.5,
       0.5,
       ready && fight,
     );
-    const label = S.finisherInput === 'button' ? (ready ? 'GO!' : 'Finish') : ready ? 'UP!' : 'Swipe';
+    const label = S.finisherInput === 'button' ? (ready ? (stacks > 1 ? `x${stacks}` : 'GO!') : 'Finish') : ready ? `x${stacks}` : 'Swipe';
     this.txt.button.setFont(ready ? FONT_BOLD : FONT);
     this.setText('button', label, b.x + b.w / 2, b.y + b.h / 2, ready ? WHITE : 0xd0d4e0, ready ? 2 : 1, 0.5, 0.5, fight);
 
@@ -2167,6 +2407,12 @@ export class FightScene extends Phaser.Scene implements View {
       }
       const k = age / f.life;
       const s = age / 1000;
+      if (f.count) {
+        f.count.at ??= now;
+        const q = Math.min(1, (now - f.count.at) / f.count.dur);
+        f.t.setText(fontText(`${Math.round(f.count.to * ease(q))}`));
+        if (q >= 1) f.count = undefined;
+      }
       const popS = f.pop && age < 90 ? f.scale + 1 : f.scale;
       f.t.setScale(popS);
       f.t.setPosition(Math.round(f.x + f.vx * s), Math.round(f.y + f.vy * s + 0.5 * f.g * s * s));

@@ -8,7 +8,8 @@ import { computeLayout, type ScreenLayout } from './layout';
 import { saveSoon } from './storage';
 
 export interface View {
-  onEvents(events: CombatEvent[]): void;
+  /** Returns how long (ms) the next phase change should wait so a kill / finisher animation can play out. */
+  onEvents(events: CombatEvent[]): number;
   onPhase(prev: Phase, next: Phase): void;
   onLayout(): void;
 }
@@ -34,6 +35,7 @@ export class App {
   /** Later stages of a level: the clock waits while the next enemy walks in (performance.now ms). */
   introUntil = 0;
   private begunCombat: unknown = null;
+  private syncHoldUntil = 0; // performance.now() until which phase changes wait (kill animations)
   phaseSince = 0;
 
   constructor(
@@ -81,6 +83,7 @@ export class App {
   /** Advance the simulation up to wall time `now`. */
   update(now: number): void {
     this.syncClock(now);
+    this.trySync(now);
     const c = this.run.combat;
     if (!c || !this.clock.running) return;
     let target = this.clock.now(now) / 1000;
@@ -127,6 +130,7 @@ export class App {
   }
 
   setPhase(fn: () => void): void {
+    this.syncHoldUntil = 0;
     const prev = this.run.phase;
     fn();
     this.afterPhaseChange(prev);
@@ -155,10 +159,18 @@ export class App {
     const c = this.run.combat;
     if (!c) return;
     const events = c.drainEvents();
+    const now = performance.now();
     if (events.length) {
       this.sounds(events);
-      this.view?.onEvents(events);
+      const hold = this.view?.onEvents(events) ?? 0;
+      if (hold > 0) this.syncHoldUntil = Math.max(this.syncHoldUntil, now + hold);
     }
+    this.trySync(now);
+  }
+
+  /** Apply pending phase changes (boost choice, defeat) once the view's kill animation has played out. */
+  private trySync(now: number): void {
+    if (now < this.syncHoldUntil) return;
     const prev = this.run.phase;
     this.run.sync();
     if (this.run.phase !== prev) this.afterPhaseChange(prev);
@@ -183,7 +195,7 @@ export class App {
           if (e.source !== 'miss') a.hurt();
           break;
         case 'finisher':
-          a.finisher();
+          a.finisherStart(e.stacks);
           break;
         case 'windup':
           a.windup();
@@ -192,7 +204,10 @@ export class App {
           a.explode();
           break;
         case 'meterFull':
-          a.ready2();
+          a.stackUp(e.stacks);
+          break;
+        case 'comboBreak':
+          if (e.lostStacks > 0) a.stackLost(e.lostStacks);
           break;
         case 'speedUp':
           a.speedUp();
