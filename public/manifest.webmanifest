@@ -1,7 +1,7 @@
 {
   "name": "Combo Quest 3",
   "short_name": "CQ3",
-  "description": "Timing-bar combat feel prototype.",
+  "description": "A pixel-art timing RPG.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
