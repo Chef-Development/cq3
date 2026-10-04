@@ -7,7 +7,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 ## Rules
 
 - **Original assets only.** No CQ2 art, names, music, sounds or code. Placeholder art is drawn from
-  character maps in `src/engine/art.ts` and `src/engine/backdrop.ts`, the font in `src/engine/font.ts`, sounds are synthesized in
+  character maps in `src/engine/art.ts`, `backdrop.ts` and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds are synthesized in
   `src/engine/audio.ts`, icons come from `scripts/make-icons.mjs`.
 - **Core/engine split.** `src/core/` is plain TypeScript with **no Phaser (or DOM) imports**: deterministic,
   fixed 120 Hz step (`Combat.step`), seeded RNG, fully unit-tested. `src/engine/` (Phaser + DOM) only
@@ -30,7 +30,7 @@ src/core/      tuning.ts (all numbers), combat.ts (sim), run.ts (levels/boosts/r
                clock.ts, calibration.ts, swipe.ts, rng.ts
 src/engine/    app.ts (time + input glue), scene.ts (Phaser rendering + juice), input.ts,
                debug.ts (tuning panel), calibrate.ts, audio.ts, art.ts (sprites), backdrop.ts (level
-               backdrops per theme), font.ts, layout.ts, storage.ts
+               backdrops per theme), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
 tests/unit/    Vitest tests for src/core
 tests/smoke/   Playwright smoke test (874x402 @3x, landscape)
 scripts/       make-icons.mjs, sw-template.js (service worker, precache list injected at build)

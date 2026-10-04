@@ -1191,7 +1191,7 @@ export class FightScene extends Phaser.Scene implements View {
           this.hpBar(g, bx, by, bw, 3, e.hp / e.maxHp, v.hpShown / e.maxHp, 0xe0463c);
           const def = this.app.tuning.enemies[e.key];
           const isTarget = target?.id === e.id;
-          this.icon(g, ICONS[def.icon], bx - 7, by - 1, 0xff8a7a);
+          this.icon(g, ICONS[def.icon], bx - 9, by - 2, 0xff8a7a);
           if (isTarget) {
             const tx = Math.round(v.homeX);
             const ty = by - 8 + (Math.floor(now / 250) % 2);
@@ -1569,6 +1569,11 @@ export class FightScene extends Phaser.Scene implements View {
     g.fillRect(ix + 2, iy + ih - 3, 2, 1);
   }
 
+  private iconSize(key: string): [number, number] {
+    const rows = HUD_ICONS[key].rows;
+    return [Math.max(...rows.map((r) => r.length)), rows.length];
+  }
+
   private hudIcon(g: Phaser.GameObjects.Graphics, key: string, x: number, y: number, scale = 1): void {
     const ic = HUD_ICONS[key];
     ic.rows.forEach((r, yy) => {
@@ -1595,9 +1600,12 @@ export class FightScene extends Phaser.Scene implements View {
     const maxHp = T.hero.maxHp + H.bonusMaxHp;
     this.heroHpShown += (H.hp - this.heroHpShown) * 0.2;
     this.hudBar(g, this.L + 19, 4, 66, 8, H.hp / maxHp, this.heroHpShown / maxHp);
-    this.hudIcon(g, 'heart', this.L + 2, 1, 2);
-    ['sword', 'crit', 'bolt', 'potion'].forEach((k, i) => this.hudIcon(g, k, this.L + 3 + (k === 'crit' || k === 'potion' ? 1 : 0), 17 + i * 15, 2));
-    this.hudIcon(g, 'coin', this.L + 92, 3);
+    this.hudIcon(g, 'heart', this.L + 2, 1);
+    ['sword', 'crit', 'bolt', 'potion'].forEach((k, i) => {
+      const [w, h] = this.iconSize(k);
+      this.hudIcon(g, k, this.L + 3 + ((12 - w) >> 1), Math.round(24.5 + i * 15 - h / 2));
+    });
+    this.hudIcon(g, 'coin', this.L + 92, 2);
     if (H.abilityTimer > 0) {
       g.fillStyle(0x9af0a0, 1);
       g.fillRect(this.L + 18, 15, Math.round(68 * (H.abilityTimer / Math.max(0.01, T.hero.abilitySec))), 1);
@@ -1609,9 +1617,9 @@ export class FightScene extends Phaser.Scene implements View {
       const v = this.enemies.get(target.id);
       const bx = this.R - 86;
       this.hudBar(g, bx + 1, 13, 66, 8, target.hp / target.maxHp, (v?.hpShown ?? target.hp) / target.maxHp, { mirror: true });
-      this.hudIcon(g, 'skull', this.R - 15, 9, 2);
-      if (this.app.tuning.enemies[target.key].boss) this.hudIcon(g, 'crown', this.R - 15, 0, 2);
-      this.hudIcon(g, 'sword', this.R - 10, 27);
+      this.hudIcon(g, 'skull', this.R - 14, 8);
+      if (this.app.tuning.enemies[target.key].boss) this.hudIcon(g, 'crown', this.R - 14, 2);
+      this.hudIcon(g, 'sword', this.R - 15, 25);
     }
 
     // finisher button on the wooden band
@@ -1654,7 +1662,7 @@ export class FightScene extends Phaser.Scene implements View {
         g.fillRect(m.x, m.y, m.w, m.h);
       }
     }
-    this.hudIcon(g, 'bolt', m.x - 9, m.y);
+    this.hudIcon(g, 'bolt', m.x - 11, m.y - 2);
   }
 
   private drawBar(t: number, now: number): void {
@@ -1787,24 +1795,34 @@ export class FightScene extends Phaser.Scene implements View {
         g.fillRect(X + 5, Y + 12, 1, 4);
       }
     }
-    const cx = Math.round(X + W / 2 - 2.5);
-    const cy = Math.round(Y + H / 2 - 3);
+    const cx = Math.round(X + W / 2 - 3.5);
+    const cy = Math.round(Y + H / 2 - 3.5);
     if (isRed(b.kind)) {
       const variant = b.kind === 'red' ? null : ICONS[b.kind];
       const owner = c.enemyById(b.ownerId);
       const ownerIcon = group && owner ? ICONS[this.app.tuning.enemies[owner.key].icon] : null;
       if (variant) {
-        this.icon(g, variant, cx, ownerIcon ? cy + 3 : cy, b.kind === 'speed' ? 0xffe680 : INK);
-        if (ownerIcon) this.icon(g, ownerIcon, cx, cy - 5, WHITE);
+        this.icon(g, variant, cx, ownerIcon ? Y + 12 : cy, b.kind === 'speed' ? 0xffe680 : INK);
+        if (ownerIcon) this.icon(g, ownerIcon, cx, Y + 3, WHITE);
       } else if (ownerIcon) this.icon(g, ownerIcon, cx, cy, WHITE);
-    } else if (b.kind === 'purple') {
+    } else if (b.kind === 'purple' || b.kind === 'green') {
+      // white symbol with a dark rim: "+" heals, "!" is a trap
+      const mx = Math.round(X + W / 2);
+      const my = Math.round(Y + H / 2);
+      const parts: Array<[number, number, number, number]> =
+        b.kind === 'green'
+          ? [
+              [mx - 1, my - 4, 2, 8],
+              [mx - 4, my - 1, 8, 2],
+            ]
+          : [
+              [mx - 1, my - 5, 2, 6],
+              [mx - 1, my + 3, 2, 2],
+            ];
+      g.fillStyle(deepOf(b.kind), 1);
+      for (const [x0, y0, w0, h0] of parts) g.fillRect(x0 - 1, y0 - 1, w0 + 2, h0 + 2);
       g.fillStyle(WHITE, 1);
-      g.fillRect(cx + 2, cy - 1, 2, 5);
-      g.fillRect(cx + 2, cy + 6, 2, 2);
-    } else if (b.kind === 'green') {
-      g.fillStyle(WHITE, 1);
-      g.fillRect(cx + 2, cy - 1, 2, 8);
-      g.fillRect(cx - 1, cy + 2, 8, 2);
+      for (const [x0, y0, w0, h0] of parts) g.fillRect(x0, y0, w0, h0);
     }
   }
 
@@ -1977,7 +1995,7 @@ export class FightScene extends Phaser.Scene implements View {
     const stageInfo = lvl.stages.length > 1 ? ` - ${run.stageIndex + 1}/${lvl.stages.length}` : '';
     this.setText('level', `${lvl.name}${stageInfo}`, GAME_W / 2, 17, 0xf2f4fa, 1, 0.5, 0, run.phase !== 'levelClear' && run.phase !== 'title');
     this.setText('heroHp', `${Math.ceil(H.hp)}/${maxHp}`, this.L + 52, 8.5, WHITE, 1, 0.5, 0.5);
-    this.setText('coins', `${this.coinsShown}`, this.L + 101, 7, 0xffe680, 1, 0, 0.5);
+    this.setText('coins', `${this.coinsShown}`, this.L + 103, 7, 0xffe680, 1, 0, 0.5);
     const crit = T.hero.critChance + H.bonusCrit + (H.abilityTimer > 0 ? T.hero.abilityCritBonus : 0);
     const stats = [
       `${Math.round(T.hero.atk * (1 + H.bonusDmg))}`,
@@ -1992,7 +2010,7 @@ export class FightScene extends Phaser.Scene implements View {
       const def = T.enemies[target.key];
       this.setText('enemyName', def.name, this.R - 52, 2, def.boss ? 0xffd23a : WHITE, 1, 0.5, 0);
       this.setText('enemyHp', `${Math.ceil(target.hp)}/${target.maxHp}`, this.R - 52, 17.5, WHITE, 1, 0.5, 0.5);
-      this.setText('enemyAtk', `${def.atk}`, this.R - 13, 31, WHITE, 1, 1, 0.5);
+      this.setText('enemyAtk', `${def.atk}`, this.R - 17, 31, WHITE, 1, 1, 0.5);
     } else ['enemyName', 'enemyHp', 'enemyAtk'].forEach((k) => this.txt[k].setVisible(false));
 
     const combo = c?.combo ?? 0;
@@ -2103,13 +2121,11 @@ export class FightScene extends Phaser.Scene implements View {
         this.rows(gc, r.x + 4, r.y + 4, 20, r.h - 7, 2, 0x2a8a2e);
         gc.fillStyle(0x1e6a24, 1);
         gc.fillRect(r.x + 5, r.y + 4, 18, 1);
-        this.hudIcon(gc, BOOST_ICON[id], r.x + 7, r.y + 7, 2);
+        const [iw, ih] = this.iconSize(BOOST_ICON[id]);
+        this.hudIcon(gc, BOOST_ICON[id], r.x + 4 + ((20 - iw) >> 1), r.y + 4 + ((r.h - 7 - ih) >> 1));
         const [name, val] = boostLabel(this.app.tuning, id);
         const a = this.boostTexts[i * 2];
         const b = this.boostTexts[i * 2 + 1];
-        g.fillStyle(0x2e8a22, 1);
-        g.fillRect(r.x + 5, r.y + 5, 18, 18);
-        this.hudIcon(g, BOOST_ICON[id], r.x + 7, r.y + 7, 2);
         a.setText(fontText(name)).setPosition(r.x + 29, r.y + 10).setTint(WHITE).setOrigin(0, 0.5).setScale(1).setVisible(true);
         b.setText(fontText(val)).setPosition(r.x + 29, r.y + 19).setTint(0xfff07a).setOrigin(0, 0.5).setScale(1).setVisible(true);
       });
