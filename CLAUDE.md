@@ -18,7 +18,15 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 - **Data-driven tuning.** Every tunable number lives in `src/core/tuning.ts` (`DEFAULT_TUNING`), including
   enemy stats and block patterns, plus the slider metadata for the debug panel. Don't hard-code gameplay
   numbers elsewhere. New numbers need a slider entry in `sliderGroups`.
-- **Settings/tuning persistence** goes through `src/engine/storage.ts` (localStorage, always try/catch).
+- **Settings/tuning persistence** goes through `src/engine/storage.ts` (localStorage, always try/catch). So does
+  the mid-run save (`core/save.ts`): it autosaves on every phase change and when the page is hidden; bump
+  `SAVE_VERSION` if `RunSave` changes shape.
+- **Impacts** (hits, blocks, bombs, finisher blows, kills) are tiered by one weight each in `tuning.impact`, which
+  drives both the layered sound (`audio.ts`: crack, saturated body, tail, sub) and the visuals (`fx.impact()`:
+  hit-stop, shake, white frames, music duck). Impact sounds play from the view when the blow lands on screen.
+  New sounds go in the `SFX` catalog so the Sound lab and the level tests pick them up.
+- **Balance:** combat numbers were set with the bot; `tests/unit/bot.test.ts` guards the targets. Re-run
+  `npm run balance` after changing them.
 - Landscape (like CQ2) canvas 327x150, integer-scaled (8x on an iPhone 16 Pro held sideways) so pixels are
   big and chunky like the reference; pixel art, no smoothing. Safe areas (Dynamic Island left/right, home indicator) come from `env(safe-area-inset-*)`
   (see `src/engine/layout.ts`).
@@ -26,8 +34,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 ## Layout
 
 ```
-src/core/      tuning.ts (all numbers), combat.ts (sim), run.ts (levels/boosts/revive),
-               clock.ts, calibration.ts, swipe.ts, rng.ts
+src/core/      tuning.ts (all numbers), combat.ts (sim), run.ts (levels/boosts/revive), impact.ts (impact
+               tier weights -> hit-stop/shake/flash and sound layers), save.ts (mid-run save), bot.ts (balance
+               bot), clock.ts, calibration.ts, swipe.ts, rng.ts
 src/engine/    app.ts (time + input glue), scene.ts (Phaser scene: layout, layers, anim clock, routes core
                events to view/), input.ts, debug.ts (tuning panel), calibrate.ts, audio.ts, art.ts (sprites),
                backdrop.ts (level backdrops per theme), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
@@ -35,7 +44,9 @@ src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemi
                effects.ts (particles, floaters, sparks, debris, camera shake/kick/freeze/flash), bar.ts (timing
                bar, blocks, cursor), hud.ts (stats, meter, coins, stat rain), overlays.ts (title, boost, chest,
                defeat, pause), pixels.ts (pixel drawing primitives), shared.ts (constants, helpers, types)
-tests/unit/    Vitest tests for src/core
+tests/unit/    Vitest tests for src/core, plus audio.test.ts: renders every sound on an OfflineAudioContext
+               (node-web-audio-api) and checks levels (no clipping, impacts >= music, tiers get heavier)
+tests/balance/ npm run balance: the bot plays 1,000 runs per level and writes docs/balance.md
 tests/smoke/   Playwright smoke test (874x402 @3x, landscape) and screenshot regression tests (screens.spec.ts:
                fake clock + seeded Math.random, so renders are pixel-exact)
 scripts/       make-icons.mjs, sw-template.js (service worker, precache list injected at build)
@@ -52,6 +63,7 @@ npm run build        # typecheck + production build to dist/ (+ dist/sw.js)
 npm run smoke        # Playwright smoke + screenshot tests; builds and serves dist itself
 npm run screens      # screenshot tests only; EXACT=1 for a zero-tolerance compare
 npm run screens:update  # refresh the baselines after an intentional visual change (look at them first)
+npm run balance      # balance bot report -> docs/balance.md (~10 s); re-run after changing combat numbers
 npm run icons        # regenerate public/icons
 ```
 

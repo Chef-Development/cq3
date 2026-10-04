@@ -1,157 +1,176 @@
-# Combo Quest 3: status report (M1 feel prototype)
+# Combo Quest 3: status report (M1 feel prototype, impact pass)
 
-- **Live build:** https://chef-development.github.io/cq3/ (installable PWA, landscape)
-- **Branch:** `claude/brave-ride-j1xgle`. The open PR Chef-Development/cq3#1 into `main` has an outdated
-  title.
-- **Stack:** Phaser 4.2.1 + TypeScript + Vite, 66 Vitest unit tests, a Playwright smoke test, and GitHub
-  Actions publishing to `gh-pages` on every push.
+- **Live build:** https://chef-development.github.io/cq3/ (installable PWA, landscape). Every push deploys.
+- **Branch:** `claude/eloquent-cannon-tc28lq`, with an open PR into `main`. It contains all of M1 (the old
+  `claude/brave-ride-j1xgle` branch and its PR Chef-Development/cq3#1) plus this pass, so merging it merges both.
+- **Stack:** Phaser 4.2.1 + TypeScript + Vite. 103 Vitest unit tests (`npm test`, runs in CI). 4 Playwright tests:
+  a smoke test, a save/reload test, and pixel-exact screenshots of the title and a fight. GitHub Actions publishes
+  to `gh-pages`.
 
-## Where we are
+## This pass (from the playtest: "pretty strong direction"; sound underwhelming, impacts should hit harder)
 
-The M1 combat loop plays end to end:
+1. **`scene.ts` split, with no behavior change.** It went from 2.8k lines to 400. The rest moved to
+   `src/engine/view/`: stage, fighters, effects, bar, hud, overlays, plus pixel primitives and shared constants.
+   This was checked pixel-exact against screenshots of the old code: the title, a fight, mid-hit, and a temporary
+   set covering the finisher, a kill, the boost menu, the boss, the chest and Level 2. The screenshot tests use a
+   fake clock and a seeded `Math.random`, so renders repeat exactly (`npm run screens`, `EXACT=1` for zero tolerance).
+2. **Impact overhaul** (top priority). Details below.
+3. **Mid-run save.** The run autosaves on every phase change and on visibilitychange/pagehide. The title offers
+   Continue (showing the level and stage) or New run (which needs a second tap).
+4. **Balance bot and new defaults** (`npm run balance`, report in `docs/balance.md`). Details below.
+5. **Two mid-pass requests from the playtester:**
+   - Blocks of every kind now come in varied widths: 0.65x to 1.45x their base width, per spawn.
+   - Boss fights have their own music: an original second loop that takes over when a boss stage starts and hands
+     back afterwards. The request ("the music changes during a boss fight") was read as describing the reference
+     game.
 
-1. Title screen.
-2. Level 1 (forest): Slime, Boar, Bandit, then the Big Slime boss, with a boost choice between stages.
-3. Treasure chest.
-4. Level 2 (moonlit ruins): a group fight against 2 Slimes and a Bandit.
+## Impact overhaul
 
-Revive, defeat and retry work.
+**Diagnosis.** Hits were a musical blip plus a sine thump gliding to about 55 Hz. Phone speakers barely play
+below about 300 Hz, so the body of each hit vanished on the iPhone. The old heavy sounds also clipped: crit, bomb,
+finisher and kill peaked at 1.17 to 1.48.
 
-Everything is original art, sound and code. All numbers live in `src/core/tuning.ts` and can be edited
-live in the in-game tuning panel (gear button).
+**Layers** (`src/engine/audio.ts`, numbers in `src/core/impact.ts`):
+
+- **Crack:** a 0-5 ms transient.
+- **Body:** a 120-600 Hz pitch drop through a tanh saturator. A second oscillator an octave up feeds the saturator
+  too, so the harmonics a phone can play carry the weight.
+- **Tail:** band-swept noise, plus debris ticks on heavy hits.
+- **Sub:** a sine routed past the compressor. It only adds on headphones.
+- **Combo note:** the climbing note is now a quieter musical layer on top.
+
+Every impact gets ±4% pitch and timing variation. A final limiter and soft clipper keep every peak under 0 dBFS.
+
+**Tiers.** A single weight per tier drives both the sound and the visuals. Every number is editable live under
+"Impact" in the tuning panel.
+
+| Tier | Weight | Hit-stop | Shake | Knockback | Enemy flash | White impact frames | Music dip |
+|---|---|---|---|---|---|---|---|
+| hit | 0.10 | 34 ms | 1 px | 6 px | 50 ms | 0 | 0% |
+| perfect | 0.18 | 41 ms | 1 px | 7 px | 56 ms | 0 | 0% |
+| block | 0.30 | 54 ms | 2 px | 8 px | 67 ms | 0 | 0% |
+| crit | 0.40 | 65 ms | 2 px | 10 px | 77 ms | 1 | 41% |
+| bomb | 0.50 | 78 ms | 3 px | 11 px | 88 ms | 1 | 47% |
+| finisher x1 / x3 / x5 | 0.55 / 0.67 / 0.79 | 84 / 100 / 118 ms | 3 / 4 / 5 px | 12 / 14 / 16 px | 93-122 ms | 1 / 1 / 2 | 50-63% |
+| kill | 0.85 | 127 ms | 6 px | 17 px | 130 ms | 2 | 67% |
+| boss kill | 1.00 | 150 ms | 7 px | 20 px | 150 ms | 2 | 75% |
+
+- **Timing:** impact sounds now play the moment the blow lands on screen, together with its hit-stop. When the
+  hero has to dash in first, a quiet swish answers the tap instantly.
+- **Extra booms:** a kill adds a burst crackle. A boss kill keeps exploding in step with its shock rings.
+- **Sound lab** (gear panel, open by default):
+  - a button for every sound effect, impacts listed lightest first;
+  - buttons to play the battle and boss themes;
+  - sliders for each layer (crack, body, tail, sub, combo notes), body drive, variation and music volume.
+
+**Measured** (OfflineAudioContext render, Node implementation; the rendered levels are also asserted in
+`tests/unit/audio.test.ts`):
+
+- **Phone loudness, old vs new** (through a 300 Hz high-pass that stands in for the speaker):
+  - hit +3.3 dB
+  - block +5.3 dB
+  - crit +1.3 dB
+  - bomb +1.9 dB
+  - kill +5.2 dB
+  - boss kill +6.9 dB
+  - 5-stack finisher about the same, but it no longer clips
+- **Phone energy** (loudness × length) is up 1.4 to 11.8 dB across the tiers.
+- **What the tests guarantee:**
+  - no sound clips;
+  - every impact is at least as loud as both music themes, full-range and on the phone filter;
+  - each tier is heavier than the last, full-range and on the phone filter;
+  - removing the body costs more than 3 dB on the phone;
+  - the sub changes phone loudness by less than 1 dB.
+
+## Balance (1,000 runs per level per accuracy)
+
+The bot (`src/core/bot.ts`) plays the real simulation:
+
+- It aims at the next block the cursor reaches and taps at most every 120 ms.
+- Accuracy is the share of well-timed taps. The rest land 60-200 ms off, wherever that is.
+- Accuracy slips 6% per 1x of cursor speed.
+- It cashes in the finisher when waiting for another stack isn't worth the risk of a combo break.
+
+| | Before: 70% / 85% / 95% | After: 70% / 85% / 95% |
+|---|---|---|
+| Level 1 win rate | 100% / 100% / 100% | 30% / **89%** / 100% |
+| Level 1 fight length (avg) | 6 / 5 / 4 s | 31 / **26** / 18 s |
+| Level 1 per stage (85%) | 4 / 5 / 5 / 7 s | **21 / 24 / 24 / 36 s** |
+| Finisher share of damage, Level 1 | 26% / 33% / 40% | 22% / 31% / 48% |
+| Boss HP ÷ one max-stack finisher | 0.22 (one-shot every time) | **2.1** (0% one-shots) |
+| Level 2 win rate | 100% / 100% / 100% | 78% / 98% / 100% |
+
+- **Targets met:**
+  - 85% wins Level 1 in the 80-90% band (89%).
+  - Fights fall within 20-60 s.
+  - The boss needs at least two max-stack finishers.
+  - Fights get longer stage by stage even as attack (×1.42) and combo power (×1.25) grow by the boss, so there is no
+    snowball.
+- **Changed defaults:**
+  - enemy HP 950 / 1150 / 1500 / 2800
+  - attack 10 / 13 / 15 / 17
+  - stack exponent 1.9 → 1.7
+  - combo power 6 → 5
+  - combo power per kill 0.5 → 0.25
+  - heal on kill 15% → 20%
+  - miss self-damage 3 → 1
+  - bomb damage 40
+  - group spawn interval ×0.8
 
 ## Combat rules (current defaults)
 
-### Cursor and judgment
-
-- The cursor bounces across the bar: 1.1 s per pass, +2% speed per combo hit, capped at 2.5x.
-- Taps are judged by the pointer event's timestamp, with up to 300 ms of rewind and a calibration offset.
-- A perfect hit is the center 30% of a block.
-- Classic mode: tapping an empty bar costs 3 HP and breaks the combo.
-
-### Blocks
-
-| Block | Effect |
-|---|---|
-| Yellow | Attack for 10. |
-| Green | Attack for 1.5x, plus Keen Edge: +10% crit for 3 s. |
-| Red | An enemy attack. Tap to block it; if it reaches the left end, you take its damage. |
-| Shield | Needs 2 taps. The first tap knocks it back 20% of the bar, then it comes again. |
-| Bomb | Tapping it clears blocks in its radius and deals 15 to every enemy. |
-| Speed | Blocking it speeds up the cursor. |
-| Purple | A trap: never tap it. |
-
-### Finisher stacks (Combo Quest 2 style)
-
-- About 6 hits fill the meter. Hits add 0.16, greens 0.24, blocks 0.12, and a perfect adds 0.03.
-- Each full meter banks one stack, up to 5. The meter shows "SWIPE! xN".
-- A quick swipe in any direction spends every stack. Damage = attack × combo power (6) × stacks^1.9. At base
-  stats that is 60, 224, 484 and 1278 for 1, 2, 3 and 5 stacks.
-- Any miss, or any hit taken, loses the combo, the meter and every banked stack.
-- The finisher knocks every red attack off the bar. Enemies keep attacking on their normal schedule.
-
-### Kill rewards
-
-- Heal 15% of max HP.
-- Coins.
-- Permanent +1 attack, +5 max HP and +0.5 combo power.
-- Then choose 1 of 3 boosts.
-
-### Companion
-
-Pip the owl pecks for 6 damage every 4 hits.
-
-## Presentation done
-
-- **Resolution:** 327×150 game pixels shown at 8x on an iPhone 16 Pro, so pixels are chunky like Combo Quest
-  2. Safe areas are handled.
-- **Art:** all procedural pixel art.
-  - Characters: a knight hero with a cape and poses, slimes plus a crowned boss slime, a boar, a bandit,
-    Pip the owl companion, and the chest.
-  - Backdrops: a painterly forest and moonlit ruins, with drifting leaves, rain and torches.
-  - UI: a metal timing bar, glossy blocks, a wood-and-stone panel, a heavy outlined mixed-case pixel font,
-    and a title crest.
-- **Juice:**
-  - Hits: hit-stop, impact stars, crescent slashes that heat up with the combo, cascading damage numbers,
-    spring knockback and squash on enemies, a hero lunge with afterimages, and a camera kick.
-  - Blocks never vanish: they pop, shatter, crunch or fly off.
-  - The finisher show scales with stacks (number of strikes, backdrop color, a count-up number).
-  - Kills: the enemy bursts into its own pixels, coins pop, and stat icons rain into the HUD. The boost
-    choice waits for this to finish.
-- **Audio:** synthesized. Hits climb a scale with the combo, plus finisher, stack, kill and stat sounds and a
-  music loop.
-- **Debug panel:**
-  - A slider for every number.
-  - Modes: swipe or button finisher, classic or relaxed misses, combo tiers, targeting, god mode, sound and
-    music.
-  - Jump to any stage.
-  - Metronome calibration.
-  - JSON export and import.
-
-## Latest playtester feedback
-
-All five points are fixed in the latest push but still need confirming on the phone.
-
-1. **"An enemy should explode, then stat upgrades rain down."** Done: a pixel burst, coins, and stat icons
-   that fly into the HUD.
-2. **"The finisher is a swipe, not a button."** Swipe is now the default, and saved settings are migrated.
-   The button is still available as an option.
-3. **"Some taps don't register."** Three causes fixed:
-   - The finisher button ate taps.
-   - Taps were ignored while the next enemy walked in. A tap now starts the fight.
-   - Taps were delayed while a finisher was banked. Now only a tap that would miss waits to see if it is a
-     swipe.
-4. **"During a finisher the reds stall and nothing new spawns."** The finisher now clears the red attacks,
-   and spawns continue.
-5. **"Smoother, more satisfying."** Lighter per-hit hit-stop, quicker transitions, and the new kill show.
-
-Earlier feedback, already handled:
-
-- Portrait changed to landscape.
-- "Too slow and sparse" led to denser, faster pacing.
-- "Thin" led to chunkier pixels.
-- A disliked hero was redesigned.
-- "Square-y and under-polished" led to a full art pass.
-- Combo Quest 2-style stacked finisher and shield knockback were added.
+- **Cursor:** 1.1 s per pass, +2% speed per combo hit, capped at 2.5x.
+- **Taps:** judged by the pointer timestamp, with up to 300 ms of rewind and a calibration offset.
+- **Perfect:** the center 30% of a block.
+- **Block widths:** yellow 0.12, green 0.075, red and trap 0.09 of the bar, each varied 0.65-1.45x per spawn.
+- **Block kinds:**
+  - yellow: attack for 10
+  - green: 1.5x, plus +10% crit for 3 s
+  - red: block it, or it hits you
+  - shield: two taps, and the first knocks it back
+  - bomb: clears nearby blocks and deals 40 to all enemies
+  - speed: blocking it speeds up the cursor
+  - purple: a trap
+- **Finisher:** about 6 hits per stack, up to 5 stacks. Damage = attack × combo power (5) × stacks^1.7, which is
+  50 / 162 / 324 / 771 at 1 / 2 / 3 / 5 stacks. Any miss or hit taken loses all stacks.
+- **Kill rewards:** heal 20%, coins, +1 attack, +5 max HP, +0.25 combo power, then 1 of 3 boosts.
+- **Level 1:** Slime → Boar → Bandit → Big Slime (boss, boss music).
+- **Level 2:** one group fight against 2 Slimes and a Bandit.
 
 ## Architecture
 
-- **`src/core`:** no Phaser or DOM; deterministic at 120 Hz with a seeded RNG.
-  - `combat.ts`: the simulation and its events.
-  - `run.ts`: levels, boosts and revives.
-  - `tuning.ts`: every number, plus the slider metadata.
-  - Also `clock.ts`, `calibration.ts` and `swipe.ts`.
+- **`src/core`** has no Phaser or DOM, runs at 120 Hz and uses a seeded RNG.
+  - `combat.ts`, `run.ts` and `tuning.ts`, plus:
+  - `impact.ts`: tier weights, feel and voice parameters, finisher timing.
+  - `save.ts`: snapshot, validation, restore.
+  - `bot.ts`: balance bot and summary.
 - **`src/engine`:**
-  - `app.ts`: time, input into the core, events into sound and view, and holding phase changes until
-    animations finish.
-  - `scene.ts`: all rendering and juice. About 3k lines, so it should be split.
-  - `input.ts`.
-  - `art.ts`, `backdrop.ts`, `chrome.ts`: procedural art.
-  - `font.ts`, `audio.ts`, `debug.ts`.
-  - `storage.ts`: tuning is saved as a diff from the defaults; settings use v2.
-- **Docs:**
-  - `CLAUDE.md`: project rules.
-  - `docs/art-style.md`: palette and pixel-art technique guide.
-  - `docs/backlog.md`: deferred meta-game.
+  - `app.ts`: time, input, save and music cues.
+  - `scene.ts`: layout, layers, animation clock, event routing.
+  - `view/*`: rendering and juice.
+  - `audio.ts`: synth, impact layers, both themes, the SFX catalog.
+  - `debug.ts`: tuning panel and Sound lab.
+  - `storage.ts`: tuning diff, settings, and the run save.
+- **Tests:**
+  - `tests/unit`: core, impact model, saves, bot targets, and rendered audio levels via `node-web-audio-api`.
+  - `tests/smoke`: Playwright, including screenshots.
+  - `tests/balance`: `npm run balance`; `tune.run.ts` is a scratch harness for trying overrides.
 
-## Known gaps and risks
+## Still unverified on the iPhone (everything was checked in headless Chromium and Node)
 
-- Balance is a first guess, since Combo Quest 2's numbers are unknown. A 5-stack finisher one-shots the boss,
-  and kill stat growth compounds.
-- Content is thin: 4 enemy types, 2 levels, and enemies differ only by block pattern.
-- `scene.ts` is very large and should be split into HUD, bar, effects, finisher and kill modules before
-  adding content.
-- Everything was checked only in headless Chromium. Still unverified on an iPhone:
-  - tap latency and swipe reliability
-  - audio with the silent switch on
-  - frame rate
-- A run is not saved (a refresh restarts it), and coins do not buy anything yet.
+- How the new impacts sound through the phone speaker, and with headphones; the sub layer only matters on headphones.
+- Whether the music duck and the 1-2 frame white flash feel good or too much (both are tunable under Impact).
+- The new fight length (about 25 s instead of 5 s): it was a planning-chat target, so check it feels right.
+- Continue after iOS reloads the app.
+- Boss music switching.
+- Tap latency, swipe reliability, and frame rate (unchanged from M1, still not confirmed).
 
-## Suggested next steps
+## Known gaps and suggested next steps
 
-1. Confirm the 5 latest fixes on the phone, then tune swipe distance and time and hit-stop if needed.
-2. Balance stacks (`meter.stackExp`, combo power, meter per hit) and kill stat growth.
-3. Add content: more enemies with distinct specials, Level 3 and beyond, and a boss with phases.
-4. Split `scene.ts` into modules, and add a set of reference screenshots for visual regression checks.
-5. Build the meta-game from `docs/backlog.md`: heroes, companions, loot chests, map and upgrades. The
-   playtester asked to defer these, so confirm before starting.
+1. **Playtest the impacts on the phone and tune with the Sound lab.** If the tuned values should become defaults,
+   use "Copy tuning as JSON" in the panel and paste them to the planning chat.
+2. **Level 2 is easier than Level 1** (one fight with a fresh hero). It needs more stages or its own boss to be a
+   step up. Content is still thin: 4 enemy types that differ only in block pattern.
+3. **70%-accuracy players lose Level 1 most of the time** in Classic mode. Relaxed mode (misses don't hurt) helps.
+   An easier difficulty setting may be worth adding.
+4. **Coins buy nothing yet.** The meta-game in `docs/backlog.md` is deferred at the playtester's request.
