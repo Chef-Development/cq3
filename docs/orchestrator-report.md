@@ -1,8 +1,9 @@
 # Combo Quest 3: status report (M1 feel prototype, impact pass)
 
 - **Live build:** https://chef-development.github.io/cq3/ (installable PWA, landscape). Every push deploys.
-- **Branch:** `claude/eloquent-cannon-tc28lq`, with an open PR into `main`. It contains all of M1 (the old
-  `claude/brave-ride-j1xgle` branch and its PR Chef-Development/cq3#1) plus this pass, so merging it merges both.
+- **Branch:** `claude/eloquent-cannon-tc28lq`, PR Chef-Development/cq3#2 into `main`. It contains all of M1 (the
+  old `claude/brave-ride-j1xgle` branch, PR Chef-Development/cq3#1, now marked superseded) plus this pass, so
+  merging #2 merges both.
 - **Stack:** Phaser 4.2.1 + TypeScript + Vite. 103 Vitest unit tests (`npm test`, runs in CI). 4 Playwright tests:
   a smoke test, a save/reload test, and pixel-exact screenshots of the title and a fight. GitHub Actions publishes
   to `gh-pages`.
