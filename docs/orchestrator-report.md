@@ -1,8 +1,8 @@
 # Combo Quest 3: status report (M4a "depth": relics, Sable, hero levels and skill trees, a soundtrack per act)
 
 - **Live build:** https://chef-development.github.io/cq3/ (installable PWA, landscape). Every push deploys.
-- **Branch:** `claude/m4a-depth`. PR #3 (M3b) was still open, so M4a is built on top of it: the M4a PR includes #3
-  (and #2) and supersedes them (merge the M4a PR; #2 and #3 can be closed).
+- **Branch:** `claude/m4a-depth`, PR Chef-Development/cq3#4. PR #3 (M3b) was still open, so M4a is built on top of
+  it: #4 includes #3 (and #2) and supersedes them (merge #4; #2 and #3 can be closed).
 - **Tests:** 422 Vitest unit tests (`npm test`, in CI), 7 Playwright smoke tests and 15 pixel-exact screenshot tests
   (24 baselines; new: relic pick, relic belt and panel, act-clear build, relic unlocked, shop relics, Sable's tutorial
   and two-cursor bar, hero select, skill tree, relic log, Sable joining the camp).
