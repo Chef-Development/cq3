@@ -168,3 +168,115 @@ test('a run survives a reload: Continue picks the fight back up', async ({ page 
   await a((x) => x.setPhase(() => x.run.retry()));
   await expect.poll(track).toBe('map');
 });
+
+test('gear: loot after a win goes in the bag; act clear -> camp -> next act; defeat -> camp -> retry; the act picker', async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  await ready(page);
+  const a = app(page);
+  const phase = () => a((x) => x.run.phase);
+  /** Beat every wave of the current fight at once. */
+  const winFight = async () => {
+    for (let k = 0; k < 12; k++) {
+      const done = await a((x) => {
+        const c = x.run.combat;
+        if (!c || c.result) return true;
+        for (const e of c.enemies) if (e.alive) (e.uses = e.uses.map(() => 1)), (e.hp = 1);
+        c.stacks = Math.max(1, c.stacks);
+        x.finisher();
+        return false;
+      });
+      if (done) break;
+      await page.waitForTimeout(1600);
+    }
+  };
+  const tapRect = async (r: { x: number; y: number; w: number; h: number }) => tapGame(page, r.x + r.w / 2, r.y + r.h / 2);
+
+  // a fight: win it, the loot screen shows what dropped (it's already in the bag), then the boost pick
+  await a((x) => {
+    x.startRegion();
+    x.storySkip();
+    x.storySkip();
+    x.setPhase(() => x.run.chooseNode(x.run.choices()[0]));
+    x.begin();
+  });
+  await winFight();
+  await expect.poll(phase, { timeout: 15_000 }).toMatch(/loot|boost/);
+  if ((await phase()) === 'loot') {
+    expect(await a((x) => x.run.loot.every((i: Any) => x.profile.items.some((p: Any) => p.uid === i.uid)))).toBe(true);
+    await page.waitForTimeout(2500);
+    await page.screenshot({ path: 'test-results/loot.png' });
+    for (let i = 0; i < 6 && (await phase()) === 'loot'; i++) {
+      await tapGame(page, 163, 75);
+      await page.waitForTimeout(700);
+    }
+  }
+  await expect.poll(phase).toBe('boost');
+  await page.waitForTimeout(700);
+  await tapRect((await a((x) => x.view.overlays.cardRect(0))) as Any);
+  await expect.poll(phase).toBe('map');
+
+  // the mini-boss: its loot, the boost, then the act clear with Camp and Next
+  await a((x) => {
+    x.setPhase(() => x.run.debugFight(0, ['captain'], 'boss', x.run.hero));
+    x.begin();
+  });
+  await winFight();
+  await expect.poll(phase, { timeout: 15_000 }).toBe('loot');
+  await a((x) => x.setPhase(() => x.run.collectLoot()));
+  await a((x) => x.setPhase(() => x.run.pickBoost(0)));
+  expect(await phase()).toBe('actClear');
+  expect(await a((x) => x.profile.actsCleared)).toBe(1);
+  await page.waitForTimeout(800);
+  await tapGame(page, 163, 100); // the chest bursts
+  await page.waitForTimeout(900);
+  const clear = (await a((x) => x.view.overlays.clearButtons())) as Any;
+  await tapRect(clear.camp);
+  await expect.poll(phase).toBe('camp');
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: 'test-results/camp.png' });
+  await a((x) => x.leaveCamp());
+  await expect.poll(phase).toBe('actClear');
+  await page.waitForTimeout(900);
+  await tapRect(clear.next);
+  await expect.poll(phase).toBe('scene');
+  expect(await a((x) => x.run.actIndex)).toBe(1);
+
+  // a defeat: Camp, back, Retry
+  await a((x) => {
+    x.storySkip();
+    x.setPhase(() => x.run.chooseNode(x.run.choices()[0]));
+    x.begin();
+    const c = x.run.combat;
+    x.run.hero.revives = 0;
+    x.run.hero.hp = 1;
+    c.spawnBlock('red', 0.05);
+  });
+  await expect.poll(phase, { timeout: 10_000 }).toBe('defeat');
+  await page.waitForTimeout(900);
+  const def = (await a((x) => x.view.overlays.defeatButtons())) as Any;
+  await tapRect(def.camp);
+  await expect.poll(phase).toBe('camp');
+  await a((x) => x.leaveCamp());
+  await expect.poll(phase).toBe('defeat');
+  await page.waitForTimeout(300);
+  await tapRect(def.retry);
+  await expect.poll(phase).toBe('map');
+
+  // the world map: Greenmarch opens the act picker (an act is cleared); Act 1 can be replayed
+  await a((x) => x.toWorld());
+  await page.waitForTimeout(500);
+  const gm = (await a((x) => x.view.worldMap.greenmarch())) as { x: number; y: number };
+  await tapGame(page, gm.x, gm.y);
+  await expect.poll(() => a((x) => x.view.worldMap.pickerOpen)).toBe(true);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: 'test-results/act-picker.png' });
+  await tapRect((await a((x) => x.view.worldMap.playButton(1))) as Any);
+  await expect.poll(phase).toBe('scene');
+  expect(await a((x) => x.run.actIndex)).toBe(1);
+  expect(errors).toEqual([]);
+});

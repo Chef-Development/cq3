@@ -139,3 +139,113 @@ test('fight', async ({ page }) => {
   await frames(page, 4);
   await expect(page).toHaveScreenshot('fight-hit.png', shot);
 });
+
+/** A fixed profile with gear (the same every run): a few items of each rarity, some worn, coins and scrap. */
+async function stockProfile(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    const p = app.profile;
+    const mk = (base: string, rarity: string, ilvl: number, bonus: Array<[string, number]>, effect: string | null = null, plus = 0) => {
+      const it = { uid: p.nextUid++, base, rarity, ilvl, plus, bonus: bonus.map(([stat, q]) => ({ stat, q })), effect, locked: false, fresh: true, rerolls: 0, found: ++p.found };
+      p.items.push(it);
+      return it;
+    };
+    const w = mk('hedgeSaber', 'rare', 12, [['critChance', 0.6], ['hp', 0.3]], null, 3);
+    mk('captainsCutlass', 'legendary', 8, [['critDmg', 0.7], ['luck', 0.2], ['def', 0.5]], 'cutlass');
+    const a = mk('wardenMail', 'epic', 13, [['atk', 0.5], ['steady', 0.8], ['luck', 0.4]]);
+    mk('wardenHood', 'rare', 12, [['meterGain', 0.5], ['atk', 0.1]]);
+    mk('pendulumShard', 'mythic', 24, [['atk', 0.9], ['hp', 0.9], ['critChance', 0.5], ['luck', 0.3]], 'pendulum');
+    const c = mk('clover', 'uncommon', 4, [['hp', 0.5]]);
+    for (const [b, r] of [
+      ['shortsword', 'common'],
+      ['leatherCap', 'uncommon'],
+      ['paddedVest', 'common'],
+      ['wornBoots', 'uncommon'],
+      ['owlCharm', 'rare'],
+      ['ringmail', 'common'],
+      ['potHelm', 'uncommon'],
+      ['hobnails', 'common'],
+      ['footpadShiv', 'rare'],
+    ] as const)
+      mk(b, r, 6, r === 'common' ? [] : [['hp', 0.5]]);
+    p.equipped.weapon = w.uid;
+    p.equipped.armor = a.uid;
+    p.equipped.trinket1 = c.uid;
+    p.coins = 640;
+    p.scrap = 48;
+    p.actsCleared = 2;
+    p.smithMet = true;
+  });
+}
+
+test('camp, bag and forge', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stockProfile(page);
+  await page.evaluate(() => {
+    const app = (window as Cq3Window).__cq3!.app as unknown as { newRun(): void; openCamp(): void };
+    app.newRun();
+    app.openCamp();
+  });
+  await frames(page, 60);
+  await expect(page).toHaveScreenshot('camp.png', shot);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.view.camp.go('bag', performance.now());
+  });
+  await frames(page, 40);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.view.camp.bag.sel = app.profile.items[1].uid; // the Captain's Cutlass, against the Hedge Saber worn
+  });
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('bag.png', shot);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.view.camp.go('home', performance.now());
+    app.view.camp.go('forge', performance.now());
+  });
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('forge.png', shot);
+});
+
+test('loot reveal: a Legendary card', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stockProfile(page);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.setPhase(() => {
+      app.run.newRun();
+      app.run.skipScenes();
+      app.run.chooseNode(app.run.choices()[0]);
+    });
+    app.begin();
+    const p = app.profile;
+    app.run.loot = [p.items[3], p.items[1]]; // a Rare hood, then the Legendary cutlass
+    app.setPhase(() => (app.run.phase = 'loot'));
+  });
+  await frames(page, 150);
+  await expect(page).toHaveScreenshot('loot-card.png', shot);
+});
+
+test('world map: the act picker', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stockProfile(page);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.newRun());
+  await frames(page, 30);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = (window as any).__cq3.app.view.worldMap;
+    const g = w.greenmarch();
+    w.tap(g.x, g.y);
+  });
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('act-picker.png', shot);
+});
