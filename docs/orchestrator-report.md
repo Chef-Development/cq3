@@ -1,70 +1,181 @@
-# Combo Quest 3: status report (M3b: the camp, gear and the forge, Region 1; playtest round 2 fixes)
+# Combo Quest 3: status report (M4a "depth": relics, Sable, hero levels and skill trees, a soundtrack per act)
 
 - **Live build:** https://chef-development.github.io/cq3/ (installable PWA, landscape). Every push deploys.
-- **Branch:** `claude/vigilant-pasteur-vlnd12`. PR Chef-Development/cq3#2 (M1 + M3a) was still open, so M3b is built on
-  top of it: PR Chef-Development/cq3#3 includes #2 and supersedes it (merge #3; #2 can be closed).
-- **Tests:** 273 Vitest unit tests (`npm test`, in CI), 5 Playwright smoke tests (the whole gear flow: loot after a
-  win, act clear -> camp -> next act, defeat -> camp -> retry, the act picker; and the launch layout, see below), 8
-  pixel-exact screenshot tests (camp, bag, forge, the Legendary loot card, the act picker, world, maps, fight).
-- **Built by:** a core pass (pure TypeScript, tested), then four parallel agents for the art, the camp UI, the loot
-  reveal / effects / sounds, and the menus / map / accuracy panel, merged and checked together.
+- **Branch:** `claude/m4a-depth`. PR #3 (M3b) was still open, so M4a is built on top of it: the M4a PR includes #3
+  (and #2) and supersedes them (merge the M4a PR; #2 and #3 can be closed).
+- **Tests:** 422 Vitest unit tests (`npm test`, in CI), 7 Playwright smoke tests and 15 pixel-exact screenshot tests
+  (24 baselines; new: relic pick, relic belt and panel, act-clear build, relic unlocked, shop relics, Sable's tutorial
+  and two-cursor bar, hero select, skill tree, relic log, Sable joining the camp).
+- **Built by:** a foundation pass (the data for 40 relics, both heroes and both skill trees; a fight-hook system; XP,
+  levels and skill points; relic offers and unlocks; profile v3 and run save v6), then seven parallel agents (relic
+  effects, Sable's two cursors and her tree, Rowan's tree and XP pacing, the fight UI, the camp UI, the art, the music),
+  merged, rebalanced and checked together.
+- **Playtester accuracy:** not given this round, so the curve stays set for a typical 70% player. When it comes:
+  `ACC=<number> npm run retarget` re-aims the three acts (docs/retarget.md); the gear panel's "Your accuracy" > Copy
+  gives the number.
 
-## Playtest round 2 (after M3b): readability and the launch layout
+## What M4a adds
 
-The playtester sent a screenshot of the "Suspicious Mushroom" event ("Hard to see what the text says - do a full pass
-on readability") and reported "first open the app and sometimes it doesn't match the proper aspect ratio of my
-device". Both are fixed on PR #3; the playtester approved the layout fix (not yet confirmed on the phone).
+### 1. Relics (rule-changing run picks)
+- **The pick after a fight** offers mostly relics plus at most one stat card (55% of picks have one). Relics use the
+  card rarities (19 common, 17 rare, 4 epic), are never offered twice, and follow the boosts' carry/reset rules: they
+  carry from act to act, a retry restores the act-start set, a new run starts with none. Elites, bosses and treasure
+  guarantee a rare (or better) card. Shops sell relics too (x1.25 a card's price).
+- **Every relic changes a rule or a decision, with at most one number** (the text shows it; `tuning.relics.n` has a
+  slider for each). The user's 14 examples are in as written (Powder Keg, Short Fuse, Sharpshooter, Glass Edge, Iron
+  Rhythm, Hoarder, Overcharge, Greenhouse, Chain Reaction, Night Watch, Purple Pact, Momentum, Last Stand, Gold Fever)
+  plus 26 more, e.g. Sapper's Fuse (every 4th red is a bomb), Blast Wave (yellows a blast clears count as hits),
+  Parting Gift (a bomb after each finisher), Weak Spot (the first hit after a block crits), Ricochet (a crit also hits
+  the next foe), Mirror Guard (a Perfect block throws the attack back for the red's own damage), Turtle Shell (shields
+  need one tap less), Shieldbearer (only blocks fill the meter, x3), Crescendo (+1% finisher per combo), Clutch (a miss
+  keeps the combo but costs 3% HP), Overdrive (at 30+ combo deal and take double), Sweeper (the finisher keeps the
+  combo), Quick Draw (a 1-stack finisher x3), Echo Strike (the finisher hits again for 50%), Blood Price (finisher x2
+  for 10% HP), Verdant Surge (a green hit banks a stack), Evergreen, Photosynthesis, Hunting Owl, Lucky Penny, Treasure
+  Nose, Wingman, Vampiric Fang (hits heal 1, rests heal nothing), Field Rations, Tithe (rests cost 20 coins, heal fully),
+  Haggler (the first buy in each shop is free).
+- **Synergy:** 10 tags (Bomb, Crit, Block, Combo, Finisher, Green, Pip, Sustain, Coins, Risk), 1-2 per relic. Offers
+  lean toward tags you own (each shared tag x2.2 more likely); a card that shares a tag shows a gold "Synergy!" badge
+  with the shared tag lit. The act-clear screen names the build from the top tags ("Bomber", "Crit Fiend", or a pair:
+  "Demolisher", "Glass Cannon", "Counterpuncher", "Maestro"...), with the tag chips and the relics collected.
+- **In fights:** the owned relics sit as an icon belt under the coin chip; an icon bobs when its relic kicks in, and a
+  short popup names it (with damage, heals, coins or stacks). Tapping an icon pauses the fight and opens the relic
+  panel (every relic's icon, name, tags, text, "kicked in N times this fight"); taps on the belt are never bar taps.
+- **Unlocks:** 25 relics from the start; 15 unlock: 2 per first act clear, 1 per act for the first elite won, and 6 from
+  event choices (one per event). "New relic unlocked!" cards show on the act clear, after an elite's loot and on the
+  event's outcome. The relic log at camp shows all 40 (locked ones as silhouettes with how to unlock them), NEW marks
+  and "Relics 27/40".
+- **Replays** of a cleared act draft relics first: 2 relic-only picks per act behind ("Starting relic 2/4").
+- **How it works (code):** `src/core/hooks.ts`. Combat collects the hooks of the hero's kit, learned skills and relics
+  and calls them at fixed points (crit chance, hit damage, after a hit/block, meter, combo, combo break, miss, trap,
+  impact, finisher, pecks, kills, bombs). Every relic has a with/without unit test (`tests/unit/relics.test.ts`, 60).
 
-### 1. Readability pass (every screen checked at 8x with the iPhone's safe areas)
-- **The event text (the cause):** the pixel fonts bake a 1 px ink outline and shadow around each glyph, so dark
-  brown text inside a dark outline turned to blobs. Both fonts now have plain twins without the outline
-  (`FONT_PLAIN`, `FONT_BOLD_PLAIN` in `font.ts`), and the text pool picks them by itself for dark colours
-  (`isDarkInk`). That fixes every event, the parchment notes and dark text on gold tags.
-- **Light text:** a brightness floor (`readable()`: no light text colour dimmer than a set level) and a gentler
-  shading gradient on small type, so grey and lavender labels stop sinking into navy panels.
-- **Act map:** node names sit on dark pills over the painted landscape. **World map:** the info plate moves aside
-  instead of covering Greenmarch's plate.
-- **Fight HUD:** enemy names show in full and in bold ("Boar King", was "King"); the Act 3 boss's ~17,000 HP reads
-  "17.1k/17.1k" instead of overflowing the gauge; the enemy's attack moved to a chip under its badge (mirroring the
-  coin chip on the left) to make room for the name.
-- **Defeat and victory:** the subtitle lines get a dark backing strip over the busy stage.
-- **Bag:** "Lv 24 Legendary" wraps to two lines instead of being cut to "Legenda..."; the compare numbers no longer
-  overlap each other (small type, still on a green or red band).
-- **Forge:** warnings shortened to fit ("Worn: unequip it first"); the salvage note and reroll hint stay inside
-  their panel. Also brighter: the loot card's "Tap to continue"; roomier: the all-stats rows; un-squeezed: the
-  shop's rarity tags.
+### 2. Sable, the second hero (Twin family: two cursors)
+- **An original dual-dagger ninja** (hooded, indigo with a teal scarf). After Act 1, Sable tries to rob the camp, Pip
+  catches them and they join (a 6-box scene in the game's tone; it plays at the camp, or before Act 2 if you go on).
+- **Controls:** the bar is split. Cursor A sweeps the left half, B the right half, each at the normal pass time; they
+  move in step, half a bar apart. A tap on the left half of the screen judges A, the right half B; a swipe is the
+  finisher. Reds cross B's half, then A's, so either cursor can block them. Yellows and greens spawn inside either half
+  (never across the middle). One shared combo. The bar draws a blue A and a violet B cursor, a divider and a tint per
+  half. Sable's first fight shows the two tap zones before "Tap to begin".
+- **Kit:** hits deal 0.7x Rowan's. Passive **Ambidextrous**: a hit with the other hand than the last fills the meter
+  25% faster. Green ability **Shadow Step**: for 3 s, a hit with one cursor also hits (or blocks) what's under the
+  other. Finisher **Twin Fang**: hits the current target alone for x1.4 the usual finisher damage; a kill keeps a
+  stack (Rowan's Whirlwind hits every foe).
+- **Art:** a full sprite set (idle, run, a strike per hand, both-hand strike, wind-up, block, hurt, KO, leap, finisher
+  dive), portrait, map walker, a camp pose by the fire, and hero cards.
+- **The bot** plays Sable with two thumbs: an independent timing error, tap rate and pending tap per hand.
+  **At the same accuracy, Sable is within +/-10 points of Rowan** (worst: an 85% player in Act 3, -10; a 70% player
+  -1 to +6). `npm run twin` compares them; `tests/unit/twin-bot.test.ts` guards it.
 
-### 2. The launch layout
-- **Cause:** iOS starts a home-screen app upright and turns it sideways while it opens. The game laid itself out
-  on resize events, and those can come before the new size is readable, or not at all, so it sometimes stayed
-  laid out for the upright screen (3x instead of 8x, letterboxed) until something else resized it.
-- **Fix (`main.ts`):** any sign of a change (resize, orientation, the visual viewport, returning to the app, a
-  ResizeObserver on the game) re-measures several times over the next 2 s, and a slow watch re-measures twice a
-  second. A relayout only rebuilds anything when the measured layout actually changed (`sameLayout`), so the watch
-  is free when nothing moves.
-- **Test:** a smoke test boots upright with every resize event and the ResizeObserver blocked, turns the viewport,
-  and checks the game reaches 8x and the canvas matches.
+### 3. Hero levels and skill trees
+- **XP** from kills (elites and bosses more, more per act) and act clears (double the first time) goes to the hero who
+  fights. Levels 1-30: +2 max HP and +1.5% base attack per level, and a skill point every 2 levels (15 at 30). A
+  typical first playthrough reaches level 3 by the Bandit Captain, 6 by the Golem, 8 at the Boar King and about 9-10
+  after the region; six Act 3 replays add about 5 more. Level 30 is far away (later regions).
+- **Each hero has 3 branches of 5 nodes**, learned in order: two stat nodes, two rule nodes, then a capstone.
+  - Rowan: **Blade** (Keen Edge, Steady Aim, Follow-Through: overkill carries to the next foe, Whetstone: every 5th
+    combo hit crits, capstone **Executioner**: foes under 30% HP take double from yellows); **Bulwark** (Stout, Plate
+    Training, Parry: a Perfect block pushes every red back, Shield Bash: breaking a shield stuns its owner, capstone
+    **Shield Wall**: 5 blocked reds charge a bubble that absorbs one unblocked hit, once a fight); **Momentum** (Rhythm,
+    Power Stance, Double Time: a Perfect hit is 2 combo, Charged Up: fights start with a stack, capstone **Unbroken**:
+    a combo break halves your combo and stacks instead of zeroing them).
+  - Sable: **Crossfire**, alternating hands (Flurry: every 4th alternating hit crits, Twin Rhythm: an alternating hit is
+    2 combo, capstone **Whirling Blades**: 6 alternating hits in a row start Shadow Step); **Shadowguard**,
+    cross-blocking (Cross Guard: one block covers both cursors, Counter Slash: left-cursor blocks hit back, capstone
+    **Afterimage**: each block leaves an afterimage that stops the next red in that half); **Quicksilver**, speed and
+    both hands (Blur: above 1.6x cursor speed hits crit, Double Down: hits with both cursors within 120 ms deal x2,
+    capstone **Quickening**: every 20 combo banks a stack).
+- **Camp:** a hero chip (face, level, XP) and both heroes by the fire; the **hero select** (art, family, bio, level and
+  XP bar, the kit with its numbers, points, Pick; gear is shared); the **skill tree** (three branch rows of five linked
+  nodes, points left, a node card with the text and its before/after: "ATK 12 > 13" or "Now: ... / With it: ...",
+  Learn with the reason when you can't, a free Reset with a confirm tap); the stats screen per hero, with level and
+  skills in the breakdown. The fight HUD shows a level chip; act clears show "+N XP", the XP bar and "Level up!".
+- **Branch balance (bot, 70%):** Act 3 first-try clear by the branch the bot focused: Blade 66%, Momentum 68%,
+  Bulwark 76% (Bulwark's defence matters most against Act 3's big hits; it was 85% before Shield Wall became once a
+  fight and the numbers moved).
 
-## Playtester notes from Act 1 (applied first)
+### 4. A soundtrack per act (`src/engine/music.ts`)
+- Act 1, Meadow Road: D major, 128 BPM, bouncy. Act 2, Old Ruins: E Dorian, 104 BPM, a rolling echoing arpeggio.
+  Act 3, Boar King's Hollow: C minor, 140 BPM, war drums. Each act's melody has a calm arrangement (flute, music box,
+  light pad: map, nodes, scenes) and an intense one (fights), crossfading on the beat.
+- Bandit Captain: an A minor jig in 6/8. Ruin Golem: D Phrygian, 74 BPM, stone stomps. Boar King: G minor, 156 BPM;
+  phase 2 adds drums and brass stabs, phase 3 moves up a whole step with everything in. Camp: a quiet Bb major
+  lullaby in 3/4. Title and world map keep the old map theme.
+- **Combo layers:** drums join at combo 10, bass at 25, lead at 50 (sliders in "Music"), on the beat; they drop back
+  after a combo break (a finisher holds them 2 s).
+- All of it is in the Sound lab (a button per piece, a combo picker, "Game's music"). The audio tests render every
+  piece across its loop point and check levels (no clipping, impacts and telegraphs over the music, layers add up,
+  the Boar King escalates and changes key, crossfades have no gap, under 320 new audio nodes a second).
 
-1. **"Is there a point to choosing a path? No reward or risk."** Nodes now differ in what they give, and the map says
-   so. Under every node you can reach next there is a reward chip: Fight "50% gear", Elite "Gear+" (always an Uncommon
-   or better item; shown in red with a skull: they're the risk), Treasure "Gear x1-2", Rest "+30% HP", Shop "Spend
-   coins", Event "Risky", Boss "Gear x2 + signature" (x3 for the Boar King). Fights still show their foe count.
-2. **"Upgrades don't seem to do much visually; hard to gauge what an upgrade did."**
-   - Boost cards (and shop cards) show the real stat before and after: "ATK 14 -> 16", "Crit 9% -> 14%",
-     "Max HP 120 -> 140", "Pip 6 -> 18", computed from Rowan's actual stats (gear included).
-   - The fight HUD reads the real stats; any gain pulses with "+N" as the next fight starts (stats the plate doesn't
-     show, like Defense or Luck, float up under it).
-   - Gear is visible on Rowan: an Uncommon+ weapon colours his slashes and adds a glint to the blade; Legendary or
-     Mythic gear gives him a faint glowing outline and rising motes (gold while the Tusk Crown's buff is up).
-   - Every gear effect announces itself briefly in fights ("Saved!", "Powder Monkey!", "+1" hearts...).
-   - At the camp, equipping shows each stat before -> after, and coming back to the fire in better gear pops
-     "Gear power +N!".
+### 5. Saves
+- **Profile v3** (same storage key): the picked hero, each hero's XP and skills, the relics unlocked (and which are
+  new), Sable met, the twin tutorial shown. A v2 profile is migrated: Rowan gets the cleared acts' first-clear XP and
+  their act relics unlock. (A v2 profile with all three acts cleared lands at level 7.)
+- **Run save v6:** the hero's relics, the act-start relics, a replay's starting picks left. A v5 save is migrated (no
+  relics yet), so a run in progress survives the update; v4 still migrates through v5.
 
-## What M3b adds
+## Balance (docs/balance.md: 1,000 whole runs per player; farming 333 players per row)
 
-### 0. Accuracy readout (gear panel and every act-clear screen)
+Relics replace most stat cards, so the hero grows by rules, levels and gear instead of numbers. Re-measured with the
+bot (synergy-greedy picks, one skill branch at a time) and rebalanced to the same targets: Act 2 enemies have less HP
+(x1.6, was x2.07) and a bit less attack (x4.4, was x4.6); Act 3 less HP (x2.4, was x3.1) and more attack (x11.4,
+was x8.9), so fights keep their length (normal fights 18 / 26 / 22 s, bosses 36 / 57 / 62 s for a 70% player).
+
+| Player | Act 1 first try | Act 2 first try | Act 3 first try | Boar King first fight won |
+|---|---|---|---|---|
+| 55% | 93% | 68% | 46% | 50% |
+| **70%** | **100%** | **84%** | 72% | **76%** |
+| 85% | 100% | 94% | 92% | 93% |
+| 95% | 100% | 100% | 99% | 99% |
+
+- **Win rates with relics:** builds the bot ends with at the Boar King are mostly Counterpuncher (Block + Finisher),
+  Maestro (Combo + Finisher) and Demolisher (Bomb + Finisher), all winning 74-78% of first fights. Per relic, most
+  sit at 74-80%; the standouts are Verdant Surge (94%, epic), Evergreen (87%), and at the low end Blood Price (68%)
+  and Tithe (70%). The bot carries about 5 relics into the Captain, 12 into the Golem and 19 into the Boar King.
+- **Relics vs stat cards:** the same player taking stat cards only (as before M4a) clears Act 2 first try 97% and
+  wins 84% of first Boar King fights on these act numbers: as the bot plays them, relics are worth a little less raw
+  power than all-stat picks, and the acts were eased to match. A player who builds around a relic's rule should do
+  better than the bot, which doesn't change how it plays for most relics.
+- **The bot leaves Glass Edge and Clutch alone below 80% accuracy** (they charge HP for every miss): picking them
+  blindly cost a 70% player a third of its Act 1 runs. That's the decision those relics are meant to pose.
+- **Farming still pays:** replaying Act 3 raises a typical player's Boar King win rate from 71% (story) to 97-100%.
+- **Sable vs Rowan** (same accuracy, same tuning): within +/-10 points per act (table in docs/balance.md).
+
+## Decisions I made (please check)
+1. **Sable's two cursors move in step** (A over the left half, B over the right, half a bar apart), not
+   independently. Easier to read with two thumbs, and the judge stays one cursor history.
+2. **Twin Fang** (Sable's finisher): hits only the current target, x1.4, and a kill keeps a stack; it still clears all
+   reds like Rowan's.
+3. **Shield Wall** is once a fight (5 blocks charge it). As "every 5 blocks" it made Bulwark win almost every fight.
+4. **Unbroken** halves the combo AND the stacks (combo alone does little: it only speeds the cursor).
+5. **Clutch** costs 3% of max HP per miss (a flat 3 HP was nothing by Act 3 and doubled the bot's damage).
+6. Relics in a pick: 55% of picks have one stat card. The relic shop price is x1.25 a card's.
+7. **Starting HP:** a new run now starts at full HP including gear (it started at the base 100 before).
+
+## Still unverified on the iPhone (checked in headless Chromium and Node)
+- **The music is checked by measured levels only:** nobody has listened to it. Please listen on the phone (speakers
+  and headphones): the act themes, the boss themes, the camp, and the combo layers coming in at 10 / 25 / 50.
+- Sable's two tap zones with real thumbs: whether in-step cursors read well, and whether 0.7x hits feel weak.
+- Relic text on the cards at 8x (two lines each), the relic belt's tap targets, the skill tree's node size.
+- The relic popups' pace in a busy fight (each perk names itself at most every 3.5 s).
+- Everything from M3b's list that is still open (the launch fix on a cold start, loot timings, camp tap targets).
+
+## Known gaps and suggested next steps
+1. **Report the accuracy number** (gear panel > Your accuracy > Copy), then `ACC=<number> npm run retarget`.
+2. **Sable takes about twice the hits of Rowan for a skilled (85%) player** in Acts 2-3 (2.0 vs 4.7 a minute) and wins
+   anyway through damage; if she feels fragile on the phone, widen her reds (`sable.redWidthMult`).
+3. Bulwark is still the safest branch (+8-10 points in Act 3); if it reads as "the right answer", trim Parry or
+   Shield Bash next.
+4. Some special moves place blocks at set spots and don't know about Sable's middle line; a safety net moves such a
+   block into one half (it can overlap a neighbour). Teaching `specials.ts` about the halves would be cleaner.
+5. Sable's accuracy readout uses Rowan's calibration and reads 3-4 points low; a Sable table would fix it.
+6. The shrine (gacha) is still locked; the other backlog items are in docs/backlog.md.
+
+## History
+
+### What M3b added (the camp, gear and the forge; playtest round 2)
+
+#### 0. Accuracy readout (gear panel and every act-clear screen)
 - Measured with the balance bot's own definition: the share of plain yellow blocks the player would hit at the
   starting cursor speed. Every tap aimed at an isolated yellow (no other block or wall turn within 150 ms) gives a
   timing error; the median and spread of the recent ones are mapped through a calibration made by running bots of
@@ -79,14 +190,14 @@ device". Both are fixed on PR #3; the playtester approved the layout fix (not ye
   ~99% first try, Act 2 ~87%, the Boar King ~70% of first fights), and writes docs/retarget.md with the numbers and a
   JSON snippet to paste into the gear panel. Not retuned yet: waiting for the playtester's number.
 
-### 1. Stats (10)
+#### 1. Stats (10)
 HP, Attack, Defense (unblocked reds and bombs deal x100/(100+DEF)), Crit chance, Crit damage, Combo power (finisher),
 Meter gain, Steady (slows how fast the cursor speeds up with combo, capped at 75%), Luck (shifts drop rarity toward the
 rare end and adds coins), Companion power (Pip's pecks). The stats screen (tap Rowan at the camp, or Stats) shows HP,
 Attack, Defense and Crit big, with how much comes from gear; "All stats" lists all 10 with what each does and where it
 comes from (base, this run, gear).
 
-### 2. Gear
+#### 2. Gear
 - **6 slots:** weapon, helm, armor, boots, 2 trinkets. **6 rarities** with frame colours: Common grey, Uncommon green,
   Rare blue, Epic purple, Legendary orange, Mythic red; 0/1/2/3/3/4 bonus stats; Legendary and Mythic add a unique
   effect.
@@ -121,7 +232,7 @@ comes from (base, this run, gear).
   boss's signature drops, ticked when you own them). A replayed act starts Rowan with the boosts a run typically has
   by then (measured with the bot, `tuning.kit`) plus his gear. Signature drops only come from their own boss.
 
-### 3. The camp
+#### 3. The camp
 - **Reachable** from the world map (a Camp button), from every act-clear screen (Camp / Next: Act N+1) and from the
   defeat screen (Camp / Retry the act, so new loot can be equipped before a retry). Back returns where you came from.
 - **Camp home:** a night clearing: Rowan and Pip on a log by the campfire, the bag tent, the forge with Mags, and the
@@ -138,11 +249,11 @@ comes from (base, this run, gear).
 - **Shrine:** locked: the padlock rattles, "The Shrine: coming soon!".
 - **Coins carry over between runs** (the purse lives in the profile) and are spent at act shops and the forge.
 
-### 4. Sound
+#### 4. Sound
 Loot drops climbing with rarity, Epic+ stings, Legendary and Mythic reveal fanfares, the forge hammer and upgrade,
 salvage, equip, lock, reroll, gear-effect cues, and a campfire-and-crickets ambience at the camp. All in the Sound lab.
 
-### 5. Saves
+#### 5. Saves
 - **Profile** (`cq3.profile.v2`): progress, bag, equipped gear, coins, scrap, the signature drops' bad-luck counters,
   the accuracy log, whether Mags was met. The old progress save (v1) is migrated (acts cleared and weights kept).
 - **Run save v5:** a v4 save from the last build is migrated (its coins move into the purse), so a run in progress
@@ -152,58 +263,62 @@ salvage, equip, lock, reroll, gear-effect cues, and a campfire-and-crickets ambi
   stats in a fight, Defense, Steady, sets and every unique effect), forge costs (upgrade, reroll doubling, salvage
   value, refusals) and the migrations (v1 profile, v4 run save, storage writes once).
 
-## Balance (docs/balance.md: 1,000 whole runs per player; farming 333 players per row)
 
-The bot now wears the best gear it finds. Found gear made a first playthrough much easier (the Boar King's first fight
-went from 71% to 96% won for a typical player), so to keep the curve the playtester liked: gear stats were set to
-0.8x the first draft, and Acts 2 and 3 hit harder and have more HP (x1.15 and x1.35). Not a retarget: same targets,
-same typical player.
+### Playtest round 2 (after M3b): readability and the launch layout
 
-| Player | Act 1 first try | Act 2 first try | Act 3 first try | Boar King first fight won |
-|---|---|---|---|---|
-| 55% | 97% | 60% | 41% | 44% |
-| **70%** | **100%** | **85%** | 65% | **67%** |
-| 85% | 100% | 97% | 92% | 92% |
-| 95% | 100% | 100% | 99% | 99% |
+The playtester sent a screenshot of the "Suspicious Mushroom" event ("Hard to see what the text says - do a full pass
+on readability") and reported "first open the app and sometimes it doesn't match the proper aspect ratio of my
+device". Both are fixed on PR #3; the playtester approved the layout fix (not yet confirmed on the phone).
 
-- **The story can be beaten with found gear alone:** 99% of typical (70%) players clear Act 3 within 6 tries (90% of
-  55% players).
-- **Farming the Boar King measurably raises the win rate** (each replay of Act 3 keeps all gear):
+#### 1. Readability pass (every screen checked at 8x with the iPhone's safe areas)
+- **The event text (the cause):** the pixel fonts bake a 1 px ink outline and shadow around each glyph, so dark
+  brown text inside a dark outline turned to blobs. Both fonts now have plain twins without the outline
+  (`FONT_PLAIN`, `FONT_BOLD_PLAIN` in `font.ts`), and the text pool picks them by itself for dark colours
+  (`isDarkInk`). That fixes every event, the parchment notes and dark text on gold tags.
+- **Light text:** a brightness floor (`readable()`: no light text colour dimmer than a set level) and a gentler
+  shading gradient on small type, so grey and lavender labels stop sinking into navy panels.
+- **Act map:** node names sit on dark pills over the painted landscape. **World map:** the info plate moves aside
+  instead of covering Greenmarch's plate.
+- **Fight HUD:** enemy names show in full and in bold ("Boar King", was "King"); the Act 3 boss's ~17,000 HP reads
+  "17.1k/17.1k" instead of overflowing the gauge; the enemy's attack moved to a chip under its badge (mirroring the
+  coin chip on the left) to make room for the name.
+- **Defeat and victory:** the subtitle lines get a dark backing strip over the busy stage.
+- **Bag:** "Lv 24 Legendary" wraps to two lines instead of being cut to "Legenda..."; the compare numbers no longer
+  overlap each other (small type, still on a green or red band).
+- **Forge:** warnings shortened to fit ("Worn: unequip it first"); the salvage note and reroll hint stay inside
+  their panel. Also brighter: the loot card's "Tap to continue"; roomier: the all-stats rows; un-squeezed: the
+  shop's rarity tags.
 
-  | Player | Story (found gear) | Replay 1 | Replay 2 | Replay 3 | Replay 6 |
-  |---|---|---|---|---|---|
-  | 55% | 42% | 65% | 73% | 84% | 90% |
-  | **70%** | **69%** | **85%** | **91%** | **95%** | **97%** |
-  | 85% | 93% | 98% | 98% | 100% | 99% |
+#### 2. The launch layout
+- **Cause:** iOS starts a home-screen app upright and turns it sideways while it opens. The game laid itself out
+  on resize events, and those can come before the new size is readable, or not at all, so it sometimes stayed
+  laid out for the upright screen (3x instead of 8x, letterboxed) until something else resized it.
+- **Fix (`main.ts`):** any sign of a change (resize, orientation, the visual viewport, returning to the app, a
+  ResizeObserver on the game) re-measures several times over the next 2 s, and a slow watch re-measures twice a
+  second. A relayout only rebuilds anything when the measured layout actually changed (`sameLayout`), so the watch
+  is free when nothing moves.
+- **Test:** a smoke test boots upright with every resize event and the ResizeObserver blocked, turns the viewport,
+  and checks the game reaches 8x and the canvas matches.
 
-  Gear power (the bag's rating) roughly doubles over six replays (about 400 -> 750). Letting the bot also use the
-  forge between replays adds only a few points (it spends most coins at shops).
-- Fight lengths are unchanged (normal fights 17 / 25 / 22 s, bosses 39 / 56 / 60 s for a 70% player); no boss can be
-  one-shot.
 
-## Still unverified on the iPhone (checked in headless Chromium and Node)
+### Playtester notes from Act 1 (applied first)
 
-- The launch fix on a real cold start from the home screen (the iOS rotation can't be reproduced headless; the
-  test covers the worst case of no events at all).
-- The readability pass at 8x on the phone (screens were audited in headless Chromium at the phone's size and safe
-  areas).
-- Loot feel at 8x on the phone: the beam/reveal timings, whether the full-screen card is too long or too short.
-- The camp screens at 8x: grid cell size (14 px), the compare card's text size, tap targets in the forge.
-- The map reward chips: on the very first screen (three stacked fights) they partly cover the next row's nodes.
-- The accuracy number on a real player: it is calibrated against the bot; humans might differ a little (the panel
-  shows the raw timing spread and lateness too, so it can be cross-checked).
-- Whether the Defense/Steady/Meter gains feel noticeable in fights.
+1. **"Is there a point to choosing a path? No reward or risk."** Nodes now differ in what they give, and the map says
+   so. Under every node you can reach next there is a reward chip: Fight "50% gear", Elite "Gear+" (always an Uncommon
+   or better item; shown in red with a skull: they're the risk), Treasure "Gear x1-2", Rest "+30% HP", Shop "Spend
+   coins", Event "Risky", Boss "Gear x2 + signature" (x3 for the Boar King). Fights still show their foe count.
+2. **"Upgrades don't seem to do much visually; hard to gauge what an upgrade did."**
+   - Boost cards (and shop cards) show the real stat before and after: "ATK 14 -> 16", "Crit 9% -> 14%",
+     "Max HP 120 -> 140", "Pip 6 -> 18", computed from Rowan's actual stats (gear included).
+   - The fight HUD reads the real stats; any gain pulses with "+N" as the next fight starts (stats the plate doesn't
+     show, like Defense or Luck, float up under it).
+   - Gear is visible on Rowan: an Uncommon+ weapon colours his slashes and adds a glint to the blade; Legendary or
+     Mythic gear gives him a faint glowing outline and rising motes (gold while the Tusk Crown's buff is up).
+   - Every gear effect announces itself briefly in fights ("Saved!", "Powder Monkey!", "+1" hearts...).
+   - At the camp, equipping shows each stat before -> after, and coming back to the fire in better gear pops
+     "Gear power +N!".
 
-## Known gaps and suggested next steps
 
-1. **Report the accuracy number** (gear panel > Your accuracy > Copy). Then `ACC=<number> npm run retarget` gives the
-   act numbers for that player.
-2. **The shrine (gacha)** is the next meta feature (locked at the camp). Other backlog items: docs/backlog.md.
-3. The bot spends little at the forge; if upgrades should matter more for farming, lower forge prices
-   (`tuning.forge`) or raise `forge.upgradeStep`.
-4. Small HP upgrades round away until they cross a whole HP (the forge shows one decimal so it visibly moves).
-
-## History
 
 ### Playtest round 1 (after M3a)
 

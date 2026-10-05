@@ -1,5 +1,9 @@
 # Backlog: meta-game seen in the reference (deferred)
 
+**Done in M4a:** relics (rule-changing run picks with synergy tags, unlocks and a relic log), a second hero (Sable,
+two cursors) with a hero select at the camp, hero levels (1-30) and a skill tree per hero, a soundtrack per act.
+The reference's hero roster (more heroes, Lvl Up priced in gems) and companions are still to come.
+
 **Done in M3b:** gear (6 slots, 6 rarities, 10 stats, sets, signature boss drops), the camp with the bag and the
 forge (upgrade, reroll, salvage), coins kept between runs, farming cleared acts. The **shrine** (the gacha) stands at
 the camp, locked ("coming soon"): it is the next meta feature.
