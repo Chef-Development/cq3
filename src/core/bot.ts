@@ -323,24 +323,28 @@ export function spendSkills(run: Run, rng: Rng): void {
   run.refreshGear();
 }
 
-/** Shop policy: a potion when hurt, then the cards it wants most that it can afford. */
+/** Shop policy: Haggler's free buy on the dearest card, a potion when hurt, then the cards it wants most that it can
+ *  afford. */
 function shop(run: Run): void {
   const T = run.tuning;
-  const potion = run.shop.findIndex((i) => i.kind === 'potion');
-  if (run.hero.hp < heroMaxHp(T, run.hero) * 0.6 && potion >= 0) run.buy(potion);
   const cards = run.shop.map((item, i) => ({ item, i })).filter((x) => x.item.kind === 'boost' && x.item.offer);
   cards.sort((a, b) => offerScore(run, b.item.offer!) - offerScore(run, a.item.offer!));
+  if (run.shopFree && cards.length) run.buy(cards.reduce((a, b) => (b.item.price > a.item.price ? b : a)).i);
+  const potion = run.shop.findIndex((i) => i.kind === 'potion');
+  if (run.hero.hp < heroMaxHp(T, run.hero) * 0.6 && potion >= 0) run.buy(potion);
   for (const { i } of cards) run.buy(i);
 }
 
 /**
- * Whether the bot aims at a block at all (the relic agent teaches it relic-specific decisions here): never a purple
- * trap, never a yellow while a raised shield is read.
+ * Whether the bot aims at a block at all: never a purple trap, never a yellow while a raised shield is read. With
+ * relics it plays them like a person: Purple Pact makes a trap a stack for a few HP (worth it while HP is above half
+ * and a stack would bank); with Short Fuse a bomb left alone blows up on the enemies anyway, so it lets bombs come
+ * (unless Powder Keg pays a stack for tapping one).
  */
 export function wantsBlock(c: Combat, b: Block, guarded: boolean): boolean {
-  void c;
-  if (b.kind === 'purple') return false;
+  if (b.kind === 'purple') return c.hasPerk('purplePact') && c.hero.hp > c.maxHp() * 0.5 && c.stacks < c.maxStacks();
   if (guarded && b.kind === 'yellow') return false;
+  if (b.kind === 'bomb' && c.hasPerk('shortFuse') && !c.hasPerk('powderKeg')) return false;
   return true;
 }
 
