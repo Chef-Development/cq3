@@ -257,11 +257,11 @@ export function playAct(run: Run, rng: Rng, o: BotOptions): ActAttempt {
       run.collectLoot();
       equipBest(run);
       spendSkills(run, rng);
-    } else if (ph === 'boost') run.pickBoost(botPick(run, rng));
+    } else if (ph === 'boost') run.pickBoost(botPick(run, rng, o.accuracy));
     else if (ph === 'treasure') run.openTreasure();
     else if (ph === 'rest') run.rest();
     else if (ph === 'shop') {
-      shop(run);
+      shop(run, o.accuracy);
       run.leaveShop();
     } else if (ph === 'event') {
       // a random choice it can afford
@@ -288,19 +288,28 @@ export function playAct(run: Run, rng: Rng, o: BotOptions): ActAttempt {
   return out;
 }
 
+/** Relics that charge HP for every miss: a player who misses a lot leaves them alone. */
+const MISS_COST: RelicId[] = ['glassEdge', 'clutch'];
+/** Below this accuracy the bot passes on MISS_COST relics. */
+const MISS_COST_ACCURACY = 0.8;
+
 /** How much the bot wants a card: a relic by the tags it shares with what it owns (synergy-greedy), then rarity;
- *  a stat card by rarity, below any relic of its rarity. */
-export function offerScore(run: Run, o: BoostOffer): number {
-  if (o.id === 'relic' && o.relic) return 10 * sharedTags(o.relic, run.hero.relics).length + 2 * rarityRank(o.rarity) + 1;
+ *  a stat card by rarity, below any relic of its rarity. A relic that charges for misses is a no for a player who
+ *  misses a lot (below MISS_COST_ACCURACY): it ranks under every other card. */
+export function offerScore(run: Run, o: BoostOffer, accuracy = TYPICAL_ACCURACY): number {
+  if (o.id === 'relic' && o.relic) {
+    if (accuracy < MISS_COST_ACCURACY && MISS_COST.includes(o.relic)) return -1;
+    return 10 * sharedTags(o.relic, run.hero.relics).length + 2 * rarityRank(o.rarity) + 1;
+  }
   return 2 * RARITIES.indexOf(o.rarity);
 }
 
 /** The bot's pick: Full Heal when hurt; otherwise the card it wants most (a random one among equals). */
-export function botPick(run: Run, rng: Rng): number {
+export function botPick(run: Run, rng: Rng, accuracy = TYPICAL_ACCURACY): number {
   const offers = run.boostChoices;
   const heal = offers.findIndex((b) => b.id === 'heal');
   if (heal >= 0 && run.hero.hp < heroMaxHp(run.tuning, run.hero) * 0.5) return heal;
-  const score = offers.map((o) => offerScore(run, o));
+  const score = offers.map((o) => offerScore(run, o, accuracy));
   const best = Math.max(...score);
   const top = offers.map((_, i) => i).filter((i) => score[i] === best);
   return top[rng.int(top.length)];
@@ -329,10 +338,12 @@ export function spendSkills(run: Run, rng: Rng): void {
 
 /** Shop policy: Haggler's free buy on the dearest card, a potion when hurt, then the cards it wants most that it can
  *  afford. */
-function shop(run: Run): void {
+function shop(run: Run, accuracy: number): void {
   const T = run.tuning;
-  const cards = run.shop.map((item, i) => ({ item, i })).filter((x) => x.item.kind === 'boost' && x.item.offer);
-  cards.sort((a, b) => offerScore(run, b.item.offer!) - offerScore(run, a.item.offer!));
+  const cards = run.shop
+    .map((item, i) => ({ item, i }))
+    .filter((x) => x.item.kind === 'boost' && x.item.offer && offerScore(run, x.item.offer, accuracy) >= 0);
+  cards.sort((a, b) => offerScore(run, b.item.offer!, accuracy) - offerScore(run, a.item.offer!, accuracy));
   if (run.shopFree && cards.length) run.buy(cards.reduce((a, b) => (b.item.price > a.item.price ? b : a)).i);
   const potion = run.shop.findIndex((i) => i.kind === 'potion');
   if (run.hero.hp < heroMaxHp(T, run.hero) * 0.6 && potion >= 0) run.buy(potion);
