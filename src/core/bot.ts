@@ -18,7 +18,7 @@ import type { NodeType } from '../data/types';
 import { SLOT_KEYS, slotOf } from '../data/gear';
 import { DT, heroAtk, heroMaxHp, isRed, type Combat, type CombatEvent } from './combat';
 import { itemPower, slotOfItem, upgradeCost } from './gear';
-import { canLearn, learn, pointsLeft, treeOf } from './heroes';
+import { canLearn, learn, pointsLeft, treeOf, type HeroId } from './heroes';
 import { equip, equippedItems, heroProgress, newProfile, salvageAll, upgrade, type Profile } from './profile';
 import { rarityRank, sharedTags } from './relics';
 import { Rng } from './rng';
@@ -29,6 +29,7 @@ import { DEFAULT_SETTINGS, type Settings, type Tuning } from './tuning';
 export interface BotOptions {
   accuracy: number; // share of plain yellow blocks hit at the starting cursor speed (0..1); sets the timing spread
   seed: number;
+  hero?: HeroId; // who plays (default Rowan); Sable is unlocked for the bot
   gapMs?: number; // fastest tap rate (ms between taps)
   reactMs?: number; // a block must have been on the bar this long before it can be tapped
   lapse?: number; // share of taps that go badly wrong (80-250 ms off): a glance away, a late thumb
@@ -153,6 +154,10 @@ export function equipBest(run: Run): void {
  */
 export function playRun(tuning: Tuning, o: BotOptions, maxAttempts = 6, acts = tuning.acts.length, profile: Profile = newProfile()): RunStats {
   const rng = new Rng(o.seed ^ 0x2545f491);
+  if (o.hero && o.hero !== 'rowan') {
+    profile.heroes[o.hero].unlocked = true;
+    profile.hero = o.hero;
+  }
   const run = botRun(tuning, o.seed, profile);
   const out: RunStats = { acts: [] };
   for (let a = 0; a < acts; a++) {

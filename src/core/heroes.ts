@@ -204,3 +204,15 @@ function addStat(o: BuildBonus, s: SkillStat, n: number): void {
 }
 
 export const isHeroId = (v: unknown): v is HeroId => typeof v === 'string' && HERO_IDS.includes(v as HeroId);
+
+/** What a node changes, as the skill screen shows it: stat nodes compute the stat before and after from the hero's
+ *  real stats (pass them in: `before` from heroStats now, `after` with the node learned); rule nodes use their text. */
+export function skillPreview(t: Tuning, node: SkillNode): { stat: string; delta: string } | { before: string; after: string } {
+  if (node.kind === 'stat' && node.stat) {
+    const n = skillN(t, node.id);
+    const name: Record<SkillStat, string> = { atkPct: 'ATK', critChance: 'Crit', hpPct: 'Max HP', def: 'DEF', meterGain: 'Meter', comboPower: 'Combo' };
+    const pct = node.stat === 'def' || node.stat === 'comboPower' ? '' : '%';
+    return { stat: name[node.stat], delta: `+${Math.round(n * 100) / 100}${pct}` };
+  }
+  return { before: skillText(t, node, node.before ?? ''), after: skillText(t, node, node.after ?? node.text) };
+}

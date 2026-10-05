@@ -9,6 +9,7 @@ import { eventById } from '../data/events';
 import { GREENMARCH } from '../data/greenmarch';
 import type { ActDef, EventOutcome, RegionDef } from '../data/types';
 import { relicById, type RelicId } from '../data/relics';
+import { skillById } from '../data/skills';
 import { recordActAccuracy, addSamples, type AccEntry } from './accuracy';
 import { Combat, heroMaxHp, heroStats, killCoins, newHero, type Hero, type SavedFoe } from './combat';
 import { rollDrops, setPieces, type Item, type Loadout } from './gear';
@@ -175,6 +176,45 @@ export function boostPreview(t: Tuning, hero: Hero, offer: BoostOffer): BoostPre
     }
     case 'heal':
       return { stat: 'HP', before: `${hero.hp}`, after: `${after.hp}` };
+  }
+}
+
+/**
+ * A stat skill node's change, as the skill screen shows it ("ATK 12 -> 13"), from the hero's real stats with and
+ * without it. Pass the hero with the build of the tree being looked at ({ ...run.hero, build: profileBuild(p, t, id) }).
+ * Null for rule nodes (they show their before/after text: heroes.ts skillPreview).
+ */
+export function skillStatPreview(t: Tuning, hero: Hero, nodeId: string): BoostPreview | null {
+  const node = skillById(nodeId);
+  if (!node || node.kind !== 'stat' || !node.stat) return null;
+  const learned = hero.build.skills.includes(nodeId);
+  const without: Hero = { ...hero, build: { ...hero.build, skills: hero.build.skills.filter((id) => id !== nodeId) } };
+  const withIt: Hero = { ...hero, build: { ...hero.build, skills: learned ? hero.build.skills.slice() : [...hero.build.skills, nodeId] } };
+  const s0 = heroStats(t, without);
+  const s1 = heroStats(t, withIt);
+  switch (node.stat) {
+    case 'atkPct': {
+      const [a, b] = pair(s0.atk, s1.atk);
+      return { stat: 'ATK', before: a, after: b };
+    }
+    case 'critChance': {
+      const [a, b] = pair(s0.critChance * 100, s1.critChance * 100, (v) => `${v}%`);
+      return { stat: 'Crit', before: a, after: b };
+    }
+    case 'hpPct': {
+      const [a, b] = pair(s0.hp, s1.hp);
+      return { stat: 'Max HP', before: a, after: b };
+    }
+    case 'def': {
+      const [a, b] = pair(s0.def, s1.def);
+      return { stat: 'DEF', before: a, after: b };
+    }
+    case 'meterGain': {
+      const [a, b] = pair(s0.meterGain * 100, s1.meterGain * 100, (v) => `+${v}%`);
+      return { stat: 'Meter', before: a, after: b };
+    }
+    case 'comboPower':
+      return { stat: 'Combo', before: `${Math.round(s0.comboPower * 10) / 10}`, after: `${Math.round(s1.comboPower * 10) / 10}` };
   }
 }
 
