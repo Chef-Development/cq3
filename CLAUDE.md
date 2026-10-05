@@ -122,7 +122,7 @@ src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Ph
                backdrop.ts (forest, ruins, hollow), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
 src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemies, Pip, telegraphs, summons,
                finisher show, deaths), effects.ts (particles, floaters, camera), bar.ts (timing bar, blocks,
-               telegraph previews, cursor), hud.ts (stats, meter, coins, stat rain), overlays.ts (title, boost,
+               telegraph previews, cursor), hud.ts (hero and enemy plates, meter, coins, relic belt), overlays.ts (title, boost,
                chest, defeat, victory, pause), world.ts (kingdom world map), map.ts (act map), story.ts (scenes),
                nodes.ts (rest, shop, events), camp.ts (the camp home; bag.ts, forge.ts, heroes.ts (hero select),
                stats.ts, skills.ts (skill trees), relic-log.ts its screens; item-grid.ts the bag grid and worn
