@@ -376,12 +376,15 @@ export class LootView {
       this.flashAt = now;
       this.flashCol = d.face[0];
     }
+    // the big ones land with a jolt (the row and the stage behind it)
     if (d.r >= 5) {
       this.shakeUntil = now + 320;
       this.shakeMag = 2;
+      this.s.fx.shake(3, 320);
     } else if (d.r >= 4) {
       this.shakeUntil = now + 160;
       this.shakeMag = 1;
+      this.s.fx.shake(2, 180);
     }
   }
 
