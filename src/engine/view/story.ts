@@ -18,11 +18,14 @@ type G = Phaser.GameObjects.Graphics;
 const TYPE_CPS = 55;
 /** Speakers whose portrait stands on the left (the heroes and the narrator); villains stand on the right. */
 const LEFT: Speaker[] = ['narrator', 'rowan', 'pip'];
+/** Friends who aren't heroes (Mags the smith): on the right like a villain, but in warm forge colors. */
+const ALLY: Speaker[] = ['smith'];
 /** Portrait backdrop [top, bottom] and name ribbon per side. */
 const LOOK = {
   narrator: { bg: [0x3a3060, 0x1e1836], ribbon: RIBBON.purple, name: 0xf0e0ff },
   hero: { bg: [0x3a6aa8, 0x1a2c52], ribbon: RIBBON.blue, name: 0xfff07a },
   foe: { bg: [0x8a2a3a, 0x3a1020], ribbon: RIBBON.red, name: 0xffe0c0 },
+  ally: { bg: [0xa8642a, 0x3e2014], ribbon: RIBBON.green, name: 0xfff6c0 },
 } as const;
 
 export class StoryView {
@@ -125,7 +128,7 @@ export class StoryView {
 
     // portrait in a gold frame standing on the box; a new speaker slides in from their side
     const left = LEFT.includes(box.who);
-    const look = box.who === 'narrator' ? LOOK.narrator : left ? LOOK.hero : LOOK.foe;
+    const look = box.who === 'narrator' ? LOOK.narrator : left ? LOOK.hero : ALLY.includes(box.who) ? LOOK.ally : LOOK.foe;
     const fw = 46;
     const wk = easeBack((now - this.whoAt) / 240, 1.6);
     const slide = Math.round((1 - wk) * (left ? -26 : 26));
