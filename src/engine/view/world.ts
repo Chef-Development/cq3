@@ -6,7 +6,8 @@
 // Pendulum's swing grows with the weights brought home; a flag flies over each Greenmarch act cleared.
 // Tap Greenmarch (anywhere on its land, Rowan or the plate) to start a run (once an act is cleared: the act picker,
 // to replay a cleared act for its drops or go on with the story); a locked region rattles its padlock and shows its
-// name; the capital tells how many weights are home. The Camp button (bottom left) opens the camp.
+// name; the capital tells how many weights are home. The Camp button (bottom left) opens the camp. Once Act 1 is
+// cleared, a wandering foe sometimes paces the Meadow Road: tap it for a bonus skirmish (view/world-roam.ts).
 //
 // Everything animates from `now` (deterministic for the screenshot tests): textures were pre-rendered at boot,
 // so a frame only moves images, swaps their frames, and draws a modest number of rects.
@@ -40,6 +41,7 @@ import { glyph, glyphSize } from './overlays';
 import { button3d, glow, NAVY, panel } from './pixels';
 import { easeBack, inRect, mix, pulse, INK, WHITE, type Rect } from './shared';
 import { FACE, ImagePool, isPressed, notePress, ribbon, RIBBON, TextPool } from './ui';
+import { WorldRoam } from './world-roam';
 import { WorldLife } from './world-life';
 
 type G = Phaser.GameObjects.Graphics;
@@ -151,6 +153,8 @@ export class WorldView {
   private gPick!: G;
   private pickTexts: TextPool;
   private pickIcons: ImagePool;
+  /** The wandering foe on the road, and its skirmish card. */
+  readonly roam: WorldRoam;
   /** Gulls, dolphins and the sparkle out at sea (view/world-life.ts): only the taps nothing else takes. */
   readonly life: WorldLife;
 
@@ -158,6 +162,7 @@ export class WorldView {
     this.texts = new TextPool(s, DEPTH.text);
     this.pickTexts = new TextPool(s, DEPTH.pickText);
     this.pickIcons = new ImagePool(s);
+    this.roam = new WorldRoam(s);
     this.life = new WorldLife(
       s,
       (x, y) => !this.targetAt(x, y) && !inRect(this.campButton(), x, y, 3),
@@ -204,6 +209,7 @@ export class WorldView {
     this.g = s.add.graphics().setDepth(DEPTH.ui);
     this.gPick = s.add.graphics().setDepth(DEPTH.pick);
     this.pickIcons.destroy();
+    this.roam.build();
     this.life.build();
     // the cart's stretch of road: from past Rowan to the capital's gate
     this.road = WORLD_ROAD.filter(([rx]) => rx >= 80);
@@ -315,6 +321,8 @@ export class WorldView {
     const s = this.s;
     if (this.chosenAt) return;
     if (this.picker) return this.pickTap(x, y);
+    // the wandering foe (and its card)
+    if (this.roam.tap(x, y)) return;
     const now = performance.now();
     if (x >= 0 && inRect(this.campButton(), x, y, 3)) {
       notePress(this.campButton());
@@ -359,6 +367,7 @@ export class WorldView {
     this.pickTexts.hide();
     this.pickIcons.hide();
     this.picker = null;
+    this.roam.hide();
     this.life.hide();
   }
 
@@ -376,6 +385,7 @@ export class WorldView {
     this.drawCapital(t);
     this.drawLocked(now, t);
     this.drawUi(now, t);
+    this.roam.draw(now);
     this.life.draw(now);
     this.texts.end();
     this.pickTexts.begin();

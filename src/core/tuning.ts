@@ -194,6 +194,53 @@ export const DEFAULT_TUNING = {
     potionHeal: 0.4,
     priceReroll: 20, // one reroll of the next 1-of-3 boost pick
   },
+  extras: {
+    // What else an act map holds (core/roam.ts places it after the map is built): stops per act...
+    rush: 1, // ...Coin Rush (the mini-game: a fight against a coin sack that never attacks)
+    bounty: 1, // ...a bounty board (a side quest for the rest of the act)
+    secret: 1, // ...a secret cache, hidden beside a node (revealed when the hero stands there)
+  },
+  roam: {
+    // Wandering packs and the travelling merchant on the act map (core/roam.ts): they step along the links each
+    // time the hero moves, their next step shown. Meeting a pack is an ambush: its foes come as extra waves.
+    packsFirst: 1, // packs on Act 1's map...
+    packsLast: 2, // ...ramping to this many on the last act's
+    merchant: 1, // travelling merchants per act map (0 = none)
+    ambushCoins: 15, // an ambush won pays this x (act + 1) coins on top of the kills...
+    ambushItems: 1, // ...this many extra items (Uncommon or better)...
+    ambushPick: 1, // ...and its 1-of-3 pick is at least rare (1) or epic (2)
+    merchantRelics: 1, // the merchant sells this many relics (rare or better) and a potion...
+    merchantPrice: 0.85, // ...at a shop's prices x this
+  },
+  rush: {
+    // Coin Rush (core/combat.ts rush mode): seconds on the bar against a coin sack; every hit drops coins
+    sec: 12,
+    perHit: 1, // coins per hit...
+    comboStep: 15, // ...+1 for every this many combo
+    perfect: 1, // ...+this for a perfect hit
+    perStack: 4, // a finisher pays this x the stacks spent
+  },
+  quests: {
+    // Bounties (core/quests.ts): each goal's number, and what a coins bounty pays (x (act + 1))
+    blocks: 25, // block this many reds in the act
+    combo: 40, // reach this combo in one fight
+    healthy: 0.8, // win a fight with HP above this share
+    flawless: 2, // clear this many waves without a miss or a hit taken
+    kills: 15, // defeat this many foes in the act
+    coins: 50,
+  },
+  secret: {
+    coinsMult: 2, // a secret cache holds this x a treasure chest's coins...
+    items: 1, // ...this many items (Rare or better)...
+    pick: 2, // ...and a relic pick at least rare (1) or epic (2), from every relic (a locked one unlocks)
+  },
+  wander: {
+    // The world map's wandering foe (core/skirmish.ts): it shows up once this many fights have been won since the
+    // last one (an act cleared at least once); beating it in a skirmish drops gear and gives XP
+    every: 8,
+    xp: 40, // XP x (act + 1), on top of the kills'
+    items: 1, // items it drops (Uncommon or better)
+  },
   gear: {
     // Drops (core/gear.ts). Rarity weights, common to mythic; Luck shifts them toward the rare end: each step above
     // common is weighted x (1 + luck x luckShift x step), so 20% Luck makes a Mythic 2x as likely.
@@ -675,6 +722,49 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('map.pricePotion', 'Shop: potion', 0, 200, 5),
         s('map.potionHeal', 'Potion heals', 0, 1, 0.05),
         s('map.priceReroll', 'Shop: reroll', 0, 200, 5),
+      ],
+    },
+    {
+      title: 'Map extras (per act)',
+      sliders: [
+        s('extras.rush', 'Coin Rush stops', 0, 3, 1),
+        s('extras.bounty', 'Bounty boards', 0, 2, 1),
+        s('extras.secret', 'Secret caches', 0, 1, 1),
+        s('roam.packsFirst', 'Packs: Act 1', 0, 3, 1),
+        s('roam.packsLast', 'Packs: last act', 0, 3, 1),
+        s('roam.merchant', 'Travelling merchants', 0, 1, 1),
+        s('roam.ambushCoins', 'Ambush coins x act', 0, 100, 1),
+        s('roam.ambushItems', 'Ambush extra items', 0, 3, 1),
+        s('roam.ambushPick', 'Ambush pick: rare 1, epic 2', 0, 2, 1),
+        s('roam.merchantRelics', 'Merchant: relics for sale', 0, 3, 1),
+        s('roam.merchantPrice', 'Merchant prices x', 0.2, 1.5, 0.05),
+      ],
+    },
+    {
+      title: 'Coin Rush',
+      sliders: [
+        s('rush.sec', 'Seconds', 4, 30, 1),
+        s('rush.perHit', 'Coins per hit', 0, 5, 1),
+        s('rush.comboStep', '+1 coin every combo', 2, 50, 1),
+        s('rush.perfect', 'Perfect hit +coins', 0, 5, 1),
+        s('rush.perStack', 'Finisher coins x stack', 0, 20, 1),
+      ],
+    },
+    {
+      title: 'Bounties, secrets, skirmishes',
+      sliders: [
+        s('quests.blocks', 'Bounty: reds to block', 1, 80, 1),
+        s('quests.combo', 'Bounty: combo to reach', 5, 150, 1),
+        s('quests.healthy', 'Bounty: win above HP', 0.1, 1, 0.05),
+        s('quests.flawless', 'Bounty: clean waves', 1, 10, 1),
+        s('quests.kills', 'Bounty: foes to defeat', 1, 60, 1),
+        s('quests.coins', 'Bounty coins x act', 0, 300, 5),
+        s('secret.coinsMult', 'Secret: coins x treasure', 0, 6, 0.25),
+        s('secret.items', 'Secret: items (Rare+)', 0, 3, 1),
+        s('secret.pick', 'Secret pick: rare 1, epic 2', 0, 2, 1),
+        s('wander.every', 'Skirmish after fights won', 1, 40, 1),
+        s('wander.xp', 'Skirmish XP x act', 0, 300, 5),
+        s('wander.items', 'Skirmish items', 0, 3, 1),
       ],
     },
   );

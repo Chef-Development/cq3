@@ -738,6 +738,20 @@ export class Hud {
     panel(g, plate, { alpha: 0.94 });
     const gx = X - 102;
     const gy = y0 + 4;
+    if (c.rush > 0) {
+      // Coin Rush: the plate is its clock (the sack can't be emptied): the time left, ticking down in gold
+      const left = Math.max(0, c.rush - s.app.renderTime(now));
+      const share = left / c.rush;
+      const urgent = left < 3 && left > 0 && Math.floor(now / 160) % 2 === 0;
+      gauge(g, gx, gy, 76, 8, share, share, { ramp: urgent ? RAMP.foe : RAMP.gold, mirror: true, seg: Math.max(1, Math.round(c.rush)) });
+      hudIcon(g, 'clock', gx + 21, gy - 1);
+      this.texts.text(`${Math.ceil(left)}`, gx + 32, gy + 4, urgent ? 0xfff0c0 : WHITE, { bold: true, oy: 0.5 });
+      this.texts.text(def.name, gx, y0 + 18, 0xffe680, { bold: true, oy: 0.5 });
+      const b: Rect = { x: X - 22, y: y0, w: 22, h: 22 };
+      this.badge(g, b, [0xfff0a0, 0xf2c230, 0x9a5a14], [0x6a4a10, 0x3a2408]);
+      hudIcon(g, 'coin', b.x + 6, b.y + 6);
+      return;
+    }
     gauge(g, gx, gy, 76, 8, shownHp / target.maxHp, ghost, { ramp: def.boss ? RAMP.boss : RAMP.foe, mirror: true, seg: 8 });
     const prevNum = Math.ceil(this.foeNum);
     this.foeNum += (shownHp - this.foeNum) * Math.min(1, dt * 16);

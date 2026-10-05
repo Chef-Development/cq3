@@ -74,7 +74,8 @@ export class NodeScreens {
     const cards = this.s.app.run.shop.filter((x) => x.kind === 'boost').length;
     if (item?.kind === 'boost') return { x: b.x + 8, y: b.y + 11 + i * 24, w: b.w - 16, h: 21 };
     const y = b.y + 11 + cards * 24;
-    const half = Math.floor((b.w - 16 - 6) / 2);
+    // (the travelling merchant sells no reroll: her potion has the row to itself)
+    const half = this.s.app.run.shop.some((x) => x.kind === 'reroll') ? Math.floor((b.w - 16 - 6) / 2) : b.w - 16;
     return item?.kind === 'potion' ? { x: b.x + 8, y, w: half, h: 14 } : { x: b.x + b.w - 8 - half, y, w: half, h: 14 };
   }
 
@@ -359,8 +360,10 @@ export class NodeScreens {
     const { r: b, k } = this.popIn(this.shopBoard(), now);
     panel(g, b, { trim: 'full', alpha: clamp01(k * 2) });
     if (k < 0.98) return;
-    ribbon(g, b.x + b.w / 2, b.y - 6, 70, 12, RIBBON.green);
-    this.texts.text('Shop', b.x + b.w / 2, b.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    // the travelling merchant's small shop has her own banner
+    const title = run.merchant ? 'Trader' : 'Shop';
+    ribbon(g, b.x + b.w / 2, b.y - 6, 70, 12, run.merchant ? RIBBON.blue : RIBBON.green);
+    this.texts.text(title, b.x + b.w / 2, b.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     // the purse: a gold tag on the panel's corner
     const cw = textWidth(`${run.coins}`, 1, true) + 15;
     const cr: Rect = { x: b.x + b.w - cw - 6, y: b.y - 5, w: cw, h: 11 };
@@ -496,6 +499,11 @@ export class NodeScreens {
         if (item.sold) val = `+${Math.round(run.tuning.map.potionHeal * 100)}% HP`;
         else if (after > H.hp) preview = { stat: 'HP', before: `${H.hp}`, after: `${after}` };
         else val = 'HP full';
+        // a half row too tight for "100 -> 130": the share it heals
+        if (preview && r.x + 25 + textWidth(name, 1, true) + previewWidth(preview) > tx - 4) {
+          preview = null;
+          val = `+${Math.round(run.tuning.map.potionHeal * 100)}%`;
+        }
         icon = 'potion';
       } else {
         name = 'Reroll';

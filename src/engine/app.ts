@@ -3,7 +3,7 @@ import { STORY } from '../data/story';
 import { SimClock, tapSimTime } from '../core/clock';
 import type { CombatEvent, TapResult } from '../core/combat';
 import { Run, type Phase } from '../core/run';
-import type { Profile } from '../core/profile';
+import { anythingToErase, type Profile } from '../core/profile';
 import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import { markWelcomed, TipCoach, welcomeScene } from '../core/tips';
 import type { Settings, Tuning } from '../core/tuning';
@@ -94,6 +94,16 @@ export class App {
   startOver(): void {
     eraseProgress();
     window.location.reload();
+  }
+
+  /** The title offers Continue / New game: a run in progress, or anything earned that a New game would erase. */
+  get canContinue(): boolean {
+    return !!this.savedRun || anythingToErase(this.profile);
+  }
+
+  /** The title's New game (tapped twice): wipes everything (the profile and the run; settings stay), from the top. */
+  newGame(): void {
+    this.startOver();
   }
 
   /** Write the profile (after camp actions: equipping, the forge). */
@@ -225,7 +235,7 @@ export class App {
     this.afterPhaseChange(prev);
   }
 
-  /** Title screen: pick the saved run back up (or start fresh if it can't be resumed). */
+  /** Title screen: pick the saved run back up (no run in progress: the world map, everything earned kept). */
   continueRun(): void {
     const save = this.savedRun;
     if (!save) return this.newRun();
@@ -235,7 +245,7 @@ export class App {
     });
   }
 
-  /** New run: the world map first (pick Greenmarch to start). */
+  /** To the world map with everything earned kept (pick Greenmarch to start a run). The title's New game is newGame(). */
   newRun(): void {
     clearRunSave();
     this.savedRun = null;

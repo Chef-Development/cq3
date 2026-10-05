@@ -462,22 +462,44 @@ test('living maps: a tap on a sparkle pays a coin or two, once (not again after 
   expect(errors).toEqual([]);
 });
 
-test('New run keeps what you earned; Start over (the gear panel, asked twice) erases it, keeping the settings', async ({ page }) => {
-  // progress saved before the load: two acts cleared, coins, Rowan at a level; a calibrated tap offset
+test('New game (tapped twice on the title) wipes everything, keeping the settings; Continue keeps it all', async ({ page }) => {
+  // progress saved before the load: two acts cleared, coins, Rowan at a level; a calibrated tap offset; no run saved
   await page.addInitScript(() => {
-    if (sessionStorage.getItem('seeded')) return; // only before the first load (not after Start over's reload)
+    if (sessionStorage.getItem('seeded')) return; // only before the first load (not after New game's reload)
     sessionStorage.setItem('seeded', '1');
     const hero = (unlocked: boolean, xp: number) => ({ unlocked, xp, skills: [] });
-    const p = { v: 3, actsCleared: 2, coins: 321, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 900), sable: hero(true, 0) } };
+    const p = { v: 3, actsCleared: 2, coins: 321, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 900), sable: hero(true, 0) }, tips: ['welcomeM4a'] };
     localStorage.setItem('cq3.profile.v2', JSON.stringify(p));
     localStorage.setItem('cq3.settings.v2', JSON.stringify({ calibrationMs: 37 }));
   });
   await ready(page);
   const a = app(page);
-  // a new run keeps the profile
-  await a((x) => x.newRun());
-  expect(await a((x) => ({ acts: x.profile.actsCleared, coins: x.profile.coins }))).toEqual({ acts: 2, coins: 321 });
-  // Start over: the gear panel's button, two confirms, then a fresh page
+  // anything earned: the title offers Continue / New game (no run in progress: Continue goes to the world map)
+  expect(await a((x) => ({ phase: x.run.phase, saved: !!x.savedRun, can: x.canContinue }))).toEqual({ phase: 'title', saved: false, can: true });
+  await page.waitForTimeout(700); // the buttons ease in
+  await page.screenshot({ path: 'test-results/title-new-game.png' });
+  // one tap on New game only arms it
+  await tapGame(page, 228, 101);
+  await page.waitForTimeout(200);
+  expect(await a((x) => ({ phase: x.run.phase, acts: x.profile.actsCleared }))).toEqual({ phase: 'title', acts: 2 });
+  await page.screenshot({ path: 'test-results/title-new-game-armed.png' });
+  // the second tap erases everything and starts from the top
+  await Promise.all([page.waitForEvent('load'), tapGame(page, 228, 101)]);
+  await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
+  expect(await a((x) => ({ acts: x.profile.actsCleared, coins: x.profile.coins, xp: x.profile.heroes.rowan.xp, sable: x.profile.sableMet, save: !!x.savedRun, can: x.canContinue, cal: x.settings.calibrationMs }))).toEqual({
+    acts: 0,
+    coins: 0,
+    xp: 0,
+    sable: false,
+    save: false,
+    can: false,
+    cal: 37,
+  });
+  // the gear panel's Start over does the same (asked twice)
+  await a((x) => {
+    x.profile.coins = 50;
+    x.saveProfile();
+  });
   let asked = 0;
   page.on('dialog', (d) => {
     asked++;
@@ -488,14 +510,7 @@ test('New run keeps what you earned; Start over (the gear panel, asked twice) er
   await Promise.all([page.waitForEvent('load'), page.locator('#debug button', { hasText: 'Start over' }).click()]);
   await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
   expect(asked).toBe(2);
-  expect(await a((x) => ({ acts: x.profile.actsCleared, coins: x.profile.coins, xp: x.profile.heroes.rowan.xp, sable: x.profile.sableMet, save: !!x.savedRun, cal: x.settings.calibrationMs }))).toEqual({
-    acts: 0,
-    coins: 0,
-    xp: 0,
-    sable: false,
-    save: false,
-    cal: 37,
-  });
+  expect(await a((x) => ({ coins: x.profile.coins, cal: x.settings.calibrationMs }))).toEqual({ coins: 0, cal: 37 });
 });
 
 test('camp: learn a skill and reset, pick Sable on the hero select, read a new relic', async ({ page }) => {
@@ -679,5 +694,197 @@ test("welcome back: a returning player's first launch plays Pip's scene over the
   await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
   await page.waitForTimeout(300);
   expect(await a((x) => x.storyId)).toBeNull();
+  expect(errors).toEqual([]);
+});
+
+/** In-page helpers for the map extras (evaluated with `x` = the app): paths that meet a roamer, or none. */
+const EXTRAS = `
+  const run = x.run;
+  const meets = (prefix, id) => run.roamFor(prefix).roamers.find((r) => r.at === id || r.next === id) || null;
+  /** A path from the start to node id that meets no roamer on the way (the last step too, unless allowed). */
+  const clearPath = (id, allowLast) => {
+    const m = run.map;
+    const walk = (prefix) => {
+      const here = prefix.length ? m.nodes[prefix[prefix.length - 1]] : null;
+      for (const n of here ? here.next : m.rows[0]) {
+        if (m.nodes[n].row > m.nodes[id].row) continue;
+        const who = meets(prefix, n);
+        if (n === id) {
+          if (!who || allowLast) return [...prefix, n];
+          continue;
+        }
+        if (who) continue;
+        const d = walk([...prefix, n]);
+        if (d) return d;
+      }
+      return null;
+    };
+    return walk([]);
+  };
+  /** The first step that meets a roamer of this kind: the path before it, and the node. */
+  const findMeet = (kind) => {
+    const m = run.map;
+    const walk = (prefix) => {
+      const here = prefix.length ? m.nodes[prefix[prefix.length - 1]] : null;
+      for (const n of here ? here.next : m.rows[0]) {
+        const who = meets(prefix, n);
+        if (who && who.kind === kind) return { prefix, node: n };
+        if (who) continue;
+        const d = walk([...prefix, n]);
+        if (d) return d;
+      }
+      return null;
+    };
+    return walk([]);
+  };
+  /** A meeting with a roamer of this kind, on this map or (when its roamers can't be met) another map of the act. */
+  const meetSomewhere = (kind) => {
+    for (let k = 0; k < 40; k++) {
+      const m = findMeet(kind);
+      if (m) return m;
+      run.mapSeed = (run.mapSeed + 7919) >>> 0;
+      run.enterAct(run.actIndex);
+    }
+    return null;
+  };
+`;
+const extras = (page: Page, body: string) => page.evaluate(`(() => { const x = window.__cq3.app; ${EXTRAS}; ${body} })()`);
+
+test('map extras: an ambush, the merchant, Coin Rush, a bounty and its tracker, the secret cache, the world skirmish', async ({ page }) => {
+  test.setTimeout(150_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  await ready(page);
+  const a = app(page);
+  const phase = () => a((x) => x.run.phase);
+  const tapRect = async (r: { x: number; y: number; w: number; h: number }) => tapGame(page, r.x + r.w / 2, r.y + r.h / 2);
+  const winFight = async () => {
+    for (let k = 0; k < 12; k++) {
+      const done = await a((x) => {
+        const c = x.run.combat;
+        if (!c || c.result) return true;
+        for (const e of c.enemies) if (e.alive) (e.uses = e.uses.map(() => 1)), (e.hp = 1);
+        c.stacks = Math.max(1, c.stacks);
+        x.finisher();
+        return false;
+      });
+      if (done) break;
+      await page.waitForTimeout(1600);
+    }
+  };
+  /** Through the loot and the pick, back to the map (or wherever the pick leads). */
+  const collect = async () => {
+    await expect.poll(phase, { timeout: 15_000 }).toMatch(/loot|boost|map/);
+    for (let i = 0; i < 8 && (await phase()) === 'loot'; i++) {
+      await tapGame(page, 163, 75);
+      await page.waitForTimeout(700);
+    }
+    if ((await phase()) === 'boost') {
+      await page.waitForTimeout(700);
+      await tapRect((await a((x) => x.view.overlays.cardRect(0))) as Any);
+      await expect.poll(phase).not.toBe('boost');
+    }
+  };
+  await a((x) => {
+    x.startRegion();
+    x.run.skipScenes();
+  });
+  await expect.poll(phase).toBe('map');
+
+  // an ambush: a tap on the node a pack would meet Rowan on; its foes join the fight
+  const at = (await extras(
+    page,
+    `const m = meetSomewhere('pack'); x.setPhase(() => { run.path = m.prefix; run.phase = 'map'; }); return { node: m.node, pos: x.view.mapView.pos(run.map.nodes[m.node]), own: run.map.nodes[m.node].waves.length, pack: run.roamFor().roamers.find((r) => r.kind === 'pack' && (r.at === m.node || r.next === m.node)).waves.length };`,
+  )) as { node: number; pos: [number, number]; own: number; pack: number };
+  await page.waitForTimeout(500);
+  await tapGame(page, at.pos[0], at.pos[1]);
+  await expect.poll(phase, { timeout: 5000 }).toBe('fight');
+  expect(await a((x) => !!x.run.ambush)).toBe(true);
+  expect(await a((x) => x.run.combat.waves.length)).toBe(at.own + at.pack);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: 'test-results/ambush.png' });
+  await a((x) => x.begin());
+  await winFight();
+  await collect();
+  expect(await a((x) => x.run.roamFor().roamers.filter((r: Any) => r.kind === 'pack').length)).toBe(0); // Act 1's one pack is gone
+
+  // the merchant: her small shop, then the node's own stop
+  await extras(page, `x.setPhase(() => run.retry()); const m = meetSomewhere('merchant'); x.setPhase(() => { run.path = m.prefix; run.phase = 'map'; run.coins = 400; run.chooseNode(m.node); });`);
+  await expect.poll(phase).toBe('shop');
+  expect(await a((x) => x.run.merchant)).toBe(true);
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: 'test-results/merchant.png' });
+  await a((x) => x.setPhase(() => x.run.leaveShop()));
+  expect(await a((x) => x.run.merchant)).toBe(false);
+
+  // (from here on the map has no roamers: the walks go straight to the stops)
+  await extras(page, `x.tuning.roam.packsFirst = x.tuning.roam.packsLast = x.tuning.roam.merchant = 0; x.setPhase(() => { run.enterAct(0); run.skipScenes(); });`);
+  // Coin Rush (on a short clock): taps knock coins out of the sack; time's up, back to the map with them
+  await extras(page, `x.tuning.rush.sec = 3; x.setPhase(() => run.retry()); const id = run.extras.rush[0]; const p = clearPath(id); x.setPhase(() => { run.path = p.slice(0, -1); run.phase = 'map'; run.chooseNode(id); });`);
+  await expect.poll(phase).toBe('fight');
+  expect(await a((x) => x.run.rushing)).toBe(true);
+  const coins = (await a((x) => x.run.coins)) as number;
+  await a((x) => x.begin());
+  for (let i = 0; i < 10; i++) {
+    await a((x) => x.barTap(performance.now()));
+    await page.waitForTimeout(140);
+  }
+  await page.screenshot({ path: 'test-results/rush.png' });
+  await expect.poll(phase, { timeout: 10_000 }).toBe('map');
+  expect(await a((x) => x.run.coins)).toBeGreaterThanOrEqual(coins);
+  expect(await a((x) => x.run.node.type)).toBe('rush');
+
+  // a bounty: the board's Take it, then the tracker on the map
+  await extras(page, `x.setPhase(() => run.retry()); const id = run.extras.bounty[0]; const p = clearPath(id); x.setPhase(() => { run.path = p.slice(0, -1); run.phase = 'map'; run.chooseNode(id); });`);
+  await expect.poll(phase).toBe('bounty');
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: 'test-results/bounty.png' });
+  await tapRect((await a((x) => x.view.stops.button(0))) as Any);
+  await expect.poll(phase).toBe('map');
+  expect(await a((x) => x.run.quest?.n)).toBe(0);
+  await page.waitForTimeout(500);
+  expect(await a((x) => x.view.mapView.roam.trackerRect())).not.toBeNull();
+
+  // the secret: standing at its node, the rock lights up; a tap opens the cache
+  await extras(page, `x.setPhase(() => run.retry()); const id = run.extras.secret; const p = clearPath(id, true); x.setPhase(() => { run.path = p; run.phase = 'map'; });`);
+  await page.waitForTimeout(600);
+  const rock = (await a((x) => x.view.mapView.roam.secretRect())) as Any;
+  expect(rock).not.toBeNull();
+  await tapRect(rock);
+  await expect.poll(phase).toBe('treasure');
+  expect(await a((x) => x.run.treasure.secret)).toBe(true);
+  for (let i = 0; i < 6 && (await phase()) === 'treasure'; i++) {
+    await tapGame(page, 163, 100);
+    await page.waitForTimeout(700);
+  }
+  await collect();
+  expect(await a((x) => x.run.secretFound)).toBe(true);
+
+  // the world map: a wandering foe on the road; its card; Fight: a skirmish, then back to the world map
+  await a((x) => {
+    x.profile.actsCleared = 1;
+    x.profile.wander.fights = 99;
+    x.newRun();
+  });
+  await expect.poll(phase).toBe('world');
+  await page.waitForTimeout(500);
+  const foe = (await a((x) => x.view.worldMap.roam.foeRect())) as Any;
+  expect(foe).not.toBeNull();
+  await tapRect(foe);
+  await page.waitForTimeout(400);
+  expect(await a((x) => x.view.worldMap.roam.open)).toBe(true);
+  await page.screenshot({ path: 'test-results/skirmish-card.png' });
+  await tapRect((await a((x) => x.view.worldMap.roam.btn(0))) as Any);
+  await expect.poll(phase).toBe('fight');
+  expect(await a((x) => !!x.run.skirmish)).toBe(true);
+  expect(await a((x) => x.profile.wander)).toEqual({ fights: 0, n: 1, up: false });
+  await a((x) => x.begin());
+  await winFight();
+  await collect();
+  await expect.poll(phase).toBe('world');
+  expect(await a((x) => x.run.wanderer)).toBeNull();
   expect(errors).toEqual([]);
 });

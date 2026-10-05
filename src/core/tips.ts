@@ -167,7 +167,9 @@ export class TipCoach {
       if (ph !== 'fight' || !run.combat) return null;
       if (def.fight === 'pre') {
         if (!m.preFight) return null;
-        if (id === 'relicBelt' && !run.hero.relics.length) return null;
+        // (a Coin Rush is pure aim: its relics sleep)
+        if (id === 'relicBelt' && (!run.hero.relics.length || run.combat.rush)) return null;
+        if (id === 'rush' && !run.combat.rush) return null;
         return { id };
       }
       if (m.preFight || run.combat.result) return null;
@@ -198,6 +200,16 @@ export class TipCoach {
         return ph === 'map' && run.choices().some((n) => run.map.nodes[n]?.type === 'elite') ? { id } : null;
       case 'sparkle':
         return ph === 'map' && m.sparkle ? { id } : null;
+      case 'roamer':
+        return ph === 'map' && run.roamFor().roamers.some((r) => r.kind === 'pack') ? { id } : null;
+      case 'secret':
+        return ph === 'map' && run.secretHere ? { id } : null;
+      case 'bounty':
+        return ph === 'bounty' ? { id } : null;
+      case 'merchant':
+        return ph === 'shop' && run.merchant ? { id } : null;
+      case 'skirmish':
+        return ph === 'world' && !!run.wanderer ? { id } : null;
       case 'levelUp': {
         const where = ph === 'map' || ph === 'actClear' || ph === 'defeat' || camp === 'home';
         return where && this.pointsToSpend(run) ? { id } : null;

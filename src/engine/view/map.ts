@@ -9,6 +9,9 @@
 // own art says what it is. The boss's name stays under its lair. Tags are placed by a tiny solver (below, above,
 // right or left of the node, whichever covers the least: other nodes, Rowan, the HUD plates, the other tags).
 //
+// The map's extras (the roamers and their telegraphs, the secret, the bounty tracker) are drawn by view/map-roam.ts;
+// a node a roamer would meet you on shows it on its tag ("Ambush" with the pack's foes counted in, or "Trader").
+//
 // Performance: the landscape is a pre-rendered texture (LAND_FRAMES frames cycled for the wind sway), rebuilt
 // only when the map or the layout changes; each frame moves a few dozen images and draws a few hundred rects.
 // Everything animates from draw(now) (and the walk from performance.now()), so screenshots are repeatable.
@@ -21,6 +24,8 @@ import { LAIR_SPOTS, LAND_FRAMES, MINI_FOES, ROWAN_FEET, paintLand, trail, type 
 import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
 import { heroMaxHp } from '../../core/combat';
+import { roamerAt } from '../../core/roam';
+import { MapRoam, type MapHost } from './map-roam';
 import { bagPal, glyph, glyphSize } from './overlays';
 import { band, button3d, hpBar, hudIcon, iconSize, rows } from './pixels';
 import { clamp01, inRect, INK, mix, WHITE, type Rect } from './shared';
@@ -82,6 +87,9 @@ interface Tag {
 
 const LABEL_H = 8;
 const CHIP_H = 11;
+/** The tag of a node a roamer would meet you on. */
+const AMBUSH_CHIP: Chip = { icon: 'warn', pal: { o: 0xff6a4a, K: 0x3a0a0a }, text: 'Ambush', col: 0xff9a80 };
+const TRADER_CHIP: Chip = { icon: 'coin', text: 'Trader', col: 0xffe680 };
 /** The foe badge's width: the skull, the count. */
 const badgeW = (foes: number): number => (foes > 0 ? 7 + 1 + textWidth(`${foes}`, 1, true) + 3 : 0);
 const intersect = (a: Rect, b: Rect): number => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
@@ -139,7 +147,9 @@ function plate(g: G, x: number, y: number, w: number, h: number): void {
   g.fillRect(x + 3, y + 1, w - 6, 1);
 }
 
-export class MapView {
+export class MapView implements MapHost {
+  /** The roamers, the secret and the bounty tracker (view/map-roam.ts). */
+  readonly roam: MapRoam;
   private gGround!: G;
   private gAir!: G;
   private gHud!: G;
@@ -162,6 +172,7 @@ export class MapView {
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, D_TEXT);
     this.pool = new ImagePool(s);
+    this.roam = new MapRoam(s, this);
     this.life = new MapLife(s, this);
   }
 
@@ -179,6 +190,7 @@ export class MapView {
     this.land = null;
     this.landFor = null;
     this.pool.destroy();
+    this.roam.build();
     this.life.build();
   }
 
@@ -230,6 +242,42 @@ export class MapView {
   /** The hero is walking to a node (a tip waits). */
   get walking(): boolean {
     return !!this.walk;
+  }
+
+  /** Rowan's walk to a node (the roamers step along with it), or null. */
+  get walkInfo(): { id: number; at: number; dur: number } | null {
+    return this.walk;
+  }
+
+  /** The road's points from node a to node b, either way along a link (null: no road). */
+  road(a: number, b: number): Pt[] | null {
+    this.ensureLand();
+    const fwd = this.roads.find((r) => r.a === a && r.b === b);
+    if (fwd) return fwd.pts;
+    const back = this.roads.find((r) => r.a === b && r.b === a);
+    return back ? back.pts.slice().reverse() : null;
+  }
+
+  /** Every road's points. */
+  roadPixels(): Pt[] {
+    this.ensureLand();
+    return this.roads.flatMap((r) => r.pts);
+  }
+
+  /** Where a node's art stands. */
+  boxOf(n: MapNode): Rect {
+    return this.nodeBox(n);
+  }
+
+  /** The coins plate (top right; with the rerolls under the coins when there are any). */
+  coinPlate(): Rect {
+    const s = this.s;
+    const run = s.app.run;
+    const [cw] = iconSize('coin');
+    const coinW = cw + textWidth(`${run.coins}`, 1, true) + 14;
+    const rr = run.rerolls > 0 ? `Rerolls: ${run.rerolls}` : '';
+    const boxW = Math.max(coinW, rr ? textWidth(rr, 1, false) + 12 : 0);
+    return { x: s.R - 3 - boxW, y: 3, w: boxW, h: rr ? 25 : 16 };
   }
 
   /** Where these nodes stand on the map, each with its tag (what a tip points at). */
@@ -360,6 +408,9 @@ export class MapView {
         zones.push({ x: x - lw / 2 - 1, y: y + 2 - lh, w: lw + 2, h: lh + 2 }, { x: x - 30, y: y + 10, w: 60, h: 10 });
       } else zones.push({ x: x - 9, y: y - 13, w: 18, h: 14 }, { x: x - 13, y: y + 9, w: 26, h: 8 });
     }
+    // the secret's spot stays clear of scenery
+    const secret = this.roam.placeSecret(this.roads.flatMap((r) => r.pts));
+    if (secret) zones.push({ x: secret[0] - 9, y: secret[1] - 12, w: 18, h: 14 });
     const keep = [
       { x: s.L, y: 0, w: 116, h: 32 },
       { x: s.R - 56, y: 0, w: 56, h: 32 },
@@ -392,6 +443,7 @@ export class MapView {
     this.land?.setVisible(false);
     this.pool.hide();
     this.texts.hide();
+    this.roam.hide();
     this.life.hide();
   }
 
@@ -472,6 +524,9 @@ export class MapView {
       }
       this.nodeIcon(n, x, y, now, Math.round(bounce), dim, tint, next);
     });
+
+    // ---- the roamers (and where they go next), the secret, the bounty tracker
+    this.roam.draw(now);
 
     // ---- Rowan and Pip
     this.hero(now);
@@ -582,6 +637,22 @@ export class MapView {
         if (t < 0.25 && alpha === 1) sparkle(a, x, y - 1 - bounce, 0xfff0a0, Math.sin((t / 0.25) * Math.PI), true);
         return;
       }
+      case 'rush': {
+        // Coin Rush: a fat coin sack, a coin glinting on its pile
+        ellipse(g, x, y + 5, 7, 1.6, 0x000000, 0.3 * alpha);
+        const hop = (now + ph) % 1600 < 180 ? 1 : 0;
+        P.foot('mn_sack', x, y + 6 - bounce - hop, D_ICON, alpha, tint);
+        const t = ((now + ph) % 1500) / 1500;
+        if (t < 0.3 && alpha === 1) sparkle(a, x + 5, y + 2 - bounce, 0xfff0a0, Math.sin((t / 0.3) * Math.PI), true);
+        return;
+      }
+      case 'bounty': {
+        // the bounty board: a notice on a post board; its pin glints
+        ellipse(g, x, y + 5, 7, 1.6, 0x000000, 0.3 * alpha);
+        P.foot('mn_board', x, y + 6 - bounce, D_ICON, alpha, tint);
+        if ((now + ph) % 1800 < 160 && alpha === 1) sparkle(a, x + 2, y - 6 - bounce, 0xffb0a0, 1, false);
+        return;
+      }
       case 'event': {
         const float = Math.round(Math.sin((now + ph) / 300) * 1.5);
         const beat = (now + ph) % 1100 < 160;
@@ -654,6 +725,10 @@ export class MapView {
         return { icon: 'warn', text: '?', col: 0xffc070 };
       case 'boss':
         return { icon: 'bag', pal: bag('legendary'), text: 'Boss', col: 0xffc070 };
+      case 'rush':
+        return { icon: 'coin', text: 'Rush', col: 0xffe680 };
+      case 'bounty':
+        return { icon: 'warn', text: 'Quest', col: 0xffd890 };
     }
   }
 
@@ -669,7 +744,7 @@ export class MapView {
       const [lw, lh] = this.pool.size(`maplair_${this.landTheme}`);
       return { x: x - lw / 2, y: y + 2 - lh, w: lw, h: lh + 8 };
     }
-    const top = n.type === 'elite' ? 15 : n.type === 'fight' ? 10 : 8;
+    const top = n.type === 'elite' ? 15 : n.type === 'fight' || n.type === 'bounty' || n.type === 'rush' ? 12 : 8;
     return { x: x - 11, y: y - top, w: 21, h: top + 8 };
   }
 
@@ -681,17 +756,15 @@ export class MapView {
     const out: Rect[] = [];
     const w = Math.max(textWidth(`Act ${run.actIndex + 1}`, 1, true), textWidth(run.act.name, 1, false)) + 14;
     out.push({ x: L, y: 3, w, h: 25 });
-    const [cw] = iconSize('coin');
-    const coinW = cw + textWidth(`${run.coins}`, 1, true) + 14;
-    const rr = run.rerolls > 0 ? `Rerolls: ${run.rerolls}` : '';
-    const boxW = Math.max(coinW, rr ? textWidth(rr, 1, false) + 12 : 0);
-    out.push({ x: s.R - 3 - boxW, y: 3, w: boxW, h: rr ? 25 : 16 });
+    out.push(this.coinPlate());
     const max = heroMaxHp(run.tuning, run.hero);
     out.push({ x: L, y: s.B - 19, w: 20 + 34 + 6 + textWidth(`${run.hero.hp}/${max}`, 1, false) + 8, h: 16 });
     const camp = this.campRect();
     out.push(camp);
     const hint = this.hint();
     if (hint) out.push(hint.r);
+    const tracker = this.roam.trackerRect();
+    if (tracker) out.push(tracker);
     // the DOM pause / gear buttons at the top centre
     out.push({ x: GAME_W / 2 - 17, y: 0, w: 34, h: 18 });
     return out;
@@ -708,7 +781,7 @@ export class MapView {
     const run = s.app.run;
     const map = run.map;
     const hud = this.hudRects();
-    const key = `${this.landGen}|${run.path.join(',')}|${run.restShare}|${hud.map((r) => `${r.x},${r.y},${r.w},${r.h}`).join(';')}`;
+    const key = `${this.landGen}|${run.path.join(',')}|${run.restShare}|${run.secretFound}|${hud.map((r) => `${r.x},${r.y},${r.w},${r.h}`).join(';')}`;
     if (this.tagCache?.key === key) return this.tagCache.tags;
     const choices = run.choices();
     const bossNext = choices.includes(map.boss);
@@ -722,6 +795,11 @@ export class MapView {
         obstacles.push({ r: { x: x - 10, y: y - 6, w: 9, h: 11 }, w: 0.5 });
       } else obstacles.push({ r: this.nodeBox(n), w: choices.includes(n.id) ? 3 : n.type === 'boss' ? 2 : 1.5, id: n.id });
     }
+    // the roamers and the secret
+    for (const r of this.roam.roamerRects()) obstacles.push({ r, w: 3 });
+    const secret = this.roam.secretRect();
+    if (secret) obstacles.push({ r: secret, w: 3 });
+    const roam = run.roamFor();
     const tags: Tag[] = [];
     const bossNode = map.nodes[map.boss];
     const bossName = run.tuning.enemies[bossNode.enemies[0]]?.name ?? 'Boss';
@@ -738,9 +816,12 @@ export class MapView {
     for (const id of choices) {
       const n = map.nodes[id];
       const boss = n.type === 'boss';
-      const foes = n.type === 'fight' || n.type === 'elite' ? n.enemies.length : 0;
+      // a roamer met there: an ambush (its foes counted in, a red badge) or the merchant
+      const met = roamerAt(roam, id);
+      const pack = met?.kind === 'pack' ? met : null;
+      const foes = (n.type === 'fight' || n.type === 'elite' ? n.enemies.length : 0) + (pack ? pack.waves.flat().length : 0);
       const label = boss ? bossName : '';
-      const chip = this.chip(n);
+      const chip = pack ? AMBUSH_CHIP : met ? TRADER_CHIP : this.chip(n);
       const w = Math.max(boss ? textWidth(label, 1, false) + 6 : 0, this.chipW(chip, foes));
       const h = boss ? LABEL_H + 1 + CHIP_H : CHIP_H;
       const [x, y] = this.pos(n);
@@ -761,7 +842,7 @@ export class MapView {
         for (const o of obstacles) cost += intersect(r, o.r) * (o.id === id ? 12 : o.w);
         return { r, cost };
       });
-      opts.push({ tag: { id, label, labelCol: 0xffb0a0, foes, elite: n.type === 'elite', chip, w, h }, cands });
+      opts.push({ tag: { id, label, labelCol: 0xffb0a0, foes, elite: n.type === 'elite' || !!pack, chip, w, h }, cands });
     }
     // every combination (at most 4^3): the spots' own costs plus the tags covering each other
     let best: number[] = opts.map(() => 0);

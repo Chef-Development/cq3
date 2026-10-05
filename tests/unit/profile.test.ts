@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { BASE_BY_ID } from '../../src/data/gear';
 import { BASIC_TIPS } from '../../src/data/tips';
 import { makeItem } from '../../src/core/gear';
-import { addItem, equip, newProfile, PROFILE_VERSION, readProfile, recordAct, recordRegion, WEIGHTS_TOTAL } from '../../src/core/profile';
+import { addItem, anythingToErase, equip, newProfile, progressLabel, PROFILE_VERSION, readProfile, recordAct, recordRegion, WEIGHTS_TOTAL } from '../../src/core/profile';
 import { Rng } from '../../src/core/rng';
 import { Run } from '../../src/core/run';
 import { migrateSave, readSave, restoreRun, SAVE_VERSION, snapshotRun } from '../../src/core/save';
@@ -39,6 +39,31 @@ describe('profile', () => {
     const back = readProfile(viaJson(full));
     expect(back).toEqual(full);
     expect(WEIGHTS_TOTAL).toBe(12);
+  });
+
+  it('knows when there is anything a New game would erase (the title then offers Continue / New game)', () => {
+    const t = cloneTuning();
+    expect(anythingToErase(newProfile())).toBe(false);
+    const cases: Array<(p: ReturnType<typeof newProfile>) => void> = [
+      (p) => (p.actsCleared = 1),
+      (p) => (p.coins = 5),
+      (p) => (p.scrap = 1),
+      (p) => (p.heroes.rowan.xp = 10),
+      (p) => (p.smithMet = true),
+      (p) => (p.sableMet = true),
+      (p) => p.relics.push('ricochet'),
+    ];
+    for (const set of cases) {
+      const p = newProfile();
+      set(p);
+      expect(anythingToErase(p)).toBe(true);
+    }
+    expect(anythingToErase(stocked().p)).toBe(true);
+    const p = newProfile();
+    expect(progressLabel(p, t)).toBe('Lv 1');
+    p.actsCleared = 2;
+    p.heroes.rowan.xp = 60; // 12 to level 2, 48 more to level 3
+    expect(progressLabel(p, t)).toBe('Lv 3 - 2 acts');
   });
 
   it('migrates a v1 save (progress only): progress kept, the gear starts empty, the cleared acts\' relics unlocked', () => {

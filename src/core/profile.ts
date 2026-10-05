@@ -57,6 +57,15 @@ export interface Profile {
   tips: SeenId[]; // tips already shown (each shows once), and the welcome back once it has played
   tipsOff: boolean; // the gear panel's "Tips: off"
   sparkles: number[]; // the map sparkles picked up (core/sparkle.ts: their keys, newest last): never paid twice
+  /** The world map's wandering foe (core/skirmish.ts): fights won since the last skirmish, skirmishes so far, and
+   *  whether one is on the road now. Still v3: missing reads as none yet. */
+  wander: WanderState;
+}
+
+export interface WanderState {
+  fights: number;
+  n: number;
+  up: boolean;
 }
 
 /** @deprecated the old name (progress across runs); a profile is a superset of it. */
@@ -89,6 +98,7 @@ export function newProfile(): Profile {
     tips: [WELCOME_ID], // a new player has nothing to be welcomed back to
     tipsOff: false,
     sparkles: [],
+    wander: { fights: 0, n: 0, up: false },
   };
 }
 
@@ -143,6 +153,8 @@ function readFields(d: Record<string, unknown>, t?: Tuning): Profile {
   p.relicsNew = ids(d.relicsNew).filter((id) => p.relics.includes(id));
   p.sableMet = d.sableMet === true;
   p.twinTaught = d.twinTaught === true;
+  const w = (d.wander ?? {}) as Record<string, unknown>;
+  p.wander = { fights: int(w.fights, 0, 1e6), n: int(w.n, 0, 1e6), up: w.up === true };
   return p;
 }
 
@@ -168,6 +180,27 @@ export const hasProgress = (p: Profile): boolean => p.actsCleared >= 1 || p.foun
 function migrateHeroes(p: Profile, t?: Tuning): void {
   if (t) for (let a = 0; a < p.actsCleared; a++) p.heroes.rowan.xp += actXp(t, a, true);
   for (const r of RELICS) if (r.unlock?.kind === 'act' && r.unlock.act < p.actsCleared) p.relics.push(r.id);
+}
+
+/** Anything a New game would erase: the title then offers Continue / New game instead of "Tap to start!". */
+export function anythingToErase(p: Profile): boolean {
+  return (
+    p.actsCleared > 0 ||
+    p.items.length > 0 ||
+    p.coins > 0 ||
+    p.scrap > 0 ||
+    p.smithMet ||
+    p.sableMet ||
+    p.relics.length > 0 ||
+    HERO_IDS.some((id) => (p.heroes[id]?.xp ?? 0) > 0)
+  );
+}
+
+/** The title's Continue line without a run in progress: the hero's level and the acts cleared ("Lv 7 - 2 acts"). */
+export function progressLabel(p: Profile, t: Tuning): string {
+  const lv = levelFromXp(t, heroProgress(p).xp);
+  const acts = p.actsCleared > 0 ? ` - ${p.actsCleared} act${p.actsCleared > 1 ? 's' : ''}` : '';
+  return `Lv ${lv}${acts}`;
 }
 
 // ---------------------------------------------------------------- heroes

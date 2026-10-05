@@ -24,7 +24,7 @@ const DEPTH = 44;
 /** A tap this soon after the card comes up is swallowed but doesn't dismiss it (a tap already on its way). */
 const DISMISS_MS = 350;
 /** How long a screen must have been settled (nothing in the way) before a tip comes up on it (ms). */
-const SETTLE: Record<string, number> = { fight: 450, map: 500, boost: 800, loot: 250, actClear: 1300, defeat: 300, shop: 600, rest: 600, event: 600, camp: 450 };
+const SETTLE: Record<string, number> = { fight: 450, map: 500, boost: 800, loot: 250, actClear: 1300, defeat: 300, shop: 600, rest: 600, event: 600, bounty: 600, camp: 450, world: 700 };
 /** After a tip stops a fight, the fight waits this long before it goes on (ms; a tap starts it at once). */
 const RESUME_MS = 350;
 /** Words lit in their colour on the card. */
@@ -110,8 +110,12 @@ export class TipsView {
       case 'shop':
       case 'rest':
       case 'event':
+      case 'bounty':
       case 'camp':
         return true;
+      case 'world':
+        // not over the act picker or the skirmish card
+        return !s.worldMap.pickerOpen && !s.worldMap.roam.open;
       default:
         return false;
     }
@@ -259,6 +263,12 @@ export class TipsView {
         return ph === 'camp' && s.camp.mode === 'skills' ? s.camp.skills.resetRect() : null;
       case 'heroTabs':
         return ph === 'camp' && s.camp.mode === 'heroes' ? union(s.camp.heroes.tabs().map((t) => t.r)) : null;
+      case 'roamer':
+        return ph === 'map' ? (s.mapView.roam.roamerRects('pack')[0] ?? null) : null;
+      case 'secretSpot':
+        return ph === 'map' ? s.mapView.roam.secretRect() : null;
+      case 'wanderer':
+        return ph === 'world' ? s.worldMap.roam.foeRect() : null;
     }
     return null;
   }

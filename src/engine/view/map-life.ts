@@ -8,10 +8,10 @@
 // Now and then something glints in the grass: a tap picks it up for a coin or two (core/sparkle.ts: at most one per
 // map step, never the act's first, the same after a reload, never paid twice).
 //
-// Life stays at the edges of attention: on open ground (land.ground), off the roads, clear of every node, the HUD
-// and the screen's edges. Homes are picked once per map, a few more than are shown; each step shows the ones clear
-// of the tags, Rowan and the tap circles of the nodes he can walk to (the others stay in their cover). A tap only
-// reaches life when no node or button took it (input.ts).
+// Life stays at the edges of attention: on open ground (land.ground), off the roads, clear of every node, the secret's
+// boulder, the HUD (the bounty tracker too) and the screen's edges. Homes are picked once per map, a few more than are
+// shown; each step shows the ones clear of the tags, the roamers, Rowan and the tap circles of the nodes he can walk
+// to (the others stay in their cover). A tap only reaches life when no node, button or secret took it (input.ts).
 import { claimSparkle, mapSparkle, openSparkle, type Sparkle } from '../../core/sparkle';
 import type { Theme } from '../backdrop';
 import { GAME_H, GAME_W } from '../layout';
@@ -78,8 +78,8 @@ export class MapLife {
   private fish: Array<Placed<Pt>> = [];
   private hawks: Array<Placed<Hawk>> = [];
   private spores: Array<Placed<Pt>> = [];
-  /** Open spots the sparkle could be on (feet). */
-  private open: Pt[] = [];
+  /** Open spots the sparkle could be on (feet), and whether each is away from the nodes (preferred). */
+  private open: Array<{ at: Pt; calm: boolean }> = [];
   private sparkle: { s: Sparkle; x: number; y: number } | null = null;
   private pop: Pop | null = null;
 
@@ -102,17 +102,21 @@ export class MapLife {
 
   // ------------------------------------------------------------------ where things live
 
-  /** The rects life keeps clear of on every step: the HUD, every node's art, the start, the screen's edges. */
-  private staticKeep(): Rect[] {
+  /** The rects life keeps clear of on every step: the HUD, every node's art (`m` px round it), the start, the
+   *  secret, the screen's edges. */
+  private staticKeep(m = 3): Rect[] {
     const s = this.s;
     const run = s.app.run;
     const out = this.map.hudRects().map((r) => ({ x: r.x - 3, y: r.y - 3, w: r.w + 6, h: r.h + 6 }));
     for (const n of run.map.nodes) {
       const b = this.map.nodeBox(n);
-      out.push({ x: b.x - 3, y: b.y - 3, w: b.w + 6, h: b.h + 6 });
+      out.push({ x: b.x - m, y: b.y - m, w: b.w + m * 2, h: b.h + m * 2 });
     }
     const [sx, sy] = this.map.pos(null);
     out.push({ x: sx - 20, y: sy - 24, w: 36, h: 32 });
+    // the secret's boulder beside its node (its glow, and the chevron over it when it can be opened)
+    const sec = this.map.roam.placeSecret(this.map.roadPixels());
+    if (sec) out.push({ x: sec[0] - 14, y: sec[1] - 24, w: 28, h: 30 });
     // the screen's edges (the framing foliage, the island, the rounded corners, the home bar)
     out.push({ x: 0, y: 0, w: GAME_W, h: 13 }, { x: 0, y: s.B - 14, w: GAME_W, h: GAME_H }, { x: 0, y: 0, w: s.L + 9, h: GAME_H }, { x: s.R - 9, y: 0, w: GAME_W, h: GAME_H });
     return out;
@@ -154,8 +158,10 @@ export class MapLife {
       const S = (xx: number, yy: number) => sat[yy * (W + 1) + xx];
       return S(x0 + w, y0 + h) - S(x0, y0 + h) - S(x0 + w, y0) + S(x0, y0) >= Math.ceil(w * h * need);
     };
+    // the critters would rather live away from the nodes (the calm), and settle nearer only when the map is crowded
     const keep = this.staticKeep();
-    const clear = (r: Rect) => !keep.some((k) => overlaps(r, k));
+    const calmKeep = this.staticKeep(12);
+    const clear = (r: Rect, calm = false) => !(calm ? calmKeep : keep).some((k) => overlaps(r, k));
     const seed = (run.mapSeedFor(run.actIndex) % 100003) + 7;
     const taken: Rect[] = [];
     const free = (r: Rect, gap: number) => !taken.some((t) => overlaps(r, t, gap));
@@ -168,12 +174,14 @@ export class MapLife {
       return out.sort((a, b) => rnd(a[0], a[1], seed) - rnd(b[0], b[1], seed));
     };
     const grid = spots(2);
+    /** The grid twice: calm spots first, then any. */
+    const passes: Array<[Pt, boolean]> = [true, false].flatMap((calm) => grid.map((p): [Pt, boolean] => [p, calm]));
 
     // critters with a hiding place: an open spot with cover (a bush, a tree, a stone) a few px to one side
     for (const [kind, cap] of life.burrows) {
       const K = KINDS[kind];
       const [rw, rh] = K.room;
-      for (const [x, y] of grid) {
+      for (const [[x, y], calm] of passes) {
         if (this.burrows.filter((b) => b.kind === kind).length >= cap * 2) break;
         if (!openBox(x - rw / 2, y - rh, rw, rh, 0.85) || at(x, y - 1) !== 1) continue;
         const dir = rnd(x, y, seed + 3) < 0.5 ? -1 : 1;
@@ -188,7 +196,7 @@ export class MapLife {
         }
         if (!found) continue;
         const area: Rect = { x: Math.min(x, found[0]) - 8, y: y - rh - 6, w: Math.abs(found[0] - x) + 16, h: rh + 9 };
-        if (!clear(area) || !free(area, 12)) continue;
+        if (!clear(area, calm) || !free(area, 12)) continue;
         taken.push(area);
         const i = this.burrows.length;
         const P = K.period[0] + rnd(i, 1, seed) * (K.period[1] - K.period[0]);
@@ -199,12 +207,12 @@ export class MapLife {
     // a flock pecking about on a patch of open ground
     if (life.flock) {
       const f = life.flock;
-      for (const [x, y] of grid) {
+      for (const [[x, y], calm] of passes) {
         if (this.flocks.length >= 2) break;
         if (!openBox(x - 9, y - 6, 18, 8, 0.85)) continue;
         const fl = new Flock({ sprite: f.sprite, fly: [`life_${f.sprite}_2`, `life_${f.sprite}_3`], center: [x, y], n: f.n, rx: 6, ry: 2, seed: rnd(x, y, seed + 5) });
         const area = fl.box();
-        if (!clear(area) || !free(area, 12)) continue;
+        if (!clear(area, calm) || !free(area, 12)) continue;
         taken.push(area);
         this.flocks.push({ it: fl, kind: f.sprite, cap: 1, area, on: true });
       }
@@ -250,34 +258,34 @@ export class MapLife {
 
     // spores drifting up from the leaf litter in the Hollow
     if (theme === 'hollow')
-      for (const [x, y] of grid) {
+      for (const [[x, y], calm] of passes) {
         if (this.spores.length >= 6) break;
         if (!openBox(x - 2, y - 2, 4, 3)) continue;
         const area: Rect = { x: x - 5, y: y - 16, w: 10, h: 18 };
-        if (!clear(area) || !free(area, 12)) continue;
+        if (!clear(area, calm) || !free(area, 12)) continue;
         taken.push(area);
         this.spores.push({ it: [x, y], kind: 'spores', cap: 3, area, on: true });
       }
 
-    // the sparkle's candidate spots: small open patches clear of everything above
+    // the sparkle's candidate spots: small open patches clear of everything above (the calm ones marked)
     this.open = [];
     for (const [x, y] of grid) {
       if (this.open.length >= 60) break;
       if (!openBox(x - 3, y - 3, 6, 4, 0.8)) continue;
       const box = sparkleBox(x, y);
-      if (!clear(box) || !free(box, 4) || this.open.some(([ox, oy]) => Math.abs(ox - x) < 10 && Math.abs(oy - y) < 8)) continue;
-      this.open.push([x, y]);
+      if (!clear(box) || !free(box, 4) || this.open.some((o) => Math.abs(o.at[0] - x) < 10 && Math.abs(o.at[1] - y) < 8)) continue;
+      this.open.push({ at: [x, y], calm: clear(box, true) });
     }
   }
 
-  /** This step's keep-outs (the tags, the HUD, Rowan and Pip, the nodes he can walk to) and its sparkle, if any. */
+  /** This step's keep-outs (the tags, the HUD, the roamers, Rowan and Pip, the nodes he can walk to) and its sparkle. */
   private stepUpdate(): void {
     const s = this.s;
     const app = s.app;
     const run = app.run;
     const tags = this.map.layoutTags();
-    // (the HUD again: the coin plate widens as the purse grows)
-    const rects = [...tags, ...this.map.hudRects()];
+    // (the HUD again: the coin plate widens as the purse grows, the bounty tracker comes and goes) and the roamers
+    const rects = [...tags, ...this.map.hudRects(), ...this.map.roam.roamerRects()];
     const key = `${this.placedFor}|${run.path.join(',')}|${rects.map((t) => `${t.x},${t.y},${t.w},${t.h}`).join(';')}`;
     if (key === this.stepFor) return;
     this.stepFor = key;
@@ -302,9 +310,11 @@ export class MapLife {
     const sp = openSparkle(app.profile, mapSparkle(run.mapSeedFor(run.actIndex), run.path.length, app.tuning.life));
     if (!sp) return;
     const near = (r: Rect) => [...this.burrows, ...this.flocks].some((p) => p.on && overlaps(r, p.area, 2));
-    const spots = this.open.filter(([x, y]) => ok(sparkleBox(x, y)) && !near(sparkleBox(x, y)));
+    const fit = this.open.filter((o) => ok(sparkleBox(o.at[0], o.at[1])) && !near(sparkleBox(o.at[0], o.at[1])));
+    const calm = fit.filter((o) => o.calm);
+    const spots = calm.length ? calm : fit;
     if (!spots.length) return;
-    const [x, y] = spots[Math.min(spots.length - 1, Math.floor(sp.spot * spots.length))];
+    const [x, y] = spots[Math.min(spots.length - 1, Math.floor(sp.spot * spots.length))].at;
     this.sparkle = { s: sp, x, y };
   }
 

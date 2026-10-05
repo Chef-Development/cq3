@@ -234,16 +234,15 @@ describe('the coach', () => {
   });
 
   it('the first sparkle on the act map: once, only on the map, only while one is glinting', () => {
-    const { run, take } = setup();
+    const { run, p, take } = setup();
     expect(take({ sparkle: true })).toBe('map'); // the map's own tip comes first (one per screen)
     expect(take({ sparkle: true })).toBeNull();
+    // (every other tip seen: only the sparkle's is left to show)
+    p.tips = TIP_IDS.filter((id) => id !== 'sparkle');
     goTo(run, 'fight');
-    expect(take({ sparkle: true, preFight: true })).not.toBe('sparkle'); // not in a fight
+    expect(take({ sparkle: true, preFight: true })).toBeNull(); // not in a fight
     run.phase = 'map';
     expect(take()).toBeNull(); // nothing glinting
-    run.phase = 'shop';
-    take();
-    run.phase = 'map';
     expect(take({ sparkle: true })).toBe('sparkle');
     run.phase = 'shop';
     take();
@@ -300,7 +299,8 @@ describe('seen tips in the profile', () => {
     expect(readProfile(viaJson({ ...old, tips: [] })).tips).toEqual([]);
     // the returning player's coach skips the basics and teaches the new systems
     const { run, coach, take } = setup(back);
-    expect(take()).toBeNull(); // the map is a basic
+    expect(take()).toBe('roamer'); // the map is a basic; the packs roaming it are new
+    expect(take()).toBeNull(); // (one tip per screen)
     goTo(run, 'fight');
     expect(take({ preFight: true })).toBeNull();
     run.hero.relics = ['powderKeg'];
@@ -332,5 +332,71 @@ describe('the welcome back', () => {
     // "Show tips again" doesn't replay it
     new TipCoach(met).reset();
     expect(welcomeScene(met)).toBeNull();
+  });
+});
+
+describe('the map extras each teach once, the moment they matter', () => {
+  /** A profile that knows everything but the map extras. */
+  const knows = (): Profile => {
+    const p = newProfile();
+    p.tips = TIP_IDS.filter((id) => !['roamer', 'secret', 'bounty', 'merchant', 'skirmish', 'rush'].includes(id));
+    return p;
+  };
+
+  it('a pack on the map; the secret beside the node; the bounty board; the merchant; a Coin Rush before it begins', () => {
+    const { run, coach, at, take } = setup(knows());
+    // one tip per screen: step off this one (a node's screen) and come back
+    const away = () => {
+      const ph = run.phase;
+      run.phase = 'rest';
+      coach.next(at({ safe: false }));
+      run.phase = ph;
+    };
+    expect(run.roamFor().roamers.some((r) => r.kind === 'pack')).toBe(true);
+    expect(take()).toBe('roamer');
+    away();
+    // (the roamers off the map from here: the walks below go straight to their stops)
+    run.extras!.roamers = [];
+    run.retry();
+    // the secret: Rowan at its node
+    const host = run.extras!.secret;
+    const path = [host];
+    while (run.map.nodes[path[0]].row > 0) path.unshift(run.map.nodes.find((q) => q.next.includes(path[0]))!.id);
+    run.path = path;
+    run.phase = 'map';
+    run.combat = null;
+    expect(run.secretHere).toBe(true);
+    expect(take()).toBe('secret');
+    away();
+    // the bounty board
+    run.path = [];
+    goTo(run, 'bounty');
+    expect(run.phase as string).toBe('bounty');
+    expect(take()).toBe('bounty');
+    // the merchant's shop
+    run.phase = 'shop';
+    run.merchant = true;
+    expect(take()).toBe('merchant');
+    away();
+    // Coin Rush, before TAP TO BEGIN
+    run.merchant = false;
+    run.path = [];
+    goTo(run, 'rush');
+    expect(run.rushing).toBe(true);
+    expect(take({ preFight: true })).toBe('rush');
+  });
+
+  it("the world map's wandering foe", () => {
+    const p = knows();
+    p.actsCleared = 1;
+    p.wander.fights = 99;
+    const run = new Run(T, { ...DEFAULT_SETTINGS }, 3, p);
+    run.toWorld();
+    const coach = new TipCoach(p);
+    const m: TipMoment = { run, safe: true };
+    const cue = coach.next(m);
+    expect(cue?.id).toBe('skirmish');
+    coach.shown(cue!, m);
+    expect(coach.next({ run, safe: true })).toBeNull();
   });
 });

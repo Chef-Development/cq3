@@ -89,8 +89,8 @@
     both hands (Blur: above 1.6x cursor speed hits crit, Double Down: hits with both cursors within 120 ms deal x2,
     capstone **Quickening**: every 20 combo banks a stack).
 - **Camp:** reachable mid-act too (playtest: a Camp button on the act map, bottom right; "Act N map" brings you back
-  to the same spot). "New run" keeps what you've earned (its button now says "Keeps your gear"); to really start over,
-  the gear panel has a Start over button (asked twice; settings and calibration stay). A hero chip (face, level, XP) and both heroes by the fire; the **hero select** (art, family, bio, level and
+  to the same spot). The title's **New game** wipes everything (tapped twice; settings and calibration stay; round 4);
+  Continue keeps it all. The gear panel's Start over does the same, asked twice. A hero chip (face, level, XP) and both heroes by the fire; the **hero select** (art, family, bio, level and
   XP bar, the kit with its numbers, points, Pick; gear is shared); the **skill tree** (three branch rows of five linked
   nodes, points left, a node card with the text and its before/after: "ATK 12 > 13" or "Now: ... / With it: ...",
   Learn with the reason when you can't, a free Reset with a confirm tap); the stats screen per hero, with level and
@@ -133,6 +133,43 @@
   `src/data/banter.ts`, quiet while a tip or scene is up); hero select uses plain one-line kit text.
 - **Asked in the same round:** a Camp button on the act map; "New run" says "Keeps your gear", and a real Start over
   (gear panel, asked twice) erases the profile.
+
+### 7. Playtest round 4: map content ("the main map needs more activity")
+Another agent did the living scenery, critters and coin sparkles; this part is roaming foes, events and more to do
+between fights. Icons first, few words, no new HUD rows (the bounty tracker sits in the top row, left of the coins).
+- **Wandering packs** (`core/roam.ts`): 1 pack on Act 1's map, 2 on Acts 2-3 (`acts[i].packs` in greenmarch.ts, two
+  waves each, tougher later). They stand beside a node, red-outlined with a "!", and step along the links each time
+  Rowan moves; the next step is telegraphed (a marching dotted line, an arrowhead, a ring on the node). A reachable
+  node a pack would meet you on is tagged "Ambush" (its foes counted in). Stepping onto a pack, or onto where it is
+  stepping, is an **ambush**: on a fight node its waves join the fight; elsewhere it's fought first, then the stop
+  opens. Packs never touch the boss, rests, elites or the first row, and the hero always has a clear next step (a step of
+  look-ahead; the tests walk every path of 75 maps). Deterministic from the map seed and the path (never saved).
+- **Coin Rush** (one per act: a fight node mid-act becomes a coin sack stop): 12 s on the real bar against a Coin
+  Sack that never attacks (`Combat` with `rush`); every hit knocks coins out, more on a long combo; the enemy plate is
+  the clock; "TIME'S UP!" and the haul. A reload mid-rush ends it with what you had.
+- **Bounties** (one board per act, early): one goal for the act (block 25 reds, a 40 combo, beat an elite, win above
+  80% HP, 2 waves without a miss, 15 foes), Take it or Pass; a tiny tracker (icon + 12/25, a tick when met).
+- **Secret cache** (one per act): a mossy boulder beside a node, shown when that node is in reach; standing there, its
+  crack glows and a tap opens a richer chest with a pick of **every** relic (a locked one unlocks).
+- **Travelling merchant** (one per act map): roams like a pack (gold telegraph, "Trader" tag); meeting her opens a
+  small shop (one rare-or-better relic and a potion, 15% off), then the node's own stop.
+- **World map skirmish:** once Act 1 is cleared, after every 8 fights won a foe paces the Meadow Road with a "!"; tap
+  it: a card (its foes, Gear + XP), Fight: one skirmish from a cleared act (a group, then an elite) as a hero who has
+  been through that act; gear and XP, then back to the world map. State in the profile (`wander`): one at a time, used
+  up when the fight starts, a reload never brings another.
+- **Tips:** one each (roamer, rush, bounty, secret, merchant, skirmish). **Saves:** run save v7 (a v6 save's act goes
+  on with a plain map; the next act has the extras); the profile stays v3 (`wander` optional).
+- **Reward sizes (for the rebalance):** ambush +15 coins x act and 1 extra Uncommon+ item, its pick at least rare;
+  Coin Rush 1 coin per hit, +1 per 15 combo, +1 per perfect, a finisher 4 x stacks (the bot makes ~39 per rush at
+  70%); bounty: 50 x act coins, or a Rare+ item, or a relics-only rare pick; secret: 2x a chest's coins, 1 Rare+ item,
+  an epic-or-better pick of every relic; merchant: 1 relic (rare+) and a potion at 0.85x; skirmish: 1 Uncommon+ item
+  and 40 x act XP. All in `tuning.extras/roam/rush/quests/secret/wander`, with sliders ("Map extras", "Coin Rush",
+  "Bounties, secrets, skirmishes").
+- **Balance effect** (bot, 70% player, 300 runs, the same seeds, extras off -> on): Act 1 first try 100% -> 99%,
+  Act 2 87% -> 93% (above its 85-90% target: the extra kills, items and picks help), Act 3 70% -> 74%, the Boar
+  King's first fight 74% -> 77%. The bot meets ~0.4 / 0.7 / 0.7 ambushes
+  per act attempt. A first cut with a two-relic, 30%-off merchant pushed the Boar King to 81-84%, so she was trimmed.
+  The bot guards pass; re-run `npm run balance` after merging with the combat retune.
 
 ## Balance (docs/balance.md: 1,000 whole runs per player; farming 333 players per row)
 

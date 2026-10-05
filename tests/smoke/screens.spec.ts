@@ -480,6 +480,8 @@ test('shop: relic rows, Haggler makes the first buy free', async ({ page }) => {
   await page.evaluate(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const app = (window as any).__cq3.app;
+    // no roamers on this map: the walk to the shop meets nobody on the way
+    app.tuning.roam.packsFirst = app.tuning.roam.packsLast = app.tuning.roam.merchant = 0;
     app.setPhase(() => {
       app.run.newRun();
       app.run.skipScenes();
@@ -554,4 +556,107 @@ test('tips: a tip card at the camp (its first visit)', async ({ page }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   expect(await page.evaluate(() => (window as any).__cq3.app.view.tips.current)).toBe('camp');
   await expect(page).toHaveScreenshot('tip-camp.png', shot);
+});
+
+/** In-page helpers for the map extras (`x` = the app): a path that meets no roamer, the first meeting with one. */
+const EXTRAS = `
+  const run = x.run;
+  const meets = (prefix, id) => run.roamFor(prefix).roamers.find((r) => r.at === id || r.next === id) || null;
+  const clearPath = (id, allowLast) => {
+    const m = run.map;
+    const walk = (prefix) => {
+      const here = prefix.length ? m.nodes[prefix[prefix.length - 1]] : null;
+      for (const n of here ? here.next : m.rows[0]) {
+        if (m.nodes[n].row > m.nodes[id].row) continue;
+        const who = meets(prefix, n);
+        if (n === id) {
+          if (!who || allowLast) return [...prefix, n];
+          continue;
+        }
+        if (who) continue;
+        const d = walk([...prefix, n]);
+        if (d) return d;
+      }
+      return null;
+    };
+    return walk([]);
+  };
+  const findMeet = (kind) => {
+    const m = run.map;
+    const walk = (prefix) => {
+      const here = prefix.length ? m.nodes[prefix[prefix.length - 1]] : null;
+      for (const n of here ? here.next : m.rows[0]) {
+        const who = meets(prefix, n);
+        if (who && who.kind === kind) return { prefix, node: n };
+        if (who) continue;
+        const d = walk([...prefix, n]);
+        if (d) return d;
+      }
+      return null;
+    };
+    return walk([]);
+  };
+`;
+const extras = (page: Page, body: string) => page.evaluate(`(() => { const x = window.__cq3.app; ${EXTRAS}; ${body} })()`);
+
+test('map extras: a pack and its telegraph, the merchant, the bounty board and its tracker, the secret', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await extras(page, `x.setPhase(() => { run.newRun(); run.skipScenes(); }); const id = run.extras.bounty[0]; const p = clearPath(id); x.setPhase(() => { run.path = p.slice(0, -1); run.phase = 'map'; run.chooseNode(id); });`);
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('bounty.png', shot);
+  await extras(page, `x.setPhase(() => run.takeQuest()); run.quest.n = 0;`);
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('map-extras.png', shot);
+  await extras(page, `x.setPhase(() => run.retry()); const id = run.extras.secret; const p = clearPath(id, true); x.setPhase(() => { run.path = p; run.phase = 'map'; });`);
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('map-secret.png', shot);
+});
+
+test('an ambush: the pack joins the fight', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await extras(page, `x.setPhase(() => { run.newRun(); run.skipScenes(); }); const m = findMeet('pack'); x.setPhase(() => { run.path = m.prefix; run.phase = 'map'; run.chooseNode(m.node); });`);
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('ambush.png', shot);
+});
+
+test("Coin Rush: the sack on the clock, coins flying; time's up", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  // (no roamers on this map: the walk to the Coin Rush meets nobody on the way)
+  await extras(page, `x.tuning.rush.sec = 4; x.tuning.roam.packsFirst = x.tuning.roam.packsLast = x.tuning.roam.merchant = 0; x.setPhase(() => { run.newRun(); run.skipScenes(); }); const id = run.extras.rush[0]; const p = clearPath(id); x.setPhase(() => { run.path = p.slice(0, -1); run.phase = 'map'; run.chooseNode(id); });`);
+  await frames(page, 20);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.begin());
+  await frames(page, 40);
+  for (let i = 0; i < 8; i++) {
+    await page.evaluate(() => (window as Cq3Window).__cq3!.app.barTap(performance.now()));
+    await frames(page, 8);
+  }
+  await expect(page).toHaveScreenshot('rush.png', shot);
+  // the clock runs out (4 s): the haul over the sack
+  await frames(page, 150);
+  await expect(page).toHaveScreenshot('rush-end.png', shot);
+});
+
+test('world map: a wandering foe on the road, and its skirmish card', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.profile.actsCleared = 1;
+    app.profile.wander.fights = 99;
+    app.newRun();
+  });
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('world-wanderer.png', shot);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = (window as any).__cq3.app.view.worldMap;
+    const r = w.roam.foeRect();
+    w.tap(r.x + r.w / 2, r.y + r.h / 2);
+  });
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('world-skirmish.png', shot);
 });
