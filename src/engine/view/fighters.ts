@@ -97,6 +97,8 @@ export class Fighters {
   private auraMoteAt = 0;
   private gearNamed = new Map<string, number>(); // when each effect's name last showed
   private gearSums = new Map<string, { n: number; at: number }>();
+  private nameAt = -1e9; // the last name shown, and how many showed together (they stack)
+  private nameStack = 0;
 
   constructor(private readonly s: FightScene) {
     this.h = this.freshHero();
@@ -351,8 +353,6 @@ export class Fighters {
     s.fx.addFloater(cx, Math.max(26, y - this.nameStack * 10), name, 0xffb060, 1, true, 0, -8, 0, 1100, false);
     return true;
   }
-  private nameAt = -1e9;
-  private nameStack = 0;
 
   /** Add `n` to an effect's running total (the total of the repeats in the last moment). */
   private gearSum(key: string, n: number, now: number): number {

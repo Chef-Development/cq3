@@ -259,7 +259,7 @@ export class LootView {
     this.chest?.destroy();
     this.chest = null;
     if (fromChest) {
-      this.chest = s.add.image(Math.round(GAME_W / 2), s.ground, 'chest_open').setOrigin(0.5, 1).setScale(2);
+      this.chest = s.add.image(GAME_W / 2, s.ground, 'chest_open').setOrigin(0.5, 1).setScale(2);
       s.actors.add(this.chest);
       this.src = { x: Math.round(GAME_W / 2), y: s.ground - 22 };
     } else {

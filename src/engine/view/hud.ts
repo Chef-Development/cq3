@@ -87,6 +87,8 @@ export class Hud {
   /** The stats as last shown (without timed buffs), and gains waiting to be shown (after the plate slides in). */
   private seen: Record<string, number> | null = null;
   private gains: Array<{ key: string; d: number; at: number }> = [];
+  private hiddenAt = -1e9; // the last hidden-stat gain shown, and how many stacked under the plate
+  private hiddenN = 0;
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, 12);
@@ -525,9 +527,6 @@ export class Hud {
       this.showGain(gn.key, gn.d, now);
     }
   }
-
-  private hiddenAt = -1e9;
-  private hiddenN = 0;
 
   private showGain(key: string, d: number, now: number): void {
     const s = this.s;
