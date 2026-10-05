@@ -303,16 +303,19 @@ export const DEFAULT_TUNING = {
   },
   levels: {
     // Heroes level up from kills and act clears (core/heroes.ts): small base-stat gains, a skill point every 2 levels.
+    // Paced with the bot (a typical 70% player): a first playthrough of Greenmarch ends around level 9 (Acts 1-3:
+    // ~5 / 7 / 9), six replays of Act 3 add ~5 more, and level 30 is ~80 clean Act 3 replays away (later regions
+    // give more per kill).
     max: 30,
-    xpBase: 30, // XP from level L to L+1: xpBase x L ^ xpExp
-    xpExp: 1.5,
+    xpBase: 12, // XP from level L to L+1: xpBase x L ^ xpExp (12, 48, 108... 972 at level 9)
+    xpExp: 2,
     hpPer: 2, // max HP per level above 1
-    atkPer: 0.015, // attack +1.5% per level above 1
-    pointEvery: 2, // a skill point every this many levels (level 3, 5, 7...)
-    xpKill: 2, // a kill gives this x (1 + act) (elites xpElite, mini-bosses and the boss xpBoss instead)
-    xpElite: 10,
-    xpBoss: 40,
-    xpAct: 40, // clearing an act: this x (act + 1), doubled the first time
+    atkPer: 0.015, // base attack +1.5% per level above 1
+    pointEvery: 2, // a skill point every this many levels (levels 2, 4, 6...: 15 at level 30)
+    xpKill: 5, // a kill gives this x (1 + act) (elites xpElite, mini-bosses and the boss xpBoss instead)
+    xpElite: 25,
+    xpBoss: 100,
+    xpAct: 100, // clearing an act: this x (act + 1), doubled the first time
   },
   skills: {
     // each skill node's number (src/data/skills.ts has the text; '{n}' shows it)
