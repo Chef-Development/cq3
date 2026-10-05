@@ -12,6 +12,7 @@ import { BASE_BY_ID, RARITY_INFO, STAT_IDS, STAT_INFO, type StatId } from '../..
 import { baseStats, bonusValue, fmtStat, itemPower, rerollCost, salvageValue, upgradeCost, type BonusRoll, type Item } from '../../core/gear';
 import { equippedIn, isEquipped, itemByUid, reroll, salvage, salvageAll, upgrade } from '../../core/profile';
 import { Rng } from '../../core/rng';
+import { HEROES } from '../../data/heroes';
 import { textWidth } from '../font';
 import { CampKit, D, GOLD_TXT, GREEN, pix, pixSize, RED, SCRAP_TXT, statChanges } from './camp-kit';
 import { ItemGrid, WornRow } from './item-grid';
@@ -284,7 +285,7 @@ export class ForgeScreen {
       kit.fx.flash(c, WHITE, 420);
       kit.fx.burst(c.x + c.w / 2, c.y + c.h / 2, [0xfff0a0, 0xffd23a, WHITE], 18, 1.2, { kind: 'star', g: 30, life: 600 });
       kit.fx.float(`+${it.plus}!`, c.x + c.w / 2, c.y - 6, 0xffe066, { scale: 2, life: 1300, rise: 10 });
-      // what changed, before -> after: Rowan's stats if he wears it, else the item's own
+      // what changed, before -> after: the hero's stats if it's worn, else the item's own
       const after = baseStats(t, it);
       const mine = after.map((l, i) => ({ label: STAT_INFO[l.stat].short, stat: l.stat, from: fine(l.stat, before[i]?.value ?? 0), to: fine(l.stat, l.value), good: true }));
       const his = worn ? statChanges(heroBefore, heroAfter, STAT_IDS) : [];
@@ -292,7 +293,7 @@ export class ForgeScreen {
         title: it.plus >= 10 ? 'Maxed out: +10!' : `Upgraded to +${it.plus}!`,
         ribbon: RIBBON.gold,
         lines: his.length ? his : mine,
-        note: his.length ? "Rowan's stats" : worn ? undefined : 'Equip it to use it',
+        note: his.length ? `${HEROES[p.hero].name}'s stats` : worn ? undefined : 'Equip it to use it',
         ...this.toastAt(),
       });
     });

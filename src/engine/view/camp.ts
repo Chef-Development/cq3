@@ -1,27 +1,35 @@
-// The camp (phase 'camp'): Rowan and Pip by a crackling campfire under the night sky, Mags the smith at her forge,
-// fireflies, embers and chimney smoke. The buildings are tap targets with name plates (Bag, Forge, and the Shrine,
-// locked for now), and the same as buttons on a band along the bottom; tapping Rowan shows his stats. The top bar
-// shows the purse and the scrap. "Back" (named for where it goes: the world map, the next act, a retry) leaves.
-// Each building opens a screen over the dimmed, still-living camp: bag.ts, forge.ts, stats.ts. The first visit to
-// the forge plays Mags's intro scene (the story view draws it; input routes taps to it).
+// The camp (phase 'camp'): the heroes and Pip by a crackling campfire under the night sky (Rowan, and Sable once
+// they've joined), Mags the smith at her forge, fireflies, embers and chimney smoke. The buildings are tap targets
+// with name plates (Bag, Forge, and the Shrine, locked for now); a band along the bottom has Bag, Forge, Skills (a
+// gold "!" when the picked hero has points to spend) and Relics (a red count of new ones). The top left shows the
+// picked hero (face, name, level, XP): tapping it, or a hero by the fire, opens the hero select; the top right the
+// purse and the scrap. "Back" (named for where it goes: the world map, the next act, a retry) leaves.
+// Each opens a screen over the dimmed, still-living camp: bag.ts, forge.ts, heroes.ts (Stats from there: stats.ts),
+// skills.ts, relic-log.ts. The first visit to the forge plays Mags's intro scene, and the first visit after Act 1
+// plays Sable's (the story view draws them; input routes taps to them).
 import type Phaser from 'phaser';
+import { HEROES, type HeroId } from '../../data/heroes';
 import { itemPower } from '../../core/gear';
 import { equippedItems } from '../../core/profile';
 import type { FightScene } from '../scene';
 import { CAMP_SPOTS } from '../art-camp';
 import { textWidth } from '../font';
 import { BagScreen } from './bag';
-import { CampKit, D, pix, pixSize } from './camp-kit';
+import { CampKit, D, GOLD_TXT, pix, pixSize } from './camp-kit';
 import { ForgeScreen } from './forge';
+import { HeroesScreen } from './heroes';
 import { padlock } from './items';
-import { button3d, chevron, glow, GOLD, rows } from './pixels';
+import { button3d, chevron, gauge, glow, GOLD, rows } from './pixels';
+import { RelicLogScreen } from './relic-log';
 import { clamp01, easeBack, inRect, INK, pulse, rand, WHITE, type Rect } from './shared';
+import { SkillsScreen } from './skills';
 import { StatsScreen } from './stats';
 import { FACE, isPressed, notePress } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
-type Mode = 'home' | 'bag' | 'forge' | 'stats';
-type Spot = 'bag' | 'forge' | 'stats' | 'shrine' | 'leave';
+type Mode = 'home' | 'bag' | 'forge' | 'stats' | 'heroes' | 'skills' | 'relics';
+type Spot = 'bag' | 'forge' | 'skills' | 'relics' | 'shrine' | 'leave';
+
 
 interface Ember {
   x: number;
@@ -63,8 +71,16 @@ export class CampView {
   readonly bag: BagScreen;
   readonly forge: ForgeScreen;
   readonly stats: StatsScreen;
+  readonly heroes: HeroesScreen;
+  readonly skills: SkillsScreen;
+  readonly relics: RelicLogScreen;
   mode: Mode = 'home';
+  /** Where a screen's Back goes (Stats opened from the hero select goes back there). */
+  private backTo: Mode = 'home';
   private modeAt = 0;
+  /** Sable was on screen last frame (they appear in a puff of smoke when their scene ends). */
+  private sableShown = false;
+  private sableAt = -1e9;
   private embers: Ember[] = [];
   private puffs: Puff[] = [];
   private lastPuff = 0;
@@ -82,6 +98,9 @@ export class CampView {
     this.bag = new BagScreen(this.kit);
     this.forge = new ForgeScreen(this.kit);
     this.stats = new StatsScreen(this.kit);
+    this.heroes = new HeroesScreen(this.kit);
+    this.skills = new SkillsScreen(this.kit);
+    this.relics = new RelicLogScreen(this.kit);
   }
 
   build(): void {
@@ -100,6 +119,23 @@ export class CampView {
     this.kit.toastNow = null;
     this.nextSwing = now + 1500;
     this.power = this.gearPower();
+    // the first visit after Act 1: Sable tries to rob the camp, gets caught by Pip, and joins (their scene plays
+    // over the camp the way Mags's does; skipping it still counts)
+    const app = this.s.app;
+    if (app.run.campScene === 'sableJoin') {
+      app.run.sableJoined();
+      app.saveProfile();
+      app.storyBox = 0;
+      app.storyOverlay = 'sableJoin';
+    }
+    this.sableShown = this.sableHere();
+    this.sableAt = -1e9;
+  }
+
+  /** Sable sits by the fire once they've joined (not while their arrival scene is still playing). */
+  private sableHere(): boolean {
+    const app = this.s.app;
+    return app.run.profile.sableMet && app.storyOverlay !== 'sableJoin';
   }
 
   // ------------------------------------------------------------------ layout (home)
@@ -120,8 +156,8 @@ export class CampView {
     for (const [id, label, icon] of [
       ['bag', 'Bag', 'bag'],
       ['forge', 'Forge', 'hammer'],
-      ['stats', 'Stats', 'stats'],
-      ['shrine', 'Shrine', 'shrine'],
+      ['skills', 'Skills', 'skills'],
+      ['relics', 'Relics', 'relic'],
     ] as const) {
       const w = textWidth(label, 1, true) + pixSize(icon)[0] + 8;
       out.push({ id, r: { x, y, w, h: 15 }, label, icon });
@@ -169,6 +205,29 @@ export class CampView {
     return { x: p.x - W / 2, y: p.y - H + 3, w: W, h: H };
   }
 
+  /** Sable on the firewood: just their sprite (a wider pad would reach the fire's and the forge's tap areas). */
+  private sableRect(): Rect {
+    const [w, h] = this.kit.imgs.size('camp_sable0');
+    const p = CAMP_SPOTS.sable;
+    return { x: p.x - (w >> 1), y: p.y - h, w: w - 3, h };
+  }
+
+  /** The hero chip, top left: the picked hero's face, name, level and XP (tap: the hero select). */
+  private chipRect(): Rect {
+    const id = this.s.app.run.profile.hero;
+    const lv = this.kit.level(id).level;
+    const tw = textWidth(HEROES[id].name, 1, true) + 4 + textWidth(`Lv ${lv}`, 1, false);
+    return { x: this.s.L + 3, y: 3, w: 23 + Math.max(tw, 52) + 6, h: 21 };
+  }
+
+  /** The name plate over a hero by the fire. */
+  private heroPlate(id: HeroId): Rect {
+    const rr = id === 'sable' ? this.sableRect() : this.rowanRect();
+    const picked = this.s.app.run.profile.hero === id;
+    const w = textWidth(HEROES[id].name, 1, false) + 6 + (picked ? 8 : 0);
+    return { x: Math.round(rr.x + rr.w / 2 - w / 2), y: Math.round(rr.y - 9), w, h: 9 };
+  }
+
   private pipRect(): Rect {
     const [w, h] = this.kit.imgs.size('camp_pip0');
     const p = CAMP_SPOTS.pip;
@@ -195,8 +254,9 @@ export class CampView {
     const now = performance.now();
     if (now - this.modeAt < 180) return;
     if (this.mode !== 'home') {
-      const screen = this.mode === 'bag' ? this.bag : this.mode === 'forge' ? this.forge : this.stats;
-      if (screen.tap(x, y, now) === 'back') this.go('home', now);
+      const res = this.screen().tap(x, y, now);
+      if (res === 'back') this.go(this.mode === 'stats' ? this.backTo : 'home', now);
+      else if (res === 'stats') this.go('stats', now, this.heroes.view);
       return;
     }
     if (x < 0) {
@@ -210,7 +270,13 @@ export class CampView {
         return this.open(b.id, now);
       }
     for (const id of ['bag', 'forge', 'shrine'] as const) if (inRect(this.plate(id), x, y, 3)) return this.open(id, now);
-    if (inRect(this.rowanRect(), x, y)) return this.open('stats', now);
+    const chip = this.chipRect();
+    if (inRect(chip, x, y, 2)) {
+      notePress(chip);
+      return this.go('heroes', now);
+    }
+    if (this.sableHere() && (inRect(this.sableRect(), x, y) || inRect(this.heroPlate('sable'), x, y, 2))) return this.go('heroes', now, 'sable');
+    if (inRect(this.rowanRect(), x, y) || inRect(this.heroPlate('rowan'), x, y, 2)) return this.go('heroes', now, 'rowan');
     if (inRect(this.pipRect(), x, y)) {
       this.pipAt = now;
       app.audio.textBlip();
@@ -233,6 +299,7 @@ export class CampView {
   }
 
   private open(id: Spot, now: number): void {
+    if (id === 'skills' || id === 'relics') return this.go(id, now);
     const app = this.s.app;
     if (id === 'leave') {
       app.audio.uiClick();
@@ -247,12 +314,37 @@ export class CampView {
     this.go(id, now);
   }
 
-  private go(mode: Mode, now: number): void {
+  /** The screen on view (not the home). */
+  private screen(): { tap(x: number, y: number, now: number): 'back' | 'stats' | void; draw(now: number): void } {
+    switch (this.mode) {
+      case 'bag':
+        return this.bag;
+      case 'forge':
+        return this.forge;
+      case 'heroes':
+        return this.heroes;
+      case 'skills':
+        return this.skills;
+      case 'relics':
+        return this.relics;
+      default:
+        return this.stats;
+    }
+  }
+
+  go(mode: Mode, now: number, hero?: HeroId): void {
     const app = this.s.app;
     const p = app.run.profile;
+    this.backTo = mode === 'stats' && this.mode === 'heroes' ? 'heroes' : 'home';
+    const from = this.mode;
     this.mode = mode;
     this.modeAt = now;
     this.kit.toastNow = null;
+    if (from === 'stats' && mode === 'heroes') {
+      // back from a hero's stats: the hero select as it was
+      app.audio.panelClose();
+      return;
+    }
     if (mode === 'home') {
       app.audio.panelClose();
       // back by the fire in new gear: Rowan sparkles and his gear power pops
@@ -272,7 +364,10 @@ export class CampView {
     }
     app.audio.panelOpen();
     if (mode === 'bag') this.bag.open(now);
-    else if (mode === 'stats') this.stats.open(now);
+    else if (mode === 'stats') this.stats.open(now, hero);
+    else if (mode === 'heroes') this.heroes.open(now, hero);
+    else if (mode === 'skills') this.skills.open(now);
+    else if (mode === 'relics') this.relics.open(now);
     else if (mode === 'forge') {
       this.forge.open(now);
       if (!p.smithMet) {
@@ -302,9 +397,7 @@ export class CampView {
     else {
       const k = clamp01((now - this.modeAt) / 160);
       kit.dim(kit.gUi, 0.62 * k);
-      if (this.mode === 'bag') this.bag.draw(now);
-      else if (this.mode === 'forge') this.forge.draw(now);
-      else this.stats.draw(now);
+      this.screen().draw(now);
     }
     kit.end(now);
   }
@@ -369,6 +462,11 @@ export class CampView {
     // the people: Rowan breathing by the fire, Pip perched (a hop when poked), Mags at her anvil
     const sitting = this.mode !== 'forge';
     im.foot(Math.floor(now / 680) % 2 ? 'camp_rowan1' : 'camp_rowan0', S.rowan.x, S.rowan.y, D.actors);
+    // Sable across the fire once they've joined (they appear in a puff of smoke the moment their scene ends)
+    const here = this.sableHere();
+    if (here && !this.sableShown) this.sableArrives(now);
+    this.sableShown = here;
+    if (here) im.foot(Math.floor((now + 340) / 720) % 2 ? 'camp_sable1' : 'camp_sable0', S.sable.x, S.sable.y, D.actors, clamp01((now - this.sableAt) / 300));
     const hop = now - this.pipAt < 320 ? Math.round(Math.sin(((now - this.pipAt) / 320) * Math.PI) * 5) : 0;
     const pipF = hop || Math.floor(now / 2200) % 3 === 0 ? 'camp_pip1' : 'camp_pip0';
     im.foot(pipF, S.pip.x, S.pip.y - hop, D.actors);
@@ -409,7 +507,45 @@ export class CampView {
     }
   }
 
-  /** The home's UI: the Camp plate, purse and scrap, the name plates, the band of buttons. */
+  /** Sable shows up by the fire: a puff of smoke, a sting, "Sable joined!". */
+  private sableArrives(now: number): void {
+    const kit = this.kit;
+    const app = this.s.app;
+    const sp = CAMP_SPOTS.sable;
+    this.sableAt = now;
+    kit.fx.burst(sp.x, sp.y - 12, [0x6a6478, 0x9a94a8, 0xd8d0f0, 0x4a4458], 34, 1.1, { kind: 'chip', g: -20, life: 800 });
+    kit.fx.burst(sp.x, sp.y - 12, [0xdab0ff, WHITE], 12, 0.9, { kind: 'star', g: 20, life: 700 });
+    kit.fx.ring(sp.x, sp.y - 12, 20, 0xdab0ff, 500);
+    kit.fx.float('Sable joined!', sp.x, sp.y - 58, 0xdab0ff, { life: 2200 });
+    app.audio.whoosh();
+    kit.after(160, () => app.audio.rareSting(true));
+  }
+
+  /** The hero chip: the picked hero's face in a gold frame, name, level and an XP bar. */
+  private drawChip(g: G, ty: number, now: number): void {
+    const kit = this.kit;
+    const texts = kit.homeTexts;
+    const id = this.s.app.run.profile.hero;
+    const c0 = this.chipRect();
+    const c = { ...c0, y: ty + (isPressed(c0, now) ? 1 : 0) };
+    this.glass(g, c.x, c.y, c.w, c.h, 1);
+    const fx = c.x + 2;
+    const fy = c.y + 2;
+    rows(g, fx - 1, fy - 1, 19, 19, 2, INK);
+    rows(g, fx, fy, 17, 17, 1, GOLD[2]);
+    g.fillStyle(GOLD[4], 1);
+    g.fillRect(fx + 1, fy, 15, 1);
+    g.fillStyle(HEROES[id].family === 'twin' ? 0x3a2458 : 0x1a2c52, 1);
+    g.fillRect(fx + 1, fy + 1, 15, 15);
+    kit.face(id, fx + 1, fy + 1, D.homeText - 0.001, { size: 15 });
+    const L = kit.level(id);
+    const name = HEROES[id].name;
+    texts.text(name, c.x + 23, c.y + 7, WHITE, { bold: true, oy: 0.5 });
+    texts.text(`Lv ${L.level}`, c.x + 23 + textWidth(name, 1, true) + 4, c.y + 7.5, GOLD_TXT, { oy: 0.5 });
+    gauge(g, c.x + 23, c.y + 14, c.w - 23 - 5, 3, L.need ? L.into / L.need : 1, 0, { ramp: [0xe0f6ff, 0x4aa0f0, 0x2a6ad8, 0x1a3c8a] });
+  }
+
+  /** The home's UI: the hero chip, purse and scrap, the name plates, the band of buttons. */
   private drawHome(now: number): void {
     const s = this.s;
     const kit = this.kit;
@@ -417,13 +553,10 @@ export class CampView {
     const texts = kit.homeTexts;
     const since = now - this.modeAt;
     const p = s.app.run.profile;
-    // top left: the Camp plate
+    // top left: the picked hero (the hero select)
     const tk = easeBack(since / 280, 1.4);
     const ty = Math.round(3 - (1 - tk) * 24);
-    const cw = Math.max(textWidth('Camp', 1, true), textWidth('Rest and gear up', 1, false)) + 14;
-    this.glass(g, s.L + 3, ty, cw, 21, 1);
-    texts.text('Camp', s.L + 10, ty + 7, 0xffe680, { bold: true, oy: 0.5 });
-    texts.text('Rest and gear up', s.L + 10, ty + 15, 0xc8c0e8, { oy: 0.5 });
+    this.drawChip(g, ty, now);
     // top right: the purse and the scrap
     kit.purse(g, texts, s.R - 3, ty + 1, now);
 
@@ -444,7 +577,7 @@ export class CampView {
       const label = id === 'bag' ? 'Bag' : id === 'forge' ? 'Forge' : 'Shrine';
       texts.text(label, r.x + iw + 5 + rattle, r.y + r.h / 2, locked ? 0xa8a0c0 : WHITE, { bold: true, oy: 0.5 });
       if (locked) padlock(g, r.x + r.w - 9 + rattle, r.y + 3, 1, 0xd8901c);
-      if (id === 'bag' && fresh > 0) this.badge(g, texts, r.x + r.w - 2, r.y - 3, `${fresh}`, now);
+      if (id === 'bag' && fresh > 0) kit.bubble(g, texts, r.x + r.w - 2, r.y - 3, `${fresh}`, now);
     });
     // the shrine: a padlock on it, rattling when tapped, and its plate
     const sh = CAMP_SPOTS.shrine;
@@ -463,16 +596,19 @@ export class CampView {
       texts.text(title, x + w / 2, y + 7, 0xdab0ff, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
       texts.text(sub, x + w / 2, y + 16, WHITE, { ox: 0.5, oy: 0.5, alpha: a });
     }
-    // a little "Stats" plate over Rowan's head
+    // name plates over the heroes by the fire (the picked one gold, with a check): the hero select
     const rk = easeBack((since - 330) / 260, 1.8);
-    if (rk > 0) {
-      const rr = this.rowanRect();
-      const w = textWidth('Rowan', 1, false) + 6;
-      const x = Math.round(rr.x + rr.w / 2 - w / 2);
-      const y = Math.round(rr.y - 9 + Math.sin(now / 480) * 1 - (1 - rk) * 5);
-      this.glass(g, x, y, w, 9, clamp01(rk * 2), true, rr.x + rr.w / 2);
-      texts.text('Rowan', x + w / 2, y + 4.5, 0xc8e8ff, { ox: 0.5, oy: 0.5 });
-    }
+    if (rk > 0)
+      (['rowan', 'sable'] as const).forEach((id, i) => {
+        if (id === 'sable' && !this.sableHere()) return;
+        const r0 = this.heroPlate(id);
+        const rr = id === 'sable' ? this.sableRect() : this.rowanRect();
+        const picked = p.hero === id;
+        const y = Math.round(r0.y + Math.sin(now / 480 + i * 1.7) * 1 - (1 - rk) * 5);
+        this.glass(g, r0.x, y, r0.w, r0.h, clamp01(rk * 2), true, rr.x + rr.w / 2);
+        if (picked) pix(g, 'check', r0.x + 2, y + 1);
+        texts.text(HEROES[id].name, r0.x + (picked ? 10 : 3), y + 4.5, picked ? GOLD_TXT : 0xc8e8ff, { oy: 0.5 });
+      });
 
     // the band of buttons along the bottom
     const bk = easeBack((since - 60) / 300, 1.5);
@@ -491,28 +627,17 @@ export class CampView {
         chevron(g, r.x + r.w - 8, r.y + 4 + pr, 7, WHITE, 1, 1, true);
         continue;
       }
-      const locked = b.id === 'shrine';
-      const rattle = locked && now - this.shrineAt < 360 ? Math.round(Math.sin((now - this.shrineAt) / 25) * 2) : 0;
-      const rr = { ...r, x: r.x + rattle };
-      button3d(g, rr, locked ? FACE.grey : b.id === 'forge' ? FACE.wood : b.id === 'stats' ? FACE.purple : FACE.blue, pr > 0);
+      // Skills: a gold "!" (and a glow) when the picked hero has points to spend; Relics: how many are new
+      const points = b.id === 'skills' && kit.level(p.hero).points > 0;
+      if (points) glow(g, r, 0xffd23a, 0.3 + 0.35 * pulse(now, 900), 3);
+      button3d(g, r, b.id === 'forge' ? FACE.wood : b.id === 'skills' ? FACE.purple : b.id === 'relics' ? FACE.red : FACE.blue, pr > 0);
       const [iw, ih] = pixSize(b.icon);
-      pix(g, b.icon, rr.x + 4, rr.y + Math.round((rr.h - ih) / 2) + pr - 1, locked ? 0.6 : 1);
-      texts.text(b.label, rr.x + iw + 6, rr.y + rr.h / 2 + pr, locked ? 0xd0d0dc : WHITE, { bold: true, oy: 0.5 });
-      if (locked) padlock(g, rr.x + rr.w - 5, rr.y - 3 + pr, 1, 0xd8901c);
-      if (b.id === 'bag' && fresh > 0) this.badge(g, texts, rr.x + rr.w - 1, rr.y - 3, `${fresh}`, now);
+      pix(g, b.icon, r.x + 4, r.y + Math.round((r.h - ih) / 2) + pr - 1);
+      texts.text(b.label, r.x + iw + 6, r.y + r.h / 2 + pr, WHITE, { bold: true, oy: 0.5 });
+      if (b.id === 'bag' && fresh > 0) kit.bubble(g, texts, r.x + r.w - 1, r.y - 3, `${fresh}`, now);
+      if (points) kit.bubble(g, texts, r.x + r.w - 1, r.y - 3, '!', now, true);
+      if (b.id === 'relics' && p.relicsNew.length) kit.bubble(g, texts, r.x + r.w - 1, r.y - 3, `${p.relicsNew.length}`, now);
     }
-  }
-
-  /** A red "new items" counter bubble centred on (x, y). */
-  private badge(g: G, texts: typeof this.kit.homeTexts, x: number, y: number, txt: string, now: number): void {
-    const w = Math.max(9, textWidth(txt, 1, false) + 4);
-    const bump = Math.round(Math.abs(Math.sin(now / 300)) * -1);
-    const r = { x: Math.round(x - w / 2), y: y + bump, w, h: 9 };
-    rows(g, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 3, INK);
-    rows(g, r.x, r.y, r.w, r.h, 2, 0xd8303a);
-    g.fillStyle(0xff8a7a, 1);
-    g.fillRect(r.x + 2, r.y, r.w - 4, 1);
-    texts.text(txt, r.x + r.w / 2, r.y + 4.5, WHITE, { ox: 0.5, oy: 0.5 });
   }
 
   /** A crisp dark glass plate (like the world map's), optionally with a tail pointing down at `tailX`. */
