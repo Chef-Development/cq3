@@ -300,12 +300,12 @@ export class App {
     this.audio.setAmbience(this.ambience());
   }
 
-  /** The sea and gulls on the title and the world map, a breeze over the act map, and the act's own place (forest,
-   *  ruins, hollow) in its fights, nodes and scenes. */
+  /** The sea and gulls on the title and the world map, a breeze over the act map, the campfire and crickets at the
+   *  camp, and the act's own place (forest, ruins, hollow) in its fights, nodes and scenes. */
   private ambience(): Ambience {
     const p = this.run.phase;
     if (p === 'title' || p === 'world') return 'world';
-    if (p === 'camp') return 'map';
+    if (p === 'camp') return 'camp';
     return p === 'map' ? 'map' : this.run.theme;
   }
 

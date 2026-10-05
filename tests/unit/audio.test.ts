@@ -269,10 +269,11 @@ describe('ambience', () => {
     ['hollow', 'boss'],
     ['map', 'map'],
     ['world', 'map'],
+    ['camp', 'map'],
   ];
 
   it('every place has an ambience in the Sound lab catalog (and none is an impact tier)', () => {
-    expect(AMBIENCES.length).toBe(5);
+    expect(AMBIENCES.length).toBe(6);
     for (const a of AMBIENCES) {
       const e = SFX.find((x) => x.id === `amb-${a}`);
       expect(e, a).toBeDefined();

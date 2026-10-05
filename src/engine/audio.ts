@@ -1,5 +1,5 @@
 // Web Audio synth: every sound effect, all the music (battle, boss and map themes) and the ambience beds (forest,
-// ruins, hollow, act map, world map) are generated in code (no samples).
+// ruins, hollow, act map, world map, camp) are generated in code (no samples).
 // Unlocked on the first user gesture. Also runs on an OfflineAudioContext (tests render every sound).
 //
 // Graph:
@@ -116,8 +116,8 @@ interface MusicRig {
 }
 
 /** Places with their own sound bed under the music. */
-export type Ambience = 'forest' | 'ruins' | 'hollow' | 'map' | 'world';
-export const AMBIENCES: Ambience[] = ['forest', 'ruins', 'hollow', 'map', 'world'];
+export type Ambience = 'forest' | 'ruins' | 'hollow' | 'map' | 'world' | 'camp';
+export const AMBIENCES: Ambience[] = ['forest', 'ruins', 'hollow', 'map', 'world', 'camp'];
 
 /** A looping filtered-noise layer of an ambience (wind, rain, fire, surf), nudged at random by gusts. */
 interface Bed {
@@ -174,7 +174,7 @@ const SPOTS: [number, number][] = [
 const ALL_SPOTS = [0, 1, 2, 3, 4] as const;
 const FAR_SPOTS = [0, 2, 4] as const;
 /** How much of each ambience goes to the reverb. */
-const AMB_WET: Record<Ambience, number> = { forest: 0.18, ruins: 0.55, hollow: 0.25, map: 0.12, world: 0.15 };
+const AMB_WET: Record<Ambience, number> = { forest: 0.18, ruins: 0.55, hollow: 0.25, map: 0.12, world: 0.15, camp: 0.2 };
 
 // Hit melody: major pentatonic, wrapping up an octave every 5 combo steps.
 const PENTA = [0, 2, 4, 7, 9];
@@ -1932,53 +1932,257 @@ export class Synth {
     this.tone({ type: 'sine', f: 3135.96, at: t + 0.28, dur: 0.3, gain: 0.06, rev: 0.4 });
   }
 
-  // ---- gear and the camp (PLACEHOLDERS built from existing sounds until their own are made)
+  // ---- gear and the camp: loot drops and reveals, the forge, the bag, gear effects in a fight
 
-  /** An item bursts out of a fallen foe; `rarity` 0 (Common) to 5 (Mythic) makes it brighter. */
+  /** An item bursts out of a fallen foe: a bright pop and a note that climbs with `rarity` 0 (Common) to 5 (Mythic);
+   *  the rarer it is, the more it sparkles (a fifth, then bells, then a shower of high twinkles). */
   lootDrop(rarity: number, at?: number): void {
-    this.coin(at);
-    if (rarity >= 2) this.statUp(rarity, at);
+    if (!this.ready) return;
+    const t = this.now(at);
+    const r = Math.max(0, Math.min(5, Math.round(rarity)));
+    // the pop: a quick upward bloop with a puff of air
+    this.tone({ type: 'sine', f: 260 + 50 * r, f1: 880 + 160 * r, glide: 0.05, at: t, attack: 0.002, dur: 0.09, gain: 0.2 });
+    this.tone({ type: 'triangle', f: 520 + 100 * r, f1: 1500 + 300 * r, glide: 0.04, at: t, attack: 0.002, dur: 0.06, gain: 0.05 });
+    this.noise({ at: t, dur: 0.05, attack: 0.003, gain: 0.07, filter: 'bandpass', f: 1400, f1: 4200, q: 1.2 });
+    // the note: up the pentatonic with each rarity
+    const m = 79 + [0, 2, 4, 7, 9, 12][r];
+    const s = t + 0.035;
+    this.tone({ type: 'square', f: hz(m), at: s, dur: 0.06, gain: 0.025 + 0.004 * r });
+    this.tone({ type: 'sine', f: hz(m), at: s, dur: 0.22 + 0.06 * r, gain: 0.09, rev: 0.3 });
+    if (r >= 1) this.tone({ type: 'sine', f: hz(m + 7), at: s + 0.05, dur: 0.2 + 0.05 * r, gain: 0.06, rev: 0.35 });
+    if (r >= 2) this.bell(hz(m + 12), s + 0.09, 0.035 + 0.008 * r, 0.45);
+    if (r >= 3) {
+      // a shower of twinkles, more of them for rarer drops
+      for (let i = 0; i < r + 1; i++) this.bell(hz(m + 12 + PENTA[(i * 2 + r) % 5] + (i > 2 ? 12 : 0)), s + 0.12 + i * 0.045 + this.rand() * 0.02, 0.02 + 0.004 * r, 0.5);
+      this.noise({ at: s, dur: 0.3 + 0.05 * r, attack: 0.1, gain: 0.025 + 0.006 * r, filter: 'highpass', f: 7000 });
+    }
+    if (r >= 5) this.tone({ type: 'sine', f: 110, f1: 55, glide: 0.25, at: t, dur: 0.3, gain: 0.22 }); // a Mythic lands with weight
   }
 
-  /** An Epic or better drop: a sting over the burst. */
+  /** An Epic or better lands: a shimmering sting. Epic: a quick major-seventh run into a glittering shimmer;
+   *  Legendary: a longer, brighter run with bells over a held chord; Mythic: a minor run over a low swell. */
   lootSting(rarity: number, at?: number): void {
-    this.rareSting(rarity >= 4, at);
+    if (!this.ready) return;
+    const t = this.now(at);
+    const r = Math.max(3, Math.min(5, Math.round(rarity)));
+    const notes = r === 3 ? [72, 76, 79, 83, 86] : r === 4 ? [72, 76, 79, 84, 88, 91, 96] : [69, 72, 76, 81, 84, 88, 93];
+    const step = r === 3 ? 0.05 : 0.045;
+    notes.forEach((n, i) => {
+      const s = t + i * step;
+      const last = i === notes.length - 1;
+      this.tone({ type: r === 5 ? 'sawtooth' : 'square', f: hz(n), at: s, dur: 0.07, gain: r === 5 ? 0.02 : 0.03 });
+      this.tone({ type: 'sine', f: hz(n), at: s, dur: last ? 0.9 : 0.3, gain: 0.09, rev: 0.45, detune: i % 2 ? 4 : -4 });
+    });
+    const end = t + notes.length * step;
+    // the shimmer: airy noise trembling fast, and twinkles scattered over it
+    this.voice({ at: t, type: 'noise', filter: 'highpass', ff: [[0, 5000], [0.9, 8000]], trem: { rate: 17, depth: 0.7 }, amp: [[0.25, 0.05 + 0.01 * r], [0.95, 0]] });
+    for (let i = 0; i < 3 + r; i++) this.bell(hz(notes[notes.length - 1] + [0, 4, 7, 12, 16, 19][i % 6]), end + i * 0.06 + this.rand() * 0.03, 0.03, 0.55);
+    if (r >= 4) {
+      // a held chord under the top note
+      const root = notes[0];
+      const chord = r === 4 ? [0, 4, 7, 12] : [0, 3, 7, 12];
+      chord.forEach((iv, i) => this.tone({ type: 'triangle', f: hz(root + iv), at: end - 0.05, attack: 0.04, hold: 0.2, dur: 0.9, gain: 0.05, rev: 0.5, detune: i % 2 ? 6 : -6 }));
+    }
+    if (r === 5) {
+      this.voice({ at: t, type: 'sawtooth', f: [[0, hz(33)], [0.6, hz(33)]], filter: 'lowpass', ff: [[0, 200], [0.4, 900], [0.9, 300]], q: 3, amp: [[0.3, 0.12], [0.9, 0]] });
+      this.tone({ type: 'sine', f: 90, f1: 45, glide: 0.4, at: end - 0.1, dur: 0.6, gain: 0.25 });
+    }
   }
 
-  /** The full-screen reveal card of a Legendary or Mythic. */
+  /** The full-screen reveal card of a Legendary: a riser into a bright fanfare (brassy saws opening up, a timpani
+   *  hit, a cymbal wash, bells), held on a major chord. A Mythic's is darker and grander: a low drone swelling up, a
+   *  minor motif climbing over a gong and a deep boom, and a high choir on the minor chord. */
   legendaryReveal(mythic: boolean, at?: number): void {
-    this.rareSting(true, at);
-    if (mythic) this.victory(at);
+    if (!this.ready) return;
+    const t = this.now(at);
+    const gr = this.graph!;
+    const rise = 0.28;
+    // the riser
+    this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 400], [rise, mythic ? 3000 : 6000]], q: 1.6, amp: [[rise * 0.95, 0.22], [rise + 0.05, 0]], rev: 0.3 });
+    this.voice({ at: t, type: 'sawtooth', f: [[0, mythic ? 55 : 110], [rise, mythic ? 220 : 440]], filter: 'lowpass', ff: [[0, 400], [rise, 2400]], amp: [[rise * 0.9, 0.05], [rise + 0.02, 0]] });
+    const s = t + rise;
+    // the hit: a timpani boom, a thump of air and a cymbal wash
+    this.tone({ type: 'sine', f: mythic ? 70 : 110, f1: mythic ? 36 : 55, glide: 0.35, at: s, dur: 0.6, gain: 0.45 });
+    this.noise({ at: s, dur: 0.25, gain: 0.25, filter: 'lowpass', f: 1800, f1: 200, rate: 0.6, rev: 0.3 });
+    this.noise({ at: s, dur: 1.4, attack: 0.01, gain: 0.07, filter: 'highpass', f: 6000, rev: 0.5 });
+    const root = mythic ? 57 : 60; // A minor / C major
+    const third = mythic ? 3 : 4;
+    if (!mythic) {
+      // fanfare: ta-ta-taaa on the fifth, then up to the octave
+      const fan: [number, number, number][] = [
+        [0, 67, 0.1],
+        [0.11, 67, 0.08],
+        [0.2, 72, 1.1],
+      ];
+      for (const [d, m, len] of fan) {
+        for (const det of [-7, 7])
+          this.voice({ at: s + d, type: 'sawtooth', f: [[0, hz(m) * Math.pow(2, det / 1200)]], vib: d > 0.15 ? { rate: 5.5, cents: 0, cents1: 14 } : undefined, filter: 'lowpass', ff: [[0, 700], [0.06, 3200], [len, 1400]], q: 1.5, amp: [[0.015, 0.045], [len * 0.7, 0.035], [len + 0.25, 0]], rev: 0.35 });
+        this.tone({ type: 'square', f: hz(m + 12), at: s + d, dur: len * 0.6, gain: 0.02, rev: 0.4 });
+      }
+    } else {
+      // a dark motif climbing out of the drone
+      const mot: [number, number, number][] = [
+        [0, 69, 0.18],
+        [0.18, 72, 0.18],
+        [0.36, 76, 0.18],
+        [0.54, 81, 1.2],
+      ];
+      for (const [d, m, len] of mot) {
+        this.voice({ at: s + d, type: 'sawtooth', f: [[0, hz(m - 12)]], filter: 'lowpass', ff: [[0, 500], [0.08, 2200], [len, 900]], q: 2, amp: [[0.02, 0.06], [len * 0.8, 0.04], [len + 0.3, 0]], rev: 0.5 });
+        this.tone({ type: 'triangle', f: hz(m), at: s + d, dur: len + 0.2, hold: len * 0.4, gain: 0.08, rev: 0.5 });
+      }
+      // the gong: low inharmonic partials ringing on
+      for (const [k, g, d] of [
+        [1, 0.12, 2],
+        [1.48, 0.07, 1.6],
+        [2.13, 0.05, 1.2],
+        [2.9, 0.035, 0.9],
+      ] as const)
+        this.tone({ type: 'sine', f: 98 * k, at: s, attack: 0.01, dur: d, gain: g, rev: 0.5 });
+      // the drone under it all, gritty
+      this.voice({ at: t, type: 'sawtooth', f: [[0, hz(33)]], filter: 'lowpass', ff: [[0, 150], [rise + 0.4, 700], [2, 200]], q: 4, amp: [[rise, 0.08], [1.6, 0.06], [2.1, 0]], out: gr.crunch });
+    }
+    // the chord, held (detuned triangles), with a choir-ish top that swells in
+    const hold = mythic ? 0.75 : 0.35;
+    [0, third, 7, 12].forEach((iv, i) => {
+      this.tone({ type: 'triangle', f: hz(root + iv), at: s + 0.02, attack: 0.05, hold, dur: 1.6, gain: 0.07, rev: 0.45, detune: i % 2 ? 7 : -7 });
+      this.tone({ type: 'sine', f: hz(root - 12 + iv), at: s + 0.02, attack: 0.03, hold: hold * 0.7, dur: 1.2, gain: i === 0 ? 0.16 : 0.04 });
+    });
+    this.voice({ at: s + 0.15, type: 'sine', f: [[0, hz(root + 24 + third)]], vib: { rate: 5, cents: 8, cents1: 20 }, amp: [[0.4, 0.05], [1.2, 0.04], [1.7, 0]], rev: 0.6 });
+    // bells cascading down over the chord
+    const top = root + 36;
+    [0, -5, -8 - (mythic ? 1 : 0), -12, -17].forEach((d, i) => this.bell(hz(top + d), s + 0.05 + i * 0.07, 0.05 - i * 0.006, 0.6));
   }
 
-  /** The smith's hammer on the anvil. */
+  /** The smith's hammer on the anvil: a sharp strike, a short thud, and the anvil ringing on (inharmonic partials). */
   forgeHammer(at?: number): void {
-    this.block(false, false, at);
+    if (!this.ready) return;
+    const t = this.now(at);
+    const k = 1 + (this.rand() - 0.5) * 0.04;
+    this.noise({ at: t, dur: 0.012, attack: 0.0004, gain: 0.45, filter: 'highpass', f: 2500, minTail: 0.003 });
+    this.tone({ type: 'square', f: 900 * k, at: t, dur: 0.01, attack: 0.0003, gain: 0.08, minTail: 0.003 });
+    this.tone({ type: 'triangle', f: 210 * k, f1: 95 * k, glide: 0.05, at: t, dur: 0.08, gain: 0.3 });
+    this.noise({ at: t, dur: 0.06, gain: 0.14, filter: 'bandpass', f: 900, f1: 500, q: 1.5, out: this.graph!.crunch });
+    // the ring: a steel block's partials, the high ones dying first
+    for (const [r, g, d] of [
+      [1, 0.09, 1],
+      [2.76, 0.07, 0.7],
+      [4.07, 0.05, 0.45],
+      [5.4, 0.035, 0.3],
+      [6.9, 0.025, 0.2],
+    ] as const)
+      this.tone({ type: 'sine', f: 1040 * k * r, at: t, attack: 0.001, dur: d, gain: g, rev: 0.3 });
+    this.ticks([t + 0.004, t + 0.011], { gain: 0.12, f: 6000, q: 1, ms: 3 }); // a little scale flying off
   }
 
-  /** An upgrade lands (+1). */
+  /** An upgrade lands (+1): a quick rising sweep of sparkles that ends on a bright chime. */
   forgeUpgrade(at?: number): void {
-    this.statUp(0, at);
+    if (!this.ready) return;
+    const t = this.now(at);
+    this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 800], [0.35, 7000]], q: 2.5, amp: [[0.3, 0.12], [0.4, 0]] });
+    this.voice({ at: t, type: 'triangle', f: [[0, 400], [0.35, 1600]], amp: [[0.3, 0.05], [0.38, 0]] });
+    [72, 76, 79, 84, 88, 91].forEach((m, i) => {
+      const s = t + i * 0.045;
+      this.tone({ type: 'sine', f: hz(m), at: s, dur: 0.18, gain: 0.08, rev: 0.35 });
+      this.tone({ type: 'square', f: hz(m + 12), at: s, dur: 0.04, gain: 0.018 });
+    });
+    const s = t + 0.3;
+    this.bell(hz(96), s, 0.08, 0.5);
+    this.bell(hz(103), s + 0.07, 0.05, 0.55);
+    [84, 88, 91].forEach((m) => this.tone({ type: 'sine', f: hz(m), at: s, attack: 0.01, hold: 0.1, dur: 0.6, gain: 0.05, rev: 0.45 }));
+    this.voice({ at: s, type: 'noise', filter: 'highpass', ff: [[0, 7000]], trem: { rate: 18, depth: 0.6 }, amp: [[0.05, 0.04], [0.5, 0]] });
   }
 
-  /** An item melts into scrap. */
+  /** An item melts into scrap: a metal crunch, then a hiss of hot metal sizzling out. */
   salvage(at?: number): void {
-    this.wardBreak(true, at);
+    if (!this.ready) return;
+    const t = this.now(at);
+    const gr = this.graph!;
+    // the crunch: a few chunky bites through the drive, pitch falling
+    for (let i = 0; i < 3; i++) {
+      const s = t + i * 0.045 + this.rand() * 0.01;
+      this.noise({ at: s, dur: 0.05, gain: 0.32 - i * 0.06, filter: 'bandpass', f: 1300 - i * 250, q: 1.4, out: gr.crunch });
+      this.tone({ type: 'square', f: 260 - i * 50, f1: 140 - i * 25, glide: 0.04, at: s, dur: 0.05, gain: 0.07, out: gr.crunch });
+    }
+    this.ticks(
+      Array.from({ length: 8 }, () => t + this.rand() * 0.14),
+      { gain: 0.16, f: 3600, q: 2, ms: 4 },
+    );
+    // the sizzle: bright, trembling noise fading out, and a soft low fwump
+    this.voice({ at: t + 0.1, type: 'noise', filter: 'highpass', ff: [[0, 3500], [0.6, 6000]], trem: { rate: 24, depth: 0.7, rate1: 9 }, amp: [[0.04, 0.12], [0.25, 0.07], [0.65, 0]] });
+    this.voice({ at: t + 0.1, type: 'noise', filter: 'bandpass', ff: [[0, 2200], [0.5, 1400]], q: 3, trem: { rate: 31, depth: 0.8 }, amp: [[0.05, 0.05], [0.5, 0]] });
+    this.tone({ type: 'sine', f: 140, f1: 70, glide: 0.15, at: t, dur: 0.18, gain: 0.18 });
+    this.tone({ type: 'sine', f: hz(79), at: t + 0.32, dur: 0.18, gain: 0.04, rev: 0.4 }); // a tiny ting: scrap gained
   }
 
-  /** Gear goes on. */
+  /** Gear goes on: a leathery clunk (a thump, a buckle and a creak of straps), then a bright little chime. */
   equip(at?: number): void {
-    this.panelOpen(at);
+    if (!this.ready) return;
+    const t = this.now(at);
+    this.noise({ at: t, dur: 0.07, attack: 0.002, gain: 0.3, filter: 'lowpass', f: 900, f1: 300, rate: 0.7 });
+    this.tone({ type: 'triangle', f: 150, f1: 85, glide: 0.05, at: t, dur: 0.08, gain: 0.22 });
+    this.noise({ at: t + 0.004, dur: 0.03, gain: 0.08, filter: 'bandpass', f: 2600, q: 2 });
+    this.voice({ at: t + 0.05, type: 'noise', filter: 'bandpass', ff: [[0, 700], [0.09, 1000]], q: 5, trem: { rate: 55, depth: 0.9, wave: 'sawtooth' }, amp: [[0.03, 0.18], [0.1, 0]] });
+    this.tone({ type: 'sine', f: hz(88), at: t + 0.1, dur: 0.25, gain: 0.08, rev: 0.4 });
+    this.tone({ type: 'sine', f: hz(95), at: t + 0.16, dur: 0.4, gain: 0.07, rev: 0.45 });
+    this.tone({ type: 'square', f: hz(95), at: t + 0.16, dur: 0.04, gain: 0.015 });
   }
 
-  /** An item is locked or unlocked. */
+  /** An item is locked or unlocked: the small double click of a latch. */
   lockToggle(at?: number): void {
-    this.uiClick(at);
+    if (!this.ready) return;
+    const t = this.now(at);
+    this.ticks([t], { gain: 0.32, f: 3200, q: 3, ms: 5 });
+    this.ticks([t + 0.035], { gain: 0.26, f: 1900, q: 3, ms: 7 });
+    this.tone({ type: 'triangle', f: 1800, f1: 1500, glide: 0.02, at: t + 0.035, dur: 0.04, gain: 0.05 });
+    this.tone({ type: 'sine', f: 4200, at: t + 0.035, dur: 0.05, gain: 0.02 });
   }
 
-  /** A bonus stat is rerolled. */
+  /** A bonus stat is rerolled: a slot-machine whirr (a ratchet spinning fast and slowing down over a buzzing reel),
+   *  ending on a ding. */
   reroll(at?: number): void {
-    this.shopBuy(at);
+    if (!this.ready) return;
+    const t = this.now(at);
+    const len = 0.55;
+    const times: number[] = [];
+    for (let x = 0; x < len; ) {
+      times.push(t + x);
+      const k = x / len;
+      x += 0.022 + 0.07 * k * k;
+    }
+    this.ticks(times, { gain: 0.2, f: 2600, q: 4, ms: 5 });
+    this.voice({ at: t, type: 'sawtooth', f: [[0, 260], [len, 150]], vib: { rate: 22, cents: 60, rate1: 8 }, filter: 'bandpass', ff: [[0, 1400], [len, 700]], q: 2, amp: [[0.05, 0.07], [len * 0.7, 0.05], [len, 0]] });
+    this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 3000], [len, 1500]], q: 1.2, trem: { rate: 30, depth: 0.6, rate1: 10 }, amp: [[0.05, 0.05], [len, 0]] });
+    const s = t + len + 0.02;
+    this.tone({ type: 'square', f: hz(84), at: s, dur: 0.06, gain: 0.03 });
+    this.bell(hz(84), s, 0.09, 0.4);
+    this.tone({ type: 'sine', f: hz(91), at: s + 0.06, dur: 0.3, gain: 0.06, rev: 0.4 });
+  }
+
+  /** A piece of gear's unique effect kicks in mid-fight: a short magical glint (a rising fifth over a trembling
+   *  shimmer; `k` 0..1 makes it brighter for the big ones). Quiet, so it never covers the hits. */
+  gearProc(k = 0.5, at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    const m = 88 + Math.round(k * 4);
+    this.tone({ type: 'sine', f: hz(m), at: t, dur: 0.16, gain: 0.07, rev: 0.4 });
+    this.tone({ type: 'sine', f: hz(m + 7), at: t + 0.05, dur: 0.24, gain: 0.06, rev: 0.45 });
+    this.tone({ type: 'square', f: hz(m + 7), at: t + 0.05, dur: 0.03, gain: 0.012 });
+    this.voice({ at: t, type: 'noise', filter: 'highpass', ff: [[0, 6500]], trem: { rate: 20, depth: 0.6 }, amp: [[0.05, 0.03 + 0.03 * k], [0.3, 0]] });
+  }
+
+  /** The Pendulum Shard spawns a green block: a brass tick and tock. */
+  tickTock(at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    for (const [d, f] of [
+      [0, 2400],
+      [0.16, 1800],
+    ] as const) {
+      this.ticks([t + d], { gain: 0.3, f, q: 6, ms: 10 });
+      this.tone({ type: 'sine', f: f * 0.5, at: t + d, attack: 0.001, dur: 0.12, gain: 0.06, rev: 0.3 });
+      this.tone({ type: 'sine', f: f * 1.38, at: t + d, attack: 0.001, dur: 0.06, gain: 0.03 });
+    }
   }
 
   /** Resting at a campfire: a whoosh as it flares, crackling, and a warm F major chord. */
@@ -2823,6 +3027,11 @@ export class Synth {
         this.bed(r, t, { type: 'lowpass', f: 420, q: 0.5, g: 0.06, gust: [0.7, 1.3], tau: 2.5 }); // the sea's low roar
         this.bed(r, t, { type: 'bandpass', f: 1100, q: 0.4, g: 0.025, gust: [0.3, 1.7], sway: [0.7, 1.4], tau: 1.2 }); // breeze off the sea
         break;
+      case 'camp':
+        this.bed(r, t, { type: 'bandpass', f: 320, q: 0.9, g: 0.05, gust: [0.6, 1.35], sway: [0.85, 1.25], tau: 0.06 }); // the campfire's roar (flickers)
+        this.bed(r, t, { type: 'lowpass', f: 180, q: 0.5, g: 0.06, gust: [0.7, 1.3], tau: 2.4 }); // the night's low hush
+        this.bed(r, t, { type: 'bandpass', f: 900, q: 0.45, g: 0.022, gust: [0.25, 1.6], sway: [0.75, 1.4], tau: 1.4 }); // a soft breeze in the trees
+        break;
     }
   }
 
@@ -2890,6 +3099,19 @@ export class Synth {
           gust,
           wave: { every: [3.2, 5.8], play: (r, t) => this.wave(r, t) },
           gull: { every: [4, 11], play: (r, t) => this.gulls(r, t) },
+        };
+      case 'camp':
+        return {
+          gust,
+          flicker: { every: [0.07, 0.22], play: (r, t) => this.gust(r, t, r.beds[0]) },
+          crackle: { every: [0.15, 0.6], play: (r, t) => this.campCrackle(r, t) },
+          pop: { every: [2.5, 7], play: (r, t) => this.firePop(r, t) },
+          settle: { every: [12, 26], play: (r, t) => this.logSettle(r, t) },
+          cricket1: { every: [0.5, 2.8], play: (r, t) => this.cricket(r, t, 0) },
+          cricket2: { every: [1, 4], play: (r, t) => this.cricket(r, t, 1) },
+          cricket3: { every: [2.5, 7], play: (r, t) => this.cricket(r, t, 2) },
+          rustle: { every: [7, 16], play: (r, t) => this.rustle(r, t, 0.45) },
+          owl: { every: [16, 34], play: (r, t) => this.owl(r, t) },
         };
     }
   }
@@ -3065,6 +3287,30 @@ export class Synth {
     );
   }
 
+  /** The campfire crackling, close by and in front: bursts of sharp and softer ticks spread across the flames. */
+  private campCrackle(r: AmbRig, t: number): number {
+    const d = 0.5;
+    const out = r.spots[[1, 2, 3][Math.floor(r.rand() * 3)]];
+    this.ticks(
+      Array.from({ length: 1 + Math.floor(r.rand() * 6) }, () => t + r.rand() * d),
+      { gain: 0.14 + r.rand() * 0.08, f: 1500 + r.rand() * 2800, q: 1.1, ms: 3 + r.rand() * 5, out },
+    );
+    return d * 0.4;
+  }
+
+  /** A log shifts in the fire: a soft wooden thump, a hiss of embers and a flurry of crackles. */
+  private logSettle(r: AmbRig, t: number): number {
+    const out = r.spots[2];
+    this.tone({ type: 'triangle', f: 150, f1: 80, glide: 0.06, at: t, dur: 0.1, gain: 0.08, out });
+    this.noise({ at: t, dur: 0.08, gain: 0.08, filter: 'lowpass', f: 700, rate: 0.6, out });
+    this.voice({ at: t + 0.04, type: 'noise', buf: this.graph!.pink, filter: 'highpass', ff: [[0, 2500], [0.6, 4000]], amp: [[0.1, 0.05], [0.7, 0]], out });
+    this.ticks(
+      Array.from({ length: 6 + Math.floor(r.rand() * 5) }, () => t + 0.05 + r.rand() * 0.7),
+      { gain: 0.12, f: 2400 + r.rand() * 2000, q: 1.3, ms: 4, out: r.spots[r.rand() < 0.5 ? 1 : 3] },
+    );
+    return 0.8;
+  }
+
   /** An owl in the dark: "hoo ... hu-hu-hoooo", soft and far off. */
   private owl(r: AmbRig, t: number): number {
     const f = 360 + r.rand() * 50;
@@ -3110,7 +3356,7 @@ export class Synth {
 }
 
 const AMB_PREVIEW = 8;
-const AMB_LABEL: Record<Ambience, string> = { forest: 'forest', ruins: 'ruins', hollow: 'hollow', map: 'act map', world: 'world map' };
+const AMB_LABEL: Record<Ambience, string> = { forest: 'forest', ruins: 'ruins', hollow: 'hollow', map: 'act map', world: 'world map', camp: 'camp' };
 
 /** Every sound effect, for the Sound lab and the loudness tests. `tier` marks the impacts (lightest first). */
 export interface SfxEntry {
@@ -3176,6 +3422,19 @@ export const SFX: SfxEntry[] = [
   { id: 'eventSting', label: 'Event sting', len: 1.3, play: (s, at) => s.eventSting(at) },
   { id: 'textBlip', label: 'Dialogue blip', len: 0.15, play: (s, at) => s.textBlip(at) },
   { id: 'victory', label: 'Region cleared', len: 3.2, play: (s, at) => s.victory(at) },
+  // gear: loot drops (one per rarity), the stings and reveal cards, the forge and the bag, gear effects in a fight
+  ...['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic'].map((name, r): SfxEntry => ({ id: `lootDrop${r}`, label: `Loot drop: ${name}`, len: 0.9, play: (s, at) => s.lootDrop(r, at) })),
+  ...['Epic', 'Legendary', 'Mythic'].map((name, i): SfxEntry => ({ id: `lootSting${i + 3}`, label: `Loot sting: ${name}`, len: 1.6, play: (s, at) => s.lootSting(i + 3, at) })),
+  { id: 'revealLegendary', label: 'Reveal card: Legendary', len: 2.6, play: (s, at) => s.legendaryReveal(false, at) },
+  { id: 'revealMythic', label: 'Reveal card: Mythic', len: 3, play: (s, at) => s.legendaryReveal(true, at) },
+  { id: 'forgeHammer', label: 'Forge: hammer', len: 1.2, play: (s, at) => s.forgeHammer(at) },
+  { id: 'forgeUpgrade', label: 'Forge: upgrade', len: 1, play: (s, at) => s.forgeUpgrade(at) },
+  { id: 'salvage', label: 'Salvage', len: 0.9, play: (s, at) => s.salvage(at) },
+  { id: 'equip', label: 'Equip', len: 0.7, play: (s, at) => s.equip(at) },
+  { id: 'lockToggle', label: 'Lock / unlock', len: 0.2, play: (s, at) => s.lockToggle(at) },
+  { id: 'reroll', label: 'Forge: reroll', len: 1, play: (s, at) => s.reroll(at) },
+  { id: 'gearProc', label: 'Gear effect kicks in', len: 0.5, play: (s, at) => s.gearProc(0.5, at) },
+  { id: 'tickTock', label: 'Pendulum: tick, tock', len: 0.5, play: (s, at) => s.tickTock(at) },
   // the places' ambience beds (8 s of each, as it starts: the first bird, drip or wave comes within a second or two)
   ...AMBIENCES.map((a): SfxEntry => ({ id: `amb-${a}`, label: `Ambience: ${AMB_LABEL[a]} (8 s)`, len: AMB_PREVIEW, play: (s, at) => s.scheduleAmbience(at, AMB_PREVIEW, a) })),
 ];
