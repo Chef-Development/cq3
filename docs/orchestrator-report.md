@@ -64,8 +64,10 @@
 - **Art:** a full sprite set (idle, run, a strike per hand, both-hand strike, wind-up, block, hurt, KO, leap, finisher
   dive), portrait, map walker, a camp pose by the fire, and hero cards.
 - **The bot** plays Sable with two thumbs: an independent timing error, tap rate and pending tap per hand.
-  **At the same accuracy, Sable is within +/-10 points of Rowan** (worst: an 85% player in Act 3, -10; a 70% player
-  -1 to +6). `npm run twin` compares them; `tests/unit/twin-bot.test.ts` guards it.
+  **At the same accuracy, Sable is within +/-10 points of Rowan** (first-try clears and first boss fights won, per
+  act): a 70% player 0 to +5 points, an 85% player 0 to -10 (Act 3). The gap leans with skill, and repeat runs on
+  other seeds move it by about 4 points. Sable has 125 base HP (Rowan 100). `npm run twin` compares them;
+  `tests/unit/twin-bot.test.ts` guards it.
 
 ### 3. Hero levels and skill trees
 - **XP** from kills (elites and bosses more, more per act) and act clears (double the first time) goes to the hero who
@@ -162,8 +164,8 @@ was x8.9), so fights keep their length (normal fights 18 / 26 / 22 s, bosses 36 
 
 ## Known gaps and suggested next steps
 1. **Report the accuracy number** (gear panel > Your accuracy > Copy), then `ACC=<number> npm run retarget`.
-2. **Sable takes about twice the hits of Rowan for a skilled (85%) player** in Acts 2-3 (2.0 vs 4.7 a minute) and wins
-   anyway through damage; if she feels fragile on the phone, widen her reds (`sable.redWidthMult`).
+2. **Sable takes about twice the hits of Rowan for a skilled (85%) player** in Act 3 (2.0 vs 4.1 a minute; her extra
+   HP covers it). If she feels fragile on the phone, widen her reds (`sable.redWidthMult`) or raise `sable.maxHp`.
 3. Bulwark is still the safest branch (+8-10 points in Act 3); if it reads as "the right answer", trim Parry or
    Shield Bash next.
 4. Some special moves place blocks at set spots and don't know about Sable's middle line; a safety net moves such a
