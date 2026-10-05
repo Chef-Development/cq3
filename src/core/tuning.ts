@@ -287,6 +287,7 @@ export const DEFAULT_TUNING = {
     epicW: 0.14,
     synergy: 1.2, // ...times (1 + synergy x the number of its tags you already own), so builds form
     price: 1.25, // shops: a relic costs the boost card price of its rarity x this
+    echoDelay: 1, // Echo Strike: seconds (of motion) between the finisher and its echo
     // each relic's one number (src/data/relics.ts has the text; '{n}' shows it)
     n: Object.fromEntries(RELICS.filter((r) => r.n !== undefined).map((r) => [r.id, r.n as number])) as Record<string, number>,
   },
@@ -303,16 +304,19 @@ export const DEFAULT_TUNING = {
   },
   levels: {
     // Heroes level up from kills and act clears (core/heroes.ts): small base-stat gains, a skill point every 2 levels.
+    // Paced with the bot (a typical 70% player): a first playthrough of Greenmarch ends around level 9 (Acts 1-3:
+    // ~5 / 7 / 9), six replays of Act 3 add ~5 more, and level 30 is ~80 clean Act 3 replays away (later regions
+    // give more per kill).
     max: 30,
-    xpBase: 30, // XP from level L to L+1: xpBase x L ^ xpExp
-    xpExp: 1.5,
+    xpBase: 12, // XP from level L to L+1: xpBase x L ^ xpExp (12, 48, 108... 972 at level 9)
+    xpExp: 2,
     hpPer: 2, // max HP per level above 1
-    atkPer: 0.015, // attack +1.5% per level above 1
-    pointEvery: 2, // a skill point every this many levels (level 3, 5, 7...)
-    xpKill: 2, // a kill gives this x (1 + act) (elites xpElite, mini-bosses and the boss xpBoss instead)
-    xpElite: 10,
-    xpBoss: 40,
-    xpAct: 40, // clearing an act: this x (act + 1), doubled the first time
+    atkPer: 0.015, // base attack +1.5% per level above 1
+    pointEvery: 2, // a skill point every this many levels (levels 2, 4, 6...: 15 at level 30)
+    xpKill: 5, // a kill gives this x (1 + act) (elites xpElite, mini-bosses and the boss xpBoss instead)
+    xpElite: 25,
+    xpBoss: 100,
+    xpAct: 100, // clearing an act: this x (act + 1), doubled the first time
   },
   skills: {
     // each skill node's number (src/data/skills.ts has the text; '{n}' shows it)
@@ -333,6 +337,18 @@ export const DEFAULT_TUNING = {
     owlEvery: 3, // Owl Eye: Pip pecks every N hits
     secondWindAt: 0.3, // Second Wind: once a fight, dropping under this share of max HP...
     secondWindHeal: 0.2, // ...heals this share
+  },
+  music: {
+    // Fight music: its layers join as the combo climbs (on the next beat) and drop back on a combo break. Under
+    // the first one, the fight arrangement plays its base (pads, arpeggio, percussion, the melody on a bell).
+    drumsAt: 10, // combo the drums join at...
+    bassAt: 25, // ...then the bass...
+    leadAt: 50, // ...then the lead
+    layerIn: 0.05, // s: a layer fades in this fast, landing on its beat
+    layerOut: 0.6, // s: and fades out over this long when the combo breaks
+    finisherHold: 2, // s the layers stay up after a finisher spends the combo
+    crossfade: 1.5, // s: an act theme's calm and fight arrangements crossfade over about this long (whole beats)
+    ringOut: 0.8, // s: when another piece takes over, the last one fades over this long
   },
   enemies: cloneData(ENEMIES),
   acts: GREENMARCH.acts.map((a: ActDef): ActScale => ({ name: a.name, hpMult: a.hpMult, atkMult: a.atkMult, pace: a.pace })),
@@ -748,6 +764,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('relics.epicW', 'Weight: epic relic', 0, 3, 0.01),
         s('relics.synergy', 'Synergy lean', 0, 5, 0.1),
         s('relics.price', 'Shop: relic price x', 0.2, 4, 0.05),
+        s('relics.echoDelay', 'Echo Strike: delay (s)', 0.2, 3, 0.05),
         s('kit.relicPicks', 'Replay: relic picks per act', 0, 6, 1),
       ],
     },
@@ -804,6 +821,19 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       s('effects.owlEvery', 'Owl Eye: peck every N', 1, 10, 1),
       s('effects.secondWindAt', 'Second Wind: below HP', 0, 1, 0.05),
       s('effects.secondWindHeal', 'Second Wind: heals', 0, 1, 0.05),
+    ],
+  });
+  groups.push({
+    title: 'Music',
+    sliders: [
+      s('music.drumsAt', 'Drums join at combo', 0, 100, 1),
+      s('music.bassAt', 'Bass joins at combo', 0, 150, 1),
+      s('music.leadAt', 'Lead joins at combo', 0, 200, 1),
+      s('music.layerIn', 'Layer fade in (s)', 0.01, 1, 0.01),
+      s('music.layerOut', 'Layer fade out (s)', 0.05, 3, 0.05),
+      s('music.finisherHold', 'Layers stay after a finisher (s)', 0, 8, 0.25),
+      s('music.crossfade', 'Calm <-> fight crossfade (s)', 0.2, 4, 0.1),
+      s('music.ringOut', 'Piece change fade (s)', 0.1, 3, 0.05),
     ],
   });
   t.acts.forEach((a, i) =>

@@ -132,17 +132,18 @@ export function resetSkills(p: HeroProgress): number {
   return n;
 }
 
-/** Only nodes that belong to the hero, in branch order, each with the one before it (a save from an older tree). */
+/** Only nodes that belong to the hero, each with the one before it in its branch (a save from an older tree), in
+ *  the order they were learned. */
 export function validSkills(hero: HeroId, ids: unknown): string[] {
   if (!Array.isArray(ids)) return [];
   const want = new Set(ids.filter((x): x is string => typeof x === 'string'));
-  const out: string[] = [];
+  const ok = new Set<string>();
   for (const branch of treeOf(hero))
     for (const n of branch.nodes) {
       if (!want.has(n.id)) break;
-      out.push(n.id);
+      ok.add(n.id);
     }
-  return out;
+  return [...want].filter((id) => ok.has(id));
 }
 
 /** A skill node's live number (tuning.skills.n), or its data default. */

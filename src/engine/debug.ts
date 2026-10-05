@@ -6,7 +6,7 @@ import { impactFeel, impactWeight } from '../core/impact';
 import { cloneTuning, DEFAULT_SETTINGS, getPath, IMPACT_SOUND_SLIDERS, mergeKnown, setPath, sliderGroups, type Settings } from '../core/tuning';
 import { heroFor } from '../core/run';
 import type { App } from './app';
-import { SFX } from './audio';
+import { MUSIC_PIECES, SFX, type MusicPiece } from './audio';
 import { runCalibration } from './calibrate';
 import { saveNow } from './storage';
 
@@ -45,6 +45,8 @@ export function installDebug(app: App): DebugUi {
   const decimals = (step: number) => (step >= 1 ? 0 : Math.min(4, Math.ceil(-Math.log10(step) - 1e-9)));
 
   let rebuild = () => {};
+  /** The Sound lab's music choice (kept while the panel is rebuilt). */
+  const labMusic: { piece: MusicPiece | null; combo: number } = { piece: null, combo: 0 };
 
   const build = () => {
     root.innerHTML = '';
@@ -174,20 +176,7 @@ export function installDebug(app: App): DebugUi {
       lg.appendChild(b);
     }
     lab.appendChild(lg);
-    const mg = el('div', 'dbg-grid');
-    for (const [name, label] of [
-      ['battle', 'Music: battle theme'],
-      ['boss', 'Music: boss theme'],
-      ['map', 'Music: map theme'],
-    ] as const) {
-      const b = el('button', 'dbg-btn', label);
-      b.onclick = () => {
-        app.audio.unlock();
-        app.audio.setTrack(name);
-      };
-      mg.appendChild(b);
-    }
-    lab.appendChild(mg);
+    musicLab(lab);
     for (const sd of IMPACT_SOUND_SLIDERS)
       slider(lab, sd.label, sd.min, sd.max, sd.step, () => getPath(app.tuning, sd.path), (v) => {
         setPath(app.tuning, sd.path, v);
@@ -359,6 +348,63 @@ export function installDebug(app: App): DebugUi {
     );
   }
 
+  /**
+   * The music in the Sound lab: every piece (an act's map and fight arrangements crossfade like in the game), the
+   * fight layers at a chosen combo, the Boar King per phase. It plays instead of the game's music until the panel
+   * closes (or "Game's music").
+   */
+  function musicLab(parent: HTMLElement): void {
+    parent.appendChild(el('div', 'dbg-note', "Music: tap a piece. Pick a combo to hear the fight layers join (drums, bass, lead). The game's music comes back when the panel closes."));
+    const play = () => {
+      const p = labMusic.piece;
+      if (!p) return;
+      app.audio.unlock();
+      app.audio.audition(p.track, { intense: p.intense, combo: labMusic.combo, phase: p.phase ?? 1 });
+    };
+    // the piece playing is lit like a picked segment
+    const mark = (b: HTMLElement, on: boolean) => {
+      b.style.background = on ? '#ff9a2a' : '';
+      b.style.color = on ? 'var(--ink)' : '';
+    };
+    const grid = el('div', 'dbg-grid');
+    const btns = MUSIC_PIECES.map((p) => {
+      const b = el('button', 'dbg-btn', p.label);
+      b.onclick = () => {
+        labMusic.piece = p;
+        btns.forEach((x, i) => mark(x, MUSIC_PIECES[i] === p));
+        play();
+      };
+      mark(b, app.audio.auditioning && labMusic.piece === p);
+      grid.appendChild(b);
+      return b;
+    });
+    const back = el('button', 'dbg-btn', "Game's music");
+    back.onclick = () => {
+      app.audio.audition(null);
+      btns.forEach((x) => mark(x, false));
+    };
+    grid.appendChild(back);
+    parent.appendChild(grid);
+    const m = app.tuning.music;
+    const row = el('div', 'dbg-row');
+    row.appendChild(el('span', 'dbg-label', 'Combo'));
+    const seg = el('div', 'dbg-seg');
+    const combos = [0, m.drumsAt, m.bassAt, m.leadAt];
+    const cbtns = combos.map((c) => {
+      const b = el('button', 'dbg-segbtn', String(c));
+      b.onclick = () => {
+        labMusic.combo = c;
+        cbtns.forEach((x, i) => x.classList.toggle('on', combos[i] === c));
+        play();
+      };
+      b.classList.toggle('on', labMusic.combo === c);
+      return b;
+    });
+    seg.append(...cbtns);
+    row.appendChild(seg);
+    parent.appendChild(row);
+  }
+
   function slider(parent: HTMLElement, label: string, min: number, max: number, step: number, get: () => number, set: (v: number) => void) {
     const row = el('div', 'dbg-row slider');
     const top = el('div', 'dbg-slabel');
@@ -406,6 +452,7 @@ export function installDebug(app: App): DebugUi {
   };
 
   const setOpen = (open: boolean) => {
+    if (!open) app.audio.audition(null); // the Sound lab's music hands back to the game's
     app.panelOpen = open;
     root.hidden = !open;
     gearBtn.classList.toggle('on', open);

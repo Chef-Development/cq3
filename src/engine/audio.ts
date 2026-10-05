@@ -1,5 +1,5 @@
-// Web Audio synth: every sound effect, all the music (battle, boss and map themes) and the ambience beds (forest,
-// ruins, hollow, act map, world map, camp) are generated in code (no samples).
+// Web Audio synth: every sound effect, all the music (a theme per act, per boss, the camp and the title: see
+// music.ts) and the ambience beds (forest, ruins, hollow, act map, world map, camp) are generated in code (no samples).
 // Unlocked on the first user gesture. Also runs on an OfflineAudioContext (tests render every sound).
 //
 // Graph:
@@ -7,8 +7,8 @@
 //   impact sub layer ---------------------------------------------> limiter (so it never pumps the compressor)
 //   bell/finisher/kill voices -> reverb sends -> highpass -> convolver -> return -> master
 //   crunchy voices -> drive -> waveshaper (soft clip + bit steps) -> lowpass -> master
-//   music parts (drums, bass, pad, arp, lead, fx) -> mix (+ ping-pong echo, hall reverb) -> music bus (one per run,
-//     tuning.impact.music, ducked under big impacts) -> master
+//   music parts (pad, arp, bell, lead, bass, drums, perc, fx: music.ts) -> layer gates -> arrangement fades
+//     (+ ping-pong echo, hall reverb) -> music bus (one per run, tuning.impact.music, ducked under big impacts) -> master
 //   ambience beds and events -> stereo spots -> fade (crossfades places) -> ambience out (ducked too) -> master
 //   metronome -> click out -> destination (dry and uncompressed, so calibration timing stays exact)
 //
@@ -33,11 +33,14 @@ import {
   type ImpactVoice,
 } from '../core/impact';
 import { DEFAULT_TUNING, type Tuning } from '../core/tuning';
+import { Band, type MusicRender, type MusicTrack } from './music';
+
+export { MUSIC_PIECES, MUSIC_TRACKS, type MusicPiece, type MusicTrack } from './music';
 
 type Ctx = BaseAudioContext;
-type Wave = Exclude<OscillatorType, 'custom'> | 'pulse25' | 'pulse12';
+export type Wave = Exclude<OscillatorType, 'custom'> | 'pulse25' | 'pulse12';
 
-interface ToneOpts {
+export interface ToneOpts {
   type?: Wave;
   f: number; // start frequency (Hz)
   f1?: number; // exponential glide target (Hz)
@@ -55,7 +58,7 @@ interface ToneOpts {
   minTail?: number; // shortest decay after attack + hold (s), default 10 ms
 }
 
-interface NoiseOpts {
+export interface NoiseOpts {
   at?: number;
   delay?: number;
   dur: number;
@@ -86,33 +89,6 @@ interface Graph {
   sends: Map<number, GainNode>;
   hall?: AudioBuffer; // the music reverb's impulse (made on first use)
   pink?: AudioBuffer; // 6 s of stereo pink noise for the ambience beds (made on first use)
-}
-
-/** One run of the music: persistent part buses, sends and effects; the notes are short voices into them. */
-interface MusicRig {
-  bus: GainNode; // tuning.impact.music, ducked under big impacts
-  drums: GainNode; // kick (after its drive), snare body
-  kick: GainNode; // into a soft-clip drive, so the kick's harmonics reach a phone speaker
-  snare: BiquadFilterNode; // snare and clap noise (with a little hall)
-  hats: BiquadFilterNode; // hats and shaker, a little right
-  perc: GainNode; // woodblock, a little left
-  bass: BiquadFilterNode;
-  bassDuck: GainNode; // sidechain: the bass gets out of the kick's way
-  padL: GainNode; // pad voices, detuned against each other across the stereo field
-  padR: GainNode;
-  padTone: BiquadFilterNode; // pad lowpass: opens up over the last bar into the loop point
-  padDuck: GainNode; // sidechain: the pad dips under every kick
-  arpL: StereoPannerNode; // the arpeggio alternates sides
-  arpR: StereoPannerNode;
-  lead: BiquadFilterNode;
-  fx: GainNode; // crash and riser (mostly hall)
-  echo: GainNode; // ping-pong echo input (dotted 8ths)
-  echoL: DelayNode;
-  echoR: DelayNode;
-  echoFb: GainNode[]; // the echo's feedback (per track)
-  echoAt: [number, number]; // the echo's delay time and feedback now (each track glides them to its own)
-  nodes: AudioNode[]; // everything above, for the teardown
-  riser: GainNode | null; // the riser into the loop point (faded if the track changes under it)
 }
 
 /** Places with their own sound bed under the music. */
@@ -152,8 +128,6 @@ interface AmbEvent {
 }
 
 const MASTER_LEVEL = 0.8;
-/** The whole band's level under the music bus (tuning.impact.music sets the volume on top). */
-const MUSIC_TRIM = 1;
 
 // ---- Ambience: looping filtered-noise beds (wind, rain, fire, surf) that drift with random gusts, and synthesized
 // events (birds, drips, crickets, an owl, gulls, waves) at seeded random times, scheduled ahead like the music. ----
@@ -181,151 +155,9 @@ const PENTA = [0, 2, 4, 7, 9];
 const HIT_BASE = 523.25; // C5
 const HIT_TOP = 13; // G7, ~2.6 octaves up; past it the blip trills between the top two notes
 
-// ---- Music: three original 8-bar loops on a 16th-note grid. The battle theme, a boss theme that takes over when a
-// boss is on screen, and a calm map theme for the node map and story scenes. Each is a small band: a sub + plucked
-// saw bass, a soft stereo pad on the chords (ducked by the kick, its filter opening into the loop point under a
-// noise riser), the arpeggio alternating sides, a filtered lead with a ping-pong echo, a synthesized kit (driven
-// kick, snare + clap, swung hats) and a hall reverb. ----
+// ---- Music (music.ts): scheduled ahead on a timer, like the ambience. ----
 const LOOKAHEAD = 0.12;
 const TICK_MS = 25;
-
-type Note = [number, number] | null; // [semitones above root (bass) or midi (lead), length in steps]
-export type MusicTrack = 'battle' | 'boss' | 'map';
-
-/** Per-track sound of the band (levels are per voice, into the music bus). */
-interface Feel {
-  pad: number; // pad level per oscillator
-  padHz: number; // pad lowpass at rest (opens about 3x over the last bar)
-  padShift: number; // semitones from the arpeggio's chord tones to the pad voicing
-  padAttack: number; // s
-  bass: number; // bass level
-  bassHz: [number, number]; // the bass pluck's filter: from, settling to
-  sub: number; // sine sub under the bass (share of the bass level)
-  leadHz: number; // lead lowpass
-  swing: number; // offbeat 16ths of the hats/shaker land late by this share of a step
-  echo: number; // echo feedback
-}
-
-interface Track {
-  step: number; // seconds per 16th
-  song: { root: number; arp: number[] }[]; // one chord per bar
-  arp: number[]; // which chord tone each 16th of the arpeggio plays
-  bass: (bar: number) => Note[];
-  lead: Note[]; // per step: [midi, length]
-  feel: Feel;
-}
-
-const leadSteps = (bars: [number, number, number][][]): Note[] => {
-  const at = new Array<Note>(bars.length * 16).fill(null);
-  bars.forEach((bar, b) => bar.forEach(([st, m, len]) => (at[b * 16 + st] = [m, len])));
-  return at;
-};
-
-// Battle: A minor, 130 BPM.
-const BATTLE_BASS: Note[] = [[0, 2], null, [0, 1], [12, 1], null, [0, 1], [12, 2], null, [0, 2], null, [0, 1], [12, 1], null, [0, 1], [12, 1], [7, 1]];
-const BATTLE_TURN: Note[] = [...BATTLE_BASS.slice(0, 12), [0, 1], [2, 1], [4, 1], [7, 1]];
-const BATTLE: Track = {
-  step: 60 / 130 / 4,
-  song: [
-    { root: 45, arp: [57, 60, 64, 69] }, // Am
-    { root: 41, arp: [57, 60, 65, 69] }, // F
-    { root: 48, arp: [55, 60, 64, 67] }, // C
-    { root: 43, arp: [55, 59, 62, 67] }, // G
-    { root: 45, arp: [57, 60, 64, 69] }, // Am
-    { root: 41, arp: [57, 60, 65, 69] }, // F
-    { root: 38, arp: [57, 62, 65, 69] }, // Dm
-    { root: 40, arp: [56, 59, 64, 68] }, // E
-  ],
-  arp: [0, 1, 2, 3, 2, 1, 2, 3, 0, 1, 2, 3, 2, 3, 1, 2],
-  bass: (bar) => (bar === 7 ? BATTLE_TURN : BATTLE_BASS),
-  // per bar: [step, midi, length in steps]
-  lead: leadSteps([
-    [[0, 69, 3], [3, 72, 3], [6, 76, 2], [8, 81, 4], [12, 79, 2], [14, 76, 2]],
-    [[0, 77, 3], [3, 76, 3], [6, 72, 2], [8, 69, 6], [14, 72, 2]],
-    [[0, 79, 3], [3, 76, 3], [6, 72, 2], [8, 76, 2], [10, 79, 2], [12, 84, 4]],
-    [[0, 83, 3], [3, 81, 3], [6, 79, 2], [8, 74, 6]],
-    [[0, 69, 3], [3, 72, 3], [6, 76, 2], [8, 81, 2], [10, 83, 2], [12, 84, 4]],
-    [[0, 81, 3], [3, 79, 3], [6, 77, 2], [8, 72, 4], [12, 77, 2], [14, 81, 2]],
-    [[0, 81, 3], [3, 77, 3], [6, 74, 2], [8, 77, 2], [10, 81, 2], [12, 86, 4]],
-    [[0, 83, 3], [3, 80, 3], [6, 76, 2], [8, 74, 2], [10, 76, 2], [12, 71, 2], [14, 68, 2]],
-  ]),
-  feel: { pad: 0.16, padHz: 1300, padShift: 0, padAttack: 0.18, bass: 0.41, bassHz: [1800, 480], sub: 1.25, leadHz: 3400, swing: 0.12, echo: 0.36 },
-};
-
-// Boss: D minor, 150 BPM, a galloping bass and a darker, climbing lead.
-const GALLOP: Note[] = [[0, 1], null, [0, 1], [0, 1], [0, 1], null, [0, 1], [0, 1], [0, 1], null, [0, 1], [0, 1], [0, 1], [12, 1], [10, 1], [7, 1]];
-const GALLOP_TURN: Note[] = [...GALLOP.slice(0, 8), [0, 1], [3, 1], [5, 1], [7, 1], [8, 1], [7, 1], [5, 1], [4, 1]];
-const BOSS: Track = {
-  step: 60 / 150 / 4,
-  song: [
-    { root: 38, arp: [62, 65, 69, 74] }, // Dm
-    { root: 34, arp: [62, 65, 70, 74] }, // Bb
-    { root: 36, arp: [64, 67, 72, 76] }, // C
-    { root: 33, arp: [61, 64, 69, 73] }, // A
-    { root: 38, arp: [62, 65, 69, 74] }, // Dm
-    { root: 34, arp: [62, 65, 70, 74] }, // Bb
-    { root: 31, arp: [62, 67, 70, 74] }, // Gm
-    { root: 33, arp: [61, 64, 67, 73] }, // A7
-  ],
-  arp: [0, 1, 2, 1, 0, 1, 2, 3, 0, 1, 2, 1, 3, 2, 1, 0],
-  bass: (bar) => (bar === 7 ? GALLOP_TURN : GALLOP),
-  lead: leadSteps([
-    [[0, 74, 4], [4, 77, 2], [6, 76, 2], [8, 74, 4], [12, 69, 4]],
-    [[0, 70, 4], [4, 74, 2], [6, 72, 2], [8, 70, 6], [14, 69, 2]],
-    [[0, 72, 3], [3, 76, 3], [6, 79, 2], [8, 77, 4], [12, 76, 4]],
-    [[0, 73, 4], [4, 76, 4], [8, 81, 6], [14, 79, 2]],
-    [[0, 74, 2], [2, 77, 2], [4, 81, 4], [8, 82, 2], [10, 81, 2], [12, 77, 4]],
-    [[0, 82, 4], [4, 81, 2], [6, 77, 2], [8, 74, 6], [14, 77, 2]],
-    [[0, 79, 3], [3, 77, 3], [6, 74, 2], [8, 70, 4], [12, 74, 4]],
-    [[0, 73, 2], [2, 76, 2], [4, 79, 2], [6, 81, 2], [8, 85, 8]],
-  ]),
-  feel: { pad: 0.16, padHz: 1200, padShift: -12, padAttack: 0.12, bass: 0.38, bassHz: [2000, 520], sub: 1.4, leadHz: 3000, swing: 0, echo: 0.3 },
-};
-// Map: F major, 100 BPM. Calm and adventurous: a music-box arpeggio in 8ths, a walking bass in quarters, a soft
-// flute-like lead and light percussion (see mapStep).
-const walk = (notes: number[]): Note[] => {
-  const at = new Array<Note>(16).fill(null);
-  notes.forEach((st, i) => (at[i * 4] = [st, 3]));
-  return at;
-};
-const MAP_WALK: Note[][] = [
-  walk([0, 4, 7, 2]), // F A C G -> A
-  walk([0, 3, 7, 0]), // A C E A -> Bb
-  walk([0, 4, 7, 1]), // Bb D F B -> C
-  walk([0, -1, -3, -5]), // C B A G -> F
-  walk([0, 2, 4, 7]), // F G A C -> D
-  walk([0, -2, -4, -5]), // D C Bb A -> G
-  walk([0, 3, 7, 4]), // G Bb D B -> C
-  walk([0, -2, -3, -5]), // C Bb A G -> F
-];
-const MAP: Track = {
-  step: 60 / 100 / 4,
-  song: [
-    { root: 41, arp: [60, 65, 69, 72] }, // F
-    { root: 45, arp: [60, 64, 69, 72] }, // Am
-    { root: 46, arp: [58, 62, 65, 70] }, // Bb
-    { root: 48, arp: [60, 64, 67, 72] }, // C
-    { root: 41, arp: [60, 65, 69, 72] }, // F
-    { root: 50, arp: [57, 62, 65, 69] }, // Dm
-    { root: 43, arp: [58, 62, 67, 70] }, // Gm
-    { root: 48, arp: [58, 64, 67, 72] }, // C7
-  ],
-  arp: [0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 1, 1, 2, 2, 3, 3], // read on the 8ths (even steps)
-  bass: (bar) => MAP_WALK[bar],
-  lead: leadSteps([
-    [[0, 72, 4], [4, 77, 2], [6, 79, 2], [8, 81, 6], [14, 79, 2]],
-    [[0, 76, 6], [6, 74, 2], [8, 72, 4], [12, 69, 4]],
-    [[0, 70, 4], [4, 74, 2], [6, 77, 2], [8, 79, 4], [12, 77, 2], [14, 74, 2]],
-    [[0, 76, 6], [6, 74, 2], [8, 72, 8]],
-    [[0, 72, 4], [4, 77, 2], [6, 79, 2], [8, 81, 4], [12, 84, 4]],
-    [[0, 81, 6], [6, 79, 2], [8, 77, 4], [12, 74, 4]],
-    [[0, 70, 4], [4, 74, 2], [6, 79, 2], [8, 77, 4], [12, 76, 4]],
-    [[0, 79, 6], [6, 77, 2], [8, 76, 4], [12, 74, 2], [14, 76, 2]],
-  ]),
-  feel: { pad: 0.13, padHz: 950, padShift: 0, padAttack: 0.45, bass: 0.32, bassHz: [1000, 340], sub: 1.2, leadHz: 4200, swing: 0.16, echo: 0.4 },
-};
-const TRACKS: Record<MusicTrack, Track> = { battle: BATTLE, boss: BOSS, map: MAP };
-const LOOP_STEPS = 8 * 16;
 
 const hz = (midi: number): number => 440 * Math.pow(2, (midi - 69) / 12);
 
@@ -371,10 +203,10 @@ const TELL_MIX: Record<TellSound, number> = {
 };
 
 /** [seconds after a voice starts, value] breakpoints (see Synth.voice). */
-type Pts = [number, number][];
+export type Pts = [number, number][];
 const scalePts = (p: Pts, k: number): Pts => p.map(([d, v]): [number, number] => [d, v * k]);
 
-interface VoiceOpts {
+export interface VoiceOpts {
   at: number; // absolute ctx start time
   type?: Wave | 'noise';
   f?: Pts; // oscillator pitch (Hz), exponential ramps between the points
@@ -558,6 +390,14 @@ function buildGraph(ctx: Ctx, muted: boolean, rand: () => number): Graph {
   return { master, limiter, revIn, crunch, click, noise, pulse25: pulseWave(ctx, 0.25), pulse12: pulseWave(ctx, 0.125), sends: new Map() };
 }
 
+/** The music asked for: the piece, calm or fight arrangement, the combo (fight layers) and the boss phase. */
+interface MusicState {
+  track: MusicTrack;
+  intense: boolean;
+  combo: number;
+  phase: number;
+}
+
 export interface SynthOptions {
   /** Render into this context (an OfflineAudioContext in tests) instead of creating one on unlock. */
   ctx?: BaseAudioContext;
@@ -579,19 +419,18 @@ export class Synth {
   private curves = new Map<number, Float32Array>();
   private trim = 1; // scales every voice's gain while a telegraph schedules its voices (TELL_MIX)
 
-  private rig: MusicRig | null = null;
+  /** The music (music.ts): the pieces, their arrangements and layers, scheduled ahead on the music timer. */
+  private readonly band: Band;
   private musicTimer: ReturnType<typeof setInterval> | null = null;
   private musicManaged = false; // startMusic/stopMusic was called: unlock() no longer auto-starts
-  private musicStep = 0;
-  private track: MusicTrack = 'battle';
-  private nextTrack: MusicTrack = 'battle'; // switches on the next beat
-  private musicNext = 0;
   private musicResync = true;
   private musicDucked = false;
   private duckUntil = 0; // music stays silent while metronome clicks are scheduled
   private impactDuckUntil = 0; // an impact dipped the music until this ctx time
   private musicLevelSet = -1;
-  private musicFresh = true; // the next step starts a track: reset the echo time and the pad filter
+  /** What the game asks the music for; the Sound lab can pin something else meanwhile (audition). */
+  private game: MusicState = { track: 'title', intense: false, combo: 0, phase: 1 };
+  private lab: MusicState | null = null;
 
   private amb: AmbRig | null = null; // the ambience playing
   private ambWant: Ambience | null = null; // the ambience the game asked for
@@ -605,6 +444,20 @@ export class Synth {
     this.tuning = o.tuning ?? DEFAULT_TUNING;
     this.rand = o.rand ?? Math.random;
     this.offline = !!o.ctx;
+    this.band = new Band({
+      offline: this.offline,
+      ctx: () => this.ctx!,
+      out: () => this.graph!.master,
+      hall: () => (this.graph!.hall ??= hallImpulse(this.ctx!, 2.2)),
+      drive: (k) => this.driveCurve(k),
+      tone: (v) => this.tone(v),
+      noise: (v) => this.noise(v),
+      voice: (v) => this.voice(v),
+      ticks: (at, v) => this.ticks(at, v),
+      osc: (type, f) => this.osc(type, f),
+      env: (peak, t, attack, hold, dur, minTail) => this.env(peak, t, attack, hold, dur, minTail),
+      tuning: () => this.tuning,
+    });
     if (o.ctx) {
       this.ctx = o.ctx;
       this.graph = buildGraph(o.ctx, false, this.rand);
@@ -1059,7 +912,8 @@ export class Synth {
     };
     this.impactDuckUntil = t + ms / 1000;
     if (this.ambOut) dip(this.ambOut.gain, this.ambLevel);
-    if (this.rig && !this.musicDucked) dip(this.rig.bus.gain, this.musicLevel);
+    const bus = this.band.bus;
+    if (bus && !this.musicDucked) dip(bus.gain, this.musicLevel);
   }
 
   // ---------------------------------------------------------------- sfx
@@ -2316,15 +2170,13 @@ export class Synth {
 
   // ---------------------------------------------------------------- music
 
-  /** Starts the looping battle track (idempotent; does nothing while musicOn is false).
+  /** Starts the music (idempotent; does nothing while musicOn is false, unless the Sound lab is auditioning).
    *  Notes are only scheduled while the context is running, unmuted and the page is visible. */
   startMusic(): void {
     this.musicManaged = true;
-    if (!this.musicOn || this.musicTimer !== null || this.offline) return;
-    this.musicStep = 0;
+    if ((!this.musicOn && !this.lab) || this.musicTimer !== null || this.offline) return;
     this.musicResync = true;
     this.musicDucked = false;
-    this.musicFresh = true;
     this.musicTimer = setInterval(this.tick, TICK_MS);
     this.tick();
   }
@@ -2336,38 +2188,79 @@ export class Synth {
       clearInterval(this.musicTimer);
       this.musicTimer = null;
     }
-    const rig = this.rig;
-    this.rig = null;
-    if (!rig) return;
-    if (this.ctx) this.fade(rig.bus, 0, 0.12);
-    setTimeout(() => {
-      for (const n of rig.nodes) n.disconnect();
-    }, 300);
+    const bus = this.band.bus;
+    if (!bus) return;
+    if (this.ctx) this.fade(bus, 0, 0.12);
+    this.band.stop(300);
   }
 
   setMusicOn(on: boolean): void {
     this.musicOn = on;
     if (on) this.startMusic();
-    else this.stopMusic();
+    else if (!this.lab) this.stopMusic();
   }
 
-  /** Battle theme, the boss theme while a boss is on screen, or the map theme (node map, shops, rests, events and
-   *  story scenes). Takes over on the next beat. */
-  setTrack(name: MusicTrack): void {
-    this.nextTrack = name;
-    if (this.musicTimer === null) this.track = name;
+  /** The piece to play: the title, the camp, an act's theme (calm, or intense in its fights) or a boss's theme.
+   *  An act's theme moves between its arrangements from the next beat, crossfading (tuning.music.crossfade);
+   *  another piece starts from its top on the next beat while the last one rings out. */
+  setMusic(track: MusicTrack, intense: boolean): void {
+    this.game.track = track;
+    this.game.intense = intense;
+    if (!this.lab) this.band.setMusic(track, intense);
   }
 
+  /** The combo now: in a fight, the drums, bass and lead join as it climbs (tuning.music) and drop on a break. */
+  setCombo(combo: number): void {
+    this.game.combo = combo;
+    if (!this.lab) this.band.setCombo(combo);
+  }
+
+  /** The Boar King's phase (1-3): his theme adds layers, and goes up a key in phase 3 (from the next bar). */
+  setBossPhase(phase: number): void {
+    this.game.phase = phase;
+    if (!this.lab) this.band.setBossPhase(phase);
+  }
+
+  /** Sound lab: play this piece (at this combo and boss phase) instead of the game's, until `audition(null)` hands
+   *  the music back. Plays even with the music switched off. */
+  audition(track: MusicTrack | null, o: { intense?: boolean; combo?: number; phase?: number } = {}): void {
+    if (!track) {
+      if (!this.lab) return;
+      this.lab = null;
+      this.applyMusic(this.game);
+      if (!this.musicOn) this.stopMusic();
+      return;
+    }
+    this.lab = { track, intense: o.intense ?? false, combo: o.combo ?? 0, phase: o.phase ?? 1 };
+    this.applyMusic(this.lab);
+    this.startMusic();
+  }
+
+  get auditioning(): boolean {
+    return !!this.lab;
+  }
+
+  private applyMusic(m: MusicState): void {
+    this.band.setMusic(m.track, m.intense);
+    this.band.setCombo(m.combo);
+    this.band.setBossPhase(m.phase);
+  }
+
+  /** The piece playing (or about to). */
   get currentTrack(): MusicTrack {
-    return this.track;
+    return this.band.track;
   }
 
-  /** Schedule `steps` 16th notes of a track from ctx time `at` (tests render the music this way). */
-  scheduleMusic(at: number, steps: number, name: MusicTrack = 'battle'): void {
+  /** The piece, calm or intense, the fight layers sounding now and its key (semitones up; debug readouts, tests). */
+  get currentMusic(): { track: MusicTrack; arrangement: string; layers: string[]; key: number } {
+    return { track: this.band.track, arrangement: this.band.arrangement, layers: this.band.layers, key: this.band.key };
+  }
+
+  /** Schedule `steps` 16th notes of a piece from ctx time `at` (tests render the music this way), optionally at a
+   *  combo and boss phase, from a step of the loop, with scripted changes on the way (`o.cues`). */
+  scheduleMusic(at: number, steps: number, track: MusicTrack = 'title', o: MusicRender = {}): void {
     if (!this.ctx || !this.graph) return;
-    if (!this.rig) this.rig = this.buildRig(this.ctx, at);
-    const tr = TRACKS[name];
-    for (let i = 0; i < steps; i++) this.playStep(this.rig, tr, name, i % LOOP_STEPS, at + i * tr.step, i === 0);
+    this.band.render(at, steps, track, o, this.musicLevel);
   }
 
   private fade(bus: GainNode, target: number, time: number): void {
@@ -2378,278 +2271,40 @@ export class Synth {
     p.linearRampToValueAtTime(target, t + time);
   }
 
-  /** The music's persistent graph: a bus per part, the pad's stereo pair, sidechain and filter, the ping-pong echo
-   *  and the hall. About 40 nodes, built once per music run. */
-  private buildRig(ctx: Ctx, at?: number): MusicRig {
-    const gr = this.graph!;
-    const nodes: AudioNode[] = [];
-    const keep = <T extends AudioNode>(n: T): T => {
-      nodes.push(n);
-      return n;
-    };
-    const gain = (v: number, to?: AudioNode): GainNode => {
-      const g = keep(ctx.createGain());
-      g.gain.value = v;
-      if (to) g.connect(to);
-      return g;
-    };
-    const filter = (type: BiquadFilterType, f: number, q: number, to: AudioNode): BiquadFilterNode => {
-      const n = keep(ctx.createBiquadFilter());
-      n.type = type;
-      n.frequency.value = f;
-      n.Q.value = q;
-      n.connect(to);
-      return n;
-    };
-    const pan = (p: number, to: AudioNode): StereoPannerNode => {
-      const n = keep(ctx.createStereoPanner());
-      n.pan.value = p;
-      n.connect(to);
-      return n;
-    };
-    const send = (from: AudioNode, to: AudioNode, level: number) => from.connect(gain(level, to));
-
-    const bus = gain(0, gain(MUSIC_TRIM, gr.master));
-    // the hall: a long, dark reverb for the music alone (ducked with it)
-    gr.hall ??= hallImpulse(ctx, 2.2);
-    const conv = keep(ctx.createConvolver());
-    conv.buffer = gr.hall;
-    conv.connect(gain(0.6, bus));
-    const verb = filter('highpass', 320, 0.7, conv);
-    // ping-pong echo: left, then right, a little darker each time round (dotted 8ths, set per track)
-    const merge = keep(ctx.createChannelMerger(2));
-    merge.connect(gain(0.55, bus));
-    const echoL = keep(ctx.createDelay(1));
-    const echoR = keep(ctx.createDelay(1));
-    echoL.connect(merge, 0, 0);
-    echoR.connect(merge, 0, 1);
-    const fb1 = gain(0.35, echoR);
-    echoL.connect(fb1);
-    const fb2 = gain(0.35, echoL);
-    echoR.connect(filter('lowpass', 2400, 0.5, fb2));
-    const echo = gain(1, filter('highpass', 380, 0.7, echoL));
-
-    const drums = gain(1, bus);
-    const kick = gain(1);
-    const drive = keep(ctx.createWaveShaper());
-    drive.curve = this.driveCurve(2) as Float32Array<ArrayBuffer>;
-    kick.connect(drive);
-    drive.connect(drums);
-    const snare = filter('bandpass', 1800, 0.7, drums);
-    send(snare, verb, 0.35);
-    const hats = filter('highpass', 6500, 0.6, pan(0.3, bus));
-    const perc = gain(1, pan(-0.35, bus));
-    send(perc, verb, 0.3);
-    const bassDuck = gain(1, bus);
-    const bass = filter('lowpass', 1600, 0.6, bassDuck);
-    const padDuck = gain(1, bus);
-    send(padDuck, verb, 0.6);
-    const padTone = filter('lowpass', 1200, 0.9, padDuck);
-    const padMerge = keep(ctx.createChannelMerger(2));
-    padMerge.connect(padTone);
-    const padL = gain(1);
-    padL.connect(padMerge, 0, 0);
-    const padR = gain(1);
-    padR.connect(padMerge, 0, 1);
-    const arpTone = filter('lowpass', 3600, 0.5, bus);
-    send(arpTone, echo, 0.25);
-    send(arpTone, verb, 0.2);
-    const lead = filter('lowpass', 3400, 0.6, bus);
-    send(lead, echo, 0.32);
-    send(lead, verb, 0.3);
-    const fx = gain(1, bus);
-    send(fx, verb, 0.8);
-
-    const rig: MusicRig = {
-      bus,
-      drums,
-      kick,
-      snare,
-      hats,
-      perc,
-      bass,
-      bassDuck,
-      padL,
-      padR,
-      padTone,
-      padDuck,
-      arpL: pan(-0.55, arpTone),
-      arpR: pan(0.55, arpTone),
-      lead,
-      fx,
-      echo,
-      echoL,
-      echoR,
-      echoFb: [fb1, fb2],
-      echoAt: [0, 0.35],
-      nodes,
-      riser: null,
-    };
-    this.musicLevelSet = this.musicLevel;
-    if (at !== undefined) bus.gain.setValueAtTime(this.musicLevel, at);
-    else this.fade(bus, this.musicLevel, 0.06);
-    return rig;
-  }
-
   private readonly tick = (): void => {
     const ctx = this.ctx;
     if (!ctx || !this.graph || ctx.state !== 'running' || this._muted || (typeof document !== 'undefined' && document.hidden)) {
       this.musicResync = true;
       return;
     }
-    if (!this.rig) {
-      this.rig = this.buildRig(ctx);
-      this.musicFresh = true;
+    const band = this.band;
+    if (!band.rig) {
+      band.start(this.musicLevel);
+      this.musicLevelSet = this.musicLevel;
     }
-    const rig = this.rig;
+    const bus = band.rig!.bus;
     const now = ctx.currentTime;
     if (now < this.duckUntil) {
-      if (!this.musicDucked) this.fade(rig.bus, 0, 0.08);
+      if (!this.musicDucked) this.fade(bus, 0, 0.08);
       this.musicDucked = true;
       this.musicResync = true;
       return;
     }
     if (this.musicDucked) {
-      this.fade(rig.bus, this.musicLevel, 0.3);
+      this.fade(bus, this.musicLevel, 0.3);
       this.musicDucked = false;
       this.musicLevelSet = this.musicLevel;
     } else if (this.musicLevel !== this.musicLevelSet && now > this.impactDuckUntil) {
       // the music volume slider moved
-      this.fade(rig.bus, this.musicLevel, 0.1);
+      this.fade(bus, this.musicLevel, 0.1);
       this.musicLevelSet = this.musicLevel;
     }
-    if (this.musicResync || this.musicNext < now) {
-      this.musicNext = now + 0.03;
+    if (this.musicResync || band.next < now) {
+      band.next = now + 0.03;
       this.musicResync = false;
     }
-    while (this.musicNext < now + LOOKAHEAD) {
-      if (this.nextTrack !== this.track && this.musicStep % 4 === 0) {
-        // the boss arrives (or leaves), or we go to or from the map: the other theme starts from its top, on the beat
-        this.track = this.nextTrack;
-        this.musicStep = 0;
-        this.musicFresh = true;
-      }
-      const tr = TRACKS[this.track];
-      this.playStep(rig, tr, this.track, this.musicStep, this.musicNext, this.musicFresh);
-      this.musicFresh = false;
-      this.musicNext += tr.step;
-      this.musicStep = (this.musicStep + 1) % LOOP_STEPS;
-    }
+    band.advance(now + LOOKAHEAD);
   };
-
-  private playStep(rig: MusicRig, tr: Track, name: MusicTrack, step: number, t: number, fresh = false): void {
-    const bar = step >> 4;
-    const s = step & 15;
-    const chord = tr.song[bar];
-    const STEP = tr.step;
-    if (fresh) this.trackStart(rig, tr, t);
-    if (s === 0) this.padChord(rig, tr, chord.arp, bar, t);
-    // a noise riser over the last two beats, into the loop point
-    if (bar === 7 && s === 8) this.riser(rig, 8 * STEP, t, name === 'map' ? 0.45 : 1);
-    if (name === 'map') return this.mapStep(rig, tr, step, t);
-
-    const b = tr.bass(bar)[s];
-    if (b) this.bassNote(rig, tr.feel, hz(chord.root + b[0]), t, b[1] * STEP * 0.92);
-
-    // the arpeggio: a soft pulse pluck, alternating sides
-    this.tone({ type: 'pulse25', f: hz(chord.arp[tr.arp[s]]), at: t, attack: 0.003, dur: STEP * 0.9, gain: name === 'boss' ? 0.7 : 0.8, out: s % 2 ? rig.arpR : rig.arpL });
-
-    const l = tr.lead[step];
-    if (l) {
-      const len = l[1] * STEP;
-      this.leadNote(rig, l[0], t, len, 0.3, l[1] >= 4);
-      // the boss lead is doubled an octave down for weight
-      if (name === 'boss') this.leadNote(rig, l[0] - 12, t, len, 0.13, false, 'sawtooth');
-    }
-
-    if (name === 'boss') this.bossDrums(rig, tr.feel, bar, s, t, STEP);
-    else this.battleDrums(rig, tr.feel, bar, s, t, STEP);
-  }
-
-  /** A track takes over: the echo glides to its tempo, the pad filter and any riser from the last one reset.
-   *  (Scheduled automation here and in the ambience uses explicit ramps, never setTargetAtTime: the offline renderer
-   *  the tests use applies a setTargetAtTime curve before its start time.) */
-  private trackStart(rig: MusicRig, tr: Track, t: number): void {
-    const [time, fb] = rig.echoAt;
-    const glide = (p: AudioParam, from: number, to: number) => {
-      p.cancelScheduledValues(t);
-      p.setValueAtTime(from, t);
-      p.linearRampToValueAtTime(to, t + 0.05);
-    };
-    for (const d of [rig.echoL, rig.echoR]) glide(d.delayTime, time, 3 * tr.step);
-    for (const g of rig.echoFb) glide(g.gain, fb, tr.feel.echo);
-    rig.echoAt = [3 * tr.step, tr.feel.echo];
-    const f = rig.padTone.frequency;
-    f.cancelScheduledValues(t);
-    f.setValueAtTime(tr.feel.padHz, t);
-    rig.lead.frequency.setValueAtTime(tr.feel.leadHz, t);
-    if (rig.riser) {
-      rig.riser.gain.cancelScheduledValues(t);
-      rig.riser.gain.setValueAtTime(0, t);
-      rig.riser = null;
-    }
-  }
-
-  /** The bar's chord on the pad: three notes, each a pair of saws detuned against each other, one per side. The
-   *  pad's filter opens over the last bar and settles back at the top of the loop. */
-  private padChord(rig: MusicRig, tr: Track, arp: number[], bar: number, t: number): void {
-    const fl = tr.feel;
-    const len = 16 * tr.step;
-    const f = rig.padTone.frequency;
-    if (bar === 7) {
-      f.setValueAtTime(fl.padHz, t);
-      f.exponentialRampToValueAtTime(fl.padHz * 3.2, t + len);
-    } else if (bar === 0) f.exponentialRampToValueAtTime(fl.padHz, t + 0.35);
-    for (const m of arp.slice(0, 3)) {
-      const pf = hz(m + fl.padShift);
-      for (const [out, det] of [
-        [rig.padL, -7],
-        [rig.padR, 7],
-      ] as const)
-        this.tone({ type: 'sawtooth', f: pf, detune: det, at: t, attack: fl.padAttack, hold: len - fl.padAttack, dur: len + 0.5, minTail: 0.5, gain: fl.pad, out });
-    }
-  }
-
-  /** A lead note: a pulse with a quieter detuned layer (a light chorus), scooping up into pitch, vibrato blooming on
-   *  long notes; through the lead lowpass into the echo and the hall. */
-  private leadNote(rig: MusicRig, m: number, t: number, len: number, level: number, vib: boolean, wave: Wave = 'pulse25'): void {
-    const ctx = this.ctx!;
-    const f = hz(m);
-    const end = t + len * 0.95 + 0.04;
-    const a = this.osc(wave, f);
-    const b = this.osc('sawtooth', f);
-    a.detune.setValueAtTime(-30, t);
-    a.detune.linearRampToValueAtTime(0, t + 0.03);
-    b.detune.setValueAtTime(-22, t);
-    b.detune.linearRampToValueAtTime(8, t + 0.03);
-    const bl = ctx.createGain();
-    bl.gain.value = 0.3;
-    b.connect(bl);
-    const { g } = this.env(level, t, 0.006, len * 0.5, len * 0.95, 0.04);
-    a.connect(g);
-    bl.connect(g);
-    g.connect(rig.lead);
-    const nodes: AudioNode[] = [a, b, bl, g];
-    if (vib) {
-      const lfo = ctx.createOscillator();
-      lfo.frequency.value = 5.4;
-      const depth = ctx.createGain();
-      depth.gain.setValueAtTime(0, t);
-      depth.gain.linearRampToValueAtTime(0, t + 0.15);
-      depth.gain.linearRampToValueAtTime(14, t + len);
-      lfo.connect(depth);
-      depth.connect(a.detune);
-      depth.connect(b.detune);
-      lfo.start(t);
-      lfo.stop(end);
-      nodes.push(lfo, depth);
-    }
-    a.onended = () => nodes.forEach((n) => n.disconnect());
-    a.start(t);
-    b.start(t);
-    a.stop(end);
-    b.stop(end);
-  }
 
   /** An oscillator of any of the synth's waves (pulses come from the precomputed periodic waves). */
   private osc(type: Wave, f: number): OscillatorNode {
@@ -2659,157 +2314,6 @@ export class Synth {
     else o.type = type;
     o.frequency.value = f;
     return o;
-  }
-
-  /** A noise riser (band sweeping up, swelling) over `d` seconds into the loop point. */
-  private riser(rig: MusicRig, d: number, t: number, level: number): void {
-    rig.riser = this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 450], [d, 7000]], q: 1.3, amp: [[d * 0.5, 0.05 * level], [d * 0.97, 0.2 * level], [d + 0.015, 0]], out: rig.fx });
-  }
-
-  /** Kick: a sine thump with a fast pitch drop into a soft-clip drive, a knock and a click (what a phone speaker
-   *  plays of it); the pad and the bass duck under it and breathe back (sidechain). */
-  private kick(rig: MusicRig, t: number, v: number, pitch = 1, duck = 0.3): void {
-    this.tone({ type: 'sine', f: 150 * pitch, f1: 46 * pitch, glide: 0.06, at: t, attack: 0.001, hold: 0.025, dur: 0.22, gain: 0.42 * v, out: rig.kick });
-    // the knock: a short triangle an octave up, where a phone speaker can play it
-    this.tone({ type: 'triangle', f: 300 * pitch, f1: 110 * pitch, glide: 0.035, at: t, attack: 0.001, dur: 0.07, gain: 0.16 * v, out: rig.drums });
-    this.noise({ at: t, dur: 0.01, attack: 0.0005, gain: 0.2 * v, filter: 'highpass', f: 2500, out: rig.drums });
-    // (kicks are at least 0.2 s apart, so each dip has recovered before the next)
-    const p = rig.padDuck.gain;
-    p.setValueAtTime(1, t);
-    p.linearRampToValueAtTime(duck, t + 0.01);
-    p.linearRampToValueAtTime(1, t + 0.17);
-    const b = rig.bassDuck.gain;
-    b.setValueAtTime(1, t);
-    b.linearRampToValueAtTime(0.4 + duck * 0.5, t + 0.006);
-    b.linearRampToValueAtTime(1, t + 0.1);
-  }
-
-  /** Snare: a noise crack and a short tonal body; on the backbeat a clap layered over it (three quick bursts). */
-  private snare(rig: MusicRig, t: number, v: number, clap: boolean): void {
-    this.noise({ at: t, dur: 0.17, attack: 0.001, gain: 1.6 * v, out: rig.snare });
-    this.tone({ type: 'triangle', f: 210, f1: 150, glide: 0.05, at: t, dur: 0.09, gain: 0.55 * v, out: rig.drums });
-    if (clap) this.ticks([t - 0.012, t - 0.005, t + 0.003], { gain: 1.1 * v, f: 1400, q: 1.1, ms: 7, out: rig.snare });
-  }
-
-  private hat(rig: MusicRig, t: number, v: number, open = false): void {
-    this.noise({ at: t, attack: 0.001, dur: open ? 0.16 : 0.04, gain: 0.75 * v, out: rig.hats });
-  }
-
-  private crash(rig: MusicRig, t: number, v: number): void {
-    this.noise({ at: t, dur: 1.5, attack: 0.002, gain: 0.2 * v, filter: 'highpass', f: 4500, out: rig.fx });
-  }
-
-  /** A low tom (the boss fill): a pitch-falling triangle and a thud of noise. */
-  private tom(rig: MusicRig, t: number, f: number, v: number): void {
-    this.tone({ type: 'triangle', f, f1: f * 0.62, glide: 0.12, at: t, attack: 0.002, dur: 0.28, gain: 0.42 * v, out: rig.drums });
-    this.noise({ at: t, dur: 0.06, gain: 0.2 * v, filter: 'bandpass', f: f * 4, q: 1, out: rig.drums });
-  }
-
-  private battleDrums(rig: MusicRig, fl: Feel, bar: number, s: number, t: number, STEP: number): void {
-    const fill = bar === 7 && s >= 12;
-    if (s === 0 || s === 8 || s === 10 || (s === 3 && bar % 2 === 1)) this.kick(rig, t, s === 0 || s === 8 ? 1 : 0.8);
-    // backbeat with a clap, ghost notes for the groove, a roll into the loop
-    const snare = s === 4 || s === 12 ? 1 : fill ? 0.35 + (s - 12) * 0.2 : s === 7 || (s === 15 && bar % 2 === 0) ? 0.16 : 0;
-    if (snare) this.snare(rig, t, snare, s === 4 || s === 12);
-    if (bar === 0 && s === 0) this.crash(rig, t, 1); // crash at the top of the loop
-    else if (!fill) {
-      const open = s === 14 && bar % 2 === 1;
-      const vel = s % 4 === 2 ? 0.9 : s % 2 === 0 ? 0.55 : 0.3;
-      this.hat(rig, t + (s % 2 ? fl.swing * STEP : 0), open ? 0.75 : vel, open);
-    }
-  }
-
-  /** Boss drums: driving kicks (double-time in the second half), a snare roll over falling toms into the loop,
-   *  crashes every 4 bars. */
-  private bossDrums(rig: MusicRig, fl: Feel, bar: number, s: number, t: number, STEP: number): void {
-    const fill = bar === 7 && s >= 8;
-    const kick = bar >= 4 ? s % 2 === 0 && !fill : s === 0 || s === 3 || s === 6 || s === 8 || s === 10 || s === 14;
-    if (kick || (fill && s % 4 === 0)) this.kick(rig, t, s % 4 === 0 ? 1 : 0.8, 1.05);
-    const snare = s === 4 || s === 12 ? 1 : fill ? 0.25 + (s - 8) * 0.08 : 0;
-    if (snare) this.snare(rig, t, snare, s === 4 || s === 12);
-    if (fill && s % 2 === 0) this.tom(rig, t, 150 - (s - 8) * 9, 0.7 + (s - 8) * 0.04);
-    if ((bar === 0 || bar === 4) && s === 0) this.crash(rig, t, 1);
-    else if (!fill && s % 2 === 0) this.hat(rig, t, s % 4 === 2 ? 0.9 : 0.5);
-    else if (!fill && bar >= 4) this.hat(rig, t + fl.swing * STEP, 0.25);
-  }
-
-  /** The map theme's voices: walking bass, a music-box arpeggio on the 8ths (alternating sides), and a soft
-   *  flute-like lead whose longer notes bloom into a gentle vibrato. */
-  private mapStep(rig: MusicRig, tr: Track, step: number, t: number): void {
-    const bar = step >> 4;
-    const s = step & 15;
-    const chord = tr.song[bar];
-    const STEP = tr.step;
-
-    const b = tr.bass(bar)[s];
-    if (b) this.bassNote(rig, tr.feel, hz(chord.root + b[0]), t, b[1] * STEP * 0.85);
-
-    if (s % 2 === 0) {
-      const f = hz(chord.arp[tr.arp[s]]);
-      const out = s % 4 ? rig.arpR : rig.arpL;
-      this.tone({ type: 'triangle', f, at: t, dur: STEP * 2.2, gain: 0.45, out });
-      this.tone({ type: 'sine', f: f * 2, at: t, dur: STEP * 1.4, gain: 0.18, out });
-    }
-
-    const l = tr.lead[step];
-    if (l) {
-      const len = l[1] * STEP;
-      const f = hz(l[0]);
-      const vib = l[1] >= 4 ? { rate: 5.2, cents: 0, cents1: 16 } : undefined;
-      const amp: Pts = [[0.03, 0.3], [len * 0.55, 0.24], [len * 0.97, 0]];
-      this.voice({ at: t, type: 'triangle', f: [[0, f]], vib, amp, out: rig.lead });
-      this.voice({ at: t, type: 'pulse25', f: [[0, f]], vib, amp: scalePts(amp, 0.14), out: rig.lead });
-    }
-
-    this.mapDrums(rig, tr.feel, bar, s, t, STEP);
-  }
-
-  /** Map percussion, light: a soft low kick on 1 and 3 (the pad breathes with it), a woodblock on 2 and 4, a swung
-   *  shaker on the 8ths, a small fill into the loop and a chime at its top. */
-  private mapDrums(rig: MusicRig, fl: Feel, bar: number, s: number, t: number, STEP: number): void {
-    const fill = bar === 7 && s >= 10;
-    if (s === 0 || s === 8 || (s === 14 && bar % 2 === 1 && !fill)) this.kick(rig, t, s === 14 ? 0.3 : 0.5, 0.8, 0.6);
-    const block = s === 4 || s === 12 ? 1 : fill && (s === 10 || s >= 13) ? 0.7 : 0;
-    if (block) {
-      const f = fill ? 760 + (s - 10) * 60 : 820;
-      this.tone({ type: 'triangle', f, f1: f * 0.92, glide: 0.04, at: t, dur: 0.05, gain: 0.2 * block, out: rig.perc });
-      this.noise({ at: t, dur: 0.03, gain: 0.12 * block, filter: 'bandpass', f: 2200, out: rig.perc });
-    }
-    if (!fill) this.noise({ at: t + (s % 2 ? fl.swing * STEP : 0), attack: 0.01, dur: 0.045, gain: s % 4 === 2 ? 0.4 : s % 2 ? 0.1 : 0.2, out: rig.hats });
-    if (bar === 0 && s === 0) {
-      // a chime at the top of the loop, into the hall
-      const f = hz(89);
-      this.tone({ type: 'sine', f, at: t, dur: 0.9, gain: 0.05, out: rig.fx });
-      this.tone({ type: 'sine', f: f * 2.76, at: t, dur: 0.35, gain: 0.02, out: rig.fx });
-    }
-  }
-
-  /** Bass: a saw whose resonant lowpass plucks shut (the growl a phone speaker can play) over a sine sub an octave
-   *  down (on the fundamental for the lowest notes): the weight on headphones, ducked under the kick with the rest. */
-  private bassNote(rig: MusicRig, fl: Feel, f: number, t: number, dur: number): void {
-    const ctx = this.ctx!;
-    const saw = this.osc('sawtooth', f);
-    const sub = this.osc('sine', f >= 80 ? f / 2 : f);
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.Q.value = 2.5;
-    lp.frequency.setValueAtTime(fl.bassHz[0], t);
-    lp.frequency.exponentialRampToValueAtTime(fl.bassHz[1], t + Math.min(0.14, dur));
-    const subLevel = ctx.createGain();
-    subLevel.gain.value = fl.sub;
-    const { g, end } = this.env(fl.bass, t, 0.004, dur * 0.6, dur, 0.04);
-    saw.connect(lp);
-    lp.connect(g);
-    sub.connect(subLevel);
-    subLevel.connect(g);
-    g.connect(rig.bass);
-    saw.onended = () => {
-      for (const n of [saw, sub, lp, subLevel, g]) n.disconnect();
-    };
-    saw.start(t);
-    sub.start(t);
-    saw.stop(end + 0.02);
-    sub.stop(end + 0.02);
   }
 
   // ---------------------------------------------------------------- ambience

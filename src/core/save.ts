@@ -151,7 +151,9 @@ export function readSave(data: unknown, t: Tuning, region: RegionDef = GREENMARC
   if (!validPath(map, s.path)) return null;
   const node = s.path.length ? map.nodes[s.path[s.path.length - 1]] : null;
   const needsNode: SavedPhase[] = ['fight', 'boost', 'treasure', 'rest', 'shop', 'event', 'actClear'];
-  if (needsNode.includes(s.phase) && !node) return null;
+  // a replay's starting relic picks come before the first node
+  const startPick = s.phase === 'boost' && s.startPicks > 0 && s.boost?.then === 'map';
+  if (needsNode.includes(s.phase) && !node && !startPick) return null;
   if (s.phase === 'fight') {
     const f = s.fight;
     if (!f || !num(f.seed) || !num(f.wave) || f.wave < 0 || f.wave >= Math.max(1, node!.waves.length) || !Array.isArray(f.foes) || !f.foes.length) return null;
