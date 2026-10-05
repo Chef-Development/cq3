@@ -603,11 +603,9 @@ export class CampKit {
     return x + w + 12;
   }
 
-  /** A counter tag: icon and a number that rolls; pulses green when it grows and red when it shrinks. */
-  private counter(g: G, texts: TextPool, x: number, y: number, icon: string, value: number, pulseAt: { at: number; dir: number }, col: number, now: number): Rect {
+  /** A counter tag at r: icon and a number that rolls; pulses green when it grows and red when it shrinks. */
+  private counter(g: G, texts: TextPool, r: Rect, icon: string, value: number, pulseAt: { at: number; dir: number }, col: number, now: number): void {
     const txt = `${Math.round(value)}`;
-    const w = Math.max(30, textWidth(txt, 1, true) + 16);
-    const r = { x, y, w, h: 12 };
     const k = clamp01((now - pulseAt.at) / 500);
     const hot = k < 1 ? 1 - k : 0;
     tag(g, r, [NAVY[6], NAVY[3], NAVY[2], NAVY[1]]);
@@ -616,16 +614,22 @@ export class CampKit {
     pix(g, icon, r.x + 2, Math.round(r.y + (r.h - ih) / 2));
     const bump = hot > 0.6 ? -1 : 0;
     texts.text(txt, r.x + iw + 4, r.y + 6 + bump, hot > 0 ? mix(col, pulseAt.dir >= 0 ? 0xb4f070 : 0xff8a7a, hot) : col, { bold: true, oy: 0.5 });
-    return r;
+  }
+
+  /** Where the coin and scrap tags sit, right-aligned at `right` (for effects that fly to them). */
+  purseRects(right: number, y: number): { coins: Rect; scrap: Rect } {
+    const sw = Math.max(30, textWidth(`${Math.round(this.scrapShown)}`, 1, true) + 16);
+    const cw = Math.max(30, textWidth(`${Math.round(this.coinsShown)}`, 1, true) + 16);
+    const scrap = { x: right - sw, y, w: sw, h: 12 };
+    return { coins: { x: scrap.x - 4 - cw, y, w: cw, h: 12 }, scrap };
   }
 
   /** Coins and scrap, right-aligned at `right` (returns their tags). */
   purse(g: G, texts: TextPool, right: number, y: number, now: number): { coins: Rect; scrap: Rect } {
-    const sw = Math.max(30, textWidth(`${Math.round(this.scrapShown)}`, 1, true) + 16);
-    const scrap = this.counter(g, texts, right - sw, y, 'scrap', this.scrapShown, this.scrapPulse, SCRAP_TXT, now);
-    const cw = Math.max(30, textWidth(`${Math.round(this.coinsShown)}`, 1, true) + 16);
-    const coins = this.counter(g, texts, scrap.x - 4 - cw, y, 'coin', this.coinsShown, this.coinPulse, GOLD_TXT, now);
-    return { coins, scrap };
+    const r = this.purseRects(right, y);
+    this.counter(g, texts, r.scrap, 'scrap', this.scrapShown, this.scrapPulse, SCRAP_TXT, now);
+    this.counter(g, texts, r.coins, 'coin', this.coinsShown, this.coinPulse, GOLD_TXT, now);
+    return r;
   }
 
   /** The layers a screen draws on: the screen itself, or a popup over it. */
@@ -651,6 +655,15 @@ export class CampKit {
   /** Show a toast (what just changed) centred on (cx, cy). */
   toast(t: Omit<Toast, 'at'>): void {
     this.toastNow = { ...t, at: performance.now() };
+  }
+
+  /** The player moved on: a toast that has been read for a while fades out now. */
+  fadeToast(): void {
+    const t = this.toastNow;
+    if (!t) return;
+    const life = 2400 + (t.lines.length + (t.text?.length ?? 0)) * 220;
+    const age = performance.now() - t.at;
+    if (age > 700 && age < life - 300) t.at = performance.now() - (life - 300);
   }
 
   private drawToast(now: number): void {

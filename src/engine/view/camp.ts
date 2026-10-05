@@ -5,6 +5,8 @@
 // Each building opens a screen over the dimmed, still-living camp: bag.ts, forge.ts, stats.ts. The first visit to
 // the forge plays Mags's intro scene (the story view draws it; input routes taps to it).
 import type Phaser from 'phaser';
+import { itemPower } from '../../core/gear';
+import { equippedItems } from '../../core/profile';
 import type { FightScene } from '../scene';
 import { CAMP_SPOTS } from '../art-camp';
 import { textWidth } from '../font';
@@ -72,6 +74,8 @@ export class CampView {
   private pipAt = -1e9;
   private smithSwing = 0;
   private nextSwing = 0;
+  /** Rowan's gear power when the home was last on screen: coming back with better gear makes him sparkle. */
+  private power = 0;
 
   constructor(private readonly s: FightScene) {
     this.kit = new CampKit(s);
@@ -95,6 +99,7 @@ export class CampView {
     this.kit.fx.clear();
     this.kit.toastNow = null;
     this.nextSwing = now + 1500;
+    this.power = this.gearPower();
   }
 
   // ------------------------------------------------------------------ layout (home)
@@ -148,6 +153,12 @@ export class CampView {
       if (k === id) return r;
     }
     return all[0];
+  }
+
+  /** What Rowan's worn gear adds up to (the bag's "Gear power"). */
+  private gearPower(): number {
+    const p = this.s.app.run.profile;
+    return equippedItems(p).reduce((a, i) => a + itemPower(this.s.app.run.tuning, i), 0);
   }
 
   private rowanRect(): Rect {
@@ -244,6 +255,19 @@ export class CampView {
     this.kit.toastNow = null;
     if (mode === 'home') {
       app.audio.panelClose();
+      // back by the fire in new gear: Rowan sparkles and his gear power pops
+      const gp = this.gearPower();
+      if (gp !== this.power) {
+        const d = gp - this.power;
+        this.power = gp;
+        const r = this.rowanRect();
+        this.kit.after(260, () => {
+          this.kit.fx.burst(r.x + r.w / 2, r.y + r.h / 2, d > 0 ? [0xfff0a0, 0xffd23a, WHITE, 0x8af06a] : [0xb0a8c8, WHITE], 20, 0.8, { kind: 'star', g: -20, life: 900 });
+          this.kit.fx.ring(r.x + r.w / 2, r.y + r.h / 2, 18, d > 0 ? 0xfff0a0 : 0xb0a8c8, 500);
+          this.kit.fx.float(`Gear power ${d > 0 ? '+' : ''}${d}!`, r.x + r.w / 2, r.y - 12, d > 0 ? 0x8af06a : 0xff8a7a, { life: 1800 });
+          if (d > 0) app.audio.coin();
+        });
+      }
       return;
     }
     app.audio.panelOpen();

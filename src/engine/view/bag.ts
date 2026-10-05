@@ -115,6 +115,7 @@ export class BagScreen {
       this.grid.refresh(p, kit.tuning, this.sort, false, true);
       this.grid.page = 0;
       this.sortAt = now;
+      kit.fx.float(this.sort === 'new' ? 'Newest first' : `Sorted by ${this.sort}`, this.grid.x + this.grid.w / 2, this.grid.y + 20, 0xfff0c0, { life: 1100 });
       this.openAt = now - 40; // the cells pop in again in their new order
       return;
     }
@@ -159,6 +160,7 @@ export class BagScreen {
     const kit = this.kit;
     this.sel = uid;
     this.selAt = now;
+    kit.fadeToast();
     const it = uid ? itemByUid(kit.profile, uid) : undefined;
     if (it?.fresh) {
       it.fresh = false;
@@ -359,7 +361,8 @@ export class BagScreen {
       }
     // the bottom hint: a full bag warns that new loot will melt into scrap
     const full = p.items.length >= this.cap;
-    wrapText(full ? 'Bag full! New loot melts into scrap' : 'Tap an item to compare it', iw).forEach((l, i, a) =>
+    const hint = full ? 'Bag full! New loot melts into scrap' : p.items.length ? 'Tap an item to compare it' : 'Win fights to find gear!';
+    wrapText(hint, iw).forEach((l, i, a) =>
       texts.text(l, pr.x + pr.w / 2, pr.y + pr.h - 8 - (a.length - 1 - i) * 8, full ? 0xff8a7a : 0xfff07a, { ox: 0.5, oy: 0.5, alpha: 0.55 + 0.45 * pulse(now, 1100) }),
     );
   }

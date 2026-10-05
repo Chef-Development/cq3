@@ -185,6 +185,7 @@ export class ForgeScreen {
   private openPicker(now: number): void {
     this.picking = true;
     this.pickAt = now;
+    this.kit.toastNow = null; // the popup shares the toast's layer
     this.layoutPicker();
     this.grid.refresh(this.kit.profile, this.kit.tuning, 'rarity', true, true);
     this.grid.page = 0;
@@ -268,7 +269,7 @@ export class ForgeScreen {
     const heroAfter = kit.stats();
     this.reveal = { uid: it.uid, plus: old, until: now + HIT2 };
     this.swing(now);
-    this.spend(now, cost.scrap, cost.coins);
+    this.spend(cost.scrap, cost.coins);
     kit.after(HIT1, () => {
       kit.app.audio.forgeHammer();
       this.anvilHit(false);
@@ -304,9 +305,9 @@ export class ForgeScreen {
   }
 
   /** The price leaves the purse: red "-n" numbers drop from the counters. */
-  private spend(now: number, scrap: number, coins: number): void {
+  private spend(scrap: number, coins: number): void {
     const kit = this.kit;
-    const tags = kit.purse(kit.gUi, kit.texts, kit.s.R - 3, 3, now); // where the counters are (drawn again this frame)
+    const tags = kit.purseRects(kit.s.R - 3, 3);
     if (scrap) kit.fx.float(`-${scrap}`, tags.scrap.x + tags.scrap.w / 2, tags.scrap.y + 17, RED, { icon: 'scrap', life: 1000, rise: -8 });
     if (coins) kit.fx.float(`-${coins}`, tags.coins.x + tags.coins.w / 2, tags.coins.y + 17, RED, { icon: 'coin', life: 1000, rise: -8 });
   }
@@ -325,7 +326,7 @@ export class ForgeScreen {
     if (reroll(p, t, it.uid, this.line, this.rng) !== 'ok') return this.shake('main', now, 'No other stat to roll');
     kit.commit();
     this.spin = { uid: it.uid, line: this.line, at: now, from };
-    this.spend(now, 0, cost);
+    this.spend(0, cost);
     kit.app.audio.coin();
     for (let i = 1; i <= 6; i++) kit.after(i * 85, () => kit.app.audio.uiClick());
     const line = this.line;
@@ -386,10 +387,9 @@ export class ForgeScreen {
   /** An item (or a heap of them) melts: chips burst from the anvil and fly into the scrap counter. */
   private melt(c: Rect, face: readonly number[], scrap: number, items: number): void {
     const kit = this.kit;
-    const now = performance.now();
     kit.fx.burst(c.x + c.w / 2, c.y + c.h / 2, [face[0], face[1], face[2], 0xff9a2a, 0xfff0a0], 26, 1.3, { kind: 'chip', g: 160, life: 700 });
     kit.fx.ring(c.x + c.w / 2, c.y + c.h / 2, 22, 0xff9a2a, 380);
-    const tags = kit.purse(kit.gUi, kit.texts, kit.s.R - 3, 3, now);
+    const tags = kit.purseRects(kit.s.R - 3, 3);
     const n = Math.min(18, 4 + items * 2);
     for (let i = 0; i < n; i++)
       kit.fx.fly({
