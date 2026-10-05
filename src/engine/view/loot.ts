@@ -833,14 +833,14 @@ export class LootView {
     }
     // the name, big, then what it is, its stats and its effect, one after another
     const line = (at: number) => clamp01((k - at) / 160) * A;
-    let y = ry + 24;
+    let y = ry + 22;
     const nameA = line(220);
     if (nameA > 0) {
       const name = itemName(item);
       const sc = textWidth(name, 2, true) <= s.R - s.L - 12 ? 2 : 1;
       this.cardTexts.text(name, cx, y + Math.round((1 - nameA) * 6), rarityText(item.rarity), { bold: true, scale: sc, ox: 0.5, oy: 0.5, alpha: nameA, extrude: 1, extrudeCol: deep });
     }
-    y += 15;
+    y += 14;
     const kindA = line(330);
     if (kindA > 0) this.cardTexts.text(itemKind(item), cx, y, 0xdcd8f0, { ox: 0.5, oy: 0.5, alpha: kindA });
     y += 10;
@@ -864,7 +864,7 @@ export class LootView {
         x += textWidth(p.text, 1, false) + 8;
       }
     }
-    y += 12;
+    y += 11;
     const eff = item.effect ? EFFECTS[item.effect] : null;
     const effA = line(480);
     if (eff && effA > 0) {
@@ -893,7 +893,7 @@ export class LootView {
     }
     // the hint, once it can be dismissed
     if (k > T.cardIn + 250 && !c.outAt) {
-      const hy = Math.min(s.B, GAME_H) - 6;
+      const hy = Math.min(s.B, GAME_H) - 5;
       this.cardTexts.text('Tap to continue', cx, hy, 0xdcd8f0, { ox: 0.5, oy: 0.5, alpha: 0.5 + 0.5 * pulse(now, 900) });
     }
   }
