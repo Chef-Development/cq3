@@ -12,6 +12,7 @@ export const SPEAKER_NAME: Record<Speaker, string> = {
   golem: 'Ruin Golem',
   boarking: 'Boar King',
   smith: 'Mags',
+  sable: 'Sable',
 };
 
 export const STORY: Record<string, StoryBox[]> = {
@@ -23,6 +24,15 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'smith', text: 'Scrap and coin buy upgrades. Coin buys\na fresh roll on a gem. No refunds.' },
     { who: 'pip', text: 'She once forged a spoon so sharp\nit got banned. Twice.' },
     { who: 'smith', text: "Hand over that sword. It's bent.\nYou slept on it, didn't you?" },
+  ],
+  // after Act 1, at the camp: Sable tries to rob it, Pip catches them, and they join (unlocks Sable)
+  sableJoin: [
+    { who: 'narrator', text: 'Night at camp. Rowan snores by the fire.\nSomething creeps toward the bag tent.' },
+    { who: 'sable', text: "Coins, coins... ooh, a shiny sword.\nDon't mind if I do." },
+    { who: 'pip', text: "Hoo. Evening. That's Rowan's bag. Also,\nowls never sleep. It's a whole thing." },
+    { who: 'sable', text: 'Caught by a bird. Embarrassing. Fine:\nSable. Thief. Ninja. Fast runner.' },
+    { who: 'rowan', text: 'You nearly robbed a knight. Bold. We need\nbold. Want a job? Pay is... coins? Later?' },
+    { who: 'sable', text: 'Two daggers, two hands, no questions.\nI keep half of anything shiny. Deal.' },
   ],
   intro: [
     { who: 'narrator', text: 'The kingdom keeps time by the Great Pendulum.\nTick, tock. Very reliable.' },
