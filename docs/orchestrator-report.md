@@ -125,8 +125,8 @@
   side-grade); a loot card shows its top 3 stats.
 - **Tips, taught slowly** (`src/data/tips.ts`, 23 tips; `core/tips.ts` picks at most one at a safe moment): a card
   points at the thing it's about and pauses the fight while it's up; each is shown once (kept in the profile); the
-  gear panel can turn tips off or show them again. Reopening the app after a break shows a short "welcome back"
-  scene (where you were, what's next).
+  gear panel can turn tips off or show them again. A returning player's first launch of this version plays a short
+  welcome back from Pip over the title (what's new; once).
 - **Polish:** fight pop-ups share one lane; combo milestones flourish on the music's beat; relic picks are dealt like
   cards and the pick flies to the belt; act clear, defeat and victory have one clear headline each; map tags are
   icons first; Sable stands on the title once met; the camp lives (fire, idle heroes, banter lines from
