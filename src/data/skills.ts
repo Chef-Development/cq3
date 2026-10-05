@@ -110,6 +110,7 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
 };
 
 export const SKILL_NODES: SkillNode[] = Object.values(SKILL_TREES).flatMap((bs) => bs.flatMap((b) => b.nodes));
-export const skillById = (id: string): SkillNode | undefined => SKILL_NODES.find((n) => n.id === id);
+const BY_ID = new Map(SKILL_NODES.map((n) => [n.id, n]));
+export const skillById = (id: string): SkillNode | undefined => BY_ID.get(id);
 /** The hero whose tree holds the node. */
 export const skillHero = (id: string): HeroId | undefined => (Object.keys(SKILL_TREES) as HeroId[]).find((h) => SKILL_TREES[h].some((b) => b.nodes.some((n) => n.id === id)));

@@ -40,9 +40,9 @@ describe('profile', () => {
     expect(WEIGHTS_TOTAL).toBe(12);
   });
 
-  it('migrates a v1 save (progress only): progress kept, the gear starts empty', () => {
+  it('migrates a v1 save (progress only): progress kept, the gear starts empty, the cleared acts\' relics unlocked', () => {
     const back = readProfile(viaJson({ v: 1, actsCleared: 2, weights: 1 }));
-    expect(back).toEqual({ ...newProfile(), actsCleared: 2, weights: 1 });
+    expect(back).toEqual({ ...newProfile(), actsCleared: 2, weights: 1, relics: ['shortFuse', 'ricochet', 'chainReaction', 'crescendo'] });
     expect(readProfile({ v: 1, actsCleared: 99, weights: -3 })).toMatchObject({ actsCleared: 3, weights: 0 });
   });
 
@@ -159,7 +159,7 @@ describe('profile storage', () => {
     expect(p.actsCleared).toBe(1);
     writeProfile(p);
     expect(store.has('cq3.progress.v1')).toBe(false);
-    expect(JSON.parse(store.get('cq3.profile.v2')!).v).toBe(2);
+    expect(JSON.parse(store.get('cq3.profile.v2')!).v).toBe(3);
     // a v4 run save: its coins land in the purse once, and both are written back
     const r = new Run(T, { ...DEFAULT_SETTINGS }, 5, p);
     r.newRun();

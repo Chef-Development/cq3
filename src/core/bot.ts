@@ -8,18 +8,22 @@
 // It reads telegraphs like a person: it holds off yellow while a shield is raised (as often as its accuracy) and
 // waits out a frozen cursor. It swipes the finisher when it would kill, at max stacks, or when holding on for one
 // more stack isn't worth the risk of a combo break.
-// Between fights it walks the act's map picking nodes at random, takes Full Heal when hurt (otherwise the rarest
-// card), rests, buys what it can afford at shops, and picks event choices at random. It wears the best gear it has
-// found (by item power) and salvages Common and Uncommon items when the bag fills up.
+// Between fights it walks the act's map picking nodes at random, takes Full Heal when hurt, otherwise the relic
+// that fits its build best (synergy-greedy: most tags shared with what it owns, then the rarest), rests, buys what it
+// can afford at shops, and picks event choices at random. It wears the best gear it has found (by item power),
+// salvages Common and Uncommon items when the bag fills up, and spends skill points down one branch at a time.
 
 import { eventById } from '../data/events';
 import type { NodeType } from '../data/types';
 import { SLOT_KEYS, slotOf } from '../data/gear';
 import { DT, heroAtk, heroMaxHp, isRed, type Combat, type CombatEvent } from './combat';
 import { itemPower, slotOfItem, upgradeCost } from './gear';
-import { equip, equippedItems, newProfile, salvageAll, upgrade, type Profile } from './profile';
+import { canLearn, learn, pointsLeft, treeOf } from './heroes';
+import { equip, equippedItems, heroProgress, newProfile, salvageAll, upgrade, type Profile } from './profile';
+import { rarityRank, sharedTags } from './relics';
 import { Rng } from './rng';
-import { RARITIES, Run } from './run';
+import { RARITIES, Run, type BoostOffer } from './run';
+import type { Block } from './combat';
 import { DEFAULT_SETTINGS, type Settings, type Tuning } from './tuning';
 
 export interface BotOptions {
@@ -223,7 +227,6 @@ export function forgeUp(t: Tuning, p: Profile): void {
 
 /** One attempt at the current act, from wherever the run stands until the act is cleared or lost. */
 export function playAct(run: Run, rng: Rng, o: BotOptions): ActAttempt {
-  const T = run.tuning;
   const out: ActAttempt = { act: run.actIndex, won: false, fights: [], nodes: [], revivesUsed: 0, reachedBoss: false, lostAt: null };
   const startRevives = run.hero.revives;
   for (let guard = 0; guard < 200; guard++) {
@@ -244,16 +247,9 @@ export function playAct(run: Run, rng: Rng, o: BotOptions): ActAttempt {
     } else if (ph === 'loot') {
       run.collectLoot();
       equipBest(run);
-    } else if (ph === 'boost') {
-      // Full Heal when hurt; otherwise the strongest card, a random one among equals
-      const offers = run.boostChoices;
-      const heal = offers.findIndex((b) => b.id === 'heal');
-      const hurt = run.hero.hp < heroMaxHp(T, run.hero) * 0.5;
-      const rank = (i: number) => RARITIES.indexOf(offers[i].rarity);
-      const best = Math.max(...offers.map((_, i) => rank(i)));
-      const top = offers.map((_, i) => i).filter((i) => rank(i) === best);
-      run.pickBoost(hurt && heal >= 0 ? heal : top[rng.int(top.length)]);
-    } else if (ph === 'treasure') run.openTreasure();
+      spendSkills(run, rng);
+    } else if (ph === 'boost') run.pickBoost(botPick(run, rng));
+    else if (ph === 'treasure') run.openTreasure();
     else if (ph === 'rest') run.rest();
     else if (ph === 'shop') {
       shop(run);
@@ -283,14 +279,59 @@ export function playAct(run: Run, rng: Rng, o: BotOptions): ActAttempt {
   return out;
 }
 
-/** Shop policy: a potion when hurt, then the rarest boost cards it can afford. */
+/** How much the bot wants a card: a relic by the tags it shares with what it owns (synergy-greedy), then rarity;
+ *  a stat card by rarity, below any relic of its rarity. */
+export function offerScore(run: Run, o: BoostOffer): number {
+  if (o.id === 'relic' && o.relic) return 10 * sharedTags(o.relic, run.hero.relics).length + 2 * rarityRank(o.rarity) + 1;
+  return 2 * RARITIES.indexOf(o.rarity);
+}
+
+/** The bot's pick: Full Heal when hurt; otherwise the card it wants most (a random one among equals). */
+export function botPick(run: Run, rng: Rng): number {
+  const offers = run.boostChoices;
+  const heal = offers.findIndex((b) => b.id === 'heal');
+  if (heal >= 0 && run.hero.hp < heroMaxHp(run.tuning, run.hero) * 0.5) return heal;
+  const score = offers.map((o) => offerScore(run, o));
+  const best = Math.max(...score);
+  const top = offers.map((_, i) => i).filter((i) => score[i] === best);
+  return top[rng.int(top.length)];
+}
+
+/** Spend skill points down one branch at a time (the branch order is the profile's, from its seed: a player's taste). */
+export function spendSkills(run: Run, rng: Rng): void {
+  const p = run.profile;
+  const hero = p.hero;
+  const prog = heroProgress(p);
+  if (pointsLeft(run.tuning, prog) <= 0) return;
+  const tree = treeOf(hero);
+  const first = (p.nextUid + p.found + hero.length) % Math.max(1, tree.length); // stable per profile
+  void rng;
+  for (let k = 0; k < tree.length && pointsLeft(run.tuning, prog) > 0; k++) {
+    const branch = tree[(first + k) % tree.length];
+    for (const node of branch.nodes) if (canLearn(run.tuning, hero, prog, node.id) === 'ok') learn(run.tuning, hero, prog, node.id);
+  }
+  run.refreshGear();
+}
+
+/** Shop policy: a potion when hurt, then the cards it wants most that it can afford. */
 function shop(run: Run): void {
   const T = run.tuning;
   const potion = run.shop.findIndex((i) => i.kind === 'potion');
   if (run.hero.hp < heroMaxHp(T, run.hero) * 0.6 && potion >= 0) run.buy(potion);
   const cards = run.shop.map((item, i) => ({ item, i })).filter((x) => x.item.kind === 'boost' && x.item.offer);
-  cards.sort((a, b) => RARITIES.indexOf(b.item.offer!.rarity) - RARITIES.indexOf(a.item.offer!.rarity));
+  cards.sort((a, b) => offerScore(run, b.item.offer!) - offerScore(run, a.item.offer!));
   for (const { i } of cards) run.buy(i);
+}
+
+/**
+ * Whether the bot aims at a block at all (the relic agent teaches it relic-specific decisions here): never a purple
+ * trap, never a yellow while a raised shield is read.
+ */
+export function wantsBlock(c: Combat, b: Block, guarded: boolean): boolean {
+  void c;
+  if (b.kind === 'purple') return false;
+  if (guarded && b.kind === 'yellow') return false;
+  return true;
 }
 
 function newFight(run: Run, c: Combat): FightStats {
@@ -448,7 +489,7 @@ function plan(c: Combat, rng: Rng, aim: Aim, gauss: () => number, avoidYellow: b
   let best: { tau: number; id: number } | null = null;
   let red: { tau: number; id: number } | null = null;
   for (const b of c.blocks) {
-    if (b.kind === 'purple' || (guarded && b.kind === 'yellow')) continue;
+    if (!wantsBlock(c, b, guarded)) continue;
     const rel = v * dir - b.vel; // closing speed (bar units/s)
     const tau = (b.pos - cpos) / rel;
     if (!(tau >= 0) || tau > Math.min(toWall, 0.6)) continue;

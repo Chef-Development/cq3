@@ -101,20 +101,21 @@ describe('the map', () => {
     expect(c.enemies[0].atk).toBe(Math.round(r.tuning.enemies[k].atk * r.tuning.acts[0].atkMult));
   });
 
-  it('winning a fight offers one boost pick, then the map again; an elite guarantees a rare', () => {
-    const r = onMap((t) => ((t.boosts.rareChance = 0), (t.boosts.epicChance = 0)));
+  it('winning a fight offers one pick (mostly relics, at most one stat card), then the map again; an elite guarantees a rare', () => {
+    const r = onMap((t) => ((t.boosts.rareChance = 0), (t.boosts.epicChance = 0), (t.relics.rareW = 0), (t.relics.epicW = 0), (t.relics.statCard = 1)));
     r.chooseNode(r.map.rows[0][0]);
     win(r);
     expect(r.phase).toBe('boost');
     expect(r.boostChoices).toHaveLength(3);
     expect(r.boostChoices.every((o) => o.rarity === 'common')).toBe(true);
+    expect(r.boostChoices.filter((o) => o.id === 'relic')).toHaveLength(2);
     const i = r.boostChoices.findIndex((b) => b.id === 'damage');
     r.pickBoost(Math.max(0, i));
     expect(r.phase).toBe('map');
     if (i >= 0) expect(r.hero.bonusDmg).toBeCloseTo(r.tuning.boosts.damage * rarityMult(r.tuning, 'common'));
     goTo(r, 'elite');
     win(r);
-    expect(r.boostChoices.filter((o) => o.rarity === 'rare')).toHaveLength(1);
+    expect(r.boostChoices.filter((o) => o.rarity !== 'common').length).toBeGreaterThanOrEqual(1);
   });
 
   it('collects coins for every kill, in every wave', () => {
@@ -251,7 +252,8 @@ describe('acts, dying and the end', () => {
     r.nextAct();
     expect(r.actIndex).toBe(1);
     expect(r.phase).toBe('scene');
-    expect(r.sceneQueue).toEqual(['act2']);
+    expect(r.sceneQueue).toEqual(['sableJoin', 'act2']); // after Act 1, Sable's night at the camp
+    expect(r.profile.heroes.sable.unlocked).toBe(true);
     expect(r.theme).toBe('ruins');
     expect(r.map).not.toEqual(map1);
     expect(r.hero.bonusAtk).toBe(atk);

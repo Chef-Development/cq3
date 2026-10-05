@@ -4,6 +4,7 @@
 
 import { eventById } from '../data/events';
 import { GREENMARCH } from '../data/greenmarch';
+import { isRelicId } from '../data/relics';
 import type { RegionDef } from '../data/types';
 import type { Hero, SavedFoe } from './combat';
 import type { AccEntry } from './accuracy';
@@ -15,8 +16,9 @@ import type { Tuning } from './tuning';
 
 // v3: Greenmarch's acts and node maps replaced the levels. v4: fights are waves of foes (the save keeps the wave).
 // v5: gear. The coins moved to the profile's purse (kept between runs), the loot screen and the act's timing samples
-// are saved. A v4 save is migrated (migrateSave: its coins go into the purse); older ones are dropped.
-export const SAVE_VERSION = 5;
+// are saved. v6: relics (the hero's, the act-start checkpoint's, a replay's starting picks left). A v4 save is
+// migrated (its coins go into the purse), and a v5 one (no relics yet); older ones are dropped.
+export const SAVE_VERSION = 6;
 
 type SavedPhase = Exclude<Phase, 'title' | 'world' | 'victory' | 'camp'>;
 const PHASES: SavedPhase[] = ['scene', 'map', 'fight', 'loot', 'boost', 'treasure', 'rest', 'shop', 'event', 'actClear', 'defeat'];
@@ -44,16 +46,18 @@ export interface RunSave {
   loot: { items: Item[]; salvaged: number; min: boolean | Rarity; then: 'map' | 'actClear' } | null;
   aims: number[]; // the act's timing samples so far (its accuracy at the act clear)
   random: { seed: number; rng: number };
+  startPicks: number; // a replay's starting relic picks still to make, of how many
+  startPicksTotal: number;
 }
 
-/** The hero as saved: the gear isn't (it comes from the profile when the run resumes). */
-export type SavedHero = Omit<Hero, 'gear'>;
+/** The hero as saved: the gear and the build aren't (they come from the profile when the run resumes). */
+export type SavedHero = Omit<Hero, 'gear' | 'build'>;
 
 const HERO_KEYS: Array<keyof SavedHero> = ['hp', 'bonusAtk', 'bonusMaxHp', 'bonusDmg', 'bonusCrit', 'bonusCritDmg', 'bonusComboPower', 'bonusPet', 'revives', 'abilityTimer'];
 
 const savedHero = (h: Hero): SavedHero => {
-  const { gear: _gear, ...rest } = h;
-  return { ...rest, abilityTimer: 0 };
+  const { gear: _gear, build: _build, ...rest } = h;
+  return { ...rest, relics: h.relics.slice(), abilityTimer: 0 };
 };
 
 /**
@@ -61,12 +65,20 @@ const savedHero = (h: Hero): SavedHero => {
  * profile's purse (it's mutated; save both afterwards so it happens once).
  */
 export function migrateSave(data: unknown, profile: Profile): unknown {
-  const s = data as Record<string, unknown> | null;
-  if (!s || typeof s !== 'object' || s.v !== 4) return data;
-  const coins = typeof s.coins === 'number' && Number.isFinite(s.coins) ? Math.max(0, Math.round(s.coins)) : 0;
-  profile.coins += coins;
-  const { coins: _c, actCoins: _a, ...rest } = s;
-  return { ...rest, v: SAVE_VERSION, loot: null, aims: [], actSpent: 0, accuracy: null };
+  let s = data as Record<string, unknown> | null;
+  if (!s || typeof s !== 'object') return data;
+  if (s.v === 4) {
+    const coins = typeof s.coins === 'number' && Number.isFinite(s.coins) ? Math.max(0, Math.round(s.coins)) : 0;
+    profile.coins += coins;
+    const { coins: _c, actCoins: _a, ...rest } = s;
+    s = { ...rest, v: 5, loot: null, aims: [], actSpent: 0, accuracy: null };
+  }
+  if (s.v === 5) {
+    // v5 -> v6: no relics yet
+    const noRelics = (h: unknown) => (h && typeof h === 'object' ? { ...(h as object), relics: [] } : h);
+    s = { ...s, v: 6, hero: noRelics(s.hero), actHero: noRelics(s.actHero), startPicks: 0, startPicksTotal: 0 };
+  }
+  return s;
 }
 
 /** Snapshot of a run in progress (null on the title screen, the world map and after the victory: nothing to resume). */
@@ -106,12 +118,20 @@ export function snapshotRun(run: Run, now = Date.now()): RunSave | null {
     loot: run.phase === 'loot' ? { items: run.loot.map((i) => ({ ...i, bonus: i.bonus.map((b) => ({ ...b })) })), salvaged: run.lootSalvaged, min: run.boostMin, then: run.boostThen } : null,
     aims: run.actAims.slice(-1500),
     random: run.randomState,
+    startPicks: run.startPicks,
+    startPicksTotal: run.startPicksTotal,
   };
 }
 
 const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
-const heroOk = (h: unknown): h is Hero => !!h && typeof h === 'object' && HERO_KEYS.every((k) => num((h as Hero)[k]));
-const offerOk = (o: unknown): o is BoostOffer => !!o && BOOST_IDS.includes((o as BoostOffer).id) && RARITIES.includes((o as BoostOffer).rarity);
+const heroOk = (h: unknown): h is Hero => !!h && typeof h === 'object' && HERO_KEYS.every((k) => num((h as Hero)[k])) && Array.isArray((h as Hero).relics);
+const offerOk = (o: unknown): o is BoostOffer => {
+  const b = o as BoostOffer;
+  if (!b || !RARITIES.includes(b.rarity)) return false;
+  return b.id === 'relic' ? isRelicId(b.relic) : BOOST_IDS.includes(b.id);
+};
+/** Known relics only (one dropped from the game is dropped from the save), each once. */
+const relicsOf = (h: SavedHero) => [...new Set(h.relics.filter(isRelicId))];
 
 /** The save, if this build (and this region's data) can resume it; otherwise null. */
 export function readSave(data: unknown, t: Tuning, region: RegionDef = GREENMARCH): RunSave | null {
@@ -126,6 +146,7 @@ export function readSave(data: unknown, t: Tuning, region: RegionDef = GREENMARC
   if (!Array.isArray(s.path) || !s.path.every(num)) return null;
   if (!Array.isArray(s.scenes) || !s.scenes.every((x) => typeof x === 'string') || !['map', 'fight', 'victory'].includes(s.sceneThen)) return null;
   if (!s.random || !num(s.random.seed) || !num(s.random.rng)) return null;
+  if (!num(s.startPicks) || !num(s.startPicksTotal)) return null;
   const map = buildActMap(act, actSeed(s.mapSeed, s.act));
   if (!validPath(map, s.path)) return null;
   const node = s.path.length ? map.nodes[s.path[s.path.length - 1]] : null;
@@ -156,15 +177,19 @@ export function restoreRun(run: Run, data: unknown): boolean {
   run.mapSeed = s.mapSeed >>> 0;
   run.rerolls = s.rerolls;
   const gear = run.gear;
-  run.hero = { ...s.hero, abilityTimer: 0, gear };
+  const build = run.build;
+  run.hero = { ...s.hero, relics: relicsOf(s.hero), abilityTimer: 0, gear, build };
   // rebuild the act (map, checkpoint), then put the details back
+  run.startPicks = 0;
   run.enterAct(s.act);
   run.path = s.path.slice();
-  run.actHero = { ...s.actHero, abilityTimer: 0, gear };
+  run.actHero = { ...s.actHero, relics: relicsOf(s.actHero), abilityTimer: 0, gear, build };
   run.actRerolls = s.actRerolls;
   run.actSpent = Math.max(0, s.actSpent);
   run.rerolls = s.rerolls;
-  run.hero = { ...s.hero, abilityTimer: 0, gear };
+  run.hero = { ...s.hero, relics: relicsOf(s.hero), abilityTimer: 0, gear, build };
+  run.startPicks = Math.max(0, Math.round(s.startPicks));
+  run.startPicksTotal = Math.max(run.startPicks, Math.round(s.startPicksTotal));
   run.actAims = s.aims.slice();
   run.randomState = s.random;
   switch (s.phase) {

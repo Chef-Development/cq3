@@ -108,9 +108,9 @@ export function clearRunSave(): void {
   }
 }
 
-export function loadProfile(): Profile {
+export function loadProfile(t?: Tuning): Profile {
   const p = read(PROFILE_KEY);
-  return readProfile(p ?? read(OLD_PROGRESS_KEY));
+  return readProfile(p ?? read(OLD_PROGRESS_KEY), t);
 }
 
 export function writeProfile(p: Profile): void {

@@ -53,7 +53,7 @@ export class App {
     readonly tuning: Tuning,
     readonly settings: Settings,
   ) {
-    this.profile = loadProfile();
+    this.profile = loadProfile(tuning);
     this.run = new Run(tuning, settings, (Date.now() & 0xffffff) | 1, this.profile);
     this.audio.tuning = tuning; // live: the impact sliders apply to the next sound
     this.savedRun = loadRunSave(tuning, this.profile);

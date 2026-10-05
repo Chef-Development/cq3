@@ -2,11 +2,17 @@
 // Time is in seconds of simulation time, advanced in fixed 1/120 s ticks.
 
 import type { EffectId } from '../data/gear';
+import type { RelicId } from '../data/relics';
 import type { FormationEntry, SpecialDef } from '../data/types';
 import { CODE_KIND, isAttack, isRed, type BlockKind } from './blocks';
 import { AIM_WINDOW_MS, ISOLATION_MS } from './accuracy';
 import { emptyLoadout, hasEffect, setPieces, type Loadout, type StatBlock } from './gear';
+import { buildBonus, defaultBuild, type HeroBuild } from './heroes';
+import type { BreakCtx, FightHooks, FinisherCtx, HitCtx, MeterSource, MissCtx, PeckCtx } from './hooks';
 import { finisherShowMs } from './impact';
+import { KIT_HOOKS } from './kit-fx';
+import { RELIC_HOOKS } from './relic-fx';
+import { SKILL_HOOKS } from './skill-fx';
 import { Rng } from './rng';
 import { fireSpecial, placeEntry } from './specials';
 import type { BlockCode, Settings, Tuning } from './tuning';
@@ -91,13 +97,18 @@ export interface Hero {
   bonusPet: number; // extra damage on the companion's pecks (Companion Power boosts)
   revives: number;
   abilityTimer: number;
+  /** Relics picked this run (saved with the run, like the boosts). Never mutated in place: a copy of the hero
+   *  (the act-start checkpoint) shares the array, so adding one makes a new array. */
+  relics: RelicId[];
   /** What the equipped gear adds (stats, unique effects, set pieces). Not saved with the run: it comes from the profile. */
   gear: Loadout;
+  /** Who is fighting (Rowan or Sable), their level and skills. Not saved with the run: it comes from the profile. */
+  build: HeroBuild;
 }
 
-export function newHero(t: Tuning, gear: Loadout = emptyLoadout()): Hero {
-  return {
-    hp: t.hero.maxHp,
+export function newHero(t: Tuning, gear: Loadout = emptyLoadout(), build: HeroBuild = defaultBuild()): Hero {
+  const h: Hero = {
+    hp: 0,
     bonusAtk: 0,
     bonusMaxHp: 0,
     bonusDmg: 0,
@@ -107,30 +118,42 @@ export function newHero(t: Tuning, gear: Loadout = emptyLoadout()): Hero {
     bonusPet: 0,
     revives: t.hero.revivesPerAct,
     abilityTimer: 0,
+    relics: [],
     gear,
+    build,
   };
+  h.hp = heroMaxHp(t, h);
+  return h;
 }
 
-/** Max HP: the base, kill gains, boosts and gear (and the Greenwarden 2-piece's share on top). */
+/** The hero's base max HP (Rowan's or Sable's), before levels, boosts and gear. */
+export const heroBaseHp = (t: Tuning, h: Hero): number => (h.build?.id === 'sable' ? t.sable.maxHp : t.hero.maxHp);
+
+/** Max HP: the base and levels, kill gains, boosts and gear (the Greenwarden 2-piece's and skills' shares on top). */
 export const heroMaxHp = (t: Tuning, h: Hero): number => {
   const gear = h.gear ?? emptyLoadout();
   const set = setPieces(gear, 'greenwarden') >= 2 ? t.effects.greenwardenHp : 0;
-  return Math.round((t.hero.maxHp + h.bonusMaxHp + gear.stats.hp) * (1 + set));
+  const b = buildBonus(t, h.build);
+  return Math.round((heroBaseHp(t, h) + b.hp + h.bonusMaxHp + gear.stats.hp) * (1 + set + b.hpPct));
 };
-/** Attack after kill gains, gear and damage boosts. */
-export const heroAtk = (t: Tuning, h: Hero): number => (t.hero.atk + h.bonusAtk + (h.gear?.stats.atk ?? 0)) * (1 + h.bonusDmg);
+/** Attack after levels, kill gains, gear, damage boosts and skills. (Sable's hits deal a share of it: kit-fx.ts.) */
+export const heroAtk = (t: Tuning, h: Hero): number => {
+  const b = buildBonus(t, h.build);
+  return (t.hero.atk * (1 + b.levelAtk) + h.bonusAtk + (h.gear?.stats.atk ?? 0)) * (1 + h.bonusDmg + b.atkPct);
+};
 
 /** All 10 of the hero's stats as they stand (the stats screen, the HUD and the fight all read them from here). */
 export function heroStats(t: Tuning, h: Hero): StatBlock {
   const g = (h.gear ?? emptyLoadout()).stats;
+  const b = buildBonus(t, h.build);
   return {
     hp: heroMaxHp(t, h),
     atk: heroAtk(t, h),
-    def: g.def,
-    critChance: t.hero.critChance + h.bonusCrit + g.critChance,
+    def: g.def + b.def,
+    critChance: t.hero.critChance + h.bonusCrit + g.critChance + b.critChance,
     critDmg: t.hero.critDmg + h.bonusCritDmg + g.critDmg,
-    comboPower: t.hero.comboPower + h.bonusComboPower + g.comboPower,
-    meterGain: g.meterGain,
+    comboPower: t.hero.comboPower + h.bonusComboPower + g.comboPower + b.comboPower,
+    meterGain: g.meterGain + b.meterGain,
     steady: Math.min(t.gear.steadyCap, g.steady),
     luck: g.luck,
     companion: t.companion.damage + h.bonusPet + g.companion,
@@ -161,16 +184,18 @@ export function phaseToPos(phase: number): number {
   return p <= 1 ? p : 2 - p;
 }
 
-export type RemoveReason = 'hit' | 'bomb' | 'expire' | 'impact' | 'owner' | 'revive' | 'finisher' | 'counter';
-export type HurtSource = 'red' | 'bomb' | 'trap' | 'miss' | 'counter';
+export type RemoveReason = 'hit' | 'bomb' | 'expire' | 'impact' | 'owner' | 'revive' | 'finisher' | 'counter' | 'perk';
+export type HurtSource = 'red' | 'bomb' | 'trap' | 'miss' | 'counter' | 'perk';
+/** What damaged a foe: a tapped yellow/green, a bomb blast (or a gear effect), the finisher, Pip, or a relic/skill/kit perk. */
+export type DamageSource = 'hit' | 'bomb' | 'finisher' | 'pet' | 'perk';
 
 export type CombatEvent =
-  | { type: 'hit'; kind: BlockKind; pos: number; perfect: boolean; crit: boolean; damage: number; enemyId: number; combo: number }
-  | { type: 'block'; kind: BlockKind; pos: number; perfect: boolean; cracked: boolean; ownerId: number; combo: number; knock: number }
+  | { type: 'hit'; kind: BlockKind; pos: number; perfect: boolean; crit: boolean; damage: number; enemyId: number; combo: number; hand: number; echo: boolean }
+  | { type: 'block'; kind: BlockKind; pos: number; perfect: boolean; cracked: boolean; ownerId: number; combo: number; knock: number; hand: number; echo: boolean }
   | { type: 'trap'; pos: number; damage: number; enemyId: number }
   | { type: 'counter'; pos: number; damage: number; enemyId: number }
   | { type: 'wardBreak'; pos: number; enemyId: number; left: number; perfect: boolean; combo: number }
-  | { type: 'miss'; pos: number; selfDamage: boolean }
+  | { type: 'miss'; pos: number; selfDamage: boolean; hand: number }
   | { type: 'remove'; id: number; kind: BlockKind; pos: number; width: number; ownerId: number; reason: RemoveReason }
   | { type: 'spawn'; id: number; kind: BlockKind; ownerId: number; special: boolean }
   | { type: 'windup'; enemyId: number }
@@ -192,15 +217,20 @@ export type CombatEvent =
   | { type: 'thaw' }
   | { type: 'cursorFloor'; mult: number }
   | { type: 'phase'; enemyId: number; phase: number }
-  | { type: 'heroHurt'; damage: number; source: HurtSource; enemyId: number }
-  | { type: 'enemyHurt'; enemyId: number; damage: number; crit: boolean; source: 'hit' | 'bomb' | 'finisher' | 'pet' }
+  | { type: 'heroHurt'; damage: number; source: HurtSource; enemyId: number; perk?: string }
+  | { type: 'enemyHurt'; enemyId: number; damage: number; crit: boolean; source: DamageSource }
   | { type: 'heal'; amount: number }
   | { type: 'statGain'; enemyId: number; atk: number; maxHp: number; comboPower: number }
-  | { type: 'pet'; enemyId: number; damage: number }
+  | { type: 'pet'; enemyId: number; damage: number; crit: boolean }
   | { type: 'kill'; enemyId: number; coins: number }
   | { type: 'gearFx'; fx: EffectId | 'footpad'; amount: number; enemyId: number } // a gear effect kicked in (the view names it)
+  // a relic, skill node or hero kit perk kicked in (id: a RelicId, a skill node id, or a kit id like 'shadowStep'; the
+  // view names it); amount: damage dealt, HP healed, coins, stacks... (0 = just show the name)
+  | { type: 'perk'; id: string; amount: number; enemyId: number; pos?: number }
+  | { type: 'coins'; amount: number; id: string } // coins found mid-fight (relics), banked by the run
+  | { type: 'morph'; id: number; kind: BlockKind } // a block on the bar changed kind (Chain Reaction: yellow -> green)
   | { type: 'explode'; pos: number; radius: number }
-  | { type: 'finisher'; damage: number; combo: number; stacks: number }
+  | { type: 'finisher'; damage: number; combo: number; stacks: number; targets: number[] }
   | { type: 'ability' }
   | { type: 'speedUp'; mult: number }
   | { type: 'comboBreak'; lost: number; lostStacks: number }
@@ -220,6 +250,7 @@ export interface TapResult {
   perfect: boolean;
   cursorPos: number;
   blockId: number;
+  hand: number;
 }
 
 export interface Carry {
@@ -309,6 +340,18 @@ export class Combat {
   secondWindUsed = false;
   /** Opening Blow: foes already hit. */
   private struck = new Set<number>();
+  /** The perks in play (the hero's kit, learned skills, relics; core/hooks.ts), and their per-fight state, keyed by
+   *  the perk's id (counters, timers). */
+  readonly hooks: FightHooks[];
+  perk: Record<string, number> = {};
+  /** Coins perks found mid-fight (the run banks them with the kills' coins). */
+  coinsEarned = 0;
+  /** Pip's pecks so far this fight. */
+  pecks = 0;
+  /** Cursors on the bar: 1 (Rowan; the Blade family) or 2 (Sable; the Twin family: one per half). */
+  readonly hands: number;
+  /** The hand of the last attack hit (-1 = none yet): Ambidextrous and the alternating skills read it. */
+  lastHand = -1;
 
   private nextId = 1;
   private refillTimer = 0;
@@ -326,6 +369,9 @@ export class Combat {
     this.tuning = o.tuning;
     this.settings = o.settings;
     this.hero = o.hero;
+    const build = o.hero.build ?? defaultBuild();
+    this.hands = build.id === 'sable' ? 2 : 1;
+    this.hooks = [KIT_HOOKS[build.id], ...build.skills.map((id) => SKILL_HOOKS[id]), ...(o.hero.relics ?? []).map((id) => RELIC_HOOKS[id])].filter((h): h is FightHooks => !!h);
     this.spawning = o.spawning ?? true;
     this.specialsOn = o.specials ?? this.spawning;
     this.hpMult = o.hpMult ?? 1;
@@ -378,7 +424,143 @@ export class Combat {
       const front = this.frontEnemy() ?? this.enemies[0];
       for (let i = 0; i < this.tuning.blocks.openingSpawns; i++) this.trySpawn('yellow', front.id);
     }
+    if (!this.result) for (const h of this.hooks) h.start?.(this);
     this.record();
+  }
+
+  // ---------------------------------------------------------------- perks (core/hooks.ts)
+
+  /** Run a number through every hook that changes it. */
+  mod(v: number, f: (h: FightHooks, v: number) => number | undefined): number {
+    for (const h of this.hooks) v = f(h, v) ?? v;
+    return v;
+  }
+
+  /** The first hook that claims something (returns true) handles it alone. */
+  claim(f: (h: FightHooks) => boolean | undefined | void): boolean {
+    for (const h of this.hooks) if (f(h) === true) return true;
+    return false;
+  }
+
+  /** Whether a perk (relic, skill node or kit) is in play. */
+  hasPerk(id: string): boolean {
+    return (this.hero.relics ?? []).includes(id as RelicId) || (this.hero.build?.skills ?? []).includes(id) || this.hero.build?.id === id;
+  }
+
+  /** A perk kicked in: the view names it (and shows the amount). */
+  perkFx(id: string, amount = 0, enemyId = 0, pos?: number): void {
+    this.events.push({ type: 'perk', id, amount: Math.round(amount), enemyId, pos });
+  }
+
+  /** The hero's max HP right now. */
+  maxHp(): number {
+    return heroMaxHp(this.tuning, this.hero);
+  }
+
+  /** Heal the hero for a perk (up to max HP). Returns how much. */
+  healPerk(amount: number, id: string): number {
+    const H = this.hero;
+    const heal = Math.min(this.maxHp() - H.hp, Math.max(0, Math.round(amount)));
+    if (heal <= 0 || H.hp <= 0) return 0;
+    H.hp += heal;
+    this.perkFx(id, heal);
+    return heal;
+  }
+
+  /** The hero takes damage from a perk's cost (Glass Edge, Blood Price, Purple Pact...). `keepCombo`: it doesn't break the combo. */
+  hurtHero(amount: number, id: string, keepCombo = true): void {
+    this.heroDamage(amount, 'perk', 0, keepCombo, id);
+  }
+
+  /** Coins found mid-fight (banked by the run). */
+  awardCoins(n: number, id: string): void {
+    const c = Math.max(0, Math.round(n));
+    if (c <= 0) return;
+    this.coinsEarned += c;
+    this.events.push({ type: 'coins', amount: c, id });
+  }
+
+  /** Bank finisher stacks (up to the max). Returns how many were added. */
+  bankStacks(n: number, id: string): number {
+    const max = this.maxStacks();
+    let added = 0;
+    while (added < n && this.stacks < max) {
+      this.stacks++;
+      added++;
+      this.events.push({ type: 'meterFull', stacks: this.stacks });
+    }
+    if (this.stacks >= max) this.meter = 1;
+    if (added) this.perkFx(id, added);
+    return added;
+  }
+
+  /** Lose finisher stacks (Overcharge). */
+  loseStacks(n: number, id: string): void {
+    const lost = Math.min(this.stacks, Math.max(0, n));
+    if (lost <= 0) return;
+    this.stacks -= lost;
+    if (this.meter >= 1) this.meter = 0;
+    this.events.push({ type: 'comboBreak', lost: 0, lostStacks: lost });
+    this.perkFx(id, -lost);
+  }
+
+  /** Max finisher stacks right now. */
+  maxStacks(): number {
+    return Math.max(1, Math.round(this.mod(this.tuning.meter.maxStacks, (h, v) => h.maxStacks?.(this, v))));
+  }
+
+  /** A perk strikes a foe (a counterattack, a ricochet, an echo): no shell, no crit roll. */
+  strike(e: Enemy, dmg: number, id: string, crit = false): void {
+    if (!e.alive || dmg <= 0) return;
+    const d = Math.max(1, Math.round(dmg));
+    this.perkFx(id, d, e.id);
+    this.damageEnemy(e, d, crit, 'perk');
+  }
+
+  /** A perk hits a yellow/green on the bar as if it were tapped (Shadow Step, Blast Wave). */
+  perkHit(b: Block, hand: number, perfect = false): void {
+    if (!this.blocks.includes(b) || !isAttack(b.kind) || this.result) return;
+    this.hitAttack(b, perfect, hand, true);
+  }
+
+  /** A perk blocks a red on the bar as if it were tapped (Night Watch, Cross Guard). */
+  perkBlock(b: Block, hand: number): void {
+    if (!this.blocks.includes(b) || !isRed(b.kind) || this.result) return;
+    this.blockRed(b, false, hand, true);
+  }
+
+  /** A bomb blows up on the enemies without being tapped (Short Fuse). */
+  blowUp(b: Block): void {
+    this.removeBlock(b, 'perk');
+    this.explode(b);
+  }
+
+  /** Turn a block on the bar into another kind (Chain Reaction: yellows go green). */
+  morph(b: Block, kind: BlockKind): void {
+    if (!this.blocks.includes(b) || b.kind === kind) return;
+    b.kind = kind;
+    this.events.push({ type: 'morph', id: b.id, kind });
+  }
+
+  /** Push a red back to the right (Parry). Returns the distance. */
+  pushBack(b: Block, dist: number, sec = this.tuning.blocks.knockbackSec): number {
+    return isRed(b.kind) ? this.knockBack(b, dist, sec) : 0;
+  }
+
+  /** Living foes, front first. */
+  aliveFoes(): Enemy[] {
+    return this.enemies.filter((e) => e.alive).sort((a, b) => a.slot - b.slot);
+  }
+
+  /** The bar's range for a cursor: [0, 1] for one cursor; Sable's A sweeps [0, 0.5] and B [0.5, 1]. */
+  handRange(hand: number): [number, number] {
+    if (this.hands < 2) return [0, 1];
+    return hand <= 0 ? [0, 0.5] : [0.5, 1];
+  }
+
+  /** Which cursor a bar position belongs to. */
+  handOf(pos: number): number {
+    return this.hands < 2 ? 0 : pos < 0.5 ? 0 : 1;
   }
 
   /** A fresh enemy of kind `key` (scaled by this fight's HP and attack multipliers). */
@@ -487,7 +669,9 @@ export class Combat {
     return this.hPhase[i] + this.hPhaseVel[i] * Math.max(0, t - this.hT[i]);
   }
 
-  cursorPosAt(t: number): number {
+  /** Where cursor `hand` is at sim time t, as a position on the whole bar (0..1). */
+  cursorPosAt(t: number, hand = 0): number {
+    void hand;
     return phaseToPos(this.phaseAt(t));
   }
 
@@ -539,6 +723,8 @@ export class Combat {
       this.tuskCrit = 0;
     }
     if (this.nextWaveIn >= 0 && (this.nextWaveIn -= DT) <= 1e-9) this.nextWave();
+    for (const h of this.hooks) h.step?.(this);
+    if (this.result) return this.record();
     this.updateBlocks();
     if (!this.result) this.updateStatuses();
     if (!this.result) this.updateQueue();
@@ -801,6 +987,7 @@ export class Combat {
 
   private impact(b: Block): void {
     this.removeBlock(b, 'impact');
+    if (this.claim((h) => h.impact?.(this, b))) return;
     const owner = this.enemyById(b.ownerId);
     const atk = owner ? owner.atk : 0;
     const bomb = b.kind === 'bomb';
@@ -846,6 +1033,7 @@ export class Combat {
   /** Spawn a block from a pattern (random free position for static blocks, right end for reds), at a random width. */
   trySpawn(kind: BlockKind, ownerId: number): boolean {
     const B = this.tuning.blocks;
+    for (const h of this.hooks) if (h.spawnKind) kind = h.spawnKind(this, kind, ownerId);
     // blocks come in varied widths: some small, some big, for every kind
     const [vLo, vHi] = isRed(kind) ? [B.redWidthMin, B.redWidthMax] : [B.widthMin, B.widthMax];
     const w = this.widthFor(kind) * this.spawnRng.range(Math.min(vLo, vHi), Math.max(vLo, vHi));
@@ -916,8 +1104,9 @@ export class Combat {
       speed,
       heal: o.heal ?? 0,
     };
+    for (const h of this.hooks) h.spawned?.(this, b);
     this.blocks.push(b);
-    this.events.push({ type: 'spawn', id: b.id, kind, ownerId, special: !!o.special });
+    this.events.push({ type: 'spawn', id: b.id, kind: b.kind, ownerId, special: !!o.special });
     if (isRed(kind) && !o.special) this.events.push({ type: 'windup', enemyId: ownerId });
     return b;
   }
@@ -935,24 +1124,25 @@ export class Combat {
    * Judge a bar tap that happened at sim time `t` (already corrected by calibration).
    * Positions are rewound to `t`; effects apply to the current state.
    */
-  tap(t: number): TapResult {
-    const none: TapResult = { outcome: 'none', perfect: false, cursorPos: 0, blockId: 0 };
+  tap(t: number, hand = 0): TapResult {
+    hand = this.hands < 2 ? 0 : hand > 0 ? 1 : 0;
+    const none: TapResult = { outcome: 'none', perfect: false, cursorPos: 0, blockId: 0, hand };
     if (this.result || this.cursorHold > 0) return none; // taps don't count while the finisher has the cursor stopped
     const J = this.tuning.judge;
-    const { chosen, d, cpos } = this.pick(t);
-    this.recordAim(t, chosen, cpos);
+    const { chosen, d, cpos } = this.pick(t, hand);
+    this.recordAim(t, chosen, cpos, hand);
     if (!chosen) {
-      this.miss(cpos);
-      return { outcome: 'miss', perfect: false, cursorPos: cpos, blockId: 0 };
+      this.miss(cpos, hand);
+      return { outcome: 'miss', perfect: false, cursorPos: cpos, blockId: 0, hand };
     }
     const perfect = d <= (J.perfectFrac * chosen.width) / 2;
     let outcome: TapOutcome;
     if (chosen.kind === 'purple') outcome = this.triggerTrap(chosen);
-    else if (isRed(chosen.kind)) outcome = this.blockRed(chosen, perfect);
+    else if (isRed(chosen.kind)) outcome = this.blockRed(chosen, perfect, hand);
     else if (chosen.kind === 'yellow' && this.guarder()) outcome = this.counter(chosen);
-    else if (chosen.kind === 'ward') outcome = this.breakWard(chosen, perfect);
-    else outcome = this.hitAttack(chosen, perfect);
-    return { outcome, perfect: outcome === 'trap' || outcome === 'counter' ? false : perfect, cursorPos: cpos, blockId: chosen.id };
+    else if (chosen.kind === 'ward') outcome = this.breakWard(chosen, perfect, hand);
+    else outcome = this.hitAttack(chosen, perfect, hand);
+    return { outcome, perfect: outcome === 'trap' || outcome === 'counter' ? false : perfect, cursorPos: cpos, blockId: chosen.id, hand };
   }
 
   /**
@@ -960,12 +1150,12 @@ export class Combat {
    * comes first, even over a nearer block, so a tap never hits a yellow while an attack it overlaps gets through;
    * then the nearest other block; a purple trap only if nothing else is there.
    */
-  private pick(t: number): { chosen: Block | null; d: number; cpos: number } {
+  private pick(t: number, hand = 0): { chosen: Block | null; d: number; cpos: number } {
     const J = this.tuning.judge;
     const now = this.time;
     t = Math.min(now + DT, Math.max(now - J.maxRewindMs / 1000, t));
     const phase = this.phaseAt(t);
-    const cpos = phaseToPos(phase);
+    const cpos = this.cursorPosAt(t, hand);
     // the grace is a time window: it scales with the speed the cursor and the block close at (a red racing at
     // the cursor gets as many milliseconds as a still yellow; never less space than the cursor's own speed gives)
     const v = this.speedAtTime(t);
@@ -997,7 +1187,8 @@ export class Combat {
    * The tap's timing error against the yellow block it was aimed at (the one it hit, or for a miss the nearest
    * block if that's a yellow): ms after (+) or before (-) the cursor crossed the block's center.
    */
-  private recordAim(t: number, chosen: Block | null, cpos: number): void {
+  private recordAim(t: number, chosen: Block | null, cpos: number, hand = 0): void {
+    void hand;
     t = Math.min(this.time + DT, Math.max(this.time - this.tuning.judge.maxRewindMs / 1000, t));
     const v = this.speedAtTime(t);
     if (v <= 0 || this.freeze > 0) return;
@@ -1023,8 +1214,8 @@ export class Combat {
   }
 
   /** Whether a tap at time t would land on nothing (lets input hold back a would-be miss that may be a swipe). */
-  wouldMiss(t: number): boolean {
-    return !this.result && this.cursorHold <= 0 && !this.pick(t).chosen;
+  wouldMiss(t: number, hand = 0): boolean {
+    return !this.result && this.cursorHold <= 0 && !this.pick(t, this.hands < 2 ? 0 : hand).chosen;
   }
 
   /** Cursor speed (bar units/s) that was in effect at time t. */
@@ -1034,18 +1225,21 @@ export class Combat {
     return this.hPhaseVel[i] || this.cursorSpeed();
   }
 
-  private hitAttack(b: Block, perfect: boolean): TapOutcome {
+  private hitAttack(b: Block, perfect: boolean, hand = 0, echo = false): TapOutcome {
     const T = this.tuning;
     const H = this.hero;
     const st = heroStats(T, H);
     this.removeBlock(b, 'hit');
-    this.combo++;
     const green = b.kind === 'green';
-    this.addMeter((green ? T.meter.perGreen : T.meter.perHit) + (perfect ? T.meter.perfectBonus : 0));
+    const alternated = this.hands > 1 && !echo && this.lastHand >= 0 && this.lastHand !== hand;
+    if (!echo) this.lastHand = hand;
     const target = this.currentTarget();
+    const x: HitCtx = { block: b, hand, perfect, green, target, crit: false, damage: 0, alternated, echo };
+    this.comboUp('hit', perfect, hand);
+    this.addMeter((green ? T.meter.perGreen : T.meter.perHit) + (perfect ? T.meter.perfectBonus : 0), green ? 'green' : 'hit', hand);
     let mult = green ? T.hero.greenMult : 1;
     if (this.settings.comboTiers) mult *= tierMult(T, this.combo);
-    const critChance = st.critChance + (H.abilityTimer > 0 ? T.hero.abilityCritBonus : 0) + (perfect ? T.hero.perfectCritBonus : 0) + this.tuskCrit;
+    const critChance = this.mod(st.critChance + (perfect ? T.hero.perfectCritBonus : 0) + this.tuskCrit, (h, v) => h.critChance?.(this, x, v));
     let crit = this.critRng.next() < critChance;
     if (target && this.has('opener') && !this.struck.has(target.id)) {
       // Opening Blow: the first hit on each foe always crits
@@ -1053,18 +1247,36 @@ export class Combat {
       crit = true;
     }
     if (target) this.struck.add(target.id);
-    const damage = Math.max(1, Math.round(st.atk * mult * (crit ? st.critDmg : 1)));
-    this.events.push({ type: 'hit', kind: b.kind, pos: b.pos, perfect, crit, damage, enemyId: target?.id ?? 0, combo: this.combo });
+    x.crit = crit;
+    if (crit) mult *= this.mod(st.critDmg, (h, v) => h.critMult?.(this, x, v));
+    mult = this.mod(mult, (h, v) => h.hitMult?.(this, x, v));
+    const damage = Math.max(1, Math.round(st.atk * mult));
+    x.damage = damage;
+    this.events.push({ type: 'hit', kind: b.kind, pos: b.pos, perfect, crit, damage, enemyId: target?.id ?? 0, combo: this.combo, hand, echo });
     if (crit && this.has('leech')) this.healHero(this.tuning.effects.leechHp, 'leech');
     if (green) {
-      H.abilityTimer = T.hero.abilitySec;
+      H.abilityTimer = this.abilitySec();
       this.events.push({ type: 'ability' });
     }
     if (crit) this.startHitStop();
     if (target) this.damageEnemy(target, damage, crit, 'hit');
-    this.companionTick();
+    if (!echo) this.companionTick();
     this.pendulumTick();
+    for (const h of this.hooks) h.afterHit?.(this, x);
     return 'hit';
+  }
+
+  /** How long the green ability lasts (Rowan's Battle Focus, Sable's Shadow Step). */
+  abilitySec(): number {
+    return this.hands > 1 ? this.tuning.sable.shadowSec : this.tuning.hero.abilitySec;
+  }
+
+  /** The combo goes up (normally by 1; perks may change that), and perks that watch it hear about it. */
+  private comboUp(from: 'hit' | 'block' | 'ward', perfect: boolean, hand: number): void {
+    const before = this.combo;
+    const n = Math.max(0, Math.round(this.mod(1, (h, v) => h.comboGain?.(this, from, perfect, hand, v))));
+    this.combo += n;
+    if (this.combo > before) for (const h of this.hooks) h.combo?.(this, before, this.combo);
   }
 
   /** Whether the hero's gear has a unique effect. */
@@ -1089,22 +1301,23 @@ export class Combat {
     if (front && this.trySpawn('green', front.id)) this.events.push({ type: 'gearFx', fx: 'pendulum', amount: 0, enemyId: 0 });
   }
 
-  private blockRed(b: Block, perfect: boolean): TapOutcome {
+  private blockRed(b: Block, perfect: boolean, hand = 0, echo = false): TapOutcome {
     const T = this.tuning;
-    this.combo++;
-    this.addMeter(T.meter.perBlock + (perfect ? T.meter.perfectBonus : 0));
+    const owner = this.enemyById(b.ownerId);
+    this.comboUp('block', perfect, hand);
+    this.addMeter(T.meter.perBlock + (perfect ? T.meter.perfectBonus : 0), 'block', hand);
     if (this.has('golemheart')) this.healHero(T.effects.golemHeal, 'golemheart');
     if (b.taps > 1) {
       b.taps--;
       const knock = this.knockBack(b, T.blocks.shieldKnockback, T.blocks.knockbackSec);
-      this.events.push({ type: 'block', kind: b.kind, pos: b.pos, perfect, cracked: true, ownerId: b.ownerId, combo: this.combo, knock });
+      this.events.push({ type: 'block', kind: b.kind, pos: b.pos, perfect, cracked: true, ownerId: b.ownerId, combo: this.combo, knock, hand, echo });
       this.pendulumTick();
+      for (const h of this.hooks) h.afterBlock?.(this, { block: b, hand, perfect, cracked: true, owner, echo });
       return 'crack';
     }
     this.removeBlock(b, 'hit');
-    this.events.push({ type: 'block', kind: b.kind, pos: b.pos, perfect, cracked: false, ownerId: b.ownerId, combo: this.combo, knock: 0 });
+    this.events.push({ type: 'block', kind: b.kind, pos: b.pos, perfect, cracked: false, ownerId: b.ownerId, combo: this.combo, knock: 0, hand, echo });
     this.pendulumTick();
-    const owner = this.enemyById(b.ownerId);
     if (owner?.alive && this.has('riposte') && b.kind !== 'bomb') {
       // Riposte: the blocked blow goes back at its owner
       const dmg = Math.max(1, Math.round(heroAtk(T, this.hero) * T.effects.riposte));
@@ -1116,20 +1329,26 @@ export class Combat {
       this.events.push({ type: 'speedUp', mult: this.speedMult() });
     }
     if (b.kind === 'bomb') this.explode(b);
+    for (const h of this.hooks) h.afterBlock?.(this, { block: b, hand, perfect, cracked: false, owner, echo });
     return 'block';
   }
 
   private explode(bomb: Block): void {
     const r = this.tuning.blocks.bombRadius;
     this.events.push({ type: 'explode', pos: bomb.pos, radius: r });
+    const cleared: Block[] = [];
     for (const o of this.blocks.slice()) {
-      if (Math.abs(o.pos - bomb.pos) <= r) this.removeBlock(o, 'bomb');
+      if (Math.abs(o.pos - bomb.pos) <= r) {
+        this.removeBlock(o, 'bomb');
+        cleared.push(o);
+      }
     }
     // Captain's Cutlass: bombs you tap always crit
     const crit = this.has('cutlass');
     const dmg = Math.round(this.tuning.blocks.bombDamage * (crit ? heroStats(this.tuning, this.hero).critDmg : 1));
     if (crit) this.events.push({ type: 'gearFx', fx: 'cutlass', amount: dmg, enemyId: 0 });
     if (dmg > 0) for (const e of this.enemies) if (e.alive) this.damageEnemy(e, dmg, crit, 'bomb');
+    for (const h of this.hooks) h.explode?.(this, bomb, cleared);
   }
 
   /**
@@ -1174,11 +1393,11 @@ export class Combat {
   }
 
   /** A shell block broken: counts toward the combo; when the last one goes, the shell is off. */
-  private breakWard(b: Block, perfect: boolean): TapOutcome {
+  private breakWard(b: Block, perfect: boolean, hand = 0): TapOutcome {
     const T = this.tuning;
     this.removeBlock(b, 'hit');
-    this.combo++;
-    this.addMeter(T.meter.perHit + (perfect ? T.meter.perfectBonus : 0));
+    this.comboUp('ward', perfect, hand);
+    this.addMeter(T.meter.perHit + (perfect ? T.meter.perfectBonus : 0), 'ward', hand);
     const left = this.blocks.filter((x) => x.kind === 'ward' && x.ownerId === b.ownerId).length;
     this.events.push({ type: 'wardBreak', pos: b.pos, enemyId: b.ownerId, left, perfect, combo: this.combo });
     const owner = this.enemyById(b.ownerId);
@@ -1188,6 +1407,7 @@ export class Combat {
 
   private triggerTrap(b: Block): TapOutcome {
     this.removeBlock(b, 'hit');
+    if (this.claim((h) => h.trap?.(this, b))) return 'trap';
     const owner = this.enemyById(b.ownerId);
     const damage = owner ? owner.special : 0;
     this.events.push({ type: 'trap', pos: b.pos, damage, enemyId: b.ownerId });
@@ -1195,18 +1415,20 @@ export class Combat {
     return 'trap';
   }
 
-  private miss(pos: number): void {
+  private miss(pos: number, hand = 0): void {
     if (!this.missForgiven && setPieces(this.hero.gear, 'footpad') >= 2) {
       // Footpad set: the fight's first miss doesn't break the combo (or hurt)
       this.missForgiven = true;
-      this.events.push({ type: 'miss', pos, selfDamage: false });
+      this.events.push({ type: 'miss', pos, selfDamage: false, hand });
       this.events.push({ type: 'gearFx', fx: 'footpad', amount: 0, enemyId: 0 });
       return;
     }
     const classic = this.settings.mode === 'classic';
-    this.events.push({ type: 'miss', pos, selfDamage: classic });
-    if (classic) this.heroDamage(this.tuning.judge.missSelfDamage, 'miss', 0);
-    else this.breakCombo();
+    const x: MissCtx = { hand, damage: classic ? this.tuning.judge.missSelfDamage : 0, breaks: true };
+    for (const h of this.hooks) h.miss?.(this, x);
+    this.events.push({ type: 'miss', pos, selfDamage: x.damage > 0, hand });
+    if (x.damage > 0) this.heroDamage(x.damage, 'miss', 0, !x.breaks);
+    else if (x.breaks) this.breakCombo();
   }
 
   /** Damage the finisher would deal right now (0 if no stacks are banked). */
@@ -1224,14 +1446,18 @@ export class Combat {
     if (!this.finisherReady) return false;
     const combo = this.combo;
     const stacks = this.stacks;
-    const dmg = this.finisherDamage(stacks);
+    const x: FinisherCtx = { stacks, combo, damage: this.finisherDamage(stacks), targets: this.enemies.filter((e) => e.alive), killed: 0, keepCombo: false };
+    const dmg = Math.round(x.damage * this.mod(1, (h, v) => h.finisher?.(this, x, v)));
+    x.damage = dmg;
     // Every red block on the bar is knocked off it; the enemies keep attacking on their normal schedule.
     for (const b of this.blocks.slice()) if (isRed(b.kind)) this.removeBlock(b, 'finisher');
     this.meter = 0;
     this.stacks = 0;
-    this.combo = 0;
-    this.speedStacks = 0;
-    this.events.push({ type: 'finisher', damage: dmg, combo, stacks });
+    if (!x.keepCombo) {
+      this.combo = 0;
+      this.speedStacks = 0;
+    }
+    this.events.push({ type: 'finisher', damage: dmg, combo, stacks, targets: x.targets.map((e) => e.id) });
     if (this.has('tuskCrown') && stacks > 0) {
       // Tusk Crown: every stack spent adds crit for a few seconds
       this.tuskCrit = this.tuning.effects.tuskCrit * stacks;
@@ -1241,7 +1467,13 @@ export class Combat {
     // the cursor stops while the finisher plays out, then restarts from the left
     this.cursorHold = (finisherShowMs(stacks) / 1000) * Math.max(0, this.tuning.meter.finisherHold);
     this.startHitStop();
-    if (dmg > 0) for (const e of this.enemies) if (e.alive) this.damageEnemy(e, dmg, false, 'finisher');
+    if (dmg > 0)
+      for (const e of x.targets)
+        if (e.alive) {
+          this.damageEnemy(e, dmg, false, 'finisher');
+          if (!e.alive) x.killed++;
+        }
+    for (const h of this.hooks) h.afterFinisher?.(this, x);
     return true;
   }
 
@@ -1279,13 +1511,15 @@ export class Combat {
   // ---------------------------------------------------------------- damage
 
   /** Fill the meter; every time it fills, bank a stack (up to meter.maxStacks; the last one stays full). */
-  private addMeter(x: number): void {
-    const max = Math.max(1, Math.round(this.tuning.meter.maxStacks));
+  private addMeter(x: number, source: MeterSource = 'perk', hand = 0): void {
+    const max = this.maxStacks();
+    x = this.mod(x, (h, v) => h.meter?.(this, source, v, hand));
     if (this.stacks >= max) {
       this.meter = 1;
       return;
     }
-    this.meter += x * (1 + Math.max(0, this.hero.gear?.stats.meterGain ?? 0));
+    if (x <= 0) return;
+    this.meter += x * (1 + Math.max(0, heroStats(this.tuning, this.hero).meterGain));
     while (this.meter >= 1 - 1e-9 && this.stacks < max) {
       this.stacks++;
       this.meter = this.stacks >= max ? 1 : Math.max(0, this.meter - 1);
@@ -1300,23 +1534,31 @@ export class Combat {
     this.events.push({ type: 'hitStop', ms: this.tuning.juice.hitStopMs });
   }
 
-  /** A miss or a hit taken breaks the combo and loses every banked stack and the meter. */
+  /** A miss or a hit taken breaks the combo and loses every banked stack and the meter (perks may keep some). */
   private breakCombo(): void {
-    if (this.combo > 0 || this.stacks > 0 || this.meter > 0) this.events.push({ type: 'comboBreak', lost: this.combo, lostStacks: this.stacks });
-    this.combo = 0;
-    this.meter = 0;
-    this.stacks = 0;
+    const x: BreakCtx = { combo: this.combo, stacks: this.stacks, meter: this.meter, keepCombo: 0, keepStacks: 0, keepMeter: 0 };
+    for (const h of this.hooks) h.comboBreak?.(this, x);
+    const combo = Math.max(0, Math.min(this.combo, Math.round(x.keepCombo)));
+    const stacks = Math.max(0, Math.min(this.stacks, Math.round(x.keepStacks)));
+    const meter = Math.max(0, Math.min(this.meter, x.keepMeter));
+    if (this.combo > combo || this.stacks > stacks || this.meter > meter) this.events.push({ type: 'comboBreak', lost: this.combo - combo, lostStacks: this.stacks - stacks });
+    this.combo = combo;
+    this.meter = stacks >= this.maxStacks() ? 1 : meter;
+    this.stacks = stacks;
   }
 
-  private heroDamage(amount: number, source: HurtSource, enemyId: number): void {
+  private heroDamage(amount: number, source: HurtSource, enemyId: number, keepCombo = false, perk?: string): void {
     const H = this.hero;
     // Defense cuts the damage of reds (and bombs) that got through
-    const cut = source === 'red' || source === 'bomb' ? afterDefense(this.tuning, amount, H.gear?.stats.def ?? 0) : amount;
-    const dmg = this.settings.godMode ? 0 : Math.max(0, Math.round(cut));
+    const cut = source === 'red' || source === 'bomb' ? afterDefense(this.tuning, amount, heroStats(this.tuning, H).def) : amount;
+    const hooked = this.mod(cut, (h, v) => h.hurt?.(this, v, source, enemyId));
+    const dmg = this.settings.godMode ? 0 : Math.max(0, Math.round(hooked));
     H.hp = Math.max(0, H.hp - dmg);
-    this.breakCombo();
-    this.speedStacks = 0;
-    this.events.push({ type: 'heroHurt', damage: dmg, source, enemyId });
+    if (!keepCombo) {
+      this.breakCombo();
+      this.speedStacks = 0;
+    }
+    this.events.push({ type: 'heroHurt', damage: dmg, source, enemyId, perk });
     const max = heroMaxHp(this.tuning, H);
     if (H.hp > 0 && !this.secondWindUsed && this.has('secondWind') && H.hp < max * this.tuning.effects.secondWindAt) {
       this.secondWindUsed = true;
@@ -1346,12 +1588,16 @@ export class Combat {
     const target = this.currentTarget();
     const dmg = Math.round(heroStats(this.tuning, this.hero).companion);
     if (!target || dmg <= 0) return;
-    this.events.push({ type: 'pet', enemyId: target.id, damage: dmg });
-    this.damageEnemy(target, dmg, false, 'pet');
+    this.pecks++;
+    const x: PeckCtx = { target, damage: dmg, crit: false, count: this.pecks };
+    for (const h of this.hooks) h.peck?.(this, x);
+    this.events.push({ type: 'pet', enemyId: target.id, damage: x.damage, crit: x.crit });
+    this.damageEnemy(target, x.damage, x.crit, 'pet');
+    for (const h of this.hooks) h.afterPeck?.(this, x);
   }
 
   /** Damage after shells (attack hits) and summon protection. */
-  damageTaken(e: Enemy, dmg: number, source: 'hit' | 'bomb' | 'finisher' | 'pet'): number {
+  damageTaken(e: Enemy, dmg: number, source: DamageSource): number {
     let mult = 1;
     if (source === 'hit' && e.shell < 1) mult *= e.shell;
     if (e.protect < 1 && this.summonsAlive(e.id)) mult *= e.protect;
@@ -1367,11 +1613,12 @@ export class Combat {
     return floor;
   }
 
-  private damageEnemy(e: Enemy, dmg: number, crit: boolean, source: 'hit' | 'bomb' | 'finisher' | 'pet'): void {
+  private damageEnemy(e: Enemy, dmg: number, crit: boolean, source: DamageSource): void {
     if (!e.alive) return;
     dmg = this.damageTaken(e, dmg, source);
     const floor = Math.min(e.hp, this.hpFloor(e));
     const dealt = Math.min(dmg, e.hp - floor);
+    const overkill = Math.max(0, dmg - dealt);
     e.hp -= dealt;
     this.events.push({ type: 'enemyHurt', enemyId: e.id, damage: dmg, crit, source });
     if (e.hp > 0) return;
@@ -1402,6 +1649,7 @@ export class Combat {
     this.killQueue.push(e.id);
     // linked summons run off when their summoner falls
     for (const x of this.enemies) if (x.alive && x.summoner === e.id) this.retire(x, 'fled');
+    for (const h of this.hooks) h.kill?.(this, e, overkill, source);
     this.checkWon();
   }
 

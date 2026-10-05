@@ -5,6 +5,8 @@
 
 import { ENEMIES } from '../data/enemies';
 import { GREENMARCH } from '../data/greenmarch';
+import { RELICS } from '../data/relics';
+import { SKILL_NODES } from '../data/skills';
 import type { ActDef } from '../data/types';
 
 export type { BlockCode, EnemyDef, ActDef } from '../data/types';
@@ -275,6 +277,46 @@ export const DEFAULT_TUNING = {
     critDmg: 0.77,
     comboPower: 0.82,
     pet: 6.8,
+    relicPicks: 2, // ...and picks this many relics (1 of 3 each) per act behind him before the map
+  },
+  relics: {
+    // The 1-of-3 pick after a fight (and the shop) offers mostly relics, plus at most one stat card (core/relics.ts).
+    statCard: 0.55, // chance one of the three cards is a stat card (never more than one)
+    commonW: 1, // a relic's offer weight by rarity...
+    rareW: 0.45,
+    epicW: 0.14,
+    synergy: 1.2, // ...times (1 + synergy x the number of its tags you already own), so builds form
+    price: 1.25, // shops: a relic costs the boost card price of its rarity x this
+    // each relic's one number (src/data/relics.ts has the text; '{n}' shows it)
+    n: Object.fromEntries(RELICS.filter((r) => r.n !== undefined).map((r) => [r.id, r.n as number])) as Record<string, number>,
+  },
+  sable: {
+    // Sable (Twin family): two cursors, one per half of the bar, each at the normal pass time (core/combat.ts)
+    atkMult: 0.65, // hits deal this share of Rowan's
+    maxHp: 100,
+    widthMult: 0.6, // block widths on Sable's bar (each half is a small bar of its own)
+    redWidthMult: 0.8,
+    ambidextrous: 0.25, // Ambidextrous: a hit with the other hand than the last hit fills the meter this much more
+    shadowSec: 3, // Shadow Step (green hits): for this long a hit with one cursor also hits the block under the other
+    fangMult: 1.3, // Twin Fang (finisher): one target, x this per the usual finisher damage...
+    fangKeep: 1, // ...and a kill keeps this many stacks
+  },
+  levels: {
+    // Heroes level up from kills and act clears (core/heroes.ts): small base-stat gains, a skill point every 2 levels.
+    max: 30,
+    xpBase: 30, // XP from level L to L+1: xpBase x L ^ xpExp
+    xpExp: 1.5,
+    hpPer: 2, // max HP per level above 1
+    atkPer: 0.015, // attack +1.5% per level above 1
+    pointEvery: 2, // a skill point every this many levels (level 3, 5, 7...)
+    xpKill: 2, // a kill gives this x (1 + act) (elites xpElite, mini-bosses and the boss xpBoss instead)
+    xpElite: 10,
+    xpBoss: 40,
+    xpAct: 40, // clearing an act: this x (act + 1), doubled the first time
+  },
+  skills: {
+    // each skill node's number (src/data/skills.ts has the text; '{n}' shows it)
+    n: Object.fromEntries(SKILL_NODES.filter((k) => k.n !== undefined).map((k) => [k.id, k.n as number])) as Record<string, number>,
   },
   effects: {
     // Set bonuses and the unique effects of Legendary and Mythic gear (src/data/gear.ts has the text)
@@ -696,6 +738,56 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       s('kit.pet', 'Companion +', 0, 40, 0.1),
     ],
   });
+  groups.push(
+    {
+      title: 'Relic offers',
+      sliders: [
+        s('relics.statCard', 'Stat card in a pick', 0, 1, 0.05),
+        s('relics.commonW', 'Weight: common relic', 0, 3, 0.05),
+        s('relics.rareW', 'Weight: rare relic', 0, 3, 0.05),
+        s('relics.epicW', 'Weight: epic relic', 0, 3, 0.01),
+        s('relics.synergy', 'Synergy lean', 0, 5, 0.1),
+        s('relics.price', 'Shop: relic price x', 0.2, 4, 0.05),
+        s('kit.relicPicks', 'Replay: relic picks per act', 0, 6, 1),
+      ],
+    },
+    {
+      title: 'Relic numbers',
+      sliders: Object.keys(t.relics.n).map((id) => s(`relics.n.${id}`, id, 0, Math.max(10, t.relics.n[id] * 4), t.relics.n[id] % 1 ? 0.05 : 1)),
+    },
+    {
+      title: 'Sable (Twin)',
+      sliders: [
+        s('sable.atkMult', 'Hit damage x Rowan', 0.2, 2, 0.05),
+        s('sable.maxHp', 'Max HP', 10, 400, 5),
+        s('sable.widthMult', 'Block width x', 0.3, 1.5, 0.05),
+        s('sable.redWidthMult', 'Red width x', 0.3, 1.5, 0.05),
+        s('sable.ambidextrous', 'Ambidextrous meter +', 0, 1, 0.05),
+        s('sable.shadowSec', 'Shadow Step (s)', 0, 10, 0.5),
+        s('sable.fangMult', 'Twin Fang x', 0.2, 3, 0.05),
+        s('sable.fangKeep', 'Twin Fang: stacks kept on a kill', 0, 3, 1),
+      ],
+    },
+    {
+      title: 'Hero levels',
+      sliders: [
+        s('levels.max', 'Max level', 1, 60, 1),
+        s('levels.xpBase', 'XP to level 2', 1, 200, 1),
+        s('levels.xpExp', 'XP curve exponent', 0.5, 3, 0.05),
+        s('levels.hpPer', 'Max HP per level', 0, 20, 0.5),
+        s('levels.atkPer', 'Attack % per level', 0, 0.1, 0.005),
+        s('levels.pointEvery', 'Skill point every N levels', 1, 5, 1),
+        s('levels.xpKill', 'XP per kill (x act)', 0, 20, 0.5),
+        s('levels.xpElite', 'XP per elite (x act)', 0, 60, 1),
+        s('levels.xpBoss', 'XP per boss (x act)', 0, 200, 1),
+        s('levels.xpAct', 'XP per act clear (x act)', 0, 300, 5),
+      ],
+    },
+    {
+      title: 'Skill numbers',
+      sliders: Object.keys(t.skills.n).map((id) => s(`skills.n.${id}`, id, 0, Math.max(10, t.skills.n[id] * 4), t.skills.n[id] % 1 ? 0.05 : 1)),
+    },
+  );
   groups.push({
     title: 'Gear effects and sets',
     sliders: [

@@ -1,11 +1,14 @@
 // The player's profile, kept across runs (pure; storage.ts saves it): how far Greenmarch has been cleared, the
 // Great Pendulum's weights home, and the gear chase: the bag, what Rowan wears, coins and scrap (both carry over
-// between runs), each signature drop's bad-luck counter, and the accuracy log.
+// between runs), each signature drop's bad-luck counter, and the accuracy log. M4a adds the heroes (who is picked,
+// each one's XP and skills; Sable is unlocked by a scene after Act 1) and the relics unlocked so far.
 //
-// v1 was "progress" (acts cleared and weights only); readProfile migrates it.
+// v1 was "progress" (acts cleared and weights only), v2 the gear; readProfile migrates both.
 
 import { SLOT_KEYS, slotOf, type GearRarity, type SlotKey, type StatId } from '../data/gear';
+import { RELICS, isRelicId, relicById, type RelicId } from '../data/relics';
 import { newAccuracyLog, readAccuracyLog, type AccuracyLog } from './accuracy';
+import { HERO_IDS, actXp, isHeroId, levelFromXp, newHeroProgress, validSkills, type HeroBuild, type HeroId, type HeroProgress } from './heroes';
 import {
   itemPower,
   itemStats,
@@ -25,11 +28,11 @@ import {
 import type { Rng } from './rng';
 import type { Tuning } from './tuning';
 
-export const PROFILE_VERSION = 2;
+export const PROFILE_VERSION = 3;
 export const WEIGHTS_TOTAL = 12;
 
 export interface Profile {
-  v: 2;
+  v: 3;
   actsCleared: number; // Greenmarch's acts cleared at least once (0-3)
   weights: number; // pendulum weights recovered (a region cleared brings one home)
   coins: number; // the purse: kept between runs, spent at shops and the forge
@@ -41,6 +44,12 @@ export interface Profile {
   blp: Record<string, number>; // per signature drop: boss kills since it last dropped
   acc: AccuracyLog;
   smithMet: boolean; // the forge's intro scene has played
+  hero: HeroId; // the hero picked at the camp (they fight, and earn the XP)
+  heroes: Record<HeroId, HeroProgress>; // each hero's XP and skills (gear is shared)
+  relics: RelicId[]; // relics unlocked beyond the starting ones
+  relicsNew: RelicId[]; // unlocked, not looked at in the relic log yet
+  sableMet: boolean; // Sable's scene played (after Act 1): Sable is unlocked
+  twinTaught: boolean; // Sable's first fight showed the two tap zones
 }
 
 /** @deprecated the old name (progress across runs); a profile is a superset of it. */
@@ -48,21 +57,46 @@ export type Progress = Profile;
 
 const noSlots = (): Record<SlotKey, number> => ({ weapon: 0, helm: 0, armor: 0, boots: 0, trinket1: 0, trinket2: 0 });
 
+export const newHeroes = (): Record<HeroId, HeroProgress> => ({ rowan: newHeroProgress(true), sable: newHeroProgress(false) });
+
 export function newProfile(): Profile {
-  return { v: 2, actsCleared: 0, weights: 0, coins: 0, scrap: 0, items: [], equipped: noSlots(), nextUid: 1, found: 0, blp: {}, acc: newAccuracyLog(), smithMet: false };
+  return {
+    v: 3,
+    actsCleared: 0,
+    weights: 0,
+    coins: 0,
+    scrap: 0,
+    items: [],
+    equipped: noSlots(),
+    nextUid: 1,
+    found: 0,
+    blp: {},
+    acc: newAccuracyLog(),
+    smithMet: false,
+    hero: 'rowan',
+    heroes: newHeroes(),
+    relics: [],
+    relicsNew: [],
+    sableMet: false,
+    twinTaught: false,
+  };
 }
 
 const int = (v: unknown, lo: number, hi: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, Math.round(v))) : lo);
 
-/** A saved profile in current form: v2 is checked, v1 (progress) is migrated, anything else starts over. */
-export function readProfile(data: unknown): Profile {
+/**
+ * A saved profile in current form: v3 is checked; v2 (gear, no heroes) and v1 (progress only) are migrated:
+ * Rowan gets the XP of the acts already cleared and their relics are unlocked. Anything else starts over.
+ */
+export function readProfile(data: unknown, t?: Tuning): Profile {
   const d = data as Record<string, unknown> | null;
   const p = newProfile();
   if (!d || typeof d !== 'object') return p;
-  if (d.v !== 1 && d.v !== 2) return p;
+  if (d.v !== 1 && d.v !== 2 && d.v !== 3) return p;
   p.actsCleared = int(d.actsCleared, 0, 3);
   p.weights = int(d.weights, 0, WEIGHTS_TOTAL);
-  if (d.v === 1) return p; // v1 -> v2: progress kept, the gear starts empty
+  if (d.v !== 3) migrateHeroes(p, t);
+  if (d.v === 1) return p; // v1 -> v3: progress kept, the gear starts empty
   p.coins = int(d.coins, 0, 1e9);
   p.scrap = int(d.scrap, 0, 1e9);
   const seen = new Set<number>();
@@ -80,7 +114,66 @@ export function readProfile(data: unknown): Profile {
   for (const k of Object.keys(blp)) p.blp[k] = int(blp[k], 0, 1e6);
   p.acc = readAccuracyLog(d.acc);
   p.smithMet = d.smithMet === true;
+  if (d.v !== 3) return p; // v2 -> v3: the heroes and relics were filled in by migrateHeroes
+  const hs = (d.heroes ?? {}) as Record<string, unknown>;
+  for (const id of HERO_IDS) {
+    const h = (hs[id] ?? {}) as Record<string, unknown>;
+    p.heroes[id] = { unlocked: id === 'rowan' || h.unlocked === true, xp: int(h.xp, 0, 1e9), skills: validSkills(id, h.skills) };
+  }
+  p.hero = isHeroId(d.hero) && p.heroes[d.hero].unlocked ? d.hero : 'rowan';
+  const ids = (v: unknown): RelicId[] => (Array.isArray(v) ? [...new Set(v.filter((x): x is RelicId => isRelicId(x) && !!relicById(x)?.unlock))] : []);
+  p.relics = ids(d.relics);
+  p.relicsNew = ids(d.relicsNew).filter((id) => p.relics.includes(id));
+  p.sableMet = d.sableMet === true;
+  p.twinTaught = d.twinTaught === true;
   return p;
+}
+
+/** v1/v2 -> v3: Rowan earns the XP of the acts already cleared (first clears), and their act relics unlock. */
+function migrateHeroes(p: Profile, t?: Tuning): void {
+  if (t) for (let a = 0; a < p.actsCleared; a++) p.heroes.rowan.xp += actXp(t, a, true);
+  for (const r of RELICS) if (r.unlock?.kind === 'act' && r.unlock.act < p.actsCleared) p.relics.push(r.id);
+}
+
+// ---------------------------------------------------------------- heroes
+
+/** The picked hero's progress. */
+export const heroProgress = (p: Profile, id: HeroId = p.hero): HeroProgress => p.heroes[id] ?? p.heroes.rowan;
+
+/** Who fights, at what level, with which skills: what a fight reads from the profile (like the gear's loadout). */
+export function profileBuild(p: Profile, t: Tuning, id: HeroId = p.hero): HeroBuild {
+  const h = heroProgress(p, id);
+  return { id: p.heroes[id] ? id : 'rowan', level: levelFromXp(t, h.xp), skills: h.skills.slice() };
+}
+
+/** Pick the hero who fights next (an unlocked one). */
+export function selectHero(p: Profile, id: HeroId): boolean {
+  if (!p.heroes[id]?.unlocked) return false;
+  p.hero = id;
+  return true;
+}
+
+/** Sable joins (their scene played). */
+export function meetSable(p: Profile): boolean {
+  if (p.sableMet) return false;
+  p.sableMet = true;
+  p.heroes.sable.unlocked = true;
+  return true;
+}
+
+// ---------------------------------------------------------------- relics
+
+/** Whether a relic can be offered: one from the start, or one unlocked since. */
+export const relicUnlocked = (p: Profile, id: RelicId): boolean => !relicById(id)?.unlock || p.relics.includes(id);
+
+export const unlockedRelics = (p: Profile): RelicId[] => RELICS.filter((r) => relicUnlocked(p, r.id)).map((r) => r.id);
+
+/** Unlock a relic ("New relic unlocked!"). Returns true if it's new. */
+export function unlockRelic(p: Profile, id: RelicId): boolean {
+  if (!relicById(id)?.unlock || p.relics.includes(id)) return false;
+  p.relics.push(id);
+  p.relicsNew.push(id);
+  return true;
 }
 
 /** @deprecated use newProfile / readProfile. */
