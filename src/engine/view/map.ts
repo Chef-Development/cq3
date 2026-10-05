@@ -824,7 +824,10 @@ export class MapView {
       }
     } else pipLag = [x, y];
     ellipse(g, x, y, 4, 1.4, 0x000000, 0.35);
-    this.pool.at(key, Math.round(x) - ROWAN_FEET[0], Math.round(y) - ROWAN_FEET[1], D_HERO);
+    // the hero who fights walks the map (Sable once her map frames are drawn)
+    const sable = key.replace('mrow_', 'msab_');
+    const walker = run.hero.build?.id === 'sable' && this.s.textures.exists(sable) ? sable : key;
+    this.pool.at(walker, Math.round(x) - ROWAN_FEET[0], Math.round(y) - ROWAN_FEET[1], D_HERO);
     // Pip flaps along beside him, a little behind
     const flap = Math.floor(now / (walking ? 90 : 160)) % 2;
     const px = pipLag[0] - 9;

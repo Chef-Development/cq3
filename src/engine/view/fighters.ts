@@ -3,11 +3,15 @@
 // light: a soft contact shadow cast away from it, and a rim of its colour along the edges that face it.
 // Rowan wears his gear where you can see it: his weapon's rarity colours his slashes and the glint on his blade, a
 // Legendary or Mythic piece gives him an aura, the Tusk Crown's crit buff a golden glow; and every gear effect that
-// kicks in mid-fight shows briefly (its name, and a visual that fits it).
+// kicks in mid-fight shows briefly (its name, and a visual that fits it). So does every perk (a relic, a skill node,
+// a kit part): its name (with the relic's icon), and its damage, heal or stacks; Shield Wall's charged bubble sits
+// round the hero. Sable fights with her own frames (sable_*: a strike per hand, both daggers for Shadow Step's echo,
+// a leap and a fang strike for Twin Fang, which hits its one target), falling back to Rowan's until they're drawn.
 import Phaser from 'phaser';
 import { rimMask, STAGE_LIGHT } from '../art-stage';
 import type { Combat } from '../../core/combat';
 import { EFFECTS, RARITY_INFO, type EffectId } from '../../data/gear';
+import { relicById } from '../../data/relics';
 import { rarityIndex } from '../../core/gear';
 import { equippedIn, equippedItems } from '../../core/profile';
 import { FINISHER_BLOW_AT, finisherStrikeAt, finisherStrikes, type ImpactFeel } from '../../core/impact';
@@ -16,6 +20,7 @@ import { HERO_FEET_X, HERO_W, ICONS } from '../art';
 import { textWidth } from '../font';
 import { GAME_W } from '../layout';
 import { hpBar, icon } from './pixels';
+import { perkColor, perkName, perkSource, TAG_FACE } from './relic-ui';
 import { FOE_ICONS } from './icons';
 import {
   clamp01,
@@ -46,6 +51,8 @@ import {
 
 type G = Phaser.GameObjects.Graphics;
 type Face = readonly [number, number, number, number];
+/** A colour lifted halfway to white (damage numbers in a perk's colour). */
+const mixWhite = (c: number) => mix(c, WHITE, 0.4);
 /** A new wave's enemies hop (or drop) in over this long. */
 const WAVE_IN_MS = 460;
 /** Where the blade's tip is in each of Rowan's poses, from his sprite's anchor (feet centre, bottom). */
@@ -60,6 +67,10 @@ const SWORD_TIP: Record<string, [number, number]> = {
 /** A gear effect's name shows over Rowan at most this often (ms); its heals add up in one number this long. */
 const GEAR_NAME_MS = 3500;
 const GEAR_SUM_MS = 900;
+/** Rowan's frame for a pose another hero has and he doesn't (Sable's frames fall back to his until they're drawn). */
+const HERO_ALT: Record<string, string> = { slashX: 'slashB', fang: 'slashA', down: 'hurt' };
+/** Perks that heal (their amount is HP; any relic tagged Sustain does too). */
+const HEAL_PERKS = new Set(['photosynthesis', 'vampiricFang']);
 
 export class Fighters {
   h: HeroAnim;
@@ -99,6 +110,11 @@ export class Fighters {
   private gearSums = new Map<string, { n: number; at: number }>();
   private nameAt = -1e9; // the last name shown, and how many showed together (they stack)
   private nameStack = 0;
+  /** The finisher show's kind: Rowan's whirlwind (every foe), or Sable's Twin Fang (a leap and a strike at one). */
+  private superKind: 'whirl' | 'fang' = 'whirl';
+  /** Shield Wall's bubble as last drawn (charged or not), and when it changed. */
+  private bubble = false;
+  private bubbleAt = -1e9;
 
   constructor(private readonly s: FightScene) {
     this.h = this.freshHero();
@@ -121,7 +137,21 @@ export class Fighters {
       flashUntil: 0,
       flashColor: WHITE,
       lungeAt: -1e9,
+      down: false,
     };
+  }
+
+  /** Who is fighting. */
+  private heroId(): string {
+    return this.s.app.run.hero.build?.id ?? 'rowan';
+  }
+
+  /** The hero's frame for a pose: Sable's own (sable_*) when she fights and it's drawn, else Rowan's (hero_*). */
+  heroTex(pose: string): string {
+    const t = this.s.textures;
+    if (this.heroId() === 'sable' && t.exists(`sable_${pose}`)) return `sable_${pose}`;
+    if (t.exists(`hero_${pose}`)) return `hero_${pose}`;
+    return `hero_${HERO_ALT[pose] ?? 'idle0'}`;
   }
 
   /** Create the fighter layers for a new layout (the containers were just emptied). */
@@ -196,6 +226,7 @@ export class Fighters {
     this.h = this.freshHero();
     this.superFinalAt = -1e9;
     this.superAt = -1e9;
+    this.bubble = false;
   }
 
   /** Where an enemy stands: centered when it fights alone, in a row by slot in a group (summons join the row). */
@@ -278,14 +309,19 @@ export class Fighters {
     return Math.round(v.homeX - v.img.displayWidth / 2 - 12);
   }
 
-  /** Rowan dashes in and slashes (`ward`: he cracks a shell block, so no hit sound and no damage number). */
-  heroAttack(enemyId: number, damage: number, crit: boolean, perfect: boolean, combo: number, ward = false): void {
+  /**
+   * The hero dashes in and slashes (`ward`: a shell block cracks, so no hit sound and no damage number). Rowan
+   * alternates his two slashes; Sable strikes with the hand that tapped (A left, B right) and with both daggers for
+   * Shadow Step's echo.
+   */
+  heroAttack(enemyId: number, damage: number, crit: boolean, perfect: boolean, combo: number, ward = false, hand = 0, echo = false): void {
     const s = this.s;
     const v = this.enemies.get(enemyId);
     const h = this.h;
     h.lastAction = s.anim;
-    h.alt = !h.alt;
-    const slash = h.alt ? 'slashA' : 'slashB';
+    const twin = this.heroId() === 'sable';
+    h.alt = twin ? hand > 0 : !h.alt;
+    const slash = twin ? (echo ? 'slashX' : hand > 0 ? 'slashB' : 'slashA') : h.alt ? 'slashA' : 'slashB';
     // the blow's sound and weight land together, when the sword connects
     const land = () => {
       if (!ward) s.app.audio.hit(combo, crit, perfect);
@@ -569,13 +605,18 @@ export class Fighters {
    * flurry of strikes (more stacks = more strikes, a longer show and a hotter backdrop), then lands one huge
    * blow whose number counts up. Kills and the HP bars wait for that last blow.
    */
-  heroFinisher(damage: number, stacks: number): void {
+  heroFinisher(damage: number, stacks: number, targets: number[] = []): void {
     const s = this.s;
     const fx = s.fx;
     const h = this.h;
     const n = Math.max(1, Math.min(5, stacks));
-    const views = [...this.enemies.values()].filter((v) => !v.dieAt);
+    // who it hits: Rowan's whirlwind every foe; Sable's Twin Fang its one target
+    const all = [...this.enemies.values()].filter((v) => !v.dieAt);
+    const hit = targets.length ? all.filter((v) => targets.includes(v.id)) : all;
+    const views = hit.length ? hit : all;
     const front = views.slice().sort((a, b) => a.homeX - b.homeX)[0];
+    this.superKind = this.heroId() === 'sable' ? 'fang' : 'whirl';
+    const fang = this.superKind === 'fang';
     this.superMs = superMsFor(n);
     this.superStacks = n;
     const ms = this.superMs;
@@ -588,7 +629,8 @@ export class Fighters {
     const finalK = FINISHER_BLOW_AT;
     this.superFinalAt = s.anim + ms * finalK;
     const [col, hi] = stackCol(n);
-    fx.addFloater(GAME_W / 2, 42, FINISHER_NAME[n] ?? 'Finisher!', n === 1 ? 0xffe680 : hi, n >= 2 ? 3 : 2, true, 0, -6, 0, ms * 0.95, true);
+    const title = fang ? (n > 1 ? `Twin Fang x${n}!` : 'Twin Fang!') : (FINISHER_NAME[n] ?? 'Finisher!');
+    fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, n >= 2 ? 3 : 2, true, 0, -6, 0, ms * 0.95, true);
     // the flurry: 1 + 2n quick strikes between 30% and 70% of the show
     const strikes = finisherStrikes(n);
     for (let st = 0; st < strikes; st++) {
@@ -612,6 +654,13 @@ export class Fighters {
     s.later(ms * finalK, () => {
       s.app.audio.finisherBoom(n);
       const feel = fx.impact(fx.weight('finisher', n));
+      if (fang)
+        for (const v of views) {
+          // the fang: both daggers cross on the target
+          const cy = v.y - v.img.displayHeight / 2;
+          fx.slashes.push({ x: v.x, y: cy, at: s.anim, big: true, dir: 1, color: hi });
+          fx.slashes.push({ x: v.x, y: cy - 2, at: s.anim, big: true, dir: -1, color: col });
+        }
       for (const v of views) {
         this.enemyHurtFx(v.id, damage, false, false, feel, true, 3);
         // the damage number (the floater enemyHurtFx just made) counts up over the enemy, hangs longer, rises slowly
@@ -633,6 +682,176 @@ export class Fighters {
       fx.shock(h.toX + 8, s.ground, 50 + n * 12, hi);
       fx.kick(6, 160);
     });
+  }
+
+  /** The hero is knocked out (the defeat): the KO pose (Sable's; Rowan just stays hurt) until the next fight. */
+  heroDown(): void {
+    this.h.down = true;
+  }
+
+  // ------------------------------------------------------------------ perks (relics, skill nodes, kit parts)
+
+  /** A perk's name over the hero (a relic's icon in front), at most every few seconds each; names stack. */
+  private perkLabel(id: string, now: number, x = this.h.x - 4, y = this.s.ground - 48): boolean {
+    if (now - (this.gearNamed.get(`perk-${id}`) ?? -1e9) < GEAR_NAME_MS) return false;
+    this.gearNamed.set(`perk-${id}`, now);
+    this.nameStack = now - this.nameAt < 500 ? this.nameStack + 1 : 0;
+    this.nameAt = now;
+    const s = this.s;
+    const name = perkName(id);
+    const relic = relicById(id);
+    const w = textWidth(name, 1, true) + (relic ? 13 : 0);
+    const cx = Math.max(s.L + w / 2 + 2, Math.min(s.R - w / 2 - 2, x));
+    const yy = Math.max(26, y - this.nameStack * 11);
+    if (relic) s.fx.relicFloat(cx - 6, yy, name, perkColor(id), relic.id);
+    else s.fx.addFloater(cx, yy, name, perkColor(id), 1, true, 0, -8, 0, 1100, false);
+    return true;
+  }
+
+  /**
+   * A perk kicked in (a relic, a skill node, a kit part): its relic's icon pulses on the belt, its name shows (over
+   * the foe it was about, else over the hero; at most every few seconds each, so a perk that fires on every Perfect
+   * doesn't flood the screen), and what it did: a blow (`strike`: its enemyHurt follows; a bolt flies to the foe and
+   * hits), a heal (a green heart and the HP, merged like the gear's), stacks banked (`stacks`: the meter's events
+   * came first), a ring where it happened on the bar. Coins (`coins`) already flew from the 'coins' event. Returns
+   * true when it showed a blow (so its enemyHurt isn't shown twice).
+   */
+  perkFx(id: string, amount: number, enemyId: number, o: { strike?: boolean; stacks?: boolean; coins?: boolean; pos?: number } = {}): boolean {
+    const s = this.s;
+    const F = s.fx;
+    const h = this.h;
+    const now = performance.now();
+    s.hud.perkKicked(id);
+    const relic = relicById(id);
+    const col = relic ? TAG_FACE[relic.tags[0]][1] : perkSource(id) === 'skill' ? 0x9ad8ff : 0xc8a0ff;
+    const v = enemyId ? this.enemies.get(enemyId) : undefined;
+    if (o.coins) {
+      this.perkLabel(id, now);
+      return false;
+    }
+    if (o.strike && v && amount > 0 && !v.dieAt) {
+      // a blow: a bolt in the perk's colour from the hero to the foe, then the hit
+      const sx = h.x + 10;
+      const sy = s.ground - 24;
+      const tx = v.x - v.img.displayWidth * 0.25;
+      const ty = v.y - v.img.displayHeight / 2;
+      const ms = 120;
+      F.bolt(sx, sy, tx, ty, ms, col);
+      F.burst(sx, sy, col, 4, true, 0.8, true);
+      s.later(ms, () => {
+        v.flashUntil = s.anim + 60;
+        v.kickAt = s.anim;
+        v.kickDist = 5;
+        if (!v.dieAt) this.setEnemyPose(v, 'hurt', 140);
+        F.sparks.push({ x: tx, y: ty, at: s.anim, size: 11, color: col });
+        F.burst(tx, ty, col, 8, true, 1.2, true);
+        F.glow(tx, ty, 12, col, 160);
+        F.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, `${amount}`, mixWhite(col), 2);
+        s.app.audio.hit(0, false);
+      });
+      if (this.perkLabel(id, now, v.homeX, v.y - v.img.displayHeight - 22)) s.app.audio.gearProc(0.5);
+      return true;
+    }
+    const heal = amount > 0 && (HEAL_PERKS.has(id) || !!relic?.tags.includes('sustain'));
+    if (heal) {
+      const sum = this.gearSum(`perk-${id}`, amount, now);
+      F.replaceFloater(`perk-${id}`, () => F.addFloater(h.x - 9, s.ground - 36, `+${sum}`, 0x9af06a, 1, true, 0, -20, 0, 900, true));
+      F.heartPop(h.x - 20, s.ground - 38, 0x5ad848, 0xb4f070);
+      F.burst(h.x + 2, s.ground - 18, 0x9af06a, 5, true, 0.6);
+      s.hud.statPulse[4] = now;
+    } else if (o.stacks && amount > 0) {
+      // stacks banked: a burst of the stack colour off the meter
+      const m = s.meter;
+      F.chips(m.x + m.w, m.y + m.h / 2, 10, [WHITE, 0x9ad8ff, col], 8, -1);
+    } else if (o.pos !== undefined) {
+      // something on the bar: a ring where it happened
+      const x = s.barView.x(o.pos);
+      F.ring(x, s.bar.y + s.bar.h / 2, 14, col, false);
+      F.chips(x, s.bar.y + s.bar.h / 2, 8, [WHITE, col], 6, -1);
+    }
+    // Shield Wall: amount 1 = the bubble charged (it grows round the hero), 0 = it took a hit for him
+    if (id === 'shieldWall' && amount <= 0) this.bubblePop();
+    const shown = v && !v.dieAt ? this.perkLabel(id, now, v.homeX, v.y - v.img.displayHeight - 22) : this.perkLabel(id, now);
+    if (shown) s.app.audio.gearProc(0.35);
+    return false;
+  }
+
+  /**
+   * Coins a perk found mid-fight (Lucky Penny, Treasure Nose, Gold Fever): they pop off the foe into the coin chip
+   * (the perk's own event, right after, names it).
+   */
+  perkCoins(_id: string, amount: number): void {
+    const s = this.s;
+    const c = s.app.run.combat;
+    const t = c?.currentTarget();
+    const v = t ? this.enemies.get(t.id) : undefined;
+    const x = v ? v.x : this.h.x + 20;
+    const y = v ? v.y - v.img.displayHeight / 2 : s.ground - 24;
+    s.hud.dropCoins(x, y, amount, Math.min(4, amount));
+    s.fx.iconFloat(x + 10, y - 16, `+${amount}`, 0xffe066, 'coin');
+  }
+
+  /** A perk's cost in HP (Glass Edge, Blood Price, Purple Pact...): its name, and the HP it took in violet. */
+  perkHurt(id: string, damage: number): void {
+    const s = this.s;
+    const h = this.h;
+    h.flashUntil = s.anim + 120;
+    h.flashColor = 0xc070ff;
+    if (damage > 0) s.fx.floatNum(h.x, s.ground - 40, `-${damage}`, 0xd890ff, 1);
+    s.fx.burst(h.x + 4, s.ground - 16, 0xc070ff, 6, true, 0.8);
+    this.perkLabel(id, performance.now());
+  }
+
+  /** Shield Wall's bubble breaks (it took a hit for the hero): shards fly. */
+  private bubblePop(): void {
+    const s = this.s;
+    const h = this.h;
+    const cy = s.ground - 18;
+    s.fx.ring(h.x + 1, cy, 22, 0x9af0ff, true);
+    s.fx.chips(h.x + 1, cy, 22, [WHITE, 0x9af0ff, 0x4ac8f0], 16, 0);
+    s.fx.burst(h.x + 1, cy, 0xc8f8ff, 10, true, 1.2, true);
+    s.fx.addFloater(h.x + 2, s.ground - 52, 'Blocked!', 0x9af0ff, 1, true, 0, -16, 0, 700, true);
+    this.bubble = false;
+    this.bubbleAt = s.anim;
+  }
+
+  /** Shield Wall's charged bubble round the hero: a shimmering shell with a lit rim (it pops in when it charges). */
+  private drawBubble(g: G, c: Combat | null): void {
+    const s = this.s;
+    const on = !!c && c.perk.shieldWall === 1 && s.app.run.phase === 'fight';
+    const a = s.anim;
+    if (on !== this.bubble) {
+      this.bubble = on;
+      this.bubbleAt = a;
+      if (on) {
+        s.fx.ring(this.h.x + 1, s.ground - 18, 20, 0x9af0ff, true);
+        s.fx.sparkle(this.h.x + 1, s.ground - 34);
+      }
+    }
+    if (!on || !this.hero.visible) return;
+    const k = clamp01((a - this.bubbleAt) / 220);
+    const grow = 0.6 + 0.4 * (1 - (1 - k) * (1 - k));
+    const cx = Math.round(this.hero.x + 1);
+    const cy = Math.round(s.ground - 19);
+    const rx = Math.round(17 * grow);
+    const ry = Math.round(22 * grow);
+    g.fillStyle(0x4ac8f0, 0.12 + 0.05 * pulse(a, 900));
+    g.fillEllipse(cx, cy, rx * 2, ry * 2);
+    // the shell's rim: a solid ring, lit on the top left, deeper on the bottom right
+    const rim = 0.6 + 0.25 * pulse(a, 700);
+    for (let i = 0; i < 160; i++) {
+      const t = (i / 160) * Math.PI * 2;
+      const lit = Math.cos(t - 3.9) > 0.3;
+      g.fillStyle(lit ? 0xd8fcff : 0x6ad8f0, rim);
+      g.fillRect(Math.round(cx + Math.cos(t) * rx), Math.round(cy + Math.sin(t) * ry), 1, 1);
+    }
+    // a glint running round the rim, and a highlight on the top left
+    const ang = a / 300;
+    g.fillStyle(WHITE, 0.9);
+    g.fillRect(Math.round(cx + Math.cos(ang) * rx), Math.round(cy + Math.sin(ang) * ry), 2, 1);
+    g.fillStyle(WHITE, 0.55);
+    g.fillRect(cx - rx + 4, cy - ry + 6, 2, 3);
+    g.fillRect(cx - rx + 6, cy - ry + 4, 3, 2);
   }
 
   /** An enemy dies: it flashes and swells, then bursts into its own pixels with a flash, smoke and coins. */
@@ -681,7 +900,7 @@ export class Fighters {
     });
   }
 
-  petAttack(enemyId: number, damage: number): void {
+  petAttack(enemyId: number, damage: number, crit = false): void {
     const s = this.s;
     const v = this.enemies.get(enemyId);
     if (!v) return;
@@ -691,8 +910,9 @@ export class Fighters {
       const cy = v.y - v.img.displayHeight / 2;
       v.flashUntil = s.anim + 50;
       v.knockUntil = s.anim + 60;
-      s.fx.floatNum(v.x + rand(-4, 4), v.y - v.img.displayHeight - 8, `${damage}`, 0x6aff5a, 1);
-      s.fx.burst(v.x - 6, cy, 0xb8e4ff, 8, true, 1, true);
+      s.fx.floatNum(v.x + rand(-4, 4), v.y - v.img.displayHeight - 8, `${damage}`, crit ? 0xffb020 : 0x6aff5a, crit ? 2 : 1);
+      s.fx.burst(v.x - 6, cy, crit ? 0xffe070 : 0xb8e4ff, crit ? 14 : 8, true, 1, true);
+      if (crit) s.fx.stars.push({ x: v.x - 4, y: cy, at: s.anim, r: 16, color: 0xfff07a });
       s.app.audio.pet();
       Object.assign(P, { state: 'back', t0: s.anim, fromX: P.x, fromY: P.y });
     });
@@ -807,8 +1027,10 @@ export class Fighters {
     } else if (h.state === 'super') {
       const k = clamp01((a - h.t0) / this.superMs);
       if (k < 0.3) h.x = h.fromX + (h.toX - h.fromX) * ease(k / 0.3);
-      else if (k < 0.75) h.x = h.toX + Math.sin(a / 25) * 3;
+      else if (k < 0.75) h.x = h.toX + (this.superKind === 'fang' ? 0 : Math.sin(a / 25) * 3);
       else h.x = h.toX + (s.heroHome - h.toX) * ease((k - 0.75) / 0.25);
+      // Twin Fang: a leap onto the target
+      if (this.superKind === 'fang' && k < 0.3) yOff = -Math.sin((k / 0.3) * Math.PI) * 22;
       if (k >= 1) {
         h.state = 'idle';
         h.x = s.heroHome;
@@ -824,7 +1046,19 @@ export class Fighters {
 
     let pose: string;
     let flip = false;
-    if (a < h.hurtUntil) pose = 'hurt';
+    const sk = h.state === 'super' ? (a - h.t0) / this.superMs : -1;
+    if (h.down) pose = 'down';
+    else if (a < h.hurtUntil) pose = 'hurt';
+    else if (this.superKind === 'fang' && sk >= 0 && sk < 1) {
+      // Twin Fang: the leap, a flurry of strikes with both hands, the fang strike, then back
+      if (sk < 0.3) pose = 'leap';
+      else if (sk < FINISHER_BLOW_AT - 0.04) pose = Math.floor(a / 60) % 2 ? 'slashA' : 'slashB';
+      else if (sk < 0.75) pose = 'fang';
+      else {
+        pose = 'dash';
+        flip = true;
+      }
+    }
     else if (h.state === 'leap') pose = a - h.t0 < LEAP_MS * 0.7 ? 'leap' : 'slashA';
     else if (a < h.poseUntil) pose = h.pose;
     else if (h.state === 'dash') pose = 'dash';
@@ -840,9 +1074,9 @@ export class Fighters {
       s.fx.dust(h.x - 4, s.ground, 3, -1, 0.8);
     }
     h.y = yOff;
-    const spinning = h.state === 'super' && a - h.t0 > this.superMs * 0.06 && a - h.t0 < this.superMs * 0.94;
+    const spinning = this.superKind === 'whirl' && h.state === 'super' && a - h.t0 > this.superMs * 0.06 && a - h.t0 < this.superMs * 0.94;
     this.hero.setVisible(!spinning && !this.showcase);
-    this.hero.setTexture(`hero_${pose}`);
+    this.hero.setTexture(this.heroTex(pose));
     this.hero.setFlipX(flip);
     this.hero.setOrigin((flip ? HERO_W - HERO_FEET_X : HERO_FEET_X) / HERO_W, 1);
     // a small forward lunge on every slash
@@ -853,7 +1087,7 @@ export class Fighters {
     const moving = (h.state === 'dash' || h.state === 'return' || h.state === 'leap' || (h.state === 'super' && !spinning)) && this.hero.visible;
     const last = this.ghostTrail[this.ghostTrail.length - 1];
     if (moving && (!last || a - last.at > 22)) {
-      this.ghostTrail.push({ x: this.hero.x, y: this.hero.y, tex: `hero_${pose}`, flip, at: a });
+      this.ghostTrail.push({ x: this.hero.x, y: this.hero.y, tex: this.heroTex(pose), flip, at: a });
       if (this.ghostTrail.length > 3) this.ghostTrail.shift();
     }
     this.ghosts.forEach((gh, i) => {
@@ -907,6 +1141,7 @@ export class Fighters {
       for (let i = 0; i < 2; i++) g.fillRect(Math.round(this.h.x + rand(-11, 11)), Math.round(s.ground - rand(3, 30)), 1, 2);
     }
     this.drawGear(g, now, c);
+    this.drawBubble(g, c);
     if (!c) return;
     const target = c.currentTarget();
     const a = s.anim;
@@ -1162,7 +1397,7 @@ export class Fighters {
     }
     // the blade's glint, in the weapon's rarity colour
     const wl = this.weaponLook();
-    const tip = SWORD_TIP[hero.texture.key.slice(5)];
+    const tip = hero.texture.key.startsWith('hero_') ? SWORD_TIP[hero.texture.key.slice(5)] : undefined;
     if (wl && tip && !hero.flipX) {
       const a = s.anim;
       const period = 2600 - wl.r * 260;
@@ -1230,9 +1465,9 @@ export class Fighters {
       g.fillStyle(i % 3 === 0 ? hiCol : WHITE, alpha * (i % 2 ? 0.85 : 0.5));
       g.fillRect(Math.round(x), y, len, i % 4 === 0 ? 2 : 1);
     }
-    // whirlwind where the hero is
+    // whirlwind where the hero is (Rowan's; Sable leaps instead)
     const h = this.h;
-    if (h.state !== 'super') return;
+    if (h.state !== 'super' || this.superKind !== 'whirl') return;
     const fx = s.gFx;
     const cx = h.x + 2;
     const [c1, c2] = stackCol(n);
