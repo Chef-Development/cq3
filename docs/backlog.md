@@ -1,5 +1,9 @@
 # Backlog: meta-game seen in the reference (deferred)
 
+**Done in M3b:** gear (6 slots, 6 rarities, 10 stats, sets, signature boss drops), the camp with the bag and the
+forge (upgrade, reroll, salvage), coins kept between runs, farming cleared acts. The **shrine** (the gacha) stands at
+the camp, locked ("coming soon"): it is the next meta feature.
+
 The playtester shared screenshots of the reference game's meta layer and chose to leave it for a later
 milestone. Build these with original art and names only.
 

@@ -2,10 +2,12 @@
 // (random node choices on each act's map), prints the table and writes docs/balance.md.
 import { writeFileSync } from 'node:fs';
 import { it } from 'vitest';
-import { balance, timingSpread, type ActRow } from '../../src/core/bot';
+import { balance, playFarm, timingSpread, TYPICAL_ACCURACY, type ActRow, type FarmResult } from '../../src/core/bot';
 import { cloneTuning } from '../../src/core/tuning';
 
 const RUNS = Number(process.env.RUNS ?? 1000);
+const FARM_RUNS = Number(process.env.FARM_RUNS ?? Math.round(RUNS / 3));
+const FARMS = 6;
 const ACCURACIES = [0.55, 0.7, 0.85, 0.95];
 
 const pct = (v: number) => (Number.isFinite(v) ? `${Math.round(v * 100)}%` : '-');
@@ -32,10 +34,28 @@ function losses(rows: ActRow[]): string {
   return [head, sep, ...body].join('\n');
 }
 
+/** Farming: the story once with found gear, then the Boar King's act replayed FARMS times, per accuracy. */
+function farming(t: ReturnType<typeof cloneTuning>, acc: number) {
+  const res: FarmResult[] = Array.from({ length: FARM_RUNS }, (_, r) => playFarm(t, { accuracy: acc, seed: (31337 + r * 7907 + Math.round(acc * 1000)) >>> 0 }, FARMS));
+  const forged: FarmResult[] = Array.from({ length: FARM_RUNS }, (_, r) => playFarm(t, { accuracy: acc, seed: (31337 + r * 7907 + Math.round(acc * 1000)) >>> 0 }, FARMS, true));
+  const bossOf = (f: FarmResult) => f.story.acts[2]?.attempts.flatMap((a) => a.fights).find((x) => x.type === 'boss');
+  const rate = (xs: Array<boolean | null | undefined>) => {
+    const ys = xs.filter((x): x is boolean => x !== null && x !== undefined);
+    return ys.length ? ys.filter((x) => x).length / ys.length : NaN;
+  };
+  const story = rate(res.map((f) => bossOf(f)?.won));
+  const cleared = res.filter((f) => f.story.acts[2]?.cleared).length / res.length;
+  const visits = Array.from({ length: FARMS }, (_, i) => rate(res.map((f) => f.visits[i].bossWon)));
+  const visitsForged = Array.from({ length: FARMS }, (_, i) => rate(forged.map((f) => f.visits[i].bossWon)));
+  const power = Array.from({ length: FARMS }, (_, i) => res.reduce((n, f) => n + f.visits[i].power, 0) / res.length);
+  return { acc, story, cleared, visits, visitsForged, power };
+}
+
 it('balance report', () => {
   const t = cloneTuning();
   const t0 = Date.now();
   const rows = balance(t, ACCURACIES, RUNS);
+  const farms = [0.55, TYPICAL_ACCURACY, 0.85].map((a) => farming(t, a));
   const at = (acc: number, act: number) => rows.find((r) => r.accuracy === acc && r.act === act)!;
   const [a1, a2, a3] = [0, 1, 2].map((a) => at(0.85, a));
   const [c1, c2, c3] = [0, 1, 2].map((a) => at(0.7, a));
@@ -63,12 +83,14 @@ accuracy, ${Math.round((Date.now() - t0) / 1000)} s to run.
 - It cashes in the finisher when waiting for another stack isn't worth the risk of a combo break.
 - On the map it picks the next node **at random**. It takes Full Heal when hurt (otherwise the rarest card), always
   rests, buys a potion when hurt and then the rarest cards it can afford, and picks event choices at random.
+- It wears the best gear it finds (by item power) as soon as it drops, and salvages Common and Uncommon items when
+  the bag fills up. Every run below starts with an empty bag: these are first playthroughs with found gear only.
 - A lost act is retried from its start (up to 6 tries), with the hero and coins as they entered it; a cleared act
   carries the hero (healed to full) into the next.
 - Fights are runs of foes, one wave after another (Act 1: 2 foes in the first row up to 4 before the boss; Act 2:
   3-5; Act 3: 3-6; an elite comes after an escort). A tap that overlaps an attack always blocks it first.
 
-## Targets (the playtester found Act 1 too hard: a gentle start, then a ramp; set for a typical 70% player)
+## Targets (a gentle start, then a ramp; set for a typical 70% player, with the gear found on the way)
 
 | Target | Result |
 |---|---|
@@ -77,6 +99,17 @@ accuracy, ${Math.round((Date.now() - t0) / 1000)} s to run.
 | The Boar King: a typical player wins the first fight about 65-75% of the time | **${pct(c3.bossFirstTry)}**; ${pct(c3.clearRate)} clear Act 3 within 6 tries (85% player: ${pct(a3.bossFirstTry)} first fights won) |
 | No boss can be one-shot by a max-stack finisher | boss HP / max finisher ${num(c1.bossVsMaxFinisher)} / ${num(c2.bossVsMaxFinisher)} / ${num(c3.bossVsMaxFinisher)}; one-shots ${pct(c1.bossOneShotRate)} / ${pct(c2.bossOneShotRate)} / ${pct(c3.bossOneShotRate)} (each boss has a phase gate that damage can't skip) |
 | Fights are runs of foes, more the deeper the row | normal fights ${sec(c1.fightSec)} / ${sec(c2.fightSec)} / ${sec(c3.fightSec)}, bosses ${sec(c1.bossSec)} / ${sec(c2.bossSec)} / ${sec(c3.bossSec)} (70% player) |
+
+## Gear: the story with found gear alone, and farming the Boar King
+
+Every run starts with an empty bag and wears the best gear it finds (by item power), so the table above is a first
+playthrough with found gear only. Then the same profile replays Act 3 ${FARMS} times to farm the Boar King (each replay
+starts with the boosts a run typically has by Act 3, plus all the gear; retries allowed), ${FARM_RUNS} players per row.
+"Forge" also salvages spare items and upgrades the worn ones between replays.
+
+| Player | Story: Act 3 cleared (6 tries) | Story: Boar King first fight won | ${Array.from({ length: FARMS }, (_, i) => `Replay ${i + 1}`).join(' | ')} | Gear power (replay 1 -> ${FARMS}) |
+|---|---|---|${Array.from({ length: FARMS }, () => '---|').join('')}---|
+${farms.map((f) => `| ${pct(f.acc)} | ${pct(f.cleared)} | **${pct(f.story)}** | ${f.visits.map((v, i) => `${pct(v)} (forge ${pct(f.visitsForged[i])})`).join(' | ')} | ${Math.round(f.power[0])} -> ${Math.round(f.power[FARMS - 1])} |`).join('\n')}
 
 ## Results
 
@@ -95,5 +128,6 @@ Notes:
   Heal cards matter.
 `;
   writeFileSync('docs/balance.md', md);
+  process.stderr.write(`${farms.map((f) => `farm ${f.acc}: story ${pct(f.story)} -> ${f.visits.map(pct).join(' ')} (forge ${f.visitsForged.map(pct).join(' ')})`).join('\n')}\n`);
   process.stderr.write(`${table(rows)}\n${losses(rows)}\n`);
 }, 1_800_000);
