@@ -302,7 +302,11 @@ export class LootView {
       // land everything that's still to come, right now (the cards still come up, one after another)
       let best = -1;
       for (const d of this.drops) {
-        if (d.landed) continue;
+        if (d.landed) {
+          // a Legendary waiting for its card: bring the card up now
+          if (!d.carded) d.cardAfter = Math.min(d.cardAfter, Math.max(0, now - d.landAt));
+          continue;
+        }
         if (!d.launchAt) {
           d.launchAt = now - T.fly;
           best = Math.max(best, d.r);
@@ -310,6 +314,7 @@ export class LootView {
         d.landAt = Math.min(d.landAt || now, now);
         d.cardAfter = T.cardAfterFast;
       }
+      if (this.next < this.drops.length) this.orbPopAt = now;
       this.next = this.drops.length;
       if (best >= 0) app.audio.lootDrop(best);
       return;
