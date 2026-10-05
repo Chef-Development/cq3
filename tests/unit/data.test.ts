@@ -7,6 +7,7 @@ import { GREENMARCH } from '../../src/data/greenmarch';
 import { SPEAKER_NAME, STORY } from '../../src/data/story';
 import { BANTER } from '../../src/data/banter';
 import { HEROES } from '../../src/data/heroes';
+import { kitColW } from '../../src/engine/view/heroes';
 import { cloneTuning, DEFAULT_TUNING, getPath, mergeKnown, setPath, sliderGroups, tuningDiff } from '../../src/core/tuning';
 import { textWidth } from '../../src/engine/font';
 
@@ -148,17 +149,20 @@ describe('camp banter', () => {
 });
 
 describe('hero kit lines', () => {
-  it('every kit part has one short plain line that fits two lines of its column on the hero select', () => {
-    for (const h of Object.values(HEROES))
-      for (const part of [h.ability, h.passive, h.finisher]) {
-        if (!part) continue;
-        expect(part.short.length, part.name).toBeGreaterThan(0);
-        expect(textWidth(part.short, 1, false), part.short).toBeLessThanOrEqual(2 * 88);
-      }
+  it("every hero's kit fits the hero select's three columns at the narrowest layout (iPhone safe areas)", () => {
+    // the card's inner width with 23 px safe areas each side: 327 - 46 - 6 - 12
+    const KW = 263;
+    for (const h of Object.values(HEROES)) {
+      const parts = [h.ability, h.passive, h.finisher].filter((p): p is NonNullable<typeof p> => !!p);
+      for (const p of parts) expect(p.short.length, p.name).toBeGreaterThan(0);
+      const plain = parts.reduce((a, p) => a + kitColW(p, false), 0) + 6 * (parts.length - 1);
+      expect(plain, h.name).toBeLessThanOrEqual(KW);
+    }
   });
 
   it("every hero's bio is one line on the hero select", () => {
-    for (const h of Object.values(HEROES)) expect(textWidth(h.bio, 1, false), h.bio).toBeLessThanOrEqual(250);
+    // (the card's text column is 214 px with the iPhone's safe areas)
+    for (const h of Object.values(HEROES)) expect(textWidth(h.bio, 1, false), h.bio).toBeLessThanOrEqual(210);
   });
 });
 

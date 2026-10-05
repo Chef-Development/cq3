@@ -357,8 +357,40 @@ test('relic pick: relic cards, a Synergy! card and a stat card', async ({ page }
       { id: 'damage', rarity: 'rare' },
     ];
   });
-  await frames(page, 60);
+  // mid-deal: a card face up, one flipping, one still sliding out of the deck
+  await frames(page, 21);
+  await expect(page).toHaveScreenshot('relic-pick-deal.png', shot);
+  // dealt: the Synergy! cards send a spark to the relics they match in the tray
+  await frames(page, 39);
   await expect(page).toHaveScreenshot('relic-pick.png', shot);
+  // picked: the relic flies out of its card into the tray
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    const r = app.view.overlays.cardRect(1);
+    if (app.view.boostCardAt(r.x + 20, r.y + 10) === 1) app.view.overlays.afterPick(() => app.setPhase(() => app.run.pickBoost(1)));
+  });
+  await frames(page, 12);
+  await expect(page).toHaveScreenshot('relic-pick-fly.png', shot);
+});
+
+test('combo milestone: the counter swells, a burst and a "Combo 25!" stamp as the bass joins', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await firstFight(page, ['powderKeg']);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.begin());
+  await frames(page, 60);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.audio.msToNextBeat = () => 0; // (the beat it waits for depends on the real audio clock)
+    app.run.combat.combo = 25;
+    app.view.hud.comboPopAt = performance.now();
+    app.view.hud.lastMilestone = 10;
+    app.view.hud.milestone(25);
+  });
+  await frames(page, 14);
+  await expect(page).toHaveScreenshot('combo-flourish.png', shot);
 });
 
 test('relic belt and the relic panel in a fight', async ({ page }) => {

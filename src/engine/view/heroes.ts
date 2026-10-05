@@ -31,6 +31,19 @@ const KIT: Array<{ which: 'ability' | 'passive' | 'finisher'; label: string; fac
   { which: 'finisher', label: 'Finisher', face: [0xfff0a0, 0xc88a1c, 0x9a5a14, 0x5a3410], name: 0xffe680 },
 ];
 
+/** The narrowest width that fits `s` in two lines (the best place to break it). */
+export function twoLineW(s: string): number {
+  const words = s.split(' ');
+  let best = textWidth(s, 1, false);
+  for (let i = 1; i < words.length; i++) best = Math.min(best, Math.max(textWidth(words.slice(0, i).join(' '), 1, false), textWidth(words.slice(i).join(' '), 1, false)));
+  return best;
+}
+
+/** A kit column's width on the hero select: its icon tile and name, and its short line in two lines at most. */
+export function kitColW(part: KitPart, bold: boolean): number {
+  return Math.max(17 + textWidth(part.name, 1, bold), twoLineW(part.short) + 2);
+}
+
 /** Word-wrap with a shorter first line (text that follows a label on the same line). */
 export function wrapFlow(s: string, firstW: number, restW: number): string[] {
   const out: string[] = [];
@@ -288,7 +301,7 @@ export class HeroesScreen {
     let y = c.y + 27;
     const cw = kit.familyChip(g, texts, def.family, tx, y, a);
     texts.text(def.title, tx + cw + 5, y, 0xffd890, { oy: 0.5, alpha: a });
-    // the bio (one line: tests/unit/data.test.ts keeps it short)
+    // the bio (one line: tests/unit/data.test.ts keeps it short enough for the narrowest layout)
     y += 10;
     for (const line of wrapText(def.bio, tw).slice(0, 1)) {
       texts.text(line, tx, y, 0xc8c0e8, { oy: 0.5, alpha: a });
@@ -319,26 +332,39 @@ export class HeroesScreen {
     // the kit, in columns: an icon tile, the name, one plain line
     const kx = c.x + 6;
     const kw = c.w - 12;
-    y = f.y + f.h + 4;
+    y = f.y + f.h + 3;
     kit.divider(g, kx, y, kw);
-    y += 6;
+    y += 5;
     const parts = KIT.filter((q) => def[q.which]);
-    const colW = Math.floor((kw - (parts.length - 1) * 6) / parts.length);
+    // columns as wide as their name and two lines of text need (bold names when they all fit so, else the plain
+    // font), the rest of the width shared out
+    const gap = 6;
+    const need = (bold: boolean) => parts.map((q) => kitColW(def[q.which] as KitPart, bold));
+    let bold = true;
+    let needs = need(true);
+    if (needs.reduce((x, y) => x + y, 0) + gap * (parts.length - 1) > kw) {
+      bold = false;
+      needs = need(false);
+    }
+    const spare = Math.max(0, kw - needs.reduce((x, y) => x + y, 0) - gap * (parts.length - 1));
+    const colWs = needs.map((w) => w + Math.floor(spare / parts.length));
+    const colX = colWs.map((_, i) => kx + colWs.slice(0, i).reduce((x, y) => x + y + gap, 0));
     let bottom = y;
-    this.kitCols = parts.map((q, i) => ({ which: q.which, r: { x: kx + i * (colW + 6), y, w: colW, h: c.y + c.h - 4 - y } }));
+    this.kitCols = parts.map((q, i) => ({ which: q.which, r: { x: colX[i], y, w: colWs[i], h: c.y + c.h - 4 - y } }));
     parts.forEach((q, i) => {
       const part = def[q.which] as KitPart;
       const ik = clamp01((now - this.viewAt - 60 - i * 60) / 160);
       if (ik <= 0) return;
       const ia = ik;
-      const x0 = kx + i * (colW + 6) + Math.round((1 - ik) * 6);
+      const colW = colWs[i];
+      const x0 = colX[i] + Math.round((1 - ik) * 6);
       const tile = { x: x0, y, w: 13, h: 13 };
       tag(g, tile, q.face, ia);
       this.kitIcon(g, q.which, tile, ia);
-      texts.text(part.name, tile.x + tile.w + 4, tile.y + 6.5, q.name, { bold: true, oy: 0.5, alpha: ia });
+      texts.text(part.name, tile.x + tile.w + 4, tile.y + 6.5, q.name, { bold, oy: 0.5, alpha: ia });
       // one plain line; tapped open, the full text with its numbers
       const open = this.kitOpen === q.which;
-      const lines = open ? wrapText(kitText(kit.tuning, id, q.which), colW - 2) : wrapText(part.short, colW - 2).slice(0, 2);
+      const lines = wrapText(open ? kitText(kit.tuning, id, q.which) : part.short, colW - 2);
       lines.forEach((l, j) => texts.text(l, x0, tile.y + tile.h + 6 + j * 8, open ? 0xfff0c0 : 0xd8d0f0, { oy: 0.5, alpha: ia }));
       bottom = Math.max(bottom, tile.y + tile.h + 6 + lines.length * 8);
     });

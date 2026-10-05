@@ -1167,7 +1167,7 @@ export class Overlays {
       const [gw] = glyphSize('target');
       const count = clamp01((s.anim - this.accAt - Overlays.CLEAR_ACC_MS - 80) / 600);
       const full = e ? `${Math.round(e.acc * 100)}%` : '';
-      const label = e ? 'accuracy' : 'Accuracy: needs more taps';
+      const label = e ? 'accuracy' : 'Accuracy: not yet';
       const w = gw + 3 + (e ? textWidth(full, 1, true) + 3 : 0) + textWidth(label, 1, false) + 6;
       const r: Rect = { x: s.L + 4, y: 4 - Math.round((1 - ak) * 4), w, h: 11 };
       tag(gc, r, [NAVY[5], NAVY[2], NAVY[1], NAVY[0]], 0.85 * ak);

@@ -50,6 +50,8 @@ const LANE_BUSY_MS = 720;
 const LANE_QUEUE = 3;
 /** The combo flourish: the counter swells, a burst fans out, and (the first time each fight) a "Combo 25!" stamp. */
 const FLOURISH_MS = 900;
+/** The "Combo 25!" stamp slams in this long after the swell. */
+const STAMP_DELAY = 120;
 /** The flourish's colour per milestone (hotter as it climbs; 100 cycles through the rainbow). */
 const RAINBOW = [0xff5a5a, 0xffb03a, 0xffe14a, 0x6aff7a, 0x5ad8ff, 0xb07aff];
 const tierOf = (n: number): number => (n >= 100 ? 4 : n >= 50 ? 3 : n >= 25 ? 2 : n >= 10 ? 1 : 0);
@@ -929,7 +931,8 @@ export class Hud {
       }
       if (next) this.texts.text(`${next}`, lx + bw + 2, by + 1, 0x9a94b0, { oy: 0.5 });
     }
-    if (live && fl.stamp) this.drawStamp(g, x + Math.round((nw + 34) / 2), y - 18, ft, fl.n);
+    // the stamp lands just after the swell (one beat, then the other: never on top of each other)
+    if (live && fl.stamp && ft >= STAMP_DELAY) this.drawStamp(g, x + Math.round((nw + 34) / 2), y - 18, ft - STAMP_DELAY, fl.n);
     // combo tiers (a setting): the damage multiplier they give
     if (s.app.settings.comboTiers) {
       const tm = n >= T.tiers.t3 ? T.tiers.m3 : n >= T.tiers.t2 ? T.tiers.m2 : n >= T.tiers.t1 ? T.tiers.m1 : 1;
@@ -971,7 +974,7 @@ export class Hud {
   private drawStamp(g: G, cx: number, by: number, t: number, n: number): void {
     const label = `Combo ${n}!`;
     const face = STAMP_FACE[Math.min(STAMP_FACE.length - 1, Math.max(0, tierOf(n) - 1))];
-    const out = clamp01((t - (FLOURISH_MS - 240)) / 240);
+    const out = clamp01((t - (FLOURISH_MS - STAMP_DELAY - 240)) / 240);
     const a = 1 - out;
     const slam = clamp01(t / 110);
     const grow = Math.round((1 - slam) * 6);

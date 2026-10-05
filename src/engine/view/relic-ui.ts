@@ -281,7 +281,7 @@ export function relicCard(
   relicLines(o.tuning, id, r.w).slice(0, 2).forEach((line, i) => texts.text(line, nx, r.y + ty + i * lh, 0xe8e2ff, { alpha: a }));
   cardShine(g, r, def.rarity, o.now, a);
   // "Synergy!" sits on the top edge, at the right end
-  if (shared.length) synergyBadge(g, texts, r.x + r.w - textWidth('Synergy!', 1, false) - 12, r.y - 7, o.now, a);
+  if (shared.length) synergyBadge(g, texts, r.x + r.w - textWidth('Synergy!', 1, false) - 9, r.y - 7, o.now, a);
   if (o.flash && o.flash > 0) {
     g.fillStyle(WHITE, o.flash * a);
     g.fillRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
