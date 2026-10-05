@@ -161,12 +161,13 @@ test('a run survives a reload: Continue picks the fight back up', async ({ page 
   const after = await a((x) => ({ phase: x.run.phase, path: x.run.path.length, hp: x.run.hero.hp, enemyHp: x.run.combat.enemies[0].hp, waiting: x.awaitingBegin }));
   expect(after).toEqual({ phase: 'fight', path: 1, hp: 42, enemyHp: 99, waiting: true });
 
-  // a boss fight switches the music to the boss theme; the map plays its own theme
+  // the Bandit Captain brings his own theme; back on the map, Act 1's theme plays (its calm arrangement)
   const track = () => a((x) => x.audio.currentTrack);
   await a((x) => x.setPhase(() => x.run.debugFight(0, ['captain'], 'boss', x.run.hero)));
-  await expect.poll(track).toBe('boss');
+  await expect.poll(track).toBe('captain');
   await a((x) => x.setPhase(() => x.run.retry()));
-  await expect.poll(track).toBe('map');
+  await expect.poll(track).toBe('act1');
+  expect(await a((x) => x.audio.currentMusic.arrangement)).toBe('calm');
 });
 
 test('gear: loot after a win goes in the bag; act clear -> camp -> next act; defeat -> camp -> retry; the act picker', async ({ page }) => {

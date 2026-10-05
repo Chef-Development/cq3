@@ -547,6 +547,22 @@ export class Combat {
     return isRed(b.kind) ? this.knockBack(b, dist, sec) : 0;
   }
 
+  /** The hero's stats as they stand (perks read attack, crit chance and crit damage from here). */
+  stats(): StatBlock {
+    return heroStats(this.tuning, this.hero);
+  }
+
+  /** Fill the meter for a perk, as if from `source` (Wingman: a peck fills it like a hit). */
+  fillMeter(x: number, source: MeterSource = 'perk', hand = 0): void {
+    this.addMeter(x, source, hand);
+  }
+
+  /** A perk counts a yellow/green a bomb's blast already took off the bar as a hit of yours (Blast Wave). */
+  perkHitCleared(b: Block, hand = 0): void {
+    if (this.blocks.includes(b) || !isAttack(b.kind) || this.result) return;
+    this.hitAttack(b, false, hand, true);
+  }
+
   /** Living foes, front first. */
   aliveFoes(): Enemy[] {
     return this.enemies.filter((e) => e.alive).sort((a, b) => a.slot - b.slot);
@@ -941,6 +957,7 @@ export class Combat {
     const B = this.tuning.blocks;
     for (const b of this.blocks.slice()) {
       if (this.result) return;
+      if (!this.blocks.includes(b)) continue; // gone mid-loop (a blast that reached the hero, a revive)
       if (isRed(b.kind)) {
         const half = b.width / 2;
         if (b.push > 0) {
