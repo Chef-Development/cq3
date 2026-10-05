@@ -2,7 +2,7 @@
 
 - **Live build:** https://chef-development.github.io/cq3/ (installable PWA, landscape). Every push deploys.
 - **Branch:** `claude/vigilant-pasteur-vlnd12`. PR Chef-Development/cq3#2 (M1 + M3a) was still open, so M3b is built on
-  top of it: the new PR includes #2 and supersedes it (merge the new one; #2 can be closed).
+  top of it: PR Chef-Development/cq3#3 includes #2 and supersedes it (merge #3; #2 can be closed).
 - **Tests:** 272 Vitest unit tests (`npm test`, in CI), 4 Playwright smoke tests (now including the whole gear flow:
   loot after a win, act clear -> camp -> next act, defeat -> camp -> retry, the act picker), 8 pixel-exact screenshot
   tests (new: camp, bag, forge, the Legendary loot card, the act picker; world and map baselines refreshed).
