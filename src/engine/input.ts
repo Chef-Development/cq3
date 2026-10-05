@@ -1,6 +1,7 @@
 // Pointer/keyboard routing. Bar taps are judged by event.timeStamp (see App.barTap), not by frame. Sable's two
 // cursors: a tap on the left half of the screen is cursor A's, on the right half cursor B's. Taps on the HUD's relic
-// belt open the relic panel (the fight pauses) and are never judged as bar taps.
+// belt open the relic panel (the fight pauses) and are never judged as bar taps. While a tip card is up (view/tips.ts)
+// a tap only dismisses it: never a bar tap, a finisher, or a press of whatever is under it.
 import { isSwipe } from '../core/swipe';
 import type { App } from './app';
 import { clientToGame, GAME_W } from './layout';
@@ -34,8 +35,18 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
     const now = performance.now();
     const run = app.run;
     const g = clientToGame(app.layout, clientX, clientY);
+    if (app.tipUp) {
+      scene.tips.tap(now);
+      return;
+    }
     switch (run.phase) {
       case 'title': {
+        if (app.storyOverlay) {
+          // the welcome back (a returning player's first launch of this version), over the title
+          if (scene.storySkipAt(g.x, g.y)) app.storySkip();
+          else if (!scene.storyReveal()) app.storyNext();
+          return;
+        }
         if (!app.savedRun) return app.newRun();
         // a run was saved: Continue or New run (keyboard: Space/Enter continues)
         const pick = clientX < 0 ? 'continue' : scene.titleTap(g.x, g.y);
@@ -231,7 +242,7 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
     const k = e.key;
     if (k === ' ' || k === 'j' || k === 'k' || k === 'Enter') {
       e.preventDefault();
-      if (app.run.phase === 'fight' && !app.userPaused && !app.awaitingBegin) app.barTap(e.timeStamp, k === 'k' ? 1 : 0);
+      if (app.run.phase === 'fight' && !app.userPaused && !app.awaitingBegin && !app.tipUp) app.barTap(e.timeStamp, k === 'k' ? 1 : 0);
       else down(-1, -1, e.timeStamp, -1);
     } else if (k === 'f' || k === 'ArrowUp') app.finisher();
     else if (k === 'p' || k === 'Escape') {

@@ -5,6 +5,7 @@ import type { CombatEvent, TapResult } from '../core/combat';
 import { Run, type Phase } from '../core/run';
 import type { Profile } from '../core/profile';
 import { restoreRun, snapshotRun, type RunSave } from '../core/save';
+import { markWelcomed, TipCoach, welcomeScene } from '../core/tips';
 import type { Settings, Tuning } from '../core/tuning';
 import { Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, sameLayout, type ScreenLayout } from './layout';
@@ -47,6 +48,10 @@ export class App {
   readonly profile: Profile;
   /** The run saved by an earlier session (offered as Continue on the title screen). */
   savedRun: RunSave | null = null;
+  /** "Teach it slowly": which tip shows when (core/tips.ts; the view draws it, view/tips.ts). */
+  readonly tips: TipCoach;
+  /** A tip card is up: the next tap only dismisses it, and a fight waits for it. */
+  tipUp = false;
   private begunCombat: unknown = null;
   private syncHoldUntil = 0; // performance.now() until which phase changes wait (kill animations)
   phaseSince = 0;
@@ -60,6 +65,7 @@ export class App {
     readonly settings: Settings,
   ) {
     this.profile = loadProfile(tuning);
+    this.tips = new TipCoach(this.profile);
     this.run = new Run(tuning, settings, (Date.now() & 0xffffff) | 1, this.profile);
     this.audio.tuning = tuning; // live: the impact sliders apply to the next sound
     this.savedRun = loadRunSave(tuning, this.profile);
@@ -95,6 +101,33 @@ export class App {
     writeProfile(this.profile);
   }
 
+  /** The gear panel's "Tips: on/off". */
+  setTipsOff(off: boolean): void {
+    this.profile.tipsOff = off;
+    this.saveProfile();
+  }
+
+  /** The gear panel's "Show tips again": every tip shows once more (and tips are on). */
+  showTipsAgain(): void {
+    this.tips.reset();
+    this.saveProfile();
+  }
+
+  /**
+   * A returning player's first launch of this version: Pip's welcome back plays over the title (once; it's marked
+   * played the moment it starts). Never over another scene. Returns whether it started.
+   */
+  welcome(): boolean {
+    if (this.run.phase !== 'title' || this.storyOverlay) return false;
+    const id = welcomeScene(this.profile);
+    if (!id || !STORY[id]) return false;
+    markWelcomed(this.profile);
+    this.saveProfile();
+    this.storyOverlay = id;
+    this.storyBox = 0;
+    return true;
+  }
+
   get combat() {
     return this.run.combat;
   }
@@ -108,6 +141,7 @@ export class App {
       !this.calibrating &&
       !this.awaitingBegin &&
       !this.storyOverlay &&
+      !this.tipUp &&
       performance.now() >= this.introUntil &&
       (!this.panelOpen || this.playWhilePanelOpen)
     );
@@ -294,6 +328,7 @@ export class App {
     if (this.run.phase !== 'fight' && this.run.phase !== 'camp') this.storyOverlay = null;
     if (this.run.phase !== prev) {
       this.phaseSince = now;
+      this.tipUp = false; // a tip goes with its screen
       if (this.run.phase === 'scene' || prev === 'scene') this.storyBox = 0;
       this.view?.onPhase(prev, this.run.phase);
     }
@@ -360,6 +395,7 @@ export class App {
     const events = c.drainEvents();
     const now = performance.now();
     if (events.length) {
+      this.tips.feed(events, c);
       this.sounds(events);
       const hold = this.view?.onEvents(events) ?? 0;
       if (hold > 0) this.syncHoldUntil = Math.max(this.syncHoldUntil, now + hold);
