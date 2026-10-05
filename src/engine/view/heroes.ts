@@ -272,7 +272,11 @@ export class HeroesScreen {
     }
     // level and XP, and points to spend
     const L = kit.level(id);
-    const pts = L.points > 0 ? `${L.points} skill point${L.points > 1 ? 's' : ''}` : '';
+    // the XP row needs "Lv n", a bar of 30 px and "into/need XP": the pill says "n points" when "n skill points" crowds it
+    const xpNeed = textWidth(`Lv ${L.level}`, 1, true) + 38 + textWidth(L.need ? `${L.into}/${L.need} XP` : 'Max level', 1, false);
+    const s = L.points > 1 ? 's' : '';
+    const long = `${L.points} skill point${s}`;
+    const pts = L.points <= 0 ? '' : tw - (textWidth(long, 1, false) + 22) >= xpNeed ? long : `${L.points} point${s}`;
     const pw = pts ? textWidth(pts, 1, false) + 16 : 0;
     const xr = { x: tx, y: c.y + 48, w: Math.min(150, tw - (pw ? pw + 6 : 0)), h: 9 };
     kit.xpBar(g, texts, id, xr, { alpha: a });

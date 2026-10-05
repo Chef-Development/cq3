@@ -94,8 +94,10 @@ src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemi
                finisher show, deaths), effects.ts (particles, floaters, camera), bar.ts (timing bar, blocks,
                telegraph previews, cursor), hud.ts (stats, meter, coins, stat rain), overlays.ts (title, boost,
                chest, defeat, victory, pause), world.ts (kingdom world map), map.ts (act map), story.ts (scenes),
-               nodes.ts (rest, shop, events), camp.ts (the camp home; bag.ts, forge.ts, stats.ts its screens;
-               item-grid.ts the bag grid and worn slots; camp-kit.ts their shared layers, effects and buttons),
+               nodes.ts (rest, shop, events), camp.ts (the camp home; bag.ts, forge.ts, heroes.ts (hero select),
+               stats.ts, skills.ts (skill trees), relic-log.ts its screens; item-grid.ts the bag grid and worn
+               slots; camp-kit.ts their shared layers, effects, buttons and hero tabs; the top bar's middle is
+               kept clear for the HTML gear button: kit.hudZone()),
                loot.ts (loot reveal and Legendary/Mythic cards), items.ts (item cells with rarity frames, item text),
                ui.ts (text pool, panels), transition.ts (screen wipes), icons.ts, pixels.ts (panels, gauges,
                buttons), shared.ts

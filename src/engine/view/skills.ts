@@ -240,7 +240,11 @@ export class SkillsScreen {
     kit.fx.ring(cx, cy, node.kind === 'capstone' ? 26 : 18, 0xfff0a0, 460);
     kit.fx.burst(cx, cy, cols, node.kind === 'capstone' ? 34 : 20, 1.1, { kind: 'star', g: 40, life: 650 });
     kit.fx.sparks(cx, cy, 10);
-    if (node.kind === 'capstone') kit.after(140, () => kit.fx.ring(cx, cy, 36, 0xffd23a, 600));
+    if (node.kind === 'capstone')
+      kit.after(140, () => {
+        kit.fx.ring(cx, cy, 36, 0xffd23a, 600);
+        kit.app.audio.rareSting(true);
+      });
     const pr = this.pointsRect();
     kit.fx.float('-1', pr.x + pr.w / 2, pr.y + pr.h + 8, 0xffb0a0, { icon: 'skills', life: 900, rise: -6 });
     // what changed: the hero's stats before -> after (a stat node), or what the rule does now
@@ -418,7 +422,8 @@ export class SkillsScreen {
     const face = KIND_FACE[node.kind];
     const lk = now - (this.learnAt.get(node.id) ?? -1e9);
     const pop = lk >= 0 && lk < 300 ? Math.round(Math.sin((lk / 300) * Math.PI) * 2) : 0;
-    const resetK = this.resetFrom.includes(node.id) ? clamp01((now - this.resetAt) / 300) : 1;
+    // just reset: the node blinks white as its point flies back
+    const unlit = this.resetFrom.includes(node.id) ? 1 - clamp01((now - this.resetAt) / 350) : 0;
     const r = { x: r0.x - pop, y: r0.y - pop - (on ? 1 : 0), w: r0.w + pop * 2, h: r0.h + pop * 2 };
     const a = alpha;
     const locked = why === 'order';
@@ -429,7 +434,7 @@ export class SkillsScreen {
     if (on) rows(g, r.x - 2, r.y - 2, r.w + 4, r.h + 4, 3, mix(GOLD[4], WHITE, pulse(now, 700)), a);
     else if (ok) rows(g, r.x - 2, r.y - 2, r.w + 4, r.h + 4, 3, mix(0x3aaa34, 0xb4f070, pulse(now, 900)), a);
     rows(g, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 3, INK, a);
-    const lit = learned && resetK >= 1;
+    const lit = learned;
     const grey = [0x6a6478, 0x4a4458, 0x3a3448, 0x26222e] as const;
     // out of reach: grey (a capstone keeps a dull gold, so the branch's goal still stands out)
     const fr = locked ? (node.kind === 'capstone' ? ([mix(face[0], grey[0], 0.6), mix(face[1], grey[1], 0.65), mix(face[2], grey[2], 0.65), grey[3]] as const) : grey) : lit ? face : ([mix(face[0], NAVY[5], 0.5), mix(face[1], NAVY[3], 0.55), mix(face[2], NAVY[2], 0.55), face[3]] as const);
@@ -469,6 +474,7 @@ export class SkillsScreen {
       over.fillRect(r.x + r.w - 3, r.y + r.h - 3, 2, 1);
     } else if (locked && node.kind === 'capstone') padlock(over, r.x + r.w - 5, r.y + r.h - 6, a * 0.9, 0xd8901c);
     if (lk >= 0 && lk < 400) rows(over, r.x, r.y, r.w, r.h, 2, WHITE, 0.8 * (1 - lk / 400));
+    if (unlit > 0) rows(over, r.x, r.y, r.w, r.h, 2, WHITE, 0.7 * unlit);
   }
 
   /** The selected node's card. */

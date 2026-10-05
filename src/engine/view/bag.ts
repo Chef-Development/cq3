@@ -1,12 +1,13 @@
 // The Bag (a camp screen): the item grid, the six equipped slots, sorting (Rarity / Slot / New), and a card for the
 // selected item: its name in its rarity's color, kind and power, every stat it gives with how each one compares to
 // what's worn (green up, red down; stats it would lose in red), its unique effect, its set; Equip / Unequip and Lock.
-// With nothing selected the card shows Rowan's core stats and his set bonuses.
+// With nothing selected the card shows the picked hero's core stats and set bonuses (gear is shared by the heroes).
 // Equipping is loud: the icon flies into its slot, the slot flashes, and a toast lists each stat before -> after.
 import type Phaser from 'phaser';
 import { BASE_BY_ID, EFFECTS, RARITY_INFO, SETS, SLOT_NAME, STAT_IDS, STAT_INFO, CORE_STATS, slotOf, type Slot, type SlotKey, type StatId } from '../../data/gear';
 import { baseStats, bonusStats, fmtStat, itemName, itemPower, itemStats, setOf, slotOfItem, zeroStats, type Item, type StatBlock } from '../../core/gear';
 import { equip, equippedIn, equippedItems, isEquipped, itemByUid, profileLoadout, replaces, toggleLock, unequip, type SortMode } from '../../core/profile';
+import { HEROES } from '../../data/heroes';
 import { textWidth } from '../font';
 import { CampKit, D, DIM_TXT, GREEN, RED, statChanges } from './camp-kit';
 import { ItemGrid, WornRow } from './item-grid';
@@ -304,7 +305,7 @@ export class BagScreen {
     if (pr) kit.button(g, kit.texts, pr, `${this.grid.page + 1}/${this.grid.pages(this.cap)}`, FACE.navy, now, { bold: false });
   }
 
-  /** Nothing selected: Rowan's core stats, his set bonuses and unique effects, and a hint. */
+  /** Nothing selected: the picked hero's core stats, the set bonuses and unique effects, and a hint. */
   private drawRowan(g: G, pr: Rect, now: number): void {
     const kit = this.kit;
     const p = kit.profile;
@@ -313,7 +314,7 @@ export class BagScreen {
     const st = kit.stats();
     const ix = pr.x + 6;
     const iw = pr.w - 12;
-    texts.text('Rowan', pr.x + pr.w / 2, pr.y + 9, 0xfff0c0, { bold: true, ox: 0.5, oy: 0.5 });
+    texts.text(HEROES[p.hero].name, pr.x + pr.w / 2, pr.y + 9, 0xfff0c0, { bold: true, ox: 0.5, oy: 0.5 });
     const gp = equippedItems(p).reduce((a, i) => a + itemPower(t, i), 0);
     let y = pr.y + 20;
     texts.text(`Gear power ${gp}`, pr.x + pr.w / 2, y, 0xc8c0e8, { ox: 0.5, oy: 0.5 });
@@ -464,7 +465,7 @@ export class BagScreen {
     y += 9;
     if (vsShown) {
       const kindName = SLOT_NAME[slotOfItem(it)];
-      const vs = worn ? 'Rowan wears this' : cur ? `vs ${itemName(cur)}` : kindName === 'Trinket' ? 'A trinket slot is free' : `${kindName} slot is empty`;
+      const vs = worn ? `${HEROES[p.hero].name} wears this` : cur ? `vs ${itemName(cur)}` : kindName === 'Trinket' ? 'A trinket slot is free' : `${kindName} slot is empty`;
       texts.text(fit(vs, iw), ix, y, worn ? 0xffe680 : 0x9890b8, { oy: 0.5 });
       y += 10;
     } else y += 1;
