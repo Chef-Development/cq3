@@ -2,6 +2,7 @@
 // signature drops' bad-luck counters and the accuracy log. Saves from older builds are migrated.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { BASE_BY_ID } from '../../src/data/gear';
+import { BASIC_TIPS } from '../../src/data/tips';
 import { makeItem } from '../../src/core/gear';
 import { addItem, equip, newProfile, PROFILE_VERSION, readProfile, recordAct, recordRegion, WEIGHTS_TOTAL } from '../../src/core/profile';
 import { Rng } from '../../src/core/rng';
@@ -42,7 +43,8 @@ describe('profile', () => {
 
   it('migrates a v1 save (progress only): progress kept, the gear starts empty, the cleared acts\' relics unlocked', () => {
     const back = readProfile(viaJson({ v: 1, actsCleared: 2, weights: 1 }));
-    expect(back).toEqual({ ...newProfile(), actsCleared: 2, weights: 1, relics: ['shortFuse', 'ricochet', 'chainReaction', 'crescendo'] });
+    // a returning player: the basics' tips are marked seen, and the welcome back is still to play (tips.test.ts)
+    expect(back).toEqual({ ...newProfile(), actsCleared: 2, weights: 1, relics: ['shortFuse', 'ricochet', 'chainReaction', 'crescendo'], tips: [...BASIC_TIPS] });
     expect(readProfile({ v: 1, actsCleared: 99, weights: -3 })).toMatchObject({ actsCleared: 3, weights: 0 });
   });
 

@@ -11,9 +11,11 @@ async function tapGame(page: Page, x: number, y: number): Promise<void> {
   await page.mouse.click(l.left + (x * l.cssW) / 327, l.top + (y * l.cssH) / 150);
 }
 
-async function ready(page: Page): Promise<void> {
+/** Load the game. Tips are off unless asked for (`tips`), so they never pop over the other tests' screens. */
+async function ready(page: Page, o: { tips?: boolean } = {}): Promise<void> {
   await page.goto('/cq3/');
   await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
+  await page.evaluate((on) => ((window as Any).__cq3.app.profile.tipsOff = !on), !!o.tips);
 }
 
 test('loads, plays the intro, walks the map, starts a fight, taps, no console errors', async ({ page }) => {
@@ -509,5 +511,111 @@ test('camp: learn a skill and reset, pick Sable on the hero select, read a new r
   await page.screenshot({ path: 'test-results/relics.png' });
   await a((x) => x.leaveCamp());
   await expect.poll(() => a((x) => x.run.phase)).toBe('world');
+  expect(errors).toEqual([]);
+});
+
+// ------------------------------------------------------------------ tips ("teach it slowly") and the welcome back
+
+test('tips: the first map and fight teach as they go; a tap only dismisses a tip; a reload never repeats one; the first red stops the fight', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  await ready(page, { tips: true });
+  const a = app(page);
+  const tip = () => a((x) => x.view.tips.current);
+  expect(await a((x) => x.storyId)).toBeNull(); // a new player gets no welcome back
+  // the first map: its tip comes up; the tap that dismisses it doesn't walk to the spot under it
+  await a((x) => {
+    x.startRegion();
+    x.setPhase(() => x.run.skipScenes());
+  });
+  await expect.poll(tip, { timeout: 5000 }).toBe('map');
+  await page.waitForTimeout(450);
+  await page.screenshot({ path: 'test-results/tip-map.png' });
+  const [nx, ny] = (await a((x) => x.view.mapView.pos(x.run.map.nodes[x.run.choices()[0]]))) as [number, number];
+  await tapGame(page, nx, ny);
+  await expect.poll(tip).toBeNull();
+  await page.waitForTimeout(500);
+  expect(await a((x) => ({ phase: x.run.phase, path: x.run.path.length, walking: x.view.mapView.walking }))).toEqual({ phase: 'map', path: 0, walking: false });
+
+  // the first fight: "tap yellow" comes up before TAP TO BEGIN, and the fight's clock doesn't run
+  await a((x) => x.setPhase(() => x.run.debugFight(0, ['slime'], 'fight', x.run.hero)));
+  await expect.poll(tip, { timeout: 5000 }).toBe('tapYellow');
+  expect(await a((x) => ({ waiting: x.awaitingBegin, up: x.tipUp }))).toEqual({ waiting: true, up: true });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'test-results/tip-first-fight.png' });
+  expect(await a((x) => x.run.combat.tick)).toBe(0);
+  // a tap on the bar dismisses it: not a bar tap, and the fight still waits for TAP TO BEGIN
+  await tapGame(page, 163, 120);
+  await expect.poll(tip).toBeNull();
+  expect(await a((x) => ({ waiting: x.awaitingBegin, tick: x.run.combat.tick, tap: x.lastTap, up: x.tipUp }))).toEqual({ waiting: true, tick: 0, tap: null, up: false });
+  const saved = JSON.parse(((await page.evaluate(() => localStorage.getItem('cq3.profile.v2'))) as string) ?? '{}');
+  expect(saved.tips).toEqual(expect.arrayContaining(['map', 'tapYellow']));
+
+  // a reload: the tips seen never come back
+  await page.reload();
+  await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
+  await a((x) => x.setPhase(() => x.run.debugFight(0, ['slime'], 'fight', x.run.hero)));
+  await page.waitForTimeout(1500);
+  expect(await tip()).toBeNull();
+  expect(await a((x) => x.awaitingBegin)).toBe(true);
+
+  // the first red (the other fight tips already seen): its tip stops the fight until a tap; that tap isn't judged
+  await a((x) => {
+    x.profile.tips.push('purple', 'green', 'special', 'finisher', 'comboBreak');
+    x.begin();
+  });
+  await page.waitForTimeout(400);
+  await a((x) => x.run.combat.spawnBlock('red', 0.85));
+  await expect.poll(tip, { timeout: 5000 }).toBe('blockRed');
+  const t0 = (await a((x) => x.run.combat.tick)) as number;
+  await page.waitForTimeout(500);
+  expect(await a((x) => ({ tick: x.run.combat.tick, active: x.active() }))).toEqual({ tick: t0, active: false });
+  await page.screenshot({ path: 'test-results/tip-red.png' });
+  const lastTap = await a((x) => x.lastTap);
+  await tapGame(page, 163, 120);
+  await expect.poll(tip).toBeNull();
+  expect(await a((x) => x.lastTap)).toEqual(lastTap);
+  await expect.poll(() => a((x) => x.run.combat.tick), { timeout: 3000 }).toBeGreaterThan(t0);
+  expect(errors).toEqual([]);
+});
+
+test("welcome back: a returning player's first launch plays Pip's scene over the title, once", async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  // a profile saved by an earlier version (no tips yet): Act 1 cleared, Sable has joined
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    const hero = (unlocked: boolean, xp: number) => ({ unlocked, xp, skills: [] });
+    const p = { v: 3, actsCleared: 1, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 300), sable: hero(true, 0) } };
+    localStorage.setItem('cq3.profile.v2', JSON.stringify(p));
+  });
+  await page.goto('/cq3/');
+  await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
+  const a = app(page);
+  expect(await a((x) => ({ phase: x.run.phase, story: x.storyId }))).toEqual({ phase: 'title', story: 'welcomeBack' });
+  // played the moment it starts (saved); the basics' tips are marked seen, the new systems' are not
+  const saved = JSON.parse(((await page.evaluate(() => localStorage.getItem('cq3.profile.v2'))) as string) ?? '{}');
+  expect(saved.tips).toEqual(expect.arrayContaining(['welcomeM4a', 'map', 'tapYellow', 'camp']));
+  expect(saved.tips).not.toContain('relicPick');
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: 'test-results/welcome-back.png' });
+  // taps go through the scene (never the title under it), then the title is back
+  for (let i = 0; i < 10 && (await a((x) => x.storyId)); i++) {
+    await tapGame(page, 163, 75);
+    await page.waitForTimeout(250);
+  }
+  expect(await a((x) => ({ phase: x.run.phase, story: x.storyId }))).toEqual({ phase: 'title', story: null });
+  // no tip comes up over the title
+  await page.waitForTimeout(600);
+  expect(await a((x) => x.view.tips.current)).toBeNull();
+  // once: a reload doesn't play it again
+  await page.reload();
+  await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
+  await page.waitForTimeout(300);
+  expect(await a((x) => x.storyId)).toBeNull();
   expect(errors).toEqual([]);
 });

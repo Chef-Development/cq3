@@ -289,7 +289,20 @@ export function installDebug(app: App): DebugUi {
       if (!window.confirm('Really erase everything? This cannot be undone.')) return;
       app.startOver();
     };
-    tg.append(copy, load, resetT, resetS, over);
+    // the tips ("teach it slowly"): turn them off, or see every one again
+    const tipsLabel = () => (app.profile.tipsOff ? 'Tips: off' : 'Tips: on');
+    const tips = el('button', 'dbg-btn', tipsLabel());
+    tips.onclick = () => {
+      app.setTipsOff(!app.profile.tipsOff);
+      tips.textContent = tipsLabel();
+    };
+    const again = el('button', 'dbg-btn', 'Show tips again');
+    again.onclick = () => {
+      app.showTipsAgain();
+      tips.textContent = tipsLabel();
+      toast('Tips will show again');
+    };
+    tg.append(copy, load, resetT, resetS, tips, again, over);
     tools.appendChild(tg);
     body.appendChild(el('div', 'dbg-foot', 'Keys: Space tap · F finisher · P pause · ` panel'));
   };

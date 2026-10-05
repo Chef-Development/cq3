@@ -26,6 +26,7 @@ import { buildWorldArt } from './art-world';
 import { buildMapArt } from './art-map';
 import { BAND_H, COL, DASH_MS, DEATH_CHARGE_MS, inRect, kindCol, stackCol, tintGrad, WHITE, type Pending, type Rect } from './view/shared';
 import { Stage } from './view/stage';
+import { TipsView } from './view/tips';
 import { Transition } from './view/transition';
 
 export class FightScene extends Phaser.Scene implements View {
@@ -70,6 +71,7 @@ export class FightScene extends Phaser.Scene implements View {
   readonly camp = new CampView(this);
   readonly loot = new LootView(this);
   readonly transition = new Transition(this);
+  readonly tips = new TipsView(this);
 
   constructor() {
     super('fight');
@@ -101,6 +103,8 @@ export class FightScene extends Phaser.Scene implements View {
     this.onLayout();
     this.hud.heroHpShown = this.app.run.hero.hp;
     this.app.sceneReady = true;
+    // a returning player's first launch of this version: Pip's welcome back, over the title
+    this.app.welcome();
   }
 
   // ------------------------------------------------------------------ layout
@@ -155,6 +159,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.worldMap.build();
     this.camp.build();
     this.loot.build();
+    this.tips.build();
     this.stage.build();
     this.fighters.build();
     this.hud.reset();
@@ -644,6 +649,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.hud.drawCoins(this.gTop, now);
     this.fx.updateFloaters(now);
     this.transition.draw(now);
+    this.tips.draw(now);
   }
 
   private drawWorld(now: number): void {

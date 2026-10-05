@@ -111,7 +111,7 @@ export class SkillsScreen {
     return this.kit.heroTabs(false);
   }
 
-  private resetRect(): Rect {
+  resetRect(): Rect {
     const s = this.kit.s;
     const label = this.resetLabel();
     const w = (label ? textWidth(label, 1, true) + 4 : 0) + pixSize('reset')[0] + 10;

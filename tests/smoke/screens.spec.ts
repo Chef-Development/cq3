@@ -26,7 +26,9 @@ async function frames(page: Page, n: number): Promise<void> {
   for (let i = 0; i < n; i++) await page.clock.runFor(FRAME);
 }
 
-async function boot(page: Page): Promise<void> {
+/** Load the game on the fake clock. Tips are off (their own tests turn them on: `tips`), so they never pop over the
+ *  other screens. */
+async function boot(page: Page, o: { tips?: boolean } = {}): Promise<void> {
   // install the fake clock first, so the init script below wraps the faked performance.now
   await page.clock.install({ time: START });
   await page.clock.pauseAt(START + 1000);
@@ -59,7 +61,13 @@ async function boot(page: Page): Promise<void> {
   for (let i = 0; i < 500 && !(await page.evaluate(() => (window as Cq3Window).__cq3?.game.isRunning === true)); i++)
     await new Promise((r) => setTimeout(r, 20));
   for (let i = 0; i < 120; i++) {
-    if (await page.evaluate(() => (window as Cq3Window).__cq3?.ready === true)) return;
+    if (await page.evaluate(() => (window as Cq3Window).__cq3?.ready === true)) {
+      await page.evaluate((on) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).__cq3.app.profile.tipsOff = !on;
+      }, !!o.tips);
+      return;
+    }
     await frames(page, 1);
   }
   throw new Error('game never became ready');
@@ -479,4 +487,42 @@ test("Sable: the two tap zones on her first fight, then her two cursors' bar", a
   });
   await frames(page, 75);
   await expect(page).toHaveScreenshot('sable-bar.png', shot);
+});
+
+// ------------------------------------------------------------------ tips ("teach it slowly")
+
+test('tips: a tip card in a fight (the first red, the fight paused)', async ({ page }) => {
+  await boot(page, { tips: true });
+  await frames(page, 10);
+  // the pre-fight and the other fight tips already seen: the red's is the one that comes up
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__cq3.app.profile.tips.push('tapYellow', 'purple', 'green', 'special', 'finisher', 'comboBreak');
+  });
+  await firstFight(page, []);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.begin());
+  await frames(page, 30);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__cq3.app.run.combat.spawnBlock('red', 0.85);
+  });
+  await frames(page, 40);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  expect(await page.evaluate(() => (window as any).__cq3.app.view.tips.current)).toBe('blockRed');
+  await expect(page).toHaveScreenshot('tip-fight.png', shot);
+});
+
+test('tips: a tip card at the camp (its first visit)', async ({ page }) => {
+  await boot(page, { tips: true });
+  await frames(page, 10);
+  await stockProfile(page);
+  await page.evaluate(() => {
+    const app = (window as Cq3Window).__cq3!.app as unknown as { newRun(): void; openCamp(): void };
+    app.newRun();
+    app.openCamp();
+  });
+  await frames(page, 70);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  expect(await page.evaluate(() => (window as any).__cq3.app.view.tips.current)).toBe('camp');
+  await expect(page).toHaveScreenshot('tip-camp.png', shot);
 });

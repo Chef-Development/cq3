@@ -627,7 +627,7 @@ export class Overlays {
     else if (ph === 'victory') this.drawVictory(g, gc, now, since);
     else if (ph === 'fight' && s.app.storyOverlay) {
       // a boss's scene: the story view draws it
-    } else if (ph === 'fight' && s.app.awaitingBegin && !s.app.userPaused) {
+    } else if (ph === 'fight' && s.app.awaitingBegin && !s.app.userPaused && !s.app.tipUp) {
       if (this.twinTutorial()) this.drawTwinTutorial(g, gc, now);
       else this.prompt(g, 'TAP TO BEGIN!', now < this.bannerUntil ? 56 : 50, now);
     } else if (ph === 'fight' && s.app.userPaused) {
@@ -1718,6 +1718,19 @@ export class Overlays {
       strip(gc, mid - hw / 2 - 10, hy - 6, hw + 20, 12, 0.85);
       this.texts.text(hint, mid, hy, 0xffd23a, { bold: true, ox: 0.5, oy: 0.5, alpha: 0.7 + 0.3 * pulse(now, 900) });
     }
+  }
+
+  // ------------------------------------------------------------------ for the tips (view/tips.ts)
+
+  /** What the tips need: whether a toast or a flying card of ours is up, and the act clear's and the defeat's
+   *  buttons once they're in (null before). */
+  tipPeek(): { toast: boolean; clear: { camp: Rect; next: Rect } | null; defeat: { camp: Rect; retry: Rect } | null } {
+    const ph = this.s.app.run.phase;
+    return {
+      toast: !!this.levelToast || !!this.picked,
+      clear: ph === 'actClear' && this.clearReady() ? this.clearButtons() : null,
+      defeat: ph === 'defeat' && (this.backFromCamp || performance.now() - this.phaseAt > 900) ? this.defeatButtons() : null,
+    };
   }
 
   // ------------------------------------------------------------------ the relic panel (fight paused)

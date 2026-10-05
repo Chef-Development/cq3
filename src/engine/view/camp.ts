@@ -162,7 +162,7 @@ export class CampView {
     return 'World map';
   }
 
-  private band(): Array<{ id: Spot; r: Rect; label: string; icon: string }> {
+  band(): Array<{ id: Spot; r: Rect; label: string; icon: string }> {
     const s = this.s;
     const y = s.B - 19;
     const out: Array<{ id: Spot; r: Rect; label: string; icon: string }> = [];

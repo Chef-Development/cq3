@@ -86,7 +86,7 @@ export class HeroesScreen {
     return !!this.kit.profile.heroes[id]?.unlocked;
   }
 
-  private tabs() {
+  tabs() {
     return this.kit.heroTabs(true);
   }
 

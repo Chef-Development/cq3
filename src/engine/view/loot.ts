@@ -163,6 +163,11 @@ export class LootView {
     this.start(prev === 'treasure');
   }
 
+  /** Every item has landed and no reveal card is up ("Tap to continue" is showing): a tip may come up (view/tips.ts). */
+  revealDone(): boolean {
+    return !!this.doneAt && !this.card;
+  }
+
   /** Collected: the items fly off into Rowan's bag (his portrait), over the boost pick coming up. */
   private exiting: { at: number; items: Array<{ item: Item; x: number; y: number; face: Face; done: boolean }> } | null = null;
 
