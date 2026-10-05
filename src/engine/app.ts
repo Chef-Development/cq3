@@ -3,12 +3,12 @@ import { STORY } from '../data/story';
 import { SimClock, tapSimTime } from '../core/clock';
 import type { CombatEvent, TapResult } from '../core/combat';
 import { Run, type Phase } from '../core/run';
-import { recordAct, recordRegion, type Progress } from '../core/progress';
+import type { Profile } from '../core/profile';
 import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import type { Settings, Tuning } from '../core/tuning';
 import { Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, type ScreenLayout } from './layout';
-import { clearRunSave, loadProgress, loadRunSave, saveSoon, writeProgress, writeRunSave } from './storage';
+import { clearRunSave, loadProfile, loadRunSave, saveSoon, writeProfile, writeRunSave } from './storage';
 
 export interface View {
   /** Returns how long (ms) the next phase change should wait so a kill / finisher animation can play out. */
@@ -41,8 +41,8 @@ export class App {
   storyOverlay: string | null = null;
   /** Which box of the current story scene is on screen. */
   storyBox = 0;
-  /** Progress kept across runs (acts cleared, pendulum weights home): the world map shows it. */
-  progress: Progress = loadProgress();
+  /** The profile, kept across runs: progress (the world map shows it), the bag and gear, coins, scrap. */
+  readonly profile: Profile;
   /** The run saved by an earlier session (offered as Continue on the title screen). */
   savedRun: RunSave | null = null;
   private begunCombat: unknown = null;
@@ -53,9 +53,10 @@ export class App {
     readonly tuning: Tuning,
     readonly settings: Settings,
   ) {
-    this.run = new Run(tuning, settings, (Date.now() & 0xffffff) | 1);
+    this.profile = loadProfile();
+    this.run = new Run(tuning, settings, (Date.now() & 0xffffff) | 1, this.profile);
     this.audio.tuning = tuning; // live: the impact sliders apply to the next sound
-    this.savedRun = loadRunSave(tuning);
+    this.savedRun = loadRunSave(tuning, this.profile);
     this.layout = computeLayout();
     this.applyAudioSettings();
     this.cueAudio();
@@ -70,6 +71,16 @@ export class App {
 
   save(): void {
     saveSoon(this.tuning, this.settings);
+  }
+
+  /** Progress across runs (acts cleared, weights home): part of the profile. */
+  get progress(): Profile {
+    return this.profile;
+  }
+
+  /** Write the profile (after camp actions: equipping, the forge). */
+  saveProfile(): void {
+    writeProfile(this.profile);
   }
 
   get combat() {
@@ -191,6 +202,25 @@ export class App {
     this.setPhase(() => this.run.newRun());
   }
 
+  /** From the world map: a run from act `act` (a cleared act replayed for its drops, or the next one). */
+  startAct(act: number): void {
+    this.storyBox = 0;
+    clearRunSave();
+    this.savedRun = null;
+    this.setPhase(() => this.run.startAct(act));
+  }
+
+  /** Open the camp (from the world map, an act clear or a defeat). */
+  openCamp(): void {
+    this.setPhase(() => this.run.toCamp());
+  }
+
+  /** Leave the camp: back where it was opened from. */
+  leaveCamp(): void {
+    this.storyOverlay = null;
+    this.setPhase(() => this.run.leaveCamp());
+  }
+
   /** Back to the world map (after the victory). */
   toWorld(): void {
     this.storyOverlay = null;
@@ -229,6 +259,7 @@ export class App {
   /** Save the run in progress (after every stage, and whenever the page is hidden). */
   saveRun(): void {
     const s = snapshotRun(this.run);
+    writeProfile(this.profile);
     if (!s) return;
     writeRunSave(s);
     this.savedRun = s;
@@ -247,7 +278,7 @@ export class App {
       this.awaitingBegin = true;
       this.introUntil = 0;
     }
-    if (this.run.phase !== 'fight') this.storyOverlay = null;
+    if (this.run.phase !== 'fight' && this.run.phase !== 'camp') this.storyOverlay = null;
     if (this.run.phase !== prev) {
       this.phaseSince = now;
       if (this.run.phase === 'scene' || prev === 'scene') this.storyBox = 0;
@@ -255,11 +286,8 @@ export class App {
     }
     this.syncClock(now);
     this.cueAudio();
-    // progress across runs: acts cleared and the region's weight
-    let progressed = false;
-    if (this.run.phase === 'actClear') progressed = recordAct(this.progress, this.run.actIndex);
-    if (this.run.phase === 'victory') progressed = recordRegion(this.progress) || progressed;
-    if (progressed) writeProgress(this.progress);
+    // the profile (progress, loot, coins, accuracy) changes as the run goes: save it at every step
+    writeProfile(this.profile);
     if (this.run.phase === 'victory') {
       clearRunSave();
       this.savedRun = null;

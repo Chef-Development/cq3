@@ -44,6 +44,8 @@ describe('boost rarity', () => {
     c.stacks = 1;
     c.finisher();
     run.sync();
+    expect(run.phase).toBe('loot');
+    run.collectLoot();
     expect(run.phase).toBe('boost');
     expect(run.boostThen).toBe('actClear');
     expect(run.boostChoices.filter((o) => o.rarity !== 'common')).toHaveLength(1);

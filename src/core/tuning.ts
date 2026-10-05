@@ -192,6 +192,106 @@ export const DEFAULT_TUNING = {
     potionHeal: 0.4,
     priceReroll: 20, // one reroll of the next 1-of-3 boost pick
   },
+  gear: {
+    // Drops (core/gear.ts). Rarity weights, common to mythic; Luck shifts them toward the rare end: each step above
+    // common is weighted x (1 + luck x luckShift x step), so 20% Luck makes a Mythic 2x as likely.
+    wCommon: 55,
+    wUncommon: 28,
+    wRare: 12,
+    wEpic: 4,
+    wLegendary: 0.9,
+    wMythic: 0.1,
+    luckShift: 1,
+    fightChance: 0.5, // a fight node drops an item this often...
+    eliteItems: 1, // ...an elite always drops this many (Uncommon or better)...
+    treasureMin: 1, // ...a treasure chest holds 1-2...
+    treasureMax: 2,
+    miniBossItems: 2, // ...a mini-boss (Acts 1-2) this many plus its signature roll, the boss this many plus its
+    bossItems: 3, // signature rolls
+    setChance: 0.25, // a Rare or Epic drop is a set piece (of its slot) this often
+    sigChance: 0.2, // a boss's signature Legendary drops this often on a kill...
+    sigStep: 0.1, // ...plus this for every kill that didn't drop it (bad-luck protection)
+    mythicChance: 0.05, // the same for the Boar King's Mythic (the Pendulum Shard)
+    mythicStep: 0.03,
+    // Item level comes from the act (and creeps up along its map rows); stats grow x(1 + level x levelScale).
+    ilvlAct1: 1,
+    ilvlAct2: 10,
+    ilvlAct3: 20,
+    ilvlPerRow: 0.6,
+    levelScale: 0.08,
+    // the base stat's size per rarity (a Mythic's is 1.8x a Common's)
+    rCommon: 1,
+    rUncommon: 1.12,
+    rRare: 1.25,
+    rEpic: 1.4,
+    rLegendary: 1.6,
+    rMythic: 1.8,
+    // a stat's usual amount on an item at level 0 (slot base stats and bonus rolls scale from these)
+    atk: 1.2,
+    hp: 8,
+    def: 3.2,
+    critChance: 0.016,
+    critDmg: 0.08,
+    comboPower: 0.32,
+    meterGain: 0.032,
+    steady: 0.04,
+    luck: 0.04,
+    companion: 1.6,
+    bonusLo: 0.4, // a bonus stat rolls between these shares of that amount
+    bonusHi: 0.9,
+    defScale: 100, // damage from a red you didn't block is x defScale / (defScale + Defense)
+    steadyCap: 0.75, // Steady can slow the cursor's speed-up by at most this much
+    bagSize: 60, // items the bag holds; drops past it are salvaged into scrap
+  },
+  forge: {
+    upgradeStep: 0.08, // each + raises the base stat 8%
+    maxPlus: 10,
+    upgradeScrap: 3, // +0 -> +1 costs this much scrap and these coins (x the rarity's cost)...
+    upgradeCoins: 15,
+    upgradeGrowth: 1.35, // ...and each level costs this much more than the last
+    rerollCoins: 40, // rerolling a bonus stat; doubles with each reroll on the same item
+    // the rarity's cost multiplier (upgrades) and the scrap salvaging gives (x(1 + level / 25), plus half the scrap
+    // spent on its upgrades)
+    costCommon: 1,
+    costUncommon: 1.25,
+    costRare: 1.5,
+    costEpic: 2,
+    costLegendary: 2.5,
+    costMythic: 3,
+    scrapCommon: 1,
+    scrapUncommon: 2,
+    scrapRare: 4,
+    scrapEpic: 8,
+    scrapLegendary: 20,
+    scrapMythic: 40,
+  },
+  kit: {
+    // Replaying an act from the world map: Rowan starts with what a typical run has gained by then (boosts and kill
+    // gains, per act behind him; measured with the bot), plus his gear. The debug panel's "Jump to" uses it too.
+    atk: 6.8,
+    maxHp: 68,
+    dmg: 0.22,
+    crit: 0.085,
+    critDmg: 0.77,
+    comboPower: 0.82,
+    pet: 6.8,
+  },
+  effects: {
+    // Set bonuses and the unique effects of Legendary and Mythic gear (src/data/gear.ts has the text)
+    greenwardenHp: 0.1, // Greenwarden 2-piece: +10% max HP
+    greenwardenRest: 0.5, // Greenwarden 4-piece: rests heal this much...
+    greenwardenKillHeal: 0.03, // ...and kills heal this much
+    tuskCrit: 0.05, // Tusk Crown: +5% crit per finisher stack spent...
+    tuskSec: 5, // ...for this long
+    pendulumEvery: 10, // Pendulum Shard: every Nth combo hit spawns a green block
+    golemHeal: 1, // Golemheart Plate: HP healed per red blocked
+    leechHp: 2, // Leech: HP per crit
+    riposte: 0.5, // Riposte: a blocked red hits its owner for this share of your attack
+    goldTouch: 0.5, // Golden Touch: +50% coins from kills
+    owlEvery: 3, // Owl Eye: Pip pecks every N hits
+    secondWindAt: 0.3, // Second Wind: once a fight, dropping under this share of max HP...
+    secondWindHeal: 0.2, // ...heals this share
+  },
   enemies: cloneData(ENEMIES),
   acts: GREENMARCH.acts.map((a: ActDef): ActScale => ({ name: a.name, hpMult: a.hpMult, atkMult: a.atkMult, pace: a.pace })),
 };
@@ -505,10 +605,119 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       ],
     },
   );
+  groups.push(
+    {
+      title: 'Gear drops',
+      sliders: [
+        s('gear.wCommon', 'Weight: Common', 0, 100, 1),
+        s('gear.wUncommon', 'Weight: Uncommon', 0, 100, 1),
+        s('gear.wRare', 'Weight: Rare', 0, 100, 0.5),
+        s('gear.wEpic', 'Weight: Epic', 0, 50, 0.5),
+        s('gear.wLegendary', 'Weight: Legendary', 0, 20, 0.1),
+        s('gear.wMythic', 'Weight: Mythic', 0, 5, 0.05),
+        s('gear.luckShift', 'Luck shift', 0, 5, 0.1),
+        s('gear.fightChance', 'Fight: item chance', 0, 1, 0.05),
+        s('gear.eliteItems', 'Elite: items', 0, 4, 1),
+        s('gear.treasureMin', 'Treasure: items from', 0, 4, 1),
+        s('gear.treasureMax', '...to', 0, 5, 1),
+        s('gear.miniBossItems', 'Mini-boss: items', 0, 5, 1),
+        s('gear.bossItems', 'Boss: items', 0, 6, 1),
+        s('gear.setChance', 'Set piece chance (Rare/Epic)', 0, 1, 0.05),
+        s('gear.sigChance', 'Signature chance', 0, 1, 0.01),
+        s('gear.sigStep', 'Signature +per miss', 0, 0.5, 0.01),
+        s('gear.mythicChance', 'Mythic signature chance', 0, 1, 0.01),
+        s('gear.mythicStep', 'Mythic +per miss', 0, 0.5, 0.01),
+        s('gear.bagSize', 'Bag size', 10, 120, 1),
+      ],
+    },
+    {
+      title: 'Gear stats',
+      sliders: [
+        s('gear.ilvlAct1', 'Item level: Act 1', 1, 40, 1),
+        s('gear.ilvlAct2', 'Item level: Act 2', 1, 40, 1),
+        s('gear.ilvlAct3', 'Item level: Act 3', 1, 40, 1),
+        s('gear.ilvlPerRow', 'Item level per map row', 0, 2, 0.1),
+        s('gear.levelScale', 'Stats per item level', 0, 0.3, 0.005),
+        s('gear.rCommon', 'Base stat: Common x', 0.5, 3, 0.05),
+        s('gear.rUncommon', 'Base stat: Uncommon x', 0.5, 3, 0.05),
+        s('gear.rRare', 'Base stat: Rare x', 0.5, 3, 0.05),
+        s('gear.rEpic', 'Base stat: Epic x', 0.5, 3, 0.05),
+        s('gear.rLegendary', 'Base stat: Legendary x', 0.5, 3, 0.05),
+        s('gear.rMythic', 'Base stat: Mythic x', 0.5, 3, 0.05),
+        s('gear.atk', 'Attack per item', 0, 10, 0.1),
+        s('gear.hp', 'HP per item', 0, 60, 1),
+        s('gear.def', 'Defense per item', 0, 30, 0.5),
+        s('gear.critChance', 'Crit per item', 0, 0.2, 0.005),
+        s('gear.critDmg', 'Crit dmg per item', 0, 1, 0.01),
+        s('gear.comboPower', 'Combo power per item', 0, 3, 0.05),
+        s('gear.meterGain', 'Meter gain per item', 0, 0.3, 0.005),
+        s('gear.steady', 'Steady per item', 0, 0.3, 0.005),
+        s('gear.luck', 'Luck per item', 0, 0.3, 0.005),
+        s('gear.companion', 'Companion per item', 0, 20, 0.5),
+        s('gear.bonusLo', 'Bonus roll from x', 0, 2, 0.05),
+        s('gear.bonusHi', '...to x', 0, 3, 0.05),
+        s('gear.defScale', 'Defense scale', 10, 500, 5),
+        s('gear.steadyCap', 'Steady cap', 0, 1, 0.05),
+      ],
+    },
+    {
+      title: 'Forge',
+      sliders: [
+        s('forge.upgradeStep', 'Upgrade: +stat per level', 0, 0.3, 0.01),
+        s('forge.maxPlus', 'Max +', 1, 20, 1),
+        s('forge.upgradeScrap', 'Upgrade scrap (+1)', 0, 30, 1),
+        s('forge.upgradeCoins', 'Upgrade coins (+1)', 0, 200, 1),
+        s('forge.upgradeGrowth', 'Upgrade cost growth', 1, 2.5, 0.05),
+        s('forge.rerollCoins', 'Reroll coins (doubles)', 0, 300, 5),
+        s('forge.costCommon', 'Cost x: Common', 0.2, 6, 0.05),
+        s('forge.costUncommon', 'Cost x: Uncommon', 0.2, 6, 0.05),
+        s('forge.costRare', 'Cost x: Rare', 0.2, 6, 0.05),
+        s('forge.costEpic', 'Cost x: Epic', 0.2, 6, 0.05),
+        s('forge.costLegendary', 'Cost x: Legendary', 0.2, 6, 0.05),
+        s('forge.costMythic', 'Cost x: Mythic', 0.2, 6, 0.05),
+        s('forge.scrapCommon', 'Salvage: Common', 0, 50, 1),
+        s('forge.scrapUncommon', 'Salvage: Uncommon', 0, 50, 1),
+        s('forge.scrapRare', 'Salvage: Rare', 0, 100, 1),
+        s('forge.scrapEpic', 'Salvage: Epic', 0, 200, 1),
+        s('forge.scrapLegendary', 'Salvage: Legendary', 0, 300, 1),
+        s('forge.scrapMythic', 'Salvage: Mythic', 0, 500, 1),
+      ],
+    },
+  );
+  groups.push({
+    title: 'Replay kit (per act behind)',
+    sliders: [
+      s('kit.atk', 'Attack +', 0, 30, 0.1),
+      s('kit.maxHp', 'Max HP +', 0, 300, 1),
+      s('kit.dmg', 'Damage +', 0, 1, 0.01),
+      s('kit.crit', 'Crit +', 0, 0.5, 0.005),
+      s('kit.critDmg', 'Crit dmg +', 0, 3, 0.01),
+      s('kit.comboPower', 'Combo power +', 0, 5, 0.01),
+      s('kit.pet', 'Companion +', 0, 40, 0.1),
+    ],
+  });
+  groups.push({
+    title: 'Gear effects and sets',
+    sliders: [
+      s('effects.greenwardenHp', 'Greenwarden 2: max HP +', 0, 0.5, 0.01),
+      s('effects.greenwardenRest', 'Greenwarden 4: rest heals', 0, 1, 0.05),
+      s('effects.greenwardenKillHeal', 'Greenwarden 4: kill heals', 0, 0.2, 0.01),
+      s('effects.tuskCrit', 'Tusk Crown: crit per stack', 0, 0.3, 0.01),
+      s('effects.tuskSec', 'Tusk Crown: seconds', 0, 20, 0.5),
+      s('effects.pendulumEvery', 'Pendulum Shard: every N hits', 2, 30, 1),
+      s('effects.golemHeal', 'Golemheart: HP per block', 0, 10, 1),
+      s('effects.leechHp', 'Leech: HP per crit', 0, 20, 1),
+      s('effects.riposte', 'Riposte: x attack', 0, 3, 0.05),
+      s('effects.goldTouch', 'Golden Touch: coins +', 0, 3, 0.05),
+      s('effects.owlEvery', 'Owl Eye: peck every N', 1, 10, 1),
+      s('effects.secondWindAt', 'Second Wind: below HP', 0, 1, 0.05),
+      s('effects.secondWindHeal', 'Second Wind: heals', 0, 1, 0.05),
+    ],
+  });
   t.acts.forEach((a, i) =>
     groups.push({
       title: `Act ${i + 1}: ${a.name}`,
-      sliders: [s(`acts.${i}.hpMult`, 'Enemy HP x', 0.2, 6, 0.05), s(`acts.${i}.atkMult`, 'Enemy attack x', 0.2, 8, 0.05), s(`acts.${i}.pace`, 'Spawn interval x', 0.4, 2, 0.05)],
+      sliders: [s(`acts.${i}.hpMult`, 'Enemy HP x', 0.2, 6, 0.05), s(`acts.${i}.atkMult`, 'Enemy attack x', 0.2, 16, 0.05), s(`acts.${i}.pace`, 'Spawn interval x', 0.4, 2, 0.05)],
     }),
   );
   for (const key of Object.keys(t.enemies)) {

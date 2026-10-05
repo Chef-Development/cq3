@@ -26,9 +26,9 @@ function goTo(r: Run, type: string): void {
   r.chooseNode(target.id);
 }
 
-/** A copy of the run restored from its save (through JSON). */
+/** A copy of the run restored from its save (through JSON), on the same profile (it's saved on its own). */
 function reload(r: Run): Run {
-  const back = new Run(r.tuning, { ...DEFAULT_SETTINGS }, 99);
+  const back = new Run(r.tuning, { ...DEFAULT_SETTINGS }, 99, r.profile);
   expect(restoreRun(back, viaJson(snapshotRun(r, 1000)))).toBe(true);
   return back;
 }
@@ -127,7 +127,7 @@ describe('save at every node', () => {
     expect(back.combat!.enemies.map((x) => [x.key, x.alive])).toEqual(c.enemies.map((x) => [x.key, x.alive]));
   });
 
-  it('a kill still waiting on its animation keeps its coins, and the reward comes up', () => {
+  it('a kill still waiting on its animation keeps its coins (in the purse), and the reward comes up', () => {
     const r = onMap();
     r.chooseNode(r.map.rows[0][0]);
     const c = r.combat!;
@@ -139,9 +139,11 @@ describe('save at every node', () => {
     c.finisher(); // no r.sync(): the view holds the phase change while the enemy bursts
     const coins = before + c.enemies.filter((e) => e.wave === c.waveIndex).reduce((n, e) => n + r.tuning.enemies[e.key].coins, 0);
     const save = snapshotRun(r)!;
-    expect(save.coins).toBe(coins);
-    const back = fresh();
+    expect(r.coins).toBe(coins); // banked into the profile's purse
+    const back = new Run(r.tuning, { ...DEFAULT_SETTINGS }, 99, r.profile);
     restoreRun(back, viaJson(save));
+    expect(['loot', 'boost']).toContain(back.phase); // a fight drops an item half the time
+    back.collectLoot();
     expect(back.phase).toBe('boost');
     expect(back.coins).toBe(coins);
     expect(back.boostChoices).toHaveLength(3);
@@ -157,6 +159,12 @@ describe('save at every node', () => {
     c.stacks = 1;
     c.finisher();
     r.sync();
+    expect(r.phase).toBe('loot'); // a mini-boss drops two items (and its signature roll)
+    expect(r.loot.length).toBeGreaterThanOrEqual(2);
+    const looted = reload(r);
+    expect(looted.phase).toBe('loot');
+    expect(looted.loot).toEqual(r.loot);
+    r.collectLoot();
     expect(r.phase).toBe('boost');
     const back = reload(r);
     expect(back.phase).toBe('boost');
@@ -186,16 +194,15 @@ describe('save at every node', () => {
     }
   });
 
-  it("a save from the defeat screen starts the act over", () => {
+  it("a save from the defeat screen starts the act over (the purse is kept)", () => {
     const r = onMap();
     r.coins = 30;
-    r.actCoins = 12;
     r.chooseNode(r.map.rows[0][0]);
     r.phase = 'defeat';
     const back = reload(r);
     expect(back.phase).toBe('map');
     expect(back.path).toEqual([]);
-    expect(back.coins).toBe(12);
+    expect(back.coins).toBe(30);
     expect(back.hero.hp).toBe(back.tuning.hero.maxHp);
   });
 
@@ -258,15 +265,16 @@ describe('save storage', () => {
     const run = onMap();
     run.chooseNode(run.map.rows[0][0]);
     const save = snapshotRun(run)!;
+    const p = run.profile;
     writeRunSave(save);
-    expect(loadRunSave(run.tuning)).toEqual(save);
+    expect(loadRunSave(run.tuning, p)).toEqual(save);
     store.set('cq3.run.v3', '{broken');
-    expect(loadRunSave(run.tuning)).toBeNull();
+    expect(loadRunSave(run.tuning, p)).toBeNull();
     store.set('cq3.run.v3', JSON.stringify({ ...save, act: 9 }));
-    expect(loadRunSave(run.tuning)).toBeNull();
+    expect(loadRunSave(run.tuning, p)).toBeNull();
     writeRunSave(save);
     clearRunSave();
-    expect(loadRunSave(run.tuning)).toBeNull();
+    expect(loadRunSave(run.tuning, p)).toBeNull();
   });
 });
 

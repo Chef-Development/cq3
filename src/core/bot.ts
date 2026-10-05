@@ -9,11 +9,15 @@
 // waits out a frozen cursor. It swipes the finisher when it would kill, at max stacks, or when holding on for one
 // more stack isn't worth the risk of a combo break.
 // Between fights it walks the act's map picking nodes at random, takes Full Heal when hurt (otherwise the rarest
-// card), rests, buys what it can afford at shops, and picks event choices at random.
+// card), rests, buys what it can afford at shops, and picks event choices at random. It wears the best gear it has
+// found (by item power) and salvages Common and Uncommon items when the bag fills up.
 
 import { eventById } from '../data/events';
 import type { NodeType } from '../data/types';
-import { DT, heroMaxHp, isRed, type Combat, type CombatEvent } from './combat';
+import { SLOT_KEYS, slotOf } from '../data/gear';
+import { DT, heroAtk, heroMaxHp, isRed, type Combat, type CombatEvent } from './combat';
+import { itemPower, slotOfItem, upgradeCost } from './gear';
+import { equip, equippedItems, newProfile, salvageAll, upgrade, type Profile } from './profile';
 import { Rng } from './rng';
 import { RARITIES, Run } from './run';
 import { DEFAULT_SETTINGS, type Settings, type Tuning } from './tuning';
@@ -57,6 +61,12 @@ export function timingSpread(t: Tuning, accuracy: number, lapse = DEFAULT_LAPSE)
 }
 
 const DEFAULT_LAPSE = 0.03;
+
+/**
+ * The player the difficulty curve is set for: the balance targets (tests/unit/bot.test.ts) are this player's odds.
+ * To re-aim the curve at another player, `ACC=0.62 npm run retarget` (it writes docs/retarget.md).
+ */
+export const TYPICAL_ACCURACY = 0.7;
 
 export interface FightStats {
   act: number;
@@ -104,12 +114,32 @@ export interface RunStats {
   acts: Array<{ act: number; attempts: ActAttempt[]; cleared: boolean }>;
 }
 
-/** A new run that skips the opening scenes (ready on Act 1's map). */
-export function botRun(tuning: Tuning, seed: number): Run {
-  const run = new Run(tuning, { ...BOT_SETTINGS }, seed);
-  run.newRun();
+/** A new run that skips the opening scenes (ready on Act 1's map, or act `act` to farm it). */
+export function botRun(tuning: Tuning, seed: number, profile: Profile = newProfile(), act = 0): Run {
+  const run = new Run(tuning, { ...BOT_SETTINGS }, seed, profile);
+  run.startAct(act);
   run.skipScenes();
   return run;
+}
+
+/** Wear the strongest item found for each slot (the two strongest trinkets); make room when the bag is nearly full. */
+export function equipBest(run: Run): void {
+  const p = run.profile;
+  const T = run.tuning;
+  if (p.items.length >= T.gear.bagSize - 4) salvageAll(p, T, ['common', 'uncommon']);
+  const ranked = p.items.slice().sort((a, b) => itemPower(T, b) - itemPower(T, a));
+  const used = new Set<number>();
+  for (const k of SLOT_KEYS) {
+    const best = ranked.find((i) => slotOfItem(i) === slotOf(k) && !used.has(i.uid));
+    if (!best) continue;
+    used.add(best.uid);
+    if (p.equipped[k] !== best.uid) {
+      // a trinket worn in the other trinket slot moves over
+      for (const o of SLOT_KEYS) if (p.equipped[o] === best.uid) p.equipped[o] = 0;
+      equip(p, best.uid, k);
+    }
+  }
+  run.refreshGear();
 }
 
 /**
@@ -117,9 +147,9 @@ export function botRun(tuning: Tuning, seed: number): Run {
  * defeat (with the hero as they entered it), then on to the next act with the upgrades earned. Gives up on an
  * act after `maxAttempts`.
  */
-export function playRun(tuning: Tuning, o: BotOptions, maxAttempts = 6, acts = tuning.acts.length): RunStats {
+export function playRun(tuning: Tuning, o: BotOptions, maxAttempts = 6, acts = tuning.acts.length, profile: Profile = newProfile()): RunStats {
   const rng = new Rng(o.seed ^ 0x2545f491);
-  const run = botRun(tuning, o.seed);
+  const run = botRun(tuning, o.seed, profile);
   const out: RunStats = { acts: [] };
   for (let a = 0; a < acts; a++) {
     const entry = { act: a, attempts: [] as ActAttempt[], cleared: false };
@@ -137,6 +167,53 @@ export function playRun(tuning: Tuning, o: BotOptions, maxAttempts = 6, acts = t
     }
   }
   return out;
+}
+
+export interface FarmResult {
+  story: RunStats; // the first playthrough, with the gear found on the way
+  /** Each replay of the last act (for the Boar King's drops): its boss fight won the first time it came up, and cleared. */
+  visits: Array<{ bossWon: boolean | null; cleared: boolean; power: number }>;
+}
+
+/**
+ * Play the story once (fresh profile), then replay the last act `farms` times to farm the boss, keeping all gear.
+ * With `forge`, between replays the bot salvages its spare Common-Rare items and upgrades what it wears.
+ */
+export function playFarm(tuning: Tuning, o: BotOptions, farms: number, forge = false): FarmResult {
+  const profile = newProfile();
+  const story = playRun(tuning, o, 6, tuning.acts.length, profile);
+  const last = tuning.acts.length - 1;
+  const visits: FarmResult['visits'] = [];
+  const rng = new Rng(o.seed ^ 0x51ed27);
+  for (let v = 0; v < farms; v++) {
+    if (forge) forgeUp(tuning, profile);
+    const run = botRun(tuning, (o.seed + 7919 * (v + 1)) >>> 0, profile, last);
+    equipBest(run);
+    const power = equippedItems(profile).reduce((n, i) => n + itemPower(tuning, i), 0);
+    let bossWon: boolean | null = null;
+    let cleared = false;
+    for (let k = 0; k < 6 && !cleared; k++) {
+      if (k > 0) run.retry();
+      const res = playAct(run, rng, o);
+      const boss = res.fights.find((f) => f.type === 'boss');
+      if (bossWon === null && boss) bossWon = boss.won;
+      cleared = res.won;
+    }
+    visits.push({ bossWon, cleared, power });
+  }
+  return { story, visits };
+}
+
+/** The bot at the forge: salvage spare Common to Rare items, then upgrade the worn items, cheapest first. */
+export function forgeUp(t: Tuning, p: Profile): void {
+  salvageAll(p, t, ['common', 'uncommon', 'rare']);
+  for (let guard = 0; guard < 100; guard++) {
+    const worn = equippedItems(p)
+      .map((i) => ({ i, c: upgradeCost(t, i) }))
+      .filter((x) => x.c && x.c.scrap <= p.scrap && x.c.coins <= p.coins)
+      .sort((a, b) => a.c!.coins - b.c!.coins);
+    if (!worn.length || upgrade(p, t, worn[0].i.uid) !== 'ok') break;
+  }
 }
 
 /** One attempt at the current act, from wherever the run stands until the act is cleared or lost. */
@@ -159,6 +236,9 @@ export function playAct(run: Run, rng: Rng, o: BotOptions): ActAttempt {
       if (run.phase === 'fight') {
         run.phase = 'defeat'; // timed out
       }
+    } else if (ph === 'loot') {
+      run.collectLoot();
+      equipBest(run);
     } else if (ph === 'boost') {
       // Full Heal when hurt; otherwise the strongest card, a random one among equals
       const offers = run.boostChoices;
@@ -231,7 +311,7 @@ function newFight(run: Run, c: Combat): FightStats {
     counters: 0,
     specials: 0,
     hitsTaken: 0,
-    heroAtk: (T.hero.atk + run.hero.bonusAtk) * (1 + run.hero.bonusDmg),
+    heroAtk: heroAtk(T, run.hero),
     comboPower: T.hero.comboPower + run.hero.bonusComboPower,
     hpStart: run.hero.hp / heroMaxHp(T, run.hero),
     hpEnd: 0,

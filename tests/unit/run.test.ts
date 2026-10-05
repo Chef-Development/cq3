@@ -2,8 +2,13 @@
 import { describe, expect, it } from 'vitest';
 import { toLastWave } from './helpers';
 import type { NodeType } from '../../src/data/types';
-import { heroMaxHp } from '../../src/core/combat';
+import { BASE_BY_ID } from '../../src/data/gear';
+import { heroAtk, heroMaxHp } from '../../src/core/combat';
+import { makeItem } from '../../src/core/gear';
+import { addItem, equip } from '../../src/core/profile';
+import { Rng } from '../../src/core/rng';
 import { Run, rarityMult } from '../../src/core/run';
+import { snapshotRun } from '../../src/core/save';
 import { cloneTuning, DEFAULT_SETTINGS, type Tuning } from '../../src/core/tuning';
 
 function fresh(tune?: (t: Tuning) => void, seed = 7): Run {
@@ -45,6 +50,7 @@ function win(r: Run): void {
   c.stacks = 1;
   c.finisher();
   r.sync();
+  if (r.phase === 'loot') r.collectLoot(); // the items found go straight in the bag
 }
 
 describe('a new run', () => {
@@ -130,6 +136,10 @@ describe('treasure, rest, shop and events', () => {
     expect(coins).toBeGreaterThan(0);
     r.openTreasure();
     expect(r.coins).toBe(coins);
+    expect(r.phase).toBe('loot'); // 1-2 items
+    expect(r.loot.length).toBeGreaterThanOrEqual(1);
+    expect(r.profile.items.map((i) => i.uid)).toEqual(r.loot.map((i) => i.uid));
+    r.collectLoot();
     expect(r.phase).toBe('boost');
     expect(r.boostChoices.some((o) => o.rarity === 'rare')).toBe(true);
     r.pickBoost(0);
@@ -249,7 +259,7 @@ describe('acts, dying and the end', () => {
     expect(r.path).toEqual([]);
   });
 
-  it("dying sends you back to the act's start: same map, the hero and coins as you entered; one revive per act", () => {
+  it("dying sends you back to the act's start: same map, the hero as you entered (coins and gear kept); one revive per act", () => {
     const r = onMap();
     r.chooseNode(r.map.rows[0][0]);
     win(r);
@@ -260,6 +270,7 @@ describe('acts, dying and the end', () => {
     while (r.phase !== 'fight') {
       // walk on until a fight
       if (r.phase === 'boost') r.pickBoost(0);
+      else if (r.phase === 'loot') r.collectLoot();
       else if (r.phase === 'treasure') r.openTreasure();
       else if (r.phase === 'rest') r.rest();
       else if (r.phase === 'shop') r.leaveShop();
@@ -282,11 +293,15 @@ describe('acts, dying and the end', () => {
     r.sync();
     expect(r.phase).toBe('defeat');
     const map = r.map;
+    const coins = r.coins;
+    const items = r.profile.items.length;
     r.retry();
     expect(r.phase).toBe('map');
     expect(r.map).toBe(map);
     expect(r.path).toEqual([]);
-    expect(r.coins).toBe(0);
+    expect(r.coins).toBe(coins);
+    expect(coins).toBeGreaterThanOrEqual(99);
+    expect(r.profile.items).toHaveLength(items);
     expect(r.hero.bonusAtk).toBe(0);
     expect(r.hero.hp).toBe(r.tuning.hero.maxHp);
     expect(r.hero.revives).toBe(r.tuning.hero.revivesPerAct);
@@ -306,5 +321,89 @@ describe('acts, dying and the end', () => {
     expect(r.sceneQueue).toEqual(['victory']);
     r.advanceScene();
     expect(r.phase).toBe('victory');
+  });
+});
+
+describe('the camp, replaying acts, the purse', () => {
+  it('the world map sits between runs (nothing to save there); the camp goes back where it was opened', () => {
+    const r = fresh();
+    r.toWorld();
+    expect(snapshotRun(r)).toBeNull();
+    r.toCamp();
+    expect(r.phase).toBe('camp');
+    expect(r.campFrom).toBe('world');
+    expect(snapshotRun(r)).toBeNull();
+    r.leaveCamp();
+    expect(r.phase).toBe('world');
+    // from an act clear (the save keeps the act clear)
+    const m = onMap();
+    goTo(m, 'boss');
+    m.skipScenes();
+    win(m);
+    m.pickBoost(0);
+    expect(m.phase).toBe('actClear');
+    m.toCamp();
+    expect(m.campFrom).toBe('actClear');
+    expect(snapshotRun(m)!.phase).toBe('actClear');
+    m.leaveCamp();
+    expect(m.phase).toBe('actClear');
+  });
+
+  it('gear equipped at the camp is worn when you go back', () => {
+    const r = onMap();
+    r.phase = 'actClear';
+    r.toCamp();
+    const it = addItem(r.profile, r.tuning, makeItem(new Rng(1), BASE_BY_ID.hedgeSaber, 'rare', 10)).item;
+    equip(r.profile, it.uid);
+    const atk = heroAtk(r.tuning, r.hero);
+    r.leaveCamp();
+    expect(heroAtk(r.tuning, r.hero)).toBeGreaterThan(atk);
+  });
+
+  it('cleared acts (and the next one) can be played from the world map, with a seasoned Rowan', () => {
+    const r = fresh();
+    expect(r.playableActs).toBe(1);
+    r.profile.actsCleared = 2;
+    expect(r.playableActs).toBe(3);
+    r.startAct(2);
+    expect(r.actIndex).toBe(2);
+    expect(r.sceneQueue).toEqual(['act3']);
+    expect(r.hero.bonusAtk).toBeCloseTo(r.tuning.kit.atk * 2);
+    expect(r.hero.hp).toBe(heroMaxHp(r.tuning, r.hero));
+    r.profile.actsCleared = 0;
+    r.startAct(2); // not unlocked: Act 1 instead
+    expect(r.actIndex).toBe(0);
+  });
+
+  it('coins carry over between runs (the purse is in the profile)', () => {
+    const r = onMap();
+    r.coins = 120;
+    r.toWorld();
+    r.newRun();
+    expect(r.coins).toBe(120);
+    const other = new Run(r.tuning, { ...DEFAULT_SETTINGS }, 3, r.profile);
+    expect(other.coins).toBe(120);
+  });
+
+  it('clearing an act records it, with its accuracy', () => {
+    const r = onMap();
+    r.actAims = Array.from({ length: 80 }, (_, i) => (i % 9) * 10 - 40);
+    goTo(r, 'boss');
+    r.skipScenes();
+    win(r);
+    r.pickBoost(0);
+    expect(r.profile.actsCleared).toBe(1);
+    expect(r.actAccuracy).not.toBeNull();
+    expect(r.profile.acc.history.at(-1)).toEqual(r.actAccuracy);
+  });
+
+  it('the Greenwarden 4-piece makes rests heal 50%', () => {
+    const r = onMap();
+    for (const id of ['wardenHood', 'wardenMail', 'wardenTreads', 'wardenSprig']) equip(r.profile, addItem(r.profile, r.tuning, makeItem(new Rng(2), BASE_BY_ID[id], 'rare', 1)).item.uid);
+    r.refreshGear();
+    expect(r.restShare).toBe(r.tuning.effects.greenwardenRest);
+    expect(goTo(r, 'rest')).toBe(true);
+    r.hero.hp = 1;
+    expect(r.rest()).toBe(Math.round(heroMaxHp(r.tuning, r.hero) * 0.5));
   });
 });

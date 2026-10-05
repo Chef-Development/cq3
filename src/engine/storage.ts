@@ -1,6 +1,6 @@
 // localStorage helpers. Every access is wrapped: storage can be missing or throw (private mode, quota).
-import { readProgress, type Progress } from '../core/progress';
-import { readSave, type RunSave } from '../core/save';
+import { readProfile, type Profile } from '../core/profile';
+import { migrateSave, readSave, type RunSave } from '../core/save';
 import { cloneTuning, DEFAULT_SETTINGS, DEFAULT_TUNING, mergeKnown, tuningDiff, type Settings, type Tuning } from '../core/tuning';
 
 // Only values changed from the defaults are stored, so new defaults reach players. v3: every enemy and act was
@@ -13,8 +13,10 @@ const OLD_SETTINGS_KEY = 'cq3.settings.v1';
 // The run in progress (see core/save.ts; the save carries its own version, older ones are dropped).
 const RUN_KEY = 'cq3.run.v3';
 const OLD_RUN_KEY = 'cq3.run.v1';
-// Progress across runs (see core/progress.ts).
-const PROGRESS_KEY = 'cq3.progress.v1';
+// The profile, kept across runs (see core/profile.ts): progress, the bag and gear, coins, scrap, bad-luck counters,
+// the accuracy log. v1 was the progress alone; it is migrated.
+const PROFILE_KEY = 'cq3.profile.v2';
+const OLD_PROGRESS_KEY = 'cq3.progress.v1';
 
 function read(key: string): unknown {
   try {
@@ -77,9 +79,16 @@ export function saveNow(t: Tuning, s: Settings): void {
   }
 }
 
-/** The saved run, if there is one this build can resume. */
-export function loadRunSave(t: Tuning): RunSave | null {
-  return readSave(read(RUN_KEY), t);
+/** The saved run, if there is one this build can resume. An older save is migrated (a v4 save's coins go into the
+ *  profile's purse) and both are written back at once, so it happens only once. */
+export function loadRunSave(t: Tuning, profile: Profile): RunSave | null {
+  const raw = read(RUN_KEY);
+  const data = migrateSave(raw, profile);
+  if (data !== raw) {
+    write(RUN_KEY, data);
+    writeProfile(profile);
+  }
+  return readSave(data, t);
 }
 
 export function writeRunSave(s: RunSave): void {
@@ -99,10 +108,16 @@ export function clearRunSave(): void {
   }
 }
 
-export function loadProgress(): Progress {
-  return readProgress(read(PROGRESS_KEY));
+export function loadProfile(): Profile {
+  const p = read(PROFILE_KEY);
+  return readProfile(p ?? read(OLD_PROGRESS_KEY));
 }
 
-export function writeProgress(p: Progress): void {
-  write(PROGRESS_KEY, p);
+export function writeProfile(p: Profile): void {
+  write(PROFILE_KEY, p);
+  try {
+    window.localStorage.removeItem(OLD_PROGRESS_KEY);
+  } catch {
+    /* ignore */
+  }
 }

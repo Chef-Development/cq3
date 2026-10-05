@@ -6,16 +6,19 @@ import { eventById } from '../data/events';
 import { GREENMARCH } from '../data/greenmarch';
 import type { RegionDef } from '../data/types';
 import type { Hero, SavedFoe } from './combat';
+import { validItem, type Item } from './gear';
 import { actSeed, buildActMap, validPath } from './map';
+import type { Profile } from './profile';
 import { BOOST_IDS, RARITIES, type BoostOffer, type EventState, type Phase, type Rarity, type Run, type SceneThen, type ShopItem } from './run';
 import type { Tuning } from './tuning';
 
 // v3: Greenmarch's acts and node maps replaced the levels. v4: fights are waves of foes (the save keeps the wave).
-// Older saves can't be resumed and are dropped.
-export const SAVE_VERSION = 4;
+// v5: gear. The coins moved to the profile's purse (kept between runs), the loot screen and the act's timing samples
+// are saved. A v4 save is migrated (migrateSave: its coins go into the purse); older ones are dropped.
+export const SAVE_VERSION = 5;
 
-type SavedPhase = Exclude<Phase, 'title' | 'world' | 'victory'>;
-const PHASES: SavedPhase[] = ['scene', 'map', 'fight', 'boost', 'treasure', 'rest', 'shop', 'event', 'actClear', 'defeat'];
+type SavedPhase = Exclude<Phase, 'title' | 'world' | 'victory' | 'camp'>;
+const PHASES: SavedPhase[] = ['scene', 'map', 'fight', 'loot', 'boost', 'treasure', 'rest', 'shop', 'event', 'actClear', 'defeat'];
 
 export interface RunSave {
   v: number;
@@ -24,10 +27,8 @@ export interface RunSave {
   act: number;
   mapSeed: number;
   path: number[]; // node ids visited in this act
-  hero: Hero;
-  actHero: Hero; // the hero as they entered the act (a retry starts from here)
-  coins: number;
-  actCoins: number;
+  hero: SavedHero;
+  actHero: SavedHero; // the hero as they entered the act (a retry starts from here)
   rerolls: number;
   actRerolls: number;
   scenes: string[];
@@ -37,21 +38,45 @@ export interface RunSave {
   shop: ShopItem[];
   event: EventState | null;
   treasure: { coins: number; opened: boolean } | null;
+  loot: { items: Item[]; salvaged: number; min: boolean | Rarity; then: 'map' | 'actClear' } | null;
+  aims: number[]; // the act's timing samples so far (its accuracy at the act clear)
   random: { seed: number; rng: number };
 }
 
-const HERO_KEYS: Array<keyof Hero> = ['hp', 'bonusAtk', 'bonusMaxHp', 'bonusDmg', 'bonusCrit', 'bonusCritDmg', 'bonusComboPower', 'bonusPet', 'revives', 'abilityTimer'];
+/** The hero as saved: the gear isn't (it comes from the profile when the run resumes). */
+export type SavedHero = Omit<Hero, 'gear'>;
+
+const HERO_KEYS: Array<keyof SavedHero> = ['hp', 'bonusAtk', 'bonusMaxHp', 'bonusDmg', 'bonusCrit', 'bonusCritDmg', 'bonusComboPower', 'bonusPet', 'revives', 'abilityTimer'];
+
+const savedHero = (h: Hero): SavedHero => {
+  const { gear: _gear, ...rest } = h;
+  return { ...rest, abilityTimer: 0 };
+};
+
+/**
+ * A save from an older build in this build's form, or the data as it is. v4 -> v5: the run's coins go into the
+ * profile's purse (it's mutated; save both afterwards so it happens once).
+ */
+export function migrateSave(data: unknown, profile: Profile): unknown {
+  const s = data as Record<string, unknown> | null;
+  if (!s || typeof s !== 'object' || s.v !== 4) return data;
+  const coins = typeof s.coins === 'number' && Number.isFinite(s.coins) ? Math.max(0, Math.round(s.coins)) : 0;
+  profile.coins += coins;
+  const { coins: _c, actCoins: _a, ...rest } = s;
+  return { ...rest, v: SAVE_VERSION, loot: null, aims: [] };
+}
 
 /** Snapshot of a run in progress (null on the title screen, the world map and after the victory: nothing to resume). */
 export function snapshotRun(run: Run, now = Date.now()): RunSave | null {
-  if (run.phase === 'title' || run.phase === 'world' || run.phase === 'victory') return null;
+  // the camp saves as the screen it goes back to (from the world map: no run to save)
+  const ph = run.phase === 'camp' ? (run.campFrom === 'world' ? 'world' : run.campFrom) : run.phase;
+  if (ph === 'title' || ph === 'world' || ph === 'victory') return null;
   const c = run.combat;
-  let phase: SavedPhase = run.phase;
-  let coins = run.coins;
+  let phase: SavedPhase = ph;
   let fight: RunSave['fight'] = null;
-  if (run.phase === 'fight' && c) {
+  if (ph === 'fight' && c) {
     // kills whose reward is still waiting for the kill animation: bank their coins now
-    coins += c.killQueue.reduce((n, id) => n + (run.tuning.enemies[c.enemyById(id)?.key ?? '']?.coins ?? 0), 0);
+    run.bankKills();
     if (c.result === 'lost') phase = 'defeat';
     else fight = { foes: c.saveFoes(), seed: run.fightSeed, wave: c.waveIndex };
   }
@@ -62,10 +87,8 @@ export function snapshotRun(run: Run, now = Date.now()): RunSave | null {
     act: run.actIndex,
     mapSeed: run.mapSeed,
     path: run.path.slice(),
-    hero: { ...run.hero, abilityTimer: 0 },
-    actHero: { ...run.actHero, abilityTimer: 0 },
-    coins,
-    actCoins: run.actCoins,
+    hero: savedHero(run.hero),
+    actHero: savedHero(run.actHero),
     rerolls: run.rerolls,
     actRerolls: run.actRerolls,
     scenes: run.sceneQueue.slice(),
@@ -75,6 +98,8 @@ export function snapshotRun(run: Run, now = Date.now()): RunSave | null {
     shop: run.phase === 'shop' ? run.shop.map((i) => ({ ...i, offer: i.offer ? { ...i.offer } : null })) : [],
     event: run.phase === 'event' && run.event ? { ...run.event } : null,
     treasure: run.phase === 'treasure' && run.treasure ? { ...run.treasure } : null,
+    loot: run.phase === 'loot' ? { items: run.loot.map((i) => ({ ...i, bonus: i.bonus.map((b) => ({ ...b })) })), salvaged: run.lootSalvaged, min: run.boostMin, then: run.boostThen } : null,
+    aims: run.actAims.slice(-1500),
     random: run.randomState,
   };
 }
@@ -87,7 +112,8 @@ const offerOk = (o: unknown): o is BoostOffer => !!o && BOOST_IDS.includes((o as
 export function readSave(data: unknown, t: Tuning, region: RegionDef = GREENMARCH): RunSave | null {
   const s = data as RunSave;
   if (!s || typeof s !== 'object' || s.v !== SAVE_VERSION) return null;
-  if (![s.act, s.mapSeed, s.coins, s.actCoins, s.rerolls, s.actRerolls, s.savedAt].every(num)) return null;
+  if (![s.act, s.mapSeed, s.rerolls, s.actRerolls, s.savedAt].every(num)) return null;
+  if (!Array.isArray(s.aims) || !s.aims.every(num)) return null;
   if (!PHASES.includes(s.phase) || !heroOk(s.hero) || !heroOk(s.actHero)) return null;
   const act = region.acts[s.act];
   if (!act) return null;
@@ -108,6 +134,7 @@ export function readSave(data: unknown, t: Tuning, region: RegionDef = GREENMARC
   if (s.phase === 'shop' && (!Array.isArray(s.shop) || !s.shop.every((i) => i && ['boost', 'potion', 'reroll'].includes(i.kind) && num(i.price) && (i.kind !== 'boost' || offerOk(i.offer))))) return null;
   if (s.phase === 'event' && (!s.event || !eventById(s.event.id) || !num(s.event.outcome) || !num(s.event.choice))) return null;
   if (s.phase === 'treasure' && (!s.treasure || !num(s.treasure.coins))) return null;
+  if (s.phase === 'loot' && (!s.loot || !Array.isArray(s.loot.items) || !s.loot.items.every(validItem) || !num(s.loot.salvaged) || !['map', 'actClear'].includes(s.loot.then))) return null;
   return s;
 }
 
@@ -121,18 +148,17 @@ export function restoreRun(run: Run, data: unknown): boolean {
   const s = readSave(data, run.tuning, run.region);
   if (!s) return false;
   run.mapSeed = s.mapSeed >>> 0;
-  run.coins = s.coins;
   run.rerolls = s.rerolls;
-  run.hero = { ...s.hero, abilityTimer: 0 };
+  const gear = run.gear;
+  run.hero = { ...s.hero, abilityTimer: 0, gear };
   // rebuild the act (map, checkpoint), then put the details back
   run.enterAct(s.act);
   run.path = s.path.slice();
-  run.actHero = { ...s.actHero, abilityTimer: 0 };
-  run.actCoins = s.actCoins;
+  run.actHero = { ...s.actHero, abilityTimer: 0, gear };
   run.actRerolls = s.actRerolls;
-  run.coins = s.coins;
   run.rerolls = s.rerolls;
-  run.hero = { ...s.hero, abilityTimer: 0 };
+  run.hero = { ...s.hero, abilityTimer: 0, gear };
+  run.actAims = s.aims.slice();
   run.randomState = s.random;
   switch (s.phase) {
     case 'scene':
@@ -145,6 +171,13 @@ export function restoreRun(run: Run, data: unknown): boolean {
       run.startFight(s.fight!);
       run.randomState = s.random;
       run.sync(); // saved between the last kill and the reward: move on to it
+      break;
+    case 'loot':
+      run.loot = s.loot!.items.map((i) => ({ ...i, bonus: i.bonus.map((b) => ({ ...b })) }));
+      run.lootSalvaged = s.loot!.salvaged;
+      run.boostMin = s.loot!.min;
+      run.boostThen = s.loot!.then;
+      run.phase = 'loot';
       break;
     case 'boost':
       run.boostMin = s.boost!.min;
@@ -169,6 +202,7 @@ export function restoreRun(run: Run, data: unknown): boolean {
       break;
     case 'actClear':
       run.phase = 'actClear';
+      run.actAccuracy = [...run.profile.acc.history].reverse().find((h) => h.act === s.act) ?? null;
       break;
     case 'defeat':
       // the defeat screen's only way on is a retry: the act from its start

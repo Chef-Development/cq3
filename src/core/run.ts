@@ -1,16 +1,37 @@
 // Region flow (pure; no Phaser): Greenmarch's three acts, each a branching node map (fights, elites, treasure,
-// rests, shops, events) ending in a mini-boss or the boss; boosts, coins, story scenes, revive and retry.
-// Dying sends you back to the act's start with the hero as they entered it.
+// rests, shops, events) ending in a mini-boss or the boss; boosts, gear drops, coins, story scenes, revive and retry.
+// Dying sends you back to the act's start with the hero as they entered it (the gear and coins found are kept).
+// Between acts (and from the world map) Rowan can visit the camp; cleared acts can be replayed for their drops.
 
 import { eventById } from '../data/events';
 import { GREENMARCH } from '../data/greenmarch';
 import type { ActDef, EventOutcome, RegionDef } from '../data/types';
-import { Combat, heroMaxHp, newHero, type Hero, type SavedFoe } from './combat';
+import { recordActAccuracy, addSamples, type AccEntry } from './accuracy';
+import { Combat, heroMaxHp, killCoins, newHero, type Hero, type SavedFoe } from './combat';
+import { rollDrops, setPieces, type Item, type Loadout } from './gear';
 import { actSeed, buildActMap, type ActMap, type MapNode } from './map';
+import { addItem, newProfile, profileLoadout, recordAct, recordRegion, type Profile } from './profile';
 import { Rng } from './rng';
 import type { ActScale, Settings, Tuning } from './tuning';
 
-export type Phase = 'title' | 'world' | 'scene' | 'map' | 'fight' | 'boost' | 'treasure' | 'rest' | 'shop' | 'event' | 'actClear' | 'defeat' | 'victory';
+export type Phase =
+  | 'title'
+  | 'world'
+  | 'camp'
+  | 'scene'
+  | 'map'
+  | 'fight'
+  | 'loot'
+  | 'boost'
+  | 'treasure'
+  | 'rest'
+  | 'shop'
+  | 'event'
+  | 'actClear'
+  | 'defeat'
+  | 'victory';
+/** Where the camp was opened from (and goes back to). */
+export type CampFrom = 'world' | 'actClear' | 'defeat';
 /** Where a run of story scenes leads. */
 export type SceneThen = 'map' | 'fight' | 'victory';
 
@@ -129,18 +150,19 @@ export function cardPrice(t: Tuning, r: Rarity): number {
 }
 
 /**
- * A hero who has fought through `act` acts: the kill rewards and boosts a typical run earns per act
- * (the debug panel's "Jump to" uses it so later acts aren't tried with a fresh hero).
+ * A hero who has fought through `act` acts: the boosts and kill gains a typical run has by then (tuning.kit, measured
+ * with the bot), plus `gear`. Replaying a cleared act starts with it; so does the debug panel's "Jump to".
  */
-export function heroFor(t: Tuning, act: number): Hero {
-  const h = newHero(t);
-  const order: BoostId[] = ['damage', 'maxHp', 'comboPower', 'crit', 'pet', 'critDmg'];
-  const kills = 9 * act;
-  const boosts = 7 * act;
-  h.bonusAtk += t.kill.atk * kills;
-  h.bonusMaxHp += t.kill.maxHp * kills;
-  h.bonusComboPower += t.kill.comboPower * kills;
-  for (let k = 0; k < boosts; k++) applyBoost(t, h, { id: order[k % order.length], rarity: k % 7 === 6 ? 'rare' : 'common' });
+export function heroFor(t: Tuning, act: number, gear?: Loadout): Hero {
+  const h = newHero(t, gear);
+  const K = t.kit;
+  h.bonusAtk += K.atk * act;
+  h.bonusMaxHp += Math.round(K.maxHp * act);
+  h.bonusDmg += K.dmg * act;
+  h.bonusCrit += K.crit * act;
+  h.bonusCritDmg += K.critDmg * act;
+  h.bonusComboPower += K.comboPower * act;
+  h.bonusPet += Math.round(K.pet * act);
   h.hp = heroMaxHp(t, h);
   return h;
 }
@@ -162,9 +184,16 @@ export class Run {
   /** The rarity the current boost pick guarantees (true = rare), and where it leads. */
   boostMin: boolean | Rarity = false;
   boostThen: 'map' | 'actClear' = 'map';
-  /** Coins collected this run. */
-  coins = 0;
-  actCoins = 0;
+  /** Items just found (the loot screen shows them), scrap from any the full bag salvaged, and the boost pick after. */
+  loot: Item[] = [];
+  lootSalvaged = 0;
+  /** The profile (kept across runs): the purse, the bag, the gear worn, progress, the accuracy log. */
+  profile: Profile;
+  /** Where the camp goes back to. */
+  campFrom: CampFrom = 'world';
+  /** Timing errors of this act's taps at yellows (its accuracy on the act-clear screen), and the act's entry. */
+  actAims: number[] = [];
+  actAccuracy: AccEntry | null = null;
   /** Rerolls bought at shops, spent on a boost pick. */
   rerolls = 0;
   actRerolls = 0;
@@ -183,17 +212,41 @@ export class Run {
     readonly tuning: Tuning,
     readonly settings: Settings,
     seed = 1,
+    profile: Profile = newProfile(),
   ) {
+    this.profile = profile;
     this.seed = seed >>> 0;
     this.rng = new Rng(this.seed ^ 0xa5a5a5);
     this.mapSeed = (Math.imul(this.seed, 0x9e3779b1) ^ 0x1234567) >>> 0;
-    this.hero = newHero(tuning);
+    this.hero = newHero(tuning, profileLoadout(profile, tuning));
     this.actHero = { ...this.hero };
     this.map = buildActMap(this.region.acts[0], this.mapSeedFor(0));
   }
 
   get act(): ActDef {
     return this.region.acts[this.actIndex];
+  }
+
+  /** The purse: coins are kept between runs (in the profile). */
+  get coins(): number {
+    return this.profile.coins;
+  }
+
+  set coins(v: number) {
+    this.profile.coins = Math.max(0, Math.round(v));
+  }
+
+  /** What the equipped gear adds up to. */
+  get gear(): Loadout {
+    return profileLoadout(this.profile, this.tuning);
+  }
+
+  /** The gear changed (or a fight is starting): the hero (and the act-start checkpoint) wear what's equipped now. */
+  refreshGear(): void {
+    const g = this.gear;
+    this.hero.gear = g;
+    this.actHero.gear = g;
+    this.hero.hp = Math.min(this.hero.hp, heroMaxHp(this.tuning, this.hero));
   }
 
   /** The act's live-tuned enemy scaling. */
@@ -228,10 +281,41 @@ export class Run {
 
   /** A new run: the intro, Act 1's opening scene, then the map. */
   newRun(): void {
-    this.hero = newHero(this.tuning);
-    this.coins = 0;
+    this.hero = newHero(this.tuning, this.gear);
     this.rerolls = 0;
     this.enterAct(0, [this.region.introScene, this.region.acts[0].startScene ?? '']);
+  }
+
+  /** Acts the world map lets you start at: every act cleared, and the next one. */
+  get playableActs(): number {
+    return Math.min(this.region.acts.length, this.profile.actsCleared + 1);
+  }
+
+  /**
+   * A run from act `act` (replaying a cleared act to farm its drops, or going on with the story). Rowan starts
+   * with the boosts and kill gains a run typically has by then (heroFor), plus his gear.
+   */
+  startAct(act: number): void {
+    const a = Math.max(0, Math.min(this.playableActs - 1, act));
+    if (a === 0) return this.newRun();
+    this.hero = heroFor(this.tuning, a, this.gear);
+    this.rerolls = 0;
+    this.enterAct(a, [this.region.acts[a].startScene ?? '']);
+  }
+
+  /** Open the camp (from the world map, an act clear or a defeat; it goes back there). */
+  toCamp(): void {
+    if (this.phase === 'camp') return;
+    this.campFrom = this.phase === 'actClear' ? 'actClear' : this.phase === 'defeat' ? 'defeat' : 'world';
+    this.combat = this.phase === 'defeat' ? this.combat : null;
+    this.phase = 'camp';
+  }
+
+  /** Back from the camp, wearing whatever was equipped there. */
+  leaveCamp(): void {
+    if (this.phase !== 'camp') return;
+    this.refreshGear();
+    this.phase = this.campFrom;
   }
 
   /** Start act `i` (its map, a revive, the act-start checkpoint), after its opening scenes. */
@@ -240,10 +324,11 @@ export class Run {
     this.map = buildActMap(this.act, this.mapSeedFor(this.actIndex));
     this.path = [];
     this.combat = null;
-    this.hero = { ...this.hero, abilityTimer: 0, revives: this.tuning.hero.revivesPerAct };
+    this.hero = { ...this.hero, abilityTimer: 0, revives: this.tuning.hero.revivesPerAct, gear: this.gear };
     this.actHero = { ...this.hero };
-    this.actCoins = this.coins;
     this.actRerolls = this.rerolls;
+    this.actAims = [];
+    this.actAccuracy = null;
     this.playScenes(scenes, 'map');
   }
 
@@ -269,7 +354,10 @@ export class Run {
 
   private finishScenes(): void {
     if (this.sceneThen === 'fight') this.startFight();
-    else this.phase = this.sceneThen;
+    else {
+      this.phase = this.sceneThen;
+      if (this.phase === 'victory') recordRegion(this.profile);
+    }
   }
 
   /** Walk to a node in the next row and see what's there. */
@@ -289,7 +377,7 @@ export class Run {
       case 'boss':
         return this.playScenes([this.act.bossScene ?? ''], 'fight');
       case 'treasure':
-        this.treasure = { coins: Math.round(this.tuning.map.treasureCoins * (0.6 + 0.8 * this.rng.next())), opened: false };
+        this.treasure = { coins: Math.round(this.tuning.map.treasureCoins * (0.6 + 0.8 * this.rng.next()) * (1 + this.gear.stats.luck)), opened: false };
         this.phase = 'treasure';
         return;
       case 'rest':
@@ -312,6 +400,7 @@ export class Run {
     if (!n) return;
     this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
     this.fightSeed = restore ? restore.seed >>> 0 : this.seed;
+    this.refreshGear();
     this.combat = new Combat({
       tuning: this.tuning,
       settings: this.settings,
@@ -345,18 +434,57 @@ export class Run {
     this.rng.state = v.rng;
   }
 
-  /** Call after every combat interaction: banks coins from kills, and moves on to the reward or defeat. */
+  /** Bank the coins of kills still waiting for their animation, and the fight's timing samples. */
+  bankKills(): void {
+    const c = this.combat;
+    if (!c) return;
+    for (const id of c.killQueue) this.coins += killCoins(this.tuning, this.hero, c.enemyById(id)?.key ?? '');
+    c.killQueue.length = 0;
+    if (c.aims.length) {
+      this.actAims.push(...c.aims);
+      if (this.actAims.length > 3000) this.actAims.splice(0, this.actAims.length - 3000);
+      addSamples(this.profile.acc, c.aims);
+      c.aims.length = 0;
+    }
+  }
+
+  /** Call after every combat interaction: banks coins from kills, and moves on to the loot, the reward or defeat. */
   sync(): void {
     const c = this.combat;
     if (this.phase !== 'fight' || !c) return;
-    for (const id of c.killQueue) this.coins += this.tuning.enemies[c.enemyById(id)?.key ?? '']?.coins ?? 0;
-    c.killQueue.length = 0;
+    this.bankKills();
     if (c.result === 'lost') this.phase = 'defeat';
     else if (c.result === 'won') {
-      const type = this.node?.type;
-      // a fight leaves a boost pick; elites and bosses always offer something rare
-      this.offerBoosts(type === 'elite' || type === 'boss', type === 'boss' ? 'actClear' : 'map');
+      const n = this.node;
+      const type = n?.type ?? 'fight';
+      // the drops (into the bag), then a boost pick; elites and bosses always offer something rare
+      const boss = type === 'boss' ? c.enemies.find((e) => this.tuning.enemies[e.key]?.boss)?.key : undefined;
+      const items = rollDrops(this.rng, this.tuning, { act: this.actIndex, row: n?.row ?? 0, type, boss, finalBoss: this.actIndex === this.region.acts.length - 1, luck: this.gear.stats.luck }, this.profile.blp);
+      this.showLoot(items, type === 'elite' || type === 'boss', type === 'boss' ? 'actClear' : 'map');
     }
+  }
+
+  /** Put drops in the bag and show them (the loot screen), then the boost pick; straight to the pick if none. */
+  private showLoot(items: Item[], min: boolean | Rarity, then: 'map' | 'actClear'): void {
+    this.loot = [];
+    this.lootSalvaged = 0;
+    for (const it of items) {
+      const r = addItem(this.profile, this.tuning, it);
+      this.loot.push(r.item);
+      this.lootSalvaged += r.salvaged;
+    }
+    this.boostMin = min;
+    this.boostThen = then;
+    if (this.loot.length) this.phase = 'loot';
+    else this.offerBoosts(min, then);
+  }
+
+  /** Done looking at the loot: the boost pick. */
+  collectLoot(): void {
+    if (this.phase !== 'loot') return;
+    this.loot = [];
+    this.lootSalvaged = 0;
+    this.offerBoosts(this.boostMin, this.boostThen);
   }
 
   offerBoosts(min: boolean | Rarity, then: 'map' | 'actClear'): void {
@@ -373,6 +501,13 @@ export class Run {
     applyBoost(this.tuning, this.hero, offer);
     this.boostChoices = [];
     this.phase = this.boostThen;
+    if (this.phase === 'actClear') this.clearAct();
+  }
+
+  /** The act's boss is down: progress, and the act's accuracy for the act-clear screen. */
+  private clearAct(): void {
+    recordAct(this.profile, this.actIndex);
+    this.actAccuracy = recordActAccuracy(this.tuning, this.profile.acc, this.actIndex, this.actAims);
   }
 
   /** Spend a reroll (bought at a shop) on a fresh set of cards. */
@@ -388,19 +523,25 @@ export class Run {
     return rollBoosts(this.rng, this.tuning, this.boostMin);
   }
 
-  /** Treasure: coins, then a rare-or-better boost pick. */
+  /** Treasure: coins and 1-2 items, then a rare-or-better boost pick. */
   openTreasure(): void {
     if (this.phase !== 'treasure' || !this.treasure || this.treasure.opened) return;
     this.treasure.opened = true;
     this.coins += this.treasure.coins;
-    this.offerBoosts('rare', 'map');
+    const items = rollDrops(this.rng, this.tuning, { act: this.actIndex, row: this.node?.row ?? 0, type: 'treasure', luck: this.gear.stats.luck }, this.profile.blp);
+    this.showLoot(items, 'rare', 'map');
+  }
+
+  /** Share of max HP a rest heals (the Greenwarden 4-piece heals more). */
+  get restShare(): number {
+    return Math.max(this.tuning.map.restHeal, setPieces(this.gear, 'greenwarden') >= 4 ? this.tuning.effects.greenwardenRest : 0);
   }
 
   /** Rest: heal a share of max HP. Returns how much. */
   rest(): number {
     if (this.phase !== 'rest') return 0;
     const H = this.hero;
-    const heal = Math.min(heroMaxHp(this.tuning, H) - H.hp, Math.round(heroMaxHp(this.tuning, H) * this.tuning.map.restHeal));
+    const heal = Math.min(heroMaxHp(this.tuning, H) - H.hp, Math.round(heroMaxHp(this.tuning, H) * this.restShare));
     H.hp += Math.max(0, heal);
     this.phase = 'map';
     return Math.max(0, heal);
@@ -486,7 +627,7 @@ export class Run {
    * (a fight node mid-act, an elite, or the boss), with `hero`.
    */
   debugFight(act: number, enemies: string[], type: 'fight' | 'elite' | 'boss', hero: Hero): void {
-    this.hero = { ...hero };
+    this.hero = { ...hero, gear: this.gear };
     this.enterAct(act);
     const m = this.map;
     const target = type === 'boss' ? m.nodes[m.boss] : (m.nodes.find((n) => n.type === type && n.row >= 3) ?? m.nodes.find((n) => n.row === 3)!);
@@ -498,10 +639,9 @@ export class Run {
     this.startFight();
   }
 
-  /** After a defeat: the act again from its start, with the hero (and coins) as they entered it. */
+  /** After a defeat: the act again from its start, with the hero as they entered it (coins and gear found are kept). */
   retry(): void {
-    this.hero = { ...this.actHero, abilityTimer: 0 };
-    this.coins = this.actCoins;
+    this.hero = { ...this.actHero, abilityTimer: 0, gear: this.gear };
     this.rerolls = this.actRerolls;
     this.path = [];
     this.combat = null;

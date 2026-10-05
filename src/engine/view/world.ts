@@ -10,7 +10,7 @@
 // Everything animates from `now` (deterministic for the screenshot tests): textures were pre-rendered at boot,
 // so a frame only moves images, swaps their frames, and draws a modest number of rects.
 import type Phaser from 'phaser';
-import { WEIGHTS_TOTAL } from '../../core/progress';
+import { WEIGHTS_TOTAL } from '../../core/profile';
 import type { FightScene } from '../scene';
 import {
   CLOUD_KINDS,

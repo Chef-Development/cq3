@@ -334,7 +334,7 @@ export class FightScene extends Phaser.Scene implements View {
         case 'kill': {
           const id = e.enemyId;
           const def = this.app.tuning.enemies[c.enemyById(id)?.key ?? ''];
-          const coins = def?.coins ?? 0;
+          const coins = e.coins;
           const isBoss = !!def?.boss;
           hud.coinsPending += coins;
           // a finisher kill waits for the last blow; a normal kill for the hero's dash to land

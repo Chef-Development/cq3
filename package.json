@@ -14,7 +14,9 @@
     "icons": "node scripts/make-icons.mjs",
     "screens": "playwright test screens",
     "screens:update": "playwright test screens --update-snapshots",
-    "balance": "vitest run --config vitest.balance.config.ts tests/balance/balance.run.ts"
+    "balance": "vitest run --config vitest.balance.config.ts tests/balance/balance.run.ts",
+    "calibrate": "vitest run --config vitest.balance.config.ts tests/balance/calibrate.run.ts",
+    "retarget": "vitest run --config vitest.balance.config.ts tests/balance/retarget.run.ts"
   },
   "dependencies": {
     "phaser": "^4.2.1"
