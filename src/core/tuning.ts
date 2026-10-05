@@ -292,14 +292,15 @@ export const DEFAULT_TUNING = {
     n: Object.fromEntries(RELICS.filter((r) => r.n !== undefined).map((r) => [r.id, r.n as number])) as Record<string, number>,
   },
   sable: {
-    // Sable (Twin family): two cursors, one per half of the bar, each at the normal pass time (core/combat.ts)
-    atkMult: 0.65, // hits deal this share of Rowan's
-    maxHp: 100,
-    widthMult: 0.6, // block widths on Sable's bar (each half is a small bar of its own)
-    redWidthMult: 0.8,
+    // Sable (Twin family): two cursors, one per half of the bar, each at the normal pass time (core/combat.ts).
+    // Tuned with the bot against Rowan on the same tuning (tests/balance/twin.run.ts): within +/-10 points per act.
+    atkMult: 0.7, // hits deal this share of Rowan's (two thumbs tap more often)
+    maxHp: 110, // a little more than Rowan's 100: a half-bar has fewer neighbours to save a wild tap, so more misses
+    widthMult: 0.55, // static block widths on Sable's bar (each half is a small bar: 0.5 = Rowan's crossing time)
+    redWidthMult: 0.6, // red widths (0.6: a cursor meets a red head-on for about as long as Rowan's does)
     ambidextrous: 0.25, // Ambidextrous: a hit with the other hand than the last hit fills the meter this much more
     shadowSec: 3, // Shadow Step (green hits): for this long a hit with one cursor also hits the block under the other
-    fangMult: 1.3, // Twin Fang (finisher): one target, x this per the usual finisher damage...
+    fangMult: 1.15, // Twin Fang (finisher): one target, x this per the usual finisher damage...
     fangKeep: 1, // ...and a kill keeps this many stacks
   },
   levels: {

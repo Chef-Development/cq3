@@ -5,6 +5,8 @@
 // judge decides what they hit. So thin blocks, fast reds and a fast cursor are as hard for it as for a person:
 // a block it crosses in 60 ms is missed far more often than one it crosses in 150 ms. "Accuracy" names the player:
 // the share of plain yellow blocks (nominal width) they hit at the starting cursor speed.
+// Sable (two cursors) it plays with two thumbs: each has its own timing error, tap rate and pending tap, aims its own
+// cursor at the next block in its half, and a red goes to whichever cursor meets it first (never both thumbs on one).
 // It reads telegraphs like a person: it holds off yellow while a shield is raised (as often as its accuracy) and
 // waits out a frozen cursor. It swipes the finisher when it would kill, at max stacks, or when holding on for one
 // more stack isn't worth the risk of a combo break.
@@ -388,6 +390,7 @@ function newFight(run: Run, c: Combat): FightStats {
 interface Pending {
   at: number; // sim time of the tap
   blockId: number;
+  err?: number; // Sable's thumbs: the timing error (s) it is aimed with, kept when it is re-aimed
 }
 
 /** Run the fight until it is won (the reward phase comes up), lost, or it times out. */
@@ -435,29 +438,71 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
     }
   };
 
-  while (run.phase === 'fight' && c.time < maxSec) {
-    c.step();
-    const t = c.time;
-    if (pending) {
-      if (!c.blocks.some((b) => b.id === pending!.blockId)) pending = null; // it's gone (bomb, finisher): don't tap
-      else if (t >= pending.at) {
-        c.tap(pending.at);
-        st.taps++;
-        busyUntil = pending.at + gap;
-        pending = null;
+  if (c.hands > 1) {
+    // Sable: two thumbs, each with its own pending tap and tap rate, aiming its own cursor
+    const thumbs: Thumb[] = [0, 1].map((hand) => ({ hand, pending: null, busyUntil: c.time }));
+    while (run.phase === 'fight' && c.time < maxSec) {
+      c.step();
+      const t = c.time;
+      for (const th of thumbs.slice().sort((a, b) => (a.pending?.at ?? Infinity) - (b.pending?.at ?? Infinity))) {
+        const p = th.pending;
+        if (!p) continue;
+        if (!c.blocks.some((b) => b.id === p.blockId)) th.pending = null; // it's gone (bomb, finisher, the other thumb's echo)
+        else if (t >= p.at) {
+          c.tap(p.at, th.hand);
+          st.taps++;
+          th.busyUntil = p.at + gap;
+          th.pending = null;
+          // a person watches the cursor, not a clock: the other thumb's tap follows its cursor if this hit sped it
+          // up or stopped the bar for a moment (a crit's hit-stop)
+          const next = thumbs[1 - th.hand].pending;
+          const aimed = next && c.blocks.find((x) => x.id === next.blockId);
+          const tau = aimed ? meetTime(c, 1 - th.hand, aimed, t) : null;
+          if (next && tau !== null && next.at > t) next.at = Math.max(t + DT, t + tau + (next.err ?? 0));
+        }
       }
+      const risk = (breaks + 3 * (1 - o.accuracy)) / (combos + 3);
+      const free = thumbs.find((th) => !th.pending && t >= th.busyUntil);
+      if (free && c.finisherReady && wantsFinisher(c, risk)) {
+        c.finisher();
+        free.busyUntil = t + 0.3; // the swipe itself takes a moment
+        for (const th of thumbs) th.pending = null; // the cursors stop: both thumbs wait for them
+      }
+      if (c.cursorHold <= 0 && c.freeze <= 0)
+        for (const th of thumbs) {
+          if (th.pending || t < th.busyUntil) continue;
+          const other = thumbs[1 - th.hand];
+          th.pending = planTwin(c, th.hand, other, rng, aim, gauss, readsGuard && guardSeen > 0);
+        }
+      tally(c.drainEvents());
+      st.seconds = t;
+      run.sync();
     }
-    // break risk per combo action: what has happened so far, starting from a guess based on accuracy
-    const risk = (breaks + 3 * (1 - o.accuracy)) / (combos + 3);
-    if (!pending && t >= busyUntil && c.finisherReady && wantsFinisher(c, risk)) {
-      c.finisher();
-      busyUntil = t + 0.3; // the swipe itself takes a moment
+  } else {
+    while (run.phase === 'fight' && c.time < maxSec) {
+      c.step();
+      const t = c.time;
+      if (pending) {
+        if (!c.blocks.some((b) => b.id === pending!.blockId)) pending = null; // it's gone (bomb, finisher): don't tap
+        else if (t >= pending.at) {
+          c.tap(pending.at);
+          st.taps++;
+          busyUntil = pending.at + gap;
+          pending = null;
+        }
+      }
+      // break risk per combo action: what has happened so far, starting from a guess based on accuracy
+      const risk = (breaks + 3 * (1 - o.accuracy)) / (combos + 3);
+      if (!pending && t >= busyUntil && c.finisherReady && wantsFinisher(c, risk)) {
+        c.finisher();
+        busyUntil = t + 0.3; // the swipe itself takes a moment
+      }
+      // wait out a finisher's stopped cursor and a frozen one
+      if (!pending && t >= busyUntil && c.cursorHold <= 0 && c.freeze <= 0) pending = plan(c, rng, aim, gauss, readsGuard && guardSeen > 0);
+      tally(c.drainEvents());
+      st.seconds = t;
+      run.sync();
     }
-    // wait out a finisher's stopped cursor and a frozen one
-    if (!pending && t >= busyUntil && c.cursorHold <= 0 && c.freeze <= 0) pending = plan(c, rng, aim, gauss, readsGuard && guardSeen > 0);
-    tally(c.drainEvents());
-    st.seconds = t;
-    run.sync();
   }
   st.won = run.phase !== 'defeat' && c.result === 'won';
   st.hpEnd = run.hero.hp / heroMaxHp(T, run.hero);
@@ -473,7 +518,8 @@ function wantsFinisher(c: Combat, risk: number): boolean {
   const max = Math.max(1, Math.round(M.maxStacks));
   if (c.stacks >= max) return true;
   const target = c.currentTarget();
-  if (target && c.finisherDamage() >= target.hp) return true;
+  const kit = c.hands > 1 ? c.tuning.sable.fangMult : 1; // Twin Fang hits the target harder
+  if (target && c.finisherDamage() * kit >= target.hp) return true;
   const hitsNeeded = Math.max(1, (1 - c.meter) / Math.max(0.01, M.perHit));
   const survive = Math.pow(1 - Math.min(0.95, risk), hitsNeeded);
   return survive * (c.finisherDamage(c.stacks + 1) / Math.max(1, c.finisherDamage())) < 1;
@@ -520,6 +566,56 @@ function plan(c: Combat, rng: Rng, aim: Aim, gauss: () => number, avoidYellow: b
   return { at: Math.max(t + DT, t + best.tau + err), blockId: best.id };
 }
 
+interface Thumb {
+  hand: number; // 0 = Sable's left cursor (A), 1 = the right one (B)
+  pending: Pending | null;
+  busyUntil: number;
+}
+
+/** When cursor `hand` meets block b (s from now), if it does before it turns at its half's end (or 0.6 s); else null.
+ *  A hit-stop still running holds everything for that long first. */
+function meetTime(c: Combat, hand: number, b: Block, t: number): number | null {
+  const [lo, hi] = c.handRange(hand);
+  const cpos = c.cursorPosAt(t, hand);
+  const dir = c.cursorDirAt(t);
+  const v = c.barSpeed(hand);
+  const toWall = dir > 0 ? (hi - cpos) / v : (cpos - lo) / v;
+  const tau = (b.pos - cpos) / (v * dir - b.vel);
+  return tau >= 0 && tau <= Math.min(toWall, 0.6) ? tau + c.hitStop : null;
+}
+
+/**
+ * Sable's plan for one thumb: the next block its own cursor reaches in its own half, or a red it meets before the
+ * other cursor does (the other thumb takes a red it meets first, unless that thumb is tied up then; never both on
+ * one red). Then defence first, as for Rowan, and the thumb's own timing error.
+ */
+function planTwin(c: Combat, hand: number, other: Thumb, rng: Rng, aim: Aim, gauss: () => number, avoidYellow: boolean): Pending | null {
+  const t = c.time;
+  const guarded = avoidYellow && !!c.guarder();
+  let best: { tau: number; id: number } | null = null;
+  let red: { tau: number; id: number } | null = null;
+  for (const b of c.blocks) {
+    if (!wantsBlock(c, b, guarded)) continue;
+    const isR = isRed(b.kind);
+    if (!isR && c.handOf(b.pos) !== hand) continue;
+    if (other.pending?.blockId === b.id) continue; // the other thumb has it
+    const tau = meetTime(c, hand, b, t);
+    if (tau === null) continue;
+    if (b.bornAt > t + tau - (isR ? aim.reactRed : aim.react)) continue;
+    if (isR) {
+      // the other cursor meets it first and that thumb is free by then to take it: leave it
+      const to = meetTime(c, other.hand, b, t);
+      if (to !== null && to < tau && other.busyUntil <= t + to && (!other.pending || other.pending.at + aim.gap <= t + to)) continue;
+    }
+    if (!best || tau < best.tau) best = { tau, id: b.id };
+    if (isR && (!red || tau < red.tau)) red = { tau, id: b.id };
+  }
+  if (!best) return null;
+  if (red && red.id !== best.id && red.tau - best.tau < aim.gap) best = red;
+  const err = rng.next() < aim.lapse ? (rng.next() < 0.5 ? -1 : 1) * (0.08 + rng.next() * 0.17) : gauss() * aim.sigma;
+  return { at: Math.max(t + DT, t + best.tau + err), blockId: best.id, err };
+}
+
 export interface ActRow {
   accuracy: number;
   act: number;
@@ -545,11 +641,12 @@ export interface ActRow {
   lostAt: Record<string, number>; // lost attempts by node type
 }
 
-/** Play `runs` whole runs per accuracy and summarise every act. */
-export function balance(tuning: Tuning, accuracies: number[], runs: number, seed = 1, maxAttempts = 6, acts = tuning.acts.length): ActRow[] {
+/** Play `runs` whole runs per accuracy and summarise every act (as `hero`: Rowan by default; the same seeds for
+ *  either hero, so the two compare run for run). */
+export function balance(tuning: Tuning, accuracies: number[], runs: number, seed = 1, maxAttempts = 6, acts = tuning.acts.length, hero?: HeroId): ActRow[] {
   const rows: ActRow[] = [];
   for (const acc of accuracies) {
-    const results = Array.from({ length: runs }, (_, r) => playRun(tuning, { accuracy: acc, seed: (seed * 7919 + r * 104729 + Math.round(acc * 1000)) >>> 0 }, maxAttempts, acts));
+    const results = Array.from({ length: runs }, (_, r) => playRun(tuning, { accuracy: acc, seed: (seed * 7919 + r * 104729 + Math.round(acc * 1000)) >>> 0, hero }, maxAttempts, acts));
     for (let act = 0; act < acts; act++) {
       const entries = results.map((res) => res.acts[act]).filter((e) => !!e);
       const n = Math.max(1, entries.length);
