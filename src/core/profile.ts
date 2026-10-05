@@ -1,12 +1,14 @@
 // The player's profile, kept across runs (pure; storage.ts saves it): how far Greenmarch has been cleared, the
 // Great Pendulum's weights home, and the gear chase: the bag, what Rowan wears, coins and scrap (both carry over
 // between runs), each signature drop's bad-luck counter, and the accuracy log. M4a adds the heroes (who is picked,
-// each one's XP and skills; Sable is unlocked by a scene after Act 1) and the relics unlocked so far.
+// each one's XP and skills; Sable is unlocked by a scene after Act 1) and the relics unlocked so far. The tips seen
+// so far ("teach it slowly", core/tips.ts) and whether tips are off are kept too (still v3: missing reads as none).
 //
 // v1 was "progress" (acts cleared and weights only), v2 the gear; readProfile migrates both.
 
 import { SLOT_KEYS, slotOf, type GearRarity, type SlotKey, type StatId } from '../data/gear';
 import { RELICS, isRelicId, relicById, type RelicId } from '../data/relics';
+import { BASIC_TIPS, isSeenId, WELCOME_ID, type SeenId } from '../data/tips';
 import { newAccuracyLog, readAccuracyLog, type AccuracyLog } from './accuracy';
 import { HERO_IDS, actXp, isHeroId, levelFromXp, newHeroProgress, validSkills, type HeroBuild, type HeroId, type HeroProgress } from './heroes';
 import {
@@ -50,6 +52,8 @@ export interface Profile {
   relicsNew: RelicId[]; // unlocked, not looked at in the relic log yet
   sableMet: boolean; // Sable's scene played (after Act 1): Sable is unlocked
   twinTaught: boolean; // Sable's first fight showed the two tap zones
+  tips: SeenId[]; // tips already shown (each shows once), and the welcome back once it has played
+  tipsOff: boolean; // the gear panel's "Tips: off"
 }
 
 /** @deprecated the old name (progress across runs); a profile is a superset of it. */
@@ -79,6 +83,8 @@ export function newProfile(): Profile {
     relicsNew: [],
     sableMet: false,
     twinTaught: false,
+    tips: [WELCOME_ID], // a new player has nothing to be welcomed back to
+    tipsOff: false,
   };
 }
 
@@ -87,12 +93,18 @@ const int = (v: unknown, lo: number, hi: number) => (typeof v === 'number' && Nu
 /**
  * A saved profile in current form: v3 is checked; v2 (gear, no heroes) and v1 (progress only) are migrated:
  * Rowan gets the XP of the acts already cleared and their relics are unlocked. Anything else starts over.
+ * A profile from before the tips that has cleared an act has the basics' tips marked seen (readTips).
  */
 export function readProfile(data: unknown, t?: Tuning): Profile {
   const d = data as Record<string, unknown> | null;
+  if (!d || typeof d !== 'object' || (d.v !== 1 && d.v !== 2 && d.v !== 3)) return newProfile();
+  const p = readFields(d, t);
+  readTips(p, d);
+  return p;
+}
+
+function readFields(d: Record<string, unknown>, t?: Tuning): Profile {
   const p = newProfile();
-  if (!d || typeof d !== 'object') return p;
-  if (d.v !== 1 && d.v !== 2 && d.v !== 3) return p;
   p.actsCleared = int(d.actsCleared, 0, 3);
   p.weights = int(d.weights, 0, WEIGHTS_TOTAL);
   if (d.v !== 3) migrateHeroes(p, t);
@@ -128,6 +140,24 @@ export function readProfile(data: unknown, t?: Tuning): Profile {
   p.twinTaught = d.twinTaught === true;
   return p;
 }
+
+/**
+ * The tips seen (known ids only, once each) and whether tips are off. A profile saved before tips existed (no list)
+ * comes from an earlier version: if it has cleared an act it already knows the basics (their tips are marked seen,
+ * so a returning player only meets the tips for the newer systems: relics, skills, heroes), and if it has any
+ * progress, the welcome back is still to play. A list that's there, even empty ("Show tips again"), is kept.
+ */
+function readTips(p: Profile, d: Record<string, unknown>): void {
+  if (Array.isArray(d.tips)) p.tips = [...new Set(d.tips.filter(isSeenId))];
+  else {
+    p.tips = p.actsCleared >= 1 ? BASIC_TIPS.slice() : [];
+    if (!hasProgress(p)) p.tips.push(WELCOME_ID); // nothing to come back to: no welcome back
+  }
+  p.tipsOff = d.tipsOff === true;
+}
+
+/** Whether the player has played before: an act cleared, any hero XP, or any gear found. */
+export const hasProgress = (p: Profile): boolean => p.actsCleared >= 1 || p.found > 0 || HERO_IDS.some((id) => (p.heroes[id]?.xp ?? 0) > 0);
 
 /** v1/v2 -> v3: Rowan earns the XP of the acts already cleared (first clears), and their act relics unlock. */
 function migrateHeroes(p: Profile, t?: Tuning): void {

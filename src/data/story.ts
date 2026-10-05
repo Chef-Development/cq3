@@ -34,6 +34,23 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'rowan', text: 'You nearly robbed a knight. Bold. We need\nbold. Want a job? Pay is... coins? Later?' },
     { who: 'sable', text: 'Two daggers, two hands, no questions.\nI keep half of anything shiny. Deal.' },
   ],
+  // welcome back: a returning player opens this version for the first time (over the title, once; core/tips.ts
+  // welcomeScene picks one): what's new since they last played. The last box depends on whether Sable has joined.
+  welcomeBack: [
+    { who: 'pip', text: "Hoo! Look who's back. While you napped,\nthings changed. I've been VERY busy." },
+    { who: 'pip', text: 'Relics now bend the rules of a fight.\nPick one after a battle. Mix, match, cheat.' },
+    { who: 'pip', text: "And you level up now! Spend skill points\nat the camp. Sable's there too. Hide the coins." },
+  ],
+  welcomeBackVisitor: [
+    { who: 'pip', text: "Hoo! Look who's back. While you napped,\nthings changed. I've been VERY busy." },
+    { who: 'pip', text: 'Relics now bend the rules of a fight.\nPick one after a battle. Mix, match, cheat.' },
+    { who: 'pip', text: "And you level up now: skills at the camp.\nSomeone's been sneaking round it, too..." },
+  ],
+  welcomeBackSoon: [
+    { who: 'pip', text: "Hoo! Look who's back. While you napped,\nthings changed. I've been VERY busy." },
+    { who: 'pip', text: 'Relics now bend the rules of a fight.\nPick one after a battle. Mix, match, cheat.' },
+    { who: 'pip', text: 'And you level up now: skills at the camp.\nClear Act 1 and we get a visitor. Shifty one.' },
+  ],
   intro: [
     { who: 'narrator', text: 'The kingdom keeps time by the Great Pendulum.\nTick, tock. Very reliable.' },
     { who: 'narrator', text: 'Until one night it stopped. The Clockless King\nshattered it, and its 12 weights scattered.' },
