@@ -25,6 +25,7 @@ import { bagPal, glyph, glyphSize } from './overlays';
 import { band, button3d, hpBar, hudIcon, iconSize, rows } from './pixels';
 import { clamp01, inRect, INK, mix, WHITE, type Rect } from './shared';
 import { FACE, ImagePool, isPressed, notePress, TextPool } from './ui';
+import { MapLife } from './map-life';
 
 type G = Phaser.GameObjects.Graphics;
 type Img = Phaser.GameObjects.Image;
@@ -146,19 +147,22 @@ export class MapView {
   private landKeys: string[] = [];
   private landFor: unknown = null;
   private landLayout = '';
-  private landGen = 0;
-  private landData: Land | null = null;
-  private landTheme: Theme = 'forest';
+  landGen = 0;
+  landData: Land | null = null;
+  landTheme: Theme = 'forest';
   private roads: Road[] = [];
   private pool: ImagePool;
   private texts: TextPool;
   private walk: { id: number; pts: Pt[]; at: number; dur: number } | null = null;
   private tagCache: { key: string; tags: Tag[] } | null = null;
   rect: Rect = { x: 0, y: 0, w: 0, h: 0 };
+  /** The critters and the sparkle (view/map-life.ts). */
+  readonly life: MapLife;
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, D_TEXT);
     this.pool = new ImagePool(s);
+    this.life = new MapLife(s, this);
   }
 
   /** New layout: everything is rebuilt on the next draw. */
@@ -175,6 +179,7 @@ export class MapView {
     this.land = null;
     this.landFor = null;
     this.pool.destroy();
+    this.life.build();
   }
 
   // ------------------------------------------------------------------ layout
@@ -387,6 +392,7 @@ export class MapView {
     this.land?.setVisible(false);
     this.pool.hide();
     this.texts.hide();
+    this.life.hide();
   }
 
   // ------------------------------------------------------------------ frame
@@ -472,6 +478,7 @@ export class MapView {
 
     // ---- critters, flames, the weather
     this.ambient(now, theme);
+    this.life.draw(now);
 
     // ---- HUD
     this.hud(now);
@@ -656,7 +663,7 @@ export class MapView {
   }
 
   /** Where the node's art stands (its tag avoids it), from its feet at (x, y). */
-  private nodeBox(n: MapNode): Rect {
+  nodeBox(n: MapNode): Rect {
     const [x, y] = this.pos(n);
     if (n.type === 'boss') {
       const [lw, lh] = this.pool.size(`maplair_${this.landTheme}`);
@@ -667,7 +674,7 @@ export class MapView {
   }
 
   /** The HUD plates (the tags keep off them). */
-  private hudRects(): Rect[] {
+  hudRects(): Rect[] {
     const s = this.s;
     const run = s.app.run;
     const L = s.L + 3;
@@ -696,7 +703,7 @@ export class MapView {
    * Rowan, the nodes he can reach, and the rest of the map). Cached per map, step and HUD size, so it's computed once
    * per arrival and the tags hold still while Rowan walks.
    */
-  private layoutTags(): Tag[] {
+  layoutTags(): Tag[] {
     const s = this.s;
     const run = s.app.run;
     const map = run.map;

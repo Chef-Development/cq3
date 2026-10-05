@@ -19,6 +19,7 @@ export type TipAnchor =
   | 'relicBelt' // the relics under the hero plate
   | 'mapNodes' // the spots the hero can walk to
   | 'eliteNode' // a reachable elite
+  | 'sparkle' // a sparkle glinting on the act map (view/map-life.ts)
   | 'relicCard' // the first relic card of the pick
   | 'synergyCard' // the first card marked Synergy!
   | 'campButton' // the Camp button (the act map, the act clear, a defeat)
@@ -44,6 +45,7 @@ export type TipId =
   | 'synergy'
   | 'map'
   | 'elite'
+  | 'sparkle'
   | 'shop'
   | 'rest'
   | 'event'
@@ -95,6 +97,7 @@ export const TIPS: readonly TipDef[] = [
   { id: 'synergy', lines: ['Synergy! It shares a tag with a', 'relic you own: a build is forming!'], anchor: 'synergyCard' },
   { id: 'map', lines: ['Pick a path to the boss.', "Spots show what's there."], anchor: 'mapNodes', basic: true },
   { id: 'elite', lines: ['Elites are tougher foes,', 'but they always drop gear.'], anchor: 'eliteNode', basic: true },
+  { id: 'sparkle', lines: ['Something is glinting!', 'Tap it to pick it up.'], anchor: 'sparkle' },
   { id: 'shop', lines: ['Spend coins on relics and potions.', 'Unspent coins are kept.'], anchor: 'none', basic: true },
   { id: 'rest', lines: ['The campfire heals you.', 'Rest up before the fights ahead.'], anchor: 'none', basic: true },
   { id: 'event', lines: ['Pick a choice! Some cost coins,', 'some are a gamble.'], anchor: 'none', basic: true },

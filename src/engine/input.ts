@@ -65,6 +65,7 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
         // keyboard: the first choice
         const id = clientX < 0 ? (run.choices()[0] ?? null) : scene.mapNodeAt(g.x, g.y);
         if (id !== null && now - app.phaseSince > 300) scene.chooseNode(id);
+        else if (id === null && clientX >= 0) scene.mapView.life.tap(g.x, g.y, now); // a sparkle or a critter (map-life.ts)
         return;
       }
       case 'boost': {

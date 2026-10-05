@@ -40,6 +40,7 @@ import { glyph, glyphSize } from './overlays';
 import { button3d, glow, NAVY, panel } from './pixels';
 import { easeBack, inRect, mix, pulse, INK, WHITE, type Rect } from './shared';
 import { FACE, ImagePool, isPressed, notePress, ribbon, RIBBON, TextPool } from './ui';
+import { WorldLife } from './world-life';
 
 type G = Phaser.GameObjects.Graphics;
 type Img = Phaser.GameObjects.Image;
@@ -141,7 +142,8 @@ export class WorldView {
   private rattle = new Map<string, number>();
   private info: { id: string; at: number } | null = null;
   private chosenAt = 0;
-  private plate = { x: 0, y: 0, w: 0, h: 0 };
+  /** Greenmarch's plate (the call to action over Rowan), as last drawn. */
+  plate = { x: 0, y: 0, w: 0, h: 0 };
   private road: Array<[number, number]> = [];
   /** The act picker (open since `at`, performance.now), and a locked row shaking. */
   private picker: { at: number } | null = null;
@@ -149,11 +151,18 @@ export class WorldView {
   private gPick!: G;
   private pickTexts: TextPool;
   private pickIcons: ImagePool;
+  /** Gulls, dolphins and the sparkle out at sea (view/world-life.ts): only the taps nothing else takes. */
+  readonly life: WorldLife;
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, DEPTH.text);
     this.pickTexts = new TextPool(s, DEPTH.pickText);
     this.pickIcons = new ImagePool(s);
+    this.life = new WorldLife(
+      s,
+      (x, y) => !this.targetAt(x, y) && !inRect(this.campButton(), x, y, 3),
+      () => this.plate,
+    );
   }
 
   build(): void {
@@ -195,6 +204,7 @@ export class WorldView {
     this.g = s.add.graphics().setDepth(DEPTH.ui);
     this.gPick = s.add.graphics().setDepth(DEPTH.pick);
     this.pickIcons.destroy();
+    this.life.build();
     // the cart's stretch of road: from past Rowan to the capital's gate
     this.road = WORLD_ROAD.filter(([rx]) => rx >= 80);
   }
@@ -313,7 +323,7 @@ export class WorldView {
       return;
     }
     const t = x < 0 ? WORLD_REGIONS[0] : this.targetAt(x, y);
-    if (!t) return;
+    if (!t) return void this.life.tap(x, y, now);
     if (t === 'capital') {
       this.info = { id: 'capital', at: now };
       s.app.audio.uiClick();
@@ -349,6 +359,7 @@ export class WorldView {
     this.pickTexts.hide();
     this.pickIcons.hide();
     this.picker = null;
+    this.life.hide();
   }
 
   draw(now: number): void {
@@ -365,6 +376,7 @@ export class WorldView {
     this.drawCapital(t);
     this.drawLocked(now, t);
     this.drawUi(now, t);
+    this.life.draw(now);
     this.texts.end();
     this.pickTexts.begin();
     this.pickIcons.begin();

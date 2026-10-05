@@ -2,7 +2,8 @@
 // Great Pendulum's weights home, and the gear chase: the bag, what Rowan wears, coins and scrap (both carry over
 // between runs), each signature drop's bad-luck counter, and the accuracy log. M4a adds the heroes (who is picked,
 // each one's XP and skills; Sable is unlocked by a scene after Act 1) and the relics unlocked so far. The tips seen
-// so far ("teach it slowly", core/tips.ts) and whether tips are off are kept too (still v3: missing reads as none).
+// so far ("teach it slowly", core/tips.ts) and whether tips are off are kept too, and the map sparkles picked up
+// (core/sparkle.ts) (still v3: missing reads as none).
 //
 // v1 was "progress" (acts cleared and weights only), v2 the gear; readProfile migrates both.
 
@@ -10,6 +11,7 @@ import { SLOT_KEYS, slotOf, type GearRarity, type SlotKey, type StatId } from '.
 import { RELICS, isRelicId, relicById, type RelicId } from '../data/relics';
 import { BASIC_TIPS, isSeenId, WELCOME_ID, type SeenId } from '../data/tips';
 import { newAccuracyLog, readAccuracyLog, type AccuracyLog } from './accuracy';
+import { readSparkles } from './sparkle';
 import { HERO_IDS, actXp, isHeroId, levelFromXp, newHeroProgress, validSkills, type HeroBuild, type HeroId, type HeroProgress } from './heroes';
 import {
   itemPower,
@@ -54,6 +56,7 @@ export interface Profile {
   twinTaught: boolean; // Sable's first fight showed the two tap zones
   tips: SeenId[]; // tips already shown (each shows once), and the welcome back once it has played
   tipsOff: boolean; // the gear panel's "Tips: off"
+  sparkles: number[]; // the map sparkles picked up (core/sparkle.ts: their keys, newest last): never paid twice
 }
 
 /** @deprecated the old name (progress across runs); a profile is a superset of it. */
@@ -85,6 +88,7 @@ export function newProfile(): Profile {
     twinTaught: false,
     tips: [WELCOME_ID], // a new player has nothing to be welcomed back to
     tipsOff: false,
+    sparkles: [],
   };
 }
 
@@ -100,6 +104,7 @@ export function readProfile(data: unknown, t?: Tuning): Profile {
   if (!d || typeof d !== 'object' || (d.v !== 1 && d.v !== 2 && d.v !== 3)) return newProfile();
   const p = readFields(d, t);
   readTips(p, d);
+  p.sparkles = readSparkles(d.sparkles); // still v3: missing reads as none
   return p;
 }
 

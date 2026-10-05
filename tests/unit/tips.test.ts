@@ -233,6 +233,24 @@ describe('the coach', () => {
     expect(take()).toBe('levelUp');
   });
 
+  it('the first sparkle on the act map: once, only on the map, only while one is glinting', () => {
+    const { run, take } = setup();
+    expect(take({ sparkle: true })).toBe('map'); // the map's own tip comes first (one per screen)
+    expect(take({ sparkle: true })).toBeNull();
+    goTo(run, 'fight');
+    expect(take({ sparkle: true, preFight: true })).not.toBe('sparkle'); // not in a fight
+    run.phase = 'map';
+    expect(take()).toBeNull(); // nothing glinting
+    run.phase = 'shop';
+    take();
+    run.phase = 'map';
+    expect(take({ sparkle: true })).toBe('sparkle');
+    run.phase = 'shop';
+    take();
+    run.phase = 'map';
+    expect(take({ sparkle: true })).toBeNull(); // only once
+  });
+
   it('the camp: its home, then Skills, the relic log, and the hero select once Sable has joined', () => {
     const { run, p, take } = setup();
     run.toCamp();

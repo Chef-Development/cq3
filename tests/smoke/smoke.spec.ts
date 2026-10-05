@@ -400,6 +400,68 @@ test('the act map has a Camp button: the camp mid-act, then back to the same spo
   expect(errors).toEqual([]);
 });
 
+test('living maps: a tap on a sparkle pays a coin or two, once (not again after a reload); the world map has one too', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  await ready(page);
+  const a = app(page);
+  const sure = () => a((x) => Object.assign(x.tuning.life, { mapChance: 1, worldChance: 1, delayMin: 0, delayMax: 0 }));
+  const sparkle = () => a((x) => x.view.mapView.life.sparkleRect()) as Promise<{ x: number; y: number; w: number; h: number } | null>;
+  await sure();
+  // Act 1, one node in (an act's first step never has one): walk there and come back to the map
+  await a((x) => {
+    x.startRegion();
+    x.run.skipScenes();
+    x.setPhase(() => {
+      x.run.path = [x.run.choices()[0]];
+      x.run.phase = 'map';
+    });
+  });
+  await expect.poll(() => a((x) => x.run.phase)).toBe('map');
+  await expect.poll(sparkle).not.toBeNull();
+  const r = (await sparkle())!;
+  const coins = (await a((x) => x.run.coins)) as number;
+  await tapGame(page, r.x + r.w / 2, r.y + r.h / 2);
+  await expect.poll(() => a((x) => x.run.coins)).toBeGreaterThan(coins);
+  const paid = ((await a((x) => x.run.coins)) as number) - coins;
+  expect(paid).toBeGreaterThanOrEqual(1);
+  expect(paid).toBeLessThanOrEqual(2);
+  // the tap went to the sparkle: Rowan stays where he is
+  expect(await a((x) => ({ phase: x.run.phase, path: x.run.path.length, walking: x.view.mapView.walking }))).toEqual({ phase: 'map', path: 1, walking: false });
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: 'test-results/sparkle-pop.png' });
+  expect(await sparkle()).toBeNull();
+  await tapGame(page, r.x + r.w / 2, r.y + r.h / 2); // nothing there now
+  await page.waitForTimeout(100);
+  expect(await a((x) => x.run.coins)).toBe(coins + paid);
+  // a reload puts Rowan back on the same step: its sparkle stays picked up
+  await a(() => window.dispatchEvent(new Event('pagehide')));
+  await page.reload();
+  await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
+  await page.evaluate(() => ((window as Any).__cq3.app.profile.tipsOff = true));
+  await sure();
+  await a((x) => x.continueRun());
+  await expect.poll(() => a((x) => ({ phase: x.run.phase, path: x.run.path.length }))).toEqual({ phase: 'map', path: 1 });
+  await page.waitForTimeout(600);
+  expect(await sparkle()).toBeNull();
+  expect(await a((x) => x.run.coins)).toBe(coins + paid);
+  // the world map: this visit's sparkle, out at sea, into the purse
+  await a((x) => x.newRun());
+  await expect.poll(() => a((x) => x.run.phase)).toBe('world');
+  const sea = async () => (await a((x) => x.view.worldMap.life.sparkle)) as { x: number; y: number } | null;
+  await expect.poll(sea).not.toBeNull();
+  await page.waitForTimeout(400);
+  const w = (await sea())!;
+  const purse = (await a((x) => x.profile.coins)) as number;
+  await tapGame(page, w.x, w.y);
+  await expect.poll(() => a((x) => x.profile.coins)).toBeGreaterThan(purse);
+  expect(await a((x) => x.run.phase)).toBe('world');
+  expect(errors).toEqual([]);
+});
+
 test('New run keeps what you earned; Start over (the gear panel, asked twice) erases it, keeping the settings', async ({ page }) => {
   // progress saved before the load: two acts cleared, coins, Rowan at a level; a calibrated tap offset
   await page.addInitScript(() => {

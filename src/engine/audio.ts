@@ -1287,6 +1287,38 @@ export class Synth {
     this.noise({ at: t, dur: 0.008, gain: 0.03, filter: 'highpass', f: 7000 });
   }
 
+  /** A critter startled on the map (birds scattering, a rabbit diving into its bush): a few soft wingbeats of
+   *  filtered air (`low`: a duller rustle of leaves). Quiet: life stays at the edge of attention. */
+  critterFlutter(low = false, at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    const f = low ? 1300 : 2500;
+    for (let i = 0; i < 5; i++) {
+      const dt = i * 0.055 + this.rand() * 0.012;
+      this.noise({ at: t + dt, dur: 0.045, attack: 0.004, gain: 0.08 * (1 - i * 0.12), filter: 'bandpass', f: f * (0.9 + this.rand() * 0.2), q: 1.4 });
+    }
+    this.noise({ at: t, dur: 0.3, attack: 0.03, gain: 0.025, filter: 'highpass', f: low ? 1800 : 3500 });
+  }
+
+  /** Pip chirps (at a critter on the map): two quick, soft, rising peeps. */
+  critterChirp(at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    this.tone({ type: 'sine', f: 2300, f1: 3300, glide: 0.05, at: t, attack: 0.004, dur: 0.07, gain: 0.05 });
+    this.tone({ type: 'sine', f: 2600, f1: 3700, glide: 0.04, at: t + 0.09, attack: 0.004, dur: 0.06, gain: 0.045, rev: 0.2 });
+  }
+
+  /** A map sparkle picked up: a soft pop, then a little coin shimmer (quieter than a fight's coin). */
+  sparklePop(at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    this.tone({ type: 'sine', f: 520, f1: 1400, glide: 0.04, at: t, attack: 0.002, dur: 0.06, gain: 0.09 });
+    this.noise({ at: t, dur: 0.02, gain: 0.03, filter: 'highpass', f: 4000 });
+    this.tone({ type: 'triangle', f: 1975.53, at: t + 0.05, dur: 0.08, gain: 0.04 });
+    this.tone({ type: 'sine', f: 2637.02, at: t + 0.11, dur: 0.25, gain: 0.045, rev: 0.3 });
+    this.tone({ type: 'sine', f: 3951.07, at: t + 0.16, dur: 0.2, gain: 0.02, rev: 0.3 });
+  }
+
   /** Disconnect `nodes` once ctx time passes `at` (a real context; an offline graph ends with its render). */
   private disposeAt(at: number, ...nodes: AudioNode[]): void {
     const ctx = this.ctx;
@@ -2929,6 +2961,10 @@ export const SFX: SfxEntry[] = [
   { id: 'summonArrive', label: 'Summoned arrive', len: 0.8, play: (s, at) => s.summonArrive(at) },
   // map, shop, rest, events and story
   { id: 'mapSelect', label: 'Map: choose node', len: 0.5, play: (s, at) => s.mapSelect(at) },
+  { id: 'sparklePop', label: 'Map: sparkle picked up', len: 0.6, play: (s, at) => s.sparklePop(at) },
+  { id: 'critterFlutter', label: 'Map: critter startled (wings)', len: 0.5, play: (s, at) => s.critterFlutter(false, at) },
+  { id: 'critterRustle', label: 'Map: critter startled (rustle)', len: 0.5, play: (s, at) => s.critterFlutter(true, at) },
+  { id: 'critterChirp', label: 'Map: Pip chirps', len: 0.3, play: (s, at) => s.critterChirp(at) },
   { id: 'shopBuy', label: 'Shop: buy', len: 0.9, play: (s, at) => s.shopBuy(at) },
   { id: 'restHeal', label: 'Rest: campfire', len: 1.8, play: (s, at) => s.restHeal(at) },
   { id: 'eventSting', label: 'Event sting', len: 1.3, play: (s, at) => s.eventSting(at) },
