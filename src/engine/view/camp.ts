@@ -685,7 +685,8 @@ export class CampView {
    */
   private drawBanter(now: number): void {
     const app = this.s.app;
-    const quiet = !!app.storyOverlay || !!this.kit.toastNow || now - this.modeAt < 1200 || this.banterHold.some((f) => f());
+    // quiet during a story scene, a toast, a tip card, or right after a screen change
+    const quiet = !!app.storyOverlay || app.tipUp || !!this.kit.toastNow || now - this.modeAt < 1200 || this.banterHold.some((f) => f());
     if (quiet) {
       this.banter = null;
       this.banterNext = Math.max(this.banterNext, now + 4000);

@@ -3,9 +3,10 @@
 - **Live build:** https://chef-development.github.io/cq3/ (installable PWA, landscape). Every push deploys.
 - **Branch:** `claude/m4a-depth`, PR Chef-Development/cq3#4. PR #3 (M3b) was still open, so M4a is built on top of
   it: #4 includes #3 (and #2) and supersedes them (merge #4; #2 and #3 can be closed).
-- **Tests:** 422 Vitest unit tests (`npm test`, in CI), 7 Playwright smoke tests and 15 pixel-exact screenshot tests
-  (24 baselines; new: relic pick, relic belt and panel, act-clear build, relic unlocked, shop relics, Sable's tutorial
-  and two-cursor bar, hero select, skill tree, relic log, Sable joining the camp).
+- **Tests:** 442 Vitest unit tests (`npm test`, in CI), 11 Playwright smoke tests and 18 pixel-exact screenshot tests
+  (29 baselines; new in M4a: relic pick, relic belt and panel, act-clear build, relic unlocked, shop relics, Sable's
+  tutorial and two-cursor bar, hero select, skill tree, relic log, Sable joining the camp; round 3: the tip cards, the
+  relic deal and flight, the combo flourish).
 - **Built by:** a foundation pass (the data for 40 relics, both heroes and both skill trees; a fight-hook system; XP,
   levels and skill points; relic offers and unlocks; profile v3 and run save v6), then seven parallel agents (relic
   effects, Sable's two cursors and her tree, Rowan's tree and XP pacing, the fight UI, the camp UI, the art, the music),
@@ -117,6 +118,21 @@
   their act relics unlock. (A v2 profile with all three acts cleared lands at level 7.)
 - **Run save v6:** the hero's relics, the act-start relics, a replay's starting picks left. A v5 save is migrated (no
   relics yet), so a run in progress survives the update; v4 still migrates through v5.
+
+### 6. Playtest round 3: "too many numbers, cluttered"
+- **Clarity pass:** the fight shows only what you act on (no stat row, no enemy attack chip, no stat rain); gear
+  reads in plain words and short numbers (`fmtStatShort`); the bag's compare is one verdict band (better / worse /
+  side-grade); a loot card shows its top 3 stats.
+- **Tips, taught slowly** (`src/data/tips.ts`, 23 tips; `core/tips.ts` picks at most one at a safe moment): a card
+  points at the thing it's about and pauses the fight while it's up; each is shown once (kept in the profile); the
+  gear panel can turn tips off or show them again. Reopening the app after a break shows a short "welcome back"
+  scene (where you were, what's next).
+- **Polish:** fight pop-ups share one lane; combo milestones flourish on the music's beat; relic picks are dealt like
+  cards and the pick flies to the belt; act clear, defeat and victory have one clear headline each; map tags are
+  icons first; Sable stands on the title once met; the camp lives (fire, idle heroes, banter lines from
+  `src/data/banter.ts`, quiet while a tip or scene is up); hero select uses plain one-line kit text.
+- **Asked in the same round:** a Camp button on the act map; "New run" says "Keeps your gear", and a real Start over
+  (gear panel, asked twice) erases the profile.
 
 ## Balance (docs/balance.md: 1,000 whole runs per player; farming 333 players per row)
 
