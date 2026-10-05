@@ -14,7 +14,7 @@ import { equippedIn, isEquipped, itemByUid, reroll, salvage, salvageAll, upgrade
 import { Rng } from '../../core/rng';
 import { HEROES } from '../../data/heroes';
 import { textWidth } from '../font';
-import { CampKit, D, GOLD_TXT, GREEN, pix, pixSize, RED, SCRAP_TXT, statChanges } from './camp-kit';
+import { CampKit, D, GOLD_TXT, GREEN, pix, RED, statChanges } from './camp-kit';
 import { ItemGrid, WornRow } from './item-grid';
 import { cellGlow, cellIcon, cellMarks, cellShine, fit, itemCell, rarityFace, rarityText, statText, wrapText } from './items';
 import { button3d, chevron, glow, GOLD, NAVY, rows } from './pixels';
@@ -601,22 +601,6 @@ export class ForgeScreen {
     t.text('tap "Pick an item".', c.x + c.w / 2, c.y + 42, 0xfff07a, { ox: 0.5, oy: 0.5, alpha: 0.6 + 0.4 * pulse(now, 1000) });
   }
 
-  private costRow(g: G, x: number, y: number, scrap: number, coins: number): number {
-    const kit = this.kit;
-    const p = kit.profile;
-    let cx = x;
-    const piece = (icon: string, n: number, have: number, col: number) => {
-      const [iw, ih] = pixSize(icon);
-      pix(g, icon, cx, Math.round(y - ih / 2));
-      cx += iw + 2;
-      const short = have < n;
-      kit.texts.text(`${n}`, cx, y, short ? RED : col, { bold: true, oy: 0.5 });
-      cx += textWidth(`${n}`, 1, true) + 7;
-    };
-    if (scrap > 0) piece('scrap', scrap, p.scrap, SCRAP_TXT);
-    if (coins > 0) piece('coin', coins, p.coins, GOLD_TXT);
-    return cx;
-  }
 
   private drawUpgrade(g: G, it: Item, c: Rect, now: number): void {
     const kit = this.kit;
@@ -683,10 +667,7 @@ export class ForgeScreen {
       kit.button(g, texts, b, 'Max level', FACE.gold, now, { disabled: true, shakeAt: this.shakes.get('main') });
       return;
     }
-    // the cost, red where you're short
-    texts.text('Cost', ix, y, 0xc8c0e8, { oy: 0.5 });
-    this.costRow(g, ix + 24, y, cost.scrap, cost.coins);
-    y += 10;
+    // the price sits on the button (red where you're short); what's missing, in words, only when it is
     const short = p.scrap < cost.scrap ? `Need ${cost.scrap - p.scrap} more scrap` : p.coins < cost.coins ? `Need ${cost.coins - p.coins} more coins` : '';
     if (short) {
       // a refused tap makes it flash and jump
@@ -695,7 +676,11 @@ export class ForgeScreen {
       if (p.scrap < cost.scrap && y + 12 < this.mainRect().y) texts.text('Salvage junk for scrap!', ix, y + 8, 0xffb0a0, { oy: 0.5, alpha: 0.5 + 0.5 * pulse(now, 1100) });
     }
     const ok = !short;
-    kit.button(g, texts, b, `Upgrade to +${plus + 1}`, FACE.green, now, { icon: 'hammer', disabled: !ok, glowCol: ok ? 0x8af06a : undefined, shakeAt: this.shakes.get('main') });
+    const price = [
+      ...(cost.scrap > 0 ? [{ icon: 'scrap', n: cost.scrap, short: p.scrap < cost.scrap }] : []),
+      ...(cost.coins > 0 ? [{ icon: 'coin', n: cost.coins, short: p.coins < cost.coins }] : []),
+    ];
+    kit.button(g, texts, b, 'Upgrade', FACE.green, now, { icon: 'hammer', disabled: !ok, glowCol: ok ? 0x8af06a : undefined, shakeAt: this.shakes.get('main'), cost: price });
   }
 
   private drawReroll(g: G, it: Item, c: Rect, now: number): void {
@@ -743,13 +728,10 @@ export class ForgeScreen {
       texts.text(fmtStatShort(stat, val), r.x + r.w - 4, r.y + r.h / 2, col, { bold: true, ox: 1, oy: 0.5 });
       if (sp >= 620 && sp < 1100) rows(g, r.x, r.y, r.w, r.h, 2, WHITE, 0.5 * (1 - (sp - 620) / 480));
     });
+    // the price sits on the button (it doubles with each reroll of the item)
     const cost = rerollCost(t, it);
-    const y = this.mainRect().y - 8;
-    texts.text('Cost', ix, y, 0xc8c0e8, { oy: 0.5 });
-    const ex = this.costRow(g, ix + 24, y, 0, cost);
-    texts.text('(x2 each time)', ex - 3, y, 0x8a84a8, { oy: 0.5 });
     const ok = this.line >= 0 && p.coins >= cost;
-    kit.button(g, texts, this.mainRect(), 'Reroll', FACE.blue, now, { icon: 'dice', disabled: !ok, glowCol: ok ? 0x9ad8ff : undefined, shakeAt: this.shakes.get('main') });
+    kit.button(g, texts, this.mainRect(), 'Reroll', FACE.blue, now, { icon: 'dice', disabled: !ok, glowCol: ok ? 0x9ad8ff : undefined, shakeAt: this.shakes.get('main'), cost: [{ icon: 'coin', n: cost, short: p.coins < cost }] });
   }
 
   private drawSalvage(g: G, it: Item | undefined, c: Rect, now: number): void {

@@ -76,10 +76,11 @@ export class BagScreen {
     return { x: s.x + Math.round(s.w / 2) + 1, y: s.y, w: s.w - Math.round(s.w / 2) - 1, h: s.h };
   }
 
+  /** The item card: under the top bar like every camp screen's panels (the bar's middle stays clear: kit.hudZone). */
   private pane(): Rect {
     const s = this.kit.s;
     const x = this.grid.x + this.grid.w + 5;
-    return { x, y: 3, w: s.R - 3 - x, h: s.B - 6 };
+    return { x, y: 19, w: s.R - 3 - x, h: s.B - 22 };
   }
 
   private get cap(): number {

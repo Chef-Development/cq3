@@ -715,7 +715,8 @@ export class CampKit {
 
   /**
    * A chunky button with an optional icon in front of its label. `pressed` shows it sunk (notePress on the tap);
-   * `shakeAt` rattles it (a refused tap); `glowCol` pulses a halo around it.
+   * `shakeAt` rattles it (a refused tap); `glowCol` pulses a halo around it. `cost`: what it costs, as icons and
+   * numbers after the label (a number you're short of in red): the price sits on the button you pay with.
    */
   button(
     g: G,
@@ -724,7 +725,18 @@ export class CampKit {
     label: string,
     face: Face,
     now: number,
-    o: { icon?: string; disabled?: boolean; glowCol?: number; shakeAt?: number; bold?: boolean; alpha?: number; labelCol?: number; sub?: string; subCol?: number } = {},
+    o: {
+      icon?: string;
+      disabled?: boolean;
+      glowCol?: number;
+      shakeAt?: number;
+      bold?: boolean;
+      alpha?: number;
+      labelCol?: number;
+      sub?: string;
+      subCol?: number;
+      cost?: Array<{ icon: string; n: number; short?: boolean }>;
+    } = {},
   ): void {
     const sh = now - (o.shakeAt ?? -1e9);
     const dx = sh < 280 ? Math.round(Math.sin(sh / 18) * 2 * (1 - sh / 280)) : 0;
@@ -737,11 +749,27 @@ export class CampKit {
     const tw = label ? textWidth(label, 1, bold) : 0;
     const [iw, ih] = o.icon ? pixSize(o.icon) : [0, 0];
     const gap = o.icon && label ? 2 : 0;
-    const total = tw + iw + gap;
+    // the price: a dark inset after the label, an icon and a number per currency
+    const cost = o.cost ?? [];
+    const pieceW = (c: { icon: string; n: number }) => pixSize(c.icon)[0] + 2 + textWidth(`${c.n}`, 1, true);
+    const costW = cost.length ? cost.reduce((a, c) => a + pieceW(c), 0) + (cost.length - 1) * 5 + 8 : 0;
+    const total = tw + iw + gap + (costW ? costW + 6 : 0);
     const x0 = Math.round(rr.x + (rr.w - total) / 2);
     const cy = rr.y + (o.sub ? rr.h / 2 - 3 : rr.h / 2) + py;
     if (o.icon) pix(g, o.icon, x0, Math.round(cy - ih / 2), o.disabled ? 0.55 : 1);
     if (label) texts.text(label, x0 + iw + gap, cy, o.labelCol ?? (o.disabled ? 0xc8ccd8 : WHITE), { bold, oy: 0.5, alpha: o.alpha });
+    if (costW) {
+      const cr = { x: x0 + iw + gap + tw + 6, y: Math.round(cy - 5), w: costW, h: 10 };
+      rows(g, cr.x, cr.y, cr.w, cr.h, 2, INK, 0.45);
+      let cx = cr.x + 4;
+      for (const c of cost) {
+        const [cw, ch] = pixSize(c.icon);
+        pix(g, c.icon, cx, Math.round(cy - ch / 2), o.disabled ? 0.7 : 1);
+        cx += cw + 2;
+        texts.text(`${c.n}`, cx, cy, c.short ? 0xff8a7a : c.icon === 'coin' ? GOLD_TXT : SCRAP_TXT, { bold: true, oy: 0.5, alpha: o.alpha });
+        cx += textWidth(`${c.n}`, 1, true) + 5;
+      }
+    }
     if (o.sub) texts.text(o.sub, rr.x + rr.w / 2, cy + 8, o.disabled ? 0xc8ccd8 : (o.subCol ?? 0xfff0c0), { ox: 0.5, oy: 0.5 });
   }
 

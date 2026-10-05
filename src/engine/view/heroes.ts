@@ -1,8 +1,9 @@
 // The hero select (a camp screen: tap the hero chip at the top left, or a hero by the fire). A tab per hero along
 // the top (the picked one wears a gold check, a locked one a padlock); the card below shows the hero: their card art
-// in a gold frame, name, family (Blade / Twin), title and bio, level and XP, and their kit (ability, passive,
-// finisher) with the numbers filled in. "Pick" makes them the hero who fights (and earns the XP); "Stats" opens
-// their stats. Before Sable joins, their card is a dark silhouette: "Clear Act 1". Gear is shared by every hero.
+// in a gold frame, name, family (Blade / Twin), title and bio, their level as a bar with "Lv 6" (a tap on it shows
+// the XP numbers), and their kit (ability, passive, finisher) in columns: an icon, the name, one plain line each.
+// "Pick" makes them the hero who fights (and earns the XP); "Stats" opens their stats. Before Sable joins, their card
+// is a dark silhouette: "Clear Act 1". Gear is shared by every hero.
 import type Phaser from 'phaser';
 import { HEROES, type HeroId, type KitPart } from '../../data/heroes';
 import { selectHero } from '../../core/profile';
@@ -10,7 +11,7 @@ import type { Tuning } from '../../core/tuning';
 import { textWidth } from '../font';
 import { CampKit, D, DIM_TXT, GOLD_TXT, GREEN, pix, pixSize } from './camp-kit';
 import { padlock, wrapText } from './items';
-import { glow, GOLD, NAVY, rows } from './pixels';
+import { brick, gauge, glow, GOLD, hudIcon, iconSize, NAVY, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, pulse, WHITE, type Rect } from './shared';
 import { FACE, notePress, RIBBON, tag } from './ui';
 
@@ -52,6 +53,11 @@ export class HeroesScreen {
   private viewAt = 0;
   private pickAt = -1e9;
   private shakeAt = -1e9;
+  /** The XP numbers show under the level bar after a tap on it. */
+  private xpShown = false;
+  /** A kit column tapped open shows its full text (with the numbers); where the columns were drawn. */
+  private kitOpen: string | null = null;
+  private kitCols: Array<{ which: string; r: Rect }> = [];
 
   constructor(private readonly kit: CampKit) {}
 
@@ -81,6 +87,13 @@ export class HeroesScreen {
     return { x: c.x + 5, y: c.y + 4, w: 44, h: 52 };
   }
 
+  /** The level row (the "Lv" chip and the bar) right of the art. */
+  private levelRow(): Rect {
+    const c = this.card();
+    const f = this.frame();
+    return { x: f.x + f.w + 6, y: c.y + 45, w: 150, h: 10 };
+  }
+
   private buttons(): { stats: Rect; pick: Rect } {
     const c = this.card();
     const picked = this.kit.profile.hero === this.view;
@@ -105,9 +118,21 @@ export class HeroesScreen {
       if (this.view !== id) {
         this.view = id;
         this.viewAt = now;
+        this.kitOpen = null;
         kit.fadeToast();
         app.audio.uiClick();
       }
+      return;
+    }
+    const col = this.unlocked(this.view) ? this.kitCols.find((q) => inRect(q.r, x, y, 1)) : undefined;
+    if (col) {
+      this.kitOpen = this.kitOpen === col.which ? null : col.which;
+      app.audio.uiClick();
+      return;
+    }
+    if (this.unlocked(this.view) && inRect(this.levelRow(), x, y, 2)) {
+      this.xpShown = !this.xpShown;
+      app.audio.uiClick();
       return;
     }
     const b = this.buttons();
@@ -242,7 +267,6 @@ export class HeroesScreen {
 
   private drawHero(g: G, c: Rect, now: number): void {
     const kit = this.kit;
-    const t = kit.tuning;
     const p = kit.profile;
     const texts = kit.texts;
     const id = this.view;
@@ -264,59 +288,66 @@ export class HeroesScreen {
     let y = c.y + 27;
     const cw = kit.familyChip(g, texts, def.family, tx, y, a);
     texts.text(def.title, tx + cw + 5, y, 0xffd890, { oy: 0.5, alpha: a });
-    // the bio (two lines at most)
+    // the bio (one line: tests/unit/data.test.ts keeps it short)
     y += 10;
-    for (const line of wrapText(def.bio, tw).slice(0, 2)) {
+    for (const line of wrapText(def.bio, tw).slice(0, 1)) {
       texts.text(line, tx, y, 0xc8c0e8, { oy: 0.5, alpha: a });
       y += 8;
     }
-    // level and XP, and points to spend
+    // the level: a gold chip and a bar (the numbers on a tap), and points to spend
     const L = kit.level(id);
-    // the XP row needs "Lv n", a bar of 30 px and "into/need XP": the pill says "n points" when "n skill points" crowds it
-    const xpNeed = textWidth(`Lv ${L.level}`, 1, true) + 38 + textWidth(L.need ? `${L.into}/${L.need} XP` : 'Max level', 1, false);
-    const s = L.points > 1 ? 's' : '';
-    const long = `${L.points} skill point${s}`;
-    const pts = L.points <= 0 ? '' : tw - (textWidth(long, 1, false) + 22) >= xpNeed ? long : `${L.points} point${s}`;
+    const lr = this.levelRow();
+    const lv = `Lv ${L.level}`;
+    const lw = textWidth(lv, 1, true) + 8;
+    const chip = { x: lr.x, y: lr.y, w: lw, h: 10 };
+    tag(g, chip, [GOLD[4], GOLD[3], GOLD[2], GOLD[0]], a);
+    texts.text(lv, chip.x + lw / 2, chip.y + 5, 0x3a1e08, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
+    const s2 = L.points > 1 ? 's' : '';
+    const pts = L.points > 0 ? `${L.points} point${s2}` : '';
     const pw = pts ? textWidth(pts, 1, false) + 16 : 0;
-    const xr = { x: tx, y: c.y + 48, w: Math.min(150, tw - (pw ? pw + 6 : 0)), h: 9 };
-    kit.xpBar(g, texts, id, xr, { alpha: a });
+    const bx = chip.x + lw + 4;
+    const bw = Math.max(30, Math.min(110, c.x + c.w - 6 - bx - (pw ? pw + 6 : 0)));
+    gauge(g, bx, lr.y + 2, bw, 6, L.need ? L.into / L.need : 1, 0, { ramp: [0xe0f6ff, 0x4aa0f0, 0x2a6ad8, 0x1a3c8a], seg: 10 });
+    if (this.xpShown) texts.text(L.need ? `${L.into}/${L.need} XP` : 'Max level', bx, lr.y + 15, 0xa8c8f0, { oy: 0.5, alpha: a });
     if (pts) {
-      const r = { x: c.x + c.w - 6 - pw, y: xr.y - 1, w: pw, h: 10 };
+      const r = { x: c.x + c.w - 6 - pw, y: lr.y, w: pw, h: 10 };
       glow(g, r, 0xffd23a, 0.2 + 0.3 * pulse(now, 1000), 2);
       tag(g, r, [GOLD[4], GOLD[3], GOLD[2], GOLD[0]]);
       pix(g, 'skills', r.x + 1, r.y);
       texts.text(pts, r.x + 13, r.y + 5, 0x5a2a08, { oy: 0.5 });
     }
-    // the kit: a chip, the name, the text flowing after it
+    // the kit, in columns: an icon tile, the name, one plain line
     const kx = c.x + 6;
     const kw = c.w - 12;
-    y = f.y + f.h + 3;
+    y = f.y + f.h + 4;
     kit.divider(g, kx, y, kw);
     y += 6;
     const parts = KIT.filter((q) => def[q.which]);
+    const colW = Math.floor((kw - (parts.length - 1) * 6) / parts.length);
+    let bottom = y;
+    this.kitCols = parts.map((q, i) => ({ which: q.which, r: { x: kx + i * (colW + 6), y, w: colW, h: c.y + c.h - 4 - y } }));
     parts.forEach((q, i) => {
       const part = def[q.which] as KitPart;
       const ik = clamp01((now - this.viewAt - 60 - i * 60) / 160);
       if (ik <= 0) return;
       const ia = ik;
-      const lw = textWidth(q.label, 1, false) + 6;
-      const chip = { x: kx + Math.round((1 - ik) * 8), y: y - 4, w: lw, h: 9 };
-      tag(g, chip, q.face, ia);
-      texts.text(q.label, chip.x + 3, y + 0.5, WHITE, { oy: 0.5, alpha: ia });
-      const nx = chip.x + lw + 4;
-      texts.text(part.name, nx, y, q.name, { bold: true, oy: 0.5, alpha: ia });
-      const ex = nx + textWidth(part.name, 1, true) + 4;
-      const lines = wrapFlow(kitText(t, id, q.which), kx + kw - ex, kw);
-      lines.forEach((l, j) => {
-        if (l) texts.text(l, j ? kx : ex, y + j * 8, 0xe8e0ff, { oy: 0.5, alpha: ia });
-      });
-      y += lines.length * 8 + 2;
+      const x0 = kx + i * (colW + 6) + Math.round((1 - ik) * 6);
+      const tile = { x: x0, y, w: 13, h: 13 };
+      tag(g, tile, q.face, ia);
+      this.kitIcon(g, q.which, tile, ia);
+      texts.text(part.name, tile.x + tile.w + 4, tile.y + 6.5, q.name, { bold: true, oy: 0.5, alpha: ia });
+      // one plain line; tapped open, the full text with its numbers
+      const open = this.kitOpen === q.which;
+      const lines = open ? wrapText(kitText(kit.tuning, id, q.which), colW - 2) : wrapText(part.short, colW - 2).slice(0, 2);
+      lines.forEach((l, j) => texts.text(l, x0, tile.y + tile.h + 6 + j * 8, open ? 0xfff0c0 : 0xd8d0f0, { oy: 0.5, alpha: ia }));
+      bottom = Math.max(bottom, tile.y + tile.h + 6 + lines.length * 8);
     });
     // the skills learned, as icons (when the card has room under the kit)
     const learned = p.heroes[id]?.skills ?? [];
-    if (y + 12 <= c.y + c.h - 5) {
-      y += 4;
-      kit.divider(g, kx, y - 6, kw);
+    y = bottom + 3;
+    if (y + 12 <= c.y + c.h - 4) {
+      kit.divider(g, kx, y - 4, kw);
+      y += 5;
       texts.text('Skills', kx, y, 0xc8c0e8, { bold: true, oy: 0.5, alpha: a });
       let x = kx + textWidth('Skills', 1, true) + 5;
       if (!learned.length) texts.text(L.points ? 'none yet: tap Skills at the camp' : 'none yet', x, y, DIM_TXT, { oy: 0.5, alpha: a });
@@ -326,6 +357,17 @@ export class HeroesScreen {
         x += 14;
       }
     }
+  }
+
+  /** A kit part's mark on its tile: a green block (what a green hit does), the meter (a passive), a bolt (the finisher). */
+  private kitIcon(g: G, which: 'ability' | 'passive' | 'finisher', t: Rect, alpha: number): void {
+    if (which === 'ability') {
+      brick(g, t.x + 4, t.y + 3, 5, 7, [0xa8f590, 0x4ccf4a, 0x2a9a3a, 0x14622a], alpha);
+      return;
+    }
+    const key = which === 'passive' ? 'meter' : 'bolt';
+    const [w, h] = iconSize(key);
+    hudIcon(g, key, t.x + Math.round((t.w - w) / 2), t.y + Math.round((t.h - h) / 2), 1, alpha);
   }
 
   /** Sable before they join: a silhouette, and how to meet them. */

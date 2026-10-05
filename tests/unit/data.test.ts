@@ -5,6 +5,8 @@ import { ENEMIES } from '../../src/data/enemies';
 import { EVENTS } from '../../src/data/events';
 import { GREENMARCH } from '../../src/data/greenmarch';
 import { SPEAKER_NAME, STORY } from '../../src/data/story';
+import { BANTER } from '../../src/data/banter';
+import { HEROES } from '../../src/data/heroes';
 import { cloneTuning, DEFAULT_TUNING, getPath, mergeKnown, setPath, sliderGroups, tuningDiff } from '../../src/core/tuning';
 import { textWidth } from '../../src/engine/font';
 
@@ -109,6 +111,54 @@ describe('story', () => {
         expect(SPEAKER_NAME[b.who]).toBeDefined();
       }
     }
+  });
+});
+
+describe('camp banter', () => {
+  /** The camp's speech bubble wraps a line at this width (camp.ts drawBanter), in two lines at most. */
+  const BUBBLE_W = 104;
+  const wrap = (s: string): string[] => {
+    const out: string[] = [];
+    let cur = '';
+    for (const w of s.split(' ')) {
+      const t = cur ? `${cur} ${w}` : w;
+      if (!cur || textWidth(t, 1, false) <= BUBBLE_W) cur = t;
+      else {
+        out.push(cur);
+        cur = w;
+      }
+    }
+    return [...out, cur];
+  };
+
+  it('about twenty lines, each one fitting the bubble in two short lines', () => {
+    expect(BANTER.length).toBeGreaterThanOrEqual(18);
+    expect(new Set(BANTER.map((l) => l.text)).size).toBe(BANTER.length);
+    for (const l of BANTER) {
+      const lines = wrap(l.text);
+      expect(lines.length, l.text).toBeLessThanOrEqual(2);
+      for (const x of lines) expect(textWidth(x, 1, false), l.text).toBeLessThanOrEqual(BUBBLE_W);
+    }
+  });
+
+  it('lines that need Sable say so; Rowan and Pip have plenty without them', () => {
+    for (const l of BANTER) if (/sable/i.test(l.text)) expect(l.sable || l.who === 'sable', l.text).toBe(true);
+    expect(BANTER.filter((l) => l.who !== 'sable' && !l.sable).length).toBeGreaterThanOrEqual(10);
+  });
+});
+
+describe('hero kit lines', () => {
+  it('every kit part has one short plain line that fits two lines of its column on the hero select', () => {
+    for (const h of Object.values(HEROES))
+      for (const part of [h.ability, h.passive, h.finisher]) {
+        if (!part) continue;
+        expect(part.short.length, part.name).toBeGreaterThan(0);
+        expect(textWidth(part.short, 1, false), part.short).toBeLessThanOrEqual(2 * 88);
+      }
+  });
+
+  it("every hero's bio is one line on the hero select", () => {
+    for (const h of Object.values(HEROES)) expect(textWidth(h.bio, 1, false), h.bio).toBeLessThanOrEqual(250);
   });
 });
 

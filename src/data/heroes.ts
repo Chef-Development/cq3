@@ -11,6 +11,7 @@ export type HeroFamily = 'blade' | 'twin';
 export interface KitPart {
   name: string;
   text: string; // one short line; '{n}' is the kit's tuning number where it has one
+  short: string; // the hero select's line: plain words, no numbers
 }
 
 export interface HeroDef {
@@ -31,8 +32,8 @@ export const HEROES: Record<HeroId, HeroDef> = {
     family: 'blade',
     title: 'Junior Knight',
     bio: 'Slept through the end of time. Making up for it.',
-    ability: { name: 'Battle Focus', text: 'Green hits: +{n}% crit for a few seconds.' },
-    finisher: { name: 'Whirlwind', text: 'Swipe: strikes every foe and clears all reds.' },
+    ability: { name: 'Battle Focus', text: 'Green hits: +{n}% crit for a few seconds.', short: 'Green hits raise your crit.' },
+    finisher: { name: 'Whirlwind', text: 'Swipe: strikes every foe and clears all reds.', short: 'Swipe: hits all, clears reds.' },
   },
   sable: {
     id: 'sable',
@@ -40,9 +41,9 @@ export const HEROES: Record<HeroId, HeroDef> = {
     family: 'twin',
     title: 'Twin-Dagger Ninja',
     bio: 'Tried to rob the camp. Got caught by an owl.',
-    ability: { name: 'Shadow Step', text: 'For {n} s, a hit with one cursor also hits the block under the other.' },
-    passive: { name: 'Ambidextrous', text: 'Alternating left and right hits fill the meter {n}% faster.' },
-    finisher: { name: 'Twin Fang', text: 'Swipe: hits the target alone, harder per stack; a kill keeps 1 stack.' },
+    ability: { name: 'Shadow Step', text: 'For {n} s, a hit with one cursor also hits the block under the other.', short: 'Green hits link both cursors.' },
+    passive: { name: 'Ambidextrous', text: 'Alternating left and right hits fill the meter {n}% faster.', short: 'Switch hands: faster meter.' },
+    finisher: { name: 'Twin Fang', text: 'Swipe: hits the target alone, harder per stack; a kill keeps 1 stack.', short: 'Swipe: one big hit on a foe.' },
   },
 };
 

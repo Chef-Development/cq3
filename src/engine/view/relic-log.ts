@@ -5,13 +5,14 @@
 // Looking at a new relic clears its NEW tag.
 import type Phaser from 'phaser';
 import { RARITY_INFO } from '../../data/gear';
-import { RELICS, TAG_NAME, type RelicDef, type RelicId, type RelicRarity, type RelicTag } from '../../data/relics';
+import { RELICS, type RelicDef, type RelicId, type RelicRarity, type RelicTag } from '../../data/relics';
 import { relicUnlocked } from '../../core/profile';
 import { relicText, unlockHint } from '../../core/relics';
 import { textWidth } from '../font';
-import { CampKit, D, DIM_TXT, GOLD_TXT, GREEN, pix } from './camp-kit';
+import { CampKit, D, DIM_TXT, GOLD_TXT, pix } from './camp-kit';
 import { cellGlow, cellShine, itemCell, padlock, wrapText } from './items';
-import { gauge, GOLD, NAVY, rows } from './pixels';
+import { cardTile, chipWidth, RARITY_FACE, tagChip } from './relic-ui';
+import { gauge, glow, GOLD, NAVY, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, pulse, WHITE, type Rect } from './shared';
 import { notePress, RIBBON, tag } from './ui';
 
@@ -236,6 +237,10 @@ export class RelicLogScreen {
     texts.text('Tap one to read it', cx, c.y + c.h - 10, 0xfff07a, { ox: 0.5, oy: 0.5, alpha: 0.55 + 0.45 * pulse(now, 1100) });
   }
 
+  /**
+   * A relic's card, in the relic cards' style (the pick, the unlock card): the icon at 2x on a tile in its rarity's
+   * colours, the name, the rarity tag (Rare and Epic), its tag chips, what it does; a locked one says how to unlock it.
+   */
   private drawCard(g: G, id: RelicId, c: Rect, now: number): void {
     const kit = this.kit;
     const t = kit.tuning;
@@ -246,67 +251,50 @@ export class RelicLogScreen {
     const a = clamp01((now - this.selAt) / 120);
     const ix = c.x + 6 + Math.round((1 - k) * 6);
     const iw = c.w - 12;
-    // the icon at 2x in its rarity frame, the name and the rarity
-    const cell = { x: ix, y: c.y + 6, w: 28, h: 28 };
-    if (open) cellGlow(g, cell, def.rarity, now, a);
-    itemCell(g, cell, def.rarity, { dim: !open, alpha: a });
-    this.icon(def, cell.x + 2, cell.y + 2, D.icons, { scale: 2, dark: !open, alpha: a });
-    if (open) cellShine(kit.gOver, cell, def.rarity, now, a);
-    else padlock(kit.gOver, cell.x + cell.w - 7, cell.y + cell.h - 8, a, GOLD[3]);
-    const nx = cell.x + cell.w + 5;
-    const nw = c.x + c.w - 5 - nx;
-    let y = c.y + 10;
-    const name = wrapText(def.name, nw, true).slice(0, 2);
-    for (const l of name) {
+    // the icon at 2x on its rarity's tile (a locked one dark, with a padlock)
+    const look = RARITY_FACE[def.rarity];
+    const face = open ? look.face : ([0x6a6478, 0x4a4458, 0x3a3448, 0x26222e] as const);
+    const tile = { x: ix, y: c.y + 6, w: 30, h: 30 };
+    if (open && def.rarity !== 'common') glow(g, tile, face[1], 0.35 + 0.2 * pulse(now, 1000), 2);
+    rows(g, tile.x - 1, tile.y - 1, tile.w + 2, tile.h + 2, 3, INK, a);
+    cardTile(g, tile, face, a);
+    this.icon(def, tile.x + 3, tile.y + 3, D.icons, { scale: 2, dark: !open, alpha: a });
+    if (!open) padlock(kit.gOver, tile.x + tile.w - 8, tile.y + tile.h - 9, a, GOLD[3]);
+    // the name (two lines if it must), then the rarity tag
+    const nx = tile.x + tile.w + 6;
+    const nw = c.x + c.w - 6 - nx;
+    let y = c.y + 11;
+    for (const l of wrapText(def.name, nw, true).slice(0, 2)) {
       texts.text(l, nx, y, open ? WHITE : 0xb0a8c8, { bold: true, oy: 0.5, alpha: a });
       y += 9;
     }
-    const rn = RARITY_INFO[def.rarity].name;
-    const rw = textWidth(rn, 1, false) + 6;
-    const face = RARITY_INFO[def.rarity].face;
-    tag(g, { x: nx, y: y - 4, w: rw, h: 9 }, face, a);
-    texts.text(rn, nx + 3, y + 0.5, def.rarity === 'common' ? 0x2a2438 : WHITE, { oy: 0.5, alpha: a });
-    y = Math.max(y + 10, cell.y + cell.h + 7);
-    // tags as chips
+    if (look.tag) {
+      const tw = textWidth(look.tag, 1, false) + 6;
+      tag(g, { x: nx, y: y - 4, w: tw, h: 9 }, face, a);
+      texts.text(look.tag, nx + 3, y + 0.5, WHITE, { oy: 0.5, alpha: a });
+    }
+    // its tags, as the relic cards show them
+    y = Math.max(y + 8, tile.y + tile.h + 6);
     let x = ix;
     for (const tg of def.tags) {
-      const label = TAG_NAME[tg];
-      const w = 7 + 4 + textWidth(label, 1, false) + 4;
+      const w = chipWidth(tg);
       if (x + w > ix + iw) {
         x = ix;
         y += 12;
       }
-      const r = { x, y: y - 5, w, h: 10 };
-      const col = TAG_COL[tg];
-      tag(g, r, [mix(col, WHITE, 0.35), mix(col, NAVY[2], 0.55), mix(col, NAVY[1], 0.7), NAVY[0]], a);
-      if (kit.has(`tag_${tg}`)) kit.sprites.draw(`tag_${tg}`, r.x + 2, r.y + 1, D.icons, { alpha: a });
-      else tagDot(kit.gOver, r.x + 2, r.y + 1, col, a);
-      texts.text(label, r.x + 11, y, WHITE, { oy: 0.5, alpha: a });
-      x += w + 3;
+      x += tagChip(kit.s, g, texts, kit.imgs, tg, x, y, D.icons, { alpha: a * (open ? 1 : 0.7), now }) + 3;
     }
-    y += 12;
+    y += 18;
     // what it does
     for (const l of wrapText(relicText(t, id), iw)) {
-      texts.text(l, ix, y, open ? 0xf0ecff : 0xb0a8c8, { oy: 0.5, alpha: a });
-      y += 8;
-    }
-    // how to unlock a locked one (and, for one already won, how it was)
-    if (open && def.unlock) {
-      y += 3;
-      kit.divider(g, ix, y - 4, iw);
-      y += 4;
-      pix(g, 'check', ix - 1, y - 4, a);
-      texts.text('Unlocked', ix + 9, y, GREEN, { bold: true, oy: 0.5, alpha: a });
+      texts.text(l, ix, y, open ? 0xe8e2ff : 0xb0a8c8, { oy: 0.5, alpha: a });
       y += 9;
-      for (const l of wrapText(unlockHint(id), iw)) {
-        texts.text(l, ix, y, 0xa8c8a0, { oy: 0.5, alpha: a });
-        y += 8;
-      }
     }
+    // a locked one: how to unlock it
     if (!open) {
       y += 3;
       kit.divider(g, ix, y - 4, iw);
-      y += 4;
+      y += 5;
       padlock(g, ix, y - 4, a, GOLD[3]);
       texts.text('To unlock:', ix + 9, y, GOLD_TXT, { bold: true, oy: 0.5, alpha: a });
       y += 9;
@@ -332,17 +320,6 @@ function pendant(g: G, x: number, y: number, col: number, sc: number, a: number,
   });
 }
 
-/** A stand-in tag icon (7x7): a round dot in the tag's color. */
-function tagDot(g: G, x: number, y: number, col: number, a: number): void {
-  g.fillStyle(INK, a);
-  g.fillRect(x + 1, y, 5, 7);
-  g.fillRect(x, y + 1, 7, 5);
-  g.fillStyle(col, a);
-  g.fillRect(x + 2, y + 1, 3, 5);
-  g.fillRect(x + 1, y + 2, 5, 3);
-  g.fillStyle(mix(col, WHITE, 0.6), a);
-  g.fillRect(x + 2, y + 2, 1, 1);
-}
 
 /** A tiny red "NEW" tag (pixel letters, 17 x 9 with its outline) with its top-left at (x, y). */
 function newTag(g: G, x: number, y: number, now: number, a: number): void {

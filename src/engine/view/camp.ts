@@ -6,9 +6,11 @@
 // purse and the scrap. "Back" (named for where it goes: the world map, the next act, a retry) leaves.
 // Each opens a screen over the dimmed, still-living camp: bag.ts, forge.ts, heroes.ts (Stats from there: stats.ts),
 // skills.ts, relic-log.ts. The first visit to the forge plays Mags's intro scene, and the first visit after Act 1
-// plays Sable's (the story view draws them; input routes taps to them).
+// plays Sable's (the story view draws them; input routes taps to them). While the home sits idle, now and then
+// (every 12-20 s) Rowan, Pip or Sable says a one-line quip in a small speech bubble (src/data/banter.ts).
 import type Phaser from 'phaser';
 import { HEROES, type HeroId } from '../../data/heroes';
+import { BANTER, type BanterLine } from '../../data/banter';
 import { itemPower } from '../../core/gear';
 import { equippedItems } from '../../core/profile';
 import type { FightScene } from '../scene';
@@ -25,6 +27,7 @@ import { clamp01, easeBack, inRect, INK, pulse, rand, WHITE, type Rect } from '.
 import { SkillsScreen } from './skills';
 import { StatsScreen } from './stats';
 import { FACE, isPressed, notePress } from './ui';
+import { wrapText } from './items';
 
 type G = Phaser.GameObjects.Graphics;
 type Mode = 'home' | 'bag' | 'forge' | 'stats' | 'heroes' | 'skills' | 'relics';
@@ -92,6 +95,13 @@ export class CampView {
   private nextSwing = 0;
   /** Rowan's gear power when the home was last on screen: coming back with better gear makes him sparkle. */
   private power = 0;
+  /** Banter by the fire: the line on screen (since `at`), when the next may come, the last few said, the last tap. */
+  private banter: { line: BanterLine; at: number } | null = null;
+  private banterNext = 0;
+  private banterRecent: string[] = [];
+  private idleSince = 0;
+  /** Anything else on screen that should keep the camp quiet (a tip, say) registers a check here. */
+  readonly banterHold: Array<() => boolean> = [];
 
   constructor(private readonly s: FightScene) {
     this.kit = new CampKit(s);
@@ -119,6 +129,9 @@ export class CampView {
     this.kit.toastNow = null;
     this.nextSwing = now + 1500;
     this.power = this.gearPower();
+    this.banter = null;
+    this.banterNext = now + rand(9000, 14000);
+    this.idleSince = now;
     // the first visit after Act 1: Sable tries to rob the camp, gets caught by Pip, and joins (their scene plays
     // over the camp the way Mags's does; skipping it still counts)
     const app = this.s.app;
@@ -253,6 +266,7 @@ export class CampView {
   tap(x: number, y: number): void {
     const app = this.s.app;
     const now = performance.now();
+    this.idleSince = now;
     if (now - this.modeAt < 180) return;
     if (this.mode !== 'home') {
       const res = this.screen().tap(x, y, now);
@@ -341,6 +355,8 @@ export class CampView {
     this.mode = mode;
     this.modeAt = now;
     this.kit.toastNow = null;
+    this.banter = null;
+    this.banterNext = Math.max(this.banterNext, now + 8000);
     if (from === 'stats' && mode === 'heroes') {
       // back from a hero's stats: the hero select as it was
       app.audio.panelClose();
@@ -394,7 +410,10 @@ export class CampView {
     kit.begin(now);
     this.bg?.setVisible(true);
     this.drawScene(now);
-    if (this.mode === 'home') this.drawHome(now);
+    if (this.mode === 'home') {
+      this.drawHome(now);
+      this.drawBanter(now);
+    }
     else {
       const k = clamp01((now - this.modeAt) / 160);
       kit.dim(kit.gUi, 0.62 * k);
@@ -639,6 +658,101 @@ export class CampView {
       if (points) kit.bubble(g, texts, r.x + r.w - 1, r.y - 3, '!', now, true);
       if (b.id === 'relics' && p.relicsNew.length) kit.bubble(g, texts, r.x + r.w - 1, r.y - 3, `${p.relicsNew.length}`, now);
     }
+  }
+
+  // ------------------------------------------------------------------ banter by the fire
+
+  /** Who can speak now (Sable once they're by the fire), and the lines they may say. */
+  private banterLines(): BanterLine[] {
+    const sable = this.sableHere();
+    return BANTER.filter((l) => (l.who !== 'sable' && !l.sable) || sable);
+  }
+
+  /** Where a speaker's bubble points: the top of their name plate (a hero) or their head (Pip). */
+  private banterAnchor(who: BanterLine['who']): { x: number; y: number } {
+    if (who === 'pip') {
+      const r = this.pipRect();
+      return { x: r.x + r.w / 2, y: r.y + 2 };
+    }
+    const p = this.heroPlate(who);
+    return { x: p.x + p.w / 2, y: p.y - 1 };
+  }
+
+  /**
+   * Every 12-20 s while the camp home sits idle (no tap for a few seconds, no story scene, no toast, nothing holding
+   * it), someone by the fire says a line: a cream speech bubble with a tail, over the speaker; it pops in, stays 3 s
+   * and fades. Never the same line twice in a row of five.
+   */
+  private drawBanter(now: number): void {
+    const app = this.s.app;
+    const quiet = !!app.storyOverlay || !!this.kit.toastNow || now - this.modeAt < 1200 || this.banterHold.some((f) => f());
+    if (quiet) {
+      this.banter = null;
+      this.banterNext = Math.max(this.banterNext, now + 4000);
+      return;
+    }
+    if (!this.banter && now >= this.banterNext && now - this.idleSince > 2500) {
+      const pool = this.banterLines().filter((l) => !this.banterRecent.includes(l.text));
+      const line = pool[Math.floor(Math.random() * pool.length)];
+      if (line) {
+        this.banter = { line, at: now };
+        this.banterRecent = [...this.banterRecent, line.text].slice(-5);
+        app.audio.textBlip();
+      }
+    }
+    const b = this.banter;
+    if (!b) return;
+    const age = now - b.at;
+    const LIFE = 3000;
+    if (age > LIFE) {
+      this.banter = null;
+      this.banterNext = now + rand(12000, 20000);
+      return;
+    }
+    const s = this.s;
+    const g = this.kit.gTop;
+    const texts = this.kit.topTexts;
+    const a = Math.min(1, age / 140) * (1 - clamp01((age - (LIFE - 260)) / 260));
+    const pop = easeBack(age / 220, 2);
+    const lines = wrapText(b.line.text, 104);
+    const w = Math.max(...lines.map((l) => textWidth(l, 1, false))) + 10;
+    const h = lines.length * 8 + 6;
+    const anc = this.banterAnchor(b.line.who);
+    // every bubble sits above the name plates (never over them), leaning left for Pip (Rowan's plate is to his right);
+    // its tail tapers down to the speaker
+    const base = Math.min(this.heroPlate('rowan').y, this.sableHere() ? this.heroPlate('sable').y : 1e9) - 5;
+    const lean = b.line.who === 'pip' ? -0.75 : 0;
+    const x = Math.round(Math.max(s.L + 3, Math.min(s.R - 3 - w, anc.x - w / 2 + lean * w * 0.5)));
+    const y = Math.round(Math.max(27, Math.min(base, anc.y - 4) - h) + (1 - pop) * 3);
+    const tx = Math.round(Math.max(x + 6, Math.min(x + w - 7, anc.x + (b.line.who === 'pip' ? -8 : 0))));
+    // the tail: from the bubble's bottom edge (5 px wide) to a point by the speaker
+    const tip = { x: Math.round(anc.x - (b.line.who === 'pip' ? 2 : 0)), y: Math.round(anc.y - 1) };
+    const len = Math.max(3, tip.y - (y + h));
+    for (let i = 0; i <= len; i++) {
+      const k = i / len;
+      const cx = Math.round(tx + (tip.x - tx) * k);
+      const half = Math.max(0, Math.round(2 * (1 - k)));
+      g.fillStyle(INK, a);
+      g.fillRect(cx - half - 1, y + h + i, half * 2 + 3, 1);
+    }
+    for (let i = 0; i < len; i++) {
+      const k = i / len;
+      const cx = Math.round(tx + (tip.x - tx) * k);
+      const half = Math.max(0, Math.round(2 * (1 - k)));
+      g.fillStyle(i < 1 ? 0xfff4dc : 0xe8d4b0, a);
+      g.fillRect(cx - half, y + h - 1 + i, half * 2 + 1, 1);
+    }
+    // the bubble: an ink rim, a cream body with a warm shade along its bottom, a little shine
+    rows(g, x - 1, y + 2, w + 2, h, 3, INK, 0.3 * a);
+    rows(g, x - 1, y - 1, w + 2, h + 2, 3, INK, a);
+    rows(g, x, y, w, h, 2, 0xfff4dc, a);
+    g.fillStyle(0xe8d4b0, a);
+    g.fillRect(x + 2, y + h - 1, w - 4, 1);
+    g.fillStyle(0xfff4dc, a);
+    g.fillRect(tx - 1, y + h - 1, 3, 1);
+    g.fillStyle(WHITE, 0.8 * a);
+    g.fillRect(x + 2, y + 1, 3, 1);
+    lines.forEach((l, i) => texts.text(l, x + w / 2, y + 7 + i * 8, 0x2a1e3a, { ox: 0.5, oy: 0.5, alpha: a }));
   }
 
   /** A crisp dark glass plate (like the world map's), optionally with a tail pointing down at `tailX`. */

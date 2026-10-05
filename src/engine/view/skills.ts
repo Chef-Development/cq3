@@ -1,8 +1,8 @@
 // The skill tree (a camp screen): the picked hero's tree (tabs switch to another unlocked hero's). Points to spend at
 // the top. On the left the three branches, each a row: its name and theme, then five nodes left to right joined by
 // links (gold once learned), the capstone at the end bigger and gold. On the right the tapped node: its icon, name,
-// kind (Stat / Rule / Capstone), what it does, and what changes: "ATK 12 > 13" for a stat node, "Now: ... /
-// With it: ..." for a rule; then Learn (or why not: "Learn Keen Edge first", "No points: reach Lv 8"). Learning
+// kind (Stat / Rule / Capstone), what it does in one short text, and for a stat node the change ("ATK 12 > 13");
+// then Learn (or why not: "Learn Keen Edge first", "No points: reach Lv 8"). Learning
 // flashes the node, lights its link and shows the change; Reset (a second tap confirms) gives every point back.
 // (Rows rather than columns so the node card fits beside the tree on the phone.)
 import type Phaser from 'phaser';
@@ -14,7 +14,6 @@ import { heroProgress } from '../../core/profile';
 import { skillStatPreview } from '../../core/run';
 import { textWidth } from '../font';
 import { CampKit, D, DIM_TXT, GOLD_TXT, GREEN, pix, pixSize, statChanges } from './camp-kit';
-import { wrapFlow } from './heroes';
 import { padlock, wrapText } from './items';
 import { chevron, glow, GOLD, iconSize, NAVY, rows } from './pixels';
 import { clamp01, easeBack, easeOut3, inRect, INK, mix, pulse, WHITE, type Rect } from './shared';
@@ -508,22 +507,19 @@ export class SkillsScreen {
     // what it does, then what changes; spaced out when there's room above the button, tighter when not
     const text = wrapText(skillText(t, node), iw);
     const stat = skillStatPreview(t, kit.heroAs(this.hero), node.id);
-    const pv = skillPreview(t, node);
-    const flowLines = (label: string, s2: string) => wrapFlow(s2, iw - textWidth(label, 1, true) - 4, iw);
-    const rule = !stat && 'before' in pv ? { now: flowLines('Now:', pv.before), with: flowLines('With it:', pv.after) } : null;
-    const body = text.length * 8 + (stat ? 13 : rule ? (rule.now.length + rule.with.length) * 8 + 4 : 0);
+    const body = text.length * 9 + (stat ? 13 : 0);
     const room = this.learnRect().y - 4 - (p.y + 35);
     const roomy = body + 13 <= room;
-    let y = p.y + (roomy ? 39 : 36);
+    let y = p.y + (roomy ? 41 : 37);
     for (const l of text) {
-      texts.text(l, ix, y, 0xf0ecff, { oy: 0.5, alpha: a });
-      y += 8;
+      texts.text(l, ix, y, 0xe8e2ff, { oy: 0.5, alpha: a });
+      y += 9;
     }
-    if (roomy) {
+    if (stat && roomy) {
       y += 2;
       kit.divider(g, ix, y, iw);
       y += 7;
-    } else y += 3;
+    } else if (stat) y += 3;
     if (stat) {
       const row = { x: ix - 2, y: y - 6, w: iw + 4, h: 13 };
       rows(g, row.x, row.y, row.w, row.h, 2, NAVY[1], a);
@@ -539,15 +535,6 @@ export class SkillsScreen {
       texts.text(stat.after, x, y, GREEN, { bold: true, ox: 1, oy: 0.5, alpha: a });
       chevron(g, x - bw - 8, y - 3, 7, GREEN, a, 1, true);
       texts.text(stat.before, x - bw - 11, y, 0xb0a8c8, { bold: true, ox: 1, oy: 0.5, alpha: a });
-    } else if (rule) {
-      const flow = (label: string, lines: string[], lc: number, tc: number) => {
-        const lw = textWidth(label, 1, true);
-        texts.text(label, ix, y, lc, { bold: true, oy: 0.5, alpha: a });
-        lines.forEach((l, j) => l && texts.text(l, j ? ix : ix + lw + 4, y + j * 8, tc, { oy: 0.5, alpha: a }));
-        y += lines.length * 8 + 2;
-      };
-      flow('Now:', rule.now, 0xa8a0c8, 0xc8c0e0);
-      flow('With it:', rule.with, GREEN, 0xd8ffc0);
     }
     // Learn, or why not
     const b = this.learnRect();
