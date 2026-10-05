@@ -59,12 +59,16 @@ export const MINI_ICONS: Record<string, { rows: string[]; pal: Record<string, nu
   },
   // 7x7: a shell / protection status
   shield: { rows: outlined(['WLLLl', 'WLbLl', 'LbbbL', '.LbL.', '..L..']), pal: { k: K, W: 0xffffff, L: 0x9ad8ff, l: 0x4aa0f0, b: 0x2a6ad8 } },
-  // 7x7 stat icons (PLACEHOLDERS until the art pass): crit damage, meter gain, steady, luck, and scrap
-  critx: { rows: outlined(['R.R.R', '.RYR.', 'RYWYR', '.RYR.', 'R.R.R']), pal: { k: K, R: 0xf05a48, Y: 0xffd23a, W: 0xffffff } },
-  meter: { rows: outlined(['BBBBB', 'BLLLB', 'BLL.B', 'BBBBB']), pal: { k: K, B: 0x2a6ad8, L: 0x9ad8ff } },
-  clock: { rows: outlined(['.WWW.', 'W.B.W', 'W.BBW', 'W...W', '.WWW.']), pal: { k: K, W: 0xeef3fa, B: 0x2a6ad8 } },
-  clover: { rows: outlined(['.G.G.', 'GgGgG', '.GgG.', 'GgGgG', '..d..']), pal: { k: K, G: 0x78a83c, g: 0xb4d058, d: 0x4a2c18 } },
-  scrap: { rows: outlined(['..S..', '.SsS.', 'SsTsS', 'sSTSs']), pal: { k: K, S: 0xb8c2d8, s: 0x7c86a6, T: 0xd8901c } },
+  // 7x7 stat icons: crit damage (an orange burst, the colour of "Crit!"), meter gain (the finisher's blue, rising),
+  // steady (a clock), luck (a four-leaf clover) and scrap (a nut on a little heap of bent plate, with a brass screw)
+  critx: { rows: outlined(['R.q.R', '.qYq.', 'qYWYq', '.qYq.', 'R.q.R']), pal: { k: K, R: 0xd03030, q: 0xff8a3a, Y: 0xffe070, W: 0xffffff } },
+  meter: { rows: outlined(['....W', '..L.L', '..LBL', 'l.LBL', 'lBLBL']), pal: { k: K, W: 0xe0f6ff, L: 0x9ad8ff, l: 0x4aa0f0, B: 0x2a6ad8 } },
+  clock: { rows: outlined(['.SSs.', 'SWhWm', 'SWhhm', 'sWWWm', '.mmm.']), pal: { k: K, S: 0xeef3fa, s: 0xb8c2d8, m: 0x7c86a6, W: 0xffffff, h: 0x2a2f45 } },
+  clover: { rows: outlined(['fE.Ef', 'EEdEe', '.ddd.', 'EEdee', 'fe.eh']), pal: { k: K, f: 0xc0e070, E: 0x78b83c, e: 0x4a8a36, d: 0x2e5a2a, h: 0x6e4426 } },
+  scrap: {
+    rows: outlined(['.sSs.', 'sSkMm', 'SmsMy', 'sSmyY', 'MmMMM']),
+    pal: { k: K, S: 0xeef3fa, s: 0xb8c2d8, m: 0x7c86a6, M: 0x4a5272, y: 0xd8901c, Y: 0x9a5a14 },
+  },
   // 7x7: a tiny star (sparkle accents)
   star: { rows: outlined(['..W..', '.WYW.', 'WYYYW', '.WYW.', '..W..']), pal: { k: K, W: 0xffd23a, Y: 0xfff6c0 } },
 };
