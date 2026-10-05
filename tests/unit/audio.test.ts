@@ -1,11 +1,14 @@
-// Renders every sound effect (and the music, and the ambience beds) on an OfflineAudioContext and checks levels: no
-// clipping, impacts at least as loud as all three themes (on phone speakers too, and with the ambience under them),
-// every impact tier heavier than the last, every enemy telegraph clearly audible over the music, building toward its
-// action and unlike the others, a band that is full (stereo, with low end) and ambience that sits under it all.
+// Renders every sound effect (and every piece of music, and the ambience beds) on an OfflineAudioContext and checks
+// levels: no clipping, impacts at least as loud as every piece (on phone speakers too, and with the ambience under
+// them), every impact tier heavier than the last, every enemy telegraph clearly audible over the fight music,
+// building toward its action and unlike the others, a band that is full (stereo, with low end) and ambience that
+// sits under it all. The music: each piece is rendered across its loop point (its last bar into its first: the
+// riser, the fill and the crash) in every arrangement, the fight ones at combo 0 (the base) and with every layer in.
 import { OfflineAudioContext } from 'node-web-audio-api';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { cloneTuning, type Tuning } from '../../src/core/tuning';
-import { AMBIENCES, SFX, Synth, TELL_SOUNDS, type Ambience, type MusicTrack, type TellSound } from '../../src/engine/audio';
+import { AMBIENCES, SFX, Synth, TELL_SOUNDS, type Ambience, type TellSound } from '../../src/engine/audio';
+import { Band, midi, MUSIC_PIECES, MUSIC_TRACKS, SONGS, stepSec, type MusicPiece, type MusicRender, type MusicTrack } from '../../src/engine/music';
 import { BANDS, envelope, measure, seeded, spectralDistance, spectrogram, type Measure } from './loudness';
 
 const FS = 44100;
@@ -57,18 +60,52 @@ function rmsEnvelope(channels: Float32Array[], win: number): number[] {
   return out;
 }
 
-const THEMES: Record<MusicTrack, { steps: number; bpm: number }> = {
-  battle: { steps: 48, bpm: 130 },
-  boss: { steps: 128, bpm: 150 },
-  map: { steps: 128, bpm: 100 },
-};
-const THEME_NAMES = Object.keys(THEMES) as MusicTrack[];
+// ---- the music: every piece of the Sound lab, across its loop point ----
+
+/** A render of a piece: `bars` bars from the start of its last bar (or two), at a combo. */
+interface Cue {
+  id: string;
+  piece: MusicPiece;
+  combo: number;
+  full: boolean; // every layer in (a fight piece at a high combo, or the Boar King's last phase)
+}
+const FULL_COMBO = 999;
+const CUES: Cue[] = MUSIC_PIECES.flatMap((p): Cue[] => {
+  if (!p.intense) return [{ id: p.id, piece: p, combo: 0, full: false }];
+  if (p.phase === 3) return [{ id: p.id, piece: p, combo: 0, full: true }]; // everything is in already
+  return [
+    { id: `${p.id}@0`, piece: p, combo: 0, full: false },
+    { id: `${p.id}@full`, piece: p, combo: FULL_COMBO, full: true },
+  ];
+});
+const FIGHT_FULL = CUES.filter((c) => c.full);
+
+/** About 4-6 s around the loop point: whole bars, from the start of the loop's last bar(s). */
+function seam(track: MusicTrack): { steps: number; from: number; len: number } {
+  const song = SONGS[track];
+  const bar = song.meter * stepSec(song);
+  const bars = Math.max(2, Math.min(4, Math.round(4.5 / bar)));
+  const from = (song.bars - Math.floor(bars / 2)) * song.meter;
+  return { steps: bars * song.meter, from, len: bars * bar };
+}
+
+const cuePlay =
+  (c: Cue, o: MusicRender = {}): Play =>
+  (s, at) => {
+    const w = seam(c.piece.track);
+    s.scheduleMusic(at, w.steps, c.piece.track, { intense: c.piece.intense, combo: c.combo, phase: c.piece.phase, from: w.from, ...o });
+  };
 
 const results = new Map<string, Measure>();
-const themes = {} as Record<MusicTrack, Measure>;
-const themeWidth = {} as Record<MusicTrack, number>;
+const music = new Map<string, Measure>();
+const musicWidth = new Map<string, number>();
 const ambRaw = new Map<Ambience, Float32Array[]>();
 const tells = new Map<TellSound, { env: number[]; spec: number[][] }>();
+const mus = (id: string) => {
+  const m = music.get(id);
+  if (!m) throw new Error(`no music render ${id}`);
+  return m;
+};
 
 beforeAll(async () => {
   for (const e of SFX) {
@@ -77,17 +114,16 @@ beforeAll(async () => {
     if (e.id.startsWith('amb-')) ambRaw.set(e.id.slice(4) as Ambience, ch);
     if (e.id.startsWith('tell-')) tells.set(e.id.slice(5) as TellSound, { env: envelope(ch, FS, ENV_WIN), spec: spectrogram(ch, FS, AT, AT + TELL_SEC + 0.2, 10, true) });
   }
-  for (const name of THEME_NAMES) {
-    const { steps, bpm } = THEMES[name];
-    const ch = await renderRaw((s, at) => s.scheduleMusic(at, steps, name), steps * (60 / bpm / 4));
-    themes[name] = measure(ch, FS);
-    themeWidth[name] = width(ch);
+  for (const c of CUES) {
+    const ch = await renderRaw(cuePlay(c), seam(c.piece.track).len);
+    music.set(c.id, measure(ch, FS));
+    musicWidth.set(c.id, width(ch));
   }
   if (process.env.AUDIO_REPORT) {
     const row = (m: Measure) => [m.peak, m.loud, m.mean, m.energy, m.phoneLoud, m.phoneMean, m.phoneEnergy, m.lowEnergy].map((v) => v.toFixed(2).padStart(7)).join(' ');
     console.log(`${'sound'.padEnd(18)}    peak    loud    mean  energy  phLoud  phMean phEnerg   lowEn`);
     for (const e of SFX) console.log(`${e.id.padEnd(18)} ${row(results.get(e.id)!)}`);
-    for (const name of THEME_NAMES) console.log(`${`${name} music`.padEnd(18)} ${row(themes[name])}  width ${themeWidth[name].toFixed(1)}`);
+    for (const c of CUES) console.log(`${c.id.padEnd(18)} ${row(mus(c.id))}  width ${musicWidth.get(c.id)!.toFixed(1)}`);
     // listen by numbers: each telegraph's spectrum on a phone speaker (dB per octave band, relative to its loudest
     // band), its phone envelope (one character per 50 ms, the action fires at |) and its nearest neighbour
     const spark = ' .:-=+*#%@';
@@ -112,7 +148,7 @@ beforeAll(async () => {
       console.log(`${k.padEnd(12)} ${bands.map((b) => (b - top).toFixed(0).padStart(5)).join('')}  ${peakTime(env).toFixed(2)}  ${line.padEnd(28)}  ${near} ${best.toFixed(1)}`);
     }
   }
-}, 180_000);
+}, 240_000);
 
 describe('rendered sound levels', () => {
   it('no sound clips, and every sound is audible', () => {
@@ -121,27 +157,20 @@ describe('rendered sound levels', () => {
       expect(m.peak, `${e.id} peak`).toBeLessThan(0.99);
       expect(m.peak, `${e.id} peak`).toBeGreaterThan(0.02);
     }
-    for (const name of THEME_NAMES) {
-      expect(themes[name].peak, `${name} music peak`).toBeLessThan(0.99);
-      expect(themes[name].peak, `${name} music peak`).toBeGreaterThan(0.05);
+    for (const c of CUES) {
+      expect(mus(c.id).peak, `${c.id} music peak`).toBeLessThan(0.99);
+      expect(mus(c.id).peak, `${c.id} music peak`).toBeGreaterThan(0.05);
     }
   });
 
-  it('impacts are not quieter than any of the music themes, on phone speakers too', () => {
+  it('impacts are not quieter than any piece of music (every layer in), on phone speakers too', () => {
     for (const e of SFX.filter((x) => x.tier)) {
       const m = results.get(e.id)!;
-      for (const name of THEME_NAMES) {
-        expect(m.loud, `${e.id} loudness vs ${name} music`).toBeGreaterThanOrEqual(themes[name].loud);
-        expect(m.phoneLoud, `${e.id} phone loudness vs ${name} music`).toBeGreaterThanOrEqual(themes[name].phoneLoud);
+      for (const c of CUES) {
+        expect(m.loud, `${e.id} loudness vs ${c.id} music`).toBeGreaterThanOrEqual(mus(c.id).loud);
+        expect(m.phoneLoud, `${e.id} phone loudness vs ${c.id} music`).toBeGreaterThanOrEqual(mus(c.id).phoneLoud);
       }
     }
-  });
-
-  it('the map theme is calmer than the battle theme but still audible on phone speakers', () => {
-    const map = themes.map;
-    expect(map.loud).toBeLessThanOrEqual(themes.battle.loud - 1.5);
-    expect(map.phoneMean).toBeGreaterThan(themes.battle.phoneMean - 6);
-    expect(map.phoneLoud).toBeGreaterThan(-30);
   });
 
   it('impact loudness stays in a sane range (LUFS-style dB over 100 ms)', () => {
@@ -198,15 +227,15 @@ describe('telegraphs', () => {
     }
   });
 
-  it('every telegraph is clearly audible over the music on phone speakers, and never clips', () => {
+  it('every telegraph is clearly audible over every fight piece (every layer in) on phone speakers, and never clips', () => {
     for (const k of TELL_SOUNDS) {
       const m = results.get(`tell-${k}`)!;
       expect(m.peak, `${k} peak`).toBeLessThan(0.99);
-      for (const name of ['battle', 'boss'] as const) {
-        const mus = themes[name];
+      for (const c of FIGHT_FULL) {
+        const mu = mus(c.id);
         // its loudest moment rises well above the music, and on average it sits above the music too
-        expect(m.phoneLoud, `${k} phone loudness vs ${name} music`).toBeGreaterThanOrEqual(mus.phoneLoud + 3);
-        expect(m.phoneMean, `${k} phone mean vs ${name} music`).toBeGreaterThanOrEqual(mus.phoneMean + 1);
+        expect(m.phoneLoud, `${k} phone loudness vs ${c.id} music`).toBeGreaterThanOrEqual(mu.phoneLoud + 3);
+        expect(m.phoneMean, `${k} phone mean vs ${c.id} music`).toBeGreaterThanOrEqual(mu.phoneMean + 1);
       }
     }
   });
@@ -251,29 +280,220 @@ describe('telegraphs', () => {
   });
 });
 
-describe('a fuller band', () => {
-  it('every theme is in stereo (pad pairs, the arpeggio and hats to the sides, the ping-pong echo, the hall)', () => {
-    for (const name of THEME_NAMES) expect(themeWidth[name], `${name} side vs mid (dB)`).toBeGreaterThan(-16);
+describe('the music', () => {
+  /** The old battle, boss and map themes measured -17.3 to -20.2 at their loudest, -20.4 to -23.6 on average. */
+  const OLD = { loud: [-20.2, -17.3], mean: [-23.6, -20.4] };
+
+  it('every piece is in the Sound lab: each act calm and in a fight, each mini-boss, the Boar King per phase, the camp and the title', () => {
+    expect(new Set(MUSIC_PIECES.map((p) => p.track))).toEqual(new Set(MUSIC_TRACKS));
+    for (const act of ['act1', 'act2', 'act3'] as const) {
+      expect(MUSIC_PIECES.some((p) => p.track === act && !p.intense), `${act} calm`).toBe(true);
+      expect(MUSIC_PIECES.some((p) => p.track === act && p.intense), `${act} fight`).toBe(true);
+      expect(SONGS[act].calm && SONGS[act].intense, `${act} has both arrangements`).toBeTruthy();
+    }
+    expect(MUSIC_PIECES.filter((p) => p.track === 'boarKing').map((p) => p.phase)).toEqual([1, 2, 3]);
+    for (const t of ['captain', 'golem', 'boarKing'] as const) expect(SONGS[t].intense, t).toBeTruthy();
   });
 
-  it('every theme has weight: the sub bass and the kick carry real energy below 100 Hz', () => {
-    for (const name of THEME_NAMES) expect(themes[name].lowEnergy - themes[name].energy, `${name} low-end share (dB)`).toBeGreaterThan(-5);
+  it('each piece has its own identity: key, tempo and meter', () => {
+    const id = MUSIC_TRACKS.map((t) => `${SONGS[t].key} ${SONGS[t].bpm} ${SONGS[t].meter}/${SONGS[t].beat}`);
+    expect(new Set(id).size).toBe(id.length);
+    expect(new Set(MUSIC_TRACKS.map((t) => SONGS[t].key)).size).toBe(MUSIC_TRACKS.length);
+    const { act1, act2, act3, captain, golem, boarKing, camp } = SONGS;
+    expect(act1.key).toMatch(/major/);
+    expect(act1.bpm).toBeGreaterThanOrEqual(120);
+    expect(act2.key).toMatch(/Dorian|minor/);
+    expect(act2.bpm).toBeLessThan(act1.bpm);
+    expect(act3.key).toMatch(/minor/);
+    expect(act3.bpm).toBeGreaterThan(act1.bpm);
+    expect([captain.meter, captain.beat]).toEqual([12, 6]); // 6/8: two beats of three 8ths
+    expect(golem.bpm).toBeLessThan(80); // slow and heavy
+    expect(boarKing.keyUp).toBeGreaterThan(0); // his last phase goes up a key
+    expect(camp.intense).toBeUndefined(); // the camp only has a gentle arrangement
+  });
+
+  it('every melody fills its bars, stays in its key and in a singable range', () => {
+    const SCALE: Record<MusicTrack, string> = {
+      title: 'f g a bb c d e',
+      camp: 'bb c d eb f g a',
+      act1: 'd e f# g a b c#',
+      act2: 'e f# g a b c# d',
+      act3: 'c d eb f g ab bb b',
+      captain: 'a b c d e f g g#',
+      golem: 'd eb f g a bb c e',
+      boarKing: 'g a bb c d eb f f#',
+    };
+    for (const t of MUSIC_TRACKS) {
+      const song = SONGS[t];
+      expect(song.melody.length, `${t} melody steps`).toBe(song.bars * song.meter);
+      expect(song.chords.length, `${t} chord bars`).toBe(song.bars);
+      const pcs = new Set(SCALE[t].split(' ').map((n) => midi(`${n}4`) % 12));
+      let notes = 0;
+      song.melody.forEach((n, i) => {
+        if (!n) return;
+        notes++;
+        expect(pcs.has(n[0] % 12), `${t} step ${i}: midi ${n[0]} out of ${song.key}`).toBe(true);
+        expect(n[0], `${t} step ${i}`).toBeGreaterThanOrEqual(55);
+        expect(n[0] + (song.keyUp ?? 0), `${t} step ${i}`).toBeLessThanOrEqual(90);
+        expect(i % song.meter + n[1], `${t} step ${i}: a note runs past its bar`).toBeLessThanOrEqual(song.meter);
+      });
+      expect(notes, `${t} notes`).toBeGreaterThanOrEqual(2 * song.bars);
+    }
+  });
+
+  it('every piece is in the old themes\' loudness family', () => {
+    for (const c of CUES) {
+      const m = mus(c.id);
+      // the full bands sit where the old themes did; the calm and base arrangements a little under
+      expect(m.loud, `${c.id} loudest`).toBeLessThanOrEqual(OLD.loud[1] + 0.5);
+      expect(m.loud, `${c.id} loudest`).toBeGreaterThanOrEqual(OLD.loud[0] - (c.full ? 1 : 3.5));
+      expect(m.mean, `${c.id} mean`).toBeLessThanOrEqual(OLD.mean[1] + 1);
+      expect(m.mean, `${c.id} mean`).toBeGreaterThanOrEqual(OLD.mean[0] - (c.full ? 1 : 3));
+    }
+  });
+
+  it('the fight layers add up as the combo climbs; under them the base still carries the piece (also on a phone)', () => {
+    for (const p of MUSIC_PIECES.filter((x) => x.intense && x.phase !== 3)) {
+      const base = mus(`${p.id}@0`);
+      const full = mus(`${p.id}@full`);
+      if (p.phase === 2) {
+        expect(full.energy - base.energy, `${p.id}: bass and lead add`).toBeGreaterThan(0.5);
+        continue;
+      }
+      expect(full.energy - base.energy, `${p.id}: the layers add energy (dB)`).toBeGreaterThan(1.5);
+      expect(full.loud - base.loud, `${p.id}: the layers add loudness (dB)`).toBeGreaterThan(2);
+      expect(base.phoneMean, `${p.id}: the base on a phone`).toBeGreaterThan(-32);
+    }
+  });
+
+  it("each act's calm arrangement is calmer than its fight band but still audible on phone speakers", () => {
+    for (const act of ['act1', 'act2', 'act3']) {
+      const calm = mus(act);
+      expect(calm.loud, act).toBeLessThanOrEqual(mus(`${act}-fight@full`).loud - 1.5);
+      expect(calm.phoneLoud, act).toBeGreaterThan(-30);
+      expect(calm.phoneMean, act).toBeGreaterThan(mus(`${act}-fight@full`).phoneMean - 7);
+    }
+  });
+
+  it("the Boar King's theme escalates with his phases (more layers, then up a key with everything in)", async () => {
+    const [p1, p2, p3] = ['boarKing1@0', 'boarKing2@0', 'boarKing3'].map(mus);
+    expect(p2.energy).toBeGreaterThan(p1.energy + 1);
+    expect(p2.loud).toBeGreaterThan(p1.loud + 1.5);
+    expect(p3.energy).toBeGreaterThan(p2.energy + 1.5);
+    expect(p3.loud).toBeGreaterThan(p2.loud + 1.5);
+    // phase changes land on the next bar: phase 2 brings in the drums and the stabs, phase 3 everything, a key up
+    const ctx = new OfflineAudioContext({ numberOfChannels: 2, length: FS, sampleRate: FS });
+    const s = new Synth({ ctx: ctx as unknown as BaseAudioContext, tuning: cloneTuning(), rand: seeded(7) });
+    s.scheduleMusic(AT, 20, 'boarKing', { intense: true, combo: 0, phase: 1, cues: [{ step: 6, phase: 2 }] });
+    expect(s.currentMusic).toMatchObject({ layers: ['base', 'drums', 'stabs'], key: 0 });
+    s.scheduleMusic(AT, 20, 'boarKing', { intense: true, combo: 0, phase: 2, cues: [{ step: 6, phase: 3 }] });
+    expect(s.currentMusic).toMatchObject({ layers: ['base', 'drums', 'bass', 'lead', 'stabs'], key: SONGS.boarKing.keyUp });
+  });
+
+  it('every piece is in stereo and has weight (the calm arrangements and the full bands)', () => {
+    for (const c of CUES) {
+      expect(musicWidth.get(c.id), `${c.id} side vs mid (dB)`).toBeGreaterThan(-16);
+      if (c.full || !c.piece.intense) expect(mus(c.id).lowEnergy - mus(c.id).energy, `${c.id} low-end share (dB)`).toBeGreaterThan(-5);
+    }
+  });
+
+  /** Kick times (ctx s) of a render, by watching the band's kick. */
+  async function kicksOf(play: Play, len: number): Promise<number[]> {
+    const at: number[] = [];
+    const kick = Band.prototype.kick;
+    Band.prototype.kick = function (this: Band, ...a: Parameters<Band['kick']>) {
+      at.push(a[1]);
+      return kick.apply(this, a);
+    };
+    try {
+      await renderRaw(play, len);
+    } finally {
+      Band.prototype.kick = kick;
+    }
+    return at;
+  }
+
+  it('the drums join on the next beat once the combo is up, and drop from the beat after a break', async () => {
+    const song = SONGS.act1;
+    const STEP = stepSec(song);
+    const m = cloneTuning().music;
+    const kicks = await kicksOf((s, at) => s.scheduleMusic(at, 64, 'act1', { intense: true, combo: 0, cues: [{ step: 5, combo: m.drumsAt }, { step: 37, combo: 0 }] }), 64 * STEP);
+    const steps = kicks.map((t) => (t - AT) / STEP);
+    expect(steps[0], 'first kick: the beat after the combo reached the drums').toBeCloseTo(8, 6);
+    expect(steps.length).toBeGreaterThan(3);
+    // the break at step 37: the drums fade from the beat at step 40, over tuning.music.layerOut
+    expect(Math.max(...steps)).toBeLessThanOrEqual(40 + m.layerOut / STEP + 1e-6);
+  });
+
+  it('calm -> fight crossfades inside the piece on the beat: no gap, no jump, and it lands on the fight band', async () => {
+    const song = SONGS.act1;
+    const STEP = stepSec(song);
+    const steps = 6 * song.meter;
+    const ch = await renderRaw((s, at) => s.scheduleMusic(at, steps, 'act1', { intense: false, cues: [{ step: 2 * song.meter + 2, intense: true, combo: FULL_COMBO }] }), steps * STEP);
+    expect(measure(ch, FS).peak).toBeLessThan(0.99);
+    const env = rmsEnvelope(ch, 0.1).slice(3, Math.floor((steps * STEP) / 0.1) - 2);
+    const sorted = [...env].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    expect(Math.min(...env), 'quietest 100 ms vs the median (dB): no gap').toBeGreaterThan(median - 10);
+    // after the crossfade (whole beats, about tuning.music.crossfade), the last bars are as loud as the fight band
+    const tail = measure(
+      ch.map((c) => c.slice(Math.round((AT + 4 * song.meter * STEP) * FS))),
+      FS,
+    );
+    expect(tail.mean).toBeGreaterThan(mus('act1-fight@full').mean - 2.5);
+    expect(tail.mean).toBeGreaterThan(mus('act1').mean + 1);
+  });
+
+  it('another piece takes over on the next beat while the last one rings out (no gap, no clipping)', async () => {
+    const len = 6;
+    const STEP = stepSec(SONGS.act1);
+    const ch = await renderRaw((s, at) => s.scheduleMusic(at, Math.round(len / STEP), 'act1', { intense: false, cues: [{ step: 18, track: 'captain', intense: true }] }), len);
+    expect(measure(ch, FS).peak).toBeLessThan(0.99);
+    const env = rmsEnvelope(ch, 0.1).slice(3, -3);
+    const sorted = [...env].sort((a, b) => a - b);
+    expect(Math.min(...env)).toBeGreaterThan(sorted[Math.floor(sorted.length / 2)] - 12);
+    // asked for mid-beat (step 18), the captain comes in on the beat at step 20
+    const ctx = new OfflineAudioContext({ numberOfChannels: 2, length: FS, sampleRate: FS });
+    const s = new Synth({ ctx: ctx as unknown as BaseAudioContext, tuning: cloneTuning(), rand: seeded(7) });
+    s.scheduleMusic(AT, 20, 'act1', { intense: false, cues: [{ step: 18, track: 'captain', intense: true }] });
+    expect(s.currentMusic.track).toBe('act1');
+    s.scheduleMusic(AT, 21, 'act1', { intense: false, cues: [{ step: 18, track: 'captain', intense: true }] });
+    expect(s.currentMusic.track).toBe('captain');
+  });
+
+  it('the band stays light for an iPhone: under 320 new nodes a second, even with every layer in', async () => {
+    for (const c of FIGHT_FULL) {
+      const w = seam(c.piece.track);
+      const ctx = new OfflineAudioContext({ numberOfChannels: 2, length: Math.ceil((w.len + 0.2) * FS), sampleRate: FS });
+      let nodes = 0;
+      const raw = ctx as unknown as Record<string, (...a: unknown[]) => unknown>;
+      for (const k of ['createOscillator', 'createBufferSource', 'createGain', 'createBiquadFilter', 'createStereoPanner', 'createWaveShaper', 'createConvolver', 'createDelay']) {
+        const f = raw[k].bind(ctx);
+        raw[k] = (...a: unknown[]) => (nodes++, f(...a));
+      }
+      const s = new Synth({ ctx: ctx as unknown as BaseAudioContext, tuning: cloneTuning(), rand: seeded(7) });
+      const before = nodes;
+      cuePlay(c)(s, AT);
+      expect((nodes - before) / w.len, `${c.id} nodes per second`).toBeLessThan(320);
+    }
   });
 });
 
 describe('ambience', () => {
-  /** The places, each with the music it plays under (fights, the map, the world map). */
-  const UNDER: [Ambience, MusicTrack][] = [
-    ['forest', 'battle'],
-    ['ruins', 'battle'],
-    ['hollow', 'boss'],
-    ['map', 'map'],
-    ['world', 'map'],
-    ['camp', 'map'],
+  /** The places, each with the music it plays under: the title and world map, the camp, the act maps (each act's
+   *  calm theme), and each act's fights, nodes and scenes (its calm and fight arrangements, its boss). */
+  const UNDER: [Ambience, string[]][] = [
+    ['world', ['title']],
+    ['camp', ['camp']],
+    ['map', ['act1', 'act2', 'act3']],
+    ['forest', ['act1', 'act1-fight@0', 'act1-fight@full', 'captain@0', 'captain@full']],
+    ['ruins', ['act2', 'act2-fight@0', 'act2-fight@full', 'golem@0', 'golem@full']],
+    ['hollow', ['act3', 'act3-fight@0', 'act3-fight@full', 'boarKing1@0', 'boarKing1@full', 'boarKing2@0', 'boarKing3']],
   ];
 
   it('every place has an ambience in the Sound lab catalog (and none is an impact tier)', () => {
     expect(AMBIENCES.length).toBe(6);
+    expect(new Set(UNDER.map(([a]) => a))).toEqual(new Set(AMBIENCES));
     for (const a of AMBIENCES) {
       const e = SFX.find((x) => x.id === `amb-${a}`);
       expect(e, a).toBeDefined();
@@ -281,13 +501,13 @@ describe('ambience', () => {
     }
   });
 
-  it('each ambience sits well under every music theme, and far under the impacts', () => {
-    for (const a of AMBIENCES) {
+  it('each ambience sits well under the music it plays with, and far under the impacts', () => {
+    for (const [a, ids] of UNDER) {
       const m = results.get(`amb-${a}`)!;
-      for (const name of THEME_NAMES) {
-        expect(m.loud, `${a} loudness vs ${name} music`).toBeLessThanOrEqual(themes[name].loud - 6);
-        expect(m.mean, `${a} mean vs ${name} music`).toBeLessThanOrEqual(themes[name].mean - 8);
-        expect(m.phoneLoud, `${a} phone loudness vs ${name} music`).toBeLessThanOrEqual(themes[name].phoneLoud - 4);
+      for (const id of ids) {
+        expect(m.loud, `${a} loudness vs ${id} music`).toBeLessThanOrEqual(mus(id).loud - 6);
+        expect(m.mean, `${a} mean vs ${id} music`).toBeLessThanOrEqual(mus(id).mean - 8);
+        expect(m.phoneLoud, `${a} phone loudness vs ${id} music`).toBeLessThanOrEqual(mus(id).phoneLoud - 4);
       }
       for (const e of SFX.filter((x) => x.tier)) {
         expect(results.get(e.id)!.loud, `${e.id} vs ${a}`).toBeGreaterThanOrEqual(m.loud + 10);
@@ -317,25 +537,35 @@ describe('ambience', () => {
     expect(diff).toBe(0);
   });
 
-  it('music and ambience together still sit under every impact, and the telegraphs still read over them', async () => {
-    for (const [a, name] of UNDER) {
-      const { steps, bpm } = THEMES[name];
-      const len = steps * (60 / bpm / 4);
+  it('music and ambience together still sit under every impact, and the telegraphs still read over the fight bands', async () => {
+    const pairs: [Ambience, string][] = [
+      ['world', 'title'],
+      ['camp', 'camp'],
+      ['forest', 'act1-fight@full'],
+      ['forest', 'captain@full'],
+      ['ruins', 'act2-fight@full'],
+      ['ruins', 'golem@full'],
+      ['hollow', 'act3-fight@full'],
+      ['hollow', 'boarKing3'],
+    ];
+    for (const [a, id] of pairs) {
+      const c = CUES.find((x) => x.id === id)!;
+      const len = seam(c.piece.track).len;
       const both = await render((s, at) => {
-        s.scheduleMusic(at, steps, name);
+        cuePlay(c)(s, at);
         s.scheduleAmbience(at, len, a);
       }, len);
-      expect(both.peak, `${name} + ${a} peak`).toBeLessThan(0.99);
+      expect(both.peak, `${id} + ${a} peak`).toBeLessThan(0.99);
       for (const e of SFX.filter((x) => x.tier)) {
         const m = results.get(e.id)!;
-        expect(m.loud, `${e.id} vs ${name} music + ${a}`).toBeGreaterThanOrEqual(both.loud);
-        expect(m.phoneLoud, `${e.id} phone vs ${name} music + ${a}`).toBeGreaterThanOrEqual(both.phoneLoud);
+        expect(m.loud, `${e.id} vs ${id} music + ${a}`).toBeGreaterThanOrEqual(both.loud);
+        expect(m.phoneLoud, `${e.id} phone vs ${id} music + ${a}`).toBeGreaterThanOrEqual(both.phoneLoud);
       }
-      if (name === 'map') continue;
+      if (!c.piece.intense) continue;
       for (const k of TELL_SOUNDS) {
         const m = results.get(`tell-${k}`)!;
-        expect(m.phoneLoud, `${k} phone vs ${name} music + ${a}`).toBeGreaterThanOrEqual(both.phoneLoud + 3);
-        expect(m.phoneMean, `${k} phone mean vs ${name} music + ${a}`).toBeGreaterThanOrEqual(both.phoneMean + 1);
+        expect(m.phoneLoud, `${k} phone vs ${id} music + ${a}`).toBeGreaterThanOrEqual(both.phoneLoud + 3);
+        expect(m.phoneMean, `${k} phone mean vs ${id} music + ${a}`).toBeGreaterThanOrEqual(both.phoneMean + 1);
       }
     }
   }, 60_000);

@@ -338,6 +338,18 @@ export const DEFAULT_TUNING = {
     secondWindAt: 0.3, // Second Wind: once a fight, dropping under this share of max HP...
     secondWindHeal: 0.2, // ...heals this share
   },
+  music: {
+    // Fight music: its layers join as the combo climbs (on the next beat) and drop back on a combo break. Under
+    // the first one, the fight arrangement plays its base (pads, arpeggio, percussion, the melody on a bell).
+    drumsAt: 10, // combo the drums join at...
+    bassAt: 25, // ...then the bass...
+    leadAt: 50, // ...then the lead
+    layerIn: 0.05, // s: a layer fades in this fast, landing on its beat
+    layerOut: 0.6, // s: and fades out over this long when the combo breaks
+    finisherHold: 2, // s the layers stay up after a finisher spends the combo
+    crossfade: 1.5, // s: an act theme's calm and fight arrangements crossfade over about this long (whole beats)
+    ringOut: 0.8, // s: when another piece takes over, the last one fades over this long
+  },
   enemies: cloneData(ENEMIES),
   acts: GREENMARCH.acts.map((a: ActDef): ActScale => ({ name: a.name, hpMult: a.hpMult, atkMult: a.atkMult, pace: a.pace })),
 };
@@ -809,6 +821,19 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       s('effects.owlEvery', 'Owl Eye: peck every N', 1, 10, 1),
       s('effects.secondWindAt', 'Second Wind: below HP', 0, 1, 0.05),
       s('effects.secondWindHeal', 'Second Wind: heals', 0, 1, 0.05),
+    ],
+  });
+  groups.push({
+    title: 'Music',
+    sliders: [
+      s('music.drumsAt', 'Drums join at combo', 0, 100, 1),
+      s('music.bassAt', 'Bass joins at combo', 0, 150, 1),
+      s('music.leadAt', 'Lead joins at combo', 0, 200, 1),
+      s('music.layerIn', 'Layer fade in (s)', 0.01, 1, 0.01),
+      s('music.layerOut', 'Layer fade out (s)', 0.05, 3, 0.05),
+      s('music.finisherHold', 'Layers stay after a finisher (s)', 0, 8, 0.25),
+      s('music.crossfade', 'Calm <-> fight crossfade (s)', 0.2, 4, 0.1),
+      s('music.ringOut', 'Piece change fade (s)', 0.1, 3, 0.05),
     ],
   });
   t.acts.forEach((a, i) =>
