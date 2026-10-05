@@ -4,11 +4,15 @@
 // "before -> after" stat toast, and a few small pixel icons.
 import type Phaser from 'phaser';
 import { STAT_INFO, type StatId } from '../../data/gear';
+import { HERO_IDS, HEROES, type HeroFamily, type HeroId } from '../../data/heroes';
 import { heroStats, newHero, type Hero } from '../../core/combat';
 import { fmtStat, type StatBlock } from '../../core/gear';
+import { levelProgress, pointsLeft } from '../../core/heroes';
+import { heroProgress, profileBuild } from '../../core/profile';
 import type { FightScene } from '../scene';
 import { textWidth } from '../font';
-import { button3d, chevron, glow, GOLD, hudIcon, iconSize, NAVY, panel, rows } from './pixels';
+import { padlock } from './items';
+import { button3d, chevron, gauge, glow, GOLD, hudIcon, iconSize, NAVY, panel, rows } from './pixels';
 import { clamp01, easeBack, easeOut3, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
 import { FACE, ImagePool, isPressed, ribbon, RIBBON, tag, TextPool } from './ui';
 
@@ -99,6 +103,47 @@ const PIX: Record<string, { rows: string[]; pal: Record<string, number> }> = {
   up: {
     rows: outlined(['..G..', '.GGG.', 'GGGGG', '..g..', '..g..']),
     pal: { k: K, G: 0xb4f070, g: 0x4cbf44 },
+  },
+  heartS: {
+    rows: outlined(['.RR.RR.', 'RWRRRrR', 'RRRRRrR', '.RRRrR.', '..RrR..', '...R...']),
+    pal: { k: K, R: 0xe2333c, W: 0xffb0a0, r: 0x9a1a22 },
+  },
+  // a knight's helm with a red plume (the hero select)
+  heroes: {
+    rows: outlined(['...rR..', '..rRr..', '.SWSSs.', 'SWSSSSs', 'SkkkkSs', 'SSSSSSs', '.SsSsS.']),
+    pal: { k: K, r: 0xd03030, R: 0xff7a62, S: 0xb8c2d8, W: 0xeef3fa, s: 0x6a7496 },
+  },
+  // a gold star (the skill trees)
+  skills: {
+    rows: outlined(['...W...', '..WYY..', 'WWYYYYd', '.YYYYd.', '..YYd..', '.YYdYd.', '.Yd..d.']),
+    pal: { k: K, W: 0xfff0a0, Y: 0xf2c230, d: 0xd8901c },
+  },
+  // an amulet: a gold chain and a purple gem (the relic log)
+  relic: {
+    rows: outlined(['c....c', '.c..c.', '..cc..', '.GWGg.', 'GWGGgg', '.GGgg.', '..gg..']),
+    pal: { k: K, c: 0xf2c230, G: 0xa86ae0, W: 0xf0d8ff, g: 0x6e30a8 },
+  },
+  reset: {
+    rows: outlined(['.WWW.y', 'W...yy', 'W..yyy', 'W.....', 'W....W', '.WWWW.']),
+    pal: { k: K, W: 0xeef3fa, y: 0xf2c230 },
+  },
+  check: {
+    rows: outlined(['.....G', '....GG', 'G..GG.', 'GGGG..', '.GG...']),
+    pal: { k: K, G: 0xb4f070 },
+  },
+  // the families: Blade (one sword) and Twin (two daggers)
+  blade: {
+    rows: outlined(['....SW', '...SWS', '..SWS.', 'w.WS..', '.wW...', 'ww.w..']),
+    pal: { k: K, S: 0xb8c2d8, W: 0xeef3fa, w: 0xd09a5e },
+  },
+  twin: {
+    rows: outlined(['S....S', 'WS..SW', '.WSSW.', '..WW..', '.w..w.', 'w....w']),
+    pal: { k: K, S: 0xb8c2d8, W: 0xeef3fa, w: 0xa86ae0 },
+  },
+  // a rule node's rune (a skill without its own icon yet)
+  rune: {
+    rows: outlined(['...P...', '..PWP..', '.PWPPp.', 'PPPPPpp', '.pPPpp.', '..ppp..', '...p...']),
+    pal: { k: K, P: 0xa86ae0, W: 0xf0d8ff, p: 0x6e30a8 },
   },
 };
 
@@ -378,6 +423,74 @@ export function statChanges(before: StatBlock, after: StatBlock, order: StatId[]
   return out;
 }
 
+// ------------------------------------------------------------------ sprites that need a crop, a flip or a tint
+
+/** Where each hero's face sits inside their 40x40 portrait (top-left of an 18x18 window), as the fight HUD shows it. */
+export const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [12, 6] };
+
+export interface SpriteOpts {
+  /** A window on the texture [x, y, w, h]: (x, y) then places the window's top-left. */
+  crop?: [number, number, number, number];
+  flip?: boolean;
+  tint?: number;
+  scale?: number;
+  alpha?: number;
+}
+
+/** Like ImagePool, but every draw sets the crop, flip, tint and scale afresh (a reused image never keeps them). */
+export class SpritePool {
+  private items: Phaser.GameObjects.Image[] = [];
+  private used = 0;
+
+  constructor(private readonly s: FightScene) {}
+
+  begin(): void {
+    this.used = 0;
+  }
+
+  draw(key: string, x: number, y: number, depth: number, o: SpriteOpts = {}): Phaser.GameObjects.Image {
+    let img = this.items[this.used];
+    if (!img) {
+      img = this.s.add.image(0, 0, key).setOrigin(0, 0);
+      this.items.push(img);
+    }
+    this.used++;
+    if (img.texture.key !== key) img.setTexture(key);
+    const sc = o.scale ?? 1;
+    img.setDepth(depth).setScale(sc).setFlipX(!!o.flip).setAlpha(o.alpha ?? 1).setVisible(true);
+    if (o.crop) {
+      const [cx, cy, cw, ch] = o.crop;
+      img.setCrop(cx, cy, cw, ch).setPosition(Math.round(x) - cx * sc, Math.round(y) - cy * sc);
+    } else img.setCrop().setPosition(Math.round(x), Math.round(y));
+    if (o.tint === undefined) img.clearTint();
+    else img.setTint(o.tint);
+    return img;
+  }
+
+  end(): void {
+    for (let i = this.used; i < this.items.length; i++) this.items[i].setVisible(false);
+  }
+
+  hide(): void {
+    this.begin();
+    this.end();
+  }
+
+  destroy(): void {
+    for (const img of this.items) img.destroy();
+    this.items = [];
+    this.used = 0;
+  }
+}
+
+/** A hero's level standing: level, XP into it and needed (0 at the max), points to spend. */
+export interface HeroLevel {
+  level: number;
+  into: number;
+  need: number;
+  points: number;
+}
+
 // ------------------------------------------------------------------ the kit
 
 /** Frames go on g, icons at depth `icons`, marks over the icons on `over`, text in `texts`. */
@@ -401,6 +514,7 @@ export class CampKit {
   readonly topTexts: TextPool;
   readonly fxTexts: TextPool;
   readonly imgs: ImagePool;
+  readonly sprites: SpritePool;
   readonly fx = new CampFx();
   toastNow: Toast | null = null;
   coinsShown = 0;
@@ -418,6 +532,7 @@ export class CampKit {
     this.topTexts = new TextPool(s, D.topText);
     this.fxTexts = new TextPool(s, D.fxText);
     this.imgs = new ImagePool(s);
+    this.sprites = new SpritePool(s);
   }
 
   build(): void {
@@ -431,7 +546,15 @@ export class CampKit {
     this.gTopOver = s.add.graphics().setDepth(D.topOver);
     this.gFx = s.add.graphics().setDepth(D.fx);
     this.imgs.destroy();
+    this.sprites.destroy();
     this.fx.clear();
+  }
+
+  /** A hero's level, XP and points to spend. */
+  level(id: HeroId): HeroLevel {
+    const h = heroProgress(this.profile, id);
+    const lp = levelProgress(this.tuning, h.xp);
+    return { ...lp, points: pointsLeft(this.tuning, h) };
   }
 
   get app() {
@@ -447,10 +570,37 @@ export class CampKit {
     return this.s.app.run.tuning;
   }
 
-  /** Rowan as the stats show him: mid-run, the run's hero; from the world map, base Rowan in his gear. */
+  /** The picked hero as the stats show them: mid-run, the run's hero; from the world map, the hero at their level
+   *  and skills in the shared gear. */
   heroNow(): Hero {
     const run = this.run;
-    return run.campFrom !== 'world' ? run.hero : newHero(run.tuning, run.gear);
+    return run.campFrom !== 'world' ? run.hero : newHero(run.tuning, run.gear, run.build);
+  }
+
+  /** A hero as the skill screen previews them: the picked hero's run and gear, with `id`'s level and skills. */
+  heroAs(id: HeroId): Hero {
+    return { ...this.heroNow(), build: profileBuild(this.profile, this.tuning, id) };
+  }
+
+  /** Whether a texture has been drawn (art that lands later falls back to what exists). */
+  has(key: string): boolean {
+    return this.s.textures.exists(key);
+  }
+
+  /** A hero's card art (40x48), or a stand-in until it's drawn: their story portrait, else Rowan's as a shadow. */
+  heroArt(id: HeroId): { key: string; shadow: boolean } {
+    if (this.has(`hero_card_${id}`)) return { key: `hero_card_${id}`, shadow: false };
+    if (this.has(`portrait_${id}`)) return { key: `portrait_${id}`, shadow: false };
+    return { key: 'portrait_rowan', shadow: true };
+  }
+
+  /** The hero's face: an 18x18 window on their portrait (top-left at x, y). */
+  face(id: HeroId, x: number, y: number, depth: number, o: { size?: number; tint?: number; alpha?: number } = {}): void {
+    const own = this.has(`portrait_${id}`);
+    const [fx, fy] = FACE_AT[own ? id : 'rowan'] ?? FACE_AT.rowan;
+    const n = o.size ?? 18;
+    const d = Math.round((18 - n) / 2);
+    this.sprites.draw(own ? `portrait_${id}` : 'portrait_rowan', x, y, depth, { crop: [fx + d, fy + d, n, n], tint: own ? o.tint : (o.tint ?? 0x2a2040), alpha: o.alpha });
   }
 
   stats(): StatBlock {
@@ -490,6 +640,7 @@ export class CampKit {
     this.topTexts.begin();
     this.fxTexts.begin();
     this.imgs.begin();
+    this.sprites.begin();
     // counters roll toward the real values; a change pulses them (green up, red down)
     const p = this.profile;
     if (this.lastCoins < 0) this.syncPurse();
@@ -518,6 +669,7 @@ export class CampKit {
     this.topTexts.end();
     this.fxTexts.end();
     this.imgs.end();
+    this.sprites.end();
   }
 
   hide(): void {
@@ -527,6 +679,7 @@ export class CampKit {
     this.topTexts.hide();
     this.fxTexts.hide();
     this.imgs.hide();
+    this.sprites.hide();
     this.toastNow = null;
     this.fx.clear();
     this.timers = [];
@@ -575,7 +728,7 @@ export class CampKit {
     const x0 = Math.round(rr.x + (rr.w - total) / 2);
     const cy = rr.y + (o.sub ? rr.h / 2 - 3 : rr.h / 2) + py;
     if (o.icon) pix(g, o.icon, x0, Math.round(cy - ih / 2), o.disabled ? 0.55 : 1);
-    if (label) texts.text(label, x0 + iw + gap, cy, o.disabled ? 0xc8ccd8 : (o.labelCol ?? WHITE), { bold, oy: 0.5, alpha: o.alpha });
+    if (label) texts.text(label, x0 + iw + gap, cy, o.labelCol ?? (o.disabled ? 0xc8ccd8 : WHITE), { bold, oy: 0.5, alpha: o.alpha });
     if (o.sub) texts.text(o.sub, rr.x + rr.w / 2, cy + 8, o.disabled ? 0xc8ccd8 : (o.subCol ?? 0xfff0c0), { ox: 0.5, oy: 0.5 });
   }
 
@@ -650,6 +803,102 @@ export class CampKit {
     g.fillRect(x, y, w, 1);
     g.fillStyle(NAVY[5], 0.7);
     g.fillRect(x, y + 1, w, 1);
+  }
+
+  /** A counter bubble centred on (x, y): red for new things, gold for "!" (something to do). It bobs. */
+  bubble(g: G, texts: TextPool, x: number, y: number, txt: string, now: number, gold = false): void {
+    const w = Math.max(9, textWidth(txt, 1, gold) + 4);
+    const bump = Math.round(Math.abs(Math.sin(now / 300)) * -1);
+    const r = { x: Math.round(x - w / 2), y: y + bump, w, h: 9 };
+    rows(g, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 3, INK);
+    rows(g, r.x, r.y, r.w, r.h, 2, gold ? GOLD[3] : 0xd8303a);
+    g.fillStyle(gold ? GOLD[4] : 0xff8a7a, 1);
+    g.fillRect(r.x + 2, r.y, r.w - 4, 1);
+    g.fillStyle(gold ? GOLD[2] : 0x9a1a22, 1);
+    g.fillRect(r.x + 2, r.y + r.h - 1, r.w - 4, 1);
+    texts.text(txt, r.x + r.w / 2, r.y + 4.5, gold ? 0x5a2a08 : WHITE, { bold: gold, ox: 0.5, oy: 0.5 });
+  }
+
+  /** A hero family's chip ("Blade" with a sword, "Twin" with two daggers) with its left end at x; returns its width. */
+  familyChip(g: G, texts: TextPool, family: HeroFamily, x: number, cy: number, alpha = 1): number {
+    const label = family === 'twin' ? 'Twin' : 'Blade';
+    const icon = family === 'twin' ? 'twin' : 'blade';
+    const [iw, ih] = pixSize(icon);
+    const w = iw + 5 + textWidth(label, 1, false) + 3;
+    const r = { x, y: Math.round(cy - 5), w, h: 10 };
+    tag(g, r, family === 'twin' ? [0xdab0ff, 0x6e30a8, 0x5a2490, 0x40186a] : [0x9ad8ff, 0x2a5ac0, 0x22489c, 0x1a3070], alpha);
+    pix(g, icon, r.x + 1, Math.round(cy - ih / 2), alpha);
+    texts.text(label, r.x + iw + 3, cy, WHITE, { oy: 0.5, alpha });
+    return w;
+  }
+
+  /** "Lv 7" and an XP bar with "120/300 XP" (or "Max level") in the rect; returns the bar's rect. */
+  xpBar(g: G, texts: TextPool, id: HeroId, r: Rect, o: { alpha?: number; small?: boolean } = {}): Rect {
+    const L = this.level(id);
+    const lv = `Lv ${L.level}`;
+    const lw = textWidth(lv, 1, true);
+    texts.text(lv, r.x, r.y + r.h / 2, GOLD_TXT, { bold: true, oy: 0.5, alpha: o.alpha });
+    const xp = L.need ? `${L.into}/${L.need} XP` : 'Max level';
+    const xw = o.small ? 0 : textWidth(xp, 1, false);
+    const bx = r.x + lw + 4;
+    const bw = Math.max(8, r.w - lw - 4 - (xw ? xw + 4 : 0));
+    const bar = { x: bx, y: Math.round(r.y + r.h / 2 - 2), w: bw, h: 4 };
+    gauge(g, bar.x, bar.y, bar.w, bar.h, L.need ? L.into / L.need : 1, 0, { ramp: [0xe0f6ff, 0x4aa0f0, 0x2a6ad8, 0x1a3c8a] });
+    if (xw) texts.text(xp, r.x + r.w, r.y + r.h / 2, 0xc8e0ff, { ox: 1, oy: 0.5, alpha: o.alpha });
+    return bar;
+  }
+
+  /** The hero's name and title: HEROES data. */
+  hero(id: HeroId) {
+    return HEROES[id];
+  }
+
+  /**
+   * The top bar's hero tabs, right after Back (they name the screen): `all` shows locked heroes too, as "???" with
+   * a padlock. They stay left of the HTML buttons in the top bar's middle (hudZone).
+   */
+  heroTabs(all: boolean): Array<{ id: HeroId; r: Rect; locked: boolean }> {
+    const p = this.profile;
+    const b = this.backRect();
+    let x = b.x + b.w + 4;
+    const out: Array<{ id: HeroId; r: Rect; locked: boolean }> = [];
+    for (const id of HERO_IDS) {
+      const locked = !p.heroes[id]?.unlocked;
+      if (locked && !all) continue;
+      const mark = id === p.hero || locked ? 9 : 0;
+      const w = textWidth(locked ? '???' : HEROES[id].name, 1, true) + 9 + mark;
+      out.push({ id, r: { x, y: 3, w, h: 13 }, locked });
+      x += w + 3;
+    }
+    return out;
+  }
+
+  /** The hero tabs: the one on view gold and sunk, the picked one with a check, a locked one with a padlock. */
+  drawHeroTabs(g: G, tabs: Array<{ id: HeroId; r: Rect; locked: boolean }>, view: HeroId, now: number): void {
+    for (const { id, r, locked } of tabs) {
+      const on = view === id;
+      const pr = isPressed(r, now) || on;
+      if (on) glow(g, r, 0xffd23a, 0.25, 2);
+      button3d(g, r, on ? FACE.gold : FACE.navy, pr);
+      const y = r.y + r.h / 2 + (pr ? 2 : 0);
+      let x = r.x + 5;
+      if (id === this.profile.hero) {
+        pix(g, 'check', x - 1, Math.round(y - 4));
+        x += 9;
+      } else if (locked) {
+        padlock(g, x, Math.round(y - 4), 1, 0xd8901c);
+        x += 9;
+      }
+      this.texts.text(locked ? '???' : HEROES[id].name, x, y, on ? WHITE : locked ? 0x9890b8 : 0xd8d0f0, { bold: true, oy: 0.5 });
+    }
+  }
+
+  /** Where the HTML buttons sit in the top bar's middle (the tuning panel's gear): keep the top bar clear of it. */
+  hudZone(): Rect {
+    const l = this.app.layout;
+    const vw = typeof window !== 'undefined' ? window.innerWidth : l.cssW;
+    const cx = ((vw / 2 - l.left) * 327) / l.cssW;
+    return { x: Math.floor(cx - 18), y: 0, w: 36, h: 19 };
   }
 
   /** Show a toast (what just changed) centred on (cx, cy). */

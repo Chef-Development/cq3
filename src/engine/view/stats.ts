@@ -1,9 +1,11 @@
-// Rowan's stats (a camp screen; tap Rowan by the fire). The main page: Rowan and Pip showcased at 2x, and his four
-// core stats as big cards (each with how much of it his gear gives). "All stats" opens a page with all ten: each
-// one's value and where it comes from (Rowan's base, what this run has added, his gear), and what the tapped one does.
+// A hero's stats (a camp screen: "Stats" on the hero select). The main page: the hero (and Pip) showcased at 2x,
+// their level, and their four core stats as big cards (each with how much of it the gear gives). "All stats" opens
+// a page with all ten: each one's value and where it comes from (the hero's base, their level, their skills, what
+// this run has added, the gear: colored parts, with a legend on top), and what the tapped one does.
 import type Phaser from 'phaser';
 import { CORE_STATS, STAT_IDS, STAT_INFO, type StatId } from '../../data/gear';
-import { heroStats, newHero } from '../../core/combat';
+import { HEROES, type HeroId } from '../../data/heroes';
+import { heroStats, newHero, type Hero } from '../../core/combat';
 import { emptyLoadout, fmtStat, itemPower, type StatBlock } from '../../core/gear';
 import { equippedItems } from '../../core/profile';
 import { HERO_FEET_X } from '../art';
@@ -15,16 +17,24 @@ import { FACE, isPressed, notePress, RIBBON } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
 
-/** A stat split by where it comes from: Rowan's starting value, what the run has added, and his gear. */
+/** A stat split by where it comes from: the hero's starting value, their level, their skills, the run, the gear. */
 interface Parts {
   total: StatBlock;
   base: StatBlock;
+  level: StatBlock;
+  skills: StatBlock;
   run: StatBlock;
   gear: StatBlock;
 }
 
+/** The parts' colors (and the legend's): base, level, skills, run, gear. */
+const PART_COL = { base: 0xd0c8f0, level: 0x8af06a, skills: 0xd8a8ff, run: 0x9ad8ff, gear: GOLD_TXT } as const;
+const PART_NAME = { base: 'Base', level: 'Lv', skills: 'Skills', run: 'Run', gear: 'Gear' } as const;
+
 export class StatsScreen {
   page: 'main' | 'all' = 'main';
+  /** Whose stats (the picked hero, or another one looked at on the hero select). */
+  hero: HeroId = 'rowan';
   private openAt = 0;
   private pageAt = 0;
   private pick = 0; // the stat whose description shows on the "all" page
@@ -32,26 +42,40 @@ export class StatsScreen {
 
   constructor(private readonly kit: CampKit) {}
 
-  open(now: number): void {
+  open(now: number, hero?: HeroId): void {
     this.page = 'main';
     this.openAt = now;
     this.pageAt = now;
+    this.hero = hero ?? this.kit.profile.hero;
+  }
+
+  /** The hero as they'd fight now: the picked one is the run's hero; another one gets the same run and gear. */
+  private heroNow(): Hero {
+    const kit = this.kit;
+    return this.hero === kit.profile.hero ? kit.heroNow() : kit.heroAs(this.hero);
   }
 
   private parts(): Parts {
     const kit = this.kit;
     const t = kit.tuning;
-    const h = kit.heroNow();
+    const h = this.heroNow();
+    const b = h.build;
     const total = heroStats(t, h);
     const noGear = heroStats(t, { ...h, gear: emptyLoadout() });
-    const base = heroStats(t, newHero(t));
+    const base = heroStats(t, newHero(t, emptyLoadout(), { id: b.id, level: 1, skills: [] }));
+    const lv = heroStats(t, newHero(t, emptyLoadout(), { ...b, skills: [] }));
+    const sk = heroStats(t, newHero(t, emptyLoadout(), b));
+    const level = {} as StatBlock;
+    const skills = {} as StatBlock;
     const run = {} as StatBlock;
     const gear = {} as StatBlock;
     for (const id of STAT_IDS) {
-      run[id] = noGear[id] - base[id];
+      level[id] = lv[id] - base[id];
+      skills[id] = sk[id] - lv[id];
+      run[id] = noGear[id] - sk[id];
       gear[id] = total[id] - noGear[id];
     }
-    return { total, base, run, gear };
+    return { total, base, level, skills, run, gear };
   }
 
   // ------------------------------------------------------------------ layout
@@ -129,9 +153,18 @@ export class StatsScreen {
     const kit = this.kit;
     const g = kit.gUi;
     kit.drawBack(g, now);
-    kit.title(g, this.page === 'main' ? 'Rowan' : 'All stats', kit.backRect().x + kit.backRect().w + 4, 4, RIBBON.purple);
+    const name = HEROES[this.hero].name;
+    const end = kit.title(g, this.page === 'main' ? name : 'All stats', kit.backRect().x + kit.backRect().w + 4, 4, RIBBON.purple, this.page === 'main' ? `Lv ${kit.level(this.hero).level}` : name);
     if (this.page === 'main') this.drawMain(g, now);
-    else this.drawAll(g, now);
+    else {
+      // the legend for the colored parts
+      let x = end;
+      for (const k of Object.keys(PART_COL) as Array<keyof typeof PART_COL>) {
+        kit.texts.text(PART_NAME[k], x, 9.5, PART_COL[k], { oy: 0.5 });
+        x += textWidth(PART_NAME[k], 1, false) + 5;
+      }
+      this.drawAll(g, now);
+    }
   }
 
   private drawMain(g: G, now: number): void {
@@ -150,9 +183,7 @@ export class StatsScreen {
       g.fillRect(fx - w / 2 - 6, fy - 3 + Math.floor(i / 2), w + 12, 3);
     }
     rows(g, fx - 20, fy - 2, 40, 5, 2, INK, 0.35);
-    const pose = Math.floor(now / 420) % 2 ? 'hero_idle1' : 'hero_idle0';
-    const [, hh] = kit.imgs.size(pose);
-    kit.imgs.scaled(pose, fx - HERO_FEET_X * 2, fy - hh * 2, D.icons, 2);
+    this.showcase(fx, fy, now);
     const pip = Math.floor(now / 110) % 2 ? 'pip_idle1' : 'pip_idle0';
     const [pw, ph] = kit.imgs.size(pip);
     const px = Math.max(s.L + 2, fx - 46 - pw);
@@ -160,7 +191,8 @@ export class StatsScreen {
     // name and gear power under him
     const gp = equippedItems(kit.profile).reduce((a, i) => a + itemPower(kit.tuning, i), 0);
     texts.text(`Gear power ${gp}`, fx - 6, fy + 9, 0xfff0c0, { bold: true, ox: 0.5, oy: 0.5 });
-    texts.text(kit.run.campFrom === 'world' ? 'Base stats + gear' : 'This run + gear', fx - 6, fy + 19, 0xc8c0e8, { ox: 0.5, oy: 0.5 });
+    const n = this.heroNow().build.skills.length;
+    texts.text(`${n} skill${n === 1 ? '' : 's'}${kit.run.campFrom === 'world' ? ' + gear' : ', run + gear'}`, fx - 6, fy + 19, 0xc8c0e8, { ox: 0.5, oy: 0.5 });
 
     // the four core stats as cards
     this.cards().forEach((c0, i) => {
@@ -186,6 +218,24 @@ export class StatsScreen {
     const b = this.allButton();
     const bk = clamp01((since - 360) / 200);
     if (bk > 0) kit.button(g, texts, b, 'All stats', FACE.purple, now, { icon: 'stats', alpha: bk });
+  }
+
+  /** The hero standing at 2x with their feet at (fx, fy): their fight idle, else their camp pose, else a shadow. */
+  private showcase(fx: number, fy: number, now: number): void {
+    const kit = this.kit;
+    const f = Math.floor(now / 420) % 2;
+    if (this.hero === 'rowan') {
+      const pose = f ? 'hero_idle1' : 'hero_idle0';
+      const [, hh] = kit.imgs.size(pose);
+      kit.imgs.scaled(pose, fx - HERO_FEET_X * 2, fy - hh * 2, D.icons, 2);
+      return;
+    }
+    const id = this.hero;
+    const own = [`${id}_idle${f}`, `camp_${id}${f}`].find((k) => kit.has(k));
+    const key = own ?? (f ? 'hero_idle1' : 'hero_idle0');
+    const [w, h] = kit.imgs.size(key);
+    const x = own ? fx - w : fx - HERO_FEET_X * 2;
+    kit.sprites.draw(key, x, fy - h * 2, D.icons, { scale: 2, tint: own ? undefined : 0x3a2c58 });
   }
 
   private drawAll(g: G, now: number): void {
@@ -219,9 +269,8 @@ export class StatsScreen {
         texts.text(txt, x, y, col, { oy: 0.5, alpha: a });
         x += textWidth(txt, 1, false) + 3;
       };
-      part(fmtStat(id, P.base[id], false), 0xd0c8f0);
-      if (Math.abs(P.run[id]) > 1e-9 && fmtStat(id, P.run[id]) !== '+0') part(`${fmtStat(id, P.run[id])} run`, 0x9ad8ff);
-      if (Math.abs(P.gear[id]) > 1e-9 && fmtStat(id, P.gear[id]) !== '+0') part(`${fmtStat(id, P.gear[id])} gear`, GOLD_TXT);
+      part(fmtStat(id, P.base[id], false), PART_COL.base);
+      for (const k of ['level', 'skills', 'run', 'gear'] as const) if (Math.abs(P[k][id]) > 1e-9 && fmtStat(id, P[k][id]) !== '+0') part(fmtStat(id, P[k][id]), PART_COL[k]);
     });
     // the picked stat's description
     const last = this.row(STAT_IDS.length - 1);
@@ -230,7 +279,7 @@ export class StatsScreen {
     kit.pane(g, fr);
     const id: StatId = STAT_IDS[this.pick];
     const pk = clamp01((now - this.pickAt) / 160);
-    const desc = STAT_INFO[id].desc;
+    const desc = STAT_INFO[id].desc.replace('Rowan', HEROES[this.hero].name);
     const name = `${STAT_INFO[id].name}:`;
     const tw = textWidth(name, 1, true) + 4 + textWidth(desc, 1, false);
     const x0 = Math.round(fr.x + fr.w / 2 - tw / 2);
