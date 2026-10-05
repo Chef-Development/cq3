@@ -375,6 +375,29 @@ test('launch: the layout catches up with a viewport that changes without a resiz
   expect(box?.x).toBeCloseTo(l.left, 1);
 });
 
+test('the act map has a Camp button: the camp mid-act, then back to the same spot on the map', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await ready(page);
+  const a = app(page);
+  const tapRect = async (r: { x: number; y: number; w: number; h: number }) => tapGame(page, r.x + r.w / 2, r.y + r.h / 2);
+  await a((x) => {
+    x.startRegion();
+    x.run.skipScenes();
+  });
+  await expect.poll(() => a((x) => x.run.phase)).toBe('map');
+  await page.waitForTimeout(400);
+  await tapRect((await a((x) => x.view.mapView.campRect())) as Any);
+  await expect.poll(() => a((x) => ({ phase: x.run.phase, from: x.run.campFrom }))).toEqual({ phase: 'camp', from: 'map' });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'test-results/camp-from-map.png' });
+  const leave = ((await a((x) => x.view.camp.band())) as Array<{ id: string; r: Any; label: string }>).find((b) => b.id === 'leave')!;
+  expect(leave.label).toBe('Act 1 map');
+  await tapRect(leave.r);
+  await expect.poll(() => a((x) => ({ phase: x.run.phase, path: x.run.path.length }))).toEqual({ phase: 'map', path: 0 });
+  expect(errors).toEqual([]);
+});
+
 test('camp: learn a skill and reset, pick Sable on the hero select, read a new relic', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));

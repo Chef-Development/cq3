@@ -145,6 +145,7 @@ export class CampView {
     const run = this.s.app.run;
     if (run.campFrom === 'defeat') return 'Retry';
     if (run.campFrom === 'actClear') return run.actIndex + 1 < run.region.acts.length ? `Act ${run.actIndex + 2}` : 'Continue';
+    if (run.campFrom === 'map') return `Act ${run.actIndex + 1} map`;
     return 'World map';
   }
 

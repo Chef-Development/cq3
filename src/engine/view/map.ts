@@ -21,9 +21,9 @@ import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
 import { heroMaxHp } from '../../core/combat';
 import { bagPal, glyph, glyphSize } from './overlays';
-import { band, hpBar, hudIcon, iconSize, rows } from './pixels';
-import { clamp01, INK, mix, WHITE, type Rect } from './shared';
-import { ImagePool, TextPool } from './ui';
+import { band, button3d, hpBar, hudIcon, iconSize, rows } from './pixels';
+import { clamp01, inRect, INK, mix, WHITE, type Rect } from './shared';
+import { FACE, ImagePool, isPressed, notePress, TextPool } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
 type Img = Phaser.GameObjects.Image;
@@ -193,6 +193,37 @@ export class MapView {
     const x = x0 + (n.row + 1) * dx + (n.type === 'boss' ? 0 : jitter(1));
     const y = n.type === 'boss' ? (top + bottom) / 2 : top + ((n.col + 0.5) * (bottom - top)) / n.of + jitter(2);
     return [Math.round(x), Math.round(y)];
+  }
+
+  /** The Camp button (bottom right): the camp mid-act (gear, skills, the hero), then back to this map. */
+  campRect(): Rect {
+    const s = this.s;
+    const [iw] = glyphSize('tent');
+    const w = iw + 3 + textWidth('Camp', 1, true) + 14;
+    return { x: s.R - 3 - w, y: s.B - 20, w, h: 18 };
+  }
+
+  /** The first step's hint ("Tap a glowing spot to travel") between the HP plate and the Camp button, shortened (or
+   *  left out) when the screen's safe areas leave too little room. */
+  private hint(): { text: string; r: Rect } | null {
+    const s = this.s;
+    const run = s.app.run;
+    if (run.path.length) return null;
+    const max = heroMaxHp(run.tuning, run.hero);
+    const hpRight = s.L + 3 + 20 + 34 + 6 + textWidth(`${run.hero.hp}/${max}`, 1, false) + 8;
+    const right = this.campRect().x - 3;
+    for (const text of ['Tap a glowing spot to travel', 'Tap a glowing spot', 'Pick a spot']) {
+      const tw = textWidth(text, 1, false) + 14;
+      if (right - tw >= hpRight + 3) return { text, r: { x: right - tw, y: s.B - 19, w: tw, h: 16 } };
+    }
+    return null;
+  }
+
+  /** Whether a tap lands on the Camp button (not while Rowan walks). */
+  campAt(x: number, y: number): boolean {
+    if (this.walk || !inRect(this.campRect(), x, y, 2)) return false;
+    notePress(this.campRect());
+    return true;
   }
 
   /** The reachable node under a tap, if any. */
@@ -638,10 +669,10 @@ export class MapView {
     out.push({ x: s.R - 3 - boxW, y: 3, w: boxW, h: rr ? 25 : 16 });
     const max = heroMaxHp(run.tuning, run.hero);
     out.push({ x: L, y: s.B - 19, w: 20 + 34 + 6 + textWidth(`${run.hero.hp}/${max}`, 1, false) + 8, h: 16 });
-    if (!run.path.length) {
-      const tw = textWidth('Tap a glowing spot to travel', 1, false) + 14;
-      out.push({ x: s.R - 3 - tw, y: s.B - 19, w: tw, h: 16 });
-    }
+    const camp = this.campRect();
+    out.push(camp);
+    const hint = this.hint();
+    if (hint) out.push(hint.r);
     // the DOM pause / gear buttons at the top centre
     out.push({ x: GAME_W / 2 - 17, y: 0, w: 34, h: 18 });
     return out;
@@ -975,13 +1006,20 @@ export class MapView {
     hudIcon(g, 'heart', L + 3, hy + 1);
     hpBar(g, L + 20, hy + 6, 34, 4, H.hp / max, H.hp / max, 0xe0463c);
     T.text(hp, L + 60, hy + 8, WHITE, { oy: 0.5 });
+    // the Camp button (bottom right)
+    const camp = this.campRect();
+    const pr = isPressed(camp, now);
+    button3d(g, camp, FACE.navy, pr);
+    const [iw, ih] = glyphSize('tent');
+    const dy = pr ? 2 : 0;
+    glyph(g, 'tent', camp.x + 7, camp.y + Math.round((camp.h - ih) / 2) + dy);
+    T.text('Camp', camp.x + 7 + iw + 3, camp.y + camp.h / 2 + dy, WHITE, { bold: true, oy: 0.5 });
     // the first time on a map: how to travel
-    if (!run.path.length && !this.walk) {
-      const hint = 'Tap a glowing spot to travel';
-      const tw = textWidth(hint, 1, false) + 14;
+    const hint = this.walk ? null : this.hint();
+    if (hint) {
       const k = 0.75 + 0.25 * Math.sin(now / 300);
-      plate(g, s.R - 3 - tw, hy, tw, 16);
-      T.text(hint, s.R - 3 - tw / 2, hy + 8, 0xffe680, { ox: 0.5, oy: 0.5, alpha: k });
+      plate(g, hint.r.x, hy, hint.r.w, 16);
+      T.text(hint.text, hint.r.x + hint.r.w / 2, hy + 8, 0xffe680, { ox: 0.5, oy: 0.5, alpha: k });
     }
   }
 }

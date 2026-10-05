@@ -351,6 +351,37 @@ describe('the camp, replaying acts, the purse', () => {
     expect(m.phase).toBe('actClear');
   });
 
+  it('the act map opens the camp mid-act: the hero, path and relics wait; a save there resumes on the map', () => {
+    const r = onMap();
+    r.chooseNode(r.map.rows[0][0]);
+    win(r);
+    r.pickBoost(0);
+    expect(r.phase).toBe('map');
+    const path = r.path.slice();
+    const relics = r.hero.relics.slice();
+    r.hero.hp = 33;
+    r.toCamp();
+    expect(r.phase).toBe('camp');
+    expect(r.campFrom).toBe('map');
+    // switching heroes at the camp: the run's hero fights as Sable when it goes back
+    r.profile.heroes.sable.unlocked = true;
+    r.profile.hero = 'sable';
+    const save = snapshotRun(r)!;
+    expect(save.phase).toBe('map');
+    r.leaveCamp();
+    expect(r.phase).toBe('map');
+    expect(r.path).toEqual(path);
+    expect(r.hero.relics).toEqual(relics);
+    expect(r.hero.hp).toBe(33);
+    expect(r.hero.build.id).toBe('sable');
+    // the save made at the camp puts the run back on the same map spot
+    const back = new Run(r.tuning, { ...DEFAULT_SETTINGS }, 99, r.profile);
+    expect(restoreRun(back, save)).toBe(true);
+    expect(back.phase).toBe('map');
+    expect(back.path).toEqual(path);
+    expect(back.hero.relics).toEqual(relics);
+  });
+
   it('gear equipped at the camp is worn when you go back', () => {
     const r = onMap();
     r.phase = 'actClear';

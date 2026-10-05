@@ -36,8 +36,8 @@ export type Phase =
   | 'actClear'
   | 'defeat'
   | 'victory';
-/** Where the camp was opened from (and goes back to). */
-export type CampFrom = 'world' | 'actClear' | 'defeat';
+/** Where the camp was opened from (and goes back to): the world map, an act clear, a defeat, or the act map mid-act. */
+export type CampFrom = 'world' | 'actClear' | 'defeat' | 'map';
 /** Where a run of story scenes leads. */
 export type SceneThen = 'map' | 'fight' | 'victory';
 
@@ -490,7 +490,7 @@ export class Run {
   /** Open the camp (from the world map, an act clear or a defeat; it goes back there). */
   toCamp(): void {
     if (this.phase === 'camp' || this.phase === 'boost') return;
-    this.campFrom = this.phase === 'actClear' ? 'actClear' : this.phase === 'defeat' ? 'defeat' : 'world';
+    this.campFrom = this.phase === 'actClear' ? 'actClear' : this.phase === 'defeat' ? 'defeat' : this.phase === 'map' ? 'map' : 'world';
     this.combat = this.phase === 'defeat' ? this.combat : null;
     this.phase = 'camp';
   }

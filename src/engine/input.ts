@@ -50,6 +50,7 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
         return;
       case 'map': {
         if (scene.overlays.unlockActive()) return scene.overlays.unlockTap();
+        if (clientX >= 0 && now - app.phaseSince > 300 && scene.mapView.campAt(g.x, g.y)) return app.openCamp();
         // keyboard: the first choice
         const id = clientX < 0 ? (run.choices()[0] ?? null) : scene.mapNodeAt(g.x, g.y);
         if (id !== null && now - app.phaseSince > 300) scene.chooseNode(id);
