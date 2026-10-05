@@ -1,12 +1,19 @@
 // The fighters: Rowan's choreography (dash, slash, parry, finisher whirlwind), the enemies (walk-in, poses,
 // knockback, death burst), Pip the owl, and the finisher's streaked backdrop. Every fighter stands in the act's
 // light: a soft contact shadow cast away from it, and a rim of its colour along the edges that face it.
+// Rowan wears his gear where you can see it: his weapon's rarity colours his slashes and the glint on his blade, a
+// Legendary or Mythic piece gives him an aura, the Tusk Crown's crit buff a golden glow; and every gear effect that
+// kicks in mid-fight shows briefly (its name, and a visual that fits it).
 import Phaser from 'phaser';
 import { rimMask, STAGE_LIGHT } from '../art-stage';
 import type { Combat } from '../../core/combat';
+import { EFFECTS, RARITY_INFO, type EffectId } from '../../data/gear';
+import { rarityIndex } from '../../core/gear';
+import { equippedIn, equippedItems } from '../../core/profile';
 import { FINISHER_BLOW_AT, finisherStrikeAt, finisherStrikes, type ImpactFeel } from '../../core/impact';
 import type { FightScene } from '../scene';
 import { HERO_FEET_X, HERO_W, ICONS } from '../art';
+import { textWidth } from '../font';
 import { GAME_W } from '../layout';
 import { hpBar, icon } from './pixels';
 import { FOE_ICONS } from './icons';
@@ -28,6 +35,8 @@ import {
   RETURN_MS,
   SPRITE_SCALE,
   INK,
+  mix,
+  pulse,
   stackCol,
   superMsFor,
   WHITE,
@@ -36,8 +45,21 @@ import {
 } from './shared';
 
 type G = Phaser.GameObjects.Graphics;
+type Face = readonly [number, number, number, number];
 /** A new wave's enemies hop (or drop) in over this long. */
 const WAVE_IN_MS = 460;
+/** Where the blade's tip is in each of Rowan's poses, from his sprite's anchor (feet centre, bottom). */
+const SWORD_TIP: Record<string, [number, number]> = {
+  idle0: [21, -24],
+  idle1: [21, -23],
+  slashA: [22, -4],
+  slashB: [29, -13],
+  windup: [-5, -38],
+  parry: [9, -31],
+};
+/** A gear effect's name shows over Rowan at most this often (ms); its heals add up in one number this long. */
+const GEAR_NAME_MS = 3500;
+const GEAR_SUM_MS = 900;
 
 export class Fighters {
   h: HeroAnim;
@@ -68,6 +90,15 @@ export class Fighters {
   private pipRim!: Phaser.GameObjects.Image;
   private enemyRims = new Map<number, Phaser.GameObjects.Image>();
   private hurtSeen = 0;
+  /** Gear light under and around Rowan (additive, behind the actors), and a glowing silhouette just behind him. */
+  private gAura!: G;
+  private heroGlow!: Phaser.GameObjects.Image;
+  private glintAt = -1e9; // anim time of the last slash's glint
+  private auraMoteAt = 0;
+  private gearNamed = new Map<string, number>(); // when each effect's name last showed
+  private gearSums = new Map<string, { n: number; at: number }>();
+  private nameAt = -1e9; // the last name shown, and how many showed together (they stack)
+  private nameStack = 0;
 
   constructor(private readonly s: FightScene) {
     this.h = this.freshHero();
@@ -100,6 +131,8 @@ export class Fighters {
     s.back.add(this.gSuper);
     this.gShadow = s.add.graphics();
     s.back.add(this.gShadow);
+    this.gAura = s.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
+    s.back.add(this.gAura);
     this.pip = s.add.image(s.heroHome - 30, s.ground - 24, 'pip_idle0').setOrigin(0.5, 0.5);
     this.pipRim = this.makeRim();
     s.actors.add([this.pip, this.pipRim]);
@@ -108,9 +141,10 @@ export class Fighters {
     s.actors.add(this.ghosts);
     this.ghostTrail = [];
     this.superFinalAt = -1e9;
+    this.heroGlow = s.add.image(0, 0, 'hero_idle0').setBlendMode(Phaser.BlendModes.ADD).setTintMode(Phaser.TintModes.FILL).setVisible(false);
     this.hero = s.add.image(s.heroHome, s.ground, 'hero_idle0').setScale(SPRITE_SCALE);
     this.heroRim = this.makeRim();
-    s.actors.add([this.hero, this.heroRim]);
+    s.actors.add([this.heroGlow, this.hero, this.heroRim]);
   }
 
   private makeRim(): Phaser.GameObjects.Image {
@@ -282,8 +316,175 @@ export class Fighters {
       }
       this.setHeroPose(slash, 110);
       h.lungeAt = s.anim;
+      this.glintAt = s.anim;
       this.enemyHurtFx(enemyId, damage, crit, perfect, land());
     });
+  }
+
+  // ------------------------------------------------------------------ gear on Rowan
+
+  /** The weapon Rowan wears, when it's better than Common: its rarity's colours tint his slashes and blade glint. */
+  weaponLook(): { r: number; face: Face } | null {
+    const w = equippedIn(this.s.app.profile, 'weapon');
+    const r = w ? rarityIndex(w.rarity) : 0;
+    return w && r >= 1 ? { r, face: RARITY_INFO[w.rarity].face } : null;
+  }
+
+  /** The rarest piece Rowan wears if it's Legendary or Mythic (it gives him an aura). */
+  auraLook(): { r: number; face: Face } | null {
+    let best: { r: number; face: Face } | null = null;
+    for (const it of equippedItems(this.s.app.profile)) {
+      const r = rarityIndex(it.rarity);
+      if (r >= 4 && (!best || r > best.r)) best = { r, face: RARITY_INFO[it.rarity].face };
+    }
+    return best;
+  }
+
+  /** Show an effect's name over Rowan (over the HUD, so the counters never hide it), unless it showed in the last few
+   *  seconds. Two at once stack. Returns whether it showed. */
+  private gearName(key: string, name: string, now: number, x = this.h.x - 4, y = this.s.ground - 48): boolean {
+    if (now - (this.gearNamed.get(key) ?? -1e9) < GEAR_NAME_MS) return false;
+    this.gearNamed.set(key, now);
+    this.nameStack = now - this.nameAt < 500 ? this.nameStack + 1 : 0;
+    this.nameAt = now;
+    const s = this.s;
+    const w = textWidth(name, 1, true);
+    const cx = Math.max(s.L + w / 2 + 2, Math.min(s.R - w / 2 - 2, x));
+    s.fx.addFloater(cx, Math.max(26, y - this.nameStack * 10), name, 0xffb060, 1, true, 0, -8, 0, 1100, false);
+    return true;
+  }
+
+  /** Add `n` to an effect's running total (the total of the repeats in the last moment). */
+  private gearSum(key: string, n: number, now: number): number {
+    const prev = this.gearSums.get(key);
+    const sum = prev && now - prev.at < GEAR_SUM_MS ? prev.n + n : n;
+    this.gearSums.set(key, { n: sum, at: now });
+    return sum;
+  }
+
+  /**
+   * A piece of gear's unique effect kicked in: its name (over Rowan, at most every few seconds each) and a visual that
+   * fits it. Repeats merge: heals add up in one number, so a long fight never fills up with text. `at`: where on the
+   * bar the miss (Footpad) or the bomb (Captain's Cutlass) was.
+   */
+  gearFx(fx: EffectId | 'footpad', amount: number, enemyId: number, at: { missX?: number; bombX?: number } = {}): void {
+    const s = this.s;
+    const F = s.fx;
+    const h = this.h;
+    const audio = s.app.audio;
+    const now = performance.now();
+    const name = fx === 'footpad' ? 'Footpad: saved!' : EFFECTS[fx].name;
+    const barY = s.bar.y + s.bar.h / 2;
+    const clampX = (x: number, text: string) => {
+      const w = textWidth(text, 1, true);
+      return Math.max(s.L + w / 2 + 2, Math.min(s.R - w / 2 - 2, x));
+    };
+    switch (fx) {
+      case 'golemheart':
+      case 'leech': {
+        // a little green heart and the heal (blocks and crits come fast: the heals add up in one number)
+        if (amount <= 0) break;
+        const sum = this.gearSum(fx, amount, now);
+        // (up to the left of his head: names go over it, a crit buff to the right)
+        F.replaceFloater(`gear-${fx}`, () => F.addFloater(h.x - 9, s.ground - 36, `+${sum}`, 0x9af06a, 1, true, 0, -20, 0, 900, true));
+        F.heartPop(h.x - 20, s.ground - 38, 0x5ad848, 0xb4f070);
+        F.burst(h.x + 2, s.ground - 18, 0x9af06a, 5, true, 0.6);
+        if (this.gearName(fx, name, now)) audio.gearProc(0.3);
+        break;
+      }
+      case 'secondWind': {
+        // the big one: a green flash, a big heal number and a heart, a ring of light
+        F.screenFlash(0x9af06a, now, 420);
+        F.addFloater(h.x + 8, s.ground - 44, `+${amount}`, 0x9af06a, 2, true, 0, -24, 0, 1300, true);
+        F.heartPop(h.x - 12, s.ground - 44, 0x5ad848, 0xb4f070, 2, 1300);
+        F.ring(h.x, s.ground - 18, 30, 0x9af06a, true);
+        s.later(90, () => F.ring(h.x, s.ground - 18, 44, 0xc8ff8a, true));
+        F.burst(h.x, s.ground - 18, 0x9af06a, 18, true, 1.2);
+        F.burst(h.x, s.ground - 18, WHITE, 8, true, 1, true);
+        F.glow(h.x, s.ground - 18, 26, 0x9af06a, 520, s.ground);
+        this.gearNamed.delete(fx);
+        this.gearName(fx, `${name}!`, now, h.x, s.ground - 58);
+        audio.heal();
+        audio.gearProc(1);
+        break;
+      }
+      case 'riposte': {
+        // a spark flies back from Rowan's guard to the foe and hits it
+        const v = this.enemies.get(enemyId);
+        if (!v) break;
+        const sx = h.x + 10;
+        const sy = s.ground - 22;
+        const tx = v.x - v.img.displayWidth * 0.25;
+        const ty = v.y - v.img.displayHeight / 2;
+        const ms = 130;
+        F.bolt(sx, sy, tx, ty, ms, 0x9ad8ff);
+        F.burst(sx, sy, 0x9ad8ff, 4, true, 0.8, true);
+        s.later(ms, () => {
+          v.flashUntil = s.anim + 60;
+          v.kickAt = s.anim;
+          v.kickDist = 5;
+          if (!v.dieAt) this.setEnemyPose(v, 'hurt', 140);
+          F.sparks.push({ x: tx, y: ty, at: s.anim, size: 11, color: 0x9ad8ff });
+          F.burst(tx, ty, 0x9ad8ff, 8, true, 1.2, true);
+          F.glow(tx, ty, 12, 0x9ad8ff, 160);
+          F.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, `${amount}`, 0x9ad8ff, 2);
+          audio.hit(0, false);
+        });
+        this.gearName(fx, name, now);
+        break;
+      }
+      case 'cutlass': {
+        // the tapped bomb crits: an orange starburst on the bar where it blew, and the name over it
+        const x = at.bombX ?? s.bar.x + s.bar.w / 2;
+        const label = `${name}!`;
+        F.stars.push({ x, y: barY, at: s.anim, r: 18, color: 0xff8a2a, world: false });
+        F.ring(x, barY, 24, 0xffb060, false);
+        F.chips(x, barY, 10, [0xffb060, 0xff8a2a, WHITE], 14, -1);
+        F.replaceFloater('gear-cutlass', () => F.addFloater(clampX(x, label), s.bar.y - 18, label, 0xffa040, 1, true, 0, -18, 0, 900, false));
+        audio.gearProc(0.8);
+        break;
+      }
+      case 'tuskCrown': {
+        // the crit buff: "+15% crit" over Rowan, a golden ring (and his golden glow while it lasts: drawActors)
+        F.addFloater(h.x + 30, s.ground - 34, `+${amount}% crit`, 0xffd23a, 1, true, 0, -10, 0, 1300, false);
+        F.ring(h.x, s.ground - 18, 26, 0xffd23a, true);
+        F.burst(h.x, s.ground - 18, 0xffe680, 14, true, 1.1);
+        this.gearNamed.delete(fx);
+        this.gearName(fx, name, now);
+        audio.gearProc(1);
+        break;
+      }
+      case 'pendulum': {
+        // the new green block: a brass tick-tock ring on it
+        const c = s.app.run.combat;
+        let b = null as { pos: number; id: number } | null;
+        for (const x of c?.blocks ?? []) if (x.kind === 'green' && (!b || x.id > b.id)) b = x;
+        const x = b ? s.barView.x(b.pos) : s.bar.x + s.bar.w / 2;
+        F.ring(x, barY, 12, 0xd8a040, false);
+        s.later(160, () => F.ring(x, barY, 18, 0xf2c230, false));
+        F.chips(x, barY, 6, [0xf2c230, 0xd8a040, WHITE], 6, -1);
+        F.replaceFloater('gear-pendulum', () => F.addFloater(clampX(x, name), s.bar.y - 16, name, 0xe8c060, 1, true, 0, -16, 0, 800, false));
+        audio.tickTock();
+        break;
+      }
+      case 'opener': {
+        // the first hit on a new foe is a sure crit: the name over that foe
+        const v = this.enemies.get(enemyId);
+        const label = `${name}!`;
+        if (v && this.gearName(`opener${Math.floor(now / 1500)}`, label, now, v.homeX, v.y - v.img.displayHeight - 20)) audio.gearProc(0.6);
+        break;
+      }
+      case 'footpad': {
+        // the fight's first miss is forgiven: "Saved!" over the bar where it happened
+        const x = at.missX ?? s.bar.x + s.bar.w / 2;
+        F.judge(x, 'Saved!', 0x9af06a, true);
+        F.chips(x, barY, 8, [0x9af06a, WHITE], 8, -1);
+        F.ring(x, barY, 14, 0x9af06a, false);
+        this.gearName(fx, name, now);
+        audio.gearProc(0.4);
+        break;
+      }
+    }
   }
 
   /**
@@ -315,7 +516,13 @@ export class Fighters {
     v.numAt = s.anim;
     if (damage > 0) fx.floatNum(v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2), v.y - v.img.displayHeight - 10 - v.numLevel * 11, `${damage}`, col, numScale);
     const tier = combo >= 50 ? 3 : combo >= 25 ? 2 : combo >= 10 ? 1 : 0;
-    fx.slashes.push({ x: v.x, y: cy, at: s.anim, big: big || tier >= 2, dir: this.h.alt ? 1 : -1, color: crit ? 0xffd23a : comboSlashCol(combo) });
+    const slashCol = crit ? 0xffd23a : comboSlashCol(combo);
+    // a weapon better than Common slashes in its rarity's colours (the combo's heat still shows in the inner band)
+    const wl = finisher ? null : this.weaponLook();
+    if (wl) {
+      const [hi, base, , deep] = wl.face;
+      fx.slashes.push({ x: v.x, y: cy, at: s.anim, big: big || tier >= 2, dir: this.h.alt ? 1 : -1, color: crit ? hi : base, rim: deep, core: mix(tier > 0 || crit ? slashCol : hi, WHITE, 0.45) });
+    } else fx.slashes.push({ x: v.x, y: cy, at: s.anim, big: big || tier >= 2, dir: this.h.alt ? 1 : -1, color: slashCol });
     fx.burst(hx, cy, WHITE, (big ? 14 : 8) + tier * 2, true, big ? 1.6 : 1.1, true);
     fx.chips(hx, cy, 6, [WHITE, col, ENEMY_COL[v.sprite] ?? WHITE], big ? 10 : 5, 0);
     if (big) fx.ring(v.x, cy, 28, col, true);
@@ -699,6 +906,7 @@ export class Fighters {
       g.fillStyle(0x9af0a0, 1);
       for (let i = 0; i < 2; i++) g.fillRect(Math.round(this.h.x + rand(-11, 11)), Math.round(s.ground - rand(3, 30)), 1, 2);
     }
+    this.drawGear(g, now, c);
     if (!c) return;
     const target = c.currentTarget();
     const a = s.anim;
@@ -863,6 +1071,120 @@ export class Fighters {
           g.fillRect(tx - 2, ty + 1, 5, 1);
           g.fillRect(tx - 1, ty + 2, 3, 1);
           g.fillRect(tx, ty + 3, 1, 1);
+        }
+      }
+    }
+  }
+
+  /**
+   * Rowan's gear, every frame: a Legendary or Mythic piece's aura (light pooled at his feet, a soft glow, motes
+   * rising; a Mythic's flicker like embers), the Tusk Crown's golden glow while its crit buff lasts, and his blade's
+   * glint in his weapon's rarity colour (now and then at rest, and on every slash).
+   */
+  private drawGear(g: G, now: number, c: Combat | null): void {
+    const s = this.s;
+    const ga = this.gAura;
+    ga.clear();
+    const hero = this.hero;
+    const glow = this.heroGlow;
+    glow.setVisible(false);
+    if (!hero.visible || this.showcase) return;
+    const hx = Math.round(hero.x);
+    const gy = s.ground;
+    const aura = this.auraLook();
+    const tusk = c && c.tuskTimer > 0 ? c.tuskTimer : 0;
+    // the glowing silhouette: gold while the Tusk Crown's buff lasts, else the rarest piece's colour, breathing
+    if ((tusk > 0 || aura) && hero.alpha > 0) {
+      const fade = tusk > 0 && tusk < 1 ? (Math.floor(now / 80) % 2 ? 0.35 : 1) : 1;
+      const col = tusk > 0 ? 0xffd23a : aura!.face[1];
+      const a = tusk > 0 ? (0.5 + 0.3 * pulse(now, 500)) * fade : (0.22 + 0.14 * pulse(now, aura!.r >= 5 ? 900 : 1600)) * (aura!.r >= 5 ? 0.8 + 0.2 * Math.random() : 1);
+      glow
+        .setTexture(hero.texture.key)
+        .setFlipX(hero.flipX)
+        .setOrigin(hero.originX, 1)
+        .setPosition(hero.x, hero.y + 1)
+        .setScale(1.14, 1.07)
+        .setTint(col)
+        .setAlpha(a)
+        .setVisible(true);
+    }
+    if (aura) {
+      const [hi, base] = aura.face;
+      const mythic = aura.r >= 5;
+      const p = pulse(now, mythic ? 900 : 1400) * (mythic ? 0.7 + 0.3 * Math.random() : 1);
+      ga.fillStyle(base, 0.1 + 0.06 * p);
+      ga.fillEllipse(hx, gy - 1, 36, 6);
+      ga.fillStyle(hi, 0.08 + 0.05 * p);
+      ga.fillEllipse(hx, gy - 1, 20, 4);
+      ga.fillStyle(base, 0.05 + 0.04 * p);
+      ga.fillEllipse(hx + 1, gy - 15, 30, 38);
+      // motes rising around him
+      const every = mythic ? 70 : 120;
+      if (now - this.auraMoteAt > every) {
+        this.auraMoteAt = now;
+        const ember = mythic && Math.random() < 0.5;
+        s.fx.particles.push({
+          x: hx + rand(-10, 10),
+          y: gy - rand(0, 26),
+          vx: ember ? rand(-8, 8) : rand(-3, 3),
+          vy: ember ? rand(-40, -24) : rand(-26, -14),
+          g: 0,
+          born: now,
+          life: rand(500, 900),
+          color: Math.random() < 0.3 ? WHITE : Math.random() < 0.5 ? hi : base,
+          size: 1,
+          world: true,
+          streak: false,
+          shape: ember ? 'chip' : Math.random() < 0.4 ? 'spark' : 'chip',
+        });
+      }
+    }
+    // the Tusk Crown's crit buff: a golden glow and a ring of sparks turning around him (it flickers as it runs out)
+    if (tusk > 0) {
+      const fade = tusk < 1 ? (Math.floor(now / 80) % 2 ? 0.35 : 1) : 1;
+      const p = pulse(now, 500);
+      ga.fillStyle(0xffd23a, (0.08 + 0.06 * p) * fade);
+      ga.fillEllipse(hx + 1, gy - 15, 34, 42);
+      ga.fillStyle(0xfff0a0, (0.06 + 0.05 * p) * fade);
+      ga.fillEllipse(hx + 1, gy - 15, 22, 30);
+      ga.fillStyle(0xffd23a, 0.16 * fade);
+      ga.fillEllipse(hx, gy - 1, 40, 6);
+      const n = 10;
+      for (let i = 0; i < n; i++) {
+        const ang = now / 260 + (i / n) * Math.PI * 2;
+        const front = Math.sin(ang) > 0;
+        const x = Math.round(hx + Math.cos(ang) * 15);
+        const y = Math.round(gy - 13 + Math.sin(ang) * 4);
+        g.fillStyle(front ? 0xfff0a0 : 0xd8901c, (front ? 1 : 0.6) * fade);
+        g.fillRect(x, y, front ? 2 : 1, 1);
+      }
+      if (Math.random() < 0.35 * fade) s.fx.particles.push({ x: hx + rand(-12, 12), y: gy - rand(4, 30), vx: 0, vy: rand(-30, -16), g: 0, born: now, life: rand(300, 600), color: Math.random() < 0.5 ? 0xffe680 : WHITE, size: 1, world: true, streak: false, shape: 'spark' });
+    }
+    // the blade's glint, in the weapon's rarity colour
+    const wl = this.weaponLook();
+    const tip = SWORD_TIP[hero.texture.key.slice(5)];
+    if (wl && tip && !hero.flipX) {
+      const a = s.anim;
+      const period = 2600 - wl.r * 260;
+      const sk = (a - this.glintAt) / 200;
+      const k = sk >= 0 && sk < 1 ? sk : (a % period) < 320 ? (a % period) / 320 : -1;
+      if (k >= 0) {
+        const big = sk >= 0 && sk < 1;
+        const size = Math.round((k < 0.35 ? k / 0.35 : 1 - (k - 0.35) / 0.65) * (big ? 4 : 2 + (wl.r >= 4 ? 1 : 0)));
+        const x = Math.round(hero.x + tip[0]);
+        const y = Math.round(hero.y + tip[1]);
+        if (size > 0) {
+          g.fillStyle(INK, 0.5);
+          g.fillRect(x - size - 1, y - 1, size * 2 + 3, 3);
+          g.fillRect(x - 1, y - size - 1, 3, size * 2 + 3);
+          g.fillStyle(wl.face[0], 1);
+          g.fillRect(x - size, y, size * 2 + 1, 1);
+          g.fillRect(x, y - size, 1, size * 2 + 1);
+          g.fillStyle(WHITE, 1);
+          g.fillRect(x, y, 1, 1);
+          if (size >= 3) g.fillRect(x - 1, y - 1, 3, 3);
+          ga.fillStyle(wl.face[1], 0.3);
+          ga.fillCircle(x, y, size + 3);
         }
       }
     }
