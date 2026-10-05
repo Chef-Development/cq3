@@ -39,7 +39,7 @@ const SHOWN: Record<string, { row: number; label: (d: number) => string }> = {
 const foeCount = (c: Combat): { beaten: number; total: number } => ({ beaten: c.foesBeaten, total: c.foesTotal });
 
 /** Where the portrait's face sits inside its 40x40 texture (top-left of the 18x18 window shown in the badge). */
-const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [12, 6] };
+const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [14, 8] };
 /** The relic belt shows this many icons (more: the last slot reads "+N"), 13 px apart, under the coin chip. */
 const BELT_MAX = 7;
 const BELT_Y = 41;
@@ -108,9 +108,6 @@ export class Hud {
   private perkFight: unknown = null;
   /** Relics the belt has shown (a new one pops in), and when the belt first showed each. */
   private beltSeen = new Map<RelicId, number>();
-  /** Overcharge's timer: whether it counts down (true) or up, read from how it moves. */
-  private ocDown = false;
-  private ocPrev = -1;
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, 12);
@@ -1036,28 +1033,23 @@ export class Hud {
 
   /**
    * Overcharge (you lose a stack after n s without a hit): a tiny countdown under the newest gem, draining, and
-   * blinking red in the last two seconds. Reads c.perk.overcharge (seconds; counting up from the last hit, or down
-   * to the loss: told apart by how it moves).
+   * blinking red in the last two seconds. c.perk.overcharge is the fight's motion time of the last hit.
    */
   private drawOvercharge(g: G, now: number, c: Combat, x: number, y: number): void {
-    const v = c.perk.overcharge;
-    if (!c.hasPerk('overcharge') || typeof v !== 'number' || c.stacks <= 0) {
-      this.ocPrev = -1;
-      return;
-    }
-    if (this.ocPrev >= 0 && v !== this.ocPrev) this.ocDown = v < this.ocPrev && v > 0.05;
-    this.ocPrev = v;
+    const since = c.perk.overcharge;
+    if (!c.hasPerk('overcharge') || typeof since !== 'number' || c.stacks <= 0) return;
     const n = Math.max(0.1, relicNumber(this.s.app.tuning, 'overcharge'));
-    const left = Math.max(0, Math.min(n, this.ocDown ? v : n - v));
+    const left = Math.max(0, Math.min(n, n - (c.motionTime - since)));
     const frac = left / n;
     const urgent = left < 2;
     const blink = urgent && Math.floor(now / 120) % 2 === 0;
+    // (over the gem: under it is the screen's edge)
     g.fillStyle(INK, 1);
-    g.fillRect(x - 1, y + 8, 9, 3);
+    g.fillRect(x - 1, y - 5, 9, 4);
     g.fillStyle(NAVY[1], 1);
-    g.fillRect(x, y + 9, 7, 1);
+    g.fillRect(x, y - 4, 7, 2);
     g.fillStyle(urgent ? (blink ? WHITE : 0xff5a3a) : 0xffb030, 1);
-    g.fillRect(x, y + 9, Math.max(1, Math.round(7 * frac)), 1);
+    g.fillRect(x, y - 4, Math.max(1, Math.round(7 * frac)), 2);
     if (urgent) {
       g.fillStyle(0xff3030, blink ? 0.5 : 0.2);
       g.fillRect(x, y, 7, 7);

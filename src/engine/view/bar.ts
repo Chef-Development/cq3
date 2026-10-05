@@ -268,19 +268,14 @@ export class BarView {
     g.fillRect(B.x + bx + 3, B.y + 1, half - 4, B.h - 2);
     g.fillStyle(HAND_LOOK[1].blade, 0.13);
     g.fillRect(mid + 2, B.y + 1, B.w - half - 3, B.h - 2);
-    // the divider: an ink seam with a lit edge, and gold studs above and below the track
+    // the divider: a dark seam down the track with a faint lit edge (quieter than a cursor), and a notch in the rims
+    g.fillStyle(INK, 0.85);
+    g.fillRect(mid - 1, B.y + 1, 2, B.h - 2);
+    g.fillStyle(0x8a7cc0, 0.7);
+    g.fillRect(mid + 1, B.y + 1, 1, B.h - 2);
     g.fillStyle(INK, 1);
-    g.fillRect(mid - 1, B.y - 3, 3, B.h + 6);
-    g.fillStyle(0xd8c890, 0.9);
-    g.fillRect(mid, B.y - 2, 1, B.h + 4);
-    for (const sy of [B.y - 5, B.y + B.h + 3]) {
-      g.fillStyle(INK, 1);
-      g.fillRect(mid - 2, sy - 1, 5, 4);
-      g.fillStyle(0xf2c230, 1);
-      g.fillRect(mid - 1, sy, 3, 2);
-      g.fillStyle(0xfff0a0, 1);
-      g.fillRect(mid - 1, sy, 1, 1);
-    }
+    g.fillRect(mid - 1, B.y - 1, 3, 2);
+    g.fillRect(mid - 1, B.y + B.h - 1, 3, 2);
     void now;
   }
 

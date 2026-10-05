@@ -242,14 +242,21 @@ test('gear: loot after a win goes in the bag; act clear -> camp -> next act; def
   await page.screenshot({ path: 'test-results/camp.png' });
   await a((x) => x.leaveCamp());
   await expect.poll(phase).toBe('actClear');
-  await page.waitForTimeout(900);
+  // the act's first clear unlocked relics: a "New relic unlocked!" card each comes up over the screen; a tap each
+  await expect.poll(() => a((x) => x.view.overlays.unlockActive()), { timeout: 5000 }).toBe(true);
+  for (let i = 0; i < 6 && ((await a((x) => x.run.newRelics.length)) as number) > 0; i++) {
+    await page.waitForTimeout(500);
+    await tapGame(page, 163, 75);
+  }
+  expect(await a((x) => x.run.newRelics.length)).toBe(0);
+  await page.waitForTimeout(300);
   await tapRect(clear.next);
   await expect.poll(phase).toBe('scene');
   expect(await a((x) => x.run.actIndex)).toBe(1);
 
   // a defeat: Camp, back, Retry
   await a((x) => {
-    x.storySkip();
+    x.setPhase(() => x.run.skipScenes()); // Sable's arrival at the camp, then the act's opening
     x.setPhase(() => x.run.chooseNode(x.run.choices()[0]));
     x.begin();
     const c = x.run.combat;
@@ -279,6 +286,70 @@ test('gear: loot after a win goes in the bag; act clear -> camp -> next act; def
   await tapRect((await a((x) => x.view.worldMap.playButton(1))) as Any);
   await expect.poll(phase).toBe('scene');
   expect(await a((x) => x.run.actIndex)).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test('relics: pick one after a fight, its icon is on the HUD belt next fight, a tap there opens the relic panel', async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  await ready(page);
+  const a = app(page);
+  const phase = () => a((x) => x.run.phase);
+  const tapRect = async (r: { x: number; y: number; w: number; h: number }) => tapGame(page, r.x + r.w / 2, r.y + r.h / 2);
+
+  // win the first fight
+  await a((x) => {
+    x.startRegion();
+    x.storySkip();
+    x.storySkip();
+    x.setPhase(() => x.run.chooseNode(x.run.choices()[0]));
+    x.begin();
+  });
+  for (let k = 0; k < 12 && (await phase()) === 'fight'; k++) {
+    await a((x) => {
+      const c = x.run.combat;
+      if (!c || c.result) return;
+      for (const e of c.enemies) if (e.alive) (e.uses = e.uses.map(() => 1)), (e.hp = 1);
+      c.stacks = Math.max(1, c.stacks);
+      x.finisher();
+    });
+    await page.waitForTimeout(1600);
+  }
+  await expect.poll(phase, { timeout: 15_000 }).toMatch(/loot|boost/);
+  if ((await phase()) === 'loot') await a((x) => x.setPhase(() => x.run.collectLoot()));
+  await expect.poll(phase).toBe('boost');
+  // the first card is a relic: pick it with a tap
+  await a((x) => (x.run.boostChoices[0] = { id: 'relic', rarity: 'rare', relic: 'ironRhythm' }));
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: 'test-results/relic-pick.png' });
+  await tapRect((await a((x) => x.view.overlays.cardRect(0))) as Any);
+  await expect.poll(phase).toBe('map');
+  expect(await a((x) => x.run.hero.relics)).toContain('ironRhythm');
+
+  // the next fight: the relic's icon sits on the belt under the hero plate
+  await a((x) => {
+    x.setPhase(() => x.run.chooseNode(x.run.choices()[0]));
+    x.begin();
+  });
+  await page.waitForTimeout(900);
+  const belt = (await a((x) => x.view.hud.relicBelt())) as Any;
+  expect(belt.slots.map((s: Any) => s.id)).toContain('ironRhythm');
+  await page.screenshot({ path: 'test-results/relic-belt.png' });
+
+  // a tap on it pauses the fight and opens the relic panel on that relic (not a bar tap); Resume plays on
+  const slot = belt.slots.find((s: Any) => s.id === 'ironRhythm');
+  const lastTap = await a((x) => x.lastTap);
+  await tapRect(slot.r);
+  await expect.poll(() => a((x) => ({ paused: x.userPaused, sel: x.view.overlays.relicSel }))).toEqual({ paused: true, sel: belt.slots.indexOf(slot) });
+  expect(await a((x) => x.lastTap)).toEqual(lastTap);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: 'test-results/relic-panel.png' });
+  await tapRect((await a((x) => x.view.overlays.relicResume())) as Any);
+  await expect.poll(() => a((x) => ({ paused: x.userPaused, sel: x.view.overlays.relicSel }))).toEqual({ paused: false, sel: null });
   expect(errors).toEqual([]);
 });
 

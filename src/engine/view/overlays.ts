@@ -1039,7 +1039,7 @@ export class Overlays {
     const label = `Level up! Lv ${t.level}`;
     const w = textWidth(label, 1, true) + 16;
     const x = s.L + 13 + Math.round((1 - k) * -(w + 24));
-    const y = 43;
+    const y = 6; // over the hero plate: clear of the pick's cards and the loot
     glow(g, { x, y, w, h: 13 }, 0xffe680, (0.35 + 0.3 * pulse(now, 500)) * a, 3);
     ribbon(g, x + w / 2, y, w, 13, RIBBON.gold, a, k > 0.9);
     this.flyTexts.text(label, x + w / 2, y + 6.5, 0xfffbe0, { bold: true, ox: 0.5, oy: 0.5, alpha: a, extrude: 1, extrudeCol: 0x7a3a0a });
@@ -1234,7 +1234,12 @@ export class Overlays {
       const q = (((now / 800 + i * 0.33) % 1) + 1) % 1;
       if (q < 0.5) this.star(g, tile.x + ((i * 23) % tile.w), tile.y + ((i * 17) % tile.h), q < 0.25 ? 2 : 1, 0xfff0a0, 1 - q * 2);
     }
-    if (since > 400) this.flyTexts.text('Tap to continue', r.x + r.w / 2, r.y + r.h + 9, 0xffd23a, { bold: true, ox: 0.5, oy: 0.5, alpha: 0.7 + 0.3 * pulse(now, 900) });
+    if (since > 400) {
+      const hint = 'Tap to continue';
+      const hw = textWidth(hint, 1, true);
+      strip(g, r.x + r.w / 2 - hw / 2 - 10, r.y + r.h + 4, hw + 20, 12, 0.85);
+      this.flyTexts.text(hint, r.x + r.w / 2, r.y + r.h + 10, 0xffd23a, { bold: true, ox: 0.5, oy: 0.5, alpha: 0.7 + 0.3 * pulse(now, 900) });
+    }
   }
 
   // ------------------------------------------------------------------ Sable's first fight
@@ -1286,7 +1291,7 @@ export class Overlays {
       }
       const cx = Math.round(r.x + r.w / 2);
       const dy = Math.round((1 - k) * 12);
-      this.texts.text(z.letter, cx, 40 + dy, mixLight(z.col), { bold: true, scale: 3, ox: 0.5, oy: 0.5, alpha: a, extrude: 2, extrudeCol: z.deep });
+      this.texts.text(z.letter, cx, 40 + dy, mixLight(z.col), { bold: true, scale: 3, ox: 0.5, oy: 0.5, alpha: a, extrude: 1, extrudeCol: mix(z.col, z.deep, 0.6) });
       this.texts.text(z.label, cx, 59 + dy, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
       // a hand tapping in the zone
       const tapK = ((now + i * 450) % 900) / 900;
@@ -1304,8 +1309,11 @@ export class Overlays {
       // under it, which half of the bar this zone plays
       const bar = s.bar;
       const bx0 = Math.round(bar.x + (z.cursor ? bar.w / 2 : 0));
-      gc.fillStyle(z.col, (0.35 + 0.25 * pulse(now, 700)) * a);
+      gc.fillStyle(z.col, (0.22 + 0.16 * pulse(now, 700)) * a);
       gc.fillRect(bx0 + 1, bar.y - 2, Math.round(bar.w / 2) - 2, bar.h + 4);
+      gc.fillStyle(mixLight(z.col), 0.9 * a);
+      gc.fillRect(bx0 + 1, bar.y - 3, Math.round(bar.w / 2) - 2, 1);
+      gc.fillRect(bx0 + 1, bar.y + bar.h + 2, Math.round(bar.w / 2) - 2, 1);
     });
     // the finisher, and the way on
     if (since > 400) {
@@ -1320,7 +1328,11 @@ export class Overlays {
         gc.fillStyle(i < 3 ? WHITE : 0x9ad8ff, 0.9 * (1 - i / 10));
         gc.fillRect(hx - i, s.splitY - 10, 1, i < 3 ? 2 : 1);
       }
-      this.texts.text('Tap to continue', mid, top + 5, 0xffd23a, { bold: true, ox: 0.5, oy: 0.5, alpha: 0.7 + 0.3 * pulse(now, 900) });
+      const hint = 'Tap to continue';
+      const hw = textWidth(hint, 1, true);
+      const hy = s.meter.y + Math.round(s.meter.h / 2);
+      strip(gc, mid - hw / 2 - 10, hy - 6, hw + 20, 12, 0.85);
+      this.texts.text(hint, mid, hy, 0xffd23a, { bold: true, ox: 0.5, oy: 0.5, alpha: 0.7 + 0.3 * pulse(now, 900) });
     }
   }
 
@@ -1391,7 +1403,15 @@ export class Overlays {
     const title = `Relics (${owned.length})`;
     ribbon(gc, p.x + p.w / 2, p.y - 6, textWidth(title, 1, true) + 24, 13, RIBBON.purple);
     this.texts.text(title, p.x + p.w / 2, p.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
-    // the grid
+    // the grid: four rows of sockets at least (the empty ones dark wells), a relic in each one filled
+    const cols = this.relicCols();
+    const slots = Math.max(cols * 4, Math.ceil(owned.length / cols) * cols);
+    for (let i = owned.length; i < slots; i++) {
+      const r = this.relicSocket(i);
+      rows(gc, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 2, INK, 0.7);
+      rows(gc, r.x, r.y, r.w, r.h, 1, NAVY[1], 0.7);
+      band(gc, r.x, r.y, r.w, r.h, 1, r.h - 1, r.h, NAVY[3], 0.7);
+    }
     owned.forEach((id, i) => {
       const r = this.relicSocket(i);
       const on = i === sel;
@@ -1403,11 +1423,12 @@ export class Overlays {
       relicIcon(s, this.pool, gc, id, r.x + 1, r.y + 1 - Math.round(bump * 2), 31.55);
       if (bump > 0) rows(gc, r.x + 1, r.y + 1, 12, 12, 2, WHITE, 0.5 * bump);
     });
-    const cols = this.relicCols();
-    const gridBottom = this.relicSocket(owned.length - 1).y + 16;
-    const build = buildName(owned);
-    this.texts.text('Build', p.x + 8, Math.max(gridBottom + 5, p.y + p.h - 22), 0xa8a0c8, { oy: 0.5 });
-    this.texts.text(build, p.x + 8, Math.max(gridBottom + 14, p.y + p.h - 12), 0xffd23a, { bold: true, oy: 0.5 });
+    // the build's name under the grid (while the grid leaves room for it)
+    const gridBottom = this.relicSocket(slots - 1).y + 16;
+    if (gridBottom + 18 <= p.y + p.h - 4) {
+      this.texts.text('Build', p.x + 8, p.y + p.h - 22, 0xa8a0c8, { oy: 0.5 });
+      this.texts.text(buildName(owned), p.x + 8, p.y + p.h - 12, 0xffd23a, { bold: true, oy: 0.5 });
+    }
     // the detail: a divider, then the relic shown
     const dx = p.x + 7 + cols * 16 + 4;
     gc.fillStyle(NAVY[1], 1);

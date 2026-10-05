@@ -368,13 +368,14 @@ export class NodeScreens {
     hudIcon(g, 'coin', cr.x + 2, cr.y + 1);
     this.texts.text(`${run.coins}`, cr.x + 12, cr.y + 5.5, WHITE, { bold: true, oy: 0.5 });
     const since = now - this.phaseAt;
+    // a relic's card open: it alone on the board
+    if (this.detail !== null) return this.drawDetail(g, now);
     run.shop.forEach((item, i) => this.shopItem(g, item, i, now, since));
     const lb = this.leaveButton();
     button3d(g, lb, FACE.navy, isPressed(lb, now));
     this.texts.text('Leave', lb.x + lb.w / 2, lb.y + lb.h / 2 + (isPressed(lb, now) ? 2 : 0), WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     if (run.rerolls > 0) this.texts.text(`Rerolls: ${run.rerolls}`, b.x + 10, lb.y + lb.h / 2, 0x9ad8ff, { oy: 0.5 });
     else if (run.shopFree) this.texts.text('Haggler: your first buy is free!', b.x + 10, lb.y + lb.h / 2, 0x9af06a, { oy: 0.5 });
-    if (this.detail !== null) this.drawDetail(g, now);
   }
 
   /** A relic's card over the board (its whole text), with Back and Buy (the price, or "Free!") under it. */
@@ -384,10 +385,7 @@ export class NodeScreens {
     const i = this.detail ?? -1;
     const item = run.shop[i];
     if (!item?.offer || !isRelicOffer(item.offer)) return void (this.detail = null);
-    const b = this.shopBoard();
     const k = easeBack((now - this.detailAt) / 220, 1.6);
-    g.fillStyle(0x05040a, 0.6 * clamp01(k));
-    g.fillRect(b.x - 2, b.y - 8, b.w + 4, b.h + 10);
     const d = this.detailRects();
     const dy = Math.round((1 - Math.min(1, k)) * 10);
     relicCard({ s, g, texts: this.texts, pool: this.pool, depth: 31.45 }, { ...d.card, y: d.card.y + dy }, item.offer.relic, { owned: run.hero.relics, tuning: run.tuning, now, alpha: clamp01(k * 1.5) });

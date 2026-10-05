@@ -19,7 +19,7 @@ import type { FightScene } from '../scene';
 import { HERO_FEET_X, HERO_W, ICONS } from '../art';
 import { textWidth } from '../font';
 import { GAME_W } from '../layout';
-import { ellipse, hpBar, icon } from './pixels';
+import { hpBar, icon } from './pixels';
 import { perkColor, perkName, perkSource, TAG_FACE } from './relic-ui';
 import { FOE_ICONS } from './icons';
 import {
@@ -692,8 +692,8 @@ export class Fighters {
   // ------------------------------------------------------------------ perks (relics, skill nodes, kit parts)
 
   /** A perk's name over the hero (a relic's icon in front), at most every few seconds each; names stack. */
-  private perkLabel(id: string, now: number, x = this.h.x - 4, y = this.s.ground - 48): void {
-    if (now - (this.gearNamed.get(`perk-${id}`) ?? -1e9) < GEAR_NAME_MS) return;
+  private perkLabel(id: string, now: number, x = this.h.x - 4, y = this.s.ground - 48): boolean {
+    if (now - (this.gearNamed.get(`perk-${id}`) ?? -1e9) < GEAR_NAME_MS) return false;
     this.gearNamed.set(`perk-${id}`, now);
     this.nameStack = now - this.nameAt < 500 ? this.nameStack + 1 : 0;
     this.nameAt = now;
@@ -705,15 +705,18 @@ export class Fighters {
     const yy = Math.max(26, y - this.nameStack * 11);
     if (relic) s.fx.relicFloat(cx - 6, yy, name, perkColor(id), relic.id);
     else s.fx.addFloater(cx, yy, name, perkColor(id), 1, true, 0, -8, 0, 1100, false);
+    return true;
   }
 
   /**
-   * A perk kicked in (a relic, a skill node, a kit part): its relic's icon pulses on the belt, its name shows over the
-   * hero, and what it did: damage to a foe (a bolt flies to it and hits), a heal (a green heart and the HP, merged
-   * like the gear's), stacks banked (`stacks`: the meter's events came with it), coins or a count. Returns true when
-   * it showed a blow on a foe (so its enemyHurt isn't shown twice).
+   * A perk kicked in (a relic, a skill node, a kit part): its relic's icon pulses on the belt, its name shows (over
+   * the foe it was about, else over the hero; at most every few seconds each, so a perk that fires on every Perfect
+   * doesn't flood the screen), and what it did: a blow (`strike`: its enemyHurt follows; a bolt flies to the foe and
+   * hits), a heal (a green heart and the HP, merged like the gear's), stacks banked (`stacks`: the meter's events
+   * came first), a ring where it happened on the bar. Coins (`coins`) already flew from the 'coins' event. Returns
+   * true when it showed a blow (so its enemyHurt isn't shown twice).
    */
-  perkFx(id: string, amount: number, enemyId: number, o: { stacks?: boolean; pos?: number } = {}): boolean {
+  perkFx(id: string, amount: number, enemyId: number, o: { strike?: boolean; stacks?: boolean; coins?: boolean; pos?: number } = {}): boolean {
     const s = this.s;
     const F = s.fx;
     const h = this.h;
@@ -722,7 +725,11 @@ export class Fighters {
     const relic = relicById(id);
     const col = relic ? TAG_FACE[relic.tags[0]][1] : perkSource(id) === 'skill' ? 0x9ad8ff : 0xc8a0ff;
     const v = enemyId ? this.enemies.get(enemyId) : undefined;
-    if (v && amount > 0 && !v.dieAt) {
+    if (o.coins) {
+      this.perkLabel(id, now);
+      return false;
+    }
+    if (o.strike && v && amount > 0 && !v.dieAt) {
       // a blow: a bolt in the perk's colour from the hero to the foe, then the hit
       const sx = h.x + 10;
       const sy = s.ground - 24;
@@ -742,8 +749,7 @@ export class Fighters {
         F.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, `${amount}`, mixWhite(col), 2);
         s.app.audio.hit(0, false);
       });
-      this.perkLabel(id, now, v.homeX, v.y - v.img.displayHeight - 22);
-      s.app.audio.gearProc(0.5);
+      if (this.perkLabel(id, now, v.homeX, v.y - v.img.displayHeight - 22)) s.app.audio.gearProc(0.5);
       return true;
     }
     const heal = amount > 0 && (HEAL_PERKS.has(id) || !!relic?.tags.includes('sustain'));
@@ -757,20 +763,24 @@ export class Fighters {
       // stacks banked: a burst of the stack colour off the meter
       const m = s.meter;
       F.chips(m.x + m.w, m.y + m.h / 2, 10, [WHITE, 0x9ad8ff, col], 8, -1);
-    } else if (amount > 0 && o.pos !== undefined) {
+    } else if (o.pos !== undefined) {
       // something on the bar: a ring where it happened
       const x = s.barView.x(o.pos);
       F.ring(x, s.bar.y + s.bar.h / 2, 14, col, false);
       F.chips(x, s.bar.y + s.bar.h / 2, 8, [WHITE, col], 6, -1);
     }
-    if (id === 'shieldWall') this.bubblePop();
-    this.perkLabel(id, now);
-    s.app.audio.gearProc(0.35);
+    // Shield Wall: amount 1 = the bubble charged (it grows round the hero), 0 = it took a hit for him
+    if (id === 'shieldWall' && amount <= 0) this.bubblePop();
+    const shown = v && !v.dieAt ? this.perkLabel(id, now, v.homeX, v.y - v.img.displayHeight - 22) : this.perkLabel(id, now);
+    if (shown) s.app.audio.gearProc(0.35);
     return false;
   }
 
-  /** Coins a perk found mid-fight (Lucky Penny, Treasure Nose, Gold Fever): they pop off the foe into the coin chip. */
-  perkCoins(id: string, amount: number): void {
+  /**
+   * Coins a perk found mid-fight (Lucky Penny, Treasure Nose, Gold Fever): they pop off the foe into the coin chip
+   * (the perk's own event, right after, names it).
+   */
+  perkCoins(_id: string, amount: number): void {
     const s = this.s;
     const c = s.app.run.combat;
     const t = c?.currentTarget();
@@ -779,15 +789,12 @@ export class Fighters {
     const y = v ? v.y - v.img.displayHeight / 2 : s.ground - 24;
     s.hud.dropCoins(x, y, amount, Math.min(4, amount));
     s.fx.iconFloat(x + 10, y - 16, `+${amount}`, 0xffe066, 'coin');
-    s.hud.perkKicked(id);
-    this.perkLabel(id, performance.now());
   }
 
   /** A perk's cost in HP (Glass Edge, Blood Price, Purple Pact...): its name, and the HP it took in violet. */
   perkHurt(id: string, damage: number): void {
     const s = this.s;
     const h = this.h;
-    s.hud.perkKicked(id);
     h.flashUntil = s.anim + 120;
     h.flashColor = 0xc070ff;
     if (damage > 0) s.fx.floatNum(h.x, s.ground - 40, `-${damage}`, 0xd890ff, 1);
@@ -830,7 +837,14 @@ export class Fighters {
     const ry = Math.round(22 * grow);
     g.fillStyle(0x4ac8f0, 0.12 + 0.05 * pulse(a, 900));
     g.fillEllipse(cx, cy, rx * 2, ry * 2);
-    ellipse(g, cx, cy, rx, ry, 0x9af0ff, 0.55 + 0.25 * pulse(a, 700), 1);
+    // the shell's rim: a solid ring, lit on the top left, deeper on the bottom right
+    const rim = 0.6 + 0.25 * pulse(a, 700);
+    for (let i = 0; i < 160; i++) {
+      const t = (i / 160) * Math.PI * 2;
+      const lit = Math.cos(t - 3.9) > 0.3;
+      g.fillStyle(lit ? 0xd8fcff : 0x6ad8f0, rim);
+      g.fillRect(Math.round(cx + Math.cos(t) * rx), Math.round(cy + Math.sin(t) * ry), 1, 1);
+    }
     // a glint running round the rim, and a highlight on the top left
     const ang = a / 300;
     g.fillStyle(WHITE, 0.9);

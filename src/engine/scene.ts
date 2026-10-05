@@ -289,10 +289,10 @@ export class FightScene extends Phaser.Scene implements View {
     let riposte = -1;
     // a perk's blow is shown by its bolt (not again as its enemyHurt); a perk right after the meter's events banked stacks
     let perkStruck = -1;
-    let prev: CombatEvent | null = null;
-    for (const e of events) {
-      const before = prev;
-      prev = e;
+    for (let i = 0; i < events.length; i++) {
+      const e = events[i];
+      const before = events[i - 1];
+      const after = events[i + 1];
       switch (e.type) {
         case 'hit': {
           const x = bar.x(e.pos);
@@ -387,7 +387,16 @@ export class FightScene extends Phaser.Scene implements View {
           break;
         case 'perk':
           // a relic, skill node or kit part kicked in
-          if (f.perkFx(e.id, e.amount, e.enemyId, { stacks: before?.type === 'meterFull', pos: e.pos })) perkStruck = e.enemyId;
+          // (a blow when its enemyHurt follows; stacks when the meter's events came first; coins when they did)
+          if (
+            f.perkFx(e.id, e.amount, e.enemyId, {
+              strike: after?.type === 'enemyHurt' && after.source === 'perk' && after.enemyId === e.enemyId,
+              stacks: before?.type === 'meterFull',
+              coins: before?.type === 'coins' && before.id === e.id,
+              pos: e.pos,
+            })
+          )
+            perkStruck = e.enemyId;
           break;
         case 'coins':
           // coins a perk found: they pop off the foe into the coin chip
