@@ -3,10 +3,11 @@
 // stands where he is; the clearings he can reach next glow and bounce, and their roads shimmer. Tapping one
 // walks him along the road to it, then the node opens. Fight nodes show the enemies waiting there.
 //
-// Each reachable node (and the boss) carries a tag: what it is ("Fight x3", an elite in red with a skull) and a
-// reward chip under it (a loot bag in the drop's rarity color, "50% gear", "Gear+", "+30% HP", "Risky"...), so a
-// path is a choice of risk and reward. Tags are placed by a tiny solver (below, above, right or left of the node,
-// whichever covers the least: other nodes, Rowan, the HUD plates, the other tags).
+// Each reachable node carries a small tag, icon first, so the map stays about the landscape: a fight's foe count on a
+// tiny skull badge (red for an elite), then what it pays out as an icon and one word (a loot bag in the drop's
+// rarity colour with "Gear" / "Gear+" / "Loot", a heart "Heal", a coin "Shop", a warning "?", "Boss"). The node's
+// own art says what it is. The boss's name stays under its lair. Tags are placed by a tiny solver (below, above,
+// right or left of the node, whichever covers the least: other nodes, Rowan, the HUD plates, the other tags).
 //
 // Performance: the landscape is a pre-rendered texture (LAND_FRAMES frames cycled for the wind sway), rebuilt
 // only when the map or the layout changes; each frame moves a few dozen images and draws a few hundred rects.
@@ -33,9 +34,6 @@ const WALK_MS_PER_PX = 17;
 const WALK_MIN = 500;
 const WALK_MAX = 750;
 const SWAY_MS = 420;
-/** What each node type is called (the label under the next nodes). */
-const NODE_NAME: Record<string, string> = { fight: 'Fight', elite: 'Elite', treasure: 'Treasure', rest: 'Rest', shop: 'Shop', event: 'Event', boss: 'Boss' };
-const NODE_COL: Record<string, number> = { fight: 0xeef3fa, elite: 0xff8a76, treasure: 0xffe680, rest: 0xffb070, shop: 0xa8f590, event: 0x9ad8ff, boss: 0xff8a76 };
 
 // depths (the map owns 30.0-30.9)
 const D_LAND = 30.05;
@@ -56,7 +54,7 @@ interface Road {
   runs: Array<[number, number, number]>;
 }
 
-/** What a node pays out (the chip under its tag): a glyph (in the drop's colors) and a few words. */
+/** What a node pays out: a glyph (in the drop's colors) and one word. */
 interface Chip {
   text: string;
   col: number;
@@ -64,12 +62,15 @@ interface Chip {
   pal?: Record<string, number>;
 }
 
-/** A node's tag: its name line and its reward chip, and where the solver put them. */
+/** A node's tag (its foe badge and reward chip on one pill; the boss's name over its chip), and where it went. */
 interface Tag {
   id: number;
+  /** The boss's name (a line of its own); '' for the other nodes. */
   label: string;
   labelCol: number;
-  skull: boolean;
+  /** Foes in the fight (0: not a fight), and whether it's an elite (a red badge). */
+  foes: number;
+  elite: boolean;
   chip: Chip | null;
   w: number;
   h: number;
@@ -79,7 +80,9 @@ interface Tag {
 }
 
 const LABEL_H = 8;
-const CHIP_H = 10;
+const CHIP_H = 11;
+/** The foe badge's width: the skull, the count. */
+const badgeW = (foes: number): number => (foes > 0 ? 7 + 1 + textWidth(`${foes}`, 1, true) + 3 : 0);
 const intersect = (a: Rect, b: Rect): number => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
 
 /** Pixel ellipse (filled), row by row. */
@@ -609,38 +612,30 @@ export class MapView {
 
   // ------------------------------------------------------------------ tags: what a node is, and what it pays out
 
-  /** The reward chip of a node type: the loot bag in the drop's rarity color, a heart, a coin, a warning. */
+  /** What a node pays out, icon first: the loot bag in the drop's rarity colour, a heart, a coin, a warning. */
   private chip(n: MapNode): Chip {
-    const run = this.s.app.run;
-    const G = run.tuning.gear;
     const bag = (r: keyof typeof RARITY_INFO) => bagPal(RARITY_INFO[r].face);
     switch (n.type) {
       case 'fight':
-        return { icon: 'bag', pal: bag('common'), text: `${Math.round(G.fightChance * 100)}% gear`, col: 0xdcdff0 };
-      case 'elite': {
-        const k = Math.round(G.eliteItems);
-        return { icon: 'bag', pal: bag('uncommon'), text: k > 1 ? `Gear+ x${k}` : 'Gear+', col: 0xb4f070 };
-      }
-      case 'treasure': {
-        const lo = Math.round(Math.min(G.treasureMin, G.treasureMax));
-        const hi = Math.round(Math.max(G.treasureMin, G.treasureMax));
-        return { icon: 'bag', pal: { h: 0xfff0a0, b: 0xf2c230, d: 0x9a5a14 }, text: lo === hi ? `Gear x${lo}` : `Gear x${lo}-${hi}`, col: 0xffe680 };
-      }
+        return { icon: 'bag', pal: bag('common'), text: 'Gear', col: 0xd8dcec };
+      case 'elite':
+        return { icon: 'bag', pal: bag('uncommon'), text: 'Gear+', col: 0xb4f070 };
+      case 'treasure':
+        return { icon: 'bag', pal: { h: 0xfff0a0, b: 0xf2c230, d: 0x9a5a14 }, text: 'Loot', col: 0xffe680 };
       case 'rest':
-        return { icon: 'heart', text: `+${Math.round(run.restShare * 100)}% HP`, col: 0x9af06a };
+        return { icon: 'heart', text: 'Heal', col: 0x9af06a };
       case 'shop':
-        return { icon: 'coin', text: 'Spend coins', col: 0xffe680 };
+        return { icon: 'coin', text: 'Shop', col: 0xffe680 };
       case 'event':
-        return { icon: 'warn', text: 'Risky', col: 0xffb060 };
-      case 'boss': {
-        const last = run.actIndex === run.region.acts.length - 1;
-        return { icon: 'bag', pal: bag('legendary'), text: `Gear x${Math.round(last ? G.bossItems : G.miniBossItems)} + signature`, col: 0xffc070 };
-      }
+        return { icon: 'warn', text: '?', col: 0xffc070 };
+      case 'boss':
+        return { icon: 'bag', pal: bag('legendary'), text: 'Boss', col: 0xffc070 };
     }
   }
 
-  private chipW(c: Chip): number {
-    return 2 + glyphSize(c.icon)[0] + 2 + textWidth(c.text, 1, false) + 2;
+  /** The pill's width: the foe badge (a fight), a divider, the reward's glyph and word. */
+  private chipW(c: Chip, foes = 0): number {
+    return 2 + (foes ? badgeW(foes) + 3 : 0) + glyphSize(c.icon)[0] + 2 + textWidth(c.text, 1, false) + 3;
   }
 
   /** Where the node's art stands (its tag avoids it), from its feet at (x, y). */
@@ -710,7 +705,7 @@ export class MapView {
       // the boss's name stays under its lair, as it always has
       const [x, y] = this.pos(bossNode);
       const w = textWidth(bossName, 1, false);
-      const t: Tag = { id: map.boss, label: bossName, labelCol: 0xff8a76, skull: false, chip: null, w, h: LABEL_H, x: Math.round(Math.max(s.L + 2, Math.min(s.R - 2 - w, x - w / 2))), y: y + 11 };
+      const t: Tag = { id: map.boss, label: bossName, labelCol: 0xff8a76, foes: 0, elite: false, chip: null, w, h: LABEL_H, x: Math.round(Math.max(s.L + 2, Math.min(s.R - 2 - w, x - w / 2))), y: y + 11 };
       tags.push(t);
       obstacles.push({ r: { x: t.x, y: t.y, w: t.w, h: t.h }, w: 6 });
     }
@@ -720,11 +715,10 @@ export class MapView {
       const n = map.nodes[id];
       const boss = n.type === 'boss';
       const foes = n.type === 'fight' || n.type === 'elite' ? n.enemies.length : 0;
-      const label = boss ? bossName : `${NODE_NAME[n.type] ?? ''}${foes > 1 ? ` x${foes}` : ''}`;
-      const skull = n.type === 'elite';
+      const label = boss ? bossName : '';
       const chip = this.chip(n);
-      const w = Math.max(textWidth(label, 1, false) + (skull ? 9 : 0), this.chipW(chip));
-      const h = LABEL_H + 1 + CHIP_H;
+      const w = Math.max(boss ? textWidth(label, 1, false) + 6 : 0, this.chipW(chip, foes));
+      const h = boss ? LABEL_H + 1 + CHIP_H : CHIP_H;
       const [x, y] = this.pos(n);
       const box = this.nodeBox(n);
       const spots: Array<[number, number, number]> = [
@@ -743,7 +737,7 @@ export class MapView {
         for (const o of obstacles) cost += intersect(r, o.r) * (o.id === id ? 12 : o.w);
         return { r, cost };
       });
-      opts.push({ tag: { id, label, labelCol: boss ? 0xffb0a0 : (NODE_COL[n.type] ?? WHITE), skull, chip, w, h }, cands });
+      opts.push({ tag: { id, label, labelCol: 0xffb0a0, foes, elite: n.type === 'elite', chip, w, h }, cands });
     }
     // every combination (at most 4^3): the spots' own costs plus the tags covering each other
     let best: number[] = opts.map(() => 0);
@@ -787,37 +781,52 @@ export class MapView {
       const a = chosen ? fade : 1;
       const dy = chosen ? lift : 0;
       const cx = t.x + t.w / 2;
-      const ly = t.y + LABEL_H / 2 + dy;
-      const lw = textWidth(t.label, 1, false) + (t.skull ? 9 : 0);
-      const lx = Math.round(cx - lw / 2);
-      // a dark pill behind the name, so it reads over the busiest bit of map
-      const by = Math.round(ly) - 5;
-      rows(this.gHud, lx - 3, by + 1, lw + 6, 11, 2, 0x000000, 0.25 * a);
-      rows(this.gHud, lx - 3, by, lw + 6, 10, 2, 0x140c1c, 0.62 * a);
-      if (t.skull) hudIcon(this.gHud, 'foe', lx, Math.round(ly) - 4, 1, a);
-      this.texts.text(t.label, lx + (t.skull ? 9 : 0), ly, t.labelCol, { oy: 0.5, alpha: a });
-      if (t.chip) this.drawChip(t.chip, Math.round(cx - this.chipW(t.chip) / 2), t.y + LABEL_H + 1 + dy, a, now);
+      let y = t.y + dy;
+      if (t.label) {
+        // the boss's name, on a dark pill so it reads over the busiest bit of map
+        const ly = y + LABEL_H / 2;
+        const lw = textWidth(t.label, 1, false);
+        const lx = Math.round(cx - lw / 2);
+        const by = Math.round(ly) - 5;
+        rows(this.gHud, lx - 3, by + 1, lw + 6, 11, 2, 0x000000, 0.25 * a);
+        rows(this.gHud, lx - 3, by, lw + 6, 10, 2, 0x140c1c, 0.62 * a);
+        this.texts.text(t.label, lx, ly, t.labelCol, { oy: 0.5, alpha: a });
+        y += LABEL_H + 1;
+      }
+      if (t.chip) this.drawChip(t.chip, t.foes, t.elite, Math.round(cx - this.chipW(t.chip, t.foes) / 2), y, a, now);
     }
   }
 
-  /** A reward chip: a small dark pill, the glyph, the words in the reward's color. */
-  private drawChip(c: Chip, x: number, y: number, alpha: number, now: number): void {
+  /** A node's pill: a small dark capsule, the foe badge (a skull and the count), a divider, the reward glyph and word. */
+  private drawChip(c: Chip, foes: number, elite: boolean, x: number, y: number, alpha: number, now: number): void {
     const g = this.gHud;
-    const w = this.chipW(c);
+    const w = this.chipW(c, foes);
     const h = CHIP_H;
-    rows(g, x - 1, y + 1, w + 2, h + 1, 2, 0x000000, 0.35 * alpha);
-    rows(g, x - 1, y - 1, w + 2, h + 2, 2, INK, alpha);
-    rows(g, x, y, w, h, 2, 0x1a1628, 0.94 * alpha);
-    band(g, x, y, w, h, 2, 0, Math.floor(h / 2), 0x241e38, 0.94 * alpha);
-    band(g, x, y, w, h, 2, 0, 1, mix(c.col, 0x1a1628, 0.35), alpha);
+    rows(g, x - 1, y + 1, w + 2, h + 1, 3, 0x000000, 0.3 * alpha);
+    rows(g, x - 1, y - 1, w + 2, h + 2, 3, INK, 0.9 * alpha);
+    rows(g, x, y, w, h, 2, 0x1a1628, 0.9 * alpha);
+    band(g, x, y, w, h, 2, 0, Math.floor(h / 2), 0x241e38, 0.9 * alpha);
+    band(g, x, y, w, h, 2, 0, 1, mix(c.col, 0x1a1628, 0.45), alpha);
+    let cx = x + 2;
+    if (foes > 0) {
+      // the foe badge: a skull (red-tinted for an elite) and how many
+      const bw = badgeW(foes);
+      if (elite) rows(g, cx - 1, y + 1, bw + 1, h - 2, 2, 0x6a1a22, alpha);
+      hudIcon(g, 'foe', cx, y + 2, 1, alpha);
+      this.texts.text(`${foes}`, cx + 8, y + h / 2 + 0.5, elite ? 0xffa090 : 0xeef0f8, { bold: true, oy: 0.5, alpha });
+      cx += bw;
+      g.fillStyle(0x3a3256, alpha);
+      g.fillRect(cx, y + 2, 1, h - 4);
+      cx += 3;
+    }
     const [gw, gh] = glyphSize(c.icon);
-    glyph(g, c.icon, x + 2, y + Math.floor((h - gh) / 2), alpha, c.pal);
+    glyph(g, c.icon, cx, y + Math.floor((h - gh) / 2), alpha, c.pal);
     // a glint runs across the bag now and then
     if (c.icon === 'bag' && (now + x * 13) % 2200 < 120) {
       g.fillStyle(WHITE, 0.8 * alpha);
-      g.fillRect(x + 4, y + 4, 1, 2);
+      g.fillRect(cx + 2, y + 4, 1, 2);
     }
-    this.texts.text(c.text, x + 2 + gw + 2, y + h / 2 + 0.5, c.col, { oy: 0.5, alpha });
+    this.texts.text(c.text, cx + gw + 2, y + h / 2 + 0.5, c.col, { oy: 0.5, alpha });
   }
 
   // ------------------------------------------------------------------ Rowan

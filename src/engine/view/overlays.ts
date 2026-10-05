@@ -5,7 +5,6 @@
 // Also the small UI glyphs the menus share (bag, heart, coin, warning, tent, tick, padlock, target, arrow).
 import Phaser from 'phaser';
 import { heroMaxHp } from '../../core/combat';
-import { heroDef } from '../../data/heroes';
 import { relicById, type RelicId, type RelicTag } from '../../data/relics';
 import { heroProgress } from '../../core/profile';
 import { buildName, relicText, topTags } from '../../core/relics';
@@ -154,6 +153,8 @@ export class Overlays {
   private shineFrames = 0;
   private heroBig: Phaser.GameObjects.Image | null = null;
   private pipBig: Phaser.GameObjects.Image | null = null;
+  /** Sable on the title, beside Rowan and Pip, once they've joined. */
+  private sableBig: Phaser.GameObjects.Image | null = null;
   private chest: Phaser.GameObjects.Image | null = null;
   private chestAt = 0;
   private chestOpenAt = 0;
@@ -189,6 +190,11 @@ export class Overlays {
   /** Act clear: the XP bar's level as last shown (its "Level up!" plays as the bar crosses into the next). */
   private xpLevel = 0;
   private xpUpAt = -1e9;
+  /** The coins the run had as its act's map first showed (the act clear counts up from them), and that map. */
+  private coinsAtAct = 0;
+  private coinMap: unknown = null;
+  /** The act clear's coin count-up: the last value shown (a tick sounds as it climbs). */
+  private coinTickShown = -1;
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, 32);
@@ -206,8 +212,9 @@ export class Overlays {
     const s = this.s;
     buildCrest(s);
     this.shineFrames = buildLogo(s);
-    for (const o of [this.logo, this.shine, this.heroBig, this.pipBig]) o?.destroy();
+    for (const o of [this.logo, this.shine, this.heroBig, this.pipBig, this.sableBig]) o?.destroy();
     this.heroBig = s.add.image(0, 0, 'hero_idle0').setOrigin(HERO_FEET_X / HERO_W, 1).setScale(2).setDepth(31.3).setVisible(false);
+    this.sableBig = s.add.image(0, 0, s.textures.exists('sable_idle0') ? 'sable_idle0' : 'hero_idle0').setOrigin(HERO_FEET_X / HERO_W, 1).setScale(2).setDepth(31.29).setVisible(false);
     this.pipBig = s.add.image(0, 0, 'pip_idle0').setOrigin(0.5, 0.5).setScale(2).setDepth(31.3).setVisible(false);
     this.logo = s.add.image(0, 0, 'logo').setOrigin(0, 0).setDepth(31.6).setVisible(false);
     this.shine = s.add.image(0, 0, 'logo_shine_0').setOrigin(0, 0).setDepth(31.7).setVisible(false);
@@ -229,6 +236,10 @@ export class Overlays {
     this.shownPhase = next;
     this.backFromCamp = prev === 'camp';
     this.unlockAt = 0;
+    if (s.app.run.map !== this.coinMap && next === 'map') {
+      this.coinMap = s.app.run.map;
+      this.coinsAtAct = s.app.run.coins;
+    }
     if (next !== 'fight') this.relicSel = null;
     // levels the fight's kills brought: a toast as the loot (or the pick) comes up; the act clear's bar shows its own
     if ((next === 'loot' || next === 'boost') && s.app.run.takeLevelUps() > 0) {
@@ -238,6 +249,8 @@ export class Overlays {
       s.app.run.takeLevelUps();
       this.xpLevel = levelProgress(s.app.tuning, this.xpBefore()).level;
       this.xpUpAt = -1e9;
+      this.coinTickShown = -1;
+      if (s.app.run.map !== this.coinMap) this.coinsAtAct = s.app.run.coins;
     }
     if (next === 'boost') {
       // a rare or epic card on offer gets a sting
@@ -337,9 +350,13 @@ export class Overlays {
 
   // ---- act clear: the accuracy plate on the stage, Camp / Next on the console under it
 
-  /** When the act-clear extras come in (anim ms after the chest burst): the accuracy, then the two buttons. */
-  private static readonly CLEAR_ACC_MS = 380;
+  /** When the act-clear extras come in (anim ms after the chest burst): the line under the title and the build, the XP
+   *  count-up (then the coins'), the two buttons. */
+  private static readonly CLEAR_ACC_MS = 300;
   private static readonly CLEAR_BTN_MS = 620;
+  private static readonly CLEAR_XP_MS = 420;
+  private static readonly CLEAR_XP_LEN = 800;
+  private static readonly CLEAR_COIN_LEN = 600;
 
   private clearButtons(): { camp: Rect; next: Rect } {
     const s = this.s;
@@ -376,10 +393,10 @@ export class Overlays {
 
   // ---- defeat: Camp and Retry the act, side by side
 
+  /** Camp and Retry sit where the act clear's Camp and Next do: on the console, the same size. */
   private defeatButtons(): { camp: Rect; retry: Rect } {
-    const cx = Math.round(GAME_W / 2);
-    const y = 68;
-    return { camp: { x: cx - 96, y, w: 70, h: 18 }, retry: { x: cx - 18, y, w: 114, h: 18 } };
+    const b = this.clearButtons();
+    return { camp: b.camp, retry: b.next };
   }
 
   /** A tap on the defeat screen (x < 0: the keyboard retries): Camp, Retry the act, or nothing. */
@@ -599,6 +616,7 @@ export class Overlays {
     this.shine?.setVisible(false);
     this.heroBig?.setVisible(titleOn);
     this.pipBig?.setVisible(titleOn);
+    this.sableBig?.setVisible(titleOn && this.sableOnTitle());
     const since = now - this.phaseAt;
     if (ph === 'fight') this.drawBanner(g, now);
     if (ph === 'title') this.drawTitle(g, gc, now, since);
@@ -643,6 +661,40 @@ export class Overlays {
 
   // ------------------------------------------------------------------ title
 
+  /** Sable stands on the title once they've joined (and their frames are drawn). */
+  private sableOnTitle(): boolean {
+    return !!this.s.app.profile.sableMet && this.s.textures.exists('sable_idle0');
+  }
+
+  /**
+   * A few leaves drifting down across the title, swaying (closed-form in time: no state, the same every run): a
+   * little life that never crowds the logo.
+   */
+  private drawLeaves(g: G, now: number): void {
+    const s = this.s;
+    const cols = [
+      [0x78a83c, 0xb4d058],
+      [0xd8901c, 0xf2c230],
+      [0x4a7e36, 0x78a83c],
+    ] as const;
+    for (let i = 0; i < 6; i++) {
+      const period = 7000 + i * 1300;
+      const q = (((now + i * 2900) % period) + period) % period / period;
+      const x = Math.round(s.L + ((i * 89 + 23) % Math.max(1, s.R - s.L)) + Math.sin(q * Math.PI * 4 + i) * 10 - q * 30);
+      const y = Math.round(-6 + q * (s.splitY + 4));
+      if (y > s.splitY - 2) continue;
+      const a = q < 0.08 ? q / 0.08 : q > 0.9 ? (1 - q) / 0.1 : 1;
+      const [lo, hi] = cols[i % 3];
+      const flip = Math.sin(q * Math.PI * 6 + i) > 0;
+      g.fillStyle(lo, 0.9 * a);
+      g.fillRect(x, y + 1, 3, 1);
+      g.fillRect(flip ? x + 1 : x - 1, y, 2, 1);
+      g.fillStyle(hi, 0.9 * a);
+      g.fillRect(flip ? x : x + 1, y, 1, 1);
+      g.fillRect(flip ? x + 2 : x, y + 2, 1, 1);
+    }
+  }
+
   private drawTitle(g: G, gc: G, now: number, since: number): void {
     const s = this.s;
     const L = s.L;
@@ -657,10 +709,12 @@ export class Overlays {
     }
     // (the stage's own hero and owl stay hidden on the title: fighters.ts makes way for these big showcase versions)
 
-    // Rowan and Pip, 2x, slide in from the left; Rowan flourishes his sword now and then
+    // Rowan and Pip (and Sable, once they've joined), 2x, slide in from the left; Rowan flourishes his sword now and
+    // then, Sable flips a dagger
+    const sable = this.sableOnTitle();
     const hk = easeBack(since / TITLE_IN.heroes, 1.2);
     const slide = Math.round((1 - hk) * -140);
-    const hx = L + 82 + slide;
+    const hx = L + (sable ? 100 : 82) + slide;
     const cyc = now % 3600;
     const pose = cyc < 140 ? 'windup' : cyc < 340 ? 'slashA' : Math.floor(now / 420) % 2 ? 'idle1' : 'idle0';
     // a soft spotlight on the ground under them
@@ -671,8 +725,17 @@ export class Overlays {
     }
     rows(g, hx - 22, s.ground - 2, 44, 5, 2, INK, 0.35);
     this.heroBig?.setTexture(`hero_${pose}`).setPosition(hx, s.ground);
-    const px = L + 38 + slide;
-    const py = Math.round(s.ground - 46 + Math.sin(now / 300) * 3);
+    if (sable) {
+      // Sable a step behind, to his left: idle, and a quick dagger flourish out of step with his
+      const sx = hx - 56;
+      const sc = (now + 1800) % 4400;
+      const sp = sc < 120 ? 'windup' : sc < 300 ? 'slashX' : Math.floor((now + 210) / 450) % 2 ? 'idle1' : 'idle0';
+      rows(g, sx - 20, s.ground - 2, 40, 5, 2, INK, 0.3);
+      this.sableBig?.setTexture(s.textures.exists(`sable_${sp}`) ? `sable_${sp}` : 'sable_idle0').setPosition(sx, s.ground);
+      if (sc >= 120 && sc < 360) this.star(gc, sx + 30, s.ground - 30 - Math.round(((sc - 120) / 240) * 6), sc < 240 ? 2 : 1, 0xd8b0ff, 1 - (sc - 120) / 240);
+    }
+    const px = L + (sable ? 70 : 38) + slide;
+    const py = Math.round(s.ground - (sable ? 64 : 46) + Math.sin(now / 300) * 3);
     this.pipBig?.setTexture(Math.floor(now / 110) % 2 ? 'pip_idle1' : 'pip_idle0').setPosition(px, py);
     if (cyc >= 140 && cyc < 420) {
       const k = (cyc - 140) / 280;
@@ -685,8 +748,15 @@ export class Overlays {
     const lx = Math.round(Math.min(R - 6 - lw, Math.max(cx - lw / 2, hx + 52)));
     const ly = Math.round(Math.max(18, s.ground - 78) - (1 - lk) * 90 + Math.sin(now / 650) * 1.5);
     this.logo?.setPosition(lx, ly);
-    const sf = Math.floor(((now - this.phaseAt) % 2800) / 34);
+    // the gleam sweeps across the letters every 3.6 s (gently: about two thirds of a second), ending in a twinkle
+    const gleam = (now - this.phaseAt) % 3600;
+    const sf = Math.floor(gleam / 55);
     if (since > TITLE_IN.logo && sf < this.shineFrames) this.shine?.setTexture(`logo_shine_${sf}`).setPosition(lx, ly).setVisible(true);
+    const tw0 = this.shineFrames * 55;
+    if (since > TITLE_IN.logo && gleam >= tw0 && gleam < tw0 + 360) {
+      const q = (gleam - tw0) / 360;
+      this.star(gc, lx + lw - 50, ly + 6, q < 0.4 ? 3 : q < 0.7 ? 2 : 1, 0xfff6c0, 1 - q);
+    }
     // twinkles around the crest
     for (let i = 0; i < 3; i++) {
       const q = ((now / 900 + i * 0.33) % 1 + 1) % 1;
@@ -702,6 +772,7 @@ export class Overlays {
       ribbon(gc, lx + 70, ly + 58, rw, 11, RIBBON.red, 1, rk > 0.8);
       if (rk >= 1) this.texts.text(label, lx + 70, ly + 63.5, 0xfff0a0, { bold: true, ox: 0.5, oy: 0.5 });
     }
+    this.drawLeaves(gc, now);
     // drifting golden motes
     if (Math.random() < 0.2)
       s.fx.particles.push({ x: rand(L, R), y: s.ground - rand(0, 30), vx: rand(-4, 4), vy: rand(-14, -6), g: 0, born: now, life: rand(1400, 2400), color: Math.random() < 0.5 ? 0xfff0a0 : 0xffd23a, size: 1, world: true, streak: false });
@@ -1021,6 +1092,12 @@ export class Overlays {
 
   // ------------------------------------------------------------------ chest screens, defeat, victory, pause
 
+  /**
+   * The chest screens. Treasure: "Treasure!" and the chest to tap. The act clear: the act's name over the chest, then
+   * (the chest burst) one headline, "Act 1 Clear!", and one line under it (where the road goes next); the build card
+   * on the right; on the console the level, the XP bar counting up and the coins counting up; a small accuracy chip
+   * in the top-left corner; Camp and Next.
+   */
   private drawChestScreen(g: G, gc: G, now: number, actClear: boolean): void {
     const s = this.s;
     const run = s.app.run;
@@ -1042,7 +1119,7 @@ export class Overlays {
       this.texts.text(title, cx, y + 11, clear ? 0xfff6c0 : actClear ? WHITE : 0xfff6c0, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: clear || !actClear ? 0x7a3a0a : 0x10204a });
     if (clear) this.drawXp(gc, now);
     else this.drawStatus(gc, now);
-    if (!clear) this.texts.text(actClear ? 'Tap the chest to continue' : 'Tap the chest', cx, y + 32, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    if (!clear) this.subLine(gc, actClear ? 'Tap the chest to continue' : 'Tap the chest', cx, y + 32, 1, true);
     if (clear) {
       for (let i = 0; i < 4; i++) {
         const q = ((now / 900 + i * 0.27) % 1 + 1) % 1;
@@ -1059,74 +1136,75 @@ export class Overlays {
     }
   }
 
+  /** The one line under a screen's headline: plain text on a soft dark strip (`bold` for a call to act). */
+  private subLine(g: G, text: string, cx: number, cy: number, alpha = 1, bold = false, col = 0xf0e8ff): void {
+    const w = textWidth(text, 1, bold);
+    strip(g, Math.round(cx - w / 2 - 10), Math.round(cy - 6), w + 20, 12, 0.62 * alpha, false);
+    this.texts.text(text, cx, cy, col, { bold, ox: 0.5, oy: 0.5, alpha });
+  }
+
   /**
-   * After the act-clear chest bursts: the act's accuracy on a plate under the title (the number counts up), then
-   * Camp and Next on the console, popping in one after the other.
+   * After the act-clear chest bursts: the line under the title (where the road goes next), the accuracy as a small
+   * chip in the top-left corner (the number counts up), then Camp and Next on the console, popping in one after the
+   * other.
    */
   private drawClearExtras(gc: G, now: number): void {
     const s = this.s;
     const run = s.app.run;
     const since = s.anim - this.chestOpenAt;
     const cx = Math.round(GAME_W / 2);
-    // ---- accuracy
-    const ak = easeBack((since - Overlays.CLEAR_ACC_MS) / 300, 1.6);
+    // ---- the line under the headline
+    const lk = clamp01((since - 160) / 220);
+    if (lk > 0) {
+      const next = run.region.acts[run.actIndex + 1];
+      const line = next ? `The road to ${next.name} is open` : `${run.region.name} is safe again`;
+      this.subLine(gc, line, cx, 49 - Math.round((1 - lk) * 3), lk);
+    }
+    // ---- accuracy: a small, quiet chip in the top-left corner (the planning chat reads it off the act clear)
+    const ak = clamp01((since - Overlays.CLEAR_ACC_MS) / 220);
     if (ak > 0) {
-      const a = clamp01((since - Overlays.CLEAR_ACC_MS) / 160);
       const e = run.actAccuracy;
       const [gw] = glyphSize('target');
-      let w: number;
+      const count = clamp01((s.anim - this.accAt - Overlays.CLEAR_ACC_MS - 80) / 600);
+      const full = e ? `${Math.round(e.acc * 100)}%` : '';
+      const label = e ? 'accuracy' : 'Accuracy: needs more taps';
+      const w = gw + 3 + (e ? textWidth(full, 1, true) + 3 : 0) + textWidth(label, 1, false) + 6;
+      const r: Rect = { x: s.L + 4, y: 4 - Math.round((1 - ak) * 4), w, h: 11 };
+      tag(gc, r, [NAVY[5], NAVY[2], NAVY[1], NAVY[0]], 0.85 * ak);
+      let x = r.x + 2;
+      glyph(gc, 'target', x, r.y + 1, ak * (e ? 1 : 0.6));
+      x += gw + 3;
       if (e) {
-        const count = clamp01((s.anim - this.accAt - Overlays.CLEAR_ACC_MS - 120) / 650);
-        const pct = `${Math.round(e.acc * 100 * easeOut3(count))}%`;
-        const full = `${Math.round(e.acc * 100)}%`;
-        const l1 = 'Accuracy this act:';
-        const l3 = `(${e.n} taps)`;
-        w = gw + 4 + textWidth(l1, 1, false) + 3 + textWidth(full, 1, true) + 3 + textWidth(l3, 1, false) + 12;
-        const r: Rect = { x: Math.round(cx - w / 2), y: 44 + Math.round((1 - ak) * -8), w, h: 13 };
-        panel(gc, r, { alpha: a, r: 3, bevel: NAVY[7] });
-        let x = r.x + 6;
-        glyph(gc, 'target', x, r.y + 3, a);
-        x += gw + 4;
-        this.texts.text(l1, x, r.y + 7, 0xe8e4ff, { oy: 0.5, alpha: a });
-        x += textWidth(l1, 1, false) + 3;
-        // the number pops gold as it lands on the final value
         const done = count >= 1;
-        this.texts.text(pct, x, r.y + 6.5, done ? 0xffe066 : WHITE, { bold: true, oy: 0.5, alpha: a });
+        this.texts.text(`${Math.round(e.acc * 100 * easeOut3(count))}%`, x, r.y + 5.5, done ? 0xffe066 : WHITE, { bold: true, oy: 0.5, alpha: ak });
         x += textWidth(full, 1, true) + 3;
-        this.texts.text(l3, x, r.y + 7, 0xa8a0c8, { oy: 0.5, alpha: a });
-        if (done && s.anim - this.accAt - Overlays.CLEAR_ACC_MS - 770 < 400) {
-          const k = clamp01((s.anim - this.accAt - Overlays.CLEAR_ACC_MS - 770) / 400);
-          glow(gc, r, 0xffe066, 0.5 * (1 - k), 3);
-        }
-      } else {
-        const l = 'Accuracy: play more to measure';
-        w = gw + 4 + textWidth(l, 1, false) + 12;
-        const r: Rect = { x: Math.round(cx - w / 2), y: 44 + Math.round((1 - ak) * -8), w, h: 13 };
-        panel(gc, r, { alpha: a, r: 3, bevel: NAVY[7] });
-        glyph(gc, 'target', r.x + 6, r.y + 3, a * 0.6);
-        this.texts.text(l, r.x + 6 + gw + 4, r.y + 7, 0xc8c0e8, { oy: 0.5, alpha: a });
       }
+      this.texts.text(label, x, r.y + 6, 0xb0a8cc, { oy: 0.5, alpha: ak });
     }
     // ---- Camp and Next
     const b = this.clearButtons();
     const last = run.actIndex + 1 >= run.region.acts.length;
-    const items: Array<{ r: Rect; face: readonly [number, number, number, number]; label: string; icon: string; delay: number }> = [
+    this.consoleButtons(gc, now, since - Overlays.CLEAR_BTN_MS + 140, [
       { r: b.camp, face: FACE.navy, label: 'Camp', icon: 'tent', delay: 0 },
       { r: b.next, face: last ? FACE.gold : FACE.green, label: last ? 'Finish' : `Next: Act ${run.actIndex + 2}`, icon: '', delay: 90 },
-    ];
+    ]);
+  }
+
+  /** A pair of console buttons (Camp and the way on), popping in one after the other; the way on glows and nudges. */
+  private consoleButtons(gc: G, now: number, t: number, items: Array<{ r: Rect; face: readonly [number, number, number, number]; label: string; icon: string; delay: number }>, live = true): void {
     for (const it of items) {
-      const k = easeBack((since - Overlays.CLEAR_BTN_MS + 140 - it.delay) / 260, 1.7);
+      const k = easeBack((t - it.delay) / 260, 1.7);
       if (k <= 0) continue;
       const r = { ...it.r, y: it.r.y + Math.round((1 - k) * 14) };
       const pr = isPressed(it.r, now);
-      if (it.icon === '' && k >= 1) glow(gc, r, it.face[0], 0.3 + 0.35 * pulse(now, 900), 3);
-      button3d(gc, r, it.face, pr);
+      if (it.icon === '' && k >= 1 && live) glow(gc, r, it.face[0], 0.3 + 0.35 * pulse(now, 900), 3);
+      button3d(gc, r, live ? it.face : FACE.grey, pr);
       const dy = pr ? 2 : 0;
       const tw = textWidth(it.label, 1, true);
       if (it.icon) {
         const [iw, ih] = glyphSize(it.icon);
         const x0 = Math.round(r.x + (r.w - iw - 3 - tw) / 2);
-        glyph(gc, it.icon, x0, r.y + Math.round((r.h - ih) / 2) + dy);
+        glyph(gc, it.icon, x0, r.y + Math.round((r.h - ih) / 2) + dy, live ? 1 : 0.6);
         this.texts.text(it.label, x0 + iw + 3, r.y + r.h / 2 + dy, WHITE, { bold: true, oy: 0.5 });
       } else {
         // the way on: label and a pair of chevrons nudging right
@@ -1166,10 +1244,14 @@ export class Overlays {
     this.texts.text(`${H.revives}`, rr.x + 11, rr.y + 5.5, H.revives > 0 ? 0xffb0e0 : 0x8a84a0, { bold: true, oy: 0.5 });
   }
 
+  /**
+   * Defeat, in the act clear's hierarchy: one headline on a red ribbon, one line under it, and Camp / Retry on the
+   * console (the bar fades back under a dark band). The knocked-out hero stays in view on the stage.
+   */
   private drawDefeat(g: G, gc: G, now: number, since: number): void {
     const s = this.s;
     const cx = Math.round(GAME_W / 2);
-    this.dim(g, 0.55, 0x12030a);
+    this.dim(g, 0.5, 0x12030a);
     // a red pulse around the edges
     const p = pulse(now, 1400);
     for (let i = 0; i < 4; i++) {
@@ -1179,46 +1261,39 @@ export class Overlays {
     }
     // back from the camp: no entrance, the buttons are live at once
     const t = this.backFromCamp ? since + 1000 : since;
+    // the console: a dark band over the bar, for the buttons
+    const ck = clamp01(t / 260);
+    g.fillStyle(0x07040c, 0.62 * ck);
+    g.fillRect(0, s.splitY, GAME_W, GAME_H - s.splitY);
+    g.fillStyle(0xa01828, 0.5 * ck);
+    g.fillRect(0, s.splitY, GAME_W, 1);
     const k = easeBack(t / 380, 1.6);
-    const y = Math.round(36 - (1 - k) * 30);
-    this.texts.text('DEFEATED', cx, y, 0xff5a5a, { bold: true, scale: 3, ox: 0.5, oy: 0.5, extrude: 3, extrudeCol: 0x4a0a14, alpha: clamp01(t / 150) });
-    if (t > 250) {
-      const sub = `${heroDef(s.app.run.hero.build?.id ?? 'rowan').name} falls... back to the start of Act ${s.app.run.actIndex + 1}`;
-      strip(gc, cx - textWidth(sub) / 2 - 8, y + 16, textWidth(sub) + 16, 12, 0.7, false);
-      this.texts.text(sub, cx, y + 22, 0xffe8e0, { ox: 0.5, oy: 0.5 });
-      // Camp (equip what you found before trying again) and Retry, popping in one after the other
-      const b = this.defeatButtons();
-      const live = t > 700;
-      const items: Array<{ r: Rect; face: readonly [number, number, number, number]; label: string; icon: string; delay: number }> = [
-        { r: b.camp, face: live ? FACE.navy : FACE.grey, label: 'Camp', icon: 'tent', delay: 0 },
-        { r: b.retry, face: live ? FACE.gold : FACE.grey, label: 'Retry the act', icon: '', delay: 80 },
-      ];
-      for (const it of items) {
-        const bk = easeBack((t - 260 - it.delay) / 260, 1.7);
-        if (bk <= 0) continue;
-        const r = { ...it.r, y: it.r.y + Math.round((1 - bk) * 12) };
-        const pr = isPressed(it.r, now);
-        if (!it.icon && live) glow(gc, r, 0xffd23a, 0.3 + 0.4 * pulse(now, 800), 3);
-        button3d(gc, r, it.face, pr);
-        const dy = pr ? 2 : 0;
-        const tw = textWidth(it.label, 1, true);
-        if (it.icon) {
-          const [iw, ih] = glyphSize(it.icon);
-          const x0 = Math.round(r.x + (r.w - iw - 3 - tw) / 2);
-          glyph(gc, it.icon, x0, r.y + Math.round((r.h - ih) / 2) + dy, live ? 1 : 0.6);
-          this.texts.text(it.label, x0 + iw + 3, r.y + r.h / 2 + dy, WHITE, { bold: true, oy: 0.5 });
-        } else this.texts.text(it.label, r.x + r.w / 2, r.y + r.h / 2 + dy, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
-      }
-    }
+    const y = Math.round(20 - (1 - k) * 50);
+    const title = 'Defeated';
+    const tw = textWidth(title, 2, true);
+    ribbon(gc, cx, y, tw + 24, 22, RIBBON.red, clamp01(t / 150), k > 0.9);
+    this.texts.text(title, cx, y + 11, 0xffe8e0, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: 0x4a0a14, alpha: clamp01(t / 150) });
+    if (t > 220) this.subLine(gc, `Back to the start of Act ${s.app.run.actIndex + 1}. Your gear stays.`, cx, 49 - Math.round((1 - clamp01((t - 220) / 200)) * 3), clamp01((t - 220) / 200), false, 0xffe8e0);
+    // Camp (equip what you found before trying again) and Retry, popping in one after the other
+    const b = this.defeatButtons();
+    const live = t > 700;
+    this.consoleButtons(gc, now, t - 300, [
+      { r: b.camp, face: FACE.navy, label: 'Camp', icon: 'tent', delay: 0 },
+      { r: b.retry, face: FACE.gold, label: 'Retry the act', icon: '', delay: 80 },
+    ], live);
   }
 
+  /**
+   * The region saved, in the same hierarchy: one headline on a gold ribbon over slow golden rays, one line under it,
+   * and the way on (where the road goes next, coming soon) on the console under "Tap to continue".
+   */
   private drawVictory(g: G, gc: G, now: number, since: number): void {
     const s = this.s;
     const cx = Math.round(GAME_W / 2);
-    this.dim(g, 0.5);
+    this.dim(g, 0.45);
     // slow golden rays behind the title
     const ox = cx;
-    const oy = 34;
+    const oy = 31;
     const rot = now / 4000;
     for (let i = 0; i < 12; i++) {
       const a0 = rot + (i / 12) * Math.PI * 2;
@@ -1226,21 +1301,25 @@ export class Overlays {
       g.fillStyle(i % 2 ? 0xffe680 : 0xfff6c0, 0.09);
       g.fillTriangle(ox, oy, Math.round(ox + Math.cos(a0) * 260), Math.round(oy + Math.sin(a0) * 260), Math.round(ox + Math.cos(a1) * 260), Math.round(oy + Math.sin(a1) * 260));
     }
+    // the console: a dark band
+    g.fillStyle(0x07040c, 0.5 * clamp01(since / 300));
+    g.fillRect(0, s.splitY, GAME_W, GAME_H - s.splitY);
     const k = easeBack(since / 420, 1.5);
-    ribbon(gc, cx, 44, Math.round(220 * Math.min(1, k)), 12, RIBBON.gold, 1, k > 0.9);
-    this.texts.text('Greenmarch is saved!', cx, 32 - Math.round((1 - Math.min(1, k)) * 12), 0xffd23a, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 2, extrudeCol: 0x5a3410 });
-    if (since > 400) {
-      this.texts.text('The first weight is home. Eleven to go.', cx, 49.5, 0x3a1e08, { bold: false, ox: 0.5, oy: 0.5, grad: [WHITE, 0xfff6d8] });
-      const next = 'Next: the Frostpeaks (coming soon)';
-      strip(gc, cx - textWidth(next) / 2 - 8, 60, textWidth(next) + 16, 12, 0.7, false);
-      this.texts.text(next, cx, 66, 0xb8e4ff, { ox: 0.5, oy: 0.5 });
+    const title = `${s.app.run.region.name} is saved!`;
+    const tw = textWidth(title, 2, true);
+    const y = Math.round(20 - (1 - k) * 50);
+    ribbon(gc, cx, y, Math.round((tw + 24) * Math.min(1, k)), 22, RIBBON.gold, 1, k > 0.9);
+    if (k > 0.5) this.texts.text(title, cx, y + 11, 0xfff6c0, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a });
+    if (since > 400) this.subLine(gc, 'The first weight is home. Eleven to go.', cx, 49, clamp01((since - 400) / 250));
+    if (since > 1500) {
+      this.prompt(g, 'Tap to continue', s.splitY + 16, now, 0xfff07a);
+      this.texts.text('Next: the Frostpeaks (coming soon)', cx, s.splitY + 34, 0xa8c8e8, { ox: 0.5, oy: 0.5, alpha: clamp01((since - 1500) / 300) });
     }
-    if (since > 1500) this.prompt(g, 'Tap to continue', 88, now, 0xfff07a);
     // a little shower of golden sparks
     if (Math.random() < 0.5) s.fx.particles.push({ x: rand(20, GAME_W - 20), y: -2, vx: rand(-10, 10), vy: rand(20, 40), g: 30, born: now, life: 2200, color: Math.random() < 0.5 ? 0xffe680 : WHITE, size: 1, world: true, streak: false });
     for (let i = 0; i < 5; i++) {
       const q = ((now / 1100 + i * 0.21) % 1 + 1) % 1;
-      if (q < 0.4) this.star(gc, Math.round(cx - 110 + ((i * 53) % 220)), 20 + ((i * 23) % 36), q < 0.2 ? 2 : 1, 0xfff0a0, 1 - q / 0.4);
+      if (q < 0.4) this.star(gc, Math.round(cx - 110 + ((i * 53) % 220)), 14 + ((i * 23) % 36), q < 0.2 ? 2 : 1, 0xfff0a0, 1 - q / 0.4);
     }
   }
 
@@ -1343,8 +1422,9 @@ export class Overlays {
   }
 
   /**
-   * The act clear's console: the hero's level and an XP bar filling with the act's XP ("+120 XP"); crossing into the
-   * next level flashes it gold and pops "Level up!" over the level chip. Then the coins.
+   * The act clear's console: the hero's level, an XP bar filling as "+120 XP" counts up (crossing into the next level
+   * flashes the bar, pops the level chip and raises "Level up!" over it), then the coins counting up from what the
+   * act started with, a tick per step. Each count takes under a second.
    */
   private drawXp(gc: G, now: number): void {
     const s = this.s;
@@ -1355,7 +1435,7 @@ export class Overlays {
     const y = s.splitY + 9 + dy;
     const after = heroProgress(app.profile).xp;
     const before = this.xpBefore();
-    const k = easeOut3(clamp01((since - Overlays.CLEAR_ACC_MS - 200) / 1100));
+    const k = easeOut3(clamp01((since - Overlays.CLEAR_XP_MS) / Overlays.CLEAR_XP_LEN));
     const xp = Math.round(before + (after - before) * k);
     const lp = levelProgress(T, xp);
     if (lp.level > this.xpLevel) {
@@ -1366,18 +1446,27 @@ export class Overlays {
     }
     const upK = (now - this.xpUpAt) / 500;
     const leveled = this.xpUpAt > 0;
-    const coins = `${s.hud.coinsShown}`;
-    const cw = textWidth(coins, 1, true) + 15;
+    // the coins count up once the XP has
+    const coinsNow = app.run.coins;
+    const from = Math.min(coinsNow, this.coinsAtAct);
+    const ck = easeOut3(clamp01((since - Overlays.CLEAR_XP_MS - Overlays.CLEAR_XP_LEN + 100) / Overlays.CLEAR_COIN_LEN));
+    const shown = Math.round(from + (coinsNow - from) * ck);
+    if (this.coinTickShown >= 0 && shown > this.coinTickShown) app.audio.coinTick(Math.min(12, Math.round(ck * 12)));
+    const coinPop = this.coinTickShown >= 0 && shown > this.coinTickShown;
+    this.coinTickShown = shown;
+    const coins = `${shown}`;
+    const cw = textWidth(`${coinsNow}`, 1, true) + 15;
     const lv = `Lv ${lp.level}`;
     const lw = textWidth(lv, 1, true) + 8;
     const gw = 100;
     const total = lw + 4 + gw + 8 + cw;
     let x = Math.round((s.L + s.R) / 2 - total / 2);
-    // the level chip (gold once the act levelled the hero up)
-    const lr: Rect = { x, y, w: lw, h: 11 };
+    // the level chip (gold once the act levelled the hero up; it pops as the bar crosses over)
+    const pop = upK >= 0 && upK < 0.5 ? Math.round(Math.sin((upK / 0.5) * Math.PI) * 2) : 0;
+    const lr: Rect = { x: x - pop, y: y - pop, w: lw + pop * 2, h: 11 + pop * 2 };
     if (leveled) glow(gc, lr, 0xffd23a, 0.4 + 0.35 * pulse(now, 600), 3);
     tag(gc, lr, leveled ? [GOLD[4], GOLD[3], GOLD[2], GOLD[1]] : [NAVY[6], NAVY[4], NAVY[3], NAVY[2]]);
-    this.texts.text(lv, lr.x + lw / 2, lr.y + 5.5, leveled ? 0x3a1e08 : 0xffe680, { bold: true, ox: 0.5, oy: 0.5 });
+    this.texts.text(lv, lr.x + lr.w / 2, lr.y + lr.h / 2, leveled ? 0x3a1e08 : 0xffe680, { bold: true, ox: 0.5, oy: 0.5 });
     if (upK >= 0 && upK < 1) rows(gc, lr.x - 2, lr.y - 2, lr.w + 4, lr.h + 4, 3, WHITE, 0.7 * (1 - upK));
     x += lw + 4;
     // the XP bar
@@ -1385,7 +1474,7 @@ export class Overlays {
     gauge(gc, x, y + 1, gw, 8, frac, frac, { ramp: [0xd0f8ff, 0x5ad0f0, 0x2a8ac8, 0x1a4a8a], seg: 10, glow: upK >= 0 && upK < 1 ? 1 - upK : 0 });
     const gain = app.run.actXpGained;
     const label = lp.need > 0 ? (gain > 0 ? `+${Math.round(gain * k)} XP` : `${lp.into}/${lp.need} XP`) : 'Max level';
-    this.texts.text(label, x + gw / 2, y + 5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    this.texts.text(label, x + gw / 2, y + 5, k > 0 && k < 1 ? 0xe0f6ff : WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     if (leveled && !this.unlockActive()) {
       // "Level up!" pops out over the level chip and stays while the screen is up (hidden while a "New relic
       // unlocked!" card is up: one at a time)
@@ -1393,16 +1482,17 @@ export class Overlays {
       const t = 'Level up!';
       const rw = Math.round((textWidth(t, 1, true) + 12) * Math.min(1, rk));
       if (rw > 8) {
-        ribbon(gc, lr.x + lr.w / 2 + 14, y - 15, rw, 11, RIBBON.gold, 1, rk > 0.9);
-        if (rk > 0.8) this.texts.text(t, lr.x + lr.w / 2 + 14, y - 9.5, 0xfffbe0, { bold: true, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a });
+        ribbon(gc, x - 4 + 14 - lw / 2, y - 15, rw, 11, RIBBON.gold, 1, rk > 0.9);
+        if (rk > 0.8) this.texts.text(t, x - 4 + 14 - lw / 2, y - 9.5, 0xfffbe0, { bold: true, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a });
       }
       if (upK >= 0 && upK < 0.1) s.fx.burst(lr.x + lr.w / 2, lr.y + 5, 0xffe680, 14, false, 1.2);
     }
     x += gw + 8;
     const cr: Rect = { x, y, w: cw, h: 11 };
     tag(gc, cr, [NAVY[5], NAVY[3], NAVY[2], NAVY[1]]);
-    hudIcon(gc, 'coin', cr.x + 2, cr.y + 1);
-    this.texts.text(coins, cr.x + 12, cr.y + 5.5, 0xffe680, { bold: true, oy: 0.5 });
+    if (coinPop) glow(gc, cr, 0xffe680, 0.6, 2);
+    hudIcon(gc, 'coin', cr.x + 2, cr.y + 1 - (coinPop ? 1 : 0));
+    this.texts.text(coins, cr.x + 12, cr.y + 5.5, coinPop ? WHITE : 0xffe680, { bold: true, oy: 0.5 });
   }
 
   /**
