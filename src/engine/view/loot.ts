@@ -156,9 +156,48 @@ export class LootView {
       this.card = null;
       this.motes = [];
       this.cardMotes = [];
+      if (next !== 'boost') this.exiting = null;
       return;
     }
+    this.exiting = null;
     this.start(prev === 'treasure');
+  }
+
+  /** Collected: the items fly off into Rowan's bag (his portrait), over the boost pick coming up. */
+  private exiting: { at: number; items: Array<{ item: Item; x: number; y: number; face: Face; done: boolean }> } | null = null;
+
+  private drawExit(now: number): void {
+    const ex = this.exiting;
+    if (!ex) return;
+    const s = this.s;
+    const tx = s.L + 14;
+    const ty = 14;
+    let alive = false;
+    ex.items.forEach((it, i) => {
+      const k = (now - ex.at - i * 45) / 340;
+      if (k < 0) return void (alive = true);
+      if (k >= 1) {
+        if (!it.done) {
+          it.done = true;
+          s.app.audio.coinTick(i * 2);
+          this.burst(tx, ty, it.face, 8, 0.6);
+        }
+        return;
+      }
+      alive = true;
+      const e = k * k;
+      const x = it.x + (tx - it.x) * e;
+      const y = it.y + (ty - it.y) * e - Math.sin(k * Math.PI) * 14;
+      const size = Math.max(6, Math.round(CELL - (CELL - 8) * e));
+      const r: Rect = { x: Math.round(x - size / 2), y: Math.round(y - size / 2), w: size, h: size };
+      this.gl.fillStyle(it.face[1], 0.22 * (1 - e));
+      this.gl.fillCircle(Math.round(x), Math.round(y), Math.round(size * 0.8));
+      itemCell(this.gc, r, it.item.rarity);
+      if (size >= 12) cellIcon(this.pool, it.item, r, D.icons);
+      if (Math.random() < 0.7) this.motes.push({ x, y, vx: rand(-12, 12), vy: rand(-12, 12), g: 0, born: now, life: rand(160, 300), color: Math.random() < 0.5 ? it.face[0] : WHITE, kind: 'dot' });
+    });
+    this.drawMoteList(this.gf, this.motes, now);
+    if (!alive && !this.motes.length) this.exiting = null;
   }
 
   /** The loot screen comes up: lay out the row, find where the items burst from. */
@@ -278,7 +317,10 @@ export class LootView {
     if (now - this.doneAt < T.doneWait) return;
     this.leaving = true;
     app.audio.uiClick();
+    const y = this.rowY();
+    const items = this.drops.filter((d) => !d.salvaged).map((d) => ({ item: d.item, x: d.x, y, face: d.face, done: false }));
     app.setPhase(() => app.run.collectLoot());
+    this.exiting = items.length ? { at: now, items } : null;
   }
 
   // ------------------------------------------------------------------ the show
@@ -295,7 +337,7 @@ export class LootView {
       d.landAt = now + T.fly;
       this.nextAt = now + T.step;
       audio.lootDrop(d.r);
-      this.burst(this.src.x, this.src.y, d, 10 + d.r * 4, 1);
+      this.burst(this.src.x, this.src.y, d.face, 10 + d.r * 4, 1);
       if (this.next >= this.drops.length) this.orbPopAt = d.landAt - 120;
     }
     for (const d of this.drops) {
@@ -324,7 +366,7 @@ export class LootView {
     const audio = this.s.app.audio;
     const y = this.rowY();
     if (d.r >= 3) audio.lootSting(d.r);
-    this.burst(d.x, y, d, 8 + d.r * 5, 0.8 + d.r * 0.12);
+    this.burst(d.x, y, d.face, 8 + d.r * 5, 0.8 + d.r * 0.12);
     if (d.r >= 4) {
       this.flashAt = now;
       this.flashCol = d.face[0];
@@ -339,9 +381,9 @@ export class LootView {
   }
 
   /** Sparks and dots flung out in an item's colours. */
-  private burst(x: number, y: number, d: Drop, n: number, speed: number): void {
+  private burst(x: number, y: number, face: Face, n: number, speed: number): void {
     const now = performance.now();
-    const cols = [d.face[0], d.face[1], WHITE, mix(d.face[0], WHITE, 0.5)];
+    const cols = [face[0], face[1], WHITE, mix(face[0], WHITE, 0.5)];
     for (let i = 0; i < n; i++) {
       const a = rand(0, Math.PI * 2);
       const sp = rand(30, 110) * speed;
@@ -363,7 +405,7 @@ export class LootView {
       this.update(now);
       this.drawScreen(now);
       if (this.card) this.drawCard(now, this.card);
-    }
+    } else if (this.exiting) this.drawExit(now);
     this.pool.end();
     this.texts.end();
     this.cardTexts.end();
