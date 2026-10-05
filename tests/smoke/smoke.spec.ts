@@ -149,7 +149,7 @@ test('a run survives a reload: Continue picks the fight back up', async ({ page 
     x.storySkip();
     x.setPhase(() => x.run.chooseNode(x.run.choices()[0]));
     x.run.hero.hp = 42;
-    x.run.combat.enemies[0].hp = 99;
+    x.run.combat.enemies[0].hp = 77; // under every Act 1 foe's max HP (the map, so the foe, is random per launch)
     window.dispatchEvent(new Event('pagehide')); // iOS: the app is switched away and later reloaded
   });
   await page.reload();
@@ -159,7 +159,7 @@ test('a run survives a reload: Continue picks the fight back up', async ({ page 
   await page.screenshot({ path: 'test-results/title-continue.png' });
   await tapGame(page, 111, 101); // the Continue button
   const after = await a((x) => ({ phase: x.run.phase, path: x.run.path.length, hp: x.run.hero.hp, enemyHp: x.run.combat.enemies[0].hp, waiting: x.awaitingBegin }));
-  expect(after).toEqual({ phase: 'fight', path: 1, hp: 42, enemyHp: 99, waiting: true });
+  expect(after).toEqual({ phase: 'fight', path: 1, hp: 42, enemyHp: 77, waiting: true });
 
   // the Bandit Captain brings his own theme; back on the map, Act 1's theme plays (its calm arrangement)
   const track = () => a((x) => x.audio.currentTrack);
@@ -330,9 +330,9 @@ test('relics: pick one after a fight, its icon is on the HUD belt next fight, a 
   await expect.poll(phase).toBe('map');
   expect(await a((x) => x.run.hero.relics)).toContain('ironRhythm');
 
-  // the next fight: the relic's icon sits on the belt under the hero plate
+  // the next fight (a fight for sure: the map is random per launch): the relic's icon sits on the belt under the hero plate
   await a((x) => {
-    x.setPhase(() => x.run.chooseNode(x.run.choices()[0]));
+    x.setPhase(() => x.run.debugFight(0, ['slime'], 'fight', x.run.hero));
     x.begin();
   });
   await page.waitForTimeout(900);
