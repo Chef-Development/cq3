@@ -7,7 +7,7 @@ import type { Profile } from '../core/profile';
 import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import type { Settings, Tuning } from '../core/tuning';
 import { Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
-import { computeLayout, type ScreenLayout } from './layout';
+import { computeLayout, sameLayout, type ScreenLayout } from './layout';
 import { clearRunSave, loadProfile, loadRunSave, saveSoon, writeProfile, writeRunSave } from './storage';
 
 export interface View {
@@ -383,8 +383,12 @@ export class App {
     }
   }
 
-  relayout(): void {
-    this.layout = computeLayout();
-    this.view?.onLayout();
+  /** Re-measure the screen; redo the layout if anything moved (or when forced). True when it was redone. */
+  relayout(force = false): boolean {
+    const l = computeLayout();
+    if (!force && sameLayout(l, this.layout)) return false;
+    this.layout = l;
+    if (this.sceneReady) this.view?.onLayout(); // before that, the scene's create() lays out with this.layout
+    return true;
   }
 }

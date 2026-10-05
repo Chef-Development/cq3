@@ -62,6 +62,11 @@ export function computeLayout(): ScreenLayout {
   };
 }
 
+/** Same placement and insets: nothing to redo. */
+export function sameLayout(a: ScreenLayout, b: ScreenLayout): boolean {
+  return (Object.keys(a) as Array<keyof ScreenLayout>).every((k) => a[k] === b[k]);
+}
+
 export function applyCanvasLayout(canvas: HTMLCanvasElement, l: ScreenLayout): void {
   const st = canvas.style;
   st.setProperty('position', 'absolute', 'important');

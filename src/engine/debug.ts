@@ -108,7 +108,7 @@ export function installDebug(app: App): DebugUi {
         ['swipe', 'Swipe'],
         ['button', 'Button'],
       ],
-      () => app.relayout(),
+      () => app.relayout(true),
     );
     seg(modes, 'Combo tiers', 'comboTiers', [
       [false, 'Off'],

@@ -280,3 +280,25 @@ test('gear: loot after a win goes in the bag; act clear -> camp -> next act; def
   expect(await a((x) => x.run.actIndex)).toBe(1);
   expect(errors).toEqual([]);
 });
+
+// iOS opens a home-screen app upright and turns it sideways as it launches: the resize event can come before the
+// new size is readable, or not at all. The layout must still settle on the real screen, without any events.
+test('launch: the layout catches up with a viewport that changes without a resize event', async ({ page }) => {
+  await page.addInitScript(() => {
+    const block = (e: Event) => e.stopImmediatePropagation();
+    window.addEventListener('resize', block, true);
+    window.addEventListener('orientationchange', block, true);
+    window.visualViewport?.addEventListener('resize', block, true);
+    delete (window as Any).ResizeObserver; // the worst case: nothing announces the change at all
+  });
+  await page.setViewportSize({ width: 402, height: 874 });
+  await ready(page);
+  const a = app(page);
+  expect(await a((x) => x.layout.scale)).toBe(3);
+  await page.setViewportSize({ width: 874, height: 402 });
+  await expect.poll(() => a((x) => x.layout.scale), { timeout: 3000 }).toBe(8);
+  const l = (await a((x) => x.layout)) as { cssW: number; left: number };
+  const box = await page.locator('#game canvas').boundingBox();
+  expect(box?.width).toBeCloseTo(l.cssW, 1);
+  expect(box?.x).toBeCloseTo(l.left, 1);
+});

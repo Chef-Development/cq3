@@ -29,14 +29,14 @@ const getScene = () => game.scene.getScene('fight') as FightScene | null;
 
 const rootStyle = document.documentElement.style;
 for (const [k, v] of Object.entries(hudButtonImages())) rootStyle.setProperty(`--img-${k}`, `url(${v})`);
-const relayout = () => {
-  app.relayout();
+const relayout = (force = false) => {
+  if (!app.relayout(force)) return;
   if (game.canvas) applyCanvasLayout(game.canvas, app.layout);
   // DOM HUD buttons are pixel art too: size them in game pixels.
   rootStyle.setProperty('--gpx', `${app.layout.scale / app.layout.dpr}px`);
   rootStyle.setProperty('--game-top', `${app.layout.top}px`);
 };
-game.events.once(Phaser.Core.Events.READY, relayout);
+game.events.once(Phaser.Core.Events.READY, () => relayout(true));
 // Debug/test handle (used by the Playwright smoke test).
 (window as unknown as { __cq3: unknown }).__cq3 = {
   app,
@@ -45,13 +45,28 @@ game.events.once(Phaser.Core.Events.READY, relayout);
     return app.sceneReady;
   },
 };
-window.addEventListener('resize', relayout);
-window.addEventListener('orientationchange', () => window.setTimeout(relayout, 250));
-window.visualViewport?.addEventListener('resize', relayout);
+// iOS opens a home-screen app upright and turns it sideways as it launches. Its resize events can come before
+// the new size is readable, or not at all, and the safe-area insets settle late too. So any hint of a change is
+// re-checked a few times over the next two seconds, and a slow watch catches whatever no event announced
+// (relayout is a no-op unless the measured layout actually changed).
+const settle = () => {
+  relayout();
+  for (const ms of [50, 150, 300, 600, 1000, 2000]) window.setTimeout(() => relayout(), ms);
+};
+settle();
+window.addEventListener('resize', settle);
+window.addEventListener('orientationchange', settle);
+window.visualViewport?.addEventListener('resize', settle);
+window.addEventListener('pageshow', settle);
+if ('ResizeObserver' in window) new ResizeObserver(settle).observe(document.getElementById('game')!);
+window.setInterval(() => {
+  if (!document.hidden) relayout();
+}, 500);
 
 document.addEventListener('visibilitychange', () => {
   const now = performance.now();
   app.hidden = document.hidden;
+  if (!document.hidden) settle(); // back from the app switcher: it may have turned while away
   if (document.hidden && app.run.phase === 'fight') app.userPaused = true;
   app.syncClock(now);
   // iOS often reloads a home-screen app after you switch away: save the run as it stands
