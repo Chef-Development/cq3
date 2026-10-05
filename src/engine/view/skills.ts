@@ -447,11 +447,13 @@ export class SkillsScreen {
       g.fillRect(r.x + 1, r.y + 1, r.w - 2, Math.round((r.h - 2) * 0.4));
     }
     // the icon (dim until learned, a shadow when its branch hasn't reached it)
-    const ia = a * (lit ? 1 : locked ? 0.35 : 0.8);
+    const ia = a * (lit ? 1 : locked ? 0.75 : 0.85);
     const key = this.nodeIcon(node);
     if (key) {
+      // the card shows the node's icon at 2x; out of reach, the icon is a dim shadow
+      const sc = inCard ? 2 : 1;
       const [w, h] = kit.imgs.size(key);
-      kit.sprites.draw(key, r.x + Math.round((r.w - w) / 2), r.y + Math.round((r.h - h) / 2), D.icons, { alpha: ia, tint: locked ? 0x4a4458 : undefined });
+      kit.sprites.draw(key, r.x + Math.round((r.w - w * sc) / 2), r.y + Math.round((r.h - h * sc) / 2), D.icons, { alpha: ia, scale: sc, tint: locked ? 0x6a6288 : lit ? undefined : 0xb8b0d0 });
     } else {
       const ic = this.fallbackIcon(node);
       const [w, h] = pixSize(ic);
@@ -485,30 +487,37 @@ export class SkillsScreen {
     const iw = p.w - 12;
     const why = this.check(node.id);
     const learned = why === 'learned';
-    // header: the node at 1x in its frame, the name, the kind and branch
-    const cell = { x: ix, y: p.y + 6, w: 20, h: 20 };
+    // header: the node at 2x in its frame, the name (in the plain font if the bold one is too wide), kind and branch
+    const cell = { x: ix, y: p.y + 5, w: 26, h: 26 };
     this.drawNodeCell(g, kit.gOver, cell, node, now, a, true);
     const nx = cell.x + cell.w + 6;
     const nw = p.x + p.w - 6 - nx;
-    const nameLines = wrapText(node.name, nw, true);
-    texts.text(nameLines[0], nx, p.y + 11, WHITE, { bold: true, oy: 0.5, alpha: a });
+    texts.text(node.name, nx, p.y + 11, WHITE, { bold: textWidth(node.name, 1, true) <= nw, oy: 0.5, alpha: a });
     const kind = KIND_NAME[node.kind];
     const kw = textWidth(kind, 1, false) + 6;
     const chip = { x: nx, y: p.y + 18, w: kw, h: 9 };
     tag(g, chip, KIND_FACE[node.kind], a);
     texts.text(kind, chip.x + 3, chip.y + 4.5, node.kind === 'capstone' ? 0x5a2a08 : WHITE, { oy: 0.5, alpha: a });
     if (textWidth(br.name, 1, false) <= nw - kw - 4) texts.text(br.name, chip.x + kw + 4, chip.y + 4.5, BRANCH_COL[at.i] ?? DIM_TXT, { oy: 0.5, alpha: a });
-    // what it does
-    let y = p.y + 34;
-    for (const l of wrapText(skillText(t, node), iw)) {
+    // what it does, then what changes; spaced out when there's room above the button, tighter when not
+    const text = wrapText(skillText(t, node), iw);
+    const stat = skillStatPreview(t, kit.heroAs(this.hero), node.id);
+    const pv = skillPreview(t, node);
+    const flowLines = (label: string, s2: string) => wrapFlow(s2, iw - textWidth(label, 1, true) - 4, iw);
+    const rule = !stat && 'before' in pv ? { now: flowLines('Now:', pv.before), with: flowLines('With it:', pv.after) } : null;
+    const body = text.length * 8 + (stat ? 13 : rule ? (rule.now.length + rule.with.length) * 8 + 4 : 0);
+    const room = this.learnRect().y - 4 - (p.y + 35);
+    const roomy = body + 13 <= room;
+    let y = p.y + (roomy ? 39 : 36);
+    for (const l of text) {
       texts.text(l, ix, y, 0xf0ecff, { oy: 0.5, alpha: a });
       y += 8;
     }
-    y += 2;
-    kit.divider(g, ix, y, iw);
-    y += 7;
-    // what changes
-    const stat = skillStatPreview(t, kit.heroAs(this.hero), node.id);
+    if (roomy) {
+      y += 2;
+      kit.divider(g, ix, y, iw);
+      y += 7;
+    } else y += 3;
     if (stat) {
       const row = { x: ix - 2, y: y - 6, w: iw + 4, h: 13 };
       rows(g, row.x, row.y, row.w, row.h, 2, NAVY[1], a);
@@ -524,20 +533,15 @@ export class SkillsScreen {
       texts.text(stat.after, x, y, GREEN, { bold: true, ox: 1, oy: 0.5, alpha: a });
       chevron(g, x - bw - 8, y - 3, 7, GREEN, a, 1, true);
       texts.text(stat.before, x - bw - 11, y, 0xb0a8c8, { bold: true, ox: 1, oy: 0.5, alpha: a });
-      y += 13;
-    } else {
-      const pv = skillPreview(t, node);
-      if ('before' in pv) {
-        const flow = (label: string, text: string, lc: number, tc: number) => {
-          const lw = textWidth(label, 1, true);
-          const lines = wrapFlow(text, iw - lw - 4, iw);
-          texts.text(label, ix, y, lc, { bold: true, oy: 0.5, alpha: a });
-          lines.forEach((l, j) => l && texts.text(l, j ? ix : ix + lw + 4, y + j * 8, tc, { oy: 0.5, alpha: a }));
-          y += lines.length * 8 + 2;
-        };
-        flow('Now:', pv.before, 0xa8a0c8, 0xc8c0e0);
-        flow('With it:', pv.after, GREEN, 0xd8ffc0);
-      }
+    } else if (rule) {
+      const flow = (label: string, lines: string[], lc: number, tc: number) => {
+        const lw = textWidth(label, 1, true);
+        texts.text(label, ix, y, lc, { bold: true, oy: 0.5, alpha: a });
+        lines.forEach((l, j) => l && texts.text(l, j ? ix : ix + lw + 4, y + j * 8, tc, { oy: 0.5, alpha: a }));
+        y += lines.length * 8 + 2;
+      };
+      flow('Now:', rule.now, 0xa8a0c8, 0xc8c0e0);
+      flow('With it:', rule.with, GREEN, 0xd8ffc0);
     }
     // Learn, or why not
     const b = this.learnRect();

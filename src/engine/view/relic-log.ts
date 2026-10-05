@@ -9,7 +9,7 @@ import { RELICS, TAG_NAME, type RelicDef, type RelicId, type RelicRarity, type R
 import { relicUnlocked } from '../../core/profile';
 import { relicText, unlockHint } from '../../core/relics';
 import { textWidth } from '../font';
-import { CampKit, D, DIM_TXT, GOLD_TXT, pix } from './camp-kit';
+import { CampKit, D, DIM_TXT, GOLD_TXT, GREEN, pix } from './camp-kit';
 import { cellGlow, cellShine, itemCell, padlock, wrapText } from './items';
 import { gauge, GOLD, NAVY, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, pulse, WHITE, type Rect } from './shared';
@@ -146,7 +146,7 @@ export class RelicLogScreen {
     const sc = o.scale ?? 1;
     const key = `relic_${def.id}`;
     if (kit.has(key)) {
-      kit.sprites.draw(key, x, y, depth, { scale: sc, tint: o.dark ? 0x1a1428 : undefined, alpha: o.alpha });
+      kit.sprites.draw(key, x, y, depth, { scale: sc, tint: o.dark ? 0x2c2444 : undefined, alpha: o.alpha });
       return;
     }
     pendant(kit.gOver, x, y, o.dark ? 0x2a2238 : TAG_COL[def.tags[0]], sc, o.alpha ?? 1, !!o.dark);
@@ -197,7 +197,8 @@ export class RelicLogScreen {
     const gp = this.gridPane();
     const last = this.cell(RELICS.length - 1);
     const have = RELICS.filter((r) => relicUnlocked(p, r.id)).length;
-    let y = last.y + last.h + 10;
+    // at the panel's foot (the grid keeps its place at the top)
+    let y = Math.max(last.y + last.h + 10, gp.y + gp.h - 24);
     const bar = { x: gp.x + 6, y, w: gp.w - 12, h: 5 };
     gauge(g, bar.x, bar.y, bar.w, bar.h, have / RELICS.length, 0, { ramp: [0xf0d8ff, 0xb05ae0, 0x8a3ac0, 0x5a1a8a] });
     y += 13;
@@ -289,7 +290,19 @@ export class RelicLogScreen {
       texts.text(l, ix, y, open ? 0xf0ecff : 0xb0a8c8, { oy: 0.5, alpha: a });
       y += 8;
     }
-    // how to unlock a locked one
+    // how to unlock a locked one (and, for one already won, how it was)
+    if (open && def.unlock) {
+      y += 3;
+      kit.divider(g, ix, y - 4, iw);
+      y += 4;
+      pix(g, 'check', ix - 1, y - 4, a);
+      texts.text('Unlocked', ix + 9, y, GREEN, { bold: true, oy: 0.5, alpha: a });
+      y += 9;
+      for (const l of wrapText(unlockHint(id), iw)) {
+        texts.text(l, ix, y, 0xa8c8a0, { oy: 0.5, alpha: a });
+        y += 8;
+      }
+    }
     if (!open) {
       y += 3;
       kit.divider(g, ix, y - 4, iw);

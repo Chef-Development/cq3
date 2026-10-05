@@ -176,6 +176,21 @@ async function stockProfile(page: Page): Promise<void> {
     p.scrap = 48;
     p.actsCleared = 2;
     p.smithMet = true;
+    p.sableMet = true; // Act 1 is cleared: Sable has joined (sitting by the camp's fire)
+    p.heroes.sable.unlocked = true;
+  });
+}
+
+/** On top of stockProfile: both heroes' levels and skills (Rowan with a point to spend), relics unlocked, two new. */
+async function heroProfile(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p = (window as any).__cq3.app.profile;
+    p.heroes.rowan.xp = 1700;
+    p.heroes.rowan.skills = ['keenEdge', 'steadyAim', 'stout'];
+    p.heroes.sable.xp = 700;
+    p.relics = ['shortFuse', 'mirrorGuard', 'chainReaction', 'ricochet', 'huntingOwl'];
+    p.relicsNew = ['ricochet', 'huntingOwl'];
   });
 }
 
@@ -248,4 +263,54 @@ test('world map: the act picker', async ({ page }) => {
   });
   await frames(page, 30);
   await expect(page).toHaveScreenshot('act-picker.png', shot);
+});
+
+test('camp: hero select, skill tree, relic log', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stockProfile(page);
+  await heroProfile(page);
+  await page.evaluate(() => {
+    const app = (window as Cq3Window).__cq3!.app as unknown as { newRun(): void; openCamp(): void };
+    app.newRun();
+    app.openCamp();
+  });
+  await frames(page, 30);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const camp = (fn: (c: any, now: number) => void) => page.evaluate(`(${fn.toString()})(window.__cq3.app.view.camp, performance.now())`);
+  await camp((c, now) => c.go('heroes', now, 'sable'));
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('hero-select.png', shot);
+  await camp((c, now) => {
+    c.go('home', now);
+    c.go('skills', now);
+    c.skills.select('followThrough', now);
+  });
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('skill-tree.png', shot);
+  await camp((c, now) => {
+    c.go('home', now);
+    c.go('relics', now);
+    c.relics.select('overdrive', now);
+  });
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('relic-log.png', shot);
+});
+
+test('camp: Sable joins after Act 1', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stockProfile(page);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.profile.sableMet = false;
+    app.profile.heroes.sable.unlocked = false;
+    app.newRun();
+    app.openCamp(); // Sable's scene plays over the camp
+  });
+  await frames(page, 30);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.storySkip());
+  await frames(page, 20); // they appear by the fire in a puff of smoke
+  await expect(page).toHaveScreenshot('sable-joins.png', shot);
 });

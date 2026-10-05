@@ -303,3 +303,81 @@ test('launch: the layout catches up with a viewport that changes without a resiz
   expect(box?.width).toBeCloseTo(l.cssW, 1);
   expect(box?.x).toBeCloseTo(l.left, 1);
 });
+
+test('camp: learn a skill and reset, pick Sable on the hero select, read a new relic', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  // a profile saved before the load: Act 1 cleared (Sable has joined), Rowan at level 5 (two skill points), a new relic
+  await page.addInitScript(() => {
+    const hero = (unlocked: boolean, xp: number) => ({ unlocked, xp, skills: [] });
+    const p = { v: 3, actsCleared: 1, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 400), sable: hero(true, 0) }, relics: ['shortFuse'], relicsNew: ['shortFuse'] };
+    localStorage.setItem('cq3.profile.v2', JSON.stringify(p));
+  });
+  await ready(page);
+  const a = app(page);
+  const tapRect = async (r: { x: number; y: number; w: number; h: number }) => tapGame(page, r.x + r.w / 2, r.y + r.h / 2);
+  const saved = async () => JSON.parse(((await page.evaluate(() => localStorage.getItem('cq3.profile.v2'))) as string) ?? '{}');
+  const mode = () => a((x) => x.view.camp.mode);
+  const band = async () => (await a((x) => x.view.camp.band())) as Array<{ id: string; r: Any }>;
+  expect(await a((x) => x.profile.heroes.rowan.xp)).toBe(400);
+  await a((x) => {
+    x.newRun();
+    x.openCamp();
+  });
+  await expect.poll(() => a((x) => x.run.phase)).toBe('camp');
+  expect(await a((x) => x.storyOverlay)).toBeNull(); // Sable has already joined: no scene
+  await page.waitForTimeout(500);
+
+  // Skills: the first node to learn is picked; Learn spends a point (saved), Reset (a second tap confirms) refunds it
+  await tapRect((await band()).find((b) => b.id === 'skills')!.r);
+  await expect.poll(mode).toBe('skills');
+  await page.waitForTimeout(400);
+  expect(await a((x) => x.view.camp.skills.sel)).toBe('keenEdge');
+  await tapRect((await a((x) => x.view.camp.skills.learnRect())) as Any);
+  await expect.poll(() => a((x) => x.profile.heroes.rowan.skills.join())).toBe('keenEdge');
+  expect((await saved()).heroes.rowan.skills).toEqual(['keenEdge']);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: 'test-results/skills.png' });
+  await tapRect((await a((x) => x.view.camp.skills.resetRect())) as Any);
+  await page.waitForTimeout(250);
+  expect(await a((x) => x.profile.heroes.rowan.skills.length)).toBe(1); // the first tap only arms it
+  await tapRect((await a((x) => x.view.camp.skills.resetRect())) as Any);
+  await expect.poll(() => a((x) => x.profile.heroes.rowan.skills.length)).toBe(0);
+  expect((await saved()).heroes.rowan.skills).toEqual([]);
+  await tapRect((await a((x) => x.view.camp.kit.backRect())) as Any);
+  await expect.poll(mode).toBe('home');
+  await page.waitForTimeout(400);
+
+  // the hero chip opens the hero select; Sable's tab, then Pick: Sable fights next (at their own level, with their skills)
+  await tapRect((await a((x) => x.view.camp.chipRect())) as Any);
+  await expect.poll(mode).toBe('heroes');
+  await page.waitForTimeout(400);
+  await tapRect((await a((x) => x.view.camp.heroes.tabs().find((t: Any) => t.id === 'sable').r)) as Any);
+  await expect.poll(() => a((x) => x.view.camp.heroes.view)).toBe('sable');
+  await page.waitForTimeout(300);
+  await tapRect((await a((x) => x.view.camp.heroes.buttons().pick)) as Any);
+  await expect.poll(() => a((x) => x.profile.hero)).toBe('sable');
+  expect(await a((x) => x.run.hero.build.id)).toBe('sable');
+  expect((await saved()).hero).toBe('sable');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: 'test-results/heroes.png' });
+  await tapRect((await a((x) => x.view.camp.kit.backRect())) as Any);
+  await expect.poll(mode).toBe('home');
+  await page.waitForTimeout(400);
+
+  // the relic log: the new relic wears a NEW tag until it's looked at
+  await tapRect((await band()).find((b) => b.id === 'relics')!.r);
+  await expect.poll(mode).toBe('relics');
+  await page.waitForTimeout(500);
+  await tapRect((await a((x) => x.view.camp.relics.cell(1))) as Any); // Short Fuse, second in the log
+  await expect.poll(() => a((x) => x.view.camp.relics.sel)).toBe('shortFuse');
+  expect(await a((x) => x.profile.relicsNew.length)).toBe(0);
+  expect((await saved()).relicsNew).toEqual([]);
+  await page.screenshot({ path: 'test-results/relics.png' });
+  await a((x) => x.leaveCamp());
+  await expect.poll(() => a((x) => x.run.phase)).toBe('world');
+  expect(errors).toEqual([]);
+});

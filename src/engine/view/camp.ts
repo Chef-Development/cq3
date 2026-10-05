@@ -30,8 +30,6 @@ type G = Phaser.GameObjects.Graphics;
 type Mode = 'home' | 'bag' | 'forge' | 'stats' | 'heroes' | 'skills' | 'relics';
 type Spot = 'bag' | 'forge' | 'skills' | 'relics' | 'shrine' | 'leave';
 
-/** Where Sable sits by the fire (the art's spot once it's drawn; until then across the fire from Rowan). */
-const sableSpot = (): { x: number; y: number } => (CAMP_SPOTS as Record<string, { x: number; y: number }>).sable ?? { x: 176, y: 122 };
 
 interface Ember {
   x: number;
@@ -207,18 +205,11 @@ export class CampView {
     return { x: p.x - W / 2, y: p.y - H + 3, w: W, h: H };
   }
 
-  /** Sable's sprite: their own once drawn, else Rowan's camp pose as a shadow turned to face the fire. */
-  private sableArt(f: number): { key: string; own: boolean } {
-    const own = this.kit.has(`camp_sable${f}`);
-    return { key: own ? `camp_sable${f}` : `camp_rowan${f}`, own };
-  }
-
+  /** Sable on the firewood: just their sprite (a wider pad would reach the fire's and the forge's tap areas). */
   private sableRect(): Rect {
-    const [w, h] = this.kit.imgs.size(this.sableArt(0).key);
-    const p = sableSpot();
-    const W = Math.max(w + 8, 18);
-    const H = Math.max(h + 8, 24);
-    return { x: p.x - W / 2, y: p.y - H + 3, w: W, h: H };
+    const [w, h] = this.kit.imgs.size('camp_sable0');
+    const p = CAMP_SPOTS.sable;
+    return { x: p.x - (w >> 1), y: p.y - h, w: w - 3, h };
   }
 
   /** The hero chip, top left: the picked hero's face, name, level and XP (tap: the hero select). */
@@ -475,12 +466,7 @@ export class CampView {
     const here = this.sableHere();
     if (here && !this.sableShown) this.sableArrives(now);
     this.sableShown = here;
-    if (here) {
-      const art = this.sableArt(Math.floor((now + 340) / 720) % 2);
-      const [w, h] = im.size(art.key);
-      const sp = sableSpot();
-      kit.sprites.draw(art.key, sp.x - (w >> 1), sp.y - h, D.actors, { flip: !art.own, tint: art.own ? undefined : 0x6a5a9a, alpha: clamp01((now - this.sableAt) / 300) });
-    }
+    if (here) im.foot(Math.floor((now + 340) / 720) % 2 ? 'camp_sable1' : 'camp_sable0', S.sable.x, S.sable.y, D.actors, clamp01((now - this.sableAt) / 300));
     const hop = now - this.pipAt < 320 ? Math.round(Math.sin(((now - this.pipAt) / 320) * Math.PI) * 5) : 0;
     const pipF = hop || Math.floor(now / 2200) % 3 === 0 ? 'camp_pip1' : 'camp_pip0';
     im.foot(pipF, S.pip.x, S.pip.y - hop, D.actors);
@@ -525,12 +511,12 @@ export class CampView {
   private sableArrives(now: number): void {
     const kit = this.kit;
     const app = this.s.app;
-    const sp = sableSpot();
+    const sp = CAMP_SPOTS.sable;
     this.sableAt = now;
     kit.fx.burst(sp.x, sp.y - 12, [0x6a6478, 0x9a94a8, 0xd8d0f0, 0x4a4458], 34, 1.1, { kind: 'chip', g: -20, life: 800 });
     kit.fx.burst(sp.x, sp.y - 12, [0xdab0ff, WHITE], 12, 0.9, { kind: 'star', g: 20, life: 700 });
     kit.fx.ring(sp.x, sp.y - 12, 20, 0xdab0ff, 500);
-    kit.fx.float('Sable joined!', sp.x, sp.y - 44, 0xdab0ff, { life: 2200 });
+    kit.fx.float('Sable joined!', sp.x, sp.y - 58, 0xdab0ff, { life: 2200 });
     app.audio.whoosh();
     kit.after(160, () => app.audio.rareSting(true));
   }

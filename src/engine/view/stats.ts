@@ -154,12 +154,16 @@ export class StatsScreen {
     const g = kit.gUi;
     kit.drawBack(g, now);
     const name = HEROES[this.hero].name;
-    const end = kit.title(g, this.page === 'main' ? name : 'All stats', kit.backRect().x + kit.backRect().w + 4, 4, RIBBON.purple, this.page === 'main' ? `Lv ${kit.level(this.hero).level}` : name);
+    kit.title(g, this.page === 'main' ? name : 'All stats', kit.backRect().x + kit.backRect().w + 4, 4, RIBBON.purple, this.page === 'main' ? `Lv ${kit.level(this.hero).level}` : undefined);
     if (this.page === 'main') this.drawMain(g, now);
     else {
-      // the legend for the colored parts
-      let x = end;
-      for (const k of Object.keys(PART_COL) as Array<keyof typeof PART_COL>) {
+      // the legend for the colored parts, top right (right of the top bar's HTML buttons; "Base" goes if it's tight)
+      const keys = Object.keys(PART_COL) as Array<keyof typeof PART_COL>;
+      const w = (ks: typeof keys) => ks.reduce((a, k) => a + textWidth(PART_NAME[k], 1, false) + 5, -5);
+      const z = kit.hudZone();
+      const shown = w(keys) <= kit.s.R - 4 - (z.x + z.w + 2) ? keys : keys.slice(1);
+      let x = kit.s.R - 4 - w(shown);
+      for (const k of shown) {
         kit.texts.text(PART_NAME[k], x, 9.5, PART_COL[k], { oy: 0.5 });
         x += textWidth(PART_NAME[k], 1, false) + 5;
       }
@@ -220,7 +224,7 @@ export class StatsScreen {
     if (bk > 0) kit.button(g, texts, b, 'All stats', FACE.purple, now, { icon: 'stats', alpha: bk });
   }
 
-  /** The hero standing at 2x with their feet at (fx, fy): their fight idle, else their camp pose, else a shadow. */
+  /** The hero standing at 2x with their feet at (fx, fy): their fight idle. */
   private showcase(fx: number, fy: number, now: number): void {
     const kit = this.kit;
     const f = Math.floor(now / 420) % 2;
@@ -230,12 +234,10 @@ export class StatsScreen {
       kit.imgs.scaled(pose, fx - HERO_FEET_X * 2, fy - hh * 2, D.icons, 2);
       return;
     }
-    const id = this.hero;
-    const own = [`${id}_idle${f}`, `camp_${id}${f}`].find((k) => kit.has(k));
-    const key = own ?? (f ? 'hero_idle1' : 'hero_idle0');
-    const [w, h] = kit.imgs.size(key);
-    const x = own ? fx - w : fx - HERO_FEET_X * 2;
-    kit.sprites.draw(key, x, fy - h * 2, D.icons, { scale: 2, tint: own ? undefined : 0x3a2c58 });
+    // the other heroes' fight frames share Rowan's frame and feet point (art-sable.ts)
+    const key = `${this.hero}_idle${f}`;
+    const [, h] = kit.imgs.size(key);
+    kit.imgs.scaled(key, fx - HERO_FEET_X * 2, fy - h * 2, D.icons, 2);
   }
 
   private drawAll(g: G, now: number): void {

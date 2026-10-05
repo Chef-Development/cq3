@@ -17,9 +17,9 @@ type G = Phaser.GameObjects.Graphics;
 /** Characters per second the text types out at. */
 const TYPE_CPS = 55;
 /** Speakers whose portrait stands on the left (the heroes and the narrator); villains stand on the right. */
-const LEFT: Speaker[] = ['narrator', 'rowan', 'pip'];
-/** Friends on the right like a villain, but in warm colors: Mags the smith, and Sable (they join mid-scene). */
-const ALLY: Speaker[] = ['smith', 'sable'];
+const LEFT: Speaker[] = ['narrator', 'rowan', 'pip', 'sable'];
+/** Friends who aren't heroes (Mags the smith): on the right like a villain, but in warm forge colors. */
+const ALLY: Speaker[] = ['smith'];
 /** Portrait backdrop [top, bottom] and name ribbon per side. */
 const LOOK = {
   narrator: { bg: [0x3a3060, 0x1e1836], ribbon: RIBBON.purple, name: 0xf0e0ff },
@@ -159,11 +159,7 @@ export class StoryView {
     g.fillCircle(fx + fw / 2, fy + fw / 2 - 2, 9);
     const bob = typing && Math.floor(now / 140) % 2 === 0 ? 1 : 0;
     if (this.portrait) {
-      // (a portrait still being drawn shows as a shadow of Rowan's until its art lands)
-      const own = this.s.textures.exists(`portrait_${box.who}`);
-      const p = this.portrait.setTexture(own ? `portrait_${box.who}` : 'portrait_rowan').setPosition(Math.round(fx + fw / 2), fy + fw - 3 - bob).setVisible(true);
-      if (own) p.clearTint();
-      else p.setTint(0x2a2040);
+      const p = this.portrait.setTexture(`portrait_${box.who}`).setPosition(Math.round(fx + fw / 2), fy + fw - 3 - bob).setVisible(true);
       // keep the portrait inside its frame
       const over = Math.max(0, p.height - (fw - 6));
       p.setCrop(0, over, p.width, p.height - over);

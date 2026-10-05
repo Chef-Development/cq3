@@ -8,11 +8,11 @@ import { HEROES, type HeroId, type KitPart } from '../../data/heroes';
 import { selectHero } from '../../core/profile';
 import type { Tuning } from '../../core/tuning';
 import { textWidth } from '../font';
-import { CampKit, D, GOLD_TXT, GREEN, pix, pixSize } from './camp-kit';
+import { CampKit, D, DIM_TXT, GOLD_TXT, GREEN, pix, pixSize } from './camp-kit';
 import { padlock, wrapText } from './items';
 import { glow, GOLD, NAVY, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, pulse, WHITE, type Rect } from './shared';
-import { FACE, notePress, tag } from './ui';
+import { FACE, notePress, RIBBON, tag } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -105,6 +105,7 @@ export class HeroesScreen {
       if (this.view !== id) {
         this.view = id;
         this.viewAt = now;
+        kit.fadeToast();
         app.audio.uiClick();
       }
       return;
@@ -154,7 +155,19 @@ export class HeroesScreen {
     kit.fx.ring(f.x + f.w / 2, f.y + f.h / 2, 30, 0xfff0a0, 480);
     kit.fx.burst(f.x + f.w / 2, f.y + f.h / 2, [0xfff0a0, 0xffd23a, WHITE, GREEN], 26, 1.1, { kind: 'star', g: 30, life: 700 });
     const c = this.card();
-    kit.fx.float(`${HEROES[id].name} fights next!`, c.x + c.w / 2, c.y + 36, 0xfff0a0, { life: 1600 });
+    kit.after(200, () =>
+      kit.toast({
+        title: `${HEROES[id].name} picked!`,
+        ribbon: RIBBON.green,
+        lines: [],
+        text: [
+          { text: `${HEROES[id].name} fights next`, col: WHITE, bold: true },
+          { text: 'Same gear, their own level', col: 0xc8c0e8 },
+        ],
+        cx: c.x + c.w / 2,
+        cy: c.y + 84,
+      }),
+    );
   }
 
   // ------------------------------------------------------------------ drawing
@@ -219,7 +232,7 @@ export class HeroesScreen {
     const ax = f.x + Math.round((f.w - w) / 2);
     const ay = f.y + f.h - 2 - Math.min(h, f.h - 4) - hop;
     const cropH = Math.min(h, f.h - 4 + hop);
-    kit.sprites.draw(art.key, ax, ay, D.icons, { crop: [0, 0, w, cropH], tint: dark ? 0x140c1c : art.shadow ? 0x3a2c58 : undefined });
+    kit.sprites.draw(art.key, ax, ay, D.icons, { crop: [0, 0, w, cropH], tint: dark ? 0x3a3058 : art.shadow ? 0x3a2c58 : undefined, alpha: dark ? 0.9 : 1 });
     if (dark) kit.texts.text('?', f.x + f.w / 2, f.y + f.h / 2, 0x8a7cc0, { bold: true, scale: 2, ox: 0.5, oy: 0.5 });
     // corner studs
     g.fillStyle(dark ? 0x8a80a0 : GOLD[4], 1);
@@ -295,6 +308,20 @@ export class HeroesScreen {
       });
       y += lines.length * 8 + 2;
     });
+    // the skills learned, as icons (when the card has room under the kit)
+    const learned = p.heroes[id]?.skills ?? [];
+    if (y + 12 <= c.y + c.h - 5) {
+      y += 4;
+      kit.divider(g, kx, y - 6, kw);
+      texts.text('Skills', kx, y, 0xc8c0e8, { bold: true, oy: 0.5, alpha: a });
+      let x = kx + textWidth('Skills', 1, true) + 5;
+      if (!learned.length) texts.text(L.points ? 'none yet: tap Skills at the camp' : 'none yet', x, y, DIM_TXT, { oy: 0.5, alpha: a });
+      for (const sid of learned) {
+        if (x + 13 > kx + kw) break;
+        if (kit.has(`skill_${sid}`)) kit.sprites.draw(`skill_${sid}`, x, y - 6, D.icons, { alpha: a });
+        x += 14;
+      }
+    }
   }
 
   /** Sable before they join: a silhouette, and how to meet them. */
@@ -317,9 +344,10 @@ export class HeroesScreen {
     const cy = w.y + w.h / 2;
     const msg = 'Clear Act 1';
     const mw = textWidth(msg, 2, true);
-    const x0 = Math.round(w.x + w.w / 2 - (mw + 14) / 2);
-    padlock(g, x0, Math.round(cy - 10), 1, GOLD[3]);
-    texts.text(msg, x0 + 12, cy - 6, GOLD_TXT, { bold: true, scale: 2, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a, alpha: 0.75 + 0.25 * pulse(now, 1200) });
+    const [lw, lh] = kit.imgs.size('padlock');
+    const x0 = Math.round(w.x + w.w / 2 - (mw + lw + 6) / 2);
+    kit.imgs.at('padlock', x0, Math.round(cy - 6 - lh / 2), D.icons);
+    texts.text(msg, x0 + lw + 6, cy - 6, GOLD_TXT, { bold: true, scale: 2, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a, alpha: 0.75 + 0.25 * pulse(now, 1200) });
     texts.text('to meet a new hero', w.x + w.w / 2, cy + 9, 0xc8c0e8, { ox: 0.5, oy: 0.5 });
   }
 }

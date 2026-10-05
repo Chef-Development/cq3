@@ -11,6 +11,7 @@ import { levelProgress, pointsLeft } from '../../core/heroes';
 import { heroProgress, profileBuild } from '../../core/profile';
 import type { FightScene } from '../scene';
 import { textWidth } from '../font';
+import { GAME_W } from '../layout';
 import { padlock } from './items';
 import { button3d, chevron, gauge, glow, GOLD, hudIcon, iconSize, NAVY, panel, rows } from './pixels';
 import { clamp01, easeBack, easeOut3, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
@@ -893,12 +894,15 @@ export class CampKit {
     }
   }
 
-  /** Where the HTML buttons sit in the top bar's middle (the tuning panel's gear): keep the top bar clear of it. */
+  /**
+   * Where the tuning panel's gear button sits in the top bar's middle (an HTML button over the canvas, right of the
+   * hidden pause button: style.css #hud): keep the top bar clear of it.
+   */
   hudZone(): Rect {
     const l = this.app.layout;
     const vw = typeof window !== 'undefined' ? window.innerWidth : l.cssW;
-    const cx = ((vw / 2 - l.left) * 327) / l.cssW;
-    return { x: Math.floor(cx - 18), y: 0, w: 36, h: 19 };
+    const cx = ((vw / 2 - l.left) * GAME_W) / l.cssW;
+    return { x: Math.floor(cx - 1), y: 0, w: 19, h: 19 };
   }
 
   /** Show a toast (what just changed) centred on (cx, cy). */
