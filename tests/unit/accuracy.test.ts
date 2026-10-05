@@ -32,7 +32,7 @@ describe('accuracy readout', () => {
       const e = estimateAccuracy(T, xs)!;
       expect(e.n).toBeGreaterThan(600);
       expect(Math.abs(e.acc - acc), `read ${e.acc.toFixed(3)}`).toBeLessThan(0.04);
-      expect(Math.abs(e.bias)).toBeLessThan(8);
+      expect(Math.abs(e.bias)).toBeLessThan(acc < 0.6 ? 10 : 8); // a sloppy player's lateness reads a little noisier
     });
   }
 

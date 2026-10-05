@@ -128,7 +128,7 @@ describe('Blade', () => {
     const { c } = fight(['whetstone'], { tune: (t) => (t.skills.n.whetstone = 3) });
     const crits = [1, 2, 3, 4, 5, 6].map(() => (tapNew(c, 'yellow', false), lastHit(c.drainEvents()).crit));
     expect(crits).toEqual([false, false, true, false, false, true]);
-    const { c: dt } = fight(['whetstone', 'doubleTime']);
+    const { c: dt } = fight(['whetstone', 'doubleTime'], { tune: (t) => (t.skills.n.whetstone = 8) });
     dt.combo = 7;
     tapNew(dt, 'yellow', true); // 7 -> 9
     expect(dt.combo).toBe(9);
@@ -136,7 +136,7 @@ describe('Blade', () => {
   });
 
   it('Executioner: foes under n% HP take double damage from yellows, not greens', () => {
-    const { c, t } = fight(['executioner'], { enemies: ['bandit'] });
+    const { c, t } = fight(['executioner'], { enemies: ['bandit'], tune: (t) => (t.skills.n.executioner = 20) });
     const e = c.enemies[0];
     const line = (skillN(t, 'executioner') / 100) * e.maxHp; // 28 of 140
     e.hp = Math.ceil(line); // not under it yet
@@ -209,7 +209,7 @@ describe('Bulwark', () => {
 
   it('Shield Bash: the stunned foe really stops spawning for n s', () => {
     const seqAfter = (skills: string[]) => {
-      const { c, t } = fight(skills, { spawning: true });
+      const { c, t } = fight(skills, { spawning: true, tune: (t) => (t.skills.n.shieldBash = 2) });
       const e = c.enemies[0];
       tapNew(c, 'shield', true);
       c.tap(c.time);

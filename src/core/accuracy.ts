@@ -31,16 +31,16 @@ export const ISOLATION_MS = 150;
 export const SD_CALIBRATION: Array<[number, number]> = [
   [0, 0],
   [19.3, 19.8],
-  [28.2, 28.1],
+  [26.7, 28.1],
   [34.1, 36.2],
-  [38.5, 42.3],
+  [41.5, 42.3],
   [46, 50.3],
   [54.9, 60.1],
-  [63.8, 71.2],
-  [69.7, 83],
-  [83, 105.2],
-  [89, 138.8],
-  [97.9, 198],
+  [62.3, 71.2],
+  [72.6, 83],
+  [78.6, 105.2],
+  [84.5, 138.8],
+  [94.9, 198],
 ];
 
 /** The bot's timing spread for a raw measured spread (piecewise linear through SD_CALIBRATION). */

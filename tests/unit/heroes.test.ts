@@ -6,7 +6,7 @@ import type { NodeType } from '../../src/data/types';
 import { SKILL_NODES, skillById, skillHero } from '../../src/data/skills';
 import { heroMaxHp, newHero } from '../../src/core/combat';
 import { emptyLoadout } from '../../src/core/gear';
-import { actXp, addXp, killXp, levelFromXp, levelProgress, maxLevel, skillPreview, xpForLevel, xpToNext, type HeroId } from '../../src/core/heroes';
+import { actXp, addXp, killXp, levelFromXp, levelProgress, maxLevel, skillN, skillPreview, xpForLevel, xpToNext, type HeroId } from '../../src/core/heroes';
 import { heroProgress, meetSable, newProfile, profileBuild, readProfile, selectHero, type Profile } from '../../src/core/profile';
 import { unlocksFor } from '../../src/core/relics';
 import { Run, skillStatPreview } from '../../src/core/run';
@@ -274,11 +274,11 @@ describe('skill previews', () => {
   const t = cloneTuning();
   const want: Record<string, string> = {
     keenEdge: 'ATK 10 -> 11',
-    steadyAim: 'Crit 5% -> 10%',
-    stout: 'Max HP 100 -> 110',
-    plateTraining: 'DEF 0 -> 8',
-    rhythm: 'Meter +0% -> +10%',
-    powerStance: 'Combo 5 -> 6',
+    steadyAim: 'Crit 5% -> 13%',
+    stout: 'Max HP 100 -> 108',
+    plateTraining: 'DEF 0 -> 5',
+    rhythm: 'Meter +0% -> +15%',
+    powerStance: 'Combo 5 -> 6.5',
     quickHands: 'ATK 10 -> 11',
     lightGrip: 'Crit 5% -> 10%',
     wiry: `Max HP ${t.sable.maxHp} -> ${Math.round(t.sable.maxHp * 1.1)}`,
@@ -301,6 +301,9 @@ describe('skill previews', () => {
   });
 
   it('from where the hero stands: a level-10 Rowan with other nodes learned', () => {
+    const t = cloneTuning();
+    t.skills.n.keenEdge = 8;
+    t.skills.n.stout = 10;
     const hero = newHero(t, emptyLoadout(), { id: 'rowan', level: 10, skills: ['stout'] });
     expect(show(skillStatPreview(t, hero, 'keenEdge'))).toBe('ATK 11 -> 12'); // 11.35 -> 12.26
     expect(show(skillStatPreview(t, hero, 'stout'))).toBe(`Max HP ${100 + 18} -> ${Math.round(118 * 1.1)}`);
@@ -308,7 +311,7 @@ describe('skill previews', () => {
 
   it('rule nodes have no stat preview: they show their before and after text, with the number in it', () => {
     for (const node of SKILL_NODES.filter((n) => n.kind !== 'stat')) expect(skillStatPreview(t, newHero(t), node.id), node.id).toBeNull();
-    expect(skillPreview(t, skillById('whetstone')!)).toEqual({ before: 'Crits come by chance.', after: 'Every 8th combo hit crits.' });
-    expect(skillPreview(t, skillById('keenEdge')!)).toEqual({ stat: 'ATK', delta: '+8%' });
+    expect(skillPreview(t, skillById('whetstone')!)).toEqual({ before: 'Crits come by chance.', after: `Every ${skillN(t, 'whetstone')}th combo hit crits.` });
+    expect(skillPreview(t, skillById('keenEdge')!)).toEqual({ stat: 'ATK', delta: `+${skillN(t, 'keenEdge')}%` });
   });
 });
