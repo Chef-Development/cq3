@@ -44,7 +44,8 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   drives both the layered sound (`audio.ts`: crack, saturated body, tail, sub) and the visuals (`fx.impact()`:
   hit-stop, shake, white frames, music duck). Impact sounds play from the view when the blow lands on screen.
   New sounds go in the `SFX` catalog so the Sound lab and the level tests pick them up. Each place has a seeded
-  ambience bed (`audio.setAmbience`, cued with the music in `app.ts`) that sits well under the music and impacts.
+  ambience bed (`audio.setAmbience`, cued with the music in `app.ts`; the camp has a campfire-and-crickets one) that sits
+  well under the music and impacts.
 - **Balance:** combat numbers were set with the bot, which plays whole acts picking map nodes at random and aims
   like a person (a timing error in ms, reaction time, a thumb's tap rate; the real judge decides each tap), so thin
   or fast blocks and a fast cursor are as hard for it as for a player. It wears the best gear it finds (item power).
@@ -82,14 +83,15 @@ src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Ph
                clock, routes core events to view/), input.ts, debug.ts (tuning panel, Sound lab, Jump to),
                calibrate.ts, audio.ts (sounds, music, ambience), art.ts / art-foes.ts / art-story.ts / art-world.ts /
                art-map.ts / art-stage.ts (sprites, portraits, the world map, act map landscapes, fight lighting),
-               art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith),
+               art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-paint.ts (painting helpers),
                backdrop.ts (forest, ruins, hollow), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
 src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemies, Pip, telegraphs, summons,
                finisher show, deaths), effects.ts (particles, floaters, camera), bar.ts (timing bar, blocks,
                telegraph previews, cursor), hud.ts (stats, meter, coins, stat rain), overlays.ts (title, boost,
                chest, defeat, victory, pause), world.ts (kingdom world map), map.ts (act map), story.ts (scenes),
-               nodes.ts (rest, shop, events), camp.ts (camp, bag, forge, shrine, stats), loot.ts (loot reveal),
-               items.ts (item cells with rarity frames, item text),
+               nodes.ts (rest, shop, events), camp.ts (the camp home; bag.ts, forge.ts, stats.ts its screens;
+               item-grid.ts the bag grid and worn slots; camp-kit.ts their shared layers, effects and buttons),
+               loot.ts (loot reveal and Legendary/Mythic cards), items.ts (item cells with rarity frames, item text),
                ui.ts (text pool, panels), transition.ts (screen wipes), icons.ts, pixels.ts (panels, gauges,
                buttons), shared.ts
 tests/unit/    Vitest tests for src/core and src/data (specials, waves, map, run, save, bot targets, content checks), plus
