@@ -247,6 +247,9 @@ describe('Bulwark', () => {
     letRedThrough(c);
     expect(c.hero.hp).toBe(100 - t.enemies.slime.atk);
     expect(c.combo).toBe(0);
+    // and once a fight: blocks don't charge another bubble
+    for (let i = 0; i < n + 1; i++) tapNew(c, 'red', false);
+    expect(c.perk).toMatchObject({ shieldWall: 0, shieldWallCharge: 0, shieldWallUsed: 1 });
   });
 
   it("Shield Wall: a shield counts once (when it breaks), and a bomb that gets through is eaten too", () => {

@@ -96,9 +96,11 @@ export const SKILL_HOOKS: Record<string, FightHooks> = {
     start: (c) => {
       c.perk.shieldWall = 0;
       c.perk.shieldWallCharge = 0;
+      c.perk.shieldWallUsed = 0;
     },
     afterBlock: (c, x) => {
-      if (x.cracked || x.echo || c.perk.shieldWall) return;
+      // once a fight: a bubble that has popped doesn't charge again
+      if (x.cracked || x.echo || c.perk.shieldWall || c.perk.shieldWallUsed) return;
       c.perk.shieldWallCharge = (c.perk.shieldWallCharge ?? 0) + 1;
       if (c.perk.shieldWallCharge < wallEvery(c)) return;
       c.perk.shieldWallCharge = 0;
@@ -108,6 +110,7 @@ export const SKILL_HOOKS: Record<string, FightHooks> = {
     impact: (c, b) => {
       if (!c.perk.shieldWall) return false;
       c.perk.shieldWall = 0;
+      c.perk.shieldWallUsed = 1;
       c.perkFx('shieldWall', 0, b.ownerId, b.pos);
       return true;
     },

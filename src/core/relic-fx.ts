@@ -324,7 +324,7 @@ export const RELIC_HOOKS: Partial<Record<RelicId, FightHooks>> = {
   clutch: {
     miss: (c, x) => {
       x.breaks = false;
-      x.damage = Math.max(x.damage, n(c, 'clutch'));
+      x.damage = Math.max(x.damage, Math.round((c.maxHp() * n(c, 'clutch')) / 100));
       c.perkFx('clutch');
     },
   },

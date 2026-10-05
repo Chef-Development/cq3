@@ -421,7 +421,7 @@ describe('combo relics', () => {
     expect(finisherDmg(on.c.drainEvents())).toBe(Math.round(base * (1 + (relicN(on.t, 'crescendo') * 20) / 100)));
   });
 
-  it('Clutch: a miss no longer breaks the combo, but costs n HP', () => {
+  it('Clutch: a miss no longer breaks the combo, but costs n% of max HP', () => {
     const { on, off } = both('clutch');
     for (const { c } of [on, off]) {
       c.combo = 7;
@@ -430,7 +430,7 @@ describe('combo relics', () => {
     }
     expect(on.c.combo).toBe(7);
     expect(on.c.stacks).toBe(2);
-    expect(on.c.hero.hp).toBe(100 - relicN(on.t, 'clutch'));
+    expect(on.c.hero.hp).toBe(100 - Math.round((100 * relicN(on.t, 'clutch')) / 100));
     expect(off.c.combo).toBe(0);
     expect(off.c.stacks).toBe(0);
     expect(off.c.hero.hp).toBe(100 - off.t.judge.missSelfDamage);
