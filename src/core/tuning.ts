@@ -287,6 +287,7 @@ export const DEFAULT_TUNING = {
     epicW: 0.14,
     synergy: 1.2, // ...times (1 + synergy x the number of its tags you already own), so builds form
     price: 1.25, // shops: a relic costs the boost card price of its rarity x this
+    echoDelay: 1, // Echo Strike: seconds (of motion) between the finisher and its echo
     // each relic's one number (src/data/relics.ts has the text; '{n}' shows it)
     n: Object.fromEntries(RELICS.filter((r) => r.n !== undefined).map((r) => [r.id, r.n as number])) as Record<string, number>,
   },
@@ -748,6 +749,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('relics.epicW', 'Weight: epic relic', 0, 3, 0.01),
         s('relics.synergy', 'Synergy lean', 0, 5, 0.1),
         s('relics.price', 'Shop: relic price x', 0.2, 4, 0.05),
+        s('relics.echoDelay', 'Echo Strike: delay (s)', 0.2, 3, 0.05),
         s('kit.relicPicks', 'Replay: relic picks per act', 0, 6, 1),
       ],
     },
