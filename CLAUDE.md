@@ -58,10 +58,19 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   into the profile's purse; v6 = relics: a v5 save gets none; older saves are dropped). The **profile** (`core/profile.ts`, key `cq3.profile.v2`) is kept
   across runs: progress, the bag (60 items), what's equipped, coins (the purse carries over between runs), scrap, each
   signature drop's bad-luck counter, the accuracy log, whether the smith was met; v3 adds the heroes (picked, XP, skills, Sable met, the twin tutorial
-  shown) and the relics unlocked. `readProfile` migrates v1 (progress only) and v2 (Rowan gets the cleared acts'
+  shown) and the relics unlocked, the tips seen and whether tips are off (still v3: missing reads as none; a profile
+  from before the tips that has cleared an act gets the basics' tips marked seen). `readProfile` migrates v1 (progress only) and v2 (Rowan gets the cleared acts'
   first-clear XP; their relics unlock). Gear is not saved in the run: the hero's `gear` loadout always comes from the profile (`run.refreshGear()`).
   Gear and coins found are kept when you die. "New run" keeps the profile (the title says "Keeps your gear"); the gear
   panel's "Start over" (asked twice) erases the profile and the run, keeping tuning and settings (`eraseProgress`).
+- **Teach it slowly (tips).** One short tip, shown once, the moment a system first matters: the words in
+  `src/data/tips.ts` (max 2 lines, `TIP_TEXT_W` px each, an anchor, pre-fight or pausing; the order is the priority),
+  the when in `core/tips.ts` (`TipCoach`: fed the fight's events and asked every frame; one at a time, one per screen,
+  a few seconds apart in a fight; seen ids in `profile.tips`), the card in `view/tips.ts` (only at a safe moment: no
+  scene, wipe, card, toast, panel or tutorial; seen and saved the moment it shows; in a fight `App.tipUp` stops the
+  clock and the next tap only dismisses it). The gear panel has "Tips: on/off" and "Show tips again". A returning
+  player's first launch of a new version plays Pip's welcome back over the title once (`welcomeScene`; new players
+  never get it). Smoke and screenshot tests run with tips off unless they ask for them (`ready`/`boot` `{ tips: true }`).
 - **Impacts** (hits, blocks, bombs, finisher blows, kills) are tiered by one weight each in `tuning.impact`, which
   drives both the layered sound (`audio.ts`: crack, saturated body, tail, sub) and the visuals (`fx.impact()`:
   hit-stop, shake, white frames, music duck). Impact sounds play from the view when the blow lands on screen.
@@ -104,7 +113,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 src/data/      enemies.ts (stats, patterns, specials), greenmarch.ts (acts, encounters, map weights), events.ts,
                story.ts (scenes), types.ts
 src/data/gear.ts  stats, slots, rarities, base items, sets, unique effects, signature drops
-src/data/relics.ts (40 relics, tags, build names), heroes.ts (Rowan, Sable), skills.ts (both trees)
+src/data/relics.ts (40 relics, tags, build names), heroes.ts (Rowan, Sable), skills.ts (both trees), tips.ts (the tips)
 src/core/      tuning.ts (numbers), combat.ts (sim; heroStats, gear effects), specials.ts (special-move actions),
                blocks.ts, map.ts (act maps), run.ts (region flow: map, nodes, loot, boosts, shop, events, scenes,
                camp, replaying acts, revive/retry), gear.ts (item stats, drops, bad-luck protection, forge prices),
@@ -112,8 +121,8 @@ src/core/      tuning.ts (numbers), combat.ts (sim; heroStats, gear effects), sp
                (accuracy readout), hooks.ts (fight hooks), relic-fx.ts / skill-fx.ts / skill-fx-sable.ts / kit-fx.ts (the
                relics, skill nodes and kits as hooks), relics.ts (offers, synergy, build names, unlocks), heroes.ts (XP,
                levels, skill trees), impact.ts (impact tier weights -> hit-stop/shake/flash and sound layers), save.ts
-               (save at every node, migrations), bot.ts (balance bot, farming), clock.ts, calibration.ts, swipe.ts,
-               rng.ts
+               (save at every node, migrations), bot.ts (balance bot, farming), tips.ts (which tip shows when; the
+               welcome back), clock.ts, calibration.ts, swipe.ts, rng.ts
 src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Phaser scene: layout, layers, anim
                clock, routes core events to view/), input.ts, debug.ts (tuning panel, Sound lab, Jump to),
                calibrate.ts, audio.ts (sounds, ambience), music.ts (the soundtrack), art.ts / art-foes.ts / art-story.ts / art-world.ts /
@@ -129,7 +138,7 @@ src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemi
                slots; camp-kit.ts their shared layers, effects, buttons and hero tabs; the top bar's middle is
                kept clear for the HTML gear button: kit.hudZone()), relic-ui.ts (relic icons, tag chips, relic
                cards, perk names), loot.ts (loot reveal and Legendary/Mythic cards), items.ts (item cells with rarity frames, item text),
-               ui.ts (text pool, panels), transition.ts (screen wipes), icons.ts, pixels.ts (panels, gauges,
+               ui.ts (text pool, panels), transition.ts (screen wipes), tips.ts (the tip card), icons.ts, pixels.ts (panels, gauges,
                buttons), shared.ts
 tests/unit/    Vitest tests for src/core and src/data (specials, waves, map, run, save, bot targets, content checks), plus
                audio.test.ts: renders every sound on an OfflineAudioContext (node-web-audio-api) and checks levels

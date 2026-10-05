@@ -219,6 +219,23 @@ export class MapView {
     return null;
   }
 
+  /** The hero is walking to a node (a tip waits). */
+  get walking(): boolean {
+    return !!this.walk;
+  }
+
+  /** Where these nodes stand on the map, each with its tag (what a tip points at). */
+  nodeRects(ids: number[]): Rect[] {
+    const run = this.s.app.run;
+    const tags = this.layoutTags();
+    return ids.flatMap((id) => {
+      const n = run.map.nodes[id];
+      if (!n) return [];
+      const t = tags.find((q) => q.id === id);
+      return t ? [this.nodeBox(n), { x: t.x, y: t.y, w: t.w, h: t.h }] : [this.nodeBox(n)];
+    });
+  }
+
   /** Whether a tap lands on the Camp button (not while Rowan walks). */
   campAt(x: number, y: number): boolean {
     if (this.walk || !inRect(this.campRect(), x, y, 2)) return false;
