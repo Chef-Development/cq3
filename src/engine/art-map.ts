@@ -1,6 +1,6 @@
 // The act map's art (see docs/art-style.md): a small living world seen from above at a slight angle, one per act
 // theme (the sunny Meadow Road, the Old Ruins at dusk, the Boar King's Hollow at sunset). Two kinds of art:
-//   - sprites built once at boot (buildMapArt): map-scale Rowan and Pip, a mini version of every enemy for the
+//   - sprites built once at boot (buildMapArt): map-scale Rowan, Sable and Pip, a mini version of every enemy for the
 //     fight nodes, the node props (campfire, chest, stall, "?", flag), the boss lairs and the ambient critters;
 //   - the act's landscape (paintLand), painted per map with the backdrop toolkit because the roads and the
 //     clearings follow that map's nodes. It comes out as LAND_FRAMES frames that differ only in how the trees,
@@ -80,6 +80,48 @@ function rowanFrame(legs: string, bob: number, flap: boolean): HTMLCanvasElement
   stamp(g, ROWAN_TOP, ROWAN_PAL, 1, top);
   if (flap) stamp(g, ROWAN_CAPE_FLAP, ROWAN_PAL, 0, top + 7);
   stamp(g, ROWAN_LEGS[legs], ROWAN_PAL, 1, ROWAN_H - 2 - 2);
+  return toCanvas(g);
+}
+
+// Sable at the same scale (same frame size and feet point as Rowan): plum hood with the eye slit, the teal mask and
+// its tail streaming back, the coral sash, a dagger in each hand held point-down.
+const SABLE_PAL: Pal = {
+  1: '#1c1632', 2: '#2c2250', 3: '#41306a', 4: '#5a3e84', 5: '#7a5498', 6: '#a274b0', 7: '#c69ac4',
+  b: '#135a62', c: '#1c8a80', d: '#34b496', e: '#74dcb0',
+  q: '#d05a3a', R: '#9a3030', S: '#f6c494', k: '#140c1c',
+  V: '#dcd2e6', w: '#6e6488', A: '#e6eef8', L: '#a8b4d0', g: '#e0a030',
+};
+const SABLE_TOP = [
+  '...45664...',
+  '..5677654..',
+  '.566655443.',
+  '.5654SkSk3.',
+  '..543eeddc.',
+  '..2456654g.',
+  '...566654A.',
+  '..g5qqqRRL.',
+  '.L.43332.A.',
+  'L..32.32...',
+];
+/** The scarf tail: drooping at rest, streaming back on the move. [rows, x, y] relative to the top map. */
+const SABLE_TAIL: Record<'rest' | 'flap', [string[], number, number]> = {
+  rest: [['.ed', 'dc.', 'c..', 'b..'], 0, 4],
+  flap: [['..edd', 'edcc.', 'c....'], -1, 4],
+};
+const SABLE_LEGS: Record<string, string[]> = {
+  stand: ['...Vw.Vw...', '...21.21...'],
+  a: ['..Vw...Vw..', '.21.....21.'],
+  pass: ['....Vww....', '....211....'],
+  b: ['..wV...wV..', '.12.....12.'],
+};
+
+function sableFrame(legs: string, bob: number, flap: boolean): HTMLCanvasElement {
+  const g = grid(ROWAN_W, ROWAN_H);
+  const top = ROWAN_H - 2 - SABLE_LEGS.stand.length - SABLE_TOP.length + bob;
+  const [tail, tx, ty] = SABLE_TAIL[flap ? 'flap' : 'rest'];
+  stamp(g, tail, SABLE_PAL, 1 + tx, top + ty);
+  stamp(g, SABLE_TOP, SABLE_PAL, 1, top);
+  stamp(g, SABLE_LEGS[legs], SABLE_PAL, 1, ROWAN_H - 2 - 2);
   return toCanvas(g);
 }
 
@@ -1777,6 +1819,13 @@ export function buildMapArt(add: Add, w: number, h: number): void {
   add('mrow_walk1', rowanFrame('pass', -1, false));
   add('mrow_walk2', rowanFrame('b', 0, true));
   add('mrow_walk3', rowanFrame('pass', -1, false));
+  // Sable: the same frames (same size and feet point as Rowan's)
+  add('msab_idle0', sableFrame('stand', 0, false));
+  add('msab_idle1', sableFrame('stand', 1, false));
+  add('msab_walk0', sableFrame('a', 0, true));
+  add('msab_walk1', sableFrame('pass', -1, false));
+  add('msab_walk2', sableFrame('b', 0, true));
+  add('msab_walk3', sableFrame('pass', -1, false));
   add('mpip_0', pipFrame(false));
   add('mpip_1', pipFrame(true));
   // the enemies' stand-ins

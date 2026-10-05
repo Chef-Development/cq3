@@ -6,6 +6,8 @@ import type Phaser from 'phaser';
 import { buildCampArt } from './art-camp';
 import { buildFoeArt } from './art-foes';
 import { buildGearArt } from './art-gear';
+import { buildRelicArt } from './art-relics';
+import { buildSableArt } from './art-sable';
 import { buildStoryArt } from './art-story';
 
 export const OUTLINE = '#140c1c';
@@ -194,7 +196,7 @@ const BACK_FIST = ['sSm', 'msM'];
 
 type Dir = 'r' | 'l' | 'u' | 'd' | 'ur' | 'ul' | 'dr' | 'dl';
 
-interface Pose {
+export interface Pose {
   dir: Dir; // sword direction (8-way, clean pixel slopes only)
   hand: [number, number]; // sword hand, relative to the feet (x right, y up)
   legs?: 'stand' | 'stride' | 'tuck';
@@ -312,7 +314,8 @@ const SWORD_PAL: Pal = {
 
 const GAUNTLET = ['sSs', 'msm', 'MmM'];
 
-function heroFrame(p: Pose): HTMLCanvasElement {
+/** Rowan in a pose (HERO_W x HERO_H, feet at HERO_FEET_X on the row above the bottom outline row). */
+export function heroFrame(p: Pose): HTMLCanvasElement {
   const g = grid(HERO_W, HERO_H);
   const pal = HERO_PAL;
   const feetY = HERO_H - 2; // keep one row for the outline under the boots
@@ -1196,5 +1199,7 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   buildFoeArt(add);
   buildStoryArt(add);
   buildGearArt(add);
+  buildSableArt(add);
+  buildRelicArt(add);
   buildCampArt(add, w, 150);
 }
