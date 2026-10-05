@@ -7,6 +7,8 @@ Greenmarch**: three acts of branching node maps, enemies with telegraphed specia
 farming cleared acts, plus an **accuracy readout** measured like the balance bot defines it. M4a ("depth") added
 choices that change how you play: **relics** (run picks that change a rule), a second hero, **Sable** (two cursors),
 **hero levels and skill trees**, and a **soundtrack per act** (calm/intense arrangements, boss themes, combo layers).
+Playtest round 4 added **map content**: wandering packs (ambushes) and a travelling merchant on the act map, a Coin
+Rush mini-game stop, bounties (side quests), a secret cache per act, and a wandering foe on the world map (skirmishes).
 The user playtests on an iPhone 16 Pro and does not read long output; a separate planning chat orchestrates.
 
 ## Rules
@@ -34,6 +36,27 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `sable-skills.test.ts`). Relics never flat-bump a stat. Run-level relics (shops, rests, map steps) live in `run.ts`.
   Offers (`core/relics.ts`): mostly relics plus at most one stat card, leaning toward owned tags ("Synergy!"); relics
   carry and reset like boosts (`hero.relics`, never mutated in place); replays draft `kit.relicPicks` per act behind.
+- **Map extras** (`core/roam.ts`, `quests.ts`, `skirmish.ts`; numbers in `tuning.extras/roam/rush/quests/secret/wander`).
+  After `buildActMap`, `addExtras` (its own random stream: the map itself is unchanged) turns a fight mid-act into a
+  **Coin Rush** (`rush` node) and an early event/fight into a **bounty board** (`bounty` node), hides a **secret** beside
+  one node, and sets who roams: 1-2 **packs** (`acts[i].packs` in greenmarch.ts, more in later acts) and a travelling
+  **merchant**. Roamers step along the links (either way) each time the hero moves, their next step known a step ahead
+  (`roamAt` replays the path from the seed: roamers are never saved). Stepping onto a roamer's node, or onto the node it
+  steps to, meets it: a pack is an **ambush** (`run.ambush`: on a fight node its foes join as extra waves, elsewhere it's
+  fought first and the node's stop opens after, `PickThen` 'node'; it pays coins, an extra Uncommon+ item and a rare
+  pick), the merchant opens her small shop (`run.merchant`). They never touch the boss, a rest or an elite, never
+  share a node, and always leave the hero a clear next step (with a step of look-ahead; `tests/unit/roam.test.ts` walks
+  every path). Coin Rush is `Combat` with `rush` (seconds): the `coinSack` (yellows only) can't die, every hit pays
+  coins (`rushHitCoins`), misses don't hurt, only the kit's hooks run, the clock ends it; an interrupted one saves as
+  the map. Bounties (`src/data/quests.ts`): taken at the board, counted from won fights (`Combat.log`: reds blocked,
+  best combo, clean waves, kills; elite, HP left), paid when met (coins, a Rare+ item, or a relics-only pick after the
+  fight's, `run.pickKind` 'bounty'). The secret cache: shown when its node is in reach, tappable while the hero stands
+  there (`run.secretHere`/`openSecret`): a richer chest and a pick of every relic (a locked one unlocks; 'secret').
+  The world map's wandering foe: after `wander.every` fights won since the last (Act 1 cleared), one paces the Meadow
+  Road (`profile.wander`); tapping it starts one skirmish (`run.startSkirmish`: an encounter from a cleared act as
+  `heroFor` that act; used up when it starts, never saved) for gear and XP, then back to the world map. Drawing:
+  `view/map-roam.ts` (roamers, telegraphs, secret, the bounty tracker beside the coins), `view/stops.ts` (the board),
+  `view/world-roam.ts` (the foe and its card), `art-roam.ts` (sprites); the Coin Rush clock is on the enemy plate.
 - **Heroes.** Rowan (Blade: one cursor) and Sable (Twin: two cursors, A sweeps the left half, B the right, in step;
   a tap on the left half of the screen judges A, the right half B; `Combat.hands`, `tap(t, hand)`,
   `cursorPosAt(t, hand)`). Gear is shared; each hero has their own XP, level (1-30, `tuning.levels`) and skill tree
@@ -55,10 +78,12 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 - **Settings/tuning persistence** goes through `src/engine/storage.ts` (localStorage, always try/catch). So does
   the mid-run save (`core/save.ts`): it autosaves at every node (every phase change) and when the page is hidden;
   bump `SAVE_VERSION` if `RunSave` changes shape and add a migration (v5 = gear: `migrateSave` moves a v4 save's coins
-  into the profile's purse; v6 = relics: a v5 save gets none; older saves are dropped). The **profile** (`core/profile.ts`, key `cq3.profile.v2`) is kept
+  into the profile's purse; v6 = relics: a v5 save gets none; v7 = map extras: the quest, the secret found, an ambush
+  in progress, the merchant's shop, a bounty's picks to come, and `extras` (a v6 save's act goes on with a plain map:
+  `enterAct(i, scenes, false)`; the next act has them); older saves are dropped). The **profile** (`core/profile.ts`, key `cq3.profile.v2`) is kept
   across runs: progress, the bag (60 items), what's equipped, coins (the purse carries over between runs), scrap, each
   signature drop's bad-luck counter, the accuracy log, whether the smith was met; v3 adds the heroes (picked, XP, skills, Sable met, the twin tutorial
-  shown) and the relics unlocked, the tips seen and whether tips are off (still v3: missing reads as none; a profile
+  shown) and the relics unlocked, the tips seen and whether tips are off, the world map's wandering foe (`wander`) (still v3: missing reads as none; a profile
   from before the tips that has cleared an act gets the basics' tips marked seen). `readProfile` migrates v1 (progress only) and v2 (Rowan gets the cleared acts'
   first-clear XP; their relics unlock). Gear is not saved in the run: the hero's `gear` loadout always comes from the profile (`run.refreshGear()`).
   Gear and coins found are kept when you die. "New run" keeps the profile (the title says "Keeps your gear"); the gear
@@ -87,7 +112,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   playthrough with found gear only: Act 1 ~100% first try, Act 2 ~85-90%, the Boar King's first fight won ~65-75%; a
   skilled 85% player clears every act first try most of the time; and farming the Boar King (replaying Act 3 with the
   gear kept, `playFarm`) measurably raises the win rate. The bot picks relics synergy-greedy, spends skill points down
-  one branch, and plays Sable with two thumbs (an independent timing error per hand). The report also shows relic win
+  one branch, and plays Sable with two thumbs (an independent timing error per hand). It meets roamers when its random
+  route runs into them (an ambush; the merchant's shop like a shop), plays Coin Rush with its normal aim (not counted
+  in the fight stats: `ActAttempt.extras`), takes every bounty and opens a secret half the time. The report also shows relic win
   rates (by build and by relic, and against a stat-cards-only control). Re-run `npm run balance` after changing them.
   `ACC=0.62 npm run retarget` re-aims the whole curve at another player (writes docs/retarget.md with the act numbers).
 - **Accuracy readout** (`core/accuracy.ts`): every tap aimed at an isolated yellow gives a timing error; the median and
@@ -113,26 +140,31 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 src/data/      enemies.ts (stats, patterns, specials), greenmarch.ts (acts, encounters, map weights), events.ts,
                story.ts (scenes), types.ts
 src/data/gear.ts  stats, slots, rarities, base items, sets, unique effects, signature drops
-src/data/relics.ts (40 relics, tags, build names), heroes.ts (Rowan, Sable), skills.ts (both trees), tips.ts (the tips)
+src/data/relics.ts (40 relics, tags, build names), heroes.ts (Rowan, Sable), skills.ts (both trees), tips.ts (the tips),
+               quests.ts (the bounties' goals)
 src/core/      tuning.ts (numbers), combat.ts (sim; heroStats, gear effects), specials.ts (special-move actions),
                blocks.ts, map.ts (act maps), run.ts (region flow: map, nodes, loot, boosts, shop, events, scenes,
                camp, replaying acts, revive/retry), gear.ts (item stats, drops, bad-luck protection, forge prices),
                profile.ts (kept across runs: progress, bag, equipped, purse, scrap, accuracy log), accuracy.ts
                (accuracy readout), hooks.ts (fight hooks), relic-fx.ts / skill-fx.ts / skill-fx-sable.ts / kit-fx.ts (the
                relics, skill nodes and kits as hooks), relics.ts (offers, synergy, build names, unlocks), heroes.ts (XP,
-               levels, skill trees), impact.ts (impact tier weights -> hit-stop/shake/flash and sound layers), save.ts
+               levels, skill trees), impact.ts (impact tier weights -> hit-stop/shake/flash and sound layers),
+               roam.ts (the map's extras: Coin Rush and bounty stops, the secret, roamers and their steps), quests.ts
+               (bounties), skirmish.ts (the world map's wandering foe), save.ts
                (save at every node, migrations), bot.ts (balance bot, farming), tips.ts (which tip shows when; the
                welcome back), clock.ts, calibration.ts, swipe.ts, rng.ts
 src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Phaser scene: layout, layers, anim
                clock, routes core events to view/), input.ts, debug.ts (tuning panel, Sound lab, Jump to),
                calibrate.ts, audio.ts (sounds, ambience), music.ts (the soundtrack), art.ts / art-foes.ts / art-story.ts / art-world.ts /
                art-map.ts / art-stage.ts (sprites, portraits, the world map, act map landscapes, fight lighting),
+               art-roam.ts (the coin sack, the board, the secret rock, the merchant),
                art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-paint.ts (painting helpers),
                backdrop.ts (forest, ruins, hollow), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
 src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemies, Pip, telegraphs, summons,
                finisher show, deaths), effects.ts (particles, floaters, camera), bar.ts (timing bar, blocks,
                telegraph previews, cursor), hud.ts (hero and enemy plates, meter, coins, relic belt), overlays.ts (title, boost,
-               chest, defeat, victory, pause), world.ts (kingdom world map), map.ts (act map), story.ts (scenes),
+               chest, defeat, victory, pause), world.ts (kingdom world map; world-roam.ts its wandering foe), map.ts (act
+               map; map-roam.ts its roamers, telegraphs, secret and bounty tracker), stops.ts (the bounty board), story.ts (scenes),
                nodes.ts (rest, shop, events), camp.ts (the camp home; bag.ts, forge.ts, heroes.ts (hero select),
                stats.ts, skills.ts (skill trees), relic-log.ts its screens; item-grid.ts the bag grid and worn
                slots; camp-kit.ts their shared layers, effects, buttons and hero tabs; the top bar's middle is
@@ -140,7 +172,8 @@ src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemi
                cards, perk names), loot.ts (loot reveal and Legendary/Mythic cards), items.ts (item cells with rarity frames, item text),
                ui.ts (text pool, panels), transition.ts (screen wipes), tips.ts (the tip card), icons.ts, pixels.ts (panels, gauges,
                buttons), shared.ts
-tests/unit/    Vitest tests for src/core and src/data (specials, waves, map, run, save, bot targets, content checks), plus
+tests/unit/    Vitest tests for src/core and src/data (specials, waves, map, run, save, bot targets, content checks; roam,
+               quests and map-content for the map extras), plus
                audio.test.ts: renders every sound on an OfflineAudioContext (node-web-audio-api) and checks levels
                (no clipping, impacts >= music, tiers get heavier, telegraphs read over the music)
 tests/balance/ npm run balance: the bot plays 1,000 whole runs per accuracy and writes docs/balance.md

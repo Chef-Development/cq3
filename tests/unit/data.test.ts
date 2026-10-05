@@ -36,6 +36,29 @@ describe('region data', () => {
     }
   });
 
+  it("each act has wandering packs of its own kind of foes (no elites or bosses), a wave or two each", () => {
+    for (const a of GREENMARCH.acts) {
+      expect(a.packs?.length ?? 0, a.name).toBeGreaterThanOrEqual(2);
+      for (const pack of a.packs ?? []) {
+        expect(pack.length).toBeGreaterThanOrEqual(1);
+        expect(pack.length).toBeLessThanOrEqual(3);
+        for (const wave of pack)
+          for (const k of wave) {
+            expect(ENEMIES[k], `${a.name}: ${k}`).toBeDefined();
+            expect(!!ENEMIES[k].elite || !!ENEMIES[k].boss, k).toBe(false);
+          }
+      }
+    }
+  });
+
+  it('the Coin Rush sack never attacks: yellows only, no attack, no specials, no coins of its own', () => {
+    const e = ENEMIES.coinSack;
+    expect(e.pattern).toMatch(/^[YG]+$/);
+    expect(e.atk).toBe(0);
+    expect(e.specials).toEqual([]);
+    expect(e.coins).toBe(0);
+  });
+
   it('wolves come in pairs', () => {
     for (const a of GREENMARCH.acts) for (const group of [...a.fights.early, ...a.fights.late, ...a.elites]) if (group.includes('wolf')) expect(group.filter((k) => k === 'wolf').length, a.name).toBeGreaterThanOrEqual(1);
     const fights = GREENMARCH.acts[2].fights;

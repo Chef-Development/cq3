@@ -56,7 +56,7 @@ export interface EnemyDef {
   special: number; // damage when the player taps one of its purple traps (or is countered by its guard)
   interval: number; // seconds between spawns from its pattern
   pattern: string; // block codes, cycled in order
-  icon: 'drop' | 'tusk' | 'mask' | 'wing' | 'arrow' | 'spore' | 'shell' | 'fang' | 'leaf' | 'rune' | 'crown';
+  icon: 'drop' | 'tusk' | 'mask' | 'wing' | 'arrow' | 'spore' | 'shell' | 'fang' | 'leaf' | 'rune' | 'crown' | 'sack';
   sprite: string; // texture prefix (engine/art.ts, engine/art-foes.ts)
   coins: number; // dropped when it dies
   boss?: boolean; // mini-bosses and the boss: crown in the HUD, boss music, a guaranteed rare reward
@@ -66,7 +66,11 @@ export interface EnemyDef {
   phaseScenes?: Record<number, string>; // story scene shown when a boss enters a phase
 }
 
-export type NodeType = 'fight' | 'elite' | 'treasure' | 'rest' | 'shop' | 'event' | 'boss';
+/** Node types. 'rush' (Coin Rush, the mini-game) and 'bounty' (a side quest's notice board) are placed on the map
+ *  after it is built (core/roam.ts), not by the act's weights. */
+export type NodeType = 'fight' | 'elite' | 'treasure' | 'rest' | 'shop' | 'event' | 'boss' | 'rush' | 'bounty';
+/** The node types the map generator rolls from an act's weights. */
+export type RolledNode = Exclude<NodeType, 'boss' | 'rush' | 'bounty'>;
 export type Theme = 'forest' | 'ruins' | 'hollow';
 
 export interface ActDef {
@@ -88,7 +92,12 @@ export interface ActDef {
   startScene?: string;
   bossScene?: string;
   /** How likely each node type is on the map (the generator then makes sure each appears at least once). */
-  weights: Record<Exclude<NodeType, 'boss'>, number>;
+  weights: Record<RolledNode, number>;
+  /**
+   * Wandering packs on the act map (core/roam.ts): each pack is one of these, its foes coming as extra waves of an
+   * ambush (later acts: tougher packs). How many packs roam an act is tuning (roam.packsFirst / packsLast).
+   */
+  packs?: string[][][];
 }
 
 export interface RegionDef {

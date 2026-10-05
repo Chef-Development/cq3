@@ -359,8 +359,10 @@ export class NodeScreens {
     const { r: b, k } = this.popIn(this.shopBoard(), now);
     panel(g, b, { trim: 'full', alpha: clamp01(k * 2) });
     if (k < 0.98) return;
-    ribbon(g, b.x + b.w / 2, b.y - 6, 70, 12, RIBBON.green);
-    this.texts.text('Shop', b.x + b.w / 2, b.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    // the travelling merchant's small shop has her own banner
+    const title = run.merchant ? 'Trader' : 'Shop';
+    ribbon(g, b.x + b.w / 2, b.y - 6, 70, 12, run.merchant ? RIBBON.blue : RIBBON.green);
+    this.texts.text(title, b.x + b.w / 2, b.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     // the purse: a gold tag on the panel's corner
     const cw = textWidth(`${run.coins}`, 1, true) + 15;
     const cr: Rect = { x: b.x + b.w - cw - 6, y: b.y - 5, w: cw, h: 11 };

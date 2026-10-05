@@ -4,7 +4,7 @@
 // (src/data/greenmarch.ts), and each type shows up at least once per act.
 
 import { EVENT_IDS } from '../data/events';
-import type { ActDef, NodeType } from '../data/types';
+import type { ActDef, NodeType, RolledNode } from '../data/types';
 import { Rng } from './rng';
 
 export interface MapNode {
@@ -25,7 +25,7 @@ export interface ActMap {
   boss: number; // id of the boss node
 }
 
-type Pick = Exclude<NodeType, 'boss'>;
+type Pick = RolledNode;
 
 /** Rows each node type may appear in (row 0 is always fights). */
 function allowed(type: Pick, row: number, rows: number): boolean {

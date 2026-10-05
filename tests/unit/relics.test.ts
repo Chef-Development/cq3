@@ -10,7 +10,7 @@ import { relicN, RELIC_HOOKS } from '../../src/core/relic-fx';
 import { buildName, isSynergy, relicNumber, relicText, sharedTags, unlockHint, unlocksFor } from '../../src/core/relics';
 import { Rng } from '../../src/core/rng';
 import { isRelicOffer, rollPick, Run } from '../../src/core/run';
-import { restoreRun, snapshotRun } from '../../src/core/save';
+import { restoreRun, SAVE_VERSION, snapshotRun } from '../../src/core/save';
 import { cloneTuning, DEFAULT_SETTINGS, type Tuning } from '../../src/core/tuning';
 import { setup, toLastWave } from './helpers';
 
@@ -965,7 +965,7 @@ describe('saving the relics, and replays', () => {
     const r = onMap(['sharpshooter', 'tithe']);
     r.actHero = { ...r.actHero, relics: ['sharpshooter'] };
     const snap = JSON.parse(JSON.stringify(snapshotRun(r, 1000)));
-    expect(snap.v).toBe(6);
+    expect(snap.v).toBe(SAVE_VERSION);
     snap.hero.relics.push('bogus', 'tithe');
     const back = new Run(r.tuning, { ...DEFAULT_SETTINGS }, 99, r.profile);
     expect(restoreRun(back, snap)).toBe(true);

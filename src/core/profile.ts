@@ -54,6 +54,15 @@ export interface Profile {
   twinTaught: boolean; // Sable's first fight showed the two tap zones
   tips: SeenId[]; // tips already shown (each shows once), and the welcome back once it has played
   tipsOff: boolean; // the gear panel's "Tips: off"
+  /** The world map's wandering foe (core/skirmish.ts): fights won since the last skirmish, skirmishes so far, and
+   *  whether one is on the road now. Still v3: missing reads as none yet. */
+  wander: WanderState;
+}
+
+export interface WanderState {
+  fights: number;
+  n: number;
+  up: boolean;
 }
 
 /** @deprecated the old name (progress across runs); a profile is a superset of it. */
@@ -85,6 +94,7 @@ export function newProfile(): Profile {
     twinTaught: false,
     tips: [WELCOME_ID], // a new player has nothing to be welcomed back to
     tipsOff: false,
+    wander: { fights: 0, n: 0, up: false },
   };
 }
 
@@ -138,6 +148,8 @@ function readFields(d: Record<string, unknown>, t?: Tuning): Profile {
   p.relicsNew = ids(d.relicsNew).filter((id) => p.relics.includes(id));
   p.sableMet = d.sableMet === true;
   p.twinTaught = d.twinTaught === true;
+  const w = (d.wander ?? {}) as Record<string, unknown>;
+  p.wander = { fights: int(w.fights, 0, 1e6), n: int(w.n, 0, 1e6), up: w.up === true };
   return p;
 }
 
