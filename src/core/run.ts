@@ -249,6 +249,8 @@ export class Run {
   /** Rerolls bought at shops, spent on a boost pick. */
   rerolls = 0;
   actRerolls = 0;
+  /** Coins spent in this act on what a defeat undoes (shop buys, event costs): a retry refunds them. */
+  actSpent = 0;
   shop: ShopItem[] = [];
   event: EventState | null = null;
   treasure: { coins: number; opened: boolean } | null = null;
@@ -379,6 +381,7 @@ export class Run {
     this.hero = { ...this.hero, abilityTimer: 0, revives: this.tuning.hero.revivesPerAct, gear: this.gear };
     this.actHero = { ...this.hero };
     this.actRerolls = this.rerolls;
+    this.actSpent = 0;
     this.actAims = [];
     this.actAccuracy = null;
     this.playScenes(scenes, 'map');
@@ -610,6 +613,7 @@ export class Run {
     const item = this.shop[i];
     if (this.phase !== 'shop' || !item || item.sold || this.coins < item.price) return false;
     this.coins -= item.price;
+    this.actSpent += item.price;
     item.sold = true;
     if (item.kind === 'boost' && item.offer) applyBoost(this.tuning, this.hero, item.offer);
     else if (item.kind === 'potion') {
@@ -631,6 +635,7 @@ export class Run {
     const ch = def.choices[i];
     if (!ch || this.coins < (ch.cost ?? 0)) return false;
     this.coins -= ch.cost ?? 0;
+    this.actSpent += ch.cost ?? 0;
     const total = ch.outcomes.reduce((s, o) => s + (o.chance ?? 1), 0);
     let x = this.rng.next() * total;
     let k = 0;
@@ -691,10 +696,16 @@ export class Run {
     this.startFight();
   }
 
-  /** After a defeat: the act again from its start, with the hero as they entered it (coins and gear found are kept). */
+  /**
+   * After a defeat: the act again from its start, with the hero as they entered it. Coins and gear found are kept;
+   * coins spent in the act (on boosts, potions, rerolls and events that the retry undoes) are refunded.
+   */
   retry(): void {
     this.hero = { ...this.actHero, abilityTimer: 0, gear: this.gear };
     this.rerolls = this.actRerolls;
+    // what the act's shops and events cost comes back with the hero as he entered (coins found are kept)
+    this.coins += this.actSpent;
+    this.actSpent = 0;
     this.path = [];
     this.combat = null;
     this.boostChoices = [];

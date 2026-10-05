@@ -79,7 +79,8 @@ comes from (base, this run, gear).
   NEW badges and a green arrow when one beats what Rowan wears. Epic and up play a sting. Legendary and Mythic stop for
   a full-screen reveal card (rays, the icon at 2x in an ornate frame, rarity ribbon, stats, the effect, "Signature
   drop!") with its own fanfare. On continue the items fly into Rowan's portrait.
-- **Kept when you die.** Cleared acts can be replayed for drops: tapping Greenmarch on the world map opens an act
+- **Kept when you die,** and so are the coins you found; coins spent in that act on things the retry undoes (shop
+  boosts, potions, rerolls, event costs) are refunded. Cleared acts can be replayed for drops: tapping Greenmarch on the world map opens an act
   picker (cleared acts say "Replay (farm)", the next one "Continue the story"; each row shows its gear level and the
   boss's signature drops, ticked when you own them). A replayed act starts Rowan with the boosts a run typically has
   by then (measured with the bot, `tuning.kit`) plus his gear. Signature drops only come from their own boss.
@@ -135,8 +136,8 @@ same typical player.
 
   | Player | Story (found gear) | Replay 1 | Replay 2 | Replay 3 | Replay 6 |
   |---|---|---|---|---|---|
-  | 55% | 42% | 67% | 73% | 84% | 90% |
-  | **70%** | **70%** | **85%** | **91%** | **95%** | **97%** |
+  | 55% | 42% | 65% | 73% | 84% | 90% |
+  | **70%** | **69%** | **85%** | **91%** | **95%** | **97%** |
   | 85% | 93% | 98% | 98% | 100% | 99% |
 
   Gear power (the bag's rating) roughly doubles over six replays (about 400 -> 750). Letting the bot also use the

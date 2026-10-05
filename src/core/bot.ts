@@ -190,6 +190,11 @@ export function playFarm(tuning: Tuning, o: BotOptions, farms: number, forge = f
     const run = botRun(tuning, (o.seed + 7919 * (v + 1)) >>> 0, profile, last);
     equipBest(run);
     const power = equippedItems(profile).reduce((n, i) => n + itemPower(tuning, i), 0);
+    if (run.actIndex !== last) {
+      // the story run never reached the last act: there is nothing to farm (no visit to count)
+      visits.push({ bossWon: null, cleared: false, power });
+      continue;
+    }
     let bossWon: boolean | null = null;
     let cleared = false;
     for (let k = 0; k < 6 && !cleared; k++) {

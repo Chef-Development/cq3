@@ -8,7 +8,7 @@ import { makeItem } from '../../src/core/gear';
 import { addItem, equip } from '../../src/core/profile';
 import { Rng } from '../../src/core/rng';
 import { Run, rarityMult } from '../../src/core/run';
-import { snapshotRun } from '../../src/core/save';
+import { restoreRun, snapshotRun } from '../../src/core/save';
 import { cloneTuning, DEFAULT_SETTINGS, type Tuning } from '../../src/core/tuning';
 
 function fresh(tune?: (t: Tuning) => void, seed = 7): Run {
@@ -405,5 +405,33 @@ describe('the camp, replaying acts, the purse', () => {
     expect(goTo(r, 'rest')).toBe(true);
     r.hero.hp = 1;
     expect(r.rest()).toBe(Math.round(heroMaxHp(r.tuning, r.hero) * 0.5));
+  });
+});
+
+describe('a defeat refunds what the retry undoes', () => {
+  it('coins spent at shops and events in the act come back; coins found are kept', () => {
+    const setUp = () => {
+      const r = onMap();
+      r.coins = 200;
+      expect(goTo(r, 'shop')).toBe(true);
+      const price = r.shop[0].price;
+      expect(r.buy(0)).toBe(true);
+      expect(r.coins).toBe(200 - price);
+      r.leaveShop();
+      r.coins += 15; // found on the way
+      r.phase = 'defeat';
+      return r;
+    };
+    const r = setUp();
+    r.retry();
+    expect(r.coins).toBe(215);
+    r.retry(); // nothing left to refund
+    expect(r.coins).toBe(215);
+    // the same after a reload on the defeat screen (the save keeps what the act spent)
+    const s = setUp();
+    const back = new Run(s.tuning, { ...DEFAULT_SETTINGS }, 99, s.profile);
+    expect(restoreRun(back, JSON.parse(JSON.stringify(snapshotRun(s)!)))).toBe(true);
+    expect(back.phase).toBe('map');
+    expect(back.coins).toBe(215);
   });
 });

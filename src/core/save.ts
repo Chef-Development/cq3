@@ -6,6 +6,7 @@ import { eventById } from '../data/events';
 import { GREENMARCH } from '../data/greenmarch';
 import type { RegionDef } from '../data/types';
 import type { Hero, SavedFoe } from './combat';
+import type { AccEntry } from './accuracy';
 import { validItem, type Item } from './gear';
 import { actSeed, buildActMap, validPath } from './map';
 import type { Profile } from './profile';
@@ -31,6 +32,8 @@ export interface RunSave {
   actHero: SavedHero; // the hero as they entered the act (a retry starts from here)
   rerolls: number;
   actRerolls: number;
+  actSpent: number; // coins spent in the act that a retry refunds
+  accuracy: AccEntry | null; // the act's accuracy (on the act-clear screen)
   scenes: string[];
   sceneThen: SceneThen;
   fight: { foes: SavedFoe[]; seed: number; wave: number } | null;
@@ -63,7 +66,7 @@ export function migrateSave(data: unknown, profile: Profile): unknown {
   const coins = typeof s.coins === 'number' && Number.isFinite(s.coins) ? Math.max(0, Math.round(s.coins)) : 0;
   profile.coins += coins;
   const { coins: _c, actCoins: _a, ...rest } = s;
-  return { ...rest, v: SAVE_VERSION, loot: null, aims: [] };
+  return { ...rest, v: SAVE_VERSION, loot: null, aims: [], actSpent: 0, accuracy: null };
 }
 
 /** Snapshot of a run in progress (null on the title screen, the world map and after the victory: nothing to resume). */
@@ -91,6 +94,8 @@ export function snapshotRun(run: Run, now = Date.now()): RunSave | null {
     actHero: savedHero(run.actHero),
     rerolls: run.rerolls,
     actRerolls: run.actRerolls,
+    actSpent: run.actSpent,
+    accuracy: phase === 'actClear' && run.actAccuracy ? { ...run.actAccuracy } : null,
     scenes: run.sceneQueue.slice(),
     sceneThen: run.sceneThen,
     fight,
@@ -112,7 +117,8 @@ const offerOk = (o: unknown): o is BoostOffer => !!o && BOOST_IDS.includes((o as
 export function readSave(data: unknown, t: Tuning, region: RegionDef = GREENMARCH): RunSave | null {
   const s = data as RunSave;
   if (!s || typeof s !== 'object' || s.v !== SAVE_VERSION) return null;
-  if (![s.act, s.mapSeed, s.rerolls, s.actRerolls, s.savedAt].every(num)) return null;
+  if (![s.act, s.mapSeed, s.rerolls, s.actRerolls, s.actSpent, s.savedAt].every(num)) return null;
+  if (s.accuracy !== null && (!s.accuracy || ![s.accuracy.acc, s.accuracy.n, s.accuracy.act].every(num))) return null;
   if (!Array.isArray(s.aims) || !s.aims.every(num)) return null;
   if (!PHASES.includes(s.phase) || !heroOk(s.hero) || !heroOk(s.actHero)) return null;
   const act = region.acts[s.act];
@@ -156,6 +162,7 @@ export function restoreRun(run: Run, data: unknown): boolean {
   run.path = s.path.slice();
   run.actHero = { ...s.actHero, abilityTimer: 0, gear };
   run.actRerolls = s.actRerolls;
+  run.actSpent = Math.max(0, s.actSpent);
   run.rerolls = s.rerolls;
   run.hero = { ...s.hero, abilityTimer: 0, gear };
   run.actAims = s.aims.slice();
@@ -202,7 +209,7 @@ export function restoreRun(run: Run, data: unknown): boolean {
       break;
     case 'actClear':
       run.phase = 'actClear';
-      run.actAccuracy = [...run.profile.acc.history].reverse().find((h) => h.act === s.act) ?? null;
+      run.actAccuracy = s.accuracy ? { ...s.accuracy } : null;
       break;
     case 'defeat':
       // the defeat screen's only way on is a retry: the act from its start

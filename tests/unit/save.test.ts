@@ -169,10 +169,13 @@ describe('save at every node', () => {
     const back = reload(r);
     expect(back.phase).toBe('boost');
     expect(back.boostChoices).toEqual(r.boostChoices);
+    back.actAims = Array.from({ length: 60 }, (_, i) => (i % 7) * 12 - 36);
     back.pickBoost(0);
     expect(back.phase).toBe('actClear');
+    expect(back.actAccuracy).not.toBeNull();
     const again = reload(back);
     expect(again.phase).toBe('actClear');
+    expect(again.actAccuracy).toEqual(back.actAccuracy); // this act's accuracy, not an older entry
     again.nextAct();
     expect(again.actIndex).toBe(1);
   });
