@@ -532,7 +532,8 @@ export class Fighters {
     const recent = s.anim - v.numAt < 260;
     v.numLevel = recent ? (v.numLevel + 1) % 3 : 0;
     v.numAt = s.anim;
-    if (damage > 0) fx.floatNum(v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2), v.y - v.img.displayHeight - 10 - v.numLevel * 11, `${damage}`, col, numScale);
+    // (a Coin Rush counts coins, not damage: the coins float up instead, from perkCoins)
+    if (damage > 0 && !s.app.run.combat?.rush) fx.floatNum(v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2), v.y - v.img.displayHeight - 10 - v.numLevel * 11, `${damage}`, col, numScale);
     const tier = combo >= 50 ? 3 : combo >= 25 ? 2 : combo >= 10 ? 1 : 0;
     const slashCol = crit ? 0xffd23a : comboSlashCol(combo);
     // a weapon better than Common slashes in its rarity's colours (the combo's heat still shows in the inner band)
@@ -757,6 +758,8 @@ export class Fighters {
     const x = v ? v.x : this.h.x + 20;
     const y = v ? v.y - v.img.displayHeight / 2 : s.ground - 24;
     s.hud.dropCoins(x, y, amount, Math.min(4, amount));
+    // Coin Rush: each hit's haul floats up over the sack
+    if (c?.rush && v) s.fx.iconFloat(x + rand(-6, 6), v.y - v.img.displayHeight - 8, `+${amount}`, 0xffe066, 'coin');
   }
 
   /** A perk's cost in HP (Glass Edge, Blood Price, Purple Pact...): its name, and the HP it took in violet. */

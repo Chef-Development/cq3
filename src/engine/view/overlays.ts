@@ -841,7 +841,15 @@ export class Overlays {
     panel(gc, p, { trim: 'full', alpha: clamp01(since / 100) });
     if (k < 0.98) return;
     // a replay's opening draft counts its picks; a pick with a relic in it is a relic pick
-    const title = run.startPick ? `Starting relic ${run.startPicksTotal - run.startPicks + 1}/${run.startPicksTotal}` : run.boostChoices.some(isRelicOffer) ? 'Choose a Relic' : 'Choose a Boost';
+    const title = run.startPick
+      ? `Starting relic ${run.startPicksTotal - run.startPicks + 1}/${run.startPicksTotal}`
+      : run.pickKind === 'bounty'
+        ? 'Bounty Reward'
+        : run.pickKind === 'secret'
+          ? 'Secret Relic'
+          : run.boostChoices.some(isRelicOffer)
+            ? 'Choose a Relic'
+            : 'Choose a Boost';
     ribbon(gc, p.x + p.w / 2, p.y - 6, Math.max(112, textWidth(title, 1, true) + 22), 13, RIBBON.purple);
     this.texts.text(title, p.x + p.w / 2, p.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     const owned = run.hero.relics;
@@ -1112,7 +1120,7 @@ export class Overlays {
     g.fillRect(0, 0, GAME_W, 54);
     const clear = actClear && opened;
     const ok = clear ? Math.min(1, easeBack((s.anim - this.chestOpenAt) / 320, 1.8)) : 1;
-    const title = clear ? `Act ${run.actIndex + 1} Clear!` : actClear ? run.act.name : 'Treasure!';
+    const title = clear ? `Act ${run.actIndex + 1} Clear!` : actClear ? run.act.name : run.treasure?.secret ? 'Secret Cache!' : 'Treasure!';
     const look = clear ? RIBBON.gold : actClear ? RIBBON.blue : RIBBON.gold;
     const tw = textWidth(title, 2, true);
     ribbon(gc, cx, y, Math.round((tw + 24) * (clear ? ok : 1)), 22, look, 1, ok > 0.9);

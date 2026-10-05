@@ -90,8 +90,8 @@ describe('telegraphs', () => {
     }
   });
 
-  it('every enemy except the summoned ones has a special that changes how the bar plays', () => {
-    for (const [key, e] of Object.entries(DEFAULT_TUNING.enemies)) if (key !== 'slimelet' && key !== 'piglet') expect(e.specials.length, key).toBeGreaterThan(0);
+  it('every enemy except the summoned ones (and the Coin Rush sack) has a special that changes how the bar plays', () => {
+    for (const [key, e] of Object.entries(DEFAULT_TUNING.enemies)) if (key !== 'slimelet' && key !== 'piglet' && key !== 'coinSack') expect(e.specials.length, key).toBeGreaterThan(0);
   });
 });
 

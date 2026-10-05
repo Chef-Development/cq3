@@ -283,6 +283,18 @@ export interface CombatOptions {
   atkMult?: number;
   /** The act's pace: enemies' spawn intervals are scaled by this (<1 = busier). */
   pace?: number;
+  /** Coin Rush (the mini-game): seconds on the clock. The fight is won when they run out; every hit knocks coins out
+   *  of the foe (tuning.rush), misses don't hurt, and only the hero's kit is in play (no relics or skills). */
+  rush?: number;
+}
+
+/** What happened in a fight, for the side quests (core/quests.ts). */
+export interface FightLog {
+  blocks: number; // reds blocked (a shield counts once, on its last tap)
+  bestCombo: number;
+  breaks: number; // misses and hits taken (each one broke the combo)
+  cleanWaves: number; // waves cleared without a miss or a hit taken
+  kills: number;
 }
 
 export class Combat {
@@ -349,6 +361,13 @@ export class Combat {
   coinsEarned = 0;
   /** Pip's pecks so far this fight. */
   pecks = 0;
+  /** Coin Rush: seconds on the clock (0 = a normal fight), and the coins knocked out so far. */
+  readonly rush: number;
+  rushCoins = 0;
+  /** What happened so far (the side quests read it when the fight is won). */
+  log: FightLog = { blocks: 0, bestCombo: 0, breaks: 0, cleanWaves: 0, kills: 0 };
+  /** Breaks when the current wave came in (a wave cleared with none since is clean). */
+  private waveBreaks = 0;
   /** Cursors on the bar: 1 (Rowan; the Blade family) or 2 (Sable; the Twin family: one per half). */
   readonly hands: number;
   /** The hand of the last attack hit (-1 = none yet): Ambidextrous and the alternating skills read it. */
@@ -380,7 +399,9 @@ export class Combat {
     this.hero = o.hero;
     const build = o.hero.build ?? defaultBuild();
     this.hands = build.id === 'sable' ? 2 : 1;
-    this.hooks = [KIT_HOOKS[build.id], ...build.skills.map((id) => SKILL_HOOKS[id]), ...(o.hero.relics ?? []).map((id) => RELIC_HOOKS[id])].filter((h): h is FightHooks => !!h);
+    this.rush = Math.max(0, o.rush ?? 0);
+    // (Coin Rush is pure aim: the hero's kit only)
+    this.hooks = (this.rush ? [KIT_HOOKS[build.id]] : [KIT_HOOKS[build.id], ...build.skills.map((id) => SKILL_HOOKS[id]), ...(o.hero.relics ?? []).map((id) => RELIC_HOOKS[id])]).filter((h): h is FightHooks => !!h);
     this.spawning = o.spawning ?? true;
     this.specialsOn = o.specials ?? this.spawning;
     this.hpMult = o.hpMult ?? 1;
@@ -749,6 +770,12 @@ export class Combat {
   step(): void {
     this.tick++;
     if (this.result) return this.record();
+    if (this.rush > 0 && this.time >= this.rush - 1e-9) {
+      // Coin Rush: time's up
+      this.result = 'won';
+      this.events.push({ type: 'won' });
+      return this.record();
+    }
     if (this.hitStop > 0) {
       this.hitStop = Math.max(0, this.hitStop - DT);
       return this.record();
@@ -945,6 +972,8 @@ export class Combat {
 
   private checkWon(): void {
     if (this.result || this.nextWaveIn >= 0 || !this.enemies.every((x) => !x.alive)) return;
+    if (this.log.breaks === this.waveBreaks) this.log.cleanWaves++;
+    this.waveBreaks = this.log.breaks;
     if (this.waveIndex < this.waves.length - 1) {
       // the wave fell: a short breath, then the next one walks in
       this.nextWaveIn = Math.max(0, this.tuning.waves.gapSec);
@@ -1399,6 +1428,7 @@ export class Combat {
     const damage = Math.max(1, Math.round(st.atk * mult));
     x.damage = damage;
     this.events.push({ type: 'hit', kind: b.kind, pos: b.pos, perfect, crit, damage, enemyId: target?.id ?? 0, combo: this.combo, hand, echo });
+    if (this.rush) this.rushPay(this.rushHitCoins(perfect));
     if (crit && this.has('leech')) this.healHero(this.tuning.effects.leechHp, 'leech');
     if (green) {
       H.abilityTimer = this.abilitySec();
@@ -1429,6 +1459,7 @@ export class Combat {
     const before = this.combo;
     const n = Math.max(0, Math.round(this.mod(1, (h, v) => h.comboGain?.(this, from, perfect, hand, v))));
     this.combo += n;
+    this.log.bestCombo = Math.max(this.log.bestCombo, this.combo);
     if (this.combo > before) for (const h of this.hooks) h.combo?.(this, before, this.combo);
   }
 
@@ -1469,6 +1500,7 @@ export class Combat {
       return 'crack';
     }
     this.removeBlock(b, 'hit');
+    this.log.blocks++;
     this.events.push({ type: 'block', kind: b.kind, pos: b.pos, perfect, cracked: false, ownerId: b.ownerId, combo: this.combo, knock: 0, hand, echo });
     this.pendulumTick();
     if (owner?.alive && this.has('riposte') && b.kind !== 'bomb') {
@@ -1578,7 +1610,7 @@ export class Combat {
       return;
     }
     const classic = this.settings.mode === 'classic';
-    const x: MissCtx = { hand, damage: classic ? this.tuning.judge.missSelfDamage : 0, breaks: true };
+    const x: MissCtx = { hand, damage: classic && !this.rush ? this.tuning.judge.missSelfDamage : 0, breaks: true };
     for (const h of this.hooks) h.miss?.(this, x);
     this.events.push({ type: 'miss', pos, selfDamage: x.damage > 0, hand });
     if (x.damage > 0) this.heroDamage(x.damage, 'miss', 0, !x.breaks);
@@ -1628,7 +1660,20 @@ export class Combat {
           if (!e.alive) x.killed++;
         }
     for (const h of this.hooks) h.afterFinisher?.(this, x);
+    if (this.rush && stacks > 0) this.rushPay(Math.round(this.tuning.rush.perStack * stacks));
     return true;
+  }
+
+  /** Coin Rush: the coins a hit knocks out (more the longer the combo, a little more for a perfect). */
+  rushHitCoins(perfect: boolean): number {
+    const R = this.tuning.rush;
+    return Math.max(0, Math.round(R.perHit + Math.floor(this.combo / Math.max(1, R.comboStep)) + (perfect ? R.perfect : 0)));
+  }
+
+  private rushPay(n: number): void {
+    if (n <= 0) return;
+    this.rushCoins += n;
+    this.awardCoins(n, 'rush');
   }
 
   get finisherReady(): boolean {
@@ -1690,6 +1735,7 @@ export class Combat {
 
   /** A miss or a hit taken breaks the combo and loses every banked stack and the meter (perks may keep some). */
   private breakCombo(): void {
+    this.log.breaks++;
     const x: BreakCtx = { combo: this.combo, stacks: this.stacks, meter: this.meter, keepCombo: 0, keepStacks: 0, keepMeter: 0 };
     for (const h of this.hooks) h.comboBreak?.(this, x);
     const combo = Math.max(0, Math.min(this.combo, Math.round(x.keepCombo)));
@@ -1761,6 +1807,7 @@ export class Combat {
 
   /** HP an enemy can't be taken below yet: a boss phase change (a gated special) has to fire first. */
   hpFloor(e: Enemy): number {
+    if (this.rush) return 1; // the coin sack can't be emptied: the clock ends the rush
     let floor = 0;
     this.specialsOf(e).forEach((sp, i) => {
       if (sp.gate && sp.hpBelow !== undefined && !e.uses[i]) floor = Math.max(floor, Math.ceil(sp.hpBelow * e.maxHp) - 1);
@@ -1784,6 +1831,7 @@ export class Combat {
     }
     for (const b of this.blocks.slice()) if (b.ownerId === e.id && !isAttack(b.kind)) this.removeBlock(b, 'owner');
     this.queue = this.queue.filter((q) => q.ownerId !== e.id);
+    this.log.kills++;
     this.events.push({ type: 'kill', enemyId: e.id, coins: killCoins(this.tuning, this.hero, e.key) });
     // kill rewards: permanent stat gains for the rest of the run
     const K = this.tuning.kill;
