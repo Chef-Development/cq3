@@ -89,8 +89,8 @@
     both hands (Blur: above 1.6x cursor speed hits crit, Double Down: hits with both cursors within 120 ms deal x2,
     capstone **Quickening**: every 20 combo banks a stack).
 - **Camp:** reachable mid-act too (playtest: a Camp button on the act map, bottom right; "Act N map" brings you back
-  to the same spot). "New run" keeps what you've earned (its button now says "Keeps your gear"); to really start over,
-  the gear panel has a Start over button (asked twice; settings and calibration stay). A hero chip (face, level, XP) and both heroes by the fire; the **hero select** (art, family, bio, level and
+  to the same spot). The title's **New game** wipes everything (tapped twice; settings and calibration stay; round 4);
+  Continue keeps it all. The gear panel's Start over does the same, asked twice. A hero chip (face, level, XP) and both heroes by the fire; the **hero select** (art, family, bio, level and
   XP bar, the kit with its numbers, points, Pick; gear is shared); the **skill tree** (three branch rows of five linked
   nodes, points left, a node card with the text and its before/after: "ATK 12 > 13" or "Now: ... / With it: ...",
   Learn with the reason when you can't, a free Reset with a confirm tap); the stats screen per hero, with level and

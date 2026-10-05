@@ -6,7 +6,7 @@
 import Phaser from 'phaser';
 import { heroMaxHp } from '../../core/combat';
 import { relicById, type RelicId, type RelicTag } from '../../data/relics';
-import { heroProgress } from '../../core/profile';
+import { heroProgress, progressLabel } from '../../core/profile';
 import { buildName, relicText, topTags } from '../../core/relics';
 import { levelProgress } from '../../core/heroes';
 import { boostLabel, boostPreview, isRelicOffer, type BoostOffer, type BoostPreview, type Phase, type Rarity } from '../../core/run';
@@ -162,7 +162,7 @@ export class Overlays {
   private bannerAt = -1e9;
   private bannerUntil = 0;
   private bannerWaited = false;
-  /** New run over a saved one needs a second tap within this time. */
+  /** New game (it erases everything) needs a second tap within this time. */
   private newRunArmedUntil = 0;
   private lastPhase: Phase | null = null;
   private phaseAt = 0; // when the current phase started drawing (performance.now)
@@ -324,14 +324,14 @@ export class Overlays {
 
   // ------------------------------------------------------------------ layout and taps
 
-  /** Title screen with a saved run: Continue (left) and New run (right), on the band. */
+  /** Title screen with anything earned: Continue (left) and New game (right), on the band. */
   private titleButtons(): { cont: Rect; fresh: Rect } {
     const cx = Math.round(GAME_W / 2);
     const y = this.s.splitY - 6;
     return { cont: { x: cx - 112, y, w: 120, h: 22 }, fresh: { x: cx + 16, y, w: 96, h: 22 } };
   }
 
-  /** Which title button a tap hits. New run arms on the first tap and only fires on the second. */
+  /** Which title button a tap hits. New game (it erases everything) arms on the first tap and only fires on the second. */
   titleTap(x: number, y: number): 'continue' | 'new' | null {
     const b = this.titleButtons();
     if (inRect(b.cont, x, y, 3)) {
@@ -777,10 +777,10 @@ export class Overlays {
     if (Math.random() < 0.2)
       s.fx.particles.push({ x: rand(L, R), y: s.ground - rand(0, 30), vx: rand(-4, 4), vy: rand(-14, -6), g: 0, born: now, life: rand(1400, 2400), color: Math.random() < 0.5 ? 0xfff0a0 : 0xffd23a, size: 1, world: true, streak: false });
 
-    // the band: Continue / New run (with a save), or the start prompt; how-to tips in the tray under it
+    // the band: Continue / New game (with anything earned), or the start prompt; how-to tips in the tray under it
     const save = s.app.savedRun;
     const pa = clamp01((since - 260) / (TITLE_IN.prompt - 260));
-    if (save) {
+    if (s.app.canContinue) {
       const { cont, fresh } = this.titleButtons();
       const armed = now < this.newRunArmedUntil;
       const ck = easeBack((since - 200) / 260, 1.6);
@@ -791,11 +791,12 @@ export class Overlays {
         button3d(gc, { ...fresh, y: fresh.y + dy }, armed ? FACE.red : FACE.navy, isPressed(fresh, now));
         const pc = isPressed(cont, now) ? 2 : 0;
         this.texts.text('Continue', cont.x + cont.w / 2, cont.y + dy + 7 + pc, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
-        this.texts.text(saveLabel(save, s.app.run), cont.x + cont.w / 2, cont.y + dy + 16 + pc, 0xfff07a, { ox: 0.5, oy: 0.5 });
+        const where = save ? saveLabel(save, s.app.run) : progressLabel(s.app.profile, s.app.tuning);
+        this.texts.text(where, cont.x + cont.w / 2, cont.y + dy + 16 + pc, 0xfff07a, { ox: 0.5, oy: 0.5 });
         const pf = isPressed(fresh, now) ? 2 : 0;
-        // a new run keeps what you've earned (to erase it all: the gear panel's Start over)
-        this.texts.text(armed ? 'Tap again' : 'New run', fresh.x + fresh.w / 2, fresh.y + dy + 7 + pf, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
-        this.texts.text('Keeps your gear', fresh.x + fresh.w / 2, fresh.y + dy + 16 + pf, 0xc8c0e8, { ox: 0.5, oy: 0.5 });
+        // a new game erases everything (gear, levels, relics, coins; the settings stay): armed by the first tap
+        this.texts.text(armed ? 'Tap again' : 'New game', fresh.x + fresh.w / 2, fresh.y + dy + 7 + pf, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+        this.texts.text('Erases all', fresh.x + fresh.w / 2, fresh.y + dy + 16 + pf, armed ? 0xffe0a0 : 0xc8c0e8, { ox: 0.5, oy: 0.5 });
       }
     } else if (pa > 0) this.prompt(g, 'Tap to start!', s.splitY + 16, now, WHITE, pa);
     if (pa > 0) {

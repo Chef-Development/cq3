@@ -61,8 +61,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   shown) and the relics unlocked, the tips seen and whether tips are off (still v3: missing reads as none; a profile
   from before the tips that has cleared an act gets the basics' tips marked seen). `readProfile` migrates v1 (progress only) and v2 (Rowan gets the cleared acts'
   first-clear XP; their relics unlock). Gear is not saved in the run: the hero's `gear` loadout always comes from the profile (`run.refreshGear()`).
-  Gear and coins found are kept when you die. "New run" keeps the profile (the title says "Keeps your gear"); the gear
-  panel's "Start over" (asked twice) erases the profile and the run, keeping tuning and settings (`eraseProgress`).
+  Gear and coins found are kept when you die. The title offers Continue (the run, or the world map with everything
+  kept) and **New game**, which wipes everything: tapped twice, it erases the profile and the run, keeping tuning and
+  settings (`eraseProgress`, `app.newGame()`; the gear panel's "Start over" does the same, asked twice).
 - **Teach it slowly (tips).** One short tip, shown once, the moment a system first matters: the words in
   `src/data/tips.ts` (max 2 lines, `TIP_TEXT_W` px each, an anchor, pre-fight or pausing; the order is the priority),
   the when in `core/tips.ts` (`TipCoach`: fed the fight's events and asked every frame; one at a time, one per screen,

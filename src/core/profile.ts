@@ -165,6 +165,27 @@ function migrateHeroes(p: Profile, t?: Tuning): void {
   for (const r of RELICS) if (r.unlock?.kind === 'act' && r.unlock.act < p.actsCleared) p.relics.push(r.id);
 }
 
+/** Anything a New game would erase: the title then offers Continue / New game instead of "Tap to start!". */
+export function anythingToErase(p: Profile): boolean {
+  return (
+    p.actsCleared > 0 ||
+    p.items.length > 0 ||
+    p.coins > 0 ||
+    p.scrap > 0 ||
+    p.smithMet ||
+    p.sableMet ||
+    p.relics.length > 0 ||
+    HERO_IDS.some((id) => (p.heroes[id]?.xp ?? 0) > 0)
+  );
+}
+
+/** The title's Continue line without a run in progress: the hero's level and the acts cleared ("Lv 7 - 2 acts"). */
+export function progressLabel(p: Profile, t: Tuning): string {
+  const lv = levelFromXp(t, heroProgress(p).xp);
+  const acts = p.actsCleared > 0 ? ` - ${p.actsCleared} act${p.actsCleared > 1 ? 's' : ''}` : '';
+  return `Lv ${lv}${acts}`;
+}
+
 // ---------------------------------------------------------------- heroes
 
 /** The picked hero's progress. */

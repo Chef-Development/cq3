@@ -47,11 +47,11 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
           else if (!scene.storyReveal()) app.storyNext();
           return;
         }
-        if (!app.savedRun) return app.newRun();
-        // a run was saved: Continue or New run (keyboard: Space/Enter continues)
+        if (!app.canContinue) return app.newRun(); // nothing earned yet: a tap starts
+        // Continue (keeps everything) or New game (tapped twice: erases everything); keyboard: Space/Enter continues
         const pick = clientX < 0 ? 'continue' : scene.titleTap(g.x, g.y);
         if (pick === 'continue') app.continueRun();
-        else if (pick === 'new') app.newRun();
+        else if (pick === 'new') app.newGame();
         return;
       }
       case 'scene':

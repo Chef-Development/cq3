@@ -400,22 +400,44 @@ test('the act map has a Camp button: the camp mid-act, then back to the same spo
   expect(errors).toEqual([]);
 });
 
-test('New run keeps what you earned; Start over (the gear panel, asked twice) erases it, keeping the settings', async ({ page }) => {
-  // progress saved before the load: two acts cleared, coins, Rowan at a level; a calibrated tap offset
+test('New game (tapped twice on the title) wipes everything, keeping the settings; Continue keeps it all', async ({ page }) => {
+  // progress saved before the load: two acts cleared, coins, Rowan at a level; a calibrated tap offset; no run saved
   await page.addInitScript(() => {
-    if (sessionStorage.getItem('seeded')) return; // only before the first load (not after Start over's reload)
+    if (sessionStorage.getItem('seeded')) return; // only before the first load (not after New game's reload)
     sessionStorage.setItem('seeded', '1');
     const hero = (unlocked: boolean, xp: number) => ({ unlocked, xp, skills: [] });
-    const p = { v: 3, actsCleared: 2, coins: 321, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 900), sable: hero(true, 0) } };
+    const p = { v: 3, actsCleared: 2, coins: 321, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 900), sable: hero(true, 0) }, tips: ['welcomeM4a'] };
     localStorage.setItem('cq3.profile.v2', JSON.stringify(p));
     localStorage.setItem('cq3.settings.v2', JSON.stringify({ calibrationMs: 37 }));
   });
   await ready(page);
   const a = app(page);
-  // a new run keeps the profile
-  await a((x) => x.newRun());
-  expect(await a((x) => ({ acts: x.profile.actsCleared, coins: x.profile.coins }))).toEqual({ acts: 2, coins: 321 });
-  // Start over: the gear panel's button, two confirms, then a fresh page
+  // anything earned: the title offers Continue / New game (no run in progress: Continue goes to the world map)
+  expect(await a((x) => ({ phase: x.run.phase, saved: !!x.savedRun, can: x.canContinue }))).toEqual({ phase: 'title', saved: false, can: true });
+  await page.waitForTimeout(700); // the buttons ease in
+  await page.screenshot({ path: 'test-results/title-new-game.png' });
+  // one tap on New game only arms it
+  await tapGame(page, 228, 101);
+  await page.waitForTimeout(200);
+  expect(await a((x) => ({ phase: x.run.phase, acts: x.profile.actsCleared }))).toEqual({ phase: 'title', acts: 2 });
+  await page.screenshot({ path: 'test-results/title-new-game-armed.png' });
+  // the second tap erases everything and starts from the top
+  await Promise.all([page.waitForEvent('load'), tapGame(page, 228, 101)]);
+  await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
+  expect(await a((x) => ({ acts: x.profile.actsCleared, coins: x.profile.coins, xp: x.profile.heroes.rowan.xp, sable: x.profile.sableMet, save: !!x.savedRun, can: x.canContinue, cal: x.settings.calibrationMs }))).toEqual({
+    acts: 0,
+    coins: 0,
+    xp: 0,
+    sable: false,
+    save: false,
+    can: false,
+    cal: 37,
+  });
+  // the gear panel's Start over does the same (asked twice)
+  await a((x) => {
+    x.profile.coins = 50;
+    x.saveProfile();
+  });
   let asked = 0;
   page.on('dialog', (d) => {
     asked++;
@@ -426,14 +448,7 @@ test('New run keeps what you earned; Start over (the gear panel, asked twice) er
   await Promise.all([page.waitForEvent('load'), page.locator('#debug button', { hasText: 'Start over' }).click()]);
   await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
   expect(asked).toBe(2);
-  expect(await a((x) => ({ acts: x.profile.actsCleared, coins: x.profile.coins, xp: x.profile.heroes.rowan.xp, sable: x.profile.sableMet, save: !!x.savedRun, cal: x.settings.calibrationMs }))).toEqual({
-    acts: 0,
-    coins: 0,
-    xp: 0,
-    sable: false,
-    save: false,
-    cal: 37,
-  });
+  expect(await a((x) => ({ coins: x.profile.coins, cal: x.settings.calibrationMs }))).toEqual({ coins: 0, cal: 37 });
 });
 
 test('camp: learn a skill and reset, pick Sable on the hero select, read a new relic', async ({ page }) => {
