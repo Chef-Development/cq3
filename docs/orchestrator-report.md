@@ -1,13 +1,49 @@
-# Combo Quest 3: status report (M3b: the camp, gear and the forge, Region 1)
+# Combo Quest 3: status report (M3b: the camp, gear and the forge, Region 1; playtest round 2 fixes)
 
 - **Live build:** https://chef-development.github.io/cq3/ (installable PWA, landscape). Every push deploys.
 - **Branch:** `claude/vigilant-pasteur-vlnd12`. PR Chef-Development/cq3#2 (M1 + M3a) was still open, so M3b is built on
   top of it: PR Chef-Development/cq3#3 includes #2 and supersedes it (merge #3; #2 can be closed).
-- **Tests:** 272 Vitest unit tests (`npm test`, in CI), 4 Playwright smoke tests (now including the whole gear flow:
-  loot after a win, act clear -> camp -> next act, defeat -> camp -> retry, the act picker), 8 pixel-exact screenshot
-  tests (new: camp, bag, forge, the Legendary loot card, the act picker; world and map baselines refreshed).
+- **Tests:** 273 Vitest unit tests (`npm test`, in CI), 5 Playwright smoke tests (the whole gear flow: loot after a
+  win, act clear -> camp -> next act, defeat -> camp -> retry, the act picker; and the launch layout, see below), 8
+  pixel-exact screenshot tests (camp, bag, forge, the Legendary loot card, the act picker, world, maps, fight).
 - **Built by:** a core pass (pure TypeScript, tested), then four parallel agents for the art, the camp UI, the loot
   reveal / effects / sounds, and the menus / map / accuracy panel, merged and checked together.
+
+## Playtest round 2 (after M3b): readability and the launch layout
+
+The playtester sent a screenshot of the "Suspicious Mushroom" event ("Hard to see what the text says - do a full pass
+on readability") and reported "first open the app and sometimes it doesn't match the proper aspect ratio of my
+device". Both are fixed on PR #3; the playtester approved the layout fix (not yet confirmed on the phone).
+
+### 1. Readability pass (every screen checked at 8x with the iPhone's safe areas)
+- **The event text (the cause):** the pixel fonts bake a 1 px ink outline and shadow around each glyph, so dark
+  brown text inside a dark outline turned to blobs. Both fonts now have plain twins without the outline
+  (`FONT_PLAIN`, `FONT_BOLD_PLAIN` in `font.ts`), and the text pool picks them by itself for dark colours
+  (`isDarkInk`). That fixes every event, the parchment notes and dark text on gold tags.
+- **Light text:** a brightness floor (`readable()`: no light text colour dimmer than a set level) and a gentler
+  shading gradient on small type, so grey and lavender labels stop sinking into navy panels.
+- **Act map:** node names sit on dark pills over the painted landscape. **World map:** the info plate moves aside
+  instead of covering Greenmarch's plate.
+- **Fight HUD:** enemy names show in full and in bold ("Boar King", was "King"); the Act 3 boss's ~17,000 HP reads
+  "17.1k/17.1k" instead of overflowing the gauge; the enemy's attack moved to a chip under its badge (mirroring the
+  coin chip on the left) to make room for the name.
+- **Defeat and victory:** the subtitle lines get a dark backing strip over the busy stage.
+- **Bag:** "Lv 24 Legendary" wraps to two lines instead of being cut to "Legenda..."; the compare numbers no longer
+  overlap each other (small type, still on a green or red band).
+- **Forge:** warnings shortened to fit ("Worn: unequip it first"); the salvage note and reroll hint stay inside
+  their panel. Also brighter: the loot card's "Tap to continue"; roomier: the all-stats rows; un-squeezed: the
+  shop's rarity tags.
+
+### 2. The launch layout
+- **Cause:** iOS starts a home-screen app upright and turns it sideways while it opens. The game laid itself out
+  on resize events, and those can come before the new size is readable, or not at all, so it sometimes stayed
+  laid out for the upright screen (3x instead of 8x, letterboxed) until something else resized it.
+- **Fix (`main.ts`):** any sign of a change (resize, orientation, the visual viewport, returning to the app, a
+  ResizeObserver on the game) re-measures several times over the next 2 s, and a slow watch re-measures twice a
+  second. A relayout only rebuilds anything when the measured layout actually changed (`sameLayout`), so the watch
+  is free when nothing moves.
+- **Test:** a smoke test boots upright with every resize event and the ResizeObserver blocked, turns the viewport,
+  and checks the game reaches 8x and the canvas matches.
 
 ## Playtester notes from Act 1 (applied first)
 
@@ -147,6 +183,10 @@ same typical player.
 
 ## Still unverified on the iPhone (checked in headless Chromium and Node)
 
+- The launch fix on a real cold start from the home screen (the iOS rotation can't be reproduced headless; the
+  test covers the worst case of no events at all).
+- The readability pass at 8x on the phone (screens were audited in headless Chromium at the phone's size and safe
+  areas).
 - Loot feel at 8x on the phone: the beam/reveal timings, whether the full-screen card is too long or too short.
 - The camp screens at 8x: grid cell size (14 px), the compare card's text size, tap targets in the forge.
 - The map reward chips: on the very first screen (three stacked fights) they partly cover the next row's nodes.

@@ -64,7 +64,12 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   shows "foe 3/7"). Acts scale enemies with `acts[i].hpMult/atkMult/pace` (plus `map.rowHp` per map row); HP carries from node to node; dying restarts the act with the hero as they entered it.
 - Landscape (like CQ2) canvas 327x150, integer-scaled (8x on an iPhone 16 Pro held sideways) so pixels are
   big and chunky like the reference; pixel art, no smoothing. Safe areas (Dynamic Island left/right, home indicator) come from `env(safe-area-inset-*)`
-  (see `src/engine/layout.ts`).
+  (see `src/engine/layout.ts`). iOS launches a home-screen app upright and turns it, with resize events that can be
+  early or missing, so `main.ts` re-measures after any hint and on a 500 ms watch (`app.relayout()` is a no-op unless
+  the layout changed).
+- **Text readability.** The pixel fonts bake an ink outline; dark text (on parchment, gold) automatically uses the
+  outline-free twins (`font.ts` `isDarkInk`), and light text gets a brightness floor (`readable()`). New text must fit
+  its box at 8x (`textWidth`): wrap or shorten it rather than truncating with "...", and never let bold rows overlap.
 
 ## Layout
 
