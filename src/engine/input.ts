@@ -58,9 +58,11 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       }
       case 'boost': {
         if (scene.overlays.unlockActive()) return scene.overlays.unlockTap();
-        if (now - app.phaseSince < 400) return;
-        const i = clientX < 0 ? 0 : scene.boostCardAt(g.x, g.y);
-        if (i >= 0) app.setPhase(() => run.pickBoost(i));
+        // (each card is live as soon as it has been dealt face up)
+        if (now - app.phaseSince < 120) return;
+        const i = clientX < 0 ? scene.overlays.takeCard(0) : scene.boostCardAt(g.x, g.y);
+        // (a relic flies into the tray first, then the run moves on)
+        if (i >= 0) scene.overlays.afterPick(() => app.setPhase(() => run.pickBoost(i)));
         else if (scene.rerollAt(g.x, g.y) && run.rerollBoosts()) scene.onReroll();
         return;
       }

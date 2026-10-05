@@ -237,9 +237,15 @@ export const relicLines = (t: Tuning, id: RelicId, w: number): string[] => wrapT
 /**
  * A relic card (the boost pick, the shop's detail card): the frame in the rarity's colours, the icon on a tile, the
  * name, its tag chips (a shared tag lit gold), the rarity tag, a "Synergy!" badge on the top edge when it shares a
- * tag with a relic you own, and its text in two lines. Best at 32 px tall and 220+ wide.
+ * tag with a relic you own, and its text in two lines. Best at 30-32 px tall and 220+ wide; `chips` collects where
+ * its tag chips went (the pick draws a line from a shared one to the relic it matches).
  */
-export function relicCard(c: CardCtx, r: Rect, id: RelicId, o: { owned: readonly RelicId[]; tuning: Tuning; now: number; flash?: number; alpha?: number }): void {
+export function relicCard(
+  c: CardCtx,
+  r: Rect,
+  id: RelicId,
+  o: { owned: readonly RelicId[]; tuning: Tuning; now: number; flash?: number; alpha?: number; chips?: Array<{ tag: RelicTag; r: Rect; hot: boolean }> },
+): void {
   const def = relicById(id);
   if (!def) return;
   const { s, g, texts, pool } = c;
@@ -266,10 +272,13 @@ export function relicCard(c: CardCtx, r: Rect, id: RelicId, o: { owned: readonly
   const named = cx + def.tags.reduce((sum, t) => sum + chipWidth(t) + 3, 0) <= right;
   for (const t of def.tags) {
     if (cx + chipWidth(t, named) > right) break;
-    cx += tagChip(s, g, texts, pool, t, cx, r.y + 3, c.depth, { name: named, hot: shared.includes(t), alpha: a, now: o.now }) + 3;
+    const w = tagChip(s, g, texts, pool, t, cx, r.y + 3, c.depth, { name: named, hot: shared.includes(t), alpha: a, now: o.now });
+    o.chips?.push({ tag: t, r: { x: cx, y: r.y + 3, w, h: CHIP_H }, hot: shared.includes(t) });
+    cx += w + 3;
   }
-  // rows 2-3: what it does
-  relicLines(o.tuning, id, r.w).slice(0, 2).forEach((line, i) => texts.text(line, nx, r.y + 14 + i * 9, 0xe8e2ff, { alpha: a }));
+  // rows 2-3: what it does (a little tighter on a 30 px card)
+  const [ty, lh] = r.h >= 32 ? [14, 9] : [13, 8];
+  relicLines(o.tuning, id, r.w).slice(0, 2).forEach((line, i) => texts.text(line, nx, r.y + ty + i * lh, 0xe8e2ff, { alpha: a }));
   cardShine(g, r, def.rarity, o.now, a);
   // "Synergy!" sits on the top edge, at the right end
   if (shared.length) synergyBadge(g, texts, r.x + r.w - textWidth('Synergy!', 1, false) - 12, r.y - 7, o.now, a);

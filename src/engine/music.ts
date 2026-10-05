@@ -842,6 +842,15 @@ export class Band {
     this.combo = Math.max(0, combo);
   }
 
+  /** ctx time of the next beat not yet scheduled: where a change asked for now (a layer joining) lands. */
+  nextBeatAt(): number | null {
+    const d = this.deck;
+    if (!d || !this.rig) return null;
+    const s = d.step % d.song.meter;
+    const steps = (d.song.beat - (s % d.song.beat)) % d.song.beat;
+    return this.next + steps * stepSec(d.song);
+  }
+
   setBossPhase(phase: number): void {
     this.phase = Math.max(1, Math.min(3, Math.round(phase) || 1));
   }

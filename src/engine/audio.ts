@@ -2215,6 +2215,14 @@ export class Synth {
     if (!this.lab) this.band.setCombo(combo);
   }
 
+  /** Ms until the music's next beat (a layer asked for now joins there); 0 when the music isn't playing. */
+  msToNextBeat(): number {
+    const ctx = this.ctx;
+    if (!ctx || !this.musicOn || this._muted || ctx.state !== 'running') return 0;
+    const at = this.band.nextBeatAt();
+    return at === null ? 0 : Math.max(0, (at - ctx.currentTime) * 1000);
+  }
+
   /** The Boar King's phase (1-3): his theme adds layers, and goes up a key in phase 3 (from the next bar). */
   setBossPhase(phase: number): void {
     this.game.phase = phase;

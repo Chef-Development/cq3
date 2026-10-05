@@ -439,19 +439,18 @@ export class FightScene extends Phaser.Scene implements View {
           f.petAttack(e.enemyId, e.damage, e.crit);
           break;
         case 'heal': {
-          // healing comes from the kill: it lands just after the burst
+          // healing comes from the kill: it lands just after the burst (a glint on the hero, the HP by the HP bar)
           const amount = e.amount;
           this.later(Math.max(0, f.lastBurstAt - this.anim + 180), () => {
-            fx.iconFloat(f.h.x + 2, this.ground - 46, `+${amount}`, 0xff7aa8, 'heart');
+            hud.healPop(amount);
             fx.burst(f.h.x, this.ground - 16, 0xff7aa8, 12, true, 0.8);
-            hud.hpPulseAt = performance.now();
             this.app.audio.heal();
           });
           break;
         }
         case 'ability':
-          // (named the first time each fight; then the plate's green timer shows it)
-          if (f.firstName('ability')) fx.floatNum(f.h.x, this.ground - 46, heroDef(this.app.run.hero.build?.id ?? 'rowan').ability.name, 0x9af0a0, 1);
+          // (named in the HUD's name lane the first time each fight; then the plate's green timer shows it)
+          if (f.firstName('ability')) hud.announce(heroDef(this.app.run.hero.build?.id ?? 'rowan').ability.name, 0x9af0a0);
           break;
         case 'speedUp':
           fx.judge(this.bar.x + this.bar.w / 2, 'Speed up!', 0xff9a3a, true, -14);

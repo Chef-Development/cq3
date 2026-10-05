@@ -18,9 +18,10 @@ import { GAME_W } from '../layout';
 import { band, button3d, chevron, gauge, gem, glow, GOLD, hudIcon, iconSize, NAVY, panel, RAMP, rows } from './pixels';
 import { FOE_ICONS } from './icons';
 import { clamp01, ease, easeBack, ENEMY_COL, inRect, INK, mix, pulse, rand, shade, stackCol, WHITE, type Rect } from './shared';
-import { ImagePool, tag, TextPool } from './ui';
+import { ImagePool, ribbon, tag, TextPool } from './ui';
 import { relicIcon } from './relic-ui';
 import { statSize } from './items';
+import { pix } from './camp-kit';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -38,14 +39,38 @@ const CHIP_Y = 20;
 /** The relic belt shows up to this many icons (more: "+N" after them), 13 px apart, under the portrait and coins. */
 const BELT_MAX = 5;
 const BELT_Y = 32;
-/** Combo milestones: the counter's progress bar fills toward the next one. */
-const MARKS: Array<[number, string]> = [
-  [10, 'Nice!'],
-  [25, 'Great!'],
-  [50, 'Awesome!'],
-  [75, 'Insane!'],
-  [100, 'Godlike!'],
+/** Combo milestones past the music's (tuning.music drumsAt / bassAt / leadAt): the counter's progress bar fills
+ *  toward the next one, and reaching one plays a flourish. */
+const LATE_MARKS = [75, 100];
+/** Heals within this long of each other add up in one number under the HP plate. */
+const HEAL_MERGE_MS = 650;
+/** The name lane: how long a name stays (shorter while others wait), and how many may wait. */
+const LANE_MS = 1150;
+const LANE_BUSY_MS = 720;
+const LANE_QUEUE = 3;
+/** The combo flourish: the counter swells, a burst fans out, and (the first time each fight) a "Combo 25!" stamp. */
+const FLOURISH_MS = 900;
+/** The flourish's colour per milestone (hotter as it climbs; 100 cycles through the rainbow). */
+const RAINBOW = [0xff5a5a, 0xffb03a, 0xffe14a, 0x6aff7a, 0x5ad8ff, 0xb07aff];
+const tierOf = (n: number): number => (n >= 100 ? 4 : n >= 50 ? 3 : n >= 25 ? 2 : n >= 10 ? 1 : 0);
+const TIER_HUE = [WHITE, 0xffd23a, 0xff9a3a, 0xff5ab0, 0xff5ab0];
+/** The stamp's ribbon per milestone tier [hi, base, lo, deep]: gold, orange, pink, violet. */
+const STAMP_FACE: ReadonlyArray<readonly [number, number, number, number]> = [
+  [0xfff0a0, 0xf2c230, 0xd8901c, 0x7a4a10],
+  [0xffd0a0, 0xff9a3a, 0xc8601a, 0x6a2a0c],
+  [0xffc0e8, 0xf05ab0, 0xb02a7a, 0x5e1044],
+  [0xe4b8ff, 0x9a52d8, 0x6a2aa8, 0x34124e],
 ];
+
+/** A name in the lane under the hero plate: a perk kicking in, a gear effect, a gain since the last fight. */
+interface LaneItem {
+  text: string;
+  col: number;
+  /** A relic's icon in front of it, or a texture (a skill node's), or a small up arrow (a stat gain). */
+  relic?: RelicId;
+  tex?: string;
+  up?: boolean;
+}
 
 export class Hud {
   g!: G;
@@ -66,6 +91,16 @@ export class Hud {
   stackPopAt = -1e9;
   stackLostAt = -1e9;
   lastMilestone = 0;
+  /** Heals merged per moment: their sum shows small and green under the HP plate's right end. */
+  private heal: { sum: number; last: number } | null = null;
+  /** The name lane: what's showing (since `at`, for `ms`) and what waits. */
+  private lane: LaneItem[] = [];
+  private laneNow: (LaneItem & { at: number; ms: number }) | null = null;
+  private laneFight: unknown = null;
+  /** The combo flourish playing (it starts on the music's next beat), and the milestones stamped this fight. */
+  private flourish: { n: number; at: number; stamp: boolean; played: boolean } | null = null;
+  private stamped = new Set<number>();
+  private stampFight: unknown = null;
   // animation state
   private wasShown = false;
   private inAt = -1e9; // the HUD slid in (a fight started)
@@ -195,15 +230,151 @@ export class Hud {
     this.coinsPrev = this.coinsShown;
   }
 
+  /** The combo milestones: the music's layers (drums, bass, lead join there), then 75 and 100. */
+  marks(): number[] {
+    const m = this.s.app.tuning.music;
+    return [...new Set([m.drumsAt, m.bassAt, m.leadAt, ...LATE_MARKS].filter((n) => n > 0))].sort((a, b) => a - b);
+  }
+
+  /**
+   * The combo reached `combo`: a milestone it just passed plays the flourish. One the music marks lands on the beat
+   * its layer joins on (the band's next beat), so the swell, the burst and the stamp hit with the drums, the bass or
+   * the lead. The "Combo 25!" stamp shows the first time each fight; after a break, the counter just swells.
+   */
   milestone(combo: number): void {
-    for (const [n, label] of MARKS)
+    const s = this.s;
+    const c = s.app.run.combat;
+    if (c !== this.stampFight) {
+      this.stampFight = c;
+      this.stamped.clear();
+      this.flourish = null;
+    }
+    const marks = this.marks();
+    // the combo was spent (a finisher) or broken: the milestones under it count again
+    if (combo < this.lastMilestone) this.lastMilestone = marks.filter((n) => n <= combo).pop() ?? 0;
+    for (const n of marks)
       if (combo >= n && this.lastMilestone < n) {
         this.lastMilestone = n;
-        const c = this.comboAnchor();
-        this.s.fx.addFloater(c.x + 30, c.y - 28, `${n} Combo! ${label}`, 0xffd23a, 1, true, 0, -16, 0, 900, false);
-        this.s.fx.sparkle(c.x + 12, c.y - 10);
-        this.s.app.audio.ready2();
+        const m = s.app.tuning.music;
+        const musical = n === m.drumsAt || n === m.bassAt || n === m.leadAt;
+        const wait = musical ? Math.max(0, Math.min(700, s.app.audio.msToNextBeat())) : 0;
+        const stamp = !this.stamped.has(n);
+        this.stamped.add(n);
+        this.flourish = { n, at: performance.now() + wait, stamp, played: false };
       }
+  }
+
+  // ------------------------------------------------------------------ heals and the name lane
+
+  /** A heal: its number joins the one showing (heals in the same moment add up), and the HP readout pulses green. */
+  healPop(amount: number): void {
+    if (amount <= 0) return;
+    const now = performance.now();
+    const h = this.heal;
+    if (h && now - h.last < HEAL_MERGE_MS) {
+      h.sum += amount;
+      h.last = now;
+    } else this.heal = { sum: amount, last: now };
+    this.hpPulseAt = now;
+  }
+
+  /** A name for the lane under the hero plate (one at a time; a few may wait their turn, the oldest give way). */
+  announce(text: string, col: number, o: { relic?: RelicId; tex?: string; up?: boolean } = {}): void {
+    if (this.laneNow?.text === text || this.lane.some((q) => q.text === text)) return;
+    this.lane.push({ text, col, ...o });
+    if (this.lane.length > LANE_QUEUE) this.lane.shift();
+  }
+
+  /** The heal number: small, green, right-aligned under the HP plate; it bumps as heals add up, then fades. */
+  private drawHeal(g: G, plate: Rect, now: number): void {
+    const h = this.heal;
+    if (!h) return;
+    const age = now - h.last;
+    const life = 1000;
+    if (age > life) {
+      this.heal = null;
+      return;
+    }
+    const bump = age < 140 ? -Math.round(2 * (1 - age / 140)) : 0;
+    const out = clamp01((age - (life - 300)) / 300);
+    const a = 1 - out;
+    const txt = `+${h.sum}`;
+    const right = plate.x + plate.w - 1;
+    const y = plate.y + plate.h + 6 + bump - Math.round(out * 3);
+    const tw = textWidth(txt, 1, true);
+    this.texts.text(txt, right, y, age < 80 ? 0xe8ffd8 : 0x9af06a, { bold: true, ox: 1, oy: 0.5, alpha: a });
+    // a small heart in front of it
+    const hx = right - tw - 7;
+    const hy = Math.round(y) - 3;
+    g.fillStyle(INK, a);
+    g.fillRect(hx, hy, 2, 1);
+    g.fillRect(hx + 3, hy, 2, 1);
+    g.fillRect(hx - 1, hy + 1, 7, 2);
+    g.fillRect(hx, hy + 3, 5, 1);
+    g.fillRect(hx + 1, hy + 4, 3, 1);
+    g.fillRect(hx + 2, hy + 5, 1, 1);
+    g.fillStyle(0x5ad848, a);
+    g.fillRect(hx, hy + 1, 2, 1);
+    g.fillRect(hx + 3, hy + 1, 2, 1);
+    g.fillRect(hx, hy + 2, 5, 1);
+    g.fillRect(hx + 1, hy + 3, 3, 1);
+    g.fillRect(hx + 2, hy + 4, 1, 1);
+    g.fillStyle(0xd8ffb0, a);
+    g.fillRect(hx, hy + 1, 1, 1);
+  }
+
+  /**
+   * The name lane: under the hero plate (under the relic belt when there is one), one name at a time on a small
+   * navy pill, its relic's icon in front. It slides out from the plate, holds, and fades; the next one follows.
+   * It never covers the act and foe counters in the middle.
+   */
+  private drawLane(g: G, now: number, dx: number): void {
+    const s = this.s;
+    const c = s.app.run.combat;
+    if (c !== this.laneFight) {
+      this.laneFight = c;
+      this.lane = [];
+      this.laneNow = null;
+    }
+    let cur = this.laneNow;
+    if (cur && now - cur.at > cur.ms) cur = this.laneNow = null;
+    if (!cur && this.lane.length) {
+      const next = this.lane.shift()!;
+      cur = this.laneNow = { ...next, at: now, ms: this.lane.length ? LANE_BUSY_MS : LANE_MS };
+    }
+    // a name waiting cuts the one showing short (it has been read for a while)
+    if (cur && this.lane.length && now - cur.at < cur.ms - 200 && now - cur.at > LANE_BUSY_MS - 200) cur.ms = now - cur.at + 200;
+    if (!cur) return;
+    const age = now - cur.at;
+    const ik = easeBack(age / 180, 1.4);
+    const out = clamp01((age - (cur.ms - 200)) / 200);
+    const a = clamp01(age / 90) * (1 - out);
+    const iconW = cur.relic || cur.tex ? 13 : cur.up ? 8 : 4;
+    const tw = textWidth(cur.text, 1, true);
+    const w = iconW + tw + 7;
+    const y = (this.relicBelt() ? BELT_Y + 16 : CHIP_Y + 13) - Math.round(out * 3);
+    const x = s.L + 3 + dx + Math.round((1 - ik) * -14);
+    const r: Rect = { x, y, w, h: 12 };
+    rows(g, r.x - 1, r.y + 1, r.w + 2, r.h + 1, 2, INK, 0.35 * a);
+    tag(g, r, [NAVY[5], NAVY[2], NAVY[1], NAVY[0]], 0.94 * a);
+    // a strip of the name's colour along the left edge
+    g.fillStyle(cur.col, a);
+    g.fillRect(r.x + 1, r.y + 2, 1, r.h - 4);
+    if (age < 160) glow(g, r, cur.col, 0.5 * (1 - age / 160), 2);
+    let tx = r.x + 4;
+    if (cur.relic) {
+      relicIcon(s, this.pool, g, cur.relic, tx - 1, r.y, 10.25, a);
+      tx += 13;
+    } else if (cur.tex && s.textures.exists(cur.tex)) {
+      const [iw, ih] = this.pool.size(cur.tex);
+      const k = Math.min(1, 12 / Math.max(iw, ih));
+      this.pool.at(cur.tex, tx - 1, r.y + Math.round((12 - ih * k) / 2), 10.25, a).setScale(k);
+      tx += 13;
+    } else if (cur.up) {
+      pix(g, 'up', tx - 1, r.y + 2, a);
+      tx += 8;
+    }
+    this.texts.text(cur.text, tx, r.y + 6, cur.col, { bold: true, oy: 0.5, alpha: a });
   }
 
   // ------------------------------------------------------------------ layout
@@ -404,6 +575,7 @@ export class Hud {
     const hpBump = hpK >= 0 && hpK < 1 ? -Math.round(2 * (1 - hpK)) : 0;
     const hpCol = this.hpPulseAt > now - 300 ? 0xc8ff9a : hpK >= 0 && hpK < 0.5 ? 0xfff6c0 : WHITE;
     this.texts.text(`${Math.ceil(this.hpNum)}/${maxHp}`, gx + 38, gy + 4 + hpBump, hpCol, { bold: true, ox: 0.5, oy: 0.5 });
+    this.drawHeal(g, plate, now);
 
     // the Tusk Crown's crit buff: a gold timer along the plate's bottom edge
     const c = run.combat;
@@ -460,6 +632,7 @@ export class Hud {
     tag(g, rr, lit ? [NAVY[5], NAVY[3], NAVY[2], NAVY[1]] : [NAVY[3], NAVY[1], NAVY[1], NAVY[0]], lit ? 0.94 : 0.7);
     hudIcon(g, 'potionS', rr.x + 2, rr.y, 1, lit ? 1 : 0.3);
     this.drawBelt(g, now, dx);
+    this.drawLane(g, now, dx);
   }
 
   /** The coin chip under the HP plate, right of the portrait (the coins fly into it). */
@@ -502,16 +675,12 @@ export class Hud {
     }
   }
 
-  /** The gain line: it rises out from under the hero's corner of the HUD, and the plate glows. */
+  /** The gain line: it slides out in the name lane under the plate, and the plate glows. */
   private showGain(text: string, hp: boolean, now: number): void {
-    const s = this.s;
-    s.app.audio.statUp(0);
+    this.s.app.audio.statUp(0);
     this.plateGlowAt = now;
     if (hp) this.hpPulseAt = now;
-    const x = s.L + 3 + 53;
-    const y = (this.relicBelt() ? BELT_Y + 14 : CHIP_Y + 10) + 8;
-    s.fx.sparkle(x, y - 4);
-    s.fx.addFloater(x, y, text, 0x9af06a, 1, true, 0, -6, 0, 1600, false);
+    this.announce(text, 0x9af06a, { up: true });
   }
 
   /** A framed square badge: ink outline, a 2-tone metal rim, an ink line and a dark gradient well. */
@@ -699,6 +868,14 @@ export class Hud {
     if (combo > 0) this.lastCombo = combo;
     else if (!broke) this.lastCombo = 0;
     const n = combo > 0 ? combo : broke ? this.lastCombo : 0;
+    // the flourish (on the music's beat): its sound and a spray of sparks the moment it lands
+    const fl = this.flourish;
+    const ft = fl ? now - fl.at : -1;
+    if (fl && ft >= 0 && !fl.played) {
+      fl.played = true;
+      s.app.audio.ready2();
+    }
+    if (fl && ft > FLOURISH_MS) this.flourish = null;
     if (n <= 0) return;
     const a = this.comboAnchor();
     // appear: slides up out of the band; break: shakes, turns red, drops and fades
@@ -710,28 +887,34 @@ export class Hud {
     const pk = (now - this.comboPopAt) / 150;
     const pop = pk >= 0 && pk < 1 && !broke;
     const bump = pop ? -Math.round(3 * (1 - pk) ** 2) : 0;
-    const tier = n >= 100 ? 4 : n >= 50 ? 3 : n >= 25 ? 2 : n >= 10 ? 1 : 0;
-    const hue = [WHITE, 0xffd23a, 0xff9a3a, 0xff5ab0, 0xff5ab0][tier];
-    const rainbow = tier === 4 ? [0xff5a5a, 0xffb03a, 0xffe14a, 0x6aff7a, 0x5ad8ff, 0xb07aff][Math.floor(now / 80) % 6] : hue;
-    const col = broke ? 0xff4a4a : pop && pk < 0.35 ? WHITE : rainbow;
+    const tier = tierOf(n);
+    const hue = TIER_HUE[tier];
+    const rainbow = tier === 4 ? RAINBOW[Math.floor(now / 80) % 6] : hue;
     const num = `${n}`;
     const nw = textWidth(num, 2, true);
+    // the flourish: the counter swells to 3x for a beat, flashing white, and a burst fans up from it
+    const live = fl && ft >= 0 && !broke;
+    const swell = live && ft < 130;
+    const fhue = fl ? (tierOf(fl.n) === 4 ? RAINBOW[Math.floor(now / 80) % 6] : TIER_HUE[tierOf(fl.n)]) : hue;
+    if (live) this.drawBurst(this.gTop!, x + nw / 2 + 4, y - 8, ft, fhue);
+    const col = broke ? 0xff4a4a : swell || (pop && pk < 0.35) ? WHITE : rainbow;
     // a slanted streak behind the number in the tier color (hotter combos glow)
     if (tier > 0 && !broke) {
       const sw = nw + 30;
       for (let i = 0; i < 3; i++) {
-        g.fillStyle(hue, (0.18 + 0.1 * pulse(now, 500)) * (1 - i * 0.3) * alpha);
+        g.fillStyle(hue, (0.18 + 0.1 * pulse(now, 500) + (live ? 0.3 * (1 - ft / FLOURISH_MS) : 0)) * (1 - i * 0.3) * alpha);
         g.fillRect(x - 3 + i * 2, y - 13 + i * 3, sw - i * 4, 2);
       }
     }
-    this.texts.text(num, x, y + bump, col, { bold: true, scale: 2, oy: 1, alpha, extrude: 1, extrudeCol: broke ? 0x5a0a14 : shade(hue, 0.35) });
-    // label and progress toward the next milestone
+    this.texts.text(num, x, y + bump, col, { bold: true, scale: swell ? 3 : 2, oy: 1, alpha, extrude: 1, extrudeCol: broke ? 0x5a0a14 : shade(swell ? fhue : hue, 0.35) });
+    // label and progress toward the next milestone (hidden while the number swells over them)
     const lx = x + nw + 2;
-    this.texts.text(broke ? 'Break!' : 'Combo', lx, y - 15, broke ? 0xff6a5a : 0xdcd8f0, { bold: true, alpha });
-    if (!broke) {
-      const next = MARKS.find(([m]) => n < m);
-      const prev = [...MARKS].reverse().find(([m]) => n >= m)?.[0] ?? 0;
-      const k = next ? (n - prev) / (next[0] - prev) : 1;
+    if (!swell) this.texts.text(broke ? 'Break!' : 'Combo', lx, y - 15, broke ? 0xff6a5a : 0xdcd8f0, { bold: true, alpha });
+    if (!broke && !swell) {
+      const marks = this.marks();
+      const next = marks.find((m) => n < m);
+      const prev = [...marks].reverse().find((m) => n >= m) ?? 0;
+      const k = next ? (n - prev) / (next - prev) : 1;
       const bw = 30;
       const by = y - 4;
       rows(g, lx - 1, by - 1, bw + 2, 5, 1, INK, 0.9);
@@ -744,13 +927,63 @@ export class Hud {
         g.fillStyle(WHITE, 0.6);
         g.fillRect(lx, by, fw, 1);
       }
-      if (next) this.texts.text(`${next[0]}`, lx + bw + 2, by + 1, 0x9a94b0, { oy: 0.5 });
+      if (next) this.texts.text(`${next}`, lx + bw + 2, by + 1, 0x9a94b0, { oy: 0.5 });
     }
+    if (live && fl.stamp) this.drawStamp(g, x + Math.round((nw + 34) / 2), y - 18, ft, fl.n);
     // combo tiers (a setting): the damage multiplier they give
     if (s.app.settings.comboTiers) {
       const tm = n >= T.tiers.t3 ? T.tiers.m3 : n >= T.tiers.t2 ? T.tiers.m2 : n >= T.tiers.t1 ? T.tiers.m1 : 1;
-      if (tm > 1) this.texts.text(`DMG x${tm}`, x, y - 26, 0xffd23a, { alpha });
+      if (tm > 1 && !(live && fl.stamp)) this.texts.text(`DMG x${tm}`, x, y - 26, 0xffd23a, { alpha });
     }
+  }
+
+  /** The flourish's burst (over the HUD's panels, under its text): a ring and a fan of bold rays opening up and to the
+   *  right of the counter (never down over the bar). */
+  private drawBurst(g: G, cx: number, cy: number, t: number, col: number): void {
+    const k = clamp01(t / 420);
+    if (k >= 1) return;
+    const e = 1 - (1 - k) ** 3;
+    const a = 1 - k * k;
+    // the ring (its upper part), thick at first
+    const rr = 6 + e * 26;
+    const th = k < 0.35 ? 2 : 1;
+    g.fillStyle(mix(col, WHITE, 0.3), 0.9 * a);
+    for (let i = 0; i <= 30; i++) {
+      const ang = Math.PI * 1.15 + (i / 30) * Math.PI * 0.8;
+      g.fillRect(Math.round(cx + Math.cos(ang) * rr), Math.round(cy + Math.sin(ang) * rr * 0.75), th, th);
+    }
+    // rays: 2 px dashes flying outward, alternating white and the milestone's colour
+    for (let i = 0; i < 9; i++) {
+      const ang = Math.PI * 1.17 + (i / 8) * Math.PI * 0.76;
+      const r0 = 8 + e * 24;
+      const len = 3 + 7 * (1 - k);
+      for (let d = r0; d < r0 + len; d += 1) {
+        g.fillStyle(i % 2 ? WHITE : col, a);
+        g.fillRect(Math.round(cx + Math.cos(ang) * d), Math.round(cy + Math.sin(ang) * d * 0.75), 2, 2);
+      }
+    }
+    // a flash on the counter as it lands
+    if (t < 120) glow(g, { x: Math.round(cx - 14), y: Math.round(cy - 10), w: 28, h: 18 }, col, 0.9 * (1 - t / 120), 4);
+  }
+
+  /** "Combo 25!": a small ribbon over the counter in the milestone's colour, slammed in (a white flash, a size
+   *  bump), then rising away. */
+  private drawStamp(g: G, cx: number, by: number, t: number, n: number): void {
+    const label = `Combo ${n}!`;
+    const face = STAMP_FACE[Math.min(STAMP_FACE.length - 1, Math.max(0, tierOf(n) - 1))];
+    const out = clamp01((t - (FLOURISH_MS - 240)) / 240);
+    const a = 1 - out;
+    const slam = clamp01(t / 110);
+    const grow = Math.round((1 - slam) * 6);
+    const tw = textWidth(label, 1, true);
+    const w = tw + 12 + grow * 2;
+    const h = 11 + Math.round(grow / 2);
+    const y = Math.round(by - h - out * 6);
+    // (kept clear of the screen's left edge, tails and all)
+    cx = Math.max(this.s.L + 12 + w / 2, cx);
+    ribbon(g, cx, y, w, h, face, a, slam > 0.6);
+    if (t < 110) rows(g, Math.round(cx - w / 2), y, w, h, 1, WHITE, 0.7 * (1 - slam));
+    this.texts.text(label, cx, y + h / 2, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a, extrude: 1, extrudeCol: face[3] });
   }
 
   // ------------------------------------------------------------------ finisher strip under the bar

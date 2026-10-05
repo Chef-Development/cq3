@@ -6,7 +6,7 @@
 import Phaser from 'phaser';
 import { heroMaxHp } from '../../core/combat';
 import { heroDef } from '../../data/heroes';
-import { relicById } from '../../data/relics';
+import { relicById, type RelicId, type RelicTag } from '../../data/relics';
 import { heroProgress } from '../../core/profile';
 import { buildName, relicText, topTags } from '../../core/relics';
 import { levelProgress } from '../../core/heroes';
@@ -18,10 +18,11 @@ import { buildCrest, buildLogo } from '../chrome';
 import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
 import { band, brick, button3d, chevron, gauge, glow, GOLD, hudIcon, iconSize, NAVY, panel, RAMP, rows } from './pixels';
-import { BOOST_ICON, clamp01, COL, easeBack, easeOut3, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
+import { BOOST_ICON, clamp01, COL, easeBack, easeInOut, easeOut3, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
 import { FACE, ImagePool, isPressed, notePress, ribbon, RIBBON, strip, tag, TextPool } from './ui';
 import { cardFrame, cardShine, cardTile, mainTag, relicCard, relicIcon, tagChip, TAG_FACE, type CardCtx } from './relic-ui';
 import { wrapText } from './items';
+import { pix } from './camp-kit';
 
 // ------------------------------------------------------------------ small UI glyphs (shared by the menus)
 
@@ -164,7 +165,10 @@ export class Overlays {
   private newRunArmedUntil = 0;
   private lastPhase: Phase | null = null;
   private phaseAt = 0; // when the current phase started drawing (performance.now)
-  private picked: { offer: BoostOffer; preview: BoostPreview; r: Rect; at: number } | null = null;
+  private picked: { offer: BoostOffer; preview: BoostPreview; r: Rect; at: number; owned: RelicId[] } | null = null;
+  /** A relic pick waits for its card to fly into the tray: then this moves the run on. */
+  private pickThen: (() => void) | null = null;
+  private landedSound = false;
   private rerollAt2 = -1e9;
   /** The phase before the current one (onPhase's): back from the camp, the act-clear chest is already open. */
   private shownPhase: Phase | null = null;
@@ -392,14 +396,42 @@ export class Overlays {
     return null;
   }
 
-  /** Boost choices: a navy panel with three stacked cards (hit-tested by index). */
+  /** Boost choices: a navy panel with three stacked cards and, along its bottom, the relics the hero carries. */
   private boostPanel(): Rect {
-    return { x: Math.round(GAME_W / 2 - 128), y: 25, w: 256, h: 116 };
+    const h = 121;
+    return { x: Math.round(GAME_W / 2 - 128), y: Math.min(24, this.s.B + 1 - h), w: 256, h };
   }
 
   cardRect(i: number): Rect {
     const p = this.boostPanel();
-    return { x: p.x + 8, y: p.y + 10 + i * 34, w: p.w - 16, h: 32 };
+    return { x: p.x + 8, y: p.y + 8 + i * 32, w: p.w - 16, h: 30 };
+  }
+
+  /** The tray along the pick panel's bottom: an amulet, then the relics carried (the pick lands in the next slot). */
+  private trayRect(): Rect {
+    const p = this.boostPanel();
+    return { x: p.x + 8, y: p.y + p.h - 18, w: p.w - 16, h: 14 };
+  }
+
+  /** The tray's slots: up to `max` relics shown (the last slot "+N" when there are more). */
+  private traySlots(n: number): { slots: Rect[]; more: number } {
+    const t = this.trayRect();
+    const max = Math.floor((t.w - 16) / 14);
+    const shown = n <= max ? n : max - 1;
+    return { slots: Array.from({ length: Math.min(max, n + 1) }, (_, i) => ({ x: t.x + 15 + i * 14, y: t.y + 1, w: 12, h: 12 })), more: n - shown };
+  }
+
+  /** The deal: when the pick's cards started coming (the phase, or a reroll: then they just flip over in place). */
+  private dealStart(): { at: number; reroll: boolean } {
+    const rerolled = this.rerollAt2 > this.phaseAt;
+    return { at: rerolled ? this.rerollAt2 : this.phaseAt, reroll: rerolled };
+  }
+
+  /** Card i's deal: when it leaves the deck, lands (and starts to flip), and is face up (ms after the deal starts). */
+  private dealTimes(i: number, reroll: boolean): { start: number; land: number; up: number } {
+    if (reroll) return { start: i * 60, land: i * 60, up: i * 60 + 120 };
+    const start = 110 + i * 85;
+    return { start, land: start + 160, up: start + 270 };
   }
 
   /** The reroll button on the boost panel's top edge (shown while the run has rerolls bought at a shop). */
@@ -409,7 +441,7 @@ export class Overlays {
   }
 
   rerollAt(x: number, y: number): boolean {
-    const hit = this.s.app.run.rerolls > 0 && inRect(this.rerollRect(), x, y, 3);
+    const hit = this.s.app.run.rerolls > 0 && !this.pickThen && inRect(this.rerollRect(), x, y, 3);
     if (hit) {
       notePress(this.rerollRect());
       this.rerollAt2 = performance.now();
@@ -417,16 +449,42 @@ export class Overlays {
     return hit;
   }
 
+  /** Whether card i has been dealt face up (a tap on it picks it). */
+  cardLive(i: number): boolean {
+    const deal = this.dealStart();
+    return performance.now() - deal.at >= this.dealTimes(i, deal.reroll).up;
+  }
+
+  /** The card a tap picks: only a card that is face up (each one is live the moment it has flipped over). */
   boostCardAt(x: number, y: number): number {
-    for (let i = 0; i < 3; i++)
-      if (inRect(this.cardRect(i), x, y)) {
-        const run = this.s.app.run;
-        const offer = run.boostChoices[i];
-        if (offer) this.picked = { offer, preview: boostPreview(run.tuning, run.hero, offer), r: this.cardRect(i), at: performance.now() };
-        return i;
-      }
+    for (let i = 0; i < 3; i++) if (inRect(this.cardRect(i), x, y)) return this.takeCard(i);
     return -1;
   }
+
+  /** Take card i if it's live (and nothing is being picked already): it becomes the picked card. Returns i or -1. */
+  takeCard(i: number): number {
+    const run = this.s.app.run;
+    const offer = run.boostChoices[i];
+    if (!offer || !this.cardLive(i) || this.pickThen) return -1;
+    this.picked = { offer, preview: boostPreview(run.tuning, run.hero, offer), r: this.cardRect(i), at: performance.now(), owned: run.hero.relics.slice() };
+    this.landedSound = false;
+    return i;
+  }
+
+  /**
+   * After a card is taken: a relic first flies into the tray (Overlays.RELIC_FLY_MS, the screen stays meanwhile and
+   * takes no other pick), then `then` moves on; a stat card moves on at once (it lifts and fades over what's next).
+   */
+  afterPick(then: () => void): void {
+    const p = this.picked;
+    if (!p || !isRelicOffer(p.offer)) return then();
+    this.pickThen = then;
+    this.s.app.audio.uiClick();
+  }
+
+  /** A relic's flight into the tray: it lands at RELIC_LAND_MS and the screen moves on at RELIC_FLY_MS. */
+  private static readonly RELIC_LAND_MS = 380;
+  private static readonly RELIC_FLY_MS = 500;
 
   // ------------------------------------------------------------------ drawing helpers
 
@@ -516,6 +574,12 @@ export class Overlays {
     if (ph !== this.lastPhase) {
       this.lastPhase = ph;
       this.phaseAt = now;
+    }
+    // a relic picked has flown into the tray: the run moves on
+    if (this.pickThen && (ph !== 'boost' || !this.picked || now - this.picked.at >= Overlays.RELIC_FLY_MS)) {
+      const then = this.pickThen;
+      this.pickThen = null;
+      if (ph === 'boost') then();
     }
     if (now < s.fx.screenFlashUntil) {
       // scene only: the bar must stay readable
@@ -688,31 +752,72 @@ export class Overlays {
 
   // ------------------------------------------------------------------ boost pick
 
+  /**
+   * The pick: the panel pops in, then the three cards are dealt from a little deck at its bottom (each slides up to
+   * its place and flips face up; a card is live the moment it has flipped). Along the bottom, the relics carried; a
+   * card that shares a tag with one of them (Synergy!) runs a glowing line from its lit tag to that relic.
+   */
   private drawBoost(g: G, gc: G, now: number, since: number): void {
     const s = this.s;
     const run = s.app.run;
     this.dim(g, 0.45);
-    // the panel pops in (grows with a little overshoot), then the cards slide in one after another
     const p0 = this.boostPanel();
-    const k = easeBack(since / 240, 1.5);
+    const k = easeBack(since / 200, 1.5);
     const sc = 0.75 + 0.25 * k;
     const p: Rect = { x: Math.round(p0.x + (p0.w * (1 - sc)) / 2), y: Math.round(p0.y + (p0.h * (1 - sc)) / 2), w: Math.round(p0.w * sc), h: Math.round(p0.h * sc) };
-    if (since < 60) return;
-    panel(gc, p, { trim: 'full', alpha: clamp01(since / 120) });
+    if (since < 40) return;
+    panel(gc, p, { trim: 'full', alpha: clamp01(since / 100) });
     if (k < 0.98) return;
     // a replay's opening draft counts its picks; a pick with a relic in it is a relic pick
     const title = run.startPick ? `Starting relic ${run.startPicksTotal - run.startPicks + 1}/${run.startPicksTotal}` : run.boostChoices.some(isRelicOffer) ? 'Choose a Relic' : 'Choose a Boost';
     ribbon(gc, p.x + p.w / 2, p.y - 6, Math.max(112, textWidth(title, 1, true) + 22), 13, RIBBON.purple);
     this.texts.text(title, p.x + p.w / 2, p.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    const owned = run.hero.relics;
+    // a relic being picked flies into the tray (drawPicked); once it lands it sits in its slot
+    const pk = this.pickThen && this.picked ? this.picked : null;
+    const landing = pk && isRelicOffer(pk.offer) && now - pk.at >= Overlays.RELIC_LAND_MS ? pk.offer.relic : null;
+    this.drawTray(gc, this.texts, this.pool, 31.55, landing ? [...owned, landing] : owned, now, 1, landing ? new Set([landing]) : undefined);
     const ctx: CardCtx = { s, g: gc, texts: this.texts, pool: this.pool, depth: 31.55 };
+    const deal = this.dealStart();
+    const dt = now - deal.at;
+    // the deck the cards come from: a little stack of card backs at the panel's bottom middle, gone once dealt
+    const deck: Rect = { x: Math.round(p0.x + p0.w / 2 - 15), y: p0.y + p0.h - 26, w: 30, h: 18 };
+    const left = run.boostChoices.filter((_, i) => dt < this.dealTimes(i, deal.reroll).start).length;
+    const lastOut = this.dealTimes(run.boostChoices.length - 1, deal.reroll).start;
+    const da = deal.reroll ? 0 : left ? 1 : 1 - clamp01((dt - lastOut) / 160);
+    if (da > 0) for (let j = Math.max(1, left) - 1; j >= 0; j--) this.cardBack(gc, { ...deck, x: deck.x + j, y: deck.y - j * 2 }, da);
+    const synergy: Array<{ chip: Rect; tag: RelicTag; card: Rect; at: number }> = [];
     run.boostChoices.forEach((offer, i) => {
-      const ck = easeBack((since - 120 - i * 70) / 260, 1.4);
-      if (ck <= 0) return;
-      const r0 = this.cardRect(i);
-      const r = { ...r0, x: r0.x + Math.round((1 - ck) * 70) };
-      const rr = (now - this.rerollAt2) / 300;
-      this.card(ctx, r, offer, boostPreview(run.tuning, run.hero, offer), now + i * 300, rr >= 0 && rr < 1 ? 0.7 * (1 - rr) : 0, clamp01(ck * 1.5));
+      const T = this.dealTimes(i, deal.reroll);
+      const t = dt - T.start;
+      if (t < 0 || (pk && pk.offer === offer)) return;
+      const slot = this.cardRect(i);
+      if (dt < T.land) {
+        // on its way: a card back sliding (and growing) from the deck to its place
+        const e = easeOut3(t / (T.land - T.start));
+        const r = { x: Math.round(deck.x + (slot.x - deck.x) * e), y: Math.round(deck.y + (slot.y - deck.y) * e), w: Math.round(deck.w + (slot.w - deck.w) * e), h: Math.round(deck.h + (slot.h - deck.h) * e) };
+        this.cardBack(gc, r, 1);
+        return;
+      }
+      if (dt < T.up) {
+        // the flip: the back folds shut (a squash toward its middle line), then the face opens out
+        const fk = (dt - T.land) / (T.up - T.land);
+        const hh = fk < 0.45 ? 1 - fk / 0.45 : easeBack((fk - 0.45) / 0.55, 1.8);
+        const h = Math.max(1, Math.round(slot.h * hh));
+        const r = { ...slot, y: Math.round(slot.y + (slot.h - h) / 2), h };
+        if (fk < 0.45) this.cardBack(gc, r, 1);
+        else this.cardFace(gc, r, offer, now);
+        return;
+      }
+      // face up: the whole card (a flash as it lands; a reroll flashes them all)
+      const flash = Math.max(0, 0.6 * (1 - (dt - T.up) / 160));
+      const chips: Array<{ tag: RelicTag; r: Rect; hot: boolean }> = [];
+      if (isRelicOffer(offer)) relicCard(ctx, slot, offer.relic, { owned, tuning: s.app.tuning, now: now + i * 300, flash, chips });
+      else this.card(ctx, slot, offer, boostPreview(run.tuning, run.hero, offer), now + i * 300, flash);
+      for (const c of chips) if (c.hot) synergy.push({ chip: c.r, tag: c.tag, card: slot, at: deal.at + T.up });
     });
+    // Synergy!: a line from each lit tag to the relics carried that share it
+    if (!pk) for (const sy of synergy) this.synergyLine(gc, sy, owned, now);
     if (run.rerolls > 0) {
       const rr = this.rerollRect();
       const pr = isPressed(rr, now);
@@ -721,20 +826,196 @@ export class Overlays {
     }
   }
 
-  /** The picked card lifts, flashes and fades out over whatever comes next (even the screen wipe). */
+  /** A card's back: navy with a gold double rim, a diamond lattice and a gold emblem in the middle. */
+  private cardBack(g: G, r: Rect, alpha: number): void {
+    if (r.h < 2) return;
+    rows(g, r.x - 1, r.y + 2, r.w + 2, r.h, 3, INK, 0.4 * alpha);
+    rows(g, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 3, INK, alpha);
+    rows(g, r.x, r.y, r.w, r.h, 2, GOLD[2], alpha);
+    band(g, r.x, r.y, r.w, r.h, 2, 0, 1, GOLD[4], alpha);
+    if (r.h < 5) return;
+    rows(g, r.x + 1, r.y + 1, r.w - 2, r.h - 2, 1, 0x2a1f52, alpha);
+    band(g, r.x + 1, r.y + 1, r.w - 2, r.h - 2, 1, 0, Math.round((r.h - 2) * 0.45), 0x34286a, alpha);
+    // the lattice: rows of small diamonds
+    g.fillStyle(0x4a3c8a, alpha);
+    for (let y = r.y + 3; y < r.y + r.h - 3; y += 4)
+      for (let x = r.x + 3 + ((y - r.y) % 8 === 3 ? 0 : 3); x < r.x + r.w - 4; x += 6) {
+        g.fillRect(x + 1, y, 1, 1);
+        g.fillRect(x, y + 1, 3, 1);
+        g.fillRect(x + 1, y + 2, 1, 1);
+      }
+    if (r.h < 9) return;
+    // the emblem: a gold diamond with a lit core
+    const cx = Math.round(r.x + r.w / 2);
+    const cy = Math.round(r.y + r.h / 2);
+    const d = Math.min(5, Math.floor((r.h - 4) / 2));
+    for (let i = -d - 1; i <= d + 1; i++) {
+      const w = (d + 1 - Math.abs(i)) * 2 + 1;
+      g.fillStyle(INK, alpha);
+      g.fillRect(cx - (w >> 1) - 1, cy + i, w + 2, 1);
+    }
+    for (let i = -d; i <= d; i++) {
+      const w = (d - Math.abs(i)) * 2 + 1;
+      g.fillStyle(i < 0 ? GOLD[3] : GOLD[2], alpha);
+      g.fillRect(cx - (w >> 1), cy + i, w, 1);
+    }
+    g.fillStyle(GOLD[4], alpha);
+    g.fillRect(cx, cy - 1, 1, 2);
+  }
+
+  /** A card's face while it flips open: its frame and tile in the rarity's colours (the text lands with the card). */
+  private cardFace(g: G, r: Rect, offer: BoostOffer, now: number): void {
+    const face = isRelicOffer(offer) ? RARITY_FACE_OF(relicById(offer.relic)?.rarity ?? offer.rarity) : CARD[offer.rarity].face;
+    cardFrame(g, r, face, 'common', now);
+    if (r.h >= 6) cardTile(g, { x: r.x + 2, y: r.y + 2, w: 22, h: r.h - 4 }, face);
+  }
+
+  /**
+   * The relics carried, in a dark tray (an amulet at its left end): `extra` (a relic being picked) gets the next slot
+   * once it has landed; an empty socket marks where the next one goes.
+   */
+  private drawTray(g: G, texts: TextPool, pool: ImagePool, depth: number, owned: readonly RelicId[], now: number, alpha: number, glowIds: ReadonlySet<RelicId> = new Set()): void {
+    const t = this.trayRect();
+    rows(g, t.x, t.y, t.w, t.h, 2, NAVY[0], 0.85 * alpha);
+    band(g, t.x, t.y, t.w, t.h, 2, 0, 1, INK, alpha);
+    band(g, t.x, t.y, t.w, t.h, 2, t.h - 1, t.h, NAVY[3], alpha);
+    pix(g, 'relic', t.x + 3, t.y + 3, 0.85 * alpha);
+    const { slots, more } = this.traySlots(owned.length);
+    const shown = owned.length - more;
+    slots.forEach((r, i) => {
+      if (i < shown) {
+        const id = owned[i];
+        if (glowIds.has(id)) glow(g, r, 0xffd23a, (0.5 + 0.4 * pulse(now, 600)) * alpha, 2);
+        relicIcon(this.s, pool, g, id, r.x, r.y, depth, alpha);
+      } else if (i === shown && !more) {
+        // the next socket: a dashed outline
+        g.fillStyle(NAVY[5], 0.8 * alpha);
+        for (let k = 0; k < 12; k += 3) {
+          g.fillRect(r.x + k, r.y, 2, 1);
+          g.fillRect(r.x + k, r.y + 11, 2, 1);
+          g.fillRect(r.x, r.y + k, 1, 2);
+          g.fillRect(r.x + 11, r.y + k, 1, 2);
+        }
+      }
+    });
+    if (more) texts.text(`+${more}`, slots[shown].x + 6, t.y + 7, 0xe8e4ff, { bold: true, ox: 0.5, oy: 0.5, alpha });
+  }
+
+  /**
+   * Synergy!: a spark flies from a card's lit tag chip to each relic carried that shares the tag (an arc out over the
+   * panel's left side, a short glittering tail), and the relic lights up as it lands; then again every 1.4 s. The
+   * matching relics keep a gold rim meanwhile. Motion, not lines: nothing stays drawn over the cards.
+   */
+  private synergyLine(g: G, sy: { chip: Rect; tag: RelicTag; card: Rect; at: number }, owned: readonly RelicId[], now: number): void {
+    const p = this.boostPanel();
+    const { slots, more } = this.traySlots(owned.length);
+    const shown = owned.length - more;
+    const age = now - sy.at - 80;
+    if (age < 0) return;
+    const x0 = sy.chip.x + 4;
+    const y0 = sy.chip.y + 4;
+    let n = 0;
+    owned.forEach((id, i) => {
+      if (i >= shown || !relicById(id)?.tags.includes(sy.tag)) return;
+      const slot = slots[i];
+      const x1 = slot.x + 6;
+      const y1 = slot.y + 6;
+      // the arc's pull: out toward the panel's left margin, so it sweeps round rather than straight across
+      const qx = p.x - 10;
+      const qy = (y0 + y1) / 2;
+      const bez = (k: number): [number, number] => {
+        const u = 1 - k;
+        return [u * u * x0 + 2 * u * k * qx + k * k * x1, u * u * y0 + 2 * u * k * qy + k * k * y1];
+      };
+      const cyc = (age + n * 220) % 1400;
+      n++;
+      const FLY = 460;
+      rows(g, slot.x - 1, slot.y - 1, slot.w + 2, slot.h + 2, 2, GOLD[3], 0.55);
+      if (cyc < FLY) {
+        const k = easeInOut(cyc / FLY);
+        const [hx, hy] = bez(k);
+        glow(g, { x: Math.round(hx) - 3, y: Math.round(hy) - 3, w: 6, h: 6 }, 0xffd23a, 0.7, 3);
+        for (let j = 14; j >= 0; j--) {
+          const kk = k - j * 0.022;
+          if (kk < 0) continue;
+          const [x, y] = bez(kk);
+          const sz = j < 3 ? 3 : j < 8 ? 2 : 1;
+          g.fillStyle(j < 3 ? WHITE : j < 8 ? 0xfff0a0 : GOLD[3], 1 - j / 15);
+          g.fillRect(Math.round(x) - (sz >> 1), Math.round(y) - (sz >> 1), sz, sz);
+        }
+      } else if (cyc < FLY + 320) {
+        // landed: the relic flashes gold and a ring opens round it
+        const k = (cyc - FLY) / 320;
+        glow(g, slot, 0xffd23a, 0.9 * (1 - k), 3);
+        rows(g, slot.x - 1 - Math.round(k * 3), slot.y - 1 - Math.round(k * 3), slot.w + 2 + Math.round(k * 6), slot.h + 2 + Math.round(k * 6), 3, 0xfff0a0, 0.6 * (1 - k));
+      }
+    });
+  }
+
+  /**
+   * The picked card. A relic: the card flashes and folds shut, its icon pops out and flies to the next slot of the
+   * relic tray (drawn over whatever comes next, even the screen wipe), lands with a ring, and the tray fades. A
+   * stat card lifts, flashes and fades out.
+   */
   private drawPicked(now: number): void {
     const g = this.gFly;
     if (!g) return;
     const p = this.picked;
-    if (p) {
-      const k = (now - p.at) / 340;
-      if (k >= 1 || this.s.app.run.phase === 'boost') {
-        if (k >= 1) this.picked = null;
-      } else {
-        const r = { ...p.r, y: p.r.y - Math.round(easeOut3(k) * 10) };
-        glow(g, r, CARD[p.offer.rarity].face[0], 0.8 * (1 - k), 4);
-        this.card({ s: this.s, g, texts: this.flyTexts, pool: this.flyPool, depth: 41.2 }, r, p.offer, p.preview, now, Math.max(0, 0.8 - k * 2), 1 - k * k);
+    if (!p) return;
+    const relic = isRelicOffer(p.offer) ? p.offer.relic : null;
+    const life = relic ? Overlays.RELIC_FLY_MS + 200 : 340;
+    const age = now - p.at;
+    if (age >= life) {
+      this.picked = null;
+      return;
+    }
+    const fly: CardCtx = { s: this.s, g, texts: this.flyTexts, pool: this.flyPool, depth: 41.2 };
+    if (!relic) {
+      if (this.s.app.run.phase === 'boost') return;
+      const k = age / life;
+      const r = { ...p.r, y: p.r.y - Math.round(easeOut3(k) * 10) };
+      glow(g, r, CARD[p.offer.rarity].face[0], 0.8 * (1 - k), 4);
+      this.card(fly, r, p.offer, p.preview, now, Math.max(0, 0.8 - k * 2), 1 - k * k);
+      return;
+    }
+    // (the pick screen stays while it flies: drawBoost draws the tray, and the relic in its slot once it lands)
+    if (this.s.app.run.phase !== 'boost') {
+      this.picked = null;
+      return;
+    }
+    const landAt = Overlays.RELIC_LAND_MS;
+    const { slots } = this.traySlots(p.owned.length);
+    const target = slots[Math.min(slots.length - 1, p.owned.length)];
+    // the card flashes and folds shut
+    if (age < 140) {
+      const k = age / 140;
+      const h = Math.max(1, Math.round(p.r.h * (1 - k)));
+      const r = { ...p.r, y: Math.round(p.r.y + (p.r.h - h) / 2), h };
+      glow(g, r, 0xffe680, 0.8 * (1 - k), 4);
+      this.cardFace(g, r, p.offer, now);
+      g.fillStyle(WHITE, 0.7 * (1 - k));
+      g.fillRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
+    }
+    // the icon: pops out of the card's tile at 2x, then flies (shrinking to 1x) along an arc to its slot
+    const x0 = p.r.x + 1;
+    const y0 = p.r.y + p.r.h / 2 - 12;
+    if (age < landAt) {
+      const k = clamp01((age - 60) / (landAt - 60));
+      const e = k * k * (3 - 2 * k);
+      const big = k < 0.45;
+      const x = x0 + (target.x - (big ? 6 : 0) - x0) * e;
+      const y = y0 + (target.y - (big ? 6 : 0) - y0) * e - Math.sin(k * Math.PI) * 18;
+      if (k > 0.05) this.s.fx.particles.push({ x: x + (big ? 12 : 6), y: y + (big ? 12 : 6), vx: rand(-14, 14), vy: rand(-14, 14), g: 0, born: now, life: 280, color: Math.random() < 0.5 ? 0xfff0a0 : WHITE, size: 1, world: false, streak: false });
+      glow(g, { x: Math.round(x), y: Math.round(y), w: big ? 24 : 12, h: big ? 24 : 12 }, 0xffe680, 0.55, 3);
+      relicIcon(this.s, this.flyPool, g, relic, x, y, 41.2, 1, big ? 2 : 1);
+    } else {
+      // landed: a ring opens round the slot
+      if (!this.landedSound) {
+        this.landedSound = true;
+        this.s.app.audio.statUp(2);
       }
+      const k = clamp01((age - landAt) / 240);
+      rows(g, target.x - 1 - Math.round(k * 5), target.y - 1 - Math.round(k * 5), target.w + 2 + Math.round(k * 10), target.h + 2 + Math.round(k * 10), 3, 0xfff0a0, 0.75 * (1 - k));
     }
   }
 

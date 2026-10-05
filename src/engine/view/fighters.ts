@@ -18,7 +18,6 @@ import { equippedIn, equippedItems } from '../../core/profile';
 import { FINISHER_BLOW_AT, finisherStrikeAt, finisherStrikes, type ImpactFeel } from '../../core/impact';
 import type { FightScene } from '../scene';
 import { HERO_FEET_X, HERO_W, ICONS } from '../art';
-import { textWidth } from '../font';
 import { GAME_W } from '../layout';
 import { hpBar, icon } from './pixels';
 import { perkColor, perkName, perkSource, TAG_FACE } from './relic-ui';
@@ -65,8 +64,6 @@ const SWORD_TIP: Record<string, [number, number]> = {
   windup: [-5, -38],
   parry: [9, -31],
 };
-/** A gear effect's name shows over Rowan at most this often (ms); its heals add up in one number this long. */
-const GEAR_SUM_MS = 900;
 /** Rowan's frame for a pose another hero has and he doesn't (Sable's frames fall back to his until they're drawn). */
 const HERO_ALT: Record<string, string> = { slashX: 'slashB', fang: 'slashA', down: 'hurt' };
 /** Perks that heal (their amount is HP; any relic tagged Sustain does too). */
@@ -109,9 +106,6 @@ export class Fighters {
   /** Effect and perk names shown this fight: each name shows the first time it kicks in, then only what it does. */
   private named = new Set<string>();
   private namedFight: unknown = null;
-  private gearSums = new Map<string, { n: number; at: number }>();
-  private nameAt = -1e9; // the last name shown, and how many showed together (they stack)
-  private nameStack = 0;
   /** The finisher show's kind: Rowan's whirlwind (every foe), or Sable's Twin Fang (a leap and a strike at one). */
   private superKind: 'whirl' | 'fang' = 'whirl';
   /** Shield Wall's bubble as last drawn (charged or not), and when it changed. */
@@ -390,31 +384,18 @@ export class Fighters {
     return true;
   }
 
-  /** Show an effect's name over Rowan (over the HUD, so the counters never hide it), the first time it kicks in each
-   *  fight. Two at once stack. Returns whether it showed. */
-  private gearName(key: string, name: string, now: number, x = this.h.x - 4, y = this.s.ground - 48): boolean {
+  /** An effect's name in the HUD's name lane (under the hero plate), the first time it kicks in each fight. Returns
+   *  whether it showed. */
+  private gearName(key: string, name: string): boolean {
     if (!this.firstName(key)) return false;
-    this.nameStack = now - this.nameAt < 500 ? this.nameStack + 1 : 0;
-    this.nameAt = now;
-    const s = this.s;
-    const w = textWidth(name, 1, true);
-    const cx = Math.max(s.L + w / 2 + 2, Math.min(s.R - w / 2 - 2, x));
-    s.fx.addFloater(cx, Math.max(26, y - this.nameStack * 10), name, 0xffb060, 1, true, 0, -8, 0, 1100, false);
+    this.s.hud.announce(name, 0xffb060);
     return true;
   }
 
-  /** Add `n` to an effect's running total (the total of the repeats in the last moment). */
-  private gearSum(key: string, n: number, now: number): number {
-    const prev = this.gearSums.get(key);
-    const sum = prev && now - prev.at < GEAR_SUM_MS ? prev.n + n : n;
-    this.gearSums.set(key, { n: sum, at: now });
-    return sum;
-  }
-
   /**
-   * A piece of gear's unique effect kicked in: its name (over Rowan, the first time each fight) and a visual that fits
-   * it. Repeats merge: heals add up in one number, so a long fight never fills up with text. `at`: where on the
-   * bar the miss (Footpad) or the bomb (Captain's Cutlass) was.
+   * A piece of gear's unique effect kicked in: its name (in the HUD's name lane, the first time each fight) and a
+   * visual that fits it. Heals add up in one small number under the HP plate (hud.healPop), so a long fight never
+   * fills up with text. `at`: where on the bar the miss (Footpad) or the bomb (Captain's Cutlass) was.
    */
   gearFx(fx: EffectId | 'footpad', amount: number, enemyId: number, at: { missX?: number; bombX?: number } = {}): void {
     const s = this.s;
@@ -424,35 +405,27 @@ export class Fighters {
     const now = performance.now();
     const name = fx === 'footpad' ? 'Footpad: saved!' : EFFECTS[fx].name;
     const barY = s.bar.y + s.bar.h / 2;
-    const clampX = (x: number, text: string) => {
-      const w = textWidth(text, 1, true);
-      return Math.max(s.L + w / 2 + 2, Math.min(s.R - w / 2 - 2, x));
-    };
     switch (fx) {
       case 'golemheart':
       case 'leech': {
-        // a little green heart and the heal (blocks and crits come fast: the heals add up in one number)
+        // a green glint on him, and the heal by the HP bar (blocks and crits come fast: the heals add up in one number)
         if (amount <= 0) break;
-        const sum = this.gearSum(fx, amount, now);
-        // (up to the left of his head: names go over it, a crit buff to the right)
-        F.replaceFloater(`gear-${fx}`, () => F.addFloater(h.x - 9, s.ground - 36, `+${sum}`, 0x9af06a, 1, true, 0, -20, 0, 900, true));
-        F.heartPop(h.x - 20, s.ground - 38, 0x5ad848, 0xb4f070);
+        s.hud.healPop(amount);
         F.burst(h.x + 2, s.ground - 18, 0x9af06a, 5, true, 0.6);
-        if (this.gearName(fx, name, now)) audio.gearProc(0.3);
+        if (this.gearName(fx, name)) audio.gearProc(0.3);
         break;
       }
       case 'secondWind': {
-        // the big one: a green flash, a big heal number and a heart, a ring of light
+        // the big one: a green flash, rings of light round him, the heal by the HP bar
         F.screenFlash(0x9af06a, now, 420);
-        F.addFloater(h.x + 8, s.ground - 44, `+${amount}`, 0x9af06a, 2, true, 0, -24, 0, 1300, true);
-        F.heartPop(h.x - 12, s.ground - 44, 0x5ad848, 0xb4f070, 2, 1300);
+        s.hud.healPop(amount);
         F.ring(h.x, s.ground - 18, 30, 0x9af06a, true);
         s.later(90, () => F.ring(h.x, s.ground - 18, 44, 0xc8ff8a, true));
         F.burst(h.x, s.ground - 18, 0x9af06a, 18, true, 1.2);
         F.burst(h.x, s.ground - 18, WHITE, 8, true, 1, true);
         F.glow(h.x, s.ground - 18, 26, 0x9af06a, 520, s.ground);
         this.named.delete(fx); // the big one always names itself
-        this.gearName(fx, `${name}!`, now, h.x, s.ground - 58);
+        this.gearName(fx, `${name}!`);
         audio.heal();
         audio.gearProc(1);
         break;
@@ -479,26 +452,25 @@ export class Fighters {
           F.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, `${amount}`, 0x9ad8ff, 2);
           audio.hit(0, false);
         });
-        this.gearName(fx, name, now);
+        this.gearName(fx, name);
         break;
       }
       case 'cutlass': {
-        // the tapped bomb crits: an orange starburst on the bar where it blew, and the name over it
+        // the tapped bomb crits: an orange starburst on the bar where it blew (its name in the lane)
         const x = at.bombX ?? s.bar.x + s.bar.w / 2;
-        const label = `${name}!`;
         F.stars.push({ x, y: barY, at: s.anim, r: 18, color: 0xff8a2a, world: false });
         F.ring(x, barY, 24, 0xffb060, false);
         F.chips(x, barY, 10, [0xffb060, 0xff8a2a, WHITE], 14, -1);
-        if (this.firstName(fx)) F.replaceFloater('gear-cutlass', () => F.addFloater(clampX(x, label), s.bar.y - 18, label, 0xffa040, 1, true, 0, -18, 0, 900, false));
+        this.gearName(fx, `${name}!`);
         audio.gearProc(0.8);
         break;
       }
       case 'tuskCrown': {
-        // the crit buff: a golden ring (and his golden glow while it lasts: drawActors); the first time each fight, its
-        // name and "+15% crit" over Rowan
+        // the crit buff: a golden ring (and his golden glow while it lasts: drawActors; the plate's gold timer), its
+        // name in the lane the first time each fight
         F.ring(h.x, s.ground - 18, 26, 0xffd23a, true);
         F.burst(h.x, s.ground - 18, 0xffe680, 14, true, 1.1);
-        if (this.gearName(fx, name, now)) F.addFloater(h.x + 30, s.ground - 34, `+${amount}% crit`, 0xffd23a, 1, true, 0, -10, 0, 1300, false);
+        this.gearName(fx, name);
         audio.gearProc(1);
         break;
       }
@@ -511,15 +483,13 @@ export class Fighters {
         F.ring(x, barY, 12, 0xd8a040, false);
         s.later(160, () => F.ring(x, barY, 18, 0xf2c230, false));
         F.chips(x, barY, 6, [0xf2c230, 0xd8a040, WHITE], 6, -1);
-        if (this.firstName(fx)) F.replaceFloater('gear-pendulum', () => F.addFloater(clampX(x, name), s.bar.y - 16, name, 0xe8c060, 1, true, 0, -16, 0, 800, false));
+        this.gearName(fx, name);
         audio.tickTock();
         break;
       }
       case 'opener': {
-        // the first hit on a new foe is a sure crit: the name over that foe
-        const v = this.enemies.get(enemyId);
-        const label = `${name}!`;
-        if (v && this.gearName(fx, label, now, v.homeX, v.y - v.img.displayHeight - 20)) audio.gearProc(0.6);
+        // the first hit on a new foe is a sure crit: its name in the lane
+        if (this.enemies.has(enemyId) && this.gearName(fx, `${name}!`)) audio.gearProc(0.6);
         break;
       }
       case 'footpad': {
@@ -528,7 +498,7 @@ export class Fighters {
         F.judge(x, 'Saved!', 0x9af06a, true);
         F.chips(x, barY, 8, [0x9af06a, WHITE], 8, -1);
         F.ring(x, barY, 14, 0x9af06a, false);
-        this.gearName(fx, name, now);
+        this.gearName(fx, name);
         audio.gearProc(0.4);
         break;
       }
@@ -703,41 +673,33 @@ export class Fighters {
 
   // ------------------------------------------------------------------ perks (relics, skill nodes, kit parts)
 
-  /** A perk's name over the hero (a relic's icon in front), the first time it kicks in each fight; names stack. */
-  private perkLabel(id: string, now: number, x = this.h.x - 4, y = this.s.ground - 48): boolean {
+  /** A perk's name in the HUD's name lane (its relic's or skill node's icon in front), the first time it kicks in
+   *  each fight. */
+  private perkLabel(id: string): boolean {
     if (!this.firstName(`perk-${id}`)) return false;
-    this.nameStack = now - this.nameAt < 500 ? this.nameStack + 1 : 0;
-    this.nameAt = now;
-    const s = this.s;
-    const name = perkName(id);
     const relic = relicById(id);
-    const w = textWidth(name, 1, true) + (relic ? 13 : 0);
-    const cx = Math.max(s.L + w / 2 + 2, Math.min(s.R - w / 2 - 2, x));
-    const yy = Math.max(26, y - this.nameStack * 11);
-    if (relic) s.fx.relicFloat(cx - 6, yy, name, perkColor(id), relic.id);
-    else s.fx.addFloater(cx, yy, name, perkColor(id), 1, true, 0, -8, 0, 1100, false);
+    this.s.hud.announce(perkName(id), perkColor(id), { relic: relic?.id, tex: relic ? undefined : `skill_${id}` });
     return true;
   }
 
   /**
-   * A perk kicked in (a relic, a skill node, a kit part): its relic's icon pulses on the belt, its name shows (over
-   * the foe it was about, else over the hero; only the first time each fight, so a perk that fires on every Perfect
-   * doesn't flood the screen), and what it did: a blow (`strike`: its enemyHurt follows; a bolt flies to the foe and
-   * hits), a heal (a green heart and the HP, merged like the gear's), stacks banked (`stacks`: the meter's events
-   * came first), a ring where it happened on the bar. Coins (`coins`) already flew from the 'coins' event. Returns
+   * A perk kicked in (a relic, a skill node, a kit part): its relic's icon pulses on the belt, its name shows in the
+   * name lane under the hero plate (only the first time each fight, so a perk that fires on every Perfect doesn't
+   * flood the screen), and what it did: a blow (`strike`: its enemyHurt follows; a bolt flies to the foe and hits), a
+   * heal (the HP by the HP bar, merged like the gear's), stacks banked (`stacks`: the meter's events came first), a
+   * ring where it happened on the bar. Coins (`coins`) already flew from the 'coins' event. Returns
    * true when it showed a blow (so its enemyHurt isn't shown twice).
    */
   perkFx(id: string, amount: number, enemyId: number, o: { strike?: boolean; stacks?: boolean; coins?: boolean; pos?: number } = {}): boolean {
     const s = this.s;
     const F = s.fx;
     const h = this.h;
-    const now = performance.now();
     s.hud.perkKicked(id);
     const relic = relicById(id);
     const col = relic ? TAG_FACE[relic.tags[0]][1] : perkSource(id) === 'skill' ? 0x9ad8ff : 0xc8a0ff;
     const v = enemyId ? this.enemies.get(enemyId) : undefined;
     if (o.coins) {
-      this.perkLabel(id, now);
+      this.perkLabel(id);
       return false;
     }
     if (o.strike && v && amount > 0 && !v.dieAt) {
@@ -760,16 +722,13 @@ export class Fighters {
         F.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, `${amount}`, mixWhite(col), 2);
         s.app.audio.hit(0, false);
       });
-      if (this.perkLabel(id, now, v.homeX, v.y - v.img.displayHeight - 22)) s.app.audio.gearProc(0.5);
+      if (this.perkLabel(id)) s.app.audio.gearProc(0.5);
       return true;
     }
     const heal = amount > 0 && (HEAL_PERKS.has(id) || !!relic?.tags.includes('sustain'));
     if (heal) {
-      const sum = this.gearSum(`perk-${id}`, amount, now);
-      F.replaceFloater(`perk-${id}`, () => F.addFloater(h.x - 9, s.ground - 36, `+${sum}`, 0x9af06a, 1, true, 0, -20, 0, 900, true));
-      F.heartPop(h.x - 20, s.ground - 38, 0x5ad848, 0xb4f070);
+      s.hud.healPop(amount);
       F.burst(h.x + 2, s.ground - 18, 0x9af06a, 5, true, 0.6);
-      s.hud.hpPulseAt = now;
     } else if (o.stacks && amount > 0) {
       // stacks banked: a burst of the stack colour off the meter
       const m = s.meter;
@@ -782,14 +741,13 @@ export class Fighters {
     }
     // Shield Wall: amount 1 = the bubble charged (it grows round the hero), 0 = it took a hit for him
     if (id === 'shieldWall' && amount <= 0) this.bubblePop();
-    const shown = v && !v.dieAt ? this.perkLabel(id, now, v.homeX, v.y - v.img.displayHeight - 22) : this.perkLabel(id, now);
-    if (shown) s.app.audio.gearProc(0.35);
+    if (this.perkLabel(id)) s.app.audio.gearProc(0.35);
     return false;
   }
 
   /**
-   * Coins a perk found mid-fight (Lucky Penny, Treasure Nose, Gold Fever): they pop off the foe into the coin chip
-   * (the perk's own event, right after, names it).
+   * Coins a perk found mid-fight (Lucky Penny, Treasure Nose, Gold Fever): they pop off the foe and fly into the coin
+   * chip, which pulses as they land (the perk's own event, right after, names it).
    */
   perkCoins(_id: string, amount: number): void {
     const s = this.s;
@@ -799,7 +757,6 @@ export class Fighters {
     const x = v ? v.x : this.h.x + 20;
     const y = v ? v.y - v.img.displayHeight / 2 : s.ground - 24;
     s.hud.dropCoins(x, y, amount, Math.min(4, amount));
-    s.fx.iconFloat(x + 10, y - 16, `+${amount}`, 0xffe066, 'coin');
   }
 
   /** A perk's cost in HP (Glass Edge, Blood Price, Purple Pact...): its name, and the HP it took in violet. */
@@ -810,7 +767,7 @@ export class Fighters {
     h.flashColor = 0xc070ff;
     if (damage > 0) s.fx.floatNum(h.x, s.ground - 40, `-${damage}`, 0xd890ff, 1);
     s.fx.burst(h.x + 4, s.ground - 16, 0xc070ff, 6, true, 0.8);
-    this.perkLabel(id, performance.now());
+    this.perkLabel(id);
   }
 
   /** Shield Wall's bubble breaks (it took a hit for the hero): shards fly. */
@@ -905,7 +862,6 @@ export class Fighters {
       }
       s.hud.coinsPending -= coins;
       s.hud.dropCoins(v.x, cy, coins);
-      if (coins > 0) s.later(120, () => fx.iconFloat(v.x + 22, cy - 26, `+${coins}`, 0xffe066, 'coin'));
       fx.kick(5, 140);
       s.later(140, () => s.app.audio.kill());
     });
