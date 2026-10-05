@@ -357,8 +357,8 @@ export class ForgeScreen {
     const p = kit.profile;
     const t = kit.tuning;
     notePress(this.salvageOneRect());
-    if (isEquipped(p, it.uid)) return this.shakeAt('one', now, 'Worn: take it off in the Bag first', this.salvageOneRect());
-    if (it.locked) return this.shakeAt('one', now, 'Locked: unlock it in the Bag first', this.salvageOneRect());
+    if (isEquipped(p, it.uid)) return this.shakeAt('one', now, 'Worn: unequip it first', this.salvageOneRect());
+    if (it.locked) return this.shakeAt('one', now, 'Locked: unlock it first', this.salvageOneRect());
     if (!this.armed || this.armed.what !== 'one' || now > this.armed.until) {
       this.armed = { what: 'one', until: now + 2600 };
       kit.app.audio.uiClick();
@@ -555,7 +555,7 @@ export class ForgeScreen {
         const tw = textWidth(txt, 1, true) + 4;
         const r = { x: c.x + c.w - tw + 4, y: c.y - 5 + pop, w: tw, h: 10 };
         tag(kit.gOver, r, plus >= 10 ? [0xffffff, 0xfff0a0, GOLD[3], GOLD[1]] : [GOLD[4], GOLD[3], GOLD[2], GOLD[0]]);
-        kit.texts.text(txt, r.x + 2, r.y + 5, plus >= 10 ? 0x9a5a14 : WHITE, { bold: true, oy: 0.5 });
+        kit.texts.text(txt, r.x + 2, r.y + 5, plus >= 10 ? 0x7a3a0a : WHITE, { bold: true, oy: 0.5, plain: plus >= 10 });
       }
       // name and kind under the scene
       const lines = wrapText(BASE_BY_ID[it.base]?.name ?? 'Item', st.w - 10, true).slice(0, 2);
@@ -638,7 +638,7 @@ export class ForgeScreen {
       texts.text(a, x0, c.y + 13, 0xffe066, { bold: true, scale: 2, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a });
       const r = { x: x0 + wa + 4, y: c.y + 8, w: 26, h: 11 };
       tag(g, r, [0xffffff, 0xfff0a0, GOLD[3], GOLD[1]]);
-      texts.text('MAX', r.x + r.w / 2, r.y + 5.5, 0x9a5a14, { bold: true, ox: 0.5, oy: 0.5 });
+      texts.text('MAX', r.x + r.w / 2, r.y + 5.5, 0x7a3a0a, { bold: true, ox: 0.5, oy: 0.5, plain: true });
     } else {
       const a = `+${plus}`;
       const b = `+${plus + 1}`;
@@ -713,7 +713,7 @@ export class ForgeScreen {
       kit.button(g, texts, this.mainRect(), 'Reroll', FACE.blue, now, { disabled: true, icon: 'dice', shakeAt: this.shakes.get('main') });
       return;
     }
-    texts.text(this.line < 0 ? 'Tap a bonus line to reroll it:' : 'This line gets a new stat:', ix, c.y + 8, this.line < 0 ? 0xfff07a : 0xd8d0f0, { oy: 0.5, alpha: this.line < 0 ? 0.6 + 0.4 * pulse(now, 900) : 1 });
+    texts.text(this.line < 0 ? 'Tap a line to reroll it' : 'This line gets a new stat:', ix, c.y + 8, this.line < 0 ? 0xfff07a : 0xd8d0f0, { oy: 0.5, alpha: this.line < 0 ? 0.8 + 0.2 * pulse(now, 900) : 1 });
     it.bonus.forEach((roll, i) => {
       const r0 = this.lineRect(i);
       const on = i === this.line;
@@ -763,7 +763,7 @@ export class ForgeScreen {
     if (it) {
       const v = salvageValue(t, it);
       const worn = isEquipped(p, it.uid);
-      const why = worn ? 'Worn: take it off in the Bag first' : it.locked ? 'Locked: unlock it in the Bag first' : '';
+      const why = worn ? 'Worn: unequip it first' : it.locked ? 'Locked: unlock it first' : '';
       texts.text(why ? fit(why, iw) : 'Melt this item into scrap:', ix, c.y + 7, why ? 0xffb0a0 : 0xd8d0f0, { oy: 0.5 });
       pix(g, 'scrap', ix, c.y + 12);
       texts.text(`+${v} scrap`, ix + 10, c.y + 16, why ? 0x9890b8 : GREEN, { bold: true, oy: 0.5 });
@@ -783,7 +783,8 @@ export class ForgeScreen {
       pix(g, 'scrap', ix + iw - sw - 11, y - 4);
       texts.text(`+${j.scrap}`, ix + iw, y, GREEN, { bold: true, ox: 1, oy: 0.5 });
       y += 8;
-      texts.text('Skips locked and worn items', ix, y, 0x8a84a8, { oy: 0.5 });
+      const skips = 'Skips locked & worn items';
+      texts.text(textWidth(skips) <= iw ? skips : 'Skips locked & worn', ix, y, 0xa49ec0, { oy: 0.5 });
     } else texts.text('Nothing to salvage', ix, y, 0x9890b8, { oy: 0.5 });
     const armed = this.armed?.what === 'all' && now < this.armed.until;
     kit.button(g, texts, this.mainRect(), armed ? `Melt ${j.count}? Tap again!` : 'Salvage all', FACE.red, now, {

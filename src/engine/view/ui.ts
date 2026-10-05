@@ -2,7 +2,7 @@
 // and a few drawing shortcuts in the game's chrome style (ink outline, rounded corners, bevelled rims).
 import type Phaser from 'phaser';
 import type { FightScene } from '../scene';
-import { FONT, FONT_BOLD, fontText } from '../font';
+import { FONT_BOLD, fontFor, fontText, isDarkInk, readable } from '../font';
 import { band, GOLD, NAVY, rows } from './pixels';
 import { INK, mix, shade, tintGrad, WHITE, type Rect } from './shared';
 
@@ -20,6 +20,8 @@ export interface TextOpts {
   /** Px of solid extrusion under the text (a 3D slab, for titles), and its color. */
   extrude?: number;
   extrudeCol?: number;
+  /** No ink outline (dark text on a light surface). Default: chosen by the color (isDarkInk). */
+  plain?: boolean;
 }
 
 /** Bitmap texts handed out in draw order each frame; the ones not used this frame are hidden. */
@@ -42,7 +44,7 @@ export class TextPool {
     for (let i = ex; i >= 1; i--) {
       const c = o.extrudeCol ?? shade(color, 0.3);
       const col = i === 1 && ex > 1 ? mix(c, color, 0.35) : c;
-      this.text(str, x, y + i * (o.scale ?? 1), col, { ...o, extrude: 0, grad: [col, col] });
+      this.text(str, x, y + i * (o.scale ?? 1), col, { ...o, extrude: 0, grad: [col, col], plain: false });
     }
     let t = this.items[this.used];
     if (!t) {
@@ -50,15 +52,17 @@ export class TextPool {
       this.items.push(t);
     }
     this.used++;
-    t.setFont(o.bold ? FONT_BOLD : FONT)
+    const plain = o.plain ?? (!o.grad && isDarkInk(color));
+    t.setFont(fontFor(!!o.bold, plain))
       .setText(fontText(str))
       .setPosition(Math.round(x), Math.round(y))
       .setScale(o.scale ?? 1)
       .setOrigin(o.ox ?? 0, o.oy ?? 0)
       .setAlpha(o.alpha ?? 1)
       .setVisible(true);
+    // outlined text is never dimmer than readable() (an explicit gradient, like an extrusion layer's, is kept as given)
     if (o.grad) t.setTint(o.grad[0], o.grad[0], o.grad[1], o.grad[1]);
-    else tintGrad(t, color);
+    else tintGrad(t, plain ? color : readable(color), !o.bold);
     return t;
   }
 

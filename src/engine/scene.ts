@@ -8,7 +8,7 @@ import type { Phase } from '../core/run';
 import type { App, View } from './app';
 import { buildArt } from './art';
 import { buildPanel } from './chrome';
-import { buildFont, FONT, FONT_BOLD, fontText } from './font';
+import { buildFont, FONT, FONT_BOLD, FONT_BOLD_PLAIN, fontFor, fontText, isDarkInk, readable } from './font';
 import { GAME_H, GAME_W } from './layout';
 import { BarView } from './view/bar';
 import { CampView } from './view/camp';
@@ -251,8 +251,11 @@ export class FightScene extends Phaser.Scene implements View {
 
   setText(key: string, s: string, x: number, y: number, color = WHITE, scale = 1, ox = 0, oy = 0, visible = true): void {
     const t = this.txt[key];
+    const bold = t.font === FONT_BOLD || t.font === FONT_BOLD_PLAIN;
+    const plain = isDarkInk(color);
+    t.setFont(fontFor(bold, plain));
     t.setText(fontText(s)).setPosition(Math.round(x), Math.round(y)).setScale(scale).setOrigin(ox, oy).setVisible(visible);
-    tintGrad(t, color);
+    tintGrad(t, plain ? color : readable(color), !bold);
   }
 
   // ------------------------------------------------------------------ events

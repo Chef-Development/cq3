@@ -160,7 +160,7 @@ export class StatsScreen {
     // name and gear power under him
     const gp = equippedItems(kit.profile).reduce((a, i) => a + itemPower(kit.tuning, i), 0);
     texts.text(`Gear power ${gp}`, fx - 6, fy + 9, 0xfff0c0, { bold: true, ox: 0.5, oy: 0.5 });
-    texts.text(kit.run.campFrom === 'world' ? 'Base stats + gear' : 'This run + gear', fx - 6, fy + 19, 0xa8a0c8, { ox: 0.5, oy: 0.5 });
+    texts.text(kit.run.campFrom === 'world' ? 'Base stats + gear' : 'This run + gear', fx - 6, fy + 19, 0xc8c0e8, { ox: 0.5, oy: 0.5 });
 
     // the four core stats as cards
     this.cards().forEach((c0, i) => {
@@ -210,16 +210,16 @@ export class StatsScreen {
       const [iw, ih] = iconSize(ic);
       if (ih <= r.h - 4) hudIcon(g, ic, r.x + 3 + Math.round((15 - iw) / 2), r.y + Math.round((r.h - ih) / 2), 1, a);
       else statMark(g, id, r.x + 6, r.y + r.h / 2, a);
-      texts.text(STAT_INFO[id].name, r.x + 21, r.y + 6, on ? WHITE : 0xe8e0ff, { bold: true, oy: 0.5, alpha: a });
-      texts.text(fmtStat(id, P.total[id], false), r.x + r.w - 4, r.y + 6, on ? 0xfff0a0 : WHITE, { bold: true, ox: 1, oy: 0.5, alpha: a });
+      texts.text(STAT_INFO[id].name, r.x + 21, r.y + 5, on ? WHITE : 0xe8e0ff, { bold: true, oy: 0.5, alpha: a });
+      texts.text(fmtStat(id, P.total[id], false), r.x + r.w - 4, r.y + 5, on ? 0xfff0a0 : WHITE, { bold: true, ox: 1, oy: 0.5, alpha: a });
       // where it comes from: base, +run, +gear
       let x = r.x + 21;
-      const y = r.y + r.h - 5;
+      const y = r.y + r.h - 4;
       const part = (txt: string, col: number) => {
         texts.text(txt, x, y, col, { oy: 0.5, alpha: a });
         x += textWidth(txt, 1, false) + 3;
       };
-      part(fmtStat(id, P.base[id], false), 0xa8a0c8);
+      part(fmtStat(id, P.base[id], false), 0xd0c8f0);
       if (Math.abs(P.run[id]) > 1e-9 && fmtStat(id, P.run[id]) !== '+0') part(`${fmtStat(id, P.run[id])} run`, 0x9ad8ff);
       if (Math.abs(P.gear[id]) > 1e-9 && fmtStat(id, P.gear[id]) !== '+0') part(`${fmtStat(id, P.gear[id])} gear`, GOLD_TXT);
     });

@@ -869,7 +869,9 @@ export class Overlays {
     const y = Math.round(36 - (1 - k) * 30);
     this.texts.text('DEFEATED', cx, y, 0xff5a5a, { bold: true, scale: 3, ox: 0.5, oy: 0.5, extrude: 3, extrudeCol: 0x4a0a14, alpha: clamp01(t / 150) });
     if (t > 250) {
-      this.texts.text(`Rowan falls... back to the start of Act ${s.app.run.actIndex + 1}`, cx, y + 22, 0xffd8d0, { ox: 0.5, oy: 0.5 });
+      const sub = `Rowan falls... back to the start of Act ${s.app.run.actIndex + 1}`;
+      strip(gc, cx - textWidth(sub) / 2 - 8, y + 16, textWidth(sub) + 16, 12, 0.7, false);
+      this.texts.text(sub, cx, y + 22, 0xffe8e0, { ox: 0.5, oy: 0.5 });
       // Camp (equip what you found before trying again) and Retry, popping in one after the other
       const b = this.defeatButtons();
       const live = t > 700;
@@ -915,7 +917,9 @@ export class Overlays {
     this.texts.text('Greenmarch is saved!', cx, 32 - Math.round((1 - Math.min(1, k)) * 12), 0xffd23a, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 2, extrudeCol: 0x5a3410 });
     if (since > 400) {
       this.texts.text('The first weight is home. Eleven to go.', cx, 49.5, 0x3a1e08, { bold: false, ox: 0.5, oy: 0.5, grad: [WHITE, 0xfff6d8] });
-      this.texts.text('Next: the Frostpeaks (coming soon)', cx, 66, 0x9ad8ff, { ox: 0.5, oy: 0.5 });
+      const next = 'Next: the Frostpeaks (coming soon)';
+      strip(gc, cx - textWidth(next) / 2 - 8, 60, textWidth(next) + 16, 12, 0.7, false);
+      this.texts.text(next, cx, 66, 0xb8e4ff, { ox: 0.5, oy: 0.5 });
     }
     if (since > 1500) this.prompt(g, 'Tap to continue', 88, now, 0xfff07a);
     // a little shower of golden sparks

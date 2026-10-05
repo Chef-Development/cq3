@@ -759,6 +759,10 @@ export class MapView {
       const ly = t.y + LABEL_H / 2 + dy;
       const lw = textWidth(t.label, 1, false) + (t.skull ? 9 : 0);
       const lx = Math.round(cx - lw / 2);
+      // a dark pill behind the name, so it reads over the busiest bit of map
+      const by = Math.round(ly) - 5;
+      rows(this.gHud, lx - 3, by + 1, lw + 6, 11, 2, 0x000000, 0.25 * a);
+      rows(this.gHud, lx - 3, by, lw + 6, 10, 2, 0x140c1c, 0.62 * a);
       if (t.skull) hudIcon(this.gHud, 'foe', lx, Math.round(ly) - 4, 1, a);
       this.texts.text(t.label, lx + (t.skull ? 9 : 0), ly, t.labelCol, { oy: 0.5, alpha: a });
       if (t.chip) this.drawChip(t.chip, Math.round(cx - this.chipW(t.chip) / 2), t.y + LABEL_H + 1 + dy, a, now);

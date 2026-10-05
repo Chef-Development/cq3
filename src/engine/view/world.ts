@@ -948,8 +948,14 @@ export class WorldView {
         }
         const iw = Math.max(textWidth(title, 1, true), textWidth(line, 1, false)) + 14;
         const ih = 22;
-        const ix = Math.round(Math.max(s.L + 3, Math.min(s.R - iw - 3, ax - iw / 2)));
-        const iy = Math.round(Math.max(3, Math.min(GAME_H - ih - 4, ay - ih / 2)) + (1 - Math.min(1, age / 120)) * 3);
+        let ix = Math.round(Math.max(s.L + 3, Math.min(s.R - iw - 3, ax - iw / 2)));
+        let iy = Math.round(Math.max(3, Math.min(GAME_H - ih - 4, ay - ih / 2)));
+        // never over Greenmarch's plate (its texts would show through): slide right of it, or below it
+        const p = this.plate;
+        const hits = () => ix < p.x + p.w + 3 && p.x < ix + iw + 3 && iy < p.y + p.h + 6 && p.y < iy + ih + 3;
+        if (hits()) ix = Math.round(Math.min(s.R - iw - 3, p.x + p.w + 4));
+        if (hits()) iy = Math.round(Math.min(GAME_H - ih - 4, p.y + p.h + 8));
+        iy += Math.round((1 - Math.min(1, age / 120)) * 3);
         this.panel(g, ix, iy, iw, ih, a);
         this.texts.text(title, ix + iw / 2, iy + 7, col, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
         this.texts.text(line, ix + iw / 2, iy + 16, WHITE, { ox: 0.5, oy: 0.5, alpha: a });

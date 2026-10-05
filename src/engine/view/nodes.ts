@@ -360,7 +360,7 @@ export class NodeScreens {
       vx += textWidth(val, 1, false);
     }
     if (rare) {
-      tag(g, { x: vx + 4, y: r.y + 3, w: rareW, h: 8 }, face);
+      tag(g, { x: vx + 4, y: r.y + 2, w: rareW, h: 10 }, face);
       this.texts.text(rare, vx + 7, r.y + 7, WHITE, { oy: 0.5 });
     }
     if (item.sold) {

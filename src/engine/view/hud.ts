@@ -16,6 +16,9 @@ import { tag, TextPool } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
 
+/** 17062 -> "17.1k" (rounded up, so a foe never reads as dead early). */
+const kNum = (n: number): string => (n < 10000 ? `${n}` : n < 100000 ? `${Math.ceil(n / 100) / 10}k` : `${Math.ceil(n / 1000)}k`);
+
 /** The stats the plate doesn't show (gear brings them): a gain in one floats up under the plate. */
 const HIDDEN: StatId[] = ['def', 'critDmg', 'meterGain', 'steady', 'luck', 'companion'];
 const hiddenStats = (st: StatBlock): Record<string, number> => Object.fromEntries(HIDDEN.map((k) => [k, st[k]]));
@@ -608,22 +611,25 @@ export class Hud {
     if (Math.abs(this.foeNum - shownHp) < 0.5) this.foeNum = shownHp;
     if (Math.ceil(this.foeNum) !== prevNum) this.foeNumPopAt = now;
     const pk = (now - this.foeNumPopAt) / 140;
-    const hpText = `${Math.ceil(this.foeNum)}/${target.maxHp}`;
+    // big numbers (late bosses) shorten to "17.1k" so the readout stays bold and inside the gauge
+    const full = `${Math.ceil(this.foeNum)}/${target.maxHp}`;
+    const hpText = textWidth(full, 1, true) <= 72 ? full : `${kNum(Math.ceil(this.foeNum))}/${kNum(target.maxHp)}`;
     this.texts.text(hpText, gx + 38, gy + 4 - (pk >= 0 && pk < 1 ? Math.round(1.5 * (1 - pk)) : 0), pk >= 0 && pk < 0.4 ? 0xfff0c0 : WHITE, { bold: textWidth(hpText, 1, true) <= 74, ox: 0.5, oy: 0.5 });
 
-    // row 2: the name (rank-colored) on the left, attack on the right toward the badge
-    const atk = `${target.atk}`;
-    const ax = X - 26 - textWidth(atk, 1, true);
-    hudIcon(g, 'sword', ax - 13, y0 + 13);
-    this.texts.text(atk, ax, y0 + 19, WHITE, { bold: true, oy: 0.5 });
-    const room = ax - 13 - 3 - gx;
-    const name = textWidth(def.name, 1, false) <= room ? def.name : (def.name.split(' ').pop() ?? def.name);
+    // row 2: the name (rank-colored), bold when it fits, the whole width of the plate
+    const nameBold = textWidth(def.name, 1, true) <= 76;
+    const name = nameBold || textWidth(def.name, 1, false) <= 76 ? def.name : (def.name.split(' ').pop() ?? def.name);
     const nameCol = def.boss ? 0xffd23a : def.elite ? 0xffa060 : 0xdcd8f0;
-    this.texts.text(name, gx, y0 + 19, nameCol, { oy: 0.5 });
-    // a shell or protection halves the damage it takes: a pulsing chip under the badge
+    this.texts.text(name, gx, y0 + 18, nameCol, { bold: nameBold, oy: 0.5 });
+    // attack: a chip under the badge; a shell or protection (halves the damage it takes) pulses in a chip under that
+    const atk = `${target.atk}`;
+    const ar: Rect = { x: X - 15 - textWidth(atk, 1, true), y: y0 + 25, w: 15 + textWidth(atk, 1, true), h: 11 };
+    tag(g, ar, [0x6a6f98, 0x2e3252, 0x262a44, 0x181c30], 0.94);
+    hudIcon(g, 'sword', ar.x + 1, ar.y - 1);
+    this.texts.text(atk, ar.x + 13, ar.y + 6, WHITE, { bold: true, oy: 0.5 });
     if (target.shell < 1 || (target.protect < 1 && c.summonsAlive(target.id))) {
       const k = pulse(now, 600);
-      const sr: Rect = { x: X - 33, y: y0 + 26, w: 33, h: 10 };
+      const sr: Rect = { x: X - 33, y: y0 + 39, w: 33, h: 10 };
       tag(g, sr, [0x4aa0f0, 0x1a3c8a, 0x16306e, 0x10204a], 0.94);
       glow(g, sr, 0x9ad8ff, 0.3 + 0.4 * k, 2);
       hudIcon(g, 'shield', sr.x + 1, sr.y + 1);

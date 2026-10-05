@@ -5,7 +5,7 @@ import Phaser from 'phaser';
 import { STAGE_LIGHT } from '../art-stage';
 import { impactFeel, impactWeight, type ImpactFeel, type ImpactTier } from '../../core/impact';
 import type { FightScene } from '../scene';
-import { FONT, FONT_BOLD, fontText, textWidth } from '../font';
+import { FONT, FONT_BOLD, fontText, readable, textWidth } from '../font';
 import { GAME_W } from '../layout';
 import { hudIcon, iconSize } from './pixels';
 import { clamp01, ease, INK, rand, shade as shadeCol, tintGrad, WHITE, type EnemyView, type Floater, type Particle } from './shared';
@@ -284,7 +284,7 @@ export class Effects {
     const t = this.pool.pop() ?? s.add.bitmapText(0, 0, FONT, '');
     t.setFont(FONT_BOLD);
     t.setText(fontText(text)).setOrigin(0.5, 0.5).setVisible(true).setAlpha(1).setScale(scale);
-    tintGrad(t, color);
+    tintGrad(t, readable(color));
     if (t.parentContainer) t.parentContainer.remove(t);
     if (world) {
       s.fxLayer.add(t);

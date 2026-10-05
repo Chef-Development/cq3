@@ -12,6 +12,44 @@ import type Phaser from 'phaser';
 
 export const FONT = 'px';
 export const FONT_BOLD = 'pxb';
+/**
+ * The same fonts without the ink outline and shadow, for DARK text on a LIGHT surface (parchment, cream plates,
+ * gold buttons): a dark fill inside a dark outline reads as a blob, a bare dark fill reads crisp. Same frames and
+ * metrics, so switching between a font and its plain twin never moves the text. TextPool picks them by itself for
+ * dark colors (isDarkInk).
+ */
+export const FONT_PLAIN = 'pxp';
+export const FONT_BOLD_PLAIN = 'pxbp';
+
+/** A text color too dark for the outlined fonts (its outline would swallow it): ink for a light surface. */
+export function isDarkInk(color: number): boolean {
+  const r = (color >> 16) & 255;
+  const g = (color >> 8) & 255;
+  const b = color & 255;
+  return 0.299 * r + 0.587 * g + 0.114 * b < 75;
+}
+
+/** The dimmest an outlined text gets: its brightest channel at least this (dim greys and purples are lifted). */
+const READABLE_MAX = 190;
+
+/**
+ * An outlined text's color, made readable: a dim one (a grey or purple label on a dark panel) is lifted toward white
+ * until its brightest channel reaches READABLE_MAX, so it stays a quieter tone than white but never sinks into the
+ * panel. Saturated colors (reds, blues, golds) are already bright enough and keep their hue.
+ */
+export function readable(color: number): number {
+  const r = (color >> 16) & 255;
+  const g = (color >> 8) & 255;
+  const b = color & 255;
+  const m = Math.max(r, g, b);
+  if (m >= READABLE_MAX) return color;
+  const k = (READABLE_MAX - m) / (255 - m);
+  const up = (v: number) => Math.round(v + (255 - v) * k);
+  return (up(r) << 16) | (up(g) << 8) | up(b);
+}
+
+/** The font for a text: bold or small, plain for dark ink. */
+export const fontFor = (bold: boolean, plain: boolean): string => (bold ? (plain ? FONT_BOLD_PLAIN : FONT_BOLD) : plain ? FONT_PLAIN : FONT);
 
 const INK = '#140c1c';
 /** Pixels of dark ink between the fills of neighbouring letters (their outlines overlap). */
@@ -256,9 +294,11 @@ const NOMINAL_SIZE = 10;
 export function buildFont(scene: Phaser.Scene): void {
   buildVariant(scene, FONT_BOLD, BOLD, BOLD_M);
   buildVariant(scene, FONT, SMALL, SMALL_M);
+  buildVariant(scene, FONT_BOLD_PLAIN, BOLD, BOLD_M, true);
+  buildVariant(scene, FONT_PLAIN, SMALL, SMALL_M, true);
 }
 
-function buildVariant(scene: Phaser.Scene, key: string, map: GlyphMap, m: Metrics): void {
+function buildVariant(scene: Phaser.Scene, key: string, map: GlyphMap, m: Metrics, plain = false): void {
   const chars = Object.keys(map);
   const cellH = cellOf(m);
   const rowsMax = m.cap + m.desc;
@@ -295,12 +335,13 @@ function buildVariant(scene: Phaser.Scene, key: string, map: GlyphMap, m: Metric
       fill(x - 1, y) || fill(x + 1, y) || fill(x, y - 1) || fill(x, y + 1) || (edge(x) && (fill(x - 1, y - 1) || fill(x + 1, y - 1)));
     const { x: ox, y: oy } = pos[ch];
     ctx.fillStyle = INK;
-    for (let y = -1; y <= rowsMax + 1; y++)
-      for (let x = -1; x <= gw; x++) {
-        if (fill(x, y)) continue;
-        // outline, or shadow: 1 px below the outlined glyph
-        if (near(x, y) || fill(x, y - 1) || near(x, y - 1)) ctx.fillRect(ox + x + 1, oy + y + 1, 1, 1);
-      }
+    if (!plain)
+      for (let y = -1; y <= rowsMax + 1; y++)
+        for (let x = -1; x <= gw; x++) {
+          if (fill(x, y)) continue;
+          // outline, or shadow: 1 px below the outlined glyph
+          if (near(x, y) || fill(x, y - 1) || near(x, y - 1)) ctx.fillRect(ox + x + 1, oy + y + 1, 1, 1);
+        }
     ctx.fillStyle = '#ffffff';
     for (let y = 0; y < rows.length; y++) for (let x = 0; x < gw; x++) if (fill(x, y)) ctx.fillRect(ox + x + 1, oy + y + 1, 1, 1);
   }

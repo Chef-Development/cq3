@@ -835,7 +835,7 @@ export class LootView {
       glow(g, tr, GOLD[3], (0.4 + 0.3 * pulse(now, 700)) * a, 2);
       tag(g, tr, [GOLD[4], GOLD[3], GOLD[2], GOLD[1]], a);
       hudIcon(g, 'star', tr.x + 3, tr.y + 2, 1, a);
-      this.cardTexts.text(t, tr.x + 14, tr.y + 6, 0x5a3410, { bold: true, oy: 0.5, alpha: a, grad: [0x7a4a14, 0x4a2a08] });
+      this.cardTexts.text(t, tr.x + 14, tr.y + 6, 0x5a3410, { bold: true, oy: 0.5, alpha: a, grad: [0x6a3a10, 0x4a2a08], plain: true });
       const q = ((now / 900) % 1 + 1) % 1;
       if (q < 0.4) star(gf, tr.x + 6 + Math.round((tr.w - 10) * (q / 0.4)), tr.y, 1, WHITE, a * (1 - q / 0.4));
     }
@@ -902,7 +902,7 @@ export class LootView {
     // the hint, once it can be dismissed
     if (k > T.cardIn + 250 && !c.outAt) {
       const hy = Math.min(s.B, GAME_H) - 5;
-      this.cardTexts.text('Tap to continue', cx, hy, 0xdcd8f0, { ox: 0.5, oy: 0.5, alpha: 0.5 + 0.5 * pulse(now, 900) });
+      this.cardTexts.text('Tap to continue', cx, hy, 0xfff0c0, { bold: true, ox: 0.5, oy: 0.5, alpha: 0.8 + 0.2 * pulse(now, 900) });
     }
   }
 }

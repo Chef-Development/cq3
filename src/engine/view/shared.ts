@@ -203,10 +203,13 @@ export const shade = (c: number, f: number) => {
   const ch = (v: number) => Math.max(0, Math.min(255, Math.round(f <= 1 ? v * f : v + (255 - v) * (f - 1))));
   return (ch((c >> 16) & 255) << 16) | (ch((c >> 8) & 255) << 8) | ch(c & 255);
 };
-/** Text gets a gentle top-to-bottom gradient (lit top, deeper bottom), like the reference's lettering. */
-export const tintGrad = (t: Phaser.GameObjects.BitmapText, c: number) => {
-  const top = shade(c, 1.12);
-  const bot = shade(c, 0.78);
+/**
+ * Text gets a gentle top-to-bottom gradient (lit top, deeper bottom), like the reference's lettering. Small text (5 px
+ * caps) gets a lighter one: a deep bottom row would eat into its few pixels.
+ */
+export const tintGrad = (t: Phaser.GameObjects.BitmapText, c: number, small = false) => {
+  const top = shade(c, small ? 1.06 : 1.12);
+  const bot = shade(c, small ? 0.9 : 0.78);
   t.setTint(top, top, bot, bot);
 };
 export const ease = (k: number) => 1 - (1 - k) * (1 - k);

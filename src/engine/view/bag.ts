@@ -407,9 +407,12 @@ export class BagScreen {
     }
     // "Lv 12 Epic Weapon" (the slot is left off when it doesn't fit: the icon and the "vs" line show it)
     const kindFull = `Lv ${it.ilvl} ${RARITY_INFO[it.rarity].name} ${SLOT_NAME[slotOfItem(it)]}`;
+    // ("Lv 24 Legendary" too wide for the column wraps to two lines rather than losing the rarity)
     const kind = textWidth(kindFull, 1, false) <= nw ? kindFull : `Lv ${it.ilvl} ${RARITY_INFO[it.rarity].name}`;
-    texts.text(fit(kind, nw), nx, y, mix(rc, 0xd8d0f0, 0.5), { oy: 0.5 });
-    y += 8;
+    for (const line of wrapText(kind, nw).slice(0, 2)) {
+      texts.text(fit(line, nw), nx, y, mix(rc, 0xd8d0f0, 0.5), { oy: 0.5 });
+      y += 8;
+    }
     y = Math.max(y, cell.y + cell.h + 6);
 
     // what goes in the body: this item's stats, the worn one's stats it lacks, its unique effect, its set
@@ -467,7 +470,7 @@ export class BagScreen {
     } else y += 1;
     kit.divider(g, ix, y - 6, iw);
 
-    // the stat rows: what this item gives, and the change vs what's worn (loud: bold green up, bold red down)
+    // the stat rows: what this item gives, and the change vs what's worn (a green band up, a red band down)
     const colV = ix + iw - 36;
     const row = (label: string, lc: number, val: string, vc: number, stat: StatId, d: number | null) => {
       if (y > bottom - 3) return;
@@ -515,7 +518,8 @@ export class BagScreen {
     const txt = compact(stat, d);
     const zero = /^[+-]?0(\.0+)?(%|x)?$/.test(txt.replace(/^[+-]/, '')) || Math.abs(d) < 1e-9;
     const col = zero ? DIM_TXT : d > 0 ? GREEN : RED;
-    this.kit.texts.text(zero ? '=' : txt, right, y, col, { bold: !zero, ox: 1, oy: 0.5 });
+    // small type: bold (10 px tall) would run into the next row at these pitches; the green/red band says it loud
+    this.kit.texts.text(zero ? '=' : txt, right, y, col, { ox: 1, oy: 0.5 });
   }
 }
 
