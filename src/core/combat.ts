@@ -1308,18 +1308,23 @@ export class Combat {
     t = this.clampTap(t);
     const v = this.speedAtTime(t) * this.handSpan(hand);
     if (v <= 0 || this.freeze > 0) return;
+    // where a block stands as this cursor sees it: Sable's two halves laid over each other (the cursors run side by
+    // side, half a bar apart), so the readout picks clear-cut samples from as busy a bar as Rowan's
     const twin = this.hands > 1;
-    const mine = (b: Block) => b.bornAt <= t + 1e-9 && (!twin || isRed(b.kind) || this.handOf(b.pos) === hand);
+    const seen = (b: Block) => {
+      const p = this.blockPosAt(b, t);
+      return !twin || this.handOf(p) === hand ? p : p + (hand > 0 ? 0.5 : -0.5);
+    };
     let target: Block | null = chosen;
     if (!target) {
       let best = Infinity;
       for (const b of this.blocks) {
-        if (!mine(b)) continue;
-        const dd = Math.abs(cpos - this.blockPosAt(b, t));
+        if (b.bornAt > t + 1e-9) continue;
+        const dd = Math.abs(cpos - seen(b));
         if (dd < best) (best = dd), (target = b);
       }
     }
-    if (!target || target.kind !== 'yellow') return;
+    if (!target || target.kind !== 'yellow' || (twin && this.handOf(target.pos) !== hand)) return;
     const phase = ((this.phaseAt(t) % 2) + 2) % 2;
     const dir = phase < 1 ? 1 : -1;
     const err = ((cpos - this.blockPosAt(target, t)) * dir) / v;
@@ -1328,7 +1333,7 @@ export class Combat {
     const tp = this.blockPosAt(target, t);
     const [lo, hi] = this.handRange(hand);
     if ((Math.min(tp - lo, hi - tp) / v) * 1000 < ISOLATION_MS) return;
-    for (const b of this.blocks) if (b !== target && mine(b) && (Math.abs(this.blockPosAt(b, t) - tp) / v) * 1000 < ISOLATION_MS) return;
+    for (const b of this.blocks) if (b !== target && b.bornAt <= t + 1e-9 && (Math.abs(seen(b) - tp) / v) * 1000 < ISOLATION_MS) return;
     if (Math.abs(err) * 1000 <= AIM_WINDOW_MS) this.aims.push(Math.round(err * 1000));
   }
 
@@ -1337,7 +1342,7 @@ export class Combat {
     return !this.result && this.cursorHold <= 0 && !this.pick(t, this.hands < 2 ? 0 : hand > 0 ? 1 : 0).chosen;
   }
 
-  /** Cursor speed (bar units/s) that was in effect at time t. */
+  /** Cursor speed (passes/s, as cursorSpeed; x handSpan for bar units/s) that was in effect at time t. */
   private speedAtTime(t: number): number {
     if (t >= this.time) return this.cursorSpeed();
     const i = this.histIndex(t);

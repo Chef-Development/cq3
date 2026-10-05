@@ -5,6 +5,8 @@
 // judge decides what they hit. So thin blocks, fast reds and a fast cursor are as hard for it as for a person:
 // a block it crosses in 60 ms is missed far more often than one it crosses in 150 ms. "Accuracy" names the player:
 // the share of plain yellow blocks (nominal width) they hit at the starting cursor speed.
+// Sable (two cursors) it plays with two thumbs: each has its own timing error, tap rate and pending tap, aims its own
+// cursor at the next block in its half, and a red goes to whichever cursor meets it first (never both thumbs on one).
 // It reads telegraphs like a person: it holds off yellow while a shield is raised (as often as its accuracy) and
 // waits out a frozen cursor. It swipes the finisher when it would kill, at max stacks, or when holding on for one
 // more stack isn't worth the risk of a combo break.
@@ -379,6 +381,7 @@ function newFight(run: Run, c: Combat): FightStats {
 interface Pending {
   at: number; // sim time of the tap
   blockId: number;
+  err?: number; // Sable's thumbs: the timing error (s) it is aimed with, kept when it is re-aimed
 }
 
 /** Run the fight until it is won (the reward phase comes up), lost, or it times out. */
@@ -441,6 +444,12 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
           st.taps++;
           th.busyUntil = p.at + gap;
           th.pending = null;
+          // a person watches the cursor, not a clock: the other thumb's tap follows its cursor if this hit sped it
+          // up or stopped the bar for a moment (a crit's hit-stop)
+          const next = thumbs[1 - th.hand].pending;
+          const aimed = next && c.blocks.find((x) => x.id === next.blockId);
+          const tau = aimed ? meetTime(c, 1 - th.hand, aimed, t) : null;
+          if (next && tau !== null && next.at > t) next.at = Math.max(t + DT, t + tau + (next.err ?? 0));
         }
       }
       const risk = (breaks + 3 * (1 - o.accuracy)) / (combos + 3);
@@ -554,7 +563,8 @@ interface Thumb {
   busyUntil: number;
 }
 
-/** When cursor `hand` meets block b (s from now), if it does before it turns at its half's end (or 0.6 s); else null. */
+/** When cursor `hand` meets block b (s from now), if it does before it turns at its half's end (or 0.6 s); else null.
+ *  A hit-stop still running holds everything for that long first. */
 function meetTime(c: Combat, hand: number, b: Block, t: number): number | null {
   const [lo, hi] = c.handRange(hand);
   const cpos = c.cursorPosAt(t, hand);
@@ -562,7 +572,7 @@ function meetTime(c: Combat, hand: number, b: Block, t: number): number | null {
   const v = c.barSpeed(hand);
   const toWall = dir > 0 ? (hi - cpos) / v : (cpos - lo) / v;
   const tau = (b.pos - cpos) / (v * dir - b.vel);
-  return tau >= 0 && tau <= Math.min(toWall, 0.6) ? tau : null;
+  return tau >= 0 && tau <= Math.min(toWall, 0.6) ? tau + c.hitStop : null;
 }
 
 /**
@@ -584,9 +594,9 @@ function planTwin(c: Combat, hand: number, other: Thumb, rng: Rng, aim: Aim, gau
     if (tau === null) continue;
     if (b.bornAt > t + tau - (isR ? aim.reactRed : aim.react)) continue;
     if (isR) {
-      // the other cursor meets it first and that thumb is free to take it: leave it
+      // the other cursor meets it first and that thumb is free by then to take it: leave it
       const to = meetTime(c, other.hand, b, t);
-      if (to !== null && to < tau && other.busyUntil <= t + to && (!other.pending || Math.abs(other.pending.at - (t + to)) >= aim.gap)) continue;
+      if (to !== null && to < tau && other.busyUntil <= t + to && (!other.pending || other.pending.at + aim.gap <= t + to)) continue;
     }
     if (!best || tau < best.tau) best = { tau, id: b.id };
     if (isR && (!red || tau < red.tau)) red = { tau, id: b.id };
@@ -594,7 +604,7 @@ function planTwin(c: Combat, hand: number, other: Thumb, rng: Rng, aim: Aim, gau
   if (!best) return null;
   if (red && red.id !== best.id && red.tau - best.tau < aim.gap) best = red;
   const err = rng.next() < aim.lapse ? (rng.next() < 0.5 ? -1 : 1) * (0.08 + rng.next() * 0.17) : gauss() * aim.sigma;
-  return { at: Math.max(t + DT, t + best.tau + err), blockId: best.id };
+  return { at: Math.max(t + DT, t + best.tau + err), blockId: best.id, err };
 }
 
 export interface ActRow {
@@ -622,11 +632,12 @@ export interface ActRow {
   lostAt: Record<string, number>; // lost attempts by node type
 }
 
-/** Play `runs` whole runs per accuracy and summarise every act. */
-export function balance(tuning: Tuning, accuracies: number[], runs: number, seed = 1, maxAttempts = 6, acts = tuning.acts.length): ActRow[] {
+/** Play `runs` whole runs per accuracy and summarise every act (as `hero`: Rowan by default; the same seeds for
+ *  either hero, so the two compare run for run). */
+export function balance(tuning: Tuning, accuracies: number[], runs: number, seed = 1, maxAttempts = 6, acts = tuning.acts.length, hero?: HeroId): ActRow[] {
   const rows: ActRow[] = [];
   for (const acc of accuracies) {
-    const results = Array.from({ length: runs }, (_, r) => playRun(tuning, { accuracy: acc, seed: (seed * 7919 + r * 104729 + Math.round(acc * 1000)) >>> 0 }, maxAttempts, acts));
+    const results = Array.from({ length: runs }, (_, r) => playRun(tuning, { accuracy: acc, seed: (seed * 7919 + r * 104729 + Math.round(acc * 1000)) >>> 0, hero }, maxAttempts, acts));
     for (let act = 0; act < acts; act++) {
       const entries = results.map((res) => res.acts[act]).filter((e) => !!e);
       const n = Math.max(1, entries.length);

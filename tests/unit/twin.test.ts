@@ -228,13 +228,25 @@ describe('Sable: two cursors, one per half of the bar', () => {
 
   it('the accuracy readout measures an isolated yellow against the cursor of the hand that tapped it', () => {
     const { c, t } = setupTwin();
-    c.spawnBlock('yellow', 0.75);
-    c.spawnBlock('yellow', 0.25); // A's own block at the same moment: not near B's in B's half
-    c.advanceTo(0.9);
-    c.tap(twinTimeAt(t, 1, 0.75) + 0.012, 1); // 12 ms late with B
+    c.spawnBlock('yellow', 0.62);
+    c.spawnBlock('yellow', 0.3);
+    c.advanceTo(0.5);
+    c.tap(twinTimeAt(t, 1, 0.62) + 0.012, 1); // 12 ms late with B
     expect(c.aims).toEqual([12]);
-    c.tap(twinTimeAt(t, 0, 0.25) - 0.008, 0); // 8 ms early with A
-    expect(c.aims).toEqual([12, -8]);
+    const { c: ca } = setupTwin();
+    ca.spawnBlock('yellow', 0.62);
+    ca.spawnBlock('yellow', 0.3);
+    ca.advanceTo(1.0);
+    ca.tap(twinTimeAt(t, 0, 0.3) - 0.008, 0); // 8 ms early with A
+    expect(ca.aims).toEqual([-8]);
+    // the cursors run side by side: a yellow under the other cursor at the same moment makes it a busy moment, not
+    // a clear-cut sample (as a second yellow that close would on Rowan's bar)
+    const { c: c1, t: t1 } = setupTwin();
+    c1.spawnBlock('yellow', 0.75);
+    c1.spawnBlock('yellow', 0.27);
+    c1.advanceTo(0.8);
+    c1.tap(twinTimeAt(t1, 1, 0.75), 1);
+    expect(c1.aims).toEqual([]);
     // a yellow near its half's end isn't clear-cut (the cursor turns there)
     const { c: c2, t: t2 } = setupTwin();
     c2.spawnBlock('yellow', 0.54);
