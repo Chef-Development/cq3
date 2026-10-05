@@ -321,16 +321,18 @@ export class NodeScreens {
     let icon: string;
     // boosts (and the potion) show what they'd do to Rowan right now: "ATK 14 -> 16", "HP 60 -> 100"
     let preview: BoostPreview | null = null;
+    // (a sold row keeps its plain label: Rowan already has it, so a preview would count it twice)
     if (item.kind === 'boost' && item.offer) {
-      [name] = boostLabel(run.tuning, item.offer);
-      preview = boostPreview(run.tuning, run.hero, item.offer);
+      [name, val] = boostLabel(run.tuning, item.offer);
+      if (!item.sold) preview = boostPreview(run.tuning, run.hero, item.offer);
       icon = BOOST_ICON[item.offer.id];
     } else if (item.kind === 'potion') {
       name = 'Potion';
       const H = run.hero;
       const max = heroMaxHp(run.tuning, H);
       const after = Math.min(max, H.hp + Math.round(max * run.tuning.map.potionHeal));
-      if (after > H.hp) preview = { stat: 'HP', before: `${H.hp}`, after: `${after}` };
+      if (item.sold) val = `Heal ${Math.round(run.tuning.map.potionHeal * 100)}% HP`;
+      else if (after > H.hp) preview = { stat: 'HP', before: `${H.hp}`, after: `${after}` };
       else val = 'HP is full';
       icon = 'potion';
     } else {

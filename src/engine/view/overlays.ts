@@ -2,7 +2,7 @@
 // tips), the boost pick (with a reroll; each card shows its stat before and after), the treasure / act-clear chest
 // (then the act's accuracy, and Camp / Next buttons), defeat (Camp / Retry), the victory, pause, "TAP TO BEGIN!",
 // the fight banner, and the screen flash. Panels pop in with a little overshoot; cards and buttons stagger in.
-// Also the small UI glyphs the menus share (bag, tent, check, lock, target, arrow...).
+// Also the small UI glyphs the menus share (bag, heart, coin, warning, tent, tick, padlock, target, arrow).
 import Phaser from 'phaser';
 import { heroMaxHp } from '../../core/combat';
 import { boostLabel, boostPreview, type BoostOffer, type BoostPreview, type Phase, type Rarity } from '../../core/run';
@@ -61,8 +61,6 @@ export const GLYPHS: Record<string, Glyph> = {
   target: { rows: outlined(['.rrr.', 'rWWWr', 'rWrWr', 'rWWWr', '.rrr.']), pal: { k: K, r: 0xf05a48, W: 0xffffff } },
   // 9x9: a chunky right arrow ("before -> after"), lit on top
   arrow: { rows: outlined(['...a...', '...aa..', 'aaaaaa.', 'aaaaaaa', 'AAAAAA.', '...AA..', '...A...']), pal: { k: K, a: 0xffe680, A: 0xd8901c } },
-  // 7x7: a sparkle (a signature drop)
-  star: { rows: outlined(['..W..', '.WYW.', 'WYYYW', '.WYW.', '..W..']), pal: { k: K, W: 0xffd23a, Y: 0xfff6c0 } },
 };
 
 export const glyphSize = (key: string): [number, number] => {
