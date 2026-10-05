@@ -166,7 +166,8 @@ between fights. Icons first, few words, no new HUD rows (the bounty tracker sits
   and 40 x act XP. All in `tuning.extras/roam/rush/quests/secret/wander`, with sliders ("Map extras", "Coin Rush",
   "Bounties, secrets, skirmishes").
 - **Balance effect** (bot, 70% player, 300 runs, the same seeds, extras off -> on): Act 1 first try 100% -> 99%,
-  Act 2 87% -> 91%, Act 3 70% -> 72%, the Boar King's first fight 74% -> 76%. The bot meets ~0.4 / 0.7 / 0.7 ambushes
+  Act 2 87% -> 93% (above its 85-90% target: the extra kills, items and picks help), Act 3 70% -> 74%, the Boar
+  King's first fight 74% -> 77%. The bot meets ~0.4 / 0.7 / 0.7 ambushes
   per act attempt. A first cut with a two-relic, 30%-off merchant pushed the Boar King to 81-84%, so she was trimmed.
   The bot guards pass; re-run `npm run balance` after merging with the combat retune.
 
