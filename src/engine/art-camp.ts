@@ -10,6 +10,8 @@
 //                    strike lands on the anvil painted in camp_bg (CAMP_SPOTS.smith)
 //   camp_rowan0/1    32x33 Rowan sitting on the log, warming his hands at the fire (frame 1 breathes out)
 //   camp_pip0/1      16x17 Pip perched on the log (frame 1: eyes drowsy, settled 1px lower)
+//   camp_sable0/1    34x31 Sable perched on the firewood right of the fire, facing it, drawing a whetstone along a
+//                    dagger (frame 1: the stone at the tip, a spark, the shoulders 1px lower; CAMP_SPOTS.sable)
 //   portrait_smith   40x40 story portrait (faces left, like the villains)
 //
 // The backdrop is painted like the fight backdrops (backdrop.ts toolkit): a teal night sky with a moon and stars,
@@ -18,6 +20,7 @@
 // The top ~16 px and the bottom ~20 px stay calm for the UI; nothing important sits in the 23 px safe areas.
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 import { and, ell, fill, lambert, not, or, rect, rimShade, sphere, stroke, tone, type Inside } from './art-paint';
+import { SABLE_FIST, SABLE_HEAD, SABLE_PAL, SABLE_TORSO, sableArm, sableDagger, scarfTail } from './art-sable';
 import { PORTRAIT_SIZE } from './art-story';
 import { bay, clamp01, col, conifer, fbm, hash, level, mass, mix, noise, pick, Pix, ramp, rng, tree, type Blob, type Col, type Ramp } from './backdrop';
 
@@ -28,6 +31,7 @@ export const CAMP_SPOTS = {
   fire: { x: 150, y: 117 },
   rowan: { x: 125, y: 122 },
   pip: { x: 103, y: 115 },
+  sable: { x: 176, y: 124 },
   smith: { x: 228, y: 113 },
   bag: { x: 30, y: 57, w: 60, h: 51 },
   forge: { x: 182, y: 33, w: 70, h: 80 },
@@ -960,6 +964,103 @@ function pipFrame(f: number): HTMLCanvasElement {
   return toCanvas(g);
 }
 
+// ------------------------------------------------------------------ Sable by the fire (perched on the woodpile, facing left)
+
+const SABLE_W = 34;
+const SABLE_H = 31;
+
+/**
+ * Turn one of Sable's right-facing maps to face left and light it again from the top left: the plum cloth and the
+ * teal scarf are re-toned as round forms (centre and radii in map px); the lit hood rim beside the face is kept.
+ */
+function faceLeft(rows: string[], cloth: [number, number, number, number], scarf?: [number, number, number, number]): string[] {
+  const m = rows.map((r) => [...r].reverse().join(''));
+  const face = (c: string | undefined) => c !== undefined && 'zsSkW1'.includes(c);
+  return m.map((r, y) =>
+    [...r]
+      .map((ch, x) => {
+        if ('234567'.includes(ch)) {
+          if (ch === '6' && (face(r[x - 1]) || face(r[x + 1]))) return ch;
+          const [cx, cy, rx, ry] = cloth;
+          return String(Math.max(2, Math.min(7, 2 + Math.floor((0.12 + lambert((x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry)) * 5.6))));
+        }
+        if (scarf && 'bcde'.includes(ch)) {
+          const [cx, cy, rx, ry] = scarf;
+          return 'bcde'[Math.max(0, Math.min(3, Math.floor((0.15 + lambert((x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry)) * 4.2)))];
+        }
+        if ('qQRr'.includes(ch)) return x < 4 ? 'Q' : x < 9 ? 'q' : x < 12 ? 'R' : 'r';
+        return ch;
+      })
+      .join(''),
+  );
+}
+
+// Sitting on the logs, facing left: the near leg hangs over the front, the far knee is drawn up (left = forward).
+const SABLE_SIT = [
+  '.......3444...',
+  '..344443333332',
+  '.34444443333322',
+  '.3443333222222.',
+  '.Vvw...wvw.....',
+  '.Vvw...wvw.....',
+  '.Vvw...wvw.....',
+  '.Vvw..2332.....',
+  '23332.1222.....',
+  '1222...........',
+];
+/** Where the whetstone sits up the blade in each frame (it draws along the edge, a spark flies on frame 1). */
+const SABLE_STROKE = [
+  { stone: 0, bob: 0 },
+  { stone: 4, bob: 1 },
+];
+
+function sableCampFrame(f: number): HTMLCanvasElement {
+  const g = grid(SABLE_W, SABLE_H);
+  const P = SABLE_PAL;
+  const pal: Pal = { ...P, F: '#ffc890', f: '#e8a070', o: IRON[2], O: IRON[4], X: IRON[5] };
+  const { stone, bob } = SABLE_STROKE[f];
+  const tx = 15;
+  const ty = 12 + bob;
+  const hx = tx - 2;
+  const hy = ty - SABLE_HEAD.length + 1;
+  // the scarf's tails hang down the back, drifting away from the fire
+  scarfTail(g, hx + 14, hy + 9, 11, (t) => Math.PI * (0.38 - 0.1 * t + 0.05 * Math.sin(t * 6.5)));
+  scarfTail(g, hx + 13, hy + 10, 8, (t) => Math.PI * (0.45 - 0.06 * t));
+  // the far hand holds the dagger across the lap, point toward the fire
+  const dx = 14;
+  const dy = 18 + bob;
+  const blade = sableDagger('l');
+  stamp(g, blade.rows, pal, dx - blade.grip[0], dy - blade.grip[1]);
+  stamp(g, SABLE_SIT, pal, 4, SABLE_H - 2 - SABLE_SIT.length + 1);
+  stamp(g, faceLeft(SABLE_TORSO, [9, 2, 9, 7]), pal, tx, ty);
+  // the second dagger tucked through the sash
+  stamp(g, ['.g', 'Pg', 'h.'], pal, tx + 9, ty + 3);
+  stamp(g, faceLeft(SABLE_HEAD, [10, 4, 9, 8], [9, 10, 8, 3]), pal, hx, hy);
+  stamp(g, SABLE_FIST, pal, dx, dy - 1);
+  // the near hand draws the whetstone along the edge: the elbow tucked in, the forearm out over the knee
+  const sx = dx - 4 - stone;
+  const sy = dy - 2;
+  sableArm(g, tx + 6, ty + 2, tx + 3, ty + 6, true);
+  sableArm(g, tx + 3, ty + 6, sx + 3, sy, true);
+  stamp(g, ['XXO', 'OOo'], pal, sx, sy);
+  stamp(g, SABLE_FIST, pal, sx + 2, sy - 1);
+  if (f === 1) {
+    put(g, sx - 2, sy, '#fff6c8');
+    put(g, sx - 3, sy - 1, '#ffd25a');
+  }
+  // firelight: the cloth, skin and scarf edges that face the flames (left) catch a warm rim
+  const warmable = new Set(['2', '3', '4', '5', '6', '7', 'b', 'c', 'd', 'e', 's', 'S', 'z', 'v', 'V', 'w'].map((k) => pal[k]));
+  for (let y = hy + 5; y < SABLE_H; y++)
+    for (let x = 1; x < SABLE_W; x++) {
+      const c = g[y][x];
+      if (!c || g[y][x - 1] || !warmable.has(c)) continue;
+      const v = parseInt(c.slice(1), 16);
+      const lum = ((v >> 16) & 255) * 0.3 + ((v >> 8) & 255) * 0.59 + (v & 255) * 0.11;
+      g[y][x] = lum > 120 ? pal.F : pal.f;
+    }
+  return toCanvas(g);
+}
+
 // ------------------------------------------------------------------ Mags, the badger smith (facing left, toward the anvil)
 
 const MAGS: Record<string, string> = {
@@ -1220,6 +1321,8 @@ export function buildCampArt(add: Add, w: number, h: number): void {
   add('camp_rowan1', rowanFrame(1));
   add('camp_pip0', pipFrame(0));
   add('camp_pip1', pipFrame(1));
+  add('camp_sable0', sableCampFrame(0));
+  add('camp_sable1', sableCampFrame(1));
   add('portrait_smith', magsPortrait());
 }
 

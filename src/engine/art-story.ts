@@ -2,13 +2,14 @@
 // fallback when an enemy has no mini sprite; the act map's own art is in art-map.ts).
 // Portraits are 40x40 busts on a transparent background (the scene draws the frame): forms are painted as
 // lit volumes (light from the top left, hue-shifted ramps), details are stamped from small character maps,
-// and toCanvas adds the 1px ink outline. Rowan and Pip face right; the villains face left.
+// and toCanvas adds the 1px ink outline. Rowan, Sable and Pip face right; the villains face left. Sable's face sits
+// where Rowan's does (the HUD badge's 18x18 window at (12, 6) shows the eyes and the top of the mask).
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 
 type Add = (key: string, canvas: HTMLCanvasElement) => void;
 
 /** Portrait textures: `portrait_${name}`. */
-export const PORTRAITS = ['rowan', 'pip', 'captain', 'golem', 'boarking', 'narrator', 'smith'] as const;
+export const PORTRAITS = ['rowan', 'sable', 'pip', 'captain', 'golem', 'boarking', 'narrator', 'smith'] as const;
 /** Map node icons: `mapicon_${type}`. */
 export const MAP_ICONS = ['fight', 'elite', 'treasure', 'rest', 'shop', 'event', 'boss'] as const;
 /** A representative colour per map icon (for glows and highlights). */
@@ -210,6 +211,68 @@ function rowan(): HTMLCanvasElement {
     put(g, x, y, STEEL[0]);
     put(g, x, y + 1, STEEL[3]);
   }
+  return toCanvas(g);
+}
+
+// ------------------------------------------------------------------ Sable (faces right)
+
+// Sable's plum cloth and teal scarf (the fight sprite's ramps, art-sable.ts)
+const PLUM = ['#1c1632', '#2c2250', '#41306a', '#5a3e84', '#7a5498', '#a274b0', '#c69ac4'];
+const SCARF_T = ['#0c2c3c', '#135a62', '#1c8a80', '#34b496', '#74dcb0', '#c8f8d4'];
+
+function sable(): HTMLCanvasElement {
+  const g = grid(P, P);
+  // the scarf's two tails rippling back from the knot behind the neck (a shaded ribbon with a lit upper edge)
+  for (const [y0, y1, w, ph] of [
+    [25, 16, 3, 0],
+    [28, 26, 2, 1.8],
+  ]) {
+    // one column at a time from the knot to the frame's edge: lit top, mid body, shaded underside
+    for (let x = 11; x >= 0; x--) {
+      const t = (11 - x) / 11;
+      const y = Math.round(y0 + (y1 - y0) * t + Math.sin(t * 5 + ph) * 1.2);
+      put(g, x, y, t < 0.5 ? SCARF_T[4] : SCARF_T[3]);
+      for (let k = 1; k < w; k++) put(g, x, y + k, SCARF_T[2]);
+      put(g, x, y + w, SCARF_T[1]);
+    }
+  }
+  stamp(g, ['.dd.', 'deec', 'dcbb', '.bb.'], { e: SCARF_T[4], d: SCARF_T[3], c: SCARF_T[2], b: SCARF_T[1] }, 9, 25);
+  // shoulders: the gi, a leather strap across the chest with a brass buckle
+  const torso = ell(21, 41, 16, 9.5);
+  fill(g, torso, sphere(PLUM.slice(1), 14, 33, 20, 12, 0.06));
+  rimShade(g, torso, PLUM[1]);
+  for (let x = 9; x <= 30; x++) {
+    const y = Math.round(31 + (x - 9) * 0.45);
+    if (!torso(x, y)) continue;
+    put(g, x, y, '#6e3a44');
+    put(g, x, y + 1, '#3e2030');
+  }
+  stamp(g, ['GgY', 'gkY', 'YYz'], { G: GOLD[4], g: GOLD[3], Y: GOLD[1], z: GOLD[0], k: '#3e2030' }, 18, 35);
+  // the hood: one rounded volume, its peak flopping back
+  const hood = or(ell(20.5, 17.5, 12.5, 12.5), ell(14, 9, 5.5, 4.5));
+  fill(g, hood, sphere(PLUM.slice(1), 15, 11, 16, 16, 0.07));
+  rimShade(g, hood, PLUM[1]);
+  stamp(g, ['..77', '.776', '766.'], { 7: PLUM[6], 6: PLUM[5] }, 12, 5);
+  // a seam running back over the crown
+  for (const [x, y] of bez([25, 6], [20, 5.5], [14, 9], [11, 17], 12)) put(g, Math.round(x), Math.round(y), PLUM[3]);
+  // the face opening: a lit rim on the near side, deep shadow inside, then the face
+  const open = ell(27, 19.5, 7.6, 7);
+  fill(g, and(hood, ell(26.5, 19.5, 9, 8.4), not(open)), (x) => (x < 25 ? PLUM[5] : PLUM[4]));
+  fill(g, and(hood, open), () => PLUM[0]);
+  const face = and(ell(28, 20.5, 6.6, 5.6), (_x, y) => y >= 15);
+  fill(g, face, (x, y) => (y <= 15 ? SKIN[1] : sphere(SKIN, 25, 17, 9, 8, 0.14)(x, y)));
+  // eyes: amber irises under heavy lids, glints toward the light (the near eye larger)
+  const eye: Pal = { k: INK, W: '#ffffff', w: '#e8dcd0', a: '#f0a838', A: '#b0601a', s: SKIN[1] };
+  stamp(g, ['kkkkk', 'WwaAk', 'wwAkk', '.kkk.'], eye, 21, 16);
+  stamp(g, ['kkkk', 'WaAk', 'wAkk'], eye, 28, 16);
+  // the mask: the scarf wrapped over the nose and mouth and round the neck
+  const mask = and(or(ell(26, 26, 10, 5.6), ell(18, 29, 8, 3.4), ell(33, 22.5, 2, 1.6)), (_x, y) => y >= 21);
+  fill(g, mask, sphere(SCARF_T.slice(1), 21, 21, 15, 8, 0.06));
+  rimShade(g, mask, SCARF_T[0]);
+  for (let x = 19; x <= 29; x++) if (mask(x, 21)) put(g, x, 21, SCARF_T[5]);
+  // folds: a dark crease under the nose and one where it wraps the neck
+  for (const [x, y] of bez([23, 25], [26, 24], [29, 25], [31, 26.5], 8)) put(g, Math.round(x), Math.round(y), SCARF_T[1]);
+  for (const [x, y] of bez([13, 29], [17, 31], [22, 31], [26, 30], 10)) if (mask(Math.round(x), Math.round(y))) put(g, Math.round(x), Math.round(y), SCARF_T[1]);
   return toCanvas(g);
 }
 
@@ -745,6 +808,7 @@ const ICON_MAPS: Record<string, string[]> = {
 
 export function buildStoryArt(add: Add): void {
   add('portrait_rowan', rowan());
+  add('portrait_sable', sable());
   add('portrait_pip', pip());
   add('portrait_captain', captain());
   add('portrait_golem', golem());
