@@ -65,12 +65,20 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       case 'event':
         if (now - app.phaseSince > 300) scene.nodeTap(clientX < 0 ? -1 : g.x, g.y);
         return;
-      case 'actClear':
-        if (now - app.phaseSince > 700 && !scene.levelClearTap()) app.setPhase(() => run.nextAct());
+      case 'actClear': {
+        // the first tap bursts the chest; then only the Camp and Next buttons do anything
+        if (now - app.phaseSince < 300) return;
+        const pick = scene.overlays.actClearTap(clientX < 0 ? -1 : g.x, g.y);
+        if (pick === 'camp') app.openCamp();
+        else if (pick === 'next') app.setPhase(() => run.nextAct());
         return;
-      case 'defeat':
-        if (now - app.phaseSince > 700) app.setPhase(() => run.retry());
+      }
+      case 'defeat': {
+        const pick = scene.overlays.defeatTap(clientX < 0 ? -1 : g.x, g.y);
+        if (pick === 'camp') app.openCamp();
+        else if (pick === 'retry') app.setPhase(() => run.retry());
         return;
+      }
       case 'victory':
         if (now - app.phaseSince > 1500) app.toWorld();
         return;

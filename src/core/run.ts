@@ -7,7 +7,7 @@ import { eventById } from '../data/events';
 import { GREENMARCH } from '../data/greenmarch';
 import type { ActDef, EventOutcome, RegionDef } from '../data/types';
 import { recordActAccuracy, addSamples, type AccEntry } from './accuracy';
-import { Combat, heroMaxHp, killCoins, newHero, type Hero, type SavedFoe } from './combat';
+import { Combat, heroMaxHp, heroStats, killCoins, newHero, type Hero, type SavedFoe } from './combat';
 import { rollDrops, setPieces, type Item, type Loadout } from './gear';
 import { actSeed, buildActMap, type ActMap, type MapNode } from './map';
 import { addItem, newProfile, profileLoadout, recordAct, recordRegion, type Profile } from './profile';
@@ -107,6 +107,58 @@ export function applyBoost(t: Tuning, h: Hero, o: BoostOffer): void {
       break;
   }
   h.hp = Math.min(h.hp, heroMaxHp(t, h));
+}
+
+/** What a boost card changes, as the card shows it: "ATK 14 -> 16". */
+export interface BoostPreview {
+  stat: string;
+  before: string;
+  after: string;
+}
+
+/** Whole numbers, unless that would hide the change (then one decimal). */
+function pair(a: number, b: number, fmt: (v: string) => string = (v) => v): [string, string] {
+  const r0 = Math.round(a);
+  const r1 = Math.round(b);
+  if (r0 !== r1 || Math.abs(b - a) < 1e-9) return [fmt(`${r0}`), fmt(`${r1}`)];
+  const d = (v: number) => `${Math.round(v * 10) / 10}`;
+  return [fmt(d(a)), fmt(d(b))];
+}
+
+/**
+ * The stat a boost card changes, before and after picking it, computed from the hero's real stats (heroStats, gear
+ * included) on a copy with the boost applied. Full Heal shows HP (it heals to the new max).
+ */
+export function boostPreview(t: Tuning, hero: Hero, offer: BoostOffer): BoostPreview {
+  const after: Hero = { ...hero };
+  applyBoost(t, after, offer);
+  const s0 = heroStats(t, hero);
+  const s1 = heroStats(t, after);
+  const one = (v: number) => `${Math.round(v * 10) / 10}`;
+  switch (offer.id) {
+    case 'maxHp': {
+      const [a, b] = pair(s0.hp, s1.hp);
+      return { stat: 'Max HP', before: a, after: b };
+    }
+    case 'damage': {
+      const [a, b] = pair(s0.atk, s1.atk);
+      return { stat: 'ATK', before: a, after: b };
+    }
+    case 'crit': {
+      const [a, b] = pair(s0.critChance * 100, s1.critChance * 100, (v) => `${v}%`);
+      return { stat: 'Crit', before: a, after: b };
+    }
+    case 'critDmg':
+      return { stat: 'Crit dmg', before: `x${s0.critDmg.toFixed(1)}`, after: `x${s1.critDmg.toFixed(1)}` };
+    case 'comboPower':
+      return { stat: 'Combo', before: one(s0.comboPower), after: one(s1.comboPower) };
+    case 'pet': {
+      const [a, b] = pair(s0.companion, s1.companion);
+      return { stat: 'Pip', before: a, after: b };
+    }
+    case 'heal':
+      return { stat: 'HP', before: `${hero.hp}`, after: `${after.hp}` };
+  }
 }
 
 /**

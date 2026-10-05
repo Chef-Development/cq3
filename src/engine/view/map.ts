@@ -3,19 +3,26 @@
 // stands where he is; the clearings he can reach next glow and bounce, and their roads shimmer. Tapping one
 // walks him along the road to it, then the node opens. Fight nodes show the enemies waiting there.
 //
+// Each reachable node (and the boss) carries a tag: what it is ("Fight x3", an elite in red with a skull) and a
+// reward chip under it (a loot bag in the drop's rarity color, "50% gear", "Gear+", "+30% HP", "Risky"...), so a
+// path is a choice of risk and reward. Tags are placed by a tiny solver (below, above, right or left of the node,
+// whichever covers the least: other nodes, Rowan, the HUD plates, the other tags).
+//
 // Performance: the landscape is a pre-rendered texture (LAND_FRAMES frames cycled for the wind sway), rebuilt
 // only when the map or the layout changes; each frame moves a few dozen images and draws a few hundred rects.
 // Everything animates from draw(now) (and the walk from performance.now()), so screenshots are repeatable.
 import type Phaser from 'phaser';
 import type { MapNode } from '../../core/map';
+import { RARITY_INFO } from '../../data/gear';
 import type { FightScene } from '../scene';
 import type { Theme } from '../backdrop';
 import { LAIR_SPOTS, LAND_FRAMES, MINI_FOES, ROWAN_FEET, paintLand, trail, type Land, type Pt } from '../art-map';
 import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
 import { heroMaxHp } from '../../core/combat';
-import { hpBar, hudIcon, iconSize, rows } from './pixels';
-import { clamp01, INK, WHITE, type Rect } from './shared';
+import { bagPal, glyph, glyphSize } from './overlays';
+import { band, hpBar, hudIcon, iconSize, rows } from './pixels';
+import { clamp01, INK, mix, WHITE, type Rect } from './shared';
 import { ImagePool, TextPool } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
@@ -27,7 +34,7 @@ const WALK_MIN = 500;
 const WALK_MAX = 750;
 const SWAY_MS = 420;
 /** What each node type is called (the label under the next nodes). */
-const NODE_NAME: Record<string, string> = { fight: 'Fight', elite: 'Elite', treasure: 'Treasure', rest: 'Rest', shop: 'Shop', event: '?', boss: 'Boss' };
+const NODE_NAME: Record<string, string> = { fight: 'Fight', elite: 'Elite', treasure: 'Treasure', rest: 'Rest', shop: 'Shop', event: 'Event', boss: 'Boss' };
 const NODE_COL: Record<string, number> = { fight: 0xeef3fa, elite: 0xff8a76, treasure: 0xffe680, rest: 0xffb070, shop: 0xa8f590, event: 0x9ad8ff, boss: 0xff8a76 };
 
 // depths (the map owns 30.0-30.9)
@@ -48,6 +55,32 @@ interface Road {
   /** The road's pixels outside the two clearings, as horizontal runs [x, y, w]. */
   runs: Array<[number, number, number]>;
 }
+
+/** What a node pays out (the chip under its tag): a glyph (in the drop's colors) and a few words. */
+interface Chip {
+  text: string;
+  col: number;
+  icon: string;
+  pal?: Record<string, number>;
+}
+
+/** A node's tag: its name line and its reward chip, and where the solver put them. */
+interface Tag {
+  id: number;
+  label: string;
+  labelCol: number;
+  skull: boolean;
+  chip: Chip | null;
+  w: number;
+  h: number;
+  /** Top-left of the block. */
+  x: number;
+  y: number;
+}
+
+const LABEL_H = 8;
+const CHIP_H = 10;
+const intersect = (a: Rect, b: Rect): number => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
 
 /** Pixel ellipse (filled), row by row. */
 function ellipse(g: G, cx: number, cy: number, rx: number, ry: number, color: number, alpha: number): void {
@@ -117,6 +150,7 @@ export class MapView {
   private pool: ImagePool;
   private texts: TextPool;
   private walk: { id: number; pts: Pt[]; at: number; dur: number } | null = null;
+  private tagCache: { key: string; tags: Tag[] } | null = null;
   rect: Rect = { x: 0, y: 0, w: 0, h: 0 };
 
   constructor(private readonly s: FightScene) {
@@ -371,9 +405,6 @@ export class MapView {
         ring(gg, x, y + 2, 9 + 4 * k, 5.4 + 2.4 * k, 0xfff8c0, 0.8 * (1 - k));
         ring(gg, x, y + 2, 10, 6, 0xffe680, 0.9);
         bounce = target ? 0 : Math.abs(Math.sin(now / 190)) * 2.4;
-        // fights say how many foes wait there (they come one after another)
-        const foes = n.type === 'fight' || n.type === 'elite' ? n.enemies.length : 0;
-        this.label(`${NODE_NAME[n.type] ?? ''}${foes > 1 ? ` x${foes}` : ''}`, x, y + 13, NODE_COL[n.type] ?? WHITE);
       }
       if (visited) {
         // been here: Rowan's pennant, and what's left (an open chest, embers, the stall)
@@ -393,6 +424,9 @@ export class MapView {
 
     // ---- HUD
     this.hud(now);
+
+    // ---- what the next nodes hold (and the boss)
+    this.drawTags(now);
 
     this.pool.end();
     this.texts.end();
@@ -433,13 +467,6 @@ export class MapView {
       const [x, y] = pts[i];
       sparkle(g, x, y, 0xffe680, 0.9 * fade, false);
     }
-  }
-
-  private label(str: string, x: number, y: number, color: number): void {
-    const s = this.s;
-    const w = textWidth(str, 1, false);
-    const lx = Math.max(s.L + 2 + w / 2, Math.min(s.R - 2 - w / 2, x));
-    this.texts.text(str, lx, y, color, { ox: 0.5, oy: 0.5 });
   }
 
   /** What waits at a node: the enemies, a campfire, a chest, the stall, a "?". */
@@ -546,8 +573,216 @@ export class MapView {
     const b = Math.floor(now / 520) % 2;
     ellipse(g, x, y + 7, 8, 2, 0x000000, 0.35);
     this.pool.foot(this.mini(sprite, now), x + 1, y + 7 - b - (next ? Math.round(Math.abs(Math.sin(now / 190)) * 2) : 0), D_ICON);
-    const name = run.tuning.enemies[n.enemies[0]]?.name ?? 'Boss';
-    this.label(name, x, y + 15, next ? 0xffb0a0 : 0xff8a76);
+    // its name (and what it drops) is the boss's tag, drawn with the others
+  }
+
+  // ------------------------------------------------------------------ tags: what a node is, and what it pays out
+
+  /** The reward chip of a node type: the loot bag in the drop's rarity color, a heart, a coin, a warning. */
+  private chip(n: MapNode): Chip {
+    const run = this.s.app.run;
+    const G = run.tuning.gear;
+    const bag = (r: keyof typeof RARITY_INFO) => bagPal(RARITY_INFO[r].face);
+    switch (n.type) {
+      case 'fight':
+        return { icon: 'bag', pal: bag('common'), text: `${Math.round(G.fightChance * 100)}% gear`, col: 0xdcdff0 };
+      case 'elite': {
+        const k = Math.round(G.eliteItems);
+        return { icon: 'bag', pal: bag('uncommon'), text: k > 1 ? `Gear+ x${k}` : 'Gear+', col: 0xb4f070 };
+      }
+      case 'treasure': {
+        const lo = Math.round(Math.min(G.treasureMin, G.treasureMax));
+        const hi = Math.round(Math.max(G.treasureMin, G.treasureMax));
+        return { icon: 'bag', pal: { h: 0xfff0a0, b: 0xf2c230, d: 0x9a5a14 }, text: lo === hi ? `Gear x${lo}` : `Gear x${lo}-${hi}`, col: 0xffe680 };
+      }
+      case 'rest':
+        return { icon: 'heart', text: `+${Math.round(run.restShare * 100)}% HP`, col: 0x9af06a };
+      case 'shop':
+        return { icon: 'coin', text: 'Spend coins', col: 0xffe680 };
+      case 'event':
+        return { icon: 'warn', text: 'Risky', col: 0xffb060 };
+      case 'boss': {
+        const last = run.actIndex === run.region.acts.length - 1;
+        return { icon: 'bag', pal: bag('legendary'), text: `Gear x${Math.round(last ? G.bossItems : G.miniBossItems)} + signature`, col: 0xffc070 };
+      }
+    }
+  }
+
+  private chipW(c: Chip): number {
+    return 2 + glyphSize(c.icon)[0] + 2 + textWidth(c.text, 1, false) + 2;
+  }
+
+  /** Where the node's art stands (its tag avoids it), from its feet at (x, y). */
+  private nodeBox(n: MapNode): Rect {
+    const [x, y] = this.pos(n);
+    if (n.type === 'boss') {
+      const [lw, lh] = this.pool.size(`maplair_${this.landTheme}`);
+      return { x: x - lw / 2, y: y + 2 - lh, w: lw, h: lh + 8 };
+    }
+    const top = n.type === 'elite' ? 15 : n.type === 'fight' ? 10 : 8;
+    return { x: x - 11, y: y - top, w: 21, h: top + 8 };
+  }
+
+  /** The HUD plates (the tags keep off them). */
+  private hudRects(): Rect[] {
+    const s = this.s;
+    const run = s.app.run;
+    const L = s.L + 3;
+    const out: Rect[] = [];
+    const w = Math.max(textWidth(`Act ${run.actIndex + 1}`, 1, true), textWidth(run.act.name, 1, false)) + 14;
+    out.push({ x: L, y: 3, w, h: 25 });
+    const [cw] = iconSize('coin');
+    const coinW = cw + textWidth(`${run.coins}`, 1, true) + 14;
+    const rr = run.rerolls > 0 ? `Rerolls: ${run.rerolls}` : '';
+    const boxW = Math.max(coinW, rr ? textWidth(rr, 1, false) + 12 : 0);
+    out.push({ x: s.R - 3 - boxW, y: 3, w: boxW, h: rr ? 25 : 16 });
+    const max = heroMaxHp(run.tuning, run.hero);
+    out.push({ x: L, y: s.B - 19, w: 20 + 34 + 6 + textWidth(`${run.hero.hp}/${max}`, 1, false) + 8, h: 16 });
+    if (!run.path.length) {
+      const tw = textWidth('Tap a glowing spot to travel', 1, false) + 14;
+      out.push({ x: s.R - 3 - tw, y: s.B - 19, w: tw, h: 16 });
+    }
+    // the DOM pause / gear buttons at the top centre
+    out.push({ x: GAME_W / 2 - 17, y: 0, w: 34, h: 18 });
+    return out;
+  }
+
+  /**
+   * Lay out the tags of the reachable nodes (and the boss's): each tag tries below, above, right and left of its
+   * node, and the combination that covers the least wins (weighted: the HUD plates and the other tags most, then
+   * Rowan, the nodes he can reach, and the rest of the map). Cached per map, step and HUD size, so it's computed once
+   * per arrival and the tags hold still while Rowan walks.
+   */
+  private layoutTags(): Tag[] {
+    const s = this.s;
+    const run = s.app.run;
+    const map = run.map;
+    const hud = this.hudRects();
+    const key = `${this.landGen}|${run.path.join(',')}|${run.restShare}|${hud.map((r) => `${r.x},${r.y},${r.w},${r.h}`).join(';')}`;
+    if (this.tagCache?.key === key) return this.tagCache.tags;
+    const choices = run.choices();
+    const bossNext = choices.includes(map.boss);
+    const obstacles: Array<{ r: Rect; w: number; id?: number }> = hud.map((r) => ({ r, w: 6 }));
+    // Rowan and Pip, where he stands
+    const [hx, hy] = this.pos(run.node);
+    obstacles.push({ r: { x: hx - 18, y: hy - 18, w: 27, h: 24 }, w: 4 });
+    for (const n of map.nodes) {
+      if (run.path.includes(n.id)) {
+        const [x, y] = this.pos(n);
+        obstacles.push({ r: { x: x - 10, y: y - 6, w: 9, h: 11 }, w: 0.5 });
+      } else obstacles.push({ r: this.nodeBox(n), w: choices.includes(n.id) ? 3 : n.type === 'boss' ? 2 : 1.5, id: n.id });
+    }
+    const tags: Tag[] = [];
+    const bossNode = map.nodes[map.boss];
+    const bossName = run.tuning.enemies[bossNode.enemies[0]]?.name ?? 'Boss';
+    if (!bossNext) {
+      // the boss's name stays under its lair, as it always has
+      const [x, y] = this.pos(bossNode);
+      const w = textWidth(bossName, 1, false);
+      const t: Tag = { id: map.boss, label: bossName, labelCol: 0xff8a76, skull: false, chip: null, w, h: LABEL_H, x: Math.round(Math.max(s.L + 2, Math.min(s.R - 2 - w, x - w / 2))), y: y + 11 };
+      tags.push(t);
+      obstacles.push({ r: { x: t.x, y: t.y, w: t.w, h: t.h }, w: 6 });
+    }
+    // each reachable node's options: [rect, cost of the spot alone]
+    const opts: Array<{ tag: Omit<Tag, 'x' | 'y'>; cands: Array<{ r: Rect; cost: number }> }> = [];
+    for (const id of choices) {
+      const n = map.nodes[id];
+      const boss = n.type === 'boss';
+      const foes = n.type === 'fight' || n.type === 'elite' ? n.enemies.length : 0;
+      const label = boss ? bossName : `${NODE_NAME[n.type] ?? ''}${foes > 1 ? ` x${foes}` : ''}`;
+      const skull = n.type === 'elite';
+      const chip = this.chip(n);
+      const w = Math.max(textWidth(label, 1, false) + (skull ? 9 : 0), this.chipW(chip));
+      const h = LABEL_H + 1 + CHIP_H;
+      const [x, y] = this.pos(n);
+      const box = this.nodeBox(n);
+      const spots: Array<[number, number, number]> = [
+        [x - w / 2, boss ? y + 11 : y + 9, 0],
+        [x - w / 2, box.y - h - 1, 8],
+        [box.x + box.w + 1, y - h / 2 - 2, 30],
+        [box.x - w - 1, y - h / 2 - 2, 40],
+      ];
+      const cands = spots.map(([cx, cy, pref]) => {
+        const bx = Math.round(Math.max(s.L + 2, Math.min(s.R - 2 - w, cx)));
+        const by = Math.round(cy);
+        const r: Rect = { x: bx, y: by, w, h };
+        let cost = pref + Math.abs(bx - cx) * 2;
+        if (by < 1 || by + h > s.B - 1) cost += 1e5;
+        // its own node too: a spot pushed back inside the screen mustn't slide over it
+        for (const o of obstacles) cost += intersect(r, o.r) * (o.id === id ? 12 : o.w);
+        return { r, cost };
+      });
+      opts.push({ tag: { id, label, labelCol: boss ? 0xffb0a0 : (NODE_COL[n.type] ?? WHITE), skull, chip, w, h }, cands });
+    }
+    // every combination (at most 4^3): the spots' own costs plus the tags covering each other
+    let best: number[] = opts.map(() => 0);
+    let bestCost = Infinity;
+    const pick: number[] = [];
+    const search = (i: number, cost: number): void => {
+      if (cost >= bestCost) return;
+      if (i === opts.length) {
+        bestCost = cost;
+        best = pick.slice();
+        return;
+      }
+      opts[i].cands.forEach((c, k) => {
+        let extra = c.cost;
+        for (let j = 0; j < i; j++) {
+          const o = opts[j].cands[pick[j]].r;
+          extra += intersect(c.r, { x: o.x - 2, y: o.y - 1, w: o.w + 4, h: o.h + 2 }) * 8;
+        }
+        pick[i] = k;
+        search(i + 1, cost + extra);
+      });
+    };
+    search(0, 0);
+    opts.forEach((o, i) => {
+      const r = o.cands[best[i]].r;
+      tags.push({ ...o.tag, x: r.x, y: r.y });
+    });
+    this.tagCache = { key, tags };
+    return tags;
+  }
+
+  /** The tags of the nodes Rowan can go to next (the one he walks to keeps its own), and the boss's name. */
+  private drawTags(now: number): void {
+    const s = this.s;
+    const fade = clamp01((now - s.app.phaseSince - 120) / 260);
+    const lift = Math.round((1 - fade) * 3);
+    for (const t of this.layoutTags()) {
+      const chosen = !!t.chip;
+      // while Rowan walks, only the tag of the node he walks to stays
+      if (chosen && this.walk && this.walk.id !== t.id) continue;
+      const a = chosen ? fade : 1;
+      const dy = chosen ? lift : 0;
+      const cx = t.x + t.w / 2;
+      const ly = t.y + LABEL_H / 2 + dy;
+      const lw = textWidth(t.label, 1, false) + (t.skull ? 9 : 0);
+      const lx = Math.round(cx - lw / 2);
+      if (t.skull) hudIcon(this.gHud, 'foe', lx, Math.round(ly) - 4, 1, a);
+      this.texts.text(t.label, lx + (t.skull ? 9 : 0), ly, t.labelCol, { oy: 0.5, alpha: a });
+      if (t.chip) this.drawChip(t.chip, Math.round(cx - this.chipW(t.chip) / 2), t.y + LABEL_H + 1 + dy, a, now);
+    }
+  }
+
+  /** A reward chip: a small dark pill, the glyph, the words in the reward's color. */
+  private drawChip(c: Chip, x: number, y: number, alpha: number, now: number): void {
+    const g = this.gHud;
+    const w = this.chipW(c);
+    const h = CHIP_H;
+    rows(g, x - 1, y + 1, w + 2, h + 1, 2, 0x000000, 0.35 * alpha);
+    rows(g, x - 1, y - 1, w + 2, h + 2, 2, INK, alpha);
+    rows(g, x, y, w, h, 2, 0x1a1628, 0.94 * alpha);
+    band(g, x, y, w, h, 2, 0, Math.floor(h / 2), 0x241e38, 0.94 * alpha);
+    band(g, x, y, w, h, 2, 0, 1, mix(c.col, 0x1a1628, 0.35), alpha);
+    const [gw, gh] = glyphSize(c.icon);
+    glyph(g, c.icon, x + 2, y + Math.floor((h - gh) / 2), alpha, c.pal);
+    // a glint runs across the bag now and then
+    if (c.icon === 'bag' && (now + x * 13) % 2200 < 120) {
+      g.fillStyle(WHITE, 0.8 * alpha);
+      g.fillRect(x + 4, y + 4, 1, 2);
+    }
+    this.texts.text(c.text, x + 2 + gw + 2, y + h / 2 + 0.5, c.col, { oy: 0.5, alpha });
   }
 
   // ------------------------------------------------------------------ Rowan

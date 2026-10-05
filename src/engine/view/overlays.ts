@@ -1,9 +1,11 @@
 // Overlays and menus: the title screen (chrome logo, Rowan and Pip showcased, a pulsing start prompt, how-to
-// tips), the boost pick (with a reroll), the treasure / act-clear chest, defeat, the victory, pause, "TAP TO
-// BEGIN!", the fight banner, and the screen flash. Panels pop in with a little overshoot; cards stagger in.
+// tips), the boost pick (with a reroll; each card shows its stat before and after), the treasure / act-clear chest
+// (then the act's accuracy, and Camp / Next buttons), defeat (Camp / Retry), the victory, pause, "TAP TO BEGIN!",
+// the fight banner, and the screen flash. Panels pop in with a little overshoot; cards and buttons stagger in.
+// Also the small UI glyphs the menus share (bag, heart, coin, warning, tent, tick, padlock, target, arrow).
 import Phaser from 'phaser';
 import { heroMaxHp } from '../../core/combat';
-import { boostLabel, type BoostOffer, type Phase, type Rarity } from '../../core/run';
+import { boostLabel, boostPreview, type BoostOffer, type BoostPreview, type Phase, type Rarity } from '../../core/run';
 import { saveLabel } from '../../core/save';
 import type { FightScene } from '../scene';
 import { HERO_FEET_X, HERO_W } from '../art';
@@ -13,6 +15,103 @@ import { GAME_H, GAME_W } from '../layout';
 import { band, brick, button3d, chevron, gauge, glow, GOLD, hudIcon, iconSize, NAVY, panel, RAMP, rows } from './pixels';
 import { BOOST_ICON, clamp01, COL, easeBack, easeOut3, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
 import { FACE, isPressed, notePress, ribbon, RIBBON, strip, tag, TextPool } from './ui';
+
+// ------------------------------------------------------------------ small UI glyphs (shared by the menus)
+
+const K = 0x140c1c;
+
+/** Add a 1 px ink outline ('k') around the filled pixels of a glyph map. */
+function outlined(map: string[]): string[] {
+  const w = Math.max(...map.map((r) => r.length)) + 2;
+  const at = (x: number, y: number) => {
+    const c = map[y - 1]?.[x - 1];
+    return c !== undefined && c !== '.' ? c : null;
+  };
+  const out: string[] = [];
+  for (let y = 0; y < map.length + 2; y++) {
+    let r = '';
+    for (let x = 0; x < w; x++) r += at(x, y) ?? (at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1) ? 'k' : '.');
+    out.push(r);
+  }
+  return out;
+}
+
+interface Glyph {
+  rows: string[];
+  pal: Record<string, number>;
+}
+
+/** Glyphs, outline included. The bag's h/b/d (light, base, dark) take a rarity's colors (glyph's `pal` argument). */
+export const GLYPHS: Record<string, Glyph> = {
+  // 7x8: a loot bag, tied at the neck
+  bag: { rows: outlined(['t...t', '.ttt.', '.hbb.', 'hhbbb', 'hbbbd', '.bdd.']), pal: { k: K, t: 0xd8901c, h: 0xd0d4e0, b: 0x9aa0b4, d: 0x464a5c } },
+  // 7x7: a heart (rest)
+  heart: { rows: outlined(['rr.rr', 'rWrrr', 'rrrrd', '.rrd.', '..d..']), pal: { k: K, r: 0xf05a48, W: 0xffd0c0, d: 0xa01828 } },
+  // 7x7: a coin (shop)
+  coin: { rows: outlined(['.yyy.', 'yWyyy', 'yyoyd', 'yyoyd', '.ddd.']), pal: { k: K, y: 0xf2c230, W: 0xfff0a0, o: 0xd8901c, d: 0x9a5a14 } },
+  // 7x7: a warning sign (risky)
+  warn: { rows: outlined(['..o..', '.oKo.', '.oKo.', 'ooooo', 'ooKoo']), pal: { k: K, o: 0xffb030, K: 0x3a1a0a } },
+  // 9x8: a tent with a pennant (the camp)
+  tent: { rows: outlined(['...f...', '...pr..', '..RpR..', '.RRdRr.', 'RRddRrr', 'RRddRrr']), pal: { k: K, f: 0xf2c230, p: 0x6e4020, R: 0xe0463c, r: 0xa8202c, d: 0x2a0e14 } },
+  // 9x7: a tick (cleared)
+  check: { rows: outlined(['......G', '.....GG', 'G...GG.', 'GG.GG..', '.GGG...']), pal: { k: K, G: 0x8af06a } },
+  // 7x8: a padlock (locked)
+  lock: { rows: outlined(['.sss.', 's...s', 's...s', 'GGGGG', 'GGkGG', 'ggggg']), pal: { k: K, s: 0x9aa0b4, G: 0xf2c230, g: 0xd8901c } },
+  // 7x7: a target (accuracy)
+  target: { rows: outlined(['.rrr.', 'rWWWr', 'rWrWr', 'rWWWr', '.rrr.']), pal: { k: K, r: 0xf05a48, W: 0xffffff } },
+  // 9x9: a chunky right arrow ("before -> after"), lit on top
+  arrow: { rows: outlined(['...a...', '...aa..', 'aaaaaa.', 'aaaaaaa', 'AAAAAA.', '...AA..', '...A...']), pal: { k: K, a: 0xffe680, A: 0xd8901c } },
+};
+
+export const glyphSize = (key: string): [number, number] => {
+  const r = GLYPHS[key].rows;
+  return [r[0].length, r.length];
+};
+
+/** Draw a glyph with its top-left at (x, y); `pal` overrides colors (a bag in a rarity's colors). */
+export function glyph(g: Phaser.GameObjects.Graphics, key: string, x: number, y: number, alpha = 1, pal?: Record<string, number>): void {
+  const gl = GLYPHS[key];
+  if (!gl) return;
+  const P = pal ? { ...gl.pal, ...pal } : gl.pal;
+  gl.rows.forEach((r, yy) => {
+    for (let xx = 0; xx < r.length; ) {
+      const col = P[r[xx]];
+      let n = 1;
+      while (xx + n < r.length && r[xx + n] === r[xx]) n++;
+      if (col !== undefined) {
+        g.fillStyle(col, alpha);
+        g.fillRect(Math.round(x) + xx, Math.round(y) + yy, n, 1);
+      }
+      xx += n;
+    }
+  });
+}
+
+/** A bag's colors from a face [hi, base, lo, deep]. */
+export const bagPal = (face: readonly [number, number, number, number]) => ({ h: face[0], b: face[1], d: face[3] });
+
+/** Width of a "stat before -> after" line (see previewLine). */
+export function previewWidth(p: BoostPreview, stat = true): number {
+  return (stat ? textWidth(p.stat, 1, false) + 3 : 0) + textWidth(p.before, 1, true) + 2 + glyphSize('arrow')[0] + 2 + textWidth(p.after, 1, true);
+}
+
+/**
+ * "ATK 14 -> 16": the stat (dim), the value now, an arrow, and the value after the boost (bright, in `col`),
+ * vertically centered on y. Returns the width.
+ */
+export function previewLine(g: Phaser.GameObjects.Graphics, texts: TextPool, p: BoostPreview, x: number, y: number, col: number, alpha = 1, stat = true): number {
+  let cx = x;
+  if (stat) {
+    texts.text(p.stat, cx, y + 0.5, 0xb8b0dc, { oy: 0.5, alpha });
+    cx += textWidth(p.stat, 1, false) + 3;
+  }
+  texts.text(p.before, cx, y, 0xe0dcf0, { bold: true, oy: 0.5, alpha });
+  cx += textWidth(p.before, 1, true) + 2;
+  glyph(g, 'arrow', cx, Math.round(y) - 5, alpha, { a: col, A: mix(col, 0x2a1840, 0.35) });
+  cx += glyphSize('arrow')[0] + 2;
+  texts.text(p.after, cx, y, col, { bold: true, oy: 0.5, alpha });
+  return cx + textWidth(p.after, 1, true) - x;
+}
 
 /** Boost card looks per rarity: button face [hi, base, lo, deep], icon well [fill, top line], tag. */
 export const CARD: Record<Rarity, { face: readonly [number, number, number, number]; well: [number, number]; tag: string }> = {
@@ -48,8 +147,14 @@ export class Overlays {
   private newRunArmedUntil = 0;
   private lastPhase: Phase | null = null;
   private phaseAt = 0; // when the current phase started drawing (performance.now)
-  private picked: { offer: BoostOffer; r: Rect; at: number } | null = null;
+  private picked: { offer: BoostOffer; preview: BoostPreview; r: Rect; at: number } | null = null;
   private rerollAt2 = -1e9;
+  /** The phase before the current one (onPhase's): back from the camp, the act-clear chest is already open. */
+  private shownPhase: Phase | null = null;
+  /** Act clear and defeat: shown straight away (no entrance) when coming back from the camp. */
+  private backFromCamp = false;
+  /** The accuracy's count-up starts here (anim ms). */
+  private accAt = 0;
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, 32);
@@ -82,6 +187,9 @@ export class Overlays {
 
   onPhase(next: Phase): void {
     const s = this.s;
+    const prev = this.shownPhase;
+    this.shownPhase = next;
+    this.backFromCamp = prev === 'camp';
     if (next === 'boost') {
       // a rare or epic card on offer gets a sting
       const best = s.app.run.boostChoices.reduce((m, o) => (o.rarity === 'epic' ? 2 : o.rarity === 'rare' ? Math.max(m, 1) : m), 0);
@@ -89,10 +197,13 @@ export class Overlays {
     }
     if (next === 'actClear' || next === 'treasure') {
       this.chest?.destroy();
-      this.chest = s.add.image(GAME_W / 2, -30, 'chest_closed').setOrigin(0.5, 1).setScale(2);
+      const reopen = next === 'actClear' && this.backFromCamp;
+      this.chest = s.add.image(GAME_W / 2, -30, reopen ? 'chest_open' : 'chest_closed').setOrigin(0.5, 1).setScale(2);
       s.actors.add(this.chest);
-      this.chestAt = s.anim;
-      this.chestOpenAt = 0;
+      // back from the camp: the chest stands open where it was, the accuracy and the buttons are already up
+      this.chestAt = reopen ? s.anim - 2000 : s.anim;
+      this.chestOpenAt = reopen ? s.anim - 2000 : 0;
+      this.accAt = reopen ? s.anim - 5000 : 0;
     } else if (this.chest) {
       this.chest.destroy();
       this.chest = null;
@@ -120,6 +231,7 @@ export class Overlays {
     if (!this.chestOpenAt) {
       if (s.anim - this.chestAt < 550) return true;
       this.chestOpenAt = s.anim;
+      this.accAt = s.anim;
       this.chest.setTexture('chest_open');
       const x = this.chest.x;
       const y = s.ground - 18;
@@ -174,9 +286,70 @@ export class Overlays {
     return null;
   }
 
+  // ---- act clear: the accuracy plate on the stage, Camp / Next on the console under it
+
+  /** When the act-clear extras come in (anim ms after the chest burst): the accuracy, then the two buttons. */
+  private static readonly CLEAR_ACC_MS = 380;
+  private static readonly CLEAR_BTN_MS = 620;
+
+  private clearButtons(): { camp: Rect; next: Rect } {
+    const s = this.s;
+    const cx = Math.round((s.L + s.R) / 2);
+    const y = s.splitY + 24;
+    return { camp: { x: cx - 92, y, w: 70, h: 16 }, next: { x: cx - 14, y, w: 106, h: 16 } };
+  }
+
+  /** The act-clear buttons are up (the chest has burst and they've popped in). */
+  private clearReady(): boolean {
+    return !!this.chestOpenAt && this.s.anim - this.chestOpenAt >= Overlays.CLEAR_BTN_MS;
+  }
+
+  /**
+   * A tap on the act-clear screen (x < 0: the keyboard): the first bursts the chest; then Camp or Next. Taps
+   * anywhere else do nothing, so nobody skips past the screen by accident.
+   */
+  actClearTap(x: number, y: number): 'camp' | 'next' | null {
+    if (!this.chestOpenAt) {
+      this.levelClearTap();
+      return null;
+    }
+    if (!this.clearReady()) return null;
+    const b = this.clearButtons();
+    if (x < 0) return 'next';
+    for (const k of ['camp', 'next'] as const)
+      if (inRect(b[k], x, y, 3)) {
+        notePress(b[k]);
+        this.s.app.audio.uiClick();
+        return k;
+      }
+    return null;
+  }
+
+  // ---- defeat: Camp and Retry the act, side by side
+
+  private defeatButtons(): { camp: Rect; retry: Rect } {
+    const cx = Math.round(GAME_W / 2);
+    const y = 68;
+    return { camp: { x: cx - 96, y, w: 70, h: 18 }, retry: { x: cx - 18, y, w: 114, h: 18 } };
+  }
+
+  /** A tap on the defeat screen (x < 0: the keyboard retries): Camp, Retry the act, or nothing. */
+  defeatTap(x: number, y: number): 'camp' | 'retry' | null {
+    if (performance.now() - this.phaseAt < 700 && !this.backFromCamp) return null;
+    if (x < 0) return 'retry';
+    const b = this.defeatButtons();
+    for (const k of ['camp', 'retry'] as const)
+      if (inRect(b[k], x, y, 3)) {
+        notePress(b[k]);
+        this.s.app.audio.uiClick();
+        return k;
+      }
+    return null;
+  }
+
   /** Boost choices: a navy panel with three stacked cards (hit-tested by index). */
   private boostPanel(): Rect {
-    return { x: Math.round(GAME_W / 2 - 84), y: 25, w: 168, h: 108 };
+    return { x: Math.round(GAME_W / 2 - 98), y: 25, w: 196, h: 108 };
   }
 
   private cardRect(i: number): Rect {
@@ -202,8 +375,9 @@ export class Overlays {
   boostCardAt(x: number, y: number): number {
     for (let i = 0; i < 3; i++)
       if (inRect(this.cardRect(i), x, y)) {
-        const offer = this.s.app.run.boostChoices[i];
-        if (offer) this.picked = { offer, r: this.cardRect(i), at: performance.now() };
+        const run = this.s.app.run;
+        const offer = run.boostChoices[i];
+        if (offer) this.picked = { offer, preview: boostPreview(run.tuning, run.hero, offer), r: this.cardRect(i), at: performance.now() };
         return i;
       }
     return -1;
@@ -211,8 +385,11 @@ export class Overlays {
 
   // ------------------------------------------------------------------ drawing helpers
 
-  /** A boost card: ink outline, a rim in the rarity's color, navy body, a lit icon tile, name and value. */
-  private card(g: G, texts: TextPool, r: Rect, offer: BoostOffer, now: number, flash = 0, alpha = 1): void {
+  /**
+   * A boost card: ink outline, a rim in the rarity's color, navy body, a lit icon tile, the name, and what it does to
+   * Rowan's stat right now ("ATK 14 -> 16").
+   */
+  private card(g: G, texts: TextPool, r: Rect, offer: BoostOffer, preview: BoostPreview, now: number, flash = 0, alpha = 1): void {
     const s = this.s;
     const look = CARD[offer.rarity];
     const [hi, base, lo, deep] = look.face;
@@ -237,9 +414,14 @@ export class Overlays {
     const icon = BOOST_ICON[offer.id];
     const [iw, ih] = iconSize(icon);
     hudIcon(g, icon, tile.x + ((tile.w - iw) >> 1), tile.y + ((tile.h - ih) >> 1), 1, alpha);
-    const [name, val] = boostLabel(s.app.tuning, offer);
-    texts.text(name, r.x + 31, r.y + 9, WHITE, { bold: true, oy: 0.5, alpha });
-    texts.text(val, r.x + 31, r.y + 19, offer.rarity === 'common' ? 0xb4f070 : hi, { bold: true, oy: 0.5, alpha });
+    const [name] = boostLabel(s.app.tuning, offer);
+    texts.text(name, r.x + 31, r.y + 8, WHITE, { bold: true, oy: 0.5, alpha });
+    // the stat as it stands, and after this card: a dark inset strip under the name
+    const showStat = preview.stat !== name; // "Max HP 100 -> 120" under "Max HP" says it twice
+    const pw = previewWidth(preview, showStat);
+    rows(g, r.x + 29, r.y + 14, pw + 6, 10, 2, NAVY[1], 0.85 * alpha);
+    band(g, r.x + 29, r.y + 14, pw + 6, 10, 2, 0, 1, INK, alpha);
+    previewLine(g, texts, preview, r.x + 32, r.y + 19, offer.rarity === 'common' ? 0xb4f070 : mix(hi, WHITE, 0.25), alpha, showStat);
     if (look.tag) {
       const tw = textWidth(look.tag, 1, false) + 6;
       const tr: Rect = { x: r.x + r.w - tw - 3, y: r.y + r.h - 12, w: tw, h: 9 };
@@ -495,7 +677,7 @@ export class Overlays {
       const r0 = this.cardRect(i);
       const r = { ...r0, x: r0.x + Math.round((1 - ck) * 70) };
       const rr = (now - this.rerollAt2) / 300;
-      this.card(gc, this.texts, r, offer, now + i * 300, rr >= 0 && rr < 1 ? 0.7 * (1 - rr) : 0, clamp01(ck * 1.5));
+      this.card(gc, this.texts, r, offer, boostPreview(run.tuning, run.hero, offer), now + i * 300, rr >= 0 && rr < 1 ? 0.7 * (1 - rr) : 0, clamp01(ck * 1.5));
     });
     if (run.rerolls > 0) {
       const rr = this.rerollRect();
@@ -519,7 +701,7 @@ export class Overlays {
       } else {
         const r = { ...p.r, y: p.r.y - Math.round(easeOut3(k) * 10) };
         glow(g, r, CARD[p.offer.rarity].face[0], 0.8 * (1 - k), 4);
-        this.card(g, this.flyTexts, r, p.offer, now, Math.max(0, 0.8 - k * 2), 1 - k * k);
+        this.card(g, this.flyTexts, r, p.offer, p.preview, now, Math.max(0, 0.8 - k * 2), 1 - k * k);
       }
     }
     this.flyTexts.end();
@@ -547,19 +729,98 @@ export class Overlays {
     if (ok > 0.5)
       this.texts.text(title, cx, y + 11, clear ? 0xfff6c0 : actClear ? WHITE : 0xfff6c0, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: clear || !actClear ? 0x7a3a0a : 0x10204a });
     this.drawStatus(gc, now);
-    const hint = clear ? 'Tap to continue' : actClear ? 'Tap the chest to continue' : 'Tap the chest';
-    this.texts.text(hint, cx, y + 32, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: clear ? 0.7 + 0.3 * pulse(now, 800) : 1 });
+    if (!clear) this.texts.text(actClear ? 'Tap the chest to continue' : 'Tap the chest', cx, y + 32, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     if (clear) {
       for (let i = 0; i < 4; i++) {
         const q = ((now / 900 + i * 0.27) % 1 + 1) % 1;
         if (q < 0.45) this.star(gc, Math.round(cx - tw / 2 - 6 + ((i * 47) % (tw + 12))), y - 3 + ((i * 13) % 28), q < 0.2 ? 2 : 1, 0xfff0a0, 1 - q / 0.45);
       }
+      this.drawClearExtras(gc, now);
     } else if (this.chest && s.anim - this.chestAt > 600) {
       // a bouncing arrow beside the chest, pointing at it
       const ax = Math.round(this.chest.x + 30 + Math.abs(Math.sin(now / 220)) * 5);
       const ay = Math.round(this.chest.y - 20);
       chevron(gc, ax, ay - 5, 11, GOLD[3], 1, -1, true);
       chevron(gc, ax + 4, ay - 5, 11, GOLD[4], 1, -1, true);
+    }
+  }
+
+  /**
+   * After the act-clear chest bursts: the act's accuracy on a plate under the title (the number counts up), then
+   * Camp and Next on the console, popping in one after the other.
+   */
+  private drawClearExtras(gc: G, now: number): void {
+    const s = this.s;
+    const run = s.app.run;
+    const since = s.anim - this.chestOpenAt;
+    const cx = Math.round(GAME_W / 2);
+    // ---- accuracy
+    const ak = easeBack((since - Overlays.CLEAR_ACC_MS) / 300, 1.6);
+    if (ak > 0) {
+      const a = clamp01((since - Overlays.CLEAR_ACC_MS) / 160);
+      const e = run.actAccuracy;
+      const [gw] = glyphSize('target');
+      let w: number;
+      if (e) {
+        const count = clamp01((s.anim - this.accAt - Overlays.CLEAR_ACC_MS - 120) / 650);
+        const pct = `${Math.round(e.acc * 100 * easeOut3(count))}%`;
+        const full = `${Math.round(e.acc * 100)}%`;
+        const l1 = 'Accuracy this act:';
+        const l3 = `(${e.n} taps)`;
+        w = gw + 4 + textWidth(l1, 1, false) + 3 + textWidth(full, 1, true) + 3 + textWidth(l3, 1, false) + 12;
+        const r: Rect = { x: Math.round(cx - w / 2), y: 44 + Math.round((1 - ak) * -8), w, h: 13 };
+        panel(gc, r, { alpha: a, r: 3, bevel: NAVY[7] });
+        let x = r.x + 6;
+        glyph(gc, 'target', x, r.y + 3, a);
+        x += gw + 4;
+        this.texts.text(l1, x, r.y + 7, 0xe8e4ff, { oy: 0.5, alpha: a });
+        x += textWidth(l1, 1, false) + 3;
+        // the number pops gold as it lands on the final value
+        const done = count >= 1;
+        this.texts.text(pct, x, r.y + 6.5, done ? 0xffe066 : WHITE, { bold: true, oy: 0.5, alpha: a });
+        x += textWidth(full, 1, true) + 3;
+        this.texts.text(l3, x, r.y + 7, 0xa8a0c8, { oy: 0.5, alpha: a });
+        if (done && s.anim - this.accAt - Overlays.CLEAR_ACC_MS - 770 < 400) {
+          const k = clamp01((s.anim - this.accAt - Overlays.CLEAR_ACC_MS - 770) / 400);
+          glow(gc, r, 0xffe066, 0.5 * (1 - k), 3);
+        }
+      } else {
+        const l = 'Accuracy: play more to measure';
+        w = gw + 4 + textWidth(l, 1, false) + 12;
+        const r: Rect = { x: Math.round(cx - w / 2), y: 44 + Math.round((1 - ak) * -8), w, h: 13 };
+        panel(gc, r, { alpha: a, r: 3, bevel: NAVY[7] });
+        glyph(gc, 'target', r.x + 6, r.y + 3, a * 0.6);
+        this.texts.text(l, r.x + 6 + gw + 4, r.y + 7, 0xc8c0e8, { oy: 0.5, alpha: a });
+      }
+    }
+    // ---- Camp and Next
+    const b = this.clearButtons();
+    const last = run.actIndex + 1 >= run.region.acts.length;
+    const items: Array<{ r: Rect; face: readonly [number, number, number, number]; label: string; icon: string; delay: number }> = [
+      { r: b.camp, face: FACE.navy, label: 'Camp', icon: 'tent', delay: 0 },
+      { r: b.next, face: last ? FACE.gold : FACE.green, label: last ? 'Finish' : `Next: Act ${run.actIndex + 2}`, icon: '', delay: 90 },
+    ];
+    for (const it of items) {
+      const k = easeBack((since - Overlays.CLEAR_BTN_MS + 140 - it.delay) / 260, 1.7);
+      if (k <= 0) continue;
+      const r = { ...it.r, y: it.r.y + Math.round((1 - k) * 14) };
+      const pr = isPressed(it.r, now);
+      if (it.icon === '' && k >= 1) glow(gc, r, it.face[0], 0.3 + 0.35 * pulse(now, 900), 3);
+      button3d(gc, r, it.face, pr);
+      const dy = pr ? 2 : 0;
+      const tw = textWidth(it.label, 1, true);
+      if (it.icon) {
+        const [iw, ih] = glyphSize(it.icon);
+        const x0 = Math.round(r.x + (r.w - iw - 3 - tw) / 2);
+        glyph(gc, it.icon, x0, r.y + Math.round((r.h - ih) / 2) + dy);
+        this.texts.text(it.label, x0 + iw + 3, r.y + r.h / 2 + dy, WHITE, { bold: true, oy: 0.5 });
+      } else {
+        // the way on: label and a pair of chevrons nudging right
+        const x0 = Math.round(r.x + (r.w - tw - 10) / 2);
+        this.texts.text(it.label, x0, r.y + r.h / 2 + dy, WHITE, { bold: true, oy: 0.5 });
+        const nudge = Math.round(pulse(now, 700) * 2);
+        chevron(gc, x0 + tw + 2 + nudge, r.y + 4 + dy, 7, WHITE, 1, 1, true);
+      }
     }
   }
 
@@ -602,15 +863,36 @@ export class Overlays {
       g.fillRect(0, i * 3, GAME_W, 3);
       g.fillRect(0, GAME_H - (i + 1) * 3, GAME_W, 3);
     }
-    const k = easeBack(since / 380, 1.6);
+    // back from the camp: no entrance, the buttons are live at once
+    const t = this.backFromCamp ? since + 1000 : since;
+    const k = easeBack(t / 380, 1.6);
     const y = Math.round(36 - (1 - k) * 30);
-    this.texts.text('DEFEATED', cx, y, 0xff5a5a, { bold: true, scale: 3, ox: 0.5, oy: 0.5, extrude: 3, extrudeCol: 0x4a0a14, alpha: clamp01(since / 150) });
-    if (since > 250) {
+    this.texts.text('DEFEATED', cx, y, 0xff5a5a, { bold: true, scale: 3, ox: 0.5, oy: 0.5, extrude: 3, extrudeCol: 0x4a0a14, alpha: clamp01(t / 150) });
+    if (t > 250) {
       this.texts.text(`Rowan falls... back to the start of Act ${s.app.run.actIndex + 1}`, cx, y + 22, 0xffd8d0, { ox: 0.5, oy: 0.5 });
-      const r: Rect = { x: cx - 64, y: y + 32, w: 128, h: 18 };
-      if (since > 700) glow(gc, r, 0xffd23a, 0.3 + 0.4 * pulse(now, 800), 3);
-      button3d(gc, r, since > 700 ? FACE.gold : FACE.grey);
-      this.texts.text('Retry the act', cx, r.y + r.h / 2, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+      // Camp (equip what you found before trying again) and Retry, popping in one after the other
+      const b = this.defeatButtons();
+      const live = t > 700;
+      const items: Array<{ r: Rect; face: readonly [number, number, number, number]; label: string; icon: string; delay: number }> = [
+        { r: b.camp, face: live ? FACE.navy : FACE.grey, label: 'Camp', icon: 'tent', delay: 0 },
+        { r: b.retry, face: live ? FACE.gold : FACE.grey, label: 'Retry the act', icon: '', delay: 80 },
+      ];
+      for (const it of items) {
+        const bk = easeBack((t - 260 - it.delay) / 260, 1.7);
+        if (bk <= 0) continue;
+        const r = { ...it.r, y: it.r.y + Math.round((1 - bk) * 12) };
+        const pr = isPressed(it.r, now);
+        if (!it.icon && live) glow(gc, r, 0xffd23a, 0.3 + 0.4 * pulse(now, 800), 3);
+        button3d(gc, r, it.face, pr);
+        const dy = pr ? 2 : 0;
+        const tw = textWidth(it.label, 1, true);
+        if (it.icon) {
+          const [iw, ih] = glyphSize(it.icon);
+          const x0 = Math.round(r.x + (r.w - iw - 3 - tw) / 2);
+          glyph(gc, it.icon, x0, r.y + Math.round((r.h - ih) / 2) + dy, live ? 1 : 0.6);
+          this.texts.text(it.label, x0 + iw + 3, r.y + r.h / 2 + dy, WHITE, { bold: true, oy: 0.5 });
+        } else this.texts.text(it.label, r.x + r.w / 2, r.y + r.h / 2 + dy, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+      }
     }
   }
 

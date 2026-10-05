@@ -1,4 +1,7 @@
-// Debug / tuning panel (DOM). Every change applies live and is saved to localStorage.
+// Debug / tuning panel (DOM). Every change applies live and is saved to localStorage. At the top: the player's
+// accuracy (as the balance bot measures it) and its history, with a Copy button for the playtester.
+import { AIM_WINDOW_MS, estimateAccuracy, MIN_SAMPLES } from '../core/accuracy';
+import { TYPICAL_ACCURACY } from '../core/bot';
 import { impactFeel, impactWeight } from '../core/impact';
 import { cloneTuning, DEFAULT_SETTINGS, getPath, IMPACT_SOUND_SLIDERS, mergeKnown, setPath, sliderGroups, type Settings } from '../core/tuning';
 import { heroFor } from '../core/run';
@@ -89,6 +92,8 @@ export function installDebug(app: App): DebugUi {
       row.appendChild(g);
       parent.appendChild(row);
     };
+
+    accuracySection(body);
 
     const modes = section('Modes');
     seg(modes, 'Empty tap', 'mode', [
@@ -292,6 +297,67 @@ export function installDebug(app: App): DebugUi {
     tools.appendChild(tg);
     body.appendChild(el('div', 'dbg-foot', 'Keys: Space tap · F finisher · P pause · ` panel'));
   };
+
+  /**
+   * "Your accuracy" (top of the panel, open): the running estimate from the recent taps, measured exactly as the
+   * balance bot defines accuracy, the act-by-act history, and a Copy button for the playtester to send it.
+   */
+  function accuracySection(parent: HTMLElement): void {
+    const sec = el('details', 'dbg-sec dbg-acc');
+    sec.open = true;
+    sec.appendChild(el('summary', undefined, 'Your accuracy'));
+    parent.appendChild(sec);
+    const log = app.profile.acc;
+    const e = estimateAccuracy(app.tuning, log.recent);
+    const target = TYPICAL_ACCURACY;
+    const pct = (v: number) => `${Math.round(v * 100)}%`;
+    const lateness = (b: number) => (Math.abs(b) < 1 ? 'right on time on average' : `${Math.round(Math.abs(b))} ms ${b > 0 ? 'late' : 'early'} on average`);
+    const date = (at: number) => new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    const top = el('div', 'acc-top');
+    const big = el('div', `acc-big${e ? (e.acc >= target ? ' good' : e.acc < target - 0.1 ? ' low' : '') : ' none'}`, e ? pct(e.acc) : '--');
+    const meta = el('div', 'acc-meta');
+    if (e) meta.appendChild(el('div', 'acc-line', `from ${e.n} recent taps · timing spread ±${Math.round(e.sd)} ms · ${lateness(e.bias)}`));
+    else {
+      const have = log.recent.filter((x) => Math.abs(x) <= AIM_WINDOW_MS).length;
+      meta.appendChild(el('div', 'acc-line', `Play a few fights to measure it: it needs ${MIN_SAMPLES} clear taps at plain yellow blocks (${have} so far).`));
+    }
+    // a meter: your accuracy against the 70% the game is tuned for
+    const bar = el('div', 'acc-bar');
+    const fill = el('div', 'acc-fill');
+    fill.style.width = `${Math.round((e?.acc ?? 0) * 100)}%`;
+    const mark = el('div', 'acc-mark');
+    mark.style.left = `${Math.round(target * 100)}%`;
+    mark.appendChild(el('span', undefined, `tuned for ${pct(target)}`));
+    bar.append(fill, mark);
+    meta.appendChild(bar);
+    const copyBtn = el('button', 'dbg-btn acc-copy', 'Copy');
+    copyBtn.onclick = () => {
+      const hist = log.history
+        .slice(-6)
+        .reverse()
+        .map((h) => `Act ${h.act + 1} ${pct(h.acc)} (${h.n} taps, ±${h.sd} ms, ${h.bias >= 0 ? '+' : ''}${h.bias} ms, ${date(h.at)})`)
+        .join('; ');
+      const now = e ? `${pct(e.acc)} from ${e.n} taps (spread ±${Math.round(e.sd)} ms, raw ±${Math.round(e.rawSd)} ms, ${e.bias >= 0 ? '+' : ''}${Math.round(e.bias)} ms)` : `not enough taps yet (${log.recent.length})`;
+      const line = `CQ3 accuracy ${date(Date.now())}: ${now}; calibration ${app.settings.calibrationMs} ms${hist ? `; acts: ${hist}` : ''}`;
+      copyText(line).then((ok) => toast(ok ? 'Copied!' : 'Copy failed'));
+    };
+    top.append(big, meta, copyBtn);
+    sec.appendChild(top);
+
+    if (log.history.length) {
+      const list = el('ul', 'acc-hist');
+      for (const h of log.history.slice().reverse()) {
+        const li = el('li', h.acc >= target ? 'good' : h.acc < target - 0.1 ? 'low' : undefined);
+        li.textContent = `Act ${h.act + 1} cleared · ${pct(h.acc)} · ${h.n} taps · ${date(h.at)}`;
+        list.appendChild(li);
+      }
+      sec.appendChild(list);
+    } else sec.appendChild(el('div', 'dbg-note', 'Clear an act to start your history (one entry per act cleared).'));
+    sec.appendChild(
+      el('div', 'dbg-note', `Same measure as the balance bot: the share of plain yellow blocks you hit at the starting speed. The game is tuned for ${pct(target)}.`),
+    );
+  }
 
   function slider(parent: HTMLElement, label: string, min: number, max: number, step: number, get: () => number, set: (v: number) => void) {
     const row = el('div', 'dbg-row slider');
