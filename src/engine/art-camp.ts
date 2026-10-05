@@ -1,21 +1,25 @@
 // Camp art (see docs/art-style.md): the camp backdrop (a night clearing: the campfire, the bag tent, the forge, the
 // locked shrine), the smith's sprites and her story portrait.
 //
-// Textures:
-//   camp_bg          GAME_W x GAME_H backdrop (no fire, no people: those animate on top)
-//   camp_fire0..3    the campfire's flames (CAMP_SPOTS.fire is where they stand)
-//   smith_idle0/1    the smith at her anvil; smith_hammer0..2 her hammer swing (CAMP_SPOTS.smith)
-//   camp_rowan0/1    Rowan sitting on a log by the fire (CAMP_SPOTS.rowan, bottom-centre)
-//   camp_pip0/1      Pip perched beside him (CAMP_SPOTS.pip, bottom-centre)
-//   portrait_smith   40x40 story portrait
+// Textures (draw every sprite with origin (0.5, 1), bottom-centre, at its CAMP_SPOTS point):
+//   camp_bg          GAME_W x GAME_H backdrop (no flames, no people: those animate on top). It already holds the
+//                    fire pit's stone ring and embers, the log, the anvil, Rowan's planted sword and the firewood.
+//   camp_fire0..3    20x24 flames, a 4-frame flicker loop (CAMP_SPOTS.fire is where they stand, on the pit)
+//   smith_idle0/1    40x40 Mags at her anvil, hammer on her shoulder (2-frame breathing idle)
+//   smith_hammer0..2 40x40 raise, strike, rebound: all frames share the 40x40 box and the feet point, so the
+//                    strike lands on the anvil painted in camp_bg (CAMP_SPOTS.smith)
+//   camp_rowan0/1    32x33 Rowan sitting on the log, warming his hands at the fire (frame 1 breathes out)
+//   camp_pip0/1      16x17 Pip perched on the log (frame 1: eyes drowsy, settled 1px lower)
+//   portrait_smith   40x40 story portrait (faces left, like the villains)
 //
 // The backdrop is painted like the fight backdrops (backdrop.ts toolkit): a teal night sky with a moon and stars,
-// layered tree lines, a clearing, then the three buildings as outlined sprites, and last a pass of warm light from
-// the campfire and the forge's hearth over everything near them.
+// layered tree lines and a low mist, a clearing, then a pass of warm light from the campfire and the forge's hearth,
+// and last the buildings and props as outlined sprites (each carrying its own firelight), smoke and fireflies.
+// The top ~16 px and the bottom ~20 px stay calm for the UI; nothing important sits in the 23 px safe areas.
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
-import { and, ell, fill, lambert, or, rect, rimShade, sphere, stroke, tone, type Inside } from './art-paint';
+import { and, ell, fill, lambert, not, or, rect, rimShade, sphere, stroke, tone, type Inside } from './art-paint';
 import { PORTRAIT_SIZE } from './art-story';
-import { bay, clamp01, col, conifer, fbm, hash, level, lighten, mass, mix, noise, pick, Pix, ramp, rng, tree, type Blob, type Col, type Ramp } from './backdrop';
+import { bay, clamp01, col, conifer, fbm, hash, level, mass, mix, noise, pick, Pix, ramp, rng, tree, type Blob, type Col, type Ramp } from './backdrop';
 
 type Add = (key: string, canvas: HTMLCanvasElement) => void;
 
@@ -25,12 +29,11 @@ export const CAMP_SPOTS = {
   rowan: { x: 125, y: 122 },
   pip: { x: 103, y: 115 },
   smith: { x: 228, y: 113 },
-  bag: { x: 34, y: 62, w: 58, h: 48 },
-  forge: { x: 184, y: 34, w: 70, h: 74 },
-  shrine: { x: 264, y: 62, w: 38, h: 44 },
+  bag: { x: 30, y: 57, w: 60, h: 51 },
+  forge: { x: 182, y: 33, w: 70, h: 80 },
+  shrine: { x: 264, y: 54, w: 40, h: 52 },
 };
 
-const INK = col('#140c1c');
 
 // ------------------------------------------------------------------ the night clearing
 
@@ -256,24 +259,26 @@ function clearing(p: Pix): void {
   }
 }
 
+const mixHex = (a: string, b: string, t: number) => '#' + mix(col(a), col(b), t).toString(16).padStart(6, '0');
+
 /** Night life over the finished picture: chimney smoke, fireflies, glowing mushrooms by the shrine, dark grass in the near corners. */
 function nightLife(ctx: CanvasRenderingContext2D, w: number, h: number): void {
   const px = (x: number, y: number, c: string) => {
     ctx.fillStyle = c;
     ctx.fillRect(x, y, 1, 1);
   };
-  // smoke curling from the chimney and drifting right
-  for (let i = 0; i < 7; i++) {
-    const t = i / 6;
-    const cx = 221 + t * 18 + Math.sin(t * 5) * 2;
-    const cy = 30 - t * 22;
-    const r = 2 + t * 3.2;
+  // smoke rising from the chimney, then leaning right and thinning into the sky
+  for (let i = 4; i >= 0; i--) {
+    const t = i / 4;
+    const cx = 221 + t * t * 14 + Math.sin(t * 6) * 1;
+    const cy = 29 - t * 19;
+    const r = 1.6 + t * 2.6;
     for (let y = Math.floor(cy - r); y <= cy + r; y++)
       for (let x = Math.floor(cx - r); x <= cx + r; x++) {
-        const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) / r;
-        if (d > 1) continue;
-        const k = (1 - d) * (1 - t * 0.75);
-        if (k * 1.6 > bay(x, y)) px(x, y, d < 0.5 && y < cy ? '#5a7276' : '#3e5458');
+        const d = Math.hypot(x + 0.5 - cx, (y + 0.5 - cy) * 1.2) / r;
+        if (d > 1 || (d > 0.7 && bay(x, y) > 0.5)) continue;
+        const lit = x + 0.5 - cx + (y + 0.5 - cy) < -r * 0.3;
+        px(x, y, mixHex(lit ? '#3e565a' : '#2c4046', '#132630', 0.15 + t * 0.6));
       }
   }
   // glowing mushrooms at the shrine's foot
@@ -343,73 +348,91 @@ const PLANK = ['#2e1a14', '#4e2e1c', '#6e4426', '#8e5e32', '#b07a44', '#d09a5e']
 
 /** The bag: a canvas tent with a big leather backpack in front and a hanging sign. Its foot is the canvas bottom. */
 function tentSprite(): HTMLCanvasElement {
-  const W = 56;
-  const H = 44;
+  const W = 64;
+  const H = 52;
   return sprite(W, H, (g) => {
     const base = H - 3;
     const ax = 27; // front apex
-    const ay = 5;
-    const half = (y: number) => ((y - ay) / (base - ay)) * 21;
+    const ay = 7;
+    const half = (y: number) => ((y - ay) / (base - ay)) * 23;
     const front: Inside = (x, y) => y >= ay && y <= base && Math.abs(x + 0.5 - ax) <= half(y) + 0.5;
     // the right roof side, seen a little from the right: it faces the fire
-    const xr = (y: number) => 32 + ((y - 3) / (base - 6)) * 21;
+    const bx0 = 38; // back apex
+    const by0 = 4;
+    const xr = (y: number) => bx0 + ((y - by0) / (base - 6 - by0)) * 21;
     const side: Inside = (x, y) => {
       if (front(x, y) || x < ax) return false;
       const px = x + 0.5;
-      const top = px <= 32 ? 5 - (px - 27) * 0.4 : 3;
-      const bot = px <= 48 ? base : base - (px - 48) * 0.6;
+      const top = px <= bx0 ? ay - ((px - ax) / (bx0 - ax)) * (ay - by0) : by0;
+      const bot = px <= ax + 23 ? base : base - ((px - ax - 23) / (xr(base - 6) - ax - 23)) * 6;
       return y + 0.5 >= top && y <= bot && px <= xr(y + 0.5);
     };
-    fill(g, side, (x, y) => tone(CANVAS, 0.62 + (y - 3) / 120 + ((x * 3 + y) % 9 === 0 ? -0.15 : 0)));
-    for (let y = 4; y < base - 3; y++) put(g, Math.floor(xr(y + 0.5) - 0.5), y, CANVAS[6]); // the rim catching the firelight
-    // the front: dim on the moon side, warmer toward the fire, a seam down each panel
+    fill(g, side, (x, y) => {
+      // seams run down the slope; the panel brightens toward the fire and the ground
+      const u = (x + 0.5 - ax) - (y - ay) * 0.55;
+      const seam = Math.abs(((u % 7) + 7) % 7 - 3.5) < 0.5;
+      return tone(CANVAS, 0.66 + (y - by0) / 160 + (seam ? -0.14 : 0));
+    });
+    for (let y = by0 + 1; y < base - 6; y++) put(g, Math.floor(xr(y + 0.5) - 0.5), y, CANVAS[6]); // the rim catching the firelight
+    // the front: dim on the moon side, warmer toward the fire, seams fanning from the apex, a little sag at the hem
     fill(g, front, (x, y) => {
       const u = (x + 0.5 - (ax - half(y))) / Math.max(1, half(y) * 2);
-      let v = 0.22 + u * 0.32 + (y - ay) / 160;
-      if (Math.abs(x + 0.5 - (ax - half(y) * 0.55)) < 0.6 || Math.abs(x + 0.5 - (ax + half(y) * 0.55)) < 0.6) v -= 0.1;
+      let v = 0.2 + u * 0.36 + (y - ay) / 180;
+      for (const k of [0.5, 0.78]) if (Math.abs(x + 0.5 - (ax - half(y) * k)) < 0.55 || Math.abs(x + 0.5 - (ax + half(y) * k)) < 0.55) v -= 0.1;
       return tone(CANVAS, v);
     });
-    // a cool moonlit rim down the left slope
-    for (let y = ay; y <= base; y++) put(g, Math.round(ax - half(y)), y, y < ay + 6 ? '#8aa6a0' : '#5a6e70');
-    // the open door: a dark interior (a bedroll inside), flaps tied back either side
-    const door: Inside = (x, y) => y >= 13 && y <= base && Math.abs(x + 0.5 - ax) <= ((y - 13) / (base - 13)) * 9 + 0.5;
-    fill(g, door, (x, y) => (y > base - 3 && x > ax - 5 && x < ax + 4 ? (x < ax ? '#5a2430' : '#3a1820') : y < 20 ? '#0c0a12' : '#140e18'));
+    for (let y = ay; y <= base; y++) put(g, Math.round(ax - half(y)), y, y < ay + 8 ? '#8aa6a0' : '#5a6e70'); // moonlit left rim
+    for (let x = Math.round(ax - half(base)); x <= Math.round(ax + half(base)); x++) put(g, x, base, CANVAS[1]);
+    // a patch sewn on the moon side
+    fill(g, rect(13, 34, 16, 37), (x, y) => (x === 13 || y === 34 ? '#6a6070' : (x + y) % 2 ? '#4a4450' : '#55505c'));
+    // the open door: a dark interior (a red bedroll inside), flaps tied back either side
+    const door: Inside = (x, y) => y >= 17 && y <= base - 1 && Math.abs(x + 0.5 - ax) <= ((y - 17) / (base - 17)) * 10 + 0.5;
+    fill(g, door, (x, y) => (y > base - 5 && x > ax - 6 && x < ax + 5 ? (y === base - 4 ? '#c03a40' : x < ax ? '#7a2430' : '#5a1a26') : y < 24 ? '#0a0810' : '#120c16'));
     for (const s of [-1, 1]) {
-      for (let y = 15; y <= base; y++) {
-        const e = ax + s * (((y - 13) / (base - 13)) * 9 + 1);
-        const wdt = Math.max(1, Math.round(1 + (y - 15) * 0.12));
-        for (let k = 0; k < wdt; k++) put(g, Math.round(e + s * k), y, s < 0 ? tone(CANVAS, 0.42 - k * 0.06) : tone(CANVAS, 0.7 - k * 0.08));
+      for (let y = 19; y <= base - 1; y++) {
+        const e = ax + s * (((y - 17) / (base - 17)) * 10 + 1);
+        const wdt = Math.max(1, Math.round(1 + (y - 19) * 0.12));
+        for (let k = 0; k < wdt; k++) put(g, Math.round(e + s * k), y, s < 0 ? tone(CANVAS, 0.46 - k * 0.06) : tone(CANVAS, 0.74 - k * 0.08));
       }
-      // the tie: a cord round each rolled flap
-      put(g, Math.round(ax + s * 7), 27, PLANK[1]);
-      put(g, Math.round(ax + s * 7) + s, 27, PLANK[2]);
+      put(g, Math.round(ax + s * 8), 32, PLANK[1]);
+      put(g, Math.round(ax + s * 8) + s, 32, PLANK[2]);
+      put(g, Math.round(ax + s * 8) + s * 2, 32, PLANK[1]);
     }
-    // ridge pole tip and the guy ropes to their pegs
+    // ridge pole tip, guy ropes and pegs
     stamp(g, ['.h.', 'hHd', '.d.'], { h: PLANK[3], H: PLANK[5], d: PLANK[1] }, ax - 1, ay - 3);
-    for (let i = 0; i < 6; i++) put(g, ax + 22 + i * 0.5, base - 9 + i * 1.5, PLANK[3]);
-    // the hanging sign under the apex: a plank on two cords, a bag painted on it
-    put(g, ax - 3, 10, PLANK[2]);
-    put(g, ax + 3, 10, PLANK[2]);
-    fill(g, rect(ax - 6, 11, ax + 6, 17), (x, y) => (y === 11 ? PLANK[5] : y === 17 ? PLANK[1] : x === ax - 6 ? PLANK[4] : x === ax + 6 ? PLANK[2] : PLANK[3]));
-    stamp(g, ['.yy.', 'GggY', 'gGgY', 'yyYY'], { G: '#fff0c0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14' }, ax - 2, 12);
-    // the backpack: a big leather sack with a flap and buckle, a rolled red blanket on top, lit by the fire
-    const bx = 41;
-    const by = 31;
-    const sack = or(ell(bx, by + 1, 7.5, 9), rect(bx - 7, by + 2, bx + 7, base));
-    fill(g, and(sack, (_x, y) => y <= base), sphere(LEATHER, bx + 3, by - 2, 10, 11, 0.05));
-    rimShade(g, and(sack, (_x, y) => y <= base), LEATHER[1]);
-    // straps and the side pocket
-    fill(g, rect(bx - 6, by + 2, bx - 3, by + 7), (x, y) => (y === by + 2 ? LEATHER[4] : x === bx - 6 ? LEATHER[3] : LEATHER[2]));
-    for (let y = by - 4; y <= base; y++) put(g, bx + 2, y, y % 3 === 0 ? LEATHER[1] : LEATHER[2]);
+    for (let i = 0; i < 8; i++) put(g, ax + 24 + i * 0.55, base - 12 + i * 1.5, PLANK[3]);
+    stamp(g, ['H', 'd'], { H: PLANK[4], d: PLANK[1] }, ax + 28, base - 1);
+    for (let i = 0; i < 7; i++) put(g, ax - 23 - i * 0.45, base - 10 + i * 1.5, PLANK[2]);
+    // the hanging sign under the apex: a plank on two cords with a backpack painted on it
+    put(g, ax - 4, 12, PLANK[2]);
+    put(g, ax + 4, 12, PLANK[2]);
+    fill(g, rect(ax - 7, 13, ax + 7, 21), (x, y) => (y === 13 ? PLANK[5] : y === 21 ? PLANK[1] : x === ax - 7 ? PLANK[4] : x === ax + 7 ? PLANK[2] : (x + y * 3) % 9 === 0 ? PLANK[2] : PLANK[3]));
+    stamp(g, ['..GG..', '.G..g.', 'GGggyy', 'GgYYgy', 'gggyyY'], { G: '#fff4d0', g: '#f2c860', y: '#d89a40', Y: '#9a5a14' }, ax - 3, 15);
+    // a lantern hung by the door, glowing warm
+    for (let y = 23; y <= 25; y++) put(g, ax - 10, y, PLANK[1]);
+    stamp(g, ['.k.', 'kGk', 'gWg', 'kyk', '.k.'], { k: '#3a2418', G: '#fff0a0', W: '#ffffff', g: '#ffd060', y: '#e89030' }, ax - 11, 26);
+    // the backpack: a big rounded leather sack with a flap and buckle, a rolled red blanket on top, lit by the fire
+    const bx = 44;
+    const by = 37;
+    const sack = and(or(ell(bx, by, 8, 9.5), rect(bx - 8, by + 1, bx + 8, base)), (_x, y) => y <= base);
+    fill(g, sack, (x, y) => tone(LEATHER, 0.12 + 0.95 * Math.max(0, 0.45 + (x + 0.5 - bx) * 0.035 - (y + 0.5 - by) * 0.02) + (x > bx + 5 ? 0.12 : 0)));
+    rimShade(g, sack, LEATHER[1]);
+    for (let y = by - 6; y <= base - 1; y++) if (sack(bx + 8, y)) put(g, bx + 8, y, LEATHER[5]); // firelit edge
+    // the side pocket and the straps
+    fill(g, rect(bx - 7, by + 3, bx - 3, by + 9), (x, y) => (y === by + 3 ? LEATHER[4] : x === bx - 7 ? LEATHER[3] : LEATHER[2]));
+    for (let y = by - 5; y <= base; y++) {
+      put(g, bx + 1, y, y % 3 === 0 ? LEATHER[1] : LEATHER[2]);
+      put(g, bx + 5, y, y % 3 === 1 ? LEATHER[2] : LEATHER[3]);
+    }
     // the flap with a gold buckle
-    fill(g, and(ell(bx + 0.5, by - 4, 8, 5), (_x, y) => y >= by - 8 && y <= by - 1), (x, y) => (y === by - 1 ? LEATHER[1] : tone(LEATHER, 0.55 + (x - bx) * 0.03 - (y - by + 8) * 0.02)));
-    stamp(g, ['GgY', 'g.y', 'yYz'], { G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14', z: '#5a3410' }, bx + 1, by - 2);
+    fill(g, and(ell(bx + 0.5, by - 4, 8.5, 5.5), (_x, y) => y >= by - 9 && y <= by), (x, y) => (y === by ? LEATHER[1] : tone(LEATHER, 0.62 + (x - bx) * 0.03 - (y - by + 9) * 0.02)));
+    stamp(g, ['GgY', 'g.y', 'yYz'], { G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14', z: '#5a3410' }, bx, by - 1);
     // the blanket roll strapped across the top
-    const roll = ell(bx + 0.5, by - 9, 9, 2.6);
-    fill(g, roll, (x, y) => ((x + 1) % 4 === 0 ? '#e8d8b8' : y < by - 9 ? '#f05a48' : y === by - 9 ? '#c83030' : '#8a1a22'));
-    fill(g, ell(bx + 9, by - 9, 1.4, 2.4), (_x, y) => (y < by - 9 ? '#ff9a80' : '#d03030'));
-    put(g, bx - 4, by - 9, LEATHER[1]);
-    put(g, bx + 5, by - 9, LEATHER[1]);
+    const roll = ell(bx + 0.5, by - 10, 9.5, 2.8);
+    fill(g, roll, (x, y) => ((x + 1) % 4 === 0 ? '#e8d8b8' : y < by - 10 ? '#f05a48' : y === by - 10 ? '#c83030' : '#8a1a22'));
+    fill(g, ell(bx + 9.5, by - 10, 1.4, 2.6), (_x, y) => (y < by - 10 ? '#ff9a80' : '#d03030'));
+    put(g, bx - 4, by - 10, LEATHER[1]);
+    put(g, bx + 5, by - 10, LEATHER[1]);
   });
 }
 
@@ -531,35 +554,40 @@ function anvilSprite(): HTMLCanvasElement {
   });
 }
 
-/** The shrine: a mossy little stone house, boarded up with a plank and chained with a big padlock (locked). */
+/** The shrine: a mossy little stone house, boarded up with planks and chained with a big padlock (locked). */
 function shrineSprite(): HTMLCanvasElement {
   const W = 38;
-  const H = 48;
+  const H = 51;
   return sprite(W, H, (g) => {
     const base = H - 3;
-    const cool = (x: number, y: number) => 0.58 - (x - 4) / 70 - (y - 10) / 200;
+    const cool = (x: number, y: number) => 0.58 - (x - 4) / 70 - (y - 13) / 200;
     // plinth: two steps
     fill(g, rect(1, base - 3, 36, base), (x, y) => tone(FSTONE, (y === base - 3 ? 0.8 : 0.45) - (x - 1) / 90 + ((x * 5) % 7 === 0 ? -0.15 : 0)));
     fill(g, rect(3, base - 6, 34, base - 4), (x, y) => tone(FSTONE, (y === base - 6 ? 0.85 : 0.5) - (x - 3) / 90 + ((x * 3) % 8 === 0 ? -0.15 : 0)));
-    // pillars and the dark niche between them
-    fill(g, rect(10, 17, 27, base - 7), (_x, y) => (y < 20 ? '#06060c' : '#0c0c16'));
-    // a faint carved pendulum in the niche (asleep)
-    stamp(g, ['.a.', '.a.', '.a.', 'aba', 'bbb', '.b.'], { a: '#2a2a40', b: '#34344e' }, 17, 21);
-    for (const px of [4, 27]) stones(g, rect(px, 17, px + 6, base - 7), px, (x, y) => cool(x, y) + 0.05);
-    // lintel and gabled roof slab
-    fill(g, rect(2, 13, 35, 17), (x, y) => (y === 13 ? FSTONE[5] : y === 17 ? FSTONE[1] : tone(FSTONE, cool(x, y) + 0.08)));
-    const roof: Inside = (x, y) => y >= 3 && y < 13 && Math.abs(x + 0.5 - 18.5) <= (y - 2) * 1.75;
-    fill(g, roof, (x, y) => tone(FSTONE, (x < 18 ? 0.7 : 0.38) - (y - 3) / 40 + ((x + y * 2) % 7 === 0 ? -0.12 : 0)));
+    // the dark niche between the pillars, something faintly violet asleep inside
+    fill(g, rect(10, 20, 27, base - 7), (x, y) => (y < 23 ? '#06060c' : (x * 7 + y * 3) % 17 === 0 ? '#3a2a5a' : '#0c0c16'));
+    stamp(g, ['.a.', '.a.', '.a.', 'aba', 'bcb', '.b.'], { a: '#2a2a40', b: '#3a3456', c: '#6a4a9a' }, 17, 25);
+    for (const px of [4, 27]) stones(g, rect(px, 20, px + 6, base - 7), px, (x, y) => cool(x, y) + 0.05);
+    // lintel and gabled roof slab, a stone orb on the ridge
+    fill(g, rect(2, 16, 35, 20), (x, y) => (y === 16 ? FSTONE[5] : y === 20 ? FSTONE[1] : tone(FSTONE, cool(x, y) + 0.08)));
+    const roof: Inside = (x, y) => y >= 5 && y < 16 && Math.abs(x + 0.5 - 18.5) <= (y - 4) * 1.6;
+    fill(g, roof, (x, y) => tone(FSTONE, (x < 18 ? 0.7 : 0.38) - (y - 5) / 40 + ((x + y * 2) % 7 === 0 ? -0.12 : 0)));
+    fill(g, ell(18.5, 3, 2.2, 2.2), (x, y) => (x + y < 20 ? FSTONE[5] : x + y < 22 ? FSTONE[4] : FSTONE[2]));
+    // the carved pendulum emblem on the gable, its rune dark (the shrine sleeps)
+    fill(g, and(ell(18.5, 11, 3.4, 3.4), not(ell(18.5, 11, 2.3, 2.3))), (x, y) => (x + y < 29 ? FSTONE[1] : FSTONE[2]));
+    put(g, 18, 10, '#4a3a6a');
+    put(g, 18, 11, '#4a3a6a');
+    put(g, 18, 12, '#5a4a7a');
     // moss over the roof and ivy down the left pillar
-    fill(g, and(roof, (x, y) => y <= 4 + noise(x * 0.5, 1, 4) * 6 - Math.abs(x - 18) * 0.15), (x, y) => tone(MOSS_R, 0.95 - (y - 3) * 0.12 - (x > 18 ? 0.25 : 0)));
+    fill(g, and(roof, (x, y) => y <= 6 + noise(x * 0.5, 1, 4) * 6 - Math.abs(x - 18) * 0.15), (x, y) => tone(MOSS_R, 0.95 - (y - 5) * 0.12 - (x > 18 ? 0.25 : 0)));
     for (const [x, len] of [
       [3, 9],
-      [5, 14],
+      [5, 15],
       [7, 6],
-      [30, 5],
+      [30, 6],
     ])
-      for (let k = 0; k < len; k++) put(g, x + (k % 3 === 2 ? 1 : 0), 14 + k, k % 2 ? MOSS_R[2] : MOSS_R[3]);
-    // boarded up: a plank across and another askew, nailed
+      for (let k = 0; k < len; k++) put(g, x + (k % 3 === 2 ? 1 : 0), 17 + k, k % 2 ? MOSS_R[2] : MOSS_R[3]);
+    // boarded up: two planks across the doorway, nailed
     const plank = (x0: number, y0: number, x1: number, y1: number) => {
       const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
       for (let i = 0; i <= n; i++) {
@@ -578,18 +606,18 @@ function shrineSprite(): HTMLCanvasElement {
         put(g, nx, ny + 1, '#5a5e70');
       }
     };
-    plank(7, 31, 30, 24);
-    plank(8, 22, 29, 23);
+    plank(7, 35, 30, 27);
+    plank(8, 25, 29, 26);
     // chalk scrawl on the plank ("soon")
-    for (const x of [13, 14, 16, 18, 19, 21, 23]) put(g, x, 23, '#e8e4d0');
-    // the padlock on a chain across the doorway
-    for (let x = 9; x <= 28; x++) put(g, x, Math.round(28 + Math.sin(((x - 9) / 19) * Math.PI) * 3), x % 2 ? '#9aa0b0' : '#5a5e70');
+    for (const x of [12, 13, 15, 17, 18, 20, 22, 23]) put(g, x, 26, '#e8e4d0');
+    // a heavy padlock on a chain looped across the doorway
+    for (let x = 9; x <= 28; x++) put(g, x, Math.round(31 + Math.sin(((x - 9) / 19) * Math.PI) * 3), x % 2 ? '#9aa0b0' : '#5a5e70');
     stamp(
       g,
-      ['..yYYy..', '.y....y.', '.Y....Y.', 'GGggggyY', 'Ggg..gyY', 'Gggkkgyz', 'gggkkyyz', 'yyyyyYzz'],
+      ['...yYYy...', '..y....y..', '..Y....Y..', '.GGgggggyY', '.Ggg..ggyY', '.Gggkkggyz', '.gggkkgyyz', '.ggggkgyyz', '.yyyyyyYzz'],
       { G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14', z: '#5a3410', k: '#2a1810' },
-      15,
-      27,
+      13,
+      30,
     );
   });
 }
@@ -691,7 +719,7 @@ function glow(img: Uint8ClampedArray, W: number, H: number, cx: number, cy: numb
 /** Contact shadows under the buildings and props (dark, flattened ellipses on the ground). */
 function shadows(p: Pix): void {
   for (const [cx, cy, rx, ry] of [
-    [60, 106, 27, 3],
+    [58, 106, 31, 3],
     [214, 104, 36, 3.5],
     [284, 102, 19, 2.5],
     [113, 121, 19, 2],
@@ -735,9 +763,9 @@ function backdrop(w: number, h: number): HTMLCanvasElement {
     }
   ctx.putImageData(im, 0, 0);
   // the buildings and props, back to front (each carries its own light)
-  ctx.drawImage(shrineSprite(), 265, 102 - 45);
+  ctx.drawImage(shrineSprite(), 265, 102 - 48);
   ctx.drawImage(forgeSprite(), 182, 104 - 71);
-  ctx.drawImage(tentSprite(), 33, 65);
+  ctx.drawImage(tentSprite(), 28, 106 - 49);
   ctx.drawImage(anvilSprite(), 197, 112 - 14);
   ctx.drawImage(swordSprite(), 88, 107);
   ctx.drawImage(logSprite(), 94, 112);
@@ -995,7 +1023,6 @@ function magsFrame(pose: MagsPose): HTMLCanvasElement {
   const lean = pose.lean ?? 0;
   const cx = 22 + lean; // body centre
   const top = feet - 28 + bob;
-  const col2 = (k: string) => MAGS[k];
   // the far arm (behind the body), when both paws are on the handle
   const shoulderFar: [number, number] = [cx + 4, top + 13];
   if (pose.far) {
@@ -1059,7 +1086,6 @@ function magsFrame(pose: MagsPose): HTMLCanvasElement {
   // the paw over the handle
   stamp(g, ['32', '43'], MAGS, hx - 1, hy - 1);
   if (pose.far) stamp(g, ['2'], MAGS, pose.far[0], pose.far[1]);
-  void col2;
   return toCanvas(g);
 }
 
@@ -1197,4 +1223,3 @@ export function buildCampArt(add: Add, w: number, h: number): void {
   add('portrait_smith', magsPortrait());
 }
 
-void [lighten, INK];
