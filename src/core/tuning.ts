@@ -270,13 +270,13 @@ export const DEFAULT_TUNING = {
   kit: {
     // Replaying an act from the world map: Rowan starts with what a typical run has gained by then (boosts and kill
     // gains, per act behind him; measured with the bot), plus his gear. The debug panel's "Jump to" uses it too.
-    atk: 6.8,
-    maxHp: 68,
-    dmg: 0.22,
-    crit: 0.085,
-    critDmg: 0.77,
-    comboPower: 0.82,
-    pet: 6.8,
+    atk: 6.7,
+    maxHp: 28,
+    dmg: 0.01,
+    crit: 0,
+    critDmg: 0.03,
+    comboPower: 0.03,
+    pet: 1.5,
     relicPicks: 2, // ...and picks this many relics (1 of 3 each) per act behind him before the map
   },
   relics: {

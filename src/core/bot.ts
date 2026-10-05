@@ -18,9 +18,9 @@
 import { eventById } from '../data/events';
 import type { NodeType } from '../data/types';
 import { SLOT_KEYS, slotOf } from '../data/gear';
-import { DT, heroAtk, heroMaxHp, isRed, type Combat, type CombatEvent } from './combat';
-import { itemPower, slotOfItem, upgradeCost } from './gear';
-import { canLearn, learn, pointsLeft, treeOf, type HeroId } from './heroes';
+import { DT, heroAtk, heroMaxHp, heroStats, isRed, type Combat, type CombatEvent, type Hero } from './combat';
+import { emptyLoadout, itemPower, slotOfItem, upgradeCost, type StatBlock } from './gear';
+import { buildBonus, canLearn, learn, pointsLeft, treeOf, type HeroId } from './heroes';
 import { equip, equippedItems, heroProgress, newProfile, salvageAll, upgrade, type Profile } from './profile';
 import { buildName, rarityRank, sharedTags, type RelicId } from './relics';
 import { Rng } from './rng';
@@ -36,6 +36,8 @@ export interface BotOptions {
   reactMs?: number; // a block must have been on the bar this long before it can be tapped
   lapse?: number; // share of taps that go badly wrong (80-250 ms off): a glance away, a late thumb
   maxStageSec?: number; // a fight running longer than this counts as a loss
+  noGear?: boolean; // measurement: never wear what drops (the balance report's "without gear" ablation)
+  avoid?: RelicId[]; // measurement: relics it never takes (to weigh one relic against going without it)
 }
 
 /** Inverse of the standard normal CDF (Acklam's approximation; |error| < 1e-8 over (0, 1)). */
@@ -80,6 +82,7 @@ export interface FightStats {
   row: number;
   type: NodeType; // fight, elite or boss
   relics: RelicId[]; // carried into the fight
+  skills: string[]; // skill nodes learned going in
   level: number; // the hero's level going in
   enemies: string[];
   boss: boolean;
@@ -104,6 +107,25 @@ export interface FightStats {
   bossVsMaxFinisher?: number;
   /** Boss fights: one max-stack finisher could kill the boss outright (enough damage, and no phase gate to stop it). */
   bossOneShot?: boolean;
+  // ---- measurement (the snowball report: tests/balance/snowball.run.ts)
+  maxHp: number; // the hero's max HP going in
+  hpLost: number; // HP the hero lost in the fight, every source (reds, bombs, traps, counters, misses, perk costs)
+  hpRed: number; // ...of which reds and bombs that got through (after Defense)
+  hpBy: Record<string, number>; // HP lost by source: red, bomb, trap, counter, miss, perk (a relic's price, by its id)
+  healed: number; // HP the hero got back in the fight (heals, perks, gear effects, kill gains, a revive)
+  redsTaken: number; // reds and bombs that reached the hero and hurt
+  redsBlocked: number; // reds (shields, bombs, speed) blocked, a shield's crack included
+  redsSpawned: number; // reds (shields, bombs, speed) that came onto the bar
+  enemyHp: number; // max HP of every foe that came (each wave, plus summons and splits)
+  peakCombo: number;
+  avgCombo: number; // over the fight's ticks
+  dmgBy: Record<string, number>; // HP removed from foes by source: hit, bomb, finisher, pet, perk
+  hits: number; // yellow and green hits (echoes included)
+  crits: number;
+  stats: StatBlock; // the hero's 10 stats going in (heroStats)
+  /** Where the hero's attack, max HP and crit come from going in: run gains (kills, events, boost cards; a replay's
+   *  kit), gear, level and skill nodes. */
+  parts: Record<string, number>;
 }
 
 export interface ActAttempt {
@@ -255,13 +277,13 @@ export function playAct(run: Run, rng: Rng, o: BotOptions): ActAttempt {
       }
     } else if (ph === 'loot') {
       run.collectLoot();
-      equipBest(run);
+      if (!o.noGear) equipBest(run);
       spendSkills(run, rng);
-    } else if (ph === 'boost') run.pickBoost(botPick(run, rng, o.accuracy));
+    } else if (ph === 'boost') run.pickBoost(botPick(run, rng, o.accuracy, o.avoid));
     else if (ph === 'treasure') run.openTreasure();
     else if (ph === 'rest') run.rest();
     else if (ph === 'shop') {
-      shop(run, o.accuracy);
+      shop(run, o.accuracy, o.avoid);
       run.leaveShop();
     } else if (ph === 'event') {
       // a random choice it can afford
@@ -296,8 +318,9 @@ const MISS_COST_ACCURACY = 0.8;
 /** How much the bot wants a card: a relic by the tags it shares with what it owns (synergy-greedy), then rarity;
  *  a stat card by rarity, below any relic of its rarity. A relic that charges for misses is a no for a player who
  *  misses a lot (below MISS_COST_ACCURACY): it ranks under every other card. */
-export function offerScore(run: Run, o: BoostOffer, accuracy = TYPICAL_ACCURACY): number {
+export function offerScore(run: Run, o: BoostOffer, accuracy = TYPICAL_ACCURACY, avoid: readonly RelicId[] = []): number {
   if (o.id === 'relic' && o.relic) {
+    if (avoid.includes(o.relic)) return -1;
     if (accuracy < MISS_COST_ACCURACY && MISS_COST.includes(o.relic)) return -1;
     return 10 * sharedTags(o.relic, run.hero.relics).length + 2 * rarityRank(o.rarity) + 1;
   }
@@ -305,11 +328,11 @@ export function offerScore(run: Run, o: BoostOffer, accuracy = TYPICAL_ACCURACY)
 }
 
 /** The bot's pick: Full Heal when hurt; otherwise the card it wants most (a random one among equals). */
-export function botPick(run: Run, rng: Rng, accuracy = TYPICAL_ACCURACY): number {
+export function botPick(run: Run, rng: Rng, accuracy = TYPICAL_ACCURACY, avoid: readonly RelicId[] = []): number {
   const offers = run.boostChoices;
   const heal = offers.findIndex((b) => b.id === 'heal');
   if (heal >= 0 && run.hero.hp < heroMaxHp(run.tuning, run.hero) * 0.5) return heal;
-  const score = offers.map((o) => offerScore(run, o, accuracy));
+  const score = offers.map((o) => offerScore(run, o, accuracy, avoid));
   const best = Math.max(...score);
   const top = offers.map((_, i) => i).filter((i) => score[i] === best);
   return top[rng.int(top.length)];
@@ -338,12 +361,12 @@ export function spendSkills(run: Run, rng: Rng): void {
 
 /** Shop policy: Haggler's free buy on the dearest card, a potion when hurt, then the cards it wants most that it can
  *  afford. */
-function shop(run: Run, accuracy: number): void {
+function shop(run: Run, accuracy: number, avoid: readonly RelicId[] = []): void {
   const T = run.tuning;
   const cards = run.shop
     .map((item, i) => ({ item, i }))
-    .filter((x) => x.item.kind === 'boost' && x.item.offer && offerScore(run, x.item.offer, accuracy) >= 0);
-  cards.sort((a, b) => offerScore(run, b.item.offer!, accuracy) - offerScore(run, a.item.offer!, accuracy));
+    .filter((x) => x.item.kind === 'boost' && x.item.offer && offerScore(run, x.item.offer, accuracy, avoid) >= 0);
+  cards.sort((a, b) => offerScore(run, b.item.offer!, accuracy, avoid) - offerScore(run, a.item.offer!, accuracy, avoid));
   if (run.shopFree && cards.length) run.buy(cards.reduce((a, b) => (b.item.price > a.item.price ? b : a)).i);
   const potion = run.shop.findIndex((i) => i.kind === 'potion');
   if (run.hero.hp < heroMaxHp(T, run.hero) * 0.6 && potion >= 0) run.buy(potion);
@@ -391,7 +414,24 @@ function newFight(run: Run, c: Combat): FightStats {
     hpStart: run.hero.hp / heroMaxHp(T, run.hero),
     hpEnd: 0,
     relics: run.hero.relics.slice(),
+    skills: (run.hero.build?.skills ?? []).slice(),
     level: run.hero.build?.level ?? 1,
+    maxHp: heroMaxHp(T, run.hero),
+    hpLost: 0,
+    hpRed: 0,
+    hpBy: {},
+    healed: 0,
+    redsTaken: 0,
+    redsBlocked: 0,
+    redsSpawned: 0,
+    enemyHp: c.waves.reduce((n, w) => n + w.reduce((m, k) => m + Math.max(1, Math.round(T.enemies[k].hp * c.hpMult)), 0), 0),
+    peakCombo: c.combo,
+    avgCombo: 0,
+    dmgBy: {},
+    hits: 0,
+    crits: 0,
+    stats: heroStats(T, run.hero),
+    parts: heroParts(T, run.hero),
   };
   if (boss) {
     const b = c.enemies.find((e) => T.enemies[e.key].boss)!;
@@ -400,6 +440,33 @@ function newFight(run: Run, c: Combat): FightStats {
     st.bossOneShot = c.hpFloor(b) <= 0 && c.damageTaken(b, maxFin, 'finisher') >= b.hp;
   }
   return st;
+}
+
+/** Measurement: where the hero's attack, max HP, crit and combo power come from. */
+function heroParts(T: Tuning, h: Hero): Record<string, number> {
+  const g = (h.gear ?? emptyLoadout()).stats;
+  const b = buildBonus(T, h.build);
+  return {
+    runAtk: h.bonusAtk,
+    runDmg: h.bonusDmg,
+    runHp: h.bonusMaxHp,
+    runCrit: h.bonusCrit,
+    runCritDmg: h.bonusCritDmg,
+    runCombo: h.bonusComboPower,
+    gearAtk: g.atk,
+    gearHp: g.hp,
+    gearDef: g.def,
+    gearCrit: g.critChance,
+    gearCritDmg: g.critDmg,
+    gearCombo: g.comboPower,
+    gearMeter: g.meterGain,
+    levelAtk: b.levelAtk * T.hero.atk,
+    levelHp: b.hp,
+    skillAtkPct: b.atkPct,
+    skillHpPct: b.hpPct,
+    skillCrit: b.critChance,
+    skillDef: b.def,
+  };
 }
 
 interface Pending {
@@ -412,6 +479,7 @@ interface Pending {
 export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats {
   const T = run.tuning;
   const st = newFight(run, c);
+  const hp0 = run.hero.hp;
   const gap = (o.gapMs ?? 140) / 1000;
   const maxSec = o.maxStageSec ?? 600;
   const react = (o.reactMs ?? 250) / 1000;
@@ -421,6 +489,8 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
   let busyUntil = c.time;
   let breaks = 0;
   let combos = 0; // combo-building actions (hits and blocks), to estimate how risky waiting is
+  let comboTicks = 0; // measurement: the combo summed over the fight's ticks (its average)
+  let ticks = 0;
   // whether it reads the current raised shield and holds off yellow (a person mostly does)
   let readsGuard = true;
   let guardSeen = 0;
@@ -434,8 +504,13 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
         hpLeft.set(e.enemyId, left - dealt);
         st.damage += dealt;
         if (e.source === 'finisher') st.finisherDamage += dealt;
+        st.dmgBy[e.source] = (st.dmgBy[e.source] ?? 0) + dealt;
       } else if (e.type === 'enemyHeal') hpLeft.set(e.enemyId, (hpLeft.get(e.enemyId) ?? 0) + e.amount);
-      else if (e.type === 'summon' || e.type === 'split' || e.type === 'wave') for (const id of e.ids) hpLeft.set(id, c.enemyById(id)?.hp ?? 0);
+      else if (e.type === 'summon' || e.type === 'split' || e.type === 'wave')
+        for (const id of e.ids) {
+          hpLeft.set(id, c.enemyById(id)?.hp ?? 0);
+          if (e.type !== 'wave') st.enemyHp += c.enemyById(id)?.maxHp ?? 0;
+        }
       else if (e.type === 'finisher') {
         st.finishers++;
         if (e.stacks >= Math.round(T.meter.maxStacks)) st.maxStackFinishers++;
@@ -447,7 +522,20 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
       else if (e.type === 'guardOn') {
         guardSeen++;
         readsGuard = rng.next() < o.accuracy;
-      } else if (e.type === 'heroHurt' && e.source !== 'miss') st.hitsTaken++;
+      } else if (e.type === 'heroHurt') {
+        if (e.source !== 'miss') st.hitsTaken++;
+        st.hpLost += e.damage;
+        const k = e.source === 'perk' ? (e.perk ?? 'perk') : e.source;
+        st.hpBy[k] = (st.hpBy[k] ?? 0) + e.damage;
+        if (e.source === 'red' || e.source === 'bomb') {
+          st.hpRed += e.damage;
+          st.redsTaken++;
+        }
+      } else if (e.type === 'hit') {
+        st.hits++;
+        if (e.crit) st.crits++;
+      } else if (e.type === 'block') st.redsBlocked++;
+      else if (e.type === 'spawn' && isRed(e.kind)) st.redsSpawned++;
       if ((e.type === 'hit' || e.type === 'block' || e.type === 'wardBreak') && e.perfect) st.perfects++;
       if (e.type === 'hit' || e.type === 'block' || e.type === 'wardBreak') combos++;
     }
@@ -490,6 +578,9 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
           th.pending = planTwin(c, th.hand, other, rng, aim, gauss, readsGuard && guardSeen > 0);
         }
       tally(c.drainEvents());
+      comboTicks += c.combo;
+      ticks++;
+      if (c.combo > st.peakCombo) st.peakCombo = c.combo;
       st.seconds = t;
       run.sync();
     }
@@ -515,10 +606,15 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
       // wait out a finisher's stopped cursor and a frozen one
       if (!pending && t >= busyUntil && c.cursorHold <= 0 && c.freeze <= 0) pending = plan(c, rng, aim, gauss, readsGuard && guardSeen > 0);
       tally(c.drainEvents());
+      comboTicks += c.combo;
+      ticks++;
+      if (c.combo > st.peakCombo) st.peakCombo = c.combo;
       st.seconds = t;
       run.sync();
     }
   }
+  st.avgCombo = ticks ? comboTicks / ticks : 0;
+  st.healed = Math.max(0, run.hero.hp - hp0 + st.hpLost);
   st.won = run.phase !== 'defeat' && c.result === 'won';
   st.hpEnd = run.hero.hp / heroMaxHp(T, run.hero);
   return st;
@@ -663,10 +759,10 @@ export interface ActRow {
 
 /** Play `runs` whole runs per accuracy and summarise every act (as `hero`: Rowan by default; the same seeds for
  *  either hero, so the two compare run for run). */
-export function balance(tuning: Tuning, accuracies: number[], runs: number, seed = 1, maxAttempts = 6, acts = tuning.acts.length, hero?: HeroId): ActRow[] {
+export function balance(tuning: Tuning, accuracies: number[], runs: number, seed = 1, maxAttempts = 6, acts = tuning.acts.length, hero?: HeroId, avoid?: RelicId[]): ActRow[] {
   const rows: ActRow[] = [];
   for (const acc of accuracies) {
-    const results = Array.from({ length: runs }, (_, r) => playRun(tuning, { accuracy: acc, seed: (seed * 7919 + r * 104729 + Math.round(acc * 1000)) >>> 0, hero }, maxAttempts, acts));
+    const results = Array.from({ length: runs }, (_, r) => playRun(tuning, { accuracy: acc, seed: (seed * 7919 + r * 104729 + Math.round(acc * 1000)) >>> 0, hero, avoid }, maxAttempts, acts));
     for (let act = 0; act < acts; act++) {
       const entries = results.map((res) => res.acts[act]).filter((e) => !!e);
       const n = Math.max(1, entries.length);

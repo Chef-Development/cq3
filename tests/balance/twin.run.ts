@@ -4,6 +4,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { it } from 'vitest';
 import { balance, type ActRow } from '../../src/core/bot';
+import type { RelicId } from '../../src/data/relics';
 import { cloneTuning, mergeKnown } from '../../src/core/tuning';
 import { pts, twinTable } from './twin-table';
 
@@ -17,9 +18,11 @@ it('Rowan vs Sable', () => {
   const t0 = Date.now();
   // Rowan's rows don't depend on tuning.sable: ROWAN_CACHE=file keeps them between Sable-only tunings
   const cache = process.env.ROWAN_CACHE;
-  const rowan: ActRow[] = cache && existsSync(cache) ? JSON.parse(readFileSync(cache, 'utf8')) : balance(t, acc, runs, seed, 6, acts);
+  // AVOID=relic,...: both heroes leave these relics alone (to see a relic's share of the gap)
+  const avoid = (process.env.AVOID ?? '').split(',').filter(Boolean) as RelicId[];
+  const rowan: ActRow[] = cache && existsSync(cache) ? JSON.parse(readFileSync(cache, 'utf8')) : balance(t, acc, runs, seed, 6, acts, undefined, avoid);
   if (cache && !existsSync(cache)) writeFileSync(cache, JSON.stringify(rowan));
-  const sable = balance(t, acc, runs, seed, 6, acts, 'sable');
+  const sable = balance(t, acc, runs, seed, 6, acts, 'sable', avoid);
   const worst = Math.max(...rowan.flatMap((r, i) => [Math.abs(sable[i].firstTry - r.firstTry), Math.abs(sable[i].bossFirstTry - r.bossFirstTry) || 0]));
   process.stderr.write(`${twinTable(rowan, sable)}\nworst gap ${pts(worst)} points; sable ${JSON.stringify(t.sable)}; ${((Date.now() - t0) / 1000).toFixed(0)} s\n`);
 }, 1_800_000);

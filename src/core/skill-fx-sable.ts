@@ -18,7 +18,8 @@ const nthAlternating = (c: Combat, id: string): boolean => {
   return c.altStreak >= n && c.altStreak % n === 0;
 };
 
-/** Afterimage charges: one per half (perk keys afterimage0 = A's, afterimage1 = B's; the view may draw them). */
+/** Afterimage charges: one per half (perk keys afterimage0 = A's, afterimage1 = B's; the view may draw them), and
+ *  afterimageLeft: how many more it may stop this fight. */
 const AFTERIMAGE = ['afterimage0', 'afterimage1'];
 
 export const SABLE_SKILL_HOOKS: Record<string, FightHooks> = {
@@ -68,15 +69,21 @@ export const SABLE_SKILL_HOOKS: Record<string, FightHooks> = {
     },
   },
   // Afterimage (Shadowguard capstone): a block leaves an afterimage in that cursor's half (one charge per half); the
-  // next red to reach the hero is blocked by one for free (no damage, no combo break), A's charge first
+  // next red to reach the hero is blocked by one for free (no damage, no combo break), A's charge first. n of them a
+  // fight (perk key afterimageLeft): every block recharging it made Sable all but immune (as Shield Wall once did).
   afterimage: {
+    start: (c) => {
+      c.perk.afterimageLeft = every(c, 'afterimage');
+    },
     afterBlock: (c, x) => {
-      if (!x.echo) c.perk[AFTERIMAGE[x.hand > 0 ? 1 : 0]] = 1;
+      if (!x.echo && (c.perk.afterimageLeft ?? every(c, 'afterimage')) > 0) c.perk[AFTERIMAGE[x.hand > 0 ? 1 : 0]] = 1;
     },
     impact: (c, b) => {
       const k = AFTERIMAGE.find((id) => (c.perk[id] ?? 0) > 0);
       if (!k) return false;
       c.perk[k] = 0;
+      c.perk.afterimageLeft = Math.max(0, (c.perk.afterimageLeft ?? every(c, 'afterimage')) - 1);
+      if (c.perk.afterimageLeft <= 0) for (const id of AFTERIMAGE) c.perk[id] = 0; // spent for this fight
       c.perkFx('afterimage', 0, b.ownerId, b.pos);
       return true;
     },
