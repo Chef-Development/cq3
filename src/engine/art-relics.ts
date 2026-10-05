@@ -127,13 +127,13 @@ const RELIC_ICONS: Record<string, string[]> = {
   // ---------------------------------------------------------------- crit
   // an arrow in the bullseye
   sharpshooter: [
-    '........qQ',
-    '..xrrrx.hq',
-    '.r55555h..',
-    'r5&**&h5r.',
-    'r5*++h*5r.',
-    'r5*+H+*5r.',
-    'r5&**&*5r.',
+    '.......Q.Q',
+    '..xrrrx.qQ',
+    '.r55555Hq.',
+    'r5&**&H5r.',
+    'r5*++H*5r.',
+    'r5*+h+*5r.',
+    'r5&***&5r.',
     '.r55555r..',
     '..xrrrx...',
     '..........',
@@ -348,18 +348,18 @@ const RELIC_ICONS: Record<string, string[]> = {
     '.11111111.',
     '..........',
   ],
-  // a coin giving off heat
+  // a coin running hot, flames licking off it
   goldFever: [
-    '..P...P...',
-    '..p...p...',
-    '.p...p....',
-    '..yyggy...',
-    '.yGGggyY..',
-    'yGgCtgyyY.',
-    'yGgtTgyyY.',
-    'ygggyyyYY.',
-    '.yyyyyYY..',
-    '..YYYYz...',
+    '...P....P.',
+    '..pP.P.pP.',
+    '..pFpPpFp.',
+    '..oyggyyo.',
+    '.yGGgggyY.',
+    'yGgyYYgyyY',
+    'yGgYggYyyY',
+    'yggyYYyyYY',
+    '.yyyyyyYY.',
+    '..YYYYYz..',
   ],
   // ---------------------------------------------------------------- finisher
   // a broom with a violet swoosh
