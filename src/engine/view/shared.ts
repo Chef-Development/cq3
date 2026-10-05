@@ -172,28 +172,6 @@ export interface Ambient {
   phase: number;
 }
 
-export interface RainIcon {
-  key: string; // HUD icon
-  stat: 'atk' | 'maxHp' | 'comboPower';
-  amt: number; // share of the stat gain this icon delivers
-  total: number; // the whole gain for that stat (shown once)
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  phase: 'wait' | 'fall' | 'rest' | 'fly';
-  t: number; // performance.now() the current phase started
-  delay: number; // ms before it starts falling
-  floor: number;
-  fx: number;
-  fy: number;
-  tx: number; // HUD target
-  ty: number;
-  row: number; // statPulse index
-  idx: number;
-  first: boolean; // shows the "+N" when it lands
-}
-
 export interface Pending {
   at: number; // anim time
   fn: () => void;

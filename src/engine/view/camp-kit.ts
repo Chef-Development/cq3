@@ -6,7 +6,7 @@ import type Phaser from 'phaser';
 import { STAT_INFO, type StatId } from '../../data/gear';
 import { HERO_IDS, HEROES, type HeroFamily, type HeroId } from '../../data/heroes';
 import { heroStats, newHero, type Hero } from '../../core/combat';
-import { fmtStat, type StatBlock } from '../../core/gear';
+import { fmtTotal, type StatBlock } from '../../core/gear';
 import { levelProgress, pointsLeft } from '../../core/heroes';
 import { heroProgress, profileBuild } from '../../core/profile';
 import type { FightScene } from '../scene';
@@ -412,12 +412,24 @@ export interface Toast {
   text?: Array<{ text: string; col: number; bold?: boolean }>;
 }
 
+/**
+ * A stat before -> after as the toasts print it: whole numbers like the totals everywhere else ("16 > 17", "x2.0 >
+ * x2.2"), unless that would hide the change (then the precise form: "16.1 > 16.4").
+ */
+export function statPair(id: StatId, a: number, b: number): [string, string] {
+  const sa = fmtTotal(id, a);
+  const sb = fmtTotal(id, b);
+  if (sa !== sb) return [sa, sb];
+  const u = STAT_INFO[id].unit;
+  const fine = (v: number) => (u === 'mult' ? `x${v.toFixed(2)}` : u === 'pct' ? `${Math.round(v * 1000) / 10}%` : `${Math.round(v * 10) / 10}`);
+  return [fine(a), fine(b)];
+}
+
 /** Hero stat changes as toast lines (core stats first), before -> after. */
 export function statChanges(before: StatBlock, after: StatBlock, order: StatId[]): ToastLine[] {
   const out: ToastLine[] = [];
   for (const id of order) {
-    const a = fmtStat(id, before[id], false);
-    const b = fmtStat(id, after[id], false);
+    const [a, b] = statPair(id, before[id], after[id]);
     if (a === b) continue;
     out.push({ label: STAT_INFO[id].short, stat: id, from: a, to: b, good: after[id] > before[id] });
   }
@@ -996,30 +1008,19 @@ export class CampKit {
 }
 
 /** A stat's dot color (for rows too tight for its big HUD icon). */
-export function statDot(short: string): number {
-  switch (short) {
-    case 'HP':
-      return 0xe2333c;
-    case 'ATK':
-      return 0xb8c2d8;
-    case 'DEF':
-      return 0x4aa0f0;
-    case 'Crit':
-      return 0x5ad04a;
-    case 'Crit Dmg':
-      return 0xf05a48;
-    case 'Combo':
-      return 0x9ad8ff;
-    case 'Meter':
-      return 0x2a6ad8;
-    case 'Steady':
-      return 0xeef3fa;
-    case 'Luck':
-      return 0x78a83c;
-    default:
-      return 0x6aaef0;
-  }
-}
+const DOT: Record<StatId, number> = {
+  hp: 0xe2333c,
+  atk: 0xb8c2d8,
+  def: 0x4aa0f0,
+  critChance: 0x5ad04a,
+  critDmg: 0xf05a48,
+  comboPower: 0x9ad8ff,
+  meterGain: 0x2a6ad8,
+  steady: 0xeef3fa,
+  luck: 0x78a83c,
+  companion: 0x6aaef0,
+};
+export const statDot = (id: StatId): number => DOT[id];
 
 /** A stat's icon if it's small enough for a tight row (<= 9 px tall), else null. */
 export function smallStatIcon(id: StatId): string | null {
@@ -1034,7 +1035,7 @@ export function statMark(g: G, id: StatId, x: number, cy: number, alpha = 1): nu
     const [iw, ih] = iconSize(small);
     hudIcon(g, small, x + Math.round((9 - iw) / 2), Math.round(cy - ih / 2), 1, alpha);
   } else {
-    const c = statDot(STAT_INFO[id].short);
+    const c = statDot(id);
     g.fillStyle(INK, alpha);
     g.fillRect(x + 1, Math.round(cy) - 4, 7, 7);
     g.fillStyle(c, alpha);

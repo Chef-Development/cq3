@@ -3,7 +3,7 @@
 // Legendary orange, Mythic red (src/data/gear.ts RARITY_INFO).
 import type Phaser from 'phaser';
 import { BASE_BY_ID, EFFECTS, RARITY_INFO, SETS, SLOT_NAME, STAT_INFO, type GearRarity, type Slot, type StatId } from '../../data/gear';
-import { baseStats, bonusStats, fmtStat, itemName, slotOfItem, type Item } from '../../core/gear';
+import { baseStats, bonusStats, fmtStatShort, itemName, slotOfItem, statPower, zeroStats, type Item } from '../../core/gear';
 import type { Tuning } from '../../core/tuning';
 import { ITEM_ICON_SIZE } from '../art-gear';
 import { textWidth } from '../font';
@@ -213,13 +213,24 @@ export interface ItemLine {
   color: number;
   icon?: string; // hudIcon key
   stat?: StatId;
+  value?: number;
 }
 
-/** Everything an item says, top to bottom: its base stats, bonus stats, unique effect and set. */
+/** "+4 ATK", "+5% Meter fill": a stat as lists print it (whole numbers in plain units, plain names). */
+export const statText = (stat: StatId, v: number): string => `${fmtStatShort(stat, v)} ${STAT_INFO[stat].short}`;
+
+/** How much an amount of a stat is worth on the bag's power scale: ranks stats by size across their units. */
+export function statSize(t: Tuning, stat: StatId, v: number): number {
+  const one = zeroStats();
+  one[stat] = Math.abs(v);
+  return statPower(t, one);
+}
+
+/** Everything an item says, top to bottom: its base stats, bonus stats (short numbers), unique effect and set. */
 export function itemLines(t: Tuning, item: Item): ItemLine[] {
   const out: ItemLine[] = [];
-  for (const l of baseStats(t, item)) out.push({ text: `${fmtStat(l.stat, l.value)} ${STAT_INFO[l.stat].short}`, color: WHITE, icon: STAT_INFO[l.stat].icon, stat: l.stat });
-  for (const l of bonusStats(t, item)) out.push({ text: `${fmtStat(l.stat, l.value)} ${STAT_INFO[l.stat].short}`, color: 0x9ad8ff, icon: STAT_INFO[l.stat].icon, stat: l.stat });
+  for (const l of baseStats(t, item)) out.push({ text: statText(l.stat, l.value), color: WHITE, icon: STAT_INFO[l.stat].icon, stat: l.stat, value: l.value });
+  for (const l of bonusStats(t, item)) out.push({ text: statText(l.stat, l.value), color: 0x9ad8ff, icon: STAT_INFO[l.stat].icon, stat: l.stat, value: l.value });
   if (item.effect) out.push({ text: `${EFFECTS[item.effect].name}: ${EFFECTS[item.effect].text}`, color: 0xffb060 });
   const set = BASE_BY_ID[item.base]?.set;
   if (set) out.push({ text: `${SETS[set].name} set (${SETS[set].pieces.length})`, color: 0x8af06a });

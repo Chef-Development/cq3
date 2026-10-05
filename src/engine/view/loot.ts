@@ -14,7 +14,7 @@ import { itemByUid, replaces } from '../../core/profile';
 import type { FightScene } from '../scene';
 import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
-import { cellIcon, itemCell, itemKind, itemLines, itemName, rarityFace, rarityText } from './items';
+import { cellIcon, itemCell, itemKind, itemLines, itemName, rarityFace, rarityText, statSize } from './items';
 import { band, chevron, glow, GOLD, hudIcon, iconSize, rows } from './pixels';
 import { clamp01, easeBack, easeOut3, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
 import { ImagePool, ribbon, strip, tag, TextPool } from './ui';
@@ -853,12 +853,15 @@ export class LootView {
     if (kindA > 0) this.cardTexts.text(itemKind(item), cx, y, 0xdcd8f0, { ox: 0.5, oy: 0.5, alpha: kindA });
     y += 10;
     const statA = line(400);
-    // (the big HUD icons, like the heart, don't fit the line: those stats go without one)
-    const stats = itemLines(s.app.tuning, item)
+    // (the big HUD icons, like the heart, don't fit the line: those stats go without one); more than three: the three
+    // biggest, then "+N more" (the bag lists them all)
+    const all = itemLines(s.app.tuning, item)
       .filter((l) => l.stat)
       .map((l) => (l.icon && iconSize(l.icon)[1] > 9 ? { ...l, icon: undefined } : l));
+    const big = (l: (typeof all)[number]) => statSize(s.app.tuning, l.stat!, l.value ?? 0);
+    const stats = all.length > 3 ? [...[...all].sort((a, b) => big(b) - big(a)).slice(0, 3), { text: `+${all.length - 3} more`, color: 0xa8a0c8 }] : all;
     if (statA > 0 && stats.length) {
-      const parts = stats.slice(0, 4);
+      const parts = stats;
       const iw = (p: (typeof parts)[number]) => (p.icon ? iconSize(p.icon)[0] + 2 : 0);
       const total = parts.reduce((a, p) => a + iw(p) + textWidth(p.text, 1, false), 0) + (parts.length - 1) * 8;
       let x = Math.round(cx - total / 2);

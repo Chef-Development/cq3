@@ -9,14 +9,14 @@
 //            unworn Common and Uncommon at once (the count and the scrap are shown first; a second tap confirms).
 import type Phaser from 'phaser';
 import { BASE_BY_ID, RARITY_INFO, STAT_IDS, STAT_INFO, type StatId } from '../../data/gear';
-import { baseStats, bonusValue, fmtStat, itemPower, rerollCost, salvageValue, upgradeCost, type BonusRoll, type Item } from '../../core/gear';
+import { baseStats, bonusValue, fmtStat, fmtStatShort, itemPower, rerollCost, salvageValue, upgradeCost, type BonusRoll, type Item } from '../../core/gear';
 import { equippedIn, isEquipped, itemByUid, reroll, salvage, salvageAll, upgrade } from '../../core/profile';
 import { Rng } from '../../core/rng';
 import { HEROES } from '../../data/heroes';
 import { textWidth } from '../font';
 import { CampKit, D, GOLD_TXT, GREEN, pix, pixSize, RED, SCRAP_TXT, statChanges } from './camp-kit';
 import { ItemGrid, WornRow } from './item-grid';
-import { cellGlow, cellIcon, cellMarks, cellShine, fit, itemCell, rarityFace, rarityText, wrapText } from './items';
+import { cellGlow, cellIcon, cellMarks, cellShine, fit, itemCell, rarityFace, rarityText, statText, wrapText } from './items';
 import { button3d, chevron, glow, GOLD, NAVY, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
 import { FACE, isPressed, notePress, RIBBON, tag } from './ui';
@@ -338,8 +338,8 @@ export class ForgeScreen {
       kit.fx.burst(r.x + r.w - 20, r.y + r.h / 2, [0x9ad8ff, WHITE, 0xfff0a0], 14, 0.9, { kind: 'star', g: 20, life: 520 });
       const nb = it.bonus[line];
       if (!nb) return;
-      const was = `${fmtStat(from.stat, bonusValue(t, it, from))} ${STAT_INFO[from.stat].short}`;
-      const is = `${fmtStat(nb.stat, bonusValue(t, it, nb))} ${STAT_INFO[nb.stat].short}`;
+      const was = statText(from.stat, bonusValue(t, it, from));
+      const is = statText(nb.stat, bonusValue(t, it, nb));
       kit.toast({
         title: 'Rerolled!',
         ribbon: RIBBON.blue,
@@ -740,7 +740,7 @@ export class ForgeScreen {
         g.fillRect(r.x + 1, r.y + 1 + (step % 3) * 3, r.w - 2, 2);
       }
       texts.text(STAT_INFO[stat].name, r.x + 12, r.y + r.h / 2, on ? WHITE : 0xd8d0f0, { oy: 0.5 });
-      texts.text(fmtStat(stat, val), r.x + r.w - 4, r.y + r.h / 2, col, { bold: true, ox: 1, oy: 0.5 });
+      texts.text(fmtStatShort(stat, val), r.x + r.w - 4, r.y + r.h / 2, col, { bold: true, ox: 1, oy: 0.5 });
       if (sp >= 620 && sp < 1100) rows(g, r.x, r.y, r.w, r.h, 2, WHITE, 0.5 * (1 - (sp - 620) / 480));
     });
     const cost = rerollCost(t, it);

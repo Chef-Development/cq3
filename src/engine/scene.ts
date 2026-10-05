@@ -94,7 +94,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.overlays.gCards = this.add.graphics().setDepth(31.5);
     const mk = (key: string, depth = 12, bold = false) => (this.txt[key] = this.add.bitmapText(0, 0, bold ? FONT_BOLD : FONT, '').setDepth(depth));
     ['level', 'ability', 'comboLabel', 'speed', 'tier', 'debug', 'enemyName'].forEach((k) => mk(k));
-    ['heroHp', 'enemyHp', 'stat0', 'stat1', 'stat2', 'stat3', 'enemyAtk', 'combo', 'button', 'meterLabel', 'coins'].forEach((k) => mk(k, 12, true));
+    ['heroHp', 'enemyHp', 'combo', 'button', 'meterLabel', 'coins'].forEach((k) => mk(k, 12, true));
     ['ovTitle', 'ovSub', 'ovLine1', 'ovLine2', 'ovLine3', 'begin', 'banner', 'tCont', 'tContSub', 'tNew'].forEach((k) => mk(k, 32, true));
     this.overlays.createTexts();
     this.lastNow = performance.now();
@@ -414,22 +414,16 @@ export class FightScene extends Phaser.Scene implements View {
           hud.coinsPending += coins;
           // a finisher kill waits for the last blow; a normal kill for the hero's dash to land
           const delay = Math.max(f.h.state === 'dash' ? DASH_MS : 0, f.superFinalAt > this.anim ? f.superFinalAt - this.anim + 20 : 0);
-          // hold the boost choice until the burst, the coins and the stat rain have played out
+          // hold the boost choice until the burst and the coins have played out
           hold = Math.max(hold, delay * 1.3 + (isBoss ? 2300 : 1900));
           f.burstAt.set(id, this.anim + delay + DEATH_CHARGE_MS);
           f.lastBurstAt = this.anim + delay + DEATH_CHARGE_MS;
           this.later(delay, () => f.enemyDeath(id, coins, isBoss));
           break;
         }
-        case 'statGain': {
-          hud.statPending.atk += e.atk;
-          hud.statPending.maxHp += e.maxHp;
-          hud.statPending.comboPower += e.comboPower;
-          const at = (f.burstAt.get(e.enemyId) ?? this.anim) + 200 - this.anim;
-          const ev = e;
-          this.later(at, () => hud.statRain(ev.enemyId, ev.atk, ev.maxHp, ev.comboPower));
+        case 'statGain':
+          // a kill's small permanent gains are silent: the HP readout just ticks up with them
           break;
-        }
         case 'explode':
           bombX = bar.x(e.pos);
           bar.explodeFx = { x: bar.x(e.pos), r: e.radius * this.bar.w, until: now + 260 };
@@ -450,13 +444,14 @@ export class FightScene extends Phaser.Scene implements View {
           this.later(Math.max(0, f.lastBurstAt - this.anim + 180), () => {
             fx.iconFloat(f.h.x + 2, this.ground - 46, `+${amount}`, 0xff7aa8, 'heart');
             fx.burst(f.h.x, this.ground - 16, 0xff7aa8, 12, true, 0.8);
-            hud.statPulse[4] = performance.now();
+            hud.hpPulseAt = performance.now();
             this.app.audio.heal();
           });
           break;
         }
         case 'ability':
-          fx.floatNum(f.h.x, this.ground - 46, heroDef(this.app.run.hero.build?.id ?? 'rowan').ability.name, 0x9af0a0, 1);
+          // (named the first time each fight; then the plate's green timer shows it)
+          if (f.firstName('ability')) fx.floatNum(f.h.x, this.ground - 46, heroDef(this.app.run.hero.build?.id ?? 'rowan').ability.name, 0x9af0a0, 1);
           break;
         case 'speedUp':
           fx.judge(this.bar.x + this.bar.w / 2, 'Speed up!', 0xff9a3a, true, -14);
@@ -648,7 +643,6 @@ export class FightScene extends Phaser.Scene implements View {
     this.camp.draw(now);
     this.story.draw(now);
     this.hud.drawCoins(this.gTop, now);
-    this.hud.drawRain(this.gTop, now);
     this.fx.updateFloaters(now);
     this.transition.draw(now);
   }

@@ -181,7 +181,7 @@ export class Overlays {
   /** "New relic unlocked!": when the card on screen popped in (0 = not yet). */
   private unlockAt = 0;
   /** "Level up!" toast after a fight (the loot or the pick): the level reached, and when (performance.now). */
-  private levelToast: { level: number; at: number } | null = null;
+  private levelToast: { level: number; at: number; sting: boolean } | null = null;
   /** Act clear: the XP bar's level as last shown (its "Level up!" plays as the bar crosses into the next). */
   private xpLevel = 0;
   private xpUpAt = -1e9;
@@ -228,8 +228,7 @@ export class Overlays {
     if (next !== 'fight') this.relicSel = null;
     // levels the fight's kills brought: a toast as the loot (or the pick) comes up; the act clear's bar shows its own
     if ((next === 'loot' || next === 'boost') && s.app.run.takeLevelUps() > 0) {
-      this.levelToast = { level: this.heroLevel(), at: performance.now() };
-      s.later(150, () => s.app.audio.rareSting(true));
+      this.levelToast = { level: this.heroLevel(), at: performance.now(), sting: false };
     }
     if (next === 'actClear' && !this.backFromCamp) {
       s.app.run.takeLevelUps();
@@ -1026,10 +1025,21 @@ export class Overlays {
     return Math.max(0, heroProgress(app.profile).xp - app.run.actXpGained);
   }
 
-  /** "Level up! Lv 7": a gold ribbon sliding out under the hero plate after a fight, over whatever is on screen. */
+  /**
+   * "Level up! Lv 7": a gold ribbon sliding out under the hero plate after a fight, over whatever is on screen. One
+   * at a time: while a "New relic unlocked!" card is up it waits, and plays once that card is gone.
+   */
   private drawLevelToast(g: G, now: number): void {
     const t = this.levelToast;
     if (!t) return;
+    if (this.unlockActive()) {
+      t.at = now;
+      return;
+    }
+    if (!t.sting && now - t.at >= 150) {
+      t.sting = true;
+      this.s.app.audio.rareSting(true);
+    }
     const age = now - t.at;
     if (age > 2800) {
       this.levelToast = null;
@@ -1095,8 +1105,9 @@ export class Overlays {
     const gain = app.run.actXpGained;
     const label = lp.need > 0 ? (gain > 0 ? `+${Math.round(gain * k)} XP` : `${lp.into}/${lp.need} XP`) : 'Max level';
     this.texts.text(label, x + gw / 2, y + 5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
-    if (leveled) {
-      // "Level up!" pops out over the level chip and stays while the screen is up
+    if (leveled && !this.unlockActive()) {
+      // "Level up!" pops out over the level chip and stays while the screen is up (hidden while a "New relic
+      // unlocked!" card is up: one at a time)
       const rk = easeBack((now - this.xpUpAt) / 300, 1.8);
       const t = 'Level up!';
       const rw = Math.round((textWidth(t, 1, true) + 12) * Math.min(1, rk));

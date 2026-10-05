@@ -152,6 +152,27 @@ export function fmtStat(stat: StatId, v: number, signed = true): string {
   return `${sign}${a >= 20 ? Math.round(a) : Math.round(a * 10) / 10}`;
 }
 
+/**
+ * A stat as lists print it: whole numbers in plain units ("+4", "+5%", and crit damage as a percent too: "+16%"). A
+ * flat stat under 1 keeps one decimal and a percent is at least 1%, so a small stat never reads "+0". (fmtStat keeps
+ * the precise form for the forge's before -> after and the hero's totals.)
+ */
+export function fmtStatShort(stat: StatId, v: number, signed = true): string {
+  const sign = signed && v >= 0 ? '+' : v < 0 ? '-' : '';
+  const a = Math.abs(v);
+  if (STAT_INFO[stat].unit !== 'flat') return `${sign}${a > 0 ? Math.max(1, Math.round(a * 100)) : 0}%`;
+  return `${sign}${a > 0 && a < 0.95 ? Math.max(0.1, Math.round(a * 10) / 10) : Math.round(a)}`;
+}
+
+/** A hero's total as lists print it: like fmtStatShort unsigned, but crit damage stays a multiplier ("x2.2"). */
+export function fmtTotal(stat: StatId, v: number): string {
+  if (STAT_INFO[stat].unit === 'mult') return `x${(Math.round(v * 10) / 10).toFixed(1)}`;
+  return fmtStatShort(stat, v, false);
+}
+
+/** Whether a part of a stat is big enough to print (it wouldn't round away). */
+export const statShows = (stat: StatId, v: number): boolean => Math.abs(v) >= (STAT_INFO[stat].unit === 'flat' ? 0.05 : 0.0005);
+
 // ---------------------------------------------------------------- rolling items
 
 /** The item level of drops in act `act` (0-based) on map row `row`. */

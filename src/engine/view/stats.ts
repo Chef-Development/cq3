@@ -6,7 +6,7 @@ import type Phaser from 'phaser';
 import { CORE_STATS, STAT_IDS, STAT_INFO, type StatId } from '../../data/gear';
 import { HEROES, type HeroId } from '../../data/heroes';
 import { heroStats, newHero, type Hero } from '../../core/combat';
-import { emptyLoadout, fmtStat, itemPower, type StatBlock } from '../../core/gear';
+import { emptyLoadout, fmtStatShort, fmtTotal, itemPower, statShows, type StatBlock } from '../../core/gear';
 import { equippedItems } from '../../core/profile';
 import { HERO_FEET_X } from '../art';
 import { textWidth } from '../font';
@@ -212,12 +212,12 @@ export class StatsScreen {
       hudIcon(g, ic, c.x + 5 + Math.round((15 - iw) / 2), c.y + 5 + Math.round((13 - ih) / 2));
       const name = textWidth(STAT_INFO[id].name, 1, false) <= c.w - 27 ? STAT_INFO[id].name : STAT_INFO[id].short;
       texts.text(name, c.x + 23, c.y + 11, 0xe8e0ff, { oy: 0.5 });
-      const v = fmtStat(id, P.total[id], false);
+      const v = fmtTotal(id, P.total[id]);
       const big = textWidth(v, 2, true) <= c.w - 8;
       texts.text(v, c.x + c.w / 2, c.y + 27, WHITE, { bold: true, scale: big ? 2 : 1, ox: 0.5, oy: 0.5, extrude: big ? 1 : 0, extrudeCol: NAVY[1] });
       const gv = P.gear[id];
-      const has = Math.abs(gv) > 1e-9 && fmtStat(id, gv) !== '+0';
-      texts.text(has ? `${fmtStat(id, gv)} gear` : 'no gear', c.x + c.w / 2, c.y + c.h - 7, has ? GOLD_TXT : 0x8a84a8, { ox: 0.5, oy: 0.5 });
+      const has = statShows(id, gv);
+      texts.text(has ? `${fmtStatShort(id, gv)} gear` : 'no gear', c.x + c.w / 2, c.y + c.h - 7, has ? GOLD_TXT : 0x8a84a8, { ox: 0.5, oy: 0.5 });
     });
     const b = this.allButton();
     const bk = clamp01((since - 360) / 200);
@@ -263,7 +263,7 @@ export class StatsScreen {
       if (ih <= r.h - 4) hudIcon(g, ic, r.x + 3 + Math.round((15 - iw) / 2), r.y + Math.round((r.h - ih) / 2), 1, a);
       else statMark(g, id, r.x + 6, r.y + r.h / 2, a);
       texts.text(STAT_INFO[id].name, r.x + 21, r.y + 5, on ? WHITE : 0xe8e0ff, { bold: true, oy: 0.5, alpha: a });
-      texts.text(fmtStat(id, P.total[id], false), r.x + r.w - 4, r.y + 5, on ? 0xfff0a0 : WHITE, { bold: true, ox: 1, oy: 0.5, alpha: a });
+      texts.text(fmtTotal(id, P.total[id]), r.x + r.w - 4, r.y + 5, on ? 0xfff0a0 : WHITE, { bold: true, ox: 1, oy: 0.5, alpha: a });
       // where it comes from: base, +run, +gear
       let x = r.x + 21;
       const y = r.y + r.h - 4;
@@ -271,8 +271,8 @@ export class StatsScreen {
         texts.text(txt, x, y, col, { oy: 0.5, alpha: a });
         x += textWidth(txt, 1, false) + 3;
       };
-      part(fmtStat(id, P.base[id], false), PART_COL.base);
-      for (const k of ['level', 'skills', 'run', 'gear'] as const) if (Math.abs(P[k][id]) > 1e-9 && fmtStat(id, P[k][id]) !== '+0') part(fmtStat(id, P[k][id]), PART_COL[k]);
+      part(fmtTotal(id, P.base[id]), PART_COL.base);
+      for (const k of ['level', 'skills', 'run', 'gear'] as const) if (statShows(id, P[k][id])) part(fmtStatShort(id, P[k][id]), PART_COL[k]);
     });
     // the picked stat's description
     const last = this.row(STAT_IDS.length - 1);

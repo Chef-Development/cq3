@@ -6,6 +6,8 @@ import {
   baseStats,
   bonusValue,
   fmtStat,
+  fmtStatShort,
+  fmtTotal,
   itemLevel,
   itemPower,
   itemStats,
@@ -19,6 +21,7 @@ import {
   rollSignatures,
   salvageValue,
   signatureChance,
+  statShows,
   upgradeCost,
   type Item,
 } from '../../src/core/gear';
@@ -146,6 +149,24 @@ describe('stat math', () => {
     expect(fmtStat('luck', 0.12)).toBe('+12%');
     expect(fmtStat('critDmg', 0.15)).toBe('+0.15x');
     expect(fmtStat('def', -3)).toBe('-3');
+  });
+
+  it('prints stats short for lists: whole numbers in plain units, never "+0"', () => {
+    expect(fmtStatShort('atk', 3.8)).toBe('+4');
+    expect(fmtStatShort('atk', 0.25)).toBe('+0.3');
+    expect(fmtStatShort('atk', 0.01)).toBe('+0.1');
+    expect(fmtStatShort('hp', -8.4)).toBe('-8');
+    expect(fmtStatShort('critChance', 0.052)).toBe('+5%');
+    expect(fmtStatShort('luck', 0.003)).toBe('+1%');
+    expect(fmtStatShort('critDmg', 0.16)).toBe('+16%');
+    expect(fmtStatShort('steady', 0.091, false)).toBe('9%');
+    expect(fmtStatShort('def', 0, false)).toBe('0');
+    expect(fmtTotal('critDmg', 2.16)).toBe('x2.2');
+    expect(fmtTotal('atk', 16.1)).toBe('16');
+    expect(fmtTotal('critChance', 0.077)).toBe('8%');
+    expect(statShows('atk', 0.04)).toBe(false);
+    expect(statShows('atk', 0.06)).toBe(true);
+    expect(statShows('critChance', 0.001)).toBe(true);
   });
 });
 

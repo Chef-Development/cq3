@@ -96,7 +96,7 @@ export const DEFAULT_TUNING = {
     m3: 3,
   },
   kill: {
-    // Every kill permanently raises the hero's stats for the rest of the run (the icons rain into the HUD).
+    // Every kill permanently raises the hero's stats for the rest of the run (quietly: the HP readout ticks up).
     // Small: an act has many kills, and the boost picks after each fight carry most of the growth.
     atk: 0.25,
     maxHp: 1,

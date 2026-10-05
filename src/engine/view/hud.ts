@@ -1,13 +1,15 @@
-// The HUD: hero plate (the fighting hero's portrait and level, HP, stats, coins, revives), the relic belt under it
-// (every relic carried; one pulses when it kicks in; a tap opens the relic panel), enemy plate (badge, HP, attack,
-// name), the act and foe counters, the combo counter, the finisher strip under the bar (meter, banked stacks with
-// Overcharge's countdown, speed) and button, plus the kill rewards that fly into it (coins and stat icons). Panels
-// are dark navy with a light bevel and an ink outline (see pixels.ts panel); everything slides in with a little
-// overshoot when a fight starts.
+// The HUD: hero plate (the fighting hero's portrait and level, the HP bar; under it the coins and a potion lit while a
+// revive is left), the relic belt under that (up to five icons, then "+N"; one pulses when it kicks in; a tap opens
+// the relic panel), enemy plate (badge, HP, name), the act and foe counters, the combo counter, the finisher strip
+// under the bar (meter, banked stacks with Overcharge's countdown, speed) and button, and the coins that fly into
+// the coin chip. The fight shows only what you act on: the hero's other stats live in the camp. A stat that went up
+// since the last fight (a boost, new gear) gets one line under the plate as the fight starts: the biggest gain.
+// Panels are dark navy with a light bevel and an ink outline (see pixels.ts panel); everything slides in with a
+// little overshoot when a fight starts.
 import Phaser from 'phaser';
 import { heroStats, type Combat } from '../../core/combat';
-import { fmtStat, type StatBlock } from '../../core/gear';
-import { STAT_INFO, type StatId } from '../../data/gear';
+import { fmtStatShort, type StatBlock } from '../../core/gear';
+import { STAT_IDS, STAT_INFO, type StatId } from '../../data/gear';
 import type { RelicId } from '../../data/relics';
 import { relicNumber } from '../../core/relics';
 import type { FightScene } from '../scene';
@@ -15,34 +17,27 @@ import { textWidth } from '../font';
 import { GAME_W } from '../layout';
 import { band, button3d, chevron, gauge, gem, glow, GOLD, hudIcon, iconSize, NAVY, panel, RAMP, rows } from './pixels';
 import { FOE_ICONS } from './icons';
-import { clamp01, ease, easeBack, ENEMY_COL, inRect, INK, mix, pulse, rand, shade, stackCol, WHITE, type RainIcon, type Rect } from './shared';
+import { clamp01, ease, easeBack, ENEMY_COL, inRect, INK, mix, pulse, rand, shade, stackCol, WHITE, type Rect } from './shared';
 import { ImagePool, tag, TextPool } from './ui';
 import { relicIcon } from './relic-ui';
+import { statSize } from './items';
 
 type G = Phaser.GameObjects.Graphics;
 
 /** 17062 -> "17.1k" (rounded up, so a foe never reads as dead early). */
 const kNum = (n: number): string => (n < 10000 ? `${n}` : n < 100000 ? `${Math.ceil(n / 100) / 10}k` : `${Math.ceil(n / 1000)}k`);
 
-/** The stats the plate doesn't show (gear brings them): a gain in one floats up under the plate. */
-const HIDDEN: StatId[] = ['def', 'critDmg', 'meterGain', 'steady', 'luck', 'companion'];
-const hiddenStats = (st: StatBlock): Record<string, number> => Object.fromEntries(HIDDEN.map((k) => [k, st[k]]));
-/** The plate's stats: the row each pulses (statPulse) and how a gain reads. */
-const SHOWN: Record<string, { row: number; label: (d: number) => string }> = {
-  atk: { row: 0, label: (d) => `+${Math.round(d * 10) / 10}` },
-  crit: { row: 1, label: (d) => `+${Math.round(d)}%` },
-  cp: { row: 2, label: (d) => `+${Math.round(d * 10) / 10}` },
-  hp: { row: 4, label: (d) => `+${Math.round(d)} Max HP` },
-};
-
 /** The fight's foe counter: foes beaten so far and every foe in its waves. */
 const foeCount = (c: Combat): { beaten: number; total: number } => ({ beaten: c.foesBeaten, total: c.foesTotal });
 
 /** Where the portrait's face sits inside its 40x40 texture (top-left of the 18x18 window shown in the badge). */
 const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [14, 8] };
-/** The relic belt shows this many icons (more: the last slot reads "+N"), 13 px apart, under the coin chip. */
-const BELT_MAX = 7;
-const BELT_Y = 41;
+/** The hero plate: the HP plate's height, and the coin row under it (beside the portrait). */
+const PLATE_H = 14;
+const CHIP_Y = 20;
+/** The relic belt shows up to this many icons (more: "+N" after them), 13 px apart, under the portrait and coins. */
+const BELT_MAX = 5;
+const BELT_Y = 32;
 /** Combo milestones: the counter's progress bar fills toward the next one. */
 const MARKS: Array<[number, string]> = [
   [10, 'Nice!'],
@@ -59,15 +54,13 @@ export class Hud {
   private texts: TextPool;
   private portrait: Phaser.GameObjects.Image | null = null;
   heroHpShown = 0;
-  /** Stat gains from a kill whose icons are still in the air (the HUD shows them as they land). */
-  statPending = { atk: 0, maxHp: 0, comboPower: 0 };
-  statPulse = [-1e9, -1e9, -1e9, -1e9, -1e9]; // stat rows 0..3, then the HP bar
+  /** The HP readout pulses green (a heal, a max HP gain); the plate glows green with a gain line. */
+  hpPulseAt = -1e9;
+  private plateGlowAt = -1e9;
   coinsShown = 0;
   coinsPending = 0; // coins from kills whose burst hasn't spawned yet
   private coinFlights: Array<{ x0: number; y0: number; vx: number; vy: number; born: number; value: number }> = [];
   private lastCoinSound = 0;
-  private rain: RainIcon[] = [];
-  private lastRainNow = 0;
   comboPopAt = 0;
   comboBreakUntil = 0;
   stackPopAt = -1e9;
@@ -95,11 +88,12 @@ export class Hud {
   private comboInAt = -1e9;
   private meterPrev = 0;
   private sparkAt = 0;
-  /** The stats as last shown (without timed buffs), and gains waiting to be shown (after the plate slides in). */
-  private seen: Record<string, number> | null = null;
-  private gains: Array<{ key: string; d: number; at: number }> = [];
-  private hiddenAt = -1e9; // the last hidden-stat gain shown, and how many stacked under the plate
-  private hiddenN = 0;
+  /** The hero's stats as of the last fight (kill gains in a fight are silent), the fight they belong to, and the
+   *  one gain line waiting for the plate to slide in. */
+  private seen: StatBlock | null = null;
+  private seenFight: unknown = null;
+  private seenHero = '';
+  private gain: { text: string; hp: boolean; at: number } | null = null;
   /** Relic icons on the belt (over the HUD panels, under its flashes). */
   private pool: ImagePool;
   /** When each perk last kicked in (performance.now), and how often this fight (the relic panel says). */
@@ -117,8 +111,7 @@ export class Hud {
   /** New layout: anything in flight is dropped and the counters snap to the run. */
   reset(): void {
     const s = this.s;
-    this.rain = [];
-    this.statPending = { atk: 0, maxHp: 0, comboPower: 0 };
+    this.gain = null;
     // the portrait's texture is rebuilt with the layout: a fresh image
     this.portrait?.destroy();
     this.portrait = s.add.image(0, 0, 'portrait_rowan').setOrigin(0, 0).setDepth(10.2).setVisible(false);
@@ -154,7 +147,7 @@ export class Hud {
   relicBelt(dx = 0): { r: Rect; slots: Array<{ id: RelicId; r: Rect }>; more: number } | null {
     const owned = this.s.app.run.hero.relics;
     if (!owned.length) return null;
-    const shown = owned.length <= BELT_MAX ? owned.length : BELT_MAX - 1;
+    const shown = Math.min(BELT_MAX, owned.length);
     const more = owned.length - shown;
     const x0 = this.s.L + 3 + dx;
     const w = (shown + (more ? 1 : 0)) * 13 + 1;
@@ -227,118 +220,7 @@ export class Hud {
     return { x: this.s.L + 5, y: this.s.splitY - 5 };
   }
 
-  /** Stat icon centers in the hero plate (the stat rain flies to them). */
-  private statSlot(row: number): { x: number; y: number } {
-    const x0 = this.s.L + 3;
-    if (row === 4) return { x: x0 + 64, y: 7 };
-    return { x: x0 + (this.statX[row] ?? 32), y: 19 };
-  }
-  /** Stat icon centers, relative to the plate's left edge (measured each frame: values change width). */
-  private statX = [32, 56, 74];
-
-  // ------------------------------------------------------------------ kill rewards
-
-  /** Stat upgrades rain down where the enemy died, bounce, then fly into their HUD slots and tick the stats up. */
-  statRain(enemyId: number, atk: number, maxHp: number, comboPower: number): void {
-    const s = this.s;
-    const v = s.fighters.enemies.get(enemyId);
-    const boss = !!(v && s.app.tuning.enemies[s.app.run.combat?.enemyById(enemyId)?.key ?? '']?.boss);
-    const x0 = v ? v.x : GAME_W / 2 + 40;
-    const per = boss ? 3 : 2;
-    const items: Array<[RainIcon['stat'], string, number, number]> = [];
-    // [stat, icon, amount, pulse row]
-    if (atk) items.push(['atk', 'sword', atk, 0]);
-    if (comboPower) items.push(['comboPower', 'bolt', comboPower, 2]);
-    if (maxHp) items.push(['maxHp', 'heart', maxHp, 4]);
-    let idx = 0;
-    const now = performance.now();
-    for (const [stat, key, amt, row] of items) {
-      const slot = this.statSlot(row);
-      for (let k = 0; k < per; k++) {
-        this.rain.push({
-          key,
-          stat,
-          amt: amt / per,
-          total: amt,
-          x: x0 + rand(-24, 24),
-          y: rand(8, 22),
-          vx: rand(-20, 20),
-          vy: rand(70, 110),
-          phase: 'wait',
-          t: now,
-          delay: idx * 45,
-          floor: s.ground - 6 + rand(-2, 2),
-          fx: 0,
-          fy: 0,
-          tx: slot.x,
-          ty: slot.y,
-          row,
-          idx,
-          first: k === 0,
-        });
-        idx++;
-      }
-    }
-  }
-
-  /** Rain icons fall, bounce, rest a beat, then arc into the HUD (screen space, real time). */
-  drawRain(g: G, now: number): void {
-    const s = this.s;
-    const dt = Math.min(0.05, Math.max(0, (now - this.lastRainNow) / 1000));
-    this.lastRainNow = now;
-    for (let i = this.rain.length - 1; i >= 0; i--) {
-      const r = this.rain[i];
-      const age = now - r.t;
-      if (r.phase === 'wait') {
-        if (age < r.delay) continue;
-        r.phase = 'fall';
-        r.t = now;
-      } else if (r.phase === 'fall') {
-        r.vy += 900 * dt;
-        r.x += r.vx * dt;
-        r.y += r.vy * dt;
-        if (r.y >= r.floor && r.vy > 0) {
-          r.y = r.floor;
-          if (r.vy > 120) r.vy = -r.vy * 0.38;
-          else {
-            r.phase = 'rest';
-            r.t = now;
-            s.fx.burst(r.x, r.y + 5, 0xd8c8a0, 3, true, 0.4);
-          }
-        }
-      } else if (r.phase === 'rest') {
-        if (age > 70) {
-          r.phase = 'fly';
-          r.t = now;
-          r.fx = r.x;
-          r.fy = r.y;
-        }
-      } else {
-        const k = Math.min(1, age / 320);
-        const e = k * k * (3 - 2 * k);
-        r.x = r.fx + (r.tx - r.fx) * e;
-        r.y = r.fy + (r.ty - r.fy) * e - Math.sin(k * Math.PI) * 26;
-        if (k >= 1) {
-          this.rain.splice(i, 1);
-          this.statPending[r.stat] = Math.max(0, this.statPending[r.stat] - r.amt);
-          if (this.statPending[r.stat] < 1e-6) this.statPending[r.stat] = 0;
-          this.statPulse[r.row] = now;
-          s.fx.sparkle(r.tx, r.ty);
-          s.app.audio.statUp(r.idx);
-          if (r.first) {
-            const label = r.stat === 'maxHp' ? `+${Math.round(r.total)} Max HP` : `+${Math.round(r.total * 10) / 10}`;
-            s.fx.addFloater(r.tx + (r.stat === 'maxHp' ? 0 : 4), r.ty + 12, label, 0x9af06a, 1, true, 0, -12, 0, 700, false);
-          }
-          continue;
-        }
-      }
-      const [w, h] = iconSize(r.key);
-      const glowA = r.phase === 'fly' ? 0.5 : 0.25;
-      g.fillStyle(WHITE, glowA);
-      g.fillCircle(Math.round(r.x), Math.round(r.y), Math.max(w, h) * 0.7);
-      hudIcon(g, r.key, Math.round(r.x - w / 2), Math.round(r.y - h / 2));
-    }
-  }
+  // ------------------------------------------------------------------ coins
 
   /** Coins pop out at (x, y) and fly to the coin chip (`count`: how many coins show; by default 3 to 10). */
   dropCoins(x: number, y: number, total: number, count?: number): void {
@@ -354,8 +236,8 @@ export class Hud {
   /** Coins pop out, then home in on the coin counter; the counter ticks up as each one lands. */
   drawCoins(g: G, now: number): void {
     const s = this.s;
-    const tx = s.L + 3 + 5;
-    const ty = 3 + 31;
+    const tx = s.L + 3 + 27 + 5;
+    const ty = CHIP_Y + 5;
     for (let i = this.coinFlights.length - 1; i >= 0; i--) {
       const f = this.coinFlights[i];
       const age = (now - f.born) / 1000;
@@ -408,7 +290,7 @@ export class Hud {
     this.texts.hide();
     this.pool.hide();
     const txt = this.s.txt;
-    for (const k of ['level', 'heroHp', 'coins', 'stat0', 'stat1', 'stat2', 'stat3', 'ability', 'enemyName', 'enemyHp', 'enemyAtk', 'combo', 'comboLabel', 'speed', 'tier', 'meterLabel', 'button']) txt[k]?.setVisible(false);
+    for (const k of ['level', 'heroHp', 'coins', 'ability', 'enemyName', 'enemyHp', 'combo', 'comboLabel', 'speed', 'tier', 'meterLabel', 'button']) txt[k]?.setVisible(false);
   }
 
   drawPanel(now: number): void {
@@ -458,7 +340,7 @@ export class Hud {
     s.setText('debug', d ? `TAP ${d.outcome} ${d.cursorPos.toFixed(3)}  CAL ${S.calibrationMs}MS` : `CAL ${S.calibrationMs}MS`, GAME_W / 2, s.splitY - 9, 0xc8c8d4, 1, 0.5, 0, s.app.panelOpen && s.fightHud());
     if (!s.fightHud()) return;
     const txt = s.txt;
-    for (const k of ['level', 'heroHp', 'coins', 'stat0', 'stat1', 'stat2', 'stat3', 'ability', 'enemyName', 'enemyHp', 'enemyAtk', 'combo', 'comboLabel', 'speed', 'tier', 'meterLabel']) txt[k]?.setVisible(false);
+    for (const k of ['level', 'heroHp', 'coins', 'ability', 'enemyName', 'enemyHp', 'combo', 'comboLabel', 'speed', 'tier', 'meterLabel']) txt[k]?.setVisible(false);
     this.drawButton(now);
     this.texts.end();
     this.pool.end();
@@ -473,11 +355,11 @@ export class Hud {
     const H = run.hero;
     const x0 = s.L + 3 + dx;
     const y0 = 3;
-    // every number comes from heroStats (kill gains, boosts and gear); gains from a kill show up as their icons land
-    // (statPending holds back what's still in the air)
+    // every number comes from heroStats (kill gains, boosts and gear)
     const st = heroStats(T, H);
-    const maxHp = st.hp - this.statPending.maxHp;
-    const hpNow = Math.max(0, Math.min(maxHp, H.hp - this.statPending.maxHp));
+    const maxHp = st.hp;
+    const hpNow = Math.max(0, Math.min(maxHp, H.hp));
+    this.trackGains(now, st);
     // damage: the ghost holds a beat, then drains; healing: the bar jumps and the gain flashes
     if (H.hp < this.hpPrev) {
       this.hurtAt = now;
@@ -497,9 +379,11 @@ export class Hud {
     const shake = hurtK >= 0 && hurtK < 1 ? Math.round(Math.sin(hurtK * 30) * 2 * (1 - hurtK)) : 0;
     const X = x0 + shake;
 
-    // plate behind the gauge and stats
-    const plate: Rect = { x: X + 16, y: y0 + 1, w: 90, h: 23 };
+    // the plate: just the HP gauge, beside the portrait
+    const plate: Rect = { x: X + 16, y: y0 + 1, w: 90, h: PLATE_H };
     if (low) glow(g, plate, 0xff3a3a, 0.5 * beat, 3);
+    const gk = (now - this.plateGlowAt) / 600;
+    if (gk >= 0 && gk < 1) glow(g, plate, 0x9af06a, 0.6 * (1 - gk), 2);
     panel(g, plate, { alpha: 0.94 });
     // Keen Edge: a green timer running along the plate's top edge
     if (H.abilityTimer > 0) {
@@ -516,44 +400,17 @@ export class Hud {
       seg: 76 / 10 >= 3 ? Math.round(76 / 10) : 0,
       glow: low ? beat * 0.6 : healK >= 0 && healK < 1 ? 1 - healK : 0,
     });
-    const hpK = (now - Math.max(this.hpPopAt, this.statPulse[4])) / 160;
+    const hpK = (now - Math.max(this.hpPopAt, this.hpPulseAt)) / 160;
     const hpBump = hpK >= 0 && hpK < 1 ? -Math.round(2 * (1 - hpK)) : 0;
-    const hpCol = this.statPulse[4] > now - 300 ? 0xc8ff9a : hpK >= 0 && hpK < 0.5 ? 0xfff6c0 : WHITE;
+    const hpCol = this.hpPulseAt > now - 300 ? 0xc8ff9a : hpK >= 0 && hpK < 0.5 ? 0xfff6c0 : WHITE;
     this.texts.text(`${Math.ceil(this.hpNum)}/${maxHp}`, gx + 38, gy + 4 + hpBump, hpCol, { bold: true, ox: 0.5, oy: 0.5 });
 
     // the Tusk Crown's crit buff: a gold timer along the plate's bottom edge
     const c = run.combat;
-    const tusk = c && c.tuskTimer > 0 ? c.tuskCrit : 0;
-    if (tusk > 0 && c) {
+    if (c && c.tuskTimer > 0 && c.tuskCrit > 0) {
       g.fillStyle(0xffd23a, c.tuskTimer < 1 && Math.floor(now / 80) % 2 ? 0.4 : 1);
       g.fillRect(plate.x + 9, plate.y + plate.h - 1, Math.round((plate.w - 11) * clamp01(c.tuskTimer / Math.max(0.01, T.effects.tuskSec))), 1);
     }
-    // stats: attack, crit (with Keen Edge and the Tusk Crown's buff), combo power (icon + value), each pops when it
-    // ticks up; a gain from a boost or new gear pulses and shows how much once the plate is in (trackGains)
-    const atk = st.atk - this.statPending.atk * (1 + H.bonusDmg);
-    const crit = st.critChance + (H.abilityTimer > 0 ? T.hero.abilityCritBonus : 0) + tusk;
-    const cp = st.comboPower - this.statPending.comboPower;
-    this.trackGains(now, { atk: Math.round(atk), crit: Math.round(st.critChance * 100), cp: Math.round(cp * 10) / 10, hp: maxHp, ...hiddenStats(st) });
-    const stats: Array<[string, string]> = [
-      ['sword', `${Math.round(atk)}`],
-      ['crit', `${Math.round(crit * 100)}%`],
-      ['bolt', `${Math.round(cp * 10) / 10}`],
-    ];
-    let sx = gx - 1;
-    stats.forEach(([icon, val], i) => {
-      const [iw, ih] = iconSize(icon);
-      const pk = (now - this.statPulse[i]) / 320;
-      const hot = pk >= 0 && pk < 1;
-      const bump = hot ? -Math.round(2 * Math.sin(pk * Math.PI)) : 0;
-      this.statX[i] = sx - x0 + Math.floor(iw / 2);
-      if (hot) glow(g, { x: sx, y: y0 + 13, w: iw, h: ih - 1 }, 0x9af06a, 0.8 * (1 - pk), 2);
-      hudIcon(g, icon, sx, y0 + 13 + bump);
-      const keen = i === 1 && H.abilityTimer > 0;
-      const crown = i === 1 && tusk > 0;
-      const col = hot ? (Math.floor(pk * 6) % 2 ? WHITE : 0x9af06a) : crown ? 0xffd23a : keen ? 0x9af0a0 : WHITE;
-      this.texts.text(val, sx + iw + 1, y0 + 19 + bump, col, { oy: 0.5 });
-      sx += iw + 1 + textWidth(val, 1, false) + 4;
-    });
 
     // portrait badge: gold rim, the hero's face; flashes red when hit, beats red at low HP
     const b: Rect = { x: X, y: y0, w: 22, h: 22 };
@@ -584,74 +441,77 @@ export class Hud {
     tag(gt, lr, [GOLD[4], GOLD[3], GOLD[2], GOLD[1]]);
     this.texts.text(lv, lr.x + 3, lr.y + 4, 0x3a1e08, { oy: 0.5 });
 
-    // second row: coins and revives
+    // under the plate, beside the portrait: coins, and a potion (lit while a revive is left)
     const coins = this.coinsShown;
     if (coins !== this.coinsPrev) {
       if (coins > this.coinsPrev) this.coinPopAt = now;
       this.coinsPrev = coins;
     }
-    const cw = 13 + textWidth(`${coins}`, 1, true);
-    const cr: Rect = { x: X, y: y0 + 26, w: cw, h: 10 };
+    const cr = this.coinChip(X, coins);
     const ck = (now - this.coinPopAt) / 200;
     const cpop = ck >= 0 && ck < 1;
     tag(g, cr, [NAVY[5], NAVY[3], NAVY[2], NAVY[1]], 0.94);
     if (cpop) glow(g, cr, 0xffe680, 0.7 * (1 - ck), 2);
     hudIcon(g, 'coin', cr.x + 1, cr.y + 0 - (cpop ? Math.round(2 * Math.sin(ck * Math.PI)) : 0));
     this.texts.text(`${coins}`, cr.x + 11, cr.y + 5, cpop && ck < 0.5 ? WHITE : 0xffe680, { bold: true, oy: 0.5 });
-    const rr: Rect = { x: cr.x + cw + 4, y: cr.y, w: 18, h: 10 };
-    tag(g, rr, [NAVY[5], NAVY[3], NAVY[2], NAVY[1]], 0.94);
-    hudIcon(g, 'potionS', rr.x + 1, rr.y, 1, H.revives > 0 ? 1 : 0.45);
-    this.texts.text(`${H.revives}`, rr.x + 9, rr.y + 5, H.revives > 0 ? 0xffb0e0 : 0x8a84a0, { oy: 0.5, bold: true });
+    const [pw] = iconSize('potionS');
+    const rr: Rect = { x: cr.x + cr.w + 3, y: cr.y, w: pw + 4, h: 10 };
+    const lit = H.revives > 0;
+    tag(g, rr, lit ? [NAVY[5], NAVY[3], NAVY[2], NAVY[1]] : [NAVY[3], NAVY[1], NAVY[1], NAVY[0]], lit ? 0.94 : 0.7);
+    hudIcon(g, 'potionS', rr.x + 2, rr.y, 1, lit ? 1 : 0.3);
     this.drawBelt(g, now, dx);
   }
 
+  /** The coin chip under the HP plate, right of the portrait (the coins fly into it). */
+  private coinChip(X: number, coins: number): Rect {
+    return { x: X + 27, y: CHIP_Y, w: 13 + textWidth(`${coins}`, 1, true), h: 10 };
+  }
+
   /**
-   * A stat went up since the plate last showed it (a boost picked, new gear worn, a forge upgrade): it pulses and its
-   * gain floats up from it (one after another, once the plate has slid in). Kill gains show through their stat rain
-   * instead (that pulses the row as it lands), and a drop (a new run, a retry, gear taken off) just resets.
+   * The stats went up since the last fight (a boost picked, new gear worn, a forge upgrade): as the plate slides in,
+   * one line under it names the biggest gain ("+3 ATK"); nothing when nothing went up. Gains in a fight (kills) are
+   * silent, and a drop (a new run, a retry, gear taken off) or another hero just resets.
    */
-  private trackGains(now: number, vals: Record<string, number>): void {
-    const seen = this.seen;
-    this.seen = vals;
-    const P = this.statPending;
-    if (seen && !(P.atk || P.maxHp || P.comboPower)) {
-      const start = Math.max(now, this.inAt + 450, this.gains.length ? this.gains[this.gains.length - 1].at + 160 : 0);
-      let i = 0;
-      for (const [key, v] of Object.entries(vals)) {
-        const d = v - (seen[key] ?? v);
-        if (d <= 1e-6) continue;
-        const shown = SHOWN[key];
-        if (shown && now - this.statPulse[shown.row] < 150) continue; // the stat rain just landed it
-        this.gains.push({ key, d, at: start + i++ * 160 });
+  private trackGains(now: number, st: StatBlock): void {
+    const run = this.s.app.run;
+    const c = run.combat;
+    // boosts picked over the HUD (after a fight) wait for the next fight
+    if (run.phase !== 'fight' || !c) return;
+    if (c !== this.seenFight) {
+      this.seenFight = c;
+      this.gain = null;
+      // (another hero's stats aren't a gain)
+      const hero = run.hero.build?.id ?? 'rowan';
+      const seen = hero === this.seenHero ? this.seen : null;
+      this.seenHero = hero;
+      if (seen) {
+        let best: { id: StatId; d: number; p: number } | null = null;
+        for (const id of STAT_IDS) {
+          const d = st[id] - seen[id];
+          if (d <= 1e-6) continue;
+          const p = statSize(this.s.app.tuning, id, d);
+          if (!best || p > best.p) best = { id, d, p };
+        }
+        if (best) this.gain = { text: `${fmtStatShort(best.id, best.d)} ${best.id === 'hp' ? STAT_INFO.hp.name : STAT_INFO[best.id].short}`, hp: best.id === 'hp', at: Math.max(now, this.inAt + 450) };
       }
     }
-    for (let i = 0; i < this.gains.length; i++) {
-      const gn = this.gains[i];
-      if (now < gn.at) continue;
-      this.gains.splice(i--, 1);
-      this.showGain(gn.key, gn.d, now);
+    this.seen = st;
+    if (this.gain && now >= this.gain.at) {
+      this.showGain(this.gain.text, this.gain.hp, now);
+      this.gain = null;
     }
   }
 
-  private showGain(key: string, d: number, now: number): void {
+  /** The gain line: it rises out from under the hero's corner of the HUD, and the plate glows. */
+  private showGain(text: string, hp: boolean, now: number): void {
     const s = this.s;
-    const fx = s.fx;
-    const shown = SHOWN[key];
-    s.app.audio.statUp(shown?.row ?? 3);
-    if (shown) {
-      this.statPulse[shown.row] = now;
-      const slot = this.statSlot(shown.row);
-      fx.sparkle(slot.x, slot.y);
-      fx.addFloater(slot.x + (key === 'hp' ? 0 : 4), slot.y + 13, shown.label(d), 0x9af06a, 1, true, 0, -6, 0, 1100, false);
-      return;
-    }
-    // a stat the plate doesn't show: "+3 DEF" floats up under it (several stack)
-    const stat = key as StatId;
-    this.hiddenN = now - this.hiddenAt < 600 ? this.hiddenN + 1 : 0;
-    this.hiddenAt = now;
-    const text = `${fmtStat(stat, d)} ${STAT_INFO[stat].short}`;
-    const x = s.L + 3 + 50;
-    fx.addFloater(x, (this.relicBelt() ? 64 : 50) + this.hiddenN * 9, text, 0x9ad8ff, 1, true, 0, -10, 0, 1300, false);
+    s.app.audio.statUp(0);
+    this.plateGlowAt = now;
+    if (hp) this.hpPulseAt = now;
+    const x = s.L + 3 + 53;
+    const y = (this.relicBelt() ? BELT_Y + 14 : CHIP_Y + 10) + 8;
+    s.fx.sparkle(x, y - 4);
+    s.fx.addFloater(x, y, text, 0x9af06a, 1, true, 0, -6, 0, 1600, false);
   }
 
   /** A framed square badge: ink outline, a 2-tone metal rim, an ink line and a dark gradient well. */
@@ -723,15 +583,10 @@ export class Hud {
     const name = nameBold || textWidth(def.name, 1, false) <= 76 ? def.name : (def.name.split(' ').pop() ?? def.name);
     const nameCol = def.boss ? 0xffd23a : def.elite ? 0xffa060 : 0xdcd8f0;
     this.texts.text(name, gx, y0 + 18, nameCol, { bold: nameBold, oy: 0.5 });
-    // attack: a chip under the badge; a shell or protection (halves the damage it takes) pulses in a chip under that
-    const atk = `${target.atk}`;
-    const ar: Rect = { x: X - 15 - textWidth(atk, 1, true), y: y0 + 25, w: 15 + textWidth(atk, 1, true), h: 11 };
-    tag(g, ar, [0x6a6f98, 0x2e3252, 0x262a44, 0x181c30], 0.94);
-    hudIcon(g, 'sword', ar.x + 1, ar.y - 1);
-    this.texts.text(atk, ar.x + 13, ar.y + 6, WHITE, { bold: true, oy: 0.5 });
+    // a shell or protection (halves the damage it takes) pulses in a chip under the badge
     if (target.shell < 1 || (target.protect < 1 && c.summonsAlive(target.id))) {
       const k = pulse(now, 600);
-      const sr: Rect = { x: X - 33, y: y0 + 39, w: 33, h: 10 };
+      const sr: Rect = { x: X - 33, y: y0 + 26, w: 33, h: 10 };
       tag(g, sr, [0x4aa0f0, 0x1a3c8a, 0x16306e, 0x10204a], 0.94);
       glow(g, sr, 0x9ad8ff, 0.3 + 0.4 * k, 2);
       hudIcon(g, 'shield', sr.x + 1, sr.y + 1);

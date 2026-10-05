@@ -10,7 +10,8 @@ export const STAT_IDS: StatId[] = ['hp', 'atk', 'def', 'critChance', 'critDmg', 
 /** The four the stats screen leads with (a details page shows all ten). */
 export const CORE_STATS: StatId[] = ['hp', 'atk', 'def', 'critChance'];
 
-/** How a stat reads: its name, a short name for tight rows, its icon, how to print it, and what it does. */
+/** How a stat reads: its name, a short name for lists ("+4% Meter fill": plain words), its icon, how to print it, and
+ *  what it does. */
 export interface StatInfo {
   name: string;
   short: string;
@@ -27,10 +28,10 @@ export const STAT_INFO: Record<StatId, StatInfo> = {
   critChance: { name: 'Crit Chance', short: 'Crit', icon: 'crit', unit: 'pct', desc: 'Chance a hit crits.' },
   critDmg: { name: 'Crit Damage', short: 'Crit Dmg', icon: 'critx', unit: 'mult', desc: 'How hard a crit hits.' },
   comboPower: { name: 'Combo Power', short: 'Combo', icon: 'bolt', unit: 'flat', desc: 'Finisher damage per attack point.' },
-  meterGain: { name: 'Meter Gain', short: 'Meter', icon: 'meter', unit: 'pct', desc: 'Fills the finisher meter faster.' },
-  steady: { name: 'Steady', short: 'Steady', icon: 'clock', unit: 'pct', desc: 'The cursor speeds up slower with combo.' },
+  meterGain: { name: 'Meter Gain', short: 'Meter fill', icon: 'meter', unit: 'pct', desc: 'Fills the finisher meter faster.' },
+  steady: { name: 'Steady Cursor', short: 'Slower cursor', icon: 'clock', unit: 'pct', desc: 'The cursor speeds up slower with combo.' },
   luck: { name: 'Luck', short: 'Luck', icon: 'clover', unit: 'pct', desc: 'Rarer drops and more coins.' },
-  companion: { name: 'Companion Power', short: 'Pip', icon: 'feather', unit: 'flat', desc: "Damage of Pip's pecks." },
+  companion: { name: 'Companion Power', short: 'Pip dmg', icon: 'feather', unit: 'flat', desc: "Damage of Pip's pecks." },
 };
 
 export type Slot = 'weapon' | 'helm' | 'armor' | 'boots' | 'trinket';

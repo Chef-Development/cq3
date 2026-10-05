@@ -1,20 +1,21 @@
 // The Bag (a camp screen): the item grid, the six equipped slots, sorting (Rarity / Slot / New), and a card for the
-// selected item: its name in its rarity's color, kind and power, every stat it gives with how each one compares to
-// what's worn (green up, red down; stats it would lose in red), its unique effect, its set; Equip / Unequip and Lock.
+// selected item: its name in its rarity's color and kind, one verdict line (better or worse than what's worn, in
+// power), only the stats that would change (green up, red down; the item's full list one tap away), its unique
+// effect, its set; Equip / Unequip and Lock.
 // With nothing selected the card shows the picked hero's core stats and set bonuses (gear is shared by the heroes).
 // Equipping is loud: the icon flies into its slot, the slot flashes, and a toast lists each stat before -> after.
 import type Phaser from 'phaser';
 import { BASE_BY_ID, EFFECTS, RARITY_INFO, SETS, SLOT_NAME, STAT_IDS, STAT_INFO, CORE_STATS, slotOf, type Slot, type SlotKey, type StatId } from '../../data/gear';
-import { baseStats, bonusStats, fmtStat, itemName, itemPower, itemStats, setOf, slotOfItem, zeroStats, type Item, type StatBlock } from '../../core/gear';
+import { baseStats, bonusStats, fmtStatShort, fmtTotal, itemPower, itemStats, setOf, slotOfItem, statAmount, zeroStats, type Item, type StatBlock } from '../../core/gear';
 import { equip, equippedIn, equippedItems, isEquipped, itemByUid, profileLoadout, replaces, toggleLock, unequip, type SortMode } from '../../core/profile';
 import { HEROES } from '../../data/heroes';
 import { textWidth } from '../font';
-import { CampKit, D, DIM_TXT, GREEN, RED, statChanges } from './camp-kit';
+import { CampKit, D, DIM_TXT, GREEN, RED, statChanges, statMark } from './camp-kit';
 import { ItemGrid, WornRow } from './item-grid';
-import { cellGlow, cellIcon, cellMarks, cellShine, fit, itemCell, rarityText, wrapText } from './items';
+import { cellGlow, cellIcon, cellMarks, cellShine, fit, itemCell, rarityText, statSize, wrapText } from './items';
 import { GOLD, hudIcon, iconSize, NAVY, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, pulse, WHITE, type Rect } from './shared';
-import { FACE, notePress, RIBBON, tag } from './ui';
+import { FACE, isPressed, notePress, RIBBON, tag } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -35,6 +36,10 @@ export class BagScreen {
   private sortAt = -1e9;
   private statAt = new Map<StatId, { at: number; up: boolean }>();
   private lastStats: StatBlock | null = null;
+  /** The card's compare view, or the item's full list (a tap on the stat area or its Details tag flips it). */
+  private details = false;
+  private statsArea: Rect | null = null;
+  private detailsTag: Rect | null = null;
 
   constructor(private readonly kit: CampKit) {}
 
@@ -148,6 +153,14 @@ export class BagScreen {
         kit.fx.float(locked ? 'Locked!' : 'Unlocked', b.lock.x + b.lock.w / 2, b.lock.y - 6, locked ? 0xffe680 : 0xd8d0f0);
         return;
       }
+      // the stat area (or its Details tag): every stat the item has, or back to the compare
+      const dt = this.detailsTag;
+      if (it && ((dt && inRect(dt, x, y, 3)) || (this.statsArea && inRect(this.statsArea, x, y)))) {
+        if (dt) notePress(dt);
+        this.details = !this.details;
+        app.audio.uiClick();
+        return;
+      }
     }
   }
 
@@ -161,6 +174,7 @@ export class BagScreen {
     const kit = this.kit;
     this.sel = uid;
     this.selAt = now;
+    this.details = false;
     kit.fadeToast();
     const it = uid ? itemByUid(kit.profile, uid) : undefined;
     if (it?.fresh) {
@@ -260,7 +274,7 @@ export class BagScreen {
     if (this.sel && !itemByUid(p, this.sel)) this.sel = 0;
     // stats that just changed glow in the Rowan card
     const st = kit.stats();
-    if (this.lastStats) for (const id of STAT_IDS) if (fmtStat(id, st[id], false) !== fmtStat(id, this.lastStats[id], false)) this.statAt.set(id, { at: now, up: st[id] > this.lastStats[id] });
+    if (this.lastStats) for (const id of STAT_IDS) if (fmtTotal(id, st[id]) !== fmtTotal(id, this.lastStats[id])) this.statAt.set(id, { at: now, up: st[id] > this.lastStats[id] });
     this.lastStats = st;
 
     // top bar: Back, the title with the bag's fill
@@ -330,7 +344,7 @@ export class BagScreen {
       hudIcon(g, ic, ix + Math.round((15 - iw2) / 2), ry + Math.round((13 - ih) / 2));
       texts.text(STAT_INFO[id].name, ix + 18, ry + 7, 0xe8e0ff, { oy: 0.5 });
       const col = hot > 0 ? mix(WHITE, ch!.up ? GREEN : RED, 1 - hot * 0.3) : WHITE;
-      texts.text(fmtStat(id, st[id], false), ix + iw, ry + 6.5 - (hot > 0.7 ? 1 : 0), col, { bold: true, ox: 1, oy: 0.5 });
+      texts.text(fmtTotal(id, st[id]), ix + iw, ry + 6.5 - (hot > 0.7 ? 1 : 0), col, { bold: true, ox: 1, oy: 0.5 });
     });
     y += 4 * 15 + 3;
     kit.divider(g, ix, y, iw);
@@ -345,7 +359,10 @@ export class BagScreen {
       for (const b of def.bonuses) for (const l of wrapText(`${b.count}: ${b.text}`, iw - 4)) lines.push({ text: ` ${l}`, col: worn >= b.count ? 0xd8ffc0 : 0x7a8a7a });
     }
     for (const e of L.effects) lines.push({ text: EFFECTS[e].name, col: 0xffb060 });
-    const maxY = pr.y + pr.h - 22;
+    // the bottom hint: a full bag warns that new loot will melt into scrap (the lines above stop clear of it)
+    const full = p.items.length >= this.cap;
+    const hint = wrapText(full ? 'Bag full! New loot melts into scrap' : p.items.length ? 'Tap an item to compare it' : 'Win fights to find gear!', iw);
+    const maxY = pr.y + pr.h - 8 - (hint.length - 1) * 8 - 9;
     if (!lines.length) {
       texts.text('No set bonuses yet', ix, y, DIM_TXT, { oy: 0.5 });
       y += 8;
@@ -360,15 +377,17 @@ export class BagScreen {
         texts.text(l.text, ix, y, l.col, { oy: 0.5 });
         y += 8;
       }
-    // the bottom hint: a full bag warns that new loot will melt into scrap
-    const full = p.items.length >= this.cap;
-    const hint = full ? 'Bag full! New loot melts into scrap' : p.items.length ? 'Tap an item to compare it' : 'Win fights to find gear!';
-    wrapText(hint, iw).forEach((l, i, a) =>
+    hint.forEach((l, i, a) =>
       texts.text(l, pr.x + pr.w / 2, pr.y + pr.h - 8 - (a.length - 1 - i) * 8, full ? 0xff8a7a : 0xfff07a, { ox: 0.5, oy: 0.5, alpha: 0.55 + 0.45 * pulse(now, 1100) }),
     );
   }
 
-  /** The selected item's card: header, power, compare rows, effect, set, buttons. */
+  /**
+   * The selected item's card: the header, then ONE verdict line (better / worse / same power than what's worn, or
+   * nothing worn there), then only the stats that change ("+4 ATK" green, "-8 HP" red: at most four, the core four
+   * first, then "+N more"), its unique effect and its set. A tap on the stat area (or Details) lists every stat the
+   * item has instead. Equip / Unequip and Lock at the bottom.
+   */
   private drawItem(g: G, it: Item, pr: Rect, now: number): void {
     const kit = this.kit;
     const p = kit.profile;
@@ -406,7 +425,7 @@ export class BagScreen {
       texts.text(line, nx, y, rc, { bold: true, oy: 0.5 });
       y += 9;
     }
-    // "Lv 12 Epic Weapon" (the slot is left off when it doesn't fit: the icon and the "vs" line show it)
+    // "Lv 12 Epic Weapon" (the slot is left off when it doesn't fit: the icon shows it)
     const kindFull = `Lv ${it.ilvl} ${RARITY_INFO[it.rarity].name} ${SLOT_NAME[slotOfItem(it)]}`;
     // ("Lv 24 Legendary" too wide for the column wraps to two lines rather than losing the rarity)
     const kind = textWidth(kindFull, 1, false) <= nw ? kindFull : `Lv ${it.ilvl} ${RARITY_INFO[it.rarity].name}`;
@@ -416,92 +435,111 @@ export class BagScreen {
     }
     y = Math.max(y, cell.y + cell.h + 6);
 
-    // what goes in the body: this item's stats, the worn one's stats it lacks, its unique effect, its set
+    // the verdict
+    const pw = itemPower(t, it);
+    const dp = worn ? 0 : pw - (cur ? itemPower(t, cur) : 0);
+    this.verdict(g, { x: ix - 1, y: y - 6, w: iw + 2, h: 13 }, worn ? 'worn' : !cur ? 'empty' : dp > 0 ? 'better' : dp < 0 ? 'worse' : 'same', worn ? pw : dp);
+    y += this.details ? 13 : 14;
+
+    // the stat rows: the changes vs what's worn (compare), or every stat the item has (details; and a worn item)
     const next = itemStats(t, it);
     const now0: StatBlock = cur ? itemStats(t, cur) : zeroStats();
     const own = [...baseStats(t, it).map((l) => ({ ...l, bonus: false })), ...bonusStats(t, it).map((l) => ({ ...l, bonus: true }))];
-    const lost = worn ? [] : STAT_IDS.filter((s) => now0[s] > 1e-9 && next[s] <= 1e-9);
-    const effect = it.effect ? wrapText(`${EFFECTS[it.effect].name}: ${EFFECTS[it.effect].text}`, iw) : [];
+    const byImportance = (a: { stat: StatId; value: number }, b: { stat: StatId; value: number }) => {
+      const ca = CORE_STATS.indexOf(a.stat);
+      const cb = CORE_STATS.indexOf(b.stat);
+      if (ca >= 0 || cb >= 0) return (ca < 0 ? 99 : ca) - (cb < 0 ? 99 : cb);
+      return statSize(t, b.stat, b.value) - statSize(t, a.stat, a.value);
+    };
+    type Row = { stat: StatId; value: number; col: number; lc: number };
+    let list: Row[];
+    if (this.details) list = own.map((l) => ({ stat: l.stat, value: l.value, col: l.bonus ? 0xc0e8ff : WHITE, lc: l.bonus ? 0x9ad8ff : 0xd8d0f0 }));
+    else if (worn) list = [...own].sort(byImportance).map((l) => ({ stat: l.stat, value: l.value, col: WHITE, lc: 0xd8d0f0 }));
+    else
+      list = STAT_IDS.map((id) => ({ stat: id, value: next[id] - now0[id] }))
+        // (a sliver of a stat, like 0.1 ATK, isn't a change worth a line)
+        .filter((l) => Math.abs(l.value) >= statAmount(t, l.stat) * 0.1)
+        .sort(byImportance)
+        .map((l) => ({ ...l, col: l.value > 0 ? GREEN : RED, lc: 0xd8d0f0 }));
+    // its unique effect and its set
+    const effect = it.effect ? wrapText(this.details ? `${EFFECTS[it.effect].name}: ${EFFECTS[it.effect].text}` : EFFECTS[it.effect].text, iw) : [];
+    const setLines: Array<{ text: string; col: number; up?: boolean; cont?: boolean }> = [];
     const set = setOf(it);
-    const setLines: Array<{ text: string; col: number }> = [];
     if (set) {
       const def = SETS[set];
       const have = profileLoadout(p, t).sets[set] ?? 0;
       const would = worn ? have : have + 1 - (cur && setOf(cur) === set ? 1 : 0);
-      setLines.push({ text: fit(`${def.name} set ${have}/${def.pieces.length}`, iw), col: 0x8af06a });
-      for (const b of def.bonuses) for (const l of wrapText(`${b.count}: ${b.text}`, iw - 4)) setLines.push({ text: ` ${l}`, col: have >= b.count ? 0xd8ffc0 : would >= b.count ? 0xb4f070 : 0x7a8a7a });
+      // a bonus it would turn on: "Set 2/4: +10% max HP" (or just that one turns on, when its text is too long)
+      const on = def.bonuses.find((b) => have < b.count && would >= b.count);
+      const onText = on ? `Set ${would}/${def.pieces.length}: ${on.text}` : '';
+      if (on && !this.details) setLines.push({ text: textWidth(onText, 1, false) <= iw - 9 ? onText : `Set ${would}/${def.pieces.length}: a bonus turns on`, col: 0xb4f070, up: true });
+      else setLines.push({ text: `${def.name} set ${have}/${def.pieces.length}`, col: 0x8af06a });
+      if (this.details)
+        for (const b of def.bonuses)
+          wrapText(`${b.count}: ${b.text}`, iw - 6).forEach((l, i) => setLines.push({ text: i ? `   ${l}` : ` ${l}`, col: have >= b.count ? 0xd8ffc0 : would >= b.count ? 0xb4f070 : 0x7a8a7a, cont: i > 0 }));
     }
-    // fit it all above the buttons: fold the lost stats into one line, tighten the rows, drop the set's bonus
-    // lines, then the "vs" line (the unique effect always shows in full)
-    const bottom = this.buttons().equip.y - 2;
-    const lostLine = lost.length ? wrapText(`Loses ${lost.map((x) => STAT_INFO[x].short).join(', ')}`, iw) : [];
-    let foldLost = false;
-    let pitch = 8;
+    // fit it all above the buttons: fewer stat rows in compare (they fold into "+N more"), then a tighter pitch and
+    // fewer set lines in details
+    const bottom = this.buttons().equip.y - 4;
+    let pitch = this.details ? 8 : 10;
+    let shown = this.details ? list.length : Math.min(4, list.length);
     let setShown = setLines.length;
-    let vsShown = true;
-    const need = () =>
-      9 + (vsShown ? 10 : 0) + 6 + (own.length + (foldLost ? lostLine.length : lost.length)) * pitch + (effect.length ? effect.length * pitch + 2 : 0) + (setShown ? setShown * pitch + 2 : 0);
-    const avail = bottom - y + 2;
-    if (need() > avail) foldLost = true;
-    if (need() > avail) pitch = 7;
-    if (need() > avail) setShown = Math.min(1, setShown);
-    if (need() > avail) vsShown = false;
-
-    // power, and what it's compared with
-    const pw = itemPower(t, it);
-    const dp = worn ? 0 : pw - (cur ? itemPower(t, cur) : 0);
-    texts.text('Power', ix, y, 0xc8c0e8, { oy: 0.5 });
-    texts.text(`${pw}`, ix + textWidth('Power', 1, false) + 3, y, WHITE, { bold: true, oy: 0.5 });
-    if (!worn) {
-      const txt = dp >= 0 ? `+${dp}` : `${dp}`;
-      const col = dp > 0 ? GREEN : dp < 0 ? RED : DIM_TXT;
-      texts.text(txt, ix + iw, y, col, { bold: true, ox: 1, oy: 0.5 });
-      if (dp !== 0) arrow(g, ix + iw - textWidth(txt, 1, true) - 7, y - 2, dp > 0, col);
-    } else {
-      const r = { x: ix + iw - 27, y: y - 5, w: 27, h: 10 };
-      tag(g, r, [GOLD[4], GOLD[3], GOLD[2], GOLD[0]]);
-      texts.text('Worn', r.x + r.w / 2, r.y + 5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    // the Details / Compare toggle sits at the end of the last stat row when it fits there, else on a row of its own
+    // (with "+N more" when some rows are folded away)
+    const tl = this.details ? (worn ? 'Less' : 'Compare') : 'Details';
+    const tw = textWidth(tl, 1, false) + 8;
+    // (the full list is plainer: regular type, so a long one packs tight)
+    const bold = !this.details;
+    const rowW = (l: Row) => 11 + textWidth(fmtStatShort(l.stat, l.value), 1, bold) + 3 + textWidth(STAT_INFO[l.stat].short, 1, false);
+    const ownRow = () => shown < list.length || !shown || rowW(list[shown - 1]) + 4 + tw > iw;
+    const need = () => (shown || 1) * pitch + (ownRow() ? 10 : 0) + (effect.length ? effect.length * 8 + 2 : 0) + (setShown ? setShown * 8 + 1 : 0);
+    const avail = bottom - y + 4;
+    while (need() > avail && !this.details && shown > 2) shown--;
+    if (need() > avail) pitch = 8;
+    // (a set bonus goes whole: never half of its wrapped text)
+    while (need() > avail && setShown > 1) {
+      setShown--;
+      while (setShown > 1 && setLines[setShown]?.cont) setShown--;
     }
-    y += 9;
-    if (vsShown) {
-      const kindName = SLOT_NAME[slotOfItem(it)];
-      const vs = worn ? `${HEROES[p.hero].name} wears this` : cur ? `vs ${itemName(cur)}` : kindName === 'Trinket' ? 'A trinket slot is free' : `${kindName} slot is empty`;
-      texts.text(fit(vs, iw), ix, y, worn ? 0xffe680 : 0x9890b8, { oy: 0.5 });
-      y += 10;
-    } else y += 1;
-    kit.divider(g, ix, y - 6, iw);
 
-    // the stat rows: what this item gives, and the change vs what's worn (a green band up, a red band down)
-    const colV = ix + iw - 36;
-    const row = (label: string, lc: number, val: string, vc: number, stat: StatId, d: number | null) => {
-      if (y > bottom - 3) return;
-      if (d !== null && Math.abs(d) > 1e-9) rows(g, colV + 2, y - 4, ix + iw - colV - 1, 8, 2, d > 0 ? 0x2a8a3a : 0x8a1a2a, 0.35);
-      texts.text(label, ix, y, lc, { oy: 0.5 });
-      texts.text(val, colV, y, vc, { ox: 1, oy: 0.5 });
-      if (d !== null) this.delta(stat, d, ix + iw, y);
+    const area: Rect = { x: ix - 2, y: y - 5, w: iw + 4, h: 0 };
+    if (!list.length) {
+      texts.text(worn || this.details ? 'No stats' : 'No stat changes', ix, y, DIM_TXT, { oy: 0.5 });
       y += pitch;
-    };
-    for (const l of own) row(STAT_INFO[l.stat].short, l.bonus ? 0x9ad8ff : 0xe8e0ff, compact(l.stat, l.value), l.bonus ? 0xc0e8ff : WHITE, l.stat, worn ? null : next[l.stat] - now0[l.stat]);
-    if (!foldLost) for (const x of lost) row(STAT_INFO[x].short, 0x9890b8, '-', 0x9890b8, x, -now0[x]);
-    else
-      for (const l of lostLine) {
-        texts.text(l, ix, y, RED, { oy: 0.5 });
-        y += pitch;
-      }
+    }
+    for (const l of list.slice(0, shown)) {
+      const mw = statMark(g, l.stat, ix, y);
+      const val = fmtStatShort(l.stat, l.value);
+      texts.text(val, ix + mw + 2, y, l.col, { bold, oy: 0.5 });
+      texts.text(STAT_INFO[l.stat].short, ix + mw + 2 + textWidth(val, 1, bold) + (bold ? 3 : 4), y + (bold ? 0.5 : 0), l.lc, { oy: 0.5 });
+      y += pitch;
+    }
+    const togRow = ownRow();
+    const more = list.length - shown;
+    if (more > 0) texts.text(`+${more} more`, ix, y, DIM_TXT, { oy: 0.5 });
+    const ty = togRow ? y : y - pitch;
+    const tr: Rect = { x: ix + iw - tw, y: ty - 5, w: tw, h: 10 };
+    const tp = isPressed(tr, now) ? 1 : 0;
+    tag(g, { ...tr, y: tr.y + tp }, [NAVY[6], NAVY[4], NAVY[3], NAVY[2]]);
+    texts.text(tl, tr.x + tr.w / 2, tr.y + 5 + tp, 0xfff0c0, { ox: 0.5, oy: 0.5 });
+    this.detailsTag = tr;
+    if (togRow) y += 10;
+    else y += 1;
+    area.h = y - 5 - area.y;
+    this.statsArea = area;
     if (effect.length) {
       y += 2;
       for (const l of effect) {
-        if (y > bottom - 3) break;
         texts.text(l, ix, y, 0xffb060, { oy: 0.5 });
-        y += pitch;
+        y += 8;
       }
     }
     if (setShown) {
-      y += 2;
+      y += 1;
       for (const l of setLines.slice(0, setShown)) {
-        if (y > bottom - 3) break;
-        texts.text(l.text, ix, y, l.col, { oy: 0.5 });
-        y += pitch;
+        if (l.up) arrow(g, ix + 1, y - 1, true, l.col);
+        texts.text(l.text, ix + (l.up ? 9 : 0), y, l.col, { oy: 0.5 });
+        y += 8;
       }
     }
 
@@ -514,20 +552,24 @@ export class BagScreen {
     kit.button(g, texts, lr, it.locked ? 'Unlock' : 'Lock', it.locked ? FACE.gold : FACE.navy, now, { bold: false });
   }
 
-  /** A compare delta at the row's right end: green "+x" up, red "-x" down, dim when it rounds to nothing. */
-  private delta(stat: StatId, d: number, right: number, y: number): void {
-    const txt = compact(stat, d);
-    const zero = /^[+-]?0(\.0+)?(%|x)?$/.test(txt.replace(/^[+-]/, '')) || Math.abs(d) < 1e-9;
-    const col = zero ? DIM_TXT : d > 0 ? GREEN : RED;
-    // small type: bold (10 px tall) would run into the next row at these pitches; the green/red band says it loud
-    this.kit.texts.text(zero ? '=' : txt, right, y, col, { ox: 1, oy: 0.5 });
+  /** The verdict band: "Better: +21 power" (green, up), "Worse: -12 power" (red, down), "Same power", "Nothing worn
+   *  here" (an empty slot), or "Worn: 103 power" (gold). */
+  private verdict(g: G, r: Rect, kind: 'better' | 'worse' | 'same' | 'empty' | 'worn', n: number): void {
+    const texts = this.kit.texts;
+    const look = {
+      better: { face: [0x8af06a, 0x235a2c, 0x1c4a24, 0x0e2a14] as const, col: GREEN, text: `Better: +${n} power`, arrow: true },
+      empty: { face: [0x8af06a, 0x235a2c, 0x1c4a24, 0x0e2a14] as const, col: GREEN, text: 'Nothing worn here', arrow: false },
+      worse: { face: [0xff8a7a, 0x5a2030, 0x4a1a26, 0x2a0a14] as const, col: RED, text: `Worse: ${n} power`, arrow: true },
+      same: { face: [NAVY[6], NAVY[3], NAVY[2], NAVY[1]] as const, col: 0xc8c0e8, text: 'Same power', arrow: false },
+      worn: { face: [GOLD[4], GOLD[3], GOLD[2], GOLD[1]] as const, col: 0x3a1e08, text: `Worn: ${n} power`, arrow: false },
+    }[kind];
+    tag(g, r, look.face);
+    const tw = textWidth(look.text, 1, true);
+    const w = tw + (look.arrow ? 9 : 0);
+    const x = Math.round(r.x + (r.w - w) / 2);
+    if (look.arrow) arrow(g, x + 1, r.y + 5, kind === 'better', look.col);
+    texts.text(look.text, x + (look.arrow ? 9 : 0), r.y + r.h / 2, look.col, { bold: true, oy: 0.5 });
   }
-}
-
-/** A stat as the tight compare rows print it: like fmtStat, but "+.17x" for multipliers. */
-export function compact(stat: StatId, v: number, signed = true): string {
-  const s = fmtStat(stat, v, signed);
-  return STAT_INFO[stat].unit === 'mult' ? s.replace(/^([+-]?)0\./, '$1.') : s;
 }
 
 /** A tiny up (green) or down (red) triangle, 5 x 3 inside an ink rim, top-left at (x, y). */
