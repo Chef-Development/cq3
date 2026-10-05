@@ -4,6 +4,7 @@
 // This file owns the layout, the layers, the animation clock, and routes core events to those modules.
 import Phaser from 'phaser';
 import type { Combat, CombatEvent } from '../core/combat';
+import { heroDef } from '../data/heroes';
 import type { Phase } from '../core/run';
 import type { App, View } from './app';
 import { buildArt } from './art';
@@ -286,25 +287,30 @@ export class FightScene extends Phaser.Scene implements View {
     let missX: number | undefined;
     let bombX: number | undefined;
     let riposte = -1;
-    for (const e of events) {
+    // a perk's blow is shown by its bolt (not again as its enemyHurt); a perk right after the meter's events banked stacks
+    let perkStruck = -1;
+    for (let i = 0; i < events.length; i++) {
+      const e = events[i];
+      const before = events[i - 1];
+      const after = events[i + 1];
       switch (e.type) {
         case 'hit': {
           const x = bar.x(e.pos);
           const perfect = e.perfect;
           if (perfect || e.crit) fx.judge(x, perfect ? 'Perfect!' : 'Crit!', perfect ? 0xfff07a : 0xff9a3a, true);
-          bar.cursorPulse(perfect ? 0xfff07a : kindCol(e.kind)[1]);
+          bar.cursorPulse(perfect ? 0xfff07a : kindCol(e.kind)[1], e.hand);
           bar.cursorHit(x, perfect ? 0x6aff5a : WHITE);
           if (perfect) fx.sparkle(x, barMid);
           hud.comboPopAt = now;
           hud.milestone(e.combo);
-          f.heroAttack(e.enemyId, e.damage, e.crit, perfect, e.combo);
+          f.heroAttack(e.enemyId, e.damage, e.crit, perfect, e.combo, false, e.hand, e.echo);
           break;
         }
         case 'block': {
           const x = bar.x(e.pos);
           if (e.perfect) fx.judge(x, 'Perfect!', 0xfff07a, true, e.cracked ? 6 : 0);
           if (!e.cracked) fx.replaceFloater('block', () => fx.addFloater(f.h.x - 4, this.ground - 44, 'Block!', WHITE, 1, true, 0, -18, 0, 520, true));
-          bar.cursorPulse(0x7ae0ff);
+          bar.cursorPulse(0x7ae0ff, e.hand);
           bar.cursorHit(x, e.perfect ? 0x6aff5a : 0x7ae0ff);
           hud.comboPopAt = now;
           hud.milestone(e.combo);
@@ -339,6 +345,12 @@ export class FightScene extends Phaser.Scene implements View {
           break;
         }
         case 'heroHurt': {
+          if (e.source === 'perk') {
+            // a relic's cost in HP (Glass Edge, Blood Price...): its name and the HP, in violet
+            f.perkHurt(e.perk ?? '', e.damage);
+            this.app.audio.hurt();
+            break;
+          }
           if (e.source === 'red' || e.source === 'bomb') f.enemyLunge(e.enemyId, 0.8);
           const delay = e.source === 'red' || e.source === 'bomb' ? 70 : 0;
           this.later(delay, () => {
@@ -355,6 +367,12 @@ export class FightScene extends Phaser.Scene implements View {
           break;
         }
         case 'enemyHurt': {
+          if (e.source === 'perk') {
+            // a perk's blow: its bolt shows it (perkFx), unless it came without one
+            if (e.enemyId === perkStruck) perkStruck = -1;
+            else f.enemyHurtFx(e.enemyId, e.damage, e.crit, false, fx.feel(fx.weight('hit') * 0.7));
+            break;
+          }
           if (e.source !== 'bomb') break; // hits and finishers show damage when the blow lands
           if (e.enemyId === riposte) {
             riposte = -1;
@@ -366,6 +384,27 @@ export class FightScene extends Phaser.Scene implements View {
         case 'gearFx':
           f.gearFx(e.fx, e.amount, e.enemyId, { missX, bombX });
           if (e.fx === 'riposte') riposte = e.enemyId;
+          break;
+        case 'perk':
+          // a relic, skill node or kit part kicked in
+          // (a blow when its enemyHurt follows; stacks when the meter's events came first; coins when they did)
+          if (
+            f.perkFx(e.id, e.amount, e.enemyId, {
+              strike: after?.type === 'enemyHurt' && after.source === 'perk' && after.enemyId === e.enemyId,
+              stacks: before?.type === 'meterFull',
+              coins: before?.type === 'coins' && before.id === e.id,
+              pos: e.pos,
+            })
+          )
+            perkStruck = e.enemyId;
+          break;
+        case 'coins':
+          // coins a perk found: they pop off the foe into the coin chip
+          f.perkCoins(e.id, e.amount);
+          break;
+        case 'morph':
+          // a block changed kind (Chain Reaction): it flashes as it turns
+          bar.morph(e.id);
           break;
         case 'kill': {
           const id = e.enemyId;
@@ -399,11 +438,11 @@ export class FightScene extends Phaser.Scene implements View {
           fx.floatNum(GAME_W / 2, 44, 'BOOM!', 0xff8a3a, 2);
           break;
         case 'finisher':
-          f.heroFinisher(e.damage, e.stacks);
+          f.heroFinisher(e.damage, e.stacks, e.targets);
           hold = Math.max(hold, f.superMs);
           break;
         case 'pet':
-          f.petAttack(e.enemyId, e.damage);
+          f.petAttack(e.enemyId, e.damage, e.crit);
           break;
         case 'heal': {
           // healing comes from the kill: it lands just after the burst
@@ -417,7 +456,7 @@ export class FightScene extends Phaser.Scene implements View {
           break;
         }
         case 'ability':
-          fx.floatNum(f.h.x, this.ground - 46, 'Keen Edge', 0x9af0a0, 1);
+          fx.floatNum(f.h.x, this.ground - 46, heroDef(this.app.run.hero.build?.id ?? 'rowan').ability.name, 0x9af0a0, 1);
           break;
         case 'speedUp':
           fx.judge(this.bar.x + this.bar.w / 2, 'Speed up!', 0xff9a3a, true, -14);
@@ -438,7 +477,7 @@ export class FightScene extends Phaser.Scene implements View {
           hud.stackPopAt = now;
           const m = this.meter;
           const bt = this.button;
-          fx.addFloater(bt.x + bt.w / 2 - 6, this.splitY - 8, e.stacks >= this.app.tuning.meter.maxStacks ? `x${e.stacks} MAX!` : `x${e.stacks}!`, stackCol(e.stacks)[1], 2, true, 0, -22, 0, 750, false);
+          fx.addFloater(bt.x + bt.w / 2 - 6, this.splitY - 8, e.stacks >= c.maxStacks() ? `x${e.stacks} MAX!` : `x${e.stacks}!`, stackCol(e.stacks)[1], 2, true, 0, -22, 0, 750, false);
           fx.chips(m.x + m.w / 2, m.y, m.w * 0.8, [WHITE, stackCol(e.stacks)[1], col], 12, -1);
           break;
         }
@@ -547,6 +586,7 @@ export class FightScene extends Phaser.Scene implements View {
           break;
         case 'defeat':
           hold = Math.max(hold, 900);
+          this.later(260, () => f.heroDown());
           break;
       }
     }

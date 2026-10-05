@@ -126,6 +126,7 @@ export interface HeroAnim {
   flashUntil: number;
   flashColor: number;
   lungeAt: number; // anim time of the last slash (small forward lunge)
+  down: boolean; // knocked out (the defeat): the KO pose until the next fight
 }
 
 export interface Floater {
@@ -141,6 +142,7 @@ export interface Floater {
   pop: boolean;
   count?: { to: number; dur: number; at?: number }; // a number that counts up from 0
   icon?: string; // HUD icon drawn in front of the text
+  relic?: string; // or a relic's icon (a perk kicking in)
 }
 
 export interface Particle {

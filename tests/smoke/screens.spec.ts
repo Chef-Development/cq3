@@ -314,3 +314,137 @@ test('camp: Sable joins after Act 1', async ({ page }) => {
   await frames(page, 20); // they appear by the fire in a puff of smoke
   await expect(page).toHaveScreenshot('sable-joins.png', shot);
 });
+
+// ------------------------------------------------------------------ relics and Sable (M4a)
+
+/** A run in its first fight (waiting for TAP TO BEGIN), the hero carrying `relics`. */
+async function firstFight(page: Page, relics: string[], hero: 'rowan' | 'sable' = 'rowan', taught = true): Promise<void> {
+  await page.evaluate(
+    ([relics, hero, taught]) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const app = (window as any).__cq3.app;
+      const p = app.profile;
+      if (hero === 'sable') {
+        p.sableMet = true;
+        p.heroes.sable.unlocked = true;
+        p.heroes.sable.xp = 900;
+      }
+      p.hero = hero;
+      p.twinTaught = taught;
+      app.setPhase(() => {
+        app.run.newRun();
+        app.run.skipScenes();
+        app.run.hero.relics = relics;
+        app.run.chooseNode(app.run.choices()[0]);
+      });
+    },
+    [relics, hero, taught] as const,
+  );
+}
+
+test('relic pick: relic cards, a Synergy! card and a stat card', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await firstFight(page, ['powderKeg', 'sharpshooter']);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.begin();
+    app.setPhase(() => app.run.offerBoosts(false, 'map'));
+    app.run.boostChoices = [
+      { id: 'relic', rarity: 'common', relic: 'quickDraw' },
+      { id: 'relic', rarity: 'epic', relic: 'mirrorGuard' },
+      { id: 'damage', rarity: 'rare' },
+    ];
+  });
+  await frames(page, 60);
+  await expect(page).toHaveScreenshot('relic-pick.png', shot);
+});
+
+test('relic belt and the relic panel in a fight', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await firstFight(page, ['powderKeg', 'sharpshooter', 'ironRhythm', 'photosynthesis', 'luckyPenny']);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.begin());
+  await frames(page, 60);
+  await expect(page).toHaveScreenshot('relic-belt.png', shot);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.userPaused = true;
+    app.syncClock(performance.now());
+    app.view.overlays.openRelics(2);
+  });
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('relic-panel.png', shot);
+});
+
+test('act clear: the build, the XP bar, a relic unlocked', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await firstFight(page, ['powderKeg', 'shortFuse', 'sapper', 'quickDraw', 'hoarder', 'sharpshooter']);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.begin();
+    app.setPhase(() => {
+      app.run.boostThen = 'actClear';
+      app.run.phase = 'boost';
+      app.run.boostChoices = [{ id: 'damage', rarity: 'common' }];
+    });
+    app.setPhase(() => app.run.pickBoost(0));
+  });
+  await frames(page, 50);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__cq3.app.view.overlays.actClearTap(-1, -1); // the chest bursts
+  });
+  await frames(page, 125);
+  await expect(page).toHaveScreenshot('act-clear-build.png', shot);
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('relic-unlocked.png', shot);
+});
+
+test('shop: relic rows, Haggler makes the first buy free', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.setPhase(() => {
+      app.run.newRun();
+      app.run.skipScenes();
+      app.run.hero.relics = ['haggler', 'powderKeg'];
+      app.run.coins = 75;
+      const m = app.run.map;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const shop = m.nodes.find((n: any) => n.type === 'shop');
+      const path = [shop.id];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      while (m.nodes[path[0]].row > 0) path.unshift(m.nodes.find((p: any) => p.next.includes(path[0])).id);
+      app.run.path = path.slice(0, -1);
+      app.run.chooseNode(shop.id);
+      app.run.shop[0] = { kind: 'boost', offer: { id: 'relic', rarity: 'rare', relic: 'overcharge' }, price: 60, sold: false };
+      app.run.shop[1] = { kind: 'boost', offer: { id: 'relic', rarity: 'common', relic: 'sharpshooter' }, price: 40, sold: false };
+      app.run.shop[2] = { kind: 'boost', offer: { id: 'crit', rarity: 'common' }, price: 30, sold: false };
+    });
+  });
+  await frames(page, 50);
+  await expect(page).toHaveScreenshot('shop-relics.png', shot);
+});
+
+test("Sable: the two tap zones on her first fight, then her two cursors' bar", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await firstFight(page, ['powderKeg', 'sharpshooter', 'overcharge'], 'sable', false);
+  await frames(page, 50);
+  await expect(page).toHaveScreenshot('twin-tutorial.png', shot);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.profile.twinTaught = true;
+    app.begin();
+  });
+  await frames(page, 75);
+  await expect(page).toHaveScreenshot('sable-bar.png', shot);
+});

@@ -427,7 +427,7 @@ export function statChanges(before: StatBlock, after: StatBlock, order: StatId[]
 // ------------------------------------------------------------------ sprites that need a crop, a flip or a tint
 
 /** Where each hero's face sits inside their 40x40 portrait (top-left of an 18x18 window), as the fight HUD shows it. */
-export const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [12, 6] };
+export const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [14, 8] }; // as hud.ts frames them
 
 export interface SpriteOpts {
   /** A window on the texture [x, y, w, h]: (x, y) then places the window's top-left. */

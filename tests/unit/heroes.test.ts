@@ -281,7 +281,7 @@ describe('skill previews', () => {
     powerStance: 'Combo 5 -> 6',
     quickHands: 'ATK 10 -> 11',
     lightGrip: 'Crit 5% -> 10%',
-    wiry: 'Max HP 100 -> 110',
+    wiry: `Max HP ${t.sable.maxHp} -> ${Math.round(t.sable.maxHp * 1.1)}`,
     evasion: 'DEF 0 -> 8',
     fleet: 'Meter +0% -> +10%',
     sharpFocus: 'Combo 5 -> 6',

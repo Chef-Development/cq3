@@ -515,7 +515,7 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
  */
 function wantsFinisher(c: Combat, risk: number): boolean {
   const M = c.tuning.meter;
-  const max = Math.max(1, Math.round(M.maxStacks));
+  const max = c.maxStacks(); // relics can raise it (Overcharge)
   if (c.stacks >= max) return true;
   const target = c.currentTarget();
   const kit = c.hands > 1 ? c.tuning.sable.fangMult : 1; // Twin Fang hits the target harder
