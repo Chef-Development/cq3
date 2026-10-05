@@ -296,7 +296,7 @@ export const DEFAULT_TUNING = {
     // Sable (Twin family): two cursors, one per half of the bar, each at the normal pass time (core/combat.ts).
     // Tuned with the bot against Rowan on the same tuning (tests/balance/twin.run.ts): within +/-10 points per act.
     atkMult: 0.7, // hits deal this share of Rowan's (two thumbs tap more often)
-    maxHp: 115, // more than Rowan's 100: a half-bar has fewer neighbours to save a wild tap, so more misses
+    maxHp: 125, // more than Rowan's 100: a half-bar has fewer neighbours to save a wild tap, so more misses
     widthMult: 0.55, // static block widths on Sable's bar (each half is a small bar: 0.5 = Rowan's crossing time)
     redWidthMult: 0.7, // red widths (0.6 = a cursor meets a red head-on about as long as Rowan's does; a little more: two hands)
     ambidextrous: 0.25, // Ambidextrous: a hit with the other hand than the last hit fills the meter this much more
