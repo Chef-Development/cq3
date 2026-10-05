@@ -4,13 +4,16 @@
 // chimneys smoking; the locked regions breathe under their haze (snow on Frostpeaks, the volcano puffing over
 // Ashfell, mist and wisps over Duskmire, Noonspire's island bobbing in the sky) behind padlocks. The Great
 // Pendulum's swing grows with the weights brought home; a flag flies over each Greenmarch act cleared.
-// Tap Greenmarch (anywhere on its land, Rowan or the plate) to start a run; a locked region rattles its padlock
-// and shows its name; the capital tells how many weights are home.
+// Tap Greenmarch (anywhere on its land, Rowan or the plate) to start a run (once an act is cleared: the act picker,
+// to replay a cleared act for its drops or go on with the story); a locked region rattles its padlock and shows its
+// name; the capital tells how many weights are home. The Camp button (bottom left) opens the camp.
 //
 // Everything animates from `now` (deterministic for the screenshot tests): textures were pre-rendered at boot,
 // so a frame only moves images, swaps their frames, and draws a modest number of rects.
 import type Phaser from 'phaser';
+import { itemLevel, type Item } from '../../core/gear';
 import { WEIGHTS_TOTAL } from '../../core/profile';
+import { BASE_BY_ID, SIGNATURES } from '../../data/gear';
 import type { FightScene } from '../scene';
 import {
   CLOUD_KINDS,
@@ -32,8 +35,11 @@ import { hash } from '../backdrop';
 import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
 import { cornerInset } from '../chrome';
-import { INK, WHITE } from './shared';
-import { TextPool } from './ui';
+import { cellIcon, itemCell } from './items';
+import { glyph, glyphSize } from './overlays';
+import { button3d, glow, NAVY, panel } from './pixels';
+import { easeBack, inRect, mix, pulse, INK, WHITE, type Rect } from './shared';
+import { FACE, ImagePool, isPressed, notePress, ribbon, RIBBON, TextPool } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
 type Img = Phaser.GameObjects.Image;
@@ -65,7 +71,14 @@ const DEPTH = {
   lock: 30.5,
   ui: 30.8,
   text: 30.9,
+  // the act picker, over everything on the world map
+  pick: 30.91,
+  pickIcon: 30.92,
+  pickText: 30.93,
 };
+
+/** The act picker's rows: one per act, cleared ones to replay (farm), the next to go on with, later ones locked. */
+const PICK_ROW_H = 28;
 
 // clouds drifting along the top and bottom of the map (texture, y, speed px/s, phase px)
 const CLOUDS: Array<[number, number, number, number]> = [
@@ -130,9 +143,17 @@ export class WorldView {
   private chosenAt = 0;
   private plate = { x: 0, y: 0, w: 0, h: 0 };
   private road: Array<[number, number]> = [];
+  /** The act picker (open since `at`, performance.now), and a locked row shaking. */
+  private picker: { at: number } | null = null;
+  private pickShake: { act: number; at: number } | null = null;
+  private gPick!: G;
+  private pickTexts: TextPool;
+  private pickIcons: ImagePool;
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, DEPTH.text);
+    this.pickTexts = new TextPool(s, DEPTH.pickText);
+    this.pickIcons = new ImagePool(s);
   }
 
   build(): void {
@@ -167,11 +188,13 @@ export class WorldView {
     this.frame = img('wm_frame', DEPTH.frame);
     img('wm_vignette', DEPTH.vignette);
     this.locks = WORLD_REGIONS.filter((r) => r.locked).map(() => img('padlock', DEPTH.lock, 0.5, 0.5));
-    for (const g of [this.g, this.gSea, this.gLand, this.gAir]) g?.destroy();
+    for (const g of [this.g, this.gSea, this.gLand, this.gAir, this.gPick]) g?.destroy();
     this.gSea = s.add.graphics().setDepth(DEPTH.sea);
     this.gLand = s.add.graphics().setDepth(DEPTH.land);
     this.gAir = s.add.graphics().setDepth(DEPTH.air);
     this.g = s.add.graphics().setDepth(DEPTH.ui);
+    this.gPick = s.add.graphics().setDepth(DEPTH.pick);
+    this.pickIcons.destroy();
     // the cart's stretch of road: from past Rowan to the capital's gate
     this.road = WORLD_ROAD.filter(([rx]) => rx >= 80);
   }
@@ -199,13 +222,98 @@ export class WorldView {
     return WORLD_REGIONS.find((r) => r.id === id) ?? null;
   }
 
+  // ------------------------------------------------------------------ the Camp button and the act picker
+
+  /** The Camp button: bottom left, over the open sea (clear of the island's landmarks). */
+  campButton(): Rect {
+    const s = this.s;
+    return { x: s.L + 5, y: s.B - 21, w: 56, h: 16 };
+  }
+
+  /** The act picker's panel. */
+  private pickPanel(): Rect {
+    const s = this.s;
+    const w = Math.min(272, s.R - s.L - 8);
+    const n = this.s.app.run.region.acts.length;
+    const h = 14 + n * (PICK_ROW_H + 2) + 3;
+    return { x: Math.round((s.L + s.R) / 2 - w / 2), y: Math.max(24, Math.round((s.B - h) / 2) + 6), w, h };
+  }
+
+  private pickRow(i: number): Rect {
+    const p = this.pickPanel();
+    return { x: p.x + 6, y: p.y + 13 + i * (PICK_ROW_H + 2), w: p.w - 12, h: PICK_ROW_H };
+  }
+
+  private playButton(i: number): Rect {
+    const r = this.pickRow(i);
+    return { x: r.x + r.w - 40, y: r.y + 5, w: 36, h: 16 };
+  }
+
+  private closeButton(): Rect {
+    const p = this.pickPanel();
+    return { x: p.x + p.w - 12, y: p.y - 6, w: 15, h: 15 };
+  }
+
+  /** Whether the act picker is open (tests and the keyboard look). */
+  get pickerOpen(): boolean {
+    return !!this.picker;
+  }
+
+  /** A tap while the act picker is open: an act's row (or its Play button), the close button, or outside it. */
+  private pickTap(x: number, y: number): void {
+    const s = this.s;
+    const app = s.app;
+    const run = app.run;
+    const now = performance.now();
+    if (now - (this.picker?.at ?? 0) < 200) return;
+    const close = () => {
+      this.picker = null;
+      app.audio.uiClick();
+    };
+    if (x < 0) return this.startAct(run.playableActs - 1);
+    if (inRect(this.closeButton(), x, y, 3)) {
+      notePress(this.closeButton());
+      return close();
+    }
+    for (let i = 0; i < run.region.acts.length; i++) {
+      if (!inRect(this.pickRow(i), x, y, 1)) continue;
+      if (i >= run.playableActs) {
+        this.pickShake = { act: i, at: now };
+        app.audio.uiClick();
+        return;
+      }
+      notePress(this.playButton(i));
+      return this.startAct(i);
+    }
+    if (!inRect(this.pickPanel(), x, y, 2)) close();
+  }
+
+  /** Into act `i` from the picker: the button sinks, Rowan hops, then the run starts there. */
+  private startAct(i: number): void {
+    const s = this.s;
+    this.chosenAt = performance.now();
+    s.app.audio.mapSelect();
+    window.setTimeout(() => {
+      this.chosenAt = 0;
+      this.picker = null;
+      if (s.app.run.phase === 'world') s.app.startAct(i);
+    }, 260);
+  }
+
   /** A tap on the world map (x < 0: the keyboard picks Greenmarch). */
   tap(x: number, y: number): void {
     const s = this.s;
     if (this.chosenAt) return;
+    if (this.picker) return this.pickTap(x, y);
+    const now = performance.now();
+    if (x >= 0 && inRect(this.campButton(), x, y, 3)) {
+      notePress(this.campButton());
+      s.app.audio.uiClick();
+      s.app.openCamp();
+      return;
+    }
     const t = x < 0 ? WORLD_REGIONS[0] : this.targetAt(x, y);
     if (!t) return;
-    const now = performance.now();
     if (t === 'capital') {
       this.info = { id: 'capital', at: now };
       s.app.audio.uiClick();
@@ -214,6 +322,13 @@ export class WorldView {
     if (t.locked) {
       this.rattle.set(t.id, now);
       this.info = { id: t.id, at: now };
+      s.app.audio.uiClick();
+      return;
+    }
+    // Greenmarch, once an act is cleared: choose which act to play
+    if (s.app.profile.actsCleared > 0) {
+      this.picker = { at: now };
+      this.info = null;
       s.app.audio.uiClick();
       return;
     }
@@ -228,15 +343,18 @@ export class WorldView {
   }
 
   private hide(): void {
-    for (const g of [this.g, this.gSea, this.gLand, this.gAir]) g.clear();
+    for (const g of [this.g, this.gSea, this.gLand, this.gAir, this.gPick]) g.clear();
     for (const i of this.imgs) i.setVisible(false);
     this.texts.hide();
+    this.pickTexts.hide();
+    this.pickIcons.hide();
+    this.picker = null;
   }
 
   draw(now: number): void {
     const s = this.s;
     if (s.app.run.phase !== 'world') return this.hide();
-    for (const g of [this.g, this.gSea, this.gLand, this.gAir]) g.clear();
+    for (const g of [this.g, this.gSea, this.gLand, this.gAir, this.gPick]) g.clear();
     this.texts.begin();
     for (const i of this.imgs) i.setVisible(true);
     const t = now / 1000;
@@ -248,6 +366,11 @@ export class WorldView {
     this.drawLocked(now, t);
     this.drawUi(now, t);
     this.texts.end();
+    this.pickTexts.begin();
+    this.pickIcons.begin();
+    if (this.picker) this.drawPicker(now);
+    this.pickIcons.end();
+    this.pickTexts.end();
   }
 
   // ------------------------------------------------------------------ the sea
@@ -729,7 +852,7 @@ export class WorldView {
 
     // the call to action over Rowan: Greenmarch, and a glossy "Tap to begin!" button
     const h = WORLD_SPOTS.hero;
-    const sub = P.actsCleared >= 3 ? 'Play again!' : P.actsCleared > 0 ? `Act ${P.actsCleared + 1} next` : 'Tap to begin!';
+    const sub = P.actsCleared > 0 ? 'Choose an act' : 'Tap to begin!';
     const name = 'Greenmarch';
     const bw = textWidth(sub, 1, true) + 8;
     const w = Math.max(textWidth(name, 1, true) + 12, bw + 6);
@@ -782,6 +905,22 @@ export class WorldView {
       }
     }
 
+    // the Camp button (bottom left, over the sea): a tent and "Camp" on a navy key
+    const cb = this.campButton();
+    const cpop = clamp01((phase - 120) / 260);
+    if (cpop > 0) {
+      const ck = easeBack((phase - 120) / 260, 1.6);
+      const r = { ...cb, y: cb.y + Math.round((1 - ck) * 10) };
+      const pr = isPressed(cb, now);
+      button3d(g, r, FACE.navy, pr);
+      const [iw, ih] = glyphSize('tent');
+      const tw = textWidth('Camp', 1, true);
+      const x0 = Math.round(r.x + (r.w - iw - 3 - tw) / 2);
+      const dy = pr ? 2 : 0;
+      glyph(g, 'tent', x0, r.y + Math.round((r.h - ih) / 2) + dy, cpop);
+      this.texts.text('Camp', x0 + iw + 3, r.y + r.h / 2 + dy, WHITE, { bold: true, oy: 0.5, alpha: cpop });
+    }
+
     // region info after a tap: a locked region's name, or the Pendulum's state
     const inf = this.info;
     if (inf) {
@@ -816,6 +955,137 @@ export class WorldView {
         this.texts.text(line, ix + iw / 2, iy + 16, WHITE, { ox: 0.5, oy: 0.5, alpha: a });
       }
     }
+  }
+
+  // ------------------------------------------------------------------ the act picker
+
+  /**
+   * The act picker: a navy panel popping in over the dimmed map, one row per act (staggered in): its number badge
+   * (a tick once cleared, a padlock while locked), its name and what playing it means ("Replay (farm)", "Continue the
+   * story"), the gear level its drops have, its boss's signature drops in their rarity frames (a tick on the ones in
+   * the bag), and Play.
+   */
+  private drawPicker(now: number): void {
+    const s = this.s;
+    const app = s.app;
+    const run = app.run;
+    const g = this.gPick;
+    const T = this.pickTexts;
+    const since = now - (this.picker?.at ?? now);
+    g.fillStyle(0x05040a, 0.55 * clamp01(since / 140));
+    g.fillRect(0, 0, GAME_W, GAME_H);
+    const p0 = this.pickPanel();
+    const k = easeBack(since / 240, 1.5);
+    const sc = 0.8 + 0.2 * k;
+    const p: Rect = { x: Math.round(p0.x + (p0.w * (1 - sc)) / 2), y: Math.round(p0.y + (p0.h * (1 - sc)) / 2), w: Math.round(p0.w * sc), h: Math.round(p0.h * sc) };
+    if (since < 40) return;
+    panel(g, p, { trim: 'full', alpha: clamp01(since / 120) });
+    if (k < 0.98) return;
+    const cx = p.x + p.w / 2;
+    ribbon(g, cx, p.y - 6, 104, 13, RIBBON.green);
+    T.text('Choose an act', cx, p.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    // close: a red key with an X
+    const cb = this.closeButton();
+    const cpr = isPressed(cb, now);
+    button3d(g, cb, FACE.red, cpr);
+    const xy = cb.y + (cpr ? 2 : 0);
+    for (let i = 0; i < 5; i++) {
+      g.fillStyle(INK, 1);
+      g.fillRect(cb.x + 4 + i, xy + 4 + i, 3, 2);
+      g.fillRect(cb.x + 8 - i, xy + 4 + i, 3, 2);
+    }
+    for (let i = 0; i < 5; i++) {
+      g.fillStyle(WHITE, 1);
+      g.fillRect(cb.x + 5 + i, xy + 4 + i, 1, 1);
+      g.fillRect(cb.x + 9 - i, xy + 4 + i, 1, 1);
+    }
+    const owned = new Set(app.profile.items.map((it) => it.base));
+    run.region.acts.forEach((act, i) => {
+      const ck = easeBack((since - 110 - i * 70) / 240, 1.4);
+      if (ck <= 0) return;
+      const a = clamp01(ck * 1.5);
+      const r0 = this.pickRow(i);
+      const sh = this.pickShake && this.pickShake.act === i && now - this.pickShake.at < 260 ? Math.round(Math.sin((now - this.pickShake.at) / 18) * 2) : 0;
+      const ox = Math.round((1 - ck) * 50) + sh;
+      const r: Rect = { ...r0, x: r0.x + ox };
+      const cleared = i < app.profile.actsCleared;
+      const locked = i >= run.playableActs;
+      const next = !locked && !cleared;
+      const rim = next ? 0xf2c230 : cleared ? 0x5ad848 : NAVY[5];
+      if (next) glow(g, r, 0xf2c230, (0.22 + 0.22 * pulse(now, 1000)) * a, 2);
+      // the row: a darker inset card with a colored edge
+      g.fillStyle(INK, a);
+      g.fillRect(r.x + 1, r.y - 1, r.w - 2, r.h + 2);
+      g.fillRect(r.x - 1, r.y + 1, r.w + 2, r.h - 2);
+      g.fillStyle(locked ? NAVY[1] : NAVY[2], a);
+      g.fillRect(r.x, r.y, r.w, r.h);
+      g.fillStyle(locked ? NAVY[2] : NAVY[3], a);
+      g.fillRect(r.x, r.y, r.w, Math.round(r.h * 0.45));
+      g.fillStyle(mix(rim, NAVY[3], 0.45), a);
+      g.fillRect(r.x + 1, r.y, r.w - 2, 1);
+      g.fillStyle(rim, a);
+      g.fillRect(r.x, r.y + 1, 2, r.h - 2);
+      // the act's badge: its number on a shield-like key
+      const face = locked ? FACE.grey : next ? FACE.gold : FACE.green;
+      const bx = r.x + 6;
+      const by = r.y + 5;
+      g.fillStyle(INK, a);
+      g.fillRect(bx - 1, by, 18, 18);
+      g.fillRect(bx, by - 1, 16, 20);
+      g.fillStyle(face[1], a);
+      g.fillRect(bx, by, 16, 18);
+      g.fillStyle(face[0], a);
+      g.fillRect(bx, by, 16, 6);
+      g.fillStyle(face[3], a);
+      g.fillRect(bx, by + 16, 16, 2);
+      g.fillStyle(WHITE, 0.8 * a);
+      g.fillRect(bx + 11, by + 1, 3, 1);
+      if (locked) glyph(g, 'lock', bx + 4, by + 5, a);
+      else T.text(`${i + 1}`, bx + 8, by + 9, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
+      if (cleared) glyph(g, 'check', bx + 10, by + 12, a);
+      // name, and what playing it means
+      const tx = bx + 23;
+      T.text(act.name, tx, r.y + 9, locked ? 0x8a84a0 : WHITE, { bold: true, oy: 0.5, alpha: a });
+      const status = cleared ? 'Replay (farm)' : next ? 'Continue the story' : `Clear Act ${i} first`;
+      T.text(status, tx, r.y + 20, cleared ? 0x9af06a : next ? 0xffe680 : 0x8a84a0, { oy: 0.5, alpha: a });
+      // the gear its drops have, and the boss's signature drops
+      const mx = r.x + 134;
+      const lo = itemLevel(run.tuning, i, 0);
+      const hi = itemLevel(run.tuning, i, act.rows);
+      T.text(`Gear Lv ${lo}-${hi}`, mx, r.y + 7, locked ? 0x8a84a0 : 0xc8c0e8, { oy: 0.5, alpha: a });
+      const sigs = act.boss.flatMap((b) => SIGNATURES[b] ?? []);
+      sigs.forEach((id, j) => {
+        const base = BASE_BY_ID[id];
+        if (!base?.signature) return;
+        const cell: Rect = { x: mx + j * 15, y: r.y + 12, w: 14, h: 14 };
+        itemCell(g, cell, base.signature.rarity, { dim: locked, alpha: a });
+        const item: Item = { uid: 0, base: id, rarity: base.signature.rarity, ilvl: hi, plus: 0, bonus: [], effect: null, locked: false, fresh: false, rerolls: 0, found: 0 };
+        cellIcon(this.pickIcons, item, cell, DEPTH.pickIcon, 1, locked ? 0.35 * a : a);
+        if (owned.has(id)) {
+          // in the bag already: a small green tick on the frame's corner
+          g.fillStyle(INK, a);
+          g.fillRect(cell.x + cell.w - 5, cell.y - 2, 7, 6);
+          g.fillStyle(0x8af06a, a);
+          g.fillRect(cell.x + cell.w - 4, cell.y + 1, 1, 1);
+          g.fillRect(cell.x + cell.w - 3, cell.y + 2, 1, 1);
+          g.fillRect(cell.x + cell.w - 2, cell.y + 1, 1, 1);
+          g.fillRect(cell.x + cell.w - 1, cell.y, 1, 1);
+          g.fillRect(cell.x + cell.w, cell.y - 1, 1, 1);
+        }
+      });
+      if (sigs.length) {
+        T.text('signature', mx + sigs.length * 15 + 1, r.y + 19, locked ? 0x6a6480 : 0xffb060, { oy: 0.5, alpha: a });
+      }
+      // Play
+      if (!locked) {
+        const b0 = this.playButton(i);
+        const b = { ...b0, x: b0.x + ox };
+        const pr = isPressed(b0, now);
+        if (next) glow(g, b, 0xffe680, (0.3 + 0.35 * pulse(now, 900)) * a, 2);
+        button3d(g, b, next ? FACE.gold : FACE.green, pr);
+        T.text('Play', b.x + b.w / 2, b.y + b.h / 2 + (pr ? 2 : 0), WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
+      }
+    });
   }
 
   /** A crisp dark plate: soft drop shadow, ink rim, a 1px light inner edge on top, a darker base. */

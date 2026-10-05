@@ -4,12 +4,12 @@
 import type Phaser from 'phaser';
 import { eventById } from '../../data/events';
 import { heroMaxHp } from '../../core/combat';
-import { boostLabel, type ShopItem } from '../../core/run';
+import { boostLabel, boostPreview, type BoostPreview, type ShopItem } from '../../core/run';
 import type { FightScene } from '../scene';
 import { textWidth } from '../font';
 import { band, button3d, gauge, glow, GOLD, hudIcon, iconSize, NAVY, panel, RAMP, rows } from './pixels';
 import { BOOST_ICON, clamp01, easeBack, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
-import { CARD } from './overlays';
+import { CARD, previewLine, previewWidth } from './overlays';
 import { FACE, isPressed, notePress, parchment, ribbon, RIBBON, tag, TextPool } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
@@ -87,7 +87,7 @@ export class NodeScreens {
       notePress(this.restButton());
       this.restAt = s.anim;
       const H = run.hero;
-      const heal = Math.min(heroMaxHp(run.tuning, H) - H.hp, Math.round(heroMaxHp(run.tuning, H) * run.tuning.map.restHeal));
+      const heal = Math.min(heroMaxHp(run.tuning, H) - H.hp, Math.round(heroMaxHp(run.tuning, H) * run.restShare));
       app.audio.restHeal();
       const f = s.fighters.h;
       f.flashUntil = s.anim + 300;
@@ -259,7 +259,7 @@ export class NodeScreens {
     // the console: HP now and after resting on the left, the Rest button on the right
     const H = run.hero;
     const max = heroMaxHp(run.tuning, H);
-    const heal = Math.min(max - H.hp, Math.round(max * run.tuning.map.restHeal));
+    const heal = Math.min(max - H.hp, Math.round(max * run.restShare));
     const dy = Math.round((1 - easeBack((since - 80) / 300, 1.4)) * 30);
     const y0 = s.splitY + 6 + dy;
     const px = s.L + 8;
@@ -275,7 +275,7 @@ export class NodeScreens {
     if (pw > cw) g.fillRect(px + 18 + cw, y0 + 4, pw - cw, 8);
     gauge(g, px + 18, y0 + 4, Math.max(1, cw), 8, 1, 1, { ramp: RAMP.hp });
     this.texts.text(`${H.hp}/${max}`, px + 18 + gw / 2, y0 + 8, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
-    this.texts.text(heal > 0 ? `Rest: +${heal} HP (${Math.round(run.tuning.map.restHeal * 100)}% of max)` : 'Already at full HP', px + 18, y0 + 18, heal > 0 ? 0xb4f070 : 0xc8c0e8, { oy: 0.5 });
+    this.texts.text(heal > 0 ? `Rest: +${heal} HP (${Math.round(run.restShare * 100)}% of max)` : 'Already at full HP', px + 18, y0 + 18, heal > 0 ? 0xb4f070 : 0xc8c0e8, { oy: 0.5 });
     const b = { ...this.restButton(), y: this.restButton().y + dy };
     if (!done) glow(g, b, 0x8af06a, 0.35 + 0.35 * pulse(now, 900), 3);
     button3d(g, b, done ? FACE.grey : FACE.green, done || isPressed(this.restButton(), now));
@@ -317,14 +317,21 @@ export class NodeScreens {
     const afford = run.coins >= item.price;
     const face = item.kind === 'boost' && item.offer ? CARD[item.offer.rarity].face : item.kind === 'potion' ? FACE.red : FACE.blue;
     let name: string;
-    let val: string;
+    let val = '';
     let icon: string;
+    // boosts (and the potion) show what they'd do to Rowan right now: "ATK 14 -> 16", "HP 60 -> 100"
+    let preview: BoostPreview | null = null;
     if (item.kind === 'boost' && item.offer) {
-      [name, val] = boostLabel(run.tuning, item.offer);
+      [name] = boostLabel(run.tuning, item.offer);
+      preview = boostPreview(run.tuning, run.hero, item.offer);
       icon = BOOST_ICON[item.offer.id];
     } else if (item.kind === 'potion') {
       name = 'Potion';
-      val = `Heal ${Math.round(run.tuning.map.potionHeal * 100)}% HP`;
+      const H = run.hero;
+      const max = heroMaxHp(run.tuning, H);
+      const after = Math.min(max, H.hp + Math.round(max * run.tuning.map.potionHeal));
+      if (after > H.hp) preview = { stat: 'HP', before: `${H.hp}`, after: `${after}` };
+      else val = 'HP is full';
       icon = 'potion';
     } else {
       name = 'Reroll';
@@ -333,18 +340,27 @@ export class NodeScreens {
     }
     this.itemCard(g, r, face, icon, item.sold);
     const alpha = item.sold ? 0.5 : 1;
-    this.texts.text(name, r.x + 21, r.y + r.h / 2, WHITE, { bold: true, oy: 0.5, alpha });
-    this.texts.text(val, r.x + 25 + textWidth(name, 1, true), r.y + r.h / 2 + 1, item.sold ? 0xa8a0c8 : mix(face[0], WHITE, 0.3), { oy: 0.5, alpha });
-    if (item.kind === 'boost' && item.offer && item.offer.rarity !== 'common' && !item.sold) {
-      const t = item.offer.rarity === 'epic' ? 'EPIC' : 'RARE';
-      const tw = textWidth(t, 1, false) + 4;
-      const vx = r.x + 25 + textWidth(name, 1, true) + textWidth(val, 1, false) + 4;
-      tag(g, { x: vx, y: r.y + 3, w: tw, h: 8 }, face);
-      this.texts.text(t, vx + 2, r.y + 7, WHITE, { oy: 0.5 });
-    }
     // price tag on the right: a dark slot with the coin and the price, or a SOLD stamp
     const tagW = 36;
     const tx = r.x + r.w - tagW - 2;
+    const rare = item.kind === 'boost' && item.offer && item.offer.rarity !== 'common' && !item.sold ? (item.offer.rarity === 'epic' ? 'EPIC' : 'RARE') : '';
+    const rareW = rare ? textWidth(rare, 1, false) + 6 : 0;
+    this.texts.text(name, r.x + 21, r.y + r.h / 2, WHITE, { bold: true, oy: 0.5, alpha });
+    let vx = r.x + 25 + textWidth(name, 1, true);
+    const valCol = item.sold ? 0xa8a0c8 : mix(face[0], WHITE, 0.3);
+    if (preview) {
+      // the stat's name is dropped when the row is too tight for it (the boost's name says it anyway)
+      const room = tx - 4 - vx - (rare ? rareW + 4 : 0);
+      const stat = preview.stat !== name && previewWidth(preview) <= room;
+      vx += previewLine(g, this.texts, preview, vx, r.y + r.h / 2, item.sold ? 0xa8a0c8 : item.offer?.rarity === 'common' || !item.offer ? 0xb4f070 : mix(face[0], WHITE, 0.3), alpha, stat);
+    } else {
+      this.texts.text(val, vx, r.y + r.h / 2 + 1, valCol, { oy: 0.5, alpha });
+      vx += textWidth(val, 1, false);
+    }
+    if (rare) {
+      tag(g, { x: vx + 4, y: r.y + 3, w: rareW, h: 8 }, face);
+      this.texts.text(rare, vx + 7, r.y + 7, WHITE, { oy: 0.5 });
+    }
     if (item.sold) {
       tag(g, { x: tx, y: r.y + 2, w: tagW, h: r.h - 4 }, [NAVY[6], NAVY[4], NAVY[3], NAVY[2]]);
       this.texts.text('SOLD', tx + tagW / 2, r.y + r.h / 2, 0xd0c8e8, { bold: true, ox: 0.5, oy: 0.5 });
