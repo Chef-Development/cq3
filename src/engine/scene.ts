@@ -20,10 +20,12 @@ import { Hud } from './view/hud';
 import { MapView } from './view/map';
 import { NodeScreens } from './view/nodes';
 import { Overlays } from './view/overlays';
+import { StopScreens } from './view/stops';
 import { StoryView } from './view/story';
 import { WorldView } from './view/world';
 import { buildWorldArt } from './art-world';
 import { buildMapArt } from './art-map';
+import { buildRoamArt } from './art-roam';
 import { BAND_H, COL, DASH_MS, DEATH_CHARGE_MS, inRect, kindCol, stackCol, tintGrad, WHITE, type Pending, type Rect } from './view/shared';
 import { Stage } from './view/stage';
 import { TipsView } from './view/tips';
@@ -67,6 +69,7 @@ export class FightScene extends Phaser.Scene implements View {
   readonly mapView = new MapView(this);
   readonly story = new StoryView(this);
   readonly nodes = new NodeScreens(this);
+  readonly stops = new StopScreens(this);
   readonly worldMap = new WorldView(this);
   readonly camp = new CampView(this);
   readonly loot = new LootView(this);
@@ -148,6 +151,10 @@ export class FightScene extends Phaser.Scene implements View {
       if (this.textures.exists(key)) this.textures.remove(key);
       this.textures.addCanvas(key, canvas);
     }, GAME_W, GAME_H);
+    buildRoamArt((key, canvas) => {
+      if (this.textures.exists(key)) this.textures.remove(key);
+      this.textures.addCanvas(key, canvas);
+    });
     this.stage.buildTextures();
     buildPanel(this, GAME_W, GAME_H - this.splitY, BAND_H);
     this.panelImg = this.add.image(0, this.splitY, 'panel').setOrigin(0, 0).setDepth(9);
@@ -156,6 +163,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.mapView.build();
     this.story.build();
     this.nodes.build();
+    this.stops.build();
     this.worldMap.build();
     this.camp.build();
     this.loot.build();
@@ -235,9 +243,10 @@ export class FightScene extends Phaser.Scene implements View {
     this.loot.tap(x, y);
   }
 
-  /** Treasure, rest, shop and event screens. */
+  /** Treasure, rest, shop, event and bounty screens. */
   nodeTap(x: number, y: number): void {
     if (this.app.run.phase === 'treasure') this.overlays.treasureTap();
+    else if (this.app.run.phase === 'bounty') this.stops.tap(x, y);
     else this.nodes.tap(x, y);
   }
 
@@ -587,6 +596,15 @@ export class FightScene extends Phaser.Scene implements View {
           hold = Math.max(hold, 900);
           this.later(260, () => f.heroDown());
           break;
+        case 'won':
+          // Coin Rush: time's up, the haul counted up over the sack
+          if (c.rush) {
+            hold = Math.max(hold, 1700);
+            this.overlays.showBanner("TIME'S UP!");
+            fx.iconFloat(GAME_W / 2 + 40, this.ground - 52, `+${c.rushCoins}`, 0xffe066, 'coin');
+            this.app.audio.rareSting(true);
+          }
+          break;
       }
     }
     return hold;
@@ -603,7 +621,10 @@ export class FightScene extends Phaser.Scene implements View {
       this.stage.applyTheme();
       const run = this.app.run;
       const type = run.node?.type;
-      if (type === 'elite') this.overlays.showBanner('ELITE!');
+      if (run.skirmish) this.overlays.showBanner('SKIRMISH!');
+      else if (c.rush) this.overlays.showBanner('COIN RUSH!');
+      else if (run.ambush) this.overlays.showBanner('AMBUSH!');
+      else if (type === 'elite') this.overlays.showBanner('ELITE!');
       else if (type === 'boss') this.overlays.showBanner(this.app.tuning.enemies[c.enemies[0].key]?.name.toUpperCase() ?? 'BOSS');
     }
     this.lastCombat = c;
@@ -643,6 +664,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.worldMap.draw(now);
     this.mapView.draw(now);
     this.nodes.draw(now);
+    this.stops.draw(now);
     this.loot.draw(now);
     this.camp.draw(now);
     this.story.draw(now);

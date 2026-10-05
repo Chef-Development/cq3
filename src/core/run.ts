@@ -4,20 +4,28 @@
 // Between acts (and from the world map) Rowan can visit the camp; cleared acts can be replayed for their drops.
 // M4a: the pick after a fight offers mostly relics (core/relics.ts) plus at most one stat card; relics carry and
 // reset like boosts. The hero who fights (Rowan or Sable) earns XP from kills and act clears (core/heroes.ts).
+// Map content (core/roam.ts): wandering packs (meeting one is an ambush: its foes as extra waves, a better reward)
+// and a travelling merchant (her small shop) roam each act map; a Coin Rush stop (the mini-game: core/combat.ts rush
+// mode), a bounty board (a side quest for the act: core/quests.ts) and a secret cache beside one node. Between runs,
+// the world map's wandering foe offers a bonus skirmish (core/skirmish.ts).
 
 import { eventById } from '../data/events';
 import { GREENMARCH } from '../data/greenmarch';
+import { questById, type QuestId } from '../data/quests';
 import type { ActDef, EventOutcome, RegionDef } from '../data/types';
-import { relicById, type RelicId } from '../data/relics';
+import { RELICS, relicById, type RelicId } from '../data/relics';
 import { skillById } from '../data/skills';
 import { recordActAccuracy, addSamples, type AccEntry } from './accuracy';
 import { Combat, heroMaxHp, heroStats, killCoins, newHero, type Hero, type SavedFoe } from './combat';
-import { rollDrops, setPieces, type Item, type Loadout } from './gear';
+import { itemLevel, rollDrops, rollItem, setPieces, type Item, type Loadout } from './gear';
 import { actXp, addXp, defaultBuild, killXp, type HeroBuild } from './heroes';
 import { actSeed, buildActMap, type ActMap, type MapNode } from './map';
 import { addItem, heroProgress, meetSable, newProfile, profileBuild, profileLoadout, recordAct, recordRegion, unlockedRelics, unlockRelic, type Profile } from './profile';
+import { newQuest, questFor, questProgress, type QuestState } from './quests';
 import { relicNumber, rollRelics, unlocksFor } from './relics';
 import { Rng } from './rng';
+import { actMap, ambushWaves, roamAt, type MapExtras, type RoamState } from './roam';
+import { noteFightWon, skirmishFor, useWanderer, wanderUp, type Skirmish } from './skirmish';
 import type { ActScale, Settings, Tuning } from './tuning';
 
 export type Phase =
@@ -33,6 +41,7 @@ export type Phase =
   | 'rest'
   | 'shop'
   | 'event'
+  | 'bounty'
   | 'actClear'
   | 'defeat'
   | 'victory';
@@ -40,6 +49,24 @@ export type Phase =
 export type CampFrom = 'world' | 'actClear' | 'defeat' | 'map';
 /** Where a run of story scenes leads. */
 export type SceneThen = 'map' | 'fight' | 'victory';
+/** Where the loot and the 1-of-3 pick lead: the map, the act clear, the node's own stop (after an ambush on a
+ *  non-fight node), or the world map (after a skirmish: no pick). */
+export type PickThen = 'map' | 'actClear' | 'node' | 'world';
+export const PICK_THENS: PickThen[] = ['map', 'actClear', 'node', 'world'];
+
+/** An ambush being fought: the pack met, the fight's waves, and whether the node's own stop opens after it. */
+export interface Ambush {
+  roamer: number;
+  waves: string[][];
+  then: 'map' | 'node';
+}
+
+/** A secret cache is a treasure chest (`secret`: the richer one, with a pick of every relic). */
+export interface TreasureState {
+  coins: number;
+  opened: boolean;
+  secret?: boolean;
+}
 
 export type BoostId = 'maxHp' | 'damage' | 'crit' | 'critDmg' | 'comboPower' | 'pet' | 'heal';
 export const BOOST_IDS: BoostId[] = ['maxHp', 'damage', 'crit', 'critDmg', 'comboPower', 'pet', 'heal'];
@@ -316,7 +343,7 @@ export class Run {
   boostChoices: BoostOffer[] = [];
   /** The rarity the current boost pick guarantees (true = rare), and where it leads. */
   boostMin: boolean | Rarity = false;
-  boostThen: 'map' | 'actClear' = 'map';
+  boostThen: PickThen = 'map';
   /** Items just found (the loot screen shows them), scrap from any the full bag salvaged, and the boost pick after. */
   loot: Item[] = [];
   lootSalvaged = 0;
@@ -334,7 +361,28 @@ export class Run {
   actSpent = 0;
   shop: ShopItem[] = [];
   event: EventState | null = null;
-  treasure: { coins: number; opened: boolean } | null = null;
+  treasure: TreasureState | null = null;
+  /** This act's map content (core/roam.ts): its Coin Rush and bounty stops, the secret, who roams. Null: an act begun
+   *  before there was any (a save from an older build), which has none. */
+  extras: MapExtras | null = null;
+  /** The side quest taken at this act's bounty board (null: none). */
+  quest: QuestState | null = null;
+  /** The act's secret cache was opened. */
+  secretFound = false;
+  /** The ambush being fought (or whose reward is on screen). */
+  ambush: Ambush | null = null;
+  /** The shop on screen is the travelling merchant's (leaving it opens the node). */
+  merchant = false;
+  /** Relic picks still to come after the one on screen (a bounty paid in relics). */
+  bonusPicks = 0;
+  /** What the pick on screen is: a secret cache's (every relic, locked ones too: the one picked unlocks), a bounty's
+   *  reward (relics only), or the usual one (null). */
+  pickKind: 'secret' | 'bounty' | null = null;
+  /** A bounty was just met (the map shows it once; the view empties it). */
+  questDone: QuestId | null = null;
+  /** The world map's skirmish being fought, and the run as it was before it (put back after). */
+  skirmish: { foe: Skirmish; hero: Hero; act: number; map: ActMap; path: number[]; extras: MapExtras | null } | null = null;
+  private roamCache: { key: string; state: RoamState } | null = null;
   /** A replayed act starts with relic picks (tuning.kit.relicPicks per act behind): how many are left, of how many. */
   startPicks = 0;
   startPicksTotal = 0;
@@ -444,6 +492,64 @@ export class Run {
     return this.path.length ? this.map.nodes[this.path[this.path.length - 1]] : null;
   }
 
+  /** The act's quest, secret, ambush and picks start over (a new act, a retry). */
+  private resetActExtras(): void {
+    this.quest = null;
+    this.questDone = null;
+    this.secretFound = false;
+    this.ambush = null;
+    this.merchant = false;
+    this.bonusPicks = 0;
+    this.pickKind = null;
+    this.roamCache = null;
+  }
+
+  /** Who roams the map after walking `path` (default: the path walked), and who was met on its last step. */
+  roamFor(path: readonly number[] = this.path): RoamState {
+    if (!this.extras) return { roamers: [], met: null };
+    const key = `${this.actIndex}|${this.extras.seed}|${path.join(',')}`;
+    if (this.roamCache?.key === key) return this.roamCache.state;
+    const state = roamAt(this.map, this.extras, path);
+    this.roamCache = { key, state };
+    return state;
+  }
+
+  /** The secret cache beside the node Rowan stands on, still to be opened (it shows on the map: tap it). */
+  get secretHere(): boolean {
+    return this.phase === 'map' && !!this.extras && !this.secretFound && this.extras.secret >= 0 && this.node?.id === this.extras.secret;
+  }
+
+  /** Open the secret cache beside this node: a richer chest (coins, a Rare+ item, a pick of every relic). */
+  openSecret(): boolean {
+    if (!this.secretHere) return false;
+    this.secretFound = true;
+    const coins = Math.round(this.tuning.map.treasureCoins * this.tuning.secret.coinsMult * (0.8 + 0.4 * this.rng.next()) * (1 + this.gear.stats.luck));
+    this.treasure = { coins, opened: false, secret: true };
+    this.phase = 'treasure';
+    return true;
+  }
+
+  /** The quest the bounty board on this node posts. */
+  get bountyOffer(): QuestId | null {
+    const n = this.node;
+    if (!n || n.type !== 'bounty' || !this.extras) return null;
+    return questFor(this.map, n.id, this.extras.seed);
+  }
+
+  /** Take the bounty board's quest (it replaces one taken earlier in the act), then back to the map. */
+  takeQuest(): boolean {
+    const id = this.bountyOffer;
+    if (this.phase !== 'bounty' || !id || !questById(id)) return false;
+    this.quest = newQuest(this.tuning, id);
+    this.phase = 'map';
+    return true;
+  }
+
+  /** Leave the bounty board without taking its quest. */
+  passQuest(): void {
+    if (this.phase === 'bounty') this.phase = 'map';
+  }
+
   mapSeedFor(act: number): number {
     return actSeed(this.mapSeed, act);
   }
@@ -458,6 +564,7 @@ export class Run {
   toWorld(): void {
     this.combat = null;
     this.phase = 'world';
+    wanderUp(this.profile, this.tuning);
   }
 
   /** A new run: the intro, Act 1's opening scene, then the map. */
@@ -502,10 +609,14 @@ export class Run {
     this.phase = this.campFrom;
   }
 
-  /** Start act `i` (its map, a revive, the act-start checkpoint), after its opening scenes. */
-  enterAct(i: number, scenes: string[] = []): void {
+  /** Start act `i` (its map and what else it holds, a revive, the act-start checkpoint), after its opening scenes.
+   *  `extras` false: the map without the rush, bounty, secret and roamers (a save from before them goes on so). */
+  enterAct(i: number, scenes: string[] = [], extras = true): void {
     this.actIndex = Math.max(0, Math.min(this.region.acts.length - 1, i));
-    this.map = buildActMap(this.act, this.mapSeedFor(this.actIndex));
+    const built = actMap(this.tuning, this.region, this.actIndex, this.mapSeedFor(this.actIndex), extras);
+    this.map = built.map;
+    this.extras = built.extras;
+    this.resetActExtras();
     this.path = [];
     this.combat = null;
     this.hero = { ...this.hero, abilityTimer: 0, revives: this.tuning.hero.revivesPerAct, gear: this.gear, build: this.build };
@@ -560,12 +671,39 @@ export class Run {
     return true;
   }
 
+  /** Arriving at a node: a roamer met on the way first (an ambush, the merchant), then the node's own stop. */
   private enterNode(): void {
     const n = this.node!;
+    const met = this.roamFor().met;
+    if (met?.kind === 'pack') {
+      // an ambush: on a fight node the pack joins its fight as extra waves; anywhere else it's fought first
+      this.ambush = { roamer: met.id, waves: ambushWaves(n, met), then: n.type === 'fight' ? 'map' : 'node' };
+      return this.startFight();
+    }
+    if (met?.kind === 'merchant') {
+      this.shop = this.rollMerchant();
+      this.shopBuys = 0;
+      this.merchant = true;
+      this.phase = 'shop';
+      return;
+    }
+    this.enterStop();
+  }
+
+  /** The node's own stop: its fight, chest, campfire, shop, event, Coin Rush or bounty board. */
+  private enterStop(): void {
+    const n = this.node!;
+    this.ambush = null;
+    this.merchant = false;
     switch (n.type) {
       case 'fight':
       case 'elite':
         return this.startFight();
+      case 'rush':
+        return this.startRush();
+      case 'bounty':
+        this.phase = 'bounty';
+        return;
       case 'boss':
         return this.playScenes([this.act.bossScene ?? ''], 'fight');
       case 'treasure':
@@ -587,19 +725,28 @@ export class Run {
     }
   }
 
-  /** The current node's fight. `restore` resumes a saved one. */
+  /** The foes of the fight on this node, wave by wave (an ambush's include the pack). */
+  get fightWaves(): string[][] {
+    const n = this.node;
+    if (this.ambush) return this.ambush.waves;
+    return n ? (n.waves.length ? n.waves : [n.enemies]) : [];
+  }
+
+  /** The current node's fight (or the ambush on it). `restore` resumes a saved one. */
   startFight(restore?: { foes: SavedFoe[]; seed: number; wave?: number }): void {
     const n = this.node;
     if (!n) return;
+    if (n.type === 'rush' && !this.ambush) return this.startRush(restore);
     this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
     this.fightSeed = restore ? restore.seed >>> 0 : this.seed;
     this.refreshGear();
+    const waves = this.fightWaves;
     this.combat = new Combat({
       tuning: this.tuning,
       settings: this.settings,
       hero: this.hero,
-      enemies: n.enemies,
-      waves: n.waves.length ? n.waves : [n.enemies],
+      enemies: waves.flat(),
+      waves,
       wave: restore?.wave,
       seed: this.fightSeed,
       restore: restore?.foes,
@@ -609,6 +756,28 @@ export class Run {
     });
     this.boostChoices = [];
     this.phase = 'fight';
+  }
+
+  /** Coin Rush: the coin sack on the bar for tuning.rush.sec seconds (a resumed one starts its clock over). */
+  private startRush(restore?: { seed: number }): void {
+    this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
+    this.fightSeed = restore ? restore.seed >>> 0 : this.seed;
+    this.refreshGear();
+    this.combat = new Combat({
+      tuning: this.tuning,
+      settings: this.settings,
+      hero: this.hero,
+      enemies: ['coinSack'],
+      seed: this.fightSeed,
+      rush: Math.max(1, this.tuning.rush.sec),
+    });
+    this.boostChoices = [];
+    this.phase = 'fight';
+  }
+
+  /** The fight on screen is a Coin Rush. */
+  get rushing(): boolean {
+    return this.phase === 'fight' && !!this.combat?.rush;
   }
 
   /** A boss (or mini-boss) is alive on screen (the music switches to the boss theme). */
@@ -654,20 +823,119 @@ export class Run {
     const c = this.combat;
     if (this.phase !== 'fight' || !c) return;
     this.bankKills();
+    if (this.skirmish) return this.syncSkirmish(c);
     if (c.result === 'lost') this.phase = 'defeat';
     else if (c.result === 'won') {
+      // Coin Rush: its coins were banked hit by hit; back to the map
+      if (c.rush) {
+        this.phase = 'map';
+        return;
+      }
+      noteFightWon(this.profile);
       const n = this.node;
       const type = n?.type ?? 'fight';
+      const ambush = this.ambush;
+      this.ambush = null;
       // the drops (into the bag), then a boost pick; elites and bosses always offer something rare
       const boss = type === 'boss' ? c.enemies.find((e) => this.tuning.enemies[e.key]?.boss)?.key : undefined;
-      const items = rollDrops(this.rng, this.tuning, { act: this.actIndex, row: n?.row ?? 0, type, boss, finalBoss: this.actIndex === this.region.acts.length - 1, luck: this.gear.stats.luck }, this.profile.blp);
+      const row = n?.row ?? 0;
+      const items = rollDrops(this.rng, this.tuning, { act: this.actIndex, row, type: ambush ? 'fight' : type, boss, finalBoss: this.actIndex === this.region.acts.length - 1, luck: this.gear.stats.luck }, this.profile.blp);
+      let min: boolean | Rarity = type === 'elite' || type === 'boss';
       if (type === 'elite') this.unlock(unlocksFor('elite', this.actIndex));
-      this.showLoot(items, type === 'elite' || type === 'boss', type === 'boss' ? 'actClear' : 'map');
+      if (ambush) {
+        // an ambush pays better: coins, an extra item or two, a rarer pick
+        const R = this.tuning.roam;
+        this.coins += Math.round(R.ambushCoins * (this.actIndex + 1));
+        items.push(...this.extraItems(Math.round(R.ambushItems), 'uncommon', row));
+        min = R.ambushPick >= 2 ? 'epic' : R.ambushPick >= 1 ? 'rare' : false;
+      }
+      this.bountyAfter(c, type === 'elite' && !ambush, items);
+      this.showLoot(items, min, type === 'boss' ? 'actClear' : ambush?.then === 'node' ? 'node' : 'map');
     }
   }
 
+  /** `n` items of at least `min` rarity at this act's item level. */
+  private extraItems(n: number, min: 'uncommon' | 'rare', row: number): Item[] {
+    const ilvl = itemLevel(this.tuning, this.actIndex, row);
+    return Array.from({ length: Math.max(0, n) }, () => rollItem(this.rng, this.tuning, this.actIndex, ilvl, this.gear.stats.luck, min));
+  }
+
+  /** A won fight counts toward the act's bounty; meeting it pays at once (coins), with the drops (an item), or with
+   *  a relic pick after this fight's. */
+  private bountyAfter(c: Combat, elite: boolean, items: Item[]): void {
+    const q = this.quest;
+    if (!q || q.done) return;
+    if (!questProgress(this.tuning, q, { log: c.log, elite, hpShare: this.hero.hp / Math.max(1, heroMaxHp(this.tuning, this.hero)) })) return;
+    this.questDone = q.id;
+    const reward = questById(q.id)?.reward;
+    if (reward === 'coins') this.coins += Math.round(this.tuning.quests.coins * (this.actIndex + 1));
+    else if (reward === 'gear') items.push(...this.extraItems(1, 'rare', this.node?.row ?? 0));
+    else if (reward === 'relic') this.bonusPicks++;
+  }
+
+  // ------------------------------------------------------------------ the world map's skirmish
+
+  /** The world map's wandering foe, if one is out. */
+  get wanderer(): Skirmish | null {
+    return this.profile.actsCleared >= 1 && this.profile.wander.up ? skirmishFor(this.profile, this.region) : null;
+  }
+
+  /** Fight the world map's wandering foe: one skirmish, as a hero who has been through that act (heroFor). It is used
+   *  up now, won or lost. The run as it was comes back after it. */
+  startSkirmish(): boolean {
+    const foe = this.wanderer;
+    if (this.phase !== 'world' || this.skirmish || !foe) return false;
+    useWanderer(this.profile);
+    this.skirmish = { foe, hero: this.hero, act: this.actIndex, map: this.map, path: this.path, extras: this.extras };
+    this.actIndex = foe.act;
+    this.path = [];
+    this.hero = heroFor(this.tuning, foe.act, this.gear, this.build);
+    this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
+    this.fightSeed = this.seed;
+    this.combat = new Combat({
+      tuning: this.tuning,
+      settings: this.settings,
+      hero: this.hero,
+      enemies: foe.waves.flat(),
+      waves: foe.waves,
+      seed: this.fightSeed,
+      hpMult: this.actScale.hpMult * (1 + this.tuning.map.rowHp * 3),
+      atkMult: this.actScale.atkMult,
+      pace: this.actScale.pace,
+    });
+    this.boostChoices = [];
+    this.phase = 'fight';
+    return true;
+  }
+
+  /** The skirmish is over: won, its drops and XP (then the world map); lost, straight back to the world map. */
+  private syncSkirmish(c: Combat): void {
+    const sk = this.skirmish!;
+    if (c.result === 'lost') return this.endSkirmish();
+    if (c.result !== 'won') return;
+    this.grantXp(Math.round(this.tuning.wander.xp * (sk.foe.act + 1)));
+    this.showLoot(this.extraItems(Math.round(this.tuning.wander.items), 'uncommon', 3), false, 'world');
+  }
+
+  /** Back to the world map, the run as it was before the skirmish. */
+  private endSkirmish(): void {
+    const sk = this.skirmish;
+    if (sk) {
+      this.hero = sk.hero;
+      this.actIndex = sk.act;
+      this.map = sk.map;
+      this.path = sk.path;
+      this.extras = sk.extras;
+    }
+    this.skirmish = null;
+    this.combat = null;
+    this.boostChoices = [];
+    this.loot = [];
+    this.phase = 'world';
+  }
+
   /** Put drops in the bag and show them (the loot screen), then the boost pick; straight to the pick if none. */
-  private showLoot(items: Item[], min: boolean | Rarity, then: 'map' | 'actClear'): void {
+  private showLoot(items: Item[], min: boolean | Rarity, then: PickThen): void {
     this.loot = [];
     this.lootSalvaged = 0;
     for (const it of items) {
@@ -689,7 +957,8 @@ export class Run {
     this.offerBoosts(this.boostMin, this.boostThen);
   }
 
-  offerBoosts(min: boolean | Rarity, then: 'map' | 'actClear'): void {
+  offerBoosts(min: boolean | Rarity, then: PickThen): void {
+    if (then === 'world') return this.endSkirmish(); // a skirmish has no pick (relics are for runs)
     this.boostMin = min;
     this.boostThen = then;
     this.boostChoices = this.rollChoices();
@@ -714,6 +983,9 @@ export class Run {
     const offer = this.boostChoices[index];
     if (!offer) return;
     applyBoost(this.tuning, this.hero, offer);
+    // a secret cache's relic stays unlocked
+    if (this.pickKind === 'secret' && isRelicOffer(offer)) this.unlock([offer.relic]);
+    this.pickKind = null;
     this.boostChoices = [];
     if (this.startPick) {
       this.startPicks--;
@@ -721,8 +993,23 @@ export class Run {
       this.actHero = { ...this.hero };
       if (this.startPicks > 0) return this.offerStartPick();
     }
-    this.phase = this.boostThen;
-    if (this.phase === 'actClear') this.clearAct();
+    if (this.bonusPicks > 0) {
+      // a bounty's relic pick follows (relics only, rare or better)
+      this.bonusPicks--;
+      this.pickKind = 'bounty';
+      this.boostMin = 'rare';
+      this.boostChoices = this.rollChoices();
+      return;
+    }
+    this.goOn(this.boostThen);
+  }
+
+  /** After the loot and the pick: the map, the act clear, the node's own stop (an ambush fought first), the world map. */
+  private goOn(then: PickThen): void {
+    if (then === 'world') return this.endSkirmish();
+    if (then === 'node') return this.enterStop();
+    this.phase = then;
+    if (then === 'actClear') this.clearAct();
   }
 
   /** The act's boss is down: progress, XP, relics a first clear unlocks, and the act's accuracy for the act-clear screen. */
@@ -743,7 +1030,8 @@ export class Run {
 
   /** Roll a fresh set of choices for the pick on screen (also: a save from before the cards were rolled). */
   rollChoices(): BoostOffer[] {
-    return rollPick(this.rng, this.tuning, this.relicPool, this.hero.relics, this.boostMin, { relicsOnly: this.startPick });
+    const pool = this.pickKind === 'secret' ? RELICS.map((r) => r.id) : this.relicPool;
+    return rollPick(this.rng, this.tuning, pool, this.hero.relics, this.boostMin, { relicsOnly: this.startPick || this.pickKind !== null });
   }
 
   /** Levels gained since the screen last showed them (the view calls this once to show "Level up!"). */
@@ -753,11 +1041,17 @@ export class Run {
     return n;
   }
 
-  /** Treasure: coins and 1-2 items, then a rare-or-better boost pick. */
+  /** Treasure: coins and 1-2 items, then a rare-or-better boost pick. A secret cache: more coins, Rare+ items, and
+   *  a pick of every relic (tuning.secret). */
   openTreasure(): void {
     if (this.phase !== 'treasure' || !this.treasure || this.treasure.opened) return;
     this.treasure.opened = true;
     this.coins += this.treasure.coins;
+    if (this.treasure.secret) {
+      const S = this.tuning.secret;
+      this.pickKind = 'secret';
+      return this.showLoot(this.extraItems(Math.round(S.items), 'rare', this.node?.row ?? 0), S.pick >= 2 ? 'epic' : S.pick >= 1 ? 'rare' : false, 'map');
+    }
     const items = rollDrops(this.rng, this.tuning, { act: this.actIndex, row: this.node?.row ?? 0, type: 'treasure', luck: this.gear.stats.luck }, this.profile.blp);
     this.showLoot(items, 'rare', 'map');
   }
@@ -828,8 +1122,24 @@ export class Run {
     return true;
   }
 
+  /** The travelling merchant's small shop: a relic or two (rare or better, ones a shop rarely has) and a potion, a
+   *  little cheaper than a shop's (tuning.roam). */
+  private rollMerchant(): ShopItem[] {
+    const T = this.tuning;
+    const k = Math.max(0, T.roam.merchantPrice);
+    const n = Math.max(0, Math.round(T.roam.merchantRelics));
+    const pool = this.relicPool.filter((id) => relicById(id)?.rarity !== 'common');
+    const cards = (n ? rollPick(this.rng, T, pool.length ? pool : this.relicPool, this.hero.relics, 'rare', { n, relicsOnly: true }) : []).map(
+      (offer): ShopItem => ({ kind: 'boost', offer, price: this.shopPrice(Math.round(cardPrice(T, offer.rarity) * (offer.id === 'relic' ? T.relics.price : 1) * k)), sold: false }),
+    );
+    return [...cards, { kind: 'potion', offer: null, price: this.shopPrice(Math.round(T.map.pricePotion * k)), sold: false }];
+  }
+
+  /** Leave the shop: back to the map (from the merchant's, on to the node's own stop). */
   leaveShop(): void {
-    if (this.phase === 'shop') this.phase = 'map';
+    if (this.phase !== 'shop') return;
+    if (this.merchant) return this.enterStop();
+    this.phase = 'map';
   }
 
   /** Pick event choice `i`. Returns false if Rowan can't afford it. */
@@ -899,6 +1209,7 @@ export class Run {
     this.enterAct(act);
     const m = this.map;
     const target = type === 'boss' ? m.nodes[m.boss] : (m.nodes.find((n) => n.type === type && n.row >= 3) ?? m.nodes.find((n) => n.row === 3)!);
+    if (target.type === 'rush' || target.type === 'bounty') target.type = type;
     target.enemies = enemies.slice();
     target.waves = [enemies.slice()];
     const path = [target.id];
@@ -912,6 +1223,7 @@ export class Run {
    * coins spent in the act (on boosts, potions, rerolls and events that the retry undoes) are refunded.
    */
   retry(): void {
+    this.resetActExtras();
     this.hero = { ...this.actHero, abilityTimer: 0, gear: this.gear, build: this.build };
     this.rerolls = this.actRerolls;
     // what the act's shops and events cost comes back with the hero as he entered (coins found are kept)

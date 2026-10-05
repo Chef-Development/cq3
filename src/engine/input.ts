@@ -47,11 +47,11 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
           else if (!scene.storyReveal()) app.storyNext();
           return;
         }
-        if (!app.savedRun) return app.newRun();
-        // a run was saved: Continue or New run (keyboard: Space/Enter continues)
+        if (!app.canContinue) return app.newRun(); // nothing earned yet: a tap starts
+        // Continue (keeps everything) or New game (tapped twice: erases everything); keyboard: Space/Enter continues
         const pick = clientX < 0 ? 'continue' : scene.titleTap(g.x, g.y);
         if (pick === 'continue') app.continueRun();
-        else if (pick === 'new') app.newRun();
+        else if (pick === 'new') app.newGame();
         return;
       }
       case 'scene':
@@ -62,6 +62,8 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       case 'map': {
         if (scene.overlays.unlockActive()) return scene.overlays.unlockTap();
         if (clientX >= 0 && now - app.phaseSince > 300 && scene.mapView.campAt(g.x, g.y)) return app.openCamp();
+        // the secret beside the node Rowan stands on
+        if (clientX >= 0 && now - app.phaseSince > 300 && scene.mapView.roam.secretAt(g.x, g.y)) return scene.mapView.roam.openSecret();
         // keyboard: the first choice
         const id = clientX < 0 ? (run.choices()[0] ?? null) : scene.mapNodeAt(g.x, g.y);
         if (id !== null && now - app.phaseSince > 300) scene.chooseNode(id);
@@ -81,6 +83,7 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       case 'rest':
       case 'shop':
       case 'event':
+      case 'bounty':
         if (scene.overlays.unlockActive()) return scene.overlays.unlockTap();
         if (now - app.phaseSince > 300) scene.nodeTap(clientX < 0 ? -1 : g.x, g.y);
         return;

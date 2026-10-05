@@ -26,7 +26,10 @@ export type TipAnchor =
   | 'skillsButton' // the camp's Skills button (elsewhere: the Camp button that leads there)
   | 'campBand' // the camp's buttons (Bag, Forge, Skills, Relics)
   | 'skillsReset' // the skill tree's Reset
-  | 'heroTabs'; // the hero select's tabs
+  | 'heroTabs' // the hero select's tabs
+  | 'roamer' // the first wandering pack on the act map
+  | 'secretSpot' // the secret beside the node the hero stands on
+  | 'wanderer'; // the world map's wandering foe
 
 export type TipId =
   | 'tapYellow'
@@ -51,7 +54,13 @@ export type TipId =
   | 'camp'
   | 'heroes'
   | 'skills'
-  | 'relicLog';
+  | 'relicLog'
+  | 'rush'
+  | 'roamer'
+  | 'secret'
+  | 'bounty'
+  | 'merchant'
+  | 'skirmish';
 
 export interface TipDef {
   id: TipId;
@@ -73,6 +82,7 @@ export const TIPS: readonly TipDef[] = [
   // ---- before a fight begins
   { id: 'tapYellow', lines: ['Tap when the cursor is on yellow.', 'Each hit strikes the enemy!'], anchor: 'yellowBlock', fight: 'pre', basic: true },
   { id: 'relicBelt', lines: ['Your relics sit here.', 'Tap one to read what it does.'], anchor: 'relicBelt', fight: 'pre' },
+  { id: 'rush', lines: ['Coin Rush! Hits knock out coins.', 'Keep your combo going for more!'], anchor: 'bar', fight: 'pre' },
   // ---- in a fight (the fight waits while the tip is up)
   { id: 'special', lines: ['A special move is coming!', 'Watch the enemy closely.'], anchor: 'enemy', fight: 'pause', basic: true },
   { id: 'blockRed', lines: ['Red is an attack coming at you!', 'Tap it like a yellow to block it!'], anchor: 'redBlock', fight: 'pause', basic: true },
@@ -95,15 +105,21 @@ export const TIPS: readonly TipDef[] = [
   { id: 'synergy', lines: ['Synergy! It shares a tag with a', 'relic you own: a build is forming!'], anchor: 'synergyCard' },
   { id: 'map', lines: ['Pick a path to the boss.', "Spots show what's there."], anchor: 'mapNodes', basic: true },
   { id: 'elite', lines: ['Elites are tougher foes,', 'but they always drop gear.'], anchor: 'eliteNode', basic: true },
+  { id: 'roamer', lines: ["Red prints: a pack's next step.", 'Meet it: an ambush, more loot!'], anchor: 'roamer' },
+  { id: 'secret', lines: ['Something glints in that rock!', 'Tap it to open a secret cache.'], anchor: 'secretSpot' },
   { id: 'shop', lines: ['Spend coins on relics and potions.', 'Unspent coins are kept.'], anchor: 'none', basic: true },
   { id: 'rest', lines: ['The campfire heals you.', 'Rest up before the fights ahead.'], anchor: 'none', basic: true },
   { id: 'event', lines: ['Pick a choice! Some cost coins,', 'some are a gamble.'], anchor: 'none', basic: true },
+  { id: 'bounty', lines: ['Finish this bounty for its reward.', 'The map keeps count, top right.'], anchor: 'none' },
+  { id: 'merchant', lines: ['A travelling trader: rare relics,', 'a little cheaper than a shop.'], anchor: 'none' },
   { id: 'levelUp', lines: ['Level up! You earned a skill point.', "Spend it at the camp's Skills."], anchor: 'skillsButton' },
   // ---- the camp
   { id: 'camp', lines: ['Bag: wear gear. Forge: upgrade it.', 'Skills: learn new tricks.'], anchor: 'campBand', basic: true },
   { id: 'heroes', lines: ['Heroes share gear, but each one', 'levels up on their own.'], anchor: 'heroTabs' },
   { id: 'skills', lines: ['Learn each branch in order.', 'Resetting is free: try things out!'], anchor: 'skillsReset' },
   { id: 'relicLog', lines: ['Every relic, and how to unlock it.', 'Tap one to read what it does.'], anchor: 'none' },
+  // ---- the world map
+  { id: 'skirmish', lines: ['A foe wanders the road!', 'Tap it to fight for gear and XP.'], anchor: 'wanderer' },
 ];
 
 export const TIP_IDS: readonly TipId[] = TIPS.map((t) => t.id);

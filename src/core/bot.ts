@@ -14,6 +14,9 @@
 // that fits its build best (synergy-greedy: most tags shared with what it owns, then the rarest), rests, buys what it
 // can afford at shops, and picks event choices at random. It wears the best gear it has found (by item power),
 // salvages Common and Uncommon items when the bag fills up, and spends skill points down one branch at a time.
+// The map's extras (core/roam.ts) it meets as a person who doesn't plan around them would: a pack when its random
+// route runs into one (an ambush), the merchant likewise (it shops there as at a shop), a Coin Rush played with its
+// normal aim, every bounty it passes taken, and a secret cache opened half the time it stands beside one.
 
 import { eventById } from '../data/events';
 import type { NodeType } from '../data/types';
@@ -80,7 +83,8 @@ export const TYPICAL_ACCURACY = 0.7;
 export interface FightStats {
   act: number;
   row: number;
-  type: NodeType; // fight, elite or boss
+  type: NodeType; // fight, elite or boss (an ambush on another node: that node's type)
+  ambush: boolean; // a pack met on the map joined (or was) this fight
   relics: RelicId[]; // carried into the fight
   skills: string[]; // skill nodes learned going in
   level: number; // the hero's level going in
@@ -136,6 +140,8 @@ export interface ActAttempt {
   revivesUsed: number;
   reachedBoss: boolean;
   lostAt: NodeType | null;
+  /** The map's extras met on the way: ambushes fought, the merchant, Coin Rush coins, a bounty met, secrets opened. */
+  extras: { ambushes: number; merchants: number; rushCoins: number; bounty: boolean; secrets: number };
 }
 
 const BOT_SETTINGS: Settings = { ...DEFAULT_SETTINGS, mode: 'classic', comboTiers: false, targeting: 'auto', godMode: false };
@@ -258,24 +264,34 @@ export function forgeUp(t: Tuning, p: Profile): void {
 
 /** One attempt at the current act, from wherever the run stands until the act is cleared or lost. */
 export function playAct(run: Run, rng: Rng, o: BotOptions): ActAttempt {
-  const out: ActAttempt = { act: run.actIndex, won: false, fights: [], nodes: [], revivesUsed: 0, reachedBoss: false, lostAt: null };
+  const out: ActAttempt = { act: run.actIndex, won: false, fights: [], nodes: [], revivesUsed: 0, reachedBoss: false, lostAt: null, extras: { ambushes: 0, merchants: 0, rushCoins: 0, bounty: false, secrets: 0 } };
   const startRevives = run.hero.revives;
   for (let guard = 0; guard < 200; guard++) {
     const ph = run.phase;
     if (ph === 'scene') run.skipScenes();
-    else if (ph === 'map') {
+    else if (ph === 'map' && run.secretHere && rng.next() < 0.5) {
+      // a secret cache beside the node: opened half the time
+      run.openSecret();
+      out.extras.secrets++;
+    } else if (ph === 'map') {
       const ch = run.choices();
       run.chooseNode(ch[rng.int(ch.length)]);
       const n = run.node!;
       out.nodes.push(n.type);
       if (n.type === 'boss') out.reachedBoss = true;
+      if (run.ambush) out.extras.ambushes++;
+      if (run.merchant) out.extras.merchants++;
     } else if (ph === 'fight') {
-      const st = fight(run, run.combat!, rng, o);
-      out.fights.push(st);
+      const c = run.combat!;
+      const st = fight(run, c, rng, o);
+      // a Coin Rush is a mini-game: its coins are counted, not its fight
+      if (c.rush) out.extras.rushCoins += c.rushCoins;
+      else out.fights.push(st);
       if (run.phase === 'fight') {
         run.phase = 'defeat'; // timed out
       }
-    } else if (ph === 'loot') {
+    } else if (ph === 'bounty') run.takeQuest();
+    else if (ph === 'loot') {
       run.collectLoot();
       if (!o.noGear) equipBest(run);
       spendSkills(run, rng);
@@ -300,6 +316,7 @@ export function playAct(run: Run, rng: Rng, o: BotOptions): ActAttempt {
       }
     } else if (ph === 'actClear' || ph === 'victory') {
       out.won = true;
+      out.extras.bounty = !!run.quest?.done;
       break;
     } else if (ph === 'defeat') {
       out.lostAt = run.node?.type ?? null;
@@ -394,6 +411,7 @@ function newFight(run: Run, c: Combat): FightStats {
     act: run.actIndex,
     row: n.row,
     type: n.type,
+    ambush: !!run.ambush,
     enemies: c.enemies.map((e) => e.key),
     boss,
     won: false,

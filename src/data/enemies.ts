@@ -301,4 +301,19 @@ export const ENEMIES: Record<string, EnemyDef> = {
     coins: 2,
     specials: [],
   },
+  // ---------------------------------------------------------------- Coin Rush (the mini-game stop on the act map)
+  // A coin sack that never fights back: yellows only, coming fast. It can't be emptied (a Coin Rush keeps it above
+  // 0 HP): the rush ends on the clock (tuning.rush), and every hit knocks coins out of it.
+  coinSack: {
+    name: 'Coin Sack',
+    hp: 9000,
+    atk: 0,
+    special: 0,
+    interval: 0.4,
+    pattern: 'Y',
+    icon: 'sack',
+    sprite: 'coinsack',
+    coins: 0,
+    specials: [],
+  },
 };

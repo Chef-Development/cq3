@@ -284,7 +284,7 @@ export function installDebug(app: App): DebugUi {
     };
     const over = el('button', 'dbg-btn', 'Start over');
     over.onclick = () => {
-      // "New run" keeps what you've earned; this erases it all (twice asked: it can't be undone)
+      // the same as the title's New game: erases it all (twice asked: it can't be undone)
       if (!window.confirm('Start over? This erases ALL progress: cleared acts, gear, coins, scrap, hero levels, skills and relics.')) return;
       if (!window.confirm('Really erase everything? This cannot be undone.')) return;
       app.startOver();
