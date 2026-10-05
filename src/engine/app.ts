@@ -8,7 +8,7 @@ import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import type { Settings, Tuning } from '../core/tuning';
 import { Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, sameLayout, type ScreenLayout } from './layout';
-import { clearRunSave, loadProfile, loadRunSave, saveSoon, writeProfile, writeRunSave } from './storage';
+import { clearRunSave, eraseProgress, loadProfile, loadRunSave, saveSoon, writeProfile, writeRunSave } from './storage';
 
 export interface View {
   /** Returns how long (ms) the next phase change should wait so a kill / finisher animation can play out. */
@@ -82,6 +82,12 @@ export class App {
   /** Progress across runs (acts cleared, weights home): part of the profile. */
   get progress(): Profile {
     return this.profile;
+  }
+
+  /** Start over: erase all progress (the profile and the run; tuning and settings stay) and reload fresh. */
+  startOver(): void {
+    eraseProgress();
+    window.location.reload();
   }
 
   /** Write the profile (after camp actions: equipping, the forge). */

@@ -659,7 +659,9 @@ export class Overlays {
         this.texts.text('Continue', cont.x + cont.w / 2, cont.y + dy + 7 + pc, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
         this.texts.text(saveLabel(save, s.app.run), cont.x + cont.w / 2, cont.y + dy + 16 + pc, 0xfff07a, { ox: 0.5, oy: 0.5 });
         const pf = isPressed(fresh, now) ? 2 : 0;
-        this.texts.text(armed ? 'Tap again' : 'New run', fresh.x + fresh.w / 2, fresh.y + dy + fresh.h / 2 + pf, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+        // a new run keeps what you've earned (to erase it all: the gear panel's Start over)
+        this.texts.text(armed ? 'Tap again' : 'New run', fresh.x + fresh.w / 2, fresh.y + dy + 7 + pf, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+        this.texts.text('Keeps your gear', fresh.x + fresh.w / 2, fresh.y + dy + 16 + pf, 0xc8c0e8, { ox: 0.5, oy: 0.5 });
       }
     } else if (pa > 0) this.prompt(g, 'Tap to start!', s.splitY + 16, now, WHITE, pa);
     if (pa > 0) {

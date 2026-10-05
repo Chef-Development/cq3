@@ -398,6 +398,42 @@ test('the act map has a Camp button: the camp mid-act, then back to the same spo
   expect(errors).toEqual([]);
 });
 
+test('New run keeps what you earned; Start over (the gear panel, asked twice) erases it, keeping the settings', async ({ page }) => {
+  // progress saved before the load: two acts cleared, coins, Rowan at a level; a calibrated tap offset
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('seeded')) return; // only before the first load (not after Start over's reload)
+    sessionStorage.setItem('seeded', '1');
+    const hero = (unlocked: boolean, xp: number) => ({ unlocked, xp, skills: [] });
+    const p = { v: 3, actsCleared: 2, coins: 321, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 900), sable: hero(true, 0) } };
+    localStorage.setItem('cq3.profile.v2', JSON.stringify(p));
+    localStorage.setItem('cq3.settings.v2', JSON.stringify({ calibrationMs: 37 }));
+  });
+  await ready(page);
+  const a = app(page);
+  // a new run keeps the profile
+  await a((x) => x.newRun());
+  expect(await a((x) => ({ acts: x.profile.actsCleared, coins: x.profile.coins }))).toEqual({ acts: 2, coins: 321 });
+  // Start over: the gear panel's button, two confirms, then a fresh page
+  let asked = 0;
+  page.on('dialog', (d) => {
+    asked++;
+    void d.accept();
+  });
+  await page.click('#btn-gear');
+  await expect(page.locator('#debug')).toBeVisible();
+  await Promise.all([page.waitForEvent('load'), page.locator('#debug button', { hasText: 'Start over' }).click()]);
+  await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
+  expect(asked).toBe(2);
+  expect(await a((x) => ({ acts: x.profile.actsCleared, coins: x.profile.coins, xp: x.profile.heroes.rowan.xp, sable: x.profile.sableMet, save: !!x.savedRun, cal: x.settings.calibrationMs }))).toEqual({
+    acts: 0,
+    coins: 0,
+    xp: 0,
+    sable: false,
+    save: false,
+    cal: 37,
+  });
+});
+
 test('camp: learn a skill and reset, pick Sable on the hero select, read a new relic', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));

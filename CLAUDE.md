@@ -60,7 +60,8 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   signature drop's bad-luck counter, the accuracy log, whether the smith was met; v3 adds the heroes (picked, XP, skills, Sable met, the twin tutorial
   shown) and the relics unlocked. `readProfile` migrates v1 (progress only) and v2 (Rowan gets the cleared acts'
   first-clear XP; their relics unlock). Gear is not saved in the run: the hero's `gear` loadout always comes from the profile (`run.refreshGear()`).
-  Gear and coins found are kept when you die.
+  Gear and coins found are kept when you die. "New run" keeps the profile (the title says "Keeps your gear"); the gear
+  panel's "Start over" (asked twice) erases the profile and the run, keeping tuning and settings (`eraseProgress`).
 - **Impacts** (hits, blocks, bombs, finisher blows, kills) are tiered by one weight each in `tuning.impact`, which
   drives both the layered sound (`audio.ts`: crack, saturated body, tail, sub) and the visuals (`fx.impact()`:
   hit-stop, shake, white frames, music duck). Impact sounds play from the view when the blow lands on screen.

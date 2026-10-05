@@ -282,7 +282,14 @@ export function installDebug(app: App): DebugUi {
       rebuild();
       toast('Settings reset');
     };
-    tg.append(copy, load, resetT, resetS);
+    const over = el('button', 'dbg-btn', 'Start over');
+    over.onclick = () => {
+      // "New run" keeps what you've earned; this erases it all (twice asked: it can't be undone)
+      if (!window.confirm('Start over? This erases ALL progress: cleared acts, gear, coins, scrap, hero levels, skills and relics.')) return;
+      if (!window.confirm('Really erase everything? This cannot be undone.')) return;
+      app.startOver();
+    };
+    tg.append(copy, load, resetT, resetS, over);
     tools.appendChild(tg);
     body.appendChild(el('div', 'dbg-foot', 'Keys: Space tap · F finisher · P pause · ` panel'));
   };

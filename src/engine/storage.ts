@@ -91,7 +91,24 @@ export function loadRunSave(t: Tuning, profile: Profile): RunSave | null {
   return readSave(data, t);
 }
 
+/** "Start over" erased the progress and the page is reloading: until it does, nothing writes the old one back. */
+let erased = false;
+
+/** Start over: erase the profile (progress, gear, coins, levels, relics) and the run in progress. Tuning and settings
+ *  (calibration, sound) stay. The caller reloads the page. */
+export function eraseProgress(): void {
+  erased = true;
+  for (const key of [PROFILE_KEY, OLD_PROGRESS_KEY, RUN_KEY, OLD_RUN_KEY]) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 export function writeRunSave(s: RunSave): void {
+  if (erased) return;
   write(RUN_KEY, s);
   try {
     window.localStorage.removeItem(OLD_RUN_KEY);
@@ -114,6 +131,7 @@ export function loadProfile(t?: Tuning): Profile {
 }
 
 export function writeProfile(p: Profile): void {
+  if (erased) return;
   write(PROFILE_KEY, p);
   try {
     window.localStorage.removeItem(OLD_PROGRESS_KEY);
