@@ -58,15 +58,15 @@ const squint = (rows: string[]) => rows.map((r, y) => (SQUINT[y] ? r.replace(SQU
 // Shoulders to the sash and the gi's split hem, 15 wide (the mask covers the neck): a leather strap with a brass
 // buckle crosses the chest.
 const TORSO = [
-  '...4HH666654...',
-  '..456hHH66553..',
-  '.45666hHg65443.',
-  '.4566665hHH432.',
-  '.456655554hH32.',
-  '.3QQqqqqqRRrr2.',
+  '...4HH555543...',
+  '..345hHH55442..',
+  '.34555hHg54332.',
+  '.3455554hHH321.',
+  '.345544443hH21.',
+  '.2QQqqqqqRRrr1.',
   '..rqqqRRqRRr...',
-  '..45665.44432..',
-  '..4554...4432..',
+  '..34554.33321..',
+  '..3443...3321..',
 ];
 
 // Legs (darker trousers than the gi), 17 wide, the feet centred on x = 8.
@@ -291,7 +291,8 @@ export const SABLE_POSES: Record<string, SablePose> = {
   parry: { near: { hand: [9, 13], dir: 'ur' }, far: { hand: [14, 13], dir: 'ul' }, glint: [[12, 21]] },
   hurt: { near: { hand: [-6, 10], dir: 'dl' }, far: { hand: [-1, 18], dir: 'ul' }, dx: -1, lean: -1, dy: 1, squint: true, scarf: 'wave' },
   leap: { near: { hand: [7, 24], dir: 'ul' }, far: { hand: [13, 19], dir: 'ur' }, legs: 'tuck', scarf: 'hang', armsUp: true, glint: [[18, 25]] },
-  fang: { near: { hand: [14, 11], dir: 'dr' }, far: { hand: [14, 17], dir: 'r' }, legs: 'run', dx: 3, lean: 2, scarf: 'rise' },
+  // the finisher's blow: diving forward, both blades raking across in an X
+  fang: { near: { hand: [14, 8], dir: 'ur' }, far: { hand: [14, 16], dir: 'dr' }, legs: 'run', dx: 3, lean: 3, bow: 1, scarf: 'rise', glint: [[18, 12]] },
   // knocked out: down on one knee, head bowed, leaning on a dagger stuck in the ground, the other one dropped
   down: {
     near: { hand: [9, 8], dir: 'd' },

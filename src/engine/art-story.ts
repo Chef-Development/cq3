@@ -2,8 +2,8 @@
 // fallback when an enemy has no mini sprite; the act map's own art is in art-map.ts).
 // Portraits are 40x40 busts on a transparent background (the scene draws the frame): forms are painted as
 // lit volumes (light from the top left, hue-shifted ramps), details are stamped from small character maps,
-// and toCanvas adds the 1px ink outline. Rowan, Sable and Pip face right; the villains face left. Sable's face sits
-// where Rowan's does (the HUD badge's 18x18 window at (12, 6) shows the eyes and the top of the mask).
+// and toCanvas adds the 1px ink outline. Rowan, Sable and Pip face right; the villains face left. The HUD badge's
+// 18x18 face window sits at (12, 6) for Rowan and at (14, 8) for Sable (both eyes and the top of the mask).
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 
 type Add = (key: string, canvas: HTMLCanvasElement) => void;

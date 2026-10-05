@@ -10,7 +10,7 @@
 //                    strike lands on the anvil painted in camp_bg (CAMP_SPOTS.smith)
 //   camp_rowan0/1    32x33 Rowan sitting on the log, warming his hands at the fire (frame 1 breathes out)
 //   camp_pip0/1      16x17 Pip perched on the log (frame 1: eyes drowsy, settled 1px lower)
-//   camp_sable0/1    34x31 Sable perched on the firewood right of the fire, facing it, drawing a whetstone along a
+//   camp_sable0/1    22x31 Sable perched on the firewood right of the fire, facing it, drawing a whetstone along a
 //                    dagger (frame 1: the stone at the tip, a spark, the shoulders 1px lower; CAMP_SPOTS.sable)
 //   portrait_smith   40x40 story portrait (faces left, like the villains)
 //
@@ -31,7 +31,7 @@ export const CAMP_SPOTS = {
   fire: { x: 150, y: 117 },
   rowan: { x: 125, y: 122 },
   pip: { x: 103, y: 115 },
-  sable: { x: 176, y: 124 },
+  sable: { x: 175, y: 124 },
   smith: { x: 228, y: 113 },
   bag: { x: 30, y: 57, w: 60, h: 51 },
   forge: { x: 182, y: 33, w: 70, h: 80 },
@@ -966,14 +966,14 @@ function pipFrame(f: number): HTMLCanvasElement {
 
 // ------------------------------------------------------------------ Sable by the fire (perched on the woodpile, facing left)
 
-const SABLE_W = 34;
+const SABLE_W = 22;
 const SABLE_H = 31;
 
 /**
  * Turn one of Sable's right-facing maps to face left and light it again from the top left: the plum cloth and the
  * teal scarf are re-toned as round forms (centre and radii in map px); the lit hood rim beside the face is kept.
  */
-function faceLeft(rows: string[], cloth: [number, number, number, number], scarf?: [number, number, number, number]): string[] {
+function faceLeft(rows: string[], cloth: [number, number, number, number], scarf?: [number, number, number, number], top = 7): string[] {
   const m = rows.map((r) => [...r].reverse().join(''));
   const face = (c: string | undefined) => c !== undefined && 'zsSkW1'.includes(c);
   return m.map((r, y) =>
@@ -982,7 +982,8 @@ function faceLeft(rows: string[], cloth: [number, number, number, number], scarf
         if ('234567'.includes(ch)) {
           if (ch === '6' && (face(r[x - 1]) || face(r[x + 1]))) return ch;
           const [cx, cy, rx, ry] = cloth;
-          return String(Math.max(2, Math.min(7, 2 + Math.floor((0.12 + lambert((x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry)) * 5.6))));
+          const v = 0.12 + lambert((x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry);
+          return String(Math.max(2, Math.min(top, 2 + Math.floor(v * (top - 1.4)))));
         }
         if (scarf && 'bcde'.includes(ch)) {
           const [cx, cy, rx, ry] = scarf;
@@ -995,23 +996,23 @@ function faceLeft(rows: string[], cloth: [number, number, number, number], scarf
   );
 }
 
-// Sitting on the logs, facing left: the near leg hangs over the front, the far knee is drawn up (left = forward).
+// Sitting on the logs, facing left: short thighs over the edge, the shins down to the ground (left = forward).
 const SABLE_SIT = [
-  '.......3444...',
-  '..344443333332',
-  '.34444443333322',
-  '.3443333222222.',
-  '.Vvw...wvw.....',
-  '.Vvw...wvw.....',
-  '.Vvw...wvw.....',
-  '.Vvw..2332.....',
-  '23332.1222.....',
-  '1222...........',
+  '.344443333..',
+  '34444333332.',
+  '3443332222..',
+  'Vvw..wvw....',
+  'Vvw..wvw....',
+  'Vvw..wvw....',
+  'Vvw..wvw....',
+  'Vvw.2333....',
+  '2333.1222...',
+  '1222........',
 ];
-/** Where the whetstone sits up the blade in each frame (it draws along the edge, a spark flies on frame 1). */
+/** Where the whetstone sits along the blade in each frame (it draws toward the point, a spark flies on frame 1). */
 const SABLE_STROKE = [
   { stone: 0, bob: 0 },
-  { stone: 4, bob: 1 },
+  { stone: 3, bob: 1 },
 ];
 
 function sableCampFrame(f: number): HTMLCanvasElement {
@@ -1019,34 +1020,35 @@ function sableCampFrame(f: number): HTMLCanvasElement {
   const P = SABLE_PAL;
   const pal: Pal = { ...P, F: '#ffc890', f: '#e8a070', o: IRON[2], O: IRON[4], X: IRON[5] };
   const { stone, bob } = SABLE_STROKE[f];
-  const tx = 15;
-  const ty = 12 + bob;
-  const hx = tx - 2;
-  const hy = ty - SABLE_HEAD.length + 1;
-  // the scarf's tails hang down the back, drifting away from the fire
-  scarfTail(g, hx + 14, hy + 9, 11, (t) => Math.PI * (0.38 - 0.1 * t + 0.05 * Math.sin(t * 6.5)));
-  scarfTail(g, hx + 13, hy + 10, 8, (t) => Math.PI * (0.45 - 0.06 * t));
+  // compact, so nothing above the seat reaches the forge (its rect starts 7px right of CAMP_SPOTS.sable)
+  const hx = 1;
+  const hy = 1 + bob;
+  const tx = 2;
+  const ty = hy + SABLE_HEAD.length - 1;
+  // the scarf's tails hang down the back and only drift away from the fire below the seat
+  scarfTail(g, hx + 14, hy + 9, 13, (t) => Math.PI * (0.5 - 0.5 * Math.max(0, t - 0.55)));
+  scarfTail(g, hx + 13, hy + 10, 11, (t) => Math.PI * (0.52 - 0.4 * Math.max(0, t - 0.6)));
   // the far hand holds the dagger across the lap, point toward the fire
-  const dx = 14;
-  const dy = 18 + bob;
+  const dx = 9;
+  const dy = 19;
   const blade = sableDagger('l');
-  stamp(g, blade.rows, pal, dx - blade.grip[0], dy - blade.grip[1]);
-  stamp(g, SABLE_SIT, pal, 4, SABLE_H - 2 - SABLE_SIT.length + 1);
-  stamp(g, faceLeft(SABLE_TORSO, [9, 2, 9, 7]), pal, tx, ty);
+  stamp(g, faceLeft(SABLE_TORSO, [9, 2, 9, 7], undefined, 5), pal, tx, ty);
   // the second dagger tucked through the sash
-  stamp(g, ['.g', 'Pg', 'h.'], pal, tx + 9, ty + 3);
+  stamp(g, ['.g', 'Pg', 'h.'], pal, tx + 10, ty + 3);
+  stamp(g, SABLE_SIT, pal, 1, SABLE_H - 2 - SABLE_SIT.length + 1);
   stamp(g, faceLeft(SABLE_HEAD, [10, 4, 9, 8], [9, 10, 8, 3]), pal, hx, hy);
+  sableArm(g, tx + 9, ty + 2, dx + 1, dy - 1, false);
+  stamp(g, blade.rows, pal, dx - blade.grip[0], dy - blade.grip[1]);
   stamp(g, SABLE_FIST, pal, dx, dy - 1);
-  // the near hand draws the whetstone along the edge: the elbow tucked in, the forearm out over the knee
-  const sx = dx - 4 - stone;
+  // the near hand draws the whetstone along the edge, the elbow tucked in
+  const sx = dx - 5 - stone;
   const sy = dy - 2;
-  sableArm(g, tx + 6, ty + 2, tx + 3, ty + 6, true);
-  sableArm(g, tx + 3, ty + 6, sx + 3, sy, true);
+  sableArm(g, tx + 6, ty + 2, sx + 2, sy - 1, true);
   stamp(g, ['XXO', 'OOo'], pal, sx, sy);
-  stamp(g, SABLE_FIST, pal, sx + 2, sy - 1);
+  stamp(g, SABLE_FIST, pal, sx + 1, sy - 2);
   if (f === 1) {
-    put(g, sx - 2, sy, '#fff6c8');
-    put(g, sx - 3, sy - 1, '#ffd25a');
+    put(g, sx - 1, sy - 1, '#fff6c8');
+    put(g, sx - 2, sy - 2, '#ffd25a');
   }
   // firelight: the cloth, skin and scarf edges that face the flames (left) catch a warm rim
   const warmable = new Set(['2', '3', '4', '5', '6', '7', 'b', 'c', 'd', 'e', 's', 'S', 'z', 'v', 'V', 'w'].map((k) => pal[k]));
