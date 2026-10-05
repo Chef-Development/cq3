@@ -18,6 +18,8 @@ export interface View {
 }
 
 const MAX_CATCHUP_S = 0.25;
+/** Bosses with a theme of their own. */
+const BOSS_THEMES: Record<string, MusicTrack> = { captain: 'captain', golem: 'golem', boarKing: 'boarKing' };
 export const INTRO_MS = 800;
 
 export class App {
@@ -48,6 +50,10 @@ export class App {
   private begunCombat: unknown = null;
   private syncHoldUntil = 0; // performance.now() until which phase changes wait (kill animations)
   phaseSince = 0;
+  /** The fight whose boss theme is playing: it stays on until that fight ends (a mop-up after the boss falls). */
+  private bossTheme: { combat: unknown; track: MusicTrack } | null = null;
+  /** After a finisher spends the combo, the fight music keeps its layers up to this combo until then. */
+  private comboHold = { combo: 0, until: 0 };
 
   constructor(
     readonly tuning: Tuning,
@@ -296,8 +302,20 @@ export class App {
 
   /** The music and the place's ambience under it, for the phase we're in. */
   private cueAudio(): void {
-    this.audio.setTrack(this.track());
+    this.cueMusic();
     this.audio.setAmbience(this.ambience());
+  }
+
+  /** The piece for the phase we're in; in a fight it also follows the live combo (its layers) and the Boar King's
+   *  phase. Called at every phase change and every flush (the music only acts on a change, on its next beat). */
+  private cueMusic(): void {
+    const { track, intense } = this.music();
+    this.audio.setMusic(track, intense);
+    const c = this.run.combat;
+    const fight = this.run.phase === 'fight' && !!c;
+    const hold = performance.now() < this.comboHold.until ? this.comboHold.combo : 0;
+    this.audio.setCombo(fight ? Math.max(c.combo, hold) : 0);
+    this.audio.setBossPhase((fight && c.enemies.find((e) => e.key === 'boarKing')?.phase) || 1);
   }
 
   /** The sea and gulls on the title and the world map, a breeze over the act map, the campfire and crickets at the
@@ -309,11 +327,24 @@ export class App {
     return p === 'map' ? 'map' : this.run.theme;
   }
 
-  /** Battle theme in fights, the boss theme while a boss is alive, the map theme everywhere else. */
-  private track(): MusicTrack {
+  /** The title theme on the title and the world map, the camp's own, and each act's theme: calm on its map, nodes
+   *  and scenes, intense in its fights; a mini-boss or the Boar King brings his own theme while he's alive (it
+   *  plays to the end of that fight). */
+  private music(): { track: MusicTrack; intense: boolean } {
     const r = this.run;
-    if (r.phase !== 'fight') return 'map';
-    return r.bossFight ? 'boss' : 'battle';
+    const p = r.phase;
+    if (p === 'title' || p === 'world' || p === 'victory') return { track: 'title', intense: false };
+    if (p === 'camp') return { track: 'camp', intense: false };
+    const act = (['act1', 'act2', 'act3'] as const)[Math.max(0, Math.min(2, r.actIndex))];
+    const c = r.combat;
+    if (p !== 'fight' || !c) {
+      this.bossTheme = null;
+      return { track: act, intense: false };
+    }
+    const boss = c.enemies.find((e) => e.alive && this.tuning.enemies[e.key]?.boss && BOSS_THEMES[e.key]);
+    if (boss) this.bossTheme = { combat: c, track: BOSS_THEMES[boss.key] };
+    else if (this.bossTheme?.combat !== c) this.bossTheme = null;
+    return { track: this.bossTheme?.track ?? act, intense: true };
   }
 
   flush(): void {
@@ -326,6 +357,7 @@ export class App {
       const hold = this.view?.onEvents(events) ?? 0;
       if (hold > 0) this.syncHoldUntil = Math.max(this.syncHoldUntil, now + hold);
     }
+    this.cueMusic();
     this.trySync(now);
   }
 
@@ -348,6 +380,8 @@ export class App {
           break;
         case 'finisher':
           a.finisherStart(e.stacks);
+          // the music keeps its layers through the finisher's show before they drop with the spent combo
+          this.comboHold = { combo: e.combo, until: performance.now() + this.tuning.music.finisherHold * 1000 };
           break;
         case 'windup':
           a.windup();
