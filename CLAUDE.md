@@ -4,7 +4,9 @@ Personal mobile timing-RPG inspired by Combo Quest 2 (2016, iOS). M1 was the **f
 timing-bar combat, installable on an iPhone home screen, live tuning panel). M3a turned it into **Region 1,
 Greenmarch**: three acts of branching node maps, enemies with telegraphed special moves, story scenes. M3b added
 **gear** (6 slots, 6 rarities, 10 stats, sets, signature boss drops), the **camp** (bag, forge, a locked shrine) and
-farming cleared acts, plus an **accuracy readout** measured like the balance bot defines it.
+farming cleared acts, plus an **accuracy readout** measured like the balance bot defines it. M4a ("depth") added
+choices that change how you play: **relics** (run picks that change a rule), a second hero, **Sable** (two cursors),
+**hero levels and skill trees**, and a **soundtrack per act** (calm/intense arrangements, boss themes, combo layers).
 The user playtests on an iPhone 16 Pro and does not read long output; a separate planning chat orchestrates.
 
 ## Rules
@@ -12,8 +14,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 - **Original assets only.** No CQ2 art, names, music, sounds or code. Art is drawn from character maps in
   `src/engine/art.ts` (hero, Pip, first enemies), `art-foes.ts` (Greenmarch enemies), `art-story.ts` (portraits, map
   icons), `art-world.ts` (the kingdom world map), `art-map.ts` (act map landscapes, map-scale Rowan, node props),
-  `art-stage.ts` (per-act fight lighting), `backdrop.ts` and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
-  are synthesized in `src/engine/audio.ts`, icons come from `scripts/make-icons.mjs` (art in `scripts/icon-art.mjs`).
+  `art-stage.ts` (per-act fight lighting), `art-sable.ts` (Sable's frames, map walker, hero cards), `art-relics.ts`
+  (relic, tag and skill icons), `backdrop.ts` and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
+  are synthesized in `src/engine/audio.ts` and the music in `src/engine/music.ts`, icons come from `scripts/make-icons.mjs` (art in `scripts/icon-art.mjs`).
 - **Content is data.** Enemies (stats, base pattern, 0-2 special moves; a boss's HP-gated phase changes come on top), the region's acts and encounters, events and
   story scenes live in `src/data/` (plain data, no logic). So does gear (`src/data/gear.ts`: the 10 stats, slots,
   rarities, ~28 base items, the two sets, Legendary/Mythic unique effects, each boss's signature drops); the numbers
@@ -21,6 +24,23 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   sound) then reusable actions (`src/core/specials.ts`: formation, heal, shell, summon, split, cursor, guard, phase,
   protect). New actions need a unit test in `tests/unit/specials.test.ts`. Story boxes: max 6 per scene, 2 lines each
   (`tests/unit/data.test.ts` checks they fit).
+- **Relics, skills and kits are fight hooks.** A relic (`src/data/relics.ts`: 1-2 synergy tags, a rarity, at most
+  one number in `tuning.relics.n`, an unlock), a skill node (`src/data/skills.ts`; numbers in `tuning.skills.n`) and a
+  hero's kit change the rules through `src/core/hooks.ts`: Combat collects the hooks of what the hero carries
+  (`kit-fx.ts`, `skill-fx.ts` + `skill-fx-sable.ts`, `relic-fx.ts`) and calls them at fixed points (crit chance, hit
+  damage, after a hit/block, meter, combo gain, combo break, misses, traps, impacts, the finisher, Pip's pecks, kills,
+  bombs). Per-fight state lives in `c.perk`; a perk that kicks in calls `c.perkFx(id, ...)` so the UI names it. Every
+  relic and every rule node/capstone has a with/without unit test (`tests/unit/relics.test.ts`, `skills.test.ts`,
+  `sable-skills.test.ts`). Relics never flat-bump a stat. Run-level relics (shops, rests, map steps) live in `run.ts`.
+  Offers (`core/relics.ts`): mostly relics plus at most one stat card, leaning toward owned tags ("Synergy!"); relics
+  carry and reset like boosts (`hero.relics`, never mutated in place); replays draft `kit.relicPicks` per act behind.
+- **Heroes.** Rowan (Blade: one cursor) and Sable (Twin: two cursors, A sweeps the left half, B the right, in step;
+  a tap on the left half of the screen judges A, the right half B; `Combat.hands`, `tap(t, hand)`,
+  `cursorPosAt(t, hand)`). Gear is shared; each hero has their own XP, level (1-30, `tuning.levels`) and skill tree
+  (`core/heroes.ts`: a point every 2 levels, learned in branch order, free reset). The fight reads who is fighting
+  from the profile as `hero.build` (like the gear's loadout; not saved in the run). Sable joins after Act 1 (scene
+  `sableJoin`). Sable's numbers are `tuning.sable`; `tests/unit/twin-bot.test.ts` keeps her within +/-10 points of
+  Rowan at the same accuracy.
 - **Core/engine split.** `src/core/` is plain TypeScript with **no Phaser (or DOM) imports**: deterministic,
   fixed 120 Hz step (`Combat.step`), seeded RNG, fully unit-tested. `src/engine/` (Phaser + DOM) only
   renders core state and feeds input into it.
@@ -35,24 +55,30 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 - **Settings/tuning persistence** goes through `src/engine/storage.ts` (localStorage, always try/catch). So does
   the mid-run save (`core/save.ts`): it autosaves at every node (every phase change) and when the page is hidden;
   bump `SAVE_VERSION` if `RunSave` changes shape and add a migration (v5 = gear: `migrateSave` moves a v4 save's coins
-  into the profile's purse; older saves are dropped). The **profile** (`core/profile.ts`, key `cq3.profile.v2`) is kept
+  into the profile's purse; v6 = relics: a v5 save gets none; older saves are dropped). The **profile** (`core/profile.ts`, key `cq3.profile.v2`) is kept
   across runs: progress, the bag (60 items), what's equipped, coins (the purse carries over between runs), scrap, each
-  signature drop's bad-luck counter, the accuracy log, whether the smith was met. `readProfile` migrates v1 (progress
-  only). Gear is not saved in the run: the hero's `gear` loadout always comes from the profile (`run.refreshGear()`).
+  signature drop's bad-luck counter, the accuracy log, whether the smith was met; v3 adds the heroes (picked, XP, skills, Sable met, the twin tutorial
+  shown) and the relics unlocked. `readProfile` migrates v1 (progress only) and v2 (Rowan gets the cleared acts'
+  first-clear XP; their relics unlock). Gear is not saved in the run: the hero's `gear` loadout always comes from the profile (`run.refreshGear()`).
   Gear and coins found are kept when you die.
 - **Impacts** (hits, blocks, bombs, finisher blows, kills) are tiered by one weight each in `tuning.impact`, which
   drives both the layered sound (`audio.ts`: crack, saturated body, tail, sub) and the visuals (`fx.impact()`:
   hit-stop, shake, white frames, music duck). Impact sounds play from the view when the blow lands on screen.
   New sounds go in the `SFX` catalog so the Sound lab and the level tests pick them up. Each place has a seeded
   ambience bed (`audio.setAmbience`, cued with the music in `app.ts`; the camp has a campfire-and-crickets one) that sits
-  well under the music and impacts.
+  well under the music and impacts. Music (`music.ts`): each act has one melody in a calm arrangement (map, nodes,
+  scenes) and an intense one (fights), crossfading on the beat; mini-bosses and the Boar King (escalating per phase,
+  a key change in phase 3) have their own themes, the camp a quiet one. Fight layers join with the combo (drums,
+  bass, lead at `tuning.music` thresholds) and drop on a break. `app.ts cueMusic()` picks the piece.
 - **Balance:** combat numbers were set with the bot, which plays whole acts picking map nodes at random and aims
   like a person (a timing error in ms, reaction time, a thumb's tap rate; the real judge decides each tap), so thin
   or fast blocks and a fast cursor are as hard for it as for a player. It wears the best gear it finds (item power).
   `tests/unit/bot.test.ts` guards the targets, set for a typical player (`TYPICAL_ACCURACY` = 70%) on a first
   playthrough with found gear only: Act 1 ~100% first try, Act 2 ~85-90%, the Boar King's first fight won ~65-75%; a
   skilled 85% player clears every act first try most of the time; and farming the Boar King (replaying Act 3 with the
-  gear kept, `playFarm`) measurably raises the win rate. Re-run `npm run balance` after changing them.
+  gear kept, `playFarm`) measurably raises the win rate. The bot picks relics synergy-greedy, spends skill points down
+  one branch, and plays Sable with two thumbs (an independent timing error per hand). The report also shows relic win
+  rates (by build and by relic, and against a stat-cards-only control). Re-run `npm run balance` after changing them.
   `ACC=0.62 npm run retarget` re-aims the whole curve at another player (writes docs/retarget.md with the act numbers).
 - **Accuracy readout** (`core/accuracy.ts`): every tap aimed at an isolated yellow gives a timing error; the median and
   MAD of the recent ones, mapped through `SD_CALIBRATION` (made with bots of known accuracy: `npm run calibrate`; re-run
@@ -77,16 +103,19 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 src/data/      enemies.ts (stats, patterns, specials), greenmarch.ts (acts, encounters, map weights), events.ts,
                story.ts (scenes), types.ts
 src/data/gear.ts  stats, slots, rarities, base items, sets, unique effects, signature drops
+src/data/relics.ts (40 relics, tags, build names), heroes.ts (Rowan, Sable), skills.ts (both trees)
 src/core/      tuning.ts (numbers), combat.ts (sim; heroStats, gear effects), specials.ts (special-move actions),
                blocks.ts, map.ts (act maps), run.ts (region flow: map, nodes, loot, boosts, shop, events, scenes,
                camp, replaying acts, revive/retry), gear.ts (item stats, drops, bad-luck protection, forge prices),
                profile.ts (kept across runs: progress, bag, equipped, purse, scrap, accuracy log), accuracy.ts
-               (accuracy readout), impact.ts (impact tier weights -> hit-stop/shake/flash and sound layers), save.ts
+               (accuracy readout), hooks.ts (fight hooks), relic-fx.ts / skill-fx.ts / skill-fx-sable.ts / kit-fx.ts (the
+               relics, skill nodes and kits as hooks), relics.ts (offers, synergy, build names, unlocks), heroes.ts (XP,
+               levels, skill trees), impact.ts (impact tier weights -> hit-stop/shake/flash and sound layers), save.ts
                (save at every node, migrations), bot.ts (balance bot, farming), clock.ts, calibration.ts, swipe.ts,
                rng.ts
 src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Phaser scene: layout, layers, anim
                clock, routes core events to view/), input.ts, debug.ts (tuning panel, Sound lab, Jump to),
-               calibrate.ts, audio.ts (sounds, music, ambience), art.ts / art-foes.ts / art-story.ts / art-world.ts /
+               calibrate.ts, audio.ts (sounds, ambience), music.ts (the soundtrack), art.ts / art-foes.ts / art-story.ts / art-world.ts /
                art-map.ts / art-stage.ts (sprites, portraits, the world map, act map landscapes, fight lighting),
                art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-paint.ts (painting helpers),
                backdrop.ts (forest, ruins, hollow), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
@@ -96,7 +125,8 @@ src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemi
                chest, defeat, victory, pause), world.ts (kingdom world map), map.ts (act map), story.ts (scenes),
                nodes.ts (rest, shop, events), camp.ts (the camp home; bag.ts, forge.ts, stats.ts its screens;
                item-grid.ts the bag grid and worn slots; camp-kit.ts their shared layers, effects and buttons),
-               loot.ts (loot reveal and Legendary/Mythic cards), items.ts (item cells with rarity frames, item text),
+               heroes.ts (hero select), skills.ts (skill tree), relic-log.ts, relic-ui.ts (relic icons, tag chips,
+               relic cards, perk names), loot.ts (loot reveal and Legendary/Mythic cards), items.ts (item cells with rarity frames, item text),
                ui.ts (text pool, panels), transition.ts (screen wipes), icons.ts, pixels.ts (panels, gauges,
                buttons), shared.ts
 tests/unit/    Vitest tests for src/core and src/data (specials, waves, map, run, save, bot targets, content checks), plus
@@ -122,6 +152,7 @@ npm run screens:update  # refresh the baselines after an intentional visual chan
 npm run balance      # balance bot report -> docs/balance.md (a few min); re-run after changing combat numbers
 npm run calibrate    # accuracy readout calibration table (paste into core/accuracy.ts SD_CALIBRATION)
 ACC=0.62 npm run retarget  # re-aim the difficulty curve at a player of that accuracy -> docs/retarget.md
+npm run twin         # Rowan vs Sable on the same tuning (RUNS, ACC, TUNE='{"sable":{...}}' env)
 npm run icons        # regenerate public/icons
 ```
 

@@ -10,6 +10,39 @@ const RUNS = Number(process.env.RUNS ?? 1000);
 const FARM_RUNS = Number(process.env.FARM_RUNS ?? Math.round(RUNS / 3));
 const FARMS = 6;
 const ACCURACIES = [0.55, 0.7, 0.85, 0.95];
+const CONTROL_RUNS = Number(process.env.CONTROL_RUNS ?? Math.round(RUNS / 2));
+
+/** With relics vs the same player with stat cards only. */
+function relicsVsControl(rows: ActRow[], control: ActRow[]): string {
+  const head = '| Player | Act | First-try clear: relics | stat cards only | Boss first fight won: relics | stat cards only | Relics carried into the boss | Hero level at the boss |';
+  const body = control.map((c) => {
+    const r = rows.find((x) => x.accuracy === c.accuracy && x.act === c.act)!;
+    return `| ${pct(c.accuracy)} | ${c.act + 1} | **${pct(r.firstTry)}** | ${pct(c.firstTry)} | **${pct(r.bossFirstTry)}** | ${pct(c.bossFirstTry)} | ${num(r.relicsAtBoss)} | ${num(r.levelAtBoss)} |`;
+  });
+  return [head, '|---|---|---|---|---|---|---|---|', ...body].join('\n');
+}
+
+/** The Boar King's first fight (70% player) by build name and by relic carried in (most common first). */
+function relicWins(r: ActRow): string {
+  const rate = (e: { n: number; won: number }) => `${pct(e.won / e.n)} (${e.n})`;
+  const builds = Object.entries(r.bossByBuild).sort((a, b) => b[1].n - a[1].n);
+  const relics = Object.entries(r.bossByRelic).sort((a, b) => b[1].n - a[1].n);
+  const half = Math.ceil(relics.length / 2);
+  const rows = Array.from({ length: half }, (_, i) => {
+    const a = relics[i];
+    const b = relics[i + half];
+    return `| ${a[0]} | ${rate(a[1])} | ${b ? b[0] : ''} | ${b ? rate(b[1]) : ''} |`;
+  });
+  return [
+    '| Build (from the top tags) | Boar King first fight won (runs) |',
+    '|---|---|',
+    ...builds.map(([k, v]) => `| ${k} | ${rate(v)} |`),
+    '',
+    '| Relic carried in | Won (runs) | Relic carried in | Won (runs) |',
+    '|---|---|---|---|',
+    ...rows,
+  ].join('\n');
+}
 /** Sable (the Twin family) against Rowan at these accuracies, on the same seeds. */
 const SABLE_ACC = [0.7, 0.85];
 const SABLE_RUNS = Number(process.env.SABLE_RUNS ?? Math.round(RUNS / 2));
@@ -61,6 +94,10 @@ it('balance report', () => {
   const rows = balance(t, ACCURACIES, RUNS);
   const farms = [0.55, TYPICAL_ACCURACY, 0.85].map((a) => farming(t, a));
   const sableRows = balance(t, SABLE_ACC, SABLE_RUNS, 1, 6, t.acts.length, 'sable');
+  // the control: the same player with stat cards only (no relics), as before M4a
+  const off = cloneTuning();
+  off.relics.on = 0;
+  const control = balance(off, [TYPICAL_ACCURACY, 0.85], CONTROL_RUNS);
   const rowanRows = SABLE_ACC.flatMap((acc) => rows.filter((r) => r.accuracy === acc));
   const at = (acc: number, act: number) => rows.find((r) => r.accuracy === acc && r.act === act)!;
   const [a1, a2, a3] = [0, 1, 2].map((a) => at(0.85, a));
@@ -116,6 +153,19 @@ starts with the boosts a run typically has by Act 3, plus all the gear; retries 
 | Player | Story: Act 3 cleared (6 tries) | Story: Boar King first fight won | ${Array.from({ length: FARMS }, (_, i) => `Replay ${i + 1}`).join(' | ')} | Gear power (replay 1 -> ${FARMS}) |
 |---|---|---|${Array.from({ length: FARMS }, () => '---|').join('')}---|
 ${farms.map((f) => `| ${pct(f.acc)} | ${pct(f.cleared)} | **${pct(f.story)}** | ${f.visits.map((v, i) => `${pct(v)} (forge ${pct(f.visitsForged[i])})`).join(' | ')} | ${Math.round(f.power[0])} -> ${Math.round(f.power[FARMS - 1])} |`).join('\n')}
+
+## Relics: win rates
+
+The pick after a fight offers mostly relics (plus at most one stat card); the bot takes Full Heal when hurt, otherwise
+the relic that shares the most tags with what it owns (synergy-greedy), then the rarest. Relics change rules, so their
+power shows up as wins, not as stats. With relics vs the same player taking stat cards only (${CONTROL_RUNS} runs per row):
+
+${relicsVsControl(rows, control)}
+
+The Boar King's first fight for a typical (${pct(TYPICAL_ACCURACY)}) player, by the build the act-clear screen would name and by
+each relic carried into the fight (all ${RUNS} runs; a relic's rate counts every run that carried it):
+
+${relicWins(at(TYPICAL_ACCURACY, 2))}
 
 ## Results
 

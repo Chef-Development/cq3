@@ -249,7 +249,7 @@ export function rollPick(rng: Rng, t: Tuning, pool: readonly RelicId[], owned: r
   const want: Rarity = min === true ? 'rare' : min === false ? 'common' : min;
   const meets = (x: BoostOffer) => RARITIES.indexOf(x.rarity) >= RARITIES.indexOf(want);
   const stat = !o.relicsOnly && rng.next() < t.relics.statCard ? 1 : 0;
-  const relics = rollRelics(rng, t, pool, owned, n - stat, want === 'common' ? undefined : want);
+  const relics = t.relics.on ? rollRelics(rng, t, pool, owned, n - stat, want === 'common' ? undefined : want) : [];
   const out: BoostOffer[] = relics.map((id) => ({ id: 'relic', rarity: relicById(id)!.rarity, relic: id }));
   // no relic that rare to offer: a stat card of that rarity takes a relic's place
   if (!o.relicsOnly && !stat && out.length && !out.some(meets)) out.splice(rng.int(out.length), 1);
@@ -483,7 +483,7 @@ export class Run {
     this.hero = heroFor(this.tuning, a, this.gear, this.build);
     this.rerolls = 0;
     // ...and drafts the relics a run would have by then (relic-only picks before the map)
-    this.startPicks = this.startPicksTotal = Math.max(0, Math.round(this.tuning.kit.relicPicks * a));
+    this.startPicks = this.startPicksTotal = this.tuning.relics.on ? Math.max(0, Math.round(this.tuning.kit.relicPicks * a)) : 0;
     this.enterAct(a, [this.region.acts[a].startScene ?? '']);
   }
 

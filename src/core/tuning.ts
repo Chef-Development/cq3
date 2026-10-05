@@ -281,6 +281,7 @@ export const DEFAULT_TUNING = {
   },
   relics: {
     // The 1-of-3 pick after a fight (and the shop) offers mostly relics, plus at most one stat card (core/relics.ts).
+    on: 1, // 0 = no relics: every card is a stat card, as before M4a (the balance report's control)
     statCard: 0.55, // chance one of the three cards is a stat card (never more than one)
     commonW: 1, // a relic's offer weight by rarity...
     rareW: 0.45,
@@ -759,6 +760,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
     {
       title: 'Relic offers',
       sliders: [
+        s('relics.on', 'Relics on (0 = stat cards only)', 0, 1, 1),
         s('relics.statCard', 'Stat card in a pick', 0, 1, 0.05),
         s('relics.commonW', 'Weight: common relic', 0, 3, 0.05),
         s('relics.rareW', 'Weight: rare relic', 0, 3, 0.05),

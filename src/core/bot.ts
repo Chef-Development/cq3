@@ -22,7 +22,7 @@ import { DT, heroAtk, heroMaxHp, isRed, type Combat, type CombatEvent } from './
 import { itemPower, slotOfItem, upgradeCost } from './gear';
 import { canLearn, learn, pointsLeft, treeOf, type HeroId } from './heroes';
 import { equip, equippedItems, heroProgress, newProfile, salvageAll, upgrade, type Profile } from './profile';
-import { rarityRank, sharedTags } from './relics';
+import { buildName, rarityRank, sharedTags, type RelicId } from './relics';
 import { Rng } from './rng';
 import { RARITIES, Run, type BoostOffer } from './run';
 import type { Block } from './combat';
@@ -79,6 +79,8 @@ export interface FightStats {
   act: number;
   row: number;
   type: NodeType; // fight, elite or boss
+  relics: RelicId[]; // carried into the fight
+  level: number; // the hero's level going in
   enemies: string[];
   boss: boolean;
   won: boolean;
@@ -377,6 +379,8 @@ function newFight(run: Run, c: Combat): FightStats {
     comboPower: T.hero.comboPower + run.hero.bonusComboPower,
     hpStart: run.hero.hp / heroMaxHp(T, run.hero),
     hpEnd: 0,
+    relics: run.hero.relics.slice(),
+    level: run.hero.build?.level ?? 1,
   };
   if (boss) {
     const b = c.enemies.find((e) => T.enemies[e.key].boss)!;
@@ -639,6 +643,11 @@ export interface ActRow {
   specialsPerMin: number;
   heroAtk: number; // hero attack entering the act
   lostAt: Record<string, number>; // lost attempts by node type
+  /** The act's first boss fight per run, by the relics carried in and by the build they name (core/relics.ts buildName). */
+  bossByRelic: Record<string, { n: number; won: number }>;
+  bossByBuild: Record<string, { n: number; won: number }>;
+  relicsAtBoss: number; // relics carried into the first boss fight (average)
+  levelAtBoss: number; // the hero's level going into it (average)
 }
 
 /** Play `runs` whole runs per accuracy and summarise every act (as `hero`: Rowan by default; the same seeds for
@@ -660,6 +669,10 @@ export function balance(tuning: Tuning, accuracies: number[], runs: number, seed
       let bossFirstN = 0;
       let bossFirstWon = 0;
       let atk = 0;
+      const bossByRelic: Record<string, { n: number; won: number }> = {};
+      const bossByBuild: Record<string, { n: number; won: number }> = {};
+      let relicsAtBoss = 0;
+      let levelAtBoss = 0;
       const lostAt: Record<string, number> = {};
       for (const e of entries) {
         atk += e.attempts[0]?.fights[0]?.heroAtk ?? 0;
@@ -694,6 +707,15 @@ export function balance(tuning: Tuning, accuracies: number[], runs: number, seed
                 bossSeen = true;
                 bossFirstN++;
                 if (f.won) bossFirstWon++;
+                const tally = (m: Record<string, { n: number; won: number }>, k: string) => {
+                  const e = (m[k] ??= { n: 0, won: 0 });
+                  e.n++;
+                  if (f.won) e.won++;
+                };
+                for (const r of f.relics) tally(bossByRelic, r);
+                tally(bossByBuild, buildName(f.relics));
+                relicsAtBoss += f.relics.length;
+                levelAtBoss += f.level;
               }
             }
           }
@@ -723,6 +745,10 @@ export function balance(tuning: Tuning, accuracies: number[], runs: number, seed
         specialsPerMin: sum.secs ? (sum.specials / sum.secs) * 60 : 0,
         heroAtk: atk / n,
         lostAt,
+        bossByRelic,
+        bossByBuild,
+        relicsAtBoss: bossFirstN ? relicsAtBoss / bossFirstN : NaN,
+        levelAtBoss: bossFirstN ? levelAtBoss / bossFirstN : NaN,
       });
     }
   }
