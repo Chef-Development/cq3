@@ -297,11 +297,12 @@ export class Combat {
   speedStacks = 0;
   meter = 0; // progress toward the next finisher stack, 0..1
   stacks = 0; // banked finisher stacks
-  /** Seconds the cursor stays stopped during the finisher; when it runs out the cursor restarts from the left. */
+  /** Seconds the cursor stays stopped during the finisher; when it runs out the cursor restarts from the left
+   *  (Sable: both cursors stop, then restart from the left end of their halves, A at 0 and B at the middle). */
   cursorHold = 0;
-  /** Seconds the cursor stays frozen in place (a Stomp); taps still count, judged where it stands. */
+  /** Seconds the cursor stays frozen in place (a Stomp; both of Sable's); taps still count, judged where it stands. */
   freeze = 0;
-  /** The cursor speed multiplier never drops below this for the rest of the fight (an enraged boss). */
+  /** The cursor speed multiplier never drops below this for the rest of the fight (an enraged boss; both cursors). */
   minSpeed = 0;
   /** The special being telegraphed (one at a time, so each one can be read). */
   telegraph: Telegraph | null = null;
@@ -352,6 +353,14 @@ export class Combat {
   readonly hands: number;
   /** The hand of the last attack hit (-1 = none yet): Ambidextrous and the alternating skills read it. */
   lastHand = -1;
+  /** Attack hits in a row that alternated hands, this chain's first hit included (L R L = 3; a hit with the same
+   *  hand as the one before starts a new chain at 1; a miss or a combo break ends it at 0). Echoes don't count. */
+  altStreak = 0;
+  /** The attack hit being resolved right now (comboGain and meter hooks read whether it alternated), or null. */
+  hitNow: HitCtx | null = null;
+  /** The sim time the tap being judged right now happened at (NaN outside a tap): perks that act under the other
+   *  cursor (Shadow Step, Cross Guard) and Double Down read it. */
+  tapAt = NaN;
 
   private nextId = 1;
   private refillTimer = 0;
@@ -574,9 +583,21 @@ export class Combat {
     return hand <= 0 ? [0, 0.5] : [0.5, 1];
   }
 
+  /** How much of the bar a cursor sweeps (1 for one cursor, 0.5 for each of Sable's): each half is a small bar of
+   *  its own, so the cursor's width, the edge margins and the gaps between static blocks scale with it. */
+  handSpan(hand = 0): number {
+    const [lo, hi] = this.handRange(hand);
+    return hi - lo;
+  }
+
   /** Which cursor a bar position belongs to. */
   handOf(pos: number): number {
     return this.hands < 2 ? 0 : pos < 0.5 ? 0 : 1;
+  }
+
+  /** The other cursor (Sable); Rowan's only one is its own other. */
+  otherHand(hand: number): number {
+    return this.hands < 2 ? 0 : hand > 0 ? 0 : 1;
   }
 
   /** A fresh enemy of kind `key` (scaled by this fight's HP and attack multipliers). */
@@ -644,9 +665,15 @@ export class Combat {
     return Math.max(this.minSpeed, Math.min(c.maxSpeedMult, m));
   }
 
-  /** Cursor speed in bar-widths per second (one pass = 1 unit of phase). */
+  /** Cursor speed in passes per second (one pass = 1 unit of phase; for Rowan, bar-widths per second). Both of
+   *  Sable's cursors run at this many passes of their own half (barSpeed gives bar units per second). */
   cursorSpeed(): number {
     return this.speedMult() / this.tuning.cursor.basePassSec;
+  }
+
+  /** Cursor `hand`'s speed in bar units per second right now (Sable's cursors cover half a bar per pass). */
+  barSpeed(hand = 0): number {
+    return this.cursorSpeed() * this.handSpan(hand);
   }
 
   private phaseVelNow(): number {
@@ -685,10 +712,20 @@ export class Combat {
     return this.hPhase[i] + this.hPhaseVel[i] * Math.max(0, t - this.hT[i]);
   }
 
-  /** Where cursor `hand` is at sim time t, as a position on the whole bar (0..1). */
+  /**
+   * Where cursor `hand` is at sim time t, as a position on the whole bar (0..1). Sable's two cursors share one phase
+   * (one speed, one finisher stop, one freeze): A sweeps [0, 0.5] and B [0.5, 1] side by side, always half a bar
+   * apart, both moving right from the left end of their half, then both back.
+   */
   cursorPosAt(t: number, hand = 0): number {
-    void hand;
-    return phaseToPos(this.phaseAt(t));
+    if (this.hands < 2) return phaseToPos(this.phaseAt(t));
+    const [lo, hi] = this.handRange(hand);
+    return lo + (hi - lo) * phaseToPos(this.phaseAt(t));
+  }
+
+  /** The cursor's direction at sim time t: 1 = moving right, -1 = left (both of Sable's cursors move together). */
+  cursorDirAt(t: number): number {
+    return ((this.phaseAt(t) % 2) + 2) % 2 < 1 ? 1 : -1;
   }
 
   motionAt(t: number): number {
@@ -1070,10 +1107,15 @@ export class Combat {
     return true;
   }
 
-  /** A random spot (block center) where a static block of width w fits without touching the others, or null. */
+  /**
+   * A random spot (block center) where a static block of width w fits without touching the others, or null.
+   * Sable's bar: inside one half, never straddling the middle (each half keeps its own edge margins, scaled to the
+   * half); the half with fewer yellows and greens gets it, so both thumbs stay busy (a coin flip when even).
+   */
   freeSpot(w: number, tries = 16): number | null {
     const B = this.tuning.blocks;
     const statics = this.blocks.filter((b) => !isRed(b.kind));
+    if (this.hands > 1) return this.freeSpotTwin(statics, w, tries);
     const lo = B.edgeMargin + w / 2;
     const hi = 1 - B.edgeMargin - w / 2;
     if (hi < lo) return null;
@@ -1084,10 +1126,42 @@ export class Combat {
     return null;
   }
 
-  /** A kind's base width (spawns vary around it, see trySpawn). */
+  private freeSpotTwin(statics: Block[], w: number, tries: number): number | null {
+    const B = this.tuning.blocks;
+    const span = this.handSpan(0);
+    const margin = B.edgeMargin * span;
+    const gap = B.minGap * span;
+    const count = (h: number) => statics.reduce((n, s) => n + (isAttack(s.kind) && this.handOf(s.pos) === h ? 1 : 0), 0);
+    const c0 = count(0);
+    const c1 = count(1);
+    const first = c0 === c1 ? (this.spawnRng.next() < 0.5 ? 0 : 1) : c0 < c1 ? 0 : 1;
+    for (const h of [first, 1 - first]) {
+      const [a, b] = this.handRange(h);
+      const lo = a + margin + w / 2;
+      const hi = b - margin - w / 2;
+      if (hi < lo) continue;
+      for (let k = 0; k < tries; k++) {
+        const p = this.spawnRng.range(lo, hi);
+        if (statics.every((s) => Math.abs(s.pos - p) >= (s.width + w) / 2 + gap)) return p;
+      }
+    }
+    return null;
+  }
+
+  /** Sable's bar: a static block centred at `pos` moved (if it has to be) to sit wholly inside the half its centre is
+   *  in, clear of the middle (specials place some by position: beside a yellow, or at a set spot). */
+  private inHalf(pos: number, w: number): number {
+    const m = this.tuning.blocks.edgeMargin * this.handSpan(0) * 0.5;
+    return this.handOf(pos) === 0 ? Math.min(0.5 - m - w / 2, pos) : Math.max(0.5 + m + w / 2, pos);
+  }
+
+  /** A kind's base width (spawns vary around it, see trySpawn). Sable's bar: x tuning.sable.widthMult (statics) or
+   *  redWidthMult (reds), so her half-speed cursors cross a block in about the time Rowan's does. */
   widthFor(kind: BlockKind): number {
     const B = this.tuning.blocks;
-    return isRed(kind) ? B.redWidth : kind === 'purple' ? B.trapWidth : kind === 'green' ? B.greenWidth : B.attackWidth;
+    const w = isRed(kind) ? B.redWidth : kind === 'purple' ? B.trapWidth : kind === 'green' ? B.greenWidth : B.attackWidth;
+    if (this.hands < 2) return w;
+    return w * (isRed(kind) ? this.tuning.sable.redWidthMult : this.tuning.sable.widthMult);
   }
 
   /** Queue a formation block to land after `delay` seconds (motion time). */
@@ -1105,6 +1179,7 @@ export class Combat {
   ): Block {
     const B = this.tuning.blocks;
     const speed = o.speed ?? 1;
+    if (this.hands > 1 && !isRed(kind)) pos = this.inHalf(pos, width);
     const b: Block = {
       id: this.nextId++,
       kind,
@@ -1144,7 +1219,16 @@ export class Combat {
   tap(t: number, hand = 0): TapResult {
     hand = this.hands < 2 ? 0 : hand > 0 ? 1 : 0;
     const none: TapResult = { outcome: 'none', perfect: false, cursorPos: 0, blockId: 0, hand };
-    if (this.result || this.cursorHold > 0) return none; // taps don't count while the finisher has the cursor stopped
+    if (this.result || this.cursorHold > 0) return none; // taps don't count while the finisher has the cursors stopped
+    this.tapAt = this.clampTap(t);
+    try {
+      return this.judge(t, hand);
+    } finally {
+      this.tapAt = NaN;
+    }
+  }
+
+  private judge(t: number, hand: number): TapResult {
     const J = this.tuning.judge;
     const { chosen, d, cpos } = this.pick(t, hand);
     this.recordAim(t, chosen, cpos, hand);
@@ -1162,30 +1246,52 @@ export class Combat {
     return { outcome, perfect: outcome === 'trap' || outcome === 'counter' ? false : perfect, cursorPos: cpos, blockId: chosen.id, hand };
   }
 
+  /** A tap's time as the judge uses it: no further back than maxRewindMs, no later than the next tick. */
+  private clampTap(t: number): number {
+    const now = this.time;
+    return Math.min(now + DT, Math.max(now - this.tuning.judge.maxRewindMs / 1000, t));
+  }
+
   /**
    * The block a tap at time t would land on: an attack (a red, shield, bomb or speed block) under the cursor always
    * comes first, even over a nearer block, so a tap never hits a yellow while an attack it overlaps gets through;
    * then the nearest other block; a purple trap only if nothing else is there.
    */
   private pick(t: number, hand = 0): { chosen: Block | null; d: number; cpos: number } {
+    const r = this.reach(t, hand);
+    if (r.red) return { chosen: r.red, d: r.redD, cpos: r.cpos };
+    if (r.best) return { chosen: r.best, d: r.bestD, cpos: r.cpos };
+    return { chosen: r.trap, d: r.trapD, cpos: r.cpos };
+  }
+
+  /**
+   * What cursor `hand` reaches at time t (rewound like a tap): the nearest attack (red, shield, bomb, speed), the
+   * nearest other block (and the nearest yellow/green among those), the nearest trap. Sable's cursors reach the
+   * static blocks of their own half only; a red is fair game for whichever cursor it is under.
+   */
+  private reach(t: number, hand: number) {
     const J = this.tuning.judge;
-    const now = this.time;
-    t = Math.min(now + DT, Math.max(now - J.maxRewindMs / 1000, t));
+    t = this.clampTap(t);
     const phase = this.phaseAt(t);
     const cpos = this.cursorPosAt(t, hand);
     // the grace is a time window: it scales with the speed the cursor and the block close at (a red racing at
     // the cursor gets as many milliseconds as a still yellow; never less space than the cursor's own speed gives)
-    const v = this.speedAtTime(t);
+    const span = this.handSpan(hand);
+    const v = this.speedAtTime(t) * span;
     const vSigned = ((phase % 2) + 2) % 2 < 1 ? v : -v;
-    const cursorHalf = this.tuning.cursor.widthFrac / 2;
+    const cursorHalf = (this.tuning.cursor.widthFrac * span) / 2;
+    const twin = this.hands > 1;
     let red: Block | null = null;
     let redD = Infinity;
     let best: Block | null = null;
     let bestD = Infinity;
+    let attack: Block | null = null;
+    let attackD = Infinity;
     let trap: Block | null = null;
     let trapD = Infinity;
     for (const b of this.blocks) {
       if (b.bornAt > t + 1e-9) continue;
+      if (twin && !isRed(b.kind) && this.handOf(b.pos) !== hand) continue;
       const d = Math.abs(cpos - this.blockPosAt(b, t));
       const graceDist = Math.max(v, Math.abs(vSigned - b.vel)) * ((isRed(b.kind) ? J.redGraceMs : J.graceMs) / 1000);
       if (d > b.width / 2 + cursorHalf + graceDist) continue;
@@ -1193,49 +1299,67 @@ export class Combat {
         if (d < redD) (red = b), (redD = d);
       } else if (b.kind === 'purple') {
         if (d < trapD) (trap = b), (trapD = d);
-      } else if (d < bestD) (best = b), (bestD = d);
+      } else {
+        if (d < bestD) (best = b), (bestD = d);
+        if (isAttack(b.kind) && d < attackD) (attack = b), (attackD = d);
+      }
     }
-    if (red) return { chosen: red, d: redD, cpos };
-    if (best) return { chosen: best, d: bestD, cpos };
-    return { chosen: trap, d: trapD, cpos };
+    return { cpos, red, redD, best, bestD, attack, trap, trapD };
+  }
+
+  /**
+   * The red and the yellow/green under cursor `hand` at time t (default: the tap being judged, else now), by the
+   * judge's reach; never a trap. Perks that strike under the other cursor use it (Shadow Step, Cross Guard).
+   */
+  underCursor(hand: number, t = Number.isNaN(this.tapAt) ? this.time : this.tapAt): { red: Block | null; attack: Block | null } {
+    const r = this.reach(t, this.hands < 2 ? 0 : hand > 0 ? 1 : 0);
+    return { red: r.red, attack: r.attack };
   }
 
   /**
    * The tap's timing error against the yellow block it was aimed at (the one it hit, or for a miss the nearest
-   * block if that's a yellow): ms after (+) or before (-) the cursor crossed the block's center.
+   * block if that's a yellow): ms after (+) or before (-) the cursor crossed the block's center. Sable: against
+   * the cursor of the hand that tapped, among the blocks that cursor can reach.
    */
   private recordAim(t: number, chosen: Block | null, cpos: number, hand = 0): void {
-    void hand;
-    t = Math.min(this.time + DT, Math.max(this.time - this.tuning.judge.maxRewindMs / 1000, t));
-    const v = this.speedAtTime(t);
+    t = this.clampTap(t);
+    const v = this.speedAtTime(t) * this.handSpan(hand);
     if (v <= 0 || this.freeze > 0) return;
+    // where a block stands as this cursor sees it: Sable's two halves laid over each other (the cursors run side by
+    // side, half a bar apart), so the readout picks clear-cut samples from as busy a bar as Rowan's
+    const twin = this.hands > 1;
+    const seen = (b: Block) => {
+      const p = this.blockPosAt(b, t);
+      return !twin || this.handOf(p) === hand ? p : p + (hand > 0 ? 0.5 : -0.5);
+    };
     let target: Block | null = chosen;
     if (!target) {
       let best = Infinity;
       for (const b of this.blocks) {
         if (b.bornAt > t + 1e-9) continue;
-        const dd = Math.abs(cpos - this.blockPosAt(b, t));
+        const dd = Math.abs(cpos - seen(b));
         if (dd < best) (best = dd), (target = b);
       }
     }
-    if (!target || target.kind !== 'yellow') return;
+    if (!target || target.kind !== 'yellow' || (twin && this.handOf(target.pos) !== hand)) return;
     const phase = ((this.phaseAt(t) % 2) + 2) % 2;
     const dir = phase < 1 ? 1 : -1;
     const err = ((cpos - this.blockPosAt(target, t)) * dir) / v;
     // only clear-cut samples: a yellow with no other block (or wall turn) near it, so the tap can't have been
     // meant for something else
     const tp = this.blockPosAt(target, t);
-    if ((Math.min(tp, 1 - tp) / v) * 1000 < ISOLATION_MS) return;
-    for (const b of this.blocks) if (b !== target && b.bornAt <= t + 1e-9 && (Math.abs(this.blockPosAt(b, t) - tp) / v) * 1000 < ISOLATION_MS) return;
+    const [lo, hi] = this.handRange(hand);
+    if ((Math.min(tp - lo, hi - tp) / v) * 1000 < ISOLATION_MS) return;
+    for (const b of this.blocks) if (b !== target && b.bornAt <= t + 1e-9 && (Math.abs(seen(b) - tp) / v) * 1000 < ISOLATION_MS) return;
     if (Math.abs(err) * 1000 <= AIM_WINDOW_MS) this.aims.push(Math.round(err * 1000));
   }
 
   /** Whether a tap at time t would land on nothing (lets input hold back a would-be miss that may be a swipe). */
   wouldMiss(t: number, hand = 0): boolean {
-    return !this.result && this.cursorHold <= 0 && !this.pick(t, this.hands < 2 ? 0 : hand).chosen;
+    return !this.result && this.cursorHold <= 0 && !this.pick(t, this.hands < 2 ? 0 : hand > 0 ? 1 : 0).chosen;
   }
 
-  /** Cursor speed (bar units/s) that was in effect at time t. */
+  /** Cursor speed (passes/s, as cursorSpeed; x handSpan for bar units/s) that was in effect at time t. */
   private speedAtTime(t: number): number {
     if (t >= this.time) return this.cursorSpeed();
     const i = this.histIndex(t);
@@ -1249,9 +1373,14 @@ export class Combat {
     this.removeBlock(b, 'hit');
     const green = b.kind === 'green';
     const alternated = this.hands > 1 && !echo && this.lastHand >= 0 && this.lastHand !== hand;
-    if (!echo) this.lastHand = hand;
+    if (!echo) {
+      this.lastHand = hand;
+      if (this.hands > 1) this.altStreak = alternated ? this.altStreak + 1 : 1;
+    }
     const target = this.currentTarget();
     const x: HitCtx = { block: b, hand, perfect, green, target, crit: false, damage: 0, alternated, echo };
+    const outer = this.hitNow; // an echo resolves inside the hit that caused it
+    this.hitNow = x;
     this.comboUp('hit', perfect, hand);
     this.addMeter((green ? T.meter.perGreen : T.meter.perHit) + (perfect ? T.meter.perfectBonus : 0), green ? 'green' : 'hit', hand);
     let mult = green ? T.hero.greenMult : 1;
@@ -1280,12 +1409,19 @@ export class Combat {
     if (!echo) this.companionTick();
     this.pendulumTick();
     for (const h of this.hooks) h.afterHit?.(this, x);
+    this.hitNow = outer;
     return 'hit';
   }
 
   /** How long the green ability lasts (Rowan's Battle Focus, Sable's Shadow Step). */
   abilitySec(): number {
     return this.hands > 1 ? this.tuning.sable.shadowSec : this.tuning.hero.abilitySec;
+  }
+
+  /** Start the green ability without a green hit (Whirling Blades starts Shadow Step). */
+  startAbility(): void {
+    this.hero.abilityTimer = Math.max(this.hero.abilityTimer, this.abilitySec());
+    this.events.push({ type: 'ability' });
   }
 
   /** The combo goes up (normally by 1; perks may change that), and perks that watch it hear about it. */
@@ -1433,6 +1569,7 @@ export class Combat {
   }
 
   private miss(pos: number, hand = 0): void {
+    this.altStreak = 0;
     if (!this.missForgiven && setPieces(this.hero.gear, 'footpad') >= 2) {
       // Footpad set: the fight's first miss doesn't break the combo (or hurt)
       this.missForgiven = true;
@@ -1562,6 +1699,7 @@ export class Combat {
     this.combo = combo;
     this.meter = stacks >= this.maxStacks() ? 1 : meter;
     this.stacks = stacks;
+    this.altStreak = 0;
   }
 
   private heroDamage(amount: number, source: HurtSource, enemyId: number, keepCombo = false, perk?: string): void {

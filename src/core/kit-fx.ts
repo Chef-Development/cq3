@@ -5,7 +5,26 @@
 // and a kill keeps a stack). Numbers: tuning.hero (Rowan) and tuning.sable.
 
 import type { HeroId } from '../data/heroes';
+import type { Combat } from './combat';
 import type { FightHooks } from './hooks';
+
+/**
+ * Shadow Step: the other cursor strikes too, at the tap's moment, by the judge's reach: a red under it is blocked
+ * (an attack under a cursor always comes first, as for a tap), else a yellow or green under it is hit. Never a trap.
+ * The extra block or hit is an echo (perks don't chain off it).
+ */
+export function shadowStrike(c: Combat, hand: number): void {
+  const other = c.otherHand(hand);
+  if (other === hand) return;
+  const { red, attack } = c.underCursor(other);
+  if (red) {
+    c.perkFx('shadowStep', 0, red.ownerId, red.pos);
+    c.perkBlock(red, other);
+  } else if (attack) {
+    c.perkFx('shadowStep', 0, c.currentTarget()?.id ?? 0, attack.pos);
+    c.perkHit(attack, other);
+  }
+}
 
 export const KIT_HOOKS: Record<HeroId, FightHooks> = {
   rowan: {
@@ -15,19 +34,21 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
   sable: {
     // two light daggers: each hit deals a share of Rowan's
     hitMult: (c, _x, v) => v * c.tuning.sable.atkMult,
-    // Ambidextrous: a hit with the other hand than the last one fills the meter faster
-    meter: (c, source, v, hand) => ((source === 'hit' || source === 'green') && c.hands > 1 && c.perk.ambiLast !== undefined && c.perk.ambiLast !== hand ? v * (1 + c.tuning.sable.ambidextrous) : v),
+    // Ambidextrous: a hit with the other hand than the last hit fills the meter faster (echoes never alternate)
+    meter: (c, source, v) => ((source === 'hit' || source === 'green') && c.hitNow?.alternated ? v * (1 + c.tuning.sable.ambidextrous) : v),
+    // Shadow Step: while the green ability is on, a hit with one cursor also strikes under the other
     afterHit: (c, x) => {
-      if (!x.echo) c.perk.ambiLast = x.hand;
+      if (!x.echo && c.hero.abilityTimer > 0 && c.hands > 1) shadowStrike(c, x.hand);
     },
-    // Twin Fang: the finisher strikes the target alone, harder; a kill keeps a stack
+    // Twin Fang: the finisher strikes the target alone, harder; a kill keeps a stack (for the next foe, or the next
+    // wave)
     finisher: (c, x, v) => {
       const target = c.currentTarget();
       if (target) x.targets = [target];
       return v * c.tuning.sable.fangMult;
     },
     afterFinisher: (c, x) => {
-      if (x.killed > 0 && c.enemies.some((e) => e.alive)) c.bankStacks(Math.round(c.tuning.sable.fangKeep), 'twinFang');
+      if (x.killed > 0 && (c.enemies.some((e) => e.alive) || c.nextWaveIn >= 0)) c.bankStacks(Math.round(c.tuning.sable.fangKeep), 'twinFang');
     },
   },
 };
