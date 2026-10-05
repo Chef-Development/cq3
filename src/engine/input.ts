@@ -1,7 +1,9 @@
-// Pointer/keyboard routing. Bar taps are judged by event.timeStamp (see App.barTap), not by frame.
+// Pointer/keyboard routing. Bar taps are judged by event.timeStamp (see App.barTap), not by frame. Sable's two
+// cursors: a tap on the left half of the screen is cursor A's, on the right half cursor B's. Taps on the HUD's relic
+// belt open the relic panel (the fight pauses) and are never judged as bar taps.
 import { isSwipe } from '../core/swipe';
 import type { App } from './app';
-import { clientToGame } from './layout';
+import { clientToGame, GAME_W } from './layout';
 import type { FightScene } from './scene';
 
 const inUi = (t: EventTarget | null): boolean => t instanceof Element && !!t.closest('[data-ui]');
@@ -9,14 +11,14 @@ const inUi = (t: EventTarget | null): boolean => t instanceof Element && !!t.clo
 export function installInput(app: App, getScene: () => FightScene | null, ui: { togglePanel(): void; refreshHud(): void }): void {
   // A touch that might become a finisher swipe. Taps that land on a block are judged immediately; only a tap
   // that would miss is held back (until it's clearly not a swipe), so a swipe never costs you your stacks.
-  let swipe: { id: number; x: number; y: number; ts: number; timer: number; held: boolean } | null = null;
+  let swipe: { id: number; x: number; y: number; ts: number; timer: number; held: boolean; hand: number } | null = null;
 
   const resolveSwipeAsTap = () => {
     if (!swipe) return;
     const s = swipe;
     window.clearTimeout(s.timer);
     swipe = null;
-    if (s.held) app.barTap(s.ts);
+    if (s.held) app.barTap(s.ts, s.hand);
   };
 
   const fireSwipe = () => {
@@ -47,12 +49,14 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
         else if (!scene.storyReveal()) app.storyNext();
         return;
       case 'map': {
+        if (scene.overlays.unlockActive()) return scene.overlays.unlockTap();
         // keyboard: the first choice
         const id = clientX < 0 ? (run.choices()[0] ?? null) : scene.mapNodeAt(g.x, g.y);
         if (id !== null && now - app.phaseSince > 300) scene.chooseNode(id);
         return;
       }
       case 'boost': {
+        if (scene.overlays.unlockActive()) return scene.overlays.unlockTap();
         if (now - app.phaseSince < 400) return;
         const i = clientX < 0 ? 0 : scene.boostCardAt(g.x, g.y);
         if (i >= 0) app.setPhase(() => run.pickBoost(i));
@@ -63,11 +67,13 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       case 'rest':
       case 'shop':
       case 'event':
+        if (scene.overlays.unlockActive()) return scene.overlays.unlockTap();
         if (now - app.phaseSince > 300) scene.nodeTap(clientX < 0 ? -1 : g.x, g.y);
         return;
       case 'actClear': {
         // the first tap bursts the chest; then only the Camp and Next buttons do anything
         if (now - app.phaseSince < 300) return;
+        if (scene.overlays.unlockActive()) return scene.overlays.unlockTap();
         const pick = scene.overlays.actClearTap(clientX < 0 ? -1 : g.x, g.y);
         if (pick === 'camp') app.openCamp();
         else if (pick === 'next') app.setPhase(() => run.nextAct());
@@ -104,6 +110,15 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       else if (!scene.storyReveal()) app.storyNext();
       return;
     }
+    // the relic panel (opened from the relic belt): show another relic, or close it and play on
+    if (app.userPaused && scene.overlays.relicSel !== null) {
+      if (scene.overlays.relicPanelTap(g.x, g.y) === 'close') {
+        app.userPaused = false;
+        app.syncClock(now);
+        ui.refreshHud();
+      }
+      return;
+    }
     if (app.userPaused) {
       app.userPaused = false;
       app.syncClock(now);
@@ -111,6 +126,20 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       return;
     }
     if (app.panelOpen && !app.playWhilePanelOpen) return;
+    // Sable's first fight: the two tap zones, shown once before TAP TO BEGIN
+    if (scene.overlays.twinTutorial()) {
+      scene.overlays.twinTutorialTap();
+      return;
+    }
+    // the relic belt under the hero plate: the relic panel opens and the fight pauses (never a bar tap)
+    const relic = clientX < 0 ? -1 : scene.hud.relicAt(g.x, g.y);
+    if (relic >= 0) {
+      app.userPaused = true;
+      app.syncClock(now);
+      ui.refreshHud();
+      scene.overlays.openRelics(relic);
+      return;
+    }
     if (app.awaitingBegin) {
       app.begin();
       return;
@@ -131,15 +160,17 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
         return;
       }
     }
+    // two cursors (Sable): the left half of the screen taps cursor A, the right half cursor B
+    const hand = (app.combat?.hands ?? 1) > 1 && clientX >= 0 && g.x >= GAME_W / 2 ? 1 : 0;
     if (app.settings.finisherInput === 'swipe' && app.combat?.finisherReady) {
       resolveSwipeAsTap();
-      const held = app.wouldMiss(ts);
-      if (!held) app.barTap(ts);
+      const held = app.wouldMiss(ts, hand);
+      if (!held) app.barTap(ts, hand);
       const wait = Math.min(app.tuning.swipe.maxMs, app.tuning.judge.maxRewindMs - 20);
-      swipe = { id: pointerId, x: clientX, y: clientY, ts, held, timer: window.setTimeout(resolveSwipeAsTap, Math.max(0, wait)) };
+      swipe = { id: pointerId, x: clientX, y: clientY, ts, held, hand, timer: window.setTimeout(resolveSwipeAsTap, Math.max(0, wait)) };
       return;
     }
-    app.barTap(ts);
+    app.barTap(ts, hand);
   };
 
   window.addEventListener(
@@ -192,14 +223,14 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
   document.addEventListener('contextmenu', block);
   document.addEventListener('selectstart', block);
 
-  // Desktop testing: Space/J/K = tap, F/Up = finisher, P/Esc = pause, ` = tuning panel.
+  // Desktop testing: Space/J/K = tap (Sable: J = cursor A, K = cursor B), F/Up = finisher, P/Esc = pause, ` = tuning panel.
   window.addEventListener('keydown', (e) => {
     if (e.repeat || inUi(e.target)) return;
     app.audio.unlock();
     const k = e.key;
     if (k === ' ' || k === 'j' || k === 'k' || k === 'Enter') {
       e.preventDefault();
-      if (app.run.phase === 'fight' && !app.userPaused && !app.awaitingBegin) app.barTap(e.timeStamp);
+      if (app.run.phase === 'fight' && !app.userPaused && !app.awaitingBegin) app.barTap(e.timeStamp, k === 'k' ? 1 : 0);
       else down(-1, -1, e.timeStamp, -1);
     } else if (k === 'f' || k === 'ArrowUp') app.finisher();
     else if (k === 'p' || k === 'Escape') {

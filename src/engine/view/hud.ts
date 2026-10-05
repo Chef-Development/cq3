@@ -1,18 +1,23 @@
-// The HUD: hero plate (portrait, HP, stats, coins, revives), enemy plate (badge, HP, attack, name), the act and
-// foe counters, the combo counter, the finisher strip under the bar (meter, banked stacks, speed) and button,
-// plus the kill rewards that fly into it (coins and stat icons). Panels are dark navy with a light bevel and an
-// ink outline (see pixels.ts panel); everything slides in with a little overshoot when a fight starts.
+// The HUD: hero plate (the fighting hero's portrait and level, HP, stats, coins, revives), the relic belt under it
+// (every relic carried; one pulses when it kicks in; a tap opens the relic panel), enemy plate (badge, HP, attack,
+// name), the act and foe counters, the combo counter, the finisher strip under the bar (meter, banked stacks with
+// Overcharge's countdown, speed) and button, plus the kill rewards that fly into it (coins and stat icons). Panels
+// are dark navy with a light bevel and an ink outline (see pixels.ts panel); everything slides in with a little
+// overshoot when a fight starts.
 import Phaser from 'phaser';
 import { heroStats, type Combat } from '../../core/combat';
 import { fmtStat, type StatBlock } from '../../core/gear';
 import { STAT_INFO, type StatId } from '../../data/gear';
+import type { RelicId } from '../../data/relics';
+import { relicNumber } from '../../core/relics';
 import type { FightScene } from '../scene';
 import { textWidth } from '../font';
 import { GAME_W } from '../layout';
 import { band, button3d, chevron, gauge, gem, glow, GOLD, hudIcon, iconSize, NAVY, panel, RAMP, rows } from './pixels';
 import { FOE_ICONS } from './icons';
-import { clamp01, ease, easeBack, ENEMY_COL, INK, mix, pulse, rand, shade, stackCol, WHITE, type RainIcon, type Rect } from './shared';
-import { tag, TextPool } from './ui';
+import { clamp01, ease, easeBack, ENEMY_COL, inRect, INK, mix, pulse, rand, shade, stackCol, WHITE, type RainIcon, type Rect } from './shared';
+import { ImagePool, tag, TextPool } from './ui';
+import { relicIcon } from './relic-ui';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -34,7 +39,10 @@ const SHOWN: Record<string, { row: number; label: (d: number) => string }> = {
 const foeCount = (c: Combat): { beaten: number; total: number } => ({ beaten: c.foesBeaten, total: c.foesTotal });
 
 /** Where the portrait's face sits inside its 40x40 texture (top-left of the 18x18 window shown in the badge). */
-const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6] };
+const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [12, 6] };
+/** The relic belt shows this many icons (more: the last slot reads "+N"), 13 px apart, under the coin chip. */
+const BELT_MAX = 7;
+const BELT_Y = 41;
 /** Combo milestones: the counter's progress bar fills toward the next one. */
 const MARKS: Array<[number, string]> = [
   [10, 'Nice!'],
@@ -92,9 +100,21 @@ export class Hud {
   private gains: Array<{ key: string; d: number; at: number }> = [];
   private hiddenAt = -1e9; // the last hidden-stat gain shown, and how many stacked under the plate
   private hiddenN = 0;
+  /** Relic icons on the belt (over the HUD panels, under its flashes). */
+  private pool: ImagePool;
+  /** When each perk last kicked in (performance.now), and how often this fight (the relic panel says). */
+  private perkAt = new Map<string, number>();
+  private perkN = new Map<string, number>();
+  private perkFight: unknown = null;
+  /** Relics the belt has shown (a new one pops in), and when the belt first showed each. */
+  private beltSeen = new Map<RelicId, number>();
+  /** Overcharge's timer: whether it counts down (true) or up, read from how it moves. */
+  private ocDown = false;
+  private ocPrev = -1;
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, 12);
+    this.pool = new ImagePool(s);
   }
 
   /** New layout: anything in flight is dropped and the counters snap to the run. */
@@ -106,6 +126,76 @@ export class Hud {
     this.portrait?.destroy();
     this.portrait = s.add.image(0, 0, 'portrait_rowan').setOrigin(0, 0).setDepth(10.2).setVisible(false);
     this.gTop ??= s.add.graphics().setDepth(10.3);
+    this.pool.destroy();
+  }
+
+  // ------------------------------------------------------------------ relics
+
+  /** A perk kicked in: its relic's icon on the belt pulses, and the relic panel counts it. */
+  perkKicked(id: string): void {
+    const c = this.s.app.run.combat;
+    if (c !== this.perkFight) {
+      this.perkFight = c;
+      this.perkN.clear();
+    }
+    this.perkAt.set(id, performance.now());
+    this.perkN.set(id, (this.perkN.get(id) ?? 0) + 1);
+  }
+
+  /** How strongly a relic's icon pulses now (1 just kicked in, 0 at rest). */
+  relicPulseK(id: string, now: number): number {
+    const k = (now - (this.perkAt.get(id) ?? -1e9)) / 420;
+    return k >= 0 && k < 1 ? Math.sin(Math.min(1, k * 2.2) * Math.PI) * (1 - k * 0.5) : 0;
+  }
+
+  /** How often a perk kicked in this fight. */
+  perkCount(id: string): number {
+    return this.s.app.run.combat === this.perkFight ? (this.perkN.get(id) ?? 0) : 0;
+  }
+
+  /** The relic belt's rect and its icon slots (`more`: relics not shown, counted in the last slot). */
+  relicBelt(dx = 0): { r: Rect; slots: Array<{ id: RelicId; r: Rect }>; more: number } | null {
+    const owned = this.s.app.run.hero.relics;
+    if (!owned.length) return null;
+    const shown = owned.length <= BELT_MAX ? owned.length : BELT_MAX - 1;
+    const more = owned.length - shown;
+    const x0 = this.s.L + 3 + dx;
+    const w = (shown + (more ? 1 : 0)) * 13 + 1;
+    const slots = owned.slice(0, shown).map((id, i) => ({ id, r: { x: x0 + 1 + i * 13, y: BELT_Y + 1, w: 12, h: 12 } }));
+    return { r: { x: x0, y: BELT_Y, w, h: 14 }, slots, more };
+  }
+
+  /** Which relic a tap on the belt hits (its index in the hero's relics; the "+N" slot opens the first not shown). */
+  relicAt(x: number, y: number): number {
+    const b = this.relicBelt();
+    if (!b || !inRect(b.r, x, y, 2)) return -1;
+    return Math.max(0, Math.min(b.slots.length - (b.more ? 0 : 1), Math.floor((x - b.r.x - 1) / 13)));
+  }
+
+  /** The relic belt: a navy strip under the coin chip, an icon per relic; one bobs and flashes when it kicks in. */
+  private drawBelt(g: G, now: number, dx: number): void {
+    const s = this.s;
+    const b = this.relicBelt(dx);
+    if (!b) return;
+    tag(g, b.r, [NAVY[5], NAVY[2], NAVY[1], NAVY[0]], 0.94);
+    const gt = this.gTop!;
+    b.slots.forEach(({ id, r }, i) => {
+      // a relic the belt hasn't shown yet pops in (once the plate has slid in)
+      let seen = this.beltSeen.get(id);
+      if (seen === undefined) this.beltSeen.set(id, (seen = Math.max(now, this.inAt + 380 + i * 60)));
+      const pk = (now - seen) / 300;
+      if (pk < 0) return;
+      const pop = pk < 1 ? Math.round(Math.sin(pk * Math.PI) * 3) : 0;
+      const k = this.relicPulseK(id, now);
+      const bump = Math.round(k * 3) + pop;
+      if (k > 0) glow(g, { x: r.x, y: r.y - bump, w: 12, h: 12 }, 0xffe680, 0.8 * k, 2);
+      relicIcon(s, this.pool, g, id, r.x, r.y - bump, 10.25, pk < 1 ? clamp01(pk * 3) : 1);
+      if (k > 0.3) rows(gt, r.x, r.y - bump, 12, 12, 2, WHITE, 0.55 * (k - 0.3));
+    });
+    if (b.more) {
+      const x = b.r.x + 1 + b.slots.length * 13;
+      this.texts.text(`+${b.more}`, x + 6, b.r.y + 7, 0xe8e4ff, { bold: true, ox: 0.5, oy: 0.5 });
+    }
   }
 
   resetCoins(): void {
@@ -253,9 +343,10 @@ export class Hud {
     }
   }
 
-  dropCoins(x: number, y: number, total: number): void {
+  /** Coins pop out at (x, y) and fly to the coin chip (`count`: how many coins show; by default 3 to 10). */
+  dropCoins(x: number, y: number, total: number, count?: number): void {
     if (total <= 0) return;
-    const n = Math.max(3, Math.min(10, Math.round(total / 5)));
+    const n = Math.max(1, Math.round(count ?? Math.max(3, Math.min(10, Math.round(total / 5)))));
     const now = performance.now();
     for (let i = 0; i < n; i++) {
       const value = Math.floor(total / n) + (i < total % n ? 1 : 0);
@@ -318,6 +409,7 @@ export class Hud {
     this.portrait?.setVisible(false);
     this.gTop?.clear();
     this.texts.hide();
+    this.pool.hide();
     const txt = this.s.txt;
     for (const k of ['level', 'heroHp', 'coins', 'stat0', 'stat1', 'stat2', 'stat3', 'ability', 'enemyName', 'enemyHp', 'enemyAtk', 'combo', 'comboLabel', 'speed', 'tier', 'meterLabel', 'button']) txt[k]?.setVisible(false);
   }
@@ -349,6 +441,7 @@ export class Hud {
     const dt = Math.min(0.1, Math.max(0, (now - this.lastNow) / 1000));
     this.lastNow = now;
     this.texts.begin();
+    this.pool.begin();
     this.gTop!.clear();
     const sl = this.slide(now);
     this.drawHero(g, now, dt, sl.l);
@@ -371,6 +464,7 @@ export class Hud {
     for (const k of ['level', 'heroHp', 'coins', 'stat0', 'stat1', 'stat2', 'stat3', 'ability', 'enemyName', 'enemyHp', 'enemyAtk', 'combo', 'comboLabel', 'speed', 'tier', 'meterLabel']) txt[k]?.setVisible(false);
     this.drawButton(now);
     this.texts.end();
+    this.pool.end();
   }
 
   // ------------------------------------------------------------------ hero plate
@@ -413,7 +507,8 @@ export class Hud {
     // Keen Edge: a green timer running along the plate's top edge
     if (H.abilityTimer > 0) {
       g.fillStyle(0x9af0a0, 1);
-      g.fillRect(plate.x + 9, plate.y, Math.round((plate.w - 11) * (H.abilityTimer / Math.max(0.01, T.hero.abilitySec))), 1);
+      const sec = run.combat?.abilitySec() ?? T.hero.abilitySec;
+      g.fillRect(plate.x + 9, plate.y, Math.round((plate.w - 11) * clamp01(H.abilityTimer / Math.max(0.01, sec))), 1);
     }
     // HP gauge (segment notches every 10% of max HP) and the number over it
     const gx = X + 26;
@@ -467,8 +562,11 @@ export class Hud {
     const b: Rect = { x: X, y: y0, w: 22, h: 22 };
     const rim: readonly [number, number, number] = low && beat > 0.5 ? [0xffb0a0, 0xe0463c, 0x8a1a22] : [GOLD[4], GOLD[2], GOLD[1]];
     this.badge(g, b, rim, [0x3a5c8e, 0x1a2c52]);
+    const heroId = H.build?.id ?? 'rowan';
     if (this.portrait) {
-      const [fx, fy] = FACE_AT.rowan;
+      const key = s.textures.exists(`portrait_${heroId}`) ? `portrait_${heroId}` : 'portrait_rowan';
+      if (this.portrait.texture.key !== key) this.portrait.setTexture(key);
+      const [fx, fy] = FACE_AT[heroId] ?? FACE_AT.rowan;
       const p = this.portrait.setCrop(fx, fy, 18, 18).setPosition(b.x + 2 - fx, b.y + 2 - fy).setVisible(true);
       if (hurtK >= 0 && hurtK < 0.6 && Math.floor(hurtK * 10) % 2 === 0) p.setTintMode(Phaser.TintModes.FILL).setTint(0xff6a5a);
       else p.setTintMode(Phaser.TintModes.MULTIPLY).clearTint();
@@ -482,6 +580,12 @@ export class Hud {
     gt.fillStyle(INK, 0.35);
     gt.fillRect(b.x + 2, b.y + 19, 18, 1);
     gt.fillRect(b.x + 19, b.y + 2, 1, 17);
+    // the hero's level: a small gold chip on the badge's bottom corner
+    const lv = `${H.build?.level ?? 1}`;
+    const lw = textWidth(lv, 1, false) + 5;
+    const lr: Rect = { x: b.x + b.w - lw + 1, y: b.y + b.h - 6, w: lw, h: 8 };
+    tag(gt, lr, [GOLD[4], GOLD[3], GOLD[2], GOLD[1]]);
+    this.texts.text(lv, lr.x + 3, lr.y + 4, 0x3a1e08, { oy: 0.5 });
 
     // second row: coins and revives
     const coins = this.coinsShown;
@@ -501,6 +605,7 @@ export class Hud {
     tag(g, rr, [NAVY[5], NAVY[3], NAVY[2], NAVY[1]], 0.94);
     hudIcon(g, 'potionS', rr.x + 1, rr.y, 1, H.revives > 0 ? 1 : 0.45);
     this.texts.text(`${H.revives}`, rr.x + 9, rr.y + 5, H.revives > 0 ? 0xffb0e0 : 0x8a84a0, { oy: 0.5, bold: true });
+    this.drawBelt(g, now, dx);
   }
 
   /**
@@ -549,7 +654,7 @@ export class Hud {
     this.hiddenAt = now;
     const text = `${fmtStat(stat, d)} ${STAT_INFO[stat].short}`;
     const x = s.L + 3 + 50;
-    fx.addFloater(x, 50 + this.hiddenN * 9, text, 0x9ad8ff, 1, true, 0, -10, 0, 1300, false);
+    fx.addFloater(x, (this.relicBelt() ? 64 : 50) + this.hiddenN * 9, text, 0x9ad8ff, 1, true, 0, -10, 0, 1300, false);
   }
 
   /** A framed square badge: ink outline, a 2-tone metal rim, an ink line and a dark gradient well. */
@@ -805,7 +910,8 @@ export class Hud {
     const cy = m.y + m.h / 2;
     const stacks = c.stacks;
     const ready = c.finisherReady;
-    const maxed = stacks >= T.meter.maxStacks;
+    const maxStacks = c.maxStacks();
+    const maxed = stacks >= maxStacks;
     const frac = maxed ? 1 : clamp01(c.meter);
     const [fc, fh, fl] = stackCol(maxed ? stacks : stacks + 1);
     const [sc, sh] = stackCol(Math.max(1, stacks));
@@ -891,14 +997,15 @@ export class Hud {
       g.fillRect(m.x - 1, m.y - 1, m.w + 2, m.h + 2);
     }
 
-    // banked stacks: a gem each (the newest pops in)
-    const n = Math.min(6, T.meter.maxStacks);
+    // banked stacks: a gem each (the newest pops in); seven (Overcharge) sit a little closer
+    const n = Math.min(7, maxStacks);
+    const step = n > 6 ? 7 : 8;
     const gx = m.x + m.w + 6;
     for (let i = 0; i < n; i++) {
       const lit = i < stacks;
       const newest = lit && i === stacks - 1 && pk >= 0 && pk < 1;
       const bob = newest ? -Math.round(3 * Math.sin(pk * Math.PI)) : 0;
-      const x = gx + i * 8;
+      const x = gx + i * step;
       if (lit && ready) glow(g, { x, y: cy - 3 + bob, w: 7, h: 7 }, stackCol(i + 1)[1], 0.25 + 0.3 * pulse(now, 520, i * 90), 1);
       gem(g, x, Math.round(cy - 3.5) + bob, lit, stackCol(i + 1));
       if (lk >= 0 && lk < 1 && !lit) {
@@ -906,7 +1013,8 @@ export class Hud {
         g.fillRect(x, Math.round(cy - 3.5), 7, 7);
       }
     }
-    if (T.meter.maxStacks > n && stacks > 0) this.texts.text(`x${stacks}`, gx + n * 8 + 1, cy, sh, { bold: true, oy: 0.5 });
+    if (maxStacks > n && stacks > 0) this.texts.text(`x${stacks}`, gx + n * step + 1, cy, sh, { bold: true, oy: 0.5 });
+    this.drawOvercharge(g, now, c, gx + (Math.min(n, stacks) - 1) * step, Math.round(cy - 3.5));
 
     // cursor speed: three chevrons that light up (and burn orange at the cap)
     const sp = c.speedMult();
@@ -923,6 +1031,36 @@ export class Hud {
       const label = s.app.settings.finisherInput === 'swipe' ? 'SWIPE!' : 'FINISHER!';
       this.texts.text(label, m.x + m.w / 2, cy, Math.floor(now / 150) % 2 ? WHITE : stackCol(stacks)[1], { bold: true, ox: 0.5, oy: 0.5 });
       if (stacks > 1) this.texts.text(`x${stacks}`, m.x + m.w / 2 + textWidth(label, 1, true) / 2 + 3, cy, sc, { bold: true, oy: 0.5 });
+    }
+  }
+
+  /**
+   * Overcharge (you lose a stack after n s without a hit): a tiny countdown under the newest gem, draining, and
+   * blinking red in the last two seconds. Reads c.perk.overcharge (seconds; counting up from the last hit, or down
+   * to the loss: told apart by how it moves).
+   */
+  private drawOvercharge(g: G, now: number, c: Combat, x: number, y: number): void {
+    const v = c.perk.overcharge;
+    if (!c.hasPerk('overcharge') || typeof v !== 'number' || c.stacks <= 0) {
+      this.ocPrev = -1;
+      return;
+    }
+    if (this.ocPrev >= 0 && v !== this.ocPrev) this.ocDown = v < this.ocPrev && v > 0.05;
+    this.ocPrev = v;
+    const n = Math.max(0.1, relicNumber(this.s.app.tuning, 'overcharge'));
+    const left = Math.max(0, Math.min(n, this.ocDown ? v : n - v));
+    const frac = left / n;
+    const urgent = left < 2;
+    const blink = urgent && Math.floor(now / 120) % 2 === 0;
+    g.fillStyle(INK, 1);
+    g.fillRect(x - 1, y + 8, 9, 3);
+    g.fillStyle(NAVY[1], 1);
+    g.fillRect(x, y + 9, 7, 1);
+    g.fillStyle(urgent ? (blink ? WHITE : 0xff5a3a) : 0xffb030, 1);
+    g.fillRect(x, y + 9, Math.max(1, Math.round(7 * frac)), 1);
+    if (urgent) {
+      g.fillStyle(0xff3030, blink ? 0.5 : 0.2);
+      g.fillRect(x, y, 7, 7);
     }
   }
 

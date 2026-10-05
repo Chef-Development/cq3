@@ -5,7 +5,12 @@
 // Also the small UI glyphs the menus share (bag, heart, coin, warning, tent, tick, padlock, target, arrow).
 import Phaser from 'phaser';
 import { heroMaxHp } from '../../core/combat';
-import { boostLabel, boostPreview, type BoostOffer, type BoostPreview, type Phase, type Rarity } from '../../core/run';
+import { heroDef } from '../../data/heroes';
+import { relicById } from '../../data/relics';
+import { heroProgress } from '../../core/profile';
+import { buildName, relicText, topTags } from '../../core/relics';
+import { levelProgress } from '../../core/heroes';
+import { boostLabel, boostPreview, isRelicOffer, type BoostOffer, type BoostPreview, type Phase, type Rarity } from '../../core/run';
 import { saveLabel } from '../../core/save';
 import type { FightScene } from '../scene';
 import { HERO_FEET_X, HERO_W } from '../art';
@@ -14,7 +19,9 @@ import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
 import { band, brick, button3d, chevron, gauge, glow, GOLD, hudIcon, iconSize, NAVY, panel, RAMP, rows } from './pixels';
 import { BOOST_ICON, clamp01, COL, easeBack, easeOut3, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
-import { FACE, isPressed, notePress, ribbon, RIBBON, strip, tag, TextPool } from './ui';
+import { FACE, ImagePool, isPressed, notePress, ribbon, RIBBON, strip, tag, TextPool } from './ui';
+import { cardFrame, cardShine, cardTile, mainTag, relicCard, relicIcon, tagChip, TAG_FACE, type CardCtx } from './relic-ui';
+import { wrapText } from './items';
 
 // ------------------------------------------------------------------ small UI glyphs (shared by the menus)
 
@@ -61,6 +68,11 @@ export const GLYPHS: Record<string, Glyph> = {
   target: { rows: outlined(['.rrr.', 'rWWWr', 'rWrWr', 'rWWWr', '.rrr.']), pal: { k: K, r: 0xf05a48, W: 0xffffff } },
   // 9x9: a chunky right arrow ("before -> after"), lit on top
   arrow: { rows: outlined(['...a...', '...aa..', 'aaaaaa.', 'aaaaaaa', 'AAAAAA.', '...AA..', '...A...']), pal: { k: K, a: 0xffe680, A: 0xd8901c } },
+  // 9x11: a hand tapping (index finger up; the tap-zone hints)
+  hand: {
+    rows: outlined(['..W....', '.WWs...', '.WWs...', '.WWWsWs', 'sWWWWWW', 'WWWWWWW', 'WWWWWWs', '.WWWWs.', '..cCc..']),
+    pal: { k: K, W: 0xf2b888, s: 0xd88a5a, c: 0x2a6ad8, C: 0x4aa0f0 },
+  },
 };
 
 export const glyphSize = (key: string): [number, number] => {
@@ -68,8 +80,8 @@ export const glyphSize = (key: string): [number, number] => {
   return [r[0].length, r.length];
 };
 
-/** Draw a glyph with its top-left at (x, y); `pal` overrides colors (a bag in a rarity's colors). */
-export function glyph(g: Phaser.GameObjects.Graphics, key: string, x: number, y: number, alpha = 1, pal?: Record<string, number>): void {
+/** Draw a glyph with its top-left at (x, y); `pal` overrides colors (a bag in a rarity's colors); `scale` whole px. */
+export function glyph(g: Phaser.GameObjects.Graphics, key: string, x: number, y: number, alpha = 1, pal?: Record<string, number>, scale = 1): void {
   const gl = GLYPHS[key];
   if (!gl) return;
   const P = pal ? { ...gl.pal, ...pal } : gl.pal;
@@ -80,7 +92,7 @@ export function glyph(g: Phaser.GameObjects.Graphics, key: string, x: number, y:
       while (xx + n < r.length && r[xx + n] === r[xx]) n++;
       if (col !== undefined) {
         g.fillStyle(col, alpha);
-        g.fillRect(Math.round(x) + xx, Math.round(y) + yy, n, 1);
+        g.fillRect(Math.round(x) + xx * scale, Math.round(y) + yy * scale, n * scale, scale);
       }
       xx += n;
     }
@@ -122,6 +134,11 @@ export const CARD: Record<Rarity, { face: readonly [number, number, number, numb
 
 type G = Phaser.GameObjects.Graphics;
 
+/** A relic's card colours by its rarity (the boost cards' common / rare / epic). */
+const RARITY_FACE_OF = (r: Rarity) => CARD[r].face;
+/** A colour lifted toward white (letters on dark panels). */
+const mixLight = (c: number) => mix(c, WHITE, 0.45);
+
 /** Title entrance: when each piece has arrived (ms after the title appears). */
 const TITLE_IN = { heroes: 340, logo: 420, ribbon: 460, prompt: 420 };
 
@@ -155,10 +172,25 @@ export class Overlays {
   private backFromCamp = false;
   /** The accuracy's count-up starts here (anim ms). */
   private accAt = 0;
+  /** Relic icons over the cards and panels (over gCards, under the texts), and over the flying card and toasts. */
+  private pool: ImagePool;
+  private flyPool: ImagePool;
+  /** The relic panel (a fight paused from the HUD's relic belt): the relic shown in detail (null = closed). */
+  relicSel: number | null = null;
+  private relicAt = 0;
+  /** "New relic unlocked!": when the card on screen popped in (0 = not yet). */
+  private unlockAt = 0;
+  /** "Level up!" toast after a fight (the loot or the pick): the level reached, and when (performance.now). */
+  private levelToast: { level: number; at: number } | null = null;
+  /** Act clear: the XP bar's level as last shown (its "Level up!" plays as the bar crosses into the next). */
+  private xpLevel = 0;
+  private xpUpAt = -1e9;
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, 32);
     this.flyTexts = new TextPool(s, 41.5);
+    this.pool = new ImagePool(s);
+    this.flyPool = new ImagePool(s);
   }
 
   createTexts(): void {
@@ -177,6 +209,8 @@ export class Overlays {
     this.shine = s.add.image(0, 0, 'logo_shine_0').setOrigin(0, 0).setDepth(31.7).setVisible(false);
     this.gFly?.destroy();
     this.gFly = s.add.graphics().setDepth(41);
+    this.pool.destroy();
+    this.flyPool.destroy();
   }
 
   showBanner(text: string): void {
@@ -190,6 +224,18 @@ export class Overlays {
     const prev = this.shownPhase;
     this.shownPhase = next;
     this.backFromCamp = prev === 'camp';
+    this.unlockAt = 0;
+    if (next !== 'fight') this.relicSel = null;
+    // levels the fight's kills brought: a toast as the loot (or the pick) comes up; the act clear's bar shows its own
+    if ((next === 'loot' || next === 'boost') && s.app.run.takeLevelUps() > 0) {
+      this.levelToast = { level: this.heroLevel(), at: performance.now() };
+      s.later(150, () => s.app.audio.rareSting(true));
+    }
+    if (next === 'actClear' && !this.backFromCamp) {
+      s.app.run.takeLevelUps();
+      this.xpLevel = levelProgress(s.app.tuning, this.xpBefore()).level;
+      this.xpUpAt = -1e9;
+    }
     if (next === 'boost') {
       // a rare or epic card on offer gets a sting
       const best = s.app.run.boostChoices.reduce((m, o) => (o.rarity === 'epic' ? 2 : o.rarity === 'rare' ? Math.max(m, 1) : m), 0);
@@ -349,18 +395,18 @@ export class Overlays {
 
   /** Boost choices: a navy panel with three stacked cards (hit-tested by index). */
   private boostPanel(): Rect {
-    return { x: Math.round(GAME_W / 2 - 98), y: 25, w: 196, h: 108 };
+    return { x: Math.round(GAME_W / 2 - 128), y: 25, w: 256, h: 116 };
   }
 
-  private cardRect(i: number): Rect {
+  cardRect(i: number): Rect {
     const p = this.boostPanel();
-    return { x: p.x + 8, y: p.y + 12 + i * 31, w: p.w - 16, h: 27 };
+    return { x: p.x + 8, y: p.y + 10 + i * 34, w: p.w - 16, h: 32 };
   }
 
-  /** The reroll button on the boost panel (shown while the run has rerolls bought at a shop). */
+  /** The reroll button on the boost panel's top edge (shown while the run has rerolls bought at a shop). */
   private rerollRect(): Rect {
     const p = this.boostPanel();
-    return { x: p.x + p.w - 50, y: p.y + p.h - 6, w: 44, h: 12 };
+    return { x: p.x + 6, y: p.y - 6, w: 54, h: 12 };
   }
 
   rerollAt(x: number, y: number): boolean {
@@ -386,72 +432,40 @@ export class Overlays {
   // ------------------------------------------------------------------ drawing helpers
 
   /**
-   * A boost card: ink outline, a rim in the rarity's color, navy body, a lit icon tile, the name, and what it does to
-   * Rowan's stat right now ("ATK 14 -> 16").
+   * A boost card. A relic: its icon, name, tag chips (a tag shared with a relic you own lit gold, and a "Synergy!"
+   * badge), rarity and what it does (relic-ui.ts relicCard). A stat card: the icon tile, the name, and what it does to
+   * the hero's stat right now ("ATK 14 -> 16").
    */
-  private card(g: G, texts: TextPool, r: Rect, offer: BoostOffer, preview: BoostPreview, now: number, flash = 0, alpha = 1): void {
+  private card(c: CardCtx, r: Rect, offer: BoostOffer, preview: BoostPreview, now: number, flash = 0, alpha = 1): void {
     const s = this.s;
+    if (isRelicOffer(offer)) {
+      relicCard(c, r, offer.relic, { owned: s.app.run.hero.relics, tuning: s.app.tuning, now, flash, alpha });
+      return;
+    }
+    const { g, texts } = c;
     const look = CARD[offer.rarity];
-    const [hi, base, lo, deep] = look.face;
-    if (offer.rarity !== 'common') glow(g, r, base, (0.45 + 0.3 * pulse(now, 900)) * alpha, 3);
-    rows(g, r.x - 1, r.y + 3, r.w + 2, r.h, 3, INK, 0.45 * alpha);
-    rows(g, r.x - 2, r.y - 2, r.w + 4, r.h + 4, 4, INK, alpha);
-    rows(g, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 3, base, alpha);
-    band(g, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 3, 0, 1, hi, alpha);
-    band(g, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 3, r.h + 1, r.h + 2, deep, alpha);
-    rows(g, r.x, r.y, r.w, r.h, 2, NAVY[3], alpha);
-    band(g, r.x, r.y, r.w, r.h, 2, 0, Math.round(r.h * 0.45), NAVY[4], alpha);
-    band(g, r.x, r.y, r.w, r.h, 2, r.h - 4, r.h, NAVY[2], alpha);
-    band(g, r.x, r.y, r.w, r.h, 2, 0, 1, mix(NAVY[6], base, 0.35), alpha);
-    // icon tile in the rarity's colors
-    const tile: Rect = { x: r.x + 2, y: r.y + 2, w: 24, h: r.h - 4 };
-    rows(g, tile.x, tile.y, tile.w, tile.h, 2, lo, alpha);
-    band(g, tile.x, tile.y, tile.w, tile.h, 2, 0, Math.round(tile.h * 0.5), base, alpha);
-    band(g, tile.x, tile.y, tile.w, tile.h, 2, 0, 1, hi, alpha);
-    band(g, tile.x, tile.y, tile.w, tile.h, 2, tile.h - 1, tile.h, deep, alpha);
-    g.fillStyle(INK, 0.6 * alpha);
-    g.fillRect(tile.x + tile.w, tile.y + 1, 1, tile.h - 2);
+    const [hi] = look.face;
+    cardFrame(g, r, look.face, offer.rarity, now, alpha);
+    const tile: Rect = { x: r.x + 2, y: r.y + 2, w: 22, h: r.h - 4 };
+    cardTile(g, tile, look.face, alpha);
     const icon = BOOST_ICON[offer.id];
     const [iw, ih] = iconSize(icon);
     hudIcon(g, icon, tile.x + ((tile.w - iw) >> 1), tile.y + ((tile.h - ih) >> 1), 1, alpha);
     const [name] = boostLabel(s.app.tuning, offer);
-    texts.text(name, r.x + 31, r.y + 8, WHITE, { bold: true, oy: 0.5, alpha });
+    texts.text(name, r.x + 29, r.y + 9, WHITE, { bold: true, oy: 0.5, alpha });
     // the stat as it stands, and after this card: a dark inset strip under the name
     const showStat = preview.stat !== name; // "Max HP 100 -> 120" under "Max HP" says it twice
     const pw = previewWidth(preview, showStat);
-    rows(g, r.x + 29, r.y + 14, pw + 6, 10, 2, NAVY[1], 0.85 * alpha);
-    band(g, r.x + 29, r.y + 14, pw + 6, 10, 2, 0, 1, INK, alpha);
-    previewLine(g, texts, preview, r.x + 32, r.y + 19, offer.rarity === 'common' ? 0xb4f070 : mix(hi, WHITE, 0.25), alpha, showStat);
+    rows(g, r.x + 27, r.y + 16, pw + 6, 11, 2, NAVY[1], 0.85 * alpha);
+    band(g, r.x + 27, r.y + 16, pw + 6, 11, 2, 0, 1, INK, alpha);
+    previewLine(g, texts, preview, r.x + 30, r.y + 21.5, offer.rarity === 'common' ? 0xb4f070 : mix(hi, WHITE, 0.25), alpha, showStat);
     if (look.tag) {
       const tw = textWidth(look.tag, 1, false) + 6;
-      const tr: Rect = { x: r.x + r.w - tw - 3, y: r.y + r.h - 12, w: tw, h: 9 };
+      const tr: Rect = { x: r.x + r.w - tw - 3, y: r.y + 4, w: tw, h: 9 };
       tag(g, tr, look.face, alpha);
       texts.text(look.tag, tr.x + 3, tr.y + 4.5, WHITE, { oy: 0.5, alpha });
     }
-    if (offer.rarity !== 'common') {
-      // a slanted shimmer crossing the face, and (epic) twinkles around the rim
-      const cyc = ((now + r.y * 37) % 1700) / 1700;
-      if (cyc < 0.4) {
-        const sx = r.x + (r.w + 20) * (cyc / 0.4) - 14;
-        g.fillStyle(WHITE, (offer.rarity === 'epic' ? 0.3 : 0.2) * alpha);
-        for (let y = 1; y < r.h - 1; y++) {
-          const x = Math.round(sx + (r.h - y) * 0.5);
-          const x0 = Math.max(r.x + 1, x);
-          const x1 = Math.min(r.x + r.w - 1, x + 5);
-          if (x1 > x0) g.fillRect(x0, r.y + y, x1 - x0, 1);
-        }
-      }
-      if (offer.rarity === 'epic')
-        for (let i = 0; i < 4; i++) {
-          const q = (((now / 700 + i * 0.37) % 1) + 1) % 1;
-          const px = Math.round(r.x + 4 + ((i * 53 + Math.floor(now / 700) * 17) % (r.w - 8)));
-          const py = i % 2 ? r.y - 2 : r.y + r.h + 1;
-          const arm = q < 0.5 ? 1 : 0;
-          g.fillStyle(q < 0.5 ? WHITE : 0xffe680, (1 - q) * alpha);
-          g.fillRect(px - arm, py, arm * 2 + 1, 1);
-          g.fillRect(px, py - arm, 1, arm * 2 + 1);
-        }
-    }
+    cardShine(g, r, offer.rarity, now, alpha);
     if (flash > 0) {
       g.fillStyle(WHITE, flash * alpha);
       g.fillRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
@@ -493,7 +507,11 @@ export class Overlays {
     const txt = s.txt;
     g.clear();
     gc.clear();
+    this.gFly?.clear();
     this.texts.begin();
+    this.flyTexts.begin();
+    this.pool.begin();
+    this.flyPool.begin();
     const run = s.app.run;
     const ph = run.phase;
     if (ph !== this.lastPhase) {
@@ -529,10 +547,22 @@ export class Overlays {
     else if (ph === 'fight' && s.app.storyOverlay) {
       // a boss's scene: the story view draws it
     } else if (ph === 'fight' && s.app.awaitingBegin && !s.app.userPaused) {
-      this.prompt(g, 'TAP TO BEGIN!', now < this.bannerUntil ? 56 : 50, now);
-    } else if (ph === 'fight' && s.app.userPaused) this.drawPause(g, gc, now);
+      if (this.twinTutorial()) this.drawTwinTutorial(g, gc, now);
+      else this.prompt(g, 'TAP TO BEGIN!', now < this.bannerUntil ? 56 : 50, now);
+    } else if (ph === 'fight' && s.app.userPaused) {
+      if (this.relicSel !== null && run.hero.relics.length) this.drawRelicPanel(g, gc, now);
+      else this.drawPause(g, gc, now);
+    }
+    if (ph !== 'fight' || !s.app.userPaused) this.relicSel = null;
     this.drawPicked(now);
+    if (this.gFly) {
+      this.drawLevelToast(this.gFly, now);
+      if (this.unlockActive()) this.drawUnlock(this.gFly, now);
+    }
     this.texts.end();
+    this.flyTexts.end();
+    this.pool.end();
+    this.flyPool.end();
   }
 
   /** The dim behind menus, darker toward the edges (a vignette) so the middle stays lit. */
@@ -669,15 +699,18 @@ export class Overlays {
     if (since < 60) return;
     panel(gc, p, { trim: 'full', alpha: clamp01(since / 120) });
     if (k < 0.98) return;
-    ribbon(gc, p.x + p.w / 2, p.y - 6, 112, 13, RIBBON.purple);
-    this.texts.text('Choose a Boost', p.x + p.w / 2, p.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    // a replay's opening draft counts its picks; a pick with a relic in it is a relic pick
+    const title = run.startPick ? `Starting relic ${run.startPicksTotal - run.startPicks + 1}/${run.startPicksTotal}` : run.boostChoices.some(isRelicOffer) ? 'Choose a Relic' : 'Choose a Boost';
+    ribbon(gc, p.x + p.w / 2, p.y - 6, Math.max(112, textWidth(title, 1, true) + 22), 13, RIBBON.purple);
+    this.texts.text(title, p.x + p.w / 2, p.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    const ctx: CardCtx = { s, g: gc, texts: this.texts, pool: this.pool, depth: 31.55 };
     run.boostChoices.forEach((offer, i) => {
       const ck = easeBack((since - 120 - i * 70) / 260, 1.4);
       if (ck <= 0) return;
       const r0 = this.cardRect(i);
       const r = { ...r0, x: r0.x + Math.round((1 - ck) * 70) };
       const rr = (now - this.rerollAt2) / 300;
-      this.card(gc, this.texts, r, offer, boostPreview(run.tuning, run.hero, offer), now + i * 300, rr >= 0 && rr < 1 ? 0.7 * (1 - rr) : 0, clamp01(ck * 1.5));
+      this.card(ctx, r, offer, boostPreview(run.tuning, run.hero, offer), now + i * 300, rr >= 0 && rr < 1 ? 0.7 * (1 - rr) : 0, clamp01(ck * 1.5));
     });
     if (run.rerolls > 0) {
       const rr = this.rerollRect();
@@ -691,8 +724,6 @@ export class Overlays {
   private drawPicked(now: number): void {
     const g = this.gFly;
     if (!g) return;
-    g.clear();
-    this.flyTexts.begin();
     const p = this.picked;
     if (p) {
       const k = (now - p.at) / 340;
@@ -701,10 +732,9 @@ export class Overlays {
       } else {
         const r = { ...p.r, y: p.r.y - Math.round(easeOut3(k) * 10) };
         glow(g, r, CARD[p.offer.rarity].face[0], 0.8 * (1 - k), 4);
-        this.card(g, this.flyTexts, r, p.offer, p.preview, now, Math.max(0, 0.8 - k * 2), 1 - k * k);
+        this.card({ s: this.s, g, texts: this.flyTexts, pool: this.flyPool, depth: 41.2 }, r, p.offer, p.preview, now, Math.max(0, 0.8 - k * 2), 1 - k * k);
       }
     }
-    this.flyTexts.end();
   }
 
   // ------------------------------------------------------------------ chest screens, defeat, victory, pause
@@ -728,7 +758,8 @@ export class Overlays {
     ribbon(gc, cx, y, Math.round((tw + 24) * (clear ? ok : 1)), 22, look, 1, ok > 0.9);
     if (ok > 0.5)
       this.texts.text(title, cx, y + 11, clear ? 0xfff6c0 : actClear ? WHITE : 0xfff6c0, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: clear || !actClear ? 0x7a3a0a : 0x10204a });
-    this.drawStatus(gc, now);
+    if (clear) this.drawXp(gc, now);
+    else this.drawStatus(gc, now);
     if (!clear) this.texts.text(actClear ? 'Tap the chest to continue' : 'Tap the chest', cx, y + 32, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     if (clear) {
       for (let i = 0; i < 4; i++) {
@@ -736,6 +767,7 @@ export class Overlays {
         if (q < 0.45) this.star(gc, Math.round(cx - tw / 2 - 6 + ((i * 47) % (tw + 12))), y - 3 + ((i * 13) % 28), q < 0.2 ? 2 : 1, 0xfff0a0, 1 - q / 0.45);
       }
       this.drawClearExtras(gc, now);
+      this.drawBuild(gc, now);
     } else if (this.chest && s.anim - this.chestAt > 600) {
       // a bouncing arrow beside the chest, pointing at it
       const ax = Math.round(this.chest.x + 30 + Math.abs(Math.sin(now / 220)) * 5);
@@ -869,7 +901,7 @@ export class Overlays {
     const y = Math.round(36 - (1 - k) * 30);
     this.texts.text('DEFEATED', cx, y, 0xff5a5a, { bold: true, scale: 3, ox: 0.5, oy: 0.5, extrude: 3, extrudeCol: 0x4a0a14, alpha: clamp01(t / 150) });
     if (t > 250) {
-      const sub = `Rowan falls... back to the start of Act ${s.app.run.actIndex + 1}`;
+      const sub = `${heroDef(s.app.run.hero.build?.id ?? 'rowan').name} falls... back to the start of Act ${s.app.run.actIndex + 1}`;
       strip(gc, cx - textWidth(sub) / 2 - 8, y + 16, textWidth(sub) + 16, 12, 0.7, false);
       this.texts.text(sub, cx, y + 22, 0xffe8e0, { ox: 0.5, oy: 0.5 });
       // Camp (equip what you found before trying again) and Retry, popping in one after the other
@@ -976,5 +1008,442 @@ export class Overlays {
     }
     const tx = Math.round(GAME_W / 2 + (1 - inK) * 120 - outK * 160);
     this.texts.text(this.banner, tx, y + 1, elite ? 0xffd0c0 : 0xffe680, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 2, extrudeCol: elite ? 0x4a0a10 : 0x2a1040 });
+  }
+
+  // ------------------------------------------------------------------ levels and XP
+
+  /** The fighting hero's level now. */
+  private heroLevel(): number {
+    const app = this.s.app;
+    return levelProgress(app.tuning, heroProgress(app.profile).xp).level;
+  }
+
+  /** The hero's XP before this act (the act-clear bar fills from here). */
+  private xpBefore(): number {
+    const app = this.s.app;
+    return Math.max(0, heroProgress(app.profile).xp - app.run.actXpGained);
+  }
+
+  /** "Level up! Lv 7": a gold ribbon sliding out under the hero plate after a fight, over whatever is on screen. */
+  private drawLevelToast(g: G, now: number): void {
+    const t = this.levelToast;
+    if (!t) return;
+    const age = now - t.at;
+    if (age > 2800) {
+      this.levelToast = null;
+      return;
+    }
+    const s = this.s;
+    const k = easeBack(age / 320, 1.6);
+    const a = 1 - clamp01((age - 2400) / 400);
+    const label = `Level up! Lv ${t.level}`;
+    const w = textWidth(label, 1, true) + 16;
+    const x = s.L + 13 + Math.round((1 - k) * -(w + 24));
+    const y = 43;
+    glow(g, { x, y, w, h: 13 }, 0xffe680, (0.35 + 0.3 * pulse(now, 500)) * a, 3);
+    ribbon(g, x + w / 2, y, w, 13, RIBBON.gold, a, k > 0.9);
+    this.flyTexts.text(label, x + w / 2, y + 6.5, 0xfffbe0, { bold: true, ox: 0.5, oy: 0.5, alpha: a, extrude: 1, extrudeCol: 0x7a3a0a });
+    for (let i = 0; i < 3; i++) {
+      const q = (((now / 700 + i * 0.33) % 1) + 1) % 1;
+      if (q < 0.5) this.star(g, x + 4 + ((i * 37) % (w - 8)), y - 2 + ((i * 11) % 16), q < 0.25 ? 2 : 1, 0xfff0a0, a * (1 - q * 2));
+    }
+  }
+
+  /**
+   * The act clear's console: the hero's level and an XP bar filling with the act's XP ("+120 XP"); crossing into the
+   * next level flashes it gold and pops "Level up!" over the level chip. Then the coins.
+   */
+  private drawXp(gc: G, now: number): void {
+    const s = this.s;
+    const app = s.app;
+    const T = app.tuning;
+    const since = s.anim - this.chestOpenAt;
+    const dy = Math.round((1 - easeBack((now - this.phaseAt - 80) / 300, 1.4)) * 30);
+    const y = s.splitY + 9 + dy;
+    const after = heroProgress(app.profile).xp;
+    const before = this.xpBefore();
+    const k = easeOut3(clamp01((since - Overlays.CLEAR_ACC_MS - 200) / 1100));
+    const xp = Math.round(before + (after - before) * k);
+    const lp = levelProgress(T, xp);
+    if (lp.level > this.xpLevel) {
+      // the bar just crossed into a new level
+      this.xpLevel = lp.level;
+      this.xpUpAt = now;
+      app.audio.lootSting(4);
+    }
+    const upK = (now - this.xpUpAt) / 500;
+    const leveled = this.xpUpAt > 0;
+    const coins = `${s.hud.coinsShown}`;
+    const cw = textWidth(coins, 1, true) + 15;
+    const lv = `Lv ${lp.level}`;
+    const lw = textWidth(lv, 1, true) + 8;
+    const gw = 100;
+    const total = lw + 4 + gw + 8 + cw;
+    let x = Math.round((s.L + s.R) / 2 - total / 2);
+    // the level chip (gold once the act levelled the hero up)
+    const lr: Rect = { x, y, w: lw, h: 11 };
+    if (leveled) glow(gc, lr, 0xffd23a, 0.4 + 0.35 * pulse(now, 600), 3);
+    tag(gc, lr, leveled ? [GOLD[4], GOLD[3], GOLD[2], GOLD[1]] : [NAVY[6], NAVY[4], NAVY[3], NAVY[2]]);
+    this.texts.text(lv, lr.x + lw / 2, lr.y + 5.5, leveled ? 0x3a1e08 : 0xffe680, { bold: true, ox: 0.5, oy: 0.5 });
+    if (upK >= 0 && upK < 1) rows(gc, lr.x - 2, lr.y - 2, lr.w + 4, lr.h + 4, 3, WHITE, 0.7 * (1 - upK));
+    x += lw + 4;
+    // the XP bar
+    const frac = lp.need > 0 ? lp.into / lp.need : 1;
+    gauge(gc, x, y + 1, gw, 8, frac, frac, { ramp: [0xd0f8ff, 0x5ad0f0, 0x2a8ac8, 0x1a4a8a], seg: 10, glow: upK >= 0 && upK < 1 ? 1 - upK : 0 });
+    const gain = app.run.actXpGained;
+    const label = lp.need > 0 ? (gain > 0 ? `+${Math.round(gain * k)} XP` : `${lp.into}/${lp.need} XP`) : 'Max level';
+    this.texts.text(label, x + gw / 2, y + 5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    if (leveled) {
+      // "Level up!" pops out over the level chip and stays while the screen is up
+      const rk = easeBack((now - this.xpUpAt) / 300, 1.8);
+      const t = 'Level up!';
+      const rw = Math.round((textWidth(t, 1, true) + 12) * Math.min(1, rk));
+      if (rw > 8) {
+        ribbon(gc, lr.x + lr.w / 2 + 14, y - 15, rw, 11, RIBBON.gold, 1, rk > 0.9);
+        if (rk > 0.8) this.texts.text(t, lr.x + lr.w / 2 + 14, y - 9.5, 0xfffbe0, { bold: true, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a });
+      }
+      if (upK >= 0 && upK < 0.1) s.fx.burst(lr.x + lr.w / 2, lr.y + 5, 0xffe680, 14, false, 1.2);
+    }
+    x += gw + 8;
+    const cr: Rect = { x, y, w: cw, h: 11 };
+    tag(gc, cr, [NAVY[5], NAVY[3], NAVY[2], NAVY[1]]);
+    hudIcon(gc, 'coin', cr.x + 2, cr.y + 1);
+    this.texts.text(coins, cr.x + 12, cr.y + 5.5, 0xffe680, { bold: true, oy: 0.5 });
+  }
+
+  /**
+   * Act clear: the build the relics make, on a card on the right of the stage: its name from the top tags (a gold
+   * title), those tags' icons, and every relic collected.
+   */
+  private drawBuild(gc: G, now: number): void {
+    const s = this.s;
+    const owned = s.app.run.hero.relics;
+    const since = s.anim - this.chestOpenAt;
+    const t0 = Overlays.CLEAR_ACC_MS + 160;
+    const k = easeBack((since - t0) / 320, 1.5);
+    if (k <= 0) return;
+    const a = clamp01((since - t0) / 160);
+    const w = Math.min(132, s.R - 196);
+    const r: Rect = { x: s.R - w - 4 + Math.round((1 - k) * 50), y: 61, w, h: 33 };
+    panel(gc, r, { alpha: a, r: 3, trim: true, bevel: NAVY[7] });
+    // the build's name, with its top tags' icons after it when they fit
+    const name = buildName(owned);
+    const tags = topTags(owned).slice(0, 2);
+    const nw = textWidth(name, 1, true);
+    const room = r.w - 10 - nw;
+    const fits = tags.length && room >= tags.length * 10 + 2;
+    const nx = r.x + 5;
+    this.texts.text(name, nx, r.y + 9, 0xffd23a, { bold: true, oy: 0.5, alpha: a });
+    if (fits) tags.forEach((t, i) => tagChip(s, gc, this.texts, this.pool, t, nx + nw + 3 + i * 10, r.y + 4.5, 31.55, { name: false, alpha: a, now }));
+    // the relics collected (the newest pops in last); more than fit: "+N"
+    const per = Math.floor((r.w - 8) / 13);
+    const n = owned.length;
+    if (!n) {
+      this.texts.text('No relics yet', nx, r.y + 24, 0xa8a0c8, { oy: 0.5, alpha: a });
+      return;
+    }
+    const shown = n <= per ? n : per - 1;
+    for (let i = 0; i < shown; i++) {
+      const ik = easeBack((since - t0 - 160 - i * 50) / 240, 1.8);
+      if (ik <= 0) continue;
+      const ix = r.x + 4 + i * 13;
+      const iy = r.y + 18 + Math.round((1 - ik) * 6);
+      relicIcon(s, this.pool, gc, owned[i], ix, iy, 31.55, a * clamp01(ik * 2));
+    }
+    if (n > shown) {
+      const label = `+${n - shown}`;
+      this.texts.text(label, r.x + 4 + shown * 13 + 6, r.y + 24, 0xe8e4ff, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
+    }
+  }
+
+  // ------------------------------------------------------------------ new relics unlocked
+
+  /** "New relic unlocked!" is up: an act's first clear, an elite's first win (after its loot), an event choice. */
+  unlockActive(): boolean {
+    const run = this.s.app.run;
+    if (!run.newRelics.length) return false;
+    const ph = run.phase;
+    if (ph === 'boost' || ph === 'map') return performance.now() - this.phaseAt > 260;
+    if (ph === 'actClear') return this.clearReady() && this.s.anim - this.chestOpenAt > Overlays.CLEAR_BTN_MS + 1700;
+    if (ph === 'event') return (run.event?.outcome ?? -1) >= 0;
+    return false;
+  }
+
+  /** A tap on the unlock card: the next one (or back to the screen under it). */
+  unlockTap(): void {
+    if (performance.now() - this.unlockAt < 400) return;
+    this.s.app.run.newRelics.shift();
+    this.unlockAt = 0;
+    this.s.app.audio.uiClick();
+  }
+
+  private unlockCard(): Rect {
+    return { x: Math.round(GAME_W / 2 - 118), y: 46, w: 236, h: 48 };
+  }
+
+  /** The unlock card: a gold-trimmed panel with the relic's icon (big, on rays), name, tags and text. */
+  private drawUnlock(g: G, now: number): void {
+    const s = this.s;
+    const run = s.app.run;
+    const id = run.newRelics[0];
+    const def = relicById(id);
+    if (!def) {
+      run.newRelics.shift();
+      return;
+    }
+    if (!this.unlockAt) {
+      this.unlockAt = now;
+      s.app.audio.lootSting(3);
+    }
+    const since = now - this.unlockAt;
+    const k = easeBack(since / 300, 1.6);
+    this.dim(g, 0.55 * clamp01(since / 160));
+    const r0 = this.unlockCard();
+    const sc = 0.7 + 0.3 * Math.min(1, k);
+    const r: Rect = { x: Math.round(r0.x + (r0.w * (1 - sc)) / 2), y: Math.round(r0.y + (r0.h * (1 - sc)) / 2), w: Math.round(r0.w * sc), h: Math.round(r0.h * sc) };
+    const face = RARITY_FACE_OF(def.rarity);
+    // slow rays behind the card, in the relic's colour
+    const [, base] = TAG_FACE[mainTag(id)];
+    const ox = r0.x + 24;
+    const oy = r0.y + 25;
+    for (let i = 0; i < 10; i++) {
+      const a0 = now / 3000 + (i / 10) * Math.PI * 2;
+      const a1 = a0 + Math.PI / 16;
+      g.fillStyle(i % 2 ? base : 0xfff0a0, 0.09 * clamp01(k));
+      g.fillTriangle(ox, oy, Math.round(ox + Math.cos(a0) * 90), Math.round(oy + Math.sin(a0) * 90), Math.round(ox + Math.cos(a1) * 90), Math.round(oy + Math.sin(a1) * 90));
+    }
+    glow(g, r, face[1], 0.5 + 0.3 * pulse(now, 800), 4);
+    panel(g, r, { trim: 'full', rim: face[3] });
+    if (k < 0.95) return;
+    const title = 'New relic unlocked!';
+    ribbon(g, r.x + r.w / 2, r.y - 7, textWidth(title, 1, true) + 20, 13, RIBBON.gold);
+    this.flyTexts.text(title, r.x + r.w / 2, r.y - 0.5, 0xfffbe0, { bold: true, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a });
+    if (run.newRelics.length > 1) this.flyTexts.text(`1/${run.newRelics.length}`, r.x + r.w - 6, r.y + 7, 0xc8c0e8, { ox: 1, oy: 0.5 });
+    const tile: Rect = { x: r.x + 7, y: r.y + 9, w: 32, h: 32 };
+    cardTile(g, tile, face);
+    relicIcon(s, this.flyPool, g, id, tile.x + 4, tile.y + 4, 41.2, 1, 2);
+    const tx = tile.x + tile.w + 7;
+    this.flyTexts.text(def.name, tx, r.y + 9, WHITE, { bold: true });
+    let cx = tx + textWidth(def.name, 1, true) + 4;
+    for (const t of def.tags) cx += tagChip(s, g, this.flyTexts, this.flyPool, t, cx, r.y + 10, 41.2, { now }) + 3;
+    wrapText(relicText(s.app.tuning, id), r.x + r.w - tx - 6)
+      .slice(0, 2)
+      .forEach((line, i) => this.flyTexts.text(line, tx, r.y + 22 + i * 9, 0xe8e2ff));
+    // twinkles round the tile, and the way on
+    for (let i = 0; i < 3; i++) {
+      const q = (((now / 800 + i * 0.33) % 1) + 1) % 1;
+      if (q < 0.5) this.star(g, tile.x + ((i * 23) % tile.w), tile.y + ((i * 17) % tile.h), q < 0.25 ? 2 : 1, 0xfff0a0, 1 - q * 2);
+    }
+    if (since > 400) this.flyTexts.text('Tap to continue', r.x + r.w / 2, r.y + r.h + 9, 0xffd23a, { bold: true, ox: 0.5, oy: 0.5, alpha: 0.7 + 0.3 * pulse(now, 900) });
+  }
+
+  // ------------------------------------------------------------------ Sable's first fight
+
+  /** Sable's first fight shows the two tap zones before TAP TO BEGIN (once: profile.twinTaught). */
+  twinTutorial(): boolean {
+    const app = this.s.app;
+    return app.run.phase === 'fight' && app.awaitingBegin && !app.storyOverlay && app.run.hero.build?.id === 'sable' && !app.profile.twinTaught;
+  }
+
+  /** The tap that closes the tutorial (the next one begins the fight). */
+  twinTutorialTap(): void {
+    const app = this.s.app;
+    if (performance.now() - this.phaseAt < 500) return;
+    app.profile.twinTaught = true;
+    app.saveProfile();
+    app.audio.uiClick();
+  }
+
+  /** The two tap zones: the left half is cursor A, the right half cursor B (a hand on each), a swipe is the finisher. */
+  private drawTwinTutorial(g: G, gc: G, now: number): void {
+    const s = this.s;
+    const since = now - this.phaseAt;
+    this.dim(g, 0.5 * clamp01(since / 200));
+    const mid = Math.round(GAME_W / 2);
+    const top = 21;
+    const bottom = s.B - 3;
+    const zones = [
+      { x0: s.L + 3, x1: mid - 2, letter: 'A', label: 'Left cursor', col: 0x4aa0f0, deep: 0x1a3c8a, cursor: 0 },
+      { x0: mid + 2, x1: s.R - 3, letter: 'B', label: 'Right cursor', col: 0xc070f0, deep: 0x4a2470, cursor: 1 },
+    ];
+    zones.forEach((z, i) => {
+      const k = easeBack((since - 80 - i * 120) / 300, 1.5);
+      if (k <= 0) return;
+      const a = clamp01(k);
+      const w = z.x1 - z.x0;
+      const r: Rect = { x: z.x0, y: top, w, h: bottom - top };
+      // the zone: a tinted field with a dashed rim that marches
+      rows(gc, r.x, r.y, r.w, r.h, 3, z.col, 0.16 * a);
+      const off = Math.floor(now / 90) % 4;
+      gc.fillStyle(z.col, 0.85 * a);
+      for (let x = r.x + 3 + off; x < r.x + r.w - 3; x += 4) {
+        gc.fillRect(x, r.y, 2, 1);
+        gc.fillRect(x, r.y + r.h - 1, 2, 1);
+      }
+      for (let y = r.y + 3 + off; y < r.y + r.h - 3; y += 4) {
+        gc.fillRect(r.x, y, 1, 2);
+        gc.fillRect(r.x + r.w - 1, y, 1, 2);
+      }
+      const cx = Math.round(r.x + r.w / 2);
+      const dy = Math.round((1 - k) * 12);
+      this.texts.text(z.letter, cx, 40 + dy, mixLight(z.col), { bold: true, scale: 3, ox: 0.5, oy: 0.5, alpha: a, extrude: 2, extrudeCol: z.deep });
+      this.texts.text(z.label, cx, 59 + dy, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
+      // a hand tapping in the zone
+      const tapK = ((now + i * 450) % 900) / 900;
+      const press = tapK < 0.18 ? 2 : 0;
+      const [hw] = glyphSize('hand');
+      glyph(gc, 'hand', cx - hw + 8, 66 + press + dy, a, { c: z.deep, C: z.col }, 2);
+      if (tapK < 0.3) {
+        const rr = 3 + tapK * 30;
+        gc.fillStyle(WHITE, 0.6 * (1 - tapK / 0.3) * a);
+        for (let j = 0; j < 12; j++) {
+          const ang = (j / 12) * Math.PI * 2;
+          gc.fillRect(Math.round(cx - 1 + Math.cos(ang) * rr), Math.round(68 + Math.sin(ang) * rr * 0.6), 1, 1);
+        }
+      }
+      // under it, which half of the bar this zone plays
+      const bar = s.bar;
+      const bx0 = Math.round(bar.x + (z.cursor ? bar.w / 2 : 0));
+      gc.fillStyle(z.col, (0.35 + 0.25 * pulse(now, 700)) * a);
+      gc.fillRect(bx0 + 1, bar.y - 2, Math.round(bar.w / 2) - 2, bar.h + 4);
+    });
+    // the finisher, and the way on
+    if (since > 400) {
+      const t = 'Swipe = finisher';
+      const tw = textWidth(t, 1, true);
+      strip(gc, mid - tw / 2 - 26, s.splitY - 16, tw + 52, 13, 0.8);
+      this.texts.text(t, mid + 8, s.splitY - 9.5, 0xffe680, { bold: true, ox: 0.5, oy: 0.5 });
+      // a swipe streak sweeping right
+      const cyc = (now % 1000) / 1000;
+      const hx = Math.round(mid - tw / 2 - 18 + cyc * 14);
+      for (let i = 0; i < 10; i++) {
+        gc.fillStyle(i < 3 ? WHITE : 0x9ad8ff, 0.9 * (1 - i / 10));
+        gc.fillRect(hx - i, s.splitY - 10, 1, i < 3 ? 2 : 1);
+      }
+      this.texts.text('Tap to continue', mid, top + 5, 0xffd23a, { bold: true, ox: 0.5, oy: 0.5, alpha: 0.7 + 0.3 * pulse(now, 900) });
+    }
+  }
+
+  // ------------------------------------------------------------------ the relic panel (fight paused)
+
+  /** Open the relic panel on relic `i` (the fight is paused by the caller). */
+  openRelics(i: number): void {
+    this.relicSel = i;
+    this.relicAt = performance.now();
+    this.s.app.audio.panelOpen();
+  }
+
+  private relicPanelRect(): Rect {
+    return { x: Math.round(GAME_W / 2 - 135), y: 25, w: 270, h: 112 };
+  }
+
+  private relicCols(): number {
+    return this.s.app.run.hero.relics.length > 36 ? 8 : 6;
+  }
+
+  relicSocket(i: number): Rect {
+    const p = this.relicPanelRect();
+    const cols = this.relicCols();
+    return { x: p.x + 7 + (i % cols) * 16, y: p.y + 11 + Math.floor(i / cols) * 16, w: 14, h: 14 };
+  }
+
+  relicResume(): Rect {
+    const p = this.relicPanelRect();
+    return { x: p.x + p.w - 62, y: p.y + p.h - 19, w: 54, h: 14 };
+  }
+
+  /** A tap on the relic panel: another relic shows; the Resume button, the relic shown or a tap outside closes it. */
+  relicPanelTap(x: number, y: number): 'close' | 'stay' {
+    const run = this.s.app.run;
+    for (let i = 0; i < run.hero.relics.length; i++)
+      if (inRect(this.relicSocket(i), x, y, 1)) {
+        if (i === this.relicSel) break;
+        this.relicSel = i;
+        this.s.app.audio.uiClick();
+        return 'stay';
+      }
+    const rr = this.relicResume();
+    if (inRect(rr, x, y, 3)) notePress(rr);
+    else if (inRect(this.relicPanelRect(), x, y) && !run.hero.relics.some((_, i) => inRect(this.relicSocket(i), x, y, 1))) return 'stay';
+    this.relicSel = null;
+    this.s.app.audio.panelClose();
+    return 'close';
+  }
+
+  /**
+   * The relic panel: every relic carried in a grid of sockets (the one shown in detail lit gold), and that one's big
+   * icon, name, rarity, tags, text, and how often it kicked in this fight. Resume (or a tap outside) goes back.
+   */
+  private drawRelicPanel(g: G, gc: G, now: number): void {
+    const s = this.s;
+    const run = s.app.run;
+    const owned = run.hero.relics;
+    const sel = Math.max(0, Math.min(owned.length - 1, this.relicSel ?? 0));
+    this.relicSel = sel;
+    this.dim(g, 0.6);
+    const since = now - this.relicAt;
+    const p0 = this.relicPanelRect();
+    const k = easeBack(since / 240, 1.5);
+    const sc = 0.8 + 0.2 * Math.min(1, k);
+    const p: Rect = { x: Math.round(p0.x + (p0.w * (1 - sc)) / 2), y: Math.round(p0.y + (p0.h * (1 - sc)) / 2), w: Math.round(p0.w * sc), h: Math.round(p0.h * sc) };
+    panel(gc, p, { trim: 'full', alpha: clamp01(since / 100) });
+    if (k < 0.98) return;
+    const title = `Relics (${owned.length})`;
+    ribbon(gc, p.x + p.w / 2, p.y - 6, textWidth(title, 1, true) + 24, 13, RIBBON.purple);
+    this.texts.text(title, p.x + p.w / 2, p.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    // the grid
+    owned.forEach((id, i) => {
+      const r = this.relicSocket(i);
+      const on = i === sel;
+      if (on) glow(gc, r, 0xffd23a, 0.45 + 0.3 * pulse(now, 700), 2);
+      rows(gc, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 2, on ? GOLD[3] : INK);
+      rows(gc, r.x, r.y, r.w, r.h, 1, on ? NAVY[4] : NAVY[1]);
+      band(gc, r.x, r.y, r.w, r.h, 1, 0, 1, on ? GOLD[4] : INK);
+      const bump = s.hud.relicPulseK(id, now);
+      relicIcon(s, this.pool, gc, id, r.x + 1, r.y + 1 - Math.round(bump * 2), 31.55);
+      if (bump > 0) rows(gc, r.x + 1, r.y + 1, 12, 12, 2, WHITE, 0.5 * bump);
+    });
+    const cols = this.relicCols();
+    const gridBottom = this.relicSocket(owned.length - 1).y + 16;
+    const build = buildName(owned);
+    this.texts.text('Build', p.x + 8, Math.max(gridBottom + 5, p.y + p.h - 22), 0xa8a0c8, { oy: 0.5 });
+    this.texts.text(build, p.x + 8, Math.max(gridBottom + 14, p.y + p.h - 12), 0xffd23a, { bold: true, oy: 0.5 });
+    // the detail: a divider, then the relic shown
+    const dx = p.x + 7 + cols * 16 + 4;
+    gc.fillStyle(NAVY[1], 1);
+    gc.fillRect(dx, p.y + 9, 1, p.h - 16);
+    gc.fillStyle(NAVY[5], 1);
+    gc.fillRect(dx + 1, p.y + 9, 1, p.h - 16);
+    const id = owned[sel];
+    const def = relicById(id);
+    if (!def) return;
+    const x0 = dx + 7;
+    const w = p.x + p.w - 8 - x0;
+    const face = RARITY_FACE_OF(def.rarity);
+    const tile: Rect = { x: x0, y: p.y + 10, w: 30, h: 30 };
+    glow(gc, tile, face[1], 0.4, 2);
+    cardTile(gc, tile, face);
+    relicIcon(s, this.pool, gc, id, tile.x + 3, tile.y + 3, 31.55, 1, 2);
+    const tx = tile.x + tile.w + 6;
+    this.texts.text(def.name, tx, p.y + 11, WHITE, { bold: true });
+    let cx = tx;
+    for (const t of def.tags) cx += tagChip(s, gc, this.texts, this.pool, t, cx, p.y + 25, 31.55, { now }) + 3;
+    // rare and epic relics say so after their tags
+    const look = CARD[def.rarity];
+    if (look.tag && cx + textWidth(look.tag, 1, false) + 6 <= p.x + p.w - 8) {
+      const tr: Rect = { x: cx + 1, y: p.y + 25, w: textWidth(look.tag, 1, false) + 6, h: 9 };
+      tag(gc, tr, look.face);
+      this.texts.text(look.tag, tr.x + 3, tr.y + 4.5, WHITE, { oy: 0.5 });
+    }
+    const lines = wrapText(relicText(s.app.tuning, id), w);
+    lines.slice(0, 4).forEach((line, i) => this.texts.text(line, x0, p.y + 45 + i * 9, 0xe8e2ff));
+    const n = s.hud.perkCount(id);
+    if (n > 0) this.texts.text(n === 1 ? 'Kicked in once this fight' : `Kicked in ${n} times this fight`, x0, p.y + 46 + Math.min(4, lines.length) * 9, 0x9af0a0, { oy: 0 });
+    // Resume
+    const rr = this.relicResume();
+    const pr = isPressed(rr, now);
+    glow(gc, rr, 0x8af06a, 0.3 + 0.3 * pulse(now, 900), 3);
+    button3d(gc, rr, FACE.green, pr);
+    this.texts.text('Resume', rr.x + rr.w / 2, rr.y + rr.h / 2 + (pr ? 2 : 0), WHITE, { bold: true, ox: 0.5, oy: 0.5 });
   }
 }

@@ -1,4 +1,6 @@
-// The timing bar: metal frame, blocks (and how they leave), the cursor blade, hit beams and the swipe hint.
+// The timing bar: metal frame, blocks (and how they leave), the cursor blade, hit beams and the swipe hint. Sable's
+// two cursors: cursor A (blue) sweeps the left half and B (violet) the right one, with a divider at the middle and
+// each half faintly tinted in its cursor's colour. A block that changes kind (Chain Reaction) flashes as it turns.
 import Phaser from 'phaser';
 import { isRed, type Block, type BlockKind, type Combat, type RemoveReason } from '../../core/combat';
 import type { FightScene } from '../scene';
@@ -10,6 +12,12 @@ import { BOMB_COL, deepOf, DYING_MS, dyingStyle, ease, INK, kindCol, rand, stack
 
 type G = Phaser.GameObjects.Graphics;
 
+/** Each cursor's colours: Rowan's and Sable's A blue, Sable's B violet. */
+const HAND_LOOK = [
+  { blade: 0x3a8ae8, core: 0x9ad8ff, deep: 0x1a3c8a, cap: 0xb8c2d8 },
+  { blade: 0xb05ae0, core: 0xe8c0ff, deep: 0x5a1a8a, cap: 0xdab0ff },
+] as const;
+
 export class BarView {
   g!: G;
   img: Phaser.GameObjects.Image | null = null;
@@ -17,8 +25,10 @@ export class BarView {
   private blockSeen = new Map<number, number>(); // block id -> anim time it first appeared
   explodeFx: { x: number; r: number; until: number } | null = null;
   beams: Array<{ x: number; at: number; color: number }> = [];
-  private cursorPulseAt = 0;
-  private cursorPulseColor = WHITE;
+  private cursorPulseAt = [0, 0];
+  private cursorPulseColor = [WHITE, WHITE];
+  /** Blocks that just changed kind: id -> anim time (they flash white as they turn). */
+  private morphs = new Map<number, number>();
   shakeUntil = 0;
 
   constructor(private readonly s: FightScene) {}
@@ -34,6 +44,21 @@ export class BarView {
   /** A new fight: forget which blocks were already seen dropping in. */
   newFight(): void {
     this.blockSeen.clear();
+    this.morphs.clear();
+  }
+
+  /** A block changed kind (Chain Reaction turns yellows green): a flash on it, a ring and chips in its new colour. */
+  morph(id: number): void {
+    const s = this.s;
+    const c = s.app.run.combat;
+    const b = c?.blocks.find((x) => x.id === id);
+    this.morphs.set(id, s.anim);
+    if (!b || !c) return;
+    const x = this.x(b.pos);
+    const y = s.bar.y + s.bar.h / 2;
+    const [base, light] = kindCol(b.kind);
+    s.fx.ring(x, y, 10, light, false);
+    s.fx.chips(x, s.bar.y - 4, Math.max(6, b.width * s.bar.w), [WHITE, light, base], 6, -1);
   }
 
   /** Bar position (0..1) to game x. */
@@ -41,9 +66,11 @@ export class BarView {
     return this.s.bar.x + pos * this.s.bar.w;
   }
 
-  cursorPulse(color: number): void {
-    this.cursorPulseAt = performance.now();
-    this.cursorPulseColor = color;
+  /** The cursor that hit (`hand`: Sable's A or B) pulses in a colour. */
+  cursorPulse(color: number, hand = 0): void {
+    const i = hand > 0 ? 1 : 0;
+    this.cursorPulseAt[i] = performance.now();
+    this.cursorPulseColor[i] = color;
   }
 
   /** Ring + vertical beam shooting up from the bar where a block was hit. */
@@ -111,6 +138,7 @@ export class BarView {
     }
 
     const group = c.enemies.length > 1;
+    if (c.hands > 1) this.drawHalves(g, now, bx);
     this.drawGhosts(g, c, now, bx);
     for (const b of c.blocks) if (!isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
     this.drawGuard(g, c, t, now, bx);
@@ -125,58 +153,8 @@ export class BarView {
       g.fillRect(Math.round(this.explodeFx.x - r), B.y - 4, r * 2, B.h + 8);
     }
 
-    // cursor: a blue blade with silver caps (trail at speed, pulse on hits)
-    const speed = c.speedMult();
-    const hot = speed >= s.app.tuning.cursor.maxSpeedMult - 0.01 || c.minSpeed > 0;
-    const frozen = c.freeze > 0;
-    const blade = frozen ? 0xbfe8ff : hot ? 0xff8a2a : 0x3a8ae8;
-    const core = frozen ? WHITE : hot ? 0xffd080 : 0x9ad8ff;
-    if (speed > 1.2) {
-      for (let i = 1; i <= 3; i++) {
-        const px = Math.round(B.x + c.cursorPosAt(t - i * 0.01) * B.w) + bx;
-        g.fillStyle(core, 0.35 / i);
-        g.fillRect(px - 1, B.y, 3, B.h);
-      }
-    }
-    const cx = Math.round(B.x + c.cursorPosAt(t) * B.w) + bx;
-    const pk = (now - this.cursorPulseAt) / 160;
-    if (pk < 1) {
-      const pw = Math.round(2 + 6 * (1 - pk));
-      g.fillStyle(this.cursorPulseColor, 0.6 * (1 - pk));
-      g.fillRect(cx - pw, B.y - 3, pw * 2 + 1, B.h + 6);
-    }
-    if (frozen) {
-      // frozen by a Stomp: an icy halo and frost flakes
-      g.fillStyle(0xbfe8ff, 0.35);
-      g.fillRect(cx - 4, B.y - 4, 9, B.h + 8);
-      if (Math.random() < 0.5) s.fx.particles.push({ x: cx + rand(-4, 4), y: B.y + rand(0, B.h), vx: rand(-10, 10), vy: rand(-14, -4), g: 0, born: now, life: 300, color: WHITE, size: 1, world: false, streak: false });
-    }
-    // a glowing blade: ink capsule, lit left edge, white-hot core, deep right edge
-    const top = B.y - 7;
-    const len = B.h + 14;
-    rows(g, cx - 2, top, 5, len, 1, INK);
-    g.fillStyle(blade, 1);
-    g.fillRect(cx - 1, top + 1, 3, len - 2);
-    g.fillStyle(core, 1);
-    g.fillRect(cx - 1, top + 2, 1, len - 4);
-    g.fillStyle(WHITE, 1);
-    g.fillRect(cx, top + 3, 1, len - 6);
-    g.fillStyle(hot ? 0xa0400a : 0x1a3c8a, 1);
-    g.fillRect(cx + 1, top + 2, 1, len - 4);
-    // sparkle caps: 4-point stars with an ink rim
-    for (const sy of [top - 1, top + len]) {
-      g.fillStyle(INK, 1);
-      g.fillRect(cx - 4, sy - 1, 9, 3);
-      g.fillRect(cx - 1, sy - 4, 3, 9);
-      g.fillRect(cx - 2, sy - 2, 5, 5);
-      g.fillStyle(0xb8c2d8, 1);
-      g.fillRect(cx - 3, sy, 7, 1);
-      g.fillRect(cx, sy - 3, 1, 7);
-      g.fillRect(cx - 1, sy - 1, 3, 3);
-      g.fillStyle(WHITE, 1);
-      g.fillRect(cx - 2, sy, 4, 1);
-      g.fillRect(cx, sy - 2, 1, 4);
-    }
+    // the cursor (Sable: one per half, each in its colour)
+    for (let hand = 0; hand < Math.min(2, c.hands); hand++) this.drawCursor(g, c, t, now, bx, hand);
 
     // swipe hint: an arrow streak sweeping across above the bar while a finisher is banked
     if (c.finisherReady && s.app.settings.finisherInput === 'swipe') {
@@ -219,6 +197,93 @@ export class BarView {
     s.fx.drawParticles(g, now, false);
   }
 
+  /**
+   * A cursor: a glowing blade with silver caps (a trail at speed, a pulse on hits). Blue for Rowan and Sable's A,
+   * violet for Sable's B; orange-hot at top speed, icy when a Stomp froze it.
+   */
+  private drawCursor(g: G, c: Combat, t: number, now: number, bx: number, hand: number): void {
+    const s = this.s;
+    const B = s.bar;
+    const speed = c.speedMult();
+    const hot = speed >= s.app.tuning.cursor.maxSpeedMult - 0.01 || c.minSpeed > 0;
+    const frozen = c.freeze > 0;
+    const look = HAND_LOOK[hand > 0 ? 1 : 0];
+    const blade = frozen ? 0xbfe8ff : hot ? 0xff8a2a : look.blade;
+    const core = frozen ? WHITE : hot ? 0xffd080 : look.core;
+    if (speed > 1.2) {
+      for (let i = 1; i <= 3; i++) {
+        const px = Math.round(B.x + c.cursorPosAt(t - i * 0.01, hand) * B.w) + bx;
+        g.fillStyle(core, 0.35 / i);
+        g.fillRect(px - 1, B.y, 3, B.h);
+      }
+    }
+    const cx = Math.round(B.x + c.cursorPosAt(t, hand) * B.w) + bx;
+    const pk = (now - this.cursorPulseAt[hand > 0 ? 1 : 0]) / 160;
+    if (pk < 1) {
+      const pw = Math.round(2 + 6 * (1 - pk));
+      g.fillStyle(this.cursorPulseColor[hand > 0 ? 1 : 0], 0.6 * (1 - pk));
+      g.fillRect(cx - pw, B.y - 3, pw * 2 + 1, B.h + 6);
+    }
+    if (frozen) {
+      // frozen by a Stomp: an icy halo and frost flakes
+      g.fillStyle(0xbfe8ff, 0.35);
+      g.fillRect(cx - 4, B.y - 4, 9, B.h + 8);
+      if (Math.random() < 0.5) s.fx.particles.push({ x: cx + rand(-4, 4), y: B.y + rand(0, B.h), vx: rand(-10, 10), vy: rand(-14, -4), g: 0, born: now, life: 300, color: WHITE, size: 1, world: false, streak: false });
+    }
+    // a glowing blade: ink capsule, lit left edge, white-hot core, deep right edge
+    const top = B.y - 7;
+    const len = B.h + 14;
+    rows(g, cx - 2, top, 5, len, 1, INK);
+    g.fillStyle(blade, 1);
+    g.fillRect(cx - 1, top + 1, 3, len - 2);
+    g.fillStyle(core, 1);
+    g.fillRect(cx - 1, top + 2, 1, len - 4);
+    g.fillStyle(WHITE, 1);
+    g.fillRect(cx, top + 3, 1, len - 6);
+    g.fillStyle(hot ? 0xa0400a : look.deep, 1);
+    g.fillRect(cx + 1, top + 2, 1, len - 4);
+    // sparkle caps: 4-point stars with an ink rim (Sable's in her cursors' colours)
+    const cap = c.hands > 1 && !hot && !frozen ? look.cap : 0xb8c2d8;
+    for (const sy of [top - 1, top + len]) {
+      g.fillStyle(INK, 1);
+      g.fillRect(cx - 4, sy - 1, 9, 3);
+      g.fillRect(cx - 1, sy - 4, 3, 9);
+      g.fillRect(cx - 2, sy - 2, 5, 5);
+      g.fillStyle(cap, 1);
+      g.fillRect(cx - 3, sy, 7, 1);
+      g.fillRect(cx, sy - 3, 1, 7);
+      g.fillRect(cx - 1, sy - 1, 3, 3);
+      g.fillStyle(WHITE, 1);
+      g.fillRect(cx - 2, sy, 4, 1);
+      g.fillRect(cx, sy - 2, 1, 4);
+    }
+  }
+
+  /** Two cursors: each half of the track faintly in its cursor's colour, and a divider at the middle. */
+  private drawHalves(g: G, now: number, bx: number): void {
+    const B = this.s.bar;
+    const mid = Math.round(B.x + B.w / 2) + bx;
+    const half = Math.round(B.w / 2);
+    g.fillStyle(HAND_LOOK[0].blade, 0.13);
+    g.fillRect(B.x + bx + 3, B.y + 1, half - 4, B.h - 2);
+    g.fillStyle(HAND_LOOK[1].blade, 0.13);
+    g.fillRect(mid + 2, B.y + 1, B.w - half - 3, B.h - 2);
+    // the divider: an ink seam with a lit edge, and gold studs above and below the track
+    g.fillStyle(INK, 1);
+    g.fillRect(mid - 1, B.y - 3, 3, B.h + 6);
+    g.fillStyle(0xd8c890, 0.9);
+    g.fillRect(mid, B.y - 2, 1, B.h + 4);
+    for (const sy of [B.y - 5, B.y + B.h + 3]) {
+      g.fillStyle(INK, 1);
+      g.fillRect(mid - 2, sy - 1, 5, 4);
+      g.fillStyle(0xf2c230, 1);
+      g.fillRect(mid - 1, sy, 3, 2);
+      g.fillStyle(0xfff0a0, 1);
+      g.fillRect(mid - 1, sy, 1, 1);
+    }
+    void now;
+  }
+
   private drawBlock(g: G, b: Block, c: Combat, t: number, now: number, group: boolean, bx: number): void {
     const s = this.s;
     const B = s.bar;
@@ -247,6 +312,9 @@ export class BarView {
     const W = w + squash * 2;
     const H = h - squash;
     brick(g, X, Y, W, H, impacting ? [WHITE, WHITE, light, base] : [light, base, dark, deepOf(b.kind)]);
+    // it just changed kind: a white flash fading off it
+    const mk = (s.anim - (this.morphs.get(b.id) ?? -1e9)) / 280;
+    if (mk >= 0 && mk < 1) rows(g, X, Y, W, H, 2, WHITE, 0.85 * (1 - mk));
     if (b.kind === 'shield') {
       g.fillStyle(0xdfe6f2, 1);
       g.fillRect(X + 1, Y + 2, 2, H - 5);

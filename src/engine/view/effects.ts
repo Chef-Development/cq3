@@ -8,7 +8,10 @@ import type { FightScene } from '../scene';
 import { FONT, FONT_BOLD, fontText, readable, textWidth } from '../font';
 import { GAME_W } from '../layout';
 import { hudIcon, iconSize } from './pixels';
+import { relicIcon, RELIC_ICON } from './relic-ui';
 import { clamp01, ease, INK, rand, shade as shadeCol, tintGrad, WHITE, type EnemyView, type Floater, type Particle } from './shared';
+import { ImagePool } from './ui';
+import type { RelicId } from '../../data/relics';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -56,11 +59,17 @@ export class Effects {
   impactFlashUntil = 0;
   impactFlashPending = false;
 
-  constructor(private readonly s: FightScene) {}
+  /** Relic icons in front of perk names (screen space, over the HUD). */
+  private icons: ImagePool;
+
+  constructor(private readonly s: FightScene) {
+    this.icons = new ImagePool(s);
+  }
 
   /** Light layers for a new layout (the containers were just emptied): ground light behind the actors, glows over them. */
   build(): void {
     const s = this.s;
+    this.icons.destroy();
     this.gGround = s.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
     s.back.add(this.gGround);
     this.gGlow = s.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
@@ -279,6 +288,13 @@ export class Effects {
     if (f) f.icon = icon;
   }
 
+  /** A perk's name rising with its relic's icon in front (screen space, over the HUD). */
+  relicFloat(x: number, y: number, text: string, color: number, relic: RelicId, life = 1100): void {
+    this.addFloater(x + 7, y, text, color, 1, true, 0, -8, 0, life, false);
+    const f = this.floaters[this.floaters.length - 1];
+    if (f) f.relic = relic;
+  }
+
   addFloater(x: number, y: number, text: string, color: number, scale: number, pop: boolean, vx: number, vy: number, g: number, life: number, world: boolean): void {
     const s = this.s;
     const t = this.pool.pop() ?? s.add.bitmapText(0, 0, FONT, '');
@@ -298,6 +314,7 @@ export class Effects {
 
   private killFloater(f: Floater): void {
     f.icon = undefined;
+    f.relic = undefined;
     f.t.setVisible(false);
     if (f.t.parentContainer) f.t.parentContainer.remove(f.t);
     this.pool.push(f.t);
@@ -730,6 +747,7 @@ export class Effects {
 
   updateFloaters(now: number): void {
     const s = this.s;
+    this.icons.begin();
     for (let i = this.floaters.length - 1; i >= 0; i--) {
       const f = this.floaters[i];
       const age = now - f.born;
@@ -756,6 +774,13 @@ export class Effects {
         const wy = f.t.parentContainer ? s.world.y : 0;
         hudIcon(s.gTop, f.icon, Math.round(f.t.x - f.t.displayWidth / 2 - iw - 1 + wx), Math.round(f.t.y - ih / 2 + wy));
       }
+      if (f.relic && k < 0.9) {
+        const wx = f.t.parentContainer ? s.world.x : 0;
+        const wy = f.t.parentContainer ? s.world.y : 0;
+        const a = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.2;
+        relicIcon(s, this.icons, s.gTop, f.relic as RelicId, f.t.x - f.t.displayWidth / 2 - RELIC_ICON - 1 + wx, f.t.y - RELIC_ICON / 2 - 1 + wy, 30.2, a);
+      }
     }
+    this.icons.end();
   }
 }

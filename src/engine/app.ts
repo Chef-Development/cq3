@@ -129,26 +129,27 @@ export class App {
     return Math.max(c.time, this.clock.now(now) / 1000);
   }
 
-  /** A bar tap. `wallTs` is the pointer event's timeStamp (same clock as performance.now()). */
-  barTap(wallTs: number): void {
+  /** A bar tap. `wallTs` is the pointer event's timeStamp (same clock as performance.now()). `hand`: which cursor
+   *  (Sable's two: 0 = the left half of the screen, 1 = the right half; Rowan's taps are all 0). */
+  barTap(wallTs: number, hand = 0): void {
     const now = performance.now();
     this.update(now);
     const c = this.run.combat;
     if (!c || !this.clock.running) return;
     // Some browsers have shipped epoch-based event timestamps: fall back to "now" if it's not plausible.
     const ts = Math.abs(now - wallTs) < 1000 ? wallTs : now;
-    this.lastTap = c.tap(tapSimTime(this.clock, ts, this.settings.calibrationMs));
+    this.lastTap = c.tap(tapSimTime(this.clock, ts, this.settings.calibrationMs), hand);
     this.flush();
   }
 
   /** Whether a tap with this pointer timestamp would land on nothing (see input's swipe handling). */
-  wouldMiss(wallTs: number): boolean {
+  wouldMiss(wallTs: number, hand = 0): boolean {
     const now = performance.now();
     this.update(now);
     const c = this.run.combat;
     if (!c || !this.clock.running) return false;
     const ts = Math.abs(now - wallTs) < 1000 ? wallTs : now;
-    return c.wouldMiss(tapSimTime(this.clock, ts, this.settings.calibrationMs));
+    return c.wouldMiss(tapSimTime(this.clock, ts, this.settings.calibrationMs), hand);
   }
 
   /** Start the fight now instead of waiting for the enemy's walk-in to finish. */
