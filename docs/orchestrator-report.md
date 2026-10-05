@@ -87,7 +87,8 @@
     **Afterimage**: each block leaves an afterimage that stops the next red in that half); **Quicksilver**, speed and
     both hands (Blur: above 1.6x cursor speed hits crit, Double Down: hits with both cursors within 120 ms deal x2,
     capstone **Quickening**: every 20 combo banks a stack).
-- **Camp:** a hero chip (face, level, XP) and both heroes by the fire; the **hero select** (art, family, bio, level and
+- **Camp:** reachable mid-act too (playtest: a Camp button on the act map, bottom right; "Act N map" brings you back
+  to the same spot). A hero chip (face, level, XP) and both heroes by the fire; the **hero select** (art, family, bio, level and
   XP bar, the kit with its numbers, points, Pick; gear is shared); the **skill tree** (three branch rows of five linked
   nodes, points left, a node card with the text and its before/after: "ATK 12 > 13" or "Now: ... / With it: ...",
   Learn with the reason when you can't, a free Reset with a confirm tap); the stats screen per hero, with level and
