@@ -1,14 +1,13 @@
 // Relics: every relic's rule in a fight (with and without it), the run-level relics (map, rests, shops), the 1-of-3
 // offers, build names, unlocks, saving the relics and a replay's starting picks, and the bot's relic decisions.
 import { describe, expect, it } from 'vitest';
-import type { RelicId } from '../../src/data/relics';
-import { RELICS } from '../../src/data/relics';
+import { relicById, RELICS, type RelicId } from '../../src/data/relics';
 import type { NodeType } from '../../src/data/types';
 import { offerScore, wantsBlock } from '../../src/core/bot';
 import { Combat, newHero, type CombatEvent, type TapResult } from '../../src/core/combat';
 import { newProfile, unlockedRelics } from '../../src/core/profile';
 import { relicN, RELIC_HOOKS } from '../../src/core/relic-fx';
-import { buildName, isSynergy, relicNumber, relicText, sharedTags, unlocksFor } from '../../src/core/relics';
+import { buildName, isSynergy, relicNumber, relicText, sharedTags, unlockHint, unlocksFor } from '../../src/core/relics';
 import { Rng } from '../../src/core/rng';
 import { isRelicOffer, rollPick, Run } from '../../src/core/run';
 import { restoreRun, snapshotRun } from '../../src/core/save';
@@ -708,5 +707,360 @@ describe('Pip and sustain relics', () => {
     }
     expect(on.c.hero.hp).toBe(50 + 2 * relicN(on.t, 'vampiricFang'));
     expect(off.c.hero.hp).toBe(50);
+  });
+});
+
+// ---------------------------------------------------------------- the run
+
+function freshRun(tuneRun?: (t: Tuning) => void, seed = 7): Run {
+  const t = cloneTuning();
+  t.hero.critChance = 0;
+  t.juice.hitStopMs = 0;
+  tuneRun?.(t);
+  return new Run(t, { ...DEFAULT_SETTINGS }, seed);
+}
+
+/** A run on Act 1's map (scenes skipped), carrying these relics. */
+function onMap(relics: RelicId[] = [], tuneRun?: (t: Tuning) => void): Run {
+  const r = freshRun(tuneRun);
+  r.newRun();
+  r.skipScenes();
+  r.hero.relics = relics;
+  return r;
+}
+
+/** Walk to the first node of `type` in the act (by any path) and enter it. */
+function goTo(r: Run, type: NodeType): boolean {
+  const m = r.map;
+  const target = m.nodes.find((x) => x.type === type);
+  if (!target) return false;
+  const path = [target.id];
+  while (m.nodes[path[0]].row > 0) path.unshift(m.nodes.find((p) => p.next.includes(path[0]))!.id);
+  r.path = path.slice(0, -1);
+  r.phase = 'map';
+  return r.chooseNode(target.id);
+}
+
+/** Win the current fight at once (the loot goes in the bag). */
+function win(r: Run): void {
+  const c = r.combat!;
+  toLastWave(c);
+  for (const e of c.enemies) {
+    e.uses = e.uses.map(() => 1);
+    e.hp = Math.min(e.hp, 5);
+  }
+  c.stacks = 1;
+  c.finisher();
+  r.sync();
+  if (r.phase === 'loot') r.collectLoot();
+}
+
+describe('run-level relics', () => {
+  it('Field Rations: every step on the map heals n% HP', () => {
+    for (const relics of [['fieldRations'], []] as RelicId[][]) {
+      const r = onMap(relics);
+      r.hero.hp = 50;
+      r.chooseNode(r.map.rows[0][0]);
+      expect(r.hero.hp).toBe(relics.length ? 50 + Math.round((100 * relicNumber(r.tuning, 'fieldRations')) / 100) : 50);
+    }
+  });
+
+  it('Tithe: a rest costs n coins but heals fully (refunded by a retry); without the coins, a plain rest', () => {
+    const r = onMap(['tithe']);
+    expect(goTo(r, 'rest')).toBe(true);
+    r.coins = 50;
+    r.hero.hp = 40;
+    r.rest();
+    expect(r.hero.hp).toBe(100);
+    expect(r.coins).toBe(50 - relicNumber(r.tuning, 'tithe'));
+    expect(r.actSpent).toBe(relicNumber(r.tuning, 'tithe'));
+    const poor = onMap(['tithe']);
+    goTo(poor, 'rest');
+    poor.coins = 10;
+    poor.hero.hp = 40;
+    poor.rest();
+    expect(poor.hero.hp).toBe(40 + Math.round(100 * poor.tuning.map.restHeal));
+    expect(poor.coins).toBe(10);
+  });
+
+  it('Vampiric Fang: rests heal nothing', () => {
+    for (const relics of [['vampiricFang'], []] as RelicId[][]) {
+      const r = onMap(relics);
+      goTo(r, 'rest');
+      r.hero.hp = 40;
+      r.rest();
+      expect(r.hero.hp).toBe(relics.length ? 40 : 40 + Math.round(100 * r.tuning.map.restHeal));
+    }
+  });
+
+  it('Gold Fever: shops cost n% more', () => {
+    const fever = onMap(['goldFever']);
+    const plain = onMap();
+    for (const r of [fever, plain]) expect(goTo(r, 'shop')).toBe(true);
+    const mult = 1 + relicNumber(fever.tuning, 'goldFever') / 100;
+    const potion = (r: Run) => r.shop.find((i) => i.kind === 'potion')!.price;
+    expect(potion(plain)).toBe(plain.tuning.map.pricePotion);
+    expect(potion(fever)).toBe(Math.round(plain.tuning.map.pricePotion * mult));
+  });
+
+  it('Haggler: the first thing bought in each shop is free', () => {
+    const r = onMap(['haggler']);
+    goTo(r, 'shop');
+    r.coins = 500;
+    expect(r.priceOf(r.shop[0])).toBe(0);
+    expect(r.buy(0)).toBe(true);
+    expect(r.coins).toBe(500);
+    expect(r.buy(1)).toBe(true);
+    expect(r.coins).toBe(500 - r.shop[1].price);
+    const plain = onMap();
+    goTo(plain, 'shop');
+    plain.coins = 500;
+    plain.buy(0);
+    expect(plain.coins).toBe(500 - plain.shop[0].price);
+  });
+});
+
+describe('relic offers', () => {
+  const T = cloneTuning();
+  const pool = unlockedRelics(newProfile());
+
+  it('mostly relics plus at most one stat card; never a relic you own or a locked one', () => {
+    const rng = new Rng(11);
+    const owned: RelicId[] = ['sharpshooter', 'sapper', 'clutch'];
+    let stats = 0;
+    for (let i = 0; i < 400; i++) {
+      const pick = rollPick(rng, T, pool, owned);
+      expect(pick).toHaveLength(3);
+      const s = pick.filter((o) => !isRelicOffer(o)).length;
+      expect(s).toBeLessThanOrEqual(1);
+      stats += s;
+      expect(new Set(pick.map((o) => o.relic ?? o.id)).size).toBe(3);
+      for (const o of pick.filter(isRelicOffer)) {
+        expect(owned).not.toContain(o.relic);
+        expect(pool).toContain(o.relic);
+        expect(o.rarity).toBe(relicById(o.relic)!.rarity);
+      }
+    }
+    expect(stats / 400).toBeGreaterThan(T.relics.statCard - 0.1);
+    expect(stats / 400).toBeLessThan(T.relics.statCard + 0.1);
+    expect(pool).not.toContain('shortFuse'); // locked until Act 1 is cleared
+  });
+
+  it('a minimum rarity is always met (an epic one too, with no epic relic unlocked yet)', () => {
+    const rng = new Rng(5);
+    expect(pool.some((id) => relicById(id)!.rarity === 'epic')).toBe(false);
+    for (let i = 0; i < 300; i++) {
+      expect(rollPick(rng, T, pool, [], true).some((o) => o.rarity !== 'common')).toBe(true);
+      expect(rollPick(rng, T, pool, [], 'rare').some((o) => o.rarity !== 'common')).toBe(true);
+      expect(rollPick(rng, T, pool, [], 'epic').some((o) => o.rarity === 'epic')).toBe(true);
+    }
+  });
+
+  it("a replay's starting picks are relics only; stat cards fill in when the relics run out", () => {
+    const t = cloneTuning();
+    t.relics.statCard = 1;
+    const rng = new Rng(2);
+    for (let i = 0; i < 100; i++) expect(rollPick(rng, t, pool, [], false, { relicsOnly: true }).every(isRelicOffer)).toBe(true);
+    const last = rollPick(rng, T, ['sapper', 'momentum'], ['momentum']);
+    expect(last).toHaveLength(3);
+    expect(last.filter(isRelicOffer).map((o) => o.relic)).toEqual(['sapper']);
+  });
+
+  it('the offer leans toward the tags you own (Synergy!), so builds form', () => {
+    const seen = (t: Tuning) => {
+      const rng = new Rng(9);
+      const n = { sapper: 0, momentum: 0 };
+      for (let i = 0; i < 3000; i++)
+        for (const o of rollPick(rng, t, pool, ['powderKeg']).filter(isRelicOffer)) if (o.relic === 'sapper' || o.relic === 'momentum') n[o.relic]++;
+      return n;
+    };
+    expect(sharedTags('sapper', ['powderKeg'])).toEqual(['bomb']);
+    expect(isSynergy('sapper', ['powderKeg'])).toBe(true);
+    expect(isSynergy('momentum', ['powderKeg'])).toBe(false);
+    const lean = seen(T);
+    expect(lean.sapper).toBeGreaterThan(1.5 * lean.momentum);
+    const flat = cloneTuning();
+    flat.relics.synergy = 0;
+    const even = seen(flat);
+    expect(even.sapper / even.momentum).toBeGreaterThan(0.75);
+    expect(even.sapper / even.momentum).toBeLessThan(1.33);
+  });
+});
+
+describe('build names', () => {
+  it('none yet, a single tag, a pair that leads together, a pair with no name of its own', () => {
+    expect(buildName([])).toBe('Freshly Armed');
+    expect(buildName(['sapper'])).toBe('Bomber');
+    expect(buildName(['powderKeg'])).toBe('Bomber'); // bomb and finisher once each: the first tag's name
+    expect(buildName(['sharpshooter', 'ricochet', 'momentum'])).toBe('Crit Fiend'); // crit 2, combo 1
+    expect(buildName(['powderKeg', 'partingGift'])).toBe('Demolisher'); // bomb 2 + finisher 2
+    expect(buildName(['glassEdge', 'lastStand'])).toBe('Glass Cannon'); // crit 2 + risk 2
+    expect(buildName(['photosynthesis', 'greenhouse', 'fieldRations'])).toBe('Druid'); // green 2 + sustain 2
+    expect(buildName(['sapper', 'powderKeg', 'blastWave', 'sharpshooter', 'ricochet'])).toBe('Bomber'); // bomb 3, crit 2: no pair name
+  });
+});
+
+describe('unlocks', () => {
+  it('what each unlock opens, and how the relic log words it', () => {
+    expect(unlocksFor('act', 0)).toEqual(['shortFuse', 'chainReaction']);
+    expect(unlocksFor('act', 2)).toEqual(['overdrive', 'echoStrike']);
+    expect(unlocksFor('elite', 1)).toEqual(['partingGift']);
+    expect(unlocksFor('event', 'shiny', 0)).toEqual(['huntingOwl']);
+    expect(unlocksFor('event', 'shiny', 1)).toEqual([]);
+    expect(unlockHint('shortFuse')).toBe('Clear Act 1 for the first time');
+    expect(unlockHint('mirrorGuard')).toBe('Beat an elite in Act 1');
+    expect(unlockHint('huntingOwl')).toContain('Let Pip keep it');
+    expect(unlockHint('sapper')).toBe('Unlocked from the start');
+  });
+
+  it("an act's first clear unlocks its relics (shown once); they're offered from then on", () => {
+    const r = onMap();
+    expect(r.relicPool).not.toContain('shortFuse');
+    goTo(r, 'boss');
+    r.skipScenes();
+    win(r);
+    r.pickBoost(0);
+    expect(r.phase).toBe('actClear');
+    expect(r.newRelics).toEqual(['shortFuse', 'chainReaction']);
+    expect(r.profile.relicsNew).toEqual(['shortFuse', 'chainReaction']);
+    expect(r.relicPool).toEqual(expect.arrayContaining(['shortFuse', 'chainReaction']));
+    // clearing it again unlocks nothing new
+    const again = new Run(r.tuning, { ...DEFAULT_SETTINGS }, 8, r.profile);
+    again.newRun();
+    again.skipScenes();
+    goTo(again, 'boss');
+    again.skipScenes();
+    win(again);
+    again.pickBoost(0);
+    expect(again.phase).toBe('actClear');
+    expect(again.newRelics).toEqual([]);
+  });
+
+  it('the first elite won in an act unlocks its relic; another elite adds nothing', () => {
+    const r = onMap();
+    expect(goTo(r, 'elite')).toBe(true);
+    win(r);
+    expect(r.newRelics).toEqual(['mirrorGuard']);
+    expect(r.relicPool).toContain('mirrorGuard');
+    r.newRelics = [];
+    goTo(r, 'elite');
+    win(r);
+    expect(r.newRelics).toEqual([]);
+  });
+
+  it("an event choice unlocks its relic (the other choice doesn't)", () => {
+    const r = onMap();
+    goTo(r, 'event');
+    r.event = { id: 'shiny', choice: -1, outcome: -1, boost: null };
+    r.chooseEvent(1);
+    expect(r.newRelics).toEqual([]);
+    r.event = { id: 'shiny', choice: -1, outcome: -1, boost: null };
+    r.chooseEvent(0);
+    expect(r.newRelics).toEqual(['huntingOwl']);
+  });
+});
+
+describe('saving the relics, and replays', () => {
+  it("the hero's relics and the act-start checkpoint's round-trip (a relic the game no longer has is dropped)", () => {
+    const r = onMap(['sharpshooter', 'tithe']);
+    r.actHero = { ...r.actHero, relics: ['sharpshooter'] };
+    const snap = JSON.parse(JSON.stringify(snapshotRun(r, 1000)));
+    expect(snap.v).toBe(6);
+    snap.hero.relics.push('bogus', 'tithe');
+    const back = new Run(r.tuning, { ...DEFAULT_SETTINGS }, 99, r.profile);
+    expect(restoreRun(back, snap)).toBe(true);
+    expect(back.hero.relics).toEqual(['sharpshooter', 'tithe']);
+    expect(back.actHero.relics).toEqual(['sharpshooter']);
+  });
+
+  it("a replay's starting picks round-trip mid-draft, then go on to the map", () => {
+    const r = freshRun();
+    r.profile.actsCleared = 2;
+    r.startAct(2);
+    r.skipScenes();
+    expect(r.startPick).toBe(true);
+    r.pickBoost(0);
+    const back = new Run(r.tuning, { ...DEFAULT_SETTINGS }, 99, r.profile);
+    expect(restoreRun(back, JSON.parse(JSON.stringify(snapshotRun(r, 1000))))).toBe(true);
+    expect(back.phase).toBe('boost');
+    expect(back.startPick).toBe(true);
+    expect([back.startPicks, back.startPicksTotal]).toEqual([r.startPicks, r.startPicksTotal]);
+    expect(back.boostChoices).toEqual(r.boostChoices);
+    expect(back.hero.relics).toEqual(r.hero.relics);
+    expect(back.actHero.relics).toEqual(r.hero.relics);
+    while (back.phase === 'boost') back.pickBoost(0);
+    expect(back.phase).toBe('map');
+    expect(back.hero.relics).toHaveLength(r.startPicksTotal);
+  });
+
+  it('Run.startAct(2) drafts kit.relicPicks relics per act behind (relics only) before the map; a retry keeps them', () => {
+    const r = freshRun((t) => (t.relics.statCard = 1));
+    r.profile.actsCleared = 2;
+    r.startAct(2);
+    r.skipScenes();
+    expect(r.startPicksTotal).toBe(r.tuning.kit.relicPicks * 2);
+    for (let k = 0; k < r.startPicksTotal; k++) {
+      expect(r.phase).toBe('boost');
+      expect(r.startPick).toBe(true);
+      expect(r.boostChoices.every(isRelicOffer)).toBe(true);
+      r.pickBoost(0);
+    }
+    expect(r.phase).toBe('map');
+    expect(r.startPick).toBe(false);
+    expect(r.hero.relics).toHaveLength(r.startPicksTotal);
+    const drafted = r.hero.relics;
+    r.hero.relics = [...drafted, 'clutch']; // found later in the act
+    r.retry();
+    expect(r.hero.relics).toEqual(drafted);
+  });
+
+  it('one act behind drafts kit.relicPicks; none with 0; a new run from Act 1 drafts nothing', () => {
+    const one = freshRun((t) => (t.kit.relicPicks = 3));
+    one.profile.actsCleared = 1;
+    one.startAct(1);
+    one.skipScenes();
+    expect([one.phase, one.startPicksTotal]).toEqual(['boost', 3]);
+    const none = freshRun((t) => (t.kit.relicPicks = 0));
+    none.profile.actsCleared = 1;
+    none.startAct(1);
+    none.skipScenes();
+    expect(none.phase).toBe('map');
+    const fresh = freshRun();
+    fresh.newRun();
+    fresh.skipScenes();
+    expect([fresh.phase, fresh.startPicks]).toEqual(['map', 0]);
+  });
+});
+
+describe('the bot plays its relics', () => {
+  it('Purple Pact: it taps traps while HP is above half and a stack would bank; never without the relic', () => {
+    const pact = fight(['purplePact']);
+    const trap = pact.c.spawnBlock('purple', 0.5);
+    expect(wantsBlock(pact.c, trap, false)).toBe(true);
+    pact.c.hero.hp = 40;
+    expect(wantsBlock(pact.c, trap, false)).toBe(false);
+    pact.c.hero.hp = 100;
+    pact.c.stacks = pact.c.maxStacks();
+    expect(wantsBlock(pact.c, trap, false)).toBe(false);
+    const none = fight([]);
+    expect(wantsBlock(none.c, none.c.spawnBlock('purple', 0.5), false)).toBe(false);
+  });
+
+  it('Short Fuse: it lets bombs come (unless Powder Keg pays a stack for tapping one)', () => {
+    for (const [relics, wants] of [
+      [['shortFuse'], false],
+      [['shortFuse', 'powderKeg'], true],
+      [[], true],
+    ] as Array<[RelicId[], boolean]>) {
+      const { c } = fight(relics);
+      expect(wantsBlock(c, c.spawnBlock('bomb', 0.8), false), relics.join()).toBe(wants);
+      expect(wantsBlock(c, c.spawnBlock('red', 0.5), false)).toBe(true);
+    }
+  });
+
+  it('it picks the relic that shares tags with what it owns over a rarer one that does not', () => {
+    const r = onMap(['powderKeg']);
+    expect(offerScore(r, { id: 'relic', rarity: 'common', relic: 'sapper' })).toBeGreaterThan(offerScore(r, { id: 'relic', rarity: 'rare', relic: 'glassEdge' }));
+    expect(offerScore(r, { id: 'relic', rarity: 'common', relic: 'momentum' })).toBeGreaterThan(offerScore(r, { id: 'damage', rarity: 'common' }));
   });
 });

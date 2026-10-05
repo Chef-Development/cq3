@@ -240,18 +240,22 @@ export function rollBoosts(rng: Rng, t: Tuning, min: boolean | Rarity = false, n
 
 /**
  * The 1-of-3 pick: mostly relics (unlocked, not owned; leaning toward your tags), plus at most one stat card
- * (tuning.relics.statCard). `min` (elites, bosses, treasure) makes one card at least that rare. `relicsOnly`: no stat
- * card (a replay's starting picks). Stat cards fill in when the relics run out.
+ * (tuning.relics.statCard). `min` (elites, bosses, treasure) makes one card at least that rare (a stat card of that
+ * rarity when no relic that rare is left to offer). `relicsOnly`: no stat card (a replay's starting picks). Stat cards
+ * fill in when the relics run out.
  */
 export function rollPick(rng: Rng, t: Tuning, pool: readonly RelicId[], owned: readonly RelicId[], min: boolean | Rarity = false, o: { n?: number; relicsOnly?: boolean } = {}): BoostOffer[] {
   const n = o.n ?? 3;
   const want: Rarity = min === true ? 'rare' : min === false ? 'common' : min;
+  const meets = (x: BoostOffer) => RARITIES.indexOf(x.rarity) >= RARITIES.indexOf(want);
   const stat = !o.relicsOnly && rng.next() < t.relics.statCard ? 1 : 0;
   const relics = rollRelics(rng, t, pool, owned, n - stat, want === 'common' ? undefined : want);
   const out: BoostOffer[] = relics.map((id) => ({ id: 'relic', rarity: relicById(id)!.rarity, relic: id }));
+  // no relic that rare to offer: a stat card of that rarity takes a relic's place
+  if (!o.relicsOnly && !stat && out.length && !out.some(meets)) out.splice(rng.int(out.length), 1);
   const stats = n - out.length;
   if (stats > 0) {
-    const cards = rollBoosts(rng, t, out.some((x) => RARITIES.indexOf(x.rarity) >= RARITIES.indexOf(want)) ? false : want, stats);
+    const cards = rollBoosts(rng, t, out.some(meets) ? false : want, stats);
     // the stat card goes in a random spot
     for (const c of cards) out.splice(rng.int(out.length + 1), 0, c);
   }
