@@ -12,6 +12,9 @@ import { clamp01, ease, INK, rand, shade as shadeCol, tintGrad, WHITE, type Enem
 
 type G = Phaser.GameObjects.Graphics;
 
+/** A small heart for icon pops: 'h' its highlight, 'w' a white glint. */
+const HEART = ['.hh.cc.', 'hwhcccc', 'hhccccc', '.ccccc.', '..ccc..', '...c...'];
+
 export class Effects {
   particles: Particle[] = [];
   floaters: Floater[] = [];
@@ -19,8 +22,15 @@ export class Effects {
   private singles: Record<string, Floater | undefined> = {};
   rings: Array<{ x: number; y: number; at: number; r: number; color: number; world: boolean }> = [];
   sparks: Array<{ x: number; y: number; at: number; size: number; color: number }> = [];
-  stars: Array<{ x: number; y: number; at: number; r: number; color: number }> = [];
-  slashes: Array<{ x: number; y: number; at: number; big: boolean; dir: number; color: number }> = [];
+  /** Starbursts; `world: false` ones are drawn in screen space over the bar (with the bar's rings and particles). */
+  stars: Array<{ x: number; y: number; at: number; r: number; color: number; world?: boolean }> = [];
+  /** Slash arcs: `color` is the body; `rim` (the dark edge) and `core` (the pale inner band) default to the classic
+   *  blue/gold look. Rowan's weapon tints them with its rarity. */
+  slashes: Array<{ x: number; y: number; at: number; big: boolean; dir: number; color: number; rim?: number; core?: number }> = [];
+  /** Little pixel icons that pop up and float away, ink-outlined (a gear heal's green heart). Real-time clock. */
+  pops: Array<{ x: number; y: number; at: number; life: number; vy: number; shape: readonly string[]; color: number; hi: number; scale: number }> = [];
+  /** Sparks streaking from one point to another (a Riposte flying back at its foe), on the scene clock. */
+  bolts: Array<{ x0: number; y0: number; x1: number; y1: number; at: number; ms: number; color: number }> = [];
   flashes: Array<{ x: number; y: number; r: number; at: number }> = [];
   puffs: Array<{ x: number; y: number; r: number; at: number; life: number; color: number }> = [];
   debris: Array<{ x: number; y: number; vx: number; vy: number; color: number; born: number; life: number; bounces: number; floor: number; size?: number }> = [];
@@ -78,6 +88,8 @@ export class Effects {
     this.dusts = [];
     this.glows = [];
     this.shocks = [];
+    this.pops = [];
+    this.bolts = [];
   }
 
   // ------------------------------------------------------------------ camera
@@ -217,6 +229,17 @@ export class Effects {
     if (groundY !== undefined) this.glows.push({ x, y: groundY, r: r * 1.8, at, life: life * 1.3, color, ground: true });
   }
 
+  /** A small heart (7x6, ink-outlined) that pops up at (x, y) and floats away: a gear heal. */
+  heartPop(x: number, y: number, color: number, hi: number, scale = 1, life = 900): void {
+    this.pops.push({ x, y, at: performance.now(), life, vy: -22, shape: HEART, color, hi, scale });
+    if (this.pops.length > 24) this.pops.shift();
+  }
+
+  /** A spark streaking from (x0, y0) to (x1, y1) over `ms` of scene time. */
+  bolt(x0: number, y0: number, x1: number, y1: number, ms: number, color: number): void {
+    this.bolts.push({ x0, y0, x1, y1, at: this.s.anim, ms, color });
+  }
+
   /** A ring running out along the ground (flattened by the view angle). */
   shock(x: number, y: number, r: number, color = 0xfff0c0): void {
     this.shocks.push({ x, y, r, at: this.s.anim, color });
@@ -332,11 +355,72 @@ export class Effects {
   drawWorld(g: G, now: number): void {
     this.drawLight(g);
     this.drawSlashes(g);
-    this.drawStars(g);
+    this.drawStars(g, true);
     this.drawRings(g, now, true);
     this.drawDebris(g);
     this.drawSparks(g);
+    this.drawBolts(g);
     this.drawParticles(g, now, true);
+    this.drawPops(g, now);
+  }
+
+  /** Bolts: a bright head with a tapering trail in its colour, then a little flash where it hits. */
+  private drawBolts(g: G): void {
+    const anim = this.s.anim;
+    for (let i = this.bolts.length - 1; i >= 0; i--) {
+      const b = this.bolts[i];
+      const k = (anim - b.at) / b.ms;
+      if (k >= 1.3) {
+        this.bolts.splice(i, 1);
+        continue;
+      }
+      if (k < 0) continue;
+      const at = (q: number) => {
+        const e = clamp01(q);
+        return [b.x0 + (b.x1 - b.x0) * e, b.y0 + (b.y1 - b.y0) * e - Math.sin(e * Math.PI) * 6] as const;
+      };
+      if (k <= 1) {
+        for (let j = 7; j >= 0; j--) {
+          const [x, y] = at(k - j * 0.06);
+          const sz = j === 0 ? 3 : j < 3 ? 2 : 1;
+          g.fillStyle(j === 0 ? WHITE : b.color, 1 - j / 8);
+          g.fillRect(Math.round(x) - (sz >> 1), Math.round(y) - (sz >> 1), sz, sz);
+        }
+      } else {
+        const q = (k - 1) / 0.3;
+        g.fillStyle(WHITE, 1 - q);
+        g.fillCircle(Math.round(b.x1), Math.round(b.y1), Math.max(1, Math.round(3 + q * 5)));
+      }
+    }
+  }
+
+  /** Icon pops: they jump up with a little overshoot, float, and blink out at the end. */
+  private drawPops(g: G, now: number): void {
+    for (let i = this.pops.length - 1; i >= 0; i--) {
+      const p = this.pops[i];
+      const age = now - p.at;
+      if (age >= p.life) {
+        this.pops.splice(i, 1);
+        continue;
+      }
+      const k = age / p.life;
+      if (k > 0.8 && Math.floor(age / 50) % 2) continue; // blinks out
+      const s = p.scale * (age < 90 ? 1.5 : 1);
+      const x0 = Math.round(p.x - (p.shape[0].length * s) / 2);
+      const y0 = Math.round(p.y + (p.vy * age) / 1000 - (age < 140 ? Math.sin((age / 140) * Math.PI) * 3 : 0));
+      const S = Math.max(1, Math.round(s));
+      g.fillStyle(INK, 1);
+      p.shape.forEach((row, yy) => {
+        for (let xx = 0; xx < row.length; xx++) if (row[xx] !== '.') g.fillRect(x0 + xx * S - 1, y0 + yy * S - 1, S + 2, S + 2);
+      });
+      p.shape.forEach((row, yy) => {
+        for (let xx = 0; xx < row.length; xx++) {
+          if (row[xx] === '.') continue;
+          g.fillStyle(row[xx] === 'h' ? p.hi : row[xx] === 'w' ? WHITE : p.color, 1);
+          g.fillRect(x0 + xx * S, y0 + yy * S, S, S);
+        }
+      });
+    }
   }
 
   /** Glows, ground light, shockwaves and dust (scene clock: hit-stop holds them). */
@@ -441,22 +525,23 @@ export class Effects {
       };
       const alpha = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4;
       // dark rim, colored body, pale inner band, white-hot inner edge
-      g.fillStyle(sl.color === 0x6ab4ff || sl.color === 0x3a8ae8 ? 0x1a3c8a : 0x9a5a14, alpha);
+      g.fillStyle(sl.rim ?? (sl.color === 0x6ab4ff || sl.color === 0x3a8ae8 ? 0x1a3c8a : 0x9a5a14), alpha);
       g.fillPoints(crescent(r + 1, thick + 1), true);
       g.fillStyle(sl.color, alpha);
       g.fillPoints(crescent(r, thick), true);
-      g.fillStyle(0xcfeeff, alpha);
+      g.fillStyle(sl.core ?? 0xcfeeff, alpha);
       g.fillPoints(crescent(r - thick * 0.4, thick * 0.6), true);
       g.fillStyle(WHITE, alpha);
       g.fillPoints(crescent(r - thick * 0.62, thick * 0.38), true);
     }
   }
 
-  /** Crit / finisher starbursts behind the numbers. */
-  private drawStars(g: G): void {
+  /** Crit / finisher starbursts behind the numbers (world ones, or the screen-space ones over the bar). */
+  private drawStars(g: G, world: boolean): void {
     const anim = this.s.anim;
     for (let i = this.stars.length - 1; i >= 0; i--) {
       const st = this.stars[i];
+      if ((st.world ?? true) !== world) continue;
       const k = (anim - st.at) / 260;
       if (k >= 1) {
         this.stars.splice(i, 1);
@@ -580,6 +665,8 @@ export class Effects {
   }
 
   drawRings(g: G, now: number, world: boolean): void {
+    // the bar draws the screen-space rings (world = false): its starbursts go under them
+    if (!world) this.drawStars(g, false);
     for (let i = this.rings.length - 1; i >= 0; i--) {
       const r = this.rings[i];
       if (r.world !== world) continue;

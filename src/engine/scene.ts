@@ -278,6 +278,11 @@ export class FightScene extends Phaser.Scene implements View {
     const { fx, barView: bar, fighters: f, hud } = this;
     const barMid = this.bar.y + this.bar.h / 2;
     let hold = 0;
+    // gear effects say where they happened through the events just before them (a miss, a bomb), and a Riposte's
+    // blow is shown by its spark flying back (not as a bomb's hit)
+    let missX: number | undefined;
+    let bombX: number | undefined;
+    let riposte = -1;
     for (const e of events) {
       switch (e.type) {
         case 'hit': {
@@ -317,6 +322,7 @@ export class FightScene extends Phaser.Scene implements View {
           fx.screenFlash(COL.purple[0], now, 160);
           break;
         case 'miss':
+          missX = bar.x(e.pos);
           fx.judge(bar.x(e.pos), 'Miss', 0x9a94b0, false);
           bar.shakeUntil = now + 140;
           if (f.h.state === 'idle') f.setHeroPose('windup', 120);
@@ -347,9 +353,17 @@ export class FightScene extends Phaser.Scene implements View {
         }
         case 'enemyHurt': {
           if (e.source !== 'bomb') break; // hits and finishers show damage when the blow lands
-          f.enemyHurtFx(e.enemyId, e.damage, false, false, fx.feel(fx.weight('bomb')));
+          if (e.enemyId === riposte) {
+            riposte = -1;
+            break;
+          }
+          f.enemyHurtFx(e.enemyId, e.damage, e.crit, false, fx.feel(fx.weight('bomb')));
           break;
         }
+        case 'gearFx':
+          f.gearFx(e.fx, e.amount, e.enemyId, { missX, bombX });
+          if (e.fx === 'riposte') riposte = e.enemyId;
+          break;
         case 'kill': {
           const id = e.enemyId;
           const def = this.app.tuning.enemies[c.enemyById(id)?.key ?? ''];
@@ -375,6 +389,7 @@ export class FightScene extends Phaser.Scene implements View {
           break;
         }
         case 'explode':
+          bombX = bar.x(e.pos);
           bar.explodeFx = { x: bar.x(e.pos), r: e.radius * this.bar.w, until: now + 260 };
           this.app.audio.explode();
           fx.impact(fx.weight('bomb'));

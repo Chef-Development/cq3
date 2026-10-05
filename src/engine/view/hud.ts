@@ -3,7 +3,9 @@
 // plus the kill rewards that fly into it (coins and stat icons). Panels are dark navy with a light bevel and an
 // ink outline (see pixels.ts panel); everything slides in with a little overshoot when a fight starts.
 import Phaser from 'phaser';
-import type { Combat } from '../../core/combat';
+import { heroStats, type Combat } from '../../core/combat';
+import { fmtStat, type StatBlock } from '../../core/gear';
+import { STAT_INFO, type StatId } from '../../data/gear';
 import type { FightScene } from '../scene';
 import { textWidth } from '../font';
 import { GAME_W } from '../layout';
@@ -13,6 +15,17 @@ import { clamp01, ease, easeBack, ENEMY_COL, INK, mix, pulse, rand, shade, stack
 import { tag, TextPool } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
+
+/** The stats the plate doesn't show (gear brings them): a gain in one floats up under the plate. */
+const HIDDEN: StatId[] = ['def', 'critDmg', 'meterGain', 'steady', 'luck', 'companion'];
+const hiddenStats = (st: StatBlock): Record<string, number> => Object.fromEntries(HIDDEN.map((k) => [k, st[k]]));
+/** The plate's stats: the row each pulses (statPulse) and how a gain reads. */
+const SHOWN: Record<string, { row: number; label: (d: number) => string }> = {
+  atk: { row: 0, label: (d) => `+${Math.round(d * 10) / 10}` },
+  crit: { row: 1, label: (d) => `+${Math.round(d)}%` },
+  cp: { row: 2, label: (d) => `+${Math.round(d * 10) / 10}` },
+  hp: { row: 4, label: (d) => `+${Math.round(d)} Max HP` },
+};
 
 /** The fight's foe counter: foes beaten so far and every foe in its waves. */
 const foeCount = (c: Combat): { beaten: number; total: number } => ({ beaten: c.foesBeaten, total: c.foesTotal });
@@ -71,6 +84,9 @@ export class Hud {
   private comboInAt = -1e9;
   private meterPrev = 0;
   private sparkAt = 0;
+  /** The stats as last shown (without timed buffs), and gains waiting to be shown (after the plate slides in). */
+  private seen: Record<string, number> | null = null;
+  private gains: Array<{ key: string; d: number; at: number }> = [];
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, 12);
@@ -361,8 +377,10 @@ export class Hud {
     const H = run.hero;
     const x0 = s.L + 3 + dx;
     const y0 = 3;
-    // stat gains from a kill show up as their icons land (statPending holds back what's still in the air)
-    const maxHp = T.hero.maxHp + H.bonusMaxHp - this.statPending.maxHp;
+    // every number comes from heroStats (kill gains, boosts and gear); gains from a kill show up as their icons land
+    // (statPending holds back what's still in the air)
+    const st = heroStats(T, H);
+    const maxHp = st.hp - this.statPending.maxHp;
     const hpNow = Math.max(0, Math.min(maxHp, H.hp - this.statPending.maxHp));
     // damage: the ghost holds a beat, then drains; healing: the bar jumps and the gain flashes
     if (H.hp < this.hpPrev) {
@@ -406,11 +424,21 @@ export class Hud {
     const hpCol = this.statPulse[4] > now - 300 ? 0xc8ff9a : hpK >= 0 && hpK < 0.5 ? 0xfff6c0 : WHITE;
     this.texts.text(`${Math.ceil(this.hpNum)}/${maxHp}`, gx + 38, gy + 4 + hpBump, hpCol, { bold: true, ox: 0.5, oy: 0.5 });
 
-    // stats: attack, crit, combo power (icon + value), each pops when it ticks up
-    const crit = T.hero.critChance + H.bonusCrit + (H.abilityTimer > 0 ? T.hero.abilityCritBonus : 0);
-    const cp = T.hero.comboPower + H.bonusComboPower - this.statPending.comboPower;
+    // the Tusk Crown's crit buff: a gold timer along the plate's bottom edge
+    const c = run.combat;
+    const tusk = c && c.tuskTimer > 0 ? c.tuskCrit : 0;
+    if (tusk > 0 && c) {
+      g.fillStyle(0xffd23a, c.tuskTimer < 1 && Math.floor(now / 80) % 2 ? 0.4 : 1);
+      g.fillRect(plate.x + 9, plate.y + plate.h - 1, Math.round((plate.w - 11) * clamp01(c.tuskTimer / Math.max(0.01, T.effects.tuskSec))), 1);
+    }
+    // stats: attack, crit (with Keen Edge and the Tusk Crown's buff), combo power (icon + value), each pops when it
+    // ticks up; a gain from a boost or new gear pulses and shows how much once the plate is in (trackGains)
+    const atk = st.atk - this.statPending.atk * (1 + H.bonusDmg);
+    const crit = st.critChance + (H.abilityTimer > 0 ? T.hero.abilityCritBonus : 0) + tusk;
+    const cp = st.comboPower - this.statPending.comboPower;
+    this.trackGains(now, { atk: Math.round(atk), crit: Math.round(st.critChance * 100), cp: Math.round(cp * 10) / 10, hp: maxHp, ...hiddenStats(st) });
     const stats: Array<[string, string]> = [
-      ['sword', `${Math.round((T.hero.atk + H.bonusAtk - this.statPending.atk) * (1 + H.bonusDmg))}`],
+      ['sword', `${Math.round(atk)}`],
       ['crit', `${Math.round(crit * 100)}%`],
       ['bolt', `${Math.round(cp * 10) / 10}`],
     ];
@@ -424,7 +452,8 @@ export class Hud {
       if (hot) glow(g, { x: sx, y: y0 + 13, w: iw, h: ih - 1 }, 0x9af06a, 0.8 * (1 - pk), 2);
       hudIcon(g, icon, sx, y0 + 13 + bump);
       const keen = i === 1 && H.abilityTimer > 0;
-      const col = hot ? (Math.floor(pk * 6) % 2 ? WHITE : 0x9af06a) : keen ? 0x9af0a0 : WHITE;
+      const crown = i === 1 && tusk > 0;
+      const col = hot ? (Math.floor(pk * 6) % 2 ? WHITE : 0x9af06a) : crown ? 0xffd23a : keen ? 0x9af0a0 : WHITE;
       this.texts.text(val, sx + iw + 1, y0 + 19 + bump, col, { oy: 0.5 });
       sx += iw + 1 + textWidth(val, 1, false) + 4;
     });
@@ -467,6 +496,58 @@ export class Hud {
     tag(g, rr, [NAVY[5], NAVY[3], NAVY[2], NAVY[1]], 0.94);
     hudIcon(g, 'potionS', rr.x + 1, rr.y, 1, H.revives > 0 ? 1 : 0.45);
     this.texts.text(`${H.revives}`, rr.x + 9, rr.y + 5, H.revives > 0 ? 0xffb0e0 : 0x8a84a0, { oy: 0.5, bold: true });
+  }
+
+  /**
+   * A stat went up since the plate last showed it (a boost picked, new gear worn, a forge upgrade): it pulses and its
+   * gain floats up from it (one after another, once the plate has slid in). Kill gains show through their stat rain
+   * instead (that pulses the row as it lands), and a drop (a new run, a retry, gear taken off) just resets.
+   */
+  private trackGains(now: number, vals: Record<string, number>): void {
+    const seen = this.seen;
+    this.seen = vals;
+    const P = this.statPending;
+    if (seen && !(P.atk || P.maxHp || P.comboPower)) {
+      const start = Math.max(now, this.inAt + 450, this.gains.length ? this.gains[this.gains.length - 1].at + 160 : 0);
+      let i = 0;
+      for (const [key, v] of Object.entries(vals)) {
+        const d = v - (seen[key] ?? v);
+        if (d <= 1e-6) continue;
+        const shown = SHOWN[key];
+        if (shown && now - this.statPulse[shown.row] < 150) continue; // the stat rain just landed it
+        this.gains.push({ key, d, at: start + i++ * 160 });
+      }
+    }
+    for (let i = 0; i < this.gains.length; i++) {
+      const gn = this.gains[i];
+      if (now < gn.at) continue;
+      this.gains.splice(i--, 1);
+      this.showGain(gn.key, gn.d, now);
+    }
+  }
+
+  private hiddenAt = -1e9;
+  private hiddenN = 0;
+
+  private showGain(key: string, d: number, now: number): void {
+    const s = this.s;
+    const fx = s.fx;
+    const shown = SHOWN[key];
+    s.app.audio.statUp(shown?.row ?? 3);
+    if (shown) {
+      this.statPulse[shown.row] = now;
+      const slot = this.statSlot(shown.row);
+      fx.sparkle(slot.x, slot.y);
+      fx.addFloater(slot.x + (key === 'hp' ? 0 : 4), slot.y + 13, shown.label(d), 0x9af06a, 1, true, 0, -6, 0, 1100, false);
+      return;
+    }
+    // a stat the plate doesn't show: "+3 DEF" floats up under it (several stack)
+    const stat = key as StatId;
+    this.hiddenN = now - this.hiddenAt < 600 ? this.hiddenN + 1 : 0;
+    this.hiddenAt = now;
+    const text = `${fmtStat(stat, d)} ${STAT_INFO[stat].short}`;
+    const x = s.L + 3 + 50;
+    fx.addFloater(x, 50 + this.hiddenN * 9, text, 0x9ad8ff, 1, true, 0, -10, 0, 1300, false);
   }
 
   /** A framed square badge: ink outline, a 2-tone metal rim, an ink line and a dark gradient well. */
