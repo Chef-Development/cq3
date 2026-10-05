@@ -261,11 +261,12 @@ export class FightScene extends Phaser.Scene implements View {
     if (next === 'fight') this.syncCombat(true);
     if (next === 'actClear' || next === 'map' || next === 'scene') this.stage.applyTheme();
     if (next === 'victory') this.app.audio.victory();
-    this.transition.onPhase(_prev, next);
+    // the loot bursts out over the stage it was won on (no wipe in or out: the boost pick pops in over it too)
+    if (next !== 'loot' && _prev !== 'loot') this.transition.onPhase(_prev, next);
     this.overlays.onPhase(next);
     this.nodes.onPhase(next);
     this.camp.onPhase(next);
-    this.loot.onPhase(next);
+    this.loot.onPhase(next, _prev);
     if (next !== 'fight' && this.fighters.h.state !== 'idle') this.fighters.heroReturn();
   }
 
