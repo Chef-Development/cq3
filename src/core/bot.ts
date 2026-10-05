@@ -302,15 +302,20 @@ export function botPick(run: Run, rng: Rng): number {
   return top[rng.int(top.length)];
 }
 
-/** Spend skill points down one branch at a time (the branch order is the profile's, from its seed: a player's taste). */
+/**
+ * Spend skill points down one branch at a time, finishing it before the next (a player's focus). The focus is the
+ * branch of the first node the hero learned: rolled once per profile when the first point comes (so bots spread
+ * evenly over the three branches), then read back from the profile; after it, the next branches in tree order.
+ */
 export function spendSkills(run: Run, rng: Rng): void {
   const p = run.profile;
   const hero = p.hero;
   const prog = heroProgress(p);
   if (pointsLeft(run.tuning, prog) <= 0) return;
   const tree = treeOf(hero);
-  const first = (p.nextUid + p.found + hero.length) % Math.max(1, tree.length); // stable per profile
-  void rng;
+  if (!tree.length) return;
+  const focus = tree.findIndex((b) => b.nodes.some((n) => n.id === prog.skills[0]));
+  const first = focus >= 0 ? focus : rng.int(tree.length);
   for (let k = 0; k < tree.length && pointsLeft(run.tuning, prog) > 0; k++) {
     const branch = tree[(first + k) % tree.length];
     for (const node of branch.nodes) if (canLearn(run.tuning, hero, prog, node.id) === 'ok') learn(run.tuning, hero, prog, node.id);
