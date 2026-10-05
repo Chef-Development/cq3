@@ -7,6 +7,7 @@ import { band, GOLD, NAVY, rows } from './pixels';
 import { INK, mix, shade, tintGrad, WHITE, type Rect } from './shared';
 
 type G = Phaser.GameObjects.Graphics;
+type Img = Phaser.GameObjects.Image;
 
 export interface TextOpts {
   scale?: number;
@@ -68,6 +69,85 @@ export class TextPool {
   hide(): void {
     this.begin();
     this.end();
+  }
+}
+
+/** Images handed out in draw order each frame; the ones not used this frame are hidden. */
+export class ImagePool {
+  private items: Array<{ img: Img; key: string; depth: number }> = [];
+  private used = 0;
+  private sizes = new Map<string, [number, number]>();
+
+  constructor(private readonly s: FightScene) {}
+
+  begin(): void {
+    this.used = 0;
+  }
+
+  size(key: string): [number, number] {
+    let z = this.sizes.get(key);
+    if (!z) {
+      const src = this.s.textures.get(key).getSourceImage() as HTMLCanvasElement;
+      z = [src.width, src.height];
+      this.sizes.set(key, z);
+    }
+    return z;
+  }
+
+  /** A sprite with its top-left at (x, y), whole pixels. */
+  at(key: string, x: number, y: number, depth: number, alpha = 1, tint?: number): Img {
+    let it = this.items[this.used];
+    if (!it) {
+      it = { img: this.s.add.image(0, 0, key).setOrigin(0, 0).setDepth(depth), key, depth };
+      this.items.push(it);
+    }
+    this.used++;
+    if (it.key !== key) {
+      it.img.setTexture(key);
+      it.key = key;
+    }
+    if (it.depth !== depth) {
+      it.img.setDepth(depth);
+      it.depth = depth;
+    }
+    it.img.setPosition(Math.round(x), Math.round(y)).setAlpha(alpha).setScale(1).setVisible(true);
+    if (tint === undefined) it.img.clearTint();
+    else it.img.setTint(tint);
+    return it.img;
+  }
+
+  /** A sprite standing with its bottom centre at (x, y). */
+  foot(key: string, x: number, y: number, depth: number, alpha = 1, tint?: number): Img {
+    const [w, h] = this.size(key);
+    return this.at(key, Math.round(x) - (w >> 1), Math.round(y) - h, depth, alpha, tint);
+  }
+
+  /** A sprite scaled by `scale` (whole numbers keep the pixels crisp), its top-left at (x, y). */
+  scaled(key: string, x: number, y: number, depth: number, scale: number, alpha = 1, tint?: number): Img {
+    return this.at(key, x, y, depth, alpha, tint).setScale(scale);
+  }
+
+  /** A sprite centred on (x, y). */
+  mid(key: string, x: number, y: number, depth: number, alpha = 1, tint?: number): Img {
+    const [w, h] = this.size(key);
+    return this.at(key, Math.round(x) - (w >> 1), Math.round(y) - (h >> 1), depth, alpha, tint);
+  }
+
+  end(): void {
+    for (let i = this.used; i < this.items.length; i++) this.items[i].img.setVisible(false);
+  }
+
+  hide(): void {
+    this.begin();
+    this.end();
+  }
+
+  /** Drop every image (the textures are rebuilt on a new layout). */
+  destroy(): void {
+    for (const it of this.items) it.img.destroy();
+    this.items = [];
+    this.used = 0;
+    this.sizes.clear();
   }
 }
 

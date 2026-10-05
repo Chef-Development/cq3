@@ -59,6 +59,12 @@ export const MINI_ICONS: Record<string, { rows: string[]; pal: Record<string, nu
   },
   // 7x7: a shell / protection status
   shield: { rows: outlined(['WLLLl', 'WLbLl', 'LbbbL', '.LbL.', '..L..']), pal: { k: K, W: 0xffffff, L: 0x9ad8ff, l: 0x4aa0f0, b: 0x2a6ad8 } },
+  // 7x7 stat icons (PLACEHOLDERS until the art pass): crit damage, meter gain, steady, luck, and scrap
+  critx: { rows: outlined(['R.R.R', '.RYR.', 'RYWYR', '.RYR.', 'R.R.R']), pal: { k: K, R: 0xf05a48, Y: 0xffd23a, W: 0xffffff } },
+  meter: { rows: outlined(['BBBBB', 'BLLLB', 'BLL.B', 'BBBBB']), pal: { k: K, B: 0x2a6ad8, L: 0x9ad8ff } },
+  clock: { rows: outlined(['.WWW.', 'W.B.W', 'W.BBW', 'W...W', '.WWW.']), pal: { k: K, W: 0xeef3fa, B: 0x2a6ad8 } },
+  clover: { rows: outlined(['.G.G.', 'GgGgG', '.GgG.', 'GgGgG', '..d..']), pal: { k: K, G: 0x78a83c, g: 0xb4d058, d: 0x4a2c18 } },
+  scrap: { rows: outlined(['..S..', '.SsS.', 'SsTsS', 'sSTSs']), pal: { k: K, S: 0xb8c2d8, s: 0x7c86a6, T: 0xd8901c } },
   // 7x7: a tiny star (sparkle accents)
   star: { rows: outlined(['..W..', '.WYW.', 'WYYYW', '.WYW.', '..W..']), pal: { k: K, W: 0xffd23a, Y: 0xfff6c0 } },
 };

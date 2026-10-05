@@ -77,6 +77,18 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       case 'world':
         if (now - app.phaseSince > 300) scene.worldTap(clientX < 0 ? -1 : g.x, g.y);
         return;
+      case 'loot':
+        scene.lootTap(clientX < 0 ? -1 : g.x, g.y);
+        return;
+      case 'camp':
+        if (app.storyOverlay) {
+          // the smith's intro scene, over the camp
+          if (scene.storySkipAt(g.x, g.y)) app.storySkip();
+          else if (!scene.storyReveal()) app.storyNext();
+          return;
+        }
+        if (now - app.phaseSince > 300) scene.campTap(clientX < 0 ? -1 : g.x, g.y);
+        return;
     }
     if (app.storyOverlay) {
       // a boss's mid-fight scene: tap through it (or skip it), then the fight goes on

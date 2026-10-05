@@ -11,6 +11,8 @@ import { buildPanel } from './chrome';
 import { buildFont, FONT, FONT_BOLD, fontText } from './font';
 import { GAME_H, GAME_W } from './layout';
 import { BarView } from './view/bar';
+import { CampView } from './view/camp';
+import { LootView } from './view/loot';
 import { Effects } from './view/effects';
 import { Fighters } from './view/fighters';
 import { Hud } from './view/hud';
@@ -64,6 +66,8 @@ export class FightScene extends Phaser.Scene implements View {
   readonly story = new StoryView(this);
   readonly nodes = new NodeScreens(this);
   readonly worldMap = new WorldView(this);
+  readonly camp = new CampView(this);
+  readonly loot = new LootView(this);
   readonly transition = new Transition(this);
 
   constructor() {
@@ -148,6 +152,8 @@ export class FightScene extends Phaser.Scene implements View {
     this.story.build();
     this.nodes.build();
     this.worldMap.build();
+    this.camp.build();
+    this.loot.build();
     this.stage.build();
     this.fighters.build();
     this.hud.reset();
@@ -213,16 +219,26 @@ export class FightScene extends Phaser.Scene implements View {
     this.worldMap.tap(x, y);
   }
 
+  /** The camp and its buildings (bag, forge, shrine, stats). */
+  campTap(x: number, y: number): void {
+    this.camp.tap(x, y);
+  }
+
+  /** The loot screen after a fight or a chest. */
+  lootTap(x: number, y: number): void {
+    this.loot.tap(x, y);
+  }
+
   /** Treasure, rest, shop and event screens. */
   nodeTap(x: number, y: number): void {
     if (this.app.run.phase === 'treasure') this.overlays.treasureTap();
     else this.nodes.tap(x, y);
   }
 
-  /** The fight HUD and the bar show in fights, and over the boost pick and the defeat screen. */
+  /** The fight HUD and the bar show in fights, and over the loot, the boost pick and the defeat screen. */
   fightHud(): boolean {
     const ph = this.app.run.phase;
-    return ph === 'fight' || ph === 'boost' || ph === 'defeat';
+    return ph === 'fight' || ph === 'loot' || ph === 'boost' || ph === 'defeat';
   }
 
   // ------------------------------------------------------------------ helpers for the modules
@@ -248,6 +264,8 @@ export class FightScene extends Phaser.Scene implements View {
     this.transition.onPhase(_prev, next);
     this.overlays.onPhase(next);
     this.nodes.onPhase(next);
+    this.camp.onPhase(next);
+    this.loot.onPhase(next);
     if (next !== 'fight' && this.fighters.h.state !== 'idle') this.fighters.heroReturn();
   }
 
@@ -567,6 +585,8 @@ export class FightScene extends Phaser.Scene implements View {
     this.worldMap.draw(now);
     this.mapView.draw(now);
     this.nodes.draw(now);
+    this.loot.draw(now);
+    this.camp.draw(now);
     this.story.draw(now);
     this.hud.drawCoins(this.gTop, now);
     this.hud.drawRain(this.gTop, now);

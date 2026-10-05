@@ -98,7 +98,7 @@ export interface RegionDef {
   acts: ActDef[];
 }
 
-export type Speaker = 'narrator' | 'rowan' | 'pip' | 'captain' | 'golem' | 'boarking';
+export type Speaker = 'narrator' | 'rowan' | 'pip' | 'captain' | 'golem' | 'boarking' | 'smith';
 
 /** One text box: at most two lines (a '\n' splits them). */
 export interface StoryBox {

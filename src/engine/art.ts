@@ -3,7 +3,9 @@
 // hue-shifted. The hero is composed per pose from a body, legs, a cape and a pre-drawn sword at
 // clean 8-way pixel slopes; the slimes are shaded from their shape; HUD icons are native-size maps.
 import type Phaser from 'phaser';
+import { buildCampArt } from './art-camp';
 import { buildFoeArt } from './art-foes';
+import { buildGearArt } from './art-gear';
 import { buildStoryArt } from './art-story';
 
 export const OUTLINE = '#140c1c';
@@ -1193,4 +1195,6 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   add('clouds', drawClouds(w));
   buildFoeArt(add);
   buildStoryArt(add);
+  buildGearArt(add);
+  buildCampArt(add, w, 150);
 }

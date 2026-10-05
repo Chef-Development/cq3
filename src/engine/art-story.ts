@@ -8,7 +8,7 @@ import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 type Add = (key: string, canvas: HTMLCanvasElement) => void;
 
 /** Portrait textures: `portrait_${name}`. */
-export const PORTRAITS = ['rowan', 'pip', 'captain', 'golem', 'boarking', 'narrator'] as const;
+export const PORTRAITS = ['rowan', 'pip', 'captain', 'golem', 'boarking', 'narrator', 'smith'] as const;
 /** Map node icons: `mapicon_${type}`. */
 export const MAP_ICONS = ['fight', 'elite', 'treasure', 'rest', 'shop', 'event', 'boss'] as const;
 /** A representative colour per map icon (for glows and highlights). */

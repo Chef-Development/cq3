@@ -305,6 +305,7 @@ export class App {
   private ambience(): Ambience {
     const p = this.run.phase;
     if (p === 'title' || p === 'world') return 'world';
+    if (p === 'camp') return 'map';
     return p === 'map' ? 'map' : this.run.theme;
   }
 

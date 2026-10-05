@@ -1932,6 +1932,55 @@ export class Synth {
     this.tone({ type: 'sine', f: 3135.96, at: t + 0.28, dur: 0.3, gain: 0.06, rev: 0.4 });
   }
 
+  // ---- gear and the camp (PLACEHOLDERS built from existing sounds until their own are made)
+
+  /** An item bursts out of a fallen foe; `rarity` 0 (Common) to 5 (Mythic) makes it brighter. */
+  lootDrop(rarity: number, at?: number): void {
+    this.coin(at);
+    if (rarity >= 2) this.statUp(rarity, at);
+  }
+
+  /** An Epic or better drop: a sting over the burst. */
+  lootSting(rarity: number, at?: number): void {
+    this.rareSting(rarity >= 4, at);
+  }
+
+  /** The full-screen reveal card of a Legendary or Mythic. */
+  legendaryReveal(mythic: boolean, at?: number): void {
+    this.rareSting(true, at);
+    if (mythic) this.victory(at);
+  }
+
+  /** The smith's hammer on the anvil. */
+  forgeHammer(at?: number): void {
+    this.block(false, false, at);
+  }
+
+  /** An upgrade lands (+1). */
+  forgeUpgrade(at?: number): void {
+    this.statUp(0, at);
+  }
+
+  /** An item melts into scrap. */
+  salvage(at?: number): void {
+    this.wardBreak(true, at);
+  }
+
+  /** Gear goes on. */
+  equip(at?: number): void {
+    this.panelOpen(at);
+  }
+
+  /** An item is locked or unlocked. */
+  lockToggle(at?: number): void {
+    this.uiClick(at);
+  }
+
+  /** A bonus stat is rerolled. */
+  reroll(at?: number): void {
+    this.shopBuy(at);
+  }
+
   /** Resting at a campfire: a whoosh as it flares, crackling, and a warm F major chord. */
   restHeal(at?: number): void {
     if (!this.ready) return;

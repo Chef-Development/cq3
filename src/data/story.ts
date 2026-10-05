@@ -11,9 +11,19 @@ export const SPEAKER_NAME: Record<Speaker, string> = {
   captain: 'Bandit Captain',
   golem: 'Ruin Golem',
   boarking: 'Boar King',
+  smith: 'Mags',
 };
 
 export const STORY: Record<string, StoryBox[]> = {
+  // the first visit to the camp's forge: Mags, a badger smith with a soot-black apron and a very large hammer
+  smith: [
+    { who: 'smith', text: "Oi! Mind the sparks. Name's Mags.\nI fix what knights break. So, everything." },
+    { who: 'rowan', text: 'Is that... a badger? With a hammer?' },
+    { who: 'smith', text: "Best hammer in Greenmarch. Bring me junk,\nI melt it into scrap." },
+    { who: 'smith', text: 'Scrap and coin buy upgrades. Coin buys\na fresh roll on a gem. No refunds.' },
+    { who: 'pip', text: 'She once forged a spoon so sharp\nit got banned. Twice.' },
+    { who: 'smith', text: "Hand over that sword. It's bent.\nYou slept on it, didn't you?" },
+  ],
   intro: [
     { who: 'narrator', text: 'The kingdom keeps time by the Great Pendulum.\nTick, tock. Very reliable.' },
     { who: 'narrator', text: 'Until one night it stopped. The Clockless King\nshattered it, and its 12 weights scattered.' },
