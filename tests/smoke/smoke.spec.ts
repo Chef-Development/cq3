@@ -660,6 +660,16 @@ const EXTRAS = `
     };
     return walk([]);
   };
+  /** A meeting with a roamer of this kind, on this map or (when its roamers can't be met) another map of the act. */
+  const meetSomewhere = (kind) => {
+    for (let k = 0; k < 40; k++) {
+      const m = findMeet(kind);
+      if (m) return m;
+      run.mapSeed = (run.mapSeed + 7919) >>> 0;
+      run.enterAct(run.actIndex);
+    }
+    return null;
+  };
 `;
 const extras = (page: Page, body: string) => page.evaluate(`(() => { const x = window.__cq3.app; ${EXTRAS}; ${body} })()`);
 
@@ -710,7 +720,7 @@ test('map extras: an ambush, the merchant, Coin Rush, a bounty and its tracker, 
   // an ambush: a tap on the node a pack would meet Rowan on; its foes join the fight
   const at = (await extras(
     page,
-    `const m = findMeet('pack'); x.setPhase(() => { run.path = m.prefix; run.phase = 'map'; }); return { node: m.node, pos: x.view.mapView.pos(run.map.nodes[m.node]), own: run.map.nodes[m.node].waves.length, pack: run.roamFor().roamers.find((r) => r.kind === 'pack' && (r.at === m.node || r.next === m.node)).waves.length };`,
+    `const m = meetSomewhere('pack'); x.setPhase(() => { run.path = m.prefix; run.phase = 'map'; }); return { node: m.node, pos: x.view.mapView.pos(run.map.nodes[m.node]), own: run.map.nodes[m.node].waves.length, pack: run.roamFor().roamers.find((r) => r.kind === 'pack' && (r.at === m.node || r.next === m.node)).waves.length };`,
   )) as { node: number; pos: [number, number]; own: number; pack: number };
   await page.waitForTimeout(500);
   await tapGame(page, at.pos[0], at.pos[1]);
@@ -725,7 +735,7 @@ test('map extras: an ambush, the merchant, Coin Rush, a bounty and its tracker, 
   expect(await a((x) => x.run.roamFor().roamers.filter((r: Any) => r.kind === 'pack').length)).toBe(0); // Act 1's one pack is gone
 
   // the merchant: her small shop, then the node's own stop
-  await extras(page, `x.setPhase(() => run.retry()); const m = findMeet('merchant'); x.setPhase(() => { run.path = m.prefix; run.phase = 'map'; run.coins = 400; run.chooseNode(m.node); });`);
+  await extras(page, `x.setPhase(() => run.retry()); const m = meetSomewhere('merchant'); x.setPhase(() => { run.path = m.prefix; run.phase = 'map'; run.coins = 400; run.chooseNode(m.node); });`);
   await expect.poll(phase).toBe('shop');
   expect(await a((x) => x.run.merchant)).toBe(true);
   await page.waitForTimeout(600);

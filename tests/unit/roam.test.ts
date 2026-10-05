@@ -139,7 +139,7 @@ describe('roamers', () => {
     }
   });
 
-  it('never stand on, or step to, the boss, a rest or an elite; never two on one node', () => {
+  it('never stand on, or step to, the boss, a rest, an elite or the first row; never two on one node', () => {
     for (const { map, x } of maps(15))
       for (const path of allPaths(map))
         for (let k = 0; k <= path.length; k++) {
@@ -147,6 +147,8 @@ describe('roamers', () => {
           for (const r of s.roamers) {
             expect(roamable(map.nodes[r.at])).toBe(true);
             expect(roamable(map.nodes[r.next])).toBe(true);
+            // the first step is always the plain fight the map shows
+            expect(map.nodes[r.next].row).toBeGreaterThanOrEqual(1);
           }
           const spots = s.roamers.flatMap((r) => (r.at === r.next ? [r.at] : [r.at, r.next]));
           expect(new Set(spots).size).toBe(spots.length);
@@ -186,6 +188,20 @@ describe('roamers', () => {
         }
     expect(ambushes).toBeGreaterThan(50);
     expect(merchants).toBeGreaterThan(20);
+  });
+
+  it('a pack can be hunted: on nearly every map some way leads to it', () => {
+    let can = 0;
+    const all = maps(30);
+    for (const { map, x } of all) {
+      const meet = (prefix: number[]): boolean => {
+        const s = roamAt(map, x, prefix);
+        const here = prefix.length ? map.nodes[prefix[prefix.length - 1]] : null;
+        return (here ? here.next : map.rows[0]).some((id) => (packAt(s, id) ? true : !roamerAt(s, id) && meet([...prefix, id])));
+      };
+      if (meet([])) can++;
+    }
+    expect(can / all.length).toBeGreaterThan(0.85);
   });
 
   it('a hero who walks at random runs into a pack now and then, not every time', () => {

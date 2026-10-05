@@ -44,7 +44,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   (`roamAt` replays the path from the seed: roamers are never saved). Stepping onto a roamer's node, or onto the node it
   steps to, meets it: a pack is an **ambush** (`run.ambush`: on a fight node its foes join as extra waves, elsewhere it's
   fought first and the node's stop opens after, `PickThen` 'node'; it pays coins, an extra Uncommon+ item and a rare
-  pick), the merchant opens her small shop (`run.merchant`). They never touch the boss, a rest or an elite, never
+  pick), the merchant opens her small shop (`run.merchant`). They never touch the boss, a rest, an elite or the first row, never
   share a node, and always leave the hero a clear next step (with a step of look-ahead; `tests/unit/roam.test.ts` walks
   every path). Coin Rush is `Combat` with `rush` (seconds): the `coinSack` (yellows only) can't die, every hit pays
   coins (`rushHitCoins`), misses don't hurt, only the kit's hooks run, the clock ends it; an interrupted one saves as

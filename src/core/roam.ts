@@ -7,7 +7,8 @@
 // step ahead (the map shows it), so meeting one is a choice, not a surprise: stepping onto a roamer's node, or onto
 // the node it is about to step to, meets it. A pack met is an ambush (core/run.ts: its foes as extra waves, a better
 // reward); the merchant met opens her small shop. Either way that roamer is gone afterwards.
-// The rules: roamers never stand on (or step to) the boss, a rest or an elite; two never share a node or a target;
+// The rules: roamers never stand on (or step to) the boss, a rest, an elite or the first row; two never share a node
+// or a target;
 // and after every step the hero can always go on without meeting a pack (at least one of the next nodes is clear),
 // with a step of look-ahead so a pack never corners the hero. Everything follows from the map's seed and the path
 // walked, so a saved run only needs the path (roamAt replays it).
@@ -145,11 +146,12 @@ export function actMap(t: Tuning, region: RegionDef, act: number, seed: number, 
   return { map, extras: extras ? addExtras(map, def, act, region.acts.length, seed, t) : null };
 }
 
-/** The nodes linked to `id` (forward and back) that a roamer may step to. */
+/** The nodes linked to `id` (forward and back) that a roamer may step to (never the first row: the act's first step
+ *  is always the plain fight it shows). */
 function neighbours(map: ActMap, id: number): number[] {
   const n = map.nodes[id];
   const back = map.nodes.filter((p) => p.next.includes(id)).map((p) => p.id);
-  return [...n.next, ...back].filter((x) => roamable(map.nodes[x]));
+  return [...n.next, ...back].filter((x) => roamable(map.nodes[x]) && map.nodes[x].row >= 1);
 }
 
 interface Live extends RoamerNow {

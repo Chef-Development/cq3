@@ -142,7 +142,7 @@ between fights. Icons first, few words, no new HUD rows (the bounty tracker sits
   Rowan moves; the next step is telegraphed (a marching dotted line, an arrowhead, a ring on the node). A reachable
   node a pack would meet you on is tagged "Ambush" (its foes counted in). Stepping onto a pack, or onto where it is
   stepping, is an **ambush**: on a fight node its waves join the fight; elsewhere it's fought first, then the stop
-  opens. Packs never touch the boss, rests or elites, and the hero always has a clear next step (a step of
+  opens. Packs never touch the boss, rests, elites or the first row, and the hero always has a clear next step (a step of
   look-ahead; the tests walk every path of 75 maps). Deterministic from the map seed and the path (never saved).
 - **Coin Rush** (one per act: a fight node mid-act becomes a coin sack stop): 12 s on the real bar against a Coin
   Sack that never attacks (`Combat` with `rush`); every hit knocks coins out, more on a long combo; the enemy plate is
