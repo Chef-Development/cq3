@@ -1,19 +1,22 @@
 // The stage behind and in front of the fighters, per act theme. Back to front:
-//   back:  backdrop, far life (birds, bats), drifting clouds, framing trees, light rays, cloud shadows / mist,
-//          light pooled on the ground (the arena, braziers), torch flames, butterflies and drips
+//   back:  backdrop, far life (birds, bats, a shooting star), drifting clouds, framing trees, light rays (the
+//          aurora), cloud shadows / mist, light pooled on the ground (the arena, braziers), torch flames,
+//          butterflies, drips, far snow and the glints on ice, crystals and gold
 //   (the actors)
-//   front: falling leaves and rain, the grade (vignette, shade toward the camera), near mist, glows, lit motes
-//          (pollen in the sunbeams, fireflies, embers), the swaying foreground plants, out-of-focus near leaves
+//   front: falling leaves, rain, snow and spindrift, the grade (vignette, shade toward the camera), near mist,
+//          glows, lit motes (pollen in the sunbeams, fireflies, embers, ice dust), the swaying foreground plants,
+//          out-of-focus near leaves and snowflakes
 // The foreground's last rows hang over the top of the bar's band (fgOver, just above the band's depth).
 // Everything animates on the scene clock (s.anim), so hit-stop freezes it and screenshots stay deterministic.
 import Phaser from 'phaser';
 import type { FightScene } from '../scene';
 import { buildBackdrops, FG_FRAMES, type Backdrop, type Theme } from '../backdrop';
-import { buildStageArt, STAGE_LIGHT } from '../art-stage';
+import { buildFrostBackdrop, isFrost } from '../backdrop-frost';
+import { buildStageArt, buildStageTheme, STAGE_LIGHT } from '../art-stage';
 import { GAME_W } from '../layout';
 import { rand } from './shared';
 
-type Kind = 'leaf' | 'mote' | 'beam' | 'rain' | 'ember' | 'firefly' | 'drip' | 'splash' | 'near';
+type Kind = 'leaf' | 'mote' | 'beam' | 'rain' | 'ember' | 'firefly' | 'drip' | 'splash' | 'near' | 'snow' | 'flake' | 'glint' | 'drift';
 
 interface Bit {
   kind: Kind;
@@ -42,11 +45,16 @@ const FG_MS = 620; // one foreground sway frame
 const MAX_BITS = 220;
 
 export class Stage {
-  private backdrops = {} as Record<Theme, Backdrop>;
+  /** The backdrops painted for this layout (Greenmarch's at once, the Frostpeaks' when an act first needs one). */
+  private backdrops: Partial<Record<Theme, Backdrop>> = {};
+  /** How long each lazily painted theme took (ms, this layout), for the report and tests. */
+  readonly paintMs: Partial<Record<Theme, number>> = {};
   private theme: Theme = 'forest';
   private bits: Bit[] = [];
   private nextAmbient = 0;
   private nextDrip = 0;
+  /** A snowy theme just came on: fill the air with flakes at once (instead of waiting for them to fall in). */
+  private prefill = false;
   private clouds: Phaser.GameObjects.Image[] = [];
   private bgImg!: Phaser.GameObjects.Image;
   private frameImg!: Phaser.GameObjects.Image;
@@ -76,6 +84,15 @@ export class Stage {
   buildTextures(): void {
     this.backdrops = buildBackdrops(this.s, GAME_W, this.s.splitY, this.s.ground);
     buildStageArt(this.s, GAME_W, this.s.splitY, this.s.ground);
+  }
+
+  /** A theme's backdrop and light for this layout: the Frostpeaks' are painted the first time an act needs one. */
+  ensure(theme: Theme): void {
+    if (this.backdrops[theme] || !isFrost(theme)) return;
+    const t0 = performance.now();
+    this.backdrops[theme] = buildFrostBackdrop(this.s, theme, GAME_W, this.s.splitY, this.s.ground);
+    buildStageTheme(this.s, GAME_W, this.s.splitY, this.s.ground, theme);
+    this.paintMs[theme] = performance.now() - t0;
   }
 
   build(): void {
@@ -109,9 +126,10 @@ export class Stage {
     this.fgOver = img('fgo_forest_0', 0, s.splitY).setDepth(9.5);
   }
 
-  /** Each act has its own backdrop (Run.theme: forest, ruins, hollow). */
+  /** Each act has its own backdrop (Run.theme: forest, ruins, hollow; pass, caves, glacier). */
   applyTheme(): void {
     const theme: Theme = this.s.app.run.theme;
+    this.ensure(theme);
     if (!this.backdrops[theme]) return;
     this.theme = theme;
     this.bits = [];
@@ -120,11 +138,13 @@ export class Stage {
     this.raysImg.setTexture(`st_rays_${theme}`);
     this.gradeImg.setTexture(`st_grade_${theme}`);
     for (const cl of this.clouds) {
-      // the hollow's sunset sky has its own painted wisps: no drifting cumulus
-      cl.setVisible(theme !== 'hollow');
+      // the hollow's sunset sky has its own painted wisps, the caves a roof, the glacier the aurora: no cumulus there
+      cl.setVisible(theme === 'forest' || theme === 'ruins' || theme === 'pass');
       if (theme === 'ruins') cl.setTint(0x6a7090).setAlpha(0.45);
+      else if (theme === 'pass') cl.setTint(0xc4c0da).setAlpha(0.5);
       else cl.clearTint().setAlpha(0.95);
     }
+    this.prefill = theme === 'pass' || theme === 'glacier';
     // cloud shadows sweep the meadow; mist banks roll through the ruins and the hollow
     for (const im of this.shadeImgs) {
       im.setTexture(theme === 'forest' ? 'st_cloudshade' : `st_mist_${theme}`);
@@ -173,11 +193,12 @@ export class Stage {
     const breathe = 0.82 + 0.18 * Math.sin(a / 2300) * Math.sin(a / 1700 + 1);
     this.raysImg.setAlpha(breathe).setX(Math.round(Math.sin(a / 4100) * 2));
     this.applyFg(Math.floor(a / FG_MS) % FG_FRAMES);
-    const speed = theme === 'forest' ? 0.0035 : 0.0028;
+    // mist drifts; the caves' hangs almost still, the glacier's spindrift races
+    const speed = theme === 'forest' ? 0.0035 : theme === 'caves' ? 0.0012 : theme === 'glacier' ? 0.007 : 0.0028;
     const sd = (a * speed) % W;
     this.shadeImgs[0].setX(Math.round(-sd));
     this.shadeImgs[1].setX(Math.round(W - sd));
-    const md = (a * 0.0065) % W;
+    const md = (a * (theme === 'glacier' ? 0.014 : theme === 'caves' ? 0.003 : 0.0065)) % W;
     this.mistImgs[0].setX(Math.round(md - W));
     this.mistImgs[1].setX(Math.round(md));
     // the band overhang moves with the world when the camera shakes
@@ -237,6 +258,8 @@ export class Stage {
         else if (r < 0.96) this.bits.push({ kind: 'mote', x: rand(20, W * 0.6), y: rand(24, bottom - 20), vx: rand(1, 5), vy: rand(-4, -1), born: a, life: rand(2500, 4000), color: 0xffc890, phase: rand(0, 6) });
         else this.nearLeaf(a, [0x3a0e14, 0x4a1418, 0x2a0a10]);
         this.nextAmbient += 240;
+      } else if (theme === 'pass' || theme === 'caves' || theme === 'glacier') {
+        this.spawnFrost(a, ground, r);
       } else {
         // rain: most of it far, a few heavy streaks close to the camera
         const near = r < 0.06;
@@ -244,6 +267,14 @@ export class Stage {
         if (r > 0.985) this.bits.push({ kind: 'mote', x: rand(30, W - 30), y: rand(ground - 30, ground - 4), vx: rand(-3, 3), vy: rand(-5, -1), born: a, life: rand(2000, 3500), color: 0xffc070, phase: rand(0, 6) });
         this.nextAmbient += 22;
       }
+    }
+    // drops gather on the caves' icicles and fall with a splash
+    const icicles = theme === 'caves' ? (this.backdrops.caves?.drips ?? []) : [];
+    if (icicles.length && a >= this.nextDrip) {
+      if (this.nextDrip === 0) this.nextDrip = a;
+      const d = icicles[Math.floor(Math.random() * icicles.length)];
+      this.bits.push({ kind: 'drip', x: d.x, y: d.y, vx: 0, vy: 0, born: a, life: 2600, color: 0xc8eeff, phase: rand(300, 700), floor: ground + Math.round(rand(-3, 4)) });
+      this.nextDrip += 360 + Math.random() * 600;
     }
     // the ruins drip: drops gather under the canopy and the arches and fall with a splash
     if (theme === 'ruins' && a >= this.nextDrip) {
@@ -253,6 +284,86 @@ export class Stage {
       this.bits.push({ kind: 'drip', x, y: 14 + rand(0, 10), vx: 0, vy: 0, born: a, life: 2400, color: 0xb8d4f0, phase: rand(200, 500), floor: ground + Math.round(rand(-1, 4)) });
       this.nextDrip += 420 + Math.random() * 700;
     }
+  }
+
+  /**
+   * The Frostpeaks' air. The pass: snow drifting down out of the frozen afternoon (far flakes behind the fighters,
+   * near ones in front, now and then a big soft flake right past the lens). The caves: ice dust glinting as it drifts,
+   * crystals catching the light. The glacier: spindrift racing low over the ice and snow grains blown along with it,
+   * the hoard and the seracs glinting.
+   */
+  private spawnFrost(a: number, ground: number, r: number): void {
+    const theme = this.theme;
+    const W = GAME_W;
+    const h = this.s.splitY;
+    const glints = this.backdrops[theme]?.glints ?? [];
+    const glint = () => {
+      if (!glints.length) return;
+      const g = glints[Math.floor(Math.random() * glints.length)];
+      this.bits.push({ kind: 'glint', x: g.x, y: g.y, vx: 0, vy: 0, born: a, life: rand(500, 900), color: g.c, phase: 0 });
+    };
+    if (this.prefill) {
+      // the air is already full of snow when the act comes on
+      this.prefill = false;
+      for (let i = 0; i < (theme === 'pass' ? 60 : 24); i++) {
+        const f = this.flake(a, ground, h);
+        if (theme === 'glacier') {
+          f.vx = -rand(40, 70);
+          f.vy = rand(5, 12);
+        }
+        f.x = rand(0, W);
+        f.y = rand(-4, f.floor ?? ground);
+        f.born = a - rand(0, 3000);
+        f.x -= (f.vx * (a - f.born)) / 1000;
+        f.y -= (f.vy * (a - f.born)) / 1000;
+        this.bits.push(f);
+      }
+    }
+    if (theme === 'pass') {
+      if (r < 0.92) this.bits.push(this.flake(a, ground, h));
+      else if (r < 0.985) glint();
+      else this.bits.push({ kind: 'flake', x: rand(-10, W * 0.8), y: -6, vx: rand(10, 18), vy: rand(22, 30), born: a, life: 9000, color: 0xeef2fa, phase: rand(0, 6) });
+      this.nextAmbient += 75;
+    } else if (theme === 'caves') {
+      if (r < 0.5) {
+        const c = [0x9ae4ff, 0xc8a8ff, 0xe8f8ff][Math.floor(Math.random() * 3)];
+        this.bits.push({ kind: 'mote', x: rand(20, W - 20), y: rand(26, ground + 2), vx: rand(-2, 2), vy: rand(-3, -0.5), born: a, life: rand(3200, 5600), color: c, phase: rand(0, 6) });
+      } else if (r < 0.82) glint();
+      else {
+        // dust turning in the light from the roof
+        const y = rand(14, ground - 10);
+        this.bits.push({ kind: 'beam', x: W * 0.38 + y * 0.28 + rand(-4, 4), y, vx: rand(-1, 2), vy: rand(-2, 2), born: a, life: rand(2600, 4200), color: 0xd8f4ff, phase: rand(0, 6) });
+      }
+      this.nextAmbient += 230;
+    } else {
+      if (r < 0.42) this.bits.push({ kind: 'drift', x: W + rand(0, 10), y: rand(ground - 26, ground + 6), vx: -rand(80, 130), vy: rand(-3, 2), born: a, life: 5000, color: 0xdceaf6, phase: rand(4, 9) });
+      else if (r < 0.86) {
+        const f = this.flake(a, ground, h);
+        f.x = W + rand(0, 10);
+        f.y = rand(-4, ground);
+        f.vx = -rand(40, 70);
+        f.vy = rand(5, 12);
+        this.bits.push(f);
+      } else glint();
+      this.nextAmbient += 80;
+    }
+  }
+
+  /** A snowflake: far ones (small, dim, behind the fighters) settle somewhere behind them, near ones fall to the foot. */
+  private flake(a: number, ground: number, h: number): Bit {
+    const near = Math.random() < 0.3;
+    return {
+      kind: 'snow',
+      x: rand(-40, GAME_W),
+      y: rand(-6, -1),
+      vx: near ? rand(6, 12) : rand(3, 8),
+      vy: near ? rand(14, 20) : rand(7, 12),
+      born: a,
+      life: 16000,
+      color: near ? 0xffffff : Math.random() < 0.5 ? 0xd8e0f2 : 0xc4cce6,
+      phase: rand(0, 6),
+      floor: near ? h + 2 : rand(ground - 22, ground - 2),
+    };
   }
 
   /** An out-of-focus leaf tumbling past right in front of the camera. */
@@ -325,7 +436,34 @@ export class Stage {
         far.fillRect(bx - 2, by - (up ? 1 : 0), 1, 1);
         far.fillRect(bx + 2, by - (up ? 1 : 0), 1, 1);
       }
-    } else {
+    } else if (theme === 'pass') {
+      // a pair of choughs riding the wind high over the pass
+      for (let i = 0; i < 2; i++) {
+        const t = a / 1000 + i * 5;
+        const bx = Math.round(GAME_W * 0.55 + Math.cos(t * 0.22 + i * 2.6) * (60 + i * 20));
+        const by = Math.round(38 + i * 5 + Math.sin(t * 0.3 + i * 2.6) * 6);
+        const up = Math.floor(a / 220 + i) % 3 === 0;
+        far.fillStyle(0x2a2a44, 0.8);
+        far.fillRect(bx - 1, by, 3, 1);
+        far.fillRect(bx - 3, by - (up ? 1 : 0), 2, 1);
+        far.fillRect(bx + 2, by - (up ? 1 : 0), 2, 1);
+      }
+    } else if (theme === 'glacier') {
+      // now and then a shooting star streaks across the aurora
+      const period = 13000;
+      const k = (a % period) / 700;
+      if (k < 1) {
+        const n = Math.floor(a / period);
+        const x0 = 40 + ((n * 97) % 220);
+        const y0 = 10 + ((n * 31) % 22);
+        const hx = x0 + k * 46;
+        const hy = y0 + k * 14;
+        for (let j = 0; j < 9; j++) {
+          far.fillStyle(0xe8f4ff, (1 - j / 9) * (1 - k) * 0.9);
+          far.fillRect(Math.round(hx - j * 2.6), Math.round(hy - j * 0.8), j === 0 ? 2 : 1, 1);
+        }
+      }
+    } else if (theme === 'hollow') {
       // crows wheeling high over the den
       for (let i = 0; i < 2; i++) {
         const t = a / 1000 + i * 9;
@@ -366,6 +504,10 @@ export class Stage {
         }
         back.fillStyle(p.color, fall > 0 ? 0.75 : 0.35 + 0.4 * (age / p.phase));
         back.fillRect(Math.round(x), Math.round(y), 1, fall > 0.12 ? 2 : 1);
+        continue;
+      }
+      if (p.kind === 'snow' || p.kind === 'flake' || p.kind === 'drift' || p.kind === 'glint') {
+        if (this.drawFrostBit(p, age, ground)) this.bits.splice(i, 1);
         continue;
       }
       const dead = age > p.life || x > W + 12 || (p.kind !== 'near' && y > bottom + 6) || y > 160;
@@ -447,5 +589,67 @@ export class Stage {
         lit.fillRect(ex, ey, 1, 1);
       }
     }
+  }
+
+  /** Snow, big near flakes, spindrift and glints; true when the bit is done. */
+  private drawFrostBit(p: Bit, age: number, ground: number): boolean {
+    const t = age / 1000;
+    let x = p.x + p.vx * t;
+    const y = p.y + p.vy * t;
+    if (age > p.life || x < -16 || x > GAME_W + 16) return true;
+    if (p.kind === 'glint') {
+      // a four-pointed twinkle: a cross that swells and fades
+      const s = Math.sin((age / p.life) * Math.PI);
+      const g = this.gBack;
+      const gx = Math.round(p.x);
+      const gy = Math.round(p.y);
+      g.fillStyle(p.color, s);
+      g.fillRect(gx, gy, 1, 1);
+      if (s > 0.45) {
+        const arm = s > 0.8 ? 2 : 1;
+        g.fillStyle(p.color, s * 0.7);
+        g.fillRect(gx - arm, gy, arm, 1);
+        g.fillRect(gx + 1, gy, arm, 1);
+        g.fillRect(gx, gy - arm, 1, arm);
+        g.fillRect(gx, gy + 1, 1, arm);
+      }
+      this.gGlow.fillStyle(p.color, s * 0.16);
+      this.gGlow.fillRect(gx - 2, gy - 2, 5, 5);
+      return false;
+    }
+    if (p.kind === 'drift') {
+      // a streak of spindrift skimming the ice, rising and falling on the wind
+      const yy = Math.round(y + Math.sin(t * 3 + p.phase) * 2);
+      const len = Math.round(p.phase);
+      const al = Math.min(1, t * 3) * 0.32;
+      this.gAmb.fillStyle(p.color, al);
+      this.gAmb.fillRect(Math.round(x), yy, len, 1);
+      this.gAmb.fillStyle(p.color, al * 0.5);
+      this.gAmb.fillRect(Math.round(x) + len, yy - 1, Math.round(len * 0.6), 1);
+      return false;
+    }
+    x += Math.sin(t * 1.4 + p.phase) * (p.kind === 'flake' ? 6 : 3);
+    if (p.kind === 'flake') {
+      // a big soft flake drifting right past the lens
+      if (y > 170) return true;
+      const fx = Math.round(x);
+      const fy = Math.round(y);
+      this.gNear.fillStyle(p.color, 0.5);
+      this.gNear.fillRect(fx - 1, fy, 3, 1);
+      this.gNear.fillRect(fx, fy - 1, 1, 3);
+      this.gNear.fillStyle(p.color, 0.85);
+      this.gNear.fillRect(fx, fy, 1, 1);
+      return false;
+    }
+    const floor = p.floor ?? ground;
+    if (y >= floor) return true;
+    const far = floor < ground - 1;
+    // far flakes fade as they settle among the trees behind the fighters
+    const al = far ? 0.75 * Math.min(1, (floor - y) / 6) : 0.9;
+    const g = far ? this.gBack : this.gAmb;
+    g.fillStyle(p.color, al);
+    g.fillRect(Math.round(x), Math.round(y), 1, 1);
+    if (!far && p.vy > 17) g.fillRect(Math.round(x), Math.round(y) + 1, 1, 1);
+    return false;
   }
 }

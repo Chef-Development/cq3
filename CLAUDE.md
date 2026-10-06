@@ -17,7 +17,8 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `src/engine/art.ts` (hero, Pip, first enemies), `art-foes.ts` (Greenmarch enemies), `art-story.ts` (portraits, map
   icons), `art-world.ts` + `art-world-sites.ts` (the kingdom world map: the land, and what stands on it), `art-map.ts` (act map landscapes, map-scale Rowan, node props),
   `art-stage.ts` (per-act fight lighting), `art-sable.ts` (Sable's frames, map walker, hero cards), `art-relics.ts`
-  (relic, tag and skill icons), `art-life.ts` (the maps' critters), `backdrop.ts` and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
+  (relic, tag and skill icons), `art-life.ts` (the maps' critters), `backdrop.ts`, `backdrop-frost.ts` (the second region's fight backdrops: painted
+  the first time an act needs one, `Stage.ensure`, not at boot) and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
   are synthesized in `src/engine/audio.ts` and the music in `src/engine/music.ts`, icons come from `scripts/make-icons.mjs` (art in `scripts/icon-art.mjs`).
 - **Content is data.** Enemies (stats, base pattern, 0-2 special moves; a boss's HP-gated phase changes come on top), the region's acts and encounters, events and
   story scenes live in `src/data/` (plain data, no logic). So does gear (`src/data/gear.ts`: the 10 stats, slots,
@@ -123,8 +124,8 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   bass, lead at `tuning.music` thresholds) and drop on a break. `app.ts cueMusic()` picks the piece.
 - **Map life stays at the edges; sparkles are tiny and not farmable.** The act maps (`view/map-life.ts`) and the
   world map (`view/world-life.ts`; shared parts in `view/life.ts`, sprites in `art-life.ts`) have critters per theme
-  (rabbits, sparrows, a frog, fish, a hawk; a hedgehog, crows, moths; a squirrel, a doe, spores; gulls and dolphins at
-  sea) that startle when tapped (Pip chirps), and now and then a sparkle that pays a coin or two. Life is small,
+  (rabbits, sparrows, a frog, fish, a hawk; a hedgehog, crows, moths; a squirrel, a doe, spores; a goat, snow buntings;
+  glow beetles, cave fish; snow hares, an owl; gulls and dolphins at sea) that startle when tapped (Pip chirps), and now and then a sparkle that pays a coin or two. Life is small,
   muted and slow, on open ground (`land.ground` from `paintLand`, away from the nodes when there's room) or open sea,
   and never over a node, a road, a tag, the roamers, the secret's boulder, the hint, the Camp button or the HUD (the
   bounty tracker too); it only gets the taps nothing else takes (`input.ts` after the secret and the nodes; on the
@@ -200,7 +201,7 @@ src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Ph
                art-roam.ts (the coin sack, the board, the secret rock, the merchant),
                art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-paint.ts (painting helpers),
                art-life.ts (the maps' critters),
-               backdrop.ts (forest, ruins, hollow), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
+               backdrop.ts (forest, ruins, hollow), backdrop-frost.ts (pass, caves, glacier), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
 src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemies, Pip, telegraphs, summons,
                finisher show, deaths), effects.ts (particles, floaters, camera), bar.ts (timing bar, blocks,
                telegraph previews, cursor), hud.ts (hero and enemy plates, meter, coins, relic belt), overlays.ts (title, boost,

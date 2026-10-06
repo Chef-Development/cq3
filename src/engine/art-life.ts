@@ -1,8 +1,9 @@
 // The critters that bring the maps to life (view/map-life.ts on the act maps, view/world-life.ts on the kingdom's
 // world map; see docs/art-style.md). Original pixel art from character maps, all facing right (the views flip them):
 // a rabbit, sparrows and a frog on the Meadow Road; a hedgehog and crows in the Old Ruins; a squirrel and a doe in
-// the Boar King's Hollow; a hawk and leaping fish overhead and in the stream; gulls floating on the sea and dolphins
-// for the world map. Ground critters wear a 1 px ink outline like the map's other sprites, muted so they stay at the
+// the Boar King's Hollow; a hawk and leaping fish overhead and in the stream; a mountain goat and snow buntings in the
+// Frostbite Pass; glow beetles and pale cave fish in the Glimmer Caves; snow hares and a white owl on Wyrm's Glacier;
+// gulls floating on the sea and dolphins for the world map. Ground critters wear a 1 px ink outline like the map's other sprites, muted so they stay at the
 // edge of attention; the ones in the air or the water have none (they're drawn small and pale).
 //
 // Textures: `life_<critter>_<frame>`, built once (buildLifeArt is a no-op when they exist).
@@ -27,6 +28,13 @@ const SQUIRREL: Pal = { 1: '#5a2018', 2: '#8a3420', 3: '#b8542a', 4: '#e07a3a', 
 const DEER: Pal = { 2: '#6a3a24', 3: '#985a34', 4: '#c08048', 5: '#e0aa70', W: '#f4e8d4', k: INK };
 const HAWK: Pal = { 2: '#5a3a24', 3: '#8e5a2e', 4: '#c0905a' };
 const FISH: Pal = { 1: '#5aa2d4', 2: '#d4f0f6', 3: '#8ccce6' };
+// the Frostpeaks': white winter coats shaded violet-blue, so they read on the snow by their outline
+const GOAT: Pal = { 1: '#4e587c', 2: '#7c86a8', 3: '#b4bcd4', 4: '#e2e6f0', 5: '#ffffff', h: '#2e2430', w: '#c8ccd8', k: INK };
+const BUNTING: Pal = { 1: '#2e2a30', 2: '#6a5a4e', 3: '#c4bcb2', 4: '#f2f0ec', 5: '#ffffff', y: '#d8a040', k: INK };
+const BEETLE: Pal = { 1: '#10142a', 2: '#202a48', 3: '#34466a', g: '#3ed8c0', G: '#c8fff0', k: INK };
+const CAVEFISH: Pal = { 1: '#4a78a0', 2: '#c4e6f2', 3: '#86b6d0' };
+const HARE: Pal = { 1: '#545e84', 2: '#949ec0', 3: '#ccd4e8', 4: '#f0f4fa', 5: '#ffffff', W: '#ffffff', e: INK, k: INK };
+const OWL: Pal = { 2: '#7c86a4', 3: '#c8d0e2', 4: '#f4f8ff' };
 const GULL: Pal = { 2: '#7c86a6', 3: '#b8c2d8', 4: '#eef3fa', y: '#f2c230', k: INK };
 const DOLPHIN: Pal = { 2: '#4a6890', 3: '#7896bc', 4: '#b4d0ea' };
 
@@ -110,6 +118,60 @@ export const CRITTERS: Record<string, Critter> = {
     frames: [
       ['.2.', '231'],
       ['32', '21', '.1'],
+    ],
+  },
+  // standing, grazing, bounding
+  goat: {
+    pal: GOAT,
+    frames: [
+      ['........hh.', '.......h44.', '.......444k', '.34444443w.', '344444443w.', '.3333333...', '.2.2..2.2..', '.h.h..h.h..'],
+      ['...........', '...........', '.344444....', '34444444hh.', '.33333344k.', '.2.2..2.4w.', '.2.2..2.2..', '.h.h..h.h..'],
+      ['.........h.', '........hh4', '.344444444k', '34444444w..', '.333333....', '2.2.....2.2', 'h.h.....h.h'],
+    ],
+  },
+  // head up, pecking; flying (wings up, wings down)
+  bunting: {
+    pal: BUNTING,
+    frames: [
+      ['..44..', '13444y', '.4455.', '..1.1.'],
+      ['......', '1344..', '.44544', '..1.4y'],
+      ['..1...', '..14..', '13444y', '..2...'],
+      ['......', '13444y', '..14..', '..1...'],
+    ],
+  },
+  // creeping (two steps), its tail end glowing
+  beetle: {
+    pal: BEETLE,
+    frames: [
+      ['.2332..', 'Gg3332k', '.1.1.1.'],
+      ['.2332..', 'Gg3332k', '1.1.1..'],
+    ],
+  },
+  // seen from above, gliding under the ice (tail one way, then the other)
+  cavefish: {
+    pal: CAVEFISH,
+    raw: true,
+    frames: [
+      ['1.22.', '.2232', '1.22.'],
+      ['.122.', '.2232', '.122.'],
+    ],
+  },
+  // sitting, nibbling, hopping: a white winter coat, black ear tips
+  hare: {
+    pal: HARE,
+    frames: [
+      ['.....e..', '....43..', '....43..', '..33455.', 'W3334k45', 'W333332.', '.22..22.'],
+      ['........', '........', '...ee...', '..3345..', 'W33345..', 'W3333k45', '.22..222'],
+      ['......e.', '.....43.', '.3334455', 'W33334k4', '.22..2..', '2.....2.'],
+    ],
+  },
+  // a snowy owl seen from below, gliding and beating its wings
+  owl: {
+    pal: OWL,
+    raw: true,
+    frames: [
+      ['34.......43', '.3443.3443.', '...34443...', '....444....', '....3.3....'],
+      ['...........', '33443.34433', '...34443...', '....444....', '....3.3....'],
     ],
   },
   // floating on the sea (bobbing)

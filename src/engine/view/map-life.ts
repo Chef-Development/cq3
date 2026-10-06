@@ -2,7 +2,9 @@
 // per act theme. The Meadow Road has rabbits slipping out of the bushes, sparrows pecking in the grass, a frog on
 // the stream bank, fish leaping and a hawk circling high; the Old Ruins a hedgehog snuffling about, crows on the
 // stones and moths round the braziers; the Boar King's Hollow a squirrel, a doe at the edge of the trees and spores
-// drifting up from the leaf litter. Tapped, a critter startles (the rabbit dives back into its bush, the sparrows
+// drifting up from the leaf litter. The Frostbite Pass has a mountain goat stepping out from behind the rocks and
+// snow buntings pecking in the snow; the Glimmer Caves glow beetles creeping out from the crystals and pale fish
+// gliding under the ice of their pools; Wyrm's Glacier snow hares and a white owl gliding in slow circles. Tapped, a critter startles (the rabbit dives back into its bush, the sparrows
 // scatter, the frog leaps into the stream, the hedgehog curls up) and Pip chirps.
 //
 // Now and then something glints in the grass: a tap picks it up for a coin or two (core/sparkle.ts: at most one per
@@ -44,6 +46,9 @@ const KINDS: Record<string, BurrowKind> = {
   hedgehog: { spec: { sprite: 'hedgehog', idle: [0, 1], move: [0, 1], flee: 0, curl: 2, gait: 'walk', moveSec: 1.8 }, period: [16, 21], room: [12, 6], reach: [4, 10] },
   squirrel: { spec: { sprite: 'squirrel', idle: [0, 1], move: [2], flee: 2, gait: 'hop', moveSec: 0.6 }, period: [10, 13], room: [9, 7], reach: [3, 10] },
   deer: { spec: { sprite: 'deer', idle: [0, 1], move: [0, 2], flee: 2, gait: 'walk', moveSec: 1.6 }, period: [18, 24], room: [11, 7], reach: [4, 13] },
+  goat: { spec: { sprite: 'goat', idle: [0, 1], move: [2], flee: 2, gait: 'hop', moveSec: 0.8 }, period: [15, 20], room: [12, 8], reach: [4, 12] },
+  beetle: { spec: { sprite: 'beetle', idle: [0, 1], move: [0, 1], flee: 0, gait: 'walk', moveSec: 2.4 }, period: [12, 17], room: [8, 5], reach: [3, 9] },
+  hare: { spec: { sprite: 'hare', idle: [0, 1], move: [2], flee: 2, gait: 'hop', moveSec: 0.6 }, period: [11, 15], room: [10, 8], reach: [4, 10] },
 };
 
 /** What lives on each act's map, and how many of each show at once. */
@@ -51,7 +56,13 @@ const THEME_LIFE: Record<Theme, { burrows: Array<[string, number]>; flock: { spr
   forest: { burrows: [['rabbit', 2]], flock: { sprite: 'sparrow', n: 4 } },
   ruins: { burrows: [['hedgehog', 1]], flock: { sprite: 'crow', n: 3 } },
   hollow: { burrows: [['squirrel', 1], ['deer', 1]], flock: null },
+  pass: { burrows: [['goat', 1]], flock: { sprite: 'bunting', n: 4 } },
+  caves: { burrows: [['beetle', 2]], flock: null },
+  glacier: { burrows: [['hare', 2]], flock: null },
 };
+
+/** The rustle in the cover a critter dove into: leaves, or snow (and frost) shaken loose. */
+const RUSTLE: Record<Theme, number> = { forest: 0xb4d058, ruins: 0xb4d058, hollow: 0xb4d058, pass: 0xeef2fa, caves: 0x9ad8f0, glacier: 0xeef2fa };
 
 interface Placed<T> {
   it: T;
@@ -66,6 +77,8 @@ interface Placed<T> {
 interface Hawk {
   c: Pt;
   r: number;
+  /** The hawk over the meadow, the white owl over the glacier. */
+  sprite: string;
 }
 
 export class MapLife {
@@ -247,13 +260,21 @@ export class MapLife {
       }
     }
 
-    // a hawk circling high over the meadow (its faint shadow far below may cross a road)
-    if (theme === 'forest')
+    // a hawk circling high over the meadow, a white owl over the glacier (its faint shadow far below may cross a road)
+    if (theme === 'forest' || theme === 'glacier')
       for (const [x, y] of spots(4)) {
         if (this.hawks.length >= 3) break;
         const area: Rect = { x: x - 18, y: y - 8, w: 36, h: 16 };
         if (!clear(area) || this.hawks.some((h) => overlaps(area, h.area, 20))) continue;
-        this.hawks.push({ it: { c: [x, y], r: 12 }, kind: 'hawk', cap: 1, area, on: true });
+        this.hawks.push({ it: { c: [x, y], r: 12, sprite: theme === 'forest' ? 'hawk' : 'owl' }, kind: 'hawk', cap: 1, area, on: true });
+      }
+
+    // pale fish gliding under the ice of the caves' pools
+    if (theme === 'caves')
+      for (const [px, py] of land.pools) {
+        const area: Rect = { x: px - 9, y: py - 6, w: 18, h: 12 };
+        if (!clear(area)) continue;
+        for (let j = 0; j < 2; j++) this.fish.push({ it: [px, py], kind: 'cavefish', cap: 4, area, on: true });
       }
 
     // spores drifting up from the leaf litter in the Hollow
@@ -397,13 +418,19 @@ export class MapLife {
         low.fillStyle(0x000000, 0.22 * pose.alpha);
         low.fillRect(Math.round(pose.x) - 2, Math.round(pose.y), 5, 1);
         L.pose(pose, D_CRITTER);
+        if (p.kind === 'beetle') {
+          // its tail end glows softly on the floor
+          const bx = Math.round(pose.x) + (pose.flip ? 2 : -3);
+          low.fillStyle(0x3ed8c0, (0.16 + 0.1 * Math.sin(t * 3 + p.it.spec.seed * 9)) * pose.alpha);
+          low.fillRect(bx - 1, Math.round(pose.y) - 3, 4, 3);
+        }
       }
       const since = now - p.it.startledAt;
       const [hx, hy] = p.it.spec.home;
       if (p.kind === 'frog') {
         if (since >= 300 && since < 900) this.ring(hx, hy, (since - 300) / 600, 0xd4f0f6);
       } else if (since >= 0 && since < 360 && p.it.spec.curl === undefined) {
-        hg.fillStyle(0xb4d058, 0.7 * (1 - since / 360));
+        hg.fillStyle(RUSTLE[this.map.landTheme], 0.7 * (1 - since / 360));
         hg.fillRect(hx - 2 + (Math.floor(since / 60) % 2), hy - 5, 1, 1);
         hg.fillRect(hx + 2 - (Math.floor(since / 60) % 2), hy - 6, 1, 1);
       }
@@ -424,9 +451,19 @@ export class MapLife {
       }
     }
 
-    // fish leaping in the stream (a ripple where they jump and where they land)
+    // fish leaping in the stream (a ripple where they jump and where they land); cave fish circling under the ice
     this.fish.forEach((p, i) => {
       if (!p.on) return;
+      if (p.kind === 'cavefish') {
+        const [px, py] = p.it;
+        const a = t * (0.35 + (i % 2) * 0.12) * (i % 2 ? -1 : 1) + i * 2.3;
+        const fx = px + Math.cos(a) * (5 + (i % 2) * 2);
+        const fy = py + Math.sin(a) * 2;
+        const dirRight = (i % 2 ? -1 : 1) * -Math.sin(a) > 0;
+        L.mid(`life_cavefish_${Math.floor(t * 3 + i) % 2}`, fx, fy, D_CRITTER, !dirRight, 0.7);
+        if ((t + i * 1.7) % 5.5 < 0.6) this.ring(fx, fy, ((t + i * 1.7) % 5.5) / 0.6, 0xb4e4f8);
+        return;
+      }
       const per = 6.5 + i * 1.7;
       const u = ((t + i * 2.9) % per) / 0.75;
       const [x, y] = p.it;
@@ -447,8 +484,8 @@ export class MapLife {
       const x = c[0] + Math.cos(a) * r;
       const y = c[1] + Math.sin(a) * r * 0.45;
       const flap = t % 5.5 < 0.6 && Math.floor(t * 6) % 2 === 0;
-      L.mid(`life_hawk_${flap ? 1 : 0}`, x, y, D_FLY, false, 0.8);
-      low.fillStyle(0x0a1a10, 0.13);
+      L.mid(`life_${p.it.sprite}_${flap ? 1 : 0}`, x, y, D_FLY, false, 0.8);
+      low.fillStyle(p.it.sprite === 'owl' ? 0x0a1430 : 0x0a1a10, 0.13);
       low.fillRect(Math.round(x + 2), Math.round(y + 17), 5, 1);
       low.fillRect(Math.round(x + 3), Math.round(y + 16), 3, 1);
     }

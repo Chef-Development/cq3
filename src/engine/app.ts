@@ -7,7 +7,7 @@ import { anythingToErase, type Profile } from '../core/profile';
 import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import { markWelcomed, TipCoach, welcomeScene } from '../core/tips';
 import type { Settings, Tuning } from '../core/tuning';
-import { Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
+import { AMBIENCES, Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, sameLayout, type ScreenLayout } from './layout';
 import { clearRunSave, eraseProgress, loadProfile, loadRunSave, saveSoon, writeProfile, writeRunSave } from './storage';
 
@@ -371,12 +371,14 @@ export class App {
   }
 
   /** The sea and gulls on the title and the world map, a breeze over the act map, the campfire and crickets at the
-   *  camp, and the act's own place (forest, ruins, hollow) in its fights, nodes and scenes. */
+   *  camp, and the act's own place (forest, ruins, hollow) in its fights, nodes and scenes (a place without a bed of
+   *  its own yet gets the act map's breeze). */
   private ambience(): Ambience {
     const p = this.run.phase;
     if (p === 'title' || p === 'world') return 'world';
     if (p === 'camp') return 'camp';
-    return p === 'map' ? 'map' : this.run.theme;
+    const place = this.run.theme as string;
+    return p === 'map' ? 'map' : (AMBIENCES as string[]).includes(place) ? (place as Ambience) : 'map';
   }
 
   /** The title theme on the title and the world map, the camp's own, and each act's theme: calm on its map, nodes

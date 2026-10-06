@@ -690,11 +690,12 @@ export class MapView implements MapHost {
     const spots = LAIR_SPOTS[theme];
     if (spots) {
       spots.flames.forEach(([fx, fy], i) => this.pool.foot(`mn_flame_${Math.floor(now / 100 + i) % 3}`, x + fx, footY + fy + 1, D_LAIR + 0.01));
+      const [halo, core] = spots.glow ?? [0x62e4d4, 0xd8fff6];
       for (const [gx, gy] of spots.glows) {
         const a = 0.35 + 0.35 * Math.sin(now / 260 + gx);
-        this.gAir.fillStyle(0x62e4d4, a);
+        this.gAir.fillStyle(halo, a);
         this.gAir.fillRect(Math.round(x + gx) - 1, Math.round(footY + gy) - 1, 3, 3);
-        this.gAir.fillStyle(0xd8fff6, a);
+        this.gAir.fillStyle(core, a);
         this.gAir.fillRect(Math.round(x + gx), Math.round(footY + gy), 1, 1);
       }
     }
@@ -1060,7 +1061,83 @@ export class MapView implements MapHost {
         const y = 14 + i * 7 + Math.sin(t * 1.7 + i * 1.3) * 6 + Math.abs(Math.sin(t * 5 + i)) * 2;
         P.mid(`ma_bat_${Math.floor(now / 85 + i) % 2}`, x, y, D_SKY, 1, 0x1a1428);
       }
-    } else {
+    } else if (theme === 'pass') {
+      // snow drifting down over the whole map
+      for (let i = 0; i < 30; i++) {
+        const speed = 7 + (i % 5) * 1.6;
+        const yy = ((t * speed + i * 37) % (H + 10)) - 5;
+        const x = ((i * 53.3 + yy * 0.3 + Math.sin(t * 1.2 + i) * 3) % (W + 6)) - 3;
+        a.fillStyle(0xffffff, i % 3 ? 0.5 : 0.85);
+        a.fillRect(Math.round(x), Math.round(yy), 1, 1);
+      }
+      // glare winking off the frozen creek
+      const wv = land.water;
+      if (wv.length)
+        for (let j = 0; j < 6; j++) {
+          const tw = Math.sin(t * 2.1 + j * 1.9);
+          if (tw < 0.4) continue;
+          const [x, y] = wv[Math.floor((j * 37.7 + Math.floor(t * 0.33 + j * 0.4) * 53) % wv.length)];
+          a.fillStyle(0xffffff, tw);
+          a.fillRect(Math.round(x) - 1, Math.round(y), 1, 1);
+          if (tw > 0.85) {
+            a.fillRect(Math.round(x) - 2, Math.round(y), 3, 1);
+            a.fillRect(Math.round(x) - 1, Math.round(y) - 1, 1, 3);
+          }
+        }
+    } else if (theme === 'caves') {
+      // the crystals breathe light; now and then one winks
+      land.glows.forEach(([gx, gy, gc], i) => {
+        const k = 0.5 + 0.5 * Math.sin(t * 1.2 + i * 1.7);
+        ellipse(this.gGround, gx, gy + 4, 8, 3.5, gc, 0.05 + 0.06 * k);
+        const tw = Math.sin(t * 2.3 + i * 2.9);
+        if (tw > 0.9) {
+          a.fillStyle(0xf0fcff, (tw - 0.9) * 10);
+          a.fillRect(Math.round(gx) - 1, Math.round(gy) - 1, 3, 1);
+          a.fillRect(Math.round(gx), Math.round(gy) - 2, 1, 3);
+        }
+      });
+      // glimmering dust rising slowly through the dark
+      for (let j = 0; j < 16; j++) {
+        const x = (j * 61.3 + Math.sin(t * 0.3 + j) * 8 + W) % W;
+        const y = H - ((t * (2 + (j % 3)) + j * 29) % (H + 10));
+        const tw = 0.5 + 0.5 * Math.sin(t * 2.6 + j * 1.3);
+        a.fillStyle(j % 2 ? 0xc8a8ff : 0x9ae4ff, 0.2 + 0.4 * tw);
+        a.fillRect(Math.round(x), Math.round(y), 1, 1);
+      }
+      // drops from the roof rippling the ice pools
+      land.pools.forEach(([px, py], i) => {
+        const per = 3.4 + i * 0.9;
+        const u = ((t + i * 1.3) % per) / 0.9;
+        if (u < 1) ring(this.gGround, px - 4 + ((i * 5) % 9), py, 1 + u * 4, 0.6 + u * 1.6, 0xb4e4f8, 0.55 * (1 - u));
+      });
+    } else if (theme === 'glacier') {
+      // the aurora's light drifting over the ice: broad soft bands of green and violet
+      for (let i = 0; i < 2; i++) {
+        const [fw] = P.size('ma_fog');
+        const x = ((t * (1.6 + i * 0.7) + i * 160) % (W + fw)) - fw;
+        P.at('ma_fog', x, 16 + i * 54, D_SKY, 0.09, i ? 0xa070e0 : 0x5ae0a8);
+      }
+      // spindrift streaking across
+      for (let j = 0; j < 10; j++) {
+        const speed = 40 + (j % 4) * 12;
+        const x = W + 20 - ((t * speed + j * 97) % (W + 40));
+        const y = 20 + ((j * 47) % (H - 40)) + Math.sin(t * 2 + j) * 2;
+        a.fillStyle(0xe8f4ff, 0.28);
+        a.fillRect(Math.round(x), Math.round(y), 4 + (j % 3), 1);
+      }
+      // the hoard's gold glinting through the ice
+      land.glows.forEach(([gx, gy], i) => {
+        const tw = Math.sin(t * 1.9 + i * 2.1);
+        if (tw < 0.8) return;
+        const k = (tw - 0.8) * 5;
+        a.fillStyle(0xfff4b0, k);
+        a.fillRect(Math.round(gx), Math.round(gy), 1, 1);
+        if (k > 0.5) {
+          a.fillRect(Math.round(gx) - 1, Math.round(gy), 3, 1);
+          a.fillRect(Math.round(gx), Math.round(gy) - 1, 1, 3);
+        }
+      });
+    } else if (theme === 'hollow') {
       // fireflies blinking in the dusk
       const spots = land.spots;
       for (let j = 0; j < 12; j++) {
