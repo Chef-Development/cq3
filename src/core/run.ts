@@ -13,7 +13,7 @@ import { eventById } from '../data/events';
 import { CAMPAIGN, REGIONS, actInRegion, lastActOfRegion, regionOfAct } from '../data/regions';
 import { questById, type QuestId } from '../data/quests';
 import type { ActDef, BarRules, EventOutcome, RegionDef } from '../data/types';
-import type { HeroId } from '../data/heroes';
+import { HEROES, type HeroId } from '../data/heroes';
 import type { PetBuild } from './roster';
 import { RELICS, relicById, type RelicId } from '../data/relics';
 import { skillById } from '../data/skills';
@@ -25,7 +25,7 @@ import { actSeed, buildActMap, type ActMap, type MapNode } from './map';
 import { addItem, heroProgress, meetNeve, meetSable, newProfile, profileBuild, profileLoadout, recordAct, recordRegion, unlockedRelics, unlockRelic, type ChestKind, type Profile } from './profile';
 import { claimRegionReward, logBounty, logEvent, logTreasure } from './completion';
 import { awardGems, bump, checkAchievements, checkMastery, hasCamp, type FeatCtx } from './meta';
-import { addPetXp } from './roster';
+import { addPetXp, ownedHeroes } from './roster';
 import type { AchievementDef, MasteryDef } from '../data/meta';
 import { newQuest, questFor, questProgress, type QuestState } from './quests';
 import { relicNumber, rollRelics, unlocksFor } from './relics';
@@ -587,7 +587,10 @@ export class Run {
   get bountyOffer(): QuestId | null {
     const n = this.node;
     if (!n || n.type !== 'bounty' || !this.extras) return null;
-    return questFor(this.map, n.id, this.extras.seed);
+    // a style call names one of the styles you own (once you own 2+ heroes)
+    const owned = ownedHeroes(this.profile);
+    const styles = owned.length >= 2 ? [...new Set(owned.map((h) => HEROES[h].style))] : [];
+    return questFor(this.map, n.id, this.extras.seed, styles, this.tuning.quests.styleShare);
   }
 
   /** Take the bounty board's quest (it replaces one taken earlier in the act), then back to the map. */
@@ -962,7 +965,8 @@ export class Run {
   private bountyAfter(c: Combat, elite: boolean, items: Item[]): void {
     const q = this.quest;
     if (!q || q.done) return;
-    if (!questProgress(this.tuning, q, { log: c.log, elite, hpShare: this.hero.hp / Math.max(1, heroMaxHp(this.tuning, this.hero)) })) return;
+    const style = HEROES[this.hero.build?.id ?? 'rowan']?.style;
+    if (!questProgress(this.tuning, q, { log: c.log, elite, hpShare: this.hero.hp / Math.max(1, heroMaxHp(this.tuning, this.hero)), style })) return;
     this.questDone = q.id;
     logBounty(this.profile, this.actIndex);
     bump(this.profile, 'bounties');

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { balance, botRun, playAct, playFarm, playRun, TYPICAL_ACCURACY } from '../../src/core/bot';
+import { balance, botRun, fight, playAct, playFarm, playRun, releaseError, TYPICAL_ACCURACY } from '../../src/core/bot';
 import { Rng } from '../../src/core/rng';
+import { HERO_IDS } from '../../src/data/heroes';
 import { cloneTuning } from '../../src/core/tuning';
 
 describe('balance bot', () => {
@@ -38,6 +39,49 @@ describe('balance bot', () => {
     expect(res.acts.map((a) => a.act)).toEqual([0, 1, 2]);
     expect(res.acts.every((a) => a.cleared)).toBe(true);
     expect(res.acts[2].attempts[res.acts[2].attempts.length - 1].fights.at(-1)!.enemies[0]).toBe('boarKing');
+  });
+
+  it('lets go of holds like a person: most are finished, a few are let go too early (more for a sloppier player)', () => {
+    const play = (accuracy: number) => {
+      let held = 0;
+      let dropped = 0;
+      for (let seed = 1; seed <= 8; seed++) {
+        const run = botRun(cloneTuning(), seed);
+        // every yellow comes as a hold
+        run.startPractice({ enemies: ['bandit', 'bandit'], bar: { holds: { share: 1, fromRow: 0, width: 1 } }, seed });
+        const st = fight(run, run.combat!, new Rng(seed), { accuracy, seed });
+        held += st.holds;
+        dropped += st.holdsDropped;
+      }
+      return { held, dropped, share: dropped / Math.max(1, held + dropped) };
+    };
+    const good = play(0.85);
+    const sloppy = play(0.6);
+    expect(good.held).toBeGreaterThan(20);
+    expect(good.dropped).toBeGreaterThan(0);
+    expect(good.share).toBeLessThan(0.15);
+    expect(sloppy.share).toBeGreaterThan(good.share);
+  });
+
+  it('every hero plays an iced bar with holds: holds finished, the fight won', () => {
+    for (const hero of HERO_IDS) {
+      const run = botRun(cloneTuning(), 5);
+      run.startPractice({ hero, enemies: ['rimeImp', 'yetiCub'], act: 4, bar: { ice: { every: 4, width: 0.2, life: 6, fromRow: 0, max: 1 }, holds: { share: 0.3, fromRow: 0, width: 1 } }, seed: 5 });
+      const st = fight(run, run.combat!, new Rng(5), { accuracy: 0.85, seed: 5, hero });
+      expect(st.holds, hero).toBeGreaterThan(0);
+      expect(st.won, hero).toBe(true);
+    }
+  });
+
+  it("a release's timing error leans late, with the odd early lift", () => {
+    const rng = new Rng(3);
+    const gauss = () => Math.sqrt(-2 * Math.log(1 - rng.next())) * Math.cos(2 * Math.PI * rng.next());
+    const errs = Array.from({ length: 4000 }, () => releaseError(rng, { sigma: 0.042, react: 0.25, reactRed: 0.175, gap: 0.14, lapse: 0.03 }, gauss));
+    const mean = errs.reduce((a, b) => a + b, 0) / errs.length;
+    expect(mean).toBeGreaterThan(0.01);
+    const early = errs.filter((e) => e < -0.06).length / errs.length; // dropped (the grace is 60 ms)
+    expect(early).toBeGreaterThan(0.02);
+    expect(early).toBeLessThan(0.12);
   });
 
   it('better accuracy misses less and wins more', () => {

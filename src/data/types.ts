@@ -131,6 +131,12 @@ export interface BarRules {
   ice?: PatchRule;
   snow?: PatchRule;
   holds?: { share: number; fromRow: number; width: number };
+  /** Region 3 (not in play yet): a share of yellows drift slowly along the bar (`speed`: bar widths a second),
+   *  turning back at the ends. */
+  drift?: { share: number; fromRow: number; speed: number };
+  /** Region 3 (not in play yet): a share of yellows come as linked pairs: hit one, then the other within a beat,
+   *  or both count as misses. */
+  links?: { share: number; fromRow: number };
 }
 
 export interface PatchRule {

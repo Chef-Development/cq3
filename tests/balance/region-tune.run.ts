@@ -2,8 +2,8 @@
 // end-of-region profiles), then replays only region REGION from those profiles with the numbers in TUNE applied
 // (paths into the tuning, e.g. TUNE='{"acts.3.hpMult":3.2,"enemies.rimehorn.hp":5200}'), and prints each act's
 // first-try clear and boss first fight per hero (with the gap to Rowan), plus gems earned by the end of each region.
-//   HEROES=rowan,sable  RUNS=100  ACC=0.85  REGION=1  CACHE=path  TUNE=json
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+//   HEROES=rowan,sable  RUNS=100  ACC=0.85  REGION=1  CACHE=path  TUNE=json  BRANCHES=1  OUT=path (appended)
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { it } from 'vitest';
 import { playRegion, playRun, summarize, TYPICAL_ACCURACY, type RunStats } from '../../src/core/bot';
 import { treeOf } from '../../src/core/heroes';
@@ -16,8 +16,10 @@ const RUNS = Number(process.env.RUNS ?? 100);
 const ACC = Number(process.env.ACC ?? TYPICAL_ACCURACY);
 const REGION = Number(process.env.REGION ?? 1);
 const HERO_LIST = (process.env.HEROES ? process.env.HEROES.split(',') : HERO_IDS) as HeroId[];
-const CACHE = process.env.CACHE ?? `/tmp/cq3-region${REGION}-profiles-${Math.round(ACC * 100)}.json`;
+const FOCUS = process.env.FOCUS; // force the first skill branch (e.g. FOCUS=bulwark; its own cache)
+const CACHE = process.env.CACHE ?? `/tmp/cq3-region${REGION}-profiles-${Math.round(ACC * 100)}${FOCUS ? `-${FOCUS}` : ''}.json`;
 const BRANCHES = !!process.env.BRANCHES;
+const OUT = process.env.OUT ?? '/tmp/cq3-region-tune.txt';
 const branchOf = (h: HeroId, skill: string | undefined): string => treeOf(h).find((b) => b.nodes.some((n) => n.id === skill))?.id ?? 'none';
 const TUNE: Record<string, number> = process.env.TUNE ? JSON.parse(process.env.TUNE) : {};
 
@@ -37,7 +39,7 @@ it('region tune', () => {
     const branches: string[] = [];
     for (let r = 0; r < RUNS; r++) {
       const p = newProfile();
-      const st = playRun(base, { accuracy: ACC, seed: seedOf(h, r), hero: h }, 6, regionStart(REGION), p);
+      const st = playRun(base, { accuracy: ACC, seed: seedOf(h, r), hero: h, focus: FOCUS }, 6, regionStart(REGION), p);
       const won = st.acts.length === regionStart(REGION) && st.acts.every((a) => a.cleared);
       profiles.push(won ? JSON.parse(JSON.stringify(p)) : null);
       gems.push(p.counts.gemsEarned ?? 0);
@@ -62,7 +64,7 @@ it('region tune', () => {
     c.profiles.slice(0, RUNS).forEach((p0, r) => {
       if (!p0) return;
       const p = JSON.parse(JSON.stringify(p0)) as Profile;
-      results.push(playRegion(t, { accuracy: ACC, seed: seedOf(h, r), hero: h }, p, REGION));
+      results.push(playRegion(t, { accuracy: ACC, seed: seedOf(h, r), hero: h, focus: FOCUS }, p, REGION));
       resultBranch.push(c.branches[r]);
       gemsAfter.push(p.counts.gemsEarned ?? 0);
     });
@@ -91,5 +93,7 @@ it('region tune', () => {
   if (firsts.rowan)
     for (const h of HERO_LIST)
       if (h !== 'rowan') lines.push(`  gap ${h.padEnd(7)} ${firsts[h].map((v, i) => `${Math.round((v - firsts.rowan[i]) * 100)}`.padStart(4)).join(' ')}`);
-  console.log(`TUNE ${JSON.stringify(TUNE)}\n` + lines.join('\n'));
+  const text = `TUNE ${JSON.stringify(TUNE)}\n` + lines.join('\n') + '\n';
+  appendFileSync(OUT, text);
+  console.log(text);
 });

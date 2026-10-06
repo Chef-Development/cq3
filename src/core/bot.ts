@@ -27,7 +27,13 @@ import { DT, heroAtk, heroMaxHp, heroStats, isRed, type Combat, type CombatEvent
 import { emptyLoadout, itemPower, slotOfItem, upgradeCost, type StatBlock } from './gear';
 import { buildBonus, canLearn, learn, pointsLeft, treeOf, type HeroId } from './heroes';
 import { focusOf, guardOf } from './styles';
-import { equip, equippedItems, heroProgress, newProfile, salvageAll, upgrade, type Profile } from './profile';
+import { buyRareChest, openChest } from './chests';
+import { buyCamp } from './meta';
+import { ownedPets, petSlots } from './roster';
+import { COMPANIONS } from '../data/companions';
+import { tierIndex } from '../data/rarity';
+import type { CampUpgradeId } from '../data/meta';
+import { CHEST_KINDS, equip, equippedItems, heroProgress, newProfile, salvageAll, upgrade, type Profile } from './profile';
 import { buildName, rarityRank, sharedTags, type RelicId } from './relics';
 import { Rng } from './rng';
 import { RARITIES, Run, type BoostOffer } from './run';
@@ -44,6 +50,7 @@ export interface BotOptions {
   maxStageSec?: number; // a fight running longer than this counts as a loss
   noGear?: boolean; // measurement: never wear what drops (the balance report's "without gear" ablation)
   avoid?: RelicId[]; // measurement: relics it never takes (to weigh one relic against going without it)
+  focus?: string; // measurement: the skill branch it goes down first (default: rolled once per profile)
 }
 
 /** Inverse of the standard normal CDF (Acklam's approximation; |error| < 1e-8 over (0, 1)). */
@@ -108,6 +115,8 @@ export interface FightStats {
   perfects: number;
   traps: number;
   counters: number; // yellow taps countered by a raised shield
+  holds: number; // hold blocks finished...
+  holdsDropped: number; // ...and let go too early
   specials: number; // enemy specials fired
   hitsTaken: number;
   heroAtk: number; // attack and combo power going into the fight
@@ -240,6 +249,7 @@ export function playRegion(tuning: Tuning, o: BotOptions, profile: Profile, r: n
     profile.heroes[o.hero].unlocked = true;
     profile.hero = o.hero;
   }
+  campVisit(tuning, profile, rng);
   const from = regionStart(r);
   const run = botRun(tuning, (o.seed + 15485863 * r) >>> 0, profile, from);
   equipBest(run);
@@ -259,6 +269,21 @@ export function playRegion(tuning: Tuning, o: BotOptions, profile: Profile, r: n
     }
   }
   return out;
+}
+
+/** Camp upgrades the bot buys between regions (when it has the coins), in this order. */
+const BOT_CAMP: CampUpgradeId[] = ['perch', 'warTable', 'luckyStone', 'rerollCharm'];
+
+/**
+ * The bot at camp between regions, as a person would: every Rare chest its gems buy, every waiting chest opened,
+ * the camp upgrades it can afford, and its best companions brought along (rarest, then most stars).
+ */
+export function campVisit(t: Tuning, p: Profile, rng: Rng): void {
+  while (buyRareChest(p, t));
+  for (const k of CHEST_KINDS) while (openChest(rng, t, p, k));
+  for (const id of BOT_CAMP) buyCamp(p, id);
+  const best = ownedPets(p).sort((a, b) => tierIndex(COMPANIONS[b].rarity) - tierIndex(COMPANIONS[a].rarity) || p.pets[b].stars - p.pets[a].stars);
+  p.petsOn = best.slice(0, petSlots(p));
 }
 
 export interface FarmResult {
@@ -351,7 +376,7 @@ export function playAct(run: Run, rng: Rng, o: BotOptions): ActAttempt {
     else if (ph === 'loot') {
       run.collectLoot();
       if (!o.noGear) equipBest(run);
-      spendSkills(run, rng);
+      spendSkills(run, rng, o.focus);
     } else if (ph === 'boost') run.pickBoost(botPick(run, rng, o.accuracy, o.avoid));
     else if (ph === 'treasure') run.openTreasure();
     else if (ph === 'rest') run.rest();
@@ -417,7 +442,7 @@ export function botPick(run: Run, rng: Rng, accuracy = TYPICAL_ACCURACY, avoid: 
  * branch of the first node the hero learned: rolled once per profile when the first point comes (so bots spread
  * evenly over the three branches), then read back from the profile; after it, the next branches in tree order.
  */
-export function spendSkills(run: Run, rng: Rng): void {
+export function spendSkills(run: Run, rng: Rng, force?: string): void {
   const p = run.profile;
   const hero = p.hero;
   const prog = heroProgress(p);
@@ -425,7 +450,8 @@ export function spendSkills(run: Run, rng: Rng): void {
   const tree = treeOf(hero);
   if (!tree.length) return;
   const focus = tree.findIndex((b) => b.nodes.some((n) => n.id === prog.skills[0]));
-  const first = focus >= 0 ? focus : rng.int(tree.length);
+  const forced = force ? tree.findIndex((b) => b.id === force) : -1;
+  const first = focus >= 0 ? focus : forced >= 0 ? forced : rng.int(tree.length);
   for (let k = 0; k < tree.length && pointsLeft(run.tuning, prog) > 0; k++) {
     const branch = tree[(first + k) % tree.length];
     for (const node of branch.nodes) if (canLearn(run.tuning, hero, prog, node.id) === 'ok') learn(run.tuning, hero, prog, node.id);
@@ -463,12 +489,12 @@ export function wantsBlock(c: Combat, b: Block, guarded: boolean): boolean {
 
 function newFight(run: Run, c: Combat): FightStats {
   const T = run.tuning;
-  const n = run.node!;
+  const n = run.node;
   const boss = c.enemies.some((e) => T.enemies[e.key].boss);
   const st: FightStats = {
     act: run.actIndex,
-    row: n.row,
-    type: n.type,
+    row: n?.row ?? 0,
+    type: n?.type ?? 'fight', // (a practice fight has no node)
     ambush: !!run.ambush,
     enemies: c.enemies.map((e) => e.key),
     boss,
@@ -483,6 +509,8 @@ function newFight(run: Run, c: Combat): FightStats {
     perfects: 0,
     traps: 0,
     counters: 0,
+    holds: 0,
+    holdsDropped: 0,
     specials: 0,
     hitsTaken: 0,
     heroAtk: heroAtk(T, run.hero),
@@ -596,6 +624,10 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
       else if (e.type === 'miss') st.misses++;
       else if (e.type === 'trap') st.traps++;
       else if (e.type === 'counter') st.counters++;
+      else if (e.type === 'holdEnd') {
+        if (e.ok) st.holds++;
+        else st.holdsDropped++;
+      }
       else if (e.type === 'special') st.specials++;
       else if (e.type === 'guardOn') {
         guardSeen++;
