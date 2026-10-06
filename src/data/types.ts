@@ -91,7 +91,8 @@ export interface EnemyDef {
 export type NodeType = 'fight' | 'elite' | 'treasure' | 'rest' | 'shop' | 'event' | 'boss' | 'rush' | 'bounty';
 /** The node types the map generator rolls from an act's weights. */
 export type RolledNode = Exclude<NodeType, 'boss' | 'rush' | 'bounty'>;
-export type Theme = 'forest' | 'ruins' | 'hollow';
+/** An act's look: Greenmarch's meadow, ruins and hollow; the Frostpeaks' mountain pass, ice caves and glacier. */
+export type Theme = 'forest' | 'ruins' | 'hollow' | 'pass' | 'caves' | 'glacier';
 
 export interface ActDef {
   name: string;

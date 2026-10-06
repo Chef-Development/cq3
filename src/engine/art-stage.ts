@@ -78,6 +78,57 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     pool: 0xffa060,
     poolAmt: 0.14,
   },
+  // an overcast afternoon: soft cool light from a veiled sun high on the left, blue shadows on the snow
+  pass: {
+    shade: 0x3a4270,
+    vignette: 0.46,
+    floor: 0.4,
+    top: 0.2,
+    rim: 0xfff2e0,
+    rimAmt: 0.6,
+    rimLeft: 0.6,
+    rimTop: 1,
+    shadow: 0x262e5a,
+    shadowDx: 2,
+    shadowLen: 1.1,
+    dust: [0xe8eef8, 0xc4cee6, 0xffffff],
+    pool: 0xfff4e4,
+    poolAmt: 0.1,
+  },
+  // the caves: cold light from the crystals and a crack in the roof, deep shade everywhere else
+  caves: {
+    shade: 0x0a0c2c,
+    vignette: 0.7,
+    floor: 0.52,
+    top: 0.42,
+    rim: 0x9ae4ff,
+    rimAmt: 0.72,
+    rimLeft: 0.55,
+    rimTop: 1,
+    shadow: 0x03041a,
+    shadowDx: 1,
+    shadowLen: 1,
+    dust: [0x8ab4d8, 0x5a78a4, 0xbce4f4],
+    pool: 0x8ad8ff,
+    poolAmt: 0.13,
+  },
+  // the glacier at night: the aurora overhead lights everything from above in green, the ice glows back
+  glacier: {
+    shade: 0x0e1838,
+    vignette: 0.62,
+    floor: 0.48,
+    top: 0.16,
+    rim: 0x9affd0,
+    rimAmt: 0.74,
+    rimLeft: 0.35,
+    rimTop: 1,
+    shadow: 0x050a20,
+    shadowDx: 1,
+    shadowLen: 1,
+    dust: [0xdcf0ff, 0xa8c6e6, 0xffffff],
+    pool: 0x9cffd8,
+    poolAmt: 0.1,
+  },
 };
 
 // ------------------------------------------------------------------ RGBA buffer
@@ -155,6 +206,7 @@ function grade(w: number, h: number, G: number, L: StageLight): Rgba {
 /** Light rays (ADD): soft beams with smooth falloff across and along them, fading out before the ground. */
 function rays(w: number, h: number, G: number, theme: Theme): Rgba {
   const out = new Rgba(w, h);
+  if (theme === 'pass' || theme === 'caves' || theme === 'glacier') return frostRays(out, w, h, G, theme);
   if (theme === 'hollow') {
     // the low sun on the left: long beams raking right across the den, a bloom around the disc
     const sx = Math.round(w * 0.24);
@@ -228,6 +280,82 @@ function rays(w: number, h: number, G: number, theme: Theme): Rgba {
   return out;
 }
 
+/**
+ * The Frostpeaks' light (ADD): in the pass, a veiled sun's bloom and faint beams fanning down through the snow; in
+ * the caves, cold shafts falling from a crack in the roof; on the glacier, the aurora's glow washing the sky (the
+ * stage breathes and sways it, so it shimmers).
+ */
+function frostRays(out: Rgba, w: number, h: number, G: number, theme: 'pass' | 'caves' | 'glacier'): Rgba {
+  if (theme === 'pass') {
+    const sx = Math.round(w * 0.4);
+    const sy = 26;
+    const beams = [0.32, 0.55, 0.78, 1.02, 1.26];
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const dx = x + 0.5 - sx;
+        const dy = (y + 0.5 - sy) * 1.3;
+        const d = Math.hypot(dx, dy);
+        const ang = Math.atan2(dy, dx);
+        let v = 0;
+        for (let i = 0; i < beams.length; i++) {
+          const q = (ang - beams[i]) / (0.07 + (i % 2) * 0.03);
+          v += Math.exp(-q * q) * (i % 2 ? 0.6 : 1);
+        }
+        const along = ss(10, 36, d) * (1 - ss(70, 170, d));
+        const bloom = Math.pow(clamp01(1 - d / 52), 2) * 0.5;
+        const ground = 1 - ss(G - 20, G + 4, y) * 0.8;
+        const a = (v * along * 0.1 + bloom * 0.3) * ground;
+        if (a > 0.004) out.set(x, y, 0xfff2dc, a);
+      }
+    return out;
+  }
+  if (theme === 'caves') {
+    // a crack in the roof above the middle of the cavern: two narrow beams and a wider faint one, slanting right
+    const list: Array<[number, number, number]> = [
+      [Math.round(w * 0.38), 7, 1],
+      [Math.round(w * 0.45), 4, 0.8],
+      [Math.round(w * 0.31), 13, 0.45],
+    ];
+    for (let y = 0; y < h; y++) {
+      const f = ss(4, 18, y) * (1 - ss(G - 26, G + 6, y) * 0.8);
+      for (let x = 0; x < w; x++) {
+        let v = 0;
+        for (const [x0, wid, k] of list) {
+          const cx = x0 + y * 0.28;
+          const u = Math.abs(x + 0.5 - cx) / (wid / 2 + y * 0.04);
+          if (u < 1) v += (1 - u * u) * (1 - u * u) * k;
+        }
+        if (v > 0) out.set(x, y, 0xa8e8ff, Math.min(1, v) * f * 0.16);
+      }
+    }
+    // where they land, the floor glows a little
+    const lx = Math.round(w * 0.38 + (G - 6) * 0.28);
+    for (let y = G - 14; y < Math.min(h, G + 8); y++)
+      for (let x = lx - 30; x < lx + 30; x++) {
+        const d = Math.hypot((x + 0.5 - lx) / 26, (y + 0.5 - G) / 7);
+        if (d < 1 && x >= 0 && x < w) {
+          const i = (y * w + x) * 4;
+          out.set(x, y, 0xa8e8ff, Math.min(1, out.d[i + 3] / 255 + Math.pow(1 - d, 2) * 0.12));
+        }
+      }
+    return out;
+  }
+  // the aurora: curtains whose bright lower hems wave across the sky, green below, violet above
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const hem = 30 + Math.sin(x * 0.021 + 0.8) * 9 + Math.sin(x * 0.057 + 2) * 4;
+      const up = hem - y; // px above the hem
+      if (up < -6) continue;
+      const fold = 0.55 + 0.45 * Math.sin(x * 0.19 + Math.sin(x * 0.05) * 3);
+      const k = (up < 0 ? Math.max(0, 1 + up / 6) : Math.exp(-up / 22)) * fold;
+      const green = clamp01(1 - up / 26);
+      const c = green > 0.5 ? 0x7affc0 : 0xb48aff;
+      const a = k * (0.16 * green + 0.1 * (1 - green)) * (1 - ss(G - 30, G - 6, y));
+      if (a > 0.004) out.set(x, y, c, a);
+    }
+  return out;
+}
+
 /** A soft round glow (ADD), white so it can be tinted. */
 function glow(size: number): Rgba {
   const out = new Rgba(size, size);
@@ -281,7 +409,29 @@ export function rimMask(src: HTMLCanvasElement, left: number, top: number): HTML
 
 // ------------------------------------------------------------------ build
 
-/** Paint every stage texture for the current layout (stage height h, feet line G). */
+/** The Frostpeaks' drifting banks (far, near): snow haze in the pass, cold mist over the caves' lake, spindrift on
+ *  the glacier. */
+const FROST_MIST: Record<'pass' | 'caves' | 'glacier', (w: number, h: number, G: number) => [Rgba, Rgba]> = {
+  pass: (w, h, G) => [patches(w, h, G - 34, G + 2, 0xe6e8f6, 0.24, 31, 0.46, 0.02, 0.12), patches(w, h, G - 5, h, 0xd4dcf0, 0.16, 37, 0.52, 0.014, 0.16)],
+  caves: (w, h, G) => [patches(w, h, G - 30, G - 6, 0x7aa8d8, 0.2, 41, 0.46, 0.022, 0.14), patches(w, h, G - 4, h, 0x4a70a8, 0.14, 43, 0.54, 0.014, 0.16)],
+  glacier: (w, h, G) => [patches(w, h, G - 26, G + 4, 0xc4dcf0, 0.2, 47, 0.47, 0.024, 0.12), patches(w, h, G - 6, h, 0xb0cce4, 0.18, 53, 0.5, 0.016, 0.18)],
+};
+
+/** One Frostpeaks theme's stage textures for the current layout (painted the first time an act needs them). */
+export function buildStageTheme(scene: Phaser.Scene, w: number, h: number, G: number, theme: 'pass' | 'caves' | 'glacier'): void {
+  const add = (key: string, canvas: HTMLCanvasElement) => {
+    if (scene.textures.exists(key)) scene.textures.remove(key);
+    scene.textures.addCanvas(key, canvas);
+  };
+  add(`st_grade_${theme}`, grade(w, h, G, STAGE_LIGHT[theme]).canvas());
+  add(`st_rays_${theme}`, rays(w, h, G, theme).canvas());
+  const [far, near] = FROST_MIST[theme](w, h, G);
+  add(`st_mist_${theme}`, far.canvas());
+  add(`st_mist_${theme}_near`, near.canvas());
+}
+
+/** Paint every stage texture for the current layout (stage height h, feet line G): the shared ones and Greenmarch's
+ *  (the Frostpeaks' come later, buildStageTheme). */
 export function buildStageArt(scene: Phaser.Scene, w: number, h: number, G: number): void {
   const add = (key: string, canvas: HTMLCanvasElement) => {
     if (scene.textures.exists(key)) scene.textures.remove(key);

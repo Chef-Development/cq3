@@ -7,7 +7,7 @@ import { anythingToErase, type Profile } from '../core/profile';
 import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import { markWelcomed, TipCoach, welcomeScene } from '../core/tips';
 import type { Settings, Tuning } from '../core/tuning';
-import { Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
+import { AMBIENCES, Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, sameLayout, type ScreenLayout } from './layout';
 import { clearRunSave, eraseProgress, loadProfile, loadRunSave, saveSoon, writeProfile, writeRunSave } from './storage';
 
@@ -398,7 +398,8 @@ export class App {
     if (p === 'camp') return 'camp';
     const own = ACT_AMBIENCE[this.run.actIndex];
     if (own) return own;
-    return p === 'map' ? 'map' : this.run.theme;
+    const place = this.run.theme as string;
+    return p === 'map' ? 'map' : (AMBIENCES as string[]).includes(place) ? (place as Ambience) : 'map';
   }
 
   /** The title theme on the title and the world map, the camp's own, and each act's theme (by the global act

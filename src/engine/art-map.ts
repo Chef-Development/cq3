@@ -1,5 +1,6 @@
 // The act map's art (see docs/art-style.md): a small living world seen from above at a slight angle, one per act
-// theme (the sunny Meadow Road, the Old Ruins at dusk, the Boar King's Hollow at sunset). Two kinds of art:
+// theme (the sunny Meadow Road, the Old Ruins at dusk, the Boar King's Hollow at sunset; the Frostpeaks' snowbound
+// pass, the crystal-lit ice caves and the glacier under the aurora). Two kinds of art:
 //   - sprites built once at boot (buildMapArt): map-scale Rowan, Sable and Pip, a mini version of every enemy for the
 //     fight nodes, the node props (campfire, chest, stall, "?", flag), the boss lairs and the ambient critters;
 //   - the act's landscape (paintLand), painted per map with the backdrop toolkit because the roads and the
@@ -15,6 +16,7 @@ import {
   crown,
   fbm,
   hash,
+  lambert,
   lighten,
   mass,
   mix,
@@ -30,7 +32,9 @@ import {
   type Col,
   type Ramp,
   type Theme,
+  THEMES,
 } from './backdrop';
+import { cluster, serac, shard } from './backdrop-frost';
 
 type Add = (key: string, c: HTMLCanvasElement) => void;
 export type Pt = [number, number];
@@ -447,6 +451,8 @@ export interface Lair {
   /** Flame bases (torches) and glow spots (runes, eyes), relative to the lair's foot. */
   flames: Pt[];
   glows: Pt[];
+  /** The glows' colours (halo, core); teal runes when unset. */
+  glow?: [number, number];
 }
 
 /** Act 1: the Bandit Captain's camp, a striped tent with a skull banner, crates and a barrel. */
@@ -619,9 +625,227 @@ function lairDen(): Lair {
   };
 }
 
-const LAIRS: Record<Theme, () => Lair> = { forest: lairCamp, ruins: lairGate, hollow: lairDen };
+/** The Frostpeaks' Act 1: the toll gate between two snowy peaks, a barrier pole across it, prayer flags above,
+ *  lanterns on the posts. */
+function lairToll(): Lair {
+  const W = 46;
+  const H = 38;
+  const p = new Pix(W, H, -1);
+  const base = H - 3;
+  const rock = ramp('#1e2236', '#2c324a', '#3e4660', '#545e7a', '#6e7894', '#8e98b0');
+  const snow = ramp('#6a76ac', '#8e9ac6', '#b8c2de', '#dce4f2', '#f6f8fc', '#ffffff');
+  // two peaks either side, snow on their lit faces and summits
+  const peak = (cx: number, top: number, half: number, seed: number) => {
+    for (let y = top; y <= base; y++) {
+      const t = (y - top) / (base - top);
+      const hw = 1 + t * half + (noise(y * 0.4, cx, seed) - 0.5) * 1.6;
+      for (let x = Math.round(cx - hw); x <= Math.round(cx + hw); x++) {
+        const lit = x < cx + (y - top) * 0.15;
+        const snowy = t < 0.45 + (noise(x * 0.5, y * 0.3, seed + 1) - 0.5) * 0.3 && (lit || t < 0.2);
+        p.set(x, y, snowy ? pick(snow, lit ? 0.85 : 0.35, x, y) : pick(rock, (lit ? 0.65 : 0.3) + (noise(x * 0.6, y * 0.6, seed + 2) - 0.5) * 0.3, x, y));
+      }
+    }
+  };
+  peak(8, 6, 8, 3);
+  peak(W - 8, 2, 9, 5);
+  // the gate: two posts and a little roof over the road, the barrier pole striped red and white across it
+  const wood = ramp('#2e1a0e', '#4e2c16', '#6e4020', '#8e5a2e', '#b07a44');
+  const roof = ramp('#4a1418', '#7a2024', '#a83030', '#d04a3c');
+  for (const x of [15, W - 16])
+    for (let y = 14; y <= base; y++) {
+      p.set(x, y, wood[3]);
+      p.set(x + 1, y, wood[1]);
+    }
+  for (let x = 12; x <= W - 13; x++) {
+    p.set(x, 13, roof[x < W / 2 ? 3 : 2]);
+    p.set(x, 14, roof[1]);
+    p.set(x, 12, snow[x % 3 === 0 ? 3 : 4]);
+  }
+  for (let x = 13; x <= W - 14; x++) p.set(x, 15, wood[2]);
+  for (let x = 17; x <= W - 17; x++) {
+    const red = Math.floor((x - 17) / 3) % 2 === 0;
+    p.set(x, base - 6, red ? col('#d03030') : col('#f4f0e8'));
+    p.set(x, base - 5, red ? col('#8a1a22') : col('#b8c2d8'));
+  }
+  // prayer flags strung from peak to peak above the gate
+  const cloth = [col('#2a6ad8'), col('#f4f0e8'), col('#d03030'), col('#3a9a48'), col('#f2c230')];
+  for (let x = 9; x <= W - 9; x++) {
+    const t = (x - 9) / (W - 18);
+    const y = Math.round(7 + t * -3 + Math.sin(t * Math.PI) * 4);
+    p.set(x, y, col('#3a2a30'));
+    if (x % 3 === 1 && x > 10 && x < W - 10) {
+      const c = cloth[Math.floor(x / 3) % cloth.length];
+      p.set(x, y + 1, c);
+      p.set(x, y + 2, c);
+    }
+  }
+  // snow heaped at the posts' feet, a lantern hung under the roof on each post
+  for (let x = 11; x <= W - 12; x++) if (x < 17 || x > W - 18) p.set(x, base, snow[3]);
+  for (const x of [14, W - 15]) stampPix(p, ['k', 'y', 'k'], P({ k: '#2a1c14', y: '#ffd070' }), x, 16);
+  outline(p);
+  return {
+    canvas: p.canvas(),
+    flames: [],
+    glows: [
+      [14 - W / 2, 17 - H],
+      [W - 15 - W / 2, 17 - H],
+    ],
+    glow: [0xffb050, 0xfff4c0],
+  };
+}
+
+/** The Frostpeaks' Act 2: a cave mouth in a crag of ice and rock, draped in the Loom Matron's frozen silk, crystals
+ *  glowing either side. */
+function lairWeb(): Lair {
+  const W = 46;
+  const H = 36;
+  const p = new Pix(W, H, -1);
+  const cx = 23;
+  const base = H - 2;
+  const rock = ramp('#0c1026', '#141c38', '#1e2a4a', '#2a3a5e', '#3a4e74', '#50668c');
+  const ice = ramp('#2a4a84', '#3a6eaa', '#5a98cc', '#86c0e4', '#c0e6f6', '#f0fcff');
+  // the crag: a heap of rock, frost on its lit top
+  for (let y = 2; y <= base; y++)
+    for (let x = 0; x < W; x++) {
+      const dx = (x + 0.5 - cx) / 22;
+      const dy = (y + 0.5 - base) / (base - 2);
+      if (dx * dx + dy * dy * 0.9 > 1 + (noise(x * 0.3, y * 0.3, 7) - 0.5) * 0.3) continue;
+      let v = 0.3 + 0.55 * lambert(dx, dy * 0.8) + (noise(x * 0.5, y * 0.5, 9) - 0.5) * 0.25;
+      if (noise(x * 0.9, y * 0.2, 11) > 0.7) v -= 0.2;
+      p.set(x, y, pick(rock, v, x, y));
+      if (y < 9 && noise(x * 0.4, y * 0.4, 13) > 0.4 && p.get(x, y - 1) < 0) p.set(x, y, ice[4]);
+    }
+  // the mouth: a black arch
+  const mTop = 12;
+  for (let y = mTop; y <= base; y++)
+    for (let x = cx - 10; x <= cx + 10; x++) {
+      const dx = (x + 0.5 - cx) / 10;
+      const dy = (y + 0.5 - (mTop + 9)) / 9;
+      if (y < mTop + 9 ? dx * dx + dy * dy > 1 : Math.abs(dx) > 1) continue;
+      p.set(x, y, Math.abs(dx) > 0.82 || (y < mTop + 9 && dx * dx + dy * dy > 0.7) ? col('#0e1430') : col('#04050e'));
+    }
+  // icicles along the arch's brow
+  for (let x = cx - 9; x <= cx + 9; x += 2) {
+    let y = mTop;
+    while (y < base && p.get(x, y) !== col('#0e1430') && p.get(x, y) !== col('#04050e')) y++;
+    const len = 2 + Math.floor(hash(x, 1, 15) * 3);
+    for (let j = 0; j < len; j++) p.set(x, y + j, ice[j === len - 1 ? 5 : 3]);
+  }
+  // the frozen silk: threads radiating from the arch's top, rungs of silk across them, sagging
+  const silk = col('#e8f4ff');
+  const silkDim = col('#8aa8cc');
+  const hub: Pt = [cx, mTop + 3];
+  for (const ang of [-1.25, -0.75, -0.3, 0.15, 0.6, 1.05, 1.45]) {
+    const dx = Math.sin(ang);
+    const dy = Math.cos(ang);
+    for (let r = 0; r < 22; r++) {
+      const x = Math.round(hub[0] + dx * r * 1.05);
+      const y = Math.round(hub[1] + dy * r);
+      if (y > base || Math.abs(x - cx) > 10) break;
+      p.set(x, y, r % 4 === 0 ? silk : silkDim);
+    }
+  }
+  for (const rr of [5, 9, 13]) {
+    for (let a = -1.25; a <= 1.45; a += 0.05) {
+      const sag = Math.sin((a + 1.25) * 6.5) * 0.6;
+      const x = Math.round(hub[0] + Math.sin(a) * rr * 1.05);
+      const y = Math.round(hub[1] + Math.cos(a) * rr + sag);
+      if (y <= base && Math.abs(x - cx) <= 10) p.set(x, y, silkDim);
+    }
+  }
+  outline(p);
+  // crystals either side of the mouth (drawn after the outline: they glow)
+  const glows: Pt[] = [];
+  const crystal = (x0: number, hgt: number, lean: number, r: Ramp) => {
+    for (let t = 0; t < hgt; t++) {
+      const x = Math.round(x0 + lean * t);
+      const y = base - t;
+      const w = t > hgt - 3 ? 1 : 2;
+      p.set(x, y, r[3]);
+      if (w > 1) p.set(x + 1, y, r[1]);
+      if (t === hgt - 1) p.set(x, y - 1, r[4]);
+    }
+    glows.push([Math.round(x0 + lean * hgt) - W / 2, base - hgt - H]);
+  };
+  const violet = ramp('#3e1c7a', '#6a32b4', '#9a5ce2', '#c89aff', '#f4e8ff');
+  const cyan = ramp('#125c80', '#1c94b0', '#46cad8', '#96eef0', '#eaffff');
+  crystal(4, 9, 0.3, violet);
+  crystal(7, 6, -0.2, violet);
+  crystal(W - 7, 10, -0.25, cyan);
+  crystal(W - 4, 6, 0.15, cyan);
+  return { canvas: p.canvas(), flames: [], glows, glow: [0x86e0f8, 0xf0fcff] };
+}
+
+/** The Frostpeaks' Act 3: the wyrm's throne of ice on a hill of gold sealed under ice, spikes of ice round it. */
+function lairHoard(): Lair {
+  const W = 48;
+  const H = 42;
+  const p = new Pix(W, H, -1);
+  const cx = 24;
+  const base = H - 2;
+  const gold = ramp('#5a3410', '#9a5a14', '#d8901c', '#f2c230', '#fff0a0');
+  const ice = ramp('#1e3a6a', '#2c5488', '#4074a8', '#5e98c4', '#8cc0dc', '#c4e4f0', '#f0fcff');
+  // the hoard: a mound of coins, the ice creeping over its foot
+  for (let y = base - 15; y <= base; y++)
+    for (let x = 1; x < W - 1; x++) {
+      const dx = (x + 0.5 - cx) / 22;
+      const dy = (y + 0.5 - base) / 15;
+      if (dx * dx + dy * dy > 1 + (noise(x * 0.4, y * 0.4, 3) - 0.5) * 0.2) continue;
+      let v = 0.3 + 0.6 * lambert(dx, dy * 1.3);
+      if ((x + (y % 2) * 2) % 4 === 0 && hash(x, y, 5) > 0.35) v += 0.2;
+      const iced = y > base - 5 + Math.sin(x * 0.5) * 1.5;
+      p.set(x, y, iced ? pick(ice, 0.45 + v * 0.4, x, y) : pick(gold, v, x, y));
+    }
+  // the throne: a tall back of ice with spikes, a seat, arms, all carved from one block
+  const throne = (x: number, y: number) => {
+    const u = x - cx;
+    if (y >= base - 14 && y <= base - 10 && Math.abs(u) <= 7) return true; // seat and arms
+    if (y >= base - 30 && y < base - 14 && Math.abs(u) <= 5) return true; // the back
+    // spikes crowning the back
+    for (const [sx, sh] of [
+      [-5, 5],
+      [-2, 8],
+      [1, 10],
+      [4, 7],
+    ])
+      if (y < base - 30 && y >= base - 30 - sh && Math.abs(u - sx) <= Math.max(0, (y - (base - 30 - sh)) * 0.3)) return true;
+    return false;
+  };
+  for (let y = 0; y <= base; y++)
+    for (let x = 0; x < W; x++) {
+      if (!throne(x, y)) continue;
+      const u = (x - (cx - 7)) / 14;
+      let v = 0.78 - u * 0.5 + (noise(x * 0.6, y * 0.3, 7) - 0.5) * 0.2;
+      if (!throne(x, y - 1)) v += 0.2;
+      if (!throne(x + 1, y)) v -= 0.2;
+      p.set(x, y, pick(ice, v, x, y));
+    }
+  // the seat's cushion of coins and a crown left on it
+  for (let x = cx - 5; x <= cx + 5; x++) p.set(x, base - 15, gold[3]);
+  stampPix(p, ['g.g.g', 'ggggg'], { g: gold[4] }, cx - 2, base - 18);
+  // spikes of ice standing round the hoard
+  const spikeAt = (x0: number, hgt: number, lean: number) => {
+    for (let t = 0; t < hgt; t++) {
+      const x = Math.round(x0 + lean * t);
+      const y = base - t;
+      p.set(x, y, ice[t > hgt - 2 ? 6 : 4]);
+      if (t < hgt - 3) p.set(x + 1, y, ice[2]);
+    }
+  };
+  spikeAt(3, 12, 0.25);
+  spikeAt(8, 7, 0.1);
+  spikeAt(W - 5, 13, -0.25);
+  spikeAt(W - 10, 8, -0.1);
+  outline(p);
+  const glows: Pt[] = [];
+  for (let i = 0; i < 6; i++) glows.push([Math.round(-16 + hash(i, 1, 9) * 32), Math.round(-4 - hash(i, 2, 9) * 9)]);
+  glows.push([0, -17 - 2]);
+  return { canvas: p.canvas(), flames: [], glows, glow: [0xffd860, 0xfff8d0] };
+}
+
+const LAIRS: Record<Theme, () => Lair> = { forest: lairCamp, ruins: lairGate, hollow: lairDen, pass: lairToll, caves: lairWeb, glacier: lairHoard };
 /** Each theme's lair spots (filled when buildMapArt builds the `maplair_${theme}` textures). */
-export const LAIR_SPOTS: Partial<Record<Theme, { flames: Pt[]; glows: Pt[] }>> = {};
+export const LAIR_SPOTS: Partial<Record<Theme, { flames: Pt[]; glows: Pt[]; glow?: [number, number] }>> = {};
 
 // ------------------------------------------------------------------ roads
 
@@ -694,8 +918,12 @@ export interface Land {
   smoke: Pt[];
   /** Windmill hubs. */
   mills: Pt[];
-  /** The stream's centre line, top to bottom (empty when there is none). */
+  /** The stream's centre line, top to bottom (empty when there is none; frozen in the pass). */
   water: Pt[];
+  /** Glowing scenery (crystals, cave caps, the hoard's gold): spots that pulse or glint, and their colour. */
+  glows: Array<[number, number, number]>;
+  /** Pools of open water (the caves' ice pools): their centres. */
+  pools: Pt[];
   /** Open ground for the critters to hang around. */
   spots: Pt[];
   /** Per pixel (y * w + x), for the critters (view/map-life.ts): 0 road or kept clear, 1 open ground, 2 cover (a
@@ -715,6 +943,8 @@ interface Deco {
   sway: boolean;
   /** Cast shadow (rx, ry) at the foot, or none. */
   shadow?: [number, number];
+  /** It glows (crystals, the hoard's gold): the light it pools round itself. */
+  glow?: Col;
 }
 
 interface Placed {
@@ -1264,8 +1494,584 @@ function hollowKit(): Kit {
   return { big, mid, small, extra: { sign: [signDeco()] } };
 }
 
+// ------------------------------------------------------------------ the Frostpeaks' scenery
+
+/** Snow: violet-blue in shade, warm white in the light (as backdrop-frost.ts). */
+const MSNOW = ramp('#5a64a0', '#7a86bc', '#a2acd6', '#c8d0ea', '#e6ecf8', '#fbfcff');
+const SPINE = ramp('#0c1c26', '#12282e', '#1a3834', '#26483c', '#345a46', '#486e50');
+const SBARK = ramp('#2a1a18', '#3e2620', '#563428', '#6e4632');
+const SROCK = ramp('#262a44', '#363e58', '#4a5472', '#646e8c', '#828ca6');
+const DRYGRASS = ramp('#4a3a32', '#7a6046', '#a88a5e', '#d4b882');
+const FLAGS = [col('#2a6ad8'), col('#f4f0e8'), col('#d03030'), col('#3a9a48'), col('#f2c230')];
+
+/** Settle snow on a sprite: its pixels open to the sky get `depth` px of it, lit on the left, shaded on the right. */
+function snowOn(p: Pix, depth: number, seed: number, snow: Ramp = MSNOW): void {
+  const src = p.buf.slice();
+  const on = (x: number, y: number) => x >= 0 && y >= 0 && x < p.w && y < p.h && src[y * p.w + x] >= 0;
+  for (let x = 0; x < p.w; x++) {
+    let k = 99;
+    for (let y = 0; y < p.h; y++) {
+      if (!on(x, y)) {
+        k = 99;
+        continue;
+      }
+      k = on(x, y - 1) ? k + 1 : 0;
+      if (k >= depth + (hash(x, y, seed) > 0.65 ? 1 : 0)) continue;
+      const v = 0.82 - k * 0.25 + (!on(x - 1, y) ? 0.1 : !on(x + 1, y) ? -0.3 : 0);
+      p.set(x, y, pick(snow, v, x, y));
+    }
+  }
+}
+
+function snowyPine(seed: number, hgt: number, wid: number): Deco {
+  const W = Math.ceil(wid) + 4;
+  const H = hgt + 4;
+  const p = new Pix(W, H, -1);
+  const cx = Math.floor(W / 2);
+  const foot = H - 2;
+  for (let y = foot - 3; y <= foot; y++) p.set(cx, y, SBARK[1]);
+  conifer(p, rng(seed), cx + 0.5, foot - 2, hgt - 2, wid, { ramp: SPINE, seed, bump: 0.1, tex: 0.15, light: 0.04 });
+  snowOn(p, hgt > 12 ? 2 : 1, seed);
+  return deco(p, cx, foot, wid * 0.45, hgt * 0.5, { sway: true, split: 0.4, shadow: [wid * 0.5, 1.5] });
+}
+
+/** A round-crowned fir smothered in snow. */
+function snowyFir(seed: number, rx: number, ry: number): Deco {
+  const trunkH = Math.max(3, Math.round(ry * 0.6));
+  const W = Math.ceil(rx * 2.4) + 4;
+  const H = Math.ceil(ry * 2.3) + trunkH + 3;
+  const p = new Pix(W, H, -1);
+  const cx = W / 2;
+  const cy = ry * 1.15 + 1.5;
+  const foot = H - 2;
+  for (let y = Math.floor(cy); y <= foot; y++) p.set(Math.floor(cx), y, SBARK[1]);
+  mass(p, crown(rng(seed), cx, cy, rx, ry, Math.max(2, rx * 0.4)), { ramp: SPINE, seed, bump: 0.2, tex: 0.22, vgrad: 0.2, shadow: 0.24, form: { x: cx - rx * 0.15, y: cy, rx: rx * 1.15, ry: ry * 1.15 }, formMix: 0.6 });
+  snowOn(p, 2, seed);
+  return deco(p, Math.floor(cx), foot, rx * 0.95, foot - cy, { sway: true, split: 0.42, shadow: [rx * 0.8, Math.max(1.5, ry * 0.3)] });
+}
+
+function snowBoulder(seed: number, rx: number, ry: number, stone: Ramp): Deco {
+  const W = Math.ceil(rx * 2) + 5;
+  const H = Math.ceil(ry) + 4;
+  const p = new Pix(W, H, -1);
+  const foot = H - 2;
+  rock(p, W / 2, foot, rx, ry, stone, stone, col('#000000'), seed);
+  for (let x = 0; x < W; x++) if (p.get(x, foot) === 0) p.set(x, foot, -1);
+  snowOn(p, 1 + (ry > 2.5 ? 1 : 0), seed);
+  return deco(p, Math.floor(W / 2), foot, rx, ry * 0.5, { shadow: [rx, 1] });
+}
+
+function snowBush(seed: number, rx: number): Deco {
+  const W = Math.ceil(rx * 2) + 6;
+  const H = Math.ceil(rx * 1.6) + 4;
+  const p = new Pix(W, H, -1);
+  const cx = W / 2;
+  const foot = H - 2;
+  const bl: Blob[] = [
+    { x: cx - rx * 0.45, y: foot - rx * 0.5, rx: rx * 0.6, ry: rx * 0.5 },
+    { x: cx + rx * 0.45, y: foot - rx * 0.45, rx: rx * 0.58, ry: rx * 0.48 },
+    { x: cx, y: foot - rx * 0.8, rx: rx * 0.62, ry: rx * 0.52 },
+  ];
+  mass(p, bl, { ramp: SPINE, seed, bump: 0.22, tex: 0.25, vgrad: 0.3, light: 0.04, shadow: 0.22 });
+  snowOn(p, 2, seed);
+  return deco(p, Math.floor(cx), foot, rx * 0.9, rx * 0.6, { sway: true, split: 0.45, shadow: [rx * 0.9, 1.2] });
+}
+
+/** A snow drift: a soft mound, lit on top. */
+function driftDeco(seed: number, rx: number, snow: Ramp = MSNOW): Deco {
+  const W = Math.ceil(rx * 2) + 4;
+  const H = Math.ceil(rx * 0.7) + 3;
+  const p = new Pix(W, H, -1);
+  const foot = H - 1;
+  mass(p, [{ x: W / 2, y: foot, rx, ry: rx * 0.55 }], { ramp: snow, seed, bump: 0.06, tex: 0.12, vgrad: 0.4, light: 0.1, shadow: 0 });
+  return deco(p, Math.floor(W / 2), foot, rx * 0.8, 1, { line: false, shadow: [rx * 0.9, 1] });
+}
+
+/** A cairn of flat stones, prayer flags on a pole planted in it. */
+function cairnDeco(seed: number): Deco {
+  const p = new Pix(13, 19, -1);
+  const foot = 17;
+  for (let i = 0; i < 5; i++) {
+    const sw = 7 - i;
+    const y = foot - i * 2;
+    const x0 = 6 - Math.floor(sw / 2) + (i % 2);
+    for (let x = x0; x < x0 + sw; x++) {
+      p.set(x, y, pick(SROCK, 0.8 - ((x - x0) / sw) * 0.6, x, y));
+      p.set(x, y - 1, pick(SROCK, 0.95 - ((x - x0) / sw) * 0.5, x, y - 1));
+    }
+  }
+  snowOn(p, 1, seed);
+  for (let y = 1; y < foot - 8; y++) p.set(6, y, col('#6e4a30'));
+  p.set(6, 0, col('#f2c230'));
+  for (let j = 0; j < 4; j++) {
+    p.set(7 + j, 2 + j, col('#3a2a30'));
+    p.set(7 + j, 3 + j, FLAGS[(j + seed) % FLAGS.length]);
+  }
+  return deco(p, 6, foot, 3, 4, { shadow: [4, 1] });
+}
+
+/** A tall prayer-flag pole: a string of flags sloping down from its top to a stake. */
+function flagPoleDeco(seed: number): Deco {
+  const p = new Pix(17, 18, -1);
+  const foot = 16;
+  for (let y = 1; y <= foot; y++) {
+    p.set(3, y, col('#8a5a34'));
+    p.set(4, y, col('#4e2c16'));
+  }
+  p.set(3, 0, col('#f2c230'));
+  p.set(14, foot, col('#4e2c16'));
+  p.set(14, foot - 1, col('#8a5a34'));
+  for (let x = 5; x <= 14; x++) {
+    const t = (x - 5) / 9;
+    const y = Math.round(2 + t * (foot - 4) + Math.sin(t * Math.PI) * 2);
+    p.set(x, y, col('#3a2a30'));
+    if (x % 2 === 0) {
+      p.set(x, y + 1, FLAGS[(x / 2 + seed) % FLAGS.length]);
+      p.set(x, y + 2, FLAGS[(x / 2 + seed) % FLAGS.length]);
+    }
+  }
+  return deco(p, 4, foot, 3, 6, { shadow: [3, 1] });
+}
+
+/** A stone with a cap of snow, or a few stones. */
+function snowStones(seed: number): Deco {
+  const p = new Pix(9, 6, -1);
+  const r = rng(seed);
+  for (let i = 0; i < 2; i++) {
+    const x = 2 + Math.floor(r() * 4);
+    const y = 3 + Math.floor(r() * 1);
+    p.set(x, y, SROCK[3]);
+    p.set(x + 1, y, SROCK[2]);
+    p.set(x, y + 1, SROCK[1]);
+    p.set(x + 1, y + 1, SROCK[0]);
+    p.set(x, y - 1, MSNOW[5]);
+    p.set(x + 1, y - 1, MSNOW[4]);
+  }
+  return deco(p, 4, 4, 2, 1);
+}
+
+function passKit(): Kit {
+  const big: Deco[] = [];
+  for (let i = 0; i < 6; i++) big.push(snowyPine(900 + i, 12 + (i % 3) * 3, 8 + (i % 3) * 1.5));
+  for (let i = 0; i < 3; i++) big.push(snowyFir(910 + i, 4 + (i % 2) * 1.5, 4 + (i % 2)));
+  const mid: Deco[] = [snowBush(921, 3.2), snowBush(922, 3.8), snowBoulder(931, 3, 3, SROCK), snowBoulder(932, 2.6, 2.4, SROCK), snowBoulder(933, 4, 3, SROCK), driftDeco(941, 5), driftDeco(942, 3.5)];
+  const small: Deco[] = [];
+  for (let i = 0; i < 4; i++) small.push(tuftDeco(950 + i, 2 + (i % 3), DRYGRASS));
+  small.push(snowStones(961), driftDeco(963, 2.5), driftDeco(964, 3));
+  const reed = (seed: number) => {
+    const p = new Pix(5, 7, -1);
+    const r = rng(seed);
+    for (let k = 0; k < 3; k++) {
+      const h = 3 + Math.floor(r() * 3);
+      for (let j = 0; j < h; j++) p.set(1 + k, 5 - j, j === h - 1 ? col('#e8eef8') : j > h / 2 ? DRYGRASS[2] : DRYGRASS[1]);
+    }
+    return deco(p, 2, 5, 1, 2, { sway: true, split: 0.5, line: false });
+  };
+  return { big, mid, small, extra: { reed: [reed(971), reed(972), reed(973)], sign: [signDeco()], cairn: [cairnDeco(0), cairnDeco(2)], pole: [flagPoleDeco(1), flagPoleDeco(3)] } };
+}
+
+// the caves
+const CROCK = ramp('#0c1028', '#141c38', '#1e2a4a', '#2a3a5e', '#3a4e74', '#50668c');
+const CVIOLET = ramp('#22104a', '#3e1c7a', '#6a32b4', '#9a5ce2', '#c89aff', '#ecdcff', '#ffffff');
+const CCYAN = ramp('#0a304e', '#125c80', '#1c94b0', '#46cad8', '#96eef0', '#e2ffff', '#ffffff');
+const CICE = ramp('#1e3a6a', '#2c5488', '#4074a8', '#5e98c4', '#8cc0dc', '#c4e4f0', '#f0fcff');
+
+/** A cluster of glowing crystal (it lights the floor round it: `glow`). */
+function crystalDeco(seed: number, size: number, r: Ramp, glow: Col): Deco {
+  const W = Math.ceil(size * 1.4) + 6;
+  const H = Math.ceil(size) + 4;
+  const p = new Pix(W, H, -1);
+  const foot = H - 2;
+  cluster(p, W / 2, foot, size, r, seed);
+  const d = deco(p, Math.floor(W / 2), foot, size * 0.35, size * 0.4, { shadow: [size * 0.4, 1] });
+  d.glow = glow;
+  return d;
+}
+
+/** A stalagmite of rock or ice rising to a point. */
+function stalagmite(seed: number, hgt: number, wid: number, r: Ramp): Deco {
+  const W = Math.ceil(wid) + 4;
+  const H = hgt + 3;
+  const p = new Pix(W, H, -1);
+  const foot = H - 2;
+  const cx = W / 2;
+  for (let t = 0; t < hgt; t++) {
+    const half = (wid / 2) * (1 - t / hgt) ** 0.8;
+    const y = foot - t;
+    for (let x = Math.floor(cx - half); x <= Math.ceil(cx + half); x++) {
+      const u = (x + 0.5 - cx) / Math.max(0.5, half);
+      if (Math.abs(u) > 1.05) continue;
+      p.set(x, y, pick(r, 0.66 - u * 0.36 + (noise(x * 0.7, y * 0.2, seed) - 0.5) * 0.25 + (half < 0.8 ? 0.2 : 0), x, y));
+    }
+  }
+  return deco(p, Math.floor(cx), foot, wid * 0.45, hgt * 0.4, { shadow: [wid * 0.6, 1] });
+}
+
+/** Pale cave mushrooms, their caps faintly aglow. */
+function capsDeco(seed: number): Deco {
+  const p = new Pix(10, 7, -1);
+  const r = rng(seed);
+  const cap = [col('#3a6a9a'), col('#6aaad0'), col('#b4e8f4')];
+  for (let i = 0; i < 2 + Math.floor(r() * 2); i++) {
+    const x = 2 + i * 3 + Math.floor(r() * 2);
+    const big = i === 0;
+    p.set(x, 5, col('#c8d4e4'));
+    if (big) p.set(x, 4, col('#c8d4e4'));
+    const top = big ? 3 : 4;
+    p.set(x - 1, top, cap[1]);
+    p.set(x, top, cap[2]);
+    p.set(x + 1, top, cap[0]);
+    if (big) p.set(x, top - 1, cap[1]);
+  }
+  const d = deco(p, 5, 5, 3, 1);
+  d.glow = 0x5ab4e0;
+  return d;
+}
+
+function frostPebbles(seed: number): Deco {
+  const p = new Pix(9, 6, -1);
+  const r = rng(seed);
+  for (let i = 0; i < 3; i++) {
+    const x = 2 + Math.floor(r() * 5);
+    const y = 2 + Math.floor(r() * 2);
+    p.set(x, y, CROCK[4]);
+    p.set(x + 1, y, CROCK[3]);
+    p.set(x, y + 1, CROCK[2]);
+    p.set(x + 1, y + 1, CROCK[1]);
+    if (r() < 0.5) p.set(x, y - 1, CICE[5]);
+  }
+  return deco(p, 4, 4, 2, 1);
+}
+
+function cavesKit(): Kit {
+  const big: Deco[] = [
+    crystalDeco(1001, 13, CVIOLET, 0x8a4ad0),
+    crystalDeco(1003, 15, CCYAN, 0x2ab8d0),
+    stalagmite(1011, 15, 7, CROCK),
+    stalagmite(1012, 11, 6, CROCK),
+    stalagmite(1015, 13, 8, CROCK),
+    stalagmite(1016, 9, 6, CROCK),
+    stalagmite(1013, 13, 5, CICE),
+    stalagmite(1014, 9, 4, CICE),
+  ];
+  const mid: Deco[] = [
+    boulder(1021, 3, 2.6, CROCK, CICE, col('#04050e')),
+    boulder(1022, 2.6, 2.2, CROCK, CROCK, col('#04050e')),
+    boulder(1023, 4, 3, CROCK, CICE, col('#04050e')),
+    boulder(1024, 5, 3.4, CROCK, CROCK, col('#04050e')),
+    crystalDeco(1031, 7, CCYAN, 0x2ab8d0),
+    capsDeco(1041),
+    stalagmite(1051, 6, 4, CICE),
+  ];
+  const small: Deco[] = [frostPebbles(1061), frostPebbles(1062), frostPebbles(1063), capsDeco(1064)];
+  return { big, mid, small, extra: { sign: [signDeco()] } };
+}
+
+// the glacier
+const GSPIRE = ramp('#10264a', '#1a3a64', '#285484', '#3c78a2', '#5ea2c2', '#96d0de', '#d4f4f2', '#ffffff');
+const GSNOW = ramp('#4a6890', '#6e8eb0', '#98b6d0', '#c4dcea', '#e8f4fa', '#ffffff');
+const GGOLD = ramp('#5a3410', '#9a5a14', '#d8901c', '#f2c230', '#fff0a0');
+
+function seracDeco(seed: number, hgt: number, wid: number, cut: number): Deco {
+  const W = wid + 6;
+  const H = hgt + Math.abs(cut) + 6;
+  const p = new Pix(W, H, -1);
+  const foot = H - 2;
+  serac(p, W / 2, foot, hgt, wid, cut, GSPIRE, GSNOW, seed);
+  return deco(p, Math.floor(W / 2), foot, wid * 0.45, hgt * 0.45, { shadow: [wid * 0.6, 1.5] });
+}
+
+function iceBoulder(seed: number, rx: number, ry: number): Deco {
+  const W = Math.ceil(rx * 2) + 5;
+  const H = Math.ceil(ry) + 4;
+  const p = new Pix(W, H, -1);
+  const foot = H - 2;
+  rock(p, W / 2, foot, rx, ry, GSPIRE, GSNOW, col('#000000'), seed);
+  for (let x = 0; x < W; x++) if (p.get(x, foot) === 0) p.set(x, foot, -1);
+  return deco(p, Math.floor(W / 2), foot, rx, ry * 0.5, { shadow: [rx, 1] });
+}
+
+/** Something of the hoard sealed in a block of ice: a chest, or a spill of coins with a goblet. */
+function hoardIce(seed: number, chest: boolean): Deco {
+  const p = new Pix(13, 12, -1);
+  const foot = 10;
+  // a block of ice: a bright top face, a front face, a shaded side
+  for (let y = 1; y <= foot; y++)
+    for (let x = 1; x <= 11; x++) {
+      const top = y <= 3 && x >= 5 - y && x <= 12 - y;
+      const side = x >= 9 && y >= 12 - x - 8 + 0 && y >= 4 - (x - 8) && y <= 10 - (x - 8);
+      const front = y >= 4 && x <= 8;
+      if (!top && !side && !front) continue;
+      const v = (top ? 0.85 : front ? 0.55 : 0.32) + (noise(x * 0.7, y * 0.7, seed) - 0.5) * 0.15 + (front && x === 1 ? 0.15 : 0);
+      p.set(x, y, pick(GSPIRE, v, x, y));
+    }
+  const dim = (c: Col) => mix(c, GSPIRE[3], 0.35);
+  if (chest) stampPix(p, ['hhhh', 'gGgg', 'hkhh', 'dddd'], { h: dim(col('#8e5a2e')), g: dim(GGOLD[3]), G: dim(GGOLD[4]), k: dim(col('#2a1810')), d: dim(col('#4e2c16')) }, 3, 5);
+  else stampPix(p, ['.G..', 'gyg.', 'GygG', 'gygg'], { g: dim(GGOLD[3]), G: dim(GGOLD[4]), y: dim(GGOLD[2]) }, 3, 5);
+  const d = deco(p, 6, foot, 4, 3, { shadow: [5, 1] });
+  d.glow = 0xffd860;
+  return d;
+}
+
+function iceShards(seed: number): Deco {
+  const p = new Pix(10, 8, -1);
+  const r = rng(seed);
+  for (let i = 0; i < 3; i++) shard(p, 2 + i * 3 + r(), 6, 2 + Math.floor(r() * 3), 2, (r() - 0.5) * 0.6, GSPIRE, 0.05);
+  return deco(p, 5, 6, 2, 1);
+}
+
+function glacierKit(): Kit {
+  const big: Deco[] = [seracDeco(1101, 16, 8, 4), seracDeco(1102, 12, 7, -4), seracDeco(1103, 20, 9, 5), seracDeco(1104, 10, 6, -3), seracDeco(1105, 14, 7, 3)];
+  const mid: Deco[] = [iceBoulder(1111, 3, 2.6), iceBoulder(1112, 4, 3), iceBoulder(1113, 2.6, 2.2), driftDeco(1121, 5, GSNOW), driftDeco(1122, 3.5, GSNOW), hoardIce(1131, true), seracDeco(1141, 6, 5, 2), seracDeco(1142, 8, 5, -2)];
+  const small: Deco[] = [iceShards(1151), iceShards(1152), iceShards(1153), driftDeco(1154, 2.5, GSNOW), hoardIce(1132, false)];
+  return { big, mid, small, extra: { sign: [signDeco()] } };
+}
+
+// ------------------------------------------------------------------ the Frostpeaks' ground and roads
+
+const PSNOW = ramp('#626ca4', '#7a84b8', '#949ec8', '#aeb8d8', '#c6cee6', '#dce2f0', '#eef2f8', '#fcfbf6');
+const PTRAIL = ramp('#363e6c', '#444e7e', '#545f90', '#6672a2', '#7e8ab4', '#9aa4c6');
+const CFLOOR = ramp('#0a1024', '#10182e', '#16203a', '#1e2a48', '#283656', '#344466', '#425478');
+const CPATH = ramp('#283456', '#323f66', '#3e4e78', '#4c5e88', '#5c7098', '#7286aa');
+const GICE = ramp('#24426e', '#305684', '#3e6c9a', '#5086b0', '#6aa2c4', '#8cbed6', '#b4d8e6', '#dcf0f6');
+const GTRAIL = ramp('#2e486e', '#3a5880', '#486a92', '#5a7ea4', '#7294b6', '#8eacc8');
+
+function groundPass(p: Pix, c: Ctx): void {
+  const rocky = (x: number, y: number) => fbm(x * 0.08, y * 0.11, c.seed + 7) > 0.77;
+  for (let y = 0; y < c.H; y++)
+    for (let x = 0; x < c.W; x++) {
+      if (rocky(x, y)) {
+        // rock breaking through the snow, snow on its upper edge
+        p.set(x, y, rocky(x, y - 1) ? pick(SROCK, 0.55 - (rocky(x + 1, y) ? 0 : 0.25) + (noise(x * 0.5, y * 0.5, 3) - 0.5) * 0.3, x, y) : MSNOW[4]);
+        continue;
+      }
+      let v = 0.56 + (fbm(x * 0.04, y * 0.06, c.seed) - 0.5) * 0.6 + (sun(c, x, y) - 0.5) * 0.5;
+      // wind ripples combed into the snow
+      const rip = Math.sin(x * 0.33 + y * 0.85 + fbm(x * 0.05, y * 0.05, c.seed + 3) * 5);
+      if (rip > 0.88) v += 0.08;
+      else if (rip < -0.92) v -= 0.1;
+      let k = pick(PSNOW, v, x, y, 0.3);
+      if (hash(x, y, c.seed + 1) < 0.0015) k = DRYGRASS[2]; // a stalk poking through
+      p.set(x, y, k);
+    }
+}
+
+function roadsPass(p: Pix, c: Ctx): void {
+  const R = c.road;
+  const W = c.W;
+  paintRoads(
+    p,
+    c,
+    (x, y, clr) => {
+      const up = y > 0 && !R[(y - 1) * W + x];
+      const down = y < c.H - 1 && !R[(y + 1) * W + x];
+      let v = (clr ? 0.6 : 0.52) + (noise(x * 0.4, y * 0.4, 7) - 0.5) * 0.25 + (sun(c, x, y) - 0.5) * 0.25;
+      if (up) v -= 0.36;
+      else if (down) v += 0.2;
+      if (!clr && hash(x, y, 71) > 0.93) v -= 0.22; // footprints
+      return pick(PTRAIL, v, x, y, 0.2);
+    },
+    (k) => mix(k, col('#3e4880'), 0.3),
+  );
+}
+
+function groundCaves(p: Pix, c: Ctx): void {
+  for (let y = 0; y < c.H; y++)
+    for (let x = 0; x < c.W; x++) {
+      let v = 0.42 + (fbm(x * 0.05, y * 0.07, c.seed) - 0.5) * 0.7 + (sun(c, x, y) - 0.5) * 0.12;
+      // cracks between slabs of rock
+      const crack = Math.abs(noise(x * 0.07, y * 0.1, c.seed + 5) - 0.5);
+      if (crack < 0.025) v -= 0.3;
+      else if (crack < 0.045) v += 0.1;
+      let k = pick(CFLOOR, v, x, y, 0.3);
+      // patches of frost
+      const frost = fbm(x * 0.06, y * 0.09, c.seed + 9);
+      if (frost > 0.64 && hash(x, y, c.seed + 2) < (frost - 0.64) * 3) k = hash(x, y, c.seed + 3) > 0.5 ? CICE[2] : CICE[1];
+      p.set(x, y, k);
+    }
+}
+
+function roadsCaves(p: Pix, c: Ctx): void {
+  const R = c.road;
+  const W = c.W;
+  paintRoads(
+    p,
+    c,
+    (x, y, clr) => {
+      const up = y > 0 && !R[(y - 1) * W + x];
+      // worn flat stones, a dark seam between them
+      const cell = Math.floor((x + Math.floor(y / 3) * 2) / 4) * 13 + Math.floor(y / 3);
+      const seam = (x + Math.floor(y / 3) * 2) % 4 === 0 || y % 3 === 0;
+      let v = (clr ? 0.6 : 0.52) + (hash(cell, 1, 17) - 0.5) * 0.25 + (sun(c, x, y) - 0.5) * 0.15;
+      if (seam) v -= 0.2;
+      if (up) v -= 0.25;
+      if (hash(x, y, 19) > 0.95) return CICE[3]; // frost in the seams
+      return pick(CPATH, v, x, y, 0.2);
+    },
+    (k) => mix(k, col('#05060f'), 0.3),
+  );
+}
+
+function groundGlacier(p: Pix, c: Ctx): void {
+  for (let y = 0; y < c.H; y++)
+    for (let x = 0; x < c.W; x++) {
+      const s = fbm(x * 0.03, y * 0.05, c.seed + 4) + (sun(c, x, y) - 0.5) * 0.15;
+      let k: Col;
+      if (s > 0.5) {
+        // snow lying on the glacier
+        const v = 0.55 + (s - 0.5) * 1.2 + (sun(c, x, y) - 0.5) * 0.4 + (noise(x * 0.3, y * 0.3, c.seed) - 0.5) * 0.12;
+        k = pick(GSNOW, v, x, y, 0.3);
+      } else {
+        // bare blue ice: glossy streaks, fine cracks
+        let v = 0.45 + (sun(c, x, y) - 0.5) * 0.4 + (noise(x * 0.08, y * 0.5, c.seed + 6) - 0.5) * 0.3;
+        if (Math.sin(x * 0.2 - y * 0.35 + noise(x * 0.05, y * 0.05, c.seed) * 4) > 0.9) v += 0.25;
+        if (Math.abs(noise(x * 0.12, y * 0.12, c.seed + 8) - 0.5) < 0.02) v -= 0.25;
+        if (s > 0.46) v += 0.15; // the snow's thin edge
+        k = pick(GICE, v, x, y, 0.3);
+      }
+      p.set(x, y, k);
+    }
+}
+
+function roadsGlacier(p: Pix, c: Ctx): void {
+  const R = c.road;
+  const W = c.W;
+  paintRoads(
+    p,
+    c,
+    (x, y, clr) => {
+      const up = y > 0 && !R[(y - 1) * W + x];
+      const down = y < c.H - 1 && !R[(y + 1) * W + x];
+      let v = (clr ? 0.6 : 0.52) + (noise(x * 0.4, y * 0.4, 9) - 0.5) * 0.22 + (sun(c, x, y) - 0.5) * 0.3;
+      if (up) v -= 0.36;
+      else if (down) v += 0.2;
+      if (!clr && hash(x, y, 73) > 0.93) v -= 0.2;
+      return pick(GTRAIL, v, x, y, 0.2);
+    },
+    (k) => mix(k, col('#2a3a68'), 0.22),
+  );
+}
+
+// ------------------------------------------------------------------ the Frostpeaks' landmarks
+
+function decorPass(c: Ctx): void {
+  const k = kit('pass');
+  const { extra } = k;
+  // cairns and prayer-flag poles in the roomiest spots
+  for (let i = 0; i < 2; i++) {
+    const s = roomFor(c, 16, 22, 3);
+    if (s) claim(c, extra.pole[i % 2], s[0], s[1]);
+  }
+  // a cairn beside some of the clearings
+  c.spec.pads.forEach((pd, i) => {
+    if (pd.start || hash(i, 3, c.seed) < 0.6) return;
+    const d = extra.cairn[i % 2];
+    for (const side of hash(i, 4, c.seed) < 0.5 ? [-1, 1] : [1, -1]) {
+      const x = pd.x + side * (pd.r + 5);
+      const y = pd.y;
+      if (fits(c, d, x, y)) {
+        claim(c, d, x, y);
+        break;
+      }
+    }
+  });
+  // dry reeds along the frozen creek
+  const r = rng(c.seed + 5);
+  for (const [x, y] of c.land.water)
+    if (r() < 0.1) {
+      const side = r() < 0.5 ? -4 : 4;
+      const d = pickOf(extra.reed, r);
+      const xx = Math.round(x + side);
+      if (!c.road[at(c, xx, y)] && distAt(c, xx, y + 3) > 0) c.items.push({ x: xx, y: Math.round(y) + 2, d, ph: Math.floor(r() * 4) });
+    }
+  const clump = (x: number, y: number) => fbm(x * 0.035, y * 0.05, c.seed + 9) > 0.55;
+  scatter(c, k, {
+    big: (x, y) => Math.max(edgy(c, x, y) * 0.9, clump(x, y) ? 0.75 : 0.1),
+    mid: (x, y) => (clump(x, y) ? 0.4 : 0.22),
+    small: () => 0.28,
+    step: 7,
+  });
+}
+
+/** Pools of black ice in the cave floor (open water for the critters: cave fish live in them). */
+function icePools(p: Pix, c: Ctx): void {
+  const lake = ramp('#060a1e', '#0a1430', '#122244', '#1c3458', '#2a4a70', '#4a74a0', '#8ab8d8');
+  for (let i = 0; i < 3; i++) {
+    const s = roomFor(c, 24, 13, 3, [c.W / 2, c.H / 2 + 8], 56);
+    if (!s) break;
+    const [cx, fy] = s;
+    const cy = fy - 6;
+    const rx = 10 + hash(i, 1, c.seed) * 3;
+    const ry = 5;
+    for (let y = Math.floor(cy - ry - 1); y <= cy + ry + 1; y++)
+      for (let x = Math.floor(cx - rx - 1); x <= cx + rx + 1; x++) {
+        if (x < 0 || y < 0 || x >= c.W || y >= c.H) continue;
+        const d = ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 + (noise(x * 0.3, y * 0.3, c.seed + i) - 0.5) * 0.25;
+        if (d > 1.25) continue;
+        if (d > 1) {
+          p.set(x, y, hash(x, y, 3) > 0.4 ? CICE[4] : CICE[3]); // a rim of frost
+          continue;
+        }
+        let v = 0.3 + (1 - d) * 0.2 + ((y + 0.5 - cy) / ry) * 0.1;
+        if (noise(x * 0.2, y * 0.8, c.seed + 4) > 0.7) v += 0.3; // sheen
+        p.set(x, y, pick(lake, v, x, y, 0.3));
+        if (d < 0.8) c.water[y * c.W + x] = 1;
+      }
+    c.land.pools.push([Math.round(cx), Math.round(cy)]);
+    reserve(c, cx - rx - 2, cy - ry - 2, rx * 2 + 4, ry * 2 + 4);
+    c.dist = distField(c.block, c.W, c.H);
+  }
+}
+
+function decorCaves(c: Ctx): void {
+  const k = kit('caves');
+  const clump = (x: number, y: number) => fbm(x * 0.04, y * 0.05, c.seed + 9) > 0.55;
+  scatter(c, k, {
+    big: (x, y) => Math.max(edgy(c, x, y) * 0.8, clump(x, y) ? 0.45 : 0.05),
+    mid: (x, y) => (clump(x, y) ? 0.4 : 0.2),
+    small: () => 0.3,
+    step: 7,
+  });
+}
+
+/** Crevasses across the glacier's open ice: long dark cracks with a lit lower lip, kept off the roads. */
+function crevasses(p: Pix, c: Ctx): void {
+  const r = rng(c.seed + 23);
+  for (let i = 0; i < 9; i++) {
+    let x = r() * c.W;
+    let y = 14 + r() * (c.H - 28);
+    let ang = (r() - 0.5) * 0.8;
+    const len = 14 + r() * 26;
+    for (let k = 0; k < len; k++) {
+      const ix = Math.round(x);
+      const iy = Math.round(y);
+      if (ix < 1 || iy < 1 || ix >= c.W - 1 || iy >= c.H - 2 || distAt(c, ix, iy) < 3) break;
+      const wide = k > 2 && k < len - 3 && Math.sin((k / len) * Math.PI) > 0.5;
+      p.set(ix, iy, col('#0a1430'));
+      if (wide) p.set(ix, iy - 1, col('#16284c'));
+      p.set(ix, iy + 1, GICE[6]);
+      x += Math.cos(ang);
+      y += Math.sin(ang) * 0.5;
+      ang += (r() - 0.5) * 0.5;
+    }
+  }
+}
+
+function decorGlacier(c: Ctx): void {
+  const k = kit('glacier');
+  const clump = (x: number, y: number) => fbm(x * 0.04, y * 0.05, c.seed + 9) > 0.56;
+  scatter(c, k, {
+    big: (x, y) => Math.max(edgy(c, x, y) * 0.75, clump(x, y) ? 0.5 : 0.06),
+    mid: (x, y) => (clump(x, y) ? 0.4 : 0.2),
+    small: () => 0.25,
+    step: 7,
+  });
+}
+
+const KITS: Record<Theme, () => Kit> = { forest: forestKit, ruins: ruinsKit, hollow: hollowKit, pass: passKit, caves: cavesKit, glacier: glacierKit };
+
 function kit(theme: Theme): Kit {
-  return (kits[theme] ??= theme === 'forest' ? forestKit() : theme === 'ruins' ? ruinsKit() : hollowKit());
+  return (kits[theme] ??= KITS[theme]());
 }
 
 // ------------------------------------------------------------------ ground and roads per theme
@@ -1451,7 +2257,14 @@ function distToEdge(c: Ctx, x: number, y: number): number {
 
 // ------------------------------------------------------------------ the forest stream
 
-function stream(p: Pix, c: Ctx): void {
+/** The stream's colours: the water, its banks and the stones in them (the pass's is frozen). */
+interface StreamLook {
+  water: Ramp;
+  bank: Ramp;
+  stone: Ramp;
+}
+
+function stream(p: Pix, c: Ctx, look: StreamLook = { water: WATER, bank: DIRT, stone: ROCK_R }): void {
   const cols = c.spec.cols;
   if (cols.length < 4) return;
   const ph0 = hash(c.seed, 1, 1) * 6;
@@ -1507,13 +2320,13 @@ function stream(p: Pix, c: Ctx): void {
       const d = (x + 0.5 - m) / 2.6;
       if (w === 2) {
         // muddy banks with a stone here and there, darker on the shaded (right) side
-        p.set(x, y, hash(x, y, 4) > 0.8 ? ROCK_R[d < 0 ? 2 : 1] : DIRT[d < 0 ? 2 : 1]);
+        p.set(x, y, hash(x, y, 4) > 0.8 ? look.stone[d < 0 ? 2 : 1] : look.bank[d < 0 ? 2 : 1]);
         continue;
       }
       let v = 0.55 - Math.abs(d) * 0.1 + (d < -0.6 ? -0.25 : d > 0.6 ? 0.1 : 0);
       // ripples: short light dashes across the current
       if (noise(x * 0.5, y * 0.35, 12) > 0.68) v += 0.3;
-      p.set(x, y, pick(WATER, v, x, y, 0.2));
+      p.set(x, y, pick(look.water, v, x, y, 0.2));
     }
 }
 
@@ -1679,6 +2492,7 @@ const pickOf = <T,>(list: T[], r: () => number): T => list[Math.floor(r() * list
 
 /** The theme's light over the finished frame: a soft vignette, dusk blue for the ruins, the sunset for the hollow. */
 function lightFrame(p: Pix, c: Ctx, theme: Theme): void {
+  if (theme === 'pass' || theme === 'caves' || theme === 'glacier') return frostLight(p, c, theme);
   const { W, H } = c;
   const edge = theme === 'forest' ? col('#14321e') : theme === 'ruins' ? col('#0a1020') : col('#1a0818');
   const warm = col('#ffb060');
@@ -1698,6 +2512,33 @@ function lightFrame(p: Pix, c: Ctx, theme: Theme): void {
     }
 }
 
+/** The Frostpeaks' light: the pass's veiled sun warm on the top left, cool violet shade in the far corner; the caves
+ *  deep in shadow but for what glows; the glacier's night, the aurora washing green over the top. */
+function frostLight(p: Pix, c: Ctx, theme: 'pass' | 'caves' | 'glacier'): void {
+  const { W, H } = c;
+  const edge = theme === 'pass' ? col('#262a58') : theme === 'caves' ? col('#03040c') : col('#050a1e');
+  const amt = theme === 'pass' ? 0.38 : theme === 'caves' ? 0.62 : 0.5;
+  const reach = theme === 'caves' ? 22 : 16;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const e = clamp01(1 - Math.min(x / reach, (W - 1 - x) / reach, y / (reach * 0.75), (H - 1 - y) / (reach * 0.75)));
+      let k = p.get(x, y);
+      if (e > 0 && e * e > bay(x, y) * 0.9) k = mix(k, edge, e * amt);
+      const s = sun(c, x, y);
+      if (theme === 'pass') {
+        if (s > 0.66 && (s - 0.66) * 3 > bay(x, y)) k = lighten(k, col('#ffe4c8'), 0.06);
+        if (s < 0.38 && (0.38 - s) * 3 > bay(x, y)) k = mix(k, col('#3a3e80'), 0.14);
+      } else if (theme === 'caves') k = mix(k, col('#080a22'), 0.12);
+      else {
+        // night on the glacier: the snow goes blue, the aurora washes the top of the map green
+        k = mix(k, col('#101c48'), 0.24);
+        const a = clamp01(1 - y / 50);
+        if (a > 0 && a * 0.9 > bay(x, y)) k = mix(k, col('#5ae0a8'), 0.12 * a);
+      }
+      p.set(x, y, k);
+    }
+}
+
 /** Foreground foliage framing the screen: dark leaf masses overhanging the top and bottom edges and corners. */
 function frameEdges(p: Pix, c: Ctx, theme: Theme): void {
   const { W, H } = c;
@@ -1706,7 +2547,13 @@ function frameEdges(p: Pix, c: Ctx, theme: Theme): void {
       ? ramp('#0a1a14', '#10261a', '#183420', '#224628', '#2e5a30')
       : theme === 'ruins'
         ? ramp('#04080c', '#081016', '#0e1a20', '#16262a', '#203634')
-        : ramp('#12060e', '#200a14', '#34101a', '#4e1a1e', '#6e2a22');
+        : theme === 'hollow'
+          ? ramp('#12060e', '#200a14', '#34101a', '#4e1a1e', '#6e2a22')
+          : theme === 'pass'
+            ? ramp('#080e18', '#0e1822', '#142428', '#1c3230', '#284238')
+            : theme === 'caves'
+              ? ramp('#020208', '#05060f', '#0a0c1c', '#10142a', '#1a2040')
+              : ramp('#060c1c', '#0c162c', '#14223c', '#1e3250', '#2a4464');
   const r = rng(c.seed + 41);
   const blobs: Blob[] = [];
   // along the bottom edge: low clumps poking up; along the top: hanging canopy; heavier in the corners
@@ -1729,7 +2576,15 @@ function frameEdges(p: Pix, c: Ctx, theme: Theme): void {
     const cy = Math.max(0, Math.min(H - 1, b.y));
     return c.dist[at(c, cx, cy)] > Math.max(b.rx, b.ry) + 2;
   });
-  mass(p, ok, { ramp: leaf, seed: c.seed + 3, bump: 0.22, tex: 0.3, vgrad: 0.2, light: -0.05, shadow: 0.3, outline: INK });
+  if (theme === 'pass' || theme === 'glacier') {
+    // snowy boughs in the pass, drifts heaped over ice on the glacier: snow settled on their tops
+    const q = new Pix(W, H, -1);
+    mass(q, ok, { ramp: leaf, seed: c.seed + 3, bump: theme === 'pass' ? 0.22 : 0.08, tex: 0.3, vgrad: 0.2, light: -0.05, shadow: 0.3, outline: INK });
+    snowOn(q, 2, c.seed, theme === 'pass' ? ramp('#3a4270', '#5a64a0', '#8a94c4', '#b4bedc') : ramp('#2a4468', '#46668c', '#7092b4', '#a0bed4'));
+    blit(p, q, 0, 0);
+    return;
+  }
+  mass(p, ok, { ramp: leaf, seed: c.seed + 3, bump: theme === 'caves' ? 0.12 : 0.22, tex: 0.3, vgrad: 0.2, light: -0.05, shadow: 0.3, outline: INK });
 }
 
 // ------------------------------------------------------------------ paint
@@ -1737,7 +2592,7 @@ function frameEdges(p: Pix, c: Ctx, theme: Theme): void {
 export function paintLand(spec: LandSpec): Land {
   const W = spec.w;
   const H = spec.h;
-  const land: Land = { frames: [], flames: [], smoke: [], mills: [], water: [], spots: [], ground: new Uint8Array(W * H) };
+  const land: Land = { frames: [], flames: [], smoke: [], mills: [], water: [], glows: [], pools: [], spots: [], ground: new Uint8Array(W * H) };
   const road = new Uint8Array(W * H);
   const mark = (x: number, y: number, v: number) => {
     if (x >= 0 && y >= 0 && x < W && y < H && road[y * W + x] !== 2) road[y * W + x] = v;
@@ -1763,14 +2618,24 @@ export function paintLand(spec: LandSpec): Land {
     groundForest(base, c);
     stream(base, c);
   } else if (spec.theme === 'ruins') groundRuins(base, c);
-  else groundHollow(base, c);
+  else if (spec.theme === 'hollow') groundHollow(base, c);
+  else if (spec.theme === 'pass') {
+    groundPass(base, c);
+    stream(base, c, { water: ramp('#5a7cb0', '#7aa0cc', '#9cc2e0', '#bcdcee', '#dcf0f8', '#f8feff'), bank: MSNOW, stone: SROCK });
+  } else if (spec.theme === 'caves') groundCaves(base, c);
+  else groundGlacier(base, c);
   for (let i = 0; i < c.block.length; i++) c.block[i] = road[i] || c.water[i] ? 1 : 0;
   c.dist = distField(c.block, W, H);
   if (spec.theme === 'forest') {
     roadsForest(base, c);
     bridges(base, c);
   } else if (spec.theme === 'ruins') roadsRuins(base, c);
-  else roadsHollow(base, c);
+  else if (spec.theme === 'hollow') roadsHollow(base, c);
+  else if (spec.theme === 'pass') {
+    roadsPass(base, c);
+    bridges(base, c);
+  } else if (spec.theme === 'caves') roadsCaves(base, c);
+  else roadsGlacier(base, c);
 
   // from here on, the icons, their labels and the lair are off limits too
   for (const z of spec.zones) reserve(c, z.x, z.y, z.w, z.h);
@@ -1781,12 +2646,28 @@ export function paintLand(spec: LandSpec): Land {
   if (start) put(c, sign, start.x - start.r + 1, start.y - 3);
   if (spec.theme === 'forest') decorForest(c);
   else if (spec.theme === 'ruins') decorRuins(c);
-  else decorHollow(c);
+  else if (spec.theme === 'hollow') decorHollow(c);
+  else if (spec.theme === 'pass') decorPass(c);
+  else if (spec.theme === 'caves') {
+    icePools(base, c);
+    decorCaves(c);
+  } else {
+    crevasses(base, c);
+    decorGlacier(c);
+  }
 
   // braziers light the stones around them
   for (const [x, y] of land.flames) torchLight(base, x, y + 3, 14, 9, col('#ff9040'), 0.35);
+  // glowing scenery pools its light round it (and pulses on the map: land.glows)
+  for (const it of c.items)
+    if (it.d.glow !== undefined) {
+      const big = it.d.r > 3;
+      torchLight(base, it.x, it.y - 1, big ? 16 : 9, big ? 9 : 5, it.d.glow, big ? 0.32 : 0.22);
+      land.glows.push([it.x, it.y - Math.round(it.d.cy), it.d.glow]);
+    }
   // cast shadows, then the scenery in depth order
-  const shade = spec.theme === 'forest' ? col('#16301e') : spec.theme === 'ruins' ? col('#080c14') : col('#14060e');
+  const SHADE: Record<Theme, string> = { forest: '#16301e', ruins: '#080c14', hollow: '#14060e', pass: '#3a4280', caves: '#02030a', glacier: '#0a1430' };
+  const shade = col(SHADE[spec.theme]);
   const sx = spec.theme === 'hollow' ? 2 : 1;
   for (const it of c.items) if (it.d.shadow) shadowAt(base, it.x + sx, it.y, it.d.shadow[0], it.d.shadow[1], 0.35, shade);
   c.items.sort((a, b) => a.y - b.y || a.x - b.x);
@@ -1862,9 +2743,9 @@ export function buildMapArt(add: Add, w: number, h: number): void {
   add('mn_flag', prop(FLAG));
   add('mn_skull', prop(SKULL));
   // the bosses' lairs
-  for (const theme of ['forest', 'ruins', 'hollow'] as Theme[]) {
+  for (const theme of THEMES) {
     const l = LAIRS[theme]();
-    LAIR_SPOTS[theme] = { flames: l.flames, glows: l.glows };
+    LAIR_SPOTS[theme] = { flames: l.flames, glows: l.glows, glow: l.glow };
     add(`maplair_${theme}`, l.canvas);
   }
   // critters, sails, cloud shadows and fog

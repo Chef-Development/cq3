@@ -10,11 +10,18 @@
 // dithering is only used for broad gradients: sky, mist, light shafts and torch light.
 import type Phaser from 'phaser';
 
-export type Theme = 'forest' | 'ruins' | 'hollow';
-export const THEMES: Theme[] = ['forest', 'ruins', 'hollow'];
+export type Theme = 'forest' | 'ruins' | 'hollow' | 'pass' | 'caves' | 'glacier';
+export const THEMES: Theme[] = ['forest', 'ruins', 'hollow', 'pass', 'caves', 'glacier'];
+/** Greenmarch's themes are painted at boot (buildBackdrops); the Frostpeaks' (backdrop-frost.ts) the first time an
+ *  act needs one (Stage.ensure). */
+export const BOOT_THEMES: Theme[] = ['forest', 'ruins', 'hollow'];
 
 export interface Backdrop {
   torches: Array<{ x: number; y: number }>; // flame base, game px
+  /** Spots that twinkle now and then (ice, crystals, a hoard's gold), with their colour. */
+  glints?: Array<{ x: number; y: number; c: number }>;
+  /** Icicle tips where drops gather and fall. */
+  drips?: Array<{ x: number; y: number }>;
 }
 
 // ------------------------------------------------------------------ colour + noise toolkit (also used by art-world.ts)
@@ -312,7 +319,7 @@ export function conifer(p: Pix, rnd: () => number, cx: number, base: number, hgt
   mass(p, out, { form: { x: cx - wid * 0.1, y: base - hgt * 0.5, rx: wid * 0.6, ry: hgt * 0.6 }, formMix: 0.6, ...o });
 }
 
-interface TrunkOpts {
+export interface TrunkOpts {
   ramp: Ramp;
   seed: number;
   outline?: Col;
@@ -322,7 +329,7 @@ interface TrunkOpts {
 }
 
 /** Tree trunk lit from the left with vertical bark grooves, optional moss and a root flare. */
-function trunk(p: Pix, cx0: number, yTop: number, yBot: number, wTop: number, wBot: number, lean: number, o: TrunkOpts): void {
+export function trunk(p: Pix, cx0: number, yTop: number, yBot: number, wTop: number, wBot: number, lean: number, o: TrunkOpts): void {
   for (let y = Math.floor(yTop); y < yBot; y++) {
     const t = (y - yTop) / Math.max(1, yBot - yTop);
     const cx = cx0 + lean * t + (noise(y * 0.07, 1, o.seed) - 0.5) * (o.wobble ?? 3);
@@ -345,7 +352,7 @@ function trunk(p: Pix, cx0: number, yTop: number, yBot: number, wTop: number, wB
 }
 
 /** A root curling out from a trunk base. */
-function root(p: Pix, x: number, y: number, dir: number, len: number, r: Ramp, outline: Col): void {
+export function root(p: Pix, x: number, y: number, dir: number, len: number, r: Ramp, outline: Col): void {
   for (let i = 0; i < len; i++) {
     const yy = y + Math.round((i / len) ** 1.6 * 4);
     const th = i < len * 0.5 ? 2 : 1;
@@ -425,7 +432,7 @@ export function rock(p: Pix, cx: number, base: number, rx: number, ry: number, r
 }
 
 /** Light shafts from the top left: solid cores with ordered-dither edges that lift the colours below. */
-function shafts(p: Pix, list: Array<[number, number, number]>, slope: number, y0: number, y1: number, to: Col, amt: number): void {
+export function shafts(p: Pix, list: Array<[number, number, number]>, slope: number, y0: number, y1: number, to: Col, amt: number): void {
   for (let y = y0; y < y1; y++) {
     const f = Math.min(1, (y - y0 + 2) / 10, ((y1 - y) / (y1 - y0)) * 2.2);
     for (const [sx, sw, sa] of list) {
@@ -451,7 +458,7 @@ export function torchLight(p: Pix, cx: number, cy: number, rx: number, ry: numbe
 }
 
 /** Hanging vine / moss strand with leaf pairs. */
-function vine(p: Pix, x: number, y: number, len: number, r: Ramp, seed: number): void {
+export function vine(p: Pix, x: number, y: number, len: number, r: Ramp, seed: number): void {
   for (let i = 0; i < len; i++) {
     const vx = x + Math.round(Math.sin(i * 0.45 + seed) * 0.8);
     p.set(vx, y + i, i % 3 === 0 ? r[2] : r[1]);
@@ -464,7 +471,7 @@ function vine(p: Pix, x: number, y: number, len: number, r: Ramp, seed: number):
 }
 
 /** Heavy leaf canopy over a top corner (dir = 1: left corner, -1: right), with hanging vines. */
-function cornerCanopy(p: Pix, cx: number, dir: number, reach: number, seed: number, leaf: Ramp, vines: Ramp): void {
+export function cornerCanopy(p: Pix, cx: number, dir: number, reach: number, seed: number, leaf: Ramp, vines: Ramp): void {
   const r2 = rng(seed);
   const bl: Blob[] = [];
   for (let i = 0; i < 30; i++) {
@@ -494,7 +501,7 @@ function cornerCanopy(p: Pix, cx: number, dir: number, reach: number, seed: numb
 }
 
 /** Shade what was painted since `before` between y0 and y1, deepest at y1 (the foot of a tree line). */
-function understory(p: Pix, before: Int32Array, y0: number, y1: number, to: Col, amt: number, base = 0): void {
+export function understory(p: Pix, before: Int32Array, y0: number, y1: number, to: Col, amt: number, base = 0): void {
   for (let y = Math.max(0, y0); y < Math.min(p.h, y1 + 4); y++) {
     const k = base + (amt - base) * Math.pow(clamp01((y - y0) / (y1 - y0)), 1.4);
     for (let x = 0; x < p.w; x++) {
@@ -505,7 +512,7 @@ function understory(p: Pix, before: Int32Array, y0: number, y1: number, to: Col,
 }
 
 /** Pixels that changed since `before` (the framing layer, drawn again above the drifting clouds). */
-function changed(p: Pix, before: Int32Array): Pix {
+export function changed(p: Pix, before: Int32Array): Pix {
   const f = new Pix(p.w, p.h, -1);
   for (let i = 0; i < p.buf.length; i++) if (p.buf[i] !== before[i]) f.buf[i] = p.buf[i];
   return f;
@@ -1281,7 +1288,7 @@ function ruins(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
 // ------------------------------------------------------------------ hollow (Level 3): the Boar King's den at sunset
 
 /** A small hand-drawn bit (bones, a tusk) stamped into a backdrop; '.' is transparent. */
-function bits(p: Pix, rows: string[], pal: Record<string, Col>, x: number, y: number): void {
+export function bits(p: Pix, rows: string[], pal: Record<string, Col>, x: number, y: number): void {
   rows.forEach((r, j) => [...r].forEach((ch, i) => ch !== '.' && pal[ch] !== undefined && p.set(x + i, y + j, pal[ch])));
 }
 
@@ -1742,9 +1749,9 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
 export const FG_OVERLAP = 4;
 /** The foreground sways through these frames (blade tips lean -1, 0, +1 px in a wave along the strip). */
 export const FG_FRAMES = 4;
-const SWAY = [0, 1, 0, -1];
+export const SWAY = [0, 1, 0, -1];
 
-interface FgLook {
+export interface FgLook {
   blade: Ramp; // base -> lit tip
   rim: Col; // the lit tip / top-left edge
   bush: Ramp;
@@ -1752,7 +1759,7 @@ interface FgLook {
 }
 
 /** One blade of grass (or a dry stalk): 1-2 px wide, curving with `lean`, its tip pushed by `sway`. */
-function blade(p: Pix, x: number, base: number, hgt: number, lean: number, sway: number, L: FgLook, wide: boolean): void {
+export function blade(p: Pix, x: number, base: number, hgt: number, lean: number, sway: number, L: FgLook, wide: boolean): void {
   for (let k = 0; k < hgt; k++) {
     const t = k / Math.max(1, hgt - 1);
     const bx = x + Math.round(lean * t * t * hgt * 0.35 + sway * t * t);
@@ -1763,7 +1770,7 @@ function blade(p: Pix, x: number, base: number, hgt: number, lean: number, sway:
 }
 
 /** A fern frond: a spine that rises and curls over toward `dir`, with leaflets shrinking toward the tip. */
-function frond(p: Pix, x: number, base: number, len: number, dir: number, sway: number, L: FgLook): void {
+export function frond(p: Pix, x: number, base: number, len: number, dir: number, sway: number, L: FgLook): void {
   let fx = x;
   let fy = base;
   let ang = -Math.PI / 2 + dir * 0.3;
@@ -1790,14 +1797,14 @@ function frond(p: Pix, x: number, base: number, len: number, dir: number, sway: 
 }
 
 /** How much of a bottom corner x is in: 1 at the edge, 0 past `cl` px from the left / `cr` px from the right. */
-const cornerness = (x: number, w: number, cl: number, cr: number) => Math.max(clamp01(1 - x / cl), clamp01(1 - (w - 1 - x) / cr));
+export const cornerness = (x: number, w: number, cl: number, cr: number) => Math.max(clamp01(1 - x / cl), clamp01(1 - (w - 1 - x) / cr));
 
 /**
  * The near ground's dark lip along the bottom edge (a bumpy mound line, lit along its top here and there), and the
  * grass on it: dense and tall in the corners, short and sparse where the fighters stand. The left corner reaches
  * further in (no enemy stands there).
  */
-function grassStrip(p: Pix, w: number, h: number, frame: number, L: FgLook, seed: number, tall = 1): void {
+export function grassStrip(p: Pix, w: number, h: number, frame: number, L: FgLook, seed: number, tall = 1): void {
   const H = h + FG_OVERLAP;
   for (let x = 0; x < w; x++) {
     const c = cornerness(x, w, 90, 46);
@@ -1817,7 +1824,7 @@ function grassStrip(p: Pix, w: number, h: number, frame: number, L: FgLook, seed
 }
 
 /** A dark bush mound in a bottom corner (leaf clumps lit from the top left, inked edge). */
-function cornerBush(p: Pix, cx: number, dir: number, base: number, size: number, L: FgLook, seed: number): void {
+export function cornerBush(p: Pix, cx: number, dir: number, base: number, size: number, L: FgLook, seed: number): void {
   const r2 = rng(seed);
   const bl: Blob[] = [];
   for (let i = 0; i < 12; i++) {
@@ -1829,7 +1836,7 @@ function cornerBush(p: Pix, cx: number, dir: number, base: number, size: number,
 }
 
 /** Backlight: the scene's light catches the top edges of the foreground's silhouettes (and some left edges). */
-function backlight(p: Pix, rim: Col, mid: Col, seed: number): void {
+export function backlight(p: Pix, rim: Col, mid: Col, seed: number): void {
   const src = p.buf.slice();
   const at = (x: number, y: number) => (x >= 0 && y >= 0 && x < p.w && y < p.h ? src[y * p.w + x] : -1);
   for (let y = 1; y < p.h; y++)
@@ -1958,12 +1965,14 @@ function foreground(theme: Theme, w: number, h: number, frame: number): Pix {
   return p;
 }
 
-export function buildBackdrops(scene: Phaser.Scene, w: number, h: number, ground: number): Record<Theme, Backdrop> {
+/** Greenmarch's backdrops (BOOT_THEMES), painted at boot for the current layout; the Frostpeaks' are painted the first
+ *  time an act needs them (backdrop-frost.ts, Stage.ensure). */
+export function buildBackdrops(scene: Phaser.Scene, w: number, h: number, ground: number): Partial<Record<Theme, Backdrop>> {
   const add = (key: string, canvas: HTMLCanvasElement) => {
     if (scene.textures.exists(key)) scene.textures.remove(key);
     scene.textures.addCanvas(key, canvas);
   };
-  const out = {} as Record<Theme, Backdrop>;
+  const out: Partial<Record<Theme, Backdrop>> = {};
   for (const [theme, make] of [
     ['forest', forest],
     ['ruins', ruins],
