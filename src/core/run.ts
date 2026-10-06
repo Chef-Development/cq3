@@ -480,7 +480,7 @@ export class Run {
 
   /** The act's live-tuned enemy scaling. */
   get actScale(): ActScale {
-    return this.tuning.acts[this.actIndex] ?? { name: this.act.name, hpMult: 1, atkMult: 1, pace: 1 };
+    return this.tuning.acts[this.actIndex] ?? { name: this.act.name, hpMult: 1, atkMult: 1, pace: 1, redSpeed: 1 };
   }
 
   get theme() {
@@ -753,6 +753,7 @@ export class Run {
       hpMult: this.actScale.hpMult * (1 + this.tuning.map.rowHp * n.row),
       atkMult: this.actScale.atkMult,
       pace: this.actScale.pace,
+      redSpeed: this.actScale.redSpeed,
     });
     this.boostChoices = [];
     this.phase = 'fight';
@@ -902,6 +903,7 @@ export class Run {
       hpMult: this.actScale.hpMult * (1 + this.tuning.map.rowHp * 3),
       atkMult: this.actScale.atkMult,
       pace: this.actScale.pace,
+      redSpeed: this.actScale.redSpeed,
     });
     this.boostChoices = [];
     this.phase = 'fight';

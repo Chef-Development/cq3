@@ -16,6 +16,7 @@ export const GREENMARCH: RegionDef = {
       hpMult: 1,
       atkMult: 1,
       pace: 1.1,
+      redSpeed: 1,
       rows: 7,
       waves: { first: 2, last: 4, eliteEscort: 1 },
       fights: {
@@ -36,8 +37,9 @@ export const GREENMARCH: RegionDef = {
       name: 'Old Ruins',
       theme: 'ruins',
       hpMult: 1.4,
-      atkMult: 6.5,
+      atkMult: 5.5,
       pace: 0.85,
+      redSpeed: 1.05,
       rows: 7,
       waves: { first: 3, last: 5, eliteEscort: 2 },
       fights: {
@@ -58,8 +60,9 @@ export const GREENMARCH: RegionDef = {
       name: "Boar King's Hollow",
       theme: 'hollow',
       hpMult: 3.6,
-      atkMult: 14,
+      atkMult: 8.5,
       pace: 0.75,
+      redSpeed: 1.15,
       rows: 7,
       waves: { first: 3, last: 6, eliteEscort: 2 },
       fights: {

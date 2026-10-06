@@ -253,7 +253,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   boarKing: {
     name: 'Boar King',
     hp: 4300,
-    atk: 18,
+    atk: 15,
     special: 20,
     interval: 0.55,
     pattern: 'YRYSRYGYFRYY',

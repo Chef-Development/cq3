@@ -54,6 +54,8 @@ describe('balance targets (guards the defaults; the full report is npm run balan
   // wider than the targets to allow for sampling.
   const [a1, a2, a3] = balance(cloneTuning(), [TYPICAL_ACCURACY], 150, 9);
   const [, , w3] = balance(cloneTuning(), [0.7], 150, 9, 6);
+  // a cautious 85% player: never takes the relics that charge HP (Clutch, Glass Edge, Blood Price, Purple Pact)
+  const [, c2, c3] = balance(cloneTuning(), [TYPICAL_ACCURACY], 150, 9, 6, 3, undefined, ['clutch', 'glassEdge', 'bloodPrice', 'purplePact']);
 
   it('the curve is aimed at the playtester (85%)', () => {
     expect(TYPICAL_ACCURACY).toBe(0.85);
@@ -69,24 +71,29 @@ describe('balance targets (guards the defaults; the full report is npm run balan
     expect(a2.firstTry).toBeLessThanOrEqual(a1.firstTry);
   });
 
-  // Aimed at 60-70%; enemy HP and attack barely move an 85% player, who blocks ~99% of reds (docs/orchestrator-report.md,
-  // playtest round 4), so it sits around 80%.
-  it('the Boar King is the real test: the first fight is won about 75-85% of the time', () => {
-    expect(a3.bossFirstTry).toBeGreaterThanOrEqual(0.68);
-    expect(a3.bossFirstTry).toBeLessThanOrEqual(0.92);
+  // Later acts' reds are faster (acts[i].redSpeed): what reaches an 85% player, who blocks nearly every red at 2.8 s.
+  it('the Boar King is the real test: the first fight is won about 60-75% of the time, by a cautious player too', () => {
+    expect(a3.bossFirstTry).toBeGreaterThanOrEqual(0.55);
+    expect(a3.bossFirstTry).toBeLessThanOrEqual(0.82);
+    expect(c3.bossFirstTry).toBeGreaterThanOrEqual(0.55);
+    expect(c3.bossFirstTry).toBeLessThanOrEqual(0.85);
+    expect(c2.firstTry).toBeGreaterThanOrEqual(0.74);
     expect(a3.firstTry).toBeLessThan(a1.firstTry);
     expect(a3.clearRate).toBeGreaterThan(0.9); // and retries get there
   });
 
   it('a 70% player can still finish Act 3 with retries', () => {
-    expect(w3.clearRate).toBeGreaterThan(0.8);
+    expect(w3.clearRate).toBeGreaterThan(0.8); // about 85-90%
     expect(w3.bossFirstTry).toBeLessThan(a3.bossFirstTry);
   });
 
   it("late fights still cost HP: a normal Act 3 fight costs at least as much of the playtester's HP as an Act 1 fight", () => {
     expect(a2.hpLostFight).toBeGreaterThanOrEqual(a1.hpLostFight);
     expect(a3.hpLostFight).toBeGreaterThanOrEqual(a1.hpLostFight);
-    expect(a3.foesHpFight).toBeGreaterThan(a1.foesHpFight * 0.8); // the foes' share too, not only relic prices
+    // the foes' share too, not only relic prices: clearly more in Act 3 than in Act 1, Act 2 in between
+    expect(a3.foesHpFight).toBeGreaterThan(a1.foesHpFight * 2);
+    expect(a2.foesHpFight).toBeGreaterThan(a1.foesHpFight);
+    expect(c3.foesHpFight).toBeGreaterThan(c2.foesHpFight);
   });
 
   it('no boss can be one-shot by a max-stack finisher (their phase gates stop it)', () => {
@@ -118,9 +125,9 @@ describe('gear: the story with found gear alone, and farming', () => {
   const N = 60;
   const res = Array.from({ length: N }, (_, r) => playFarm(cloneTuning(), { accuracy: 0.7, seed: 4400 + r }, 3));
 
-  it('the story can be beaten with found gear alone (a typical player, retries allowed)', () => {
+  it('the story can be beaten with found gear alone (a 70% player, retries allowed: about 85-90%)', () => {
     const cleared = res.filter((x) => x.story.acts.length === 3 && x.story.acts[2].cleared).length;
-    expect(cleared / N).toBeGreaterThan(0.9);
+    expect(cleared / N).toBeGreaterThanOrEqual(0.8);
   });
 
   it('the bot wears what it finds: its gear gets stronger with every replay', () => {

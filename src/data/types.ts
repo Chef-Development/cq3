@@ -79,6 +79,9 @@ export interface ActDef {
   hpMult: number; // enemy HP in this act is scaled by this...
   atkMult: number; // ...and enemy attack (and trap) damage by this
   pace: number; // enemies' spawn intervals are scaled by this (<1 = a busier bar)
+  /** Enemy reds (shields, bombs, speed blocks) cross the bar this much faster (1 = 2.8 s): fewer passes of the cursor
+   *  to block each, so a skilled player gets hit in later acts too. */
+  redSpeed: number;
   rows: number; // map rows before the boss row
   /**
    * A fight node's foes come in waves, one after another ("foe 3/7"): `first` waves in the first row, ramping to

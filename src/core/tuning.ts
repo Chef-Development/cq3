@@ -17,6 +17,7 @@ export interface ActScale {
   hpMult: number;
   atkMult: number;
   pace: number;
+  redSpeed: number;
 }
 
 export const DEFAULT_TUNING = {
@@ -328,7 +329,7 @@ export const DEFAULT_TUNING = {
     critDmg: 0.025,
     comboPower: 0.035,
     pet: 1,
-    relicPicks: 2, // ...and picks this many relics (1 of 3 each) per act behind him before the map
+    relicPicks: 3, // ...and picks this many relics (1 of 3 each) per act behind him before the map
   },
   relics: {
     // The 1-of-3 pick after a fight (and the shop) offers mostly relics, plus at most one stat card (core/relics.ts).
@@ -346,16 +347,20 @@ export const DEFAULT_TUNING = {
   sable: {
     // Sable (Twin family): two cursors, one per half of the bar, each at the normal pass time (core/combat.ts).
     // Tuned with the bot against Rowan on the same tuning (tests/balance/twin.run.ts): within +/-10 points per act.
-    atkMult: 0.75, // hits deal this share of Rowan's (two thumbs tap more often)
-    maxHp: 135, // more than Rowan's 100: a half-bar has fewer neighbours to save a wild tap, so more misses
-    widthMult: 0.7, // static block widths on Sable's bar (each half is a small bar: 0.5 = Rowan's crossing time; wider:
-    // she misses about as often per tap as Rowan, so relics that charge for misses cost her about the same)
-    redWidthMult: 0.45, // red widths (0.6 = a cursor meets a red head-on about as long as Rowan's does; narrower: her
+    atkMult: 0.7, // hits deal this share of Rowan's (two thumbs tap more often)
+    maxHp: 125, // more than Rowan's 100: a half-bar has fewer neighbours to save a wild tap, so more misses
+    widthMult: 0.85, // static block widths on Sable's bar (each half is a small bar: 0.5 = Rowan's crossing time; wider:
+    // she taps more often, so this keeps her misses per fight, and what relics that charge for misses cost, near Rowan's)
+    redWidthMult: 0.55, // red widths (0.6 = a cursor meets a red head-on about as long as Rowan's does; narrower: her
     // cursors, at half Rowan's bar speed, ride along with a red on the way back, so she gets more and easier chances)
     ambidextrous: 0.25, // Ambidextrous: a hit with the other hand than the last hit fills the meter this much more
     shadowSec: 3, // Shadow Step (green hits): for this long a hit with one cursor also hits the block under the other
     fangMult: 1.4, // Twin Fang (finisher): one target, x this per the usual finisher damage (Rowan's hits every foe)...
     fangKeep: 1, // ...and a kill keeps this many stacks
+    // Later acts' faster reds (acts[i].redSpeed) on her bar: x this much of the act's extra speed (1 = as for Rowan).
+    // 3.5: a faster red costs Rowan's one full-speed cursor a pass, but barely touches her two half-speed ones (they ride
+    // along with it on the way back), so her reds speed up 3.5x as much (Act 3's x1.15 is x1.5 on her bar).
+    actRedSpeed: 3.5,
   },
   levels: {
     // Heroes level up from kills and act clears (core/heroes.ts): small base-stat gains, a skill point every 2 levels.
@@ -419,7 +424,7 @@ export const DEFAULT_TUNING = {
     hideSec: 9, // s a startled critter stays away
   },
   enemies: cloneData(ENEMIES),
-  acts: GREENMARCH.acts.map((a: ActDef): ActScale => ({ name: a.name, hpMult: a.hpMult, atkMult: a.atkMult, pace: a.pace })),
+  acts: GREENMARCH.acts.map((a: ActDef): ActScale => ({ name: a.name, hpMult: a.hpMult, atkMult: a.atkMult, pace: a.pace, redSpeed: a.redSpeed })),
 };
 
 export type Tuning = typeof DEFAULT_TUNING;
@@ -895,6 +900,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('sable.shadowSec', 'Shadow Step (s)', 0, 10, 0.5),
         s('sable.fangMult', 'Twin Fang x', 0.2, 3, 0.05),
         s('sable.fangKeep', 'Twin Fang: stacks kept on a kill', 0, 3, 1),
+        s('sable.actRedSpeed', "Act red speed x (her bar)", 0, 4, 0.05),
       ],
     },
     {
@@ -964,7 +970,12 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
   t.acts.forEach((a, i) =>
     groups.push({
       title: `Act ${i + 1}: ${a.name}`,
-      sliders: [s(`acts.${i}.hpMult`, 'Enemy HP x', 0.2, 6, 0.05), s(`acts.${i}.atkMult`, 'Enemy attack x', 0.2, 16, 0.05), s(`acts.${i}.pace`, 'Spawn interval x', 0.4, 2, 0.05)],
+      sliders: [
+        s(`acts.${i}.hpMult`, 'Enemy HP x', 0.2, 6, 0.05),
+        s(`acts.${i}.atkMult`, 'Enemy attack x', 0.2, 24, 0.05),
+        s(`acts.${i}.pace`, 'Spawn interval x', 0.4, 2, 0.05),
+        s(`acts.${i}.redSpeed`, 'Red speed x', 0.5, 1.5, 0.05),
+      ],
     }),
   );
   for (const key of Object.keys(t.enemies)) {

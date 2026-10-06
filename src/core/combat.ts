@@ -160,6 +160,16 @@ export function heroStats(t: Tuning, h: Hero): StatBlock {
   };
 }
 
+/**
+ * The red speed a fight runs at: the act's (1 = normal). Sable's half-speed cursors ride along with a red on the way
+ * back, so a faster red costs her far fewer blocks than Rowan; on her bar the act's extra speed is scaled by
+ * tuning.sable.actRedSpeed.
+ */
+export function redSpeedFor(t: Tuning, hands: number, actRedSpeed: number): number {
+  const r = Math.max(0.1, actRedSpeed);
+  return hands > 1 ? Math.max(0.1, 1 + (r - 1) * t.sable.actRedSpeed) : r;
+}
+
 /** Damage a red you didn't block deals, after Defense. */
 export const afterDefense = (t: Tuning, dmg: number, def: number): number => (dmg * t.gear.defScale) / (t.gear.defScale + Math.max(0, def));
 
@@ -283,6 +293,8 @@ export interface CombatOptions {
   atkMult?: number;
   /** The act's pace: enemies' spawn intervals are scaled by this (<1 = busier). */
   pace?: number;
+  /** The act's red speed: enemy reds cross the bar this much faster (on Sable's bar, scaled by sable.actRedSpeed). */
+  redSpeed?: number;
   /** Coin Rush (the mini-game): seconds on the clock. The fight is won when they run out; every hit knocks coins out
    *  of the foe (tuning.rush), misses don't hurt, and only the hero's kit is in play (no relics or skills). */
   rush?: number;
@@ -326,6 +338,8 @@ export class Combat {
   readonly hpMult: number;
   readonly atkMult: number;
   readonly pace: number;
+  /** How much faster than normal enemy reds travel in this fight (the act's red speed; Sable's own scaling on top). */
+  readonly redSpeed: number;
   blocks: Block[] = [];
   enemies: Enemy[];
   targetId: number | null = null;
@@ -407,6 +421,7 @@ export class Combat {
     this.hpMult = o.hpMult ?? 1;
     this.atkMult = o.atkMult ?? 1;
     this.pace = o.pace ?? 1;
+    this.redSpeed = redSpeedFor(o.tuning, this.hands, o.redSpeed ?? 1);
     this.spawnRng = new Rng(o.seed);
     this.critRng = new Rng(o.seed ^ 0x5bd1e995);
     this.combo = o.carry?.combo ?? 0;
@@ -1055,9 +1070,10 @@ export class Combat {
     }
   }
 
-  /** Red travel velocity (bar units per second, leftward) for a block of width w at `speed` times normal. */
+  /** Red travel velocity (bar units per second, leftward) for a block of width w at `speed` times normal (and the
+   *  act's red speed). */
   redVel(w: number, speed = 1): number {
-    return (-(1 - w) / this.tuning.blocks.redTravelSec) * Math.max(0.1, speed);
+    return (-(1 - w) / this.tuning.blocks.redTravelSec) * Math.max(0.1, speed) * this.redSpeed;
   }
 
   /** A spore left unbroken: its enemy and that enemy's allies heal. */

@@ -81,7 +81,7 @@ it('perk bench', () => {
     base ??= { sec, bsec };
     rows.push(
       `${v.name.padEnd(34)} fight ${sec.toFixed(1)}s (${(((base.sec / sec) - 1) * 100).toFixed(0).padStart(4)}% dps) lost ${(100 * avg(fs.map((f) => f.hpLost / f.maxHp))).toFixed(1).padStart(5)}% foes ${(100 * avg(fs.map((f) => foe(f) / f.maxHp))).toFixed(1).padStart(5)}% landed ${avg(fs.map((f) => f.redsTaken)).toFixed(2)} combo ${avg(fs.map((f) => f.avgCombo)).toFixed(1).padStart(5)}/${avg(fs.map((f) => f.peakCombo)).toFixed(0).padStart(3)} fin ${(100 * avg(fs.map((f) => f.finisherDamage / Math.max(1, f.damage)))).toFixed(0).padStart(3)}% crit ${(100 * avg(fs.map((f) => f.crits / Math.max(1, f.hits)))).toFixed(0).padStart(3)}%` +
-        (BOSS ? ` | boss won ${(100 * bs.filter((f) => f.won).length / bs.length).toFixed(0).padStart(3)}% ${bsec.toFixed(1)}s (${(((base.bsec / bsec) - 1) * 100).toFixed(0).padStart(4)}%) lost ${(100 * avg(bs.map((f) => f.hpLost / f.maxHp))).toFixed(0).padStart(4)}% foes ${(100 * avg(bs.map((f) => foe(f) / f.maxHp))).toFixed(0).padStart(4)}%` : ''),
+        (BOSS ? ` | boss won ${(100 * bs.filter((f) => f.won).length / bs.length).toFixed(0).padStart(3)}% ${bsec.toFixed(1)}s fin ${avg(bs.map((f) => f.finishers)).toFixed(1)} (max ${avg(bs.map((f) => f.maxStackFinishers)).toFixed(1)}) share ${(100 * avg(bs.map((f) => f.finisherDamage / Math.max(1, f.damage)))).toFixed(0)}% misses ${avg(bs.map((f) => f.misses)).toFixed(1)} combo ${avg(bs.map((f) => f.avgCombo)).toFixed(0)} (${(((base.bsec / bsec) - 1) * 100).toFixed(0).padStart(4)}%) lost ${(100 * avg(bs.map((f) => f.hpLost / f.maxHp))).toFixed(0).padStart(4)}% foes ${(100 * avg(bs.map((f) => foe(f) / f.maxHp))).toFixed(0).padStart(4)}%` : ''),
     );
   }
   process.stderr.write(`${rows.join('\n')}\n`);
