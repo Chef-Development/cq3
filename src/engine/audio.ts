@@ -3753,6 +3753,9 @@ export interface SfxEntry {
   play(s: Synth, at: number): void;
 }
 
+/** Sound lab names for telegraph sounds whose id would name a region's foe (spoilers). */
+const TELL_LABEL: Record<string, string> = { bellows: 'furnace breath' };
+
 export const SFX: SfxEntry[] = [
   { id: 'hit', label: 'Hit', tier: 'hit', len: 0.6, play: (s, at) => s.hit(1, false, false, at) },
   { id: 'hit-combo', label: 'Hit, combo 12', tier: 'hit', len: 0.6, play: (s, at) => s.hit(12, false, false, at) },
@@ -3790,7 +3793,7 @@ export const SFX: SfxEntry[] = [
   { id: 'footsteps', label: 'Footsteps (a walk)', len: 0.8, play: (s, at) => [0, 1, 2, 3].forEach((i) => s.footstep(i, at + i * 0.15)) },
   { id: 'coinTick', label: 'Coin counter', len: 0.8, play: (s, at) => [0, 1, 2, 3, 4, 5, 6, 7].forEach((i) => s.coinTick(i, at + i * 0.07)) },
   // enemy special moves: the telegraphs (at a 0.8 s wind-up), then the actions
-  ...TELL_SOUNDS.map((k): SfxEntry => ({ id: `tell-${k}`, label: `Tell: ${k.replace(/[A-Z]/g, (c) => ' ' + c.toLowerCase())}`, len: 1.2, play: (s, at) => s.telegraph(k, 0.8, at) })),
+  ...TELL_SOUNDS.map((k): SfxEntry => ({ id: `tell-${k}`, label: `Tell: ${TELL_LABEL[k] ?? k.replace(/[A-Z]/g, (c) => ' ' + c.toLowerCase())}`, len: 1.2, play: (s, at) => s.telegraph(k, 0.8, at) })),
   { id: 'stompLand', label: 'Stomp lands', len: 1.4, play: (s, at) => s.stompLand(at) },
   { id: 'freeze', label: 'Cursor freeze', len: 0.8, play: (s, at) => s.freeze(at) },
   { id: 'counter', label: 'Guard counter', len: 1, play: (s, at) => s.counter(at) },

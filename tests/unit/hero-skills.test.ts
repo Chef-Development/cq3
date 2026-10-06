@@ -194,7 +194,8 @@ describe('Sable', () => {
       return evs(c.drainEvents(), 'finisher')[0].damage;
     };
     const base = dmg(off.c);
-    expect(dmg(on.c)).toBe(Math.round(base * (1 + (3 * skillN(on.t, 'deathMark')) / 100)));
+    // (within a point: the finisher rounds its parts)
+    expect(Math.abs(dmg(on.c) - base * (1 + (3 * skillN(on.t, 'deathMark')) / 100))).toBeLessThanOrEqual(1);
     // no chain: no bonus
     const z = fight('sable', ['deathMark']);
     z.c.stacks = 2;

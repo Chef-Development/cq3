@@ -5,7 +5,7 @@
 //   HEROES=rowan,sable  RUNS=100  ACC=0.85  REGION=1  CACHE=path  TUNE=json  BRANCHES=1  OUT=path (appended)
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { it } from 'vitest';
-import { playRegion, playRun, summarize, TYPICAL_ACCURACY, type RunStats } from '../../src/core/bot';
+import { playCampaign, playRegion, playRun, summarize, TYPICAL_ACCURACY, type RunStats } from '../../src/core/bot';
 import { treeOf } from '../../src/core/heroes';
 import { newProfile, type Profile } from '../../src/core/profile';
 import { cloneTuning, setPath } from '../../src/core/tuning';
@@ -39,7 +39,8 @@ it('region tune', () => {
     const branches: string[] = [];
     for (let r = 0; r < RUNS; r++) {
       const p = newProfile();
-      const st = playRun(base, { accuracy: ACC, seed: seedOf(h, r), hero: h, focus: FOCUS }, 6, regionStart(REGION), p);
+      // every region before this one, one after another (playCampaign: the story so far, camp between regions)
+      const st = REGION === 1 ? playRun(base, { accuracy: ACC, seed: seedOf(h, r), hero: h, focus: FOCUS }, 6, regionStart(REGION), p) : playCampaign(base, { accuracy: ACC, seed: seedOf(h, r), hero: h, focus: FOCUS }, REGION, 6, p);
       const won = st.acts.length === regionStart(REGION) && st.acts.every((a) => a.cleared);
       profiles.push(won ? JSON.parse(JSON.stringify(p)) : null);
       gems.push(p.counts.gemsEarned ?? 0);
