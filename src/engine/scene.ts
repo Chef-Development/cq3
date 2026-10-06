@@ -12,6 +12,7 @@ import { buildPanel } from './chrome';
 import { buildFont, FONT, FONT_BOLD, FONT_BOLD_PLAIN, fontFor, fontText, isDarkInk, readable } from './font';
 import { GAME_H, GAME_W } from './layout';
 import { BarView } from './view/bar';
+import { Callouts } from './view/callouts';
 import { CampView } from './view/camp';
 import { GainsView } from './view/gains';
 import { LootView } from './view/loot';
@@ -74,6 +75,8 @@ export class FightScene extends Phaser.Scene implements View {
   // modules
   readonly fx = new Effects(this);
   readonly barView = new BarView(this);
+  /** Short words over the bar when the hero's kit, style, allies or companions do something; the style's tab. */
+  readonly callouts = new Callouts(this);
   readonly stage = new Stage(this);
   readonly fighters = new Fighters(this);
   readonly hud = new Hud(this);
@@ -206,6 +209,7 @@ export class FightScene extends Phaser.Scene implements View {
     buildPanel(this, GAME_W, GAME_H - this.splitY, BAND_H);
     this.panelImg = this.add.image(0, this.splitY, 'panel').setOrigin(0, 0).setDepth(9);
     this.barView.build();
+    this.callouts.build();
     this.overlays.build();
     this.mapView.build();
     this.story.build();
@@ -356,6 +360,8 @@ export class FightScene extends Phaser.Scene implements View {
       const e = events[i];
       const before = events[i - 1];
       const after = events[i + 1];
+      // (the bar's callouts see every event; theirs go up once the batch is in)
+      this.callouts.onEvent(e);
       switch (e.type) {
         case 'hit': {
           const x = bar.x(e.pos);
@@ -695,6 +701,7 @@ export class FightScene extends Phaser.Scene implements View {
           break;
       }
     }
+    this.callouts.flush();
     return hold;
   }
 
@@ -706,6 +713,7 @@ export class FightScene extends Phaser.Scene implements View {
     if (c !== this.lastCombat) {
       this.fighters.newFight();
       this.barView.newFight();
+      this.callouts.newFight();
       this.stage.applyTheme();
       const run = this.app.run;
       const type = run.node?.type;
@@ -748,6 +756,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.hud.drawPanel(now);
     this.barView.draw(t, now);
     this.hud.drawTexts(now);
+    this.callouts.draw(now);
     this.overlays.draw(now);
     this.worldMap.draw(now);
     this.mapView.draw(now);

@@ -826,6 +826,25 @@ test('Moss with three allies out (called by green hits), the allies on the HUD',
   await expect(page).toHaveScreenshot('moss-allies.png', shot);
 });
 
+test("bar callouts: Rock Wall ready at the left end, oiled Perfect zones; a Perfect block calls out Guard and the Slam beside the judgement, the Guard tab on the bar; Wind-Up's burning cursor", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'hollis', pets: ['brick', 'sprocket'] });
+  // armed and waiting: Brick's slab stands at the left end, Sprocket's oil shows every block's (wider) Perfect zone
+  await bar(page, `c.perk.rockReady = 1; c.perk.oil = 1; c.spawnBlock('yellow', 0.3); c.spawnBlock('red', 0.55); c.spawnBlock('yellow', 0.8); c.setCursor(0.42, 1);`);
+  await frames(page, 14);
+  await expect(page).toHaveScreenshot('bar-ready.png', shot);
+  // a Perfect block: "Guard 1" and "Slam!" either side of "Perfect!", the Guard tab on the bar's frame lights a pip
+  await bar(page, `const r = c.blocks.find((b) => b.kind === 'red'); c.setCursor(r.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 8);
+  await expect(page).toHaveScreenshot('bar-callouts.png', shot);
+  // Torva's Wind-Up primed (the next yellow hit is the smash): the cursor burns; her Unstoppable stacks on the tab
+  await stagedFight(page, { hero: 'torva' });
+  await bar(page, `c.perk.windUp = 1; c.perk.unstoppable = 2; c.spawnBlock('yellow', 0.7); c.setCursor(0.45, 1);`);
+  await frames(page, 12);
+  await expect(page).toHaveScreenshot('bar-windup.png', shot);
+});
+
 test('two companions: a walker and a flier beside the hero; the drake breathes on every foe', async ({ page }) => {
   await boot(page);
   await frames(page, 10);

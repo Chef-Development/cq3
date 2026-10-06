@@ -15,6 +15,13 @@ export const HOLD_RAMP = [0xb8e8ff, 0x5ab4ec, 0x2a78c0, 0x14407a] as const;
 const SOOT = [0x6a6276, 0x3a3444, 0x26222e, 0x15111a] as const;
 const COPPER = [0xf0c070, 0xc08040, 0x7a4a20] as const;
 const LEAF = [0x1e3c2a, 0x2e5a32, 0x4a7e36, 0x78a83c, 0xb4d058] as const;
+/** Blockers that take a red at the bar's left end, by perk id: their slab's colours [hi, base, lo] (the slab that pops
+ *  up when one blocks, and its smaller twin standing there while it's ready). */
+export const BLOCKER_FACE: Record<string, readonly [number, number, number]> = {
+  barkback: [0xd09a5e, 0x8e5a2e, 0x4e2c16],
+  rockWall: [0xd8d0c0, 0x9a9080, 0x5a5448],
+  afterimage: [0xe0c0ff, 0x9a52d8, 0x4a2470],
+};
 
 /** A little six-pointed snowflake centred on (x, y) (never a "+": that's a green's mark). */
 export function flake(g: G, x: number, y: number, alpha = 1): void {

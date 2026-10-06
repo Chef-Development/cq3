@@ -4,7 +4,10 @@
 // its cracks, an icicle's mark before it lands and its fuse ring once it has, a red's trail of ice-to-be. The heroes'
 // pieces: kegs, frozen blocks, chilled and pinned reds, Shadow Dash's streak, the Rampart wall, Overgrowth's vines,
 // Big Bang's kegs flying in, Volley's arrows, Glacier's frost wave and Earthsplitter's crack. A block that changes
-// kind (Chain Reaction) flashes as it turns. The cursor leaves a speed streak on ice and drags in snow.
+// kind (Chain Reaction) flashes as it turns. The cursor leaves a speed streak on ice and drags in snow. What's armed
+// shows before it acts (no sound needed): a blocker standing ready at the left end (Rock Wall, a braced Barkback, an
+// afterimage), Oil Can's wider Perfect zones on the blocks, Wind-Up's burning cursor, a green ability's window as a
+// green sheen on the cursor. (The words that pop over the bar are view/callouts.ts.)
 import Phaser from 'phaser';
 import { isAttack, isRed, type Block, type BlockKind, type Combat, type RemoveReason } from '../../core/combat';
 import type { FightScene } from '../scene';
@@ -13,8 +16,8 @@ import { isAsh } from '../backdrop-ash';
 import { buildBarFrame } from '../chrome';
 import { brick, ellipse, icon, rows, slab } from './pixels';
 import { BLOCK_ICONS, FOE_ICONS } from './icons';
-import { dashGhost, drawBlocker, drawChill, drawFrozen, drawFuse, drawGrow, drawHold, drawIceCoat, drawKeg, drawPatch, drawVines, drawWall, sparkle, type PatchLook } from './bar-kinds';
-import { BOMB_COL, clamp01, deepOf, DYING_MS, dyingStyle, ease, INK, kindCol, rand, stackCol, WHITE, type Dying } from './shared';
+import { BLOCKER_FACE, dashGhost, drawBlocker, drawChill, drawFrozen, drawFuse, drawGrow, drawHold, drawIceCoat, drawKeg, drawPatch, drawVines, drawWall, sparkle, type PatchLook } from './bar-kinds';
+import { BOMB_COL, clamp01, deepOf, DYING_MS, dyingStyle, ease, INK, kindCol, pulse, rand, stackCol, WHITE, type Dying } from './shared';
 import { ImagePool } from './ui';
 import { drawBarRules } from './bar-links';
 
@@ -26,6 +29,12 @@ const LOOK = { blade: 0x3a8ae8, core: 0x9ad8ff, deep: 0x1a3c8a } as const;
 const ZONE_FADE_MS = 240;
 /** A Shadow Dash's streak lasts this long. */
 const DASH_MS = 520;
+/** The green abilities that are a window of a few seconds (Battle Focus, Smoke Veil, Chill, Brace): the cursor is
+ *  tinted green while one runs. */
+const TIMED_ABILITY = new Set<string>(['rowan', 'sable', 'neve', 'hollis']);
+/** Oil Can's sheen on a block's Perfect zone, and Wind-Up's heat round the cursor. */
+const OIL = [0xfff0a0, 0xf2c230] as const;
+const WINDUP = [0xffd080, 0xff7a3a] as const;
 
 export class BarView {
   g!: G;
@@ -57,6 +66,8 @@ export class BarView {
   /** Mirror bounces (a flash on the shard), and blockers at the left end (a Barkback, Brick, an afterimage). */
   private mirrorFlashes: Array<{ pos: number; at: number }> = [];
   private blockers: Array<{ at: number; face: readonly [number, number, number] }> = [];
+  /** Blockers standing ready at the left end: since when (anim time; they pop up as they ready). */
+  private readyAt = new Map<string, number>();
   private wallFlashAt = -1e9;
   /** Sweeps across the whole bar: Glacier's frost wave, Earthsplitter's crack. */
   private sweeps: Array<{ kind: 'frost' | 'crack'; at: number }> = [];
@@ -91,6 +102,7 @@ export class BarView {
     this.iceTaps.clear();
     this.mirrorFlashes = [];
     this.blockers = [];
+    this.readyAt.clear();
     this.sweeps = [];
     this.arrows = [];
     this.flyKegs = [];
@@ -543,6 +555,8 @@ export class BarView {
     // it just changed kind: a white flash fading off it
     const mk = (s.anim - (this.morphs.get(b.id) ?? -1e9)) / 280;
     if (mk >= 0 && mk < 1) rows(g, X, Y, W, H, 2, WHITE, 0.85 * (1 - mk));
+    // Oil Can ready (Sprocket): every block's Perfect zone shows, wider, in gold, until the next hit
+    if (c.perk.oil === 1 && !b.still && (isRed(b.kind) || (isAttack(b.kind) && b.kind !== 'hold'))) this.drawOil(g, c, b, X, Y, W, H, now);
     if (b.kind === 'shield') {
       g.fillStyle(0xdfe6f2, 1);
       g.fillRect(X + 1, Y + 2, 2, H - 5);
@@ -605,6 +619,40 @@ export class BarView {
       const most = Math.max(this.iceTaps.get(b.id) ?? b.taps, b.taps);
       this.iceTaps.set(b.id, most);
       drawIceCoat(g, X, Y, W, H, b.taps, most - b.taps, now);
+    }
+  }
+
+  /**
+   * A block's Perfect zone while Oil Can makes it wider: ink lines at its edges with a white sheen between them (they
+   * read on any block's colour), gold brackets sticking out above and below the block, a glint running down it.
+   */
+  private drawOil(g: G, c: Combat, b: Block, X: number, Y: number, W: number, H: number, now: number): void {
+    const frac = c.mod(this.s.app.tuning.judge.perfectFrac, (h, v) => h.perfectFrac?.(c, b, v));
+    const zw = Math.max(3, Math.min(W - 2, Math.round(frac * b.width * this.s.bar.w)));
+    const zx = Math.round(X + W / 2 - zw / 2);
+    const p = pulse(now, 420);
+    g.fillStyle(WHITE, 0.22 + 0.16 * p);
+    g.fillRect(zx + 1, Y + 2, zw - 2, H - 4);
+    g.fillStyle(INK, 0.85);
+    g.fillRect(zx, Y + 2, 1, H - 4);
+    g.fillRect(zx + zw - 1, Y + 2, 1, H - 4);
+    // the brackets: over the block's top and under its bottom, in gold with an ink rim
+    for (const [by, dir] of [
+      [Y - 3, 1],
+      [Y + H + 1, -1],
+    ] as const) {
+      g.fillStyle(INK, 1);
+      g.fillRect(zx - 1, by - 1, zw + 2, 4);
+      g.fillStyle(OIL[1], 1);
+      g.fillRect(zx, by + (dir > 0 ? 0 : 1), zw, 1);
+      g.fillRect(zx, by, 1, 2);
+      g.fillRect(zx + zw - 1, by, 1, 2);
+      g.fillStyle(OIL[0], 0.6 + 0.4 * p);
+      g.fillRect(zx + 1, by + (dir > 0 ? 0 : 1), Math.max(1, zw - 2), 1);
+    }
+    if (zw > 2) {
+      g.fillStyle(WHITE, 0.8);
+      g.fillRect(zx + 1, Y + 2 + (Math.floor(now / 45) % (H - 4)), zw - 2, 1);
     }
   }
 
@@ -694,12 +742,67 @@ export class BarView {
     const B = s.bar;
     if (c.perk.vines > 0) drawVines(g, B, bx, c.perk.vines, now);
     if (c.perk.rampart > 0) drawWall(g, B, bx, c.perk.rampart, s.app.tuning.kits.hollis.rampartSec, clamp01(1 - (s.anim - this.wallFlashAt) / 200), now);
+    else this.drawReady(g, c, bx, now);
     for (let i = this.blockers.length - 1; i >= 0; i--) {
       const k = (s.anim - this.blockers[i].at) / 420;
       if (k >= 1) this.blockers.splice(i, 1);
       else drawBlocker(g, B, bx, k, this.blockers[i].face);
     }
     for (let i = this.mirrorFlashes.length - 1; i >= 0; i--) if (s.anim - this.mirrorFlashes[i].at > 240) this.mirrorFlashes.splice(i, 1);
+  }
+
+  /**
+   * Blockers standing ready at the left end, where reds land, so the player sees them coming without a sound: Brick's
+   * Rock Wall charged, a braced Barkback, Sable's afterimage. A slim slab each in the colours of the slab that pops up
+   * when it takes the red (BLOCKER_FACE), rising out of the frame as it readies, then breathing with a glint running
+   * down it.
+   */
+  private drawReady(g: G, c: Combat, bx: number, now: number): void {
+    const s = this.s;
+    const B = s.bar;
+    // (in the order they'd take a red: the style's ally, the kit's afterimage, then the companion; the first nearest)
+    const ready: string[] = [];
+    if (c.allies.some((a) => a.kind === 'barkback' && a.braced)) ready.push('barkback');
+    if (c.perk.afterimage) ready.push('afterimage');
+    if (c.perk.rockReady) ready.push('rockWall');
+    for (const id of [...this.readyAt.keys()]) if (!ready.includes(id)) this.readyAt.delete(id);
+    ready.forEach((id, i) => {
+      let at = this.readyAt.get(id);
+      if (at === undefined) this.readyAt.set(id, (at = s.anim));
+      const k = clamp01((s.anim - at) / 180);
+      const face = BLOCKER_FACE[id];
+      // (as tall as a block, standing on the frame's cap)
+      const H = B.h + 10;
+      const h = Math.max(2, Math.round(H * ease(k)));
+      const x = B.x - 6 - i * 7 + bx;
+      const y = B.y + B.h + 5 - h;
+      // a soft halo in its colour, breathing
+      const p = pulse(now, 640, i * 200);
+      g.fillStyle(face[0], (0.22 + 0.3 * p) * k);
+      g.fillRect(x - 2, y - 2, 9, h + 4);
+      g.fillStyle(INK, 1);
+      g.fillRect(x - 1, y - 1, 7, h + 2);
+      g.fillStyle(face[1], 1);
+      g.fillRect(x, y, 5, h);
+      g.fillStyle(face[0], 1);
+      g.fillRect(x, y, 5, 2);
+      g.fillRect(x, y, 1, h);
+      g.fillStyle(face[2], 1);
+      g.fillRect(x + 4, y + 2, 1, h - 2);
+      if (k >= 1) {
+        // a glint running down it, and its top lit as it breathes
+        const gy = y + 2 + (Math.floor(now / 70 + i * 5) % (h + 8));
+        if (gy < y + h - 1) {
+          g.fillStyle(WHITE, 0.8);
+          g.fillRect(x + 1, gy, 3, 1);
+        }
+        g.fillStyle(WHITE, 0.35 + 0.5 * p);
+        g.fillRect(x + 1, y, 3, 1);
+      } else {
+        g.fillStyle(WHITE, 0.8 * (1 - k));
+        g.fillRect(x - 1, y - 1, 7, h + 2);
+      }
+    });
   }
 
   /** Glacier's frost wave (a bright band sweeping across, leaving glints) and Earthsplitter's crack across the track. */
@@ -901,6 +1004,31 @@ export class BarView {
       g.fillStyle(c.holding.perfect ? 0xffe680 : 0x9ad8ff, 0.35 + 0.15 * Math.sin(now / 60));
       g.fillRect(cx - 4, B.y - 8, 9, B.h + 16);
     }
+    // a green ability's window running (Battle Focus, Smoke Veil, Chill, Brace): a green sheen round the blade,
+    // blinking out over its last moments
+    const abil = c.hero.abilityTimer;
+    if (abil > 0 && TIMED_ABILITY.has(c.heroId) && !(abil < 0.6 && Math.floor(now / 90) % 2 === 0)) {
+      g.fillStyle(0x9af0a0, 0.26 + 0.14 * pulse(now, 520));
+      g.fillRect(cx - 4, B.y - 6, 9, B.h + 12);
+      g.fillStyle(0xc8ffd0, 0.6);
+      g.fillRect(cx - 3, B.y - 3, 1, B.h + 6);
+      g.fillRect(cx + 3, B.y - 3, 1, B.h + 6);
+    }
+    // Wind-Up primed (Torva): the next yellow hit is the smash, so the blade burns, embers rising off its top
+    const windUp = c.perk.windUp === 1 && c.heroId === 'torva';
+    if (windUp) {
+      const k = pulse(now, 300);
+      rows(g, cx - 7, B.y - 10, 15, B.h + 20, 3, WINDUP[1], 0.22 + 0.18 * k);
+      rows(g, cx - 5, B.y - 8, 11, B.h + 16, 2, WINDUP[1], 0.35 + 0.3 * k);
+      g.fillStyle(WINDUP[0], 0.7 + 0.3 * k);
+      g.fillRect(cx - 3, B.y - 5, 1, B.h + 10);
+      g.fillRect(cx + 3, B.y - 5, 1, B.h + 10);
+      for (let i = 0; i < 4; i++) {
+        const q = ((now / 9 + i * 29) % 40) / 40;
+        g.fillStyle(i % 2 ? WINDUP[0] : WINDUP[1], 1 - q * q);
+        g.fillRect(cx - 3 + i * 2, Math.round(B.y - 11 - q * 12), i % 2 ? 1 : 2, 2);
+      }
+    }
     // a glowing blade: ink capsule, lit left edge, white-hot core, deep right edge
     const top = B.y - 7;
     const len = B.h + 14;
@@ -913,8 +1041,8 @@ export class BarView {
     g.fillRect(cx, top + 3, 1, len - 6);
     g.fillStyle(hot ? 0xa0400a : LOOK.deep, 1);
     g.fillRect(cx + 1, top + 2, 1, len - 4);
-    // sparkle caps: 4-point stars with an ink rim (frosted in a snowdrift)
-    const cap = inSnow ? 0xe0f0ff : 0xb8c2d8;
+    // sparkle caps: 4-point stars with an ink rim (frosted in a snowdrift, red-hot while Wind-Up is primed)
+    const cap = windUp ? WINDUP[1] : inSnow ? 0xe0f0ff : 0xb8c2d8;
     for (const sy of [top - 1, top + len]) {
       g.fillStyle(INK, 1);
       g.fillRect(cx - 4, sy - 1, 9, 3);
