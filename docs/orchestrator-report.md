@@ -1,5 +1,30 @@
 # Combo Quest 3: status report (M5: heroes, companions, two new regions, the Test lab)
 
+## Playtest round 5 follow-up (the Test lab report on version 90968f6: 8 of 22 rated, 2 good, 6 needs work)
+
+The report said: heroes and companions are hard to read while your eyes are on the bar; Moss's allies didn't seem to
+help and greens were rare; foes couldn't hurt Torva; lab fights ended too fast; earlier acts want more enemies.
+What changed (details in docs/decisions.md 38-44 and docs/balance-heroes.md):
+
+- **On the bar:** a short word pops just above the bar when a hero's kit, style, allies or a companion does something
+  (Dash!, Freeze!, Guard 3, Slam!, Rally!, Peck!, Rock!...), a small style readout sits on the bar (Chain, Guard,
+  Focus, Unstoppable, allies), and armed perks are marked before they act (a braced Barkback, Brick's rock, an
+  afterimage at the bar's end; Torva's primed smash on the cursor; Sprocket's wider Perfect zones drawn).
+- **Each hero's how-to card** before their first fight (two lines), also in the Test lab.
+- **More foes per fight in Greenmarch** (one more wave in each act, two more before Act 3's boss); the targets still
+  hold: Act 1 100%, Act 2 84%, the Boar King's first fight 79% (a touch over the 60-75% aim, inside the guard). Read
+  as "more foes per fight in the earlier acts"; earlier foes returning later, or bigger replays, would be a data
+  change.
+- **Moss:** about twice the greens (every 5th yellow comes green), so allies are called often; trimmed to stay level.
+- **Torva:** foes hurt her again (shorter pushback, stun and calm; narrower Brute yellows: fewer free misses).
+- **Vesper:** a Power Shot keeps the Focus a foe didn't need; small HP/attack raise.
+- **Test lab:** New = this round (seven heroes in six-wave fights at Act 2's numbers, four companion pairs, two
+  first-region fights); M5's other items moved to Earlier. A reworked item shows "Reworked" and asks for a new rating;
+  the report shows the old rating as "before".
+- **Parity:** 41 of 42 hero-acts within about +/-10 of Rowan. Known gap: Vesper is about 20 points behind in the second
+  region's last act; none of the numbers tried moved it (listed in docs/balance-heroes.md).
+
+
 - **Live build:** https://chef-development.github.io/cq3/ (every push deploys).
 - **Branch:** `claude/m5-heroes`, PR Chef-Development/cq3#5 (based on `claude/m4a-depth`, PR #4, which was still open: this PR
   includes #4 and supersedes it; merge this one, #4 can be closed).

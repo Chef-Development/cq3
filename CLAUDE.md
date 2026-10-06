@@ -36,7 +36,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   hero's kit change the rules through `src/core/hooks.ts`: Combat collects the hooks of what the hero carries
   (`kit-fx.ts`, `skill-fx.ts` + `skill-fx-heroes.ts`, `relic-fx.ts`) and calls them at fixed points (crit chance, hit
   damage, after a hit/block, meter, combo gain, combo break, misses, traps, impacts, the finisher, Pip's pecks, kills,
-  bombs). Per-fight state lives in `c.perk`; a perk that kicks in calls `c.perkFx(id, ...)` so the UI names it. Every
+  bombs). Per-fight state lives in `c.perk`; a perk that kicks in calls `c.perkFx(id, ...)` so the UI names it (a
+  hero's kit, style, allies and companions also pop a short word just above the bar where it happened,
+  `view/callouts.ts`: give a new one a word there, with a `pos` when it isn't the tap). Every
   relic and every rule node/capstone has a with/without unit test (`tests/unit/relics.test.ts`, `skills.test.ts`,
   `hero-skills.test.ts`). Relics never flat-bump a stat. Run-level relics (shops, rests, map steps) live in `run.ts`.
   Offers (`core/relics.ts`): mostly relics plus at most one stat card, leaning toward owned tags ("Synergy!"); relics
@@ -272,7 +274,9 @@ src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero in `${
                the companions and a Summoner's allies), effects.ts (particles, floaters, camera), bar.ts (timing bar,
                blocks, telegraph previews, cursor, holds, mirrors, icicle marks, dashes; bar-kinds.ts the painters for
                patches, kegs, frozen blocks, holds, ice coats, fuses, chilled reds, the Rampart wall, vines), hud.ts (hero
-               and enemy plates, the style readout (Chain, Guard, Focus, Unstoppable, allies), meter, coins, relic belt), overlays.ts (title, boost,
+               and enemy plates, the style readout (Chain, Guard, Focus, Unstoppable, allies; style-chip.ts, its twin
+               on the bar too), meter, coins, relic belt), callouts.ts (the words above the bar: what the kit, style,
+               allies and companions just did; the style tab on the bar), overlays.ts (title, boost,
                chest, defeat, victory, pause), world.ts (kingdom world map: the camera, drag and tap, the landmarks and
                their card, the act picker; world-roam.ts its wandering foe), map.ts (act
                map; map-roam.ts its roamers, telegraphs, secret and bounty tracker), map-life.ts and world-life.ts (their

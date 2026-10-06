@@ -24,8 +24,8 @@ accuracy, 1009 s to run.
   the bag fills up. Every run below starts with an empty bag: these are first playthroughs with found gear only.
 - A lost act is retried from its start (up to 6 tries), with the hero and coins as they entered it; a cleared act
   carries the hero (healed to full) into the next.
-- Fights are runs of foes, one wave after another (Act 1: 2 foes in the first row up to 4 before the boss; Act 2:
-  3-5; Act 3: 3-6; an elite comes after an escort). A tap that overlaps an attack always blocks it first.
+- Fights are runs of foes, one wave after another (Act 1: 3 waves in the first row up to 5 before the boss; Act 2:
+  4-6; Act 3: 4-7; an elite comes after an escort). A tap that overlaps an attack always blocks it first.
 
 ## Targets (a gentle start, then a ramp; set for the playtester, an 85% player, with the gear found on the way)
 
