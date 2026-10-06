@@ -152,7 +152,9 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
 43. **Vesper: a Power Shot no longer wastes Focus.** What the foe didn't need (it had less HP left, or a boss's phase
     gate stopped the blow) stays stored (Marksman rule: "a green fires it (none wasted)"). With more, smaller foes per
     fight and the bosses' gates, a big stored shot lost much of itself; she had fallen 13-20 points behind Rowan in
-    each region's last act. Also HP 115 (was 110), attack share 1.13 (was 1.1).
+    each region's last act. Also HP 115 (was 110), attack share 1.13 (was 1.1). Greenmarch and the second region's
+    first two acts are level now; that region's last act is still about 20 points behind, and no number tried moved
+    it (a known gap: docs/balance-heroes.md lists what was ruled out).
 44. **Test lab, round 5:** the New section is this round's changes (the seven heroes and four companion pairs,
     reworked, and two fights with the first region's new wave counts); M5's other items moved to Earlier (still
     playable). Hero fights are six waves at Act 2's numbers, the last with an elite (an 85% bot takes 26-42 s and

@@ -1,3 +1,43 @@
+## Playtest round 5: more foes per fight in Greenmarch, the heroes re-levelled
+
+Greenmarch's fights now come in more waves (Act 1: 3-5, Act 2: 4-6, Act 3: 4-7), and the Ruin Golem has 2100 HP
+(was 2300; the extra waves made Act 2 harder for Rowan than for anyone else). Measured like the M5 table below
+(`npm run region-tune`, 85% player, 100 runs per hero, the same seeds for every hero; each act's first try, the
+boss's first fight in brackets; the gap to Rowan in brackets after it):
+
+| Hero | Act 1 | Act 2 | Act 3 (boss) | Act 4 | Act 5 | Act 6 (boss) |
+|---|---|---|---|---|---|---|
+| Rowan (Blade) | 100% | 87% | 73% (78%) | 88% | 77% | 65% (66%) |
+| Sable (Shadow) | 100% (0) | 96% (+9) | 73% (0) | 99% (+11) | 86% (+9) | 62% (-3) |
+| Neve (Controller) | 98% (-2) | 89% (+2) | 69% (-4) | 96% (+8) | 76% (-1) | 69% (+4) |
+| Moss (Summoner) | 100% (0) | 87% (0) | 83% (+10) | 99% (+11) | 84% (+7) | 69% (+4) |
+| Tam (Bomber) | 99% (-1) | 94% (+7) | 79% (+6) | 97% (+9) | 86% (+9) | 66% (+1) |
+| Hollis (Guardian) | 100% (0) | 84% (-3) | 80% (+7) | 98% (+10) | 71% (-6) | 70% (+5) |
+| Vesper (Marksman) | 100% (0) | 89% (+2) | 67% (-6) | 93% (+5) | 77% (0) | 45% (**-20**) |
+| Torva (Brute) | 100% (0) | 97% (+10) | 73% (0) | 98% (+10) | 79% (+2) | 59% (-6) |
+
+41 of 42 hero-acts are within about +/-10 of Rowan (four sit at +10/+11, where Act 4 nears 100% for everyone;
+two runs of the same numbers differ by up to 8 points at 100 runs). What changed, and why:
+
+- **Moss** (the playtester saw few greens): a Summoner's every 5th yellow comes green (about twice the greens). That
+  put him +13 to +19 ahead in the second region, mostly at its bosses (his allies' steady damage loses nothing at a
+  phase gate, and every Rally re-braced his Barkback). Now a Rally leaves a resting Barkback alone, and HP 95, attack
+  share 0.62, Thornling 0.22, Barkback rest 8 s, Glowmoth 0.4%, Deep Roots +4%, Overgrowth +10% per ally.
+- **Torva** (the playtester: foes "couldn't really damage me"): Quake 0.08 (was 0.15), Wind-Up stun 1 s (was 1.5),
+  Earthsplitter's calm 1.2 s (was 2). Those barely moved the bot's numbers (Act 2 stayed 94-98%): her cushion was the
+  Brute's wide yellows (fewer misses, and misses are most of the HP an 85% player loses). Brute yellows are x1.15
+  (was x1.3), her attack share 0.86 (was 0.9). Trimming her HP 108 -> 100 or Unstoppable moved nothing beyond noise.
+- **Vesper** fell behind with the longer fights (Act 3 -13, Act 6 -19): HP 115, attack share 1.13, and a Power Shot
+  keeps the Focus the foe didn't need (a nearly dead foe, a phase gate). Greenmarch and the second region's first two
+  acts are level now; **Act 6 is still about 20 points behind** and none of these moved it: a larger Focus cap (9x:
+  39%), more of each hit (0.88: 46%), more attack (1.22: 45%), her Volley clearing reds like the others (52%). Her
+  first fight with that boss is the gap (47% against Rowan's 66%), with HP going in about the same. Worth a look at
+  how a Marksman plays that boss's phases (yellows become holds, the cursor is mirrored), in the bot and in the kit.
+
+The Test lab's hero fights (six waves at Act 2's numbers, a fresh lab hero at level 5 with a Rare kit): the 85% bot
+takes 26-42 s and wins 93-100% of them; at Act 3's numbers it lost about half (Rowan included). Guarded in
+`tests/unit/lab.test.ts`.
+
 ## M5: the heroes, the second region, Rowan's branches, gems and chests
 
 Measured with `npm run region-tune` (Greenmarch played once per seed from a fresh profile, then camp, then the second
