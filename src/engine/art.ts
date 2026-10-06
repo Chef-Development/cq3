@@ -5,6 +5,7 @@
 import type Phaser from 'phaser';
 import { buildCampArt } from './art-camp';
 import { buildFoeArt } from './art-foes';
+import { buildFrostFoeArt } from './art-frost';
 import { buildGearArt } from './art-gear';
 import { buildRelicArt } from './art-relics';
 import { buildSableArt } from './art-sable';
@@ -1197,6 +1198,7 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   add('chest_open', mapFrame(CHEST_OPEN, CHEST_PAL));
   add('clouds', drawClouds(w));
   buildFoeArt(add);
+  buildFrostFoeArt(add);
   buildStoryArt(add);
   buildGearArt(add);
   buildSableArt(add);
