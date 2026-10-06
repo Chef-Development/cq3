@@ -142,7 +142,7 @@ describe('Test lab profiles (the lab save, built per scenario)', () => {
       const p = labProfile(t, s);
       expect(unveilPending(p), s.id).toBeNull();
       expect(REGIONS.length).toBeGreaterThan(1);
-      if (s.spoiler || s.id === 'completionDone') continue;
+      if (s.spoiler) continue;
       expect(regionOpen(p, 1), s.id).toBe(false);
     }
   });
@@ -183,16 +183,16 @@ describe('Test lab profiles (the lab save, built per scenario)', () => {
     const c = regionCompletion(near, 0);
     expect(c.done).toBe(false);
     expect(c.pct).toBeGreaterThanOrEqual(85);
-    // (its boss still to beat: the next region stays veiled, so the world map's region chip can show it)
+    // (its boss still to beat: the next region isn't reached, so the progress screen keeps its name a surprise)
     expect(regionOpen(near, 1)).toBe(false);
-    expect(labHomePhase(byId('completionNear'), near)).toBe('world');
     expect(claimRegionReward(near, t, 0)).toBe(false);
     const done = labProfile(t, byId('completionDone'));
     expect(regionCompletion(done, 0).done).toBe(true);
     expect(claimRegionReward(done, t, 0)).toBe(true);
     expect(done.chests.region).toBe(1);
-    // the next region is open on that profile: never on the lab's world map outside the spoiler group
-    expect(labHomePhase(byId('completionDone'), done)).toBe('camp');
+    // the next region is reached on that profile (the progress screen names it): it waits behind "Show spoilers"
+    expect(regionOpen(done, 1)).toBe(true);
+    expect(byId('completionDone').spoiler).toBe(true);
   });
 
   it('camp upgrades: coins enough, a couple available, some locked', () => {
@@ -232,7 +232,7 @@ describe('Test lab scenarios play', () => {
       startLabScenario(r, s, 11);
       const f = labFight(s)!;
       expect(r.phase, s.id).toBe('fight');
-      expect(labHomePhase(s, p)).toBe('fight');
+      expect(labHomePhase(s)).toBe('fight');
       expect(r.practice, s.id).not.toBeNull();
       const c = r.combat!;
       expect(r.hero.build?.id, s.id).toBe(f.hero);
@@ -253,15 +253,14 @@ describe('Test lab scenarios play', () => {
   it('story scenarios play their scenes in order; camp scenarios stand at the camp', () => {
     for (const s of LAB_SCENARIOS) {
       if (s.setup.kind === 'fight') continue;
-      const p = labProfile(t, s);
-      const r = new Run(t, { ...DEFAULT_SETTINGS }, 5, p);
+      const r = new Run(t, { ...DEFAULT_SETTINGS }, 5, labProfile(t, s));
       startLabScenario(r, s, 3);
       if (s.setup.kind === 'story') {
         expect(r.phase, s.id).toBe('scene');
         expect(r.sceneQueue, s.id).toEqual(s.setup.scenes);
         expect(r.actIndex).toBe(s.setup.act);
-      } else expect(['camp', 'world'], s.id).toContain(r.phase);
-      expect(labHomePhase(s, p)).toBe(r.phase);
+      } else expect(r.phase, s.id).toBe('camp');
+      expect(labHomePhase(s)).toBe(r.phase);
     }
   });
 });

@@ -5,7 +5,7 @@
 // ratings and the spoiler switch persist in their own key (a reload keeps them). Opened from the title's "Test lab"
 // button and the gear panel's.
 import { accuracyCopyLine } from '../core/accuracy';
-import { LAB_RATINGS, RATING_NAME, labHomePhase, labMinutes, labProfile, labReport, labVisible, rateScenario, readLabState, startLabScenario, type LabRating, type LabState } from '../core/lab';
+import { LAB_RATINGS, RATING_NAME, labMinutes, labProfile, labReport, labVisible, rateScenario, readLabState, startLabScenario, type LabRating, type LabState } from '../core/lab';
 import { LAB_EARLIER, LAB_GROUPS, LAB_NEW, type LabScenario } from '../data/lab';
 import type { App } from './app';
 import { copyText, toast } from './clipboard';
@@ -105,9 +105,7 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
         const b = button(`lab-item${r ? ` r-${r.rating}` : ''}${s.spoiler ? ' spoiler' : ''}`, '', () => showStart(s));
         b.dataset.id = s.id;
         b.appendChild(el('span', 'lab-name', s.label));
-        // (a screen not in the game yet says "soon" where its time would be)
-        const soon = !wired(s);
-        b.appendChild(el('span', soon ? 'lab-meta soon' : 'lab-meta', soon ? 'soon' : `${s.secs} s`));
+        b.appendChild(el('span', 'lab-meta', `${s.secs} s`));
         b.appendChild(el('span', 'lab-badge', r ? RATING_NAME[r.rating] + (r.note ? ' *' : '') : ''));
         grid.appendChild(b);
       }
@@ -134,7 +132,6 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
     c.appendChild(el('div', 'lab-card-title', s.label));
     c.appendChild(el('div', 'lab-card-meta', `${LAB_GROUPS.find((g) => g.id === s.group)?.name ?? ''} · about ${s.secs} s${s.spoiler ? ' · Spoiler' : ''}`));
     c.appendChild(el('div', 'lab-try', s.try));
-    if (!wired(s)) c.appendChild(el('div', 'lab-soon', 'Not in the game yet: this opens the camp.'));
     c.appendChild(el('div', 'lab-hint', 'Tap Done (top) when you have seen enough.'));
     const row = el('div', 'lab-row');
     row.appendChild(button('lab-btn big go', 'Start', () => start(s)));
@@ -153,19 +150,7 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
     if (s.setup.kind === 'camp') openScreen(s);
   }
 
-  /**
-   * Whether the screen a scenario opens is in the game yet (else it opens the camp home, with a note).
-   * TODO (when the camp's new screens land): the chest reveal ('chest': open a hero chest, a Rare chest), the shrine
-   * ('shrine'), the companions ('companions'), the camp upgrades ('upgrades') and a completion screen with the 100%
-   * claim ('completion' at 100%; the near one shows on the world map's region chip) each open their own screen here.
-   */
-  function wired(s: LabScenario): boolean {
-    if (s.setup.kind !== 'camp') return true;
-    if (s.setup.screen === 'completion') return labHomePhase(s, labProfile(app.tuning, s)) === 'world';
-    return s.setup.screen === 'heroes' || s.setup.screen === 'skills';
-  }
-
-  /** A camp scenario opens its screen (see `wired`). */
+  /** A camp scenario opens its screen over the lab's camp. */
   function openScreen(s: LabScenario): void {
     const camp = getScene()?.camp;
     if (!camp || s.setup.kind !== 'camp' || app.run.phase !== 'camp') return;
@@ -174,9 +159,18 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
       case 'heroes':
         return camp.go('heroes', now, s.setup.hero);
       case 'skills':
-        return camp.go('skills', now);
-      default:
-        return; // the camp home (the shrine and the chests are there)
+        return camp.go('skills', now, s.setup.hero);
+      case 'chest':
+        return camp.go('chests', now);
+      case 'shrine':
+        return camp.go('shrine', now);
+      case 'companions':
+        return camp.go('pets', now);
+      case 'upgrades':
+        return camp.go('upgrades', now);
+      case 'completion':
+        camp.go('progress', now);
+        return camp.progress.open(now, 0); // (Region 1's card)
     }
   }
 

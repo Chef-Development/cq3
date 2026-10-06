@@ -56,6 +56,7 @@ export const FOE_KIND: Record<FoeTag, string> = {
   swarm: 'Swarms',
   brute: 'Brutes',
   frost: 'Frost foes',
+  fire: 'Fire foes',
 };
 
 /** A hero's soft strength in plain words ("+20% damage to Folk", "Takes 20% less from Brutes"). */

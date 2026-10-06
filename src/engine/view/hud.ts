@@ -29,7 +29,6 @@ import { FOE_ICONS as GLYPHS } from './icons';
 import { icon } from './pixels';
 import { statSize } from './items';
 import { pix } from './camp-kit';
-import { PORTRAIT_FACE_AT } from '../art-hero-portraits';
 
 type G = Phaser.GameObjects.Graphics;
 

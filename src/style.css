@@ -573,9 +573,6 @@ body {
   color: var(--dim);
   font-size: 11px;
 }
-.lab-meta.soon {
-  color: #ffc060;
-}
 .lab-badge {
   font-size: 11px;
   color: #fff0a0;
@@ -625,10 +622,6 @@ body {
 .lab-try {
   font-size: 16px;
   color: #fff0c0;
-}
-.lab-soon {
-  color: #ffc060;
-  font-size: 12px;
 }
 .lab-row {
   display: flex;
