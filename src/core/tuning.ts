@@ -466,6 +466,13 @@ export const DEFAULT_TUNING = {
     releaseGraceMs: 60, // letting go up to this early still completes it
     turnDone: 0.8, // the cursor turning back inside it: done if this much was held
   },
+  links: {
+    // Linked pairs (Region 3's bar rule, core/combat.ts tapLinked): hit one, then the other within a beat
+    beatSec: 0.8, // the beat: the partner must be hit within this long
+    bonus: 1.5, // both hits land this much harder
+    gapMin: 0.05, // the space between the two (on top of a block's width), share of the bar
+    gapMax: 0.12,
+  },
   levels: {
     // Heroes level up from kills and act clears (core/heroes.ts): small base-stat gains, a skill point every 2 levels.
     // Paced with the bot (a typical 70% player): a first playthrough of Greenmarch ends around level 9 (Acts 1-3:
