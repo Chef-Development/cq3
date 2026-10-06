@@ -1,0 +1,352 @@
+// The hero's party on the stage: the equipped companions (one or two: Pip's own frames pip_*, the others comp_${id}_*;
+// fliers hover like Pip, the rest stand on the ground behind the hero) and a Summoner's allies (ally_${kind}_*: called
+// in with a pop and a puff of leaves, a front row at the hero's feet). Each companion plays its act frame when it
+// attacks (fliers swoop, walkers dash in; Sunny breathes on every foe) and flares when one of its perks kicks in; each
+// ally plays its act frame when it acts (a Barkback holds its bark up while braced and hops in front of the hero to
+// take a red), blinks when it's about to leave and goes in a puff.
+import Phaser from 'phaser';
+import { COMPANIONS, type CompanionId } from '../../data/companions';
+import type { AllyKind } from '../../data/heroes';
+import type { FightScene } from '../scene';
+import { clamp01, ease, PIP_BACK_MS, PIP_SWOOP_MS, rand } from './shared';
+
+type Img = Phaser.GameObjects.Image;
+
+/** Each companion's colour (its flare ring, its sparks). */
+export const PET_COL: Record<CompanionId, number> = {
+  bun: 0xf4eef8,
+  pip: 0x9ad8ff,
+  newt: 0xff8a3a,
+  sprocket: 0xf2c230,
+  brick: 0xb8a890,
+  flurry: 0xe0f6ff,
+  mote: 0xfff0a0,
+  sunny: 0xffb030,
+};
+/** The companion whose perk a perk id is (it flares when the perk kicks in). */
+export const PERK_PET: Record<string, CompanionId> = {
+  luckyFoot: 'bun',
+  owlWatch: 'pip',
+  emberBite: 'newt',
+  oilCan: 'sprocket',
+  rockWall: 'brick',
+  starlight: 'mote',
+  mend: 'mote',
+  goldHoard: 'sunny',
+  fireBreath: 'sunny',
+  chillBite: 'flurry',
+  snowDash: 'flurry',
+};
+/** Allies' fixed places in the front row (so they never shuffle as others come and go; the Glowmoth hovers by the
+ *  hero's shoulder instead), and their colours. */
+const ALLY_SLOT: Record<AllyKind, number> = { thornling: 0, barkback: 1, seedling: 2, glowmoth: 0 };
+export const ALLY_COL: Record<AllyKind, number> = { thornling: 0xb4d058, barkback: 0xb07a44, glowmoth: 0xffe070, seedling: 0x9af06a };
+const WALK_MS = 170;
+
+interface PetView {
+  id: CompanionId;
+  img: Img;
+  rim: Img;
+  flies: boolean;
+  state: 'idle' | 'swoop' | 'back' | 'breathe';
+  t0: number;
+  x: number;
+  y: number;
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  /** Its act frame shows until this anim time (a perk's flare, a breath). */
+  actUntil: number;
+}
+
+interface AllyView {
+  id: number;
+  kind: AllyKind;
+  img: Img;
+  bornAt: number;
+  actAt: number;
+  hopAt: number; // a Barkback hopping in front of the hero to block (anim time)
+  leaveAt: number; // 0 = still here
+  x: number;
+}
+
+export class Party {
+  pets: PetView[] = [];
+  allies = new Map<number, AllyView>();
+  private petKey = '';
+
+  constructor(private readonly s: FightScene) {}
+
+  /** A new layout: the images went with the containers. */
+  build(): void {
+    this.pets = [];
+    this.allies.clear();
+    this.petKey = '';
+  }
+
+  /** A new fight: the allies go (the companions stay). */
+  newFight(): void {
+    for (const a of this.allies.values()) a.img.destroy();
+    this.allies.clear();
+  }
+
+  /** Who is coming along: the hero build's companions (Pip alone when it names none). */
+  private petIds(): CompanionId[] {
+    const pets = this.s.app.run.combat?.pets ?? this.s.app.run.hero.build?.pets;
+    const ids = (pets ?? []).map((p) => p.id).filter((id) => !!COMPANIONS[id]);
+    return ids.length ? ids.slice(0, 2) : ['pip'];
+  }
+
+  /** Make the companion views match who's coming along. */
+  syncPets(makeRim: () => Img): void {
+    const ids = this.petIds();
+    const key = ids.join(',');
+    if (key === this.petKey && this.pets.length) return;
+    this.petKey = key;
+    const s = this.s;
+    const old = new Map(this.pets.map((p) => [p.id, p]));
+    this.pets = ids.map((id, i) => {
+      const keep = old.get(id);
+      if (keep) {
+        old.delete(id);
+        return keep;
+      }
+      const flies = COMPANIONS[id].flies;
+      const img = s.add.image(0, 0, id === 'pip' ? 'pip_idle0' : `comp_${id}_idle0`).setOrigin(0.5, flies ? 0.5 : 1);
+      const rim = makeRim();
+      // behind the hero (like Pip always was), each with its rim light right above it
+      if (rim.parentContainer) rim.parentContainer.remove(rim);
+      s.actors.addAt([img, rim], i * 2);
+      const x = s.heroHome - 30 - i * 24;
+      return { id, img, rim, flies, state: 'idle', t0: 0, x, y: flies ? s.ground - 24 : s.ground, fromX: 0, fromY: 0, toX: 0, toY: 0, actUntil: 0 } as PetView;
+    });
+    for (const p of old.values()) {
+      p.img.destroy();
+      p.rim.destroy();
+    }
+  }
+
+  /** A texture for a companion's pose. */
+  private tex(id: CompanionId, pose: 'idle0' | 'idle1' | 'act'): string {
+    if (id === 'pip') return pose === 'act' ? 'pip_dive' : `pip_${pose}`;
+    return `comp_${id}_${pose}`;
+  }
+
+  /**
+   * Every frame: the companions follow the hero (Pip and the fliers hover and bob; walkers scoot along the ground with
+   * a little hop), play their attack, and the allies hold their places in front, acting, blinking out, puffing away.
+   * `visible`: the stage's party shows (not before Pip joins, not on the title's showcase).
+   */
+  update(heroX: number, visible: boolean, makeRim: () => Img, syncRim: (src: Img, rim: Img) => void): void {
+    const s = this.s;
+    this.syncPets(makeRim);
+    const a = s.anim;
+    this.pets.forEach((P, i) => {
+      const homeX = heroX - 30 - i * 24;
+      const flier = P.flies;
+      const homeY = flier ? s.ground - 24 + Math.sin((a + i * 400) / 260) * 2 : s.ground;
+      const period = P.id === 'pip' ? 110 : flier ? 130 : 340;
+      let tex = this.tex(P.id, Math.floor((a + (P.id === 'pip' ? 0 : i * 170)) / period) % 2 ? 'idle1' : 'idle0');
+      if (P.state === 'swoop') {
+        const ms = flier ? PIP_SWOOP_MS : WALK_MS;
+        const k = clamp01((a - P.t0) / ms);
+        P.x = P.fromX + (P.toX - P.fromX) * ease(k);
+        P.y = flier ? P.fromY + (P.toY - P.fromY) * ease(k) - Math.sin(k * Math.PI) * 10 : P.toY - Math.abs(Math.sin(k * Math.PI * 2)) * 3;
+        tex = this.tex(P.id, flier || k > 0.6 ? 'act' : tex.endsWith('idle1') ? 'idle1' : 'idle0');
+      } else if (P.state === 'back') {
+        const k = clamp01((a - P.t0) / PIP_BACK_MS);
+        P.x = P.fromX + (homeX - P.fromX) * ease(k);
+        P.y = flier ? P.fromY + (homeY - P.fromY) * ease(k) - Math.sin(k * Math.PI) * 14 : homeY - Math.abs(Math.sin(k * Math.PI * 2)) * 3;
+        if (k >= 1) P.state = 'idle';
+      } else {
+        const dx = homeX - P.x;
+        P.x += dx * 0.12;
+        P.y = flier ? homeY : homeY - (Math.abs(dx) > 2 ? Math.abs(Math.sin(a / 55)) * 2 : 0);
+        if (P.state === 'breathe' && a >= P.actUntil) P.state = 'idle';
+      }
+      if (a < P.actUntil) tex = this.tex(P.id, 'act');
+      if (!s.textures.exists(tex)) tex = this.tex(P.id, 'idle0');
+      P.img.setTexture(tex).setPosition(Math.round(P.x), Math.round(P.y)).setVisible(visible);
+      syncRim(P.img, P.rim);
+    });
+    // allies: the front row at the hero's feet
+    const c = s.app.run.combat;
+    for (const v of this.allies.values()) {
+      const slot = ALLY_SLOT[v.kind] ?? 0;
+      const moth = v.kind === 'glowmoth';
+      const homeX = this.allyHome(v.kind);
+      v.x += (homeX - v.x) * 0.2;
+      const ally = c?.allies.find((x) => x.id === v.id);
+      let pose = Math.floor((a + slot * 130) / (moth ? 140 : 320)) % 2 ? '1' : '0';
+      if (a - v.actAt < 260 || (v.kind === 'barkback' && ally?.braced)) pose = 'act';
+      let x = v.x;
+      let y = moth ? s.ground - 34 + Math.sin(a / 230) * 2 : s.ground + 4;
+      // a Barkback hopping in front of the hero to take a red
+      const hk = (a - v.hopAt) / 380;
+      if (hk >= 0 && hk < 1) {
+        const out = hk < 0.5 ? ease(hk / 0.5) : 1 - ease((hk - 0.5) / 0.5);
+        x += (heroX + 16 - v.x) * out;
+        y -= Math.sin(Math.min(1, hk * 2) * Math.PI) * 6;
+        pose = 'act';
+      }
+      // called in: a pop with a little overshoot
+      const bk = (a - v.bornAt) / 220;
+      const sc = bk < 1 ? Math.max(0.1, bk < 0.7 ? (bk / 0.7) * 1.2 : 1.2 - 0.2 * ((bk - 0.7) / 0.3)) : 1;
+      let alpha = 1;
+      if (v.leaveAt) {
+        const lk = (a - v.leaveAt) / 240;
+        if (lk >= 1) {
+          v.img.destroy();
+          this.allies.delete(v.id);
+          continue;
+        }
+        alpha = 1 - lk;
+      } else if (ally && ally.left < 1.5 && Math.floor(a / 110) % 2 === 0) alpha = 0.35; // about to leave
+      const key = `ally_${v.kind}_${pose}`;
+      v.img
+        .setTexture(s.textures.exists(key) ? key : `ally_${v.kind}_0`)
+        .setPosition(Math.round(x), Math.round(y))
+        .setScale(sc)
+        .setAlpha(alpha)
+        .setVisible(visible);
+    }
+  }
+
+  /** Where an ally stands (the walkers in a row at the hero's feet; the Glowmoth by the hero's shoulder). */
+  private allyHome(kind: AllyKind): number {
+    const s = this.s;
+    return kind === 'glowmoth' ? s.heroHome + 12 : s.heroHome - 19 - (ALLY_SLOT[kind] ?? 0) * 17;
+  }
+
+  /** Where a companion is (for a ring, a bolt). */
+  petPos(id: CompanionId): { x: number; y: number } | null {
+    const p = this.pets.find((x) => x.id === id);
+    if (!p) return null;
+    return { x: p.x, y: p.flies ? p.y : p.y - 10 };
+  }
+
+  /** Where an ally is (the middle of its sprite). */
+  allyPos(kind: AllyKind): { x: number; y: number } | null {
+    for (const v of this.allies.values()) if (v.kind === kind && !v.leaveAt) return { x: v.img.x, y: v.img.y - (v.kind === 'glowmoth' ? 0 : 10) };
+    return null;
+  }
+
+  /** Ground shadows under the party (walkers solid, fliers small and faint). */
+  shadows(shadow: (x: number, feetY: number, w: number, lift?: number, alpha?: number) => void): void {
+    const s = this.s;
+    for (const p of this.pets) {
+      if (!p.img.visible) continue;
+      if (p.flies) shadow(p.x, s.ground, 12, s.ground - p.y - 8, 0.75);
+      else shadow(p.x, s.ground, 14, Math.max(0, s.ground - p.y));
+    }
+    for (const v of this.allies.values()) {
+      if (!v.img.visible || v.leaveAt) continue;
+      if (v.kind === 'glowmoth') shadow(v.img.x, s.ground, 8, 30, 0.5);
+      else shadow(v.img.x, s.ground + 4, 10, Math.max(0, s.ground + 4 - v.img.y));
+    }
+  }
+
+  /**
+   * A companion attacks: fliers swoop at the target, walkers dash in along the ground (a hop up at a flier), both in
+   * their act frame; Sunny breathes fire at every foe from where it hovers. `land` runs when the blow lands.
+   */
+  attack(id: CompanionId, target: { x: number; y: number; w: number; h: number; fly: number }, all: Array<{ x: number; y: number }> | null, land: () => void): void {
+    const s = this.s;
+    const P = this.pets.find((p) => p.id === id) ?? this.pets[0];
+    if (!P) return land();
+    if (all) {
+      // a breath over the whole enemy line: streams of fire from its mouth to every foe, flames spraying
+      P.state = 'breathe';
+      P.actUntil = s.anim + 460;
+      const mx = P.x + 12;
+      const my = P.y - 2;
+      const foes = all.length ? all : [{ x: target.x, y: target.y - target.h / 2 }];
+      foes.forEach((f, j) => {
+        s.fx.bolt(mx, my, f.x - 4, f.y, 150, 0xff8a2a);
+        s.later(40 + j * 20, () => s.fx.bolt(mx, my + 2, f.x - 2, f.y + 3, 130, 0xffe080));
+      });
+      for (let w = 0; w < 4; w++)
+        s.later(w * 60, () => {
+          for (let i = 0; i < 7; i++) {
+            const f = foes[i % foes.length];
+            const d = Math.max(1, Math.hypot(f.x - mx, f.y - my));
+            const sp = rand(200, 300);
+            const spread = rand(-0.25, 0.25);
+            const ux = (f.x - mx) / d;
+            const uy = (f.y - my) / d;
+            s.fx.particles.push({ x: mx, y: my, vx: (ux - uy * spread) * sp, vy: (uy + ux * spread) * sp, g: -60, born: performance.now(), life: rand(240, 380), color: i % 3 === 0 ? 0xfff0a0 : i % 3 === 1 ? 0xffb030 : 0xff5a1a, size: 2, world: true, streak: false, shape: i % 2 ? 'shard' : 'chip' });
+          }
+        });
+      s.later(150, land);
+      return;
+    }
+    Object.assign(P, {
+      state: 'swoop',
+      t0: s.anim,
+      fromX: P.x,
+      fromY: P.y,
+      toX: target.x - target.w / 2 - (P.flies ? 2 : 8),
+      toY: P.flies ? target.y - target.h * 0.6 : s.ground - Math.min(10, target.fly),
+    });
+    s.later(P.flies ? PIP_SWOOP_MS : WALK_MS, () => {
+      land();
+      Object.assign(P, { state: 'back', t0: s.anim, fromX: P.x, fromY: P.y });
+    });
+  }
+
+  /** A companion's perk kicked in: it flares (its act frame for a moment, a ring and sparks in its colour). */
+  flare(id: CompanionId): void {
+    const s = this.s;
+    const P = this.pets.find((p) => p.id === id);
+    if (!P || !P.img.visible) return;
+    P.actUntil = s.anim + 240;
+    const y = P.flies ? P.y : P.y - 10;
+    s.fx.ring(P.x, y, 12, PET_COL[id], true);
+    s.fx.burst(P.x, y - 4, PET_COL[id], 6, true, 0.7);
+  }
+
+  /** A Summoner's ally came, acted, left, rallied or blocked. */
+  ally(kind: AllyKind, action: 'call' | 'act' | 'leave' | 'rally' | 'block', id: number): void {
+    const s = this.s;
+    const col = ALLY_COL[kind];
+    if (action === 'call') {
+      const x = this.allyHome(kind);
+      const img = s.add.image(x, s.ground + 4, `ally_${kind}_0`).setOrigin(0.5, kind === 'glowmoth' ? 0.5 : 20 / 22);
+      s.actors.add(img);
+      this.allies.set(id, { id, kind, img, bornAt: s.anim, actAt: -1e9, hopAt: -1e9, leaveAt: 0, x });
+      const y = kind === 'glowmoth' ? s.ground - 34 : s.ground - 4;
+      s.fx.burst(x, y, 0x78a83c, 10, true, 0.8);
+      s.fx.burst(x, y, col, 5, true, 0.6);
+      s.fx.ring(x, y, 12, col, true);
+      s.fx.dust(x, s.ground + 4, 4, 0, 0.8);
+      return;
+    }
+    if (action === 'rally') {
+      // everyone springs up together
+      for (const v of this.allies.values()) {
+        v.actAt = s.anim;
+        s.fx.ring(v.img.x, v.img.y - 8, 14, 0xffe680, true);
+      }
+      s.fx.addFloater(s.heroHome - 30, s.ground - 40, 'Rally!', 0xffe680, 1, true, 0, -16, 0, 700, true);
+      return;
+    }
+    const v = this.allies.get(id);
+    if (!v) return;
+    if (action === 'leave') {
+      v.leaveAt = s.anim;
+      s.fx.burst(v.img.x, v.img.y - 8, 0x78a83c, 8, true, 0.7);
+      s.fx.dust(v.img.x, s.ground + 4, 5, 0, 0.9);
+      return;
+    }
+    if (action === 'block') {
+      v.hopAt = s.anim;
+      s.later(190, () => s.fx.burst(this.s.fighters.h.x + 16, s.ground - 12, col, 8, true, 1));
+      return;
+    }
+    // act: its act frame, and a little glow in its colour
+    v.actAt = s.anim;
+    if (kind === 'glowmoth') s.fx.glow(v.img.x, v.img.y, 10, 0xffe070, 260);
+    else if (kind === 'seedling') s.fx.burst(v.img.x + 6, v.img.y - 6, 0x9af06a, 6, true, 0.7);
+  }
+}
