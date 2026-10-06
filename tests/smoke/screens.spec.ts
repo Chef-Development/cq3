@@ -27,7 +27,7 @@ async function frames(page: Page, n: number): Promise<void> {
 }
 
 /** Load the game on the fake clock. Tips are off (their own tests turn them on: `tips`), so they never pop over the
- *  other screens. */
+ *  other screens; so is the world map's first-visit reveal. */
 async function boot(page: Page, o: { tips?: boolean } = {}): Promise<void> {
   // install the fake clock first, so the init script below wraps the faked performance.now
   await page.clock.install({ time: START });
@@ -64,7 +64,9 @@ async function boot(page: Page, o: { tips?: boolean } = {}): Promise<void> {
     if (await page.evaluate(() => (window as Cq3Window).__cq3?.ready === true)) {
       await page.evaluate((on) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).__cq3.app.profile.tipsOff = !on;
+        const p = (window as any).__cq3.app.profile;
+        p.tipsOff = !on;
+        p.worldTour = true;
       }, !!o.tips);
       return;
     }
@@ -87,6 +89,38 @@ test('kingdom world map', async ({ page }) => {
   await page.evaluate(() => (window as Cq3Window).__cq3!.app.newRun());
   await frames(page, 30);
   await expect(page).toHaveScreenshot('world.png', shot);
+});
+
+test('world map: panned to the locked lands, one of them tapped (its fog thins, its name shows)', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.newRun());
+  await frames(page, 20);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = (window as any).__cq3.app.view.worldMap;
+    w.lookAt(778, 95);
+    const c = w.camera();
+    w.tap(812 - c.x, 142 - c.y); // Ashfell's padlock
+  });
+  await frames(page, 50);
+  await expect(page).toHaveScreenshot('world-locked.png', shot);
+});
+
+test('world map: an act landmark selected (its card, a ring round it)', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stockProfile(page);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.newRun());
+  await frames(page, 30);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = (window as any).__cq3.app.view.worldMap;
+    const s = w.actSpot(1);
+    w.tap(s.x, s.y);
+  });
+  await frames(page, 45);
+  await expect(page).toHaveScreenshot('world-act-selected.png', shot);
 });
 
 test('story scene and map', async ({ page }) => {

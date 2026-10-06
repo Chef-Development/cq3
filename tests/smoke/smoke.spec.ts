@@ -11,11 +11,19 @@ async function tapGame(page: Page, x: number, y: number): Promise<void> {
   await page.mouse.click(l.left + (x * l.cssW) / 327, l.top + (y * l.cssH) / 150);
 }
 
-/** Load the game. Tips are off unless asked for (`tips`), so they never pop over the other tests' screens. */
-async function ready(page: Page, o: { tips?: boolean } = {}): Promise<void> {
+/** Load the game. Tips are off unless asked for (`tips`), so they never pop over the other tests' screens; so is the
+ *  world map's first-visit reveal (`tour`). */
+async function ready(page: Page, o: { tips?: boolean; tour?: boolean } = {}): Promise<void> {
   await page.goto('/cq3/');
   await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
-  await page.evaluate((on) => ((window as Any).__cq3.app.profile.tipsOff = !on), !!o.tips);
+  await page.evaluate(
+    ([tips, tour]) => {
+      const p = (window as Any).__cq3.app.profile;
+      p.tipsOff = !tips;
+      p.worldTour = !tour;
+    },
+    [!!o.tips, !!o.tour],
+  );
 }
 
 test('loads, plays the intro, walks the map, starts a fight, taps, no console errors', async ({ page }) => {
@@ -291,6 +299,59 @@ test('gear: loot after a win goes in the bag; act clear -> camp -> next act; def
   expect(errors).toEqual([]);
 });
 
+test('world map: the first visit glides over the world (a tap skips it); a drag pans it and starts nothing; an act landmark opens its card and Play starts it', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  await ready(page, { tour: true });
+  const a = app(page);
+  const phase = () => a((x) => x.run.phase);
+  const cam = async () => (await a((x) => x.view.worldMap.camera())) as { x: number; y: number };
+  await tapGame(page, 163, 75); // no save: a tap starts a new run on the kingdom's world map
+  await expect.poll(phase).toBe('world');
+  await expect.poll(() => a((x) => x.view.worldMap.touring)).toBe(true);
+  await page.waitForTimeout(400);
+  await tapGame(page, 163, 75); // any tap skips the reveal, and does nothing else
+  await expect.poll(() => a((x) => x.view.worldMap.touring)).toBe(false);
+  expect(await a((x) => x.profile.worldTour)).toBe(true);
+  const home = await cam();
+  expect(home).toEqual(await a((x) => ((h: number[]) => ({ x: h[0], y: h[1] }))(x.view.worldMap.home())));
+  expect(await phase()).toBe('world');
+
+  // a drag that starts on a landmark pans the map (it glides on a little) and starts nothing
+  const l = (await page.evaluate('window.__cq3.app.layout')) as { left: number; top: number; cssW: number; cssH: number };
+  const css = (x: number, y: number): [number, number] => [l.left + (x * l.cssW) / 327, l.top + (y * l.cssH) / 150];
+  const spot0 = (await a((x) => x.view.worldMap.actSpot(0))) as { x: number; y: number };
+  const [sx, sy] = css(spot0.x, spot0.y);
+  await page.mouse.move(sx, sy);
+  await page.mouse.down();
+  for (let k = 1; k <= 8; k++) {
+    await page.mouse.move(sx - k * 12, sy - k * 3);
+    await page.waitForTimeout(16);
+  }
+  await page.mouse.up();
+  await page.waitForTimeout(1200);
+  const moved = await cam();
+  expect(moved.x).toBeGreaterThan(home.x + 20);
+  expect(await phase()).toBe('world');
+  expect(await a((x) => ({ sel: x.view.worldMap.selected, picker: x.view.worldMap.pickerOpen }))).toEqual({ sel: null, picker: false });
+  await page.screenshot({ path: 'test-results/world-dragged.png' });
+
+  // a tap on an act's landmark (where it is now): its card; Play starts the story
+  const spot = (await a((x) => x.view.worldMap.actSpot(0))) as { x: number; y: number };
+  await tapGame(page, spot.x, spot.y);
+  await expect.poll(() => a((x) => x.view.worldMap.selected)).toBe(0);
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: 'test-results/world-act-card.png' });
+  const play = (await a((x) => x.view.worldMap.cardPlay())) as { x: number; y: number; w: number; h: number };
+  await tapGame(page, play.x + play.w / 2, play.y + play.h / 2);
+  await expect.poll(phase).toBe('scene');
+  expect(await a((x) => x.storyId)).toBe('intro');
+  expect(errors).toEqual([]);
+});
+
 test('relics: pick one after a fight, its icon is on the HUD belt next fight, a tap there opens the relic panel', async ({ page }) => {
   test.setTimeout(90_000);
   const errors: string[] = [];
@@ -451,7 +512,7 @@ test('living maps: a tap on a sparkle pays a coin or two, once (not again after 
   // the world map: this visit's sparkle, out at sea, into the purse
   await a((x) => x.newRun());
   await expect.poll(() => a((x) => x.run.phase)).toBe('world');
-  const sea = async () => (await a((x) => x.view.worldMap.life.sparkle)) as { x: number; y: number } | null;
+  const sea = async () => (await a((x) => x.view.worldMap.life.sparkleOnScreen())) as { x: number; y: number } | null;
   await expect.poll(sea).not.toBeNull();
   await page.waitForTimeout(400);
   const w = (await sea())!;

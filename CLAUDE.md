@@ -15,7 +15,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 
 - **Original assets only.** No CQ2 art, names, music, sounds or code. Art is drawn from character maps in
   `src/engine/art.ts` (hero, Pip, first enemies), `art-foes.ts` (Greenmarch enemies), `art-story.ts` (portraits, map
-  icons), `art-world.ts` (the kingdom world map), `art-map.ts` (act map landscapes, map-scale Rowan, node props),
+  icons), `art-world.ts` + `art-world-sites.ts` (the kingdom world map: the land, and what stands on it), `art-map.ts` (act map landscapes, map-scale Rowan, node props),
   `art-stage.ts` (per-act fight lighting), `art-sable.ts` (Sable's frames, map walker, hero cards), `art-relics.ts`
   (relic, tag and skill icons), `art-life.ts` (the maps' critters), `backdrop.ts` and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
   are synthesized in `src/engine/audio.ts` and the music in `src/engine/music.ts`, icons come from `scripts/make-icons.mjs` (art in `scripts/icon-art.mjs`).
@@ -57,6 +57,20 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `heroFor` that act; used up when it starts, never saved) for gear and XP, then back to the world map. Drawing:
   `view/map-roam.ts` (roamers, telegraphs, secret, the bounty tracker beside the coins), `view/stops.ts` (the board),
   `view/world-roam.ts` (the foe and its card), `art-roam.ts` (sprites); the Coin Rush clock is on the enemy plate.
+- **The world map is bigger than the screen and pans** (`view/world.ts`, art in `art-world.ts`): a continent
+  `WORLD_W` x `WORLD_H` (960x300, about 3x2 screens) under a camera (`worldMap.ox/oy`); everything on it is placed in
+  world px less the camera, while the HUD (the header, the Camp button, the cards, the act picker) stays put inside the
+  safe areas. **Tap vs drag:** there a press is judged on release (`input.ts` -> `pressAt/dragTo/releaseAt`): one that
+  moves more than `DRAG_PX` (4 game px) is a drag (it pans, flings on with momentum, clamps at the edges, and never
+  starts anything); one that stays put is a tap. It opens on the current act's `WORLD_ACTS[i].view`; the very first
+  visit (`profile.worldTour`) glides in from the far east in under 2 s (any tap skips it). Greenmarch's acts are
+  landmarks (`WORLD_ACTS`: box, Rowan's stand, flag): a tap selects one (its card: name, what playing it means,
+  Play = the act picker's start), Rowan (or, before any act is cleared, his "Tap to begin!" plate) opens the story or
+  the act picker; the locked lands sit under veils (`wm_veil_<id>`) that thin when tapped. Tests use
+  `greenmarch()`, `actSpot(i)`, `cardPlay()`, `camera()`, `lookAt(x, y)` and `life.sparkleOnScreen()` (screen px).
+  The world is painted once, in idle slices after boot (`paintWorldSlice`; `scene.ensureWorldArt()` finishes it at
+  once if the map is opened first): keep each step a few tens of ms and the frame to moving images and a modest
+  number of rects for what's in view.
 - **Heroes.** Rowan (Blade: one cursor) and Sable (Twin: two cursors, A sweeps the left half, B the right, in step;
   a tap on the left half of the screen judges A, the right half B; `Combat.hands`, `tap(t, hand)`,
   `cursorPosAt(t, hand)`). Gear is shared; each hero has their own XP, level (1-30, `tuning.levels`) and skill tree
@@ -83,7 +97,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `enterAct(i, scenes, false)`; the next act has them); older saves are dropped). The **profile** (`core/profile.ts`, key `cq3.profile.v2`) is kept
   across runs: progress, the bag (60 items), what's equipped, coins (the purse carries over between runs), scrap, each
   signature drop's bad-luck counter, the accuracy log, whether the smith was met; v3 adds the heroes (picked, XP, skills, Sable met, the twin tutorial
-  shown) and the relics unlocked, the tips seen and whether tips are off, the world map's wandering foe (`wander`), the map sparkles picked up (still v3: missing reads as none; a profile
+  shown) and the relics unlocked, the tips seen and whether tips are off, the world map's wandering foe (`wander`), the map sparkles picked up, whether the world map's first-visit reveal played (`worldTour`) (still v3: missing reads as none; a profile
   from before the tips that has cleared an act gets the basics' tips marked seen). `readProfile` migrates v1 (progress only) and v2 (Rowan gets the cleared acts'
   first-clear XP; their relics unlock). Gear is not saved in the run: the hero's `gear` loadout always comes from the profile (`run.refreshGear()`).
   Gear and coins found are kept when you die. The title offers Continue (the run, or the world map with everything
@@ -113,7 +127,8 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   muted and slow, on open ground (`land.ground` from `paintLand`, away from the nodes when there's room) or open sea,
   and never over a node, a road, a tag, the roamers, the secret's boulder, the hint, the Camp button or the HUD (the
   bounty tracker too); it only gets the taps nothing else takes (`input.ts` after the secret and the nodes; on the
-  world map, after the wanderer, the regions, the plate and the buttons). The only text it adds is the "+1" of a pop. Everything
+  world map, after the wanderer, the landmarks, the regions, the plate and the buttons; placed where the map's opening
+  view sees the sea). The only text it adds is the "+1" of a pop. Everything
   animates from `now` and seeds (screenshots stay exact). The rules are `core/sparkle.ts` (pure, unit-tested): at most
   one sparkle per act-map step (never an act's first) and one per world-map visit (a new visit only once you've played:
   gear found, XP, an act cleared), deterministic from its key, and the profile keeps the claimed keys
@@ -179,6 +194,7 @@ src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Ph
                clock, routes core events to view/), input.ts, debug.ts (tuning panel, Sound lab, Jump to),
                calibrate.ts, audio.ts (sounds, ambience), music.ts (the soundtrack), art.ts / art-foes.ts / art-story.ts / art-world.ts /
                art-map.ts / art-stage.ts (sprites, portraits, the world map, act map landscapes, fight lighting),
+               art-world-sites.ts (the world map's trees, villages, landmarks, mountains: what stands on its land),
                art-roam.ts (the coin sack, the board, the secret rock, the merchant),
                art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-paint.ts (painting helpers),
                art-life.ts (the maps' critters),
@@ -186,7 +202,8 @@ src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Ph
 src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemies, Pip, telegraphs, summons,
                finisher show, deaths), effects.ts (particles, floaters, camera), bar.ts (timing bar, blocks,
                telegraph previews, cursor), hud.ts (hero and enemy plates, meter, coins, relic belt), overlays.ts (title, boost,
-               chest, defeat, victory, pause), world.ts (kingdom world map; world-roam.ts its wandering foe), map.ts (act
+               chest, defeat, victory, pause), world.ts (kingdom world map: the camera, drag and tap, the landmarks and
+               their card, the act picker; world-roam.ts its wandering foe), map.ts (act
                map; map-roam.ts its roamers, telegraphs, secret and bounty tracker), map-life.ts and world-life.ts (their
                critters and sparkles; life.ts the shared critters, glint and pop), stops.ts (the bounty board), story.ts (scenes),
                nodes.ts (rest, shop, events), camp.ts (the camp home; bag.ts, forge.ts, heroes.ts (hero select),
