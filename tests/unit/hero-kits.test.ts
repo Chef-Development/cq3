@@ -133,7 +133,8 @@ describe('style rules', () => {
   });
 
   it('Summoner (Call): green hits call allies in order; a Thornling strikes, a Barkback stops a red, a Glowmoth heals; a 4th call is a Rally', () => {
-    const { c, t } = fight('moss', { tune: (t) => (t.blocks.redTravelSec = 1) });
+    // (allies stay the whole test: their stay is the next test's)
+    const { c, t } = fight('moss', { tune: (t) => ((t.blocks.redTravelSec = 1), (t.kits.moss.allySec = 30)) });
     tapNew(c, t, 'green', 0.2);
     expect(c.allies.map((a) => a.kind)).toEqual(['thornling']);
     const hp = c.enemies[0].hp;
@@ -160,6 +161,24 @@ describe('style rules', () => {
     tapNew(c, t, 'green', 0.2);
     go(c, c.time + t.kits.moss.allySec + 0.1);
     expect(c.allies).toHaveLength(0);
+  });
+
+  it('Summoner (Call): every Nth yellow comes as a green, so the calls keep coming (with and without the style)', () => {
+    const { c, t } = fight('moss');
+    const kinds = Array.from({ length: t.styles.callEvery * 3 }, () => STYLE_HOOKS.summoner.spawnKind!(c, 'yellow', c.enemies[0].id));
+    expect(kinds.filter((k) => k === 'green')).toHaveLength(3);
+    expect(STYLE_HOOKS.summoner.spawnKind!(c, 'red', c.enemies[0].id)).toBe('red');
+    // the same foes, untouched for 20 s: a Summoner sees well over the greens another hero does
+    const greens = (hero: HeroId) => {
+      const { c: f } = fight(hero, { enemies: ['slime', 'bandit'], spawning: true });
+      let n = 0;
+      for (let k = 0; k < 20; k++) {
+        go(f, f.time + 1);
+        n += f.drainEvents().filter((e) => e.type === 'spawn' && e.kind === 'green').length;
+      }
+      return n;
+    };
+    expect(greens('moss')).toBeGreaterThan(greens('rowan') * 1.5);
   });
 
   it('Bomber (Powder): every Nth yellow comes as a keg; hitting a keg blasts every foe and knocks nearby reds off', () => {

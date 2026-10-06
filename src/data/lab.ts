@@ -11,14 +11,16 @@
 import type { CompanionId } from './companions';
 import type { HeroId } from './heroes';
 import type { CampUpgradeId } from './meta';
+import type { TipId } from './tips';
 import type { BarRules } from './types';
 
-export type LabGroupId = 'heroes' | 'companions' | 'chests' | 'camp' | 'bar' | 'spoiler';
+export type LabGroupId = 'heroes' | 'companions' | 'fights' | 'chests' | 'camp' | 'bar' | 'spoiler';
 
 /** The list's groups, in order. The spoiler group is hidden until "Show spoilers". */
 export const LAB_GROUPS: Array<{ id: LabGroupId; name: string; spoiler?: boolean }> = [
   { id: 'heroes', name: 'Heroes' },
   { id: 'companions', name: 'Companions' },
+  { id: 'fights', name: 'Fights' },
   { id: 'chests', name: 'Chests and shrine' },
   { id: 'camp', name: 'Camp' },
   { id: 'bar', name: 'Bar rules' },
@@ -62,6 +64,8 @@ export interface LabProfileSpec {
   pityLeft?: number;
   /** Region 1's completion tracker: one short of 100%, or at 100% with its reward still to claim. */
   completion?: 'near' | 'done';
+  /** Tips still to show (tips on; every other tip seen): a hero's how-to card before the fight. */
+  tips?: TipId[];
 }
 
 export interface LabScenario {
@@ -75,30 +79,40 @@ export interface LabScenario {
   try: string;
   /** Region foes, bosses and story: hidden until "Show spoilers". */
   spoiler?: boolean;
+  /** Bumped when the scenario is reworked after a playtest: a rating given to an earlier rev asks again. */
+  rev?: number;
   setup: LabSetup;
   profile?: LabProfileSpec;
 }
 
 const PERCH: CampUpgradeId[] = ['perch'];
 
-/** A hero's short fight against Region 1 foes: Old Ruins (Act 2) pace, real damage, two finisher stacks banked. */
-const heroFight = (id: string, hero: HeroId, label: string, tryLine: string, stars: number, waves: string[][]): LabScenario => ({
+/** Each hero's how-to card (src/data/tips.ts), shown before their lab fight. */
+const KIT_TIP: Partial<Record<HeroId, TipId>> = { sable: 'kitSable', neve: 'kitNeve', moss: 'kitMoss', tam: 'kitTam', hollis: 'kitHollis', vesper: 'kitVesper', torva: 'kitTorva' };
+
+/** A hero's fight, long enough to feel the kit (playtest round 5: the old two-wave ones ended before it showed): six
+ *  waves of Region 1 foes at Act 2's numbers, the last with an elite, real damage, the finisher banked once, the
+ *  hero's how-to card first. */
+const heroFight = (id: string, hero: HeroId, label: string, tryLine: string, waves: string[][]): LabScenario => ({
   id,
   group: 'heroes',
   label,
-  secs: 40,
+  secs: 70,
+  rev: 1,
   try: tryLine,
-  setup: { kind: 'fight', hero, stars, act: 1, waves, stacks: 2 },
+  setup: { kind: 'fight', hero, stars: 2, act: 1, waves, stacks: 1 },
+  profile: { tips: KIT_TIP[hero] ? [KIT_TIP[hero]!] : [] },
 });
 
-/** Two companions side by side (the Companion Perch) with Rowan, in a Meadow Road fight. */
+/** Two companions side by side (the Companion Perch) with Rowan: four waves at Act 2's numbers. */
 const petFight = (id: string, pets: [CompanionId, CompanionId], label: string, tryLine: string, waves: string[][], bar?: BarRules): LabScenario => ({
   id,
   group: 'companions',
   label,
-  secs: 30,
+  secs: 50,
+  rev: 1,
   try: tryLine,
-  setup: { kind: 'fight', hero: 'rowan', stars: 2, pets, act: 0, waves, bar },
+  setup: { kind: 'fight', hero: 'rowan', stars: 2, pets, act: 1, waves, bar },
   profile: { camp: PERCH, pets, petsOn: pets },
 });
 
@@ -112,32 +126,40 @@ const barRule = (id: string, label: string, tryLine: string, bar: BarRules): Lab
   setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['dummy']], bar, safe: true },
 });
 
-/** This session's new content (M5: heroes, companions, chests and the shrine, camp upgrades, completion, the next
- *  region's bar rules; the region itself behind the spoiler toggle). */
+/** This session's new content (playtest round 5: the heroes' and companions' fights reworked to be long enough to
+ *  feel, each hero's how-to card and what they do shown on the bar, more foes per fight in the first region). */
 export const LAB_NEW: LabScenario[] = [
-  // ---- heroes: each new or reworked hero's kit, finisher ready at once
-  heroFight('sable', 'sable', 'Sable', 'Chain Perfects to dash. Green: Smoke Veil. Swipe!', 3, [['shaman', 'archer'], ['shaman', 'bandit']]),
-  heroFight('neve', 'neve', 'Neve', 'Block reds to freeze them, then smash the ice.', 2, [['crow', 'beetle'], ['wolf', 'wolf']]),
-  heroFight('moss', 'moss', 'Moss', 'Greens call allies; a 4th call is a Rally.', 2, [['slime', 'slime'], ['shaman', 'slime']]),
-  heroFight('tam', 'tam', 'Tam', 'Hit the kegs: they blast every foe.', 2, [['beetle', 'archer'], ['beetle', 'beetle']]),
-  heroFight('hollis', 'hollis', 'Hollis', 'Perfect blocks hit back. Blocks store Guard.', 2, [['boar', 'archer'], ['boar', 'bandit']]),
-  heroFight('vesper', 'vesper', 'Vesper', 'Perfects store Focus; a green fires it.', 2, [['crow', 'crow'], ['archer', 'crow']]),
-  heroFight('torva', 'torva', 'Torva', 'Green winds up a smash. Perfects push reds.', 3, [['beetle', 'boar'], ['bandit', 'boar']]),
+  // ---- heroes: each kit in a longer fight, the how-to card first
+  heroFight('sable', 'sable', 'Sable', 'Chain Perfects: each dashes the cursor on.', [['shaman', 'archer'], ['wolf', 'wolf'], ['shaman', 'boar'], ['bandit', 'crow'], ['archer', 'shaman'], ['knight', 'shaman']]),
+  heroFight('neve', 'neve', 'Neve', 'Block reds to freeze them, then smash the ice.', [['wolf', 'wolf'], ['boar', 'crow'], ['beetle', 'archer'], ['wolf', 'wolf', 'shaman'], ['boar', 'bandit'], ['knight', 'wolf']]),
+  heroFight('moss', 'moss', 'Moss', 'Hit greens: each calls an ally. Watch them.', [['slime', 'slime'], ['shaman', 'slime'], ['wolf', 'crow'], ['boar', 'slime'], ['archer', 'slime'], ['bigSlime', 'shaman']]),
+  heroFight('tam', 'tam', 'Tam', 'Hit the kegs: each blasts every foe.', [['beetle', 'archer'], ['wolf', 'wolf', 'archer'], ['beetle', 'boar'], ['wolf', 'wolf', 'shaman'], ['crow', 'crow', 'bandit'], ['knight', 'beetle']]),
+  heroFight('hollis', 'hollis', 'Hollis', 'Block to store Guard; your next hit spends it.', [['boar', 'archer'], ['bandit', 'boar'], ['wolf', 'wolf'], ['beetle', 'boar'], ['archer', 'bandit'], ['bigSlime', 'boar']]),
+  heroFight('vesper', 'vesper', 'Vesper', 'Hits fill Focus; a green fires a Power Shot.', [['crow', 'crow'], ['archer', 'crow'], ['wolf', 'wolf'], ['boar', 'crow'], ['crow', 'shaman'], ['knight', 'archer']]),
+  heroFight('torva', 'torva', 'Torva', 'Green, then a yellow: a smash. Hits taken: harder.', [['boar', 'bandit'], ['wolf', 'wolf'], ['beetle', 'boar'], ['bandit', 'archer'], ['boar', 'boar'], ['knight', 'wolf']]),
 
-  // ---- companions: all eight, two at a time
-  petFight('petsPipBun', ['pip', 'bun'], 'Pip + Bun', 'Pip pecks a trap; Bun finds coins.', [['bandit', 'slime'], ['shaman', 'crow']]),
-  petFight('petsNewtSprocket', ['newt', 'sprocket'], 'Newt + Sprocket', 'Newt burns foes; Sprocket widens a Perfect.', [['slime', 'crow'], ['boar', 'bandit']]),
-  petFight('petsBrickFlurry', ['brick', 'flurry'], 'Brick + Flurry', 'Let a red through: Brick stops it.', [['boar', 'crow'], ['bandit', 'boar']]),
-  petFight('petsMoteSunny', ['mote', 'sunny'], 'Mote + Sunny', 'Build combo: 15 for a star, 25 for fire.', [['bandit', 'shaman'], ['bandit', 'slime']], {
+  // ---- companions: all eight, two at a time, in longer fights
+  petFight('petsPipBun', ['pip', 'bun'], 'Pip + Bun', 'Pip pecks the first trap; Bun finds coins.', [['bandit', 'slime'], ['shaman', 'crow'], ['archer', 'beetle'], ['bandit', 'shaman']]),
+  petFight('petsNewtSprocket', ['newt', 'sprocket'], 'Newt + Sprocket', 'Newt burns foes; Sprocket widens a Perfect.', [['slime', 'crow'], ['boar', 'bandit'], ['beetle', 'archer'], ['shaman', 'boar']]),
+  petFight('petsBrickFlurry', ['brick', 'flurry'], 'Brick + Flurry', 'Let a red through: Brick stops it. Flurry chills.', [['boar', 'crow'], ['bandit', 'boar'], ['archer', 'beetle'], ['boar', 'archer']]),
+  petFight('petsMoteSunny', ['mote', 'sunny'], 'Mote + Sunny', 'Build combo: 15 for a star, 25 for fire.', [['bandit', 'shaman'], ['bandit', 'slime'], ['archer', 'shaman'], ['beetle', 'bandit']], {
     ice: { every: 9, width: 0.2, life: 6, fromRow: 0, max: 1 },
   }),
 
+  // ---- the first region's fights now bring more foes (a late fight of Act 1 and of Act 2, as the map deals them)
+  { id: 'foesAct1', group: 'fights', label: 'More foes: Act 1', secs: 45, try: 'A late Act 1 fight: five waves now.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 0, waves: [['bandit'], ['slime', 'crow'], ['boar', 'slime'], ['bandit', 'crow'], ['boar']], row: 5 } },
+  { id: 'foesAct2', group: 'fights', label: 'More foes: Act 2', secs: 60, try: 'A late Act 2 fight: six waves now.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 1, waves: [['beetle', 'archer'], ['shaman', 'bandit'], ['crow', 'archer'], ['beetle', 'shaman'], ['archer'], ['beetle']], row: 5 } },
+];
+
+/** Earlier sessions' items (still playable; rated before): M5's chests, camp screens, bar rules and the later regions
+ *  (its hero and companion fights were reworked above). */
+export const LAB_EARLIER: LabScenario[] = [
   // ---- chests and the shrine (opened at the camp)
   { id: 'chestHero', group: 'chests', label: 'Hero chest', secs: 30, try: 'Open the hero chest at the camp.', setup: { kind: 'camp', screen: 'chest' }, profile: { actsCleared: 1, chests: { hero: 1 } } },
   { id: 'chestRare', group: 'chests', label: 'Rare chest', secs: 30, try: 'Open the Rare chest at the camp.', setup: { kind: 'camp', screen: 'chest' }, profile: { actsCleared: 1, chests: { rare: 1 } } },
   { id: 'shrine', group: 'chests', label: 'Shrine and pity', secs: 30, try: 'Buy two Rare chests. Watch the pity count.', setup: { kind: 'camp', screen: 'shrine' }, profile: { actsCleared: 2, shrineChests: 2, pityLeft: 3 } },
 
-  // ---- the camp's new screens
+  // ---- the camp's screens
   {
     id: 'heroSelect',
     group: 'camp',
@@ -176,7 +198,7 @@ export const LAB_NEW: LabScenario[] = [
   },
   { id: 'completionNear', group: 'camp', label: 'Completion: almost', secs: 30, try: "Check what's left for 100%.", setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'near' } },
 
-  // ---- the new bar rules, alone against the Training Dummy
+  // ---- the second region's bar rules, alone against the Training Dummy
   barRule('barIce', 'Ice patches', 'The cursor speeds up on ice: tap early.', { ice: { every: 5, width: 0.22, life: 6, fromRow: 0, max: 2 } }),
   barRule('barHolds', 'Hold blocks', 'Hold from the first notch to the last.', { holds: { share: 0.3, fromRow: 0, width: 1 } }),
   barRule('barSnow', 'Snowdrifts + ice', 'Fast on ice, slow in snow: re-time.', {
@@ -211,8 +233,6 @@ export const LAB_NEW: LabScenario[] = [
   { id: 'spStory9', group: 'spoiler', spoiler: true, label: 'Act 9 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 8, scenes: ['ash3', 'bellows', 'bellows2', 'bellows3', 'ashVictory'] } },
 ];
 
-/** Earlier sessions' items (still playable; rated before). Empty until the next session moves LAB_NEW here. */
-export const LAB_EARLIER: LabScenario[] = [];
 
 export const LAB_SCENARIOS: LabScenario[] = [...LAB_NEW, ...LAB_EARLIER];
 

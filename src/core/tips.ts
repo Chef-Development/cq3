@@ -182,6 +182,7 @@ export class TipCoach {
         // (a Coin Rush is pure aim: its relics sleep)
         if (id === 'relicBelt' && (!run.hero.relics.length || run.combat.rush)) return null;
         if (id === 'rush' && !run.combat.rush) return null;
+        if (def.hero && (run.combat.heroId !== def.hero || run.combat.rush)) return null;
         return { id };
       }
       if (m.preFight || run.combat.result) return null;

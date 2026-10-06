@@ -6,6 +6,7 @@ import { ENEMIES } from '../../src/data/enemies';
 import { FROST_ENEMIES } from '../../src/data/enemies-frost';
 import { FROSTPEAKS } from '../../src/data/frostpeaks';
 import { GREENMARCH } from '../../src/data/greenmarch';
+import { TIPS } from '../../src/data/tips';
 import { ALL_ACTS, REGIONS } from '../../src/data/regions';
 import { regionOpen, unveilPending } from '../../src/core/world-plan';
 import { STORY } from '../../src/data/story';
@@ -13,9 +14,11 @@ import { CAMP_UPGRADES, CAMP_UPGRADE_IDS } from '../../src/data/meta';
 import { buyRareChest, pityLeft } from '../../src/core/chests';
 import { claimRegionReward, regionCompletion } from '../../src/core/completion';
 import { campAvailable } from '../../src/core/meta';
-import { labFight, labMinutes, labProfile, labReport, labVisible, rateScenario, readLabState, startLabScenario, newLabState, labHomePhase } from '../../src/core/lab';
+import { labFight, labMinutes, labProfile, labReport, labVisible, rateScenario, ratingOf, readLabState, staleRating, startLabScenario, newLabState, labHomePhase } from '../../src/core/lab';
 import { equippedItems, newProfile, readProfile } from '../../src/core/profile';
 import { ownedHeroes, petBuilds } from '../../src/core/roster';
+import { fight } from '../../src/core/bot';
+import { Rng } from '../../src/core/rng';
 import { Run } from '../../src/core/run';
 import { snapshotRun } from '../../src/core/save';
 import { cloneTuning, DEFAULT_SETTINGS } from '../../src/core/tuning';
@@ -95,44 +98,68 @@ describe('Test lab scenarios (data)', () => {
     for (const g of LAB_GROUPS) for (const w of SECRET_WORDS) expect(g.name.toLowerCase()).not.toContain(w.toLowerCase());
   });
 
-  it("covers this session's new content in the New section, about ten minutes without the spoilers", () => {
+  it("covers this round's new content in the New section, about ten minutes without the spoilers", () => {
     const fresh = LAB_NEW;
-    // each new or reworked hero: a real fight against Region 1 foes, two stars or more, the finisher banked
+    const r1 = new Set(GREENMARCH.acts.flatMap((a) => [...a.fights.early.flat(), ...a.fights.late.flat(), ...a.elites.flat()]));
+    // each hero but the starter, reworked (a new rev asks for a new rating): a real fight long enough to feel the kit
+    // (six waves of Region 1 foes at Act 2's numbers, the last with an elite), the finisher banked, the how-to first
     for (const id of ['sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva']) {
       const s = fresh.find((x) => x.group === 'heroes' && x.setup.kind === 'fight' && x.setup.hero === id);
       expect(s, id).toBeDefined();
+      expect(s!.rev ?? 0, id).toBeGreaterThanOrEqual(1);
       const f = labFight(s!)!;
       expect(f.safe, id).toBe(false);
-      expect(f.stacks, id).toBe(2);
+      expect(f.act, id).toBe(1);
+      expect(f.waves.length, id).toBeGreaterThanOrEqual(6);
+      expect(f.waves.flat().length, id).toBeGreaterThanOrEqual(12);
+      expect(GREENMARCH.acts.flatMap((a) => a.elites.flat()).some((e) => f.waves.at(-1)!.includes(e)), id).toBe(true);
+      expect(f.stacks, id).toBeGreaterThanOrEqual(1);
       expect(f.stars ?? 1, id).toBeGreaterThanOrEqual(2);
-      const r1 = new Set(GREENMARCH.acts.flatMap((a) => [...a.fights.early.flat(), ...a.fights.late.flat(), ...a.elites.flat()]));
       for (const k of f.waves.flat()) expect(r1.has(k), `${id}: ${k}`).toBe(true);
+      const tip = TIPS.find((d) => d.hero === id);
+      expect(tip, id).toBeDefined();
+      expect(s!.profile?.tips, id).toEqual([tip!.id]);
     }
-    // every companion, in pairs with the Perch
-    const pets = new Set(fresh.filter((s) => s.group === 'companions').flatMap((s) => (s.setup.kind === 'fight' ? (s.setup.pets ?? []) : [])));
+    // every companion, in pairs with the Perch, in four waves or more
+    const petItems = fresh.filter((s) => s.group === 'companions');
+    const pets = new Set(petItems.flatMap((s) => (s.setup.kind === 'fight' ? (s.setup.pets ?? []) : [])));
     for (const id of COMPANION_IDS) expect(pets.has(id), id).toBe(true);
+    for (const s of petItems) {
+      expect(labFight(s)!.waves.length, s.id).toBeGreaterThanOrEqual(4);
+      expect(s.rev ?? 0, s.id).toBeGreaterThanOrEqual(1);
+    }
+    // a late fight of Act 1 and of Act 2 with as many waves as the map deals them now
+    for (const act of [0, 1]) {
+      const s = fresh.find((x) => x.group === 'fights' && x.setup.kind === 'fight' && x.setup.act === act);
+      expect(s, `act ${act + 1}`).toBeDefined();
+      expect(labFight(s!)!.waves.length).toBe(GREENMARCH.acts[act].waves.last);
+      for (const k of labFight(s!)!.waves.flat()) expect(r1.has(k), k).toBe(true);
+    }
+    const m = labMinutes();
+    expect(m).toBeGreaterThanOrEqual(8);
+    expect(m).toBeLessThanOrEqual(14);
+    expect(LAB_EARLIER.every((s) => !LAB_NEW.includes(s))).toBe(true);
+  });
+
+  it("still holds M5's content (Earlier): the bar rules, the camp's screens, the later regions behind spoilers", () => {
+    const all = LAB_SCENARIOS;
     // each bar rule alone against the Training Dummy, nothing hurting
-    const bars = fresh.filter((s) => s.group === 'bar').map((s) => labFight(s)!);
+    const bars = all.filter((s) => s.group === 'bar').map((s) => labFight(s)!);
     for (const rule of ['ice', 'holds', 'snow'] as const) expect(bars.some((f) => !!f.bar?.[rule]), rule).toBe(true);
     for (const f of bars) {
       expect(f.waves).toEqual([['dummy']]);
       expect(f.safe).toBe(true);
     }
-    // the camp's screens
-    for (const id of ['chestHero', 'chestRare', 'shrine', 'completionNear', 'completionDone', 'campUpgrades', 'heroSelect']) expect(fresh.some((s) => s.id === id), id).toBe(true);
+    for (const id of ['chestHero', 'chestRare', 'shrine', 'completionNear', 'completionDone', 'campUpgrades', 'heroSelect']) expect(all.some((s) => s.id === id), id).toBe(true);
     // spoilers: each act of the next region, each mini-boss, the boss, the story
     for (const act of [3, 4, 5]) {
-      expect(fresh.some((s) => s.spoiler && s.setup.kind === 'fight' && s.setup.act === act && !s.setup.safe), `act ${act} foes`).toBe(true);
-      expect(fresh.some((s) => s.spoiler && s.setup.kind === 'story' && s.setup.act === act), `act ${act} story`).toBe(true);
+      expect(all.some((s) => s.spoiler && s.setup.kind === 'fight' && s.setup.act === act && !s.setup.safe), `act ${act} foes`).toBe(true);
+      expect(all.some((s) => s.spoiler && s.setup.kind === 'story' && s.setup.act === act), `act ${act} story`).toBe(true);
     }
-    for (const boss of FROSTPEAKS.acts.flatMap((a) => a.boss)) expect(fresh.some((s) => enemiesOf(s).includes(boss)), boss).toBe(true);
-    const scenes = new Set(fresh.flatMap((s) => (s.setup.kind === 'story' ? s.setup.scenes : [])));
+    for (const boss of FROSTPEAKS.acts.flatMap((a) => a.boss)) expect(all.some((s) => enemiesOf(s).includes(boss)), boss).toBe(true);
+    const scenes = new Set(all.flatMap((s) => (s.setup.kind === 'story' ? s.setup.scenes : [])));
     for (const a of FROSTPEAKS.acts) for (const id of [a.startScene, a.bossScene]) expect(scenes.has(id!), id).toBe(true);
     expect(scenes.has(FROSTPEAKS.victoryScene)).toBe(true);
-    const m = labMinutes();
-    expect(m).toBeGreaterThanOrEqual(8);
-    expect(m).toBeLessThanOrEqual(14);
-    expect(LAB_EARLIER.every((s) => !LAB_NEW.includes(s))).toBe(true);
   });
 });
 
@@ -156,7 +183,11 @@ describe('Test lab profiles (the lab save, built per scenario)', () => {
       // it survives a save and a load unchanged (a valid v4 profile)
       expect(readProfile(JSON.parse(JSON.stringify(p)), t)).toEqual(p);
       expect(equippedItems(p).length, s.id).toBe(6);
-      expect(p.tipsOff).toBe(true);
+      // tips are off, except a hero's how-to card before their fight (every other tip seen)
+      if (s.profile?.tips?.length) {
+        expect(p.tipsOff, s.id).toBe(false);
+        expect(TIPS.filter((d) => !p.tips.includes(d.id)).map((d) => d.id), s.id).toEqual(s.profile.tips);
+      } else expect(p.tipsOff).toBe(true);
       if (s.setup.kind === 'fight') {
         expect(p.hero, s.id).toBe(s.setup.hero);
         expect(p.heroes[s.setup.hero].unlocked).toBe(true);
@@ -265,6 +296,26 @@ describe('Test lab scenarios play', () => {
   });
 });
 
+describe("Test lab hero fights are long enough to feel the kit (playtest round 5: the old ones were over too fast)", () => {
+  // the 85% bot plays each hero's lab fight: it lasts a good while and is nearly always won (a practice, not a test)
+  for (const s of LAB_NEW.filter((x) => x.group === 'heroes' && x.setup.kind === 'fight')) {
+    it(s.id, () => {
+      let won = 0;
+      let sec = 0;
+      const N = 10;
+      for (let r = 0; r < N; r++) {
+        const run = new Run(t, { ...DEFAULT_SETTINGS }, 100 + r, labProfile(t, s));
+        startLabScenario(run, s, 1000 + r);
+        const st = fight(run, run.combat!, new Rng(5000 + r), { accuracy: 0.85, seed: 5000 + r });
+        if (st.won) won++;
+        sec += st.seconds;
+      }
+      expect(sec / N, 'seconds').toBeGreaterThanOrEqual(22);
+      expect(won / N, 'won').toBeGreaterThanOrEqual(0.8);
+    });
+  }
+});
+
 describe('Test lab ratings and report', () => {
   it('ratings: rated, read back, junk dropped', () => {
     const st = newLabState();
@@ -280,7 +331,7 @@ describe('Test lab ratings and report', () => {
 
   it('the report has every rating and note, the accuracy line and the build; hidden spoilers stay out unless rated', () => {
     const st = newLabState();
-    rateScenario(st, 'sable', 'good', 'dash feels great');
+    rateScenario(st, 'sable', 'good', 'dash feels great', 1, byId('sable').rev ?? 0);
     rateScenario(st, 'barHolds', 'work', 'release is strict');
     const out = labReport({ state: st, accuracy: 'CQ3 accuracy Oct 6: 84% from 200 taps', build: 'abc1234 10-06 07:00' });
     expect(out).toContain('Version abc1234 10-06 07:00');
@@ -296,6 +347,28 @@ describe('Test lab ratings and report', () => {
     st.spoilers = true;
     const all = labReport({ state: st, accuracy: '', build: 'x' });
     for (const s of LAB_SCENARIOS) expect(all).toContain(s.label);
+  });
+
+  it('a reworked scenario asks again: a rating given to its earlier rev shows as before, not as now', () => {
+    const st = newLabState();
+    // rated in the last round (no rev), then the fight was reworked (rev 1)
+    rateScenario(st, 'moss', 'work', "couldn't tell if the allies helped", 1);
+    const moss = byId('moss');
+    expect(moss.rev).toBeGreaterThanOrEqual(1);
+    expect(ratingOf(st, moss)).toBeUndefined();
+    expect(staleRating(st, moss)?.rating).toBe('work');
+    const out = labReport({ state: st, accuracy: '', build: 'x' });
+    expect(out).toContain(`- Moss: not tried since the rework (before: Needs work - "couldn't tell if the allies helped")`);
+    expect(out).toContain('Rated 0 of');
+    // rated again now: it counts, and the rev survives a save and a load
+    rateScenario(st, 'moss', 'good', 'allies show', 2, moss.rev);
+    const back = readLabState(JSON.parse(JSON.stringify(st)));
+    expect(ratingOf(back, moss)?.rating).toBe('good');
+    expect(staleRating(back, moss)).toBeUndefined();
+    expect(labReport({ state: back, accuracy: '', build: 'x' })).toContain('- Moss: Good - "allies show"');
+    // an unreworked scenario rated with no rev still counts
+    rateScenario(back, 'barIce', 'good', '', 3);
+    expect(ratingOf(back, byId('barIce'))?.rating).toBe('good');
   });
 });
 

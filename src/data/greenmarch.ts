@@ -19,7 +19,7 @@ export const GREENMARCH: RegionDef = {
       pace: 1.1,
       redSpeed: 1,
       rows: 7,
-      waves: { first: 2, last: 4, eliteEscort: 1 },
+      waves: { first: 3, last: 5, eliteEscort: 1 },
       fights: {
         early: [['slime'], ['crow'], ['boar']],
         late: [['bandit'], ['slime', 'crow'], ['boar', 'slime'], ['bandit', 'crow']],
@@ -42,7 +42,7 @@ export const GREENMARCH: RegionDef = {
       pace: 0.85,
       redSpeed: 1.05,
       rows: 7,
-      waves: { first: 3, last: 5, eliteEscort: 2 },
+      waves: { first: 4, last: 6, eliteEscort: 2 },
       fights: {
         early: [['archer'], ['beetle'], ['shaman', 'slime']],
         late: [['beetle', 'archer'], ['shaman', 'bandit'], ['crow', 'archer'], ['beetle', 'shaman']],
@@ -65,7 +65,7 @@ export const GREENMARCH: RegionDef = {
       pace: 0.75,
       redSpeed: 1.15,
       rows: 7,
-      waves: { first: 3, last: 6, eliteEscort: 2 },
+      waves: { first: 4, last: 7, eliteEscort: 2 },
       fights: {
         early: [['wolf', 'wolf'], ['boar', 'crow'], ['shaman', 'boar']],
         late: [['wolf', 'wolf', 'archer'], ['beetle', 'boar'], ['boar', 'bandit'], ['wolf', 'wolf', 'shaman']],

@@ -560,6 +560,10 @@ body {
 .lab-item.r-broken {
   border-left-color: #e05060;
 }
+/* rated before a rework: asks for a new rating */
+.lab-item.redo {
+  border-left-color: #6ab8f0;
+}
 .lab-name {
   flex: 1;
   font-weight: bold;
@@ -588,6 +592,9 @@ body {
 }
 .lab-item.r-broken .lab-badge {
   color: #ff8a8a;
+}
+.lab-item.redo .lab-badge {
+  color: #9ad8ff;
 }
 .lab-foot {
   display: flex;

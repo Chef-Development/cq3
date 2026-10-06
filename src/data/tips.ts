@@ -6,6 +6,8 @@
 // resolves the anchor to a rect on the screen it's on; none = the card shows centred), and whether it pauses a
 // fight (the pre-fight ones show before TAP TO BEGIN, the others stop the fight's clock until they're tapped away).
 
+import type { HeroId } from './heroes';
+
 /** What a tip points at. The view finds it on the screen it's on (when it can't, the card shows without an arrow). */
 export type TipAnchor =
   | 'none'
@@ -79,7 +81,15 @@ export type TipId =
   | 'pair'
   | 'chest'
   | 'shrine'
-  | 'companions';
+  | 'companions'
+  // playtest round 5: how each hero plays, before their first fight
+  | 'kitSable'
+  | 'kitNeve'
+  | 'kitMoss'
+  | 'kitTam'
+  | 'kitHollis'
+  | 'kitVesper'
+  | 'kitTorva';
 
 export interface TipDef {
   id: TipId;
@@ -92,6 +102,8 @@ export interface TipDef {
   fight?: 'pre' | 'pause';
   /** A basic (it was in the game before relics, skills and heroes): a returning player has it marked seen. */
   basic?: boolean;
+  /** A hero's how-to: shown before their first fight (pre-fight), only when they're the one fighting. */
+  hero?: HeroId;
 }
 
 /** The widest a tip's line may be (game px, the small font): the card is this plus its margins. */
@@ -100,6 +112,14 @@ export const TIP_TEXT_W = 180;
 export const TIPS: readonly TipDef[] = [
   // ---- before a fight begins
   { id: 'tapYellow', lines: ['Tap when the cursor is on yellow.', 'Each hit strikes the enemy!'], anchor: 'yellowBlock', fight: 'pre', basic: true },
+  // (a hero's how-to: what their kit does, the first time they fight; Rowan's is the basics)
+  { id: 'kitSable', hero: 'sable', lines: ['Sable: a Perfect hit dashes the', 'cursor on. Chain them for more!'], anchor: 'bar', fight: 'pre' },
+  { id: 'kitNeve', hero: 'neve', lines: ['Neve: blocked reds can freeze.', 'Hit the ice for a big meter boost!'], anchor: 'bar', fight: 'pre' },
+  { id: 'kitMoss', hero: 'moss', lines: ['Moss: greens come often and each', 'calls an ally. 3 out? A Rally!'], anchor: 'bar', fight: 'pre' },
+  { id: 'kitTam', hero: 'tam', lines: ['Tam: kegs show up on the bar.', 'Hit one to blast every foe!'], anchor: 'bar', fight: 'pre' },
+  { id: 'kitHollis', hero: 'hollis', lines: ['Hollis: blocks store Guard; your', 'next hit spends it all. Block!'], anchor: 'bar', fight: 'pre' },
+  { id: 'kitVesper', hero: 'vesper', lines: ['Vesper: hits store Focus.', 'A green fires it all at once!'], anchor: 'bar', fight: 'pre' },
+  { id: 'kitTorva', hero: 'torva', lines: ['Torva: few yellows, heavy hits.', 'Green: your next hit smashes!'], anchor: 'bar', fight: 'pre' },
   { id: 'relicBelt', lines: ['Your relics sit here.', 'Tap one to read what it does.'], anchor: 'relicBelt', fight: 'pre' },
   { id: 'rush', lines: ['Coin Rush! Hits knock out coins.', 'Keep your combo going for more!'], anchor: 'bar', fight: 'pre' },
   // ---- in a fight (the fight waits while the tip is up)

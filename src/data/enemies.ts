@@ -229,7 +229,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   golem: {
     name: 'Ruin Golem',
     tags: ['construct', 'armored'],
-    hp: 2300,
+    hp: 2100,
     atk: 16,
     special: 18,
     interval: 0.7,

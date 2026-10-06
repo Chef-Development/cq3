@@ -5,7 +5,7 @@
 // ratings and the spoiler switch persist in their own key (a reload keeps them). Opened from the title's "Test lab"
 // button and the gear panel's.
 import { accuracyCopyLine } from '../core/accuracy';
-import { LAB_RATINGS, RATING_NAME, labMinutes, labProfile, labReport, labVisible, rateScenario, readLabState, startLabScenario, type LabRating, type LabState } from '../core/lab';
+import { LAB_RATINGS, RATING_NAME, labMinutes, labProfile, labReport, labVisible, rateScenario, ratingOf, readLabState, staleRating, startLabScenario, type LabRating, type LabState } from '../core/lab';
 import { LAB_EARLIER, LAB_GROUPS, LAB_NEW, type LabScenario } from '../data/lab';
 import type { App } from './app';
 import { copyText, toast } from './clipboard';
@@ -52,7 +52,7 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
 
   // ------------------------------------------------------------------ the list
 
-  const ratedCount = () => labVisible(state.spoilers).filter((s) => state.ratings[s.id]).length;
+  const ratedCount = () => labVisible(state.spoilers).filter((s) => ratingOf(state, s)).length;
 
   function showList(): void {
     root.innerHTML = '';
@@ -101,12 +101,14 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
       body.appendChild(el('div', `lab-group${g.spoiler ? ' spoiler' : ''}`, g.name));
       const grid = el('div', 'lab-grid');
       for (const s of items) {
-        const r = state.ratings[s.id];
-        const b = button(`lab-item${r ? ` r-${r.rating}` : ''}${s.spoiler ? ' spoiler' : ''}`, '', () => showStart(s));
+        const r = ratingOf(state, s);
+        // rated before a rework: it asks again
+        const redo = !r && !!staleRating(state, s);
+        const b = button(`lab-item${r ? ` r-${r.rating}` : ''}${redo ? ' redo' : ''}${s.spoiler ? ' spoiler' : ''}`, '', () => showStart(s));
         b.dataset.id = s.id;
         b.appendChild(el('span', 'lab-name', s.label));
         b.appendChild(el('span', 'lab-meta', `${s.secs} s`));
-        b.appendChild(el('span', 'lab-badge', r ? RATING_NAME[r.rating] + (r.note ? ' *' : '') : ''));
+        b.appendChild(el('span', 'lab-badge', r ? RATING_NAME[r.rating] + (r.note ? ' *' : '') : redo ? 'Reworked' : ''));
         grid.appendChild(b);
       }
       body.appendChild(grid);
@@ -206,7 +208,7 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
 
   function showRate(s: LabScenario): void {
     const c = card('rate', true);
-    const old = state.ratings[s.id];
+    const old = ratingOf(state, s);
     c.appendChild(el('div', 'lab-card-title', `How was ${s.label}?`));
     const note = el('textarea', 'lab-note');
     note.placeholder = 'A short note (optional)';
@@ -217,7 +219,7 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
     for (const r of LAB_RATINGS)
       row.appendChild(
         button(`lab-btn big rate-${r}${old?.rating === r ? ' on' : ''}`, RATING_NAME[r], () => {
-          rateScenario(state, s.id, r as LabRating, note.value);
+          rateScenario(state, s.id, r as LabRating, note.value, Date.now(), s.rev ?? 0);
           save();
           showList();
         }),

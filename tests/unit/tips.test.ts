@@ -298,6 +298,29 @@ describe('the coach', () => {
     run.startFight();
     expect(take({ preFight: true })).toBe('relicBelt');
   });
+
+  it("a hero's how-to: before their first fight only, never for another hero (Rowan's is the basics)", () => {
+    const p = newProfile();
+    p.tips = [...BASIC_TIPS];
+    p.heroes.sable.unlocked = true;
+    p.heroes.moss.unlocked = true;
+    p.hero = 'sable';
+    const { run, take } = setup(p);
+    goTo(run, 'fight');
+    expect(run.combat?.heroId ?? run.hero.build?.id).toBe('sable');
+    expect(take({ preFight: true })).toBe('kitSable');
+    run.startFight();
+    expect(take({ preFight: true })).toBeNull(); // once
+    p.hero = 'moss';
+    run.refreshGear();
+    run.startFight();
+    expect(run.combat!.heroId).toBe('moss');
+    expect(take({ preFight: true })).toBe('kitMoss');
+    // every hero but Rowan has one, each fits the card, and none shows mid-fight
+    for (const d of TIPS.filter((x) => x.hero)) expect(d.fight).toBe('pre');
+    expect(new Set(TIPS.filter((x) => x.hero).map((x) => x.hero)).size).toBe(7);
+    expect(TIPS.some((x) => x.hero === 'rowan')).toBe(false);
+  });
 });
 
 describe('seen tips in the profile', () => {

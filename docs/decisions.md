@@ -123,3 +123,33 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
 35. One relic renamed (its first name clashed with a hero's skill).
 36. One story call the planning chat may want to confirm.
 37. Its relics unlock by its act clears and elites only (no mastery milestones for it yet); 4 from the start.
+
+## Playtest round 5 (the Test lab report on version 90968f6: 8 of 22 rated, 2 good, 6 needs work)
+38. **"More enemies in earlier acts" read as more foes per fight in the first region.** Greenmarch's fights now come
+    in more waves (Act 1: 3 in the first row up to 5 before the boss, was 2-4; Act 2: 4-6, was 3-5; Act 3: 4-7, was
+    3-6); each foe is as tough as before, so fights run longer (85% player: 20 / 24 / 26 s, were 15 / 21 / 22). The
+    extra waves made Act 2 harder for Rowan than for the others (he lost most at its mini-boss, reached with less HP),
+    so the Ruin Golem has 2100 HP (was 2300): Act 2 is back to about 87% first try. The later regions are
+    unchanged (the note named the earlier acts). If it meant something else (earlier foes coming back later in the
+    story, or replays of cleared acts getting bigger), say so: each is a data change.
+39. **Each hero's how-to card** before their first fight (a pre-fight tip, two lines: what the kit does and what to
+    do; Rowan's is the basics). The Test lab shows it before each hero's fight.
+40. **What heroes and companions do shows on the bar** (where the eyes are): a short word pops above the bar where
+    it happened (Dash!, Freeze!, Guard 3, Rock!...), the style's store (Chain, Guard, Focus, Unstoppable, allies) has
+    a small readout by the bar, and armed perks (a Barkback braced, Brick's rock ready, Torva's smash primed,
+    Sprocket's wider Perfect) are marked on the bar before they act. Words only for heroes' kits, styles, allies and
+    companions; relics and skill nodes keep the name lane (they weren't the complaint).
+41. **Moss: more greens.** A Summoner's every 5th yellow comes as a green (`tuning.styles.callEvery`; about twice
+    the greens), so allies are called and come and go often enough to notice; allies stay 6 s (was 8). To keep him
+    level with Rowan: a Rally no longer re-braces a Barkback that just took a red (one red per rest), and his numbers
+    are smaller (HP 95, attack share 0.62, Thornling 0.25, Deep Roots +4%, Overgrowth +10% per ally).
+42. **Torva: foes hurt her again.** Quake pushes reds back about half as far (0.08 of the bar, was 0.15), Wind-Up
+    stuns 1 s (was 1.5), Earthsplitter's calm is 1.2 s (was 2). Trimming her HP or Unstoppable as well moved the bot's
+    numbers by less than the noise, so they stay. **Vesper** fell behind with the longer fights (Act 3 -13, the second
+    region's Act 3 -19): HP 115 (was 110), attack share 1.13 (was 1.1).
+43. **Test lab, round 5:** the New section is this round's changes (the seven heroes and four companion pairs,
+    reworked, and two fights with the first region's new wave counts); M5's other items moved to Earlier (still
+    playable). Hero fights are six waves at Act 2's numbers, the last with an elite (an 85% bot takes 26-42 s and
+    nearly always wins; at Act 3's numbers a fresh lab hero, Rowan included, lost half of them); companion fights
+    four waves. A reworked item asks for a new rating: a rating given to its old version shows as "Reworked" in
+    the list and as "before: ..." in the report.

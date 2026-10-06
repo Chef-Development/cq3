@@ -88,11 +88,12 @@ export function callAlly(c: Combat): void {
     c.events.push({ type: 'ally', kind: missing, action: 'call', id: a.id });
     return;
   }
-  // a Rally: everyone stays longer and acts now
+  // a Rally: everyone stays longer and acts now (a Barkback that just took a red keeps resting: one red per rest)
   c.events.push({ type: 'ally', kind: kinds[0], action: 'rally', id: 0 });
   c.perkFx('rally');
   for (const a of c.allies) {
     a.left = allySec(c);
+    if (a.kind === 'barkback' && !a.braced && a.timer > 0) continue;
     allyAct(c, a);
     a.timer = allyEvery(c, a.kind);
   }
@@ -225,8 +226,13 @@ export const STYLE_HOOKS: Record<StyleId, FightHooks> = {
       if (n) c.perkFx('bend', 0);
     },
   },
-  // Call: green hits call allies, who act on their own
+  // Call: green hits call allies, who act on their own; every Nth yellow comes green, so the calls keep coming
   summoner: {
+    spawnKind: (c, kind) => {
+      if (kind !== 'yellow') return kind;
+      c.perk.callYellows = (c.perk.callYellows ?? 0) + 1;
+      return c.perk.callYellows % Math.max(2, Math.round(S(c).callEvery)) === 0 ? 'green' : kind;
+    },
     afterHit: (c, x) => {
       if (x.green && !x.echo) callAlly(c);
     },

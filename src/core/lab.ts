@@ -7,6 +7,7 @@ import { BASE_BY_ID, SLOT_KEYS, type SlotKey } from '../data/gear';
 import { HERO_IDS, type HeroId } from '../data/heroes';
 import { COMPANION_IDS, type CompanionId } from '../data/companions';
 import { EVENTS } from '../data/events';
+import { TIPS } from '../data/tips';
 import { LAB_EARLIER, LAB_GROUPS, LAB_NEW, type LabScenario } from '../data/lab';
 import { ALL_ACTS, REGIONS } from '../data/regions';
 import type { BarRules } from '../data/types';
@@ -108,6 +109,11 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
     p.actsCleared = spec.completion === 'done' ? Math.max(p.actsCleared, n) : n - 1;
     p.weights = spec.completion === 'done' ? 1 : 0;
   }
+  if (spec.tips?.length) {
+    // these tips still to show (a hero's how-to card), every other one seen: tips on
+    p.tipsOff = false;
+    p.tips = TIPS.map((d) => d.id).filter((id) => !spec.tips!.includes(id));
+  }
   giveKit(p, t, act);
   return p;
 }
@@ -172,6 +178,8 @@ export interface LabEntry {
   rating: LabRating;
   note: string;
   at: number;
+  /** The scenario's rev when it was rated (a reworked scenario asks for a new rating). */
+  rev?: number;
 }
 
 /** What the lab keeps (in its own storage key, apart from both saves): the ratings and whether spoilers show. */
@@ -194,14 +202,31 @@ export function readLabState(data: unknown): LabState {
   for (const id of Object.keys(r)) {
     const e = r[id] as Record<string, unknown> | null;
     if (!e || !LAB_RATINGS.includes(e.rating as LabRating)) continue;
-    st.ratings[id] = { rating: e.rating as LabRating, note: typeof e.note === 'string' ? e.note.slice(0, NOTE_MAX) : '', at: typeof e.at === 'number' && Number.isFinite(e.at) ? e.at : 0 };
+    const entry: LabEntry = { rating: e.rating as LabRating, note: typeof e.note === 'string' ? e.note.slice(0, NOTE_MAX) : '', at: typeof e.at === 'number' && Number.isFinite(e.at) ? e.at : 0 };
+    if (typeof e.rev === 'number' && Number.isFinite(e.rev) && e.rev > 0) entry.rev = Math.round(e.rev);
+    st.ratings[id] = entry;
   }
   return st;
 }
 
-/** Rate a scenario (a new rating replaces the old; the note is trimmed to one short paragraph). */
-export function rateScenario(st: LabState, id: string, rating: LabRating, note = '', now = Date.now()): void {
-  st.ratings[id] = { rating, note: note.replace(/\s+/g, ' ').trim().slice(0, NOTE_MAX), at: now };
+/** Rate a scenario (a new rating replaces the old; the note is trimmed to one short paragraph). `rev`: the
+ *  scenario's rev now (labScenario(id).rev), so a later rework asks again. */
+export function rateScenario(st: LabState, id: string, rating: LabRating, note = '', now = Date.now(), rev = 0): void {
+  const e: LabEntry = { rating, note: note.replace(/\s+/g, ' ').trim().slice(0, NOTE_MAX), at: now };
+  if (rev > 0) e.rev = rev;
+  st.ratings[id] = e;
+}
+
+/** A scenario's rating, if it was given to the scenario as it is now (not to an earlier version of it). */
+export function ratingOf(st: LabState, s: LabScenario): LabEntry | undefined {
+  const e = st.ratings[s.id];
+  return e && (e.rev ?? 0) === (s.rev ?? 0) ? e : undefined;
+}
+
+/** A rating given before the scenario was reworked (the list says "Reworked"; the report shows it as before). */
+export function staleRating(st: LabState, s: LabScenario): LabEntry | undefined {
+  const e = st.ratings[s.id];
+  return e && (e.rev ?? 0) !== (s.rev ?? 0) ? e : undefined;
 }
 
 // ---------------------------------------------------------------- the report
@@ -217,14 +242,16 @@ export function labReport(o: { state: LabState; accuracy: string; build: string;
   const date = new Date(o.now ?? Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const shown = (s: LabScenario) => state.spoilers || !s.spoiler || !!state.ratings[s.id];
   const all = [...fresh, ...earlier].filter(shown);
-  const rated = all.filter((s) => state.ratings[s.id]);
-  const count = (r: LabRating) => rated.filter((s) => state.ratings[s.id].rating === r).length;
+  const rated = all.filter((s) => ratingOf(state, s));
+  const count = (r: LabRating) => rated.filter((s) => ratingOf(state, s)!.rating === r).length;
   const lines: string[] = [`CQ3 Test lab report, ${date}`, `Version ${o.build}`];
   lines.push(`Rated ${rated.length} of ${all.length}: ${count('good')} good, ${count('work')} needs work, ${count('broken')} broken`);
   const row = (s: LabScenario) => {
-    const e = state.ratings[s.id];
+    const e = ratingOf(state, s);
+    const old = staleRating(state, s);
     const name = `${s.spoiler ? '[spoiler] ' : ''}${s.label}`;
-    return e ? `- ${name}: ${RATING_NAME[e.rating]}${e.note ? ` - "${e.note}"` : ''}` : `- ${name}: not tried`;
+    if (e) return `- ${name}: ${RATING_NAME[e.rating]}${e.note ? ` - "${e.note}"` : ''}`;
+    return old ? `- ${name}: not tried since the rework (before: ${RATING_NAME[old.rating]}${old.note ? ` - "${old.note}"` : ''})` : `- ${name}: not tried`;
   };
   const section = (title: string, list: LabScenario[]) => {
     const items = list.filter(shown);

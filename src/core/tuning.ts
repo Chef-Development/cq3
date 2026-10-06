@@ -375,7 +375,8 @@ export const DEFAULT_TUNING = {
     heavyMin: 1, // ...and the bar keeps at least this many yellows
     bendSec: 1, // Controller (Bend): a Perfect block slows every red for this long...
     bendMult: 0.5, // ...to this share of its speed
-    allyMax: 3, // Summoner (Call): allies at once
+    allyMax: 3, // Summoner (Call): allies at once...
+    callEvery: 5, // ...and every this many yellows comes as a green (a call)
     kegEvery: 5, // Bomber (Powder): every Nth yellow comes as a keg...
     kegMult: 1.2, // ...whose blast hits every foe for this x your attack...
     kegRadius: 0.12, // ...and knocks reds this close off the bar
@@ -385,11 +386,11 @@ export const DEFAULT_TUNING = {
     // Rowan's base attack. Rowan's are tuning.hero. Tuned with the bot to stay within +/-10 points of Rowan.
     sable: { hp: 110, atk: 0.95, abilitySec: 3, silentStep: 0.25, dashLead: 0.15, dashMult: 2.5, fangMult: 1.4, fangKeep: 1 },
     neve: { hp: 108, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, glacierMult: 0.7, slowSec: 4, slowWidth: 0.34 },
-    moss: { hp: 100, atk: 0.66, abilitySec: 3, allySec: 8, allySec3: 14, thornEvery: 1.5, thornDmg: 0.3, barkEvery: 6, mothEvery: 3, mothHeal: 0.006, seedEvery: 5, roots: 0.08, overgrowth: 0.15, vineSec: 3, vineMult: 0.5 },
+    moss: { hp: 95, atk: 0.62, abilitySec: 3, allySec: 6, allySec3: 14, thornEvery: 1.5, thornDmg: 0.25, barkEvery: 6, mothEvery: 3, mothHeal: 0.006, seedEvery: 5, roots: 0.04, overgrowth: 0.1, vineSec: 3, vineMult: 0.5 },
     tam: { hp: 100, atk: 0.9, abilitySec: 3, kegEvery3: 4, blastShield: 0.35, bangKegs: 3, wide5: 2 },
     hollis: { hp: 100, atk: 0.9, abilitySec: 3, slam: 0.5, ironHide: 0.2, rampartSec: 3, rampartGuard: 1.2, guardMax3: 7 },
-    vesper: { hp: 110, atk: 1.1, abilitySec: 3, pierce: 0.5, volleyFocus: 1.7, pinSec: 2, cap3: 1.5 },
-    torva: { hp: 108, atk: 0.9, abilitySec: 3, quake: 0.15, windUp: 2.5, stunSec: 1.5, unstoppable: 0.08, unstoppableMax: 5, calmSec: 2 },
+    vesper: { hp: 115, atk: 1.13, abilitySec: 3, pierce: 0.5, volleyFocus: 1.7, pinSec: 2, cap3: 1.5 },
+    torva: { hp: 108, atk: 0.9, abilitySec: 3, quake: 0.08, windUp: 2.5, stunSec: 1, unstoppable: 0.08, unstoppableMax: 5, calmSec: 1.2 },
   },
   chests: {
     // Hero chests (core/chests.ts): a hero or a companion, weighted toward the low tiers, or shards for one you own.

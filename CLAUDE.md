@@ -148,6 +148,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   settings (`eraseProgress`, `app.newGame()`; the gear panel's "Start over" does the same, asked twice).
 - **Teach it slowly (tips).** One short tip, shown once, the moment a system first matters: the words in
   `src/data/tips.ts` (max 2 lines, `TIP_TEXT_W` px each, an anchor, pre-fight or pausing; the order is the priority),
+  each hero but Rowan has a how-to card before their first fight (`kit<Hero>` tips, `TipDef.hero`),
   the when in `core/tips.ts` (`TipCoach`: fed the fight's events and asked every frame; one at a time, one per screen,
   a few seconds apart in a fight, counted from the first that stops it (the first red's tip comes first: Act 1's first
   fight always teaches blocking); seen ids in `profile.tips`), the card in `view/tips.ts` (only at a safe moment: no
@@ -222,6 +223,10 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   in `cq3.lab.ratings`); leaving it puts the real game back as it was. Region foes, bosses and story go in its spoiler
   group (hidden until "Show spoilers"; labelled by act number only). **Every session adds its new content to the Test
   lab (`LAB_NEW` in `src/data/lab.ts`), and moves the previous session's items to its 'Earlier' section (`LAB_EARLIER`).**
+  A scenario reworked after a playtest bumps its `rev` (a rating given to the old version shows as "Reworked" and asks
+  again). Fights must be long enough to feel what's being tried (hero fights: six waves at Act 2's numbers; the bot
+  guards their length and that they're nearly always won, `tests/unit/lab.test.ts`); a scenario can leave tips on for
+  a card it needs (`profile.tips`: a hero's how-to).
 - **Text readability.** The pixel fonts bake an ink outline; dark text (on parchment, gold) automatically uses the
   outline-free twins (`font.ts` `isDarkInk`), and light text gets a brightness floor (`readable()`). New text must fit
   its box at 8x (`textWidth`): wrap or shorten it rather than truncating with "...", and never let bold rows overlap.

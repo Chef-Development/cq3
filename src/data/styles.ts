@@ -16,6 +16,6 @@ export const STYLES: Record<StyleId, StyleDef> = {
   marksman: { name: 'Marksman', rewards: 'Store power, spend in bursts', rule: { name: 'Focus', text: 'Hits store Focus; a green hit fires it all.' } },
   brute: { name: 'Brute', rewards: 'Fewer, heavier taps', rule: { name: 'Heavy', text: 'Fewer, wider yellows; every hit deals x{n}.' } },
   controller: { name: 'Controller', rewards: 'Bending the bar', rule: { name: 'Bend', text: 'A Perfect block slows every red for 1 s.' } },
-  summoner: { name: 'Summoner', rewards: 'Allies that fight for you', rule: { name: 'Call', text: 'Green hits call an ally (up to 3) for a while.' } },
+  summoner: { name: 'Summoner', rewards: 'Allies that fight for you', rule: { name: 'Call', text: 'More greens come; each calls an ally (up to 3).' } },
   bomber: { name: 'Bomber', rewards: 'Blasts from your own kegs', rule: { name: 'Powder', text: 'Kegs show up on the bar; hit one to blast every foe.' } },
 };
