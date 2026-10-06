@@ -91,7 +91,7 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
         stat('evasion', 'Evasion', 'def', 8, '+{n} Defense.'),
         rule('crossGuard', 'Cross Guard', 'A block with one cursor also blocks a red under the other.', 'Each cursor blocks its own red.', 'One block covers both cursors.'),
         rule('counterSlash', 'Counter Slash', 'Blocks with the left cursor hit back for {n}x attack.', 'Blocks only stop reds.', 'Left-cursor blocks counterattack.', 1),
-        cap('afterimage', 'Afterimage', 'A block leaves an afterimage that blocks the next red in that half.', 'Every red needs its own block.', 'Each block also stops the next red.'),
+        cap('afterimage', 'Afterimage', 'A block leaves an afterimage that stops the next red, {n} a fight.', 'Every red needs its own block.', 'Afterimages stop {n} reds a fight.', 2),
       ],
     },
     {

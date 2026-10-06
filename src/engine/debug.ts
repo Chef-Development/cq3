@@ -331,7 +331,7 @@ export function installDebug(app: App): DebugUi {
       const have = log.recent.filter((x) => Math.abs(x) <= AIM_WINDOW_MS).length;
       meta.appendChild(el('div', 'acc-line', `Play a few fights to measure it: it needs ${MIN_SAMPLES} clear taps at plain yellow blocks (${have} so far).`));
     }
-    // a meter: your accuracy against the 70% the game is tuned for
+    // a meter: your accuracy against the accuracy the game is tuned for (TYPICAL_ACCURACY)
     const bar = el('div', 'acc-bar');
     const fill = el('div', 'acc-fill');
     fill.style.width = `${Math.round((e?.acc ?? 0) * 100)}%`;

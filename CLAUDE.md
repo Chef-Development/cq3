@@ -123,10 +123,16 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 - **Balance:** combat numbers were set with the bot, which plays whole acts picking map nodes at random and aims
   like a person (a timing error in ms, reaction time, a thumb's tap rate; the real judge decides each tap), so thin
   or fast blocks and a fast cursor are as hard for it as for a player. It wears the best gear it finds (item power).
-  `tests/unit/bot.test.ts` guards the targets, set for a typical player (`TYPICAL_ACCURACY` = 70%) on a first
-  playthrough with found gear only: Act 1 ~100% first try, Act 2 ~85-90%, the Boar King's first fight won ~65-75%; a
-  skilled 85% player clears every act first try most of the time; and farming the Boar King (replaying Act 3 with the
-  gear kept, `playFarm`) measurably raises the win rate. The bot picks relics synergy-greedy, spends skill points down
+  `tests/unit/bot.test.ts` guards the targets, set for the playtester (`TYPICAL_ACCURACY` = 85%; it was a typical 70%
+  player until playtest round 4) on a fresh first playthrough with found gear only: Act 1 ~100% first try, Act 2
+  ~80-90%, the Boar King's first fight won ~75-85% (aimed at 60-70%: enemy numbers barely move an 85% player, who blocks
+  ~99% of reds; docs/orchestrator-report.md, round 4); a 70% player still clears Act 3 within 6 tries; an 85% player
+  loses at least as much HP per Act 3 fight as per Act 1 fight, and normal fights don't get shorter act over act; and
+  farming the Boar King (replaying Act 3 with the gear kept, `playFarm`) measurably raises the win rate. Replays start
+  with `tuning.kit` (what an 85% story run has gained per act behind, re-measured: keep it in step with the story).
+  `npm run snowball` (tests/balance/snowball.run.ts) shows what each fight costs per act and where the hero's stats come
+  from (gear, levels, run gains, skills), with ablations and a veteran (story + 6 forged Act 3 farms, then Acts 1-3
+  replayed); `npm run perks` benches each relic and skill node on a typical Act 3 hero. The bot picks relics synergy-greedy, spends skill points down
   one branch, and plays Sable with two thumbs (an independent timing error per hand). It meets roamers when its random
   route runs into them (an ambush; the merchant's shop like a shop), plays Coin Rush with its normal aim (not counted
   in the fight stats: `ActAttempt.extras`), takes every bounty and opens a secret half the time. The report also shows relic win
@@ -214,7 +220,9 @@ npm run screens:update  # refresh the baselines after an intentional visual chan
 npm run balance      # balance bot report -> docs/balance.md (a few min); re-run after changing combat numbers
 npm run calibrate    # accuracy readout calibration table (paste into core/accuracy.ts SD_CALIBRATION)
 ACC=0.62 npm run retarget  # re-aim the difficulty curve at a player of that accuracy -> docs/retarget.md
-npm run twin         # Rowan vs Sable on the same tuning (RUNS, ACC, TUNE='{"sable":{...}}' env)
+npm run twin         # Rowan vs Sable on the same tuning (RUNS, ACC, TUNE='{"sable":{...}}', AVOID=relic,... env)
+npm run snowball     # what fights cost per act, stat sources, ablations, a veteran (RUNS, ACC, HERO, TUNE, AVOID env)
+npm run perks        # each relic and skill node alone on a typical Act 3 hero (RUNS, ACC, HERO, BUILD=relic,... env)
 npm run icons        # regenerate public/icons
 ```
 

@@ -95,9 +95,13 @@ describe('region data', () => {
             expect(b.width ?? 1, `${name}: never thinner than a normal red`).toBeGreaterThanOrEqual(1);
             if ((b.speed ?? 1) > 1) expect(b.width ?? 1, `${name}: a fast red is wider`).toBeGreaterThan(1);
             expect(b.pair, `${name}: no back-to-back reds`).toBeFalsy();
-            const { w, closing } = at(b);
+            const { w, vel, closing } = at(b);
             const windowSec = (w + T.cursor.widthFrac) / closing + (2 * T.judge.redGraceMs) / 1000;
             expect(windowSec, `${name}: blocking window`).toBeGreaterThanOrEqual(0.12);
+            // Sable: her reds are narrower (sable.redWidthMult), her cursors sweep half the bar at the same pass time
+            const ws = w * T.sable.redWidthMult;
+            const twinWindow = (ws + T.cursor.widthFrac * 0.5) / (v * 0.5 + vel) + (2 * T.judge.redGraceMs) / 1000;
+            expect(twinWindow, `${name}: Sable's blocking window`).toBeGreaterThanOrEqual(0.12);
           }
           // in a wave, the cursor meets one red at a time: at least 0.16 s apart (a thumb taps about every 0.14 s)
           for (let i = 0; i < reds.length; i++)

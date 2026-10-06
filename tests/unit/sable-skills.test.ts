@@ -182,6 +182,16 @@ describe('Sable skill tree: every rule node and capstone works in fights', () =>
     ev = c2.drainEvents();
     expect(perks(ev, 'afterimage')).toHaveLength(2);
     expect(ofType(ev, 'heroHurt')).toHaveLength(0);
+    // n a fight (2): spent, a block leaves no afterimage until the next fight
+    expect(skillN(c2.tuning, 'afterimage')).toBe(2);
+    c2.spawnBlock('red', 0.3, f2.id);
+    tapOver(c2, 0, 0.3);
+    expect(c2.perk.afterimage0 ?? 0).toBe(0);
+    c2.spawnBlock('red', 0, f2.id);
+    c2.advanceTo(c2.time + 0.15);
+    ev = c2.drainEvents();
+    expect(perks(ev, 'afterimage')).toHaveLength(0);
+    expect(ofType(ev, 'heroHurt')).toHaveLength(1);
   });
 
   it('Blur: from n x cursor speed up, every hit crits (shown as it kicks in)', () => {

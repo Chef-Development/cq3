@@ -17,7 +17,9 @@
     "balance": "vitest run --config vitest.balance.config.ts tests/balance/balance.run.ts",
     "calibrate": "vitest run --config vitest.balance.config.ts tests/balance/calibrate.run.ts",
     "retarget": "vitest run --config vitest.balance.config.ts tests/balance/retarget.run.ts",
-    "twin": "vitest run --config vitest.balance.config.ts tests/balance/twin.run.ts"
+    "twin": "vitest run --config vitest.balance.config.ts tests/balance/twin.run.ts",
+    "snowball": "vitest run --config vitest.balance.config.ts tests/balance/snowball.run.ts",
+    "perks": "vitest run --config vitest.balance.config.ts tests/balance/perks.run.ts"
   },
   "dependencies": {
     "phaser": "^4.2.1"

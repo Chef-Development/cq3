@@ -85,19 +85,44 @@ function farming(t: ReturnType<typeof cloneTuning>, acc: number) {
   const visits = Array.from({ length: FARMS }, (_, i) => rate(res.map((f) => f.visits[i].bossWon)));
   const visitsForged = Array.from({ length: FARMS }, (_, i) => rate(forged.map((f) => f.visits[i].bossWon)));
   const power = Array.from({ length: FARMS }, (_, i) => res.reduce((n, f) => n + f.visits[i].power, 0) / res.length);
-  return { acc, story, cleared, visits, visitsForged, power };
+  // what a normal Act 3 fight costs and how long it takes: in the story, and on the first and last forged replay
+  const mean = (xs: Array<number | undefined>) => {
+    const ys = xs.filter((x): x is number => x !== undefined && Number.isFinite(x));
+    return ys.length ? ys.reduce((a, b) => a + b, 0) / ys.length : NaN;
+  };
+  const storyFights = res.flatMap((f) => f.story.acts[2]?.attempts.flatMap((a) => a.fights).filter((x) => x.type === 'fight') ?? []);
+  const cost = {
+    story: mean(storyFights.map((x) => x.hpLost / Math.max(1, x.maxHp))),
+    storySec: mean(storyFights.filter((x) => x.won).map((x) => x.seconds)),
+    first: mean(forged.map((f) => f.visits[0].hpLostFight)),
+    firstSec: mean(forged.map((f) => f.visits[0].fightSec)),
+    last: mean(forged.map((f) => f.visits[FARMS - 1].hpLostFight)),
+    lastSec: mean(forged.map((f) => f.visits[FARMS - 1].fightSec)),
+  };
+  return { acc, story, cleared, visits, visitsForged, power, cost };
+}
+
+/** What a fight costs and how it goes, per player and act (every fight of every attempt; lengths and DPS of won ones). */
+function fightCost(rows: ActRow[]): string {
+  const head = '| Player | Act | HP lost per fight / elite / boss | of a fight\'s, the foes\' share | Fight s | Damage per s | Combo (average / peak) | Hits taken per min |';
+  const sep = '|---|---|---|---|---|---|---|---|';
+  const body = rows.map(
+    (r) =>
+      `| ${pct(r.accuracy)} | ${r.act + 1} | **${pct(r.hpLostFight)}** / ${pct(r.hpLostElite)} / ${pct(r.hpLostBoss)} | ${pct(r.foesHpFight)} | ${sec(r.fightSec)} | ${Number.isFinite(r.dpsFight) ? Math.round(r.dpsFight) : '-'} | ${num(r.comboFight)} / ${Number.isFinite(r.peakComboFight) ? Math.round(r.peakComboFight) : '-'} | ${num(r.hitsTakenPerMin)} |`,
+  );
+  return [head, sep, ...body].join('\n');
 }
 
 it('balance report', () => {
   const t = cloneTuning();
   const t0 = Date.now();
   const rows = balance(t, ACCURACIES, RUNS);
-  const farms = [0.55, TYPICAL_ACCURACY, 0.85].map((a) => farming(t, a));
+  const farms = [0.55, 0.7, 0.85].map((a) => farming(t, a));
   const sableRows = balance(t, SABLE_ACC, SABLE_RUNS, 1, 6, t.acts.length, 'sable');
   // the control: the same player with stat cards only (no relics), as before M4a
   const off = cloneTuning();
   off.relics.on = 0;
-  const control = balance(off, [TYPICAL_ACCURACY, 0.85], CONTROL_RUNS);
+  const control = balance(off, [0.7, 0.85], CONTROL_RUNS);
   const rowanRows = SABLE_ACC.flatMap((acc) => rows.filter((r) => r.accuracy === acc));
   const at = (acc: number, act: number) => rows.find((r) => r.accuracy === acc && r.act === act)!;
   const [a1, a2, a3] = [0, 1, 2].map((a) => at(0.85, a));
@@ -133,15 +158,32 @@ accuracy, ${Math.round((Date.now() - t0) / 1000)} s to run.
 - Fights are runs of foes, one wave after another (Act 1: 2 foes in the first row up to 4 before the boss; Act 2:
   3-5; Act 3: 3-6; an elite comes after an escort). A tap that overlaps an attack always blocks it first.
 
-## Targets (a gentle start, then a ramp; set for a typical 70% player, with the gear found on the way)
+## Targets (a gentle start, then a ramp; set for the playtester, an ${pct(TYPICAL_ACCURACY)} player, with the gear found on the way)
+
+The curve is aimed at the playtester (\`TYPICAL_ACCURACY\` = ${pct(TYPICAL_ACCURACY)}: their accuracy readout says 80-90%) on a fresh
+first playthrough (New game wipes the profile). Until playtest round 4 it was set for a typical 70% player.
 
 | Target | Result |
 |---|---|
-| Act 1 is a gentle start: nearly everyone clears it first try | 70% player **${pct(c1.firstTry)}**, 55% player **${pct(b1.firstTry)}**, 85% player **${pct(a1.firstTry)}** |
-| Act 2: a typical (70%) player clears it first try about 85-90% of the time | **${pct(c2.firstTry)}** (55% player ${pct(b2.firstTry)}, 85% player ${pct(a2.firstTry)}) |
-| The Boar King: a typical player wins the first fight about 65-75% of the time | **${pct(c3.bossFirstTry)}**; ${pct(c3.clearRate)} clear Act 3 within 6 tries (85% player: ${pct(a3.bossFirstTry)} first fights won) |
-| No boss can be one-shot by a max-stack finisher | boss HP / max finisher ${num(c1.bossVsMaxFinisher)} / ${num(c2.bossVsMaxFinisher)} / ${num(c3.bossVsMaxFinisher)}; one-shots ${pct(c1.bossOneShotRate)} / ${pct(c2.bossOneShotRate)} / ${pct(c3.bossOneShotRate)} (each boss has a phase gate that damage can't skip) |
-| Fights are runs of foes, more the deeper the row | normal fights ${sec(c1.fightSec)} / ${sec(c2.fightSec)} / ${sec(c3.fightSec)}, bosses ${sec(c1.bossSec)} / ${sec(c2.bossSec)} / ${sec(c3.bossSec)} (70% player) |
+| Act 1 is a gentle start: the playtester nearly always clears it first try (about 95-100%) | 85% player **${pct(a1.firstTry)}** (70% ${pct(c1.firstTry)}, 55% ${pct(b1.firstTry)}) |
+| Act 2: the playtester clears it first try about 80-90% of the time | **${pct(a2.firstTry)}** (70% player ${pct(c2.firstTry)}, 55% ${pct(b2.firstTry)}) |
+| The Boar King: the playtester wins the first fight about 60-70% of the time (see the note below) | **${pct(a3.bossFirstTry)}**; ${pct(a3.clearRate)} clear Act 3 within 6 tries |
+| A 70% player can still finish Act 3 with retries and farming | ${pct(c3.clearRate)} clear Act 3 within 6 tries (Boar King first fight ${pct(c3.bossFirstTry)}); farming: the table below |
+| Late fights still cost HP: an 85% player loses at least as much HP per Act 3 fight as per Act 1 fight | normal fights ${pct(a1.hpLostFight)} / ${pct(a2.hpLostFight)} / ${pct(a3.hpLostFight)} of max HP (the foes' share ${pct(a1.foesHpFight)} / ${pct(a2.foesHpFight)} / ${pct(a3.foesHpFight)}; the rest is misses and relic prices) |
+| Normal fights don't get shorter act over act | ${sec(a1.fightSec)} / ${sec(a2.fightSec)} / ${sec(a3.fightSec)} (85% player), ${sec(c1.fightSec)} / ${sec(c2.fightSec)} / ${sec(c3.fightSec)} (70%); bosses ${sec(a1.bossSec)} / ${sec(a2.bossSec)} / ${sec(a3.bossSec)} (85%) |
+| No boss can be one-shot by a max-stack finisher | boss HP / max finisher ${num(a1.bossVsMaxFinisher)} / ${num(a2.bossVsMaxFinisher)} / ${num(a3.bossVsMaxFinisher)}; one-shots ${pct(a1.bossOneShotRate)} / ${pct(a2.bossOneShotRate)} / ${pct(a3.bossOneShotRate)} (each boss has a phase gate that damage can't skip) |
+
+${a3.bossFirstTry > 0.72 ? '**The Boar King sits above its 60-70% target for an 85% player.** ' : ''}An 85% player blocks about 99% of reds (a red crosses
+the cursor's path two or three times in its 2.8 s, the red grace is 40 ms, finishers and kills knock reds off the bar),
+so enemy HP and attack barely move them: doubling the Act 3 numbers takes the Boar King from about 85% to 70% for them
+but a 70% player's first Act 3 try to about 15%. What reaches a skilled player is red pressure (faster reds per act did
+it: 10-15 points), but Sable's two half-speed cursors ride along with a red on the way back, so faster reds help her far
+more than Rowan (+30-40 points at 70%), which breaks the Sable/Rowan guarantee. Left as a decision (docs/orchestrator-report.md,
+playtest round 4).
+
+## What a fight costs
+
+${fightCost(rows)}
 
 ## Gear: the story with found gear alone, and farming the Boar King
 
@@ -154,6 +196,13 @@ starts with the boosts a run typically has by Act 3, plus all the gear; retries 
 |---|---|---|${Array.from({ length: FARMS }, () => '---|').join('')}---|
 ${farms.map((f) => `| ${pct(f.acc)} | ${pct(f.cleared)} | **${pct(f.story)}** | ${f.visits.map((v, i) => `${pct(v)} (forge ${pct(f.visitsForged[i])})`).join(' | ')} | ${Math.round(f.power[0])} -> ${Math.round(f.power[FARMS - 1])} |`).join('\n')}
 
+A farmed replay still costs HP: a normal Act 3 fight's HP lost (share of max HP) and length, in the story and on the
+first and last forged replay.
+
+| Player | Story | Replay 1 (forge) | Replay ${FARMS} (forge) |
+|---|---|---|---|
+${farms.map((f) => `| ${pct(f.acc)} | ${pct(f.cost.story)}, ${sec(f.cost.storySec)} | ${pct(f.cost.first)}, ${sec(f.cost.firstSec)} | ${pct(f.cost.last)}, ${sec(f.cost.lastSec)} |`).join('\n')}
+
 ## Relics: win rates
 
 The pick after a fight offers mostly relics (plus at most one stat card); the bot takes Full Heal when hurt, otherwise
@@ -162,7 +211,7 @@ power shows up as wins, not as stats. With relics vs the same player taking stat
 
 ${relicsVsControl(rows, control)}
 
-The Boar King's first fight for a typical (${pct(TYPICAL_ACCURACY)}) player, by the build the act-clear screen would name and by
+The Boar King's first fight for the playtester (${pct(TYPICAL_ACCURACY)}), by the build the act-clear screen would name and by
 each relic carried into the fight (all ${RUNS} runs; a relic's rate counts every run that carried it):
 
 ${relicWins(at(TYPICAL_ACCURACY, 2))}

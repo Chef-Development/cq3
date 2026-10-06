@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { estimateAccuracy } from '../../src/core/accuracy';
-import { balance, botRun, fight, playAct, playRun } from '../../src/core/bot';
+import { balance, botRun, fight, playAct, playRun, TYPICAL_ACCURACY } from '../../src/core/bot';
 import { Rng } from '../../src/core/rng';
 import { newProfile } from '../../src/core/profile';
 import { cloneTuning } from '../../src/core/tuning';
@@ -66,10 +66,11 @@ describe('the accuracy readout reads Sable right', () => {
 });
 
 describe('Sable is as strong as Rowan (guards tuning.sable; the full comparison is tests/balance/twin.run.ts)', () => {
-  // The same 100 seeds for both (paired runs), a typical 70% player, Acts 1-2: within 10 points per act.
+  // The same 100 seeds for both (paired runs), the player the curve is set for (TYPICAL_ACCURACY), Acts 1-2: within
+  // 10 points per act. (The full comparison, at 70% and 85% and all three acts, is npm run twin.)
   const t = cloneTuning();
-  const rowan = balance(t, [0.7], 100, 21, 6, 2);
-  const sable = balance(t, [0.7], 100, 21, 6, 2, 'sable');
+  const rowan = balance(t, [TYPICAL_ACCURACY], 100, 21, 6, 2);
+  const sable = balance(t, [TYPICAL_ACCURACY], 100, 21, 6, 2, 'sable');
 
   it('first-try clears within +/-10 points of Rowan’s', () => {
     for (const [i, r] of rowan.entries()) expect(Math.abs(sable[i].firstTry - r.firstTry), `act ${r.act + 1}: Rowan ${r.firstTry}, Sable ${sable[i].firstTry}`).toBeLessThanOrEqual(0.1);
