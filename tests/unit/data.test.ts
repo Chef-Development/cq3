@@ -5,7 +5,7 @@ import { ENEMIES } from '../../src/data/enemies';
 import { EVENTS } from '../../src/data/events';
 import { GREENMARCH } from '../../src/data/greenmarch';
 import { SPEAKER_NAME, STORY } from '../../src/data/story';
-import { BANTER } from '../../src/data/banter';
+import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
 import { HEROES } from '../../src/data/heroes';
 import { kitColW } from '../../src/engine/view/heroes';
 import { cloneTuning, DEFAULT_TUNING, getPath, mergeKnown, setPath, sliderGroups, tuningDiff } from '../../src/core/tuning';
@@ -126,6 +126,19 @@ describe('story', () => {
     expect(STORY.victory.map((b) => b.text).join(' ')).toMatch(/ticked/);
   });
 
+  it("has the second region's beats, and an arrival for every chest hero (2-4 boxes, in their own voice)", () => {
+    for (const id of ['frost1', 'rimehorn', 'neveJoin', 'frost2', 'matron', 'frost3', 'glacia', 'glacia2', 'glacia3', 'frostVictory']) expect(STORY[id], id).toBeDefined();
+    expect(STORY.neveJoin.some((b) => b.who === 'neve')).toBe(true);
+    expect(STORY.frostVictory.map((b) => b.text).join(' ')).toMatch(/TWICE/);
+    expect(STORY.frostVictory.map((b) => b.text).join(' ')).toMatch(/Ashfell/);
+    for (const [id, who] of [['meetMoss', 'moss'], ['meetTam', 'tam'], ['meetHollis', 'hollis'], ['meetVesper', 'vesper'], ['meetTorva', 'torva']] as const) {
+      expect(STORY[id], id).toBeDefined();
+      expect(STORY[id].length, id).toBeGreaterThanOrEqual(2);
+      expect(STORY[id].length, id).toBeLessThanOrEqual(4);
+      expect(STORY[id].some((b) => b.who === who), id).toBe(true);
+    }
+  });
+
   it('at most 6 boxes per scene and 2 lines per box, and every line fits the text box', () => {
     for (const [id, boxes] of Object.entries(STORY)) {
       expect(boxes.length, id).toBeGreaterThan(0);
@@ -159,8 +172,9 @@ describe('camp banter', () => {
 
   it('about twenty lines, each one fitting the bubble in two short lines', () => {
     expect(BANTER.length).toBeGreaterThanOrEqual(18);
-    expect(new Set(BANTER.map((l) => l.text)).size).toBe(BANTER.length);
-    for (const l of BANTER) {
+    const all = [...BANTER, ...HERO_BANTER];
+    expect(new Set(all.map((l) => l.text)).size).toBe(all.length);
+    for (const l of all) {
       const lines = wrap(l.text);
       expect(lines.length, l.text).toBeLessThanOrEqual(2);
       for (const x of lines) expect(textWidth(x, 1, false), l.text).toBeLessThanOrEqual(BUBBLE_W);
@@ -170,6 +184,17 @@ describe('camp banter', () => {
   it('lines that need Sable say so; Rowan and Pip have plenty without them', () => {
     for (const l of BANTER) if (/sable/i.test(l.text)) expect(l.sable || l.who === 'sable', l.text).toBe(true);
     expect(BANTER.filter((l) => l.who !== 'sable' && !l.sable).length).toBeGreaterThanOrEqual(10);
+  });
+
+  it("the new heroes' lines need whoever they name; each new hero has a few of their own", () => {
+    const NEW: CampSpeaker[] = ['neve', 'moss', 'tam', 'hollis', 'vesper', 'torva'];
+    const everyone: CampSpeaker[] = ['rowan', 'pip', 'sable', 'smith', ...NEW];
+    for (const l of HERO_BANTER) {
+      const needs = [l.who, ...(l.with ?? [])];
+      for (const k of everyone) if (new RegExp(`\\b${SPEAKER_NAME[k]}\\b`).test(l.text)) expect(needs, l.text).toContain(k);
+      expect(needs.some((k) => NEW.includes(k)), `${l.text}: belongs in BANTER`).toBe(true);
+    }
+    for (const h of NEW) expect(HERO_BANTER.filter((l) => l.who === h).length, h).toBeGreaterThanOrEqual(4);
   });
 });
 
