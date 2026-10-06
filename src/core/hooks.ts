@@ -136,6 +136,22 @@ export interface FightHooks {
   kegRadius?(c: Combat, r: number): number;
   /** A damage multiplier on what a foe takes (soft strengths). */
   damageTaken?(c: Combat, e: Enemy, source: DamageSource, mult: number): number;
+  /** A drifting block turned back at an end of the bar (Rebound, Warm Springs). */
+  driftTurn?(c: Combat, b: Block): void;
+  /** A drifting block's speed multiplier (Molten Core). */
+  driftMult?(c: Combat, mult: number): number;
+  /** A linked pair was finished (both halves hit within the beat), after both hits landed. */
+  linked?(c: Combat, x: LinkCtx): void;
+  /** A linked pair is about to break (the beat ran out): set `forgive` to spare the combo (Spare Link). */
+  linkBroken?(c: Combat, x: LinkCtx): void;
+  /** The beat a pair gives you for its second half, in seconds (Long Fuse). */
+  linkBeat?(c: Combat, sec: number): number;
+}
+
+/** A linked pair as its hooks see it: where it was, and (when it breaks) whether the combo is spared. */
+export interface LinkCtx {
+  pos: number;
+  forgive: boolean;
 }
 
 export type HookName = keyof FightHooks;

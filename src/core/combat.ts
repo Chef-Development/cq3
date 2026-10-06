@@ -10,7 +10,7 @@ import { AIM_WINDOW_MS, ISOLATION_MS } from './accuracy';
 import { emptyLoadout, hasAura, hasEffect, setPieces, type Loadout, type StatBlock } from './gear';
 import { buildBonus, defaultBuild, type HeroBuild } from './heroes';
 import { heroDef } from '../data/heroes';
-import type { BreakCtx, FightHooks, FinisherCtx, HitCtx, MeterSource, MissCtx, PeckCtx } from './hooks';
+import type { BreakCtx, FightHooks, FinisherCtx, HitCtx, MeterSource, MissCtx, PeckCtx, LinkCtx } from './hooks';
 import { finisherShowMs } from './impact';
 import { kitHooks } from './kit-fx';
 import { companionHooks } from './companion-fx';
@@ -476,6 +476,10 @@ export class Combat {
   /** Every drifting block moves this much faster for `driftMultSec` more seconds (a driftShift special). */
   driftMult = 1;
   driftMultSec = 0;
+  /** Seconds every drifting block stays stopped (Anchor Stone). */
+  driftPause = 0;
+  /** Which half of a linked pair the hit landing now is (1 = the first, 2 = the second; 0 = not a pair). */
+  pairHit = 0;
   /** A Summoner's allies on the field. */
   allies: Ally[] = [];
   /** A practice fight (the camp's Training Dummy): nothing hurts the hero. */
@@ -902,7 +906,12 @@ export class Combat {
 
   /** A block's speed along the bar right now (a drifting block's, with a driftShift's multiplier). */
   velOf(b: Block): number {
-    return isRed(b.kind) ? b.vel : b.vel * this.driftMult;
+    return isRed(b.kind) ? b.vel : this.driftPause > 0 ? 0 : b.vel * this.driftMult * this.mod(1, (h, v) => h.driftMult?.(this, v));
+  }
+
+  /** Every drifting block stops for `sec` seconds (Anchor Stone). */
+  pauseDrift(sec: number): void {
+    this.driftPause = Math.max(this.driftPause, sec);
   }
 
   // ---------------------------------------------------------------- stepping
@@ -1369,6 +1378,7 @@ export class Combat {
       this.driftMultSec = 0;
       this.driftMult = 1;
     }
+    if (this.driftPause > 0) this.driftPause = Math.max(0, this.driftPause - DT);
     const B = this.tuning.blocks;
     for (const b of this.blocks.slice()) {
       if (this.result) return;
@@ -1569,15 +1579,17 @@ export class Combat {
       b.driftSec = Infinity;
       return;
     }
-    const v = b.vel * this.driftMult;
+    const v = this.velOf(b);
     if (v === 0) return;
     let next = b.pos + v * DT;
     const blocked = this.blocks.some((s) => s !== b && (!isRed(s.kind) || s.still) && (s.pos - b.pos) * v > 0 && Math.abs(s.pos - next) < (s.width + b.width) / 2 + B.minGap / 2);
-    if (next < lo || next > hi || blocked) {
+    const end = next < lo || next > hi;
+    if (end || blocked) {
       b.vel = -b.vel;
       next = Math.min(hi, Math.max(lo, b.pos - v * DT));
     }
     b.pos = next;
+    if (end) for (const h of this.hooks) h.driftTurn?.(this, b);
   }
 
   /** Make a block drift at `speed` (sign = direction) for `sec` seconds (Infinity = for good). Not reds. */
@@ -1760,12 +1772,19 @@ export class Combat {
       if (first) first.link = 0;
       this.events.push({ type: 'linkDone', ids: [L.id, b.id], pos: b.pos });
       this.linkBonus = true;
+      let out: TapOutcome;
       try {
+        this.pairHit = 1;
         if (first) this.hitAttack(first, L.perfect);
-        return this.hitAttack(b, perfect);
+        this.pairHit = 2;
+        out = this.hitAttack(b, perfect);
       } finally {
         this.linkBonus = false;
+        this.pairHit = 0;
       }
+      const x: LinkCtx = { pos: b.pos, forgive: false };
+      for (const h of this.hooks) h.linked?.(this, x);
+      return out;
     }
     const partner = this.blocks.find((x) => x.id === b.link);
     if (!partner) {
@@ -1773,7 +1792,7 @@ export class Combat {
       return this.hitAttack(b, perfect);
     }
     if (L) this.breakLink(); // another pair was waiting: it breaks
-    this.linkLit = { id: b.id, partner: partner.id, until: this.time + this.tuning.links.beatSec, perfect };
+    this.linkLit = { id: b.id, partner: partner.id, until: this.time + this.mod(this.tuning.links.beatSec, (h, v) => h.linkBeat?.(this, v)), perfect };
     this.events.push({ type: 'linkStart', id: b.id, partner: partner.id, pos: b.pos });
     return 'link';
   }
@@ -1788,7 +1807,9 @@ export class Combat {
     for (const x of pair) this.removeBlock(x, 'expire');
     const pos = pair[0]?.pos ?? this.cursorPos();
     this.events.push({ type: 'linkBroken', ids: [L.id, L.partner], pos });
-    this.miss(pos, true);
+    const x: LinkCtx = { pos, forgive: false };
+    for (const h of this.hooks) h.linkBroken?.(this, x);
+    if (!x.forgive) this.miss(pos, true);
   }
 
   /** An iced yellow takes a tap: its coat cracks (it needs `taps` in all); the combo holds, nothing else happens. */
