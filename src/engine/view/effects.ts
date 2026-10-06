@@ -261,6 +261,14 @@ export class Effects {
     this.replaceFloater('judge', () => this.addFloater(x, this.s.bar.y - 10 + dy, text, color, 1, false, 0, pop ? -40 : -26, pop ? 60 : 0, 520, false));
   }
 
+  /** The tap's judgement over the bar ("Perfect!", "Miss"...) while it shows: its centre, width and when it popped (the
+   *  bar's callouts step aside from it). */
+  judgeShown(now: number): { x: number; w: number; born: number } | null {
+    const f = this.singles.judge;
+    if (!f || now - f.born > f.life || !this.floaters.includes(f)) return null;
+    return { x: f.x, w: textWidth(f.t.text, 1, true), born: f.born };
+  }
+
   /** Spawn a floater that replaces the previous one with the same key (if it's still alive). */
   replaceFloater(key: string, make: () => void): void {
     const prev = this.singles[key];

@@ -28,6 +28,7 @@ import { hpBar, icon } from './pixels';
 import { perkColor, perkName, perkSource, TAG_FACE } from './relic-ui';
 import { FOE_ICONS } from './icons';
 import { ALLY_COL, Party, PERK_PET } from './party';
+import { BLOCKER_FACE } from './bar-kinds';
 import { drawShow, MELEE, quakeLand, SHOW_KIND, showFinal, showStart, showStrike, type ShowKind } from './finishers';
 import {
   clamp01,
@@ -71,12 +72,6 @@ const SWORD_TIP: Record<string, [number, number]> = {
 };
 /** The frame to use for a pose a hero doesn't have (their own first, then Rowan's). */
 const HERO_ALT: Record<string, string> = { slashX: 'slashB', fang: 'slashA', down: 'hurt', fin: 'slashB', cast: 'windup' };
-/** Blockers that take a red at the bar's left end, by perk id: their slab's colours [hi, base, lo]. */
-const BLOCKER_FACE: Record<string, readonly [number, number, number]> = {
-  barkback: [0xd09a5e, 0x8e5a2e, 0x4e2c16],
-  rockWall: [0xd8d0c0, 0x9a9080, 0x5a5448],
-  afterimage: [0xe0c0ff, 0x9a52d8, 0x4a2470],
-};
 /** Perks that never name themselves in the lane (the allies' own doings, shown on them). */
 const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally']);
 /** Allies whose perk is a blow or a heal: the bolt starts at the ally (not the hero). */
