@@ -28,7 +28,7 @@ import { roamerAt } from '../../core/roam';
 import { MapRoam, type MapHost } from './map-roam';
 import { bagPal, glyph, glyphSize } from './overlays';
 import { band, button3d, hpBar, hudIcon, iconSize, rows } from './pixels';
-import { clamp01, inRect, INK, mix, WHITE, type Rect } from './shared';
+import { clamp01, hpLabel, inRect, INK, mix, WHITE, type Rect } from './shared';
 import { FACE, ImagePool, isPressed, notePress, TextPool } from './ui';
 import { MapLife } from './map-life';
 
@@ -230,7 +230,7 @@ export class MapView implements MapHost {
     const run = s.app.run;
     if (run.path.length) return null;
     const max = heroMaxHp(run.tuning, run.hero);
-    const hpRight = s.L + 3 + 20 + 34 + 6 + textWidth(`${run.hero.hp}/${max}`, 1, false) + 8;
+    const hpRight = s.L + 3 + 20 + 34 + 6 + textWidth(hpLabel(run.hero.hp, max), 1, false) + 8;
     const right = this.campRect().x - 3;
     for (const text of ['Tap a glowing spot to travel', 'Tap a glowing spot', 'Pick a spot']) {
       const tw = textWidth(text, 1, false) + 14;
@@ -758,7 +758,7 @@ export class MapView implements MapHost {
     out.push({ x: L, y: 3, w, h: 25 });
     out.push(this.coinPlate());
     const max = heroMaxHp(run.tuning, run.hero);
-    out.push({ x: L, y: s.B - 19, w: 20 + 34 + 6 + textWidth(`${run.hero.hp}/${max}`, 1, false) + 8, h: 16 });
+    out.push({ x: L, y: s.B - 19, w: 20 + 34 + 6 + textWidth(hpLabel(run.hero.hp, max), 1, false) + 8, h: 16 });
     const camp = this.campRect();
     out.push(camp);
     const hint = this.hint();
@@ -1113,7 +1113,7 @@ export class MapView implements MapHost {
     // HP (bottom left)
     const H = run.hero;
     const max = heroMaxHp(run.tuning, H);
-    const hp = `${H.hp}/${max}`;
+    const hp = hpLabel(H.hp, max);
     const hpW = 20 + 34 + 6 + textWidth(hp, 1, false) + 8;
     const hy = s.B - 19;
     plate(g, L, hy, hpW, 16);

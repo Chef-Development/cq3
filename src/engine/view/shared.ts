@@ -213,3 +213,10 @@ export const mix = (a: number, b: number, k: number) => {
   return (ch(16) << 16) | (ch(8) << 8) | ch(0);
 };
 export const inRect = (r: Rect, x: number, y: number, pad = 0) => x >= r.x - pad && x <= r.x + r.w + pad && y >= r.y - pad && y <= r.y + r.h + pad;
+
+/** "96/101": HP as whole numbers. HP is fractional inside (Defense cuts, heals and kill gains in shares), so it's
+ *  rounded up (a sliver left reads as 1, never 0) and never shown above the max. */
+export const hpLabel = (hp: number, max: number): string => {
+  const m = Math.round(max);
+  return `${Math.max(0, Math.min(m, Math.ceil(hp - 1e-6)))}/${m}`;
+};

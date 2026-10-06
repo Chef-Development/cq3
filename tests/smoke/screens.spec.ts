@@ -694,3 +694,58 @@ test('world map: a wandering foe on the road, and its skirmish card', async ({ p
   await frames(page, 30);
   await expect(page).toHaveScreenshot('world-skirmish.png', shot);
 });
+
+test('world map: everything on it moves with the map when it pans (nothing follows the camera)', async ({ page }) => {
+  test.setTimeout(120_000);
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.newRun());
+  await frames(page, 30);
+  type Obj = { key: string; x: number; y: number; d: number };
+  // every visible image on the world map's layers (under its HUD: the header, buttons and cards from depth 30.8 up),
+  // less the screen's vignette (a lighting frame, meant to stay put)
+  const objects = () =>
+    page.evaluate(() => {
+      const w = window as unknown as { __cq3: { game: { scene: { scenes: Array<{ children: { list: unknown[] } }> } } } };
+      const out: Array<{ key: string; x: number; y: number; d: number }> = [];
+      for (const o of w.__cq3.game.scene.scenes[0].children.list as Array<{ visible: boolean; depth: number; x: number; y: number; texture?: { key: string } }>) {
+        const key = o.texture?.key;
+        if (!o.visible || !key || key === '__DEFAULT' || o.depth < 30.1 || o.depth >= 30.8 || key === 'wm_vignette') continue;
+        out.push({ key, x: o.x, y: o.y, d: o.depth });
+      }
+      return out;
+    });
+  const pinned: string[] = [];
+  let checked = 0;
+  type Cam = { x: number; y: number };
+  const wm = 'window.__cq3.app.view.worldMap';
+  // look around the map at several moments (flocks, ships and clouds come and go), panning 24 px right each time
+  for (const [cx, cy] of [
+    [200, 225],
+    [480, 75],
+    [480, 225],
+    [740, 75],
+    [740, 225],
+    [200, 75],
+  ]) {
+    await page.evaluate(`${wm}.lookAt(${cx}, ${cy})`);
+    await page.clock.runFor(2500); // a different moment at each spot: flocks, ships and clouds come and go
+    await frames(page, 2);
+    const c0 = (await page.evaluate(`${wm}.camera()`)) as Cam;
+    const before = (await objects()) as Obj[];
+    await page.evaluate(`${wm}.lookAt(${cx + 24}, ${cy})`);
+    await frames(page, 1);
+    const c1 = (await page.evaluate(`${wm}.camera()`)) as Cam;
+    expect(c1.x - c0.x).toBe(24);
+    const after = (await objects()) as Obj[];
+    // there after the pan, 24 px further left (it moved with the map) or still at the same spot (it followed the camera)
+    const at = (b: Obj, dx: number, tol: number) => after.some((a) => a.key === b.key && Math.abs(a.x - (b.x + dx)) <= tol && Math.abs(a.y - b.y) <= tol);
+    for (const b of before) {
+      if (b.x < 30 || b.x > 297 || b.y < 0 || b.y > 150) continue; // stays in view after the pan
+      checked++;
+      if (!at(b, -24, 2) && at(b, 0, 1)) pinned.push(`${b.key} at ${Math.round(b.x)},${Math.round(b.y)} (depth ${b.d})`);
+    }
+  }
+  expect(checked).toBeGreaterThan(40);
+  expect(pinned).toEqual([]);
+});

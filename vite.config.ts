@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -5,6 +6,21 @@ import { defineConfig, type Plugin } from 'vite';
 
 // GitHub Pages serves the repo at /<repo-name>/.
 const BASE = '/cq3/';
+
+/** Which build this is ("a6bab32 Oct 6 03:01" UTC), shown at the foot of the gear panel: the playtester can tell
+ *  whether the phone has picked up the latest deploy. */
+function buildLabel(): string {
+  let sha = process.env.GITHUB_SHA?.slice(0, 7);
+  if (!sha)
+    try {
+      sha = execSync('git rev-parse --short=7 HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    } catch {
+      sha = 'dev';
+    }
+  const d = new Date();
+  const month = d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+  return `${sha} ${month} ${d.getUTCDate()} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} UTC`;
+}
 
 /** After build, write dist/sw.js with the list of every built file and a content hash as the cache version. */
 function serviceWorker(): Plugin {
@@ -40,5 +56,6 @@ export default defineConfig({
   base: BASE,
   build: { target: 'es2022', chunkSizeWarningLimit: 2500 },
   plugins: [serviceWorker()],
+  define: { __BUILD__: JSON.stringify(buildLabel()) },
   server: { host: true },
 });

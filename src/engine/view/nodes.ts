@@ -13,7 +13,7 @@ import { boostLabel, boostPreview, isRelicOffer, type BoostPreview, type ShopIte
 import type { FightScene } from '../scene';
 import { textWidth } from '../font';
 import { band, button3d, gauge, glow, GOLD, hudIcon, iconSize, NAVY, panel, RAMP, rows } from './pixels';
-import { BOOST_ICON, clamp01, easeBack, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
+import { BOOST_ICON, clamp01, easeBack, hpLabel, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
 import { CARD, previewLine, previewWidth } from './overlays';
 import { chipWidth, relicCard, relicIcon, tagChip } from './relic-ui';
 import { FACE, ImagePool, isPressed, notePress, parchment, ribbon, RIBBON, tag, TextPool } from './ui';
@@ -345,7 +345,7 @@ export class NodeScreens {
     const pw = Math.round(gw * preview);
     if (pw > cw) g.fillRect(px + 18 + cw, y0 + 4, pw - cw, 8);
     gauge(g, px + 18, y0 + 4, Math.max(1, cw), 8, 1, 1, { ramp: RAMP.hp });
-    this.texts.text(`${H.hp}/${max}`, px + 18 + gw / 2, y0 + 8, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    this.texts.text(hpLabel(H.hp, max), px + 18 + gw / 2, y0 + 8, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     this.texts.text(heal > 0 ? `Rest: +${heal} HP (${Math.round(run.restShare * 100)}% of max)` : 'Already at full HP', px + 18, y0 + 18, heal > 0 ? 0xb4f070 : 0xc8c0e8, { oy: 0.5 });
     const b = { ...this.restButton(), y: this.restButton().y + dy };
     if (!done) glow(g, b, 0x8af06a, 0.35 + 0.35 * pulse(now, 900), 3);
@@ -497,7 +497,7 @@ export class NodeScreens {
         const max = heroMaxHp(run.tuning, H);
         const after = Math.min(max, H.hp + Math.round(max * run.tuning.map.potionHeal));
         if (item.sold) val = `+${Math.round(run.tuning.map.potionHeal * 100)}% HP`;
-        else if (after > H.hp) preview = { stat: 'HP', before: `${H.hp}`, after: `${after}` };
+        else if (after > H.hp) preview = { stat: 'HP', before: `${Math.ceil(H.hp - 1e-6)}`, after: `${Math.ceil(after - 1e-6)}` };
         else val = 'HP full';
         // a half row too tight for "100 -> 130": the share it heals
         if (preview && r.x + 25 + textWidth(name, 1, true) + previewWidth(preview) > tx - 4) {

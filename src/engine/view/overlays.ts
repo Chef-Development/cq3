@@ -17,7 +17,7 @@ import { buildCrest, buildLogo } from '../chrome';
 import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
 import { band, brick, button3d, chevron, gauge, glow, GOLD, hudIcon, iconSize, NAVY, panel, RAMP, rows } from './pixels';
-import { BOOST_ICON, clamp01, COL, easeBack, easeInOut, easeOut3, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
+import { BOOST_ICON, clamp01, COL, easeBack, easeInOut, easeOut3, hpLabel, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
 import { FACE, ImagePool, isPressed, notePress, ribbon, RIBBON, strip, tag, TextPool } from './ui';
 import { cardFrame, cardShine, cardTile, mainTag, relicCard, relicIcon, tagChip, TAG_FACE, type CardCtx } from './relic-ui';
 import { wrapText } from './items';
@@ -1240,7 +1240,7 @@ export class Overlays {
     hudIcon(gc, 'heart', x, y - 1);
     x += 18;
     gauge(gc, x, y + 1, 100, 8, H.hp / max, H.hp / max, { ramp: H.hp / max <= 0.3 ? RAMP.hpLow : RAMP.hp, seg: 10 });
-    this.texts.text(`${H.hp}/${max}`, x + 50, y + 5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    this.texts.text(hpLabel(H.hp, max), x + 50, y + 5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     x += 110;
     const cr: Rect = { x, y, w: cw, h: 11 };
     tag(gc, cr, [NAVY[5], NAVY[3], NAVY[2], NAVY[1]]);

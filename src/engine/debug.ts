@@ -305,6 +305,7 @@ export function installDebug(app: App): DebugUi {
     tg.append(copy, load, resetT, resetS, tips, again, over);
     tools.appendChild(tg);
     body.appendChild(el('div', 'dbg-foot', 'Keys: Space tap · F finisher · P pause · ` panel'));
+    body.appendChild(el('div', 'dbg-foot', `Build ${typeof __BUILD__ === 'string' ? __BUILD__ : 'dev'}`));
   };
 
   /**
