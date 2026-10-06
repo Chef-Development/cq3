@@ -452,9 +452,9 @@ test('camp: Sable joins after Act 1', async ({ page }) => {
 // ------------------------------------------------------------------ relics and Sable (M4a)
 
 /** A run in its first fight (waiting for TAP TO BEGIN), the hero carrying `relics`. */
-async function firstFight(page: Page, relics: string[], hero: 'rowan' | 'sable' = 'rowan', taught = true): Promise<void> {
+async function firstFight(page: Page, relics: string[], hero: 'rowan' | 'sable' = 'rowan'): Promise<void> {
   await page.evaluate(
-    ([relics, hero, taught]) => {
+    ([relics, hero]) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const app = (window as any).__cq3.app;
       const p = app.profile;
@@ -464,7 +464,6 @@ async function firstFight(page: Page, relics: string[], hero: 'rowan' | 'sable' 
         p.heroes.sable.xp = 900;
       }
       p.hero = hero;
-      p.twinTaught = taught;
       app.setPhase(() => {
         app.run.newRun();
         app.run.skipScenes();
@@ -472,7 +471,7 @@ async function firstFight(page: Page, relics: string[], hero: 'rowan' | 'sable' 
         app.run.chooseNode(app.run.choices()[0]);
       });
     },
-    [relics, hero, taught] as const,
+    [relics, hero] as const,
   );
 }
 
@@ -601,20 +600,149 @@ test('shop: relic rows, Haggler makes the first buy free', async ({ page }) => {
   await expect(page).toHaveScreenshot('shop-relics.png', shot);
 });
 
-test("Sable: the two tap zones on her first fight, then her two cursors' bar", async ({ page }) => {
-  await boot(page);
-  await frames(page, 10);
-  await firstFight(page, ['powderKeg', 'sharpshooter', 'overcharge'], 'sable', false);
-  await frames(page, 50);
-  await expect(page).toHaveScreenshot('twin-tutorial.png', shot);
-  await page.evaluate(() => {
+// ------------------------------------------------------------------ the fight view: heroes, allies, companions, the second region's bar
+
+/**
+ * A fight as `hero` (act: a global act index, 3-5 are the second region), with `pets` along (two need the Companion
+ * Perch): begun, then the foes' own attacks stopped and the bar cleared, so a test lays out exactly the bar it shows.
+ */
+async function stagedFight(page: Page, o: { hero: string; act?: number; pets?: string[] }): Promise<void> {
+  await page.evaluate((o) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const app = (window as any).__cq3.app;
-    app.profile.twinTaught = true;
-    app.begin();
-  });
+    const p = app.profile;
+    p.allUnlocked = true;
+    p.hero = o.hero;
+    if (o.pets) {
+      if (!p.camp.includes('perch')) p.camp.push('perch');
+      p.petsOn = o.pets;
+    }
+    app.setPhase(() => {
+      app.run.newRun();
+      app.run.skipScenes();
+      if (o.act) {
+        app.run.enterAct(o.act);
+        app.run.skipScenes();
+      }
+      app.run.chooseNode(app.run.choices()[0]);
+    });
+  }, o);
+  await frames(page, 20);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.begin());
+  await frames(page, 40);
+  await bar(page, 'c.spawning = false; c.specialsOn = false; for (const b of c.blocks.slice()) c.removeBlock(b, "perk");');
+  await frames(page, 25); // the cleared blocks have played out
+}
+
+/** Run `body` in the page with `c` = the fight, `app`, `view` (the scene) and `foe` (the front foe). */
+const bar = (page: Page, body: string) => page.evaluate(`(() => { const app = window.__cq3.app; const c = app.run.combat; const view = app.view; const foe = c.frontEnemy(); ${body} })()`);
+
+test('Sable: one cursor; a Perfect hit dashes it ahead (its streak), her Chain on the HUD', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await firstFight(page, ['powderKeg', 'sharpshooter', 'overcharge'], 'sable');
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.begin());
   await frames(page, 75);
   await expect(page).toHaveScreenshot('sable-bar.png', shot);
+  // two Perfect hits in a row: the cursor dashes ahead after each (it stops a moment's travel before the next block),
+  // and the Chain shows x2
+  const clear = 'for (const b of c.blocks.slice()) c.removeBlock(b, "perk");';
+  await bar(page, `c.spawning = false; ${clear}`);
+  await frames(page, 25);
+  await bar(page, `c.setCursor(0.12, 1); c.spawnBlock('yellow', 0.12); c.spawnBlock('yellow', 0.62); app.barTap(performance.now());`);
+  await frames(page, 20);
+  await bar(page, `${clear} c.setCursor(0.3, 1); c.spawnBlock('yellow', 0.3); c.spawnBlock('yellow', 0.96); app.barTap(performance.now());`);
+  await frames(page, 9); // mid-burst
+  await expect(page).toHaveScreenshot('sable-dash.png', shot);
+});
+
+test('the second region: ice and snow patches on the bar (one sliding), the cursor streaking over the ice', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'rowan', act: 3 });
+  await bar(
+    page,
+    `c.addZone('ice', 0.3, 0.18, 0); c.addZone('snow', 0.64, 0.16, 0); const z = c.addZone('ice', 0.86, 0.12, 0); z.vel = 0.04; z.slide = 30;
+     c.spawnBlock('yellow', 0.36); c.spawnBlock('yellow', 0.6); c.spawnBlock('green', 0.47);`,
+  );
+  await frames(page, 14);
+  await bar(page, `c.setCursor(0.22, 1);`);
+  await frames(page, 5);
+  await expect(page).toHaveScreenshot('bar-patches.png', shot);
+});
+
+test('the second region: a hold being held (its fill), an iced yellow cracked once', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'rowan', act: 4 });
+  await bar(page, `c.spawnBlock('hold', 0.5); const y = c.spawnBlock('yellow', 0.8); y.taps = 3; c.events.push({ type: 'chip', id: y.id, pos: y.pos, left: 3 }); c.spawnBlock('hold', 0.2);`);
+  await frames(page, 30);
+  // the iced yellow takes a tap (a crack); the hold is pressed right at its near edge (Perfect) and held
+  await bar(page, `const y = c.blocks.find((b) => b.kind === 'yellow'); c.setCursor(y.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 2);
+  await bar(page, `const h = c.blocks.find((b) => b.kind === 'hold' && b.pos > 0.4); c.setCursor(h.pos - h.width / 2, 1); app.barTap(performance.now());`);
+  await frames(page, 7);
+  await expect(page).toHaveScreenshot('bar-hold.png', shot);
+});
+
+test('the second region: a mirror shard (a bounce), icicles marked and one landed (its fuse ring)', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'rowan', act: 5 });
+  await bar(
+    page,
+    `c.spawnBlock('mirror', 0.62, foe.id, undefined, { life: 6, special: true }); c.spawnBlock('red', 0.82, foe.id, undefined, { still: true, fuse: 1.6, special: true });
+     view.barView.mark(0.25, 0.9); view.barView.mark(0.45, 0.9); c.spawnBlock('yellow', 0.35); c.setCursor(0.5, 1);`,
+  );
+  await frames(page, 14);
+  await expect(page).toHaveScreenshot('bar-mirror-icicles.png', shot);
+});
+
+test("heroes' blocks: kegs, frozen blocks, chilled and pinned reds, a snowball", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'neve', act: 3 });
+  await bar(
+    page,
+    `c.spawnBlock('keg', 0.2); c.spawnBlock('keg', 0.32); c.spawnBlock('frozen', 0.46); const f = c.spawnBlock('frozen', 0.58); c.events.push({ type: 'iceBlock', id: f.id, pos: f.pos });
+     const r1 = c.spawnBlock('red', 0.7); r1.chill = 3; r1.chillMult = 0.4; const r2 = c.spawnBlock('red', 0.8); r2.chill = 3; r2.chillMult = 0;
+     c.spawnBlock('red', 0.92, foe.id, undefined, { grow: 0.6, speed: 0.6, special: true }); c.setCursor(0.08, 1);`,
+  );
+  await frames(page, 12);
+  await expect(page).toHaveScreenshot('bar-kegs-frozen.png', shot);
+});
+
+test('Moss with three allies out (called by green hits), the allies on the HUD', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'moss' });
+  for (let i = 0; i < 3; i++) {
+    await bar(page, `const p = c.cursorPos(); c.spawnBlock('green', p); app.barTap(performance.now());`);
+    await frames(page, 30);
+  }
+  await frames(page, 60);
+  await expect(page).toHaveScreenshot('moss-allies.png', shot);
+});
+
+test('two companions: a walker and a flier beside the hero; the drake breathes on every foe', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'tam', pets: ['brick', 'sunny'] });
+  await frames(page, 20);
+  await bar(page, `view.fighters.petAttack('sunny', foe.id, 14, false);`);
+  await frames(page, 11);
+  await expect(page).toHaveScreenshot('two-companions.png', shot);
+});
+
+test("a new hero's finisher: Glacier rolls a frost wave out, freezes the reds and slows the bar's middle", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'neve', act: 3 });
+  await bar(page, `c.spawnBlock('red', 0.55); c.spawnBlock('red', 0.8); c.spawnBlock('yellow', 0.3); c.stacks = 2; c.meter = 0;`);
+  await frames(page, 4);
+  await bar(page, `app.finisher();`);
+  await frames(page, 22);
+  await expect(page).toHaveScreenshot('finisher-glacier.png', shot);
 });
 
 // ------------------------------------------------------------------ tips ("teach it slowly")

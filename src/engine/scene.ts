@@ -343,19 +343,19 @@ export class FightScene extends Phaser.Scene implements View {
           const x = bar.x(e.pos);
           const perfect = e.perfect;
           if (perfect || e.crit) fx.judge(x, perfect ? 'Perfect!' : 'Crit!', perfect ? 0xfff07a : 0xff9a3a, true);
-          bar.cursorPulse(perfect ? 0xfff07a : kindCol(e.kind)[1], 0);
+          bar.cursorPulse(perfect ? 0xfff07a : kindCol(e.kind)[1]);
           bar.cursorHit(x, perfect ? 0x6aff5a : WHITE);
           if (perfect) fx.sparkle(x, barMid);
           hud.comboPopAt = now;
           hud.milestone(e.combo);
-          f.heroAttack(e.enemyId, e.damage, e.crit, perfect, e.combo, false, 0, e.echo);
+          f.heroAttack(e.enemyId, e.damage, e.crit, perfect, e.combo, false, e.echo);
           break;
         }
         case 'block': {
           const x = bar.x(e.pos);
           if (e.perfect) fx.judge(x, 'Perfect!', 0xfff07a, true, e.cracked ? 6 : 0);
           if (!e.cracked) fx.replaceFloater('block', () => fx.addFloater(f.h.x - 4, this.ground - 44, 'Block!', WHITE, 1, true, 0, -18, 0, 520, true));
-          bar.cursorPulse(0x7ae0ff, 0);
+          bar.cursorPulse(0x7ae0ff);
           bar.cursorHit(x, e.perfect ? 0x6aff5a : 0x7ae0ff);
           hud.comboPopAt = now;
           hud.milestone(e.combo);
@@ -471,7 +471,7 @@ export class FightScene extends Phaser.Scene implements View {
           break;
         case 'explode':
           bombX = bar.x(e.pos);
-          bar.explodeFx = { x: bar.x(e.pos), r: e.radius * this.bar.w, until: now + 260 };
+          bar.explodeFx = { x: bar.x(e.pos), r: e.radius * this.bar.w, until: now + 260, own: !!e.own };
           this.app.audio.explode();
           fx.impact(fx.weight('bomb'));
           fx.floatNum(GAME_W / 2, 44, 'BOOM!', 0xff8a3a, 2);
@@ -481,7 +481,45 @@ export class FightScene extends Phaser.Scene implements View {
           hold = Math.max(hold, f.superMs);
           break;
         case 'pet':
-          f.petAttack(e.enemyId, e.damage, e.crit);
+          f.petAttack(e.pet, e.enemyId, e.damage, e.crit);
+          break;
+        // ---- the bar's newer pieces: patches, icicles, mirrors, dashes, holds, iced yellows, frozen reds, the wall
+        case 'zoneOn':
+          bar.zoneOn(e.kind, e.lo, e.hi);
+          break;
+        case 'zoneOff':
+          bar.zoneOff(e.id);
+          break;
+        case 'mark':
+          bar.mark(e.pos, e.sec);
+          break;
+        case 'mirror':
+          bar.mirror(e.pos);
+          break;
+        case 'dash':
+          bar.dash(e.from, e.to);
+          break;
+        case 'holdStart':
+          bar.hold(e.id, e.pos, 'start', e.perfect);
+          break;
+        case 'holdEnd':
+          bar.hold(e.id, e.pos, e.ok ? 'done' : 'slip');
+          break;
+        case 'chip':
+          bar.chip(e.id, e.pos, e.left);
+          break;
+        case 'iceBlock':
+          bar.iceBlock(e.pos);
+          break;
+        case 'deflect':
+          bar.deflect(e.pos);
+          break;
+        case 'ally':
+          // (a Barkback's block shows at the bar's left end through its perk, right after)
+          f.party.ally(e.kind, e.action, e.id);
+          break;
+        case 'stun':
+          f.stun(e.enemyId, e.sec);
           break;
         case 'heal': {
           // healing comes from the kill: it lands just after the burst (a glint on the hero, the HP by the HP bar)
@@ -496,6 +534,7 @@ export class FightScene extends Phaser.Scene implements View {
         case 'ability':
           // (named in the HUD's name lane the first time each fight; then the plate's green timer shows it)
           if (f.firstName('ability')) hud.announce(heroDef(this.app.run.hero.build?.id ?? 'rowan').ability.name, 0x9af0a0);
+          f.cast();
           break;
         case 'speedUp':
           fx.judge(this.bar.x + this.bar.w / 2, 'Speed up!', 0xff9a3a, true, -14);
