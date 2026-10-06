@@ -275,9 +275,9 @@ describe('skill previews', () => {
   const want: Record<string, string> = {
     keenEdge: 'ATK 10 -> 11',
     steadyAim: 'Crit 5% -> 13%',
-    stout: 'Max HP 100 -> 108',
-    plateTraining: 'DEF 0 -> 5',
-    rhythm: 'Meter +0% -> +15%',
+    stout: 'Max HP 100 -> 112',
+    plateTraining: 'DEF 0 -> 10',
+    rhythm: 'Meter +0% -> +10%',
     powerStance: 'Combo 5 -> 6.5',
   };
   const show = (p: { stat: string; before: string; after: string } | null) => (p ? `${p.stat} ${p.before} -> ${p.after}` : null);

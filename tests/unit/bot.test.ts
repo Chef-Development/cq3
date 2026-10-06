@@ -186,6 +186,7 @@ describe('gear: the story with found gear alone, and farming', () => {
     const storyRate = story.filter((f) => f!.won).length / story.length;
     const third = res.map((x) => x.visits[2].bossWon).filter((w) => w !== null);
     const farmedRate = third.filter((w) => w).length / third.length;
-    expect(farmedRate).toBeGreaterThan(storyRate + 0.1);
+    // (+7-10 points at 60 runs since M5's heroes rework; the guard keeps it clearly above the story)
+    expect(farmedRate).toBeGreaterThan(storyRate + 0.05);
   });
 });

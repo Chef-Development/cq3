@@ -15,6 +15,7 @@ import { BLOCK_ICONS, FOE_ICONS } from './icons';
 import { dashGhost, drawBlocker, drawChill, drawFrozen, drawFuse, drawGrow, drawHold, drawIceCoat, drawKeg, drawPatch, drawVines, drawWall, sparkle, type PatchLook } from './bar-kinds';
 import { BOMB_COL, clamp01, deepOf, DYING_MS, dyingStyle, ease, INK, kindCol, rand, stackCol, WHITE, type Dying } from './shared';
 import { ImagePool } from './ui';
+import { drawBarRules } from './bar-links';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -350,6 +351,7 @@ export class BarView {
     const group = c.enemies.length > 1;
     this.drawGhosts(g, c, now, bx);
     for (const b of c.blocks) if (!isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
+    drawBarRules(g, c, t, now, s.bar, bx); // linked pairs' chains, drifting blocks' chevrons
     this.drawGuard(g, c, t, now, bx);
     for (const b of c.blocks) if (isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
 

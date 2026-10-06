@@ -99,6 +99,9 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     included) and 200-245 in the next region, so the shrine gives about one Rare chest per region.
 27. Hero parity, first pass (Region 1 gaps to Rowan at 85%): Moss attack 0.85 -> 0.8 and his moths heal 2% -> 1.2%
     (Act 3 was +20), Hollis 125 -> 115 HP (Act 3 +12), Vesper 95 -> 100 HP and attack 1 -> 1.05 (Act 2 -13).
+29. Greenmarch after the hero rework: the Boar King's HP 4600 -> 4800 (the playtester's first fight was creeping
+    past 80%); the 70% player still clears Act 3 within 6 tries more than 80% of the time (guard restored); farming
+    the Boar King now adds 7-10 points (it was +10 before), so its guard asks for +5 at 60 runs.
 28. **Style calls on the bounty board:** once you own two or more heroes, about a third of boards post "Win 2 fights
     as a <style> hero" for one of the styles you own (heroes can be switched at camp mid-act). It pays a relic pick
     like the other relic bounties. With one hero, boards never ask for a style.
