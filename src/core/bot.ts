@@ -224,26 +224,38 @@ export function playRun(tuning: Tuning, o: BotOptions, maxAttempts = 6, acts = G
  */
 export function playCampaign(tuning: Tuning, o: BotOptions, regions = REGIONS.length, maxAttempts = 6, profile: Profile = newProfile()): RunStats {
   const out = playRun(tuning, o, maxAttempts, REGIONS[0].acts.length, profile);
-  const rng = new Rng(o.seed ^ 0x7f4a7c15);
   for (let r = 1; r < Math.min(regions, REGIONS.length); r++) {
-    if (!out.acts.length || !out.acts[out.acts.length - 1].cleared || out.acts.length < regionStart(r)) break;
-    const from = regionStart(r);
-    const run = botRun(tuning, (o.seed + 15485863 * r) >>> 0, profile, from);
-    equipBest(run);
-    for (let a = from; a < from + REGIONS[r].acts.length; a++) {
-      const entry = { act: a, attempts: [] as ActAttempt[], cleared: false };
-      out.acts.push(entry);
-      for (let k = 0; k < maxAttempts && !entry.cleared; k++) {
-        if (k > 0) run.retry();
-        const res = playAct(run, rng, o);
-        entry.attempts.push(res);
-        entry.cleared = res.won;
-      }
-      if (!entry.cleared) return out;
-      if (run.phase === 'actClear') {
-        run.nextAct();
-        run.skipScenes();
-      }
+    if (out.acts.length < regionStart(r) || !out.acts[out.acts.length - 1].cleared) break;
+    out.acts.push(...playRegion(tuning, o, profile, r, maxAttempts).acts);
+  }
+  return out;
+}
+
+/** One region's fresh run (region `r` from its first act) with what `profile` has earned so far; each act retried
+ *  from its start after a defeat, stopping at an act not cleared. */
+export function playRegion(tuning: Tuning, o: BotOptions, profile: Profile, r: number, maxAttempts = 6): RunStats {
+  const out: RunStats = { acts: [] };
+  const rng = new Rng((o.seed ^ 0x7f4a7c15) + r);
+  if (o.hero && o.hero !== 'rowan') {
+    profile.heroes[o.hero].unlocked = true;
+    profile.hero = o.hero;
+  }
+  const from = regionStart(r);
+  const run = botRun(tuning, (o.seed + 15485863 * r) >>> 0, profile, from);
+  equipBest(run);
+  for (let a = from; a < from + REGIONS[r].acts.length; a++) {
+    const entry = { act: a, attempts: [] as ActAttempt[], cleared: false };
+    out.acts.push(entry);
+    for (let k = 0; k < maxAttempts && !entry.cleared; k++) {
+      if (k > 0) run.retry();
+      const res = playAct(run, rng, o);
+      entry.attempts.push(res);
+      entry.cleared = res.won;
+    }
+    if (!entry.cleared) break;
+    if (run.phase === 'actClear') {
+      run.nextAct();
+      run.skipScenes();
     }
   }
   return out;
@@ -813,7 +825,7 @@ export function balanceCampaign(tuning: Tuning, accuracies: number[], runs: numb
 }
 
 /** Every act's row from a batch of runs (results[i].acts[k].act names the act). */
-function summarize(results: RunStats[], acc: number, runs: number, acts: number[]): ActRow[] {
+export function summarize(results: RunStats[], acc: number, runs: number, acts: number[]): ActRow[] {
   const rows: ActRow[] = [];
   {
     for (const act of acts) {
