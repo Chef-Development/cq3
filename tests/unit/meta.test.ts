@@ -200,7 +200,7 @@ describe('gems, achievements, mastery, camp upgrades', () => {
 });
 
 describe('companions in fights', () => {
-  const withPets = (ids: Array<keyof typeof COMPANIONS>, tune?: Parameters<typeof setup>[0]['tune']) => {
+  const withPets = (ids: Array<keyof typeof COMPANIONS>, tune?: (x: typeof t) => void) => {
     const s = setup({ tune: (x) => ((x.companion.everyHits = 4), (x.blocks.redTravelSec = 10000), tune?.(x)) });
     s.c.hero.build = { ...s.c.hero.build, pets: ids.map((id) => ({ id, level: 1, stars: 1 })) };
     return s;
