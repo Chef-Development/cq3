@@ -129,17 +129,43 @@ export class Pix {
     const ctx = c.getContext('2d')!;
     const img = ctx.createImageData(this.w, this.h);
     const d = img.data;
-    for (let i = 0; i < this.buf.length; i++) {
-      const v = this.buf[i];
-      if (v < 0) continue;
-      d[i * 4] = v >> 16;
-      d[i * 4 + 1] = (v >> 8) & 255;
-      d[i * 4 + 2] = v & 255;
-      d[i * 4 + 3] = 255;
-    }
+    if (LITTLE_ENDIAN) {
+      // one write per pixel (the big world map layers paint a lot of pixels)
+      const u = new Uint32Array(d.buffer, d.byteOffset, this.buf.length);
+      for (let i = 0; i < this.buf.length; i++) {
+        const v = this.buf[i];
+        if (v >= 0) u[i] = (0xff000000 | ((v & 255) << 16) | (v & 0xff00) | (v >> 16)) >>> 0;
+      }
+    } else
+      for (let i = 0; i < this.buf.length; i++) {
+        const v = this.buf[i];
+        if (v < 0) continue;
+        d[i * 4] = v >> 16;
+        d[i * 4 + 1] = (v >> 8) & 255;
+        d[i * 4 + 2] = v & 255;
+        d[i * 4 + 3] = 255;
+      }
     ctx.putImageData(img, 0, 0);
     return c;
   }
+}
+
+const LITTLE_ENDIAN = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
+
+/** An opaque colour as one 32-bit RGBA pixel (in the machine's byte order), for writing ImageData a word at a time. */
+export const rgba32 = (v: Col, a = 255): number =>
+  LITTLE_ENDIAN ? ((a << 24) | ((v & 255) << 16) | (v & 0xff00) | (v >> 16)) >>> 0 : ((v << 8) | a) >>> 0;
+
+/** A w x h canvas whose pixels `paint` writes as 32-bit RGBA words (0 = transparent). */
+export function wordCanvas(w: number, h: number, paint: (u: Uint32Array) => void): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d')!;
+  const img = ctx.createImageData(w, h);
+  paint(new Uint32Array(img.data.buffer, img.data.byteOffset, w * h));
+  ctx.putImageData(img, 0, 0);
+  return c;
 }
 
 // ------------------------------------------------------------------ shape painters

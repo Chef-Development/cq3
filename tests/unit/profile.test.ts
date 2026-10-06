@@ -90,6 +90,16 @@ describe('profile', () => {
     expect(back.nextUid).toBeGreaterThan(Math.max(...back.items.map((i) => i.uid)));
   });
 
+  it("remembers whether the world map's first-visit reveal has played (a profile from before it hasn't seen it)", () => {
+    expect(newProfile().worldTour).toBe(false);
+    const p = newProfile();
+    p.worldTour = true;
+    expect(readProfile(viaJson(p), T).worldTour).toBe(true);
+    const old = viaJson(newProfile()) as unknown as Record<string, unknown>;
+    delete old.worldTour;
+    expect(readProfile(old, T).worldTour).toBe(false);
+  });
+
   it('remembers the furthest act cleared, and the region weight once', () => {
     const p = newProfile();
     expect(recordAct(p, 0)).toBe(true);

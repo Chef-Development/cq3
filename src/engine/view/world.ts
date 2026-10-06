@@ -1,16 +1,20 @@
-// The kingdom's world map (between runs): the painted island (art-world.ts), alive. The sea glints and laps at
-// the coast, ships cross, a whale surfaces now and then; clouds and their shadows drift over the land and gulls
-// fly by. Greenmarch is where Rowan and Pip wait under a bobbing call to action, its windmill turning and
-// chimneys smoking; the locked regions breathe under their haze (snow on Frostpeaks, the volcano puffing over
-// Ashfell, mist and wisps over Duskmire, Noonspire's island bobbing in the sky) behind padlocks. The Great
-// Pendulum's swing grows with the weights brought home; a flag flies over each Greenmarch act cleared.
-// Tap Greenmarch (anywhere on its land, Rowan or the plate) to start a run (once an act is cleared: the act picker,
-// to replay a cleared act for its drops or go on with the story); a locked region rattles its padlock and shows its
-// name; the capital tells how many weights are home. The Camp button (bottom left) opens the camp. Once Act 1 is
-// cleared, a wandering foe sometimes paces the Meadow Road: tap it for a bonus skirmish (view/world-roam.ts).
+// The kingdom's world map (between runs): a painted continent about three screens wide and two tall
+// (art-world.ts), alive, that you drag to explore. The view is a camera over it: a press that moves more than a few
+// game px is a drag (it pans the map, with momentum, clamped at the edges, and never starts anything); a press that
+// stays put is a tap, judged on release. The map opens on where the story is (the act Rowan is on); the very first
+// visit glides in from the far east over the locked lands, so you see how big the world is (any tap skips it).
 //
-// Everything animates from `now` (deterministic for the screenshot tests): textures were pre-rendered at boot,
-// so a frame only moves images, swaps their frames, and draws a modest number of rects.
+// Greenmarch's three acts are landmarks: tap one to select it (its card says what playing it means, Play starts
+// it: the story, or a cleared act replayed for its drops); Rowan and Pip wait at the current act under a call to
+// action (tap it, or Rowan: the run starts, or once an act is cleared the act picker opens). A flag flies over each
+// cleared act. The locked lands sit under a drifting fog of war; tapped, the fog thins for a moment and a small
+// card names the land. The capital tells how many weights are home; the Camp button (bottom left) opens the camp.
+// Once Act 1 is cleared, a wandering foe sometimes paces the Meadow Road (view/world-roam.ts).
+//
+// The HUD (the header, the Camp button, the cards and the act picker) stays put inside the safe areas; everything
+// else is drawn in world px less the camera. Everything animates from `now` (deterministic for the screenshot
+// tests): the art was pre-rendered at boot, so a frame only moves images, swaps their frames, and draws a modest
+// number of rects (only for what's in view).
 import type Phaser from 'phaser';
 import { itemLevel, type Item } from '../../core/gear';
 import { WEIGHTS_TOTAL } from '../../core/profile';
@@ -20,16 +24,22 @@ import {
   CLOUD_KINDS,
   FLAG_FRAMES,
   FLAG_ORIGIN,
-  GREENMARCH_FLAGS,
-  SURF_FRAMES,
-  WAVE_FRAMES,
+  NOON_BOX,
+  SEA_LANES,
+  VEIL_BOXES,
+  WALKER_KINDS,
+  SEA_FRAMES,
   WIND_FRAMES,
+  WORLD_ACTS,
   WORLD_BOXES,
   WORLD_CAPITAL,
+  WORLD_H,
   WORLD_LIFE,
   WORLD_REGIONS,
-  WORLD_ROAD,
+  WORLD_ROADS,
   WORLD_SPOTS,
+  WORLD_W,
+  worldArtReady,
   worldRegionAt,
 } from '../art-world';
 import { hash } from '../backdrop';
@@ -47,11 +57,13 @@ import { WorldLife } from './world-life';
 type G = Phaser.GameObjects.Graphics;
 type Img = Phaser.GameObjects.Image;
 type Region = (typeof WORLD_REGIONS)[number];
+type Pt = [number, number];
 
 const TAU = Math.PI * 2;
 const frac = (v: number) => v - Math.floor(v);
 const rnd = (i: number, s: number) => hash(i, s, 977);
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+const smooth = (k: number) => (k <= 0 ? 0 : k >= 1 ? 1 : k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2);
 
 const DEPTH = {
   map: 30.1,
@@ -65,12 +77,13 @@ const DEPTH = {
   actor: 30.18,
   pip: 30.19,
   shadow: 30.22,
+  veil: 30.23,
   fog: 30.24,
   air: 30.26,
+  rim: 30.28,
   vignette: 30.3,
   cloud: 30.4,
   bird: 30.42,
-  frame: 30.45,
   lock: 30.5,
   ui: 30.8,
   text: 30.9,
@@ -80,22 +93,43 @@ const DEPTH = {
   pickText: 30.93,
 };
 
+// ---- the feel of panning (view numbers, not gameplay)
+/** A press that moves more than this (game px) is a drag, not a tap. */
+export const DRAG_PX = 4;
+/** Momentum after a fling: the speed halves about every 0.25 s; never faster than this (game px/s). */
+const FLING_TAU = 0.36;
+const FLING_MAX = 900;
+/** A press on a map still gliding faster than this (px/s) only stops it. */
+const CATCH_SPEED = 60;
+/** The first visit's reveal: a short hold, then a glide from the far east to the current act (ms). */
+const TOUR_HOLD = 250;
+const TOUR_MS = 1700;
+/** The camera easing to a landmark or back home (ms). */
+const GLIDE_MS = 480;
+/** The act card's height, and the highest its top sits when it hangs over its landmark (clear of the header). */
+const CARD_H = 25;
+const CARD_TOP = 38;
+
 /** The act picker's rows: one per act, cleared ones to replay (farm), the next to go on with, later ones locked. */
 const PICK_ROW_H = 28;
 
-// clouds drifting along the top and bottom of the map (texture, y, speed px/s, phase px)
+// clouds drifting along the top and bottom edges of the view, never over the land's middle (texture, screen y,
+// speed px/s, phase px); they slide a little when the map pans (parallax: they're nearer the eye)
 const CLOUDS: Array<[number, number, number, number]> = [
   [2, -4, 2.2, 30],
   [0, 3, 2.9, 250],
-  [3, 15, 3.6, 150],
+  [3, 14, 3.6, 150],
   [1, 128, 2.6, 80],
   [0, 136, 2.0, 280],
   [3, 122, 3.1, 360],
 ];
-// shadows of clouds high overhead sweeping across the whole map (texture, y, speed, phase)
+const PARALLAX = 0.18;
+// shadows of clouds sweeping across the land (texture, world y, speed, phase)
 const SHADOWS: Array<[number, number, number, number]> = [
-  [0, 38, 3.4, 60],
-  [1, 92, 2.7, 300],
+  [0, 60, 3.4, 60],
+  [1, 150, 2.7, 400],
+  [0, 230, 3.0, 760],
+  [1, 110, 3.2, 1100],
 ];
 
 /** A rounded rectangle in 2r + 1 rects (corner rows, then one block). */
@@ -113,40 +147,52 @@ function rows(g: G, x: number, y: number, w: number, h: number, r: number, color
 /** Plate colours: crisp dark glass with a light inner edge. */
 const PLATE = { fill: 0x161226, top: 0x221c38, edge: 0x6a5c98, lo: 0x0c0a16 };
 
+/** Where an act's card rests its foot when it hangs over the landmark (world y): above the landmark and its flag. */
+function cardFoot(i: number): number {
+  const a = WORLD_ACTS[i];
+  return Math.min(a.box.y, a.flag[1] - 12) - 4;
+}
+
+/** A closed sea lane resampled to one point per px (ships sail it). */
+function lanePath(pts: Pt[]): Pt[] {
+  const out: Pt[] = [];
+  const loop = [...pts, pts[0]];
+  for (let i = 0; i < loop.length - 1; i++) {
+    const [ax, ay] = loop[i];
+    const [bx, by] = loop[i + 1];
+    const n = Math.max(1, Math.round(Math.hypot(bx - ax, by - ay)));
+    for (let k = 0; k < n; k++) out.push([ax + ((bx - ax) * k) / n, ay + ((by - ay) * k) / n]);
+  }
+  return out;
+}
+
 export class WorldView {
-  private g!: G; // UI plates
-  private gSea!: G; // glints, wakes, whales
-  private gLand!: G; // smoke, windows, pendulum, pennants, shadows, rings
-  private gAir!: G; // snow, embers, wisps, motes, sparkles
+  private g!: G; // UI plates (screen)
+  private gSea!: G; // glints, wakes, whales (world)
+  private gLand!: G; // smoke, windows, pendulum, pennants, rings (world)
+  private gAir!: G; // snow, embers, wisps, motes (world)
   private imgs: Img[] = [];
-  private waves!: Img;
-  private surf!: Img;
+  private base!: Img;
+  private sea!: Img;
   private wind!: Img;
   private isle!: Img;
+  private isleVeil!: Img;
   private lava!: Img;
   private lamp!: Img;
-  private mill!: Img;
+  private rim!: Img;
+  private mills: Img[] = [];
   private hero!: Img;
   private pip!: Img;
-  private ships: Img[] = [];
-  private boat!: Img;
-  private cart!: Img;
+  private veils: Array<{ id: string; img: Img }> = [];
   private flags: Img[] = [];
   private locks: Img[] = [];
-  private clouds: Img[] = [];
-  private cloudShadows: Img[] = [];
-  private bigShadows: Img[] = [];
-  private puffs: Img[] = [];
-  private fogs: Img[] = [];
-  private birds: Img[] = [];
-  private frame!: Img;
+  private pool: ImagePool; // ships, boats, travellers, clouds, birds, puffs, fog (pooled, only what's in view)
   private texts: TextPool;
   private rattle = new Map<string, number>();
   private info: { id: string; at: number } | null = null;
   private chosenAt = 0;
-  /** Greenmarch's plate (the call to action over Rowan), as last drawn. */
+  /** Greenmarch's plate (the call to action over Rowan), as last drawn (screen). */
   plate = { x: 0, y: 0, w: 0, h: 0 };
-  private road: Array<[number, number]> = [];
   /** The act picker (open since `at`, performance.now), and a locked row shaking. */
   private picker: { at: number } | null = null;
   private pickShake: { act: number; at: number } | null = null;
@@ -158,50 +204,67 @@ export class WorldView {
   /** Gulls, dolphins and the sparkle out at sea (view/world-life.ts): only the taps nothing else takes. */
   readonly life: WorldLife;
 
+  // ---- the camera (world px at the screen's top-left), and what moves it
+  private cam = { x: 0, y: 0 };
+  /** The camera as drawn this frame (whole px). */
+  ox = 0;
+  oy = 0;
+  private vel = { x: 0, y: 0 };
+  private visit = -1;
+  private last = 0;
+  private press: { x: number; y: number; cx: number; cy: number; drag: boolean; skip: boolean; samples: Array<[number, number, number]> } | null = null;
+  private tour: { at: number; from: Pt; to: Pt } | null = null;
+  private glideTo: { at: number; from: Pt; to: Pt } | null = null;
+  /** The act landmark selected (its card is up), and the moment the screen settled after the tour. */
+  private sel: { act: number; at: number } | null = null;
+  private uiAt = 0;
+  private lanes = SEA_LANES.map(lanePath);
+  private whale: { c: number; x: number; y: number } | null = null;
+
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, DEPTH.text);
     this.pickTexts = new TextPool(s, DEPTH.pickText);
     this.pickIcons = new ImagePool(s);
-    this.roam = new WorldRoam(s);
+    this.pool = new ImagePool(s);
+    this.roam = new WorldRoam(s, () => ({ x: this.ox, y: this.oy }));
     this.life = new WorldLife(
       s,
-      (x, y) => !this.targetAt(x, y) && !inRect(this.campButton(), x, y, 3),
-      () => this.plate,
+      (wx, wy) => !this.targetAt(wx - this.ox, wy - this.oy) && !inRect(this.campButton(), wx - this.ox, wy - this.oy, 3),
+      () => this.plateZone(),
+      () => ({ x: this.ox, y: this.oy }),
+      () => this.home(),
     );
   }
+
+  /** The view's images exist (the world map's textures are painted after boot, view/scene ensureWorldArt). */
+  private ready = false;
 
   build(): void {
     const s = this.s;
     for (const i of this.imgs) i.destroy();
     this.imgs = [];
+    this.ready = worldArtReady();
+    if (!this.ready) return;
     const img = (key: string, depth: number, ox = 0, oy = 0) => {
       const i = s.add.image(0, 0, key).setOrigin(ox, oy).setDepth(depth).setVisible(false);
       this.imgs.push(i);
       return i;
     };
-    img('world_map', DEPTH.map);
-    this.waves = img('wm_wave0', DEPTH.waves);
-    this.surf = img('wm_surf0', DEPTH.surf);
-    this.wind = img('wm_wind0', DEPTH.surf).setPosition(WORLD_BOXES.wind.x, WORLD_BOXES.wind.y);
-    this.ships = [img('wm_ship0', DEPTH.ship, 0.5, 1), img('wm_ship0', DEPTH.ship, 0.5, 1)];
-    this.boat = img('wm_boat0', DEPTH.ship, 0.5, 1);
+    this.base = img('world_map', DEPTH.map);
+    this.sea = img('wm_sea0', DEPTH.waves);
+    this.wind = img('wm_wind0', DEPTH.surf);
     this.isle = img('wm_isle', DEPTH.isle);
-    this.cart = img('wm_cart0', DEPTH.land, 0.5, 1);
-    this.lava = img('wm_lava', DEPTH.glow).setPosition(WORLD_BOXES.lava.x, WORLD_BOXES.lava.y);
-    this.lamp = img('wm_lamp', DEPTH.glow).setPosition(WORLD_BOXES.lamp.x, WORLD_BOXES.lamp.y);
-    this.mill = img('wm_mill0', DEPTH.land, 0.5, 0.5);
-    this.flags = GREENMARCH_FLAGS.map(() => img('flag_off0', DEPTH.land, FLAG_ORIGIN.x, FLAG_ORIGIN.y));
+    this.isleVeil = img('wm_isle_veil', DEPTH.veil);
+    this.lava = img('wm_lava', DEPTH.glow);
+    this.lamp = img('wm_lamp', DEPTH.glow);
+    this.mills = WORLD_SPOTS.mills.map(() => img('wm_mill0', DEPTH.land, 0.5, 0.5));
+    this.flags = WORLD_ACTS.map(() => img('flag_off0', DEPTH.land, FLAG_ORIGIN.x, FLAG_ORIGIN.y));
     this.hero = img('wm_hero0', DEPTH.actor, 0.5, 1);
     this.pip = img('wm_pip0', DEPTH.pip, 0.5, 0.5);
-    this.bigShadows = SHADOWS.map(([k]) => img(`wm_shadow${k}`, DEPTH.shadow));
-    this.cloudShadows = CLOUDS.map(([k]) => img(`wm_cloudsh${k % CLOUD_KINDS}`, DEPTH.shadow));
-    this.fogs = WORLD_SPOTS.fog.map((_, i) => img(`wm_fog${i % 2}`, DEPTH.fog, 0.5, 0.5));
-    this.puffs = Array.from({ length: 6 }, () => img('wm_puff0', DEPTH.air, 0.5, 0.5));
-    this.clouds = CLOUDS.map(([k]) => img(`wm_cloud${k % CLOUD_KINDS}`, DEPTH.cloud));
-    this.birds = Array.from({ length: 5 }, () => img('wm_bird0', DEPTH.bird, 0.5, 0.5));
-    this.frame = img('wm_frame', DEPTH.frame);
+    this.veils = Object.keys(VEIL_BOXES).map((id) => ({ id, img: img(`wm_veil_${id}`, DEPTH.veil) }));
+    this.rim = img('wm_rim', DEPTH.rim);
     img('wm_vignette', DEPTH.vignette);
-    this.locks = WORLD_REGIONS.filter((r) => r.locked).map(() => img('padlock', DEPTH.lock, 0.5, 0.5));
+    this.locks = WORLD_REGIONS.filter((r) => r.locked).map(() => img('wm_lock', DEPTH.lock, 0.5, 0.5));
     for (const g of [this.g, this.gSea, this.gLand, this.gAir, this.gPick]) g?.destroy();
     this.gSea = s.add.graphics().setDepth(DEPTH.sea);
     this.gLand = s.add.graphics().setDepth(DEPTH.land);
@@ -209,41 +272,269 @@ export class WorldView {
     this.g = s.add.graphics().setDepth(DEPTH.ui);
     this.gPick = s.add.graphics().setDepth(DEPTH.pick);
     this.pickIcons.destroy();
+    this.pool.destroy();
     this.roam.build();
     this.life.build();
-    // the cart's stretch of road: from past Rowan to the capital's gate
-    this.road = WORLD_ROAD.filter(([rx]) => rx >= 80);
   }
 
-  /** Greenmarch's spot on the map (tests tap it). */
-  greenmarch(): { x: number; y: number } {
-    return { x: WORLD_REGIONS[0].x, y: WORLD_REGIONS[0].y };
+  // ------------------------------------------------------------------ the camera
+
+  /** The act Rowan is on (the next one to play; the last once all are cleared). */
+  private actNow(): number {
+    return Math.max(0, Math.min(WORLD_ACTS.length - 1, this.s.app.progress.actsCleared));
   }
 
-  /** What a tap at (x, y) points at: a region (its padlock, its land, Noonspire's island) or the capital. */
-  private targetAt(x: number, y: number): Region | 'capital' | null {
-    const p = this.plate;
-    if (x >= p.x - 2 && x < p.x + p.w + 2 && y >= p.y - 2 && y < p.y + p.h + 6) return WORLD_REGIONS[0];
-    const h = WORLD_SPOTS.hero;
-    if (Math.abs(x - h.x) < 10 && y > h.y - 24 && y < h.y + 5) return WORLD_REGIONS[0];
-    if (Math.abs(x - WORLD_CAPITAL.x) < 13 && y > 27 && y < 66) return 'capital';
-    let best: Region | null = null;
-    let bestD = 14;
-    for (const r of WORLD_REGIONS) {
-      const d = Math.hypot(r.x - x, r.y - y);
-      if (d < bestD) (best = r), (bestD = d);
+  private clampCam(x: number, y: number): Pt {
+    return [Math.max(0, Math.min(WORLD_W - GAME_W, x)), Math.max(0, Math.min(WORLD_H - GAME_H, y))];
+  }
+
+  /** The camera that frames the current act (where the map opens). */
+  home(): Pt {
+    const [vx, vy] = WORLD_ACTS[this.actNow()].view;
+    return this.clampCam(Math.round(vx - GAME_W / 2), Math.round(vy - GAME_H / 2));
+  }
+
+  /** A new visit: the camera starts home (the first ever visit: on the far east, gliding home). */
+  private arrive(now: number): void {
+    const app = this.s.app;
+    this.visit = app.phaseSince;
+    this.last = now;
+    this.vel = { x: 0, y: 0 };
+    this.press = null;
+    this.glideTo = null;
+    this.sel = null;
+    this.whale = null;
+    const h = this.home();
+    if (!app.profile.worldTour) {
+      app.profile.worldTour = true;
+      app.saveProfile();
+      // (from this frame on: the first one may have waited for the world's painting to finish)
+      const from = this.clampCam(WORLD_W, 0);
+      this.tour = { at: now, from, to: h };
+      this.cam = { x: from[0], y: from[1] };
+      this.uiAt = now + TOUR_HOLD + TOUR_MS;
+    } else {
+      this.tour = null;
+      this.cam = { x: h[0], y: h[1] };
+      this.uiAt = app.phaseSince;
     }
-    if (best) return best;
-    const id = worldRegionAt(x, y) ?? (x > 274 && y > 34 && y < 100 ? 'noonspire' : null);
-    return WORLD_REGIONS.find((r) => r.id === id) ?? null;
   }
 
-  // ------------------------------------------------------------------ the Camp button and the act picker
+  /** Whether the first visit's reveal is playing. */
+  get touring(): boolean {
+    return !!this.tour;
+  }
 
-  /** The Camp button: bottom left, over the open sea (clear of the island's landmarks). */
+  /** Ease the camera to frame a world point. */
+  private glide(wx: number, wy: number, now: number): void {
+    const to = this.clampCam(Math.round(wx - GAME_W / 2), Math.round(wy - GAME_H / 2));
+    if (Math.abs(to[0] - this.cam.x) < 2 && Math.abs(to[1] - this.cam.y) < 2) return;
+    this.glideTo = { at: now, from: [this.cam.x, this.cam.y], to };
+    this.vel = { x: 0, y: 0 };
+  }
+
+  /** Move the camera for this frame: the reveal, a glide, a drag (set by the pointer), or momentum. */
+  private moveCamera(now: number): void {
+    const dt = Math.min(0.05, Math.max(0, (now - this.last) / 1000));
+    this.last = now;
+    if (this.tour) {
+      const k = (now - this.tour.at - TOUR_HOLD) / TOUR_MS;
+      const e = smooth(k);
+      this.cam.x = this.tour.from[0] + (this.tour.to[0] - this.tour.from[0]) * e;
+      this.cam.y = this.tour.from[1] + (this.tour.to[1] - this.tour.from[1]) * e;
+      if (k >= 1) this.tour = null;
+    } else if (this.glideTo) {
+      const k = (now - this.glideTo.at) / GLIDE_MS;
+      const e = 1 - (1 - clamp01(k)) ** 3;
+      this.cam.x = this.glideTo.from[0] + (this.glideTo.to[0] - this.glideTo.from[0]) * e;
+      this.cam.y = this.glideTo.from[1] + (this.glideTo.to[1] - this.glideTo.from[1]) * e;
+      if (k >= 1) this.glideTo = null;
+    } else if (!this.press?.drag && (this.vel.x || this.vel.y)) {
+      this.cam.x += this.vel.x * dt;
+      this.cam.y += this.vel.y * dt;
+      const f = Math.exp(-dt / FLING_TAU);
+      this.vel.x *= f;
+      this.vel.y *= f;
+      if (Math.hypot(this.vel.x, this.vel.y) < 6) this.vel = { x: 0, y: 0 };
+    }
+    const [cx, cy] = this.clampCam(this.cam.x, this.cam.y);
+    if (cx !== this.cam.x) this.vel.x = 0;
+    if (cy !== this.cam.y) this.vel.y = 0;
+    this.cam.x = cx;
+    this.cam.y = cy;
+    this.ox = Math.round(cx);
+    this.oy = Math.round(cy);
+  }
+
+  /** A finger (or the mouse) goes down on the map (screen game px). */
+  pressAt(x: number, y: number, now: number): void {
+    const moving = Math.hypot(this.vel.x, this.vel.y) > CATCH_SPEED || !!this.glideTo;
+    const skip = !!this.tour || moving;
+    if (this.tour) {
+      // any tap skips the reveal: straight to where it was going
+      this.cam = { x: this.tour.to[0], y: this.tour.to[1] };
+      this.tour = null;
+      this.uiAt = Math.min(this.uiAt, now);
+    }
+    this.glideTo = null;
+    this.vel = { x: 0, y: 0 };
+    this.press = { x, y, cx: this.cam.x, cy: this.cam.y, drag: false, skip, samples: [[now, x, y]] };
+  }
+
+  /** The finger moves: past DRAG_PX it's a drag, and the map follows it (no card or picker is up). */
+  dragTo(x: number, y: number, now: number): void {
+    const p = this.press;
+    if (!p) return;
+    p.samples.push([now, x, y]);
+    while (p.samples.length > 2 && now - p.samples[0][0] > 90) p.samples.shift();
+    if (!p.drag) {
+      if (Math.hypot(x - p.x, y - p.y) <= DRAG_PX || this.modal) return;
+      // from here on it's a drag: start from where the finger is now (no jump)
+      p.drag = true;
+      p.x = x;
+      p.y = y;
+      p.cx = this.cam.x;
+      p.cy = this.cam.y;
+      this.sel = null;
+      this.info = null;
+    }
+    const [cx, cy] = this.clampCam(p.cx - (x - p.x), p.cy - (y - p.y));
+    this.cam = { x: cx, y: cy };
+  }
+
+  /** The finger lifts: a drag flings the map on; a press that stayed put is a tap. */
+  releaseAt(x: number, y: number, now: number): void {
+    const p = this.press;
+    this.press = null;
+    if (!p) return;
+    if (p.drag) {
+      const old = p.samples.find(([t]) => now - t <= 90) ?? p.samples[0];
+      const dt = (now - old[0]) / 1000;
+      if (dt > 0.008) {
+        const vx = -(x - old[1]) / dt;
+        const vy = -(y - old[2]) / dt;
+        const v = Math.hypot(vx, vy);
+        const k = v > FLING_MAX ? FLING_MAX / v : 1;
+        this.vel = { x: vx * k, y: vy * k };
+      }
+      return;
+    }
+    if (p.skip) return;
+    this.tap(x, y);
+  }
+
+  /** The press was lost (the pointer was cancelled). */
+  cancelPress(): void {
+    this.press = null;
+  }
+
+  /** Whether the map is being dragged right now. */
+  get dragging(): boolean {
+    return !!this.press?.drag;
+  }
+
+  /** A card or the picker is up: the map holds still. */
+  private get modal(): boolean {
+    return !!this.picker || this.roam.open || !!this.chosenAt;
+  }
+
+  /** The camera (world px at the screen's top-left), for tests. */
+  camera(): { x: number; y: number } {
+    return { x: this.ox, y: this.oy };
+  }
+
+  /** Put the camera somewhere (tests and the screenshot of the locked lands). */
+  lookAt(wx: number, wy: number): void {
+    const [x, y] = this.clampCam(Math.round(wx - GAME_W / 2), Math.round(wy - GAME_H / 2));
+    this.cam = { x, y };
+    this.vel = { x: 0, y: 0 };
+    this.glideTo = null;
+    this.tour = null;
+  }
+
+  // ------------------------------------------------------------------ what's where (screen px unless noted)
+
+  /** Greenmarch's call to action (the plate over Rowan, or Rowan himself) on screen (tests tap it). */
+  greenmarch(): { x: number; y: number } {
+    const p = this.plate;
+    if (p.w) return { x: Math.round(p.x + p.w / 2), y: Math.round(p.y + p.h / 2) };
+    const [hx, hy] = WORLD_ACTS[this.actNow()].stand;
+    return { x: hx - this.ox, y: hy - 6 - this.oy };
+  }
+
+  /** Where Rowan and his plate stand (world px). */
+  private plateZone(): Rect {
+    const [hx, hy] = WORLD_ACTS[this.actNow()].stand;
+    return { x: hx - 42, y: hy - 58, w: 84, h: 64 };
+  }
+
+  /** Act `i`'s landmark on screen (its centre; tests tap it). */
+  actSpot(i: number): { x: number; y: number } {
+    const a = WORLD_ACTS[i];
+    return { x: Math.round(a.box.x + a.box.w / 2 - this.ox), y: Math.round(a.box.y + a.box.h / 2 - this.oy) };
+  }
+
+  /** The selected act (its card is up), or null. */
+  get selected(): number | null {
+    return this.sel?.act ?? null;
+  }
+
+  /** What a tap at screen (x, y) points at: the plate or Rowan, an act's landmark, the capital, a locked land. */
+  private targetAt(x: number, y: number): Region | 'capital' | 'plate' | { act: number } | null {
+    const p = this.plate;
+    if (p.w && x >= p.x - 2 && x < p.x + p.w + 2 && y >= p.y - 2 && y < p.y + p.h + 6) return 'plate';
+    const wx = x + this.ox;
+    const wy = y + this.oy;
+    const [hx, hy] = WORLD_ACTS[this.actNow()].stand;
+    if (Math.abs(wx - hx) < 9 && wy > hy - 22 && wy < hy + 5) return 'plate';
+    for (let i = 0; i < WORLD_ACTS.length; i++) if (inRect(WORLD_ACTS[i].box, wx, wy, 2)) return { act: i };
+    if (inRect(WORLD_CAPITAL.box, wx, wy)) return 'capital';
+    // a locked land: its padlock, Noonspire's island, or anywhere on its land
+    for (const r of WORLD_REGIONS) if (r.locked && Math.hypot(r.x - wx, r.y - wy) < 9) return r;
+    const bob = Math.round(Math.sin((performance.now() / 1000) * 0.7) * 1.4);
+    if (inRect({ ...NOON_BOX, y: NOON_BOX.y + bob }, wx, wy)) return WORLD_REGIONS.find((r) => r.id === 'noonspire') ?? null;
+    const id = worldRegionAt(wx, wy);
+    const r = WORLD_REGIONS.find((q) => q.id === id);
+    return r?.locked ? r : null;
+  }
+
+  // ------------------------------------------------------------------ the Camp button, the act card, the act picker
+
+  /** The Camp button: bottom left. */
   campButton(): Rect {
     const s = this.s;
     return { x: s.L + 5, y: s.B - 21, w: 56, h: 16 };
+  }
+
+  /** The selected act's card (screen): over its landmark, kept on screen and clear of the header. */
+  private cardRect(): Rect | null {
+    const sel = this.sel;
+    if (!sel) return null;
+    const s = this.s;
+    const { name, status } = this.cardText(sel.act);
+    const w = Math.max(textWidth(name, 1, true), textWidth(status, 1, false)) + 12 + 40;
+    const h = CARD_H;
+    const a = WORLD_ACTS[sel.act];
+    let x = Math.round(a.box.x + a.box.w / 2 - this.ox - w / 2);
+    let y = Math.round(cardFoot(sel.act) - this.oy - h);
+    x = Math.max(s.L + 3, Math.min(s.R - w - 3, x));
+    if (y < 36) y = Math.round(a.box.y + a.box.h - this.oy + 4);
+    y = Math.max(22, Math.min(s.B - h - 24, y));
+    return { x, y, w, h };
+  }
+
+  /** The act card's Play button (screen; tests tap it). */
+  cardPlay(): Rect | null {
+    const r = this.cardRect();
+    return r ? { x: r.x + r.w - 40, y: r.y + 5, w: 36, h: 15 } : null;
+  }
+
+  private cardText(i: number): { name: string; status: string; col: number } {
+    const app = this.s.app;
+    const cleared = i < app.profile.actsCleared;
+    const name = app.run.region.acts[i]?.name ?? '';
+    if (cleared) return { name, status: 'Replay (farm)', col: 0x9af06a };
+    return { name, status: app.profile.actsCleared > 0 ? 'Continue the story' : 'Begin the story', col: 0xffe680 };
   }
 
   /** The act picker's panel. */
@@ -260,7 +551,7 @@ export class WorldView {
     return { x: p.x + 6, y: p.y + 13 + i * (PICK_ROW_H + 2), w: p.w - 12, h: PICK_ROW_H };
   }
 
-  private playButton(i: number): Rect {
+  playButton(i: number): Rect {
     const r = this.pickRow(i);
     return { x: r.x + r.w - 40, y: r.y + 5, w: 36, h: 16 };
   }
@@ -304,81 +595,158 @@ export class WorldView {
     if (!inRect(this.pickPanel(), x, y, 2)) close();
   }
 
-  /** Into act `i` from the picker: the button sinks, Rowan hops, then the run starts there. */
+  /** Into act `i`: the button sinks, Rowan hops, then the run starts there (a first run: the intro first). */
   private startAct(i: number): void {
     const s = this.s;
     this.chosenAt = performance.now();
     s.app.audio.mapSelect();
-    window.setTimeout(() => {
-      this.chosenAt = 0;
-      this.picker = null;
-      if (s.app.run.phase === 'world') s.app.startAct(i);
-    }, 260);
+    const first = s.app.profile.actsCleared === 0;
+    window.setTimeout(
+      () => {
+        this.chosenAt = 0;
+        this.picker = null;
+        this.sel = null;
+        if (s.app.run.phase !== 'world') return;
+        if (first) s.app.startRegion();
+        else s.app.startAct(i);
+      },
+      first ? 420 : 260,
+    );
   }
 
-  /** A tap on the world map (x < 0: the keyboard picks Greenmarch). */
+  /** A tap on the world map at screen (x, y) (x < 0: the keyboard picks the current act). */
   tap(x: number, y: number): void {
     const s = this.s;
+    const app = s.app;
     if (this.chosenAt) return;
     if (this.picker) return this.pickTap(x, y);
     // the wandering foe (and its card)
     if (this.roam.tap(x, y)) return;
     const now = performance.now();
-    if (x >= 0 && inRect(this.campButton(), x, y, 3)) {
+    if (x < 0) return this.callToAction(now);
+    if (inRect(this.campButton(), x, y, 3)) {
       notePress(this.campButton());
-      s.app.audio.uiClick();
-      s.app.openCamp();
+      app.audio.uiClick();
+      app.openCamp();
       return;
     }
-    const t = x < 0 ? WORLD_REGIONS[0] : this.targetAt(x, y);
-    if (!t) return void this.life.tap(x, y, now);
+    // the selected act's card: Play starts it; anywhere else puts it away (and goes on below)
+    const play = this.cardPlay();
+    if (play && inRect(play, x, y, 3)) {
+      notePress(play);
+      return this.startAct(this.sel!.act);
+    }
+    const card = this.cardRect();
+    if (card && inRect(card, x, y, 1)) return;
+    // Rowan's marker at the screen's edge (he's off screen): back to him
+    const mk = this.homeMarker();
+    if (mk && inRect(mk, x, y, 3)) {
+      app.audio.uiClick();
+      const [hx, hy] = WORLD_ACTS[this.actNow()].view;
+      this.glide(hx, hy, now);
+      return;
+    }
+    const t = this.targetAt(x, y);
+    const had = this.sel;
+    this.sel = null;
+    if (!t) {
+      if (!had) this.life.tap(x + this.ox, y + this.oy, now);
+      return;
+    }
+    if (t === 'plate') return this.callToAction(now);
     if (t === 'capital') {
       this.info = { id: 'capital', at: now };
-      s.app.audio.uiClick();
+      app.audio.uiClick();
       return;
     }
-    if (t.locked) {
-      this.rattle.set(t.id, now);
-      this.info = { id: t.id, at: now };
-      s.app.audio.uiClick();
+    if ('act' in t) {
+      const i = t.act;
+      if (i >= app.run.playableActs) {
+        this.rattle.set(`act${i}`, now);
+        this.info = { id: `act${i}`, at: now };
+        app.audio.uiClick();
+        return;
+      }
+      if (had?.act === i) return this.startAct(i);
+      this.sel = { act: i, at: now };
+      this.info = null;
+      app.audio.uiClick();
+      // frame it with room above for its card (clear of the header)
+      const a = WORLD_ACTS[i];
+      this.glide(a.box.x + a.box.w / 2, Math.min(a.box.y + a.box.h / 2 - 8, cardFoot(i) - CARD_H - CARD_TOP + GAME_H / 2), now);
       return;
     }
-    // Greenmarch, once an act is cleared: choose which act to play
-    if (s.app.profile.actsCleared > 0) {
+    this.rattle.set(t.id, now);
+    this.info = { id: t.id, at: now };
+    app.audio.uiClick();
+  }
+
+  /** Greenmarch's call to action: into the story (a first run), or the act picker once an act is cleared. */
+  private callToAction(now: number): void {
+    const app = this.s.app;
+    if (app.profile.actsCleared > 0) {
       this.picker = { at: now };
       this.info = null;
-      s.app.audio.uiClick();
+      this.sel = null;
+      app.audio.uiClick();
       return;
     }
     // into Greenmarch: Rowan hops, rings of light spread from his feet, then the run begins
     this.chosenAt = now;
     this.info = null;
-    s.app.audio.mapSelect();
+    app.audio.mapSelect();
     window.setTimeout(() => {
       this.chosenAt = 0;
-      if (s.app.run.phase === 'world') s.app.startRegion();
+      if (app.run.phase === 'world') app.startRegion();
     }, 420);
   }
 
   private hide(): void {
-    for (const g of [this.g, this.gSea, this.gLand, this.gAir, this.gPick]) g.clear();
+    for (const g of [this.g, this.gSea, this.gLand, this.gAir, this.gPick]) g?.clear();
     for (const i of this.imgs) i.setVisible(false);
+    this.pool.hide();
     this.texts.hide();
     this.pickTexts.hide();
     this.pickIcons.hide();
     this.picker = null;
+    this.sel = null;
+    this.press = null;
+    this.visit = -1;
     this.roam.hide();
     this.life.hide();
+  }
+
+  // ------------------------------------------------------------------ the frame
+
+  /** Whether a world point (with a margin) is on screen. */
+  private seen(wx: number, wy: number, m = 12): boolean {
+    const x = wx - this.ox;
+    const y = wy - this.oy;
+    return x > -m && x < GAME_W + m && y > -m && y < GAME_H + m;
+  }
+
+  /** Place a world-space image (whole px). */
+  private at(img: Img, wx: number, wy: number): Img {
+    return img.setPosition(Math.round(wx) - this.ox, Math.round(wy) - this.oy);
   }
 
   draw(now: number): void {
     const s = this.s;
     if (s.app.run.phase !== 'world') return this.hide();
+    if (!this.ready) {
+      s.ensureWorldArt();
+      now = performance.now();
+    }
+    if (this.visit !== s.app.phaseSince) this.arrive(now);
+    this.moveCamera(now);
     for (const g of [this.g, this.gSea, this.gLand, this.gAir, this.gPick]) g.clear();
+    for (const g of [this.gSea, this.gLand, this.gAir]) g.setPosition(-this.ox, -this.oy);
     this.texts.begin();
+    this.pool.begin();
     for (const i of this.imgs) i.setVisible(true);
     const t = now / 1000;
 
+    this.at(this.base, 0, 0);
     this.drawSea(now, t);
     this.drawSky(t);
     this.drawGreenmarch(now, t);
@@ -387,6 +755,7 @@ export class WorldView {
     this.drawUi(now, t);
     this.roam.draw(now);
     this.life.draw(now);
+    this.pool.end();
     this.texts.end();
     this.pickTexts.begin();
     this.pickIcons.begin();
@@ -399,204 +768,195 @@ export class WorldView {
 
   private drawSea(now: number, t: number): void {
     const g = this.gSea;
-    this.waves.setTexture(`wm_wave${Math.floor(now / 230) % WAVE_FRAMES}`);
-    // the surf rolls in over three frames, then the beach foam lingers
-    const sc = (now % 1500) / 1500;
-    this.surf.setTexture(`wm_surf${sc < 0.2 ? 0 : sc < 0.4 ? 1 : sc < 0.6 ? 2 : SURF_FRAMES - 1}`);
+    // wave marks crest and break; the surf rolls in over three frames, then the beach foam lingers
+    this.at(this.sea, 0, 0).setTexture(`wm_sea${Math.floor(now / 250) % SEA_FRAMES}`);
 
-    // sun glints popping on the open sea
-    const sea = WORLD_LIFE.sea;
-    if (sea.length)
-      for (let k = 0; k < 9; k++) {
-        const per = 2.2 + rnd(k, 1) * 1.6;
-        const c = Math.floor(t / per + rnd(k, 2));
-        const u = frac(t / per + rnd(k, 2));
-        if (u > 0.3) continue;
-        const [x, y] = sea[Math.floor(rnd(k * 31 + c, 3) * sea.length)];
-        const big = u > 0.08 && u < 0.22;
-        g.fillStyle(WHITE, big ? 1 : 0.7);
-        g.fillRect(x, y, 1, 1);
-        if (big) {
-          g.fillStyle(0xbfe4f8, 0.85);
-          g.fillRect(x - 1, y, 1, 1);
-          g.fillRect(x + 1, y, 1, 1);
-          g.fillRect(x, y - 1, 1, 1);
-          g.fillRect(x, y + 1, 1, 1);
-        }
-      }
-
-    // ships: a cog along the south coast heading east, a smaller one far north heading west
-    const W = GAME_W;
-    const routes: Array<[number, number, number, number]> = [
-      [138, 3.2, 1, 120],
-      [17, 2.2, -1, 40],
-    ];
-    routes.forEach(([y0, speed, dir, ph], i) => {
-      const span = W + 40;
-      const d = (ph + t * speed) % span;
-      const x = Math.round(dir > 0 ? d - 20 : W + 20 - d);
-      const bob = Math.floor(t * 1.4 + i * 0.5) % 2;
-      const sh = this.ships[i];
-      sh.setTexture(`wm_ship${Math.floor(t * 1.8 + i) % 2}`).setFlipX(dir < 0).setPosition(x, y0 + bob);
-      // the wake: foam peeling off the stern, fading
-      for (let k = 1; k <= 4; k++) {
-        const wx = x - dir * (6 + k * 3) + (k % 2 ? 0 : dir);
-        const on = (Math.floor(t * 4) + k) % 2 === 0;
-        g.fillStyle(0xd4eeec, (1 - k / 5) * (on ? 0.9 : 0.6));
-        g.fillRect(wx, y0 - 1 + (k % 2), on ? 2 : 1, 1);
-      }
-      g.fillStyle(0xd4eeec, 0.8);
-      g.fillRect(x + dir * 7, y0 - 1, 1, 1);
-    });
-
-    // a whale surfaces and spouts now and then; between, a fish leaps
-    const deep = WORLD_LIFE.deep;
-    if (deep.length) {
-      const per = 12;
-      const c = Math.floor(t / per);
-      const u = (t - c * per) / 3.4;
-      if (u < 1) {
-        const [x, y] = deep[Math.floor(rnd(c, 7) * deep.length)];
-        const rise = u < 0.15 ? u / 0.15 : u > 0.8 ? (1 - u) / 0.2 : 1;
-        // ripples round its back
-        g.fillStyle(0xbfe4f8, 0.7 * rise);
-        g.fillRect(x - 7, y + 1, 3, 1);
-        g.fillRect(x + 5, y + 1, 3, 1);
-        g.fillRect(x - 4, y + 2, 9, 1);
-        if (rise > 0.3) {
-          g.fillStyle(0x08101e, 1);
-          g.fillRect(x - 5, y - 1, 11, 2);
-          g.fillRect(x - 3, y - 2, 7, 1);
-          g.fillStyle(0x2e4a72, 1);
-          g.fillRect(x - 4, y - 1, 8, 1);
-          g.fillStyle(0x5a7ab0, 1);
-          g.fillRect(x - 2, y - 2, 4, 1);
-          g.fillStyle(0x9ab8e0, 1);
-          g.fillRect(x - 1, y - 2, 1, 1);
-        }
-        // the spout: a column of spray that blooms and rains back
-        const sp = (u - 0.2) / 0.4;
-        if (sp > 0 && sp < 1) {
-          const hgt = Math.round(Math.sin(sp * Math.PI) * 6);
-          g.fillStyle(WHITE, 0.9);
-          g.fillRect(x - 1, y - 2 - hgt, 1, hgt);
-          if (sp > 0.35) {
-            g.fillStyle(0xd8f0ff, 0.85 * (1 - sp));
-            g.fillRect(x - 3, y - 2 - hgt, 2, 1);
-            g.fillRect(x, y - 2 - hgt, 2, 1);
-            g.fillRect(x - 4, y - hgt, 1, 1);
-            g.fillRect(x + 2, y - hgt, 1, 1);
+    // sun glints popping on the open sea (a sparse grid of cells over what's in view)
+    const open = WORLD_LIFE.open;
+    if (open.length) {
+      const CW = 18;
+      const CH = 13;
+      for (let cy = Math.floor(this.oy / CH); cy <= Math.floor((this.oy + GAME_H) / CH); cy++)
+        for (let cx = Math.floor(this.ox / CW); cx <= Math.floor((this.ox + GAME_W) / CW); cx++) {
+          const k = cx * 131 + cy;
+          if (rnd(k, 0) > 0.3) continue;
+          const per = 2.2 + rnd(k, 1) * 1.6;
+          const u = frac(t / per + rnd(k, 2));
+          if (u > 0.3) continue;
+          const c = Math.floor(t / per + rnd(k, 2));
+          const x = cx * CW + Math.floor(rnd(k * 7 + c, 3) * CW);
+          const y = cy * CH + Math.floor(rnd(k * 5 + c, 4) * CH);
+          if (x < 1 || y < 1 || x >= WORLD_W - 1 || y >= WORLD_H - 1 || !open[y * WORLD_W + x]) continue;
+          const big = u > 0.08 && u < 0.22;
+          g.fillStyle(WHITE, big ? 1 : 0.7);
+          g.fillRect(x, y, 1, 1);
+          if (big) {
+            g.fillStyle(0xbfe4f8, 0.85);
+            g.fillRect(x - 1, y, 1, 1);
+            g.fillRect(x + 1, y, 1, 1);
+            g.fillRect(x, y - 1, 1, 1);
+            g.fillRect(x, y + 1, 1, 1);
           }
         }
-        // the tail flukes as it dives
-        if (u > 0.68 && u < 0.92) {
-          const fx = x + 5;
-          g.fillStyle(0x0c1830, 1);
-          g.fillRect(fx - 1, y - 3, 3, 1);
-          g.fillRect(fx, y - 2, 1, 2);
+    }
+
+    // ships: each lane carries a cog or two at their own pace
+    this.lanes.forEach((path, li) => {
+      for (let j = 0; j < (li === 1 ? 2 : 1); j++) {
+        const speed = 3 + li * 0.4;
+        const n = path.length;
+        const d = (t * speed + j * (n / 2) + li * 97) % n;
+        const i0 = Math.floor(d);
+        const [x0, y0] = path[i0];
+        const [x1] = path[(i0 + 4) % n];
+        if (!this.seen(x0, y0, 20)) continue;
+        const dir = x1 >= x0 ? 1 : -1;
+        const x = Math.round(x0);
+        const y = Math.round(y0);
+        const bob = Math.floor(t * 1.4 + j * 0.5 + li) % 2;
+        this.at(this.pool.foot(`wm_ship${Math.floor(t * 1.8 + j + li) % 2}`, 0, 0, DEPTH.ship), x - 7, y + bob - 12).setFlipX(dir < 0);
+        // the wake: foam peeling off the stern, fading
+        for (let k = 1; k <= 4; k++) {
+          const wx = x - dir * (6 + k * 3) + (k % 2 ? 0 : dir);
+          const on = (Math.floor(t * 4) + k) % 2 === 0;
+          g.fillStyle(0xd4eeec, (1 - k / 5) * (on ? 0.9 : 0.6));
+          g.fillRect(wx, y - 1 + (k % 2), on ? 2 : 1, 1);
+        }
+        g.fillStyle(0xd4eeec, 0.8);
+        g.fillRect(x + dir * 7, y - 1, 1, 1);
+      }
+    });
+
+    // a whale surfaces and spouts now and then (somewhere in view, when there's deep water there)
+    const deep = WORLD_LIFE.deep;
+    const per = 12;
+    const c = Math.floor(t / per);
+    if (!this.whale || this.whale.c !== c) {
+      const near = deep.filter(([x, y]) => this.seen(x, y, -24));
+      const sp = near.length ? near[Math.floor(rnd(c, 7) * near.length)] : null;
+      this.whale = sp ? { c, x: sp[0], y: sp[1] } : { c, x: -999, y: -999 };
+    }
+    const u = (t - c * per) / 3.4;
+    if (u < 1 && this.whale.x > 0) {
+      const { x, y } = this.whale;
+      const rise = u < 0.15 ? u / 0.15 : u > 0.8 ? (1 - u) / 0.2 : 1;
+      g.fillStyle(0xbfe4f8, 0.7 * rise);
+      g.fillRect(x - 7, y + 1, 3, 1);
+      g.fillRect(x + 5, y + 1, 3, 1);
+      g.fillRect(x - 4, y + 2, 9, 1);
+      if (rise > 0.3) {
+        g.fillStyle(0x08101e, 1);
+        g.fillRect(x - 5, y - 1, 11, 2);
+        g.fillRect(x - 3, y - 2, 7, 1);
+        g.fillStyle(0x2e4a72, 1);
+        g.fillRect(x - 4, y - 1, 8, 1);
+        g.fillStyle(0x5a7ab0, 1);
+        g.fillRect(x - 2, y - 2, 4, 1);
+        g.fillStyle(0x9ab8e0, 1);
+        g.fillRect(x - 1, y - 2, 1, 1);
+      }
+      const sp = (u - 0.2) / 0.4;
+      if (sp > 0 && sp < 1) {
+        const hgt = Math.round(Math.sin(sp * Math.PI) * 6);
+        g.fillStyle(WHITE, 0.9);
+        g.fillRect(x - 1, y - 2 - hgt, 1, hgt);
+        if (sp > 0.35) {
+          g.fillStyle(0xd8f0ff, 0.85 * (1 - sp));
+          g.fillRect(x - 3, y - 2 - hgt, 2, 1);
+          g.fillRect(x, y - 2 - hgt, 2, 1);
+          g.fillRect(x - 4, y - hgt, 1, 1);
+          g.fillRect(x + 2, y - hgt, 1, 1);
         }
       }
-      const fc = Math.floor(t / 4.7);
-      const fu = (t - fc * 4.7) / 0.9;
-      if (fu < 1 && fc % 3 !== 0) {
-        const [x, y] = deep[Math.floor(rnd(fc, 9) * deep.length)];
-        const fx = x + Math.round(fu * 8);
-        const fy = y - Math.round(Math.sin(fu * Math.PI) * 6);
-        g.fillStyle(0xd8e4f0, 1);
-        g.fillRect(fx, fy, 2, 1);
-        g.fillStyle(0x7a8ab0, 1);
-        g.fillRect(fx + (fu < 0.5 ? 0 : 1), fy + 1, 1, 1);
-        if (fu < 0.2 || fu > 0.8) {
-          g.fillStyle(WHITE, 0.8);
-          const sx = fu < 0.2 ? x : x + 8;
-          g.fillRect(sx - 1, y, 1, 1);
-          g.fillRect(sx + 2, y, 1, 1);
-          g.fillRect(sx, y - 1, 2, 1);
-        }
+      if (u > 0.68 && u < 0.92) {
+        g.fillStyle(0x0c1830, 1);
+        g.fillRect(x + 4, y - 3, 3, 1);
+        g.fillRect(x + 5, y - 2, 1, 2);
       }
     }
+
+    // fishing boats rock at their piers
+    WORLD_LIFE.boats.forEach(([bx, by], i) => {
+      if (!this.seen(bx, by)) return;
+      const img = this.pool.foot(`wm_boat${Math.floor(t * 0.9 + i) % 2}`, 0, 0, DEPTH.ship);
+      this.at(img, bx - 4, by - 6 + (Math.floor(t * 1.3 + i) % 2));
+    });
   }
 
-  // ------------------------------------------------------------------ clouds, cloud shadows, gulls
+  // ------------------------------------------------------------------ clouds, cloud shadows, birds
 
   private drawSky(t: number): void {
-    const W = GAME_W;
-    SHADOWS.forEach(([, y, speed, ph], i) => {
-      const im = this.bigShadows[i];
-      const span = W + im.width + 20;
-      im.setPosition(Math.round(((ph + t * speed) % span) - im.width - 10), y).setAlpha(0.2);
+    const W = WORLD_W;
+    SHADOWS.forEach(([k, y, speed, ph]) => {
+      const span = W + 120;
+      const x = Math.round(((ph + t * speed) % span) - 60);
+      if (!this.seen(x + 30, y + 8, 60)) return;
+      this.at(this.pool.at(`wm_shadow${k}`, 0, 0, DEPTH.shadow, 0.18), x, y);
     });
-    CLOUDS.forEach(([, y, speed, ph], i) => {
-      const im = this.clouds[i];
-      const span = W + im.width + 30;
-      const x = Math.round(((ph + t * speed) % span) - im.width - 15);
-      const bob = Math.round(Math.sin(t * 0.5 + i) * 0.6);
-      im.setPosition(x, y + bob);
-      this.cloudShadows[i].setPosition(x + 6, y + 13).setAlpha(0.26);
+    CLOUDS.forEach(([k, y, speed, ph], i) => {
+      const span = GAME_W + 70;
+      const x = Math.round((((ph + t * speed - this.ox * PARALLAX) % span) + span) % span) - 40;
+      const sy = y + Math.round(Math.sin(t * 0.5 + i) * 0.6);
+      this.pool.at(`wm_cloudsh${k % CLOUD_KINDS}`, x + 6, sy + 13, DEPTH.shadow, 0.24);
+      this.pool.at(`wm_cloud${k % CLOUD_KINDS}`, x, sy, DEPTH.cloud);
     });
-    // the framing cloud banks breathe a little
-    this.frame.setPosition(Math.round(Math.sin(t * 0.25) * 1.5), Math.round(Math.sin(t * 0.33 + 1) * 1));
+    // the cloud band along the far north breathes
+    this.at(this.rim, Math.round(Math.sin(t * 0.25) * 2) - 2, -2);
 
-    // gulls: a flock of three crossing every so often, and two circling over the forest
+    // gulls: a flock of three crossing the view every so often (high up: they keep to the screen)
     const per = 15;
     const c = Math.floor(t / per);
     const u = (t - c * per) / 11;
     const dir = c % 2 ? -1 : 1;
-    const y0 = [46, 78, 124, 60][c % 4];
-    for (let k = 0; k < 5; k++) {
-      const b = this.birds[k];
-      let x: number;
-      let y: number;
-      if (k < 3) {
-        if (u >= 1) {
-          b.setVisible(false);
-          continue;
-        }
-        const lead = -20 + u * (W + 40);
-        const off = [0, -6, -6][k];
-        const side = [0, -4, 4][k];
-        x = dir > 0 ? lead + off : W - lead - off;
-        y = y0 + side + Math.sin(u * TAU * 1.5) * 4;
-      } else {
-        const a = t * 0.55 + (k - 3) * Math.PI;
-        x = 64 + Math.cos(a) * 14;
-        y = 50 + Math.sin(a) * 5;
+    const y0 = [46, 78, 112, 60][c % 4];
+    if (u < 1)
+      for (let k = 0; k < 3; k++) {
+        const lead = -20 + u * (GAME_W + 40);
+        const x = dir > 0 ? lead + [0, -6, -6][k] : GAME_W - lead + [0, 6, 6][k];
+        const y = y0 + [0, -4, 4][k] + Math.sin(u * TAU * 1.5) * 4;
+        this.pool.mid(`wm_bird${Math.floor(t * 5 + k * 0.7) % 2}`, Math.round(x), Math.round(y), DEPTH.bird);
       }
-      b.setTexture(`wm_bird${Math.floor(t * 5 + k * 0.7) % 2}`).setPosition(Math.round(x), Math.round(y));
-    }
+    // crows circling over the forests
+    WORLD_LIFE.birds.forEach(([bx, by], i) => {
+      if (!this.seen(bx, by, 30)) return;
+      for (let k = 0; k < 2; k++) {
+        const a = t * (0.5 + i * 0.07) + k * Math.PI + i;
+        const x = bx + Math.cos(a) * (12 + k * 3);
+        const y = by - 10 + Math.sin(a) * 4;
+        this.at(this.pool.mid(`wm_crow${Math.floor(t * 4 + k + i) % 2}`, 0, 0, DEPTH.bird, 0.9), x - 3, y - 2);
+      }
+    });
   }
 
-  // ------------------------------------------------------------------ Greenmarch: Rowan, Pip, the windmill, the village
+  // ------------------------------------------------------------------ Greenmarch: Rowan, Pip, the acts, the villages
 
   private drawGreenmarch(now: number, t: number): void {
     const g = this.gLand;
-    const P = this.s.app.progress;
-    const h = WORLD_SPOTS.hero;
+    const app = this.s.app;
+    const P = app.progress;
+    const [hx, hy] = WORLD_ACTS[this.actNow()].stand;
 
-    // Rowan: breathing; hops when Greenmarch is chosen
+    // Rowan: breathing; hops when an act is chosen
     const since = this.chosenAt ? now - this.chosenAt : -1;
     const hop = since >= 0 ? Math.round(Math.sin(Math.min(1, since / 300) * Math.PI) * 5) : 0;
     g.fillStyle(0x0c1410, 0.45);
-    g.fillRect(h.x - 3, h.y, 7, 1);
-    g.fillRect(h.x - 2, h.y + 1, 5, 1);
-    this.hero.setTexture(`wm_hero${Math.floor(t * 1.7) % 2}`).setPosition(h.x, h.y + 1 - hop);
+    g.fillRect(hx - 3, hy, 7, 1);
+    g.fillRect(hx - 2, hy + 1, 5, 1);
+    this.at(this.hero, hx, hy + 1 - hop).setTexture(`wm_hero${Math.floor(t * 1.7) % 2}`);
     // Pip circles Rowan, passing behind him and back in front (once they've met: Pip joins at the start of Act 1)
     this.pip.setVisible(P.actsCleared > 0);
     const pa = t * 1.5;
-    const px = h.x + Math.cos(pa) * 10;
-    const py = h.y - 12 + Math.sin(pa) * 2.5 + Math.sin(t * 5.3) * 0.8 - hop * 1.5;
-    this.pip
+    this.at(this.pip, hx + Math.cos(pa) * 10, hy - 12 + Math.sin(pa) * 2.5 + Math.sin(t * 5.3) * 0.8 - hop * 1.5)
       .setTexture(`wm_pip${Math.floor(t * 7) % 2}`)
-      .setPosition(Math.round(px), Math.round(py))
       .setDepth(Math.sin(pa) > 0 ? DEPTH.pip : DEPTH.actor - 0.005);
     // a beacon ring at Rowan's feet: "start here"
     if (!this.chosenAt) {
       const k = frac(t / 1.6);
-      this.ellipse(g, h.x + 0.5, h.y + 0.5, 4 + k * 9, 1.5 + k * 3.5, 0xfff0a0, (1 - k) * 0.8);
+      this.ellipse(g, hx + 0.5, hy + 0.5, 4 + k * 9, 1.5 + k * 3.5, 0xfff0a0, (1 - k) * 0.8);
     } else {
       const k = clamp01(since / 400);
-      this.ellipse(g, h.x + 0.5, h.y + 0.5, 4 + k * 22, 1.5 + k * 9, 0xffffff, 1 - k);
-      this.ellipse(g, h.x + 0.5, h.y + 0.5, 2 + k * 14, 1 + k * 6, 0xfff0a0, 1 - k);
+      this.ellipse(g, hx + 0.5, hy + 0.5, 4 + k * 22, 1.5 + k * 9, 0xffffff, 1 - k);
+      this.ellipse(g, hx + 0.5, hy + 0.5, 2 + k * 14, 1 + k * 6, 0xfff0a0, 1 - k);
     }
     // golden motes drift up round the hero (this is where the adventure is)
     const ga = this.gAir;
@@ -604,20 +964,40 @@ export class WorldView {
       const per = 2.6 + rnd(k, 11) * 1.8;
       const u = frac(t / per + rnd(k, 12));
       const c = Math.floor(t / per + rnd(k, 12));
-      const x = Math.round(h.x - 26 + rnd(k * 7 + c, 13) * 52 + Math.sin(u * TAU + k) * 1.5);
-      const y = Math.round(h.y + 6 - rnd(k * 5 + c, 14) * 18 - u * 12);
+      const x = Math.round(hx - 26 + rnd(k * 7 + c, 13) * 52 + Math.sin(u * TAU + k) * 1.5);
+      const y = Math.round(hy + 6 - rnd(k * 5 + c, 14) * 18 - u * 12);
       ga.fillStyle(k % 3 ? 0xfff0a0 : WHITE, Math.sin(u * Math.PI) * 0.9);
       ga.fillRect(x, y, 1, 1);
     }
 
+    // the act to play next: a soft ring breathes round its landmark ("here's your next adventure")
+    if (!this.sel && !this.tour && P.actsCleared > 0 && P.actsCleared < WORLD_ACTS.length) {
+      const a = WORLD_ACTS[P.actsCleared];
+      const k = pulse(now, 1400);
+      this.ellipse(g, a.box.x + a.box.w / 2, a.box.y + a.box.h - 3, a.box.w / 2 + 1, 5, 0xfff0a0, 0.25 + 0.3 * k);
+    }
+    // the selected act: a gold ring breathes round its landmark
+    if (this.sel) {
+      const a = WORLD_ACTS[this.sel.act];
+      const k = pulse(now, 900);
+      const pop = easeBack((now - this.sel.at) / 260, 1.6);
+      const cx = a.box.x + a.box.w / 2;
+      const cy = a.box.y + a.box.h - 3;
+      this.ellipse(g, cx, cy + 1, (a.box.w / 2 + 2) * pop, 5 * pop, 0x9a5a14, 0.5 + 0.3 * k);
+      this.ellipse(g, cx, cy, (a.box.w / 2 + 2) * pop, 5 * pop, 0xfff0a0, 0.7 + 0.3 * k);
+      this.ellipse(g, cx, cy, (a.box.w / 2 - 1) * pop, 3.8 * pop, 0xf2c230, 0.4 + 0.3 * k);
+    }
+
     // now and then a gust of wind rolls east over the meadows and the forest
-    const gust = Math.floor(((t + 2) % 7) / 0.15);
-    if (gust < WIND_FRAMES) this.wind.setTexture(`wm_wind${gust}`);
+    const gust = Math.floor(((t + 2) % 8) / 0.16);
+    const wb = WORLD_BOXES.wind;
+    if (gust < WIND_FRAMES && this.seen(wb.x + wb.w / 2, wb.y + wb.h / 2, 260)) this.at(this.wind, wb.x, wb.y).setTexture(`wm_wind${gust}`);
     else this.wind.setVisible(false);
-    // the windmill turns
-    this.mill.setTexture(`wm_mill${Math.floor(t * 4) % 2}`).setPosition(WORLD_SPOTS.mill.x, WORLD_SPOTS.mill.y);
+    // the windmills turn
+    WORLD_SPOTS.mills.forEach(([mx, my], i) => this.at(this.mills[i], mx, my).setTexture(`wm_mill${Math.floor(t * 4 + i) % 2}`).setVisible(this.seen(mx, my)));
     // chimney smoke curls up and east
     WORLD_LIFE.chimneys.forEach(([cx, cy], i) => {
+      if (!this.seen(cx, cy)) return;
       for (let j = 0; j < 3; j++) {
         const u = frac(t / 2.6 + j / 3 + rnd(i, 21));
         const x = Math.round(cx + u * 3 + Math.sin(u * 5 + i) * 1);
@@ -629,79 +1009,148 @@ export class WorldView {
     });
     // windows: lamps lit inside, flickering now and then
     WORLD_LIFE.windows.forEach(([x, y], i) => {
-      const lit = frac(t / (5 + rnd(i, 31) * 6) + rnd(i, 32)) < 0.7;
-      if (!lit) return;
+      if (!this.seen(x, y, 2)) return;
+      if (frac(t / (5 + rnd(i, 31) * 6) + rnd(i, 32)) >= 0.7) return;
       g.fillStyle(rnd(i + Math.floor(t * 6), 33) < 0.08 ? 0xffb040 : 0xffd860, 1);
       g.fillRect(x, y, 1, 1);
     });
-    // the fishing boat rocks at the pier
-    const [bx, by] = WORLD_LIFE.boat;
-    this.boat.setTexture(`wm_boat${Math.floor(t * 0.9) % 2}`).setPosition(bx, by + 1 + (Math.floor(t * 1.3) % 2));
-    // the merchant's cart rolls between the meadows and the capital's gate, resting at each end
-    const road = this.road;
-    if (road.length > 1) {
-      const n = road.length;
-      const leg = n / 5;
-      const T = leg * 2 + 8;
-      const c = (t + 6) % T;
-      let idx: number;
-      let dir: number;
-      if (c < 4) (idx = 0), (dir = 1);
-      else if (c < 4 + leg) (idx = (c - 4) * 5), (dir = 1);
-      else if (c < 8 + leg) (idx = n - 1), (dir = -1);
-      else (idx = n - 1 - (c - 8 - leg) * 5), (dir = -1);
-      const moving = !(c < 4 || (c >= 4 + leg && c < 8 + leg));
-      const [cx, cy] = road[Math.max(0, Math.min(n - 1, Math.round(idx)))];
-      const hop = moving ? Math.floor(t * 4) % 2 : 0;
-      this.cart
-        .setTexture(`wm_cart${moving ? Math.floor(t * 6) % 2 : 0}`)
-        .setFlipX(dir < 0)
-        .setPosition(cx, cy + 1 - hop);
+    // fires: campfires and torches flicker, their smoke rising
+    WORLD_SPOTS.fires.forEach(([fx, fy], i) => {
+      if (!this.seen(fx, fy)) return;
+      const f = Math.floor(t * 9 + i * 1.7) % 3;
+      g.fillStyle(0xff5a1e, 1);
+      g.fillRect(fx - 1, fy - 1, 3, 1);
+      g.fillStyle(0xffb02a, 1);
+      g.fillRect(fx - (f === 1 ? 1 : 0), fy - 2, f === 1 ? 2 : 1, 1);
+      g.fillStyle(0xfff0a0, 1);
+      g.fillRect(fx + (f === 2 ? 1 : 0), fy - 3 + (f === 0 ? 1 : 0), 1, 1);
+      g.fillStyle(0xffd060, 0.18 + 0.08 * f);
+      g.fillRect(fx - 3, fy - 3, 7, 4);
+      for (let j = 0; j < 2; j++) {
+        const u = frac(t / 2.2 + j / 2 + rnd(i, 41));
+        g.fillStyle(0xa8a4b4, (1 - u) * 0.6);
+        g.fillRect(Math.round(fx + u * 2 + Math.sin(u * 6 + i)), Math.round(fy - 4 - u * 8), 1, 1);
+      }
+    });
+    // the runes at the Old Ruins breathe; the eyes in the Boar King's den blink
+    const rk = 0.5 + 0.5 * Math.sin(t * 1.8);
+    WORLD_SPOTS.glows.forEach(([x, y], i) => {
+      if (!this.seen(x, y)) return;
+      g.fillStyle(0x62e4d4, 0.25 * rk);
+      g.fillRect(x - 1, y - 2, 3, 3);
+      g.fillStyle(0xd8fff6, 0.5 + 0.5 * Math.sin(t * 1.8 + i));
+      g.fillRect(x, y, 1, 1);
+    });
+    if (frac(t / 4.3) > 0.06)
+      WORLD_SPOTS.eyes.forEach(([x, y]) => {
+        if (!this.seen(x, y)) return;
+        g.fillStyle(0xff8a5a, 0.35 + 0.25 * Math.sin(t * 3));
+        g.fillRect(x - 1, y, 3, 1);
+        g.fillStyle(0xffd0a0, 1);
+        g.fillRect(x, y, 1, 1);
+      });
+    // the forest waterfall pours, mist where it lands
+    const fl = WORLD_SPOTS.falls;
+    if (this.seen(fl.x, fl.y0))
+      for (let j = 0; j < 4; j++) {
+        const y = fl.y0 + ((t * 16 + j * 3) % (fl.y1 - fl.y0 - 1));
+        g.fillStyle(WHITE, 0.85);
+        g.fillRect(fl.x + (j % 2), Math.round(y), 1, 2);
+        const m = frac(t * 0.8 + j / 4);
+        g.fillStyle(0xe8f8ff, 0.6 * (1 - m));
+        g.fillRect(Math.round(fl.x - 2 + j * 1.5 + m * (j - 1.5) * 2), Math.round(fl.y1 + 1 - m * 3), 1, 1);
+      }
+    // travellers: the merchant's cart and folk on foot go back and forth along the roads
+    this.travellers(t);
+    // sheep graze in the paddocks
+    for (const [sp, n] of [
+      [WORLD_SPOTS.sheep, 5],
+      [WORLD_SPOTS.sheep2, 4],
+    ] as const) {
+      if (!this.seen(sp.x + sp.w / 2, sp.y + sp.h / 2)) continue;
+      for (let k = 0; k < n; k++) {
+        const ax = t * (0.09 + rnd(k, 61) * 0.06) + k * 2.3;
+        const ay = t * (0.07 + rnd(k, 62) * 0.05) + k;
+        const x = Math.round(sp.x + 3 + rnd(k + sp.x, 63) * (sp.w - 8) + Math.sin(ax) * 2.5);
+        const y = Math.round(sp.y + 3 + rnd(k + sp.y, 64) * (sp.h - 7) + Math.sin(ay) * 1.5);
+        const face = Math.cos(ax) >= 0 ? 1 : -1;
+        const graze = frac(t / (3 + rnd(k, 65) * 2) + rnd(k, 66)) < 0.4 ? 1 : 0;
+        g.fillStyle(0x0c1c10, 0.35);
+        g.fillRect(x, y + 2, 3, 1);
+        g.fillStyle(0xf4f0e8, 1);
+        g.fillRect(x, y, 3, 2);
+        g.fillStyle(0xc4c0d0, 1);
+        g.fillRect(face > 0 ? x : x + 2, y + 1, 1, 1);
+        g.fillStyle(0x3a3040, 1);
+        g.fillRect(face > 0 ? x + 3 : x - 1, y + graze, 1, 1);
+      }
     }
-    // sheep graze in the paddock, ambling about
-    const sp = WORLD_SPOTS.sheep;
-    for (let k = 0; k < 5; k++) {
-      const ax = t * (0.09 + rnd(k, 61) * 0.06) + k * 2.3;
-      const ay = t * (0.07 + rnd(k, 62) * 0.05) + k;
-      const x = Math.round(sp.x + 3 + rnd(k, 63) * (sp.w - 8) + Math.sin(ax) * 2.5);
-      const y = Math.round(sp.y + 3 + rnd(k, 64) * (sp.h - 7) + Math.sin(ay) * 2);
-      const face = Math.cos(ax) >= 0 ? 1 : -1;
-      const graze = frac(t / (3 + rnd(k, 65) * 2) + rnd(k, 66)) < 0.4 ? 1 : 0;
-      g.fillStyle(0x0c1c10, 0.35);
-      g.fillRect(x, y + 2, 3, 1);
-      g.fillStyle(0xf4f0e8, 1);
-      g.fillRect(x, y, 3, 2);
-      g.fillStyle(0xc4c0d0, 1);
-      g.fillRect(face > 0 ? x : x + 2, y + 1, 1, 1);
-      g.fillStyle(0x3a3040, 1);
-      g.fillRect(face > 0 ? x + 3 : x - 1, y + graze, 1, 1);
-    }
-    // the lighthouse lamp flashes
+    // the lighthouse lamp flashes, its beam sweeping out to sea
     const lh = WORLD_SPOTS.lighthouse;
     const lk = frac(t / 2.6);
-    if (lk < 0.3) {
+    if (lk < 0.3 && this.seen(lh.x, lh.y, 20)) {
       const a = Math.sin((lk / 0.3) * Math.PI);
       g.fillStyle(0xfff6c0, 0.35 * a);
       g.fillRect(lh.x - 1, lh.y - 1, 4, 3);
       g.fillStyle(WHITE, a);
       g.fillRect(lh.x, lh.y, 2, 1);
       const side = Math.floor(t / 2.6) % 2 ? 1 : -1;
-      for (let k = 1; k <= 5; k++) {
-        g.fillStyle(0xfff0a0, 0.7 * a * (1 - k / 6));
+      for (let k = 1; k <= 7; k++) {
+        g.fillStyle(0xfff0a0, 0.7 * a * (1 - k / 8));
         g.fillRect(side > 0 ? lh.x + 1 + k : lh.x - k, lh.y, 1, 1);
       }
     }
-    // a flag per act cleared waves proudly; the others hang pale
-    GREENMARCH_FLAGS.forEach((f, i) => {
+    // a flag per act cleared waves proudly; the others hang pale (a small padlock on the ones still out of reach)
+    WORLD_ACTS.forEach((a, i) => {
       const on = i < P.actsCleared;
       const fr = Math.floor(t * (on ? 6 : 3) + i * 1.3) % FLAG_FRAMES;
-      this.flags[i].setTexture(`${on ? 'flag_on' : 'flag_off'}${fr}`).setPosition(f.x, f.y);
+      this.at(this.flags[i], a.flag[0], a.flag[1]).setTexture(`${on ? 'flag_on' : 'flag_off'}${fr}`);
+      if (i >= app.run.playableActs && this.seen(a.flag[0], a.flag[1])) {
+        const since2 = now - (this.rattle.get(`act${i}`) ?? -1e9);
+        const shake = since2 < 320 ? Math.round(Math.sin(since2 / 22) * 2) : 0;
+        this.at(this.pool.mid('wm_lock', 0, 0, DEPTH.lock), a.flag[0] + 6 + shake, a.flag[1] - 3);
+      }
+    });
+  }
+
+  /** The merchant's cart and walkers, each pacing a road back and forth (resting a moment at each end). */
+  private travellers(t: number): void {
+    const roads = WORLD_ROADS;
+    if (!roads.length) return;
+    const walkers: Array<{ road: number; speed: number; phase: number; key: (moving: boolean, f: number) => string; w: number }> = [
+      { road: 2, speed: 5, phase: 30, key: (m, f) => `wm_cart${m ? f : 0}`, w: 4 },
+      { road: 0, speed: 4.2, phase: 10, key: (m, f) => `wm_walk0_${m ? f : 0}`, w: 2 },
+      { road: 1, speed: 3.6, phase: 4, key: (m, f) => `wm_walk2_${m ? f : 0}`, w: 2 },
+      { road: 2, speed: 4.4, phase: 70, key: (m, f) => `wm_walk1_${m ? f : 0}`, w: 2 },
+      { road: 3, speed: 3.2, phase: 12, key: (m, f) => `wm_walk3_${m ? f : 0}`, w: 2 },
+      { road: 4, speed: 3.8, phase: 6, key: (m, f) => `wm_walk${WALKER_KINDS - 2}_${m ? f : 0}`, w: 2 },
+    ];
+    walkers.forEach((wk, i) => {
+      const path = roads[wk.road % roads.length];
+      const n = path.length;
+      const leg = n / wk.speed;
+      const T = leg * 2 + 6;
+      const c = (t + wk.phase) % T;
+      let idx: number;
+      let dir: number;
+      if (c < 3) (idx = 0), (dir = 1);
+      else if (c < 3 + leg) (idx = (c - 3) * wk.speed), (dir = 1);
+      else if (c < 6 + leg) (idx = n - 1), (dir = -1);
+      else (idx = n - 1 - (c - 6 - leg) * wk.speed), (dir = -1);
+      const moving = !(c < 3 || (c >= 3 + leg && c < 6 + leg));
+      const [x0, y0] = path[Math.max(0, Math.min(n - 1, Math.round(idx)))];
+      const ahead = path[Math.max(0, Math.min(n - 1, Math.round(idx) + dir * 3))];
+      const flip = ahead[0] < x0 || (ahead[0] === x0 && dir < 0);
+      if (!this.seen(x0, y0)) return;
+      const f = Math.floor(t * 6 + i) % 2;
+      const hop = moving && wk.w > 3 ? Math.floor(t * 4) % 2 : 0;
+      this.at(this.pool.foot(wk.key(moving, f), 0, 0, DEPTH.land + 0.002), x0 - (wk.w > 3 ? 5 : 2), y0 - (wk.w > 3 ? 5 : 5) - hop).setFlipX(flip);
     });
   }
 
   /** A pixel ellipse outline (rings on the ground). */
   private ellipse(g: G, cx: number, cy: number, rx: number, ry: number, color: number, alpha: number): void {
-    if (alpha <= 0.02) return;
+    if (alpha <= 0.02 || rx <= 0) return;
     g.fillStyle(color, alpha);
     const n = Math.max(12, Math.round((rx + ry) * 2.2));
     let lx = 1e9;
@@ -722,8 +1171,9 @@ export class WorldView {
   private drawCapital(t: number): void {
     const g = this.gLand;
     const P = this.s.app.progress;
-    // the pendulum: hangs still while its weights are missing; swings wider the more come home
     const pv = WORLD_SPOTS.pendulum;
+    if (!this.seen(pv.x, pv.y, 60)) return;
+    // the pendulum: hangs still while its weights are missing; swings wider the more come home
     const amp = P.weights / WEIGHTS_TOTAL;
     const off = Math.round(Math.sin(t * TAU * 0.6) * 2.4 * amp);
     g.fillStyle(0xd8901c, 1);
@@ -735,77 +1185,109 @@ export class WorldView {
     g.fillStyle(0x9a5a14, 1);
     g.fillRect(pv.x + off + 1, pv.y + 4, 1, 1);
     // pennants on the turrets
-    WORLD_SPOTS.turrets.forEach((tp, i) => {
+    WORLD_SPOTS.turrets.forEach(([tx, ty], i) => {
       const fr = Math.floor(t * 5 + i) % 2;
       g.fillStyle(0x4a5272, 1);
-      g.fillRect(tp.x, tp.y - 4, 1, 4);
+      g.fillRect(tx, ty - 4, 1, 4);
       g.fillStyle(0xd03030, 1);
-      g.fillRect(tp.x + 1, tp.y - 4, 2, 1);
-      g.fillRect(tp.x + 1, tp.y - 3, fr ? 3 : 2, 1);
+      g.fillRect(tx + 1, ty - 4, 2, 1);
+      g.fillRect(tx + 1, ty - 3, fr ? 3 : 2, 1);
       g.fillStyle(0x8a1a22, 1);
-      g.fillRect(tp.x + 3, tp.y - (fr ? 4 : 3), 1, 1);
+      g.fillRect(tx + 3, ty - (fr ? 4 : 3), 1, 1);
     });
     // a glint runs up the spire's gold finial now and then
     const k = frac(t / 4.5);
     if (k < 0.12) {
       g.fillStyle(WHITE, 1 - k / 0.12);
-      g.fillRect(WORLD_CAPITAL.x, 29, 1, 1);
-      g.fillRect(WORLD_CAPITAL.x - 1, 30, 3, 1);
+      g.fillRect(pv.x, pv.y - 21, 1, 1);
+      g.fillRect(pv.x - 1, pv.y - 20, 3, 1);
     }
+    // the town's smoke: a few columns drifting east over the roofs
+    WORLD_SPOTS.capitalSmoke.forEach(([cx, cy], i) => {
+      for (let j = 0; j < 4; j++) {
+        const u = frac(t / 3.4 + j / 4 + rnd(i, 81));
+        g.fillStyle(u < 0.4 ? 0xe8e4ec : 0xb8b6c8, (1 - u) * 0.7);
+        const sz = u < 0.5 ? 2 : 1;
+        g.fillRect(Math.round(cx + u * 6 + Math.sin(u * 4 + i)), Math.round(cy - u * 14), sz, sz);
+      }
+    });
   }
 
-  // ------------------------------------------------------------------ the locked regions: alive under their haze
+  // ------------------------------------------------------------------ the locked lands: alive under their fog
 
   private drawLocked(now: number, t: number): void {
     const ga = this.gAir;
     const g = this.gLand;
-    // Frostpeaks: snow falling over the range
-    for (let k = 0; k < 30; k++) {
-      const x0 = 116 + rnd(k, 41) * 114;
-      const vy = 5 + rnd(k, 42) * 5;
-      const H = 40;
-      const y = Math.round(16 + ((t * vy + rnd(k, 43) * H) % H));
-      const x = Math.round(x0 + Math.sin(t * 1.1 + k) * 2 + ((t * 2) % 4));
-      ga.fillStyle(WHITE, k % 4 ? 0.85 : 0.6);
-      ga.fillRect(x, y, 1, 1);
+    // the veils drift a little; a tapped land's fog thins for a moment ("a peek")
+    for (const v of this.veils) {
+      const b = VEIL_BOXES[v.id];
+      const since = now - (this.rattle.get(v.id) ?? -1e9);
+      const peek = since < 2200 ? Math.sin(Math.min(1, since / 2200) * Math.PI) : 0;
+      this.at(v.img, b.x + Math.round(Math.sin(t * 0.2 + b.x) * 2), b.y + Math.round(Math.sin(t * 0.27 + b.y) * 1)).setAlpha(1 - 0.55 * peek);
     }
-    // the wind blows a plume of snow off the highest summit
+    // Frostpeaks: snow falling over the range (what's in view), a plume blown off the highest summit
+    const fb = VEIL_BOXES.frostpeaks;
+    if (this.seen(fb.x + fb.w / 2, fb.y + fb.h / 2, 280))
+      for (let k = 0; k < 60; k++) {
+        const x0 = fb.x + rnd(k, 41) * fb.w;
+        const vy = 5 + rnd(k, 42) * 5;
+        const H = 100;
+        const y = Math.round(4 + ((t * vy + rnd(k, 43) * H) % H));
+        const x = Math.round(x0 + Math.sin(t * 1.1 + k) * 2 + ((t * 2) % 4));
+        if (!this.seen(x, y, 0)) continue;
+        ga.fillStyle(WHITE, k % 4 ? 0.85 : 0.6);
+        ga.fillRect(x, y, 1, 1);
+      }
     for (let k = 0; k < 6; k++) {
       const u = frac(t / 2.2 + k / 6);
-      const x = Math.round(205 + u * 16 + Math.sin(u * 7 + k) * 1);
-      const y = Math.round(18 - Math.sin(u * Math.PI) * 2 + u * 3);
+      const x = Math.round(380 + u * 18 + Math.sin(u * 7 + k));
+      const y = Math.round(8 - Math.sin(u * Math.PI) * 2 + u * 3);
+      if (!this.seen(x, y)) continue;
       ga.fillStyle(WHITE, (1 - u) * 0.8);
       ga.fillRect(x, y, u < 0.4 ? 2 : 1, 1);
     }
-    // Ashfell: the volcano breathes: the glow swells, smoke puffs roll off east, embers spit
+    // Ashfell: the volcano breathes (the glow swells, smoke puffs roll off east, embers spit), steam off the coast
     const cr = WORLD_SPOTS.crater;
-    this.lava.setAlpha(0.45 + 0.35 * Math.sin(t * 1.9) + 0.12 * Math.sin(t * 7.3));
-    this.puffs.forEach((pf, j) => {
-      const u = frac(t / 4.2 + j / this.puffs.length);
-      const x = cr.x + u * 26 + Math.sin(u * 6 + j) * 1.2;
-      const y = cr.y - 3 - u * 11 + u * u * 5;
-      pf.setTexture(`wm_puff${u < 0.2 ? 0 : u < 0.55 ? 1 : 2}`)
-        .setPosition(Math.round(x), Math.round(y))
-        .setAlpha(Math.min(1, u * 8, (1 - u) * 1.6) * 0.95);
-    });
-    for (let k = 0; k < 4; k++) {
-      const u = frac(t / 1.4 + k / 4 + rnd(k, 51));
-      const c = Math.floor(t / 1.4 + k / 4 + rnd(k, 51));
-      const x = Math.round(cr.x + (rnd(k * 9 + c, 52) - 0.5) * 6 + u * (rnd(c, k) - 0.3) * 6);
-      const y = Math.round(cr.y - u * 9 + u * u * 5);
-      ga.fillStyle(u < 0.5 ? 0xffe070 : 0xff7a2a, 1 - u);
-      ga.fillRect(x, y, 1, 1);
+    const lb = WORLD_BOXES.lava;
+    this.at(this.lava, lb.x, lb.y).setAlpha(0.45 + 0.35 * Math.sin(t * 1.9) + 0.12 * Math.sin(t * 7.3));
+    if (this.seen(cr.x, cr.y, 80)) {
+      for (let j = 0; j < 7; j++) {
+        const u = frac(t / 4.6 + j / 7);
+        const x = cr.x + u * 34 + Math.sin(u * 6 + j) * 1.5;
+        const y = cr.y - 3 - u * 16 + u * u * 7;
+        const img = this.pool.mid(`wm_puff${u < 0.2 ? 0 : u < 0.55 ? 1 : 2}`, 0, 0, DEPTH.air, Math.min(1, u * 8, (1 - u) * 1.6) * 0.95);
+        this.at(img, x - img.width / 2, y - img.height / 2);
+      }
+      for (let k = 0; k < 6; k++) {
+        const u = frac(t / 1.4 + k / 6 + rnd(k, 51));
+        const c = Math.floor(t / 1.4 + k / 6 + rnd(k, 51));
+        const x = Math.round(cr.x + (rnd(k * 9 + c, 52) - 0.5) * 8 + u * (rnd(c, k) - 0.3) * 8);
+        const y = Math.round(cr.y - u * 11 + u * u * 6);
+        ga.fillStyle(u < 0.5 ? 0xffe070 : 0xff7a2a, 1 - u);
+        ga.fillRect(x, y, 1, 1);
+      }
     }
-    // Duskmire: mist banks drift to and fro, wisps wander, the Mirelight pulses
-    WORLD_SPOTS.fog.forEach((f, i) => {
-      this.fogs[i].setPosition(Math.round(f.x + Math.sin(t * 0.18 + i * 2) * 8), Math.round(f.y + Math.sin(t * 0.3 + i) * 0.8)).setAlpha(0.32 + 0.1 * Math.sin(t * 0.4 + i));
+    WORLD_SPOTS.steam.forEach(([sx, sy], i) => {
+      if (!this.seen(sx, sy, 20)) return;
+      for (let j = 0; j < 3; j++) {
+        const u = frac(t / 3 + j / 3 + i * 0.4);
+        const img = this.pool.mid(`wm_steam${u < 0.3 ? 0 : 1}`, 0, 0, DEPTH.air, (1 - u) * 0.7);
+        this.at(img, sx + u * 6 - img.width / 2, sy - u * 10 - img.height / 2);
+      }
     });
-    WORLD_SPOTS.wisps.forEach((w, i) => {
+    // Duskmire: mist banks drift to and fro, wisps wander, the Mirelight pulses
+    WORLD_SPOTS.fog.forEach(([fx, fy], i) => {
+      const x = fx + Math.sin(t * 0.18 + i * 2) * 8;
+      if (!this.seen(x, fy, 30)) return;
+      const img = this.pool.mid(`wm_fog${i % 2}`, 0, 0, DEPTH.fog, 0.32 + 0.1 * Math.sin(t * 0.4 + i));
+      this.at(img, x - img.width / 2, fy + Math.sin(t * 0.3 + i) * 0.8 - img.height / 2);
+    });
+    WORLD_SPOTS.wisps.forEach(([wx, wy], i) => {
       const a = clamp01(0.5 + Math.sin(t * 0.8 + i * 2.1) * 0.9);
-      if (a <= 0) return;
-      const x = Math.round(w.x + Math.sin(t * 0.6 + i * 2) * 10);
-      const y = Math.round(w.y + Math.sin(t * 1.3 + i) * 3 - Math.abs(Math.sin(t * 2.2 + i)) * 2);
-      const tx = Math.round(w.x + Math.sin(t * 0.6 + i * 2 - 0.25) * 10);
+      if (a <= 0 || !this.seen(wx, wy, 14)) return;
+      const x = Math.round(wx + Math.sin(t * 0.6 + i * 2) * 10);
+      const y = Math.round(wy + Math.sin(t * 1.3 + i) * 3 - Math.abs(Math.sin(t * 2.2 + i)) * 2);
+      const tx = Math.round(wx + Math.sin(t * 0.6 + i * 2 - 0.25) * 10);
       ga.fillStyle(0x4ad8a0, 0.35 * a);
       ga.fillRect(x - 1, y, 3, 1);
       ga.fillRect(x, y - 1, 1, 3);
@@ -814,80 +1296,102 @@ export class WorldView {
       ga.fillStyle(0xe0fff0, a);
       ga.fillRect(x, y, 1, 1);
     });
-    this.lamp.setAlpha(0.55 + 0.45 * Math.sin(t * 2.4));
+    const mb = WORLD_BOXES.lamp;
+    this.at(this.lamp, mb.x, mb.y).setAlpha(0.55 + 0.45 * Math.sin(t * 2.4));
     // Noonspire: the island floats, its waterfall pours, the sun on its spire twinkles
     const dy = Math.round(Math.sin(t * 0.7) * 1.4);
     const io = WORLD_SPOTS.isle;
-    this.isle.setPosition(io.x, io.y + dy);
-    const fl = WORLD_SPOTS.falls;
-    for (let j = 0; j < 4; j++) {
-      const y = fl.y0 + ((t * 18 + j * 5.5) % (fl.y1 - fl.y0 - 6));
-      g.fillStyle(WHITE, 0.9);
-      g.fillRect(fl.x + (j % 2), Math.round(y) + dy, 1, 2);
-    }
+    this.at(this.isle, io.x, io.y + dy);
+    const nsince = now - (this.rattle.get('noonspire') ?? -1e9);
+    const npeek = nsince < 2200 ? Math.sin(Math.min(1, nsince / 2200) * Math.PI) : 0;
+    this.at(this.isleVeil, io.x, io.y + dy).setAlpha(1 - 0.5 * npeek);
+    const fl = WORLD_SPOTS.isleFalls;
+    if (this.seen(fl.x, fl.y0, 30))
+      for (let j = 0; j < 4; j++) {
+        const y = fl.y0 + ((t * 18 + j * 5.5) % (fl.y1 - fl.y0 - 4));
+        g.fillStyle(WHITE, 0.9);
+        g.fillRect(fl.x + (j % 2), Math.round(y) + dy, 1, 2);
+      }
     const sun = WORLD_SPOTS.sun;
-    const diag = Math.floor(t * 1.6) % 2 === 1;
-    ga.fillStyle(0xfff0a0, 0.9);
-    const rays = diag
-      ? [
-          [-3, -3],
-          [3, -3],
-          [-4, 2],
-          [4, 2],
-        ]
-      : [
-          [0, -4],
-          [-4, -1],
-          [4, -1],
-          [-3, 3],
-          [3, 3],
-        ];
-    for (const [rx, ry] of rays) ga.fillRect(sun.x + rx, sun.y + ry + dy, 1, 1);
+    if (this.seen(sun.x, sun.y)) {
+      const diag = Math.floor(t * 1.6) % 2 === 1;
+      ga.fillStyle(0xfff0a0, 0.9);
+      const rays = diag
+        ? [
+            [-3, -3],
+            [3, -3],
+            [-4, 2],
+            [4, 2],
+          ]
+        : [
+            [0, -4],
+            [-4, -1],
+            [4, -1],
+            [-3, 3],
+            [3, 3],
+          ];
+      for (const [rx, ry] of rays) ga.fillRect(sun.x + rx, sun.y + ry + dy, 1, 1);
+    }
 
-    // padlocks: a glint sweeps each now and then; a tap rattles it
+    // small padlocks: a glint sweeps each now and then; a tap rattles it
     let li = 0;
     for (const r of WORLD_REGIONS) {
       if (!r.locked) continue;
       const since = now - (this.rattle.get(r.id) ?? -1e9);
       const shake = since < 320 ? Math.round(Math.sin(since / 22) * 2) : 0;
-      const lx = r.x + shake;
-      const ly = r.y - 2;
-      this.locks[li].setPosition(lx, ly);
+      const ly = r.y + (r.id === 'noonspire' ? dy : 0);
+      this.at(this.locks[li], r.x + shake, ly);
       const k = frac(t / 3.8 + li * 0.27);
-      if (k < 0.1) {
-        this.g.fillStyle(WHITE, 1 - k / 0.1);
-        this.g.fillRect(lx - 3, ly, 1, 1);
-        this.g.fillRect(lx - 4, ly + 1, 3, 1);
-        this.g.fillRect(lx - 3, ly + 2, 1, 1);
+      if (k < 0.1 && this.seen(r.x, ly)) {
+        g.fillStyle(WHITE, 1 - k / 0.1);
+        g.fillRect(r.x + shake - 2, ly - 1, 1, 1);
+        g.fillRect(r.x + shake - 3, ly, 3, 1);
       }
       li++;
     }
   }
 
-  // ------------------------------------------------------------------ plates: header, the call to action, region info
+  // ------------------------------------------------------------------ plates: header, the call to action, cards
+
+  /** Rowan's marker at the screen's edge, while he's off screen (a tap brings the view back to him). */
+  private homeMarker(): Rect | null {
+    if (this.tour || this.glideTo) return null;
+    const s = this.s;
+    const [hx, hy] = WORLD_ACTS[this.actNow()].stand;
+    const x = hx - this.ox;
+    const y = hy - 8 - this.oy;
+    if (x > s.L + 4 && x < s.R - 4 && y > 4 && y < s.B - 4) return null;
+    const w = 15;
+    const h = 17;
+    const cx = Math.max(s.L + 64, Math.min(s.R - w - 4, x - w / 2));
+    const cy = Math.max(36, Math.min(s.B - h - 4, y - h / 2));
+    return { x: Math.round(cx), y: Math.round(cy), w, h };
+  }
 
   private drawUi(now: number, t: number): void {
     const s = this.s;
     const g = this.g;
     const P = s.app.progress;
-    const phase = now - s.app.phaseSince;
+    const phase = now - this.uiAt;
 
-    // the call to action over Rowan: Greenmarch, and a glossy "Tap to begin!" button
-    const h = WORLD_SPOTS.hero;
+    // the call to action over Rowan: Greenmarch, and a glossy "Tap to begin!" button (hidden while a card is up)
+    const [hx, hy] = WORLD_ACTS[this.actNow()].stand;
     const sub = P.actsCleared > 0 ? 'Choose an act' : 'Tap to begin!';
     const name = 'Greenmarch';
     const bw = textWidth(sub, 1, true) + 8;
     const w = Math.max(textWidth(name, 1, true) + 12, bw + 6);
     const ph = 28;
-    const pop = clamp01(phase / 260);
+    // (only before the first act is cleared: after that the landmarks are the call to action)
+    const pop = this.tour || this.sel || P.actsCleared > 0 ? 0 : clamp01(phase / 260);
     const bob = this.chosenAt ? 0 : Math.round(Math.sin(t * 3.2) * 1);
-    const x = Math.round(Math.max(s.L + 3, Math.min(s.R - w - 3, h.x - w / 2)));
-    const y = Math.round(h.y - 20 - ph - 4 + bob + (1 - pop) * 6);
-    this.plate = { x, y, w, h: ph };
-    if (pop > 0) {
+    const x = Math.round(hx - this.ox - w / 2);
+    const y = Math.round(hy - this.oy - 20 - ph - 4 + bob + (1 - pop) * 6);
+    const onScreen = x > s.L - w + 8 && x < s.R - 8 && y > -ph && y < s.B;
+    this.plate = pop > 0 && onScreen ? { x, y, w, h: ph } : { x: 0, y: 0, w: 0, h: 0 };
+    if (pop > 0 && onScreen) {
       this.panel(g, x, y, w, ph, pop);
       // the tail points down at Rowan
-      const tx = Math.round(h.x);
+      const tx = Math.round(hx - this.ox);
       g.fillStyle(INK, pop);
       g.fillRect(tx - 3, y + ph, 7, 1);
       g.fillRect(tx - 2, y + ph + 1, 5, 1);
@@ -898,12 +1402,29 @@ export class WorldView {
       g.fillRect(tx - 1, y + ph + 1, 3, 1);
       g.fillRect(tx, y + ph + 2, 1, 1);
       this.texts.text(name, x + w / 2, y + 7, 0xffe680, { bold: true, ox: 0.5, oy: 0.5, alpha: pop });
-      // the button: green, glossy, pulsing a highlight across
       const bx = Math.round(x + (w - bw) / 2);
       const by = y + 13;
       const press = this.chosenAt ? 1 : 0;
       this.button(g, bx, by + press, bw, 12, t, pop);
       this.texts.text(sub, bx + bw / 2, by + 6 + press, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: pop });
+    }
+
+    // the selected act's card: its name, what playing it means, Play
+    const card = this.cardRect();
+    if (card && this.sel) {
+      const a = clamp01((now - this.sel.at) / 140);
+      const { name: an, status, col } = this.cardText(this.sel.act);
+      const k = easeBack((now - this.sel.at) / 220, 1.5);
+      const cy = card.y + Math.round((1 - k) * 5);
+      this.panel(g, card.x, cy, card.w, card.h, a);
+      this.texts.text(an, card.x + 6, cy + 7, WHITE, { bold: true, oy: 0.5, alpha: a });
+      this.texts.text(status, card.x + 6, cy + 17, col, { oy: 0.5, alpha: a });
+      const b0 = this.cardPlay()!;
+      const b = { ...b0, y: b0.y + cy - card.y };
+      const pr = isPressed(b0, now) || this.chosenAt > 0;
+      glow(g, b, 0xffe680, (0.3 + 0.35 * pulse(now, 900)) * a, 2);
+      button3d(g, b, this.sel.act < P.actsCleared ? FACE.green : FACE.gold, pr);
+      this.texts.text('Play', b.x + b.w / 2, b.y + b.h / 2 + (pr ? 2 : 0), WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
     }
 
     // header: the kingdom and the weights brought home (a pip per weight)
@@ -927,11 +1448,11 @@ export class WorldView {
       }
     }
 
-    // the Camp button (bottom left, over the sea): a tent and "Camp" on a navy key
+    // the Camp button (bottom left): a tent and "Camp" on a navy key
     const cb = this.campButton();
-    const cpop = clamp01((phase - 120) / 260);
+    const cpop = clamp01((now - s.app.phaseSince - 120) / 260);
     if (cpop > 0) {
-      const ck = easeBack((phase - 120) / 260, 1.6);
+      const ck = easeBack((now - s.app.phaseSince - 120) / 260, 1.6);
       const r = { ...cb, y: cb.y + Math.round((1 - ck) * 10) };
       const pr = isPressed(cb, now);
       button3d(g, r, FACE.navy, pr);
@@ -943,7 +1464,23 @@ export class WorldView {
       this.texts.text('Camp', x0 + iw + 3, r.y + r.h / 2 + dy, WHITE, { bold: true, oy: 0.5, alpha: cpop });
     }
 
-    // region info after a tap: a locked region's name, or the Pendulum's state
+    // Rowan's marker at the edge while he's off screen: a chip with his face and an arrow toward him
+    const mk = this.homeMarker();
+    if (mk) {
+      const pr = isPressed(mk, now);
+      button3d(g, mk, FACE.navy, pr);
+      this.pool.at('wm_hero0', mk.x + 2, mk.y + 1 + (pr ? 2 : 0), DEPTH.ui + 0.01, 1);
+      const [hx2, hy2] = WORLD_ACTS[this.actNow()].stand;
+      const ang = Math.atan2(hy2 - this.oy - (mk.y + mk.h / 2), hx2 - this.ox - (mk.x + mk.w / 2));
+      const ax = Math.round(mk.x + mk.w / 2 + Math.cos(ang) * 11);
+      const ay = Math.round(mk.y + mk.h / 2 + Math.sin(ang) * 11);
+      g.fillStyle(INK, 1);
+      g.fillRect(ax - 2, ay - 2, 5, 5);
+      g.fillStyle(0xffe680, 0.6 + 0.4 * pulse(now, 800));
+      g.fillRect(ax - 1, ay - 1, 3, 3);
+    }
+
+    // a card after a tap: a locked land's name, an act out of reach, or the Pendulum's state
     const inf = this.info;
     if (inf) {
       const age = now - inf.at;
@@ -958,23 +1495,30 @@ export class WorldView {
         if (inf.id === 'capital') {
           title = 'The Great Pendulum';
           line = P.weights === 0 ? 'Stopped. Its weights are lost.' : P.weights >= WEIGHTS_TOTAL ? 'Ticking again!' : `${P.weights} of ${WEIGHTS_TOTAL} weights home`;
-          ax = WORLD_CAPITAL.x + 14;
-          ay = WORLD_CAPITAL.y + 15;
+          ax = WORLD_CAPITAL.x;
+          ay = WORLD_CAPITAL.y + 16;
           col = 0xffe680;
+        } else if (inf.id.startsWith('act')) {
+          const i = Number(inf.id.slice(3));
+          title = s.app.run.region.acts[i]?.name ?? '';
+          line = `Clear Act ${i} first`;
+          ax = WORLD_ACTS[i].flag[0];
+          ay = WORLD_ACTS[i].flag[1] - 16;
+          col = 0xc8c0e8;
         } else {
           const r = WORLD_REGIONS.find((q) => q.id === inf.id)!;
           title = r.name;
           line = 'Locked';
           ax = r.x;
-          ay = r.y + 22;
+          ay = r.y + 23;
         }
         const iw = Math.max(textWidth(title, 1, true), textWidth(line, 1, false)) + 14;
         const ih = 22;
-        let ix = Math.round(Math.max(s.L + 3, Math.min(s.R - iw - 3, ax - iw / 2)));
-        let iy = Math.round(Math.max(3, Math.min(GAME_H - ih - 4, ay - ih / 2)));
+        let ix = Math.round(Math.max(s.L + 3, Math.min(s.R - iw - 3, ax - this.ox - iw / 2)));
+        let iy = Math.round(Math.max(36, Math.min(s.B - ih - 24, ay - this.oy - ih / 2)));
         // never over Greenmarch's plate (its texts would show through): slide right of it, or below it
         const p = this.plate;
-        const hits = () => ix < p.x + p.w + 3 && p.x < ix + iw + 3 && iy < p.y + p.h + 6 && p.y < iy + ih + 3;
+        const hits = () => p.w > 0 && ix < p.x + p.w + 3 && p.x < ix + iw + 3 && iy < p.y + p.h + 6 && p.y < iy + ih + 3;
         if (hits()) ix = Math.round(Math.min(s.R - iw - 3, p.x + p.w + 4));
         if (hits()) iy = Math.round(Math.min(GAME_H - ih - 4, p.y + p.h + 8));
         iy += Math.round((1 - Math.min(1, age / 120)) * 3);

@@ -3,7 +3,7 @@
 // between runs), each signature drop's bad-luck counter, and the accuracy log. M4a adds the heroes (who is picked,
 // each one's XP and skills; Sable is unlocked by a scene after Act 1) and the relics unlocked so far. The tips seen
 // so far ("teach it slowly", core/tips.ts) and whether tips are off are kept too, and the map sparkles picked up
-// (core/sparkle.ts) (still v3: missing reads as none).
+// (core/sparkle.ts) and whether the world map's first-visit reveal has played (still v3: missing reads as none).
 //
 // v1 was "progress" (acts cleared and weights only), v2 the gear; readProfile migrates both.
 
@@ -57,6 +57,7 @@ export interface Profile {
   tips: SeenId[]; // tips already shown (each shows once), and the welcome back once it has played
   tipsOff: boolean; // the gear panel's "Tips: off"
   sparkles: number[]; // the map sparkles picked up (core/sparkle.ts: their keys, newest last): never paid twice
+  worldTour: boolean; // the world map's first-visit reveal (a glide over the whole world) has played
   /** The world map's wandering foe (core/skirmish.ts): fights won since the last skirmish, skirmishes so far, and
    *  whether one is on the road now. Still v3: missing reads as none yet. */
   wander: WanderState;
@@ -98,6 +99,7 @@ export function newProfile(): Profile {
     tips: [WELCOME_ID], // a new player has nothing to be welcomed back to
     tipsOff: false,
     sparkles: [],
+    worldTour: false,
     wander: { fights: 0, n: 0, up: false },
   };
 }
@@ -115,6 +117,7 @@ export function readProfile(data: unknown, t?: Tuning): Profile {
   const p = readFields(d, t);
   readTips(p, d);
   p.sparkles = readSparkles(d.sparkles); // still v3: missing reads as none
+  p.worldTour = d.worldTour === true; // still v3: missing reads as not yet (the bigger world map shows itself once)
   return p;
 }
 
