@@ -118,8 +118,11 @@ export class TipCoach {
     const c = m.run.combat;
     if (m.run.phase === 'fight' && c) {
       if (this.fightTip.combat !== c) this.fightTip = { combat: c, at: -1e9, count: 0 };
-      this.fightTip.at = c.time;
-      if (!m.preFight) this.fightTip.count++;
+      // a pre-fight tip goes up before the fight runs: it doesn't hold back the first red's
+      if (!m.preFight) {
+        this.fightTip.at = c.time;
+        this.fightTip.count++;
+      }
     }
   }
 
@@ -150,7 +153,8 @@ export class TipCoach {
     this.pending = this.pending.filter((p) => p.combat === c && !!c && c.time <= p.until && !this.seen(p.cue.id));
   }
 
-  /** Pacing: one tip per screen; in a fight, one before it begins, then a few seconds apart and a couple at most. */
+  /** Pacing: one tip per screen; in a fight, one before it begins, then (from the first, as soon as it's due) a few
+   *  seconds apart and a couple at most. */
   private paced(def: TipDef, m: TipMoment): boolean {
     if (def.fight !== 'pause') return this.shownOn !== this.screens;
     const c = m.run.combat;

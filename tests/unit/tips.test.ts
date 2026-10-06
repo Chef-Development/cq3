@@ -92,11 +92,8 @@ describe('the coach', () => {
     // a red spawned while still waiting to begin is not shown before the fight runs
     coach.feed([spawn(41, 'red')], run.combat!);
     expect(take({ preFight: true })).toBeNull();
-    // the fight runs (after the pre-fight tip's gap): the red's tip comes up, about that block
-    setTime(run, 1);
-    expect(coach.next({ run, safe: true })).toBeNull(); // too soon after the last tip
-    coach.feed([spawn(42, 'red')], run.combat!);
-    setTime(run, 5);
+    // the fight runs: the first red's tip comes up at once, about that block (the pre-fight tip doesn't hold it back)
+    setTime(run, 2);
     coach.feed([spawn(43, 'red')], run.combat!);
     const cue = coach.next({ run, safe: true });
     expect(cue).toMatchObject({ id: 'blockRed', block: 43 });
@@ -106,6 +103,32 @@ describe('the coach', () => {
     setTime(run, 20);
     coach.feed([spawn(44, 'red')], run.combat!);
     expect(coach.next({ run, safe: true })).toBeNull();
+  });
+
+  it("Act 1's first fight teaches blocking: the red's tip comes up in it, soon after the first red", () => {
+    let late = 0;
+    for (let seed = 1; seed <= 60; seed++) {
+      const { run, coach, take } = setup(newProfile(), seed);
+      run.chooseNode(run.choices()[0]);
+      expect(take({ preFight: true })).toBe('tapYellow');
+      const c = run.combat!;
+      let firstRed = -1;
+      let redTip = -1;
+      for (let i = 0; i < 30 / DT && !c.result && redTip < 0; i++) {
+        c.step();
+        const events = c.drainEvents();
+        if (firstRed < 0 && events.some((e) => e.type === 'spawn' && e.kind === 'red')) firstRed = c.time;
+        coach.feed(events, c);
+        const cue = coach.next({ run, safe: true });
+        if (cue) coach.shown(cue, { run, safe: true });
+        if (cue?.id === 'blockRed') redTip = c.time;
+      }
+      expect(firstRed, `seed ${seed}: a red in the first 30 s`).toBeGreaterThanOrEqual(0);
+      expect(redTip, `seed ${seed}: the red's tip in the first fight`).toBeGreaterThanOrEqual(0);
+      if (redTip - firstRed > 0.1) late++;
+    }
+    // nearly always at the very first red (a special's tip just before it can push it to the next one)
+    expect(late).toBeLessThanOrEqual(6);
   });
 
   it('each fight event fires its tip: purple, green, a telegraph, a full meter, a combo break costing 2+ stacks', () => {
@@ -134,17 +157,19 @@ describe('the coach', () => {
   it('one at a time, by priority; a fight event that cannot show at once waits briefly, then for next time', () => {
     const { run, coach } = setup();
     goTo(run, 'fight');
-    // a telegraph and a red at once: the special goes first; the red waits for the gap, by then it's stale
-    coach.feed([spawn(2, 'red'), { type: 'telegraph', enemyId: 1, special: 'x', name: 'X', sound: 'growl', sec: 0.8 }], run.combat!);
+    // a telegraph and a red at once: the red goes first (blocking is the first lesson); the special waits for the
+    // gap, by then it's stale
+    const telegraph: CombatEvent = { type: 'telegraph', enemyId: 1, special: 'x', name: 'X', sound: 'growl', sec: 0.8 };
+    coach.feed([spawn(2, 'red'), telegraph], run.combat!);
     const first = coach.next({ run, safe: true })!;
-    expect(first.id).toBe('special');
+    expect(first.id).toBe('blockRed');
     coach.shown(first, { run, safe: true });
     expect(coach.next({ run, safe: true })).toBeNull(); // one at a time: the gap
     setTime(run, 4.5);
-    expect(coach.next({ run, safe: true })).toBeNull(); // the red's moment passed
-    coach.feed([spawn(3, 'red')], run.combat!);
+    expect(coach.next({ run, safe: true })).toBeNull(); // the special's moment passed
+    coach.feed([telegraph], run.combat!);
     const second = coach.next({ run, safe: true })!;
-    expect(second.id).toBe('blockRed');
+    expect(second.id).toBe('special');
     coach.shown(second, { run, safe: true });
     // at most two tips stop one fight
     setTime(run, 30);

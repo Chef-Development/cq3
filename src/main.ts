@@ -63,8 +63,29 @@ window.setInterval(() => {
   if (!document.hidden) relayout();
 }, 500);
 
+/**
+ * A home-screen app can sit in the background for days, still running the build it loaded. Back in front, it asks
+ * for the deployed build's label (dist/version.txt) and, if it differs from its own, reloads to pick up the new one
+ * (the run is saved first, so Continue picks it back up). Never mid-fight: that waits for the next time.
+ */
+async function checkForUpdate(): Promise<void> {
+  if (!import.meta.env.PROD) return;
+  try {
+    const res = await fetch(`${import.meta.env.BASE_URL}version.txt?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const live = (await res.text()).trim();
+    if (!live || live === __BUILD__ || live.length > 80) return;
+    if (document.hidden || app.run.phase === 'fight') return;
+    app.saveRun();
+    window.location.reload();
+  } catch {
+    /* offline: next time */
+  }
+}
+
 document.addEventListener('visibilitychange', () => {
   const now = performance.now();
+  if (!document.hidden) void checkForUpdate();
   app.hidden = document.hidden;
   if (!document.hidden) settle(); // back from the app switcher: it may have turned while away
   if (document.hidden && app.run.phase === 'fight') app.userPaused = true;

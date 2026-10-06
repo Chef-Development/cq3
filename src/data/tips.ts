@@ -86,8 +86,9 @@ export const TIPS: readonly TipDef[] = [
   { id: 'relicBelt', lines: ['Your relics sit here.', 'Tap one to read what it does.'], anchor: 'relicBelt', fight: 'pre' },
   { id: 'rush', lines: ['Coin Rush! Hits knock out coins.', 'Keep your combo going for more!'], anchor: 'bar', fight: 'pre' },
   // ---- in a fight (the fight waits while the tip is up)
-  { id: 'special', lines: ['A special move is coming!', 'Watch the enemy closely.'], anchor: 'enemy', fight: 'pause', basic: true },
+  // (the first red comes first: blocking is the lesson right after tapping yellow)
   { id: 'blockRed', lines: ['Red is an attack coming at you!', 'Tap it like a yellow to block it!'], anchor: 'redBlock', fight: 'pause', basic: true },
+  { id: 'special', lines: ['A special move is coming!', 'Watch the enemy closely.'], anchor: 'enemy', fight: 'pause', basic: true },
   { id: 'purple', lines: ['Purple is a trap: let it pass.', 'Tapping it hurts you.'], anchor: 'purpleBlock', fight: 'pause', basic: true },
   { id: 'green', lines: ['Green powers up your ability.', 'Tap it like a yellow!'], anchor: 'greenBlock', fight: 'pause', basic: true },
   {

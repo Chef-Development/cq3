@@ -25,7 +25,10 @@ const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new E
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+  // the deployed build's label: always from the network (the app checks it for a newer deploy)
+  if (url.pathname.endsWith('/version.txt')) return;
   if (req.mode === 'navigate') {
     // Network first so a new deploy shows up on the next launch; cache when offline or slow.
     event.respondWith(

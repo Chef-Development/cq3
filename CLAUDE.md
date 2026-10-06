@@ -106,7 +106,8 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 - **Teach it slowly (tips).** One short tip, shown once, the moment a system first matters: the words in
   `src/data/tips.ts` (max 2 lines, `TIP_TEXT_W` px each, an anchor, pre-fight or pausing; the order is the priority),
   the when in `core/tips.ts` (`TipCoach`: fed the fight's events and asked every frame; one at a time, one per screen,
-  a few seconds apart in a fight; seen ids in `profile.tips`), the card in `view/tips.ts` (only at a safe moment: no
+  a few seconds apart in a fight, counted from the first that stops it (the first red's tip comes first: Act 1's first
+  fight always teaches blocking); seen ids in `profile.tips`), the card in `view/tips.ts` (only at a safe moment: no
   scene, wipe, card, toast, panel or tutorial; seen and saved the moment it shows; in a fight `App.tipUp` stops the
   clock and the next tap only dismisses it). The gear panel has "Tips: on/off" and "Show tips again". A returning
   player's first launch of a new version plays Pip's welcome back over the title once (`welcomeScene`; new players
@@ -258,4 +259,7 @@ Meta-game features still to come (the gacha shrine, chest rolls, loadout, kingdo
 - Vite `base` is `/cq3/` (the repo name). If the repo is renamed, change `BASE` in `vite.config.ts`.
 - One-time GitHub setup: repo Settings > Pages > Source: "Deploy from a branch" > `gh-pages`, `/ (root)` > Save.
 - Live URL: https://chef-development.github.io/cq3/
-- The service worker is network-first for the page, so a new deploy shows up on the next launch.
+- The service worker is network-first for the page, so a new deploy shows up on the next launch. A home-screen app
+  left in the background keeps the build it loaded, so `main.ts` checks `version.txt` (the build's label, written at
+  build, never cached) whenever the app comes back to the front and reloads when a newer build is deployed (the run
+  saved first; never mid-fight). The gear panel's foot shows the build (`__BUILD__`: commit and time).

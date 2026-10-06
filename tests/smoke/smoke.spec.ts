@@ -949,3 +949,43 @@ test('map extras: an ambush, the merchant, Coin Rush, a bounty and its tracker, 
   expect(await a((x) => x.run.wanderer)).toBeNull();
   expect(errors).toEqual([]);
 });
+
+test.describe('updates', () => {
+  // (the page's own requests, not the service worker's: it lets version.txt through to the network anyway)
+  test.use({ serviceWorkers: 'block' });
+  test('back in front, a newer deploy reloads the app (never mid-fight); the same build stays', async ({ page }) => {
+    let live = '';
+    await page.route('**/version.txt*', (r) => r.fulfill({ status: 200, contentType: 'text/plain', body: live }));
+    await ready(page);
+    const a = app(page);
+    let loads = 0;
+    page.on('load', () => loads++);
+    const backInFront = () => page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    // the build it runs: the gear panel's foot says
+    await page.click('#btn-gear');
+    live = (await page.evaluate(() => [...document.querySelectorAll('.dbg-foot')].map((e) => e.textContent ?? '').find((t) => t.startsWith('Build '))!.replace(/^Build /, ''))) as string;
+    await page.click('#btn-gear');
+    expect(live).toMatch(/^([0-9a-f]{7}|dev) /);
+    // the same build deployed: nothing happens
+    await backInFront();
+    await page.waitForTimeout(500);
+    expect(loads).toBe(0);
+    // a newer one, mid-fight: it waits
+    await a((x) => {
+      x.startRegion();
+      x.storySkip();
+      x.storySkip();
+      x.setPhase(() => x.run.chooseNode(x.run.choices()[0]));
+    });
+    live = 'abcdef0 Jan 1 00:00 UTC';
+    await backInFront();
+    await page.waitForTimeout(500);
+    expect(loads).toBe(0);
+    // ...and on the map it reloads, the run saved: Continue is offered
+    await a((x) => x.setPhase(() => x.run.retry()));
+    await expect.poll(() => a((x) => x.run.phase)).toBe('map');
+    await Promise.all([page.waitForEvent('load'), backInFront()]);
+    await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
+    expect(await a((x) => ({ phase: x.run.phase, saved: !!x.savedRun }))).toEqual({ phase: 'title', saved: true });
+  });
+});
