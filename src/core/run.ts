@@ -12,7 +12,9 @@
 import { eventById } from '../data/events';
 import { CAMPAIGN, REGIONS, actInRegion, lastActOfRegion, regionOfAct } from '../data/regions';
 import { questById, type QuestId } from '../data/quests';
-import type { ActDef, EventOutcome, RegionDef } from '../data/types';
+import type { ActDef, BarRules, EventOutcome, RegionDef } from '../data/types';
+import type { HeroId } from '../data/heroes';
+import type { PetBuild } from './roster';
 import { RELICS, relicById, type RelicId } from '../data/relics';
 import { skillById } from '../data/skills';
 import { recordActAccuracy, addSamples, type AccEntry } from './accuracy';
@@ -888,6 +890,14 @@ export class Run {
   sync(): void {
     const c = this.combat;
     if (this.phase !== 'fight' || !c) return;
+    if (this.practice) {
+      // a practice fight pays nothing; it ends when the fight does
+      c.killQueue.length = 0;
+      c.coinsEarned = 0;
+      c.aims.length = 0;
+      if (c.result) this.endPractice(c.result === 'won');
+      return;
+    }
     this.bankKills();
     if (this.skirmish) return this.syncSkirmish(c);
     if (c.result === 'lost') this.phase = 'defeat';
@@ -1000,6 +1010,61 @@ export class Run {
     this.boostChoices = [];
     this.phase = 'fight';
     return true;
+  }
+
+  // ------------------------------------------------------------------ practice fights (the camp's Training Dummy,
+  // and the Test lab's scenarios)
+
+  /** A practice fight on screen: the run as it was (put back after), where it goes back to, and when it ended. */
+  practice: { hero: Hero; combat: Combat | null; actIndex: number; phase: Phase; then: Phase } | null = null;
+  /** The last practice fight just ended (won or not): the view shows what comes next and empties it. */
+  practiceEnded: { won: boolean } | null = null;
+
+  /**
+   * A practice fight: no rewards, no XP, nothing saved. By default against the Training Dummy, as the picked hero,
+   * with nothing able to hurt the hero (`safe`); the Test lab sets the hero, stars, companions, foes, act and bar rules.
+   */
+  startPractice(o: { hero?: HeroId; stars?: number; pets?: PetBuild[]; enemies?: string[]; waves?: string[][]; act?: number; bar?: BarRules; row?: number; safe?: boolean; then?: Phase; seed?: number; relics?: RelicId[] } = {}): void {
+    if (!this.practice) this.practice = { hero: this.hero, combat: this.combat, actIndex: this.actIndex, phase: this.phase === 'fight' ? 'camp' : this.phase, then: o.then ?? (this.phase === 'fight' ? 'camp' : this.phase) };
+    else this.practice.then = o.then ?? this.practice.then;
+    const act = Math.max(0, Math.min(this.region.acts.length - 1, o.act ?? 0));
+    const id = o.hero ?? this.profile.hero;
+    const base = profileBuild(this.profile, this.tuning, id);
+    const build: HeroBuild = { ...base, id, stars: o.stars ?? base.stars, pets: o.pets ?? base.pets };
+    this.hero = heroFor(this.tuning, act, this.gear, build);
+    if (o.relics) this.hero.relics = o.relics.slice();
+    const scale = this.tuning.acts[act];
+    const waves = o.waves ?? [o.enemies ?? ['dummy']];
+    this.combat = new Combat({
+      tuning: this.tuning,
+      settings: this.settings,
+      hero: this.hero,
+      enemies: waves.flat(),
+      waves,
+      seed: (o.seed ?? this.seed + 77) >>> 0,
+      hpMult: scale?.hpMult ?? 1,
+      atkMult: scale?.atkMult ?? 1,
+      pace: scale?.pace ?? 1,
+      redSpeed: scale?.redSpeed ?? 1,
+      bar: o.bar,
+      row: o.row ?? 9,
+      practice: o.safe ?? true,
+    });
+    this.practiceEnded = null;
+    this.boostChoices = [];
+    this.phase = 'fight';
+  }
+
+  /** Leave a practice fight now (won, lost, or walked away from): the run as it was. */
+  endPractice(won = false): void {
+    const pr = this.practice;
+    if (!pr) return;
+    this.hero = pr.hero;
+    this.combat = pr.combat;
+    this.actIndex = pr.actIndex;
+    this.practice = null;
+    this.practiceEnded = { won };
+    this.phase = pr.then;
   }
 
   /** The skirmish is over: won, its drops and XP (then the world map); lost, straight back to the world map. */

@@ -332,6 +332,19 @@ export const ENEMIES: Record<string, EnemyDef> = {
     coins: 0,
     specials: [],
   },
+  // the camp's Training Dummy (practice fights): a gentle mix of everything, never dangerous
+  dummy: {
+    name: 'Training Dummy',
+    hp: 2400,
+    atk: 4,
+    special: 4,
+    interval: 0.7,
+    pattern: 'YYRYGYYRYP',
+    icon: 'sack',
+    sprite: 'dummy',
+    coins: 0,
+    specials: [],
+  },
   // Region 2 (src/data/enemies-frost.ts)
   ...FROST_ENEMIES,
 };

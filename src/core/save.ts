@@ -104,6 +104,8 @@ export function migrateSave(data: unknown, profile: Profile): unknown {
 export function snapshotRun(run: Run, now = Date.now()): RunSave | null {
   // the camp saves as the screen it goes back to (from the world map: no run to save); so does a skirmish (it's
   // the world map's: it was used up when it began)
+  // a practice fight saves as the screen it goes back to (the run as it was before it)
+  if (run.practice) return snapshotAround(run, now);
   const ph = run.phase === 'camp' ? (run.campFrom === 'world' ? 'world' : run.campFrom) : run.phase;
   if (ph === 'title' || ph === 'world' || ph === 'victory' || run.skirmish) return null;
   const c = run.combat;
@@ -151,6 +153,22 @@ export function snapshotRun(run: Run, now = Date.now()): RunSave | null {
     bonusPicks: run.bonusPicks,
     pickKind: run.phase === 'boost' || run.phase === 'loot' || run.phase === 'treasure' ? run.pickKind : null,
   };
+}
+
+/** The run as it was before a practice fight (its hero, its fight), saved as the screen the practice goes back to. */
+function snapshotAround(run: Run, now: number): RunSave | null {
+  const pr = run.practice!;
+  const keep = { practice: run.practice, hero: run.hero, combat: run.combat, actIndex: run.actIndex, phase: run.phase };
+  run.practice = null;
+  run.hero = pr.hero;
+  run.combat = pr.combat;
+  run.actIndex = pr.actIndex;
+  run.phase = pr.then;
+  try {
+    return snapshotRun(run, now);
+  } finally {
+    Object.assign(run, keep);
+  }
 }
 
 const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
