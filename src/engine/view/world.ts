@@ -15,6 +15,7 @@
 // else is drawn in world px less the camera. Everything animates from `now` (deterministic for the screenshot
 // tests): the art was pre-rendered at boot, so a frame only moves images, swaps their frames, and draws a modest
 // number of rects (only for what's in view).
+import { GREENMARCH } from '../../data/greenmarch';
 import type Phaser from 'phaser';
 import { itemLevel, type Item } from '../../core/gear';
 import { WEIGHTS_TOTAL } from '../../core/profile';
@@ -544,7 +545,7 @@ export class WorldView {
   private cardText(i: number): { name: string; status: string; col: number } {
     const app = this.s.app;
     const cleared = i < app.profile.actsCleared;
-    const name = app.run.region.acts[i]?.name ?? '';
+    const name = GREENMARCH.acts[i]?.name ?? '';
     if (cleared) return { name, status: 'Replay (farm)', col: 0x9af06a };
     return { name, status: app.profile.actsCleared > 0 ? 'Continue the story' : 'Begin the story', col: 0xffe680 };
   }
@@ -553,7 +554,7 @@ export class WorldView {
   private pickPanel(): Rect {
     const s = this.s;
     const w = Math.min(272, s.R - s.L - 8);
-    const n = this.s.app.run.region.acts.length;
+    const n = GREENMARCH.acts.length;
     const h = 14 + n * (PICK_ROW_H + 2) + 3;
     return { x: Math.round((s.L + s.R) / 2 - w / 2), y: Math.max(24, Math.round((s.B - h) / 2) + 6), w, h };
   }
@@ -589,12 +590,12 @@ export class WorldView {
       this.picker = null;
       app.audio.uiClick();
     };
-    if (x < 0) return this.startAct(run.playableActs - 1);
+    if (x < 0) return this.startAct(Math.min(GREENMARCH.acts.length, run.playableActs) - 1);
     if (inRect(this.closeButton(), x, y, 3)) {
       notePress(this.closeButton());
       return close();
     }
-    for (let i = 0; i < run.region.acts.length; i++) {
+    for (let i = 0; i < GREENMARCH.acts.length; i++) {
       if (!inRect(this.pickRow(i), x, y, 1)) continue;
       if (i >= run.playableActs) {
         this.pickShake = { act: i, at: now };
@@ -1516,7 +1517,7 @@ export class WorldView {
           col = 0xffe680;
         } else if (inf.id.startsWith('act')) {
           const i = Number(inf.id.slice(3));
-          title = s.app.run.region.acts[i]?.name ?? '';
+          title = GREENMARCH.acts[i]?.name ?? '';
           line = `Clear Act ${i} first`;
           ax = WORLD_ACTS[i].flag[0];
           ay = WORLD_ACTS[i].flag[1] - 16;
@@ -1588,7 +1589,7 @@ export class WorldView {
       g.fillRect(cb.x + 9 - i, xy + 4 + i, 1, 1);
     }
     const owned = new Set(app.profile.items.map((it) => it.base));
-    run.region.acts.forEach((act, i) => {
+    GREENMARCH.acts.forEach((act, i) => {
       const ck = easeBack((since - 110 - i * 70) / 240, 1.4);
       if (ck <= 0) return;
       const a = clamp01(ck * 1.5);

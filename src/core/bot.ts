@@ -18,6 +18,7 @@
 // route runs into one (an ambush), the merchant likewise (it shops there as at a shop), a Coin Rush played with its
 // normal aim, every bounty it passes taken, and a secret cache opened half the time it stands beside one.
 
+import { REGIONS } from '../data/regions';
 import { eventById } from '../data/events';
 import type { NodeType } from '../data/types';
 import { SLOT_KEYS, slotOf } from '../data/gear';
@@ -80,6 +81,9 @@ const DEFAULT_LAPSE = 0.03;
  * playtest round 4. To re-aim the curve at another player, `ACC=0.62 npm run retarget` (it writes docs/retarget.md).
  */
 export const TYPICAL_ACCURACY = 0.85;
+
+/** Region 1's acts (the bot's story runs play these; later regions are played from their first act). */
+export const GREENMARCH_ACTS = REGIONS[0].acts.length;
 
 export interface FightStats {
   act: number;
@@ -185,7 +189,7 @@ export function equipBest(run: Run): void {
  * defeat (with the hero as they entered it), then on to the next act with the upgrades earned. Gives up on an
  * act after `maxAttempts`.
  */
-export function playRun(tuning: Tuning, o: BotOptions, maxAttempts = 6, acts = tuning.acts.length, profile: Profile = newProfile()): RunStats {
+export function playRun(tuning: Tuning, o: BotOptions, maxAttempts = 6, acts = GREENMARCH_ACTS, profile: Profile = newProfile()): RunStats {
   const rng = new Rng(o.seed ^ 0x2545f491);
   if (o.hero && o.hero !== 'rowan') {
     profile.heroes[o.hero].unlocked = true;
@@ -223,8 +227,8 @@ export interface FarmResult {
  */
 export function playFarm(tuning: Tuning, o: BotOptions, farms: number, forge = false): FarmResult {
   const profile = newProfile();
-  const story = playRun(tuning, o, 6, tuning.acts.length, profile);
-  const last = tuning.acts.length - 1;
+  const story = playRun(tuning, o, 6, GREENMARCH_ACTS, profile);
+  const last = GREENMARCH_ACTS - 1;
   const visits: FarmResult['visits'] = [];
   const rng = new Rng(o.seed ^ 0x51ed27);
   for (let v = 0; v < farms; v++) {
@@ -700,7 +704,7 @@ export interface ActRow {
 
 /** Play `runs` whole runs per accuracy and summarise every act (as `hero`: Rowan by default; the same seeds for
  *  either hero, so the two compare run for run). */
-export function balance(tuning: Tuning, accuracies: number[], runs: number, seed = 1, maxAttempts = 6, acts = tuning.acts.length, hero?: HeroId, avoid?: RelicId[]): ActRow[] {
+export function balance(tuning: Tuning, accuracies: number[], runs: number, seed = 1, maxAttempts = 6, acts = GREENMARCH_ACTS, hero?: HeroId, avoid?: RelicId[]): ActRow[] {
   const rows: ActRow[] = [];
   for (const acc of accuracies) {
     const results = Array.from({ length: runs }, (_, r) => playRun(tuning, { accuracy: acc, seed: (seed * 7919 + r * 104729 + Math.round(acc * 1000)) >>> 0, hero, avoid }, maxAttempts, acts));

@@ -2,7 +2,7 @@
 // (random node choices on each act's map), prints the table and writes docs/balance.md.
 import { writeFileSync } from 'node:fs';
 import { it } from 'vitest';
-import { balance, playFarm, timingSpread, TYPICAL_ACCURACY, type ActRow, type FarmResult } from '../../src/core/bot';
+import { balance, GREENMARCH_ACTS, playFarm, timingSpread, type ActRow, type FarmResult, TYPICAL_ACCURACY } from '../../src/core/bot';
 import { cloneTuning } from '../../src/core/tuning';
 import type { RelicId } from '../../src/data/relics';
 
@@ -118,7 +118,7 @@ it('balance report', () => {
   const farms = [0.55, 0.7, 0.85].map((a) => farming(t, a));
   // a cautious 85% player: never takes the relics that charge HP
   const CAUTIOUS: RelicId[] = ['clutch', 'glassEdge', 'bloodPrice', 'purplePact'];
-  const cautious = balance(t, [0.85], CONTROL_RUNS, 1, 6, t.acts.length, undefined, CAUTIOUS);
+  const cautious = balance(t, [0.85], CONTROL_RUNS, 1, 6, GREENMARCH_ACTS, undefined, CAUTIOUS);
   // the control: the same player with stat cards only (no relics), as before M4a
   const off = cloneTuning();
   off.relics.on = 0;

@@ -196,7 +196,7 @@ describe('profile storage', () => {
     expect(p.actsCleared).toBe(1);
     writeProfile(p);
     expect(store.has('cq3.progress.v1')).toBe(false);
-    expect(JSON.parse(store.get('cq3.profile.v2')!).v).toBe(3);
+    expect(JSON.parse(store.get('cq3.profile.v2')!).v).toBe(4);
     // a v4 run save: its coins land in the purse once, and both are written back
     const r = new Run(T, { ...DEFAULT_SETTINGS }, 5, p);
     r.newRun();

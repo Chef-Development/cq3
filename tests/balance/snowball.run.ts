@@ -4,7 +4,7 @@
 // damage per second against the foes' HP, combo; and an ablation per source (the same seeds without it).
 // RUNS=100 ACC=0.85,0.7 FARMS=6 ABL=1 npx vitest run --config vitest.balance.config.ts tests/balance/snowball.run.ts
 import { it } from 'vitest';
-import { botRun, equipBest, forgeUp, playAct, playRun, type ActAttempt, type BotOptions, type FightStats } from '../../src/core/bot';
+import { botRun, equipBest, forgeUp, GREENMARCH_ACTS, playAct, playRun, type ActAttempt, type BotOptions, type FightStats } from '../../src/core/bot';
 import { itemPower } from '../../src/core/gear';
 import { equippedItems, heroProgress, newProfile, type Profile } from '../../src/core/profile';
 import { levelFromXp } from '../../src/core/heroes';
@@ -115,7 +115,7 @@ function veteran(t: Tuning, acc: number): { played: Played[]; level: number; pow
     const seed = (31337 + r * 7907 + Math.round(acc * 1000)) >>> 0;
     const o: BotOptions = { accuracy: acc, seed, hero: HERO, avoid: AVOID };
     const profile: Profile = newProfile();
-    playRun(t, o, 6, t.acts.length, profile);
+    playRun(t, o, 6, GREENMARCH_ACTS, profile);
     const rng = new Rng(seed ^ 0x51ed27);
     const replay = (act: number, k: number): ActAttempt[] => {
       forgeUp(t, profile);

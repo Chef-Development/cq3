@@ -88,7 +88,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
     coins: 60,
     boss: true,
     specials: [
-      { id: 'headlong', name: 'Headlong!', tell: 0.9, sound: 'charge', first: 3, every: 7, phases: [1], actions: [{ type: 'formation', blocks: [{ kind: 'red', width: 1.35, speed: 1.35, trail: 'ice' }] }] },
+      { id: 'headlong', name: 'Headlong!', tell: 0.9, sound: 'charge', first: 3, every: 6, actions: [{ type: 'formation', blocks: [{ kind: 'red', width: 1.35, speed: 1.35, trail: 'ice' }] }] },
       {
         id: 'avalanche',
         name: 'Avalanche!',
@@ -98,7 +98,6 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
         gate: true,
         actions: [{ type: 'phase', phase: 2 }, { type: 'formation', blocks: icicles(3, 1.8, 0.8) }],
       },
-      { id: 'headlong2', name: 'Headlong!', tell: 0.8, sound: 'charge', first: 2.5, every: 5, phases: [2], actions: [{ type: 'formation', blocks: [{ kind: 'red', width: 1.35, speed: 1.35, trail: 'ice' }] }] },
       { id: 'rockfall', name: 'Rockfall!', tell: 0.8, sound: 'volley', first: 6, every: 9, phases: [2], actions: [{ type: 'formation', blocks: icicles(2, 1.6, 0.8) }] },
     ],
   },
@@ -185,7 +184,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
     boss: true,
     specials: [
       { id: 'spin', name: 'Spin!', tell: 0.8, sound: 'spores', first: 3, every: 8, actions: [{ type: 'toHold', count: 3 }] },
-      { id: 'webLine', name: 'Web Line!', tell: 0.9, sound: 'spores', first: 6, every: 10, actions: [{ type: 'formation', blocks: [{ kind: 'hold', width: 1.6 }] }] },
+      { id: 'webLine', name: 'Web Line!', tell: 0.9, sound: 'spores', first: 6, every: 10, phases: [1], actions: [{ type: 'formation', blocks: [{ kind: 'hold', width: 1.6 }] }] },
       { id: 'mirrorSilk', name: 'Mirror Silk!', tell: 1, sound: 'shell', hpBelow: 0.5, gate: true, actions: [{ type: 'phase', phase: 2 }, { type: 'mirror', at: 0.5, life: 6 }] },
       { id: 'mirrorStrand', name: 'Mirror Silk!', tell: 0.9, sound: 'shell', first: 10, every: 10, phases: [2], actions: [{ type: 'mirror', at: 0.5, life: 6 }] },
     ],
@@ -281,15 +280,15 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
         tell: 0.9,
         sound: 'hugeShield',
         first: 0.8,
-        every: 600,
+        every: 30,
         phases: [1],
         actions: [
           { type: 'zone', kind: 'ice', width: 0.2, life: 0, at: 0.1 },
           { type: 'zone', kind: 'ice', width: 0.2, life: 0, at: 0.9 },
         ],
       },
-      { id: 'icicleRain', name: 'Icicle Rain!', tell: 0.9, sound: 'volley', first: 4, every: 8, phases: [1, 2], actions: [{ type: 'formation', blocks: icicles(3, 1.8, 0.8) }] },
-      { id: 'tailSweep', name: 'Tail Sweep!', tell: 0.8, sound: 'charge', first: 6, every: 7, actions: [{ type: 'formation', blocks: [{ kind: 'red', width: 1.35, speed: 1.4 }] }] },
+      { id: 'icicleRain', name: 'Icicle Rain!', tell: 0.9, sound: 'volley', first: 4, every: 8, phases: [1], actions: [{ type: 'formation', blocks: icicles(3, 1.8, 0.8) }] },
+      { id: 'tailSweep', name: 'Tail Sweep!', tell: 0.8, sound: 'charge', first: 4, every: 7, phases: [2, 3], actions: [{ type: 'formation', blocks: [{ kind: 'red', width: 1.35, speed: 1.4 }] }] },
       // phase 2: her hoard's gold turns yellows into holds, and her scales mirror the cursor
       {
         id: 'hoardHold',

@@ -1,5 +1,6 @@
 // Debug / tuning panel (DOM). Every change applies live and is saved to localStorage. At the top: the player's
 // accuracy (as the balance bot measures it) and its history, with a Copy button for the playtester.
+import { REGIONS } from '../data/regions';
 import { AIM_WINDOW_MS, estimateAccuracy, MIN_SAMPLES } from '../core/accuracy';
 import { TYPICAL_ACCURACY } from '../core/bot';
 import { impactFeel, impactWeight } from '../core/impact';
@@ -189,8 +190,10 @@ export function installDebug(app: App): DebugUi {
       app.setPhase(fn);
       setOpen(false);
     };
+    // (later regions' names and foes are a surprise: their acts show by number only)
+    const secret = (a: number) => a >= REGIONS[0].acts.length;
     app.run.region.acts.forEach((act, a) => {
-      const b = el('button', 'dbg-btn', `Act ${a + 1}: ${act.name} (map)`);
+      const b = el('button', 'dbg-btn', secret(a) ? `Act ${a + 1} (map)` : `Act ${a + 1}: ${act.name} (map)`);
       // arrive with the upgrades a player would have earned on the way
       b.onclick = () =>
         go(() => {
@@ -202,6 +205,7 @@ export function installDebug(app: App): DebugUi {
     // a fight against each enemy, in the act it first shows up in
     const seen = new Set<string>();
     app.run.region.acts.forEach((act, a) => {
+      if (secret(a)) return;
       const groups: Array<[string[], 'fight' | 'elite' | 'boss']> = [
         ...[...act.fights.early, ...act.fights.late].map((g): [string[], 'fight'] => [g, 'fight']),
         ...act.elites.map((g): [string[], 'elite'] => [g, 'elite']),

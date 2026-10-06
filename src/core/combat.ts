@@ -778,6 +778,11 @@ export class Combat {
     return Math.max(0.1, this.mod(z.mult, (h, v) => h.zoneMult?.(this, z, v)));
   }
 
+  /** The ice patch under bar position `pos`, if any. */
+  iceAt(pos: number): Zone | null {
+    return this.zones.find((z) => z.kind === 'ice' && pos >= z.lo && pos <= z.hi) ?? null;
+  }
+
   /** Where the cursor is now (0..1). */
   cursorPos(): number {
     return phaseToPos(this.cursorPhase);
@@ -1090,7 +1095,7 @@ export class Combat {
       return;
     }
     this.removeBlock(b, 'expire');
-    this.miss(b.pos);
+    this.miss(b.pos, true);
   }
 
   /** A press on a hold block: on (or just before) its near edge starts the hold; a press deep inside it is a miss. */
@@ -1953,7 +1958,7 @@ export class Combat {
     return 'trap';
   }
 
-  private miss(pos: number): void {
+  private miss(pos: number, slip = false): void {
     if (!this.missForgiven && setPieces(this.hero.gear, 'footpad') >= 2) {
       // Footpad set: the fight's first miss doesn't break the combo (or hurt)
       this.missForgiven = true;
@@ -1962,7 +1967,7 @@ export class Combat {
       return;
     }
     const classic = this.settings.mode === 'classic';
-    const x: MissCtx = { damage: classic && !this.rush ? this.tuning.judge.missSelfDamage : 0, breaks: true };
+    const x: MissCtx = { slip, damage: classic && !this.rush ? this.tuning.judge.missSelfDamage : 0, breaks: true };
     for (const h of this.hooks) h.miss?.(this, x);
     this.events.push({ type: 'miss', pos, selfDamage: x.damage > 0 });
     if (x.damage > 0) this.heroDamage(x.damage, 'miss', 0, !x.breaks);

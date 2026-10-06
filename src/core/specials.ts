@@ -76,10 +76,12 @@ function partnerOf(c: Combat, e: Enemy): Enemy | null {
 
 function formation(c: Combat, e: Enemy, entries: FormationEntry[]): void {
   let prev: Block | null = null;
+  const taken: number[] = [];
   for (const raw of entries) {
     const owner = (raw.partner && partnerOf(c, e)) || e;
-    // a spot chosen now (and marked on the bar, so the player can see where it will land)
-    const entry = raw.spot ? { ...raw, at: spotFor(c, raw), spot: undefined } : raw;
+    // a spot chosen now (and marked on the bar, so the player can see where it will land), clear of the others
+    const entry = raw.spot ? { ...raw, at: spotFor(c, raw, taken), spot: undefined } : raw;
+    if (raw.spot) taken.push(entry.at!);
     if (raw.spot) c.events.push({ type: 'mark', pos: entry.at!, sec: Math.max(0, raw.delay ?? 0) });
     if (entry.delay && entry.delay > 0) {
       c.enqueue(owner.id, entry, entry.delay);
@@ -121,12 +123,18 @@ export function placeEntry(c: Combat, owner: Enemy, entry: FormationEntry, prev:
 }
 
 /** Where a spotted entry lands: where the cursor is heading, or a random spot clear of the other still blocks. */
-function spotFor(c: Combat, entry: FormationEntry): number {
+function spotFor(c: Combat, entry: FormationEntry, taken: number[] = []): number {
   if (entry.spot === 'ahead') return c.aheadPos();
   const w = c.widthFor(entry.kind as BlockKind) * (entry.width ?? 1);
-  for (let k = 0; k < 12; k++) {
+  // spots of one formation sit at least a quarter of the bar apart (each its own tap)
+  const apart = (p: number) => taken.every((q) => Math.abs(q - p) >= 0.25);
+  for (let k = 0; k < 24; k++) {
     const p = 0.12 + c.rand() * 0.76;
-    if (c.blocks.every((b) => (isRed(b.kind) && !b.still) || Math.abs(b.pos - p) >= (b.width + w) / 2)) return p;
+    if (apart(p) && c.blocks.every((b) => (isRed(b.kind) && !b.still) || Math.abs(b.pos - p) >= (b.width + w) / 2)) return p;
+  }
+  for (let k = 0; k < 24; k++) {
+    const p = 0.12 + c.rand() * 0.76;
+    if (apart(p)) return p;
   }
   return 0.12 + c.rand() * 0.76;
 }
@@ -242,7 +250,10 @@ function cursor(c: Combat, freeze?: number, minSpeed?: number): void {
 function zone(c: Combat, e: Enemy, kind: 'ice' | 'snow', width: number, life: number, at: number | 'ahead' | undefined, count: number): void {
   for (let i = 0; i < count; i++) {
     const pos = at === 'ahead' ? c.aheadPos() : at !== undefined ? at : c.freeZoneSpot(width);
-    c.addZone(kind, pos, width, life, life > 0 ? 0 : Math.max(1, e.phase));
+    const phase = life > 0 ? 0 : Math.max(1, e.phase);
+    // a phase's standing patch is laid once (a timer that comes round again doesn't stack it)
+    if (phase && c.zones.some((z) => z.kind === kind && z.phase === phase && pos >= z.lo && pos <= z.hi)) continue;
+    c.addZone(kind, pos, width, life, phase);
   }
 }
 

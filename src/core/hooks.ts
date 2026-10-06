@@ -67,6 +67,8 @@ export interface BreakCtx {
 
 /** A miss: how much it hurts and whether it breaks the combo (hooks change both). */
 export interface MissCtx {
+  /** A hold let go too early (rather than a tap on nothing). */
+  slip: boolean;
   damage: number; // Classic mode: tuning.judge.missSelfDamage; Relaxed: 0
   breaks: boolean;
 }

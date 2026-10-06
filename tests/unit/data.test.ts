@@ -1,5 +1,6 @@
 // Content checks: the data in src/data fits together (every encounter's enemies exist, every scene and event
 // exists, story boxes fit their text box) and the tuning panel can see it.
+import { ALL_ACTS } from '../../src/data/regions';
 import { describe, expect, it } from 'vitest';
 import { ENEMIES } from '../../src/data/enemies';
 import { EVENTS } from '../../src/data/events';
@@ -101,10 +102,14 @@ describe('region data', () => {
             const windowSec = (w + T.cursor.widthFrac) / closing + (2 * T.judge.redGraceMs) / 1000;
             expect(windowSec, `${name}: blocking window`).toBeGreaterThanOrEqual(0.12);
           }
+          // icicles (still reds) sit at spots picked a quarter of the bar apart (specials.ts spotFor), and give the
+          // cursor more than a full pass to reach them before they strike
+          for (const b of reds) if (b.still) expect(b.fuse ?? 0, `${key}.${s.id}: an icicle's fuse`).toBeGreaterThanOrEqual(1.4);
           // in a wave, the cursor meets one red at a time: at least 0.16 s apart (a thumb taps about every 0.14 s)
           for (let i = 0; i < reds.length; i++)
             for (let j = i + 1; j < reds.length; j++) {
               const [p, q] = [reds[i], reds[j]];
+              if (p.still && q.still) continue;
               const gap = p.at !== undefined && q.at !== undefined ? Math.abs(p.at - q.at) : Math.abs((q.delay ?? 0) - (p.delay ?? 0)) * Math.min(at(p).vel, at(q).vel);
               expect(gap / Math.max(at(p).closing, at(q).closing), `${key}.${s.id}: reds ${i} and ${j} too close`).toBeGreaterThanOrEqual(0.16);
             }
@@ -240,7 +245,8 @@ describe('tuning sees the content', () => {
     expect(Object.keys(DEFAULT_TUNING.enemies)).toEqual(Object.keys(ENEMIES));
     expect(DEFAULT_TUNING.enemies.boar).toEqual(ENEMIES.boar);
     expect(DEFAULT_TUNING.enemies.boar).not.toBe(ENEMIES.boar); // a copy: the panel never edits the data
-    expect(DEFAULT_TUNING.acts.map((a) => a.hpMult)).toEqual(GREENMARCH.acts.map((a) => a.hpMult));
+    expect(DEFAULT_TUNING.acts.map((a) => a.hpMult)).toEqual(ALL_ACTS.map((a) => a.hpMult)); // every region's acts, in order
+    expect(ALL_ACTS.slice(0, 3)).toEqual(GREENMARCH.acts);
   });
 
   it("every slider path points at a number, including the specials' timings", () => {

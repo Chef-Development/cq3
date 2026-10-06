@@ -214,16 +214,18 @@ function readV4(p: Profile, d: Record<string, unknown>): void {
   p.allUnlocked = d.allUnlocked === true;
   if (d.v !== 4) {
     // Region 1's progress counts: the events whose relic was unlocked were finished there
-    const log = (p.regions.greenmarch ??= newRegionLog());
-    for (const r of RELICS) if (r.unlock?.kind === 'event' && p.relics.includes(r.id) && !log.events.includes(r.unlock.event)) log.events.push(r.unlock.event);
+    const done = [...new Set(RELICS.filter((r) => r.unlock?.kind === 'event' && p.relics.includes(r.id)).map((r) => (r.unlock as { event: string }).event))];
+    if (done.length) (p.regions.greenmarch ??= newRegionLog()).events = done;
   }
 }
 
 function readFields(d: Record<string, unknown>, t?: Tuning): Profile {
   const p = newProfile();
-  p.actsCleared = int(d.actsCleared, 0, ALL_ACTS.length);
+  // (a profile from before v4 only knew Greenmarch's three acts)
+  p.actsCleared = int(d.actsCleared, 0, (d.v as number) < 4 ? 3 : ALL_ACTS.length);
   p.weights = int(d.weights, 0, WEIGHTS_TOTAL);
-  if (d.v !== 3) migrateHeroes(p, t);
+  const v = d.v as number;
+  if (v < 3) migrateHeroes(p, t);
   if (d.v === 1) return p; // v1 -> v3: progress kept, the gear starts empty
   p.coins = int(d.coins, 0, 1e9);
   p.scrap = int(d.scrap, 0, 1e9);
@@ -242,7 +244,7 @@ function readFields(d: Record<string, unknown>, t?: Tuning): Profile {
   for (const k of Object.keys(blp)) p.blp[k] = int(blp[k], 0, 1e6);
   p.acc = readAccuracyLog(d.acc);
   p.smithMet = d.smithMet === true;
-  if (d.v !== 3) return p; // v2 -> v3: the heroes and relics were filled in by migrateHeroes
+  if (v < 3) return p; // v2 -> v3: the heroes and relics were filled in by migrateHeroes
   const hs = (d.heroes ?? {}) as Record<string, unknown>;
   for (const id of HERO_IDS) {
     const h = (hs[id] ?? {}) as Record<string, unknown>;

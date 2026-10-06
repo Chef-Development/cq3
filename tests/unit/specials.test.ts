@@ -77,8 +77,8 @@ describe('telegraphs', () => {
 
   it('every special has a 0.6-1.0 s telegraph, a name, a sound and something to do', () => {
     for (const [key, e] of Object.entries(DEFAULT_TUNING.enemies)) {
-      // 0-2 moves; a boss's phase changes (HP-gated specials) come on top
-      expect(e.specials.filter((s) => !(e.boss && s.gate)).length, key).toBeLessThanOrEqual(2);
+      // 0-2 moves at a time (a boss's moves can change by phase); its phase changes (HP-gated specials) come on top
+      for (const ph of [1, 2, 3]) expect(e.specials.filter((s) => !(e.boss && s.gate) && (!s.phases || s.phases.includes(ph))).length, `${key} phase ${ph}`).toBeLessThanOrEqual(2);
       for (const s of e.specials) {
         expect(s.tell, `${key}.${s.id}`).toBeGreaterThanOrEqual(0.6);
         expect(s.tell, `${key}.${s.id}`).toBeLessThanOrEqual(1.0);

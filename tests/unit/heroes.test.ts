@@ -214,7 +214,7 @@ describe('profile v3: heroes', () => {
   it('migrates a v2 profile: Rowan gets the cleared acts\' first-clear XP, their relics unlock, Sable waits', () => {
     const v2 = { v: 2, actsCleared: 2, weights: 0, coins: 50, scrap: 3, items: [], equipped: {}, nextUid: 1, found: 0, blp: {}, smithMet: true };
     const p = readProfile(viaJson(v2), t);
-    expect(p.v).toBe(3);
+    expect(p.v).toBe(4);
     expect(p.heroes.rowan.xp).toBe(actXp(t, 0, true) + actXp(t, 1, true));
     expect(p.heroes.rowan.skills).toEqual([]);
     expect(p.heroes.sable).toEqual({ unlocked: false, xp: 0, skills: [], stars: 1, shards: 0, acts: 0 });

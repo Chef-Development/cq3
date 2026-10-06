@@ -42,3 +42,18 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     "Version" instead of "Build" (tech words out of player-facing text).
 14. The bot test "farming raises the Boar King win rate" keeps farming above the story but its +10-point margin is
     loosened until Part 7's retune (Rowan's Blade rule made the story's boss a little easier).
+
+## Part 6: the next region (details in docs/content-bible.md)
+15. **One global act index** (`src/data/regions.ts`): Greenmarch is acts 0-2, the next region 3-5. Item levels, XP,
+    the replay kit and coins keep growing act by act; `profile.actsCleared` counts across regions (a pre-v4 profile is
+    capped at 3). The run walks `CAMPAIGN` (every region's acts), and a region's last act ends in its own victory
+    scene (its weight comes home: `weights` = regions cleared).
+16. **A region starts a fresh run:** entering its first act gives the replay kit for every act behind (an end-of-
+    Region-1 hero) but relic picks only for acts behind *within the region* (none at a region's first act).
+17. Map packs ramp within each region (its first act has the fewest), not across the whole kingdom.
+18. The Ice and Hold relics (`from: 3`) are only offered in the region that has ice and holds; eight of them unlock
+    through heroes' mastery milestones, the rest through the region's act clears and elites, two from the start there.
+19. Region bosses get at most two moves per phase (the boss test now counts per phase); the boss's opening ice wings
+    are laid once per phase even though their timer comes round again.
+20. The act picker on the world map and the gear panel's "Jump to" show only Greenmarch's names until the world map's
+    new landmarks are in (the next region's acts are listed by number only: spoilers).

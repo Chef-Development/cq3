@@ -3,7 +3,7 @@
 // into SD_CALIBRATION.
 import { it } from 'vitest';
 import { rawSpread } from '../../src/core/accuracy';
-import { botRun, playAct, timingSpread } from '../../src/core/bot';
+import { botRun, GREENMARCH_ACTS, playAct, timingSpread } from '../../src/core/bot';
 import { Rng } from '../../src/core/rng';
 import { cloneTuning } from '../../src/core/tuning';
 
@@ -18,7 +18,7 @@ it('accuracy calibration', () => {
       const seed = 5000 + r * 13;
       const run = botRun(t, seed);
       const rng = new Rng(seed ^ 0x77);
-      for (let a = 0; a < t.acts.length; a++) {
+      for (let a = 0; a < GREENMARCH_ACTS; a++) {
         playAct(run, rng, { accuracy: acc, seed });
         errs.push(...run.actAims);
         if (run.phase !== 'actClear') break;
