@@ -226,7 +226,9 @@ describe('impact layers', () => {
 
 describe('telegraphs', () => {
   it('every TellSound is in the Sound lab catalog (and no tell is an impact tier)', () => {
-    expect(new Set(TELL_SOUNDS).size).toBe(16);
+    expect(new Set(TELL_SOUNDS).size).toBe(26);
+    // Region 2's ten (cold, crystalline, heavy snow) go through every check below like Region 1's
+    for (const k of ['frost', 'icicles', 'snowball', 'silk', 'mirror', 'hail', 'drift', 'shimmer', 'avalanche', 'wings']) expect(TELL_SOUNDS, k).toContain(k);
     for (const k of TELL_SOUNDS) {
       const e = SFX.find((x) => x.id === `tell-${k}`);
       expect(e, k).toBeDefined();
@@ -796,4 +798,4 @@ describe('UI and transition sounds', () => {
   });
 });
 
-const MIN_TELL_DISTANCE = 6.5; // RMS dB over the phone spectrogram's cells (closest pair today: ~7.2)
+const MIN_TELL_DISTANCE = 6.5; // RMS dB over the phone spectrogram's cells (closest pairs today: ~7.2)

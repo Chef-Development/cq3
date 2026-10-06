@@ -179,8 +179,46 @@ export type TellSound =
   | 'stomp'
   | 'summon'
   | 'phase'
-  | 'enrage';
-export const TELL_SOUNDS: TellSound[] = ['split', 'charge', 'smoke', 'dive', 'volley', 'spores', 'shell', 'howl', 'guard', 'bombs', 'call', 'hugeShield', 'stomp', 'summon', 'phase', 'enrage'];
+  | 'enrage'
+  // Region 2 (cold, crystalline, heavy snow)
+  | 'frost'
+  | 'icicles'
+  | 'snowball'
+  | 'silk'
+  | 'mirror'
+  | 'hail'
+  | 'drift'
+  | 'shimmer'
+  | 'avalanche'
+  | 'wings';
+export const TELL_SOUNDS: TellSound[] = [
+  'split',
+  'charge',
+  'smoke',
+  'dive',
+  'volley',
+  'spores',
+  'shell',
+  'howl',
+  'guard',
+  'bombs',
+  'call',
+  'hugeShield',
+  'stomp',
+  'summon',
+  'phase',
+  'enrage',
+  'frost',
+  'icicles',
+  'snowball',
+  'silk',
+  'mirror',
+  'hail',
+  'drift',
+  'shimmer',
+  'avalanche',
+  'wings',
+];
 
 /** Mix level per telegraph (scales every voice in it), balanced by ear-by-numbers so they all land at about the
  *  same phone-speaker loudness: well over the music, under the heavy impacts (tests/unit/audio.test.ts). */
@@ -201,6 +239,16 @@ const TELL_MIX: Record<TellSound, number> = {
   summon: 0.5,
   phase: 0.48,
   enrage: 0.76,
+  frost: 0.88,
+  icicles: 1.13,
+  snowball: 1.32,
+  silk: 0.43,
+  mirror: 0.28,
+  hail: 1.35,
+  drift: 0.97,
+  shimmer: 1.67,
+  avalanche: 0.6,
+  wings: 1.22,
 };
 
 /** [seconds after a voice starts, value] breakpoints (see Synth.voice). */
@@ -1378,6 +1426,26 @@ export class Synth {
         return this.tellPhase(t, T);
       case 'enrage':
         return this.tellEnrage(t, T);
+      case 'frost':
+        return this.tellFrost(t, T);
+      case 'icicles':
+        return this.tellIcicles(t, T);
+      case 'snowball':
+        return this.tellSnowball(t, T);
+      case 'silk':
+        return this.tellSilk(t, T);
+      case 'mirror':
+        return this.tellMirror(t, T);
+      case 'hail':
+        return this.tellHail(t, T);
+      case 'drift':
+        return this.tellDrift(t, T);
+      case 'shimmer':
+        return this.tellShimmer(t, T);
+      case 'avalanche':
+        return this.tellAvalanche(t, T);
+      case 'wings':
+        return this.tellWings(t, T);
     }
   }
 
@@ -1648,6 +1716,169 @@ export class Synth {
     this.voice({ at: r, type: 'sawtooth', f: [[0, 170], [d * 0.8, 330], [d, 290]], trem: { rate: 38, depth: 0.6, wave: 'square' }, filter: 'bandpass', ff: [[0, 1100], [d, 1500]], q: 1.3, amp: [[d * 0.3, 0.3], [d * 0.85, 0.6], [d, 0]] });
     this.voice({ at: r, type: 'sawtooth', f: [[0, 105], [d, 150]], trem: { rate: 34, depth: 0.7, wave: 'square' }, amp: [[d * 0.3, 0.2], [d * 0.85, 0.4], [d, 0]], out: crunch });
     this.voice({ at: r, type: 'noise', filter: 'bandpass', ff: [[0, 900], [d, 1900]], q: 2, amp: [[d * 0.4, 0.2], [d * 0.85, 0.6], [d + 0.03, 0]] });
+  }
+
+  // Region 2's telegraphs: cold, crystalline, heavy snow
+
+  /** Frost breath: a quick sniff in, a held moment, then an icy puff of breath (a breathy rush with a hollow
+   *  whistle in it, swelling) with frost crackling into crystals as it lands. */
+  private tellFrost(t: number, T: number): void {
+    this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 2200], [0.12 * T, 4200]], q: 2, amp: [[0.1 * T, 0.3], [0.14 * T, 0]] });
+    const b = t + 0.36 * T;
+    const d = 0.64 * T + 0.03;
+    this.voice({ at: b, type: 'noise', rate: 0.8, filter: 'bandpass', ff: [[0, 700], [d, 1500]], q: 1.4, amp: [[d * 0.2, 0.35], [d * 0.9, 0.8], [d, 0]] });
+    this.voice({ at: b, type: 'noise', filter: 'bandpass', ff: [[0, 1050], [d, 1500]], q: 16, amp: [[d * 0.3, 0.6], [d * 0.9, 1.4], [d, 0]] });
+    this.ticks(
+      Array.from({ length: 14 }, (_, i) => b + d * (0.5 + 0.5 * Math.sqrt((i + this.rand()) / 14))),
+      { gain: 0.3, f: 7500, q: 3, ms: 3 },
+    );
+  }
+
+  /** Icicles forming overhead: glassy tinks ringing down a scale, one after another, then a bright cluster as they
+   *  break loose. */
+  private tellIcicles(t: number, T: number): void {
+    const glass = (at: number, f: number, g: number, ring: number) => {
+      this.tone({ type: 'sine', f, f1: f * 0.99, glide: ring, at, attack: 0.001, dur: ring, gain: g });
+      this.tone({ type: 'sine', f: f * 2.32, at, attack: 0.001, dur: ring * 0.4, gain: g * 0.4 });
+    };
+    [100, 98, 96, 93, 91, 88, 86].forEach((m, i) => glass(t + (0.04 + i * 0.12) * T, hz(m), 0.1 + 0.02 * i, 0.5));
+    const c = t + 0.9 * T;
+    for (const m of [96, 100, 103]) glass(c, hz(m), 0.16, 0.25);
+    this.voice({ at: c, type: 'noise', filter: 'highpass', ff: [[0, 6000]], amp: [[0.002, 0.25], [0.06, 0]] });
+  }
+
+  /** A snowball rolled up: crunching snow in a rolling rhythm, each crunch bigger and lower than the last over a
+   *  rumble that grows with it, and a soft thump as it's heaved. */
+  private tellSnowball(t: number, T: number): void {
+    const crunch = this.graph!.crunch;
+    const n = 7;
+    for (let i = 0; i < n; i++) {
+      const s = t + (0.04 + i * 0.12) * T;
+      const k = i / (n - 1);
+      const f = 2000 - 900 * k;
+      this.ticks(
+        Array.from({ length: 6 + i }, () => s + this.rand() * 0.06),
+        { gain: 0.3 + 0.25 * k, f, q: 1.2, ms: 4 },
+      );
+      this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, f], [0.08, f * 0.6]], q: 1.5, amp: [[0.006, 0.18 + 0.3 * k], [0.09, 0]] });
+    }
+    this.voice({ at: t, type: 'noise', rate: 0.5, filter: 'lowpass', ff: [[0, 400], [T, 1200]], trem: { rate: 1 / (0.12 * T), depth: 0.6 }, amp: [[0.1, 0.05], [T, 0.45], [T + 0.04, 0]] });
+    const h = t + 0.9 * T;
+    this.voice({ at: h, type: 'noise', rate: 0.6, filter: 'lowpass', ff: [[0, 1800], [0.15, 400]], amp: [[0.005, 0.5], [0.16, 0]] });
+    this.tone({ type: 'triangle', f: 210, f1: 90, glide: 0.08, at: h, dur: 0.14, gain: 0.3, out: crunch });
+  }
+
+  /** A spider spinning silk: the spinneret's thin whirr rising, and the thread plucked as it's drawn taut, each
+   *  pluck higher, the last one ringing. */
+  private tellSilk(t: number, T: number): void {
+    const d = 0.9 * T;
+    this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 2200], [d, 4800]], q: 6, trem: { rate: 32, rate1: 60, depth: 0.7 }, amp: [[0.05, 0.12], [d, 0.35], [d + 0.03, 0]] });
+    [69, 74, 79, 86].forEach((m, i) => {
+      const s = t + [0.18, 0.42, 0.62, 0.82][i] * T;
+      const f = hz(m);
+      const last = i === 3;
+      this.voice({ at: s, type: 'sawtooth', f: [[0, f * 1.02], [0.02, f]], filter: 'lowpass', ff: [[0, 6000], [last ? 0.25 : 0.12, 1200]], q: 2, amp: [[0.002, 0.3 + 0.08 * i], [last ? 0.3 : 0.14, 0]] });
+      this.tone({ type: 'triangle', f: f * 2, at: s, dur: last ? 0.2 : 0.1, gain: 0.08 + 0.02 * i });
+    });
+  }
+
+  /** A mirror of ice rising: a glassy ring swelling (two pure tones beating, a finger round a wine glass) with a
+   *  shimmer above it, and a bright ting as it sets. */
+  private tellMirror(t: number, T: number): void {
+    const f = 1046;
+    const d = 0.92 * T;
+    const amp: Pts = [[0.25 * T, 0.18], [d * 0.95, 0.42], [d + 0.03, 0]];
+    this.voice({ at: t, type: 'sine', f: [[0, f]], amp });
+    this.voice({ at: t, type: 'sine', f: [[0, f * 1.007]], amp: scalePts(amp, 0.9) });
+    this.voice({ at: t, type: 'sine', f: [[0, f * 2.32]], trem: { rate: 6, rate1: 11, depth: 0.7 }, amp: scalePts(amp, 0.3) });
+    this.voice({ at: t, type: 'noise', filter: 'highpass', ff: [[0, 7000]], trem: { rate: 9, rate1: 16, depth: 0.8 }, amp: [[0.3 * T, 0.04], [d, 0.16], [d + 0.03, 0]] });
+    const c = t + 0.9 * T;
+    this.tone({ type: 'sine', f: f * 2, at: c, attack: 0.001, dur: 0.3, gain: 0.25 });
+    this.tone({ type: 'sine', f: f * 3, at: c, dur: 0.2, gain: 0.1 });
+  }
+
+  /** A hailstorm called down: three sheets of hailstones rattling past, each denser and louder than the last (hard
+   *  ticks, icy pings on armour, a gust of icy air under each). */
+  private tellHail(t: number, T: number): void {
+    [0.08, 0.4, 0.7].forEach((k, w) => {
+      const s = t + k * T;
+      const d = 0.2 * T;
+      const n = 8 + 5 * w;
+      const times = Array.from({ length: n }, () => s + d * this.rand());
+      this.ticks(
+        times.filter((_, i) => i % 2 === 0),
+        { gain: 0.4 + 0.12 * w, f: 3400, q: 3, ms: 6 },
+      );
+      this.ticks(
+        times.filter((_, i) => i % 2 === 1),
+        { gain: 0.36 + 0.1 * w, f: 5800, q: 4, ms: 5 },
+      );
+      times.filter((_, i) => i % 3 === 0).forEach((ti) => this.tone({ type: 'sine', f: 3800 + this.rand() * 1600, at: ti, attack: 0.001, dur: 0.07, gain: 0.07 + 0.02 * w }));
+      this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, 1800], [d, 2600]], q: 1, amp: [[d * 0.5, 0.12 + 0.08 * w], [d + 0.04, 0]] });
+    });
+  }
+
+  /** A troll piling a snowdrift: two shovelfuls scraped up and dumped (a scrape, a soft thud), then the drift slumps
+   *  with a deep "whumpf". */
+  private tellDrift(t: number, T: number): void {
+    const crunch = this.graph!.crunch;
+    [0, 0.32].forEach((k, i) => {
+      const s = t + k * T;
+      const sd = 0.16;
+      this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, 1400], [sd, 2600]], q: 1.4, trem: { rate: 26, depth: 0.5 }, amp: [[0.02, 0.2 + 0.05 * i], [sd, 0]] });
+      const l = s + 0.2 * T;
+      this.voice({ at: l, type: 'noise', rate: 0.6, filter: 'lowpass', ff: [[0, 1200], [0.12, 350]], amp: [[0.004, 0.35 + 0.1 * i], [0.14, 0]] });
+      this.tone({ type: 'triangle', f: 180, f1: 90, glide: 0.06, at: l, dur: 0.1, gain: 0.2 + 0.05 * i, out: crunch });
+    });
+    const w = t + 0.74 * T;
+    const wd = 0.26 * T + 0.08;
+    this.voice({ at: w, type: 'noise', rate: 0.5, filter: 'lowpass', ff: [[0, 400], [wd * 0.5, 1500], [wd, 300]], q: 1.2, amp: [[wd * 0.45, 0.85], [wd, 0]] });
+    this.voice({ at: w, type: 'noise', filter: 'bandpass', ff: [[0, 900], [wd, 600]], q: 1, amp: [[wd * 0.45, 0.3], [wd, 0]] });
+    this.tone({ type: 'triangle', f: 130, f1: 55, glide: 0.15, at: w + wd * 0.3, dur: 0.25, gain: 0.4, out: crunch });
+  }
+
+  /** An aurora's shimmer: a low chord fading in a note at a time, its tone sweeping up from dark to bright like a
+   *  wash of light, with a glissando of sparkles over the top as it peaks. */
+  private tellShimmer(t: number, T: number): void {
+    const d = 0.95 * T;
+    [50, 57, 62, 66, 69].forEach((m, i) => {
+      const s = t + i * 0.1 * T;
+      const len = d - i * 0.1 * T;
+      this.voice({ at: s, type: 'sawtooth', f: [[0, hz(m)]], vib: { rate: 4 + i, cents: 10 }, filter: 'bandpass', ff: [[0, 260], [len, 2600]], q: 4, amp: [[len * 0.5, 0.16], [len * 0.95, 0.26], [len + 0.04, 0]] });
+    });
+    for (let i = 0; i < 10; i++) this.tone({ type: 'sine', f: hz(86 + i * 1.5), at: t + (0.55 + 0.4 * (i / 9)) * T, dur: 0.08, gain: 0.04 + 0.006 * i });
+  }
+
+  /** An avalanche letting go: a rumble swelling from far off, snow and ice tumbling faster and faster, then the
+   *  crack of the slab breaking. */
+  private tellAvalanche(t: number, T: number): void {
+    const crunch = this.graph!.crunch;
+    const d = 0.88 * T;
+    this.voice({ at: t, type: 'noise', rate: 0.45, filter: 'lowpass', ff: [[0, 300], [d, 1300]], q: 0.8, trem: { rate: 6, rate1: 14, depth: 0.45 }, amp: [[0.1, 0.08], [d, 0.6], [d + 0.03, 0]] });
+    this.voice({ at: t, type: 'sawtooth', f: [[0, 36], [d, 52]], amp: [[0.1, 0.04], [d, 0.2], [d + 0.03, 0]], out: crunch });
+    const times = Array.from({ length: 16 }, (_, i) => t + d * Math.sqrt((i + this.rand()) / 16));
+    times.forEach((ti, i) => this.tone({ type: 'triangle', f: 260 + this.rand() * 260, f1: 120, glide: 0.04, at: ti, dur: 0.06, gain: 0.1 + 0.012 * i }));
+    this.ticks(times, { gain: 0.3, f: 1800, q: 1.5, ms: 7 });
+    const c = t + d;
+    this.ticks([c, c + 0.009, c + 0.022], { gain: 1, f: 3000, q: 0.9, ms: 10 });
+    this.voice({ at: c, type: 'noise', filter: 'highpass', ff: [[0, 2500]], amp: [[0.002, 0.5], [0.06, 0]] });
+    this.tone({ type: 'square', f: 140, f1: 70, glide: 0.08, at: c, dur: 0.12, gain: 0.15, out: crunch });
+  }
+
+  /** A great wyrm spreading its wings: three huge beats, each a rush of air swooping down and back up with a shower
+   *  of ice crystals shaken off, the last the biggest. */
+  private tellWings(t: number, T: number): void {
+    [0, 0.34, 0.64].forEach((k, i) => {
+      const s = t + k * T;
+      const d = 0.2 * T + 0.03;
+      const g = 0.5 + 0.25 * i;
+      this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, 2600], [d * 0.45, 700], [d, 1500]], q: 1.3, amp: [[d * 0.4, g], [d, 0]] });
+      this.voice({ at: s, type: 'noise', filter: 'lowpass', ff: [[0, 600]], amp: [[d * 0.4, g * 0.3], [d, 0]], out: this.graph!.crunch });
+      this.ticks(
+        Array.from({ length: 6 + 2 * i }, () => s + d * 0.4 + this.rand() * 0.1),
+        { gain: 0.25 + 0.08 * i, f: 8000, q: 5, ms: 6 },
+      );
+    });
   }
 
   /** One heartbeat thump: a saturated low knock (its harmonics reach a phone speaker) over a sub for headphones. */
