@@ -173,7 +173,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
   matron: {
     name: 'Loom Matron',
     tags: ['beast', 'caster'],
-    hp: 3000,
+    hp: 2700,
     atk: 16,
     special: 16,
     interval: 0.6,

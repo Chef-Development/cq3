@@ -97,8 +97,10 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     same seeds, 100 runs each, both regions; the changes and numbers are in docs/balance.md.
 26. **A Rare chest costs 240 gems** (was 180): a story run earns about 240-300 gems in Greenmarch (achievements
     included) and 200-245 in the next region, so the shrine gives about one Rare chest per region.
-27. Hero parity, first pass (Region 1 gaps to Rowan at 85%): Moss attack 0.85 -> 0.8 and his moths heal 2% -> 1.2%
-    (Act 3 was +20), Hollis 125 -> 115 HP (Act 3 +12), Vesper 95 -> 100 HP and attack 1 -> 1.05 (Act 2 -13).
+27. Hero parity took four passes (Region 1 gaps to Rowan at first: Moss +20 and Hollis +12 in Act 3, Vesper -13 in
+    Act 2; the second region's first numbers had Moss +21, Hollis +16, Vesper -22). Final: 40 of 42 hero-acts within
+    +/-10 of Rowan; Sable (+12) and Torva (+15) still lead in the second region's Act 2, where Rowan has no edge on
+    its mini-boss. The table and every change are in docs/balance.md.
 29. Greenmarch after the hero rework: the Boar King's HP 4600 -> 4800 (the playtester's first fight was creeping
     past 80%); the 70% player still clears Act 3 within 6 tries more than 80% of the time (guard restored); farming
     the Boar King now adds 7-10 points (it was +10 before), so its guard asks for +5 at 60 runs.

@@ -12,7 +12,56 @@ camp visit between regions (every Rare chest its gems buy, every chest opened, t
 rarest companions brought along). Patches (ice, snow, a dash) it reads through the cursor's travel time like a
 person; kegs, frozen blocks and allies are plain taps or passive.
 
-@@PARITY@@
+### The second region, from a typical end-of-Greenmarch hero (Rowan)
+
+| Target (85% player) | Result (Rowan, 100 runs) |
+|---|---|
+| Act 4 (the region's Act 1) ~90% first try | **91%** (mini-boss first fight 91%) |
+| Act 5 (Act 2) ~75% first try | **69%** (mini-boss 72%) |
+| Act 6 (Act 3) ~60% first try | **60%** |
+| The boss's first fight ~55-65% | **64%** (98% clear Act 6 within 6 tries) |
+
+Normal fights take 16-22 s, the mini-bosses about a minute, the boss 40 s; the hero comes into the region at level
+~9.5 and meets its boss at ~13. The act numbers (`acts[3..5]`): HP x4.2 / x7.2 / x7.6, attack x9 / x15.5 / x14.5; the
+Act 5 mini-boss has 2700 HP. Greenmarch for Rowan stays where it was: 100% / 91% / 72% first try, the Boar King's
+first fight 79% (its HP 4600 -> 4800 after the heroes rework).
+
+### Every hero against Rowan (first try per act; target: within +/-10 points)
+
+| Hero | Act 1 | Act 2 | Act 3 (boss) | Act 4 | Act 5 | Act 6 (boss) |
+|---|---|---|---|---|---|---|
+| Rowan (Blade) | 100% | 91% | 72% (79%) | 91% | 69% | 60% (64%) |
+| Sable (Shadow) | 100% (0) | 91% (0) | 70% (-2) | 97% (+6) | 81% (**+12**) | 57% (-3) |
+| Neve (Controller) | 100% (0) | 86% (-5) | 73% (+1) | 95% (+4) | 71% (+2) | 62% (+2) |
+| Moss (Summoner) | 100% (0) | 84% (-7) | 82% (+10) | 98% (+7) | 71% (+2) | 70% (+10) |
+| Tam (Bomber) | 100% (0) | 93% (+2) | 71% (-1) | 92% (+1) | 77% (+8) | 61% (+1) |
+| Hollis (Guardian) | 99% (-1) | 94% (+3) | 82% (+10) | 97% (+6) | 75% (+6) | 64% (+4) |
+| Vesper (Marksman) | 100% (0) | 85% (-6) | 70% (-2) | 94% (+3) | 76% (+7) | 54% (-6) |
+| Torva (Brute) | 100% (0) | 97% (+6) | 75% (+3) | 96% (+5) | 85% (**+15**) | 52% (-8) |
+
+40 of 42 hero-acts are within +/-10 of Rowan; Sable and Torva run ahead in Act 5 (its mini-boss: Rowan, alone among
+them, has no edge there). Rows for Neve, Moss, Tam, Hollis and Vesper were measured with the Act 5 mini-boss at 3000
+HP (their Act 5 is a few points higher now, like Rowan's +5). What it took: each hero's base HP and attack share
+(`tuning.kits`), Moss's allies (shorter stay, weaker thorns and moths, smaller Overgrowth), Hollis's Rampart and Iron
+Hide, Tam's Blast Shield, Neve's Glacier and beast edge, Vesper's HP and Volley, and Rowan's second soft strength
+(+15% to frost foes: the second region's foes mostly carry that tag, Greenmarch's none).
+
+### Rowan's branches (none clearly the safest)
+
+The bot goes down one branch first (rolled per profile); first try per act with each first branch:
+
+| First branch | Act 2 | Act 3 (boss) | Act 4 | Act 5 | Act 6 (boss) |
+|---|---|---|---|---|---|
+| Blade (attack, crits) | 91% | 74% (77%) | 88% | 71% | 59% |
+| Bulwark (blocking) | 100% | 68% (74%) | 94% | 61% | 59% |
+| Momentum (combo, finisher) | 87% | 72% (83%) | 91% | 61% | 57% |
+
+Before: Bulwark was the safe pick in Greenmarch (+8-10 points in Act 3, M4a's report) and, once Rowan's Blade rule and
+Knight's Resolve came in, Momentum was in the second region (71% in Act 6 against 45-49%). Now: Bulwark's Stout +12% HP
+(was 8) and Plate Training +10 Defense (was 5), its Shield Wall bubble recharges every 6 blocked reds (was once a
+fight at 5), Momentum's Rhythm +10% meter (was 15), Blade's Executioner at 35% HP (was 30). The capstones only come
+at level 10, so Greenmarch is barely touched by them. Branch subsets here are 19-46 runs each: differences under ~10
+points are noise.
 
 ### Gems and chests (one Rare chest per region from gems alone)
 
