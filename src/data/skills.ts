@@ -55,7 +55,7 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
         stat('plateTraining', 'Plate Training', 'def', 5, '+{n} Defense.'),
         rule('parry', 'Parry', 'A Perfect block knocks every other red back.', 'A block stops one red.', 'A Perfect block pushes all reds back.'),
         rule('shieldBash', 'Shield Bash', 'Breaking a shield red stuns its owner for {n} s.', 'Shield reds just break.', 'Its owner stops attacking for {n} s.', 1),
-        cap('shieldWall', 'Shield Wall', 'Once a fight, {n} blocked reds charge a bubble that absorbs a hit.', 'Every red you miss hurts.', 'A bubble eats one missed red a fight.', 5),
+        cap('shieldWall', 'Shield Wall', 'Once a fight, {n} blocked reds charge a bubble that absorbs a hit.', 'Every red you miss hurts.', 'A bubble eats one missed red a fight.', 4),
       ],
     },
     {
@@ -67,7 +67,7 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
         stat('powerStance', 'Power Stance', 'comboPower', 1.5, '+{n} combo power.'),
         rule('doubleTime', 'Double Time', 'Perfect hits count as 2 combo.', 'Every hit is 1 combo.', 'A Perfect hit is 2 combo.'),
         rule('chargedUp', 'Charged Up', 'Every fight starts with {n} finisher stack.', 'Fights start with an empty meter.', 'Fights start with {n} stack banked.', 1),
-        cap('unbroken', 'Unbroken', 'A combo break halves your combo and stacks.', 'A break zeroes combo and stacks.', 'A break only halves them.'),
+        cap('unbroken', 'Unbroken', 'A combo break keeps a third of your combo and stacks.', 'A break zeroes combo and stacks.', 'A break keeps a third of them.'),
       ],
     },
   ],

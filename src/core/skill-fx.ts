@@ -133,11 +133,11 @@ export const SKILL_HOOKS: Record<string, FightHooks> = {
       c.bankStacks(Math.max(0, Math.round(skillN(c.tuning, 'chargedUp'))), 'chargedUp');
     },
   },
-  // Unbroken (capstone): a combo break halves your combo and stacks instead of zeroing them
+  // Unbroken (capstone): a combo break keeps a third of your combo and stacks instead of zeroing them
   unbroken: {
     comboBreak: (c, x) => {
-      const combo = Math.floor(x.combo / 2);
-      const stacks = Math.floor(x.stacks / 2);
+      const combo = Math.floor(x.combo / 3);
+      const stacks = Math.floor(x.stacks / 3);
       x.keepCombo = Math.max(x.keepCombo, combo);
       x.keepStacks = Math.max(x.keepStacks, stacks);
       if (combo > 0 || stacks > 0) c.perkFx('unbroken', combo);

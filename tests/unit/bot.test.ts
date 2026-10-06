@@ -127,7 +127,7 @@ describe('balance targets (guards the defaults; the full report is npm run balan
   });
 
   it('a 70% player can still finish Act 3 with retries', () => {
-    expect(w3.clearRate).toBeGreaterThan(0.75); // about 85-90% (M5: back to > 0.8 after Part 7's retune)
+    expect(w3.clearRate).toBeGreaterThan(0.8); // about 85-90%
     expect(w3.bossFirstTry).toBeLessThan(a3.bossFirstTry);
   });
 
@@ -186,7 +186,6 @@ describe('gear: the story with found gear alone, and farming', () => {
     const storyRate = story.filter((f) => f!.won).length / story.length;
     const third = res.map((x) => x.visits[2].bossWon).filter((w) => w !== null);
     const farmedRate = third.filter((w) => w).length / third.length;
-    // (M5: Rowan's Blade rule made the story's boss a little easier; Part 7's retune restores the +0.1 margin)
-    expect(farmedRate).toBeGreaterThan(storyRate);
+    expect(farmedRate).toBeGreaterThan(storyRate + 0.1);
   });
 });
