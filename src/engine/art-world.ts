@@ -10,7 +10,9 @@
 // Mirelight; Noonspire, a floating island with a sun temple) and veiled by a soft, drifting fog of war.
 //
 // Far things are hazier (the north fades toward the sky's colour) and the light is warm from the top left.
-// Structures and trees live in art-world-sites.ts.
+// Structures and trees live in art-world-sites.ts. The Frostpeaks' three acts stand on its mountains (the pass by
+// the frozen falls, the cave above the frozen lake, the keep), with their markers in art-world-lands.ts; past the
+// continent's east coast a strip of far sea (painted on its own, FAR_SEA_W) holds the far lands still to come.
 //
 // The map is alive, so it is painted in layers the view (view/world.ts) moves and cycles: the static base
 // (`world_map`), wave marks and river ripples and surf lapping the coasts (`wm_sea0..5`), a gust
@@ -19,6 +21,7 @@
 // band along the far north (`wm_rim`) and small sprites. Everything else that moves the view draws as a handful of
 // rects a frame. The whole lot is painted once; later layouts reuse the canvases.
 import { grid, stamp, toCanvas, type Pal } from './art';
+import { paintLands } from './art-world-lands';
 import { bay, col, fbm, hash, level, lighten, mass, mix, noise, pick, Pix, ramp, rgba32, rng, tuft, wordCanvas, type Blob, type Col, type Ramp } from './backdrop';
 import {
   banditCamp,
@@ -67,6 +70,11 @@ type Box = { x: number; y: number; w: number; h: number };
 /** The world's size (game px): about three screens wide and two tall. */
 export const WORLD_W = 960;
 export const WORLD_H = 300;
+/** Past the continent's east coast the sea runs on into fog for this many px more (the far lands lie out there:
+ *  art-world-lands.ts). It is painted on its own (`wm_farsea`, its wave marks `wm_farwave0..5`), so the continent's
+ *  picture is untouched; the camera pans over MAP_W x WORLD_H. */
+export const FAR_SEA_W = 160;
+export const MAP_W = WORLD_W + FAR_SEA_W;
 
 /** Regions: the anchor is where the locked ones show their small padlock (and where the name card points). */
 export const WORLD_REGIONS: Array<{ id: string; name: string; x: number; y: number; locked: boolean }> = [
@@ -78,13 +86,18 @@ export const WORLD_REGIONS: Array<{ id: string; name: string; x: number; y: numb
 ];
 
 /**
- * Greenmarch's three acts as landmarks: the landmark's centre and its tap box, where Rowan stands while it's the act
- * he's on, where its flag flies, and the view centre the map opens on while it's the current act.
+ * Every playable act as a landmark, by global act index (data/regions.ts): Greenmarch's three (the Bandit Captain's
+ * camp, the Old Ruins, the Boar King's Hollow), then the Frostpeaks' three (the pass by the frozen falls, the cave
+ * mouth above the frozen lake, the mountain keep). Each: the landmark's centre and its tap box, where Rowan stands
+ * while it's the act he's on, where its flag flies, and the view centre the map opens on while it's the current act.
  */
 export const WORLD_ACTS: Array<{ x: number; y: number; box: Box; stand: Pt; flag: Pt; view: Pt }> = [
   { x: 216, y: 247, box: { x: 198, y: 233, w: 38, h: 28 }, stand: [150, 245], flag: [229, 236], view: [163, 222] },
   { x: 262, y: 166, box: { x: 234, y: 146, w: 58, h: 40 }, stand: [233, 204], flag: [279, 156], view: [248, 205] },
   { x: 352, y: 226, box: { x: 326, y: 200, w: 54, h: 50 }, stand: [320, 225], flag: [374, 196], view: [302, 212] },
+  { x: 464, y: 70, box: { x: 440, y: 52, w: 50, h: 36 }, stand: [434, 80], flag: [486, 62], view: [462, 82] },
+  { x: 656, y: 82, box: { x: 630, y: 56, w: 54, h: 50 }, stand: [624, 94], flag: [688, 88], view: [648, 88] },
+  { x: 566, y: 60, box: { x: 546, y: 38, w: 42, h: 44 }, stand: [538, 94], flag: [592, 50], view: [560, 84] },
 ];
 
 /** The capital's gate, right under the Great Pendulum's tower; and the walled town's tap box. */
@@ -1852,9 +1865,73 @@ function* paintVeils(reg: Uint8Array, plate: Uint8Array, broad: Float32Array): G
   return out;
 }
 
-/** The far north vanishing into clouds: a band of cloud banks along the map's top edge. */
+const FAR_MIST = col('#8a9cc4');
+
+/**
+ * The far sea east of the continent (FAR_SEA_W x WORLD_H, at x = WORLD_W): the open sea of stageSea carried on
+ * (the same deep-water formula and dither in world px, so it meets the continent's picture without a seam, darker
+ * the further out), hazed like the rest of the north, fading into a sea mist at the world's eastern edge; and its
+ * wave marks in SEA_FRAMES overlays, on paintSea's grid.
+ */
+function* paintFarSea(): Generator<void, { base: HTMLCanvasElement; waves: HTMLCanvasElement[] }> {
+  const W = FAR_SEA_W;
+  const H = WORLD_H;
+  const X0 = WORLD_W;
+  const p = new Pix(W, H, 0);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const gx = X0 + x;
+      const vx = (gx - WORLD_W * 0.4) / WORLD_W;
+      let c = pick(SEA, 0.72 - vx * vx * 0.8 + (fbm(gx * 0.018, y * 0.03, 23) - 0.5) * 0.6 + (y > H * 0.6 ? 0.06 : 0), gx, y, 0.14);
+      if (y < 120) {
+        const q = level((((120 - y) / 120) ** 1.4 * 0.32) / 0.32, 4, gx, y, 0.25) / 4;
+        if (q > 0) c = mix(c, SKY_HAZE, q * 0.32);
+      }
+      const m = level(clamp01((gx - (MAP_W - 72)) / 72), 4, gx, y, 0.3) / 4;
+      if (m > 0) c = mix(c, FAR_MIST, m * 0.5);
+      p.buf[y * W + x] = c;
+    }
+  yield;
+  const marks: Array<[number, number, number]> = [];
+  for (let gy = 2; gy < H; gy += 7)
+    for (let gx = (gy * 5) % 11; gx < MAP_W; gx += 11) {
+      if (gx < X0 - 4) continue;
+      const x = Math.round(gx + (hash(gx, gy, 31) - 0.5) * 6);
+      const y = Math.round(gy + (hash(gx, gy, 32) - 0.5) * 3);
+      if (x < X0 || x > MAP_W - 30 || y < 2 || y >= H || hash(gx, gy, 33) < 0.25) continue;
+      marks.push([x - X0, y, Math.floor(hash(gx, gy, 34) * SEA_FRAMES)]);
+    }
+  const foam = rgba32(FOAM);
+  const waves = Array.from({ length: SEA_FRAMES }, (_, f) =>
+    wordCanvas(W, H, (u) => {
+      const tint = (x: number, y: number, k: number, to = WAVE_LIGHT) => {
+        if (x < W) u[y * W + x] = rgba32(mix(p.buf[y * W + x], to, k));
+      };
+      for (const [x, y, ph] of marks) {
+        const s = (f + ph) % SEA_FRAMES;
+        if (s < 2) continue;
+        const o = s >= 4 ? 1 : 0;
+        if (s === 2 || s === 5) {
+          tint(x + 1 + o, y - 1, 0.3);
+          tint(x + 2 + o, y - 1, 0.3);
+          continue;
+        }
+        tint(x + o, y, 0.38);
+        tint(x + 1 + o, y - 1, 0.38);
+        if (s === 4) u[(y - 1) * W + x + 2 + o] = foam;
+        else tint(x + 2 + o, y - 1, 0.38);
+        tint(x + 3 + o, y, 0.38);
+        tint(x + 1 + o, y, 0.4, SEA[0]);
+        tint(x + 2 + o, y, 0.4, SEA[0]);
+      }
+    }),
+  );
+  return { base: p.canvas(), waves };
+}
+
+/** The far north vanishing into clouds: a band of cloud banks along the map's top edge (on over the far sea). */
 function paintRim(): HTMLCanvasElement {
-  const W = WORLD_W;
+  const W = MAP_W;
   const h = 26;
   const p = new Pix(W, h, -1);
   const deep = ramp('#7a8cbc', '#9cb0d8', '#c4d4ec', '#e6eefa', '#ffffff');
@@ -2114,6 +2191,12 @@ function* buildSteps(): Generator<void, void> {
   put('wm_lamp', L.lamp.canvas());
   for (const [id, cv] of Object.entries(L.veils)) put(`wm_veil_${id}`, cv);
   put('wm_rim', L.rim);
+  yield;
+  const far = yield* paintFarSea();
+  put('wm_farsea', far.base);
+  far.waves.forEach((cv, i) => put(`wm_farwave${i}`, cv));
+  yield;
+  paintLands(put);
   put('wm_vignette', vignette(327, 150));
   CLOUD_SHAPES.forEach((bl, i) => {
     const floor = Math.max(...bl.map((b) => b.y)) + 1.5;

@@ -4,21 +4,28 @@
 // stays put is a tap, judged on release. The map opens on where the story is (the act Rowan is on); the very first
 // visit glides in from the far east over the locked lands, so you see how big the world is (any tap skips it).
 //
-// Greenmarch's three acts are landmarks: tap one to select it (its card says what playing it means, Play starts
-// it: the story, or a cleared act replayed for its drops); Rowan and Pip wait at the current act under a call to
-// action (tap it, or Rowan: the run starts, or once an act is cleared the act picker opens). A flag flies over each
-// cleared act. The locked lands sit under a drifting fog of war; tapped, the fog thins for a moment and a small
-// card names the land. The capital tells how many weights are home; the Camp button (bottom left) opens the camp.
-// Once Act 1 is cleared, a wandering foe sometimes paces the Meadow Road (view/world-roam.ts).
+// Every playable act is a landmark (Greenmarch's three, then the Frostpeaks' once Greenmarch is cleared): tap one to
+// select it (its card says what playing it means, Play starts it: the story, or a cleared act replayed for its
+// drops); Rowan and Pip wait at the current act under a call to action (tap it, or Rowan: the run starts, or once an
+// act is cleared the act picker opens with his region's acts). A flag flies over each cleared act. Once an act is
+// cleared, a chip at the top right names the region in view and how complete it is (a laurel badge at 100%, also
+// beside its boss's landmark); a tap on it opens that region's act picker. The locked lands sit under a drifting fog
+// of war; tapped, the fog thins for a moment and a small card names the land. A land's veil lifts once it can be
+// played (core/world-plan.ts), with a short reveal the first time. Beyond the sea, at the map's edges, seven more
+// lands wait as silhouettes under fog banks that thin as weights come home (art-world-lands.ts). The capital tells
+// how many weights are home; the Camp button (bottom left) opens the camp. Once Act 1 is cleared, a wandering foe
+// sometimes paces the Meadow Road (view/world-roam.ts).
 //
 // The HUD (the header, the Camp button, the cards and the act picker) stays put inside the safe areas; everything
 // else is drawn in world px less the camera. Everything animates from `now` (deterministic for the screenshot
 // tests): the art was pre-rendered at boot, so a frame only moves images, swaps their frames, and draws a modest
 // number of rects (only for what's in view).
-import { GREENMARCH } from '../../data/greenmarch';
 import type Phaser from 'phaser';
+import { regionBadge, regionCompletion } from '../../core/completion';
 import { itemLevel, type Item } from '../../core/gear';
 import { WEIGHTS_TOTAL } from '../../core/profile';
+import { fogOf, landOpen, markUnveiled, planName, planRegion, playableIndex, regionOpen, revealed, unveilPending } from '../../core/world-plan';
+import { ALL_ACTS, REGIONS, regionOfAct, regionStart } from '../../data/regions';
 import { BASE_BY_ID, SIGNATURES } from '../../data/gear';
 import type { FightScene } from '../scene';
 import {
@@ -40,16 +47,18 @@ import {
   WORLD_ROADS,
   WORLD_SPOTS,
   WORLD_W,
+  MAP_W,
   worldArtReady,
   worldRegionAt,
 } from '../art-world';
+import { FAR_ISLES, FROST_SIGHTS } from '../art-world-lands';
 import { hash } from '../backdrop';
 import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
 import { cornerInset } from '../chrome';
 import { cellIcon, itemCell } from './items';
 import { glyph, glyphSize } from './overlays';
-import { button3d, glow, NAVY, panel } from './pixels';
+import { button3d, glow, hudIcon, iconSize, NAVY, panel } from './pixels';
 import { easeBack, inRect, mix, pulse, INK, WHITE, type Rect } from './shared';
 import { FACE, ImagePool, isPressed, notePress, ribbon, RIBBON, TextPool } from './ui';
 import { WorldRoam } from './world-roam';
@@ -69,6 +78,7 @@ const smooth = (k: number) => (k <= 0 ? 0 : k >= 1 ? 1 : k < 0.5 ? 4 * k * k * k
 const DEPTH = {
   map: 30.1,
   waves: 30.11,
+  far: 30.115,
   surf: 30.12,
   sea: 30.13,
   ship: 30.14,
@@ -107,6 +117,11 @@ const TOUR_HOLD = 250;
 const TOUR_MS = 1700;
 /** The camera easing to a landmark or back home (ms). */
 const GLIDE_MS = 480;
+/** A land's first reveal (ms from its start): the view glides there from the region before (like the tour), its
+ *  veil thins away, motes rise off it, and a card names it. */
+const REVEAL_VEIL = [450, 1500];
+const REVEAL_CARD = [1300, 3000];
+const REVEAL_END = REVEAL_CARD[0] + REVEAL_CARD[1];
 /** The act card's height, and the highest its top sits when it hangs over its landmark (clear of the header). */
 const CARD_H = 25;
 const CARD_TOP = 38;
@@ -187,6 +202,8 @@ export class WorldView {
   private imgs: Img[] = [];
   private base!: Img;
   private sea!: Img;
+  private farSea!: Img;
+  private farWave!: Img;
   private wind!: Img;
   private isle!: Img;
   private isleVeil!: Img;
@@ -206,8 +223,10 @@ export class WorldView {
   private chosenAt = 0;
   /** Greenmarch's plate (the call to action over Rowan), as last drawn (screen). */
   plate = { x: 0, y: 0, w: 0, h: 0 };
-  /** The act picker (open since `at`, performance.now), and a locked row shaking. */
-  private picker: { at: number } | null = null;
+  /** The act picker (open since `at`, performance.now; `region`: whose acts it lists), and a locked row shaking. */
+  private picker: { at: number; region: number } | null = null;
+  /** A land's first reveal, playing since `at`. */
+  private reveal: { id: string; at: number } | null = null;
   private pickShake: { act: number; at: number } | null = null;
   private gPick!: G;
   private pickTexts: TextPool;
@@ -265,6 +284,8 @@ export class WorldView {
     };
     this.base = img('world_map', DEPTH.map);
     this.sea = img('wm_sea0', DEPTH.waves);
+    this.farSea = img('wm_farsea', DEPTH.map);
+    this.farWave = img('wm_farwave0', DEPTH.waves);
     this.wind = img('wm_wind0', DEPTH.surf);
     this.isle = img('wm_isle', DEPTH.isle);
     this.isleVeil = img('wm_isle_veil', DEPTH.veil);
@@ -298,7 +319,7 @@ export class WorldView {
   }
 
   private clampCam(x: number, y: number): Pt {
-    return [Math.max(0, Math.min(WORLD_W - GAME_W, x)), Math.max(0, Math.min(WORLD_H - GAME_H, y))];
+    return [Math.max(0, Math.min(MAP_W - GAME_W, x)), Math.max(0, Math.min(WORLD_H - GAME_H, y))];
   }
 
   /** The camera that frames the current act (where the map opens). */
@@ -316,13 +337,22 @@ export class WorldView {
     this.press = null;
     this.glideTo = null;
     this.sel = null;
+    this.info = null;
     this.whale = null;
     const h = this.home();
-    if (!app.profile.worldTour) {
+    // a land opened since the last visit: its first reveal (remembered at once, like the tour)
+    const pend = unveilPending(app.profile);
+    this.reveal = pend ? { id: pend, at: now } : null;
+    if (pend) markUnveiled(app.profile, pend);
+    const firstVisit = !app.profile.worldTour;
+    if (firstVisit || pend) {
       app.profile.worldTour = true;
       app.saveProfile();
-      // (from this frame on: the first one may have waited for the world's painting to finish)
-      const from = this.clampCam(WORLD_W, 0);
+      // (from this frame on: the first one may have waited for the world's painting to finish); a land's reveal
+      // glides in from the last act of the region before it (the very first visit: from the far east)
+      const r = pend ? playableIndex(pend) : -1;
+      const prev = r > 0 ? WORLD_ACTS[regionStart(r) - 1]?.view : undefined;
+      const from = prev && !firstVisit ? this.clampCam(Math.round(prev[0] - GAME_W / 2), Math.round(prev[1] - GAME_H / 2)) : this.clampCam(MAP_W, 0);
       this.tour = { at: now, from, to: h };
       this.cam = { x: from[0], y: from[1] };
       this.uiAt = now + TOUR_HOLD + TOUR_MS;
@@ -333,9 +363,32 @@ export class WorldView {
     }
   }
 
-  /** Whether the first visit's reveal is playing. */
+  /** Whether the first visit's reveal (or a land's first reveal) is playing. */
   get touring(): boolean {
     return !!this.tour;
+  }
+
+  /** The land whose first reveal is playing (tests), or null. */
+  get revealing(): string | null {
+    return this.reveal?.id ?? null;
+  }
+
+  /** How thick a land's veil is: 1 while locked, 0 once open (thinning away during its first reveal). */
+  private veilOf(id: string, now: number): number {
+    if (!landOpen(this.s.app.progress, id)) return 1;
+    const rv = this.reveal;
+    if (!rv || rv.id !== id) return 0;
+    return 1 - smooth((now - rv.at - REVEAL_VEIL[0]) / REVEAL_VEIL[1]);
+  }
+
+  /** Whether act `i`'s land is open (its landmark shows and takes taps). */
+  private actOpen(i: number): boolean {
+    return regionOpen(this.s.app.progress, regionOfAct(i));
+  }
+
+  /** Whether a land on the continent is still locked (its veil, padlock and name card). */
+  private locked(r: Region): boolean {
+    return r.locked && !landOpen(this.s.app.progress, r.id);
   }
 
   /** Ease the camera to frame a world point. */
@@ -384,10 +437,11 @@ export class WorldView {
     const moving = Math.hypot(this.vel.x, this.vel.y) > CATCH_SPEED || !!this.glideTo;
     const skip = !!this.tour || moving;
     if (this.tour) {
-      // any tap skips the reveal: straight to where it was going
+      // any tap skips the reveal: straight to where it was going (a land's veil gone, its card still up a moment)
       this.cam = { x: this.tour.to[0], y: this.tour.to[1] };
       this.tour = null;
       this.uiAt = Math.min(this.uiAt, now);
+      if (this.reveal) this.reveal.at = Math.min(this.reveal.at, now - REVEAL_VEIL[0] - REVEAL_VEIL[1]);
     }
     this.glideTo = null;
     this.vel = { x: 0, y: 0 };
@@ -492,23 +546,68 @@ export class WorldView {
     return this.sel?.act ?? null;
   }
 
-  /** What a tap at screen (x, y) points at: the plate or Rowan, an act's landmark, the capital, a locked land. */
-  private targetAt(x: number, y: number): Region | 'capital' | 'plate' | { act: number } | null {
+  /** What a tap at screen (x, y) points at: the plate or Rowan, an open land's act landmark, the capital, a locked
+   *  land, a far land beyond the sea. */
+  private targetAt(x: number, y: number): Region | 'capital' | 'plate' | { act: number } | { far: string } | null {
     const p = this.plate;
     if (p.w && x >= p.x - 2 && x < p.x + p.w + 2 && y >= p.y - 2 && y < p.y + p.h + 6) return 'plate';
     const wx = x + this.ox;
     const wy = y + this.oy;
     const [hx, hy] = WORLD_ACTS[this.actNow()].stand;
     if (Math.abs(wx - hx) < 9 && wy > hy - 22 && wy < hy + 5) return 'plate';
-    for (let i = 0; i < WORLD_ACTS.length; i++) if (inRect(WORLD_ACTS[i].box, wx, wy, 2)) return { act: i };
+    for (let i = 0; i < WORLD_ACTS.length; i++) if (this.actOpen(i) && inRect(WORLD_ACTS[i].box, wx, wy, 2)) return { act: i };
     if (inRect(WORLD_CAPITAL.box, wx, wy)) return 'capital';
     // a locked land: its padlock, Noonspire's island, or anywhere on its land
-    for (const r of WORLD_REGIONS) if (r.locked && Math.hypot(r.x - wx, r.y - wy) < 9) return r;
+    for (const r of WORLD_REGIONS) if (this.locked(r) && Math.hypot(r.x - wx, r.y - wy) < 9) return r;
     const bob = Math.round(Math.sin((performance.now() / 1000) * 0.7) * 1.4);
     if (inRect({ ...NOON_BOX, y: NOON_BOX.y + bob }, wx, wy)) return WORLD_REGIONS.find((r) => r.id === 'noonspire') ?? null;
+    // a far land: its silhouette (and the fog round it)
+    for (const f of FAR_ISLES) if (inRect(f.box, wx, wy, 3)) return { far: f.id };
     const id = worldRegionAt(wx, wy);
     const r = WORLD_REGIONS.find((q) => q.id === id);
-    return r?.locked ? r : null;
+    return r && this.locked(r) ? r : null;
+  }
+
+  /** The playable region nearest the view's centre among the open ones (the region chip names it). */
+  private regionInView(): number {
+    const P = this.s.app.progress;
+    const cx = this.ox + GAME_W / 2;
+    const cy = this.oy + GAME_H / 2;
+    let best = 0;
+    let bd = Infinity;
+    REGIONS.forEach((reg, r) => {
+      if (!regionOpen(P, r)) return;
+      const start = regionStart(r);
+      const views = reg.acts.map((_, i) => WORLD_ACTS[start + i]?.view).filter((v): v is Pt => !!v);
+      if (!views.length) return;
+      const vx = views.reduce((a, v) => a + v[0], 0) / views.length;
+      const vy = views.reduce((a, v) => a + v[1], 0) / views.length;
+      const d = Math.hypot(vx - cx, vy - cy);
+      if (d < bd) (bd = d), (best = r);
+    });
+    return best;
+  }
+
+  /** The region chip (top right, once an act is cleared and the map has settled): the region in view, how complete
+   *  it is ("65%", or the laurel badge at 100%); a tap opens that region's act picker. */
+  regionChip(): { r: Rect; region: number; name: string; pct: number; done: boolean } | null {
+    const P = this.s.app.progress;
+    if (P.actsCleared === 0 || this.tour) return null;
+    const region = this.regionInView();
+    const name = REGIONS[region].name;
+    const c = regionCompletion(P, region);
+    const right = c.done ? iconSize('badge_region')[0] : textWidth(`${c.pct}%`, 1, false);
+    const w = textWidth(name, 1, true) + right + 16;
+    const s = this.s;
+    return { r: { x: s.R - w - 5, y: 5, w, h: 16 }, region, name, pct: c.pct, done: c.done };
+  }
+
+  /** Open the act picker on region `r`'s acts. */
+  private openPicker(r: number, now: number): void {
+    this.picker = { at: now, region: r };
+    this.info = null;
+    this.sel = null;
+    this.s.app.audio.uiClick();
   }
 
   // ------------------------------------------------------------------ the Camp button, the act card, the act picker
@@ -545,16 +644,21 @@ export class WorldView {
   private cardText(i: number): { name: string; status: string; col: number } {
     const app = this.s.app;
     const cleared = i < app.profile.actsCleared;
-    const name = GREENMARCH.acts[i]?.name ?? '';
+    const name = ALL_ACTS[i]?.name ?? '';
     if (cleared) return { name, status: 'Replay (farm)', col: 0x9af06a };
     return { name, status: app.profile.actsCleared > 0 ? 'Continue the story' : 'Begin the story', col: 0xffe680 };
+  }
+
+  /** The region the act picker lists (Rowan's, until a region is picked). */
+  private pickRegion(): number {
+    return this.picker?.region ?? regionOfAct(this.actNow());
   }
 
   /** The act picker's panel. */
   private pickPanel(): Rect {
     const s = this.s;
     const w = Math.min(272, s.R - s.L - 8);
-    const n = GREENMARCH.acts.length;
+    const n = REGIONS[this.pickRegion()].acts.length;
     const h = 14 + n * (PICK_ROW_H + 2) + 3;
     return { x: Math.round((s.L + s.R) / 2 - w / 2), y: Math.max(24, Math.round((s.B - h) / 2) + 6), w, h };
   }
@@ -579,6 +683,11 @@ export class WorldView {
     return !!this.picker;
   }
 
+  /** The region (index into REGIONS) whose acts the open picker lists, or null (tests). */
+  get pickerRegion(): number | null {
+    return this.picker?.region ?? null;
+  }
+
   /** A tap while the act picker is open: an act's row (or its Play button), the close button, or outside it. */
   private pickTap(x: number, y: number): void {
     const s = this.s;
@@ -590,20 +699,24 @@ export class WorldView {
       this.picker = null;
       app.audio.uiClick();
     };
-    if (x < 0) return this.startAct(Math.min(GREENMARCH.acts.length, run.playableActs) - 1);
+    // (rows are the region's acts; each starts its global act)
+    const r = this.pickRegion();
+    const start = regionStart(r);
+    const n = REGIONS[r].acts.length;
+    if (x < 0) return this.startAct(Math.max(start, Math.min(start + n, run.playableActs) - 1));
     if (inRect(this.closeButton(), x, y, 3)) {
       notePress(this.closeButton());
       return close();
     }
-    for (let i = 0; i < GREENMARCH.acts.length; i++) {
+    for (let i = 0; i < n; i++) {
       if (!inRect(this.pickRow(i), x, y, 1)) continue;
-      if (i >= run.playableActs) {
+      if (start + i >= run.playableActs) {
         this.pickShake = { act: i, at: now };
         app.audio.uiClick();
         return;
       }
       notePress(this.playButton(i));
-      return this.startAct(i);
+      return this.startAct(start + i);
     }
     if (!inRect(this.pickPanel(), x, y, 2)) close();
   }
@@ -643,6 +756,12 @@ export class WorldView {
       app.openCamp();
       return;
     }
+    // the region chip: that region's act picker
+    const chip = this.regionChip();
+    if (chip && inRect(chip.r, x, y, 3)) {
+      notePress(chip.r);
+      return this.openPicker(chip.region, now);
+    }
     // the selected act's card: Play starts it; anywhere else puts it away (and goes on below)
     const play = this.cardPlay();
     if (play && inRect(play, x, y, 3)) {
@@ -672,6 +791,13 @@ export class WorldView {
       app.audio.uiClick();
       return;
     }
+    if ('far' in t) {
+      // a far land: its fog thins a moment, a card says what little is known
+      this.rattle.set(t.far, now);
+      this.info = { id: `far:${t.far}`, at: now };
+      app.audio.uiClick();
+      return;
+    }
     if ('act' in t) {
       const i = t.act;
       if (i >= app.run.playableActs) {
@@ -694,16 +820,11 @@ export class WorldView {
     app.audio.uiClick();
   }
 
-  /** Greenmarch's call to action: into the story (a first run), or the act picker once an act is cleared. */
+  /** The call to action over Rowan: into the story (a first run), or once an act is cleared the act picker on the
+   *  acts of his region. */
   private callToAction(now: number): void {
     const app = this.s.app;
-    if (app.profile.actsCleared > 0) {
-      this.picker = { at: now };
-      this.info = null;
-      this.sel = null;
-      app.audio.uiClick();
-      return;
-    }
+    if (app.profile.actsCleared > 0) return this.openPicker(regionOfAct(this.actNow()), now);
     // into Greenmarch: Rowan hops, rings of light spread from his feet, then the run begins
     this.chosenAt = now;
     this.info = null;
@@ -724,6 +845,7 @@ export class WorldView {
     this.picker = null;
     this.sel = null;
     this.press = null;
+    this.reveal = null;
     this.visit = -1;
     this.roam.hide();
     this.life.hide();
@@ -751,6 +873,7 @@ export class WorldView {
       now = performance.now();
     }
     if (this.visit !== s.app.phaseSince) this.arrive(now);
+    if (this.reveal && now - this.reveal.at > REVEAL_END) this.reveal = null;
     this.moveCamera(now);
     for (const g of [this.g, this.gSea, this.gLand, this.gAir, this.gPick]) g.clear();
     for (const g of [this.gSea, this.gLand, this.gAir]) g.setPosition(-this.ox, -this.oy);
@@ -765,6 +888,7 @@ export class WorldView {
     this.drawGreenmarch(now, t);
     this.drawCapital(t);
     this.drawLocked(now, t);
+    this.drawFar(now, t);
     this.drawUi(now, t);
     this.roam.draw(now);
     this.life.draw(now);
@@ -783,9 +907,15 @@ export class WorldView {
     const g = this.gSea;
     // wave marks crest and break; the surf rolls in over three frames, then the beach foam lingers
     this.at(this.sea, 0, 0).setTexture(`wm_sea${Math.floor(now / 250) % SEA_FRAMES}`);
+    // the far sea past the continent's east coast (painted on its own), its wave marks in step
+    const farSeen = this.ox + GAME_W > WORLD_W;
+    this.at(this.farSea, WORLD_W, 0).setVisible(farSeen);
+    this.at(this.farWave, WORLD_W, 0).setTexture(`wm_farwave${Math.floor(now / 250) % SEA_FRAMES}`).setVisible(farSeen);
 
     // sun glints popping on the open sea (a sparse grid of cells over what's in view)
     const open = WORLD_LIFE.open;
+    // (never on a far land's silhouette, nor a whale there)
+    const farIn = FAR_ISLES.filter((f) => this.seen(f.box.x + f.box.w / 2, f.box.y + f.box.h / 2, f.box.w)).map((f) => f.box);
     if (open.length) {
       const CW = 18;
       const CH = 13;
@@ -799,7 +929,9 @@ export class WorldView {
           const c = Math.floor(t / per + rnd(k, 2));
           const x = cx * CW + Math.floor(rnd(k * 7 + c, 3) * CW);
           const y = cy * CH + Math.floor(rnd(k * 5 + c, 4) * CH);
-          if (x < 1 || y < 1 || x >= WORLD_W - 1 || y >= WORLD_H - 1 || !open[y * WORLD_W + x]) continue;
+          // (the far sea past the continent is all open water)
+          if (x < 1 || y < 1 || x >= MAP_W - 1 || y >= WORLD_H - 1 || (x < WORLD_W && !open[y * WORLD_W + x])) continue;
+          if (farIn.length && farIn.some((b) => inRect(b, x, y, 2))) continue;
           const big = u > 0.08 && u < 0.22;
           g.fillStyle(WHITE, big ? 1 : 0.7);
           g.fillRect(x, y, 1, 1);
@@ -845,7 +977,7 @@ export class WorldView {
     const per = 12;
     const c = Math.floor(t / per);
     if (!this.whale || this.whale.c !== c) {
-      const near = deep.filter(([x, y]) => this.seen(x, y, -24));
+      const near = deep.filter(([x, y]) => this.seen(x, y, -24) && !FAR_ISLES.some((f) => inRect(f.fog, x, y, 10)));
       const sp = near.length ? near[Math.floor(rnd(c, 7) * near.length)] : null;
       this.whale = sp ? { c, x: sp[0], y: sp[1] } : { c, x: -999, y: -999 };
     }
@@ -988,7 +1120,7 @@ export class WorldView {
     }
 
     // the act to play next: a soft ring breathes round its landmark ("here's your next adventure")
-    if (!this.sel && !this.tour && P.actsCleared > 0 && P.actsCleared < WORLD_ACTS.length) {
+    if (!this.sel && !this.tour && P.actsCleared > 0 && P.actsCleared < WORLD_ACTS.length && this.actOpen(P.actsCleared)) {
       const a = WORLD_ACTS[P.actsCleared];
       const k = pulse(now, 1400);
       this.ellipse(g, a.box.x + a.box.w / 2, a.box.y + a.box.h - 3, a.box.w / 2 + 1, 5, 0xfff0a0, 0.25 + 0.3 * k);
@@ -1117,8 +1249,13 @@ export class WorldView {
         g.fillRect(side > 0 ? lh.x + 1 + k : lh.x - k, lh.y, 1, 1);
       }
     }
-    // a flag per act cleared waves proudly; the others hang pale (a small padlock on the ones still out of reach)
+    // a flag per act cleared waves proudly; the others hang pale (a small padlock on the ones still out of reach);
+    // a veiled land shows none
     WORLD_ACTS.forEach((a, i) => {
+      if (!this.actOpen(i)) {
+        this.flags[i].setVisible(false);
+        return;
+      }
       const on = i < P.actsCleared;
       const fr = Math.floor(t * (on ? 6 : 3) + i * 1.3) % FLAG_FRAMES;
       this.at(this.flags[i], a.flag[0], a.flag[1]).setTexture(`${on ? 'flag_on' : 'flag_off'}${fr}`);
@@ -1127,6 +1264,34 @@ export class WorldView {
         const shake = since2 < 320 ? Math.round(Math.sin(since2 / 22) * 2) : 0;
         this.at(this.pool.mid('wm_lock', 0, 0, DEPTH.lock), a.flag[0] + 6 + shake, a.flag[1] - 3);
       }
+    });
+    // the second region's landmarks once its veil lifts: prayer flags flutter at the pass, crystals glint in the
+    // cave mouth, the wyrm circles her keep
+    const vf = this.veilOf('frostpeaks', now);
+    if (vf < 1) {
+      const F = FROST_SIGHTS;
+      if (this.seen(F.prayer.x + 13, F.prayer.y + 5, 30)) this.at(this.pool.at(`wm_prayer${Math.floor(t * 2.5) % 2}`, 0, 0, DEPTH.land + 0.001), F.prayer.x, F.prayer.y);
+      if (this.seen(F.cave.x + 7, F.cave.y + 5, 30)) {
+        this.at(this.pool.at('wm_cave', 0, 0, DEPTH.land + 0.001), F.cave.x, F.cave.y);
+        F.glints.forEach(([x, y], i) => {
+          const k = 0.5 + 0.5 * Math.sin(t * 2.3 + i * 2.1);
+          g.fillStyle(i % 2 ? 0xd8fbff : 0x7ae0ff, 0.3 + 0.7 * k);
+          g.fillRect(x, y, 1, 1);
+        });
+      }
+      const w = F.wyrm;
+      if (this.seen(w.x, w.y, 50)) {
+        const a = t * 0.42;
+        const img = this.pool.mid(`wm_wyrm${Math.floor(t * 2.6) % 2}`, 0, 0, DEPTH.bird, 1 - vf);
+        this.at(img, w.x + Math.cos(a) * w.rx - img.width / 2, w.y + Math.sin(a) * w.ry - img.height / 2).setFlipX(Math.sin(a) < 0);
+      }
+    }
+    // a laurel badge beside the boss's flag of each region done to 100%
+    REGIONS.forEach((reg, r) => {
+      if (!regionOpen(P, r) || !regionBadge(P, r)) return;
+      const a = WORLD_ACTS[regionStart(r) + reg.acts.length - 1];
+      if (!a || !this.seen(a.flag[0], a.flag[1], 20)) return;
+      hudIcon(g, 'badge_region', a.flag[0] + 6, a.flag[1] - 15 + Math.round(Math.sin(t * 1.6 + r) * 0.8));
     });
   }
 
@@ -1235,13 +1400,20 @@ export class WorldView {
   private drawLocked(now: number, t: number): void {
     const ga = this.gAir;
     const g = this.gLand;
-    // the veils drift a little; a tapped land's fog thins for a moment ("a peek")
+    // the veils drift a little; a tapped land's fog thins for a moment ("a peek"); an open land's is gone (it thins
+    // away during the land's first reveal, motes of light rising off it)
     for (const v of this.veils) {
       const b = VEIL_BOXES[v.id];
       const since = now - (this.rattle.get(v.id) ?? -1e9);
       const peek = since < 2200 ? Math.sin(Math.min(1, since / 2200) * Math.PI) : 0;
-      this.at(v.img, b.x + Math.round(Math.sin(t * 0.2 + b.x) * 2), b.y + Math.round(Math.sin(t * 0.27 + b.y) * 1)).setAlpha(1 - 0.55 * peek);
+      const thick = this.veilOf(v.id, now);
+      if (thick <= 0) {
+        v.img.setVisible(false);
+        continue;
+      }
+      this.at(v.img, b.x + Math.round(Math.sin(t * 0.2 + b.x) * 2), b.y + Math.round(Math.sin(t * 0.27 + b.y) * 1)).setAlpha((1 - 0.55 * peek) * thick);
     }
+    if (this.reveal) this.revealMotes(now, t);
     // Frostpeaks: snow falling over the range (what's in view), a plume blown off the highest summit
     const fb = VEIL_BOXES.frostpeaks;
     if (this.seen(fb.x + fb.w / 2, fb.y + fb.h / 2, 280))
@@ -1350,22 +1522,85 @@ export class WorldView {
       for (const [rx, ry] of rays) ga.fillRect(sun.x + rx, sun.y + ry + dy, 1, 1);
     }
 
-    // small padlocks: a glint sweeps each now and then; a tap rattles it
+    // small padlocks: a glint sweeps each now and then; a tap rattles it (an open land's fades with its veil)
     let li = 0;
     for (const r of WORLD_REGIONS) {
       if (!r.locked) continue;
+      const thick = this.veilOf(r.id, now);
+      if (thick <= 0) {
+        this.locks[li++].setVisible(false);
+        continue;
+      }
       const since = now - (this.rattle.get(r.id) ?? -1e9);
       const shake = since < 320 ? Math.round(Math.sin(since / 22) * 2) : 0;
       const ly = r.y + (r.id === 'noonspire' ? dy : 0);
-      this.at(this.locks[li], r.x + shake, ly);
+      this.at(this.locks[li], r.x + shake, ly).setAlpha(thick);
       const k = frac(t / 3.8 + li * 0.27);
-      if (k < 0.1 && this.seen(r.x, ly)) {
+      if (k < 0.1 && thick >= 1 && this.seen(r.x, ly)) {
         g.fillStyle(WHITE, 1 - k / 0.1);
         g.fillRect(r.x + shake - 2, ly - 1, 1, 1);
         g.fillRect(r.x + shake - 3, ly, 3, 1);
       }
       li++;
     }
+  }
+
+  /** Motes of light rising off a land as its veil thins away (its first reveal), over its landmarks. */
+  private revealMotes(now: number, t: number): void {
+    const rv = this.reveal!;
+    const r = playableIndex(rv.id);
+    const k = (now - rv.at - REVEAL_VEIL[0]) / (REVEAL_VEIL[1] + 600);
+    if (r < 0 || k <= 0 || k >= 1) return;
+    const start = regionStart(r);
+    const boxes = REGIONS[r].acts.map((_, i) => WORLD_ACTS[start + i]?.box).filter((b): b is Rect => !!b);
+    if (!boxes.length) return;
+    const x0 = Math.min(...boxes.map((b) => b.x)) - 30;
+    const x1 = Math.max(...boxes.map((b) => b.x + b.w)) + 30;
+    const y0 = Math.min(...boxes.map((b) => b.y)) - 10;
+    const y1 = Math.max(...boxes.map((b) => b.y + b.h)) + 10;
+    const ga = this.gAir;
+    const fade = Math.sin(k * Math.PI);
+    for (let m = 0; m < 30; m++) {
+      const per = 1.4 + rnd(m, 71) * 1.2;
+      const u = frac(t / per + rnd(m, 72));
+      const c = Math.floor(t / per + rnd(m, 72));
+      const x = Math.round(x0 + rnd(m * 7 + c, 73) * (x1 - x0));
+      const y = Math.round(y1 - rnd(m * 5 + c, 74) * (y1 - y0) - u * 14);
+      if (!this.seen(x, y, 0)) continue;
+      const a = Math.sin(u * Math.PI) * fade;
+      ga.fillStyle(m % 3 ? 0xfff0a0 : WHITE, a);
+      ga.fillRect(x, y, 1, 1);
+      if (m % 4 === 0 && u > 0.3 && u < 0.7) {
+        ga.fillStyle(0xd8f0ff, a * 0.7);
+        ga.fillRect(x - 1, y, 1, 1);
+        ga.fillRect(x + 1, y, 1, 1);
+        ga.fillRect(x, y - 1, 1, 1);
+        ga.fillRect(x, y + 1, 1, 1);
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------ the far lands beyond the sea
+
+  /** The far lands: dim silhouettes at the map's edges, each under a fog bank that thins as weights come home
+   *  (core/world-plan.ts); a tapped one's fog thins for a moment. */
+  private drawFar(now: number, t: number): void {
+    const weights = this.s.app.progress.weights;
+    FAR_ISLES.forEach((f, i) => {
+      const b = f.fog;
+      if (!this.seen(b.x + b.w / 2, b.y + b.h / 2, b.w / 2 + 8)) return;
+      const plan = planRegion(f.id);
+      const fog = plan ? fogOf(weights, plan) : 1;
+      const since = now - (this.rattle.get(f.id) ?? -1e9);
+      const peek = since < 2200 ? Math.sin(Math.min(1, since / 2200) * Math.PI) : 0;
+      // the land: hazy while fogged, clear once its fog lifts
+      this.at(this.pool.at(`wm_far_${f.id}`, 0, 0, DEPTH.far, Math.min(1, 0.82 + 0.18 * (1 - fog) + 0.1 * peek)), f.box.x, f.box.y);
+      if (fog <= 0) return;
+      // its fog bank drifts to and fro
+      const dx = Math.round(Math.sin(t * 0.21 + i * 1.7) * 2);
+      const dy = Math.round(Math.sin(t * 0.17 + i) * 0.8);
+      this.at(this.pool.at(`wm_farfog_${f.id}`, 0, 0, DEPTH.fog, fog * (1 - 0.55 * peek)), b.x + dx, b.y + dy);
+    });
   }
 
   // ------------------------------------------------------------------ plates: header, the call to action, cards
@@ -1391,10 +1626,11 @@ export class WorldView {
     const P = s.app.progress;
     const phase = now - this.uiAt;
 
-    // the call to action over Rowan: Greenmarch, and a glossy "Tap to begin!" button (hidden while a card is up)
+    // the call to action over Rowan: his region (Greenmarch), and a glossy "Tap to begin!" button (hidden while a
+    // card is up)
     const [hx, hy] = WORLD_ACTS[this.actNow()].stand;
     const sub = P.actsCleared > 0 ? 'Choose an act' : 'Tap to begin!';
-    const name = 'Greenmarch';
+    const name = REGIONS[regionOfAct(this.actNow())].name;
     const bw = textWidth(sub, 1, true) + 8;
     const w = Math.max(textWidth(name, 1, true) + 12, bw + 6);
     const ph = 28;
@@ -1465,6 +1701,44 @@ export class WorldView {
       }
     }
 
+    // the region chip (top right): the region in view and how complete it is; a tap opens its act picker
+    const chip = this.regionChip();
+    if (chip) {
+      const ca = clamp01(phase / 260);
+      const ck = easeBack(phase / 260, 1.6);
+      const r = { ...chip.r, y: chip.r.y - Math.round((1 - ck) * 8) };
+      const pr = isPressed(chip.r, now);
+      button3d(g, r, FACE.navy, pr);
+      const dy = pr ? 2 : 0;
+      const tw = textWidth(chip.name, 1, true);
+      this.texts.text(chip.name, r.x + 6, r.y + r.h / 2 + dy, WHITE, { bold: true, oy: 0.5, alpha: ca });
+      if (chip.done) {
+        const [, ih] = iconSize('badge_region');
+        hudIcon(g, 'badge_region', r.x + 10 + tw, r.y + Math.round((r.h - ih) / 2) + dy, 1, ca);
+      } else this.texts.text(`${chip.pct}%`, r.x + 10 + tw, r.y + r.h / 2 + dy, 0xffe680, { oy: 0.5, alpha: ca });
+    }
+
+    // a land's first reveal: a card names it as its veil thins away
+    const rv = this.reveal;
+    if (rv) {
+      const age = now - rv.at - REVEAL_CARD[0];
+      if (age > 0 && age < REVEAL_CARD[1]) {
+        const a = Math.min(1, age / 160, (REVEAL_CARD[1] - age) / 300);
+        const title = REGIONS[playableIndex(rv.id)]?.name ?? '';
+        const line = 'A new land!';
+        const iw = Math.max(textWidth(title, 1, true), textWidth(line, 1, false)) + 20;
+        const ih = 23;
+        const k = easeBack(age / 260, 1.6);
+        // (low on the screen: the land and its landmarks stay in view above it)
+        const ix = Math.round((s.L + s.R) / 2 - iw / 2);
+        const iy = s.B - ih - 16 + Math.round((1 - k) * 6);
+        this.panel(g, ix, iy, iw, ih, a);
+        glow(g, { x: ix, y: iy, w: iw, h: ih }, 0xffe680, (0.25 + 0.25 * pulse(now, 900)) * a, 2);
+        this.texts.text(title, ix + iw / 2, iy + 7, 0xffe680, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
+        this.texts.text(line, ix + iw / 2, iy + 16, WHITE, { ox: 0.5, oy: 0.5, alpha: a });
+      }
+    }
+
     // the Camp button (bottom left): a tent and "Camp" on a navy key
     const cb = this.campButton();
     const cpop = clamp01((now - s.app.phaseSince - 120) / 260);
@@ -1517,11 +1791,22 @@ export class WorldView {
           col = 0xffe680;
         } else if (inf.id.startsWith('act')) {
           const i = Number(inf.id.slice(3));
-          title = GREENMARCH.acts[i]?.name ?? '';
+          title = ALL_ACTS[i]?.name ?? '';
           line = `Clear Act ${i} first`;
           ax = WORLD_ACTS[i].flag[0];
           ay = WORLD_ACTS[i].flag[1] - 16;
           col = 0xc8c0e8;
+        } else if (inf.id.startsWith('far:')) {
+          // a far land: no name until its fog lifts (and none yet after)
+          const f = FAR_ISLES.find((q) => `far:${q.id}` === inf.id)!;
+          const plan = planRegion(f.id);
+          const fog = plan ? fogOf(P.weights, plan) : 1;
+          const open = !!plan && revealed(P.weights, plan);
+          title = open && plan ? planName(P.weights, plan) : 'Beyond the sea';
+          line = open ? 'Beyond the sea' : fog < 1 ? 'The fog is thinning' : 'Lost in the fog';
+          ax = f.box.x + f.box.w / 2;
+          ay = f.box.y + f.box.h + 14;
+          col = 0xb8d0f0;
         } else {
           const r = WORLD_REGIONS.find((q) => q.id === inf.id)!;
           title = r.name;
@@ -1571,8 +1856,20 @@ export class WorldView {
     panel(g, p, { trim: 'full', alpha: clamp01(since / 120) });
     if (k < 0.98) return;
     const cx = p.x + p.w / 2;
-    ribbon(g, cx, p.y - 6, 104, 13, RIBBON.green);
-    T.text('Choose an act', cx, p.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    // the ribbon names the region and how complete it is (the laurel badge at 100%)
+    const region = this.pickRegion();
+    const start = regionStart(region);
+    const comp = regionCompletion(app.profile, region);
+    const rname = REGIONS[region].name;
+    const tw = textWidth(rname, 1, true);
+    const [bw, bh] = iconSize('badge_region');
+    const rw = comp.done ? bw : textWidth(`${comp.pct}%`, 1, false);
+    const tot = tw + 5 + rw;
+    ribbon(g, cx, p.y - 6, Math.max(104, tot + 26), 13, RIBBON.green);
+    const tx0 = Math.round(cx - tot / 2);
+    T.text(rname, tx0, p.y + 0.5, WHITE, { bold: true, oy: 0.5 });
+    if (comp.done) hudIcon(g, 'badge_region', tx0 + tw + 5, Math.round(p.y + 0.5 - bh / 2));
+    else T.text(`${comp.pct}%`, tx0 + tw + 5, p.y + 0.5, 0xfff0a0, { oy: 0.5 });
     // close: a red key with an X
     const cb = this.closeButton();
     const cpr = isPressed(cb, now);
@@ -1589,7 +1886,8 @@ export class WorldView {
       g.fillRect(cb.x + 9 - i, xy + 4 + i, 1, 1);
     }
     const owned = new Set(app.profile.items.map((it) => it.base));
-    GREENMARCH.acts.forEach((act, i) => {
+    REGIONS[region].acts.forEach((act, i) => {
+      const gi = start + i; // the act's global number
       const ck = easeBack((since - 110 - i * 70) / 240, 1.4);
       if (ck <= 0) return;
       const a = clamp01(ck * 1.5);
@@ -1597,8 +1895,8 @@ export class WorldView {
       const sh = this.pickShake && this.pickShake.act === i && now - this.pickShake.at < 260 ? Math.round(Math.sin((now - this.pickShake.at) / 18) * 2) : 0;
       const ox = Math.round((1 - ck) * 50) + sh;
       const r: Rect = { ...r0, x: r0.x + ox };
-      const cleared = i < app.profile.actsCleared;
-      const locked = i >= run.playableActs;
+      const cleared = gi < app.profile.actsCleared;
+      const locked = gi >= run.playableActs;
       const next = !locked && !cleared;
       const rim = next ? 0xf2c230 : cleared ? 0x5ad848 : NAVY[5];
       if (next) glow(g, r, 0xf2c230, (0.22 + 0.22 * pulse(now, 1000)) * a, 2);
@@ -1630,17 +1928,17 @@ export class WorldView {
       g.fillStyle(WHITE, 0.8 * a);
       g.fillRect(bx + 11, by + 1, 3, 1);
       if (locked) glyph(g, 'lock', bx + 4, by + 5, a);
-      else T.text(`${i + 1}`, bx + 8, by + 9, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
+      else T.text(`${gi + 1}`, bx + 8, by + 9, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
       if (cleared) glyph(g, 'check', bx + 10, by + 12, a);
       // name, and what playing it means
       const tx = bx + 23;
       T.text(act.name, tx, r.y + 9, locked ? 0x8a84a0 : WHITE, { bold: true, oy: 0.5, alpha: a });
-      const status = cleared ? 'Replay (farm)' : next ? 'Continue the story' : `Clear Act ${i} first`;
+      const status = cleared ? 'Replay (farm)' : next ? 'Continue the story' : `Clear Act ${gi} first`;
       T.text(status, tx, r.y + 20, cleared ? 0x9af06a : next ? 0xffe680 : 0x8a84a0, { oy: 0.5, alpha: a });
       // the gear its drops have, and the boss's signature drops
       const mx = r.x + 134;
-      const lo = itemLevel(run.tuning, i, 0);
-      const hi = itemLevel(run.tuning, i, act.rows);
+      const lo = itemLevel(run.tuning, gi, 0);
+      const hi = itemLevel(run.tuning, gi, act.rows);
       T.text(`Gear Lv ${lo}-${hi}`, mx, r.y + 7, locked ? 0x8a84a0 : 0xc8c0e8, { oy: 0.5, alpha: a });
       const sigs = act.boss.flatMap((b) => SIGNATURES[b] ?? []);
       sigs.forEach((id, j) => {
