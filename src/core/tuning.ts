@@ -381,7 +381,7 @@ export const DEFAULT_TUNING = {
   kits: {
     // Each hero's own numbers (core/kit-fx.ts; src/data/heroes.ts has the words). hp: base max HP; atk: share of
     // Rowan's base attack. Rowan's are tuning.hero. Tuned with the bot to stay within +/-10 points of Rowan.
-    sable: { hp: 110, atk: 1, abilitySec: 3, silentStep: 0.25, dashLead: 0.3, fangMult: 1.4, fangKeep: 1 },
+    sable: { hp: 110, atk: 1, abilitySec: 3, silentStep: 0.25, dashLead: 0.15, dashMult: 2.5, fangMult: 1.4, fangKeep: 1 },
     neve: { hp: 100, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, glacierMult: 0.8, slowSec: 4, slowWidth: 0.34 },
     moss: { hp: 105, atk: 0.85, abilitySec: 3, allySec: 10, allySec3: 14, thornEvery: 1.5, thornDmg: 0.4, barkEvery: 4, mothEvery: 3, mothHeal: 0.02, seedEvery: 5, roots: 0.12, overgrowth: 0.25, vineSec: 3, vineMult: 0.5 },
     tam: { hp: 100, atk: 0.9, abilitySec: 3, kegEvery3: 4, blastShield: 0.5, bangKegs: 3, wide5: 2 },

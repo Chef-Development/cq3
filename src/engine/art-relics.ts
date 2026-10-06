@@ -7,10 +7,11 @@
 //                 brown and cream, sustain pink, coins gold, risk crimson and black)
 //   tag_${tag}    7x7 chips for the 10 RelicTags (bomb, star, shield, chevrons, swoosh, leaf, owl, heart, coin, skull)
 //   skill_${id}   12x12 for every skill node; each branch has a look (Rowan: Blade steel and gold, Bulwark steel blue,
-//                 Momentum a cyan and violet swirl; Sable: Crossfire crossed daggers and red, Shadowguard smoky
-//                 purple, Quicksilver silver and teal) and the capstones get a gold rim and glints
+//                 Momentum a cyan and violet swirl; Sable's old two-cursor tree: crossed daggers and red, smoky
+//                 purple, silver and teal, which her new tree borrows) and the capstones get a gold rim and glints.
+//                 The other heroes' nodes have stand-ins for now (skillIcon: their stat's icon, a rune, a star)
 import { RELIC_IDS, RELIC_TAGS, relicById } from '../data/relics';
-import { SKILL_NODES } from '../data/skills';
+import { SKILL_NODES, type SkillNode, type SkillStat } from '../data/skills';
 import { grid, stamp, toCanvas, type Pal } from './art';
 import { ITEM_ICON_SIZE } from './art-gear';
 
@@ -1004,6 +1005,57 @@ const SKILL_ICONS: Record<string, string[]> = {
   ],
 };
 
+/** Skill nodes drawn with another node's icon until they get their own: Sable's rebuilt (one-cursor) tree keeps her
+ *  old art where it fits; every other node without a map of its own shows its stat's icon (Rowan's stat nodes), and
+ *  a rule node or capstone the stand-ins below. */
+const SKILL_ICON_ALIAS: Record<string, string> = {
+  sureChain: 'twinRhythm',
+  deepCuts: 'flurry',
+  deathMark: 'whirlingBlades',
+  lunge: 'blur',
+  nightStep: 'crossGuard',
+  phantomRush: 'afterimage',
+  vanish: 'evasion',
+  nightCloak: 'quickening',
+};
+const STAT_ICON: Record<SkillStat, string> = { atkPct: 'keenEdge', critChance: 'steadyAim', hpPct: 'stout', def: 'plateTraining', meterGain: 'rhythm', comboPower: 'powerStance' };
+const KIND_ICON: Record<'rule' | 'capstone', string[]> = {
+  // a violet rune stone, its mark an arrow up: a rule that changes
+  rule: [
+    '.wwwwwwvv.',
+    'wwVVVVVVvU',
+    'wVVVVWVVvU',
+    'wVVVWWWVvU',
+    'wVVWVWVWvU',
+    'wVVVVWVVvU',
+    'wVVVVWVVvU',
+    'wVVVVVVVvU',
+    'VvvvvvvvvU',
+    '.UUUUUUUU.',
+  ],
+  // capstone: a star, gold-rimmed
+  capstone: [
+    'G.gggggg.G',
+    '.g..+*..g.',
+    'g...+*...g',
+    'g+++**&&^g',
+    'g.+***&^.g',
+    'g..*&&^..g',
+    'g.*&^.&^.g',
+    'g*&....&^g',
+    '.y......y.',
+    'G.yyyyyy.G',
+  ],
+};
+
+/** A skill node's icon map: its own, else a stand-in (see SKILL_ICON_ALIAS). */
+function skillIcon(node: SkillNode): string[] {
+  const own = SKILL_ICONS[node.id] ?? SKILL_ICONS[SKILL_ICON_ALIAS[node.id] ?? ''];
+  if (own) return own;
+  if (node.kind === 'stat' && node.stat) return SKILL_ICONS[STAT_ICON[node.stat]];
+  return KIND_ICON[node.kind === 'capstone' ? 'capstone' : 'rule'];
+}
+
 // ------------------------------------------------------------------ build
 
 /** Stamp a map of `n` x `n` at (1, 1) on a square `n + 2` wide; toCanvas adds the outline. */
@@ -1051,9 +1103,5 @@ export function buildRelicArt(add: Add): void {
     const rows = TAG_ICONS[tag] ?? standIn(STAND_IN[tag] ?? STAND_IN.skill, TAG_ICON_SIZE - 2, ramp);
     add(`tag_${tag}`, icon(rows, TAG_ICON_SIZE - 2, `tag_${tag}`));
   }
-  for (const node of SKILL_NODES) {
-    // the new heroes' nodes use a stand-in until painted ones are drawn
-    const rows = SKILL_ICONS[node.id] ?? standIn(STAND_IN.skill, n, ramp);
-    add(`skill_${node.id}`, icon(rows, n, `skill_${node.id}`));
-  }
+  for (const node of SKILL_NODES) add(`skill_${node.id}`, icon(skillIcon(node), n, `skill_${node.id}`));
 }

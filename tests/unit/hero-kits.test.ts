@@ -190,15 +190,22 @@ describe('hero kits', () => {
     expect(c.combo).toBe(0);
   });
 
-  it("Sable's Shadow Dash: a Perfect hit dashes the cursor to just before the next block; it stops before a red and skips traps", () => {
+  it("Sable's Shadow Dash: a Perfect hit sends the cursor bursting toward the next block, slowing back just before it; it stops before a red and skips traps", () => {
     const { c, t } = fight('sable');
     c.spawnBlock('purple', 0.5);
     const next = c.spawnBlock('yellow', 0.7);
     tapNew(c, t, 'yellow', 0.2);
-    const lead = c.travelTime(c.cursorPos(), next.pos - next.width / 2, 1);
-    expect(c.cursorPos()).toBeGreaterThan(0.4); // jumped well past where the hit was (and past nothing it could tap)
-    expect(lead).toBeCloseTo(t.kits.sable.dashLead, 1);
-    expect(c.drainEvents().some((e) => e.type === 'dash')).toBe(true);
+    const ev = c.drainEvents();
+    const dash = ev.find((e) => e.type === 'dash');
+    expect(dash).toBeDefined();
+    const edge = next.pos - next.width / 2;
+    // the burst runs from the hit to `dashLead` s of normal travel before the next block (the trap is skipped)
+    expect(dash && dash.type === 'dash' && dash.to).toBeGreaterThan(0.5);
+    const z = c.zones.find((x) => x.kind === 'dash')!;
+    expect(z.mult).toBeCloseTo(t.kits.sable.dashMult);
+    const plain = fight('sable').c;
+    plain.spawnBlock('yellow', 0.7);
+    expect(c.travelTime(c.cursorPos(), edge, 1)).toBeLessThan(plain.travelTime(c.cursorPos(), edge, 1) * 0.7); // it gets there much sooner
     // a red ahead stops the dash before it
     const b = fight('sable');
     const red = b.c.spawnBlock('red', 0.6);
@@ -211,15 +218,20 @@ describe('hero kits', () => {
     expect(d.c.drainEvents().some((e) => e.type === 'dash')).toBe(false);
   });
 
-  it('Shadow Dash lands before a hold\'s near edge (so it can be pressed) and counts an ice patch on the way', () => {
+  it("Shadow Dash ends before a hold's near edge (so it can be pressed), counting an ice patch on the way", () => {
     const { c, t } = fight('sable');
     c.addZone('ice', 0.6, 0.3, 0);
     const h = c.spawnBlock('hold', 0.75);
     tapNew(c, t, 'yellow', 0.2);
     const edge = h.pos - h.width / 2;
-    expect(c.cursorPos()).toBeLessThan(edge);
-    expect(c.travelTime(c.cursorPos(), edge, 1)).toBeCloseTo(t.kits.sable.dashLead, 1);
-    // the dash lands where the hold can still be pressed: its near edge is reached in time
+    const ev = c.drainEvents().find((e) => e.type === 'dash');
+    const to = ev && ev.type === 'dash' ? ev.to : 0;
+    expect(to).toBeLessThan(edge);
+    // from the burst's end, `dashLead` s of normal travel (through the ice) are left to press the hold
+    const z = c.zones.find((x) => x.kind === 'dash')!;
+    c.removeZone(z);
+    expect(c.travelTime(to, edge, 1)).toBeCloseTo(t.kits.sable.dashLead, 1);
+    c.addZone('dash', (z.lo + z.hi) / 2, z.hi - z.lo, z.life);
     const at = c.time + c.travelTime(c.cursorPos(), edge, 1);
     go(c, at);
     expect(c.tap(at).outcome).toBe('hold');

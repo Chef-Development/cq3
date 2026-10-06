@@ -32,22 +32,30 @@ export function nextBlockAhead(c: Combat, skip?: Block): Block | null {
 }
 
 /**
- * Shadow Dash: after a Perfect hit, the cursor jumps to just before the next block ahead, leaving `lead` seconds of
- * travel to tap it (counted through any patch on the way). It stops before a red (to block it), lands before a hold's
- * near edge, skips traps, and never dashes backwards or past a wall.
+ * Shadow Dash: after a Perfect hit the cursor bursts ahead (tuning.kits.sable.dashMult times its speed) toward the
+ * next block, slowing back to normal `lead` seconds of travel before it (counted through any patch on the way), so a
+ * chain of Perfects comes fast and risky. The burst is a short-lived 'dash' patch from the cursor to that point (so
+ * timing, the bot and the view all see it). It stops short of a red (to block it), ends before a hold's near edge,
+ * skips traps, and never runs past a wall.
  */
 export function shadowDash(c: Combat, lead = K(c).sable.dashLead): boolean {
   const b = nextBlockAhead(c);
   if (!b) return false;
+  for (const z of c.zones.slice()) if (z.kind === 'dash') c.removeZone(z);
   const dir = c.cursorDirAt(c.time);
   const p = c.cursorPos();
   const edge = b.pos - (dir * b.width) / 2;
-  // walk back from the edge until `lead` seconds of travel are left (patches change how far that is)
+  // walk back from the edge until `lead` seconds of normal travel are left (patches change how far that is)
   const v = c.cursorSpeed();
   let target = edge;
   for (let i = 0; i < 24 && c.travelTime(target, edge, dir) < lead; i++) target -= dir * Math.max(0.004, v * c.zoneMultAt(target) * (lead / 24));
-  if ((target - p) * dir <= 0.01) return false; // already that close: no dash
-  c.dashTo(target);
+  if ((target - p) * dir <= 0.03) return false; // already that close: no dash
+  const lo = Math.min(p, target);
+  const hi = Math.max(p, target);
+  const z = c.addZone('dash', (lo + hi) / 2, hi - lo, 0.05 + c.travelTime(p, target, dir) / Math.max(1, K(c).sable.dashMult) + 0.2);
+  z.lo = lo;
+  z.hi = hi;
+  c.events.push({ type: 'dash', from: p, to: target });
   if (c.stars >= 3) c.perk.afterimage = 1; // 3 stars: the dash leaves an afterimage that stops the next red
   return true;
 }

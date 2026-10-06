@@ -282,15 +282,20 @@ describe('skill previews', () => {
   };
   const show = (p: { stat: string; before: string; after: string } | null) => (p ? `${p.stat} ${p.before} -> ${p.after}` : null);
 
-  it('every stat node shows the stat it changes, before -> after, from the real stats', () => {
+  it("every stat node shows the stat it changes, before -> after, from the real stats (Rowan's exactly)", () => {
     const stats = SKILL_NODES.filter((n) => n.kind === 'stat');
-    expect(stats.map((n) => n.id).sort()).toEqual(Object.keys(want).sort());
+    expect(stats.filter((n) => skillHero(n.id) === 'rowan').map((n) => n.id).sort()).toEqual(Object.keys(want).sort());
+    const label: Record<string, string> = { atkPct: 'ATK', critChance: 'Crit', hpPct: 'Max HP', def: 'DEF', meterGain: 'Meter', comboPower: 'Combo' };
     for (const node of stats) {
       const hero = newHero(t, emptyLoadout(), { id: skillHero(node.id)!, level: 1, skills: [] });
-      expect(show(skillStatPreview(t, hero, node.id)), node.id).toBe(want[node.id]);
+      const p = skillStatPreview(t, hero, node.id)!;
+      if (want[node.id]) expect(show(p), node.id).toBe(want[node.id]);
+      // every hero's: the right stat, going up
+      expect(p.stat, node.id).toBe(label[node.stat!]);
+      expect(parseFloat(p.after.replace('+', '')), node.id).toBeGreaterThan(parseFloat(p.before.replace('+', '')));
       // the same once learned (the screen shows what it adds)
       const learned = newHero(t, emptyLoadout(), { id: skillHero(node.id)!, level: 1, skills: [node.id] });
-      expect(show(skillStatPreview(t, learned, node.id)), node.id).toBe(want[node.id]);
+      expect(show(skillStatPreview(t, learned, node.id)), node.id).toBe(show(p));
     }
   });
 

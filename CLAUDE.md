@@ -30,11 +30,11 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 - **Relics, skills and kits are fight hooks.** A relic (`src/data/relics.ts`: 1-2 synergy tags, a rarity, at most
   one number in `tuning.relics.n`, an unlock), a skill node (`src/data/skills.ts`; numbers in `tuning.skills.n`) and a
   hero's kit change the rules through `src/core/hooks.ts`: Combat collects the hooks of what the hero carries
-  (`kit-fx.ts`, `skill-fx.ts` + `skill-fx-sable.ts`, `relic-fx.ts`) and calls them at fixed points (crit chance, hit
+  (`kit-fx.ts`, `skill-fx.ts` + `skill-fx-heroes.ts`, `relic-fx.ts`) and calls them at fixed points (crit chance, hit
   damage, after a hit/block, meter, combo gain, combo break, misses, traps, impacts, the finisher, Pip's pecks, kills,
   bombs). Per-fight state lives in `c.perk`; a perk that kicks in calls `c.perkFx(id, ...)` so the UI names it. Every
   relic and every rule node/capstone has a with/without unit test (`tests/unit/relics.test.ts`, `skills.test.ts`,
-  `sable-skills.test.ts`). Relics never flat-bump a stat. Run-level relics (shops, rests, map steps) live in `run.ts`.
+  `hero-skills.test.ts`). Relics never flat-bump a stat. Run-level relics (shops, rests, map steps) live in `run.ts`.
   Offers (`core/relics.ts`): mostly relics plus at most one stat card, leaning toward owned tags ("Synergy!"); relics
   carry and reset like boosts (`hero.relics`, never mutated in place); replays draft `kit.relicPicks` per act behind.
 - **Map extras** (`core/roam.ts`, `quests.ts`, `skirmish.ts`; numbers in `tuning.extras/roam/rush/quests/secret/wander`).
@@ -179,13 +179,13 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 src/data/      enemies.ts (stats, patterns, specials), greenmarch.ts (acts, encounters, map weights), events.ts,
                story.ts (scenes), types.ts
 src/data/gear.ts  stats, slots, rarities, base items, sets, unique effects, signature drops
-src/data/relics.ts (40 relics, tags, build names), heroes.ts (Rowan, Sable), skills.ts (both trees), tips.ts (the tips),
+src/data/relics.ts (40 relics, tags, build names), heroes.ts (Rowan, Sable), skills.ts + skills-heroes.ts (the eight trees), tips.ts (the tips),
                quests.ts (the bounties' goals)
 src/core/      tuning.ts (numbers), combat.ts (sim; heroStats, gear effects), specials.ts (special-move actions),
                blocks.ts, map.ts (act maps), run.ts (region flow: map, nodes, loot, boosts, shop, events, scenes,
                camp, replaying acts, revive/retry), gear.ts (item stats, drops, bad-luck protection, forge prices),
                profile.ts (kept across runs: progress, bag, equipped, purse, scrap, accuracy log), accuracy.ts
-               (accuracy readout), hooks.ts (fight hooks), relic-fx.ts / skill-fx.ts / skill-fx-sable.ts / kit-fx.ts (the
+               (accuracy readout), hooks.ts (fight hooks), relic-fx.ts / skill-fx.ts / skill-fx-heroes.ts / kit-fx.ts (the
                relics, skill nodes and kits as hooks), relics.ts (offers, synergy, build names, unlocks), heroes.ts (XP,
                levels, skill trees), impact.ts (impact tier weights -> hit-stop/shake/flash and sound layers),
                roam.ts (the map's extras: Coin Rush and bounty stops, the secret, roamers and their steps), quests.ts

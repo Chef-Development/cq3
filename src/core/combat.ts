@@ -57,7 +57,7 @@ export interface Block {
  *  slow it. Patches can overlap (their speeds multiply) and slide (an Aurora's Shimmer). */
 export interface Zone {
   id: number;
-  kind: ZoneKind | 'slow';
+  kind: ZoneKind | 'slow' | 'dash'; // 'dash': Shadow Dash's burst of speed toward the next block (drawn as a streak)
   lo: number;
   hi: number;
   mult: number;
@@ -974,7 +974,7 @@ export class Combat {
     const B = this.tuning.bar;
     const w = Math.max(0.02, Math.min(1, width));
     const c = Math.max(w / 2, Math.min(1 - w / 2, center));
-    const mult = kind === 'ice' ? B.iceMult : kind === 'snow' ? B.snowMult : B.slowMult;
+    const mult = kind === 'ice' ? B.iceMult : kind === 'snow' ? B.snowMult : kind === 'dash' ? this.tuning.kits.sable.dashMult : B.slowMult;
     const z: Zone = { id: this.nextId++, kind, lo: c - w / 2, hi: c + w / 2, mult, life: life > 0 ? life : Infinity, vel: 0, slide: 0, phase };
     this.zones.push(z);
     this.events.push({ type: 'zoneOn', id: z.id, kind, lo: z.lo, hi: z.hi });
@@ -1566,8 +1566,10 @@ export class Combat {
   /** Slow a red for `sec` (mult 0: pinned in place). */
   chillRed(b: Block, sec: number, mult: number): void {
     if (!isRed(b.kind) || b.still) return;
+    // a slow still running keeps the stronger of the two; an expired one doesn't linger into the next
+    const was = b.chill > 0;
     b.chill = Math.max(b.chill, sec);
-    b.chillMult = Math.min(b.chill > 0 && b.chillMult < 1 ? b.chillMult : 1, Math.max(0, mult));
+    b.chillMult = was ? Math.min(b.chillMult, Math.max(0, mult)) : Math.max(0, mult);
   }
 
   /** Stun a foe: it stops attacking for `sec`. */

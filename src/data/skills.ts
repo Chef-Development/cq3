@@ -1,15 +1,17 @@
 // Skill trees (plain data, no logic): each hero has 3 branches of 5 nodes, learned in order (a point each; a point
 // every 2 levels). The first two nodes of a branch add a stat; the 3rd and 4th change a rule; the 5th, the capstone,
-// changes how you play. '{n}' in a text is the node's number (the live value is tuning.skills.n[id]).
-// src/core/heroes.ts learns and resets them, src/core/skill-fx.ts makes the rule nodes work in fights.
+// changes how you play. '{n}' in a text is the node's number (the live value is tuning.skills.n[id]). Rowan's tree is
+// here, the other seven heroes' in skills-heroes.ts. src/core/heroes.ts learns and resets them, src/core/skill-fx.ts
+// (Rowan) and skill-fx-heroes.ts (the rest) make the rule nodes work in fights.
 
 import type { HeroId } from './heroes';
+import { HERO_TREES } from './skills-heroes';
 
 /** What a stat node adds (n in these units: 8 = +8% attack, 5 = +5% crit chance, 8 = +8 Defense). */
 export type SkillStat = 'atkPct' | 'critChance' | 'hpPct' | 'def' | 'meterGain' | 'comboPower';
 
 export interface SkillNode {
-  id: string; // unique across both trees
+  id: string; // unique across every tree
   name: string;
   kind: 'stat' | 'rule' | 'capstone';
   text: string; // one short line
@@ -69,14 +71,8 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
       ],
     },
   ],
-  // the other heroes' trees (one per hero; filled in src/data/skills-heroes.ts)
-  sable: [],
-  neve: [],
-  moss: [],
-  tam: [],
-  hollis: [],
-  vesper: [],
-  torva: [],
+  // the other heroes' trees (src/data/skills-heroes.ts)
+  ...HERO_TREES,
 };
 
 export const SKILL_NODES: SkillNode[] = Object.values(SKILL_TREES).flatMap((bs) => bs.flatMap((b) => b.nodes));
