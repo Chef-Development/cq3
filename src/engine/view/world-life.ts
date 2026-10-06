@@ -1,15 +1,16 @@
 // Life on the kingdom's world map, out at sea where a tap means nothing else (world.ts hands life only the taps no
-// region, the capital, the plate or the Camp button took): a raft of gulls floating off the coast (tapped, they
+// landmark, the capital, the plate or the Camp button took): a raft of gulls floating off the coast (tapped, they
 // take off and come back a while later) and a pod of dolphins breaking the surface now and then (tapped, one leaps
 // clear of the water). Pip chirps at them.
 //
 // Now and then something glints on the waves: a tap picks it up for a coin or two, into the purse (core/sparkle.ts:
 // at most one per visit, and a visit is new only once you've played since; the same after a reload, never paid
-// twice). Everything stays on the open sea, clear of the header, the plates, the Camp button, the cloud banks and the
-// ships' lanes, and animates from `now` (deterministic for the screenshot tests).
+// twice). All of it is placed in world px on the open sea in view when the map opens on the current act (so you
+// see it on arrival), clear of the header, the Camp button, Rowan's plate, the moored boats and the ships' lanes, and
+// animates from `now` (deterministic for the screenshot tests).
 import { claimSparkle, openSparkle, worldSparkle, type Sparkle } from '../../core/sparkle';
-import { WORLD_LIFE, worldRegionAt } from '../art-world';
-import { GAME_W } from '../layout';
+import { WORLD_LIFE, WORLD_W, worldRegionAt } from '../art-world';
+import { GAME_H, GAME_W } from '../layout';
 import type { FightScene } from '../scene';
 import { drawPop, drawSparkle, Flock, LifeLayers, overlaps, POP_MS, rnd, sparkleBox, type Pop, type Pt } from './life';
 import type { Rect } from './shared';
@@ -52,10 +53,14 @@ export class WorldLife {
 
   constructor(
     private readonly s: FightScene,
-    /** Whether a tap at (x, y) is free (no region, capital, plate or button takes it). */
+    /** Whether a tap at world (x, y) is free (no landmark, capital, plate or button takes it). */
     private readonly tapFree: (x: number, y: number) => boolean,
-    /** Greenmarch's plate, as last drawn (it bobs and pops in: life keeps well clear of it). */
+    /** Where Rowan and his plate stand (world px): life keeps well clear of it. */
     private readonly plate: () => Rect,
+    /** The camera (world px at the screen's top-left). */
+    private readonly cam: () => { x: number; y: number },
+    /** The camera the map opens with (the current act framed): life is placed where that view sees the sea. */
+    private readonly home: () => Pt,
   ) {
     this.L = new LifeLayers(s, { low: D_LOW, high: D_HIGH, pop: D_POP, text: D_TEXT });
   }
@@ -71,69 +76,76 @@ export class WorldLife {
   }
 
   /**
-   * Whether a whole rect is open sea that no other tap target claims, clear of the cloud bank along the top, the very
-   * bottom edge, the moored fishing boat and (with `lanes`) the ships' lanes.
+   * Whether a whole world rect is open sea that no other tap target claims, inside the home view and clear of its HUD
+   * (the header, the Camp button, the gear button), the very bottom edge, the moored boats and Rowan's plate.
    */
-  private seaRect(r: Rect, lanes = true): boolean {
+  private seaRect(r: Rect, hx: number, hy: number): boolean {
     const s = this.s;
-    if (r.x < s.L + 6 || r.x + r.w > s.R - 6 || r.y < 22 || r.y + r.h > Math.min(140, s.B - 6)) return false;
-    if (lanes && (overlaps(r, { x: 0, y: 5, w: GAME_W, h: 17 }) || overlaps(r, { x: 0, y: 126, w: GAME_W, h: 16 }))) return false;
-    const [bx, by] = WORLD_LIFE.boat;
-    if (overlaps(r, { x: bx - 9, y: by - 12, w: 18, h: 15 })) return false;
-    // the header panel, the DOM buttons, Greenmarch's plate
-    if (overlaps(r, { x: 0, y: 0, w: s.L + 136, h: 40 }) || overlaps(r, { x: GAME_W / 2 - 24, y: 0, w: 48, h: 24 }) || overlaps(r, this.plate(), 10)) return false;
-    for (let y = r.y; y <= r.y + r.h; y += 2) for (let x = r.x; x <= r.x + r.w; x += 2) if (worldRegionAt(x, y) || !this.tapFree(x, y)) return false;
+    const x = r.x - hx;
+    const y = r.y - hy;
+    if (x < s.L + 6 || x + r.w > s.R - 6 || y < 22 || y + r.h > Math.min(GAME_H - 10, s.B - 6)) return false;
+    // the header panel, the gear button, the Camp button (screen px in the home view)
+    const sr = { x, y, w: r.w, h: r.h };
+    if (overlaps(sr, { x: 0, y: 0, w: s.L + 136, h: 40 }) || overlaps(sr, { x: GAME_W / 2 - 24, y: 0, w: 48, h: 24 }) || overlaps(sr, { x: 0, y: s.B - 28, w: s.L + 70, h: 40 })) return false;
+    for (const [bx, by] of WORLD_LIFE.boats) if (overlaps(r, { x: bx - 9, y: by - 12, w: 18, h: 15 })) return false;
+    if (overlaps(r, this.plate(), 10)) return false;
+    for (let yy = r.y; yy <= r.y + r.h; yy += 2)
+      for (let xx = r.x; xx <= r.x + r.w; xx += 2) if (worldRegionAt(xx, yy) || !this.tapFree(xx, yy)) return false;
     return true;
   }
 
-  /** Where the gulls float and the dolphins swim (once per layout). */
+  /** Whether a world point is open water (well clear of any shore). */
+  private openAt(x: number, y: number): boolean {
+    const o = WORLD_LIFE.open;
+    const xi = Math.round(x);
+    const yi = Math.round(y);
+    return xi >= 0 && yi >= 0 && xi < WORLD_W && o[yi * WORLD_W + xi] === 1;
+  }
+
+  /** Where the gulls float and the dolphins swim (once per layout and home view). */
   private place(): void {
     const s = this.s;
-    const p = this.plate();
-    if (!p.w) return;
-    const key = `${s.L},${s.R},${s.B}|${p.w}`;
+    const [hx, hy] = this.home();
+    const key = `${s.L},${s.R},${s.B}|${hx},${hy}`;
     if (key === this.placed) return;
     this.placed = key;
-    const sea = [...WORLD_LIFE.sea].sort((a, b) => rnd(a[0], a[1], 41) - rnd(b[0], b[1], 41));
     const taken: Rect[] = [];
     this.gulls = null;
     this.pod = null;
-    // the dolphins: a stretch of open sea they arc along (they'll swim a ship's lane if there's no other room)
     const grid: Pt[] = [];
-    for (let y = 22; y < 142; y += 3) for (let x = 0; x < GAME_W; x += 3) grid.push([x, y]);
+    for (let y = hy + 22; y < hy + GAME_H - 8; y += 3) for (let x = hx; x < hx + GAME_W; x += 3) grid.push([x, y]);
     grid.sort((a, b) => rnd(a[0], a[1], 47) - rnd(b[0], b[1], 47));
-    for (const lanes of [true, false])
-      for (const [x, y] of grid) {
-        if (this.pod) break;
-        const dir = rnd(x, y, 45) < 0.5 ? -1 : 1;
-        const r = this.podRect(x, y, dir);
-        if (!this.seaRect(r, lanes)) continue;
-        this.pod = { x, y, dir, period: 13, phase: rnd(x, y, 46) * 13, leapAt: -1e9, leapFrom: [x, y], resumeAt: -1e9 };
-        taken.push(r);
-      }
-    // the gulls: near a coast (some land within 24 px), on a patch of sea of their own (in a ship's lane if need be)
-    for (const lanes of [true, false])
-      for (const [x, y] of grid) {
-        if (this.gulls) break;
-        const coast = [-24, -12, 12, 24].some((d) => worldRegionAt(x + d, y) || worldRegionAt(x, y + d));
-        if (!coast) continue;
-        const f = new Flock({ sprite: 'gull', fly: ['wm_bird0', 'wm_bird1'], center: [x, y], n: 3, rx: 6, ry: 2, seed: rnd(x, y, 43), water: true });
-        const b = f.box();
-        // the birds float on open water; their tap box (thumb-sized) may reach over the shore, where the land's taps win
-        const water: Rect = { x: x - 10, y: y - 7, w: 20, h: 10 };
-        if (!this.seaRect(water, lanes) || taken.some((t) => overlaps(water, t, 6))) continue;
-        this.gulls = f;
-        taken.push(b);
-      }
-    // the sparkle's spots: open sea, clear of the rest (out of the ships' way if there's room)
+    // the dolphins: a stretch of open sea they arc along
+    for (const [x, y] of grid) {
+      if (this.pod) break;
+      const dir = rnd(x, y, 45) < 0.5 ? -1 : 1;
+      const r = this.podRect(x, y, dir);
+      if (!this.openAt(r.x, r.y + r.h) || !this.openAt(r.x + r.w, r.y + r.h) || !this.seaRect(r, hx, hy)) continue;
+      this.pod = { x, y, dir, period: 13, phase: rnd(x, y, 46) * 13, leapAt: -1e9, leapFrom: [x, y], resumeAt: -1e9 };
+      taken.push(r);
+    }
+    // the gulls: near a coast (some land within 24 px), on a patch of sea of their own
+    for (const [x, y] of grid) {
+      if (this.gulls) break;
+      const coast = [-24, -12, 12, 24].some((d) => worldRegionAt(x + d, y) || worldRegionAt(x, y + d));
+      if (!coast) continue;
+      const f = new Flock({ sprite: 'gull', fly: ['wm_bird0', 'wm_bird1'], center: [x, y], n: 3, rx: 6, ry: 2, seed: rnd(x, y, 43), water: true });
+      const b = f.box();
+      const water: Rect = { x: x - 10, y: y - 7, w: 20, h: 10 };
+      if (!this.seaRect(water, hx, hy) || taken.some((t) => overlaps(water, t, 6))) continue;
+      this.gulls = f;
+      taken.push(b);
+    }
+    // the sparkle's spots: open sea in the home view, clear of the rest
     this.open = [];
-    for (const lanes of [true, false])
-      for (const [x, y] of sea) {
-        if (this.open.length >= (lanes ? 40 : 6)) break;
-        const b = sparkleBox(x, y);
-        if (taken.some((t) => overlaps(b, t, 4)) || !this.seaRect(b, lanes) || this.open.some(([ox, oy]) => ox === x && oy === y)) continue;
-        this.open.push([x, y]);
-      }
+    for (const [x, y] of grid) {
+      if (this.open.length >= 40) break;
+      if (!this.openAt(x, y)) continue;
+      const b = sparkleBox(x, y);
+      if (taken.some((t) => overlaps(b, t, 4)) || !this.seaRect(b, hx, hy) || this.open.some(([ox, oy]) => Math.abs(ox - x) < 6 && Math.abs(oy - y) < 6)) continue;
+      this.open.push([x, y]);
+    }
+    this.open.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   }
 
   /** The water the dolphins break (their arcs and splashes). */
@@ -159,6 +171,14 @@ export class WorldLife {
     if (!sp) return null;
     const age = now - this.s.app.phaseSince - sp.s.delayMs;
     return age >= 0 ? { x: sp.x, y: sp.y, age } : null;
+  }
+
+  /** The visit's sparkle on screen (tests tap it), or null while there's none. */
+  sparkleOnScreen(): { x: number; y: number } | null {
+    const sp = this.sparkle;
+    if (!sp) return null;
+    const c = this.cam();
+    return { x: sp.x - c.x, y: sp.y - c.y };
   }
 
   /** The dolphins this frame: each one's back (x, y, arched) while they're up. */
@@ -191,7 +211,7 @@ export class WorldLife {
 
   // ------------------------------------------------------------------ taps
 
-  /** A tap nothing else on the world map took: the sparkle, the gulls or the dolphins. True if it was theirs. */
+  /** A tap (world px) nothing else on the world map took: the sparkle, the gulls or the dolphins. True if theirs. */
   tap(x: number, y: number, now = performance.now()): boolean {
     const app = this.s.app;
     this.place();
@@ -243,6 +263,8 @@ export class WorldLife {
   draw(now: number): void {
     const L = this.L;
     L.begin();
+    const c = this.cam();
+    L.offset(c.x, c.y);
     this.place();
     this.visitUpdate();
     const hide = this.s.app.tuning.life.hideSec * 1000;

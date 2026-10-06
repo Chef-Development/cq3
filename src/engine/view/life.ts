@@ -37,12 +37,23 @@ export class LifeLayers {
   high!: G;
   pop!: G;
 
+  /** The camera (a map bigger than the screen): everything is placed in map px less this. */
+  private ox = 0;
+  private oy = 0;
+
   constructor(
     private readonly s: FightScene,
     private readonly depth: { low: number; high: number; pop: number; text: number },
   ) {
     this.pool = new ImagePool(s);
     this.texts = new TextPool(s, depth.text);
+  }
+
+  /** Where the camera is this frame (the graphics layers follow it; sprites and texts are placed less it). */
+  offset(ox: number, oy: number): void {
+    this.ox = ox;
+    this.oy = oy;
+    for (const g of [this.low, this.high, this.pop]) g.setPosition(-ox, -oy);
   }
 
   /** New layout: the critters' textures (once), fresh layers. */
@@ -82,12 +93,17 @@ export class LifeLayers {
 
   /** A sprite standing with its feet (bottom centre) at (x, y). */
   foot(key: string, x: number, y: number, depth: number, flip: boolean, alpha = 1, tint?: number): Img {
-    return this.pool.foot(key, x, y, depth, alpha, tint).setFlipX(flip);
+    return this.pool.foot(key, x - this.ox, y - this.oy, depth, alpha, tint).setFlipX(flip);
   }
 
   /** A sprite centred on (x, y). */
   mid(key: string, x: number, y: number, depth: number, flip: boolean, alpha = 1, tint?: number): Img {
-    return this.pool.mid(key, x, y, depth, alpha, tint).setFlipX(flip);
+    return this.pool.mid(key, x - this.ox, y - this.oy, depth, alpha, tint).setFlipX(flip);
+  }
+
+  /** A text at map (x, y). */
+  text(str: string, x: number, y: number, color: number, o: Parameters<TextPool['text']>[4] = {}): void {
+    this.texts.text(str, x - this.ox, y - this.oy, color, o);
   }
 
   pose(p: Pose, depth: number): void {
@@ -445,5 +461,5 @@ export function drawPop(L: LifeLayers, p: Pop, now: number): void {
   const [cw, ch] = iconSize('coin');
   const cy = Math.round(y - 4 - ch - ease(k) * 7);
   hudIcon(g, 'coin', x - Math.round(cw / 2) - 4, cy, 1, fade);
-  L.texts.text(`+${p.coins}`, x - Math.round(cw / 2) - 4 + cw + 1, cy + ch / 2 + 0.5, 0xffe680, { bold: true, oy: 0.5, alpha: fade });
+  L.text(`+${p.coins}`, x - Math.round(cw / 2) - 4 + cw + 1, cy + ch / 2 + 0.5, 0xffe680, { bold: true, oy: 0.5, alpha: fade });
 }

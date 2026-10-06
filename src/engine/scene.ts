@@ -23,7 +23,7 @@ import { Overlays } from './view/overlays';
 import { StopScreens } from './view/stops';
 import { StoryView } from './view/story';
 import { WorldView } from './view/world';
-import { buildWorldArt } from './art-world';
+import { buildWorldArt, paintWorldSlice, WORLD_PAINT, worldArtReady } from './art-world';
 import { buildMapArt } from './art-map';
 import { buildRoamArt } from './art-roam';
 import { BAND_H, COL, DASH_MS, DEATH_CHARGE_MS, inRect, kindCol, stackCol, tintGrad, WHITE, type Pending, type Rect } from './view/shared';
@@ -55,6 +55,16 @@ export class FightScene extends Phaser.Scene implements View {
   private panelImg: Phaser.GameObjects.Image | null = null;
   /** Scene animation clock (ms); pauses during hit-freeze. */
   anim = 0;
+  /** How long painting the world map took (ms, all slices; it is painted once, after boot, and kept after). */
+  get worldPaintMs(): number {
+    return WORLD_PAINT.ms;
+  }
+  /** The world map's painting in detail (total ms, steps, the longest step in ms). */
+  get worldPaint(): typeof WORLD_PAINT {
+    return WORLD_PAINT;
+  }
+  /** The world map's textures are in (for this layout). */
+  private worldArtIn = false;
   private lastNow = 0;
   private pending: Pending[] = [];
   private lastCombat: Combat | null = null;
@@ -108,6 +118,28 @@ export class FightScene extends Phaser.Scene implements View {
     this.app.sceneReady = true;
     // a returning player's first launch of this version: Pip's welcome back, over the title
     this.app.welcome();
+    // paint the world map in small slices while the title is up (the world map finishes it if it's needed sooner)
+    const idle = () => {
+      if (this.worldArtIn) return;
+      if (paintWorldSlice(8)) this.ensureWorldArt();
+      else window.setTimeout(idle, 0);
+    };
+    window.setTimeout(idle, 30);
+  }
+
+  /** The world map's textures, now: whatever is left of its painting is done at once (then the view is built). */
+  ensureWorldArt(): void {
+    if (this.worldArtIn) return;
+    this.addWorldArt();
+    this.worldMap.build();
+  }
+
+  private addWorldArt(): void {
+    buildWorldArt((key, canvas) => {
+      if (this.textures.exists(key)) this.textures.remove(key);
+      this.textures.addCanvas(key, canvas);
+    });
+    this.worldArtIn = true;
   }
 
   // ------------------------------------------------------------------ layout
@@ -143,10 +175,9 @@ export class FightScene extends Phaser.Scene implements View {
     this.stage.clearAmbient();
     this.panelImg?.destroy();
     buildArt(this, GAME_W);
-    buildWorldArt((key, canvas) => {
-      if (this.textures.exists(key)) this.textures.remove(key);
-      this.textures.addCanvas(key, canvas);
-    }, GAME_W, GAME_H);
+    // the world map is painted in idle slices after boot (create): its textures go in once it's done
+    this.worldArtIn = false;
+    if (worldArtReady()) this.addWorldArt();
     buildMapArt((key, canvas) => {
       if (this.textures.exists(key)) this.textures.remove(key);
       this.textures.addCanvas(key, canvas);

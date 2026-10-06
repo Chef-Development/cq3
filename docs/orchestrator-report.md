@@ -171,6 +171,30 @@ between fights. Icons first, few words, no new HUD rows (the bounty tracker sits
   per act attempt. A first cut with a two-relic, 30%-off merchant pushed the Boar King to 81-84%, so she was trimmed.
   The bot guards pass; re-run `npm run balance` after merging with the combat retune.
 
+### 8. World map: bigger and alive (playtest: "barren and empty, it doesn't feel large enough")
+- **3 screens wide, 2 tall** (960x300 game px), dragged to explore: a press that moves over 4 game px pans (with
+  momentum, clamped, never starts anything); one released in place is a tap. The HUD stays put in the safe areas. It
+  opens on Rowan's act; the first visit glides in from the far east (1.95 s, any tap skips; `profile.worldTour`, so
+  existing players see it once). Off screen, Rowan gets a small edge chip that brings the view back.
+- **Greenmarch's acts are landmarks** on a winding road: the Bandit Captain's camp by the Meadow Road's village,
+  fields and windmill; the Old Ruins (broken towers, the Golem's hall); the Boar King's hollow tree in its dark autumn
+  wood. A tap selects one (gold ring, the view eases to it, a small card: name, "Begin/Continue the story" or
+  "Replay (farm)", Play); out of reach, a tiny padlock shakes. Flags fly over cleared acts. "Tap to begin!" stays over
+  Rowan only before Act 1 is cleared; then the landmarks are the call to action (tap Rowan for the act picker).
+- **Dense everywhere:** a harbour with piers and boats, the lighthouse islet, a forest lake under a waterfall,
+  orchards, standing stones, campsites, a cove; the capital as a walled town round the Pendulum on the Silverrun;
+  islets, reefs and ships. The locked lands are painted as richly (Frostpeaks' peaks, keep and frozen lake; Ashfell's
+  volcano and lava rivers; Duskmire's stilt village and Mirelight; Noonspire's floating sun temple) under a soft fog
+  with a cloud wall at each frontier; a tap thins it and names the land.
+- **Alive, only what's in view:** ships, whale, gulls, dolphins, crows over the woods, a cart and walkers on the
+  roads, chimney and capital smoke, fires, waterfalls, snow, volcano smoke and steam, wisps; the wanderer and the
+  sparkle re-placed for the new map. Warm light from the west; the far north hazes into a cloud band.
+- **Cost:** painted once after boot in idle slices (~40 steps, ~300-450 ms total on this shared VM, longest step
+  ~25-38 ms), so boot paints none of it (the old map was painted twice during boot, 125-210 ms each here); opening
+  the map early finishes it at once. ~11 MB of textures.
+- **Tests:** a smoke test (the reveal and its skip, a drag that starts nothing, a landmark's card, Play); screenshots
+  of the map opened on Greenmarch, panned to the locked lands, and an act landmark selected.
+
 ## Balance (docs/balance.md: 1,000 whole runs per player; farming 333 players per row)
 
 Relics replace most stat cards, so the hero grows by rules, levels and gear instead of numbers. Re-measured with the

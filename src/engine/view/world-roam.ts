@@ -1,12 +1,13 @@
 // The world map's wandering foe (core/skirmish.ts), drawn over the kingdom (view/world.ts calls in): once one is out,
-// it paces a stretch of the Meadow Road, a red "!" bobbing over it and a ring at its feet. A tap on it brings up a
+// it paces a stretch of the Meadow Road (world px; drawn less the camera), a red "!" bobbing over it and a ring at its
+// feet. A tap on it brings up a
 // small card: who it is (its foes' mini sprites), what beating it pays (a gear bag and XP), "Fight" or "Later".
 // Fight starts the skirmish (core/run.ts startSkirmish); afterwards the run comes back to the world map.
 import type Phaser from 'phaser';
 import { RARITY_INFO } from '../../data/gear';
 import type { Skirmish } from '../../core/skirmish';
 import { MINI_FOES } from '../art-map';
-import { WORLD_ROAD } from '../art-world';
+import { MEADOW_ROAD } from '../art-world';
 import type { FightScene } from '../scene';
 import { bagPal, glyph, glyphSize } from './overlays';
 import { button3d, glow, hudIcon, iconSize, panel } from './pixels';
@@ -31,7 +32,11 @@ export class WorldRoam {
   private card: { at: number } | null = null;
   private fightAt = 0;
 
-  constructor(private readonly s: FightScene) {
+  constructor(
+    private readonly s: FightScene,
+    /** The world map's camera (world px at the screen's top-left). */
+    private readonly cam: () => { x: number; y: number },
+  ) {
     this.pool = new ImagePool(s);
     this.cardPool = new ImagePool(s);
     this.texts = new TextPool(s, D_CARD_TEXT);
@@ -60,23 +65,24 @@ export class WorldRoam {
     return this.s.app.run.wanderer;
   }
 
-  /** Where it stands: a spot along the road (pacing a little either way). */
+  /** Where it stands (world px): a spot along the Meadow Road (pacing a little either way). */
   private feet(now: number, f: Skirmish): [number, number] {
-    // the stretch between Greenmarch's plate and the capital's gate (clear of both)
-    const road = WORLD_ROAD.filter(([x]) => x >= 112 && x <= 148);
-    if (!road.length) return [120, 100];
+    // the stretch between the village and the Bandit Captain's camp (Rowan is further on once Act 1 is cleared)
+    const road = MEADOW_ROAD.filter(([x]) => x >= 156 && x <= 194);
+    if (!road.length) return [170, 250];
     const i = Math.round(f.spot * (road.length - 1));
     const pace = Math.round(Math.sin(now / 1300) * 4);
     const [x, y] = road[Math.max(0, Math.min(road.length - 1, i + pace))];
     return [x, y];
   }
 
-  /** The foe's box (a tap there opens the card; a tip points at it). */
+  /** The foe's box on screen (a tap there opens the card; a tip points at it). */
   foeRect(now = performance.now()): Rect | null {
     const f = this.foe();
     if (!f) return null;
     const [x, y] = this.feet(now, f);
-    return { x: x - 8, y: y - 22, w: 16, h: 24 };
+    const c = this.cam();
+    return { x: x - c.x - 8, y: y - c.y - 22, w: 16, h: 24 };
   }
 
   /** Whether the card is up (the world map waits for it). */
@@ -155,6 +161,8 @@ export class WorldRoam {
   /** The foe on the road: its lead sprite, a ring at its feet, a red "!" bobbing over it. */
   private drawFoe(now: number, f: Skirmish): void {
     const g = this.g;
+    const c = this.cam();
+    g.setPosition(-c.x, -c.y);
     const [x, y] = this.feet(now, f);
     const k = (now % 1200) / 1200;
     g.fillStyle(0xff5a3a, 0.7 * (1 - k));
@@ -166,7 +174,7 @@ export class WorldRoam {
     g.fillRect(x - 3, y, 7, 1);
     const lead = f.waves[f.waves.length - 1][0];
     const face = Math.sin(now / 1300 + 0.6) > 0 ? 1 : -1;
-    const img = this.pool.foot(this.mini(lead, now), x, y + 1, D_FOE);
+    const img = this.pool.foot(this.mini(lead, now), x - c.x, y + 1 - c.y, D_FOE);
     img.setFlipX(face < 0);
     // the "!" over it
     const by = Math.round(y - img.height - 8 - Math.abs(Math.sin(now / 240)) * 2);

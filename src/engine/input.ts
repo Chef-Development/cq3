@@ -1,4 +1,6 @@
-// Pointer/keyboard routing. Bar taps are judged by event.timeStamp (see App.barTap), not by frame. Sable's two
+// Pointer/keyboard routing. Bar taps are judged by event.timeStamp (see App.barTap), not by frame. The world map is
+// bigger than the screen: there a press becomes a drag (it pans) once it moves a few game px, and is a tap only when
+// released in place (view/world.ts). Sable's two
 // cursors: a tap on the left half of the screen is cursor A's, on the right half cursor B's. Taps on the HUD's relic
 // belt open the relic panel (the fight pauses) and are never judged as bar taps. While a tip card is up (view/tips.ts)
 // a tap only dismisses it: never a bar tap, a finisher, or a press of whatever is under it.
@@ -13,6 +15,20 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
   // A touch that might become a finisher swipe. Taps that land on a block are judged immediately; only a tap
   // that would miss is held back (until it's clearly not a swipe), so a swipe never costs you your stacks.
   let swipe: { id: number; x: number; y: number; ts: number; timer: number; held: boolean; hand: number } | null = null;
+  // the pointer pressing (and maybe dragging) the world map
+  let worldPress: number | null = null;
+  const worldPointer = (e: PointerEvent, end: 'move' | 'up' | 'cancel'): boolean => {
+    if (worldPress === null || e.pointerId !== worldPress) return false;
+    const scene = getScene();
+    const g = clientToGame(app.layout, e.clientX, e.clientY);
+    const now = performance.now();
+    if (end !== 'move') worldPress = null;
+    if (!scene || app.run.phase !== 'world') return true;
+    if (end === 'move') scene.worldMap.dragTo(g.x, g.y, now);
+    else if (end === 'up') scene.worldMap.releaseAt(g.x, g.y, now);
+    else scene.worldMap.cancelPress();
+    return true;
+  };
 
   const resolveSwipeAsTap = () => {
     if (!swipe) return;
@@ -107,7 +123,13 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
         if (now - app.phaseSince > 1500) app.toWorld();
         return;
       case 'world':
-        if (now - app.phaseSince > 300) scene.worldTap(clientX < 0 ? -1 : g.x, g.y);
+        // the world map pans: a press is a tap only if it's released without moving (view/world.ts); the keyboard taps
+        if (clientX < 0) {
+          if (now - app.phaseSince > 300) scene.worldTap(-1, -1);
+        } else if (now - app.phaseSince > 300 || scene.worldMap.touring) {
+          worldPress = pointerId;
+          scene.worldMap.pressAt(g.x, g.y, now);
+        }
         return;
       case 'loot':
         scene.lootTap(clientX < 0 ? -1 : g.x, g.y);
@@ -209,16 +231,19 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
   };
 
   window.addEventListener('pointermove', (e) => {
+    if (worldPointer(e, 'move')) return;
     if (swipeCheck(e)) fireSwipe();
   });
 
   window.addEventListener('pointerup', (e) => {
     app.audio.unlock();
+    if (worldPointer(e, 'up')) return;
     if (!swipe || e.pointerId !== swipe.id) return;
     if (swipeCheck(e)) fireSwipe();
     else resolveSwipeAsTap();
   });
   window.addEventListener('pointercancel', (e) => {
+    if (worldPointer(e, 'cancel')) return;
     if (swipe && e.pointerId === swipe.id) resolveSwipeAsTap();
   });
 
