@@ -4,6 +4,7 @@
 // The numbers were balanced with the bot (npm run balance, docs/balance.md); the tuning panel edits a live copy.
 
 import { FROST_ENEMIES } from './enemies-frost';
+import { ASH_ENEMIES } from './enemies-ash';
 import type { EnemyDef } from './types';
 
 // Fair to a thumb (tests/unit/data.test.ts checks every red formation): a red is never thinner than normal, a fast
@@ -347,4 +348,6 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   // Region 2 (src/data/enemies-frost.ts)
   ...FROST_ENEMIES,
+  // Region 3 (src/data/enemies-ash.ts)
+  ...ASH_ENEMIES,
 };

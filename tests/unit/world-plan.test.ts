@@ -41,7 +41,10 @@ describe('world plan', () => {
     expect(regionOpen({ actsCleared: 3 }, 1)).toBe(true);
     expect(landOpen({ actsCleared: 2 }, 'frostpeaks')).toBe(false);
     expect(landOpen({ actsCleared: 3 }, 'frostpeaks')).toBe(true);
-    expect(landOpen({ actsCleared: 99 }, 'ashfell')).toBe(false);
+    // the third region opens once the second is won
+    expect(landOpen({ actsCleared: 5 }, 'ashfell')).toBe(false);
+    expect(landOpen({ actsCleared: 6 }, 'ashfell')).toBe(true);
+    expect(landOpen({ actsCleared: 99 }, 'duskmire')).toBe(false);
     expect(landOpen({ actsCleared: 99 }, 'far6')).toBe(false);
   });
 

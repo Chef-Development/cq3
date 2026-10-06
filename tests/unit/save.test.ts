@@ -218,7 +218,7 @@ describe('save at every node', () => {
       null,
       'nope',
       { ...good, v: 2 }, // the old levels
-      { ...good, act: 7 },
+      { ...good, act: 99 }, // no such act
       { ...good, path: [n.next[0]] }, // not a path from row 0
       { ...good, phase: 'title' },
       { ...good, hero: { ...good.hero, hp: 'x' } },

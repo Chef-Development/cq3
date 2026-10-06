@@ -80,10 +80,17 @@ describe('region data', () => {
   it('every red attack is fair to a thumb: never thin, a wide enough window even at 1.5x cursor speed in the fastest act, waves spaced so each red can be blocked on its own', () => {
     const T = DEFAULT_TUNING;
     const v = 1.5 / T.cursor.basePassSec; // the cursor at 1.5x, heading into the reds
-    const actSpeed = Math.max(...T.acts.map((a) => a.redSpeed)); // later acts' reds cross the bar faster...
-    expect(actSpeed).toBeLessThanOrEqual(1.5);
+    const fastest = Math.max(...T.acts.map((a) => a.redSpeed)); // later acts' reds cross the bar faster...
+    expect(fastest).toBeLessThanOrEqual(1.5);
+    // ...so each foe is checked at the fastest act it appears in (a foe in no act's lists, a summon: the fastest)
+    const speedOf: Record<string, number> = {};
+    ALL_ACTS.forEach((act, i) => {
+      const keys = [...act.fights.early.flat(), ...act.fights.late.flat(), ...act.elites.flat(), ...act.boss, ...(act.packs ?? []).flat(2)];
+      for (const k of keys) speedOf[k] = Math.max(speedOf[k] ?? 0, T.acts[i].redSpeed);
+    });
     const RED = ['red', 'shield', 'bomb', 'speed'];
-    for (const [key, e] of Object.entries(ENEMIES))
+    for (const [key, e] of Object.entries(ENEMIES)) {
+      const actSpeed = speedOf[key] ?? fastest;
       for (const s of e.specials)
         for (const a of s.actions) {
           if (a.type !== 'formation') continue;
@@ -114,6 +121,7 @@ describe('region data', () => {
               expect(gap / Math.max(at(p).closing, at(q).closing), `${key}.${s.id}: reds ${i} and ${j} too close`).toBeGreaterThanOrEqual(0.16);
             }
         }
+    }
   });
 
   it('every scene the region names exists', () => {

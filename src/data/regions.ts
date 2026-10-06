@@ -2,11 +2,12 @@
 // 0-2, the next region's 3-5, and so on, so everything that grows with the act (item levels, XP, the replay kit, coins)
 // keeps growing region after region. The world map plans 12 regions (one per Pendulum weight); the rest come later.
 
+import { ASHFELL } from './ashfell';
 import { FROSTPEAKS } from './frostpeaks';
 import { GREENMARCH } from './greenmarch';
 import type { ActDef, RegionDef } from './types';
 
-export const REGIONS: RegionDef[] = [GREENMARCH, FROSTPEAKS];
+export const REGIONS: RegionDef[] = [GREENMARCH, FROSTPEAKS, ASHFELL];
 
 /** Every playable act, in order (index = the global act number). */
 export const ALL_ACTS: ActDef[] = REGIONS.flatMap((r) => r.acts);
