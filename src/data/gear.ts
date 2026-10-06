@@ -63,7 +63,9 @@ export type EffectId =
   | 'riposte'
   | 'goldTouch'
   | 'owlEye'
-  | 'secondWind';
+  | 'secondWind'
+  | 'ramshorn'
+  | 'wyrmfang';
 
 export interface EffectDef {
   name: string;
@@ -82,6 +84,8 @@ export const EFFECTS: Record<EffectId, EffectDef> = {
   goldTouch: { name: 'Golden Touch', text: 'Kills drop 50% more coins.' },
   owlEye: { name: 'Owl Eye', text: 'Pip pecks every 3 hits instead of 4.' },
   secondWind: { name: 'Second Wind', text: 'Once a fight, dropping under 30% HP heals 20%.' },
+  ramshorn: { name: 'Toll Paid', text: 'Blocking a red on ice heals 2 HP.', signature: true },
+  wyrmfang: { name: 'Hoard Bite', text: 'Finished holds deal double damage.', signature: true },
 };
 
 /** A Divine item's aura: a rule that holds for the whole fight. */
@@ -98,7 +102,7 @@ export const AURAS: Record<AuraId, EffectDef> = {
 /** Effects a non-signature Legendary or Mythic can roll (a Celestial or Divine item rolls two different ones). */
 export const GENERAL_EFFECTS: EffectId[] = ['opener', 'leech', 'riposte', 'goldTouch', 'owlEye', 'secondWind'];
 
-export type SetId = 'greenwarden' | 'footpad';
+export type SetId = 'greenwarden' | 'footpad' | 'rimewalker';
 
 export interface SetDef {
   name: string;
@@ -119,6 +123,14 @@ export const SETS: Record<SetId, SetDef> = {
     name: 'Footpad',
     pieces: ['footpadShiv', 'footpadDie'],
     bonuses: [{ count: 2, text: "First miss each fight doesn't break the combo" }],
+  },
+  rimewalker: {
+    name: 'Rimewalker',
+    pieces: ['rimeHood', 'rimeCoat', 'rimeBoots', 'rimeLocket'],
+    bonuses: [
+      { count: 2, text: '+20% damage on ice' },
+      { count: 4, text: 'Finished holds heal 2% HP' },
+    ],
   },
 };
 
@@ -210,6 +222,29 @@ export const BASE_ITEMS: BaseItem[] = [
   },
 ];
 
+// The next region's bases (from its first act, global act 3). Icons fall back to a slot's look until painted ones exist.
+BASE_ITEMS.push(
+  { id: 'icicleRapier', name: 'Icicle Rapier', slot: 'weapon', icon: 'rapier', base: [{ stat: 'atk', mult: 1.05 }, { stat: 'critChance', mult: 0.4 }], act: 3 },
+  { id: 'frostbrand', name: 'Frostbrand', slot: 'weapon', icon: 'frostbrand', base: [{ stat: 'atk', mult: 1.15 }], act: 3 },
+  { id: 'glacierMaul', name: 'Glacier Maul', slot: 'weapon', icon: 'maul', base: [{ stat: 'atk', mult: 1.25 }], act: 4 },
+  { id: 'furHood', name: 'Fur Hood', slot: 'helm', icon: 'furhood', base: [{ stat: 'hp', mult: 0.7 }, { stat: 'def', mult: 0.3 }], act: 3 },
+  { id: 'rimeglassVisor', name: 'Rimeglass Visor', slot: 'helm', icon: 'visor', base: [{ stat: 'hp', mult: 0.5 }, { stat: 'critDmg', mult: 0.6 }], act: 4 },
+  { id: 'yakCoat', name: 'Yak-wool Coat', slot: 'armor', icon: 'yakcoat', base: [{ stat: 'hp', mult: 1.2 }, { stat: 'def', mult: 0.7 }], act: 3 },
+  { id: 'frostplate', name: 'Frostplate', slot: 'armor', icon: 'frostplate', base: [{ stat: 'hp', mult: 1 }, { stat: 'def', mult: 1.3 }], act: 5 },
+  { id: 'snowshoes', name: 'Snowshoe Boots', slot: 'boots', icon: 'snowshoes', base: [{ stat: 'def', mult: 0.5 }, { stat: 'steady', mult: 1.3 }], act: 3 },
+  { id: 'cramponGreaves', name: 'Crampon Greaves', slot: 'boots', icon: 'crampons', base: [{ stat: 'def', mult: 0.8 }, { stat: 'steady', mult: 1 }], act: 4 },
+  { id: 'snowflakeLocket', name: 'Snowflake Locket', slot: 'trinket', icon: 'snowflake', base: [{ stat: 'meterGain', mult: 1.1 }], act: 3 },
+  { id: 'icePrism', name: 'Ice Prism', slot: 'trinket', icon: 'prism', base: [{ stat: 'critDmg', mult: 1.1 }], act: 4 },
+  // the Rimewalker set
+  { id: 'rimeHood', name: 'Rimewalker Hood', slot: 'helm', icon: 'rimehood', base: [{ stat: 'hp', mult: 0.7 }, { stat: 'def', mult: 0.3 }], act: 3, set: 'rimewalker' },
+  { id: 'rimeCoat', name: 'Rimewalker Coat', slot: 'armor', icon: 'rimecoat', base: [{ stat: 'hp', mult: 1.1 }, { stat: 'def', mult: 0.8 }], act: 3, set: 'rimewalker' },
+  { id: 'rimeBoots', name: 'Rimewalker Boots', slot: 'boots', icon: 'rimeboots', base: [{ stat: 'def', mult: 0.5 }, { stat: 'steady', mult: 1.1 }], act: 3, set: 'rimewalker' },
+  { id: 'rimeLocket', name: 'Snowflake Charm', slot: 'trinket', icon: 'rimelocket', base: [{ stat: 'hp', mult: 0.6 }], act: 3, set: 'rimewalker' },
+  // the next region's signature Legendaries
+  { id: 'ramshornHelm', name: 'Ramshorn Helm', slot: 'helm', icon: 'ramshorn', base: [{ stat: 'hp', mult: 0.8 }, { stat: 'def', mult: 0.6 }], act: 3, signature: { boss: 'rimehorn', rarity: 'legendary', effect: 'ramshorn' } },
+  { id: 'wyrmfang', name: 'Wyrmfang', slot: 'weapon', icon: 'wyrmfang', base: [{ stat: 'atk', mult: 1.3 }], act: 5, signature: { boss: 'glacia', rarity: 'legendary', effect: 'wyrmfang' } },
+);
+
 export const BASE_BY_ID: Record<string, BaseItem> = Object.fromEntries(BASE_ITEMS.map((b) => [b.id, b]));
 
 /**
@@ -221,4 +256,6 @@ export const SIGNATURES: Record<string, string[]> = {
   captain: ['captainsCutlass'],
   golem: ['golemheartPlate'],
   boarKing: ['tuskCrown', 'pendulumShard'],
+  rimehorn: ['ramshornHelm'],
+  glacia: ['wyrmfang'],
 };

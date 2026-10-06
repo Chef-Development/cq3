@@ -8,6 +8,7 @@
 // v1 was "progress" (acts cleared and weights only), v2 the gear; readProfile migrates both.
 
 import { ALL_ACTS } from '../data/regions';
+import { heroOwned, petBuilds } from './roster';
 import { COMPANION_IDS, isCompanionId, type CompanionId } from '../data/companions';
 import { ACHIEVEMENTS, CAMP_UPGRADE_IDS, type AchievementId, type CampUpgradeId } from '../data/meta';
 import { SLOT_KEYS, slotOf, type GearRarity, type SlotKey, type StatId } from '../data/gear';
@@ -212,6 +213,7 @@ function readV4(p: Profile, d: Record<string, unknown>): void {
   p.seen = strs(d.seen);
   p.cosmetics = strs(d.cosmetics);
   p.allUnlocked = d.allUnlocked === true;
+  if (p.allUnlocked && isHeroId(d.hero)) p.hero = d.hero; // the debug toggle lets any hero be picked
   if (d.v !== 4) {
     // Region 1's progress counts: the events whose relic was unlocked were finished there
     const done = [...new Set(RELICS.filter((r) => r.unlock?.kind === 'event' && p.relics.includes(r.id)).map((r) => (r.unlock as { event: string }).event))];
@@ -320,12 +322,12 @@ export const heroProgress = (p: Profile, id: HeroId = p.hero): HeroProgress => p
 /** Who fights, at what level, with which skills: what a fight reads from the profile (like the gear's loadout). */
 export function profileBuild(p: Profile, t: Tuning, id: HeroId = p.hero): HeroBuild {
   const h = heroProgress(p, id);
-  return { id: p.heroes[id] ? id : 'rowan', level: levelFromXp(t, h.xp), skills: h.skills.slice(), stars: h.stars ?? 1 };
+  return { id: p.heroes[id] ? id : 'rowan', level: levelFromXp(t, h.xp), skills: h.skills.slice(), stars: h.stars ?? 1, pets: petBuilds(p, t) };
 }
 
-/** Pick the hero who fights next (an unlocked one). */
+/** Pick the hero who fights next (an unlocked one, or any with the debug unlock-all toggle). */
 export function selectHero(p: Profile, id: HeroId): boolean {
-  if (!p.heroes[id]?.unlocked) return false;
+  if (!heroOwned(p, id)) return false;
   p.hero = id;
   return true;
 }

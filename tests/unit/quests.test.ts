@@ -11,7 +11,7 @@ import type { FightLog } from '../../src/core/combat';
 import { textWidth } from '../../src/engine/font';
 
 const T = cloneTuning();
-const log = (o: Partial<FightLog> = {}): FightLog => ({ blocks: 0, bestCombo: 0, breaks: 0, cleanWaves: 0, kills: 0, ...o });
+const log = (o: Partial<FightLog> = {}): FightLog => ({ blocks: 0, bestCombo: 0, breaks: 0, cleanWaves: 0, kills: 0, hits: 0, holds: 0, bestFinisher: 0, ...o });
 const won = (o: Partial<FightLog> = {}, elite = false, hpShare = 0.5) => ({ log: log(o), elite, hpShare });
 
 describe('quests', () => {

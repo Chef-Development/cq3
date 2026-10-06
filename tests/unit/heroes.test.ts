@@ -264,7 +264,7 @@ describe('profile v3: heroes', () => {
     expect(readProfile(viaJson(p), t).hero).toBe('sable');
     expect(readProfile(viaJson({ ...p, hero: 'nobody' }), t).hero).toBe('rowan');
     expect(heroProgress(p)).toBe(p.heroes.sable);
-    expect(profileBuild(p, t)).toEqual({ id: 'sable', level: 1, skills: [], stars: 1 });
+    expect(profileBuild(p, t)).toEqual({ id: 'sable', level: 1, skills: [], stars: 1, pets: [{ id: 'pip', level: 1, stars: 1 }] });
   });
 });
 

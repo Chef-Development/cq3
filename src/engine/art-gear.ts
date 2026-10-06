@@ -416,12 +416,15 @@ function icon(key: string): HTMLCanvasElement {
   return toCanvas(g);
 }
 
+/** The look an item borrows until its own icon is painted. */
+const SLOT_FALLBACK: Record<string, string> = { weapon: 'saber', helm: 'hood', armor: 'ringmail', boots: 'hobnail', trinket: 'locket' };
+
 export function buildGearArt(add: Add): void {
   const done = new Set<string>();
   for (const b of BASE_ITEMS) {
     if (done.has(b.icon)) continue;
     done.add(b.icon);
-    if (!ICONS[b.icon]) throw new Error(`no icon for ${b.icon}`);
-    add(`item_${b.icon}`, icon(b.icon));
+    // an item without a painted icon yet borrows its slot's look
+    add(`item_${b.icon}`, icon(ICONS[b.icon] ? b.icon : SLOT_FALLBACK[b.slot]));
   }
 }

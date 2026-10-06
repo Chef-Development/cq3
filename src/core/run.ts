@@ -20,7 +20,11 @@ import { Combat, heroMaxHp, heroStats, killCoins, newHero, type Hero, type Saved
 import { itemLevel, rollDrops, rollItem, setPieces, type Item, type Loadout } from './gear';
 import { actXp, addXp, defaultBuild, killXp, type HeroBuild } from './heroes';
 import { actSeed, buildActMap, type ActMap, type MapNode } from './map';
-import { addItem, heroProgress, meetNeve, meetSable, newProfile, profileBuild, profileLoadout, recordAct, recordRegion, unlockedRelics, unlockRelic, type Profile } from './profile';
+import { addItem, heroProgress, meetNeve, meetSable, newProfile, profileBuild, profileLoadout, recordAct, recordRegion, unlockedRelics, unlockRelic, type ChestKind, type Profile } from './profile';
+import { claimRegionReward, logBounty, logEvent, logTreasure } from './completion';
+import { awardGems, bump, checkAchievements, checkMastery, hasCamp, type FeatCtx } from './meta';
+import { addPetXp } from './roster';
+import type { AchievementDef, MasteryDef } from '../data/meta';
 import { newQuest, questFor, questProgress, type QuestState } from './quests';
 import { relicNumber, rollRelics, unlocksFor } from './relics';
 import { Rng } from './rng';
@@ -357,6 +361,19 @@ export class Run {
   actAccuracy: AccEntry | null = null;
   /** Rerolls bought at shops, spent on a boost pick. */
   rerolls = 0;
+  /** The camp's Reroll Charm: a free reroll this act. The Lucky Stone: its four-card pick used this act. */
+  freeReroll = false;
+  luckyUsed = false;
+
+  /** Rerolls the pick on screen can use (bought ones and the Reroll Charm's). */
+  get rerollsLeft(): number {
+    return this.rerolls + (this.freeReroll ? 1 : 0);
+  }
+
+  /** The camp's Map Table: every act map shows where its hidden treasure is. */
+  get treasureShown(): boolean {
+    return hasCamp(this.profile, 'mapTable');
+  }
   actRerolls = 0;
   /** Coins spent in this act on what a defeat undoes (shop buys, event costs): a retry refunds them. */
   actSpent = 0;
@@ -463,7 +480,8 @@ export class Run {
 
   /** Relics that can be offered: unlocked ones. */
   get relicPool(): RelicId[] {
-    return unlockedRelics(this.profile);
+    // the Ice and Hold relics wait for the region that has ice and holds
+    return unlockedRelics(this.profile).filter((id) => (relicById(id)?.from ?? 0) <= this.actIndex);
   }
 
   /** Unlock relics (a first act clear, a first elite win, an event choice); the new ones are shown. */
@@ -476,6 +494,25 @@ export class Run {
     if (xp <= 0) return;
     this.actXpGained += xp;
     this.levelUps += addXp(this.tuning, heroProgress(this.profile), xp);
+    addPetXp(this.profile, xp); // the companions along earn it too
+  }
+
+  /** What a fight, an act clear or a stop just gave beyond the usual loot (the loot and act-clear screens show it;
+   *  the view empties it). */
+  gains: { gems: number; chests: number; achievements: AchievementDef[]; mastery: MasteryDef[]; region: boolean } = { gems: 0, chests: 0, achievements: [], mastery: [], region: false };
+
+  private gem(n: number): void {
+    this.gains.gems += awardGems(this.profile, n);
+  }
+
+  private chest(kind: ChestKind = 'hero'): void {
+    this.profile.chests[kind]++;
+    if (kind === 'hero') this.gains.chests++;
+  }
+
+  private feats(x: FeatCtx = {}): void {
+    this.gains.achievements.push(...checkAchievements(this.profile, this.tuning, { relics: this.hero.relics.length, ...x }));
+    this.gains.mastery.push(...checkMastery(this.profile, this.tuning));
   }
 
   /** The scene the camp should play first, if any: Sable's arrival, once Act 1 is cleared. */
@@ -536,6 +573,8 @@ export class Run {
   openSecret(): boolean {
     if (!this.secretHere) return false;
     this.secretFound = true;
+    if (logTreasure(this.profile, this.actIndex)) bump(this.profile, 'treasures');
+    this.gem(this.tuning.gems.treasure);
     const coins = Math.round(this.tuning.map.treasureCoins * this.tuning.secret.coinsMult * (0.8 + 0.4 * this.rng.next()) * (1 + this.gear.stats.luck));
     this.treasure = { coins, opened: false, secret: true };
     this.phase = 'treasure';
@@ -580,11 +619,16 @@ export class Run {
     wanderUp(this.profile, this.tuning);
   }
 
+  /** The camp's War Table: a new run starts with a free relic pick. */
+  get warTablePicks(): number {
+    return hasCamp(this.profile, 'warTable') && this.tuning.relics.on ? 1 : 0;
+  }
+
   /** A new run: the intro, Act 1's opening scene, then the map. */
   newRun(): void {
     this.hero = newHero(this.tuning, this.gear, this.build);
     this.rerolls = 0;
-    this.startPicks = this.startPicksTotal = 0;
+    this.startPicks = this.startPicksTotal = this.warTablePicks;
     this.enterAct(0, [REGIONS[0].introScene, this.region.acts[0].startScene ?? '']);
   }
 
@@ -604,7 +648,7 @@ export class Run {
     this.rerolls = 0;
     // ...and drafts the relics a run would have by then (relic-only picks before the map)
     // (a region starts a fresh run: relic picks count only the acts behind within the region)
-    this.startPicks = this.startPicksTotal = this.tuning.relics.on ? Math.max(0, Math.round(this.tuning.kit.relicPicks * actInRegion(a))) : 0;
+    this.startPicks = this.startPicksTotal = this.tuning.relics.on ? Math.max(0, Math.round(this.tuning.kit.relicPicks * actInRegion(a))) + this.warTablePicks : 0;
     this.enterAct(a, [this.region.acts[a].startScene ?? '']);
   }
 
@@ -636,6 +680,8 @@ export class Run {
     this.hero = { ...this.hero, abilityTimer: 0, revives: this.tuning.hero.revivesPerAct, gear: this.gear, build: this.build };
     this.actHero = { ...this.hero };
     this.actRerolls = this.rerolls;
+    this.freeReroll = hasCamp(this.profile, 'rerollCharm');
+    this.luckyUsed = false;
     this.actSpent = 0;
     this.actAims = [];
     this.actAccuracy = null;
@@ -668,7 +714,10 @@ export class Run {
     else if (this.sceneThen === 'map' && this.startPicks > 0 && !this.path.length) this.offerStartPick();
     else {
       this.phase = this.sceneThen;
-      if (this.phase === 'victory') recordRegion(this.profile, this.regionIndex);
+      if (this.phase === 'victory') {
+        recordRegion(this.profile, this.regionIndex);
+        this.feats();
+      }
     }
   }
 
@@ -768,6 +817,8 @@ export class Run {
       atkMult: this.actScale.atkMult,
       pace: this.actScale.pace,
       redSpeed: this.actScale.redSpeed,
+      bar: this.act.bar,
+      row: n.row,
     });
     this.boostChoices = [];
     this.phase = 'fight';
@@ -857,6 +908,7 @@ export class Run {
       const items = rollDrops(this.rng, this.tuning, { act: this.actIndex, row, type: ambush ? 'fight' : type, boss, finalBoss: lastActOfRegion(this.actIndex), luck: this.gear.stats.luck }, this.profile.blp);
       let min: boolean | Rarity = type === 'elite' || type === 'boss';
       if (type === 'elite') this.unlock(unlocksFor('elite', this.actIndex));
+      this.fightRewards(c, type, boss, items);
       if (ambush) {
         // an ambush pays better: coins, an extra item or two, a rarer pick
         const R = this.tuning.roam;
@@ -867,6 +919,26 @@ export class Run {
       this.bountyAfter(c, type === 'elite' && !ambush, items);
       this.showLoot(items, min, type === 'boss' ? 'actClear' : ambush?.then === 'node' ? 'node' : 'map');
     }
+  }
+
+  /** Gems and hero chests a won fight pays (bosses: more on a first kill), the companions' and heroes' counters, and
+   *  the achievements it earns. */
+  private fightRewards(c: Combat, type: string, boss: string | undefined, items: Item[]): void {
+    const P = this.profile;
+    const C = this.tuning.chests;
+    const G = this.tuning.gems;
+    bump(P, 'holds', c.log.holds);
+    if (boss) {
+      const first = bump(P, `kill:${boss}`) === 1;
+      const final = lastActOfRegion(this.actIndex);
+      this.gem(first ? (final ? G.bossFirst : G.miniFirst) : G.bossAgain);
+      if (first || this.rng.next() < (final ? C.bossChest : C.miniChest)) this.chest();
+      if (final) bump(P, `boss:${this.build.id}`);
+    } else if (type === 'elite') {
+      if (this.rng.next() < C.eliteChest) this.chest();
+      if (this.rng.next() < G.pouch) this.gem(G.pouchGems);
+    }
+    this.feats({ combo: c.log.bestCombo, finisherStacks: c.log.bestFinisher, bossNoHit: !!boss && c.log.hits === 0, legendary: items.some((i) => ['legendary', 'mythic', 'celestial', 'divine'].includes(i.rarity)) });
   }
 
   /** `n` items of at least `min` rarity at this act's item level. */
@@ -882,6 +954,10 @@ export class Run {
     if (!q || q.done) return;
     if (!questProgress(this.tuning, q, { log: c.log, elite, hpShare: this.hero.hp / Math.max(1, heroMaxHp(this.tuning, this.hero)) })) return;
     this.questDone = q.id;
+    logBounty(this.profile, this.actIndex);
+    bump(this.profile, 'bounties');
+    this.gem(this.tuning.gems.bounty);
+    if (this.rng.next() < this.tuning.chests.bountyChest) this.chest();
     const reward = questById(q.id)?.reward;
     if (reward === 'coins') this.coins += Math.round(this.tuning.quests.coins * (this.actIndex + 1));
     else if (reward === 'gear') items.push(...this.extraItems(1, 'rare', this.node?.row ?? 0));
@@ -918,6 +994,8 @@ export class Run {
       atkMult: this.actScale.atkMult,
       pace: this.actScale.pace,
       redSpeed: this.actScale.redSpeed,
+      bar: this.act.bar,
+      row: 3,
     });
     this.boostChoices = [];
     this.phase = 'fight';
@@ -1034,20 +1112,33 @@ export class Run {
     if (first) this.unlock(unlocksFor('act', this.actIndex));
     this.grantXp(actXp(this.tuning, this.actIndex, first));
     this.actAccuracy = recordActAccuracy(this.tuning, this.profile.acc, this.actIndex, this.actAims);
+    if (first) this.gem(this.tuning.gems.actFirst);
+    heroProgress(this.profile).acts++; // mastery counts acts cleared with each hero
+    this.feats();
+    // the region's tracker at 100%: its chest and gems, once
+    if (claimRegionReward(this.profile, this.tuning, this.regionIndex)) {
+      this.gains.region = true;
+      this.gains.gems += Math.round(this.tuning.gems.region);
+    }
   }
 
   /** Spend a reroll (bought at a shop) on a fresh set of cards. */
   rerollBoosts(): boolean {
-    if (this.phase !== 'boost' || this.rerolls <= 0) return false;
-    this.rerolls--;
+    if (this.phase !== 'boost' || this.rerollsLeft <= 0) return false;
+    // the Reroll Charm's free reroll goes first
+    if (this.freeReroll) this.freeReroll = false;
+    else this.rerolls--;
     this.boostChoices = this.rollChoices();
     return true;
   }
 
   /** Roll a fresh set of choices for the pick on screen (also: a save from before the cards were rolled). */
   rollChoices(): BoostOffer[] {
-    const pool = this.pickKind === 'secret' ? RELICS.map((r) => r.id) : this.relicPool;
-    return rollPick(this.rng, this.tuning, pool, this.hero.relics, this.boostMin, { relicsOnly: this.startPick || this.pickKind !== null });
+    const pool = this.pickKind === 'secret' ? RELICS.filter((r) => (r.from ?? 0) <= this.actIndex).map((r) => r.id) : this.relicPool;
+    // the Lucky Stone: once an act, a pick shows four cards
+    const lucky = hasCamp(this.profile, 'luckyStone') && !this.luckyUsed;
+    if (lucky) this.luckyUsed = true;
+    return rollPick(this.rng, this.tuning, pool, this.hero.relics, this.boostMin, { relicsOnly: this.startPick || this.pickKind !== null, n: lucky ? 4 : 3 });
   }
 
   /** Levels gained since the screen last showed them (the view calls this once to show "Level up!"). */
@@ -1175,6 +1266,7 @@ export class Run {
     ev.outcome = k;
     this.applyOutcome(ch.outcomes[k]);
     this.unlock(unlocksFor('event', ev.id, i));
+    logEvent(this.profile, this.actIndex, ev.id);
     return true;
   }
 

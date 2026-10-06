@@ -501,6 +501,10 @@ export const DEFAULT_TUNING = {
     owlEvery: 3, // Owl Eye: Pip pecks every N hits
     secondWindAt: 0.3, // Second Wind: once a fight, dropping under this share of max HP...
     secondWindHeal: 0.2, // ...heals this share
+    ramshornHeal: 2, // Ramshorn Helm: blocking a red on ice heals this much
+    wyrmfang: 2, // Wyrmfang: finished holds deal this much more
+    rimeIce: 0.2, // Rimewalker 2-piece: hits on ice deal this much more...
+    rimeHeal: 0.02, // ...4-piece: a finished hold heals this share of max HP
     // Divine auras
     radiance: 0.1, // Radiance: foes take this much more damage
     sanctuarySec: 4, // Sanctuary: every this many seconds...
@@ -1109,6 +1113,10 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       s('effects.owlEvery', 'Owl Eye: peck every N', 1, 10, 1),
       s('effects.secondWindAt', 'Second Wind: below HP', 0, 1, 0.05),
       s('effects.secondWindHeal', 'Second Wind: heals', 0, 1, 0.05),
+      s('effects.ramshornHeal', 'Ramshorn Helm: heal on ice block', 0, 20, 1),
+      s('effects.wyrmfang', 'Wyrmfang: hold damage x', 1, 5, 0.1),
+      s('effects.rimeIce', 'Rimewalker 2: damage on ice +', 0, 1, 0.05),
+      s('effects.rimeHeal', 'Rimewalker 4: hold heals', 0, 0.2, 0.005),
       s('effects.radiance', 'Aura Radiance: foes take +', 0, 1, 0.01),
       s('effects.sanctuarySec', 'Aura Sanctuary: every (s)', 1, 20, 0.5),
       s('effects.sanctuaryHeal', 'Aura Sanctuary: heals', 0, 0.1, 0.005),

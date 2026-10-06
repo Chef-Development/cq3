@@ -13,6 +13,9 @@ import { heroDef } from '../data/heroes';
 import type { BreakCtx, FightHooks, FinisherCtx, HitCtx, MeterSource, MissCtx, PeckCtx } from './hooks';
 import { finisherShowMs } from './impact';
 import { kitHooks } from './kit-fx';
+import { companionHooks } from './companion-fx';
+import { COMPANIONS } from '../data/companions';
+import type { PetBuild } from './roster';
 import { RELIC_HOOKS } from './relic-fx';
 import { SKILL_HOOKS } from './skill-fx';
 import { STYLE_HOOKS } from './styles';
@@ -274,7 +277,7 @@ export type CombatEvent =
   | { type: 'enemyHurt'; enemyId: number; damage: number; crit: boolean; source: DamageSource }
   | { type: 'heal'; amount: number }
   | { type: 'statGain'; enemyId: number; atk: number; maxHp: number; comboPower: number }
-  | { type: 'pet'; enemyId: number; damage: number; crit: boolean }
+  | { type: 'pet'; pet: string; enemyId: number; damage: number; crit: boolean }
   | { type: 'kill'; enemyId: number; coins: number }
   | { type: 'gearFx'; fx: EffectId | 'footpad'; amount: number; enemyId: number } // a gear effect kicked in (the view names it)
   // a relic, skill node or hero kit perk kicked in (id: a RelicId, a skill node id, or a kit id like 'shadowStep'; the
@@ -356,6 +359,8 @@ export interface CombatOptions {
   /** The act's bar rules (patches, holds) and the map row the fight is on (each rule starts from a row). */
   bar?: BarRules;
   row?: number;
+  /** A practice fight: nothing hurts the hero (the camp's Training Dummy). */
+  practice?: boolean;
 }
 
 /** What happened in a fight, for the side quests (core/quests.ts). */
@@ -365,6 +370,9 @@ export interface FightLog {
   breaks: number; // misses and hits taken (each one broke the combo)
   cleanWaves: number; // waves cleared without a miss or a hit taken
   kills: number;
+  hits: number; // hits taken from foes (reds, bombs, traps, counters)
+  holds: number; // holds finished
+  bestFinisher: number; // the most stacks a finisher spent
 }
 
 export class Combat {
@@ -413,8 +421,8 @@ export class Combat {
   nextWaveIn = -1;
   /** Foes in earlier waves that are no longer in `enemies` (a restored fight). */
   private beatenBefore = 0;
-  /** Attack hits since the companion last pecked. */
-  petCharge = 0;
+  /** Attack hits since each companion last attacked. */
+  petCharges: number[] = [];
   /** Timing errors (ms, + = late) of taps aimed at yellow blocks: the player's accuracy (core/accuracy.ts). */
   aims: number[] = [];
   /** Tusk Crown: extra crit chance, and how long it lasts. */
@@ -437,7 +445,7 @@ export class Combat {
   readonly rush: number;
   rushCoins = 0;
   /** What happened so far (the side quests read it when the fight is won). */
-  log: FightLog = { blocks: 0, bestCombo: 0, breaks: 0, cleanWaves: 0, kills: 0 };
+  log: FightLog = { blocks: 0, bestCombo: 0, breaks: 0, cleanWaves: 0, kills: 0, hits: 0, holds: 0, bestFinisher: 0 };
   /** Breaks when the current wave came in (a wave cleared with none since is clean). */
   private waveBreaks = 0;
   /** The attack hit being resolved right now (comboGain and meter hooks read whether it was Perfect), or null. */
@@ -450,6 +458,8 @@ export class Combat {
   holding: Holding | null = null;
   /** A Summoner's allies on the field. */
   allies: Ally[] = [];
+  /** A practice fight (the camp's Training Dummy): nothing hurts the hero. */
+  readonly practice: boolean;
   /** The act's bar rules and the map row (patches and holds start from a row). */
   readonly bar: BarRules | null;
   readonly row: number;
@@ -476,9 +486,12 @@ export class Combat {
     // the hero's style rule, then their kit (signature, ability, passive, finisher, stars, strengths), skills, relics
     // (Coin Rush is pure aim: the style and kit only)
     const kit = [STYLE_HOOKS[heroDef(build.id).style], ...kitHooks(build)];
-    this.hooks = (this.rush ? kit : [...kit, ...build.skills.map((id) => SKILL_HOOKS[id]), ...(o.hero.relics ?? []).map((id) => RELIC_HOOKS[id])]).filter((h): h is FightHooks => !!h);
+    // the companions' perks (only when the build names its companions: a profile's always does)
+    const pets = build.pets ? companionHooks(build.pets) : [];
+    this.hooks = (this.rush ? kit : [...kit, ...pets, ...build.skills.map((id) => SKILL_HOOKS[id]), ...(o.hero.relics ?? []).map((id) => RELIC_HOOKS[id])]).filter((h): h is FightHooks => !!h);
     this.bar = o.bar ?? null;
     this.row = Math.max(0, o.row ?? 0);
+    this.practice = !!o.practice;
     this.spawning = o.spawning ?? true;
     this.specialsOn = o.specials ?? this.spawning;
     this.hpMult = o.hpMult ?? 1;
@@ -1091,6 +1104,7 @@ export class Combat {
     this.holding = null;
     this.events.push({ type: 'holdEnd', id: b.id, pos: b.pos, ok });
     if (ok) {
+      this.log.holds++;
       this.hitAttack(b, H.perfect);
       return;
     }
@@ -1592,7 +1606,7 @@ export class Combat {
       this.miss(cpos);
       return { outcome: 'miss', perfect: false, cursorPos: cpos, blockId: 0 };
     }
-    const perfect = d <= (J.perfectFrac * chosen.width) / 2;
+    const perfect = d <= (this.mod(J.perfectFrac, (h, v) => h.perfectFrac?.(this, chosen, v)) * chosen.width) / 2;
     let outcome: TapOutcome;
     if (chosen.kind === 'purple') outcome = this.triggerTrap(chosen);
     else if (isRed(chosen.kind)) outcome = this.blockRed(chosen, perfect);
@@ -1756,6 +1770,9 @@ export class Combat {
     x.crit = crit;
     if (crit) mult *= this.mod(st.critDmg, (h, v) => h.critMult?.(this, x, v));
     mult = this.mod(mult, (h, v) => h.hitMult?.(this, x, v));
+    // the next region's gear: Wyrmfang (finished holds), the Rimewalker set's 2 pieces (hits on ice)
+    if (b.kind === 'hold' && this.has('wyrmfang')) mult *= T.effects.wyrmfang;
+    if (setPieces(this.hero.gear, 'rimewalker') >= 2 && this.iceAt(b.pos)) mult *= 1 + T.effects.rimeIce;
     const damage = Math.max(1, Math.round(st.atk * mult));
     x.damage = damage;
     this.events.push({ type: 'hit', kind: b.kind, pos: b.pos, perfect, crit, damage, enemyId: target?.id ?? 0, combo: this.combo, echo });
@@ -1768,6 +1785,8 @@ export class Combat {
     if (crit) this.startHitStop();
     if (target) this.damageEnemy(target, damage, crit, 'hit');
     if (b.kind === 'keg') this.kegBlast(b);
+    // the Rimewalker set's 4 pieces: a finished hold heals
+    if (b.kind === 'hold' && setPieces(this.hero.gear, 'rimewalker') >= 4) this.healPerk(this.maxHp() * T.effects.rimeHeal, 'rimewalker');
     if (!echo) this.companionTick();
     this.pendulumTick();
     for (const h of this.hooks) h.afterHit?.(this, x);
@@ -1848,6 +1867,7 @@ export class Combat {
     this.comboUp('block', perfect);
     this.addMeter(T.meter.perBlock + (perfect ? T.meter.perfectBonus : 0), 'block');
     if (this.has('golemheart')) this.healHero(T.effects.golemHeal, 'golemheart');
+    if (this.has('ramshorn') && this.iceAt(b.pos)) this.healHero(T.effects.ramshornHeal, 'ramshorn');
     if (b.taps > 1) {
       b.taps--;
       // a still red (an ice wall) takes its taps where it stands; a travelling shield is knocked back
@@ -2003,6 +2023,7 @@ export class Combat {
       this.speedStacks = 0;
     }
     this.events.push({ type: 'finisher', damage: dmg, combo, stacks, targets: x.targets.map((e) => e.id) });
+    this.log.bestFinisher = Math.max(this.log.bestFinisher, stacks);
     if (this.has('tuskCrown') && stacks > 0) {
       // Tusk Crown: every stack spent adds crit for a few seconds
       this.tuskCrit = this.tuning.effects.tuskCrit * stacks;
@@ -2112,7 +2133,8 @@ export class Combat {
     // Defense cuts the damage of reds (and bombs) that got through
     const cut = source === 'red' || source === 'bomb' ? afterDefense(this.tuning, amount, heroStats(this.tuning, H).def) : amount;
     const hooked = this.mod(cut, (h, v) => h.hurt?.(this, v, source, enemyId));
-    const dmg = this.settings.godMode ? 0 : Math.max(0, Math.round(hooked));
+    const dmg = this.settings.godMode || this.practice ? 0 : Math.max(0, Math.round(hooked));
+    if (source !== 'miss' && source !== 'perk' && dmg > 0) this.log.hits++;
     H.hp = Math.max(0, H.hp - dmg);
     if (!keepCombo) {
       this.breakCombo(source === 'miss' ? 'miss' : source === 'perk' ? 'perk' : 'hurt');
@@ -2136,24 +2158,39 @@ export class Combat {
     }
   }
 
-  /** The companion pecks the current target after every `companion.everyHits` attack hits. */
+  /** The companions in this fight (Pip alone when the build names none: tests and old callers). */
+  get pets(): PetBuild[] {
+    return this.hero.build?.pets ?? [{ id: 'pip', level: 1, stars: 1 }];
+  }
+
+  /** Each companion attacks after every N attack hits (Pip's N is companion.everyHits; 0 = no companions): the target,
+   *  or every foe (Sunny's breath). Its damage: the companion stat x its own share, its level and stars. */
   private companionTick(): void {
     const P = this.tuning.companion;
-    // Owl Eye: Pip pecks more often
-    const every = this.has('owlEye') ? Math.min(P.everyHits, Math.max(1, Math.round(this.tuning.effects.owlEvery))) : P.everyHits;
-    if (every <= 0 || this.result) return;
-    this.petCharge++;
-    if (this.petCharge < every) return;
-    this.petCharge = 0;
-    const target = this.currentTarget();
-    const dmg = Math.round(heroStats(this.tuning, this.hero).companion);
-    if (!target || dmg <= 0) return;
-    this.pecks++;
-    const x: PeckCtx = { target, damage: dmg, crit: false, count: this.pecks };
-    for (const h of this.hooks) h.peck?.(this, x);
-    this.events.push({ type: 'pet', enemyId: target.id, damage: x.damage, crit: x.crit });
-    this.damageEnemy(target, x.damage, x.crit, 'pet');
-    for (const h of this.hooks) h.afterPeck?.(this, x);
+    if (P.everyHits <= 0 || this.result) return;
+    const base = heroStats(this.tuning, this.hero).companion;
+    this.pets.forEach((pet, i) => {
+      const def = COMPANIONS[pet.id];
+      if (!def) return;
+      let every = pet.id === 'pip' ? P.everyHits : def.every;
+      // Owl Eye: Pip pecks more often; 3 stars: one hit sooner
+      if (pet.id === 'pip' && this.has('owlEye')) every = Math.min(every, Math.max(1, Math.round(this.tuning.effects.owlEvery)));
+      if (pet.stars >= 3) every = Math.max(2, every - 1);
+      this.petCharges[i] = (this.petCharges[i] ?? 0) + 1;
+      if (this.petCharges[i] < every) return;
+      this.petCharges[i] = 0;
+      const target = this.currentTarget();
+      const T = this.tuning.pets;
+      const dmg = Math.round(base * def.dmg * (1 + T.levelDmg * (pet.level - 1)) * (1 + T.starDmg * (pet.stars - 1)));
+      if (!target || dmg <= 0) return;
+      this.pecks++;
+      const x: PeckCtx = { pet: pet.id, target, damage: dmg, crit: false, count: this.pecks };
+      for (const h of this.hooks) h.peck?.(this, x);
+      this.events.push({ type: 'pet', pet: pet.id, enemyId: target.id, damage: x.damage, crit: x.crit });
+      this.damageEnemy(target, x.damage, x.crit, 'pet');
+      if (def.allFoes) for (const e of this.aliveFoes()) if (e !== target) this.damageEnemy(e, x.damage, x.crit, 'pet');
+      for (const h of this.hooks) h.afterPeck?.(this, x);
+    });
   }
 
   /** Damage after shells (attack hits) and summon protection. */

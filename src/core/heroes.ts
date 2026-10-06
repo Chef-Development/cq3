@@ -6,6 +6,7 @@
 import { HERO_IDS, HEROES, type HeroId } from '../data/heroes';
 import { STYLES } from '../data/styles';
 import { SKILL_TREES, skillById, type SkillBranch, type SkillNode, type SkillStat } from '../data/skills';
+import type { PetBuild } from './roster';
 import type { Tuning } from './tuning';
 
 export { HERO_IDS, type HeroId } from '../data/heroes';
@@ -17,6 +18,8 @@ export interface HeroBuild {
   skills: string[];
   /** Stars (1-5, from shards of duplicates): 2 and 4 add stats, 3 and 5 unlock moves (core/kit-fx.ts). */
   stars?: number;
+  /** The companions brought along (missing: Pip's pecks alone, no perks; a profile always names them). */
+  pets?: PetBuild[];
 }
 
 export const defaultBuild = (id: HeroId = 'rowan', stars = 1): HeroBuild => ({ id, level: 1, skills: [], stars });

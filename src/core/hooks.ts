@@ -44,6 +44,8 @@ export interface FinisherCtx {
 }
 
 export interface PeckCtx {
+  /** Which companion attacked (Pip's pecks, a fox's bite...). */
+  pet: string;
   target: Enemy;
   damage: number;
   crit: boolean;
@@ -128,6 +130,8 @@ export interface FightHooks {
   minAttack?(c: Combat, n: number): number;
   /** A spawning block's width (Heavy: wider yellows). */
   blockWidth?(c: Combat, kind: BlockKind, w: number): number;
+  /** The share of a block's width that counts as Perfect (Oil Can widens it). */
+  perfectFrac?(c: Combat, b: Block, frac: number): number;
   /** A keg's blast radius. */
   kegRadius?(c: Combat, r: number): number;
   /** A damage multiplier on what a foe takes (soft strengths). */
