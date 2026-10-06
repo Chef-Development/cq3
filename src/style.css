@@ -564,13 +564,24 @@ body {
   flex: 1;
   font-weight: bold;
 }
+.lab-name,
+.lab-meta,
+.lab-badge {
+  white-space: nowrap;
+}
 .lab-meta {
   color: var(--dim);
   font-size: 11px;
 }
+.lab-meta.soon {
+  color: #ffc060;
+}
 .lab-badge {
   font-size: 11px;
   color: #fff0a0;
+}
+.lab-badge:empty {
+  display: none;
 }
 .lab-item.r-good .lab-badge {
   color: #8af06a;
@@ -614,6 +625,10 @@ body {
 .lab-try {
   font-size: 16px;
   color: #fff0c0;
+}
+.lab-soon {
+  color: #ffc060;
+  font-size: 12px;
 }
 .lab-row {
   display: flex;

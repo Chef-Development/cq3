@@ -14,6 +14,7 @@ import { itemLevel, makeItem } from './gear';
 import { xpForLevel } from './heroes';
 import { addItem, equip, newProfile, newRegionLog, type Profile } from './profile';
 import { Rng } from './rng';
+import { regionOpen, unveilKey } from './world-plan';
 import type { Run } from './run';
 import type { Tuning } from './tuning';
 
@@ -26,11 +27,13 @@ export function labAct(s: LabScenario): number {
   return Math.max(0, (s.profile?.actsCleared ?? 0) - 1);
 }
 
-/** What every lab profile starts from: the story heroes met, the smith met, tips off, the world map's reveal seen. */
+/** What every lab profile starts from: the story heroes met, the smith met, tips off, the world map's reveals seen (its
+ *  first glide, and every later region's unveiling: the lab never glides the view over a secret land). */
 export function labBaseProfile(): Profile {
   const p = newProfile();
   p.tipsOff = true;
   p.worldTour = true;
+  p.seen = REGIONS.slice(1).map((r) => unveilKey(r.id));
   p.smithMet = true;
   p.sableMet = true;
   p.heroes.sable.unlocked = true;
@@ -94,14 +97,16 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
   p.chests = { hero: spec.chests?.hero ?? 0, rare: spec.chests?.rare ?? 0, region: spec.chests?.region ?? 0 };
   if (spec.pityLeft !== undefined) p.pity.rare = Math.max(0, Math.round(t.chests.pity) - Math.max(1, Math.round(spec.pityLeft)));
   if (spec.completion) {
-    // Region 1 cleared with every bounty, treasure and event logged ('near': one treasure still hidden)
+    // Region 1 with every bounty, treasure and event logged; 'done': its boss beaten too, 'near': the boss still to go
+    // (so the next region stays veiled: nothing of it shows on the lab's world map)
     const log = newRegionLog();
     const n = REGIONS[0].acts.length;
     log.bounties = Array.from({ length: n }, (_, i) => i);
-    log.treasures = Array.from({ length: spec.completion === 'done' ? n : n - 1 }, (_, i) => i);
+    log.treasures = Array.from({ length: n }, (_, i) => i);
     log.events = EVENTS.slice(0, 3).map((e) => e.id);
     p.regions[REGIONS[0].id] = log;
-    p.actsCleared = Math.max(p.actsCleared, n);
+    p.actsCleared = spec.completion === 'done' ? Math.max(p.actsCleared, n) : n - 1;
+    p.weights = spec.completion === 'done' ? 1 : 0;
   }
   giveKit(p, t, act);
   return p;
@@ -128,11 +133,24 @@ export function labFight(s: LabScenario): LabFightPlan | null {
   return { hero: f.hero, stars: f.stars, waves: f.waves.map((w) => w.slice()), act: f.act, bar, row: f.row ?? 9, safe: !!f.safe, stacks: Math.max(0, f.stacks ?? 0) };
 }
 
-/** Where a scenario plays on the lab's run: its practice fight (then back to the lab's camp), its story scenes, or
- *  the lab's camp (the engine opens the camp screen). The run must be the lab's, built on labProfile. */
+/** Whether a profile has a region past the first open (the world map would show it: a spoiler outside that group). */
+const laterRegionOpen = (p: Profile): boolean => REGIONS.slice(1).some((_, i) => regionOpen(p, i + 1));
+
+/** The phase a scenario plays in: its fight, its scenes, the camp (the engine opens the camp screen), or the world
+ *  map for the completion tracker (its region chip) while no later region is open there. Once the run leaves this
+ *  phase the scenario is over (the rating card comes up). */
+export function labHomePhase(s: LabScenario, p?: Profile): 'fight' | 'scene' | 'camp' | 'world' {
+  if (s.setup.kind === 'fight') return 'fight';
+  if (s.setup.kind === 'story') return 'scene';
+  return s.setup.screen === 'completion' && p && !laterRegionOpen(p) ? 'world' : 'camp';
+}
+
+/** Where a scenario plays on the lab's run: its practice fight (then back to the lab's camp), its story scenes, the
+ *  world map, or the lab's camp (the engine opens the camp screen). The run must be the lab's, built on labProfile. */
 export function startLabScenario(run: Run, s: LabScenario, seed: number): void {
   run.campFrom = 'world';
   run.phase = 'camp';
+  if (labHomePhase(s, run.profile) === 'world') return run.toWorld();
   const f = labFight(s);
   if (f) {
     run.actIndex = f.act; // the act's stage, music and name around the fight
@@ -142,8 +160,6 @@ export function startLabScenario(run: Run, s: LabScenario, seed: number): void {
   } else if (s.setup.kind === 'story') run.enterAct(s.setup.act, s.setup.scenes);
 }
 
-/** The phase a scenario lives in: once the run leaves it, the scenario is over (the rating card comes up). */
-export const labHomePhase = (s: LabScenario): 'fight' | 'scene' | 'camp' => (s.setup.kind === 'fight' ? 'fight' : s.setup.kind === 'story' ? 'scene' : 'camp');
 
 // ---------------------------------------------------------------- the list
 

@@ -6,7 +6,8 @@ import { ENEMIES } from '../../src/data/enemies';
 import { FROST_ENEMIES } from '../../src/data/enemies-frost';
 import { FROSTPEAKS } from '../../src/data/frostpeaks';
 import { GREENMARCH } from '../../src/data/greenmarch';
-import { ALL_ACTS } from '../../src/data/regions';
+import { ALL_ACTS, REGIONS } from '../../src/data/regions';
+import { regionOpen, unveilPending } from '../../src/core/world-plan';
 import { STORY } from '../../src/data/story';
 import { CAMP_UPGRADES, CAMP_UPGRADE_IDS } from '../../src/data/meta';
 import { buyRareChest, pityLeft } from '../../src/core/chests';
@@ -136,6 +137,16 @@ describe('Test lab scenarios (data)', () => {
 });
 
 describe('Test lab profiles (the lab save, built per scenario)', () => {
+  it('outside the spoiler group, no lab profile opens a later region on the world map (and none ever glides over one)', () => {
+    for (const s of LAB_SCENARIOS) {
+      const p = labProfile(t, s);
+      expect(unveilPending(p), s.id).toBeNull();
+      expect(REGIONS.length).toBeGreaterThan(1);
+      if (s.spoiler || s.id === 'completionDone') continue;
+      expect(regionOpen(p, 1), s.id).toBe(false);
+    }
+  });
+
   it("every scenario's profile is a fresh, valid profile with a Rare kit worn and the right hero picked", () => {
     const seen = new Set<object>();
     for (const s of LAB_SCENARIOS) {
@@ -171,12 +182,17 @@ describe('Test lab profiles (the lab save, built per scenario)', () => {
     const near = labProfile(t, byId('completionNear'));
     const c = regionCompletion(near, 0);
     expect(c.done).toBe(false);
-    expect(c.pct).toBeGreaterThanOrEqual(90);
+    expect(c.pct).toBeGreaterThanOrEqual(85);
+    // (its boss still to beat: the next region stays veiled, so the world map's region chip can show it)
+    expect(regionOpen(near, 1)).toBe(false);
+    expect(labHomePhase(byId('completionNear'), near)).toBe('world');
     expect(claimRegionReward(near, t, 0)).toBe(false);
     const done = labProfile(t, byId('completionDone'));
     expect(regionCompletion(done, 0).done).toBe(true);
     expect(claimRegionReward(done, t, 0)).toBe(true);
     expect(done.chests.region).toBe(1);
+    // the next region is open on that profile: never on the lab's world map outside the spoiler group
+    expect(labHomePhase(byId('completionDone'), done)).toBe('camp');
   });
 
   it('camp upgrades: coins enough, a couple available, some locked', () => {
@@ -216,7 +232,7 @@ describe('Test lab scenarios play', () => {
       startLabScenario(r, s, 11);
       const f = labFight(s)!;
       expect(r.phase, s.id).toBe('fight');
-      expect(labHomePhase(s)).toBe('fight');
+      expect(labHomePhase(s, p)).toBe('fight');
       expect(r.practice, s.id).not.toBeNull();
       const c = r.combat!;
       expect(r.hero.build?.id, s.id).toBe(f.hero);
@@ -237,14 +253,15 @@ describe('Test lab scenarios play', () => {
   it('story scenarios play their scenes in order; camp scenarios stand at the camp', () => {
     for (const s of LAB_SCENARIOS) {
       if (s.setup.kind === 'fight') continue;
-      const r = new Run(t, { ...DEFAULT_SETTINGS }, 5, labProfile(t, s));
+      const p = labProfile(t, s);
+      const r = new Run(t, { ...DEFAULT_SETTINGS }, 5, p);
       startLabScenario(r, s, 3);
       if (s.setup.kind === 'story') {
         expect(r.phase, s.id).toBe('scene');
         expect(r.sceneQueue, s.id).toEqual(s.setup.scenes);
         expect(r.actIndex).toBe(s.setup.act);
-      } else expect(r.phase, s.id).toBe('camp');
-      expect(labHomePhase(s)).toBe(r.phase);
+      } else expect(['camp', 'world'], s.id).toContain(r.phase);
+      expect(labHomePhase(s, p)).toBe(r.phase);
     }
   });
 });

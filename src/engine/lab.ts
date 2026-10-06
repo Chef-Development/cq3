@@ -27,8 +27,10 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
   const titleBtn = document.getElementById('btn-lab')!;
   const doneBtn = document.getElementById('btn-lab-done')!;
   let state: LabState = readLabState(loadLabState());
-  /** The scenario on screen (null: the list or a card is up, or the lab is closed). */
+  /** The scenario on screen (null: the list or a card is up, or the lab is closed), and the phase it plays in (once
+   *  the lab's run leaves it, the scenario is over). */
   let playing: LabScenario | null = null;
+  let home: string = 'camp';
 
   const save = () => writeLabState(state);
 
@@ -103,8 +105,9 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
         const b = button(`lab-item${r ? ` r-${r.rating}` : ''}${s.spoiler ? ' spoiler' : ''}`, '', () => showStart(s));
         b.dataset.id = s.id;
         b.appendChild(el('span', 'lab-name', s.label));
-        const meta = el('span', 'lab-meta', `${s.secs} s`);
-        b.appendChild(meta);
+        // (a screen not in the game yet says "soon" where its time would be)
+        const soon = !wired(s);
+        b.appendChild(el('span', soon ? 'lab-meta soon' : 'lab-meta', soon ? 'soon' : `${s.secs} s`));
         b.appendChild(el('span', 'lab-badge', r ? RATING_NAME[r.rating] + (r.note ? ' *' : '') : ''));
         grid.appendChild(b);
       }
@@ -131,6 +134,7 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
     c.appendChild(el('div', 'lab-card-title', s.label));
     c.appendChild(el('div', 'lab-card-meta', `${LAB_GROUPS.find((g) => g.id === s.group)?.name ?? ''} · about ${s.secs} s${s.spoiler ? ' · Spoiler' : ''}`));
     c.appendChild(el('div', 'lab-try', s.try));
+    if (!wired(s)) c.appendChild(el('div', 'lab-soon', 'Not in the game yet: this opens the camp.'));
     c.appendChild(el('div', 'lab-hint', 'Tap Done (top) when you have seen enough.'));
     const row = el('div', 'lab-row');
     row.appendChild(button('lab-btn big go', 'Start', () => start(s)));
@@ -142,16 +146,29 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
     root.hidden = true;
     root.classList.remove('over-game');
     playing = s;
+    home = ''; // (set once it stands where it plays: the phase changes on the way there don't end it)
     app.labRun(labProfile(app.tuning, s), (run) => startLabScenario(run, s, (Date.now() & 0xffffff) | 1));
+    home = app.run.phase;
     getScene()?.hud.resetCoins(); // (the coin chip counts the lab's purse, not the last one shown)
     if (s.setup.kind === 'camp') openScreen(s);
   }
 
-  /** A camp scenario opens its screen. TODO (when the camp's new screens land): the chest reveal, the shrine, the
-   *  companions, the camp upgrades and the completion tracker open their own screens; until then the camp home. */
+  /**
+   * Whether the screen a scenario opens is in the game yet (else it opens the camp home, with a note).
+   * TODO (when the camp's new screens land): the chest reveal ('chest': open a hero chest, a Rare chest), the shrine
+   * ('shrine'), the companions ('companions'), the camp upgrades ('upgrades') and a completion screen with the 100%
+   * claim ('completion' at 100%; the near one shows on the world map's region chip) each open their own screen here.
+   */
+  function wired(s: LabScenario): boolean {
+    if (s.setup.kind !== 'camp') return true;
+    if (s.setup.screen === 'completion') return labHomePhase(s, labProfile(app.tuning, s)) === 'world';
+    return s.setup.screen === 'heroes' || s.setup.screen === 'skills';
+  }
+
+  /** A camp scenario opens its screen (see `wired`). */
   function openScreen(s: LabScenario): void {
     const camp = getScene()?.camp;
-    if (!camp || s.setup.kind !== 'camp') return;
+    if (!camp || s.setup.kind !== 'camp' || app.run.phase !== 'camp') return;
     const now = performance.now();
     switch (s.setup.screen) {
       case 'heroes':
@@ -163,24 +180,19 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
     }
   }
 
-  /** The playtester is done with the scenario on screen (the Done button). */
-  function done(): void {
-    end();
-  }
-
   /** Stop the scenario on screen (if any): its fight is walked away from, and the lab's run stands at its camp. */
   function stop(): LabScenario | null {
     const s = playing;
     playing = null;
     if (!s || !app.inLab) return s;
     const run = app.run;
-    run.practiceEnded = null; // (the lab shows what comes next)
     if (run.phase !== 'camp' || run.practice)
       app.setPhase(() => {
         if (run.practice) run.endPractice(false);
         run.campFrom = 'world';
         run.phase = 'camp';
       });
+    run.practiceEnded = null; // (the lab shows what comes next)
     return s;
   }
 
@@ -193,7 +205,7 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
 
   app.phaseListeners.push((prev, next) => {
     if (!app.inLab || !playing || next === prev) return;
-    if (prev === labHomePhase(playing)) end();
+    if (prev === home) end();
   });
 
   // ------------------------------------------------------------------ rating
@@ -259,10 +271,11 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
     app.audio.uiClick();
     open();
   });
+  // Done: the playtester has seen enough of the scenario on screen
   doneBtn.addEventListener('click', () => {
     app.audio.unlock();
     app.audio.uiClick();
-    done();
+    end();
   });
 
   // the title's button sits top left on the title; Done shows while a scenario plays

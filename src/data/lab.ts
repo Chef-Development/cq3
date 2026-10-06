@@ -145,7 +145,7 @@ export const LAB_NEW: LabScenario[] = [
     secs: 30,
     try: 'Browse the heroes, then pick a new one.',
     setup: { kind: 'camp', screen: 'heroes', hero: 'tam' },
-    profile: { actsCleared: 3, heroes: { rowan: 2, sable: 3, moss: 1, tam: 4, hollis: 2 } },
+    profile: { actsCleared: 2, heroes: { rowan: 2, sable: 3, moss: 1, tam: 4, hollis: 2 } },
   },
   {
     id: 'skillTrees',
@@ -163,7 +163,7 @@ export const LAB_NEW: LabScenario[] = [
     secs: 30,
     try: 'Bring two companions along.',
     setup: { kind: 'camp', screen: 'companions' },
-    profile: { actsCleared: 3, camp: PERCH, pets: ['pip', 'bun', 'newt', 'brick', 'mote', 'sunny'], petsOn: ['pip'] },
+    profile: { actsCleared: 2, camp: PERCH, pets: ['pip', 'bun', 'newt', 'brick', 'mote', 'sunny'], petsOn: ['pip'] },
   },
   {
     id: 'campUpgrades',
@@ -174,8 +174,8 @@ export const LAB_NEW: LabScenario[] = [
     setup: { kind: 'camp', screen: 'upgrades' },
     profile: { actsCleared: 2, mastery: ['rowanActs3'], coins: 1500 },
   },
-  { id: 'completionNear', group: 'camp', label: 'Completion: almost', secs: 30, try: "Check what's left for 100%.", setup: { kind: 'camp', screen: 'completion' }, profile: { actsCleared: 3, completion: 'near' } },
-  { id: 'completionDone', group: 'camp', label: 'Completion: 100%', secs: 30, try: 'Claim the 100% reward.', setup: { kind: 'camp', screen: 'completion' }, profile: { actsCleared: 3, completion: 'done' } },
+  { id: 'completionNear', group: 'camp', label: 'Completion: almost', secs: 30, try: "Check what's left for 100%.", setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'near' } },
+  { id: 'completionDone', group: 'camp', label: 'Completion: 100%', secs: 30, try: 'Claim the 100% reward.', setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'done' } },
 
   // ---- the new bar rules, alone against the Training Dummy
   barRule('barIce', 'Ice patches', 'The cursor speeds up on ice: tap early.', { ice: { every: 5, width: 0.22, life: 6, fromRow: 0, max: 2 } }),
@@ -187,11 +187,11 @@ export const LAB_NEW: LabScenario[] = [
 
   // ---- spoilers (hidden by default): the next region's foes, mini-bosses, boss and story, by act number only
   { id: 'spAct4', group: 'spoiler', spoiler: true, label: 'Act 4 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 3, waves: [['rimeImp', 'yetiCub'], ['icicleBat', 'icicleBat'], ['snowOgre']], bar: 'act', row: 3 } },
-  { id: 'spMini4', group: 'spoiler', spoiler: true, label: 'Act 4 mini-boss', secs: 90, try: 'No damage here: see every move.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 3, waves: [['rimehorn']], bar: 'act', row: 6, safe: true } },
+  { id: 'spMini4', group: 'spoiler', spoiler: true, label: 'Act 4 mini-boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 3, waves: [['rimehorn']], bar: 'act', row: 6, safe: true } },
   { id: 'spAct5', group: 'spoiler', spoiler: true, label: 'Act 5 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 4, waves: [['frostWeaver', 'iceWraith'], ['hailcaller', 'rimeImp'], ['glacierTortoise']], bar: 'act', row: 3 } },
-  { id: 'spMini5', group: 'spoiler', spoiler: true, label: 'Act 5 mini-boss', secs: 90, try: 'No damage here: see every move.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 4, waves: [['matron']], bar: 'act', row: 6, safe: true } },
+  { id: 'spMini5', group: 'spoiler', spoiler: true, label: 'Act 5 mini-boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 4, waves: [['matron']], bar: 'act', row: 6, safe: true } },
   { id: 'spAct6', group: 'spoiler', spoiler: true, label: 'Act 6 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 5, waves: [['driftTroll', 'auroraWisp'], ['frostWeaver', 'hailcaller'], ['frostKnight']], bar: 'act', row: 3 } },
-  { id: 'spBoss6', group: 'spoiler', spoiler: true, label: 'Act 6 boss', secs: 90, try: 'No damage here: see all three phases.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 5, waves: [['glacia']], bar: 'act', row: 6, safe: true } },
+  { id: 'spBoss6', group: 'spoiler', spoiler: true, label: 'Act 6 boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 5, waves: [['glacia']], bar: 'act', row: 6, safe: true } },
   { id: 'spStory4', group: 'spoiler', spoiler: true, label: 'Act 4 story', secs: 60, try: 'Read the scenes.', setup: { kind: 'story', act: 3, scenes: ['frost1', 'rimehorn', 'neveJoin'] } },
   { id: 'spStory5', group: 'spoiler', spoiler: true, label: 'Act 5 story', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 4, scenes: ['frost2', 'matron'] } },
   { id: 'spStory6', group: 'spoiler', spoiler: true, label: 'Act 6 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 5, scenes: ['frost3', 'glacia', 'glacia2', 'glacia3', 'frostVictory'] } },
