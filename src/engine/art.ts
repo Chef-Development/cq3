@@ -8,6 +8,7 @@ import { buildChestArt } from './art-chests';
 import { buildCompanionArt } from './art-companions';
 import { CURRENCY_ICONS } from './art-currency';
 import { buildFoeArt } from './art-foes';
+import { buildFrostFoeArt } from './art-frost';
 import { buildGearArt } from './art-gear';
 import { buildRarityArt } from './art-rarity';
 import { buildRelicArt } from './art-relics';
@@ -1204,6 +1205,7 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   add('chest_open', mapFrame(CHEST_OPEN, CHEST_PAL));
   add('clouds', drawClouds(w));
   buildFoeArt(add);
+  buildFrostFoeArt(add);
   buildStoryArt(add);
   buildGearArt(add);
   buildSableArt(add);
