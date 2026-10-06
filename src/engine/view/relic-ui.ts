@@ -38,6 +38,8 @@ export const TAG_FACE: Record<RelicTag, Face> = {
   risk: [0xe4b8ff, 0x9a52d8, 0x6a2aa8, 0x34124e],
   ice: [0xe0faff, 0x8ae0f6, 0x4aa4d0, 0x1e5a80],
   hold: [0xd0e4ff, 0x6a9af0, 0x3a62c0, 0x1a2e6a],
+  drift: [0xffd0a0, 0xf08a3a, 0xb8541a, 0x5e260a],
+  link: [0xe8e0f0, 0xa89ab8, 0x6a5e7a, 0x342c40],
 };
 
 /** The rarity look of a card: face [hi, base, lo, deep] and its tag (common has none). */
@@ -61,6 +63,8 @@ const TAG_GLYPH: Record<RelicTag, string[]> = {
   risk: ['.###.', '#####', '#.#.#', '#####', '.#.#.'],
   ice: ['..#..', '#.#.#', '.###.', '#.#.#', '..#..'],
   hold: ['#...#', '#####', '#...#', '#####', '#...#'],
+  drift: ['.#...', '..#..', '...#.', '..#..', '.#...'],
+  link: ['##...', '#.#..', '.###.', '..#.#', '...##'],
 };
 
 const at = (rows5: string[], x: number, y: number) => rows5[y]?.[x] === '#';

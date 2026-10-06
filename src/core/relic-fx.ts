@@ -10,6 +10,7 @@
 // or pay off, not on every hit.
 
 import { FROST_RELIC_HOOKS } from './relic-fx-frost';
+import { ASH_RELIC_HOOKS } from './relic-fx-ash';
 import type { RelicId } from '../data/relics';
 import { isAttack, isRed, type BlockKind } from './blocks';
 import type { Combat, Enemy } from './combat';
@@ -91,6 +92,7 @@ function fireEcho(c: Combat): void {
 
 export const RELIC_HOOKS: Partial<Record<RelicId, FightHooks>> = {
   ...FROST_RELIC_HOOKS,
+  ...ASH_RELIC_HOOKS,
   // ---------------------------------------------------------------- Bomb
 
   // Powder Keg: tapping a bomb also banks a finisher stack
