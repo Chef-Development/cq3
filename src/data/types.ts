@@ -10,7 +10,7 @@ export type BlockCode = 'Y' | 'G' | 'R' | 'S' | 'B' | 'F' | 'P';
 export type FormationKind = 'yellow' | 'green' | 'red' | 'shield' | 'bomb' | 'speed' | 'purple' | 'spore' | 'ward' | 'hold';
 
 /** What kind of foe an enemy is: heroes' soft strengths are edges against some of these. */
-export type FoeTag = 'folk' | 'beast' | 'flyer' | 'caster' | 'armored' | 'construct' | 'swarm' | 'brute' | 'frost';
+export type FoeTag = 'folk' | 'beast' | 'flyer' | 'caster' | 'armored' | 'construct' | 'swarm' | 'brute' | 'frost' | 'fire';
 
 /** A patch on the bar that changes the cursor's speed while it's inside: ice speeds it up, snowdrifts slow it. */
 export type ZoneKind = 'ice' | 'snow';
@@ -34,6 +34,9 @@ export interface FormationEntry {
   fuse?: number; // ...and strikes after this many seconds unless blocked
   grow?: number; // reds: widens by this share of its width per second as it travels (up to x2)
   trail?: ZoneKind; // reds: leaves a patch over the stretch of bar it crossed when it's gone
+  // Region 3 (not in play yet: needs core; docs/content-bible.md section 6)
+  drift?: number; // yellows: placed drifting along the bar at this speed (bar widths a second)
+  link?: boolean; // yellows: this entry and the next `link` entry come as a linked pair
 }
 
 /** What a special does once its telegraph is over. Every action is reusable by any enemy. */
@@ -52,8 +55,12 @@ export type ActionDef =
   | { type: 'toHold'; count: number; width?: number } // yellows on the bar become holds
   | { type: 'mirror'; at?: number | 'ahead'; life: number; every?: number } // a mirror shard: the cursor bounces back when it reaches it
   | { type: 'armor'; count: number; taps: number } // yellows on the bar get an ice coat: they take `taps` taps
-  | { type: 'barRule'; holdEvery: number } // from now on every Nth yellow this foe sends is a hold (0 = none)
-  | { type: 'stripes'; count: number; life: number; speed?: number }; // the bar becomes alternating stripes of ice and snowdrift
+  | { type: 'barRule'; holdEvery: number; driftEvery?: number; linkEvery?: number } // from now on every Nth yellow this foe sends is a hold (0 = none); Region 3 (needs core): ...drifts, ...comes as a linked pair
+  | { type: 'stripes'; count: number; life: number; speed?: number } // the bar becomes alternating stripes of ice and snowdrift
+  // Region 3 (not in play yet: needs core; docs/content-bible.md section 6)
+  | { type: 'toDrift'; count: number; speed: number; sec?: number } // up to `count` yellows on the bar (0 = every one) drift at `speed` for `sec` s (none = for good)
+  | { type: 'toLink'; count: number; drift?: number } // up to `count` pairs of yellows on the bar are chained into linked pairs (drifting together at `drift`, if set)
+  | { type: 'driftShift'; mult?: number; flip?: boolean; sec?: number }; // every drifting block turns around (`flip`) and/or moves `mult` x as fast for `sec` s (none = for good; mult 0 = they settle)
 
 export interface SpecialDef {
   id: string;
@@ -173,7 +180,11 @@ export type Speaker =
   | 'torva'
   | 'rimehorn'
   | 'matron'
-  | 'glacia';
+  | 'glacia'
+  // Region 3's speakers (docs/content-bible.md section 6; not in play yet)
+  | 'rumbleback'
+  | 'hobnob'
+  | 'bellows';
 
 /** One text box: at most two lines (a '\n' splits them). */
 export interface StoryBox {
