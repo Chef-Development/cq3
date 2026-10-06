@@ -35,8 +35,8 @@ export const GREENMARCH: RegionDef = {
     {
       name: 'Old Ruins',
       theme: 'ruins',
-      hpMult: 1.45,
-      atkMult: 4.4,
+      hpMult: 1.4,
+      atkMult: 6.5,
       pace: 0.85,
       rows: 7,
       waves: { first: 3, last: 5, eliteEscort: 2 },
@@ -57,8 +57,8 @@ export const GREENMARCH: RegionDef = {
     {
       name: "Boar King's Hollow",
       theme: 'hollow',
-      hpMult: 3.3,
-      atkMult: 8.5,
+      hpMult: 3.6,
+      atkMult: 14,
       pace: 0.75,
       rows: 7,
       waves: { first: 3, last: 6, eliteEscort: 2 },

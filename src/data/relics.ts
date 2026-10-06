@@ -103,7 +103,7 @@ export const RELICS: RelicDef[] = [
   R('chainReaction', 'Chain Reaction', ['combo', 'green'], 'rare', 'Every {n} combo, all yellows on the bar turn green.', 15, { kind: 'act', act: 0 }),
   R('momentum', 'Momentum', ['combo'], 'common', 'Damage grows with cursor speed: +{n}% at max.', 40),
   R('crescendo', 'Crescendo', ['combo', 'finisher'], 'rare', 'Your finisher deals +{n}% per combo.', 1, { kind: 'act', act: 1 }),
-  R('clutch', 'Clutch', ['combo', 'risk'], 'common', 'A miss no longer breaks your combo, but costs {n}% HP.', 4),
+  R('clutch', 'Clutch', ['combo', 'risk'], 'common', 'A miss no longer breaks your combo, but costs {n}% HP.', 3),
   R('overdrive', 'Overdrive', ['combo', 'risk'], 'epic', 'At {n}+ combo you deal double damage and take double.', 30, { kind: 'act', act: 2 }),
   R('goldFever', 'Gold Fever', ['coins', 'combo'], 'common', '+1 coin per 10 combo; shops cost {n}% more.', 20),
   // Finisher

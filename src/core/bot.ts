@@ -76,9 +76,10 @@ const DEFAULT_LAPSE = 0.03;
 
 /**
  * The player the difficulty curve is set for: the balance targets (tests/unit/bot.test.ts) are this player's odds.
- * To re-aim the curve at another player, `ACC=0.62 npm run retarget` (it writes docs/retarget.md).
+ * 85%: the playtester (their accuracy readout says 80-90%), the only player. It was 70% (a typical player) before
+ * playtest round 4. To re-aim the curve at another player, `ACC=0.62 npm run retarget` (it writes docs/retarget.md).
  */
-export const TYPICAL_ACCURACY = 0.7;
+export const TYPICAL_ACCURACY = 0.85;
 
 export interface FightStats {
   act: number;
@@ -213,7 +214,7 @@ export function playRun(tuning: Tuning, o: BotOptions, maxAttempts = 6, acts = t
 export interface FarmResult {
   story: RunStats; // the first playthrough, with the gear found on the way
   /** Each replay of the last act (for the Boar King's drops): its boss fight won the first time it came up, and cleared. */
-  visits: Array<{ bossWon: boolean | null; cleared: boolean; power: number }>;
+  visits: Array<{ bossWon: boolean | null; cleared: boolean; power: number; hpLostFight?: number; fightSec?: number }>;
 }
 
 /**
@@ -238,14 +239,20 @@ export function playFarm(tuning: Tuning, o: BotOptions, farms: number, forge = f
     }
     let bossWon: boolean | null = null;
     let cleared = false;
+    const fights: FightStats[] = [];
     for (let k = 0; k < 6 && !cleared; k++) {
       if (k > 0) run.retry();
       const res = playAct(run, rng, o);
       const boss = res.fights.find((f) => f.type === 'boss');
       if (bossWon === null && boss) bossWon = boss.won;
       cleared = res.won;
+      fights.push(...res.fights.filter((f) => f.type === 'fight'));
     }
-    visits.push({ bossWon, cleared, power });
+    // measurement: what the replay's normal fights cost (HP share) and how long the won ones took
+    const won = fights.filter((f) => f.won);
+    const hpLostFight = fights.length ? fights.reduce((n, f) => n + f.hpLost / Math.max(1, f.maxHp), 0) / fights.length : undefined;
+    const fightSec = won.length ? won.reduce((n, f) => n + f.seconds, 0) / won.length : undefined;
+    visits.push({ bossWon, cleared, power, hpLostFight, fightSec });
   }
   return { story, visits };
 }
@@ -773,6 +780,14 @@ export interface ActRow {
   bossByBuild: Record<string, { n: number; won: number }>;
   relicsAtBoss: number; // relics carried into the first boss fight (average)
   levelAtBoss: number; // the hero's level going into it (average)
+  // what a fight costs (every fight of every attempt): HP lost as a share of max HP, by node type...
+  hpLostFight: number;
+  hpLostElite: number;
+  hpLostBoss: number;
+  foesHpFight: number; // ...of a normal fight's, what the foes took (reds, bombs, traps, counters; not misses or relic prices)
+  comboFight: number; // normal fights' average combo, and their peak
+  peakComboFight: number;
+  dpsFight: number; // damage per second in won normal fights
 }
 
 /** Play `runs` whole runs per accuracy and summarise every act (as `hero`: Rowan by default; the same seeds for
@@ -799,6 +814,8 @@ export function balance(tuning: Tuning, accuracies: number[], runs: number, seed
       let relicsAtBoss = 0;
       let levelAtBoss = 0;
       const lostAt: Record<string, number> = {};
+      const cost: Record<string, { lost: number; n: number }> = { fight: { lost: 0, n: 0 }, elite: { lost: 0, n: 0 }, boss: { lost: 0, n: 0 } };
+      const nf = { foes: 0, combo: 0, peak: 0, dmg: 0, secs: 0 };
       for (const e of entries) {
         atk += e.attempts[0]?.fights[0]?.heroAtk ?? 0;
         let bossSeen = false;
@@ -819,6 +836,19 @@ export function balance(tuning: Tuning, accuracies: number[], runs: number, seed
             if (f.won && by[f.type]) {
               by[f.type].s += f.seconds;
               by[f.type].n++;
+            }
+            if (cost[f.type]) {
+              cost[f.type].lost += f.hpLost / Math.max(1, f.maxHp);
+              cost[f.type].n++;
+            }
+            if (f.type === 'fight') {
+              nf.foes += ((f.hpBy.red ?? 0) + (f.hpBy.bomb ?? 0) + (f.hpBy.trap ?? 0) + (f.hpBy.counter ?? 0)) / Math.max(1, f.maxHp);
+              nf.combo += f.avgCombo;
+              nf.peak += f.peakCombo;
+              if (f.won) {
+                nf.dmg += f.damage;
+                nf.secs += f.seconds;
+              }
             }
             if (f.type === 'boss') {
               if (f.bossVsMaxFinisher !== undefined) {
@@ -874,6 +904,13 @@ export function balance(tuning: Tuning, accuracies: number[], runs: number, seed
         bossByBuild,
         relicsAtBoss: bossFirstN ? relicsAtBoss / bossFirstN : NaN,
         levelAtBoss: bossFirstN ? levelAtBoss / bossFirstN : NaN,
+        hpLostFight: cost.fight.n ? cost.fight.lost / cost.fight.n : NaN,
+        hpLostElite: cost.elite.n ? cost.elite.lost / cost.elite.n : NaN,
+        hpLostBoss: cost.boss.n ? cost.boss.lost / cost.boss.n : NaN,
+        foesHpFight: cost.fight.n ? nf.foes / cost.fight.n : NaN,
+        comboFight: cost.fight.n ? nf.combo / cost.fight.n : NaN,
+        peakComboFight: cost.fight.n ? nf.peak / cost.fight.n : NaN,
+        dpsFight: nf.secs ? nf.dmg / nf.secs : NaN,
       });
     }
   }

@@ -97,9 +97,10 @@ export const DEFAULT_TUNING = {
   },
   kill: {
     // Every kill permanently raises the hero's stats for the rest of the run (quietly: the HP readout ticks up).
-    // Small: an act has many kills, and the boost picks after each fight carry most of the growth.
-    atk: 0.25,
-    maxHp: 1,
+    // Small: an act has many kills (and later acts send more foes per fight), so it adds up: at 0.25 / 1 it was half
+    // the hero's attack by Act 3 (playtest round 4 trimmed it; the acts' numbers came down with it).
+    atk: 0.15,
+    maxHp: 0.6,
     comboPower: 0, // finisher growth comes from boosts only, so max-stack finishers never outgrow the bosses
   },
   companion: {
@@ -317,13 +318,16 @@ export const DEFAULT_TUNING = {
   kit: {
     // Replaying an act from the world map: Rowan starts with what a typical run has gained by then (boosts and kill
     // gains, per act behind him; measured with the bot), plus his gear. The debug panel's "Jump to" uses it too.
-    atk: 6.7,
-    maxHp: 28,
-    dmg: 0.01,
-    crit: 0,
-    critDmg: 0.03,
-    comboPower: 0.03,
-    pet: 1.5,
+    // Re-measured in playtest round 4 (an 85% story run entering Acts 2 and 3): relics replaced most stat cards in M4a,
+    // so a run gains almost no damage, crit or combo power from cards; the old stat-card numbers (+22% damage, +8.5%
+    // crit, +0.77 crit damage, +0.82 combo power, +68 HP per act) made every farmed replay far stronger than the story.
+    atk: 3.7,
+    maxHp: 16,
+    dmg: 0.005,
+    crit: 0.003,
+    critDmg: 0.025,
+    comboPower: 0.035,
+    pet: 1,
     relicPicks: 2, // ...and picks this many relics (1 of 3 each) per act behind him before the map
   },
   relics: {
@@ -342,10 +346,12 @@ export const DEFAULT_TUNING = {
   sable: {
     // Sable (Twin family): two cursors, one per half of the bar, each at the normal pass time (core/combat.ts).
     // Tuned with the bot against Rowan on the same tuning (tests/balance/twin.run.ts): within +/-10 points per act.
-    atkMult: 0.7, // hits deal this share of Rowan's (two thumbs tap more often)
-    maxHp: 125, // more than Rowan's 100: a half-bar has fewer neighbours to save a wild tap, so more misses
-    widthMult: 0.55, // static block widths on Sable's bar (each half is a small bar: 0.5 = Rowan's crossing time)
-    redWidthMult: 0.7, // red widths (0.6 = a cursor meets a red head-on about as long as Rowan's does; a little more: two hands)
+    atkMult: 0.75, // hits deal this share of Rowan's (two thumbs tap more often)
+    maxHp: 135, // more than Rowan's 100: a half-bar has fewer neighbours to save a wild tap, so more misses
+    widthMult: 0.7, // static block widths on Sable's bar (each half is a small bar: 0.5 = Rowan's crossing time; wider:
+    // she misses about as often per tap as Rowan, so relics that charge for misses cost her about the same)
+    redWidthMult: 0.45, // red widths (0.6 = a cursor meets a red head-on about as long as Rowan's does; narrower: her
+    // cursors, at half Rowan's bar speed, ride along with a red on the way back, so she gets more and easier chances)
     ambidextrous: 0.25, // Ambidextrous: a hit with the other hand than the last hit fills the meter this much more
     shadowSec: 3, // Shadow Step (green hits): for this long a hit with one cursor also hits the block under the other
     fangMult: 1.4, // Twin Fang (finisher): one target, x this per the usual finisher damage (Rowan's hits every foe)...
