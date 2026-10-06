@@ -6,6 +6,7 @@ import type Phaser from 'phaser';
 import { buildCampArt } from './art-camp';
 import { buildFoeArt } from './art-foes';
 import { buildGearArt } from './art-gear';
+import { buildHeroArt } from './art-heroes';
 import { buildRelicArt } from './art-relics';
 import { buildSableArt } from './art-sable';
 import { buildStoryArt } from './art-story';
@@ -1200,6 +1201,7 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   buildStoryArt(add);
   buildGearArt(add);
   buildSableArt(add);
+  buildHeroArt(add);
   buildRelicArt(add);
   buildCampArt(add, w, 150);
 }
