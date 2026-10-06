@@ -1,6 +1,6 @@
 // Web Audio synth: every sound effect, all the music (a theme per act, per boss, the camp and the title: see
 // music.ts) and the ambience beds (forest, ruins, hollow, act map, world map, camp; Region 2's pass, caves and
-// glacier) are generated in code (no samples).
+// glacier; Region 3's cinder, glass and forge) are generated in code (no samples).
 // Unlocked on the first user gesture. Also runs on an OfflineAudioContext (tests render every sound).
 //
 // Graph:
@@ -92,9 +92,10 @@ interface Graph {
   pink?: AudioBuffer; // 6 s of stereo pink noise for the ambience beds (made on first use)
 }
 
-/** Places with their own sound bed under the music (Region 2's acts: 'pass', 'caves', 'glacier'). */
-export type Ambience = 'forest' | 'ruins' | 'hollow' | 'map' | 'world' | 'camp' | 'pass' | 'caves' | 'glacier';
-export const AMBIENCES: Ambience[] = ['forest', 'ruins', 'hollow', 'map', 'world', 'camp', 'pass', 'caves', 'glacier'];
+/** Places with their own sound bed under the music (Region 2's acts: 'pass', 'caves', 'glacier'; Region 3's, not in
+ *  play yet: 'cinder', 'glass', 'forge'). */
+export type Ambience = 'forest' | 'ruins' | 'hollow' | 'map' | 'world' | 'camp' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge';
+export const AMBIENCES: Ambience[] = ['forest', 'ruins', 'hollow', 'map', 'world', 'camp', 'pass', 'caves', 'glacier', 'cinder', 'glass', 'forge'];
 
 /** A looping filtered-noise layer of an ambience (wind, rain, fire, surf), nudged at random by gusts. */
 interface Bed {
@@ -149,7 +150,7 @@ const SPOTS: [number, number][] = [
 const ALL_SPOTS = [0, 1, 2, 3, 4] as const;
 const FAR_SPOTS = [0, 2, 4] as const;
 /** How much of each ambience goes to the reverb. */
-const AMB_WET: Record<Ambience, number> = { forest: 0.18, ruins: 0.55, hollow: 0.25, map: 0.12, world: 0.15, camp: 0.2, pass: 0.2, caves: 0.6, glacier: 0.25 };
+const AMB_WET: Record<Ambience, number> = { forest: 0.18, ruins: 0.55, hollow: 0.25, map: 0.12, world: 0.15, camp: 0.2, pass: 0.2, caves: 0.6, glacier: 0.25, cinder: 0.15, glass: 0.5, forge: 0.35 };
 
 // Hit melody: major pentatonic, wrapping up an octave every 5 combo steps.
 const PENTA = [0, 2, 4, 7, 9];
@@ -190,7 +191,22 @@ export type TellSound =
   | 'drift'
   | 'shimmer'
   | 'avalanche'
-  | 'wings';
+  | 'wings'
+  // Region 3 (fire, ash, glass, chains and iron; not in play yet: src/data/enemies-ash.ts ASH_NEW_SOUNDS)
+  | 'sizzle'
+  | 'embers'
+  | 'crust'
+  | 'stampede'
+  | 'quake'
+  | 'glass'
+  | 'snip'
+  | 'kiln'
+  | 'chain'
+  | 'bark'
+  | 'lava'
+  | 'anvil'
+  | 'bellows'
+  | 'eruption';
 export const TELL_SOUNDS: TellSound[] = [
   'split',
   'charge',
@@ -218,6 +234,20 @@ export const TELL_SOUNDS: TellSound[] = [
   'shimmer',
   'avalanche',
   'wings',
+  'sizzle',
+  'embers',
+  'crust',
+  'stampede',
+  'quake',
+  'glass',
+  'snip',
+  'kiln',
+  'chain',
+  'bark',
+  'lava',
+  'anvil',
+  'bellows',
+  'eruption',
 ];
 
 /** Mix level per telegraph (scales every voice in it), balanced by ear-by-numbers so they all land at about the
@@ -249,6 +279,20 @@ const TELL_MIX: Record<TellSound, number> = {
   shimmer: 1.67,
   avalanche: 0.6,
   wings: 1.22,
+  sizzle: 0.84,
+  embers: 0.56,
+  crust: 1.24,
+  stampede: 1.88,
+  quake: 1.43,
+  glass: 0.58,
+  snip: 1,
+  kiln: 0.83,
+  chain: 1,
+  bark: 0.58,
+  lava: 0.6,
+  anvil: 0.94,
+  bellows: 0.63,
+  eruption: 0.53,
 };
 
 /** [seconds after a voice starts, value] breakpoints (see Synth.voice). */
@@ -1446,6 +1490,34 @@ export class Synth {
         return this.tellAvalanche(t, T);
       case 'wings':
         return this.tellWings(t, T);
+      case 'sizzle':
+        return this.tellSizzle(t, T);
+      case 'embers':
+        return this.tellEmbers(t, T);
+      case 'crust':
+        return this.tellCrust(t, T);
+      case 'stampede':
+        return this.tellStampede(t, T);
+      case 'quake':
+        return this.tellQuake(t, T);
+      case 'glass':
+        return this.tellGlass(t, T);
+      case 'snip':
+        return this.tellSnip(t, T);
+      case 'kiln':
+        return this.tellKiln(t, T);
+      case 'chain':
+        return this.tellChain(t, T);
+      case 'bark':
+        return this.tellBark(t, T);
+      case 'lava':
+        return this.tellLava(t, T);
+      case 'anvil':
+        return this.tellAnvil(t, T);
+      case 'bellows':
+        return this.tellBellows(t, T);
+      case 'eruption':
+        return this.tellEruption(t, T);
     }
   }
 
@@ -1879,6 +1951,218 @@ export class Synth {
         { gain: 0.25 + 0.08 * i, f: 8000, q: 5, ms: 6 },
       );
     });
+  }
+
+  // Region 3's telegraphs: fire and ash, volcanic glass, chains and iron
+
+  /** A coal's feet on a hot plate: a splash of a "tss" as it steps on, then fat frying, a dense crackle of spits
+   *  getting thicker and hotter, the hiss over it swelling. */
+  private tellSizzle(t: number, T: number): void {
+    const d = 0.92 * T;
+    this.voice({ at: t, type: 'noise', filter: 'highpass', ff: [[0, 6500]], amp: [[0.006, 0.36], [0.12 * T, 0.05], [0.16 * T, 0]] });
+    this.ticks(
+      Array.from({ length: 40 }, (_, i) => t + d * (0.2 + 0.8 * Math.pow((i + this.rand()) / 40, 0.7))),
+      { gain: 0.6, f: 6800, q: 2, ms: 4 },
+    );
+    this.voice({ at: t + 0.2 * T, type: 'noise', filter: 'highpass', ff: [[0, 7000]], trem: { rate: 29, depth: 0.5, wave: 'square' }, amp: [[0.1 * T, 0.06], [d * 0.75, 0.26], [d * 0.8, 0.45], [d + 0.03, 0]] });
+  }
+
+  /** Embers dropped from the sky: two glowing coals falling a long way with a whistle (each a tone falling from
+   *  high to low), each landing in a shower of crackling sparks, the second nearer. */
+  private tellEmbers(t: number, T: number): void {
+    [
+      [0.02, 0.34],
+      [0.42, 0.4],
+    ].forEach(([k, dk], i) => {
+      const s = t + k * T;
+      const d = dk * T;
+      this.voice({ at: s, type: 'sine', f: [[0, 5200], [d, 800]], vib: { rate: 14, cents: 25 }, amp: [[d * 0.2, 0.12 + 0.05 * i], [d * 0.95, 0.24 + 0.1 * i], [d + 0.01, 0]] });
+      this.voice({ at: s, type: 'triangle', f: [[0, 2600], [d, 400]], amp: [[d * 0.2, 0.03], [d * 0.95, 0.08 + 0.03 * i], [d + 0.01, 0]] });
+      const l = s + d;
+      this.ticks(
+        Array.from({ length: 14 + 6 * i }, () => l + this.rand() * 0.14),
+        { gain: 0.45 + 0.2 * i, f: 4200, q: 1.2, ms: 4 },
+      );
+      this.voice({ at: l, type: 'noise', filter: 'bandpass', ff: [[0, 3000], [0.14, 1500]], q: 0.9, amp: [[0.005, 0.35 + 0.2 * i], [0.14, 0]] });
+    });
+  }
+
+  /** Basalt setting over a block: rock grinding on rock, rising, then two hard stone knocks as the crust sets. */
+  private tellCrust(t: number, T: number): void {
+    const crunch = this.graph!.crunch;
+    const d = 0.66 * T;
+    this.voice({ at: t, type: 'noise', rate: 0.6, filter: 'bandpass', ff: [[0, 380], [d, 950]], q: 2.2, trem: { rate: 17, rate1: 29, depth: 0.85, wave: 'square' }, amp: [[0.05, 0.2], [d, 0.75], [d + 0.03, 0]] });
+    this.voice({ at: t, type: 'noise', filter: 'highpass', ff: [[0, 2500]], trem: { rate: 23, depth: 0.7, wave: 'square' }, amp: [[0.05, 0.03], [d, 0.12], [d + 0.03, 0]], out: crunch });
+    [0.74, 0.9].forEach((k, i) => {
+      const c = t + k * T;
+      this.voice({ at: c, type: 'noise', filter: 'bandpass', ff: [[0, 1700 - 300 * i]], q: 3, amp: [[0.002, 0.8 + 0.2 * i], [0.07, 0]] });
+      this.tone({ type: 'triangle', f: 330 - 60 * i, f1: 180, glide: 0.06, at: c, dur: 0.1, gain: 0.3, out: crunch });
+    });
+  }
+
+  /** A stampede: heavy hooves galloping nearer in three "da-da-DUM"s, each louder, the hooves clinking like glass. */
+  private tellStampede(t: number, T: number): void {
+    const crunch = this.graph!.crunch;
+    for (let g = 0; g < 3; g++) {
+      [0, 0.07, 0.15].forEach((o, j) => {
+        const s = t + (0.08 + g * 0.27 + o) * T;
+        const v = (0.35 + 0.3 * g) * (j === 2 ? 1 : 0.6);
+        this.tone({ type: 'triangle', f: 260, f1: 110, glide: 0.07, at: s, attack: 0.001, dur: 0.12, gain: 0.5 * v, out: crunch });
+        this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, 700], [0.06, 400]], q: 1.2, amp: [[0.003, 0.7 * v], [0.08, 0]] });
+        this.tone({ type: 'sine', f: 3300 + 400 * j, at: s + 0.005, attack: 0.001, dur: 0.08, gain: 0.12 * v });
+      });
+    }
+  }
+
+  /** The ground heaving: a low shudder in jolts (each a short heave of the earth, a gap, the next harder). */
+  private tellQuake(t: number, T: number): void {
+    [0.04, 0.33, 0.6, 0.82].forEach((k, i) => {
+      const s = t + k * T;
+      const d = 0.11 * T + 0.01;
+      const v = 0.4 + 0.2 * i;
+      this.voice({ at: s, type: 'noise', rate: 0.35, filter: 'lowpass', ff: [[0, 650], [d, 420]], q: 3, trem: { rate: 22, depth: 0.5 }, amp: [[0.012, v], [d * 0.6, v * 0.65], [d, 0]] });
+      this.tone({ type: 'sine', f: 520, f1: 330, glide: d, at: s, dur: d, gain: 0.1 * v });
+      this.tone({ type: 'sine', f: 75, f1: 45, glide: 0.1, at: s, dur: d + 0.05, gain: 0.3 * v, out: this.graph!.limiter });
+    });
+  }
+
+  /** A glassblower at work: a breath into the pipe (a long airy rush) and a glass bubble swelling (a ringing tone
+   *  climbing, wobbling as it grows), then a bright tink as it sets. */
+  private tellGlass(t: number, T: number): void {
+    const d = 0.85 * T;
+    const b = 0.1 * T;
+    this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 3500], [d, 5500]], q: 0.9, amp: [[0.08, 0.2], [d * 0.8, 0.42], [d, 0]] });
+    this.voice({ at: t + b, type: 'sine', f: [[0, 700], [d - b, 2200]], vib: { rate: 5, rate1: 11, cents: 30, cents1: 60 }, amp: [[0.1, 0.06], [(d - b) * 0.9, 0.22], [d - b + 0.02, 0]] });
+    const c = t + 0.9 * T;
+    this.tone({ type: 'sine', f: 3136, at: c, attack: 0.001, dur: 0.3, gain: 0.26 });
+    this.tone({ type: 'sine', f: 3136 * 2.32, at: c, attack: 0.001, dur: 0.12, gain: 0.12 });
+  }
+
+  /** A mantis whetting its glass scythes: one long grating scrape of glass on glass, a beat of silence, then a
+   *  sharp double snap. */
+  private tellSnip(t: number, T: number): void {
+    const s = t + 0.04 * T;
+    const d = 0.46 * T;
+    this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, 1700], [d, 2400]], q: 6, trem: { rate: 40, depth: 0.5, wave: 'sawtooth' }, amp: [[d * 0.3, 0.25], [d * 0.85, 0.42], [d, 0]] });
+    this.voice({ at: s, type: 'sine', f: [[0, 1900], [d, 2300]], vib: { rate: 18, cents: 20 }, amp: [[d * 0.3, 0.05], [d * 0.85, 0.09], [d + 0.03, 0]] });
+    [0.78, 0.9].forEach((k, i) => {
+      const c = t + k * T;
+      this.ticks([c, c + 0.004], { gain: 1, f: 3400 + 900 * i, q: 1.6, ms: 7 });
+      this.voice({ at: c, type: 'noise', filter: 'bandpass', ff: [[0, 3800 + 600 * i], [0.04, 2600]], q: 1.4, amp: [[0.002, 0.7 + 0.2 * i], [0.045, 0]] });
+      this.tone({ type: 'sine', f: 5200 - 600 * i, at: c, attack: 0.001, dur: 0.1, gain: 0.16 });
+    });
+  }
+
+  /** A kiln's iron door: it creaks open, and the fire inside roars out (a rising roar, a hiss of heat over it). */
+  private tellKiln(t: number, T: number): void {
+    const d = 0.36 * T;
+    this.voice({ at: t, type: 'sawtooth', f: [[0, 110], [d, 160]], trem: { rate: 26, rate1: 15, depth: 0.9, wave: 'square' }, filter: 'bandpass', ff: [[0, 900], [d, 1300]], q: 3, amp: [[0.03, 0.4], [d * 0.8, 0.5], [d, 0]] });
+    const r = t + 0.38 * T;
+    const rd = 0.56 * T;
+    this.voice({ at: r, type: 'noise', rate: 0.7, filter: 'bandpass', ff: [[0, 350], [rd, 1100]], q: 1, trem: { rate: 11, depth: 0.35 }, amp: [[rd * 0.3, 0.3], [rd * 0.92, 0.9], [rd + 0.04, 0]] });
+    this.voice({ at: r, type: 'noise', filter: 'highpass', ff: [[0, 3000], [rd, 5000]], amp: [[rd * 0.5, 0.05], [rd, 0.2], [rd + 0.04, 0]] });
+  }
+
+  /** Chains swung round: rattles of steel links coming faster and faster, a whoosh, and the crack of the lash. */
+  private tellChain(t: number, T: number): void {
+    const n = 6;
+    for (let i = 0; i < n; i++) {
+      const s = t + T * 0.72 * Math.sqrt(i / n);
+      this.ticks(
+        Array.from({ length: 5 }, (_, j) => s + j * 0.009 + this.rand() * 0.004),
+        { gain: 0.3 + 0.06 * i, f: 4400 + this.rand() * 1200, q: 6, ms: 7 },
+      );
+      this.tone({ type: 'sine', f: 2500 + this.rand() * 800, at: s, attack: 0.001, dur: 0.05, gain: 0.04 + 0.01 * i });
+    }
+    this.voice({ at: t + 0.45 * T, type: 'noise', filter: 'bandpass', ff: [[0, 900], [0.4 * T, 3000]], q: 1.2, amp: [[0.3 * T, 0.3], [0.4 * T, 0]] });
+    const c = t + 0.88 * T;
+    this.ticks([c, c + 0.005, c + 0.012], { gain: 1, f: 2800, q: 0.8, ms: 9 });
+    this.voice({ at: c, type: 'noise', filter: 'highpass', ff: [[0, 3500]], amp: [[0.002, 0.4], [0.05, 0]] });
+  }
+
+  /** Two heads at once: a low growl from two throats, a breath, then two barks ("RUFF! RUFF!"), the second head
+   *  higher. */
+  private tellBark(t: number, T: number): void {
+    const gd = 0.38 * T;
+    this.voice({ at: t, type: 'sawtooth', f: [[0, 85], [gd, 105]], trem: { rate: 28, depth: 0.7 }, filter: 'bandpass', ff: [[0, 450], [gd, 600]], q: 2.5, amp: [[0.06, 0.3], [gd * 0.9, 0.55], [gd + 0.02, 0]] });
+    this.voice({ at: t, type: 'sawtooth', f: [[0, 112], [gd, 128]], trem: { rate: 33, depth: 0.7 }, filter: 'bandpass', ff: [[0, 520], [gd, 700]], q: 2.5, amp: [[0.06, 0.18], [gd * 0.9, 0.38], [gd + 0.02, 0]] });
+    [0.56, 0.8].forEach((k, i) => {
+      const b = t + k * T;
+      const f = 420 + 120 * i;
+      const d = 0.11;
+      this.voice({ at: b, type: 'sawtooth', f: [[0, f * 1.4], [0.02, f * 1.6], [d, f * 0.8]], filter: 'bandpass', ff: [[0, 1300 + 200 * i], [d, 900]], q: 1.4, amp: [[0.006, 0.9], [d * 0.5, 0.6], [d, 0]] });
+      this.voice({ at: b, type: 'noise', filter: 'bandpass', ff: [[0, 2400]], q: 0.8, amp: [[0.004, 0.5], [d * 0.6, 0]] });
+    });
+  }
+
+  /** Lava welling up: fat bubbles swelling and popping, faster and faster, a hiss of steam, then a heavy surge. */
+  private tellLava(t: number, T: number): void {
+    const crunch = this.graph!.crunch;
+    const n = 7;
+    for (let i = 0; i < n; i++) {
+      const s = t + T * 0.75 * Math.pow(i / n, 0.8);
+      const f = 160 + this.rand() * 70;
+      const v = 0.3 + 0.08 * i;
+      this.voice({ at: s, type: 'sine', f: [[0, f], [0.07, f * 2.6]], amp: [[0.01, v], [0.06, v * 0.6], [0.09, 0]] });
+      this.voice({ at: s + 0.07, type: 'noise', filter: 'bandpass', ff: [[0, 900]], q: 2, amp: [[0.002, 0.25 * v], [0.03, 0]] });
+    }
+    const w = t + 0.7 * T;
+    const wd = 0.25 * T;
+    this.voice({ at: w, type: 'noise', rate: 0.5, filter: 'lowpass', ff: [[0, 300], [wd, 1400]], q: 1.4, amp: [[wd * 0.8, 0.7], [wd + 0.04, 0]] });
+    this.voice({ at: t + 0.4 * T, type: 'noise', filter: 'highpass', ff: [[0, 4500]], amp: [[0.4 * T, 0.12], [0.58 * T, 0]] });
+    this.tone({ type: 'triangle', f: 120, f1: 70, glide: 0.1, at: w + wd * 0.8, dur: 0.15, gain: 0.3, out: crunch });
+  }
+
+  /** A hammer on an anvil: four ringing strikes, quicker and harder, the last a heavy clang. */
+  private tellAnvil(t: number, T: number): void {
+    const crunch = this.graph!.crunch;
+    [
+      [0.1, 0.4],
+      [0.42, 0.6],
+      [0.66, 0.75],
+      [0.84, 1],
+    ].forEach(([k, v]) => {
+      const s = t + k * T;
+      const f = 1250;
+      this.tone({ type: 'sine', f, at: s, attack: 0.001, dur: 0.35, gain: 0.3 * v });
+      this.tone({ type: 'sine', f: f * 2.71, at: s, attack: 0.001, dur: 0.2, gain: 0.16 * v });
+      this.tone({ type: 'sine', f: f * 4.95, at: s, attack: 0.001, dur: 0.08, gain: 0.08 * v });
+      this.ticks([s], { gain: 0.9 * v, f: 3500, q: 1, ms: 5 });
+      this.tone({ type: 'triangle', f: 300, f1: 160, glide: 0.04, at: s, dur: 0.07, gain: 0.25 * v, out: crunch });
+    });
+  }
+
+  /** The forge's giant bellows: a long breath drawn in (rising, the leather creaking), then blasted out (a roaring
+   *  gust full of sparks). */
+  private tellBellows(t: number, T: number): void {
+    const d = 0.5 * T;
+    this.voice({ at: t, type: 'noise', rate: 0.7, filter: 'bandpass', ff: [[0, 280], [d, 1100]], q: 1.6, amp: [[d * 0.5, 0.25], [d * 0.95, 0.5], [d + 0.03, 0]] });
+    this.voice({ at: t + d * 0.6, type: 'sawtooth', f: [[0, 90], [d * 0.4, 70]], trem: { rate: 19, depth: 0.9, wave: 'square' }, filter: 'bandpass', ff: [[0, 700]], q: 4, amp: [[0.03, 0.18], [d * 0.4, 0]] });
+    const b = t + 0.62 * T;
+    const bd = 0.34 * T;
+    this.voice({ at: b, type: 'noise', filter: 'bandpass', ff: [[0, 1800], [bd, 600]], q: 0.8, amp: [[0.02, 0.9], [bd * 0.6, 0.7], [bd, 0]] });
+    this.voice({ at: b, type: 'noise', rate: 0.5, filter: 'lowpass', ff: [[0, 500]], amp: [[0.02, 0.4], [bd, 0]], out: this.graph!.crunch });
+    this.ticks(
+      Array.from({ length: 12 }, () => b + this.rand() * bd),
+      { gain: 0.25, f: 5500, q: 3, ms: 4 },
+    );
+  }
+
+  /** The volcano blowing: a deep rumble rising from below, a scream of pressure climbing over it, then the blast (a
+   *  boom, rocks raining down). */
+  private tellEruption(t: number, T: number): void {
+    const crunch = this.graph!.crunch;
+    const d = 0.78 * T;
+    const p = d - 0.2 * T;
+    this.voice({ at: t, type: 'noise', rate: 0.35, filter: 'lowpass', ff: [[0, 250], [d, 900]], q: 1.2, trem: { rate: 7, rate1: 16, depth: 0.5 }, amp: [[0.1, 0.12], [d, 0.6], [d + 0.02, 0]] });
+    this.voice({ at: t + 0.2 * T, type: 'sawtooth', f: [[0, 220], [p, 1100]], trem: { rate: 22, depth: 0.4 }, filter: 'bandpass', ff: [[0, 900], [p, 3400]], q: 3, amp: [[0.1, 0.2], [p, 0.6], [p + 0.02, 0]] });
+    const c = t + 0.8 * T;
+    this.voice({ at: c, type: 'noise', filter: 'bandpass', ff: [[0, 3200], [0.2, 900]], q: 0.7, amp: [[0.004, 1], [0.22, 0]] });
+    this.tone({ type: 'square', f: 110, f1: 45, glide: 0.2, at: c, dur: 0.25, gain: 0.25, out: crunch });
+    this.ticks(
+      Array.from({ length: 14 }, () => c + 0.03 + this.rand() * 0.25),
+      { gain: 0.4, f: 2600, q: 1.4, ms: 6 },
+    );
   }
 
   /** One heartbeat thump: a saturated low knock (its harmonics reach a phone speaker) over a sub for headphones. */
@@ -2827,6 +3111,24 @@ export class Synth {
         this.bed(r, t, { type: 'lowpass', f: 180, q: 0.5, g: 0.065, gust: [0.6, 1.5], tau: 1.8 }); // its low roar
         this.bed(r, t, { type: 'highpass', f: 5000, q: 0.5, g: 0.01, gust: [0.3, 1.9], tau: 0.7 }); // blowing snow
         break;
+      case 'cinder':
+        this.bed(r, t, { type: 'bandpass', f: 900, q: 0.6, g: 0.04, gust: [0.3, 1.7], sway: [0.7, 1.5], tau: 1.1 }); // dry wind over the ash
+        this.bed(r, t, { type: 'lowpass', f: 200, q: 0.5, g: 0.07, gust: [0.6, 1.4], tau: 2 }); // its low body
+        this.bed(r, t, { type: 'lowpass', f: 70, q: 0.7, g: 0.07, gust: [0.7, 1.3], tau: 3 }); // the ground's far rumble
+        this.bed(r, t, { type: 'highpass', f: 5500, q: 0.5, g: 0.006, gust: [0.4, 1.7], tau: 0.8 }); // ash blowing past
+        break;
+      case 'glass':
+        this.bed(r, t, { type: 'lowpass', f: 120, q: 0.7, g: 0.04, gust: [0.8, 1.2], tau: 3 }); // the tunnels breathing
+        this.bed(r, t, { type: 'bandpass', f: 700, q: 0.8, g: 0.012, gust: [0.5, 1.5], sway: [0.85, 1.2], tau: 2 }); // warm air moving
+        this.bed(r, t, { type: 'highpass', f: 4000, q: 0.5, g: 0.004, gust: [0.6, 1.4], tau: 2 }); // heat shimmer
+        this.hum(r, t, 49, 0.016); // a deep hum behind the glass
+        r.echo = this.caveEcho(r);
+        break;
+      case 'forge':
+        this.bed(r, t, { type: 'bandpass', f: 300, q: 0.8, g: 0.045, gust: [0.6, 1.4], sway: [0.85, 1.2], tau: 0.07 }); // the furnace's roar (flickers)
+        this.bed(r, t, { type: 'lowpass', f: 140, q: 0.5, g: 0.07, gust: [0.7, 1.3], tau: 2 }); // its low roar
+        this.bed(r, t, { type: 'highpass', f: 3500, q: 0.5, g: 0.005, gust: [0.6, 1.5], tau: 1.5 }); // the hiss of the heat
+        break;
     }
   }
 
@@ -2953,7 +3255,139 @@ export class Synth {
           crack: { every: [6, 14], play: (r, t) => this.iceCrack(r, t) },
           groan: { every: [9, 20], play: (r, t) => this.glacierGroan(r, t) },
         };
+      case 'cinder':
+        return {
+          gust,
+          crackle: { every: [0.15, 0.6], play: (r, t) => this.emberCrackle(r, t) },
+          geyser: { every: [10, 22], play: (r, t) => this.geyser(r, t) },
+          rumble: { every: [7, 16], play: (r, t) => this.farRumble(r, t) },
+        };
+      case 'glass':
+        return {
+          gust: { every: [2.5, 6], play: (r, t) => this.gust(r, t) },
+          chimes: { every: [3, 8], play: (r, t) => this.glassChimes(r, t) },
+          drip: { every: [1.5, 4], play: (r, t) => this.moltenDrip(r, t) },
+          crackle: { every: [5, 12], play: (r, t) => this.glassCrackle(r, t) },
+        };
+      case 'forge':
+        return {
+          gust: { every: [1.5, 4], play: (r, t) => this.gust(r, t) },
+          flicker: { every: [0.08, 0.25], play: (r, t) => this.gust(r, t, r.beds[0]) },
+          bubble: { every: [0.4, 1.6], play: (r, t) => this.lavaBubble(r, t) },
+          hammer: { every: [5, 11], play: (r, t) => this.farHammer(r, t) },
+          bellows: { every: [6, 12], play: (r, t) => this.bellowsBreath(r, t) },
+          chains: { every: [4, 10], play: (r, t) => this.chainClink(r, t) },
+        };
     }
+  }
+
+  // Region 3's places: the ash plains, the glass tunnels, the forge
+
+  /** Embers crackling in the ash: one to three tiny pops, close by. */
+  private emberCrackle(r: AmbRig, t: number): void {
+    const out = this.spot(r);
+    const n = 1 + Math.floor(r.rand() * 3);
+    this.ticks(
+      Array.from({ length: n }, () => t + r.rand() * 0.08),
+      { gain: 0.05 + r.rand() * 0.04, f: 2500 + r.rand() * 2500, q: 1.5, ms: 3, out },
+    );
+  }
+
+  /** A geyser somewhere out on the flats: a hiss building, a gush of steam, falling away, a low whoosh under it. */
+  private geyser(r: AmbRig, t: number): number {
+    const out = this.spot(r, FAR_SPOTS);
+    const d = 2.6 + r.rand() * 1.4;
+    this.voice({ at: t, type: 'noise', buf: this.graph!.pink, filter: 'bandpass', ff: [[0, 1400], [d * 0.35, 3200], [d, 2000]], q: 0.9, amp: [[d * 0.3, 0.03], [d * 0.45, 0.06], [d, 0]], out });
+    this.voice({ at: t + d * 0.25, type: 'noise', buf: this.graph!.pink, rate: 0.5, filter: 'lowpass', ff: [[0, 300]], amp: [[d * 0.2, 0.04], [d * 0.75, 0]], out });
+    return d;
+  }
+
+  /** The ground rumbling far off: a low roll that swells and fades. */
+  private farRumble(r: AmbRig, t: number): number {
+    const out = this.spot(r, FAR_SPOTS);
+    const d = 2 + r.rand() * 1.5;
+    this.voice({ at: t, type: 'noise', buf: this.graph!.pink, rate: 0.5, filter: 'lowpass', ff: [[0, 150], [d * 0.5, 320], [d, 120]], q: 0.8, amp: [[d * 0.45, 0.07], [d, 0]], out });
+    this.tone({ type: 'sine', f: 42, f1: 36, glide: d, at: t, attack: d * 0.4, dur: d, gain: 0.03, out });
+    return d;
+  }
+
+  /** Glass chiming in the tunnels like wind chimes: a few high, inharmonic tinks clustered together, in the echo. */
+  private glassChimes(r: AmbRig, t: number): number {
+    const out = r.echo ?? this.spot(r, FAR_SPOTS);
+    const n = 3 + Math.floor(r.rand() * 4);
+    const notes = [1865, 2093, 2489, 2794, 3136, 3729];
+    let at = t;
+    for (let i = 0; i < n; i++) {
+      const f = notes[Math.floor(r.rand() * notes.length)];
+      this.tone({ type: 'sine', f: f * 2.76, at, attack: 0.001, dur: 0.35, gain: 0.007, out });
+      this.tone({ type: 'sine', f, at, attack: 0.001, dur: 1.1, gain: 0.02, out });
+      at += 0.08 + r.rand() * 0.25;
+    }
+    return at - t + 1;
+  }
+
+  /** A molten drip: a drop falls (a plip) and sizzles out. */
+  private moltenDrip(r: AmbRig, t: number): number {
+    const out = this.spot(r);
+    const f = 900 + r.rand() * 600;
+    this.tone({ type: 'sine', f, f1: f * 1.7, glide: 0.025, at: t, attack: 0.001, dur: 0.05, gain: 0.04, out });
+    const d = 0.3 + r.rand() * 0.3;
+    this.voice({ at: t + 0.02, type: 'noise', filter: 'highpass', ff: [[0, 4500]], amp: [[0.01, 0.045], [d, 0]], out });
+    return d;
+  }
+
+  /** Far down a tunnel, glass cooling: a run of tiny glassy cracks and a tink, answering in the echo. */
+  private glassCrackle(r: AmbRig, t: number): number {
+    const out = r.echo ?? this.spot(r, FAR_SPOTS);
+    const d = 0.4 + r.rand() * 0.6;
+    this.ticks(
+      Array.from({ length: 5 + Math.floor(r.rand() * 6) }, () => t + r.rand() * d),
+      { gain: 0.07, f: 3500 + r.rand() * 1500, q: 3, ms: 4, out },
+    );
+    this.tone({ type: 'sine', f: 4200 + r.rand() * 900, at: t + d * 0.6, attack: 0.001, dur: 0.2, gain: 0.012, out });
+    return d;
+  }
+
+  /** Lava bubbling: a fat bubble swelling and popping (a low tone climbing, a soft pop). */
+  private lavaBubble(r: AmbRig, t: number): void {
+    const out = this.spot(r, FAR_SPOTS);
+    const f = 85 + r.rand() * 60;
+    this.voice({ at: t, type: 'sine', f: [[0, f], [0.08, f * 2.6]], amp: [[0.02, 0.06], [0.08, 0.04], [0.1, 0]], out });
+    this.voice({ at: t + 0.08, type: 'noise', filter: 'bandpass', ff: [[0, 700]], q: 1.5, amp: [[0.003, 0.03], [0.04, 0]], out });
+  }
+
+  /** Hammer blows somewhere deep in the citadel: three or four steady strikes on iron, far off and dull. */
+  private farHammer(r: AmbRig, t: number): number {
+    const out = this.spot(r, FAR_SPOTS);
+    const n = 3 + Math.floor(r.rand() * 2);
+    const gap = 0.5 + r.rand() * 0.15;
+    for (let i = 0; i < n; i++) {
+      const at = t + i * gap;
+      const v = i === n - 1 ? 1 : 0.8;
+      this.tone({ type: 'sine', f: 1150, at, attack: 0.001, dur: 0.5, gain: 0.03 * v, out });
+      this.tone({ type: 'sine', f: 1150 * 2.71, at, attack: 0.001, dur: 0.2, gain: 0.012 * v, out });
+      this.tone({ type: 'triangle', f: 160, f1: 90, glide: 0.05, at, dur: 0.12, gain: 0.05 * v, out });
+    }
+    return n * gap;
+  }
+
+  /** The great bellows breathing slowly: a long breath of air drawn in, then let out. */
+  private bellowsBreath(r: AmbRig, t: number): number {
+    const out = this.spot(r, FAR_SPOTS);
+    const d = 3 + r.rand() * 1;
+    this.voice({ at: t, type: 'noise', buf: this.graph!.pink, filter: 'bandpass', ff: [[0, 380], [d * 0.45, 950], [d, 330]], q: 1.2, amp: [[d * 0.4, 0.05], [d * 0.5, 0.025], [d * 0.7, 0.055], [d, 0]], out });
+    return d;
+  }
+
+  /** Chains clinking as they sway: a few small steel knocks. */
+  private chainClink(r: AmbRig, t: number): number {
+    const out = this.spot(r);
+    const d = 0.3 + r.rand() * 0.4;
+    this.ticks(
+      Array.from({ length: 3 + Math.floor(r.rand() * 4) }, () => t + r.rand() * d),
+      { gain: 0.06, f: 4200 + r.rand() * 1500, q: 6, ms: 6, out },
+    );
+    return d;
   }
 
   /** Ice under strain (a frozen waterfall): a stick-slip creak sliding up, glassy and rasping, and a few sharp
@@ -3293,8 +3727,21 @@ export class Synth {
 }
 
 const AMB_PREVIEW = 8;
-// (Region 2's places are named by act: the playtester opens the Sound lab)
-const AMB_LABEL: Record<Ambience, string> = { forest: 'forest', ruins: 'ruins', hollow: 'hollow', map: 'act map', world: 'world map', camp: 'camp', pass: 'act 4', caves: 'act 5', glacier: 'act 6' };
+// (Region 2's and 3's places are named by act: the playtester opens the Sound lab)
+const AMB_LABEL: Record<Ambience, string> = {
+  forest: 'forest',
+  ruins: 'ruins',
+  hollow: 'hollow',
+  map: 'act map',
+  world: 'world map',
+  camp: 'camp',
+  pass: 'act 4',
+  caves: 'act 5',
+  glacier: 'act 6',
+  cinder: 'act 7',
+  glass: 'act 8',
+  forge: 'act 9',
+};
 
 /** Every sound effect, for the Sound lab and the loudness tests. `tier` marks the impacts (lightest first). */
 export interface SfxEntry {

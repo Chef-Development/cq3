@@ -483,6 +483,35 @@ rumble), `glass` (a deep hum, glass chiming like wind chimes, molten drips sizzl
 New telegraph sounds (`ASH_NEW_SOUNDS`): sizzle, embers, crust, stampede, quake, glass, snip, kiln, chain, bark,
 lava, anvil, bellows, eruption (Prism Flash and Squabble reuse `mirror` and `guard`).
 
+#### As built (`src/engine/music.ts`, tracks `ash1..3`, `rumbleback`, `hobnob`, `bellows`; not in play yet)
+Acts: calm = map, nodes, scenes (no kit); intense = fights, its base plus drums / bass / lead joining with the combo.
+
+| Track | Key, tempo, meter | Calm | Intense |
+|---|---|---|---|
+| `ash1` | E Phrygian dominant, 112, 4/4 with a half-time kit | a reed drone on E2, B2 and E3 under every chord, an oud ostinato in 8ths (root and chord tones, sliding into each note), a breathy ney on the tune (sliding up into its notes, vibrato on the long ones), a held bass, an ash-hiss shaker on the offbeats, a distant frame drum | the drone and a soft pad, a low-string spiccato ostinato in 16ths, the oud tremolo-picking the tune, a doumbek maqsum (doum-tek-tek-doum-tek, soft "ka"s between), the hiss shaker; kit: kick on 1, snare on 3; bass: the F leaning on the E; lead: a zurna (a thin pulse through a nasal formant, quick vibrato) |
+| `ash2` | Bb Dorian, 108, 5/4 (3+2: chords change on the "2", step 12) | a kalimba ostinato in 8ths accented on 1 and 4 (alternate sides), the kalimba on the tune, a bowed-glass pad (pure sines beating slowly), a root-then-fifth bass, a sub heartbeat on 1 ("lub-dub"), wind chimes at the end of each phrase (bars 4 and 8) | a marimba in 16ths (double time), the kalimba on the tune, tabla-like strokes on the 3+2 (na, tin, a ge bending up), the chimes; kit: kick on 1, 2½ and 4, snare on 3 and 5; lead: a bright square |
+| `ash3` | Ab minor (its 7th raised to G at the cadence), 138, 4/4 | a low brass chorale held on each chord (the tuba on the right, the trombones spread), a trombone on the tune, a male choir humming, an anvil ting on 2 and 4, the bellows drawing in for a bar and blowing out the next | a brass riff in octaves (trombones), the trombone on the tune, forge-hammer drums (huge low toms with an iron clang), the bellows, the hum; kit: kick and snare with anvil 16ths for hats; lead: an overdriven saw an octave down on the tune, brass stabs on the "and" of 2 and 4 |
+| `rumbleback` | F# blues, 92, 4/4, a 12-bar blues, 16ths swung (0.3) | (fight only) | a wah-pulse guitar scratching 16ths with chord chucks (the pedal rocking heel to toe each beat), a tenor sax on the tune, a cowbell, a road-works clank every other bar, the tuba backing up ("beep, beep") at the end of each 4-bar phrase, a square organ pad; kit: funk (ghosted snares, swung 16th hats); bass: slap (thumb, popped octaves); lead: the honking sax section (a growl) an octave down, honks on the "and"s |
+| `hobnob` | A major, 168, a 2/4 galop (16 bars); follows the phases without a key change (`phased`) | (fight only) | Hob's muted trumpet (a harmon mute, left) and Nob's clarinet (right) trading bars, the oom-pah (a tuba oom, the band's "pah" alternating sides), a calliope pad, snare rolls into each line, a slide whistle into each phrase; kit: a galop; bass: the tuba an octave down, walking into each line; lead: a xylophone on the tune; phase 2 (the stabs layer): the other head plays under each bar too, a chord tone below, from its own side |
+| `bellows` | B Phrygian, 162, 4/4; phase 3 C Phrygian (`keyUp` 1) | (fight only) | phase 1: a low brass ostinato (trombone, the tuba on the strong beats) grinding on the C, horns on the tune, anvils on the backbeat, war drums (taiko), the bellows breathing; phase 2 adds the kit and, in the stabs layer, a male choir chanting short syllables, a chain-rattle shaker in 16ths and horns answering it every other bar; phase 3 goes up a semitone with double-time kick and hats, a distorted bass (a saw into an overdrive over a clean sub), the lead (horn and pulse) and brass stabs on the offbeats; the war drums keep only their big strokes |
+
+Cues (`app.ts`): global act index 6/7/8 plays `ash1/2/3` and the `cinder/glass/forge` bed (on its map too); enemy keys
+`rumbleback`, `hobnob`, `bellows` (with `boss` in the data) bring their themes, `hobnob`'s and `bellows`' `phase` drive
+theirs. Until the region's acts and foes are in the data nothing asks for them. Sound lab labels name acts only ("Act
+7: map", "Act 8 mini-boss, phase 2", "Act 9 boss, phase 3", "Ambience: act 7"). Beds as built: `cinder` (a dry wind and
+its low body, the ground's far rumble under 100 Hz, ash blowing past; embers crackling close by, a geyser's hiss
+building and falling away, a distant rumble rolling), `glass` (a deep hum at 49 Hz beating against its octave, warm
+air, heat shimmer, in a tunnel echo; glass chiming like wind chimes, molten drips that plip and sizzle out, a far
+crackle of cooling glass), `forge` (the furnace's flickering roar and its low roar, the hiss of the heat; lava
+bubbling, distant hammer blows in threes and fours, the bellows breathing slowly, chains clinking). Telegraphs as built
+(`Synth.tell*`): sizzle (a splash, then a thickening fry and a swelling hiss), embers (two falling whistles, each
+landing in a crackle of sparks), crust (rock grinding, two stone knocks), stampede (three gallops nearing, glassy
+hooves), quake (four low heaves with gaps), glass (a breath and a glass bubble climbing, a tink), snip (one long glass
+scrape, a silence, a double snap), kiln (a creaking iron door, the fire roaring out), chain (rattles coming faster, a
+whoosh, the crack of the lash), bark (a two-throated growl, two barks), lava (fat bubbles faster and faster, steam, a
+surge), anvil (four strikes, the last a clang), bellows (a long breath in, a creak, the blast full of sparks), eruption
+(a rumble from below, a scream of pressure, the blast and falling rocks).
+
 ### Balance targets (for later, an 85% player on a fresh first playthrough of the region)
 Act 1 ~85% first try, Act 2 ~70%, Act 3 ~55%, Bellows' first fight won ~50-60%. Keep the thumb rules: reds as in
 `tests/unit/data.test.ts`, drift at most 0.10 (bursts excepted), a pair's halves reachable within the beat at base
@@ -497,4 +526,4 @@ speed in a slow patch.
 3. Art and sound: the three themes in `Theme` with their backdrops, stage lights, map kits, lairs and critters; foe
    sprites and telegraph poses; portraits (Rumbleback, Hob & Nob, Bellows); item icons; the three landmarks and
    `landOpen` for Ashfell; the telegraph sounds, the six pieces and the three ambience beds (Sound lab labels by act
-   number only, as for the Frostpeaks).
+   number only, as for the Frostpeaks: built, see Music, As built; they play once the acts and foes are in the data).

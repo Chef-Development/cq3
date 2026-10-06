@@ -1,14 +1,14 @@
 // Music: an original theme per place and per boss, played live by a small synthesized band (no samples).
 //
 // Every piece is a loop on a 16th-note grid with its own tempo and meter (4/4, a 6/8 jig, 3/4, a 7/8 whose uneven
-// beats are its `pulses`), a chord per bar (or two), one melody, and the parts of its arrangements:
+// beats are its `pulses`, a 5/4, a 2/4 galop), a chord per bar (or two), one melody, and the parts of its arrangements:
 //   - the acts' themes have two arrangements of the same melody at the same tempo: calm (the act map, nodes, story
 //     scenes: a flute and a music box over a light pad, no drums) and intense (fights). Moving between them
 //     crossfades inside the piece, from a beat, so it stays one piece.
 //   - in a fight the intense arrangement starts from its base (pad, arpeggio, percussion, the melody on a bell) and
 //     layers join as the combo climbs: drums, then bass, then the lead (tuning.music), each on the next beat; a
-//     combo break drops them back. A phased boss's theme (the Boar King, Region 2's boss: `keyUp`) also adds
-//     layers with the phases and goes up a key in the last one.
+//     combo break drops them back. A phased boss's theme (the Boar King, Region 2's and Region 3's bosses: `keyUp`;
+//     Region 3's two-headed mini-boss: `phased`) also adds layers with the phases and goes up a key in the last one.
 //   - another piece (a mini-boss, the camp, the next act) starts from its top on the next beat while the last one
 //     rings out.
 //
@@ -37,8 +37,36 @@ export type MusicTrack =
   | 'frost3'
   | 'rimehorn'
   | 'matron'
-  | 'glacia';
-export const MUSIC_TRACKS: MusicTrack[] = ['title', 'camp', 'act1', 'act2', 'act3', 'captain', 'golem', 'boarKing', 'frost1', 'frost2', 'frost3', 'rimehorn', 'matron', 'glacia'];
+  | 'glacia'
+  // Region 3 (docs/content-bible.md, section 6; not in play yet): its three acts, two mini-bosses and the boss
+  | 'ash1'
+  | 'ash2'
+  | 'ash3'
+  | 'rumbleback'
+  | 'hobnob'
+  | 'bellows';
+export const MUSIC_TRACKS: MusicTrack[] = [
+  'title',
+  'camp',
+  'act1',
+  'act2',
+  'act3',
+  'captain',
+  'golem',
+  'boarKing',
+  'frost1',
+  'frost2',
+  'frost3',
+  'rimehorn',
+  'matron',
+  'glacia',
+  'ash1',
+  'ash2',
+  'ash3',
+  'rumbleback',
+  'hobnob',
+  'bellows',
+];
 
 /** Calm (maps, nodes, scenes) or intense (fights). */
 export type Arrangement = 'calm' | 'intense';
@@ -108,12 +136,16 @@ export interface Song {
   echo: number; // ping-pong echo feedback (its time is a dotted 8th)
   swing: number; // offbeat 16ths of the shakers and hats land late by this share of a step
   keyUp?: number; // the Boar King: phases 2 and 3 add layers, phase 3 goes up this many semitones
+  phased?: boolean; // follows the boss's phase without a key change (phase 2 brings the kit and the stabs layer)
   calm?: Part[];
   intense?: Part[];
 }
 
 const hz = (m: number): number => 440 * Math.pow(2, (m - 69) / 12);
 const scale = (p: Pts, k: number): Pts => p.map(([d, v]): [number, number] => [d, v * k]);
+
+/** Whether a piece follows the boss's phase (its layers, and its key with `keyUp`). */
+const phasedSong = (song: Song): boolean => !!song.phased || !!song.keyUp;
 
 /** Whether step s of a bar is on a beat (every `beat` steps, or on the piece's uneven pulses). */
 const onPulse = (song: Song, s: number): boolean => (song.pulses ? song.pulses.includes(s) : s % song.beat === 0);
@@ -1031,6 +1063,437 @@ const GLACIA: Song = {
   ],
 };
 
+// ---- Region 3 (secret: docs/content-bible.md, section 6; not in play yet). Every tonic is taken by now, so each
+// act, mini-boss and the boss differs from Regions 1-2 and each other in mode, tempo, meter and band. ----
+
+/** A pattern step: '.' rests, a digit is a chord tone (tone()), 'R' the chord's root (an octave up). */
+const pat = (src: string, x: Step): number | null => {
+  const ch = src[x.s];
+  if (!ch || ch === '.') return null;
+  return ch === 'R' ? x.chord.root + 12 : tone(x.chord, Number(ch));
+};
+/** The highest chord tone at least a minor third under midi m (a second voice under the tune). */
+const under = (c: Chord, m: number): number => {
+  let best = m - 12;
+  for (const t of c.tones.slice(0, 3)) for (let o = -2; o <= 2; o++) if (t + 12 * o <= m - 3 && t + 12 * o > best) best = t + 12 * o;
+  return best;
+};
+/** A swung 16th: offbeat 16ths land late by the piece's swing. */
+const swung = (x: Step): number => x.t + (x.s % 2 ? x.song.swing * x.STEP : 0);
+
+// Act 7, the ash plains: E Phrygian dominant (the F leaning on the E, the leap from F up to G sharp), 112 BPM with a
+// half-time feel. An oud plucks an ostinato over a reed drone on E and B, a breathy ney sings the tune sliding into
+// its notes, an ash-hiss shaker and a distant frame drum keep the time. The fight brings a doumbek groove
+// (doum-tek-tek-doum-tek), a driving low-string ostinato and the oud on the tune; the lead is a nasal reed (zurna).
+const ASH1_DRONE = [40, 47, 52]; // E2, B2 and E3, under every chord
+const ASH1_OUD = 'R.2.1.2.R.2.3.2.';
+const ASH1_LOW = [0, 0, 2, 0, 1, 0, 2, 0, 0, 0, 2, 0, 3, 2, 1, 0];
+const ASH1_DOUM = ['D.T.k.T.D.k.T.k.', 'D.T.k.T.D.k.TkTk'];
+const ASH1_BASS = bassBar('0:3 . . 0:1 . . 12:2 . 0:3 . . 0:1 1:2 . 0:2 .');
+const ASH1_TURN = bassBar('0:3 . . 0:1 . . 12:2 . 0:2 . 1:2 . 4:2 . 5:2 .');
+const ASH1: Song = {
+  track: 'ash1',
+  name: 'Cinder Flats',
+  key: 'E Phrygian dominant',
+  bpm: 112,
+  meter: 16,
+  beat: 4,
+  bars: 8,
+  chords: chords('E | F | Dm | E | Am | F | Dm E | E'),
+  melody: mel(
+    16,
+    'b4:4 e5:2 f5:2 g#5:6 f5:2 | a5:4 g#5:2 f5:2 e5:4 c5:4 | d5:3 e5:1 f5:4 a5:4 g#5:2 f5:2 | e5:10 r:2 b4:2 d5:2 |' +
+      'c5:4 e5:2 a5:2 b5:6 a5:2 | c6:4 b5:2 a5:2 g#5:4 f5:4 | f5:4 e5:2 d5:2 e5:2 f5:2 g#5:2 b5:2 | e5:12 r:4',
+  ),
+  echo: 0.38,
+  swing: 0.06,
+  calm: [
+    part('base', (x) => (x.s === 0 || x.first) && x.b.reedDrone(x, ASH1_DRONE, 0.07)),
+    part('base', (x) => {
+      const m = pat(ASH1_OUD, x);
+      if (m !== null) x.b.oud(x, x.t, m, x.s % 8 ? 0.22 : 0.3);
+    }),
+    melody('base', (x, m, len) => x.b.ney(x, m, len, 0.38)),
+    bass(() => WHOLE, { level: 0.26, hz: [700, 300], sub: 1.25, gate: 1.05, hold: 0.93 }, 'base'),
+    perc(['..o...x...o...x.'], (x, v) => x.b.hiss(x, x.t, v * 0.7)),
+    perc(['X.........o.....'], (x, v) => x.b.frame(x, x.t, v * 0.45)), // a frame drum, far off
+    riser(0.3),
+    chime(88, 0.7),
+  ],
+  intense: [
+    part('base', (x) => (x.s === 0 || x.first) && x.b.reedDrone(x, ASH1_DRONE, 0.06)),
+    pad({ level: 0.12, hz: 1000, attack: 0.2, detune: 9 }),
+    part('base', (x) => x.b.pizz(x, tone(x.chord, ASH1_LOW[x.s]) - 12, x.s % 4 ? 0.28 : 0.4, { bow: true, hz: 2400 })),
+    melody('base', (x, m, len) => x.b.oud(x, x.t, m, 0.44 * x.lead, { len, role: 'bell' })),
+    part('base', (x) => {
+      const k = ASH1_DOUM[x.bar % 2][x.s];
+      if (k !== '.') x.b.doumbek(x, x.t, k === 'k' ? 0.7 : 1.5, k as 'D' | 'T' | 'k');
+    }),
+    perc(['-.x.-.x.-.x.-.x.'], (x, v) => x.b.hiss(x, x.t + (x.s % 2 ? x.song.swing * x.STEP : 0), v)),
+    riser(0.6),
+    kit({
+      kick: ['X.........x.....', 'X.........x...x.'],
+      snare: ['........X.......'],
+      hats: ['x...x...x...x...'],
+      open: ['......x.......x.'],
+      clap: true,
+      fill: { snare: '........X...XxXX', hats: 'x...x...x.......' },
+      crash: [0],
+      level: 0.8,
+    }),
+    bass((bar) => (bar === 7 ? ASH1_TURN : ASH1_BASS), { level: 0.34, hz: [1600, 450], sub: 1.35 }),
+    melody('lead', (x, m, len) => x.b.zurna(x, m, len, 0.2)),
+  ],
+};
+
+// Act 8, the glass tunnels: B flat Dorian (its raised sixth, G, shining through the minor), 108 BPM in 5/4 counted
+// 3+2. A kalimba plays an ostinato on the 3+2 and sings the tune over it, under a bowed-glass pad; wind chimes ring
+// at the ends of the phrases and a soft heartbeat thumps on 1. The fight runs a marimba in double time over tabla-like
+// hand drums; the lead is a bright square.
+const ASH2_KAL = '0.2.1.3.2.1.4.2.3.1.'; // three beats of 8ths, then two
+const ASH2_MARIMBA = [0, 1, 2, 1, 3, 2, 1, 2, 0, 2, 1, 3, 4, 3, 2, 1, 2, 3, 4, 5];
+const ASH2_TABLA = ['G.t.N.t.N.ttG.t.N.t.', 'G.t.N.t.N.t.G.tNN.tt'];
+const ASH2_CALM_BASS = bassBar('0:12 . . . . . . . . . . . 7:8 . . . . . . .');
+const ASH2_BASS = bassBar('0:2 . 0:1 12:1 . . 0:2 . 7:2 . 0:1 . 0:2 . 10:2 . 12:2 . 7:2 .');
+const ASH2: Song = {
+  track: 'ash2',
+  name: 'Glass Warrens',
+  key: 'Bb Dorian',
+  bpm: 108,
+  meter: 20,
+  beat: 4,
+  bars: 8,
+  split: 12,
+  chords: chords('Bbm | Eb | Fm | Bbm | Db | Ab | Eb Fm | Bbm'),
+  melody: mel(
+    20,
+    'f5:6 db5:2 bb4:4 c5:4 db5:4 | eb5:6 g5:2 bb5:4 ab5:4 g5:4 | ab5:6 f5:2 c5:4 eb5:4 f5:4 | db5:8 c5:4 bb4:8 |' +
+      'f5:6 ab5:2 db6:4 c6:4 ab5:4 | c6:6 bb5:2 ab5:4 g5:4 eb5:4 | g5:4 bb5:4 g5:4 ab5:4 f5:4 | bb5:12 r:8',
+  ),
+  echo: 0.42,
+  swing: 0,
+  calm: [
+    part('base', (x) => (x.change || x.first) && x.b.glassPad(x, 0.06)),
+    part('base', (x) => {
+      const m = pat(ASH2_KAL, x);
+      if (m !== null) x.b.tine(x, x.t, m, x.s === 0 || x.s === 12 ? 0.34 : 0.23, x.s % 4 ? 1 : 0, 'arp');
+    }),
+    melody('base', (x, m) => x.b.tine(x, x.t, m, 0.46)),
+    bass(() => ASH2_CALM_BASS, { level: 0.22, hz: [700, 300], sub: 1.2, gate: 1.08, hold: 0.96 }, 'base'),
+    perc(['X.o.................'], (x, v) => x.b.heart(x, x.t, v)),
+    part('base', (x) => (x.bar === 3 || x.bar === 7) && x.s === 12 && x.b.windChimes(x, 1)),
+    riser(0.3),
+  ],
+  intense: [
+    pad({ level: 0.15, hz: 1200, attack: 0.25, wave: 'triangle', detune: 10 }),
+    part('base', (x) => x.b.marimba(x, x.t, tone(x.chord, ASH2_MARIMBA[x.s]), x.s === 0 || x.s === 12 ? 0.54 : x.s % 2 ? 0.32 : 0.43)),
+    melody('base', (x, m) => x.b.tine(x, x.t, m, 0.48 * x.lead)),
+    part('base', (x) => {
+      const k = ASH2_TABLA[x.bar % 2][x.s];
+      if (k !== '.') x.b.tabla(x, x.t, k === 'G' ? 1.25 : k === 'N' ? 1.15 : 0.9, k as 'G' | 'N' | 't');
+    }),
+    part('base', (x) => (x.bar === 3 || x.bar === 7) && x.s === 12 && x.b.windChimes(x, 1.4)),
+    riser(0.6),
+    kit({
+      kick: ['X.....x.....X.......', 'X.....x.....X.....x.'],
+      snare: ['........X.......X...'],
+      hats: ['x.x.x.x.x.x.x.x.x.x.'],
+      open: ['..........x.........'],
+      clap: true,
+      fill: { snare: '........X.......XxXX', hats: 'x.x.x.x.x.x.x.x.....' },
+      crash: [0],
+      level: 0.8,
+    }),
+    bass(() => ASH2_BASS, { level: 0.36, hz: [1500, 420], sub: 1.4 }),
+    melody('lead', (x, m, len) => x.b.lead(x, m, len, 0.17, 'square', 3400)),
+  ],
+};
+
+// Act 9, the forge on the volcano's rim: A flat minor (its seventh raised to G at the cadence), 138 BPM. A low
+// brass chorale (tuba and trombones) under a trombone's tune, an anvil ting on 2 and 4, the bellows breathing in and
+// out, a male choir humming. The fight hammers it out: a brass riff in octaves, forge-hammer drums (huge low toms),
+// anvil 16ths; the lead an overdriven bass on the tune with brass stabs.
+const ASH3_RIFF = bassBar('0:2 . . 0:2 . . 0:1 . 12:2 . 0:1 . 10:2 . 7:2 .');
+const ASH3_BASS = bassBar('0:1 . 0:1 . 0:1 . 12:1 . 0:1 . 0:1 . 10:1 . 12:1 .');
+const ASH3: Song = {
+  track: 'ash3',
+  name: 'The Black Forge',
+  key: 'Ab minor',
+  bpm: 138,
+  meter: 16,
+  beat: 4,
+  bars: 8,
+  chords: chords('Abm | Fb | Cb | Gb | Abm | Dbm | Fb Eb | Abm'),
+  melody: mel(
+    16,
+    'ab4:6 cb5:2 eb5:8 | fb5:6 eb5:2 db5:4 cb5:4 | eb5:6 gb5:2 fb5:4 eb5:4 | db5:12 bb4:4 |' +
+      'ab4:6 cb5:2 eb5:4 ab5:4 | gb5:6 fb5:2 eb5:4 db5:4 | cb5:4 db5:4 bb4:4 g4:4 | ab4:12 r:4',
+  ),
+  echo: 0.3,
+  swing: 0,
+  calm: [
+    // the chorale: a tuba on the root (on the right, where it sits in a band), trombones on the chord, held
+    part('base', (x) => {
+      if (!(x.change || x.first)) return;
+      x.b.tuba(x, x.t, x.chord.root, x.left, 0.16, 'duet', true);
+      x.chord.tones.slice(0, 3).forEach((m, i) => x.b.trombone(x, m - 12, x.left, 0.1, 'duet', x.t + i * 0.015, i === 1));
+    }),
+    part('base', (x) => (x.change || x.first) && x.b.hum(x, 0.1)),
+    melody('base', (x, m, len) => x.b.trombone(x, m, len, 0.3)),
+    bass(() => WHOLE, { level: 0.17, hz: [600, 280], sub: 1.3, gate: 1.05, hold: 0.93 }, 'base'),
+    perc(['....x.......x...'], (x, v) => x.b.anvil(x, x.t, v * 0.6)),
+    part('base', (x) => x.s === 0 && x.b.bellows(x, x.t, x.song.meter * x.STEP, 1, x.bar % 2 === 1)),
+    riser(0.3),
+  ],
+  intense: [
+    pad({ level: 0.12, hz: 900, attack: 0.15, shift: -12 }),
+    part('base', (x) => {
+      const n = ASH3_RIFF[x.s];
+      if (!n) return;
+      const len = n[1] * x.STEP * 0.85;
+      x.b.trombone(x, x.chord.root + 12 + n[0], len, 0.17, 'brass');
+      x.b.trombone(x, x.chord.root + 24 + n[0], len, 0.1, 'brass');
+    }),
+    part('base', (x) => (x.change || x.first) && x.b.hum(x, 0.08)),
+    melody('base', (x, m, len) => x.b.trombone(x, m, len, 0.3 * x.lead)),
+    perc(['X.....X.X.......', 'X.....X.X.....x.'], (x, v) => x.b.hammer(x, x.t, v * 1.15)),
+    part('base', (x) => x.bar % 2 === 0 && x.s === 0 && x.b.bellows(x, x.t, 2 * x.song.meter * x.STEP, 0.8, true)),
+    riser(0.8),
+    kit({
+      kick: ['X.......X.x.....', 'X.......X.x...x.'],
+      snare: ['....X.......X...'],
+      hats: ['................'],
+      clap: true,
+      fill: { kick: 'X.......X.......', snare: '....X...........', toms: '........X.X.XxXx' },
+      crash: [0, 4],
+      level: 0.8,
+    }),
+    // anvil 16ths (they stop for the fill)
+    perc(['x-o-x-o-x-o-x-o-'], (x, v) => !(x.last && x.s >= 8) && x.b.anvil(x, x.t, v * 0.9, 'drums'), 'drums'),
+    bass(() => ASH3_BASS, { level: 0.36, hz: [1800, 480], sub: 1.35 }),
+    part('lead', (x) => {
+      if (x.note) x.b.lead(x, x.note[0] - 12, x.note[1] * x.STEP, 0.15, 'sawtooth', 2400, true, 'drive');
+      if (x.s === 6 || x.s === 14) x.b.stab(x, 2 * x.STEP, 0.2, 'lead');
+    }),
+  ],
+};
+
+// Act 7's mini-boss, the road-roller: a road-works funk in F sharp blues, 92 BPM, its 16ths swung hard. A wah-pulse
+// guitar scratches 16ths, a cowbell and a clanking road-works hit keep the time, a sax plays the tune and a tuba
+// backs up ("beep, beep") at the end of each phrase. The combo brings the funk kit, a slap bass, then the honking sax
+// section.
+const RUMBLE_WAH = 'x.xx.xX.x.xx.xX.';
+const RUMBLE_SLAP = bassBar('0:2 . 12:1 . 0:1 . 0:1 10:1 . 0:1 12:1 . 0:1 . 7:1 10:1');
+const RUMBLE_TURN = bassBar('0:2 . 12:1 . 0:1 . 0:1 10:1 . 0:1 12:1 . 0:1 2:1 3:1 4:1');
+const RUMBLEBACK: Song = {
+  track: 'rumbleback',
+  name: 'Rumbleback',
+  key: 'F# blues',
+  bpm: 92,
+  meter: 16,
+  beat: 4,
+  bars: 12,
+  chords: chords('F#7 | F#7 | F#7 | F#7 | B7 | B7 | F#7 | F#7 | C#7 | B7 | F#7 | C#7'),
+  melody: mel(
+    16,
+    'f#4:2 a4:1 b4:1 c5:1 c#5:3 r:2 e5:2 c#5:2 r:2 | r:2 f#5:2 e5:1 c#5:1 e5:2 c#5:2 b4:2 a4:2 f#4:2 |' +
+      'f#4:2 a4:1 b4:1 c5:1 c#5:3 r:2 e5:2 f#5:2 a5:2 | f#5:6 e5:2 c#5:2 c5:2 b4:2 a4:2 |' +
+      'b4:2 c#5:1 e5:1 f#5:1 e5:3 r:2 c#5:2 b4:2 r:2 | r:2 a5:2 f#5:1 e5:1 f#5:2 e5:2 c#5:2 c5:2 b4:2 |' +
+      'f#4:2 a4:1 b4:1 c5:1 c#5:3 r:2 a4:2 f#4:2 r:2 | r:4 c#5:2 e5:2 f#5:4 e5:2 c#5:2 |' +
+      'c#5:6 e5:2 r:2 c#5:2 b4:2 c#5:2 | b4:6 a4:2 r:2 b4:2 c#5:2 e5:2 | f#5:4 e5:2 c#5:2 c5:2 b4:2 a4:2 f#4:2 | c#5:4 r:4 c5:2 c#5:2 e5:2 f#5:2',
+  ),
+  echo: 0.26,
+  swing: 0.3,
+  intense: [
+    pad({ level: 0.08, hz: 1300, attack: 0.04, wave: 'square', detune: 6 }),
+    part('base', (x) => {
+      const k = RUMBLE_WAH[x.s];
+      if (k !== '.') x.b.wah(x, swung(x), k === 'X' ? 0.23 : 0.16, [0, 0.35, 0.7, 1][x.s % 4], k === 'X');
+    }),
+    part('base', (x) => x.note && x.b.sax(x, swung(x), x.note[0], x.note[1] * x.STEP - (x.s % 2) * x.song.swing * x.STEP, 0.34 * x.lead)),
+    perc(['X..x..x.X...x.x.'], (x, v) => x.b.cowbell(x, swung(x), v)),
+    part('base', (x) => ((x.bar % 2 === 1 && x.s === 12) || (x.bar === 0 && x.s === 0)) && x.b.clank(x, x.t, 0.55)),
+    // the tuba backs up at the end of each phrase: "beep, beep"
+    part('base', (x) => x.bar % 4 === 3 && (x.s === 8 || x.s === 12) && x.b.tuba(x, x.t, x.chord.root + 12, 2 * x.STEP, 0.2, 'brass')),
+    part('base', (x) => x.last && x.s === 8 && x.b.riser(x, 8 * x.STEP, 0.5)),
+    part('drums', (x) => {
+      const fill = x.last && x.s >= 12;
+      const t = swung(x);
+      const k = hit(x.bar % 2 ? 'X..x....X.x..x..' : 'X..x....X.x...x.', x.s);
+      if (k) x.b.kick(x, t, k, 0.95);
+      const sn = hit(fill ? '....X..o.o..XxXX' : '....X..o.o..X..o', x.s);
+      if (sn) x.b.snare(x, t, sn * 0.95, false);
+      if (x.bar % 4 === 0 && x.s === 0) x.b.crash(x, t, 0.8);
+      else if (!fill) {
+        const h = hit('xoxoxoxoxoxoxoxo', x.s);
+        if (h) x.b.hat(x, t, h * 0.8, x.s === 14);
+      }
+    }),
+    part('bass', (x) => {
+      const n = (x.bar === 11 ? RUMBLE_TURN : RUMBLE_SLAP)[x.s];
+      if (n) x.b.slap(x, swung(x), x.chord.root + n[0], n[1] * x.STEP * 0.85, 0.4, n[0] >= 12);
+    }),
+    part('lead', (x) => {
+      if (x.note) x.b.sax(x, swung(x), x.note[0] - 12, x.note[1] * x.STEP, 0.24, { role: 'lead', honk: true });
+      // the section's stabs: a honk on the "and"s
+      if ((x.s === 3 || x.s === 11) && x.bar % 2 === 0) for (const m of x.chord.tones.slice(1, 3)) x.b.sax(x, swung(x), m, 1.5 * x.STEP, 0.1, { role: 'lead', honk: true });
+    }),
+  ],
+};
+
+// Act 8's mini-boss, the two-headed hound: a galop in A major, 2/4 at 168. Two leads trade bars, Hob's muted trumpet
+// (left) and Nob's clarinet (right), over a tuba's oom-pah, with snare rolls and a slide whistle into each phrase.
+// The combo brings the galop kit, the tuba walking, then a xylophone on the tune; in phase 2 the heads squabble:
+// each plays under the other's bars too.
+const HOB_OOM = bassBar('0:2 . . . 7:2 . . .');
+const HOB_WALK = bassBar('0:2 . 4:2 . 7:2 . 9:2 .');
+const HOBNOB: Song = {
+  track: 'hobnob',
+  name: 'Hob & Nob',
+  key: 'A major',
+  bpm: 168,
+  meter: 8,
+  beat: 4,
+  bars: 16,
+  chords: chords('A | E | A | E7 | D | A | E | A | A | D | A | F#m | Bm | E | E7 | A'),
+  melody: mel(
+    8,
+    'e5:2 a5:2 c#6:2 a5:2 | b5:1 c#6:1 b5:1 g#5:1 e5:4 | e5:2 a5:2 c#6:2 e6:2 | d6:3 c#6:1 b5:4 |' +
+      'f#5:2 a5:2 d6:2 a5:2 | c#6:1 b5:1 a5:1 g#5:1 a5:2 e5:2 | f#5:1 g#5:1 a5:1 b5:1 c#6:2 b5:2 | a5:4 r:2 e5:2 |' +
+      'c#6:2 c#6:1 c#6:1 e6:2 c#6:2 | d6:2 a5:2 f#5:2 a5:2 | c#6:2 b5:1 c#6:1 e6:2 a5:2 | f#5:1 g#5:1 a5:1 b5:1 c#6:4 |' +
+      'd6:2 b5:2 f#5:2 d6:2 | c#6:2 b5:2 g#5:2 e5:2 | d6:1 c#6:1 b5:1 a5:1 g#5:2 b5:2 | a5:4 r:4',
+  ),
+  echo: 0.22,
+  swing: 0,
+  phased: true,
+  intense: [
+    // a calliope holding the chord; the oom-pah: a soft oom on the beats, the band's "pah" between
+    pad({ level: 0.06, hz: 1800, attack: 0.04, wave: 'square', detune: 12, swell: false }),
+    part('base', (x) => {
+      if (x.s === 0 || x.s === 4) x.b.tuba(x, x.t, x.chord.root + (x.s ? 7 : 0), 1.6 * x.STEP, 0.16, 'brass');
+      else if (x.s === 2 || x.s === 6) x.b.pah(x, 1.4 * x.STEP, 0.1, x.s === 6);
+    }),
+    // the heads trade bars: Hob's muted trumpet on the left, Nob's clarinet on the right (they step back only a
+    // little when the xylophone doubles them)
+    melody('base', (x, m, len) => {
+      const v = 0.5 + 0.5 * x.lead;
+      if (x.bar % 2) x.b.clarinet(x, m, len, 0.36 * v, 'duet', true);
+      else x.b.mutedTrumpet(x, m, len, 0.5 * v, 'duet');
+    }),
+    // a snare roll into each line, a long one and a slide whistle into each phrase
+    part('base', (x) => {
+      if (x.bar % 8 === 7 && x.s === 0) {
+        x.b.roll(x, x.t, 4 * x.STEP, 0.22);
+        x.b.roll(x, x.t + 4 * x.STEP, 3.6 * x.STEP, 0.38);
+      } else if (x.bar % 4 === 3 && x.s === 4) x.b.roll(x, x.t, 3.6 * x.STEP, 0.3);
+      if (x.bar % 8 === 7 && x.s === 4) x.b.slideWhistle(x, x.t, 3.8 * x.STEP, 74, 90, 0.08);
+    }),
+    kit({
+      kick: ['X...X...'],
+      snare: ['..X...X.'],
+      hats: ['x.x.x.x.'],
+      open: ['......x.'],
+      clap: false,
+      fill: { snare: '..X.XxXX', hats: 'x.x.....' },
+      crash: [0, 8],
+      level: 0.9,
+    }),
+    part('bass', (x) => {
+      const n = (x.bar % 4 === 3 ? HOB_WALK : HOB_OOM)[x.s];
+      if (n) x.b.tuba(x, x.t, x.chord.root - 12 + n[0], n[1] * x.STEP * 0.85, 0.4);
+    }),
+    melody('lead', (x, m) => x.b.xylo(x, x.t, m, 0.3)),
+    // phase 2: the other head joins in under the tune, from its own side
+    part('stabs', (x) => {
+      if (!x.note) return;
+      const [m, n] = x.note;
+      const h = under(x.chord, m);
+      if (x.bar % 2) x.b.mutedTrumpet(x, h, n * x.STEP, 0.4, 'spat');
+      else x.b.clarinet(x, h, n * x.STEP, 0.3, 'spat', true);
+    }),
+  ],
+};
+
+// Region 3's boss, the forge titan: B Phrygian (the C above the B grinding against it), 162 BPM. Anvils on the
+// backbeat, a low brass ostinato, war drums, the bellows breathing, horns on the tune. His phases escalate it: phase 2
+// brings the kit, a male choir chanting and a chain-rattle shaker in 16ths answered by horns; phase 3 lifts it a
+// semitone (C Phrygian) with double-time drums, a distorted bass, the lead and brass stabs: everything in.
+const BELLOWS_OST = bassBar('0:2 . . 0:2 . . 1:2 . 0:2 . . 0:2 . . -2:2 .');
+const BELLOWS_BASS = bassBar('0:1 . 0:1 . 0:1 0:1 1:1 . 0:1 . 0:1 . 0:1 0:1 12:1 .');
+const BELLOWS_CHANT = ['X.......X...x.x.', 'X.......X.......'];
+const BELLOWS: Song = {
+  track: 'bellows',
+  name: 'Bellows',
+  key: 'B Phrygian (phase 3: C Phrygian)',
+  bpm: 162,
+  meter: 16,
+  beat: 4,
+  bars: 8,
+  chords: chords('Bm | C | Bm | D | Em | C | Am C | Bm'),
+  melody: mel(
+    16,
+    'b4:2 b4:1 c5:1 b4:2 f#5:4 e5:2 d5:4 | c5:2 c5:1 d5:1 c5:2 g5:4 f#5:2 e5:4 | d5:2 d5:1 e5:1 d5:2 a5:4 g5:2 f#5:4 | a5:8 f#5:4 d5:4 |' +
+      'e5:4 g5:2 b5:2 c6:4 b5:4 | c6:4 b5:2 a5:2 g5:4 e5:4 | a5:4 g5:2 e5:2 c5:4 e5:2 g5:2 | f#5:4 e5:2 c5:2 b4:8',
+  ),
+  echo: 0.3,
+  swing: 0,
+  keyUp: 1,
+  intense: [
+    pad({ level: 0.13, hz: 1000, attack: 0.1, shift: -12 }),
+    part('base', (x) => {
+      const n = BELLOWS_OST[x.s];
+      if (!n) return;
+      const len = n[1] * x.STEP * 0.85;
+      x.b.trombone(x, x.chord.root + 12 + n[0], len, 0.17, 'brass');
+      if (x.s % 8 === 0) x.b.tuba(x, x.t, x.chord.root + n[0], len, 0.16, 'brass');
+    }),
+    melody('base', (x, m, len) => x.b.horn(x, m - 12, len, 0.4 * x.lead)),
+    perc(['....X.......X...'], (x, v) => x.b.anvil(x, x.t, v * 1.1, 'perc', 1320)),
+    // war drums (in the last phase only the big strokes: the kick has doubled)
+    perc(['X..x..x.X.x.X...', 'X..x..x.X.x.X.xx'], (x, v) => (x.phase < 3 || v >= 1) && x.b.taiko(x, x.t, v * 1.15)),
+    part('base', (x) => x.s === 0 && x.b.bellows(x, x.t, x.song.meter * x.STEP, 0.9, x.bar % 2 === 1)),
+    riser(0.8),
+    part('drums', (x) => {
+      // phase 3: the kick and the hats double
+      const p3 = x.phase >= 3;
+      const fill = x.last && x.s >= 8;
+      const v = p3 ? 0.9 : 0.8;
+      const k = hit(p3 ? 'X.x.X.x.X.x.X.x.' : 'X...X...X...X.x.', x.s);
+      if (k && !fill) x.b.kick(x, x.t, k * v, 0.95);
+      const sn = fill ? hit('........XxXxXXXX', x.s) : hit('....X.......X...', x.s);
+      if (sn) x.b.snare(x, x.t, sn * v, sn >= 1 && !fill);
+      if (fill && x.s % 2 === 0) x.b.tom(x, x.t, 150 - (x.s - 8) * 9, (0.7 + (x.s - 8) * 0.04) * v);
+      if ((x.bar === 0 || x.bar === 4) && x.s === 0) x.b.crash(x, x.t, v * 0.8);
+      else if (!fill) {
+        const h = hit(p3 ? 'XoxoXoxoXoxoXoxo' : 'x.o.x.o.x.o.x.o.', x.s);
+        if (h) x.b.hat(x, x.t, h * v);
+      }
+    }),
+    // the bass (distorted in the last phase)
+    part('bass', (x) => {
+      const n = BELLOWS_BASS[x.s];
+      if (!n) return;
+      if (x.phase >= 3) x.b.grit(x, x.chord.root + n[0], n[1] * x.STEP * 0.9, 0.1);
+      else x.b.bass(x, x.chord.root + n[0], n[1] * x.STEP * 0.9, { level: 0.3, hz: [1900, 500], sub: 1.4 });
+    }),
+    part('lead', (x) => {
+      if (!x.note) return;
+      const [m, n] = x.note;
+      x.b.horn(x, m, n * x.STEP, 0.26, 'lead');
+      x.b.lead(x, m, n * x.STEP, 0.08, 'pulse25', 3400, false);
+    }),
+    // phase 2 on: the choir chants, a chain rattles in 16ths and horns answer it; phase 3: brass stabs too
+    perc(BELLOWS_CHANT, (x, v) => x.b.chant(x, (v >= 1 ? 3 : 1.5) * x.STEP, 0.3 * v), 'stabs'),
+    part('stabs', (x) => x.s % 4 === 0 && x.b.rattle(x, x.t, x.STEP, 1)),
+    part('stabs', (x) => {
+      if (x.bar % 2 === 0) return;
+      if (x.s === 8) x.b.horn(x, tone(x.chord, 2), 3 * x.STEP, 0.24, 'stab');
+      else if (x.s === 11) x.b.horn(x, tone(x.chord, 1), 5 * x.STEP, 0.24, 'stab');
+    }),
+    part('stabs', (x) => x.phase >= 3 && x.s % 4 === 2 && x.b.stab(x, 2 * x.STEP, 0.36)),
+  ],
+};
+
 export const SONGS: Record<MusicTrack, Song> = {
   title: TITLE,
   camp: CAMP,
@@ -1046,6 +1509,12 @@ export const SONGS: Record<MusicTrack, Song> = {
   rimehorn: RIMEHORN,
   matron: MATRON,
   glacia: GLACIA,
+  ash1: ASH1,
+  ash2: ASH2,
+  ash3: ASH3,
+  rumbleback: RUMBLEBACK,
+  hobnob: HOBNOB,
+  bellows: BELLOWS,
 };
 
 /** Seconds per step of a piece. */
@@ -1085,6 +1554,19 @@ export const MUSIC_PIECES: MusicPiece[] = [
   { id: 'glacia1', label: 'Act 6 boss, phase 1', track: 'glacia', intense: true, phase: 1 },
   { id: 'glacia2', label: 'Act 6 boss, phase 2', track: 'glacia', intense: true, phase: 2 },
   { id: 'glacia3', label: 'Act 6 boss, phase 3', track: 'glacia', intense: true, phase: 3 },
+  // Region 3 (the same: acts by number only)
+  { id: 'ash1', label: 'Act 7: map', track: 'ash1', intense: false },
+  { id: 'ash1-fight', label: 'Act 7: fight', track: 'ash1', intense: true },
+  { id: 'ash2', label: 'Act 8: map', track: 'ash2', intense: false },
+  { id: 'ash2-fight', label: 'Act 8: fight', track: 'ash2', intense: true },
+  { id: 'ash3', label: 'Act 9: map', track: 'ash3', intense: false },
+  { id: 'ash3-fight', label: 'Act 9: fight', track: 'ash3', intense: true },
+  { id: 'rumbleback', label: 'Act 7 mini-boss', track: 'rumbleback', intense: true },
+  { id: 'hobnob1', label: 'Act 8 mini-boss, phase 1', track: 'hobnob', intense: true, phase: 1 },
+  { id: 'hobnob2', label: 'Act 8 mini-boss, phase 2', track: 'hobnob', intense: true, phase: 2 },
+  { id: 'bellows1', label: 'Act 9 boss, phase 1', track: 'bellows', intense: true, phase: 1 },
+  { id: 'bellows2', label: 'Act 9 boss, phase 2', track: 'bellows', intense: true, phase: 2 },
+  { id: 'bellows3', label: 'Act 9 boss, phase 3', track: 'bellows', intense: true, phase: 3 },
 ];
 
 /** Which arrangement a piece plays when the game asks for calm or intense (the camp, the title and the bosses
@@ -1142,7 +1624,10 @@ class Fader {
 
 // (Region 2 adds: 'str' bowed strings, 'brass' a brass section, 'drip' percussion into the echo, and 'hymn' a choir
 // that joins with a boss's phases, in the stabs layer)
-type Role = 'pad' | 'arp' | 'bell' | 'lead' | 'bass' | 'drums' | 'perc' | 'fx' | 'choir' | 'stab' | 'str' | 'brass' | 'drip' | 'hymn';
+// (Region 3 adds: 'duet' a two-sided chain (two leads trading bars, a spread brass section); 'spat' the same in the
+// stabs layer (the other lead joining with a boss's phase); 'rattle' percussion in the stabs layer; 'grit' and 'drive'
+// an overdriven bass and lead)
+type Role = 'pad' | 'arp' | 'bell' | 'lead' | 'bass' | 'drums' | 'perc' | 'fx' | 'choir' | 'stab' | 'str' | 'brass' | 'drip' | 'hymn' | 'duet' | 'spat' | 'rattle' | 'grit' | 'drive';
 const ROLE_LAYER: Record<Role, Layer> = {
   pad: 'base',
   arp: 'base',
@@ -1153,11 +1638,16 @@ const ROLE_LAYER: Record<Role, Layer> = {
   str: 'base',
   brass: 'base',
   drip: 'base',
+  duet: 'base',
   lead: 'lead',
+  drive: 'lead',
   bass: 'bass',
+  grit: 'bass',
   drums: 'drums',
   stab: 'stabs',
   hymn: 'stabs',
+  spat: 'stabs',
+  rattle: 'stabs',
 };
 
 /** A part's sound: its layer gate (on every input) and its processing, into the group's dry and sends. */
@@ -1383,8 +1873,8 @@ export class Band {
   /** A new piece from step `step` at ctx time t: the arrangement asked for, its layers as the combo stands. */
   private newDeck(t: number, step: number): Deck {
     const song = SONGS[this.want.track];
-    const phase = song.keyUp ? this.phase : 1;
-    const d: Deck = { song, step: step % (song.bars * song.meter), arr: arrangementOf(song, this.want.intense), groups: {}, tr: phase >= 3 ? song.keyUp! : 0, phase };
+    const phase = phasedSong(song) ? this.phase : 1;
+    const d: Deck = { song, step: step % (song.bars * song.meter), arr: arrangementOf(song, this.want.intense), groups: {}, tr: phase >= 3 ? (song.keyUp ?? 0) : 0, phase };
     this.echoFor(song, t);
     const g = this.group(d, d.arr);
     g.out.to(1, t, t + 0.01);
@@ -1400,9 +1890,9 @@ export class Band {
       this.ringOut(d, t, Math.max(0.05, m.ringOut));
       return (this.deck = this.newDeck(t, 0));
     }
-    if (s === 0 && d.song.keyUp && d.phase !== this.phase) {
+    if (s === 0 && phasedSong(d.song) && d.phase !== this.phase) {
       d.phase = this.phase;
-      const tr = d.phase >= 3 ? d.song.keyUp : 0;
+      const tr = d.phase >= 3 ? (d.song.keyUp ?? 0) : 0;
       const g = d.groups.intense;
       if (g?.live && (tr !== d.tr || d.phase >= 2)) this.crash(this.ctxStep(d, g, t), t, 1);
       d.tr = tr;
@@ -1591,6 +2081,20 @@ export class Band {
       c = { in: input(pan(-0.45, tone)), r: input(pan(0.45, tone)) };
     } else if (role === 'brass') c = { in: input(pan(-0.08, out(filter('lowpass', o.hz ?? 3200, 0.7), o.echo ?? 0.12, 0.35))) };
     else if (role === 'drip') c = { in: input(pan(0.3, out(gain(1), o.echo ?? 0.5, 0.35))) };
+    else if (role === 'duet' || role === 'spat') {
+      const tone = out(filter('lowpass', o.hz ?? 4200, 0.6), o.echo ?? 0.2, 0.35);
+      c = { in: input(pan(-0.45, tone)), r: input(pan(0.45, tone)) };
+    } else if (role === 'rattle') c = { in: input(pan(0.35, out(gain(1), 0.1, 0.25))) };
+    else if (role === 'grit' || role === 'drive') {
+      // overdriven: into a waveshaper, then a lowpass takes the fizz off (the bass ducks under the kick too)
+      const duck = role === 'grit' ? gain(1, g.dry) : undefined;
+      const tone = filter('lowpass', o.hz ?? (role === 'grit' ? 2200 : 2600), 0.7, duck);
+      if (!duck) out(tone, o.echo ?? 0.25, 0.25);
+      const drive = keep(ctx.createWaveShaper());
+      drive.curve = this.h.drive(role === 'grit' ? 4 : 3) as Float32Array<ArrayBuffer>;
+      drive.connect(tone);
+      c = { in: input(drive), duck };
+    }
     else if (role === 'stab') c = { in: input(pan(-0.15, out(filter('lowpass', o.hz ?? 3000, 0.6), 0.15, 0.4))) };
     else if (role === 'bass') {
       const duck = gain(1, g.dry);
@@ -1731,8 +2235,8 @@ export class Band {
 
   /** The lead: a pulse (or other wave) with a quieter detuned saw (a light chorus), scooping up into pitch,
    *  vibrato blooming on long notes; through the lead lowpass into the echo and the hall. */
-  lead(x: Step, m: number, len: number, level: number, wave: Wave, lp: number, vib = true): void {
-    const c = this.chain(x.g, 'lead', { hz: lp });
+  lead(x: Step, m: number, len: number, level: number, wave: Wave, lp: number, vib = true, role: Role = 'lead'): void {
+    const c = this.chain(x.g, role, { hz: lp });
     const t = x.t;
     const f = hz(m);
     const end = t + len * 0.95 + 0.04;
@@ -1911,8 +2415,8 @@ export class Band {
       p.linearRampToValueAtTime(duck, t + 0.01);
       p.linearRampToValueAtTime(1, t + 0.17);
     }
-    const b = x.g.chains.bass?.duck?.gain;
-    if (b) {
+    for (const b of [x.g.chains.bass?.duck?.gain, x.g.chains.grit?.duck?.gain]) {
+      if (!b) continue;
       b.setValueAtTime(1, t);
       b.linearRampToValueAtTime(0.4 + duck * 0.5, t + 0.006);
       b.linearRampToValueAtTime(1, t + 0.1);
@@ -2191,5 +2695,370 @@ export class Band {
       this.h.tone({ ...o, type: 'sine', f: f * 2, gain: level * 0.4 });
       this.h.tone({ ...o, type: 'sine', f: f * 3, gain: level * 0.18 });
     });
+  }
+
+  // ---------------------------------------------------------------- Region 3's instruments
+
+  /** An oud: a fretless lute plucked with a quill: a bright saw whose lowpass snaps shut over a ringing triangle,
+   *  sliding up into its note (no frets); 8ths alternate sides. With `len`, a long note is tremolo-picked. */
+  oud(x: Step, t: number, m: number, level: number, o: { len?: number; role?: Role } = {}): void {
+    const c = this.chain(x.g, o.role ?? 'arp', { hz: 4200, echo: 0.18 });
+    const f = hz(m);
+    const out = (x.s >> 1) & 1 ? (c.r ?? c.in) : c.in;
+    const n = o.len && o.len >= 3.5 * x.STEP ? Math.floor(o.len / x.STEP) : 1;
+    for (let i = 0; i < n; i++) {
+      const at = t + i * x.STEP;
+      const v = level * (i ? 0.5 - 0.06 * (i % 2) : 1);
+      const end = i < n - 1 ? x.STEP * 1.1 : 0.45;
+      this.h.voice({ at, type: 'sawtooth', f: [[0, f * 0.985], [0.03, f]], filter: 'lowpass', ff: [[0, Math.min(8000, f * 9)], [0.1, f * 2.2]], q: 1.8, amp: [[0.002, v], [Math.min(0.09, end * 0.6), v * 0.4], [end, 0]], out });
+      if (!i) this.h.tone({ type: 'triangle', f, at, attack: 0.002, dur: 0.6, gain: v * 0.55, out });
+    }
+  }
+
+  /** A ney: an end-blown reed flute, more breath than tone: a soft triangle sliding up into each note from a little
+   *  under it, a wash of breath all through, vibrato blooming on the long notes. */
+  ney(x: Step, m: number, len: number, level: number): void {
+    const c = this.chain(x.g, 'lead', { hz: 3800, echo: 0.36 });
+    const f = hz(m);
+    const l = Math.max(0.15, len);
+    const vib = len >= 4 * x.STEP ? { rate: 4.6, cents: 0, cents1: 20 } : undefined;
+    const amp: Pts = [[0.07, level], [l * 0.6, level * 0.82], [l * 0.97 + 0.04, 0]];
+    const slide: Pts = [[0, f * 0.965], [0.1, f]];
+    this.h.voice({ at: x.t, type: 'triangle', f: slide, vib, amp, out: c.in });
+    this.h.voice({ at: x.t, type: 'sine', f: scale(slide, 2), amp: scale(amp, 0.12), out: c.in });
+    this.h.voice({ at: x.t, type: 'noise', filter: 'bandpass', ff: [[0, f * 1.5], [0.1, f * 2.2]], q: 1.2, amp: scale(amp, 0.5), out: c.in });
+  }
+
+  /** A reed drone on fixed notes (the ash plains: E and B), two saws a little apart per note through the pad's dark
+   *  lowpass, held to the bar's end. */
+  reedDrone(x: Step, notes: number[], level: number): void {
+    const c = this.chain(x.g, 'pad', { hz: 900 });
+    const len = (x.song.meter - x.s) * x.STEP;
+    notes.forEach((m, i) => {
+      for (const [out, det] of [
+        [c.in, -6],
+        [c.r!, 6],
+      ] as const)
+        this.h.tone({ type: 'sawtooth', f: hz(m), detune: det + i * 2, at: x.t, attack: 0.08, hold: len - 0.08, dur: len + 0.3, minTail: 0.25, gain: level, out });
+    });
+  }
+
+  /** An ash-hiss shaker: a soft "tsss" of high noise, slower to speak than a shaker. */
+  hiss(x: Step, t: number, v: number): void {
+    const c = this.chain(x.g, 'perc');
+    this.h.noise({ at: t, attack: 0.03, dur: 0.12, gain: 0.22 * v, filter: 'bandpass', f: 5200, q: 0.8, out: c.in });
+  }
+
+  /** A doumbek (goblet drum): the deep "doum" in the middle of the head (D), the bright "tek" on the rim (T), the
+   *  soft "ka" of the other hand (k). */
+  doumbek(x: Step, t: number, v: number, stroke: 'D' | 'T' | 'k'): void {
+    const c = this.chain(x.g, 'perc');
+    if (stroke === 'D') {
+      this.h.tone({ type: 'sine', f: 105, f1: 78, glide: 0.1, at: t, attack: 0.002, dur: 0.4, gain: 0.5 * v, out: c.in });
+      this.h.tone({ type: 'triangle', f: 210, f1: 150, glide: 0.06, at: t, attack: 0.001, dur: 0.18, gain: 0.32 * v, out: c.in });
+      return;
+    }
+    const k = stroke === 'T' ? 1 : 0.5;
+    this.h.ticks([t], { gain: 1.1 * v * k, f: 3400, q: 3.5, ms: 9, out: c.in });
+    this.h.tone({ type: 'triangle', f: 760, f1: 640, glide: 0.03, at: t, dur: 0.07, gain: 0.16 * v * k, out: c.in });
+  }
+
+  /** A zurna: a shrill double reed: a thin pulse through a nasal formant, scooping into the note, a quick vibrato. */
+  zurna(x: Step, m: number, len: number, level: number): void {
+    const c = this.chain(x.g, 'lead', { hz: 4200, echo: 0.28 });
+    const f = hz(m);
+    const l = Math.max(0.08, len);
+    const vib = len >= 3 * x.STEP ? { rate: 6.4, cents: 6, cents1: 26 } : { rate: 6.4, cents: 6 };
+    const amp: Pts = [[0.012, level], [l * 0.8, level * 0.85], [l * 0.96 + 0.02, 0]];
+    const scoop: Pts = [[0, f * 0.97], [0.025, f]];
+    this.h.voice({ at: x.t, type: 'pulse12', f: scoop, vib, filter: 'peaking', ff: [[0, 1400]], q: 2.2, amp, out: c.in });
+    this.h.voice({ at: x.t, type: 'sawtooth', f: scoop, filter: 'bandpass', ff: [[0, 2600]], q: 3, amp: scale(amp, 0.35), out: c.in });
+  }
+
+  /** A kalimba tine: a round sine with a buzzing octave a few cents sharp and the click of the thumb (`side` 1: the
+   *  right side, on a two-sided chain). */
+  tine(x: Step, t: number, m: number, level: number, side = 0, role: Role = 'bell'): void {
+    const c = this.chain(x.g, role, { hz: 6500, echo: 0.3 });
+    const f = hz(m);
+    const out = side && c.r ? c.r : c.in;
+    this.h.tone({ type: 'sine', f, at: t, attack: 0.002, dur: 1.1, gain: level, out });
+    this.h.tone({ type: 'sine', f: f * 2.005, at: t, attack: 0.001, dur: 0.3, gain: level * 0.28, out });
+    this.h.tone({ type: 'triangle', f: f * 4.8, at: t, attack: 0.001, dur: 0.04, gain: level * 0.1, out });
+  }
+
+  /** A bowed-glass pad: the chord's three tones on rims of glass, each two pure sines beating slowly against each
+   *  other and a soft twelfth, swelling in over the chord (alternate sides). */
+  glassPad(x: Step, level: number): void {
+    const c = this.chain(x.g, 'pad', { hz: 3000 });
+    const len = x.left;
+    x.chord.tones.slice(0, 3).forEach((m, i) => {
+      const f = hz(m + 12);
+      const out = i % 2 ? c.r! : c.in;
+      const amp: Pts = [[Math.min(0.5, len * 0.4), level], [len, level * 0.8], [len + 0.5, 0]];
+      this.h.voice({ at: x.t, type: 'sine', f: [[0, f * 0.998]], amp, out });
+      this.h.voice({ at: x.t, type: 'sine', f: [[0, f * 1.002]], amp: scale(amp, 0.8), out });
+      this.h.voice({ at: x.t, type: 'triangle', f: [[0, f * 3]], amp: scale(amp, 0.06), out });
+    });
+  }
+
+  /** Wind chimes: small tubes knocked together, high and inharmonic, ringing into the hall. */
+  windChimes(x: Step, level: number): void {
+    const c = this.chain(x.g, 'fx');
+    [96, 92, 99, 94, 89, 97].forEach((m, i) => {
+      const at = x.t + [0, 0.13, 0.21, 0.37, 0.52, 0.71][i];
+      const f = hz(m);
+      this.h.tone({ type: 'sine', f, at, attack: 0.001, dur: 1.4, gain: 0.05 * level, out: c.in });
+      this.h.tone({ type: 'sine', f: f * 2.76, at, attack: 0.001, dur: 0.4, gain: 0.02 * level, out: c.in });
+    });
+  }
+
+  /** A heartbeat under the floor: a soft sub thump (and a knock a phone can play). */
+  heart(x: Step, t: number, v: number): void {
+    const c = this.chain(x.g, 'perc');
+    this.h.tone({ type: 'sine', f: 64, f1: 44, glide: 0.1, at: t, attack: 0.004, dur: 0.32, gain: 0.5 * v, out: c.in });
+    this.h.tone({ type: 'triangle', f: 130, f1: 70, glide: 0.06, at: t, attack: 0.003, dur: 0.12, gain: 0.18 * v, out: c.in });
+  }
+
+  /** A marimba: a rosewood bar over its resonator: a warm sine, its tuned partial about four times up dying fast, a
+   *  mallet knock; 16ths alternate sides. */
+  marimba(x: Step, t: number, m: number, level: number): void {
+    const c = this.chain(x.g, 'arp', { hz: 5000, echo: 0.2 });
+    const f = hz(m);
+    const out = x.s % 2 ? c.r! : c.in;
+    this.h.tone({ type: 'sine', f, at: t, attack: 0.002, dur: 0.5, gain: level, out });
+    this.h.tone({ type: 'sine', f: f * 3.93, at: t, attack: 0.001, dur: 0.09, gain: level * 0.3, out });
+    this.h.tone({ type: 'triangle', f: f * 0.5, at: t, attack: 0.001, dur: 0.03, gain: level * 0.2, out });
+  }
+
+  /** Tabla-like hand drums: "na" (N), the ringing rim of the small drum, tuned to the key's B flat, its overtones
+   *  nearly harmonic; "tin" (t), softer and shorter; "ge" (G), the big drum's bass, bending up under the heel of the
+   *  hand. */
+  tabla(x: Step, t: number, v: number, stroke: 'N' | 't' | 'G'): void {
+    const c = this.chain(x.g, 'perc');
+    if (stroke === 'G') {
+      this.h.tone({ type: 'sine', f: 85, f1: 125, glide: 0.18, at: t, attack: 0.003, dur: 0.4, gain: 0.45 * v, out: c.in });
+      this.h.tone({ type: 'triangle', f: 170, f1: 240, glide: 0.15, at: t, attack: 0.002, dur: 0.2, gain: 0.2 * v, out: c.in });
+      return;
+    }
+    const f = hz(70);
+    const d = stroke === 'N' ? 0.32 : 0.12;
+    const k = stroke === 'N' ? 1 : 0.55;
+    this.h.tone({ type: 'sine', f, at: t, attack: 0.001, dur: d, gain: 0.3 * v * k, out: c.in });
+    this.h.tone({ type: 'sine', f: f * 2, at: t, attack: 0.001, dur: d * 0.6, gain: 0.14 * v * k, out: c.in });
+    this.h.tone({ type: 'sine', f: f * 3.02, at: t, attack: 0.001, dur: d * 0.35, gain: 0.08 * v * k, out: c.in });
+    this.h.ticks([t], { gain: 0.6 * v * k, f: 3600, q: 2, ms: 5, out: c.in });
+  }
+
+  /** An anvil struck with a hammer: a bright inharmonic ring (steel), a click, ringing on. */
+  anvil(x: Step, t: number, v: number, role: Role = 'perc', f = 1180): void {
+    const c = this.chain(x.g, role);
+    this.h.tone({ type: 'sine', f, at: t, attack: 0.001, dur: 0.7, gain: 0.16 * v, out: c.in });
+    this.h.tone({ type: 'sine', f: f * 2.71, at: t, attack: 0.001, dur: 0.3, gain: 0.09 * v, out: c.in });
+    this.h.tone({ type: 'sine', f: f * 4.95, at: t, attack: 0.001, dur: 0.12, gain: 0.05 * v, out: c.in });
+    this.h.ticks([t], { gain: 0.6 * v, f: 4200, q: 1.2, ms: 4, out: c.in });
+  }
+
+  /** The forge's bellows: a long breath of filtered noise drawn in (rising) or blown out (falling, a low roar under
+   *  it), over `d` seconds. */
+  bellows(x: Step, t: number, d: number, level: number, blow: boolean): void {
+    const c = this.chain(x.g, 'perc');
+    const ff: Pts = blow ? [[0, 1400], [d, 380]] : [[0, 360], [d, 1300]];
+    this.h.voice({ at: t, type: 'noise', filter: 'bandpass', ff, q: 1.1, amp: [[d * 0.45, 0.12 * level], [d * 0.8, 0.09 * level], [d, 0]], out: c.in });
+    if (blow) this.h.voice({ at: t, type: 'noise', filter: 'lowpass', ff: [[0, 300]], amp: [[d * 0.4, 0.1 * level], [d, 0]], out: c.in });
+  }
+
+  /** A male choir humming the chord low ("mmm"): two detuned pulses through a closed-mouth lowpass, swelling in over
+   *  the chord. */
+  hum(x: Step, level: number): void {
+    const c = this.chain(x.g, 'choir');
+    const len = x.left;
+    for (const [m, det] of [
+      [x.chord.tones[0] - 12, -7],
+      [x.chord.tones[2] - 12, 7],
+    ] as const)
+      this.h.voice({ at: x.t, type: 'pulse25', f: [[0, hz(m)]], vib: { rate: 4.2, cents: det }, filter: 'lowpass', ff: [[0, 420]], q: 3, amp: [[Math.min(0.9, len * 0.45), level], [len, level * 0.75], [len + 0.4, 0]], out: c.in });
+  }
+
+  /** A trombone: a saw sliding up into the note, its lowpass blaring open and settling, a sine under it for body;
+   *  vibrato on the long notes (`right`: on a two-sided chain's right side). */
+  trombone(x: Step, m: number, len: number, level: number, role: Role = 'bell', t = x.t, right = false): void {
+    const c = this.chain(x.g, role);
+    const out = right && c.r ? c.r : c.in;
+    const f = hz(m);
+    const l = Math.max(0.1, len);
+    const vib = len >= 4 * x.STEP ? { rate: 5, cents: 0, cents1: 12 } : undefined;
+    const amp: Pts = [[0.04, level], [l * 0.75, level * 0.8], [l * 0.96, 0]];
+    const slide: Pts = [[0, f * 0.95], [0.06, f]];
+    this.h.voice({ at: t, type: 'sawtooth', f: slide, vib, filter: 'lowpass', ff: [[0, 380], [0.07, 1700], [l, 850]], q: 1.1, amp, out });
+    this.h.voice({ at: t, type: 'sine', f: slide, amp: scale(amp, 0.5), out });
+  }
+
+  /** A tuba: a round low brass note, a saw through a lowpass that opens a little on the attack, a sine under it
+   *  (`right`: on a two-sided chain's right side). */
+  tuba(x: Step, t: number, m: number, len: number, level: number, role: Role = 'bass', right = false): void {
+    const c = this.chain(x.g, role);
+    const out = right && c.r ? c.r : c.in;
+    const f = hz(m);
+    const l = Math.max(0.08, len);
+    const amp: Pts = [[0.02, level], [l * 0.7, level * 0.75], [l, 0]];
+    this.h.voice({ at: t, type: 'sawtooth', f: [[0, f]], filter: 'lowpass', ff: [[0, 300], [0.04, 1200], [l, 500]], q: 1, amp, out });
+    this.h.voice({ at: t, type: 'sine', f: [[0, f]], amp: scale(amp, 0.9), out });
+  }
+
+  /** A forge-hammer drum: a huge low tom, the thud of the skin and the clang of iron in it. */
+  hammer(x: Step, t: number, v: number): void {
+    const c = this.chain(x.g, 'perc');
+    this.h.tone({ type: 'triangle', f: 110, f1: 55, glide: 0.14, at: t, attack: 0.002, dur: 0.55, gain: 0.5 * v, out: c.in });
+    this.h.tone({ type: 'sine', f: 62, f1: 40, glide: 0.18, at: t, attack: 0.003, dur: 0.5, gain: 0.3 * v, out: c.in });
+    this.h.noise({ at: t, dur: 0.06, attack: 0.001, gain: 0.3 * v, filter: 'bandpass', f: 700, q: 1, out: c.in });
+    this.h.tone({ type: 'square', f: 360, f1: 300, glide: 0.05, at: t, attack: 0.001, dur: 0.07, gain: 0.05 * v, out: c.in });
+  }
+
+  /** A slap bass: the thumb (a saw whose lowpass snaps from bright to round, over a sine) or a popped string (an
+   *  octave up, brighter, with the snap of the string on the frets). */
+  slap(x: Step, t: number, m: number, dur: number, level: number, pop: boolean): void {
+    const c = this.chain(x.g, 'bass');
+    const f = hz(m);
+    const l = Math.max(0.06, dur);
+    const amp: Pts = [[0.003, level], [l * 0.5, level * 0.6], [l, 0]];
+    this.h.voice({ at: t, type: 'sawtooth', f: [[0, f]], filter: 'lowpass', ff: [[0, pop ? 4200 : 2600], [0.06, pop ? 1400 : 600]], q: 3, amp, out: c.in });
+    this.h.voice({ at: t, type: 'sine', f: [[0, f >= 80 ? f / 2 : f]], amp: scale(amp, pop ? 0.4 : 1.2), out: c.in });
+    this.h.ticks([t], { gain: (pop ? 0.5 : 0.3) * level, f: pop ? 3000 : 1800, q: 1.5, ms: 5, out: c.in });
+  }
+
+  /** A funk guitar through a wah pedal: a muted 16th scratch, or a chord "chuck", on thin pulses through a bandpass
+   *  the pedal rocks from heel (0) to toe (1). */
+  wah(x: Step, t: number, level: number, pedal: number, chuck: boolean): void {
+    const c = this.chain(x.g, 'arp', { hz: 4000, echo: 0.1 });
+    const out = x.s % 2 ? c.r! : c.in;
+    const f0 = 450 + 1700 * pedal;
+    const d = chuck ? 0.12 : 0.045;
+    const notes = chuck ? x.chord.tones.slice(0, 3) : [x.chord.tones[0], x.chord.tones[2]];
+    for (const m of notes) this.h.voice({ at: t, type: 'pulse25', f: [[0, hz(m)]], filter: 'bandpass', ff: [[0, f0 * 0.7], [d * 0.5, f0 * 1.3], [d, f0]], q: 3.5, amp: [[0.003, level], [d * 0.6, level * 0.5], [d, 0]], out });
+    if (!chuck) this.h.noise({ at: t, dur: 0.03, gain: 0.25 * level, filter: 'bandpass', f: f0 * 1.5, q: 2, out });
+  }
+
+  /** A cowbell: two clanky squares a little over a fifth apart through a bandpass, dying fast. */
+  cowbell(x: Step, t: number, v: number): void {
+    const c = this.chain(x.g, 'perc');
+    for (const f of [562, 838]) this.h.voice({ at: t, type: 'square', f: [[0, f]], filter: 'bandpass', ff: [[0, 900]], q: 2.5, amp: [[0.001, 0.12 * v], [0.05, 0.05 * v], [0.28, 0]], out: c.in });
+  }
+
+  /** A road-works clank: a shovel dropped on a steel plate (inharmonic rings, a crash of grit). */
+  clank(x: Step, t: number, v: number): void {
+    const c = this.chain(x.g, 'perc');
+    for (const [f, d, g] of [
+      [420, 0.35, 0.16],
+      [1130, 0.22, 0.1],
+      [2390, 0.12, 0.06],
+    ] as const)
+      this.h.tone({ type: 'triangle', f, f1: f * 0.985, glide: d, at: t, attack: 0.001, dur: d, gain: g * v, out: c.in });
+    this.h.noise({ at: t, dur: 0.12, attack: 0.001, gain: 0.25 * v, filter: 'bandpass', f: 3000, q: 0.9, out: c.in });
+  }
+
+  /** A tenor sax: a saw through a reedy formant, scooping up into the note, vibrato on the long ones; `honk`: the
+   *  growl of a honking section (a buzz in the tone, brighter). */
+  sax(x: Step, t: number, m: number, len: number, level: number, o: { role?: Role; honk?: boolean } = {}): void {
+    const c = this.chain(x.g, o.role ?? 'bell', { hz: 3600, echo: 0.22 });
+    const f = hz(m);
+    const l = Math.max(0.08, len);
+    const vib = len >= 3 * x.STEP ? { rate: 5.6, cents: 0, cents1: 18 } : undefined;
+    const amp: Pts = [[0.015, level], [l * 0.75, level * 0.82], [l * 0.95 + 0.02, 0]];
+    const scoop: Pts = [[0, f * 0.96], [0.04, f]];
+    this.h.voice({ at: t, type: 'sawtooth', f: scoop, vib, filter: 'peaking', ff: [[0, o.honk ? 1500 : 1100]], q: 2, amp, out: c.in });
+    this.h.voice({ at: t, type: 'square', f: scoop, filter: 'lowpass', ff: [[0, o.honk ? 2600 : 1600]], amp: scale(amp, o.honk ? 0.5 : 0.25), trem: o.honk ? { rate: 31, depth: 0.5 } : undefined, out: c.in });
+  }
+
+  /** A muted trumpet (Hob, the cross head): a buzzy saw squeezed through a harmon mute (a narrow bandpass) that opens
+   *  a little on each note. */
+  mutedTrumpet(x: Step, m: number, len: number, level: number, role: Role = 'bell'): void {
+    const c = this.chain(x.g, role);
+    const f = hz(m);
+    const l = Math.max(0.06, len);
+    const amp: Pts = [[0.01, level], [l * 0.7, level * 0.8], [l * 0.95, 0]];
+    this.h.voice({ at: x.t, type: 'sawtooth', f: [[0, f * 0.98], [0.02, f]], filter: 'bandpass', ff: [[0, 900], [0.05, 1900], [l, 1500]], q: 4, amp, out: c.in });
+    this.h.voice({ at: x.t, type: 'square', f: [[0, f]], filter: 'bandpass', ff: [[0, 3000]], q: 6, amp: scale(amp, 0.25), out: c.in });
+  }
+
+  /** A clarinet (Nob, the cheerful head): a hollow square (odd harmonics, a woody tone) through a soft lowpass, a
+   *  breath at the start, vibrato on the long notes (`right`: on a two-sided chain's right side). */
+  clarinet(x: Step, m: number, len: number, level: number, role: Role = 'bell', right = false): void {
+    const c = this.chain(x.g, role);
+    const out = right && c.r ? c.r : c.in;
+    const f = hz(m);
+    const l = Math.max(0.06, len);
+    const vib = len >= 3 * x.STEP ? { rate: 5.4, cents: 0, cents1: 14 } : undefined;
+    const amp: Pts = [[0.02, level], [l * 0.8, level * 0.85], [l * 0.95, 0]];
+    this.h.voice({ at: x.t, type: 'square', f: [[0, f]], vib, filter: 'lowpass', ff: [[0, 1300], [0.03, 2400], [l, 1800]], q: 0.8, amp, out });
+    this.h.noise({ at: x.t, dur: 0.05, attack: 0.01, gain: 0.15 * level, filter: 'bandpass', f: f * 3, q: 1.5, out });
+  }
+
+  /** The band's "pah" in an oom-pah: the chord, short, on brassy saws whose lowpass flares, left or right. */
+  pah(x: Step, len: number, level: number, right: boolean): void {
+    const c = this.chain(x.g, 'arp', { hz: 3000, echo: 0.12 });
+    const out = right ? c.r! : c.in;
+    x.chord.tones.slice(0, 3).forEach((m, i) =>
+      this.h.voice({ at: x.t, type: 'sawtooth', f: [[0, hz(m)]], filter: 'lowpass', ff: [[0, 600], [0.02, 2400 + i * 200], [len, 900]], q: 0.9, amp: [[0.01, level], [len * 0.6, level * 0.6], [len, 0]], out }),
+    );
+  }
+
+  /** A snare roll over `d` seconds (one noise voice spiking at each stroke). */
+  roll(x: Step, t: number, d: number, v: number): void {
+    const c = this.chain(x.g, 'perc');
+    const n = Math.max(2, Math.round(d / 0.028));
+    this.h.ticks(
+      Array.from({ length: n }, (_, i) => t + (i * d) / n),
+      { gain: 0.5 * v, f: 2200, q: 0.8, ms: 22, out: c.in },
+    );
+  }
+
+  /** A slide whistle swooping up into the next phrase (a sine with a little flutter). */
+  slideWhistle(x: Step, t: number, d: number, from: number, to: number, level: number): void {
+    const c = this.chain(x.g, 'fx');
+    this.h.voice({ at: t, type: 'sine', f: [[0, hz(from)], [d, hz(to)]], vib: { rate: 7, cents: 15 }, amp: [[0.04, level], [d * 0.85, level], [d, 0]], out: c.in });
+  }
+
+  /** A xylophone: a hard mallet on a short wooden bar (a bright sine with its twelfth, dying quickly, and a knock),
+   *  bouncing round the ping-pong echo. */
+  xylo(x: Step, t: number, m: number, level: number): void {
+    const c = this.chain(x.g, 'lead', { hz: 7000, echo: 0.55 });
+    const f = hz(m);
+    this.h.tone({ type: 'sine', f, at: t, attack: 0.001, dur: 0.28, gain: level, out: c.in });
+    this.h.tone({ type: 'sine', f: f * 3, at: t, attack: 0.001, dur: 0.06, gain: level * 0.35, out: c.in });
+    this.h.noise({ at: t, dur: 0.012, gain: 0.3 * level, filter: 'bandpass', f: 2600, q: 1.2, out: c.in });
+  }
+
+  /** A male choir chanting a short syllable on the chord, low: detuned pulses through an open "ah" formant, on both
+   *  sides (the hymn chain: it joins with a boss's phases). */
+  chant(x: Step, len: number, level: number): void {
+    const c = this.chain(x.g, 'hymn');
+    const l = Math.max(0.1, len);
+    // (detuned a few cents apart, no vibrato: a chant is short)
+    for (const [m, cents, side] of [
+      [x.chord.tones[0] - 12, -15, c.in],
+      [x.chord.tones[2] - 12, 15, c.r ?? c.in],
+      [x.chord.tones[0], 10, c.r ?? c.in],
+    ] as const)
+      this.h.voice({ at: x.t, type: 'pulse25', f: [[0, hz(m + cents / 100)]], filter: 'bandpass', ff: [[0, 620], [0.05, 820], [l, 650]], q: 2.2, amp: [[0.02, level], [l * 0.6, level * 0.8], [l, 0]], out: side });
+  }
+
+  /** A chain rattling in 16ths for a beat: each stroke a burst of small steel links clinking (a few quick ringing
+   *  clicks), the first loud, the other three softer (two voices for the beat). */
+  rattle(x: Step, t: number, step: number, v: number): void {
+    const c = this.chain(x.g, 'rattle');
+    const burst = (at: number) => [at, at + 0.008, at + 0.017];
+    this.h.ticks(burst(t), { gain: 0.5 * v, f: 4600, q: 7, ms: 8, out: c.in });
+    this.h.ticks([1, 2, 3].flatMap((k) => burst(t + k * step)), { gain: 0.25 * v, f: 4600, q: 7, ms: 8, out: c.in });
+  }
+
+  /** A distorted bass: a saw and a square an octave up into the 'grit' chain's overdrive, over a clean sine sub. */
+  grit(x: Step, m: number, dur: number, level: number): void {
+    const c = this.chain(x.g, 'grit');
+    const f = hz(m);
+    const l = Math.max(0.06, dur);
+    const amp: Pts = [[0.004, level], [l * 0.6, level * 0.8], [l, 0]];
+    this.h.voice({ at: x.t, type: 'sawtooth', f: [[0, f]], filter: 'lowpass', ff: [[0, 2400], [0.12, 900]], q: 2, amp, out: c.in });
+    const b = this.chain(x.g, 'bass');
+    this.h.tone({ type: 'sine', f: f >= 80 ? f / 2 : f, at: x.t, attack: 0.004, hold: l * 0.6, dur: l, gain: level * 3.2, out: b.in });
   }
 }

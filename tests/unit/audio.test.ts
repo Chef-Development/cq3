@@ -5,10 +5,13 @@
 // sits under it all. The music: each piece is rendered across its loop point (its last bar into its first: the
 // riser, the fill and the crash) in every arrangement, the fight ones at combo 0 (the base) and with every layer in.
 // Region 2's pieces (its acts, a 7/8 and a waltz mini-boss, a boss escalating by phase) and beds go through the same
-// checks, plus their own: built to the content bible, unlike every other piece, the 7/8's uneven beats.
+// checks, plus their own: built to the content bible, unlike every other piece, the 7/8's uneven beats. So do Region
+// 3's (not in play yet: its acts, one in 5/4, a swung funk and a galop whose two leads squabble in phase 2, a boss
+// lifting a semitone), its beds and its telegraphs.
 import { OfflineAudioContext } from 'node-web-audio-api';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { cloneTuning, type Tuning } from '../../src/core/tuning';
+import { ASH_NEW_SOUNDS } from '../../src/data/enemies-ash';
 import { AMBIENCES, SFX, Synth, TELL_SOUNDS, type Ambience, type TellSound } from '../../src/engine/audio';
 import { Band, midi, MUSIC_PIECES, MUSIC_TRACKS, SONGS, stepSec, type MusicPiece, type MusicRender, type MusicTrack } from '../../src/engine/music';
 import { BANDS, envelope, measure, seeded, spectralDistance, spectrogram, type Measure } from './loudness';
@@ -22,6 +25,9 @@ const LIFE_SOUNDS = ['sparklePop', 'critterFlutter', 'critterRustle', 'critterCh
 /** Region 2's pieces (docs/content-bible.md, section 5) and its acts' themes. */
 const REGION2: MusicTrack[] = ['frost1', 'frost2', 'frost3', 'rimehorn', 'matron', 'glacia'];
 const ACTS2 = ['frost1', 'frost2', 'frost3'] as const;
+/** Region 3's (docs/content-bible.md, section 6; not in play yet). */
+const REGION3: MusicTrack[] = ['ash1', 'ash2', 'ash3', 'rumbleback', 'hobnob', 'bellows'];
+const ACTS3 = ['ash1', 'ash2', 'ash3'] as const;
 
 type Play = (s: Synth, at: number) => void;
 
@@ -155,7 +161,7 @@ beforeAll(async () => {
       console.log(`${k.padEnd(12)} ${bands.map((b) => (b - top).toFixed(0).padStart(5)).join('')}  ${peakTime(env).toFixed(2)}  ${line.padEnd(28)}  ${near} ${best.toFixed(1)}`);
     }
   }
-}, 240_000);
+}, 360_000);
 
 describe('rendered sound levels', () => {
   it('no sound clips, and every sound is audible', () => {
@@ -226,9 +232,11 @@ describe('impact layers', () => {
 
 describe('telegraphs', () => {
   it('every TellSound is in the Sound lab catalog (and no tell is an impact tier)', () => {
-    expect(new Set(TELL_SOUNDS).size).toBe(26);
+    expect(new Set(TELL_SOUNDS).size).toBe(40);
     // Region 2's ten (cold, crystalline, heavy snow) go through every check below like Region 1's
     for (const k of ['frost', 'icicles', 'snowball', 'silk', 'mirror', 'hail', 'drift', 'shimmer', 'avalanche', 'wings']) expect(TELL_SOUNDS, k).toContain(k);
+    // and so do the fourteen Region 3's foes ask for (fire and ash, volcanic glass, chains and iron)
+    for (const k of ASH_NEW_SOUNDS) expect(TELL_SOUNDS, k).toContain(k);
     for (const k of TELL_SOUNDS) {
       const e = SFX.find((x) => x.id === `tell-${k}`);
       expect(e, k).toBeDefined();
@@ -315,6 +323,41 @@ describe('the music', () => {
     }
     // its labels name no place and no foe (the playtester opens the Sound lab)
     for (const p of MUSIC_PIECES.filter((x) => REGION2.includes(x.track))) expect(p.label, p.id).toMatch(/^Act [4-6]( boss| mini-boss|:)/);
+    // Region 3: the same, its two-headed mini-boss per phase too
+    for (const act of ACTS3) {
+      expect(MUSIC_PIECES.some((p) => p.track === act && !p.intense), `${act} calm`).toBe(true);
+      expect(MUSIC_PIECES.some((p) => p.track === act && p.intense), `${act} fight`).toBe(true);
+      expect(SONGS[act].calm && SONGS[act].intense, `${act} has both arrangements`).toBeTruthy();
+    }
+    expect(MUSIC_PIECES.filter((p) => p.track === 'hobnob').map((p) => p.phase)).toEqual([1, 2]);
+    expect(MUSIC_PIECES.filter((p) => p.track === 'bellows').map((p) => p.phase)).toEqual([1, 2, 3]);
+    for (const t of ['rumbleback', 'hobnob', 'bellows'] as const) {
+      expect(SONGS[t].intense, t).toBeTruthy();
+      expect(SONGS[t].calm, t).toBeUndefined();
+    }
+    for (const p of MUSIC_PIECES.filter((x) => REGION3.includes(x.track))) expect(p.label, p.id).toMatch(/^Act [7-9]( boss| mini-boss|:)/);
+  });
+
+  it('Region 3 is built to the content bible: modes, tempos, meters (a 5/4 counted 3+2, a swung funk, a 2/4 galop)', () => {
+    const want: Record<string, [string, number, number]> = {
+      // key, BPM, 16ths per bar
+      ash1: ['E Phrygian dominant', 112, 16],
+      ash2: ['Bb Dorian', 108, 20],
+      ash3: ['Ab minor', 138, 16],
+      rumbleback: ['F# blues', 92, 16],
+      hobnob: ['A major', 168, 8],
+      bellows: ['B Phrygian (phase 3: C Phrygian)', 162, 16],
+    };
+    for (const t of REGION3) {
+      const s = SONGS[t];
+      expect([s.key, s.bpm, s.meter], t).toEqual(want[t]);
+      expect(s.beat, `${t}: a beat is a quarter`).toBe(4);
+      expect(MUSIC_TRACKS.filter((o) => o !== t && SONGS[o].bpm === s.bpm), `${t} tempo`).toEqual([]);
+    }
+    expect(SONGS.ash2.split, 'the 5/4 changes chord on its "2"').toBe(12);
+    expect(SONGS.rumbleback.swing, 'swung 16ths').toBeGreaterThanOrEqual(0.25);
+    expect(SONGS.bellows.keyUp).toBe(1); // B Phrygian up a semitone to C Phrygian
+    expect(SONGS.hobnob.phased && !SONGS.hobnob.keyUp, 'the galop follows its phases without a key change').toBe(true);
   });
 
   it('Region 2 is built to the content bible: keys, tempos, meters (a 7/8 counted 2+2+3, a 3/4 waltz)', () => {
@@ -345,7 +388,7 @@ describe('the music', () => {
       const notes = SONGS[t].melody.filter((n): n is [number, number] => !!n).slice(0, 17);
       return notes.slice(1).map((n, i) => `${n[0] - notes[i][0]}:${notes[i][1]}`);
     };
-    for (const a of REGION2) {
+    for (const a of [...REGION2, ...REGION3]) {
       for (const b of MUSIC_TRACKS) {
         if (a === b) continue;
         const [x, y] = [steps(a), steps(b)];
@@ -388,6 +431,12 @@ describe('the music', () => {
       rimehorn: 'g a b c d e f',
       matron: 'f g ab bb c db eb e',
       glacia: 'eb f gb ab bb cb db d',
+      ash1: 'e f g# a b c d',
+      ash2: 'bb c db eb f g ab',
+      ash3: 'ab bb cb db eb fb gb g',
+      rumbleback: 'f# a b c c# e',
+      hobnob: 'a b c# d e f# g#',
+      bellows: 'b c d e f# g a',
     };
     for (const t of MUSIC_TRACKS) {
       const song = SONGS[t];
@@ -433,7 +482,7 @@ describe('the music', () => {
   });
 
   it("each act's calm arrangement is calmer than its fight band but still audible on phone speakers", () => {
-    for (const act of ['act1', 'act2', 'act3', ...ACTS2]) {
+    for (const act of ['act1', 'act2', 'act3', ...ACTS2, ...ACTS3]) {
       const calm = mus(act);
       expect(calm.loud, act).toBeLessThanOrEqual(mus(`${act}-fight@full`).loud - 1.5);
       expect(calm.phoneLoud, act).toBeGreaterThan(-30);
@@ -457,7 +506,7 @@ describe('the music', () => {
   });
 
   /** The arguments of every call a render makes to one of the band's instruments. */
-  async function callsOf<K extends 'kick' | 'hat' | 'lead' | 'choir'>(name: K, play: Play, len: number): Promise<Parameters<Band[K]>[]> {
+  async function callsOf<K extends 'kick' | 'hat' | 'lead' | 'choir' | 'chant' | 'mutedTrumpet' | 'clarinet'>(name: K, play: Play, len: number): Promise<Parameters<Band[K]>[]> {
     const calls: Parameters<Band[K]>[] = [];
     const proto = Band.prototype as unknown as Record<string, (...a: unknown[]) => void>;
     const orig = proto[name];
@@ -503,6 +552,83 @@ describe('the music', () => {
     const lead3 = (await callsOf('lead', one(3), bar)).map((a) => a[1]);
     expect(lead1.length).toBeGreaterThan(2);
     expect(lead3).toEqual(lead1.map((m) => m + 3));
+  });
+
+  it("Region 3's boss escalates with his phases: the kit, a chant and a chain, then up a semitone, double-time", async () => {
+    const [p1, p2, p3] = ['bellows1@0', 'bellows2@0', 'bellows3'].map(mus);
+    expect(p2.energy).toBeGreaterThan(p1.energy + 1);
+    expect(p2.loud).toBeGreaterThan(p1.loud + 1.5);
+    expect(p3.energy).toBeGreaterThan(p2.energy + 1.5);
+    expect(p3.loud).toBeGreaterThan(p2.loud + 1.5);
+    // phase changes land on the next bar: phase 2 brings the kit and the stabs layer (chant, chain, horns), phase 3
+    // everything, a semitone up
+    const ctx = new OfflineAudioContext({ numberOfChannels: 2, length: FS, sampleRate: FS });
+    const s = new Synth({ ctx: ctx as unknown as BaseAudioContext, tuning: cloneTuning(), rand: seeded(7) });
+    s.scheduleMusic(AT, 20, 'bellows', { intense: true, combo: 0, phase: 1, cues: [{ step: 6, phase: 2 }] });
+    expect(s.currentMusic).toMatchObject({ layers: ['base', 'drums', 'stabs'], key: 0 });
+    s.scheduleMusic(AT, 20, 'bellows', { intense: true, combo: 0, phase: 2, cues: [{ step: 6, phase: 3 }] });
+    expect(s.currentMusic).toMatchObject({ layers: ['base', 'drums', 'bass', 'lead', 'stabs'], key: 1 });
+    const song = SONGS.bellows;
+    const bar = song.meter * stepSec(song);
+    const one = (phase: number, combo = FULL_COMBO): Play => (x, at) => x.scheduleMusic(at, song.meter, 'bellows', { intense: true, combo, phase });
+    // the choir only chants from phase 2
+    expect((await callsOf('chant', one(1, 0), bar)).length).toBe(0);
+    expect((await callsOf('chant', one(2, 0), bar)).length).toBeGreaterThan(0);
+    // the drums go double-time in phase 3 (a bar with every layer in by the combo, then by the phase)
+    const hats2 = await callsOf('hat', one(2), bar);
+    const hats3 = await callsOf('hat', one(3), bar);
+    expect(hats3.length, 'double-time hats').toBeGreaterThanOrEqual(2 * hats2.length - 1);
+    expect((await callsOf('kick', one(3), bar)).length, 'and a busier kick').toBeGreaterThan((await callsOf('kick', one(2), bar)).length);
+    // phase 3 plays every note of the lead a semitone up
+    const lead2 = (await callsOf('lead', one(2), bar)).map((a) => a[1]);
+    const lead3 = (await callsOf('lead', one(3), bar)).map((a) => a[1]);
+    expect(lead2.length).toBeGreaterThan(2);
+    expect(lead3).toEqual(lead2.map((m) => m + 1));
+  });
+
+  it("Region 3's two-headed mini-boss: the heads trade bars, and in phase 2 the other head joins in under the tune", async () => {
+    const [p1, p2] = ['hobnob1@0', 'hobnob2@0'].map(mus);
+    expect(p2.energy).toBeGreaterThan(p1.energy + 1);
+    const ctx = new OfflineAudioContext({ numberOfChannels: 2, length: FS, sampleRate: FS });
+    const s = new Synth({ ctx: ctx as unknown as BaseAudioContext, tuning: cloneTuning(), rand: seeded(7) });
+    s.scheduleMusic(AT, 12, 'hobnob', { intense: true, combo: 0, phase: 1, cues: [{ step: 2, phase: 2 }] });
+    expect(s.currentMusic).toMatchObject({ layers: ['base', 'drums', 'stabs'], key: 0 });
+    const song = SONGS.hobnob;
+    const bars = (phase: number): Play => (x, at) => x.scheduleMusic(at, 2 * song.meter, 'hobnob', { intense: true, combo: 0, phase });
+    const len = 2 * song.meter * stepSec(song);
+    // phase 1: Hob's trumpet has the first bar, Nob's clarinet the second (the first note of each)
+    const tpt1 = await callsOf('mutedTrumpet', bars(1), len);
+    const cl1 = await callsOf('clarinet', bars(1), len);
+    expect(tpt1.length).toBeGreaterThan(0);
+    expect(cl1.length).toBeGreaterThan(0);
+    const notesIn = (bar: number) => song.melody.slice(bar * song.meter, (bar + 1) * song.meter).filter((n) => n).length;
+    expect(tpt1.length).toBe(notesIn(0));
+    expect(cl1.length).toBe(notesIn(1));
+    // phase 2: each head also plays under the other's bar
+    expect((await callsOf('mutedTrumpet', bars(2), len)).length).toBe(notesIn(0) + notesIn(1));
+    expect((await callsOf('clarinet', bars(2), len)).length).toBe(notesIn(0) + notesIn(1));
+  });
+
+  it('a 5/4 piece moves on its five beats: a layer asked for in the fourth joins on the fifth, not the bar line', () => {
+    const m = cloneTuning().music;
+    const layers = (steps: number, at: number) => {
+      const ctx = new OfflineAudioContext({ numberOfChannels: 2, length: FS, sampleRate: FS });
+      const s = new Synth({ ctx: ctx as unknown as BaseAudioContext, tuning: cloneTuning(), rand: seeded(7) });
+      s.scheduleMusic(AT, steps, 'ash2', { intense: true, combo: 0, cues: [{ step: at, combo: m.drumsAt }] });
+      return s.currentMusic.layers;
+    };
+    expect(layers(16, 13)).toEqual(['base']);
+    expect(layers(17, 13)).toContain('drums');
+  });
+
+  it('the road-works funk swings its 16ths: an offbeat 16th lands late by the swing', async () => {
+    const song = SONGS.rumbleback;
+    const STEP = stepSec(song);
+    const kicks = await kicksOf((s, at) => s.scheduleMusic(at, song.meter, 'rumbleback', { intense: true, combo: FULL_COMBO }), song.meter * STEP);
+    const steps = kicks.map((t) => (t - AT) / STEP);
+    expect(steps[0]).toBeCloseTo(0, 6);
+    expect(steps[1], 'the kick on the 4th 16th (an offbeat)').toBeCloseTo(3 + song.swing, 6);
+    expect(steps[2], 'on the beat: straight').toBeCloseTo(8, 6);
   });
 
   it('a 7/8 piece moves on its uneven beats (2+2+3): a layer asked for mid-beat joins on the next of them', () => {
@@ -596,8 +722,8 @@ describe('the music', () => {
     expect(s.currentMusic.track).toBe('captain');
   });
 
-  it("Region 2's acts crossfade calm -> fight inside the piece too: no gap, no clipping, landing on the fight band", async () => {
-    for (const act of ACTS2) {
+  it("Region 2's and 3's acts crossfade calm -> fight inside the piece too: no gap, no clipping, landing on the fight band", async () => {
+    for (const act of [...ACTS2, ...ACTS3]) {
       const song = SONGS[act];
       const STEP = stepSec(song);
       const steps = 6 * song.meter;
@@ -613,13 +739,16 @@ describe('the music', () => {
       expect(tail.mean, `${act}: the last bars are the fight band`).toBeGreaterThan(mus(`${act}-fight@full`).mean - 2.5);
       expect(tail.mean, `${act}: louder than the calm`).toBeGreaterThan(mus(act).mean + 1);
     }
-  }, 60_000);
+  }, 120_000);
 
-  it("Region 2's bosses take over on the next beat (into a 7/8 too) while the act's theme rings out", async () => {
+  it("Region 2's and 3's bosses take over on the next beat (into a 7/8 too) while the act's theme rings out", async () => {
     for (const [act, boss] of [
       ['frost1', 'rimehorn'],
       ['frost2', 'matron'],
       ['frost3', 'glacia'],
+      ['ash1', 'rumbleback'],
+      ['ash2', 'hobnob'],
+      ['ash3', 'bellows'],
     ] as const) {
       // 20 steps of the act, then the boss's (at its own tempo) to the end
       const len = 6;
@@ -637,7 +766,7 @@ describe('the music', () => {
       s.scheduleMusic(AT, 21, act, { intense: false, cues: [{ step: 18, track: boss, intense: true }] });
       expect(s.currentMusic.track).toBe(boss);
     }
-  }, 60_000);
+  }, 120_000);
 
   it('the band stays light for an iPhone: under 320 new nodes a second, even with every layer in', async () => {
     for (const c of FIGHT_FULL) {
@@ -671,10 +800,14 @@ describe('ambience', () => {
     ['pass', ['frost1', 'frost1-fight@0', 'frost1-fight@full', 'rimehorn@0', 'rimehorn@full']],
     ['caves', ['frost2', 'frost2-fight@0', 'frost2-fight@full', 'matron@0', 'matron@full']],
     ['glacier', ['frost3', 'frost3-fight@0', 'frost3-fight@full', 'glacia1@0', 'glacia1@full', 'glacia2@0', 'glacia2@full', 'glacia3']],
+    // and so do Region 3's
+    ['cinder', ['ash1', 'ash1-fight@0', 'ash1-fight@full', 'rumbleback@0', 'rumbleback@full']],
+    ['glass', ['ash2', 'ash2-fight@0', 'ash2-fight@full', 'hobnob1@0', 'hobnob1@full', 'hobnob2@0', 'hobnob2@full']],
+    ['forge', ['ash3', 'ash3-fight@0', 'ash3-fight@full', 'bellows1@0', 'bellows1@full', 'bellows2@0', 'bellows2@full', 'bellows3']],
   ];
 
   it('every place has an ambience in the Sound lab catalog (and none is an impact tier)', () => {
-    expect(AMBIENCES.length).toBe(9);
+    expect(AMBIENCES.length).toBe(12);
     expect(new Set(UNDER.map(([a]) => a))).toEqual(new Set(AMBIENCES));
     for (const a of AMBIENCES) {
       const e = SFX.find((x) => x.id === `amb-${a}`);
@@ -738,6 +871,15 @@ describe('ambience', () => {
       ['glacier', 'frost3'],
       ['glacier', 'frost3-fight@full'],
       ['glacier', 'glacia3'],
+      ['cinder', 'ash1'],
+      ['cinder', 'ash1-fight@full'],
+      ['cinder', 'rumbleback@full'],
+      ['glass', 'ash2'],
+      ['glass', 'ash2-fight@full'],
+      ['glass', 'hobnob2@full'],
+      ['forge', 'ash3'],
+      ['forge', 'ash3-fight@full'],
+      ['forge', 'bellows3'],
     ];
     for (const [a, id] of pairs) {
       const c = CUES.find((x) => x.id === id)!;
@@ -759,7 +901,7 @@ describe('ambience', () => {
         expect(m.phoneMean, `${k} phone mean vs ${id} music + ${a}`).toBeGreaterThanOrEqual(both.phoneMean + 1);
       }
     }
-  }, 120_000);
+  }, 180_000);
 });
 
 describe('UI and transition sounds', () => {
@@ -775,7 +917,7 @@ describe('UI and transition sounds', () => {
   it("the maps' life (a sparkle's pop, a startled critter, Pip's chirp) is quiet: under the music it plays with", () => {
     for (const id of LIFE_SOUNDS) {
       const m = results.get(id)!;
-      for (const piece of ['act1', 'act2', 'act3', ...ACTS2, 'title']) {
+      for (const piece of ['act1', 'act2', 'act3', ...ACTS2, ...ACTS3, 'title']) {
         expect(m.loud, `${id} vs ${piece}`).toBeLessThanOrEqual(mus(piece).loud);
         expect(m.phoneLoud, `${id} phone vs ${piece}`).toBeLessThanOrEqual(mus(piece).phoneLoud);
       }
@@ -798,4 +940,4 @@ describe('UI and transition sounds', () => {
   });
 });
 
-const MIN_TELL_DISTANCE = 6.5; // RMS dB over the phone spectrogram's cells (closest pairs today: ~7.2)
+const MIN_TELL_DISTANCE = 6.5; // RMS dB over the phone spectrogram's cells (closest pairs today: ~6.7)
