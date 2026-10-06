@@ -217,7 +217,7 @@ describe('profile v3: heroes', () => {
     expect(p.v).toBe(3);
     expect(p.heroes.rowan.xp).toBe(actXp(t, 0, true) + actXp(t, 1, true));
     expect(p.heroes.rowan.skills).toEqual([]);
-    expect(p.heroes.sable).toEqual({ unlocked: false, xp: 0, skills: [] });
+    expect(p.heroes.sable).toEqual({ unlocked: false, xp: 0, skills: [], stars: 1, shards: 0, acts: 0 });
     expect(p.hero).toBe('rowan');
     expect(p.relics.slice().sort()).toEqual([...unlocksFor('act', 0), ...unlocksFor('act', 1)].sort());
     expect(p).toMatchObject({ coins: 50, scrap: 3, smithMet: true, sableMet: false });
@@ -234,7 +234,7 @@ describe('profile v3: heroes', () => {
     meetSable(p);
     selectHero(p, 'sable');
     Object.assign(p.heroes.rowan, { xp: 900, skills: ['stout', 'keenEdge', 'plateTraining', 'steadyAim'] });
-    Object.assign(p.heroes.sable, { xp: 120, skills: ['quickHands'] });
+    Object.assign(p.heroes.sable, { xp: 120, skills: [], stars: 3, shards: 4, acts: 2 });
     p.relics = ['ricochet'];
     expect(readProfile(viaJson(p), t)).toEqual(p);
   });
@@ -243,14 +243,14 @@ describe('profile v3: heroes', () => {
     const p = newProfile();
     meetSable(p);
     p.heroes.rowan.skills = ['keenEdge', 'followThrough', 'bogus', 'stout', 'quickHands', 'plateTraining', 'rhythm'];
-    p.heroes.sable.skills = ['lightGrip', 'wiry', 'keenEdge'];
+    p.heroes.sable.skills = ['keenEdge', 'stout'];
     const back = readProfile(viaJson(p), t);
     expect(back.heroes.rowan.skills).toEqual(['keenEdge', 'stout', 'plateTraining', 'rhythm']);
-    expect(back.heroes.sable.skills).toEqual(['wiry']);
+    expect(back.heroes.sable.skills).toEqual([]); // Rowan's nodes are not Sable's
     const junk = viaJson(p) as unknown as { heroes: Record<string, unknown> };
     junk.heroes.rowan = { xp: -40, skills: 'keenEdge', unlocked: false };
     const fixed = readProfile(junk, t);
-    expect(fixed.heroes.rowan).toEqual({ unlocked: true, xp: 0, skills: [] });
+    expect(fixed.heroes.rowan).toEqual({ unlocked: true, xp: 0, skills: [], stars: 1, shards: 0, acts: 0 });
   });
 
   it('Sable can only be picked once unlocked', () => {
@@ -264,7 +264,7 @@ describe('profile v3: heroes', () => {
     expect(readProfile(viaJson(p), t).hero).toBe('sable');
     expect(readProfile(viaJson({ ...p, hero: 'nobody' }), t).hero).toBe('rowan');
     expect(heroProgress(p)).toBe(p.heroes.sable);
-    expect(profileBuild(p, t)).toEqual({ id: 'sable', level: 1, skills: [] });
+    expect(profileBuild(p, t)).toEqual({ id: 'sable', level: 1, skills: [], stars: 1 });
   });
 });
 
@@ -279,12 +279,6 @@ describe('skill previews', () => {
     plateTraining: 'DEF 0 -> 5',
     rhythm: 'Meter +0% -> +15%',
     powerStance: 'Combo 5 -> 6.5',
-    quickHands: 'ATK 10 -> 11',
-    lightGrip: 'Crit 5% -> 10%',
-    wiry: `Max HP ${t.sable.maxHp} -> ${Math.round(t.sable.maxHp * 1.1)}`,
-    evasion: 'DEF 0 -> 8',
-    fleet: 'Meter +0% -> +10%',
-    sharpFocus: 'Combo 5 -> 6',
   };
   const show = (p: { stat: string; before: string; after: string } | null) => (p ? `${p.stat} ${p.before} -> ${p.after}` : null);
 

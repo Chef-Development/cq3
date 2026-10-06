@@ -2,6 +2,8 @@
 // effects of Legendary and Mythic items, and the bosses' signature drops. src/core/gear.ts rolls and scales them;
 // the numbers that scale them (rarity weights, ranges per item level, forge costs) live in src/core/tuning.ts.
 
+import { TIERS, TIER_INFO, type Tier, type TierInfo } from './rarity';
+
 /** The hero's 10 stats. */
 export type StatId = 'hp' | 'atk' | 'def' | 'critChance' | 'critDmg' | 'comboPower' | 'meterGain' | 'steady' | 'luck' | 'companion';
 
@@ -42,18 +44,13 @@ export const SLOTS: Slot[] = ['weapon', 'helm', 'armor', 'boots', 'trinket'];
 export const SLOT_NAME: Record<Slot, string> = { weapon: 'Weapon', helm: 'Helm', armor: 'Armor', boots: 'Boots', trinket: 'Trinket' };
 export const slotOf = (k: SlotKey): Slot => (k === 'trinket1' || k === 'trinket2' ? 'trinket' : k);
 
-export type GearRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
-export const GEAR_RARITIES: GearRarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+/** Gear uses the eight shared tiers (src/data/rarity.ts): Common grey up to Mythic red, then Celestial (a second
+ *  unique effect) and Divine (two effects and an aura). */
+export type GearRarity = Tier;
+export const GEAR_RARITIES: GearRarity[] = TIERS;
 
-/** Rarity names and frame colors [hi, base, lo, deep]: grey, green, blue, purple, orange, red. */
-export const RARITY_INFO: Record<GearRarity, { name: string; bonus: number; face: readonly [number, number, number, number] }> = {
-  common: { name: 'Common', bonus: 0, face: [0xd0d4e0, 0x9aa0b4, 0x6e7488, 0x464a5c] },
-  uncommon: { name: 'Uncommon', bonus: 1, face: [0xb4f070, 0x5ad848, 0x3aaa34, 0x1e6a24] },
-  rare: { name: 'Rare', bonus: 2, face: [0x9ad8ff, 0x3a8ae8, 0x2a62c8, 0x1a3c8a] },
-  epic: { name: 'Epic', bonus: 3, face: [0xe8b8ff, 0xb05ae0, 0x8a3ac0, 0x5a1a8a] },
-  legendary: { name: 'Legendary', bonus: 3, face: [0xffe0a0, 0xffa030, 0xd86a14, 0x8a3a0a] },
-  mythic: { name: 'Mythic', bonus: 4, face: [0xffb0a0, 0xf03c3c, 0xb81e2a, 0x6a0a18] },
-};
+/** Rarity names, bonus stats and frame colors [hi, base, lo, deep] (the shared tier table). */
+export const RARITY_INFO: Record<GearRarity, TierInfo> = TIER_INFO;
 
 /** A Legendary or Mythic item's unique effect. Signature items carry their own; other ones roll from the rest. */
 export type EffectId =
@@ -87,7 +84,18 @@ export const EFFECTS: Record<EffectId, EffectDef> = {
   secondWind: { name: 'Second Wind', text: 'Once a fight, dropping under 30% HP heals 20%.' },
 };
 
-/** Effects a non-signature Legendary or Mythic can roll. */
+/** A Divine item's aura: a rule that holds for the whole fight. */
+export type AuraId = 'radiance' | 'sanctuary' | 'stillness' | 'fortune';
+export const AURA_IDS: AuraId[] = ['radiance', 'sanctuary', 'stillness', 'fortune'];
+
+export const AURAS: Record<AuraId, EffectDef> = {
+  radiance: { name: 'Radiance', text: 'Aura: foes take 10% more damage from everything.' },
+  sanctuary: { name: 'Sanctuary', text: 'Aura: heal 1% of max HP every 4 s.' },
+  stillness: { name: 'Stillness', text: 'Aura: the cursor speeds up 30% slower with combo.' },
+  fortune: { name: 'Fortune', text: 'Aura: kills drop 30% more coins.' },
+};
+
+/** Effects a non-signature Legendary or Mythic can roll (a Celestial or Divine item rolls two different ones). */
 export const GENERAL_EFFECTS: EffectId[] = ['opener', 'leech', 'riposte', 'goldTouch', 'owlEye', 'secondWind'];
 
 export type SetId = 'greenwarden' | 'footpad';

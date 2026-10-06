@@ -9,7 +9,6 @@ import { BANTER } from '../../src/data/banter';
 import { HEROES } from '../../src/data/heroes';
 import { kitColW } from '../../src/engine/view/heroes';
 import { cloneTuning, DEFAULT_TUNING, getPath, mergeKnown, setPath, sliderGroups, tuningDiff } from '../../src/core/tuning';
-import { redSpeedFor } from '../../src/core/combat';
 import { textWidth } from '../../src/engine/font';
 
 /** Width (game px) of the story text box's text area (engine/view/story.ts uses the same number). */
@@ -77,11 +76,10 @@ describe('region data', () => {
     }
   });
 
-  it("every red attack is fair to a thumb: never thin, a wide enough window even at 1.5x cursor speed in the fastest act (Sable's bar too), waves spaced so each red can be blocked on its own", () => {
+  it('every red attack is fair to a thumb: never thin, a wide enough window even at 1.5x cursor speed in the fastest act, waves spaced so each red can be blocked on its own', () => {
     const T = DEFAULT_TUNING;
     const v = 1.5 / T.cursor.basePassSec; // the cursor at 1.5x, heading into the reds
     const actSpeed = Math.max(...T.acts.map((a) => a.redSpeed)); // later acts' reds cross the bar faster...
-    const twinSpeed = redSpeedFor(T, 2, actSpeed); // ...and faster still on Sable's bar
     expect(actSpeed).toBeLessThanOrEqual(1.5);
     const RED = ['red', 'shield', 'bomb', 'speed'];
     for (const [key, e] of Object.entries(ENEMIES))
@@ -99,14 +97,9 @@ describe('region data', () => {
             expect(b.width ?? 1, `${name}: never thinner than a normal red`).toBeGreaterThanOrEqual(1);
             if ((b.speed ?? 1) > 1) expect(b.width ?? 1, `${name}: a fast red is wider`).toBeGreaterThan(1);
             expect(b.pair, `${name}: no back-to-back reds`).toBeFalsy();
-            const { w, vel, closing } = at(b);
+            const { w, closing } = at(b);
             const windowSec = (w + T.cursor.widthFrac) / closing + (2 * T.judge.redGraceMs) / 1000;
             expect(windowSec, `${name}: blocking window`).toBeGreaterThanOrEqual(0.12);
-            // Sable: her reds are narrower (sable.redWidthMult), her cursors sweep half the bar at the same pass time
-            const ws = w * T.sable.redWidthMult;
-            const twinVel = (vel / actSpeed) * twinSpeed;
-            const twinWindow = (ws + T.cursor.widthFrac * 0.5) / (v * 0.5 + twinVel) + (2 * T.judge.redGraceMs) / 1000;
-            expect(twinWindow, `${name}: Sable's blocking window`).toBeGreaterThanOrEqual(0.12);
           }
           // in a wave, the cursor meets one red at a time: at least 0.16 s apart (a thumb taps about every 0.14 s)
           for (let i = 0; i < reds.length; i++)

@@ -223,6 +223,7 @@ describe('Bulwark', () => {
 
   it('Shield Wall: every n reds blocked charge a bubble that eats the next red to get through', () => {
     const { c, t } = fight(['shieldWall']);
+    c.perk.resolve = 1; // Knight's Resolve already spent (this is about a hit breaking the combo)
     const n = skillN(t, 'shieldWall');
     expect(c.perk).toMatchObject({ shieldWall: 0, shieldWallCharge: 0 });
     for (let i = 1; i < n; i++) tapNew(c, i % 2 ? 'red' : 'speed', i % 3 === 0);
@@ -254,6 +255,7 @@ describe('Bulwark', () => {
 
   it("Shield Wall: a shield counts once (when it breaks), and a bomb that gets through is eaten too", () => {
     const { c, t } = fight(['shieldWall'], { tune: (t) => (t.skills.n.shieldWall = 2) });
+    c.perk.resolve = 1; // Knight's Resolve already spent (this is about a hit breaking the combo)
     const s = tapNew(c, 'shield', true);
     expect(c.blocks).toContain(s);
     expect(c.perk.shieldWallCharge).toBe(0);
@@ -266,6 +268,7 @@ describe('Bulwark', () => {
     expect(c.perk.shieldWall).toBe(0);
     // without it, a red hurts and breaks the combo
     const { c: off } = fight([]);
+    off.perk.resolve = 1; // Knight's Resolve already spent (this is about a hit breaking the combo)
     off.combo = 10;
     letRedThrough(off);
     expect(off.hero.hp).toBe(100 - t.enemies.slime.atk);
@@ -302,6 +305,7 @@ describe('Momentum', () => {
   it('Unbroken: a combo break halves the combo and the stacks instead of zeroing them', () => {
     for (const on of [true, false]) {
       const { c } = fight(on ? ['unbroken'] : []);
+      c.perk.resolve = 1; // Knight's Resolve already spent (this is about a hit breaking the combo)
       c.combo = 9;
       c.stacks = 3;
       c.tap(c.time); // nothing there: a miss breaks the combo
@@ -323,7 +327,7 @@ describe('learning skills', () => {
   it('a skill point every 2 levels: 15 at level 30, a whole tree', () => {
     for (let level = 1; level <= 30; level++) expect(skillPoints(t, level), `level ${level}`).toBe(Math.floor(level / 2));
     expect(skillPoints(t, 30)).toBe(15);
-    for (const hero of ['rowan', 'sable'] as HeroId[]) {
+    for (const hero of (['rowan', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva'] as HeroId[]).filter((h) => treeOf(h).length)) {
       const nodes = treeOf(hero).flatMap((b) => b.nodes);
       expect(nodes).toHaveLength(15);
       const p = at(30);

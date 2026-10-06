@@ -134,7 +134,7 @@ export const RELIC_HOOKS: Partial<Record<RelicId, FightHooks>> = {
       const hits = cleared.filter((b) => isAttack(b.kind));
       if (!hits.length || c.result) return;
       c.perkFx('blastWave', hits.length, 0, bomb.pos);
-      for (const b of hits) c.perkHitCleared(b, c.handOf(b.pos));
+      for (const b of hits) c.perkHitCleared(b);
     },
   },
   // Parting Gift: after a finisher, a bomb rolls onto the bar
@@ -285,7 +285,7 @@ export const RELIC_HOOKS: Partial<Record<RelicId, FightHooks>> = {
       for (const b of c.blocks) if (isRed(b.kind) && (!near || b.pos < near.pos)) near = b;
       if (!near) return;
       c.perkFx('nightWatch', 0, near.ownerId, near.pos);
-      c.perkBlock(near, c.handOf(near.pos));
+      c.perkBlock(near);
     },
   },
 

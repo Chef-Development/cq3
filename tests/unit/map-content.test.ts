@@ -205,7 +205,7 @@ describe('Coin Rush', () => {
     expect(c.rush).toBe(r.tuning.rush.sec);
     expect(c.enemies.map((e) => e.key)).toEqual(['coinSack']);
     expect(r.tuning.enemies.coinSack.pattern).not.toMatch(/[RSBFP]/); // it never attacks
-    expect(c.hooks.length).toBeLessThanOrEqual(1); // the kit only: no relics or skills
+    expect(c.hooks.length).toBeLessThanOrEqual(3); // the style and kit only (with strengths): no relics or skills
   });
 
   it('every hit knocks coins out (more on a long combo, a little more for a perfect); misses never hurt', () => {

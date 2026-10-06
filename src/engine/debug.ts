@@ -51,7 +51,7 @@ export function installDebug(app: App): DebugUi {
   const build = () => {
     root.innerHTML = '';
     const head = el('div', 'dbg-head');
-    head.appendChild(el('div', 'dbg-title', 'TUNING'));
+    head.appendChild(el('div', 'dbg-title', 'OPTIONS'));
     const play = el('button', 'dbg-btn', app.playWhilePanelOpen ? '❚❚ Pause' : '▶ Play');
     play.onclick = () => {
       app.playWhilePanelOpen = !app.playWhilePanelOpen;
@@ -247,9 +247,9 @@ export function installDebug(app: App): DebugUi {
     const tools = section('Export');
     tools.open = true;
     const tg = el('div', 'dbg-grid');
-    const copy = el('button', 'dbg-btn', 'Copy tuning as JSON');
+    const copy = el('button', 'dbg-btn', 'Copy game numbers');
     copy.onclick = () => copyText(JSON.stringify({ tuning: app.tuning, settings: app.settings }, null, 2)).then((ok) => toast(ok ? 'Copied!' : 'Copy failed'));
-    const load = el('button', 'dbg-btn', 'Paste JSON…');
+    const load = el('button', 'dbg-btn', 'Paste game numbers…');
     load.onclick = () => {
       const raw = window.prompt('Paste tuning JSON');
       if (!raw) return;
@@ -265,7 +265,7 @@ export function installDebug(app: App): DebugUi {
         toast('Invalid JSON');
       }
     };
-    const resetT = el('button', 'dbg-btn', 'Reset tuning');
+    const resetT = el('button', 'dbg-btn', 'Reset game numbers');
     resetT.onclick = () => {
       if (!window.confirm('Reset all tuning numbers to defaults?')) return;
       mergeKnown(app.tuning, cloneTuning());
@@ -305,7 +305,7 @@ export function installDebug(app: App): DebugUi {
     tg.append(copy, load, resetT, resetS, tips, again, over);
     tools.appendChild(tg);
     body.appendChild(el('div', 'dbg-foot', 'Keys: Space tap · F finisher · P pause · ` panel'));
-    body.appendChild(el('div', 'dbg-foot', `Build ${typeof __BUILD__ === 'string' ? __BUILD__ : 'dev'}`));
+    body.appendChild(el('div', 'dbg-foot', `Version ${typeof __BUILD__ === 'string' ? __BUILD__ : 'dev'}`));
   };
 
   /**
@@ -365,7 +365,7 @@ export function installDebug(app: App): DebugUi {
       sec.appendChild(list);
     } else sec.appendChild(el('div', 'dbg-note', 'Clear an act to start your history (one entry per act cleared).'));
     sec.appendChild(
-      el('div', 'dbg-note', `Same measure as the balance bot: the share of plain yellow blocks you hit at the starting speed. The game is tuned for ${pct(target)}.`),
+      el('div', 'dbg-note', `The share of plain yellow blocks you hit at the starting speed. The game is set for ${pct(target)}.`),
     );
   }
 

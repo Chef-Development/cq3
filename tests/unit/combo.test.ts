@@ -21,6 +21,7 @@ describe('combo and speed rules', () => {
 
   it('taking damage resets combo and speed (combo and speed-block stacks)', () => {
     const { c, t } = setup();
+    c.perk.resolve = 1; // Knight's Resolve already spent (this is about a hit breaking the combo)
     c.combo = 20;
     c.speedStacks = 2;
     expect(c.speedMult()).toBeGreaterThan(1.5);
@@ -119,6 +120,7 @@ describe('finisher', () => {
 
   it('taking a hit also loses the stacks', () => {
     const { c, t } = setup();
+    c.perk.resolve = 1; // Knight's Resolve already spent (this is about a hit breaking the combo)
     c.stacks = 2;
     c.spawnBlock('red', 0.05);
     c.advanceTo(1);

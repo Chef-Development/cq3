@@ -343,19 +343,19 @@ export class FightScene extends Phaser.Scene implements View {
           const x = bar.x(e.pos);
           const perfect = e.perfect;
           if (perfect || e.crit) fx.judge(x, perfect ? 'Perfect!' : 'Crit!', perfect ? 0xfff07a : 0xff9a3a, true);
-          bar.cursorPulse(perfect ? 0xfff07a : kindCol(e.kind)[1], e.hand);
+          bar.cursorPulse(perfect ? 0xfff07a : kindCol(e.kind)[1], 0);
           bar.cursorHit(x, perfect ? 0x6aff5a : WHITE);
           if (perfect) fx.sparkle(x, barMid);
           hud.comboPopAt = now;
           hud.milestone(e.combo);
-          f.heroAttack(e.enemyId, e.damage, e.crit, perfect, e.combo, false, e.hand, e.echo);
+          f.heroAttack(e.enemyId, e.damage, e.crit, perfect, e.combo, false, 0, e.echo);
           break;
         }
         case 'block': {
           const x = bar.x(e.pos);
           if (e.perfect) fx.judge(x, 'Perfect!', 0xfff07a, true, e.cracked ? 6 : 0);
           if (!e.cracked) fx.replaceFloater('block', () => fx.addFloater(f.h.x - 4, this.ground - 44, 'Block!', WHITE, 1, true, 0, -18, 0, 520, true));
-          bar.cursorPulse(0x7ae0ff, e.hand);
+          bar.cursorPulse(0x7ae0ff, 0);
           bar.cursorHit(x, e.perfect ? 0x6aff5a : 0x7ae0ff);
           hud.comboPopAt = now;
           hud.milestone(e.combo);

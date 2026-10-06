@@ -48,6 +48,8 @@ export const DEFAULT_TUNING = {
     impactGraceMs: 60, // red block sits at the left end this long (still blockable) before hitting
     trapLifeSec: 4,
     attackLifeSec: 0, // 0 = yellow/green stay until hit
+    frozenLifeSec: 6, // a frozen red melts after this long...
+    frozenMult: 2, // ...and shatters for this x a hit's damage
     shieldHits: 2,
     shieldKnockback: 0.2, // a cracked shield is knocked back this fraction of the bar...
     knockbackSec: 0.14, // ...over this long, then resumes its travel
@@ -76,6 +78,7 @@ export const DEFAULT_TUNING = {
     reviveHpFrac: 0.5,
     revivesPerAct: 1, // a revive per act (refilled at each act's start)
     healOnKill: 0.01, // fraction of max HP restored by every kill (tiny: HP carries from node to node, rests matter)
+    strengthScale: 1, // x every hero's soft strength (src/data/heroes.ts: +15-25% against some kinds of foes)
   },
   meter: {
     // The meter fills once per stack; keep the combo going to bank more stacks (a combo break loses them all).
@@ -252,6 +255,8 @@ export const DEFAULT_TUNING = {
     wEpic: 4,
     wLegendary: 0.9,
     wMythic: 0.1,
+    wCelestial: 0.01, // Celestial and Divine: a post-story chase (about 1 in 10,000 and 1 in 50,000 drops here)
+    wDivine: 0.002,
     luckShift: 1,
     fightChance: 0.5, // a fight node drops an item this often...
     eliteItems: 1, // ...an elite always drops this many (Uncommon or better)...
@@ -268,6 +273,7 @@ export const DEFAULT_TUNING = {
     ilvlAct1: 1,
     ilvlAct2: 10,
     ilvlAct3: 20,
+    ilvlPerAct: 10, // later acts: Act 3's level + this per act beyond it
     ilvlPerRow: 0.6,
     levelScale: 0.08,
     // the base stat's size per rarity (a Mythic's is 1.8x a Common's)
@@ -277,6 +283,8 @@ export const DEFAULT_TUNING = {
     rEpic: 1.4,
     rLegendary: 1.6,
     rMythic: 1.8,
+    rCelestial: 2.05,
+    rDivine: 2.3,
     // a stat's usual amount on an item at level 0 (slot base stats and bonus rolls scale from these)
     atk: 1.2,
     hp: 8,
@@ -309,12 +317,16 @@ export const DEFAULT_TUNING = {
     costEpic: 2,
     costLegendary: 2.5,
     costMythic: 3,
+    costCelestial: 4,
+    costDivine: 5,
     scrapCommon: 1,
     scrapUncommon: 2,
     scrapRare: 4,
     scrapEpic: 8,
     scrapLegendary: 20,
     scrapMythic: 40,
+    scrapCelestial: 80,
+    scrapDivine: 150,
   },
   kit: {
     // Replaying an act from the world map: Rowan starts with what a typical run has gained by then (boosts and kill
@@ -344,23 +356,55 @@ export const DEFAULT_TUNING = {
     // each relic's one number (src/data/relics.ts has the text; '{n}' shows it)
     n: Object.fromEntries(RELICS.filter((r) => r.n !== undefined).map((r) => [r.id, r.n as number])) as Record<string, number>,
   },
-  sable: {
-    // Sable (Twin family): two cursors, one per half of the bar, each at the normal pass time (core/combat.ts).
-    // Tuned with the bot against Rowan on the same tuning (tests/balance/twin.run.ts): within +/-10 points per act.
-    atkMult: 0.7, // hits deal this share of Rowan's (two thumbs tap more often)
-    maxHp: 125, // more than Rowan's 100: a half-bar has fewer neighbours to save a wild tap, so more misses
-    widthMult: 0.85, // static block widths on Sable's bar (each half is a small bar: 0.5 = Rowan's crossing time; wider:
-    // she taps more often, so this keeps her misses per fight, and what relics that charge for misses cost, near Rowan's)
-    redWidthMult: 0.55, // red widths (0.6 = a cursor meets a red head-on about as long as Rowan's does; narrower: her
-    // cursors, at half Rowan's bar speed, ride along with a red on the way back, so she gets more and easier chances)
-    ambidextrous: 0.25, // Ambidextrous: a hit with the other hand than the last hit fills the meter this much more
-    shadowSec: 3, // Shadow Step (green hits): for this long a hit with one cursor also hits the block under the other
-    fangMult: 1.4, // Twin Fang (finisher): one target, x this per the usual finisher damage (Rowan's hits every foe)...
-    fangKeep: 1, // ...and a kill keeps this many stacks
-    // Later acts' faster reds (acts[i].redSpeed) on her bar: x this much of the act's extra speed (1 = as for Rowan).
-    // 3.5: a faster red costs Rowan's one full-speed cursor a pass, but barely touches her two half-speed ones (they ride
-    // along with it on the way back), so her reds speed up 3.5x as much (Act 3's x1.15 is x1.5 on her bar).
-    actRedSpeed: 3.5,
+  styles: {
+    // Each style's shared rule (core/styles.ts; src/data/styles.ts has the words).
+    bladeCombo: 20, // Blade (Edge): at this combo or more...
+    bladeFill: 0.2, // ...the meter fills this much faster
+    chainStep: 0.08, // Shadow (Chain): each Perfect in a row adds this much damage...
+    chainMax: 5, // ...up to this many links
+    guardPer: 0.3, // Guardian (Guard): each red blocked stores this share of your attack...
+    guardMax: 5, // ...up to this many charges; the next hit unleashes them
+    focusShare: 0.8, // Marksman (Focus): hits deal this share...
+    focusStore: 0.35, // ...and store this share of your attack as Focus...
+    focusCap: 6, // ...up to this many times your attack; a green hit fires it all
+    heavyMult: 1.6, // Brute (Heavy): every hit deals this much...
+    heavyGap: 1.45, // ...static blocks come this much further apart...
+    heavyWidth: 1.3, // ...yellows are this much wider...
+    heavyMin: 1, // ...and the bar keeps at least this many yellows
+    bendSec: 1, // Controller (Bend): a Perfect block slows every red for this long...
+    bendMult: 0.5, // ...to this share of its speed
+    allyMax: 3, // Summoner (Call): allies at once
+    kegEvery: 5, // Bomber (Powder): every Nth yellow comes as a keg...
+    kegMult: 1.2, // ...whose blast hits every foe for this x your attack...
+    kegRadius: 0.12, // ...and knocks reds this close off the bar
+  },
+  kits: {
+    // Each hero's own numbers (core/kit-fx.ts; src/data/heroes.ts has the words). hp: base max HP; atk: share of
+    // Rowan's base attack. Rowan's are tuning.hero. Tuned with the bot to stay within +/-10 points of Rowan.
+    sable: { hp: 110, atk: 1, abilitySec: 3, silentStep: 0.25, dashLead: 0.3, fangMult: 1.4, fangKeep: 1 },
+    neve: { hp: 100, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, glacierMult: 0.8, slowSec: 4, slowWidth: 0.34 },
+    moss: { hp: 105, atk: 0.85, abilitySec: 3, allySec: 10, allySec3: 14, thornEvery: 1.5, thornDmg: 0.4, barkEvery: 4, mothEvery: 3, mothHeal: 0.02, seedEvery: 5, roots: 0.12, overgrowth: 0.25, vineSec: 3, vineMult: 0.5 },
+    tam: { hp: 100, atk: 0.9, abilitySec: 3, kegEvery3: 4, blastShield: 0.5, bangKegs: 3, wide5: 2 },
+    hollis: { hp: 125, atk: 0.9, abilitySec: 3, slam: 0.6, ironHide: 0.25, rampartSec: 3, rampartGuard: 2, guardMax3: 7 },
+    vesper: { hp: 95, atk: 1, abilitySec: 3, pierce: 0.5, volleyFocus: 1.5, pinSec: 2, cap3: 1.5 },
+    torva: { hp: 120, atk: 0.9, abilitySec: 3, quake: 0.15, windUp: 2.5, stunSec: 1.5, unstoppable: 0.08, unstoppableMax: 5, calmSec: 2 },
+  },
+  bar: {
+    // Patches on the bar (core/combat.ts zones): the cursor's speed inside them.
+    iceMult: 1.6, // ice: faster (taps on ice come earlier)
+    snowMult: 0.6, // snowdrifts: slower
+    slowMult: 0.6, // a hero's slow patch (Glacier)
+    ahead: 0.22, // "where the cursor is heading": this far ahead of it
+    trailLife: 6, // s a red's trail of ice stays
+  },
+  hold: {
+    // Hold blocks: press at the near edge, hold until the cursor is past the far edge.
+    width: 0.16, // a hold's length (share of the bar)
+    mult: 1.6, // a completed hold hits this much harder than a yellow
+    lateMs: 70, // a press later than this past the near edge is a miss
+    perfectMs: 35, // a press within this of the near edge is Perfect
+    releaseGraceMs: 60, // letting go up to this early still completes it
+    turnDone: 0.8, // the cursor turning back inside it: done if this much was held
   },
   levels: {
     // Heroes level up from kills and act clears (core/heroes.ts): small base-stat gains, a skill point every 2 levels.
@@ -377,6 +421,8 @@ export const DEFAULT_TUNING = {
     xpElite: 25,
     xpBoss: 100,
     xpAct: 100, // clearing an act: this x (act + 1), doubled the first time
+    star2Atk: 0.06, // 2 stars: +6% attack
+    star4Hp: 0.08, // 4 stars: +8% max HP
   },
   skills: {
     // each skill node's number (src/data/skills.ts has the text; '{n}' shows it)
@@ -397,6 +443,12 @@ export const DEFAULT_TUNING = {
     owlEvery: 3, // Owl Eye: Pip pecks every N hits
     secondWindAt: 0.3, // Second Wind: once a fight, dropping under this share of max HP...
     secondWindHeal: 0.2, // ...heals this share
+    // Divine auras
+    radiance: 0.1, // Radiance: foes take this much more damage
+    sanctuarySec: 4, // Sanctuary: every this many seconds...
+    sanctuaryHeal: 0.01, // ...heal this share of max HP
+    stillness: 0.3, // Stillness: the combo speeds the cursor up this much less
+    fortune: 0.3, // Fortune: kills drop this much more coins
   },
   music: {
     // Fight music: its layers join as the combo climbs (on the next beat) and drop back on a combo break. Under
@@ -607,6 +659,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('hero.reviveHpFrac', 'Revive HP', 0.1, 1, 0.05),
         s('hero.revivesPerAct', 'Revives/act', 0, 3, 1),
         s('hero.healOnKill', 'Heal on kill', 0, 1, 0.05),
+        s('hero.strengthScale', 'Soft strengths x', 0, 2, 0.05),
       ],
     },
     {
@@ -789,6 +842,8 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('gear.wEpic', 'Weight: Epic', 0, 50, 0.5),
         s('gear.wLegendary', 'Weight: Legendary', 0, 20, 0.1),
         s('gear.wMythic', 'Weight: Mythic', 0, 5, 0.05),
+        s('gear.wCelestial', 'Weight: Celestial', 0, 1, 0.001),
+        s('gear.wDivine', 'Weight: Divine', 0, 1, 0.001),
         s('gear.luckShift', 'Luck shift', 0, 5, 0.1),
         s('gear.fightChance', 'Fight: item chance', 0, 1, 0.05),
         s('gear.eliteItems', 'Elite: items', 0, 4, 1),
@@ -810,6 +865,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('gear.ilvlAct1', 'Item level: Act 1', 1, 40, 1),
         s('gear.ilvlAct2', 'Item level: Act 2', 1, 40, 1),
         s('gear.ilvlAct3', 'Item level: Act 3', 1, 40, 1),
+        s('gear.ilvlPerAct', 'Item level per later act', 1, 30, 1),
         s('gear.ilvlPerRow', 'Item level per map row', 0, 2, 0.1),
         s('gear.levelScale', 'Stats per item level', 0, 0.3, 0.005),
         s('gear.rCommon', 'Base stat: Common x', 0.5, 3, 0.05),
@@ -818,6 +874,8 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('gear.rEpic', 'Base stat: Epic x', 0.5, 3, 0.05),
         s('gear.rLegendary', 'Base stat: Legendary x', 0.5, 3, 0.05),
         s('gear.rMythic', 'Base stat: Mythic x', 0.5, 3, 0.05),
+        s('gear.rCelestial', 'Base stat: Celestial x', 0.5, 4, 0.05),
+        s('gear.rDivine', 'Base stat: Divine x', 0.5, 4, 0.05),
         s('gear.atk', 'Attack per item', 0, 10, 0.1),
         s('gear.hp', 'HP per item', 0, 60, 1),
         s('gear.def', 'Defense per item', 0, 30, 0.5),
@@ -849,12 +907,16 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('forge.costEpic', 'Cost x: Epic', 0.2, 6, 0.05),
         s('forge.costLegendary', 'Cost x: Legendary', 0.2, 6, 0.05),
         s('forge.costMythic', 'Cost x: Mythic', 0.2, 6, 0.05),
+        s('forge.costCelestial', 'Cost x: Celestial', 0.2, 8, 0.05),
+        s('forge.costDivine', 'Cost x: Divine', 0.2, 10, 0.05),
         s('forge.scrapCommon', 'Salvage: Common', 0, 50, 1),
         s('forge.scrapUncommon', 'Salvage: Uncommon', 0, 50, 1),
         s('forge.scrapRare', 'Salvage: Rare', 0, 100, 1),
         s('forge.scrapEpic', 'Salvage: Epic', 0, 200, 1),
         s('forge.scrapLegendary', 'Salvage: Legendary', 0, 300, 1),
         s('forge.scrapMythic', 'Salvage: Mythic', 0, 500, 1),
+        s('forge.scrapCelestial', 'Salvage: Celestial', 0, 800, 1),
+        s('forge.scrapDivine', 'Salvage: Divine', 0, 1200, 1),
       ],
     },
   );
@@ -890,17 +952,32 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       sliders: Object.keys(t.relics.n).map((id) => s(`relics.n.${id}`, id, 0, Math.max(10, t.relics.n[id] * 4), t.relics.n[id] % 1 ? 0.05 : 1)),
     },
     {
-      title: 'Sable (Twin)',
+      title: 'Styles',
+      sliders: Object.keys(t.styles).map((k) => s(`styles.${k}`, k, 0, Math.max(2, (t.styles as Record<string, number>)[k] * 4), (t.styles as Record<string, number>)[k] % 1 ? 0.01 : 1)),
+    },
+    ...Object.entries(t.kits).map(([id, kit]) => ({
+      title: `Hero: ${id}`,
+      sliders: Object.keys(kit).map((k) => {
+        const v = (kit as Record<string, number>)[k];
+        return s(`kits.${id}.${k}`, k, 0, Math.max(2, v * 4), v % 1 ? 0.01 : 1);
+      }),
+    })),
+    {
+      title: 'Bar patches and holds',
       sliders: [
-        s('sable.atkMult', 'Hit damage x Rowan', 0.2, 2, 0.05),
-        s('sable.maxHp', 'Max HP', 10, 400, 5),
-        s('sable.widthMult', 'Block width x', 0.3, 1.5, 0.05),
-        s('sable.redWidthMult', 'Red width x', 0.3, 1.5, 0.05),
-        s('sable.ambidextrous', 'Ambidextrous meter +', 0, 1, 0.05),
-        s('sable.shadowSec', 'Shadow Step (s)', 0, 10, 0.5),
-        s('sable.fangMult', 'Twin Fang x', 0.2, 3, 0.05),
-        s('sable.fangKeep', 'Twin Fang: stacks kept on a kill', 0, 3, 1),
-        s('sable.actRedSpeed', "Act red speed x (her bar)", 0, 4, 0.05),
+        s('bar.iceMult', 'Ice: cursor speed x', 1, 3, 0.05),
+        s('bar.snowMult', 'Snowdrift: cursor speed x', 0.2, 1, 0.05),
+        s('bar.slowMult', 'Slow patch: cursor speed x', 0.2, 1, 0.05),
+        s('bar.ahead', 'Laid ahead of the cursor by', 0, 0.6, 0.01),
+        s('bar.trailLife', 'Ice trail lasts (s)', 0, 20, 0.5),
+        s('hold.width', 'Hold length', 0.06, 0.4, 0.01),
+        s('hold.mult', 'Hold damage x', 0.5, 4, 0.05),
+        s('hold.lateMs', 'Hold: late press (ms)', 0, 200, 5),
+        s('hold.perfectMs', 'Hold: Perfect press (ms)', 0, 120, 5),
+        s('hold.releaseGraceMs', 'Hold: early release grace (ms)', 0, 200, 5),
+        s('hold.turnDone', 'Hold: done when turned at', 0.3, 1, 0.05),
+        s('blocks.frozenLifeSec', 'Frozen block melts (s)', 1, 20, 0.5),
+        s('blocks.frozenMult', 'Frozen block damage x', 0.5, 5, 0.05),
       ],
     },
     {
@@ -910,6 +987,8 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('levels.xpBase', 'XP to level 2', 1, 200, 1),
         s('levels.xpExp', 'XP curve exponent', 0.5, 3, 0.05),
         s('levels.hpPer', 'Max HP per level', 0, 20, 0.5),
+        s('levels.star2Atk', '2 stars: attack +', 0, 0.5, 0.01),
+        s('levels.star4Hp', '4 stars: max HP +', 0, 0.5, 0.01),
         s('levels.atkPer', 'Attack % per level', 0, 0.1, 0.005),
         s('levels.pointEvery', 'Skill point every N levels', 1, 5, 1),
         s('levels.xpKill', 'XP per kill (x act)', 0, 20, 0.5),
@@ -939,6 +1018,11 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       s('effects.owlEvery', 'Owl Eye: peck every N', 1, 10, 1),
       s('effects.secondWindAt', 'Second Wind: below HP', 0, 1, 0.05),
       s('effects.secondWindHeal', 'Second Wind: heals', 0, 1, 0.05),
+      s('effects.radiance', 'Aura Radiance: foes take +', 0, 1, 0.01),
+      s('effects.sanctuarySec', 'Aura Sanctuary: every (s)', 1, 20, 0.5),
+      s('effects.sanctuaryHeal', 'Aura Sanctuary: heals', 0, 0.1, 0.005),
+      s('effects.stillness', 'Aura Stillness: combo speed-up less', 0, 1, 0.05),
+      s('effects.fortune', 'Aura Fortune: coins +', 0, 1, 0.05),
     ],
   });
   groups.push({

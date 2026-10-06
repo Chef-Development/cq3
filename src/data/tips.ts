@@ -109,7 +109,7 @@ export const TIPS: readonly TipDef[] = [
   { id: 'map', lines: ['Pick a path to the boss.', "Spots show what's there."], anchor: 'mapNodes', basic: true },
   { id: 'elite', lines: ['Elites are tougher foes,', 'but they always drop gear.'], anchor: 'eliteNode', basic: true },
   { id: 'roamer', lines: ["Red prints: a pack's next step.", 'Meet it: an ambush, more loot!'], anchor: 'roamer' },
-  { id: 'secret', lines: ['Something glints in that rock!', 'Tap it to open a secret cache.'], anchor: 'secretSpot' },
+  { id: 'secret', lines: ['Something glints in that rock!', 'Tap it: hidden treasure!'], anchor: 'secretSpot' },
   { id: 'sparkle', lines: ['A stray coin is glinting!', 'Tap it to pick it up.'], anchor: 'sparkle' },
   { id: 'shop', lines: ['Spend coins on relics and potions.', 'Unspent coins are kept.'], anchor: 'none', basic: true },
   { id: 'rest', lines: ['The campfire heals you.', 'Rest up before the fights ahead.'], anchor: 'none', basic: true },

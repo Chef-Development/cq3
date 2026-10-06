@@ -22,6 +22,7 @@ function fight(relics: RelicId[], o: SetupOpts = {}) {
   const hero = newHero(base.t);
   hero.relics = relics;
   const c = new Combat({ tuning: base.t, settings: base.s, hero, enemies: o.enemies ?? ['slime'], seed: 42, spawning: o.spawning ?? false, specials: o.specials });
+  c.perk.resolve = 1; // Rowan's Knight's Resolve already spent: these tests are about the relics
   return { c, t: base.t };
 }
 

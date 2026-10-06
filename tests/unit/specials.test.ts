@@ -414,6 +414,7 @@ describe('cursor and guard', () => {
 
   it('Hedge Knight: while its shield is raised a yellow tap is countered like a trap; greens and blocks are safe', () => {
     const { c, t } = setup({ enemies: ['knight'], tune: (t) => (t.cursor.speedPerHit = 0) });
+    c.perk.resolve = 1; // Knight's Resolve already spent (this is about a hit breaking the combo)
     const knight = c.enemies[0];
     fire(c, knight, 'guard');
     expect(knight.guard).toBe(1.6);

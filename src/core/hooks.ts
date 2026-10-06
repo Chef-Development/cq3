@@ -1,36 +1,33 @@
-// Fight hooks (pure; no DOM): how relics (core/relic-fx.ts), skill nodes (core/skill-fx.ts) and a hero's kit
-// (core/kit-fx.ts) change the rules of a fight without growing combat.ts. Combat collects the hooks of what the
-// hero carries when the fight starts (relics, learned skills, the hero's kit) and calls them at fixed points.
+// Fight hooks (pure; no DOM): how a hero's style (core/styles.ts) and kit (core/kit-fx.ts), skill nodes
+// (core/skill-fx.ts) and relics (core/relic-fx.ts) change the rules of a fight without growing combat.ts. Combat
+// collects the hooks of what the hero carries when the fight starts and calls them at fixed points (on hit, perfect,
+// block, green, finisher, kill, plus bar modifiers: the cursor's speed, patches, spawns, widths, the left end).
 // A hook that changes a number gets the current value and returns the new one; hooks run in a fixed order
-// (kit, then skills, then relics, each in list order). Per-fight state goes in `c.perk` (a scratch map of
+// (style, kit, then skills, then relics, each in list order). Per-fight state goes in `c.perk` (a scratch map of
 // numbers, keyed by the perk's id). A perk that kicks in shows itself with `c.perkFx(id, amount, enemyId)`.
 
 import type { BlockKind } from './blocks';
-import type { Block, Combat, Enemy, HurtSource } from './combat';
+import type { Block, Combat, DamageSource, Enemy, HurtSource, Zone } from './combat';
 
 /** A yellow or green hit. `crit` is decided before hitMult runs; `damage` is final in afterHit. */
 export interface HitCtx {
-  block: Block; // the block hit (already off the bar)
-  hand: number; // which cursor: 0 (Rowan's only one, or Sable's left one, A), 1 (Sable's right one, B)
+  block: Block; // the block hit (already off the bar): a yellow, green, keg, frozen block, or a completed hold
   perfect: boolean;
   green: boolean;
   target: Enemy | null;
   crit: boolean;
   damage: number;
-  /** Twin: this hit came from the other hand than the hit before it (Ambidextrous). */
-  alternated: boolean;
-  /** A Shadow Step echo or another perk's extra hit (perks shouldn't chain off these). */
+  /** Another perk's extra hit (perks shouldn't chain off these). */
   echo: boolean;
 }
 
 /** A red (or shield, bomb, speed) blocked. `cracked`: a shield took a tap but still stands. */
 export interface BlockCtx {
   block: Block;
-  hand: number;
   perfect: boolean;
   cracked: boolean;
   owner: Enemy | undefined;
-  /** Another perk's extra block (Cross Guard, Night Watch): perks shouldn't chain off these. */
+  /** Another perk's extra block (Night Watch, an afterimage): perks shouldn't chain off these. */
   echo: boolean;
 }
 
@@ -41,6 +38,9 @@ export interface FinisherCtx {
   targets: Enemy[]; // who it hits (every living foe for Rowan; Sable's Twin Fang: the target alone)
   killed: number; // afterFinisher: foes it killed
   keepCombo: boolean; // set by a hook: the finisher doesn't reset the combo (Sweeper)
+  /** What it does to the reds on the bar (set by a kit): knocks them off (the usual), leaves them for the kit to
+   *  freeze or pin ('keep'), or clears every block on the bar ('all'). */
+  reds: 'clear' | 'keep' | 'all';
 }
 
 export interface PeckCtx {
@@ -61,11 +61,12 @@ export interface BreakCtx {
   keepCombo: number; // what's left after it (0 = all lost)
   keepStacks: number;
   keepMeter: number;
+  /** What broke it: a miss, a hit taken, or a perk's price. */
+  cause: 'miss' | 'hurt' | 'perk';
 }
 
 /** A miss: how much it hurts and whether it breaks the combo (hooks change both). */
 export interface MissCtx {
-  hand: number;
   damage: number; // Classic mode: tuning.judge.missSelfDamage; Relaxed: 0
   breaks: boolean;
 }
@@ -80,7 +81,7 @@ export interface FightHooks {
   /** Any block just landed on the bar (patterns, specials, perks): change it (Turtle Shell: fewer shield taps). */
   spawned?(c: Combat, b: Block): void;
   /** Combo gained by a hit or a block (normally 1). */
-  comboGain?(c: Combat, from: 'hit' | 'block' | 'ward', perfect: boolean, hand: number, n: number): number;
+  comboGain?(c: Combat, from: 'hit' | 'block' | 'ward', perfect: boolean, n: number): number;
   /** The combo went up from `before` to `after` (Chain Reaction, Gold Fever, Quickening). */
   combo?(c: Combat, before: number, after: number): void;
   critChance?(c: Combat, x: HitCtx, chance: number): number;
@@ -91,7 +92,7 @@ export interface FightHooks {
   afterHit?(c: Combat, x: HitCtx): void;
   afterBlock?(c: Combat, x: BlockCtx): void;
   /** Meter fill (before Meter Gain). */
-  meter?(c: Combat, source: MeterSource, amount: number, hand: number): number;
+  meter?(c: Combat, source: MeterSource, amount: number): number;
   maxStacks?(c: Combat, n: number): number;
   /** Damage the hero is about to take (after Defense). */
   hurt?(c: Combat, amount: number, source: HurtSource, enemyId: number): number;
@@ -112,6 +113,23 @@ export interface FightHooks {
   kill?(c: Combat, e: Enemy, overkill: number, source: string): void;
   /** A bomb was tapped and blew up; `cleared` are the blocks the blast took off the bar. */
   explode?(c: Combat, bomb: Block, cleared: Block[]): void;
+  // ---- bar modifiers
+  /** The cursor's speed multiplier (before patches): Chill slows it. */
+  cursorMult?(c: Combat, mult: number): number;
+  /** How much a patch changes the cursor's speed for this hero (Neve: ice half as much). */
+  zoneMult?(c: Combat, z: Zone, mult: number): number;
+  /** A red reached the left end: return true to bounce it back across the bar (Rampart). */
+  atWall?(c: Combat, b: Block): boolean;
+  /** Spacing between an enemy's static spawns (x the interval; Heavy: fewer yellows). */
+  staticGap?(c: Combat, mult: number): number;
+  /** The fewest yellows/greens kept on the bar (the refill). */
+  minAttack?(c: Combat, n: number): number;
+  /** A spawning block's width (Heavy: wider yellows). */
+  blockWidth?(c: Combat, kind: BlockKind, w: number): number;
+  /** A keg's blast radius. */
+  kegRadius?(c: Combat, r: number): number;
+  /** A damage multiplier on what a foe takes (soft strengths). */
+  damageTaken?(c: Combat, e: Enemy, source: DamageSource, mult: number): number;
 }
 
 export type HookName = keyof FightHooks;

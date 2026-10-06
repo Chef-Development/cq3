@@ -138,7 +138,6 @@ export class BarView {
     }
 
     const group = c.enemies.length > 1;
-    if (c.hands > 1) this.drawHalves(g, now, bx);
     this.drawGhosts(g, c, now, bx);
     for (const b of c.blocks) if (!isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
     this.drawGuard(g, c, t, now, bx);
@@ -153,8 +152,8 @@ export class BarView {
       g.fillRect(Math.round(this.explodeFx.x - r), B.y - 4, r * 2, B.h + 8);
     }
 
-    // the cursor (Sable: one per half, each in its colour)
-    for (let hand = 0; hand < Math.min(2, c.hands); hand++) this.drawCursor(g, c, t, now, bx, hand);
+    // the cursor (one for every hero)
+    this.drawCursor(g, c, t, now, bx, 0);
 
     // swipe hint: an arrow streak sweeping across above the bar while a finisher is banked
     if (c.finisherReady && s.app.settings.finisherInput === 'swipe') {
@@ -212,12 +211,12 @@ export class BarView {
     const core = frozen ? WHITE : hot ? 0xffd080 : look.core;
     if (speed > 1.2) {
       for (let i = 1; i <= 3; i++) {
-        const px = Math.round(B.x + c.cursorPosAt(t - i * 0.01, hand) * B.w) + bx;
+        const px = Math.round(B.x + c.cursorPosAt(t - i * 0.01) * B.w) + bx;
         g.fillStyle(core, 0.35 / i);
         g.fillRect(px - 1, B.y, 3, B.h);
       }
     }
-    const cx = Math.round(B.x + c.cursorPosAt(t, hand) * B.w) + bx;
+    const cx = Math.round(B.x + c.cursorPosAt(t) * B.w) + bx;
     const pk = (now - this.cursorPulseAt[hand > 0 ? 1 : 0]) / 160;
     if (pk < 1) {
       const pw = Math.round(2 + 6 * (1 - pk));
@@ -243,7 +242,7 @@ export class BarView {
     g.fillStyle(hot ? 0xa0400a : look.deep, 1);
     g.fillRect(cx + 1, top + 2, 1, len - 4);
     // sparkle caps: 4-point stars with an ink rim (Sable's in her cursors' colours)
-    const cap = c.hands > 1 && !hot && !frozen ? look.cap : 0xb8c2d8;
+    const cap = 0xb8c2d8;
     for (const sy of [top - 1, top + len]) {
       g.fillStyle(INK, 1);
       g.fillRect(cx - 4, sy - 1, 9, 3);
@@ -260,25 +259,6 @@ export class BarView {
   }
 
   /** Two cursors: each half of the track faintly in its cursor's colour, and a divider at the middle. */
-  private drawHalves(g: G, now: number, bx: number): void {
-    const B = this.s.bar;
-    const mid = Math.round(B.x + B.w / 2) + bx;
-    const half = Math.round(B.w / 2);
-    g.fillStyle(HAND_LOOK[0].blade, 0.13);
-    g.fillRect(B.x + bx + 3, B.y + 1, half - 4, B.h - 2);
-    g.fillStyle(HAND_LOOK[1].blade, 0.13);
-    g.fillRect(mid + 2, B.y + 1, B.w - half - 3, B.h - 2);
-    // the divider: a dark seam down the track with a faint lit edge (quieter than a cursor), and a notch in the rims
-    g.fillStyle(INK, 0.85);
-    g.fillRect(mid - 1, B.y + 1, 2, B.h - 2);
-    g.fillStyle(0x8a7cc0, 0.7);
-    g.fillRect(mid + 1, B.y + 1, 1, B.h - 2);
-    g.fillStyle(INK, 1);
-    g.fillRect(mid - 1, B.y - 1, 3, 2);
-    g.fillRect(mid - 1, B.y + B.h - 1, 3, 2);
-    void now;
-  }
-
   private drawBlock(g: G, b: Block, c: Combat, t: number, now: number, group: boolean, bx: number): void {
     const s = this.s;
     const B = s.bar;

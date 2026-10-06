@@ -53,7 +53,6 @@ export interface Profile {
   relics: RelicId[]; // relics unlocked beyond the starting ones
   relicsNew: RelicId[]; // unlocked, not looked at in the relic log yet
   sableMet: boolean; // Sable's scene played (after Act 1): Sable is unlocked
-  twinTaught: boolean; // Sable's first fight showed the two tap zones
   tips: SeenId[]; // tips already shown (each shows once), and the welcome back once it has played
   tipsOff: boolean; // the gear panel's "Tips: off"
   sparkles: number[]; // the map sparkles picked up (core/sparkle.ts: their keys, newest last): never paid twice
@@ -74,7 +73,7 @@ export type Progress = Profile;
 
 const noSlots = (): Record<SlotKey, number> => ({ weapon: 0, helm: 0, armor: 0, boots: 0, trinket1: 0, trinket2: 0 });
 
-export const newHeroes = (): Record<HeroId, HeroProgress> => ({ rowan: newHeroProgress(true), sable: newHeroProgress(false) });
+export const newHeroes = (): Record<HeroId, HeroProgress> => Object.fromEntries(HERO_IDS.map((id) => [id, newHeroProgress(id === 'rowan')])) as Record<HeroId, HeroProgress>;
 
 export function newProfile(): Profile {
   return {
@@ -95,7 +94,6 @@ export function newProfile(): Profile {
     relics: [],
     relicsNew: [],
     sableMet: false,
-    twinTaught: false,
     tips: [WELCOME_ID], // a new player has nothing to be welcomed back to
     tipsOff: false,
     sparkles: [],
@@ -148,14 +146,20 @@ function readFields(d: Record<string, unknown>, t?: Tuning): Profile {
   const hs = (d.heroes ?? {}) as Record<string, unknown>;
   for (const id of HERO_IDS) {
     const h = (hs[id] ?? {}) as Record<string, unknown>;
-    p.heroes[id] = { unlocked: id === 'rowan' || h.unlocked === true, xp: int(h.xp, 0, 1e9), skills: validSkills(id, h.skills) };
+    p.heroes[id] = {
+      unlocked: id === 'rowan' || h.unlocked === true,
+      xp: int(h.xp, 0, 1e9),
+      skills: validSkills(id, h.skills),
+      stars: Math.max(1, int(h.stars, 1, 5)),
+      shards: int(h.shards, 0, 1e6),
+      acts: int(h.acts, 0, 1e6),
+    };
   }
   p.hero = isHeroId(d.hero) && p.heroes[d.hero].unlocked ? d.hero : 'rowan';
   const ids = (v: unknown): RelicId[] => (Array.isArray(v) ? [...new Set(v.filter((x): x is RelicId => isRelicId(x) && !!relicById(x)?.unlock))] : []);
   p.relics = ids(d.relics);
   p.relicsNew = ids(d.relicsNew).filter((id) => p.relics.includes(id));
   p.sableMet = d.sableMet === true;
-  p.twinTaught = d.twinTaught === true;
   const w = (d.wander ?? {}) as Record<string, unknown>;
   p.wander = { fights: int(w.fights, 0, 1e6), n: int(w.n, 0, 1e6), up: w.up === true };
   return p;
@@ -214,7 +218,7 @@ export const heroProgress = (p: Profile, id: HeroId = p.hero): HeroProgress => p
 /** Who fights, at what level, with which skills: what a fight reads from the profile (like the gear's loadout). */
 export function profileBuild(p: Profile, t: Tuning, id: HeroId = p.hero): HeroBuild {
   const h = heroProgress(p, id);
-  return { id: p.heroes[id] ? id : 'rowan', level: levelFromXp(t, h.xp), skills: h.skills.slice() };
+  return { id: p.heroes[id] ? id : 'rowan', level: levelFromXp(t, h.xp), skills: h.skills.slice(), stars: h.stars ?? 1 };
 }
 
 /** Pick the hero who fights next (an unlocked one). */

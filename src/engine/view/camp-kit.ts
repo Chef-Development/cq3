@@ -4,7 +4,8 @@
 // "before -> after" stat toast, and a few small pixel icons.
 import type Phaser from 'phaser';
 import { STAT_INFO, type StatId } from '../../data/gear';
-import { HERO_IDS, HEROES, type HeroFamily, type HeroId } from '../../data/heroes';
+import { HERO_IDS, HEROES, type HeroId, type StyleId } from '../../data/heroes';
+import { STYLES } from '../../data/styles';
 import { heroStats, newHero, type Hero } from '../../core/combat';
 import { fmtTotal, type StatBlock } from '../../core/gear';
 import { levelProgress, pointsLeft } from '../../core/heroes';
@@ -860,14 +861,14 @@ export class CampKit {
     texts.text(txt, r.x + r.w / 2, r.y + 4.5, gold ? 0x5a2a08 : WHITE, { bold: gold, ox: 0.5, oy: 0.5 });
   }
 
-  /** A hero family's chip ("Blade" with a sword, "Twin" with two daggers) with its left end at x; returns its width. */
-  familyChip(g: G, texts: TextPool, family: HeroFamily, x: number, cy: number, alpha = 1): number {
-    const label = family === 'twin' ? 'Twin' : 'Blade';
-    const icon = family === 'twin' ? 'twin' : 'blade';
+  /** A hero style's chip ("Blade" with a sword, "Shadow" with two daggers...) with its left end at x; returns its width. */
+  familyChip(g: G, texts: TextPool, family: StyleId, x: number, cy: number, alpha = 1): number {
+    const label = STYLES[family].name;
+    const icon = family === 'shadow' ? 'twin' : 'blade';
     const [iw, ih] = pixSize(icon);
     const w = iw + 5 + textWidth(label, 1, false) + 3;
     const r = { x, y: Math.round(cy - 5), w, h: 10 };
-    tag(g, r, family === 'twin' ? [0xdab0ff, 0x6e30a8, 0x5a2490, 0x40186a] : [0x9ad8ff, 0x2a5ac0, 0x22489c, 0x1a3070], alpha);
+    tag(g, r, family === 'shadow' ? [0xdab0ff, 0x6e30a8, 0x5a2490, 0x40186a] : [0x9ad8ff, 0x2a5ac0, 0x22489c, 0x1a3070], alpha);
     pix(g, icon, r.x + 1, Math.round(cy - ih / 2), alpha);
     texts.text(label, r.x + iw + 3, cy, WHITE, { oy: 0.5, alpha });
     return w;

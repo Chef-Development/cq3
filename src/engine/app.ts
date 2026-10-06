@@ -185,27 +185,39 @@ export class App {
     return Math.max(c.time, this.clock.now(now) / 1000);
   }
 
-  /** A bar tap. `wallTs` is the pointer event's timeStamp (same clock as performance.now()). `hand`: which cursor
-   *  (Sable's two: 0 = the left half of the screen, 1 = the right half; Rowan's taps are all 0). */
-  barTap(wallTs: number, hand = 0): void {
+  /** A bar tap. `wallTs` is the pointer event's timeStamp (same clock as performance.now()). Returns the outcome
+   *  ('hold': a hold block was pressed; input then waits for the finger to lift). */
+  barTap(wallTs: number): TapResult | null {
     const now = performance.now();
     this.update(now);
     const c = this.run.combat;
-    if (!c || !this.clock.running) return;
+    if (!c || !this.clock.running) return null;
     // Some browsers have shipped epoch-based event timestamps: fall back to "now" if it's not plausible.
     const ts = Math.abs(now - wallTs) < 1000 ? wallTs : now;
-    this.lastTap = c.tap(tapSimTime(this.clock, ts, this.settings.calibrationMs), hand);
+    this.lastTap = c.tap(tapSimTime(this.clock, ts, this.settings.calibrationMs));
+    this.flush();
+    return this.lastTap;
+  }
+
+  /** The finger holding a hold block came off (judged at the pointer event's timestamp). */
+  barRelease(wallTs: number): void {
+    const now = performance.now();
+    this.update(now);
+    const c = this.run.combat;
+    if (!c || !c.holding) return;
+    const ts = Math.abs(now - wallTs) < 1000 ? wallTs : now;
+    c.release(tapSimTime(this.clock, ts, this.settings.calibrationMs));
     this.flush();
   }
 
   /** Whether a tap with this pointer timestamp would land on nothing (see input's swipe handling). */
-  wouldMiss(wallTs: number, hand = 0): boolean {
+  wouldMiss(wallTs: number): boolean {
     const now = performance.now();
     this.update(now);
     const c = this.run.combat;
     if (!c || !this.clock.running) return false;
     const ts = Math.abs(now - wallTs) < 1000 ? wallTs : now;
-    return c.wouldMiss(tapSimTime(this.clock, ts, this.settings.calibrationMs), hand);
+    return c.wouldMiss(tapSimTime(this.clock, ts, this.settings.calibrationMs));
   }
 
   /** Start the fight now instead of waiting for the enemy's walk-in to finish. */

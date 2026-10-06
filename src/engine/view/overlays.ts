@@ -136,8 +136,6 @@ type G = Phaser.GameObjects.Graphics;
 
 /** A relic's card colours by its rarity (the boost cards' common / rare / epic). */
 const RARITY_FACE_OF = (r: Rarity) => CARD[r].face;
-/** A colour lifted toward white (letters on dark panels). */
-const mixLight = (c: number) => mix(c, WHITE, 0.45);
 
 /** Title entrance: when each piece has arrived (ms after the title appears). */
 const TITLE_IN = { heroes: 340, logo: 420, ribbon: 460, prompt: 420 };
@@ -628,8 +626,7 @@ export class Overlays {
     else if (ph === 'fight' && s.app.storyOverlay) {
       // a boss's scene: the story view draws it
     } else if (ph === 'fight' && s.app.awaitingBegin && !s.app.userPaused && !s.app.tipUp) {
-      if (this.twinTutorial()) this.drawTwinTutorial(g, gc, now);
-      else this.prompt(g, 'TAP TO BEGIN!', now < this.bannerUntil ? 56 : 50, now);
+      this.prompt(g, 'TAP TO BEGIN!', now < this.bannerUntil ? 56 : 50, now);
     } else if (ph === 'fight' && s.app.userPaused) {
       if (this.relicSel !== null && run.hero.relics.length) this.drawRelicPanel(g, gc, now);
       else this.drawPause(g, gc, now);
@@ -846,7 +843,7 @@ export class Overlays {
       : run.pickKind === 'bounty'
         ? 'Bounty Reward'
         : run.pickKind === 'secret'
-          ? 'Secret Relic'
+          ? 'Hidden Relic'
           : run.boostChoices.some(isRelicOffer)
             ? 'Choose a Relic'
             : 'Choose a Boost';
@@ -1120,7 +1117,7 @@ export class Overlays {
     g.fillRect(0, 0, GAME_W, 54);
     const clear = actClear && opened;
     const ok = clear ? Math.min(1, easeBack((s.anim - this.chestOpenAt) / 320, 1.8)) : 1;
-    const title = clear ? `Act ${run.actIndex + 1} Clear!` : actClear ? run.act.name : run.treasure?.secret ? 'Secret Cache!' : 'Treasure!';
+    const title = clear ? `Act ${run.actIndex + 1} Clear!` : actClear ? run.act.name : run.treasure?.secret ? 'Hidden Treasure!' : 'Treasure!';
     const look = clear ? RIBBON.gold : actClear ? RIBBON.blue : RIBBON.gold;
     const tw = textWidth(title, 2, true);
     ribbon(gc, cx, y, Math.round((tw + 24) * (clear ? ok : 1)), 22, look, 1, ok > 0.9);
@@ -1635,99 +1632,6 @@ export class Overlays {
     }
   }
 
-  // ------------------------------------------------------------------ Sable's first fight
-
-  /** Sable's first fight shows the two tap zones before TAP TO BEGIN (once: profile.twinTaught). */
-  twinTutorial(): boolean {
-    const app = this.s.app;
-    return app.run.phase === 'fight' && app.awaitingBegin && !app.storyOverlay && app.run.hero.build?.id === 'sable' && !app.profile.twinTaught;
-  }
-
-  /** The tap that closes the tutorial (the next one begins the fight). */
-  twinTutorialTap(): void {
-    const app = this.s.app;
-    if (performance.now() - this.phaseAt < 500) return;
-    app.profile.twinTaught = true;
-    app.saveProfile();
-    app.audio.uiClick();
-  }
-
-  /** The two tap zones: the left half is cursor A, the right half cursor B (a hand on each), a swipe is the finisher. */
-  private drawTwinTutorial(g: G, gc: G, now: number): void {
-    const s = this.s;
-    const since = now - this.phaseAt;
-    this.dim(g, 0.5 * clamp01(since / 200));
-    const mid = Math.round(GAME_W / 2);
-    const top = 21;
-    const bottom = s.B - 3;
-    const zones = [
-      { x0: s.L + 3, x1: mid - 2, letter: 'A', label: 'Left cursor', col: 0x4aa0f0, deep: 0x1a3c8a, cursor: 0 },
-      { x0: mid + 2, x1: s.R - 3, letter: 'B', label: 'Right cursor', col: 0xc070f0, deep: 0x4a2470, cursor: 1 },
-    ];
-    zones.forEach((z, i) => {
-      const k = easeBack((since - 80 - i * 120) / 300, 1.5);
-      if (k <= 0) return;
-      const a = clamp01(k);
-      const w = z.x1 - z.x0;
-      const r: Rect = { x: z.x0, y: top, w, h: bottom - top };
-      // the zone: a tinted field with a dashed rim that marches
-      rows(gc, r.x, r.y, r.w, r.h, 3, z.col, 0.16 * a);
-      const off = Math.floor(now / 90) % 4;
-      gc.fillStyle(z.col, 0.85 * a);
-      for (let x = r.x + 3 + off; x < r.x + r.w - 3; x += 4) {
-        gc.fillRect(x, r.y, 2, 1);
-        gc.fillRect(x, r.y + r.h - 1, 2, 1);
-      }
-      for (let y = r.y + 3 + off; y < r.y + r.h - 3; y += 4) {
-        gc.fillRect(r.x, y, 1, 2);
-        gc.fillRect(r.x + r.w - 1, y, 1, 2);
-      }
-      const cx = Math.round(r.x + r.w / 2);
-      const dy = Math.round((1 - k) * 12);
-      this.texts.text(z.letter, cx, 40 + dy, mixLight(z.col), { bold: true, scale: 3, ox: 0.5, oy: 0.5, alpha: a, extrude: 1, extrudeCol: mix(z.col, z.deep, 0.6) });
-      this.texts.text(z.label, cx, 59 + dy, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
-      // a hand tapping in the zone
-      const tapK = ((now + i * 450) % 900) / 900;
-      const press = tapK < 0.18 ? 2 : 0;
-      const [hw] = glyphSize('hand');
-      glyph(gc, 'hand', cx - hw + 8, 66 + press + dy, a, { c: z.deep, C: z.col }, 2);
-      if (tapK < 0.3) {
-        const rr = 3 + tapK * 30;
-        gc.fillStyle(WHITE, 0.6 * (1 - tapK / 0.3) * a);
-        for (let j = 0; j < 12; j++) {
-          const ang = (j / 12) * Math.PI * 2;
-          gc.fillRect(Math.round(cx - 1 + Math.cos(ang) * rr), Math.round(68 + Math.sin(ang) * rr * 0.6), 1, 1);
-        }
-      }
-      // under it, which half of the bar this zone plays
-      const bar = s.bar;
-      const bx0 = Math.round(bar.x + (z.cursor ? bar.w / 2 : 0));
-      gc.fillStyle(z.col, (0.22 + 0.16 * pulse(now, 700)) * a);
-      gc.fillRect(bx0 + 1, bar.y - 2, Math.round(bar.w / 2) - 2, bar.h + 4);
-      gc.fillStyle(mixLight(z.col), 0.9 * a);
-      gc.fillRect(bx0 + 1, bar.y - 3, Math.round(bar.w / 2) - 2, 1);
-      gc.fillRect(bx0 + 1, bar.y + bar.h + 2, Math.round(bar.w / 2) - 2, 1);
-    });
-    // the finisher, and the way on
-    if (since > 400) {
-      const t = 'Swipe = finisher';
-      const tw = textWidth(t, 1, true);
-      strip(gc, mid - tw / 2 - 26, s.splitY - 16, tw + 52, 13, 0.8);
-      this.texts.text(t, mid + 8, s.splitY - 9.5, 0xffe680, { bold: true, ox: 0.5, oy: 0.5 });
-      // a swipe streak sweeping right
-      const cyc = (now % 1000) / 1000;
-      const hx = Math.round(mid - tw / 2 - 18 + cyc * 14);
-      for (let i = 0; i < 10; i++) {
-        gc.fillStyle(i < 3 ? WHITE : 0x9ad8ff, 0.9 * (1 - i / 10));
-        gc.fillRect(hx - i, s.splitY - 10, 1, i < 3 ? 2 : 1);
-      }
-      const hint = 'Tap to continue';
-      const hw = textWidth(hint, 1, true);
-      const hy = s.meter.y + Math.round(s.meter.h / 2);
-      strip(gc, mid - hw / 2 - 10, hy - 6, hw + 20, 12, 0.85);
-      this.texts.text(hint, mid, hy, 0xffd23a, { bold: true, ox: 0.5, oy: 0.5, alpha: 0.7 + 0.3 * pulse(now, 900) });
-    }
-  }
 
   // ------------------------------------------------------------------ for the tips (view/tips.ts)
 

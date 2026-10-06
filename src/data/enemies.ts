@@ -14,6 +14,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // ---------------------------------------------------------------- Act 1, Meadow Road
   slime: {
     name: 'Slime',
+    tags: ['swarm'],
     hp: 110,
     atk: 8,
     special: 10,
@@ -29,6 +30,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   slimelet: {
     name: 'Slimelet',
+    tags: ['swarm'],
     hp: 35,
     atk: 5,
     special: 7,
@@ -41,6 +43,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   crow: {
     name: 'Crow',
+    tags: ['flyer', 'beast'],
     hp: 90,
     atk: 7,
     special: 9,
@@ -57,6 +60,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   boar: {
     name: 'Boar',
+    tags: ['beast', 'brute'],
     hp: 150,
     atk: 10,
     special: 12,
@@ -72,6 +76,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   bandit: {
     name: 'Bandit',
+    tags: ['folk'],
     hp: 190,
     atk: 11,
     special: 12,
@@ -95,6 +100,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   knight: {
     name: 'Hedge Knight',
+    tags: ['folk', 'armored'],
     hp: 700,
     atk: 13,
     special: 14,
@@ -111,6 +117,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   bigSlime: {
     name: 'Big Slime',
+    tags: ['swarm', 'brute'],
     hp: 750,
     atk: 13,
     special: 14,
@@ -135,6 +142,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   captain: {
     name: 'Bandit Captain',
+    tags: ['folk'],
     hp: 1800,
     atk: 15,
     special: 16,
@@ -154,6 +162,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // ---------------------------------------------------------------- Act 2, Old Ruins
   archer: {
     name: 'Goblin Archer',
+    tags: ['folk'],
     hp: 160,
     atk: 9,
     special: 11,
@@ -177,6 +186,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   shaman: {
     name: 'Mushroom Shaman',
+    tags: ['caster'],
     hp: 170,
     atk: 8,
     special: 10,
@@ -200,6 +210,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   beetle: {
     name: 'Shell Beetle',
+    tags: ['armored', 'beast'],
     hp: 210,
     atk: 10,
     special: 12,
@@ -215,6 +226,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   golem: {
     name: 'Ruin Golem',
+    tags: ['construct', 'armored'],
     hp: 2300,
     atk: 16,
     special: 18,
@@ -237,6 +249,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // ---------------------------------------------------------------- Act 3, Boar King's Hollow
   wolf: {
     name: 'Wolf',
+    tags: ['beast'],
     hp: 140,
     atk: 8,
     special: 10,
@@ -252,6 +265,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   boarKing: {
     name: 'Boar King',
+    tags: ['beast', 'brute'],
     hp: 4300,
     atk: 15,
     special: 20,
@@ -291,6 +305,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   piglet: {
     name: 'Piglet',
+    tags: ['beast', 'swarm'],
     hp: 180,
     atk: 6,
     special: 8,

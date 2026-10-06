@@ -5,7 +5,6 @@ import { it } from 'vitest';
 import { balance, playFarm, timingSpread, TYPICAL_ACCURACY, type ActRow, type FarmResult } from '../../src/core/bot';
 import { cloneTuning } from '../../src/core/tuning';
 import type { RelicId } from '../../src/data/relics';
-import { twinTable } from './twin-table';
 
 const RUNS = Number(process.env.RUNS ?? 1000);
 const FARM_RUNS = Number(process.env.FARM_RUNS ?? Math.round(RUNS / 3));
@@ -44,9 +43,6 @@ function relicWins(r: ActRow): string {
     ...rows,
   ].join('\n');
 }
-/** Sable (the Twin family) against Rowan at these accuracies, on the same seeds. */
-const SABLE_ACC = [0.7, 0.85];
-const SABLE_RUNS = Number(process.env.SABLE_RUNS ?? Math.round(RUNS / 2));
 
 const pct = (v: number) => (Number.isFinite(v) ? `${Math.round(v * 100)}%` : '-');
 const sec = (v: number) => (Number.isFinite(v) ? `${Math.round(v)} s` : '-');
@@ -120,7 +116,6 @@ it('balance report', () => {
   const t0 = Date.now();
   const rows = balance(t, ACCURACIES, RUNS);
   const farms = [0.55, 0.7, 0.85].map((a) => farming(t, a));
-  const sableRows = balance(t, SABLE_ACC, SABLE_RUNS, 1, 6, t.acts.length, 'sable');
   // a cautious 85% player: never takes the relics that charge HP
   const CAUTIOUS: RelicId[] = ['clutch', 'glassEdge', 'bloodPrice', 'purplePact'];
   const cautious = balance(t, [0.85], CONTROL_RUNS, 1, 6, t.acts.length, undefined, CAUTIOUS);
@@ -128,7 +123,6 @@ it('balance report', () => {
   const off = cloneTuning();
   off.relics.on = 0;
   const control = balance(off, [0.7, 0.85], CONTROL_RUNS);
-  const rowanRows = SABLE_ACC.flatMap((acc) => rows.filter((r) => r.accuracy === acc));
   const at = (acc: number, act: number) => rows.find((r) => r.accuracy === acc && r.act === act)!;
   const [a1, a2, a3] = [0, 1, 2].map((a) => at(0.85, a));
   const [c1, c2, c3] = [0, 1, 2].map((a) => at(0.7, a));
@@ -226,15 +220,6 @@ ${relicWins(at(TYPICAL_ACCURACY, 2))}
 
 ${table(rows)}
 
-## Sable (two cursors) against Rowan
-
-The same bot plays Sable with two thumbs: each has its own timing error, tap rate and pending tap, and aims its own
-cursor at the next block in its half (a red goes to whichever cursor meets it first). Target: at the same accuracy,
-within +/-10 points of Rowan per act. ${SABLE_RUNS} runs per row for Sable (Rowan's from the table above). Sable's kit:
-\`${JSON.stringify(t.sable)}\`.
-
-${twinTable(rowanRows, sableRows)}
-
 ## Where runs are lost
 
 ${losses(rows)}
@@ -249,5 +234,5 @@ Notes:
 `;
   writeFileSync('docs/balance.md', md);
   process.stderr.write(`${farms.map((f) => `farm ${f.acc}: story ${pct(f.story)} -> ${f.visits.map(pct).join(' ')} (forge ${f.visitsForged.map(pct).join(' ')})`).join('\n')}\n`);
-  process.stderr.write(`${table(rows)}\n${losses(rows)}\n${twinTable(rowanRows, sableRows)}\n`);
+  process.stderr.write(`${table(rows)}\n${losses(rows)}\n`);
 }, 1_800_000);

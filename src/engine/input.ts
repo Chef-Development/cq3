@@ -1,12 +1,12 @@
 // Pointer/keyboard routing. Bar taps are judged by event.timeStamp (see App.barTap), not by frame. The world map is
 // bigger than the screen: there a press becomes a drag (it pans) once it moves a few game px, and is a tap only when
-// released in place (view/world.ts). Sable's two
-// cursors: a tap on the left half of the screen is cursor A's, on the right half cursor B's. Taps on the HUD's relic
+// released in place (view/world.ts). One cursor for every hero. A press on a hold block starts a hold: lifting that
+// finger releases it (judged at the lift's timeStamp), and a hold is never a finisher swipe. Taps on the HUD's relic
 // belt open the relic panel (the fight pauses) and are never judged as bar taps. While a tip card is up (view/tips.ts)
 // a tap only dismisses it: never a bar tap, a finisher, or a press of whatever is under it.
-import { isSwipe } from '../core/swipe';
+import { isSwipe, swipeAllowed } from '../core/swipe';
 import type { App } from './app';
-import { clientToGame, GAME_W } from './layout';
+import { clientToGame } from './layout';
 import type { FightScene } from './scene';
 
 const inUi = (t: EventTarget | null): boolean => t instanceof Element && !!t.closest('[data-ui]');
@@ -14,7 +14,12 @@ const inUi = (t: EventTarget | null): boolean => t instanceof Element && !!t.clo
 export function installInput(app: App, getScene: () => FightScene | null, ui: { togglePanel(): void; refreshHud(): void }): void {
   // A touch that might become a finisher swipe. Taps that land on a block are judged immediately; only a tap
   // that would miss is held back (until it's clearly not a swipe), so a swipe never costs you your stacks.
-  let swipe: { id: number; x: number; y: number; ts: number; timer: number; held: boolean; hand: number } | null = null;
+  let swipe: { id: number; x: number; y: number; ts: number; timer: number; held: boolean } | null = null;
+  // the pointer holding a hold block down (its lift releases the hold)
+  let holdPointer: number | null = null;
+  const pressed = (pointerId: number, r: { outcome: string } | null) => {
+    if (r?.outcome === 'hold') holdPointer = pointerId;
+  };
   // the pointer pressing (and maybe dragging) the world map
   let worldPress: number | null = null;
   const worldPointer = (e: PointerEvent, end: 'move' | 'up' | 'cancel'): boolean => {
@@ -35,7 +40,7 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
     const s = swipe;
     window.clearTimeout(s.timer);
     swipe = null;
-    if (s.held) app.barTap(s.ts, s.hand);
+    if (s.held) pressed(s.id, app.barTap(s.ts));
   };
 
   const fireSwipe = () => {
@@ -166,11 +171,6 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       return;
     }
     if (app.panelOpen && !app.playWhilePanelOpen) return;
-    // Sable's first fight: the two tap zones, shown once before TAP TO BEGIN
-    if (scene.overlays.twinTutorial()) {
-      scene.overlays.twinTutorialTap();
-      return;
-    }
     // the relic belt under the hero plate: the relic panel opens and the fight pauses (never a bar tap)
     const relic = clientX < 0 ? -1 : scene.hud.relicAt(g.x, g.y);
     if (relic >= 0) {
@@ -200,17 +200,24 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
         return;
       }
     }
-    // two cursors (Sable): the left half of the screen taps cursor A, the right half cursor B
-    const hand = (app.combat?.hands ?? 1) > 1 && clientX >= 0 && g.x >= GAME_W / 2 ? 1 : 0;
     if (app.settings.finisherInput === 'swipe' && app.combat?.finisherReady) {
       resolveSwipeAsTap();
-      const held = app.wouldMiss(ts, hand);
-      if (!held) app.barTap(ts, hand);
+      const held = app.wouldMiss(ts);
+      const r = held ? null : app.barTap(ts);
+      pressed(pointerId, r);
+      // a press that started a hold is never a swipe
+      if (!swipeAllowed(!!app.combat?.holding, r?.outcome)) return;
       const wait = Math.min(app.tuning.swipe.maxMs, app.tuning.judge.maxRewindMs - 20);
-      swipe = { id: pointerId, x: clientX, y: clientY, ts, held, hand, timer: window.setTimeout(resolveSwipeAsTap, Math.max(0, wait)) };
+      swipe = { id: pointerId, x: clientX, y: clientY, ts, held, timer: window.setTimeout(resolveSwipeAsTap, Math.max(0, wait)) };
       return;
     }
-    app.barTap(ts, hand);
+    pressed(pointerId, app.barTap(ts));
+  };
+
+  const lift = (pointerId: number, ts: number) => {
+    if (holdPointer === null || pointerId !== holdPointer) return;
+    holdPointer = null;
+    app.barRelease(ts);
   };
 
   window.addEventListener(
@@ -238,12 +245,14 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
   window.addEventListener('pointerup', (e) => {
     app.audio.unlock();
     if (worldPointer(e, 'up')) return;
+    lift(e.pointerId, e.timeStamp);
     if (!swipe || e.pointerId !== swipe.id) return;
     if (swipeCheck(e)) fireSwipe();
     else resolveSwipeAsTap();
   });
   window.addEventListener('pointercancel', (e) => {
     if (worldPointer(e, 'cancel')) return;
+    lift(e.pointerId, e.timeStamp);
     if (swipe && e.pointerId === swipe.id) resolveSwipeAsTap();
   });
 
@@ -266,14 +275,15 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
   document.addEventListener('contextmenu', block);
   document.addEventListener('selectstart', block);
 
-  // Desktop testing: Space/J/K = tap (Sable: J = cursor A, K = cursor B), F/Up = finisher, P/Esc = pause, ` = tuning panel.
+  // Desktop testing: Space/J/K = tap (held down on a hold block: released on key up), F/Up = finisher, P/Esc = pause,
+  // ` = tuning panel.
   window.addEventListener('keydown', (e) => {
     if (e.repeat || inUi(e.target)) return;
     app.audio.unlock();
     const k = e.key;
     if (k === ' ' || k === 'j' || k === 'k' || k === 'Enter') {
       e.preventDefault();
-      if (app.run.phase === 'fight' && !app.userPaused && !app.awaitingBegin && !app.tipUp) app.barTap(e.timeStamp, k === 'k' ? 1 : 0);
+      if (app.run.phase === 'fight' && !app.userPaused && !app.awaitingBegin && !app.tipUp) pressed(-2, app.barTap(e.timeStamp));
       else down(-1, -1, e.timeStamp, -1);
     } else if (k === 'f' || k === 'ArrowUp') app.finisher();
     else if (k === 'p' || k === 'Escape') {
@@ -281,5 +291,8 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       app.syncClock(performance.now());
       ui.refreshHud();
     } else if (k === '`') ui.togglePanel();
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.key === ' ' || e.key === 'j' || e.key === 'k' || e.key === 'Enter') lift(-2, e.timeStamp);
   });
 }

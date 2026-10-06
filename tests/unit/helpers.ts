@@ -1,4 +1,7 @@
 import { Combat, newHero } from '../../src/core/combat';
+import type { HeroId } from '../../src/data/heroes';
+import type { BarRules } from '../../src/data/types';
+import { defaultBuild } from '../../src/core/heroes';
 import { cloneTuning, DEFAULT_SETTINGS, type Settings, type Tuning } from '../../src/core/tuning';
 
 export interface Setup {
@@ -8,7 +11,9 @@ export interface Setup {
 }
 
 /** A combat with no automatic spawns (and no specials unless asked), no crits and no hit-stop, so tests control every block. */
-export function setup(opts: { enemies?: string[]; tune?: (t: Tuning) => void; settings?: Partial<Settings>; spawning?: boolean; specials?: boolean } = {}): Setup {
+export function setup(
+  opts: { enemies?: string[]; tune?: (t: Tuning) => void; settings?: Partial<Settings>; spawning?: boolean; specials?: boolean; hero?: HeroId; stars?: number; bar?: BarRules; row?: number } = {},
+): Setup {
   const t = cloneTuning();
   t.hero.critChance = 0;
   t.hero.perfectCritBonus = 0;
@@ -34,9 +39,11 @@ export function setup(opts: { enemies?: string[]; tune?: (t: Tuning) => void; se
   t.kill.atk = 0;
   t.kill.maxHp = 0;
   t.kill.comboPower = 0;
+  t.hero.strengthScale = 0; // heroes' soft strengths off unless a test turns them on
   opts.tune?.(t);
   const s: Settings = { ...DEFAULT_SETTINGS, ...opts.settings };
-  const c = new Combat({ tuning: t, settings: s, hero: newHero(t), enemies: opts.enemies ?? ['slime'], seed: 42, spawning: opts.spawning ?? false, specials: opts.specials });
+  const hero = newHero(t, undefined, defaultBuild(opts.hero ?? 'rowan', opts.stars ?? 1));
+  const c = new Combat({ tuning: t, settings: s, hero, enemies: opts.enemies ?? ['slime'], seed: 42, spawning: opts.spawning ?? false, specials: opts.specials, bar: opts.bar, row: opts.row });
   return { c, t, s };
 }
 

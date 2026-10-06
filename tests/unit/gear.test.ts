@@ -79,15 +79,18 @@ describe('stat math', () => {
     expect(hi).toBeCloseTo(T.gear.hp * T.gear.bonusHi * k);
   });
 
-  it("rarities give 0/1/2/3/3/4 bonus stats, all different and never the item's base stat", () => {
+  it("rarities give 0/1/2/3/3/4/4/5 bonus stats, all different and never the item's base stat; Celestial and Divine carry a second effect, Divine an aura", () => {
     const rng = new Rng(7);
     GEAR_RARITIES.forEach((r, i) => {
       for (let k = 0; k < 20; k++) {
         const it = makeItem(rng, BASE_BY_ID.paddedVest, r, 5);
-        expect(it.bonus).toHaveLength([0, 1, 2, 3, 3, 4][i]);
+        expect(it.bonus).toHaveLength([0, 1, 2, 3, 3, 4, 4, 5][i]);
         expect(new Set(it.bonus.map((b) => b.stat)).size).toBe(it.bonus.length);
         expect(it.bonus.some((b) => b.stat === 'hp' || b.stat === 'def')).toBe(false);
-        expect(it.effect !== null).toBe(r === 'legendary' || r === 'mythic');
+        expect(it.effect !== null).toBe(i >= 4);
+        expect(!!it.effect2).toBe(i >= 6);
+        if (it.effect2) expect(it.effect2).not.toBe(it.effect);
+        expect(!!it.aura).toBe(r === 'divine');
       }
     });
   });

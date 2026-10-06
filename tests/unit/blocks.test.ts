@@ -147,6 +147,7 @@ describe('block types', () => {
 
   it('purple: tapping it triggers the enemy special', () => {
     const { c, t } = setup();
+    c.perk.resolve = 1; // Knight's Resolve already spent (this is about a hit breaking the combo)
     c.spawnBlock('purple', 0.5);
     c.combo = 7;
     c.advanceTo(1);

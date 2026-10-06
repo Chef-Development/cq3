@@ -3,21 +3,24 @@
 
 import type { EffectId } from '../data/gear';
 import type { RelicId } from '../data/relics';
-import type { FormationEntry, SpecialDef } from '../data/types';
-import { CODE_KIND, isAttack, isRed, type BlockKind } from './blocks';
+import type { AllyKind } from '../data/heroes';
+import type { BarRules, FormationEntry, SpecialDef, ZoneKind } from '../data/types';
+import { CODE_KIND, isAttack, isRed, untappable, type BlockKind } from './blocks';
 import { AIM_WINDOW_MS, ISOLATION_MS } from './accuracy';
-import { emptyLoadout, hasEffect, setPieces, type Loadout, type StatBlock } from './gear';
+import { emptyLoadout, hasAura, hasEffect, setPieces, type Loadout, type StatBlock } from './gear';
 import { buildBonus, defaultBuild, type HeroBuild } from './heroes';
+import { heroDef } from '../data/heroes';
 import type { BreakCtx, FightHooks, FinisherCtx, HitCtx, MeterSource, MissCtx, PeckCtx } from './hooks';
 import { finisherShowMs } from './impact';
-import { KIT_HOOKS } from './kit-fx';
+import { kitHooks } from './kit-fx';
 import { RELIC_HOOKS } from './relic-fx';
 import { SKILL_HOOKS } from './skill-fx';
+import { STYLE_HOOKS } from './styles';
 import { Rng } from './rng';
 import { fireSpecial, placeEntry } from './specials';
 import type { BlockCode, Settings, Tuning } from './tuning';
 
-export { CODE_KIND, isAttack, isRed, type BlockKind } from './blocks';
+export { CODE_KIND, isAttack, isRed, untappable, type BlockKind } from './blocks';
 
 export const SIM_HZ = 120;
 export const DT = 1 / SIM_HZ;
@@ -38,6 +41,43 @@ export interface Block {
   pushSpeed: number; // bar units per second while pushed
   speed: number; // reds: times the normal travel speed (a Charge is 2)
   heal: number; // spores: share of max HP the enemies heal if it expires unbroken
+  still: boolean; // a red that sits where it landed (an icicle) and strikes when its fuse (impactTimer) runs out
+  grow: number; // reds: widens by this share of its starting width per second (up to x2)
+  baseWidth: number; // the width it spawned at
+  trail: ZoneKind | null; // reds: leaves a patch over the stretch it crossed when it's gone
+  from: number; // where it spawned (a trail starts there)
+  chill: number; // seconds a red stays slowed (Bend, Overgrowth) or pinned (Volley: chillMult 0)
+  chillMult: number;
+}
+
+/** A patch on the bar that changes the cursor's speed inside it: ice speeds it up, snowdrifts and slow patches
+ *  slow it. Patches can overlap (their speeds multiply) and slide (an Aurora's Shimmer). */
+export interface Zone {
+  id: number;
+  kind: ZoneKind | 'slow';
+  lo: number;
+  hi: number;
+  mult: number;
+  life: number; // seconds left (Infinity: until the phase or the fight ends)
+  vel: number; // bar units per second while sliding (bounces off the ends)
+  slide: number; // seconds left sliding
+  phase: number; // 0, or the boss phase it belongs to (gone when the phase changes)
+}
+
+/** A Summoner's ally: what it is, how long it stays, when it acts next. */
+export interface Ally {
+  id: number;
+  kind: AllyKind;
+  left: number;
+  timer: number;
+  braced: boolean; // a Barkback ready to stop the next red
+}
+
+/** A hold block being held: which, the way the cursor crosses it, whether the press was Perfect. */
+export interface Holding {
+  id: number;
+  dir: number;
+  perfect: boolean;
 }
 
 export interface Enemy {
@@ -63,6 +103,9 @@ export interface Enemy {
   wave: number; // the wave it came in with (summons and splits join the wave they appear in)
   member: boolean; // one of its wave's own foes (counted in "foe 3/7"), not a summon or a split
   parent: number; // id of the enemy it split from (0 = none)
+  stun: number; // seconds it stops attacking (Wind-Up)
+  holdEvery: number; // every Nth yellow it sends comes as a hold (0 = none; a boss phase's bar rule)
+  yellows: number; // yellows it has sent (for holdEvery)
 }
 
 /** A special being telegraphed: the enemy winds up for `total` seconds, then the special's actions fire. */
@@ -126,8 +169,14 @@ export function newHero(t: Tuning, gear: Loadout = emptyLoadout(), build: HeroBu
   return h;
 }
 
-/** The hero's base max HP (Rowan's or Sable's), before levels, boosts and gear. */
-export const heroBaseHp = (t: Tuning, h: Hero): number => (h.build?.id === 'sable' ? t.sable.maxHp : t.hero.maxHp);
+/** The hero's base max HP (tuning.hero for Rowan, tuning.kits.<id> for the rest), before levels, boosts and gear. */
+export const heroBaseHp = (t: Tuning, h: Hero): number => kitBase(t, h.build?.id ?? 'rowan').hp;
+
+/** A hero's base HP and attack share (Rowan: tuning.hero.maxHp and 1). */
+export function kitBase(t: Tuning, id: string): { hp: number; atk: number } {
+  const k = (t.kits as Record<string, { hp?: number; atk?: number }>)[id];
+  return { hp: k?.hp ?? t.hero.maxHp, atk: k?.atk ?? 1 };
+}
 
 /** Max HP: the base and levels, kill gains, boosts and gear (the Greenwarden 2-piece's and skills' shares on top). */
 export const heroMaxHp = (t: Tuning, h: Hero): number => {
@@ -139,7 +188,8 @@ export const heroMaxHp = (t: Tuning, h: Hero): number => {
 /** Attack after levels, kill gains, gear, damage boosts and skills. (Sable's hits deal a share of it: kit-fx.ts.) */
 export const heroAtk = (t: Tuning, h: Hero): number => {
   const b = buildBonus(t, h.build);
-  return (t.hero.atk * (1 + b.levelAtk) + h.bonusAtk + (h.gear?.stats.atk ?? 0)) * (1 + h.bonusDmg + b.atkPct);
+  const share = kitBase(t, h.build?.id ?? 'rowan').atk;
+  return (t.hero.atk * share * (1 + b.levelAtk) + h.bonusAtk + (h.gear?.stats.atk ?? 0)) * (1 + h.bonusDmg + b.atkPct);
 };
 
 /** All 10 of the hero's stats as they stand (the stats screen, the HUD and the fight all read them from here). */
@@ -160,15 +210,8 @@ export function heroStats(t: Tuning, h: Hero): StatBlock {
   };
 }
 
-/**
- * The red speed a fight runs at: the act's (1 = normal). Sable's half-speed cursors ride along with a red on the way
- * back, so a faster red costs her far fewer blocks than Rowan; on her bar the act's extra speed is scaled by
- * tuning.sable.actRedSpeed.
- */
-export function redSpeedFor(t: Tuning, hands: number, actRedSpeed: number): number {
-  const r = Math.max(0.1, actRedSpeed);
-  return hands > 1 ? Math.max(0.1, 1 + (r - 1) * t.sable.actRedSpeed) : r;
-}
+/** The red speed a fight runs at: the act's (1 = normal). */
+export const redSpeedFor = (actRedSpeed: number): number => Math.max(0.1, actRedSpeed);
 
 /** Damage a red you didn't block deals, after Defense. */
 export const afterDefense = (t: Tuning, dmg: number, def: number): number => (dmg * t.gear.defScale) / (t.gear.defScale + Math.max(0, def));
@@ -177,7 +220,7 @@ export const afterDefense = (t: Tuning, dmg: number, def: number): number => (dm
 export function killCoins(t: Tuning, h: Hero, key: string): number {
   const base = t.enemies[key]?.coins ?? 0;
   const gear = h.gear ?? emptyLoadout();
-  return Math.round(base * (1 + gear.stats.luck + (hasEffect(gear, 'goldTouch') ? t.effects.goldTouch : 0)));
+  return Math.round(base * (1 + gear.stats.luck + (hasEffect(gear, 'goldTouch') ? t.effects.goldTouch : 0) + (hasAura(gear, 'fortune') ? t.effects.fortune : 0)));
 }
 
 export function tierMult(t: Tuning, combo: number): number {
@@ -200,12 +243,12 @@ export type HurtSource = 'red' | 'bomb' | 'trap' | 'miss' | 'counter' | 'perk';
 export type DamageSource = 'hit' | 'bomb' | 'finisher' | 'pet' | 'perk';
 
 export type CombatEvent =
-  | { type: 'hit'; kind: BlockKind; pos: number; perfect: boolean; crit: boolean; damage: number; enemyId: number; combo: number; hand: number; echo: boolean }
-  | { type: 'block'; kind: BlockKind; pos: number; perfect: boolean; cracked: boolean; ownerId: number; combo: number; knock: number; hand: number; echo: boolean }
+  | { type: 'hit'; kind: BlockKind; pos: number; perfect: boolean; crit: boolean; damage: number; enemyId: number; combo: number; echo: boolean }
+  | { type: 'block'; kind: BlockKind; pos: number; perfect: boolean; cracked: boolean; ownerId: number; combo: number; knock: number; echo: boolean }
   | { type: 'trap'; pos: number; damage: number; enemyId: number }
   | { type: 'counter'; pos: number; damage: number; enemyId: number }
   | { type: 'wardBreak'; pos: number; enemyId: number; left: number; perfect: boolean; combo: number }
-  | { type: 'miss'; pos: number; selfDamage: boolean; hand: number }
+  | { type: 'miss'; pos: number; selfDamage: boolean }
   | { type: 'remove'; id: number; kind: BlockKind; pos: number; width: number; ownerId: number; reason: RemoveReason }
   | { type: 'spawn'; id: number; kind: BlockKind; ownerId: number; special: boolean }
   | { type: 'windup'; enemyId: number }
@@ -239,7 +282,19 @@ export type CombatEvent =
   | { type: 'perk'; id: string; amount: number; enemyId: number; pos?: number }
   | { type: 'coins'; amount: number; id: string } // coins found mid-fight (relics), banked by the run
   | { type: 'morph'; id: number; kind: BlockKind } // a block on the bar changed kind (Chain Reaction: yellow -> green)
-  | { type: 'explode'; pos: number; radius: number }
+  | { type: 'explode'; pos: number; radius: number; own?: boolean } // own: a hero's keg
+  | { type: 'zoneOn'; id: number; kind: Zone['kind']; lo: number; hi: number }
+  | { type: 'zoneOff'; id: number; kind: Zone['kind'] }
+  | { type: 'mark'; pos: number; sec: number } // where an icicle (a still red) will land, and when
+  | { type: 'mirror'; pos: number } // the cursor bounced off a mirror shard
+  | { type: 'dash'; from: number; to: number } // Shadow Dash: the cursor jumped ahead
+  | { type: 'holdStart'; id: number; pos: number; perfect: boolean }
+  | { type: 'holdEnd'; id: number; pos: number; ok: boolean }
+  | { type: 'chip'; id: number; pos: number; left: number } // an iced yellow took a tap (it needs more)
+  | { type: 'freeze'; id: number; pos: number } // a red froze in place (Flash Freeze, Glacier)
+  | { type: 'ally'; kind: AllyKind; action: 'call' | 'act' | 'leave' | 'rally' | 'block'; id: number }
+  | { type: 'stun'; enemyId: number; sec: number }
+  | { type: 'deflect'; pos: number } // a red bounced off the left end (Rampart)
   | { type: 'finisher'; damage: number; combo: number; stacks: number; targets: number[] }
   | { type: 'ability' }
   | { type: 'speedUp'; mult: number }
@@ -253,14 +308,14 @@ export type CombatEvent =
   | { type: 'hitStop'; ms: number }
   | { type: 'cursorReset' };
 
-export type TapOutcome = 'hit' | 'block' | 'crack' | 'trap' | 'counter' | 'ward' | 'miss' | 'none';
+/** 'hold': a hold block was pressed (it completes, or slips, later); 'chip': an iced yellow took a tap. */
+export type TapOutcome = 'hit' | 'block' | 'crack' | 'trap' | 'counter' | 'ward' | 'hold' | 'chip' | 'miss' | 'none';
 
 export interface TapResult {
   outcome: TapOutcome;
   perfect: boolean;
   cursorPos: number;
   blockId: number;
-  hand: number;
 }
 
 export interface Carry {
@@ -298,6 +353,9 @@ export interface CombatOptions {
   /** Coin Rush (the mini-game): seconds on the clock. The fight is won when they run out; every hit knocks coins out
    *  of the foe (tuning.rush), misses don't hurt, and only the hero's kit is in play (no relics or skills). */
   rush?: number;
+  /** The act's bar rules (patches, holds) and the map row the fight is on (each rule starts from a row). */
+  bar?: BarRules;
+  row?: number;
 }
 
 /** What happened in a fight, for the side quests (core/quests.ts). */
@@ -382,18 +440,20 @@ export class Combat {
   log: FightLog = { blocks: 0, bestCombo: 0, breaks: 0, cleanWaves: 0, kills: 0 };
   /** Breaks when the current wave came in (a wave cleared with none since is clean). */
   private waveBreaks = 0;
-  /** Cursors on the bar: 1 (Rowan; the Blade family) or 2 (Sable; the Twin family: one per half). */
-  readonly hands: number;
-  /** The hand of the last attack hit (-1 = none yet): Ambidextrous and the alternating skills read it. */
-  lastHand = -1;
-  /** Attack hits in a row that alternated hands, this chain's first hit included (L R L = 3; a hit with the same
-   *  hand as the one before starts a new chain at 1; a miss or a combo break ends it at 0). Echoes don't count. */
-  altStreak = 0;
-  /** The attack hit being resolved right now (comboGain and meter hooks read whether it alternated), or null. */
+  /** The attack hit being resolved right now (comboGain and meter hooks read whether it was Perfect), or null. */
   hitNow: HitCtx | null = null;
-  /** The sim time the tap being judged right now happened at (NaN outside a tap): perks that act under the other
-   *  cursor (Shadow Step, Cross Guard) and Double Down read it. */
+  /** The sim time the tap being judged right now happened at (NaN outside a tap). */
   tapAt = NaN;
+  /** Patches on the bar (ice, snowdrifts, slow patches). */
+  zones: Zone[] = [];
+  /** The hold block being held (null: none). */
+  holding: Holding | null = null;
+  /** A Summoner's allies on the field. */
+  allies: Ally[] = [];
+  /** The act's bar rules and the map row (patches and holds start from a row). */
+  readonly bar: BarRules | null;
+  readonly row: number;
+  private barTimers: Record<string, number> = {};
 
   private nextId = 1;
   private refillTimer = 0;
@@ -412,16 +472,19 @@ export class Combat {
     this.settings = o.settings;
     this.hero = o.hero;
     const build = o.hero.build ?? defaultBuild();
-    this.hands = build.id === 'sable' ? 2 : 1;
     this.rush = Math.max(0, o.rush ?? 0);
-    // (Coin Rush is pure aim: the hero's kit only)
-    this.hooks = (this.rush ? [KIT_HOOKS[build.id]] : [KIT_HOOKS[build.id], ...build.skills.map((id) => SKILL_HOOKS[id]), ...(o.hero.relics ?? []).map((id) => RELIC_HOOKS[id])]).filter((h): h is FightHooks => !!h);
+    // the hero's style rule, then their kit (signature, ability, passive, finisher, stars, strengths), skills, relics
+    // (Coin Rush is pure aim: the style and kit only)
+    const kit = [STYLE_HOOKS[heroDef(build.id).style], ...kitHooks(build)];
+    this.hooks = (this.rush ? kit : [...kit, ...build.skills.map((id) => SKILL_HOOKS[id]), ...(o.hero.relics ?? []).map((id) => RELIC_HOOKS[id])]).filter((h): h is FightHooks => !!h);
+    this.bar = o.bar ?? null;
+    this.row = Math.max(0, o.row ?? 0);
     this.spawning = o.spawning ?? true;
     this.specialsOn = o.specials ?? this.spawning;
     this.hpMult = o.hpMult ?? 1;
     this.atkMult = o.atkMult ?? 1;
     this.pace = o.pace ?? 1;
-    this.redSpeed = redSpeedFor(o.tuning, this.hands, o.redSpeed ?? 1);
+    this.redSpeed = redSpeedFor(o.redSpeed ?? 1);
     this.spawnRng = new Rng(o.seed);
     this.critRng = new Rng(o.seed ^ 0x5bd1e995);
     this.combo = o.carry?.combo ?? 0;
@@ -490,6 +553,15 @@ export class Combat {
   /** Whether a perk (relic, skill node or kit) is in play. */
   hasPerk(id: string): boolean {
     return (this.hero.relics ?? []).includes(id as RelicId) || (this.hero.build?.skills ?? []).includes(id) || this.hero.build?.id === id;
+  }
+
+  /** The fighting hero's id, and their stars (1-5). */
+  get heroId(): string {
+    return this.hero.build?.id ?? 'rowan';
+  }
+
+  get stars(): number {
+    return Math.max(1, this.hero.build?.stars ?? 1);
   }
 
   /** A perk kicked in: the view names it (and shows the amount). */
@@ -562,16 +634,16 @@ export class Combat {
     this.damageEnemy(e, d, crit, 'perk');
   }
 
-  /** A perk hits a yellow/green on the bar as if it were tapped (Shadow Step, Blast Wave). */
-  perkHit(b: Block, hand: number, perfect = false): void {
-    if (!this.blocks.includes(b) || !isAttack(b.kind) || this.result) return;
-    this.hitAttack(b, perfect, hand, true);
+  /** A perk hits a yellow/green on the bar as if it were tapped (Blast Wave). Never a hold. */
+  perkHit(b: Block, perfect = false): void {
+    if (!this.blocks.includes(b) || !isAttack(b.kind) || b.kind === 'hold' || this.result) return;
+    this.hitAttack(b, perfect, true);
   }
 
-  /** A perk blocks a red on the bar as if it were tapped (Night Watch, Cross Guard). */
-  perkBlock(b: Block, hand: number): void {
+  /** A perk blocks a red on the bar as if it were tapped (Night Watch, an afterimage). */
+  perkBlock(b: Block): void {
     if (!this.blocks.includes(b) || !isRed(b.kind) || this.result) return;
-    this.blockRed(b, false, hand, true);
+    this.blockRed(b, false, true);
   }
 
   /** A bomb blows up on the enemies without being tapped (Short Fuse). */
@@ -598,42 +670,19 @@ export class Combat {
   }
 
   /** Fill the meter for a perk, as if from `source` (Wingman: a peck fills it like a hit). */
-  fillMeter(x: number, source: MeterSource = 'perk', hand = 0): void {
-    this.addMeter(x, source, hand);
+  fillMeter(x: number, source: MeterSource = 'perk'): void {
+    this.addMeter(x, source);
   }
 
   /** A perk counts a yellow/green a bomb's blast already took off the bar as a hit of yours (Blast Wave). */
-  perkHitCleared(b: Block, hand = 0): void {
-    if (this.blocks.includes(b) || !isAttack(b.kind) || this.result) return;
-    this.hitAttack(b, false, hand, true);
+  perkHitCleared(b: Block): void {
+    if (this.blocks.includes(b) || !isAttack(b.kind) || b.kind === 'hold' || this.result) return;
+    this.hitAttack(b, false, true);
   }
 
   /** Living foes, front first. */
   aliveFoes(): Enemy[] {
     return this.enemies.filter((e) => e.alive).sort((a, b) => a.slot - b.slot);
-  }
-
-  /** The bar's range for a cursor: [0, 1] for one cursor; Sable's A sweeps [0, 0.5] and B [0.5, 1]. */
-  handRange(hand: number): [number, number] {
-    if (this.hands < 2) return [0, 1];
-    return hand <= 0 ? [0, 0.5] : [0.5, 1];
-  }
-
-  /** How much of the bar a cursor sweeps (1 for one cursor, 0.5 for each of Sable's): each half is a small bar of
-   *  its own, so the cursor's width, the edge margins and the gaps between static blocks scale with it. */
-  handSpan(hand = 0): number {
-    const [lo, hi] = this.handRange(hand);
-    return hi - lo;
-  }
-
-  /** Which cursor a bar position belongs to. */
-  handOf(pos: number): number {
-    return this.hands < 2 ? 0 : pos < 0.5 ? 0 : 1;
-  }
-
-  /** The other cursor (Sable); Rowan's only one is its own other. */
-  otherHand(hand: number): number {
-    return this.hands < 2 ? 0 : hand > 0 ? 0 : 1;
   }
 
   /** A fresh enemy of kind `key` (scaled by this fight's HP and attack multipliers). */
@@ -664,6 +713,9 @@ export class Combat {
       wave: this.waveIndex,
       member: false,
       parent: 0,
+      stun: 0,
+      holdEvery: 0,
+      yellows: 0,
     };
   }
 
@@ -697,23 +749,61 @@ export class Combat {
     const c = this.tuning.cursor;
     // Steady (gear) slows how fast the cursor speeds up with the combo
     const steady = Math.min(this.tuning.gear.steadyCap, Math.max(0, this.hero.gear?.stats.steady ?? 0));
-    const m = (1 + c.speedPerHit * (1 - steady) * this.combo) * (1 + c.speedBlockBonus * this.speedStacks);
+    // a Divine item's Stillness aura: the combo speeds the cursor up less
+    const still = hasAura(this.hero.gear, 'stillness') ? 1 - this.tuning.effects.stillness : 1;
+    const m = (1 + c.speedPerHit * (1 - steady) * still * this.combo) * (1 + c.speedBlockBonus * this.speedStacks);
     return Math.max(this.minSpeed, Math.min(c.maxSpeedMult, m));
   }
 
-  /** Cursor speed in passes per second (one pass = 1 unit of phase; for Rowan, bar-widths per second). Both of
-   *  Sable's cursors run at this many passes of their own half (barSpeed gives bar units per second). */
+  /** Cursor speed in passes per second (one pass = 1 unit of phase = one bar width), before patches on the bar.
+   *  Perks may change it (Chill slows it). */
   cursorSpeed(): number {
-    return this.speedMult() / this.tuning.cursor.basePassSec;
+    return (this.speedMult() / this.tuning.cursor.basePassSec) * this.mod(1, (h, v) => h.cursorMult?.(this, v));
   }
 
-  /** Cursor `hand`'s speed in bar units per second right now (Sable's cursors cover half a bar per pass). */
-  barSpeed(hand = 0): number {
-    return this.cursorSpeed() * this.handSpan(hand);
+  /** The cursor's speed in bar units per second right now (patches included). */
+  barSpeed(): number {
+    return this.cursorSpeed() * this.zoneMultAt(this.cursorPos());
+  }
+
+  /** How patches change the cursor's speed at `pos` (1 = none; overlapping patches multiply). */
+  zoneMultAt(pos: number): number {
+    let m = 1;
+    for (const z of this.zones) if (pos >= z.lo && pos <= z.hi) m *= this.zoneMult(z);
+    return m;
+  }
+
+  /** A patch's speed multiplier as this hero feels it (Neve: ice bothers her half as much). */
+  zoneMult(z: Zone): number {
+    return Math.max(0.1, this.mod(z.mult, (h, v) => h.zoneMult?.(this, z, v)));
+  }
+
+  /** Where the cursor is now (0..1). */
+  cursorPos(): number {
+    return phaseToPos(this.cursorPhase);
+  }
+
+  /** Seconds the cursor takes to get from `from` to `to` moving `dir` (no wall turns), at today's speed, through the
+   *  patches on the way. The bot and Shadow Dash use it to time blocks on ice and in snowdrifts. */
+  travelTime(from: number, to: number, dir = this.cursorDirAt(this.time)): number {
+    const v = this.cursorSpeed();
+    if (v <= 0) return Infinity;
+    const d = (to - from) * dir;
+    if (d <= 0) return 0;
+    const lo = Math.min(from, to);
+    const hi = Math.max(from, to);
+    if (!this.zones.length) return d / v;
+    // split the stretch at every patch edge inside it; each piece runs at the speed of its middle
+    const cuts = [lo, hi];
+    for (const z of this.zones) for (const e of [z.lo, z.hi]) if (e > lo && e < hi) cuts.push(e);
+    cuts.sort((a, b) => a - b);
+    let t = 0;
+    for (let i = 0; i < cuts.length - 1; i++) t += (cuts[i + 1] - cuts[i]) / (v * this.zoneMultAt((cuts[i] + cuts[i + 1]) / 2));
+    return t;
   }
 
   private phaseVelNow(): number {
-    return this.hitStop > 0 || this.result || this.cursorHold > 0 || this.freeze > 0 ? 0 : this.cursorSpeed();
+    return this.hitStop > 0 || this.result || this.cursorHold > 0 || this.freeze > 0 ? 0 : this.cursorSpeed() * this.zoneMultAt(this.cursorPos());
   }
 
   private motionVelNow(): number {
@@ -748,18 +838,12 @@ export class Combat {
     return this.hPhase[i] + this.hPhaseVel[i] * Math.max(0, t - this.hT[i]);
   }
 
-  /**
-   * Where cursor `hand` is at sim time t, as a position on the whole bar (0..1). Sable's two cursors share one phase
-   * (one speed, one finisher stop, one freeze): A sweeps [0, 0.5] and B [0.5, 1] side by side, always half a bar
-   * apart, both moving right from the left end of their half, then both back.
-   */
-  cursorPosAt(t: number, hand = 0): number {
-    if (this.hands < 2) return phaseToPos(this.phaseAt(t));
-    const [lo, hi] = this.handRange(hand);
-    return lo + (hi - lo) * phaseToPos(this.phaseAt(t));
+  /** Where the cursor is at sim time t (0..1). */
+  cursorPosAt(t: number): number {
+    return phaseToPos(this.phaseAt(t));
   }
 
-  /** The cursor's direction at sim time t: 1 = moving right, -1 = left (both of Sable's cursors move together). */
+  /** The cursor's direction at sim time t: 1 = moving right, -1 = left. */
   cursorDirAt(t: number): number {
     return ((this.phaseAt(t) % 2) + 2) % 2 < 1 ? 1 : -1;
   }
@@ -811,8 +895,13 @@ export class Combat {
         this.freeze = 0;
         this.events.push({ type: 'thaw' });
       }
-    } else this.cursorPhase += this.cursorSpeed() * DT;
+    } else this.moveCursor();
+    if (this.holding) this.updateHold();
     if (this.hero.abilityTimer > 0) this.hero.abilityTimer = Math.max(0, this.hero.abilityTimer - DT);
+    this.updateZones();
+    if (this.bar && !this.rush) this.updateBarRules();
+    if (hasAura(this.hero.gear, 'sanctuary') && this.tick % Math.max(1, Math.round(this.tuning.effects.sanctuarySec * SIM_HZ)) === 0)
+      this.healPerk(this.maxHp() * this.tuning.effects.sanctuaryHeal, 'sanctuary');
     if (this.tuskTimer > 0 && (this.tuskTimer -= DT) <= 1e-9) {
       this.tuskTimer = 0;
       this.tuskCrit = 0;
@@ -826,6 +915,200 @@ export class Combat {
     if (this.specialsOn && !this.result) this.updateSpecials();
     if (this.spawning && !this.result) this.updateSpawners();
     this.record();
+  }
+
+  // ---------------------------------------------------------------- the bar: patches, mirrors, holds, dashes
+
+  /** The cursor moves one tick, at its speed times the patch it's in; a mirror shard it reaches bounces it back. */
+  private moveCursor(): void {
+    const before = this.cursorPos();
+    const dir = this.cursorDirAt(this.time);
+    this.cursorPhase += this.cursorSpeed() * this.zoneMultAt(before) * DT;
+    const after = this.cursorPos();
+    if (this.cursorDirAt(this.time + DT) !== dir) return; // it turned at a wall this tick
+    for (const m of this.blocks) {
+      if (m.kind !== 'mirror') continue;
+      if ((m.pos - before) * dir > 1e-9 && (after - m.pos) * dir >= -1e-9) {
+        this.setCursor(m.pos, -dir);
+        this.events.push({ type: 'mirror', pos: m.pos });
+        break;
+      }
+    }
+  }
+
+  /** Put the cursor at `pos` moving `dir` (a mirror's bounce, a dash). */
+  setCursor(pos: number, dir: number): void {
+    const p = Math.max(0, Math.min(1, pos));
+    const q = ((this.cursorPhase % 2) + 2) % 2;
+    const base = this.cursorPhase - q;
+    this.cursorPhase = base + (dir > 0 ? p : 2 - p);
+  }
+
+  /** Shadow Dash: the cursor jumps ahead to `pos` (same direction). */
+  dashTo(pos: number): void {
+    const from = this.cursorPos();
+    this.setCursor(pos, this.cursorDirAt(this.time));
+    this.events.push({ type: 'dash', from, to: this.cursorPos() });
+  }
+
+  /** Lay a patch on the bar centred at `center` (clamped to the bar). Returns it. */
+  addZone(kind: Zone['kind'], center: number, width: number, life: number, phase = 0): Zone {
+    const B = this.tuning.bar;
+    const w = Math.max(0.02, Math.min(1, width));
+    const c = Math.max(w / 2, Math.min(1 - w / 2, center));
+    const mult = kind === 'ice' ? B.iceMult : kind === 'snow' ? B.snowMult : B.slowMult;
+    const z: Zone = { id: this.nextId++, kind, lo: c - w / 2, hi: c + w / 2, mult, life: life > 0 ? life : Infinity, vel: 0, slide: 0, phase };
+    this.zones.push(z);
+    this.events.push({ type: 'zoneOn', id: z.id, kind, lo: z.lo, hi: z.hi });
+    return z;
+  }
+
+  removeZone(z: Zone): void {
+    const i = this.zones.indexOf(z);
+    if (i < 0) return;
+    this.zones.splice(i, 1);
+    this.events.push({ type: 'zoneOff', id: z.id, kind: z.kind });
+  }
+
+  /** Where the cursor is heading: a little ahead of it, the way it's moving (patches and marks laid "ahead"). */
+  aheadPos(dist = this.tuning.bar.ahead): number {
+    const p = this.cursorPos();
+    const dir = this.cursorDirAt(this.time);
+    let q = p + dir * dist;
+    if (q > 0.92) q = Math.max(0.08, 2 * 0.92 - q);
+    if (q < 0.08) q = Math.min(0.92, 2 * 0.08 - q);
+    return q;
+  }
+
+  /** Patches run out; sliding ones move (and bounce off the ends). */
+  private updateZones(): void {
+    for (const z of this.zones.slice()) {
+      if (z.slide > 0) {
+        z.slide -= DT;
+        let d = z.vel * DT;
+        if (z.hi + d > 1 || z.lo + d < 0) {
+          z.vel = -z.vel;
+          d = -d;
+        }
+        z.lo += d;
+        z.hi += d;
+      }
+      if (z.life !== Infinity && (z.life -= DT) <= 1e-9) this.removeZone(z);
+    }
+  }
+
+  /** Every patch on the bar slides for `sec` seconds (an Aurora's Shimmer). */
+  shiftZones(speed: number, sec: number): void {
+    for (const z of this.zones) {
+      z.vel = (this.rand() < 0.5 ? -1 : 1) * Math.abs(speed);
+      z.slide = Math.max(z.slide, sec);
+    }
+  }
+
+  /** The act's bar rules: patches come and go from their map row on. */
+  private updateBarRules(): void {
+    const bar = this.bar!;
+    for (const kind of ['ice', 'snow'] as const) {
+      const r = bar[kind];
+      if (!r || this.row < r.fromRow || r.every <= 0) continue;
+      const left = (this.barTimers[kind] ?? r.every * 0.5) - DT;
+      this.barTimers[kind] = left;
+      if (left > 0) continue;
+      this.barTimers[kind] = r.every;
+      if (this.zones.filter((z) => z.kind === kind && z.phase === 0).length >= r.max) continue;
+      this.addZone(kind, this.freeZoneSpot(r.width), r.width, r.life);
+    }
+  }
+
+  /** A patch centre that overlaps the others as little as it can (a few tries). */
+  freeZoneSpot(w: number): number {
+    let best = 0.5;
+    let bestOver = Infinity;
+    for (let k = 0; k < 6; k++) {
+      const c = this.rand() * (1 - w - 0.16) + 0.08 + w / 2;
+      let over = 0;
+      for (const z of this.zones) over += Math.max(0, Math.min(z.hi, c + w / 2) - Math.max(z.lo, c - w / 2));
+      if (over < bestOver) (best = c), (bestOver = over);
+      if (over <= 0) break;
+    }
+    return best;
+  }
+
+  /** Whether a yellow from this owner should come as a hold (the act's share, or a boss phase's every-Nth rule). */
+  private wantsHold(ownerId: number): boolean {
+    const e = this.enemyById(ownerId);
+    if (e?.holdEvery) {
+      e.yellows++;
+      if (e.yellows % e.holdEvery === 0) return true;
+    }
+    const h = this.bar?.holds;
+    return !!h && this.row >= h.fromRow && this.spawnRng.next() < h.share;
+  }
+
+  /** The hold being held: done once the cursor is past its far end; a turn before then (a wall, a mirror) lets go. */
+  private updateHold(): void {
+    const H = this.holding!;
+    const b = this.blocks.find((x) => x.id === H.id);
+    if (!b) {
+      this.holding = null;
+      return;
+    }
+    if (this.cursorHold > 0 || this.hitStop > 0) return;
+    const p = this.cursorPos();
+    const exit = b.pos + (H.dir * b.width) / 2;
+    if ((p - exit) * H.dir >= 0) return this.endHold(b, true);
+    if (this.cursorDirAt(this.time) !== H.dir) {
+      // turned back inside it: held long enough counts, else it slips
+      const done = (p - (b.pos - (H.dir * b.width) / 2)) * H.dir;
+      this.endHold(b, done >= b.width * this.tuning.hold.turnDone);
+    }
+  }
+
+  /** The finger came off: a hold let go before its far end (beyond a small grace) is a miss. */
+  release(t: number): void {
+    const H = this.holding;
+    if (!H || this.result) return;
+    const b = this.blocks.find((x) => x.id === H.id);
+    if (!b) {
+      this.holding = null;
+      return;
+    }
+    const tt = this.clampTap(t);
+    const p = this.cursorPosAt(tt);
+    const exit = b.pos + (H.dir * b.width) / 2;
+    const left = (exit - p) * H.dir; // bar units still to go
+    const v = Math.max(1e-6, this.speedAtTime(tt));
+    this.endHold(b, (left / v) * 1000 <= this.tuning.hold.releaseGraceMs);
+  }
+
+  private endHold(b: Block, ok: boolean): void {
+    const H = this.holding!;
+    this.holding = null;
+    this.events.push({ type: 'holdEnd', id: b.id, pos: b.pos, ok });
+    if (ok) {
+      this.hitAttack(b, H.perfect);
+      return;
+    }
+    this.removeBlock(b, 'expire');
+    this.miss(b.pos);
+  }
+
+  /** A press on a hold block: on (or just before) its near edge starts the hold; a press deep inside it is a miss. */
+  private pressHold(b: Block, t: number): TapOutcome {
+    const tt = this.clampTap(t);
+    const dir = this.cursorDirAt(tt);
+    const p = this.cursorPosAt(tt);
+    const entry = b.pos - (dir * b.width) / 2;
+    const v = Math.max(1e-6, this.speedAtTime(tt));
+    const lateMs = (((p - entry) * dir) / v) * 1000;
+    if (lateMs > this.tuning.hold.lateMs) {
+      this.miss(p);
+      return 'miss';
+    }
+    const perfect = Math.abs(lateMs) <= this.tuning.hold.perfectMs;
+    this.holding = { id: b.id, dir, perfect };
+    this.events.push({ type: 'holdStart', id: b.id, pos: b.pos, perfect });
+    return 'hold';
   }
 
   // ---------------------------------------------------------------- specials
@@ -892,7 +1175,7 @@ export class Combat {
     }
     if (this.tellCooldown > 0) this.tellCooldown = Math.max(0, this.tellCooldown - DT);
     for (const e of this.enemies) {
-      if (!e.alive) continue;
+      if (!e.alive || e.stun > 0) continue;
       const sps = this.specialsOf(e);
       for (let i = 0; i < sps.length; i++) {
         const sp = sps[i];
@@ -1039,7 +1322,13 @@ export class Combat {
     for (const b of this.blocks.slice()) {
       if (this.result) return;
       if (!this.blocks.includes(b)) continue; // gone mid-loop (a blast that reached the hero, a revive)
-      if (isRed(b.kind)) {
+      if (isRed(b.kind) && b.still) {
+        // an icicle: sits where it landed until blocked, or its fuse runs out
+        b.impactTimer -= DT;
+        if (b.impactTimer <= 1e-9) this.impact(b);
+      } else if (isRed(b.kind)) {
+        if (b.grow > 0 && b.width < b.baseWidth * 2) b.width = Math.min(b.baseWidth * 2, b.width + b.baseWidth * b.grow * DT);
+        if (b.chill > 0) b.chill = Math.max(0, b.chill - DT);
         const half = b.width / 2;
         if (b.push > 0) {
           // Pushed back (finisher or shield knockback): slide right, then resume the normal leftward travel.
@@ -1049,12 +1338,16 @@ export class Combat {
           b.pos = Math.min(1 - half, b.pos + d);
           b.vel = b.push > 0 ? b.pushSpeed : this.redVel(b.width, b.speed);
         } else if (b.impactTimer < 0) {
-          b.vel = this.redVel(b.width, b.speed);
+          b.vel = this.redVel(b.width, b.speed) * (b.chill > 0 ? b.chillMult : 1);
           b.pos += b.vel * DT;
           if (b.pos <= half) {
             b.pos = half;
             b.vel = 0;
-            b.impactTimer = B.impactGraceMs / 1000;
+            if (this.claim((h) => h.atWall?.(this, b))) {
+              // the left end is walled (Rampart): it bounces back across the bar
+              this.events.push({ type: 'deflect', pos: b.pos });
+              this.knockBack(b, 1, B.knockbackSec * 3);
+            } else b.impactTimer = B.impactGraceMs / 1000;
           }
         } else {
           b.impactTimer -= DT;
@@ -1101,10 +1394,16 @@ export class Combat {
     if (this.refillTimer <= 0) {
       const attacks = this.blocks.reduce((n, b) => n + (isAttack(b.kind) ? 1 : 0), 0);
       const front = this.frontEnemy();
-      if (front && attacks < B.minAttack && this.trySpawn('yellow', front.id)) this.refillTimer = 0.12;
+      const min = Math.round(this.mod(B.minAttack, (h, v) => h.minAttack?.(this, v)));
+      if (front && attacks < min && this.trySpawn('yellow', front.id)) this.refillTimer = 0.12;
     }
     for (const e of this.enemies) {
       if (!e.alive || this.telegraph?.enemyId === e.id) continue; // busy winding up a special
+      if (e.stun > 0) {
+        // stunned (Wind-Up): no attacks until it shakes it off
+        e.stun = Math.max(0, e.stun - DT);
+        continue;
+      }
       e.spawnTimer -= DT;
       if (e.spawnTimer > 0) continue;
       const def = this.tuning.enemies[e.key];
@@ -1119,7 +1418,9 @@ export class Combat {
       }
       if (this.trySpawn(kind, e.id)) {
         e.seq++;
-        e.spawnTimer = Math.max(e.spawnTimer, 0) + def.interval * B.spawnRateMult * groupMult * this.pace;
+        // perks can space out the static blocks (Heavy: fewer, wider yellows)
+        const gap = isRed(kind) ? 1 : this.mod(1, (h, v) => h.staticGap?.(this, v));
+        e.spawnTimer = Math.max(e.spawnTimer, 0) + def.interval * B.spawnRateMult * groupMult * this.pace * gap;
       } else if (isRed(kind)) {
         e.spawnTimer = 0.1; // spawn point busy or too many reds: retry shortly
       } else {
@@ -1133,9 +1434,11 @@ export class Combat {
   trySpawn(kind: BlockKind, ownerId: number): boolean {
     const B = this.tuning.blocks;
     for (const h of this.hooks) if (h.spawnKind) kind = h.spawnKind(this, kind, ownerId);
+    if (kind === 'yellow' && this.wantsHold(ownerId)) kind = 'hold';
     // blocks come in varied widths: some small, some big, for every kind
     const [vLo, vHi] = isRed(kind) ? [B.redWidthMin, B.redWidthMax] : [B.widthMin, B.widthMax];
-    const w = this.widthFor(kind) * this.spawnRng.range(Math.min(vLo, vHi), Math.max(vLo, vHi));
+    const w0 = this.widthFor(kind) * (kind === 'hold' ? 1 : this.spawnRng.range(Math.min(vLo, vHi), Math.max(vLo, vHi)));
+    const w = this.mod(w0, (h, v) => h.blockWidth?.(this, kind, v));
     if (isRed(kind)) {
       const reds = this.blocks.filter((b) => isRed(b.kind));
       if (reds.length >= B.maxRed) return false;
@@ -1152,15 +1455,10 @@ export class Combat {
     return true;
   }
 
-  /**
-   * A random spot (block center) where a static block of width w fits without touching the others, or null.
-   * Sable's bar: inside one half, never straddling the middle (each half keeps its own edge margins, scaled to the
-   * half); the half with fewer yellows and greens gets it, so both thumbs stay busy (a coin flip when even).
-   */
+  /** A random spot (block center) where a static block of width w fits without touching the others, or null. */
   freeSpot(w: number, tries = 16): number | null {
     const B = this.tuning.blocks;
-    const statics = this.blocks.filter((b) => !isRed(b.kind));
-    if (this.hands > 1) return this.freeSpotTwin(statics, w, tries);
+    const statics = this.blocks.filter((b) => !isRed(b.kind) || b.still);
     const lo = B.edgeMargin + w / 2;
     const hi = 1 - B.edgeMargin - w / 2;
     if (hi < lo) return null;
@@ -1171,42 +1469,12 @@ export class Combat {
     return null;
   }
 
-  private freeSpotTwin(statics: Block[], w: number, tries: number): number | null {
-    const B = this.tuning.blocks;
-    const span = this.handSpan(0);
-    const margin = B.edgeMargin * span;
-    const gap = B.minGap * span;
-    const count = (h: number) => statics.reduce((n, s) => n + (isAttack(s.kind) && this.handOf(s.pos) === h ? 1 : 0), 0);
-    const c0 = count(0);
-    const c1 = count(1);
-    const first = c0 === c1 ? (this.spawnRng.next() < 0.5 ? 0 : 1) : c0 < c1 ? 0 : 1;
-    for (const h of [first, 1 - first]) {
-      const [a, b] = this.handRange(h);
-      const lo = a + margin + w / 2;
-      const hi = b - margin - w / 2;
-      if (hi < lo) continue;
-      for (let k = 0; k < tries; k++) {
-        const p = this.spawnRng.range(lo, hi);
-        if (statics.every((s) => Math.abs(s.pos - p) >= (s.width + w) / 2 + gap)) return p;
-      }
-    }
-    return null;
-  }
-
-  /** Sable's bar: a static block centred at `pos` moved (if it has to be) to sit wholly inside the half its centre is
-   *  in, clear of the middle (specials place some by position: beside a yellow, or at a set spot). */
-  private inHalf(pos: number, w: number): number {
-    const m = this.tuning.blocks.edgeMargin * this.handSpan(0) * 0.5;
-    return this.handOf(pos) === 0 ? Math.min(0.5 - m - w / 2, pos) : Math.max(0.5 + m + w / 2, pos);
-  }
-
-  /** A kind's base width (spawns vary around it, see trySpawn). Sable's bar: x tuning.sable.widthMult (statics) or
-   *  redWidthMult (reds), so her half-speed cursors cross a block in about the time Rowan's does. */
+  /** A kind's base width (spawns vary around it, see trySpawn). */
   widthFor(kind: BlockKind): number {
     const B = this.tuning.blocks;
-    const w = isRed(kind) ? B.redWidth : kind === 'purple' ? B.trapWidth : kind === 'green' ? B.greenWidth : B.attackWidth;
-    if (this.hands < 2) return w;
-    return w * (isRed(kind) ? this.tuning.sable.redWidthMult : this.tuning.sable.widthMult);
+    if (kind === 'hold') return this.tuning.hold.width;
+    if (kind === 'mirror') return 0.012;
+    return isRed(kind) ? B.redWidth : kind === 'purple' ? B.trapWidth : kind === 'green' ? B.greenWidth : B.attackWidth;
   }
 
   /** Queue a formation block to land after `delay` seconds (motion time). */
@@ -1220,26 +1488,33 @@ export class Combat {
     pos: number,
     ownerId: number = this.enemies[0]?.id ?? 0,
     width = this.widthFor(kind),
-    o: { speed?: number; taps?: number; life?: number; heal?: number; special?: boolean } = {},
+    o: { speed?: number; taps?: number; life?: number; heal?: number; special?: boolean; still?: boolean; fuse?: number; grow?: number; trail?: ZoneKind } = {},
   ): Block {
     const B = this.tuning.blocks;
     const speed = o.speed ?? 1;
-    if (this.hands > 1 && !isRed(kind)) pos = this.inHalf(pos, width);
+    const still = !!o.still && isRed(kind);
     const b: Block = {
       id: this.nextId++,
       kind,
       ownerId,
       pos: Math.min(1 - width / 2, Math.max(width / 2, pos)),
       width,
-      vel: isRed(kind) ? this.redVel(width, speed) : 0,
+      vel: isRed(kind) && !still ? this.redVel(width, speed) : 0,
       taps: o.taps ?? (kind === 'shield' ? Math.max(1, Math.round(B.shieldHits)) : 1),
       bornAt: this.time,
-      life: o.life ?? (kind === 'purple' ? B.trapLifeSec : isAttack(kind) && B.attackLifeSec > 0 ? B.attackLifeSec : Infinity),
-      impactTimer: -1,
+      life: o.life ?? (kind === 'purple' ? B.trapLifeSec : kind === 'frozen' ? B.frozenLifeSec : isAttack(kind) && B.attackLifeSec > 0 ? B.attackLifeSec : Infinity),
+      impactTimer: still ? Math.max(0.1, o.fuse ?? 1.5) : -1,
       push: 0,
       pushSpeed: 0,
       speed,
       heal: o.heal ?? 0,
+      still,
+      grow: o.grow ?? 0,
+      baseWidth: width,
+      trail: o.trail ?? null,
+      from: Math.min(1 - width / 2, Math.max(width / 2, pos)),
+      chill: 0,
+      chillMult: 1,
     };
     for (const h of this.hooks) h.spawned?.(this, b);
     this.blocks.push(b);
@@ -1252,7 +1527,39 @@ export class Combat {
     const i = this.blocks.indexOf(b);
     if (i < 0) return;
     this.blocks.splice(i, 1);
+    if (this.holding?.id === b.id) this.holding = null;
     this.events.push({ type: 'remove', id: b.id, kind: b.kind, pos: b.pos, width: b.width, ownerId: b.ownerId, reason });
+    // a red with a trail leaves a patch over the stretch it crossed
+    if (b.trail && Math.abs(b.from - b.pos) > 0.04) this.addZone(b.trail, (b.from + b.pos) / 2, Math.abs(b.from - b.pos), this.tuning.bar.trailLife);
+  }
+
+  /** Freeze a red in place: it becomes a frozen block that sits still until hit (it shatters) or it melts. */
+  freezeRed(b: Block): Block | null {
+    if (!isRed(b.kind)) return null;
+    const pos = b.pos;
+    const w = Math.max(b.width, this.tuning.blocks.attackWidth);
+    if (this.blocks.includes(b)) this.removeBlock(b, 'perk');
+    const f = this.spawnBlock('frozen', pos, b.ownerId, w);
+    this.events.push({ type: 'freeze', id: f.id, pos: f.pos });
+    return f;
+  }
+
+  /** Slow a red for `sec` (mult 0: pinned in place). */
+  chillRed(b: Block, sec: number, mult: number): void {
+    if (!isRed(b.kind) || b.still) return;
+    b.chill = Math.max(b.chill, sec);
+    b.chillMult = Math.min(b.chill > 0 && b.chillMult < 1 ? b.chillMult : 1, Math.max(0, mult));
+  }
+
+  /** Stun a foe: it stops attacking for `sec`. */
+  stun(e: Enemy, sec: number): void {
+    if (!e.alive || sec <= 0) return;
+    e.stun = Math.max(e.stun, sec);
+    if (this.telegraph?.enemyId === e.id) {
+      this.telegraph = null;
+      this.events.push({ type: 'tellCancel', enemyId: e.id });
+    }
+    this.events.push({ type: 'stun', enemyId: e.id, sec });
   }
 
   // ---------------------------------------------------------------- input
@@ -1261,34 +1568,43 @@ export class Combat {
    * Judge a bar tap that happened at sim time `t` (already corrected by calibration).
    * Positions are rewound to `t`; effects apply to the current state.
    */
-  tap(t: number, hand = 0): TapResult {
-    hand = this.hands < 2 ? 0 : hand > 0 ? 1 : 0;
-    const none: TapResult = { outcome: 'none', perfect: false, cursorPos: 0, blockId: 0, hand };
-    if (this.result || this.cursorHold > 0) return none; // taps don't count while the finisher has the cursors stopped
+  tap(t: number): TapResult {
+    const none: TapResult = { outcome: 'none', perfect: false, cursorPos: 0, blockId: 0 };
+    if (this.result || this.cursorHold > 0) return none; // taps don't count while the finisher has the cursor stopped
     this.tapAt = this.clampTap(t);
     try {
-      return this.judge(t, hand);
+      return this.judge(t);
     } finally {
       this.tapAt = NaN;
     }
   }
 
-  private judge(t: number, hand: number): TapResult {
+  private judge(t: number): TapResult {
     const J = this.tuning.judge;
-    const { chosen, d, cpos } = this.pick(t, hand);
-    this.recordAim(t, chosen, cpos, hand);
+    const { chosen, d, cpos } = this.pick(t);
+    this.recordAim(t, chosen, cpos);
     if (!chosen) {
-      this.miss(cpos, hand);
-      return { outcome: 'miss', perfect: false, cursorPos: cpos, blockId: 0, hand };
+      this.miss(cpos);
+      return { outcome: 'miss', perfect: false, cursorPos: cpos, blockId: 0 };
     }
     const perfect = d <= (J.perfectFrac * chosen.width) / 2;
     let outcome: TapOutcome;
     if (chosen.kind === 'purple') outcome = this.triggerTrap(chosen);
-    else if (isRed(chosen.kind)) outcome = this.blockRed(chosen, perfect, hand);
+    else if (isRed(chosen.kind)) outcome = this.blockRed(chosen, perfect);
     else if (chosen.kind === 'yellow' && this.guarder()) outcome = this.counter(chosen);
-    else if (chosen.kind === 'ward') outcome = this.breakWard(chosen, perfect, hand);
-    else outcome = this.hitAttack(chosen, perfect, hand);
-    return { outcome, perfect: outcome === 'trap' || outcome === 'counter' ? false : perfect, cursorPos: cpos, blockId: chosen.id, hand };
+    else if (chosen.kind === 'ward') outcome = this.breakWard(chosen, perfect);
+    else if (chosen.kind === 'hold') outcome = this.pressHold(chosen, t);
+    else if (chosen.taps > 1 && isAttack(chosen.kind)) outcome = this.chip(chosen);
+    else outcome = this.hitAttack(chosen, perfect);
+    const p = outcome === 'trap' || outcome === 'counter' || outcome === 'miss' ? false : outcome === 'hold' ? !!this.holding?.perfect : perfect;
+    return { outcome, perfect: p, cursorPos: cpos, blockId: chosen.id };
+  }
+
+  /** An iced yellow takes a tap: its coat cracks (it needs `taps` in all); the combo holds, nothing else happens. */
+  private chip(b: Block): TapOutcome {
+    b.taps--;
+    this.events.push({ type: 'chip', id: b.id, pos: b.pos, left: b.taps });
+    return 'chip';
   }
 
   /** A tap's time as the judge uses it: no further back than maxRewindMs, no later than the next tick. */
@@ -1302,30 +1618,27 @@ export class Combat {
    * comes first, even over a nearer block, so a tap never hits a yellow while an attack it overlaps gets through;
    * then the nearest other block; a purple trap only if nothing else is there.
    */
-  private pick(t: number, hand = 0): { chosen: Block | null; d: number; cpos: number } {
-    const r = this.reach(t, hand);
+  private pick(t: number): { chosen: Block | null; d: number; cpos: number } {
+    const r = this.reach(t);
     if (r.red) return { chosen: r.red, d: r.redD, cpos: r.cpos };
     if (r.best) return { chosen: r.best, d: r.bestD, cpos: r.cpos };
     return { chosen: r.trap, d: r.trapD, cpos: r.cpos };
   }
 
   /**
-   * What cursor `hand` reaches at time t (rewound like a tap): the nearest attack (red, shield, bomb, speed), the
-   * nearest other block (and the nearest yellow/green among those), the nearest trap. Sable's cursors reach the
-   * static blocks of their own half only; a red is fair game for whichever cursor it is under.
+   * What the cursor reaches at time t (rewound like a tap): the nearest attack (red, shield, bomb, speed), the nearest
+   * other block (and the nearest yellow/green among those), the nearest trap. Never a mirror, nor the hold being held.
    */
-  private reach(t: number, hand: number) {
+  private reach(t: number) {
     const J = this.tuning.judge;
     t = this.clampTap(t);
     const phase = this.phaseAt(t);
-    const cpos = this.cursorPosAt(t, hand);
+    const cpos = this.cursorPosAt(t);
     // the grace is a time window: it scales with the speed the cursor and the block close at (a red racing at
     // the cursor gets as many milliseconds as a still yellow; never less space than the cursor's own speed gives)
-    const span = this.handSpan(hand);
-    const v = this.speedAtTime(t) * span;
+    const v = this.speedAtTime(t);
     const vSigned = ((phase % 2) + 2) % 2 < 1 ? v : -v;
-    const cursorHalf = (this.tuning.cursor.widthFrac * span) / 2;
-    const twin = this.hands > 1;
+    const cursorHalf = this.tuning.cursor.widthFrac / 2;
     let red: Block | null = null;
     let redD = Infinity;
     let best: Block | null = null;
@@ -1335,10 +1648,21 @@ export class Combat {
     let trap: Block | null = null;
     let trapD = Infinity;
     for (const b of this.blocks) {
-      if (b.bornAt > t + 1e-9) continue;
-      if (twin && !isRed(b.kind) && this.handOf(b.pos) !== hand) continue;
+      if (b.bornAt > t + 1e-9 || untappable(b.kind) || b.id === this.holding?.id) continue;
       const d = Math.abs(cpos - this.blockPosAt(b, t));
       const graceDist = Math.max(v, Math.abs(vSigned - b.vel)) * ((isRed(b.kind) ? J.redGraceMs : J.graceMs) / 1000);
+      // a hold is pressed at its near edge: it's in reach from just before that edge, and a little way in
+      if (b.kind === 'hold') {
+        const dir = vSigned >= 0 ? 1 : -1;
+        const edge = b.pos - (dir * b.width) / 2;
+        const into = (cpos - edge) * dir;
+        const lateMax = v * (this.tuning.hold.lateMs / 1000) * 2;
+        if (into < -(cursorHalf + graceDist) || into > b.width) continue;
+        const dd = into <= lateMax ? Math.abs(into) : b.width;
+        if (dd < bestD) (best = b), (bestD = dd);
+        if (dd < attackD) (attack = b), (attackD = dd);
+        continue;
+      }
       if (d > b.width / 2 + cursorHalf + graceDist) continue;
       if (isRed(b.kind)) {
         if (d < redD) (red = b), (redD = d);
@@ -1352,83 +1676,69 @@ export class Combat {
     return { cpos, red, redD, best, bestD, attack, trap, trapD };
   }
 
-  /**
-   * The red and the yellow/green under cursor `hand` at time t (default: the tap being judged, else now), by the
-   * judge's reach; never a trap. Perks that strike under the other cursor use it (Shadow Step, Cross Guard).
-   */
-  underCursor(hand: number, t = Number.isNaN(this.tapAt) ? this.time : this.tapAt): { red: Block | null; attack: Block | null } {
-    const r = this.reach(t, this.hands < 2 ? 0 : hand > 0 ? 1 : 0);
+  /** The red and the yellow/green under the cursor at time t (default: the tap being judged, else now), by the
+   *  judge's reach; never a trap. */
+  underCursor(t = Number.isNaN(this.tapAt) ? this.time : this.tapAt): { red: Block | null; attack: Block | null } {
+    const r = this.reach(t);
     return { red: r.red, attack: r.attack };
   }
 
   /**
    * The tap's timing error against the yellow block it was aimed at (the one it hit, or for a miss the nearest
-   * block if that's a yellow): ms after (+) or before (-) the cursor crossed the block's center. Sable: against
-   * the cursor of the hand that tapped, among the blocks that cursor can reach.
+   * block if that's a yellow): ms after (+) or before (-) the cursor crossed the block's center.
    */
-  private recordAim(t: number, chosen: Block | null, cpos: number, hand = 0): void {
+  private recordAim(t: number, chosen: Block | null, cpos: number): void {
     t = this.clampTap(t);
-    const v = this.speedAtTime(t) * this.handSpan(hand);
+    const v = this.speedAtTime(t);
     if (v <= 0 || this.freeze > 0) return;
-    // where a block stands as this cursor sees it: Sable's two halves laid over each other (the cursors run side by
-    // side, half a bar apart), so the readout picks clear-cut samples from as busy a bar as Rowan's
-    const twin = this.hands > 1;
-    const seen = (b: Block) => {
-      const p = this.blockPosAt(b, t);
-      return !twin || this.handOf(p) === hand ? p : p + (hand > 0 ? 0.5 : -0.5);
-    };
     let target: Block | null = chosen;
     if (!target) {
       let best = Infinity;
       for (const b of this.blocks) {
         if (b.bornAt > t + 1e-9) continue;
-        const dd = Math.abs(cpos - seen(b));
+        const dd = Math.abs(cpos - this.blockPosAt(b, t));
         if (dd < best) (best = dd), (target = b);
       }
     }
-    if (!target || target.kind !== 'yellow' || (twin && this.handOf(target.pos) !== hand)) return;
+    if (!target || target.kind !== 'yellow') return;
     const phase = ((this.phaseAt(t) % 2) + 2) % 2;
     const dir = phase < 1 ? 1 : -1;
     const err = ((cpos - this.blockPosAt(target, t)) * dir) / v;
-    // only clear-cut samples: a yellow with no other block (or wall turn) near it, so the tap can't have been
-    // meant for something else
+    // only clear-cut samples: a yellow with no other block (or wall turn, or patch) near it, so the tap can't have
+    // been meant for something else
     const tp = this.blockPosAt(target, t);
-    const [lo, hi] = this.handRange(hand);
-    if ((Math.min(tp - lo, hi - tp) / v) * 1000 < ISOLATION_MS) return;
-    for (const b of this.blocks) if (b !== target && b.bornAt <= t + 1e-9 && (Math.abs(seen(b) - tp) / v) * 1000 < ISOLATION_MS) return;
+    if ((Math.min(tp, 1 - tp) / v) * 1000 < ISOLATION_MS) return;
+    if (this.zones.some((z) => tp >= z.lo - 0.05 && tp <= z.hi + 0.05)) return;
+    for (const b of this.blocks) if (b !== target && b.bornAt <= t + 1e-9 && (Math.abs(this.blockPosAt(b, t) - tp) / v) * 1000 < ISOLATION_MS) return;
     if (Math.abs(err) * 1000 <= AIM_WINDOW_MS) this.aims.push(Math.round(err * 1000));
   }
 
   /** Whether a tap at time t would land on nothing (lets input hold back a would-be miss that may be a swipe). */
-  wouldMiss(t: number, hand = 0): boolean {
-    return !this.result && this.cursorHold <= 0 && !this.pick(t, this.hands < 2 ? 0 : hand > 0 ? 1 : 0).chosen;
+  wouldMiss(t: number): boolean {
+    return !this.result && this.cursorHold <= 0 && !this.pick(t).chosen;
   }
 
-  /** Cursor speed (passes/s, as cursorSpeed; x handSpan for bar units/s) that was in effect at time t. */
-  private speedAtTime(t: number): number {
-    if (t >= this.time) return this.cursorSpeed();
+  /** The cursor's speed (bar units/s, patches included) that was in effect at time t. */
+  speedAtTime(t: number): number {
+    if (t >= this.time) return this.phaseVelNow() || this.cursorSpeed() * this.zoneMultAt(this.cursorPos());
     const i = this.histIndex(t);
     return this.hPhaseVel[i] || this.cursorSpeed();
   }
 
-  private hitAttack(b: Block, perfect: boolean, hand = 0, echo = false): TapOutcome {
+  private hitAttack(b: Block, perfect: boolean, echo = false): TapOutcome {
     const T = this.tuning;
     const H = this.hero;
     const st = heroStats(T, H);
     this.removeBlock(b, 'hit');
     const green = b.kind === 'green';
-    const alternated = this.hands > 1 && !echo && this.lastHand >= 0 && this.lastHand !== hand;
-    if (!echo) {
-      this.lastHand = hand;
-      if (this.hands > 1) this.altStreak = alternated ? this.altStreak + 1 : 1;
-    }
     const target = this.currentTarget();
-    const x: HitCtx = { block: b, hand, perfect, green, target, crit: false, damage: 0, alternated, echo };
+    const x: HitCtx = { block: b, perfect, green, target, crit: false, damage: 0, echo };
     const outer = this.hitNow; // an echo resolves inside the hit that caused it
     this.hitNow = x;
-    this.comboUp('hit', perfect, hand);
-    this.addMeter((green ? T.meter.perGreen : T.meter.perHit) + (perfect ? T.meter.perfectBonus : 0), green ? 'green' : 'hit', hand);
-    let mult = green ? T.hero.greenMult : 1;
+    this.comboUp('hit', perfect);
+    this.addMeter((green ? T.meter.perGreen : T.meter.perHit) + (perfect ? T.meter.perfectBonus : 0), green ? 'green' : 'hit');
+    // a completed hold and a shattered frozen block hit harder
+    let mult = green ? T.hero.greenMult : b.kind === 'hold' ? T.hold.mult : b.kind === 'frozen' ? T.blocks.frozenMult : 1;
     if (this.settings.comboTiers) mult *= tierMult(T, this.combo);
     const critChance = this.mod(st.critChance + (perfect ? T.hero.perfectCritBonus : 0) + this.tuskCrit, (h, v) => h.critChance?.(this, x, v));
     let crit = this.critRng.next() < critChance;
@@ -1443,7 +1753,7 @@ export class Combat {
     mult = this.mod(mult, (h, v) => h.hitMult?.(this, x, v));
     const damage = Math.max(1, Math.round(st.atk * mult));
     x.damage = damage;
-    this.events.push({ type: 'hit', kind: b.kind, pos: b.pos, perfect, crit, damage, enemyId: target?.id ?? 0, combo: this.combo, hand, echo });
+    this.events.push({ type: 'hit', kind: b.kind, pos: b.pos, perfect, crit, damage, enemyId: target?.id ?? 0, combo: this.combo, echo });
     if (this.rush) this.rushPay(this.rushHitCoins(perfect));
     if (crit && this.has('leech')) this.healHero(this.tuning.effects.leechHp, 'leech');
     if (green) {
@@ -1452,6 +1762,7 @@ export class Combat {
     }
     if (crit) this.startHitStop();
     if (target) this.damageEnemy(target, damage, crit, 'hit');
+    if (b.kind === 'keg') this.kegBlast(b);
     if (!echo) this.companionTick();
     this.pendulumTick();
     for (const h of this.hooks) h.afterHit?.(this, x);
@@ -1459,21 +1770,46 @@ export class Combat {
     return 'hit';
   }
 
-  /** How long the green ability lasts (Rowan's Battle Focus, Sable's Shadow Step). */
-  abilitySec(): number {
-    return this.hands > 1 ? this.tuning.sable.shadowSec : this.tuning.hero.abilitySec;
+  /** A keg goes off: it blasts every foe and knocks the reds near it off the bar; with Chain Fuse, kegs near it go
+   *  off too. */
+  kegBlast(keg: Block): void {
+    const T = this.tuning;
+    const r = this.mod(T.styles.kegRadius, (h, v) => h.kegRadius?.(this, v));
+    this.events.push({ type: 'explode', pos: keg.pos, radius: r, own: true });
+    const chained: Block[] = [];
+    for (const o of this.blocks.slice()) {
+      if (Math.abs(o.pos - keg.pos) > r) continue;
+      if (isRed(o.kind)) {
+        this.removeBlock(o, 'bomb');
+        this.log.blocks++;
+      } else if (o.kind === 'purple') this.removeBlock(o, 'bomb');
+      else if (o.kind === 'keg' && this.perk.chainFuse) chained.push(o);
+    }
+    const dmg = Math.max(1, Math.round(heroAtk(T, this.hero) * T.styles.kegMult));
+    for (const e of this.enemies) if (e.alive) this.damageEnemy(e, dmg, false, 'bomb');
+    for (const k of chained) {
+      if (!this.blocks.includes(k)) continue;
+      this.removeBlock(k, 'bomb');
+      this.kegBlast(k);
+    }
   }
 
-  /** Start the green ability without a green hit (Whirling Blades starts Shadow Step). */
+  /** How long the green ability lasts (the hero's kit: tuning.hero.abilitySec for Rowan, tuning.kits.<id>.abilitySec). */
+  abilitySec(): number {
+    const k = (this.tuning.kits as Record<string, { abilitySec?: number }>)[this.heroId];
+    return k?.abilitySec ?? this.tuning.hero.abilitySec;
+  }
+
+  /** Start the green ability without a green hit. */
   startAbility(): void {
     this.hero.abilityTimer = Math.max(this.hero.abilityTimer, this.abilitySec());
     this.events.push({ type: 'ability' });
   }
 
   /** The combo goes up (normally by 1; perks may change that), and perks that watch it hear about it. */
-  private comboUp(from: 'hit' | 'block' | 'ward', perfect: boolean, hand: number): void {
+  private comboUp(from: 'hit' | 'block' | 'ward', perfect: boolean): void {
     const before = this.combo;
-    const n = Math.max(0, Math.round(this.mod(1, (h, v) => h.comboGain?.(this, from, perfect, hand, v))));
+    const n = Math.max(0, Math.round(this.mod(1, (h, v) => h.comboGain?.(this, from, perfect, v))));
     this.combo += n;
     this.log.bestCombo = Math.max(this.log.bestCombo, this.combo);
     if (this.combo > before) for (const h of this.hooks) h.combo?.(this, before, this.combo);
@@ -1501,23 +1837,24 @@ export class Combat {
     if (front && this.trySpawn('green', front.id)) this.events.push({ type: 'gearFx', fx: 'pendulum', amount: 0, enemyId: 0 });
   }
 
-  private blockRed(b: Block, perfect: boolean, hand = 0, echo = false): TapOutcome {
+  private blockRed(b: Block, perfect: boolean, echo = false): TapOutcome {
     const T = this.tuning;
     const owner = this.enemyById(b.ownerId);
-    this.comboUp('block', perfect, hand);
-    this.addMeter(T.meter.perBlock + (perfect ? T.meter.perfectBonus : 0), 'block', hand);
+    this.comboUp('block', perfect);
+    this.addMeter(T.meter.perBlock + (perfect ? T.meter.perfectBonus : 0), 'block');
     if (this.has('golemheart')) this.healHero(T.effects.golemHeal, 'golemheart');
     if (b.taps > 1) {
       b.taps--;
-      const knock = this.knockBack(b, T.blocks.shieldKnockback, T.blocks.knockbackSec);
-      this.events.push({ type: 'block', kind: b.kind, pos: b.pos, perfect, cracked: true, ownerId: b.ownerId, combo: this.combo, knock, hand, echo });
+      // a still red (an ice wall) takes its taps where it stands; a travelling shield is knocked back
+      const knock = b.still ? 0 : this.knockBack(b, T.blocks.shieldKnockback, T.blocks.knockbackSec);
+      this.events.push({ type: 'block', kind: b.kind, pos: b.pos, perfect, cracked: true, ownerId: b.ownerId, combo: this.combo, knock, echo });
       this.pendulumTick();
-      for (const h of this.hooks) h.afterBlock?.(this, { block: b, hand, perfect, cracked: true, owner, echo });
+      for (const h of this.hooks) h.afterBlock?.(this, { block: b, perfect, cracked: true, owner, echo });
       return 'crack';
     }
     this.removeBlock(b, 'hit');
     this.log.blocks++;
-    this.events.push({ type: 'block', kind: b.kind, pos: b.pos, perfect, cracked: false, ownerId: b.ownerId, combo: this.combo, knock: 0, hand, echo });
+    this.events.push({ type: 'block', kind: b.kind, pos: b.pos, perfect, cracked: false, ownerId: b.ownerId, combo: this.combo, knock: 0, echo });
     this.pendulumTick();
     if (owner?.alive && this.has('riposte') && b.kind !== 'bomb') {
       // Riposte: the blocked blow goes back at its owner
@@ -1530,7 +1867,7 @@ export class Combat {
       this.events.push({ type: 'speedUp', mult: this.speedMult() });
     }
     if (b.kind === 'bomb') this.explode(b);
-    for (const h of this.hooks) h.afterBlock?.(this, { block: b, hand, perfect, cracked: false, owner, echo });
+    for (const h of this.hooks) h.afterBlock?.(this, { block: b, perfect, cracked: false, owner, echo });
     return 'block';
   }
 
@@ -1594,11 +1931,11 @@ export class Combat {
   }
 
   /** A shell block broken: counts toward the combo; when the last one goes, the shell is off. */
-  private breakWard(b: Block, perfect: boolean, hand = 0): TapOutcome {
+  private breakWard(b: Block, perfect: boolean): TapOutcome {
     const T = this.tuning;
     this.removeBlock(b, 'hit');
-    this.comboUp('ward', perfect, hand);
-    this.addMeter(T.meter.perHit + (perfect ? T.meter.perfectBonus : 0), 'ward', hand);
+    this.comboUp('ward', perfect);
+    this.addMeter(T.meter.perHit + (perfect ? T.meter.perfectBonus : 0), 'ward');
     const left = this.blocks.filter((x) => x.kind === 'ward' && x.ownerId === b.ownerId).length;
     this.events.push({ type: 'wardBreak', pos: b.pos, enemyId: b.ownerId, left, perfect, combo: this.combo });
     const owner = this.enemyById(b.ownerId);
@@ -1616,21 +1953,20 @@ export class Combat {
     return 'trap';
   }
 
-  private miss(pos: number, hand = 0): void {
-    this.altStreak = 0;
+  private miss(pos: number): void {
     if (!this.missForgiven && setPieces(this.hero.gear, 'footpad') >= 2) {
       // Footpad set: the fight's first miss doesn't break the combo (or hurt)
       this.missForgiven = true;
-      this.events.push({ type: 'miss', pos, selfDamage: false, hand });
+      this.events.push({ type: 'miss', pos, selfDamage: false });
       this.events.push({ type: 'gearFx', fx: 'footpad', amount: 0, enemyId: 0 });
       return;
     }
     const classic = this.settings.mode === 'classic';
-    const x: MissCtx = { hand, damage: classic && !this.rush ? this.tuning.judge.missSelfDamage : 0, breaks: true };
+    const x: MissCtx = { damage: classic && !this.rush ? this.tuning.judge.missSelfDamage : 0, breaks: true };
     for (const h of this.hooks) h.miss?.(this, x);
-    this.events.push({ type: 'miss', pos, selfDamage: x.damage > 0, hand });
+    this.events.push({ type: 'miss', pos, selfDamage: x.damage > 0 });
     if (x.damage > 0) this.heroDamage(x.damage, 'miss', 0, !x.breaks);
-    else if (x.breaks) this.breakCombo();
+    else if (x.breaks) this.breakCombo('miss');
   }
 
   /** Damage the finisher would deal right now (0 if no stacks are banked). */
@@ -1648,11 +1984,13 @@ export class Combat {
     if (!this.finisherReady) return false;
     const combo = this.combo;
     const stacks = this.stacks;
-    const x: FinisherCtx = { stacks, combo, damage: this.finisherDamage(stacks), targets: this.enemies.filter((e) => e.alive), killed: 0, keepCombo: false };
+    const x: FinisherCtx = { stacks, combo, damage: this.finisherDamage(stacks), targets: this.enemies.filter((e) => e.alive), killed: 0, keepCombo: false, reds: 'clear' };
     const dmg = Math.round(x.damage * this.mod(1, (h, v) => h.finisher?.(this, x, v)));
     x.damage = dmg;
-    // Every red block on the bar is knocked off it; the enemies keep attacking on their normal schedule.
-    for (const b of this.blocks.slice()) if (isRed(b.kind)) this.removeBlock(b, 'finisher');
+    // Every red block on the bar is knocked off it (or the kit keeps them: frozen, pinned; or clears everything); the
+    // enemies keep attacking on their normal schedule.
+    for (const b of this.blocks.slice())
+      if (x.reds === 'all' ? b.kind !== 'mirror' : isRed(b.kind) && x.reds === 'clear') this.removeBlock(b, 'finisher');
     this.meter = 0;
     this.stacks = 0;
     if (!x.keepCombo) {
@@ -1693,7 +2031,8 @@ export class Combat {
   }
 
   get finisherReady(): boolean {
-    return this.stacks >= 1 && !this.result && this.enemies.some((e) => e.alive); // not between waves: it would hit nobody
+    // not between waves (it would hit nobody), and never while a hold is held (a hold is not a swipe)
+    return this.stacks >= 1 && !this.result && !this.holding && this.enemies.some((e) => e.alive);
   }
 
   // ---------------------------------------------------------------- targeting
@@ -1726,9 +2065,9 @@ export class Combat {
   // ---------------------------------------------------------------- damage
 
   /** Fill the meter; every time it fills, bank a stack (up to meter.maxStacks; the last one stays full). */
-  private addMeter(x: number, source: MeterSource = 'perk', hand = 0): void {
+  private addMeter(x: number, source: MeterSource = 'perk'): void {
     const max = this.maxStacks();
-    x = this.mod(x, (h, v) => h.meter?.(this, source, v, hand));
+    x = this.mod(x, (h, v) => h.meter?.(this, source, v));
     if (this.stacks >= max) {
       this.meter = 1;
       return;
@@ -1750,9 +2089,9 @@ export class Combat {
   }
 
   /** A miss or a hit taken breaks the combo and loses every banked stack and the meter (perks may keep some). */
-  private breakCombo(): void {
+  private breakCombo(cause: BreakCtx['cause']): void {
     this.log.breaks++;
-    const x: BreakCtx = { combo: this.combo, stacks: this.stacks, meter: this.meter, keepCombo: 0, keepStacks: 0, keepMeter: 0 };
+    const x: BreakCtx = { combo: this.combo, stacks: this.stacks, meter: this.meter, keepCombo: 0, keepStacks: 0, keepMeter: 0, cause };
     for (const h of this.hooks) h.comboBreak?.(this, x);
     const combo = Math.max(0, Math.min(this.combo, Math.round(x.keepCombo)));
     const stacks = Math.max(0, Math.min(this.stacks, Math.round(x.keepStacks)));
@@ -1761,7 +2100,6 @@ export class Combat {
     this.combo = combo;
     this.meter = stacks >= this.maxStacks() ? 1 : meter;
     this.stacks = stacks;
-    this.altStreak = 0;
   }
 
   private heroDamage(amount: number, source: HurtSource, enemyId: number, keepCombo = false, perk?: string): void {
@@ -1772,7 +2110,7 @@ export class Combat {
     const dmg = this.settings.godMode ? 0 : Math.max(0, Math.round(hooked));
     H.hp = Math.max(0, H.hp - dmg);
     if (!keepCombo) {
-      this.breakCombo();
+      this.breakCombo(source === 'miss' ? 'miss' : source === 'perk' ? 'perk' : 'hurt');
       this.speedStacks = 0;
     }
     this.events.push({ type: 'heroHurt', damage: dmg, source, enemyId, perk });
@@ -1815,9 +2153,10 @@ export class Combat {
 
   /** Damage after shells (attack hits) and summon protection. */
   damageTaken(e: Enemy, dmg: number, source: DamageSource): number {
-    let mult = 1;
+    let mult = hasAura(this.hero.gear, 'radiance') ? 1 + this.tuning.effects.radiance : 1;
     if (source === 'hit' && e.shell < 1) mult *= e.shell;
     if (e.protect < 1 && this.summonsAlive(e.id)) mult *= e.protect;
+    mult = this.mod(mult, (h, v) => h.damageTaken?.(this, e, source, v));
     return mult === 1 ? dmg : Math.max(1, Math.round(dmg * mult));
   }
 

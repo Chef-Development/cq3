@@ -94,7 +94,7 @@ export class TipsView {
       case 'fight': {
         const c = run.combat;
         if (!c || c.result) return false;
-        if (app.awaitingBegin) return !s.overlays.twinTutorial();
+        if (app.awaitingBegin) return true;
         // the fight is running, and no finisher show is playing out
         return app.active() && s.fighters.superFinalAt <= s.anim && s.fighters.h.state !== 'super';
       }

@@ -6,6 +6,7 @@
 // where in their range they rolled (0..1), so the values follow the tuning.
 
 import {
+  AURA_IDS,
   BASE_BY_ID,
   BASE_ITEMS,
   GEAR_RARITIES,
@@ -16,6 +17,7 @@ import {
   STAT_IDS,
   STAT_INFO,
   type BaseItem,
+  type AuraId,
   type EffectId,
   type GearRarity,
   type SetId,
@@ -39,6 +41,10 @@ export interface Item {
   plus: number; // forge level
   bonus: BonusRoll[];
   effect: EffectId | null;
+  /** Celestial and Divine: a second unique effect (never the same as the first). */
+  effect2?: EffectId | null;
+  /** Divine: an aura, a rule for the whole fight. */
+  aura?: AuraId | null;
   locked: boolean; // kept out of "salvage all" (and salvage)
   fresh: boolean; // not looked at in the bag yet
   rerolls: number; // bonus rerolls bought on this item (each one costs double)
@@ -54,9 +60,11 @@ export interface Loadout {
   stats: StatBlock;
   effects: EffectId[];
   sets: Partial<Record<SetId, number>>;
+  /** Divine items' auras (missing = none). */
+  auras?: AuraId[];
 }
 
-export const emptyLoadout = (): Loadout => ({ stats: zeroStats(), effects: [], sets: {} });
+export const emptyLoadout = (): Loadout => ({ stats: zeroStats(), effects: [], sets: {}, auras: [] });
 
 export const rarityIndex = (r: GearRarity): number => GEAR_RARITIES.indexOf(r);
 
@@ -68,7 +76,7 @@ export const statAmount = (t: Tuning, s: StatId): number => G(t)[s];
 /** How much bigger a rarity's base stat is than a Common's. */
 export function rarityMult(t: Tuning, r: GearRarity): number {
   const g = G(t);
-  return [g.rCommon, g.rUncommon, g.rRare, g.rEpic, g.rLegendary, g.rMythic][rarityIndex(r)] ?? 1;
+  return [g.rCommon, g.rUncommon, g.rRare, g.rEpic, g.rLegendary, g.rMythic, g.rCelestial, g.rDivine][rarityIndex(r)] ?? 1;
 }
 
 /** Stats grow with item level. */
@@ -119,7 +127,8 @@ export function statPower(t: Tuning, s: StatBlock): number {
 
 /** An item's power: its stats, plus a unique effect's worth. */
 export function itemPower(t: Tuning, item: Item): number {
-  return Math.round(statPower(t, itemStats(t, item)) + (item.effect ? 12 * levelMult(t, item.ilvl) : 0));
+  const fx = (item.effect ? 1 : 0) + (item.effect2 ? 1 : 0) + (item.aura ? 1.5 : 0);
+  return Math.round(statPower(t, itemStats(t, item)) + fx * 12 * levelMult(t, item.ilvl));
 }
 
 /** Add up the equipped items. */
@@ -128,7 +137,8 @@ export function loadoutOf(t: Tuning, items: Item[]): Loadout {
   for (const it of items) {
     const s = itemStats(t, it);
     for (const id of STAT_IDS) L.stats[id] += s[id];
-    if (it.effect && !L.effects.includes(it.effect)) L.effects.push(it.effect);
+    for (const e of [it.effect, it.effect2]) if (e && !L.effects.includes(e)) L.effects.push(e);
+    if (it.aura && !L.auras!.includes(it.aura)) L.auras!.push(it.aura);
     const set = baseOf(it)?.set;
     if (set) L.sets[set] = (L.sets[set] ?? 0) + 1;
   }
@@ -136,6 +146,7 @@ export function loadoutOf(t: Tuning, items: Item[]): Loadout {
 }
 
 export const hasEffect = (L: Loadout | undefined, e: EffectId): boolean => !!L && L.effects.includes(e);
+export const hasAura = (L: Loadout | undefined, a: AuraId): boolean => !!L && (L.auras ?? []).includes(a);
 export const setPieces = (L: Loadout | undefined, s: SetId): number => L?.sets[s] ?? 0;
 
 /** A stat value as the UI prints it ("+12", "+4.5%", "x0.15"). */
@@ -178,14 +189,15 @@ export const statShows = (stat: StatId, v: number): boolean => Math.abs(v) >= (S
 /** The item level of drops in act `act` (0-based) on map row `row`. */
 export function itemLevel(t: Tuning, act: number, row: number): number {
   const g = G(t);
-  const base = [g.ilvlAct1, g.ilvlAct2, g.ilvlAct3][Math.max(0, Math.min(2, act))];
+  // Region 1's acts have their own levels; later acts climb ilvlPerAct per act from Act 3's
+  const base = act <= 2 ? [g.ilvlAct1, g.ilvlAct2, g.ilvlAct3][Math.max(0, act)] : g.ilvlAct3 + (act - 2) * g.ilvlPerAct;
   return Math.max(1, Math.round(base + Math.max(0, row) * g.ilvlPerRow));
 }
 
 /** Rarity weights, common first, shifted toward the rare end by Luck. */
 export function rarityWeights(t: Tuning, luck: number): number[] {
   const g = G(t);
-  const w = [g.wCommon, g.wUncommon, g.wRare, g.wEpic, g.wLegendary, g.wMythic];
+  const w = [g.wCommon, g.wUncommon, g.wRare, g.wEpic, g.wLegendary, g.wMythic, g.wCelestial, g.wDivine];
   return w.map((x, i) => Math.max(0, x) * (1 + Math.max(0, luck) * g.luckShift * i));
 }
 
@@ -213,8 +225,16 @@ function rollBonus(rng: Rng, base: BaseItem, n: number): BonusRoll[] {
 
 /** A new item (uid 0: the profile numbers it). */
 export function makeItem(rng: Rng, base: BaseItem, rarity: GearRarity, ilvl: number): Item {
-  const effect = base.signature ? base.signature.effect : rarity === 'legendary' || rarity === 'mythic' ? GENERAL_EFFECTS[rng.int(GENERAL_EFFECTS.length)] : null;
-  return { uid: 0, base: base.id, rarity, ilvl, plus: 0, bonus: rollBonus(rng, base, RARITY_INFO[rarity].bonus), effect, locked: false, fresh: true, rerolls: 0, found: 0 };
+  const info = RARITY_INFO[rarity];
+  const effect = base.signature ? base.signature.effect : info.effects >= 1 ? GENERAL_EFFECTS[rng.int(GENERAL_EFFECTS.length)] : null;
+  const item: Item = { uid: 0, base: base.id, rarity, ilvl, plus: 0, bonus: rollBonus(rng, base, info.bonus), effect, locked: false, fresh: true, rerolls: 0, found: 0 };
+  if (info.effects >= 2) {
+    // Celestial and Divine: a second, different effect
+    const pool = GENERAL_EFFECTS.filter((e) => e !== effect);
+    item.effect2 = pool[rng.int(pool.length)];
+  }
+  if (info.aura) item.aura = AURA_IDS[rng.int(AURA_IDS.length)];
+  return item;
 }
 
 /** A random drop for act `act`: a slot, a base that can drop there, a rarity (shifted by Luck), its bonus stats. */
@@ -306,7 +326,7 @@ export function rollSignatures(rng: Rng, t: Tuning, boss: string, ilvl: number, 
 
 function costMult(t: Tuning, r: GearRarity): number {
   const f = t.forge;
-  return [f.costCommon, f.costUncommon, f.costRare, f.costEpic, f.costLegendary, f.costMythic][rarityIndex(r)] ?? 1;
+  return [f.costCommon, f.costUncommon, f.costRare, f.costEpic, f.costLegendary, f.costMythic, f.costCelestial, f.costDivine][rarityIndex(r)] ?? 1;
 }
 
 /** What upgrading the item one more level costs (null at the max). */
@@ -323,7 +343,7 @@ export const rerollCost = (t: Tuning, item: Item): number => Math.round(t.forge.
 /** Scrap the item salvages into: by rarity and level, plus half the scrap its upgrades cost. */
 export function salvageValue(t: Tuning, item: Item): number {
   const f = t.forge;
-  const base = [f.scrapCommon, f.scrapUncommon, f.scrapRare, f.scrapEpic, f.scrapLegendary, f.scrapMythic][rarityIndex(item.rarity)] ?? 1;
+  const base = [f.scrapCommon, f.scrapUncommon, f.scrapRare, f.scrapEpic, f.scrapLegendary, f.scrapMythic, f.scrapCelestial, f.scrapDivine][rarityIndex(item.rarity)] ?? 1;
   let spent = 0;
   for (let p = 0; p < item.plus; p++) spent += upgradeCost(t, { ...item, plus: p })?.scrap ?? 0;
   return Math.max(1, Math.round(base * (1 + item.ilvl / 25)) + Math.floor(spent / 2));
@@ -363,6 +383,8 @@ export function validItem(data: unknown): data is Item {
     Array.isArray(i.bonus) &&
     i.bonus.every((r) => r && STAT_IDS.includes(r.stat) && n(r.q)) &&
     (i.effect === null || typeof i.effect === 'string') &&
+    (i.effect2 === undefined || i.effect2 === null || typeof i.effect2 === 'string') &&
+    (i.aura === undefined || i.aura === null || AURA_IDS.includes(i.aura)) &&
     typeof i.locked === 'boolean' &&
     typeof i.fresh === 'boolean'
   );

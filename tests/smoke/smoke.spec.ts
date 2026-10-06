@@ -963,7 +963,7 @@ test.describe('updates', () => {
     const backInFront = () => page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
     // the build it runs: the gear panel's foot says
     await page.click('#btn-gear');
-    live = (await page.evaluate(() => [...document.querySelectorAll('.dbg-foot')].map((e) => e.textContent ?? '').find((t) => t.startsWith('Build '))!.replace(/^Build /, ''))) as string;
+    live = (await page.evaluate(() => [...document.querySelectorAll('.dbg-foot')].map((e) => e.textContent ?? '').find((t) => t.startsWith('Version '))!.replace(/^Version /, ''))) as string;
     await page.click('#btn-gear');
     expect(live).toMatch(/^([0-9a-f]{7}|dev) /);
     // the same build deployed: nothing happens

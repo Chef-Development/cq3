@@ -555,7 +555,7 @@ export class CampView {
     rows(g, fx, fy, 17, 17, 1, GOLD[2]);
     g.fillStyle(GOLD[4], 1);
     g.fillRect(fx + 1, fy, 15, 1);
-    g.fillStyle(HEROES[id].family === 'twin' ? 0x3a2458 : 0x1a2c52, 1);
+    g.fillStyle(HEROES[id].style === 'shadow' ? 0x3a2458 : 0x1a2c52, 1);
     g.fillRect(fx + 1, fy + 1, 15, 15);
     kit.face(id, fx + 1, fy + 1, D.homeText - 0.001, { size: 15 });
     const L = kit.level(id);

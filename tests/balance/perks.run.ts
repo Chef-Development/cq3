@@ -2,6 +2,7 @@
 // seeds). An Act 3 normal fight (4 waves, row 4) and the Boar King. Shows what each perk adds: fight length, HP lost
 // (all of it, and from foes), combo, finisher share, crits. Measurement only.
 // RUNS=60 ACC=0.85 npx vitest run --config vitest.balance.config.ts tests/balance/perks.run.ts
+import type { HeroId } from '../../src/data/heroes';
 import { it } from 'vitest';
 import { RELICS, type RelicId } from '../../src/data/relics';
 import { SKILL_TREES } from '../../src/data/skills';
@@ -21,7 +22,7 @@ const HP = Number(process.env.HERO_HP ?? 110);
 const DEF = Number(process.env.HERO_DEF ?? 15);
 const LEVEL = Number(process.env.LEVEL ?? 8);
 const BOSS = process.env.BOSS !== '0';
-const HERO = (process.env.HERO ?? 'rowan') as 'rowan' | 'sable';
+const HERO = (process.env.HERO ?? 'rowan') as HeroId;
 const WAVES = [['wolf', 'wolf', 'archer'], ['beetle', 'boar'], ['boar', 'bandit'], ['wolf', 'wolf', 'shaman']];
 
 interface Variant {

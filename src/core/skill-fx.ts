@@ -1,6 +1,6 @@
 // Skill nodes as fight hooks (core/hooks.ts): the rule nodes and capstones of both heroes' trees (src/data/skills.ts
 // has the text; stat nodes are plain stats, see heroes.ts buildBonus). A node's number is skillN(c.tuning, id).
-// Rowan's nodes are here; Sable's are in skill-fx-sable.ts. Each one calls c.perkFx(id, amount, enemyId) when it
+// Rowan's nodes are here; the other heroes' are in skill-fx-heroes.ts. Each one calls c.perkFx(id, amount, enemyId) when it
 // kicks in, so the view can name it.
 //
 // Per-fight state in c.perk (the view may read it):
@@ -12,14 +12,11 @@ import type { FightHooks } from './hooks';
 import type { Combat } from './combat';
 import { isRed } from './blocks';
 import { skillN } from './heroes';
-import { SABLE_SKILL_HOOKS } from './skill-fx-sable';
 
 /** Shield Wall: blocks needed per bubble (at least 1). */
 const wallEvery = (c: Combat): number => Math.max(1, Math.round(skillN(c.tuning, 'shieldWall')));
 
 export const SKILL_HOOKS: Record<string, FightHooks> = {
-  ...SABLE_SKILL_HOOKS,
-
   // ---------------------------------------------------------------- Blade (attack and crits)
 
   // Follow-Through: a kill's leftover damage hits the next foe (once: a carry that kills doesn't carry again; the
@@ -120,7 +117,7 @@ export const SKILL_HOOKS: Record<string, FightHooks> = {
 
   // Double Time: a Perfect hit counts as 2 combo (hits only, not blocks)
   doubleTime: {
-    comboGain: (c, from, perfect, _hand, n) => {
+    comboGain: (c, from, perfect, n) => {
       if (from !== 'hit' || !perfect) return n;
       c.perkFx('doubleTime', n + 1);
       return n + 1;

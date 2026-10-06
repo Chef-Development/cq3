@@ -69,44 +69,14 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
       ],
     },
   ],
-  sable: [
-    {
-      id: 'crossfire',
-      name: 'Crossfire',
-      theme: 'Alternating hands',
-      nodes: [
-        stat('quickHands', 'Quick Hands', 'atkPct', 8, '+{n}% attack.'),
-        stat('lightGrip', 'Light Grip', 'critChance', 5, '+{n}% crit chance.'),
-        rule('flurry', 'Flurry', 'Every {n}th alternating hit in a row crits.', 'Crits come by chance.', 'Every {n}th left-right hit crits.', 4),
-        rule('twinRhythm', 'Twin Rhythm', 'Alternating hits count as 2 combo.', 'Every hit is 1 combo.', 'A left-right hit is 2 combo.'),
-        cap('whirlingBlades', 'Whirling Blades', 'Every {n} alternating hits in a row start Shadow Step.', 'Only greens start Shadow Step.', '{n} left-right hits in a row start it too.', 6),
-      ],
-    },
-    {
-      id: 'shadowguard',
-      name: 'Shadowguard',
-      theme: 'Cross-blocking',
-      nodes: [
-        stat('wiry', 'Wiry', 'hpPct', 10, '+{n}% max HP.'),
-        stat('evasion', 'Evasion', 'def', 8, '+{n} Defense.'),
-        rule('crossGuard', 'Cross Guard', 'A block with one cursor also blocks a red under the other.', 'Each cursor blocks its own red.', 'One block covers both cursors.'),
-        rule('counterSlash', 'Counter Slash', 'Blocks with the left cursor hit back for {n}x attack.', 'Blocks only stop reds.', 'Left-cursor blocks counterattack.', 1),
-        cap('afterimage', 'Afterimage', 'A block leaves an afterimage that stops the next red, {n} a fight.', 'Every red needs its own block.', 'Afterimages stop {n} reds a fight.', 2),
-      ],
-    },
-    {
-      id: 'quicksilver',
-      name: 'Quicksilver',
-      theme: 'Speed and both hands',
-      nodes: [
-        stat('fleet', 'Fleet', 'meterGain', 10, '+{n}% meter gain.'),
-        stat('sharpFocus', 'Sharp Focus', 'comboPower', 1, '+{n} combo power.'),
-        rule('blur', 'Blur', 'Above {n}x cursor speed, every hit crits.', 'A fast cursor is just harder.', 'Past {n}x speed, hits always crit.', 1.6),
-        rule('doubleDown', 'Double Down', 'Hits with both cursors within {n} ms deal double.', 'Two hands, two hits.', 'Near-together hits deal x2.', 120),
-        cap('quickening', 'Quickening', 'Every {n} combo banks a finisher stack.', 'Only the meter banks stacks.', 'Every {n} combo banks one too.', 20),
-      ],
-    },
-  ],
+  // the other heroes' trees (one per hero; filled in src/data/skills-heroes.ts)
+  sable: [],
+  neve: [],
+  moss: [],
+  tam: [],
+  hollis: [],
+  vesper: [],
+  torva: [],
 };
 
 export const SKILL_NODES: SkillNode[] = Object.values(SKILL_TREES).flatMap((bs) => bs.flatMap((b) => b.nodes));

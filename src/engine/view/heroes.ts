@@ -7,7 +7,6 @@
 import type Phaser from 'phaser';
 import { HEROES, type HeroId, type KitPart } from '../../data/heroes';
 import { selectHero } from '../../core/profile';
-import type { Tuning } from '../../core/tuning';
 import { textWidth } from '../font';
 import { CampKit, D, DIM_TXT, GOLD_TXT, GREEN, pix, pixSize } from './camp-kit';
 import { padlock, wrapText } from './items';
@@ -17,13 +16,8 @@ import { FACE, notePress, RIBBON, tag } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
 
-/** A kit part's text with its tuning number filled in. */
-export function kitText(t: Tuning, id: HeroId, which: 'ability' | 'passive' | 'finisher'): string {
-  const part = HEROES[id][which];
-  if (!part) return '';
-  const n = id === 'rowan' ? (which === 'ability' ? t.hero.abilityCritBonus * 100 : 0) : which === 'ability' ? t.sable.shadowSec : which === 'passive' ? t.sable.ambidextrous * 100 : 0;
-  return part.text.replace('{n}', `${Math.round(n * 100) / 100}`);
-}
+import { kitText } from '../../core/heroes';
+export { kitText };
 
 const KIT: Array<{ which: 'ability' | 'passive' | 'finisher'; label: string; face: readonly [number, number, number, number]; name: number }> = [
   { which: 'ability', label: 'Ability', face: [0xb4f070, 0x3a9a3a, 0x2e7a30, 0x1a5a26], name: 0xb4f070 },
@@ -253,7 +247,7 @@ export class HeroesScreen {
     g.fillStyle(dark ? 0x2a2438 : GOLD[0], 1);
     g.fillRect(f.x + 2, f.y + f.h - 1, f.w - 4, 1);
     // a backdrop in the family's colors
-    const twin = HEROES[id].family === 'twin';
+    const twin = HEROES[id].style === 'shadow';
     const [top, bot] = dark ? [0x1e1830, 0x0e0a18] : twin ? [0x5a3a8a, 0x1e1236] : [0x3a6aa8, 0x1a2c52];
     rows(g, f.x + 2, f.y + 2, f.w - 4, f.h - 4, 1, INK);
     for (let i = 0; i < 6; i++) {
@@ -299,7 +293,7 @@ export class HeroesScreen {
     else kit.button(g, texts, b.pick, 'Pick', FACE.green, now, { glowCol: 0x8af06a });
     // family and title
     let y = c.y + 27;
-    const cw = kit.familyChip(g, texts, def.family, tx, y, a);
+    const cw = kit.familyChip(g, texts, def.style, tx, y, a);
     texts.text(def.title, tx + cw + 5, y, 0xffd890, { oy: 0.5, alpha: a });
     // the bio (one line: tests/unit/data.test.ts keeps it short enough for the narrowest layout)
     y += 10;
