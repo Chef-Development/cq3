@@ -63,9 +63,16 @@ test('the Test lab: open from the title, play and rate two scenarios, copy the r
   await page.screenshot({ path: 'test-results/lab-start.png' });
   await page.click('.lab-btn.go');
   await expect.poll(() => a((x) => x.run.phase)).toBe('fight');
-  expect(await a((x) => ({ hero: x.run.hero.build.id, practice: !!x.run.practice, safe: x.run.combat.practice, stacks: x.run.combat.stacks }))).toEqual({ hero: 'sable', practice: true, safe: false, stacks: 2 });
+  expect(await a((x) => ({ hero: x.run.hero.build.id, practice: !!x.run.practice, safe: x.run.combat.practice, stacks: x.run.combat.stacks }))).toEqual({ hero: 'sable', practice: true, safe: false, stacks: 1 });
   expect(await a((x) => x.profile.coins)).not.toBe(321); // the lab's own profile
   await expect(page.locator('#btn-lab-done')).toBeVisible();
+  // her how-to card comes up before TAP TO BEGIN (the lab leaves that one tip on); a tap puts it away
+  await expect.poll(() => a((x) => x.view.tips.current), { timeout: 5000 }).toBe('kitSable');
+  expect(await a((x) => ({ waiting: x.awaitingBegin, seen: x.profile.tips.includes('kitSable'), off: x.profile.tipsOff }))).toEqual({ waiting: true, seen: true, off: false });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: 'test-results/lab-howto.png' });
+  await page.mouse.click(437, 200);
+  await expect.poll(() => a((x) => x.view.tips.current)).toBeNull();
   await page.mouse.click(437, 200); // TAP TO BEGIN
   await expect.poll(() => a((x) => x.awaitingBegin)).toBe(false);
   for (let i = 0; i < 6; i++) {
