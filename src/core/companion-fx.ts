@@ -49,15 +49,15 @@ function hooksFor(pet: PetBuild): FightHooks {
         afterPeck: (c, x) => {
           if (x.pet !== 'newt') return;
           c.perk.burnFoe = x.target.id;
-          c.perk.burnLeft = P(c).newtSec;
+          c.perk.burnTicks = Math.round(P(c).newtSec); // a burn a second
           c.perk.burnTick = 1;
         },
         step: (c) => {
-          if (!(c.perk.burnLeft > 0)) return;
-          c.perk.burnLeft -= DT;
+          if (!(c.perk.burnTicks > 0)) return;
           c.perk.burnTick -= DT;
-          if (c.perk.burnTick > 0) return;
+          if (c.perk.burnTick > 1e-9) return;
           c.perk.burnTick = 1;
+          c.perk.burnTicks--;
           const foe = c.enemyById(c.perk.burnFoe);
           if (foe?.alive) c.strike(foe, P(c).newtBurn * k(c), 'emberBite');
         },
