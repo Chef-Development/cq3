@@ -172,7 +172,10 @@ export const STYLE_HOOKS: Record<StyleId, FightHooks> = {
   // Guard: blocks store charges; the next hit unleashes them as bonus damage
   guardian: {
     afterBlock: (c, x) => {
-      if (!x.cracked) addGuard(c, 1); // a shield counts once, when it breaks
+      if (x.cracked) return; // a shield counts once, when it breaks
+      const before = guardOf(c);
+      addGuard(c, 1);
+      if (guardOf(c) > before) c.perkFx('guardUp', guardOf(c), 0, x.block.pos);
     },
     hitMult: (c, x, v) => (x.echo || guardOf(c) <= 0 ? v : v + S(c).guardPer * guardOf(c)),
     afterHit: (c, x) => {

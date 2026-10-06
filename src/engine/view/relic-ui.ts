@@ -325,11 +325,14 @@ const KIT_NAME: Record<string, string> = {
   barkback: 'Barkback',
   glowmoth: 'Glowmoth',
   seedling: 'Seedling',
+  // Neve
+  flashFreeze: HEROES.neve.signature.name,
   // Tam
   fuseUp: HEROES.tam.ability.name,
   bigBang: HEROES.tam.finisher.name,
   // Hollis
   guard: STYLES.guardian.rule.name,
+  guardUp: STYLES.guardian.rule.name,
   shieldSlam: HEROES.hollis.signature.name,
   // Vesper
   powerShot: 'Power Shot',
@@ -352,6 +355,8 @@ const KIT_NAME: Record<string, string> = {
   mend: perkOf('mote', 1),
   goldHoard: perkOf('sunny', 0),
   fireBreath: perkOf('sunny', 1),
+  chillBite: perkOf('flurry', 0),
+  snowDash: perkOf('flurry', 1),
   // gear that heals
   rimewalker: SETS.rimewalker.name,
   sanctuary: AURAS.sanctuary.name,

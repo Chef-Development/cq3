@@ -34,6 +34,8 @@ export const PERK_PET: Record<string, CompanionId> = {
   mend: 'mote',
   goldHoard: 'sunny',
   fireBreath: 'sunny',
+  chillBite: 'flurry',
+  snowDash: 'flurry',
 };
 /** Allies' fixed places in the front row (so they never shuffle as others come and go; the Glowmoth hovers by the
  *  hero's shoulder instead), and their colours. */

@@ -107,13 +107,22 @@ function hooksFor(pet: PetBuild): FightHooks {
       return {
         afterPeck: (c, x) => {
           if (x.pet !== 'flurry') return;
-          for (const b of c.blocks) if (isRed(b.kind) && b.ownerId === x.target.id) c.chillRed(b, P(c).chillSec * k(c), P(c).chillMult);
+          let first: (typeof c.blocks)[number] | null = null;
+          for (const b of c.blocks)
+            if (isRed(b.kind) && b.ownerId === x.target.id) {
+              c.chillRed(b, P(c).chillSec * k(c), P(c).chillMult);
+              if (!first || b.pos < first.pos) first = b;
+            }
+          if (first) c.perkFx('chillBite', 0, x.target.id, first.pos);
         },
         afterBlock: (c, x) => {
           if (x.echo) return;
           let next: (typeof c.blocks)[number] | null = null;
           for (const b of c.blocks) if (isRed(b.kind) && !b.still && (!next || b.pos < next.pos)) next = b;
-          if (next) c.chillRed(next, 1 * k(c), P(c).chillMult);
+          if (next) {
+            c.chillRed(next, 1 * k(c), P(c).chillMult);
+            c.perkFx('snowDash', 0, 0, next.pos);
+          }
         },
       };
     case 'mote':
