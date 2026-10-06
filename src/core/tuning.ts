@@ -384,11 +384,11 @@ export const DEFAULT_TUNING = {
     // Each hero's own numbers (core/kit-fx.ts; src/data/heroes.ts has the words). hp: base max HP; atk: share of
     // Rowan's base attack. Rowan's are tuning.hero. Tuned with the bot to stay within +/-10 points of Rowan.
     sable: { hp: 110, atk: 1, abilitySec: 3, silentStep: 0.25, dashLead: 0.15, dashMult: 2.5, fangMult: 1.4, fangKeep: 1 },
-    neve: { hp: 100, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, glacierMult: 0.7, slowSec: 4, slowWidth: 0.34 },
-    moss: { hp: 105, atk: 0.75, abilitySec: 3, allySec: 10, allySec3: 14, thornEvery: 1.5, thornDmg: 0.4, barkEvery: 4, mothEvery: 3, mothHeal: 0.012, seedEvery: 5, roots: 0.08, overgrowth: 0.25, vineSec: 3, vineMult: 0.5 },
+    neve: { hp: 108, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, glacierMult: 0.7, slowSec: 4, slowWidth: 0.34 },
+    moss: { hp: 105, atk: 0.7, abilitySec: 3, allySec: 10, allySec3: 14, thornEvery: 1.5, thornDmg: 0.35, barkEvery: 6, mothEvery: 3, mothHeal: 0.008, seedEvery: 5, roots: 0.08, overgrowth: 0.15, vineSec: 3, vineMult: 0.5 },
     tam: { hp: 100, atk: 0.9, abilitySec: 3, kegEvery3: 4, blastShield: 0.5, bangKegs: 3, wide5: 2 },
-    hollis: { hp: 115, atk: 0.9, abilitySec: 3, slam: 0.6, ironHide: 0.2, rampartSec: 3, rampartGuard: 1.5, guardMax3: 7 },
-    vesper: { hp: 110, atk: 1.05, abilitySec: 3, pierce: 0.5, volleyFocus: 1.5, pinSec: 2, cap3: 1.5 },
+    hollis: { hp: 108, atk: 0.9, abilitySec: 3, slam: 0.5, ironHide: 0.2, rampartSec: 3, rampartGuard: 1.2, guardMax3: 7 },
+    vesper: { hp: 110, atk: 1.1, abilitySec: 3, pierce: 0.5, volleyFocus: 1.7, pinSec: 2, cap3: 1.5 },
     torva: { hp: 120, atk: 0.9, abilitySec: 3, quake: 0.15, windUp: 2.5, stunSec: 1.5, unstoppable: 0.08, unstoppableMax: 5, calmSec: 2 },
   },
   chests: {
@@ -465,6 +465,13 @@ export const DEFAULT_TUNING = {
     perfectMs: 35, // a press within this of the near edge is Perfect
     releaseGraceMs: 60, // letting go up to this early still completes it
     turnDone: 0.8, // the cursor turning back inside it: done if this much was held
+  },
+  links: {
+    // Linked pairs (Region 3's bar rule, core/combat.ts tapLinked): hit one, then the other within a beat
+    beatSec: 0.8, // the beat: the partner must be hit within this long
+    bonus: 1.5, // both hits land this much harder
+    gapMin: 0.05, // the space between the two (on top of a block's width), share of the bar
+    gapMax: 0.12,
   },
   levels: {
     // Heroes level up from kills and act clears (core/heroes.ts): small base-stat gains, a skill point every 2 levels.
@@ -1156,7 +1163,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
     groups.push({
       title: `Act ${i + 1}: ${a.name}`,
       sliders: [
-        s(`acts.${i}.hpMult`, 'Enemy HP x', 0.2, 6, 0.05),
+        s(`acts.${i}.hpMult`, 'Enemy HP x', 0.2, 12, 0.05),
         s(`acts.${i}.atkMult`, 'Enemy attack x', 0.2, 24, 0.05),
         s(`acts.${i}.pace`, 'Spawn interval x', 0.4, 2, 0.05),
         s(`acts.${i}.redSpeed`, 'Red speed x', 0.5, 1.5, 0.05),

@@ -43,7 +43,7 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
         stat('steadyAim', 'Steady Aim', 'critChance', 8, '+{n}% crit chance.'),
         rule('followThrough', 'Follow-Through', "A kill's leftover damage hits the next foe.", 'Damage past a kill is lost.', 'It carries on to the next foe.'),
         rule('whetstone', 'Whetstone', 'Every {n}th hit of a combo always crits.', 'Crits come by chance.', 'Every {n}th combo hit crits.', 5),
-        cap('executioner', 'Executioner', 'Foes under {n}% HP take double damage from yellows.', 'Yellows hit every foe the same.', 'Yellows deal x2 to foes under {n}% HP.', 30),
+        cap('executioner', 'Executioner', 'Foes under {n}% HP take double damage from yellows.', 'Yellows hit every foe the same.', 'Yellows deal x2 to foes under {n}% HP.', 35),
       ],
     },
     {
@@ -51,11 +51,11 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
       name: 'Bulwark',
       theme: 'Blocking',
       nodes: [
-        stat('stout', 'Stout', 'hpPct', 15, '+{n}% max HP.'),
-        stat('plateTraining', 'Plate Training', 'def', 15, '+{n} Defense.'),
+        stat('stout', 'Stout', 'hpPct', 12, '+{n}% max HP.'),
+        stat('plateTraining', 'Plate Training', 'def', 10, '+{n} Defense.'),
         rule('parry', 'Parry', 'A Perfect block knocks every other red back.', 'A block stops one red.', 'A Perfect block pushes all reds back.'),
         rule('shieldBash', 'Shield Bash', 'Breaking a shield red stuns its owner for {n} s.', 'Shield reds just break.', 'Its owner stops attacking for {n} s.', 1),
-        cap('shieldWall', 'Shield Wall', 'Every {n} reds you block charge a fresh bubble that absorbs a hit.', 'Every red you miss hurts.', 'Every {n} blocks, a bubble eats a missed red.', 6),
+        cap('shieldWall', 'Shield Wall', 'Once a fight, {n} blocked reds charge a bubble that absorbs a hit.', 'Every red you miss hurts.', 'A bubble eats one missed red a fight.', 4),
       ],
     },
     {
@@ -63,11 +63,11 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
       name: 'Momentum',
       theme: 'Combo and finisher',
       nodes: [
-        stat('rhythm', 'Rhythm', 'meterGain', 15, '+{n}% meter gain.'),
+        stat('rhythm', 'Rhythm', 'meterGain', 10, '+{n}% meter gain.'),
         stat('powerStance', 'Power Stance', 'comboPower', 1.5, '+{n} combo power.'),
         rule('doubleTime', 'Double Time', 'Perfect hits count as 2 combo.', 'Every hit is 1 combo.', 'A Perfect hit is 2 combo.'),
         rule('chargedUp', 'Charged Up', 'Every fight starts with {n} finisher stack.', 'Fights start with an empty meter.', 'Fights start with {n} stack banked.', 1),
-        cap('unbroken', 'Unbroken', 'A combo break halves your combo and stacks.', 'A break zeroes combo and stacks.', 'A break only halves them.'),
+        cap('unbroken', 'Unbroken', 'A combo break keeps a third of your combo and stacks.', 'A break zeroes combo and stacks.', 'A break keeps a third of them.'),
       ],
     },
   ],

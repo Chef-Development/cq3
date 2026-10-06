@@ -14,8 +14,8 @@ export const FROSTPEAKS: RegionDef = {
     {
       name: 'Frostbite Pass',
       theme: 'pass',
-      hpMult: 2.6,
-      atkMult: 7,
+      hpMult: 4.2,
+      atkMult: 9,
       pace: 0.85,
       redSpeed: 1.1,
       rows: 7,
@@ -38,8 +38,8 @@ export const FROSTPEAKS: RegionDef = {
     {
       name: 'Glimmer Caves',
       theme: 'caves',
-      hpMult: 3.4,
-      atkMult: 8.5,
+      hpMult: 7.2,
+      atkMult: 15.5,
       pace: 0.8,
       redSpeed: 1.12,
       rows: 7,
@@ -62,8 +62,8 @@ export const FROSTPEAKS: RegionDef = {
     {
       name: "Wyrm's Glacier",
       theme: 'glacier',
-      hpMult: 4.4,
-      atkMult: 10,
+      hpMult: 7.6,
+      atkMult: 14.5,
       pace: 0.75,
       redSpeed: 1.15,
       rows: 7,

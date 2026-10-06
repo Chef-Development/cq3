@@ -298,5 +298,5 @@ export function kitHooks(build: HeroBuild): FightHooks[] {
   return [KIT_HOOKS[build.id] ?? KIT_HOOKS.rowan, strengthHooks(build.id)];
 }
 
-/** Whether a block is one of your own attack blocks a perk may hit for you (never a hold). */
-export const perkHittable = (b: Block): boolean => isAttack(b.kind) && b.kind !== 'hold';
+/** Whether a block is one of your own attack blocks a perk may hit for you (never a hold, nor half a linked pair). */
+export const perkHittable = (b: Block): boolean => isAttack(b.kind) && b.kind !== 'hold' && !b.link;

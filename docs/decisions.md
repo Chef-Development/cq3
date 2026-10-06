@@ -58,9 +58,24 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
 20. The act picker on the world map and the gear panel's "Jump to" show only Greenmarch's names until the world map's
     new landmarks are in (the next region's acts are listed by number only: spoilers).
 
+## The fight view (rendering only)
+- **Allies stand in a front row at the hero's feet** (Thornling, Barkback, Seedling left of the hero, lower on the
+  ground), the **Glowmoth hovers by the hero's shoulder**; companions keep Pip's place behind (a second one 24 px
+  further back; fliers hover, walkers stand). With three allies and two companions it's busy but nothing hides the hero.
+- **The allies' frequent perks don't name themselves** in the lane (Thornling, Glowmoth, Seedling, Rally): they show on
+  the allies (act frames, a bolt from the ally, "Rally!" over them). A Barkback's block still names itself once.
+- **Telegraphs preview what a special does to the bar** (patches with a fixed spot, a mirror's spot, the yellows it will
+  ice or turn into holds); an icicle's spot shows once it's chosen (the `mark` event), not during the wind-up.
+- **A huge foe's special name and stun label stay below the HUD's plates** (y >= 38) and its countdown ring flattens
+  instead of climbing into the HUD; the region's boss stands where every single foe stands (its top clears the plates).
+- **Heals show as whole HP** in the merged heal number (HP is fractional inside: a top-up could print a long decimal).
+- **Chilled reds read by who slowed them:** frost (Bend, Flurry), vines (Moss), an arrow through it (Vesper's pin);
+  a frozen block is a crystal (Neve), never a red.
+
 ## Part 7: balance
-21. The act picker and "Jump to" limits from decision 20 are lifted where the world map now shows the second region
-    (the picker lists one region's acts at a time; far lands stay fogged and nameless).
+21. The world map now shows the second region once Greenmarch is won (decision 20's limit lifted there): its act
+    picker lists one region's acts at a time; the seven far lands stay fogged and nameless. The gear panel's
+    "Jump to" still hides later regions' foes (spoilers); the Test lab covers them instead.
 22. **The bot lets go of a hold like a person:** aimed at the moment the cursor leaves the far end, 25 ms late on
     average, with 1.2x its tap spread (releases are less precise than presses), and an early lift on half its lapse
     rate. Letting go more than 60 ms early drops the hold, so an 85% player drops about 1 hold in 15. Its thumb is
@@ -78,13 +93,15 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     - Weakest: **Hollis's Rampart** (reds bounce off the left end for 3 s: easy to miss what happened) and
       **Moss's Overgrowth** vines (they only slow the next reds). Both kept; if a later pass reworks one, give it a
       visible mark on the bar like Glacier's patch.
-25. **Rowan's branches: Bulwark is the safe pick.** Stout +8% -> +15% max HP, Plate Training +5 -> +15 Defense, and
-    Shield Wall's bubble recharges (every 6 blocked reds, one held at a time) instead of once a fight. Measured per
-    forced branch in docs/balance.md.
+25. **Rowan's branches: none clearly the safest.** Measured per forced branch (the bot goes down one branch first),
+    same seeds, 100 runs each, both regions; the changes and numbers are in docs/balance.md.
 26. **A Rare chest costs 240 gems** (was 180): a story run earns about 240-300 gems in Greenmarch (achievements
     included) and 200-245 in the next region, so the shrine gives about one Rare chest per region.
 27. Hero parity, first pass (Region 1 gaps to Rowan at 85%): Moss attack 0.85 -> 0.8 and his moths heal 2% -> 1.2%
     (Act 3 was +20), Hollis 125 -> 115 HP (Act 3 +12), Vesper 95 -> 100 HP and attack 1 -> 1.05 (Act 2 -13).
+29. Greenmarch after the hero rework: the Boar King's HP 4600 -> 4800 (the playtester's first fight was creeping
+    past 80%); the 70% player still clears Act 3 within 6 tries more than 80% of the time (guard restored); farming
+    the Boar King now adds 7-10 points (it was +10 before), so its guard asks for +5 at 60 runs.
 28. **Style calls on the bounty board:** once you own two or more heroes, about a third of boards post "Win 2 fights
     as a <style> hero" for one of the styles you own (heroes can be switched at camp mid-act). It pays a relic pick
     like the other relic bounties. With one hero, boards never ask for a style.

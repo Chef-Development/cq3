@@ -91,15 +91,17 @@ export const SKILL_HOOKS: Record<string, FightHooks> = {
     },
   },
   // Shield Wall (capstone): every n reds blocked (a shield counts once, when it breaks) charge a bubble (one held at
-  // a time) that eats the next red or bomb that reaches Rowan: no damage, no combo break; then it charges again.
-  // perkFx amount 1 = charged, 0 = popped.
+  // a time) that eats the next red or bomb that reaches Rowan: no damage, no combo break. perkFx amount 1 = charged,
+  // 0 = popped.
   shieldWall: {
     start: (c) => {
       c.perk.shieldWall = 0;
       c.perk.shieldWallCharge = 0;
+      c.perk.shieldWallUsed = 0;
     },
     afterBlock: (c, x) => {
-      if (x.cracked || x.echo || c.perk.shieldWall) return;
+      // once a fight: a bubble that has popped doesn't charge again
+      if (x.cracked || x.echo || c.perk.shieldWall || c.perk.shieldWallUsed) return;
       c.perk.shieldWallCharge = (c.perk.shieldWallCharge ?? 0) + 1;
       if (c.perk.shieldWallCharge < wallEvery(c)) return;
       c.perk.shieldWallCharge = 0;
@@ -109,6 +111,7 @@ export const SKILL_HOOKS: Record<string, FightHooks> = {
     impact: (c, b) => {
       if (!c.perk.shieldWall) return false;
       c.perk.shieldWall = 0;
+      c.perk.shieldWallUsed = 1;
       c.perkFx('shieldWall', 0, b.ownerId, b.pos);
       return true;
     },
@@ -130,11 +133,11 @@ export const SKILL_HOOKS: Record<string, FightHooks> = {
       c.bankStacks(Math.max(0, Math.round(skillN(c.tuning, 'chargedUp'))), 'chargedUp');
     },
   },
-  // Unbroken (capstone): a combo break halves your combo and stacks instead of zeroing them
+  // Unbroken (capstone): a combo break keeps a third of your combo and stacks instead of zeroing them
   unbroken: {
     comboBreak: (c, x) => {
-      const combo = Math.floor(x.combo / 2);
-      const stacks = Math.floor(x.stacks / 2);
+      const combo = Math.floor(x.combo / 3);
+      const stacks = Math.floor(x.stacks / 3);
       x.keepCombo = Math.max(x.keepCombo, combo);
       x.keepStacks = Math.max(x.keepStacks, stacks);
       if (combo > 0 || stacks > 0) c.perkFx('unbroken', combo);

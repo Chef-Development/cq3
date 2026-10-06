@@ -285,6 +285,216 @@ keys `rimehorn`, `matron`, `glacia` (with `boss` in the data) bring their themes
 
 ---
 
-## 6. Region 3: ASHFELL (secret; only if time allows)
-Planned mechanics: **drifting blocks** (statics slide slowly along the bar) and **linked pairs** (two blocks joined by
-a chain: hitting one without the other within a beat is a miss). Details to come if built.
+## 6. Region 3: ASHFELL (secret; written as data, not in play yet)
+
+A land of ash, black basalt, lava rivers and caves of volcanic glass, round the great volcano in the kingdom's east
+(on the world map: the volcano, the lava rivers to the sea and the black citadel). The third weight fell into the
+forge of **Bellows**, a giant old smith who has been forging the longest chain in the world for four hundred years.
+It makes the perfect anvil (nothing struck on it ever cools), so he hammers day and night, and every blow on it shakes
+the whole land sideways: **nothing in Ashfell holds still** (drifting blocks), and his chains are on everything
+(linked pairs). Mags, the camp's smith, was his apprentice. He never learned to rest; Rowan, the kingdom's finest
+napper, finally teaches him.
+
+**Data (not wired in):** `src/data/ashfell.ts` (`ASHFELL`, not in `REGIONS`), `enemies-ash.ts` (`ASH_ENEMIES`, not in
+`ENEMIES`), `story-ash.ts` (`ASH_STORY`), `banter-ash.ts`, `relics-ash.ts`, `gear-ash.ts`; checked by
+`tests/unit/ashfell-data.test.ts`. Global acts 6-8 once wired in.
+
+### Bar rules (typed in `BarRules`; the core implements them)
+Both rules only ever touch **yellows** (greens, reds, traps, kegs and frozen blocks never drift or link), and both
+read without sound.
+
+- **Drifting blocks** (`bar.drift: { share, fromRow, speed }`): a yellow that rolls the act's share slides slowly along
+  the bar (`speed` bar widths a second, 0.05-0.07; specials 0.06-0.08, short bursts up to x1.6), in a random direction,
+  turning back at the bar's ends and when it would touch another still block (it never overlaps one; reds pass over it
+  as they pass over any yellow). The bar's history keeps its position, so a tap is judged where it was at the tap's
+  moment, like the cursor. *Look:* still yellow (the colour code holds), with ember-orange chevrons on its leading edge
+  and a faint heat shimmer behind; at a turn the chevrons flip with a puff of ash. *Fair to a thumb:* at 0.10 it closes
+  at most ~11% faster than a still block, so drift stays at or under 0.10 except bursts of a few seconds.
+- **Linked pairs** (`bar.links: { share, fromRow }`): a yellow that rolls the share comes with its partner: two yellows
+  0.14-0.24 of the bar apart (centre to centre), both inside the bar's middle 80%, so one sweep meets both. Hit either
+  half first (the hit is held: no damage or combo yet), then the other within the **beat** (`links.beat`, 0.6 s,
+  counted only while the cursor moves: paused in freezes, hit-stop, the finisher's hold and tips). Both land then, the
+  second x`links.bonus` (1.5) and +1 extra combo ("Linked!"). If the beat runs out, both count as misses (one combo
+  break; miss hooks see two, flagged `pair`). A pair nobody starts costs nothing: it waits like any yellow. Each half
+  is judged on its own (Perfects count per half). *Look:* a glowing chain of molten links under the bar between the
+  halves, a link notch on each half's inner edge; once a half is hit it stays as a glowing outline and the chain burns
+  down toward the partner like a fuse (what's left of the beat) while the partner pulses; both hit, the chain flashes
+  white and snaps; too slow, it cools grey and both crumble ("Broken!"). At base speed the second half is 0.15-0.26 s
+  away, inside a 0.6 s beat even in a slow patch (x0.6).
+- **Both** (Act 3): a pair rolls the drift share once and drifts as one, its gap kept (the chain stays taut). Act 2's
+  drift is light and late, so drifting pairs are rare there; if they read badly before Act 3, gate them with a flag.
+- *Words:* the player-facing name is **pair** (tips, story, relic texts); the relic tag reads **Link**. Shadow's Chain
+  counts "links" in Sable's skill texts: if that reads as the same thing, rename one of them.
+
+How they ramp: **Act 1** drift from row 2 (share 0.15, speed 0.05; Hot Foot and Quake show it earlier); **Act 2** pairs
+from row 1 (0.14) plus a little drift from row 3 (0.08); **Act 3** both from row 0 (drift 0.15 at 0.07, pairs 0.15),
+and the boss's phases rewrite the bar (drift, then chains, then both at once with a fast cursor).
+
+**Every hero** (one cursor each):
+- Rowan: nothing special; Whirlwind clears reds, pairs and drifters stay.
+- Sable: Shadow Dash aims at where the next block will be when she lands (its position plus drift over the 0.3 s
+  lead); after a pair's first half the dash lands 0.3 s before the partner, inside the beat (a natural fit).
+- Neve: frozen blocks never drift. Suggested (needs core): Glacier also stops every drifting block for its 4 s.
+- Moss: Seedling's greens never drift. Tam: kegs never drift; suggested: a keg or bomb blast that takes one half of a
+  pair takes both, as a finished pair. Hollis: unchanged. Vesper: suggested: Volley pins drifting blocks too.
+  Torva: Earthsplitter clears everything; Quake only moves reds.
+- The bot: aims at a drifting block where it will meet the cursor (as it does through patches); starts a pair only
+  when it can reach the partner within the beat at its current speed, else lets it pass.
+
+**New actions (needs core; typed in `src/data/types.ts`, ignored by `specials.ts` until built; each needs a unit test
+in `tests/unit/specials.test.ts`):**
+- `toDrift { count, speed, sec? }`: up to `count` yellows on the bar (0 = every one) start drifting at `speed` for
+  `sec` s (none = for good), each away from its nearest neighbour.
+- `toLink { count, drift? }`: up to `count` pairs of neighbouring yellows on the bar are chained (a partner is added
+  beside a yellow when none is near), drifting together at `drift` if set.
+- `driftShift { mult?, flip?, sec? }`: every drifting block turns around (`flip`) and/or moves `mult` x as fast for
+  `sec` s (none = for good; `mult: 0` = they settle and stop).
+- `barRule { holdEvery, driftEvery?, linkEvery? }`: like `holdEvery`, every Nth yellow this foe sends drifts / comes as a
+  pair (0 = none; a later barRule replaces the earlier one).
+- Formation entries `drift?: number` (a yellow placed drifting) and `link?: boolean` (two `link` yellows placed as a
+  pair).
+
+### Acts
+| Act | Name | Theme (`AshTheme`) | Map look | Rules |
+|---|---|---|---|---|
+| 1 | Cinder Flats | `cinder` | ash plains under a smoky orange sky: hexagonal basalt columns, smoking vents and geysers, charred trees, a lava river crossed by basalt slabs, Rumbleback's half-paved road | drift (from row 2) |
+| 2 | Glass Warrens | `glass` | tunnels of black obsidian and coloured volcanic glass, lava glowing behind translucent walls, chiming glass stalactites, chain bridges over a magma lake, old glassblowers' kilns | pairs (row 1) + a little drift |
+| 3 | The Black Forge | `forge` | the basalt citadel on the volcano's rim: lava falls, giant anvils, glowing chains as thick as trees slung across the crater, the furnace roaring at its heart | drift + pairs; the boss rewrites the bar |
+
+The three themes aren't in the `Theme` union yet (the engine's stage lights, map kits, lairs and critters are records
+over every theme): `ashfell.ts` passes them through `look()` until the art exists. Map critters (suggested): lava
+lizards, ash moths, a fire beetle; glass snails, glow bats; soot sprites, sparks rising. World map: three landmarks
+(`WORLD_ACTS` 6-8) round the volcano: Rumbleback's road, a glowing cave mouth, the black citadel.
+
+Act scaling (first guesses, each a step above the matching Frostpeaks act; Act 1 dips below Act 6 as the Frostpeaks
+dipped below Greenmarch, since a region starts a fresh run): hpMult 3.6 / 4.6 / 5.8, atkMult 9 / 10.5 / 12, pace
+0.82 / 0.78 / 0.74, redSpeed 1.16 / 1.18 / 1.2; waves 2-5 / 3-5 / 3-6 like the Frostpeaks; foes' base stats ~10-20%
+above theirs.
+
+### Enemies (each has a telegraphed special that changes how the bar plays)
+| Enemy | Act | Tags | Look | Special |
+|---|---|---|---|---|
+| Cinderling | 1 | swarm, fire | a walking lump of glowing coal the size of a cat, stubby legs, ember eyes, a flame tuft | **Hot Foot!** 2 yellows drift for 6 s (needs core: `toDrift`) |
+| Cinder Kite | 1 | flyer, fire | a ragged kite-shaped bird of soot-black feathers with glowing edges and a smoking tail streamer | **Ember Drop!** 2 spots marked; embers land there as still reds that strike after 1.8 s unless tapped |
+| Crag Crab | 1 | armored, beast | a squat crab whose shell is a cluster of basalt columns, one big claw, steam at the joints | **Basalt Crust!** 2 yellows set in basalt: 2 taps each (a drifting one keeps drifting) |
+| Obsidian Ox (elite) | 1 | brute, beast | a huge ox of black volcanic glass with glowing cracks, curved horns and a brass nose ring | **Stampede!** a fast wide red; **Quake!** every yellow on the bar drifts for 4 s (needs core) |
+| Glassblower | 2 | folk, caster | a goblin glassblower in apron and goggles, cheeks puffed, a long blowpipe with a glowing glass bubble | **Blow Glass!** chains 2 pairs of yellows (needs core: `toLink`) |
+| Prism Bat | 2 | flyer, beast | a bat with stained-glass wings (red, amber, green panes in black leading) that throw coloured light | **Prism Flash!** a glass pane (mirror) where the cursor is heading for 4 s, and 1 pair chained: the pane can finish the pair for you or carry you away (needs core: `toLink`) |
+| Glass Mantis | 2 | beast, armored | a praying mantis of green bottle glass with see-through scythe arms | **Scissor Snap!** a pair, and a red half a second behind it: finish the pair or block first? (needs core: `link` entries) |
+| Kiln Warden (elite) | 2 | construct, fire | a walking brick kiln: a glowing furnace-door mouth, glass-bottle pauldrons, chimney smoke | **Kiln Door!** a slab of hot glass where the cursor is heading: a still shield, 3 taps before it falls (3.2 s); **Firing!** chains 3 pairs (needs core) |
+| Stoker Imp | 3 | caster, swarm | a little ember-red imp with smoking horns and a coal shovel bigger than itself | **Stoke!** 2 more yellows drift, and every drifting block goes x1.6 for 4 s (needs core: `toDrift`, `driftShift`) |
+| Magma Eel | 3 | beast, fire | a long eel of cooling lava (black crust, glowing orange beneath) rising from a lava channel | **Undertow!** a yellow drifts, then every drifting block turns back, x1.4 for 3 s (needs core) |
+| Forge Hand | 3 | folk, brute | a stocky soot-faced forge worker, scorched apron, welding mask pushed up, tongs and hammer | **Weld!** a pair that drifts as one (needs core: `link` + `drift` entries) |
+| Chain Sentinel (elite) | 3 | construct, armored | an empty suit of armour made of chain links, a glowing eye slit, a chain flail | **Chain Lash!** two reds, one after the other; **Shackle!** 2 pairs chained, drifting as one (needs core) |
+
+Every hero's soft strength has foes here (folk, caster, beast, swarm, armored, brute, flyer, construct). New foe tag:
+`fire` (no hero leans on it yet).
+
+### Mini-bosses
+- **Rumbleback** (Act 1, brute, armored): a colossal armadillo with banded basalt plates, a road-worker's hard hat (a
+  dented cauldron) and a striped sash; he paves the flats with basalt and rolls flat whatever is on his road (mostly
+  knights). **Roll Out!** a wide red that grows as it rolls in; **Rumble!** (phase 1) every yellow drifts for 5 s;
+  **Curl Up!** (below 50%, gate) he curls up (hits deal half until 3 shell plates break) and every 2nd yellow he sends
+  drifts (`barRule driftEvery`); **Gravel!** (phase 2) 3 yellows crusted (2 taps).
+- **Hob & Nob** (Act 2, beast, fire): the forge's two-headed lava hound, coal-black fur with glowing cracks and a collar
+  of glowing chain; Hob scowls (spiked collar, the guard), Nob grins (a stick in his teeth, wants to play fetch).
+  **Double Bite!** two reds, one per head; **Fetch!** (phase 1) chains 2 pairs; **Two Heads!** (below 50%, gate) every
+  3rd yellow they send comes as a pair (`barRule linkEvery`); **Squabble!** (phase 2) the heads snap at anything: a
+  guard for 1.4 s (a yellow tap is countered; the telegraph comes first, so you can hold off starting a pair).
+
+### Boss: Bellows, the Forge Titan (Act 3, brute, fire) — phases rewrite the bar
+A giant old smith of basalt and fire, as tall as his forge: a furnace glowing in his chest that huffs like a bellows,
+a long beard of grey ash, a soot-black apron, arms like pillars, a hammer the size of a door; the brass pendulum
+weight sits glowing on his anvil, his endless chain coiled behind him.
+- Phase 1, the forge: **Bellows Blast!** (at the start) every yellow on the bar drifts, and every 2nd one he sends
+  (`toDrift` for good + `barRule driftEvery 2`); **Hammerfall!** an anvil where the cursor is heading (a still shield,
+  3 taps, 3.2 s).
+- Phase 2 (66%, gate, scene `bellows2`), the chain: **Chainwork!** the drifting stops (`driftShift mult 0`), 2 pairs at
+  once, and every 3rd yellow he sends is a pair; **Hammerfall!** and **Chain Lash!** (two reds).
+- Phase 3 (33%, gate, scene `bellows3`), the eruption: **ERUPTION!** everything drifts again (0.08), every 2nd yellow
+  drifts and every 3rd is a pair (pairs drift too), the cursor never drops below 1.3x; **Chain Lash!** and **Lava
+  Rain!** (3 embers).
+
+### Story (scene ids, `src/data/story-ash.ts`)
+- `ash1` (Act 1 start): Ashfell, where nothing holds still; boulders slide past, Sable's coins wander off ("the GROUND
+  is stealing from me"); the weight ticks and the land shuffles.
+- `rumbleback` (mini-boss): the road-roller: "WET BASALT. KEEP OFF." It's lava. "It's a road that isn't FINISHED."
+- `magsTale` (at the camp after Act 1, where the Frostpeaks had `neveJoin`; suggested trigger: the first camp visit
+  after the region's first act is cleared): Mags says the forge is Old Bellows', her master, who never finished a thing
+  ("one more link") and never learned to sleep; the ticking is his hammer on the weight. "Mags says hi. His tongs are
+  in MY bag."
+- `ash2` (Act 2 start): the Glass Warrens; Sable wants a pocket-sized wall; Neve distrusts glass (mirrors froze her);
+  chains on everything; Pip: "to break a pair, hit both ends. Quick. One, two."
+- `hobnob` (mini-boss): Hob guards, Nob wants to play fetch; Sable tries to send Nob after a stick past the gate.
+- `ash3` (Act 3 start): the Black Forge, BANG, the mountain jumps; nobody has slept for weeks; Rowan's plan: get the
+  weight, stop the banging, everybody naps.
+- `bellows` (boss intro), `bellows2`, `bellows3` (phase scenes): "One more link." The anvil that never cools; "Mags
+  says hi." "Little Mags? Still holding her hammer wrong?"
+- `ashVictory`: Bellows has forgotten how to sit down; Rowan teaches him to nap ("tick... tock..."); he snores, the land
+  holds still; the Pendulum ticks THREE times; next: Duskmire ("Swamps. Bring a towel, knight").
+- New speakers (`Speaker` union, `SPEAKER_NAME`): `rumbleback`, `hobnob` ("Hob & Nob": both heads in one portrait;
+  lines start "HOB:" / "NOB:"), `bellows`; Mags speaks as `smith`. Portraits needed for the three.
+- Camp banter (`banter-ash.ts`): 13 lines, each waiting for a Region 3 scene (`after`) so it can't spoil it.
+- Tips (suggested, fit `TIP_TEXT_W`, pausing, pointing at the block): drift "Some blocks drift along the bar. / Watch
+  which way they're heading!"; pairs "A pair: hit one, then the other. / Too slow? Both count as misses."
+
+### Relics (Drift and Link tags, `src/data/relics-ash.ts`, offered from the region's first act on: `from: 6`)
+Drift: **Tailwind** (hits on drifting blocks +40%), **Weathervane** (Perfects on drifting blocks crit), **Warm Springs**
+(a drifting block turning at an end heals 2 HP), **Rebound** (a drifting block turning at an end turns green), **Anchor
+Stone** (blocking a red stops every drifting block for 3 s), **Slipstream** (hitting a drifting block fills the meter
+like 2 hits), **Flotsam** (each drifting block hit drops a coin), **Molten Core** (epic: drifting blocks 50% faster,
+hits on them double). Link: **Forged Bond** (a finished pair +2 combo), **Long Fuse** (50% longer beat), **Hammer &
+Tongs** (a pair's second half crits), **Spare Link** (once a fight, a broken pair doesn't break the combo), **Coupling**
+(every 3rd finished pair banks a stack), **Gold Rivets** (finished pairs drop 2 coins), **Snap Back** (a finished pair
+knocks the nearest red to the far end), **Hair Trigger** (epic: finished pairs deal triple, a broken one costs 5% HP;
+the cautious bot's `avoid` list should take it). Unlocks: 4 from the start, the rest by Region 3's act clears and
+elites. Builds: Firewalker (Drift), Chainsmith (Link), Forgemaster (Drift + Link), Wildfire (Drift + Crit), Anvil
+Breaker (Link + Finisher).
+New hook points they need (needs core): `driftTurn` (a drifting block turned at an end), `driftMult` (a drifter's speed
+for this hero), `linked` / `linkBroken` (a pair finished / broke; the latter can forgive the break), `linkBeat` (the
+beat's length), and a way to pause drift (`c.pauseDrift(sec)`). Tailwind, Weathervane, Slipstream, Flotsam and Hammer &
+Tongs work with today's hooks once a block knows it drifts / which half of a pair it is.
+
+### Gear (`src/data/gear-ash.ts`)
+Bases: Obsidian Edge, Cinder Cleaver, Basalt Sledge (weapons); Ash Veil, Basalt Helm (helms); Ashcloth Coat,
+Slagplate (armor); Pumice Soles, Firewalk Greaves (boots); Warm Coal, Lava Pearl (trinkets).
+Set: **Emberwright** (a smith's working kit: Emberwright Cap, Apron, Clogs, Hearth Charm): 2-piece +20% damage on
+drifting blocks; 4-piece finished pairs heal 2% HP.
+Signature Legendaries (Bellows): **Titan's Maul** (Strike While Hot: finished pairs hit every foe), **Bellows Heart**
+(Stoked: drifting blocks you hit fill double meter).
+
+### Music (each piece: a distinct key, tempo and instruments, unlike Regions 1-2 and each other)
+| Piece | Key | Tempo | Instruments / feel |
+|---|---|---|---|
+| Cinder Flats (calm / intense) | E Phrygian dominant | 112, half-time feel | calm: an oud-like plucked lute ostinato, a breathy reed flute (ney) with slides, a low drone on E+B, a soft ash-hiss shaker, a distant frame drum; fight: a doumbek groove (doum-tek-tek-doum-tek), a driving low-string ostinato; lead: a nasal reed (zurna-like pulse) |
+| Glass Warrens | Bb Dorian | 108, in 5/4 (3+2) | calm: a kalimba ostinato on the 3+2, a bowed-glass pad, wind chimes at phrase ends, a soft sub heartbeat on 1; fight: marimba in double time, tabla-like hand drums; lead: a bright square wave |
+| The Black Forge | Ab minor (raised 7th, G, at cadences) | 138 | calm: a low brass chorale (tuba, trombones), an anvil ting on 2 and 4, bellows swells (filtered noise breathing in and out), a male choir hum; fight: a brass riff in octaves, forge-hammer drums (big low toms), anvil 16ths; lead: overdriven bass and brass stabs |
+| Rumbleback (mini-boss) | F# blues | 92, swung 16ths | (fight only) a road-works funk: slap bass, a wah-pulse guitar, cowbell and a clanking road-works hit, honking sax stabs, a tuba "beep, beep" reversing call each phrase |
+| Hob & Nob (mini-boss) | A major | 168, a 2/4 galop | (fight only) two leads trading bars (muted trumpet = Hob, clarinet = Nob), tuba oom-pah, snare rolls, a slide whistle into each phrase; phase 2: the leads overlap and argue |
+| Bellows (boss, by phase) | B Phrygian; phase 3 C Phrygian | 162 | phase 1: anvils on the backbeat, a low brass ostinato, war drums, bellows swells; phase 2 adds a male choir chant and a chain-rattle shaker in 16ths answered by horns; phase 3 lifts a semitone to C Phrygian with double-time drums, distorted bass and brass stabs, everything in |
+
+Already used: Region 1 D major 128, E Dorian 104, C minor 140, A minor 6/8 jig, D Phrygian 74, G minor 156 (A minor),
+Bb major 3/4 80 (camp), F major 100 (title); Region 2 B minor 116, Ab Lydian 96, C# minor 132, G Mixolydian 150 7/8,
+F minor 88 3/4, Eb minor 148 (F# minor). Every tonic is taken by now, so each new piece differs in mode, tempo, meter
+and band. New for the kingdom: a 5/4, a swung funk, a 2/4 galop, a semitone lift.
+Ambience beds: `cinder` (dry wind over the ash, crackling embers, a geyser's hiss now and then, a distant low
+rumble), `glass` (a deep hum, glass chiming like wind chimes, molten drips sizzling, a far crackle of cooling glass),
+`forge` (lava bubbling, distant hammer blows, the bellows breathing slowly, chains clinking, the furnace's roar).
+New telegraph sounds (`ASH_NEW_SOUNDS`): sizzle, embers, crust, stampede, quake, glass, snip, kiln, chain, bark,
+lava, anvil, bellows, eruption (Prism Flash and Squabble reuse `mirror` and `guard`).
+
+### Balance targets (for later, an 85% player on a fresh first playthrough of the region)
+Act 1 ~85% first try, Act 2 ~70%, Act 3 ~55%, Bellows' first fight won ~50-60%. Keep the thumb rules: reds as in
+`tests/unit/data.test.ts`, drift at most 0.10 (bursts excepted), a pair's halves reachable within the beat at base
+speed in a slow patch.
+
+### Wiring it in (the core owner's checklist)
+1. The two rules in combat (drift positions in the history, pairs and the beat, `tuning.links` with sliders), the new
+   actions and formation fields (unit tests), the relic hook points, the bot's aim at drifters and pairs.
+2. Merge: `ASHFELL` into `REGIONS`; `ASH_ENEMIES` into `ENEMIES`; `ASH_STORY` into `STORY`; relics, tags and build names
+   into `relics.ts` (and the tag chips in `relic-ui.ts` / `relic-log.ts`); bases, effects, the set and signatures into
+   `gear.ts`; banter (with its `after` gate); `magsTale` as a camp scene; the tips.
+3. Art and sound: the three themes in `Theme` with their backdrops, stage lights, map kits, lairs and critters; foe
+   sprites and telegraph poses; portraits (Rumbleback, Hob & Nob, Bellows); item icons; the three landmarks and
+   `landOpen` for Ashfell; the telegraph sounds, the six pieces and the three ambience beds (Sound lab labels by act
+   number only, as for the Frostpeaks).

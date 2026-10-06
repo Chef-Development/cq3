@@ -480,7 +480,7 @@ function shop(run: Run, accuracy: number, avoid: readonly RelicId[] = []): void 
  * (unless Powder Keg pays a stack for tapping one).
  */
 export function wantsBlock(c: Combat, b: Block, guarded: boolean): boolean {
-  if (b.kind === 'mirror' || b.id === c.holding?.id) return false;
+  if (b.kind === 'mirror' || b.id === c.holding?.id || b.id === c.linkLit?.id) return false;
   if (b.kind === 'purple') return c.hasPerk('purplePact') && c.hero.hp > c.maxHp() * 0.5 && c.stacks < c.maxStacks();
   if (guarded && b.kind === 'yellow') return false;
   if (b.kind === 'bomb' && c.hasPerk('shortFuse') && !c.hasPerk('powderKeg')) return false;
@@ -786,6 +786,12 @@ function plan(c: Combat, rng: Rng, aim: Aim, gauss: () => number, avoidYellow: b
     if (isRed(b.kind) && (!red || tau < red.tau)) red = { tau, id: b.id };
   }
   if (!best) return null;
+  // a lit link: its partner next (unless a red needs blocking first, below)
+  const partner = c.linkLit ? c.blocks.find((b) => b.id === c.linkLit!.partner) : undefined;
+  if (partner && partner.id !== best.id) {
+    const tp = partner.vel === 0 ? ((partner.pos - cpos) * dir >= 0 ? c.travelTime(cpos, partner.pos, dir) : -1) : (partner.pos - cpos) / (v * dir - partner.vel);
+    if (tp >= 0 && t + tp <= c.linkLit!.until) best = { tau: tp, id: partner.id };
+  }
   // defence first: skip a block if tapping it would leave no time to block the red right behind it
   if (red && red.id !== best.id && red.tau - best.tau < aim.gap) best = red;
   const err = rng.next() < aim.lapse ? (rng.next() < 0.5 ? -1 : 1) * (0.08 + rng.next() * 0.17) : gauss() * aim.sigma;

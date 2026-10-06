@@ -51,6 +51,8 @@ export interface Block {
   from: number; // where it spawned (a trail starts there)
   chill: number; // seconds a red stays slowed (Bend, Overgrowth) or pinned (Volley: chillMult 0)
   chillMult: number;
+  /** A linked pair: the other block's id (0 = not linked). Hit one, then the other within a beat. */
+  link: number;
 }
 
 /** A patch on the bar that changes the cursor's speed inside it: ice speeds it up, snowdrifts and slow patches
@@ -293,6 +295,9 @@ export type CombatEvent =
   | { type: 'dash'; from: number; to: number } // Shadow Dash: the cursor jumped ahead
   | { type: 'holdStart'; id: number; pos: number; perfect: boolean }
   | { type: 'holdEnd'; id: number; pos: number; ok: boolean }
+  | { type: 'linkStart'; id: number; partner: number; pos: number } // one of a linked pair hit: it lights, waiting
+  | { type: 'linkDone'; ids: number[]; pos: number } // ...its partner hit in time: both land, harder
+  | { type: 'linkBroken'; ids: number[]; pos: number } // ...the beat ran out: both break, a miss
   | { type: 'chip'; id: number; pos: number; left: number } // an iced yellow took a tap (it needs more)
   | { type: 'iceBlock'; id: number; pos: number } // a red froze in place (Flash Freeze, Glacier)
   | { type: 'ally'; kind: AllyKind; action: 'call' | 'act' | 'leave' | 'rally' | 'block'; id: number }
@@ -312,7 +317,7 @@ export type CombatEvent =
   | { type: 'cursorReset' };
 
 /** 'hold': a hold block was pressed (it completes, or slips, later); 'chip': an iced yellow took a tap. */
-export type TapOutcome = 'hit' | 'block' | 'crack' | 'trap' | 'counter' | 'ward' | 'hold' | 'chip' | 'miss' | 'none';
+export type TapOutcome = 'hit' | 'block' | 'crack' | 'trap' | 'counter' | 'ward' | 'hold' | 'chip' | 'link' | 'miss' | 'none';
 
 export interface TapResult {
   outcome: TapOutcome;
@@ -456,6 +461,10 @@ export class Combat {
   zones: Zone[] = [];
   /** The hold block being held (null: none). */
   holding: Holding | null = null;
+  /** One of a linked pair that was hit and waits for its partner until `until` (sim time); null: none. */
+  linkLit: { id: number; partner: number; until: number; perfect: boolean } | null = null;
+  /** True while the two hits of a completed linked pair land (they hit harder). */
+  private linkBonus = false;
   /** A Summoner's allies on the field. */
   allies: Ally[] = [];
   /** A practice fight (the camp's Training Dummy): nothing hurts the hero. */
@@ -649,7 +658,7 @@ export class Combat {
 
   /** A perk hits a yellow/green on the bar as if it were tapped (Blast Wave). Never a hold. */
   perkHit(b: Block, perfect = false): void {
-    if (!this.blocks.includes(b) || !isAttack(b.kind) || b.kind === 'hold' || this.result) return;
+    if (!this.blocks.includes(b) || !isAttack(b.kind) || b.kind === 'hold' || b.link || this.result) return;
     this.hitAttack(b, perfect, true);
   }
 
@@ -1372,14 +1381,20 @@ export class Combat {
           b.impactTimer -= DT;
           if (b.impactTimer <= 1e-9) this.impact(b);
         }
-      } else if (b.life !== Infinity) {
-        b.life -= DT;
-        if (b.life <= 0) {
-          this.removeBlock(b, 'expire');
-          if (b.kind === 'spore') this.sporeHeal(b);
+      } else {
+        if (b.vel !== 0) this.driftBlock(b);
+        if (b.life !== Infinity) {
+          b.life -= DT;
+          if (b.life <= 0) {
+            this.removeBlock(b, 'expire');
+            if (b.kind === 'spore') this.sporeHeal(b);
+          }
         }
       }
     }
+    // a lit link whose beat ran out: both break
+    const L = this.linkLit;
+    if (L && this.time >= L.until - 1e-9 && !this.result) this.breakLink();
   }
 
   /** Red travel velocity (bar units per second, leftward) for a block of width w at `speed` times normal (and the
@@ -1468,10 +1483,57 @@ export class Combat {
     }
     const statics = this.blocks.filter((b) => !isRed(b.kind));
     if (statics.length >= B.maxStatic) return false;
+    // the region's bar rules: a yellow may come as a linked pair, or drifting (the random draws only happen in an
+    // act that has these rules, so other acts play exactly as before)
+    const R = this.bar;
+    if (kind === 'yellow' && R?.links && this.row >= R.links.fromRow && this.spawnRng.next() < R.links.share && statics.length + 2 <= B.maxStatic) {
+      if (this.spawnPair(w, ownerId)) return true;
+    }
+    let drift = 0;
+    if (kind === 'yellow' && R?.drift && this.row >= R.drift.fromRow && this.spawnRng.next() < R.drift.share) drift = R.drift.speed * (this.spawnRng.next() < 0.5 ? -1 : 1);
     const p = this.freeSpot(w);
     if (p === null) return false;
-    this.spawnBlock(kind, p, ownerId, w);
+    this.spawnBlock(kind, p, ownerId, w, drift ? { drift } : {});
     return true;
+  }
+
+  /** A linked pair: two yellows a short way apart, chained (each knows the other). False if there's no room. */
+  private spawnPair(w: number, ownerId: number): boolean {
+    const B = this.tuning.blocks;
+    const L = this.tuning.links;
+    const p = this.freeSpot(w);
+    if (p === null) return false;
+    const statics = this.blocks.filter((b) => !isRed(b.kind) || b.still);
+    const lo = B.edgeMargin + w / 2;
+    const hi = 1 - B.edgeMargin - w / 2;
+    const gap = w + this.spawnRng.range(Math.min(L.gapMin, L.gapMax), Math.max(L.gapMin, L.gapMax));
+    const first = this.spawnRng.next() < 0.5 ? 1 : -1;
+    for (const dir of [first, -first]) {
+      const q = p + dir * gap;
+      if (q < lo || q > hi) continue;
+      if (!statics.every((s) => Math.abs(s.pos - q) >= (s.width + w) / 2 + B.minGap)) continue;
+      const a = this.spawnBlock('yellow', p, ownerId, w);
+      const b = this.spawnBlock('yellow', q, ownerId, w);
+      a.link = b.id;
+      b.link = a.id;
+      return true;
+    }
+    return false;
+  }
+
+  /** A drifting block slides along the bar, turning back at the ends and at the blocks beside it. */
+  private driftBlock(b: Block): void {
+    const B = this.tuning.blocks;
+    const half = b.width / 2;
+    const lo = B.edgeMargin + half;
+    const hi = 1 - B.edgeMargin - half;
+    let next = b.pos + b.vel * DT;
+    const blocked = this.blocks.some((s) => s !== b && (!isRed(s.kind) || s.still) && (s.pos - b.pos) * b.vel > 0 && Math.abs(s.pos - next) < (s.width + b.width) / 2 + B.minGap / 2);
+    if (next < lo || next > hi || blocked) {
+      b.vel = -b.vel;
+      next = Math.min(hi, Math.max(lo, b.pos + b.vel * DT));
+    }
+    b.pos = next;
   }
 
   /** A random spot (block center) where a static block of width w fits without touching the others, or null. */
@@ -1507,7 +1569,7 @@ export class Combat {
     pos: number,
     ownerId: number = this.enemies[0]?.id ?? 0,
     width = this.widthFor(kind),
-    o: { speed?: number; taps?: number; life?: number; heal?: number; special?: boolean; still?: boolean; fuse?: number; grow?: number; trail?: ZoneKind } = {},
+    o: { speed?: number; taps?: number; life?: number; heal?: number; special?: boolean; still?: boolean; fuse?: number; grow?: number; trail?: ZoneKind; drift?: number } = {},
   ): Block {
     const B = this.tuning.blocks;
     const speed = o.speed ?? 1;
@@ -1534,7 +1596,9 @@ export class Combat {
       from: Math.min(1 - width / 2, Math.max(width / 2, pos)),
       chill: 0,
       chillMult: 1,
+      link: 0,
     };
+    if (o.drift && !isRed(kind)) b.vel = o.drift;
     for (const h of this.hooks) h.spawned?.(this, b);
     this.blocks.push(b);
     this.events.push({ type: 'spawn', id: b.id, kind: b.kind, ownerId, special: !!o.special });
@@ -1547,6 +1611,13 @@ export class Combat {
     if (i < 0) return;
     this.blocks.splice(i, 1);
     if (this.holding?.id === b.id) this.holding = null;
+    if (b.link) {
+      // a linked block gone some other way (a blast, a finisher, its time up): its partner is a plain yellow now
+      const o = this.blocks.find((x) => x.id === b.link);
+      if (o) o.link = 0;
+      if (this.linkLit && (this.linkLit.id === b.id || this.linkLit.partner === b.id)) this.linkLit = null;
+      b.link = 0;
+    }
     this.events.push({ type: 'remove', id: b.id, kind: b.kind, pos: b.pos, width: b.width, ownerId: b.ownerId, reason });
     // a red with a trail leaves a patch over the stretch it crossed
     if (b.trail && Math.abs(b.from - b.pos) > 0.04) this.addZone(b.trail, (b.from + b.pos) / 2, Math.abs(b.from - b.pos), this.tuning.bar.trailLife);
@@ -1616,9 +1687,56 @@ export class Combat {
     else if (chosen.kind === 'ward') outcome = this.breakWard(chosen, perfect);
     else if (chosen.kind === 'hold') outcome = this.pressHold(chosen, t);
     else if (chosen.taps > 1 && isAttack(chosen.kind)) outcome = this.chip(chosen);
+    else if (chosen.link) outcome = this.tapLinked(chosen, perfect);
     else outcome = this.hitAttack(chosen, perfect);
     const p = outcome === 'trap' || outcome === 'counter' || outcome === 'miss' ? false : outcome === 'hold' ? !!this.holding?.perfect : perfect;
+    // (a 'link' tap: the pair's first, lit and waiting)
     return { outcome, perfect: p, cursorPos: cpos, blockId: chosen.id };
+  }
+
+  /**
+   * One of a linked pair tapped. The first lights up and waits (nothing lands yet); its partner tapped within
+   * tuning.links.beatSec lands both, harder (x links.bonus). If the beat runs out, both break: a miss.
+   */
+  private tapLinked(b: Block, perfect: boolean): TapOutcome {
+    const L = this.linkLit;
+    if (L && L.id === b.id) return 'link'; // the lit one again: nothing more happens
+    if (L && L.id === b.link) {
+      const first = this.blocks.find((x) => x.id === L.id);
+      this.linkLit = null;
+      b.link = 0;
+      if (first) first.link = 0;
+      this.events.push({ type: 'linkDone', ids: [L.id, b.id], pos: b.pos });
+      this.linkBonus = true;
+      try {
+        if (first) this.hitAttack(first, L.perfect);
+        return this.hitAttack(b, perfect);
+      } finally {
+        this.linkBonus = false;
+      }
+    }
+    const partner = this.blocks.find((x) => x.id === b.link);
+    if (!partner) {
+      b.link = 0;
+      return this.hitAttack(b, perfect);
+    }
+    if (L) this.breakLink(); // another pair was waiting: it breaks
+    this.linkLit = { id: b.id, partner: partner.id, until: this.time + this.tuning.links.beatSec, perfect };
+    this.events.push({ type: 'linkStart', id: b.id, partner: partner.id, pos: b.pos });
+    return 'link';
+  }
+
+  /** The lit link's beat ran out (or another pair was started): both blocks break, and it counts as a miss. */
+  private breakLink(): void {
+    const L = this.linkLit;
+    if (!L) return;
+    this.linkLit = null;
+    const pair = this.blocks.filter((x) => x.id === L.id || x.id === L.partner);
+    for (const x of pair) x.link = 0;
+    for (const x of pair) this.removeBlock(x, 'expire');
+    const pos = pair[0]?.pos ?? this.cursorPos();
+    this.events.push({ type: 'linkBroken', ids: [L.id, L.partner], pos });
+    this.miss(pos, true);
   }
 
   /** An iced yellow takes a tap: its coat cracks (it needs `taps` in all); the combo holds, nothing else happens. */
@@ -1760,6 +1878,7 @@ export class Combat {
     this.addMeter((green ? T.meter.perGreen : T.meter.perHit) + (perfect ? T.meter.perfectBonus : 0), green ? 'green' : 'hit');
     // a completed hold and a shattered frozen block hit harder
     let mult = green ? T.hero.greenMult : b.kind === 'hold' ? T.hold.mult : b.kind === 'frozen' ? T.blocks.frozenMult : 1;
+    if (this.linkBonus) mult *= T.links.bonus; // a linked pair, both hit in time
     if (this.settings.comboTiers) mult *= tierMult(T, this.combo);
     const critChance = this.mod(st.critChance + (perfect ? T.hero.perfectCritBonus : 0) + this.tuskCrit, (h, v) => h.critChance?.(this, x, v));
     let crit = this.critRng.next() < critChance;

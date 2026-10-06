@@ -225,3 +225,123 @@ describe('mirrors, icicles, growing reds, iced yellows', () => {
     expect(c.tap(at2).outcome).toBe('hit');
   });
 });
+
+describe('the third region: drifting blocks and linked pairs', () => {
+  it('a drifting yellow slides along the bar and turns back at the end (and at a block beside it)', () => {
+    const { c, t } = setup();
+    const b = c.spawnBlock('yellow', 0.8, c.enemies[0].id, 0.1, { drift: 0.2 });
+    expect(b.vel).toBe(0.2);
+    go(c, 0.5);
+    expect(b.pos).toBeGreaterThan(0.8);
+    go(c, 2);
+    // it reached the right end and came back
+    expect(b.vel).toBeLessThan(0);
+    expect(b.pos).toBeLessThanOrEqual(1 - t.blocks.edgeMargin - 0.05 + 1e-9);
+    // a still block in its way turns it back too
+    const { c: c2 } = setup();
+    const wall = c2.spawnBlock('yellow', 0.3);
+    const d = c2.spawnBlock('yellow', 0.6, c2.enemies[0].id, 0.1, { drift: -0.2 });
+    go(c2, 2);
+    expect(d.pos).toBeGreaterThan(wall.pos + (wall.width + d.width) / 2);
+  });
+
+  it('a tap lands on a drifting yellow where it is at the tap (the judge follows it)', () => {
+    const { c, t } = setup();
+    const b = c.spawnBlock('yellow', 0.5, c.enemies[0].id, 0.1, { drift: 0.1 });
+    // the cursor (left to right) meets it a little right of where it started
+    const meet = 0.5 / (1 / t.cursor.basePassSec - 0.1);
+    go(c, meet);
+    expect(c.tap(meet).outcome).toBe('hit');
+    expect(c.blocks.includes(b)).toBe(false);
+  });
+
+  it("an act's drift share makes spawned yellows drift (and none in an act without it)", () => {
+    const { c } = setup({ bar: { drift: { share: 1, fromRow: 0, speed: 0.06 } } });
+    expect(c.trySpawn('yellow', c.enemies[0].id)).toBe(true);
+    expect(Math.abs(c.blocks[0].vel)).toBeCloseTo(0.06);
+    const { c: plain } = setup();
+    plain.trySpawn('yellow', plain.enemies[0].id);
+    expect(plain.blocks[0].vel).toBe(0);
+    // from its row on only
+    const { c: early } = setup({ bar: { drift: { share: 1, fromRow: 3, speed: 0.06 } }, row: 1 });
+    early.trySpawn('yellow', early.enemies[0].id);
+    expect(early.blocks[0].vel).toBe(0);
+  });
+
+  const pair = (c: Combat, p = 0.4, q = 0.6) => {
+    const a = c.spawnBlock('yellow', p);
+    const b = c.spawnBlock('yellow', q);
+    a.link = b.id;
+    b.link = a.id;
+    return [a, b];
+  };
+
+  it('a linked pair: the first tap lights it (nothing lands yet), the partner in time lands both, harder', () => {
+    const { c, t } = setup({ enemies: ['bandit'] });
+    const [a, b] = pair(c);
+    const hp = c.enemies[0].hp;
+    go(c, timeAt(t, 0.4));
+    expect(c.tap(timeAt(t, 0.4)).outcome).toBe('link');
+    expect(c.enemies[0].hp).toBe(hp);
+    expect(c.linkLit).toMatchObject({ id: a.id, partner: b.id });
+    expect(c.drainEvents().some((e) => e.type === 'linkStart')).toBe(true);
+    go(c, timeAt(t, 0.6));
+    expect(c.tap(timeAt(t, 0.6)).outcome).toBe('hit');
+    expect(c.blocks.includes(a) || c.blocks.includes(b)).toBe(false);
+    expect(c.linkLit).toBeNull();
+    // two hits, each x links.bonus
+    expect(hp - c.enemies[0].hp).toBe(2 * Math.round(t.hero.atk * t.links.bonus));
+    expect(c.combo).toBe(2);
+    expect(c.drainEvents().some((e) => e.type === 'linkDone')).toBe(true);
+  });
+
+  it('...and if the beat runs out, both break: a miss (the combo goes)', () => {
+    const { c, t } = setup({ enemies: ['bandit'] });
+    const [a, b] = pair(c, 0.2, 0.9);
+    c.combo = 5;
+    go(c, timeAt(t, 0.2));
+    c.tap(timeAt(t, 0.2));
+    go(c, timeAt(t, 0.2) + t.links.beatSec + 0.02);
+    expect(c.blocks.includes(a) || c.blocks.includes(b)).toBe(false);
+    expect(c.linkLit).toBeNull();
+    expect(c.combo).toBe(0);
+    const ev = c.drainEvents();
+    expect(ev.some((e) => e.type === 'linkBroken')).toBe(true);
+    expect(ev.some((e) => e.type === 'miss')).toBe(true);
+  });
+
+  it('a linked block taken off the bar some other way leaves its partner a plain yellow; perks never hit half a pair', () => {
+    const { c, t } = setup({ enemies: ['bandit'] });
+    const [a, b] = pair(c);
+    c.removeBlock(a, 'perk');
+    expect(b.link).toBe(0);
+    go(c, timeAt(t, 0.6));
+    expect(c.tap(timeAt(t, 0.6)).outcome).toBe('hit');
+    const { c: c2 } = setup({ enemies: ['bandit'] });
+    const [x] = pair(c2);
+    c2.perkHit(x);
+    expect(c2.blocks.includes(x)).toBe(true);
+  });
+
+  it("an act's link share spawns pairs (two chained yellows a little apart)", () => {
+    const { c } = setup({ bar: { links: { share: 1, fromRow: 0 } } });
+    expect(c.trySpawn('yellow', c.enemies[0].id)).toBe(true);
+    expect(c.blocks).toHaveLength(2);
+    const [a, b] = c.blocks;
+    expect(a.link).toBe(b.id);
+    expect(b.link).toBe(a.id);
+    expect(Math.abs(a.pos - b.pos)).toBeGreaterThan(a.width);
+  });
+
+  it('every hero can finish a linked pair and hit a drifting block', () => {
+    for (const hero of ['rowan', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva'] as const) {
+      const { c, t } = setup({ enemies: ['bandit'], hero });
+      pair(c);
+      go(c, timeAt(t, 0.4));
+      expect(c.tap(timeAt(t, 0.4)).outcome, hero).toBe('link');
+      go(c, timeAt(t, 0.6));
+      expect(['hit'], hero).toContain(c.tap(timeAt(t, 0.6)).outcome);
+      expect(c.linkLit, hero).toBeNull();
+    }
+  });
+});

@@ -22,6 +22,10 @@ export const SPEAKER_NAME: Record<Speaker, string> = {
   rimehorn: 'Rimehorn',
   matron: 'Loom Matron',
   glacia: 'Glacia',
+  // Region 3 (src/data/story-ash.ts; not in play yet)
+  rumbleback: 'Rumbleback',
+  hobnob: 'Hob & Nob',
+  bellows: 'Bellows',
 };
 
 export const STORY: Record<string, StoryBox[]> = {

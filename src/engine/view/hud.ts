@@ -1,6 +1,7 @@
 // The HUD: hero plate (the fighting hero's portrait and level, the HP bar; under it the coins and a potion lit while a
 // revive is left), the relic belt under that (up to five icons, then "+N"; one pulses when it kicks in; a tap opens
-// the relic panel), enemy plate (badge, HP, name), the act and foe counters, the combo counter, the finisher strip
+// the relic panel), the hero's style readout beside the potion (Shadow's Chain, Guardian's Guard, Marksman's Focus,
+// Torva's Unstoppable, a Summoner's allies: read from the fight, only what helps a decision), enemy plate (badge, HP, name), the act and foe counters, the combo counter, the finisher strip
 // under the bar (meter, banked stacks with Overcharge's countdown, speed) and button, and the coins that fly into
 // the coin chip. The fight shows only what you act on: the hero's other stats live in the camp. A stat that went up
 // since the last fight (a boost, new gear) gets one line under the plate as the fight starts: the biggest gain.
@@ -20,6 +21,12 @@ import { FOE_ICONS } from './icons';
 import { clamp01, ease, easeBack, ENEMY_COL, inRect, INK, mix, pulse, rand, shade, stackCol, WHITE, type Rect } from './shared';
 import { ImagePool, ribbon, tag, TextPool } from './ui';
 import { relicIcon } from './relic-ui';
+import { PORTRAIT_FACE_AT } from '../art-hero-portraits';
+import { heroDef, type HeroId } from '../../data/heroes';
+import { allyKinds, chainOf, focusCap, focusOf, guardMax, guardOf } from '../../core/styles';
+import { ALLY_COL } from './party';
+import { FOE_ICONS as GLYPHS } from './icons';
+import { icon } from './pixels';
 import { statSize } from './items';
 import { pix } from './camp-kit';
 
@@ -32,7 +39,7 @@ const kNum = (n: number): string => (n < 10000 ? `${n}` : n < 100000 ? `${Math.c
 const foeCount = (c: Combat): { beaten: number; total: number } => ({ beaten: c.foesBeaten, total: c.foesTotal });
 
 /** Where the portrait's face sits inside its 40x40 texture (top-left of the 18x18 window shown in the badge). */
-const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [14, 8] };
+const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [14, 8], ...PORTRAIT_FACE_AT };
 /** The hero plate: the HP plate's height, and the coin row under it (beside the portrait). */
 const PLATE_H = 14;
 const CHIP_Y = 20;
@@ -300,7 +307,8 @@ export class Hud {
     const bump = age < 140 ? -Math.round(2 * (1 - age / 140)) : 0;
     const out = clamp01((age - (life - 300)) / 300);
     const a = 1 - out;
-    const txt = `+${h.sum}`;
+    // (HP is fractional inside: a heal that topped it up can be a sliver; show whole HP)
+    const txt = `+${Math.max(1, Math.round(h.sum))}`;
     const right = plate.x + plate.w - 1;
     const y = plate.y + plate.h + 6 + bump - Math.round(out * 3);
     const tw = textWidth(txt, 1, true);
@@ -633,8 +641,117 @@ export class Hud {
     const lit = H.revives > 0;
     tag(g, rr, lit ? [NAVY[5], NAVY[3], NAVY[2], NAVY[1]] : [NAVY[3], NAVY[1], NAVY[1], NAVY[0]], lit ? 0.94 : 0.7);
     hudIcon(g, 'potionS', rr.x + 2, rr.y, 1, lit ? 1 : 0.3);
+    this.drawStyle(g, now, rr.x + rr.w + 3, rr.y);
     this.drawBelt(g, now, dx);
     this.drawLane(g, now, dx);
+  }
+
+  /**
+   * The style readout: a small chip beside the potion with what the hero's style has stored right now, so it can be
+   * spent well. Shadow: the Chain (x2..x5, glowing at its longest); Guardian: Guard charges as pips; Marksman: Focus
+   * as a small bar (glowing gold when full: the next green crits); Torva: Unstoppable stacks; a Summoner: a pip per
+   * ally out, in its colour (all out: the next call is a Rally). Nothing shows while there's nothing stored.
+   */
+  private drawStyle(g: G, now: number, x: number, y: number): void {
+    const s = this.s;
+    const c = s.app.run.combat;
+    if (!c || s.app.run.phase !== 'fight') return;
+    const style = heroDef(c.heroId as HeroId).style;
+    const chip = (w: number, hot: number | null): Rect => {
+      const r: Rect = { x, y, w, h: 10 };
+      if (hot !== null) glow(g, r, hot, 0.45 + 0.35 * pulse(now, 420), 2);
+      tag(g, r, [NAVY[5], NAVY[3], NAVY[2], NAVY[1]], 0.94);
+      return r;
+    };
+    if (style === 'shadow') {
+      const n = chainOf(c);
+      if (n < 2) return;
+      const max = Math.round(s.app.tuning.styles.chainMax);
+      const txt = `x${n}`;
+      const r = chip(12 + textWidth(txt, 1, true), n >= max ? 0xdab0ff : null);
+      // two links of a chain
+      g.fillStyle(0xdab0ff, 1);
+      for (const [lx, ly] of [
+        [r.x + 2, r.y + 2],
+        [r.x + 5, r.y + 4],
+      ])
+        rows(g, lx, ly, 5, 4, 1, 0xdab0ff);
+      g.fillStyle(NAVY[3], 1);
+      g.fillRect(r.x + 3, r.y + 3, 3, 2);
+      g.fillRect(r.x + 6, r.y + 5, 3, 2);
+      this.texts.text(txt, r.x + 11, r.y + 5, n >= max ? WHITE : 0xe0c8ff, { bold: true, oy: 0.5 });
+    } else if (style === 'guardian') {
+      const n = guardOf(c);
+      const max = guardMax(c);
+      if (n <= 0) return;
+      const r = chip(10 + max * 3, n >= max ? 0x9ad8ff : null);
+      hudIcon(g, 'shield', r.x + 1, r.y + 1);
+      for (let i = 0; i < max; i++) {
+        g.fillStyle(i < n ? 0x9ad8ff : NAVY[1], 1);
+        g.fillRect(r.x + 9 + i * 3, r.y + 3, 2, 4);
+        if (i < n) {
+          g.fillStyle(WHITE, 1);
+          g.fillRect(r.x + 9 + i * 3, r.y + 3, 2, 1);
+        }
+      }
+    } else if (style === 'marksman') {
+      const f = focusOf(c);
+      if (f <= 0) return;
+      const k = clamp01(f / Math.max(1, focusCap(c)));
+      const full = k >= 0.999;
+      const r = chip(30, full ? 0xffe680 : null);
+      icon(g, GLYPHS.arrow, r.x + 2, r.y + 1, full ? 0xfff0a0 : 0xd8c8f0);
+      const bx = r.x + 10;
+      const bw = 18;
+      g.fillStyle(INK, 1);
+      g.fillRect(bx - 1, r.y + 2, bw + 2, 6);
+      g.fillStyle(NAVY[1], 1);
+      g.fillRect(bx, r.y + 3, bw, 4);
+      const fw = Math.round(bw * k);
+      if (fw > 0) {
+        g.fillStyle(full ? 0xf2c230 : 0xb07ae0, 1);
+        g.fillRect(bx, r.y + 3, fw, 4);
+        g.fillStyle(full ? 0xfff0a0 : 0xdab0ff, 1);
+        g.fillRect(bx, r.y + 3, fw, 1);
+        if (full && Math.floor(now / 140) % 2) {
+          g.fillStyle(WHITE, 0.8);
+          g.fillRect(bx + ((Math.floor(now / 40) % bw) | 0), r.y + 3, 2, 4);
+        }
+      }
+    } else if (c.heroId === 'torva') {
+      const n = c.perk.unstoppable ?? 0;
+      if (n <= 0) return;
+      const max = Math.round(s.app.tuning.kits.torva.unstoppableMax);
+      const txt = `x${n}`;
+      const r = chip(11 + textWidth(txt, 1, true), n >= max ? 0xff7a4a : null);
+      // a flame: angrier with every hit taken
+      g.fillStyle(0xd03030, 1);
+      g.fillRect(r.x + 2, r.y + 3, 5, 5);
+      g.fillRect(r.x + 3, r.y + 1, 2, 2);
+      g.fillRect(r.x + 5, r.y + 2, 1, 1);
+      g.fillStyle(0xff9a3a, 1);
+      g.fillRect(r.x + 3, r.y + 4, 3, 3);
+      g.fillStyle(0xffe070, 1);
+      g.fillRect(r.x + 4, r.y + 5, 1, 2);
+      this.texts.text(txt, r.x + 10, r.y + 5, n >= max ? WHITE : 0xffb090, { bold: true, oy: 0.5 });
+    } else if (style === 'summoner') {
+      const kinds = allyKinds(c);
+      const n = c.allies.length;
+      if (n <= 0) return;
+      const all = kinds.every((k) => c.allies.some((a) => a.kind === k));
+      const r = chip(10 + kinds.length * 5, all ? 0xffe680 : null);
+      icon(g, GLYPHS.leaf, r.x + 1, r.y + 1, 0x9af06a);
+      kinds.forEach((k, i) => {
+        const out = c.allies.some((a) => a.kind === k);
+        const px = r.x + 10 + i * 5;
+        g.fillStyle(out ? ALLY_COL[k] : NAVY[1], 1);
+        g.fillRect(px, r.y + 3, 3, 4);
+        if (out) {
+          g.fillStyle(WHITE, 0.8);
+          g.fillRect(px, r.y + 3, 3, 1);
+        }
+      });
+    }
   }
 
   /** The coin chip under the HP plate, right of the portrait (the coins fly into it). */
