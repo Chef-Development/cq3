@@ -11,9 +11,8 @@
   levels and skill points; relic offers and unlocks; profile v3 and run save v6), then seven parallel agents (relic
   effects, Sable's two cursors and her tree, Rowan's tree and XP pacing, the fight UI, the camp UI, the art, the music),
   merged, rebalanced and checked together.
-- **Playtester accuracy:** not given this round, so the curve stays set for a typical 70% player. When it comes:
-  `ACC=<number> npm run retarget` re-aims the three acts (docs/retarget.md); the gear panel's "Your accuracy" > Copy
-  gives the number.
+- **Playtester accuracy:** 80-90% (round 4). The curve is now aimed at an 85% player (`TYPICAL_ACCURACY`), the
+  playtester, on a fresh first playthrough (section 8).
 
 ## What M4a adds
 
@@ -171,19 +170,87 @@ between fights. Icons first, few words, no new HUD rows (the bounty tracker sits
   per act attempt. A first cut with a two-relic, 30%-off merchant pushed the Boar King to 81-84%, so she was trimmed.
   The bot guards pass; re-run `npm run balance` after merging with the combat retune.
 
+### 8. Playtest round 4: balance ("the scaling gets insane later: basically immune, huge damage, free combos")
+Measured first with the bot (new: `npm run snowball`, per act and node type: HP lost per fight, the foes' share of it,
+fight length, damage per second, combo, where each stat comes from, ablations, and a **veteran**: a full playthrough,
+6 forged Act 3 farms, then Acts 1-3 replayed; `npm run perks`: each relic and skill node alone on a typical Act 3 hero;
+`AVOID=relic` on snowball/twin weighs one relic against going without it). Found:
+- **Reds almost never reach an 85% player.** About 99% are blocked or knocked off the bar (a red crosses the cursor's
+  path 2-3 times in its 2.8 s, the red grace is 40 ms, finishers and kills clear reds). In normal fights the foes took
+  1.2% / 3.0% / 1.2% of max HP per fight in Acts 1 / 2 / 3: less in Act 3 than in Act 1. What an 85% player loses is
+  their own relic prices (Clutch, Glass Edge, Blood Price, Purple Pact); with stat cards instead of relics they lose
+  4-6% a fight. Enemy HP and attack barely move them (doubling Act 3's numbers: Boar King 85% -> 70%, while a 70%
+  player's first Act 3 try drops to ~15%).
+- **The replay kit was from the stat-card era.** A replayed act started with +22% damage, +8.5% crit, +0.77 crit
+  damage, +0.82 combo power and +68 HP per act behind (on top of the relic drafts); a real 85% story run gains about
+  +1% / +0.3% / +0.03 / +0.03 / +15 HP per act now that relics replaced most stat cards. The veteran's Act 3 replay:
+  ATK 67 vs 35, HP 410 vs 230, crit 43% vs 12%, crit damage x4.1 vs x2.3; normal fights 7% HP and 11 s; every farmed
+  Boar King won (99-100%).
+- **Kill gains were half the hero's attack by Act 3** (+0.25 ATK and +1 max HP per kill: +17.8 of 35 ATK, +70 HP),
+  and later acts send more foes per fight. The biggest single source in the ablations (without it an 85% player's
+  Act 2 first try fell 97% -> 58%); gear, levels, skills and stat cards each moved it 0-10 points.
+- **Damage per point of ATK doubles over the region** (3.2 -> 6.7 for an 85% player): crits climb 18% -> 43% through
+  the Perfect rules (Sharpshooter, Weak Spot, Whetstone, Battle Focus), Rowan's finisher hits every foe of the bigger
+  Act 3 waves, and relic perks. That is the build working; not trimmed.
+- **Sable's Afterimage made her immune:** every block recharged it, so the next red was always stopped (bench: Boar
+  King 10% -> 100% won, the foes' damage to 0).
+- **Not dominant:** Defense (16-40 DEF cuts 14-29% off reds that rarely land), levels (+2 HP, +1.5% base attack a
+  level), Double Time, Twin Rhythm, Chain Reaction, Unbroken, Sweeper, Quickening (each within a few points when the
+  bot goes without it, or a capstone a story run doesn't reach), gear growth per item level (2.6-2.9x by Act 3 against
+  enemy HP x2.4 plus rows; gear is 13% of a story hero's ATK). **Clutch** is worth +23-25 points (Act 3 first try)
+  when reds land more often, but +3 at the final numbers, so it stays 3%. The map extras are not part of the
+  snowball (no trims).
+
+Changed (one line each; every number in `tuning.ts` with its slider):
+- `tuning.kit` re-measured from an 85% story run: per act behind +3.7 ATK, +16 HP, +0.5% damage, +0.3% crit, +0.025
+  crit damage, +0.035 combo power, +1 Pip (was 6.8 / 68 / 22% / 8.5% / 0.77 / 0.82 / 6.8); relic drafts stay 2 per act.
+- Kill gains: +0.15 ATK and +0.6 max HP per kill (was 0.25 / 1).
+- Afterimage (Sable's capstone): stops {n} = 2 reds a fight (was every block recharging it); text, slider, unit test.
+- Act 2: enemy HP x1.4 (was 1.6), attack x6.5 (was 4.4). Act 3: HP x3.6 (was 2.4), attack x14 (was 11.4).
+- Sable: hits 0.75x Rowan's (was 0.7), 135 HP (125), static blocks x0.7 (0.55: she missed more per tap, so relics that
+  charge per miss cost her far more), reds x0.45 (0.7: her half-speed cursors ride along with a red on the way back).
+- `TYPICAL_ACCURACY` 0.7 -> 0.85; `tests/unit/bot.test.ts` targets for 85% (plus: a 70% player clears Act 3 with
+  retries; an Act 3 fight costs at least an Act 1 fight's HP, the foes' share too; normal fights never get shorter);
+  `twin-bot.test.ts` guards Sable at 85%; `data.test.ts` checks Sable's narrower reds stay blockable at 1.5x cursor.
+- Measurement only in `bot.ts` (fight cost, HP by source, stat sources, combo, a `noGear` / `avoid` option, replay
+  costs); docs/balance.md gains "What a fight costs" and "A farmed replay still costs HP".
+
+| 85% player (playtester) | Act 1 first try | Act 2 first try | Boar King first fight | HP lost per normal fight, Act 1 / 3 | Normal fight, Act 1 / 2 / 3 |
+|---|---|---|---|---|---|
+| Before | 100% | 94% | 96% | 7% / 24% (foes 1.2% / 1.2%) | 15 / 21 / 18 s |
+| **After** | **100%** | **87%** | **83%** | **8% / 33%** (foes 1% / 3%) | **16 / 22 / 23 s** |
+
+| 70% player | Act 1 first try | Act 2 first try | Boar King first fight | Act 3 cleared in 6 tries | HP lost per normal fight, Act 1 / 3 | Normal fight, Act 1 / 3 |
+|---|---|---|---|---|---|---|
+| Before | 100% | 87% | 75% | 100% | 11% / 12% | 18 / 22 s |
+| **After** | **98%** | **68%** | **41%** | **94%** (farming: 41% -> 71% over 6 replays) | **12% / 27%** | **19 / 29 s** |
+
+"Before" is the old tuning on this branch (map extras in; snowball, 300 runs); "after" is docs/balance.md (1,000 runs).
+- **Veteran (85%, story + 6 forged farms):** Act 3 replay normal fights 7% HP, 11 s -> **16%, 17 s**; replayed Boar King
+  100% -> 92%; farming the Boar King 99-100% from the first replay -> **75% -> 89%** over six (70%: 41% -> 71%). Act 1-2
+  replays with endgame gear stay easy (2-6% HP a fight); New game now wipes the profile, so that is optional farming.
+- **Sable vs Rowan:** within +/-8 points at 70% and 85% in every act (was -10 at 85% Act 3).
+- **Not met: the Boar King at 60-70% for the playtester (83%).** Enemy numbers don't reach an 85% player; red
+  pressure does: faster reds per act (x1.1 / x1.2, tried) brought it to ~70% and gave the foes a real share of Act 3's
+  damage, but Sable's cursors gain far more from faster reds (+30-40 points over Rowan for a 70% player), breaking her
+  guarantee. Options: (a) faster reds plus a Sable rework (her cursors, or how her reds move); (b) accept ~80%;
+  (c) push Act 3's numbers to ~2x (Boar King ~70%, but a landed red becomes a one-shot and a 70% player's first try
+  ~15%). I'd do (a) next.
+
 ## Balance (docs/balance.md: 1,000 whole runs per player; farming 333 players per row)
 
-Relics replace most stat cards, so the hero grows by rules, levels and gear instead of numbers. Re-measured with the
-bot (synergy-greedy picks, one skill branch at a time) and rebalanced to the same targets: Act 2 enemies have less HP
-(x1.6, was x2.07) and a bit less attack (x4.4, was x4.6); Act 3 less HP (x2.4, was x3.1) and more attack (x11.4,
-was x8.9), so fights keep their length (normal fights 18 / 26 / 22 s, bosses 36 / 57 / 62 s for a 70% player).
+Round 4 (section 8) aimed the curve at the playtester (85%); M4a's numbers below that table are history.
 
 | Player | Act 1 first try | Act 2 first try | Act 3 first try | Boar King first fight won |
 |---|---|---|---|---|
-| 55% | 93% | 68% | 46% | 50% |
-| **70%** | **100%** | **84%** | 72% | **76%** |
-| 85% | 100% | 94% | 92% | 93% |
-| 95% | 100% | 100% | 99% | 99% |
+| 55% | 89% | 45% | 19% | 23% |
+| 70% | 98% | 68% | 38% | 41% |
+| **85%** | **100%** | **87%** | 78% | **83%** |
+| 95% | 100% | 99% | 95% | 97% |
+
+M4a: relics replace most stat cards, so the hero grows by rules, levels and gear instead of numbers. Re-measured with
+the bot (synergy-greedy picks, one skill branch at a time) and rebalanced (then for a 70% player) so fights kept their
+length.
 
 - **Win rates with relics:** builds the bot ends with at the Boar King are mostly Counterpuncher (Block + Finisher),
   Maestro (Combo + Finisher) and Demolisher (Bomb + Finisher), all winning 74-78% of first fights. Per relic, most
@@ -205,7 +272,8 @@ was x8.9), so fights keep their length (normal fights 18 / 26 / 22 s, bosses 36 
    reds like Rowan's.
 3. **Shield Wall** is once a fight (5 blocks charge it). As "every 5 blocks" it made Bulwark win almost every fight.
 4. **Unbroken** halves the combo AND the stacks (combo alone does little: it only speeds the cursor).
-5. **Clutch** costs 3% of max HP per miss (a flat 3 HP was nothing by Act 3 and doubled the bot's damage).
+5. **Clutch** costs 3% of max HP per miss (a flat 3 HP was nothing by Act 3 and doubled the bot's damage). Round 4 kept
+   it: it is worth +3 points at the final numbers (+23-25 only when reds land more often).
 6. Relics in a pick: 55% of picks have one stat card. The relic shop price is x1.25 a card's.
 7. **Starting HP:** a new run now starts at full HP including gear (it started at the base 100 before).
 
@@ -218,9 +286,10 @@ was x8.9), so fights keep their length (normal fights 18 / 26 / 22 s, bosses 36 
 - Everything from M3b's list that is still open (the launch fix on a cold start, loot timings, camp tap targets).
 
 ## Known gaps and suggested next steps
-1. **Report the accuracy number** (gear panel > Your accuracy > Copy), then `ACC=<number> npm run retarget`.
-2. **Sable takes about twice the hits of Rowan for a skilled (85%) player** in Act 3 (2.0 vs 4.1 a minute; her extra
-   HP covers it). If she feels fragile on the phone, widen her reds (`sable.redWidthMult`) or raise `sable.maxHp`.
+1. **Red pressure for skilled players** (section 8): the one lever that reaches an 85% player, blocked by Sable's cursor
+   geometry. Decide (a) / (b) / (c).
+2. **Sable takes more hits than Rowan for a skilled (85%) player** in Act 3 (3.5 vs 2.2 a minute; her 135 HP covers
+   it). Her reds are narrower now (x0.45): if blocking feels unfair on the phone, give back red width and take HP.
 3. Bulwark is still the safest branch (+8-10 points in Act 3); if it reads as "the right answer", trim Parry or
    Shield Bash next.
 4. Some special moves place blocks at set spots and don't know about Sable's middle line; a safety net moves such a
