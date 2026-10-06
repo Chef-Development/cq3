@@ -310,6 +310,18 @@ export class App {
     this.setPhase(() => this.run.toCamp());
   }
 
+  /** The camp's Training Dummy: a practice fight (no risk, no rewards), back to the camp when it ends. */
+  startPractice(): void {
+    this.storyOverlay = null;
+    this.setPhase(() => this.run.startPractice());
+  }
+
+  /** Walk away from a practice fight (its pause panel's "Back to camp"). */
+  leavePractice(): void {
+    if (!this.run.practice) return;
+    this.setPhase(() => this.run.endPractice(false));
+  }
+
   /** Leave the camp: back where it was opened from. */
   leaveCamp(): void {
     this.storyOverlay = null;

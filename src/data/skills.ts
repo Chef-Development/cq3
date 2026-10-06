@@ -55,7 +55,7 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
         stat('plateTraining', 'Plate Training', 'def', 10, '+{n} Defense.'),
         rule('parry', 'Parry', 'A Perfect block knocks every other red back.', 'A block stops one red.', 'A Perfect block pushes all reds back.'),
         rule('shieldBash', 'Shield Bash', 'Breaking a shield red stuns its owner for {n} s.', 'Shield reds just break.', 'Its owner stops attacking for {n} s.', 1),
-        cap('shieldWall', 'Shield Wall', 'Once a fight, {n} blocked reds charge a bubble that absorbs a hit.', 'Every red you miss hurts.', 'A bubble eats one missed red a fight.', 4),
+        cap('shieldWall', 'Shield Wall', 'Every {n} reds you block charge a fresh bubble that absorbs a hit.', 'Every red you miss hurts.', 'Every {n} blocks, a bubble eats a missed red.', 8),
       ],
     },
     {

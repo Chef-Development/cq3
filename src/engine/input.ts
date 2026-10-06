@@ -8,6 +8,7 @@ import { isSwipe, swipeAllowed } from '../core/swipe';
 import type { App } from './app';
 import { clientToGame } from './layout';
 import type { FightScene } from './scene';
+import { inRect } from './view/shared';
 
 const inUi = (t: EventTarget | null): boolean => t instanceof Element && !!t.closest('[data-ui]');
 
@@ -165,6 +166,14 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
       return;
     }
     if (app.userPaused) {
+      // a practice fight's "Back to camp"
+      const leave = scene.overlays.pauseLeaveRect();
+      if (leave && clientX >= 0 && inRect(leave, g.x, g.y, 2)) {
+        app.userPaused = false;
+        app.leavePractice();
+        ui.refreshHud();
+        return;
+      }
       app.userPaused = false;
       app.syncClock(now);
       ui.refreshHud();

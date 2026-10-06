@@ -1,38 +1,52 @@
-// The camp (phase 'camp'): the heroes and Pip by a crackling campfire under the night sky (Rowan, and Sable once
-// they've joined), Mags the smith at her forge, fireflies, embers and chimney smoke. The buildings are tap targets
-// with name plates (Bag, Forge, and the Shrine, locked for now); a band along the bottom has Bag, Forge, Skills (a
-// gold "!" when the picked hero has points to spend) and Relics (a red count of new ones). The top left shows the
-// picked hero (face, name, level, XP): tapping it, or a hero by the fire, opens the hero select; the top right the
-// purse and the scrap. "Back" (named for where it goes: the world map, the next act, a retry) leaves.
+// The camp (phase 'camp'): the heroes and Pip by a crackling campfire under the night sky (Rowan on his log, Sable on
+// the firewood once they've joined, the heroes met since standing round the fire), the companions along, Mags the
+// smith at her forge, fireflies, embers and chimney smoke. The buildings and props are tap targets with name plates:
+// Bag (the tent), Forge, the Shrine (unlocked: Rare chests for gems), the chests waiting by the tent (when there are
+// any), the notice board (Camp: the upgrades and region progress) and, once it's built, the Training Dummy (Practice).
+// A band along the bottom has Bag, Forge, Skills (a gold "!" when the picked hero has points to spend) and Relics (a
+// red count of new ones). The top left shows the picked hero (face, name, level, XP): tapping it, or a hero by the
+// fire, opens the hero select; the top right the gems, the purse and the scrap. "Back" (named for where it goes: the
+// world map, the next act, a retry) leaves.
 // Each opens a screen over the dimmed, still-living camp: bag.ts, forge.ts, heroes.ts (Stats from there: stats.ts),
-// skills.ts, relic-log.ts. The first visit to the forge plays Mags's intro scene, and the first visit after Act 1
-// plays Sable's (the story view draws them; input routes taps to them). While the home sits idle, now and then
-// (every 12-20 s) Rowan, Pip or Sable says a one-line quip in a small speech bubble (src/data/banter.ts).
-import type Phaser from 'phaser';
-import { HEROES, type HeroId } from '../../data/heroes';
-import { BANTER, type BanterLine } from '../../data/banter';
+// skills.ts, relic-log.ts, chests.ts (and the chest reveal), shrine.ts, companions.ts, upgrades.ts, progress.ts. The
+// first visit to the forge plays Mags's intro scene, and the first visit after a region's first act plays a story
+// hero's arrival (Sable, then Neve: run.campScene); a chest hero's arrival plays after their reveal. While the home
+// sits idle, now and then (every 12-20 s) someone by the fire says a one-line quip in a small speech bubble
+// (src/data/banter.ts: BANTER, and HERO_BANTER once its speakers are at the camp).
+import Phaser from 'phaser';
+import { COMPANIONS, type CompanionId } from '../../data/companions';
+import { HEROES, HERO_IDS, type HeroId } from '../../data/heroes';
+import { BANTER, HERO_BANTER, type CampSpeaker } from '../../data/banter';
 import { itemPower } from '../../core/gear';
+import { hasCamp } from '../../core/meta';
 import { equippedItems } from '../../core/profile';
+import { heroOwned, petOwned } from '../../core/roster';
 import type { FightScene } from '../scene';
 import { CAMP_SPOTS } from '../art-camp';
+import { SHRINE_AT, SHRINE_GLOW_AT } from '../art-shrine';
 import { textWidth } from '../font';
 import { BagScreen } from './bag';
 import { CampKit, D, GOLD_TXT, pix, pixSize } from './camp-kit';
+import { bestWaiting, ChestScreen } from './chests';
+import { CompanionsScreen } from './companions';
 import { ForgeScreen } from './forge';
+import { hasGains, takeGains } from './gains';
 import { HeroesScreen } from './heroes';
-import { padlock } from './items';
 import { button3d, chevron, gauge, glow, GOLD, rows } from './pixels';
+import { ProgressScreen } from './progress';
 import { RelicLogScreen } from './relic-log';
 import { clamp01, easeBack, inRect, INK, pulse, rand, WHITE, type Rect } from './shared';
+import { ShrineScreen } from './shrine';
 import { SkillsScreen } from './skills';
 import { StatsScreen } from './stats';
-import { FACE, isPressed, notePress } from './ui';
+import { FACE, isPressed, notePress, RIBBON } from './ui';
+import { UpgradesScreen } from './upgrades';
 import { wrapText } from './items';
 
 type G = Phaser.GameObjects.Graphics;
-type Mode = 'home' | 'bag' | 'forge' | 'stats' | 'heroes' | 'skills' | 'relics';
+export type CampMode = 'home' | 'bag' | 'forge' | 'stats' | 'heroes' | 'skills' | 'relics' | 'chests' | 'shrine' | 'pets' | 'upgrades' | 'progress';
 type Spot = 'bag' | 'forge' | 'skills' | 'relics' | 'shrine' | 'leave';
-
+type PlateId = 'bag' | 'forge' | 'shrine' | 'chests' | 'dummy' | 'pet';
 
 interface Ember {
   x: number;
@@ -68,8 +82,25 @@ const FLIES = Array.from({ length: 9 }, (_, i) => ({
 // the fire's frames in an uneven order (a lively flicker, not a loop)
 const FIRE_SEQ = [0, 1, 2, 1, 3, 2, 0, 3, 1, 2];
 
+/** Where the heroes met since stand round the fire (bottom-centre, in the order they fill; `flip` faces them left,
+ *  toward the fire, from its right). The picked one takes the first. */
+export const HERO_SPOTS: Array<{ x: number; y: number; flip: boolean }> = [
+  { x: 199, y: 115, flip: true },
+  { x: 143, y: 105, flip: false },
+  { x: 99, y: 111, flip: false },
+];
+/** Companions along (beside Pip, who always perches on the log): where they sit. */
+export const PET_SPOTS: Array<{ x: number; y: number }> = [
+  { x: 186, y: 128 },
+  { x: 224, y: 128 },
+];
+/** The props: the chests waiting by the tent, the Training Dummy by the shrine. */
+export const PROP_AT = { chests: { x: 62, y: 128 }, dummy: { x: 289, y: 127 } };
+
 export class CampView {
   private bg: Phaser.GameObjects.Image | null = null;
+  private shrineImg: Phaser.GameObjects.Image | null = null;
+  private shrineGlow: Phaser.GameObjects.Image | null = null;
   readonly kit: CampKit;
   readonly bag: BagScreen;
   readonly forge: ForgeScreen;
@@ -77,26 +108,32 @@ export class CampView {
   readonly heroes: HeroesScreen;
   readonly skills: SkillsScreen;
   readonly relics: RelicLogScreen;
-  mode: Mode = 'home';
-  /** Where a screen's Back goes (Stats opened from the hero select goes back there). */
-  private backTo: Mode = 'home';
+  readonly chests: ChestScreen;
+  readonly shrine: ShrineScreen;
+  readonly pets: CompanionsScreen;
+  readonly upgrades: UpgradesScreen;
+  readonly progress: ProgressScreen;
+  mode: CampMode = 'home';
+  /** Where a screen's Back goes (Stats and Skills opened from the hero select go back there; the progress opened from
+   *  the world map goes back to it). */
+  private backTo: CampMode | 'leave' = 'home';
   private modeAt = 0;
-  /** Sable was on screen last frame (they appear in a puff of smoke when their scene ends). */
-  private sableShown = false;
-  private sableAt = -1e9;
+  /** Each story hero was on screen last frame (they appear in a puff of smoke when their scene ends). */
+  private shown = new Map<HeroId, boolean>();
+  private arriveAt = new Map<HeroId, number>();
   private embers: Ember[] = [];
   private puffs: Puff[] = [];
   private lastPuff = 0;
   private lastEmber = 0;
-  private shrineAt = -1e9;
   private fireAt = -1e9;
   private pipAt = -1e9;
+  private dummyAt = -1e9;
   private smithSwing = 0;
   private nextSwing = 0;
   /** Rowan's gear power when the home was last on screen: coming back with better gear makes him sparkle. */
   private power = 0;
   /** Banter by the fire: the line on screen (since `at`), when the next may come, the last few said, the last tap. */
-  private banter: { line: BanterLine; at: number } | null = null;
+  private banter: { line: { who: CampSpeaker; text: string }; at: number } | null = null;
   private banterNext = 0;
   private banterRecent: string[] = [];
   private idleSince = 0;
@@ -111,18 +148,30 @@ export class CampView {
     this.heroes = new HeroesScreen(this.kit);
     this.skills = new SkillsScreen(this.kit);
     this.relics = new RelicLogScreen(this.kit);
+    this.chests = new ChestScreen(this.kit);
+    this.shrine = new ShrineScreen(this.kit);
+    this.pets = new CompanionsScreen(this.kit);
+    this.upgrades = new UpgradesScreen(this.kit);
+    this.progress = new ProgressScreen(this.kit);
   }
 
   build(): void {
     this.bg?.destroy();
+    this.shrineImg?.destroy();
+    this.shrineGlow?.destroy();
     this.bg = this.s.add.image(0, 0, 'camp_bg').setOrigin(0, 0).setDepth(D.bg).setVisible(false);
+    // the shrine, unlocked: drawn over the locked one painted in the backdrop, its niche breathing violet light
+    this.shrineImg = this.s.textures.exists('camp_shrine_open') ? this.s.add.image(SHRINE_AT.x, SHRINE_AT.y, 'camp_shrine_open').setOrigin(0, 0).setDepth(D.bg + 0.0005).setVisible(false) : null;
+    this.shrineGlow = this.s.textures.exists('camp_shrine_glow') ? this.s.add.image(SHRINE_GLOW_AT.x, SHRINE_GLOW_AT.y, 'camp_shrine_glow').setDepth(D.bg + 0.001).setBlendMode(Phaser.BlendModes.ADD).setVisible(false) : null;
     this.kit.build();
+    this.chests.build();
   }
 
   onPhase(next: string): void {
     if (next !== 'camp') return;
     const now = performance.now();
     this.mode = 'home';
+    this.backTo = 'home';
     this.modeAt = now;
     this.kit.syncPurse();
     this.kit.fx.clear();
@@ -132,23 +181,93 @@ export class CampView {
     this.banter = null;
     this.banterNext = now + rand(9000, 14000);
     this.idleSince = now;
-    // the first visit after Act 1: Sable tries to rob the camp, gets caught by Pip, and joins (their scene plays
-    // over the camp the way Mags's does; skipping it still counts)
+    // the first visit after a region's first act: a story hero joins (Sable tries to rob the camp; later the frost
+    // mage thaws out). Their scene plays over the camp the way Mags's does; skipping it still counts.
     const app = this.s.app;
-    if (app.run.campScene === 'sableJoin') {
+    const scene = app.run.campScene;
+    if (scene) {
       app.run.sableJoined();
       app.saveProfile();
       app.storyBox = 0;
-      app.storyOverlay = 'sableJoin';
+      app.storyOverlay = scene;
     }
-    this.sableShown = this.sableHere();
-    this.sableAt = -1e9;
+    for (const id of HERO_IDS) this.shown.set(id, this.heroHere(id));
+    this.arriveAt.clear();
+    // back from practice: a word on how it went
+    const pe = app.run.practiceEnded;
+    if (pe) {
+      app.run.practiceEnded = null;
+      this.kit.after(350, () => this.kit.toast({ title: 'Practice done!', ribbon: RIBBON.green, lines: [], text: [{ text: pe.won ? 'The dummy is down. Again?' : 'Nice swings!', col: WHITE, bold: true }], cx: (this.s.L + this.s.R) / 2, cy: 60 }));
+    }
   }
 
-  /** Sable sits by the fire once they've joined (not while their arrival scene is still playing). */
-  private sableHere(): boolean {
+  /** The world map's region card: the camp opens straight on a region's progress, and Back goes back to the map. */
+  openProgress(region: number): void {
     const app = this.s.app;
-    return app.run.profile.sableMet && app.storyOverlay !== 'sableJoin';
+    if (app.run.phase !== 'camp') app.openCamp();
+    const now = performance.now();
+    this.go('progress', now);
+    this.progress.open(now, region);
+    this.backTo = 'leave';
+  }
+
+  // ------------------------------------------------------------------ who is here
+
+  /** A hero is at the camp once they've joined (a story hero not while their arrival scene is still playing). */
+  private heroHere(id: HeroId): boolean {
+    const app = this.s.app;
+    if (id === 'rowan') return true;
+    if (!heroOwned(app.run.profile, id)) return false;
+    return !(id === 'sable' && app.storyOverlay === 'sableJoin') && !(id === 'neve' && app.storyOverlay === 'neveJoin');
+  }
+
+  private sableHere(): boolean {
+    return this.heroHere('sable');
+  }
+
+  /** The heroes met since Sable, standing round the fire: the picked one first, then in order. */
+  private standing(): Array<{ id: HeroId; x: number; y: number; flip: boolean }> {
+    const p = this.s.app.run.profile;
+    const ids = HERO_IDS.filter((id) => id !== 'rowan' && id !== 'sable' && this.heroHere(id));
+    ids.sort((a, b) => Number(b === p.hero) - Number(a === p.hero));
+    return ids.slice(0, HERO_SPOTS.length).map((id, i) => ({ id, ...HERO_SPOTS[i] }));
+  }
+
+  /** Where each hero at the camp is drawn: their sprite's rect. */
+  private heroRect(id: HeroId): Rect | null {
+    if (id === 'rowan') return this.rowanRect();
+    if (id === 'sable') return this.sableHere() ? this.sableRect() : null;
+    const st = this.standing().find((h) => h.id === id);
+    if (!st) return null;
+    const key = `camp_${id}0`;
+    const [w, h] = this.kit.has(key) ? this.kit.imgs.size(key) : [32, 38];
+    // just the figure (the sprite's box has a few px of air round it)
+    return { x: st.x - (w >> 1) + 6, y: st.y - h + 4, w: w - 12, h: h - 4 };
+  }
+
+  /** The companions along besides Pip (Pip always perches on the log), where they sit. */
+  private petsAlong(): Array<{ id: CompanionId; x: number; y: number }> {
+    const p = this.s.app.run.profile;
+    return p.petsOn
+      .filter((id) => id !== 'pip' && petOwned(p, id))
+      .slice(0, PET_SPOTS.length)
+      .map((id, i) => ({ id, ...PET_SPOTS[i] }));
+  }
+
+  private petRect(id: CompanionId): Rect | null {
+    if (id === 'pip') return this.pipRect();
+    const at = this.petsAlong().find((q) => q.id === id);
+    if (!at) return null;
+    const fly = COMPANIONS[id].flies;
+    return { x: at.x - 11, y: at.y - (fly ? 30 : 20), w: 22, h: fly ? 22 : 20 };
+  }
+
+  /** Who can talk by the fire now. */
+  private speakers(): Set<CampSpeaker> {
+    const out = new Set<CampSpeaker>(['rowan', 'pip', 'smith']);
+    if (this.sableHere()) out.add('sable');
+    for (const h of this.standing()) out.add(h.id as CampSpeaker);
+    return out;
   }
 
   // ------------------------------------------------------------------ layout (home)
@@ -183,26 +302,64 @@ export class CampView {
     return out;
   }
 
+  /** What each plate says and where it points: the picked hero by the fire, the buildings, the props there now and
+   *  the companion along. */
+  private plateDefs(): Array<{ id: PlateId; label: string; icon: string; target: Rect; roof: boolean }> {
+    const p = this.s.app.run.profile;
+    const out: Array<{ id: PlateId; label: string; icon: string; target: Rect; roof: boolean }> = [];
+    out.push({ id: 'bag', label: 'Bag', icon: 'bag', target: CAMP_SPOTS.bag, roof: true });
+    out.push({ id: 'forge', label: 'Forge', icon: 'hammer', target: CAMP_SPOTS.forge, roof: true });
+    out.push({ id: 'shrine', label: 'Shrine', icon: 'shrine', target: CAMP_SPOTS.shrine, roof: true });
+    if (bestWaiting(p)) out.push({ id: 'chests', label: 'Chests', icon: 'chest', target: this.propRect('chests'), roof: false });
+    if (hasCamp(p, 'dummy')) out.push({ id: 'dummy', label: 'Practice', icon: 'target', target: this.propRect('dummy'), roof: false });
+    const pet = p.petsOn[0] ?? 'pip';
+    const pr = this.petRect(pet);
+    if (pr) out.push({ id: 'pet', label: COMPANIONS[pet].name, icon: 'paw', target: pr, roof: false });
+    return out;
+  }
+
   /**
-   * Name plate over a building: centred above its rect, kept on screen. A plate that would overlap one before it
-   * (buildings close together, or pushed in from the screen's edge) sits on its building's roof instead.
+   * The name plates, laid out once a frame: each centred above what it names and kept on screen. A building's plate
+   * that would overlap one before it sits on its roof instead; the others slide aside (their tail still points at
+   * what they name), then up, until they're clear.
    */
-  private plate(id: 'bag' | 'forge' | 'shrine'): Rect {
+  private plates(): Array<{ id: PlateId; label: string; icon: string; r: Rect; tailX: number }> {
     const s = this.s;
-    const all: Rect[] = [];
-    for (const k of ['bag', 'forge', 'shrine'] as const) {
-      const b = CAMP_SPOTS[k];
-      const label = k === 'bag' ? 'Bag' : k === 'forge' ? 'Forge' : 'Shrine';
-      const icon = k === 'bag' ? 'bag' : k === 'forge' ? 'hammer' : 'shrine';
-      const w = textWidth(label, 1, true) + pixSize(icon)[0] + 9 + (k === 'shrine' ? 8 : 0);
+    const out: Array<{ id: PlateId; label: string; icon: string; r: Rect; tailX: number }> = [];
+    const hit = (r: Rect) => out.some((o) => r.x < o.r.x + o.r.w + 2 && o.r.x < r.x + r.w + 2 && r.y < o.r.y + o.r.h + 2 && o.r.y < r.y + r.h + 2);
+    const clampX = (x: number, w: number) => Math.round(Math.max(s.L + 2, Math.min(s.R - 2 - w, x)));
+    for (const d of this.plateDefs()) {
+      const w = textWidth(d.label, 1, true) + pixSize(d.icon)[0] + 9;
       const h = 13;
-      const x = Math.round(Math.max(s.L + 2, Math.min(s.R - 2 - w, b.x + b.w / 2 - w / 2)));
-      let r = { x, y: Math.max(24, b.y - h - 6), w, h };
-      if (all.some((o) => r.x < o.x + o.w + 3 && o.x < r.x + r.w + 3 && r.y < o.y + o.h + 3 && o.y < r.y + r.h + 3)) r = { ...r, y: b.y + 4 };
-      all.push(r);
-      if (k === id) return r;
+      const b = d.target;
+      const cx = b.x + b.w / 2;
+      let r = { x: clampX(cx - w / 2, w), y: Math.max(24, b.y - h - (d.roof ? 6 : 4)), w, h };
+      if (d.roof) {
+        if (hit(r)) r = { ...r, y: b.y + 4 };
+      } else if (hit(r)) {
+        // aside (left, then right, as long as the tail can still reach what it names), then up
+        const tries = [cx - w + 6, cx - 6].map((x) => ({ ...r, x: clampX(x, w) }));
+        const free = tries.find((t) => !hit(t));
+        if (free) r = free;
+        else for (let i = 0; i < 4 && hit(r); i++) r = { ...r, y: r.y - h - 2 };
+      }
+      out.push({ id: d.id, label: d.label, icon: d.icon, r, tailX: cx });
     }
-    return all[0];
+    return out;
+  }
+
+  /** The Camp button, top left beside the hero chip (the upgrades and the region progress). */
+  campRect(): Rect {
+    const c = this.chipRect();
+    return { x: c.x + c.w + 4, y: 5, w: textWidth('Camp', 1, true) + pixSize('tent')[0] + 14, h: 15 };
+  }
+
+  /** A prop's tap area. */
+  private propRect(id: 'chests' | 'dummy'): Rect {
+    const at = PROP_AT[id];
+    const key = id === 'chests' ? `hchest_${bestWaiting(this.s.app.run.profile) ?? 'hero'}_closed` : 'dummy_idle0';
+    const [w, h] = this.kit.has(key) ? this.kit.imgs.size(key) : [24, 28];
+    return { x: at.x - (w >> 1) + 2, y: at.y - h + 2, w: w - 4, h: h - 2 };
   }
 
   /** What Rowan's worn gear adds up to (the bag's "Gear power"). */
@@ -229,17 +386,8 @@ export class CampView {
   /** The hero chip, top left: the picked hero's face, name, level and XP (tap: the hero select). */
   private chipRect(): Rect {
     const id = this.s.app.run.profile.hero;
-    const lv = this.kit.level(id).level;
-    const tw = textWidth(HEROES[id].name, 1, true) + 4 + textWidth(`Lv ${lv}`, 1, false);
+    const tw = textWidth(HEROES[id].name, 1, true);
     return { x: this.s.L + 3, y: 3, w: 23 + Math.max(tw, 52) + 6, h: 21 };
-  }
-
-  /** The name plate over a hero by the fire. */
-  private heroPlate(id: HeroId): Rect {
-    const rr = id === 'sable' ? this.sableRect() : this.rowanRect();
-    const picked = this.s.app.run.profile.hero === id;
-    const w = textWidth(HEROES[id].name, 1, false) + 6 + (picked ? 8 : 0);
-    return { x: Math.round(rr.x + rr.w / 2 - w / 2), y: Math.round(rr.y - 9), w, h: 9 };
   }
 
   private pipRect(): Rect {
@@ -268,12 +416,7 @@ export class CampView {
     const now = performance.now();
     this.idleSince = now;
     if (now - this.modeAt < 180) return;
-    if (this.mode !== 'home') {
-      const res = this.screen().tap(x, y, now);
-      if (res === 'back') this.go(this.mode === 'stats' ? this.backTo : 'home', now);
-      else if (res === 'stats') this.go('stats', now, this.heroes.view);
-      return;
-    }
+    if (this.mode !== 'home') return this.screenTap(x, y, now);
     if (x < 0) {
       app.audio.uiClick();
       app.leaveCamp();
@@ -284,32 +427,78 @@ export class CampView {
         notePress(b.r);
         return this.open(b.id, now);
       }
-    for (const id of ['bag', 'forge', 'shrine'] as const) if (inRect(this.plate(id), x, y, 3)) return this.open(id, now);
+    for (const pl of this.plates())
+      if (inRect(pl.r, x, y, 3)) {
+        notePress(pl.r);
+        return this.openPlate(pl.id, now);
+      }
     const chip = this.chipRect();
     if (inRect(chip, x, y, 2)) {
       notePress(chip);
       return this.go('heroes', now);
     }
-    if (this.sableHere() && (inRect(this.sableRect(), x, y) || inRect(this.heroPlate('sable'), x, y, 2))) return this.go('heroes', now, 'sable');
-    if (inRect(this.rowanRect(), x, y) || inRect(this.heroPlate('rowan'), x, y, 2)) return this.go('heroes', now, 'rowan');
+    const cb = this.campRect();
+    if (inRect(cb, x, y, 2)) {
+      notePress(cb);
+      return this.go('upgrades', now);
+    }
+    // the companions along (Pip hops and hoots on the way)
     if (inRect(this.pipRect(), x, y)) {
       this.pipAt = now;
       app.audio.textBlip();
       const r = this.pipRect();
       this.kit.fx.float('Hoo!', r.x + r.w / 2, r.y - 6, 0x9ad8ff, { life: 900 });
-      return;
+      return this.go('pets', now, undefined, 'pip');
     }
+    for (const q of this.petsAlong()) {
+      const r = this.petRect(q.id);
+      if (r && inRect(r, x, y)) return this.go('pets', now, undefined, q.id);
+    }
+    // the heroes (front to back), then the props
+    const heroes = (['rowan', 'sable', ...this.standing().map((h) => h.id)] as HeroId[]).filter((id) => this.heroRect(id)).sort((a, b) => this.heroRect(b)!.y + this.heroRect(b)!.h - (this.heroRect(a)!.y + this.heroRect(a)!.h));
+    for (const id of heroes) if (inRect(this.heroRect(id)!, x, y)) return this.go('heroes', now, id);
+    const p = app.run.profile;
+    if (bestWaiting(p) && inRect(this.propRect('chests'), x, y)) return this.openPlate('chests', now);
+    if (hasCamp(p, 'dummy') && inRect(this.propRect('dummy'), x, y)) return this.openPlate('dummy', now);
     if (inRect(this.fireRect(), x, y)) {
       this.fireAt = now;
       app.audio.swish();
-      const p = CAMP_SPOTS.fire;
-      for (let i = 0; i < 24; i++) this.ember(now, p.x + rand(-4, 4), p.y - rand(4, 10), rand(-30, 30), rand(-70, -35));
+      const f = CAMP_SPOTS.fire;
+      for (let i = 0; i < 24; i++) this.ember(now, f.x + rand(-4, 4), f.y - rand(4, 10), rand(-30, 30), rand(-70, -35));
       return;
     }
     if (inRect(this.smithRect(), x, y)) return this.open('forge', now);
     for (const id of ['bag', 'forge', 'shrine'] as const) {
       const b = CAMP_SPOTS[id];
       if (inRect(b, x, y)) return this.open(id, now);
+    }
+  }
+
+  /** A tap on the screen on view (not the home): where its Back and its other buttons lead. */
+  private screenTap(x: number, y: number, now: number): void {
+    const res = this.screen().tap(x, y, now);
+    if (!res) return;
+    if (res === 'back') {
+      if (this.backTo === 'leave') {
+        this.s.app.audio.uiClick();
+        this.s.app.leaveCamp();
+        return;
+      }
+      return this.go(this.backTo, now);
+    }
+    if (res === 'stats') return this.go('stats', now, this.heroes.view);
+    if (res === 'skills') return this.go('skills', now, this.heroes.view);
+    if (res === 'openRare') {
+      this.go('chests', now);
+      this.backTo = 'shrine';
+      this.chests.openKind('rare', now);
+      return;
+    }
+    if (res === 'practice') return this.practice(now);
+    if (res === 'progress') {
+      this.go('progress', now);
+      this.backTo = 'upgrades';
+      return;
     }
   }
 
@@ -321,16 +510,35 @@ export class CampView {
       app.leaveCamp();
       return;
     }
-    if (id === 'shrine') {
-      this.shrineAt = now;
-      app.audio.lockToggle();
-      return;
+    this.go(id === 'shrine' ? 'shrine' : id, now);
+  }
+
+  private openPlate(id: PlateId, now: number): void {
+    switch (id) {
+      case 'bag':
+      case 'forge':
+      case 'shrine':
+        return this.open(id, now);
+      case 'chests':
+        return this.go('chests', now);
+      case 'dummy':
+        return this.practice(now);
+      case 'pet':
+        return this.go('pets', now);
     }
-    this.go(id, now);
+  }
+
+  /** The Training Dummy: a practice fight with the picked hero (no risk, no rewards), back here when it ends. */
+  practice(now: number): void {
+    const app = this.s.app;
+    if (!hasCamp(app.run.profile, 'dummy')) return;
+    this.dummyAt = now;
+    app.audio.uiClick();
+    app.startPractice();
   }
 
   /** The screen on view (not the home). */
-  private screen(): { tap(x: number, y: number, now: number): 'back' | 'stats' | void; draw(now: number): void } {
+  private screen(): { tap(x: number, y: number, now: number): string | void; draw(now: number): void } {
     switch (this.mode) {
       case 'bag':
         return this.bag;
@@ -342,23 +550,33 @@ export class CampView {
         return this.skills;
       case 'relics':
         return this.relics;
+      case 'chests':
+        return this.chests;
+      case 'shrine':
+        return this.shrine;
+      case 'pets':
+        return this.pets;
+      case 'upgrades':
+        return this.upgrades;
+      case 'progress':
+        return this.progress;
       default:
         return this.stats;
     }
   }
 
-  go(mode: Mode, now: number, hero?: HeroId): void {
+  go(mode: CampMode, now: number, hero?: HeroId, pet?: CompanionId): void {
     const app = this.s.app;
     const p = app.run.profile;
-    this.backTo = mode === 'stats' && this.mode === 'heroes' ? 'heroes' : 'home';
     const from = this.mode;
+    this.backTo = (mode === 'stats' || mode === 'skills') && from === 'heroes' ? 'heroes' : 'home';
     this.mode = mode;
     this.modeAt = now;
     this.kit.toastNow = null;
     this.banter = null;
     this.banterNext = Math.max(this.banterNext, now + 8000);
-    if (from === 'stats' && mode === 'heroes') {
-      // back from a hero's stats: the hero select as it was
+    if ((from === 'stats' || from === 'skills') && mode === 'heroes') {
+      // back from a hero's stats or skills: the hero select as it was
       app.audio.panelClose();
       return;
     }
@@ -383,8 +601,13 @@ export class CampView {
     if (mode === 'bag') this.bag.open(now);
     else if (mode === 'stats') this.stats.open(now, hero);
     else if (mode === 'heroes') this.heroes.open(now, hero);
-    else if (mode === 'skills') this.skills.open(now);
+    else if (mode === 'skills') this.skills.open(now, hero);
     else if (mode === 'relics') this.relics.open(now);
+    else if (mode === 'chests') this.chests.open(now);
+    else if (mode === 'shrine') this.shrine.open(now);
+    else if (mode === 'pets') this.pets.open(now, pet);
+    else if (mode === 'upgrades') this.upgrades.open(now);
+    else if (mode === 'progress') this.progress.open(now);
     else if (mode === 'forge') {
       this.forge.open(now);
       if (!p.smithMet) {
@@ -404,22 +627,44 @@ export class CampView {
     const kit = this.kit;
     if (s.app.run.phase !== 'camp') {
       this.bg?.setVisible(false);
+      this.shrineImg?.setVisible(false);
+      this.shrineGlow?.setVisible(false);
       kit.hide();
+      this.chests.hide();
       return;
     }
     kit.begin(now);
     this.bg?.setVisible(true);
+    this.shrineImg?.setVisible(true);
+    this.shrineGlow?.setVisible(true).setAlpha(0.35 + 0.25 * pulse(now, 2200));
     this.drawScene(now);
     if (this.mode === 'home') {
       this.drawHome(now);
       this.drawBanter(now);
-    }
-    else {
+      this.showGains();
+    } else {
       const k = clamp01((now - this.modeAt) / 160);
       kit.dim(kit.gUi, 0.62 * k);
       this.screen().draw(now);
     }
     kit.end(now);
+  }
+
+  /** What the run gave that the loot and act-clear screens didn't get to show (or a chest's achievements): a toast. */
+  private showGains(): void {
+    const app = this.s.app;
+    const kit = this.kit;
+    if (kit.toastNow || app.storyOverlay || app.tipUp || !hasGains(app.run.gains)) return;
+    const lines = takeGains(app.run.gains);
+    kit.toast({
+      title: 'Rewards!',
+      ribbon: RIBBON.purple,
+      lines: [],
+      text: lines.slice(0, 5).map((l) => ({ text: l.sub ? `${l.sub} ${l.text}` : l.text, col: l.col, bold: true })),
+      cx: (this.s.L + this.s.R) / 2,
+      cy: 62,
+    });
+    app.audio.rareSting(true);
   }
 
   private ember(now: number, x: number, y: number, vx: number, vy: number): void {
@@ -428,13 +673,14 @@ export class CampView {
     if (this.embers.length > 90) this.embers.shift();
   }
 
-  /** The living camp: fire, glow, embers, smoke, fireflies, Rowan, Pip and Mags. */
+  /** The living camp: fire, glow, embers, smoke, fireflies, the heroes, Pip and the companions, Mags, the props. */
   private drawScene(now: number): void {
     const kit = this.kit;
     const gb = kit.gBack;
     const gf = kit.gFront;
     const im = kit.imgs;
     const S = CAMP_SPOTS;
+    const p = this.s.app.run.profile;
     // the fire's warm glow (flaring when poked)
     const flare = clamp01(1 - (now - this.fireAt) / 700);
     const fx = S.fire.x;
@@ -455,12 +701,12 @@ export class CampView {
       this.puffs.push({ x: chimney.x + rand(-1, 1), y: chimney.y, born: now, life: rand(2600, 3400), size: rand(2, 3), drift: rand(3, 7) });
       if (this.puffs.length > 14) this.puffs.shift();
     }
-    for (const p of this.puffs) {
-      const k = (now - p.born) / p.life;
+    for (const pf of this.puffs) {
+      const k = (now - pf.born) / pf.life;
       if (k >= 1) continue;
-      const x = p.x + k * p.drift * 4 + Math.sin(now / 600 + p.born) * 1.5;
-      const y = p.y - k * 34;
-      const r = p.size + k * 6;
+      const x = pf.x + k * pf.drift * 4 + Math.sin(now / 600 + pf.born) * 1.5;
+      const y = pf.y - k * 34;
+      const r = pf.size + k * 6;
       const a = 0.32 * (k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85);
       gb.fillStyle(0x6a6478, a);
       gb.fillCircle(x, y, r);
@@ -479,17 +725,39 @@ export class CampView {
       gb.fillStyle(0xf0ffc0, a);
       gb.fillRect(Math.round(x), Math.round(y), 1, 1);
     }
-    // the people: Rowan breathing by the fire, Pip perched (a hop when poked), Mags at her anvil
+    // everyone and everything standing on the ground, drawn back to front (by their feet)
+    const draws: Array<{ y: number; fn: () => void }> = [];
     const sitting = this.mode !== 'forge';
-    im.foot(Math.floor(now / 680) % 2 ? 'camp_rowan1' : 'camp_rowan0', S.rowan.x, S.rowan.y, D.actors);
-    // Sable across the fire once they've joined (they appear in a puff of smoke the moment their scene ends)
-    const here = this.sableHere();
-    if (here && !this.sableShown) this.sableArrives(now);
-    this.sableShown = here;
-    if (here) im.foot(Math.floor((now + 340) / 720) % 2 ? 'camp_sable1' : 'camp_sable0', S.sable.x, S.sable.y, D.actors, clamp01((now - this.sableAt) / 300));
+    draws.push({ y: S.rowan.y, fn: () => im.foot(Math.floor(now / 680) % 2 ? 'camp_rowan1' : 'camp_rowan0', S.rowan.x, S.rowan.y, D.actors) });
+    // a hero appears in a puff of smoke the moment they join (a story hero when their arrival scene ends, a chest
+    // hero when the camp is back on view after their reveal)
+    if (this.mode === 'home')
+      for (const id of HERO_IDS) {
+        if (id === 'rowan') continue;
+        const here = this.heroHere(id);
+        if (here && this.shown.get(id) === false) this.arrives(id, now);
+        this.shown.set(id, here);
+      }
+    if (this.sableHere()) draws.push({ y: S.sable.y, fn: () => im.foot(Math.floor((now + 340) / 720) % 2 ? 'camp_sable1' : 'camp_sable0', S.sable.x, S.sable.y, D.actors, clamp01((now - (this.arriveAt.get('sable') ?? -1e9)) / 300)) });
+    this.standing().forEach((h, i) => {
+      const k0 = `camp_${h.id}0`;
+      if (!kit.has(k0)) return;
+      const key = Math.floor((now + i * 230) / (640 + i * 40)) % 2 ? `camp_${h.id}1` : k0;
+      const a = clamp01((now - (this.arriveAt.get(h.id) ?? -1e9)) / 300);
+      draws.push({ y: h.y, fn: () => this.footFlip(key, h.x, h.y, h.flip, a) });
+    });
     const hop = now - this.pipAt < 320 ? Math.round(Math.sin(((now - this.pipAt) / 320) * Math.PI) * 5) : 0;
     const pipF = hop || Math.floor(now / 2200) % 3 === 0 ? 'camp_pip1' : 'camp_pip0';
-    im.foot(pipF, S.pip.x, S.pip.y - hop, D.actors);
+    draws.push({ y: S.pip.y, fn: () => im.foot(pipF, S.pip.x, S.pip.y - hop, D.actors) });
+    for (const q of this.petsAlong()) {
+      const def = COMPANIONS[q.id];
+      const fly = def.flies;
+      const per = fly ? 140 : 360;
+      const key = `comp_${q.id}_idle${Math.floor(now / per) % 2}`;
+      if (!kit.has(key)) continue;
+      const bob = fly ? Math.round(Math.sin(now / 300 + q.x) * 2) : 0;
+      draws.push({ y: q.y, fn: () => this.footFlip(key, q.x, q.y + 1 - (fly ? 8 : 0) + bob, false, 1) });
+    }
     if (sitting) {
       let smith = Math.floor(now / 560) % 2 ? 'smith_idle1' : 'smith_idle0';
       if (now > this.nextSwing) {
@@ -507,10 +775,26 @@ export class CampView {
           for (let i = 0; i < 6; i++) this.ember(now, ax, ay, rand(-40, 40), rand(-60, -20));
         }
       }
-      im.foot(smith, S.smith.x, S.smith.y, D.actors);
+      draws.push({ y: S.smith.y, fn: () => im.foot(smith, S.smith.x, S.smith.y, D.actors) });
     }
+    // the props: the chests waiting by the tent (they wobble now and then), the notice board, the dummy
+    const best = bestWaiting(p);
+    if (best) {
+      const at = PROP_AT.chests;
+      const wob = Math.floor(now / 2600) % 3 === 0 && now % 2600 < 300 ? Math.round(Math.sin((now % 2600) / 30) * 1) : 0;
+      gb.fillStyle(best === 'hero' ? 0xffd23a : best === 'rare' ? 0x4aa0f0 : 0xb06ae0, 0.1 + 0.06 * pulse(now, 1500));
+      gb.fillCircle(at.x, at.y - 14, 20);
+      draws.push({ y: at.y, fn: () => im.foot(`hchest_${best}_closed`, at.x + wob, at.y, D.actors) });
+    }
+    if (hasCamp(p, 'dummy') && kit.has('dummy_idle0')) {
+      const k = now - this.dummyAt;
+      const key = k < 300 ? 'dummy_hurt' : Math.floor(now / 900) % 2 ? 'dummy_idle1' : 'dummy_idle0';
+      draws.push({ y: PROP_AT.dummy.y, fn: () => im.foot(key, PROP_AT.dummy.x, PROP_AT.dummy.y, D.actors) });
+    }
+    draws.sort((a, b) => a.y - b.y);
+    for (const d of draws) d.fn();
     // the campfire's flames (taller when poked)
-    im.foot(`camp_fire${FIRE_SEQ[Math.floor(now / 85) % FIRE_SEQ.length]}`, S.fire.x, S.fire.y, D.actors);
+    im.foot(`camp_fire${FIRE_SEQ[Math.floor(now / 85) % FIRE_SEQ.length]}`, S.fire.x, S.fire.y, D.actors + 0.0005);
     // embers rising from the fire
     if (now - this.lastEmber > 70) {
       this.lastEmber = now;
@@ -527,16 +811,26 @@ export class CampView {
     }
   }
 
-  /** Sable shows up by the fire: a puff of smoke, a sting, "Sable joined!". */
-  private sableArrives(now: number): void {
+  /** A sprite standing with its bottom centre at (x, y), facing left when `flip`. */
+  private footFlip(key: string, x: number, y: number, flip: boolean, alpha: number): void {
+    const [w, h] = this.kit.imgs.size(key);
+    this.kit.sprites.draw(key, Math.round(x) - (w >> 1), Math.round(y) - h, D.actors, { flip, alpha });
+  }
+
+  /** A story hero shows up by the fire: a puff of smoke, a sting, "Sable joined!". */
+  private arrives(id: HeroId, now: number): void {
     const kit = this.kit;
     const app = this.s.app;
-    const sp = CAMP_SPOTS.sable;
-    this.sableAt = now;
-    kit.fx.burst(sp.x, sp.y - 12, [0x6a6478, 0x9a94a8, 0xd8d0f0, 0x4a4458], 34, 1.1, { kind: 'chip', g: -20, life: 800 });
-    kit.fx.burst(sp.x, sp.y - 12, [0xdab0ff, WHITE], 12, 0.9, { kind: 'star', g: 20, life: 700 });
-    kit.fx.ring(sp.x, sp.y - 12, 20, 0xdab0ff, 500);
-    kit.fx.float('Sable joined!', sp.x, sp.y - 58, 0xdab0ff, { life: 2200 });
+    this.arriveAt.set(id, now);
+    const r = this.heroRect(id);
+    if (!r) return;
+    const x = r.x + r.w / 2;
+    const y = r.y + r.h / 2;
+    const col = id === 'sable' ? 0xdab0ff : id === 'neve' ? 0x9ae8ff : 0xfff0a0;
+    kit.fx.burst(x, y, [0x6a6478, 0x9a94a8, 0xd8d0f0, 0x4a4458], 34, 1.1, { kind: 'chip', g: -20, life: 800 });
+    kit.fx.burst(x, y, [col, WHITE], 12, 0.9, { kind: 'star', g: 20, life: 700 });
+    kit.fx.ring(x, y, 20, col, 500);
+    kit.fx.float(`${HEROES[id].name} joined!`, x, r.y - 22, col, { life: 2200 });
     app.audio.whoosh();
     kit.after(160, () => app.audio.rareSting(true));
   }
@@ -561,11 +855,14 @@ export class CampView {
     const L = kit.level(id);
     const name = HEROES[id].name;
     texts.text(name, c.x + 23, c.y + 7, WHITE, { bold: true, oy: 0.5 });
-    texts.text(`Lv ${L.level}`, c.x + 23 + textWidth(name, 1, true) + 4, c.y + 7.5, GOLD_TXT, { oy: 0.5 });
-    gauge(g, c.x + 23, c.y + 14, c.w - 23 - 5, 3, L.need ? L.into / L.need : 1, 0, { ramp: [0xe0f6ff, 0x4aa0f0, 0x2a6ad8, 0x1a3c8a] });
+    // the level, and the XP bar after it
+    const lv = `Lv ${L.level}`;
+    const lw = textWidth(lv, 1, false);
+    texts.text(lv, c.x + 23, c.y + 15.5, GOLD_TXT, { oy: 0.5 });
+    gauge(g, c.x + 23 + lw + 3, c.y + 14, c.w - 23 - lw - 3 - 5, 3, L.need ? L.into / L.need : 1, 0, { ramp: [0xe0f6ff, 0x4aa0f0, 0x2a6ad8, 0x1a3c8a] });
   }
 
-  /** The home's UI: the hero chip, purse and scrap, the name plates, the band of buttons. */
+  /** The home's UI: the hero chip, gems, purse and scrap, the name plates, the band of buttons. */
   private drawHome(now: number): void {
     const s = this.s;
     const kit = this.kit;
@@ -577,58 +874,32 @@ export class CampView {
     const tk = easeBack(since / 280, 1.4);
     const ty = Math.round(3 - (1 - tk) * 24);
     this.drawChip(g, ty, now);
-    // top right: the purse and the scrap
-    kit.purse(g, texts, s.R - 3, ty + 1, now);
+    // top right: the gems, the purse and the scrap
+    const pr = kit.purse(g, texts, s.R - 3, ty + 1, now, true);
+    kit.gemsTag(g, texts, pr.coins.x - 3, ty + 1, now);
 
-    // name plates over the buildings (they bob; the shrine's is padlocked)
+    // the Camp button beside the chip
+    const cb = this.campRect();
+    kit.button(g, texts, { ...cb, y: cb.y + ty - 3 }, 'Camp', FACE.green, now, { icon: 'tent' });
+    // name plates over the buildings, the props and the companion along (they bob)
     const fresh = p.items.filter((i) => i.fresh).length;
-    (['bag', 'forge', 'shrine'] as const).forEach((id, i) => {
-      const k = easeBack((since - 120 - i * 70) / 260, 1.8);
+    const waiting = p.chests.hero + p.chests.rare + p.chests.region;
+    const cost = Math.round(s.app.run.tuning.chests.rareCost);
+    this.plates().forEach((pl, i) => {
+      const k = easeBack((since - 120 - i * 60) / 260, 1.8);
       if (k <= 0) return;
-      const r0 = this.plate(id);
       const bob = Math.round(Math.sin(now / 520 + i * 1.3) * 1);
-      const r = { ...r0, y: r0.y + bob - Math.round((1 - k) * 8) };
-      const locked = id === 'shrine';
-      const rattle = locked && now - this.shrineAt < 360 ? Math.round(Math.sin((now - this.shrineAt) / 25) * 2) : 0;
-      this.glass(g, r.x + rattle, r.y, r.w, r.h, clamp01(k * 2), true, CAMP_SPOTS[id].x + CAMP_SPOTS[id].w / 2);
-      const icon = id === 'bag' ? 'bag' : id === 'forge' ? 'hammer' : 'shrine';
-      const [iw, ih] = pixSize(icon);
-      pix(g, icon, r.x + 3 + rattle, r.y + Math.round((r.h - ih) / 2), locked ? 0.6 : 1);
-      const label = id === 'bag' ? 'Bag' : id === 'forge' ? 'Forge' : 'Shrine';
-      texts.text(label, r.x + iw + 5 + rattle, r.y + r.h / 2, locked ? 0xa8a0c0 : WHITE, { bold: true, oy: 0.5 });
-      if (locked) padlock(g, r.x + r.w - 9 + rattle, r.y + 3, 1, 0xd8901c);
-      if (id === 'bag' && fresh > 0) kit.bubble(g, texts, r.x + r.w - 2, r.y - 3, `${fresh}`, now);
+      const r = { ...pl.r, y: pl.r.y + bob - Math.round((1 - k) * 8) };
+      // a chest waiting, or gems enough for one at the shrine: the plate glows
+      const hot = (pl.id === 'chests' && waiting > 0) || (pl.id === 'shrine' && p.gems >= cost);
+      if (hot) glow(g, r, pl.id === 'chests' ? 0xffd23a : 0xd070ff, 0.25 + 0.3 * pulse(now, 1000, i * 200), 2);
+      this.glass(g, r.x, r.y, r.w, r.h, clamp01(k * 2), true, pl.tailX);
+      const [iw, ih] = pixSize(pl.icon);
+      pix(g, pl.icon, r.x + 3, r.y + Math.round((r.h - ih) / 2));
+      texts.text(pl.label, r.x + iw + 5, r.y + r.h / 2, pl.id === 'shrine' ? 0xe8d0ff : WHITE, { bold: true, oy: 0.5 });
+      if (pl.id === 'bag' && fresh > 0) kit.bubble(g, texts, r.x + r.w - 2, r.y - 3, `${fresh}`, now);
+      if (pl.id === 'chests' && waiting > 0) kit.bubble(g, texts, r.x + r.w - 2, r.y - 3, `${waiting}`, now);
     });
-    // the shrine: a padlock on it, rattling when tapped, and its plate
-    const sh = CAMP_SPOTS.shrine;
-    const ssince = now - this.shrineAt;
-    const shake = ssince < 360 ? Math.round(Math.sin(ssince / 22) * 2) : 0;
-    const lx = Math.min(s.R - 8, sh.x + sh.w / 2);
-    kit.imgs.mid('padlock', lx + shake, sh.y + sh.h / 2, D.actors + 0.001);
-    if (ssince < 2200) {
-      const a = Math.min(1, ssince / 100, (2200 - ssince) / 300);
-      const title = 'The Shrine';
-      const sub = 'Coming soon!';
-      const w = Math.max(textWidth(title, 1, true), textWidth(sub, 1, false)) + 16;
-      const x = Math.round(Math.min(s.R - 3 - w, lx - w / 2));
-      const y = Math.round(sh.y + sh.h / 2 + 10 - (1 - easeBack(ssince / 220, 2)) * 4);
-      this.glass(g, x, y, w, 22, a);
-      texts.text(title, x + w / 2, y + 7, 0xdab0ff, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
-      texts.text(sub, x + w / 2, y + 16, WHITE, { ox: 0.5, oy: 0.5, alpha: a });
-    }
-    // name plates over the heroes by the fire (the picked one gold, with a check): the hero select
-    const rk = easeBack((since - 330) / 260, 1.8);
-    if (rk > 0)
-      (['rowan', 'sable'] as const).forEach((id, i) => {
-        if (id === 'sable' && !this.sableHere()) return;
-        const r0 = this.heroPlate(id);
-        const rr = id === 'sable' ? this.sableRect() : this.rowanRect();
-        const picked = p.hero === id;
-        const y = Math.round(r0.y + Math.sin(now / 480 + i * 1.7) * 1 - (1 - rk) * 5);
-        this.glass(g, r0.x, y, r0.w, r0.h, clamp01(rk * 2), true, rr.x + rr.w / 2);
-        if (picked) pix(g, 'check', r0.x + 2, y + 1);
-        texts.text(HEROES[id].name, r0.x + (picked ? 10 : 3), y + 4.5, picked ? GOLD_TXT : 0xc8e8ff, { oy: 0.5 });
-      });
 
     // the band of buttons along the bottom
     const bk = easeBack((since - 60) / 300, 1.5);
@@ -639,21 +910,21 @@ export class CampView {
     g.fillRect(0, s.B - 23 + dy, s.R + s.L + 400, 1);
     for (const b of this.band()) {
       const r = { ...b.r, y: b.r.y + dy };
-      const pr = isPressed(b.r, now) ? 2 : 0;
+      const prs = isPressed(b.r, now) ? 2 : 0;
       if (b.id === 'leave') {
         glow(g, r, 0x8af06a, 0.3 + 0.3 * pulse(now, 1000), 3);
-        button3d(g, r, FACE.green, pr > 0);
-        texts.text(b.label, r.x + 6, r.y + r.h / 2 + pr, WHITE, { bold: true, oy: 0.5 });
-        chevron(g, r.x + r.w - 8, r.y + 4 + pr, 7, WHITE, 1, 1, true);
+        button3d(g, r, FACE.green, prs > 0);
+        texts.text(b.label, r.x + 6, r.y + r.h / 2 + prs, WHITE, { bold: true, oy: 0.5 });
+        chevron(g, r.x + r.w - 8, r.y + 4 + prs, 7, WHITE, 1, 1, true);
         continue;
       }
       // Skills: a gold "!" (and a glow) when the picked hero has points to spend; Relics: how many are new
       const points = b.id === 'skills' && kit.level(p.hero).points > 0;
       if (points) glow(g, r, 0xffd23a, 0.3 + 0.35 * pulse(now, 900), 3);
-      button3d(g, r, b.id === 'forge' ? FACE.wood : b.id === 'skills' ? FACE.purple : b.id === 'relics' ? FACE.red : FACE.blue, pr > 0);
+      button3d(g, r, b.id === 'forge' ? FACE.wood : b.id === 'skills' ? FACE.purple : b.id === 'relics' ? FACE.red : FACE.blue, prs > 0);
       const [iw, ih] = pixSize(b.icon);
-      pix(g, b.icon, r.x + 4, r.y + Math.round((r.h - ih) / 2) + pr - 1);
-      texts.text(b.label, r.x + iw + 6, r.y + r.h / 2 + pr, WHITE, { bold: true, oy: 0.5 });
+      pix(g, b.icon, r.x + 4, r.y + Math.round((r.h - ih) / 2) + prs - 1);
+      texts.text(b.label, r.x + iw + 6, r.y + r.h / 2 + prs, WHITE, { bold: true, oy: 0.5 });
       if (b.id === 'bag' && fresh > 0) kit.bubble(g, texts, r.x + r.w - 1, r.y - 3, `${fresh}`, now);
       if (points) kit.bubble(g, texts, r.x + r.w - 1, r.y - 3, '!', now, true);
       if (b.id === 'relics' && p.relicsNew.length) kit.bubble(g, texts, r.x + r.w - 1, r.y - 3, `${p.relicsNew.length}`, now);
@@ -662,20 +933,28 @@ export class CampView {
 
   // ------------------------------------------------------------------ banter by the fire
 
-  /** Who can speak now (Sable once they're by the fire), and the lines they may say. */
-  private banterLines(): BanterLine[] {
-    const sable = this.sableHere();
-    return BANTER.filter((l) => (l.who !== 'sable' && !l.sable) || sable);
+  /** The lines that can be said now: the camp's own (Sable's once they're here) and the new heroes' once their
+   *  speakers (and whoever the line is to) are at the camp. */
+  private banterLines(): Array<{ who: CampSpeaker; text: string }> {
+    const here = this.speakers();
+    const sable = here.has('sable');
+    const base = BANTER.filter((l) => (l.who !== 'sable' && !l.sable) || sable);
+    const more = HERO_BANTER.filter((l) => here.has(l.who) && (l.with ?? []).every((w) => here.has(w)));
+    return [...base, ...more];
   }
 
-  /** Where a speaker's bubble points: the top of their name plate (a hero) or their head (Pip). */
-  private banterAnchor(who: BanterLine['who']): { x: number; y: number } {
+  /** Where a speaker's bubble points: the top of their name plate or their head. */
+  private banterAnchor(who: CampSpeaker): { x: number; y: number } {
     if (who === 'pip') {
       const r = this.pipRect();
       return { x: r.x + r.w / 2, y: r.y + 2 };
     }
-    const p = this.heroPlate(who);
-    return { x: p.x + p.w / 2, y: p.y - 1 };
+    if (who === 'smith') {
+      const r = this.smithRect();
+      return { x: r.x + r.w / 2 - 2, y: r.y + 6 };
+    }
+    const r = this.heroRect(who as HeroId) ?? this.rowanRect();
+    return { x: r.x + r.w / 2, y: r.y + 1 };
   }
 
   /**
@@ -719,12 +998,13 @@ export class CampView {
     const w = Math.max(...lines.map((l) => textWidth(l, 1, false))) + 10;
     const h = lines.length * 8 + 6;
     const anc = this.banterAnchor(b.line.who);
-    // every bubble sits above the name plates (never over them), leaning left for Pip (Rowan's plate is to his right);
+    // the bubble sits above the speaker and above any name plate under it (never over one), leaning left for Pip;
     // its tail tapers down to the speaker
-    const base = Math.min(this.heroPlate('rowan').y, this.sableHere() ? this.heroPlate('sable').y : 1e9) - 5;
     const lean = b.line.who === 'pip' ? -0.75 : 0;
     const x = Math.round(Math.max(s.L + 3, Math.min(s.R - 3 - w, anc.x - w / 2 + lean * w * 0.5)));
-    const y = Math.round(Math.max(27, Math.min(base, anc.y - 4) - h) + (1 - pop) * 3);
+    let base = anc.y - 4;
+    for (const pl of this.plates()) if (pl.r.y < anc.y && pl.r.y + pl.r.h > base - h - 2 && pl.r.x < x + w + 2 && x < pl.r.x + pl.r.w + 2) base = Math.min(base, pl.r.y - 5);
+    const y = Math.round(Math.max(27, base - h) + (1 - pop) * 3);
     const tx = Math.round(Math.max(x + 6, Math.min(x + w - 7, anc.x + (b.line.who === 'pip' ? -8 : 0))));
     // the tail: from the bubble's bottom edge (5 px wide) to a point by the speaker
     const tip = { x: Math.round(anc.x - (b.line.who === 'pip' ? 2 : 0)), y: Math.round(anc.y - 1) };
@@ -779,4 +1059,3 @@ export class CampView {
     }
   }
 }
-

@@ -5,11 +5,14 @@
 import type Phaser from 'phaser';
 import { STAT_INFO, type StatId } from '../../data/gear';
 import { HERO_IDS, HEROES, type HeroId, type StyleId } from '../../data/heroes';
+import { TIER_INFO, type Tier } from '../../data/rarity';
 import { STYLES } from '../../data/styles';
 import { heroStats, newHero, type Hero } from '../../core/combat';
 import { fmtTotal, type StatBlock } from '../../core/gear';
 import { levelProgress, pointsLeft } from '../../core/heroes';
 import { heroProgress, profileBuild } from '../../core/profile';
+import { heroOwned } from '../../core/roster';
+import { PORTRAIT_FACE_AT } from '../art-hero-portraits';
 import type { FightScene } from '../scene';
 import { textWidth } from '../font';
 import { GAME_W } from '../layout';
@@ -46,6 +49,22 @@ export const RED = 0xff6a5a;
 export const GOLD_TXT = 0xffe680;
 export const SCRAP_TXT = 0xcfe0f4;
 export const DIM_TXT = 0xa8a0c8;
+export const GEM_TXT = 0xf6c8ff;
+
+/** Each style's chip: its icon and colours [hi, base, lo, deep]. */
+export const STYLE_LOOK: Record<StyleId, { icon: string; face: Face }> = {
+  blade: { icon: 'blade', face: [0x9ad8ff, 0x2a5ac0, 0x22489c, 0x1a3070] },
+  shadow: { icon: 'twin', face: [0xdab0ff, 0x6e30a8, 0x5a2490, 0x40186a] },
+  guardian: { icon: 'guard', face: [0xb8e0f0, 0x3a7a9a, 0x2a5a78, 0x1a3a50] },
+  marksman: { icon: 'bow', face: [0xc8f0a0, 0x3a8a3a, 0x2a6a2a, 0x1a4a1e] },
+  brute: { icon: 'hammer', face: [0xffb090, 0xb04a2a, 0x8a3420, 0x5a2014] },
+  controller: { icon: 'flake', face: [0xd0f8ff, 0x3aa0c8, 0x2a7aa0, 0x1a5070] },
+  summoner: { icon: 'sprout', face: [0xd8f090, 0x5a9a2a, 0x447a20, 0x2a5014] },
+  bomber: { icon: 'keg', face: [0xffd890, 0xd0701a, 0xa05010, 0x6a300a] },
+};
+
+/** A style chip's width (familyChip). */
+export const familyChipW = (family: StyleId): number => pixSize(STYLE_LOOK[family].icon)[0] + 5 + textWidth(STYLES[family].name, 1, false) + 3;
 
 // ------------------------------------------------------------------ small pixel icons (outline added at build)
 
@@ -141,6 +160,53 @@ const PIX: Record<string, { rows: string[]; pal: Record<string, number> }> = {
   twin: {
     rows: outlined(['S....S', 'WS..SW', '.WSSW.', '..WW..', '.w..w.', 'w....w']),
     pal: { k: K, S: 0xb8c2d8, W: 0xeef3fa, w: 0xa86ae0 },
+  },
+  // the other styles: Guardian (a kite shield), Marksman (a bow and arrow), Controller (a snowflake), Summoner (a
+  // sprout), Bomber (a keg with a lit fuse); Brute uses the hammer
+  guard: {
+    rows: outlined(['SWWWS', 'SBWBs', 'SBBBs', '.SBs.', '..s..']),
+    pal: { k: K, S: 0xb8c2d8, W: 0xeef3fa, B: 0x2a6ad8, s: 0x6a7496 },
+  },
+  bow: {
+    rows: outlined(['.ww..', 'w..s.', 'w...s', 'wAAAH', 'w...s', 'w..s.', '.ww..']),
+    pal: { k: K, w: 0xd09a5e, s: 0xeef3fa, A: 0xb8c2d8, H: 0xffffff },
+  },
+  flake: {
+    rows: outlined(['..W..', 'W.W.W', '.WCW.', 'WCCCW', '.WCW.', 'W.W.W', '..W..']),
+    pal: { k: K, W: 0xd0f8ff, C: 0x6ad0f0 },
+  },
+  sprout: {
+    rows: outlined(['LL.ll', 'LLsll', '.Ls..', '..s..', '.ddd.']),
+    pal: { k: K, L: 0xb4d058, l: 0x5a9a2a, s: 0x4a7e36, d: 0x6e4426 },
+  },
+  keg: {
+    rows: outlined(['...f.', '..y..', '.bbb.', 'bBbbb', 'bbbbn', '.bnn.']),
+    pal: { k: K, f: 0xfff0a0, y: 0xff9a2a, b: 0x4a5272, B: 0xb8c2d8, n: 0x2a2f45 },
+  },
+  // a paw print (companions)
+  paw: {
+    rows: outlined(['p.p.p', '.....', '.PPP.', 'PPPPP', '.PPP.']),
+    pal: { k: K, p: 0xf0d8c0, P: 0xd8a888 },
+  },
+  // a little chest (hero chests)
+  chest: {
+    rows: outlined(['.yyyyy.', 'yBBBBBy', 'yyyGyyy', 'yBBGBBy', 'yBBBBBy']),
+    pal: { k: K, y: 0xd8901c, B: 0x8e5a2e, G: 0xfff0a0 },
+  },
+  // a tent with a pennant (the camp's upgrades)
+  tent: {
+    rows: outlined(['...r...', '..WWw..', '.WWwww.', 'WWWdwww', 'WWdddww']),
+    pal: { k: K, r: 0xd03030, W: 0xe0bc84, w: 0xc0905a, d: 0x4a2c18 },
+  },
+  // a green flag on a pole (region progress)
+  flag: {
+    rows: outlined(['pFFFF', 'pFFFf', 'pFFf.', 'p....', 'p....']),
+    pal: { k: K, p: 0xb07a44, F: 0x8af06a, f: 0x2a9a3a },
+  },
+  // a target (practice)
+  target: {
+    rows: outlined(['.RRR.', 'RWWWR', 'RWRWR', 'RWWWR', '.RRR.']),
+    pal: { k: K, R: 0xd03030, W: 0xf4ecd8 },
   },
   // a rule node's rune (a skill without its own icon yet)
   rune: {
@@ -440,7 +506,7 @@ export function statChanges(before: StatBlock, after: StatBlock, order: StatId[]
 // ------------------------------------------------------------------ sprites that need a crop, a flip or a tint
 
 /** Where each hero's face sits inside their 40x40 portrait (top-left of an 18x18 window), as the fight HUD shows it. */
-export const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [14, 8] }; // as hud.ts frames them
+export const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [14, 8], ...PORTRAIT_FACE_AT }; // as hud.ts frames them
 
 export interface SpriteOpts {
   /** A window on the texture [x, y, w, h]: (x, y) then places the window's top-left. */
@@ -537,6 +603,9 @@ export class CampKit {
   private lastScrap = -1;
   coinPulse = { at: -1e9, dir: 0 };
   scrapPulse = { at: -1e9, dir: 0 };
+  gemsShown = 0;
+  private lastGems = -1;
+  gemPulse = { at: -1e9, dir: 0 };
   private lastNow = 0;
   private timers: Array<{ at: number; fn: () => void }> = [];
 
@@ -636,6 +705,7 @@ export class CampKit {
   syncPurse(): void {
     this.coinsShown = this.lastCoins = this.profile.coins;
     this.scrapShown = this.lastScrap = this.profile.scrap;
+    this.gemsShown = this.lastGems = this.profile.gems;
   }
 
   begin(now: number): void {
@@ -666,6 +736,10 @@ export class CampKit {
       this.scrapPulse = { at: now, dir: Math.sign(p.scrap - this.lastScrap) };
       this.lastScrap = p.scrap;
     }
+    if (this.lastGems >= 0 && p.gems !== this.lastGems) {
+      this.gemPulse = { at: now, dir: Math.sign(p.gems - this.lastGems) };
+      this.lastGems = p.gems;
+    }
     const roll = (shown: number, to: number) => {
       const d = to - shown;
       if (Math.abs(d) < 0.5) return to;
@@ -673,6 +747,7 @@ export class CampKit {
     };
     this.coinsShown = roll(this.coinsShown, p.coins);
     this.scrapShown = roll(this.scrapShown, p.scrap);
+    this.gemsShown = roll(this.gemsShown, p.gems);
   }
 
   end(now: number): void {
@@ -767,7 +842,7 @@ export class CampKit {
         const [cw, ch] = pixSize(c.icon);
         pix(g, c.icon, cx, Math.round(cy - ch / 2), o.disabled ? 0.7 : 1);
         cx += cw + 2;
-        texts.text(`${c.n}`, cx, cy, c.short ? 0xff8a7a : c.icon === 'coin' ? GOLD_TXT : SCRAP_TXT, { bold: true, oy: 0.5, alpha: o.alpha });
+        texts.text(`${c.n}`, cx, cy, c.short ? 0xff8a7a : c.icon === 'coin' ? GOLD_TXT : c.icon === 'gem' ? GEM_TXT : SCRAP_TXT, { bold: true, oy: 0.5, alpha: o.alpha });
         cx += textWidth(`${c.n}`, 1, true) + 5;
       }
     }
@@ -812,16 +887,23 @@ export class CampKit {
   }
 
   /** Where the coin and scrap tags sit, right-aligned at `right` (for effects that fly to them). */
-  purseRects(right: number, y: number): { coins: Rect; scrap: Rect } {
-    const sw = Math.max(30, textWidth(`${Math.round(this.scrapShown)}`, 1, true) + 16);
-    const cw = Math.max(30, textWidth(`${Math.round(this.coinsShown)}`, 1, true) + 16);
+  purseRects(right: number, y: number, tight = false): { coins: Rect; scrap: Rect } {
+    const t = tight ? 1 : 0;
+    const sw = Math.max(30 - 2 * t, textWidth(`${Math.round(this.scrapShown)}`, 1, true) + 16 - t);
+    const cw = Math.max(30 - 2 * t, textWidth(`${Math.round(this.coinsShown)}`, 1, true) + 16 - t);
     const scrap = { x: right - sw, y, w: sw, h: 12 };
-    return { coins: { x: scrap.x - 4 - cw, y, w: cw, h: 12 }, scrap };
+    return { coins: { x: scrap.x - 4 + t - cw, y, w: cw, h: 12 }, scrap };
   }
 
-  /** Coins and scrap, right-aligned at `right` (returns their tags). */
-  purse(g: G, texts: TextPool, right: number, y: number, now: number): { coins: Rect; scrap: Rect } {
-    const r = this.purseRects(right, y);
+  /** Just the coins, in `r`. */
+  coinsTag(g: G, texts: TextPool, r: Rect, now: number): void {
+    this.counter(g, texts, r, 'coin', this.coinsShown, this.coinPulse, GOLD_TXT, now);
+  }
+
+  /** Coins and scrap, right-aligned at `right` (returns their tags); `tight` packs them closer (the camp's top bar,
+   *  which holds the gems too). */
+  purse(g: G, texts: TextPool, right: number, y: number, now: number, tight = false): { coins: Rect; scrap: Rect } {
+    const r = this.purseRects(right, y, tight);
     this.counter(g, texts, r.scrap, 'scrap', this.scrapShown, this.scrapPulse, SCRAP_TXT, now);
     this.counter(g, texts, r.coins, 'coin', this.coinsShown, this.coinPulse, GOLD_TXT, now);
     return r;
@@ -864,14 +946,78 @@ export class CampKit {
   /** A hero style's chip ("Blade" with a sword, "Shadow" with two daggers...) with its left end at x; returns its width. */
   familyChip(g: G, texts: TextPool, family: StyleId, x: number, cy: number, alpha = 1): number {
     const label = STYLES[family].name;
-    const icon = family === 'shadow' ? 'twin' : 'blade';
-    const [iw, ih] = pixSize(icon);
-    const w = iw + 5 + textWidth(label, 1, false) + 3;
+    const look = STYLE_LOOK[family];
+    const [iw, ih] = pixSize(look.icon);
+    const w = familyChipW(family);
     const r = { x, y: Math.round(cy - 5), w, h: 10 };
-    tag(g, r, family === 'shadow' ? [0xdab0ff, 0x6e30a8, 0x5a2490, 0x40186a] : [0x9ad8ff, 0x2a5ac0, 0x22489c, 0x1a3070], alpha);
-    pix(g, icon, r.x + 1, Math.round(cy - ih / 2), alpha);
+    tag(g, r, look.face, alpha);
+    pix(g, look.icon, r.x + 1, Math.round(cy - ih / 2), alpha);
     texts.text(label, r.x + iw + 3, cy, WHITE, { oy: 0.5, alpha });
     return w;
+  }
+
+  /**
+   * A frame in a rarity's colours round a card (heroes and companions): ink, a band lit top-left and shaded
+   * bottom-right, a dark well. Celestial and Divine get their corner twinkles (art-rarity.ts). `dark` greys it out.
+   */
+  rarityFrame(g: G, r: Rect, tier: Tier, now: number, o: { dark?: boolean; alpha?: number; depth?: number } = {}): void {
+    const a = o.alpha ?? 1;
+    const [hi, base, lo, deep] = o.dark ? ([0x6a6078, 0x4a4058, 0x3a3048, 0x2a2438] as const) : TIER_INFO[tier].face;
+    rows(g, r.x - 1, r.y + 2, r.w + 2, r.h + 1, 3, INK, 0.5 * a);
+    rows(g, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 3, INK, a);
+    rows(g, r.x, r.y, r.w, r.h, 2, base, a);
+    g.fillStyle(hi, a);
+    g.fillRect(r.x + 2, r.y, r.w - 4, 1);
+    g.fillRect(r.x, r.y + 2, 1, r.h - 4);
+    g.fillStyle(deep, a);
+    g.fillRect(r.x + 2, r.y + r.h - 1, r.w - 4, 1);
+    g.fillRect(r.x + r.w - 1, r.y + 2, 1, r.h - 4);
+    g.fillStyle(lo, a);
+    g.fillRect(r.x + 1, r.y + r.h - 2, r.w - 2, 1);
+    rows(g, r.x + 2, r.y + 2, r.w - 4, r.h - 4, 1, INK, a);
+    g.fillStyle(mix(deep, INK, o.dark ? 0.7 : 0.55), a);
+    g.fillRect(r.x + 3, r.y + 3, r.w - 6, r.h - 6);
+    // corner studs
+    g.fillStyle(o.dark ? 0x8a80a0 : mix(hi, WHITE, 0.4), a);
+    g.fillRect(r.x + 1, r.y + 1, 1, 1);
+    g.fillRect(r.x + r.w - 2, r.y + 1, 1, 1);
+    // the top tiers twinkle at two corners
+    const info = TIER_INFO[tier];
+    if (!o.dark && info.sparkle !== 'none') {
+      const c = Math.floor(now / 150) % 4;
+      const key = info.sparkle === 'stars' ? 'rarity_sparkle_celestial' : 'rarity_shine_divine';
+      if (this.has(`${key}_${c}`)) {
+        this.imgs.at(`${key}_${c}`, r.x - 3, r.y - 3, (o.depth ?? D.icons) + 0.002, a);
+        this.imgs.at(`${key}_${(c + 2) % 4}`, r.x + r.w - 4, r.y + r.h - 4, (o.depth ?? D.icons) + 0.002, a);
+      }
+    }
+  }
+
+  /** Stars 1-5 as star icons (lit ones gold); returns the row's width. */
+  starRow(g: G, x: number, y: number, stars: number, o: { alpha?: number; max?: number; step?: number } = {}): number {
+    const max = o.max ?? 5;
+    const step = o.step ?? 9;
+    for (let i = 0; i < max; i++) hudIcon(g, i < stars ? 'star_on' : 'star_off', x + i * step, y, 1, o.alpha ?? 1);
+    return (max - 1) * step + 9;
+  }
+
+  /** A rarity's name as a small tag in its colours; returns its width. */
+  rarityTag(g: G, texts: TextPool, tier: Tier, x: number, cy: number, alpha = 1): number {
+    const info = TIER_INFO[tier];
+    const w = textWidth(info.name, 1, true) + 8;
+    tag(g, { x, y: Math.round(cy - 5), w, h: 10 }, info.face, alpha);
+    texts.text(info.name, x + w / 2, cy, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha });
+    return w;
+  }
+
+  /** The gems counter (the shrine's currency), right-aligned at `right`; returns its rect. */
+  gemsTag(g: G, texts: TextPool, right: number, y: number, now: number): Rect {
+    const p = this.profile;
+    if (this.lastGems < 0) this.gemsShown = this.lastGems = p.gems;
+    const w = Math.max(28, textWidth(`${Math.round(this.gemsShown)}`, 1, true) + 18);
+    const r = { x: right - w, y, w, h: 12 };
+    this.counter(g, texts, r, 'gem', this.gemsShown, this.gemPulse, GEM_TXT, now);
+    return r;
   }
 
   /** "Lv 7" and an XP bar with "120/300 XP" (or "Max level") in the rect; returns the bar's rect. */
@@ -896,31 +1042,51 @@ export class CampKit {
   }
 
   /**
-   * The top bar's hero tabs, right after Back (they name the screen): `all` shows locked heroes too, as "???" with
-   * a padlock. They stay left of the HTML buttons in the top bar's middle (hudZone).
+   * Boxes of `widths` laid out in a row from x0, `gap` apart, hopping over the HTML buttons in the top bar's middle
+   * (hudZone). Null if they don't all fit before `right`.
    */
-  heroTabs(all: boolean): Array<{ id: HeroId; r: Rect; locked: boolean }> {
-    const p = this.profile;
-    const b = this.backRect();
-    let x = b.x + b.w + 4;
-    const out: Array<{ id: HeroId; r: Rect; locked: boolean }> = [];
-    for (const id of HERO_IDS) {
-      const locked = !p.heroes[id]?.unlocked;
-      if (locked && !all) continue;
-      const mark = id === p.hero || locked ? 9 : 0;
-      const w = textWidth(locked ? '???' : HEROES[id].name, 1, true) + 9 + mark;
-      out.push({ id, r: { x, y: 3, w, h: 13 }, locked });
-      x += w + 3;
+  topRow(widths: number[], x0: number, right: number, gap = 3, y = 3, h = 13): Rect[] | null {
+    const z = this.hudZone();
+    let x = x0;
+    const out: Rect[] = [];
+    for (const w of widths) {
+      if (x < z.x + z.w + 2 && x + w > z.x - 2) x = z.x + z.w + 3;
+      if (x + w > right) return null;
+      out.push({ x, y, w, h });
+      x += w + gap;
     }
     return out;
   }
 
-  /** The hero tabs: the one on view gold and sunk, the picked one with a check, a locked one with a padlock. */
-  drawHeroTabs(g: G, tabs: Array<{ id: HeroId; r: Rect; locked: boolean }>, view: HeroId, now: number): void {
-    for (const { id, r, locked } of tabs) {
+  /**
+   * The top bar's hero tabs, right after Back (they name the screen): `all` shows locked heroes too (dark faces, a
+   * padlock). Named tabs while they fit before `right` (hopping over the HTML buttons in the bar's middle: hudZone);
+   * when there are too many heroes for names, each tab is the hero's face.
+   */
+  heroTabs(all: boolean, right = this.s.R - 3): Array<{ id: HeroId; r: Rect; locked: boolean; face: boolean }> {
+    const p = this.profile;
+    const b = this.backRect();
+    const ids = HERO_IDS.filter((id) => all || heroOwned(p, id));
+    const locked = (id: HeroId) => !heroOwned(p, id);
+    const named = ids.map((id) => textWidth(locked(id) ? '???' : HEROES[id].name, 1, true) + 9 + (id === p.hero || locked(id) ? 9 : 0));
+    const x0 = b.x + b.w + 4;
+    let rs = ids.length <= 4 ? this.topRow(named, x0, right) : null;
+    const face = !rs;
+    if (!rs) rs = this.topRow(ids.map(() => 15), x0, right, 2) ?? this.topRow(ids.map(() => 15), x0, 1e9, 2)!;
+    return ids.map((id, i) => ({ id, r: rs![i], locked: locked(id), face }));
+  }
+
+  /** The hero tabs: the one on view gold and sunk, the picked one with a check, a locked one with a padlock (named
+   *  tabs) or a dark face (face tabs). */
+  drawHeroTabs(g: G, tabs: Array<{ id: HeroId; r: Rect; locked: boolean; face: boolean }>, view: HeroId, now: number): void {
+    for (const { id, r, locked, face } of tabs) {
       const on = view === id;
       const pr = isPressed(r, now) || on;
       if (on) glow(g, r, 0xffd23a, 0.25, 2);
+      if (face) {
+        this.faceTab(g, r, id, on, locked, now);
+        continue;
+      }
       button3d(g, r, on ? FACE.gold : FACE.navy, pr);
       const y = r.y + r.h / 2 + (pr ? 2 : 0);
       let x = r.x + 5;
@@ -933,6 +1099,25 @@ export class CampKit {
       }
       this.texts.text(locked ? '???' : HEROES[id].name, x, y, on ? WHITE : locked ? 0x9890b8 : 0xd8d0f0, { bold: true, oy: 0.5 });
     }
+  }
+
+  /** A hero as a small tab: their face in a frame of their rarity's colours (gold and lifted when it's on view), a
+   *  check in the corner for the picked one, dark for one not met yet. */
+  faceTab(g: G, r: Rect, id: HeroId, on: boolean, locked: boolean, now: number): void {
+    const pr = isPressed(r, now);
+    const y = r.y + (on ? -1 : pr ? 1 : 0);
+    const face = locked ? ([0x6a6078, 0x4a4058, 0x3a3048, 0x2a2438] as const) : TIER_INFO[HEROES[id].rarity].face;
+    rows(g, r.x - 1, y - 1, r.w + 2, r.h + 2, 2, INK);
+    rows(g, r.x, y, r.w, r.h, 2, on ? GOLD[3] : face[1]);
+    g.fillStyle(on ? GOLD[4] : face[0], 1);
+    g.fillRect(r.x + 2, y, r.w - 4, 1);
+    g.fillStyle(on ? GOLD[1] : face[3], 1);
+    g.fillRect(r.x + 2, y + r.h - 1, r.w - 4, 1);
+    g.fillStyle(locked ? 0x120e1e : 0x1a2c52, 1);
+    g.fillRect(r.x + 2, y + 1, r.w - 4, r.h - 3);
+    const n = Math.min(r.w - 4, r.h - 3);
+    this.face(id, r.x + 2, y + 1, D.icons, { size: n, tint: locked ? 0x2a2040 : undefined });
+    if (id === this.profile.hero && !locked) pix(this.gOver, 'check', r.x + r.w - 6, y - 3);
   }
 
   /**

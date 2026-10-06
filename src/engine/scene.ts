@@ -13,6 +13,7 @@ import { buildFont, FONT, FONT_BOLD, FONT_BOLD_PLAIN, fontFor, fontText, isDarkI
 import { GAME_H, GAME_W } from './layout';
 import { BarView } from './view/bar';
 import { CampView } from './view/camp';
+import { GainsView } from './view/gains';
 import { LootView } from './view/loot';
 import { Effects } from './view/effects';
 import { Fighters } from './view/fighters';
@@ -83,6 +84,7 @@ export class FightScene extends Phaser.Scene implements View {
   readonly worldMap = new WorldView(this);
   readonly camp = new CampView(this);
   readonly loot = new LootView(this);
+  readonly gains = new GainsView(this);
   readonly transition = new Transition(this);
   readonly tips = new TipsView(this);
 
@@ -198,6 +200,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.worldMap.build();
     this.camp.build();
     this.loot.build();
+    this.gains.build();
     this.tips.build();
     this.stage.build();
     this.fighters.build();
@@ -316,6 +319,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.nodes.onPhase(next);
     this.camp.onPhase(next);
     this.loot.onPhase(next, _prev);
+    this.gains.onPhase();
     if (next !== 'fight' && this.fighters.h.state !== 'idle') this.fighters.heroReturn();
   }
 
@@ -736,6 +740,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.nodes.draw(now);
     this.stops.draw(now);
     this.loot.draw(now);
+    this.gains.draw(now);
     this.camp.draw(now);
     this.story.draw(now);
     this.hud.drawCoins(this.gTop, now);

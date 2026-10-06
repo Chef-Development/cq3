@@ -11,6 +11,7 @@ import type { HeroId } from '../../data/heroes';
 import type { SkillBranch, SkillNode, SkillStat } from '../../data/skills';
 import { canLearn, learn, levelFromXp, maxLevel, resetSkills, skillPoints, skillPreview, skillText, treeOf, type LearnCheck } from '../../core/heroes';
 import { heroProgress } from '../../core/profile';
+import { heroOwned, ownedHeroes } from '../../core/roster';
 import { skillStatPreview } from '../../core/run';
 import { textWidth } from '../font';
 import { CampKit, D, DIM_TXT, GOLD_TXT, GREEN, pix, pixSize, statChanges } from './camp-kit';
@@ -57,7 +58,7 @@ export class SkillsScreen {
   /** Show `id`'s tree, its most useful node selected (one to learn now, else the next in a branch). */
   setHero(id: HeroId, now: number, quiet = false): void {
     const kit = this.kit;
-    if (!kit.profile.heroes[id]?.unlocked) id = 'rowan';
+    if (!heroOwned(kit.profile, id)) id = 'rowan';
     this.hero = id;
     this.heroAt = now;
     this.armed = 0;
@@ -108,7 +109,12 @@ export class SkillsScreen {
   }
 
   private tabs() {
-    return this.kit.heroTabs(false);
+    return this.kit.heroTabs(false, this.pointsRect().x - 4);
+  }
+
+  /** Many heroes: the tabs are faces and the top bar's points and Reset go compact (a number, an icon). */
+  private crowded(): boolean {
+    return ownedHeroes(this.kit.profile).length > 4;
   }
 
   resetRect(): Rect {
@@ -120,6 +126,7 @@ export class SkillsScreen {
 
   private resetLabel(): string {
     if (this.armed > performance.now()) return 'Sure?';
+    if (this.crowded()) return '';
     // the label goes when the top bar is full (the icon stays): right of the HTML buttons in its middle
     const z = this.kit.hudZone();
     const room = this.kit.s.R - 3 - (z.x + z.w) - this.pointsW() - 5;
@@ -128,6 +135,7 @@ export class SkillsScreen {
 
   private pointsText(): string {
     const n = this.kit.level(this.hero).points;
+    if (this.crowded()) return `${n}`;
     return n > 0 ? `${n} point${n > 1 ? 's' : ''}` : 'No points';
   }
 

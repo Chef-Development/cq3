@@ -16,8 +16,8 @@ type G = Phaser.GameObjects.Graphics;
 
 /** Characters per second the text types out at. */
 const TYPE_CPS = 55;
-/** Speakers whose portrait stands on the left (the heroes and the narrator); villains stand on the right. */
-const LEFT: Speaker[] = ['narrator', 'rowan', 'pip', 'sable'];
+/** Speakers whose portrait stands on the left (the heroes, Pip and the narrator); villains stand on the right. */
+const LEFT: Speaker[] = ['narrator', 'rowan', 'pip', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva'];
 /** Friends who aren't heroes (Mags the smith): on the right like a villain, but in warm forge colors. */
 const ALLY: Speaker[] = ['smith'];
 /** Portrait backdrop [top, bottom] and name ribbon per side. */
