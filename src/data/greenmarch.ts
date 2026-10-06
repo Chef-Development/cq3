@@ -6,6 +6,7 @@
 import type { RegionDef } from './types';
 
 export const GREENMARCH: RegionDef = {
+  id: 'greenmarch',
   name: 'Greenmarch',
   introScene: 'intro',
   victoryScene: 'victory',

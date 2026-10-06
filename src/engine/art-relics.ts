@@ -9,7 +9,7 @@
 //   skill_${id}   12x12 for every skill node; each branch has a look (Rowan: Blade steel and gold, Bulwark steel blue,
 //                 Momentum a cyan and violet swirl; Sable: Crossfire crossed daggers and red, Shadowguard smoky
 //                 purple, Quicksilver silver and teal) and the capstones get a gold rim and glints
-import { RELIC_IDS, RELIC_TAGS } from '../data/relics';
+import { RELIC_IDS, RELIC_TAGS, relicById } from '../data/relics';
 import { SKILL_NODES } from '../data/skills';
 import { grid, stamp, toCanvas, type Pal } from './art';
 import { ITEM_ICON_SIZE } from './art-gear';
@@ -1014,18 +1014,46 @@ function icon(rows: string[], n: number, key: string): HTMLCanvasElement {
   return toCanvas(g);
 }
 
+/** A stand-in icon (until a painted one is drawn): a 5x5 glyph doubled into an n x n map, in a tag's ramp. */
+function standIn(glyph: string[], n: number, ramp: string): string[] {
+  const rows: string[] = [];
+  const k = n >= 10 ? 2 : 1; // doubled on relic tiles, as is on tag chips
+  const off = Math.floor((n - 5 * k) / 2);
+  for (let y = 0; y < n; y++) {
+    let r = '';
+    for (let x = 0; x < n; x++) {
+      const gx = Math.floor((x - off) / k);
+      const gy = Math.floor((y - off) / k);
+      const on = glyph[gy]?.[gx] === '#';
+      r += on ? ramp[(x + y) % 2 === 0 ? 0 : 1] : '.';
+    }
+    rows.push(r);
+  }
+  return rows;
+}
+
+const STAND_IN: Record<string, string[]> = {
+  ice: ['..#..', '#.#.#', '.###.', '#.#.#', '..#..'],
+  hold: ['#...#', '#####', '#...#', '#####', '#...#'],
+  skill: ['..#..', '.###.', '#####', '.###.', '..#..'],
+};
+
 export function buildRelicArt(add: Add): void {
   const n = ITEM_ICON_SIZE - 2;
+  // the ramp keys a stand-in uses: the first two palette keys of the icon palette
+  const ramp = '34'; // light steel
   for (const id of RELIC_IDS) {
-    if (!RELIC_ICONS[id]) throw new Error(`no icon for relic ${id}`);
-    add(`relic_${id}`, icon(RELIC_ICONS[id], n, `relic_${id}`));
+    const tag = relicById(id)?.tags[0] ?? 'skill';
+    const rows = RELIC_ICONS[id] ?? standIn(STAND_IN[tag] ?? STAND_IN.skill, n, ramp);
+    add(`relic_${id}`, icon(rows, n, `relic_${id}`));
   }
   for (const tag of RELIC_TAGS) {
-    if (!TAG_ICONS[tag]) throw new Error(`no icon for tag ${tag}`);
-    add(`tag_${tag}`, icon(TAG_ICONS[tag], TAG_ICON_SIZE - 2, `tag_${tag}`));
+    const rows = TAG_ICONS[tag] ?? standIn(STAND_IN[tag] ?? STAND_IN.skill, TAG_ICON_SIZE - 2, ramp);
+    add(`tag_${tag}`, icon(rows, TAG_ICON_SIZE - 2, `tag_${tag}`));
   }
   for (const node of SKILL_NODES) {
-    if (!SKILL_ICONS[node.id]) throw new Error(`no icon for skill ${node.id}`);
-    add(`skill_${node.id}`, icon(SKILL_ICONS[node.id], n, `skill_${node.id}`));
+    // the new heroes' nodes use a stand-in until painted ones are drawn
+    const rows = SKILL_ICONS[node.id] ?? standIn(STAND_IN.skill, n, ramp);
+    add(`skill_${node.id}`, icon(rows, n, `skill_${node.id}`));
   }
 }

@@ -7,6 +7,9 @@
 //
 // v1 was "progress" (acts cleared and weights only), v2 the gear; readProfile migrates both.
 
+import { ALL_ACTS } from '../data/regions';
+import { COMPANION_IDS, isCompanionId, type CompanionId } from '../data/companions';
+import { ACHIEVEMENTS, CAMP_UPGRADE_IDS, type AchievementId, type CampUpgradeId } from '../data/meta';
 import { SLOT_KEYS, slotOf, type GearRarity, type SlotKey, type StatId } from '../data/gear';
 import { RELICS, isRelicId, relicById, type RelicId } from '../data/relics';
 import { BASIC_TIPS, isSeenId, WELCOME_ID, type SeenId } from '../data/tips';
@@ -32,12 +35,12 @@ import {
 import type { Rng } from './rng';
 import type { Tuning } from './tuning';
 
-export const PROFILE_VERSION = 3;
+export const PROFILE_VERSION = 4;
 export const WEIGHTS_TOTAL = 12;
 
 export interface Profile {
-  v: 3;
-  actsCleared: number; // Greenmarch's acts cleared at least once (0-3)
+  v: 4;
+  actsCleared: number; // acts cleared at least once, counted across regions (Greenmarch 0-3, then the next region's)
   weights: number; // pendulum weights recovered (a region cleared brings one home)
   coins: number; // the purse: kept between runs, spent at shops and the forge
   scrap: number; // from salvaging, spent at the forge
@@ -60,7 +63,43 @@ export interface Profile {
   /** The world map's wandering foe (core/skirmish.ts): fights won since the last skirmish, skirmishes so far, and
    *  whether one is on the road now. Still v3: missing reads as none yet. */
   wander: WanderState;
+  // ---- v4 (M5): heroes and companions from chests, gems, the shrine, region completion, shared progression
+  neveMet: boolean; // the frost mage's scene played (after the next region's first act): she joins
+  gems: number; // earned only by playing
+  chests: Record<ChestKind, number>; // hero chests waiting to be opened (free)
+  pity: { rare: number; top: number }; // Rare chests opened since the last Legendary+ / Celestial+ from one
+  pets: Record<CompanionId, PetProgress>;
+  petsOn: CompanionId[]; // the companions brought into fights (1; 2 with the Companion Perch)
+  camp: CampUpgradeId[]; // camp upgrades bought
+  regions: Record<string, RegionLog>; // per region: what the completion tracker counts beyond acts and bosses
+  mastery: string[]; // mastery milestones reached (their rewards granted)
+  achievements: AchievementId[];
+  counts: Record<string, number>; // lifetime counters (holds, bounties, treasures, boss kills...)
+  seen: string[]; // one-time scenes played (a chest hero's arrival)
+  cosmetics: string[]; // camp banners
+  allUnlocked: boolean; // debug: "Unlock all heroes and companions"
 }
+
+export type ChestKind = 'hero' | 'rare' | 'region';
+export const CHEST_KINDS: ChestKind[] = ['hero', 'rare', 'region'];
+
+/** A companion's progress: owned, its XP (from fights it was in), stars and shards. */
+export interface PetProgress {
+  owned: boolean;
+  xp: number;
+  stars: number;
+  shards: number;
+}
+
+/** What a region's completion tracker counts besides acts and bosses (those come from actsCleared). */
+export interface RegionLog {
+  bounties: number[]; // acts whose bounty was finished
+  treasures: number[]; // acts whose hidden treasure was found
+  events: string[]; // events finished in the region
+  chest: boolean; // the 100% chest was given
+}
+
+export const newRegionLog = (): RegionLog => ({ bounties: [], treasures: [], events: [], chest: false });
 
 export interface WanderState {
   fights: number;
@@ -75,9 +114,12 @@ const noSlots = (): Record<SlotKey, number> => ({ weapon: 0, helm: 0, armor: 0, 
 
 export const newHeroes = (): Record<HeroId, HeroProgress> => Object.fromEntries(HERO_IDS.map((id) => [id, newHeroProgress(id === 'rowan')])) as Record<HeroId, HeroProgress>;
 
+export const newPets = (): Record<CompanionId, PetProgress> =>
+  Object.fromEntries(COMPANION_IDS.map((id) => [id, { owned: id === 'pip', xp: 0, stars: 1, shards: 0 }])) as Record<CompanionId, PetProgress>;
+
 export function newProfile(): Profile {
   return {
-    v: 3,
+    v: 4,
     actsCleared: 0,
     weights: 0,
     coins: 0,
@@ -99,6 +141,20 @@ export function newProfile(): Profile {
     sparkles: [],
     worldTour: false,
     wander: { fights: 0, n: 0, up: false },
+    neveMet: false,
+    gems: 0,
+    chests: { hero: 0, rare: 0, region: 0 },
+    pity: { rare: 0, top: 0 },
+    pets: newPets(),
+    petsOn: ['pip'],
+    camp: [],
+    regions: {},
+    mastery: [],
+    achievements: [],
+    counts: {},
+    seen: [],
+    cosmetics: [],
+    allUnlocked: false,
   };
 }
 
@@ -111,17 +167,61 @@ const int = (v: unknown, lo: number, hi: number) => (typeof v === 'number' && Nu
  */
 export function readProfile(data: unknown, t?: Tuning): Profile {
   const d = data as Record<string, unknown> | null;
-  if (!d || typeof d !== 'object' || (d.v !== 1 && d.v !== 2 && d.v !== 3)) return newProfile();
+  if (!d || typeof d !== 'object' || (d.v !== 1 && d.v !== 2 && d.v !== 3 && d.v !== 4)) return newProfile();
   const p = readFields(d, t);
   readTips(p, d);
   p.sparkles = readSparkles(d.sparkles); // still v3: missing reads as none
   p.worldTour = d.worldTour === true; // still v3: missing reads as not yet (the bigger world map shows itself once)
+  readV4(p, d);
   return p;
+}
+
+/**
+ * v4 (M5): chests, gems, companions, camp upgrades, region logs, mastery, achievements. A v3 (or older) profile gets
+ * the defaults, Pip as its companion, and Region 1's events counted from the event relics it has unlocked (the only
+ * event record a v3 profile kept).
+ */
+function readV4(p: Profile, d: Record<string, unknown>): void {
+  p.neveMet = d.neveMet === true;
+  if (p.neveMet) p.heroes.neve.unlocked = true;
+  p.gems = int(d.gems, 0, 1e9);
+  const ch = (d.chests ?? {}) as Record<string, unknown>;
+  for (const k of CHEST_KINDS) p.chests[k] = int(ch[k], 0, 1e4);
+  const pity = (d.pity ?? {}) as Record<string, unknown>;
+  p.pity = { rare: int(pity.rare, 0, 1e4), top: int(pity.top, 0, 1e5) };
+  const pets = (d.pets ?? {}) as Record<string, unknown>;
+  for (const id of COMPANION_IDS) {
+    const x = (pets[id] ?? {}) as Record<string, unknown>;
+    p.pets[id] = { owned: id === 'pip' || x.owned === true, xp: int(x.xp, 0, 1e9), stars: Math.max(1, int(x.stars, 1, 5)), shards: int(x.shards, 0, 1e6) };
+  }
+  const on = Array.isArray(d.petsOn) ? [...new Set(d.petsOn.filter((x): x is CompanionId => isCompanionId(x) && p.pets[x].owned))] : [];
+  p.petsOn = on.length ? on.slice(0, 2) : ['pip'];
+  p.camp = Array.isArray(d.camp) ? [...new Set(d.camp.filter((x): x is CampUpgradeId => CAMP_UPGRADE_IDS.includes(x as CampUpgradeId)))] : [];
+  if (!p.camp.includes('perch')) p.petsOn = p.petsOn.slice(0, 1);
+  const regs = (d.regions ?? {}) as Record<string, unknown>;
+  for (const id of Object.keys(regs)) {
+    const r = (regs[id] ?? {}) as Record<string, unknown>;
+    const nums = (v: unknown) => (Array.isArray(v) ? [...new Set(v.filter((x): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 0))] : []);
+    p.regions[id] = { bounties: nums(r.bounties), treasures: nums(r.treasures), events: Array.isArray(r.events) ? [...new Set(r.events.filter((x): x is string => typeof x === 'string'))] : [], chest: r.chest === true };
+  }
+  const strs = (v: unknown) => (Array.isArray(v) ? [...new Set(v.filter((x): x is string => typeof x === 'string'))] : []);
+  p.mastery = strs(d.mastery);
+  p.achievements = strs(d.achievements).filter((x): x is AchievementId => ACHIEVEMENTS.some((a) => a.id === x));
+  const counts = (d.counts ?? {}) as Record<string, unknown>;
+  for (const k of Object.keys(counts)) p.counts[k] = int(counts[k], 0, 1e9);
+  p.seen = strs(d.seen);
+  p.cosmetics = strs(d.cosmetics);
+  p.allUnlocked = d.allUnlocked === true;
+  if (d.v !== 4) {
+    // Region 1's progress counts: the events whose relic was unlocked were finished there
+    const log = (p.regions.greenmarch ??= newRegionLog());
+    for (const r of RELICS) if (r.unlock?.kind === 'event' && p.relics.includes(r.id) && !log.events.includes(r.unlock.event)) log.events.push(r.unlock.event);
+  }
 }
 
 function readFields(d: Record<string, unknown>, t?: Tuning): Profile {
   const p = newProfile();
-  p.actsCleared = int(d.actsCleared, 0, 3);
+  p.actsCleared = int(d.actsCleared, 0, ALL_ACTS.length);
   p.weights = int(d.weights, 0, WEIGHTS_TOTAL);
   if (d.v !== 3) migrateHeroes(p, t);
   if (d.v === 1) return p; // v1 -> v3: progress kept, the gear starts empty
@@ -236,6 +336,14 @@ export function meetSable(p: Profile): boolean {
   return true;
 }
 
+/** Neve joins (her scene played, after the next region's first act). */
+export function meetNeve(p: Profile): boolean {
+  if (p.neveMet) return false;
+  p.neveMet = true;
+  p.heroes.neve.unlocked = true;
+  return true;
+}
+
 // ---------------------------------------------------------------- relics
 
 /** Whether a relic can be offered: one from the start, or one unlocked since. */
@@ -262,10 +370,10 @@ export function recordAct(p: Profile, act: number): boolean {
   return true;
 }
 
-/** The region was cleared: its weight is home (once). */
-export function recordRegion(p: Profile): boolean {
-  if (p.weights >= 1) return false;
-  p.weights = 1;
+/** Region `r` (0 = Greenmarch) was cleared: its weight is home (once each). */
+export function recordRegion(p: Profile, r = 0): boolean {
+  if (p.weights >= r + 1) return false;
+  p.weights = Math.min(WEIGHTS_TOTAL, r + 1);
   return true;
 }
 

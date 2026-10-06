@@ -137,7 +137,7 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       const chance = c.stars >= 3 ? K(c).neve.freeze3 : K(c).neve.freeze;
       if (!x.perfect && c.rand() >= chance) return;
       const f = c.spawnBlock('frozen', x.block.pos, x.block.ownerId, Math.max(x.block.width, c.tuning.blocks.attackWidth));
-      c.events.push({ type: 'freeze', id: f.id, pos: f.pos });
+      c.events.push({ type: 'iceBlock', id: f.id, pos: f.pos });
     },
     // Cold Snap: shattering ice fills the meter like a green
     meter: (c, source, v) => (source === 'hit' && c.hitNow?.block.kind === 'frozen' ? Math.max(v, c.tuning.meter.perGreen) : v),

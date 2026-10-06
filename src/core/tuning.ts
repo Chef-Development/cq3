@@ -4,7 +4,7 @@
 // The debug panel edits a live copy of this object; "Copy tuning as JSON" exports it.
 
 import { ENEMIES } from '../data/enemies';
-import { GREENMARCH } from '../data/greenmarch';
+import { ALL_ACTS } from '../data/regions';
 import { RELICS } from '../data/relics';
 import { SKILL_NODES } from '../data/skills';
 import type { ActDef } from '../data/types';
@@ -389,6 +389,64 @@ export const DEFAULT_TUNING = {
     vesper: { hp: 95, atk: 1, abilitySec: 3, pierce: 0.5, volleyFocus: 1.5, pinSec: 2, cap3: 1.5 },
     torva: { hp: 120, atk: 0.9, abilitySec: 3, quake: 0.15, windUp: 2.5, stunSec: 1.5, unstoppable: 0.08, unstoppableMax: 5, calmSec: 2 },
   },
+  chests: {
+    // Hero chests (core/chests.ts): a hero or a companion, weighted toward the low tiers, or shards for one you own.
+    // Weights per tier, Common to Divine (a hero is never below Rare: a Common/Uncommon hero roll becomes Rare).
+    hero: [40, 30, 20, 8, 1.8, 0.15, 0.04, 0.01],
+    rare: [0, 0, 60, 30, 8.5, 1.2, 0.25, 0.05], // the shrine's Rare chest (gems)
+    region: [0, 0, 0, 55, 35, 8, 1.6, 0.4], // a region at 100%: Epic or better
+    heroShare: 0.5, // a chest holds a hero this often (else a companion)
+    shardChance: 0.25, // ...or, this often (once you own something), shards for one you own
+    shardsMin: 3,
+    shardsMax: 6,
+    dupShards: 10, // a duplicate becomes this many shards
+    pity: 30, // the shrine: a Legendary or better within this many Rare chests...
+    softPity: 20, // ...the Legendary+ odds climb from this many on...
+    softStep: 0.05, // ...by this much a chest
+    topPity: 120, // ...and a Celestial or better within this many (the top pity tier)
+    rareCost: 180, // gems for one Rare chest at the shrine
+    // drops
+    bossChest: 0.35, // a region boss drops a hero chest this often (its first kill always does)
+    miniChest: 0.25, // a mini-boss this often (its first kill always does)
+    bountyChest: 0.3, // a bounty paid this often
+    eliteChest: 0.04, // an elite, rarely
+  },
+  gems: {
+    // Gems: earned only by playing (core/meta.ts)
+    actFirst: 15, // an act's first clear
+    miniFirst: 15, // a mini-boss's first kill...
+    bossFirst: 35, // ...a region boss's...
+    bossAgain: 3, // ...and later kills of either
+    bounty: 5, // a bounty finished
+    treasure: 8, // a hidden treasure found
+    region: 60, // a region at 100% completion
+    pouch: 0.08, // an elite drops a gem pouch this often...
+    pouchGems: 5, // ...of this many
+  },
+  pets: {
+    // Companions (core/companion-fx.ts, core/roster.ts): their level from the XP your hero earns with them along
+    maxLevel: 20,
+    levelDmg: 0.04, // +4% damage a level
+    starDmg: 0.12, // +12% damage a star (and perks a step stronger)
+    perkStep: 0.15, // each star above 1: perks this much stronger
+    newtBurn: 3, // Newt: burn damage a second...
+    newtSec: 3, // ...for this long
+    bunEvery: 10, // Bun: a coin every this many hits
+    oilEvery: 8, // Sprocket: every this many seconds...
+    oilPerfect: 2, // ...the next block's Perfect zone is this much wider
+    rockEvery: 15, // Brick: blocks a red every this many seconds
+    chillSec: 2, // Flurry: bites slow the target's reds this long...
+    chillMult: 0.6, // ...to this share of their speed; Snow Dash: after a block the next red slows for 1 s
+    starEvery: 15, // Mote: a green every this many combo...
+    mendSec: 5, // ...and at 10+ combo heals 1% every this many seconds
+    hoard: 0.15, // Sunny: kills drop this much more coins...
+    burnAt: 25, // ...at this combo its breath burns away traps...
+    glow: 2, // ...and ice patches under you melt this much faster
+  },
+  stars: {
+    // Shards raise a hero's or companion's stars (1-5): shards for the next star
+    need: [10, 20, 40, 80],
+  },
   bar: {
     // Patches on the bar (core/combat.ts zones): the cursor's speed inside them.
     iceMult: 1.6, // ice: faster (taps on ice come earlier)
@@ -476,7 +534,7 @@ export const DEFAULT_TUNING = {
     hideSec: 9, // s a startled critter stays away
   },
   enemies: cloneData(ENEMIES),
-  acts: GREENMARCH.acts.map((a: ActDef): ActScale => ({ name: a.name, hpMult: a.hpMult, atkMult: a.atkMult, pace: a.pace, redSpeed: a.redSpeed })),
+  acts: ALL_ACTS.map((a: ActDef): ActScale => ({ name: a.name, hpMult: a.hpMult, atkMult: a.atkMult, pace: a.pace, redSpeed: a.redSpeed })),
 };
 
 export type Tuning = typeof DEFAULT_TUNING;
@@ -962,6 +1020,39 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         return s(`kits.${id}.${k}`, k, 0, Math.max(2, v * 4), v % 1 ? 0.01 : 1);
       }),
     })),
+    {
+      title: 'Chests and gems',
+      sliders: [
+        s('chests.heroShare', 'Chest: hero share', 0, 1, 0.05),
+        s('chests.shardChance', 'Chest: shards chance', 0, 1, 0.05),
+        s('chests.dupShards', 'Duplicate: shards', 1, 40, 1),
+        s('chests.pity', 'Shrine pity (Legendary+)', 5, 100, 1),
+        s('chests.softPity', 'Shrine soft pity from', 1, 100, 1),
+        s('chests.softStep', 'Soft pity step', 0, 0.2, 0.01),
+        s('chests.topPity', 'Top pity (Celestial+)', 20, 400, 5),
+        s('chests.rareCost', 'Rare chest: gems', 10, 600, 5),
+        s('chests.bossChest', 'Boss drops a chest', 0, 1, 0.05),
+        s('chests.miniChest', 'Mini-boss drops a chest', 0, 1, 0.05),
+        s('chests.bountyChest', 'Bounty pays a chest', 0, 1, 0.05),
+        s('chests.eliteChest', 'Elite drops a chest', 0, 0.5, 0.01),
+        s('gems.actFirst', 'Gems: first act clear', 0, 100, 1),
+        s('gems.miniFirst', 'Gems: first mini-boss', 0, 100, 1),
+        s('gems.bossFirst', 'Gems: first boss', 0, 200, 1),
+        s('gems.bossAgain', 'Gems: boss again', 0, 30, 1),
+        s('gems.bounty', 'Gems: bounty', 0, 50, 1),
+        s('gems.treasure', 'Gems: hidden treasure', 0, 50, 1),
+        s('gems.region', 'Gems: region at 100%', 0, 300, 5),
+        s('gems.pouch', 'Gem pouch chance (elite)', 0, 1, 0.01),
+        s('gems.pouchGems', 'Gem pouch gems', 0, 50, 1),
+      ],
+    },
+    {
+      title: 'Companions',
+      sliders: Object.keys(t.pets).map((k) => {
+        const v = (t.pets as Record<string, number>)[k];
+        return s(`pets.${k}`, k, 0, Math.max(2, v * 4), v % 1 ? 0.01 : 1);
+      }),
+    },
     {
       title: 'Bar patches and holds',
       sliders: [

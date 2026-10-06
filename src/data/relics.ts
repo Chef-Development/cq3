@@ -3,8 +3,8 @@
 // tuning.relics.n[id], and '{n}' in the text shows it), and how it is unlocked (none = from the start).
 // src/core/relic-fx.ts makes them work in fights, src/core/relics.ts rolls the offers and names the build.
 
-export type RelicTag = 'bomb' | 'crit' | 'block' | 'combo' | 'finisher' | 'green' | 'pip' | 'sustain' | 'coins' | 'risk';
-export const RELIC_TAGS: RelicTag[] = ['bomb', 'crit', 'block', 'combo', 'finisher', 'green', 'pip', 'sustain', 'coins', 'risk'];
+export type RelicTag = 'bomb' | 'crit' | 'block' | 'combo' | 'finisher' | 'green' | 'pip' | 'sustain' | 'coins' | 'risk' | 'ice' | 'hold';
+export const RELIC_TAGS: RelicTag[] = ['bomb', 'crit', 'block', 'combo', 'finisher', 'green', 'pip', 'sustain', 'coins', 'risk', 'ice', 'hold'];
 export const TAG_NAME: Record<RelicTag, string> = {
   bomb: 'Bomb',
   crit: 'Crit',
@@ -16,12 +16,15 @@ export const TAG_NAME: Record<RelicTag, string> = {
   sustain: 'Sustain',
   coins: 'Coins',
   risk: 'Risk',
+  ice: 'Ice',
+  hold: 'Hold',
 };
 
 export type RelicRarity = 'common' | 'rare' | 'epic';
 
-/** How a locked relic is unlocked: the first clear of an act, the first elite won in an act, or a choice at an event. */
-export type RelicUnlock = { kind: 'act'; act: number } | { kind: 'elite'; act: number } | { kind: 'event'; event: string; choice: number };
+/** How a locked relic is unlocked: the first clear of an act, the first elite won in an act, a choice at an event, or a
+ *  hero's mastery milestone (src/data/meta.ts). */
+export type RelicUnlock = { kind: 'act'; act: number } | { kind: 'elite'; act: number } | { kind: 'event'; event: string; choice: number } | { kind: 'mastery' };
 
 export type RelicId =
   | 'powderKeg'
@@ -63,7 +66,23 @@ export type RelicId =
   | 'vampiricFang'
   | 'fieldRations'
   | 'tithe'
-  | 'haggler';
+  | 'haggler'
+  // Region 2: Ice and Hold
+  | 'skateBlades'
+  | 'frostRune'
+  | 'hotCocoa'
+  | 'icebreaker'
+  | 'snowplow'
+  | 'glacierHeart'
+  | 'frostbite'
+  | 'melt'
+  | 'steadyGrip'
+  | 'longNote'
+  | 'holdFast'
+  | 'releaseValve'
+  | 'tether'
+  | 'luckyMitten'
+  | 'crampons';
 
 export interface RelicDef {
   id: RelicId;
@@ -74,9 +93,13 @@ export interface RelicDef {
   text: string;
   n?: number;
   unlock?: RelicUnlock;
+  /** Only offered from this (global) act on: the Ice and Hold relics wait for the region that has ice and holds. */
+  from?: number;
 }
 
 const R = (id: RelicId, name: string, tags: RelicTag[], rarity: RelicRarity, text: string, n?: number, unlock?: RelicUnlock): RelicDef => ({ id, name, tags, rarity, text, n, unlock });
+/** A Region 2 relic (offered from its first act on). */
+const F = (id: RelicId, name: string, tags: RelicTag[], rarity: RelicRarity, text: string, n?: number, unlock?: RelicUnlock): RelicDef => ({ ...R(id, name, tags, rarity, text, n, unlock), from: 3 });
 
 export const RELICS: RelicDef[] = [
   // Bomb: bombs are red attacks; tapping one blasts every foe (and the blocks near it)
@@ -127,6 +150,23 @@ export const RELICS: RelicDef[] = [
   R('fieldRations', 'Field Rations', ['sustain'], 'common', 'Every step on the map heals {n}% HP.', 4),
   R('tithe', 'Tithe', ['sustain', 'coins'], 'common', 'Rests cost {n} coins but heal you fully.', 20, { kind: 'event', event: 'well', choice: 0 }),
   R('haggler', 'Haggler', ['coins'], 'common', 'The first thing you buy in each shop is free.'),
+  // Ice (Region 2): patches of ice on the bar speed the cursor up
+  F('skateBlades', 'Skate Blades', ['ice'], 'common', 'Hits on ice deal +{n}%.', 40, { kind: 'mastery' }),
+  F('frostRune', 'Frost Rune', ['ice', 'crit'], 'rare', 'Perfect hits on ice always crit.', undefined, { kind: 'act', act: 3 }),
+  F('hotCocoa', 'Hot Cocoa', ['ice', 'sustain'], 'common', 'When an ice patch melts, heal {n} HP.', 3, { kind: 'mastery' }),
+  F('icebreaker', 'Icebreaker', ['ice', 'block'], 'rare', 'Blocking a red on ice knocks it back to the far end.', undefined, { kind: 'mastery' }),
+  F('snowplow', 'Snowplow', ['ice', 'finisher'], 'rare', 'Your finisher clears every patch, +{n}% per patch.', 15, { kind: 'mastery' }),
+  F('glacierHeart', 'Glacier Heart', ['ice', 'block'], 'rare', 'Reds crossing ice slow down by {n}%.', 30, { kind: 'mastery' }),
+  F('frostbite', 'Frostbite', ['ice', 'risk'], 'epic', 'Ice speeds you {n}% more, but hits on ice deal double.', 30, { kind: 'elite', act: 3 }),
+  F('melt', 'Melt', ['ice', 'green'], 'common', 'Yellows that land on ice turn green.'),
+  // Hold (Region 2): hold blocks are held from their start to their end
+  F('steadyGrip', 'Steady Grip', ['hold', 'finisher'], 'common', 'A finished hold fills the meter like {n} hits.', 2),
+  F('longNote', 'Long Note', ['hold', 'combo'], 'common', 'A finished hold counts {n} extra combo.', 3, { kind: 'mastery' }),
+  F('holdFast', 'Hold Fast', ['hold', 'block'], 'rare', 'While you hold, reds that reach you deal half.', undefined, { kind: 'mastery' }),
+  F('releaseValve', 'Release Valve', ['hold', 'finisher'], 'rare', 'Every {n}rd finished hold banks a finisher stack.', 3, { kind: 'act', act: 4 }),
+  F('tether', 'Tether', ['hold', 'crit'], 'rare', 'A hold pressed Perfectly always crits.', undefined, { kind: 'mastery' }),
+  F('luckyMitten', 'Lucky Mitten', ['hold', 'coins'], 'common', 'Each finished hold drops {n} coin.', 1),
+  F('crampons', 'Crampons', ['hold', 'sustain'], 'rare', "Once a fight, a slipped hold doesn't break your combo.", undefined, { kind: 'elite', act: 4 }),
 ];
 
 export const RELIC_IDS: RelicId[] = RELICS.map((r) => r.id);
@@ -145,6 +185,8 @@ export const BUILD_NAME: Record<RelicTag, string> = {
   sustain: 'Survivor',
   coins: 'Treasure Hunter',
   risk: 'Daredevil',
+  ice: 'Frostwalker',
+  hold: 'Steady Hand',
 };
 
 /** Two-tag builds (either order). */
@@ -171,4 +213,7 @@ export const PAIR_NAME: Array<[RelicTag, RelicTag, string]> = [
   ['sustain', 'risk', 'Blood Knight'],
   ['sustain', 'coins', 'Innkeeper'],
   ['pip', 'coins', 'Magpie'],
+  ['ice', 'hold', 'Glacier Dancer'],
+  ['ice', 'crit', 'Ice Pick'],
+  ['hold', 'finisher', 'Slow Burn'],
 ];

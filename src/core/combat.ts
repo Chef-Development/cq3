@@ -291,7 +291,7 @@ export type CombatEvent =
   | { type: 'holdStart'; id: number; pos: number; perfect: boolean }
   | { type: 'holdEnd'; id: number; pos: number; ok: boolean }
   | { type: 'chip'; id: number; pos: number; left: number } // an iced yellow took a tap (it needs more)
-  | { type: 'freeze'; id: number; pos: number } // a red froze in place (Flash Freeze, Glacier)
+  | { type: 'iceBlock'; id: number; pos: number } // a red froze in place (Flash Freeze, Glacier)
   | { type: 'ally'; kind: AllyKind; action: 'call' | 'act' | 'leave' | 'rally' | 'block'; id: number }
   | { type: 'stun'; enemyId: number; sec: number }
   | { type: 'deflect'; pos: number } // a red bounced off the left end (Rampart)
@@ -1540,7 +1540,7 @@ export class Combat {
     const w = Math.max(b.width, this.tuning.blocks.attackWidth);
     if (this.blocks.includes(b)) this.removeBlock(b, 'perk');
     const f = this.spawnBlock('frozen', pos, b.ownerId, w);
-    this.events.push({ type: 'freeze', id: f.id, pos: f.pos });
+    this.events.push({ type: 'iceBlock', id: f.id, pos: f.pos });
     return f;
   }
 

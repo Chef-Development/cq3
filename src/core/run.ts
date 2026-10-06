@@ -10,7 +10,7 @@
 // the world map's wandering foe offers a bonus skirmish (core/skirmish.ts).
 
 import { eventById } from '../data/events';
-import { GREENMARCH } from '../data/greenmarch';
+import { CAMPAIGN, REGIONS, actInRegion, lastActOfRegion, regionOfAct } from '../data/regions';
 import { questById, type QuestId } from '../data/quests';
 import type { ActDef, EventOutcome, RegionDef } from '../data/types';
 import { RELICS, relicById, type RelicId } from '../data/relics';
@@ -20,7 +20,7 @@ import { Combat, heroMaxHp, heroStats, killCoins, newHero, type Hero, type Saved
 import { itemLevel, rollDrops, rollItem, setPieces, type Item, type Loadout } from './gear';
 import { actXp, addXp, defaultBuild, killXp, type HeroBuild } from './heroes';
 import { actSeed, buildActMap, type ActMap, type MapNode } from './map';
-import { addItem, heroProgress, meetSable, newProfile, profileBuild, profileLoadout, recordAct, recordRegion, unlockedRelics, unlockRelic, type Profile } from './profile';
+import { addItem, heroProgress, meetNeve, meetSable, newProfile, profileBuild, profileLoadout, recordAct, recordRegion, unlockedRelics, unlockRelic, type Profile } from './profile';
 import { newQuest, questFor, questProgress, type QuestState } from './quests';
 import { relicNumber, rollRelics, unlocksFor } from './relics';
 import { Rng } from './rng';
@@ -329,7 +329,8 @@ export function heroFor(t: Tuning, act: number, gear?: Loadout, build: HeroBuild
 
 export class Run {
   phase: Phase = 'title';
-  readonly region: RegionDef = GREENMARCH;
+  /** Every region's acts in one list (acts are numbered globally: Greenmarch 0-2, the next region 3-5...). */
+  readonly region: RegionDef = CAMPAIGN;
   actIndex = 0;
   map: ActMap;
   /** Node ids visited in this act, from row 0 (the last one is where Rowan is). */
@@ -420,6 +421,15 @@ export class Run {
     return this.region.acts[this.actIndex];
   }
 
+  /** The region the current act belongs to (its index in REGIONS, and its data). */
+  get regionIndex(): number {
+    return regionOfAct(this.actIndex);
+  }
+
+  get regionDef(): RegionDef {
+    return REGIONS[this.regionIndex];
+  }
+
   /** The purse: coins are kept between runs (in the profile). */
   get coins(): number {
     return this.profile.coins;
@@ -470,12 +480,15 @@ export class Run {
 
   /** The scene the camp should play first, if any: Sable's arrival, once Act 1 is cleared. */
   get campScene(): string | null {
-    return this.profile.actsCleared >= 1 && !this.profile.sableMet ? 'sableJoin' : null;
+    if (this.profile.actsCleared >= 1 && !this.profile.sableMet) return 'sableJoin';
+    if (this.profile.actsCleared >= 4 && !this.profile.neveMet) return 'neveJoin';
+    return null;
   }
 
-  /** The camp played Sable's scene: Sable joins. */
+  /** The camp played a story hero's scene: they join (Sable after Greenmarch's first act, Neve after the next region's). */
   sableJoined(): void {
-    meetSable(this.profile);
+    if (!this.profile.sableMet) meetSable(this.profile);
+    else meetNeve(this.profile);
   }
 
   /** The act's live-tuned enemy scaling. */
@@ -572,7 +585,7 @@ export class Run {
     this.hero = newHero(this.tuning, this.gear, this.build);
     this.rerolls = 0;
     this.startPicks = this.startPicksTotal = 0;
-    this.enterAct(0, [this.region.introScene, this.region.acts[0].startScene ?? '']);
+    this.enterAct(0, [REGIONS[0].introScene, this.region.acts[0].startScene ?? '']);
   }
 
   /** Acts the world map lets you start at: every act cleared, and the next one. */
@@ -590,7 +603,8 @@ export class Run {
     this.hero = heroFor(this.tuning, a, this.gear, this.build);
     this.rerolls = 0;
     // ...and drafts the relics a run would have by then (relic-only picks before the map)
-    this.startPicks = this.startPicksTotal = this.tuning.relics.on ? Math.max(0, Math.round(this.tuning.kit.relicPicks * a)) : 0;
+    // (a region starts a fresh run: relic picks count only the acts behind within the region)
+    this.startPicks = this.startPicksTotal = this.tuning.relics.on ? Math.max(0, Math.round(this.tuning.kit.relicPicks * actInRegion(a))) : 0;
     this.enterAct(a, [this.region.acts[a].startScene ?? '']);
   }
 
@@ -654,7 +668,7 @@ export class Run {
     else if (this.sceneThen === 'map' && this.startPicks > 0 && !this.path.length) this.offerStartPick();
     else {
       this.phase = this.sceneThen;
-      if (this.phase === 'victory') recordRegion(this.profile);
+      if (this.phase === 'victory') recordRegion(this.profile, this.regionIndex);
     }
   }
 
@@ -840,7 +854,7 @@ export class Run {
       // the drops (into the bag), then a boost pick; elites and bosses always offer something rare
       const boss = type === 'boss' ? c.enemies.find((e) => this.tuning.enemies[e.key]?.boss)?.key : undefined;
       const row = n?.row ?? 0;
-      const items = rollDrops(this.rng, this.tuning, { act: this.actIndex, row, type: ambush ? 'fight' : type, boss, finalBoss: this.actIndex === this.region.acts.length - 1, luck: this.gear.stats.luck }, this.profile.blp);
+      const items = rollDrops(this.rng, this.tuning, { act: this.actIndex, row, type: ambush ? 'fight' : type, boss, finalBoss: lastActOfRegion(this.actIndex), luck: this.gear.stats.luck }, this.profile.blp);
       let min: boolean | Rarity = type === 'elite' || type === 'boss';
       if (type === 'elite') this.unlock(unlocksFor('elite', this.actIndex));
       if (ambush) {
@@ -1194,11 +1208,12 @@ export class Run {
     if (this.phase !== 'actClear') return;
     this.hero.build = this.build; // the act clear's XP may have levelled the hero up
     this.hero.hp = heroMaxHp(this.tuning, this.hero);
-    // after Act 1, the night at camp: Sable tries to rob it and joins (unless the camp already played it)
+    // after a region's first act, the night at camp: a story hero joins (unless the camp already played it)
     const sable = this.campScene ? [this.campScene] : [];
     if (sable.length) this.sableJoined();
-    if (this.actIndex + 1 < this.region.acts.length) this.enterAct(this.actIndex + 1, [...sable, this.region.acts[this.actIndex + 1].startScene ?? '']);
-    else this.playScenes([this.region.victoryScene], 'victory');
+    // the region's last act cleared: its victory scene (the weight comes home); else on to its next act
+    if (!lastActOfRegion(this.actIndex) && this.actIndex + 1 < this.region.acts.length) this.enterAct(this.actIndex + 1, [...sable, this.region.acts[this.actIndex + 1].startScene ?? '']);
+    else this.playScenes([this.regionDef.victoryScene], 'victory');
   }
 
   /**

@@ -35,6 +35,8 @@ export const TAG_COL: Record<RelicTag, number> = {
   sustain: 0xff7aa8,
   coins: 0xffd23a,
   risk: 0xb06ae0,
+  ice: 0x8ae0f6,
+  hold: 0x6a9af0,
 };
 
 const RARITIES: RelicRarity[] = ['common', 'rare', 'epic'];

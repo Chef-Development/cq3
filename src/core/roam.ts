@@ -13,6 +13,7 @@
 // with a step of look-ahead so a pack never corners the hero. Everything follows from the map's seed and the path
 // walked, so a saved run only needs the path (roamAt replays it).
 
+import { REGIONS, actInRegion, regionOfAct } from '../data/regions';
 import type { ActDef, RegionDef } from '../data/types';
 import { buildActMap, type ActMap, type MapNode } from './map';
 import { Rng } from './rng';
@@ -143,7 +144,10 @@ export function addExtras(map: ActMap, def: ActDef, act: number, acts: number, s
 export function actMap(t: Tuning, region: RegionDef, act: number, seed: number, extras = true): { map: ActMap; extras: MapExtras | null } {
   const def = region.acts[act];
   const map = buildActMap(def, seed);
-  return { map, extras: extras ? addExtras(map, def, act, region.acts.length, seed, t) : null };
+  // the packs ramp up within each region (its first act has the fewest)
+  const local = region.acts.length > 3 ? actInRegion(act) : act;
+  const count = region.acts.length > 3 ? REGIONS[regionOfAct(act)].acts.length : region.acts.length;
+  return { map, extras: extras ? addExtras(map, def, local, count, seed, t) : null };
 }
 
 /** The nodes linked to `id` (forward and back) that a roamer may step to (never the first row: the act's first step

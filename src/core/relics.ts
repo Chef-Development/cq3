@@ -4,6 +4,8 @@
 // screen names the build from the top tags. Unlocks: the first clear of an act, the first elite won in an act, a
 // choice at an event (src/data/relics.ts says which).
 
+import { HEROES } from '../data/heroes';
+import { MASTERY } from '../data/meta';
 import { eventById } from '../data/events';
 import { BUILD_NAME, PAIR_NAME, RELIC_TAGS, RELICS, relicById, type RelicDef, type RelicId, type RelicRarity, type RelicTag } from '../data/relics';
 import type { Rng } from './rng';
@@ -120,6 +122,10 @@ export function unlockHint(id: RelicId): string {
   if (!u) return 'Unlocked from the start';
   if (u.kind === 'act') return `Clear Act ${u.act + 1} for the first time`;
   if (u.kind === 'elite') return `Beat an elite in Act ${u.act + 1}`;
+  if (u.kind === 'mastery') {
+    const m = MASTERY.find((x) => x.reward.kind === 'relic' && x.reward.relic === id);
+    return m ? `${HEROES[m.hero].name}: ${m.text.toLowerCase()}` : "A hero's mastery";
+  }
   const ev = eventById(u.event);
   const choice = ev?.choices[u.choice]?.label;
   return ev ? `${ev.title}: ${choice ?? 'an event'}` : 'Found at an event';

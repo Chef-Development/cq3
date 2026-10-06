@@ -1,6 +1,8 @@
 // Special-move actions (pure; no DOM). An enemy's special (src/data/enemies.ts) is a telegraph followed by a list
 // of actions; each action is reusable by any enemy: spawn a block formation, heal, shell (self or an ally),
-// summon, split, change the cursor, guard, enter a boss phase, protection while summons live.
+// summon, split, change the cursor, guard, enter a boss phase, protection while summons live; and the bar rules:
+// lay patches (ice, snowdrifts), slide them, turn yellows into holds, set a mirror shard, coat yellows in ice, make
+// every Nth yellow a hold, stripe the whole bar.
 // Combat schedules the telegraphs (combat.ts updateSpecials); this file carries the actions out.
 
 import type { ActionDef, FormationEntry, SpecialDef } from '../data/types';
@@ -37,8 +39,26 @@ export function runAction(c: Combat, e: Enemy, a: ActionDef): void {
     case 'phase':
       if (!e.alive) return;
       e.phase = a.phase;
+      // patches that belonged to the last phase go with it
+      for (const z of c.zones.slice()) if (z.phase && z.phase !== a.phase) c.removeZone(z);
       c.events.push({ type: 'phase', enemyId: e.id, phase: a.phase });
       return;
+    case 'zone':
+      return zone(c, e, a.kind, a.width, a.life, a.at, a.count ?? 1);
+    case 'zoneShift':
+      c.shiftZones(a.speed, a.sec);
+      return;
+    case 'toHold':
+      return toHold(c, a.count, a.width);
+    case 'mirror':
+      return mirror(c, e, a.at, a.life);
+    case 'armor':
+      return armor(c, a.count, a.taps);
+    case 'barRule':
+      if (e.alive) e.holdEvery = Math.max(0, Math.round(a.holdEvery));
+      return;
+    case 'stripes':
+      return stripes(c, e, a.count, a.life, a.speed ?? 0);
     case 'protect':
       if (!e.alive) return;
       e.protect = a.mult;
@@ -56,8 +76,11 @@ function partnerOf(c: Combat, e: Enemy): Enemy | null {
 
 function formation(c: Combat, e: Enemy, entries: FormationEntry[]): void {
   let prev: Block | null = null;
-  for (const entry of entries) {
-    const owner = (entry.partner && partnerOf(c, e)) || e;
+  for (const raw of entries) {
+    const owner = (raw.partner && partnerOf(c, e)) || e;
+    // a spot chosen now (and marked on the bar, so the player can see where it will land)
+    const entry = raw.spot ? { ...raw, at: spotFor(c, raw), spot: undefined } : raw;
+    if (raw.spot) c.events.push({ type: 'mark', pos: entry.at!, sec: Math.max(0, raw.delay ?? 0) });
     if (entry.delay && entry.delay > 0) {
       c.enqueue(owner.id, entry, entry.delay);
       continue;
@@ -87,7 +110,7 @@ export function placeEntry(c: Combat, owner: Enemy, entry: FormationEntry, prev:
       if (found === undefined) return null;
       pos = found;
     }
-    return c.spawnBlock(kind, pos, owner.id, w, { speed: entry.speed, taps: entry.taps, special: true });
+    return c.spawnBlock(kind, pos, owner.id, w, { speed: entry.speed, taps: entry.taps, special: true, still: entry.still, fuse: entry.fuse, grow: entry.grow, trail: entry.trail });
   }
   let pos: number | null = null;
   if (entry.beside === 'yellow') pos = besideYellow(c, w, owner);
@@ -95,6 +118,17 @@ export function placeEntry(c: Combat, owner: Enemy, entry: FormationEntry, prev:
   if (pos === null) pos = c.freeSpot(w, 24);
   if (pos === null) return null;
   return c.spawnBlock(kind, pos, owner.id, w, { life: entry.life, heal: entry.heal, special: true });
+}
+
+/** Where a spotted entry lands: where the cursor is heading, or a random spot clear of the other still blocks. */
+function spotFor(c: Combat, entry: FormationEntry): number {
+  if (entry.spot === 'ahead') return c.aheadPos();
+  const w = c.widthFor(entry.kind as BlockKind) * (entry.width ?? 1);
+  for (let k = 0; k < 12; k++) {
+    const p = 0.12 + c.rand() * 0.76;
+    if (c.blocks.every((b) => (isRed(b.kind) && !b.still) || Math.abs(b.pos - p) >= (b.width + w) / 2)) return p;
+  }
+  return 0.12 + c.rand() * 0.76;
 }
 
 /** 0, then +/- steps of 0.01 out to `max`. */
@@ -199,5 +233,70 @@ function cursor(c: Combat, freeze?: number, minSpeed?: number): void {
   if (minSpeed && minSpeed > 0) {
     c.minSpeed = Math.max(c.minSpeed, minSpeed);
     c.events.push({ type: 'cursorFloor', mult: minSpeed });
+  }
+}
+
+// ---------------------------------------------------------------- the bar rules
+
+/** Lay `count` patches; life 0 = until the boss's phase ends (or the fight, for a foe without phases). */
+function zone(c: Combat, e: Enemy, kind: 'ice' | 'snow', width: number, life: number, at: number | 'ahead' | undefined, count: number): void {
+  for (let i = 0; i < count; i++) {
+    const pos = at === 'ahead' ? c.aheadPos() : at !== undefined ? at : c.freeZoneSpot(width);
+    c.addZone(kind, pos, width, life, life > 0 ? 0 : Math.max(1, e.phase));
+  }
+}
+
+/** Yellows on the bar become holds (widened around their centre, if there's room). */
+function toHold(c: Combat, count: number, width?: number): void {
+  const w = c.widthFor('hold') * (width ?? 1);
+  const yellows = c.blocks.filter((b) => b.kind === 'yellow');
+  let n = 0;
+  for (const y of yellows) {
+    if (n >= count) break;
+    const lo = Math.max(c.tuning.blocks.edgeMargin + w / 2, Math.min(1 - c.tuning.blocks.edgeMargin - w / 2, y.pos));
+    const clear = c.blocks.every((b) => b === y || isRed(b.kind) || Math.abs(b.pos - lo) >= (b.width + w) / 2);
+    if (!clear) continue;
+    c.removeBlock(y, 'perk');
+    c.spawnBlock('hold', lo, y.ownerId, w, { special: true });
+    n++;
+  }
+  // too few yellows with room: new holds in free spots
+  for (; n < count; n++) {
+    const p = c.freeSpot(w, 24);
+    const front = c.frontEnemy();
+    if (p === null || !front) break;
+    c.spawnBlock('hold', p, front.id, w, { special: true });
+  }
+}
+
+/** A mirror shard on the bar: the cursor bounces back when it reaches it (it never takes a tap). */
+function mirror(c: Combat, e: Enemy, at: number | 'ahead' | undefined, life: number): void {
+  const pos = at === 'ahead' ? c.aheadPos(c.tuning.bar.ahead * 1.5) : (at ?? 0.5);
+  c.spawnBlock('mirror', Math.max(0.15, Math.min(0.85, pos)), e.id, undefined, { life, special: true });
+}
+
+/** Yellows on the bar get an ice coat: `taps` taps each (the first ones crack it). */
+function armor(c: Combat, count: number, taps: number): void {
+  let n = 0;
+  for (const b of c.blocks) {
+    if (n >= count) break;
+    if (b.kind !== 'yellow' || b.taps > 1) continue;
+    b.taps = Math.max(2, Math.round(taps));
+    c.events.push({ type: 'chip', id: b.id, pos: b.pos, left: b.taps });
+    n++;
+  }
+}
+
+/** The whole bar becomes alternating stripes of ice and snowdrift (sliding slowly if `speed`). */
+function stripes(c: Combat, e: Enemy, count: number, life: number, speed: number): void {
+  const n = Math.max(2, Math.round(count));
+  const w = 1 / n;
+  const phase = life > 0 ? 0 : Math.max(1, e.phase);
+  for (let i = 0; i < n; i++) {
+    const z = c.addZone(i % 2 === 0 ? 'ice' : 'snow', w * (i + 0.5), w, life, phase);
+    if (speed > 0) {
+      z.vel = (i % 2 === 0 ? 1 : -1) * speed;
+      z.slide = life > 0 ? life : 1e9;
+    }
   }
 }

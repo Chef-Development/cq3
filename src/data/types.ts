@@ -141,6 +141,7 @@ export interface PatchRule {
 }
 
 export interface RegionDef {
+  id: string;
   name: string;
   introScene: string;
   victoryScene: string;
