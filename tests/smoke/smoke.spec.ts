@@ -352,6 +352,105 @@ test('world map: the first visit glides over the world (a tap skips it); a drag 
   expect(errors).toEqual([]);
 });
 
+test('world map: the second region stays veiled until the first is cleared, then unveils (once) with three landmarks; its card plays act 3; the picker lists one region; far lands stay in fog', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  await ready(page);
+  const a = app(page);
+  const wm = (fn: (w: Any) => unknown) => page.evaluate(`(${fn.toString()})(window.__cq3.app.view.worldMap)`);
+  const tapRect = async (r: { x: number; y: number; w: number; h: number }) => tapGame(page, r.x + r.w / 2, r.y + r.h / 2);
+
+  // two acts cleared: the second region is still under its veil; its landmarks take no taps as acts
+  await a((x) => {
+    x.profile.actsCleared = 2;
+    x.newRun();
+  });
+  await expect.poll(() => a((x) => x.run.phase)).toBe('world');
+  await page.waitForTimeout(400);
+  expect(await wm((w) => w.revealing)).toBe(null);
+  await wm((w) => w.lookAt(470, 80));
+  await page.waitForTimeout(100);
+  const veiled = (await wm((w) => w.actSpot(3))) as { x: number; y: number };
+  await tapGame(page, veiled.x, veiled.y);
+  await page.waitForTimeout(150);
+  expect(await wm((w) => w.selected)).toBe(null);
+  expect(await a((x) => x.run.phase)).toBe('world');
+
+  // the first region cleared: the next visit plays its reveal (remembered at once), a tap skips it
+  await a((x) => {
+    x.profile.actsCleared = 3;
+    x.profile.weights = 1;
+    x.setPhase(() => (x.run.phase = 'title'));
+    x.newRun();
+  });
+  await expect.poll(() => wm((w) => w.revealing)).toBe('frostpeaks');
+  expect(await a((x) => x.profile.seen.includes('unveil:frostpeaks'))).toBe(true);
+  expect(await wm((w) => w.touring)).toBe(true);
+  await page.waitForTimeout(300);
+  await tapGame(page, 163, 100);
+  await expect.poll(() => wm((w) => w.touring)).toBe(false);
+  expect(await wm((w) => w.camera())).toEqual(await wm((w) => ((h: number[]) => ({ x: h[0], y: h[1] }))(w.home())));
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'test-results/world-second-region.png' });
+
+  // Rowan (at its first act) opens the picker on that region's three acts only; its first row plays act 3
+  const rowan = (await wm((w) => w.greenmarch())) as { x: number; y: number };
+  await tapGame(page, rowan.x, rowan.y);
+  await expect.poll(() => wm((w) => w.pickerRegion)).toBe(1);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: 'test-results/act-picker-second.png' });
+  await tapGame(page, 2, 2); // outside it: closed
+  await expect.poll(() => wm((w) => w.pickerOpen)).toBe(false);
+
+  // the region chip names the region in view; panned over the first, its chip opens the first's picker
+  expect(await wm((w) => w.regionChip()?.name)).toBe('Frostpeaks');
+  await wm((w) => w.lookAt(250, 210));
+  await page.waitForTimeout(150);
+  const chip = (await wm((w) => w.regionChip())) as { r: { x: number; y: number; w: number; h: number }; name: string };
+  expect(chip.name).toBe('Greenmarch');
+  await tapRect(chip.r);
+  await expect.poll(() => wm((w) => w.pickerRegion)).toBe(0);
+  await page.waitForTimeout(400);
+  await tapGame(page, 2, 2);
+  await expect.poll(() => wm((w) => w.pickerOpen)).toBe(false);
+
+  // far lands beyond the sea: a tap shows a card (no name), nothing starts; the view pans past the continent
+  await wm((w) => w.lookAt(1060, 110));
+  await page.waitForTimeout(150);
+  expect(((await wm((w) => w.camera())) as { x: number }).x).toBeGreaterThan(960 - 327);
+  const far = (await wm((w) => ((c: { x: number; y: number }) => ({ x: 1060 - c.x, y: 100 - c.y }))(w.camera()))) as { x: number; y: number };
+  await tapGame(page, far.x, far.y);
+  await page.waitForTimeout(200);
+  expect(await a((x) => x.run.phase)).toBe('world');
+  expect(await wm((w) => ({ sel: w.selected, picker: w.pickerOpen }))).toEqual({ sel: null, picker: false });
+
+  // back home: the second region's first landmark opens its card; Play starts act 3 (its opening scene)
+  await wm((w) => w.lookAt(...((h: number[]) => [h[0] + 163, h[1] + 75])(w.home())));
+  await page.waitForTimeout(150);
+  const spot = (await wm((w) => w.actSpot(3))) as { x: number; y: number };
+  await tapGame(page, spot.x, spot.y);
+  await expect.poll(() => wm((w) => w.selected)).toBe(3);
+  await page.waitForTimeout(600);
+  const play = (await wm((w) => w.cardPlay())) as { x: number; y: number; w: number; h: number };
+  await tapRect(play);
+  await expect.poll(() => a((x) => x.run.phase)).toBe('scene');
+  expect(await a((x) => x.run.actIndex)).toBe(3);
+
+  // a reload never plays the reveal again
+  await a((x) => x.saveProfile());
+  await page.reload();
+  await page.waitForFunction(() => (window as Any).__cq3?.ready === true);
+  await page.evaluate(() => ((window as Any).__cq3.app.profile.tipsOff = true));
+  await a((x) => x.newRun());
+  await expect.poll(() => a((x) => x.run.phase)).toBe('world');
+  await page.waitForTimeout(300);
+  expect(await wm((w) => ({ revealing: w.revealing, touring: w.touring }))).toEqual({ revealing: null, touring: false });
+  expect(errors).toEqual([]);
+});
+
 test('relics: pick one after a fight, its icon is on the HUD belt next fight, a tap there opens the relic panel', async ({ page }) => {
   test.setTimeout(90_000);
   const errors: string[] = [];

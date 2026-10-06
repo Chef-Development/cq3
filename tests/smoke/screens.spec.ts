@@ -123,6 +123,69 @@ test('world map: an act landmark selected (its card, a ring round it)', async ({
   await expect(page).toHaveScreenshot('world-act-selected.png', shot);
 });
 
+test('world map: the second region unveiled (its three landmarks, Rowan at its first act, the region chip), and its act picker', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.profile.actsCleared = 3;
+    app.profile.weights = 1;
+    app.profile.sableMet = true;
+    app.profile.seen.push('unveil:frostpeaks'); // its reveal already played
+    app.newRun();
+  });
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('world-second-region.png', shot);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = (window as any).__cq3.app.view.worldMap;
+    const g = w.greenmarch();
+    w.tap(g.x, g.y);
+  });
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('act-picker-second.png', shot);
+});
+
+test("world map: the second region's first reveal (the view glides there, its veil thins away, its name card)", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.profile.actsCleared = 3;
+    app.profile.weights = 1;
+    app.profile.sableMet = true;
+    app.newRun();
+  });
+  await frames(page, 100);
+  await expect(page).toHaveScreenshot('world-second-reveal.png', shot);
+});
+
+test('world map: the far lands beyond the sea under their fog (one tapped); with more weights home their fog thins and lifts', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.newRun());
+  await frames(page, 20);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = (window as any).__cq3.app.view.worldMap;
+    w.lookAt(1040, 110);
+    const c = w.camera();
+    w.tap(1060 - c.x, 100 - c.y); // a far land
+  });
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('world-far-lands.png', shot);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.profile.weights = 6; // the first far land's fog lifted, the next one's thinning, the rest still fogged
+    app.view.worldMap.lookAt(1040, 75);
+  });
+  await frames(page, 130);
+  await expect(page).toHaveScreenshot('world-far-lifting.png', shot);
+});
+
 test('story scene and map', async ({ page }) => {
   await boot(page);
   await frames(page, 10);
@@ -727,6 +790,7 @@ test('world map: everything on it moves with the map when it pans (nothing follo
     [740, 75],
     [740, 225],
     [200, 75],
+    [900, 150], // the far sea past the continent and its far lands
   ]) {
     await page.evaluate(`${wm}.lookAt(${cx}, ${cy})`);
     await page.clock.runFor(2500); // a different moment at each spot: flocks, ships and clouds come and go

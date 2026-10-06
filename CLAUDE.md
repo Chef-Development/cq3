@@ -59,16 +59,25 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `view/map-roam.ts` (roamers, telegraphs, secret, the bounty tracker beside the coins), `view/stops.ts` (the board),
   `view/world-roam.ts` (the foe and its card), `art-roam.ts` (sprites); the Coin Rush clock is on the enemy plate.
 - **The world map is bigger than the screen and pans** (`view/world.ts`, art in `art-world.ts`): a continent
-  `WORLD_W` x `WORLD_H` (960x300, about 3x2 screens) under a camera (`worldMap.ox/oy`); everything on it is placed in
+  `WORLD_W` x `WORLD_H` (960x300, about 3x2 screens) plus a strip of far sea east of it (`FAR_SEA_W`, painted on its
+  own: the camera pans over `MAP_W`) under a camera (`worldMap.ox/oy`); everything on it is placed in
   world px less the camera, while the HUD (the header, the Camp button, the cards, the act picker) stays put inside the
   safe areas. **Tap vs drag:** there a press is judged on release (`input.ts` -> `pressAt/dragTo/releaseAt`): one that
   moves more than `DRAG_PX` (4 game px) is a drag (it pans, flings on with momentum, clamps at the edges, and never
   starts anything); one that stays put is a tap. It opens on the current act's `WORLD_ACTS[i].view`; the very first
-  visit (`profile.worldTour`) glides in from the far east in under 2 s (any tap skips it). Greenmarch's acts are
-  landmarks (`WORLD_ACTS`: box, Rowan's stand, flag): a tap selects one (its card: name, what playing it means,
-  Play = the act picker's start), Rowan (or, before any act is cleared, his "Tap to begin!" plate) opens the story or
-  the act picker; the locked lands sit under veils (`wm_veil_<id>`) that thin when tapped. Tests use
-  `greenmarch()`, `actSpot(i)`, `cardPlay()`, `camera()`, `lookAt(x, y)` and `life.sparkleOnScreen()` (screen px).
+  visit (`profile.worldTour`) glides in from the far east in under 2 s (any tap skips it). Every playable act is a
+  landmark (`WORLD_ACTS`, by global act index: Greenmarch's 0-2, the Frostpeaks' 3-5; box, Rowan's stand, flag): a
+  tap selects one (its card: name, what playing it means, Play = the act picker's start), Rowan (or, before any act
+  is cleared, his "Tap to begin!" plate) opens the story or the act picker on his region's acts (never all of them);
+  once an act is cleared a region chip (top right) names the region in view with its completion (`core/completion.ts`:
+  "65%", the `badge_region` laurel at 100%, also beside the region's boss flag) and opens that region's picker. The
+  locked lands sit under veils (`wm_veil_<id>`) that thin when tapped; a land unveils once it can be played
+  (`core/world-plan.ts` `landOpen`: the Frostpeaks at `actsCleared >= 3`), with a short reveal the first time (the
+  view glides there, the veil thins away, a card names it; remembered as `unveil:<id>` in `profile.seen`). The world
+  plan has 12 regions (one per weight): the 7 far lands (`FAR_ISLES` in `art-world-lands.ts`, placeholder ids, no
+  names: "Beyond the sea") are silhouettes in the far sea under fog that thins and lifts with `profile.weights`
+  (`WORLD_PLAN` thin/lift). Tests use `greenmarch()`, `actSpot(i)`, `cardPlay()`, `camera()`, `lookAt(x, y)`,
+  `regionChip()`, `pickerRegion`, `revealing` and `life.sparkleOnScreen()` (screen px).
   The world is painted once, in idle slices after boot (`paintWorldSlice`; `scene.ensureWorldArt()` finishes it at
   once if the map is opened first): keep each step a few tens of ms and the frame to moving images and a modest
   number of rects for what's in view.
@@ -191,13 +200,15 @@ src/core/      tuning.ts (numbers), combat.ts (sim; heroStats, gear effects), sp
                roam.ts (the map's extras: Coin Rush and bounty stops, the secret, roamers and their steps), quests.ts
                (bounties), skirmish.ts (the world map's wandering foe), save.ts
                (save at every node, migrations), bot.ts (balance bot, farming), tips.ts (which tip shows when; the
-               welcome back), sparkle.ts (the maps' sparkles: when, where, what they pay, claimed once), clock.ts,
+               welcome back), sparkle.ts (the maps' sparkles: when, where, what they pay, claimed once), world-plan.ts
+               (the world map's 12 regions: which lands are open, the far lands' fog per weights home), clock.ts,
                calibration.ts, swipe.ts, rng.ts
 src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Phaser scene: layout, layers, anim
                clock, routes core events to view/), input.ts, debug.ts (tuning panel, Sound lab, Jump to),
                calibrate.ts, audio.ts (sounds, ambience), music.ts (the soundtrack), art.ts / art-foes.ts / art-story.ts / art-world.ts /
                art-map.ts / art-stage.ts (sprites, portraits, the world map, act map landscapes, fight lighting),
                art-world-sites.ts (the world map's trees, villages, landmarks, mountains: what stands on its land),
+               art-world-lands.ts (the second region's landmark markers, the far lands and their fog),
                art-roam.ts (the coin sack, the board, the secret rock, the merchant),
                art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-paint.ts (painting helpers),
                art-life.ts (the maps' critters),
