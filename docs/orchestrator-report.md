@@ -1,13 +1,13 @@
 # Combo Quest 3: status report (M5: heroes, companions, two new regions, the Test lab)
 
 - **Live build:** https://chef-development.github.io/cq3/ (every push deploys).
-- **Branch:** `claude/m5-heroes`, PR @@PR@@ (based on `claude/m4a-depth`, PR #4, which was still open: this PR
+- **Branch:** `claude/m5-heroes`, PR Chef-Development/cq3#5 (based on `claude/m4a-depth`, PR #4, which was still open: this PR
   includes #4 and supersedes it; merge this one, #4 can be closed).
 - **How to check it:** open the **Test lab** (title screen, top left; or the gear panel's header): about 12 minutes of
   short scenarios for everything new, each rated Good / Needs work / Broken with a note; "Copy report" puts the
   ratings, notes, accuracy and build in the clipboard for the planning chat. It plays on its own save. Region content
   (foes, bosses, story) sits behind "Show spoilers", labelled by act number only.
-- **Tests:** @@UNIT@@ Vitest unit tests (`npm test`) and @@SMOKE@@ Playwright smoke and pixel-exact screenshot tests, all
+- **Tests:** 746 Vitest unit tests (`npm test`) and 67 Playwright smoke and pixel-exact screenshot tests, all
   green. New this session: the hero kits and trees, companions, chests/pity/shrine, completion, achievements and
   mastery, every bar rule (ice, snow, holds, mirrors, icicles, and the third region's two), every special action,
   the Test lab (and that it never touches the real save), the bot's holds, and balance guards for both new regions
