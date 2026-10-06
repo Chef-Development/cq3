@@ -3,6 +3,7 @@
 // Tone: cheeky and light.
 
 import type { Speaker, StoryBox } from './types';
+import { ASH_STORY } from './story-ash';
 
 export const SPEAKER_NAME: Record<Speaker, string> = {
   narrator: '',
@@ -245,3 +246,6 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'torva', text: 'Problem? HAMMER. Locked door? HAMMER.\nFeeling sad? HAMMER HUG! Come here!' },
   ],
 };
+
+// the third region's scenes (src/data/story-ash.ts)
+Object.assign(STORY, ASH_STORY);

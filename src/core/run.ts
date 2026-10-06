@@ -517,17 +517,20 @@ export class Run {
     this.gains.mastery.push(...checkMastery(this.profile, this.tuning));
   }
 
-  /** The scene the camp should play first, if any: Sable's arrival, once Act 1 is cleared. */
+  /** The scene the camp should play first, if any: after a region's first act, Sable's arrival (Greenmarch), Neve's
+   *  (the Frostpeaks), Mags's tale (Ashfell). */
   get campScene(): string | null {
     if (this.profile.actsCleared >= 1 && !this.profile.sableMet) return 'sableJoin';
     if (this.profile.actsCleared >= 4 && !this.profile.neveMet) return 'neveJoin';
+    if (this.profile.actsCleared >= 7 && !this.profile.seen.includes('magsTale')) return 'magsTale';
     return null;
   }
 
-  /** The camp played a story hero's scene: they join (Sable after Greenmarch's first act, Neve after the next region's). */
+  /** The camp played its scene (campScene): a story hero joins, or the tale is told (it plays once). */
   sableJoined(): void {
     if (!this.profile.sableMet) meetSable(this.profile);
-    else meetNeve(this.profile);
+    else if (!this.profile.neveMet) meetNeve(this.profile);
+    else if (!this.profile.seen.includes('magsTale')) this.profile.seen.push('magsTale');
   }
 
   /** The act's live-tuned enemy scaling. */

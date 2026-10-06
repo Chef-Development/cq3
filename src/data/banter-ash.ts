@@ -10,6 +10,9 @@ export interface AshBanterLine extends HeroBanterLine {
   after: string;
 }
 
+/** The acts cleared by the time each of the region's scenes has played (a line waiting for it shows from then). */
+export const ASH_SCENE_ACT: Record<string, number> = { ash1: 6, rumbleback: 7, magsTale: 7, ash2: 7, hobnob: 8, ash3: 8, bellows: 9, bellows2: 9, bellows3: 9, ashVictory: 9 };
+
 export const ASH_BANTER: AshBanterLine[] = [
   { who: 'rowan', text: 'The ground slid my bedroll away again.', after: 'ash1' },
   { who: 'pip', text: 'Hoo. Even my perch drifts here.', after: 'ash1' },

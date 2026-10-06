@@ -17,6 +17,7 @@ import Phaser from 'phaser';
 import { COMPANIONS, type CompanionId } from '../../data/companions';
 import { HEROES, HERO_IDS, type HeroId } from '../../data/heroes';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../data/banter';
+import { ASH_BANTER, ASH_SCENE_ACT } from '../../data/banter-ash';
 import { itemPower } from '../../core/gear';
 import { hasCamp } from '../../core/meta';
 import { equippedItems } from '../../core/profile';
@@ -940,7 +941,10 @@ export class CampView {
     const sable = here.has('sable');
     const base = BANTER.filter((l) => (l.who !== 'sable' && !l.sable) || sable);
     const more = HERO_BANTER.filter((l) => here.has(l.who) && (l.with ?? []).every((w) => here.has(w)));
-    return [...base, ...more];
+    // the third region's lines wait for the story to reach their scene (they'd spoil it)
+    const p = this.s.app.run.profile;
+    const ash = ASH_BANTER.filter((l) => here.has(l.who) && (p.seen.includes(l.after) || p.actsCleared >= (ASH_SCENE_ACT[l.after] ?? 99)));
+    return [...base, ...more, ...ash];
   }
 
   /** Where a speaker's bubble points: the top of their name plate or their head. */
