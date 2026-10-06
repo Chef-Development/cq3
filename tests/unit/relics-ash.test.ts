@@ -66,7 +66,7 @@ function breakPair(c: Combat): void {
 
 describe("the third region's relics: data", () => {
   it('every one is offered from its first act, has hooks, and fits a card', () => {
-    const ids: RelicId[] = ['tailwind', 'weathervane', 'warmSprings', 'rebound', 'anchorStone', 'slipstream', 'flotsam', 'moltenCore', 'forgedBond', 'longFuse', 'hammerTongs', 'spareLink', 'coupling', 'goldRivets', 'snapBack', 'hairTrigger'];
+    const ids: RelicId[] = ['tailwind', 'weathervane', 'warmSprings', 'rebound', 'anchorStone', 'slipstream', 'flotsam', 'moltenCore', 'forgedBond', 'slowMatch', 'hammerTongs', 'spareLink', 'coupling', 'goldRivets', 'snapBack', 'hairTrigger'];
     for (const id of ids) {
       expect(relicById(id)?.from, id).toBe(6);
       expect(RELIC_HOOKS[id], id).toBeDefined();
@@ -155,15 +155,15 @@ describe('Link relics', () => {
     expect(on.c.combo - off.c.combo).toBe(n(on.c, 'forgedBond'));
   });
 
-  it("Long Fuse: a pair's beat is longer", () => {
-    const { on, off } = both('longFuse');
+  it("Slow Match: a pair's beat is longer", () => {
+    const { on, off } = both('slowMatch');
     const beat = [on, off].map(({ c }) => {
       pairAt(c);
       c.advanceTo(timeAt(c.tuning, 0.4));
       c.tap(timeAt(c.tuning, 0.4));
       return c.linkLit!.until - c.time;
     });
-    expect(beat[0]).toBeCloseTo(beat[1] * (1 + n(on.c, 'longFuse') / 100), 1);
+    expect(beat[0]).toBeCloseTo(beat[1] * (1 + n(on.c, 'slowMatch') / 100), 1);
   });
 
   it("Hammer & Tongs: a pair's second half always crits", () => {

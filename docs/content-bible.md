@@ -443,7 +443,7 @@ Drift: **Tailwind** (hits on drifting blocks +40%), **Weathervane** (Perfects on
 (a drifting block turning at an end heals 2 HP), **Rebound** (a drifting block turning at an end turns green), **Anchor
 Stone** (blocking a red stops every drifting block for 3 s), **Slipstream** (hitting a drifting block fills the meter
 like 2 hits), **Flotsam** (each drifting block hit drops a coin), **Molten Core** (epic: drifting blocks 50% faster,
-hits on them double). Link: **Forged Bond** (a finished pair +2 combo), **Long Fuse** (50% longer beat), **Hammer &
+hits on them double). Link: **Forged Bond** (a finished pair +2 combo), **Slow Match** (50% longer beat; renamed from Long Fuse, a skill of that name exists), **Hammer &
 Tongs** (a pair's second half crits), **Spare Link** (once a fight, a broken pair doesn't break the combo), **Coupling**
 (every 3rd finished pair banks a stack), **Gold Rivets** (finished pairs drop 2 coins), **Snap Back** (a finished pair
 knocks the nearest red to the far end), **Hair Trigger** (epic: finished pairs deal triple, a broken one costs 5% HP;

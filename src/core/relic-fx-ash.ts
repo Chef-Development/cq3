@@ -82,9 +82,9 @@ export const ASH_RELIC_HOOKS: Partial<Record<RelicId, FightHooks>> = {
       c.perkFx('forgedBond', extra, 0, x.pos);
     },
   },
-  // Long Fuse: a pair's beat is n% longer
-  longFuse: {
-    linkBeat: (c, sec) => sec * (1 + n(c, 'longFuse') / 100),
+  // Slow Match: a pair's beat is n% longer
+  slowMatch: {
+    linkBeat: (c, sec) => sec * (1 + n(c, 'slowMatch') / 100),
   },
   // Hammer & Tongs: a pair's second half always crits
   hammerTongs: {

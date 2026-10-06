@@ -305,20 +305,20 @@ describe('Momentum', () => {
     expect(fight([]).c.stacks).toBe(0);
   });
 
-  it('Unbroken: a combo break keeps a third of the combo and the stacks instead of zeroing them', () => {
+  it('Unbroken: a combo break halves the combo and the stacks instead of zeroing them', () => {
     for (const on of [true, false]) {
       const { c } = fight(on ? ['unbroken'] : []);
       c.perk.resolve = 1; // Knight's Resolve already spent (this is about a hit breaking the combo)
       c.combo = 9;
       c.stacks = 3;
       c.tap(c.time); // nothing there: a miss breaks the combo
-      expect(c.combo).toBe(on ? 3 : 0);
+      expect(c.combo).toBe(on ? 4 : 0);
       expect(c.stacks).toBe(on ? 1 : 0);
       expect(perks(c.drainEvents(), 'unbroken')).toHaveLength(on ? 1 : 0);
       // a red that gets through, too
       c.combo = 6;
       letRedThrough(c);
-      expect(c.combo).toBe(on ? 2 : 0);
+      expect(c.combo).toBe(on ? 3 : 0);
     }
   });
 });
