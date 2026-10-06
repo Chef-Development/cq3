@@ -22,6 +22,7 @@ import { ImagePool, ribbon, tag, TextPool } from './ui';
 import { relicIcon } from './relic-ui';
 import { statSize } from './items';
 import { pix } from './camp-kit';
+import { PORTRAIT_FACE_AT } from '../art-hero-portraits';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -32,7 +33,7 @@ const kNum = (n: number): string => (n < 10000 ? `${n}` : n < 100000 ? `${Math.c
 const foeCount = (c: Combat): { beaten: number; total: number } => ({ beaten: c.foesBeaten, total: c.foesTotal });
 
 /** Where the portrait's face sits inside its 40x40 texture (top-left of the 18x18 window shown in the badge). */
-const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [14, 8] };
+const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [14, 8], ...PORTRAIT_FACE_AT };
 /** The hero plate: the HP plate's height, and the coin row under it (beside the portrait). */
 const PLATE_H = 14;
 const CHIP_Y = 20;

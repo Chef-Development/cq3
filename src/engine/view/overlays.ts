@@ -363,6 +363,19 @@ export class Overlays {
     return { camp: { x: cx - 92, y, w: 70, h: 16 }, next: { x: cx - 14, y, w: 106, h: 16 } };
   }
 
+  /** The act clear's chest has burst (what the act gave beyond the loot shows then: view/gains.ts). */
+  clearOpened(): boolean {
+    return !!this.chestOpenAt && this.s.anim - this.chestOpenAt > 300;
+  }
+
+  /** A practice fight's pause panel: "Back to camp" under "Tap to resume". */
+  pauseLeaveRect(): Rect | null {
+    if (!this.s.app.run.practice) return null;
+    const cx = Math.round(GAME_W / 2);
+    const w = textWidth('Back to camp', 1, true) + 16;
+    return { x: cx - Math.round(w / 2), y: 86, w, h: 15 };
+  }
+
   /** The act-clear buttons are up (the chest has burst and they've popped in). */
   private clearReady(): boolean {
     return !!this.chestOpenAt && this.s.anim - this.chestOpenAt >= Overlays.CLEAR_BTN_MS;
@@ -1336,6 +1349,13 @@ export class Overlays {
     panel(gc, r, { trim: 'full' });
     this.texts.text('Paused', cx, r.y + 17, WHITE, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: NAVY[0] });
     this.texts.text('Tap to resume', cx, r.y + 37, 0xffd23a, { bold: true, ox: 0.5, oy: 0.5, alpha: 0.7 + 0.3 * pulse(now, 900) });
+    // practice: a way back to the camp
+    const lr = this.pauseLeaveRect();
+    if (lr) {
+      const pr = isPressed(lr, now);
+      button3d(gc, lr, FACE.navy, pr);
+      this.texts.text('Back to camp', lr.x + lr.w / 2, lr.y + lr.h / 2 + (pr ? 2 : 0), WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    }
   }
 
   /** ELITE! / the boss's name: a banner sweeping in across the stage, holding, then sweeping out. */

@@ -10,6 +10,7 @@ import type { App } from './app';
 import { MUSIC_PIECES, SFX, type MusicPiece } from './audio';
 import { runCalibration } from './calibrate';
 import { saveNow } from './storage';
+import { setAllUnlocked } from '../core/roster';
 
 type Opt<T> = [T, string];
 
@@ -306,7 +307,17 @@ export function installDebug(app: App): DebugUi {
       tips.textContent = tipsLabel();
       toast('Tips will show again');
     };
-    tg.append(copy, load, resetT, resetS, tips, again, over);
+    // every hero and companion to try out (a toggle: off puts things back as they were; it never earns achievements)
+    const allLabel = () => (app.profile.allUnlocked ? 'Unlock all heroes and companions: on' : 'Unlock all heroes and companions: off');
+    const all = el('button', 'dbg-btn', allLabel());
+    all.onclick = () => {
+      setAllUnlocked(app.profile, !app.profile.allUnlocked);
+      app.saveProfile();
+      app.run.refreshGear();
+      all.textContent = allLabel();
+      toast(app.profile.allUnlocked ? 'Every hero and companion unlocked' : 'Back to the ones you have');
+    };
+    tg.append(copy, load, resetT, resetS, tips, again, all, over);
     tools.appendChild(tg);
     body.appendChild(el('div', 'dbg-foot', 'Keys: Space tap · F finisher · P pause · ` panel'));
     body.appendChild(el('div', 'dbg-foot', `Version ${typeof __BUILD__ === 'string' ? __BUILD__ : 'dev'}`));

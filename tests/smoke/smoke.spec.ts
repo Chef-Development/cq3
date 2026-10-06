@@ -652,6 +652,122 @@ test('camp: learn a skill and reset, pick Sable on the hero select, read a new r
   expect(errors).toEqual([]);
 });
 
+test('camp (M5): open a hero chest (a new hero arrives), buy and open a Rare chest at the shrine, equip a companion, build the Training Dummy and practice', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  // a profile with two acts cleared, gems for a Rare chest, coins for the dummy and a hero chest waiting
+  await page.addInitScript(() => {
+    const hero = (unlocked: boolean, xp: number) => ({ unlocked, xp, skills: [] });
+    const p = { v: 4, actsCleared: 2, coins: 900, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 400), sable: hero(true, 0) }, gems: 200, chests: { hero: 1, rare: 0, region: 0 }, tips: ['welcomeM4a'] };
+    localStorage.setItem('cq3.profile.v2', JSON.stringify(p));
+  });
+  await ready(page);
+  const a = app(page);
+  const tapRect = async (r: { x: number; y: number; w: number; h: number }) => tapGame(page, r.x + r.w / 2, r.y + r.h / 2);
+  const saved = async () => JSON.parse(((await page.evaluate(() => localStorage.getItem('cq3.profile.v2'))) as string) ?? '{}');
+  const mode = () => a((x) => x.view.camp.mode);
+  await a((x) => {
+    x.newRun();
+    x.openCamp();
+  });
+  await expect.poll(() => a((x) => x.run.phase)).toBe('camp');
+  await page.waitForTimeout(600);
+
+  // the chests by the tent: their plate opens the chest screen; Open plays the reveal (a known prize: a new hero)
+  await a((x) => x.view.camp.chests.reseed(24));
+  const plate = (await a((x) => x.view.camp.plates().find((p: Any) => p.id === 'chests').r)) as Any;
+  await tapRect(plate);
+  await expect.poll(mode).toBe('chests');
+  await page.waitForTimeout(400);
+  await tapRect((await a((x) => x.view.camp.chests.slot(0).open)) as Any);
+  await expect.poll(() => a((x) => x.view.camp.chests.revealing)).toBe(true);
+  expect(await a((x) => x.profile.chests.hero)).toBe(0);
+  expect(await a((x) => x.profile.heroes.moss.unlocked)).toBe(true);
+  await page.waitForTimeout(500);
+  await tapGame(page, 163, 75); // skip the build: it bursts
+  await page.waitForTimeout(1300);
+  await page.screenshot({ path: 'test-results/chest-reveal.png' });
+  await tapGame(page, 163, 75); // close the card: Moss's arrival scene plays (once)
+  await expect.poll(() => a((x) => x.storyOverlay)).toBe('meetMoss');
+  expect((await saved()).seen).toContain('meetMoss');
+  await a((x) => x.storySkip());
+  await page.waitForTimeout(300);
+  await tapRect((await a((x) => x.view.camp.kit.backRect())) as Any);
+  await expect.poll(mode).toBe('home');
+  await page.waitForTimeout(500);
+
+  // the shrine: Buy (gems) puts a Rare chest by the tent; Open goes straight to its reveal
+  await tapRect((await a((x) => x.view.camp.plates().find((p: Any) => p.id === 'shrine').r)) as Any);
+  await expect.poll(mode).toBe('shrine');
+  await page.waitForTimeout(400);
+  const gems = (await a((x) => x.profile.gems)) as number; // (a third hero is an achievement: it paid gems)
+  await tapRect((await a((x) => x.view.camp.shrine.buyRect())) as Any);
+  await expect.poll(() => a((x) => ({ gems: x.profile.gems, rare: x.profile.chests.rare }))).toEqual({ gems: gems - 180, rare: 1 });
+  await page.waitForTimeout(300);
+  await tapRect((await a((x) => x.view.camp.shrine.openRect())) as Any);
+  await expect.poll(mode).toBe('chests');
+  expect(await a((x) => x.view.camp.chests.revealing)).toBe(true);
+  expect(await a((x) => x.profile.chests.rare)).toBe(0);
+  expect(await a((x) => x.profile.pity.rare + x.profile.pity.top)).toBeGreaterThan(0);
+  await page.waitForTimeout(2600);
+  await tapGame(page, 163, 75);
+  await page.waitForTimeout(400);
+  await a((x) => x.storyOverlay && x.storySkip()); // (a new chest hero's scene, if it was one)
+  await tapRect((await a((x) => x.view.camp.kit.backRect())) as Any); // back to the shrine
+  await expect.poll(mode).toBe('shrine');
+  await page.waitForTimeout(300);
+  await tapRect((await a((x) => x.view.camp.kit.backRect())) as Any);
+  await expect.poll(mode).toBe('home');
+  await page.waitForTimeout(400);
+
+  // the companions: Pip opens them; Bun (given here) equips into the slot
+  await a((x) => {
+    x.profile.pets.bun.owned = true;
+  });
+  await tapRect((await a((x) => x.view.camp.pipRect())) as Any);
+  await expect.poll(mode).toBe('pets');
+  await page.waitForTimeout(400);
+  await tapRect((await a((x) => x.view.camp.pets.cell(0))) as Any); // Bun
+  await expect.poll(() => a((x) => x.view.camp.pets.sel)).toBe('bun');
+  await tapRect((await a((x) => x.view.camp.pets.equipRect())) as Any);
+  await expect.poll(() => a((x) => x.profile.petsOn.join())).toBe('bun');
+  expect((await saved()).petsOn).toEqual(['bun']);
+  await tapRect((await a((x) => x.view.camp.kit.backRect())) as Any);
+  await expect.poll(mode).toBe('home');
+  await page.waitForTimeout(400);
+
+  // the Camp button: build the Training Dummy (coins), then Practice: a fight against it, and back to the camp
+  await tapRect((await a((x) => x.view.camp.campRect())) as Any);
+  await expect.poll(mode).toBe('upgrades');
+  await page.waitForTimeout(400);
+  await tapRect((await a((x) => x.view.camp.upgrades.row(4))) as Any); // the Training Dummy
+  await expect.poll(() => a((x) => x.view.camp.upgrades.sel)).toBe('dummy');
+  await tapRect((await a((x) => x.view.camp.upgrades.buyRect())) as Any);
+  await expect.poll(() => a((x) => x.profile.camp.join())).toBe('dummy');
+  expect(await a((x) => x.profile.coins)).toBe(650);
+  await page.waitForTimeout(300);
+  await tapRect((await a((x) => x.view.camp.upgrades.buyRect())) as Any); // now it says Practice
+  await expect.poll(() => a((x) => ({ phase: x.run.phase, practice: !!x.run.practice }))).toEqual({ phase: 'fight', practice: true });
+  expect(await a((x) => x.run.combat.enemies[0].key)).toBe('dummy');
+  await page.waitForTimeout(200);
+  await tapGame(page, 163, 75); // TAP TO BEGIN
+  await page.waitForTimeout(300);
+  await a((x) => {
+    x.userPaused = true;
+    x.syncClock(performance.now());
+  });
+  await page.waitForTimeout(200);
+  await tapRect((await a((x) => x.view.overlays.pauseLeaveRect())) as Any); // the pause panel's "Back to camp"
+  await expect.poll(() => a((x) => ({ phase: x.run.phase, practice: !!x.run.practice }))).toEqual({ phase: 'camp', practice: false });
+  expect(await a((x) => x.profile.coins)).toBe(650); // practice pays nothing
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: 'test-results/camp-after-practice.png' });
+  expect(errors).toEqual([]);
+});
+
 // ------------------------------------------------------------------ tips ("teach it slowly") and the welcome back
 
 test('tips: the first map and fight teach as they go; a tap only dismisses a tip; a reload never repeats one; the first red stops the fight', async ({ page }) => {

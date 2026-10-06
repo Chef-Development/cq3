@@ -199,7 +199,8 @@ src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Ph
                art-map.ts / art-stage.ts (sprites, portraits, the world map, act map landscapes, fight lighting),
                art-world-sites.ts (the world map's trees, villages, landmarks, mountains: what stands on its land),
                art-roam.ts (the coin sack, the board, the secret rock, the merchant),
-               art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-paint.ts (painting helpers),
+               art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-dummy.ts (the camp's Training
+               Dummy, a foe for practice fights), art-paint.ts (painting helpers),
                art-life.ts (the maps' critters),
                backdrop.ts (forest, ruins, hollow), backdrop-frost.ts (pass, caves, glacier), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
 src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemies, Pip, telegraphs, summons,
@@ -209,10 +210,14 @@ src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemi
                their card, the act picker; world-roam.ts its wandering foe), map.ts (act
                map; map-roam.ts its roamers, telegraphs, secret and bounty tracker), map-life.ts and world-life.ts (their
                critters and sparkles; life.ts the shared critters, glint and pop), stops.ts (the bounty board), story.ts (scenes),
-               nodes.ts (rest, shop, events), camp.ts (the camp home; bag.ts, forge.ts, heroes.ts (hero select),
-               stats.ts, skills.ts (skill trees), relic-log.ts its screens; item-grid.ts the bag grid and worn
-               slots; camp-kit.ts their shared layers, effects, buttons and hero tabs; the top bar's middle is
-               kept clear for the HTML gear button: kit.hudZone()), relic-ui.ts (relic icons, tag chips, relic
+               nodes.ts (rest, shop, events), camp.ts (the camp home; bag.ts, forge.ts, heroes.ts (hero select: all
+               eight, paged by a strip of faces; Kit / Stars / Mastery tabs), stats.ts, skills.ts (skill trees),
+               relic-log.ts, chests.ts (the waiting chests and their reveal), shrine.ts (Rare chests for gems, odds,
+               pity), companions.ts, upgrades.ts (camp upgrades; Practice with the Training Dummy), progress.ts
+               (region completion; camp.openProgress(r) opens it from elsewhere) its screens; item-grid.ts the bag
+               grid and worn slots; camp-kit.ts their shared layers, effects, buttons, hero tabs, rarity frames and
+               stars; the top bar's middle is kept clear for the HTML gear button: kit.hudZone(), kit.topRow()),
+               gains.ts (run.gains, what a fight or an act gave beyond the loot, shown briefly), relic-ui.ts (relic icons, tag chips, relic
                cards, perk names), loot.ts (loot reveal and Legendary/Mythic cards), items.ts (item cells with rarity frames, item text),
                ui.ts (text pool, panels), transition.ts (screen wipes), tips.ts (the tip card), icons.ts, pixels.ts (panels, gauges,
                buttons), shared.ts

@@ -917,7 +917,7 @@ export class LootView {
 // ------------------------------------------------------------------ drawing helpers
 
 /** A name in one line, or two (split at the space nearest the middle) when it is wider than `w`. */
-function splitName(name: string, w: number): string[] {
+export function splitName(name: string, w: number): string[] {
   if (textWidth(name, 1, false) <= w || !name.includes(' ')) return [name];
   const words = name.split(' ');
   let best: string[] = [name];
@@ -932,7 +932,7 @@ function splitName(name: string, w: number): string[] {
 }
 
 /** A four-point twinkle (size 0 = a single pixel). */
-function star(g: G, x: number, y: number, size: number, color: number, alpha: number): void {
+export function star(g: G, x: number, y: number, size: number, color: number, alpha: number): void {
   g.fillStyle(color, alpha);
   if (size <= 0) return void g.fillRect(x, y, 1, 1);
   g.fillRect(x - size, y, size * 2 + 1, 1);
@@ -961,7 +961,7 @@ function upArrow(g: G, x: number, y: number): void {
 
 /** The reveal card's frame: ink, a gold band with lit and shaded edges, the rarity's rim, a dark well, gold studs at
  *  the corners and a gem in the rarity's colour on top. `size` is the well's side (it can grow as the card pops). */
-function ornateFrame(g: G, cx: number, cy: number, size: number, face: Face, alpha: number): void {
+export function ornateFrame(g: G, cx: number, cy: number, size: number, face: Face, alpha: number): void {
   const [hi, base, lo, deep] = face;
   const x = Math.round(cx - size / 2);
   const y = Math.round(cy - size / 2);
