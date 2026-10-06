@@ -5,6 +5,8 @@
 import { TIERS, TIER_INFO, type Tier, type TierInfo } from './rarity';
 
 /** The hero's 10 stats. */
+import { ASH_BASE_ITEMS, ASH_EFFECTS, ASH_SETS, ASH_SIGNATURES, type AshEffectId, type AshSetId } from './gear-ash';
+
 export type StatId = 'hp' | 'atk' | 'def' | 'critChance' | 'critDmg' | 'comboPower' | 'meterGain' | 'steady' | 'luck' | 'companion';
 
 export const STAT_IDS: StatId[] = ['hp', 'atk', 'def', 'critChance', 'critDmg', 'comboPower', 'meterGain', 'steady', 'luck', 'companion'];
@@ -65,7 +67,9 @@ export type EffectId =
   | 'owlEye'
   | 'secondWind'
   | 'ramshorn'
-  | 'wyrmfang';
+  | 'wyrmfang'
+  // the third region's (src/data/gear-ash.ts)
+  | AshEffectId;
 
 export interface EffectDef {
   name: string;
@@ -86,6 +90,7 @@ export const EFFECTS: Record<EffectId, EffectDef> = {
   secondWind: { name: 'Second Wind', text: 'Once a fight, dropping under 30% HP heals 20%.' },
   ramshorn: { name: 'Toll Paid', text: 'Blocking a red on ice heals 2 HP.', signature: true },
   wyrmfang: { name: 'Hoard Bite', text: 'Finished holds deal double damage.', signature: true },
+  ...ASH_EFFECTS,
 };
 
 /** A Divine item's aura: a rule that holds for the whole fight. */
@@ -102,7 +107,7 @@ export const AURAS: Record<AuraId, EffectDef> = {
 /** Effects a non-signature Legendary or Mythic can roll (a Celestial or Divine item rolls two different ones). */
 export const GENERAL_EFFECTS: EffectId[] = ['opener', 'leech', 'riposte', 'goldTouch', 'owlEye', 'secondWind'];
 
-export type SetId = 'greenwarden' | 'footpad' | 'rimewalker';
+export type SetId = 'greenwarden' | 'footpad' | 'rimewalker' | AshSetId;
 
 export interface SetDef {
   name: string;
@@ -132,6 +137,7 @@ export const SETS: Record<SetId, SetDef> = {
       { count: 4, text: 'Finished holds heal 2% HP' },
     ],
   },
+  ...ASH_SETS,
 };
 
 /** A stat an item grants before any bonus rolls: `mult` x the stat's base value for the slot. */
@@ -245,6 +251,9 @@ BASE_ITEMS.push(
   { id: 'wyrmfang', name: 'Wyrmfang', slot: 'weapon', icon: 'wyrmfang', base: [{ stat: 'atk', mult: 1.3 }], act: 5, signature: { boss: 'glacia', rarity: 'legendary', effect: 'wyrmfang' } },
 );
 
+// the third region's bases (from its first act, global act 6), its Emberwright set and signature Legendaries
+BASE_ITEMS.push(...(ASH_BASE_ITEMS as BaseItem[]));
+
 export const BASE_BY_ID: Record<string, BaseItem> = Object.fromEntries(BASE_ITEMS.map((b) => [b.id, b]));
 
 /**
@@ -258,4 +267,5 @@ export const SIGNATURES: Record<string, string[]> = {
   boarKing: ['tuskCrown', 'pendulumShard'],
   rimehorn: ['ramshornHelm'],
   glacia: ['wyrmfang'],
+  ...ASH_SIGNATURES,
 };

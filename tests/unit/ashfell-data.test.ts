@@ -308,7 +308,7 @@ describe('Region 3: relics and gear', () => {
     for (const slot of SLOTS) expect(plain.some((b) => b.slot === slot), slot).toBe(true);
     // the set: its pieces exist, each its own slot
     for (const [id, set] of Object.entries(ASH_SETS)) {
-      expect(id in SETS, id).toBe(false);
+      expect(SETS[id as keyof typeof SETS], id).toBe(set); // merged into the game's sets, no clash
       const pieces = set.pieces.map((p) => ASH_BASE_ITEMS.find((b) => b.id === p));
       for (const [i, p] of pieces.entries()) expect(p?.set, set.pieces[i]).toBe(id);
       expect(new Set(pieces.map((p) => p?.slot)).size).toBe(pieces.length);
@@ -316,7 +316,7 @@ describe('Region 3: relics and gear', () => {
     // the boss's two signature Legendaries
     const widestEffect = Math.max(...Object.values(EFFECTS).map((e) => textWidth(e.text, 1, false)));
     for (const [id, e] of Object.entries(ASH_EFFECTS)) {
-      expect(id in EFFECTS, id).toBe(false);
+      expect(EFFECTS[id as keyof typeof EFFECTS], id).toBe(e); // merged into the game's effects, no clash
       expect(textWidth(e.text, 1, false), e.text).toBeLessThanOrEqual(widestEffect);
     }
     for (const [boss, items] of Object.entries(ASH_SIGNATURES)) {

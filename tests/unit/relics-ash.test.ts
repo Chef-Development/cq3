@@ -5,6 +5,7 @@ import type { RelicId } from '../../src/data/relics';
 import { relicById } from '../../src/data/relics';
 import { Combat, newHero, type Block, type CombatEvent } from '../../src/core/combat';
 import { RELIC_HOOKS } from '../../src/core/relic-fx';
+import { emptyLoadout, type Loadout } from '../../src/core/gear';
 import { setup, timeAt } from './helpers';
 
 type SetupOpts = NonNullable<Parameters<typeof setup>[0]>;
@@ -223,5 +224,46 @@ describe('Link relics', () => {
       return c.hero.hp;
     });
     expect(hp[0]).toBeLessThan(hp[1]);
+  });
+});
+
+describe("the third region's gear", () => {
+  /** A fight wearing a loadout with these effects / set pieces. */
+  function geared(o: Partial<Loadout>) {
+    const base = setup({ enemies: ['bandit', 'bandit'] });
+    const hero = newHero(base.t, { ...emptyLoadout(), ...o });
+    const c = new Combat({ tuning: base.t, settings: base.s, hero, enemies: ['bandit', 'bandit'], seed: 42, spawning: false, specials: false });
+    c.perk.resolve = 1;
+    return c;
+  }
+  const plain = () => geared({});
+
+  it('Emberwright, 2 pieces: hits on drifting blocks deal more; 4 pieces: a finished pair heals', () => {
+    const dmg = (c: Combat) => {
+      const hp = c.enemies[0].hp;
+      hitDrifting(c, 0.5, 0.05);
+      return hp - c.enemies[0].hp;
+    };
+    const on = geared({ sets: { emberwright: 2 } });
+    expect(dmg(on)).toBe(Math.round(dmg(plain()) * (1 + on.tuning.effects.emberDrift)));
+    const four = geared({ sets: { emberwright: 4 } });
+    four.hero.hp = 50;
+    finishPair(four);
+    expect(four.hero.hp).toBeGreaterThan(50);
+  });
+
+  it("Titan's Maul: a finished pair's hits strike every foe", () => {
+    const on = geared({ effects: ['titanMaul'] });
+    const off = plain();
+    for (const c of [on, off]) finishPair(c);
+    expect(on.enemies[1].hp).toBeLessThan(on.enemies[1].maxHp);
+    expect(off.enemies[1].hp).toBe(off.enemies[1].maxHp);
+  });
+
+  it('Bellows Heart: drifting blocks you hit fill more meter', () => {
+    const on = geared({ effects: ['bellowsHeart'] });
+    const off = plain();
+    for (const c of [on, off]) hitDrifting(c, 0.5, 0.05);
+    expect(on.meter + on.stacks).toBeGreaterThan(off.meter + off.stacks);
   });
 });

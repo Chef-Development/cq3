@@ -519,6 +519,9 @@ export const DEFAULT_TUNING = {
     wyrmfang: 2, // Wyrmfang: finished holds deal this much more
     rimeIce: 0.2, // Rimewalker 2-piece: hits on ice deal this much more...
     rimeHeal: 0.02, // ...4-piece: a finished hold heals this share of max HP
+    emberDrift: 0.2, // Emberwright 2-piece: hits on drifting blocks deal this much more...
+    emberHeal: 0.02, // ...4-piece: a finished pair heals this share of max HP
+    bellowsMeter: 2, // Bellows Heart: drifting blocks you hit fill this much meter
     // Divine auras
     radiance: 0.1, // Radiance: foes take this much more damage
     sanctuarySec: 4, // Sanctuary: every this many seconds...
@@ -1136,6 +1139,9 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       s('effects.wyrmfang', 'Wyrmfang: hold damage x', 1, 5, 0.1),
       s('effects.rimeIce', 'Rimewalker 2: damage on ice +', 0, 1, 0.05),
       s('effects.rimeHeal', 'Rimewalker 4: hold heals', 0, 0.2, 0.005),
+      s('effects.emberDrift', 'Emberwright 2: drift damage', 0, 1, 0.05),
+      s('effects.emberHeal', 'Emberwright 4: pair heals', 0, 0.2, 0.005),
+      s('effects.bellowsMeter', 'Bellows Heart: drift meter x', 1, 4, 0.1),
       s('effects.radiance', 'Aura Radiance: foes take +', 0, 1, 0.01),
       s('effects.sanctuarySec', 'Aura Sanctuary: every (s)', 1, 20, 0.5),
       s('effects.sanctuaryHeal', 'Aura Sanctuary: heals', 0, 0.1, 0.005),

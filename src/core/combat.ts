@@ -1784,6 +1784,8 @@ export class Combat {
       }
       const x: LinkCtx = { pos: b.pos, forgive: false };
       for (const h of this.hooks) h.linked?.(this, x);
+      // the Emberwright set's 4 pieces: a finished pair heals
+      if (setPieces(this.hero.gear, 'emberwright') >= 4) this.healPerk(this.maxHp() * this.tuning.effects.emberHeal, 'emberwright');
       return out;
     }
     const partner = this.blocks.find((x) => x.id === b.link);
@@ -1948,7 +1950,9 @@ export class Combat {
     const outer = this.hitNow; // an echo resolves inside the hit that caused it
     this.hitNow = x;
     this.comboUp('hit', perfect);
-    this.addMeter((green ? T.meter.perGreen : T.meter.perHit) + (perfect ? T.meter.perfectBonus : 0), green ? 'green' : 'hit');
+    // Bellows Heart: a drifting block you hit fills more meter
+    const stoked = b.vel !== 0 && !echo && this.has('bellowsHeart') ? T.effects.bellowsMeter : 1;
+    this.addMeter(((green ? T.meter.perGreen : T.meter.perHit) + (perfect ? T.meter.perfectBonus : 0)) * stoked, green ? 'green' : 'hit');
     // a completed hold and a shattered frozen block hit harder
     let mult = green ? T.hero.greenMult : b.kind === 'hold' ? T.hold.mult : b.kind === 'frozen' ? T.blocks.frozenMult : 1;
     if (this.linkBonus) mult *= T.links.bonus; // a linked pair, both hit in time
@@ -1967,6 +1971,8 @@ export class Combat {
     // the next region's gear: Wyrmfang (finished holds), the Rimewalker set's 2 pieces (hits on ice)
     if (b.kind === 'hold' && this.has('wyrmfang')) mult *= T.effects.wyrmfang;
     if (setPieces(this.hero.gear, 'rimewalker') >= 2 && this.iceAt(b.pos)) mult *= 1 + T.effects.rimeIce;
+    // the third region's: the Emberwright set's 2 pieces (hits on drifting blocks)
+    if (b.vel !== 0 && setPieces(this.hero.gear, 'emberwright') >= 2) mult *= 1 + T.effects.emberDrift;
     const damage = Math.max(1, Math.round(st.atk * mult));
     x.damage = damage;
     this.events.push({ type: 'hit', kind: b.kind, pos: b.pos, perfect, crit, damage, enemyId: target?.id ?? 0, combo: this.combo, echo });
@@ -1981,6 +1987,9 @@ export class Combat {
     if (b.kind === 'keg') this.kegBlast(b);
     // the Rimewalker set's 4 pieces: a finished hold heals
     if (b.kind === 'hold' && setPieces(this.hero.gear, 'rimewalker') >= 4) this.healPerk(this.maxHp() * T.effects.rimeHeal, 'rimewalker');
+    // Titan's Maul: a finished pair's hits strike every other foe too
+    if (this.pairHit && !echo && this.has('titanMaul') && target)
+      for (const e of this.aliveFoes()) if (e !== target) this.damageEnemy(e, x.damage, x.crit, 'hit');
     if (!echo) this.companionTick();
     this.pendulumTick();
     for (const h of this.hooks) h.afterHit?.(this, x);
