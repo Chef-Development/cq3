@@ -17,7 +17,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `src/engine/art.ts` (hero, Pip, first enemies), `art-foes.ts` (Greenmarch enemies), `art-story.ts` (portraits, map
   icons), `art-world.ts` (the kingdom world map), `art-map.ts` (act map landscapes, map-scale Rowan, node props),
   `art-stage.ts` (per-act fight lighting), `art-sable.ts` (Sable's frames, map walker, hero cards), `art-relics.ts`
-  (relic, tag and skill icons), `backdrop.ts` and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
+  (relic, tag and skill icons), `art-life.ts` (the maps' critters), `backdrop.ts` and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
   are synthesized in `src/engine/audio.ts` and the music in `src/engine/music.ts`, icons come from `scripts/make-icons.mjs` (art in `scripts/icon-art.mjs`).
 - **Content is data.** Enemies (stats, base pattern, 0-2 special moves; a boss's HP-gated phase changes come on top), the region's acts and encounters, events and
   story scenes live in `src/data/` (plain data, no logic). So does gear (`src/data/gear.ts`: the 10 stats, slots,
@@ -83,7 +83,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `enterAct(i, scenes, false)`; the next act has them); older saves are dropped). The **profile** (`core/profile.ts`, key `cq3.profile.v2`) is kept
   across runs: progress, the bag (60 items), what's equipped, coins (the purse carries over between runs), scrap, each
   signature drop's bad-luck counter, the accuracy log, whether the smith was met; v3 adds the heroes (picked, XP, skills, Sable met, the twin tutorial
-  shown) and the relics unlocked, the tips seen and whether tips are off, the world map's wandering foe (`wander`) (still v3: missing reads as none; a profile
+  shown) and the relics unlocked, the tips seen and whether tips are off, the world map's wandering foe (`wander`), the map sparkles picked up (still v3: missing reads as none; a profile
   from before the tips that has cleared an act gets the basics' tips marked seen). `readProfile` migrates v1 (progress only) and v2 (Rowan gets the cleared acts'
   first-clear XP; their relics unlock). Gear is not saved in the run: the hero's `gear` loadout always comes from the profile (`run.refreshGear()`).
   Gear and coins found are kept when you die. The title offers Continue (the run, or the world map with everything
@@ -106,6 +106,20 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   scenes) and an intense one (fights), crossfading on the beat; mini-bosses and the Boar King (escalating per phase,
   a key change in phase 3) have their own themes, the camp a quiet one. Fight layers join with the combo (drums,
   bass, lead at `tuning.music` thresholds) and drop on a break. `app.ts cueMusic()` picks the piece.
+- **Map life stays at the edges; sparkles are tiny and not farmable.** The act maps (`view/map-life.ts`) and the
+  world map (`view/world-life.ts`; shared parts in `view/life.ts`, sprites in `art-life.ts`) have critters per theme
+  (rabbits, sparrows, a frog, fish, a hawk; a hedgehog, crows, moths; a squirrel, a doe, spores; gulls and dolphins at
+  sea) that startle when tapped (Pip chirps), and now and then a sparkle that pays a coin or two. Life is small,
+  muted and slow, on open ground (`land.ground` from `paintLand`, away from the nodes when there's room) or open sea,
+  and never over a node, a road, a tag, the roamers, the secret's boulder, the hint, the Camp button or the HUD (the
+  bounty tracker too); it only gets the taps nothing else takes (`input.ts` after the secret and the nodes; on the
+  world map, after the wanderer, the regions, the plate and the buttons). The only text it adds is the "+1" of a pop. Everything
+  animates from `now` and seeds (screenshots stay exact). The rules are `core/sparkle.ts` (pure, unit-tested): at most
+  one sparkle per act-map step (never an act's first) and one per world-map visit (a new visit only once you've played:
+  gear found, XP, an act cleared), deterministic from its key, and the profile keeps the claimed keys
+  (`profile.sparkles`), so a reload, a retry or a replay never pays one twice. Numbers in `tuning.life` (with
+  sliders); the sounds (`sparklePop`, `critterFlutter`, `critterChirp`) are in the `SFX` catalog and stay under the
+  music (`audio.test.ts`). The first sparkle gets a tip.
 - **Balance:** combat numbers were set with the bot, which plays whole acts picking map nodes at random and aims
   like a person (a timing error in ms, reaction time, a thumb's tap rate; the real judge decides each tap), so thin
   or fast blocks and a fast cursor are as hard for it as for a player. It wears the best gear it finds (item power).
@@ -159,19 +173,22 @@ src/core/      tuning.ts (numbers), combat.ts (sim; heroStats, gear effects), sp
                roam.ts (the map's extras: Coin Rush and bounty stops, the secret, roamers and their steps), quests.ts
                (bounties), skirmish.ts (the world map's wandering foe), save.ts
                (save at every node, migrations), bot.ts (balance bot, farming), tips.ts (which tip shows when; the
-               welcome back), clock.ts, calibration.ts, swipe.ts, rng.ts
+               welcome back), sparkle.ts (the maps' sparkles: when, where, what they pay, claimed once), clock.ts,
+               calibration.ts, swipe.ts, rng.ts
 src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Phaser scene: layout, layers, anim
                clock, routes core events to view/), input.ts, debug.ts (tuning panel, Sound lab, Jump to),
                calibrate.ts, audio.ts (sounds, ambience), music.ts (the soundtrack), art.ts / art-foes.ts / art-story.ts / art-world.ts /
                art-map.ts / art-stage.ts (sprites, portraits, the world map, act map landscapes, fight lighting),
                art-roam.ts (the coin sack, the board, the secret rock, the merchant),
                art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-paint.ts (painting helpers),
+               art-life.ts (the maps' critters),
                backdrop.ts (forest, ruins, hollow), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
 src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemies, Pip, telegraphs, summons,
                finisher show, deaths), effects.ts (particles, floaters, camera), bar.ts (timing bar, blocks,
                telegraph previews, cursor), hud.ts (hero and enemy plates, meter, coins, relic belt), overlays.ts (title, boost,
                chest, defeat, victory, pause), world.ts (kingdom world map; world-roam.ts its wandering foe), map.ts (act
-               map; map-roam.ts its roamers, telegraphs, secret and bounty tracker), stops.ts (the bounty board), story.ts (scenes),
+               map; map-roam.ts its roamers, telegraphs, secret and bounty tracker), map-life.ts and world-life.ts (their
+               critters and sparkles; life.ts the shared critters, glint and pop), stops.ts (the bounty board), story.ts (scenes),
                nodes.ts (rest, shop, events), camp.ts (the camp home; bag.ts, forge.ts, heroes.ts (hero select),
                stats.ts, skills.ts (skill trees), relic-log.ts its screens; item-grid.ts the bag grid and worn
                slots; camp-kit.ts their shared layers, effects, buttons and hero tabs; the top bar's middle is

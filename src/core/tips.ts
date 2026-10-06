@@ -25,6 +25,8 @@ export interface TipMoment {
   preFight?: boolean;
   /** At the camp: its screen ('home', 'bag', 'forge', 'skills', 'relics', 'heroes', 'stats'). */
   campMode?: string;
+  /** A sparkle is glinting on the act map (view/map-life.ts). */
+  sparkle?: boolean;
 }
 
 /** A tip to show, and what it's about (the block that came in, the enemy winding up, the card on offer). */
@@ -196,6 +198,8 @@ export class TipCoach {
       }
       case 'elite':
         return ph === 'map' && run.choices().some((n) => run.map.nodes[n]?.type === 'elite') ? { id } : null;
+      case 'sparkle':
+        return ph === 'map' && m.sparkle ? { id } : null;
       case 'roamer':
         return ph === 'map' && run.roamFor().roamers.some((r) => r.kind === 'pack') ? { id } : null;
       case 'secret':

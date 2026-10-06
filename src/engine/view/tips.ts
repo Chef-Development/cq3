@@ -123,7 +123,8 @@ export class TipsView {
 
   private moment(safe: boolean): TipMoment {
     const app = this.s.app;
-    return { run: app.run, safe, preFight: app.run.phase === 'fight' && app.awaitingBegin, campMode: this.s.camp.mode };
+    const sparkle = app.run.phase === 'map' && !!this.s.mapView.life.sparkleRect();
+    return { run: app.run, safe, preFight: app.run.phase === 'fight' && app.awaitingBegin, campMode: this.s.camp.mode, sparkle };
   }
 
   // ------------------------------------------------------------------ the frame
@@ -243,6 +244,8 @@ export class TipsView {
         const ids = run.choices().filter((id) => anchor === 'mapNodes' || run.map.nodes[id]?.type === 'elite');
         return union(s.mapView.nodeRects(ids.slice(0, anchor === 'eliteNode' ? 1 : ids.length)));
       }
+      case 'sparkle':
+        return ph === 'map' ? s.mapView.life.sparkleRect() : null;
       case 'relicCard':
       case 'synergyCard':
         if (ph !== 'boost' || cue.card === undefined) return null;

@@ -698,6 +698,9 @@ export interface Land {
   water: Pt[];
   /** Open ground for the critters to hang around. */
   spots: Pt[];
+  /** Per pixel (y * w + x), for the critters (view/map-life.ts): 0 road or kept clear, 1 open ground, 2 cover (a
+   *  tree, bush, stone or wall to hide in), 3 open water. */
+  ground: Uint8Array;
 }
 
 /** A piece of scenery: its sprite (neutral, leaning right, leaning left), placed by its foot. */
@@ -1734,7 +1737,7 @@ function frameEdges(p: Pix, c: Ctx, theme: Theme): void {
 export function paintLand(spec: LandSpec): Land {
   const W = spec.w;
   const H = spec.h;
-  const land: Land = { frames: [], flames: [], smoke: [], mills: [], water: [], spots: [] };
+  const land: Land = { frames: [], flames: [], smoke: [], mills: [], water: [], spots: [], ground: new Uint8Array(W * H) };
   const road = new Uint8Array(W * H);
   const mark = (x: number, y: number, v: number) => {
     if (x >= 0 && y >= 0 && x < W && y < H && road[y * W + x] !== 2) road[y * W + x] = v;
@@ -1798,6 +1801,18 @@ export function paintLand(spec: LandSpec): Land {
     frameEdges(p, c, spec.theme);
     lightFrame(p, c, spec.theme);
     land.frames.push(p.canvas());
+  }
+  // what's underfoot, for the critters: open ground, or scenery to hide in
+  for (let i = 0; i < W * H; i++) land.ground[i] = road[i] ? 0 : c.water[i] === 1 ? 3 : c.dist[i] >= 2 && !c.water[i] ? 1 : 0;
+  for (const it of c.items) {
+    const s = it.d.spr[0];
+    if (it.d.r >= 2.5)
+      for (let j = 0; j < s.h; j++)
+        for (let i = 0; i < s.w; i++) {
+          const x = it.x - it.d.fx + i;
+          const y = it.y - it.d.fy + j;
+          if (s.buf[j * s.w + i] >= 0 && x >= 0 && y >= 0 && x < W && y < H) land.ground[y * W + x] = 2;
+        }
   }
   // open ground for the critters
   const r = rng(spec.seed + 99);

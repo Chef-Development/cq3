@@ -405,6 +405,19 @@ export const DEFAULT_TUNING = {
     crossfade: 1.5, // s: an act theme's calm and fight arrangements crossfade over about this long (whole beats)
     ringOut: 0.8, // s: when another piece takes over, the last one fades over this long
   },
+  life: {
+    // The living maps (view/map-life.ts, view/world-life.ts): critters startle when tapped, and a rare sparkle pays a
+    // coin or two (core/sparkle.ts). Tiny and not farmable: at most one per act-map step (never an act's first step)
+    // and one per world-map visit, the same one after a reload, never paid twice.
+    mapChance: 0.25, // an act map step has a sparkle this often...
+    worldChance: 0.5, // ...a new visit to the world map this often
+    coinsMin: 1, // what one pays
+    coinsMax: 2,
+    delayMin: 1.5, // s after the screen comes up before it starts to glint (at the earliest...
+    delayMax: 6, // ...and at the latest)
+    keep: 32, // the last this many picked up are remembered (a reload or a retry never pays one twice)
+    hideSec: 9, // s a startled critter stays away
+  },
   enemies: cloneData(ENEMIES),
   acts: GREENMARCH.acts.map((a: ActDef): ActScale => ({ name: a.name, hpMult: a.hpMult, atkMult: a.atkMult, pace: a.pace })),
 };
@@ -933,6 +946,19 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       s('music.finisherHold', 'Layers stay after a finisher (s)', 0, 8, 0.25),
       s('music.crossfade', 'Calm <-> fight crossfade (s)', 0.2, 4, 0.1),
       s('music.ringOut', 'Piece change fade (s)', 0.1, 3, 0.05),
+    ],
+  });
+  groups.push({
+    title: 'Living maps (sparkles, critters)',
+    sliders: [
+      s('life.mapChance', 'Sparkle per act map step', 0, 1, 0.01),
+      s('life.worldChance', 'Sparkle per world map visit', 0, 1, 0.01),
+      s('life.coinsMin', 'Sparkle coins: min', 0, 10, 1),
+      s('life.coinsMax', 'Sparkle coins: max', 0, 10, 1),
+      s('life.delayMin', 'Glints after (s): earliest', 0, 20, 0.5),
+      s('life.delayMax', 'Glints after (s): latest', 0, 30, 0.5),
+      s('life.keep', 'Picked-up sparkles remembered', 1, 64, 1),
+      s('life.hideSec', 'Startled critter hides (s)', 1, 30, 0.5),
     ],
   });
   t.acts.forEach((a, i) =>

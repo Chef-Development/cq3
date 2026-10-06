@@ -15,6 +15,8 @@ const FS = 44100;
 const AT = 0.05;
 const TELL_SEC = 0.8; // the SFX catalog plays every telegraph with this wind-up
 const ENV_WIN = 0.05; // envelope window (s)
+/** The living maps' sounds (view/map-life.ts, view/world-life.ts). */
+const LIFE_SOUNDS = ['sparklePop', 'critterFlutter', 'critterRustle', 'critterChirp'];
 
 type Play = (s: Synth, at: number) => void;
 
@@ -573,11 +575,23 @@ describe('ambience', () => {
 
 describe('UI and transition sounds', () => {
   it('are soft: audible, but well under the lightest impact', () => {
-    for (const id of ['whoosh', 'whooshBack', 'panelOpen', 'panelClose', 'coinTick', 'footstep', 'footsteps']) {
+    for (const id of ['whoosh', 'whooshBack', 'panelOpen', 'panelClose', 'coinTick', 'footstep', 'footsteps', ...LIFE_SOUNDS]) {
       const m = results.get(id);
       expect(m, id).toBeDefined();
       expect(m!.loud, `${id} vs hit`).toBeLessThan(results.get('hit')!.loud - 3);
       expect(m!.phoneLoud, `${id} on a phone`).toBeGreaterThan(-45);
+    }
+  });
+
+  it("the maps' life (a sparkle's pop, a startled critter, Pip's chirp) is quiet: under the music it plays with", () => {
+    for (const id of LIFE_SOUNDS) {
+      const m = results.get(id)!;
+      for (const piece of ['act1', 'act2', 'act3', 'title']) {
+        expect(m.loud, `${id} vs ${piece}`).toBeLessThanOrEqual(mus(piece).loud);
+        expect(m.phoneLoud, `${id} phone vs ${piece}`).toBeLessThanOrEqual(mus(piece).phoneLoud);
+      }
+      // ...and well under the coin a kill pays
+      expect(m.loud, `${id} vs coin`).toBeLessThanOrEqual(results.get('coin')!.loud);
     }
   });
 

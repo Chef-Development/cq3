@@ -123,6 +123,35 @@ test('Act 3 map', async ({ page }) => {
   await expect(page).toHaveScreenshot('map-act3.png', shot);
 });
 
+test('living maps: critters and a sparkle on the act map, its pop; gulls and a sparkle at sea', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    Object.assign(app.tuning.life, { mapChance: 1, worldChance: 1, delayMin: 1, delayMax: 1 });
+    app.setPhase(() => {
+      app.run.newRun();
+      app.run.skipScenes();
+      app.run.path = [app.run.choices()[0]]; // an act's first step never has a sparkle
+      app.run.phase = 'map';
+    });
+  });
+  await frames(page, 190); // the sparkle has glinted, a rabbit is out, the hawk circles
+  await expect(page).toHaveScreenshot('map-life.png', shot);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const life = (window as any).__cq3.app.view.mapView.life;
+    const r = life.sparkleRect();
+    life.tap(r.x + r.w / 2, r.y + r.h / 2);
+  });
+  await frames(page, 14);
+  await expect(page).toHaveScreenshot('map-sparkle-pop.png', shot);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.newRun());
+  await frames(page, 130);
+  await expect(page).toHaveScreenshot('world-life.png', shot);
+});
+
 test('fight', async ({ page }) => {
   await boot(page);
   await frames(page, 10);
