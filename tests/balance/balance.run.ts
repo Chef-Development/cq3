@@ -4,6 +4,7 @@ import { writeFileSync } from 'node:fs';
 import { it } from 'vitest';
 import { balance, playFarm, timingSpread, TYPICAL_ACCURACY, type ActRow, type FarmResult } from '../../src/core/bot';
 import { cloneTuning } from '../../src/core/tuning';
+import type { RelicId } from '../../src/data/relics';
 import { twinTable } from './twin-table';
 
 const RUNS = Number(process.env.RUNS ?? 1000);
@@ -50,6 +51,7 @@ const SABLE_RUNS = Number(process.env.SABLE_RUNS ?? Math.round(RUNS / 2));
 const pct = (v: number) => (Number.isFinite(v) ? `${Math.round(v * 100)}%` : '-');
 const sec = (v: number) => (Number.isFinite(v) ? `${Math.round(v)} s` : '-');
 const num = (v: number) => (Number.isFinite(v) ? v.toFixed(1) : '-');
+const pct1 = (v: number) => (Number.isFinite(v) ? `${(v * 100).toFixed(1)}%` : '-');
 
 function table(rows: ActRow[]): string {
   const head = '| Player | Act | Reached | First-try clear | Clear (6 tries) | Avg tries | Boss first fight won | Fight / elite / boss | HP going into boss | Boss HP / max finisher | Hero attack entering |';
@@ -119,6 +121,9 @@ it('balance report', () => {
   const rows = balance(t, ACCURACIES, RUNS);
   const farms = [0.55, 0.7, 0.85].map((a) => farming(t, a));
   const sableRows = balance(t, SABLE_ACC, SABLE_RUNS, 1, 6, t.acts.length, 'sable');
+  // a cautious 85% player: never takes the relics that charge HP
+  const CAUTIOUS: RelicId[] = ['clutch', 'glassEdge', 'bloodPrice', 'purplePact'];
+  const cautious = balance(t, [0.85], CONTROL_RUNS, 1, 6, t.acts.length, undefined, CAUTIOUS);
   // the control: the same player with stat cards only (no relics), as before M4a
   const off = cloneTuning();
   off.relics.on = 0;
@@ -167,23 +172,24 @@ first playthrough (New game wipes the profile). Until playtest round 4 it was se
 |---|---|
 | Act 1 is a gentle start: the playtester nearly always clears it first try (about 95-100%) | 85% player **${pct(a1.firstTry)}** (70% ${pct(c1.firstTry)}, 55% ${pct(b1.firstTry)}) |
 | Act 2: the playtester clears it first try about 80-90% of the time | **${pct(a2.firstTry)}** (70% player ${pct(c2.firstTry)}, 55% ${pct(b2.firstTry)}) |
-| The Boar King: the playtester wins the first fight about 60-70% of the time (see the note below) | **${pct(a3.bossFirstTry)}**; ${pct(a3.clearRate)} clear Act 3 within 6 tries |
+| The Boar King: the playtester wins the first fight about 60-75% of the time, a cautious one too (never takes the relics that charge HP) | **${pct(a3.bossFirstTry)}**, cautious **${pct(cautious[2].bossFirstTry)}**; ${pct(a3.clearRate)} clear Act 3 within 6 tries (cautious: Act 1 / 2 first try ${pct(cautious[0].firstTry)} / ${pct(cautious[1].firstTry)}) |
 | A 70% player can still finish Act 3 with retries and farming | ${pct(c3.clearRate)} clear Act 3 within 6 tries (Boar King first fight ${pct(c3.bossFirstTry)}); farming: the table below |
-| Late fights still cost HP: an 85% player loses at least as much HP per Act 3 fight as per Act 1 fight | normal fights ${pct(a1.hpLostFight)} / ${pct(a2.hpLostFight)} / ${pct(a3.hpLostFight)} of max HP (the foes' share ${pct(a1.foesHpFight)} / ${pct(a2.foesHpFight)} / ${pct(a3.foesHpFight)}; the rest is misses and relic prices) |
+| Late fights cost HP, from the foes too: an 85% player's HP lost per normal fight rises act over act | ${pct(a1.hpLostFight)} / ${pct(a2.hpLostFight)} / ${pct(a3.hpLostFight)} of max HP; from foes alone ${pct1(a1.foesHpFight)} / ${pct1(a2.foesHpFight)} / ${pct1(a3.foesHpFight)} (cautious player ${pct1(cautious[0].foesHpFight)} / ${pct1(cautious[1].foesHpFight)} / ${pct1(cautious[2].foesHpFight)}); the rest is misses and relic prices |
 | Normal fights don't get shorter act over act | ${sec(a1.fightSec)} / ${sec(a2.fightSec)} / ${sec(a3.fightSec)} (85% player), ${sec(c1.fightSec)} / ${sec(c2.fightSec)} / ${sec(c3.fightSec)} (70%); bosses ${sec(a1.bossSec)} / ${sec(a2.bossSec)} / ${sec(a3.bossSec)} (85%) |
 | No boss can be one-shot by a max-stack finisher | boss HP / max finisher ${num(a1.bossVsMaxFinisher)} / ${num(a2.bossVsMaxFinisher)} / ${num(a3.bossVsMaxFinisher)}; one-shots ${pct(a1.bossOneShotRate)} / ${pct(a2.bossOneShotRate)} / ${pct(a3.bossOneShotRate)} (each boss has a phase gate that damage can't skip) |
 
-${a3.bossFirstTry > 0.72 ? '**The Boar King sits above its 60-70% target for an 85% player.** ' : ''}An 85% player blocks about 99% of reds (a red crosses
-the cursor's path two or three times in its 2.8 s, the red grace is 40 ms, finishers and kills knock reds off the bar),
-so enemy HP and attack barely move them: doubling the Act 3 numbers takes the Boar King from about 85% to 70% for them
-but a 70% player's first Act 3 try to about 15%. What reaches a skilled player is red pressure (faster reds per act did
-it: 10-15 points), but Sable's two half-speed cursors ride along with a red on the way back, so faster reds help her far
-more than Rowan (+30-40 points at 70%), which breaks the Sable/Rowan guarantee. Left as a decision (docs/orchestrator-report.md,
-playtest round 4).
+Later acts' reds cross the bar faster (\`acts[i].redSpeed\`: x1 / x1.05 / x1.15): an 85% player blocks nearly every red
+at the normal 2.8 s (a red crosses the cursor's path 2-3 times, finishers and kills knock reds off the bar), so enemy HP
+and attack alone barely reach them. Sable's two half-speed cursors ride along with a red on the way back, so faster
+reds cost her far fewer blocks than Rowan: on her bar the act's extra speed counts \`sable.actRedSpeed\` times.
 
 ## What a fight costs
 
 ${fightCost(rows)}
+
+A cautious 85% player (never takes Clutch, Glass Edge, Blood Price or Purple Pact; ${CONTROL_RUNS} runs):
+
+${fightCost(cautious)}
 
 ## Gear: the story with found gear alone, and farming the Boar King
 
