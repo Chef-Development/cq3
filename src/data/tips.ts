@@ -30,7 +30,11 @@ export type TipAnchor =
   | 'heroTabs' // the hero select's tabs
   | 'roamer' // the first wandering pack on the act map
   | 'secretSpot' // the secret beside the node the hero stands on
-  | 'wanderer'; // the world map's wandering foe
+  | 'wanderer' // the world map's wandering foe
+  | 'holdBlock' // the hold block that just came in
+  | 'kegBlock'
+  | 'frozenBlock'
+  | 'mirrorBlock';
 
 export type TipId =
   | 'tapYellow'
@@ -62,7 +66,20 @@ export type TipId =
   | 'secret'
   | 'bounty'
   | 'merchant'
-  | 'skirmish';
+  | 'skirmish'
+  // M5: the new blocks and patches (each the first time one comes), chests, the shrine, companions
+  | 'hold'
+  | 'ice'
+  | 'snow'
+  | 'mirror'
+  | 'iced'
+  | 'keg'
+  | 'frozen'
+  | 'drift'
+  | 'pair'
+  | 'chest'
+  | 'shrine'
+  | 'companions';
 
 export interface TipDef {
   id: TipId;
@@ -91,6 +108,15 @@ export const TIPS: readonly TipDef[] = [
   { id: 'special', lines: ['A special move is coming!', 'Watch the enemy closely.'], anchor: 'enemy', fight: 'pause', basic: true },
   { id: 'purple', lines: ['Purple is a trap: let it pass.', 'Tapping it hurts you.'], anchor: 'purpleBlock', fight: 'pause', basic: true },
   { id: 'green', lines: ['Green powers up your ability.', 'Tap it like a yellow!'], anchor: 'greenBlock', fight: 'pause', basic: true },
+  { id: 'hold', lines: ['Hold block! Press at its start', 'and keep holding to its end.'], anchor: 'holdBlock', fight: 'pause' },
+  { id: 'ice', lines: ['Ice! The cursor speeds up on it:', 'tap blocks on ice a bit early.'], anchor: 'bar', fight: 'pause' },
+  { id: 'snow', lines: ['Snow slows the cursor down:', 'wait a beat for blocks in snow.'], anchor: 'bar', fight: 'pause' },
+  { id: 'mirror', lines: ['A mirror! The cursor bounces', 'back when it reaches it.'], anchor: 'mirrorBlock', fight: 'pause' },
+  { id: 'iced', lines: ['An iced yellow takes a few taps.', 'Each tap cracks the ice.'], anchor: 'yellowBlock', fight: 'pause' },
+  { id: 'keg', lines: ['A keg! Hit it like a yellow', 'and it blasts every foe.'], anchor: 'kegBlock', fight: 'pause' },
+  { id: 'frozen', lines: ['A frozen red: hit it like a yellow', 'to shatter it for a big hit!'], anchor: 'frozenBlock', fight: 'pause' },
+  { id: 'drift', lines: ['Some blocks drift along the bar.', "Watch which way they're heading!"], anchor: 'bar', fight: 'pause' },
+  { id: 'pair', lines: ['A pair: hit one, then the other.', 'Too slow? Both count as misses.'], anchor: 'bar', fight: 'pause' },
   {
     id: 'finisher',
     lines: ['Meter full! Swipe for a finisher.', 'More stacks, bigger finisher.'],
@@ -121,6 +147,9 @@ export const TIPS: readonly TipDef[] = [
   { id: 'camp', lines: ['Bag: wear gear. Forge: upgrade it.', 'Skills: learn new tricks.'], anchor: 'campBand', basic: true },
   { id: 'heroes', lines: ['Heroes share gear, but each one', 'levels up on their own.'], anchor: 'heroTabs' },
   { id: 'skills', lines: ['Learn each branch in order.', 'Resetting is free: try things out!'], anchor: 'skillsReset' },
+  { id: 'chest', lines: ['A hero chest! Opening it is free:', 'a hero, a companion, or shards.'], anchor: 'none' },
+  { id: 'shrine', lines: ['Gems buy Rare chests here.', 'A Legendary within 30, for sure.'], anchor: 'none' },
+  { id: 'companions', lines: ['A companion fights beside you.', 'Each one helps in its own way.'], anchor: 'none' },
   { id: 'relicLog', lines: ['Every relic, and how to unlock it.', 'Tap one to read what it does.'], anchor: 'none' },
   // ---- the world map
   { id: 'skirmish', lines: ['A foe wanders the road!', 'Tap it to fight for gear and XP.'], anchor: 'wanderer' },

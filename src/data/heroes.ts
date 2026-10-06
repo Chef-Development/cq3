@@ -73,7 +73,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     ability: part('Battle Focus', 'Green hits: +{n}% crit for a few seconds.', 'Green hits raise your crit.'),
     passive: part('Resolve', "The first hit you take each fight doesn't break your combo.", 'Shrugs off a hit.'),
     finisher: { name: 'Whirlwind', text: 'Swipe: strikes every foe and clears all reds.', short: 'Swipe: hits all, clears reds.', bar: 'Clears reds' },
-    strengths: [{ tag: 'folk', kind: 'dmg', n: 0.2 }],
+    strengths: [{ tag: 'folk', kind: 'dmg', n: 0.2 }, { tag: 'frost', kind: 'dmg', n: 0.15 }],
     joins: 'start',
     stars: [
       part('Wide Sweep', 'Whirlwind adds 1 combo for every foe it hits.', 'Finisher builds combo.'),

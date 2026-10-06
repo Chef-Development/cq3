@@ -260,7 +260,7 @@ export type CombatEvent =
   | { type: 'wardBreak'; pos: number; enemyId: number; left: number; perfect: boolean; combo: number }
   | { type: 'miss'; pos: number; selfDamage: boolean }
   | { type: 'remove'; id: number; kind: BlockKind; pos: number; width: number; ownerId: number; reason: RemoveReason }
-  | { type: 'spawn'; id: number; kind: BlockKind; ownerId: number; special: boolean }
+  | { type: 'spawn'; id: number; kind: BlockKind; ownerId: number; special: boolean; drift?: boolean }
   | { type: 'windup'; enemyId: number }
   | { type: 'telegraph'; enemyId: number; special: string; name: string; sound: string; sec: number }
   | { type: 'tellCancel'; enemyId: number }
@@ -305,6 +305,7 @@ export type CombatEvent =
   | { type: 'linkBroken'; ids: number[]; pos: number } // ...the beat ran out: both break, a miss
   | { type: 'driftOn'; count: number } // a special set yellows drifting
   | { type: 'linkOn'; count: number } // a special chained pairs
+  | { type: 'pairOn'; id: number; partner: number } // a linked pair came onto the bar (or was chained)
   | { type: 'driftShift'; flip: boolean; mult: number } // a special turned or sped up every drifting block
   | { type: 'chip'; id: number; pos: number; left: number } // an iced yellow took a tap (it needs more)
   | { type: 'iceBlock'; id: number; pos: number } // a red froze in place (Flash Freeze, Glacier)
@@ -1561,6 +1562,7 @@ export class Combat {
         const b = this.spawnBlock('yellow', q, ownerId, w);
         a.link = b.id;
         b.link = a.id;
+        this.events.push({ type: 'pairOn', id: a.id, partner: b.id });
         return true;
       }
     }
@@ -1665,7 +1667,7 @@ export class Combat {
     if (o.drift && !isRed(kind)) b.vel = o.drift;
     for (const h of this.hooks) h.spawned?.(this, b);
     this.blocks.push(b);
-    this.events.push({ type: 'spawn', id: b.id, kind: b.kind, ownerId, special: !!o.special });
+    this.events.push({ type: 'spawn', id: b.id, kind: b.kind, ownerId, special: !!o.special, drift: b.vel !== 0 && !isRed(kind) });
     if (isRed(kind) && !o.special) this.events.push({ type: 'windup', enemyId: ownerId });
     return b;
   }

@@ -226,6 +226,14 @@ export class TipsView {
         return kindBlock('purple');
       case 'greenBlock':
         return kindBlock('green');
+      case 'holdBlock':
+        return kindBlock('hold');
+      case 'kegBlock':
+        return kindBlock('keg');
+      case 'frozenBlock':
+        return kindBlock('frozen');
+      case 'mirrorBlock':
+        return kindBlock('mirror');
       case 'meter':
         if (ph !== 'fight') return null;
         return app.settings.finisherInput === 'button' ? { ...s.button } : { x: s.meter.x - 2, y: s.meter.y - 1, w: s.meter.w + 4, h: s.meter.h + 2 };

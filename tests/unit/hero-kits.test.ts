@@ -84,7 +84,7 @@ describe('style rules', () => {
     expect(chainOf(c)).toBe(2);
     const hp = c.enemies[0].hp;
     tapNew(c, t, 'yellow', 0.5);
-    expect(hp - c.enemies[0].hp).toBe(Math.round(t.hero.atk * (1 + 2 * t.styles.chainStep)));
+    expect(hp - c.enemies[0].hp).toBe(Math.round(t.hero.atk * t.kits.sable.atk * (1 + 2 * t.styles.chainStep)));
     tapNew(c, t, 'yellow', 0.7, 25); // off-centre: not Perfect
     expect(chainOf(c)).toBe(0);
   });
@@ -280,7 +280,7 @@ describe('hero kits', () => {
     c.stacks = 1;
     c.finisher();
     expect(c.blocks.filter((b) => b.kind === 'keg').length).toBe(t.kits.tam.bangKegs);
-    expect(KIT_HOOKS.tam.hurt!(c, 10, 'bomb', 0)).toBe(5);
+    expect(KIT_HOOKS.tam.hurt!(c, 10, 'bomb', 0)).toBeCloseTo(10 * (1 - t.kits.tam.blastShield));
   });
 
   it("Hollis: Shield Slam hits back on a Perfect block; Iron Hide trims reds; Rampart bounces reds off the left end", () => {

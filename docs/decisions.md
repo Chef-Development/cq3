@@ -108,3 +108,9 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
 30. **Test lab:** about 12 minutes of non-spoiler scenarios (22 items; the 30-second minimum per scenario made 10
     minutes impossible with everything new covered). "Completion: 100%" sits behind the spoiler switch, because a
     region at 100% shows the next region's name on the progress screen.
+31. **Rowan gets a second soft strength: +15% damage to frost foes** (the second region's foes mostly carry that tag,
+    Greenmarch's none, so Region 1 is unchanged). Without it Rowan, the hero the region is tuned on, ran 10-20 points
+    behind every other hero there; with it his region numbers sit on target.
+32. **First-time tips for everything new on the bar** (holds, ice, snow, mirrors, iced yellows, kegs, frozen blocks;
+    drifting blocks and pairs for the third region) and for chests, the shrine and companions: one short tip, shown
+    once, like the rest.

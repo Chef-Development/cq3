@@ -92,7 +92,15 @@ export class TipCoach {
         if (e.kind === 'red') due({ id: 'blockRed', block: e.id });
         else if (e.kind === 'purple') due({ id: 'purple', block: e.id });
         else if (e.kind === 'green') due({ id: 'green', block: e.id });
-      } else if (e.type === 'telegraph') due({ id: 'special', enemy: e.enemyId });
+        else if (e.kind === 'hold') due({ id: 'hold', block: e.id });
+        else if (e.kind === 'mirror') due({ id: 'mirror', block: e.id });
+        else if (e.kind === 'keg') due({ id: 'keg', block: e.id });
+        else if (e.kind === 'frozen') due({ id: 'frozen', block: e.id });
+        if (e.drift) due({ id: 'drift', block: e.id });
+      } else if (e.type === 'zoneOn' && (e.kind === 'ice' || e.kind === 'snow')) due({ id: e.kind });
+      else if (e.type === 'chip' && e.left > 1) due({ id: 'iced', block: e.id });
+      else if (e.type === 'pairOn') due({ id: 'pair', block: e.id });
+      else if (e.type === 'telegraph') due({ id: 'special', enemy: e.enemyId });
       else if (e.type === 'meterFull') due({ id: 'finisher' });
       else if (e.type === 'comboBreak' && e.lostStacks >= this.o.breakStacks) due({ id: 'comboBreak' });
     }
@@ -226,6 +234,12 @@ export class TipCoach {
         return camp === 'skills' ? { id } : null;
       case 'relicLog':
         return camp === 'relics' ? { id } : null;
+      case 'chest':
+        return camp === 'home' && this.profile.chests.hero + this.profile.chests.rare + this.profile.chests.region > 0 ? { id } : null;
+      case 'shrine':
+        return camp === 'shrine' ? { id } : null;
+      case 'companions':
+        return camp === 'pets' ? { id } : null;
     }
     return null;
   }
