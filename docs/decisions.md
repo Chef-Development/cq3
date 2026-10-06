@@ -59,8 +59,9 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     new landmarks are in (the next region's acts are listed by number only: spoilers).
 
 ## Part 7: balance
-21. The act picker and "Jump to" limits from decision 20 are lifted where the world map now shows the second region
-    (the picker lists one region's acts at a time; far lands stay fogged and nameless).
+21. The world map now shows the second region once Greenmarch is won (decision 20's limit lifted there): its act
+    picker lists one region's acts at a time; the seven far lands stay fogged and nameless. The gear panel's
+    "Jump to" still hides later regions' foes (spoilers); the Test lab covers them instead.
 22. **The bot lets go of a hold like a person:** aimed at the moment the cursor leaves the far end, 25 ms late on
     average, with 1.2x its tap spread (releases are less precise than presses), and an early lift on half its lapse
     rate. Letting go more than 60 ms early drops the hold, so an 85% player drops about 1 hold in 15. Its thumb is
@@ -78,9 +79,8 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     - Weakest: **Hollis's Rampart** (reds bounce off the left end for 3 s: easy to miss what happened) and
       **Moss's Overgrowth** vines (they only slow the next reds). Both kept; if a later pass reworks one, give it a
       visible mark on the bar like Glacier's patch.
-25. **Rowan's branches: Bulwark is the safe pick.** Stout +8% -> +15% max HP, Plate Training +5 -> +15 Defense, and
-    Shield Wall's bubble recharges (every 6 blocked reds, one held at a time) instead of once a fight. Measured per
-    forced branch in docs/balance.md.
+25. **Rowan's branches: none clearly the safest.** Measured per forced branch (the bot goes down one branch first),
+    same seeds, 100 runs each, both regions; the changes and numbers are in docs/balance.md.
 26. **A Rare chest costs 240 gems** (was 180): a story run earns about 240-300 gems in Greenmarch (achievements
     included) and 200-245 in the next region, so the shrine gives about one Rare chest per region.
 27. Hero parity, first pass (Region 1 gaps to Rowan at 85%): Moss attack 0.85 -> 0.8 and his moths heal 2% -> 1.2%

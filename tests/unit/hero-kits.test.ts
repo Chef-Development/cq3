@@ -142,8 +142,8 @@ describe('style rules', () => {
     tapNew(c, t, 'green', 0.6);
     tapNew(c, t, 'green', 0.9);
     expect(c.allies.map((a) => a.kind)).toEqual(['thornling', 'barkback', 'glowmoth']);
-    // the Barkback braces, then eats a red that reaches the hero
-    go(c, c.time + t.kits.moss.barkEvery);
+    // the Barkback braces (first after half its time), then eats a red that reaches the hero
+    go(c, c.time + t.kits.moss.barkEvery / 2 + 0.05);
     expect(c.allies.find((a) => a.kind === 'barkback')!.braced).toBe(true);
     c.hero.hp = 50;
     c.spawnBlock('red', 0.06);

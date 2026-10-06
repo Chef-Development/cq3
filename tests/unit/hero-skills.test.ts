@@ -510,10 +510,13 @@ describe('Moss', () => {
 
   it('Quick Brace: Barkbacks brace n% faster', () => {
     const { on, off } = both('moss', ['quickBrace']);
+    // a Barkback first braces after half its time; n% faster with Quick Brace
+    const half = on.t.kits.moss.barkEvery / 2;
+    const quick = half / (1 + skillN(on.t, 'quickBrace') / 100);
     for (const { c } of [on, off]) {
       callAlly(c);
       callAlly(c);
-      go(c, c.time + 1.5); // a Barkback first braces after half its 4 s; 50% faster: 1.33 s
+      go(c, c.time + (quick + half) / 2);
     }
     expect(on.c.allies.find((a) => a.kind === 'barkback')!.braced).toBe(true);
     expect(off.c.allies.find((a) => a.kind === 'barkback')!.braced).toBe(false);

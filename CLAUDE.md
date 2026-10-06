@@ -1,11 +1,13 @@
 # Combo Quest 3 (working title)
 
-Personal mobile timing-RPG inspired by Combo Quest 2 (2016, iOS). M1 was the **feel prototype** (CQ2-style
+Personal mobile timing-RPG inspired by Combo Quest 2 (2016, iOS). M5 (this session) added **eight heroes, one per
+style**, **companions**, **hero chests, gems and the shrine**, **region completion**, shared progression (mastery,
+camp upgrades), the **second region** (ice patches and hold blocks), and the **Test lab**. M1 was the **feel prototype** (CQ2-style
 timing-bar combat, installable on an iPhone home screen, live tuning panel). M3a turned it into **Region 1,
 Greenmarch**: three acts of branching node maps, enemies with telegraphed special moves, story scenes. M3b added
 **gear** (6 slots, 6 rarities, 10 stats, sets, signature boss drops), the **camp** (bag, forge, a locked shrine) and
 farming cleared acts, plus an **accuracy readout** measured like the balance bot defines it. M4a ("depth") added
-choices that change how you play: **relics** (run picks that change a rule), a second hero, **Sable** (two cursors),
+choices that change how you play: **relics** (run picks that change a rule), a second hero, **Sable** (then two cursors; one since M5),
 **hero levels and skill trees**, and a **soundtrack per act** (calm/intense arrangements, boss themes, combo layers).
 Playtest round 4 added **map content**: wandering packs (ambushes) and a travelling merchant on the act map, a Coin
 Rush mini-game stop, bounties (side quests), a secret cache per act, and a wandering foe on the world map (skirmishes).
@@ -81,13 +83,38 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   The world is painted once, in idle slices after boot (`paintWorldSlice`; `scene.ensureWorldArt()` finishes it at
   once if the map is opened first): keep each step a few tens of ms and the frame to moving images and a modest
   number of rects for what's in view.
-- **Heroes.** Rowan (Blade: one cursor) and Sable (Twin: two cursors, A sweeps the left half, B the right, in step;
-  a tap on the left half of the screen judges A, the right half B; `Combat.hands`, `tap(t, hand)`,
-  `cursorPosAt(t, hand)`). Gear is shared; each hero has their own XP, level (1-30, `tuning.levels`) and skill tree
-  (`core/heroes.ts`: a point every 2 levels, learned in branch order, free reset). The fight reads who is fighting
-  from the profile as `hero.build` (like the gear's loadout; not saved in the run). Sable joins after Act 1 (scene
-  `sableJoin`). Sable's numbers are `tuning.sable`; `tests/unit/twin-bot.test.ts` keeps her within +/-10 points of
-  Rowan at the same accuracy.
+- **Heroes: one cursor for every hero, always.** A hero = a **style** (`src/data/styles.ts`: Blade, Shadow, Guardian,
+  Marksman, Brute, Controller, Summoner, Bomber; each style's shared rule is a set of fight hooks in `core/styles.ts`,
+  numbers `tuning.styles`) + a signature, an ability (the green-hit ability window), a passive, a finisher twist, a
+  3x5 skill tree (>= 2 rule nodes per branch and a capstone; `src/data/skills.ts` + `skills-heroes.ts`, hooks in
+  `skill-fx.ts` + `skill-fx-heroes.ts`), a rarity (`src/data/rarity.ts`: 8 tiers, Common to Divine; Celestial pale cyan
+  with stars, Divine prismatic gold; above Mythic adds new things, never only numbers) and soft strengths (15-25% vs
+  some enemy tags, shown on the hero select; `tuning.hero.strengthScale`, 0 in unit tests). Data: `src/data/heroes.ts`
+  (8 heroes: Rowan the starter, Sable and Neve join through the story, the rest come from hero chests); the kits are
+  `core/kit-fx.ts` (`KIT_HOOKS`, numbers `tuning.kits.<id>`: base HP and attack share, ability, passive, finisher, 3-
+  and 5-star moves). Gear is shared; each hero has their own XP, level and tree (`core/heroes.ts`), stars 1-5 from
+  shards (`core/roster.ts`). The fight reads who is fighting from the profile as `hero.build` (switching heroes at camp
+  mid-act works). A new hero needs: data, kit hooks, a tree with with/without tests, a full sprite set, portrait and
+  chest reveal, a Test lab scenario, and the parity check (`npm run campaign`: every hero within +/-10 points of Rowan
+  in every act at 85%).
+- **Companions** (`src/data/companions.ts`, perks in `core/companion-fx.ts`, levels/stars/slots in `core/roster.ts`):
+  8 of them, Pip first; each brings bar perks, levels from XP earned with them, stars from shards; one slot, a second
+  with the camp's Companion Perch.
+- **Chests, gems, the shrine, completion** (`core/chests.ts`, `core/meta.ts`, `core/completion.ts`; numbers
+  `tuning.chests`/`tuning.gems`): hero chests (bosses, bounties, rarely elites; opened free) hold a hero or companion
+  weighted low, or shards for one you own; gems come only from playing (first clears, bosses, bounties, hidden
+  treasures, achievements, 100% regions), and the shrine sells Rare chests for gems with pity (a Legendary or better
+  within 30). **No timers, no energy, no real money, ever.** A region's completion counts acts, mini-bosses, the boss,
+  bounties, hidden treasures and events; 100% gives a region chest and a map badge. Mastery milestones (4 per hero)
+  unlock things for everyone (relics, set pieces, camp upgrades, cosmetics); camp upgrades are bought with coins and
+  add options more than numbers. There is no catch-up XP.
+- **Regions.** Acts are numbered globally (`src/data/regions.ts`: Greenmarch 0-2, the Frostpeaks 3-5); the run walks
+  `CAMPAIGN` and a region's last act ends in its own victory scene (`profile.weights` = regions won). A region starts a
+  fresh run (relic picks only for acts behind within the region). An act's **bar rules** (`acts[i].bar`, introduced
+  from a map row: ice and snow patches that change the cursor's speed, hold blocks; drifting blocks and linked pairs
+  for a later region) are applied in `core/combat.ts` and only draw from the random stream in an act that has them.
+  A hold is pressed at its near edge and held past its far edge; it is never a finisher swipe (`core/swipe.ts`,
+  unit-tested). Every hero must work with every bar rule (tests in `hero-kits.test.ts`, `bar-rules.test.ts`).
 - **Core/engine split.** `src/core/` is plain TypeScript with **no Phaser (or DOM) imports**: deterministic,
   fixed 120 Hz step (`Combat.step`), seeded RNG, fully unit-tested. `src/engine/` (Phaser + DOM) only
   renders core state and feeds input into it.
@@ -153,14 +180,19 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   player until playtest round 4) on a fresh first playthrough with found gear only: Act 1 ~100% first try, Act 2
   ~80-90%, the Boar King's first fight won ~60-75%, also by a cautious 85% bot that never takes the relics charging HP
   (`avoid`); a 70% player still clears Act 3 within 6 tries (~85-90%); an 85% player loses more HP to foes per fight
-  act over act (later acts' reds are faster: `acts[i].redSpeed`, on Sable's bar x `sable.actRedSpeed`, since her
-  half-speed cursors ride along with reds), and normal fights don't get shorter act over act; and
+  act over act (later acts' reds are faster: `acts[i].redSpeed`), and normal fights don't get shorter act over act; and
   farming the Boar King (replaying Act 3 with the gear kept, `playFarm`) measurably raises the win rate. Replays start
   with `tuning.kit` (what an 85% story run has gained per act behind, re-measured: keep it in step with the story).
   `npm run snowball` (tests/balance/snowball.run.ts) shows what each fight costs per act and where the hero's stats come
   from (gear, levels, run gains, skills), with ablations and a veteran (story + 6 forged Act 3 farms, then Acts 1-3
   replayed); `npm run perks` benches each relic and skill node on a typical Act 3 hero. The bot picks relics synergy-greedy, spends skill points down
-  one branch, and plays Sable with two thumbs (an independent timing error per hand). It meets roamers when its random
+  one branch (`focus` forces one, for measuring), plays every hero with one thumb (kits are passive or plain taps),
+  lets go of holds with a human error (a little late on average, the odd early lift), finishes linked pairs, and
+  visits camp between regions (every Rare chest its gems buy, chests opened, affordable camp upgrades, its rarest
+  companions). **Later regions** are balanced from a typical end-of-Greenmarch hero (`playCampaign`):
+  `tests/unit/bot-region2.test.ts` guards the second region (Act 1 ~90% first try, Act 2 ~75%, Act 3 ~60%, its boss
+  ~55-65%); `npm run campaign` reports every hero against Rowan; `npm run region-tune` replays one region from cached
+  end-of-region heroes with numbers to try (`TUNE='{"acts.4.hpMult":7}'`, `FOCUS=bulwark`, `BRANCHES=1`). It meets roamers when its random
   route runs into them (an ambush; the merchant's shop like a shop), plays Coin Rush with its normal aim (not counted
   in the fight stats: `ActAttempt.extras`), takes every bounty and opens a secret half the time. The report also shows relic win
   rates (by build and by relic, and against a stat-cards-only control). Re-run `npm run balance` after changing them.
@@ -188,7 +220,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 src/data/      enemies.ts (stats, patterns, specials), greenmarch.ts (acts, encounters, map weights), events.ts,
                story.ts (scenes), types.ts
 src/data/gear.ts  stats, slots, rarities, base items, sets, unique effects, signature drops
-src/data/relics.ts (40 relics, tags, build names), heroes.ts (Rowan, Sable), skills.ts + skills-heroes.ts (the eight trees), tips.ts (the tips),
+src/data/relics.ts (40 relics, tags, build names), heroes.ts (the eight heroes), styles.ts (the eight styles), rarity.ts, companions.ts, meta.ts (achievements, mastery, camp upgrades), regions.ts + frostpeaks.ts + enemies-frost.ts (the second region), skills.ts + skills-heroes.ts (the eight trees), tips.ts (the tips),
                quests.ts (the bounties' goals)
 src/core/      tuning.ts (numbers), combat.ts (sim; heroStats, gear effects), specials.ts (special-move actions),
                blocks.ts, map.ts (act maps), run.ts (region flow: map, nodes, loot, boosts, shop, events, scenes,
@@ -251,7 +283,8 @@ npm run screens:update  # refresh the baselines after an intentional visual chan
 npm run balance      # balance bot report -> docs/balance.md (a few min); re-run after changing combat numbers
 npm run calibrate    # accuracy readout calibration table (paste into core/accuracy.ts SD_CALIBRATION)
 ACC=0.62 npm run retarget  # re-aim the difficulty curve at a player of that accuracy -> docs/retarget.md
-npm run twin         # Rowan vs Sable on the same tuning (RUNS, ACC, TUNE='{"sable":{...}}', AVOID=relic,... env)
+npm run campaign     # every hero through both regions at 85%, gaps to Rowan (HEROES, RUNS, ACC; writes docs/balance-campaign.md)
+npm run region-tune  # one later region from cached end-of-region heroes (TUNE, FOCUS, BRANCHES, HEROES, RUNS)
 npm run snowball     # what fights cost per act, stat sources, ablations, a veteran (RUNS, ACC, HERO, TUNE, AVOID env)
 npm run perks        # each relic and skill node alone on a typical Act 3 hero (RUNS, ACC, HERO, BUILD=relic,... env)
 npm run icons        # regenerate public/icons
