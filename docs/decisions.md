@@ -142,12 +142,18 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
 41. **Moss: more greens.** A Summoner's every 5th yellow comes as a green (`tuning.styles.callEvery`; about twice
     the greens), so allies are called and come and go often enough to notice; allies stay 6 s (was 8). To keep him
     level with Rowan: a Rally no longer re-braces a Barkback that just took a red (one red per rest), and his numbers
-    are smaller (HP 95, attack share 0.62, Thornling 0.25, Deep Roots +4%, Overgrowth +10% per ally).
+    are smaller (HP 95, attack share 0.62, Thornling 0.22, a Barkback rests 8 s, a Glowmoth heals 0.4%, Deep Roots +4%,
+    Overgrowth +10% per ally). His allies' steady damage loses nothing at a boss's phase gates, so he still runs
+    ahead at the bosses (docs/balance-heroes.md).
 42. **Torva: foes hurt her again.** Quake pushes reds back about half as far (0.08 of the bar, was 0.15), Wind-Up
-    stuns 1 s (was 1.5), Earthsplitter's calm is 1.2 s (was 2). Trimming her HP or Unstoppable as well moved the bot's
-    numbers by less than the noise, so they stay. **Vesper** fell behind with the longer fights (Act 3 -13, the second
-    region's Act 3 -19): HP 115 (was 110), attack share 1.13 (was 1.1).
-43. **Test lab, round 5:** the New section is this round's changes (the seven heroes and four companion pairs,
+    stuns 1 s (was 1.5), Earthsplitter's calm is 1.2 s (was 2). Her real cushion was the Brute's wide yellows (fewer
+    misses, and misses are most of the HP an 85% player loses): yellows are x1.15 wide for a Brute (was x1.3), her
+    attack share 0.86 (was 0.9). Trimming her HP or Unstoppable moved the bot's numbers by less than the noise.
+43. **Vesper: a Power Shot no longer wastes Focus.** What the foe didn't need (it had less HP left, or a boss's phase
+    gate stopped the blow) stays stored (Marksman rule: "a green fires it (none wasted)"). With more, smaller foes per
+    fight and the bosses' gates, a big stored shot lost much of itself; she had fallen 13-20 points behind Rowan in
+    each region's last act. Also HP 115 (was 110), attack share 1.13 (was 1.1).
+44. **Test lab, round 5:** the New section is this round's changes (the seven heroes and four companion pairs,
     reworked, and two fights with the first region's new wave counts); M5's other items moved to Earlier (still
     playable). Hero fights are six waves at Act 2's numbers, the last with an elite (an 85% bot takes 26-42 s and
     nearly always wins; at Act 3's numbers a fresh lab hero, Rowan included, lost half of them); companion fights

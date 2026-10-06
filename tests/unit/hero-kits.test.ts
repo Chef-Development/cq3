@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HERO_IDS, HEROES, STYLE_IDS } from '../../src/data/heroes';
 import { STYLES } from '../../src/data/styles';
-import { STYLE_HOOKS, guardOf, focusOf, chainOf } from '../../src/core/styles';
+import { STYLE_HOOKS, guardOf, focusOf, chainOf, powerShot } from '../../src/core/styles';
 import { KIT_HOOKS, nextBlockAhead } from '../../src/core/kit-fx';
 import { kitText, styleText } from '../../src/core/heroes';
 import type { Combat } from '../../src/core/combat';
@@ -112,6 +112,23 @@ describe('style rules', () => {
     tapNew(c, t, 'green', 0.5, 25);
     expect(hp - c.enemies[0].hp).toBe(Math.round(atk * t.hero.greenMult) + Math.max(1, Math.round(f)));
     expect(focusOf(c)).toBe(0);
+  });
+
+  it("Marksman (Focus): a Power Shot keeps the Focus the foe didn't need (with and without HP to spare)", () => {
+    // a foe with plenty of HP left: the whole Focus is spent
+    const big = fight('vesper', { enemies: ['bandit'] });
+    big.c.perk.focus = 20;
+    big.c.enemies[0].hp = 140;
+    powerShot(big.c);
+    expect(focusOf(big.c)).toBe(0);
+    expect(140 - big.c.enemies[0].hp).toBe(20);
+    // a foe with 5 HP left: 5 of the 20 is used, 15 stays stored (the next foe gets it)
+    const low = fight('vesper', { enemies: ['bandit', 'bandit'] });
+    low.c.perk.focus = 20;
+    low.c.enemies[0].hp = 5;
+    powerShot(low.c);
+    expect(low.c.enemies[0].alive).toBe(false);
+    expect(focusOf(low.c)).toBeCloseTo(15, 5);
   });
 
   it('Brute (Heavy): every hit lands x1.6; yellows are wider and come further apart; the refill keeps fewer', () => {

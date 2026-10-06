@@ -42,14 +42,21 @@ export function addFocus(c: Combat, amount: number): void {
   c.perk.focus = Math.min(focusCap(c), focusOf(c) + Math.max(0, amount));
 }
 
-/** Fire every bit of Focus at the target as a Power Shot (Piercing Shot also hits the foe behind it). */
+/** Fire every bit of Focus at the target as a Power Shot (Piercing Shot also hits the foe behind it). What the foe
+ *  didn't need (it had less HP left, or a phase gate stopped the blow) stays stored as Focus. */
 export function powerShot(c: Combat, crit = false): number {
   const f = focusOf(c);
   const target = c.currentTarget();
   c.perk.focus = 0;
   if (f <= 0 || !target) return 0;
   const dmg = f * (crit ? c.stats().critDmg : 1);
+  const hp0 = target.hp;
+  const mark = c.events.length;
   c.strike(target, dmg, 'powerShot', crit);
+  const hurt = c.events.slice(mark).find((e) => e.type === 'enemyHurt' && e.enemyId === target.id);
+  const landed = hurt && hurt.type === 'enemyHurt' ? hurt.damage : 0;
+  const dealt = hp0 - Math.max(0, target.hp);
+  if (landed > 0 && dealt < landed) addFocus(c, f * (1 - dealt / landed));
   if (c.perk.pierce) {
     const behind = c.aliveFoes().find((e) => e !== target);
     if (behind) c.strike(behind, dmg * c.tuning.kits.vesper.pierce, 'pierce');
