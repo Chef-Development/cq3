@@ -1,12 +1,18 @@
-# Combo Quest 3: status report (M4a "depth": relics, Sable, hero levels and skill trees, a soundtrack per act)
+# Combo Quest 3: status report (M4a "depth" + playtest rounds 3 and 4)
 
 - **Live build:** https://chef-development.github.io/cq3/ (installable PWA, landscape). Every push deploys.
 - **Branch:** `claude/m4a-depth`, PR Chef-Development/cq3#4. PR #3 (M3b) was still open, so M4a is built on top of
   it: #4 includes #3 (and #2) and supersedes them (merge #4; #2 and #3 can be closed).
-- **Tests:** 442 Vitest unit tests (`npm test`, in CI), 11 Playwright smoke tests and 18 pixel-exact screenshot tests
-  (29 baselines; new in M4a: relic pick, relic belt and panel, act-clear build, relic unlocked, shop relics, Sable's
-  tutorial and two-cursor bar, hero select, skill tree, relic log, Sable joining the camp; round 3: the tip cards, the
-  relic deal and flight, the combo flourish).
+- **Tests:** 504 Vitest unit tests (`npm test`, in CI), 15 Playwright smoke tests and 26 pixel-exact screenshot tests
+  (42 baselines; M4a: relic pick, relic belt and panel, act-clear build, relic unlocked, shop relics, Sable's tutorial
+  and two-cursor bar, hero select, skill tree, relic log, Sable joining the camp; round 3: the tip cards, the relic deal
+  and flight, the combo flourish; round 4: the map extras, the living maps, the new world map, and a test that nothing
+  on the world map follows the camera).
+- **Round 4 in one breath** (sections 7-10): New game wipes everything; the act maps got wandering packs (ambushes), a
+  travelling merchant, Coin Rush, bounties, secret caches and critters; the world map became a continent you drag
+  around with Greenmarch's acts as landmarks; the difficulty was re-aimed at the playtester (85%) after finding why they
+  felt immune; then fixes from their phone (world-map gulls and clouds, a fractional HP readout, a late red-block tip,
+  and an app that kept running old builds).
 - **Built by:** a foundation pass (the data for 40 relics, both heroes and both skill trees; a fight-hook system; XP,
   levels and skill points; relic offers and unlocks; profile v3 and run save v6), then seven parallel agents (relic
   effects, Sable's two cursors and her tree, Rowan's tree and XP pacing, the fight UI, the camp UI, the art, the music),
@@ -271,6 +277,35 @@ cautious 500).
 - **Tests:** a smoke test (the reveal and its skip, a drag that starts nothing, a landmark's card, Play); screenshots
   of the map opened on Greenmarch, panned to the locked lands, and an act landmark selected.
 
+### 10. Playtest round 4: New game, living maps, and the fixes from the phone
+- **New game wipes everything** (playtest: "I want new game to wipe everything"). The title offers Continue (the run,
+  or the world map with everything kept) and New game whenever anything is earned (`anythingToErase`); New game is
+  tapped twice ("Tap again / Erases all") and erases the profile and the run (settings and calibration stay), then
+  reloads fresh. The gear panel's Start over does the same. So a game is now a fresh first playthrough plus optional
+  replays and farming inside it (which is what the balance targets measure).
+- **Living maps** (`view/map-life.ts`, `world-life.ts`, `life.ts`, `art-life.ts`, `core/sparkle.ts`): per-theme critters
+  on the act maps (rabbits, sparrows, a frog, leaping fish, a hawk; a hedgehog, crows, moths; a squirrel, a doe, spores)
+  and gulls and dolphins at sea on the world map; tapped, they startle (Pip chirps). A rare sparkle pays 1-2 coins with
+  a tiny "+1" pop: at most one per act-map step and one per world-map visit, deterministic and remembered in the
+  profile, so a reload never pays twice. Life stays on open ground, off nodes, roads, tags, roamers and the HUD, and
+  only gets taps nothing else takes. Numbers in `tuning.life`; three soft sounds in the `SFX` catalog; one tip.
+- **Fixes from the phone:**
+  - **World-map gulls and clouds followed the camera** (they were drawn in screen space; a drag carried them along).
+    Both now live in world space. A screenshot-suite test freezes the clock, pans the map and checks that every
+    sprite on it moves with the map; it fails on the old code (exactly on the gulls).
+  - **HP read "96.19999999999999/101"** on the act map: HP is fractional inside (kill gains are +0.6 max HP, Defense
+    cuts, heals in shares) and the map, rest, shop and defeat screens printed it raw. `hpLabel` (view/shared.ts) rounds
+    up and never shows more than the max, as the fight HUD already did.
+  - **The red-block tip came in the second fight.** Two pacing rules held it back: the pre-fight yellow tip started
+    the 4 s gap (so early reds were skipped), and the special-move tip outranked it with two tips per fight at most.
+    Now the first red's tip comes first and the pre-fight tip doesn't start the gap; a unit test plays Act 1's first
+    fight on 60 seeds (the old rules missed the first red in all 60).
+  - **The phone kept running old builds** (a home-screen app sits in the background with what it loaded, so two fixes
+    "didn't work"). The build now writes `version.txt` (never cached); when the app comes back to the front it checks
+    it and reloads if a newer build is deployed (the run saved first; never mid-fight). The gear panel's foot shows
+    the build ("Build 3570bb0 Oct 6 ..."). Smoke test with a stubbed version file.
+  - Playwright's preview port comes from `PORT` (worktrees serve their own build instead of reusing another's).
+
 ## Balance (docs/balance.md: 1,000 whole runs per player; farming 333 players per row)
 
 Round 4 (section 8) aimed the curve at the playtester (85%); M4a's numbers below that table are history.
@@ -312,6 +347,9 @@ length.
 7. **Starting HP:** a new run now starts at full HP including gear (it started at the base 100 before).
 
 ## Still unverified on the iPhone (checked in headless Chromium and Node)
+- **Round 4:** the faster reds in Acts 2-3 (tense or unfair?); the world map's drag on a real thumb (a press that
+  moves 4 game px is a drag) and its paint time (~300-450 ms in idle slices on the VM); whether the Act 3 map reads
+  clearly with packs, the merchant, tags and critters on it; that the app now updates itself when brought back.
 - **The music is checked by measured levels only:** nobody has listened to it. Please listen on the phone (speakers
   and headphones): the act themes, the boss themes, the camp, and the combo layers coming in at 10 / 25 / 50.
 - Sable's two tap zones with real thumbs: whether in-step cursors read well, and whether 0.7x hits feel weak.
@@ -330,6 +368,11 @@ length.
    block into one half (it can overlap a neighbour). Teaching `specials.ts` about the halves would be cleaner.
 5. Sable's accuracy readout uses Rowan's calibration and reads 3-4 points low; a Sable table would fix it.
 6. The shrine (gacha) is still locked; the other backlog items are in docs/backlog.md.
+7. **Round 4 targets not fully met:** the default 85% bot takes 5.1% of max HP from foes per Act 3 fight (target 8-12%;
+   the cautious bot takes 19.3%), and a 70% player is now much harder pressed (Boar King first fight 31%, Act 3
+   cleared within 6 tries 87%, farming lifts it to 73%). Fine while the playtester is the only player.
+8. The world map: mountains look a bit regular in places; frame rate judged by eye only; the paint time on the phone
+   is unmeasured.
 
 ## History
 
