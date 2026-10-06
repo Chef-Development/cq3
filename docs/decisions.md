@@ -105,3 +105,6 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
 28. **Style calls on the bounty board:** once you own two or more heroes, about a third of boards post "Win 2 fights
     as a <style> hero" for one of the styles you own (heroes can be switched at camp mid-act). It pays a relic pick
     like the other relic bounties. With one hero, boards never ask for a style.
+30. **Test lab:** about 12 minutes of non-spoiler scenarios (22 items; the 30-second minimum per scenario made 10
+    minutes impossible with everything new covered). "Completion: 100%" sits behind the spoiler switch, because a
+    region at 100% shows the next region's name on the progress screen.
