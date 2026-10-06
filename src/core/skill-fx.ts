@@ -1,4 +1,4 @@
-// Skill nodes as fight hooks (core/hooks.ts): the rule nodes and capstones of both heroes' trees (src/data/skills.ts
+// Skill nodes as fight hooks (core/hooks.ts): the rule nodes and capstones of every hero's tree (src/data/skills.ts
 // has the text; stat nodes are plain stats, see heroes.ts buildBonus). A node's number is skillN(c.tuning, id).
 // Rowan's nodes are here; the other heroes' are in skill-fx-heroes.ts. Each one calls c.perkFx(id, amount, enemyId) when it
 // kicks in, so the view can name it.
@@ -12,11 +12,15 @@ import type { FightHooks } from './hooks';
 import type { Combat } from './combat';
 import { isRed } from './blocks';
 import { skillN } from './heroes';
+import { HERO_SKILL_HOOKS } from './skill-fx-heroes';
 
 /** Shield Wall: blocks needed per bubble (at least 1). */
 const wallEvery = (c: Combat): number => Math.max(1, Math.round(skillN(c.tuning, 'shieldWall')));
 
 export const SKILL_HOOKS: Record<string, FightHooks> = {
+  // the other heroes' nodes (skill-fx-heroes.ts)
+  ...HERO_SKILL_HOOKS,
+
   // ---------------------------------------------------------------- Blade (attack and crits)
 
   // Follow-Through: a kill's leftover damage hits the next foe (once: a carry that kills doesn't carry again; the

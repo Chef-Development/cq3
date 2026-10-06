@@ -71,7 +71,9 @@ it('perk bench', () => {
   if (process.env.SINGLES !== '0') for (const r of RELICS) if (!build.includes(r.id)) variants.push({ name: r.id, relics: [...build, r.id], skills: [] });
   if (process.env.SKILLS !== '0') for (const b of SKILL_TREES[HERO]) for (let k = 0; k < b.nodes.length; k++) variants.push({ name: `${b.id}:${b.nodes[k].id}`, relics: build.slice(), skills: b.nodes.slice(0, k + 1).map((n) => n.id) });
   const extra = (process.env.COMBOS ?? 'chainReaction+verdantSurge,sweeper+crescendo,hoarder+overcharge,sharpshooter+weakSpot+ricochet,unbroken+sweeper').split(',').filter(Boolean);
-  for (const c of extra) variants.push({ name: c, relics: [...build, ...(c.split('+').filter((x) => RELICS.some((r) => r.id === x)) as RelicId[])], skills: c.split('+').filter((x) => !RELICS.some((r) => r.id === x)) });
+  // a combo's skill nodes count only if they're the hero's (the default combos name Rowan's Unbroken)
+  const mine = (x: string) => SKILL_TREES[HERO].some((b) => b.nodes.some((n) => n.id === x));
+  for (const c of extra) variants.push({ name: c, relics: [...build, ...(c.split('+').filter((x) => RELICS.some((r) => r.id === x)) as RelicId[])], skills: c.split('+').filter(mine) });
   const rows: string[] = [];
   let base: { sec: number; bsec: number } | null = null;
   for (const v of variants) {

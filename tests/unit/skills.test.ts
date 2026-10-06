@@ -1,6 +1,7 @@
 // Skill trees: Rowan's rule nodes and capstones in a fight (core/skill-fx.ts), what stat nodes add (heroStats), and
 // learning: a point every 2 levels, nodes in branch order, the free reset.
 import { describe, expect, it } from 'vitest';
+import { HERO_IDS } from '../../src/data/heroes';
 import { SKILL_NODES, skillHero, type SkillStat } from '../../src/data/skills';
 import { Combat, heroStats, newHero, type Block, type BlockKind, type CombatEvent } from '../../src/core/combat';
 import { emptyLoadout } from '../../src/core/gear';
@@ -327,7 +328,7 @@ describe('learning skills', () => {
   it('a skill point every 2 levels: 15 at level 30, a whole tree', () => {
     for (let level = 1; level <= 30; level++) expect(skillPoints(t, level), `level ${level}`).toBe(Math.floor(level / 2));
     expect(skillPoints(t, 30)).toBe(15);
-    for (const hero of (['rowan', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva'] as HeroId[]).filter((h) => treeOf(h).length)) {
+    for (const hero of HERO_IDS) {
       const nodes = treeOf(hero).flatMap((b) => b.nodes);
       expect(nodes).toHaveLength(15);
       const p = at(30);
