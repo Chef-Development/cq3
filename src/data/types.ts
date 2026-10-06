@@ -110,7 +110,25 @@ export interface RegionDef {
   acts: ActDef[];
 }
 
-export type Speaker = 'narrator' | 'rowan' | 'pip' | 'captain' | 'golem' | 'boarking' | 'smith' | 'sable';
+export type Speaker =
+  | 'narrator'
+  | 'rowan'
+  | 'pip'
+  | 'captain'
+  | 'golem'
+  | 'boarking'
+  | 'smith'
+  | 'sable'
+  // M5: the new heroes, and Region 2's speakers (docs/content-bible.md)
+  | 'neve'
+  | 'moss'
+  | 'tam'
+  | 'hollis'
+  | 'vesper'
+  | 'torva'
+  | 'rimehorn'
+  | 'matron'
+  | 'glacia';
 
 /** One text box: at most two lines (a '\n' splits them). */
 export interface StoryBox {

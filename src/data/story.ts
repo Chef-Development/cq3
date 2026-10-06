@@ -13,6 +13,15 @@ export const SPEAKER_NAME: Record<Speaker, string> = {
   boarking: 'Boar King',
   smith: 'Mags',
   sable: 'Sable',
+  neve: 'Neve',
+  moss: 'Moss',
+  tam: 'Tam',
+  hollis: 'Hollis',
+  vesper: 'Vesper',
+  torva: 'Torva',
+  rimehorn: 'Rimehorn',
+  matron: 'Loom Matron',
+  glacia: 'Glacia',
 };
 
 export const STORY: Record<string, StoryBox[]> = {
