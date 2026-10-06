@@ -3,13 +3,14 @@ import { STORY } from '../data/story';
 import { SimClock, tapSimTime } from '../core/clock';
 import type { CombatEvent, TapResult } from '../core/combat';
 import { Run, type Phase } from '../core/run';
+import { labBaseProfile } from '../core/lab';
 import { anythingToErase, type Profile } from '../core/profile';
 import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import { markWelcomed, TipCoach, welcomeScene } from '../core/tips';
 import type { Settings, Tuning } from '../core/tuning';
 import { AMBIENCES, Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, sameLayout, type ScreenLayout } from './layout';
-import { clearRunSave, eraseProgress, loadProfile, loadRunSave, saveSoon, writeProfile, writeRunSave } from './storage';
+import { clearRunSave, eraseProgress, loadProfile, loadRunSave, saveSoon, setStorageSlot, writeProfile, writeRunSave } from './storage';
 
 export interface View {
   /** Returns how long (ms) the next phase change should wait so a kill / finisher animation can play out. */
@@ -28,6 +29,18 @@ const ACT_THEMES: MusicTrack[] = ['act1', 'act2', 'act3', 'frost1', 'frost2', 'f
 /** Acts with their own ambience bed (on their map too); Greenmarch's come from each act's theme. */
 const ACT_AMBIENCE: Partial<Record<number, Ambience>> = { 3: 'pass', 4: 'caves', 5: 'glacier' };
 export const INTRO_MS = 800;
+
+/** The real game as the Test lab found it (put back exactly when the lab closes). */
+interface RealGame {
+  run: Run;
+  profile: Profile;
+  tips: TipCoach;
+  savedRun: RunSave | null;
+  storyOverlay: string | null;
+  storyBox: number;
+  userPaused: boolean;
+  awaitingBegin: boolean;
+}
 
 export class App {
   readonly clock = new SimClock();
@@ -50,12 +63,13 @@ export class App {
   storyOverlay: string | null = null;
   /** Which box of the current story scene is on screen. */
   storyBox = 0;
-  /** The profile, kept across runs: progress (the world map shows it), the bag and gear, coins, scrap. */
-  readonly profile: Profile;
+  /** The profile, kept across runs: progress (the world map shows it), the bag and gear, coins, scrap. (In the Test
+   *  lab: the lab's own profile; the real one waits in `real`.) */
+  profile: Profile;
   /** The run saved by an earlier session (offered as Continue on the title screen). */
   savedRun: RunSave | null = null;
   /** "Teach it slowly": which tip shows when (core/tips.ts; the view draws it, view/tips.ts). */
-  readonly tips: TipCoach;
+  tips: TipCoach;
   /** A tip card is up: the next tap only dismisses it, and a fight waits for it. */
   tipUp = false;
   private begunCombat: unknown = null;
@@ -65,6 +79,11 @@ export class App {
   private bossTheme: { combat: unknown; track: MusicTrack } | null = null;
   /** After a finisher spends the combo, the fight music keeps its layers up to this combo until then. */
   private comboHold = { combo: 0, until: 0 };
+  /** Called after every phase change, once the view has seen it (the Test lab watches its scenarios end). */
+  readonly phaseListeners: Array<(prev: Phase, next: Phase) => void> = [];
+  /** The Test lab is open: the real game set aside exactly as it was (its run, profile, tips, save), while the lab
+   *  plays on its own profile, run and storage keys (engine/lab.ts). Null: the real game is on. */
+  private real: RealGame | null = null;
 
   constructor(
     readonly tuning: Tuning,
@@ -98,6 +117,7 @@ export class App {
 
   /** Start over: erase all progress (the profile and the run; tuning and settings stay) and reload fresh. */
   startOver(): void {
+    this.leaveLab(); // (the real game's save, never the lab's)
     eraseProgress();
     window.location.reload();
   }
@@ -368,6 +388,91 @@ export class App {
       clearRunSave();
       this.savedRun = null;
     } else this.saveRun();
+    for (const fn of this.phaseListeners) fn(prev, this.run.phase);
+  }
+
+  // ------------------------------------------------------------------ the Test lab (engine/lab.ts draws it)
+
+  get inLab(): boolean {
+    return !!this.real;
+  }
+
+  /** The real game's profile, also while the lab is open (the gear panel's accuracy, the lab's report). */
+  get realProfile(): Profile {
+    return this.real?.profile ?? this.profile;
+  }
+
+  /**
+   * Open the Test lab: the real game is saved as it stands (its own keys) and set aside untouched; storage switches
+   * to the lab's keys and a lab run starts at the lab's camp. Nothing the lab does reaches the real profile or run.
+   */
+  enterLab(): void {
+    if (this.real) return;
+    this.saveRun();
+    this.real = {
+      run: this.run,
+      profile: this.profile,
+      tips: this.tips,
+      savedRun: this.savedRun,
+      storyOverlay: this.storyOverlay,
+      storyBox: this.storyBox,
+      userPaused: this.userPaused,
+      awaitingBegin: this.awaitingBegin,
+    };
+    setStorageSlot('lab');
+    this.labRun(labBaseProfile());
+  }
+
+  /** A fresh lab run on `profile` (a scenario's, from core/lab.ts labProfile), standing at the lab's camp; `setup`
+   *  then takes it where the scenario plays (a practice fight, story scenes). */
+  labRun(profile: Profile, setup?: (run: Run) => void): void {
+    if (!this.real) return;
+    const prev = this.run.phase;
+    this.profile = profile;
+    this.tips = new TipCoach(profile);
+    this.run = new Run(this.tuning, this.settings, (Date.now() & 0xffffff) | 1, profile);
+    this.run.phase = 'camp';
+    this.savedRun = null;
+    this.storyOverlay = null;
+    this.storyBox = 0;
+    this.userPaused = false;
+    this.awaitingBegin = false;
+    this.clock.reset(0);
+    this.showRun(prev);
+    if (setup) this.setPhase(() => setup(this.run));
+  }
+
+  /** Leave the Test lab: storage back on the real game's keys, and the real game exactly as it was set aside (a fight
+   *  comes back paused). */
+  leaveLab(): void {
+    const r = this.real;
+    if (!r) return;
+    const prev = this.run.phase;
+    this.real = null;
+    setStorageSlot('main');
+    this.run = r.run;
+    this.profile = r.profile;
+    this.tips = r.tips;
+    this.savedRun = r.savedRun;
+    this.storyOverlay = r.storyOverlay;
+    this.storyBox = r.storyBox;
+    this.awaitingBegin = r.awaitingBegin;
+    this.userPaused = r.userPaused || (this.run.phase === 'fight' && !r.awaitingBegin);
+    this.begunCombat = this.run.combat;
+    this.introUntil = 0;
+    this.syncHoldUntil = 0;
+    const c = this.run.combat;
+    this.clock.reset(c ? c.time * 1000 : 0);
+    this.showRun(prev);
+  }
+
+  /** Another run was swapped in (the lab's or the real one): the view and the music catch up, nothing is saved. */
+  private showRun(prev: Phase): void {
+    this.phaseSince = performance.now();
+    this.tipUp = false;
+    this.view?.onPhase(prev, this.run.phase);
+    this.syncClock(performance.now());
+    this.cueAudio();
   }
 
   /** The music and the place's ambience under it, for the phase we're in. */

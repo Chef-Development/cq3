@@ -11,12 +11,30 @@ const OLD_TUNING_KEY = 'cq3.tuning.v2';
 const SETTINGS_KEY = 'cq3.settings.v2';
 const OLD_SETTINGS_KEY = 'cq3.settings.v1';
 // The run in progress (see core/save.ts; the save carries its own version, older ones are dropped).
-const RUN_KEY = 'cq3.run.v3';
 const OLD_RUN_KEY = 'cq3.run.v1';
 // The profile, kept across runs (see core/profile.ts): progress, the bag and gear, coins, scrap, bad-luck counters,
 // the accuracy log. v1 was the progress alone; it is migrated.
-const PROFILE_KEY = 'cq3.profile.v2';
 const OLD_PROGRESS_KEY = 'cq3.progress.v1';
+
+/**
+ * Which save the profile and the run go to: the real game's ('main'), or the Test lab's ('lab': its own profile and
+ * run keys, so the lab never reads or writes the real ones; leaving the lab switches back). Tuning and settings are
+ * shared. The lab's ratings live in a key of their own (LAB_STATE_KEY), kept across reloads.
+ */
+export type StorageSlot = 'main' | 'lab';
+const SLOT_KEYS: Record<StorageSlot, { profile: string; run: string }> = {
+  main: { profile: 'cq3.profile.v2', run: 'cq3.run.v3' },
+  lab: { profile: 'cq3.lab.profile', run: 'cq3.lab.run' },
+};
+export const LAB_STATE_KEY = 'cq3.lab.ratings';
+let slot: StorageSlot = 'main';
+
+/** The profile and run keys of a slot (the current one by default). */
+export const storageKeys = (s: StorageSlot = slot): { profile: string; run: string } => SLOT_KEYS[s];
+export const storageSlot = (): StorageSlot => slot;
+export function setStorageSlot(s: StorageSlot): void {
+  slot = s;
+}
 
 function read(key: string): unknown {
   try {
@@ -82,10 +100,10 @@ export function saveNow(t: Tuning, s: Settings): void {
 /** The saved run, if there is one this build can resume. An older save is migrated (a v4 save's coins go into the
  *  profile's purse) and both are written back at once, so it happens only once. */
 export function loadRunSave(t: Tuning, profile: Profile): RunSave | null {
-  const raw = read(RUN_KEY);
+  const raw = read(storageKeys().run);
   const data = migrateSave(raw, profile);
   if (data !== raw) {
-    write(RUN_KEY, data);
+    write(storageKeys().run, data);
     writeProfile(profile);
   }
   return readSave(data, t);
@@ -95,10 +113,10 @@ export function loadRunSave(t: Tuning, profile: Profile): RunSave | null {
 let erased = false;
 
 /** Start over: erase the profile (progress, gear, coins, levels, relics) and the run in progress. Tuning and settings
- *  (calibration, sound) stay. The caller reloads the page. */
+ *  (calibration, sound) stay. The caller reloads the page. (Always the real game's save: the app leaves the lab first.) */
 export function eraseProgress(): void {
   erased = true;
-  for (const key of [PROFILE_KEY, OLD_PROGRESS_KEY, RUN_KEY, OLD_RUN_KEY]) {
+  for (const key of [SLOT_KEYS.main.profile, OLD_PROGRESS_KEY, SLOT_KEYS.main.run, OLD_RUN_KEY]) {
     try {
       window.localStorage.removeItem(key);
     } catch {
@@ -109,33 +127,39 @@ export function eraseProgress(): void {
 
 export function writeRunSave(s: RunSave): void {
   if (erased) return;
-  write(RUN_KEY, s);
-  try {
-    window.localStorage.removeItem(OLD_RUN_KEY);
-  } catch {
-    /* ignore */
-  }
+  write(storageKeys().run, s);
+  if (slot === 'main')
+    try {
+      window.localStorage.removeItem(OLD_RUN_KEY);
+    } catch {
+      /* ignore */
+    }
 }
 
 export function clearRunSave(): void {
   try {
-    window.localStorage.removeItem(RUN_KEY);
+    window.localStorage.removeItem(storageKeys().run);
   } catch {
     /* ignore */
   }
 }
 
 export function loadProfile(t?: Tuning): Profile {
-  const p = read(PROFILE_KEY);
-  return readProfile(p ?? read(OLD_PROGRESS_KEY), t);
+  const p = read(storageKeys().profile);
+  return readProfile(p ?? (slot === 'main' ? read(OLD_PROGRESS_KEY) : null), t);
 }
 
 export function writeProfile(p: Profile): void {
   if (erased) return;
-  write(PROFILE_KEY, p);
-  try {
-    window.localStorage.removeItem(OLD_PROGRESS_KEY);
-  } catch {
-    /* ignore */
-  }
+  write(storageKeys().profile, p);
+  if (slot === 'main')
+    try {
+      window.localStorage.removeItem(OLD_PROGRESS_KEY);
+    } catch {
+      /* ignore */
+    }
 }
+
+/** The Test lab's ratings and its spoiler switch (raw; core/lab.ts readLabState checks it). */
+export const loadLabState = (): unknown => read(LAB_STATE_KEY);
+export const writeLabState = (v: unknown): void => write(LAB_STATE_KEY, v);

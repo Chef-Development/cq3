@@ -169,6 +169,12 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   (see `src/engine/layout.ts`). iOS launches a home-screen app upright and turns it, with resize events that can be
   early or missing, so `main.ts` re-measures after any hint and on a 500 ms watch (`app.relayout()` is a no-op unless
   the layout changed).
+- **Test lab** (`src/data/lab.ts` scenarios, `core/lab.ts` profiles/fights/ratings/report, `engine/lab.ts` the list):
+  short scenarios that drop the playtester straight into what's new, rated Good / Needs work / Broken with a note,
+  copied as one report. It plays on its own save (`storage.ts` slot 'lab': `cq3.lab.profile` / `cq3.lab.run`; ratings
+  in `cq3.lab.ratings`); leaving it puts the real game back as it was. Region foes, bosses and story go in its spoiler
+  group (hidden until "Show spoilers"; labelled by act number only). **Every session adds its new content to the Test
+  lab (`LAB_NEW` in `src/data/lab.ts`), and moves the previous session's items to its 'Earlier' section (`LAB_EARLIER`).**
 - **Text readability.** The pixel fonts bake an ink outline; dark text (on parchment, gold) automatically uses the
   outline-free twins (`font.ts` `isDarkInk`), and light text gets a brightness floor (`readable()`). New text must fit
   its box at 8x (`textWidth`): wrap or shorten it rather than truncating with "...", and never let bold rows overlap.
@@ -180,7 +186,7 @@ src/data/      enemies.ts (stats, patterns, specials), greenmarch.ts (acts, enco
                story.ts (scenes), types.ts
 src/data/gear.ts  stats, slots, rarities, base items, sets, unique effects, signature drops
 src/data/relics.ts (40 relics, tags, build names), heroes.ts (Rowan, Sable), skills.ts + skills-heroes.ts (the eight trees), tips.ts (the tips),
-               quests.ts (the bounties' goals)
+               quests.ts (the bounties' goals), lab.ts (the Test lab's scenarios: New and Earlier)
 src/core/      tuning.ts (numbers), combat.ts (sim; heroStats, gear effects), specials.ts (special-move actions),
                blocks.ts, map.ts (act maps), run.ts (region flow: map, nodes, loot, boosts, shop, events, scenes,
                camp, replaying acts, revive/retry), gear.ts (item stats, drops, bad-luck protection, forge prices),
@@ -189,12 +195,14 @@ src/core/      tuning.ts (numbers), combat.ts (sim; heroStats, gear effects), sp
                relics, skill nodes and kits as hooks), relics.ts (offers, synergy, build names, unlocks), heroes.ts (XP,
                levels, skill trees), impact.ts (impact tier weights -> hit-stop/shake/flash and sound layers),
                roam.ts (the map's extras: Coin Rush and bounty stops, the secret, roamers and their steps), quests.ts
-               (bounties), skirmish.ts (the world map's wandering foe), save.ts
+               (bounties), skirmish.ts (the world map's wandering foe), lab.ts (the Test lab: each scenario's profile
+               and fight, ratings, the report), save.ts
                (save at every node, migrations), bot.ts (balance bot, farming), tips.ts (which tip shows when; the
                welcome back), sparkle.ts (the maps' sparkles: when, where, what they pay, claimed once), clock.ts,
                calibration.ts, swipe.ts, rng.ts
-src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Phaser scene: layout, layers, anim
-               clock, routes core events to view/), input.ts, debug.ts (tuning panel, Sound lab, Jump to),
+src/engine/    app.ts (time + input glue, music cues, story state, the Test lab's swap to its own save), scene.ts
+               (Phaser scene: layout, layers, anim clock, routes core events to view/), input.ts, debug.ts (tuning
+               panel, Sound lab, Jump to), lab.ts (the Test lab: list, rating card, report; HTML), clipboard.ts,
                calibrate.ts, audio.ts (sounds, ambience), music.ts (the soundtrack), art.ts / art-foes.ts / art-story.ts / art-world.ts /
                art-map.ts / art-stage.ts (sprites, portraits, the world map, act map landscapes, fight lighting),
                art-world-sites.ts (the world map's trees, villages, landmarks, mountains: what stands on its land),
