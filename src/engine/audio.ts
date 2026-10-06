@@ -1,5 +1,6 @@
 // Web Audio synth: every sound effect, all the music (a theme per act, per boss, the camp and the title: see
-// music.ts) and the ambience beds (forest, ruins, hollow, act map, world map, camp) are generated in code (no samples).
+// music.ts) and the ambience beds (forest, ruins, hollow, act map, world map, camp; Region 2's pass, caves and
+// glacier) are generated in code (no samples).
 // Unlocked on the first user gesture. Also runs on an OfflineAudioContext (tests render every sound).
 //
 // Graph:
@@ -91,9 +92,9 @@ interface Graph {
   pink?: AudioBuffer; // 6 s of stereo pink noise for the ambience beds (made on first use)
 }
 
-/** Places with their own sound bed under the music. */
-export type Ambience = 'forest' | 'ruins' | 'hollow' | 'map' | 'world' | 'camp';
-export const AMBIENCES: Ambience[] = ['forest', 'ruins', 'hollow', 'map', 'world', 'camp'];
+/** Places with their own sound bed under the music (Region 2's acts: 'pass', 'caves', 'glacier'). */
+export type Ambience = 'forest' | 'ruins' | 'hollow' | 'map' | 'world' | 'camp' | 'pass' | 'caves' | 'glacier';
+export const AMBIENCES: Ambience[] = ['forest', 'ruins', 'hollow', 'map', 'world', 'camp', 'pass', 'caves', 'glacier'];
 
 /** A looping filtered-noise layer of an ambience (wind, rain, fire, surf), nudged at random by gusts. */
 interface Bed {
@@ -112,7 +113,7 @@ interface AmbRig {
   name: Ambience;
   fade: GainNode;
   spots: AudioNode[]; // inputs at fixed places in the stereo field, near (bright) to far (dull)
-  echo: AudioNode | null; // the ruins' cave echo
+  echo: AudioNode | null; // the ruins' (and the caves') echo
   beds: Bed[];
   nodes: AudioNode[];
   srcs: AudioScheduledSourceNode[];
@@ -148,7 +149,7 @@ const SPOTS: [number, number][] = [
 const ALL_SPOTS = [0, 1, 2, 3, 4] as const;
 const FAR_SPOTS = [0, 2, 4] as const;
 /** How much of each ambience goes to the reverb. */
-const AMB_WET: Record<Ambience, number> = { forest: 0.18, ruins: 0.55, hollow: 0.25, map: 0.12, world: 0.15, camp: 0.2 };
+const AMB_WET: Record<Ambience, number> = { forest: 0.18, ruins: 0.55, hollow: 0.25, map: 0.12, world: 0.15, camp: 0.2, pass: 0.2, caves: 0.6, glacier: 0.25 };
 
 // Hit melody: major pentatonic, wrapping up an octave every 5 combo steps.
 const PENTA = [0, 2, 4, 7, 9];
@@ -2576,6 +2577,48 @@ export class Synth {
         this.bed(r, t, { type: 'lowpass', f: 180, q: 0.5, g: 0.06, gust: [0.7, 1.3], tau: 2.4 }); // the night's low hush
         this.bed(r, t, { type: 'bandpass', f: 900, q: 0.45, g: 0.022, gust: [0.25, 1.6], sway: [0.75, 1.4], tau: 1.4 }); // a soft breeze in the trees
         break;
+      case 'pass':
+        this.bed(r, t, { type: 'bandpass', f: 650, q: 0.7, g: 0.05, gust: [0.3, 1.7], sway: [0.7, 1.6], tau: 1 }); // wind down the pass
+        this.bed(r, t, { type: 'bandpass', f: 1700, q: 7, g: 0.03, gust: [0.1, 1.5], sway: [0.8, 1.3], tau: 0.9 }); // whistling over the ridge
+        this.bed(r, t, { type: 'lowpass', f: 220, q: 0.5, g: 0.08, gust: [0.6, 1.4], tau: 2 }); // the wind's low body
+        this.bed(r, t, { type: 'highpass', f: 6000, q: 0.5, g: 0.008, gust: [0.4, 1.8], tau: 0.8 }); // snow hissing past
+        break;
+      case 'caves':
+        this.bed(r, t, { type: 'lowpass', f: 110, q: 0.7, g: 0.042, gust: [0.8, 1.2], tau: 3 }); // the depths breathing
+        this.bed(r, t, { type: 'bandpass', f: 160, q: 9, g: 0.038, gust: [0.6, 1.3], sway: [0.96, 1.04], tau: 3 }); // the cave's resonance
+        this.bed(r, t, { type: 'highpass', f: 3500, q: 0.5, g: 0.005, gust: [0.6, 1.4], tau: 2 }); // cold air
+        this.hum(r, t, 55, 0.018); // a deep hum, beating slowly against its octave
+        r.echo = this.caveEcho(r);
+        break;
+      case 'glacier':
+        this.bed(r, t, { type: 'bandpass', f: 520, q: 6, g: 0.11, gust: [0.25, 1.6], sway: [0.6, 1.8], tau: 1.1 }); // the gale moaning over the ice
+        this.bed(r, t, { type: 'bandpass', f: 900, q: 0.6, g: 0.04, gust: [0.4, 1.6], sway: [0.7, 1.4], tau: 0.9 }); // its breadth
+        this.bed(r, t, { type: 'lowpass', f: 180, q: 0.5, g: 0.065, gust: [0.6, 1.5], tau: 1.8 }); // its low roar
+        this.bed(r, t, { type: 'highpass', f: 5000, q: 0.5, g: 0.01, gust: [0.3, 1.9], tau: 0.7 }); // blowing snow
+        break;
+    }
+  }
+
+  /** A held low hum (the caves): a sine and its octave a little sharp (so they beat slowly), one to each side; it
+   *  stops with the beds. */
+  private hum(r: AmbRig, t: number, f: number, g: number): void {
+    const ctx = this.ctx!;
+    for (const [k, v, p] of [
+      [1, 1, -0.5],
+      [2.006, 0.45, 0.5],
+    ]) {
+      const o = ctx.createOscillator();
+      o.frequency.value = f * k;
+      const lv = ctx.createGain();
+      lv.gain.value = g * v;
+      const pan = ctx.createStereoPanner();
+      pan.pan.value = p;
+      o.connect(lv);
+      lv.connect(pan);
+      pan.connect(r.fade);
+      o.start(t);
+      r.srcs.push(o);
+      r.nodes.push(o, lv, pan);
     }
   }
 
@@ -2657,7 +2700,126 @@ export class Synth {
           rustle: { every: [7, 16], play: (r, t) => this.rustle(r, t, 0.45) },
           owl: { every: [16, 34], play: (r, t) => this.owl(r, t) },
         };
+      case 'pass':
+        return {
+          gust,
+          creak: { every: [2.5, 7], play: (r, t) => this.iceCreak(r, t) },
+          flags: { every: [4, 10], play: (r, t) => this.flags(r, t) },
+          flump: { every: [8, 18], play: (r, t) => this.snowFlump(r, t) },
+        };
+      case 'caves':
+        return {
+          gust: { every: [2.5, 6], play: (r, t) => this.gust(r, t) },
+          drip: { every: [0.5, 2], play: (r, t) => this.drip(r, t, 0.75) },
+          crystal: { every: [3, 8], play: (r, t) => this.crystal(r, t) },
+          trickle: { every: [6, 14], play: (r, t) => this.trickle(r, t) },
+          settle: { every: [10, 24], play: (r, t) => this.iceSettle(r, t) },
+        };
+      case 'glacier':
+        return {
+          gust: { every: [0.9, 2.5], play: (r, t) => this.gust(r, t) },
+          howl: { every: [3.5, 8], play: (r, t) => this.howl(r, t) },
+          crack: { every: [6, 14], play: (r, t) => this.iceCrack(r, t) },
+          groan: { every: [9, 20], play: (r, t) => this.glacierGroan(r, t) },
+        };
     }
+  }
+
+  /** Ice under strain (a frozen waterfall): a stick-slip creak sliding up, glassy and rasping, and a few sharp
+   *  ticks as it gives a little. */
+  private iceCreak(r: AmbRig, t: number): number {
+    const d = 0.4 + r.rand() * 0.7;
+    const out = this.spot(r, FAR_SPOTS);
+    const f = 140 + r.rand() * 120;
+    this.voice({ at: t, type: 'sawtooth', f: [[0, f], [d * 0.7, f * (1.3 + r.rand() * 0.5)], [d, f * 1.1]], trem: { rate: 22 + r.rand() * 18, depth: 0.9, wave: 'square' }, filter: 'bandpass', ff: [[0, 1400], [d, 2200]], q: 4, amp: [[d * 0.25, 0.05], [d * 0.8, 0.08], [d, 0]], out });
+    this.ticks(
+      Array.from({ length: 2 + Math.floor(r.rand() * 3) }, () => t + r.rand() * d),
+      { gain: 0.08, f: 3200 + r.rand() * 1500, q: 2, ms: 5, out },
+    );
+    return d;
+  }
+
+  /** Prayer flags on a rope snapping in the wind: a burst of flapping cloth. */
+  private flags(r: AmbRig, t: number): number {
+    const d = 0.8 + r.rand() * 1.2;
+    this.voice({ at: t, type: 'noise', buf: this.graph!.pink, filter: 'bandpass', ff: [[0, 900], [d, 1300]], q: 0.8, trem: { rate: 9 + r.rand() * 6, depth: 0.85, wave: 'square' }, amp: [[d * 0.3, 0.07], [d * 0.7, 0.05], [d, 0]], out: this.spot(r) });
+    return d;
+  }
+
+  /** A load of snow slides off a pine bough and lands: a soft hiss, then a muffled thump. */
+  private snowFlump(r: AmbRig, t: number): number {
+    const out = this.spot(r, FAR_SPOTS);
+    const d = 0.35 + r.rand() * 0.3;
+    this.voice({ at: t, type: 'noise', buf: this.graph!.pink, filter: 'bandpass', ff: [[0, 2500], [d, 1200]], q: 0.7, amp: [[d * 0.6, 0.05], [d, 0]], out });
+    this.tone({ type: 'sine', f: 90, f1: 55, glide: 0.12, at: t + d * 0.85, attack: 0.004, dur: 0.25, gain: 0.035, out });
+    this.noise({ at: t + d * 0.85, dur: 0.18, gain: 0.03, filter: 'lowpass', f: 600, rate: 0.5, out });
+    return d + 0.3;
+  }
+
+  /** Crystals in the cave walls ringing faintly: high glassy partials beating against each other, in the echo. */
+  private crystal(r: AmbRig, t: number): number {
+    const out = r.echo ?? this.spot(r, FAR_SPOTS);
+    const f = 1800 + r.rand() * 1600;
+    for (const [k, v] of [
+      [1, 1],
+      [1.0035, 0.8],
+      [2.71, 0.3],
+    ])
+      this.tone({ type: 'sine', f: f * k, at: t, attack: 0.04, dur: 1.4, gain: 0.02 * v, out });
+    return 1.4;
+  }
+
+  /** A trickle somewhere in the dark: a quick run of drops, falling in pitch. */
+  private trickle(r: AmbRig, t: number): number {
+    const out = r.echo ?? this.spot(r);
+    const n = 4 + Math.floor(r.rand() * 5);
+    let at = t;
+    let f = 1600 + r.rand() * 800;
+    for (let i = 0; i < n; i++) {
+      this.tone({ type: 'sine', f, f1: f * 1.6, glide: 0.015, at, attack: 0.001, dur: 0.04, gain: 0.04, out });
+      at += 0.06 + r.rand() * 0.07;
+      f *= 0.9 + r.rand() * 0.06;
+    }
+    return at - t;
+  }
+
+  /** Far down a tunnel the ice settles: a soft crack and a dull knock, answering in the echo. */
+  private iceSettle(r: AmbRig, t: number): number {
+    const out = r.echo ?? this.spot(r, FAR_SPOTS);
+    this.ticks([t, t + 0.015], { gain: 0.12, f: 1900 + r.rand() * 800, q: 1.5, ms: 9, out });
+    this.tone({ type: 'triangle', f: 130, f1: 70, glide: 0.08, at: t + 0.01, dur: 0.16, gain: 0.08, out });
+    return 0.3;
+  }
+
+  /** The wind howling over the ice: a long moan rising and falling (pink noise through a narrow band that slides). */
+  private howl(r: AmbRig, t: number): number {
+    const d = 1.6 + r.rand() * 1.6;
+    const f = 380 + r.rand() * 260;
+    this.voice({ at: t, type: 'noise', buf: this.graph!.pink, filter: 'bandpass', ff: [[0, f], [d * 0.45, f * 1.7], [d, f * 0.8]], q: 12, amp: [[d * 0.4, 0.32], [d * 0.7, 0.25], [d, 0]], out: this.spot(r, FAR_SPOTS) });
+    return d;
+  }
+
+  /** Far off, the glacier cracks: a sharp report, a deep boom rolling after it, a scatter of falling ice. */
+  private iceCrack(r: AmbRig, t: number): number {
+    const out = this.spot(r, FAR_SPOTS);
+    this.ticks([t, t + 0.012, t + 0.03], { gain: 0.07, f: 2400, q: 1, ms: 10, out });
+    this.noise({ at: t, dur: 0.08, attack: 0.001, gain: 0.03, filter: 'highpass', f: 1800, out });
+    this.tone({ type: 'sine', f: 70, f1: 38, glide: 0.5, at: t + 0.02, attack: 0.01, dur: 1.2, gain: 0.025, out });
+    this.voice({ at: t + 0.05, type: 'noise', buf: this.graph!.pink, rate: 0.5, filter: 'lowpass', ff: [[0, 400], [1.4, 120]], q: 0.7, amp: [[0.15, 0.035], [1.4, 0]], out });
+    this.ticks(
+      Array.from({ length: 5 }, () => t + 0.25 + r.rand() * 0.8),
+      { gain: 0.03, f: 3000 + r.rand() * 1500, q: 2, ms: 6, out },
+    );
+    return 1.4;
+  }
+
+  /** Deep in the glacier, ice grinds on rock: a very low, slow groan. */
+  private glacierGroan(r: AmbRig, t: number): number {
+    const d = 1.2 + r.rand() * 1.2;
+    const out = this.spot(r, FAR_SPOTS);
+    const f = 38 + r.rand() * 18;
+    this.voice({ at: t, type: 'sawtooth', f: [[0, f], [d * 0.5, f * 1.25], [d, f * 0.85]], trem: { rate: 9 + r.rand() * 6, depth: 0.8, wave: 'sawtooth' }, filter: 'bandpass', ff: [[0, 380], [d, 520]], q: 4, amp: [[d * 0.35, 0.09], [d * 0.8, 0.1], [d, 0]], out });
+    return d;
   }
 
   /** A run of short notes on one oscillator (birdsong, crickets, an owl): [start offset, length, from Hz, to Hz,
@@ -2757,13 +2919,13 @@ export class Synth {
     return n * gap;
   }
 
-  /** A drop of water: a sine whose pitch flicks up as the bubble closes, ringing on in the cave echo. */
-  private drip(r: AmbRig, t: number): void {
+  /** A drop of water: a sine whose pitch flicks up as the bubble closes, ringing on in the cave echo (k: its level). */
+  private drip(r: AmbRig, t: number, k = 1): void {
     const out = r.echo ?? this.spot(r);
     const drop = (at: number, f: number, v: number) => this.tone({ type: 'sine', f, f1: f * 1.9, glide: 0.02, at, attack: 0.0015, dur: 0.06, gain: v, out });
     const f = 900 + r.rand() * 1400;
-    drop(t, f, 0.07 + r.rand() * 0.05);
-    if (r.rand() < 0.25) drop(t + 0.12 + r.rand() * 0.2, f * (0.85 + r.rand() * 0.3), 0.05);
+    drop(t, f, (0.07 + r.rand() * 0.05) * k);
+    if (r.rand() < 0.25) drop(t + 0.12 + r.rand() * 0.2, f * (0.85 + r.rand() * 0.3), 0.05 * k);
   }
 
   /** Rain spattering on the stones nearby: a handful of tiny ticks. */
@@ -2900,7 +3062,8 @@ export class Synth {
 }
 
 const AMB_PREVIEW = 8;
-const AMB_LABEL: Record<Ambience, string> = { forest: 'forest', ruins: 'ruins', hollow: 'hollow', map: 'act map', world: 'world map', camp: 'camp' };
+// (Region 2's places are named by act: the playtester opens the Sound lab)
+const AMB_LABEL: Record<Ambience, string> = { forest: 'forest', ruins: 'ruins', hollow: 'hollow', map: 'act map', world: 'world map', camp: 'camp', pass: 'act 4', caves: 'act 5', glacier: 'act 6' };
 
 /** Every sound effect, for the Sound lab and the loudness tests. `tier` marks the impacts (lightest first). */
 export interface SfxEntry {
