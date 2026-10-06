@@ -140,9 +140,10 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   or fast blocks and a fast cursor are as hard for it as for a player. It wears the best gear it finds (item power).
   `tests/unit/bot.test.ts` guards the targets, set for the playtester (`TYPICAL_ACCURACY` = 85%; it was a typical 70%
   player until playtest round 4) on a fresh first playthrough with found gear only: Act 1 ~100% first try, Act 2
-  ~80-90%, the Boar King's first fight won ~75-85% (aimed at 60-70%: enemy numbers barely move an 85% player, who blocks
-  ~99% of reds; docs/orchestrator-report.md, round 4); a 70% player still clears Act 3 within 6 tries; an 85% player
-  loses at least as much HP per Act 3 fight as per Act 1 fight, and normal fights don't get shorter act over act; and
+  ~80-90%, the Boar King's first fight won ~60-75%, also by a cautious 85% bot that never takes the relics charging HP
+  (`avoid`); a 70% player still clears Act 3 within 6 tries (~85-90%); an 85% player loses more HP to foes per fight
+  act over act (later acts' reds are faster: `acts[i].redSpeed`, on Sable's bar x `sable.actRedSpeed`, since her
+  half-speed cursors ride along with reds), and normal fights don't get shorter act over act; and
   farming the Boar King (replaying Act 3 with the gear kept, `playFarm`) measurably raises the win rate. Replays start
   with `tuning.kit` (what an 85% story run has gained per act behind, re-measured: keep it in step with the story).
   `npm run snowball` (tests/balance/snowball.run.ts) shows what each fight costs per act and where the hero's stats come
