@@ -1,5 +1,109 @@
-# Combo Quest 3: status report (M4a "depth" + playtest rounds 3 and 4)
+# Combo Quest 3: status report (M5: heroes, companions, two new regions, the Test lab)
 
+- **Live build:** https://chef-development.github.io/cq3/ (every push deploys).
+- **Branch:** `claude/m5-heroes`, PR @@PR@@ (based on `claude/m4a-depth`, PR #4, which was still open: this PR
+  includes #4 and supersedes it; merge this one, #4 can be closed).
+- **How to check it:** open the **Test lab** (title screen, top left; or the gear panel's header): about 12 minutes of
+  short scenarios for everything new, each rated Good / Needs work / Broken with a note; "Copy report" puts the
+  ratings, notes, accuracy and build in the clipboard for the planning chat. It plays on its own save. Region content
+  (foes, bosses, story) sits behind "Show spoilers", labelled by act number only.
+- **Tests:** @@UNIT@@ Vitest unit tests (`npm test`) and @@SMOKE@@ Playwright smoke and pixel-exact screenshot tests, all
+  green. New this session: the hero kits and trees, companions, chests/pity/shrine, completion, achievements and
+  mastery, every bar rule (ice, snow, holds, mirrors, icicles, and the third region's two), every special action,
+  the Test lab (and that it never touches the real save), the bot's holds, and balance guards for both new regions
+  (`tests/unit/bot-region2.test.ts`, `bot-region3.test.ts`).
+- **Spoilers:** region foes, bosses, mechanics I designed and plot are in `docs/content-bible.md` only; this report
+  names systems, not content.
+- **Decisions:** 37 logged in `docs/decisions.md` (the ones most worth a look are listed below).
+
+## What M5 adds (Parts 1-10 of the overnight brief)
+
+1. **Rarity and the hero framework.** Eight tiers shared by gear, heroes and companions (Common to Divine; Celestial
+   pale cyan with stars, Divine prismatic gold; tiers above Mythic add new things, not only numbers). A hero is a
+   style (Blade, Shadow, Guardian, Marksman, Brute, Controller, Summoner, Bomber: each a set of fight hooks) plus a
+   signature, an ability, a passive, a finisher twist, a 3x5 skill tree (two or more rule nodes per branch and a
+   capstone), a rarity and soft strengths. **Two-cursor mode is gone: one cursor for every hero.**
+2. **One hero per style:** Rowan (Rare Blade, the starter), Sable (now one cursor: Shadow, Perfect hits dash the
+   cursor toward the next block), Neve, who joins in the Frostpeaks story (Legendary Controller: freezes reds into
+   blocks to shatter; her finisher reshapes the bar), and five more (Summoner with allies that have jobs, Bomber
+   whose kegs are never an extra input, Guardian, Marksman, Brute). Each has a full sprite set, a portrait, a chest
+   reveal, a tree, a hero-select page (style, rarity, stars, signature, finisher, strengths, stars and mastery
+   tabs). The gear panel has "Unlock all heroes and companions".
+3. **Hero chests, gems, the shrine, completion.** Chests from bosses, bounties and (rarely) elites, opened free,
+   weighted low, shards for what you own (duplicates become shards, shards become stars 1-5). Gems only by playing.
+   The shrine sells Rare chests for gems (pity: a Legendary or better within 30, soft pity from 20). Each region has a
+   completion tracker (acts, mini-bosses, boss, bounties, hidden treasures, events); 100% gives a region chest and a
+   map badge; Region 1's progress counts from the old saves. The reveal is our own (shake, glow, burst; no reel).
+4. **Companions:** eight, Pip first; each with bar perks, levels and stars; one slot, a second from a camp upgrade.
+5. **Shared progression:** gear, relics and camp upgrades are shared; each hero levels on their own (no catch-up XP);
+   four mastery milestones per hero unlock things for everyone (relics, set pieces, camp upgrades, cosmetics); soft
+   strengths (15-25%) show on the hero select; about a third of bounty boards call for a style once you own two heroes.
+6. **The second region, the Frostpeaks:** the world map now plans 12 regions (the four painted lands are regions 2-5, seven more lie
+   beyond the sea in fog that lifts with the weights brought home); the second region unveils after Greenmarch. Three
+   acts like Greenmarch's with ice patches and hold blocks brought in gradually (a hold never triggers the swipe:
+   unit-tested; every hero works with both), new foes, two mini-bosses and a boss whose phases rewrite the bar, Ice
+   and Hold relics, gear, a set, two signature Legendaries, story, backdrops, maps, and its own music (three act
+   themes calm/intense, two mini-boss themes, an escalating boss theme; in the Sound lab by act number).
+7. **Balance at 85%** (section below and `docs/balance.md`).
+8. **The Test lab** (above), with the standing rule in CLAUDE.md: every session adds its new content and moves the
+   previous session's to "Earlier".
+9. **Region 3, Ashfell (playable after the Frostpeaks):** two new bar rules of its own (in the content bible), its
+   foes, mini-bosses and a boss whose phases rewrite the bar, 16 relics, gear with a set and two signature
+   Legendaries, story and camp lines, art, music (three act themes, two mini-boss themes, an escalating boss theme),
+   tips, Test lab items (behind the spoiler switch), and balance with Rowan (below). Its foes' moves use four new
+   special actions, all unit-tested.
+10. Save migration (profile v4: old saves keep everything; Region 1's completion is counted from them), tests for
+    every new rule, hero, companion and special, this report, CLAUDE.md, and the PR.
+
+## Balance (85% player; details in docs/balance.md)
+- **Greenmarch** (1000-run report regenerated at 300 runs): Act 1 100% first try, Act 2 88%, the Boar King's first
+  fight 76% (a cautious player 71%); a 70% player still clears Act 3 within six tries 88% of the time.
+- **The Frostpeaks, from a typical end-of-Greenmarch Rowan:** Act 4 91% first try (target ~90), Act 5 69% (~75),
+  Act 6 60% (~60), the boss's first fight 64% (55-65).
+- **Ashfell, from a typical end-of-Frostpeaks Rowan:** Act 7 89% (~85), Act 8 70% (~70), Act 9 52% (~55), the boss
+  52% (50-60).
+- **Every hero against Rowan (+/-10 points per act):** 40 of 42 hero-acts within; Sable (+12) and Torva (+15) lead in
+  Act 5 (its mini-boss is the one foe Rowan has no edge on). Rowan got a second soft strength (+15% to frost foes) so
+  the hero the region is tuned on isn't its weakest.
+- **Branches:** none clearly the safest now (Blade, Bulwark, Momentum within ~10 points per act; Bulwark's bubble
+  recharges, Momentum's Rhythm trimmed, Blade's Executioner widened).
+- **Gems and chests:** a story run earns 237-299 gems in Greenmarch and 203-238 in the Frostpeaks; a Rare chest costs
+  240, so about one Rare chest per region from gems; plus about four hero chests per region from bosses and bounties.
+- **The bot** now lets go of holds like a person (a little late, the odd early lift), plays every hero's finisher,
+  plays the third region's bar rules, and visits camp between regions (chests, gems, companions, camp upgrades).
+
+## Decisions worth a look (all 37 in docs/decisions.md)
+1. Rarities: Rare Rowan, Tam, Hollis; Epic Sable, Moss, Torva; Legendary Neve and Vesper (the two Legendaries
+   are the chase; Neve comes free through the story).
+2. A region starts a fresh run (relic picks only for acts behind within the region).
+3. A Rare chest costs 240 gems: about one per region from gems alone.
+4. Bar-changing finishers: Neve's Glacier and Tam's Big Bang read best; Hollis's Rampart and Moss's vines
+   are the weakest (kept; a visible mark on the bar would help).
+5. Bounty boards call for a style about a third of the time once you own two heroes.
+6. The Test lab runs about 12 minutes (22 non-spoiler items, 30 s minimum each); "Completion: 100%" sits behind the
+   spoiler switch (the next region's name shows there).
+7. Rowan's branches: Unbroken and Shield Wall were reshaped so no branch is clearly the safest (numbers in balance.md).
+
+## Still unverified on the iPhone (checked in headless Chromium and Node)
+- Every new hero's feel with a real thumb (the Shadow Dash's burst, Neve's freeze, Moss's allies, the
+  kegs), and the hold blocks' press-and-release (the bot's release model is a guess at a thumb).
+- The chest reveal's pace, the shrine and the hero select's density at 8x.
+- The second region's music: checked by measured levels only, nobody has listened to it.
+
+## Known gaps and suggested next steps
+1. **Act 5 parity:** Sable and Torva are 12-15 points ahead of Rowan there; a mini-boss tag change or a small Torva
+   trim would close it.
+2. **Ashfell's parity** was measured with Rowan only (the other heroes were tuned on the first two regions).
+3. **Region 3 choices to confirm** (decisions 33-37, spoilers): how its two bar rules combine in this build, one story
+   call, a renamed relic.
+4. Bar-changing finishers: Hollis's Rampart and Moss's vines would read better with a visible mark on the bar.
+5. Fifty-four rule-node and capstone skill icons are still drawn stand-ins (the tag glyph tiles).
+6. The Test lab runs about 12 minutes (22 items), over the 10-minute aim.
+7. Stuns (Torva's Wind-Up) slow some fights; worth a look once the playtester has played Torva.
+
+## History
+
+### M4a ("depth") and playtest rounds 3 and 4 (the previous report)
 - **Live build:** https://chef-development.github.io/cq3/ (installable PWA, landscape). Every push deploys.
 - **Branch:** `claude/m4a-depth`, PR Chef-Development/cq3#4. PR #3 (M3b) was still open, so M4a is built on top of
   it: #4 includes #3 (and #2) and supersedes them (merge #4; #2 and #3 can be closed).
@@ -20,9 +124,9 @@
 - **Playtester accuracy:** 80-90% (round 4). The curve is now aimed at an 85% player (`TYPICAL_ACCURACY`), the
   playtester, on a fresh first playthrough (section 8).
 
-## What M4a adds
+### What M4a adds
 
-### 1. Relics (rule-changing run picks)
+#### 1. Relics (rule-changing run picks)
 - **The pick after a fight** offers mostly relics plus at most one stat card (55% of picks have one). Relics use the
   card rarities (19 common, 17 rare, 4 epic), are never offered twice, and follow the boosts' carry/reset rules: they
   carry from act to act, a retry restores the act-start set, a new run starts with none. Elites, bosses and treasure
@@ -55,7 +159,7 @@
   and calls them at fixed points (crit chance, hit damage, after a hit/block, meter, combo, combo break, miss, trap,
   impact, finisher, pecks, kills, bombs). Every relic has a with/without unit test (`tests/unit/relics.test.ts`, 60).
 
-### 2. Sable, the second hero (Twin family: two cursors)
+#### 2. Sable, the second hero (Twin family: two cursors)
 - **An original dual-dagger ninja** (hooded, indigo with a teal scarf). After Act 1, Sable tries to rob the camp, Pip
   catches them and they join (a 6-box scene in the game's tone; it plays at the camp, or before Act 2 if you go on).
 - **Controls:** the bar is split. Cursor A sweeps the left half, B the right half, each at the normal pass time; they
@@ -75,7 +179,7 @@
   other seeds move it by about 4 points. Sable has 125 base HP (Rowan 100). `npm run twin` compares them;
   `tests/unit/twin-bot.test.ts` guards it.
 
-### 3. Hero levels and skill trees
+#### 3. Hero levels and skill trees
 - **XP** from kills (elites and bosses more, more per act) and act clears (double the first time) goes to the hero who
   fights. Levels 1-30: +2 max HP and +1.5% base attack per level, and a skill point every 2 levels (15 at 30). A
   typical first playthrough reaches level 3 by the Bandit Captain, 6 by the Golem, 8 at the Boar King and about 9-10
@@ -104,7 +208,7 @@
   Bulwark 76% (Bulwark's defence matters most against Act 3's big hits; it was 85% before Shield Wall became once a
   fight and the numbers moved).
 
-### 4. A soundtrack per act (`src/engine/music.ts`)
+#### 4. A soundtrack per act (`src/engine/music.ts`)
 - Act 1, Meadow Road: D major, 128 BPM, bouncy. Act 2, Old Ruins: E Dorian, 104 BPM, a rolling echoing arpeggio.
   Act 3, Boar King's Hollow: C minor, 140 BPM, war drums. Each act's melody has a calm arrangement (flute, music box,
   light pad: map, nodes, scenes) and an intense one (fights), crossfading on the beat.
@@ -117,14 +221,14 @@
   piece across its loop point and check levels (no clipping, impacts and telegraphs over the music, layers add up,
   the Boar King escalates and changes key, crossfades have no gap, under 320 new audio nodes a second).
 
-### 5. Saves
+#### 5. Saves
 - **Profile v3** (same storage key): the picked hero, each hero's XP and skills, the relics unlocked (and which are
   new), Sable met, the twin tutorial shown. A v2 profile is migrated: Rowan gets the cleared acts' first-clear XP and
   their act relics unlock. (A v2 profile with all three acts cleared lands at level 7.)
 - **Run save v6:** the hero's relics, the act-start relics, a replay's starting picks left. A v5 save is migrated (no
   relics yet), so a run in progress survives the update; v4 still migrates through v5.
 
-### 6. Playtest round 3: "too many numbers, cluttered"
+#### 6. Playtest round 3: "too many numbers, cluttered"
 - **Clarity pass:** the fight shows only what you act on (no stat row, no enemy attack chip, no stat rain); gear
   reads in plain words and short numbers (`fmtStatShort`); the bag's compare is one verdict band (better / worse /
   side-grade); a loot card shows its top 3 stats.
@@ -139,7 +243,7 @@
 - **Asked in the same round:** a Camp button on the act map; "New run" says "Keeps your gear", and a real Start over
   (gear panel, asked twice) erases the profile.
 
-### 7. Playtest round 4: map content ("the main map needs more activity")
+#### 7. Playtest round 4: map content ("the main map needs more activity")
 Another agent did the living scenery, critters and coin sparkles; this part is roaming foes, events and more to do
 between fights. Icons first, few words, no new HUD rows (the bounty tracker sits in the top row, left of the coins).
 - **Wandering packs** (`core/roam.ts`): 1 pack on Act 1's map, 2 on Acts 2-3 (`acts[i].packs` in greenmarch.ts, two
@@ -176,7 +280,7 @@ between fights. Icons first, few words, no new HUD rows (the bounty tracker sits
   per act attempt. A first cut with a two-relic, 30%-off merchant pushed the Boar King to 81-84%, so she was trimmed.
   The bot guards pass; re-run `npm run balance` after merging with the combat retune.
 
-### 8. Playtest round 4: balance ("the scaling gets insane later: basically immune, huge damage, free combos")
+#### 8. Playtest round 4: balance ("the scaling gets insane later: basically immune, huge damage, free combos")
 Measured first with the bot (new: `npm run snowball`, per act and node type: HP lost per fight, the foes' share of it,
 fight length, damage per second, combo, where each stat comes from, ablations, and a **veteran**: a full playthrough,
 6 forged Act 3 farms, then Acts 1-3 replayed; `npm run perks`: each relic and skill node alone on a typical Act 3 hero;
@@ -253,7 +357,7 @@ cautious 500).
 - **Sable vs Rowan:** within +/-7 points at 70% and 85% in every act (worst: 85% Act 2 +7, Act 3 -7).
 - **Boss one-shots:** none (Boar King HP 6.5x a max-stack finisher).
 
-### 9. World map: bigger and alive (playtest: "barren and empty, it doesn't feel large enough")
+#### 9. World map: bigger and alive (playtest: "barren and empty, it doesn't feel large enough")
 - **3 screens wide, 2 tall** (960x300 game px), dragged to explore: a press that moves over 4 game px pans (with
   momentum, clamped, never starts anything); one released in place is a tap. The HUD stays put in the safe areas. It
   opens on Rowan's act; the first visit glides in from the far east (1.95 s, any tap skips; `profile.worldTour`, so
@@ -277,7 +381,7 @@ cautious 500).
 - **Tests:** a smoke test (the reveal and its skip, a drag that starts nothing, a landmark's card, Play); screenshots
   of the map opened on Greenmarch, panned to the locked lands, and an act landmark selected.
 
-### 10. Playtest round 4: New game, living maps, and the fixes from the phone
+#### 10. Playtest round 4: New game, living maps, and the fixes from the phone
 - **New game wipes everything** (playtest: "I want new game to wipe everything"). The title offers Continue (the run,
   or the world map with everything kept) and New game whenever anything is earned (`anythingToErase`); New game is
   tapped twice ("Tap again / Erases all") and erases the profile and the run (settings and calibration stay), then
@@ -306,7 +410,7 @@ cautious 500).
     the build ("Build 3570bb0 Oct 6 ..."). Smoke test with a stubbed version file.
   - Playwright's preview port comes from `PORT` (worktrees serve their own build instead of reusing another's).
 
-## Balance (docs/balance.md: 1,000 whole runs per player; farming 333 players per row)
+### Balance (docs/balance.md: 1,000 whole runs per player; farming 333 players per row)
 
 Round 4 (section 8) aimed the curve at the playtester (85%); M4a's numbers below that table are history.
 
@@ -334,7 +438,7 @@ length.
 - **Farming still pays:** replaying Act 3 raises a typical player's Boar King win rate from 71% (story) to 97-100%.
 - **Sable vs Rowan** (same accuracy, same tuning): within +/-10 points per act (table in docs/balance.md).
 
-## Decisions I made (please check)
+### Decisions I made (please check)
 1. **Sable's two cursors move in step** (A over the left half, B over the right, half a bar apart), not
    independently. Easier to read with two thumbs, and the judge stays one cursor history.
 2. **Twin Fang** (Sable's finisher): hits only the current target, x1.4, and a kill keeps a stack; it still clears all
@@ -346,7 +450,7 @@ length.
 6. Relics in a pick: 55% of picks have one stat card. The relic shop price is x1.25 a card's.
 7. **Starting HP:** a new run now starts at full HP including gear (it started at the base 100 before).
 
-## Still unverified on the iPhone (checked in headless Chromium and Node)
+### Still unverified on the iPhone (checked in headless Chromium and Node)
 - **Round 4:** the faster reds in Acts 2-3 (tense or unfair?); the world map's drag on a real thumb (a press that
   moves 4 game px is a drag) and its paint time (~300-450 ms in idle slices on the VM); whether the Act 3 map reads
   clearly with packs, the merchant, tags and critters on it; that the app now updates itself when brought back.
@@ -357,7 +461,7 @@ length.
 - The relic popups' pace in a busy fight (each perk names itself at most every 3.5 s).
 - Everything from M3b's list that is still open (the launch fix on a cold start, loot timings, camp tap targets).
 
-## Known gaps and suggested next steps
+### Known gaps and suggested next steps
 1. **Feel-check the faster reds on the phone** (Act 3: 2.4 s across the bar, Sable's 1.9 s). If they read as unfair
    rather than tense, lower `acts[2].redSpeed` (x1.15) and raise `acts[2].atkMult`; for Sable, `sable.actRedSpeed`.
 2. **Sable takes more hits than Rowan for a skilled (85%) player** in Act 3 (3.8 vs 2.5 a minute; her 125 HP covers
@@ -374,7 +478,6 @@ length.
 8. The world map: mountains look a bit regular in places; frame rate judged by eye only; the paint time on the phone
    is unmeasured.
 
-## History
 
 ### What M3b added (the camp, gear and the forge; playtest round 2)
 

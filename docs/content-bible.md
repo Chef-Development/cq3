@@ -527,3 +527,14 @@ speed in a slow patch.
    sprites and telegraph poses; portraits (Rumbleback, Hob & Nob, Bellows); item icons; the three landmarks and
    `landOpen` for Ashfell; the telegraph sounds, the six pieces and the three ambience beds (Sound lab labels by act
    number only, as for the Frostpeaks: built, see Music, As built; they play once the acts and foes are in the data).
+
+### Build calls (decisions.md 33-37, kept here: spoilers)
+- **The two rules as built:** drifting blocks are yellows sliding slowly along the bar, turning at the ends and at
+  their neighbours (never reds, greens, traps, kegs or frozen blocks); linked pairs are two chained yellows: the first
+  tap lights one, the second within a beat of 0.8 s lands both at x1.5; too slow and both break as one miss. A pair
+  nobody starts costs nothing; perks never hit half a pair; the beat is a fuse burning down the chain.
+- **Pairs don't drift in this build:** a pair stays put, a single yellow drifts (simpler to read; the bot and the judge
+  treat both cleanly). The design's drifting pairs in Act 3 can come later.
+- **Long Fuse became Slow Match** (a hero skill already had the first name).
+- **Story:** the boss is Mags's old master (a camp scene after the region's first act tells it), and the victory
+  points on to the next land.

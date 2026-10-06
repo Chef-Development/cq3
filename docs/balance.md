@@ -200,7 +200,7 @@ fight won. `tests/unit/bot-region2.test.ts` guards the second region's targets w
 
 **What the bot learned this session:** holds (pressed at the near edge; let go when the cursor looks past the far
 end, 25 ms late on average, 1.2x its tap spread, an early lift on half its lapse rate: an 85% player drops about 1
-hold in 15), each hero's finisher read (who it kills), linked pairs (it goes for the partner within the beat), and a
+hold in 15), each hero's finisher read (who it kills), the third region's bar rules, and a
 camp visit between regions (every Rare chest its gems buy, every chest opened, the camp upgrades it can afford, its
 rarest companions brought along). Patches (ice, snow, a dash) it reads through the cursor's travel time like a
 person; kegs, frozen blocks and allies are plain taps or passive.
@@ -285,3 +285,17 @@ a chest), a Celestial or better within 120. A chest holds a hero half the time (
 plain hero chests hold 3-6 shards for something you own instead. Drops: a region boss's first kill always drops a hero
 chest (later kills 35%), a mini-boss's likewise (25%), a bounty 30%, an elite 4%. A story run through a region opens
 about four hero chests and one Rare chest.
+
+### The third region (Rowan, from a typical end-of-second-region hero)
+
+| Target (85% player) | Result (Rowan, 100 runs) |
+|---|---|
+| Act 7 (the region's Act 1) ~85% first try | **89%** |
+| Act 8 (Act 2) ~70% first try | **70%** (mini-boss 72%) |
+| Act 9 (Act 3) ~55% first try | **52%** |
+| The boss's first fight ~50-60% | **52%** |
+
+93 of 100 runs won both earlier regions; the hero arrives at level ~14 and meets the boss at ~17. Act numbers
+(`acts[6..8]`): HP x8.6 / x8.8 / x10.5, attack x16.5 / x17 / x24; the Act 7 mini-boss 4000 HP / 19 attack, the boss
+8400 / 19. Guarded by `tests/unit/bot-region3.test.ts`. Only Rowan was measured here (the other heroes' parity was
+tuned on the first two regions).

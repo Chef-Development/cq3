@@ -7,7 +7,7 @@ fight won. `tests/unit/bot-region2.test.ts` guards the second region's targets w
 
 **What the bot learned this session:** holds (pressed at the near edge; let go when the cursor looks past the far
 end, 25 ms late on average, 1.2x its tap spread, an early lift on half its lapse rate: an 85% player drops about 1
-hold in 15), each hero's finisher read (who it kills), linked pairs (it goes for the partner within the beat), and a
+hold in 15), each hero's finisher read (who it kills), the third region's bar rules, and a
 camp visit between regions (every Rare chest its gems buy, every chest opened, the camp upgrades it can afford, its
 rarest companions brought along). Patches (ice, snow, a dash) it reads through the cursor's travel time like a
 person; kegs, frozen blocks and allies are plain taps or passive.

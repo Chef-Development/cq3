@@ -113,18 +113,13 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
 31. **Rowan gets a second soft strength: +15% damage to frost foes** (the second region's foes mostly carry that tag,
     Greenmarch's none, so Region 1 is unchanged). Without it Rowan, the hero the region is tuned on, ran 10-20 points
     behind every other hero there; with it his region numbers sit on target.
-32. **First-time tips for everything new on the bar** (holds, ice, snow, mirrors, iced yellows, kegs, frozen blocks;
-    drifting blocks and pairs for the third region) and for chests, the shrine and companions: one short tip, shown
-    once, like the rest.
+32. **First-time tips for everything new on the bar** (holds, ice, snow, mirrors, iced yellows, kegs, frozen blocks,
+    and the third region's two rules) and for chests, the shrine and companions: one short tip, shown once, like the
+    rest.
 
-## Part 9: the third region (details in docs/content-bible.md section 6)
-33. **Its two bar rules:** drifting blocks (a share of yellows slide slowly along the bar, turning at the ends and at
-    their neighbours; never reds, greens, traps, kegs or frozen blocks) and linked pairs (two yellows chained: the
-    first tap lights one, the second within a beat of 0.8 s lands both at x1.5; too slow and both break as one miss).
-    A pair nobody starts costs nothing. Perks never hit half a pair. The beat is a visible fuse burning down the chain.
-34. **Pairs don't drift in this build** (the design allows a drifting pair in Act 3): a pair stays put, a single
-    yellow drifts. Simpler to read, and the bot and the judge treat both cleanly; a later pass can add drifting pairs.
-35. A Link relic was renamed **Slow Match** (its first name clashed with a hero's skill).
-36. Story calls the planning chat may want to confirm: the region's boss is Mags's old master (a camp scene after its
-    first act tells it), and its victory points on to the next land.
-37. The region's relics unlock by its act clears and elites only (no mastery milestones for it yet); 4 from the start.
+## Part 9: the third region (spoilers: the calls themselves are in docs/content-bible.md section 6, "Build calls")
+33. Its two bar rules: how they look, their numbers, and what a miss costs.
+34. How the two rules combine in this build (simpler than the design allows; a later pass can add the rest).
+35. One relic renamed (its first name clashed with a hero's skill).
+36. One story call the planning chat may want to confirm.
+37. Its relics unlock by its act clears and elites only (no mastery milestones for it yet); 4 from the start.
