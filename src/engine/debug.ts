@@ -376,8 +376,8 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
 
   /**
    * The music in the Sound lab: every piece (an act's map and fight arrangements crossfade like in the game), the
-   * fight layers at a chosen combo, each region's boss per phase (MUSIC_PIECES; Region 2's are labelled by act, not
-   * by name). It plays instead of the game's music until the panel closes (or "Game's music").
+   * fight layers at a chosen combo, each region's boss per phase (MUSIC_PIECES; Regions 2 and 3 are labelled by act,
+   * not by name). It plays instead of the game's music until the panel closes (or "Game's music").
    */
   function musicLab(parent: HTMLElement): void {
     parent.appendChild(el('div', 'dbg-note', "Music: tap a piece. Pick a combo to hear the fight layers join (drums, bass, lead). The game's music comes back when the panel closes."));

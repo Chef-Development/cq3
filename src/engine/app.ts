@@ -20,14 +20,26 @@ export interface View {
 }
 
 const MAX_CATCHUP_S = 0.25;
-/** Bosses with a theme of their own (by enemy key; the enemy must also be a boss in the data). */
-const BOSS_THEMES: Record<string, MusicTrack> = { captain: 'captain', golem: 'golem', boarKing: 'boarKing', rimehorn: 'rimehorn', matron: 'matron', glacia: 'glacia' };
-/** Bosses whose theme follows their phase (layers join, then a key change). */
-const PHASED_BOSSES = ['boarKing', 'glacia'];
-/** Each act's theme by its global index: Greenmarch is acts 0-2, the next region acts 3-5. */
-const ACT_THEMES: MusicTrack[] = ['act1', 'act2', 'act3', 'frost1', 'frost2', 'frost3'];
+/** Bosses with a theme of their own (by enemy key; the enemy must also be a boss in the data). Region 3's
+ *  (rumbleback, hobnob, bellows) wait for its enemies to join the data. */
+const BOSS_THEMES: Record<string, MusicTrack> = {
+  captain: 'captain',
+  golem: 'golem',
+  boarKing: 'boarKing',
+  rimehorn: 'rimehorn',
+  matron: 'matron',
+  glacia: 'glacia',
+  rumbleback: 'rumbleback',
+  hobnob: 'hobnob',
+  bellows: 'bellows',
+};
+/** Bosses whose theme follows their phase (layers join, and a key change for the region bosses). */
+const PHASED_BOSSES = ['boarKing', 'glacia', 'hobnob', 'bellows'];
+/** Each act's theme by its global index: Greenmarch is acts 0-2, the next region acts 3-5, the third 6-8 (not in
+ *  play yet: until those acts exist nothing asks for theirs). */
+const ACT_THEMES: MusicTrack[] = ['act1', 'act2', 'act3', 'frost1', 'frost2', 'frost3', 'ash1', 'ash2', 'ash3'];
 /** Acts with their own ambience bed (on their map too); Greenmarch's come from each act's theme. */
-const ACT_AMBIENCE: Partial<Record<number, Ambience>> = { 3: 'pass', 4: 'caves', 5: 'glacier' };
+const ACT_AMBIENCE: Partial<Record<number, Ambience>> = { 3: 'pass', 4: 'caves', 5: 'glacier', 6: 'cinder', 7: 'glass', 8: 'forge' };
 export const INTRO_MS = 800;
 
 /** The real game as the Test lab found it (put back exactly when the lab closes). */
@@ -494,8 +506,8 @@ export class App {
   }
 
   /** The piece for the phase we're in; in a fight it also follows the live combo (its layers) and a phased boss's
-   *  phase (the Boar King, the next region's boss). Called at every phase change and every flush (the music only
-   *  acts on a change, on its next beat). */
+   *  phase (the Boar King, the later regions' bosses, the third region's two-headed mini-boss). Called at every phase
+   *  change and every flush (the music only acts on a change, on its next beat). */
   private cueMusic(): void {
     const { track, intense } = this.music();
     this.audio.setMusic(track, intense);
@@ -507,8 +519,8 @@ export class App {
   }
 
   /** The sea and gulls on the title and the world map, a breeze over the act map, the campfire and crickets at the
-   *  camp, and the act's own place (forest, ruins, hollow) in its fights, nodes and scenes. The next region's acts
-   *  (pass, caves, glacier) keep their own bed on their map too. */
+   *  camp, and the act's own place (forest, ruins, hollow) in its fights, nodes and scenes. The later regions' acts
+   *  (pass, caves, glacier; cinder, glass, forge) keep their own bed on their map too. */
   private ambience(): Ambience {
     const p = this.run.phase;
     if (p === 'title' || p === 'world') return 'world';

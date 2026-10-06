@@ -114,9 +114,10 @@ describe('Region 3: the foes', () => {
     for (const tag of ['folk', 'caster', 'beast', 'swarm', 'armored', 'brute', 'flyer', 'construct'] as const) expect(all.some(([, e]) => e.tags?.includes(tag)), tag).toBe(true);
   });
 
-  it('every special has a 0.6-1.0 s telegraph, a name, a known or listed sound, something to do; 0-2 moves at a time', () => {
-    const sounds = new Set<string>([...TELL_SOUNDS, ...ASH_NEW_SOUNDS]);
-    for (const n of ASH_NEW_SOUNDS) expect((TELL_SOUNDS as readonly string[]).includes(n), `${n} is new`).toBe(false);
+  it('every special has a 0.6-1.0 s telegraph, a name, a known sound, something to do; 0-2 moves at a time', () => {
+    // (the region's new telegraph sounds are in the engine's catalog now: tests/unit/audio.test.ts checks them)
+    const sounds = new Set<string>(TELL_SOUNDS);
+    for (const n of ASH_NEW_SOUNDS) expect(sounds.has(n), `${n} has its telegraph`).toBe(true);
     for (const [key, e] of all) {
       expect(e.specials.length, `${key} changes how the bar plays`).toBeGreaterThan(0);
       for (const ph of [1, 2, 3]) expect(e.specials.filter((s) => !(e.boss && s.gate) && (!s.phases || s.phases.includes(ph))).length, `${key} phase ${ph}`).toBeLessThanOrEqual(2);
