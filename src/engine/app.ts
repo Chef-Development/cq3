@@ -19,8 +19,14 @@ export interface View {
 }
 
 const MAX_CATCHUP_S = 0.25;
-/** Bosses with a theme of their own. */
-const BOSS_THEMES: Record<string, MusicTrack> = { captain: 'captain', golem: 'golem', boarKing: 'boarKing' };
+/** Bosses with a theme of their own (by enemy key; the enemy must also be a boss in the data). */
+const BOSS_THEMES: Record<string, MusicTrack> = { captain: 'captain', golem: 'golem', boarKing: 'boarKing', rimehorn: 'rimehorn', matron: 'matron', glacia: 'glacia' };
+/** Bosses whose theme follows their phase (layers join, then a key change). */
+const PHASED_BOSSES = ['boarKing', 'glacia'];
+/** Each act's theme by its global index: Greenmarch is acts 0-2, the next region acts 3-5. */
+const ACT_THEMES: MusicTrack[] = ['act1', 'act2', 'act3', 'frost1', 'frost2', 'frost3'];
+/** Acts with their own ambience bed (on their map too); Greenmarch's come from each act's theme. */
+const ACT_AMBIENCE: Partial<Record<number, Ambience>> = { 3: 'pass', 4: 'caves', 5: 'glacier' };
 export const INTRO_MS = 800;
 
 export class App {
@@ -370,8 +376,9 @@ export class App {
     this.audio.setAmbience(this.ambience());
   }
 
-  /** The piece for the phase we're in; in a fight it also follows the live combo (its layers) and the Boar King's
-   *  phase. Called at every phase change and every flush (the music only acts on a change, on its next beat). */
+  /** The piece for the phase we're in; in a fight it also follows the live combo (its layers) and a phased boss's
+   *  phase (the Boar King, the next region's boss). Called at every phase change and every flush (the music only
+   *  acts on a change, on its next beat). */
   private cueMusic(): void {
     const { track, intense } = this.music();
     this.audio.setMusic(track, intense);
@@ -379,27 +386,30 @@ export class App {
     const fight = this.run.phase === 'fight' && !!c;
     const hold = performance.now() < this.comboHold.until ? this.comboHold.combo : 0;
     this.audio.setCombo(fight ? Math.max(c.combo, hold) : 0);
-    this.audio.setBossPhase((fight && c.enemies.find((e) => e.key === 'boarKing')?.phase) || 1);
+    this.audio.setBossPhase((fight && c.enemies.find((e) => PHASED_BOSSES.includes(e.key))?.phase) || 1);
   }
 
   /** The sea and gulls on the title and the world map, a breeze over the act map, the campfire and crickets at the
-   *  camp, and the act's own place (forest, ruins, hollow) in its fights, nodes and scenes. */
+   *  camp, and the act's own place (forest, ruins, hollow) in its fights, nodes and scenes. The next region's acts
+   *  (pass, caves, glacier) keep their own bed on their map too. */
   private ambience(): Ambience {
     const p = this.run.phase;
     if (p === 'title' || p === 'world') return 'world';
     if (p === 'camp') return 'camp';
+    const own = ACT_AMBIENCE[this.run.actIndex];
+    if (own) return own;
     return p === 'map' ? 'map' : this.run.theme;
   }
 
-  /** The title theme on the title and the world map, the camp's own, and each act's theme: calm on its map, nodes
-   *  and scenes, intense in its fights; a mini-boss or the Boar King brings his own theme while he's alive (it
-   *  plays to the end of that fight). */
+  /** The title theme on the title and the world map, the camp's own, and each act's theme (by the global act
+   *  index): calm on its map, nodes and scenes, intense in its fights; a mini-boss or a region's boss brings their
+   *  own theme while alive (it plays to the end of that fight). */
   private music(): { track: MusicTrack; intense: boolean } {
     const r = this.run;
     const p = r.phase;
     if (p === 'title' || p === 'world' || p === 'victory') return { track: 'title', intense: false };
     if (p === 'camp') return { track: 'camp', intense: false };
-    const act = (['act1', 'act2', 'act3'] as const)[Math.max(0, Math.min(2, r.actIndex))];
+    const act = ACT_THEMES[Math.max(0, Math.min(ACT_THEMES.length - 1, r.actIndex))];
     const c = r.combat;
     if (p !== 'fight' || !c) {
       this.bossTheme = null;

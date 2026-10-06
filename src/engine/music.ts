@@ -1,14 +1,14 @@
 // Music: an original theme per place and per boss, played live by a small synthesized band (no samples).
 //
-// Every piece is a loop on a 16th-note grid with its own tempo and meter (4/4, a 6/8 jig, a 3/4 lullaby), a chord
-// per bar (or two), one melody, and the parts of its arrangements:
+// Every piece is a loop on a 16th-note grid with its own tempo and meter (4/4, a 6/8 jig, 3/4, a 7/8 whose uneven
+// beats are its `pulses`), a chord per bar (or two), one melody, and the parts of its arrangements:
 //   - the acts' themes have two arrangements of the same melody at the same tempo: calm (the act map, nodes, story
 //     scenes: a flute and a music box over a light pad, no drums) and intense (fights). Moving between them
 //     crossfades inside the piece, from a beat, so it stays one piece.
 //   - in a fight the intense arrangement starts from its base (pad, arpeggio, percussion, the melody on a bell) and
 //     layers join as the combo climbs: drums, then bass, then the lead (tuning.music), each on the next beat; a
-//     combo break drops them back. The Boar King's theme also adds layers with his phases and goes up a key in
-//     the last one.
+//     combo break drops them back. A phased boss's theme (the Boar King, Region 2's boss: `keyUp`) also adds
+//     layers with the phases and goes up a key in the last one.
 //   - another piece (a mini-boss, the camp, the next act) starts from its top on the next beat while the last one
 //     rings out.
 //
@@ -22,8 +22,23 @@
 import type { Tuning } from '../core/tuning';
 import type { NoiseOpts, Pts, ToneOpts, VoiceOpts, Wave } from './audio';
 
-export type MusicTrack = 'title' | 'camp' | 'act1' | 'act2' | 'act3' | 'captain' | 'golem' | 'boarKing';
-export const MUSIC_TRACKS: MusicTrack[] = ['title', 'camp', 'act1', 'act2', 'act3', 'captain', 'golem', 'boarKing'];
+export type MusicTrack =
+  | 'title'
+  | 'camp'
+  | 'act1'
+  | 'act2'
+  | 'act3'
+  | 'captain'
+  | 'golem'
+  | 'boarKing'
+  // Region 2 (docs/content-bible.md, section 5): its three acts, two mini-bosses and the boss
+  | 'frost1'
+  | 'frost2'
+  | 'frost3'
+  | 'rimehorn'
+  | 'matron'
+  | 'glacia';
+export const MUSIC_TRACKS: MusicTrack[] = ['title', 'camp', 'act1', 'act2', 'act3', 'captain', 'golem', 'boarKing', 'frost1', 'frost2', 'frost3', 'rimehorn', 'matron', 'glacia'];
 
 /** Calm (maps, nodes, scenes) or intense (fights). */
 export type Arrangement = 'calm' | 'intense';
@@ -85,6 +100,7 @@ export interface Song {
   bpm: number; // beats per minute (a 6/8 beat is a dotted quarter)
   meter: number; // steps (16ths) per bar
   beat: number; // steps per beat
+  pulses?: number[]; // uneven beats (7/8 as 2+2+3): the bar's steps where a beat falls; changes land on these
   bars: number;
   split?: number; // where a bar's second chord starts (default: half the bar)
   chords: Chord[][];
@@ -98,6 +114,15 @@ export interface Song {
 
 const hz = (m: number): number => 440 * Math.pow(2, (m - 69) / 12);
 const scale = (p: Pts, k: number): Pts => p.map(([d, v]): [number, number] => [d, v * k]);
+
+/** Whether step s of a bar is on a beat (every `beat` steps, or on the piece's uneven pulses). */
+const onPulse = (song: Song, s: number): boolean => (song.pulses ? song.pulses.includes(s) : s % song.beat === 0);
+/** Steps from step s of a bar to the next beat (0 on one; the bar line is always a beat). */
+function toPulse(song: Song, s: number): number {
+  if (!song.pulses) return (song.beat - (s % song.beat)) % song.beat;
+  const next = song.pulses.find((p) => p >= s);
+  return (next ?? song.meter) - s;
+}
 
 // ---- notation: melodies, chords, bass bars and drum patterns as text ----
 
@@ -207,7 +232,8 @@ interface BassOpts {
   level: number;
   hz: [number, number]; // the pluck's filter: from, settling to
   sub: number; // sine sub (share of the level)
-  gate?: number; // share of the note's length it holds
+  gate?: number; // share of the note's length it sounds
+  hold?: number; // share of that it holds before dying away (default 0.6; a calm bass sustains)
 }
 const bass = (bars: (bar: number) => Note[], o: BassOpts, layer: Layer = 'bass') =>
   part(layer, (x) => {
@@ -645,7 +671,382 @@ const BOAR_KING: Song = {
   ],
 };
 
-export const SONGS: Record<MusicTrack, Song> = { title: TITLE, camp: CAMP, act1: ACT1, act2: ACT2, act3: ACT3, captain: CAPTAIN, golem: GOLEM, boarKing: BOAR_KING };
+// ---- Region 2 (secret: docs/content-bible.md, section 5). Each act, mini-boss and the boss has its own key, tempo,
+// meter and band, unlike Region 1's pieces and each other. ----
+
+// Act 4, the pass: B minor, 116 BPM. A celesta hook that falls like snow (a dotted step down, a drop to the root,
+// back up a step at a time), the glockenspiel twinkling on its long notes, a harp of plucked strings, sleigh bells
+// and a low choir. The fight drives it with 16th-note pizzicato and taiko; the lead is a thin, glassy pulse.
+const FROST1_CALM_BASS = bassBar('0:8 . . . . . . . 7:8 . . . . . . .');
+const FROST1_BASS = bassBar('0:2 . 0:1 0:1 12:2 . 0:1 0:1 0:2 . 0:1 0:1 7:2 . 12:2 .');
+const FROST1_TURN = bassBar('0:2 . 0:1 0:1 12:2 . 0:1 0:1 0:2 . 2:2 . 4:2 . 5:2 .'); // F#, G#, A# up into B
+const FROST1_PIZZ = [0, 2, 1, 2, 3, 2, 1, 2, 0, 2, 1, 2, 4, 3, 2, 1];
+const FROST1: Song = {
+  track: 'frost1',
+  name: 'Frostbite Pass',
+  key: 'B minor',
+  bpm: 116,
+  meter: 16,
+  beat: 4,
+  bars: 8,
+  chords: chords('Bm | G | Em | F# | Bm | D A | G Em | F#sus4 F#'),
+  melody: mel(
+    16,
+    'f#5:3 d5:1 b4:2 f#5:2 g5:2 f#5:2 d5:4 | g5:3 e5:1 b4:2 g5:2 a5:2 g5:2 d5:4 | e5:2 g5:2 b5:3 a5:1 g5:2 f#5:2 e5:4 | f#5:3 e5:1 c#5:2 a#4:2 c#5:8 |' +
+      'f#5:3 d5:1 b4:2 f#5:2 b5:2 a5:2 f#5:4 | a5:3 f#5:1 d5:2 a5:2 c#6:2 b5:2 a5:4 | b5:3 a5:1 g5:2 d5:2 e5:2 f#5:2 g5:4 | f#5:4 b4:2 c#5:2 a#4:6 c#5:2',
+  ),
+  echo: 0.36,
+  swing: 0.08,
+  calm: [
+    pad({ level: 0.07, hz: 800, attack: 0.6, wave: 'triangle' }),
+    part('base', (x) => (x.change || x.first) && x.b.choir(x, 0.11)),
+    // the harp: plucked strings up the chord and back in 8ths
+    part('base', (x) => {
+      const k = [0, -1, 1, -1, 2, -1, 3, -1, 4, -1, 3, -1, 2, -1, 1, -1][x.s];
+      if (k >= 0) x.b.pizz(x, tone(x.chord, k), 0.2, { hz: 2600 });
+    }),
+    melody('base', (x, m) => x.b.celesta(x, m, 0.3)),
+    part('base', (x) => x.note && x.note[1] >= 4 && x.b.bell(x, x.note[0] + 12, 0.1)), // the glockenspiel twinkles
+    bass(() => FROST1_CALM_BASS, { level: 0.24, hz: [800, 300], sub: 1.05, gate: 1.05, hold: 0.93 }, 'base'),
+    perc(['..o...x...o...x.'], (x, v) => x.b.sleigh(x, x.t + x.song.swing * x.STEP, v * 0.6)),
+    riser(0.3),
+    chime(83, 0.8),
+  ],
+  intense: [
+    pad({ level: 0.15, hz: 1300, attack: 0.2 }),
+    part('base', (x) => (x.change || x.first) && x.b.choir(x, 0.12)),
+    part('base', (x) => x.b.pizz(x, tone(x.chord, FROST1_PIZZ[x.s]), x.s % 4 ? 0.24 : 0.34)),
+    melody('base', (x, m) => x.b.celesta(x, m + 12, 0.34 * x.lead)),
+    perc(['X.o.x.o.X.o.x.o.'], (x, v) => x.b.sleigh(x, x.t + (x.s % 4 ? x.song.swing * x.STEP : 0), v)),
+    perc(['X.......X.....x.', 'X.......X..x..x.'], (x, v) => x.b.taiko(x, x.t, v * 1.3)),
+    riser(0.6),
+    kit({
+      kick: ['X.......X.x.....', 'X.......X.x...x.'],
+      snare: ['....X.......X...'],
+      hats: ['x.o.x.o.x.o.x.o.'],
+      clap: true,
+      fill: { snare: '....X.......XxXX', hats: 'x.o.x.o.x.......' },
+      crash: [0],
+      level: 0.75,
+    }),
+    bass((bar) => (bar === 7 ? FROST1_TURN : FROST1_BASS), { level: 0.32, hz: [1700, 460], sub: 1.35 }),
+    melody('lead', (x, m, len) => x.b.lead(x, m, len, 0.22, 'pulse12', 4400)),
+  ],
+};
+
+// Act 5, the caves: A flat Lydian (its raised fourth, D, floats over the tonic), 96 BPM. A glass harmonica sings
+// slow phrases that climb through the D; water-drop woodblocks and high crystal notes in a dotted rhythm ring in a
+// long echo over a fretless bass that slides into its notes. The fight pulses: an 8th-note synth bass and toms.
+const FROST2_FRETLESS = bassBar('0:10 . . . . . . . . . 7:4 . . . 12:2 .');
+const FROST2_PULSE = bassBar('0:1 . 0:1 . 0:1 . 0:1 . 0:1 . 0:1 . 12:1 . 0:1 .');
+const FROST2_DROPS = [880, 1175, 990, 1320, 784, 1046, 1480];
+const FROST2: Song = {
+  track: 'frost2',
+  name: 'Glimmer Caves',
+  key: 'Ab Lydian',
+  bpm: 96,
+  meter: 16,
+  beat: 4,
+  bars: 8,
+  chords: chords('Ab | Bb | Cm | Gm | Ab | Bb | Fm Gm | Eb Bb'),
+  melody: mel(
+    16,
+    'c5:4 d5:4 eb5:6 g5:2 | f5:6 d5:2 bb4:8 | eb5:4 g5:4 c6:6 bb5:1 ab5:1 | bb5:6 g5:2 d5:8 |' +
+      'c5:4 d5:4 eb5:4 ab5:4 | g5:6 f5:1 eb5:1 d5:4 f5:4 | ab5:4 g5:2 f5:2 g5:4 bb5:4 | g5:4 eb5:4 f5:4 d5:4',
+  ),
+  echo: 0.55,
+  swing: 0,
+  calm: [
+    pad({ level: 0.1, hz: 760, attack: 1, wave: 'triangle', detune: 11 }),
+    // crystals: high notes every three 16ths, cascading in the dotted echo
+    arp([4, -1, -1, 6, -1, -1, 5, -1, -1, 7, -1, -1, 6, -1, -1, -1], { level: 0.13, wave: 'sine', dur: 3, oct: 1, hz: 6000, echo: 0.6 }),
+    melody('base', (x, m, len) => x.b.glass(x, m, len, 0.21)),
+    part('base', (x) => {
+      const n = FROST2_FRETLESS[x.s];
+      if (n) x.b.fretless(x, x.chord.root + n[0], n[1] * x.STEP * 0.95, 0.2);
+    }),
+    perc(['..x.....o..x....', '.....x..x.....o.'], (x, v) => x.b.drip(x, x.t, FROST2_DROPS[(x.s + x.bar * 3) % 7], v * 0.5)),
+    riser(0.3),
+    chime(86, 0.8),
+  ],
+  intense: [
+    pad({ level: 0.16, hz: 1000, attack: 0.25 }),
+    // a rippling synth pulse in a dotted rhythm (3-3-2), doubled by the echo
+    arp([0, -1, -1, 2, -1, -1, 1, -1, 4, -1, -1, 2, -1, -1, 1, -1], { level: 0.75, wave: 'pulse25', dur: 1.8, hz: 2600, echo: 0.5 }),
+    melody('base', (x, m, len) => x.b.glass(x, m, len, 0.3 * x.lead, 'bell')),
+    perc(['x..x..x...x..x..', 'x..x..x...x.x.x.'], (x, v) => x.b.drip(x, x.t, FROST2_DROPS[(x.s + x.bar) % 7], v * 0.8)),
+    perc(['X.......x.x.....', 'X.......x.x...x.'], (x, v) => x.b.tom(x, x.t, v >= 1 ? 110 : 150 + (x.s % 3) * 25, v * 0.9, 'perc')),
+    riser(0.6),
+    kit({
+      kick: ['X.........X.....', 'X.....x...X.....'],
+      snare: ['........X.......'],
+      hats: ['x.x.x.x.x.x.x.x.'],
+      open: ['..............x.'],
+      clap: true,
+      fill: { snare: '........X.......', hats: 'x.x.x.x.........', toms: '........X.x.XxXx' },
+      crash: [0],
+      level: 0.9,
+    }),
+    bass(() => FROST2_PULSE, { level: 0.42, hz: [1500, 400], sub: 1.4, gate: 0.8 }),
+    melody('lead', (x, m, len) => x.b.lead(x, m, len, 0.24, 'triangle', 3000)),
+  ],
+};
+
+// Act 6, the glacier: C sharp minor, 132 BPM, epic. A horn call that leaps from the root to the fifth and climbs,
+// over tremolo strings, a choir singing "ah" and timpani. The fight adds the brass section's ostinato (3-3-2-3-3-2)
+// and a brass lead an octave above the horns.
+const FROST3_BASS = bassBar('0:2 . 0:2 . 0:2 . 0:2 . 0:2 . 0:2 . 12:2 . 7:2 .');
+const FROST3: Song = {
+  track: 'frost3',
+  name: "Wyrm's Glacier",
+  key: 'C# minor',
+  bpm: 132,
+  meter: 16,
+  beat: 4,
+  bars: 8,
+  chords: chords('C#m | A | E | B | C#m | A | F#m | G#'),
+  melody: mel(
+    16,
+    'c#5:6 g#4:2 c#5:2 e5:2 g#5:4 | a5:6 g#5:2 f#5:2 e5:2 c#5:4 | b4:4 e5:4 g#5:6 f#5:2 | f#5:8 d#5:4 b4:4 |' +
+      'c#5:6 g#4:2 c#5:2 e5:2 c#6:4 | b5:4 a5:2 g#5:2 a5:4 e5:4 | f#5:4 a5:4 c#6:6 b5:2 | g#5:6 f#5:2 e5:2 d#5:2 b#4:4',
+  ),
+  echo: 0.3,
+  swing: 0,
+  calm: [
+    pad({ level: 0.06, hz: 700, attack: 0.8, shift: -12 }),
+    part('base', (x) => (x.change || x.first) && x.b.tremolo(x, 0.055, { hz: 1800 })),
+    part('base', (x) => (x.change || x.first) && x.b.choir(x, 0.09, { oct: 1 })),
+    melody('base', (x, m, len) => x.b.horn(x, m - 12, len, 0.4)),
+    bass(() => WHOLE, { level: 0.24, hz: [600, 280], sub: 1.05, gate: 1.05, hold: 0.93 }, 'base'),
+    // timpani: a stroke at the top of each phrase, a roll into the loop
+    part('base', (x) => {
+      if ((x.bar === 0 || x.bar === 4) && x.s === 0) x.b.timpani(x, x.t, x.chord.root, 0.5);
+      if (x.last && x.s === 8) x.b.timpani(x, x.t, x.chord.root, 0.45, 8 * x.STEP);
+    }),
+    riser(0.3),
+    chime(85, 0.7),
+  ],
+  intense: [
+    pad({ level: 0.13, hz: 1100, attack: 0.15, shift: -12 }),
+    part('base', (x) => (x.change || x.first) && x.b.tremolo(x, 0.07, { hz: 2800 })),
+    part('base', (x) => (x.change || x.first) && x.b.choir(x, 0.1, { oct: 1 })),
+    perc(['X..x..X.X..x..X.'], (x, v) => x.b.brass(x, (v >= 1 ? 2 : 1.4) * x.STEP, 0.18 * v)),
+    melody('base', (x, m, len) => x.b.horn(x, m - 12, len, 0.46 * x.lead)),
+    perc(['X.......X..X....', 'X.......X..X..x.'], (x, v) => x.b.timpani(x, x.t, x.chord.root, v * 0.95)),
+    riser(0.8),
+    kit({
+      kick: ['X.....X.X.......', 'X.....X.X.....X.'],
+      snare: ['....X.......X...'],
+      hats: ['x.o.x.o.x.o.x.o.'],
+      clap: true,
+      fill: { kick: 'X.....X.X.......', snare: '....X...........', hats: 'x.o.x.o.........', toms: '........X.X.XxXx' },
+      crash: [0, 4],
+      level: 0.8,
+    }),
+    bass(() => FROST3_BASS, { level: 0.36, hz: [1800, 480], sub: 1.35 }),
+    part('lead', (x) => {
+      if (!x.note) return;
+      const [m, n] = x.note;
+      x.b.horn(x, m, n * x.STEP, 0.3, 'lead');
+      x.b.lead(x, m, n * x.STEP, 0.1, 'sawtooth', 3600, false);
+    }),
+  ],
+};
+
+// The ram at the toll (Act 4's mini-boss): stomping folk in G Mixolydian (its flat seventh, F, all over), 150 BPM in
+// 7/8 counted 2+2+3: a hurdy-gurdy drone, the fiddle on the tune, a frame drum (doum, tek), claps on the long beat
+// and a low horn call at the top of each phrase. Once the combo is up, a horn section blasts the tune.
+const RIME_BASS = bassBar('0:2 . 12:2 . 0:2 . 12:2 . 0:2 . 7:2 . 10:2 .');
+const RIME_TURN = bassBar('0:2 . 12:2 . 0:2 . 12:2 . 7:2 . 5:2 . 2:2 .');
+const RIME_DOUM = ['X...X...X.....', 'X...X...X...x.'];
+const RIME_TEK = ['..o...o...o.o.', '..o...o...oo..'];
+const RIMEHORN: Song = {
+  track: 'rimehorn',
+  name: 'Rimehorn',
+  key: 'G Mixolydian',
+  bpm: 150,
+  meter: 14,
+  beat: 4,
+  pulses: [0, 4, 8],
+  bars: 8,
+  split: 8,
+  chords: chords('G | F | G | C | G | F | Dm F | G'),
+  melody: mel(
+    14,
+    'g4:2 b4:2 d5:2 g5:2 f5:2 d5:4 | f5:2 e5:2 f5:2 a5:2 c6:4 a5:2 | g5:2 f5:2 d5:2 b4:2 g4:6 | c5:2 e5:2 g5:2 e5:2 f5:2 e5:2 d5:2 |' +
+      'g4:2 b4:2 d5:2 g5:2 b5:4 a5:2 | a5:2 g5:2 f5:2 c5:2 f5:2 g5:2 a5:2 | d5:2 f5:2 a5:2 f5:2 c6:2 a5:2 f5:2 | g5:2 f5:2 e5:2 c5:2 d5:6',
+  ),
+  echo: 0.34,
+  swing: 0,
+  intense: [
+    part('base', (x) => (x.s === 0 || x.first) && x.b.drone(x, 55, 0.12)),
+    pad({ level: 0.08, hz: 1400, attack: 0.08, wave: 'pulse25', detune: 9 }),
+    melody('base', (x, m, len) => x.b.fiddle(x, m, len, 0.4 * x.lead, 'bell')),
+    part('base', (x) => {
+      const d = hit(RIME_DOUM[x.bar % 2], x.s);
+      if (d) x.b.frame(x, x.t, d * 1.4);
+      const k = hit(RIME_TEK[x.bar % 2], x.s);
+      if (k) x.b.frame(x, x.t, k * 1.4, true);
+      if (x.s === 8 || x.s === 11) x.b.clap(x, x.t, x.s === 8 ? 1 : 0.7);
+    }),
+    // the ram's horn: G, then up to D, at the top of each phrase
+    part('base', (x) => {
+      if (x.bar % 4 !== 0) return;
+      if (x.s === 0) x.b.horn(x, 55, 4 * x.STEP, 0.4);
+      else if (x.s === 4) x.b.horn(x, 62, 10 * x.STEP, 0.4);
+    }),
+    part('base', (x) => x.last && x.s === 8 && x.b.riser(x, 6 * x.STEP, 0.6)),
+    kit({
+      kick: ['X.......X.....', 'X.......X...x.'],
+      snare: ['....X.......X.'],
+      hats: ['x.o.x.o.x.o.o.'],
+      clap: true,
+      fill: { snare: '....X...X.xxXX', hats: 'x.o.x.o.......', toms: '........X.X.X.' },
+      crash: [0, 4],
+      level: 0.8,
+    }),
+    bass((bar) => (bar === 7 ? RIME_TURN : RIME_BASS), { level: 0.36, hz: [1700, 480], sub: 1.4 }),
+    part('lead', (x) => {
+      if (!x.note) return;
+      const [m, n] = x.note;
+      x.b.horn(x, m, n * x.STEP, 0.21, 'lead');
+      x.b.horn(x, m - 12, n * x.STEP, 0.12, 'lead');
+    }),
+  ],
+};
+
+// The spider who weaves the hoard (Act 5's mini-boss): a waltz in F minor, 3/4 at 88. A harpsichord's
+// oom-pah-pah, a music box gone wrong on the tune (it sags flat, its octave out of tune), a cello holding the root
+// and a clock that ticks. The combo brings a waltz kit, a bowed cello bass, then the cello singing the tune low.
+const MATRON_BASS = bassBar('0:4 . . . 7:4 . . . 12:4 . . .');
+const MATRON: Song = {
+  track: 'matron',
+  name: 'The Loom Matron',
+  key: 'F minor',
+  bpm: 88,
+  meter: 12,
+  beat: 4,
+  bars: 8,
+  split: 8,
+  chords: chords('Fm | C | Fm | Db | Bbm | Fm | Gdim C | Fm'),
+  melody: mel(
+    12,
+    'c5:4 f5:4 ab5:4 | g5:6 e5:2 c5:4 | ab5:4 g5:2 f5:2 c5:4 | db5:6 c5:2 f5:4 | bb4:4 db5:4 f5:4 | ab5:6 g5:2 f5:4 | bb5:2 ab5:2 g5:2 f5:2 e5:4 | f5:6 e5:2 f5:2 g5:2',
+  ),
+  echo: 0.3,
+  swing: 0,
+  intense: [
+    pad({ level: 0.1, hz: 900, attack: 0.5, wave: 'triangle', detune: 16 }),
+    // the harpsichord: the root low on 1, the chord on 2 and 3 (strummed), a run up on the last beat now and then
+    part('base', (x) => {
+      const c = x.chord;
+      if (x.s === 0) x.b.harpsi(x, x.t, c.root + 12, 0.58);
+      else if (x.s === 4 || x.s === 8) [1, 2, 3].forEach((k, i) => x.b.harpsi(x, x.t + i * 0.009, tone(c, k), 0.32, i % 2));
+      else if (x.bar % 2 && (x.s === 9 || x.s === 10 || x.s === 11)) x.b.harpsi(x, x.t, tone(c, x.s - 5), 0.24, 1);
+    }),
+    part('base', (x) => (x.s === 0 || x.first) && x.b.cello(x, x.chord.root + 12, (x.song.meter - x.s) * x.STEP, 0.26, 'str')),
+    melody('base', (x, m) => x.b.warpedBox(x, m + 12, 0.72 * x.lead)),
+    perc(['x.......o...', 'x.......o.-.'], (x, v) => x.b.block(x, x.t, v >= 0.7 ? 1250 : 880, v * 1.8)),
+    riser(0.5, 1),
+    kit({
+      kick: ['X...........', 'X.......x...'],
+      snare: ['....X...X...'],
+      hats: ['x.o.x.o.x.o.'],
+      fill: { snare: '....X...XoxX', hats: 'x.o.x.o.....' },
+      crash: [0],
+      level: 0.75,
+    }),
+    part('bass', (x) => {
+      const n = MATRON_BASS[x.s];
+      if (n) x.b.cello(x, x.chord.root + n[0], n[1] * x.STEP * 0.9, 0.3, 'bass', 1.3);
+    }),
+    part('lead', (x) => {
+      if (!x.note) return;
+      const [m, n] = x.note;
+      x.b.cello(x, m - 12, n * x.STEP, 0.26, 'lead');
+      x.b.fiddle(x, m, n * x.STEP, 0.07);
+    }),
+  ],
+};
+
+// The wyrm (Region 2's boss): E flat minor, 148 BPM. An imperious hook (the root, up to the fifth, a turn down) on
+// an organ over a pipe-organ bed, string spiccato in 16ths and timpani. Her phases escalate it: phase 2 brings the
+// drums with double-time hats and a choir for good; phase 3 goes up to F sharp minor with everything in (bass,
+// lead, brass stabs).
+const GLACIA_BASS = bassBar('0:2 . 0:2 . 12:1 0:1 0:2 . 0:2 . 0:2 . 12:1 7:1 10:2 .');
+const GLACIA_SPIC = [0, 1, 2, 1, 3, 1, 2, 1, 0, 1, 2, 1, 4, 3, 2, 1];
+const GLACIA: Song = {
+  track: 'glacia',
+  name: 'Glacia',
+  key: 'Eb minor (phase 3: F# minor)',
+  bpm: 148,
+  meter: 16,
+  beat: 4,
+  bars: 8,
+  chords: chords('Ebm | Cb | Abm | Bb | Ebm | Gb | Cb Bb | Ebm'),
+  melody: mel(
+    16,
+    'eb5:4 bb5:4 gb5:2 f5:2 eb5:4 | cb6:4 bb5:2 ab5:2 gb5:4 eb5:4 | ab5:4 cb6:4 eb6:6 db6:2 | d6:8 bb5:4 f5:4 |' +
+      'eb5:4 bb5:4 gb5:2 f5:2 eb5:4 | db6:4 cb6:2 bb5:2 gb5:4 db5:4 | eb6:4 db6:2 cb6:2 bb5:2 ab5:2 f5:2 d5:2 | eb5:8 r:4 bb4:2 d5:2',
+  ),
+  echo: 0.34,
+  swing: 0,
+  keyUp: 3,
+  intense: [
+    part('base', (x) => (x.change || x.first) && x.b.organ(x, x.chord.tones.slice(0, 3).map((m) => m - 12), x.left, 0.12)),
+    part('base', (x) => x.b.pizz(x, tone(x.chord, GLACIA_SPIC[x.s]), x.s % 4 ? 0.24 : 0.33, { bow: true, hz: 3600 })),
+    melody('base', (x, m, len) => x.b.organ(x, [m], len, 0.31 * x.lead, 'bell')),
+    perc(['X.......X.......', 'X.......X.....x.'], (x, v) => x.b.timpani(x, x.t, x.chord.root, v * 0.8)),
+    riser(0.8),
+    part('drums', (x) => {
+      // phase 2 on: the hats go double-time and the kit hits harder
+      const dbl = x.phase >= 2;
+      const fill = x.last && x.s >= 8;
+      const v = dbl ? 0.9 : 0.8;
+      const k = hit(x.bar % 2 ? 'X.....x.X.....x.' : 'X.....x.X.......', x.s);
+      if (k && !fill) x.b.kick(x, x.t, k * v);
+      const sn = fill ? hit('........XxoxXxXX', x.s) : hit('....X.......X...', x.s);
+      if (sn) x.b.snare(x, x.t, sn * v, sn >= 1 && !fill);
+      if (fill && x.s % 2 === 0) x.b.tom(x, x.t, 160 - (x.s - 8) * 10, (0.7 + (x.s - 8) * 0.04) * v);
+      if ((x.bar === 0 || x.bar === 4) && x.s === 0) x.b.crash(x, x.t, v * 0.75);
+      else if (!fill) {
+        const h = hit(dbl ? 'XoxoXoxoXoxoXoxo' : 'x.o.x.o.x.o.x.o.', x.s);
+        if (h) x.b.hat(x, x.t, h * v);
+      }
+    }),
+    // phase 2 on: the choir; phase 3: brass stabs on the offbeats too
+    part('stabs', (x) => (x.change || x.first) && x.b.choir(x, 0.34, { oct: 1, role: 'hymn' })),
+    part('stabs', (x) => x.phase >= 3 && x.s % 4 === 2 && x.b.stab(x, 2 * x.STEP, 0.44)),
+    // (the bass digs in harder in the last phase)
+    part('bass', (x) => {
+      const n = GLACIA_BASS[x.s];
+      if (n) x.b.bass(x, x.chord.root + n[0], n[1] * x.STEP * 0.92, { level: x.phase >= 3 ? 0.33 : 0.25, hz: [1900, 500], sub: 1.45 });
+    }),
+    part('lead', (x) => {
+      if (!x.note) return;
+      const [m, n] = x.note;
+      x.b.lead(x, m, n * x.STEP, 0.17, 'sawtooth', 3200);
+      x.b.lead(x, m + 12, n * x.STEP, 0.05, 'pulse12', 4200, false);
+    }),
+  ],
+};
+
+export const SONGS: Record<MusicTrack, Song> = {
+  title: TITLE,
+  camp: CAMP,
+  act1: ACT1,
+  act2: ACT2,
+  act3: ACT3,
+  captain: CAPTAIN,
+  golem: GOLEM,
+  boarKing: BOAR_KING,
+  frost1: FROST1,
+  frost2: FROST2,
+  frost3: FROST3,
+  rimehorn: RIMEHORN,
+  matron: MATRON,
+  glacia: GLACIA,
+};
 
 /** Seconds per step of a piece. */
 export const stepSec = (s: Song): number => 60 / s.bpm / s.beat;
@@ -672,6 +1073,18 @@ export const MUSIC_PIECES: MusicPiece[] = [
   { id: 'boarKing1', label: 'Boar King, phase 1', track: 'boarKing', intense: true, phase: 1 },
   { id: 'boarKing2', label: 'Boar King, phase 2', track: 'boarKing', intense: true, phase: 2 },
   { id: 'boarKing3', label: 'Boar King, phase 3', track: 'boarKing', intense: true, phase: 3 },
+  // Region 2 (labels name no place or foe: the playtester opens this panel)
+  { id: 'frost1', label: 'Act 4: map', track: 'frost1', intense: false },
+  { id: 'frost1-fight', label: 'Act 4: fight', track: 'frost1', intense: true },
+  { id: 'frost2', label: 'Act 5: map', track: 'frost2', intense: false },
+  { id: 'frost2-fight', label: 'Act 5: fight', track: 'frost2', intense: true },
+  { id: 'frost3', label: 'Act 6: map', track: 'frost3', intense: false },
+  { id: 'frost3-fight', label: 'Act 6: fight', track: 'frost3', intense: true },
+  { id: 'rimehorn', label: 'Act 4 mini-boss', track: 'rimehorn', intense: true },
+  { id: 'matron', label: 'Act 5 mini-boss', track: 'matron', intense: true },
+  { id: 'glacia1', label: 'Act 6 boss, phase 1', track: 'glacia', intense: true, phase: 1 },
+  { id: 'glacia2', label: 'Act 6 boss, phase 2', track: 'glacia', intense: true, phase: 2 },
+  { id: 'glacia3', label: 'Act 6 boss, phase 3', track: 'glacia', intense: true, phase: 3 },
 ];
 
 /** Which arrangement a piece plays when the game asks for calm or intense (the camp, the title and the bosses
@@ -727,8 +1140,25 @@ class Fader {
   }
 }
 
-type Role = 'pad' | 'arp' | 'bell' | 'lead' | 'bass' | 'drums' | 'perc' | 'fx' | 'choir' | 'stab';
-const ROLE_LAYER: Record<Role, Layer> = { pad: 'base', arp: 'base', bell: 'base', perc: 'base', fx: 'base', choir: 'base', lead: 'lead', bass: 'bass', drums: 'drums', stab: 'stabs' };
+// (Region 2 adds: 'str' bowed strings, 'brass' a brass section, 'drip' percussion into the echo, and 'hymn' a choir
+// that joins with a boss's phases, in the stabs layer)
+type Role = 'pad' | 'arp' | 'bell' | 'lead' | 'bass' | 'drums' | 'perc' | 'fx' | 'choir' | 'stab' | 'str' | 'brass' | 'drip' | 'hymn';
+const ROLE_LAYER: Record<Role, Layer> = {
+  pad: 'base',
+  arp: 'base',
+  bell: 'base',
+  perc: 'base',
+  fx: 'base',
+  choir: 'base',
+  str: 'base',
+  brass: 'base',
+  drip: 'base',
+  lead: 'lead',
+  bass: 'bass',
+  drums: 'drums',
+  stab: 'stabs',
+  hymn: 'stabs',
+};
 
 /** A part's sound: its layer gate (on every input) and its processing, into the group's dry and sends. */
 interface Chain {
@@ -846,9 +1276,7 @@ export class Band {
   nextBeatAt(): number | null {
     const d = this.deck;
     if (!d || !this.rig) return null;
-    const s = d.step % d.song.meter;
-    const steps = (d.song.beat - (s % d.song.beat)) % d.song.beat;
-    return this.next + steps * stepSec(d.song);
+    return this.next + toPulse(d.song, d.step % d.song.meter) * stepSec(d.song);
   }
 
   setBossPhase(phase: number): void {
@@ -944,7 +1372,7 @@ export class Band {
     const t = this.next;
     let d = (this.deck ??= this.newDeck(t, 0));
     const s = d.step % d.song.meter;
-    if (s % d.song.beat === 0) d = this.onBeat(d, t, s);
+    if (onPulse(d.song, s)) d = this.onBeat(d, t, s);
     const song = d.song;
     const STEP = stepSec(song);
     for (const g of Object.values(d.groups)) if (g.live || t < g.until) this.play(d, g, t, STEP);
@@ -1154,6 +1582,15 @@ export class Band {
     } else if (role === 'bell') c = { in: input(pan(0.2, out(filter('lowpass', o.hz ?? 7000, 0.5), o.echo ?? 0.3, 0.35))) };
     else if (role === 'lead') c = { in: input(out(filter('lowpass', o.hz ?? 3400, 0.6), o.echo ?? 0.32, 0.3)) };
     else if (role === 'choir') c = { in: input(pan(0.1, out(gain(1), 0, 0.5))) };
+    else if (role === 'hymn') {
+      const sing = out(gain(1), 0.08, 0.55);
+      c = { in: input(pan(-0.45, sing)), r: input(pan(0.45, sing)) };
+    }
+    else if (role === 'str') {
+      const tone = out(filter('lowpass', o.hz ?? 3000, 0.6), o.echo ?? 0.1, 0.45);
+      c = { in: input(pan(-0.45, tone)), r: input(pan(0.45, tone)) };
+    } else if (role === 'brass') c = { in: input(pan(-0.08, out(filter('lowpass', o.hz ?? 3200, 0.7), o.echo ?? 0.12, 0.35))) };
+    else if (role === 'drip') c = { in: input(pan(0.3, out(gain(1), o.echo ?? 0.5, 0.35))) };
     else if (role === 'stab') c = { in: input(pan(-0.15, out(filter('lowpass', o.hz ?? 3000, 0.6), 0.15, 0.4))) };
     else if (role === 'bass') {
       const duck = gain(1, g.dry);
@@ -1336,8 +1773,8 @@ export class Band {
   }
 
   /** A brassy horn: a saw whose lowpass opens on the attack and settles, swelling in. */
-  horn(x: Step, m: number, len: number, level: number): void {
-    const c = this.chain(x.g, 'bell');
+  horn(x: Step, m: number, len: number, level: number, role: Role = 'bell'): void {
+    const c = this.chain(x.g, role);
     const f = hz(m);
     const l = Math.max(0.1, len);
     const vib = len >= 4 * x.STEP ? { rate: 5, cents: 0, cents1: 10 } : undefined;
@@ -1345,8 +1782,8 @@ export class Band {
   }
 
   /** A fiddle: a bright saw with a quick bow attack and vibrato on the long notes, a faint octave above. */
-  fiddle(x: Step, m: number, len: number, level: number): void {
-    const c = this.chain(x.g, 'lead', { hz: 3800, echo: 0.25 });
+  fiddle(x: Step, m: number, len: number, level: number, role: Role = 'lead'): void {
+    const c = this.chain(x.g, role, { hz: 3800, echo: 0.25 });
     const f = hz(m);
     const l = Math.max(0.08, len);
     const vib = len >= 3 * x.STEP ? { rate: 6.2, cents: 4, cents1: 22 } : { rate: 6.2, cents: 4 };
@@ -1384,30 +1821,32 @@ export class Band {
   }
 
   /** Brass stabs: the chord on saws whose lowpass flares open and closes. */
-  stab(x: Step, len: number, level: number): void {
-    const c = this.chain(x.g, 'stab');
+  stab(x: Step, len: number, level: number, role: Role = 'stab'): void {
+    const c = this.chain(x.g, role);
     for (const m of x.chord.tones.slice(0, 3))
       this.h.voice({ at: x.t, type: 'sawtooth', f: [[0, hz(m)]], filter: 'lowpass', ff: [[0, 700], [0.025, 3400], [len, 900]], q: 1, amp: [[0.008, level], [len * 0.5, level * 0.6], [len, 0]], out: c.in });
   }
 
-  /** A low choir under a chord: two detuned pulses through an "aah" formant, swelling in. */
-  choir(x: Step, level: number): void {
-    const c = this.chain(x.g, 'choir');
+  /** A low choir under a chord: two detuned pulses through an "aah" formant, swelling in (`oct`: octaves up from
+   *  the low one; `role`: 'hymn' for a choir that joins with a boss's phases). */
+  choir(x: Step, level: number, o: { oct?: number; role?: Role } = {}): void {
+    const c = this.chain(x.g, o.role ?? 'choir');
     const len = x.left;
-    for (const [m, det] of [
-      [x.chord.tones[0], -8],
-      [x.chord.tones[2], 8],
+    const up = 12 * ((o.oct ?? 0) - 1);
+    for (const [m, det, side] of [
+      [x.chord.tones[0], -8, c.in],
+      [x.chord.tones[2], 8, c.r ?? c.in],
     ] as const)
       this.h.voice({
         at: x.t,
         type: 'pulse25',
-        f: [[0, hz(m - 12)]],
+        f: [[0, hz(m + up)]],
         vib: { rate: 4.6, cents: det },
         filter: 'bandpass',
         ff: [[0, 750]],
         q: 2,
         amp: [[Math.min(0.8, len * 0.4), level], [len, level * 0.7], [len + 0.4, 0]],
-        out: c.in,
+        out: side,
       });
   }
 
@@ -1427,7 +1866,7 @@ export class Band {
     lp.frequency.exponentialRampToValueAtTime(o.hz[1], t + Math.min(0.14, dur));
     const subLevel = ctx.createGain();
     subLevel.gain.value = o.sub;
-    const { g, end } = this.h.env(o.level, t, 0.004, dur * 0.6, dur, 0.04);
+    const { g, end } = this.h.env(o.level, t, 0.004, dur * (o.hold ?? 0.6), dur, 0.04);
     saw.connect(lp);
     lp.connect(g);
     sub.connect(subLevel);
@@ -1499,8 +1938,8 @@ export class Band {
   }
 
   /** A tom: a pitch-falling triangle and a thud of noise. */
-  tom(x: Step, t: number, f: number, v: number): void {
-    const c = this.chain(x.g, 'drums');
+  tom(x: Step, t: number, f: number, v: number, into: 'drums' | 'perc' = 'drums'): void {
+    const c = this.chain(x.g, into);
     this.h.tone({ type: 'triangle', f, f1: f * 0.62, glide: 0.12, at: t, attack: 0.002, dur: 0.28, gain: 0.42 * v, out: c.in });
     this.h.noise({ at: t, dur: 0.06, gain: 0.2 * v, filter: 'bandpass', f: f * 4, q: 1, out: c.in });
   }
@@ -1565,5 +2004,192 @@ export class Band {
     this.h.tone({ type: 'triangle', f: 240, f1: 72, glide: 0.07, at: t, attack: 0.001, dur: 0.22, gain: 0.32 * v, out: c.in });
     this.h.noise({ at: t, dur: 0.3, attack: 0.002, gain: 0.4 * v, filter: 'lowpass', f: 1200, f1: 180, q: 0.8, rate: 0.5, out: c.in });
     this.h.ticks([t + 0.05, t + 0.09, t + 0.16], { gain: 0.25 * v, f: 2600, q: 1.5, ms: 6, out: c.in });
+  }
+
+  // ---------------------------------------------------------------- Region 2's instruments
+
+  /** A celesta: a struck steel bar over a wooden box: a round sine ringing long, a soft octave and a quick bright
+   *  ping (rounder and longer than the glockenspiel). */
+  celesta(x: Step, m: number, level: number, role: Role = 'bell'): void {
+    const c = this.chain(x.g, role);
+    const f = hz(m);
+    this.h.tone({ type: 'sine', f, at: x.t, attack: 0.003, dur: 1.3, gain: level, out: c.in });
+    this.h.tone({ type: 'sine', f: f * 2, at: x.t, attack: 0.002, dur: 0.45, gain: level * 0.34, out: c.in });
+    this.h.tone({ type: 'triangle', f: f * 4.02, at: x.t, attack: 0.001, dur: 0.05, gain: level * 0.12, out: c.in });
+  }
+
+  /** Plucked strings: a saw whose lowpass snaps shut (pizzicato), or bowed short (`bow`: spiccato, a little
+   *  longer and brighter); 8ths and 16ths alternate sides. */
+  pizz(x: Step, m: number, level: number, o: { bow?: boolean; role?: Role; hz?: number } = {}): void {
+    const c = this.chain(x.g, o.role ?? 'arp', { hz: o.hz ?? 3200, echo: 0.16 });
+    const f = hz(m);
+    const out = (x.s + (x.s >> 1)) & 1 ? (c.r ?? c.in) : c.in;
+    if (o.bow) {
+      const d = Math.min(0.2, x.STEP * 1.6);
+      this.h.voice({ at: x.t, type: 'sawtooth', f: [[0, f]], filter: 'lowpass', ff: [[0, f * 3], [0.03, f * 7], [d, f * 3]], q: 0.9, amp: [[0.008, level], [d * 0.5, level * 0.6], [d, 0]], out });
+      return;
+    }
+    this.h.voice({ at: x.t, type: 'sawtooth', f: [[0, f]], filter: 'lowpass', ff: [[0, Math.min(9000, f * 7)], [0.07, f * 1.5]], q: 1.4, amp: [[0.003, level], [0.08, level * 0.4], [0.3, 0]], out });
+  }
+
+  /** Sleigh bells: a shake of small bells (quick ringing jingles), a shimmer on the loud ones. */
+  sleigh(x: Step, t: number, v: number): void {
+    const c = this.chain(x.g, 'perc');
+    const n = v >= 0.7 ? 4 : 2;
+    this.h.ticks(
+      Array.from({ length: n }, (_, i) => t + i * 0.011),
+      { gain: 0.5 * v, f: 6800, q: 7, ms: 13, out: c.in },
+    );
+    if (v >= 0.7) this.h.noise({ at: t, attack: 0.004, dur: 0.12, gain: 0.1 * v, filter: 'highpass', f: 7500, out: c.in });
+  }
+
+  /** A glass harmonica: a wet finger on spinning glass: two pure sines a few cents apart (a slow shimmer of
+   *  beating) and a soft twelfth, swelling in and fading long. */
+  glass(x: Step, m: number, len: number, level: number, role: Role = 'lead'): void {
+    const c = this.chain(x.g, role, { hz: 5200, echo: 0.42 });
+    const f = hz(m);
+    const l = Math.max(0.2, len);
+    const amp: Pts = [[Math.min(0.11, l * 0.3), level], [l * 0.85, level * 0.72], [l + 0.4, 0]];
+    this.h.voice({ at: x.t, type: 'sine', f: [[0, f * 0.9983]], amp, out: c.in });
+    this.h.voice({ at: x.t, type: 'sine', f: [[0, f * 1.0017]], amp: scale(amp, 0.8), out: c.in });
+    this.h.tone({ type: 'triangle', f: f * 3, at: x.t, attack: 0.06, dur: Math.min(1.2, l), gain: level * 0.1, out: c.in });
+  }
+
+  /** A water-drop woodblock: a hollow knock whose pitch flicks up as the drop closes, ringing on in the echo. */
+  drip(x: Step, t: number, f: number, v: number): void {
+    const c = this.chain(x.g, 'drip');
+    this.h.tone({ type: 'sine', f, f1: f * 1.75, glide: 0.03, at: t, attack: 0.001, dur: 0.1, gain: 0.34 * v, out: c.in });
+    this.h.tone({ type: 'triangle', f: f * 0.5, f1: f * 0.45, glide: 0.04, at: t, attack: 0.001, dur: 0.05, gain: 0.2 * v, out: c.in });
+  }
+
+  /** A fretless bass: a warm saw sliding up into the note, its lowpass blooming a moment after the attack (the
+   *  "mwah"), over a sine sub that slides with it. */
+  fretless(x: Step, m: number, dur: number, level: number): void {
+    const c = this.chain(x.g, 'bass');
+    const f = hz(m);
+    const s = f >= 80 ? f / 2 : f;
+    const l = Math.max(0.12, dur);
+    const amp: Pts = [[0.025, level], [l * 0.7, level * 0.8], [l, 0]];
+    this.h.voice({ at: x.t, type: 'sawtooth', f: [[0, f * 0.94], [0.08, f]], filter: 'lowpass', ff: [[0, 260], [0.12, 1100], [l, 420]], q: 2.5, amp, out: c.in });
+    this.h.voice({ at: x.t, type: 'sine', f: [[0, s * 0.94], [0.08, s]], amp: scale(amp, 1.3), out: c.in });
+  }
+
+  /** Timpani (tuned D2 to C#3, the chord's root): a boom that settles onto its pitch, its fifth (a triangle, whose
+   *  overtones carry it on a phone) and octave partials, the felt mallet's thud. `roll`: a crescendo roll over
+   *  `roll` seconds instead (one trembling voice per partial). */
+  timpani(x: Step, t: number, m: number, v: number, roll = 0): void {
+    const c = this.chain(x.g, 'perc');
+    const f = hz(m);
+    if (roll) {
+      const trem = { rate: 15, depth: 0.75 };
+      this.h.voice({ at: t, type: 'sine', f: [[0, f]], trem, amp: [[roll * 0.85, 0.32 * v], [roll, 0.4 * v], [roll + 0.3, 0]], out: c.in });
+      this.h.voice({ at: t, type: 'triangle', f: [[0, f * 1.5]], trem, amp: [[roll * 0.85, 0.12 * v], [roll, 0.16 * v], [roll + 0.2, 0]], out: c.in });
+      return;
+    }
+    this.h.tone({ type: 'sine', f: f * 1.05, f1: f, glide: 0.06, at: t, attack: 0.002, dur: 1.1, gain: 0.3 * v, out: c.in });
+    this.h.tone({ type: 'triangle', f: f * 1.5, at: t, attack: 0.002, dur: 0.45, gain: 0.24 * v, out: c.in });
+    this.h.tone({ type: 'sine', f: f * 2, at: t, attack: 0.002, dur: 0.6, gain: 0.16 * v, out: c.in });
+    this.h.noise({ at: t, dur: 0.05, attack: 0.001, gain: 0.24 * v, filter: 'bandpass', f: 520, q: 1, out: c.in });
+  }
+
+  /** Tremolo strings on the chord: its three tones on bowed saws (alternate sides), trembling at a 32nd-note rate,
+   *  swelling in over the chord. */
+  tremolo(x: Step, level: number, o: { oct?: number; hz?: number } = {}): void {
+    const c = this.chain(x.g, 'str', { hz: o.hz ?? 3000 });
+    const len = x.left;
+    const trem = { rate: 2 / x.STEP, depth: 0.65 };
+    x.chord.tones.slice(0, 3).forEach((m, i) =>
+      this.h.voice({
+        at: x.t,
+        type: 'sawtooth',
+        f: [[0, hz(m + 12 * (o.oct ?? 0))]],
+        trem,
+        amp: [[Math.min(0.2, len * 0.3), level], [len, level * 0.85], [len + 0.25, 0]],
+        out: i % 2 ? c.r : c.in,
+      }),
+    );
+  }
+
+  /** A brass section on the chord (the ostinato): saws whose lowpass flares on the attack, short and punchy. */
+  brass(x: Step, len: number, level: number): void {
+    const c = this.chain(x.g, 'brass');
+    x.chord.tones.slice(0, 3).forEach((m, i) =>
+      this.h.voice({ at: x.t, type: 'sawtooth', f: [[0, hz(m)]], filter: 'lowpass', ff: [[0, 500], [0.02, 2600 + i * 300], [len, 800]], q: 0.9, amp: [[0.012, level], [len * 0.6, level * 0.7], [len, 0]], out: c.in }),
+    );
+  }
+
+  /** A harpsichord: a quilled pluck: a thin bright pulse and a saw an octave up (two choirs of strings), no
+   *  sustain; `side` 1 plays on the right. */
+  harpsi(x: Step, t: number, m: number, level: number, side = 0): void {
+    const c = this.chain(x.g, 'arp', { hz: 6500, echo: 0.12 });
+    const f = hz(m);
+    const out = side ? c.r! : c.in;
+    this.h.tone({ type: 'pulse12', f, at: t, attack: 0.001, dur: 0.55, gain: level, out });
+    this.h.tone({ type: 'sawtooth', f: f * 2, at: t, attack: 0.001, dur: 0.22, gain: level * 0.3, out });
+  }
+
+  /** The music box gone wrong: a warped cylinder: each note sags flat as it rings and its octave tine is out of
+   *  tune (by a different amount each step). */
+  warpedBox(x: Step, m: number, level: number): void {
+    const c = this.chain(x.g, 'bell');
+    const f = hz(m);
+    const off = [1.97, 2.035, 1.985, 2.05][x.i % 4];
+    this.h.tone({ type: 'triangle', f, f1: f * 0.972, glide: 0.7, at: x.t, attack: 0.002, dur: 0.9, gain: 0.5 * level, out: c.in });
+    this.h.tone({ type: 'sine', f: f * off, f1: f * off * 0.985, glide: 0.4, at: x.t, attack: 0.001, dur: 0.45, gain: 0.24 * level, out: c.in });
+  }
+
+  /** A cello: a bowed saw through a warm lowpass, the bow biting in, vibrato blooming on long notes, a sine under
+   *  it for body. */
+  cello(x: Step, m: number, len: number, level: number, role: Role = 'lead', sub = 0): void {
+    const c = this.chain(x.g, role, { hz: 2600, echo: 0.2 });
+    const f = hz(m);
+    const l = Math.max(0.12, len);
+    const vib = len >= 3 * x.STEP ? { rate: 5.3, cents: 3, cents1: 18 } : { rate: 5.3, cents: 3 };
+    const amp: Pts = [[0.06, level], [l * 0.8, level * 0.85], [l + 0.06, 0]];
+    this.h.voice({ at: x.t, type: 'sawtooth', f: [[0, f]], vib, filter: 'lowpass', ff: [[0, 700], [0.08, 2200], [l, 1400]], q: 1.3, amp, out: c.in });
+    this.h.voice({ at: x.t, type: 'sine', f: [[0, sub && f >= 80 ? f / 2 : f]], amp: scale(amp, sub || 0.6), out: c.in });
+  }
+
+  /** A frame drum: the open "doum" (a deep boom, the hand flat in the middle) or the rim "tek" (a dry slap). */
+  frame(x: Step, t: number, v: number, tek = false): void {
+    const c = this.chain(x.g, 'perc');
+    if (tek) {
+      this.h.ticks([t], { gain: 0.9 * v, f: 1250, q: 1.6, ms: 12, out: c.in });
+      this.h.tone({ type: 'triangle', f: 420, f1: 330, glide: 0.03, at: t, dur: 0.05, gain: 0.16 * v, out: c.in });
+      return;
+    }
+    this.h.tone({ type: 'triangle', f: 140, f1: 66, glide: 0.1, at: t, attack: 0.002, dur: 0.4, gain: 0.52 * v, out: c.in });
+    this.h.noise({ at: t, dur: 0.05, gain: 0.26 * v, filter: 'bandpass', f: 680, q: 1, out: c.in });
+  }
+
+  /** Hand claps: three quick bursts. */
+  clap(x: Step, t: number, v: number): void {
+    const c = this.chain(x.g, 'perc');
+    this.h.ticks([t - 0.01, t - 0.004, t + 0.003], { gain: 0.9 * v, f: 1500, q: 1.1, ms: 8, out: c.in });
+  }
+
+  /** A hurdy-gurdy drone: a root and its fifth on buzzy pulses, held for the bar. */
+  drone(x: Step, root: number, level: number): void {
+    const c = this.chain(x.g, 'pad', { hz: 1700 });
+    const len = (x.song.meter - x.s) * x.STEP;
+    for (const [m, out, det] of [
+      [root, c.in, -5],
+      [root + 7, c.r!, 5],
+    ] as const)
+      this.h.tone({ type: 'pulse25', f: hz(m), detune: det, at: x.t, attack: 0.05, hold: len - 0.05, dur: len + 0.3, minTail: 0.25, gain: level, out });
+  }
+
+  /** A pipe organ: each note a flue pipe (a soft square) with its octave and twelfth as sines, held. On the
+   *  'pad' chain (the chord, alternate sides) or another (the tune). */
+  organ(x: Step, notes: number[], len: number, level: number, role: Role = 'pad'): void {
+    const c = this.chain(x.g, role, { hz: 2600 });
+    notes.forEach((m, i) => {
+      const f = hz(m);
+      const out = i % 2 && c.r ? c.r : c.in;
+      const o = { at: x.t, attack: 0.02, hold: Math.max(0, len - 0.02), dur: len + 0.18, minTail: 0.15, out };
+      this.h.tone({ ...o, type: 'square', f, gain: level * 0.5 });
+      this.h.tone({ ...o, type: 'sine', f: f * 2, gain: level * 0.4 });
+      this.h.tone({ ...o, type: 'sine', f: f * 3, gain: level * 0.18 });
+    });
   }
 }

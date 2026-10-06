@@ -264,6 +264,25 @@ heals 2% HP.
 
 Region 1 used: D major 128, E Dorian 104, C minor 140, A minor 6/8 jig, D Phrygian 74, G minor 156, Bb major 3/4.
 
+#### As built (`src/engine/music.ts`, tracks `frost1..3`, `rimehorn`, `matron`, `glacia`)
+Acts: calm = map, nodes, scenes (no kit); intense = fights, its base plus drums / bass / lead joining with the combo.
+
+| Track | Key, tempo, meter | Calm | Intense |
+|---|---|---|---|
+| `frost1` | B minor, 116, 4/4 | celesta tune (a dotted fall, a drop to the root, back up), glockenspiel twinkles on its long notes, plucked-string harp in 8ths, low choir, sleigh bells, a sustained bass | 16th pizzicato ostinato, celesta an octave up, sleigh bells, taiko; lead: thin glassy pulse |
+| `frost2` | Ab Lydian, 96, 4/4 | glass harmonica phrases climbing through the raised 4th (D), crystal notes every three 16ths, water-drop woodblocks, fretless bass sliding into its notes, long echo (0.55) | a 3-3-2 synth pulse in the echo, glass harmonica, drips, toms; 8th-note pulsing synth bass; lead: soft triangle |
+| `frost3` | C# minor, 132, 4/4 | French horn call (root up to the fifth), tremolo strings, choir "ah", timpani at each phrase and a roll into the loop | brass-section ostinato (3-3-2-3-3-2), horns, tremolo strings, choir, timpani; lead: horns an octave up |
+| `rimehorn` | G Mixolydian, 150, 7/8 (2+2+3) | (fight only) | hurdy-gurdy drone (G+D), fiddle on the tune, frame drum doum/tek, claps on the long beat, a low horn call per phrase; lead: a horn section |
+| `matron` | F minor, 88, 3/4 waltz | (fight only) | harpsichord oom-pah-pah, a music box gone wrong (notes sag flat, octave out of tune), a cello holding the root, a ticking clock; bass: bowed cello; lead: cello on the tune, low |
+| `glacia` | Eb minor, 148, 4/4; phase 3 F# minor | (fight only) | phase 1: pipe-organ chords, organ tune, string spiccato, timpani; phase 2 adds a choir and the kit with double-time hats; phase 3 goes up 3 semitones with bass (harder), lead and brass stabs |
+
+7/8 changes (layers, crossfades, the next piece) land on the 2+2+3 pulses (`Song.pulses`). Ambience beds: `pass` (wind,
+a whistle over the ridge, creaking ice, prayer flags, snow sliding off pines), `caves` (a deep stereo hum, drips and
+trickles in a cave echo, crystals ringing, ice settling), `glacier` (a moaning gale, howls, distant ice cracks with a
+low boom, a deep groan). Sound lab labels name acts only ("Act 4: map", "Act 6 boss, phase 2", "Ambience: act 5").
+Cues (`app.ts`): global act index 3/4/5 plays `frost1/2/3` and the `pass/caves/glacier` bed (on its map too); enemy
+keys `rimehorn`, `matron`, `glacia` (with `boss` in the data) bring their themes; `glacia`'s `phase` drives hers.
+
 ---
 
 ## 6. Region 3: ASHFELL (secret; only if time allows)
