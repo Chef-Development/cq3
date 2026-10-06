@@ -415,6 +415,13 @@ test('camp: hero select, skill tree, relic log', async ({ page }) => {
   await camp((c, now) => c.go('heroes', now, 'sable'));
   await frames(page, 40);
   await expect(page).toHaveScreenshot('hero-select.png', shot);
+  // a chest hero not met yet (a silhouette, how they're found), on the Mastery tab
+  await camp((c, now) => {
+    c.heroes.show('vesper', now);
+    c.heroes.tab = 'mastery';
+  });
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('hero-select-locked.png', shot);
   await camp((c, now) => {
     c.go('home', now);
     c.go('skills', now);
@@ -429,6 +436,101 @@ test('camp: hero select, skill tree, relic log', async ({ page }) => {
   });
   await frames(page, 40);
   await expect(page).toHaveScreenshot('relic-log.png', shot);
+});
+
+/** On top of stockProfile: the shared progression (M5): gems, waiting chests, heroes and companions from chests. */
+async function metaProfile(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p = (window as any).__cq3.app.profile;
+    p.gems = 412;
+    p.chests = { hero: 2, rare: 1, region: 0 };
+    p.pity = { rare: 22, top: 70 };
+    p.heroes.moss.unlocked = true;
+    p.heroes.moss.stars = 2;
+    p.heroes.moss.shards = 7;
+    p.heroes.tam.unlocked = true;
+    p.heroes.rowan.xp = 1700;
+    p.pets.bun.owned = true;
+    p.pets.sunny.owned = true;
+    p.pets.sunny.xp = 900;
+    p.pets.flurry.owned = true;
+    p.pets.flurry.stars = 3;
+    p.pets.flurry.shards = 12;
+    p.camp = ['dummy', 'perch'];
+    p.petsOn = ['pip', 'sunny'];
+    p.mastery = ['rowanLv5'];
+    p.regions.greenmarch = { bounties: [0, 2], treasures: [1], events: ['herbalist'], chest: false };
+  });
+}
+
+/** The camp open on the meta profile (`fn` runs in the page with the camp view and the time). */
+async function metaCamp(page: Page): Promise<(fn: (c: unknown, now: number) => void) => Promise<unknown>> {
+  await boot(page);
+  await frames(page, 10);
+  await stockProfile(page);
+  await metaProfile(page);
+  await page.evaluate(() => {
+    const app = (window as Cq3Window).__cq3!.app as unknown as { newRun(): void; openCamp(): void };
+    app.newRun();
+    app.openCamp();
+  });
+  await frames(page, 30);
+  return (fn) => page.evaluate(`(${fn.toString()})(window.__cq3.app.view.camp, performance.now())`);
+}
+
+test('camp: the heroes met since, chests waiting, the shrine open, a companion along, the Training Dummy', async ({ page }) => {
+  await metaCamp(page);
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('camp-heroes.png', shot);
+});
+
+test('camp: a hero chest opens (the shake and burst, then the prize card)', async ({ page }) => {
+  const camp = await metaCamp(page);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => c.go('chests', now));
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('chests.png', shot);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => {
+    c.chests.reseed(37); // a Legendary hero, new: Vesper
+    c.chests.openKind('hero', now);
+  });
+  await frames(page, 128); // just after the burst
+  await expect(page).toHaveScreenshot('chest-burst.png', shot);
+  await frames(page, 80);
+  await expect(page).toHaveScreenshot('chest-prize.png', shot);
+});
+
+test('camp: the shrine (a Rare chest for gems, the odds, the pity)', async ({ page }) => {
+  const camp = await metaCamp(page);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => c.go('shrine', now));
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('shrine.png', shot);
+});
+
+test('camp: companions (two slots with the Perch), upgrades, region progress', async ({ page }) => {
+  const camp = await metaCamp(page);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => c.go('pets', now, undefined, 'sunny'));
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('companions.png', shot);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => {
+    c.go('home', now);
+    c.go('upgrades', now);
+    c.upgrades.sel = 'luckyStone';
+  });
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('upgrades.png', shot);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => {
+    c.go('progress', now);
+    c.progress.open(now, 0);
+  });
+  await frames(page, 60);
+  await expect(page).toHaveScreenshot('progress.png', shot);
 });
 
 test('camp: Sable joins after Act 1', async ({ page }) => {

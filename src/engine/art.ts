@@ -15,6 +15,7 @@ import { buildRarityArt } from './art-rarity';
 import { buildRelicArt } from './art-relics';
 import { buildSableArt } from './art-sable';
 import { buildShrineArt } from './art-shrine';
+import { buildDummyArt } from './art-dummy';
 import { buildStoryArt } from './art-story';
 
 export const OUTLINE = '#140c1c';
@@ -1217,4 +1218,5 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   buildChestArt(add);
   buildRarityArt(add);
   buildShrineArt(add);
+  buildDummyArt(add);
 }

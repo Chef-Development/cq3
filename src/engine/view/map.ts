@@ -970,9 +970,10 @@ export class MapView implements MapHost {
       }
     } else pipLag = [x, y];
     ellipse(g, x, y, 4, 1.4, 0x000000, 0.35);
-    // the hero who fights walks the map (Sable once her map frames are drawn)
-    const sable = key.replace('mrow_', 'msab_');
-    const walker = run.hero.build?.id === 'sable' && this.s.textures.exists(sable) ? sable : key;
+    // the hero who fights walks the map (each with their own walker: msab_ for Sable, m<id>_ for the others)
+    const id = run.hero.build?.id ?? 'rowan';
+    const own = id === 'rowan' ? key : key.replace('mrow_', id === 'sable' ? 'msab_' : `m${id}_`);
+    const walker = this.s.textures.exists(own) ? own : key;
     this.pool.at(walker, Math.round(x) - ROWAN_FEET[0], Math.round(y) - ROWAN_FEET[1], D_HERO);
     // Pip flaps along beside him, a little behind
     const flap = Math.floor(now / (walking ? 90 : 160)) % 2;
