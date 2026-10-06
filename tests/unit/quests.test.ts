@@ -2,7 +2,7 @@
 // board on a node posts (only a quest that can still be done from there).
 import { describe, expect, it } from 'vitest';
 import { setup, timeAt } from './helpers';
-import { QUESTS } from '../../src/data/quests';
+import { QUESTS, STYLE_QUEST } from '../../src/data/quests';
 import { GREENMARCH } from '../../src/data/greenmarch';
 import { buildActMap } from '../../src/core/map';
 import { newQuest, questFor, questGoal, questProgress, questText, readQuest } from '../../src/core/quests';
@@ -91,6 +91,38 @@ describe('quests', () => {
         expect(ahead(n.id)).toBe(true);
       }
     }
+  });
+
+  it('a style call counts only wins with a hero of its style', () => {
+    const q = newQuest(T, 'asGuardian');
+    expect(q.goal).toBe(T.quests.styleWins);
+    expect(questText(T, QUESTS.find((x) => x.id === 'asGuardian')!)).toBe(`Win ${T.quests.styleWins} fights as a Guardian hero`);
+    expect(questProgress(T, q, { ...won({ blocks: 40 }), style: 'blade' })).toBe(false);
+    expect(q.n).toBe(0);
+    for (let i = 1; i < q.goal; i++) expect(questProgress(T, q, { ...won(), style: 'guardian' })).toBe(false);
+    expect(questProgress(T, q, { ...won(), style: 'guardian' })).toBe(true);
+    expect(STYLE_QUEST.guardian).toBe('asGuardian');
+    expect(Object.keys(STYLE_QUEST).sort()).toEqual(['blade', 'bomber', 'brute', 'controller', 'guardian', 'marksman', 'shadow', 'summoner']);
+  });
+
+  it('boards call for a style sometimes, and only for the styles you own (none with one hero)', () => {
+    let calls = 0;
+    let boards = 0;
+    for (let seed = 1; seed < 40; seed++) {
+      const map = buildActMap(GREENMARCH.acts[0], seed);
+      for (const n of map.nodes) {
+        boards++;
+        expect(QUESTS.find((q) => q.id === questFor(map, n.id, seed))!.style).toBeUndefined();
+        const id = questFor(map, n.id, seed, ['blade', 'shadow'], T.quests.styleShare);
+        expect(questFor(map, n.id, seed, ['blade', 'shadow'], T.quests.styleShare)).toBe(id);
+        const style = QUESTS.find((q) => q.id === id)!.style;
+        if (!style) continue;
+        calls++;
+        expect(['blade', 'shadow']).toContain(style);
+      }
+    }
+    expect(calls / boards).toBeGreaterThan(T.quests.styleShare - 0.1);
+    expect(calls / boards).toBeLessThan(T.quests.styleShare + 0.1);
   });
 
   it('reads a saved quest back (an unknown one is dropped; the goal follows the tuning)', () => {

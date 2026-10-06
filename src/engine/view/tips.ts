@@ -114,8 +114,8 @@ export class TipsView {
       case 'camp':
         return true;
       case 'world':
-        // not over the act picker or the skirmish card
-        return !s.worldMap.pickerOpen && !s.worldMap.roam.open;
+        // not over the act picker or the skirmish card, nor while the view glides (the first visit, a land's reveal)
+        return !s.worldMap.pickerOpen && !s.worldMap.roam.open && !s.worldMap.touring;
       default:
         return false;
     }

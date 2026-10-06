@@ -51,11 +51,11 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
       name: 'Bulwark',
       theme: 'Blocking',
       nodes: [
-        stat('stout', 'Stout', 'hpPct', 8, '+{n}% max HP.'),
-        stat('plateTraining', 'Plate Training', 'def', 5, '+{n} Defense.'),
+        stat('stout', 'Stout', 'hpPct', 15, '+{n}% max HP.'),
+        stat('plateTraining', 'Plate Training', 'def', 15, '+{n} Defense.'),
         rule('parry', 'Parry', 'A Perfect block knocks every other red back.', 'A block stops one red.', 'A Perfect block pushes all reds back.'),
         rule('shieldBash', 'Shield Bash', 'Breaking a shield red stuns its owner for {n} s.', 'Shield reds just break.', 'Its owner stops attacking for {n} s.', 1),
-        cap('shieldWall', 'Shield Wall', 'Once a fight, {n} blocked reds charge a bubble that absorbs a hit.', 'Every red you miss hurts.', 'A bubble eats one missed red a fight.', 5),
+        cap('shieldWall', 'Shield Wall', 'Every {n} reds you block charge a fresh bubble that absorbs a hit.', 'Every red you miss hurts.', 'Every {n} blocks, a bubble eats a missed red.', 6),
       ],
     },
     {

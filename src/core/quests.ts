@@ -2,9 +2,11 @@
 // has the goals). Taking it puts a tiny tracker on the map (its icon and "12/25"). Progress comes from the fights won
 // (Combat.log: reds blocked, the best combo, clean waves, kills; whether it was an elite, the HP left), counted when
 // the fight is won (a Coin Rush doesn't count). When the goal is met the run pays the reward (core/run.ts): a relic
-// pick, an item, or coins. A defeat restarts the act, quest and all.
+// pick, an item, or coins. A defeat restarts the act, quest and all. A style call counts wins with a hero of one
+// style (heroes can be switched at camp mid-act).
 
-import { QUESTS, questById, type QuestDef, type QuestId } from '../data/quests';
+import { QUESTS, STYLE_QUEST, questById, type QuestDef, type QuestId } from '../data/quests';
+import type { StyleId } from '../data/heroes';
 import type { FightLog } from './combat';
 import type { ActMap } from './map';
 import { Rng } from './rng';
@@ -32,6 +34,8 @@ export function questGoal(t: Tuning, id: QuestId): number {
     case 'elite':
     case 'healthy':
       return 1;
+    default:
+      return Math.max(1, Math.round(Q.styleWins)); // a style call
   }
 }
 
@@ -59,11 +63,17 @@ function eliteAhead(map: ActMap, node: number): boolean {
   return false;
 }
 
-/** The quest a board on `node` posts (seeded by the map and the node): one that can still be done from there. */
-export function questFor(map: ActMap, node: number, seed: number): QuestId {
+/**
+ * The quest a board on `node` posts (seeded by the map and the node): one that can still be done from there. With
+ * `styles` (the styles of the heroes you own, when you own 2 or more) it sometimes calls for one of them instead
+ * (`styleShare` of the time): a reason to switch heroes at camp.
+ */
+export function questFor(map: ActMap, node: number, seed: number, styles: readonly StyleId[] = [], styleShare = 0): QuestId {
   const rng = new Rng((seed ^ Math.imul(node + 7, 0x2c1b3c6d)) >>> 0);
-  const ok = QUESTS.filter((q) => q.id !== 'elite' || eliteAhead(map, node));
-  return ok[rng.int(ok.length)].id;
+  const ok = QUESTS.filter((q) => !q.style && (q.id !== 'elite' || eliteAhead(map, node)));
+  const pick = ok[rng.int(ok.length)].id;
+  if (!styles.length) return pick;
+  return rng.next() < styleShare ? STYLE_QUEST[styles[rng.int(styles.length)]] : pick;
 }
 
 /** A won fight, as a quest sees it. */
@@ -71,6 +81,7 @@ export interface FightDone {
   log: FightLog;
   elite: boolean; // an elite node's fight
   hpShare: number; // the hero's HP left, as a share of max
+  style?: StyleId; // the style of the hero who won it
 }
 
 /** Count a won fight toward the quest. Returns true when this fight met the goal (the caller pays the reward). */
@@ -95,6 +106,9 @@ export function questProgress(t: Tuning, q: QuestState, f: FightDone): boolean {
     case 'healthy':
       if (f.hpShare >= t.quests.healthy - 1e-9) q.n = 1;
       break;
+    default:
+      // a style call: a win with a hero of its style
+      if (f.style && questById(q.id)?.style === f.style) q.n += 1;
   }
   q.n = Math.min(q.n, q.goal);
   if (q.n < q.goal) return false;

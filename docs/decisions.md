@@ -57,3 +57,34 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     are laid once per phase even though their timer comes round again.
 20. The act picker on the world map and the gear panel's "Jump to" show only Greenmarch's names until the world map's
     new landmarks are in (the next region's acts are listed by number only: spoilers).
+
+## Part 7: balance
+21. The act picker and "Jump to" limits from decision 20 are lifted where the world map now shows the second region
+    (the picker lists one region's acts at a time; far lands stay fogged and nameless).
+22. **The bot lets go of a hold like a person:** aimed at the moment the cursor leaves the far end, 25 ms late on
+    average, with 1.2x its tap spread (releases are less precise than presses), and an early lift on half its lapse
+    rate. Letting go more than 60 ms early drops the hold, so an 85% player drops about 1 hold in 15. Its thumb is
+    busy while it holds (it doesn't tap other blocks).
+23. **Region 2 is balanced from a typical end-of-Region-1 hero:** each balance run plays Greenmarch from a fresh
+    profile, then visits camp the way a person would (buys every Rare chest its gems pay for, opens every chest,
+    buys the camp upgrades it can afford, brings its rarest companions) and starts the next region's fresh run.
+    `npm run campaign` reports it per hero; `npm run region-tune` replays one region from cached heroes to tune fast.
+24. **Bar-changing finishers, which work best** (judged from the bot's fights and the fight screens):
+    - Best: **Neve's Glacier** (every red freezes in place and a slow patch opens mid-bar: the bar visibly changes
+      and the next few seconds are a calm, readable window) and **Tam's Big Bang** (it leaves kegs on the bar, so
+      the swipe turns into new things to tap with no new input).
+    - Good: **Torva's Earthsplitter** (clears the whole bar and holds reds back a moment: a clean breather) and
+      **Vesper's Volley** (pins every red; strong, but it reads like a pause more than a change).
+    - Weakest: **Hollis's Rampart** (reds bounce off the left end for 3 s: easy to miss what happened) and
+      **Moss's Overgrowth** vines (they only slow the next reds). Both kept; if a later pass reworks one, give it a
+      visible mark on the bar like Glacier's patch.
+25. **Rowan's branches: Bulwark is the safe pick.** Stout +8% -> +15% max HP, Plate Training +5 -> +15 Defense, and
+    Shield Wall's bubble recharges (every 6 blocked reds, one held at a time) instead of once a fight. Measured per
+    forced branch in docs/balance.md.
+26. **A Rare chest costs 240 gems** (was 180): a story run earns about 240-300 gems in Greenmarch (achievements
+    included) and 200-245 in the next region, so the shrine gives about one Rare chest per region.
+27. Hero parity, first pass (Region 1 gaps to Rowan at 85%): Moss attack 0.85 -> 0.8 and his moths heal 2% -> 1.2%
+    (Act 3 was +20), Hollis 125 -> 115 HP (Act 3 +12), Vesper 95 -> 100 HP and attack 1 -> 1.05 (Act 2 -13).
+28. **Style calls on the bounty board:** once you own two or more heroes, about a third of boards post "Win 2 fights
+    as a <style> hero" for one of the styles you own (heroes can be switched at camp mid-act). It pays a relic pick
+    like the other relic bounties. With one hero, boards never ask for a style.

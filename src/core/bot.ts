@@ -5,8 +5,9 @@
 // judge decides what they hit. So thin blocks, fast reds and a fast cursor are as hard for it as for a person:
 // a block it crosses in 60 ms is missed far more often than one it crosses in 150 ms. "Accuracy" names the player:
 // the share of plain yellow blocks (nominal width) they hit at the starting cursor speed.
-// Sable (two cursors) it plays with two thumbs: each has its own timing error, tap rate and pending tap, aims its own
-// cursor at the next block in its half, and a red goes to whichever cursor meets it first (never both thumbs on one).
+// Every hero has one cursor. A hold block it presses at its near edge and lets go when the cursor looks past the far
+// end, off by a human error (a little late on average, less precise than a press, the odd early lift), and its thumb
+// is busy until then. Patches (ice, snow, a dash) it reads like a person: the time to a block counts them.
 // It reads telegraphs like a person: it holds off yellow while a shield is raised (as often as its accuracy) and
 // waits out a frozen cursor. It swipes the finisher when it would kill, at max stacks, or when holding on for one
 // more stack isn't worth the risk of a combo break.
@@ -18,14 +19,21 @@
 // route runs into one (an ambush), the merchant likewise (it shops there as at a shop), a Coin Rush played with its
 // normal aim, every bounty it passes taken, and a secret cache opened half the time it stands beside one.
 
-import { REGIONS } from '../data/regions';
+import { REGIONS, regionStart } from '../data/regions';
 import { eventById } from '../data/events';
 import type { NodeType } from '../data/types';
 import { SLOT_KEYS, slotOf } from '../data/gear';
 import { DT, heroAtk, heroMaxHp, heroStats, isRed, type Combat, type CombatEvent, type Hero } from './combat';
 import { emptyLoadout, itemPower, slotOfItem, upgradeCost, type StatBlock } from './gear';
 import { buildBonus, canLearn, learn, pointsLeft, treeOf, type HeroId } from './heroes';
-import { equip, equippedItems, heroProgress, newProfile, salvageAll, upgrade, type Profile } from './profile';
+import { focusOf, guardOf } from './styles';
+import { buyRareChest, openChest } from './chests';
+import { buyCamp } from './meta';
+import { ownedPets, petSlots } from './roster';
+import { COMPANIONS } from '../data/companions';
+import { tierIndex } from '../data/rarity';
+import type { CampUpgradeId } from '../data/meta';
+import { CHEST_KINDS, equip, equippedItems, heroProgress, newProfile, salvageAll, upgrade, type Profile } from './profile';
 import { buildName, rarityRank, sharedTags, type RelicId } from './relics';
 import { Rng } from './rng';
 import { RARITIES, Run, type BoostOffer } from './run';
@@ -42,6 +50,7 @@ export interface BotOptions {
   maxStageSec?: number; // a fight running longer than this counts as a loss
   noGear?: boolean; // measurement: never wear what drops (the balance report's "without gear" ablation)
   avoid?: RelicId[]; // measurement: relics it never takes (to weigh one relic against going without it)
+  focus?: string; // measurement: the skill branch it goes down first (default: rolled once per profile)
 }
 
 /** Inverse of the standard normal CDF (Acklam's approximation; |error| < 1e-8 over (0, 1)). */
@@ -106,6 +115,8 @@ export interface FightStats {
   perfects: number;
   traps: number;
   counters: number; // yellow taps countered by a raised shield
+  holds: number; // hold blocks finished...
+  holdsDropped: number; // ...and let go too early
   specials: number; // enemy specials fired
   hitsTaken: number;
   heroAtk: number; // attack and combo power going into the fight
@@ -215,6 +226,66 @@ export function playRun(tuning: Tuning, o: BotOptions, maxAttempts = 6, acts = G
   return out;
 }
 
+/**
+ * Play the story region by region with one profile, as a person goes on: Greenmarch's run (playRun), then, once
+ * a region is won, the next region's fresh run (its first act; the gear, levels and camp earned so far carried
+ * over), each act retried from its start after a defeat. Stops at a region not won. `regions`: how many to play.
+ */
+export function playCampaign(tuning: Tuning, o: BotOptions, regions = REGIONS.length, maxAttempts = 6, profile: Profile = newProfile()): RunStats {
+  const out = playRun(tuning, o, maxAttempts, REGIONS[0].acts.length, profile);
+  for (let r = 1; r < Math.min(regions, REGIONS.length); r++) {
+    if (out.acts.length < regionStart(r) || !out.acts[out.acts.length - 1].cleared) break;
+    out.acts.push(...playRegion(tuning, o, profile, r, maxAttempts).acts);
+  }
+  return out;
+}
+
+/** One region's fresh run (region `r` from its first act) with what `profile` has earned so far; each act retried
+ *  from its start after a defeat, stopping at an act not cleared. */
+export function playRegion(tuning: Tuning, o: BotOptions, profile: Profile, r: number, maxAttempts = 6): RunStats {
+  const out: RunStats = { acts: [] };
+  const rng = new Rng((o.seed ^ 0x7f4a7c15) + r);
+  if (o.hero && o.hero !== 'rowan') {
+    profile.heroes[o.hero].unlocked = true;
+    profile.hero = o.hero;
+  }
+  campVisit(tuning, profile, rng);
+  const from = regionStart(r);
+  const run = botRun(tuning, (o.seed + 15485863 * r) >>> 0, profile, from);
+  equipBest(run);
+  for (let a = from; a < from + REGIONS[r].acts.length; a++) {
+    const entry = { act: a, attempts: [] as ActAttempt[], cleared: false };
+    out.acts.push(entry);
+    for (let k = 0; k < maxAttempts && !entry.cleared; k++) {
+      if (k > 0) run.retry();
+      const res = playAct(run, rng, o);
+      entry.attempts.push(res);
+      entry.cleared = res.won;
+    }
+    if (!entry.cleared) break;
+    if (run.phase === 'actClear') {
+      run.nextAct();
+      run.skipScenes();
+    }
+  }
+  return out;
+}
+
+/** Camp upgrades the bot buys between regions (when it has the coins), in this order. */
+const BOT_CAMP: CampUpgradeId[] = ['perch', 'warTable', 'luckyStone', 'rerollCharm'];
+
+/**
+ * The bot at camp between regions, as a person would: every Rare chest its gems buy, every waiting chest opened,
+ * the camp upgrades it can afford, and its best companions brought along (rarest, then most stars).
+ */
+export function campVisit(t: Tuning, p: Profile, rng: Rng): void {
+  while (buyRareChest(p, t));
+  for (const k of CHEST_KINDS) while (openChest(rng, t, p, k));
+  for (const id of BOT_CAMP) buyCamp(p, id);
+  const best = ownedPets(p).sort((a, b) => tierIndex(COMPANIONS[b].rarity) - tierIndex(COMPANIONS[a].rarity) || p.pets[b].stars - p.pets[a].stars);
+  p.petsOn = best.slice(0, petSlots(p));
+}
+
 export interface FarmResult {
   story: RunStats; // the first playthrough, with the gear found on the way
   /** Each replay of the last act (for the Boar King's drops): its boss fight won the first time it came up, and cleared. */
@@ -305,7 +376,7 @@ export function playAct(run: Run, rng: Rng, o: BotOptions): ActAttempt {
     else if (ph === 'loot') {
       run.collectLoot();
       if (!o.noGear) equipBest(run);
-      spendSkills(run, rng);
+      spendSkills(run, rng, o.focus);
     } else if (ph === 'boost') run.pickBoost(botPick(run, rng, o.accuracy, o.avoid));
     else if (ph === 'treasure') run.openTreasure();
     else if (ph === 'rest') run.rest();
@@ -371,7 +442,7 @@ export function botPick(run: Run, rng: Rng, accuracy = TYPICAL_ACCURACY, avoid: 
  * branch of the first node the hero learned: rolled once per profile when the first point comes (so bots spread
  * evenly over the three branches), then read back from the profile; after it, the next branches in tree order.
  */
-export function spendSkills(run: Run, rng: Rng): void {
+export function spendSkills(run: Run, rng: Rng, force?: string): void {
   const p = run.profile;
   const hero = p.hero;
   const prog = heroProgress(p);
@@ -379,7 +450,8 @@ export function spendSkills(run: Run, rng: Rng): void {
   const tree = treeOf(hero);
   if (!tree.length) return;
   const focus = tree.findIndex((b) => b.nodes.some((n) => n.id === prog.skills[0]));
-  const first = focus >= 0 ? focus : rng.int(tree.length);
+  const forced = force ? tree.findIndex((b) => b.id === force) : -1;
+  const first = focus >= 0 ? focus : forced >= 0 ? forced : rng.int(tree.length);
   for (let k = 0; k < tree.length && pointsLeft(run.tuning, prog) > 0; k++) {
     const branch = tree[(first + k) % tree.length];
     for (const node of branch.nodes) if (canLearn(run.tuning, hero, prog, node.id) === 'ok') learn(run.tuning, hero, prog, node.id);
@@ -417,12 +489,12 @@ export function wantsBlock(c: Combat, b: Block, guarded: boolean): boolean {
 
 function newFight(run: Run, c: Combat): FightStats {
   const T = run.tuning;
-  const n = run.node!;
+  const n = run.node;
   const boss = c.enemies.some((e) => T.enemies[e.key].boss);
   const st: FightStats = {
     act: run.actIndex,
-    row: n.row,
-    type: n.type,
+    row: n?.row ?? 0,
+    type: n?.type ?? 'fight', // (a practice fight has no node)
     ambush: !!run.ambush,
     enemies: c.enemies.map((e) => e.key),
     boss,
@@ -437,6 +509,8 @@ function newFight(run: Run, c: Combat): FightStats {
     perfects: 0,
     traps: 0,
     counters: 0,
+    holds: 0,
+    holdsDropped: 0,
     specials: 0,
     hitsTaken: 0,
     heroAtk: heroAtk(T, run.hero),
@@ -516,6 +590,8 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
   const aim: Aim = { sigma: timingSpread(T, o.accuracy, o.lapse ?? DEFAULT_LAPSE), react, reactRed: react * 0.7, gap, lapse: o.lapse ?? DEFAULT_LAPSE };
   const hpLeft = new Map(c.enemies.map((e) => [e.id, e.hp]));
   let pending: Pending | null = null;
+  // a hold being held: the timing error its release is aimed with (s, + = late), fixed when it is pressed
+  let releaseErr: number | null = null;
   let busyUntil = c.time;
   let breaks = 0;
   let combos = 0; // combo-building actions (hits and blocks), to estimate how risky waiting is
@@ -548,6 +624,10 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
       else if (e.type === 'miss') st.misses++;
       else if (e.type === 'trap') st.traps++;
       else if (e.type === 'counter') st.counters++;
+      else if (e.type === 'holdEnd') {
+        if (e.ok) st.holds++;
+        else st.holdsDropped++;
+      }
       else if (e.type === 'special') st.specials++;
       else if (e.type === 'guardOn') {
         guardSeen++;
@@ -580,7 +660,22 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
         c.tap(pending.at);
         st.taps++;
         busyUntil = pending.at + gap;
+        if (c.holding?.id === pending.blockId) releaseErr = releaseError(rng, aim, gauss);
         pending = null;
+      }
+    }
+    // a hold: let go when the cursor looks past its far end (watching the cursor, so a stopped or frozen one is
+    // waited out), off by a human error; a late release is safe (the hold completes at the far end on its own)
+    if (!c.holding) releaseErr = null;
+    else if (releaseErr !== null) {
+      const H = c.holding;
+      const b = c.blocks.find((x) => x.id === H.id);
+      const exit = b ? b.pos + (H.dir * b.width) / 2 : c.cursorPos();
+      const rem = (exit - c.cursorPos()) * H.dir > 0 ? c.travelTime(c.cursorPos(), exit, H.dir) : 0;
+      if (rem + releaseErr <= 0) {
+        c.release(t);
+        releaseErr = null;
+        busyUntil = Math.max(busyUntil, t + gap);
       }
     }
     // break risk per combo action: what has happened so far, starting from a guess based on accuracy
@@ -590,7 +685,8 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
       busyUntil = t + 0.3; // the swipe itself takes a moment
     }
     // wait out a finisher's stopped cursor and a frozen one
-    if (!pending && t >= busyUntil && c.cursorHold <= 0 && c.freeze <= 0) pending = plan(c, rng, aim, gauss, readsGuard && guardSeen > 0);
+    // (and a hold: the thumb is busy until it lets go)
+    if (!pending && !c.holding && t >= busyUntil && c.cursorHold <= 0 && c.freeze <= 0) pending = plan(c, rng, aim, gauss, readsGuard && guardSeen > 0);
     tally(c.drainEvents());
     comboTicks += c.combo;
     ticks++;
@@ -614,14 +710,46 @@ function wantsFinisher(c: Combat, risk: number): boolean {
   const max = c.maxStacks(); // relics can raise it (Overcharge)
   if (c.stacks >= max) return true;
   const target = c.currentTarget();
-  const kit = c.heroId === 'sable' ? c.tuning.kits.sable.fangMult : 1; // Twin Fang hits the target harder
-  if (target && c.finisherDamage() * kit >= target.hp) return true;
+  if (target && c.finisherDamage() * finisherKitMult(c) >= target.hp) return true;
   const hitsNeeded = Math.max(1, (1 - c.meter) / Math.max(0.01, M.perHit));
   const survive = Math.pow(1 - Math.min(0.95, risk), hitsNeeded);
   return survive * (c.finisherDamage(c.stacks + 1) / Math.max(1, c.finisherDamage())) < 1;
 }
 
-interface Aim {
+/**
+ * When a hold's release lands against the moment the cursor leaves its far end (s, + = late): a person lets go a
+ * little after it, less precisely than they press (1.2x their tap spread), and now and then lifts the thumb early
+ * (a lapse). Letting go more than tuning.hold.releaseGraceMs early drops the hold.
+ */
+export function releaseError(rng: Rng, aim: Aim, gauss: () => number): number {
+  if (rng.next() < aim.lapse / 2) return -(0.08 + rng.next() * 0.17);
+  return RELEASE_BIAS + gauss() * aim.sigma * RELEASE_SPREAD;
+}
+const RELEASE_BIAS = 0.025;
+const RELEASE_SPREAD = 1.2;
+
+/** Roughly how much harder the hero's own finisher hits its target than the plain one (the bot's read of a kill). */
+function finisherKitMult(c: Combat): number {
+  const K = c.tuning.kits;
+  switch (c.heroId) {
+    case 'sable':
+      return K.sable.fangMult; // Twin Fang: the target alone, harder
+    case 'neve':
+      return K.neve.glacierMult;
+    case 'moss':
+      return 1 + K.moss.overgrowth * c.allies.length;
+    case 'hollis':
+      return 1 + guardOf(c) * K.hollis.rampartGuard; // Rampart spends the Guard
+    case 'vesper': {
+      const d = Math.max(1, c.finisherDamage());
+      return 1 + (focusOf(c) * K.vesper.volleyFocus) / d; // the Volley spends the Focus
+    }
+    default:
+      return 1;
+  }
+}
+
+export interface Aim {
   sigma: number; // timing spread (s)
   react: number; // s a block must have been visible for
   reactRed: number; // the same for reds
@@ -708,8 +836,32 @@ export function balance(tuning: Tuning, accuracies: number[], runs: number, seed
   const rows: ActRow[] = [];
   for (const acc of accuracies) {
     const results = Array.from({ length: runs }, (_, r) => playRun(tuning, { accuracy: acc, seed: (seed * 7919 + r * 104729 + Math.round(acc * 1000)) >>> 0, hero, avoid }, maxAttempts, acts));
-    for (let act = 0; act < acts; act++) {
-      const entries = results.map((res) => res.acts[act]).filter((e) => !!e);
+    rows.push(...summarize(results, acc, runs, Array.from({ length: acts }, (_, i) => i)));
+  }
+  return rows;
+}
+
+/**
+ * The campaign's balance (playCampaign): `runs` runs per accuracy through `regions` regions, every act summarised.
+ * A later region's rows count only the runs that reached it (`reached`): the hero a typical end of the region
+ * before leaves them with.
+ */
+export function balanceCampaign(tuning: Tuning, accuracies: number[], runs: number, seed = 1, hero?: HeroId, regions = REGIONS.length, maxAttempts = 6): ActRow[] {
+  const rows: ActRow[] = [];
+  const acts = regionStart(Math.min(regions, REGIONS.length));
+  for (const acc of accuracies) {
+    const results = Array.from({ length: runs }, (_, r) => playCampaign(tuning, { accuracy: acc, seed: (seed * 7919 + r * 104729 + Math.round(acc * 1000)) >>> 0, hero }, regions, maxAttempts));
+    rows.push(...summarize(results, acc, runs, Array.from({ length: acts }, (_, i) => i)));
+  }
+  return rows;
+}
+
+/** Every act's row from a batch of runs (results[i].acts[k].act names the act). */
+export function summarize(results: RunStats[], acc: number, runs: number, acts: number[]): ActRow[] {
+  const rows: ActRow[] = [];
+  {
+    for (const act of acts) {
+      const entries = results.map((res) => res.acts.find((e) => e.act === act)).filter((e) => !!e);
       const n = Math.max(1, entries.length);
       const sum = { fin: 0, dmg: 0, taps: 0, misses: 0, secs: 0, taken: 0, specials: 0, counters: 0, knightFights: 0 };
       const by: Record<string, { s: number; n: number }> = { fight: { s: 0, n: 0 }, elite: { s: 0, n: 0 }, boss: { s: 0, n: 0 } };

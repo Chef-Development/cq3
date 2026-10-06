@@ -3,7 +3,24 @@
 // the numbers (how many reds, what combo...) and the coins are tuning.quests. The map shows only the goal's icon and
 // its progress ("12/25"), so the words here are short: the notice's heading and one line ('{n}' shows the number).
 
-export type QuestId = 'blocks' | 'combo' | 'elite' | 'healthy' | 'flawless' | 'kills';
+import type { StyleId } from './heroes';
+
+export type QuestId =
+  | 'blocks'
+  | 'combo'
+  | 'elite'
+  | 'healthy'
+  | 'flawless'
+  | 'kills'
+  // the style calls: win fights with a hero of one style (a board posts one only once you own 2+ heroes)
+  | 'asBlade'
+  | 'asShadow'
+  | 'asGuardian'
+  | 'asMarksman'
+  | 'asBrute'
+  | 'asController'
+  | 'asSummoner'
+  | 'asBomber';
 export type QuestReward = 'relic' | 'gear' | 'coins';
 
 export interface QuestDef {
@@ -14,7 +31,11 @@ export interface QuestDef {
   reward: QuestReward;
   /** How progress counts: 'sum' adds up over the act's fights, 'best' is the best single fight, 'once' is 0 or 1. */
   count: 'sum' | 'best' | 'once';
+  /** A style call: only fights won with a hero of this style count. */
+  style?: StyleId;
 }
+
+const call = (id: QuestId, style: StyleId, title: string, name: string): QuestDef => ({ id, title, text: `Win {n} fights as a ${name} hero`, icon: 'star', reward: 'relic', count: 'sum', style });
 
 export const QUESTS: readonly QuestDef[] = [
   { id: 'blocks', title: 'Hold the Line', text: 'Block {n} reds', icon: 'shield', reward: 'gear', count: 'sum' },
@@ -23,7 +44,18 @@ export const QUESTS: readonly QuestDef[] = [
   { id: 'healthy', title: 'Not a Scratch', text: 'Win a fight above {n}% HP', icon: 'heart', reward: 'coins', count: 'once' },
   { id: 'flawless', title: 'Clean Sweep', text: 'Clear {n} waves, no misses', icon: 'star', reward: 'relic', count: 'sum' },
   { id: 'kills', title: 'Pest Control', text: 'Defeat {n} foes', icon: 'foe', reward: 'coins', count: 'sum' },
+  call('asBlade', 'blade', 'Edge Work', 'Blade'),
+  call('asShadow', 'shadow', 'Shadow Work', 'Shadow'),
+  call('asGuardian', 'guardian', 'Shield Oath', 'Guardian'),
+  call('asMarksman', 'marksman', 'Steady Aim', 'Marksman'),
+  call('asBrute', 'brute', 'Heavy Hands', 'Brute'),
+  call('asController', 'controller', 'Bend the Bar', 'Controller'),
+  call('asSummoner', 'summoner', 'Call the Wild', 'Summoner'),
+  call('asBomber', 'bomber', 'Powder Keg', 'Bomber'),
 ];
+
+/** The style call for each style. */
+export const STYLE_QUEST: Record<StyleId, QuestId> = Object.fromEntries(QUESTS.filter((q) => q.style).map((q) => [q.style, q.id])) as Record<StyleId, QuestId>;
 
 export const QUEST_IDS: readonly QuestId[] = QUESTS.map((q) => q.id);
 export const questById = (id: string): QuestDef | undefined => QUESTS.find((q) => q.id === id);

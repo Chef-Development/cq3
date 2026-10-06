@@ -102,14 +102,15 @@ describe('style rules', () => {
 
   it('Marksman (Focus): hits deal less and store Focus; a green hit fires it all as a Power Shot', () => {
     const { c, t } = fight('vesper', { enemies: ['bandit'] });
+    const atk = t.hero.atk * t.kits.vesper.atk; // her share of Rowan's attack
     const hp0 = c.enemies[0].hp;
     tapNew(c, t, 'yellow', 0.2, 25);
-    expect(hp0 - c.enemies[0].hp).toBe(Math.round(t.hero.atk * t.styles.focusShare));
+    expect(hp0 - c.enemies[0].hp).toBe(Math.round(atk * t.styles.focusShare));
     expect(focusOf(c)).toBeGreaterThan(0);
     const f = focusOf(c);
     const hp = c.enemies[0].hp;
     tapNew(c, t, 'green', 0.5, 25);
-    expect(hp - c.enemies[0].hp).toBe(Math.round(t.hero.atk * t.hero.greenMult) + Math.max(1, Math.round(f)));
+    expect(hp - c.enemies[0].hp).toBe(Math.round(atk * t.hero.greenMult) + Math.max(1, Math.round(f)));
     expect(focusOf(c)).toBe(0);
   });
 

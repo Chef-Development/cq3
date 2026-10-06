@@ -232,6 +232,8 @@ export const DEFAULT_TUNING = {
     healthy: 0.8, // win a fight with HP above this share
     flawless: 2, // clear this many waves without a miss or a hit taken
     kills: 15, // defeat this many foes in the act
+    styleWins: 2, // a style call: win this many fights with a hero of its style
+    styleShare: 0.35, // a board calls for a style this often (once you own 2+ heroes)
     coins: 50,
   },
   secret: {
@@ -382,11 +384,11 @@ export const DEFAULT_TUNING = {
     // Each hero's own numbers (core/kit-fx.ts; src/data/heroes.ts has the words). hp: base max HP; atk: share of
     // Rowan's base attack. Rowan's are tuning.hero. Tuned with the bot to stay within +/-10 points of Rowan.
     sable: { hp: 110, atk: 1, abilitySec: 3, silentStep: 0.25, dashLead: 0.15, dashMult: 2.5, fangMult: 1.4, fangKeep: 1 },
-    neve: { hp: 100, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, glacierMult: 0.8, slowSec: 4, slowWidth: 0.34 },
-    moss: { hp: 105, atk: 0.85, abilitySec: 3, allySec: 10, allySec3: 14, thornEvery: 1.5, thornDmg: 0.4, barkEvery: 4, mothEvery: 3, mothHeal: 0.02, seedEvery: 5, roots: 0.12, overgrowth: 0.25, vineSec: 3, vineMult: 0.5 },
+    neve: { hp: 100, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, glacierMult: 0.7, slowSec: 4, slowWidth: 0.34 },
+    moss: { hp: 105, atk: 0.75, abilitySec: 3, allySec: 10, allySec3: 14, thornEvery: 1.5, thornDmg: 0.4, barkEvery: 4, mothEvery: 3, mothHeal: 0.012, seedEvery: 5, roots: 0.08, overgrowth: 0.25, vineSec: 3, vineMult: 0.5 },
     tam: { hp: 100, atk: 0.9, abilitySec: 3, kegEvery3: 4, blastShield: 0.5, bangKegs: 3, wide5: 2 },
-    hollis: { hp: 125, atk: 0.9, abilitySec: 3, slam: 0.6, ironHide: 0.25, rampartSec: 3, rampartGuard: 2, guardMax3: 7 },
-    vesper: { hp: 95, atk: 1, abilitySec: 3, pierce: 0.5, volleyFocus: 1.5, pinSec: 2, cap3: 1.5 },
+    hollis: { hp: 115, atk: 0.9, abilitySec: 3, slam: 0.6, ironHide: 0.2, rampartSec: 3, rampartGuard: 1.5, guardMax3: 7 },
+    vesper: { hp: 110, atk: 1.05, abilitySec: 3, pierce: 0.5, volleyFocus: 1.5, pinSec: 2, cap3: 1.5 },
     torva: { hp: 120, atk: 0.9, abilitySec: 3, quake: 0.15, windUp: 2.5, stunSec: 1.5, unstoppable: 0.08, unstoppableMax: 5, calmSec: 2 },
   },
   chests: {
@@ -404,7 +406,7 @@ export const DEFAULT_TUNING = {
     softPity: 20, // ...the Legendary+ odds climb from this many on...
     softStep: 0.05, // ...by this much a chest
     topPity: 120, // ...and a Celestial or better within this many (the top pity tier)
-    rareCost: 180, // gems for one Rare chest at the shrine
+    rareCost: 240, // gems for one Rare chest at the shrine (a story run earns about this much per region: docs/balance.md)
     // drops
     bossChest: 0.35, // a region boss drops a hero chest this often (its first kill always does)
     miniChest: 0.25, // a mini-boss this often (its first kill always does)

@@ -1,6 +1,6 @@
 // The balance report: npm run balance. Plays 1,000 whole runs of Greenmarch for a 55%, 70%, 85% and 95% player
 // (random node choices on each act's map), prints the table and writes docs/balance.md.
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { it } from 'vitest';
 import { balance, GREENMARCH_ACTS, playFarm, timingSpread, type ActRow, type FarmResult, TYPICAL_ACCURACY } from '../../src/core/bot';
 import { cloneTuning } from '../../src/core/tuning';
@@ -174,8 +174,7 @@ first playthrough (New game wipes the profile). Until playtest round 4 it was se
 
 Later acts' reds cross the bar faster (\`acts[i].redSpeed\`: x1 / x1.05 / x1.15): an 85% player blocks nearly every red
 at the normal 2.8 s (a red crosses the cursor's path 2-3 times, finishers and kills knock reds off the bar), so enemy HP
-and attack alone barely reach them. Sable's two half-speed cursors ride along with a red on the way back, so faster
-reds cost her far fewer blocks than Rowan: on her bar the act's extra speed counts \`sable.actRedSpeed\` times.
+and attack alone barely reach them.
 
 ## What a fight costs
 
@@ -232,7 +231,10 @@ Notes:
   map row. HP carries from node to node (kills heal only ${Math.round(t.hero.healOnKill * 100)}%), so rests, potions and Full
   Heal cards matter.
 `;
-  writeFileSync('docs/balance.md', md);
+  // the later regions, every hero against Rowan, Rowan's branches, gems and chests: kept by hand from npm run
+  // campaign / npm run region-tune (docs/balance-heroes.md), appended so a fresh Region 1 report keeps them
+  const extra = existsSync('docs/balance-heroes.md') ? `\n${readFileSync('docs/balance-heroes.md', 'utf8')}` : '';
+  writeFileSync('docs/balance.md', md + extra);
   process.stderr.write(`${farms.map((f) => `farm ${f.acc}: story ${pct(f.story)} -> ${f.visits.map(pct).join(' ')} (forge ${f.visitsForged.map(pct).join(' ')})`).join('\n')}\n`);
   process.stderr.write(`${table(rows)}\n${losses(rows)}\n`);
 }, 1_800_000);
