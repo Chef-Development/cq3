@@ -124,6 +124,14 @@ const CLOUDS: Array<[number, number, number, number]> = [
   [3, 122, 3.1, 360],
 ];
 const PARALLAX = 0.18;
+// gull flocks crossing the map (world space): [phase s, the world rows they fly along, one per crossing]
+const GULL_FLOCKS: Array<[number, number[]]> = [
+  [0, [60, 150, 230]],
+  [12, [110, 40, 200]],
+  [24, [180, 90, 260]],
+];
+const GULL_PER = 36; // s from one crossing of a flock to its next...
+const GULL_TRIP = 30; // ...of which the crossing itself (about 33 px a second)
 // shadows of clouds sweeping across the land (texture, world y, speed, phase)
 const SHADOWS: Array<[number, number, number, number]> = [
   [0, 60, 3.4, 60],
@@ -903,19 +911,22 @@ export class WorldView {
     // the cloud band along the far north breathes
     this.at(this.rim, Math.round(Math.sin(t * 0.25) * 2) - 2, -2);
 
-    // gulls: a flock of three crossing the view every so often (high up: they keep to the screen)
-    const per = 15;
-    const c = Math.floor(t / per);
-    const u = (t - c * per) / 11;
-    const dir = c % 2 ? -1 : 1;
-    const y0 = [46, 78, 112, 60][c % 4];
-    if (u < 1)
+    // gulls: flocks of three crossing the whole map (in world space, so a drag never carries them along), staggered
+    // so that one crosses the view every so often wherever you look
+    GULL_FLOCKS.forEach(([ph, rows], i) => {
+      const c = Math.floor((t + ph) / GULL_PER);
+      const u = ((t + ph) / GULL_PER - c) * (GULL_PER / GULL_TRIP);
+      if (u >= 1) return;
+      const dir = (c + i) % 2 ? -1 : 1;
+      const lead = -30 + u * (WORLD_W + 60);
+      const y0 = rows[c % rows.length];
+      if (!this.seen(dir > 0 ? lead : WORLD_W - lead, y0, 20)) return;
       for (let k = 0; k < 3; k++) {
-        const lead = -20 + u * (GAME_W + 40);
-        const x = dir > 0 ? lead + [0, -6, -6][k] : GAME_W - lead + [0, 6, 6][k];
-        const y = y0 + [0, -4, 4][k] + Math.sin(u * TAU * 1.5) * 4;
-        this.pool.mid(`wm_bird${Math.floor(t * 5 + k * 0.7) % 2}`, Math.round(x), Math.round(y), DEPTH.bird);
+        const x = dir > 0 ? lead + [0, -6, -6][k] : WORLD_W - lead + [0, 6, 6][k];
+        const y = y0 + [0, -4, 4][k] + Math.sin(u * TAU * 4) * 4;
+        this.pool.mid(`wm_bird${Math.floor(t * 5 + k * 0.7) % 2}`, Math.round(x) - this.ox, Math.round(y) - this.oy, DEPTH.bird);
       }
+    });
     // crows circling over the forests
     WORLD_LIFE.birds.forEach(([bx, by], i) => {
       if (!this.seen(bx, by, 30)) return;
