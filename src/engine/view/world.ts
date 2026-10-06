@@ -106,6 +106,9 @@ const TOUR_HOLD = 250;
 const TOUR_MS = 1700;
 /** The camera easing to a landmark or back home (ms). */
 const GLIDE_MS = 480;
+/** The act card's height, and the highest its top sits when it hangs over its landmark (clear of the header). */
+const CARD_H = 25;
+const CARD_TOP = 38;
 
 /** The act picker's rows: one per act, cleared ones to replay (farm), the next to go on with, later ones locked. */
 const PICK_ROW_H = 28;
@@ -143,6 +146,12 @@ function rows(g: G, x: number, y: number, w: number, h: number, r: number, color
 
 /** Plate colours: crisp dark glass with a light inner edge. */
 const PLATE = { fill: 0x161226, top: 0x221c38, edge: 0x6a5c98, lo: 0x0c0a16 };
+
+/** Where an act's card rests its foot when it hangs over the landmark (world y): above the landmark and its flag. */
+function cardFoot(i: number): number {
+  const a = WORLD_ACTS[i];
+  return Math.min(a.box.y, a.flag[1] - 12) - 4;
+}
 
 /** A closed sea lane resampled to one point per px (ships sail it). */
 function lanePath(pts: Pt[]): Pt[] {
@@ -504,10 +513,10 @@ export class WorldView {
     const s = this.s;
     const { name, status } = this.cardText(sel.act);
     const w = Math.max(textWidth(name, 1, true), textWidth(status, 1, false)) + 12 + 40;
-    const h = 25;
+    const h = CARD_H;
     const a = WORLD_ACTS[sel.act];
     let x = Math.round(a.box.x + a.box.w / 2 - this.ox - w / 2);
-    let y = Math.round(a.box.y - this.oy - h - 5);
+    let y = Math.round(cardFoot(sel.act) - this.oy - h);
     x = Math.max(s.L + 3, Math.min(s.R - w - 3, x));
     if (y < 36) y = Math.round(a.box.y + a.box.h - this.oy + 4);
     y = Math.max(22, Math.min(s.B - h - 24, y));
@@ -662,8 +671,9 @@ export class WorldView {
       this.sel = { act: i, at: now };
       this.info = null;
       app.audio.uiClick();
+      // frame it with room above for its card (clear of the header)
       const a = WORLD_ACTS[i];
-      this.glide(a.box.x + a.box.w / 2, a.box.y + a.box.h / 2 - 8, now);
+      this.glide(a.box.x + a.box.w / 2, Math.min(a.box.y + a.box.h / 2 - 8, cardFoot(i) - CARD_H - CARD_TOP + GAME_H / 2), now);
       return;
     }
     this.rattle.set(t.id, now);

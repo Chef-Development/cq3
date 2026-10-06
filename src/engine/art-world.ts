@@ -83,7 +83,7 @@ export const WORLD_REGIONS: Array<{ id: string; name: string; x: number; y: numb
  */
 export const WORLD_ACTS: Array<{ x: number; y: number; box: Box; stand: Pt; flag: Pt; view: Pt }> = [
   { x: 216, y: 247, box: { x: 198, y: 233, w: 38, h: 28 }, stand: [150, 245], flag: [229, 236], view: [163, 222] },
-  { x: 262, y: 166, box: { x: 234, y: 146, w: 58, h: 40 }, stand: [233, 204], flag: [282, 141], view: [248, 205] },
+  { x: 262, y: 166, box: { x: 234, y: 146, w: 58, h: 40 }, stand: [233, 204], flag: [279, 156], view: [248, 205] },
   { x: 352, y: 226, box: { x: 326, y: 200, w: 54, h: 50 }, stand: [320, 225], flag: [374, 196], view: [302, 212] },
 ];
 
