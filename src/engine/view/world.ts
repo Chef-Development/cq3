@@ -113,17 +113,21 @@ const CARD_TOP = 38;
 /** The act picker's rows: one per act, cleared ones to replay (farm), the next to go on with, later ones locked. */
 const PICK_ROW_H = 28;
 
-// clouds drifting along the top and bottom edges of the view, never over the land's middle (texture, screen y,
-// speed px/s, phase px); they slide a little when the map pans (parallax: they're nearer the eye)
+// clouds drifting east across the whole map (world space: they move with the map, like everything on it): most of
+// them along its north and south edges and over the sea, a few high over the north and the middle of the land, clear
+// of the landmarks' rows (texture, world y, speed px/s, phase px)
 const CLOUDS: Array<[number, number, number, number]> = [
-  [2, -4, 2.2, 30],
-  [0, 3, 2.9, 250],
-  [3, 14, 3.6, 150],
-  [1, 128, 2.6, 80],
-  [0, 136, 2.0, 280],
-  [3, 122, 3.1, 360],
+  [2, -6, 2.2, 30],
+  [0, 4, 2.9, 420],
+  [3, 12, 3.6, 760],
+  [1, -2, 2.6, 1010],
+  [1, 270, 2.6, 80],
+  [0, 282, 2.0, 520],
+  [3, 274, 3.1, 860],
+  [2, 52, 1.8, 300],
+  [0, 70, 2.3, 820],
+  [3, 96, 2.0, 560],
 ];
-const PARALLAX = 0.18;
 // gull flocks crossing the map (world space): [phase s, the world rows they fly along, one per crossing]
 const GULL_FLOCKS: Array<[number, number[]]> = [
   [0, [60, 150, 230]],
@@ -902,11 +906,12 @@ export class WorldView {
       this.at(this.pool.at(`wm_shadow${k}`, 0, 0, DEPTH.shadow, 0.18), x, y);
     });
     CLOUDS.forEach(([k, y, speed, ph], i) => {
-      const span = GAME_W + 70;
-      const x = Math.round((((ph + t * speed - this.ox * PARALLAX) % span) + span) % span) - 40;
+      const span = W + 140;
+      const x = Math.round(((ph + t * speed) % span) - 70);
       const sy = y + Math.round(Math.sin(t * 0.5 + i) * 0.6);
-      this.pool.at(`wm_cloudsh${k % CLOUD_KINDS}`, x + 6, sy + 13, DEPTH.shadow, 0.24);
-      this.pool.at(`wm_cloud${k % CLOUD_KINDS}`, x, sy, DEPTH.cloud);
+      if (!this.seen(x + 30, sy + 10, 60)) return;
+      this.at(this.pool.at(`wm_cloudsh${k % CLOUD_KINDS}`, 0, 0, DEPTH.shadow, 0.24), x + 6, sy + 13);
+      this.at(this.pool.at(`wm_cloud${k % CLOUD_KINDS}`, 0, 0, DEPTH.cloud), x, sy);
     });
     // the cloud band along the far north breathes
     this.at(this.rim, Math.round(Math.sin(t * 0.25) * 2) - 2, -2);
