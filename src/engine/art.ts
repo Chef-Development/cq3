@@ -4,10 +4,15 @@
 // clean 8-way pixel slopes; the slimes are shaded from their shape; HUD icons are native-size maps.
 import type Phaser from 'phaser';
 import { buildCampArt } from './art-camp';
+import { buildChestArt } from './art-chests';
+import { buildCompanionArt } from './art-companions';
+import { CURRENCY_ICONS } from './art-currency';
 import { buildFoeArt } from './art-foes';
 import { buildGearArt } from './art-gear';
+import { buildRarityArt } from './art-rarity';
 import { buildRelicArt } from './art-relics';
 import { buildSableArt } from './art-sable';
+import { buildShrineArt } from './art-shrine';
 import { buildStoryArt } from './art-story';
 
 export const OUTLINE = '#140c1c';
@@ -1075,6 +1080,8 @@ export const HUD_ICONS: Record<string, { rows: string[]; pal: Record<string, num
     ]),
     pal: { k: INK_N, W: 0xe0f2ff, N: 0x6aaef0, n: 0x3a78d8, B: 0x1a2e70, q: 0xf2ecd8 },
   },
+  // gem, shard, star_on, star_off, badge_region (art-currency.ts)
+  ...CURRENCY_ICONS,
 };
 
 /** Drifting cumulus band (w x 26), seamless when tiled horizontally. No outline: it is backdrop. */
@@ -1202,4 +1209,8 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   buildSableArt(add);
   buildRelicArt(add);
   buildCampArt(add, w, 150);
+  buildCompanionArt(add, owlFrame('down'));
+  buildChestArt(add);
+  buildRarityArt(add);
+  buildShrineArt(add);
 }
