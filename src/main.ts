@@ -3,6 +3,7 @@ import './style.css';
 import { App } from './engine/app';
 import { installDebug } from './engine/debug';
 import { installInput } from './engine/input';
+import { installLab } from './engine/lab';
 import { hudButtonImages } from './engine/chrome';
 import { applyCanvasLayout, GAME_H, GAME_W } from './engine/layout';
 import { FightScene } from './engine/scene';
@@ -96,7 +97,8 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('pagehide', () => app.saveRun());
 
-const ui = installDebug(app);
+const lab = installLab(app, getScene);
+const ui = installDebug(app, lab);
 installInput(app, getScene, ui);
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {

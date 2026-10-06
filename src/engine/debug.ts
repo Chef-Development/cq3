@@ -1,7 +1,7 @@
 // Debug / tuning panel (DOM). Every change applies live and is saved to localStorage. At the top: the player's
 // accuracy (as the balance bot measures it) and its history, with a Copy button for the playtester.
 import { REGIONS } from '../data/regions';
-import { AIM_WINDOW_MS, estimateAccuracy, MIN_SAMPLES } from '../core/accuracy';
+import { accuracyCopyLine, AIM_WINDOW_MS, estimateAccuracy, MIN_SAMPLES } from '../core/accuracy';
 import { TYPICAL_ACCURACY } from '../core/bot';
 import { impactFeel, impactWeight } from '../core/impact';
 import { cloneTuning, DEFAULT_SETTINGS, getPath, IMPACT_SOUND_SLIDERS, mergeKnown, setPath, sliderGroups, type Settings } from '../core/tuning';
@@ -9,6 +9,7 @@ import { heroFor } from '../core/run';
 import type { App } from './app';
 import { MUSIC_PIECES, SFX, type MusicPiece } from './audio';
 import { runCalibration } from './calibrate';
+import { copyText, toast } from './clipboard';
 import { saveNow } from './storage';
 import { setAllUnlocked } from '../core/roster';
 
@@ -19,7 +20,7 @@ export interface DebugUi {
   refreshHud(): void;
 }
 
-export function installDebug(app: App): DebugUi {
+export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
   const root = document.getElementById('debug')!;
   const pauseBtn = document.getElementById('btn-pause')!;
   const gearBtn = document.getElementById('btn-gear')!;
@@ -27,14 +28,6 @@ export function installDebug(app: App): DebugUi {
   const refreshHud = () => {
     pauseBtn.classList.toggle('on', app.userPaused);
     pauseBtn.setAttribute('aria-pressed', String(app.userPaused));
-  };
-
-  const toast = (msg: string) => {
-    const t = document.createElement('div');
-    t.className = 'toast';
-    t.textContent = msg;
-    document.body.appendChild(t);
-    window.setTimeout(() => t.remove(), 1400);
   };
 
   const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] => {
@@ -63,7 +56,13 @@ export function installDebug(app: App): DebugUi {
     const close = el('button', 'dbg-btn', '✕');
     close.setAttribute('aria-label', 'Close');
     close.onclick = () => setOpen(false);
-    head.append(play, close);
+    // the Test lab: short scenarios of what's new, on a save of its own (engine/lab.ts)
+    const labBtn = el('button', 'dbg-btn lab-open', 'Test lab');
+    labBtn.onclick = () => {
+      setOpen(false);
+      testLab?.open();
+    };
+    head.append(labBtn, play, close);
     root.appendChild(head);
 
     const body = el('div', 'dbg-body');
@@ -332,7 +331,7 @@ export function installDebug(app: App): DebugUi {
     sec.open = true;
     sec.appendChild(el('summary', undefined, 'Your accuracy'));
     parent.appendChild(sec);
-    const log = app.profile.acc;
+    const log = app.realProfile.acc; // (the real game's, also from inside the Test lab)
     const e = estimateAccuracy(app.tuning, log.recent);
     const target = TYPICAL_ACCURACY;
     const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -357,16 +356,7 @@ export function installDebug(app: App): DebugUi {
     bar.append(fill, mark);
     meta.appendChild(bar);
     const copyBtn = el('button', 'dbg-btn acc-copy', 'Copy');
-    copyBtn.onclick = () => {
-      const hist = log.history
-        .slice(-6)
-        .reverse()
-        .map((h) => `Act ${h.act + 1} ${pct(h.acc)} (${h.n} taps, ±${h.sd} ms, ${h.bias >= 0 ? '+' : ''}${h.bias} ms, ${date(h.at)})`)
-        .join('; ');
-      const now = e ? `${pct(e.acc)} from ${e.n} taps (spread ±${Math.round(e.sd)} ms, raw ±${Math.round(e.rawSd)} ms, ${e.bias >= 0 ? '+' : ''}${Math.round(e.bias)} ms)` : `not enough taps yet (${log.recent.length})`;
-      const line = `CQ3 accuracy ${date(Date.now())}: ${now}; calibration ${app.settings.calibrationMs} ms${hist ? `; acts: ${hist}` : ''}`;
-      copyText(line).then((ok) => toast(ok ? 'Copied!' : 'Copy failed'));
-    };
+    copyBtn.onclick = () => copyText(accuracyCopyLine(app.tuning, log, app.settings.calibrationMs)).then((ok) => toast(ok ? 'Copied!' : 'Copy failed'));
     top.append(big, meta, copyBtn);
     sec.appendChild(top);
 
@@ -513,27 +503,4 @@ export function installDebug(app: App): DebugUi {
   });
 
   return { togglePanel: () => setOpen(!app.panelOpen), refreshHud };
-}
-
-async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('readonly', '');
-    ta.style.cssText = 'position:fixed;left:0;top:0;opacity:0;';
-    document.body.appendChild(ta);
-    ta.select();
-    ta.setSelectionRange(0, text.length);
-    let ok = false;
-    try {
-      ok = document.execCommand('copy');
-    } catch {
-      ok = false;
-    }
-    ta.remove();
-    return ok;
-  }
 }

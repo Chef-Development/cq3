@@ -155,3 +155,20 @@ export function readAccuracyLog(data: unknown): AccuracyLog {
     : [];
   return { recent, history };
 }
+
+/**
+ * The accuracy readout as one line of plain text for the planning chat (the gear panel's Copy, and the Test lab's
+ * report): the running number from the recent taps, the calibration, and the last few act clears.
+ */
+export function accuracyCopyLine(t: Tuning, log: AccuracyLog, calibrationMs: number, now = Date.now()): string {
+  const e = estimateAccuracy(t, log.recent);
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  const date = (at: number) => new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const hist = log.history
+    .slice(-6)
+    .reverse()
+    .map((h) => `Act ${h.act + 1} ${pct(h.acc)} (${h.n} taps, ±${h.sd} ms, ${h.bias >= 0 ? '+' : ''}${h.bias} ms, ${date(h.at)})`)
+    .join('; ');
+  const cur = e ? `${pct(e.acc)} from ${e.n} taps (spread ±${Math.round(e.sd)} ms, raw ±${Math.round(e.rawSd)} ms, ${e.bias >= 0 ? '+' : ''}${Math.round(e.bias)} ms)` : `not enough taps yet (${log.recent.length})`;
+  return `CQ3 accuracy ${date(now)}: ${cur}; calibration ${calibrationMs} ms${hist ? `; acts: ${hist}` : ''}`;
+}
