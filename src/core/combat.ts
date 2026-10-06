@@ -53,6 +53,8 @@ export interface Block {
   chillMult: number;
   /** A linked pair: the other block's id (0 = not linked). Hit one, then the other within a beat. */
   link: number;
+  /** A drifting block: seconds it keeps drifting (Infinity = for good). */
+  driftSec: number;
 }
 
 /** A patch on the bar that changes the cursor's speed inside it: ice speeds it up, snowdrifts and slow patches
@@ -111,6 +113,9 @@ export interface Enemy {
   stun: number; // seconds it stops attacking (Wind-Up)
   holdEvery: number; // every Nth yellow it sends comes as a hold (0 = none; a boss phase's bar rule)
   yellows: number; // yellows it has sent (for holdEvery)
+  driftEvery: number; // every Nth yellow it sends drifts (0 = none; a bar rule from a special)
+  linkEvery: number; // every Nth yellow it sends comes as a linked pair (0 = none)
+  sent: number; // yellows it has sent (for driftEvery / linkEvery)
 }
 
 /** A special being telegraphed: the enemy winds up for `total` seconds, then the special's actions fire. */
@@ -298,6 +303,9 @@ export type CombatEvent =
   | { type: 'linkStart'; id: number; partner: number; pos: number } // one of a linked pair hit: it lights, waiting
   | { type: 'linkDone'; ids: number[]; pos: number } // ...its partner hit in time: both land, harder
   | { type: 'linkBroken'; ids: number[]; pos: number } // ...the beat ran out: both break, a miss
+  | { type: 'driftOn'; count: number } // a special set yellows drifting
+  | { type: 'linkOn'; count: number } // a special chained pairs
+  | { type: 'driftShift'; flip: boolean; mult: number } // a special turned or sped up every drifting block
   | { type: 'chip'; id: number; pos: number; left: number } // an iced yellow took a tap (it needs more)
   | { type: 'iceBlock'; id: number; pos: number } // a red froze in place (Flash Freeze, Glacier)
   | { type: 'ally'; kind: AllyKind; action: 'call' | 'act' | 'leave' | 'rally' | 'block'; id: number }
@@ -465,6 +473,9 @@ export class Combat {
   linkLit: { id: number; partner: number; until: number; perfect: boolean } | null = null;
   /** True while the two hits of a completed linked pair land (they hit harder). */
   private linkBonus = false;
+  /** Every drifting block moves this much faster for `driftMultSec` more seconds (a driftShift special). */
+  driftMult = 1;
+  driftMultSec = 0;
   /** A Summoner's allies on the field. */
   allies: Ally[] = [];
   /** A practice fight (the camp's Training Dummy): nothing hurts the hero. */
@@ -738,6 +749,9 @@ export class Combat {
       stun: 0,
       holdEvery: 0,
       yellows: 0,
+      driftEvery: 0,
+      linkEvery: 0,
+      sent: 0,
     };
   }
 
@@ -882,8 +896,13 @@ export class Combat {
   }
 
   blockPosAt(b: Block, t: number): number {
-    const p = b.pos + b.vel * (this.motionAt(t) - this.motionTime);
+    const p = b.pos + this.velOf(b) * (this.motionAt(t) - this.motionTime);
     return Math.min(1 - b.width / 2, Math.max(b.width / 2, p));
+  }
+
+  /** A block's speed along the bar right now (a drifting block's, with a driftShift's multiplier). */
+  velOf(b: Block): number {
+    return isRed(b.kind) ? b.vel : b.vel * this.driftMult;
   }
 
   // ---------------------------------------------------------------- stepping
@@ -1346,6 +1365,10 @@ export class Combat {
   }
 
   private updateBlocks(): void {
+    if (this.driftMultSec > 0 && (this.driftMultSec -= DT) <= 0) {
+      this.driftMultSec = 0;
+      this.driftMult = 1;
+    }
     const B = this.tuning.blocks;
     for (const b of this.blocks.slice()) {
       if (this.result) return;
@@ -1486,11 +1509,21 @@ export class Combat {
     // the region's bar rules: a yellow may come as a linked pair, or drifting (the random draws only happen in an
     // act that has these rules, so other acts play exactly as before)
     const R = this.bar;
-    if (kind === 'yellow' && R?.links && this.row >= R.links.fromRow && this.spawnRng.next() < R.links.share && statics.length + 2 <= B.maxStatic) {
+    // a foe's own bar rule (a special's barRule): every Nth yellow it sends drifts or comes as a pair
+    const owner = this.enemyById(ownerId);
+    let callLink = false;
+    let callDrift = false;
+    if (kind === 'yellow' && owner && (owner.driftEvery || owner.linkEvery)) {
+      owner.sent++;
+      if (owner.linkEvery && owner.sent % owner.linkEvery === 0) callLink = true;
+      else if (owner.driftEvery && owner.sent % owner.driftEvery === 0) callDrift = true;
+    }
+    if (kind === 'yellow' && (callLink || (R?.links && this.row >= R.links.fromRow && this.spawnRng.next() < R.links.share)) && statics.length + 2 <= B.maxStatic) {
       if (this.spawnPair(w, ownerId)) return true;
     }
     let drift = 0;
-    if (kind === 'yellow' && R?.drift && this.row >= R.drift.fromRow && this.spawnRng.next() < R.drift.share) drift = R.drift.speed * (this.spawnRng.next() < 0.5 ? -1 : 1);
+    const speed = R?.drift?.speed ?? this.tuning.drift.speed;
+    if (kind === 'yellow' && (callDrift || (R?.drift && this.row >= R.drift.fromRow && this.spawnRng.next() < R.drift.share))) drift = speed * (this.spawnRng.next() < 0.5 ? -1 : 1);
     const p = this.freeSpot(w);
     if (p === null) return false;
     this.spawnBlock(kind, p, ownerId, w, drift ? { drift } : {});
@@ -1498,25 +1531,28 @@ export class Combat {
   }
 
   /** A linked pair: two yellows a short way apart, chained (each knows the other). False if there's no room. */
-  private spawnPair(w: number, ownerId: number): boolean {
+  spawnPair(w: number, ownerId: number): boolean {
     const B = this.tuning.blocks;
     const L = this.tuning.links;
-    const p = this.freeSpot(w);
-    if (p === null) return false;
     const statics = this.blocks.filter((b) => !isRed(b.kind) || b.still);
     const lo = B.edgeMargin + w / 2;
     const hi = 1 - B.edgeMargin - w / 2;
+    const fits = (q: number) => q >= lo && q <= hi && statics.every((s) => Math.abs(s.pos - q) >= (s.width + w) / 2 + B.minGap);
     const gap = w + this.spawnRng.range(Math.min(L.gapMin, L.gapMax), Math.max(L.gapMin, L.gapMax));
-    const first = this.spawnRng.next() < 0.5 ? 1 : -1;
-    for (const dir of [first, -first]) {
-      const q = p + dir * gap;
-      if (q < lo || q > hi) continue;
-      if (!statics.every((s) => Math.abs(s.pos - q) >= (s.width + w) / 2 + B.minGap)) continue;
-      const a = this.spawnBlock('yellow', p, ownerId, w);
-      const b = this.spawnBlock('yellow', q, ownerId, w);
-      a.link = b.id;
-      b.link = a.id;
-      return true;
+    // a few tries: a free spot for one half, and room for the other a gap away (either side)
+    for (let k = 0; k < 12; k++) {
+      const p = this.freeSpot(w, 4);
+      if (p === null) continue;
+      const first = this.spawnRng.next() < 0.5 ? 1 : -1;
+      for (const dir of [first, -first]) {
+        const q = p + dir * gap;
+        if (!fits(q)) continue;
+        const a = this.spawnBlock('yellow', p, ownerId, w);
+        const b = this.spawnBlock('yellow', q, ownerId, w);
+        a.link = b.id;
+        b.link = a.id;
+        return true;
+      }
     }
     return false;
   }
@@ -1527,13 +1563,28 @@ export class Combat {
     const half = b.width / 2;
     const lo = B.edgeMargin + half;
     const hi = 1 - B.edgeMargin - half;
-    let next = b.pos + b.vel * DT;
-    const blocked = this.blocks.some((s) => s !== b && (!isRed(s.kind) || s.still) && (s.pos - b.pos) * b.vel > 0 && Math.abs(s.pos - next) < (s.width + b.width) / 2 + B.minGap / 2);
+    if (b.driftSec !== Infinity && (b.driftSec -= DT) <= 0) {
+      // its drift (from a special) has run out: it settles where it is
+      b.vel = 0;
+      b.driftSec = Infinity;
+      return;
+    }
+    const v = b.vel * this.driftMult;
+    if (v === 0) return;
+    let next = b.pos + v * DT;
+    const blocked = this.blocks.some((s) => s !== b && (!isRed(s.kind) || s.still) && (s.pos - b.pos) * v > 0 && Math.abs(s.pos - next) < (s.width + b.width) / 2 + B.minGap / 2);
     if (next < lo || next > hi || blocked) {
       b.vel = -b.vel;
-      next = Math.min(hi, Math.max(lo, b.pos + b.vel * DT));
+      next = Math.min(hi, Math.max(lo, b.pos - v * DT));
     }
     b.pos = next;
+  }
+
+  /** Make a block drift at `speed` (sign = direction) for `sec` seconds (Infinity = for good). Not reds. */
+  setDrift(b: Block, speed: number, sec = Infinity): void {
+    if (isRed(b.kind) || !this.blocks.includes(b)) return;
+    b.vel = speed === 0 ? 0 : speed;
+    b.driftSec = speed === 0 ? Infinity : sec;
   }
 
   /** A random spot (block center) where a static block of width w fits without touching the others, or null. */
@@ -1597,6 +1648,7 @@ export class Combat {
       chill: 0,
       chillMult: 1,
       link: 0,
+      driftSec: Infinity,
     };
     if (o.drift && !isRed(kind)) b.vel = o.drift;
     for (const h of this.hooks) h.spawned?.(this, b);

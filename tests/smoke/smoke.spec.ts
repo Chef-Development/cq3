@@ -27,6 +27,7 @@ async function ready(page: Page, o: { tips?: boolean; tour?: boolean } = {}): Pr
 }
 
 test('loads, plays the intro, walks the map, starts a fight, taps, no console errors', async ({ page }) => {
+  test.setTimeout(150_000); // it plays every Sound lab button (a list that grows with each region)
   const errors: string[] = [];
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());
@@ -760,7 +761,7 @@ test('camp (M5): open a hero chest (a new hero arrives), buy and open a Rare che
   // a profile with two acts cleared, gems for a Rare chest, coins for the dummy and a hero chest waiting
   await page.addInitScript(() => {
     const hero = (unlocked: boolean, xp: number) => ({ unlocked, xp, skills: [] });
-    const p = { v: 4, actsCleared: 2, coins: 900, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 400), sable: hero(true, 0) }, gems: 200, chests: { hero: 1, rare: 0, region: 0 }, tips: ['welcomeM4a'] };
+    const p = { v: 4, actsCleared: 2, coins: 900, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 400), sable: hero(true, 0) }, gems: 300, chests: { hero: 1, rare: 0, region: 0 }, tips: ['welcomeM4a'] };
     localStorage.setItem('cq3.profile.v2', JSON.stringify(p));
   });
   await ready(page);
@@ -803,8 +804,9 @@ test('camp (M5): open a hero chest (a new hero arrives), buy and open a Rare che
   await expect.poll(mode).toBe('shrine');
   await page.waitForTimeout(400);
   const gems = (await a((x) => x.profile.gems)) as number; // (a third hero is an achievement: it paid gems)
+  const cost = (await a((x) => x.tuning.chests.rareCost)) as number;
   await tapRect((await a((x) => x.view.camp.shrine.buyRect())) as Any);
-  await expect.poll(() => a((x) => ({ gems: x.profile.gems, rare: x.profile.chests.rare }))).toEqual({ gems: gems - 180, rare: 1 });
+  await expect.poll(() => a((x) => ({ gems: x.profile.gems, rare: x.profile.chests.rare }))).toEqual({ gems: gems - cost, rare: 1 });
   await page.waitForTimeout(300);
   await tapRect((await a((x) => x.view.camp.shrine.openRect())) as Any);
   await expect.poll(mode).toBe('chests');

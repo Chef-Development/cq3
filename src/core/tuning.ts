@@ -466,6 +466,11 @@ export const DEFAULT_TUNING = {
     releaseGraceMs: 60, // letting go up to this early still completes it
     turnDone: 0.8, // the cursor turning back inside it: done if this much was held
   },
+  drift: {
+    // Drifting blocks (Region 3's bar rule): a foe's own drift rule (barRule driftEvery) uses this speed when the
+    // act sets none (bar widths a second)
+    speed: 0.06,
+  },
   links: {
     // Linked pairs (Region 3's bar rule, core/combat.ts tapLinked): hit one, then the other within a beat
     beatSec: 0.8, // the beat: the partner must be hit within this long
@@ -1074,6 +1079,11 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('bar.slowMult', 'Slow patch: cursor speed x', 0.2, 1, 0.05),
         s('bar.ahead', 'Laid ahead of the cursor by', 0, 0.6, 0.01),
         s('bar.trailLife', 'Ice trail lasts (s)', 0, 20, 0.5),
+        s('drift.speed', 'Drift speed (bar/s)', 0, 0.2, 0.005),
+        s('links.beatSec', 'Pair: beat (s)', 0.2, 2, 0.05),
+        s('links.bonus', 'Pair: damage x', 1, 3, 0.05),
+        s('links.gapMin', 'Pair: gap min', 0, 0.3, 0.01),
+        s('links.gapMax', 'Pair: gap max', 0, 0.3, 0.01),
         s('hold.width', 'Hold length', 0.06, 0.4, 0.01),
         s('hold.mult', 'Hold damage x', 0.5, 4, 0.05),
         s('hold.lateMs', 'Hold: late press (ms)', 0, 200, 5),

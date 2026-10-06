@@ -500,3 +500,81 @@ describe('Boar King', () => {
     expect(DEFAULT_TUNING.enemies.boarKing.phaseScenes).toEqual({ 2: 'boarKing2', 3: 'boarKing3' });
   });
 });
+
+describe("a later region's bar actions: drift and pairs", () => {
+  it('toDrift: yellows on the bar start drifting (away from their nearest neighbour), for a while or for good', () => {
+    const { c } = setup();
+    const e = c.enemies[0];
+    const a = c.spawnBlock('yellow', 0.3);
+    const b = c.spawnBlock('yellow', 0.45);
+    const z = c.spawnBlock('yellow', 0.8);
+    runAction(c, e, { type: 'toDrift', count: 2, speed: 0.08, sec: 1 });
+    const drifting = [a, b, z].filter((x) => x.vel !== 0);
+    expect(drifting).toHaveLength(2);
+    expect(a.vel).toBeLessThan(0); // its neighbour is to the right: it drifts left
+    expect(b.vel).toBeGreaterThan(0);
+    expect(of(c.drainEvents(), 'driftOn')).toHaveLength(1);
+    c.advanceTo(1.1);
+    expect(a.vel).toBe(0); // its time is up: it settles
+    runAction(c, e, { type: 'toDrift', count: 0, speed: 0.05 });
+    expect([a, b, z].every((x) => Math.abs(x.vel) === 0.05)).toBe(true);
+    expect(a.driftSec).toBe(Infinity);
+  });
+
+  it('toLink: neighbouring yellows are chained; with too few, a new pair is added', () => {
+    const { c } = setup();
+    const e = c.enemies[0];
+    const a = c.spawnBlock('yellow', 0.3);
+    const b = c.spawnBlock('yellow', 0.5);
+    runAction(c, e, { type: 'toLink', count: 2 });
+    expect(a.link).toBe(b.id);
+    expect(b.link).toBe(a.id);
+    const linked = c.blocks.filter((x) => x.link);
+    expect(linked).toHaveLength(4);
+    expect(of(c.drainEvents(), 'linkOn')).toEqual([expect.objectContaining({ count: 2 })]);
+  });
+
+  it('driftShift: every drifting block turns around, speeds up for a while, or settles', () => {
+    const { c } = setup();
+    const e = c.enemies[0];
+    const a = c.spawnBlock('yellow', 0.3, e.id, 0.1, { drift: 0.05 });
+    const still = c.spawnBlock('yellow', 0.7);
+    runAction(c, e, { type: 'driftShift', flip: true });
+    expect(a.vel).toBe(-0.05);
+    expect(still.vel).toBe(0);
+    runAction(c, e, { type: 'driftShift', mult: 1.6, sec: 2 });
+    expect(c.velOf(a)).toBeCloseTo(-0.08);
+    c.advanceTo(2.1);
+    expect(c.velOf(a)).toBeCloseTo(-0.05);
+    runAction(c, e, { type: 'driftShift', mult: 0 });
+    expect(a.vel).toBe(0);
+  });
+
+  it("barRule: every Nth yellow the foe sends drifts, or comes as a pair (a later barRule replaces it)", () => {
+    const { c } = setup();
+    const e = c.enemies[0];
+    runAction(c, e, { type: 'barRule', holdEvery: 0, driftEvery: 2 });
+    c.trySpawn('yellow', e.id);
+    c.trySpawn('yellow', e.id);
+    expect(c.blocks.filter((b) => b.vel !== 0)).toHaveLength(1);
+    expect(Math.abs(c.blocks.find((b) => b.vel !== 0)!.vel)).toBeCloseTo(DEFAULT_TUNING.drift.speed);
+    const { c: c2 } = setup();
+    const f = c2.enemies[0];
+    runAction(c2, f, { type: 'barRule', holdEvery: 0, linkEvery: 1 });
+    c2.trySpawn('yellow', f.id);
+    expect(c2.blocks.filter((b) => b.link)).toHaveLength(2);
+    runAction(c2, f, { type: 'barRule', holdEvery: 0 });
+    expect(f.linkEvery).toBe(0);
+  });
+
+  it('formation entries can place a drifting yellow, or two yellows as a pair', () => {
+    const { c } = setup();
+    const e = c.enemies[0];
+    runAction(c, e, { type: 'formation', blocks: [{ kind: 'yellow', at: 0.3, drift: 0.07 }, { kind: 'yellow', at: 0.55, link: true }, { kind: 'yellow', at: 0.7, link: true }] });
+    const [d, p, q] = [...c.blocks].sort((x, y) => x.pos - y.pos);
+    expect(Math.abs(d.vel)).toBeCloseTo(0.07);
+    expect(p.link).toBe(q.id);
+    expect(q.link).toBe(p.id);
+    expect(p.vel).toBe(0);
+  });
+});

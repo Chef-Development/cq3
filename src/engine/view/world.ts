@@ -58,7 +58,7 @@ import { GAME_H, GAME_W } from '../layout';
 import { cornerInset } from '../chrome';
 import { cellIcon, itemCell } from './items';
 import { glyph, glyphSize } from './overlays';
-import { button3d, glow, hudIcon, iconSize, NAVY, panel } from './pixels';
+import { button3d, chevron, glow, hudIcon, iconSize, NAVY, panel } from './pixels';
 import { easeBack, inRect, mix, pulse, INK, WHITE, type Rect } from './shared';
 import { FACE, ImagePool, isPressed, notePress, ribbon, RIBBON, TextPool } from './ui';
 import { WorldRoam } from './world-roam';
@@ -678,6 +678,13 @@ export class WorldView {
     return { x: p.x + p.w - 12, y: p.y - 6, w: 15, h: 15 };
   }
 
+  /** The picker's ribbon (the region's name and completion): a tap opens the region's progress at the camp. */
+  private ribbonRect(): Rect {
+    const p = this.pickPanel();
+    const cx = p.x + p.w / 2;
+    return { x: Math.round(cx - 60), y: p.y - 7, w: 120, h: 14 };
+  }
+
   /** Whether the act picker is open (tests and the keyboard look). */
   get pickerOpen(): boolean {
     return !!this.picker;
@@ -707,6 +714,13 @@ export class WorldView {
     if (inRect(this.closeButton(), x, y, 3)) {
       notePress(this.closeButton());
       return close();
+    }
+    if (app.profile.actsCleared >= 1 && inRect(this.ribbonRect(), x, y, 1)) {
+      // the region's progress (every part of it, and its 100% reward) at the camp; Back comes back here
+      this.picker = null;
+      app.audio.uiClick();
+      s.camp.openProgress(r);
+      return;
     }
     for (let i = 0; i < n; i++) {
       if (!inRect(this.pickRow(i), x, y, 1)) continue;
@@ -1870,6 +1884,8 @@ export class WorldView {
     T.text(rname, tx0, p.y + 0.5, WHITE, { bold: true, oy: 0.5 });
     if (comp.done) hudIcon(g, 'badge_region', tx0 + tw + 5, Math.round(p.y + 0.5 - bh / 2));
     else T.text(`${comp.pct}%`, tx0 + tw + 5, p.y + 0.5, 0xfff0a0, { oy: 0.5 });
+    // a small arrow: the ribbon opens the region's progress
+    if (app.profile.actsCleared >= 1) chevron(g, tx0 + tot + 4, Math.round(p.y - 2), 5, 0xfff0a0, 0.9, 1);
     // close: a red key with an X
     const cb = this.closeButton();
     const cpr = isPressed(cb, now);

@@ -55,8 +55,17 @@ export function runAction(c: Combat, e: Enemy, a: ActionDef): void {
     case 'armor':
       return armor(c, a.count, a.taps);
     case 'barRule':
-      if (e.alive) e.holdEvery = Math.max(0, Math.round(a.holdEvery));
+      if (!e.alive) return;
+      e.holdEvery = Math.max(0, Math.round(a.holdEvery));
+      e.driftEvery = Math.max(0, Math.round(a.driftEvery ?? 0));
+      e.linkEvery = Math.max(0, Math.round(a.linkEvery ?? 0));
       return;
+    case 'toDrift':
+      return toDrift(c, a.count, a.speed, a.sec);
+    case 'toLink':
+      return toLink(c, e, a.count);
+    case 'driftShift':
+      return driftShift(c, a.mult, a.flip, a.sec);
     case 'stripes':
       return stripes(c, e, a.count, a.life, a.speed ?? 0);
     case 'protect':
@@ -76,6 +85,7 @@ function partnerOf(c: Combat, e: Enemy): Enemy | null {
 
 function formation(c: Combat, e: Enemy, entries: FormationEntry[]): void {
   let prev: Block | null = null;
+  let half: Block | null = null; // the first half of a `link` pair placed, waiting for the next `link` entry
   const taken: number[] = [];
   for (const raw of entries) {
     const owner = (raw.partner && partnerOf(c, e)) || e;
@@ -88,6 +98,13 @@ function formation(c: Combat, e: Enemy, entries: FormationEntry[]): void {
       continue;
     }
     const b = placeEntry(c, owner, entry, prev);
+    if (b && entry.link && b.kind === 'yellow') {
+      if (half && c.blocks.includes(half)) {
+        half.link = b.id;
+        b.link = half.id;
+        half = null;
+      } else half = b;
+    }
     if (b) prev = b;
     else if (isRed(entry.kind as BlockKind) && entry.at === undefined && !entry.pair) c.enqueue(owner.id, entry, 0.05); // the right end is busy: soon
   }
@@ -119,7 +136,8 @@ export function placeEntry(c: Combat, owner: Enemy, entry: FormationEntry, prev:
   if (pos === null && entry.at !== undefined) pos = nudges(0.15).map((d) => (entry.at ?? 0.5) + d).find((p) => staticFits(c, p, w)) ?? null;
   if (pos === null) pos = c.freeSpot(w, 24);
   if (pos === null) return null;
-  return c.spawnBlock(kind, pos, owner.id, w, { life: entry.life, heal: entry.heal, special: true });
+  const drift = kind === 'yellow' && entry.drift && !entry.link ? entry.drift * (c.rand() < 0.5 ? -1 : 1) : 0;
+  return c.spawnBlock(kind, pos, owner.id, w, { life: entry.life, heal: entry.heal, special: true, drift });
 }
 
 /** Where a spotted entry lands: where the cursor is heading, or a random spot clear of the other still blocks. */
@@ -296,6 +314,60 @@ function armor(c: Combat, count: number, taps: number): void {
     c.events.push({ type: 'chip', id: b.id, pos: b.pos, left: b.taps });
     n++;
   }
+}
+
+/**
+ * Yellows on the bar start drifting (up to `count`; 0 = every one), each away from its nearest still neighbour, at
+ * `speed` for `sec` seconds (none: for good). Linked halves stay put.
+ */
+function toDrift(c: Combat, count: number, speed: number, sec?: number): void {
+  const yellows = c.blocks.filter((b) => b.kind === 'yellow' && !b.link && b.vel === 0);
+  let n = 0;
+  for (const y of yellows) {
+    if (count > 0 && n >= count) break;
+    const others = c.blocks.filter((b) => b !== y && (!isRed(b.kind) || b.still));
+    const near = others.reduce<Block | null>((m, b) => (!m || Math.abs(b.pos - y.pos) < Math.abs(m.pos - y.pos) ? b : m), null);
+    const dir = near ? (near.pos > y.pos ? -1 : 1) : c.rand() < 0.5 ? -1 : 1;
+    c.setDrift(y, dir * Math.abs(speed), sec && sec > 0 ? sec : Infinity);
+    n++;
+  }
+  if (n) c.events.push({ type: 'driftOn', count: n });
+}
+
+/** Up to `count` pairs of yellows on the bar are chained: neighbours close enough, or a new partner beside one. */
+function toLink(c: Combat, e: Enemy, count: number): void {
+  let made = 0;
+  const free = () => c.blocks.filter((b) => b.kind === 'yellow' && !b.link && b.taps <= 1 && b.vel === 0 && b.id !== c.linkLit?.id).sort((a, b) => a.pos - b.pos);
+  // neighbours first
+  const ys = free();
+  for (let i = 0; i + 1 < ys.length && made < count; i++) {
+    const a = ys[i];
+    const b = ys[i + 1];
+    if (b.pos - a.pos > 0.3 || a.link || b.link) continue;
+    a.link = b.id;
+    b.link = a.id;
+    made++;
+    i++;
+  }
+  // then a new pair in a free stretch
+  for (; made < count; made++) {
+    const front = c.frontEnemy() ?? e;
+    if (!c.spawnPair(c.widthFor('yellow'), front.id)) break;
+  }
+  if (made) c.events.push({ type: 'linkOn', count: made });
+}
+
+/** Every drifting block turns around (`flip`) and/or moves `mult` x as fast for `sec` s (none: for good; mult 0 settles them). */
+function driftShift(c: Combat, mult?: number, flip?: boolean, sec?: number): void {
+  const drifting = c.blocks.filter((b) => !isRed(b.kind) && b.vel !== 0);
+  if (flip) for (const b of drifting) b.vel = -b.vel;
+  if (mult !== undefined) {
+    if (sec && sec > 0) {
+      c.driftMult = Math.max(0, mult);
+      c.driftMultSec = sec;
+    } else for (const b of drifting) c.setDrift(b, b.vel * Math.max(0, mult), b.driftSec);
+  }
+  c.events.push({ type: 'driftShift', flip: !!flip, mult: mult ?? 1 });
 }
 
 /** The whole bar becomes alternating stripes of ice and snowdrift (sliding slowly if `speed`). */
