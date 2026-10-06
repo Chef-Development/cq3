@@ -23,7 +23,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
     coins: 5,
     specials: [
       // a puff of frost: an ice patch where the cursor is heading
-      { id: 'frostBreath', name: 'Frost Breath!', tell: 0.8, sound: 'smoke', first: 3, every: 8, actions: [{ type: 'zone', kind: 'ice', width: 0.22, life: 6, at: 'ahead' }] },
+      { id: 'frostBreath', name: 'Frost Breath!', tell: 0.8, sound: 'frost', first: 3, every: 8, actions: [{ type: 'zone', kind: 'ice', width: 0.22, life: 6, at: 'ahead' }] },
     ],
   },
   icicleBat: {
@@ -38,7 +38,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
     sprite: 'iciclebat',
     coins: 5,
     fly: 14,
-    specials: [{ id: 'icicles', name: 'Icicles!', tell: 0.8, sound: 'volley', first: 4, every: 8, actions: [{ type: 'formation', blocks: icicles(2, 1.6, 0.9) }] }],
+    specials: [{ id: 'icicles', name: 'Icicles!', tell: 0.8, sound: 'icicles', first: 4, every: 8, actions: [{ type: 'formation', blocks: icicles(2, 1.6, 0.9) }] }],
   },
   yetiCub: {
     name: 'Yeti Cub',
@@ -53,7 +53,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
     coins: 6,
     specials: [
       // a snowball: starts small, grows wider as it rolls in (easy to catch late, hard to miss)
-      { id: 'snowball', name: 'Snowball!', tell: 0.8, sound: 'charge', first: 4.5, every: 8, actions: [{ type: 'formation', blocks: [{ kind: 'red', width: 1, grow: 0.6, speed: 0.85 }] }] },
+      { id: 'snowball', name: 'Snowball!', tell: 0.8, sound: 'snowball', first: 4.5, every: 8, actions: [{ type: 'formation', blocks: [{ kind: 'red', width: 1, grow: 0.6, speed: 0.85 }] }] },
     ],
   },
   snowOgre: {
@@ -70,9 +70,9 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
     elite: true,
     specials: [
       // a huge swing that leaves ice behind it
-      { id: 'iceClub', name: 'Ice Club!', tell: 0.9, sound: 'charge', first: 3.5, every: 8, actions: [{ type: 'formation', blocks: [{ kind: 'red', width: 1.3, speed: 1.1, trail: 'ice' }] }] },
+      { id: 'iceClub', name: 'Ice Club!', tell: 0.9, sound: 'snowball', first: 3.5, every: 8, actions: [{ type: 'formation', blocks: [{ kind: 'red', width: 1.3, speed: 1.1, trail: 'ice' }] }] },
       // an ice wall where the cursor is heading: three taps to break before it falls on you
-      { id: 'snowWall', name: 'Snow Wall!', tell: 0.9, sound: 'hugeShield', first: 7, every: 9, actions: [{ type: 'formation', blocks: [{ kind: 'shield', still: true, fuse: 3.2, taps: 3, width: 1.2, spot: 'ahead' }] }] },
+      { id: 'snowWall', name: 'Snow Wall!', tell: 0.9, sound: 'hail', first: 7, every: 9, actions: [{ type: 'formation', blocks: [{ kind: 'shield', still: true, fuse: 3.2, taps: 3, width: 1.2, spot: 'ahead' }] }] },
     ],
   },
   rimehorn: {
@@ -88,17 +88,17 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
     coins: 60,
     boss: true,
     specials: [
-      { id: 'headlong', name: 'Headlong!', tell: 0.9, sound: 'charge', first: 3, every: 6, actions: [{ type: 'formation', blocks: [{ kind: 'red', width: 1.35, speed: 1.35, trail: 'ice' }] }] },
+      { id: 'headlong', name: 'Headlong!', tell: 0.9, sound: 'snowball', first: 3, every: 6, actions: [{ type: 'formation', blocks: [{ kind: 'red', width: 1.35, speed: 1.35, trail: 'ice' }] }] },
       {
         id: 'avalanche',
         name: 'Avalanche!',
         tell: 1,
-        sound: 'stomp',
+        sound: 'avalanche',
         hpBelow: 0.5,
         gate: true,
         actions: [{ type: 'phase', phase: 2 }, { type: 'formation', blocks: icicles(3, 1.8, 0.8) }],
       },
-      { id: 'rockfall', name: 'Rockfall!', tell: 0.8, sound: 'volley', first: 6, every: 9, phases: [2], actions: [{ type: 'formation', blocks: icicles(2, 1.6, 0.8) }] },
+      { id: 'rockfall', name: 'Rockfall!', tell: 0.8, sound: 'icicles', first: 6, every: 9, phases: [2], actions: [{ type: 'formation', blocks: icicles(2, 1.6, 0.8) }] },
     ],
   },
 
@@ -114,7 +114,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
     icon: 'fang',
     sprite: 'frostweaver',
     coins: 6,
-    specials: [{ id: 'silk', name: 'Silk!', tell: 0.8, sound: 'spores', first: 3, every: 8, actions: [{ type: 'toHold', count: 2 }] }],
+    specials: [{ id: 'silk', name: 'Silk!', tell: 0.8, sound: 'silk', first: 3, every: 8, actions: [{ type: 'toHold', count: 2 }] }],
   },
   iceWraith: {
     name: 'Ice Wraith',
@@ -128,7 +128,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
     sprite: 'icewraith',
     coins: 6,
     fly: 10,
-    specials: [{ id: 'mirror', name: 'Mirror!', tell: 0.9, sound: 'shell', first: 4, every: 9, actions: [{ type: 'mirror', at: 'ahead', life: 5 }] }],
+    specials: [{ id: 'mirror', name: 'Mirror!', tell: 0.9, sound: 'mirror', first: 4, every: 9, actions: [{ type: 'mirror', at: 'ahead', life: 5 }] }],
   },
   hailcaller: {
     name: 'Hailcaller',
@@ -141,7 +141,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
     icon: 'mask',
     sprite: 'hailcaller',
     coins: 6,
-    specials: [{ id: 'hailArmor', name: 'Hail Armor!', tell: 0.8, sound: 'guard', first: 3.5, every: 8, actions: [{ type: 'armor', count: 3, taps: 2 }] }],
+    specials: [{ id: 'hailArmor', name: 'Hail Armor!', tell: 0.8, sound: 'hail', first: 3.5, every: 8, actions: [{ type: 'armor', count: 3, taps: 2 }] }],
   },
   glacierTortoise: {
     name: 'Glacier Tortoise',
@@ -160,7 +160,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
         id: 'brricade',
         name: 'Brr-icade!',
         tell: 0.9,
-        sound: 'hugeShield',
+        sound: 'hail',
         first: 3,
         every: 9,
         actions: [
@@ -183,10 +183,10 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
     coins: 70,
     boss: true,
     specials: [
-      { id: 'spin', name: 'Spin!', tell: 0.8, sound: 'spores', first: 3, every: 8, actions: [{ type: 'toHold', count: 3 }] },
-      { id: 'webLine', name: 'Web Line!', tell: 0.9, sound: 'spores', first: 6, every: 10, phases: [1], actions: [{ type: 'formation', blocks: [{ kind: 'hold', width: 1.6 }] }] },
-      { id: 'mirrorSilk', name: 'Mirror Silk!', tell: 1, sound: 'shell', hpBelow: 0.5, gate: true, actions: [{ type: 'phase', phase: 2 }, { type: 'mirror', at: 0.5, life: 6 }] },
-      { id: 'mirrorStrand', name: 'Mirror Silk!', tell: 0.9, sound: 'shell', first: 10, every: 10, phases: [2], actions: [{ type: 'mirror', at: 0.5, life: 6 }] },
+      { id: 'spin', name: 'Spin!', tell: 0.8, sound: 'silk', first: 3, every: 8, actions: [{ type: 'toHold', count: 3 }] },
+      { id: 'webLine', name: 'Web Line!', tell: 0.9, sound: 'silk', first: 6, every: 10, phases: [1], actions: [{ type: 'formation', blocks: [{ kind: 'hold', width: 1.6 }] }] },
+      { id: 'mirrorSilk', name: 'Mirror Silk!', tell: 1, sound: 'mirror', hpBelow: 0.5, gate: true, actions: [{ type: 'phase', phase: 2 }, { type: 'mirror', at: 0.5, life: 6 }] },
+      { id: 'mirrorStrand', name: 'Mirror Silk!', tell: 0.9, sound: 'mirror', first: 10, every: 10, phases: [2], actions: [{ type: 'mirror', at: 0.5, life: 6 }] },
     ],
   },
 
@@ -202,7 +202,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
     icon: 'tusk',
     sprite: 'drifttroll',
     coins: 7,
-    specials: [{ id: 'snowdrift', name: 'Snowdrift!', tell: 0.8, sound: 'smoke', first: 3, every: 8, actions: [{ type: 'zone', kind: 'snow', width: 0.22, life: 6, at: 'ahead' }] }],
+    specials: [{ id: 'snowdrift', name: 'Snowdrift!', tell: 0.8, sound: 'drift', first: 3, every: 8, actions: [{ type: 'zone', kind: 'snow', width: 0.22, life: 6, at: 'ahead' }] }],
   },
   auroraWisp: {
     name: 'Aurora Wisp',
@@ -221,7 +221,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
         id: 'shimmer',
         name: 'Shimmer!',
         tell: 0.9,
-        sound: 'summon',
+        sound: 'shimmer',
         first: 4,
         every: 9,
         actions: [
@@ -248,7 +248,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
         id: 'frostLock',
         name: 'Frost Lock!',
         tell: 0.9,
-        sound: 'shell',
+        sound: 'frost',
         first: 3,
         every: 9,
         actions: [
@@ -256,7 +256,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
           { type: 'toHold', count: 1 },
         ],
       },
-      { id: 'glacierGuard', name: 'Glacier Guard!', tell: 0.9, sound: 'hugeShield', first: 6.5, every: 9, actions: [{ type: 'formation', blocks: [{ kind: 'shield', still: true, fuse: 3.2, taps: 3, width: 1.2, spot: 'ahead' }] }] },
+      { id: 'glacierGuard', name: 'Glacier Guard!', tell: 0.9, sound: 'hail', first: 6.5, every: 9, actions: [{ type: 'formation', blocks: [{ kind: 'shield', still: true, fuse: 3.2, taps: 3, width: 1.2, spot: 'ahead' }] }] },
     ],
   },
   glacia: {
@@ -278,7 +278,7 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
         id: 'frozenWings',
         name: 'Frozen Wings!',
         tell: 0.9,
-        sound: 'hugeShield',
+        sound: 'wings',
         first: 0.8,
         every: 30,
         phases: [1],
@@ -287,14 +287,14 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
           { type: 'zone', kind: 'ice', width: 0.2, life: 0, at: 0.9 },
         ],
       },
-      { id: 'icicleRain', name: 'Icicle Rain!', tell: 0.9, sound: 'volley', first: 4, every: 8, phases: [1], actions: [{ type: 'formation', blocks: icicles(3, 1.8, 0.8) }] },
-      { id: 'tailSweep', name: 'Tail Sweep!', tell: 0.8, sound: 'charge', first: 4, every: 7, phases: [2, 3], actions: [{ type: 'formation', blocks: [{ kind: 'red', width: 1.35, speed: 1.4 }] }] },
+      { id: 'icicleRain', name: 'Icicle Rain!', tell: 0.9, sound: 'icicles', first: 4, every: 8, phases: [1], actions: [{ type: 'formation', blocks: icicles(3, 1.8, 0.8) }] },
+      { id: 'tailSweep', name: 'Tail Sweep!', tell: 0.8, sound: 'wings', first: 4, every: 7, phases: [2, 3], actions: [{ type: 'formation', blocks: [{ kind: 'red', width: 1.35, speed: 1.4 }] }] },
       // phase 2: her hoard's gold turns yellows into holds, and her scales mirror the cursor
       {
         id: 'hoardHold',
         name: 'Hoard Hold!',
         tell: 1,
-        sound: 'phase',
+        sound: 'shimmer',
         hpBelow: 0.66,
         gate: true,
         actions: [
@@ -302,13 +302,13 @@ export const FROST_ENEMIES: Record<string, EnemyDef> = {
           { type: 'barRule', holdEvery: 3 },
         ],
       },
-      { id: 'mirrorScales', name: 'Mirror Scales!', tell: 0.9, sound: 'shell', first: 3, every: 10, phases: [2, 3], actions: [{ type: 'mirror', at: 0.5, life: 6 }] },
+      { id: 'mirrorScales', name: 'Mirror Scales!', tell: 0.9, sound: 'mirror', first: 3, every: 10, phases: [2, 3], actions: [{ type: 'mirror', at: 0.5, life: 6 }] },
       // phase 3: the bar becomes sliding stripes of ice and snow, and the cursor never slows down
       {
         id: 'avalanche',
         name: 'AVALANCHE!',
         tell: 1,
-        sound: 'enrage',
+        sound: 'avalanche',
         hpBelow: 0.33,
         gate: true,
         actions: [
