@@ -457,7 +457,7 @@ function cardPlinth(): HTMLCanvasElement {
   return toCanvas(g);
 }
 
-function heroCard(glow: [string, string], motes: Array<[number, number]>, figure: HTMLCanvasElement): HTMLCanvasElement {
+export function heroCard(glow: [string, string], motes: Array<[number, number]>, figure: HTMLCanvasElement): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = HERO_CARD_W;
   c.height = HERO_CARD_H;

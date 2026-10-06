@@ -10,6 +10,7 @@ import { CURRENCY_ICONS } from './art-currency';
 import { buildFoeArt } from './art-foes';
 import { buildFrostFoeArt } from './art-frost';
 import { buildGearArt } from './art-gear';
+import { buildHeroArt } from './art-heroes';
 import { buildRarityArt } from './art-rarity';
 import { buildRelicArt } from './art-relics';
 import { buildSableArt } from './art-sable';
@@ -1209,6 +1210,7 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   buildStoryArt(add);
   buildGearArt(add);
   buildSableArt(add);
+  buildHeroArt(add);
   buildRelicArt(add);
   buildCampArt(add, w, 150);
   buildCompanionArt(add, owlFrame('down'));
