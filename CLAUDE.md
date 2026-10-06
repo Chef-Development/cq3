@@ -213,9 +213,12 @@ src/engine/    app.ts (time + input glue, music cues, story state), scene.ts (Ph
                art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-paint.ts (painting helpers),
                art-life.ts (the maps' critters),
                backdrop.ts (forest, ruins, hollow), backdrop-frost.ts (pass, caves, glacier), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
-src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero, enemies, Pip, telegraphs, summons,
-               finisher show, deaths), effects.ts (particles, floaters, camera), bar.ts (timing bar, blocks,
-               telegraph previews, cursor), hud.ts (hero and enemy plates, meter, coins, relic belt), overlays.ts (title, boost,
+src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero in `${art}_${pose}` frames, enemies and a boss's
+               phase look, telegraphs, summons, stuns, finisher show, deaths; finishers.ts each hero's own show; party.ts
+               the companions and a Summoner's allies), effects.ts (particles, floaters, camera), bar.ts (timing bar,
+               blocks, telegraph previews, cursor, holds, mirrors, icicle marks, dashes; bar-kinds.ts the painters for
+               patches, kegs, frozen blocks, holds, ice coats, fuses, chilled reds, the Rampart wall, vines), hud.ts (hero
+               and enemy plates, the style readout (Chain, Guard, Focus, Unstoppable, allies), meter, coins, relic belt), overlays.ts (title, boost,
                chest, defeat, victory, pause), world.ts (kingdom world map: the camera, drag and tap, the landmarks and
                their card, the act picker; world-roam.ts its wandering foe), map.ts (act
                map; map-roam.ts its roamers, telegraphs, secret and bounty tracker), map-life.ts and world-life.ts (their

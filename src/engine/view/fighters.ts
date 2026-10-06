@@ -6,11 +6,15 @@
 // kicks in mid-fight shows a visual that fits it (and its name, the first time each fight). So does every perk (a
 // relic, a skill node, a kit part): its damage, heal or stacks (its name with the relic's icon the first time each
 // fight; after that its icon pulses on the HUD's belt); Shield Wall's charged bubble sits
-// round the hero. Sable fights with her own frames (sable_*: a strike per hand, both daggers for Shadow Step's echo,
-// a leap and a fang strike for Twin Fang, which hits its one target), falling back to Rowan's until they're drawn.
+// round the hero. Every hero fights in their own frames (`${art}_${pose}`, HEROES[id].art: Rowan's are hero_*), falling
+// back to Rowan's for a pose they don't have; the green ability shows their `cast` pose and the finisher their `fin`,
+// each in its own show (view/finishers.ts). The party (the companions and a Summoner's allies) is view/party.ts. A
+// boss shows its phase's look (`${sprite}${phase}_*`, when it has one) and a stunned foe sees stars.
 import Phaser from 'phaser';
 import { rimMask, STAGE_LIGHT } from '../art-stage';
 import type { Combat } from '../../core/combat';
+import { COMPANIONS, type CompanionId } from '../../data/companions';
+import { heroDef, type AllyKind, type HeroId } from '../../data/heroes';
 import { EFFECTS, RARITY_INFO, type EffectId } from '../../data/gear';
 import { relicById } from '../../data/relics';
 import { rarityIndex } from '../../core/gear';
@@ -22,6 +26,8 @@ import { GAME_W } from '../layout';
 import { hpBar, icon } from './pixels';
 import { perkColor, perkName, perkSource, TAG_FACE } from './relic-ui';
 import { FOE_ICONS } from './icons';
+import { ALLY_COL, Party, PERK_PET } from './party';
+import { drawShow, MELEE, quakeLand, SHOW_KIND, showFinal, showStart, showStrike, type ShowKind } from './finishers';
 import {
   clamp01,
   comboSlashCol,
@@ -34,8 +40,6 @@ import {
   FINISHER_NAME,
   inRect,
   LEAP_MS,
-  PIP_BACK_MS,
-  PIP_SWOOP_MS,
   rand,
   RETURN_MS,
   SPRITE_SCALE,
@@ -64,17 +68,27 @@ const SWORD_TIP: Record<string, [number, number]> = {
   windup: [-5, -38],
   parry: [9, -31],
 };
-/** Rowan's frame for a pose another hero has and he doesn't (Sable's frames fall back to his until they're drawn). */
-const HERO_ALT: Record<string, string> = { slashX: 'slashB', fang: 'slashA', down: 'hurt' };
+/** The frame to use for a pose a hero doesn't have (their own first, then Rowan's). */
+const HERO_ALT: Record<string, string> = { slashX: 'slashB', fang: 'slashA', down: 'hurt', fin: 'slashB', cast: 'windup' };
+/** Blockers that take a red at the bar's left end, by perk id: their slab's colours [hi, base, lo]. */
+const BLOCKER_FACE: Record<string, readonly [number, number, number]> = {
+  barkback: [0xd09a5e, 0x8e5a2e, 0x4e2c16],
+  rockWall: [0xd8d0c0, 0x9a9080, 0x5a5448],
+  afterimage: [0xe0c0ff, 0x9a52d8, 0x4a2470],
+};
+/** Perks that never name themselves in the lane (the allies' own doings, shown on them). */
+const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally']);
+/** Allies whose perk is a blow or a heal: the bolt starts at the ally (not the hero). */
+const ALLY_PERK = new Set(['thornling', 'glowmoth', 'seedling']);
 /** Perks that heal (their amount is HP; any relic tagged Sustain does too). */
-const HEAL_PERKS = new Set(['photosynthesis', 'vampiricFang']);
+const HEAL_PERKS = new Set(['photosynthesis', 'vampiricFang', 'glowmoth', 'mend', 'rimewalker', 'sanctuary', 'hotCocoa']);
 
 export class Fighters {
   h: HeroAnim;
   enemies = new Map<number, EnemyView>();
   private hero!: Phaser.GameObjects.Image;
-  private pip!: Phaser.GameObjects.Image;
-  private pipAnim = { state: 'idle' as 'idle' | 'swoop' | 'back', t0: 0, x: 0, y: 0, fromX: 0, fromY: 0, toX: 0, toY: 0 };
+  /** The companions and a Summoner's allies. */
+  readonly party: Party;
   private ghosts: Phaser.GameObjects.Image[] = [];
   private ghostTrail: Array<{ x: number; y: number; tex: string; flip: boolean; at: number }> = [];
   private gShadow!: G;
@@ -95,7 +109,6 @@ export class Fighters {
   private get showcase(): boolean {
     return this.s.app.run.phase === 'title';
   }
-  private pipRim!: Phaser.GameObjects.Image;
   private enemyRims = new Map<number, Phaser.GameObjects.Image>();
   private hurtSeen = 0;
   /** Gear light under and around Rowan (additive, behind the actors), and a glowing silhouette just behind him. */
@@ -106,14 +119,17 @@ export class Fighters {
   /** Effect and perk names shown this fight: each name shows the first time it kicks in, then only what it does. */
   private named = new Set<string>();
   private namedFight: unknown = null;
-  /** The finisher show's kind: Rowan's whirlwind (every foe), or Sable's Twin Fang (a leap and a strike at one). */
-  private superKind: 'whirl' | 'fang' = 'whirl';
+  /** The finisher show's kind (each hero has their own: view/finishers.ts). */
+  private superKind: ShowKind = 'whirl';
+  /** The quake's landing (Earthsplitter) played this show. */
+  private quakeLanded = true;
   /** Shield Wall's bubble as last drawn (charged or not), and when it changed. */
   private bubble = false;
   private bubbleAt = -1e9;
 
   constructor(private readonly s: FightScene) {
     this.h = this.freshHero();
+    this.party = new Party(s);
   }
 
   freshHero(): HeroAnim {
@@ -142,12 +158,20 @@ export class Fighters {
     return this.s.app.run.hero.build?.id ?? 'rowan';
   }
 
-  /** The hero's frame for a pose: Sable's own (sable_*) when she fights and it's drawn, else Rowan's (hero_*). */
+  /** The hero's frame for a pose: their own (`${art}_${pose}`, or their nearest pose), else Rowan's (hero_*). */
   heroTex(pose: string): string {
     const t = this.s.textures;
-    if (this.heroId() === 'sable' && t.exists(`sable_${pose}`)) return `sable_${pose}`;
+    const art = heroDef(this.heroId() as HeroId).art;
+    const alt = HERO_ALT[pose];
+    if (t.exists(`${art}_${pose}`)) return `${art}_${pose}`;
+    if (alt && t.exists(`${art}_${alt}`)) return `${art}_${alt}`;
     if (t.exists(`hero_${pose}`)) return `hero_${pose}`;
-    return `hero_${HERO_ALT[pose] ?? 'idle0'}`;
+    return `hero_${alt ?? 'idle0'}`;
+  }
+
+  /** Whether the hero has their own frame for a pose. */
+  private hasPose(pose: string): boolean {
+    return this.s.textures.exists(`${heroDef(this.heroId() as HeroId).art}_${pose}`);
   }
 
   /** Create the fighter layers for a new layout (the containers were just emptied). */
@@ -159,10 +183,8 @@ export class Fighters {
     s.back.add(this.gShadow);
     this.gAura = s.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
     s.back.add(this.gAura);
-    this.pip = s.add.image(s.heroHome - 30, s.ground - 24, 'pip_idle0').setOrigin(0.5, 0.5);
-    this.pipRim = this.makeRim();
-    s.actors.add([this.pip, this.pipRim]);
-    this.pipAnim = { state: 'idle', t0: 0, x: s.heroHome - 30, y: s.ground - 24, fromX: 0, fromY: 0, toX: 0, toY: 0 };
+    this.party.build();
+    this.party.syncPets(() => this.makeRim());
     this.ghosts = [0, 1, 2].map(() => s.add.image(0, 0, 'hero_dash').setVisible(false).setTintMode(Phaser.TintModes.FILL));
     s.actors.add(this.ghosts);
     this.ghostTrail = [];
@@ -223,6 +245,7 @@ export class Fighters {
     this.superFinalAt = -1e9;
     this.superAt = -1e9;
     this.bubble = false;
+    this.party.newFight();
   }
 
   /** Where an enemy stands: centered when it fights alone, in a row by slot in a group (summons join the row). */
@@ -276,6 +299,7 @@ export class Fighters {
         fleeAt: 0,
         popAt: 0,
         enterFrom: from ?? GAME_W + (wave ? 20 : 30),
+        stunUntil: 0,
       });
     }
   }
@@ -306,18 +330,16 @@ export class Fighters {
   }
 
   /**
-   * The hero dashes in and slashes (`ward`: a shell block cracks, so no hit sound and no damage number). Rowan
-   * alternates his two slashes; Sable strikes with the hand that tapped (A left, B right) and with both daggers for
-   * Shadow Step's echo.
+   * The hero dashes in and slashes (`ward`: a shell block cracks, so no hit sound and no damage number), alternating
+   * their two strikes (an echo: both of Sable's daggers at once).
    */
-  heroAttack(enemyId: number, damage: number, crit: boolean, perfect: boolean, combo: number, ward = false, hand = 0, echo = false): void {
+  heroAttack(enemyId: number, damage: number, crit: boolean, perfect: boolean, combo: number, ward = false, echo = false): void {
     const s = this.s;
     const v = this.enemies.get(enemyId);
     const h = this.h;
     h.lastAction = s.anim;
-    const twin = this.heroId() === 'sable';
-    h.alt = twin ? hand > 0 : !h.alt;
-    const slash = twin ? (echo ? 'slashX' : hand > 0 ? 'slashB' : 'slashA') : h.alt ? 'slashA' : 'slashB';
+    h.alt = !h.alt;
+    const slash = echo && this.heroId() === 'sable' ? 'slashX' : h.alt ? 'slashA' : 'slashB';
     // the blow's sound and weight land together, when the sword connects
     const land = () => {
       if (!ward) s.app.audio.hit(combo, crit, perfect);
@@ -584,50 +606,46 @@ export class Fighters {
   }
 
   /**
-   * The finisher show, scaled by the stacks spent: the hero dashes in and whirls through the enemies with a
-   * flurry of strikes (more stacks = more strikes, a longer show and a hotter backdrop), then lands one huge
-   * blow whose number counts up. Kills and the HP bars wait for that last blow.
+   * The finisher show, scaled by the stacks spent: the hero goes in (or stands back and casts, throws, shoots) for a
+   * flurry of strikes in their finisher's look (more stacks = more strikes, a longer show and a hotter backdrop), then
+   * lands one huge blow whose number counts up. Kills and the HP bars wait for that last blow. Each hero's show also
+   * does its own thing to the stage and the bar (view/finishers.ts).
    */
   heroFinisher(damage: number, stacks: number, targets: number[] = []): void {
     const s = this.s;
     const fx = s.fx;
     const h = this.h;
     const n = Math.max(1, Math.min(5, stacks));
-    // who it hits: Rowan's whirlwind every foe; Sable's Twin Fang its one target
+    // who it hits: every foe, or the one target (Twin Fang, Rampart)
     const all = [...this.enemies.values()].filter((v) => !v.dieAt);
     const hit = targets.length ? all.filter((v) => targets.includes(v.id)) : all;
     const views = hit.length ? hit : all;
     const front = views.slice().sort((a, b) => a.homeX - b.homeX)[0];
-    this.superKind = this.heroId() === 'sable' ? 'fang' : 'whirl';
-    const fang = this.superKind === 'fang';
+    const kind = SHOW_KIND[this.heroId()] ?? 'whirl';
+    this.superKind = kind;
+    this.quakeLanded = kind !== 'quake';
     this.superMs = superMsFor(n);
     this.superStacks = n;
     const ms = this.superMs;
     h.state = 'super';
     h.fromX = h.x;
-    h.toX = front ? front.homeX - 8 : h.x + 80;
+    h.toX = MELEE.has(kind) ? (front ? front.homeX - 8 - (kind === 'whirl' || kind === 'fang' ? 0 : 14) : h.x + 80) : Math.min(h.x + 14, front ? front.homeX - 40 : h.x + 14);
     h.t0 = s.anim;
     h.lastAction = s.anim + ms;
     this.superAt = s.anim;
     const finalK = FINISHER_BLOW_AT;
     this.superFinalAt = s.anim + ms * finalK;
     const [col, hi] = stackCol(n);
-    const title = fang ? (n > 1 ? `Twin Fang x${n}!` : 'Twin Fang!') : (FINISHER_NAME[n] ?? 'Finisher!');
+    const name = heroDef(this.heroId() as HeroId).finisher.name;
+    const title = kind === 'whirl' ? (FINISHER_NAME[n] ?? 'Finisher!') : n > 1 ? `${name} x${n}!` : `${name}!`;
     fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, n >= 2 ? 3 : 2, true, 0, -6, 0, ms * 0.95, true);
+    showStart(s, kind, h.x);
     // the flurry: 1 + 2n quick strikes between 30% and 70% of the show
     const strikes = finisherStrikes(n);
     for (let st = 0; st < strikes; st++) {
       const k = finisherStrikeAt(st, strikes);
       s.later(ms * k, () => {
-        for (const v of views) {
-          const cy = v.y - v.img.displayHeight / 2 + rand(-6, 4);
-          v.flashUntil = s.anim + 40;
-          v.kickAt = s.anim;
-          v.kickDist = 4;
-          fx.slashes.push({ x: v.x + rand(-4, 4), y: cy, at: s.anim, big: st % 2 === 1, dir: st % 2 ? 1 : -1, color: st % 3 === 2 ? hi : col });
-          fx.sparks.push({ x: v.x + rand(-8, 4), y: cy, at: s.anim, size: 8, color: hi });
-          fx.burst(v.x, cy, WHITE, 5, true, 1.3, true);
-        }
+        for (const v of views) showStrike(s, kind, v, st, col, hi);
         s.app.audio.finisherStrike(st, strikes);
         fx.kick(st % 2 ? 2 : -2, 60);
         fx.freeze(25);
@@ -637,7 +655,7 @@ export class Fighters {
     s.later(ms * finalK, () => {
       s.app.audio.finisherBoom(n);
       const feel = fx.impact(fx.weight('finisher', n));
-      if (fang)
+      if (kind === 'fang')
         for (const v of views) {
           // the fang: both daggers cross on the target
           const cy = v.y - v.img.displayHeight / 2;
@@ -660,10 +678,21 @@ export class Fighters {
         for (let r = 0; r < n; r++) s.later(r * 70, () => fx.ring(v.x, cy, 30 + r * 14, r % 2 ? hi : col, true));
         fx.stars.push({ x: v.x, y: cy - 6, at: s.anim, r: 30 + n * 6, color: col });
         fx.burst(v.x, cy, col, 16 + n * 8, true, 1.6 + n * 0.15);
+        showFinal(s, kind, v, n);
       }
       fx.screenFlash(n >= 3 ? 0xfff0c0 : WHITE, performance.now(), 160 + 40 * n);
       fx.shock(h.toX + 8, s.ground, 50 + n * 12, hi);
       fx.kick(6, 160);
+    });
+  }
+
+  /** The green ability kicked in: the hero's `cast` pose (once the slash is through) and a green glint on them. */
+  cast(): void {
+    const s = this.s;
+    if (!this.hasPose('cast')) return;
+    s.fx.ring(this.h.x + 2, s.ground - 20, 16, 0x9af0a0, true);
+    s.later(120, () => {
+      if (this.h.state !== 'super' && !this.h.down) this.setHeroPose('cast', 260);
     });
   }
 
@@ -677,6 +706,9 @@ export class Fighters {
   /** A perk's name in the HUD's name lane (its relic's or skill node's icon in front), the first time it kicks in
    *  each fight. */
   private perkLabel(id: string): boolean {
+    // the allies' own doings (a jab, a glow, a seed, a Rally) show on the allies themselves: no name in the lane, so
+    // three allies out never flood it
+    if (QUIET_PERKS.has(id)) return false;
     if (!this.firstName(`perk-${id}`)) return false;
     const relic = relicById(id);
     this.s.hud.announce(perkName(id), perkColor(id), { relic: relic?.id, tex: relic ? undefined : `skill_${id}` });
@@ -697,16 +729,22 @@ export class Fighters {
     const h = this.h;
     s.hud.perkKicked(id);
     const relic = relicById(id);
-    const col = relic ? TAG_FACE[relic.tags[0]][1] : perkSource(id) === 'skill' ? 0x9ad8ff : 0xc8a0ff;
+    const ally = ALLY_PERK.has(id) ? this.party.allyPos(id as AllyKind) : null;
+    const col = relic ? TAG_FACE[relic.tags[0]][1] : ally ? ALLY_COL[id as AllyKind] : perkSource(id) === 'skill' ? 0x9ad8ff : 0xc8a0ff;
     const v = enemyId ? this.enemies.get(enemyId) : undefined;
+    // a companion's perk: it flares; a blocker took a red at the bar's left end: its slab there
+    const pet = PERK_PET[id];
+    if (pet) this.party.flare(pet);
+    const face = BLOCKER_FACE[id];
+    if (face) s.barView.blocker(face);
     if (o.coins) {
       this.perkLabel(id);
       return false;
     }
     if (o.strike && v && amount > 0 && !v.dieAt) {
-      // a blow: a bolt in the perk's colour from the hero to the foe, then the hit
-      const sx = h.x + 10;
-      const sy = s.ground - 24;
+      // a blow: a bolt in the perk's colour from the hero (or the ally that struck) to the foe, then the hit
+      const sx = ally ? ally.x + 6 : h.x + 10;
+      const sy = ally ? ally.y : s.ground - 24;
       const tx = v.x - v.img.displayWidth * 0.25;
       const ty = v.y - v.img.displayHeight / 2;
       const ms = 120;
@@ -720,7 +758,8 @@ export class Fighters {
         F.sparks.push({ x: tx, y: ty, at: s.anim, size: 11, color: col });
         F.burst(tx, ty, col, 8, true, 1.2, true);
         F.glow(tx, ty, 12, col, 160);
-        F.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, `${amount}`, mixWhite(col), 2);
+        // (an ally's jabs come often: small numbers)
+        F.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, `${amount}`, mixWhite(col), ally ? 1 : 2);
         s.app.audio.hit(0, false);
       });
       if (this.perkLabel(id)) s.app.audio.gearProc(0.5);
@@ -730,6 +769,8 @@ export class Fighters {
     if (heal) {
       s.hud.healPop(amount);
       F.burst(h.x + 2, s.ground - 18, 0x9af06a, 5, true, 0.6);
+      // a heal from an ally (a Glowmoth's lantern): a mote of light drifts from it to the hero
+      if (ally) F.bolt(ally.x, ally.y, h.x + 2, s.ground - 20, 200, 0xffe070);
     } else if (o.stacks && amount > 0) {
       // stacks banked: a burst of the stack colour off the meter
       const m = s.meter;
@@ -870,22 +911,41 @@ export class Fighters {
     });
   }
 
-  petAttack(enemyId: number, damage: number, crit = false): void {
+  /**
+   * A companion attacks (its act frame: a flier swoops, a walker dashes in; Sunny breathes on every foe): the number
+   * and a burst on the target (on every foe for Sunny's breath, in fire).
+   */
+  petAttack(pet: string, enemyId: number, damage: number, crit = false): void {
     const s = this.s;
     const v = this.enemies.get(enemyId);
     if (!v) return;
-    const P = this.pipAnim;
-    Object.assign(P, { state: 'swoop', t0: s.anim, fromX: P.x, fromY: P.y, toX: v.homeX - v.img.displayWidth / 2 - 2, toY: v.y - v.img.displayHeight * 0.6 });
-    s.later(PIP_SWOOP_MS, () => {
-      const cy = v.y - v.img.displayHeight / 2;
-      v.flashUntil = s.anim + 50;
-      v.knockUntil = s.anim + 60;
-      s.fx.floatNum(v.x + rand(-4, 4), v.y - v.img.displayHeight - 8, `${damage}`, crit ? 0xffb020 : 0x6aff5a, crit ? 2 : 1);
-      s.fx.burst(v.x - 6, cy, crit ? 0xffe070 : 0xb8e4ff, crit ? 14 : 8, true, 1, true);
-      if (crit) s.fx.stars.push({ x: v.x - 4, y: cy, at: s.anim, r: 16, color: 0xfff07a });
+    const def = COMPANIONS[pet as CompanionId];
+    const all = !!def?.allFoes;
+    const strikeOne = (u: EnemyView, fire: boolean) => {
+      const cy = u.y - u.img.displayHeight / 2;
+      u.flashUntil = s.anim + 50;
+      u.knockUntil = s.anim + 60;
+      s.fx.floatNum(u.x + rand(-4, 4), u.y - u.img.displayHeight - 8, `${damage}`, crit ? 0xffb020 : fire ? 0xffc060 : 0x6aff5a, crit ? 2 : 1);
+      s.fx.burst(u.x - 6, cy, fire ? 0xff8a2a : crit ? 0xffe070 : 0xb8e4ff, crit ? 14 : 8, true, 1, true);
+      if (crit) s.fx.stars.push({ x: u.x - 4, y: cy, at: s.anim, r: 16, color: 0xfff07a });
+    };
+    const foes = all ? [...this.enemies.values()].filter((u) => !u.dieAt).map((u) => ({ x: u.x, y: u.y - u.img.displayHeight / 2 })) : null;
+    this.party.attack((def?.id ?? 'pip') as CompanionId, { x: v.homeX, y: v.y, w: v.img.displayWidth, h: v.img.displayHeight, fly: v.fly }, foes, () => {
+      if (all) {
+        for (const u of this.enemies.values()) if (!u.dieAt) strikeOne(u, true);
+      } else strikeOne(v, false);
       s.app.audio.pet();
-      Object.assign(P, { state: 'back', t0: s.anim, fromX: P.x, fromY: P.y });
     });
+  }
+
+  /** A foe is stunned (Wind-Up): stars circle its head for `sec`. */
+  stun(enemyId: number, sec: number): void {
+    const s = this.s;
+    const v = this.enemies.get(enemyId);
+    if (!v || v.dieAt) return;
+    v.stunUntil = s.anim + sec * 1000;
+    s.fx.ring(v.x, v.y - v.img.displayHeight, 12, 0xffe680, true);
+    s.fx.addFloater(v.homeX, Math.max(38, v.y - v.img.displayHeight - 12), 'Stunned!', 0xffe680, 1, true, 0, -10, 0, 700, true);
   }
 
   /** An enemy winds up its special: the 'tell' pose, a countdown ring, a "!" and the special's name. */
@@ -895,7 +955,8 @@ export class Fighters {
     if (!v || v.dieAt) return;
     v.tellAt = s.anim;
     v.tellUntil = s.anim + sec * 1000;
-    s.fx.addFloater(v.homeX, Math.max(30, v.y - v.img.displayHeight - 16), name, 0xff9a3a, 1, true, 0, -6, 0, sec * 1000 + 250, true);
+    // (over a huge foe's head it would sit under the HUD's plates: it stays below them)
+    s.fx.addFloater(v.homeX, Math.max(38, v.y - v.img.displayHeight - 16), name, 0xff9a3a, 1, true, 0, -6, 0, sec * 1000 + 250, true);
   }
 
   tellOver(enemyId: number): void {
@@ -953,31 +1014,17 @@ export class Fighters {
 
   // ------------------------------------------------------------------ per frame
 
+  /** The party every frame: the companions (Pip joins in Act 1's opening scene, not before) and the allies. */
   updatePip(): void {
     const s = this.s;
-    const P = this.pipAnim;
-    const a = s.anim;
-    const homeX = this.h.x - 30;
-    const homeY = s.ground - 24 + Math.sin(a / 260) * 2;
-    let tex = Math.floor(a / 110) % 2 ? 'pip_idle1' : 'pip_idle0';
-    if (P.state === 'swoop') {
-      const k = clamp01((a - P.t0) / PIP_SWOOP_MS);
-      P.x = P.fromX + (P.toX - P.fromX) * ease(k);
-      P.y = P.fromY + (P.toY - P.fromY) * ease(k) - Math.sin(k * Math.PI) * 10;
-      tex = 'pip_dive';
-    } else if (P.state === 'back') {
-      const k = clamp01((a - P.t0) / PIP_BACK_MS);
-      P.x = P.fromX + (homeX - P.fromX) * ease(k);
-      P.y = P.fromY + (homeY - P.fromY) * ease(k) - Math.sin(k * Math.PI) * 14;
-      if (k >= 1) P.state = 'idle';
-    } else {
-      P.x += (homeX - P.x) * 0.12;
-      P.y = homeY;
-    }
-    // Pip joins in Act 1's opening scene, not before
     const beforePip = s.app.storyId === 'intro';
-    this.pip.setTexture(tex).setPosition(Math.round(P.x), Math.round(P.y)).setVisible(s.app.tuning.companion.everyHits > 0 && !beforePip && !this.showcase);
-    this.syncRim(this.pip, this.pipRim);
+    const visible = s.app.tuning.companion.everyHits > 0 && !beforePip && !this.showcase;
+    this.party.update(
+      this.h.x,
+      visible,
+      () => this.makeRim(),
+      (src, rim) => this.syncRim(src, rim),
+    );
   }
 
   updateHero(): void {
@@ -997,10 +1044,14 @@ export class Fighters {
     } else if (h.state === 'super') {
       const k = clamp01((a - h.t0) / this.superMs);
       if (k < 0.3) h.x = h.fromX + (h.toX - h.fromX) * ease(k / 0.3);
-      else if (k < 0.75) h.x = h.toX + (this.superKind === 'fang' ? 0 : Math.sin(a / 25) * 3);
+      else if (k < 0.75) h.x = h.toX + (this.superKind === 'whirl' ? Math.sin(a / 25) * 3 : 0);
       else h.x = h.toX + (s.heroHome - h.toX) * ease((k - 0.75) / 0.25);
-      // Twin Fang: a leap onto the target
-      if (this.superKind === 'fang' && k < 0.3) yOff = -Math.sin((k / 0.3) * Math.PI) * 22;
+      // Twin Fang and Earthsplitter: a leap onto the target (the quake lands with a slam)
+      if ((this.superKind === 'fang' || this.superKind === 'quake') && k < 0.3) yOff = -Math.sin((k / 0.3) * Math.PI) * (this.superKind === 'quake' ? 26 : 22);
+      if (!this.quakeLanded && k >= 0.3) {
+        this.quakeLanded = true;
+        quakeLand(s, h.x);
+      }
       if (k >= 1) {
         h.state = 'idle';
         h.x = s.heroHome;
@@ -1028,8 +1079,17 @@ export class Fighters {
         pose = 'dash';
         flip = true;
       }
-    }
-    else if (h.state === 'leap') pose = a - h.t0 < LEAP_MS * 0.7 ? 'leap' : 'slashA';
+    } else if (sk >= 0 && sk < 1 && this.superKind !== 'whirl') {
+      // the others: in (a dash, a leap) or a cast, their finisher pose while it plays out, then back
+      const kind = this.superKind;
+      const back = sk >= (MELEE.has(kind) ? 0.75 : 0.8);
+      if (back) {
+        pose = Math.abs(h.x - s.heroHome) > 3 ? 'dash' : 'idle0';
+        flip = pose === 'dash';
+      } else if (kind === 'quake') pose = sk < 0.3 ? 'leap' : 'fin';
+      else if (kind === 'rampart') pose = sk < 0.3 ? 'dash' : 'fin';
+      else pose = sk < 0.14 ? (this.hasPose('cast') ? 'cast' : 'windup') : 'fin';
+    } else if (h.state === 'leap') pose = a - h.t0 < LEAP_MS * 0.7 ? 'leap' : 'slashA';
     else if (a < h.poseUntil) pose = h.pose;
     else if (h.state === 'dash') pose = 'dash';
     else if (h.state === 'return') {
@@ -1105,7 +1165,7 @@ export class Fighters {
     // Rowan (hidden while he whirls: the tornado stands on the ground instead), and Pip's small, faint shadow below him
     const spin = !this.hero.visible && this.h.state === 'super';
     if (!this.showcase) this.shadow(this.h.x + 1, s.ground, spin ? 26 : 15, -this.h.y, spin ? 0.8 : 1);
-    if (this.pip.visible) this.shadow(this.pip.x, s.ground, 12, s.ground - this.pip.y - 8, 0.75);
+    this.party.shadows((x, y, w, lift, alpha) => this.shadow(x, y, w, lift, alpha));
     if (run.hero.abilityTimer > 0 && Math.floor(now / 90) % 2 === 0) {
       g.fillStyle(0x9af0a0, 1);
       for (let i = 0; i < 2; i++) g.fillRect(Math.round(this.h.x + rand(-11, 11)), Math.round(s.ground - rand(3, 30)), 1, 2);
@@ -1187,7 +1247,10 @@ export class Fighters {
       v.x = x;
       const flash = a < v.flashUntil;
       let pose = a < v.poseUntil ? v.pose : Math.floor((a + v.phase) / 380) % 2 ? 'idle1' : 'idle0';
-      const has = (p: string) => s.textures.exists(`${v.sprite}_${p}`);
+      // a boss's phase look (glacia2_*, glacia3_*) when it has one
+      const phased = e.phase > 1 && s.textures.exists(`${v.sprite}${e.phase}_idle0`);
+      const look = phased ? `${v.sprite}${e.phase}` : v.sprite;
+      const has = (p: string) => s.textures.exists(`${look}_${p}`);
       // a special's wind-up, a raised guard and a closed shell hold their own poses
       if (a < v.tellUntil && has('tell')) pose = 'tell';
       else if (e.guard > 0 && has('guard') && pose !== 'hurt') pose = 'guard';
@@ -1202,7 +1265,7 @@ export class Fighters {
           continue;
         }
         const flick = Math.floor((a - v.dieAt) / 35) % 2 === 0;
-        v.img.setTexture(`${v.sprite}_${flick ? 'flash' : 'hurt'}`).setAlpha(1).setVisible(true);
+        v.img.setTexture(`${look}_${flick ? 'flash' : 'hurt'}`).setAlpha(1).setVisible(true);
         v.img.setScale(SPRITE_SCALE * (1 + 0.2 * q), SPRITE_SCALE * (1 + 0.14 * q));
         v.img.setPosition(Math.round(x + rand(-1.5, 1.5)), v.y);
         this.syncRim(v.img, rim);
@@ -1215,9 +1278,9 @@ export class Fighters {
       const hover = v.fly ? Math.round(Math.sin((a + v.phase) / 260) * 2) : 0;
       const tellK = a < v.tellUntil ? (a - v.tellAt) / Math.max(1, v.tellUntil - v.tellAt) : -1;
       const tremble = tellK > 0.6 ? Math.round(Math.sin(a / 18)) : 0; // shakes as the special is about to land
-      v.img.setTexture(`${v.sprite}_${pose}`).setFlipX(false).setPosition(Math.round(x) + tremble, v.y - walkBob + hover).setScale(SPRITE_SCALE * (1 + amt), SPRITE_SCALE * (1 - amt)).setAlpha(1);
-      // the boss enraged: a red pulse
-      if (e.phase >= 3) v.img.setTint(Math.floor(a / 160) % 2 ? 0xffb0a0 : 0xffffff);
+      v.img.setTexture(`${look}_${pose}`).setFlipX(false).setPosition(Math.round(x) + tremble, v.y - walkBob + hover).setScale(SPRITE_SCALE * (1 + amt), SPRITE_SCALE * (1 - amt)).setAlpha(1);
+      // the boss enraged: a red pulse (unless its phase has a look of its own)
+      if (e.phase >= 3 && !phased) v.img.setTint(Math.floor(a / 160) % 2 ? 0xffb0a0 : 0xffffff);
       else v.img.clearTint();
       this.syncRim(v.img, rim, !flash);
       this.shadow(x, v.y + v.fly, v.img.displayWidth * (v.fly ? 0.5 : 0.8), v.fly + walkBob - hover);
@@ -1225,22 +1288,51 @@ export class Fighters {
       if (tellK >= 0) {
         // the countdown: a ring closing in on the enemy, and a bouncing "!"
         const r = Math.round(8 + (1 - tellK) * 18 + v.img.displayWidth * 0.3);
+        // (a huge foe's ring flattens so it never climbs into the HUD at the top)
+        const ry = Math.min(r * 0.7, Math.max(8, cy - 36));
         const col = Math.floor(a / 90) % 2 ? 0xff5a3a : 0xffd23a;
         g.fillStyle(col, 0.35 + 0.5 * tellK);
         const n = Math.max(16, r * 2);
         for (let i = 0; i < n; i++) {
           if (i % 3 === 2) continue;
           const ang = (i / n) * Math.PI * 2 + a / 400;
-          g.fillRect(Math.round(x + Math.cos(ang) * r), Math.round(cy + Math.sin(ang) * r * 0.7), 2, 1);
+          g.fillRect(Math.round(x + Math.cos(ang) * r), Math.round(cy + Math.sin(ang) * ry), 2, 1);
         }
         const ex = Math.round(x);
-        const ey = Math.round(v.y - v.img.displayHeight - 8 - Math.abs(Math.sin(a / 110)) * 3);
+        const ey = Math.max(30, Math.round(v.y - v.img.displayHeight - 8 - Math.abs(Math.sin(a / 110)) * 3));
         g.fillStyle(INK, 1);
         g.fillRect(ex - 2, ey - 1, 5, 8);
         g.fillRect(ex - 2, ey + 8, 5, 4);
         g.fillStyle(col, 1);
         g.fillRect(ex - 1, ey, 3, 6);
         g.fillRect(ex - 1, ey + 9, 3, 2);
+      }
+      if (a < v.stunUntil) {
+        // stunned: three stars circling over its head
+        const hy = Math.max(32, v.y - v.img.displayHeight - 3);
+        for (let i = 0; i < 3; i++) {
+          const ang = a / 180 + (i / 3) * Math.PI * 2;
+          const sx = Math.round(x + Math.cos(ang) * 9);
+          const sy = Math.round(hy + Math.sin(ang) * 2);
+          g.fillStyle(INK, 1);
+          g.fillRect(sx - 2, sy - 1, 5, 3);
+          g.fillRect(sx - 1, sy - 2, 3, 5);
+          g.fillStyle(Math.sin(ang) > 0 ? 0xfff0a0 : 0xd8901c, 1);
+          g.fillRect(sx - 1, sy, 3, 1);
+          g.fillRect(sx, sy - 1, 1, 3);
+        }
+      }
+      if (c.perk.burnTicks > 0 && c.perk.burnFoe === e.id) {
+        // burning (Ember Bite): little flames licking up its front
+        for (let i = 0; i < 3; i++) {
+          const fx0 = Math.round(x - v.img.displayWidth * 0.3 + i * 6);
+          const fh = 3 + ((Math.floor(a / 70) + i) % 3);
+          const fy = Math.round(v.y - v.img.displayHeight * 0.25 - i * 3);
+          g.fillStyle(0xff5a1a, 0.9);
+          g.fillRect(fx0, fy - fh, 3, fh);
+          g.fillStyle(0xffd060, 1);
+          g.fillRect(fx0 + 1, fy - fh + 1, 1, fh - 1);
+        }
       }
       if (e.protect < 1 && c.summonsAlive(e.id)) {
         // shielded by its summons: a golden aura
@@ -1435,8 +1527,9 @@ export class Fighters {
       g.fillStyle(i % 3 === 0 ? hiCol : WHITE, alpha * (i % 2 ? 0.85 : 0.5));
       g.fillRect(Math.round(x), y, len, i % 4 === 0 ? 2 : 1);
     }
-    // whirlwind where the hero is (Rowan's; Sable leaps instead)
+    // the show's own stage effects (a frost wave, vines, a big keg, arrows), and Rowan's whirlwind where he is
     const h = this.h;
+    if (h.state === 'super' && this.superKind !== 'whirl') drawShow(s.gFx, s, this.superKind, k, h.x, [...this.enemies.values()].filter((v) => !v.dieAt));
     if (h.state !== 'super' || this.superKind !== 'whirl') return;
     const fx = s.gFx;
     const cx = h.x + 2;

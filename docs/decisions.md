@@ -57,3 +57,17 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     are laid once per phase even though their timer comes round again.
 20. The act picker on the world map and the gear panel's "Jump to" show only Greenmarch's names until the world map's
     new landmarks are in (the next region's acts are listed by number only: spoilers).
+
+## The fight view (rendering only)
+- **Allies stand in a front row at the hero's feet** (Thornling, Barkback, Seedling left of the hero, lower on the
+  ground), the **Glowmoth hovers by the hero's shoulder**; companions keep Pip's place behind (a second one 24 px
+  further back; fliers hover, walkers stand). With three allies and two companions it's busy but nothing hides the hero.
+- **The allies' frequent perks don't name themselves** in the lane (Thornling, Glowmoth, Seedling, Rally): they show on
+  the allies (act frames, a bolt from the ally, "Rally!" over them). A Barkback's block still names itself once.
+- **Telegraphs preview what a special does to the bar** (patches with a fixed spot, a mirror's spot, the yellows it will
+  ice or turn into holds); an icicle's spot shows once it's chosen (the `mark` event), not during the wind-up.
+- **A huge foe's special name and stun label stay below the HUD's plates** (y >= 38) and its countdown ring flattens
+  instead of climbing into the HUD; the region's boss stands where every single foe stands (its top clears the plates).
+- **Heals show as whole HP** in the merged heal number (HP is fractional inside: a top-up could print a long decimal).
+- **Chilled reds read by who slowed them:** frost (Bend, Flurry), vines (Moss), an arrow through it (Vesper's pin);
+  a frozen block is a crystal (Neve), never a red.

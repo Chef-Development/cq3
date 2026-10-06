@@ -4,6 +4,9 @@
 // a hero's kit) as fights announce them.
 import type Phaser from 'phaser';
 import { HEROES } from '../../data/heroes';
+import { COMPANIONS } from '../../data/companions';
+import { STYLES } from '../../data/styles';
+import { AURAS, SETS } from '../../data/gear';
 import { relicById, TAG_NAME, type RelicId, type RelicRarity, type RelicTag } from '../../data/relics';
 import { skillById } from '../../data/skills';
 import { relicText, sharedTags } from '../../core/relics';
@@ -294,13 +297,60 @@ export function relicCard(
 
 // ------------------------------------------------------------------ perks
 
-/** The kit parts' ids (core/kit-fx.ts) and their names. */
+const perkOf = (pet: keyof typeof COMPANIONS, i: number): string => COMPANIONS[pet].perks[i]?.name ?? pet;
+
+/**
+ * The names of perks that aren't relics or skill nodes, as the fight shows them: the heroes' kit parts
+ * (core/kit-fx.ts) and star moves, the styles' rules (core/styles.ts) and a Summoner's allies, the companions' perks
+ * (core/companion-fx.ts) and the gear's set bonuses and auras that heal.
+ */
 const KIT_NAME: Record<string, string> = {
+  // Rowan
   battleFocus: HEROES.rowan.ability.name,
   whirlwind: HEROES.rowan.finisher.name,
-  shadowStep: HEROES.sable.ability.name,
-  ambidextrous: HEROES.sable.passive?.name ?? 'Ambidextrous',
+  resolve: HEROES.rowan.passive.name,
+  wideSweep: HEROES.rowan.stars[0].name,
+  // Sable
+  smokeVeil: HEROES.sable.ability.name,
   twinFang: HEROES.sable.finisher.name,
+  afterimage: HEROES.sable.stars[0].name,
+  fangAndClaw: HEROES.sable.stars[1].name,
+  // Moss and the allies
+  rally: 'Rally!',
+  thornling: 'Thornling',
+  barkback: 'Barkback',
+  glowmoth: 'Glowmoth',
+  seedling: 'Seedling',
+  // Tam
+  fuseUp: HEROES.tam.ability.name,
+  bigBang: HEROES.tam.finisher.name,
+  // Hollis
+  guard: STYLES.guardian.rule.name,
+  shieldSlam: HEROES.hollis.signature.name,
+  // Vesper
+  powerShot: 'Power Shot',
+  pierce: HEROES.vesper.ability.name,
+  volley: HEROES.vesper.finisher.name,
+  // Torva
+  quake: HEROES.torva.signature.name,
+  windUp: HEROES.torva.ability.name,
+  secondSwing: HEROES.torva.stars[1].name,
+  // the styles' rules
+  chain: STYLES.shadow.rule.name,
+  bend: STYLES.controller.rule.name,
+  // the companions
+  luckyFoot: perkOf('bun', 0),
+  owlWatch: perkOf('pip', 0),
+  emberBite: perkOf('newt', 0),
+  oilCan: perkOf('sprocket', 0),
+  rockWall: perkOf('brick', 0),
+  starlight: perkOf('mote', 0),
+  mend: perkOf('mote', 1),
+  goldHoard: perkOf('sunny', 0),
+  fireBreath: perkOf('sunny', 1),
+  // gear that heals
+  rimewalker: SETS.rimewalker.name,
+  sanctuary: AURAS.sanctuary.name,
 };
 
 export type PerkSource = 'relic' | 'skill' | 'kit';

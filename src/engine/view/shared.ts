@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import { isRed, type BlockKind, type RemoveReason } from '../../core/combat';
 import type { BoostId } from '../../core/run';
 import { FOE_COL } from '../art-foes';
+import { FROST_COL } from '../art-frost';
 
 export const COL = {
   yellow: [0xeab22e, 0xffe680, 0xb8781a],
@@ -11,12 +12,28 @@ export const COL = {
   purple: [0x9a4ad8, 0xdab0ff, 0x6a2aa8],
   spore: [0xe05ab8, 0xffb0e8, 0x9a2a80], // a mushroom's heal block
   ward: [0x3aa8a0, 0xa8f0e0, 0x1a6a6a], // a shell block
+  keg: [0x3a3444, 0xffb060, 0x1a1620], // a Bomber's keg (its fuse's glow as the light)
+  frozen: [0x8ae0f6, 0xe0faff, 0x4aa4d0], // a red frozen in place
+  hold: [0x5ab4ec, 0xb8e8ff, 0x2a78c0], // a hold
+  mirror: [0xc8d8f0, 0xffffff, 0x7a8ab0], // a mirror shard
 } as const;
 export const kindCol = (k: BlockKind) =>
-  k === 'yellow' ? COL.yellow : k === 'green' ? COL.green : k === 'purple' ? COL.purple : k === 'spore' ? COL.spore : k === 'ward' ? COL.ward : COL.red;
+  k === 'yellow'
+    ? COL.yellow
+    : k === 'green'
+      ? COL.green
+      : k === 'purple'
+        ? COL.purple
+        : k === 'spore'
+          ? COL.spore
+          : k === 'ward'
+            ? COL.ward
+            : k === 'keg' || k === 'frozen' || k === 'hold' || k === 'mirror'
+              ? COL[k]
+              : COL.red;
 export const BOMB_COL = [0xf28a2a, 0xffd890, 0xa04a10] as const;
-export const deepOf = (k: BlockKind) =>
-  k === 'yellow' ? 0x7a4410 : k === 'green' ? 0x14622a : k === 'purple' ? 0x3a1a60 : k === 'spore' ? 0x5a1050 : k === 'ward' ? 0x0e3a3a : 0x5a1020;
+const DEEP: Partial<Record<BlockKind, number>> = { yellow: 0x7a4410, green: 0x14622a, purple: 0x3a1a60, spore: 0x5a1050, ward: 0x0e3a3a, keg: 0x100c14, frozen: 0x1e5a80, hold: 0x14407a, mirror: 0x4a5a80 };
+export const deepOf = (k: BlockKind) => DEEP[k] ?? 0x5a1020;
 
 /** How a block leaves the bar: never instantly. */
 export type DyingStyle = 'pop' | 'shatter' | 'crunch' | 'fade' | 'zip' | 'fly';
@@ -24,7 +41,10 @@ export const DYING_MS: Record<DyingStyle, number> = { pop: 270, shatter: 360, cr
 export const dyingStyle = (kind: BlockKind, reason: RemoveReason): DyingStyle =>
   reason === 'finisher'
     ? 'fly'
-    : reason === 'hit'
+    : // ice breaks: a frozen block shatters when hit, a hold that slipped shatters
+      (kind === 'frozen' && reason === 'hit') || (kind === 'hold' && reason === 'expire')
+      ? 'shatter'
+      : reason === 'hit'
       ? isRed(kind)
         ? 'shatter'
         : 'pop'
@@ -46,7 +66,7 @@ export interface Dying {
   style: DyingStyle;
   at: number; // anim time
 }
-export const ENEMY_COL: Record<string, number> = { slime: 0x4fc4a0, bigslime: 0x4fc4a0, boar: 0x8a5a34, bandit: 0x5a4a6a, ...FOE_COL };
+export const ENEMY_COL: Record<string, number> = { slime: 0x4fc4a0, bigslime: 0x4fc4a0, boar: 0x8a5a34, bandit: 0x5a4a6a, ...FOE_COL, ...FROST_COL };
 
 export const WHITE = 0xffffff;
 export const INK = 0x0a0812;
@@ -109,6 +129,7 @@ export interface EnemyView {
   fleeAt: number; // anim time it started running off (0 = not fleeing)
   popAt: number; // anim time it split apart (0 = not splitting)
   enterFrom: number; // x it walks in from (the right edge, or the parent slime's spot for a split)
+  stunUntil: number; // anim time a stun (Wind-Up) wears off: stars circle its head until then
 }
 
 export interface HeroAnim {
