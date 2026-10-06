@@ -49,6 +49,10 @@ const KINDS: Record<string, BurrowKind> = {
   goat: { spec: { sprite: 'goat', idle: [0, 1], move: [2], flee: 2, gait: 'hop', moveSec: 0.8 }, period: [15, 20], room: [12, 8], reach: [4, 12] },
   beetle: { spec: { sprite: 'beetle', idle: [0, 1], move: [0, 1], flee: 0, gait: 'walk', moveSec: 2.4 }, period: [12, 17], room: [8, 5], reach: [3, 9] },
   hare: { spec: { sprite: 'hare', idle: [0, 1], move: [2], flee: 2, gait: 'hop', moveSec: 0.6 }, period: [11, 15], room: [10, 8], reach: [4, 10] },
+  lizard: { spec: { sprite: 'lizard', idle: [0, 1], move: [2], flee: 2, gait: 'walk', moveSec: 0.5 }, period: [12, 16], room: [12, 5], reach: [4, 11] },
+  firebeetle: { spec: { sprite: 'firebeetle', idle: [0, 1], move: [0, 1], flee: 0, gait: 'walk', moveSec: 2.2 }, period: [13, 18], room: [8, 5], reach: [3, 9] },
+  snail: { spec: { sprite: 'snail', idle: [0, 1], move: [1], flee: 0, curl: 0, gait: 'walk', moveSec: 4.5 }, period: [18, 24], room: [9, 5], reach: [3, 7] },
+  soot: { spec: { sprite: 'soot', idle: [0, 1], move: [2], flee: 2, gait: 'hop', moveSec: 0.55 }, period: [10, 14], room: [8, 7], reach: [3, 9] },
 };
 
 /** What lives on each act's map, and how many of each show at once. */
@@ -59,10 +63,13 @@ const THEME_LIFE: Record<Theme, { burrows: Array<[string, number]>; flock: { spr
   pass: { burrows: [['goat', 1]], flock: { sprite: 'bunting', n: 4 } },
   caves: { burrows: [['beetle', 2]], flock: null },
   glacier: { burrows: [['hare', 2]], flock: null },
+  cinder: { burrows: [['lizard', 2], ['firebeetle', 1]], flock: null },
+  glass: { burrows: [['snail', 2]], flock: null },
+  forge: { burrows: [['soot', 2]], flock: null },
 };
 
 /** The rustle in the cover a critter dove into: leaves, or snow (and frost) shaken loose. */
-const RUSTLE: Record<Theme, number> = { forest: 0xb4d058, ruins: 0xb4d058, hollow: 0xb4d058, pass: 0xeef2fa, caves: 0x9ad8f0, glacier: 0xeef2fa };
+const RUSTLE: Record<Theme, number> = { forest: 0xb4d058, ruins: 0xb4d058, hollow: 0xb4d058, pass: 0xeef2fa, caves: 0x9ad8f0, glacier: 0xeef2fa, cinder: 0x8a7874, glass: 0xc89aff, forge: 0xffb040 };
 
 interface Placed<T> {
   it: T;
@@ -260,13 +267,14 @@ export class MapLife {
       }
     }
 
-    // a hawk circling high over the meadow, a white owl over the glacier (its faint shadow far below may cross a road)
-    if (theme === 'forest' || theme === 'glacier')
+    // a hawk circling high over the meadow, a white owl over the glacier (its faint shadow far below may cross a road),
+    // glow bats flitting round in the Glass Warrens
+    if (theme === 'forest' || theme === 'glacier' || theme === 'glass')
       for (const [x, y] of spots(4)) {
         if (this.hawks.length >= 3) break;
         const area: Rect = { x: x - 18, y: y - 8, w: 36, h: 16 };
         if (!clear(area) || this.hawks.some((h) => overlaps(area, h.area, 20))) continue;
-        this.hawks.push({ it: { c: [x, y], r: 12, sprite: theme === 'forest' ? 'hawk' : 'owl' }, kind: 'hawk', cap: 1, area, on: true });
+        this.hawks.push({ it: { c: [x, y], r: theme === 'glass' ? 8 : 12, sprite: theme === 'forest' ? 'hawk' : theme === 'glass' ? 'glowbat' : 'owl' }, kind: 'hawk', cap: theme === 'glass' ? 2 : 1, area, on: true });
       }
 
     // pale fish gliding under the ice of the caves' pools
@@ -418,10 +426,10 @@ export class MapLife {
         low.fillStyle(0x000000, 0.22 * pose.alpha);
         low.fillRect(Math.round(pose.x) - 2, Math.round(pose.y), 5, 1);
         L.pose(pose, D_CRITTER);
-        if (p.kind === 'beetle') {
-          // its tail end glows softly on the floor
+        if (p.kind === 'beetle' || p.kind === 'firebeetle') {
+          // its tail end (the fire beetle's shell) glows softly on the floor
           const bx = Math.round(pose.x) + (pose.flip ? 2 : -3);
-          low.fillStyle(0x3ed8c0, (0.16 + 0.1 * Math.sin(t * 3 + p.it.spec.seed * 9)) * pose.alpha);
+          low.fillStyle(p.kind === 'beetle' ? 0x3ed8c0 : 0xff6a2a, (0.16 + 0.1 * Math.sin(t * 3 + p.it.spec.seed * 9)) * pose.alpha);
           low.fillRect(bx - 1, Math.round(pose.y) - 3, 4, 3);
         }
       }
@@ -480,6 +488,16 @@ export class MapLife {
     for (const p of this.hawks) {
       if (!p.on) continue;
       const { c, r } = p.it;
+      if (p.it.sprite === 'glowbat') {
+        // a glow bat: quick jinking loops, wings beating fast, a soft violet light round it
+        const ab = t * 1.1 + c[0] * 0.1;
+        const x = c[0] + Math.cos(ab) * r + Math.sin(t * 3.1 + c[1]) * 2;
+        const y = c[1] + Math.sin(ab * 1.3) * r * 0.5;
+        L.mid(`life_glowbat_${Math.floor(t * 9 + c[0]) % 2}`, x, y, D_FLY, false, 0.9);
+        hg.fillStyle(0x9a5ad8, 0.12);
+        hg.fillRect(Math.round(x) - 2, Math.round(y) - 2, 5, 4);
+        continue;
+      }
       const a = t * 0.32;
       const x = c[0] + Math.cos(a) * r;
       const y = c[1] + Math.sin(a) * r * 0.45;
@@ -501,6 +519,17 @@ export class MapLife {
       }
     });
 
+    // ash moths fluttering round the Cinder Flats' vents
+    if (this.map.landTheme === 'cinder')
+      this.map.landData?.smoke.forEach(([fx, fy], i) => {
+        for (let j = 0; j < 2; j++) {
+          const a = t * (1.8 + j * 0.6) + i * 1.7 + j * Math.PI;
+          const x = fx + Math.cos(a) * (4 + j);
+          const y = fy - 3 + Math.sin(a * 1.3) * 2;
+          hg.fillStyle(j ? 0xb8aaa8 : 0xd8ccc4, 0.45 + 0.35 * Math.abs(Math.sin(t * 8 + j)));
+          hg.fillRect(Math.round(x), Math.round(y), 1, 1);
+        }
+      });
     // moths round the braziers in the ruins
     if (this.map.landTheme === 'ruins')
       this.map.landData?.flames.forEach(([fx, fy], i) => {

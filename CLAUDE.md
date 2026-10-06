@@ -19,7 +19,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `src/engine/art.ts` (hero, Pip, first enemies), `art-foes.ts` (Greenmarch enemies), `art-story.ts` (portraits, map
   icons), `art-world.ts` + `art-world-sites.ts` (the kingdom world map: the land, and what stands on it), `art-map.ts` (act map landscapes, map-scale Rowan, node props),
   `art-stage.ts` (per-act fight lighting), `art-sable.ts` (Sable's frames, map walker, hero cards), `art-relics.ts`
-  (relic, tag and skill icons), `art-life.ts` (the maps' critters), `backdrop.ts`, `backdrop-frost.ts` (the second region's fight backdrops: painted
+  (relic, tag and skill icons), `art-life.ts` (the maps' critters), `art-ash.ts` + `art-relics-ash.ts` (the third region's
+  foes, portraits and bar pieces, painted in idle slices after boot or at once when a fight or scene needs them,
+  `scene.ensureAshArt()`; its relic and tag icons), `backdrop.ts`, `backdrop-frost.ts` + `backdrop-ash.ts` (the later regions' fight backdrops: painted
   the first time an act needs one, `Stage.ensure`, not at boot) and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
   are synthesized in `src/engine/audio.ts` and the music in `src/engine/music.ts`, icons come from `scripts/make-icons.mjs` (art in `scripts/icon-art.mjs`).
 - **Content is data.** Enemies (stats, base pattern, 0-2 special moves; a boss's HP-gated phase changes come on top), the region's acts and encounters, events and
@@ -252,12 +254,14 @@ src/engine/    app.ts (time + input glue, music cues, story state, the Test lab'
                calibrate.ts, audio.ts (sounds, ambience), music.ts (the soundtrack), art.ts / art-foes.ts / art-story.ts / art-world.ts /
                art-map.ts / art-stage.ts (sprites, portraits, the world map, act map landscapes, fight lighting),
                art-world-sites.ts (the world map's trees, villages, landmarks, mountains: what stands on its land),
-               art-world-lands.ts (the second region's landmark markers, the far lands and their fog),
+               art-world-lands.ts (the later regions' landmark markers, the far lands and their fog),
+               art-ash.ts (the third region's foes, portraits, bar pieces), art-relics-ash.ts (its relic and tag icons),
                art-roam.ts (the coin sack, the board, the secret rock, the merchant),
                art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-dummy.ts (the camp's Training
                Dummy, a foe for practice fights), art-paint.ts (painting helpers),
                art-life.ts (the maps' critters),
-               backdrop.ts (forest, ruins, hollow), backdrop-frost.ts (pass, caves, glacier), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
+               backdrop.ts (forest, ruins, hollow), backdrop-frost.ts (pass, caves, glacier), backdrop-ash.ts (cinder,
+               glass, forge), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
 src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero in `${art}_${pose}` frames, enemies and a boss's
                phase look, telegraphs, summons, stuns, finisher show, deaths; finishers.ts each hero's own show; party.ts
                the companions and a Summoner's allies), effects.ts (particles, floaters, camera), bar.ts (timing bar,

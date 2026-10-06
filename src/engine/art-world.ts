@@ -21,7 +21,7 @@
 // band along the far north (`wm_rim`) and small sprites. Everything else that moves the view draws as a handful of
 // rects a frame. The whole lot is painted once; later layouts reuse the canvases.
 import { grid, stamp, toCanvas, type Pal } from './art';
-import { paintLands } from './art-world-lands';
+import { paintLands, WORLD_ACTS_ASH } from './art-world-lands';
 import { bay, col, fbm, hash, level, lighten, mass, mix, noise, pick, Pix, ramp, rgba32, rng, tuft, wordCanvas, type Blob, type Col, type Ramp } from './backdrop';
 import {
   banditCamp,
@@ -88,8 +88,10 @@ export const WORLD_REGIONS: Array<{ id: string; name: string; x: number; y: numb
 /**
  * Every playable act as a landmark, by global act index (data/regions.ts): Greenmarch's three (the Bandit Captain's
  * camp, the Old Ruins, the Boar King's Hollow), then the Frostpeaks' three (the pass by the frozen falls, the cave
- * mouth above the frozen lake, the mountain keep). Each: the landmark's centre and its tap box, where Rowan stands
- * while it's the act he's on, where its flag flies, and the view centre the map opens on while it's the current act.
+ * mouth above the frozen lake, the mountain keep), then the third region's three round the volcano (WORLD_ACTS_ASH in
+ * art-world-lands.ts: the half-paved road, the glowing cave mouth, the black forge on the rim). Each: the landmark's
+ * centre and its tap box, where Rowan stands while it's the act he's on, where its flag flies, and the view centre the
+ * map opens on while it's the current act.
  */
 export const WORLD_ACTS: Array<{ x: number; y: number; box: Box; stand: Pt; flag: Pt; view: Pt }> = [
   { x: 216, y: 247, box: { x: 198, y: 233, w: 38, h: 28 }, stand: [150, 245], flag: [229, 236], view: [163, 222] },
@@ -98,6 +100,7 @@ export const WORLD_ACTS: Array<{ x: number; y: number; box: Box; stand: Pt; flag
   { x: 464, y: 70, box: { x: 440, y: 52, w: 50, h: 36 }, stand: [434, 80], flag: [486, 62], view: [462, 82] },
   { x: 656, y: 82, box: { x: 630, y: 56, w: 54, h: 50 }, stand: [624, 94], flag: [688, 88], view: [648, 88] },
   { x: 566, y: 60, box: { x: 546, y: 38, w: 42, h: 44 }, stand: [538, 94], flag: [592, 50], view: [560, 84] },
+  ...WORLD_ACTS_ASH,
 ];
 
 /** The capital's gate, right under the Great Pendulum's tower; and the walled town's tap box. */

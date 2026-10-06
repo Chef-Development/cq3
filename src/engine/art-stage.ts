@@ -129,6 +129,58 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     pool: 0x9cffd8,
     poolAmt: 0.1,
   },
+  // the Cinder Flats: a smoky afternoon, the sky burning orange low down; the fighters rimmed warm by the volcano's
+  // glow, plum shade, ash kicked up grey
+  cinder: {
+    shade: 0x3a1a26,
+    vignette: 0.58,
+    floor: 0.46,
+    top: 0.34,
+    rim: 0xffb070,
+    rimAmt: 0.78,
+    rimLeft: 0.5,
+    rimTop: 1,
+    shadow: 0x160a10,
+    shadowDx: 2,
+    shadowLen: 1.1,
+    dust: [0x8a7874, 0x6e5e5c, 0xa8968e],
+    pool: 0xff9a50,
+    poolAmt: 0.12,
+  },
+  // the Glass Warrens: dark tunnels lit by the magma lake behind and the coloured glass, deep violet shade
+  glass: {
+    shade: 0x160c26,
+    vignette: 0.68,
+    floor: 0.52,
+    top: 0.42,
+    rim: 0xffa868,
+    rimAmt: 0.72,
+    rimLeft: 0.4,
+    rimTop: 0.9,
+    shadow: 0x06030e,
+    shadowDx: 1,
+    shadowLen: 1,
+    dust: [0x4a3a5a, 0x6a5a7a, 0x8a7a9a],
+    pool: 0xff7a3a,
+    poolAmt: 0.14,
+  },
+  // the Black Forge: the furnace roaring behind the fighters, red-black smoke overhead, everything rimmed in fire
+  forge: {
+    shade: 0x2c0a12,
+    vignette: 0.66,
+    floor: 0.5,
+    top: 0.38,
+    rim: 0xff8a48,
+    rimAmt: 0.86,
+    rimLeft: 0.3,
+    rimTop: 0.85,
+    shadow: 0x0a0204,
+    shadowDx: 1,
+    shadowLen: 1,
+    dust: [0x5a3a30, 0x7a4a38, 0x3a2420],
+    pool: 0xff6a2a,
+    poolAmt: 0.18,
+  },
 };
 
 // ------------------------------------------------------------------ RGBA buffer
@@ -207,6 +259,7 @@ function grade(w: number, h: number, G: number, L: StageLight): Rgba {
 function rays(w: number, h: number, G: number, theme: Theme): Rgba {
   const out = new Rgba(w, h);
   if (theme === 'pass' || theme === 'caves' || theme === 'glacier') return frostRays(out, w, h, G, theme);
+  if (theme === 'cinder' || theme === 'glass' || theme === 'forge') return ashRays(out, w, h, G, theme);
   if (theme === 'hollow') {
     // the low sun on the left: long beams raking right across the den, a bloom around the disc
     const sx = Math.round(w * 0.24);
@@ -356,6 +409,30 @@ function frostRays(out: Rgba, w: number, h: number, G: number, theme: 'pass' | '
   return out;
 }
 
+/**
+ * Ashfell's light (ADD): on the Cinder Flats the volcano's glow blooming on the horizon and a band of fire-lit haze low
+ * over the plain; in the Glass Warrens the magma lake's glow through the gap in the far wall; in the Black Forge the
+ * furnace's mouth blazing behind the fighters, heat rising off it in faint wavering columns.
+ */
+function ashRays(out: Rgba, w: number, h: number, G: number, theme: 'cinder' | 'glass' | 'forge'): Rgba {
+  const [bx, by, br, col, amt] =
+    theme === 'cinder' ? [w * 0.63, G - 42, 70, 0xff9a4a, 0.34] : theme === 'glass' ? [w * 0.52, G - 30, 64, 0xff7a3a, 0.3] : [w * 0.5, G - 22, 80, 0xff7034, 0.4];
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const d = Math.hypot((x + 0.5 - bx) * 0.75, (y + 0.5 - by) * 1.3);
+      let a = Math.pow(clamp01(1 - d / br), 2) * amt;
+      if (theme === 'cinder') a += clamp01(1 - Math.abs(y - (G - 18)) / 10) * 0.07; // the fire-lit haze over the plain
+      if (theme === 'forge') {
+        // heat rising off the furnace: faint columns that sway
+        const col2 = Math.sin(x * 0.21 + Math.sin(y * 0.09) * 1.6);
+        if (col2 > 0.7 && Math.abs(x - bx) < 60) a += (col2 - 0.7) * 0.12 * clamp01(1 - y / (G - 10)) * clamp01(1 - Math.abs(x - bx) / 60);
+      }
+      a *= 1 - ss(G - 6, G + 8, y) * 0.6;
+      if (a > 0.004) out.set(x, y, col, a);
+    }
+  return out;
+}
+
 /** A soft round glow (ADD), white so it can be tinted. */
 function glow(size: number): Rgba {
   const out = new Rgba(size, size);
@@ -417,15 +494,22 @@ const FROST_MIST: Record<'pass' | 'caves' | 'glacier', (w: number, h: number, G:
   glacier: (w, h, G) => [patches(w, h, G - 26, G + 4, 0xc4dcf0, 0.2, 47, 0.47, 0.024, 0.12), patches(w, h, G - 6, h, 0xb0cce4, 0.18, 53, 0.5, 0.016, 0.18)],
 };
 
-/** One Frostpeaks theme's stage textures for the current layout (painted the first time an act needs them). */
-export function buildStageTheme(scene: Phaser.Scene, w: number, h: number, G: number, theme: 'pass' | 'caves' | 'glacier'): void {
+/** Ashfell's drifting banks (far, near): ash haze over the plain, hot haze in the warrens, smoke in the forge. */
+const ASH_MIST: Record<'cinder' | 'glass' | 'forge', (w: number, h: number, G: number) => [Rgba, Rgba]> = {
+  cinder: (w, h, G) => [patches(w, h, G - 32, G + 2, 0x9a7068, 0.22, 61, 0.46, 0.02, 0.12), patches(w, h, G - 5, h, 0x6a4c4c, 0.16, 67, 0.52, 0.014, 0.16)],
+  glass: (w, h, G) => [patches(w, h, G - 30, G - 6, 0x8a3c3c, 0.16, 71, 0.48, 0.022, 0.14), patches(w, h, G - 4, h, 0x3a2048, 0.16, 73, 0.54, 0.014, 0.16)],
+  forge: (w, h, G) => [patches(w, h, G - 34, G + 2, 0x7a2a20, 0.22, 79, 0.46, 0.022, 0.12), patches(w, h, G - 6, h, 0x4a1a14, 0.18, 83, 0.5, 0.016, 0.18)],
+};
+
+/** One Frostpeaks or Ashfell theme's stage textures for the current layout (painted the first time an act needs them). */
+export function buildStageTheme(scene: Phaser.Scene, w: number, h: number, G: number, theme: 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge'): void {
   const add = (key: string, canvas: HTMLCanvasElement) => {
     if (scene.textures.exists(key)) scene.textures.remove(key);
     scene.textures.addCanvas(key, canvas);
   };
   add(`st_grade_${theme}`, grade(w, h, G, STAGE_LIGHT[theme]).canvas());
   add(`st_rays_${theme}`, rays(w, h, G, theme).canvas());
-  const [far, near] = FROST_MIST[theme](w, h, G);
+  const [far, near] = theme === 'cinder' || theme === 'glass' || theme === 'forge' ? ASH_MIST[theme](w, h, G) : FROST_MIST[theme](w, h, G);
   add(`st_mist_${theme}`, far.canvas());
   add(`st_mist_${theme}_near`, near.canvas());
 }

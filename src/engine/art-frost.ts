@@ -4,7 +4,7 @@
 // so it never melts into a blue-white backdrop.
 import { grid, OUTLINE, put, stampShaded, type Grid, type Pal, type Shade } from './art';
 
-type Add = (key: string, canvas: HTMLCanvasElement) => void;
+export type Add = (key: string, canvas: HTMLCanvasElement) => void;
 
 /** Sprite names this file draws (each gets `${name}_${pose}` textures). */
 export const FROST_SPRITES = [
@@ -50,9 +50,9 @@ export const FROST_COL: Record<string, number> = {
   glacia3: 0x2c5ea0,
 };
 
-// ------------------------------------------------------------------ helpers (as in art-foes.ts)
+// ------------------------------------------------------------------ helpers (as in art-foes.ts; art-ash.ts draws with them too)
 
-interface PartOpts {
+export interface PartOpts {
   pal?: Pal;
   shades?: Record<string, Shade>;
   /** Interior contour (the local darkest tone) drawn where this part overlaps what is already there. */
@@ -60,16 +60,16 @@ interface PartOpts {
   /** Drawn after the outline pass, so it gets no ink outline (glows, thin threads). */
   late?: boolean;
 }
-type Part = [rows: string[], x: number, y: number, opts?: PartOpts];
+export type Part = [rows: string[], x: number, y: number, opts?: PartOpts];
 
-interface Frame {
+export interface Frame {
   g: Grid;
   /** Pixels drawn after the outline pass (no outline of their own). */
   late: Grid;
 }
 
 /** Compose parts back to front into a W x H frame (1px kept free on every side for the outline). */
-function compose(W: number, H: number, pal: Pal, shades: Record<string, Shade>, parts: Part[], flash = false): Frame {
+export function compose(W: number, H: number, pal: Pal, shades: Record<string, Shade>, parts: Part[], flash = false): Frame {
   const g = grid(W, H);
   const late = grid(W, H);
   for (const [rows, ox, oy, o = {}] of parts) {
@@ -102,7 +102,7 @@ function compose(W: number, H: number, pal: Pal, shades: Record<string, Shade>, 
 }
 
 /** Compose and paint a whole W x H frame. */
-function render(W: number, H: number, pal: Pal, shades: Record<string, Shade>, parts: Part[], flash = false): HTMLCanvasElement {
+export function render(W: number, H: number, pal: Pal, shades: Record<string, Shade>, parts: Part[], flash = false): HTMLCanvasElement {
   const f = compose(W, H, pal, shades, parts, flash);
   return paint(f.g, f.late);
 }
@@ -119,7 +119,7 @@ const rgbOf = (hex: string): number => {
  * pixels on top; written as one ImageData (these frames are big and many, so no per-pixel fillRect). Optionally just
  * the w x h window at (x0, y0).
  */
-function paint(g: Grid, late?: Grid, x0 = 0, y0 = 0, w = g[0].length, h = g.length): HTMLCanvasElement {
+export function paint(g: Grid, late?: Grid, x0 = 0, y0 = 0, w = g[0].length, h = g.length): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
@@ -153,11 +153,11 @@ function paint(g: Grid, late?: Grid, x0 = 0, y0 = 0, w = g[0].length, h = g.leng
 }
 
 /** Replace characters: pairs like ['E', 'k'] applied to every row. */
-const swap = (rows: string[], pairs: [string, string][]) => rows.map((r) => pairs.reduce((s, [a, b]) => s.split(a).join(b), r));
-const flip = (rows: string[]) => rows.map((r) => [...r].reverse().join(''));
+export const swap = (rows: string[], pairs: [string, string][]) => rows.map((r) => pairs.reduce((s, [a, b]) => s.split(a).join(b), r));
+export const flip = (rows: string[]) => rows.map((r) => [...r].reverse().join(''));
 
 /** A part from loose points in frame coordinates: [letter, [[x, y], ...]] pairs, later ones on top. */
-function dots(spec: [string, [number, number][]][], opts?: PartOpts): Part {
+export function dots(spec: [string, [number, number][]][], opts?: PartOpts): Part {
   const all = spec.flatMap(([, p]) => p);
   const minx = Math.min(...all.map((p) => p[0]));
   const miny = Math.min(...all.map((p) => p[1]));
@@ -169,7 +169,7 @@ function dots(spec: [string, [number, number][]][], opts?: PartOpts): Part {
 }
 
 /** A 1px line from (x0, y0) to (x1, y1) in frame coordinates. */
-function line(x0: number, y0: number, x1: number, y1: number, ch: string, opts?: PartOpts): Part {
+export function line(x0: number, y0: number, x1: number, y1: number, ch: string, opts?: PartOpts): Part {
   const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
   const pts: [number, number][] = [];
   for (let i = 0; i <= n; i++) pts.push([Math.round(x0 + ((x1 - x0) * i) / (n || 1)), Math.round(y0 + ((y1 - y0) * i) / (n || 1))]);
@@ -177,7 +177,7 @@ function line(x0: number, y0: number, x1: number, y1: number, ch: string, opts?:
 }
 
 /** A 2px thick limb from (x0, y0) to (x1, y1) in frame coordinates. */
-function limb(x0: number, y0: number, x1: number, y1: number, ch: string, opts?: PartOpts): Part {
+export function limb(x0: number, y0: number, x1: number, y1: number, ch: string, opts?: PartOpts): Part {
   const minx = Math.min(x0, x1);
   const miny = Math.min(y0, y1);
   const steep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
@@ -195,24 +195,24 @@ function limb(x0: number, y0: number, x1: number, y1: number, ch: string, opts?:
 }
 
 /** Cheap deterministic hash in [0, 1). */
-function hash2(x: number, y: number): number {
+export function hash2(x: number, y: number): number {
   let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263);
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-type Mask = (x: number, y: number) => boolean;
-const ell =
+export type Mask = (x: number, y: number) => boolean;
+export const ell =
   (cx: number, cy: number, rx: number, ry: number): Mask =>
   (x, y) =>
     ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1;
-const anyOf =
+export const anyOf =
   (...m: Mask[]): Mask =>
   (x, y) => {
     for (const f of m) if (f(x, y)) return true;
     return false;
   };
-function poly(pts: [number, number][]): Mask {
+export function poly(pts: [number, number][]): Mask {
   const xs = pts.map((p) => p[0]);
   const ys = pts.map((p) => p[1]);
   const n = pts.length;
@@ -230,7 +230,7 @@ function poly(pts: [number, number][]): Mask {
 }
 
 /** Tone digits (0-5) for a rounded form: lit from the top left around (cx, cy), a dark rim underneath. */
-function roundTones(w: number, h: number, mask: Mask, cx: number, cy: number, rx: number, ry: number): string[] {
+export function roundTones(w: number, h: number, mask: Mask, cx: number, cy: number, rx: number, ry: number): string[] {
   // the mask sampled once (with a margin for the neighbour tests below)
   const W2 = w + 2;
   const inside = new Uint8Array(W2 * (h + 3));
@@ -261,7 +261,7 @@ function roundTones(w: number, h: number, mask: Mask, cx: number, cy: number, rx
 }
 
 /** A tapered capsule of letter `ch` from (x0, y0) (radius r0) to (x1, y1) (radius r1), in frame coordinates. */
-function capsule(x0: number, y0: number, x1: number, y1: number, r0: number, r1: number, ch: string, opts?: PartOpts): Part {
+export function capsule(x0: number, y0: number, x1: number, y1: number, r0: number, r1: number, ch: string, opts?: PartOpts): Part {
   const pts: [number, number][] = [];
   const R = Math.max(r0, r1);
   const dx = x1 - x0;
@@ -281,7 +281,7 @@ function capsule(x0: number, y0: number, x1: number, y1: number, r0: number, r1:
  * wide at its widest, pointed at the far end. Tone digits on the ICE ramp: the face toward the light is pale, the
  * other deep, a bright ridge down the middle.
  */
-function crystal(x: number, y: number, ang: number, len: number, w: number, o: PartOpts = {}): Part {
+export function crystal(x: number, y: number, ang: number, len: number, w: number, o: PartOpts = {}): Part {
   const ux = Math.cos(ang);
   const uy = Math.sin(ang);
   const vx = -uy;
@@ -314,16 +314,16 @@ function crystal(x: number, y: number, ang: number, len: number, w: number, o: P
 }
 
 /** A rounded volume from a mask in frame coordinates, inside `box` (x0, y0, x1, y1), lit around light (cx, cy, rx, ry). */
-function vol(m: Mask, box: [number, number, number, number], light: [number, number, number, number], ramp: string[], o: PartOpts = {}): Part {
+export function vol(m: Mask, box: [number, number, number, number], light: [number, number, number, number], ramp: string[], o: PartOpts = {}): Part {
   const [x0, y0, x1, y1] = box;
   const local: Mask = (x, y) => m(x + x0, y + y0);
   return [roundTones(x1 - x0 + 1, y1 - y0 + 1, local, light[0] - x0, light[1] - y0, light[2], light[3]), x0, y0, { pal: digits(ramp), ...o }];
 }
 
 /** A palette mapping the tone digits 0-5 to a ramp (dark to light; a 5-tone ramp repeats its top for 5). */
-const digits = (ramp: string[]): Pal => Object.fromEntries([0, 1, 2, 3, 4, 5].map((i) => [String(i), ramp[Math.min(i, ramp.length - 1)]]));
+export const digits = (ramp: string[]): Pal => Object.fromEntries([0, 1, 2, 3, 4, 5].map((i) => [String(i), ramp[Math.min(i, ramp.length - 1)]]));
 
-interface SpriteDef {
+export interface SpriteDef {
   /** Design canvas the parts are laid out on (feet near the bottom); the textures are cropped to fit. */
   W: number;
   H: number;
@@ -341,7 +341,7 @@ const PAD = 10;
  * pixels (outline included): every frame is the same size, as tight as the widest pose allows, with nothing clipped.
  * Returns [`${name}_${pose}`, canvas] pairs.
  */
-function fitFrames(frames: [name: string, d: SpriteDef, pose: string][]): [string, HTMLCanvasElement][] {
+export function fitFrames(frames: [name: string, d: SpriteDef, pose: string][]): [string, HTMLCanvasElement][] {
   const full = frames.map(([name, d, pose]): [string, Frame] => {
     const parts = d.parts(pose === 'flash' ? 'hurt' : pose).map(([rows, x, y, o]): Part => [rows, x + PAD, y + PAD, o]);
     return [`${name}_${pose}`, compose(d.W + PAD * 2, d.H + PAD * 2, d.pal, d.shades, parts, pose === 'flash')];
@@ -1373,7 +1373,7 @@ const TROLL_SHADES: Record<string, Shade> = {
 };
 
 /** A shaggy mass: a rounded volume with short dark strands raked down it and a ragged fringe at the bottom. */
-function shag(m: Mask, box: [number, number, number, number], light: [number, number, number, number], ramp: string[], seed: number, o: PartOpts = {}): Part {
+export function shag(m: Mask, box: [number, number, number, number], light: [number, number, number, number], ramp: string[], seed: number, o: PartOpts = {}): Part {
   const [x0, y0] = box;
   const ragged: Mask = (x, y) => {
     if (!m(x, y)) return false;
@@ -1776,7 +1776,7 @@ const RAM_SHADES: Record<string, Shade> = {
  * A swept stroke: a path (t from 0 to 1) with a width; `col(t, side, lit)` names each pixel: `side` runs -1..1 across
  * the stroke, `lit` (-1..1) is how much that spot of a round tube faces the light (top left).
  */
-function sweep(
+export function sweep(
   path: (t: number) => [number, number],
   w: (t: number) => number,
   col: (t: number, side: number, lit: number) => string,
@@ -2093,7 +2093,7 @@ const GLACIA_PAL: Pal = {
 };
 
 /** A point on a cubic Bezier through four control points. */
-function bezier(p: [number, number][]): (t: number) => [number, number] {
+export function bezier(p: [number, number][]): (t: number) => [number, number] {
   return (t) => {
     const u = 1 - t;
     const a = u * u * u;
@@ -2105,7 +2105,7 @@ function bezier(p: [number, number][]): (t: number) => [number, number] {
 }
 
 /** Scale texture on tone digits: a staggered pattern of small arcs a tone darker (skipping the darkest tones). */
-function scaled(rows: string[], ox: number, oy: number, glint = 0): string[] {
+export function scaled(rows: string[], ox: number, oy: number, glint = 0): string[] {
   return rows.map((r, y) =>
     [...r]
       .map((c, x) => {

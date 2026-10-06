@@ -51,7 +51,7 @@ import {
   worldArtReady,
   worldRegionAt,
 } from '../art-world';
-import { FAR_ISLES, FROST_SIGHTS } from '../art-world-lands';
+import { ASH_SIGHTS, FAR_ISLES, FROST_SIGHTS } from '../art-world-lands';
 import { hash } from '../backdrop';
 import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
@@ -1298,6 +1298,33 @@ export class WorldView {
         const a = t * 0.42;
         const img = this.pool.mid(`wm_wyrm${Math.floor(t * 2.6) % 2}`, 0, 0, DEPTH.bird, 1 - vf);
         this.at(img, w.x + Math.cos(a) * w.rx - img.width / 2, w.y + Math.sin(a) * w.ry - img.height / 2).setFlipX(Math.sin(a) < 0);
+      }
+    }
+    // the third region's landmarks once its veil lifts (it never does until the region is in play): the half-paved
+    // road, the glass glinting in the cave mouth, the forge on the rim breathing, its chain glowing across the crater
+    const va = this.veilOf('ashfell', now);
+    if (va < 1) {
+      const A = ASH_SIGHTS;
+      if (this.seen(A.road.x + 13, A.road.y + 4, 30)) this.at(this.pool.at('wm_ashroad', 0, 0, DEPTH.land + 0.001), A.road.x, A.road.y);
+      if (this.seen(A.cave.x + 7, A.cave.y + 5, 30)) {
+        this.at(this.pool.at('wm_glasscave', 0, 0, DEPTH.land + 0.001), A.cave.x, A.cave.y);
+        A.glints.forEach(([x, y], i) => {
+          const k = 0.5 + 0.5 * Math.sin(t * 2.1 + i * 1.9);
+          g.fillStyle([0xffd070, 0x9ae89a, 0xc89aff, 0xff8a7a][i % 4], 0.3 + 0.7 * k);
+          g.fillRect(x, y, 1, 1);
+        });
+      }
+      if (this.seen(A.forge.x + 6, A.forge.y + 5, 40)) {
+        this.at(this.pool.at(`wm_forge${Math.floor(t * 1.6) % 2}`, 0, 0, DEPTH.land + 0.001), A.forge.x, A.forge.y);
+        const { a, b, sag } = A.chain;
+        for (let k = 0; k <= 12; k++) {
+          const u = k / 12;
+          const x = Math.round(a[0] + (b[0] - a[0]) * u);
+          const y = Math.round(a[1] + (b[1] - a[1]) * u + Math.sin(u * Math.PI) * sag);
+          const hot = 0.6 + 0.4 * Math.sin(t * 2 + k * 0.7);
+          g.fillStyle(k % 2 ? 0xff8a24 : 0x5a4236, k % 2 ? hot : 1);
+          g.fillRect(x, y, 1, 1);
+        }
       }
     }
     // a laurel badge beside the boss's flag of each region done to 100%

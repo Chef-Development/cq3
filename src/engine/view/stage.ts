@@ -11,12 +11,13 @@
 import Phaser from 'phaser';
 import type { FightScene } from '../scene';
 import { buildBackdrops, FG_FRAMES, type Backdrop, type Theme } from '../backdrop';
+import { buildAshBackdrop, isAsh } from '../backdrop-ash';
 import { buildFrostBackdrop, isFrost } from '../backdrop-frost';
 import { buildStageArt, buildStageTheme, STAGE_LIGHT } from '../art-stage';
 import { GAME_W } from '../layout';
 import { rand } from './shared';
 
-type Kind = 'leaf' | 'mote' | 'beam' | 'rain' | 'ember' | 'firefly' | 'drip' | 'splash' | 'near' | 'snow' | 'flake' | 'glint' | 'drift';
+type Kind = 'leaf' | 'mote' | 'beam' | 'rain' | 'ember' | 'firefly' | 'drip' | 'splash' | 'near' | 'snow' | 'flake' | 'glint' | 'drift' | 'smoke';
 
 interface Bit {
   kind: Kind;
@@ -53,6 +54,7 @@ export class Stage {
   private bits: Bit[] = [];
   private nextAmbient = 0;
   private nextDrip = 0;
+  private nextVent = 0;
   /** A snowy theme just came on: fill the air with flakes at once (instead of waiting for them to fall in). */
   private prefill = false;
   private clouds: Phaser.GameObjects.Image[] = [];
@@ -86,11 +88,12 @@ export class Stage {
     buildStageArt(this.s, GAME_W, this.s.splitY, this.s.ground);
   }
 
-  /** A theme's backdrop and light for this layout: the Frostpeaks' are painted the first time an act needs one. */
+  /** A theme's backdrop and light for this layout: the Frostpeaks' and Ashfell's are painted the first time an act
+   *  needs one. */
   ensure(theme: Theme): void {
-    if (this.backdrops[theme] || !isFrost(theme)) return;
+    if (this.backdrops[theme] || !(isFrost(theme) || isAsh(theme))) return;
     const t0 = performance.now();
-    this.backdrops[theme] = buildFrostBackdrop(this.s, theme, GAME_W, this.s.splitY, this.s.ground);
+    this.backdrops[theme] = isAsh(theme) ? buildAshBackdrop(this.s, theme, GAME_W, this.s.splitY, this.s.ground) : buildFrostBackdrop(this.s, theme, GAME_W, this.s.splitY, this.s.ground);
     buildStageTheme(this.s, GAME_W, this.s.splitY, this.s.ground, theme);
     this.paintMs[theme] = performance.now() - t0;
   }
@@ -144,7 +147,7 @@ export class Stage {
       else if (theme === 'pass') cl.setTint(0xc4c0da).setAlpha(0.5);
       else cl.clearTint().setAlpha(0.95);
     }
-    this.prefill = theme === 'pass' || theme === 'glacier';
+    this.prefill = theme === 'pass' || theme === 'glacier' || theme === 'cinder' || theme === 'forge';
     // cloud shadows sweep the meadow; mist banks roll through the ruins and the hollow
     for (const im of this.shadeImgs) {
       im.setTexture(theme === 'forest' ? 'st_cloudshade' : `st_mist_${theme}`);
@@ -260,6 +263,8 @@ export class Stage {
         this.nextAmbient += 240;
       } else if (theme === 'pass' || theme === 'caves' || theme === 'glacier') {
         this.spawnFrost(a, ground, r);
+      } else if (isAsh(theme)) {
+        this.spawnAsh(a, ground, r);
       } else {
         // rain: most of it far, a few heavy streaks close to the camera
         const near = r < 0.06;
@@ -268,13 +273,21 @@ export class Stage {
         this.nextAmbient += 22;
       }
     }
-    // drops gather on the caves' icicles and fall with a splash
-    const icicles = theme === 'caves' ? (this.backdrops.caves?.drips ?? []) : [];
+    // drops gather on the caves' icicles and fall with a splash; in the Glass Warrens, beads of molten glass
+    const icicles = theme === 'caves' || theme === 'glass' ? (this.backdrops[theme]?.drips ?? []) : [];
     if (icicles.length && a >= this.nextDrip) {
       if (this.nextDrip === 0) this.nextDrip = a;
       const d = icicles[Math.floor(Math.random() * icicles.length)];
-      this.bits.push({ kind: 'drip', x: d.x, y: d.y, vx: 0, vy: 0, born: a, life: 2600, color: 0xc8eeff, phase: rand(300, 700), floor: ground + Math.round(rand(-3, 4)) });
-      this.nextDrip += 360 + Math.random() * 600;
+      this.bits.push({ kind: 'drip', x: d.x, y: d.y, vx: 0, vy: 0, born: a, life: 2600, color: theme === 'glass' ? 0xffa040 : 0xc8eeff, phase: rand(300, 700), floor: ground + Math.round(rand(-3, 4)) });
+      this.nextDrip += (theme === 'glass' ? 900 : 360) + Math.random() * 600;
+    }
+    // smoke puffing off the Cinder Flats' vents
+    const vents = this.backdrops[theme]?.vents ?? [];
+    if (vents.length && a >= this.nextVent) {
+      if (this.nextVent === 0) this.nextVent = a;
+      const v = vents[Math.floor(Math.random() * vents.length)];
+      this.bits.push({ kind: 'smoke', x: v.x + rand(-1, 1), y: v.y, vx: rand(2, 5), vy: rand(-7, -4), born: a, life: rand(2400, 3400), color: 0x5a4a4c, phase: rand(0, 6) });
+      this.nextVent += 260 + Math.random() * 300;
     }
     // the ruins drip: drops gather under the canopy and the arches and fall with a splash
     if (theme === 'ruins' && a >= this.nextDrip) {
@@ -347,6 +360,66 @@ export class Stage {
       } else glint();
       this.nextAmbient += 80;
     }
+  }
+
+  /**
+   * Ashfell's air. The Cinder Flats: ash drifting down out of the smoke, embers spat up off the plain. The Glass
+   * Warrens: warm motes rising on the heat, the coloured glass glinting. The Black Forge: sparks streaming up off the
+   * floor's hot seams and the furnace, ash falling, glints on the anvils and the citadel's windows.
+   */
+  private spawnAsh(a: number, ground: number, r: number): void {
+    const theme = this.theme;
+    const W = GAME_W;
+    const h = this.s.splitY;
+    const glints = this.backdrops[theme]?.glints ?? [];
+    const glint = () => {
+      if (!glints.length) return;
+      const g = glints[Math.floor(Math.random() * glints.length)];
+      this.bits.push({ kind: 'glint', x: g.x, y: g.y, vx: 0, vy: 0, born: a, life: rand(500, 900), color: g.c, phase: 0 });
+    };
+    const ember = (x: number, y: number) =>
+      this.bits.push({ kind: 'ember', x, y, vx: rand(-4, 6), vy: rand(-22, -10), born: a, life: rand(900, 1600), color: Math.random() < 0.5 ? 0xffb03a : 0xffe680, phase: 0 });
+    if (this.prefill) {
+      // the air is already full of ash when the act comes on
+      this.prefill = false;
+      for (let i = 0; i < 30; i++) {
+        const f = this.ashFlake(a, ground, h);
+        f.x = rand(0, W);
+        f.y = rand(-4, f.floor ?? ground);
+        f.born = a - rand(0, 3000);
+        f.x -= (f.vx * (a - f.born)) / 1000;
+        f.y -= (f.vy * (a - f.born)) / 1000;
+        this.bits.push(f);
+      }
+    }
+    if (theme === 'cinder') {
+      if (r < 0.62) this.bits.push(this.ashFlake(a, ground, h));
+      else if (r < 0.86) ember(rand(20, W - 20), ground - rand(10, 16));
+      else glint();
+      this.nextAmbient += 140;
+    } else if (theme === 'glass') {
+      if (r < 0.55) {
+        const c = [0xffc070, 0xff8a5a, 0xc89aff, 0x9ae89a][Math.floor(Math.random() * 4)];
+        this.bits.push({ kind: 'mote', x: rand(20, W - 20), y: rand(26, ground + 2), vx: rand(-2, 2), vy: rand(-5, -1.5), born: a, life: rand(3200, 5600), color: c, phase: rand(0, 6) });
+      } else glint();
+      this.nextAmbient += 210;
+    } else {
+      if (r < 0.5) ember(rand(10, W - 10), ground - rand(-2, 12));
+      else if (r < 0.62) ember(W * 0.5 + rand(-14, 14), ground - 16);
+      else if (r < 0.88) this.bits.push(this.ashFlake(a, ground, h));
+      else glint();
+      this.nextAmbient += 110;
+    }
+  }
+
+  /** A flake of ash: grey, drifting down slowly (far ones settle behind the fighters). */
+  private ashFlake(a: number, ground: number, h: number): Bit {
+    const f = this.flake(a, ground, h);
+    const near = f.floor !== undefined && f.floor > ground;
+    f.vx *= 0.7;
+    f.vy *= 0.55;
+    f.color = near ? (Math.random() < 0.5 ? 0xb0a0a0 : 0x8a7a7c) : Math.random() < 0.5 ? 0x6e6064 : 0x5a4c50;
+    return f;
   }
 
   /** A snowflake: far ones (small, dim, behind the fighters) settle somewhere behind them, near ones fall to the foot. */
@@ -463,6 +536,35 @@ export class Stage {
           far.fillRect(Math.round(hx - j * 2.6), Math.round(hy - j * 0.8), j === 0 ? 2 : 1, 1);
         }
       }
+    } else if (theme === 'cinder') {
+      // a pair of cinder kites riding the hot air over the volcano, their edges glowing
+      for (let i = 0; i < 2; i++) {
+        const t = a / 1000 + i * 7;
+        const bx = Math.round(GAME_W * 0.63 + Math.cos(t * 0.28 + i * 2.6) * (26 + i * 14));
+        const by = Math.round(24 + i * 5 + Math.sin(t * 0.28 + i * 2.6) * 5);
+        const up = Math.floor(a / 200 + i) % 3 === 0;
+        far.fillStyle(0x1a1016, 0.9);
+        far.fillRect(bx - 1, by, 3, 1);
+        far.fillRect(bx - 3, by - (up ? 1 : 0), 2, 1);
+        far.fillRect(bx + 2, by - (up ? 1 : 0), 2, 1);
+        far.fillStyle(0xff8a3a, 0.8);
+        far.fillRect(bx + (i ? -3 : 3), by - (up ? 1 : 0), 1, 1);
+      }
+    } else if (theme === 'glass') {
+      // a little bat flitting across the gap in the far wall, black against the lake's glow
+      const period = 12000;
+      const k = (a % period) / 6000;
+      if (k < 1) {
+        const n = Math.floor(a / period);
+        const dir = n % 2 ? 1 : -1;
+        const bx = Math.round(dir > 0 ? GAME_W * 0.24 + k * GAME_W * 0.56 : GAME_W * 0.8 - k * GAME_W * 0.56);
+        const by = Math.round(30 + ((n * 13) % 14) + Math.sin(k * 17) * 3 + Math.sin(k * 6) * 4);
+        const up = Math.floor(a / 60) % 2 === 0;
+        far.fillStyle(0x08040a, 1);
+        far.fillRect(bx - 1, by, 3, 2);
+        far.fillRect(bx - 3, by - (up ? 2 : -1), 2, 1);
+        far.fillRect(bx + 2, by - (up ? 2 : -1), 2, 1);
+      }
     } else if (theme === 'hollow') {
       // crows wheeling high over the den
       for (let i = 0; i < 2; i++) {
@@ -504,6 +606,22 @@ export class Stage {
         }
         back.fillStyle(p.color, fall > 0 ? 0.75 : 0.35 + 0.4 * (age / p.phase));
         back.fillRect(Math.round(x), Math.round(y), 1, fall > 0.12 ? 2 : 1);
+        continue;
+      }
+      if (p.kind === 'smoke') {
+        // a puff of smoke rising off a vent, swelling and thinning as it goes
+        const q = age / p.life;
+        if (q >= 1) {
+          this.bits.splice(i, 1);
+          continue;
+        }
+        const r = 1 + q * 4;
+        const sx = Math.round(x + Math.sin(t * 1.2 + p.phase) * 1.5);
+        const sy = Math.round(y);
+        back.fillStyle(p.color, 0.45 * Math.sin(Math.min(1, q * 4) * Math.PI * 0.5) * (1 - q));
+        back.fillCircle(sx + 0.5, sy + 0.5, r);
+        back.fillStyle(0x8a7672, 0.25 * (1 - q));
+        back.fillCircle(sx - r * 0.3, sy - r * 0.3, r * 0.55);
         continue;
       }
       if (p.kind === 'snow' || p.kind === 'flake' || p.kind === 'drift' || p.kind === 'glint') {

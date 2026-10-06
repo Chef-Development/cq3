@@ -1043,3 +1043,190 @@ test('world map: everything on it moves with the map when it pans (nothing follo
   expect(checked).toBeGreaterThan(40);
   expect(pinned).toEqual([]);
 });
+
+// ------------------------------------------------------------------ the third region's art
+// Staged by hand so it's all seen at once without playing there: a contact sheet of its textures over the game, fights
+// and act maps with a theme forced on the run (foes standing in with the art's sprite keys), and its land on the world
+// map once it's open.
+
+/** Draw textures over the page as a contact sheet: rows of keys, each texture at `scale` device px per game px. */
+async function artSheet(page: Page, rows: string[][], scale: number, bg: string): Promise<void> {
+  await page.evaluate(
+    ({ rows, scale, bg }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const scene = (window as any).__cq3.app.view;
+      scene.ensureAshArt();
+      const tm = scene.textures;
+      const c = document.createElement('canvas');
+      c.width = window.innerWidth * window.devicePixelRatio;
+      c.height = window.innerHeight * window.devicePixelRatio;
+      Object.assign(c.style, { position: 'fixed', left: '0', top: '0', width: '100vw', height: '100vh', zIndex: '99' });
+      const ctx = c.getContext('2d')!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, c.width, c.height);
+      const gap = 3 * scale;
+      let y = gap;
+      for (const row of rows) {
+        let x = gap;
+        let rh = 0;
+        for (const key of row) {
+          if (!tm.exists(key)) throw new Error(`missing texture ${key}`);
+          const im = tm.get(key).getSourceImage() as HTMLCanvasElement;
+          if (x + im.width * scale > c.width - gap) {
+            x = gap;
+            y += rh + gap;
+            rh = 0;
+          }
+          ctx.drawImage(im, x, y, im.width * scale, im.height * scale);
+          x += im.width * scale + gap;
+          rh = Math.max(rh, im.height * scale);
+        }
+        y += rh + gap;
+      }
+      document.body.appendChild(c);
+    },
+    { rows, scale, bg },
+  );
+}
+
+const ASH_FOES = ['cinderling', 'cinderkite', 'cragcrab', 'obsidianox', 'rumbleback', 'glassblower', 'prismbat', 'glassmantis', 'kilnwarden', 'hobnob', 'stokerimp', 'magmaeel', 'forgehand', 'chainsentinel', 'bellows'];
+
+test('the third region: every foe idle and winding up its special, the bosses phase looks and extra poses', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  const foes = ASH_FOES.filter((f) => f !== 'bellows' && f !== 'rumbleback' && f !== 'hobnob');
+  await artSheet(
+    page,
+    [
+      foes.flatMap((f) => [`${f}_idle0`, `${f}_tell`]),
+      ['rumbleback_idle0', 'rumbleback_tell', 'rumbleback_attack', 'rumbleback_shell', 'rumbleback2_idle0', 'hobnob_idle0', 'hobnob_tell', 'hobnob_guard'],
+      ['bellows_idle0', 'bellows_windup', 'bellows2_idle0', 'bellows3_tell'],
+    ],
+    5,
+    '#5a5462',
+  );
+  await expect(page).toHaveScreenshot('ash-foes.png', shot);
+});
+
+test('the third region: portraits, item and relic icons, tag chips, critters, bar pieces, lairs, world landmarks', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__cq3.app.view.ensureWorldArt();
+  });
+  await frames(page, 2);
+  await artSheet(
+    page,
+    [
+      ['portrait_rumbleback', 'portrait_hobnob', 'portrait_bellows', 'maplair_cinder', 'maplair_glass', 'maplair_forge'],
+      ['obsidian', 'cleaver', 'sledge', 'ashveil', 'basalthelm', 'ashcoat', 'slagplate', 'pumice', 'firewalk', 'coal', 'pearl', 'wrightcap', 'wrightapron', 'wrightclogs', 'hearthcharm', 'titanmaul', 'bellowsheart'].map((i) => `item_${i}`),
+      ['tailwind', 'weathervane', 'warmSprings', 'rebound', 'anchorStone', 'slipstream', 'flotsam', 'moltenCore', 'forgedBond', 'slowMatch', 'hammerTongs', 'spareLink', 'coupling', 'goldRivets', 'snapBack', 'hairTrigger'].map((r) => `relic_${r}`),
+      ['tag_drift', 'tag_link', 'ember_mark', 'glass_pane', 'life_lizard_0', 'life_lizard_2', 'life_firebeetle_0', 'life_snail_1', 'life_glowbat_0', 'life_soot_0', 'life_soot_2', 'wm_ashroad', 'wm_glasscave', 'wm_forge0'],
+    ],
+    9,
+    '#3a3440',
+  );
+  await expect(page).toHaveScreenshot('ash-art.png', shot);
+});
+
+/** A practice fight in one of the third region's themes, against stand-ins wearing its foes' sprites. */
+async function ashFight(page: Page, theme: string, sprites: string[]): Promise<void> {
+  await page.evaluate(
+    ({ theme, sprites }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const app = (window as any).__cq3.app;
+      const run = app.run;
+      for (const sp of sprites)
+        app.tuning.enemies[`art_${sp}`] = { ...JSON.parse(JSON.stringify(app.tuning.enemies.slime)), name: sp, sprite: sp, specials: [], hp: 99999, fly: /kite|bat/.test(sp) ? 13 : 0 };
+      Object.defineProperty(run, 'theme', { get: () => theme, configurable: true });
+      app.setPhase(() => {
+        run.newRun();
+        run.skipScenes();
+        run.startPractice({ enemies: sprites.map((s: string) => `art_${s}`) });
+      });
+    },
+    { theme, sprites },
+  );
+  await frames(page, 20);
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.begin());
+  await frames(page, 40);
+  await bar(page, 'c.spawning = false; c.specialsOn = false; for (const b of c.blocks.slice()) c.removeBlock(b, "perk");');
+  await frames(page, 60);
+}
+
+for (const [theme, sprites, what] of [
+  ['cinder', ['cragcrab', 'cinderkite'], 'the cinder flats'],
+  ['glass', ['glassblower', 'prismbat'], 'the glass warrens'],
+  ['forge', ['bellows'], 'the black forge, the boss'],
+] as const)
+  test(`the third region: a fight in ${what}`, async ({ page }) => {
+    await boot(page);
+    await frames(page, 10);
+    await ashFight(page, theme, [...sprites]);
+    await expect(page).toHaveScreenshot(`ash-fight-${theme}.png`, shot);
+  });
+
+test('the third region: an act map in each theme', async ({ page }) => {
+  test.setTimeout(120_000);
+  await boot(page);
+  await frames(page, 10);
+  for (const [theme, act] of [
+    ['cinder', 0],
+    ['glass', 1],
+    ['forge', 2],
+  ] as const) {
+    await page.evaluate(
+      ({ theme, act }) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const app = (window as any).__cq3.app;
+        const run = app.run;
+        app.setPhase(() => {
+          run.newRun();
+          run.skipScenes();
+          if (act) {
+            run.enterAct(act);
+            run.skipScenes();
+          }
+          const get = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(run), 'act')!.get!;
+          Object.defineProperty(run, 'act', { get: () => ({ ...get.call(run), theme }), configurable: true });
+          Object.defineProperty(run, 'theme', { get: () => theme, configurable: true });
+        });
+      },
+      { theme, act },
+    );
+    await frames(page, 40);
+    await expect(page).toHaveScreenshot(`ash-map-${theme}.png`, shot);
+  }
+});
+
+test('world map: the third region unveiled (its three landmarks round the volcano, Rowan at its last act), the cave selected', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.profile.actsCleared = 8;
+    app.profile.weights = 2;
+    app.profile.sableMet = true;
+    app.profile.seen.push('unveil:frostpeaks', 'unveil:ashfell'); // their reveals already played
+    app.newRun();
+  });
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('ash-world.png', shot);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = (window as any).__cq3.app.view.worldMap;
+    w.lookAt(775, 115);
+  });
+  await frames(page, 10);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = (window as any).__cq3.app.view.worldMap;
+    const s = w.actSpot(7);
+    w.tap(s.x, s.y);
+  });
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('ash-world-cave.png', shot);
+});

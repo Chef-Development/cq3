@@ -2,8 +2,10 @@
 // outline included, transparent background; the bag draws the rarity frame around it, and the Legendary reveal card
 // shows them at 2x). Each icon is a 10x10 character map (light from the top left, hue-shifted ramps) stamped at
 // (1, 1); toCanvas adds the outline. Weapons point up and to the right. The two sets share a motif: Greenwarden is
-// leaf green with gold veins, Footpad is charcoal purple with a silver glint. Signature drops are gold and glow.
+// leaf green with gold veins, Footpad is charcoal purple with a silver glint, Emberwright soot-black leather stitched in
+// ember orange with brass fittings. Signature drops are gold and glow.
 import { BASE_ITEMS } from '../data/gear';
+import { ASH_BASE_ITEMS } from '../data/gear-ash';
 import { grid, stamp, toCanvas, type Pal } from './art';
 
 type Add = (key: string, canvas: HTMLCanvasElement) => void;
@@ -40,6 +42,9 @@ const PAL: Pal = {
   P: '#f27a1c', F: '#ffb02a', I: '#fff8d0',
   // marsh rubber (teal night)
   '%': '#162a32', '&': '#23404a', '+': '#355a60', '=': '#4e7a78',
+  // Region 3: obsidian (black glass, a violet sheen), ash cloth, the deep red of a lava crust
+  '(': '#0c0812', ')': '#1e1628', '[': '#3e305a', ']': '#7a68a8',
+  '{': '#3a3234', '}': '#5c5052', '~': '#8a7a78', '^': '#b8aaa2', '@': '#5a0e0e',
 };
 
 const ICONS: Record<string, string[]> = {
@@ -384,6 +389,230 @@ const ICONS: Record<string, string[]> = {
     '..97766...',
     '...76.....',
   ],
+  // ---------------------------------------------------------------- Region 3 (data/gear-ash.ts)
+  // a blade knapped from black glass, its edge chipped and gleaming violet; a leather-wrapped grip
+  obsidian: [
+    '........]W',
+    '.......][)',
+    '......][)(',
+    '.....][)(.',
+    '....][)(..',
+    '.dd][)(...',
+    '..H)(.....',
+    '.HhH......',
+    'Hh..d.....',
+    'hd........',
+  ],
+  // a heavy cleaver of dark iron, its edge still glowing from the forge
+  cleaver: [
+    '..1222223.',
+    '..1333334.',
+    '..1333334.',
+    '..1333334.',
+    '..PPPPPPF.',
+    '...hH.....',
+    '..hH......',
+    '.hH.......',
+    'hH........',
+    'h.........',
+  ],
+  // a sledge with a head of basalt, a hexagonal column on an ash-wood haft
+  sledge: [
+    '.....cC...',
+    '....cCDc..',
+    '...OcCDCc.',
+    '....OcCCco',
+    '.....OcCo.',
+    '....jhOo..',
+    '...jh.....',
+    '..jh......',
+    '.jh.......',
+    'hh........',
+  ],
+  // a veil of grey ash cloth, a hood with a dark opening
+  ashveil: [
+    '...}}}}...',
+    '..}~^~}{..',
+    '.}~~}}}}{.',
+    '.}~)))}{{.',
+    '.}~)(()}{.',
+    '.}}))))}{.',
+    '..}}}}}{..',
+    '.}~}}}}}{.',
+    '}~}}}}}}{{',
+    '{{{{{{{{{.',
+  ],
+  // a helm built of hexagonal basalt plates, a slit glowing across its visor
+  basalthelm: [
+    '...cCCc...',
+    '..cCDDCc..',
+    '.cCDCCcco.',
+    '.OcCcccoo.',
+    '.oOOOOOoo.',
+    '.oPFPFPPo.',
+    '.oOOOOOoo.',
+    '.OO.oo.oo.',
+    '..........',
+    '..........',
+  ],
+  // a long coat of grey ashcloth, its collar turned up
+  ashcoat: [
+    '..}^..^}..',
+    '.}~~}}~~}.',
+    '}~~}{{}~}{',
+    '}~}}{{}}}{',
+    '.}~}{{}}{.',
+    '.}~}{{}}{.',
+    '.}}}{{}}{.',
+    '.}}}{{}}{.',
+    '.{{{..{{{.',
+    '..........',
+  ],
+  // armour of black slag plates, molten seams between them
+  slagplate: [
+    '.cO....Oc.',
+    'cCcO..OcCc',
+    'cCCcOOcCCo',
+    '.cC@PP@co.',
+    '.cCcccCco.',
+    '.c@PFFP@o.',
+    '.cCcccCco.',
+    '.cC@PP@co.',
+    '..cccccc..',
+    '..........',
+  ],
+  // light soles of grey pumice, full of little holes
+  pumice: [
+    '..........',
+    '..}~~.....',
+    '..}~^.....',
+    '..}{~.....',
+    '..}~~~....',
+    '.}{~^~~...',
+    '.}~{~{~^}.',
+    '.{}~}~}~}.',
+    '.{{{{{{{{.',
+    '..........',
+  ],
+  // iron greaves, flames licking round the feet
+  firewalk: [
+    '..23......',
+    '..343.....',
+    '..343.....',
+    '..343.....',
+    '..3432....',
+    '.234432...',
+    '.2344432F.',
+    'P1222221FP',
+    'FPFPFPFPF.',
+    '.I.F.I....',
+  ],
+  // a lump of coal, still glowing warm inside
+  coal: [
+    '..........',
+    '...uUV....',
+    '..uUVVU...',
+    '.uPUVUUu..',
+    '.uFPUUPu..',
+    'uUIFPUFPu.',
+    'uUFPUUPUu.',
+    '.uUUPUUu..',
+    '..uuuuu...',
+    '..........',
+  ],
+  // a pearl of lava in a gold setting, glowing like a coal
+  pearl: [
+    '...yy.....',
+    '..y..y....',
+    '...yg.....',
+    '..gGFgy...',
+    '.gFIIFPy..',
+    '.gFIFPRy..',
+    '.gPFPRRy..',
+    '..yPRRy...',
+    '...yyy....',
+    '..........',
+  ],
+  // ---- the Emberwright set: a smith's working kit, soot-black leather stitched in ember orange, brass fittings
+  // a leather cap, brass goggles pushed up on it
+  wrightcap: [
+    '...dddd...',
+    '..dHHHHd..',
+    '.dHhhhhHd.',
+    '.dhhhhhhd.',
+    '.68788787.',
+    '.7LL77LL7.',
+    '.dhhhhhhd.',
+    '.PaPaPaPa.',
+    '..........',
+    '..........',
+  ],
+  // a smith's apron, a brass buckle, a pocket of tools
+  wrightapron: [
+    '..6....6..',
+    '..a....a..',
+    '.ahhhhhha.',
+    '.aHhhhhha.',
+    '.aHh78hha.',
+    '.aHhhhhha.',
+    '.aHhaaaha.',
+    '.aHha3aha.',
+    '.ahhhhhha.',
+    '.PaPaPaPa.',
+  ],
+  // wooden clogs with iron toes, stitched in ember orange
+  wrightclogs: [
+    '..........',
+    '..........',
+    '..HHj.....',
+    '..Hhj.....',
+    '..Hhjj....',
+    '.HhhHjjj..',
+    '.HhPhPhjP.',
+    '.33hhhhhh.',
+    '.1111111..',
+    '..........',
+  ],
+  // a brass charm of a little hearth, its fire glowing
+  hearthcharm: [
+    '....66....',
+    '...6..6...',
+    '....67....',
+    '..778877..',
+    '.78PFFP87.',
+    '.78FIIF87.',
+    '.78PFFP87.',
+    '.77777777.',
+    '..6....6..',
+    '..........',
+  ],
+  // ---- the boss's signature drops: gold and glowing
+  // the titan's maul: a block of a head bound in gold bands, molten at its striking face
+  titanmaul: [
+    '.....1g...',
+    '....12gF..',
+    '...112gFI.',
+    '....112FFI',
+    '.....11gF.',
+    '....jh11..',
+    '...jh.....',
+    '..jh......',
+    '.jh.......',
+    'hh........',
+  ],
+  // a furnace heart: a glowing ember of a heart in a cage of gold
+  bellowsheart: [
+    '.y.y..y.y.',
+    'yPPy..yPPy',
+    'yFIPyyPFPy',
+    'yFIIPPFFPy',
+    'yPFIIFFPPy',
+    '.yPFFFPPy.',
+    '..yPFPPy..',
+    '...yPPy...',
+    '....yy....',
+    '..........',
+  ],
 };
 
 // Procedural materials for '#' pixels, per icon: [x, y] -> a palette letter.
@@ -421,7 +650,8 @@ const SLOT_FALLBACK: Record<string, string> = { weapon: 'saber', helm: 'hood', a
 
 export function buildGearArt(add: Add): void {
   const done = new Set<string>();
-  for (const b of BASE_ITEMS) {
+  // Region 3's bases are drawn too (not in BASE_ITEMS until the region is in play; then they're simply skipped here)
+  for (const b of [...BASE_ITEMS, ...ASH_BASE_ITEMS]) {
     if (done.has(b.icon)) continue;
     done.add(b.icon);
     // an item without a painted icon yet borrows its slot's look

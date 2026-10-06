@@ -1,7 +1,10 @@
 // The kingdom's world map, part three: the lands that open up as the story goes on. The second region's act
 // landmarks stand on its painted mountains (art-world.ts, art-world-sites.ts); this adds what marks them once its
 // veil lifts: prayer flags strung across the pass by the frozen falls, a cave mouth under the crag above the frozen
-// lake (crystals glint inside), and the wyrm circling her keep. Out in the far sea past the continent's east coast
+// lake (crystals glint inside), and the wyrm circling her keep. The third region's (not drawn while its veil is up):
+// the road-roller's half-paved road on the plain west of the volcano, a cave mouth
+// in the volcano's flank glowing with coloured glass, and the black forge on the crater's rim, a glowing chain slung
+// across the crater (WORLD_ACTS_ASH: their places, acts 6-8 of WORLD_ACTS). Out in the far sea past the continent's east coast
 // (art-world.ts paints that strip, FAR_SEA_W) lie the seven lands still to come (core/world-plan.ts): hazy island
 // silhouettes, each under a fog bank that thins as weights come home. All of it is small textures painted once with
 // the rest of the world map; the view (view/world.ts) places them, fades the fog and animates the glints.
@@ -194,6 +197,86 @@ const WYRM_ROWS = [
 ];
 const WYRM_PAL = P({ b: '#5a8ad8', B: '#b0d4f8', h: '#7aa8e8', H: '#8ab8ec', e: '#e8fbff', w: '#9cc8f4', W: '#e0f0ff', t: '#4a76c4' });
 
+// ------------------------------------------------------------------ the third region's act landmarks
+
+type ActSpot = { x: number; y: number; box: Box; stand: Pt; flag: Pt; view: Pt };
+
+/**
+ * The third region's three acts as world-map landmarks, by global act index 6-8 (the same shape as WORLD_ACTS'
+ * entries: the landmark's centre and tap box, where Rowan stands, where its flag flies, the view the map opens on).
+ * art-world.ts appends them to WORLD_ACTS; its land opens with core/world-plan.ts landOpen.
+ */
+export const WORLD_ACTS_ASH: ActSpot[] = [
+  // the road-roller's half-paved road, where the road from the heartland comes into the ash
+  { x: 750, y: 157, box: { x: 734, y: 147, w: 32, h: 20 }, stand: [730, 152], flag: [764, 150], view: [768, 140] },
+  // a cave mouth in the volcano's west flank, glowing with coloured glass
+  { x: 788, y: 101, box: { x: 778, y: 91, w: 22, h: 20 }, stand: [774, 112], flag: [794, 90], view: [790, 104] },
+  // the black forge on the crater's rim
+  { x: 803, y: 26, box: { x: 792, y: 14, w: 24, h: 22 }, stand: [786, 44], flag: [816, 18], view: [806, 70] },
+];
+
+/** Where the third region's landmark sprites stand (world px, the textures' top-left), once its veil lifts. */
+export const ASH_SIGHTS = {
+  /** the half-paved road, its barrier and the road-roller curled up on it (the region's first act) */
+  road: { x: 737, y: 151 },
+  /** the glowing cave mouth in the flank */
+  cave: { x: 781, y: 95 },
+  /** coloured glass glinting inside the cave (world px) */
+  glints: [
+    [785, 101],
+    [790, 103],
+    [787, 104],
+    [792, 101],
+  ] as Pt[],
+  /** the black forge on the rim (two frames: its furnace breathes) */
+  forge: { x: 797, y: 21 },
+  /** the chain slung across the crater, from the forge's top to the far rim (world px) */
+  chain: { a: [806, 24] as Pt, b: [823, 33] as Pt, sag: 4 },
+};
+
+// the road's paving laid from the citadel's end up toward the heartland, stopping short at a barrier
+const ROAD_ROWS = [
+  'wwoo.....................',
+  'ywwOoSsSsS...............',
+  '.wwooSsSsSssSsSsS........',
+  'd..dSsSsSsSsSsSsSsSsS....',
+  '....SsSsSsSsSsSsSsSsssS..',
+  '....sSsSsSsSsSsSsSsSsSsSs',
+  '.....mmmmmmmmmmmmmmmmmmm.',
+];
+const ROAD_PAL = P({ S: '#6a5e6a', s: '#3e3644', m: '#1a1620', o: '#f27a1c', O: '#ffb05a', w: '#f4ece0', y: '#b8aaa0', d: '#5a3a26' });
+// the road-roller himself, curled into a ball at the end of his road, his cauldron on top
+const ROLLER_ROWS = ['..kkk..', '.kIIIk.', 'bbBbBbb', 'bBbBbBb', 'bbBbBbb', '.bbbbb.'];
+const ROLLER_PAL = P({ k: '#2a2830', I: '#6a6872', b: '#4c4a54', B: '#827c86' });
+const GCAVE_ROWS = ['....mmmmm....', '..mmsSSSsmm..', '.mskkkkkkksm.', 'mskaKkgKvkksm', 'mskkAkkGkVksm', 'mskkkkkkkkksm', 'mskkqkkkqkksm', 'mskkkqqqkkksm', 'wwwwwwwwwwwww'];
+const GCAVE_PAL = P({ m: '#2a2026', s: '#4a3c44', S: '#6a5a60', k: '#0e0810', a: '#c06a14', A: '#ffd070', g: '#1e8a48', G: '#9ae89a', v: '#6a32a8', V: '#c89aff', q: '#8a2a14', K: '#3a1a10', w: '#3a2a28' });
+// the black forge on the rim: a squat tower, battlements, a slit window and its furnace door glowing
+const FORGE_ROWS = [
+  [
+    '.b.b.b....',
+    '.bbbbbb...',
+    '.bBbbbbm..',
+    '.bBbYbbm..',
+    '.bBbbbbm..',
+    'bbBbbbbbm.',
+    'bBbbXXbbm.',
+    'bBbXZZXbm.',
+    'bBbXZZXbmm',
+  ],
+  [
+    '.b.b.b....',
+    '.bbbbbb...',
+    '.bBbbbbm..',
+    '.bBbXbbm..',
+    '.bBbbbbm..',
+    'bbBbbbbbm.',
+    'bBbbxxbbm.',
+    'bBbxXXxbm.',
+    'bBbxXXxbmm',
+  ],
+];
+const FORGE_PAL = P({ b: '#2e2630', B: '#4a3e48', m: '#140e14', x: '#e0501c', X: '#ffb040', Z: '#fff4b8', Y: '#ffd070' });
+
 /** The far lands' silhouettes and fog banks, the second region's landmark sprites. */
 export function paintLands(put: Add): void {
   FAR_ISLES.forEach((f, i) => {
@@ -209,5 +292,18 @@ export function paintLands(put: Add): void {
     const p = new Pix(23, 10, -1);
     spr(p, rows, WYRM_PAL, 1, 1);
     put(`wm_wyrm${i}`, p.canvas());
+  });
+  // the third region's (drawn only once its veil lifts)
+  const road = new Pix(26, 9, -1);
+  spr(road, ROAD_ROWS, ROAD_PAL, 1, 1);
+  spr(road, ROLLER_ROWS, ROLLER_PAL, 17, 0);
+  put('wm_ashroad', road.canvas());
+  const gcave = new Pix(15, 11, -1);
+  spr(gcave, GCAVE_ROWS, GCAVE_PAL, 1, 1);
+  put('wm_glasscave', gcave.canvas());
+  FORGE_ROWS.forEach((rows, i) => {
+    const p = new Pix(12, 11, -1);
+    spr(p, rows, FORGE_PAL, 1, 1);
+    put(`wm_forge${i}`, p.canvas());
   });
 }

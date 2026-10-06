@@ -11,6 +11,7 @@
 // each in its own show (view/finishers.ts). The party (the companions and a Summoner's allies) is view/party.ts. A
 // boss shows its phase's look (`${sprite}${phase}_*`, when it has one) and a stunned foe sees stars.
 import Phaser from 'phaser';
+import { isAshArtKey } from '../art-ash';
 import { rimMask, STAGE_LIGHT } from '../art-stage';
 import type { Combat } from '../../core/combat';
 import { COMPANIONS, type CompanionId } from '../../data/companions';
@@ -264,6 +265,8 @@ export class Fighters {
     for (const e of c.enemies) {
       if (this.enemies.has(e.id) || !e.alive) continue;
       const def = s.app.tuning.enemies[e.key];
+      // the third region's foes are painted in idle time after boot: one that's needed sooner is finished now
+      if (!s.textures.exists(`${def.sprite}_idle0`) && isAshArtKey(`${def.sprite}_idle0`)) s.ensureAshArt();
       const img = s.add.image(0, 0, `${def.sprite}_idle0`).setOrigin(0.5, 1).setScale(SPRITE_SCALE);
       const rim = this.makeRim();
       s.actors.add([img, rim]);

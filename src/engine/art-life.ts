@@ -3,6 +3,8 @@
 // a rabbit, sparrows and a frog on the Meadow Road; a hedgehog and crows in the Old Ruins; a squirrel and a doe in
 // the Boar King's Hollow; a hawk and leaping fish overhead and in the stream; a mountain goat and snow buntings in the
 // Frostbite Pass; glow beetles and pale cave fish in the Glimmer Caves; snow hares and a white owl on Wyrm's Glacier;
+// lava lizards and a fire beetle on the Cinder Flats (ash moths flutter round its vents: drawn by the view); glass
+// snails and glow bats in the Glass Warrens; soot sprites in the Black Forge (its sparks are the view's);
 // gulls floating on the sea and dolphins for the world map. Ground critters wear a 1 px ink outline like the map's other sprites, muted so they stay at the
 // edge of attention; the ones in the air or the water have none (they're drawn small and pale).
 //
@@ -35,6 +37,12 @@ const BEETLE: Pal = { 1: '#10142a', 2: '#202a48', 3: '#34466a', g: '#3ed8c0', G:
 const CAVEFISH: Pal = { 1: '#4a78a0', 2: '#c4e6f2', 3: '#86b6d0' };
 const HARE: Pal = { 1: '#545e84', 2: '#949ec0', 3: '#ccd4e8', 4: '#f0f4fa', 5: '#ffffff', W: '#ffffff', e: INK, k: INK };
 const OWL: Pal = { 2: '#7c86a4', 3: '#c8d0e2', 4: '#f4f8ff' };
+// Ashfell's: black crust with a glow in it, coloured glass, soot; each carries a warm spot so it reads on the ash
+const LIZARD: Pal = { 1: '#140e12', 2: '#2e2024', 3: '#4e3630', 4: '#6e4e3a', o: '#e0501c', O: '#ffb040', e: '#ffe070', k: INK };
+const FIREBEETLE: Pal = { 1: '#140c10', 2: '#2a1814', q: '#a0221a', x: '#e0501c', X: '#ffb040', Z: '#fff0a0', k: INK };
+const SNAIL: Pal = { 1: '#4a4458', 2: '#7a7488', 3: '#aaa4b6', g: '#1e8a48', G: '#46c06a', W: '#d8ffd0', e: INK, k: INK };
+const GLOWBAT: Pal = { 1: '#1a1024', 2: '#3e1a6e', 3: '#9a5ad8', 4: '#e4c8ff', O: '#fff4c0' };
+const SOOT: Pal = { 1: '#0e0a0e', 2: '#221a20', 3: '#3a2e34', W: '#ffffff', e: INK, o: '#ff8a24', k: INK };
 const GULL: Pal = { 2: '#7c86a6', 3: '#b8c2d8', 4: '#eef3fa', y: '#f2c230', k: INK };
 const DOLPHIN: Pal = { 2: '#4a6890', 3: '#7896bc', 4: '#b4d0ea' };
 
@@ -172,6 +180,49 @@ export const CRITTERS: Record<string, Critter> = {
     frames: [
       ['34.......43', '.3443.3443.', '...34443...', '....444....', '....3.3....'],
       ['...........', '33443.34433', '...34443...', '....444....', '....3.3....'],
+    ],
+  },
+  // basking, looking up, scuttling: a lava lizard, glowing down its back and at its tail's tip
+  lizard: {
+    pal: LIZARD,
+    frames: [
+      ['.......33e.', 'O3o33o3334k', '...2.2.2.2.'],
+      ['........33e', 'O3o33o33344', '...2.2..2.2'],
+      ['.......33e.', 'Oo3o33o334k', '..2...2..2.'],
+    ],
+  },
+  // creeping (two steps), its shell glowing like a coal
+  firebeetle: {
+    pal: FIREBEETLE,
+    frames: [
+      ['.qxXq..', 'qxXZXx2', '.1.1.1.'],
+      ['.qxXq..', 'qxXZXx2', '1.1.1..'],
+    ],
+  },
+  // sliding along under its shell of green glass (head in, head out)
+  snail: {
+    pal: SNAIL,
+    frames: [
+      ['..ggg...', '.gGWGg..', '.gGgGg..', '1222223.'],
+      ['..ggg..e', '.gGWGg.3', '.gGgGg23', '12222233'],
+    ],
+  },
+  // a glow bat in flight seen from below, wings up and down, its eyes and wing edges aglow
+  glowbat: {
+    pal: GLOWBAT,
+    raw: true,
+    frames: [
+      ['4.......4', '32..1..23', '.321O123.', '...111...'],
+      ['.........', '...111...', '4321O1234', '...1.1...'],
+    ],
+  },
+  // a soot sprite: a ball of soot with big eyes; sitting, blinking, hopping
+  soot: {
+    pal: SOOT,
+    frames: [
+      ['..3.3..', '.33333.', '3W3W332', '3e3e322', '.22221.', '..1.1..'],
+      ['..3.3..', '.33333.', '3333332', '3e3e322', '.22221.', '..1.1..'],
+      ['.3...3.', '..333..', '.W3W33.', '3e3e322', '.22221.', '.......'],
     ],
   },
   // floating on the sea (bobbing)

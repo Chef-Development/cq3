@@ -1138,6 +1138,92 @@ export class MapView implements MapHost {
           a.fillRect(Math.round(gx), Math.round(gy) - 1, 1, 3);
         }
       });
+    } else if (theme === 'cinder' || theme === 'forge') {
+      // ash drifting down over the whole map; in the forge, sparks streaming up off the hot floor
+      for (let i = 0; i < 24; i++) {
+        const speed = 4 + (i % 5) * 1.1;
+        const yy = ((t * speed + i * 37) % (H + 10)) - 5;
+        const x = ((i * 53.3 + yy * 0.25 + Math.sin(t * 0.9 + i) * 4) % (W + 6)) - 3;
+        a.fillStyle(i % 3 ? 0x8a7a7c : 0xb0a0a0, i % 3 ? 0.45 : 0.7);
+        a.fillRect(Math.round(x), Math.round(yy), 1, 1);
+      }
+      if (theme === 'forge')
+        for (let j = 0; j < 18; j++) {
+          const per = 2.6 + (j % 4) * 0.5;
+          const u = ((t + j * 0.71) % per) / per;
+          const x = (j * 61.7 + Math.sin(u * 6 + j) * 4) % W;
+          const y = H - 10 - ((j * 29) % (H - 30)) - u * 22;
+          a.fillStyle(u < 0.5 ? 0xffe070 : 0xff7a2a, 1 - u);
+          a.fillRect(Math.round(x), Math.round(y), 1, 1);
+        }
+      // the lava shimmers as it flows
+      const wv = land.water;
+      if (wv.length)
+        for (let j = 0; j < 12; j++) {
+          const idx = Math.floor((t * 6 + j * 11.3) % wv.length);
+          const [x, y] = wv[idx];
+          a.fillStyle(j % 3 ? 0xffe070 : 0xfff8d0, 0.5 + 0.4 * Math.sin(t * 4 + j));
+          a.fillRect(Math.round(x + ((j * 7) % 3) - 1), Math.round(y), 1, 1);
+        }
+      // smoke curling off the vents
+      for (const [sx, sy] of land.smoke)
+        for (let j = 0; j < 3; j++) {
+          const q = (t / 2.6 + j / 3) % 1;
+          a.fillStyle(q < 0.3 ? 0x6a5a5c : 0x8a7a78, 0.5 * (1 - q));
+          const sz = q < 0.4 ? 2 : 3;
+          a.fillRect(Math.round(sx + q * 6 + Math.sin(q * 6 + j) * 1), Math.round(sy - 2 - q * 12), sz, sz - 1);
+        }
+      // braziers (the forge's)
+      land.flames.forEach(([fx, fy], i) => {
+        const k = 0.5 + 0.5 * Math.sin(now / 80 + i * 2) * Math.sin(now / 31 + i);
+        ellipse(this.gGround, fx, fy + 4, 12, 7, 0xff9040, 0.08 + 0.06 * k);
+        P.foot(`mn_flame_${Math.floor(now / 100 + i) % 3}`, fx, fy + 1, D_ICON);
+      });
+      // the glowing scenery (vents, cooling lava, slag, anvils' ingots) breathes
+      land.glows.forEach(([gx, gy, gc], i) => {
+        const k = 0.5 + 0.5 * Math.sin(t * 1.6 + i * 1.9);
+        ellipse(this.gGround, gx, gy + 3, 6, 2.5, gc, 0.05 + 0.07 * k);
+      });
+    } else if (theme === 'glass') {
+      // the coloured glass breathes light; now and then a pane winks
+      land.glows.forEach(([gx, gy, gc], i) => {
+        const k = 0.5 + 0.5 * Math.sin(t * 1.1 + i * 1.7);
+        ellipse(this.gGround, gx, gy + 4, 8, 3.5, gc, 0.05 + 0.07 * k);
+        const tw = Math.sin(t * 2.1 + i * 2.9);
+        if (tw > 0.9) {
+          a.fillStyle(0xfff8e8, (tw - 0.9) * 10);
+          a.fillRect(Math.round(gx) - 1, Math.round(gy) - 1, 3, 1);
+          a.fillRect(Math.round(gx), Math.round(gy) - 2, 1, 3);
+        }
+      });
+      // warm motes rising on the heat
+      for (let j = 0; j < 16; j++) {
+        const x = (j * 61.3 + Math.sin(t * 0.3 + j) * 8 + W) % W;
+        const y = H - ((t * (2 + (j % 3)) + j * 29) % (H + 10));
+        const tw = 0.5 + 0.5 * Math.sin(t * 2.6 + j * 1.3);
+        a.fillStyle([0xffc070, 0xc89aff, 0x9ae89a, 0xff8a7a][j % 4], 0.2 + 0.4 * tw);
+        a.fillRect(Math.round(x), Math.round(y), 1, 1);
+      }
+      // bubbles swelling and popping in the magma pools
+      land.pools.forEach(([px, py], i) => {
+        for (let j = 0; j < 2; j++) {
+          const per = 1.8 + i * 0.4 + j * 0.7;
+          const u = ((t + i * 0.9 + j * 1.3) % per) / per;
+          const bx = Math.round(px - 5 + ((i * 7 + j * 9) % 11));
+          if (u < 0.7) {
+            a.fillStyle(0xffe070, 0.8);
+            a.fillRect(bx, Math.round(py), u > 0.4 ? 2 : 1, 1);
+          } else ring(this.gGround, bx, py, 1 + (u - 0.7) * 8, 0.6 + (u - 0.7) * 3, 0xffb040, 0.6 * (1 - (u - 0.7) / 0.3));
+        }
+      });
+      // smoke from the kilns
+      for (const [sx, sy] of land.smoke)
+        for (let j = 0; j < 3; j++) {
+          const q = (t / 2.2 + j / 3) % 1;
+          a.fillStyle(0x5a4a5c, 0.5 * (1 - q));
+          const sz = q < 0.4 ? 2 : 3;
+          a.fillRect(Math.round(sx + q * 5 + Math.sin(q * 6 + j) * 1), Math.round(sy - 2 - q * 12), sz, sz - 1);
+        }
     } else if (theme === 'hollow') {
       // fireflies blinking in the dusk
       const spots = land.spots;

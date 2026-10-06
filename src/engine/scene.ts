@@ -24,6 +24,7 @@ import { Overlays } from './view/overlays';
 import { StopScreens } from './view/stops';
 import { StoryView } from './view/story';
 import { WorldView } from './view/world';
+import { buildAshFoeArt, paintAshFoeSlice } from './art-ash';
 import { buildWorldArt, paintWorldSlice, WORLD_PAINT, worldArtReady } from './art-world';
 import { buildMapArt } from './art-map';
 import { buildRoamArt } from './art-roam';
@@ -120,13 +121,26 @@ export class FightScene extends Phaser.Scene implements View {
     this.app.sceneReady = true;
     // a returning player's first launch of this version: Pip's welcome back, over the title
     this.app.welcome();
-    // paint the world map in small slices while the title is up (the world map finishes it if it's needed sooner)
+    // paint the world map in small slices while the title is up (the world map finishes it if it's needed sooner),
+    // then the third region's foes (a fight or a scene that needs them finishes those at once: ensureAshArt)
+    const ashIdle = () => {
+      if (paintAshFoeSlice(8)) this.ensureAshArt();
+      else window.setTimeout(ashIdle, 0);
+    };
     const idle = () => {
-      if (this.worldArtIn) return;
-      if (paintWorldSlice(8)) this.ensureWorldArt();
-      else window.setTimeout(idle, 0);
+      if (!this.worldArtIn && !paintWorldSlice(8)) return void window.setTimeout(idle, 0);
+      this.ensureWorldArt();
+      window.setTimeout(ashIdle, 0);
     };
     window.setTimeout(idle, 30);
+  }
+
+  /** The third region's foes, portraits and bar pieces, now (whatever is left of their painting is done at once). */
+  ensureAshArt(): void {
+    buildAshFoeArt((key, canvas) => {
+      if (this.textures.exists(key)) this.textures.remove(key);
+      this.textures.addCanvas(key, canvas);
+    }, true);
   }
 
   /** The world map's textures, now: whatever is left of its painting is done at once (then the view is built). */

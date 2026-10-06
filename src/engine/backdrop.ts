@@ -10,18 +10,20 @@
 // dithering is only used for broad gradients: sky, mist, light shafts and torch light.
 import type Phaser from 'phaser';
 
-export type Theme = 'forest' | 'ruins' | 'hollow' | 'pass' | 'caves' | 'glacier';
-export const THEMES: Theme[] = ['forest', 'ruins', 'hollow', 'pass', 'caves', 'glacier'];
-/** Greenmarch's themes are painted at boot (buildBackdrops); the Frostpeaks' (backdrop-frost.ts) the first time an
- *  act needs one (Stage.ensure). */
+export type Theme = 'forest' | 'ruins' | 'hollow' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge';
+export const THEMES: Theme[] = ['forest', 'ruins', 'hollow', 'pass', 'caves', 'glacier', 'cinder', 'glass', 'forge'];
+/** Greenmarch's themes are painted at boot (buildBackdrops); the Frostpeaks' (backdrop-frost.ts) and Ashfell's
+ *  (backdrop-ash.ts) the first time an act needs one (Stage.ensure). */
 export const BOOT_THEMES: Theme[] = ['forest', 'ruins', 'hollow'];
 
 export interface Backdrop {
   torches: Array<{ x: number; y: number }>; // flame base, game px
   /** Spots that twinkle now and then (ice, crystals, a hoard's gold), with their colour. */
   glints?: Array<{ x: number; y: number; c: number }>;
-  /** Icicle tips where drops gather and fall. */
+  /** Icicle tips where drops gather and fall (molten glass in the Glass Warrens). */
   drips?: Array<{ x: number; y: number }>;
+  /** Vents in the ground that smoke (the stage puffs smoke off them). */
+  vents?: Array<{ x: number; y: number }>;
 }
 
 // ------------------------------------------------------------------ colour + noise toolkit (also used by art-world.ts)

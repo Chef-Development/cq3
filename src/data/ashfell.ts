@@ -9,12 +9,10 @@
 
 import type { RegionDef, Theme } from './types';
 
-/** Region 3's act looks (ash plains, glass caves, the forge). They aren't in the `Theme` union yet: the engine's stage
- *  lights, map kits, lairs and map critters are records over every theme, so adding them needs that art first. The
- *  core owner adds them to `Theme` when wiring the region in; until then `look` passes them through. */
-export type AshTheme = 'cinder' | 'glass' | 'forge';
+/** Region 3's act looks (ash plains, glass caves, the forge): their backdrops, stage lights, map kits, lairs and
+ *  critters are in the engine (backdrop-ash.ts and the theme tables). */
+export type AshTheme = Extract<Theme, 'cinder' | 'glass' | 'forge'>;
 export const ASH_THEMES: AshTheme[] = ['cinder', 'glass', 'forge'];
-const look = (t: AshTheme): Theme => t as string as Theme;
 
 export const ASHFELL: RegionDef = {
   id: 'ashfell',
@@ -24,7 +22,7 @@ export const ASHFELL: RegionDef = {
   acts: [
     {
       name: 'Cinder Flats',
-      theme: look('cinder'),
+      theme: 'cinder',
       hpMult: 8.6,
       atkMult: 16.5,
       pace: 0.82,
@@ -48,7 +46,7 @@ export const ASHFELL: RegionDef = {
     },
     {
       name: 'Glass Warrens',
-      theme: look('glass'),
+      theme: 'glass',
       hpMult: 8.8,
       atkMult: 17,
       pace: 0.78,
@@ -72,7 +70,7 @@ export const ASHFELL: RegionDef = {
     },
     {
       name: 'The Black Forge',
-      theme: look('forge'),
+      theme: 'forge',
       hpMult: 10.5,
       atkMult: 24,
       pace: 0.74,

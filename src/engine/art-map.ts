@@ -843,7 +843,167 @@ function lairHoard(): Lair {
   return { canvas: p.canvas(), flames: [], glows, glow: [0xffd860, 0xfff8d0] };
 }
 
-const LAIRS: Record<Theme, () => Lair> = { forest: lairCamp, ruins: lairGate, hollow: lairDen, pass: lairToll, caves: lairWeb, glacier: lairHoard };
+/** Ashfell's Act 1: the road-roller's road works at the end of his half-paved road: pavers laid in a fan, a heap of
+ *  them waiting, a striped barrier and a sign, his dented cauldron (a spare hat) left on the pile. */
+function lairRoadworks(): Lair {
+  const W = 46;
+  const H = 36;
+  const p = new Pix(W, H, -1);
+  const base = H - 3;
+  const basalt = ramp('#141218', '#201c26', '#2e2834', '#3e3644', '#524856', '#6a5e6a', '#887c86');
+  // the paved road coming in from the right, its edge ragged where the paving stops
+  for (let y = base - 6; y <= base; y++)
+    for (let x = 0; x < W; x++) {
+      const end = 10 + Math.round(noise(y * 0.5, 1, 7) * 6) - (y - (base - 6));
+      if (x < end) continue;
+      const row = Math.floor(y / 2);
+      const off = (row % 2) * 2;
+      const seam = (x + off) % 4 === 0 || y % 2 === 0;
+      p.set(x, y, seam ? basalt[1] : pick(basalt, 0.55 + hash(Math.floor((x + off) / 4), row, 9) * 0.3, x, y));
+    }
+  // a heap of pavers waiting to be laid, the cauldron left on top
+  for (let i = 0; i < 5; i++) {
+    const w = 18 - i * 3;
+    const x0 = 22 - Math.floor(w / 2) + (i % 2);
+    const y = base - 8 - i * 3;
+    for (let x = x0; x < x0 + w; x++) {
+      p.set(x, y, pick(basalt, x === x0 ? 0.6 : 0.88, x, y));
+      p.set(x, y + 1, pick(basalt, 0.5, x, y + 1));
+      p.set(x, y + 2, pick(basalt, x < x0 + w / 2 ? 0.32 : 0.2, x, y + 2));
+    }
+  }
+  stampPix(p, ['..kkk..', '.k...k.', 'kIIIIIk', 'IiiIiiI', 'IiiiiiI', 'jjjjjjj'], P({ k: '#46444e', I: '#6a6872', i: '#34323c', j: '#a4a2ac' }), 19, base - 28);
+  // a striped barrier on two legs, and a sign on a post: WET BASALT (a blob of a warning)
+  stampPix(p, ['ooowwwoooww', 'OOwwwOOOwwy', 'ooowwwoooww', '.d.......d.', 'dk.......kd', 'k.........k'], P({ o: '#f27a1c', O: '#ffb05a', w: '#f4ece0', y: '#b8aaa0', k: '#2a1c14', d: '#5a3a26' }), 1, base - 7);
+  stampPix(p, ['yyyyyyy', 'ykykkky', 'yyyyyyy', '...d...', '...d...', '...d...', '...d...'], P({ y: '#f2c230', k: '#2a1c14', d: '#5a3a26' }), W - 10, base - 12);
+  outline(p);
+  return { canvas: p.canvas(), flames: [], glows: [[22 - W / 2, base - 28 - H]], glow: [0xff8a3a, 0xfff0c0] };
+}
+
+/** Ashfell's Act 2: the hound's gate: an arch of black glass with panes of coloured glass in it, a glowing chain hung
+ *  across the way, a great bone and a stick (somebody wants to play fetch). */
+function lairKennel(): Lair {
+  const W = 46;
+  const H = 38;
+  const p = new Pix(W, H, -1);
+  const cx = 23;
+  const base = H - 2;
+  const obs = ramp('#08060c', '#120e18', '#1c1624', '#282034', '#362c46', '#4a3c5c', '#62527a');
+  // the arch: two thick pillars and a pointed top, glossy black glass
+  for (let y = 2; y <= base; y++)
+    for (let x = 2; x < W - 2; x++) {
+      const dx = (x + 0.5 - cx) / 20;
+      const dy = (y + 0.5 - base) / (base - 2);
+      const outer = Math.abs(dx) <= 1 && (y > 14 || Math.abs(dx) < 1 - (14 - y) / 13);
+      const inner = Math.abs(x + 0.5 - cx) < 11 && (y > 18 || Math.abs(x + 0.5 - cx) < 11 - (18 - y) * 0.85) && y > 8;
+      if (!outer || inner) continue;
+      let v = 0.35 + 0.4 * lambert(dx * 0.8, dy * 0.4) + (noise(x * 0.4, y * 0.2, 5) - 0.5) * 0.25;
+      if (Math.abs(noise(x * 0.15 + y * 0.1, y * 0.2, 7) - 0.5) < 0.04) v += 0.3; // a glossy ridge
+      p.set(x, y, pick(obs, v, x, y));
+    }
+  // the dark way beyond, a dim red glow deep inside
+  for (let y = 9; y <= base; y++)
+    for (let x = cx - 10; x <= cx + 10; x++) {
+      if (p.get(x, y) >= 0) continue;
+      const inner = Math.abs(x + 0.5 - cx) < 11 && (y > 18 || Math.abs(x + 0.5 - cx) < 11 - (18 - y) * 0.85);
+      if (!inner) continue;
+      p.set(x, y, y > base - 4 ? col('#4a1210') : col('#0a0408'));
+    }
+  // panes of coloured glass set in the pillars
+  const panes = [col('#f0a030'), col('#46c06a'), col('#9a5ad8'), col('#e04a4a')];
+  for (let i = 0; i < 4; i++) {
+    const x = i < 2 ? 5 + i * 3 : W - 9 + (i - 2) * 3;
+    for (let y = 20; y < 28; y++) p.set(x, y, mix(panes[i], col('#ffffff'), y === 20 ? 0.4 : 0));
+  }
+  outline(p);
+  // the chain hung across the way (glowing), the bone and the stick on the ground
+  for (let x = cx - 10; x <= cx + 10; x++) {
+    const y = Math.round(24 + Math.sin(((x - (cx - 10)) / 20) * Math.PI) * 4);
+    p.set(x, y, x % 3 === 0 ? col('#fff0a0') : x % 3 === 1 ? col('#ff8a24') : col('#c04014'));
+  }
+  stampPix(p, ['ww.......ww', 'wWWWWWWWWWw', 'ww.......ww'], P({ w: '#d8ccb8', W: '#f4ece0' }), cx - 16, base - 2);
+  stampPix(p, ['hhhhhhhH'], P({ h: '#8e5a2e', H: '#b07a44' }), cx + 6, base - 1);
+  return {
+    canvas: p.canvas(),
+    flames: [],
+    glows: [
+      [cx - 10 - W / 2, 24 - H],
+      [cx - W / 2, 28 - H],
+      [cx + 10 - W / 2, 24 - H],
+    ],
+    glow: [0xff8a24, 0xfff0a0],
+  };
+}
+
+/** Ashfell's Act 3: the Black Forge: a squat tower of basalt, the furnace's arched mouth roaring in it, chains slung
+ *  from its top, a great anvil before the door. */
+function lairForge(): Lair {
+  const W = 48;
+  const H = 44;
+  const p = new Pix(W, H, -1);
+  const cx = 24;
+  const base = H - 2;
+  const basalt = ramp('#0c0a10', '#18141c', '#241e28', '#322a36', '#443a48', '#5a4e5e');
+  // the tower: tapering walls, battlements, slit windows glowing
+  for (let y = 6; y <= base; y++) {
+    const half = 12 + (y - 6) * 0.18;
+    for (let x = Math.round(cx - half); x <= Math.round(cx + half); x++) {
+      const u = (x - (cx - half)) / (half * 2);
+      let v = u < 0.35 ? 0.62 : u < 0.8 ? 0.4 : 0.22;
+      if ((y - 6) % 5 === 0) v -= 0.12;
+      p.set(x, y, pick(basalt, v, x, y));
+    }
+  }
+  for (let x = cx - 12; x <= cx + 12; x += 6)
+    for (let y = 3; y < 6; y++) {
+      p.set(x, y, basalt[y === 3 ? 4 : 3]);
+      p.set(x + 1, y, basalt[y === 3 ? 3 : 2]);
+      p.set(x + 2, y, basalt[1]);
+    }
+  // the furnace mouth, an arch blazing white-hot inside
+  for (let y = base - 16; y <= base; y++)
+    for (let x = cx - 7; x <= cx + 7; x++) {
+      const dx = (x + 0.5 - cx) / 7;
+      const dy = (y + 0.5 - (base - 9)) / 7;
+      if (y < base - 9 ? dx * dx + dy * dy > 1 : Math.abs(dx) > 1) continue;
+      const rim = y < base - 9 ? dx * dx + dy * dy > 0.66 : Math.abs(dx) > 0.78;
+      const d = Math.hypot(dx, (y - base) / 10);
+      p.set(x, y, rim ? basalt[5] : d < 0.45 ? col('#fff8d0') : d < 0.7 ? col('#ffc84a') : col('#ff8a24'));
+    }
+  // slit windows
+  for (const [x, y] of [
+    [cx - 7, 12],
+    [cx + 6, 12],
+    [cx, 9],
+  ])
+    for (let k = 0; k < 3; k++) p.set(x, y + k, k === 0 ? col('#fff0a0') : col('#ff8a24'));
+  // a great anvil before the door
+  for (let x = cx - 18; x <= cx - 6; x++) for (let y = base - 5; y <= base - 4; y++) p.set(x, y, y === base - 5 ? basalt[5] : basalt[3]);
+  for (let x = cx - 15; x <= cx - 9; x++) for (let y = base - 3; y <= base; y++) p.set(x, y, x < cx - 12 ? basalt[3] : basalt[1]);
+  outline(p);
+  // chains slung from the battlements to the ground, glowing
+  for (const side of [-1, 1]) {
+    for (let k = 0; k < 18; k++) {
+      const t = k / 17;
+      const x = Math.round(cx + side * (12 + t * 10));
+      const y = Math.round(6 + t * 30 + Math.sin(t * Math.PI) * -3);
+      p.set(x, y, k % 2 ? col('#ff8a24') : col('#5a4236'));
+    }
+  }
+  return {
+    canvas: p.canvas(),
+    flames: [],
+    glows: [
+      [cx - 7 - W / 2, 12 - H],
+      [cx + 6 - W / 2, 12 - H],
+      [cx - W / 2, 9 - H],
+      [cx - W / 2, base - 6 - H],
+    ],
+    glow: [0xff8a24, 0xfff8d0],
+  };
+}
+
+const LAIRS: Record<Theme, () => Lair> = { forest: lairCamp, ruins: lairGate, hollow: lairDen, pass: lairToll, caves: lairWeb, glacier: lairHoard, cinder: lairRoadworks, glass: lairKennel, forge: lairForge };
 /** Each theme's lair spots (filled when buildMapArt builds the `maplair_${theme}` textures). */
 export const LAIR_SPOTS: Partial<Record<Theme, { flames: Pt[]; glows: Pt[]; glow?: [number, number] }>> = {};
 
@@ -2068,7 +2228,557 @@ function decorGlacier(c: Ctx): void {
   });
 }
 
-const KITS: Record<Theme, () => Kit> = { forest: forestKit, ruins: ruinsKit, hollow: hollowKit, pass: passKit, caves: cavesKit, glacier: glacierKit };
+// ------------------------------------------------------------------ Ashfell's scenery
+
+/** Ash: plum-grey in shadow, a warm dusty grey in the light. */
+const MASH = ramp('#2a2226', '#382e32', '#463a3e', '#56484a', '#685858', '#7e6c6a', '#98847e');
+const MBASALT = ramp('#141218', '#201c26', '#2e2834', '#3e3644', '#524856', '#6a5e6a', '#887c86');
+const MCHAR = ramp('#0e0a0c', '#1a1214', '#281c1a', '#382820', '#4a3426');
+const MLAVA = ramp('#5a0e0e', '#a0221a', '#e0501c', '#ff8a24', '#ffc84a', '#fff4b8');
+const MOBS = ramp('#08060c', '#120e18', '#1c1624', '#282034', '#362c46', '#4a3c5c', '#62527a');
+const MGLASS: Ramp[] = [
+  ramp('#3a1a06', '#7a3a0a', '#c06a14', '#f0a030', '#ffd070', '#fff4c0'),
+  ramp('#062a18', '#0e5430', '#1e8a48', '#46c06a', '#9ae89a', '#e4ffd8'),
+  ramp('#1e0a3a', '#3e1a6e', '#6a32a8', '#9a5ad8', '#c89aff', '#f2e4ff'),
+  ramp('#3a0612', '#6e1020', '#a82232', '#e04a4a', '#ff8a7a', '#ffd4c8'),
+];
+const MGLOW = [0xf0a030, 0x46c06a, 0x9a5ad8, 0xe04a4a];
+const MIRON = ramp('#14121a', '#24222c', '#36343e', '#4c4a56', '#686672', '#908e9a');
+const MBRICK = ramp('#2a1012', '#4a1c18', '#6e2c20', '#904030', '#b05a40');
+const ROADWORK = P({ o: '#f27a1c', O: '#ffb05a', w: '#f4ece0', y: '#b8aaa0', k: '#2a1c14', d: '#5a3a26' });
+
+/** A cluster of hexagonal basalt columns of `n` side by side: pale six-sided caps (seen from above), lit faces. */
+function basaltDeco(seed: number, n: number, hgt: number): Deco {
+  const r = rng(seed);
+  const W = n * 3 + 5;
+  const H = hgt + 6;
+  const p = new Pix(W, H, -1);
+  const foot = H - 2;
+  const tops = Array.from({ length: n }, () => Math.round(hgt * (0.55 + r() * 0.45)));
+  // the middle columns stand tallest
+  tops.sort((a, b) => a - b);
+  const order = tops.map((t, i) => ({ t, x: 2 + (i % 2 ? Math.floor(n / 2) + (i >> 1) : Math.floor(n / 2) - 1 - (i >> 1)) * 3 }));
+  for (const { t, x } of order) {
+    const top = foot - t;
+    for (let y = top; y <= foot; y++)
+      for (let k = 0; k < 3; k++) {
+        const cap = y < top + 2;
+        const v = cap ? (y === top ? (k === 1 ? 0.95 : 0.8) : 0.7 - k * 0.08) : k === 0 ? 0.55 : k === 1 ? 0.38 : 0.22;
+        p.set(x + k, y, pick(MBASALT, v - ((y - top) % 5 === 4 && !cap ? 0.12 : 0), x + k, y));
+      }
+  }
+  return deco(p, Math.floor(W / 2), foot, n * 1.4, hgt * 0.45, { shadow: [n * 1.6, 1.5] });
+}
+
+/** A charred dead tree, an ember or two still glowing in its bark. */
+function charTree(seed: number, hgt: number): Deco {
+  const W = 17;
+  const H = hgt + 4;
+  const p = new Pix(W, H, -1);
+  const r = rng(seed);
+  const foot = H - 2;
+  const embers: Pt[] = [];
+  const limb = (bx: number, by: number, ang: number, len: number, t: number, d: number) => {
+    for (let i = 0; i < len; i++) {
+      bx += Math.sin(ang);
+      by -= Math.cos(ang);
+      ang += (r() - 0.5) * 0.5;
+      for (let k = 0; k < t; k++) p.set(Math.round(bx - t / 2 + k), Math.round(by), MCHAR[k === 0 ? 3 : t > 1 && k === t - 1 ? 1 : 2]);
+      if (t > 1 && r() < 0.06) embers.push([Math.round(bx), Math.round(by)]);
+    }
+    if (d > 0) {
+      limb(bx, by, ang - 0.5 - r() * 0.4, len * 0.6, Math.max(1, t - 1), d - 1);
+      limb(bx, by, ang + 0.45 + r() * 0.4, len * 0.55, Math.max(1, t - 1), d - 1);
+    }
+  };
+  limb(8, foot + 1, (r() - 0.5) * 0.3, hgt * 0.5, 2, 2);
+  for (const [x, y] of embers) p.set(x, y, MLAVA[4]);
+  return deco(p, 8, foot, 3, hgt * 0.5, { shadow: [3, 1] });
+}
+
+/** A smoking vent: a small cone of ash, its mouth glowing (the map puffs smoke off it). */
+function ventDeco(seed: number): Deco {
+  const p = new Pix(13, 8, -1);
+  const foot = 6;
+  for (let y = 2; y <= foot; y++) {
+    const half = 1.5 + (y - 2) * 1.2;
+    for (let x = Math.round(6 - half); x <= Math.round(6 + half); x++) p.set(x, y, pick(MASH, 0.75 - ((x - (6 - half)) / (half * 2)) * 0.55 + (hash(x, y, seed) - 0.5) * 0.15, x, y));
+  }
+  p.set(5, 2, MLAVA[3]);
+  p.set(6, 2, MLAVA[5]);
+  p.set(7, 2, MLAVA[2]);
+  const d = deco(p, 6, foot, 4, 2, { shadow: [5, 1] });
+  d.glow = 0xff6a2a;
+  return d;
+}
+
+/** A lump of cooling lava: black crust cracked over a glowing core. */
+function lavaRock(seed: number, rx: number, ry: number): Deco {
+  const W = Math.ceil(rx * 2) + 5;
+  const H = Math.ceil(ry) + 4;
+  const p = new Pix(W, H, -1);
+  const foot = H - 2;
+  rock(p, W / 2, foot, rx, ry, MCHAR, MCHAR, col('#000000'), seed);
+  for (let x = 0; x < W; x++) if (p.get(x, foot) === 0) p.set(x, foot, -1);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) if (p.get(x, y) >= 0 && Math.abs(noise(x * 0.5, y * 0.6, seed) - 0.5) < 0.06) p.set(x, y, (x + y) % 3 ? MLAVA[3] : MLAVA[4]);
+  const d = deco(p, Math.floor(W / 2), foot, rx, ry * 0.5, { shadow: [rx, 1] });
+  d.glow = 0xff6a2a;
+  return d;
+}
+
+/** The road-roller's road works: a stack of hex pavers waiting to be laid, and a striped barrier. */
+function paverStack(): Deco {
+  const p = new Pix(13, 9, -1);
+  for (let i = 0; i < 3; i++)
+    for (let x = 1 + i; x < 11 - i; x++) {
+      const y = 6 - i * 2;
+      p.set(x, y, pick(MBASALT, x === 1 + i ? 0.5 : 0.85, x, y));
+      p.set(x, y + 1, pick(MBASALT, 0.3, x, y + 1));
+    }
+  return deco(p, 6, 7, 5, 2, { shadow: [5, 1] });
+}
+
+function barrierDeco(): Deco {
+  const p = new Pix(13, 9, -1);
+  stampPix(p, ['.ooowwwoooww', 'oOOwwwOOOwwy', '.ooowwwoooww', '.d........d.', 'dk........kd'], ROADWORK, 0, 2);
+  return deco(p, 6, 6, 5, 2, { shadow: [5, 1] });
+}
+
+/** Dry burnt stalks poking out of the ash. */
+const ASHGRASS = ramp('#2a2022', '#46383a', '#6a5650', '#8e7a6e');
+
+function cinderKit(): Kit {
+  const big: Deco[] = [];
+  for (let i = 0; i < 4; i++) big.push(basaltDeco(1200 + i, 3 + (i % 3), 10 + (i % 3) * 4));
+  for (let i = 0; i < 3; i++) big.push(charTree(1210 + i, 13 + i * 3));
+  const mid: Deco[] = [
+    boulder(1221, 3, 2.6, MBASALT, MBASALT, col('#000000')),
+    boulder(1222, 4, 3, MBASALT, MASH, col('#000000')),
+    boulder(1223, 2.6, 2.2, MBASALT, MBASALT, col('#000000')),
+    lavaRock(1231, 3, 2.4),
+    lavaRock(1232, 2.4, 2),
+    basaltDeco(1241, 2, 6),
+  ];
+  const small: Deco[] = [];
+  for (let i = 0; i < 4; i++) small.push(tuftDeco(1250 + i, 2 + (i % 2), ASHGRASS));
+  const cinders = (seed: number) => {
+    const p = new Pix(9, 6, -1);
+    const r = rng(seed);
+    for (let i = 0; i < 3; i++) {
+      const x = 2 + Math.floor(r() * 5);
+      const y = 2 + Math.floor(r() * 2);
+      p.set(x, y, MBASALT[4]);
+      p.set(x + 1, y, MBASALT[2]);
+      p.set(x, y + 1, MBASALT[1]);
+      if (r() < 0.3) p.set(x + 1, y + 1, MLAVA[3]);
+    }
+    return deco(p, 4, 4, 2, 1);
+  };
+  small.push(cinders(1261), cinders(1262), cinders(1263));
+  return { big, mid, small, extra: { sign: [signDeco()], vent: [ventDeco(1271), ventDeco(1272)], works: [paverStack(), barrierDeco()] } };
+}
+
+/** A cluster of coloured volcanic glass, glowing (it lights the floor round it). */
+function glassDeco(seed: number, size: number, gi: number): Deco {
+  const W = Math.ceil(size * 1.4) + 6;
+  const H = Math.ceil(size) + 4;
+  const p = new Pix(W, H, -1);
+  const foot = H - 2;
+  cluster(p, W / 2, foot, size, MGLASS[gi], seed);
+  const d = deco(p, Math.floor(W / 2), foot, size * 0.35, size * 0.4, { shadow: [size * 0.4, 1] });
+  d.glow = MGLOW[gi];
+  return d;
+}
+
+/** A little beehive kiln of old brick, its mouth glowing; the map puffs smoke off its chimney. */
+function kilnDeco(seed: number): Deco {
+  const p = new Pix(15, 15, -1);
+  const foot = 13;
+  const cx = 7;
+  for (let y = 4; y <= foot; y++)
+    for (let x = 1; x < 14; x++) {
+      const dx = (x + 0.5 - cx) / 6;
+      const dy = (y + 0.5 - foot) / 9;
+      if (dx * dx + dy * dy > 1) continue;
+      let v = 0.3 + 0.5 * lambert(dx, dy) + (hash(Math.floor((x + (Math.floor(y / 2) % 2) * 2) / 3), Math.floor(y / 2), seed) - 0.5) * 0.2;
+      if (y % 2 === 0) v -= 0.15;
+      p.set(x, y, pick(MBRICK, v, x, y));
+    }
+  for (let y = 1; y <= 4; y++) for (let x = 9; x <= 10; x++) p.set(x, y, MBRICK[x === 9 ? 3 : 1]);
+  stampPix(p, ['.xX.', 'xZZx', 'xZZx'], { x: MLAVA[3], X: MLAVA[4], Z: MLAVA[5] }, 4, 10);
+  const d = deco(p, 7, foot, 5, 4, { shadow: [6, 1.5] });
+  d.glow = 0xff7a2a;
+  return d;
+}
+
+function glassKit(): Kit {
+  const big: Deco[] = [
+    glassDeco(1301, 13, 0),
+    glassDeco(1302, 11, 2),
+    glassDeco(1303, 14, 1),
+    glassDeco(1304, 10, 3),
+    stalagmite(1311, 14, 7, MOBS),
+    stalagmite(1312, 11, 6, MOBS),
+    stalagmite(1313, 9, 5, MOBS),
+  ];
+  const mid: Deco[] = [
+    boulder(1321, 3, 2.6, MOBS, MOBS, col('#000000')),
+    boulder(1322, 4, 3, MOBS, MOBS, col('#000000')),
+    glassDeco(1331, 6, 1),
+    glassDeco(1332, 6, 3),
+    glassDeco(1333, 5, 0),
+    stalagmite(1341, 6, 4, MOBS),
+  ];
+  const shards = (seed: number) => {
+    const p = new Pix(9, 6, -1);
+    const r = rng(seed);
+    for (let i = 0; i < 3; i++) {
+      const g = MGLASS[Math.floor(r() * 4)];
+      const x = 2 + Math.floor(r() * 5);
+      const y = 2 + Math.floor(r() * 2);
+      p.set(x, y, g[4]);
+      p.set(x, y + 1, g[2]);
+    }
+    return deco(p, 4, 4, 2, 1);
+  };
+  const small: Deco[] = [shards(1351), shards(1352), shards(1353), shards(1354)];
+  return { big, mid, small, extra: { sign: [signDeco()], kiln: [kilnDeco(1361), kilnDeco(1362)] } };
+}
+
+/** A giant anvil on the forge floor: a lit face, a horn, a glowing ingot left on it. */
+function anvilDeco(seed: number, s: number): Deco {
+  const W = Math.round(16 * s) + 4;
+  const H = Math.round(11 * s) + 4;
+  const p = new Pix(W, H, -1);
+  const foot = H - 2;
+  const top = foot - Math.round(9 * s);
+  for (let x = 2; x < W - 2; x++) {
+    const horn = x < 2 + 4 * s;
+    for (let y = top + (horn ? Math.round((2 + 4 * s - x) * 0.4) : 0); y <= top + Math.round(2 * s); y++) p.set(x, y, pick(MIRON, y === top ? 0.95 : x < W * 0.45 ? 0.6 : 0.35, x, y));
+  }
+  for (let y = top + Math.round(2 * s) + 1; y <= foot; y++) {
+    const half = y < foot - 2 * s ? 2 * s : 4 * s;
+    for (let x = Math.round(W / 2 - half); x <= Math.round(W / 2 + half); x++) p.set(x, y, pick(MIRON, x < W / 2 ? 0.5 : 0.25, x, y));
+  }
+  p.set(Math.round(W * 0.55), top - 1, MLAVA[4]);
+  p.set(Math.round(W * 0.55) + 1, top - 1, MLAVA[3]);
+  const d = deco(p, Math.floor(W / 2), foot, W * 0.35, H * 0.4, { shadow: [W * 0.4, 1.5] });
+  d.glow = 0xff8a3a;
+  void seed;
+  return d;
+}
+
+/** A coil of great chain heaped on the floor. */
+function chainCoil(seed: number): Deco {
+  const p = new Pix(15, 9, -1);
+  for (let ring = 0; ring < 3; ring++) {
+    const cy = 6 - ring * 1.6;
+    const rx = 6 - ring * 1.6;
+    for (let i = 0; i < 14 - ring * 3; i++) {
+      const a = (i / (14 - ring * 3)) * Math.PI * 2 + ring;
+      const x = Math.round(7 + Math.cos(a) * rx);
+      const y = Math.round(cy + Math.sin(a) * rx * 0.4);
+      p.set(x, y, i % 2 ? MIRON[4] : MIRON[2]);
+      if (i % 2 === 0) p.set(x + 1, y, MIRON[1]);
+    }
+  }
+  p.set(7, 2, hash(seed, 1, 1) > 0.3 ? MLAVA[3] : MIRON[4]);
+  return deco(p, 7, 7, 5, 2, { shadow: [6, 1] });
+}
+
+/** A heap of slag, still glowing in its cracks. */
+function slagHeap(seed: number, rx: number): Deco {
+  const W = Math.ceil(rx * 2) + 4;
+  const H = Math.ceil(rx * 0.8) + 4;
+  const p = new Pix(W, H, -1);
+  const foot = H - 2;
+  mass(p, [{ x: W / 2, y: foot, rx, ry: rx * 0.6 }, { x: W / 2 - rx * 0.4, y: foot - 1, rx: rx * 0.5, ry: rx * 0.4 }], { ramp: MCHAR, seed, bump: 0.3, tex: 0.4, vgrad: 0.3, shadow: 0.2 });
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (p.get(x, y) >= 0 && hash(x, y, seed) > 0.9) p.set(x, y, hash(x, y, seed + 1) > 0.5 ? MLAVA[3] : MLAVA[2]);
+  const d = deco(p, Math.floor(W / 2), foot, rx * 0.8, rx * 0.4, { shadow: [rx * 0.9, 1] });
+  d.glow = 0xff5a2a;
+  return d;
+}
+
+function forgeKit(): Kit {
+  const big: Deco[] = [anvilDeco(1401, 1.2), anvilDeco(1402, 1), basaltDeco(1411, 3, 16), basaltDeco(1412, 2, 13), basaltDeco(1413, 4, 18)];
+  const mid: Deco[] = [chainCoil(1421), chainCoil(1422), slagHeap(1431, 4), slagHeap(1432, 3), boulder(1441, 3, 2.6, MBASALT, MBASALT, col('#000000')), anvilDeco(1451, 0.7)];
+  const rubble = (seed: number) => {
+    const p = new Pix(9, 6, -1);
+    const r = rng(seed);
+    for (let i = 0; i < 3; i++) {
+      const x = 2 + Math.floor(r() * 5);
+      const y = 2 + Math.floor(r() * 2);
+      p.set(x, y, MBASALT[4]);
+      p.set(x + 1, y, MBASALT[2]);
+      p.set(x, y + 1, MBASALT[1]);
+    }
+    return deco(p, 4, 4, 2, 1);
+  };
+  const small: Deco[] = [rubble(1461), rubble(1462), rubble(1463), slagHeap(1464, 1.6)];
+  return { big, mid, small, extra: { sign: [signDeco()], brazier: [brazierDeco()] } };
+}
+
+// ------------------------------------------------------------------ Ashfell's ground and roads
+
+/** The Cinder Flats' and the forge's lava channel: molten, a crust of black cooling rock along its banks. */
+const LAVA_STREAM: StreamLook = { water: ramp('#a0221a', '#d0401a', '#ee6a1e', '#ff9a2a', '#ffc84a', '#fff4b8'), bank: ramp('#0e0a0c', '#1a1214', '#281c1a', '#382820'), stone: ramp('#141218', '#2e2834', '#524856', '#6a5e6a') };
+
+const CTRAIL = ramp('#3a3034', '#4a3e40', '#5c4e4e', '#6e5e5c', '#82706a', '#988680');
+const GFLOOR = ramp('#08060c', '#0e0a14', '#16101e', '#1e1628', '#281e34', '#342844', '#443656');
+const GPATH = ramp('#2a2036', '#362a46', '#443656', '#524466', '#625478', '#76688c');
+const FFLOOR = ramp('#100c10', '#18121a', '#221a22', '#2c222a', '#382c32', '#46383c', '#564648');
+
+function groundCinder(p: Pix, c: Ctx): void {
+  for (let y = 0; y < c.H; y++)
+    for (let x = 0; x < c.W; x++) {
+      let v = 0.5 + (fbm(x * 0.04, y * 0.06, c.seed) - 0.5) * 0.7 + (sun(c, x, y) - 0.5) * 0.35;
+      // wind-combed ash, dunes of it
+      const rip = Math.sin(x * 0.28 + y * 0.7 + fbm(x * 0.05, y * 0.05, c.seed + 3) * 5);
+      if (rip > 0.9) v += 0.08;
+      else if (rip < -0.92) v -= 0.1;
+      let k = pick(MASH, v, x, y, 0.3);
+      const h = hash(x, y, c.seed + 1);
+      if (h < 0.004) k = MBASALT[1]; // a cinder
+      else if (h > 0.9996) k = MLAVA[3]; // an ember
+      // cracked crust over cooling ground here and there, glowing faintly in its seams
+      const crust = fbm(x * 0.05 + 7, y * 0.07, c.seed + 5);
+      if (crust > 0.72 && Math.abs(noise(x * 0.3, y * 0.4, c.seed + 6) - 0.5) < 0.035) k = crust > 0.77 ? MLAVA[2] : MLAVA[1];
+      p.set(x, y, k);
+    }
+}
+
+/** The ash road, and from the middle of the map on, the road-roller's paving: hexagonal basalt pavers. */
+function roadsCinder(p: Pix, c: Ctx): void {
+  const R = c.road;
+  const W = c.W;
+  const paveFrom = (y: number) => c.W * 0.5 + Math.sin(y * 0.2) * 6;
+  paintRoads(
+    p,
+    c,
+    (x, y, clr) => {
+      const up = y > 0 && !R[(y - 1) * W + x];
+      const down = y < c.H - 1 && !R[(y + 1) * W + x];
+      if (x > paveFrom(y) || clr) {
+        // basalt pavers in staggered rows, their tops lit, dark seams
+        const row = Math.floor(y / 3);
+        const off = (row % 2) * 2;
+        const cell = Math.floor((x + off) / 4);
+        if ((x + off) % 4 === 0 || y % 3 === 0) return up ? MBASALT[0] : MBASALT[1];
+        return pick(MBASALT, 0.48 + hash(cell, row, 23) * 0.3 + (y % 3 === 1 ? 0.12 : 0) - (up ? 0.25 : 0) + (sun(c, x, y) - 0.5) * 0.2, x, y);
+      }
+      let v = (clr ? 0.62 : 0.56) + (noise(x * 0.4, y * 0.4, 7) - 0.5) * 0.25 + (sun(c, x, y) - 0.5) * 0.25;
+      if (up) v -= 0.34;
+      else if (down) v += 0.18;
+      if (hash(x, y, 71) > 0.94) v -= 0.22; // footprints in the ash
+      return pick(CTRAIL, v, x, y, 0.2);
+    },
+    (k) => mix(k, col('#1a1014'), 0.3),
+  );
+}
+
+function groundGlass(p: Pix, c: Ctx): void {
+  for (let y = 0; y < c.H; y++)
+    for (let x = 0; x < c.W; x++) {
+      let v = 0.42 + (fbm(x * 0.05, y * 0.07, c.seed) - 0.5) * 0.7 + (sun(c, x, y) - 0.5) * 0.15;
+      // the glossy sheen of black glass, flow lines frozen in it
+      if (Math.abs(noise(x * 0.07 + y * 0.03, y * 0.12, c.seed + 5) - 0.5) < 0.025) v += 0.32;
+      let k = pick(GFLOOR, v, x, y, 0.3);
+      // chips of coloured glass in the floor
+      if (hash(x, y, c.seed + 2) < 0.0015) k = MGLASS[Math.floor(hash(x, y, c.seed + 3) * 4)][3];
+      p.set(x, y, k);
+    }
+}
+
+function roadsGlass(p: Pix, c: Ctx): void {
+  const R = c.road;
+  const W = c.W;
+  paintRoads(
+    p,
+    c,
+    (x, y, clr) => {
+      const up = y > 0 && !R[(y - 1) * W + x];
+      // a path worn smooth, set with a mosaic of glass chips in the clearings
+      let v = (clr ? 0.6 : 0.54) + (noise(x * 0.3, y * 0.3, 9) - 0.5) * 0.25 + (sun(c, x, y) - 0.5) * 0.15;
+      if (up) v -= 0.3;
+      if (clr && (x * 7 + y * 13) % 11 === 0) return MGLASS[(x + y) % 4][2];
+      if (hash(x, y, 19) > 0.985) return MGLASS[Math.floor(hash(x, y, 20) * 4)][3];
+      return pick(GPATH, v, x, y, 0.2);
+    },
+    (k) => mix(k, col('#04020a'), 0.3),
+  );
+}
+
+function groundForge(p: Pix, c: Ctx): void {
+  for (let y = 0; y < c.H; y++)
+    for (let x = 0; x < c.W; x++) {
+      // great flagstones, a few of their seams glowing with the heat underneath
+      const row = Math.floor(y / 9);
+      const len = 14 + Math.floor(hash(row, 3, c.seed) * 8);
+      const off = Math.floor(hash(row, 5, c.seed) * len);
+      const cell = Math.floor((x + off) / len);
+      const seam = y % 9 === 0 || (x + off) % len === 0;
+      let v = 0.44 + (hash(cell, row, c.seed) - 0.5) * 0.2 + (fbm(x * 0.05, y * 0.07, c.seed) - 0.5) * 0.3 + (sun(c, x, y) - 0.5) * 0.15;
+      if (y % 9 === 1) v += 0.06;
+      let k = pick(FFLOOR, seam ? 0.12 : v, x, y, 0.25);
+      if (seam && hash(cell, row, c.seed + 7) > 0.9) k = (x + y) % 3 ? MLAVA[0] : MLAVA[1];
+      p.set(x, y, k);
+    }
+}
+
+function roadsForge(p: Pix, c: Ctx): void {
+  const R = c.road;
+  const W = c.W;
+  paintRoads(
+    p,
+    c,
+    (x, y, clr) => {
+      const up = y > 0 && !R[(y - 1) * W + x];
+      // iron walkway plates, riveted at the corners
+      const fx = x % 5;
+      const fy = y % 5;
+      if (fx === 0 || fy === 0) return MIRON[up ? 0 : 1];
+      if ((fx === 1 || fx === 4) && (fy === 1 || fy === 4)) return MIRON[5];
+      return pick(MIRON, (clr ? 0.58 : 0.5) + (fy === 1 ? 0.12 : 0) - (up ? 0.25 : 0) + (sun(c, x, y) - 0.5) * 0.2 + (hash(Math.floor(x / 5), Math.floor(y / 5), 29) - 0.5) * 0.15, x, y, 0.2);
+    },
+    (k) => mix(k, col('#0a0204'), 0.3),
+  );
+}
+
+/** Stone slab bridges (the Cinder Flats' lava river) or iron grates (the forge's channels) where roads cross. */
+function slabBridges(p: Pix, c: Ctx, r: Ramp): void {
+  for (const t of c.spec.trails) {
+    const wet = t.map(([x, y]) => c.water[at(c, x, y)] > 0);
+    const i0 = wet.indexOf(true);
+    if (i0 < 0) continue;
+    const i1 = wet.lastIndexOf(true);
+    for (let i = Math.max(1, i0 - 2); i <= Math.min(t.length - 2, i1 + 2); i++) {
+      const [x, y] = t[i];
+      const dx = t[i + 1][0] - t[i - 1][0];
+      const dy = t[i + 1][1] - t[i - 1][1];
+      const l = Math.hypot(dx, dy) || 1;
+      for (let k = -2.5; k <= 2.5; k += 0.5) {
+        const px = Math.round(x + (-dy / l) * k);
+        const py = Math.round(y + (dx / l) * k);
+        const seam = (i - i0) % 4 === 0;
+        p.set(px, py, seam ? r[0] : pick(r, k < -1 ? 0.8 : k > 1.5 ? 0.3 : 0.55, px, py));
+      }
+    }
+  }
+}
+
+// ------------------------------------------------------------------ Ashfell's landmarks
+
+function decorCinder(c: Ctx): void {
+  const k = kit('cinder');
+  const { extra } = k;
+  // smoking vents in the roomiest spots (the map puffs their smoke)
+  for (let i = 0; i < 3; i++) {
+    const s = roomFor(c, 14, 10, 3);
+    if (!s) break;
+    const d = extra.vent[i % 2];
+    claim(c, d, s[0], s[1]);
+    c.land.smoke.push([s[0], s[1] - 5]);
+  }
+  // the road works: a stack of pavers and a barrier beside a clearing or two on the paved side
+  c.spec.pads.forEach((pd, i) => {
+    if (pd.start || pd.x < c.W * 0.45 || hash(i, 3, c.seed) < 0.5) return;
+    const d = extra.works[i % 2];
+    for (const side of [1, -1]) {
+      const x = pd.x + side * (pd.r + 6);
+      if (fits(c, d, x, pd.y + 1)) {
+        claim(c, d, x, pd.y + 1);
+        break;
+      }
+    }
+  });
+  const clump = (x: number, y: number) => fbm(x * 0.035, y * 0.05, c.seed + 9) > 0.6;
+  scatter(c, k, {
+    big: (x, y) => Math.max(edgy(c, x, y) * 0.6, clump(x, y) ? 0.42 : 0.04),
+    mid: (x, y) => (clump(x, y) ? 0.3 : 0.12),
+    small: () => 0.14,
+    step: 7,
+  });
+}
+
+/** Pools of magma in the warren's floor, crusted at their rims (they bubble on the map). */
+function magmaPools(p: Pix, c: Ctx): void {
+  for (let i = 0; i < 3; i++) {
+    const s = roomFor(c, 22, 12, 3, [c.W / 2, c.H / 2 + 8], 60);
+    if (!s) break;
+    const [cx, fy] = s;
+    const cy = fy - 6;
+    const rx = 9 + hash(i, 1, c.seed) * 3;
+    const ry = 4.5;
+    for (let y = Math.floor(cy - ry - 1); y <= cy + ry + 1; y++)
+      for (let x = Math.floor(cx - rx - 1); x <= cx + rx + 1; x++) {
+        if (x < 0 || y < 0 || x >= c.W || y >= c.H) continue;
+        const d = ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 + (noise(x * 0.3, y * 0.3, c.seed + i) - 0.5) * 0.25;
+        if (d > 1.25) continue;
+        if (d > 1) {
+          p.set(x, y, hash(x, y, 3) > 0.5 ? MOBS[4] : MOBS[2]); // a crusted rim
+          continue;
+        }
+        let v = 0.45 + (1 - d) * 0.35 + (noise(x * 0.25, y * 0.8, c.seed + 4) - 0.5) * 0.35;
+        if (noise(x * 0.3, y * 0.5, c.seed + 9) > 0.7 && d < 0.8) v = 0.1; // crust floating on it
+        p.set(x, y, pick(MLAVA, v, x, y, 0.3));
+        if (d < 0.8) c.water[y * c.W + x] = 1;
+      }
+    torchLight(p, cx, cy, rx + 8, ry + 5, col('#ff6a2a'), 0.22);
+    c.land.pools.push([Math.round(cx), Math.round(cy)]);
+    reserve(c, cx - rx - 2, cy - ry - 2, rx * 2 + 4, ry * 2 + 4);
+    c.dist = distField(c.block, c.W, c.H);
+  }
+}
+
+function decorGlass(c: Ctx): void {
+  const k = kit('glass');
+  const { extra } = k;
+  // an old kiln or two, smoking
+  for (let i = 0; i < 2; i++) {
+    const s = roomFor(c, 16, 16, 3);
+    if (!s) break;
+    claim(c, extra.kiln[i], s[0], s[1]);
+    c.land.smoke.push([s[0] + 3, s[1] - 13]);
+  }
+  const clump = (x: number, y: number) => fbm(x * 0.04, y * 0.05, c.seed + 9) > 0.55;
+  scatter(c, k, {
+    big: (x, y) => Math.max(edgy(c, x, y) * 0.7, clump(x, y) ? 0.4 : 0.04),
+    mid: (x, y) => (clump(x, y) ? 0.32 : 0.14),
+    small: () => 0.12,
+    step: 7,
+  });
+}
+
+function decorForge(c: Ctx): void {
+  const k = kit('forge');
+  const { extra } = k;
+  // braziers beside some of the clearings (their flames burn on the map)
+  const br = extra.brazier[0];
+  c.spec.pads.forEach((pd, i) => {
+    if (pd.start || hash(i, 3, c.seed) < 0.4) return;
+    for (const side of hash(i, 4, c.seed) < 0.5 ? [-1, 1] : [1, -1]) {
+      const x = pd.x + side * (pd.r + 4);
+      const y = pd.y - 1;
+      if (distAt(c, x, y) >= 1 && distAt(c, x, y - 3) >= 1 && !c.items.some((it) => Math.hypot(it.x - x, it.y - y) < 6)) {
+        reserve(c, x - 3, y - 6, 7, 7);
+        put(c, br, x, y);
+        c.land.flames.push([Math.round(x), Math.round(y) - 4]);
+        break;
+      }
+    }
+  });
+  c.dist = distField(c.block, c.W, c.H);
+  const clump = (x: number, y: number) => fbm(x * 0.04, y * 0.05, c.seed + 9) > 0.56;
+  scatter(c, k, {
+    big: (x, y) => Math.max(edgy(c, x, y) * 0.7, clump(x, y) ? 0.4 : 0.05),
+    mid: (x, y) => (clump(x, y) ? 0.45 : 0.22),
+    small: () => 0.3,
+    step: 7,
+  });
+}
+
+const KITS: Record<Theme, () => Kit> = { forest: forestKit, ruins: ruinsKit, hollow: hollowKit, pass: passKit, caves: cavesKit, glacier: glacierKit, cinder: cinderKit, glass: glassKit, forge: forgeKit };
 
 function kit(theme: Theme): Kit {
   return (kits[theme] ??= KITS[theme]());
@@ -2493,6 +3203,7 @@ const pickOf = <T,>(list: T[], r: () => number): T => list[Math.floor(r() * list
 /** The theme's light over the finished frame: a soft vignette, dusk blue for the ruins, the sunset for the hollow. */
 function lightFrame(p: Pix, c: Ctx, theme: Theme): void {
   if (theme === 'pass' || theme === 'caves' || theme === 'glacier') return frostLight(p, c, theme);
+  if (theme === 'cinder' || theme === 'glass' || theme === 'forge') return ashLight(p, c, theme);
   const { W, H } = c;
   const edge = theme === 'forest' ? col('#14321e') : theme === 'ruins' ? col('#0a1020') : col('#1a0818');
   const warm = col('#ffb060');
@@ -2539,6 +3250,32 @@ function frostLight(p: Pix, c: Ctx, theme: 'pass' | 'caves' | 'glacier'): void {
     }
 }
 
+/** Ashfell's light: the Cinder Flats under a smoky orange sky (warm on the top left, plum shade in the far corner); the
+ *  Glass Warrens in deep violet shade but for what glows; the Black Forge washed red from below, smoke in the corners. */
+function ashLight(p: Pix, c: Ctx, theme: 'cinder' | 'glass' | 'forge'): void {
+  const { W, H } = c;
+  const edge = theme === 'cinder' ? col('#1a0a12') : theme === 'glass' ? col('#04020a') : col('#0e0204');
+  const amt = theme === 'cinder' ? 0.45 : theme === 'glass' ? 0.62 : 0.55;
+  const reach = theme === 'glass' ? 22 : 18;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const e = clamp01(1 - Math.min(x / reach, (W - 1 - x) / reach, y / (reach * 0.75), (H - 1 - y) / (reach * 0.75)));
+      let k = p.get(x, y);
+      if (e > 0 && e * e > bay(x, y) * 0.9) k = mix(k, edge, e * amt);
+      const s = sun(c, x, y);
+      if (theme === 'cinder') {
+        if (s > 0.62 && (s - 0.62) * 3 > bay(x, y)) k = lighten(k, col('#ffb070'), 0.07);
+        if (s < 0.4 && (0.4 - s) * 3 > bay(x, y)) k = mix(k, col('#3a1a2a'), 0.14);
+      } else if (theme === 'glass') k = mix(k, col('#0c0618'), 0.1);
+      else {
+        k = mix(k, col('#1a0608'), 0.12);
+        const a = clamp01((y - H * 0.55) / (H * 0.45));
+        if (a > 0 && a * 0.9 > bay(x, y)) k = lighten(k, col('#ff5a2a'), 0.06 * a);
+      }
+      p.set(x, y, k);
+    }
+}
+
 /** Foreground foliage framing the screen: dark leaf masses overhanging the top and bottom edges and corners. */
 function frameEdges(p: Pix, c: Ctx, theme: Theme): void {
   const { W, H } = c;
@@ -2553,7 +3290,13 @@ function frameEdges(p: Pix, c: Ctx, theme: Theme): void {
             ? ramp('#080e18', '#0e1822', '#142428', '#1c3230', '#284238')
             : theme === 'caves'
               ? ramp('#020208', '#05060f', '#0a0c1c', '#10142a', '#1a2040')
-              : ramp('#060c1c', '#0c162c', '#14223c', '#1e3250', '#2a4464');
+              : theme === 'glacier'
+                ? ramp('#060c1c', '#0c162c', '#14223c', '#1e3250', '#2a4464')
+                : theme === 'cinder'
+                  ? ramp('#0a0608', '#140c0e', '#1e1416', '#2a1e1e', '#382a28')
+                  : theme === 'glass'
+                    ? ramp('#020104', '#06040a', '#0c0812', '#140e1c', '#1e1628')
+                    : ramp('#060203', '#0e0606', '#180c0a', '#24120e', '#321a14');
   const r = rng(c.seed + 41);
   const blobs: Blob[] = [];
   // along the bottom edge: low clumps poking up; along the top: hanging canopy; heavier in the corners
@@ -2584,7 +3327,7 @@ function frameEdges(p: Pix, c: Ctx, theme: Theme): void {
     blit(p, q, 0, 0);
     return;
   }
-  mass(p, ok, { ramp: leaf, seed: c.seed + 3, bump: theme === 'caves' ? 0.12 : 0.22, tex: 0.3, vgrad: 0.2, light: -0.05, shadow: 0.3, outline: INK });
+  mass(p, ok, { ramp: leaf, seed: c.seed + 3, bump: theme === 'caves' || theme === 'glass' || theme === 'forge' ? 0.12 : theme === 'cinder' ? 0.16 : 0.22, tex: 0.3, vgrad: 0.2, light: -0.05, shadow: 0.3, outline: INK });
 }
 
 // ------------------------------------------------------------------ paint
@@ -2623,7 +3366,15 @@ export function paintLand(spec: LandSpec): Land {
     groundPass(base, c);
     stream(base, c, { water: ramp('#5a7cb0', '#7aa0cc', '#9cc2e0', '#bcdcee', '#dcf0f8', '#f8feff'), bank: MSNOW, stone: SROCK });
   } else if (spec.theme === 'caves') groundCaves(base, c);
-  else groundGlacier(base, c);
+  else if (spec.theme === 'glacier') groundGlacier(base, c);
+  else if (spec.theme === 'cinder') {
+    groundCinder(base, c);
+    stream(base, c, LAVA_STREAM);
+  } else if (spec.theme === 'glass') groundGlass(base, c);
+  else {
+    groundForge(base, c);
+    stream(base, c, LAVA_STREAM);
+  }
   for (let i = 0; i < c.block.length; i++) c.block[i] = road[i] || c.water[i] ? 1 : 0;
   c.dist = distField(c.block, W, H);
   if (spec.theme === 'forest') {
@@ -2635,7 +3386,15 @@ export function paintLand(spec: LandSpec): Land {
     roadsPass(base, c);
     bridges(base, c);
   } else if (spec.theme === 'caves') roadsCaves(base, c);
-  else roadsGlacier(base, c);
+  else if (spec.theme === 'glacier') roadsGlacier(base, c);
+  else if (spec.theme === 'cinder') {
+    roadsCinder(base, c);
+    slabBridges(base, c, MBASALT);
+  } else if (spec.theme === 'glass') roadsGlass(base, c);
+  else {
+    roadsForge(base, c);
+    slabBridges(base, c, MIRON);
+  }
 
   // from here on, the icons, their labels and the lair are off limits too
   for (const z of spec.zones) reserve(c, z.x, z.y, z.w, z.h);
@@ -2651,10 +3410,14 @@ export function paintLand(spec: LandSpec): Land {
   else if (spec.theme === 'caves') {
     icePools(base, c);
     decorCaves(c);
-  } else {
+  } else if (spec.theme === 'glacier') {
     crevasses(base, c);
     decorGlacier(c);
-  }
+  } else if (spec.theme === 'cinder') decorCinder(c);
+  else if (spec.theme === 'glass') {
+    magmaPools(base, c);
+    decorGlass(c);
+  } else decorForge(c);
 
   // braziers light the stones around them
   for (const [x, y] of land.flames) torchLight(base, x, y + 3, 14, 9, col('#ff9040'), 0.35);
@@ -2666,7 +3429,7 @@ export function paintLand(spec: LandSpec): Land {
       land.glows.push([it.x, it.y - Math.round(it.d.cy), it.d.glow]);
     }
   // cast shadows, then the scenery in depth order
-  const SHADE: Record<Theme, string> = { forest: '#16301e', ruins: '#080c14', hollow: '#14060e', pass: '#3a4280', caves: '#02030a', glacier: '#0a1430' };
+  const SHADE: Record<Theme, string> = { forest: '#16301e', ruins: '#080c14', hollow: '#14060e', pass: '#3a4280', caves: '#02030a', glacier: '#0a1430', cinder: '#140a10', glass: '#05030a', forge: '#0a0204' };
   const shade = col(SHADE[spec.theme]);
   const sx = spec.theme === 'hollow' ? 2 : 1;
   for (const it of c.items) if (it.d.shadow) shadowAt(base, it.x + sx, it.y, it.d.shadow[0], it.d.shadow[1], 0.35, shade);
