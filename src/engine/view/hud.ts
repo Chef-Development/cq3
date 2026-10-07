@@ -90,7 +90,9 @@ export class Hud {
   private plateGlowAt = -1e9;
   coinsShown = 0;
   coinsPending = 0; // coins from kills whose burst hasn't spawned yet
-  private coinFlights: Array<{ x0: number; y0: number; vx: number; vy: number; born: number; value: number }> = [];
+  private coinFlights: Array<{ x0: number; y0: number; vx: number; vy: number; born: number; value: number; label?: string }> = [];
+  /** The coin chip as last drawn (a perk's "+N" pops up beside it). */
+  private coinRect: Rect | null = null;
   private lastCoinSound = 0;
   comboPopAt = 0;
   comboBreakUntil = 0;
@@ -402,14 +404,15 @@ export class Hud {
 
   // ------------------------------------------------------------------ coins
 
-  /** Coins pop out at (x, y) and fly to the coin chip (`count`: how many coins show; by default 3 to 10). */
-  dropCoins(x: number, y: number, total: number, count?: number): void {
+  /** Coins pop out at (x, y) and fly to the coin chip (`count`: how many coins show; by default 3 to 10). `label`: a
+   *  "+N" pops up by the coin counter as the last of them lands (a perk's find). */
+  dropCoins(x: number, y: number, total: number, count?: number, label?: string): void {
     if (total <= 0) return;
     const n = Math.max(1, Math.round(count ?? Math.max(3, Math.min(10, Math.round(total / 5)))));
     const now = performance.now();
     for (let i = 0; i < n; i++) {
       const value = Math.floor(total / n) + (i < total % n ? 1 : 0);
-      this.coinFlights.push({ x0: x, y0: y, vx: rand(-60, 60), vy: rand(-110, -60), born: now + i * 25, value });
+      this.coinFlights.push({ x0: x, y0: y, vx: rand(-60, 60), vy: rand(-110, -60), born: now + i * 25, value, label: i === n - 1 ? label : undefined });
     }
   }
 
@@ -440,22 +443,40 @@ export class Hud {
             this.lastCoinSound = now;
             s.app.audio.coin();
           }
+          if (f.label) {
+            // a perk's find: "+N" in gold, rising off the coin counter's right end
+            const r = this.coinRect;
+            const lx = r ? r.x + r.w + 1 + textWidth(f.label, 1, true) / 2 : tx + 14;
+            const ly = r ? r.y + r.h / 2 : ty;
+            s.fx.addFloater(lx, ly, f.label, 0xffe066, 1, true, 0, -18, 0, 760, false);
+          }
           continue;
         }
       }
-      // a spinning gold coin: 5 px face that narrows to its edge and back
+      // a spinning gold coin: 5 px face that narrows to its edge and back (a perk's find pops out at twice the size,
+      // with a glint, so it reads where it came from)
       const X = Math.round(x);
       const Y = Math.round(y);
       const spin = [2, 1, 0, 1][Math.floor(now / 70 + i) % 4];
-      rows(g, X - spin - 1, Y - 3, spin * 2 + 3, 7, spin > 0 ? 2 : 1, INK);
+      const K = f.label && age < T1 + 0.1 ? 2 : 1;
+      if (K > 1) {
+        g.fillStyle(0xffe680, 0.35);
+        g.fillCircle(X, Y, 9);
+      }
+      rows(g, X - (spin + 1) * K, Y - 3 * K, (spin * 2 + 3) * K, 7 * K, spin > 0 ? 2 * K : K, INK);
       g.fillStyle(spin === 0 ? 0xb07e18 : 0xf2c230, 1);
-      g.fillRect(X - spin, Y - 2, spin * 2 + 1, 5);
+      g.fillRect(X - spin * K, Y - 2 * K, (spin * 2 + 1) * K, 5 * K);
       if (spin > 0) {
         g.fillStyle(0xfff0a0, 1);
-        g.fillRect(X - spin, Y - 2, 1, 3);
+        g.fillRect(X - spin * K, Y - 2 * K, K, 3 * K);
         g.fillStyle(0xd8901c, 1);
-        g.fillRect(X + spin, Y - 1, 1, 3);
-        g.fillRect(X - spin + 1, Y + 2, spin * 2, 1);
+        g.fillRect(X + spin * K, Y - K, K, 3 * K);
+        g.fillRect(X - (spin - 1) * K, Y + 2 * K, spin * 2 * K, K);
+      }
+      if (K > 1 && Math.floor(now / 60) % 2) {
+        g.fillStyle(WHITE, 1);
+        g.fillRect(X + 4, Y - 7, 1, 3);
+        g.fillRect(X + 3, Y - 6, 3, 1);
       }
     }
     // the run banks coins when the phase moves on (after the kill animation), so never count down to it
@@ -629,6 +650,7 @@ export class Hud {
       this.coinsPrev = coins;
     }
     const cr = this.coinChip(X, coins);
+    this.coinRect = cr;
     const ck = (now - this.coinPopAt) / 200;
     const cpop = ck >= 0 && ck < 1;
     tag(g, cr, [NAVY[5], NAVY[3], NAVY[2], NAVY[1]], 0.94);

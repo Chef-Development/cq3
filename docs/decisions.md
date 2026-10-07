@@ -161,3 +161,28 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     nearly always wins; at Act 3's numbers a fresh lab hero, Rowan included, lost half of them); companion fights
     four waves. A reworked item asks for a new rating: a rating given to its old version shows as "Reworked" in
     the list and as "before: ..." in the report.
+
+## Overnight polish run (playtest round 6)
+V1. **Every effect shows on what it touched** (the playtester: "not only as a word above the bar"): one table says where
+    each perk lands (`view/perk-at.ts`: the block, a foe, the cursor, the hero, the meter, the combo, the style tab, its
+    coins' source...) and one module draws it (`view/onsite.ts`). The callout words and the lane's names stay. A unit
+    test reads the core for every perk it fires and fails on one without an entry; at run time an unknown perk still
+    shows on its block, its foe or the hero, never only as a word. The table and what each looks like are in
+    docs/fight-events.md ("View coverage").
+V2. Perks that change several blocks without saying which (Quake, Bend, Parry, Shockwave, Pinning Shot...) flash every
+    red on the bar; Chill Bite flashes every red of the bitten foe ("Needs from core" asks for block ids).
+V3. Mote's star and the Seedling's seed fly to a green that is already on the bar: hiding a block the player could
+    already tap until the star lands would change the timing. The ally a green calls does wait for its leaf (200 ms;
+    allies are only drawn, the sim has them at once).
+V4. Bun's Lucky Foot (every 10th hit) always comes with Bun's own attack (every 5th), so Bun hops once it's home from
+    it; the coin pops out of the block at twice its size so it reads where it came from, and "+1" pops by the counter.
+V5. Sunny's breath: each foe's number shows as the sweep of fire reaches it (a wave, within about 0.4 s) instead of
+    all at once; the damage is the core's, only when its number shows changes. Fire Breath's traps stay drawn on the bar
+    until the fireball reaches them (at most 0.2 s; they're gone in the sim already, so nothing can tap them).
+V6. A slow patch laid where a Shadow Dash just landed (within 0.8 s, over its landing spot) is painted in Sable's
+    violet so it reads as the dash's; any patch kind the view doesn't know yet is painted like a slow patch, never
+    left invisible.
+V7. A heal shows a green +N on the hero too (beside the HP plate's): heals within 0.9 s merge into one number, so a
+    heal on every hit (Vampiric Fang) never stacks numbers.
+V8. Flights from the stage to the bar (Mote's star, seeds, leaves, companions' streaks, fireballs) draw over the
+    callout words, which they would otherwise pass under.

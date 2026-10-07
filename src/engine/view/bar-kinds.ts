@@ -134,14 +134,24 @@ export function drawPatch(g: G, z: PatchLook, B: Rect, bx: number, now: number, 
       g.fillRect(x0 - 1, top + r, 1, 1);
       g.fillRect(x1, top + r + 1, 1, 1);
     }
-  } else if (z.kind === 'slow') {
-    // a frost-blue rune strip: dashed rims, glyphs that pulse one after another
-    g.fillStyle(0x3a5ad0, 0.55 * a);
+  } else if (z.kind !== 'dash') {
+    // a slow patch (and any patch kind this view doesn't know yet): a rune strip, frost-blue, or violet where a Shadow
+    // Dash landed ('slowDash'); dashed rims, bright ends, glyphs that pulse one after another (one in the middle of a
+    // narrow one)
+    const dash = z.kind === 'slowDash';
+    const [fill, rim, dim, lit] = dash ? [0x5a2a90, 0xdab0ff, 0x9a6ae0, 0xf0e0ff] : [0x3a5ad0, 0x9ad8ff, 0x6a9af0, 0xe0f6ff];
+    g.fillStyle(fill, (dash ? 0.65 : 0.55) * a);
     g.fillRect(x0, top, w, h);
-    g.fillStyle(0x9ad8ff, 0.7 * a);
+    g.fillStyle(rim, 0.7 * a);
     for (let x = x0; x < x1; x += 3) {
       g.fillRect(x, B.y - 1, 2, 1);
       g.fillRect(x, B.y + B.h, 2, 1);
+    }
+    if (dash || w < 11) {
+      // bright ends, so a short one reads as a patch
+      g.fillStyle(rim, 0.9 * a);
+      g.fillRect(x0, B.y - 1, 1, B.h + 2);
+      g.fillRect(x1 - 1, B.y - 1, 1, B.h + 2);
     }
     // frost runes: an hourglass, a snow star, a crystal, a snow star
     const RUNES = [
@@ -150,14 +160,17 @@ export function drawPatch(g: G, z: PatchLook, B: Rect, bx: number, now: number, 
       ['.#.', '#.#', '#.#', '#.#', '.#.'],
       ['#.#', '.#.', '###', '.#.', '#.#'],
     ];
-    for (let i = 0, x = x0 + 3; x + 3 <= x1 - 2; i++, x += 8) {
+    const glyphAt = (x: number, i: number) => {
       const glyph = RUNES[(i + z.id) % RUNES.length];
-      const p = pulse(now, 1100, i * 180);
-      g.fillStyle(mix(0x6a9af0, 0xe0f6ff, p), (0.55 + 0.45 * p) * a);
+      const p = pulse(now, dash ? 700 : 1100, i * 180);
+      g.fillStyle(mix(dim, lit, p), (0.55 + 0.45 * p) * a);
       glyph.forEach((row, yy) => {
         for (let xx = 0; xx < 3; xx++) if (row[xx] === '#') g.fillRect(x + xx, top + 2 + yy, 1, 1);
       });
-    }
+    };
+    if (w < 11) {
+      if (w >= 5) glyphAt(Math.round(x0 + w / 2 - 1.5), 0);
+    } else for (let i = 0, x = x0 + 3; x + 3 <= x1 - 2; i++, x += 8) glyphAt(x, i);
   }
   // sliding: chevrons pointing the way it slides
   if (z.slide > 0 && z.vel !== 0 && w >= 14) {
@@ -589,11 +602,27 @@ export function drawVines(g: G, B: Rect, bx: number, left: number, now: number):
   }
 }
 
-/** A Shadow Dash's afterimage of the cursor at `x`: a thin violet blade, fading. */
-export function dashGhost(g: G, x: number, B: Rect, a: number): void {
+/**
+ * A Shadow Dash's afterimage of the cursor at `x`: the cursor's own shape (the blade and its star caps) in Sable's
+ * violets [light, base, deep, dark], see-through, fading with `a`.
+ */
+export function cursorGhost(g: G, x: number, B: Rect, a: number, col: readonly [number, number, number, number]): void {
+  if (a <= 0) return;
   x = Math.round(x);
-  g.fillStyle(0x7a3cb0, 0.55 * a);
-  g.fillRect(x - 1, B.y - 5, 3, B.h + 10);
-  g.fillStyle(0xdab0ff, 0.8 * a);
-  g.fillRect(x, B.y - 4, 1, B.h + 8);
+  const top = B.y - 7;
+  const len = B.h + 14;
+  g.fillStyle(col[3], 0.7 * a);
+  g.fillRect(x - 2, top, 5, len);
+  g.fillStyle(col[2], 0.9 * a);
+  g.fillRect(x - 1, top + 1, 3, len - 2);
+  g.fillStyle(col[0], a);
+  g.fillRect(x, top + 2, 1, len - 4);
+  for (const sy of [top - 1, top + len]) {
+    g.fillStyle(col[3], 0.7 * a);
+    g.fillRect(x - 3, sy - 1, 7, 3);
+    g.fillRect(x - 1, sy - 3, 3, 7);
+    g.fillStyle(col[0], a);
+    g.fillRect(x - 2, sy, 5, 1);
+    g.fillRect(x, sy - 2, 1, 5);
+  }
 }

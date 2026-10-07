@@ -13,6 +13,7 @@ import { buildFont, FONT, FONT_BOLD, FONT_BOLD_PLAIN, fontFor, fontText, isDarkI
 import { GAME_H, GAME_W } from './layout';
 import { BarView } from './view/bar';
 import { Callouts } from './view/callouts';
+import { OnSite } from './view/onsite';
 import { CampView } from './view/camp';
 import { GainsView } from './view/gains';
 import { LootView } from './view/loot';
@@ -77,6 +78,8 @@ export class FightScene extends Phaser.Scene implements View {
   readonly barView = new BarView(this);
   /** Short words over the bar when the hero's kit, style, allies or companions do something; the style's tab. */
   readonly callouts = new Callouts(this);
+  /** What every perk, ally, companion and relic did, shown on the thing it affected (the bar, a foe, the hero). */
+  readonly onsite = new OnSite(this);
   readonly stage = new Stage(this);
   readonly fighters = new Fighters(this);
   readonly hud = new Hud(this);
@@ -210,6 +213,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.panelImg = this.add.image(0, this.splitY, 'panel').setOrigin(0, 0).setDepth(9);
     this.barView.build();
     this.callouts.build();
+    this.onsite.build();
     this.overlays.build();
     this.mapView.build();
     this.story.build();
@@ -360,8 +364,10 @@ export class FightScene extends Phaser.Scene implements View {
       const e = events[i];
       const before = events[i - 1];
       const after = events[i + 1];
-      // (the bar's callouts see every event; theirs go up once the batch is in)
+      // (the bar's callouts see every event; theirs go up once the batch is in; so does what shows on the spot, so a
+      // perk later in the batch knows where the tap was, what it spawned or cleared, who died)
       this.callouts.onEvent(e);
+      this.onsite.onEvent(e);
       switch (e.type) {
         case 'hit': {
           const x = bar.x(e.pos);
@@ -452,10 +458,12 @@ export class FightScene extends Phaser.Scene implements View {
         }
         case 'gearFx':
           f.gearFx(e.fx, e.amount, e.enemyId, { missX, bombX });
+          this.onsite.gearFx(e);
           if (e.fx === 'riposte') riposte = e.enemyId;
           break;
         case 'perk':
-          // a relic, skill node or kit part kicked in
+          // a relic, skill node or kit part kicked in: its name, its blow, heal or stacks (fighters), and what it did on
+          // the thing it affected (onsite)
           // (a blow when its enemyHurt follows; stacks when the meter's events came first; coins when they did)
           if (
             f.perkFx(e.id, e.amount, e.enemyId, {
@@ -463,13 +471,15 @@ export class FightScene extends Phaser.Scene implements View {
               stacks: before?.type === 'meterFull',
               coins: before?.type === 'coins' && before.id === e.id,
               pos: e.pos,
+              from: this.onsite.bounceFrom(e),
             })
           )
             perkStruck = e.enemyId;
+          this.onsite.perk(e);
           break;
         case 'coins':
-          // coins a perk found: they pop off the foe into the coin chip
-          f.perkCoins(e.id, e.amount);
+          // coins a perk found: they pop out of what dropped them (the block hit, the foe, the combo) into the coin chip
+          this.onsite.coins(e, after);
           break;
         case 'morph':
           // a block changed kind (Chain Reaction): it flashes as it turns
@@ -506,10 +516,11 @@ export class FightScene extends Phaser.Scene implements View {
           break;
         case 'pet':
           f.petAttack(e.pet, e.enemyId, e.damage, e.crit);
+          this.onsite.pet(e);
           break;
         // ---- the bar's newer pieces: patches, icicles, mirrors, dashes, holds, iced yellows, frozen reds, the wall
         case 'zoneOn':
-          bar.zoneOn(e.kind, e.lo, e.hi);
+          bar.zoneOn(e.kind, e.lo, e.hi, e.id);
           break;
         case 'zoneOff':
           bar.zoneOff(e.id);
@@ -539,8 +550,9 @@ export class FightScene extends Phaser.Scene implements View {
           bar.deflect(e.pos);
           break;
         case 'ally':
-          // (a Barkback's block shows at the bar's left end through its perk, right after)
-          f.party.ally(e.kind, e.action, e.id);
+          // (a Barkback's block shows at the bar's left end through its perk, right after; a call flies a leaf up from
+          // the green that made it)
+          this.onsite.ally(e);
           break;
         case 'stun':
           f.stun(e.enemyId, e.sec);
@@ -702,6 +714,7 @@ export class FightScene extends Phaser.Scene implements View {
       }
     }
     this.callouts.flush();
+    this.onsite.endBatch();
     return hold;
   }
 
@@ -714,6 +727,7 @@ export class FightScene extends Phaser.Scene implements View {
       this.fighters.newFight();
       this.barView.newFight();
       this.callouts.newFight();
+      this.onsite.newFight();
       this.stage.applyTheme();
       const run = this.app.run;
       const type = run.node?.type;
@@ -755,6 +769,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.drawWorld(now);
     this.hud.drawPanel(now);
     this.barView.draw(t, now);
+    this.onsite.drawBar(now);
     this.hud.drawTexts(now);
     this.callouts.draw(now);
     this.overlays.draw(now);
@@ -784,6 +799,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.fighters.drawSuper(now);
     this.overlays.updateChest(now);
     this.fighters.drawActors(g, now);
+    this.onsite.drawWorld(g, now);
     this.fx.drawWorld(g, now);
   }
 }

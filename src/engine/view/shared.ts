@@ -37,8 +37,9 @@ const DEEP: Partial<Record<BlockKind, number>> = { yellow: 0x7a4410, green: 0x14
 export const deepOf = (k: BlockKind) => DEEP[k] ?? 0x5a1020;
 
 /** How a block leaves the bar: never instantly. */
-export type DyingStyle = 'pop' | 'shatter' | 'crunch' | 'fade' | 'zip' | 'fly';
-export const DYING_MS: Record<DyingStyle, number> = { pop: 270, shatter: 360, crunch: 220, fade: 260, zip: 200, fly: 420 };
+export type DyingStyle = 'pop' | 'shatter' | 'crunch' | 'fade' | 'zip' | 'fly' | 'burn';
+/** ('burn': a trap a companion's fire burns off the bar: view/bar.ts burnAway restyles its exit.) */
+export const DYING_MS: Record<DyingStyle, number> = { pop: 270, shatter: 360, crunch: 220, fade: 260, zip: 200, fly: 420, burn: 560 };
 export const dyingStyle = (kind: BlockKind, reason: RemoveReason): DyingStyle =>
   reason === 'finisher'
     ? 'fly'
