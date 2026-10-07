@@ -26,7 +26,7 @@ import { SLOT_KEYS, slotOf } from '../data/gear';
 import { DT, heroAtk, heroMaxHp, heroStats, isRed, type Combat, type CombatEvent, type Hero } from './combat';
 import { emptyLoadout, itemPower, slotOfItem, upgradeCost, type StatBlock } from './gear';
 import { buildBonus, canLearn, learn, pointsLeft, treeOf, type HeroId } from './heroes';
-import { focusOf, guardOf } from './styles';
+import { focusOf, guardMax, guardOf } from './styles';
 import { buyRareChest, openChest } from './chests';
 import { buyCamp } from './meta';
 import { ownedPets, petSlots } from './roster';
@@ -711,6 +711,8 @@ function wantsFinisher(c: Combat, risk: number): boolean {
   if (c.stacks >= max) return true;
   const target = c.currentTarget();
   if (target && c.finisherDamage() * finisherKitMult(c) >= target.hp) return true;
+  // a Guardian with a Bulwark ready sets it off with the next tap first (Rampart would spend that Guard on one foe)
+  if (c.heroId === 'hollis' && guardOf(c) >= guardMax(c)) return false;
   const hitsNeeded = Math.max(1, (1 - c.meter) / Math.max(0.01, M.perHit));
   const survive = Math.pow(1 - Math.min(0.95, risk), hitsNeeded);
   return survive * (c.finisherDamage(c.stacks + 1) / Math.max(1, c.finisherDamage())) < 1;
@@ -739,7 +741,7 @@ function finisherKitMult(c: Combat): number {
     case 'moss':
       return 1 + K.moss.overgrowth * c.allies.length;
     case 'hollis':
-      return 1 + guardOf(c) * K.hollis.rampartGuard; // Rampart spends the Guard
+      return 1 + guardOf(c) * c.tuning.styles.guardPer * K.hollis.rampartGuard; // Rampart spends the Guard
     case 'vesper': {
       const d = Math.max(1, c.finisherDamage());
       return 1 + (focusOf(c) * K.vesper.volleyFocus) / d; // the Volley spends the Focus
@@ -777,7 +779,17 @@ function plan(c: Combat, rng: Rng, aim: Aim, gauss: () => number, avoidYellow: b
     // a still block: the time the cursor takes to get there, through any patch on the way (a hold: to its near
     // edge); a moving red: the closing speed
     const aimAt = b.kind === 'hold' ? b.pos - (dir * b.width) / 2 : b.pos;
-    const tau = b.vel === 0 ? ((aimAt - cpos) * dir >= 0 ? c.travelTime(cpos, aimAt, dir) : -1) : (b.pos - cpos) / (v * dir - b.vel);
+    let tau = b.vel === 0 ? ((aimAt - cpos) * dir >= 0 ? c.travelTime(cpos, aimAt, dir) : -1) : (b.pos - cpos) / (v * dir - b.vel);
+    // a red that is pinned or slowed (a Volley, Glacier, Bend) moves again when that runs out: a person sees it about
+    // to go and times the tap for where it will be then
+    if (isRed(b.kind) && !b.still && b.chill > 0 && b.push <= 0 && !(tau >= 0 && tau <= b.chill)) {
+      const vn = c.redVel(b.width, b.speed);
+      const p1 = b.pos + b.vel * b.chill;
+      const c1 = cpos + v * dir * b.chill;
+      const rest = (p1 - c1) / (v * dir - vn);
+      if ((p1 - c1) * dir < 0) tau = -1; // the cursor is past it by the time it moves again
+      else if (rest >= 0) tau = b.chill + rest;
+    }
     if (!(tau >= 0) || tau > Math.min(toWall, 0.6)) continue;
     // it popped up right in front of the cursor: no time to react (reds always come in from the right end, where
     // a player is watching for them, so they are noticed a little sooner)

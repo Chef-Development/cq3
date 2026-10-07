@@ -8,7 +8,7 @@ import { isAttack, isRed } from './blocks';
 import type { Block, Combat, Enemy } from './combat';
 import type { HeroBuild } from './heroes';
 import type { FightHooks } from './hooks';
-import { addFocus, addGuard, dropKeg, focusOf, guardOf, spendGuard } from './styles';
+import { addFocus, addGuard, dropKeg, focusCap, focusOf, guardOf, powerShot, spendGuard } from './styles';
 
 const K = (c: Combat) => c.tuning.kits;
 const ability = (c: Combat): boolean => c.hero.abilityTimer > 0;
@@ -35,13 +35,15 @@ export function nextBlockAhead(c: Combat, skip?: Block): Block | null {
  * Shadow Dash: after a Perfect hit the cursor bursts ahead (tuning.kits.sable.dashMult times its speed) toward the
  * next block, slowing back to normal `lead` seconds of travel before it (counted through any patch on the way), so a
  * chain of Perfects comes fast and risky. The burst is a short-lived 'dash' patch from the cursor to that point (so
- * timing, the bot and the view all see it). It stops short of a red (to block it), ends before a hold's near edge,
- * skips traps, and never runs past a wall.
+ * timing, the bot and the view all see it). Where it lands the cursor slows down for a moment (a 'land' patch at
+ * kits.sable.landMult, about landSec long, ending at the block's near edge), so the block it dashed to can be read
+ * and hit. It stops short of a red (to block it), ends before a hold's near edge, skips traps, and never runs past a
+ * wall.
  */
 export function shadowDash(c: Combat, lead = K(c).sable.dashLead): boolean {
   const b = nextBlockAhead(c);
   if (!b) return false;
-  for (const z of c.zones.slice()) if (z.kind === 'dash') c.removeZone(z);
+  for (const z of c.zones.slice()) if (z.kind === 'dash' || z.kind === 'land') c.removeZone(z);
   const dir = c.cursorDirAt(c.time);
   const p = c.cursorPos();
   const edge = b.pos - (dir * b.width) / 2;
@@ -52,13 +54,67 @@ export function shadowDash(c: Combat, lead = K(c).sable.dashLead): boolean {
   if ((target - p) * dir <= 0.03) return false; // already that close: no dash
   const lo = Math.min(p, target);
   const hi = Math.max(p, target);
-  const z = c.addZone('dash', (lo + hi) / 2, hi - lo, 0.05 + c.travelTime(p, target, dir) / Math.max(1, K(c).sable.dashMult) + 0.2);
+  const dashSec = c.travelTime(p, target, dir) / Math.max(1, K(c).sable.dashMult);
+  const z = c.addZone('dash', (lo + hi) / 2, hi - lo, 0.05 + dashSec + 0.2);
   z.lo = lo;
   z.hi = hi;
+  landing(c, target, edge, dir, dashSec);
   c.events.push({ type: 'dash', from: p, to: target });
   if (c.stars >= 3) c.perk.afterimage = 1; // 3 stars: the dash leaves an afterimage that stops the next red
   return true;
 }
+
+/** Where a dash lands, the cursor slows (kits.sable.landMult) for about landSec: a 'land' patch from the landing spot
+ *  on, never past the block's near edge. Sable's step hook takes it away once the cursor is through it. */
+function landing(c: Combat, at: number, edge: number, dir: number, dashSec: number): void {
+  const S = K(c).sable;
+  if (S.landSec <= 0 || S.landMult >= 1 || S.landMult <= 0) return;
+  const room = (edge - at) * dir;
+  if (room <= 0.002) return;
+  const d = Math.min(room, S.landSec * c.cursorSpeed() * c.zoneMultAt(at) * S.landMult);
+  const lo = Math.min(at, at + dir * d);
+  const hi = Math.max(at, at + dir * d);
+  const z = c.addZone('land', (lo + hi) / 2, hi - lo, dashSec + S.landSec * 2 + 0.3);
+  z.lo = lo;
+  z.hi = hi;
+  c.perk.landDir = dir;
+}
+
+/** Torva's Wind-Up smash multiplier right now: a base, plus a step for every combo, up to a cap (the view can show
+ *  it on the armed mark). */
+export function windUpMult(c: Combat): number {
+  const k = K(c).torva;
+  return Math.max(1, Math.min(k.windUpMax, k.windUpBase + k.windUpStep * Math.max(0, c.combo)));
+}
+
+/** Glacier: every red on the bar freezes solid where it is (it waits, still a red to block), and the bar slows: all of
+ *  it for a moment (kits.neve.glacierBarSec), then the middle patch for the rest of slowSec (5 stars: all of it). */
+function glacier(c: Combat): void {
+  const k = K(c).neve;
+  let n = 0;
+  for (const b of c.blocks)
+    if (isRed(b.kind)) {
+      c.holdRed(b, k.glacierSec);
+      n++;
+    }
+  const w = c.stars >= 5 ? 1 : Math.max(0, Math.min(1, k.slowWidth));
+  if (w > 0) c.addZone('slow', 0.5, w, k.slowSec);
+  const side = (1 - w) / 2;
+  if (side > 0.01 && k.glacierBarSec > 0) {
+    c.addZone('slow', side / 2, side, k.glacierBarSec);
+    c.addZone('slow', 1 - side / 2, side, k.glacierBarSec);
+  }
+  c.perkFx('glacier', n);
+}
+
+/** Whether the cursor can get to block b: no mirror shard (it bounces the cursor back) between them. */
+const reachable = (c: Combat, b: Block): boolean => {
+  const p = c.cursorPos();
+  return !c.blocks.some((m) => m.kind === 'mirror' && (m.pos - p) * (b.pos - m.pos) > 0);
+};
+
+/** A Shield Slam's share of attack: a plain block's, or a Perfect block's (any block's at 5 stars). */
+export const slamShare = (c: Combat, perfect: boolean): number => (perfect || c.stars >= 5 ? K(c).hollis.slamPerfect : K(c).hollis.slam);
 
 /** Soft strengths: an edge against some kinds of foes (more damage to them, or less from them). */
 function strengthHooks(id: HeroId): FightHooks {
@@ -108,6 +164,14 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
     // Smoke Veil: while the green ability is on, a miss doesn't break the combo (or the chain)
     step: (c) => {
       c.perk.veil = ability(c) ? 1 : 0;
+      // a dash's landing slow-down is over once the cursor is through it (or has turned)
+      for (const z of c.zones)
+        if (z.kind === 'land') {
+          const d = c.perk.landDir || 1;
+          const p = c.cursorPos();
+          if ((d > 0 ? p > z.hi + 1e-6 : p < z.lo - 1e-6) || c.cursorDirAt(c.time) !== d) c.removeZone(z);
+          break;
+        }
     },
     miss: (c, x) => {
       if (!ability(c)) return;
@@ -148,22 +212,19 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       c.events.push({ type: 'iceBlock', id: f.id, pos: f.pos });
       c.perkFx('flashFreeze', 0, 0, f.pos);
     },
-    // Cold Snap: shattering ice fills the meter like a green
-    meter: (c, source, v) => (source === 'hit' && c.hitNow?.block.kind === 'frozen' ? Math.max(v, c.tuning.meter.perGreen) : v),
-    // ...and ice patches bother her half as much
+    // Cold Snap: ice patches bother her half as much; shattered ice fills only part of a hit's meter (it used to fill
+    // a green's: playtest round 6 found her meter filling too fast)
     zoneMult: (c, z, v) => (z.kind === 'ice' ? 1 + (v - 1) * K(c).neve.iceResist : v),
+    meter: (c, source, v) => (source === 'hit' && c.hitNow?.block.kind === 'frozen' && !c.hitNow.echo ? v * K(c).neve.iceMeter : v),
     // Chill: while the green ability is on, the cursor moves slower
     cursorMult: (c, v) => (ability(c) ? v * K(c).neve.chill : v),
-    // Glacier: hits every foe (a little less), freezes every red on the bar, lays a slow patch
+    // Glacier: hits every foe (a little less), freezes every red on the bar solid, slows the bar (all of it for a
+    // moment, then the middle); her Big Freeze node turns the frozen reds into ice to smash instead
     finisher: (c, x, v) => {
       x.reds = 'keep';
       return v * K(c).neve.glacierMult;
     },
-    afterFinisher: (c) => {
-      for (const b of c.blocks.slice()) if (isRed(b.kind)) c.freezeRed(b);
-      const w = c.stars >= 5 ? 1 : K(c).neve.slowWidth;
-      c.addZone('slow', 0.5, w, K(c).neve.slowSec);
-    },
+    afterFinisher: (c) => glacier(c),
   },
   moss: {
     // Deep Roots: with 2+ allies out, hits deal more
@@ -200,13 +261,15 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
     },
   },
   hollis: {
-    // Shield Slam: a Perfect block (5 stars: any block) hits the red's owner
+    // Shield Slam: every block hits the red's owner back (a Perfect one harder; 5 stars: every one as hard), with a
+    // hit-stop of its own
     afterBlock: (c, x) => {
       if (x.echo) return;
       // Brace: while the green ability is on, blocks store double Guard
       if (ability(c) && !x.cracked) addGuard(c, 1);
-      if (!(x.perfect || c.stars >= 5) || !x.owner?.alive) return;
-      c.strike(x.owner, c.stats().atk * K(c).hollis.slam, 'shieldSlam');
+      if (!x.owner?.alive || c.result) return;
+      c.strike(x.owner, c.stats().atk * slamShare(c, x.perfect), 'shieldSlam', false, x.block.pos);
+      c.hitStopFor(c.tuning.juice.slamStopMs);
     },
     meter: (c, source, v) => (source === 'block' && ability(c) ? v * 2 : v),
     // Iron Hide: reds that reach you deal less
@@ -232,6 +295,14 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       c.perk.pierce = 1; // Piercing Shot: the Power Shot also hits the foe behind
       c.perk.patience = 1; // Patience: Focus is kept between waves; a full Focus crits
     },
+    // Patience, on a crowded bar: at full Focus with no green out to fire it (none on the bar, or only behind a mirror
+    // shard the cursor bounces off), a Perfect hit fires it (a crit)
+    afterHit: (c, x) => {
+      if (x.echo || x.green || !x.perfect || c.result || focusCap(c) <= 0) return;
+      if (focusOf(c) < focusCap(c) * 0.999 || c.blocks.some((b) => b.kind === 'green' && reachable(c, b))) return;
+      const dmg = powerShot(c, true);
+      if (dmg > 0) c.perkFx('patience', dmg, 0, x.block.pos);
+    },
     // Volley: arrows on every foe (Focus spent, x1.5), and every red on the bar is pinned in place
     finisher: (c, x, v) => {
       x.reds = 'keep';
@@ -242,8 +313,9 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       return v * (1 + (f * K(c).vesper.volleyFocus) / Math.max(1, x.damage * Math.max(1, x.targets.length)));
     },
     afterFinisher: (c) => {
+      // (an icicle is pinned too: its fuse waits, like a red's strike at the left end)
       const sec = K(c).vesper.pinSec * (c.stars >= 5 ? 2 : 1);
-      for (const b of c.blocks) if (isRed(b.kind)) c.chillRed(b, sec, 0);
+      for (const b of c.blocks) if (isRed(b.kind)) c.holdRed(b, sec);
       addFocus(c, 0);
     },
   },
@@ -258,12 +330,14 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
     afterBlock: (c, x) => {
       if (c.stars >= 3 && x.perfect && !x.echo) quake(c);
     },
+    // ...the smash grows with the combo (windUpMult); its perk event's amount is the multiplier x100
     hitMult: (c, x, v) => {
       if (x.echo || x.green || !c.perk.windUp) return v;
       c.perk.windUp = 0;
+      const m = windUpMult(c);
       if (x.target) c.stun(x.target, K(c).torva.stunSec);
-      c.perkFx('windUp', 0, x.target?.id ?? 0, x.block.pos);
-      return v * K(c).torva.windUp;
+      c.perkFx('windUp', m * 100, x.target?.id ?? 0, x.block.pos);
+      return v * m;
     },
     // Unstoppable: each hit taken adds damage for the rest of the fight
     hurt: (c, amount, source) => {

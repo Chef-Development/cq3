@@ -115,13 +115,13 @@ export const TIPS: readonly TipDef[] = [
   // ---- before a fight begins
   { id: 'tapYellow', lines: ['Tap when the cursor is on yellow.', 'Each hit strikes the enemy!'], anchor: 'yellowBlock', fight: 'pre', basic: true },
   // (a hero's how-to: what their kit does, the first time they fight; Rowan's is the basics)
-  { id: 'kitSable', hero: 'sable', lines: ['Sable: a Perfect hit dashes the', 'cursor on. Chain them for more!'], anchor: 'bar', fight: 'pre' },
-  { id: 'kitNeve', hero: 'neve', lines: ['Neve: blocked reds can freeze.', 'Hit the ice for a big meter boost!'], anchor: 'bar', fight: 'pre' },
+  { id: 'kitSable', hero: 'sable', lines: ['Sable: a Perfect makes you dash.', 'It slows at the next block: tap it!'], anchor: 'bar', fight: 'pre' },
+  { id: 'kitNeve', hero: 'neve', lines: ['Neve: blocked reds can freeze.', 'Smash the ice for double damage!'], anchor: 'bar', fight: 'pre' },
   { id: 'kitMoss', hero: 'moss', lines: ['Moss: greens come often and each', 'calls an ally. 3 out? A Rally!'], anchor: 'bar', fight: 'pre' },
   { id: 'kitTam', hero: 'tam', lines: ['Tam: kegs show up on the bar.', 'Hit one to blast every foe!'], anchor: 'bar', fight: 'pre' },
-  { id: 'kitHollis', hero: 'hollis', lines: ['Hollis: blocks store Guard; your', 'next hit spends it all. Block!'], anchor: 'bar', fight: 'pre' },
-  { id: 'kitVesper', hero: 'vesper', lines: ['Vesper: hits store Focus.', 'A green fires it all at once!'], anchor: 'bar', fight: 'pre' },
-  { id: 'kitTorva', hero: 'torva', lines: ['Torva: few yellows, heavy hits.', 'Green: your next hit smashes!'], anchor: 'bar', fight: 'pre' },
+  { id: 'kitHollis', hero: 'hollis', lines: ['Hollis: every block hits back.', 'Full Guard? Next tap hits all foes!'], anchor: 'bar', fight: 'pre' },
+  { id: 'kitVesper', hero: 'vesper', lines: ['Vesper: hits store Focus. Greens', 'are targets: hit one to fire it all!'], anchor: 'bar', fight: 'pre' },
+  { id: 'kitTorva', hero: 'torva', lines: ['Torva: a green winds up a smash.', 'Its smash grows with your combo!'], anchor: 'bar', fight: 'pre' },
   { id: 'relicBelt', lines: ['Your relics sit here.', 'Tap one to read what it does.'], anchor: 'relicBelt', fight: 'pre' },
   { id: 'rush', lines: ['Coin Rush! Hits knock out coins.', 'Keep your combo going for more!'], anchor: 'bar', fight: 'pre' },
   // ---- in a fight (the fight waits while the tip is up)

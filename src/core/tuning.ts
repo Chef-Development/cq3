@@ -129,7 +129,9 @@ export const DEFAULT_TUNING = {
     maxMs: 350,
   },
   juice: {
-    hitStopMs: 40, // the simulation (cursor and reds) freezes this long on crits and finishers
+    hitStopMs: 40, // the simulation (cursor and reds) freezes this long on crits and finishers...
+    slamStopMs: 35, // ...on a Guardian's Shield Slam (every block slams back)...
+    bulwarkStopMs: 110, // ...and on a Bulwark (full Guard unleashed on every foe)
     shakeMinPx: 2, // small shakes outside the impact tiers (a miss)
     shakeMaxPx: 4, // big shakes outside the impact tiers (taking a hit, the chest)
     shakeMs: 120,
@@ -140,10 +142,12 @@ export const DEFAULT_TUNING = {
     hit: 0.1,
     perfect: 0.18,
     block: 0.3,
+    slam: 0.35, // a Shield Slam (a block that hits back)
     crit: 0.4,
     bomb: 0.5,
     finisher: 0.55, // 1 stack...
     finisherStack: 0.06, // ...plus this per extra stack (5 stacks = 0.79)
+    bulwark: 0.82, // a Bulwark: full Guard unleashed on every foe
     kill: 0.85,
     bossKill: 1,
     hurt: 0.45, // taking a hit (sound only)
@@ -364,11 +368,13 @@ export const DEFAULT_TUNING = {
     bladeFill: 0.2, // ...the meter fills this much faster
     chainStep: 0.08, // Shadow (Chain): each Perfect in a row adds this much damage...
     chainMax: 5, // ...up to this many links
-    guardPer: 0.3, // Guardian (Guard): each red blocked stores this share of your attack...
-    guardMax: 5, // ...up to this many charges; the next hit unleashes them
+    guardPer: 0.3, // Guardian (Guard): each red blocked stores a charge (Rampart: this share of attack each)...
+    guardMax: 5, // ...up to this many; at full, the next block or hit unleashes a Bulwark...
+    bulwarkPer: 0.4, // ...on every foe, for this share of attack per charge
     focusShare: 0.8, // Marksman (Focus): hits deal this share...
     focusStore: 0.35, // ...and store this share of your attack as Focus...
-    focusCap: 6, // ...up to this many times your attack; a green hit fires it all
+    focusCap: 6, // ...up to this many times your attack; a green hit fires it all...
+    targetWidth: 1.35, // ...and greens (the targets that fire it) come this much wider
     heavyMult: 1.6, // Brute (Heavy): every hit deals this much...
     heavyGap: 1.45, // ...static blocks come this much further apart...
     heavyWidth: 1.15, // ...yellows are this much wider...
@@ -384,13 +390,19 @@ export const DEFAULT_TUNING = {
   kits: {
     // Each hero's own numbers (core/kit-fx.ts; src/data/heroes.ts has the words). hp: base max HP; atk: share of
     // Rowan's base attack. Rowan's are tuning.hero. Tuned with the bot to stay within +/-10 points of Rowan.
-    sable: { hp: 110, atk: 0.95, abilitySec: 3, silentStep: 0.25, dashLead: 0.15, dashMult: 2.5, fangMult: 1.4, fangKeep: 1 },
-    neve: { hp: 108, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, glacierMult: 0.7, slowSec: 4, slowWidth: 0.34 },
-    moss: { hp: 95, atk: 0.62, abilitySec: 3, allySec: 6, allySec3: 14, thornEvery: 1.5, thornDmg: 0.22, barkEvery: 8, mothEvery: 3, mothHeal: 0.004, seedEvery: 5, roots: 0.04, overgrowth: 0.1, vineSec: 3, vineMult: 0.5 },
+    // sable: landSec/landMult: where a dash lands, the cursor runs at landMult for about landSec (up to the block)
+    sable: { hp: 110, atk: 0.95, abilitySec: 3, silentStep: 0.25, dashLead: 0.15, dashMult: 2.5, landSec: 0.3, landMult: 0.5, fangMult: 1.4, fangKeep: 1 },
+    // neve: shattered ice fills iceMeter of a hit's meter (Cold Snap); Glacier freezes every red solid for glacierSec, slows the whole bar for glacierBarSec, the middle (slowWidth)
+    // for slowSec
+    neve: { hp: 108, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, iceMeter: 0.5, glacierMult: 0.7, glacierSec: 2.5, glacierBarSec: 1.5, slowSec: 4, slowWidth: 0.34 },
+    // moss: allyComp: the allies grow this much stronger (as a share) for each Companion point above a fresh hero's
+    moss: { hp: 90, atk: 0.62, abilitySec: 3, allySec: 6, allySec3: 14, allyComp: 0.15, thornEvery: 1.5, thornDmg: 0.3, barkEvery: 16, mothEvery: 3, mothHeal: 0.004, seedEvery: 5, roots: 0.04, overgrowth: 0.1, vineSec: 3, vineMult: 0.7 },
     tam: { hp: 100, atk: 0.9, abilitySec: 3, kegEvery3: 4, blastShield: 0.35, bangKegs: 3, wide5: 2 },
-    hollis: { hp: 100, atk: 0.9, abilitySec: 3, slam: 0.5, ironHide: 0.2, rampartSec: 3, rampartGuard: 1.2, guardMax3: 7 },
+    // hollis: every block slams its red's owner for slam x attack (a Perfect one slamPerfect)
+    hollis: { hp: 95, atk: 0.9, abilitySec: 3, slam: 0.4, slamPerfect: 0.8, ironHide: 0.2, rampartSec: 3, rampartGuard: 1.2, guardMax3: 7 },
     vesper: { hp: 115, atk: 1.13, abilitySec: 3, pierce: 0.5, volleyFocus: 1.7, pinSec: 2, cap3: 1.5 },
-    torva: { hp: 108, atk: 0.86, abilitySec: 3, quake: 0.08, windUp: 2.5, stunSec: 1, unstoppable: 0.08, unstoppableMax: 5, calmSec: 1.2 },
+    // torva: a Wind-Up smash deals x(windUpBase + windUpStep per combo), up to windUpMax
+    torva: { hp: 108, atk: 0.86, abilitySec: 3, quake: 0.08, windUpBase: 1.8, windUpStep: 0.04, windUpMax: 4, stunSec: 1, unstoppable: 0.08, unstoppableMax: 5, calmSec: 1.2 },
   },
   chests: {
     // Hero chests (core/chests.ts): a hero or a companion, weighted toward the low tiers, or shards for one you own.
@@ -432,8 +444,8 @@ export const DEFAULT_TUNING = {
     levelDmg: 0.04, // +4% damage a level
     starDmg: 0.12, // +12% damage a star (and perks a step stronger)
     perkStep: 0.15, // each star above 1: perks this much stronger
-    newtBurn: 3, // Newt: burn damage a second...
-    newtSec: 3, // ...for this long
+    newtBurnShare: 0.5, // Newt: a bite sets its target burning: this share of the bite's damage every second...
+    newtSec: 4, // ...for this long (a bite refreshes it)
     bunEvery: 10, // Bun: a coin every this many hits
     oilEvery: 8, // Sprocket: every this many seconds...
     oilPerfect: 2, // ...the next block's Perfect zone is this much wider
@@ -798,10 +810,12 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('impact.hit', 'Weight: hit', 0, 1, 0.01),
         s('impact.perfect', 'Weight: perfect', 0, 1, 0.01),
         s('impact.block', 'Weight: block', 0, 1, 0.01),
+        s('impact.slam', 'Weight: Shield Slam', 0, 1, 0.01),
         s('impact.crit', 'Weight: crit', 0, 1, 0.01),
         s('impact.bomb', 'Weight: bomb', 0, 1, 0.01),
         s('impact.finisher', 'Weight: finisher x1', 0, 1, 0.01),
         s('impact.finisherStack', 'Weight: per extra stack', 0, 0.25, 0.01),
+        s('impact.bulwark', 'Weight: Bulwark', 0, 1, 0.01),
         s('impact.kill', 'Weight: kill', 0, 1, 0.01),
         s('impact.bossKill', 'Weight: boss kill', 0, 1, 0.01),
         s('impact.hurt', 'Weight: hurt (sound)', 0, 1, 0.01),
@@ -834,6 +848,8 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       title: 'Juice',
       sliders: [
         s('juice.hitStopMs', 'Sim freeze: crit/fin (ms)', 0, 200, 5),
+        s('juice.slamStopMs', 'Sim freeze: Shield Slam (ms)', 0, 200, 5),
+        s('juice.bulwarkStopMs', 'Sim freeze: Bulwark (ms)', 0, 300, 5),
         s('juice.shakeMinPx', 'Shake: miss (px)', 0, 8, 1),
         s('juice.shakeMaxPx', 'Shake: hurt (px)', 0, 8, 1),
         s('juice.shakeMs', 'Shake: hurt (ms)', 0, 400, 10),

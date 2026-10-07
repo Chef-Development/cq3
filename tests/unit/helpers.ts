@@ -19,6 +19,8 @@ export function setup(
   t.hero.perfectCritBonus = 0;
   t.hero.abilityCritBonus = 0;
   t.juice.hitStopMs = 0;
+  t.juice.slamStopMs = 0; // (a Shield Slam's and a Bulwark's own hit-stops too)
+  t.juice.bulwarkStopMs = 0;
   t.blocks.openingSpawns = 0;
   // Pin the numbers the assertions use so tuning the defaults doesn't break tests.
   t.enemies.slime.hp = 80;

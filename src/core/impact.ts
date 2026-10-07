@@ -4,9 +4,11 @@
 
 import type { Tuning } from './tuning';
 
-/** Lightest to heaviest. A finisher's weight also grows with the stacks spent. */
-export type ImpactTier = 'hit' | 'perfect' | 'block' | 'crit' | 'bomb' | 'finisher' | 'kill' | 'bossKill';
-export const IMPACT_TIERS: ImpactTier[] = ['hit', 'perfect', 'block', 'crit', 'bomb', 'finisher', 'kill', 'bossKill'];
+/** Lightest to heaviest. A finisher's weight also grows with the stacks spent. 'slam': a Guardian's Shield Slam (a
+ *  block that hits back, a little heavier than a block); 'bulwark': full Guard unleashed on every foe (heavier than a
+ *  5-stack finisher, under a kill). */
+export type ImpactTier = 'hit' | 'perfect' | 'block' | 'slam' | 'crit' | 'bomb' | 'finisher' | 'bulwark' | 'kill' | 'bossKill';
+export const IMPACT_TIERS: ImpactTier[] = ['hit', 'perfect', 'block', 'slam', 'crit', 'bomb', 'finisher', 'bulwark', 'kill', 'bossKill'];
 
 const clamp01 = (k: number) => Math.max(0, Math.min(1, k));
 

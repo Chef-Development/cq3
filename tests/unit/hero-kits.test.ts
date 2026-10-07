@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { HERO_IDS, HEROES, STYLE_IDS } from '../../src/data/heroes';
 import { STYLES } from '../../src/data/styles';
-import { STYLE_HOOKS, guardOf, focusOf, chainOf, powerShot } from '../../src/core/styles';
-import { KIT_HOOKS, nextBlockAhead } from '../../src/core/kit-fx';
+import { STYLE_HOOKS, allyEvery, allyPower, callAlly, guardOf, focusCap, focusOf, chainOf, powerShot } from '../../src/core/styles';
+import { KIT_HOOKS, nextBlockAhead, windUpMult } from '../../src/core/kit-fx';
 import { kitText, styleText } from '../../src/core/heroes';
 import type { Combat } from '../../src/core/combat';
 import { setup, timeAt } from './helpers';
@@ -89,15 +89,44 @@ describe('style rules', () => {
     expect(chainOf(c)).toBe(0);
   });
 
-  it('Guardian (Guard): blocks store Guard, and the next hit unleashes it', () => {
-    const { c, t } = fight('hollis', { tune: (t) => (t.kits.hollis.slam = 0) });
+  it('Guardian (Guard): blocks store Guard; hits leave it; at full, the next hit (or block) sets off a Bulwark on every foe', () => {
+    const { c, t } = fight('hollis', { enemies: ['bandit', 'bandit'], tune: (t) => ((t.kits.hollis.slam = t.kits.hollis.slamPerfect = 0), (t.enemies.bandit.hp = 900), (t.styles.guardMax = 3)) });
+    const atk = t.hero.atk * t.kits.hollis.atk;
     tapNew(c, t, 'red', 0.2, 30);
     tapNew(c, t, 'red', 0.35, 30);
     expect(guardOf(c)).toBe(2);
-    const hp = c.enemies[0].hp;
-    tapNew(c, t, 'yellow', 0.6);
-    expect(hp - c.enemies[0].hp).toBe(Math.round(t.hero.atk * t.kits.hollis.atk * (1 + 2 * t.styles.guardPer)));
+    // a hit short of full Guard is a plain hit, and the Guard stays
+    tapNew(c, t, 'yellow', 0.5);
+    expect(900 - c.enemies[0].hp).toBe(Math.round(atk));
+    expect(guardOf(c)).toBe(2);
+    tapNew(c, t, 'red', 0.62, 30);
+    expect(guardOf(c)).toBe(3);
+    c.drainEvents();
+    const before = c.enemies.map((e) => e.hp);
+    tapNew(c, t, 'yellow', 0.8);
+    const blow = Math.round(atk * t.styles.bulwarkPer * 3);
+    expect(c.enemies.map((e, i) => before[i] - e.hp)).toEqual([Math.round(atk) + blow, blow]);
     expect(guardOf(c)).toBe(0);
+    const ev = c.drainEvents();
+    expect(ev.filter((e) => e.type === 'perk' && e.id === 'bulwark')).toEqual([expect.objectContaining({ amount: 3 })]);
+    expect(ev.filter((e) => e.type === 'enemyHurt' && e.perk === 'bulwarkBlow')).toHaveLength(2);
+    // a block at full Guard sets it off too (and then stores its own charge)
+    c.perk.guard = 3;
+    const b2 = c.enemies.map((e) => e.hp);
+    tapNew(c, t, 'red', c.cursorDirAt(c.time) > 0 ? Math.min(0.9, c.cursorPos() + 0.1) : Math.max(0.1, c.cursorPos() - 0.1), 30);
+    expect(c.enemies.map((e, i) => b2[i] - e.hp)).toEqual([blow, blow]);
+    expect(guardOf(c)).toBe(1);
+  });
+
+  it('Guardian: a Bulwark freezes the bar for its own hit-stop (and a Shield Slam for a short one)', () => {
+    const { c, t } = fight('hollis', { tune: (t) => ((t.juice.bulwarkStopMs = 110), (t.juice.slamStopMs = 35)) });
+    tapNew(c, t, 'red', 0.3, 30);
+    expect(c.drainEvents().filter((e) => e.type === 'hitStop')).toEqual([{ type: 'hitStop', ms: 35 }]);
+    go(c, c.time + 0.1);
+    c.perk.guard = 5;
+    tapNew(c, t, 'yellow', c.cursorDirAt(c.time) > 0 ? Math.min(0.9, c.cursorPos() + 0.1) : Math.max(0.1, c.cursorPos() - 0.1));
+    expect(c.drainEvents().filter((e) => e.type === 'hitStop')).toEqual([{ type: 'hitStop', ms: 110 }]);
+    expect(c.hitStop).toBeGreaterThan(0.1);
   });
 
   it('Marksman (Focus): hits deal less and store Focus; a green hit fires it all as a Power Shot', () => {
@@ -242,7 +271,11 @@ describe('hero kits', () => {
     expect(z.mult).toBeCloseTo(t.kits.sable.dashMult);
     const plain = fight('sable').c;
     plain.spawnBlock('yellow', 0.7);
-    expect(c.travelTime(c.cursorPos(), edge, 1)).toBeLessThan(plain.travelTime(c.cursorPos(), edge, 1) * 0.7); // it gets there much sooner
+    // it gets there sooner (the burst is much faster; its landing slow-down gives a little of that back)
+    expect(c.travelTime(c.cursorPos(), edge, 1)).toBeLessThan(plain.travelTime(c.cursorPos(), edge, 1) * 0.85);
+    const land = c.zones.find((x) => x.kind === 'land')!;
+    c.removeZone(land);
+    expect(c.travelTime(c.cursorPos(), edge, 1)).toBeLessThan(plain.travelTime(c.cursorPos(), edge, 1) * 0.7);
     // a red ahead stops the dash before it
     const b = fight('sable');
     const red = b.c.spawnBlock('red', 0.6);
@@ -264,11 +297,18 @@ describe('hero kits', () => {
     const ev = c.drainEvents().find((e) => e.type === 'dash');
     const to = ev && ev.type === 'dash' ? ev.to : 0;
     expect(to).toBeLessThan(edge);
-    // from the burst's end, `dashLead` s of normal travel (through the ice) are left to press the hold
+    // from the burst's end, `dashLead` s of normal travel (through the ice) are left to press the hold (more with the
+    // landing's slow-down: it ends at the hold's edge)
     const z = c.zones.find((x) => x.kind === 'dash')!;
+    const land = c.zones.find((x) => x.kind === 'land')!;
+    expect(land.hi).toBeLessThanOrEqual(edge + 1e-9);
     c.removeZone(z);
+    expect(c.travelTime(to, edge, 1)).toBeGreaterThan(t.kits.sable.dashLead);
+    c.removeZone(land);
     expect(c.travelTime(to, edge, 1)).toBeCloseTo(t.kits.sable.dashLead, 1);
     c.addZone('dash', (z.lo + z.hi) / 2, z.hi - z.lo, z.life);
+    const l2 = c.addZone('land', (land.lo + land.hi) / 2, land.hi - land.lo, land.life);
+    Object.assign(l2, { lo: land.lo, hi: land.hi });
     const at = c.time + c.travelTime(c.cursorPos(), edge, 1);
     go(c, at);
     expect(c.tap(at).outcome).toBe('hold');
@@ -294,16 +334,50 @@ describe('hero kits', () => {
     expect(hp - c.enemies[0].hp).toBe(Math.round(t.hero.atk * t.kits.neve.atk * t.blocks.frozenMult));
   });
 
-  it("Neve's Glacier: hits every foe, freezes the reds on the bar, lays a slow patch; ice bothers her half as much", () => {
-    const { c, t } = fight('neve', { enemies: ['bandit', 'bandit'] });
-    c.spawnBlock('red', 0.8);
+  it("Neve's Glacier: hits every foe, freezes every red on the bar solid (one at the wall and an icicle too), slows the whole bar, then its middle; ice bothers her half as much", () => {
+    const { c, t } = fight('neve', { enemies: ['bandit', 'bandit'], tune: (t) => (t.blocks.redTravelSec = 2) });
+    const k = t.kits.neve;
+    const moving = c.spawnBlock('red', 0.8);
+    const icicle = c.spawnBlock('red', 0.55, c.enemies[1].id, undefined, { still: true, fuse: 0.5 });
+    const wall = c.spawnBlock('red', 0.05);
+    go(c, c.time + 0.05); // the one at the left end is waiting to strike now
+    expect(wall.impactTimer).toBeGreaterThanOrEqual(0);
     c.stacks = 2;
     c.finisher();
-    expect(c.blocks.filter((b) => b.kind === 'frozen')).toHaveLength(1);
-    expect(c.zones.some((z) => z.kind === 'slow')).toBe(true);
     expect(c.enemies.every((e) => e.hp < 140)).toBe(true);
+    const ev = c.drainEvents();
+    expect(ev.filter((e) => e.type === 'perk' && e.id === 'glacier')).toEqual([expect.objectContaining({ amount: 3 })]);
+    expect(c.blocks.filter((b) => b.kind === 'frozen')).toHaveLength(0); // held, still reds (Big Freeze makes ice)
+    for (const b of [moving, icicle, wall]) expect(b.chill > 0 && b.chillMult === 0, `${b.pos}`).toBe(true);
+    // the whole bar is slowed for a moment, the middle for longer
+    const slows = () => c.zones.filter((z) => z.kind === 'slow');
+    expect(Math.min(...slows().map((z) => z.lo))).toBeCloseTo(0);
+    expect(Math.max(...slows().map((z) => z.hi))).toBeCloseTo(1);
+    for (const p of [0.05, 0.5, 0.95]) expect(c.zoneMultAt(p), `${p}`).toBeCloseTo(t.bar.slowMult);
+    const hp = c.hero.hp;
+    const p = moving.pos;
+    go(c, c.time + Math.min(k.glacierSec, k.glacierBarSec) - 0.1);
+    expect(moving.pos).toBeCloseTo(p, 5); // frozen in place
+    expect(c.blocks.includes(wall) && c.blocks.includes(icicle)).toBe(true); // nothing struck
+    expect(c.hero.hp).toBe(hp);
+    go(c, c.time + 0.2);
+    expect(c.zoneMultAt(0.05)).toBeCloseTo(1); // the ends are back to normal...
+    expect(c.zoneMultAt(0.5)).toBeCloseTo(t.bar.slowMult); // ...the middle still slow
+    go(c, c.time + k.glacierSec + 0.6); // then they thaw: the one at the wall and the icicle strike
+    expect(c.hero.hp).toBeLessThan(hp);
     const z = c.addZone('ice', 0.2, 0.1, 0);
-    expect(c.zoneMult(z)).toBeCloseTo(1 + (t.bar.iceMult - 1) * t.kits.neve.iceResist);
+    expect(c.zoneMult(z)).toBeCloseTo(1 + (t.bar.iceMult - 1) * k.iceResist);
+  });
+
+  it("Neve's Cold Snap: shattered ice fills only part of a hit's meter (it used to fill a green's); a yellow fills a hit's", () => {
+    const { c, t } = fight('neve');
+    c.meter = 0;
+    tapNew(c, t, 'frozen', 0.4, 25);
+    expect(c.meter).toBeCloseTo(t.meter.perHit * t.kits.neve.iceMeter, 5);
+    expect(t.kits.neve.iceMeter).toBeLessThan(1);
+    c.meter = 0;
+    tapNew(c, t, 'yellow', 0.7, 25);
+    expect(c.meter).toBeCloseTo(t.meter.perHit, 5);
   });
 
   it("Tam's Chain Fuse sets off kegs near each other; Big Bang drops kegs; Blast Shield halves bombs", () => {
@@ -319,11 +393,18 @@ describe('hero kits', () => {
     expect(KIT_HOOKS.tam.hurt!(c, 10, 'bomb', 0)).toBeCloseTo(10 * (1 - t.kits.tam.blastShield));
   });
 
-  it("Hollis: Shield Slam hits back on a Perfect block; Iron Hide trims reds; Rampart bounces reds off the left end", () => {
-    const { c, t } = fight('hollis');
-    tapNew(c, t, 'red', 0.4);
+  it("Hollis: every block slams the red's owner (a Perfect one harder); Iron Hide trims reds; Rampart bounces reds off the left end", () => {
+    const { c, t } = fight('hollis', { tune: (t) => (t.enemies.slime.hp = 400) }); // (Rampart mustn't kill it)
+    const atk = t.hero.atk * t.kits.hollis.atk;
+    tapNew(c, t, 'red', 0.2, 30); // a plain block
+    expect(c.enemies[0].hp).toBe(400 - Math.round(atk * t.kits.hollis.slam));
+    const slam = c.drainEvents().filter((e) => e.type === 'enemyHurt' && e.perk === 'shieldSlam');
+    expect(slam).toHaveLength(1);
+    c.enemies[0].hp = 400;
+    tapNew(c, t, 'red', 0.4); // a Perfect one
     t.blocks.redTravelSec = 1; // now let reds reach the left end
-    expect(c.enemies[0].hp).toBe(80 - Math.round(t.hero.atk * t.kits.hollis.atk * t.kits.hollis.slam));
+    expect(c.enemies[0].hp).toBe(400 - Math.round(atk * t.kits.hollis.slamPerfect));
+    expect(t.kits.hollis.slamPerfect).toBeGreaterThan(t.kits.hollis.slam);
     expect(KIT_HOOKS.hollis.hurt!(c, 100, 'red', 0)).toBeCloseTo(100 * (1 - t.kits.hollis.ironHide));
     c.stacks = 1;
     c.finisher();
@@ -334,19 +415,24 @@ describe('hero kits', () => {
     expect(c.drainEvents().some((e) => e.type === 'deflect')).toBe(true);
   });
 
-  it("Vesper's Volley pins every red in place for a moment", () => {
-    const { c } = fight('vesper');
+  it("Vesper's Volley pins every red in place for a moment (an icicle's fuse waits too)", () => {
+    const { c, t } = fight('vesper', { tune: (t) => (t.blocks.redTravelSec = 2) });
     const r = c.spawnBlock('red', 0.8);
+    const icicle = c.spawnBlock('red', 0.5, undefined, undefined, { still: true, fuse: 0.3 });
     c.stacks = 1;
     c.finisher();
     expect(c.blocks.includes(r)).toBe(true);
     const p = r.pos;
     go(c, c.time + 0.5);
     expect(r.pos).toBeCloseTo(p, 5);
+    expect(c.blocks.includes(icicle)).toBe(true); // its 0.3 s fuse waits out the pin
+    go(c, c.time + t.kits.vesper.pinSec);
+    expect(c.blocks.includes(icicle)).toBe(false); // then it strikes
   });
 
-  it("Torva: Quake knocks reds back on a Perfect; Wind-Up's next hit is x2.5 and stuns; Earthsplitter clears the bar", () => {
+  it("Torva: Quake knocks reds back on a Perfect; Wind-Up's next hit smashes (x base + a step per combo) and stuns; Earthsplitter clears the bar", () => {
     const { c, t } = fight('torva', { tune: (t) => (t.blocks.redTravelSec = 20) });
+    const k = t.kits.torva;
     const r = c.spawnBlock('red', 0.8);
     const p0 = r.pos;
     tapNew(c, t, 'yellow', 0.2);
@@ -354,13 +440,120 @@ describe('hero kits', () => {
     expect(r.pos).toBeGreaterThan(p0 - 0.02);
     tapNew(c, t, 'green', 0.35, 25);
     const hp = c.enemies[0].hp;
-    tapNew(c, t, 'yellow', 0.5, 25);
-    expect(hp - c.enemies[0].hp).toBe(Math.round(t.hero.atk * t.kits.torva.atk * t.styles.heavyMult * t.kits.torva.windUp));
+    c.drainEvents();
+    tapNew(c, t, 'yellow', 0.5, 25); // the third hit: combo 3
+    const mult = k.windUpBase + 3 * k.windUpStep;
+    expect(windUpMult(c)).toBeCloseTo(mult);
+    expect(hp - c.enemies[0].hp).toBe(Math.round(t.hero.atk * k.atk * t.styles.heavyMult * mult));
     expect(c.enemies[0].stun).toBeGreaterThan(0);
+    // the view sees the multiplier (x100) on the Wind-Up's perk event
+    expect(c.drainEvents().find((e) => e.type === 'perk' && e.id === 'windUp')).toMatchObject({ amount: Math.round(mult * 100) });
     c.spawnBlock('yellow', 0.9);
     c.stacks = 1;
     c.finisher();
     expect(c.blocks).toHaveLength(0);
+  });
+
+  it("Sable's Shadow Dash lands slow: the cursor runs at landMult up to the block it dashed to (about landSec), then it's gone", () => {
+    const { c, t } = fight('sable');
+    const S = t.kits.sable;
+    const next = c.spawnBlock('yellow', 0.75);
+    tapNew(c, t, 'yellow', 0.2);
+    const dash = c.zones.find((z) => z.kind === 'dash')!;
+    const land = c.zones.find((z) => z.kind === 'land')!;
+    expect(land).toBeDefined();
+    const edge = next.pos - next.width / 2;
+    expect(land.lo).toBeCloseTo(dash.hi, 5);
+    expect(land.hi).toBeLessThanOrEqual(edge + 1e-9);
+    expect(land.mult).toBeCloseTo(S.landMult);
+    expect(c.zoneMultAt((land.lo + land.hi) / 2)).toBeCloseTo(S.landMult);
+    // from the landing to the block takes longer than the dash's lead alone (about landSec), so it can be hit
+    const t0 = c.travelTime(land.lo, edge, 1);
+    expect(t0).toBeGreaterThan(S.dashLead * 1.5);
+    expect(t0).toBeLessThan(S.landSec + S.dashLead);
+    // the cursor goes through it, and it's gone
+    go(c, c.time + 0.9);
+    expect(c.zones.some((z) => z.kind === 'land')).toBe(false);
+    // with the landing turned off (landMult 1), no patch
+    const off = fight('sable', { tune: (t) => (t.kits.sable.landMult = 1) });
+    off.c.spawnBlock('yellow', 0.75);
+    tapNew(off.c, off.t, 'yellow', 0.2);
+    expect(off.c.zones.some((z) => z.kind === 'dash')).toBe(true);
+    expect(off.c.zones.some((z) => z.kind === 'land')).toBe(false);
+  });
+
+  it("Vesper's greens are targets: they come wider and carry `target` (another hero's greens don't)", () => {
+    const { c, t } = fight('vesper');
+    c.trySpawn('green', c.enemies[0].id);
+    const g = c.blocks.at(-1)!;
+    expect(g.kind).toBe('green');
+    expect(g.target).toBe(true);
+    expect(g.width).toBeCloseTo(t.blocks.greenWidth * t.styles.targetWidth);
+    c.trySpawn('yellow', c.enemies[0].id);
+    expect(c.blocks.at(-1)!.target).toBe(false);
+    const r = fight('rowan');
+    r.c.trySpawn('green', r.c.enemies[0].id);
+    expect(r.c.blocks.at(-1)!.target).toBe(false);
+    expect(r.c.blocks.at(-1)!.width).toBeCloseTo(r.t.blocks.greenWidth);
+  });
+
+  it("Vesper's Patience: at full Focus with no green out, a Perfect hit fires it as a critical Power Shot (a plain hit, or a green out: no)", () => {
+    const { c, t } = fight('vesper', { enemies: ['bandit'], tune: (t) => (t.enemies.bandit.hp = 3000) });
+    c.perk.focus = focusCap(c);
+    tapNew(c, t, 'yellow', 0.2, 25); // not Perfect
+    expect(focusOf(c)).toBeCloseTo(focusCap(c));
+    const g = c.spawnBlock('green', 0.9);
+    tapNew(c, t, 'yellow', 0.4); // Perfect, but a green is out to fire it
+    expect(focusOf(c)).toBeCloseTo(focusCap(c));
+    c.removeBlock(g, 'expire');
+    c.drainEvents();
+    tapNew(c, t, 'yellow', 0.6); // Perfect, no green: it fires
+    expect(focusOf(c)).toBe(0);
+    const ev = c.drainEvents();
+    expect(ev.find((e) => e.type === 'perk' && e.id === 'patience')).toBeDefined();
+    expect(ev.find((e) => e.type === 'enemyHurt' && e.perk === 'powerShot')).toMatchObject({ crit: true });
+    // a green the cursor can't get to (behind a mirror shard) doesn't count as out
+    const m = fight('vesper', { enemies: ['bandit'], tune: (t) => (t.enemies.bandit.hp = 3000) });
+    m.c.perk.focus = focusCap(m.c);
+    m.c.spawnBlock('mirror', 0.6);
+    m.c.spawnBlock('green', 0.85);
+    tapNew(m.c, m.t, 'yellow', 0.3);
+    expect(focusOf(m.c)).toBe(0);
+  });
+
+  it("Moss's allies grow with the Companion stat: a Thornling jabs harder, a Glowmoth heals more; the ally events say what they did and how strong", () => {
+    const jab = (bonus: number) => {
+      const { c, t } = fight('moss', { tune: (t) => ((t.kits.moss.allySec = 30), (t.kits.moss.atk = 5), (t.enemies.slime.hp = 900)) });
+      c.hero.bonusPet = bonus;
+      tapNew(c, t, 'green', 0.2);
+      go(c, c.time + t.kits.moss.thornEvery * 0.5 + 0.05);
+      return { act: c.drainEvents().find((e) => e.type === 'ally' && e.action === 'act'), c, t };
+    };
+    const base = jab(0);
+    const big = jab(base.t.companion.damage * 2); // the stat tripled
+    expect(allyPower(base.c)).toBe(1);
+    expect(allyPower(big.c)).toBeCloseTo(1 + 2 * big.t.kits.moss.allyComp);
+    const k = base.t.kits.moss;
+    expect(base.act).toMatchObject({ kind: 'thornling', amount: Math.round(base.c.stats().atk * k.thornDmg), power: 1 });
+    expect(big.act).toMatchObject({ kind: 'thornling', amount: Math.round(big.c.stats().atk * k.thornDmg * allyPower(big.c)) });
+    expect((big.act as { amount: number }).amount).toBeGreaterThan((base.act as { amount: number }).amount);
+    // a Glowmoth (the third call) heals max HP x mothHeal x power; a Barkback still braces on its own clock
+    const heal = (bonus: number) => {
+      const { c, t } = fight('moss', { tune: (t) => ((t.kits.moss.allySec = 30), (t.kits.moss.mothHeal = 0.05)) });
+      c.hero.bonusPet = bonus;
+      c.hero.hp = 10;
+      callAlly(c);
+      callAlly(c);
+      callAlly(c);
+      c.drainEvents();
+      go(c, c.time + t.kits.moss.mothEvery * 0.5 + 0.05);
+      return { act: c.drainEvents().find((e) => e.type === 'ally' && e.action === 'act' && e.kind === 'glowmoth'), c };
+    };
+    const h0 = heal(0);
+    const h1 = heal(base.t.companion.damage * 2);
+    expect(h0.act).toMatchObject({ amount: Math.round(h0.c.maxHp() * 0.05) });
+    expect(h1.act).toMatchObject({ amount: Math.round(h1.c.maxHp() * 0.05 * allyPower(h1.c)) });
+    expect(allyEvery(big.c, 'barkback')).toBeCloseTo(k.barkEvery);
   });
 
   it('soft strengths: Rowan deals +20% to Folk (a Bandit), not to a Slime', () => {

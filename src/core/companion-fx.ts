@@ -44,22 +44,38 @@ function hooksFor(pet: PetBuild): FightHooks {
         },
       };
     case 'newt':
-      // Ember Bite: bites burn the target for a few seconds
+      // Ember Bite: a bite sets its target burning (each foe its own burn: Enemy.burn / burnDps / burnTick): a share
+      // of the bite's damage every second for a few seconds (stars: more), so it grows with the companion's level,
+      // stars and the Companion stat like the bite; a bite on a burning foe refreshes it. Each tick is an 'emberBite'
+      // strike. (c.perk.burnFoe / burnTicks: the last foe bitten, for the view's older flames.)
       return {
         afterPeck: (c, x) => {
-          if (x.pet !== 'newt') return;
-          c.perk.burnFoe = x.target.id;
-          c.perk.burnTicks = Math.round(P(c).newtSec); // a burn a second
-          c.perk.burnTick = 1;
+          if (x.pet !== 'newt' || !x.target.alive) return;
+          const e = x.target;
+          const dps = x.damage * P(c).newtBurnShare * k(c);
+          if (e.burn <= 0) e.burnTick = 1;
+          e.burnDps = e.burn > 0 ? Math.max(e.burnDps, dps) : dps;
+          e.burn = Math.max(e.burn, P(c).newtSec);
+          c.perk.burnFoe = e.id;
+          c.perk.burnTicks = Math.ceil(e.burn - 1e-9);
         },
         step: (c) => {
-          if (!(c.perk.burnTicks > 0)) return;
-          c.perk.burnTick -= DT;
-          if (c.perk.burnTick > 1e-9) return;
-          c.perk.burnTick = 1;
-          c.perk.burnTicks--;
-          const foe = c.enemyById(c.perk.burnFoe);
-          if (foe?.alive) c.strike(foe, P(c).newtBurn * k(c), 'emberBite');
+          for (const e of c.enemies) {
+            if (e.burn <= 0) continue;
+            if (!e.alive) {
+              e.burn = e.burnDps = e.burnTick = 0;
+              continue;
+            }
+            e.burnTick -= DT;
+            if (e.burnTick <= 1e-9) {
+              e.burnTick += 1;
+              c.strike(e, e.burnDps, 'emberBite');
+            }
+            e.burn = Math.max(0, e.burn - DT);
+            if (e.burn <= 1e-9) e.burn = e.burnDps = e.burnTick = 0;
+          }
+          const f = c.perk.burnFoe ? c.enemyById(c.perk.burnFoe) : undefined;
+          c.perk.burnTicks = f && f.alive && f.burn > 0 ? Math.ceil(f.burn - 1e-9) : 0;
         },
       };
     case 'sprocket':

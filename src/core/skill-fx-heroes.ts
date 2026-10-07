@@ -13,7 +13,6 @@
 //   blackIce             seconds to the next Black Ice patch
 //   <node><allyId>       a Moss node's memory of an ally (its timer, or a Barkback's brace)
 //   rootCall             reds blocked toward the next Root Call
-//   stockpileWave        the wave Stockpile last stocked (+1)
 //   kegHit               the keg hit whose blast perks already ran
 //   echoWall / trickShot / wreckingBall / landslide   counters toward the next one
 
@@ -22,8 +21,8 @@ import { isRed } from './blocks';
 import type { Ally, Block, Combat, CombatEvent, Enemy } from './combat';
 import { skillN } from './heroes';
 import type { FightHooks, HitCtx } from './hooks';
-import { shadowDash } from './kit-fx';
-import { addFocus, addGuard, allySec, callAlly, chainOf, dropKeg, focusCap, focusOf, guardMax, guardOf, powerShot } from './styles';
+import { shadowDash, slamShare } from './kit-fx';
+import { addFocus, addGuard, allySec, callAlly, chainOf, dropKeg, focusCap, focusOf, guardOf, powerShot } from './styles';
 
 const DT = 1 / 120;
 const N = (c: Combat, id: string): number => skillN(c.tuning, id);
@@ -186,11 +185,15 @@ const NEVE: Record<string, FightHooks> = {
       if (x.block.kind === 'frozen' && !x.echo) c.perkFx('brittle', x.damage, x.target?.id ?? 0, x.block.pos);
     },
   },
-  // Shatterburst: a shatter also hits every other foe for n% of its damage
-  shatterburst: {
-    afterHit: (c, x) => {
-      if (x.block.kind !== 'frozen' || x.echo || c.result) return;
-      for (const e of c.aliveFoes()) if (e !== x.target) c.strike(e, x.damage * P(c, 'shatterburst'), 'shatterburst');
+  // Big Freeze: Glacier turns the reds it froze into frozen blocks to smash (hit for damage and meter, like Flash
+  // Freeze's) instead of holding them (the kit's afterFinisher froze them solid first; this runs after it)
+  bigFreeze: {
+    afterFinisher: (c) => {
+      if (c.result) return;
+      let n = 0;
+      for (const b of c.blocks.slice())
+        if (isRed(b.kind) && c.freezeRed(b)) n++;
+      if (n) c.perkFx('bigFreeze', n);
     },
   },
   // Ice Age (capstone): every block freezes its red (Flash Freeze, which already freezes on a Perfect or by chance)
@@ -454,15 +457,30 @@ function kegHit(c: Combat, x: HitCtx): void {
 
 const kegNode = (): FightHooks => ({ afterHit: kegHit });
 
+/** Turnabout: every red on the bar becomes one of her kegs where it is (hit it: it blasts every foe). The red goes
+ *  ('remove', reason 'perk'), a keg takes its place ('spawn'); its 'perk' event names each one (pos: where). */
+function turnReds(c: Combat): number {
+  let n = 0;
+  for (const r of reds(c)) {
+    if (c.result) break;
+    const pos = r.pos;
+    c.removeBlock(r, 'perk');
+    c.spawnBlock('keg', pos, r.ownerId, Math.max(c.widthFor('keg'), Math.min(r.width, c.widthFor('keg') * 1.4)));
+    c.perkFx('turnabout', 0, r.ownerId, pos);
+    n++;
+  }
+  return n;
+}
+
 const TAM: Record<string, FightHooks> = {
-  // Stockpile: each wave starts with n kegs on the bar
-  stockpile: {
-    step: (c) => {
-      if (c.perk.stockpileWave === c.waveIndex + 1 || !c.frontEnemy() || c.result) return;
-      c.perk.stockpileWave = c.waveIndex + 1;
-      let n = 0;
-      for (let i = Math.max(0, Math.round(N(c, 'stockpile'))); i > 0; i--) if (dropKeg(c)) n++;
-      if (n) c.perkFx('stockpile', n);
+  // Turnabout: Big Bang turns every red on the bar into a keg (instead of knocking them off)
+  turnabout: {
+    finisher: (_c, x, v) => {
+      x.reds = 'keep';
+      return v;
+    },
+    afterFinisher: (c) => {
+      turnReds(c);
     },
   },
   // Restock: a Perfect hit on a keg drops a new keg
@@ -502,6 +520,15 @@ const TAM: Record<string, FightHooks> = {
 
 // ---------------------------------------------------------------- Hollis
 
+/** Avalanche: the Bulwark that just went off stuns every foe for n s. */
+function avalanche(c: Combat, pos: number): void {
+  if (!c.perk.bulwarkNow || c.result) return;
+  c.perk.bulwarkNow = 0;
+  const foes = c.aliveFoes();
+  for (const e of foes) c.stun(e, Math.max(0, N(c, 'avalanche')));
+  if (foes.length) c.perkFx('avalanche', foes.length, 0, pos);
+}
+
 const HOLLIS: Record<string, FightHooks> = {
   // Sure Guard: a Perfect block stores n more Guard
   sureGuard: {
@@ -511,56 +538,45 @@ const HOLLIS: Record<string, FightHooks> = {
       c.perkFx('sureGuard', guardOf(c), 0, x.block.pos);
     },
   },
-  // Deep Guard: each Guard charge a hit unleashes adds n% more (on top of the style's share)
+  // Deep Guard: the Bulwark (full Guard unleashed on every foe) hits n% harder (named once it has landed)
   deepGuard: {
-    hitMult: (c, x, v) => {
-      if (x.echo || guardOf(c) <= 0) return v;
-      c.perk.deepGuard = x.block.id;
-      return v + c.tuning.styles.guardPer * guardOf(c) * P(c, 'deepGuard');
+    damageTaken: (c, e, source, v) => (source === 'perk' && struckBy(c, e, ['bulwarkBlow']) ? v * (1 + P(c, 'deepGuard')) : v),
+    afterBlock: (c, x) => {
+      if (c.perk.bulwarkNow) c.perkFx('deepGuard', 0, 0, x.block.pos);
     },
     afterHit: (c, x) => {
-      if (c.perk.deepGuard !== x.block.id) return;
-      c.perk.deepGuard = 0;
-      c.perkFx('deepGuard', x.damage, x.target?.id ?? 0, x.block.pos);
+      if (c.perk.bulwarkNow && !x.echo) c.perkFx('deepGuard', 0, 0, x.block.pos);
     },
   },
-  // Avalanche (capstone): a hit at full Guard strikes every other foe for as much
+  // Avalanche (capstone): a Bulwark also stuns every foe for n s (the style sets c.perk.bulwarkNow when one goes off,
+  // before this node's hooks run)
   avalanche: {
-    hitMult: (c, x, v) => {
-      if (!x.echo && guardOf(c) >= guardMax(c)) c.perk.avalanche = x.block.id;
-      return v;
-    },
+    afterBlock: (c, x) => avalanche(c, x.block.pos),
     afterHit: (c, x) => {
-      if (c.perk.avalanche !== x.block.id) return;
-      c.perk.avalanche = 0;
-      for (const e of c.aliveFoes()) if (e !== x.target) c.strike(e, x.damage, 'avalanche');
+      if (!x.echo) avalanche(c, x.block.pos);
     },
   },
-  // Heavy Slam: Shield Slam (and Retaliate's slams) hits n% harder
+  // Heavy Slam: Shield Slam hits n% harder (named once the slam has landed: every block slams)
   heavySlam: {
-    damageTaken: (c, e, source, v) => {
-      if (source !== 'perk' || !struckBy(c, e, ['shieldSlam', 'retaliate'])) return v;
-      c.perkFx('heavySlam', 0, e.id);
-      return v * (1 + P(c, 'heavySlam'));
+    damageTaken: (c, e, source, v) => (source === 'perk' && struckBy(c, e, ['shieldSlam']) ? v * (1 + P(c, 'heavySlam')) : v),
+    afterBlock: (c, x) => {
+      if (!x.echo && x.owner) c.perkFx('heavySlam', 0, x.owner.id, x.block.pos);
     },
   },
-  // Wide Slam: Shield Slam (a Perfect block's, every block's at 5 stars, and Retaliate's) also hits every other foe
-  // for n% of it
+  // Wide Slam: Shield Slam (every block's) also hits every other foe for n% of it
   wideSlam: {
     afterBlock: (c, x) => {
       if (x.echo || !x.owner || c.result) return;
-      const share = x.perfect || c.stars >= 5 ? 1 : c.hasPerk('retaliate') ? P(c, 'retaliate') : 0;
-      if (share <= 0) return;
-      const dmg = c.stats().atk * c.tuning.kits.hollis.slam * share * P(c, 'wideSlam');
-      for (const e of c.aliveFoes()) if (e !== x.owner) c.strike(e, dmg, 'wideSlam');
+      const dmg = c.stats().atk * slamShare(c, x.perfect) * P(c, 'wideSlam');
+      for (const e of c.aliveFoes()) if (e !== x.owner) c.strike(e, dmg, 'wideSlam', false, x.block.pos);
     },
   },
-  // Retaliate (capstone): a plain block slams back too, for n% of a Shield Slam (a Perfect one already slams; at 5
-  // stars every block does, and this comes on top)
+  // Retaliate (capstone): each Guard charge stored makes Shield Slam n% stronger (the block's own charge counts; a
+  // Bulwark spends them all first)
   retaliate: {
+    damageTaken: (c, e, source, v) => (source === 'perk' && guardOf(c) > 0 && struckBy(c, e, ['shieldSlam']) ? v * (1 + P(c, 'retaliate') * guardOf(c)) : v),
     afterBlock: (c, x) => {
-      if (x.echo || x.perfect || !x.owner?.alive) return;
-      c.strike(x.owner, c.stats().atk * c.tuning.kits.hollis.slam * P(c, 'retaliate'), 'retaliate');
+      if (!x.echo && x.owner && guardOf(c) > 0) c.perkFx('retaliate', guardOf(c), x.owner.id, x.block.pos);
     },
   },
   // Long Rampart: Rampart's wall stands n s longer
@@ -772,7 +788,8 @@ const TORVA: Record<string, FightHooks> = {
       return amount;
     },
   },
-  // Payback: a red (or bomb) that hits her winds up her next hit, like Wind-Up (x2.5 and a stun)
+  // Payback: a red (or bomb) that hits her winds up her next hit, like Wind-Up (a smash that grows with the combo, and
+  // a stun)
   payback: {
     hurt: (c, amount, source) => {
       if (amount <= 0 || (source !== 'red' && source !== 'bomb')) return amount;
