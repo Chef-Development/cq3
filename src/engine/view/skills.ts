@@ -240,6 +240,7 @@ export class SkillsScreen {
     for (let i = 0; i < tree.length; i++)
       for (let j = 0; j < tree[i].nodes.length; j++)
         if (inRect(this.nodeRect(i, j), x, y, 3)) {
+          notePress(this.nodeRect(i, j));
           const id = tree[i].nodes[j].id;
           if (id !== this.sel) this.select(id, now);
           else if (this.check(id) === 'ok') this.doLearn(now); // a second tap on a learnable node learns it

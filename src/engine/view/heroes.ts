@@ -566,7 +566,7 @@ export class HeroesScreen {
     } else if (kind === 'level') {
       const L = kit.level(id);
       title = `Lv ${L.level}`;
-      face = [0xe0f6ff, 0x4aa0f0, 0x2a6ad8, 0x1a3c8a];
+      face = [0x9ad8ff, 0x2a62c8, 0x22489c, 0x1a3070];
       lines = [
         { text: L.need ? `${L.into}/${L.need} XP to Lv ${L.level + 1}` : 'Max level', bold: true, col: 0xc8e0ff },
         { text: L.points > 0 ? `${L.points} skill point${L.points > 1 ? 's' : ''} to spend` : 'A skill point every 2 levels', col: L.points > 0 ? GOLD_TXT : 0xd8d0f0, bold: L.points > 0, icon: 'skills' },
@@ -608,6 +608,20 @@ export class HeroesScreen {
     this.drawStrip(g, now);
     this.drawColumn(now);
     this.sheet.draw(kit, this.sheetArea(), now);
+    // once settled, paint the stages a page turn would need (one per frame), so turning never stalls on a paint
+    if (now - this.viewAt > 400 && !this.press) this.prepaint();
+  }
+
+  /** Paint the next missing style stage, the neighbours first. */
+  private prepaint(): void {
+    const n = HERO_IDS.length;
+    const i = HERO_IDS.indexOf(this.view);
+    for (const d of [1, -1, 2, -2, 3, -3, 4]) {
+      const style = HEROES[HERO_IDS[(i + d + n) % n]].style;
+      if (this.kit.has(`uistage_${style}`)) continue;
+      ensureStage(this.kit.s, style);
+      return;
+    }
   }
 
   /** The style's stage (the old one fading out after a page turn), its light on the disc, motes, the vignette. */
