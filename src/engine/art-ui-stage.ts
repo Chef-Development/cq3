@@ -5,6 +5,7 @@
 // view/ui-modern.ts drawStage, so the same backdrop serves any layout. Themes are data: add one to STAGE_THEMES (and,
 // if it needs a new silhouette, a motif painter below).
 import type Phaser from 'phaser';
+import { STYLE_PAINTERS } from './art-ui-styles';
 
 export type StageMotif = 'castle' | 'roofs' | 'gate' | 'pines' | 'cliffs' | 'crystals' | 'grove' | 'workshop' | 'arch' | 'vault' | 'none' | (string & {});
 
@@ -33,104 +34,94 @@ export interface StageSpec {
 
 /** The stages, by theme: the eight styles (the hero select, the skill trees), and the places other screens add. */
 export const STAGE_THEMES: Record<string, StageSpec> = {
+  // the eight styles (their scenes are painted in art-ui-styles.ts: the sky here, the rest there)
   blade: {
-    sky: ['#0e1630', '#142044', '#1a2c58', '#22386a', '#2c4678', '#38567e'],
-    far: ['#1c2a48', '#2c3c62'],
+    sky: ['#0a0f26', '#0e1636', '#121e46', '#182a56', '#203666', '#2a4272'],
+    far: ['#1a2648', '#2a3a66'],
     near: ['#121a30', '#26345a'],
-    floor: ['#2a2e44', '#323650', '#3a3e5a', '#2a2c40', '#1e2032'],
+    floor: ['#3a3e5a', '#42465f', '#363a54', '#2a2c40', '#1e2032'],
     floorY: 112,
-    motif: 'castle',
-    light: 0xbfd8ff,
-    disc: [0x8aa0d0, 0x4a5a86, 0x2a3454],
+    motif: 'yard',
+    light: 0xc8dcff,
+    disc: [0xa8b8e8, 0x55648e, 0x2e3858],
     accent: 0x9ad8ff,
-    orb: [258, 26, 9],
-    orbCol: '#e8f0ff',
-    twinkle: '#ffd890',
   },
   shadow: {
-    sky: ['#120a24', '#1a1036', '#24164a', '#2e1c5a', '#3a2468', '#4a2e72'],
-    far: ['#1e1236', '#2e1e4e'],
-    near: ['#120a20', '#2a1a44'],
-    floor: ['#22183a', '#2a1e46', '#32244e', '#22183a', '#160e28'],
+    sky: ['#0e0820', '#140b2e', '#1c103e', '#26164c', '#301c58', '#3c2464'],
+    far: ['#22163e', '#3a2862'],
+    near: ['#160e2a', '#40306a'],
+    floor: ['#2e2048', '#34244f', '#2a1c42', '#22183a', '#160e28'],
     floorY: 114,
-    motif: 'roofs',
-    light: 0xdab0ff,
-    disc: [0x9a7ad0, 0x4e3478, 0x2a1a44],
+    motif: 'rooftops',
+    light: 0xe0c0ff,
+    disc: [0xb898e8, 0x5a3e88, 0x2c1c48],
     accent: 0x5ae0d0,
-    orb: [70, 24, 12],
-    orbCol: '#f4ecff',
-    twinkle: '#ffe0a0',
   },
   guardian: {
-    sky: ['#101a24', '#162430', '#1e2e3c', '#263a48', '#2e4652', '#36505a'],
-    far: ['#1e2c38', '#2e404c'],
+    sky: ['#0c141c', '#101a24', '#16222e', '#1c2c38', '#243642', '#2c404a'],
+    far: ['#1a2832', '#2a3c46'],
     near: ['#141c24', '#34444e'],
-    floor: ['#2e3236', '#383c40', '#42464a', '#30343a', '#22262a'],
+    floor: ['#40444a', '#484c52', '#3a3e44', '#30343a', '#22262a'],
     floorY: 113,
-    motif: 'gate',
+    motif: 'gatehouse',
     light: 0xffd8a0,
-    disc: [0xa0a8b0, 0x5a626c, 0x343a42],
+    disc: [0xc0c4ca, 0x646a72, 0x363b42],
     accent: 0xffb060,
   },
   marksman: {
-    sky: ['#2a1a3a', '#4a2a48', '#7a3c4a', '#b0584a', '#d8844a', '#f0b060'],
-    far: ['#3a2a40', '#5a3a48'],
-    near: ['#1a1a24', '#2e2a36'],
-    floor: ['#2a3024', '#323a28', '#3a4430', '#2a3022', '#1c2218'],
+    sky: ['#2a1a40', '#46224e', '#6e2e50', '#a0464c', '#d0703e', '#f0a050'],
+    far: ['#5a3048', '#7a4050'],
+    near: ['#2e1c30', '#5a3040'],
+    floor: ['#3a3a24', '#34402a', '#2e3a26', '#283222', '#20281c'],
     floorY: 114,
-    motif: 'pines',
+    motif: 'dusk',
     light: 0xffd090,
-    disc: [0x9ab070, 0x4a6034, 0x2a361e],
+    disc: [0xb0c080, 0x56693a, 0x2e3a20],
     accent: 0xc8f0a0,
-    orb: [240, 58, 14],
-    orbCol: '#ffe8a0',
   },
   brute: {
-    sky: ['#2a1410', '#3a1c14', '#4e2618', '#64321c', '#7a3e22', '#8a4a2a'],
-    far: ['#3a2018', '#5a3424'],
-    near: ['#24140e', '#4a2c1c'],
-    floor: ['#4a3426', '#56402e', '#624a36', '#4a3628', '#34261c'],
+    sky: ['#2a1610', '#381e14', '#4a2818', '#5e321e', '#723e24', '#86502e'],
+    far: ['#5e3626', '#9a6040'],
+    near: ['#7e5038', '#c08a5a'],
+    floor: ['#6e5038', '#644832', '#5a402c', '#503826', '#463020'],
     floorY: 112,
-    motif: 'cliffs',
-    light: 0xffb080,
-    disc: [0xb08060, 0x6a4430, 0x3e2618],
+    motif: 'quarry',
+    light: 0xffc090,
+    disc: [0xc8a080, 0x6e4a32, 0x3e2818],
     accent: 0xffb090,
   },
   controller: {
-    sky: ['#0a1828', '#0e2236', '#142e46', '#1a3a56', '#224866', '#2a5674'],
-    far: ['#1a3a56', '#3a6a8a'],
-    near: ['#0e2238', '#4a88a8'],
-    floor: ['#2a4a60', '#34586e', '#3e667c', '#2c4c62', '#1e3648'],
+    sky: ['#06101c', '#0a1828', '#0e2034', '#122a42', '#163450', '#1c3e5e'],
+    far: ['#24486a', '#3a6a8a'],
+    near: ['#14506e', '#7ad8f4'],
+    floor: ['#3a7090', '#336680', '#2c5a74', '#26506a', '#1e4258'],
     floorY: 113,
-    motif: 'crystals',
+    motif: 'icecave',
     light: 0xd0f8ff,
-    disc: [0xb8e8f8, 0x5aa0c0, 0x2a5a78],
+    disc: [0xd0f4ff, 0x6ab0d0, 0x2e6a8a],
     accent: 0x6ad0f0,
-    twinkle: '#d0f8ff',
   },
   summoner: {
-    sky: ['#0a1a14', '#0e221a', '#142c20', '#1a3626', '#20402c', '#284a30'],
-    far: ['#14301e', '#24482c'],
-    near: ['#0c1e12', '#2a5030'],
-    floor: ['#24381e', '#2c4424', '#34502a', '#263a20', '#1a2816'],
+    sky: ['#06120c', '#081810', '#0c2016', '#10281a', '#14301e', '#1a3a24'],
+    far: ['#10261a', '#1c3a26'],
+    near: ['#2a3a24', '#3e5430'],
+    floor: ['#2a4e26', '#244424', '#1e3c20', '#1a341c', '#142a18'],
     floorY: 114,
-    motif: 'grove',
-    light: 0xd8f090,
-    disc: [0x8ab060, 0x4a6a30, 0x2a401c],
+    motif: 'glowgrove',
+    light: 0xc8ff9a,
+    disc: [0x9ad080, 0x46703a, 0x24401e],
     accent: 0xb4f070,
-    twinkle: '#c8ff9a',
   },
   bomber: {
-    sky: ['#1a120c', '#241810', '#302014', '#3c2818', '#48301c', '#523820'],
-    far: ['#2e2014', '#4a3420'],
-    near: ['#1a120a', '#3e2c1a'],
-    floor: ['#3e2e20', '#4a3826', '#56422c', '#40301e', '#2c2014'],
+    sky: ['#1e130a', '#26180c', '#2e1e10', '#362412', '#3e2a16', '#46301a'],
+    far: ['#3a2416', '#52341e'],
+    near: ['#5e3618', '#8e5a2e'],
+    floor: ['#5e4428', '#563e24', '#4e3820', '#40301e', '#2c2014'],
     floorY: 112,
-    motif: 'workshop',
+    motif: 'sapper',
     light: 0xffd890,
-    disc: [0xc0905a, 0x6e4426, 0x4a2c18],
+    disc: [0xd8a878, 0x7a5030, 0x4a2c18],
     accent: 0xff9a2a,
-    twinkle: '#ffb040',
   },
   /** A quiet night clearing (companions). */
   night: {
@@ -244,6 +235,8 @@ function paintMotif(ctx: Ctx, w: number, sp: StageSpec, r: () => number): void {
   const fy = sp.floorY;
   const [fb, fe] = sp.far;
   const [nb, ne] = sp.near;
+  const own = STYLE_PAINTERS[sp.motif];
+  if (own) return own.back(ctx, w, sp, r);
   switch (sp.motif) {
     case 'castle': {
       // far: a curtain wall with crenels and two towers; near: banners on poles
@@ -452,6 +445,12 @@ export function paintStage(sp: StageSpec, w = 327, h = 150, seed = 7): HTMLCanva
   if (sp.twinkle && (sp.motif === 'castle' || sp.motif === 'roofs' || sp.motif === 'pines')) twinkles(ctx, w, 4, 40, '#c8d8ff', 10, r);
   paintMotif(ctx, w, sp, r);
   bands(ctx, w, sp.floorY, h, sp.floor);
+  const own = STYLE_PAINTERS[sp.motif]?.floor;
+  if (own) {
+    // a style stage paints its own floor (flagstones, planks, moss...)
+    own(ctx, w, sp, r);
+    return c;
+  }
   // the floor's front edge catches a little light, and a few pebbles or seams
   ctx.fillStyle = sp.floor[0];
   ctx.fillRect(0, sp.floorY, w, 1);

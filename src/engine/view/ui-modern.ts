@@ -538,3 +538,96 @@ export class Sheet {
 }
 
 const isDark = (c: number) => ((c >> 16) & 255) * 0.299 + ((c >> 8) & 255) * 0.587 + (c & 255) * 0.114 < 140;
+
+// ------------------------------------------------------------------ appended: the hero select and the skill tree
+
+/**
+ * A screen that paints its own full backdrop (drawStage): the camp's dim, drawn on gUi just before the screen, would
+ * sit OVER that backdrop (the image is under gUi). Call first thing in the screen's draw: it moves the dim under the
+ * backdrop (onto gFront, over the camp's people), so the stage keeps its colours and still fades in over a dim camp.
+ */
+export function liftDim(kit: CampKit, k: number): void {
+  kit.gUi.clear();
+  kit.dim(kit.gFront, 0.62 * clamp01(k));
+}
+
+/**
+ * A little character map (an emblem) drawn at a whole-number `scale`, centred on (cx, cy), with a crisp 1 px ink
+ * outline round it at any scale. '.' (or a space) is empty; `pal` colours the other characters.
+ */
+export function pixMap(g: G, map: readonly string[], pal: Record<string, number>, cx: number, cy: number, scale = 1, alpha = 1, outline = true): void {
+  const h = map.length;
+  const w = Math.max(...map.map((r) => r.length));
+  const x0 = Math.round(cx - (w * scale) / 2);
+  const y0 = Math.round(cy - (h * scale) / 2);
+  const on = (x: number, y: number) => {
+    const c = map[y]?.[x];
+    return c !== undefined && c !== '.' && c !== ' ';
+  };
+  if (outline) {
+    g.fillStyle(INK, alpha);
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        if (!on(x, y)) continue;
+        const px = x0 + x * scale;
+        const py = y0 + y * scale;
+        if (!on(x - 1, y)) g.fillRect(px - 1, py, 1, scale);
+        if (!on(x + 1, y)) g.fillRect(px + scale, py, 1, scale);
+        if (!on(x, y - 1)) g.fillRect(px, py - 1, scale, 1);
+        if (!on(x, y + 1)) g.fillRect(px, py + scale, scale, 1);
+        if (!on(x - 1, y - 1) && !on(x - 1, y) && !on(x, y - 1)) g.fillRect(px - 1, py - 1, 1, 1);
+        if (!on(x + 1, y - 1) && !on(x + 1, y) && !on(x, y - 1)) g.fillRect(px + scale, py - 1, 1, 1);
+        if (!on(x - 1, y + 1) && !on(x - 1, y) && !on(x, y + 1)) g.fillRect(px - 1, py + scale, 1, 1);
+        if (!on(x + 1, y + 1) && !on(x + 1, y) && !on(x, y + 1)) g.fillRect(px + scale, py + scale, 1, 1);
+      }
+  }
+  for (let y = 0; y < h; y++) {
+    const row = map[y];
+    for (let x = 0; x < row.length; ) {
+      const c = row[x];
+      let n = 1;
+      while (x + n < row.length && row[x + n] === c) n++;
+      if (c !== '.' && c !== ' ') {
+        g.fillStyle(pal[c] ?? WHITE, alpha);
+        g.fillRect(x0 + x * scale, y0 + y * scale, n * scale, scale);
+      }
+      x += n;
+    }
+  }
+}
+
+/**
+ * A big paging arrow (either side of a stage): a tall glass lozenge with a gold chevron that nudges the way it
+ * points now and then; it sinks when pressed. `dir` -1 points left, 1 right.
+ */
+export function pageArrow(g: G, r: Rect, dir: number, now: number, alpha = 1): void {
+  const pr = isPressed(r, now);
+  const y = r.y + (pr ? 1 : 0);
+  const rr = { ...r, y };
+  rows(g, rr.x - 1, rr.y + 2, rr.w + 2, rr.h + 1, 3, INK, 0.35 * alpha);
+  rows(g, rr.x - 1, rr.y - 1, rr.w + 2, rr.h + 2, 3, INK, 0.85 * alpha);
+  rows(g, rr.x, rr.y, rr.w, rr.h, 2, pr ? 0x3a2c64 : 0x1e1636, 0.82 * alpha);
+  band(g, rr.x, rr.y, rr.w, rr.h, 2, 0, 1, 0x8a7cc0, 0.9 * alpha);
+  band(g, rr.x, rr.y, rr.w, rr.h, 2, rr.h - 1, rr.h, 0x0c0a16, alpha);
+  const nudge = Math.round(Math.max(0, Math.sin((now % 1300) / 1300 * Math.PI * 2)) * 1.5) * dir;
+  const ch = Math.min(11, rr.h - 6);
+  const cx = Math.round(rr.x + rr.w / 2 - (dir > 0 ? 2 : 3) + nudge);
+  chevronBig(g, cx, Math.round(rr.y + (rr.h - ch) / 2), ch, dir, alpha);
+}
+
+/** A thick (3 px) chevron of height `h` (odd) with its back at x, in gold with an ink rim. */
+function chevronBig(g: G, x: number, y: number, h: number, dir: number, alpha: number): void {
+  const half = (h - 1) / 2;
+  for (let i = 0; i < h; i++) {
+    const off = half - Math.abs(i - half);
+    const px = dir > 0 ? x + off : x + half - off;
+    g.fillStyle(INK, alpha);
+    g.fillRect(px - 1, y + i - 1, 5, 3);
+  }
+  for (let i = 0; i < h; i++) {
+    const off = half - Math.abs(i - half);
+    const px = dir > 0 ? x + off : x + half - off;
+    g.fillStyle(i < half ? GOLD[4] : i === half ? GOLD[3] : GOLD[2], alpha);
+    g.fillRect(px, y + i, 3, 1);
+  }
+}

@@ -513,6 +513,8 @@ export interface SpriteOpts {
   crop?: [number, number, number, number];
   flip?: boolean;
   tint?: number;
+  /** A flat colour in place of the texture's (a silhouette's rim light, a white flash); wins over `tint`. */
+  fill?: number;
   scale?: number;
   alpha?: number;
 }
@@ -542,8 +544,10 @@ export class SpritePool {
       const [cx, cy, cw, ch] = o.crop;
       img.setCrop(cx, cy, cw, ch).setPosition(Math.round(x) - cx * sc, Math.round(y) - cy * sc);
     } else img.setCrop().setPosition(Math.round(x), Math.round(y));
-    if (o.tint === undefined) img.clearTint();
-    else img.setTint(o.tint);
+    // (tint modes as numbers, Phaser.TintModes MULTIPLY 0 / FILL 1: this file stays free of a Phaser value import)
+    if (o.fill !== undefined) img.setTint(o.fill).setTintMode(1);
+    else if (o.tint === undefined) img.clearTint();
+    else img.setTint(o.tint).setTintMode(0);
     return img;
   }
 
