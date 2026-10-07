@@ -196,3 +196,8 @@ C4. **Camp upgrades are objects in the camp; the Upgrades screen is build mode o
 C5. **Test lab:** the four camp scenarios on the reworked screens (Companions, Camp upgrades, Completion: almost /
     100%) get `rev: 1` and new "try" lines (a rating given to the old screens asks again). They stay where they are in
     LAB_EARLIER: moving this round's items into LAB_NEW is left to the merge, since every agent this round touches it.
+C6. **The camp skips its dim behind every modern screen by mode** (`STAGED_MODES` in camp.ts: heroes, skills, chests,
+    shrine, pets, progress, upgrades; a screen's own `staged = true` still works too), at the lead's request: the other
+    screens' workarounds (liftDim, clearing gUi) are no longer needed. The old-style screens (bag, forge, stats,
+    relics) keep the dim. On this branch alone the old hero select, chests and shrine differ from their baselines by a
+    few pixels (inside the screenshot tolerance); their merged versions bring their own baselines.

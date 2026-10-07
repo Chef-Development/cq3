@@ -52,6 +52,10 @@ type G = Phaser.GameObjects.Graphics;
 export type CampMode = 'home' | 'bag' | 'forge' | 'stats' | 'heroes' | 'skills' | 'relics' | 'chests' | 'shrine' | 'pets' | 'upgrades' | 'progress';
 type Spot = 'bag' | 'forge' | 'skills' | 'relics' | 'shrine' | 'leave';
 type PlateId = 'bag' | 'forge' | 'shrine' | 'chests' | 'dummy' | 'pet';
+/** The modern screens: each paints its own full-screen stage (ui-modern.ts drawStage) or, in build mode, is the camp
+ *  itself, so the camp's dim is skipped behind them (it would darken their stage); the older screens (bag, forge,
+ *  stats, relics) keep it. A screen can also opt out on its own with `staged = true`. */
+const STAGED_MODES: ReadonlySet<CampMode> = new Set<CampMode>(['heroes', 'skills', 'chests', 'shrine', 'pets', 'progress', 'upgrades']);
 
 interface Ember {
   x: number;
@@ -673,10 +677,10 @@ export class CampView {
       this.drawBanter(now);
       this.showGains();
     } else {
-      // a screen that paints its own stage (`staged`) needs no dim over the camp behind it
+      // a screen that paints its own stage needs no dim over the camp behind it (STAGED_MODES, or `staged`)
       const scr = this.screen();
       const k = clamp01((now - this.modeAt) / 160);
-      if (!(scr as { staged?: boolean }).staged) kit.dim(kit.gUi, 0.62 * k);
+      if (!STAGED_MODES.has(this.mode) && !(scr as { staged?: boolean }).staged) kit.dim(kit.gUi, 0.62 * k);
       scr.draw(now);
     }
     kit.end(now);
