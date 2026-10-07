@@ -2456,6 +2456,137 @@ export class Synth {
     [0, -5, -8 - (mythic ? 1 : 0), -12, -17].forEach((d, i) => this.bell(hz(top + d), s + 0.05 + i * 0.07, 0.05 - i * 0.006, 0.6));
   }
 
+  // ---- the chest opening (view/chest-opening.ts): the slam, the build-up step by step, the burst, the fanfare
+
+  /** A chest slams down: a heavy wooden thud with a low drop, its bands and lock rattling, dust hissing out. */
+  chestSlam(at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    this.tone({ type: 'sine', f: 150, f1: 40, glide: 0.22, at: t, attack: 0.002, dur: 0.32, gain: 0.5 });
+    this.noise({ at: t, dur: 0.2, gain: 0.32, filter: 'lowpass', f: 1100, f1: 140, sweep: 0.16, rate: 0.7 });
+    this.tone({ type: 'triangle', f: 260, f1: 150, glide: 0.07, at: t, dur: 0.1, gain: 0.26 });
+    this.tone({ type: 'square', f: 420, f1: 300, glide: 0.04, at: t, dur: 0.05, gain: 0.06 });
+    this.noise({ at: t, dur: 0.05, gain: 0.22, filter: 'bandpass', f: 800, q: 1.5 });
+    // the metal rattling a moment after
+    for (const [d, f] of [
+      [0.03, 1240],
+      [0.07, 1870],
+      [0.11, 1530],
+    ])
+      this.tone({ type: 'sine', f, at: t + d, dur: 0.12, gain: 0.035, rev: 0.2 });
+    this.ticks([t + 0.02, t + 0.05, t + 0.09, t + 0.13], { gain: 0.08, f: 2600, q: 4, ms: 8 });
+    this.noise({ at: t + 0.02, dur: 0.4, attack: 0.03, gain: 0.04, filter: 'highpass', f: 3200, rev: 0.2 });
+  }
+
+  /** Light cracks out of a chest's seams: glassy crackles and a bright ping; `k` (0..1) how far it has gone. */
+  chestCrack(k = 0.5, at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    const n = 4 + Math.round(k * 5);
+    this.ticks(
+      Array.from({ length: n }, (_, i) => t + i * 0.018 + this.rand() * 0.012),
+      { gain: 0.12 + 0.05 * k, f: 4200, q: 3, ms: 5, rev: 0.25 },
+    );
+    this.noise({ at: t, dur: 0.12, gain: 0.06 + 0.04 * k, filter: 'highpass', f: 5000, f1: 2500, sweep: 0.1 });
+    this.tone({ type: 'sine', f: 2200 + k * 1400, f1: 2600 + k * 1600, glide: 0.2, at: t + 0.02, dur: 0.3, gain: 0.05, rev: 0.45 });
+    this.bell(3136 + k * 800, t + 0.05, 0.025, 0.5);
+  }
+
+  /** One step of the build-up (i = 0 Common .. 7 Divine): the chest jolts (a thump and a rattle) and a chime rings a
+   *  step higher each time, brighter and fuller as the steps climb past Rare. */
+  tierStep(i: number, at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    const s = Math.max(0, Math.min(7, Math.round(i)));
+    this.tone({ type: 'sine', f: 105 + s * 6, f1: 58, glide: 0.12, at: t, dur: 0.16, gain: 0.26 + s * 0.015 });
+    this.noise({ at: t, dur: 0.12, gain: 0.07, filter: 'bandpass', f: 900, q: 1.5, rate: 0.8 });
+    this.ticks([t + 0.01, t + 0.04, t + 0.07], { gain: 0.05, f: 1800, q: 3, ms: 6 });
+    // the chime: up a bright scale, one step per tier
+    const m = [72, 74, 76, 79, 81, 84, 86, 88][s];
+    const c = t + 0.03;
+    this.tone({ type: 'square', f: hz(m), at: c, dur: 0.06, gain: 0.025 });
+    this.tone({ type: 'sine', f: hz(m), at: c, dur: 0.38 + s * 0.04, gain: 0.1, rev: 0.4 });
+    if (s >= 2) this.tone({ type: 'triangle', f: hz(m + 7), at: c + 0.02, dur: 0.3 + s * 0.03, gain: 0.04 + s * 0.004, rev: 0.45 });
+    if (s >= 4) this.bell(hz(m + 12), c + 0.05, 0.035 + (s - 4) * 0.005, 0.55);
+    if (s >= 6) {
+      // the top tiers shimmer: high twinkles and an airy wash
+      for (let k = 0; k < s - 3; k++) this.bell(hz(m + 12 + PENTA[k % 5] + (k > 4 ? 12 : 0)), c + 0.08 + k * 0.04, 0.018, 0.6);
+      this.noise({ at: c, dur: 0.4, attack: 0.1, gain: 0.03, filter: 'highpass', f: 7000, rev: 0.4 });
+    }
+  }
+
+  /** The lid bursts off: a rush of air rising into a deep boom, a crack and a shower of glitter, all bigger for a
+   *  rarer prize (tier 0..7). */
+  chestBurst(tier: number, at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    const r = Math.max(0, Math.min(7, Math.round(tier)));
+    const k = r / 7;
+    this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 500], [0.14, 5000 + k * 3000]], q: 1.3, amp: [[0.12, 0.16 + k * 0.08], [0.2, 0]] });
+    const s = t + 0.12;
+    this.tone({ type: 'sine', f: 120 - k * 30, f1: 38, glide: 0.4, at: s, dur: 0.55 + k * 0.3, gain: 0.42 + k * 0.08 });
+    this.noise({ at: s, dur: 0.45 + k * 0.3, gain: 0.22 + k * 0.06, filter: 'lowpass', f: 2400, f1: 160, sweep: 0.4, rate: 0.6, rev: 0.25 });
+    this.noise({ at: s, dur: 0.06, gain: 0.14, filter: 'highpass', f: 3000 });
+    this.noise({ at: s, dur: 0.9 + k * 0.6, attack: 0.02, gain: 0.04 + k * 0.03, filter: 'highpass', f: 6500, rev: 0.5 });
+    // glitter falling: more of it, longer, for the rarer prizes
+    const n = 3 + r * 2;
+    for (let i = 0; i < n; i++) this.bell(hz(96 - PENTA[(i * 3) % 5] - Math.floor(i / 5) * 12 + (r >= 6 ? 7 : 0)), s + 0.05 + i * (0.05 - k * 0.015) + this.rand() * 0.02, 0.022 + k * 0.01, 0.55);
+  }
+
+  /** The prize revealed: a fanfare sized to its tier (0 Common .. 7 Divine). A ding and a little run for the low
+   *  tiers, the boost stings for Rare and Epic, the reveal cards' fanfares for Legendary and Mythic; Celestial is an
+   *  airy choir under a cascade of bells, and Divine the grandest: the Legendary fanfare with a second brass call a
+   *  fourth higher, a choir over it all and a long glittering tail. */
+  fanfare(tier: number, at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    const r = Math.max(0, Math.min(7, Math.round(tier)));
+    if (r <= 1) {
+      const notes = r === 0 ? [79, 84] : [72, 76, 79, 84];
+      notes.forEach((m, i) => {
+        const s = t + i * 0.07;
+        this.tone({ type: 'square', f: hz(m), at: s, dur: 0.06, gain: 0.03 });
+        this.tone({ type: 'sine', f: hz(m), at: s, dur: i === notes.length - 1 ? 0.6 : 0.22, gain: 0.11, rev: 0.4 });
+      });
+      this.bell(hz(96), t + notes.length * 0.07, 0.04 + r * 0.015, 0.55);
+      return;
+    }
+    if (r === 2) return this.rareSting(false, t);
+    if (r === 3) {
+      this.rareSting(true, t);
+      return this.lootSting(3, t + 0.3);
+    }
+    if (r <= 5) return this.legendaryReveal(r === 5, t);
+    if (r === 6) {
+      // Celestial: a soft timpani, then a choir swelling on a major ninth, bells cascading up and down
+      this.tone({ type: 'sine', f: 98, f1: 49, glide: 0.4, at: t, dur: 0.7, gain: 0.32 });
+      this.noise({ at: t, dur: 1.6, attack: 0.3, gain: 0.05, filter: 'highpass', f: 6000, rev: 0.6 });
+      const root = 62; // D
+      [0, 4, 7, 11, 14].forEach((iv, i) => {
+        this.voice({ at: t + 0.05 + i * 0.06, type: 'sine', f: [[0, hz(root + 12 + iv)]], vib: { rate: 5, cents: 6, cents1: 16 }, amp: [[0.25, 0.05], [1.4, 0.04], [2, 0]], rev: 0.65 });
+        this.tone({ type: 'triangle', f: hz(root + iv), at: t + 0.05, attack: 0.08, hold: 0.5, dur: 1.8, gain: 0.05, rev: 0.5, detune: i % 2 ? 6 : -6 });
+      });
+      const casc = [86, 90, 93, 98, 102, 105, 110, 105, 102, 98];
+      casc.forEach((m, i) => this.bell(hz(m), t + 0.15 + i * 0.06, 0.04, 0.65));
+      return;
+    }
+    // Divine
+    this.legendaryReveal(false, t);
+    const s = t + 0.62;
+    for (const [d, m, len] of [
+      [0, 72, 0.12],
+      [0.13, 72, 0.1],
+      [0.24, 77, 1.2],
+    ] as Array<[number, number, number]>)
+      for (const det of [-6, 6])
+        this.voice({ at: s + d, type: 'sawtooth', f: [[0, hz(m) * Math.pow(2, det / 1200)]], filter: 'lowpass', ff: [[0, 800], [0.06, 3000], [len, 1300]], q: 1.4, amp: [[0.015, 0.03], [len * 0.7, 0.024], [len + 0.25, 0]], rev: 0.4 });
+    [0, 4, 7, 12, 16].forEach((iv, i) =>
+      this.voice({ at: s + 0.3 + i * 0.05, type: 'sine', f: [[0, hz(77 + iv)]], vib: { rate: 5.2, cents: 6, cents1: 18 }, amp: [[0.3, 0.03], [1.3, 0.025], [1.9, 0]], rev: 0.65 }),
+    );
+    for (let i = 0; i < 12; i++) this.bell(hz(101 + PENTA[i % 5] + (i % 3) * 12 - 12), s + 0.4 + i * 0.07 + this.rand() * 0.02, 0.025, 0.65);
+    this.noise({ at: s + 0.3, dur: 2, attack: 0.4, gain: 0.04, filter: 'highpass', f: 7000, rev: 0.6 });
+  }
+
   /** The smith's hammer on the anvil: a sharp strike, a short thud, and the anvil ringing on (inharmonic partials). */
   forgeHammer(at?: number): void {
     if (!this.ready) return;
@@ -3753,6 +3884,9 @@ export interface SfxEntry {
   play(s: Synth, at: number): void;
 }
 
+/** The rarity tiers' names, Common to Divine, for the chest opening's sounds in the Sound lab. */
+const CHEST_TIERS = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic', 'Celestial', 'Divine'];
+
 /** Sound lab names for telegraph sounds whose id would name a region's foe (spoilers). */
 const TELL_LABEL: Record<string, string> = { bellows: 'furnace breath' };
 
@@ -3819,6 +3953,12 @@ export const SFX: SfxEntry[] = [
   ...['Epic', 'Legendary', 'Mythic'].map((name, i): SfxEntry => ({ id: `lootSting${i + 3}`, label: `Loot sting: ${name}`, len: 1.6, play: (s, at) => s.lootSting(i + 3, at) })),
   { id: 'revealLegendary', label: 'Reveal card: Legendary', len: 2.6, play: (s, at) => s.legendaryReveal(false, at) },
   { id: 'revealMythic', label: 'Reveal card: Mythic', len: 3, play: (s, at) => s.legendaryReveal(true, at) },
+  // the chest opening: the slam, light cracking out, one build-up step per tier, the burst and the fanfare per tier
+  { id: 'chestSlam', label: 'Chest: slams down', len: 0.8, play: (s, at) => s.chestSlam(at) },
+  { id: 'chestCrack', label: 'Chest: light cracks out', len: 0.7, play: (s, at) => s.chestCrack(0.7, at) },
+  ...CHEST_TIERS.map((name, i): SfxEntry => ({ id: `tierStep${i}`, label: `Chest: build-up step (${name})`, len: 0.9, play: (s, at) => s.tierStep(i, at) })),
+  ...CHEST_TIERS.map((name, i): SfxEntry => ({ id: `chestBurst${i}`, label: `Chest: lid bursts (${name})`, len: 2.2, play: (s, at) => s.chestBurst(i, at) })),
+  ...CHEST_TIERS.map((name, i): SfxEntry => ({ id: `fanfare${i}`, label: `Chest: fanfare (${name})`, len: i >= 6 ? 3.4 : i >= 4 ? 3 : 1.8, play: (s, at) => s.fanfare(i, at) })),
   { id: 'forgeHammer', label: 'Forge: hammer', len: 1.2, play: (s, at) => s.forgeHammer(at) },
   { id: 'forgeUpgrade', label: 'Forge: upgrade', len: 1, play: (s, at) => s.forgeUpgrade(at) },
   { id: 'salvage', label: 'Salvage', len: 0.9, play: (s, at) => s.salvage(at) },

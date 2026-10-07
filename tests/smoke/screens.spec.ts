@@ -519,29 +519,76 @@ test('camp: the heroes met since, chests waiting, the shrine open, a companion a
   await expect(page).toHaveScreenshot('camp-heroes.png', shot);
 });
 
-test('camp: a hero chest opens (the shake and burst, then the prize card)', async ({ page }) => {
+test('camp: a hero chest opens (the slam, the build-up through the rarity colours, the burst, the silhouette, the reveal)', async ({ page }) => {
   const camp = await metaCamp(page);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await camp((c: any, now) => c.go('chests', now));
-  await frames(page, 30);
+  await frames(page, 40);
   await expect(page).toHaveScreenshot('chests.png', shot);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await camp((c: any, now) => {
-    c.chests.reseed(37); // a Legendary hero, new: Vesper
+    c.chests.reseed(37); // a Legendary hero, new: Vesper (5 steps: grey, green, blue, purple, orange)
     c.chests.openKind('hero', now);
   });
-  await frames(page, 128); // just after the burst
+  await frames(page, 120); // the third step (blue): the lid hops, light leaks from the seam
+  await expect(page).toHaveScreenshot('chest-build.png', shot);
+  await frames(page, 129); // just after the burst
   await expect(page).toHaveScreenshot('chest-burst.png', shot);
-  await frames(page, 80);
+  await frames(page, 40); // the prize risen: a silhouette rimmed in its tier's light
+  await expect(page).toHaveScreenshot('chest-silhouette.png', shot);
+  await frames(page, 51); // revealed: the flash fading, the banner dropping in
+  await expect(page).toHaveScreenshot('chest-reveal.png', shot);
+  await frames(page, 30);
   await expect(page).toHaveScreenshot('chest-prize.png', shot);
 });
 
-test('camp: the shrine (a Rare chest for gems, the odds, the pity)', async ({ page }) => {
+test('camp: open all (one chest after another, then what came out), and the Divine demo', async ({ page }) => {
+  const camp = await metaCamp(page);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => {
+    c.go('chests', now);
+    c.chests.reseed(5);
+  });
+  await frames(page, 30);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => c.chests.openAll(now));
+  for (let i = 0; i < 3; i++) {
+    // fast-forward each chest to its end (its steps fire at once), then a tap: the next
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await camp((c: any) => (c.chests.opening.cur.skip += 1e5));
+    await frames(page, 15);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await camp((c: any) => c.tap(150, 100));
+    await frames(page, 20);
+  }
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('chests-summary.png', shot);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any) => c.tap(150, 100));
+  await frames(page, 20);
+  // (a hero met in there arrives in their scene once it's all closed: skipped here)
+  await page.evaluate(() => (window as Cq3Window).__cq3!.app.storySkip());
+  await frames(page, 10);
+  // the Test lab's demo: a Divine prize forced (nothing granted), at its last step (prismatic)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => c.chests.demo(['divine'], 'region', now));
+  await frames(page, 262);
+  await expect(page).toHaveScreenshot('chest-divine.png', shot);
+});
+
+test('camp: the shrine (the arch, the chest on its altar, the pity vials, Open with its price), its odds', async ({ page }) => {
   const camp = await metaCamp(page);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await camp((c: any, now) => c.go('shrine', now));
   await frames(page, 40);
   await expect(page).toHaveScreenshot('shrine.png', shot);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any) => {
+    const r = c.shrine.oddsRect();
+    c.tap(r.x + 5, r.y + 5);
+  });
+  await frames(page, 24);
+  await expect(page).toHaveScreenshot('shrine-odds.png', shot);
 });
 
 test('camp: companions (two slots with the Perch), upgrades, region progress', async ({ page }) => {
