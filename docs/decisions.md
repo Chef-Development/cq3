@@ -384,3 +384,11 @@ C6. **The camp skips its dim behind every modern screen by mode** (`STAGED_MODES
     moved 8-14 points an act): every hero within +/-10 of Rowan in every act (Moss +10 in Act 3 and Hollis +10 in Act 6
     are the edges). The table and each change are in docs/balance-heroes.md. Greenmarch's guards in `bot.test.ts`
     (Rowan) all still hold, so no guard moved.
+L4. **Test lab, round 6:** New holds everything this round changed. That is the seven heroes again (rev 2: the
+    tuning and the effects on their targets), the two new tree options already learned (Neve's Big Freeze, Tam's
+    Turnabout), the four companion pairs (rev 2), Act 2's tougher foes (rev 2), a chest opening at five rarities from
+    Rare to Divine (a demo: nothing is granted; nothing above Legendary can come out of a chest yet, so it's the only
+    way to see those build-ups), Open all, and a walk through every redesigned menu (rev 1). The bar rules are in New
+    too, now with their tips. The single Hero and Rare chests moved to Earlier (Open all plays both kinds). It runs
+    about 21 minutes without the spoilers, over the old 10-minute aim, because most of what was rated last round was
+    reworked.

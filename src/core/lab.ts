@@ -12,7 +12,7 @@ import { LAB_EARLIER, LAB_GROUPS, LAB_NEW, type LabScenario } from '../data/lab'
 import { ALL_ACTS, REGIONS } from '../data/regions';
 import type { BarRules } from '../data/types';
 import { itemLevel, makeItem } from './gear';
-import { xpForLevel } from './heroes';
+import { nodeAt, xpForLevel } from './heroes';
 import { addItem, equip, newProfile, newRegionLog, type Profile } from './profile';
 import { Rng } from './rng';
 import { unveilKey } from './world-plan';
@@ -83,6 +83,15 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
   if (s.setup.kind === 'fight') p.heroes[s.setup.hero].unlocked = true;
   const level = spec.level ?? labLevel(act);
   for (const id of HERO_IDS) if (p.heroes[id].unlocked) p.heroes[id].xp = xpForLevel(t, level);
+  // skill nodes learned (a tree option to try): each with the nodes before it in its branch
+  for (const [id, nodes] of Object.entries(spec.skills ?? {}) as Array<[HeroId, string[]]>) {
+    const h = p.heroes[id];
+    for (const n of nodes) {
+      const at = nodeAt(id, n);
+      if (!at) continue;
+      for (const prev of at.branch.nodes.slice(0, at.index + 1)) if (!h.skills.includes(prev.id)) h.skills.push(prev.id);
+    }
+  }
   const pick = spec.hero ?? (s.setup.kind === 'fight' ? s.setup.hero : s.setup.kind === 'camp' ? s.setup.hero : undefined);
   if (pick && p.heroes[pick].unlocked) p.hero = pick;
   // companions: Pip always, the listed ones, all at a level that fits

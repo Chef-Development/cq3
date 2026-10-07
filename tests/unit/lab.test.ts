@@ -98,15 +98,15 @@ describe('Test lab scenarios (data)', () => {
     for (const g of LAB_GROUPS) for (const w of SECRET_WORDS) expect(g.name.toLowerCase()).not.toContain(w.toLowerCase());
   });
 
-  it("covers this round's new content in the New section, about ten minutes without the spoilers", () => {
+  it("covers this round's new content in the New section (round 6: reworked items ask again, the menus, the chests)", () => {
     const fresh = LAB_NEW;
     const r1 = new Set(GREENMARCH.acts.flatMap((a) => [...a.fights.early.flat(), ...a.fights.late.flat(), ...a.elites.flat()]));
-    // each hero but the starter, reworked (a new rev asks for a new rating): a real fight long enough to feel the kit
+    // each hero but the starter, reworked again (rev 2 asks for a new rating): a real fight long enough to feel the kit
     // (six waves of Region 1 foes at Act 2's numbers, the last with an elite), the finisher banked, the how-to first
     for (const id of ['sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva']) {
-      const s = fresh.find((x) => x.group === 'heroes' && x.setup.kind === 'fight' && x.setup.hero === id);
+      const s = fresh.find((x) => x.id === id && x.group === 'heroes' && x.setup.kind === 'fight' && x.setup.hero === id);
       expect(s, id).toBeDefined();
-      expect(s!.rev ?? 0, id).toBeGreaterThanOrEqual(1);
+      expect(s!.rev ?? 0, id).toBeGreaterThanOrEqual(2);
       const f = labFight(s!)!;
       expect(f.safe, id).toBe(false);
       expect(f.act, id).toBe(1);
@@ -120,24 +120,50 @@ describe('Test lab scenarios (data)', () => {
       expect(tip, id).toBeDefined();
       expect(s!.profile?.tips, id).toEqual([tip!.id]);
     }
-    // every companion, in pairs with the Perch, in four waves or more
+    // the two new skill-tree options, learned (with their branch up to them) in the lab's profile
+    for (const [id, hero, node] of [
+      ['neveBigFreeze', 'neve', 'bigFreeze'],
+      ['tamTurnabout', 'tam', 'turnabout'],
+    ] as const) {
+      const s = fresh.find((x) => x.id === id)!;
+      expect(s, id).toBeDefined();
+      expect(labProfile(t, s).heroes[hero].skills, id).toContain(node);
+      expect(labFight(s)!.waves.length, id).toBeGreaterThanOrEqual(6);
+    }
+    // every companion, in pairs with the Perch, in four waves or more, reworked (their effects show on their targets)
     const petItems = fresh.filter((s) => s.group === 'companions');
     const pets = new Set(petItems.flatMap((s) => (s.setup.kind === 'fight' ? (s.setup.pets ?? []) : [])));
     for (const id of COMPANION_IDS) expect(pets.has(id), id).toBe(true);
     for (const s of petItems) {
       expect(labFight(s)!.waves.length, s.id).toBeGreaterThanOrEqual(4);
-      expect(s.rev ?? 0, s.id).toBeGreaterThanOrEqual(1);
+      expect(s.rev ?? 0, s.id).toBeGreaterThanOrEqual(2);
     }
-    // a late fight of Act 1 and of Act 2 with as many waves as the map deals them now
-    for (const act of [0, 1]) {
-      const s = fresh.find((x) => x.group === 'fights' && x.setup.kind === 'fight' && x.setup.act === act);
-      expect(s, `act ${act + 1}`).toBeDefined();
-      expect(labFight(s!)!.waves.length).toBe(GREENMARCH.acts[act].waves.last);
-      for (const k of labFight(s!)!.waves.flat()) expect(r1.has(k), k).toBe(true);
+    // Act 2's tougher foes: a late fight with as many waves as the map deals it
+    const a2 = fresh.find((x) => x.group === 'fights' && x.setup.kind === 'fight' && x.setup.act === 1);
+    expect(a2, 'act 2').toBeDefined();
+    expect(a2!.rev ?? 0).toBeGreaterThanOrEqual(2);
+    expect(labFight(a2!)!.waves.length).toBe(GREENMARCH.acts[1].waves.last);
+    for (const k of labFight(a2!)!.waves.flat()) expect(r1.has(k), k).toBe(true);
+    // a walk through every redesigned menu, each asking for a new rating
+    for (const screen of ['heroes', 'skills', 'companions', 'upgrades', 'completion', 'shrine', 'chest'] as const) {
+      const s = fresh.find((x) => x.setup.kind === 'camp' && x.setup.screen === screen);
+      expect(s, screen).toBeDefined();
+      // (the chests' vault is walked by the new Open all; the others were rated last round and ask again)
+      if (screen !== 'chest') expect(s!.rev ?? 0, screen).toBeGreaterThanOrEqual(1);
     }
+    // the chest opening at several rarities, up to the top tier (a demo: nothing granted), and Open all
+    const demo = fresh.find((x) => x.setup.kind === 'camp' && x.setup.screen === 'chestDemo');
+    expect(demo).toBeDefined();
+    const tiers = demo!.setup.kind === 'camp' ? (demo!.setup.tiers ?? []) : [];
+    expect(tiers.length).toBeGreaterThanOrEqual(4);
+    expect(tiers).toContain('divine');
+    const all = fresh.find((x) => x.id === 'chestOpenAll')!;
+    const ch = labProfile(t, all).chests;
+    expect(ch.hero + ch.rare + ch.region).toBeGreaterThan(1);
+    // round 6 reworks most of what was rated last round (and every menu): about twenty minutes without the spoilers
     const m = labMinutes();
     expect(m).toBeGreaterThanOrEqual(8);
-    expect(m).toBeLessThanOrEqual(14);
+    expect(m).toBeLessThanOrEqual(24);
     expect(LAB_EARLIER.every((s) => !LAB_NEW.includes(s))).toBe(true);
   });
 

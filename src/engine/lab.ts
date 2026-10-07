@@ -164,6 +164,10 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
         return camp.go('skills', now, s.setup.hero);
       case 'chest':
         return camp.go('chests', now);
+      case 'chestDemo':
+        // the opening at each tier in turn (a demo: nothing is granted)
+        camp.go('chests', now);
+        return camp.chests.demo(s.setup.tiers ?? ['rare', 'legendary'], s.setup.chest ?? 'rare', now);
       case 'shrine':
         return camp.go('shrine', now);
       case 'companions':
