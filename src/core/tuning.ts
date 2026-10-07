@@ -370,7 +370,7 @@ export const DEFAULT_TUNING = {
     chainMax: 5, // ...up to this many links
     guardPer: 0.3, // Guardian (Guard): each red blocked stores a charge (Rampart: this share of attack each)...
     guardMax: 5, // ...up to this many; at full, the next block or hit unleashes a Bulwark...
-    bulwarkPer: 0.5, // ...on every foe, for this share of attack per charge
+    bulwarkPer: 0.4, // ...on every foe, for this share of attack per charge
     focusShare: 0.8, // Marksman (Focus): hits deal this share...
     focusStore: 0.35, // ...and store this share of your attack as Focus...
     focusCap: 6, // ...up to this many times your attack; a green hit fires it all...
@@ -392,14 +392,14 @@ export const DEFAULT_TUNING = {
     // Rowan's base attack. Rowan's are tuning.hero. Tuned with the bot to stay within +/-10 points of Rowan.
     // sable: landSec/landMult: where a dash lands, the cursor runs at landMult for about landSec (up to the block)
     sable: { hp: 110, atk: 0.95, abilitySec: 3, silentStep: 0.25, dashLead: 0.15, dashMult: 2.5, landSec: 0.3, landMult: 0.5, fangMult: 1.4, fangKeep: 1 },
-    // neve: Glacier freezes every red solid for glacierSec, slows the whole bar for glacierBarSec, the middle (slowWidth)
+    // neve: shattered ice fills iceMeter of a hit's meter (Cold Snap); Glacier freezes every red solid for glacierSec, slows the whole bar for glacierBarSec, the middle (slowWidth)
     // for slowSec
-    neve: { hp: 108, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, glacierMult: 0.7, glacierSec: 2.5, glacierBarSec: 1.5, slowSec: 4, slowWidth: 0.34 },
+    neve: { hp: 108, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, iceMeter: 0.5, glacierMult: 0.7, glacierSec: 2.5, glacierBarSec: 1.5, slowSec: 4, slowWidth: 0.34 },
     // moss: allyComp: the allies grow this much stronger (as a share) for each Companion point above a fresh hero's
-    moss: { hp: 95, atk: 0.62, abilitySec: 3, allySec: 6, allySec3: 14, allyComp: 0.3, thornEvery: 1.5, thornDmg: 0.3, barkEvery: 8, mothEvery: 3, mothHeal: 0.006, seedEvery: 5, roots: 0.04, overgrowth: 0.1, vineSec: 3, vineMult: 0.5 },
+    moss: { hp: 90, atk: 0.62, abilitySec: 3, allySec: 6, allySec3: 14, allyComp: 0.15, thornEvery: 1.5, thornDmg: 0.3, barkEvery: 16, mothEvery: 3, mothHeal: 0.004, seedEvery: 5, roots: 0.04, overgrowth: 0.1, vineSec: 3, vineMult: 0.7 },
     tam: { hp: 100, atk: 0.9, abilitySec: 3, kegEvery3: 4, blastShield: 0.35, bangKegs: 3, wide5: 2 },
     // hollis: every block slams its red's owner for slam x attack (a Perfect one slamPerfect)
-    hollis: { hp: 100, atk: 0.9, abilitySec: 3, slam: 0.4, slamPerfect: 0.8, ironHide: 0.2, rampartSec: 3, rampartGuard: 1.2, guardMax3: 7 },
+    hollis: { hp: 95, atk: 0.9, abilitySec: 3, slam: 0.4, slamPerfect: 0.8, ironHide: 0.2, rampartSec: 3, rampartGuard: 1.2, guardMax3: 7 },
     vesper: { hp: 115, atk: 1.13, abilitySec: 3, pierce: 0.5, volleyFocus: 1.7, pinSec: 2, cap3: 1.5 },
     // torva: a Wind-Up smash deals x(windUpBase + windUpStep per combo), up to windUpMax
     torva: { hp: 108, atk: 0.86, abilitySec: 3, quake: 0.08, windUpBase: 1.8, windUpStep: 0.04, windUpMax: 4, stunSec: 1, unstoppable: 0.08, unstoppableMax: 5, calmSec: 1.2 },

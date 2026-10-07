@@ -67,14 +67,17 @@ id, amount, enemyId, pos? }` (from `c.perkFx`); a perk's blow on a foe is a perk
 - **`Block.target: boolean`** (new): `true` on every green spawned on a Marksman's bar (they come x1.35 wide:
   `styles.targetWidth`). A green fires the stored Focus as a Power Shot. Draw them as targets (a ring/reticle on the
   green; brighter when Focus is full, `focusOf(c) >= focusCap(c)` from `core/styles`).
-- **Patience on a crowded bar**: at full Focus with no green on the bar, a Perfect hit fires the shot (a crit). Perk
-  event `'patience'` (amount = damage, pos = the hit), with the `'powerShot'` strike (`enemyHurt.perk: 'powerShot'`,
-  `crit: true`).
+- **Patience on a crowded bar**: at full Focus with no green on the bar (or only behind a mirror shard), a Perfect hit
+  fires the shot (a crit). Perk event `'patience'` (amount = damage, pos = the hit), with the `'powerShot'` strike
+  (`enemyHurt.perk: 'powerShot'`, `crit: true`).
+- **Volley** now pins icicles too (`still` reds: `chill > 0`, `chillMult === 0`, their fuse waits), and a red pinned
+  at the left end waits instead of striking. The arrow-pinned look should cover icicles.
 
 ## Moss (Summoner): allies scale with the Companion stat
 
 - `allyPower(c)` (`core/styles`): 1 for a fresh hero, +`kits.moss.allyComp` per Companion point above a fresh hero's
-  (as a share of it). Thornling jabs and Glowmoth heals scale with it; Barkbacks brace and Seedlings plant sooner.
+  (as a share of it). Thornling jabs and Glowmoth heals scale with it (a Barkback still stops one red, a Seedling plants
+  one green).
 - **`ally` events** gain optional fields: `power` (on `'call'` and `'act'`) and `amount` (on `'act'`: a Thornling's
   damage, a Glowmoth's heal; 0 for a brace or a seed). Look: allies a bit bigger/brighter with power (e.g. a glow
   from 1.3), the act's number over the ally or its target.

@@ -86,7 +86,8 @@ export function powerShot(c: Combat, crit = false): number {
 /**
  * How strong a Summoner's allies are: 1 for a fresh hero, plus kits.moss.allyComp for every Companion point (the
  * stat companions use) above a fresh hero's (tuning.companion.damage), as a share of it. Thornling jabs and Glowmoth
- * heals scale with it; Barkbacks brace and Seedlings plant that much more often.
+ * heals scale with it (a Barkback stops one red and a Seedling plants one green, whatever their power: when the
+ * Barkback rested less with power, Moss ran far ahead at the bosses).
  */
 export function allyPower(c: Combat): number {
   const base = Math.max(1, c.tuning.companion.damage);
@@ -102,11 +103,10 @@ export function allyKinds(c: Combat): AllyKind[] {
   return c.heroId === 'moss' && c.stars >= 5 ? [...list, 'seedling'] : list;
 }
 
-/** When an ally acts first, and then every this many seconds (a Barkback's brace and a Seedling's seed come sooner
- *  with the allies' power). */
+/** When an ally acts first, and then every this many seconds. */
 export function allyEvery(c: Combat, kind: AllyKind): number {
   const k = c.tuning.kits.moss;
-  return kind === 'thornling' ? k.thornEvery : kind === 'barkback' ? k.barkEvery / allyPower(c) : kind === 'glowmoth' ? k.mothEvery : k.seedEvery / allyPower(c);
+  return kind === 'thornling' ? k.thornEvery : kind === 'barkback' ? k.barkEvery : kind === 'glowmoth' ? k.mothEvery : k.seedEvery;
 }
 
 /**

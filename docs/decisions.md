@@ -168,3 +168,69 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     wave fewer (3 to 6 waves, was 4 to 6; the last rows and the lab's six-wave fight are unchanged). The Ruin Golem's
     base HP 2100 -> 1900 (with the act's x1.7 it has 10% more than before, so its fight stays the act's longest).
     85% bot (the guard's seeds): Act 2 first try 81% (target 80-90%), its fights 25 s, Act 3 untouched (26 s).
+46. **Neve's meter fills slower:** shattered ice now fills half a hit's meter (Cold Snap: `kits.neve.iceMeter` 0.5;
+    it used to fill a green's, 1.5 hits' worth), and Glacier no longer turns the reds into ice. Most of the "too fast"
+    was right after a Glacier: every red it caught came back as ice worth a green each, so the next stack was nearly
+    banked at once. The bot's taps per full meter (Greenmarch, 40 runs): Neve 7.3 against Rowan 7.5; with the ice still
+    worth a green's it was 7.1, and lower again while Glacier made ice (her Chill and Bend give her more Perfects, so
+    she stays a touch quicker; her meter-gain node is the rest). The Controller rule (Bend) doesn't touch the meter and
+    is unchanged.
+47. **Glacier freezes every red solid where it is** (they stay reds: blocking one still counts) for 2.5 s
+    (`glacierSec`), including one waiting at the left end and an icicle on its fuse; then they thaw and carry on. It
+    also **slows the whole bar for 1.5 s** (`glacierBarSec`: the two ends get slow patches of their own), then the
+    middle patch for the rest of its 4 s. Permafrost (5 stars) keeps the whole bar slow for the 4 s.
+48. **Big Freeze** replaces Shatterburst in Neve's Frost branch (rule node): Glacier turns every red into ice to smash
+    (Flash Freeze's frozen blocks: x2 damage, half a hit's meter). Shatterburst's area hit went: the branch is about
+    making ice, Brittle and Ice Age already reward smashing it.
+49. **Turnabout** replaces Stockpile in Tam's Kegs branch (rule node): Big Bang turns every red on the bar into one of
+    her kegs where it was (hit it: it blasts every foe). Stockpile's one keg per wave was the weakest keg-supply node.
+    (Tam is "she" in the data: "Lost her eyebrows".)
+50. **Torva's smash scales with the combo:** Wind-Up's next hit deals x(1.8 + 0.04 per combo), up to x4
+    (`kits.torva.windUpBase/windUpStep/windUpMax`; was a flat x2.5): x2.2 at 10 combo, x2.6 at 20, x3 at 30. It still
+    stuns. The view can show the multiplier while armed (`windUpMult(c)`) and when it lands (the perk's amount x100).
+51. **Vesper's crits on a busy bar:** a Marksman's greens are her targets: they come x1.35 wide
+    (`styles.targetWidth`) and carry `Block.target` for the view to draw; and at full Focus with no green on the bar,
+    her next Perfect hit fires the shot (a crit), so a flooded bar can't starve her. Both rather than one: wider
+    targets help when greens are there, the Perfect rule when they aren't.
+52. **Hollis: why he felt flat, and the block as his best moment.** Diagnosis: (1) most blocks did nothing you could
+    see or hear beyond a Guard pip: only a Perfect block slammed back, and the slam was half a hit; (2) Guard was spent
+    by the very next hit as a small bonus (+30% a charge), so it never built to anything: blocking never paid off in
+    one moment; (3) his finisher's wall happens off to the side (decision 24). Now: **every block slams the red's
+    owner** (a plain one for 40% attack, a Perfect one 80%; `kits.hollis.slam/slamPerfect`) with its own short
+    hit-stop (35 ms, `juice.slamStopMs`), impact tier `'slam'` and sound (`shieldCounter`); and **Guard builds to a
+    Bulwark**: hits no longer spend it; at full Guard (5, 7 at 3 stars) the next block or hit unleashes it on every
+    foe (40% attack per charge, `styles.bulwarkPer`) with a big hit-stop (110 ms), impact tier `'bulwark'` and its own
+    sound. His tree follows: Deep Guard = the Bulwark hits harder, Avalanche = a Bulwark stuns every foe 1 s,
+    Retaliate = each Guard stored makes slams 20% harder (Retaliate's old "plain blocks slam" is now the kit), Shield
+    Storm (5 stars) = every block slams as hard as a Perfect one. The bot holds its finisher while a Bulwark is ready
+    (Rampart would spend that Guard on one foe). To stay level with Rowan: his base HP 95 (was 100).
+53. **Moss's allies scale with the Companion stat** (the one companions' attacks use): `allyPower` = 1 + 0.15 for every
+    Companion point above a fresh hero's 6, as a share of it (a typical hero: about x1.1 in Act 2, x1.3-1.4 in the
+    second region; Companion gear makes it climb). Thornling jabs and Glowmoth heals scale with it; a Thornling jabs
+    for 30% attack (was 22%), so it reads as a real hit. `ally` events carry `amount` and `power` for the view. Moss
+    already ran ahead at the bosses, and this put him 15-20 points over Rowan there: the bot's fights showed his
+    Barkback was most of it (it stops nearly every red that gets past him), not his own hits (his attack share moved
+    nothing). So a Barkback rests 16 s after stopping a red (was 8; it scaled with power at first, which made it
+    worse), Overgrowth's vines slow reds to 0.7 of their speed (was 0.5), his base HP is 90 (was 95), and the Glowmoth
+    heals 0.4% (unchanged, but it grows with power). A Barkback and a Seedling don't scale (one red, one green).
+54. **Sable's dash lands slow:** after a Shadow Dash the cursor runs at half speed (`kits.sable.landMult`) for about
+    0.3 s (`landSec`), a short `'land'` patch from where it lands up to the block it dashed to, so that block can be
+    read and hit (it was 0.15 s of normal travel). Her kit line and how-to card now say it plainly: a Perfect makes
+    you dash; it slows at the next block; tap it.
+55. **Newt's burn is per foe** (`Enemy.burn` seconds left, `burnDps`, `burnTick`): a bite sets its target burning for
+    4 s (refreshed by the next bite) for half the bite's damage every second (it was a flat 3 a second for 3 s, one foe
+    at a time). The bite grows with the companion's level, stars and the Companion stat, so the burn does too. Each
+    tick is an `emberBite` strike.
+56. **Events for the view** are listed in `docs/fight-events.md`: `enemyHurt.perk` (which perk struck), Shield Slam
+    and Bulwark (perk events, hit-stops, tiers, sounds), Glacier's freeze and slows, `Block.target`, the `'land'`
+    zone, `Enemy.burn`, the allies' `amount`/`power`, Wind-Up's multiplier.
+57. **Vesper's last-act gap (-20) closed:** split by the boss's phase, the bot's fights showed she took about 60% more
+    red damage than Rowan, mostly the first phase's icicles (still reds on a fuse): every other finisher knocks them
+    off the bar, but her Volley keeps the reds to pin them and a pin couldn't hold an icicle. Now the Volley pins
+    icicles too (their fuse waits; one waiting at the left end waits as well), and **the bot times a tap on a pinned or
+    slowed red for where it will be when it moves again** (it used to aim at the pinned spot and be late). Act 6:
+    -22 -> -3 (300 runs). Nothing else about her changed for it.
+58. **Hero parity after round 6** (`npm run campaign`, two regions, 300 runs per hero: at 100 runs the same numbers
+    moved 8-14 points an act): every hero within +/-10 of Rowan in every act (Moss +10 in Act 3 and Hollis +10 in Act 6
+    are the edges). The table and each change are in docs/balance-heroes.md. Greenmarch's guards in `bot.test.ts`
+    (Rowan) all still hold, so no guard moved.

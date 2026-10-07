@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HERO_IDS, HEROES, STYLE_IDS } from '../../src/data/heroes';
 import { STYLES } from '../../src/data/styles';
-import { STYLE_HOOKS, allyEvery, allyPower, guardOf, focusCap, focusOf, chainOf, powerShot } from '../../src/core/styles';
+import { STYLE_HOOKS, allyEvery, allyPower, callAlly, guardOf, focusCap, focusOf, chainOf, powerShot } from '../../src/core/styles';
 import { KIT_HOOKS, nextBlockAhead, windUpMult } from '../../src/core/kit-fx';
 import { kitText, styleText } from '../../src/core/heroes';
 import type { Combat } from '../../src/core/combat';
@@ -369,10 +369,14 @@ describe('hero kits', () => {
     expect(c.zoneMult(z)).toBeCloseTo(1 + (t.bar.iceMult - 1) * k.iceResist);
   });
 
-  it("Neve's Cold Snap: shattered ice fills the meter like a plain hit (no longer like a green)", () => {
+  it("Neve's Cold Snap: shattered ice fills only part of a hit's meter (it used to fill a green's); a yellow fills a hit's", () => {
     const { c, t } = fight('neve');
     c.meter = 0;
     tapNew(c, t, 'frozen', 0.4, 25);
+    expect(c.meter).toBeCloseTo(t.meter.perHit * t.kits.neve.iceMeter, 5);
+    expect(t.kits.neve.iceMeter).toBeLessThan(1);
+    c.meter = 0;
+    tapNew(c, t, 'yellow', 0.7, 25);
     expect(c.meter).toBeCloseTo(t.meter.perHit, 5);
   });
 
@@ -411,15 +415,19 @@ describe('hero kits', () => {
     expect(c.drainEvents().some((e) => e.type === 'deflect')).toBe(true);
   });
 
-  it("Vesper's Volley pins every red in place for a moment", () => {
-    const { c } = fight('vesper');
+  it("Vesper's Volley pins every red in place for a moment (an icicle's fuse waits too)", () => {
+    const { c, t } = fight('vesper', { tune: (t) => (t.blocks.redTravelSec = 2) });
     const r = c.spawnBlock('red', 0.8);
+    const icicle = c.spawnBlock('red', 0.5, undefined, undefined, { still: true, fuse: 0.3 });
     c.stacks = 1;
     c.finisher();
     expect(c.blocks.includes(r)).toBe(true);
     const p = r.pos;
     go(c, c.time + 0.5);
     expect(r.pos).toBeCloseTo(p, 5);
+    expect(c.blocks.includes(icicle)).toBe(true); // its 0.3 s fuse waits out the pin
+    go(c, c.time + t.kits.vesper.pinSec);
+    expect(c.blocks.includes(icicle)).toBe(false); // then it strikes
   });
 
   it("Torva: Quake knocks reds back on a Perfect; Wind-Up's next hit smashes (x base + a step per combo) and stuns; Earthsplitter clears the bar", () => {
@@ -504,9 +512,16 @@ describe('hero kits', () => {
     const ev = c.drainEvents();
     expect(ev.find((e) => e.type === 'perk' && e.id === 'patience')).toBeDefined();
     expect(ev.find((e) => e.type === 'enemyHurt' && e.perk === 'powerShot')).toMatchObject({ crit: true });
+    // a green the cursor can't get to (behind a mirror shard) doesn't count as out
+    const m = fight('vesper', { enemies: ['bandit'], tune: (t) => (t.enemies.bandit.hp = 3000) });
+    m.c.perk.focus = focusCap(m.c);
+    m.c.spawnBlock('mirror', 0.6);
+    m.c.spawnBlock('green', 0.85);
+    tapNew(m.c, m.t, 'yellow', 0.3);
+    expect(focusOf(m.c)).toBe(0);
   });
 
-  it("Moss's allies grow with the Companion stat: a Thornling jabs harder, a Barkback braces sooner; the ally events say what they did and how strong", () => {
+  it("Moss's allies grow with the Companion stat: a Thornling jabs harder, a Glowmoth heals more; the ally events say what they did and how strong", () => {
     const jab = (bonus: number) => {
       const { c, t } = fight('moss', { tune: (t) => ((t.kits.moss.allySec = 30), (t.kits.moss.atk = 5), (t.enemies.slime.hp = 900)) });
       c.hero.bonusPet = bonus;
@@ -522,8 +537,23 @@ describe('hero kits', () => {
     expect(base.act).toMatchObject({ kind: 'thornling', amount: Math.round(base.c.stats().atk * k.thornDmg), power: 1 });
     expect(big.act).toMatchObject({ kind: 'thornling', amount: Math.round(big.c.stats().atk * k.thornDmg * allyPower(big.c)) });
     expect((big.act as { amount: number }).amount).toBeGreaterThan((base.act as { amount: number }).amount);
-    expect(allyEvery(big.c, 'barkback')).toBeCloseTo(k.barkEvery / allyPower(big.c));
-    expect(allyEvery(base.c, 'barkback')).toBeCloseTo(k.barkEvery);
+    // a Glowmoth (the third call) heals max HP x mothHeal x power; a Barkback still braces on its own clock
+    const heal = (bonus: number) => {
+      const { c, t } = fight('moss', { tune: (t) => ((t.kits.moss.allySec = 30), (t.kits.moss.mothHeal = 0.05)) });
+      c.hero.bonusPet = bonus;
+      c.hero.hp = 10;
+      callAlly(c);
+      callAlly(c);
+      callAlly(c);
+      c.drainEvents();
+      go(c, c.time + t.kits.moss.mothEvery * 0.5 + 0.05);
+      return { act: c.drainEvents().find((e) => e.type === 'ally' && e.action === 'act' && e.kind === 'glowmoth'), c };
+    };
+    const h0 = heal(0);
+    const h1 = heal(base.t.companion.damage * 2);
+    expect(h0.act).toMatchObject({ amount: Math.round(h0.c.maxHp() * 0.05) });
+    expect(h1.act).toMatchObject({ amount: Math.round(h1.c.maxHp() * 0.05 * allyPower(h1.c)) });
+    expect(allyEvery(big.c, 'barkback')).toBeCloseTo(k.barkEvery);
   });
 
   it('soft strengths: Rowan deals +20% to Folk (a Bandit), not to a Slime', () => {

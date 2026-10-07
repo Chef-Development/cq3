@@ -249,6 +249,8 @@ export function kitN(t: Tuning, id: HeroId, which: KitWhich): number {
       return k.sable.silentStep * 100;
     case 'neve.ability':
       return k.neve.abilitySec;
+    case 'neve.passive':
+      return k.neve.iceMeter * 100;
     case 'moss.passive':
       return k.moss.roots * 100;
     case 'hollis.signature':

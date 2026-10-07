@@ -524,7 +524,7 @@ describe('Moss', () => {
   });
 
   it('Quick Brace: Barkbacks brace n% faster', () => {
-    const { on, off } = both('moss', ['quickBrace']);
+    const { on, off } = both('moss', ['quickBrace'], { tune: (t) => (t.kits.moss.allySec = 30) }); // (it stays long enough to brace)
     // a Barkback first braces after half its time; n% faster with Quick Brace
     const half = on.t.kits.moss.barkEvery / 2;
     const quick = half / (1 + skillN(on.t, 'quickBrace') / 100);

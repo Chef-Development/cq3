@@ -109,7 +109,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     bio: 'Froze herself once. Do not ask.',
     signature: part('Flash Freeze', 'Blocking a red can freeze it in place; hit it to shatter it.', 'Blocks freeze reds to smash.'),
     ability: part('Chill', 'Green hits: for {n} s, the cursor moves 25% slower.', 'Green hits slow the cursor.'),
-    passive: part('Cold Snap', 'Ice patches bother her half as much.', 'Thrives on ice.'),
+    passive: part('Cold Snap', "Ice patches bother her half as much; shattered ice fills {n}% of a hit's meter.", 'Thrives on ice.'),
     finisher: { name: 'Glacier', text: 'Swipe: hits all, freezes every red in place, slows the whole bar, then its middle.', short: 'Swipe: freeze the bar.', bar: 'Freezes and slows' },
     strengths: [{ tag: 'beast', kind: 'dmg', n: 0.15 }],
     joins: 'story',

@@ -107,6 +107,12 @@ function glacier(c: Combat): void {
   c.perkFx('glacier', n);
 }
 
+/** Whether the cursor can get to block b: no mirror shard (it bounces the cursor back) between them. */
+const reachable = (c: Combat, b: Block): boolean => {
+  const p = c.cursorPos();
+  return !c.blocks.some((m) => m.kind === 'mirror' && (m.pos - p) * (b.pos - m.pos) > 0);
+};
+
 /** A Shield Slam's share of attack: a plain block's, or a Perfect block's (any block's at 5 stars). */
 export const slamShare = (c: Combat, perfect: boolean): number => (perfect || c.stars >= 5 ? K(c).hollis.slamPerfect : K(c).hollis.slam);
 
@@ -206,9 +212,10 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       c.events.push({ type: 'iceBlock', id: f.id, pos: f.pos });
       c.perkFx('flashFreeze', 0, 0, f.pos);
     },
-    // Cold Snap: ice patches bother her half as much (shattered ice fills the meter like any hit: playtest round 6
-    // found her meter filling too fast when it counted as a green)
+    // Cold Snap: ice patches bother her half as much; shattered ice fills only part of a hit's meter (it used to fill
+    // a green's: playtest round 6 found her meter filling too fast)
     zoneMult: (c, z, v) => (z.kind === 'ice' ? 1 + (v - 1) * K(c).neve.iceResist : v),
+    meter: (c, source, v) => (source === 'hit' && c.hitNow?.block.kind === 'frozen' && !c.hitNow.echo ? v * K(c).neve.iceMeter : v),
     // Chill: while the green ability is on, the cursor moves slower
     cursorMult: (c, v) => (ability(c) ? v * K(c).neve.chill : v),
     // Glacier: hits every foe (a little less), freezes every red on the bar solid, slows the bar (all of it for a
@@ -288,10 +295,11 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       c.perk.pierce = 1; // Piercing Shot: the Power Shot also hits the foe behind
       c.perk.patience = 1; // Patience: Focus is kept between waves; a full Focus crits
     },
-    // Patience, on a crowded bar: at full Focus with no green out to fire it, a Perfect hit fires it (a crit)
+    // Patience, on a crowded bar: at full Focus with no green out to fire it (none on the bar, or only behind a mirror
+    // shard the cursor bounces off), a Perfect hit fires it (a crit)
     afterHit: (c, x) => {
       if (x.echo || x.green || !x.perfect || c.result || focusCap(c) <= 0) return;
-      if (focusOf(c) < focusCap(c) * 0.999 || c.blocks.some((b) => b.kind === 'green')) return;
+      if (focusOf(c) < focusCap(c) * 0.999 || c.blocks.some((b) => b.kind === 'green' && reachable(c, b))) return;
       const dmg = powerShot(c, true);
       if (dmg > 0) c.perkFx('patience', dmg, 0, x.block.pos);
     },
@@ -305,8 +313,9 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       return v * (1 + (f * K(c).vesper.volleyFocus) / Math.max(1, x.damage * Math.max(1, x.targets.length)));
     },
     afterFinisher: (c) => {
+      // (an icicle is pinned too: its fuse waits, like a red's strike at the left end)
       const sec = K(c).vesper.pinSec * (c.stars >= 5 ? 2 : 1);
-      for (const b of c.blocks) if (isRed(b.kind)) c.chillRed(b, sec, 0);
+      for (const b of c.blocks) if (isRed(b.kind)) c.holdRed(b, sec);
       addFocus(c, 0);
     },
   },

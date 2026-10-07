@@ -1,3 +1,49 @@
+## Playtest round 6: the kits reworked, Act 2's foes tougher, Vesper's last-act gap closed
+
+Measured with `npm run campaign` (REGIONS=2: Greenmarch from a fresh profile, camp, then the second region's fresh run
+with what was earned), 85% player, **300 runs per hero** (the same seeds for every hero). Each act's first try; the
+gap to Rowan in brackets. At 100 runs two runs of the same numbers differed by up to 8-14 points per act (the round 5
+table's own warning), so every call below was checked at 300 (a gap is then good to about +/-4).
+
+| Hero | Act 1 | Act 2 | Act 3 (boss) | Act 4 | Act 5 | Act 6 (boss) |
+|---|---|---|---|---|---|---|
+| Rowan (Blade) | 100% | 84% | 70% (77%) | 89% | 77% | 62% (66%) |
+| Sable (Shadow) | 100% (0) | 88% (+4) | 77% (+7) | 96% (+7) | 85% (+8) | 68% (+6) |
+| Neve (Controller) | 99% (-1) | 85% (+1) | 75% (+5) | 91% (+2) | 80% (+3) | 63% (+1) |
+| Moss (Summoner) | 98% (-2) | 83% (-1) | 80% (+10) | 98% (+9) | 84% (+7) | 69% (+7) |
+| Tam (Bomber) | 100% (0) | 85% (+1) | 67% (-3) | 93% (+4) | 77% (0) | 58% (-4) |
+| Hollis (Guardian) | 99% (-1) | 86% (+2) | 76% (+6) | 98% (+9) | 81% (+4) | 72% (+10) |
+| Vesper (Marksman) | 100% (0) | 90% (+6) | 74% (+4) | 96% (+7) | 81% (+4) | 59% (**-3**) |
+| Torva (Brute) | 100% (0) | 93% (+9) | 68% (-2) | 95% (+6) | 77% (0) | 59% (-3) |
+
+Every hero is within +/-10 of Rowan in every act (the biggest gaps: Moss +10 in Act 3, Hollis +10 in Act 6). The
+same seeds with the old kits (100 runs, after the Act 2 change) had Vesper -22 in Act 6, Moss +10 to +13 in the
+second region, Neve -12 in Act 3. What changed, and why (each one in docs/decisions.md, 45-58):
+
+- **Act 2's foes** have x1.7 HP (was x1.4), its first rows a wave fewer, the Ruin Golem's base HP 1900 (decision 45).
+  Rowan's guards in `tests/unit/bot.test.ts` hold: Act 2 first try 81% at the guard's seeds, its fights 25 s.
+- **Vesper's Act 6 gap (-20 for two rounds) is closed (-3).** The bot's fights by the boss's phase showed it wasn't
+  her damage (every damage change had been tried) but reds: she took about 60% more red damage than Rowan, most of it
+  in the first phase, where the boss rains icicles (still reds on a fuse). Every other finisher knocks them off the
+  bar; her Volley keeps the reds to pin them, but a pin couldn't hold an icicle, so they all struck. Now the Volley
+  pins icicles too (their fuse waits), and the bot times a tap on a pinned or slowed red for where it will be when it
+  moves again (it aimed at the pinned spot and was late when the pin ran out; this helps Neve's Glacier and Moss's
+  vines too). Her first-phase red damage halved (101 -> 49 a fight). Her new targets and the crowded-bar Patience
+  rule (decision 51) add a little on top.
+- **Moss** (allies scale with the Companion stat, Thornling 30%) ran 15-20 ahead at the bosses: removing one ally
+  at a time in the bot's boss fights, the Barkback was worth the most (+21 points: it stops nearly every red that
+  gets past him), then the Glowmoth, the vines and the Thornling; his attack share moved nothing (0.62 -> 0.55: the
+  same). A Barkback rests 16 s after a block (was 8), vines slow reds to x0.7 (was x0.5), HP 90 (was 95), Glowmoth
+  0.4% (the buff to 0.6% reverted; it grows with power), `allyComp` 0.15 (0.3 at first).
+- **Hollis** (every block slams, full Guard sets off a Bulwark) came out +13 in Acts 4-5: the Bulwark is 40% attack
+  per charge (50% at first) and his HP 95 (was 100).
+- **Neve** (half-meter ice, Glacier holds reds and slows the whole bar), **Torva** (the smash grows with the combo:
+  x1.8 + 0.04 a combo), **Sable** (the dash lands slow), **Tam** (Turnabout replaces Stockpile) and the Newt burn
+  needed no number changes: all within +/-10 as first written.
+
+How the measure moves: `npm run campaign` uses the same seeds for every hero (the round 5 table used `region-tune`,
+whose seeds differ per hero), so its rows aren't comparable one to one with the tables below; the gaps are.
+
 ## Playtest round 5: more foes per fight in Greenmarch, the heroes re-levelled
 
 Greenmarch's fights now come in more waves (Act 1: 3-5, Act 2: 4-6, Act 3: 4-7), and the Ruin Golem has 2100 HP
