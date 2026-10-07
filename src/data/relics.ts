@@ -110,9 +110,9 @@ const F = (id: RelicId, name: string, tags: RelicTag[], rarity: RelicRarity, tex
 export const RELICS: RelicDef[] = [
   // Bomb: bombs are red attacks; tapping one blasts every foe (and the blocks near it)
   R('powderKeg', 'Powder Keg', ['bomb', 'finisher'], 'common', 'Tapping a bomb also banks a finisher stack.'),
-  R('shortFuse', 'Short Fuse', ['bomb', 'risk'], 'rare', 'Bombs that reach you blow up on the enemies instead.', undefined, { kind: 'act', act: 0 }),
-  R('sapper', "Sapper's Fuse", ['bomb'], 'common', 'Every {n}th enemy red comes as a bomb.', 4),
-  R('blastWave', 'Blast Wave', ['bomb', 'combo'], 'rare', 'Yellows a bomb blast clears count as your hits.'),
+  R('shortFuse', 'Short Fuse', ['bomb', 'risk'], 'rare', 'Bombs that reach you blow up on the foes instead.', undefined, { kind: 'act', act: 0 }),
+  R('sapper', "Sapper's Fuse", ['bomb'], 'common', 'Every {n}th red comes as a bomb.', 4),
+  R('blastWave', 'Blast Wave', ['bomb', 'combo'], 'rare', 'Yellows cleared by a bomb blast count as hits.'),
   R('partingGift', 'Parting Gift', ['bomb', 'finisher'], 'rare', 'After a finisher, a bomb rolls onto the bar.', undefined, { kind: 'elite', act: 1 }),
   // Crit
   R('sharpshooter', 'Sharpshooter', ['crit'], 'common', 'Perfects always crit.'),
@@ -123,9 +123,9 @@ export const RELICS: RelicDef[] = [
   R('huntingOwl', 'Hunting Owl', ['pip', 'crit'], 'rare', "Pip's pecks can crit, with your crit chance and damage.", undefined, { kind: 'event', event: 'shiny', choice: 0 }),
   R('luckyPenny', 'Lucky Penny', ['coins', 'crit'], 'common', 'Every crit drops {n} coin.', 1, { kind: 'event', event: 'merchant', choice: 0 }),
   // Block
-  R('ironRhythm', 'Iron Rhythm', ['block'], 'rare', 'Every 3rd block in a row counterattacks for {n}x attack.', 2),
+  R('ironRhythm', 'Iron Rhythm', ['block'], 'rare', 'Every 3rd block in a row hits back for {n}x attack.', 2),
   R('mirrorGuard', 'Mirror Guard', ['block'], 'epic', 'Perfect blocks throw the attack back at its owner.', undefined, { kind: 'elite', act: 0 }),
-  R('turtleShell', 'Turtle Shell', ['block'], 'common', 'Shield reds need one tap less.'),
+  R('turtleShell', 'Turtle Shell', ['block'], 'common', 'Shield reds need one fewer tap.'),
   R('shieldbearer', 'Shieldbearer', ['block', 'finisher'], 'rare', 'Only blocks fill the meter, but {n}x as much.', 3),
   R('nightWatch', 'Night Watch', ['pip', 'block'], 'rare', 'Every {n}th peck, Pip blocks the nearest red.', 4),
   // Combo
@@ -133,18 +133,18 @@ export const RELICS: RelicDef[] = [
   R('momentum', 'Momentum', ['combo'], 'common', 'Damage grows with cursor speed: +{n}% at max.', 40),
   R('crescendo', 'Crescendo', ['combo', 'finisher'], 'rare', 'Your finisher deals +{n}% per combo.', 1, { kind: 'act', act: 1 }),
   R('clutch', 'Clutch', ['combo', 'risk'], 'common', 'A miss no longer breaks your combo, but costs {n}% HP.', 4),
-  R('overdrive', 'Overdrive', ['combo', 'risk'], 'epic', 'At {n}+ combo you deal double damage and take double.', 30, { kind: 'act', act: 2 }),
+  R('overdrive', 'Overdrive', ['combo', 'risk'], 'epic', 'At {n}+ combo, deal and take double damage.', 30, { kind: 'act', act: 2 }),
   R('goldFever', 'Gold Fever', ['coins', 'combo'], 'common', '+1 coin per 10 combo; shops cost {n}% more.', 20),
   // Finisher
   R('sweeper', 'Sweeper', ['finisher', 'combo'], 'common', 'Your finisher no longer resets your combo.'),
-  R('hoarder', 'Hoarder', ['finisher'], 'common', 'A miss or hit costs 1 stack instead of all of them.'),
-  R('overcharge', 'Overcharge', ['finisher', 'risk'], 'rare', '+2 max stacks, but you lose a stack after {n} s without a hit.', 8),
+  R('hoarder', 'Hoarder', ['finisher'], 'common', 'A miss or a hit taken costs 1 stack, not all.'),
+  R('overcharge', 'Overcharge', ['finisher', 'risk'], 'rare', '+2 max stacks, but lose one after {n} s without a hit.', 8),
   R('quickDraw', 'Quick Draw', ['finisher'], 'common', 'A 1-stack finisher deals {n}x damage.', 3),
   R('echoStrike', 'Echo Strike', ['finisher'], 'epic', 'Your finisher strikes again a moment later for {n}%.', 50, { kind: 'act', act: 2 }),
-  R('bloodPrice', 'Blood Price', ['finisher', 'risk'], 'rare', 'Your finisher deals double, but costs {n}% of your HP.', 10, { kind: 'event', event: 'dummy', choice: 0 }),
-  R('purplePact', 'Purple Pact', ['risk', 'finisher'], 'rare', 'Traps no longer trigger: you take {n} damage and gain a stack.', 5),
+  R('bloodPrice', 'Blood Price', ['finisher', 'risk'], 'rare', 'Your finisher deals double but costs {n}% HP.', 10, { kind: 'event', event: 'dummy', choice: 0 }),
+  R('purplePact', 'Purple Pact', ['risk', 'finisher'], 'rare', 'Tapped traps just cost {n} HP and give a stack.', 5),
   // Green
-  R('greenhouse', 'Greenhouse', ['green'], 'common', 'Green blocks come twice as often; yellows deal {n}% less.', 20),
+  R('greenhouse', 'Greenhouse', ['green'], 'common', 'Greens come twice as often; yellows deal {n}% less.', 20),
   R('verdantSurge', 'Verdant Surge', ['green', 'finisher'], 'epic', 'Green hits bank a whole finisher stack.', undefined, { kind: 'elite', act: 2 }),
   R('evergreen', 'Evergreen', ['green'], 'rare', 'While your green ability is on, Perfects restart it.', undefined, { kind: 'event', event: 'shrine', choice: 0 }),
   R('photosynthesis', 'Photosynthesis', ['green', 'sustain'], 'common', 'Green hits heal {n}% HP.', 3),
@@ -162,7 +162,7 @@ export const RELICS: RelicDef[] = [
   F('hotCocoa', 'Hot Cocoa', ['ice', 'sustain'], 'common', 'When an ice patch melts, heal {n} HP.', 3, { kind: 'mastery' }),
   F('icebreaker', 'Icebreaker', ['ice', 'block'], 'rare', 'Blocking a red on ice knocks it back to the far end.', undefined, { kind: 'mastery' }),
   F('snowplow', 'Snowplow', ['ice', 'finisher'], 'rare', 'Your finisher clears every patch, +{n}% per patch.', 15, { kind: 'mastery' }),
-  F('glacierHeart', 'Glacier Heart', ['ice', 'block'], 'rare', 'Reds crossing ice slow down by {n}%.', 30, { kind: 'mastery' }),
+  F('glacierHeart', 'Glacier Heart', ['ice', 'block'], 'rare', 'Reds on ice move {n}% slower.', 30, { kind: 'mastery' }),
   F('frostbite', 'Frostbite', ['ice', 'risk'], 'epic', 'Ice speeds you {n}% more, but hits on ice deal double.', 30, { kind: 'elite', act: 3 }),
   F('melt', 'Melt', ['ice', 'green'], 'common', 'Yellows that land on ice turn green.'),
   // Hold (Region 2): hold blocks are held from their start to their end
@@ -170,7 +170,7 @@ export const RELICS: RelicDef[] = [
   F('longNote', 'Long Note', ['hold', 'combo'], 'common', 'A finished hold counts {n} extra combo.', 3, { kind: 'mastery' }),
   F('holdFast', 'Hold Fast', ['hold', 'block'], 'rare', 'While you hold, reds that reach you deal half.', undefined, { kind: 'mastery' }),
   F('releaseValve', 'Release Valve', ['hold', 'finisher'], 'rare', 'Every {n}rd finished hold banks a finisher stack.', 3, { kind: 'act', act: 4 }),
-  F('tether', 'Tether', ['hold', 'crit'], 'rare', 'A hold pressed Perfectly always crits.', undefined, { kind: 'mastery' }),
+  F('tether', 'Tether', ['hold', 'crit'], 'rare', 'A Perfect hold always crits.', undefined, { kind: 'mastery' }),
   F('luckyMitten', 'Lucky Mitten', ['hold', 'coins'], 'common', 'Each finished hold drops {n} coin.', 1),
   F('crampons', 'Crampons', ['hold', 'sustain'], 'rare', "Once a fight, a slipped hold doesn't break your combo.", undefined, { kind: 'elite', act: 4 }),
 ];

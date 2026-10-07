@@ -62,7 +62,7 @@ export const ASH_RELICS: AshRelicDef[] = [
   A('moltenCore', 'Molten Core', ['drift', 'risk'], 'epic', 'Drifting blocks go {n}% faster, but hits on them deal double.', 50, { kind: 'elite', act: 8 }), // needs core: driftMult (+ hitMult)
   // Link: a share of yellows come as linked pairs; hit one half, then the other within a beat, or both are misses
   A('forgedBond', 'Forged Bond', ['link', 'combo'], 'common', 'A finished pair counts {n} extra combo.', 2), // needs core: linked
-  A('slowMatch', 'Slow Match', ['link'], 'rare', "A pair's second half gives you {n}% longer.", 50, { kind: 'act', act: 7 }), // needs core: linkBeat
+  A('slowMatch', 'Slow Match', ['link'], 'rare', "{n}% more time for a pair's second half.", 50, { kind: 'act', act: 7 }), // needs core: linkBeat
   A('hammerTongs', 'Hammer & Tongs', ['link', 'crit'], 'rare', "A pair's second half always crits.", undefined, { kind: 'act', act: 8 }), // hooks: critChance (the block knows it's a second half)
   A('spareLink', 'Spare Link', ['link', 'sustain'], 'rare', "Once a fight, a broken pair doesn't break your combo.", undefined, { kind: 'elite', act: 7 }), // needs core: linkBroken
   A('coupling', 'Coupling', ['link', 'finisher'], 'rare', 'Every {n}rd finished pair banks a finisher stack.', 3, { kind: 'act', act: 7 }), // needs core: linked

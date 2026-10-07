@@ -38,7 +38,7 @@ export const COMPANIONS: Record<CompanionId, CompanionDef> = {
     name: 'Bun',
     rarity: 'common',
     kind: 'Rabbit',
-    bio: 'Carries a satchel. Nobody knows what is in it.',
+    bio: "Carries a satchel. Nobody knows what's in it.",
     role: 'Coins',
     every: 5,
     dmg: 0.7,
@@ -69,7 +69,7 @@ export const COMPANIONS: Record<CompanionId, CompanionDef> = {
     every: 4,
     dmg: 0.8,
     attack: 'Bite',
-    perks: [{ name: 'Ember Bite', text: 'Bites set foes on fire: half a bite each second for 4 s.' }],
+    perks: [{ name: 'Ember Bite', text: 'Bites burn foes for 4 s: half a bite each second.' }],
     flies: false,
   },
   sprocket: {
@@ -125,7 +125,7 @@ export const COMPANIONS: Record<CompanionId, CompanionDef> = {
     dmg: 1.1,
     attack: 'Twinkle',
     perks: [
-      { name: 'Starlight', text: 'Every 15 combo, a green block appears.' },
+      { name: 'Starlight', text: 'Every 15 combo, a green appears.' },
       { name: 'Mend', text: 'At 10+ combo, heals 1% every 5 s.' },
     ],
     flies: true,

@@ -143,7 +143,7 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'rimehorn', text: 'HALT! This is Frostbite Pass. Nobody\ncrosses without paying the TOLL.' },
     { who: 'rowan', text: "Fair enough. How much? Sable's got the\ncoins. Sable? ...Sable?" },
     { who: 'sable', text: "Coins? What coins? I've never seen a coin.\nStop looking at my pockets." },
-    { who: 'rimehorn', text: 'COINS? Bah! The toll is ONE HEADBUTT.\nPer traveller. Owls fly free.' },
+    { who: 'rimehorn', text: 'COINS? Bah! The toll is ONE HEADBUTT.\nPer traveler. Owls fly free.' },
     { who: 'pip', text: "Finally, a discount. Good luck, knight.\nI'll be up here. Being free." },
     { who: 'rimehorn', text: "Hold still, little knight. It hurts less\nif you're already asleep." },
   ],
@@ -190,7 +190,7 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'glacia', text: 'My centerpiece? It keeps the winter, darling.\nAnd winter keeps my hoard sparkling.' },
     { who: 'neve', text: "Remember me, Glacia? The mage you bounced\noff your scales? I'm BACK. And unfrozen." },
     { who: 'glacia', text: "The ice cube! You made such a cute ornament.\nI'll freeze you all into a matching set." },
-    { who: 'pip', text: 'Hoo. Vain, rich and enormous. My three\nleast favourite things in a lizard.' },
+    { who: 'pip', text: 'Hoo. Vain, rich and enormous. My three\nleast favorite things in a lizard.' },
   ],
   // phase 2: holds every 3rd yellow, a mirror in the middle of the bar
   glacia2: [

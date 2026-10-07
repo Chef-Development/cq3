@@ -22,8 +22,8 @@ export const CAMP_UPGRADES: Record<CampUpgradeId, CampUpgradeDef> = {
   luckyStone: { id: 'luckyStone', name: 'Lucky Stone', text: 'Once an act, a relic pick shows 4 cards.', cost: 450 },
   warTable: { id: 'warTable', name: 'War Table', text: 'Each new run starts with a free relic pick.', cost: 500 },
   rerollCharm: { id: 'rerollCharm', name: 'Reroll Charm', text: 'One free reroll of a relic pick each act.', cost: 450 },
-  dummy: { id: 'dummy', name: 'Training Dummy', text: 'Practice with any hero at camp (no risk).', cost: 250, acts: 1 },
-  mapTable: { id: 'mapTable', name: 'Map Table', text: "Each act map shows where its hidden treasure is.", cost: 350 },
+  dummy: { id: 'dummy', name: 'Training Dummy', text: 'Practice with any hero at camp, no risk.', cost: 250, acts: 1 },
+  mapTable: { id: 'mapTable', name: 'Map Table', text: 'Each act map shows its hidden treasure.', cost: 350 },
 };
 
 /** What a mastery milestone unlocks for everyone. */
@@ -127,7 +127,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'legendary', name: 'Shiny!', text: 'Find a Legendary item.', gems: 15 },
   { id: 'bounties5', name: 'Bounty Hunter', text: 'Finish 5 bounties.', gems: 15 },
   { id: 'treasures3', name: 'Treasure Nose', text: 'Find 3 hidden treasures.', gems: 15 },
-  { id: 'holds50', name: 'Steady Hands', text: 'Complete 50 holds.', gems: 15 },
+  { id: 'holds50', name: 'Steady Hands', text: 'Finish 50 holds.', gems: 15 },
   { id: 'region1', name: 'One Down', text: 'Bring the first weight home.', gems: 30 },
   { id: 'region2', name: 'Two Ticks', text: 'Bring the second weight home.', gems: 40 },
 ];

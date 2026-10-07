@@ -43,7 +43,7 @@ export const QUESTS: readonly QuestDef[] = [
   { id: 'elite', title: 'Wanted!', text: 'Beat an elite', icon: 'skull', reward: 'gear', count: 'once' },
   { id: 'healthy', title: 'Not a Scratch', text: 'Win a fight above {n}% HP', icon: 'heart', reward: 'coins', count: 'once' },
   { id: 'flawless', title: 'Clean Sweep', text: 'Clear {n} waves, no misses', icon: 'star', reward: 'relic', count: 'sum' },
-  { id: 'kills', title: 'Pest Control', text: 'Defeat {n} foes', icon: 'foe', reward: 'coins', count: 'sum' },
+  { id: 'kills', title: 'Pest Control', text: 'Beat {n} foes', icon: 'foe', reward: 'coins', count: 'sum' },
   call('asBlade', 'blade', 'Edge Work', 'Blade'),
   call('asShadow', 'shadow', 'Shadow Work', 'Shadow'),
   call('asGuardian', 'guardian', 'Shield Oath', 'Guardian'),

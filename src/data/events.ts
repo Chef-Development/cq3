@@ -14,7 +14,7 @@ export const EVENTS: EventDef[] = [
         cost: 15,
         outcomes: [
           { chance: 1, text: 'The well burps up a shiny boost!', boost: 'rare' },
-          { chance: 1, text: 'Plop. Nothing. Pip says "told you".' },
+          { chance: 1, text: 'Plop. Nothing. Pip: "Told you."' },
         ],
       },
       { label: 'Walk on', outcomes: [{ text: 'You keep your coins. Wise, says Pip.' }] },
@@ -41,7 +41,7 @@ export const EVENTS: EventDef[] = [
     text: 'An old straw dummy wearing a crown that says\n"KING". Somebody has issues.',
     choices: [
       { label: 'Practice', outcomes: [{ text: 'Good swings. You hit a bit harder now.', atk: 1, hp: -8 }] },
-      { label: 'Salute it', outcomes: [{ text: 'It does not salute back. Rude.', coins: 5 }] },
+      { label: 'Salute it', outcomes: [{ text: "It doesn't salute back. Rude.", coins: 5 }] },
     ],
   },
   {
@@ -62,7 +62,7 @@ export const EVENTS: EventDef[] = [
   {
     id: 'shiny',
     title: 'Pip Found Something',
-    text: 'Pip lands with a shiny button. "Consulting\nfee," Pip says, and does not let go.',
+    text: 'Pip lands with a shiny button. "Consulting\nfee," Pip says, and won\'t let go.',
     choices: [
       { label: 'Let Pip keep it', outcomes: [{ text: 'Pip is thrilled. Pip pecks harder now.', pet: 3 }] },
       { label: 'Sell it', outcomes: [{ text: 'It was a real gold button! +25 coins.', coins: 25 }] },

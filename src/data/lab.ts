@@ -144,9 +144,9 @@ export const LAB_NEW: LabScenario[] = [
   heroFight('tam', 'tam', 'Tam', 'Hit the kegs: each blasts every foe.', [['beetle', 'archer'], ['wolf', 'wolf', 'archer'], ['beetle', 'boar'], ['wolf', 'wolf', 'shaman'], ['crow', 'crow', 'bandit'], ['knight', 'beetle']]),
   heroFight('hollis', 'hollis', 'Hollis', 'Every block hits back. Fill Guard: Bulwark!', [['boar', 'archer'], ['bandit', 'boar'], ['wolf', 'wolf'], ['beetle', 'boar'], ['archer', 'bandit'], ['bigSlime', 'boar']]),
   heroFight('vesper', 'vesper', 'Vesper', 'Fill Focus, then hit a target green.', [['crow', 'crow'], ['archer', 'crow'], ['wolf', 'wolf'], ['boar', 'crow'], ['crow', 'shaman'], ['knight', 'archer']]),
-  heroFight('torva', 'torva', 'Torva', 'Green, then a hit: a smash. More combo, more smash.', [['boar', 'bandit'], ['wolf', 'wolf'], ['beetle', 'boar'], ['bandit', 'archer'], ['boar', 'boar'], ['knight', 'wolf']]),
+  heroFight('torva', 'torva', 'Torva', 'Green, then hit: a smash. More combo, bigger smash.', [['boar', 'bandit'], ['wolf', 'wolf'], ['beetle', 'boar'], ['bandit', 'archer'], ['boar', 'boar'], ['knight', 'wolf']]),
   // ---- the two new skill-tree options, already learned
-  heroFight('neveBigFreeze', 'neve', 'Neve: Big Freeze', 'Swipe: every red turns to ice. Smash it.', [['wolf', 'wolf'], ['boar', 'archer'], ['beetle', 'crow'], ['wolf', 'shaman'], ['boar', 'bandit'], ['knight', 'wolf']], { rev: 0, skills: ['bigFreeze'] }),
+  heroFight('neveBigFreeze', 'neve', 'Neve: Big Freeze', 'Swipe: every red turns to ice. Shatter it.', [['wolf', 'wolf'], ['boar', 'archer'], ['beetle', 'crow'], ['wolf', 'shaman'], ['boar', 'bandit'], ['knight', 'wolf']], { rev: 0, skills: ['bigFreeze'] }),
   heroFight('tamTurnabout', 'tam', 'Tam: Turnabout', 'Swipe: every red turns into a keg.', [['beetle', 'archer'], ['wolf', 'wolf'], ['boar', 'archer'], ['wolf', 'shaman'], ['crow', 'bandit'], ['knight', 'beetle']], { rev: 0, skills: ['turnabout'] }),
 
   // ---- companions: each one's effect now shows on what it touches (rev 2)
@@ -158,7 +158,7 @@ export const LAB_NEW: LabScenario[] = [
   }),
 
   // ---- Act 2's foes are tougher now (more HP each)
-  { id: 'foesAct2', group: 'fights', label: 'More foes: Act 2', secs: 60, rev: 2, try: 'A late Act 2 fight: tougher foes now.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 1, waves: [['beetle', 'archer'], ['shaman', 'bandit'], ['crow', 'archer'], ['beetle', 'shaman'], ['archer'], ['beetle']], row: 5 } },
+  { id: 'foesAct2', group: 'fights', label: 'Tougher foes: Act 2', secs: 60, rev: 2, try: 'A late Act 2 fight: tougher foes now.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 1, waves: [['beetle', 'archer'], ['shaman', 'bandit'], ['crow', 'archer'], ['beetle', 'shaman'], ['archer'], ['beetle']], row: 5 } },
 
   // ---- chests: new art, a build-up to the reveal (tap to speed it up), open all; the shrine as a place
   { id: 'chestDemo', group: 'chests', label: 'Chest rarities', secs: 60, try: 'Rare to Divine, one after another.', setup: { kind: 'camp', screen: 'chestDemo', tiers: ['rare', 'epic', 'legendary', 'mythic', 'divine'], chest: 'rare' }, profile: { actsCleared: 1 } },

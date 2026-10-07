@@ -42,7 +42,7 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
         stat('keenEdge', 'Keen Edge', 'atkPct', 12, '+{n}% attack.'),
         stat('steadyAim', 'Steady Aim', 'critChance', 8, '+{n}% crit chance.'),
         rule('followThrough', 'Follow-Through', "A kill's leftover damage hits the next foe.", 'Damage past a kill is lost.', 'It carries on to the next foe.'),
-        rule('whetstone', 'Whetstone', 'Every {n}th hit of a combo always crits.', 'Crits come by chance.', 'Every {n}th combo hit crits.', 5),
+        rule('whetstone', 'Whetstone', 'Every {n}th hit of a combo crits.', 'Crits come by chance.', 'Every {n}th combo hit crits.', 5),
         cap('executioner', 'Executioner', 'Foes under {n}% HP take double damage from yellows.', 'Yellows hit every foe the same.', 'Yellows deal x2 to foes under {n}% HP.', 35),
       ],
     },
@@ -55,7 +55,7 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
         stat('plateTraining', 'Plate Training', 'def', 10, '+{n} Defense.'),
         rule('parry', 'Parry', 'A Perfect block knocks every other red back.', 'A block stops one red.', 'A Perfect block pushes all reds back.'),
         rule('shieldBash', 'Shield Bash', 'Breaking a shield red stuns its owner for {n} s.', 'Shield reds just break.', 'Its owner stops attacking for {n} s.', 1),
-        cap('shieldWall', 'Shield Wall', 'Every {n} reds you block charge a fresh bubble that absorbs a hit.', 'Every red you miss hurts.', 'Every {n} blocks, a bubble eats a missed red.', 6),
+        cap('shieldWall', 'Shield Wall', 'Every {n} reds you block make a bubble that stops one hit.', 'Every red you miss hurts.', 'Every {n} blocks, a bubble eats a missed red.', 6),
       ],
     },
     {

@@ -27,9 +27,9 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
       nodes: [
         atk('quickHands', 'Quick Hands', 10),
         crit('lightGrip', 'Light Grip', 6),
-        rule('sureChain', 'Sure Chain', "A hit that isn't Perfect no longer ends the chain.", 'A plain hit ends the chain.', 'Only misses and hits taken end it.'),
-        rule('deepCuts', 'Deep Cuts', 'At {n}+ chain links, Perfect hits always crit.', 'Crits come by chance.', 'Perfects crit at {n}+ links.', 4),
-        cap('deathMark', 'Death Mark', 'Twin Fang deals {n}% more for each chain link.', 'Twin Fang ignores your chain.', '+{n}% Twin Fang per chain link.', 25),
+        rule('sureChain', 'Sure Chain', "A hit that isn't Perfect no longer ends the Chain.", 'A plain hit ends the Chain.', 'Only misses and hits taken end it.'),
+        rule('deepCuts', 'Deep Cuts', 'At {n}+ Chain links, Perfect hits always crit.', 'Crits come by chance.', 'Perfects crit at {n}+ links.', 4),
+        cap('deathMark', 'Death Mark', 'Twin Fang deals {n}% more per Chain link.', 'Twin Fang ignores your Chain.', '+{n}% Twin Fang per Chain link.', 25),
       ],
     },
     {
@@ -39,9 +39,9 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
       nodes: [
         meter('fleet', 'Fleet', 12),
         combo('sharpFocus', 'Sharp Focus', 1),
-        rule('lunge', 'Lunge', 'After a Perfect hit, your next hit deals {n}% more.', 'A Perfect only feeds the chain.', 'The hit after it deals +{n}%.', 40),
+        rule('lunge', 'Lunge', 'After a Perfect hit, your next hit deals {n}% more.', 'A Perfect only feeds the Chain.', 'The hit after it deals +{n}%.', 40),
         rule('nightStep', 'Night Step', 'Perfect blocks dash you ahead too.', 'Only Perfect hits dash.', 'Perfect blocks dash as well.'),
-        cap('phantomRush', 'Phantom Rush', 'A Perfect hit cuts down the red closest to you, once every {n} s.', 'Every red needs a block.', 'A Perfect cuts a red every {n} s.', 3),
+        cap('phantomRush', 'Phantom Rush', 'A Perfect cuts down the nearest red, once every {n} s.', 'Every red needs a block.', 'A Perfect cuts a red every {n} s.', 3),
       ],
     },
     {
@@ -66,8 +66,8 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
       nodes: [
         atk('frostEdge', 'Frost Edge', 10),
         crit('iceShards', 'Ice Shards', 6),
-        rule('brittle', 'Brittle', 'Frozen blocks shatter for {n}% more.', 'A shatter hits hard.', 'Shatters deal +{n}% more.', 30),
-        rule('bigFreeze', 'Big Freeze', 'Glacier turns every red into ice to smash.', 'Glacier holds reds in place.', 'Glacier turns reds to ice.'),
+        rule('brittle', 'Brittle', 'Frozen blocks shatter for {n}% more.', 'A shatter hits hard.', 'Shatters deal +{n}%.', 30),
+        rule('bigFreeze', 'Big Freeze', 'Glacier turns every red into ice to shatter.', 'Glacier holds reds in place.', 'Glacier turns reds to ice.'),
         cap('iceAge', 'Ice Age', 'Every block freezes its red.', 'Only some blocks freeze a red.', 'Blocks always freeze reds.'),
       ],
     },
@@ -119,7 +119,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
         hp('heartwood', 'Heartwood', 10),
         rule('quickBrace', 'Quick Brace', 'Barkbacks brace {n}% faster.', 'A Barkback braces now and then.', 'It braces {n}% faster.', 50),
         rule('splinters', 'Splinters', "A Barkback's block hits every foe for {n}% attack.", 'A Barkback only stops reds.', 'Its block hits all for {n}%.', 60),
-        cap('rootCall', 'Root Call', 'Every {n} reds you block call the next ally.', 'Only green hits call allies.', 'Every {n} blocks call one too.', 8),
+        cap('rootCall', 'Root Call', 'Every {n} reds you block call an ally.', 'Only green hits call allies.', 'Every {n} blocks call one too.', 8),
       ],
     },
     {
@@ -224,7 +224,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
         combo('steadyDraw', 'Steady Draw', 1),
         rule('fullDraw', 'Full Draw', 'Hits store {n}% more Focus.', 'Hits store a little Focus.', 'They store {n}% more.', 50),
         rule('steadyHand', 'Steady Hand', 'At {n}%+ Focus, your hits always crit.', 'Crits come by chance.', 'Hits crit at {n}%+ Focus.', 60),
-        cap('fullQuiver', 'Full Quiver', 'A full Focus fires itself as a crit and fills {n}% of the meter.', 'Only green hits fire Focus.', 'A full Focus fires and fills {n}%.', 50),
+        cap('fullQuiver', 'Full Quiver', 'Full Focus fires as a crit and fills {n}% of the meter.', 'Only green hits fire Focus.', 'A full Focus fires and fills {n}%.', 50),
       ],
     },
     {
@@ -236,7 +236,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
         meter('stillBreath', 'Still Breath', 12),
         rule('cleanShot', 'Clean Shot', "Perfect hits aren't held back by Focus.", 'Focus holds back every hit.', 'Perfect hits deal in full.'),
         rule('watchful', 'Watchful', 'Perfect blocks store Focus too.', 'Only hits store Focus.', 'Perfect blocks store it too.'),
-        cap('trickShot', 'Trick Shot', 'Every {n}th Perfect hit fires your Focus as a critical shot.', 'Only green hits fire Focus.', 'Every {n}th Perfect fires it (crit).', 5),
+        cap('trickShot', 'Trick Shot', 'Every {n}th Perfect hit fires your Focus as a crit.', 'Only green hits fire Focus.', 'Every {n}th Perfect fires it (crit).', 5),
       ],
     },
     {
@@ -262,7 +262,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
         atk('ironGrip', 'Iron Grip', 10),
         crit('boneBreaker', 'Bone Breaker', 6),
         rule('pulverize', 'Pulverize', 'Stunned foes take {n}% more from you.', 'A stun only stops attacks.', 'Stunned foes take +{n}%.', 40),
-        rule('haymaker', 'Haymaker', 'Wind-Up hits {n}% harder.', 'Wind-Up deals a set smash.', 'It hits {n}% harder.', 40),
+        rule('haymaker', 'Haymaker', 'Wind-Up hits {n}% harder.', 'Wind-Up smashes as usual.', 'It hits {n}% harder.', 40),
         cap('wreckingBall', 'Wrecking Ball', 'Every {n}th Perfect hit winds up your next hit.', 'Only green hits wind up.', 'Every {n}th Perfect does too.', 4),
       ],
     },

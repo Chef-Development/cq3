@@ -12,10 +12,10 @@ import type { StoryBox } from './types';
 export const ASH_STORY: Record<string, StoryBox[]> = {
   // Act 1 start: ash, basalt, lava, and none of it holds still
   ash1: [
-    { who: 'narrator', text: 'Ashfell. Black rock, grey ash, rivers of\nlava... and none of it will hold still.' },
+    { who: 'narrator', text: 'Ashfell. Black rock, gray ash, rivers of\nlava... and none of it will hold still.' },
     { who: 'rowan', text: 'Pip, that boulder just slid past me.\nOn its own. Is that a volcano thing?' },
     { who: 'pip', text: 'Hoo. The third weight fell here. Every time\nit ticks, the whole land shuffles over.' },
-    { who: 'neve', text: 'Too hot AND too wobbly. My two least\nfavourite things. Someone fan me.' },
+    { who: 'neve', text: 'Too hot AND too wobbly. My two least\nfavorite things. Someone fan me.' },
     { who: 'sable', text: 'I put my coins down, they wander off.\nThe GROUND is stealing from me. Rude.' },
     { who: 'pip', text: 'Up the road to the volcano, then. Mind the\nlava, knight. And your eyebrows.' },
   ],
@@ -43,7 +43,7 @@ export const ASH_STORY: Record<string, StoryBox[]> = {
     { who: 'sable', text: 'Glass! Walls of it! Can I take a wall?\nJust a little one. A pocket-sized wall.' },
     { who: 'neve', text: 'Careful. Glass bounces things back.\nThat is how I got frozen. Long story.' },
     { who: 'rowan', text: 'Why is everything chained together? The\nrocks, the lamps... even the buckets.' },
-    { who: 'pip', text: "Hoo. Bellows' spare chain. To break a pair,\nhit both ends. Quick. One, two." },
+    { who: 'pip', text: "Hoo. Bellows' spare chain. Pairs: hit one,\nthen the other. Quick. One, two." },
     { who: 'neve', text: "One, two. Like a spell. Or a slap.\nI'm very good at both." },
   ],
   // Act 2 mini-boss: the forge's two-headed watchdog; one head guards, the other wants to play

@@ -33,9 +33,9 @@ export const STAT_INFO: Record<StatId, StatInfo> = {
   critDmg: { name: 'Crit Damage', short: 'Crit Dmg', icon: 'critx', unit: 'mult', desc: 'How hard a crit hits.' },
   comboPower: { name: 'Combo Power', short: 'Combo', icon: 'bolt', unit: 'flat', desc: 'Finisher damage per attack point.' },
   meterGain: { name: 'Meter Gain', short: 'Meter fill', icon: 'meter', unit: 'pct', desc: 'Fills the finisher meter faster.' },
-  steady: { name: 'Steady Cursor', short: 'Slower cursor', icon: 'clock', unit: 'pct', desc: 'The cursor speeds up slower with combo.' },
+  steady: { name: 'Steady Cursor', short: 'Slower cursor', icon: 'clock', unit: 'pct', desc: 'Combo speeds the cursor up less.' },
   luck: { name: 'Luck', short: 'Luck', icon: 'clover', unit: 'pct', desc: 'Rarer drops and more coins.' },
-  companion: { name: 'Companion Power', short: 'Pip dmg', icon: 'feather', unit: 'flat', desc: "Damage of Pip's pecks." },
+  companion: { name: 'Companion Power', short: 'Companion', icon: 'feather', unit: 'flat', desc: 'Companions hit harder.' },
 };
 
 export type Slot = 'weapon' | 'helm' | 'armor' | 'boots' | 'trinket';
@@ -81,7 +81,7 @@ export const EFFECTS: Record<EffectId, EffectDef> = {
   cutlass: { name: 'Powder Monkey', text: 'Bombs you tap always crit.', signature: true },
   golemheart: { name: 'Stoneblood', text: 'Blocking a red heals 1 HP.', signature: true },
   tuskCrown: { name: 'Royal Charge', text: 'Each finisher stack spent: +5% crit for 5 s.', signature: true },
-  pendulum: { name: 'Tick, Tock', text: 'Every 10th combo hit spawns a green block.', signature: true },
+  pendulum: { name: 'Tick, Tock', text: 'Every 10th combo hit adds a green block.', signature: true },
   opener: { name: 'Opening Blow', text: 'The first hit on each new foe always crits.' },
   leech: { name: 'Leech', text: 'Crits heal 2 HP.' },
   riposte: { name: 'Riposte', text: 'Blocking a red hits back for half your attack.' },
@@ -98,9 +98,9 @@ export type AuraId = 'radiance' | 'sanctuary' | 'stillness' | 'fortune';
 export const AURA_IDS: AuraId[] = ['radiance', 'sanctuary', 'stillness', 'fortune'];
 
 export const AURAS: Record<AuraId, EffectDef> = {
-  radiance: { name: 'Radiance', text: 'Aura: foes take 10% more damage from everything.' },
+  radiance: { name: 'Radiance', text: 'Aura: foes take 10% more damage.' },
   sanctuary: { name: 'Sanctuary', text: 'Aura: heal 1% of max HP every 4 s.' },
-  stillness: { name: 'Stillness', text: 'Aura: the cursor speeds up 30% slower with combo.' },
+  stillness: { name: 'Stillness', text: 'Aura: combo speeds the cursor up 30% less.' },
   fortune: { name: 'Fortune', text: 'Aura: kills drop 30% more coins.' },
 };
 
@@ -127,7 +127,7 @@ export const SETS: Record<SetId, SetDef> = {
   footpad: {
     name: 'Footpad',
     pieces: ['footpadShiv', 'footpadDie'],
-    bonuses: [{ count: 2, text: "First miss each fight doesn't break the combo" }],
+    bonuses: [{ count: 2, text: 'The first miss each fight keeps your combo' }],
   },
   rimewalker: {
     name: 'Rimewalker',
