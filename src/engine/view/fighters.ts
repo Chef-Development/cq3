@@ -555,7 +555,7 @@ export class Fighters {
     const recent = s.anim - v.numAt < 260;
     v.numLevel = recent ? (v.numLevel + 1) % 3 : 0;
     v.numAt = s.anim;
-    // (a Coin Rush counts coins, not damage: the coins float up instead, from perkCoins)
+    // (a Coin Rush counts coins, not damage: the coins float up instead, from onsite.coins)
     if (damage > 0 && !s.app.run.combat?.rush) fx.floatNum(v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2), v.y - v.img.displayHeight - 10 - v.numLevel * 11, `${damage}`, col, numScale);
     const tier = combo >= 50 ? 3 : combo >= 25 ? 2 : combo >= 10 ? 1 : 0;
     const slashCol = crit ? 0xffd23a : comboSlashCol(combo);
