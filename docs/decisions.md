@@ -392,3 +392,8 @@ L4. **Test lab, round 6:** New holds everything this round changed. That is the 
     too, now with their tips. The single Hero and Rare chests moved to Earlier (Open all plays both kinds). It runs
     about 21 minutes without the spoilers, over the old 10-minute aim, because most of what was rated last round was
     reworked.
+L5. **Save migration: replaced skill nodes.** Neve's Shatterburst became Big Freeze and Tam's Stockpile became
+    Turnabout, each in the same place in its branch. A save that learned the old node now has the new one
+    (`SKILL_RENAMED` in core/heroes.ts), so the rest of the branch stays learned. Nothing else in this round changes the
+    shape of the profile or the run save (the camp's built objects come from `profile.camp`; the lab's accuracy has its
+    own key), so `SAVE_VERSION` and the profile key are unchanged.

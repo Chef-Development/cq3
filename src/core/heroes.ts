@@ -142,11 +142,15 @@ export function resetSkills(p: HeroProgress): number {
   return n;
 }
 
+/** Nodes replaced by another in the same place (playtest round 6): a save that learned the old one has the new one, so
+ *  the rest of its branch stays learned. */
+export const SKILL_RENAMED: Record<string, string> = { shatterburst: 'bigFreeze', stockpile: 'turnabout' };
+
 /** Only nodes that belong to the hero, each with the one before it in its branch (a save from an older tree), in
  *  the order they were learned. */
 export function validSkills(hero: HeroId, ids: unknown): string[] {
   if (!Array.isArray(ids)) return [];
-  const want = new Set(ids.filter((x): x is string => typeof x === 'string'));
+  const want = new Set(ids.filter((x): x is string => typeof x === 'string').map((x) => SKILL_RENAMED[x] ?? x));
   const ok = new Set<string>();
   for (const branch of treeOf(hero))
     for (const n of branch.nodes) {

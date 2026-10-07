@@ -7,7 +7,7 @@ import { RELICS } from '../../src/data/relics';
 import { SKILL_NODES, SKILL_TREES, skillHero } from '../../src/data/skills';
 import { Combat, isRed, newHero, type Block, type BlockKind, type CombatEvent } from '../../src/core/combat';
 import { emptyLoadout } from '../../src/core/gear';
-import { learn, newHeroProgress, pointsLeft, skillN, skillText, treeOf, xpForLevel } from '../../src/core/heroes';
+import { learn, newHeroProgress, pointsLeft, SKILL_RENAMED, skillN, skillText, treeOf, validSkills, xpForLevel } from '../../src/core/heroes';
 import { SKILL_HOOKS } from '../../src/core/skill-fx';
 import { windUpMult } from '../../src/core/kit-fx';
 import { callAlly, focusCap, focusOf, guardMax, guardOf } from '../../src/core/styles';
@@ -81,6 +81,13 @@ describe('every hero has a tree', () => {
       }
       expect(new Set(tree.map((b) => b.name)).size).toBe(3);
     }
+  });
+
+  it('a save that learned a replaced node (round 6) keeps its branch: the new node takes its place', () => {
+    // Neve's Shatterburst became Big Freeze, Tam's Stockpile became Turnabout (same place in the branch)
+    expect(validSkills('neve', ['frostEdge', 'iceShards', 'brittle', 'shatterburst', 'iceAge'])).toEqual(['frostEdge', 'iceShards', 'brittle', 'bigFreeze', 'iceAge']);
+    expect(validSkills('tam', ['deepPockets', 'leatherApron', 'stockpile', 'restock'])).toEqual(['deepPockets', 'leatherApron', 'turnabout', 'restock']);
+    for (const to of Object.values(SKILL_RENAMED)) expect(SKILL_NODES.some((n) => n.id === to), to).toBe(true);
   });
 
   it('node ids are unique across every tree, and never a relic or a kit part', () => {
