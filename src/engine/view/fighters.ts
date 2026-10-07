@@ -747,26 +747,39 @@ export class Fighters {
       this.perkLabel(id);
       return !!o.strike;
     }
+    if (o.strike && v && amount > 0 && !v.dieAt && (id === 'shieldSlam' || id === 'wideSlam')) {
+      // Hollis's Shield Slam (every block): a shield flies into the red's owner (view/onsite.ts)
+      s.onsite.shieldSlam(v, amount, id === 'wideSlam');
+      this.perkLabel(id);
+      return true;
+    }
+    if (o.strike && v && amount > 0 && id === 'bulwarkBlow') {
+      // a Bulwark's blow lands as its great shield reaches the foe (the 'bulwark' perk event came first)
+      s.later(s.onsite.bulwarkReach(v), () => s.onsite.bulwarkHit(v, amount));
+      return true;
+    }
     if (o.strike && v && amount > 0 && !v.dieAt) {
       // a blow: a bolt in the perk's colour from the hero (or the ally that struck, or the foe it bounced off) to the
-      // foe, then the hit
+      // foe, then the hit (an ally's grows with its power: a second bolt, bigger sparks, from x1.4 a big number)
       const sx = o.from ? o.from.x : ally ? ally.x + 6 : h.x + 10;
       const sy = o.from ? o.from.y : ally ? ally.y : s.ground - 24;
       const tx = v.x - v.img.displayWidth * 0.25;
       const ty = v.y - v.img.displayHeight / 2;
       const ms = 120;
+      const pw = ally ? Math.max(1, s.onsite.allyPower) : 1;
       F.bolt(sx, sy, tx, ty, ms, col);
+      if (pw >= 1.2) F.bolt(sx, sy - 2, tx, ty - 2, ms, mixWhite(col));
       F.burst(sx, sy, col, 4, true, 0.8, true);
       s.later(ms, () => {
         v.flashUntil = s.anim + 60;
         v.kickAt = s.anim;
-        v.kickDist = 5;
+        v.kickDist = 5 * Math.min(1.6, pw);
         if (!v.dieAt) this.setEnemyPose(v, 'hurt', 140);
-        F.sparks.push({ x: tx, y: ty, at: s.anim, size: 11, color: col });
-        F.burst(tx, ty, col, 8, true, 1.2, true);
-        F.glow(tx, ty, 12, col, 160);
-        // (an ally's jabs come often: small numbers)
-        F.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, `${amount}`, mixWhite(col), ally ? 1 : 2);
+        F.sparks.push({ x: tx, y: ty, at: s.anim, size: Math.round(11 * Math.min(1.5, pw)), color: col });
+        F.burst(tx, ty, col, Math.round(8 * pw), true, 1.2, true);
+        F.glow(tx, ty, 12 * pw, col, 160);
+        // (an ally's jabs come often: small numbers, unless it hits hard)
+        F.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, `${amount}`, mixWhite(col), ally && pw < 1.4 ? 1 : 2);
         s.app.audio.hit(0, false);
       });
       if (this.perkLabel(id)) s.app.audio.gearProc(0.5);

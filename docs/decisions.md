@@ -197,6 +197,37 @@ V7. A heal shows a green +N on the hero too (beside the HP plate's): heals withi
     heal on every hit (Vampiric Fang) never stacks numbers.
 V8. Flights from the stage to the bar (Mote's star, seeds, leaves, companions' streaks, fireballs) draw over the
     callout words, which they would otherwise pass under.
+V9. **Sable's landing is the core's `'land'` zone now** (it drew nothing, and the cursor tinted as if in snow): a
+    violet brake toward the block the dash aimed at (chevrons pointing back against the run), brackets on that block,
+    the dash's violet smear on the cursor inside it. V6's place-and-time guess is gone: a slow patch is always frost
+    blue.
+V10. **Hollis's Shield Slam comes with every block**, so its "Slam!" word shows at most every 1.6 s; the slam itself
+    (a shield flying from his guard into the red's foe, a clang, a steel number) shows every time. Its number is steel
+    white-blue (`enemyHurt.perk`), apart from taps' gold and Newt's orange. Heavy Slam and Retaliate show on the slam
+    they boost (it lands heavier) rather than with marks of their own; Wide Slam sends smaller shields to the others.
+V11. **The Bulwark's blows land as the great shield reaches each foe** (a sweep of about 0.3 s, nearest first): the
+    damage is the core's at once, only its hit and number wait for the shield, as Sunny's breath (V5). "Bulwark" is
+    the word; the blows have none.
+V12. **"Bulwark ready" shows on the Guard tab and on the cursor** (a steel aura, a shield over its cap), where the eyes
+    are; a shimmer along the bar's frame was tried and did not read against the light frame.
+V13. **Frozen solid (Glacier) is an ice shell the red reads through**, cracking in steps as it thaws, for Neve's reds
+    only; Vesper's pinned reds and icicles (also `chillMult === 0`) keep the arrow-pinned look, so whose doing it was
+    stays readable.
+V14. **Turnabout's kegs and Big Freeze's ice take the red's place where it stood** (no drop-in): the red's own exit is
+    the morph (it turns edge-on and the keg widens out of it; ice climbs over it and flashes). They are matched to
+    their red by kind and position in the batch ("Needs from core" 4).
+V15. **Torva's multiplier rides over the cursor while Wind-Up is armed** (x1.8 at no combo, growing) and lands as
+    "x2.6!" beside the foe, left of its damage number so the two don't overlap; the callout word is the multiplier
+    too, not "Smash!".
+V16. **Vesper's target greens**: a halo under them, a bullseye and breathing corner brackets over them, all gold and
+    quicker at full Focus. A red drifting over a target draws over its marks (the red is the threat).
+V17. **Moss's ally power reads from x1.15** (a soft glow round each ally); a Thornling's thorn comes as two bolts from
+    x1.2 and its number is full size from x1.4; a Glowmoth's heal brings more stars. A fresh Moss looks as before.
+V18. **Newt's flames burn on every foe with `burn > 0`**, up to half again as tall by `burnDps` against 3% of the
+    foe's HP a second, so a weak bite on a boss still shows, smaller.
+V19. **New callout words:** Glacier "Frozen!", Big Freeze "Ice!", Turnabout "Flip!", Patience "Snipe!", Bulwark
+    "Bulwark", Avalanche "Stun!". Skill nodes that change a hero's own move get a word (Big Freeze, Turnabout,
+    Avalanche); the other skill nodes stay in the lane.
 H1. **Hero select layout.** The stage is the left 46% of the safe width (the hero centred on it by their figure,
     measured from their idle frame, so Rowan's sword or Torva's hammer don't push them off centre); the column on the
     right. The title shares the name's line; the bio, the style's rule and the soft strength moved into the sheet a tap

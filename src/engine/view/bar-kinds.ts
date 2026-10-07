@@ -61,6 +61,8 @@ export interface PatchLook {
   hi: number;
   slide: number;
   vel: number;
+  /** A dash's landing slow-down ('land'): the way the cursor runs through it (it brakes toward the block). */
+  dir?: number;
 }
 
 /**
@@ -135,20 +137,51 @@ export function drawPatch(g: G, z: PatchLook, B: Rect, bx: number, now: number, 
       g.fillRect(x0 - 1, top + r, 1, 1);
       g.fillRect(x1, top + r + 1, 1, 1);
     }
+  } else if (z.kind === 'land') {
+    // Shadow Dash's landing (Sable): the cursor brakes here, up to the block it dashed to. A violet glow that deepens
+    // toward the block, chevrons pointing back against the run (braking) and closing up as they go, and a bright wall
+    // at the far end where the block begins
+    const dir = z.dir && z.dir < 0 ? -1 : 1;
+    for (let x = x0; x < x1; x++) {
+      const q = dir > 0 ? (x - x0) / Math.max(1, w - 1) : (x1 - 1 - x) / Math.max(1, w - 1);
+      g.fillStyle(0x8a48d0, (0.35 + 0.45 * q) * a);
+      g.fillRect(x, top, 1, h);
+    }
+    g.fillStyle(0xdab0ff, 0.8 * a);
+    for (let x = x0; x < x1; x += 3) {
+      g.fillRect(x, B.y - 1, 2, 1);
+      g.fillRect(x, B.y + B.h, 2, 1);
+    }
+    const my = Math.round(B.y + B.h / 2);
+    const run = Math.floor(now / 60) % 4;
+    for (let j = 0; j < 3; j++) {
+      // closer together toward the far end, stepping along it
+      const q = (j + run / 4) / 3;
+      const cx = Math.round(dir > 0 ? x0 + 2 + (w - 5) * Math.sqrt(q) : x1 - 3 - (w - 5) * Math.sqrt(q));
+      if (cx < x0 + 1 || cx > x1 - 2) continue;
+      for (let r = -3; r <= 3; r++) {
+        const px = cx - dir * (3 - Math.abs(r));
+        g.fillStyle(0x2a1440, 0.7 * a);
+        g.fillRect(px + dir, my + r, 1, 1);
+        g.fillStyle(j === 2 ? WHITE : 0xdab0ff, (0.6 + 0.4 * q) * a);
+        g.fillRect(px, my + r, 1, 1);
+      }
+    }
+    const ex = dir > 0 ? x1 - 2 : x0;
+    g.fillStyle(0xf0e0ff, (0.7 + 0.3 * pulse(now, 240)) * a);
+    g.fillRect(ex, B.y - 2, 2, B.h + 4);
   } else if (z.kind !== 'dash') {
-    // a slow patch (and any patch kind this view doesn't know yet): a rune strip, frost-blue, or violet where a Shadow
-    // Dash landed ('slowDash'); dashed rims, bright ends, glyphs that pulse one after another (one in the middle of a
-    // narrow one)
-    const dash = z.kind === 'slowDash';
-    const [fill, rim, dim, lit] = dash ? [0x5a2a90, 0xdab0ff, 0x9a6ae0, 0xf0e0ff] : [0x3a5ad0, 0x9ad8ff, 0x6a9af0, 0xe0f6ff];
-    g.fillStyle(fill, (dash ? 0.65 : 0.55) * a);
+    // a slow patch (and any patch kind this view doesn't know yet): a frost-blue rune strip, dashed rims, glyphs that
+    // pulse one after another (one in the middle of a narrow one, with bright ends)
+    const [fill, rim, dim, lit] = [0x3a5ad0, 0x9ad8ff, 0x6a9af0, 0xe0f6ff];
+    g.fillStyle(fill, 0.55 * a);
     g.fillRect(x0, top, w, h);
     g.fillStyle(rim, 0.7 * a);
     for (let x = x0; x < x1; x += 3) {
       g.fillRect(x, B.y - 1, 2, 1);
       g.fillRect(x, B.y + B.h, 2, 1);
     }
-    if (dash || w < 11) {
+    if (w < 11) {
       // bright ends, so a short one reads as a patch
       g.fillStyle(rim, 0.9 * a);
       g.fillRect(x0, B.y - 1, 1, B.h + 2);
@@ -163,7 +196,7 @@ export function drawPatch(g: G, z: PatchLook, B: Rect, bx: number, now: number, 
     ];
     const glyphAt = (x: number, i: number) => {
       const glyph = RUNES[(i + z.id) % RUNES.length];
-      const p = pulse(now, dash ? 700 : 1100, i * 180);
+      const p = pulse(now, 1100, i * 180);
       g.fillStyle(mix(dim, lit, p), (0.55 + 0.45 * p) * a);
       glyph.forEach((row, yy) => {
         for (let xx = 0; xx < 3; xx++) if (row[xx] === '#') g.fillRect(x + xx, top + 2 + yy, 1, 1);
@@ -448,7 +481,8 @@ export function drawFuse(g: G, X: number, Y: number, W: number, H: number, frac:
  * A chilled red: frost (a cool coat, a white rim, a snowflake), stronger when it's pinned in place; for Moss, vines
  * wrapped round it; for a Volley pin, an arrow stuck through it.
  */
-export function drawChill(g: G, X: number, Y: number, W: number, H: number, style: 'frost' | 'pin' | 'vine' | 'arrow', now: number): void {
+export function drawChill(g: G, X: number, Y: number, W: number, H: number, style: 'frost' | 'pin' | 'vine' | 'arrow' | 'solid', now: number, left = 1, sec = 9, seed = 0): void {
+  if (style === 'solid') return drawSolid(g, X, Y, W, H, now, left, sec, seed);
   if (style === 'vine') {
     // two vines spiralling round it, with leaves
     for (let i = 0; i < H; i++) {
@@ -495,6 +529,71 @@ export function drawChill(g: G, X: number, Y: number, W: number, H: number, styl
   } else {
     const k = Math.floor(now / 600) % 2;
     flake(g, Math.round(X + W / 2), Y + 6 + k);
+  }
+}
+
+/**
+ * A red frozen solid (Neve's Glacier): encased in a block of clear ice a pixel bigger than it all round, the red dim
+ * under a pale cyan wash, a lit facet slanting across, frost at the corners, a snowflake in the middle. As it thaws
+ * (`left`: the share of its freeze still to go; `sec`: seconds left) cracks run through the ice, drips fall, and in
+ * its last moments it blinks.
+ */
+function drawSolid(g: G, X: number, Y: number, W: number, H: number, now: number, left: number, sec: number, seed: number): void {
+  if (sec < 0.35 && Math.floor(now / 70) % 2 === 0) return;
+  const x0 = X - 2;
+  const y0 = Y - 2;
+  const w = W + 4;
+  const h = H + 4;
+  // the ice: an ink rim, a pale cyan wash over the red, a white rim lit on the top and left, deeper on the bottom right
+  g.fillStyle(INK, 0.9);
+  g.fillRect(x0 - 1, y0, 1, h);
+  g.fillRect(x0 + w, y0, 1, h);
+  g.fillRect(x0, y0 - 1, w, 1);
+  g.fillRect(x0, y0 + h, w, 1);
+  // (light enough that the red shows through: it's still a red to block)
+  g.fillStyle(0x8ae0f6, 0.38);
+  g.fillRect(x0, y0, w, h);
+  g.fillStyle(0xc8f4ff, 0.25);
+  g.fillRect(x0 + 1, y0 + 1, w - 2, Math.round(h * 0.45));
+  g.fillStyle(0xe0faff, 1);
+  g.fillRect(x0, y0, w, 1);
+  g.fillRect(x0, y0, 1, h);
+  g.fillStyle(0x2a7ab0, 1);
+  g.fillRect(x0 + 1, y0 + h - 1, w - 1, 1);
+  g.fillRect(x0 + w - 1, y0 + 1, 1, h - 1);
+  // a lit facet slanting across, and frost in the corners
+  g.fillStyle(WHITE, 0.6);
+  for (let i = 2; i < h - 2; i++) {
+    const px = x0 + 2 + Math.round((h - i) * 0.4);
+    if (px < x0 + w - 2) g.fillRect(px, y0 + i, 1, 1);
+  }
+  g.fillStyle(WHITE, 0.95);
+  g.fillRect(x0 + 1, y0 + 1, 3, 1);
+  g.fillRect(x0 + 1, y0 + 2, 1, 2);
+  g.fillRect(x0 + w - 3, y0 + h - 2, 2, 1);
+  flake(g, Math.round(X + W / 2), Math.round(Y + H / 2));
+  // a glint that runs round now and then
+  const k = ((now + seed * 131) % 1400) / 1400;
+  if (k < 0.18) sparkle(g, x0 + 2 + Math.round((w - 4) * (k / 0.18)), y0 + 2, k < 0.09 ? 1 : 2);
+  // thawing: cracks through the ice (more as it goes), drips off its foot
+  const cracks = left < 0.15 ? 3 : left < 0.3 ? 2 : left < 0.5 ? 1 : 0;
+  for (let c = 0; c < cracks; c++) {
+    let x = x0 + Math.round(w * (0.25 + 0.25 * c));
+    g.fillStyle(0x1e5a80, 0.9);
+    for (let y = y0 + 1; y < y0 + h - 1; y++) {
+      g.fillRect(x, y, 1, 1);
+      if ((y + c) % 3 === 0) x += (y >> 1) % 2 ? 1 : -1;
+    }
+    g.fillStyle(WHITE, 0.8);
+    g.fillRect(x0 + Math.round(w * (0.25 + 0.25 * c)) + 1, y0 + 2, 1, 2);
+  }
+  if (left < 0.5) {
+    g.fillStyle(0x8ae0f6, 0.9);
+    for (let i = 0; i < 2; i++) {
+      const dx = x0 + 2 + Math.round(hash(seed, i) * (w - 4));
+      const dy = (now / 7 + i * 9) % 9;
+      g.fillRect(dx, y0 + h + Math.round(dy), 1, 2);
+    }
   }
 }
 

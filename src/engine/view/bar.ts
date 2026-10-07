@@ -19,7 +19,8 @@ import { buildBarFrame } from '../chrome';
 import { brick, ellipse, icon, rows, slab } from './pixels';
 import { BLOCK_ICONS, FOE_ICONS } from './icons';
 import { BLOCKER_FACE, cursorGhost, drawBlocker, drawChill, drawFrozen, drawFuse, drawGrow, drawHold, drawIceCoat, drawKeg, drawPatch, drawVines, drawWall, sparkle, type PatchLook } from './bar-kinds';
-import { BOMB_COL, clamp01, deepOf, DYING_MS, dyingStyle, ease, INK, kindCol, pulse, rand, stackCol, WHITE, type Dying } from './shared';
+import { BOMB_COL, clamp01, deepOf, DYING_MS, dyingStyle, ease, INK, kindCol, mix, pulse, rand, stackCol, WHITE, type Dying } from './shared';
+import { focusCap, focusOf } from '../../core/styles';
 import { ImagePool } from './ui';
 import { drawBarRules } from './bar-links';
 
@@ -58,6 +59,9 @@ export class BarView {
   private cursorPulseColor = WHITE;
   /** Blocks that just changed kind: id -> anim time (they flash white as they turn). */
   private morphs = new Map<number, number>();
+  /** Blocks that took a red's place where it stood (Turnabout's kegs, Big Freeze's ice): no drop-in; a keg widens in
+   *  as the red flips away. id -> how (anim time it shows from is its blockSeen). */
+  private turned = new Map<number, 'flip' | 'ice'>();
   shakeUntil = 0;
   /** Patches: when each was first seen (it fades in), its last look (to fade it out when it's gone), the fading. */
   private zoneSeen = new Map<number, number>();
@@ -70,10 +74,10 @@ export class BarView {
   private dashes: Array<{ from: number; to: number; at: number; landAt: number; ghosts: number[] }> = [];
   /** Shadow Dash landings (bar position, anim time): a flash where the cursor lands. */
   private dashLands: Array<{ pos: number; at: number; dir: number }> = [];
-  /** Slow patches laid where a dash landed (they show in Sable's violet). */
-  private dashSlow = new Set<number>();
   /** A still red's fuse when first seen (its ring shrinks from there); an iced block's most taps (its cracks). */
   private fuse0 = new Map<number, number>();
+  /** A red frozen solid: how long its freeze was when first seen (it cracks as it thaws). */
+  private chill0 = new Map<number, number>();
   private iceTaps = new Map<number, number>();
   /** Mirror bounces (a flash on the shard), and blockers at the left end (a Barkback, Brick, an afterimage). */
   private mirrorFlashes: Array<{ pos: number; at: number }> = [];
@@ -105,14 +109,15 @@ export class BarView {
   newFight(): void {
     this.blockSeen.clear();
     this.morphs.clear();
+    this.turned.clear();
     this.zoneSeen.clear();
     this.zoneLast.clear();
     this.zoneGone = [];
     this.marks = [];
     this.dashes = [];
     this.dashLands = [];
-    this.dashSlow.clear();
     this.fuse0.clear();
+    this.chill0.clear();
     this.iceTaps.clear();
     this.mirrorFlashes = [];
     this.blockers = [];
@@ -170,7 +175,7 @@ export class BarView {
     const w = Math.max(6, Math.round(width * s.bar.w) - 1);
     if (kind !== 'mirror') this.dying.push({ x, w, kind, reason, style, at: s.anim });
     const live = s.app.run.combat?.blocks;
-    for (const m of [this.blockSeen, this.fuse0, this.iceTaps, this.morphs]) for (const id of m.keys()) if (!live?.some((b) => b.id === id)) m.delete(id);
+    for (const m of [this.blockSeen, this.fuse0, this.chill0, this.iceTaps, this.morphs, this.turned]) for (const id of m.keys()) if (!live?.some((b) => b.id === id)) m.delete(id);
     if (this.dying.length > 24) this.dying.shift();
     const [base, light] = reason === 'bomb' ? BOMB_COL : kindCol(kind);
     const top = s.bar.y - 5;
@@ -196,16 +201,14 @@ export class BarView {
 
   // ------------------------------------------------------------------ the bar's own events
 
-  /** A patch was laid: a puff of frost (or snow, or runes' light) over it as it fades in. A slow patch laid where a
-   *  Shadow Dash just landed is Sable's (violet). */
-  zoneOn(kind: string, lo: number, hi: number, id = -1): void {
-    if (kind === 'dash') return;
+  /** A patch was laid: a puff of frost (or snow, or runes' light) over it as it fades in. (A Shadow Dash's landing
+   *  slow-down, 'land', comes with its dash: no puff of its own.) */
+  zoneOn(kind: string, lo: number, hi: number): void {
+    if (kind === 'dash' || kind === 'land') return;
     const s = this.s;
     const x = this.x((lo + hi) / 2);
     const w = Math.max(6, (hi - lo) * s.bar.w);
-    const dashed = kind !== 'ice' && kind !== 'snow' && this.dashes.some((d) => s.anim - d.at < 800 && d.to >= lo - 0.03 && d.to <= hi + 0.03);
-    if (dashed) this.dashSlow.add(id);
-    const cols = kind === 'ice' ? [WHITE, 0xc8f4ff, 0x8ae0f6] : kind === 'snow' ? [WHITE, 0xe8f0fa] : dashed ? [0xdab0ff, 0xe0d0ff, WHITE] : [0x9ad8ff, 0xe0f6ff];
+    const cols = kind === 'ice' ? [WHITE, 0xc8f4ff, 0x8ae0f6] : kind === 'snow' ? [WHITE, 0xe8f0fa] : [0x9ad8ff, 0xe0f6ff];
     s.fx.chips(x, s.bar.y - 2, w, cols, Math.min(14, 4 + Math.round(w / 6)), -1);
   }
 
@@ -214,13 +217,36 @@ export class BarView {
     const z = this.zoneLast.get(id);
     this.zoneLast.delete(id);
     this.zoneSeen.delete(id);
-    this.dashSlow.delete(id);
     if (z) this.zoneGone.push({ ...z, at: this.s.anim });
   }
 
   /** A patch's last look (where it was), while it's on the bar. */
   zoneLook(id: number): PatchLook | undefined {
     return this.zoneLast.get(id);
+  }
+
+  /**
+   * A red just taken off the bar at `pos` turns into block `id` where it stood: Turnabout flips it into a keg (the red
+   * narrows to its edge, the keg widens out of it, a puff of smoke), Big Freeze ices it over (ice climbs up the red,
+   * a flash, and it's a frozen block). Neither drops in from above.
+   */
+  turnInto(pos: number, id: number, how: 'flip' | 'ice'): void {
+    const s = this.s;
+    const x = this.x(pos);
+    const style = how === 'flip' ? 'flip' : 'iceOver';
+    for (const d of this.dying) if (d.at === s.anim && isRed(d.kind) && Math.abs(d.x - x) < 1.5) d.style = style;
+    this.blockSeen.set(id, s.anim + DYING_MS[style]);
+    this.turned.set(id, how);
+    const y = this.mid();
+    if (how === 'flip') {
+      s.later(DYING_MS.flip, () => {
+        s.fx.chips(x, y, 8, [0x6a6276, 0x3a3444, 0xffb060], 8, -1);
+        s.fx.ring(x, y, 12, 0xffb060, false);
+      });
+    } else {
+      s.fx.chips(x, s.bar.y + s.bar.h, 10, [WHITE, 0xe0faff, 0x8ae0f6], 8, -1);
+      s.later(DYING_MS.iceOver, () => s.fx.ring(x, y, 13, 0xbff0ff, false));
+    }
   }
 
   /** A trap just taken off the bar at `pos` burns away there instead (a companion's fire: Sunny's Fire Breath), once
@@ -419,6 +445,7 @@ export class BarView {
     drawBarRules(g, c, t, now, s.bar, bx); // linked pairs' chains, drifting blocks' chevrons
     this.drawGuard(g, c, t, now, bx);
     for (const b of c.blocks) if (isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
+    this.drawLandTarget(g, c, t, now, bx);
 
     this.drawDying(g, bx);
     this.drawLeftEnd(g, c, bx, now);
@@ -495,8 +522,8 @@ export class BarView {
       if (z.kind === 'dash') continue;
       let seen = this.zoneSeen.get(z.id);
       if (seen === undefined) this.zoneSeen.set(z.id, (seen = a));
-      // (a slow patch where a Shadow Dash landed is Sable's: violet)
-      const look = { id: z.id, kind: this.dashSlow.has(z.id) ? 'slowDash' : z.kind, lo: z.lo, hi: z.hi, slide: z.slide, vel: z.vel };
+      // (a dash's landing slow-down knows which way the cursor runs through it: it brakes toward the block)
+      const look = { id: z.id, kind: z.kind, lo: z.lo, hi: z.hi, slide: z.slide, vel: z.vel, dir: z.kind === 'land' ? c.perk.landDir || 1 : 0 };
       this.zoneLast.set(z.id, look);
       drawPatch(g, look, B, bx, a, clamp01((a - seen) / ZONE_FADE_MS));
     }
@@ -593,12 +620,17 @@ export class BarView {
     if (seen === undefined) this.blockSeen.set(b.id, (seen = s.anim));
     if (s.anim < seen) return; // still flying in (Big Bang's kegs)
     const age = (s.anim - seen) / 160;
-    const fall = age < 0.7 ? Math.round(-14 * (1 - age / 0.7) ** 2) : 0;
-    const squash = age >= 0.7 && age < 1 ? Math.round(2 * Math.sin(((age - 0.7) / 0.3) * Math.PI)) : 0;
-    const X = x - squash;
+    const turned = this.turned.get(b.id);
+    const fall = age < 0.7 && !turned ? Math.round(-14 * (1 - age / 0.7) ** 2) : 0;
+    const squash = age >= 0.7 && age < 1 && !turned ? Math.round(2 * Math.sin(((age - 0.7) / 0.3) * Math.PI)) : 0;
+    // (a keg Turnabout flipped a red into widens out of its edge)
+    const flipW = turned === 'flip' && s.anim - seen < 130 ? Math.max(1, Math.round(w * ease((s.anim - seen) / 130))) : w;
+    const X = x - squash + Math.round((w - flipW) / 2);
     const Y = y + fall + squash;
-    const W = w + squash * 2;
+    const W = flipW + squash * 2;
     const H = h - squash;
+    // a Marksman's target (a green that fires the stored Focus): a soft halo behind it
+    if (b.target && b.kind === 'green') this.targetHalo(g, c, X, Y, W, H, now, b.id);
     if (b.kind === 'keg') drawKeg(g, X, Y, W, H, now);
     else if (b.kind === 'frozen') drawFrozen(g, X, Y, W, H, now, b.life, b.id);
     else if (b.kind === 'hold') {
@@ -632,7 +664,12 @@ export class BarView {
         icon(g, variant, cx, ownerIcon ? Y + 12 : cy, b.kind === 'speed' ? 0xffe680 : INK);
         if (ownerIcon) icon(g, ownerIcon, cx, Y + 3, WHITE);
       } else if (ownerIcon && !b.still) icon(g, ownerIcon, cx, cy, WHITE);
-      if (b.chill > 0) drawChill(g, X, Y, W, H, this.chillStyle(c, b), now);
+      if (b.chill > 0) {
+        // (frozen solid: how much of its freeze is left, so it cracks as it thaws)
+        let c0 = this.chill0.get(b.id) ?? 0;
+        if (b.chill > c0) this.chill0.set(b.id, (c0 = b.chill));
+        drawChill(g, X, Y, W, H, this.chillStyle(c, b), now, b.chill / Math.max(0.1, c0), b.chill, b.id);
+      } else this.chill0.delete(b.id);
       if (b.still) {
         // an icicle (or an ice wall): it strikes when its fuse runs out
         let f0 = this.fuse0.get(b.id);
@@ -667,6 +704,7 @@ export class BarView {
       g.fillStyle(WHITE, 1);
       for (const [x0, y0, w0, h0] of parts) g.fillRect(x0, y0, w0, h0);
     }
+    if (b.target && b.kind === 'green') this.targetMarks(g, c, X, Y, W, H, now, b.id);
     // an iced yellow (or green): its coat, its cracks, a pip per tap still needed
     if (isAttack(b.kind) && b.kind !== 'hold' && b.taps > 1) {
       const most = Math.max(this.iceTaps.get(b.id) ?? b.taps, b.taps);
@@ -709,6 +747,55 @@ export class BarView {
     }
   }
 
+  /** A Marksman's target: a soft halo behind the green (gold and quicker when the Focus is full: it will crit). */
+  private targetHalo(g: G, c: Combat, X: number, Y: number, W: number, H: number, now: number, id: number): void {
+    const full = focusCap(c) > 0 && focusOf(c) >= focusCap(c) * 0.999;
+    const p = pulse(now, full ? 360 : 760, id * 97);
+    rows(g, X - 3, Y - 3, W + 6, H + 6, 3, full ? 0xffd23a : 0x9af06a, (full ? 0.35 : 0.22) + 0.2 * p);
+  }
+
+  /**
+   * A Marksman's target, over the green: a bullseye ring round its "+", and corner brackets just outside it that breathe
+   * in and out (gold when the Focus is full: the shot will crit), so it stands out on a flooded bar.
+   */
+  private targetMarks(g: G, c: Combat, X: number, Y: number, W: number, H: number, now: number, id: number): void {
+    const full = focusCap(c) > 0 && focusOf(c) >= focusCap(c) * 0.999;
+    const p = pulse(now, full ? 360 : 760, id * 97);
+    const col = full ? 0xffe680 : 0xd8ffc0;
+    const mx = Math.round(X + W / 2);
+    const my = Math.round(Y + H / 2);
+    // the bullseye: a ring round the "+" (ink under, then its colour)
+    const r = Math.max(4, Math.min(6, Math.floor(W / 2) - 1));
+    const n = Math.max(20, r * 7);
+    for (const [col2, rr, a] of [
+      [INK, r + 1, 0.8],
+      [col, r, 1],
+    ] as const) {
+      g.fillStyle(col2, a);
+      for (let i = 0; i < n; i++) {
+        const t = (i / n) * Math.PI * 2;
+        g.fillRect(Math.round(mx + Math.cos(t) * rr), Math.round(my + Math.sin(t) * rr), 1, 1);
+      }
+    }
+    // brackets at its corners, breathing out
+    const out = 2 + Math.round(p * 2);
+    const arm = 3;
+    for (const [cx, cy, sx, sy] of [
+      [X - out, Y - out, 1, 1],
+      [X + W - 1 + out, Y - out, -1, 1],
+      [X - out, Y + H - 1 + out, 1, -1],
+      [X + W - 1 + out, Y + H - 1 + out, -1, -1],
+    ] as const) {
+      g.fillStyle(INK, 0.9);
+      g.fillRect(Math.min(cx, cx + sx * arm) - 1, cy - 1, arm + 3, 3);
+      g.fillRect(cx - 1, Math.min(cy, cy + sy * arm) - 1, 3, arm + 3);
+      g.fillStyle(full ? mix(col, WHITE, p * 0.5) : col, 1);
+      g.fillRect(Math.min(cx, cx + sx * arm), cy, arm + 1, 1);
+      g.fillRect(cx, Math.min(cy, cy + sy * arm), 1, arm + 1);
+    }
+    if (full && Math.floor(now / 200) % 3 === 0) sparkle(g, X + W - 1, Y + 1, 2);
+  }
+
   /** Small pips over a block: one per tap it still needs. */
   private tapPips(g: G, X: number, Y: number, W: number, taps: number): void {
     const pw = taps * 3 - 1;
@@ -721,10 +808,11 @@ export class BarView {
     }
   }
 
-  /** How a chilled red looks: Moss's vines, a Volley's arrow (pinned), else frost (icier when pinned). */
-  private chillStyle(c: Combat, b: Block): 'frost' | 'pin' | 'vine' | 'arrow' {
+  /** How a chilled red looks: Moss's vines, a Volley's arrow (pinned), Neve's Glacier (frozen solid in a block of
+   *  ice), else frost (icier when pinned). */
+  private chillStyle(c: Combat, b: Block): 'frost' | 'pin' | 'vine' | 'arrow' | 'solid' {
     if (c.heroId === 'moss' && b.chillMult > 0) return 'vine';
-    if (b.chillMult <= 0) return c.heroId === 'vesper' ? 'arrow' : 'pin';
+    if (b.chillMult <= 0) return c.heroId === 'vesper' ? 'arrow' : c.heroId === 'neve' ? 'solid' : 'pin';
     return 'frost';
   }
 
@@ -981,6 +1069,47 @@ export class BarView {
     }
   }
 
+  /**
+   * Sable's landing: while the cursor brakes in a 'land' patch, the block the dash aimed at (it starts where the patch
+   * ends) is lit: violet brackets round it, pulsing, so it's the one to tap.
+   */
+  private drawLandTarget(g: G, c: Combat, t: number, now: number, bx: number): void {
+    const z = c.zones.find((x) => x.kind === 'land');
+    if (!z) return;
+    const B = this.s.bar;
+    const dir = c.perk.landDir || 1;
+    const end = dir > 0 ? z.hi : z.lo;
+    let best: Block | null = null;
+    let bestD = 0.02;
+    for (const b of c.blocks) {
+      const near = c.blockPosAt(b, t) - (dir * b.width) / 2;
+      const d = Math.abs(near - end);
+      if (d < bestD) (best = b), (bestD = d);
+    }
+    if (!best) return;
+    const w = Math.max(6, Math.round(best.width * B.w) - 1);
+    const x = Math.round(B.x + c.blockPosAt(best, t) * B.w - w / 2) + bx;
+    const out = 2 + Math.round(pulse(now, 220));
+    const x0 = x - out - 1;
+    const x1 = x + w + out;
+    const y0 = B.y - 6 - out;
+    const y1 = B.y + B.h + 5 + out;
+    const arm = 3;
+    for (const [cx, cy, sx, sy] of [
+      [x0, y0, 1, 1],
+      [x1, y0, -1, 1],
+      [x0, y1, 1, -1],
+      [x1, y1, -1, -1],
+    ] as const) {
+      g.fillStyle(INK, 0.9);
+      g.fillRect(Math.min(cx, cx + sx * arm) - 1, cy - 1, arm + 3, 3);
+      g.fillRect(cx - 1, Math.min(cy, cy + sy * arm) - 1, 3, arm + 3);
+      g.fillStyle(DASH_COL[0], 1);
+      g.fillRect(Math.min(cx, cx + sx * arm), cy, arm + 1, 1);
+      g.fillRect(cx, Math.min(cy, cy + sy * arm), 1, arm + 1);
+    }
+  }
+
   /** Big Bang's kegs arcing onto the bar, and Volley's arrows dropping onto the reds. */
   private drawFlights(g: G): void {
     const s = this.s;
@@ -1038,11 +1167,13 @@ export class BarView {
     let onIce = false;
     let inSnow = false;
     let inDash = false;
+    let inLand = false;
     for (const z of c.zones) {
       if (p < z.lo || p > z.hi) continue;
       const kind = z.kind;
       if (kind === 'ice') onIce = true;
       else if (kind === 'dash') inDash = true;
+      else if (kind === 'land') inLand = true;
       else inSnow = true;
     }
     const moving = c.cursorHold <= 0 && !frozen;
@@ -1079,6 +1210,14 @@ export class BarView {
       g.fillRect(cx + dir * 3 - 1, B.y + B.h - 3, 3, 2);
       g.fillRect(cx + dir * 4, B.y + B.h - 4, 1, 1);
       if (Math.random() < 0.3) s.fx.particles.push({ x: cx + rand(-2, 2), y: B.y + rand(0, 4), vx: rand(-6, 6), vy: rand(8, 20), g: 30, born: now, life: 380, color: WHITE, size: 1, world: false, streak: false });
+    }
+    if (inLand) {
+      // braking after a dash: a violet glow round the blade, a short smear pressed up behind it
+      const back = Math.round(B.x + c.cursorPosAt(t - 0.05) * B.w) + bx;
+      g.fillStyle(DASH_COL[2], 0.35);
+      g.fillRect(Math.min(back, cx) - 1, B.y - 2, Math.abs(cx - back) + 3, B.h + 4);
+      g.fillStyle(DASH_COL[0], 0.3 + 0.2 * pulse(now, 160));
+      g.fillRect(cx - 4, B.y - 6, 9, B.h + 12);
     }
     const pk = (now - this.cursorPulseAt) / 160;
     if (pk < 1) {
@@ -1349,6 +1488,31 @@ export class BarView {
           // closes like an eye: flattens to a bright line
           const h = H0 * (1 - ease(k));
           slab(g, x, mid - h / 2, d.w * (1 + 0.25 * k), Math.max(1, h), k < 0.4 ? WHITE : light, WHITE, base, 1 - k * 0.3);
+          break;
+        }
+        case 'flip': {
+          // Turnabout: the red turns edge-on (narrowing to a line, a flash at its edge), and the keg widens out of it
+          const w = Math.max(1, d.w * (1 - ease(k)));
+          slab(g, x, mid - H0 / 2, w, H0, k < 0.5 ? base : light, light, dark);
+          if (k > 0.6) {
+            g.fillStyle(WHITE, (k - 0.6) / 0.4);
+            g.fillRect(Math.round(x), Math.round(mid - H0 / 2), 1, H0);
+          }
+          break;
+        }
+        case 'iceOver': {
+          // Big Freeze: ice climbs up over the red from its foot, then it flashes white and is a frozen block
+          slab(g, x, mid - H0 / 2, d.w, H0, base, light, dark);
+          const ih = Math.round(H0 * ease(Math.min(1, k * 1.25)));
+          const x0 = Math.round(x - d.w / 2);
+          g.fillStyle(0x8ae0f6, 0.85);
+          g.fillRect(x0, Math.round(mid + H0 / 2 - ih), Math.round(d.w), ih);
+          g.fillStyle(WHITE, 0.9);
+          g.fillRect(x0, Math.round(mid + H0 / 2 - ih), Math.round(d.w), 1);
+          if (k > 0.75) {
+            g.fillStyle(WHITE, (k - 0.75) / 0.25);
+            g.fillRect(x0 - 1, Math.round(mid - H0 / 2) - 1, Math.round(d.w) + 2, H0 + 2);
+          }
           break;
         }
         case 'burn': {

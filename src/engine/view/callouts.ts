@@ -62,6 +62,8 @@ export const CALLOUT_WORDS: Record<string, string> = {
   'ability:sable': 'Veil!',
   // Neve (and her style's rule)
   flashFreeze: 'Freeze!',
+  glacier: 'Frozen!',
+  bigFreeze: 'Ice!',
   bend: 'Slow!',
   'ability:neve': 'Chill',
   // Moss and the allies
@@ -78,18 +80,21 @@ export const CALLOUT_WORDS: Record<string, string> = {
   fuseUp: '+Keg',
   bigBang: 'Kegs!',
   keg: 'Blast!',
+  turnabout: 'Flip!',
   // Hollis (and his style's Guard)
   guardUp: 'Guard',
-  guard: 'Bash!',
   shieldSlam: 'Slam!',
+  bulwark: 'Bulwark',
+  avalanche: 'Stun!',
   'ability:hollis': 'Brace!',
   // Vesper
   powerShot: 'Shot!',
   pierce: 'Pierce',
   volley: 'Volley',
-  // Torva
+  patience: 'Snipe!',
+  // Torva ("x2.6": Wind-Up's smash, its multiplier)
   quake: 'Quake!',
-  windUp: 'Smash!',
+  windUp: 'xN',
   secondSwing: '+Stack',
   'ability:torva': 'Wind-Up',
   // the companions ("+N": the coins found)
@@ -121,6 +126,7 @@ const BUCKET_MS: Record<Bucket, number> = { ally: 1200, pet: 900 };
  *  block, a green ability on each green: the cursor's tint shows that one running): shown at most this often. */
 const SLOW_GAP: Record<string, number> = {
   emberBite: 2500,
+  shieldSlam: 1600,
   mend: 2000,
   snowDash: 1500,
   chillBite: 1200,
@@ -130,9 +136,10 @@ const SLOW_GAP: Record<string, number> = {
   'ability:hollis': 2000,
   'ability:torva': 2000,
 };
-/** Guard spent on a hit is called out from this many charges (one charge comes and goes with nearly every block and
- *  hit: the tab shows that). */
-const BASH_MIN = 2;
+/** Skill nodes that change what a hero's own move does on the bar get a word too (the rest keep the lane). */
+const SKILL_WORDS = new Set(['bigFreeze', 'turnabout', 'avalanche']);
+/** Perks with no word: a Bulwark's blow on each foe (the Bulwark's own word covers them). */
+const NO_WORD = new Set(['bulwarkBlow']);
 /** The perks that are coins found (gold words). */
 const COIN_PERKS = new Set(['luckyFoot', 'goldHoard']);
 /** The style readout's tab shows its empty state (dim pips or gauge waiting to fill) for these styles. */
@@ -239,7 +246,7 @@ export class Callouts {
 
   /** Who a perk belongs to and how its callout looks; null when it isn't the hero's own (a relic, a skill node, gear). */
   private lookOf(c: Combat, id: string): { word: string; col: number; mark: Mark; bucket?: Bucket; always?: boolean } | null {
-    if (GEAR_PERKS.has(id) || perkSource(id) !== 'kit') return null;
+    if (GEAR_PERKS.has(id) || NO_WORD.has(id) || (perkSource(id) !== 'kit' && !SKILL_WORDS.has(id))) return null;
     let word = CALLOUT_WORDS[id];
     if (word === undefined) {
       // a kit part without a word yet: its name, when it fits
@@ -285,9 +292,10 @@ export class Callouts {
         break;
       case 'perk': {
         const look = this.lookOf(c, e.id);
-        if (!look || (e.id === 'guard' && e.amount < BASH_MIN)) break;
+        if (!look) break;
         let word = look.word;
         if (e.id === 'guardUp') word = `Guard ${Math.max(1, guardOf(c), e.amount)}`;
+        else if (e.id === 'windUp') word = e.amount > 0 ? `x${(e.amount / 100).toFixed(1)}` : 'Smash!';
         else if (e.id === 'chain') word = `Chain ${Math.max(2, e.amount)}`;
         else if (COIN_PERKS.has(e.id)) word = `+${Math.max(1, e.amount)}`;
         let pos: Pending['pos'] = e.pos ?? (AT_LEFT.has(e.id) ? 'left' : null);

@@ -1058,7 +1058,7 @@ test("perks on what they touch: a box on the block (Turtle Shell), brackets on t
   await expect(page).toHaveScreenshot('perk-marks.png', shot);
 });
 
-test("a new hero's finisher: Glacier rolls a frost wave out, freezes the reds and slows the bar's middle", async ({ page }) => {
+test("a new hero's finisher: Glacier rolls a frost wave out, freezes every red solid (iced in) and slows the whole bar a moment; then just its middle, the ice cracking as it thaws", async ({ page }) => {
   await boot(page);
   await frames(page, 10);
   await stagedFight(page, { hero: 'neve', act: 3 });
@@ -1067,6 +1067,97 @@ test("a new hero's finisher: Glacier rolls a frost wave out, freezes the reds an
   await bar(page, `app.finisher();`);
   await frames(page, 22);
   await expect(page).toHaveScreenshot('finisher-glacier.png', shot);
+  await frames(page, 88); // the whole-bar slow is over: the middle patch, the reds' ice cracking
+  await expect(page).toHaveScreenshot('finisher-glacier-mid.png', shot);
+});
+
+// ------------------------------------------------------------------ round 6: the heroes' new moments, on what they touch
+
+test("Hollis: every block slams a shield into the red's foe (a steel number); full Guard arms a Bulwark (the Guard tab and the cursor glow steel, a shield over it); the next block sets it off, a great shield sweeping every foe", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'hollis' });
+  await bar(page, `c.addEnemy('slime'); c.addEnemy('slime'); view.fighters.addEnemies(c);`);
+  await frames(page, 50);
+  await bar(page, `const r = c.spawnBlock('red', 0.6, foe.id); c.setCursor(r.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 11); // the Perfect slam has landed
+  await expect(page).toHaveScreenshot('hollis-slam.png', shot);
+  await bar(page, `c.perk.guard = c.tuning.styles.guardMax; c.spawnBlock('yellow', 0.8);`);
+  await frames(page, 20);
+  await expect(page).toHaveScreenshot('hollis-bulwark-ready.png', shot);
+  await bar(page, `const r = c.spawnBlock('red', 0.45, foe.id); c.setCursor(r.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 12); // the great shield mid-sweep
+  await expect(page).toHaveScreenshot('hollis-bulwark.png', shot);
+});
+
+test("Neve's Big Freeze: her finisher's frozen reds ice over where they stand, into blocks to smash", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(`window.__cq3.app.profile.heroes.neve.skills = ['bigFreeze']`);
+  await stagedFight(page, { hero: 'neve', act: 3 });
+  await bar(page, `c.spawnBlock('red', 0.55, foe.id); c.spawnBlock('red', 0.8, foe.id); c.stacks = 2; c.meter = 0;`);
+  await frames(page, 6);
+  await bar(page, `app.finisher();`);
+  await frames(page, 10); // the ice climbing over them
+  await expect(page).toHaveScreenshot('neve-big-freeze.png', shot);
+});
+
+test("Tam's Turnabout: Big Bang flips each red into a keg where it stood (the red turns edge-on, the keg widens out of it)", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(`window.__cq3.app.profile.heroes.tam.skills = ['turnabout']`);
+  await stagedFight(page, { hero: 'tam' });
+  await bar(page, `c.spawnBlock('red', 0.55, foe.id); c.spawnBlock('red', 0.8, foe.id); c.spawnBlock('red', 0.35, foe.id); c.stacks = 1; c.meter = 0;`);
+  await frames(page, 6);
+  await bar(page, `app.finisher();`);
+  await frames(page, 4); // the reds narrowing
+  await expect(page).toHaveScreenshot('tam-turnabout.png', shot);
+  await frames(page, 8); // the kegs out, a puff where each red was
+  await expect(page).toHaveScreenshot('tam-turnabout-kegs.png', shot);
+});
+
+test("Torva's Wind-Up: the smash's multiplier rides over the cursor (x2.6 at 20 combo) and lands beside the foe it hits", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'torva' });
+  await bar(page, `c.perk.windUp = 1; c.combo = 20; c.spawnBlock('yellow', 0.7); c.setCursor(0.45, 1);`);
+  await frames(page, 12);
+  await expect(page).toHaveScreenshot('torva-windup-mult.png', shot);
+  await bar(page, `const y = c.blocks.find((b) => b.kind === 'yellow'); c.setCursor(y.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 10);
+  await expect(page).toHaveScreenshot('torva-smash.png', shot);
+});
+
+test("Vesper's targets on a busy bar: the greens that fire the Focus (a bullseye, breathing brackets; gold at full Focus); Patience: a Perfect fires a full Focus with no green in reach", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'vesper' });
+  await bar(
+    page,
+    `for (const [k, p] of [['green', 0.16], ['yellow', 0.3], ['red', 0.44], ['green', 0.56], ['yellow', 0.68], ['red', 0.82], ['yellow', 0.95]]) c.spawnBlock(k, p, foe.id);
+     c.setCursor(0.05, 1);`,
+  );
+  await frames(page, 14);
+  await expect(page).toHaveScreenshot('vesper-targets.png', shot);
+  await bar(page, `c.perk.focus = 9999; c.setCursor(0.7, 1);`);
+  await frames(page, 10);
+  await expect(page).toHaveScreenshot('vesper-targets-full.png', shot);
+  await bar(
+    page,
+    `for (const b of c.blocks.slice()) c.removeBlock(b, "perk"); c.perk.focus = 9999; const y = c.spawnBlock('yellow', 0.5); c.spawnBlock('red', 0.8, foe.id);
+     c.setCursor(y.pos, 1); app.barTap(performance.now());`,
+  );
+  await frames(page, 8);
+  await expect(page).toHaveScreenshot('vesper-patience.png', shot);
+});
+
+test("Sable's landing: after a Shadow Dash the cursor brakes in a violet landing patch up to the block it aimed at (brackets on it)", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'sable' });
+  await bar(page, `c.setCursor(0.12, 1); c.spawnBlock('yellow', 0.12); c.spawnBlock('yellow', 0.78); app.barTap(performance.now());`);
+  await frames(page, 8);
+  await expect(page).toHaveScreenshot('sable-land-zone.png', shot);
 });
 
 // ------------------------------------------------------------------ tips ("teach it slowly")
