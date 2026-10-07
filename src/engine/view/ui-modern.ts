@@ -399,7 +399,7 @@ export function ring(g: G, cx: number, cy: number, r: number, frac: number, o: {
         continue;
       }
       const ang = (Math.atan2(x, -y) + Math.PI * 2) % (Math.PI * 2);
-      const on = ang / (Math.PI * 2) <= f;
+      const on = f > 0 && ang / (Math.PI * 2) <= f;
       g.fillStyle(on ? (d > r - 1 ? hi : d < r - th + 1 ? lo : base) : d > r - 1 ? NAVY[4] : NAVY[2], a);
       g.fillRect(px, py, 1, 1);
     }

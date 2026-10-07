@@ -16,7 +16,7 @@ import { CampKit, D, GOLD_TXT, GREEN, pix, pixSize } from './camp-kit';
 import { padlock, wrapText } from './items';
 import { glow, GOLD } from './pixels';
 import { clamp01, easeBack, inRect, INK, pulse, rand, WHITE, type Rect } from './shared';
-import { FACE, notePress, RIBBON } from './ui';
+import { FACE, isPressed, notePress, RIBBON } from './ui';
 import { bigButton, enterK, fillEllipse, glass, popK } from './ui-modern';
 
 
@@ -319,7 +319,10 @@ export class UpgradesScreen {
       const st = this.state(id);
       const m = this.markerAt(id);
       const bob = st === 'bought' ? 0 : Math.round(Math.sin(now / 420 + i * 1.3) * 1.5);
-      const cy = m.y + bob - Math.round((1 - k) * 8);
+      // a press sinks it a px and flashes it
+      const pressed = isPressed(this.spotRect(id), now);
+      const cy = m.y + bob - Math.round((1 - k) * 8) + (pressed ? 1 : 0);
+      if (pressed) fillEllipse(g, m.x, cy, 9, 9, WHITE, 0.35);
       const ready = st === 'buy' && p.coins >= CAMP_UPGRADES[id].cost;
       if (st === 'bought') return;
       const face = ready ? [0xfff0a0, 0xf2c230, 0xd8901c, 0x9a5a14] : st === 'buy' ? [0xd8d0f0, 0x8a7cc0, 0x5e5090, 0x2f2650] : [0x8a90a6, 0x5e6478, 0x484e60, 0x2a2e3a];
