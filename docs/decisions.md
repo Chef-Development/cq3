@@ -173,3 +173,10 @@ C1. **Companions: a night grove, the companion at 3x on a mossy stump.** Its nam
     registered with registerStageTheme).
 C2. **A screen that paints its own stage sets `staged = true`** and the camp skips its dark dim behind it (the dim sat
     over the stage image otherwise). Other modern camp screens can use the same flag without touching camp.ts.
+C3. **Completion tracker: the region as a framed parchment map** (`art-region-map.ts`: one hand-drawn map per region,
+    painted on first open, not the world map's art: its acts sit too far apart to crop a window that fits), with a
+    flag on each cleared act's site, crown / skull / scroll / chest seals under each site and three star seals for the
+    events; empty ones are dotted sockets inked on the paper. A tap on a seal or socket names its part with the count
+    ("Treasures 2/3"). A region not reached yet shows a fogged sheet and "???" (its land would spoil it). The region
+    tabs moved into the top bar (after Back, like the hero tabs) instead of down the side: "Greenmarch" needs 75 px, and
+    the map is the focal thing, so it gets the width. Claim is padlocked (grey, shakes, "Reach 100%") until 100%.
