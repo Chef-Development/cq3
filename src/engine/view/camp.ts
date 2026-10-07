@@ -2,7 +2,9 @@
 // the firewood once they've joined, the heroes met since standing round the fire), the companions along, Mags the
 // smith at her forge, fireflies, embers and chimney smoke. The buildings and props are tap targets with name plates:
 // Bag (the tent), Forge, the Shrine (unlocked: Rare chests for gems), the chests waiting by the tent (when there are
-// any), the notice board (Camp: the upgrades and region progress) and, once it's built, the Training Dummy (Practice).
+// any), the Camp button (build mode: the upgrades and region progress) and the upgrades built so far, standing in
+// the clearing as objects (art-camp-build.ts: the Companion Perch with the second companion on it, the Lucky Stone,
+// the Reroll Charm on the tent, the War Table, the Map Table, the Training Dummy for Practice).
 // A band along the bottom has Bag, Forge, Skills (a gold "!" when the picked hero has points to spend) and Relics (a
 // red count of new ones). The top left shows the picked hero (face, name, level, XP): tapping it, or a hero by the
 // fire, opens the hero select; the top right the gems, the purse and the scrap. "Back" (named for where it goes: the
@@ -19,11 +21,13 @@ import { HEROES, HERO_IDS, type HeroId } from '../../data/heroes';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../data/banter';
 import { ASH_BANTER, ASH_SCENE_ACT } from '../../data/banter-ash';
 import { itemPower } from '../../core/gear';
+import { CAMP_UPGRADE_IDS, type CampUpgradeId } from '../../data/meta';
 import { hasCamp } from '../../core/meta';
 import { equippedItems } from '../../core/profile';
 import { heroOwned, petOwned } from '../../core/roster';
 import type { FightScene } from '../scene';
 import { CAMP_SPOTS } from '../art-camp';
+import { BUILD_SPOTS, ensureCampBuildArt, PERCH_SEAT } from '../art-camp-build';
 import { SHRINE_AT, SHRINE_GLOW_AT } from '../art-shrine';
 import { textWidth } from '../font';
 import { BagScreen } from './bag';
@@ -88,15 +92,16 @@ const FIRE_SEQ = [0, 1, 2, 1, 3, 2, 0, 3, 1, 2];
 export const HERO_SPOTS: Array<{ x: number; y: number; flip: boolean }> = [
   { x: 199, y: 115, flip: true },
   { x: 143, y: 105, flip: false },
-  { x: 99, y: 111, flip: false },
+  { x: 110, y: 104, flip: false },
 ];
-/** Companions along (beside Pip, who always perches on the log): where they sit. */
+/** Companions along (beside Pip, who always perches on the log): where they sit (the second one on the Companion
+ *  Perch once it's built: BUILD_SPOTS.perch). */
 export const PET_SPOTS: Array<{ x: number; y: number }> = [
   { x: 186, y: 128 },
   { x: 224, y: 128 },
 ];
-/** The props: the chests waiting by the tent, the Training Dummy by the shrine. */
-export const PROP_AT = { chests: { x: 62, y: 128 }, dummy: { x: 289, y: 127 } };
+/** The props: the chests waiting by the tent, the Training Dummy by the shrine (an upgrade: its spot). */
+export const PROP_AT = { chests: { x: 62, y: 128 }, dummy: BUILD_SPOTS.dummy };
 
 export class CampView {
   private bg: Phaser.GameObjects.Image | null = null;
@@ -170,6 +175,7 @@ export class CampView {
 
   onPhase(next: string): void {
     if (next !== 'camp') return;
+    ensureCampBuildArt(this.s);
     const now = performance.now();
     this.mode = 'home';
     this.backTo = 'home';
@@ -247,19 +253,24 @@ export class CampView {
   }
 
   /** The companions along besides Pip (Pip always perches on the log), where they sit. */
-  private petsAlong(): Array<{ id: CompanionId; x: number; y: number }> {
+  private petsAlong(): Array<{ id: CompanionId; x: number; y: number; perch?: boolean }> {
     const p = this.s.app.run.profile;
-    return p.petsOn
-      .filter((id) => id !== 'pip' && petOwned(p, id))
+    const now = performance.now();
+    // the second companion along sits on the Companion Perch (once it stands there)
+    const perched = this.upgrades.objectAlpha('perch', now) >= 1 && p.petsOn[1] && p.petsOn[1] !== 'pip' && petOwned(p, p.petsOn[1]) ? p.petsOn[1] : null;
+    const out: Array<{ id: CompanionId; x: number; y: number; perch?: boolean }> = p.petsOn
+      .filter((id) => id !== 'pip' && id !== perched && petOwned(p, id))
       .slice(0, PET_SPOTS.length)
       .map((id, i) => ({ id, ...PET_SPOTS[i] }));
+    if (perched) out.push({ id: perched, x: BUILD_SPOTS.perch.x, y: BUILD_SPOTS.perch.y - PERCH_SEAT, perch: true });
+    return out;
   }
 
   private petRect(id: CompanionId): Rect | null {
     if (id === 'pip') return this.pipRect();
     const at = this.petsAlong().find((q) => q.id === id);
     if (!at) return null;
-    const fly = COMPANIONS[id].flies;
+    const fly = COMPANIONS[id].flies && !at.perch;
     return { x: at.x - 11, y: at.y - (fly ? 30 : 20), w: 22, h: fly ? 22 : 20 };
   }
 
@@ -455,6 +466,13 @@ export class CampView {
       const r = this.petRect(q.id);
       if (r && inRect(r, x, y)) return this.go('pets', now, undefined, q.id);
     }
+    // the upgrades built (the perch: the companions; the dummy: practice; the others: their card in build mode)
+    for (const id of CAMP_UPGRADE_IDS) {
+      if (this.upgrades.objectAlpha(id, now) < 1 || !inRect(this.upgrades.objectRect(id), x, y, 1)) continue;
+      if (id === 'dummy') return this.openPlate('dummy', now);
+      if (id === 'perch') return this.go('pets', now);
+      return this.openUpgrade(id, now);
+    }
     // the heroes (front to back), then the props
     const heroes = (['rowan', 'sable', ...this.standing().map((h) => h.id)] as HeroId[]).filter((id) => this.heroRect(id)).sort((a, b) => this.heroRect(b)!.y + this.heroRect(b)!.h - (this.heroRect(a)!.y + this.heroRect(a)!.h));
     for (const id of heroes) if (inRect(this.heroRect(id)!, x, y)) return this.go('heroes', now, id);
@@ -496,6 +514,11 @@ export class CampView {
       return;
     }
     if (res === 'practice') return this.practice(now);
+    if (res === 'pets') {
+      this.go('pets', now);
+      this.backTo = 'upgrades';
+      return;
+    }
     if (res === 'progress') {
       this.go('progress', now);
       this.backTo = 'upgrades';
@@ -536,6 +559,12 @@ export class CampView {
     this.dummyAt = now;
     app.audio.uiClick();
     app.startPractice();
+  }
+
+  /** Build mode, with upgrade `id`'s card open (a built object tapped by the fire). */
+  openUpgrade(id: CampUpgradeId, now: number): void {
+    this.go('upgrades', now);
+    this.upgrades.select(id, now);
   }
 
   /** The screen on view (not the home). */
@@ -758,8 +787,10 @@ export class CampView {
       const per = fly ? 140 : 360;
       const key = `comp_${q.id}_idle${Math.floor(now / per) % 2}`;
       if (!kit.has(key)) continue;
-      const bob = fly ? Math.round(Math.sin(now / 300 + q.x) * 2) : 0;
-      draws.push({ y: q.y, fn: () => this.footFlip(key, q.x, q.y + 1 - (fly ? 8 : 0) + bob, false, 1) });
+      // on the perch: it sits on the platform (a flier settles there too), drawn just after the perch
+      const hover = fly && !q.perch;
+      const bob = hover ? Math.round(Math.sin(now / 300 + q.x) * 2) : 0;
+      draws.push({ y: q.perch ? BUILD_SPOTS.perch.y + 0.5 : q.y, fn: () => this.footFlip(key, q.x, q.y + 1 - (hover ? 8 : 0) + bob, false, 1) });
     }
     if (sitting) {
       let smith = Math.floor(now / 560) % 2 ? 'smith_idle1' : 'smith_idle0';
@@ -789,11 +820,8 @@ export class CampView {
       gb.fillCircle(at.x, at.y - 14, 20);
       draws.push({ y: at.y, fn: () => im.foot(`hchest_${best}_closed`, at.x + wob, at.y, D.actors) });
     }
-    if (hasCamp(p, 'dummy') && kit.has('dummy_idle0')) {
-      const k = now - this.dummyAt;
-      const key = k < 300 ? 'dummy_hurt' : Math.floor(now / 900) % 2 ? 'dummy_idle1' : 'dummy_idle0';
-      draws.push({ y: PROP_AT.dummy.y, fn: () => im.foot(key, PROP_AT.dummy.x, PROP_AT.dummy.y, D.actors) });
-    }
+    // the upgrades built so far, standing in the clearing (one being built rises out of its dust)
+    this.drawUpgrades(draws, now);
     draws.sort((a, b) => a.y - b.y);
     for (const d of draws) d.fn();
     // the campfire's flames (taller when poked)
@@ -811,6 +839,60 @@ export class CampView {
       const y = e.y + e.vy * t + 18 * t * t * (e.vy > -40 ? 0 : 1);
       gf.fillStyle(e.color, 1 - k * k);
       gf.fillRect(Math.round(x), Math.round(y), 1, 1);
+    }
+  }
+
+  /** The camp's upgrades as objects (art-camp-build.ts), queued with everything else on the ground by their feet. */
+  private drawUpgrades(draws: Array<{ y: number; fn: () => void }>, now: number): void {
+    const kit = this.kit;
+    const im = kit.imgs;
+    const gb = kit.gBack;
+    for (const id of CAMP_UPGRADE_IDS) {
+      const a = this.upgrades.objectAlpha(id, now);
+      if (a <= 0) continue;
+      const at = BUILD_SPOTS[id];
+      const rise = Math.round((1 - a) * 4);
+      switch (id) {
+        case 'dummy': {
+          if (!kit.has('dummy_idle0')) break;
+          const k = now - this.dummyAt;
+          const key = k < 300 ? 'dummy_hurt' : Math.floor(now / 900) % 2 ? 'dummy_idle1' : 'dummy_idle0';
+          draws.push({ y: at.y, fn: () => im.foot(key, at.x, at.y + rise, D.actors, a) });
+          break;
+        }
+        case 'perch':
+          draws.push({ y: at.y, fn: () => im.foot('cb_perch', at.x, at.y + rise, D.actors, a) });
+          break;
+        case 'luckyStone': {
+          // its clover glows and fades, a soft green light on the grass round it
+          const gl = pulse(now, 2200);
+          gb.fillStyle(0x8af06a, (0.05 + 0.07 * gl) * a);
+          gb.fillCircle(at.x, at.y - 6, 9 + gl * 2);
+          draws.push({ y: at.y, fn: () => im.foot(gl > 0.6 ? 'cb_lucky1' : 'cb_lucky0', at.x, at.y + rise, D.actors, a) });
+          break;
+        }
+        case 'rerollCharm': {
+          // it turns in the wind, now faster, now slower, and swings a little on its cord
+          const spin = Math.floor((now / 210) * (0.75 + 0.25 * Math.sin(now / 1700))) % 4;
+          const [w] = kit.has('cb_charm0') ? im.size('cb_charm0') : [9, 18];
+          const sway = Math.round(Math.sin(now / 900) * 1);
+          draws.push({ y: at.y, fn: () => kit.sprites.draw(`cb_charm${spin}`, at.x - (w >> 1) + sway, at.y - rise, D.actors, { alpha: a }) });
+          break;
+        }
+        case 'warTable':
+          draws.push({ y: at.y, fn: () => im.foot('cb_wartable', at.x, at.y + rise, D.actors, a) });
+          break;
+        case 'mapTable': {
+          // its lantern's warm light, flickering
+          const fl = 0.85 + 0.15 * Math.sin(now / 83) * Math.sin(now / 131);
+          gb.fillStyle(0xffd060, 0.1 * fl * a);
+          gb.fillCircle(at.x + 5, at.y - 16, 11);
+          gb.fillStyle(0xffd060, 0.12 * fl * a);
+          gb.fillCircle(at.x + 5, at.y - 16, 6);
+          draws.push({ y: at.y, fn: () => im.foot('cb_maptable', at.x, at.y + rise, D.actors, a) });
+          break;
+        }
+      }
     }
   }
 
@@ -883,7 +965,8 @@ export class CampView {
 
     // the Camp button beside the chip
     const cb = this.campRect();
-    kit.button(g, texts, { ...cb, y: cb.y + ty - 3 }, 'Camp', FACE.green, now, { icon: 'tent' });
+    kit.button(g, texts, { ...cb, y: cb.y + ty - 3 }, 'Camp', FACE.green, now, { icon: 'tent', glowCol: this.upgrades.canBuild() ? 0xffd23a : undefined });
+    if (this.upgrades.canBuild()) kit.bubble(g, texts, cb.x + cb.w - 1, cb.y + ty - 6, '!', now, true);
     // name plates over the buildings, the props and the companion along (they bob)
     const fresh = p.items.filter((i) => i.fresh).length;
     const waiting = p.chests.hero + p.chests.rare + p.chests.region;

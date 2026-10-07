@@ -180,3 +180,16 @@ C3. **Completion tracker: the region as a framed parchment map** (`art-region-ma
     ("Treasures 2/3"). A region not reached yet shows a fogged sheet and "???" (its land would spoil it). The region
     tabs moved into the top bar (after Back, like the hero tabs) instead of down the side: "Greenmarch" needs 75 px, and
     the map is the focal thing, so it gets the width. Claim is padlocked (grey, shakes, "Reach 100%") until 100%.
+C4. **Camp upgrades are objects in the camp; the Upgrades screen is build mode over the live camp** (no dim). Spots
+    (`art-camp-build.ts` BUILD_SPOTS, all inside the phone's safe area and above the button band): the Lucky Stone at
+    the tent's left foot, the Reroll Charm hanging under the tent's peak (it turns), the Companion Perch between the
+    tent and the log (a tall post: the second companion sits up high, clear of the name plates; the old second pet
+    spot is gone, so the Perch and "two companions along" are one thing), the Map Table behind the fire (lantern-lit),
+    the War Table between the forge and the shrine, the Training Dummy by the shrine as before. The third standing
+    hero moved from (99, 111) to (110, 104) to clear the perch. Before it's built a spot shows the object's blueprint
+    ghost (pale blue, pulsing; lavender when locked) under a hammer marker (gold: can build now; grey with a padlock:
+    not yet); a tap opens a glass card (name, one line, Build with the coin price / the unlock line / Built /
+    Practice / Companions). Build closes the card so the dust, three clangs and the object rising can be watched;
+    tapping a built object (home or build mode) opens its card again; the perch opens the companions, the dummy
+    practices. The Camp button glows with a gold "!" when an upgrade can be built now. No new save data: what stands
+    is `profile.camp`; the build animation plays only when it's bought.
