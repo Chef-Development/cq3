@@ -27,6 +27,8 @@ const SLOT_KEYS: Record<StorageSlot, { profile: string; run: string }> = {
   lab: { profile: 'cq3.lab.profile', run: 'cq3.lab.run' },
 };
 export const LAB_STATE_KEY = 'cq3.lab.ratings';
+/** The Test lab fights' timing samples (the lab report's accuracy counts them with the real game's). */
+export const LAB_ACC_KEY = 'cq3.lab.acc';
 let slot: StorageSlot = 'main';
 
 /** The profile and run keys of a slot (the current one by default). */
@@ -163,3 +165,6 @@ export function writeProfile(p: Profile): void {
 /** The Test lab's ratings and its spoiler switch (raw; core/lab.ts readLabState checks it). */
 export const loadLabState = (): unknown => read(LAB_STATE_KEY);
 export const writeLabState = (v: unknown): void => write(LAB_STATE_KEY, v);
+/** The lab fights' accuracy log (raw; core/accuracy.ts readAccuracyLog checks it). */
+export const loadLabAcc = (): unknown => read(LAB_ACC_KEY);
+export const writeLabAcc = (v: unknown): void => write(LAB_ACC_KEY, v);

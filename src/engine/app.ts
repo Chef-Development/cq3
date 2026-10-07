@@ -4,13 +4,14 @@ import { SimClock, tapSimTime } from '../core/clock';
 import type { CombatEvent, TapResult } from '../core/combat';
 import { Run, type Phase } from '../core/run';
 import { labBaseProfile } from '../core/lab';
+import { readAccuracyLog, RECENT_MAX, type AccuracyLog } from '../core/accuracy';
 import { anythingToErase, type Profile } from '../core/profile';
 import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import { markWelcomed, TipCoach, welcomeScene } from '../core/tips';
 import type { Settings, Tuning } from '../core/tuning';
 import { AMBIENCES, Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, sameLayout, type ScreenLayout } from './layout';
-import { clearRunSave, eraseProgress, loadProfile, loadRunSave, saveSoon, setStorageSlot, writeProfile, writeRunSave } from './storage';
+import { clearRunSave, eraseProgress, loadLabAcc, loadProfile, loadRunSave, saveSoon, setStorageSlot, writeLabAcc, writeProfile, writeRunSave } from './storage';
 
 export interface View {
   /** Returns how long (ms) the next phase change should wait so a kill / finisher animation can play out. */
@@ -96,6 +97,9 @@ export class App {
   /** The Test lab is open: the real game set aside exactly as it was (its run, profile, tips, save), while the lab
    *  plays on its own profile, run and storage keys (engine/lab.ts). Null: the real game is on. */
   private real: RealGame | null = null;
+  /** The Test lab fights' timing samples (their own key: every lab profile shares this log, so a scenario's taps
+   *  are kept across scenarios and reloads; the lab report counts them with the real game's). */
+  private labAcc: AccuracyLog | null = null;
 
   constructor(
     readonly tuning: Tuning,
@@ -408,6 +412,7 @@ export class App {
     this.cueAudio();
     // the profile (progress, loot, coins, accuracy) changes as the run goes: save it at every step
     writeProfile(this.profile);
+    if (this.labAcc && this.real) writeLabAcc(this.labAcc);
     if (this.run.phase === 'victory') {
       clearRunSave();
       this.savedRun = null;
@@ -424,6 +429,22 @@ export class App {
   /** The real game's profile, also while the lab is open (the gear panel's accuracy, the lab's report). */
   get realProfile(): Profile {
     return this.real?.profile ?? this.profile;
+  }
+
+  /** The lab fights' accuracy log (loaded from its own key the first time it's asked for). */
+  labAccuracy(): AccuracyLog {
+    if (!this.labAcc) this.labAcc = readAccuracyLog(loadLabAcc());
+    return this.labAcc;
+  }
+
+  /**
+   * The accuracy as the lab report reads it: the real game's samples and the lab fights' together (the newest
+   * RECENT_MAX), with the real game's per-act history. The real save itself is never changed by the lab.
+   */
+  combinedAccuracy(): AccuracyLog {
+    const real = this.realProfile.acc;
+    const lab = this.labAccuracy();
+    return { recent: [...real.recent, ...lab.recent].slice(-RECENT_MAX), history: real.history };
   }
 
   /**
@@ -452,6 +473,8 @@ export class App {
   labRun(profile: Profile, setup?: (run: Run) => void): void {
     if (!this.real) return;
     const prev = this.run.phase;
+    // the lab's fights add their taps to the lab's own accuracy log (shared by every lab profile)
+    profile.acc = this.labAccuracy();
     this.profile = profile;
     this.tips = new TipCoach(profile);
     this.run = new Run(this.tuning, this.settings, (Date.now() & 0xffffff) | 1, profile);

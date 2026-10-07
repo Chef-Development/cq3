@@ -897,9 +897,11 @@ export class Run {
     const c = this.combat;
     if (this.phase !== 'fight' || !c) return;
     if (this.practice) {
-      // a practice fight pays nothing; it ends when the fight does
+      // a practice fight pays nothing; it ends when the fight does. Its taps still count toward the accuracy readout
+      // (the Training Dummy, the Test lab's fights: the lab's profile carries the lab's own log, engine/app.ts)
       c.killQueue.length = 0;
       c.coinsEarned = 0;
+      if (c.aims.length) addSamples(this.profile.acc, c.aims);
       c.aims.length = 0;
       if (c.result) this.endPractice(c.result === 'won');
       return;

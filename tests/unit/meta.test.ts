@@ -357,4 +357,16 @@ describe('practice fights and the run rewards', () => {
     expect(p.coins).toBe(0);
     expect(p.heroes.rowan.xp).toBe(0);
   });
+
+  it("a practice fight's taps count toward the accuracy readout (the Training Dummy, the Test lab)", () => {
+    const p = newProfile();
+    const r = new Run(t, { ...DEFAULT_SETTINGS }, 3, p);
+    r.toCamp();
+    r.startPractice({ enemies: ['dummy'] });
+    const c = r.combat!;
+    c.aims.push(12, -30, 4);
+    r.sync();
+    expect(p.acc.recent).toEqual([12, -30, 4]);
+    expect(c.aims).toHaveLength(0);
+  });
 });

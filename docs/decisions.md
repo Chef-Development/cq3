@@ -161,3 +161,12 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     nearly always wins; at Act 3's numbers a fresh lab hero, Rowan included, lost half of them); companion fights
     four waves. A reworked item asks for a new rating: a rating given to its old version shows as "Reworked" in
     the list and as "before: ..." in the report.
+
+## Overnight polish run (playtest round 6: the Test lab report on build 430c962, 24 rated: 10 good, 14 needs work)
+L1. **Base branch.** PR #5 (`claude/m5-heroes`) was still open and `main` has only the initial commit, so this run is
+    built on `claude/m5-heroes` (branch `claude/eloquent-ptolemy-b7qwvk`); its PR includes #5 and supersedes it.
+L2. **Lab fights count toward the accuracy readout.** Practice fights (the Training Dummy, every Test lab fight) now
+    keep their taps' timing samples (they were thrown away: the last report said 0 taps). The lab's samples go to a
+    log of its own (`cq3.lab.acc`, shared by every lab scenario and kept across reloads), and the lab report's accuracy
+    line counts the real game's samples and the lab's together, then says how many came from lab fights. The real
+    save is still never written by the lab.

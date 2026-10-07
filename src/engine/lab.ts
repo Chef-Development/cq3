@@ -235,7 +235,9 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
   // ------------------------------------------------------------------ the report
 
   function report(): string {
-    return labReport({ state, accuracy: accuracyCopyLine(app.tuning, app.realProfile.acc, app.settings.calibrationMs), build: BUILD });
+    const lab = app.labAccuracy().recent.length;
+    const acc = `${accuracyCopyLine(app.tuning, app.combinedAccuracy(), app.settings.calibrationMs)}; lab fights: ${lab} taps`;
+    return labReport({ state, accuracy: acc, build: BUILD });
   }
 
   function copyReport(): void {

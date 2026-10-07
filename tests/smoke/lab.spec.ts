@@ -119,6 +119,7 @@ test('the Test lab: open from the title, play and rate two scenarios, copy the r
   expect(report).toContain('- Sable: Good - "dash feels quick"');
   expect(report).toContain('- Ice patches: Needs work');
   expect(report).toContain('CQ3 accuracy');
+  expect(report).toMatch(/lab fights: \d+ taps/);
   expect(report).toMatch(/Version \S+/);
 
   // leaving puts the real game back exactly as it was; its save was never touched
