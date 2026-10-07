@@ -194,6 +194,11 @@ export class Callouts {
   private tabFight: unknown = null;
   private tabIn = -1e9;
 
+  /** Where the style tab was drawn last frame (null while it isn't showing): what's stored flies into it. */
+  get tab(): Rect | null {
+    return this.tabRect;
+  }
+
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, 25.2);
     // (the tab sits over the bar's blocks but under its cursor, which may pass over it at the left end)

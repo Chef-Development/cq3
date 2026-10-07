@@ -3,7 +3,8 @@
 // in with a pop and a puff of leaves, a front row at the hero's feet). Each companion plays its act frame when it
 // attacks (fliers swoop, walkers dash in; Sunny breathes on every foe) and flares when one of its perks kicks in; each
 // ally plays its act frame when it acts (a Barkback holds its bark up while braced and hops in front of the hero to
-// take a red), blinks when it's about to leave and goes in a puff.
+// take a red), blinks when it's about to leave and goes in a puff. A companion hops when its perk finds a coin (Bun),
+// and a called ally pops in when the leaf from the green that called it lands (view/onsite.ts).
 import Phaser from 'phaser';
 import { COMPANIONS, type CompanionId } from '../../data/companions';
 import type { AllyKind } from '../../data/heroes';
@@ -58,6 +59,9 @@ interface PetView {
   toY: number;
   /** Its act frame shows until this anim time (a perk's flare, a breath). */
   actUntil: number;
+  /** A happy hop (Bun's Lucky Foot finding a coin): anim time it started; one waiting for it to be home. */
+  hopAt: number;
+  hopWant?: boolean;
 }
 
 interface AllyView {
@@ -119,7 +123,7 @@ export class Party {
       if (rim.parentContainer) rim.parentContainer.remove(rim);
       s.actors.addAt([img, rim], i * 2);
       const x = s.heroHome - 30 - i * 24;
-      return { id, img, rim, flies, state: 'idle', t0: 0, x, y: flies ? s.ground - 24 : s.ground, fromX: 0, fromY: 0, toX: 0, toY: 0, actUntil: 0 } as PetView;
+      return { id, img, rim, flies, state: 'idle', t0: 0, x, y: flies ? s.ground - 24 : s.ground, fromX: 0, fromY: 0, toX: 0, toY: 0, actUntil: 0, hopAt: -1e9 } as PetView;
     });
     for (const p of old.values()) {
       p.img.destroy();
@@ -167,7 +171,18 @@ export class Party {
       }
       if (a < P.actUntil) tex = this.tex(P.id, 'act');
       if (!s.textures.exists(tex)) tex = this.tex(P.id, 'idle0');
-      P.img.setTexture(tex).setPosition(Math.round(P.x), Math.round(P.y)).setVisible(visible);
+      // a happy hop (a coin found): up and down twice, the second smaller (once it's home from an attack), a glint of
+      // gold over it
+      if (P.hopWant && P.state === 'idle' && Math.abs(P.x - homeX) < 4) {
+        P.hopWant = false;
+        P.hopAt = a;
+        const hy = flier ? P.y - 8 : P.y - 18;
+        s.fx.ring(P.x, hy + 6, 10, 0xffe680, true);
+        s.fx.chips(P.x, hy, 6, [0xfff0a0, 0xf2c230, 0xffffff], 6, -1);
+      }
+      const hk = (a - P.hopAt) / 360;
+      const hop = hk >= 0 && hk < 1 ? Math.round(Math.abs(Math.sin(hk * Math.PI * 2)) * (hk < 0.5 ? 7 : 3)) : 0;
+      P.img.setTexture(tex).setPosition(Math.round(P.x), Math.round(P.y) - hop).setVisible(visible);
       syncRim(P.img, P.rim);
     });
     // allies: the front row at the hero's feet
@@ -175,7 +190,7 @@ export class Party {
     for (const v of this.allies.values()) {
       const slot = ALLY_SLOT[v.kind] ?? 0;
       const moth = v.kind === 'glowmoth';
-      const homeX = this.allyHome(v.kind);
+      const homeX = this.allyHomeX(v.kind);
       v.x += (homeX - v.x) * 0.2;
       const ally = c?.allies.find((x) => x.id === v.id);
       let pose = Math.floor((a + slot * 130) / (moth ? 140 : 320)) % 2 ? '1' : '0';
@@ -209,14 +224,19 @@ export class Party {
         .setPosition(Math.round(x), Math.round(y))
         .setScale(sc)
         .setAlpha(alpha)
-        .setVisible(visible);
+        .setVisible(visible && a >= v.bornAt); // (a called ally pops in when the leaf that calls it lands)
     }
   }
 
   /** Where an ally stands (the walkers in a row at the hero's feet; the Glowmoth by the hero's shoulder). */
-  private allyHome(kind: AllyKind): number {
+  private allyHomeX(kind: AllyKind): number {
     const s = this.s;
     return kind === 'glowmoth' ? s.heroHome + 12 : s.heroHome - 19 - (ALLY_SLOT[kind] ?? 0) * 17;
+  }
+
+  /** The middle of an ally's place (where it pops in when called). */
+  allyHome(kind: AllyKind): { x: number; y: number } {
+    return { x: this.allyHomeX(kind), y: kind === 'glowmoth' ? this.s.ground - 34 : this.s.ground - 6 };
   }
 
   /** Where a companion is (for a ring, a bolt). */
@@ -224,6 +244,18 @@ export class Party {
     const p = this.pets.find((x) => x.id === id);
     if (!p) return null;
     return { x: p.x, y: p.flies ? p.y : p.y - 10 };
+  }
+
+  /** Whether a companion is out on the stage now. */
+  visible(id: CompanionId): boolean {
+    return !!this.pets.find((x) => x.id === id)?.img.visible;
+  }
+
+  /** A companion's happy hop (Bun's Lucky Foot found a coin): it hops where it stands (once it's back from an attack
+   *  that came with it), a glint of gold over it. */
+  hop(id: CompanionId): void {
+    const P = this.pets.find((p) => p.id === id);
+    if (P) P.hopWant = true;
   }
 
   /** Where an ally is (the middle of its sprite). */
@@ -306,20 +338,23 @@ export class Party {
     s.fx.burst(P.x, y - 4, PET_COL[id], 6, true, 0.7);
   }
 
-  /** A Summoner's ally came, acted, left, rallied or blocked. */
-  ally(kind: AllyKind, action: 'call' | 'act' | 'leave' | 'rally' | 'block', id: number): void {
+  /** A Summoner's ally came (after `delay` ms: the leaf from the green that called it lands), acted, left, rallied or
+   *  blocked. */
+  ally(kind: AllyKind, action: 'call' | 'act' | 'leave' | 'rally' | 'block', id: number, delay = 0): void {
     const s = this.s;
     const col = ALLY_COL[kind];
     if (action === 'call') {
-      const x = this.allyHome(kind);
-      const img = s.add.image(x, s.ground + 4, `ally_${kind}_0`).setOrigin(0.5, kind === 'glowmoth' ? 0.5 : 20 / 22);
+      const x = this.allyHomeX(kind);
+      const img = s.add.image(x, s.ground + 4, `ally_${kind}_0`).setOrigin(0.5, kind === 'glowmoth' ? 0.5 : 20 / 22).setVisible(false);
       s.actors.add(img);
-      this.allies.set(id, { id, kind, img, bornAt: s.anim, actAt: -1e9, hopAt: -1e9, leaveAt: 0, x });
+      this.allies.set(id, { id, kind, img, bornAt: s.anim + delay, actAt: -1e9, hopAt: -1e9, leaveAt: 0, x });
       const y = kind === 'glowmoth' ? s.ground - 34 : s.ground - 4;
-      s.fx.burst(x, y, 0x78a83c, 10, true, 0.8);
-      s.fx.burst(x, y, col, 5, true, 0.6);
-      s.fx.ring(x, y, 12, col, true);
-      s.fx.dust(x, s.ground + 4, 4, 0, 0.8);
+      s.later(delay, () => {
+        s.fx.burst(x, y, 0x78a83c, 10, true, 0.8);
+        s.fx.burst(x, y, col, 5, true, 0.6);
+        s.fx.ring(x, y, 12, col, true);
+        s.fx.dust(x, s.ground + 4, 4, 0, 0.8);
+      });
       return;
     }
     if (action === 'rally') {

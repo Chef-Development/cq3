@@ -855,6 +855,82 @@ test('two companions: a walker and a flier beside the hero; the drake breathes o
   await expect(page).toHaveScreenshot('two-companions.png', shot);
 });
 
+// ------------------------------------------------------------------ on the spot: what perks do shows on what they touch
+
+test("Sable's Shadow Dash lands: the streak, three afterimages of the cursor left along the way, a burst where it lands", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'sable' });
+  await bar(page, `c.setCursor(0.12, 1); c.spawnBlock('yellow', 0.12); c.spawnBlock('yellow', 0.78); app.barTap(performance.now());`);
+  await frames(page, 15); // just landed
+  await expect(page).toHaveScreenshot('sable-dash-land.png', shot);
+});
+
+test("Bun's Lucky Foot: a coin pops out of the block just hit and Bun hops; it flies to the coin counter, +1 there", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'rowan', pets: ['bun'] });
+  // the 10th hit finds the coin (Bun's own attack, every 5th, comes with it: Bun hops once it's home)
+  await bar(page, `c.perk.bunHits = 9; const p = c.cursorPos(); c.spawnBlock('yellow', p); app.barTap(performance.now());`);
+  await frames(page, 7);
+  await expect(page).toHaveScreenshot('bun-coin.png', shot);
+  await frames(page, 41);
+  await expect(page).toHaveScreenshot('bun-coin-land.png', shot);
+});
+
+test("Mote: Starlight's star streaks down to the green it makes and lands with a twinkle; Mend's starlight heals the hero (+N)", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'rowan', pets: ['mote'] });
+  // the 15th combo: a green appears, Mote's star flies to it
+  await bar(page, `c.combo = 14; const p = c.cursorPos(); c.spawnBlock('yellow', p); app.barTap(performance.now());`);
+  await frames(page, 12);
+  await expect(page).toHaveScreenshot('mote-star.png', shot);
+  // at 10+ combo, Mend: a mote of light from Mote to the hero, stars twinkling up round them, +1
+  await bar(page, `for (const b of c.blocks.slice()) c.removeBlock(b, "perk"); c.combo = 12; c.hero.hp = 60; c.perk.mendT = 4.99;`);
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('mote-mend.png', shot);
+});
+
+test("Sunny's breath: a wall of fire sweeps across every foe (each struck as it reaches it); Fire Breath burns the traps off the bar", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'tam', pets: ['sunny'] });
+  await bar(page, `c.addEnemy('slime'); c.addEnemy('slime'); view.fighters.addEnemies(c);`);
+  await frames(page, 60);
+  // at 25+ combo with traps on the bar: the next breath (its turn forced) burns them away
+  await bar(page, `c.combo = 30; c.spawnBlock('purple', 0.4, foe.id); c.spawnBlock('purple', 0.7, foe.id); c.spawnBlock('yellow', 0.55);`);
+  await frames(page, 20);
+  await bar(page, `c.petCharges = [99]; const y = c.blocks.find((b) => b.kind === 'yellow'); c.setCursor(y.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 24);
+  await expect(page).toHaveScreenshot('sunny-breath.png', shot);
+});
+
+test("Newt's Ember Bite: the bitten foe burns while the ticks come (flames on it, a small orange number each tick)", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'rowan', pets: ['newt'] });
+  await bar(page, `c.petCharges = [99]; const p = c.cursorPos(); c.spawnBlock('yellow', p); app.barTap(performance.now());`);
+  await frames(page, 66); // its first tick has landed
+  await expect(page).toHaveScreenshot('newt-burn.png', shot);
+});
+
+test("perks on what they touch: a box on the block (Turtle Shell), brackets on the foe (Sharpshooter), the cursor kicks (Momentum), smoke where a miss was forgiven", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'sable' });
+  await bar(page, `c.spawnBlock('red', 0.5, foe.id); c.spawnBlock('red', 0.72, foe.id); c.setCursor(0.25, 1);`);
+  await frames(page, 20);
+  await bar(
+    page,
+    `const r = c.blocks.find((b) => b.kind === 'red'); c.events.push({ type: 'perk', id: 'turtleShell', amount: 0, enemyId: foe.id, pos: r.pos });
+     c.events.push({ type: 'perk', id: 'sharpshooter', amount: 0, enemyId: foe.id }); c.events.push({ type: 'perk', id: 'momentum', amount: 40, enemyId: 0 });
+     c.events.push({ type: 'miss', pos: 0.88, selfDamage: false }); c.events.push({ type: 'perk', id: 'smokeVeil', amount: 0, enemyId: 0 });`,
+  );
+  await frames(page, 5);
+  await expect(page).toHaveScreenshot('perk-marks.png', shot);
+});
+
 test("a new hero's finisher: Glacier rolls a frost wave out, freezes the reds and slows the bar's middle", async ({ page }) => {
   await boot(page);
   await frames(page, 10);

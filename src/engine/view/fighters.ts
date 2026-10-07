@@ -9,7 +9,8 @@
 // round the hero. Every hero fights in their own frames (`${art}_${pose}`, HEROES[id].art: Rowan's are hero_*), falling
 // back to Rowan's for a pose they don't have; the green ability shows their `cast` pose and the finisher their `fin`,
 // each in its own show (view/finishers.ts). The party (the companions and a Summoner's allies) is view/party.ts. A
-// boss shows its phase's look (`${sprite}${phase}_*`, when it has one) and a stunned foe sees stars.
+// boss shows its phase's look (`${sprite}${phase}_*`, when it has one) and a stunned foe sees stars. What each perk did
+// to its target (a mark on the foe, a box on the block, a burning foe's flames, Sunny's sweep) is view/onsite.ts.
 import Phaser from 'phaser';
 import { isAshArtKey } from '../art-ash';
 import { rimMask, STAGE_LIGHT } from '../art-stage';
@@ -29,6 +30,7 @@ import { perkColor, perkName, perkSource, TAG_FACE } from './relic-ui';
 import { FOE_ICONS } from './icons';
 import { ALLY_COL, Party, PERK_PET } from './party';
 import { BLOCKER_FACE } from './bar-kinds';
+import { PERK_AT } from './perk-at';
 import { drawShow, MELEE, quakeLand, SHOW_KIND, showFinal, showStart, showStrike, type ShowKind } from './finishers';
 import {
   clamp01,
@@ -427,6 +429,7 @@ export class Fighters {
     const barY = s.bar.y + s.bar.h / 2;
     switch (fx) {
       case 'golemheart':
+      case 'ramshorn':
       case 'leech': {
         // a green glint on him, and the heal by the HP bar (blocks and crits come fast: the heals add up in one number)
         if (amount <= 0) break;
@@ -552,7 +555,7 @@ export class Fighters {
     const recent = s.anim - v.numAt < 260;
     v.numLevel = recent ? (v.numLevel + 1) % 3 : 0;
     v.numAt = s.anim;
-    // (a Coin Rush counts coins, not damage: the coins float up instead, from perkCoins)
+    // (a Coin Rush counts coins, not damage: the coins float up instead, from onsite.coins)
     if (damage > 0 && !s.app.run.combat?.rush) fx.floatNum(v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2), v.y - v.img.displayHeight - 10 - v.numLevel * 11, `${damage}`, col, numScale);
     const tier = combo >= 50 ? 3 : combo >= 25 ? 2 : combo >= 10 ? 1 : 0;
     const slashCol = crit ? 0xffd23a : comboSlashCol(combo);
@@ -721,7 +724,7 @@ export class Fighters {
    * ring where it happened on the bar. Coins (`coins`) already flew from the 'coins' event. Returns
    * true when it showed a blow (so its enemyHurt isn't shown twice).
    */
-  perkFx(id: string, amount: number, enemyId: number, o: { strike?: boolean; stacks?: boolean; coins?: boolean; pos?: number } = {}): boolean {
+  perkFx(id: string, amount: number, enemyId: number, o: { strike?: boolean; stacks?: boolean; coins?: boolean; pos?: number; from?: { x: number; y: number } } = {}): boolean {
     const s = this.s;
     const F = s.fx;
     const h = this.h;
@@ -739,10 +742,16 @@ export class Fighters {
       this.perkLabel(id);
       return false;
     }
+    if (PERK_AT[id]?.includes('burn')) {
+      // a burn's tick (Ember Bite): no bolt; its flames flare on the foe and its number shows there (view/onsite.ts)
+      this.perkLabel(id);
+      return !!o.strike;
+    }
     if (o.strike && v && amount > 0 && !v.dieAt) {
-      // a blow: a bolt in the perk's colour from the hero (or the ally that struck) to the foe, then the hit
-      const sx = ally ? ally.x + 6 : h.x + 10;
-      const sy = ally ? ally.y : s.ground - 24;
+      // a blow: a bolt in the perk's colour from the hero (or the ally that struck, or the foe it bounced off) to the
+      // foe, then the hit
+      const sx = o.from ? o.from.x : ally ? ally.x + 6 : h.x + 10;
+      const sy = o.from ? o.from.y : ally ? ally.y : s.ground - 24;
       const tx = v.x - v.img.displayWidth * 0.25;
       const ty = v.y - v.img.displayHeight / 2;
       const ms = 120;
@@ -773,32 +782,12 @@ export class Fighters {
       // stacks banked: a burst of the stack colour off the meter
       const m = s.meter;
       F.chips(m.x + m.w, m.y + m.h / 2, 10, [WHITE, 0x9ad8ff, col], 8, -1);
-    } else if (o.pos !== undefined) {
-      // something on the bar: a ring where it happened
-      const x = s.barView.x(o.pos);
-      F.ring(x, s.bar.y + s.bar.h / 2, 14, col, false);
-      F.chips(x, s.bar.y + s.bar.h / 2, 8, [WHITE, col], 6, -1);
     }
+    // (what it did on the bar, to a foe, the cursor or the hero shows there: view/onsite.ts)
     // Shield Wall: amount 1 = the bubble charged (it grows round the hero), 0 = it took a hit for him
     if (id === 'shieldWall' && amount <= 0) this.bubblePop();
     if (this.perkLabel(id)) s.app.audio.gearProc(0.35);
     return false;
-  }
-
-  /**
-   * Coins a perk found mid-fight (Lucky Penny, Treasure Nose, Gold Fever): they pop off the foe and fly into the coin
-   * chip, which pulses as they land (the perk's own event, right after, names it).
-   */
-  perkCoins(_id: string, amount: number): void {
-    const s = this.s;
-    const c = s.app.run.combat;
-    const t = c?.currentTarget();
-    const v = t ? this.enemies.get(t.id) : undefined;
-    const x = v ? v.x : this.h.x + 20;
-    const y = v ? v.y - v.img.displayHeight / 2 : s.ground - 24;
-    s.hud.dropCoins(x, y, amount, Math.min(4, amount));
-    // Coin Rush: each hit's haul floats up over the sack
-    if (c?.rush && v) s.fx.iconFloat(x + rand(-6, 6), v.y - v.img.displayHeight - 8, `+${amount}`, 0xffe066, 'coin');
   }
 
   /** A perk's cost in HP (Glass Edge, Blood Price, Purple Pact...): its name, and the HP it took in violet. */
@@ -911,7 +900,8 @@ export class Fighters {
 
   /**
    * A companion attacks (its act frame: a flier swoops, a walker dashes in; Sunny breathes on every foe): the number
-   * and a burst on the target (on every foe for Sunny's breath, in fire).
+   * and a burst on the target (Sunny's breath: a wall of fire sweeps across every foe, each struck as it reaches it:
+   * view/onsite.ts).
    */
   petAttack(pet: string, enemyId: number, damage: number, crit = false): void {
     const s = this.s;
@@ -927,11 +917,11 @@ export class Fighters {
       s.fx.burst(u.x - 6, cy, fire ? 0xff8a2a : crit ? 0xffe070 : 0xb8e4ff, crit ? 14 : 8, true, 1, true);
       if (crit) s.fx.stars.push({ x: u.x - 4, y: cy, at: s.anim, r: 16, color: 0xfff07a });
     };
-    const foes = all ? [...this.enemies.values()].filter((u) => !u.dieAt).map((u) => ({ x: u.x, y: u.y - u.img.displayHeight / 2 })) : null;
+    const views = all ? [...this.enemies.values()].filter((u) => !u.dieAt) : [];
+    const foes = all ? views.map((u) => ({ x: u.x, y: u.y - u.img.displayHeight / 2 })) : null;
+    if (all) s.onsite.fireSweep(views, (u) => strikeOne(u, true));
     this.party.attack((def?.id ?? 'pip') as CompanionId, { x: v.homeX, y: v.y, w: v.img.displayWidth, h: v.img.displayHeight, fly: v.fly }, foes, () => {
-      if (all) {
-        for (const u of this.enemies.values()) if (!u.dieAt) strikeOne(u, true);
-      } else strikeOne(v, false);
+      if (!all) strikeOne(v, false);
       s.app.audio.pet();
     });
   }
@@ -1320,18 +1310,7 @@ export class Fighters {
           g.fillRect(sx, sy - 1, 1, 3);
         }
       }
-      if (c.perk.burnTicks > 0 && c.perk.burnFoe === e.id) {
-        // burning (Ember Bite): little flames licking up its front
-        for (let i = 0; i < 3; i++) {
-          const fx0 = Math.round(x - v.img.displayWidth * 0.3 + i * 6);
-          const fh = 3 + ((Math.floor(a / 70) + i) % 3);
-          const fy = Math.round(v.y - v.img.displayHeight * 0.25 - i * 3);
-          g.fillStyle(0xff5a1a, 0.9);
-          g.fillRect(fx0, fy - fh, 3, fh);
-          g.fillStyle(0xffd060, 1);
-          g.fillRect(fx0 + 1, fy - fh + 1, 1, fh - 1);
-        }
-      }
+      // (burning, Newt's Ember Bite: its flames are view/onsite.ts drawBurns)
       if (e.protect < 1 && c.summonsAlive(e.id)) {
         // shielded by its summons: a golden aura
         const n = 40;

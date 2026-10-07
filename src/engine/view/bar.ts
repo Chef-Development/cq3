@@ -2,12 +2,14 @@
 // blocks (and how they leave), the cursor blade, hit beams and the swipe hint. The second region's pieces: a hold's
 // notches and fill, a mirror shard standing on the bar (a flash when the cursor bounces), an iced yellow's coat and
 // its cracks, an icicle's mark before it lands and its fuse ring once it has, a red's trail of ice-to-be. The heroes'
-// pieces: kegs, frozen blocks, chilled and pinned reds, Shadow Dash's streak, the Rampart wall, Overgrowth's vines,
+// pieces: kegs, frozen blocks, chilled and pinned reds, Shadow Dash's streak (its afterimages, the burst where it lands,
+// the violet slow patch there), the Rampart wall, Overgrowth's vines,
 // Big Bang's kegs flying in, Volley's arrows, Glacier's frost wave and Earthsplitter's crack. A block that changes
 // kind (Chain Reaction) flashes as it turns. The cursor leaves a speed streak on ice and drags in snow. What's armed
 // shows before it acts (no sound needed): a blocker standing ready at the left end (Rock Wall, a braced Barkback, an
 // afterimage), Oil Can's wider Perfect zones on the blocks, Wind-Up's burning cursor, a green ability's window as a
-// green sheen on the cursor. (The words that pop over the bar are view/callouts.ts.)
+// green sheen on the cursor. A trap a companion's fire burns away chars and smokes off the bar. (The words that pop over
+// the bar are view/callouts.ts; what perks, allies and companions do to the blocks is view/onsite.ts.)
 import Phaser from 'phaser';
 import { isAttack, isRed, type Block, type BlockKind, type Combat, type RemoveReason } from '../../core/combat';
 import type { FightScene } from '../scene';
@@ -16,7 +18,7 @@ import { isAsh } from '../backdrop-ash';
 import { buildBarFrame } from '../chrome';
 import { brick, ellipse, icon, rows, slab } from './pixels';
 import { BLOCK_ICONS, FOE_ICONS } from './icons';
-import { BLOCKER_FACE, dashGhost, drawBlocker, drawChill, drawFrozen, drawFuse, drawGrow, drawHold, drawIceCoat, drawKeg, drawPatch, drawVines, drawWall, sparkle, type PatchLook } from './bar-kinds';
+import { BLOCKER_FACE, cursorGhost, drawBlocker, drawChill, drawFrozen, drawFuse, drawGrow, drawHold, drawIceCoat, drawKeg, drawPatch, drawVines, drawWall, sparkle, type PatchLook } from './bar-kinds';
 import { BOMB_COL, clamp01, deepOf, DYING_MS, dyingStyle, ease, INK, kindCol, pulse, rand, stackCol, WHITE, type Dying } from './shared';
 import { ImagePool } from './ui';
 import { drawBarRules } from './bar-links';
@@ -27,14 +29,19 @@ type G = Phaser.GameObjects.Graphics;
 const LOOK = { blade: 0x3a8ae8, core: 0x9ad8ff, deep: 0x1a3c8a } as const;
 /** Patches fade in and out over this long (ms of scene time). */
 const ZONE_FADE_MS = 240;
-/** A Shadow Dash's streak lasts this long. */
-const DASH_MS = 520;
 /** The green abilities that are a window of a few seconds (Battle Focus, Smoke Veil, Chill, Brace): the cursor is
  *  tinted green while one runs. */
 const TIMED_ABILITY = new Set<string>(['rowan', 'sable', 'neve', 'hollis']);
 /** Oil Can's sheen on a block's Perfect zone, and Wind-Up's heat round the cursor. */
 const OIL = [0xfff0a0, 0xf2c230] as const;
 const WINDUP = [0xffd080, 0xff7a3a] as const;
+/** Shadow Dash's violets [light, base, deep, dark]. */
+const DASH_COL = [0xdab0ff, 0xb070f0, 0x9a52d8, 0x4a2470] as const;
+/** A Shadow Dash's streak stays this long after the cursor lands (its tail running in to the landing). */
+const DASH_FADE_MS = 340;
+/** Fire on the bar (a trap burning away): [white-hot, yellow, orange, red, deep red], and the char it leaves. */
+const FIRE = [0xfff0a0, 0xffd060, 0xff8a2a, 0xe0461a, 0x8a1a22] as const;
+const CHAR = [0x5a4048, 0x3a2a30, 0x221820] as const;
 
 export class BarView {
   g!: G;
@@ -58,8 +65,13 @@ export class BarView {
   private zoneGone: Array<PatchLook & { at: number }> = [];
   /** Where icicles will land (anim time marked, and how long until they land). */
   private marks: Array<{ pos: number; at: number; ms: number }> = [];
-  /** Shadow Dash streaks (bar positions, anim time). */
-  private dashes: Array<{ from: number; to: number; at: number }> = [];
+  /** Shadow Dash streaks (bar positions, anim time; when the cursor landed at `to`, and when it left each of its three
+   *  afterimages behind). */
+  private dashes: Array<{ from: number; to: number; at: number; landAt: number; ghosts: number[] }> = [];
+  /** Shadow Dash landings (bar position, anim time): a flash where the cursor lands. */
+  private dashLands: Array<{ pos: number; at: number; dir: number }> = [];
+  /** Slow patches laid where a dash landed (they show in Sable's violet). */
+  private dashSlow = new Set<number>();
   /** A still red's fuse when first seen (its ring shrinks from there); an iced block's most taps (its cracks). */
   private fuse0 = new Map<number, number>();
   private iceTaps = new Map<number, number>();
@@ -98,6 +110,8 @@ export class BarView {
     this.zoneGone = [];
     this.marks = [];
     this.dashes = [];
+    this.dashLands = [];
+    this.dashSlow.clear();
     this.fuse0.clear();
     this.iceTaps.clear();
     this.mirrorFlashes = [];
@@ -182,13 +196,16 @@ export class BarView {
 
   // ------------------------------------------------------------------ the bar's own events
 
-  /** A patch was laid: a puff of frost (or snow, or runes' light) over it as it fades in. */
-  zoneOn(kind: string, lo: number, hi: number): void {
+  /** A patch was laid: a puff of frost (or snow, or runes' light) over it as it fades in. A slow patch laid where a
+   *  Shadow Dash just landed is Sable's (violet). */
+  zoneOn(kind: string, lo: number, hi: number, id = -1): void {
     if (kind === 'dash') return;
     const s = this.s;
     const x = this.x((lo + hi) / 2);
     const w = Math.max(6, (hi - lo) * s.bar.w);
-    const cols = kind === 'ice' ? [WHITE, 0xc8f4ff, 0x8ae0f6] : kind === 'snow' ? [WHITE, 0xe8f0fa] : [0x9ad8ff, 0xe0f6ff];
+    const dashed = kind !== 'ice' && kind !== 'snow' && this.dashes.some((d) => s.anim - d.at < 800 && d.to >= lo - 0.03 && d.to <= hi + 0.03);
+    if (dashed) this.dashSlow.add(id);
+    const cols = kind === 'ice' ? [WHITE, 0xc8f4ff, 0x8ae0f6] : kind === 'snow' ? [WHITE, 0xe8f0fa] : dashed ? [0xdab0ff, 0xe0d0ff, WHITE] : [0x9ad8ff, 0xe0f6ff];
     s.fx.chips(x, s.bar.y - 2, w, cols, Math.min(14, 4 + Math.round(w / 6)), -1);
   }
 
@@ -197,7 +214,24 @@ export class BarView {
     const z = this.zoneLast.get(id);
     this.zoneLast.delete(id);
     this.zoneSeen.delete(id);
+    this.dashSlow.delete(id);
     if (z) this.zoneGone.push({ ...z, at: this.s.anim });
+  }
+
+  /** A patch's last look (where it was), while it's on the bar. */
+  zoneLook(id: number): PatchLook | undefined {
+    return this.zoneLast.get(id);
+  }
+
+  /** A trap just taken off the bar at `pos` burns away there instead (a companion's fire: Sunny's Fire Breath), once
+   *  the fire reaches it `delay` ms from now (it stands there until then). */
+  burnAway(pos: number, delay = 0): void {
+    const x = this.x(pos);
+    for (const d of this.dying)
+      if (d.at === this.s.anim && d.kind === 'purple' && Math.abs(d.x - x) < 1) {
+        d.style = 'burn';
+        d.at += delay;
+      }
   }
 
   /** An icicle will land at `pos` in `sec`: its mark shows there until then. */
@@ -214,10 +248,28 @@ export class BarView {
     this.cursorPulse(0xe0e8ff);
   }
 
-  /** Shadow Dash: a streak from where the cursor was to where it bursts to. */
+  /** Shadow Dash: a streak from where the cursor was to where it bursts to (it kicks off with a violet puff). */
   dash(from: number, to: number): void {
-    this.dashes.push({ from, to, at: this.s.anim });
+    const s = this.s;
+    this.dashes.push({ from, to, at: s.anim, landAt: 0, ghosts: [] });
     if (this.dashes.length > 4) this.dashes.shift();
+    const x = this.x(from);
+    s.fx.ring(x, this.mid(), 10, DASH_COL[1], false);
+    s.fx.chips(x, this.mid(), 4, [WHITE, DASH_COL[1], DASH_COL[2]], 6, 0);
+  }
+
+  /** The cursor reached the end of a dash: a burst where it lands (a flash, a ring, a violet starburst, sparks). */
+  private dashLanded(to: number, dir: number): void {
+    const s = this.s;
+    const x = this.x(to);
+    const y = this.mid();
+    this.dashLands.push({ pos: to, at: s.anim, dir });
+    if (this.dashLands.length > 4) this.dashLands.shift();
+    s.fx.ring(x, y, 17, DASH_COL[1], false);
+    s.fx.ring(x, y, 9, WHITE, false);
+    s.fx.stars.push({ x, y, at: s.anim, r: 11, color: DASH_COL[2], world: false });
+    s.fx.chips(x, y, 6, [WHITE, DASH_COL[0], DASH_COL[1]], 10, 0);
+    this.cursorPulse(DASH_COL[0]);
   }
 
   /** A hold was pressed (a ring at its start) or let go (done: a ring at its end; slipped: it shatters, "Slip!"). */
@@ -443,7 +495,8 @@ export class BarView {
       if (z.kind === 'dash') continue;
       let seen = this.zoneSeen.get(z.id);
       if (seen === undefined) this.zoneSeen.set(z.id, (seen = a));
-      const look = { id: z.id, kind: z.kind, lo: z.lo, hi: z.hi, slide: z.slide, vel: z.vel };
+      // (a slow patch where a Shadow Dash landed is Sable's: violet)
+      const look = { id: z.id, kind: this.dashSlow.has(z.id) ? 'slowDash' : z.kind, lo: z.lo, hi: z.hi, slide: z.slide, vel: z.vel };
       this.zoneLast.set(z.id, look);
       drawPatch(g, look, B, bx, a, clamp01((a - seen) / ZONE_FADE_MS));
     }
@@ -844,47 +897,87 @@ export class BarView {
     }
   }
 
-  /** Shadow Dash: a violet streak along the cursor's path from where it dashed, with afterimages of the cursor. */
+  /**
+   * Shadow Dash: a bright violet streak along the cursor's path, from where it dashed to where it is (its white-hot
+   * core brightest at the head); three afterimages of the cursor left behind along the way (each fading from when the
+   * cursor passed it); a burst where it lands, then the streak's tail runs in to the landing and it fades.
+   */
   private drawDashes(g: G, c: Combat, t: number, bx: number): void {
     const s = this.s;
     const B = s.bar;
+    const a = s.anim;
     const cpos = c.cursorPosAt(t);
+    const my = Math.round(B.y + B.h / 2);
     for (let i = this.dashes.length - 1; i >= 0; i--) {
       const d = this.dashes[i];
-      const k = (s.anim - d.at) / DASH_MS;
-      if (k >= 1) {
+      const dir = d.to >= d.from ? 1 : -1;
+      const span = Math.abs(d.to - d.from);
+      // the head follows the cursor through its burst; it lands at the far end
+      const into = (cpos - d.from) * dir;
+      if (!d.landAt && (into >= span - 0.002 || a - d.at > 700)) {
+        d.landAt = a;
+        this.dashLanded(d.to, dir);
+      }
+      const since = d.landAt ? a - d.landAt : 0;
+      if (since > DASH_FADE_MS) {
         this.dashes.splice(i, 1);
         continue;
       }
-      const dir = d.to >= d.from ? 1 : -1;
-      const span = Math.abs(d.to - d.from);
-      // the head follows the cursor through its burst, then stays at the far end
-      const into = (cpos - d.from) * dir;
-      const head = d.from + dir * (into >= 0 && into <= span ? into : span);
-      const a = k < 0.4 ? 1 : 1 - (k - 0.4) / 0.6;
-      const x0 = Math.round(B.x + Math.min(d.from, head) * B.w) + bx;
-      const x1 = Math.round(B.x + Math.max(d.from, head) * B.w) + bx;
-      const my = Math.round(B.y + B.h / 2);
-      for (let x = x0; x < x1; x++) {
+      const head = d.landAt ? d.to : d.from + dir * Math.max(0, Math.min(span, into));
+      const tail = d.from + (head - d.from) * (d.landAt ? ease(clamp01(since / DASH_FADE_MS)) : 0);
+      const fade = d.landAt ? 1 - since / DASH_FADE_MS : 1;
+      const xt = Math.round(B.x + tail * B.w) + bx;
+      const xh = Math.round(B.x + head * B.w) + bx;
+      const lo = Math.min(xt, xh);
+      const hi = Math.max(xt, xh);
+      for (let x = lo; x <= hi; x++) {
         // brighter toward the head
-        const q = dir > 0 ? (x - x0) / Math.max(1, x1 - x0) : (x1 - x) / Math.max(1, x1 - x0);
-        g.fillStyle(0x7a3cb0, 0.4 * a * q);
+        const q = Math.abs(x - xt) / Math.max(1, hi - lo);
+        const qq = (0.3 + 0.7 * q) * fade;
+        g.fillStyle(DASH_COL[3], 0.55 * qq);
+        g.fillRect(x, my - 5, 1, 11);
+        g.fillStyle(DASH_COL[2], 0.85 * qq);
         g.fillRect(x, my - 3, 1, 7);
-        g.fillStyle(0xdab0ff, 0.7 * a * q);
+        g.fillStyle(DASH_COL[0], qq);
+        g.fillRect(x, my - 2, 1, 5);
+        g.fillStyle(WHITE, q * q * fade);
         g.fillRect(x, my - 1, 1, 3);
-        g.fillStyle(WHITE, 0.9 * a * q);
-        g.fillRect(x, my, 1, 1);
       }
-      // speed lines above and below the blocks
-      g.fillStyle(0xdab0ff, 0.7 * a);
-      if (x1 - x0 > 6) {
-        g.fillRect(x0 + 2, B.y - 8, x1 - x0 - 4, 1);
-        g.fillRect(x0 + 6, B.y + B.h + 7, Math.max(1, x1 - x0 - 10), 1);
+      // speed lines over and under the blocks, dashed, running the way it went
+      if (hi - lo > 6) {
+        const off = Math.floor(a / 30) % 6;
+        g.fillStyle(DASH_COL[0], 0.85 * fade);
+        for (let x = lo + 2; x < hi - 2; x++) {
+          if (((x - off * dir) % 6 + 6) % 6 < 4) g.fillRect(x, B.y - 9, 1, 1);
+          if (((x + 3 - off * dir) % 6 + 6) % 6 < 4) g.fillRect(x, B.y + B.h + 8, 1, 1);
+        }
       }
-      for (let j = 1; j <= 3; j++) {
-        const p = d.from + (head - d.from) * (j / 4);
-        dashGhost(g, B.x + p * B.w + bx, B, a * (j / 4));
+      // the afterimages: where it was, and a third and two thirds of the way; each is left as the cursor passes it
+      for (let j = 0; j < 3; j++) {
+        const p = d.from + (d.to - d.from) * (j / 3);
+        if ((head - p) * dir < -1e-4) continue;
+        d.ghosts[j] ??= a;
+        const age = (a - d.ghosts[j]) / 420;
+        if (age < 1) cursorGhost(g, B.x + p * B.w + bx, B, (1 - age) * (0.55 + 0.15 * j), DASH_COL);
       }
+    }
+    // the landing: a white flash where it lands, narrowing, with sparks skidding on along the frame
+    for (let i = this.dashLands.length - 1; i >= 0; i--) {
+      const l = this.dashLands[i];
+      const k = (a - l.at) / 220;
+      if (k >= 1) {
+        this.dashLands.splice(i, 1);
+        continue;
+      }
+      const x = Math.round(B.x + l.pos * B.w) + bx;
+      const w = Math.max(1, Math.round(5 * (1 - k)));
+      g.fillStyle(DASH_COL[1], 0.7 * (1 - k));
+      g.fillRect(x - w - 2, B.y - 10, w * 2 + 5, B.h + 20);
+      g.fillStyle(WHITE, 0.9 * (1 - k));
+      g.fillRect(x - w, B.y - 8, w * 2 + 1, B.h + 16);
+      const run = Math.round(4 + 10 * ease(k));
+      g.fillStyle(DASH_COL[0], 1 - k);
+      for (const y of [B.y - 9, B.y + B.h + 8]) g.fillRect(l.dir > 0 ? x + 3 : x - 3 - run, y, run, 1);
     }
   }
 
@@ -1162,9 +1255,13 @@ export class BarView {
         this.dying.splice(i, 1);
         continue;
       }
-      if (k < 0) continue;
       const [base, light, dark] = d.reason === 'bomb' ? BOMB_COL : kindCol(d.kind);
       const x = d.x + bx;
+      if (k < 0) {
+        // (a trap waiting for the fire that burns it: it stands as it was)
+        if (d.style === 'burn') brick(g, Math.round(x - d.w / 2), B.y - 5, d.w, H0, [light, base, dark, deepOf(d.kind)]);
+        continue;
+      }
       switch (d.style) {
         case 'pop': {
           // white swell, then the brick stretches into a tall pillar of light and pinches out
@@ -1252,6 +1349,47 @@ export class BarView {
           // closes like an eye: flattens to a bright line
           const h = H0 * (1 - ease(k));
           slab(g, x, mid - h / 2, d.w * (1 + 0.25 * k), Math.max(1, h), k < 0.4 ? WHITE : light, WHITE, base, 1 - k * 0.3);
+          break;
+        }
+        case 'burn': {
+          // burnt off the bar (Sunny's Fire Breath): the fire arrives (it glows white-hot, then orange), it chars from the
+          // top down while flames lick up off it, and the last of it smokes away
+          const top0 = mid - H0 / 2;
+          const half = Math.max(3, d.w / 2);
+          if (k < 0.18) {
+            const q = k / 0.18;
+            slab(g, x, top0 - 1, d.w + 2, H0 + 2, q < 0.4 ? WHITE : FIRE[1], WHITE, FIRE[2]);
+          } else {
+            const q = (k - 0.18) / 0.82;
+            const h = Math.max(2, Math.round(H0 * (1 - 0.85 * ease(q))));
+            const y = mid + H0 / 2 - h;
+            slab(g, x, y, d.w * (1 - 0.25 * q), h, CHAR[1], CHAR[0], CHAR[2], 1 - q * 0.3);
+            // its burning top edge
+            g.fillStyle(q < 0.5 ? FIRE[1] : FIRE[2], 1 - q * 0.6);
+            g.fillRect(Math.round(x - half + 1), Math.round(y), Math.max(1, Math.round(d.w - 2)), 1);
+            // flames off it: three tongues, flickering, dying down
+            for (let j = 0; j < 3; j++) {
+              const fx = Math.round(x - half + ((j + 0.5) * d.w) / 3);
+              const fl = (Math.floor(s.anim / 60) + j * 2) % 3;
+              const fh = Math.round((7 + fl + (j === 1 ? 3 : 0)) * (1 - q * 0.75));
+              if (fh < 2) continue;
+              g.fillStyle(FIRE[4], 0.8);
+              g.fillRect(fx - 2, y - fh, 4, fh);
+              g.fillStyle(FIRE[3], 1);
+              g.fillRect(fx - 1, y - fh, 2, fh);
+              g.fillStyle(FIRE[2], 1);
+              g.fillRect(fx - 1, y - fh + 2, 2, fh - 2);
+              g.fillStyle(FIRE[0], 1);
+              g.fillRect(fx, y - fh + 1 - (fl % 2), 1, Math.max(1, fh - 4));
+            }
+            // smoke rising off what's left
+            if (q > 0.4) {
+              const sq = (q - 0.4) / 0.6;
+              g.fillStyle(0x6a6276, 0.6 * (1 - sq));
+              g.fillCircle(Math.round(x - 2), Math.round(y - 6 - sq * 10), Math.round(2 + sq * 2));
+              g.fillCircle(Math.round(x + 2), Math.round(y - 9 - sq * 12), Math.round(1 + sq * 2));
+            }
+          }
           break;
         }
         case 'fly': {
