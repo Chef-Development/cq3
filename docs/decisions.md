@@ -161,3 +161,15 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     nearly always wins; at Act 3's numbers a fresh lab hero, Rowan included, lost half of them); companion fights
     four waves. A reworked item asks for a new rating: a rating given to its old version shows as "Reworked" in
     the list and as "before: ..." in the report.
+
+## Overnight polish run (playtest round 6)
+
+C1. **Companions: a night grove, the companion at 3x on a mossy stump.** Its name, rarity and stars sit over the stage
+    (the stars beside the rarity on a glass pill, drawn above the name so a "y" or a tall companion's ears never hide
+    them); its kind, role and joke moved behind the "i" (a Sheet). The perks stay as cards (the attack first): the
+    body is bold when every card fits, else the small face (only Sunny, with three perks, on the phone's 142 px).
+    Equip is one big button that toggles (Equip / Unequip, "Along" when it's the only one along; the old "Move here"
+    is gone: tap a socket to choose the slot Equip fills). The stage theme is the screen's own (`art-grove.ts`,
+    registered with registerStageTheme).
+C2. **A screen that paints its own stage sets `staged = true`** and the camp skips its dark dim behind it (the dim sat
+    over the stage image otherwise). Other modern camp screens can use the same flag without touching camp.ts.

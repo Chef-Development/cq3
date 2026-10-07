@@ -644,9 +644,11 @@ export class CampView {
       this.drawBanter(now);
       this.showGains();
     } else {
+      // a screen that paints its own stage (`staged`) needs no dim over the camp behind it
+      const scr = this.screen();
       const k = clamp01((now - this.modeAt) / 160);
-      kit.dim(kit.gUi, 0.62 * k);
-      this.screen().draw(now);
+      if (!(scr as { staged?: boolean }).staged) kit.dim(kit.gUi, 0.62 * k);
+      scr.draw(now);
     }
     kit.end(now);
   }

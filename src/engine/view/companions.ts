@@ -1,20 +1,25 @@
-// The companions (a camp screen: tap the companion by the fire). All eight in a row along the top, each in a cell of
-// its rarity's colours (a dark silhouette for one not found yet); the slots they go in on the top bar (one; two with
-// the Companion Perch: tap a slot to choose which one Equip fills). Under the row, the one tapped: its card in a
-// frame of its rarity, name, kind, rarity, stars and shards, level and XP (earned with your hero while it's along),
-// how it attacks and its perks; Equip puts it in the chosen slot. One not found yet says "Found in hero chests".
+// The companions (a camp screen: tap a companion by the fire). A moonlit night grove (art-grove.ts) with the one on
+// view big (3x) on a mossy stump under a soft light, its rarity's aura behind it, idling (fliers hover and flap,
+// walkers breathe; a tap makes it show its attack), fireflies drifting. Its name over it, its rarity and role as chips
+// (an "i" opens a sheet: its kind, its joke, how companions grow). The strip across the top: all eight as round
+// tokens in their rarity's ring (a dark one for one not found yet; a check on those along). On the right: its level
+// and XP, its stars and shards as meters, then what it does as cards on glass (its attack first, then each perk: the
+// playtester likes reading these). Under the stump: the two "Along" sockets (the second padlocked until the Companion
+// Perch is built: tap one to pick the slot Equip fills) and the big button: Equip, Unequip, Along (the only one along)
+// or Locked (one not found yet: found in hero chests).
 import type Phaser from 'phaser';
 import { COMPANIONS, COMPANION_IDS, type CompanionId } from '../../data/companions';
 import { TIER_INFO } from '../../data/rarity';
 import { levelProgress } from '../../core/heroes';
 import { equipPet, petLevel, petOwned, petSlots, shardsToNext } from '../../core/roster';
+import { ensureGroveArt, GROVE_STUMP_TOP, GROVE_THEME } from '../art-grove';
+import { STAGE_THEMES } from '../art-ui-stage';
 import { textWidth } from '../font';
-import { CampKit, D, DIM_TXT, GOLD_TXT, GREEN, pix } from './camp-kit';
-import { wrapFlow } from './heroes';
-import { padlock, wrapText } from './items';
-import { gauge, glow, GOLD, hudIcon, NAVY, rows } from './pixels';
-import { clamp01, easeBack, inRect, INK, pulse, WHITE, type Rect } from './shared';
-import { FACE, isPressed, notePress, RIBBON, tag } from './ui';
+import { CampKit, D, GOLD_TXT, GREEN, pix } from './camp-kit';
+import { gauge, glow, GOLD } from './pixels';
+import { clamp01, easeBack, easeOut3, inRect, INK, mix, pulse, WHITE, type Rect } from './shared';
+import { FACE, notePress, tag } from './ui';
+import { aura, bigButton, bigName, drawStage, enterK, fillEllipse, glass, infoButton, opaqueBox, popK, Sheet, spotlight, textCard, textCardH, textCardLines, token, type Face } from './ui-modern';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -25,87 +30,157 @@ export function attackText(id: CompanionId): string {
   return `${verb[c.attack] ?? c.attack}${c.allFoes ? ' on every foe' : ''} every ${c.every} hits`;
 }
 
+/** Each perk's icon and colour (by its name), the attack's own. */
+const PERK_LOOK: Record<string, { icon: string; col: number; text: number }> = {
+  'Lucky Foot': { icon: 'coin', col: 0x9a6a14, text: 0xffe680 },
+  'Owl Watch': { icon: 'feather', col: 0x3a6ab0, text: 0x9ad8ff },
+  'Ember Bite': { icon: 'flame', col: 0xa8401c, text: 0xffb070 },
+  'Oil Can': { icon: 'clock', col: 0x3a7a5a, text: 0xb4f070 },
+  'Rock Wall': { icon: 'shield', col: 0x4a5a8a, text: 0xb8d0ff },
+  'Chill Bite': { icon: 'flake', col: 0x2a7aa0, text: 0xa8ecff },
+  'Snow Dash': { icon: 'flake', col: 0x2a7aa0, text: 0xa8ecff },
+  Starlight: { icon: 'star', col: 0x7a4ab0, text: 0xe8c8ff },
+  Mend: { icon: 'heartS', col: 0x9a2a3a, text: 0xffa8b0 },
+  'Gold Hoard': { icon: 'coin', col: 0x9a6a14, text: 0xffe680 },
+  'Fire Breath': { icon: 'flame', col: 0xa8401c, text: 0xffb070 },
+  'Warm Glow': { icon: 'flame', col: 0xb8601c, text: 0xffd08a },
+};
+const ATTACK_LOOK = { icon: 'crit', col: 0x8a2a2a, text: 0xffffff };
+
+
+// fireflies over the grove: a home spot each, slow loops, blinking (offsets from the stage's centre)
+const FLIES = Array.from({ length: 7 }, (_, i) => ({
+  x: -46 + ((i * 41) % 96),
+  y: 30 + ((i * 29) % 60),
+  ax: 5 + (i % 3) * 3,
+  ay: 3 + (i % 2) * 3,
+  f1: 0.00033 + (i % 4) * 0.00008,
+  f2: 0.00051 + (i % 3) * 0.0001,
+  ph: i * 1.9,
+  blink: 1700 + (i % 3) * 600,
+}));
+
 export class CompanionsScreen {
   sel: CompanionId = 'pip';
-  /** The slot Equip fills (0 or 1 with the Perch). */
+  /** The slot Equip fills (0, or 1 with the Perch). */
   slot = 0;
+  /** It draws its own stage (the camp skips its dim behind it). */
+  readonly staged = true;
   private openAt = 0;
   private selAt = 0;
   private equipAt = -1e9;
   private shakeAt = -1e9;
+  private actAt = -1e9;
+  private sockAt = [-1e9, -1e9];
+  private readonly sheet = new Sheet();
 
   constructor(private readonly kit: CampKit) {}
 
   open(now: number, id?: CompanionId): void {
     const p = this.kit.profile;
+    ensureGroveArt(this.kit.s);
     this.openAt = now;
-    this.sel = id ?? p.petsOn[0] ?? 'pip';
-    this.selAt = now;
+    this.sheet.open = false;
+    this.select(id ?? p.petsOn[0] ?? 'pip', now);
     // Equip fills the slot the one shown is in (else the first)
     this.slot = Math.max(0, Math.min(petSlots(p) - 1, p.petsOn.indexOf(this.sel)));
   }
 
+  /** Show companion `id` (it drops onto the stump; Equip aims at an empty slot when there is one). */
+  select(id: CompanionId, now: number): void {
+    const p = this.kit.profile;
+    const changed = id !== this.sel;
+    this.sel = id;
+    this.selAt = now;
+    if (!p.petsOn.includes(id) && petSlots(p) > 1 && p.petsOn.length < petSlots(p)) this.slot = p.petsOn.length;
+    if (changed && now - this.openAt > 200) this.kit.after(200, () => this.landPuff());
+  }
+
   // ------------------------------------------------------------------ layout
 
-  private card(): Rect {
+  /** The stage: its centre x, the stump's top face (where the companion's feet go). */
+  private stage(): { cx: number; top: number } {
     const s = this.kit.s;
-    return { x: s.L + 3, y: 19, w: s.R - s.L - 6, h: s.B - 22 };
+    return { cx: s.L + 60, top: s.B - 38 };
   }
 
-  /** Companion i's cell in the row. */
-  private cell(i: number): Rect {
-    const c = this.card();
-    const n = COMPANION_IDS.length;
-    const w = Math.min(32, Math.floor((c.w - 10 - (n - 1) * 2) / n));
-    const total = n * w + (n - 1) * 2;
-    const x0 = Math.round(c.x + c.w / 2 - total / 2);
-    return { x: x0 + i * (w + 2), y: c.y + 4, w, h: 22 };
+  /** The right column (meters, then cards). */
+  private col(): Rect {
+    const s = this.kit.s;
+    const x = s.L + 124;
+    return { x, y: 21, w: s.R - 3 - x, h: s.B - 3 - 21 };
   }
 
-  /** The slots on the top bar (right of the HTML buttons in its middle). */
-  slots(): Rect[] {
+  /** Companion i's token in the strip across the top (hopping over the HTML buttons in the middle). */
+  cell(i: number): Rect {
     const kit = this.kit;
-    const s = kit.s;
-    const n = 2;
-    const out: Rect[] = [];
-    for (let i = n - 1; i >= 0; i--) out.unshift({ x: s.R - 3 - (n - i) * 17 + 2, y: 3, w: 15, h: 13 });
-    return out;
+    const b = kit.backRect();
+    const n = COMPANION_IDS.length;
+    const rs = kit.topRow(Array(n).fill(17), b.x + b.w + 6, kit.s.R - 3, 2, 1, 17) ?? kit.topRow(Array(n).fill(17), b.x + b.w + 4, 1e9, 1, 1, 17)!;
+    return rs[i];
   }
 
-  private frame(): Rect {
-    const c = this.card();
-    return { x: c.x + 6, y: c.y + 32, w: 46, h: 50 };
+  /** The "Along" sockets, bottom left (two: the second padlocked until the Companion Perch). */
+  slots(): Rect[] {
+    const s = this.kit.s;
+    return [0, 1].map((i) => ({ x: s.L + 4 + i * 20, y: s.B - 19, w: 17, h: 17 }));
   }
 
-  private col(): { x: number; w: number } {
-    const c = this.card();
-    const f = this.frame();
-    const x = f.x + f.w + 7;
-    return { x, w: c.x + c.w - 6 - x };
+  equipRect(): Rect {
+    const s = this.kit.s;
+    const x = s.L + 46;
+    return { x, y: s.B - 20, w: Math.max(66, s.L + 120 - x), h: 18 };
   }
 
-  private equipRect(): Rect {
-    const c = this.card();
-    const label = this.equipLabel();
-    const w = textWidth(label, 1, true) + 14 + (label === 'Equipped' ? 9 : 0);
-    return { x: c.x + c.w - 6 - w, y: c.y + 32, w, h: 14 };
+  /** The "i" (the sheet), right after the name. */
+  private infoRect(): Rect {
+    const st = this.stage();
+    const w = textWidth(COMPANIONS[this.sel].name, 2, true);
+    return { x: Math.round(st.cx + w / 2 + 3), y: 20, w: 11, h: 11 };
   }
 
-  private equipLabel(): string {
+  /** The rarity chip and the stars under the name (their left end and total width). */
+  private chipRow(): Rect {
+    const def = COMPANIONS[this.sel];
+    const w = textWidth(TIER_INFO[def.rarity].name, 1, true) + 8 + 5 + 45;
+    const st = this.stage();
+    return { x: Math.round(st.cx - w / 2), y: 33, w, h: 10 };
+  }
+
+  /** The companion's sprite now: key, and whether it hovers. */
+  private frameKey(id: CompanionId, now: number): string {
+    const fly = COMPANIONS[id].flies;
+    if (now - this.actAt < 320 || now - this.equipAt < 320) return id === 'pip' ? 'pip_dive' : `comp_${id}_act`;
+    const per = fly ? 140 : 380;
+    const f = Math.floor(now / per) % 2;
+    return id === 'pip' ? `pip_idle${f}` : `comp_${id}_idle${f}`;
+  }
+
+  /** Where the companion is drawn at 3x (its top-left), and the centre of what it shows. */
+  private creature(now: number): { key: string; x: number; y: number; cx: number; cy: number; top: number } {
+    const kit = this.kit;
+    const id = this.sel;
+    const key = this.frameKey(id, now);
+    const st = this.stage();
+    const box = kit.has(key) ? opaqueBox(kit, key) : { x: 10, y: 6, w: 16, h: 16 };
+    const fly = COMPANIONS[id].flies;
+    // the drop onto the stump when it's chosen (a little overshoot), the hop when it acts or comes along
+    const dk = clamp01((now - this.selAt) / 260);
+    const drop = -Math.round((1 - easeBack(dk, 1.4)) * 26);
+    const ak = Math.min(now - this.actAt, now - this.equipAt);
+    const hop = ak < 360 ? Math.round(Math.sin((ak / 360) * Math.PI) * 6) : 0;
+    const bob = fly ? Math.round(Math.sin(now / 320) * 2) : 0;
+    const x = Math.round(st.cx - (box.x + box.w / 2) * 3);
+    // walkers stand on the face (their soles' row on it); fliers hover with their middle 24 px above it
+    const y = fly ? Math.round(st.top - 22 - (box.y + box.h / 2) * 3) + bob : Math.round(st.top + 2 - (box.y + box.h) * 3);
+    return { key, x, y: y + drop - hop, cx: st.cx, cy: y + drop - hop + (box.y + box.h / 2) * 3, top: y + drop - hop + box.y * 3 };
+  }
+
+  private equipLabel(): 'Locked' | 'Equip' | 'Unequip' | 'Along' {
     const p = this.kit.profile;
     if (!petOwned(p, this.sel)) return 'Locked';
-    const at = p.petsOn.indexOf(this.sel);
-    if (at < 0) return 'Equip';
-    return petSlots(p) > 1 && at !== this.slot ? 'Move here' : 'Equipped';
-  }
-
-  /** "Unequip" (two slots, this companion along and another one too). */
-  private unequipRect(): Rect | null {
-    const p = this.kit.profile;
-    if (petSlots(p) < 2 || !p.petsOn.includes(this.sel) || p.petsOn.length < 2) return null;
-    const e = this.equipRect();
-    const w = textWidth('Unequip', 1, true) + 14;
-    return { x: e.x - 4 - w, y: e.y, w, h: 14 };
+    if (!p.petsOn.includes(this.sel)) return 'Equip';
+    return p.petsOn.length > 1 ? 'Unequip' : 'Along';
   }
 
   // ------------------------------------------------------------------ taps
@@ -114,6 +189,7 @@ export class CompanionsScreen {
     const kit = this.kit;
     const app = kit.app;
     const p = kit.profile;
+    if (this.sheet.tap(now)) return;
     if (x < 0 || inRect(kit.backRect(), x, y, 3)) {
       notePress(kit.backRect());
       return 'back';
@@ -123,8 +199,7 @@ export class CompanionsScreen {
       if (!inRect(r, x, y, 1)) continue;
       notePress(r);
       if (this.sel !== COMPANION_IDS[i]) {
-        this.sel = COMPANION_IDS[i];
-        this.selAt = now;
+        this.select(COMPANION_IDS[i], now);
         kit.fadeToast();
         app.audio.uiClick();
       }
@@ -132,262 +207,321 @@ export class CompanionsScreen {
     }
     const sl = this.slots();
     for (let i = 0; i < sl.length; i++) {
-      if (!inRect(sl[i], x, y, 1)) continue;
+      if (!inRect(sl[i], x, y, 2)) continue;
       notePress(sl[i]);
       if (i >= petSlots(p)) {
-        kit.app.audio.lockToggle();
-        kit.fx.float('Camp upgrade: Companion Perch', sl[i].x - 40, sl[i].y + 22, 0xffb0a0, { life: 1500 });
+        app.audio.lockToggle();
+        this.sockAt[i] = now;
+        kit.fx.float('Build the Companion Perch', sl[i].x + 40, sl[i].y - 8, 0xffb0a0, { life: 1500 });
         return;
       }
       this.slot = i;
       const on = p.petsOn[i];
-      if (on) {
-        this.sel = on;
-        this.selAt = now;
-      }
+      if (on && on !== this.sel) this.select(on, now);
       app.audio.uiClick();
       return;
     }
-    const u = this.unequipRect();
-    if (u && inRect(u, x, y, 2)) {
-      notePress(u);
-      const at = p.petsOn.indexOf(this.sel);
-      if (equipPet(p, at, null)) {
-        kit.commit();
-        app.audio.panelClose();
-        this.slot = 0;
-      }
-      return;
+    const inf = this.infoRect();
+    if (inRect(inf, x, y, 3)) {
+      notePress(inf);
+      app.audio.panelOpen();
+      return this.showSheet(now);
     }
     const e = this.equipRect();
     if (inRect(e, x, y, 2)) {
       notePress(e);
-      this.equip(now);
+      return this.equip(now);
     }
+    // the companion itself: it shows its attack
+    const c = this.creature(now);
+    if (petOwned(p, this.sel) && Math.abs(x - c.cx) < 26 && y > c.top - 6 && y < this.stage().top + 4) {
+      this.actAt = now;
+      app.audio.pet();
+      const col = TIER_INFO[COMPANIONS[this.sel].rarity].face[0];
+      kit.fx.burst(c.cx + 14, c.cy - 4, [col, WHITE, 0xfff0a0], 10, 0.7, { kind: 'star', g: 20, life: 500 });
+    }
+  }
+
+  private showSheet(now: number): void {
+    const def = COMPANIONS[this.sel];
+    this.sheet.show(
+      def.name,
+      [
+        { text: `${def.kind}, ${def.role.toLowerCase()}. ${def.bio}`, col: 0xfff0c0 },
+        { text: `${attackText(this.sel)}.`, icon: 'crit' },
+        { text: 'Levels up with the XP your hero earns while it comes along.', icon: 'up' },
+        { text: 'A duplicate from a chest gives shards: enough shards add a star.', icon: 'shard' },
+      ],
+      now,
+      TIER_INFO[def.rarity].face,
+    );
   }
 
   private equip(now: number): void {
     const kit = this.kit;
     const p = kit.profile;
     const id = this.sel;
-    if (!petOwned(p, id)) {
+    const label = this.equipLabel();
+    const e = this.equipRect();
+    if (label === 'Locked') {
       this.shakeAt = now;
       kit.app.audio.lockToggle();
+      kit.fx.float('Found in hero chests', e.x + e.w / 2, e.y - 8, 0xffd890, { life: 1400 });
       return;
     }
-    const at = p.petsOn.indexOf(id);
-    if (at === this.slot || (at >= 0 && petSlots(p) < 2)) {
+    if (label === 'Along') {
       kit.app.audio.uiClick();
-      const e = this.equipRect();
-      kit.fx.float('Already along', e.x + e.w / 2, e.y + e.h + 8, 0xd8d0f0, { life: 1000 });
+      kit.fx.float('Already along', e.x + e.w / 2, e.y - 8, 0xd8d0f0, { life: 1000 });
       return;
     }
-    if (!equipPet(p, this.slot, id)) return;
+    if (label === 'Unequip') {
+      const at = p.petsOn.indexOf(id);
+      if (!equipPet(p, at, null)) return;
+      kit.commit();
+      kit.app.audio.panelClose();
+      this.slot = Math.min(this.slot, p.petsOn.length);
+      const s = this.slots()[at];
+      kit.fx.burst(s.x + s.w / 2, s.y + s.h / 2, [0x8a7cc0, 0xd8d0f0], 10, 0.6, { kind: 'chip', g: 60, life: 450 });
+      return;
+    }
+    const slot = Math.min(this.slot, petSlots(p) - 1);
+    if (!equipPet(p, slot, id)) return;
     kit.commit();
     this.equipAt = now;
+    this.sockAt[slot] = now + 380;
     kit.app.audio.equip();
-    const f = this.frame();
-    kit.fx.flash(f, WHITE, 380);
-    kit.fx.burst(f.x + f.w / 2, f.y + f.h / 2, [0xfff0a0, WHITE, GREEN, TIER_INFO[COMPANIONS[id].rarity].face[0]], 22, 1, { kind: 'star', g: 30, life: 650 });
-    const s = this.slots()[this.slot];
-    kit.fx.fly({ color: TIER_INFO[COMPANIONS[id].rarity].face[1], x0: f.x + f.w / 2, y0: f.y + 10, x1: s.x + s.w / 2, y1: s.y + s.h / 2, arc: 20, life: 420 });
-    kit.fx.float(`${COMPANIONS[id].name} comes along!`, f.x + f.w / 2 + 60, f.y + 4, GREEN, { life: 1500 });
+    const c = this.creature(now);
+    const tierCol = TIER_INFO[COMPANIONS[id].rarity].face;
+    kit.fx.burst(c.cx, c.cy, [0xfff0a0, WHITE, GREEN, tierCol[0]], 26, 1, { kind: 'star', g: 30, life: 700 });
+    kit.fx.ring(c.cx, c.cy, 30, tierCol[0], 460);
+    const s = this.slots()[p.petsOn.indexOf(id)] ?? this.slots()[0];
+    kit.fx.fly({ color: tierCol[1], x0: c.cx, y0: c.cy, x1: s.x + s.w / 2, y1: s.y + s.h / 2, arc: 24, life: 380 });
+    kit.after(380, () => {
+      kit.fx.ring(s.x + s.w / 2, s.y + s.h / 2, 14, 0xfff0a0, 360);
+      kit.fx.burst(s.x + s.w / 2, s.y + s.h / 2, [0xfff0a0, WHITE], 10, 0.6, { kind: 'star', g: 0, life: 400 });
+    });
+    kit.fx.float('Comes along!', c.cx, c.top - 8, GREEN, { life: 1500 });
+  }
+
+  /** A puff of dust where the companion lands on the stump. */
+  private landPuff(): void {
+    const st = this.stage();
+    if (COMPANIONS[this.sel].flies) return;
+    this.kit.fx.burst(st.cx, st.top + 1, [0x8a7a5a, 0x6a5a44, 0xb0a080], 12, 0.45, { kind: 'chip', g: 80, life: 420, up: 25, spread: 1.4 });
   }
 
   // ------------------------------------------------------------------ drawing
 
   draw(now: number): void {
     const kit = this.kit;
+    const s = kit.s;
     const g = kit.gUi;
+    const p = kit.profile;
+    const def = COMPANIONS[this.sel];
+    const owned = petOwned(p, this.sel);
+    const ek = enterK(now, this.openAt, 0, 0, 240);
+    const theme = STAGE_THEMES[GROVE_THEME] ?? STAGE_THEMES.night;
+    drawStage(kit, GROVE_THEME, now, { alpha: ek, motes: true });
+    const st = this.stage();
+    // the light on the stump (it breathes, flickers a touch), the rarity's aura, the fireflies
+    const flick = 0.9 + 0.1 * pulse(now, 1300) + 0.04 * Math.sin(now / 97);
+    spotlight(g, st.cx, -4, st.top + 2, 26, 62, theme.light, (owned ? 0.075 : 0.04) * ek, flick);
+    const k = popK(now, this.openAt, 2, 40, 300);
+    const c = this.creature(now);
+    const enterDy = Math.round((1 - k) * 18);
+    if (owned) {
+      // a soft halo in the rarity's colour under the aura's rings, so even a Common one stands in a glow
+      const [hi, base] = TIER_INFO[def.rarity].face;
+      fillEllipse(g, st.cx, c.cy + enterDy, 46 * k, 36 * k, base, 0.07 * k);
+      fillEllipse(g, st.cx, c.cy + enterDy, 34 * k, 27 * k, hi, 0.05 * k);
+      aura(kit, g, st.cx, c.cy + enterDy, 36, 30, def.rarity, now, k);
+    }
+    this.drawFlies(g, st.cx, now, ek);
+    // the stump, then the companion on it (a dark shape with a "?" for one not found yet)
+    kit.imgs.at('grove_stump', st.cx - GROVE_STUMP_TOP.x, st.top - GROVE_STUMP_TOP.y + Math.round((1 - ek) * 10), D.icons - 0.004, ek);
+    if (kit.has(c.key) && k > 0) {
+      if (def.flies) fillEllipse(kit.gOver, st.cx, st.top, 10 - Math.abs(Math.sin(now / 320)) * 2, 2, INK, 0.3 * k);
+      kit.sprites.draw(c.key, c.x, c.y + enterDy, D.icons, { scale: 3, alpha: clamp01(k * 1.5), tint: owned ? undefined : 0x1a1430 });
+    }
+    if (!owned && k > 0.5) kit.texts.text('?', st.cx, c.cy + enterDy, 0xa898d8, { bold: true, scale: 2, ox: 0.5, oy: 0.5, alpha: clamp01((k - 0.5) * 2) });
+    this.drawName(g, now);
+    this.drawStrip(now);
+    this.drawSockets(now);
+    this.drawButton(g, now);
+    this.drawMeters(g, now);
+    this.drawCards(now);
     kit.drawBack(g, now);
-    kit.title(g, 'Companions', kit.backRect().x + kit.backRect().w + 2, 3, RIBBON.green);
-    this.drawSlots(g, now);
-    const k = easeBack((now - this.openAt) / 260, 1.4);
-    if (k <= 0) return;
-    const c0 = this.card();
-    const c = { ...c0, y: c0.y + Math.round((1 - k) * 20) };
-    kit.pane(g, c, { alpha: clamp01(k * 2) });
-    if (k < 0.9) return;
-    COMPANION_IDS.forEach((id, i) => this.drawCell(g, id, i, now));
-    kit.divider(g, c0.x + 6, c0.y + 29, c0.w - 12);
-    this.drawDetail(g, now);
+    this.sheet.draw(kit, { x: s.L + 6, y: 20, w: s.R - s.L - 12, h: s.B - 24 }, now);
   }
 
-  /** The slots: each one's companion (a face in its rarity's frame), the one Equip fills lifted; the second slot
-   *  padlocked until the Companion Perch is built. */
-  private drawSlots(g: G, now: number): void {
+  /** Fireflies drifting over the grove, blinking. */
+  private drawFlies(g: G, cx: number, now: number, a: number): void {
+    for (const f of FLIES) {
+      const x = cx + f.x + Math.sin(now * f.f1 + f.ph) * f.ax * 2;
+      const y = f.y + Math.cos(now * f.f2 + f.ph) * f.ay * 2;
+      const b = pulse(now, f.blink, f.ph * 300);
+      if (b < 0.3) continue;
+      const k = ((b - 0.3) / 0.7) * a;
+      g.fillStyle(0xd8ff8a, 0.2 * k);
+      g.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3);
+      g.fillStyle(0xf0ffc0, k);
+      g.fillRect(Math.round(x), Math.round(y), 1, 1);
+    }
+  }
+
+  /** The name, big, over the stage; its rarity and role as chips, and the "i". */
+  private drawName(g: G, now: number): void {
+    const kit = this.kit;
+    const def = COMPANIONS[this.sel];
+    const owned = petOwned(kit.profile, this.sel);
+    const a = enterK(now, this.selAt, 0, 0, 200) * enterK(now, this.openAt, 1, 40, 220);
+    const st = this.stage();
+    bigName(kit.texts, def.name, st.cx, 25 - Math.round((1 - a) * 4), owned ? WHITE : 0xb0a8c8, { ox: 0.5, alpha: a, ext: owned ? mix(TIER_INFO[def.rarity].face[3], INK, 0.3) : 0x2a2438 });
+    const cr = this.chipRow();
+    // on a glass pill over the stage and the name (a tall companion's ears, a "y" pass behind it)
+    glass(kit.gTop, { x: cr.x - 2, y: cr.y - 1, w: cr.w + 4, h: cr.h + 2 }, { alpha: 0.85 * a, clear: 0.3 });
+    const x = cr.x + kit.rarityTag(kit.gTop, kit.topTexts, def.rarity, cr.x, cr.y + 5, a) + 5;
+    void g;
+    // its stars (duplicates' shards raise them)
+    kit.starRow(kit.gTop, x, cr.y + 1, owned ? kit.profile.pets[this.sel].stars : 0, { alpha: a });
+    if (a > 0.5) infoButton(kit.gOver, kit.texts, this.infoRect(), now);
+  }
+
+  /** The strip of companions: round tokens in their rarity's rings. */
+  private drawStrip(now: number): void {
     const kit = this.kit;
     const p = kit.profile;
-    const n = petSlots(p);
-    const sl = this.slots();
-    const label = n > 1 ? 'Along' : 'Along';
-    kit.texts.text(label, sl[0].x - 4, 9.5, 0xc8e8c0, { ox: 1, oy: 0.5 });
-    sl.forEach((r, i) => {
-      const id = p.petsOn[i];
-      const on = i === this.slot && n > 1;
-      const pr = isPressed(r, now);
-      const y = r.y + (on ? -1 : pr ? 1 : 0);
-      const face = i >= n ? ([0x6a6078, 0x4a4058, 0x3a3048, 0x2a2438] as const) : id ? TIER_INFO[COMPANIONS[id].rarity].face : ([0x8a7cc0, 0x413668, 0x2f2650, 0x1b1530] as const);
-      if (on) glow(g, r, 0xffd23a, 0.3 + 0.2 * pulse(now, 900), 2);
-      rows(g, r.x - 1, y - 1, r.w + 2, r.h + 2, 2, INK);
-      rows(g, r.x, y, r.w, r.h, 2, on ? GOLD[3] : face[1]);
-      g.fillStyle(on ? GOLD[4] : face[0], 1);
-      g.fillRect(r.x + 2, y, r.w - 4, 1);
-      g.fillStyle(0x120e1e, 1);
-      g.fillRect(r.x + 2, y + 1, r.w - 4, r.h - 3);
-      if (i >= n) padlock(kit.gOver, r.x + 3, y + 2, 1, 0xd8901c);
-      else if (id) this.mini(id, r.x + 2, y + 1, r.w - 4, r.h - 3, D.icons);
+    const l = kit.layer();
+    COMPANION_IDS.forEach((id, i) => {
+      const k = popK(now, this.openAt, i, 30, 220);
+      if (k <= 0) return;
+      const r0 = this.cell(i);
+      const r = { ...r0, y: r0.y - Math.round((1 - k) * 8) };
+      const owned = petOwned(p, id);
+      const key = id === 'pip' ? 'pip_idle0' : `comp_${id}_idle0`;
+      const rr = token(kit, l, r, { face: TIER_INFO[COMPANIONS[id].rarity].face, sprite: kit.has(key) ? { key, at: this.faceAt(key), tint: owned ? undefined : 0x241c3a } : undefined, dim: !owned, selected: this.sel === id, check: owned && p.petsOn.includes(id), alpha: clamp01(k * 1.4) }, now);
+      if (!owned) kit.texts.text('?', rr.x + rr.w / 2, rr.y + rr.h / 2, 0x8a7cc0, { bold: true, ox: 0.5, oy: 0.5, alpha: k });
     });
   }
 
-  /** A companion's idle frame, cropped round its middle to fit a w x h window at (x, y). */
-  private mini(id: CompanionId, x: number, y: number, w: number, h: number, depth: number, o: { tint?: number; alpha?: number; frame?: number } = {}): void {
-    const kit = this.kit;
-    const key = id === 'pip' ? `pip_idle${o.frame ?? 0}` : `comp_${id}_idle${o.frame ?? 0}`;
-    if (!kit.has(key)) return;
-    const [tw, th] = kit.imgs.size(key);
-    // the creature sits in the lower middle of its 36x24 box
-    const cx = Math.round(tw / 2 - w / 2);
-    const cy = Math.max(0, Math.min(th - h, Math.round(th * 0.62 - h / 2)));
-    kit.sprites.draw(key, x, y, depth, { crop: [cx, cy, Math.min(w, tw), Math.min(h, th)], tint: o.tint, alpha: o.alpha });
+  /** The 11 x 11 window on a companion's frame that shows its face (the top of what it shows, centred). */
+  private faceAt(key: string): [number, number] {
+    const b = opaqueBox(this.kit, key);
+    const fx = Math.round(b.x + b.w / 2 - 5.5);
+    const fy = Math.round(b.y + Math.min(b.h, 14) / 2 - 5.5);
+    return [Math.max(0, fx), Math.max(0, fy)];
   }
 
-  private drawCell(g: G, id: CompanionId, i: number, now: number): void {
+  /** The "Along" sockets: who comes along; the slot Equip fills glows; the second padlocked without the Perch. */
+  private drawSockets(now: number): void {
     const kit = this.kit;
     const p = kit.profile;
-    const r = this.cell(i);
-    const owned = petOwned(p, id);
-    const sel = this.sel === id;
-    const ik = clamp01((now - this.openAt - 80 - i * 35) / 160);
-    if (ik <= 0) return;
-    const tier = COMPANIONS[id].rarity;
-    if (sel) glow(g, r, 0xffd23a, 0.35 + 0.25 * pulse(now, 1000), 3);
-    kit.rarityFrame(g, r, tier, now, { dark: !owned, alpha: ik });
-    const bob = owned ? Math.floor((now + i * 170) / 360) % 2 : 0;
-    this.mini(id, r.x + 2, r.y + 2, r.w - 4, r.h - 4, D.icons, { tint: owned ? undefined : 0x241c3a, alpha: ik, frame: bob });
-    if (!owned) kit.texts.text('?', r.x + r.w / 2, r.y + r.h / 2, 0x8a7cc0, { bold: true, ox: 0.5, oy: 0.5, alpha: ik });
-    // along: a green check on the corner; stars as gold dots along the foot
-    if (p.petsOn.includes(id) && owned) pix(kit.gOver, 'check', r.x + r.w - 7, r.y - 3, ik);
-    if (owned) {
-      const st = p.pets[id].stars;
-      for (let s = 0; s < st; s++) {
-        const sx = Math.round(r.x + r.w / 2 - (st * 3 - 1) / 2 + s * 3);
-        kit.gOver.fillStyle(INK, ik);
-        kit.gOver.fillRect(sx - 1, r.y + r.h - 3, 3, 3);
-        kit.gOver.fillStyle(0xffd23a, ik);
-        kit.gOver.fillRect(sx, r.y + r.h - 2, 1, 1);
-      }
-    }
-    if (sel) {
-      // a marker under the selected one
-      g.fillStyle(GOLD[3], 1);
-      g.fillRect(r.x + r.w / 2 - 2, r.y + r.h + 2, 5, 1);
-      g.fillRect(r.x + r.w / 2 - 1, r.y + r.h + 1, 3, 1);
-    }
+    const l = kit.layer();
+    const n = petSlots(p);
+    const sl = this.slots();
+    const a = enterK(now, this.openAt, 4, 40, 220);
+    kit.texts.text('Along', sl[0].x + 1, sl[0].y - 5, 0xc8e8c0, { oy: 0.5, alpha: a });
+    sl.forEach((r0, i) => {
+      const id = p.petsOn[i];
+      const pk = now - this.sockAt[i];
+      const sh = i >= n && pk < 280 ? Math.round(Math.sin(pk / 18) * 2 * (1 - pk / 280)) : 0;
+      const r = { ...r0, x: r0.x + sh, y: r0.y + Math.round((1 - a) * 10) };
+      const locked = i >= n;
+      const key = id ? (id === 'pip' ? 'pip_idle0' : `comp_${id}_idle0`) : '';
+      const face: Face = id ? TIER_INFO[COMPANIONS[id].rarity].face : [0x8a7cc0, 0x413668, 0x2f2650, 0x1b1530];
+      token(kit, l, r, { face, dim: locked, locked, sprite: id && kit.has(key) ? { key, at: this.faceAt(key) } : undefined, selected: !locked && n > 1 && i === this.slot, alpha: a }, now);
+      if (!id && !locked) kit.texts.text('+', r.x + r.w / 2, r.y + r.h / 2 - 1, 0x8a7cc0, { bold: true, ox: 0.5, oy: 0.5, alpha: a * (0.6 + 0.4 * pulse(now, 1200)) });
+      if (pk >= 0 && pk < 400 && !locked) glow(kit.gOver, r, 0xfff0a0, 0.6 * (1 - pk / 400), 2);
+    });
   }
 
-  /** The one tapped: its card, name, kind, rarity, stars, level, attack and perks; Equip. */
-  private drawDetail(g: G, now: number): void {
+  /** The big button: Equip / Unequip / Along / Locked. */
+  private drawButton(g: G, now: number): void {
+    const kit = this.kit;
+    const e0 = this.equipRect();
+    const a = enterK(now, this.openAt, 5, 40, 240);
+    if (a <= 0) return;
+    const e = { ...e0, y: e0.y + Math.round((1 - a) * 12) };
+    const label = this.equipLabel();
+    if (label === 'Locked') {
+      kit.button(g, kit.texts, e, 'Locked', FACE.grey, now, { disabled: true, shakeAt: this.shakeAt });
+      return;
+    }
+    if (label === 'Along') kit.button(g, kit.texts, e, 'Along', FACE.gold, now, { icon: 'check' });
+    else if (label === 'Unequip') kit.button(g, kit.texts, e, 'Unequip', FACE.navy, now);
+    else bigButton(kit, g, kit.texts, e, 'Equip', FACE.green, now);
+  }
+
+  /** Level and XP, stars and shards (or how it's found). */
+  private drawMeters(g: G, now: number): void {
     const kit = this.kit;
     const p = kit.profile;
     const texts = kit.texts;
-    const id = this.sel;
-    const def = COMPANIONS[id];
-    const owned = petOwned(p, id);
-    const c = this.card();
-    const a = clamp01((now - this.selAt) / 180);
-    const f = this.frame();
-    // the card in its rarity frame
-    const ek = now - this.equipAt;
-    const hop = ek < 380 ? Math.round(Math.sin((ek / 380) * Math.PI) * 4) : 0;
-    kit.rarityFrame(g, f, def.rarity, now, { dark: !owned });
-    const key = `comp_card_${id}`;
-    if (kit.has(key)) {
-      const [w, h] = kit.imgs.size(key);
-      const inner = { x: f.x + 3, y: f.y + 3, w: f.w - 6, h: f.h - 6 };
-      const ch = Math.min(h, inner.h + hop);
-      kit.sprites.draw(key, inner.x + Math.round((inner.w - w) / 2), inner.y - hop, D.icons, { crop: [Math.max(0, Math.round((w - inner.w) / 2)), 0, Math.min(w, inner.w), ch], tint: owned ? undefined : 0x241c3a, alpha: a });
-    }
-    if (!owned) texts.text('?', f.x + f.w / 2, f.y + f.h / 2, 0x8a7cc0, { bold: true, scale: 2, ox: 0.5, oy: 0.5 });
     const col = this.col();
-    // name (big when it fits before the buttons), kind and rarity
-    const e = this.equipRect();
-    const u = this.unequipRect();
-    const nameRight = (u ?? e).x - 4;
-    const big = col.x + textWidth(def.name, 2, true) <= nameRight;
-    texts.text(def.name, col.x, f.y + 7, owned ? WHITE : 0x9a90b8, { bold: true, scale: big ? 2 : 1, oy: 0.5, extrude: 1, extrudeCol: NAVY[1], alpha: a });
-    if (owned) {
-      const label = this.equipLabel();
-      if (label === 'Equipped') kit.button(g, texts, e, 'Equipped', FACE.gold, now, { icon: 'check' });
-      else kit.button(g, texts, e, label, FACE.green, now, { glowCol: 0x8af06a });
-      if (u) kit.button(g, texts, u, 'Unequip', FACE.navy, now);
-    } else {
-      kit.button(g, texts, e, 'Locked', FACE.grey, now, { disabled: true, shakeAt: this.shakeAt });
-      padlock(kit.gOver, e.x + 4, e.y + 4, 1, 0xd8901c);
-    }
-    let y = f.y + 22;
-    let x = col.x;
-    x += kit.rarityTag(g, texts, def.rarity, x, y, a) + 5;
-    texts.text(def.kind, x, y, 0xffd890, { oy: 0.5, alpha: a });
-    x += textWidth(def.kind, 1, false) + 6;
-    if (owned) {
-      const pr = p.pets[id];
-      x += kit.starRow(g, x, y - 4, pr.stars, { alpha: a }) + 4;
-      const need = shardsToNext(kit.tuning, pr.stars);
-      if (x + 40 <= c.x + c.w - 6) {
-        hudIcon(g, 'shard', x, y - 6, 1, a);
-        texts.text(need === null ? 'Max' : `${pr.shards}/${need}`, x + 11, y, need === null ? GOLD_TXT : 0xe0d0ff, { bold: true, oy: 0.5, alpha: a });
-      }
-    } else {
+    const a = enterK(now, this.selAt, 0, 0, 200) * enterK(now, this.openAt, 3, 40, 220);
+    if (a <= 0) return;
+    const y = col.y;
+    if (!petOwned(p, this.sel)) {
       const msg = 'Found in hero chests';
-      const w = textWidth(msg, 1, true) + 16;
-      const r = { x: Math.min(x, c.x + c.w - 6 - w), y: y - 6, w, h: 12 };
-      glow(g, r, GOLD[3], 0.2 + 0.25 * pulse(now, 1200), 2);
+      const w = textWidth(msg, 1, true) + 22;
+      const r = { x: Math.round(col.x + (col.w - w) / 2), y: y + 1, w, h: 13 };
+      glow(g, r, GOLD[3], (0.2 + 0.2 * pulse(now, 1200)) * a, 2);
       tag(g, r, [GOLD[4], GOLD[3], GOLD[2], GOLD[0]], a);
-      padlock(kit.gOver, r.x + 3, r.y + 2, a, 0xfff0a0);
-      texts.text(msg, r.x + 12, r.y + 6, 0x5a2a08, { bold: true, oy: 0.5, alpha: a });
+      pix(kit.gOver, 'chest', r.x + 4, r.y + 3, a);
+      texts.text(msg, r.x + 16, r.y + 6.5, 0x5a2a08, { bold: true, oy: 0.5, alpha: a });
+      return;
     }
-    // level and XP (from the XP your hero earns with it along), and its attack
-    y += 11;
-    if (owned) {
-      const pr = p.pets[id];
-      const lv = petLevel(kit.tuning, pr.xp);
-      const max = Math.round(kit.tuning.pets.maxLevel);
-      const lp = levelProgress(kit.tuning, pr.xp);
-      const lt = `Lv ${lv}`;
-      const lw = textWidth(lt, 1, true) + 8;
-      tag(g, { x: col.x, y: y - 5, w: lw, h: 10 }, [GOLD[4], GOLD[3], GOLD[2], GOLD[0]], a);
-      texts.text(lt, col.x + lw / 2, y, 0x3a1e08, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
-      // its XP bar (when there's room for it) and its attack: beside the level when it fits, else under it
-      const at = attackText(id);
-      const right = c.x + c.w - 6;
-      const barW = col.x + lw + 3 + 28 + 5 + textWidth(at, 1, false) <= right ? 28 : 0;
-      if (barW) gauge(g, col.x + lw + 3, y - 3, barW, 6, lv >= max ? 1 : lp.need ? lp.into / lp.need : 1, 0, { ramp: [0xe0f6ff, 0x4aa0f0, 0x2a6ad8, 0x1a3c8a] });
-      const ax = col.x + lw + (barW ? barW + 8 : 5);
-      if (ax + textWidth(at, 1, false) <= right) texts.text(at, ax, y, 0xd8d0f0, { oy: 0.5, alpha: a });
-      else {
-        y += 9;
-        texts.text(at, col.x, y, 0xd8d0f0, { oy: 0.5, alpha: a });
-      }
-    } else texts.text(attackText(id), col.x, y, DIM_TXT, { oy: 0.5, alpha: a });
-    // the perks, each "Name: what it does", wrapped
-    y += 10;
-    const bottom = c.y + c.h - 4;
-    def.perks.forEach((pk, i) => {
-      const ik = clamp01((now - this.selAt - 80 - i * 60) / 160);
-      if (ik <= 0) return;
-      const nm = `${pk.name}:`;
-      const nw = textWidth(nm, 1, false);
-      const lines = wrapFlow(pk.text, col.w - nw - 4, col.w);
-      if (y + 4 > bottom) return;
-      texts.text(nm, col.x, y, owned ? 0xb4f070 : 0x8aa070, { oy: 0.5, alpha: ik });
-      lines.forEach((l, j) => l && y + j * 8 + 4 <= bottom && texts.text(l, j === 0 ? col.x + nw + 4 : col.x, y + j * 8, owned ? 0xe8e0f8 : DIM_TXT, { oy: 0.5, alpha: ik }));
-      y += lines.length * 8 + 1;
+    const pr = p.pets[this.sel];
+    glass(g, { x: col.x, y, w: col.w, h: 14 }, { alpha: a, clear: 0.2 });
+    const half = Math.floor(col.w * 0.6);
+    // level: a gold "Lv 6" and the XP toward the next (earned with your hero while it's along)
+    const lv = petLevel(kit.tuning, pr.xp);
+    const max = Math.round(kit.tuning.pets.maxLevel);
+    const lp = levelProgress(kit.tuning, pr.xp);
+    const lt = `Lv ${lv}`;
+    const lw = textWidth(lt, 1, true) + 6;
+    tag(g, { x: col.x + 2, y: y + 2, w: lw, h: 10 }, [GOLD[4], GOLD[3], GOLD[2], GOLD[0]], a);
+    texts.text(lt, col.x + 2 + lw / 2, y + 7, 0x3a1e08, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
+    const atMax = lv >= max || !lp.need;
+    this.miniMeter(g, col.x + lw + 6, y, half - lw - 9, atMax ? 1 : lp.into / lp.need, atMax ? 'Max' : `${lp.into}/${lp.need}`, atMax ? GOLD_TXT : 0xc8e0ff, [0xe0f6ff, 0x4aa0f0, 0x2a6ad8, 0x1a3c8a], a, now);
+    // shards toward the next star
+    const need = shardsToNext(kit.tuning, pr.stars);
+    const sx = col.x + half + 2;
+    pix(g, 'shard', sx, y + 3, a);
+    this.miniMeter(g, sx + 11, y, col.x + col.w - 4 - (sx + 11), need === null ? 1 : pr.shards / need, need === null ? 'Max' : `${pr.shards}/${need}`, need === null ? GOLD_TXT : 0xe8d0ff, [0xf0d8ff, 0xb06ae0, 0x7a3cb0, 0x4a2470], a, now);
+  }
+
+  /** A slim bar with its numbers over its right end (small), in a 14 px row from y. */
+  private miniMeter(g: G, x: number, y: number, w: number, frac: number, value: string, col: number, ramp: Face, a: number, now: number): void {
+    gauge(g, x, y + 9, w, 3, frac, 0, { ramp, glow: frac >= 1 ? 0.3 + 0.3 * pulse(now, 900) : 0 });
+    this.kit.texts.text(value, x + w, y + 4.5, col, { ox: 1, oy: 0.5, alpha: a });
+  }
+
+  /** What it does, as cards: the attack, then each perk (the body bold when everything fits, else small). */
+  private drawCards(now: number): void {
+    const kit = this.kit;
+    const p = kit.profile;
+    const def = COMPANIONS[this.sel];
+    const owned = petOwned(p, this.sel);
+    const col = this.col();
+    const top = col.y + 16;
+    const avail = col.y + col.h - top;
+    const cards = [
+      { title: def.attack, body: `Every ${def.every} hits${def.allFoes ? ', all foes' : ''}.`, look: ATTACK_LOOK },
+      ...def.perks.map((pk) => ({ title: pk.name, body: pk.text, look: PERK_LOOK[pk.name] ?? { icon: 'rune', col: 0x4a3a7a, text: 0xd8c8ff } })),
+    ];
+    const gap = 2;
+    const fit = (bold: boolean, tight: boolean) => cards.reduce((h, c) => h + textCardH(textCardLines(col.w, { icon: c.look.icon, body: c.body, bold }).length, bold, tight), 0) + gap * (cards.length - 1) <= avail;
+    const bold = fit(true, false);
+    const tight = !bold && !fit(false, false);
+    const l = kit.layer();
+    let y = top;
+    cards.forEach((c, i) => {
+      const lines = textCardLines(col.w, { icon: c.look.icon, body: c.body, bold });
+      const h = textCardH(lines.length, bold, tight);
+      const k = easeOut3(enterK(now, Math.max(this.selAt, this.openAt + 120), i, 50, 200));
+      if (k > 0) textCard(kit, l, { x: col.x + Math.round((1 - k) * 10), y, w: col.w, h }, { icon: c.look.icon, iconCol: c.look.col, title: c.title, titleCol: c.look.text, body: c.body, bold, dim: !owned, alpha: k }, now, tight);
+      y += h + gap;
     });
-    // the joke, when there's room
-    if (y + 4 <= bottom) {
-      const bio = wrapText(def.bio, c.x + c.w - 6 - col.x);
-      if (y + bio.length * 8 <= bottom + 4) bio.forEach((l, j) => texts.text(l, col.x, y + 1 + j * 8, 0x9a90c0, { oy: 0.5, alpha: a }));
-    }
   }
 }
