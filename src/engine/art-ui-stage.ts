@@ -6,7 +6,7 @@
 // if it needs a new silhouette, a motif painter below).
 import type Phaser from 'phaser';
 
-export type StageMotif = 'castle' | 'roofs' | 'gate' | 'pines' | 'cliffs' | 'crystals' | 'grove' | 'workshop' | 'arch' | 'vault' | 'none';
+export type StageMotif = 'castle' | 'roofs' | 'gate' | 'pines' | 'cliffs' | 'crystals' | 'grove' | 'workshop' | 'arch' | 'vault' | 'none' | (string & {});
 
 export interface StageSpec {
   /** Sky (or back wall) bands, top to bottom. */
@@ -419,11 +419,25 @@ function paintMotif(ctx: Ctx, w: number, sp: StageSpec, r: () => number): void {
       }
       break;
     }
-    case 'arch':
-    case 'vault':
-    case 'none':
+    default: {
+      // a motif a screen registered from its own art file (registerStageTheme)
+      MOTIFS.get(sp.motif)?.(ctx, w, sp, r);
       break;
+    }
   }
+}
+
+/** A motif painter: the far and near layers between the sky and the floor (the context is the 327 x 150 canvas). */
+export type MotifPainter = (ctx: CanvasRenderingContext2D, w: number, sp: StageSpec, r: () => number) => void;
+const MOTIFS = new Map<string, MotifPainter>();
+
+/**
+ * Add a stage theme from a screen's own art file (the shrine, the vault, the companions' grove...): its spec and, for
+ * a new motif, the painter of its layers. Keeps each screen's art in its own file (no edits to this one).
+ */
+export function registerStageTheme(name: string, spec: StageSpec, painter?: MotifPainter): void {
+  STAGE_THEMES[name] = spec;
+  if (painter) MOTIFS.set(spec.motif, painter);
 }
 
 /** Paint a stage's backdrop: the sky, the motif's layers, the floor. */
