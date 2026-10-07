@@ -6,8 +6,8 @@ No new regions or content: a polish, clarity and tuning pass on the three themes
 empty, fight effects hard to read, specific hero notes). Every call is in `docs/decisions.md` ("Overnight polish run").
 
 - **Live build:** https://chef-development.github.io/cq3/ (every push deploys).
-- **Branch:** `claude/eloquent-ptolemy-b7qwvk`, built on `claude/m5-heroes` (PR Chef-Development/cq3#5 was still
-  open): the new PR includes #5 and supersedes it. Merge the new PR; #5 (and #1-#4) can be closed.
+- **Branch:** `claude/eloquent-ptolemy-b7qwvk`, PR Chef-Development/cq3#6, built on `claude/m5-heroes` (PR #5 was
+  still open): #6 includes #5 and supersedes it. Merge #6; #5 (and #1-#4) can be closed.
 - **How to check it:** open the **Test lab** (title screen, top left). "New" holds this round (about 21 minutes
   without spoilers): every reworked item asks for a new rating and shows its old one. "Copy report" now counts the
   lab fights' taps in the accuracy line.
