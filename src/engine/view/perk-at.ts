@@ -63,6 +63,15 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   // ---- Tam
   fuseUp: ['spawn'],
   bigBang: ['show'],
+  turnabout: ['reds', 'spawn'], // (round 6) Big Bang turns the reds into kegs
+  // (round 6) Neve's Glacier freezes every red and slows the bar; Big Freeze turns the reds into ice
+  glacier: ['reds', 'cursor'],
+  bigFreeze: ['reds'],
+  // (round 6) Hollis's Bulwark: at full Guard a block or hit sets it off on every foe
+  bulwark: ['tab', 'foes'],
+  bulwarkBlow: ['bolt'],
+  // (round 6) Vesper's Patience: at full Focus with no green in reach, a Perfect fires the shot
+  patience: ['target'],
   // ---- Hollis (and the Guardian style's Guard)
   guardUp: ['tab'],
   guard: ['target'],
@@ -248,6 +257,7 @@ export const PERK_SPAWN: Record<string, BlockKind> = {
   fuseUp: 'keg',
   restock: 'keg',
   stockpile: 'keg',
+  turnabout: 'keg',
   partingGift: 'bomb',
 };
 
