@@ -161,3 +161,49 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     nearly always wins; at Act 3's numbers a fresh lab hero, Rowan included, lost half of them); companion fights
     four waves. A reworked item asks for a new rating: a rating given to its old version shows as "Reworked" in
     the list and as "before: ..." in the report.
+
+## Overnight polish run (playtest round 6)
+
+The chests, the vault and the shrine (the playtester: menus "dated, simplistic and empty"; rewards should be exciting).
+
+- **S1. Big chests in two parts.** Each chest is drawn at 49x46 as a lid and a base on one canvas (art-chests.ts), so
+  the lid can hop, lift (light showing in the gap) and burst away; the opening shows them at 2x as its focal point.
+  The camp's prop keeps its key and size (`hchest_${kind}_closed`, 35x34, the new designs at camp size), so camp.ts
+  is untouched.
+- **S2. A silhouette per kind.** Hero: a barrel-lidded oak chest banded in gold with a crest. Rare: a bevelled navy
+  trunk with silver trim and a cluster of crystals growing out of its top. Region: a violet reliquary on gold feet
+  under an arched roof with a ruby crest. Told apart at a glance, even as badges.
+- **S3. None waiting = open, empty, dark.** A kind with no chest stands open and empty, dim, with dust and a cobweb;
+  a tap rattles it and says where they come from (the only sentence on the vault, after a tap).
+- **S4. The build-up is one step per tier.** Common gets one pulse (grey), Divine eight (to prismatic), each about
+  0.6 s and quickening, harder shakes and wider cracks as they climb, then a charge (0.4 s + 70 ms per tier) and a
+  silhouette hold (0.9 s + 90 ms per tier). A row of eight tier gems under the top bar lights up per step (the ones
+  above stay dark: "will it go further?"). A tap jumps to the next mark (slam, a step, the charge, the burst, the
+  reveal); it never skips the reveal.
+- **S5. The prize as a figure, not a card.** The hero's fight idle frames at 2x (a companion's at 3x) rise out of
+  the chest's light as a black silhouette with a 1 px rim of the tier's colour, then flash white and fill in. The
+  banner sits under the top bar's middle (clear of the HTML gear button), the name and what it means under the feet.
+- **S6. Open all rolls everything first.** All waiting chests are rolled, granted and saved up front (closing the app
+  mid-chain loses nothing), then play one after another and end on a summary of tiles; chest heroes met play their
+  arrival scenes after the summary, one after another.
+- **S7. The shrine's Open pays and opens.** One action: a Rare chest already waiting opens free first; otherwise it
+  pays the gems and opens right there (no Buy-then-Open). camp.ts's old 'openRare' route is now unused; left in
+  place since camp.ts belongs to another agent.
+- **S8. Staged screens clear the camp's dim.** camp.ts draws a 0.62 dim on gUi before every screen, which would
+  darken a stage drawn under it (STAGE_DEPTH); the vault and the shrine clear gUi first (their stage covers the
+  camp). Suggest camp.ts skip the dim for staged screens.
+- **S9. The vault and the shrine paint their own floors.** Their specs set floorY 150 and the motif paints flagstones
+  in perspective from VAULT_FLOOR / SHRINE_FLOOR (`flagstones()` in art-shrine.ts), rather than the plain bands.
+- **S10. An image pool that sets everything.** The opening's light (seams, glows, rims, the silhouette) needs ADD
+  blending and fill tints, which the kit's pools don't set; `FxImages` (chest-opening.ts) sets blend, tint mode, crop
+  and angle on every draw and hides itself each frame (the scene's pre-update), so nothing lingers.
+- **S11. Fanfares sized to the tier.** Common and Uncommon a ding and a little run; Rare and Epic the boost stings;
+  Legendary and Mythic the reveal cards' fanfares; Celestial a choir on a major ninth under cascading bells; Divine
+  the Legendary fanfare with a second brass call a fourth up, a choir and a long glitter. Every new sound peaks under
+  0.8 (audio.test.ts).
+- **S12. The Test lab's demo.** `camp.chests.demo(tiers, kind, now)` plays the opening at forced tiers (several
+  chain like Open all) with a hero (Rare+) or companion of that tier or the closest below, always as "New": no roll,
+  no grant, no scene, no achievement. Nothing above Legendary can come out yet (no Mythic+ heroes or companions), so
+  the demo is the only way to see the Mythic, Celestial and Divine build-ups.
+- **S13. The top pity vial has no label.** The thin cyan vial beside the Legendary one is the Celestial pity; its
+  number is in the pity sheet (tap the vials). Fewer words on the screen.

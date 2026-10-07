@@ -28,10 +28,10 @@ import { BIG_CHEST } from '../art-chests';
 import { textWidth } from '../font';
 import { D, familyChipW, GOLD_TXT, type CampKit } from './camp-kit';
 import { star } from './loot';
-import { chevron, gauge, glow, GOLD, hudIcon } from './pixels';
+import { chevron, gauge, glow, GOLD, hudIcon, rows } from './pixels';
 import { clamp01, easeBack, easeOut3, mix, pulse, WHITE } from './shared';
 import { ribbon, tag } from './ui';
-import { fillEllipse, glass, vignette } from './ui-modern';
+import { aura, fillEllipse, glass, vignette } from './ui-modern';
 
 type G = Phaser.GameObjects.Graphics;
 type Face = readonly [number, number, number, number];
@@ -541,8 +541,14 @@ export class ChestOpening {
     if (glowK > 0) {
       const pk = sinceStep < 220 ? 1 - sinceStep / 220 : 0;
       im.get('hchest_glow_l', cx, chestMid, DD.glow, { sx: (1.7 + step * 0.16 + ck * 0.6 + pk * 0.35 + 0.05 * Math.sin(now / 90)) / 3, tint: base, add: true, alpha: Math.min(1, glowK * (0.75 + 0.25 * pulse(now, 420)) + pk * 0.3) * A });
+      // the tier's aura in clear, stepped rings (the shared rarity glow), then a brighter heart in its light colour
+      if (step >= 0 && !burst) aura(kit, g, cx, chestMid, 58 + step * 3 + pk * 6, 50 + step * 3 + pk * 6, TIERS[step], now, 1);
+      im.get('hchest_glow_l', cx, chestMid, DD.glow, { sx: (1.25 + step * 0.1 + ck * 0.35 + pk * 0.25) / 3, tint: hi, add: true, alpha: Math.min(1, glowK * 0.85 + pk * 0.3) * A });
       fillEllipse(g, cx, ground + 2, 46 + step * 3, 7, base, 0.16 * glowK * A);
     }
+    // the tiers climbed so far: a gem lights up per step (the ones above stay dark: will it go further?)
+    const rowA = (burst ? 1 - clamp01((lt - tl.burst) / 260) : clamp01((lt - SLAM) / 300)) * A;
+    if (rowA > 0) this.tierRow(now, cx0, step, sinceStep, rowA);
     // the floor's shadow under it
     if (!burst) fillEllipse(g, cx, ground + 1, 44 * (lt < SLAM ? clamp01(lt / SLAM) : 1), 4, 0x000000, 0.5 * A);
     // dust puffs from the slam
@@ -625,6 +631,31 @@ export class ChestOpening {
     } else if (lt >= tl.done && !r.outAt) {
       const more = this.runs.length;
       kit.topTexts.text(more ? `Next (${more})` : 'Tap', s.R - 4, s.B - 7, 0xfff0c0, { bold: true, ox: 1, oy: 0.5, alpha: 0.6 + 0.4 * pulse(now, 900) });
+    }
+  }
+
+  /** Eight small gems, Common to Divine, under the top bar's middle: lit up to the step reached, the newest popping. */
+  private tierRow(now: number, cx: number, step: number, sinceStep: number, a: number): void {
+    const go = this.kit.gTopOver;
+    const n = TIERS.length;
+    const gap = 10;
+    const x0 = Math.round(cx - (n * gap - 3) / 2);
+    const y = 23;
+    for (let i = 0; i < n; i++) {
+      const lit = i <= step;
+      const f = this.stepFace(i, now);
+      const pop = lit && i === step && sinceStep < 260 ? Math.round(Math.sin((sinceStep / 260) * Math.PI)) : 0;
+      const x = x0 + i * gap - pop;
+      const yy = y - pop;
+      const s = 7 + pop * 2;
+      if (lit && i === step) rows(go, x - 3, yy - 3, s + 6, s + 6, 3, f[1], (0.3 + 0.25 * pulse(now, 500)) * a);
+      rows(go, x - 1, yy - 1, s + 2, s + 2, 2, 0x05030a, a);
+      rows(go, x, yy, s, s, 2, lit ? f[1] : 0x241c34, a);
+      go.fillStyle(lit ? f[0] : 0x3a3050, a);
+      go.fillRect(x + 1, yy + 1, Math.max(2, s - 4), 1);
+      go.fillStyle(lit ? f[3] : 0x140e20, a);
+      go.fillRect(x + 2, yy + s - 1, s - 4, 1);
+      if (lit && i >= 6 && pulse(now, 700, i * 200) > 0.8) star(go, x + s - 1, yy, 1, WHITE, a);
     }
   }
 
@@ -819,22 +850,32 @@ export class ChestOpening {
     const TW = 26;
     const TH = 34;
     const w = Math.min(s.R - s.L - 12, perRow * (TW + 6) + 18);
-    const h = rowsN * (TH + 6) + 16;
+    const h = rowsN * (TH + 6) + 30;
     const cx = Math.round((s.L + s.R) / 2);
     const r = { x: Math.round(cx - w / 2), y: Math.round((s.B - h) / 2 + 4 + (1 - Math.min(1, k)) * 14), w, h };
     // the light behind the plate in the best prize's colours
     const best = sm.items.reduce((b, it) => (tierIndex(it.prize.tier) > tierIndex(b) ? it.prize.tier : b), 'common' as Tier);
     this.rays(g, cx, r.y + r.h / 2, now, tierIndex(best), 0.6 * A);
     glass(g, r, { alpha: A, rim: TIER_INFO[best].face[2], clear: 0.1 });
-    const title = this.demoMode ? `Demo: ${sm.items.length} chests` : `${sm.items.length} chests opened`;
+    const title = this.demoMode ? 'Demo' : 'Opened';
     const tw = textWidth(title, 1, true) + 24;
     const rb = ribbon(go, cx, r.y - 6, tw, 13, TIER_INFO[best].face as Face, A, true);
     texts.text(title, cx, rb.y + 6.5, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: A });
+    // which chests: each kind's badge and how many
+    const kinds = (['hero', 'rare', 'region'] as ChestKind[]).map((kind) => ({ kind, n: sm.items.filter((it) => it.kind === kind).length })).filter((q) => q.n > 0);
+    const kw = kinds.map((q) => 17 + 2 + textWidth(`x${q.n}`, 1, true));
+    let kx = Math.round(cx - (kw.reduce((a, b) => a + b, 0) + (kinds.length - 1) * 8) / 2);
+    kinds.forEach((q, i) => {
+      const key = `hchest_${q.kind}_icon`;
+      if (kit.has(key)) kit.imgs.at(key, kx, r.y + 7, D.topIcons, A);
+      texts.text(`x${q.n}`, kx + 19, r.y + 15, 0xe8e0ff, { bold: true, oy: 0.5, alpha: A });
+      kx += kw[i] + 8;
+    });
     sm.items.slice(0, n).forEach((it, i) => {
       const row = Math.floor(i / perRow);
       const inRow = Math.min(perRow, n - row * perRow);
       const x = Math.round(cx - (inRow * (TW + 6) - 6) / 2 + (i % perRow) * (TW + 6));
-      const y = r.y + 14 + row * (TH + 6);
+      const y = r.y + 28 + row * (TH + 6);
       const ik = easeBack((now - sm.at - 120 - i * 60) / 240, 2);
       if (ik <= 0) return;
       const ty = y + Math.round((1 - Math.min(1, ik)) * 6);
