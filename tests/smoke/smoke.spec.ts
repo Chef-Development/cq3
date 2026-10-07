@@ -752,6 +752,59 @@ test('camp: learn a skill and reset, pick Sable on the hero select, read a new r
   expect(errors).toEqual([]);
 });
 
+test('camp: the hero select pages with a swipe on its stage; a tap there stays a tap', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.addInitScript(() => {
+    const hero = (unlocked: boolean, xp: number) => ({ unlocked, xp, skills: [] });
+    const p = { v: 3, actsCleared: 1, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 400), sable: hero(true, 0) } };
+    localStorage.setItem('cq3.profile.v2', JSON.stringify(p));
+  });
+  await ready(page);
+  const a = app(page);
+  await a((x) => {
+    x.newRun();
+    x.openCamp();
+  });
+  await expect.poll(() => a((x) => x.run.phase)).toBe('camp');
+  await page.waitForTimeout(400);
+  await a((x) => x.view.camp.go('heroes', performance.now()));
+  await page.waitForTimeout(400);
+  const l = (await page.evaluate('window.__cq3.app.layout')) as { left: number; top: number; cssW: number; cssH: number };
+  const css = (x: number, y: number) => [l.left + (x * l.cssW) / 327, l.top + (y * l.cssH) / 150] as const;
+  const st = (await a((x) => x.view.camp.heroes.stage())) as { x: number; y: number; w: number; h: number };
+  const [cx, cy] = css(st.x + st.w / 2, st.y + st.h * 0.45);
+  const view = () => a((x) => x.view.camp.heroes.view);
+  // a tap on the hero: a hop, never a page turn
+  await page.mouse.click(cx, cy);
+  await page.waitForTimeout(250);
+  expect(await view()).toBe('rowan');
+  // a swipe to the left: the next hero
+  const swipe = async (dx: number) => {
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.move(cx + dx * 0.5, cy, { steps: 4 });
+    await page.mouse.move(cx + dx, cy, { steps: 4 });
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+  };
+  const [dx] = css(40, 0);
+  const swipeW = dx - l.left;
+  await swipe(-swipeW);
+  expect(await view()).toBe('sable');
+  // and back to the right
+  await swipe(swipeW);
+  expect(await view()).toBe('rowan');
+  // a short drag snaps back (no page turn)
+  await swipe(-swipeW * 0.25);
+  expect(await view()).toBe('rowan');
+  // the big arrows page too
+  const next = (await a((x) => x.view.camp.heroes.arrows().next)) as { x: number; y: number; w: number; h: number };
+  await page.mouse.click(...css(next.x + next.w / 2, next.y + next.h / 2));
+  await expect.poll(view).toBe('sable');
+  expect(errors).toEqual([]);
+});
+
 test('camp (M5): open a hero chest (a new hero arrives), buy and open a Rare chest at the shrine, equip a companion, build the Training Dummy and practice', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));

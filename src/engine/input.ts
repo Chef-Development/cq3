@@ -1,6 +1,7 @@
 // Pointer/keyboard routing. Bar taps are judged by event.timeStamp (see App.barTap), not by frame. The world map is
 // bigger than the screen: there a press becomes a drag (it pans) once it moves a few game px, and is a tap only when
-// released in place (view/world.ts). One cursor for every hero. A press on a hold block starts a hold: lifting that
+// released in place (view/world.ts); the hero select's stage swipes the same way (view/heroes.ts: the hero follows the
+// finger, a swipe pages, a press let go in place is a tap). One cursor for every hero. A press on a hold block starts a hold: lifting that
 // finger releases it (judged at the lift's timeStamp), and a hold is never a finisher swipe. Taps on the HUD's relic
 // belt open the relic panel (the fight pauses) and are never judged as bar taps. While a tip card is up (view/tips.ts)
 // a tap only dismisses it: never a bar tap, a finisher, or a press of whatever is under it.
@@ -33,6 +34,21 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
     if (end === 'move') scene.worldMap.dragTo(g.x, g.y, now);
     else if (end === 'up') scene.worldMap.releaseAt(g.x, g.y, now);
     else scene.worldMap.cancelPress();
+    return true;
+  };
+
+  // the pointer pressing (and maybe swiping) a camp screen's stage (the hero select): a tap if it stays put
+  let campPress: number | null = null;
+  const campPointer = (e: PointerEvent, end: 'move' | 'up' | 'cancel'): boolean => {
+    if (campPress === null || e.pointerId !== campPress) return false;
+    const scene = getScene();
+    const g = clientToGame(app.layout, e.clientX, e.clientY);
+    const now = performance.now();
+    if (end !== 'move') campPress = null;
+    if (!scene || app.run.phase !== 'camp') return true;
+    if (end === 'move') scene.campDragTo(g.x, g.y, now);
+    else if (end === 'up') scene.campReleaseAt(g.x, g.y, now);
+    else scene.campCancelPress();
     return true;
   };
 
@@ -147,7 +163,10 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
           else if (!scene.storyReveal()) app.storyNext();
           return;
         }
-        if (now - app.phaseSince > 300) scene.campTap(clientX < 0 ? -1 : g.x, g.y);
+        if (now - app.phaseSince <= 300) return;
+        // the hero select's stage swipes: a press there is judged when it's let go (a tap if it stayed put)
+        if (clientX >= 0 && scene.campPressAt(g.x, g.y, now)) campPress = pointerId;
+        else scene.campTap(clientX < 0 ? -1 : g.x, g.y);
         return;
     }
     if (app.storyOverlay) {
@@ -247,20 +266,20 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
   };
 
   window.addEventListener('pointermove', (e) => {
-    if (worldPointer(e, 'move')) return;
+    if (worldPointer(e, 'move') || campPointer(e, 'move')) return;
     if (swipeCheck(e)) fireSwipe();
   });
 
   window.addEventListener('pointerup', (e) => {
     app.audio.unlock();
-    if (worldPointer(e, 'up')) return;
+    if (worldPointer(e, 'up') || campPointer(e, 'up')) return;
     lift(e.pointerId, e.timeStamp);
     if (!swipe || e.pointerId !== swipe.id) return;
     if (swipeCheck(e)) fireSwipe();
     else resolveSwipeAsTap();
   });
   window.addEventListener('pointercancel', (e) => {
-    if (worldPointer(e, 'cancel')) return;
+    if (worldPointer(e, 'cancel') || campPointer(e, 'cancel')) return;
     lift(e.pointerId, e.timeStamp);
     if (swipe && e.pointerId === swipe.id) resolveSwipeAsTap();
   });

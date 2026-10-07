@@ -294,6 +294,24 @@ export class FightScene extends Phaser.Scene implements View {
     this.camp.tap(x, y);
   }
 
+  /** A press on the hero select's stage, which swipes: true takes it (judged on release; a tap if it stays put). */
+  campPressAt(x: number, y: number, now: number): boolean {
+    return this.camp.mode === 'heroes' && this.camp.heroes.pressAt(x, y, now);
+  }
+
+  campDragTo(x: number, y: number, now: number): void {
+    if (this.camp.mode === 'heroes') this.camp.heroes.dragTo(x, y, now);
+  }
+
+  /** Let go: a press that stayed put is a tap, through the camp's usual route. */
+  campReleaseAt(x: number, y: number, now: number): void {
+    if (this.camp.mode === 'heroes' && this.camp.heroes.releaseAt(x, y, now)) this.camp.tap(x, y);
+  }
+
+  campCancelPress(): void {
+    this.camp.heroes.cancelPress();
+  }
+
   /** The loot screen after a fight or a chest. */
   lootTap(x: number, y: number): void {
     this.loot.tap(x, y);

@@ -8,7 +8,9 @@ import { GREENMARCH } from '../../src/data/greenmarch';
 import { SPEAKER_NAME, STORY } from '../../src/data/story';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
 import { HEROES } from '../../src/data/heroes';
-import { kitColW } from '../../src/engine/view/heroes';
+import { TIER_INFO } from '../../src/data/rarity';
+import { STYLES } from '../../src/data/styles';
+import { heroColW, KIT_CARD_W, KIT_LABELS } from '../../src/engine/view/heroes';
 import { cloneTuning, DEFAULT_TUNING, getPath, mergeKnown, setPath, sliderGroups, tuningDiff } from '../../src/core/tuning';
 import { textWidth } from '../../src/engine/font';
 
@@ -211,21 +213,25 @@ describe('camp banter', () => {
   });
 });
 
-describe('hero kit lines', () => {
-  it("every hero's kit fits the hero select's three columns at the narrowest layout (iPhone safe areas)", () => {
-    // the card's inner width with 23 px safe areas each side: 327 - 46 - 6 - 12
-    const KW = 263;
-    for (const h of Object.values(HEROES)) {
-      const parts = [h.ability, h.passive, h.finisher].filter((p): p is NonNullable<typeof p> => !!p);
-      for (const p of parts) expect(p.short.length, p.name).toBeGreaterThan(0);
-      const plain = parts.reduce((a, p) => a + kitColW(p, false), 0) + 6 * (parts.length - 1);
-      expect(plain, h.name).toBeLessThanOrEqual(KW);
-    }
+describe('hero select lines', () => {
+  // the narrowest layout: the iPhone's safe areas (22 px each side)
+  const COL = heroColW(22, 305);
+
+  it("every hero's name (bold 2) and title share a line in the hero select's column", () => {
+    for (const h of Object.values(HEROES)) expect(textWidth(h.name, 2, true) + 5 + textWidth(h.title, 1, false), h.name).toBeLessThanOrEqual(COL);
   });
 
-  it("every hero's bio is one line on the hero select", () => {
-    // (the card's text column is 214 px with the iPhone's safe areas)
-    for (const h of Object.values(HEROES)) expect(textWidth(h.bio, 1, false), h.bio).toBeLessThanOrEqual(210);
+  it("every hero's rarity and style chips share a row; the kit cards' one-word labels fit their cards (bold, never cut)", () => {
+    for (const h of Object.values(HEROES)) {
+      const chips = textWidth(TIER_INFO[h.rarity].name, 1, true) + 8 + 4 + 9 + 5 + textWidth(STYLES[h.style].name, 1, true) + 4;
+      expect(chips, h.name).toBeLessThanOrEqual(COL);
+    }
+    // each label is centred under its card: what two neighbours hang past their cards must leave 2 px between them,
+    // and the last one stays inside the safe area
+    const gap = Math.floor((COL - 4 * KIT_CARD_W) / 3);
+    const over = KIT_LABELS.map((l) => Math.max(0, textWidth(l, 1, true) - KIT_CARD_W) / 2);
+    for (let i = 0; i + 1 < over.length; i++) expect(over[i] + over[i + 1], `${KIT_LABELS[i]} / ${KIT_LABELS[i + 1]}`).toBeLessThanOrEqual(gap - 2);
+    expect(over[over.length - 1]).toBeLessThanOrEqual(3);
   });
 });
 

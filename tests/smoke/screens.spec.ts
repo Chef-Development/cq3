@@ -415,11 +415,8 @@ test('camp: hero select, skill tree, relic log', async ({ page }) => {
   await camp((c, now) => c.go('heroes', now, 'sable'));
   await frames(page, 40);
   await expect(page).toHaveScreenshot('hero-select.png', shot);
-  // a chest hero not met yet (a silhouette, how they're found), on the Mastery tab
-  await camp((c, now) => {
-    c.heroes.show('vesper', now);
-    c.heroes.tab = 'mastery';
-  });
+  // a chest hero not met yet (a rim-lit silhouette on a dim stage, how they're found, Locked)
+  await camp((c, now) => c.heroes.show('vesper', now));
   await frames(page, 30);
   await expect(page).toHaveScreenshot('hero-select-locked.png', shot);
   await camp((c, now) => {
@@ -436,6 +433,43 @@ test('camp: hero select, skill tree, relic log', async ({ page }) => {
   });
   await frames(page, 40);
   await expect(page).toHaveScreenshot('relic-log.png', shot);
+});
+
+test('camp: the hero select with a kit card sheet open; a skill node being learned (its energy mid-run)', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stockProfile(page);
+  await heroProfile(page);
+  await page.evaluate(() => {
+    const app = (window as Cq3Window).__cq3!.app as unknown as { newRun(): void; openCamp(): void };
+    app.newRun();
+    app.openCamp();
+  });
+  await frames(page, 30);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const camp = (fn: (c: any, now: number) => void) => page.evaluate(`(${fn.toString()})(window.__cq3.app.view.camp, performance.now())`);
+  // Rowan's finisher card tapped: its sheet slides up over the column
+  await camp((c, now) => c.go('heroes', now, 'rowan'));
+  await frames(page, 40);
+  await camp((c, now) => {
+    const r = c.heroes.kitCards()[3].r;
+    c.heroes.tap(r.x + r.w / 2, r.y + r.h / 2, now);
+  });
+  await frames(page, 20);
+  await expect(page).toHaveScreenshot('hero-select-kit-sheet.png', shot);
+  // Skills: Follow-Through learned, the energy running up its path from Steady Aim
+  await camp((c, now) => {
+    c.go('home', now);
+    c.go('skills', now);
+    c.skills.select('followThrough', now);
+  });
+  await frames(page, 40);
+  await camp((c, now) => {
+    const r = c.skills.learnRect();
+    c.skills.tap(r.x + r.w / 2, r.y + r.h / 2, now);
+  });
+  await frames(page, 18);
+  await expect(page).toHaveScreenshot('skill-tree-learning.png', shot);
 });
 
 /** On top of stockProfile: the shared progression (M5): gems, waiting chests, heroes and companions from chests. */

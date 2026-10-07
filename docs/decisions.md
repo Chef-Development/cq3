@@ -197,3 +197,39 @@ V7. A heal shows a green +N on the hero too (beside the HP plate's): heals withi
     heal on every hit (Vampiric Fang) never stacks numbers.
 V8. Flights from the stage to the bar (Mote's star, seeds, leaves, companions' streaks, fireballs) draw over the
     callout words, which they would otherwise pass under.
+H1. **Hero select layout.** The stage is the left 46% of the safe width (the hero centred on it by their figure,
+    measured from their idle frame, so Rowan's sword or Torva's hammer don't push them off centre); the column on the
+    right. The title shares the name's line; the bio, the style's rule and the soft strength moved into the sheet a tap
+    on the name or the chips opens (the strength was beside the tabs). The Kit / Stars / Mastery tabs are gone: stars
+    are five big stars over a shard meter, mastery four wax seals (lit when done; an arrow, a flag or a crown by goal),
+    each opening its sheet. A hero not met yet keeps their real name (dim), as before; "Locked" takes the column.
+H2. **Kit card labels** are one word that fits a 32 px card in bold on the phone: Special (signature), Green (the
+    ability), Trait (passive), Swipe (finisher, the game's own word for it). The sheet names them in full.
+H3. **Picking a hero** no longer shows the "X picked! / Same gear, their own level" toast: the hero hops, rings and
+    stars burst, "Fights next!" floats up. "Each hero levels up on their own" is in the level sheet (and the heroes tip).
+H4. **Swipe** works on the stage only (not the column, the arrows or Back): a press there is judged on release
+    (input.ts -> scene.campPressAt/DragTo/ReleaseAt, not camp.ts, which another agent owns; a press let go in place
+    still goes through camp.tap). 4 px makes it a drag (the world map's DRAG_PX); 22 px or a quick flick pages; a short
+    drag snaps back.
+H5. **The camp's dim over a stage.** camp.ts draws its 62% dim on gUi before every screen, and a full-screen stage
+    image (drawStage, at D.ui - 0.004) sits under gUi, so the dim darkened the whole stage. `liftDim` (ui-modern.ts)
+    clears gUi and draws the dim on gFront instead (under the stage, over the camp). Simpler later: camp.ts skips its dim
+    for screens that paint a stage.
+H6. **The silhouette** of a hero not met yet is a flat fill with a 1 px rim from the stage's light: SpritePool takes a
+    `fill` colour (Phaser's tint mode set by number, 0/1, so camp-kit.ts needs no Phaser value import: unit tests
+    import the hero select's module).
+H7. **The style stages** (castle yard, moonlit rooftops, fortress gate, dusk forest, quarry, ice cave, glowing grove,
+    sapper's workshop) are painted in art-ui-styles.ts under their own motif names (yard, rooftops, gatehouse, dusk,
+    quarry, icecave, glowgrove, sapper): the companions' night theme reuses the generic 'grove' motif, so the old
+    generic painters stay. Each also paints its own floor (flagstones, roof tiles, cobbles, grass, gravel, ice, moss,
+    planks). Composed for the hero select (the hero's spot framed by a gate, an arch, a great tree or a lamp).
+H8. **Skill tree geometry.** Five nodes and the root in 119 px of height (the phone) leave ~19 px per node, less than
+    an 18 px badge plus a visible link: the branches rise in three columns that lean outward, each node stepping to
+    the other side of its column, so every link is a diagonal. The branches' names are on the card only (no room on
+    the tree); the branches are told apart by colour (ember, azure, leaf, left to right, the same for every hero).
+H9. **Learning is instant in the profile** (saved at the tap; the smoke tests and the tips see it at once); the
+    energy run (520 ms) and the node lighting are the show on top, and the points counter shows the old count until
+    the energy lands. The post-learn toast (stat before > after, or the rule's new line) became a float of the stat
+    gained; the card shows the before > after row before learning.
+H10. **CLAUDE.md** still describes the hero select as "paged by a strip of faces; Kit / Stars / Mastery tabs" and
+    doesn't list art-ui-styles.ts: left for the planning chat to update (agents don't edit CLAUDE.md).
