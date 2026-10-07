@@ -11,6 +11,10 @@ choices that change how you play: **relics** (run picks that change a rule), a s
 **hero levels and skill trees**, and a **soundtrack per act** (calm/intense arrangements, boss themes, combo layers).
 Playtest round 4 added **map content**: wandering packs (ambushes) and a travelling merchant on the act map, a Coin
 Rush mini-game stop, bounties (side quests), a secret cache per act, and a wandering foe on the world map (skirmishes).
+Playtest round 6 (an overnight polish run, no new content) **redesigned the menus** (docs/ui-style.md: the hero on a lit
+stage, a real skill tree, the camp's upgrades as objects in the camp, a region card, the shrine as a place, a vault of
+chests), made **chests build up to their reveal**, made **every fight effect show on what it touched**, and re-tuned the
+heroes (Neve, Tam, Torva, Vesper, Hollis, Moss, Sable, Newt) with a full text pass.
 The user playtests on an iPhone 16 Pro and does not read long output; a separate planning chat orchestrates.
 
 ## Rules
@@ -43,6 +47,19 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `hero-skills.test.ts`). Relics never flat-bump a stat. Run-level relics (shops, rests, map steps) live in `run.ts`.
   Offers (`core/relics.ts`): mostly relics plus at most one stat card, leaning toward owned tags ("Synergy!"); relics
   carry and reset like boosts (`hero.relics`, never mutated in place); replays draft `kit.relicPicks` per act behind.
+- **Every fight effect shows on what it touched** (the block, the foe, the cursor, the hero), not only as a word:
+  `view/perk-at.ts` says where each perk lands and `view/onsite.ts` draws it; `tests/unit/perk-at.test.ts` reads the
+  core for every perk id it fires and fails on one without an entry (a new perk needs an entry, and a callout word if
+  it's a kit, style, ally or companion's). What the core emits for the view (Hollis's slams and Bulwark, Glacier's
+  frozen-solid reds, Vesper's `Block.target` greens, Sable's `'land'` patch, `Enemy.burn`, ally `power`...) is listed
+  in `docs/fight-events.md`.
+- **Menus follow `docs/ui-style.md`**: one big animated focal point per screen, few words (details behind a tap, in a
+  `Sheet`), depth (a painted stage per screen, light, vignette, rarity auras), motion, bold scale 1 as the smallest
+  must-read type. They're built from one shared set: `view/ui-modern.ts` (stages, glass plates, icon cards, meters,
+  pips, rings, the big button, sheets, tokens, badges; append new parts at its end) and `art-ui-stage.ts` (the painted
+  stages: `ensureStage`, a screen's own theme registered with `registerStageTheme` from its own art file). camp.ts
+  skips its dim behind a screen that paints its own stage (`STAGED_MODES`). Render a redesigned screen and check it
+  against the guide's six questions before moving on.
 - **Map extras** (`core/roam.ts`, `quests.ts`, `skirmish.ts`; numbers in `tuning.extras/roam/rush/quests/secret/wander`).
   After `buildActMap`, `addExtras` (its own random stream: the map itself is unchanged) turns a fight mid-act into a
   **Coin Rush** (`rush` node) and an early event/fight into a **bounty board** (`bounty` node), hides a **secret** beside
@@ -228,7 +245,10 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   A scenario reworked after a playtest bumps its `rev` (a rating given to the old version shows as "Reworked" and asks
   again). Fights must be long enough to feel what's being tried (hero fights: six waves at Act 2's numbers; the bot
   guards their length and that they're nearly always won, `tests/unit/lab.test.ts`); a scenario can leave tips on for
-  a card it needs (`profile.tips`: a hero's how-to).
+  a card it needs (`profile.tips`: a hero's how-to, a bar rule's tip) and learn skill nodes (`profile.skills`).
+  Practice and lab fights count toward the accuracy readout: the lab's taps go to its own log (`cq3.lab.acc`) and the
+  lab report counts them with the real game's (the real save is never written). `chestDemo` plays the chest opening
+  at forced tiers without granting anything (`camp.chests.demo(tiers, kind, now)`).
 - **Text readability.** The pixel fonts bake an ink outline; dark text (on parchment, gold) automatically uses the
   outline-free twins (`font.ts` `isDarkInk`), and light text gets a brightness floor (`readable()`). New text must fit
   its box at 8x (`textWidth`): wrap or shorten it rather than truncating with "...", and never let bold rows overlap.
@@ -268,6 +288,9 @@ src/engine/    app.ts (time + input glue, music cues, story state, the Test lab'
                upgrades as objects in the clearing and their blueprint ghosts), art-grove.ts (the companions' night
                grove and stump), art-region-map.ts (the region card's parchment maps, frame, pedestal and study),
                art-dummy.ts (the camp's Training Dummy, a foe for practice fights), art-paint.ts (painting helpers),
+               art-ui-stage.ts (the menus' painted stages; art-ui-styles.ts the eight style stages), art-chests.ts (the
+               three chests in parts, their cracks and light; the vault stage), art-shrine.ts (the shrine stage, altar,
+               crystal, vials),
                art-life.ts (the maps' critters),
                backdrop.ts (forest, ruins, hollow), backdrop-frost.ts (pass, caves, glacier), backdrop-ash.ts (cinder,
                glass, forge), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
@@ -284,15 +307,19 @@ src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero in `${
                map; map-roam.ts its roamers, telegraphs, secret and bounty tracker), map-life.ts and world-life.ts (their
                critters and sparkles; life.ts the shared critters, glint and pop), stops.ts (the bounty board), story.ts (scenes),
                nodes.ts (rest, shop, events), camp.ts (the camp home; bag.ts, forge.ts, heroes.ts (hero select: all
-               eight, paged by a strip of faces; Kit / Stars / Mastery tabs), stats.ts, skills.ts (skill trees),
-               relic-log.ts, chests.ts (the waiting chests and their reveal), shrine.ts (Rare chests for gems, odds,
-               pity), companions.ts, upgrades.ts (build mode: the upgrades as objects over the live camp, a card per
+               eight, the hero at 3x on their style's stage, swipe or arrows to page, the kit as icon cards, stars, seals and
+               XP as meters, details in sheets), stats.ts, skills.ts (skill trees: three branches growing from a root,
+               paths that light up, an energy run into a node as it's learned), relic-log.ts, chests.ts (the vault: the
+               chests waiting, Open all; chest-opening.ts the build-up and reveal, shared with the shrine), shrine.ts (the
+               shrine as a place: the chest on the altar, the pity vials, odds behind an "i", buy-and-open), companions.ts
+               (the companion at 3x on a stump, its perks as cards, the Along sockets), upgrades.ts (build mode: the upgrades as objects over the live camp, a card per
                spot, the build animation; Practice with the Training Dummy), progress.ts
                (region completion; camp.openProgress(r) opens it from elsewhere) its screens; item-grid.ts the bag
                grid and worn slots; camp-kit.ts their shared layers, effects, buttons, hero tabs, rarity frames and
                stars; the top bar's middle is kept clear for the HTML gear button: kit.hudZone(), kit.topRow()),
                gains.ts (run.gains, what a fight or an act gave beyond the loot, shown briefly), relic-ui.ts (relic icons, tag chips, relic
-               cards, perk names), loot.ts (loot reveal and Legendary/Mythic cards), items.ts (item cells with rarity frames, item text),
+               cards, perk names), perk-at.ts + onsite.ts (where each fight effect lands and its look there), ui-modern.ts
+               (the menus' shared parts: docs/ui-style.md), loot.ts (loot reveal and Legendary/Mythic cards), items.ts (item cells with rarity frames, item text),
                ui.ts (text pool, panels), transition.ts (screen wipes), tips.ts (the tip card), icons.ts, pixels.ts (panels, gauges,
                buttons), shared.ts
 tests/unit/    Vitest tests for src/core and src/data (specials, waves, map, run, save, bot targets, content checks; roam,
