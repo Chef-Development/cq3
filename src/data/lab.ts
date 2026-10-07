@@ -186,7 +186,8 @@ export const LAB_EARLIER: LabScenario[] = [
     group: 'camp',
     label: 'Companions',
     secs: 30,
-    try: 'Bring two companions along.',
+    rev: 1,
+    try: 'Read each one. Bring two along.',
     setup: { kind: 'camp', screen: 'companions' },
     profile: { actsCleared: 2, camp: PERCH, pets: ['pip', 'bun', 'newt', 'brick', 'mote', 'sunny'], petsOn: ['pip'] },
   },
@@ -195,11 +196,12 @@ export const LAB_EARLIER: LabScenario[] = [
     group: 'camp',
     label: 'Camp upgrades',
     secs: 30,
-    try: 'Buy an upgrade. Check a locked one.',
+    rev: 1,
+    try: 'Tap a hammer: build it. Tap a locked one.',
     setup: { kind: 'camp', screen: 'upgrades' },
     profile: { actsCleared: 2, mastery: ['rowanActs3'], coins: 1500 },
   },
-  { id: 'completionNear', group: 'camp', label: 'Completion: almost', secs: 30, try: "Check what's left for 100%.", setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'near' } },
+  { id: 'completionNear', group: 'camp', label: 'Completion: almost', secs: 30, rev: 1, try: "Tap the seals: what's left for 100%?", setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'near' } },
 
   // ---- the second region's bar rules, alone against the Training Dummy
   barRule('barIce', 'Ice patches', 'The cursor speeds up on ice: tap early.', { ice: { every: 5, width: 0.22, life: 6, fromRow: 0, max: 2 } }, ['ice']),
@@ -223,7 +225,7 @@ export const LAB_EARLIER: LabScenario[] = [
   { id: 'spAct6', group: 'spoiler', spoiler: true, label: 'Act 6 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 5, waves: [['driftTroll', 'auroraWisp'], ['frostWeaver', 'hailcaller'], ['frostKnight']], bar: 'act', row: 3 } },
   { id: 'spBoss6', group: 'spoiler', spoiler: true, label: 'Act 6 boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 5, waves: [['glacia']], bar: 'act', row: 6, safe: true } },
   // (a region at 100% means the next one is reached: the progress screen names it, so this one waits here)
-  { id: 'completionDone', group: 'spoiler', spoiler: true, label: 'Completion: 100%', secs: 30, try: 'Claim the 100% reward.', setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'done' } },
+  { id: 'completionDone', group: 'spoiler', spoiler: true, label: 'Completion: 100%', secs: 30, rev: 1, try: 'Claim the 100% reward.', setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'done' } },
   { id: 'spStory4', group: 'spoiler', spoiler: true, label: 'Act 4 story', secs: 60, try: 'Read the scenes.', setup: { kind: 'story', act: 3, scenes: ['frost1', 'rimehorn', 'neveJoin'] } },
   { id: 'spStory5', group: 'spoiler', spoiler: true, label: 'Act 5 story', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 4, scenes: ['frost2', 'matron'] } },
   { id: 'spStory6', group: 'spoiler', spoiler: true, label: 'Act 6 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 5, scenes: ['frost3', 'glacia', 'glacia2', 'glacia3', 'frostVictory'] } },

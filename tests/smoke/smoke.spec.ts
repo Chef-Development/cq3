@@ -907,15 +907,20 @@ test('camp (M5): open a hero chest (a new hero arrives), buy and open a Rare che
   await expect.poll(mode).toBe('home');
   await page.waitForTimeout(400);
 
-  // the Camp button: build the Training Dummy (coins), then Practice: a fight against it, and back to the camp
+  // the Camp button: build mode over the camp; the Training Dummy's spot (its ghost and hammer) opens its card: Build
+  // (coins), then Practice: a fight against it, and back to the camp
   await tapRect((await a((x) => x.view.camp.campRect())) as Any);
   await expect.poll(mode).toBe('upgrades');
   await page.waitForTimeout(400);
-  await tapRect((await a((x) => x.view.camp.upgrades.row(4))) as Any); // the Training Dummy
+  await tapRect((await a((x) => x.view.camp.upgrades.spotRect('dummy'))) as Any); // the Training Dummy's spot
   await expect.poll(() => a((x) => x.view.camp.upgrades.sel)).toBe('dummy');
+  await page.waitForTimeout(300);
   await tapRect((await a((x) => x.view.camp.upgrades.buyRect())) as Any);
   await expect.poll(() => a((x) => x.profile.camp.join())).toBe('dummy');
   expect(await a((x) => x.profile.coins)).toBe(650);
+  await page.waitForTimeout(1800); // it's built (the dust, the clangs): its card again, now with Practice
+  await tapRect((await a((x) => x.view.camp.upgrades.spotRect('dummy'))) as Any);
+  await expect.poll(() => a((x) => x.view.camp.upgrades.sel)).toBe('dummy');
   await page.waitForTimeout(300);
   await tapRect((await a((x) => x.view.camp.upgrades.buyRect())) as Any); // now it says Practice
   await expect.poll(() => a((x) => ({ phase: x.run.phase, practice: !!x.run.practice }))).toEqual({ phase: 'fight', practice: true });

@@ -264,8 +264,10 @@ src/engine/    app.ts (time + input glue, music cues, story state, the Test lab'
                art-world-lands.ts (the later regions' landmark markers, the far lands and their fog),
                art-ash.ts (the third region's foes, portraits, bar pieces), art-relics-ash.ts (its relic and tag icons),
                art-roam.ts (the coin sack, the board, the secret rock, the merchant),
-               art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-dummy.ts (the camp's Training
-               Dummy, a foe for practice fights), art-paint.ts (painting helpers),
+               art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-camp-build.ts (the camp
+               upgrades as objects in the clearing and their blueprint ghosts), art-grove.ts (the companions' night
+               grove and stump), art-region-map.ts (the region card's parchment maps, frame, pedestal and study),
+               art-dummy.ts (the camp's Training Dummy, a foe for practice fights), art-paint.ts (painting helpers),
                art-life.ts (the maps' critters),
                backdrop.ts (forest, ruins, hollow), backdrop-frost.ts (pass, caves, glacier), backdrop-ash.ts (cinder,
                glass, forge), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
@@ -284,7 +286,8 @@ src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero in `${
                nodes.ts (rest, shop, events), camp.ts (the camp home; bag.ts, forge.ts, heroes.ts (hero select: all
                eight, paged by a strip of faces; Kit / Stars / Mastery tabs), stats.ts, skills.ts (skill trees),
                relic-log.ts, chests.ts (the waiting chests and their reveal), shrine.ts (Rare chests for gems, odds,
-               pity), companions.ts, upgrades.ts (camp upgrades; Practice with the Training Dummy), progress.ts
+               pity), companions.ts, upgrades.ts (build mode: the upgrades as objects over the live camp, a card per
+               spot, the build animation; Practice with the Training Dummy), progress.ts
                (region completion; camp.openProgress(r) opens it from elsewhere) its screens; item-grid.ts the bag
                grid and worn slots; camp-kit.ts their shared layers, effects, buttons, hero tabs, rarity frames and
                stars; the top bar's middle is kept clear for the HTML gear button: kit.hudZone(), kit.topRow()),

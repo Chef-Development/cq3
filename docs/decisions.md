@@ -276,3 +276,40 @@ The chests, the vault and the shrine (the playtester: menus "dated, simplistic a
   the demo is the only way to see the Mythic, Celestial and Divine build-ups.
 - **S13. The top pity vial has no label.** The thin cyan vial beside the Legendary one is the Celestial pity; its
   number is in the pity sheet (tap the vials). Fewer words on the screen.
+C1. **Companions: a night grove, the companion at 3x on a mossy stump.** Its name, rarity and stars sit over the stage
+    (the stars beside the rarity on a glass pill, drawn above the name so a "y" or a tall companion's ears never hide
+    them); its kind, role and joke moved behind the "i" (a Sheet). The perks stay as cards (the attack first): the
+    body is bold when every card fits, else the small face (only Sunny, with three perks, on the phone's 142 px).
+    Equip is one big button that toggles (Equip / Unequip, "Along" when it's the only one along; the old "Move here"
+    is gone: tap a socket to choose the slot Equip fills). The stage theme is the screen's own (`art-grove.ts`,
+    registered with registerStageTheme).
+C2. **A screen that paints its own stage sets `staged = true`** and the camp skips its dark dim behind it (the dim sat
+    over the stage image otherwise). Other modern camp screens can use the same flag without touching camp.ts.
+C3. **Completion tracker: the region as a framed parchment map** (`art-region-map.ts`: one hand-drawn map per region,
+    painted on first open, not the world map's art: its acts sit too far apart to crop a window that fits), with a
+    flag on each cleared act's site, crown / skull / scroll / chest seals under each site and three star seals for the
+    events; empty ones are dotted sockets inked on the paper. A tap on a seal or socket names its part with the count
+    ("Treasures 2/3"). A region not reached yet shows a fogged sheet and "???" (its land would spoil it). The region
+    tabs moved into the top bar (after Back, like the hero tabs) instead of down the side: "Greenmarch" needs 75 px, and
+    the map is the focal thing, so it gets the width. Claim is padlocked (grey, shakes, "Reach 100%") until 100%.
+C4. **Camp upgrades are objects in the camp; the Upgrades screen is build mode over the live camp** (no dim). Spots
+    (`art-camp-build.ts` BUILD_SPOTS, all inside the phone's safe area and above the button band): the Lucky Stone at
+    the tent's left foot, the Reroll Charm hanging under the tent's peak (it turns), the Companion Perch between the
+    tent and the log (a tall post: the second companion sits up high, clear of the name plates; the old second pet
+    spot is gone, so the Perch and "two companions along" are one thing), the Map Table behind the fire (lantern-lit),
+    the War Table between the forge and the shrine, the Training Dummy by the shrine as before. The third standing
+    hero moved from (99, 111) to (110, 104) to clear the perch. Before it's built a spot shows the object's blueprint
+    ghost (pale blue, pulsing; lavender when locked) under a hammer marker (gold: can build now; grey with a padlock:
+    not yet); a tap opens a glass card (name, one line, Build with the coin price / the unlock line / Built /
+    Practice / Companions). Build closes the card so the dust, three clangs and the object rising can be watched;
+    tapping a built object (home or build mode) opens its card again; the perch opens the companions, the dummy
+    practices. The Camp button glows with a gold "!" when an upgrade can be built now. No new save data: what stands
+    is `profile.camp`; the build animation plays only when it's bought.
+C5. **Test lab:** the four camp scenarios on the reworked screens (Companions, Camp upgrades, Completion: almost /
+    100%) get `rev: 1` and new "try" lines (a rating given to the old screens asks again). They stay where they are in
+    LAB_EARLIER: moving this round's items into LAB_NEW is left to the merge, since every agent this round touches it.
+C6. **The camp skips its dim behind every modern screen by mode** (`STAGED_MODES` in camp.ts: heroes, skills, chests,
+    shrine, pets, progress, upgrades; a screen's own `staged = true` still works too), at the lead's request: the other
+    screens' workarounds (liftDim, clearing gUi) are no longer needed. The old-style screens (bag, forge, stats,
+    relics) keep the dim. On this branch alone the old hero select, chests and shrine differ from their baselines by a
+    few pixels (inside the screenshot tolerance); their merged versions bring their own baselines.

@@ -399,7 +399,7 @@ export function ring(g: G, cx: number, cy: number, r: number, frac: number, o: {
         continue;
       }
       const ang = (Math.atan2(x, -y) + Math.PI * 2) % (Math.PI * 2);
-      const on = ang / (Math.PI * 2) <= f;
+      const on = f > 0 && ang / (Math.PI * 2) <= f;
       g.fillStyle(on ? (d > r - 1 ? hi : d < r - th + 1 ? lo : base) : d > r - 1 ? NAVY[4] : NAVY[2], a);
       g.fillRect(px, py, 1, 1);
     }
@@ -660,4 +660,242 @@ export function countBadge(g: G, texts: TextPool, cx: number, cy: number, label:
   g.fillRect(x + 2, y + 1, 2, 1);
   const dark = ((base >> 16) & 255) * 0.299 + ((base >> 8) & 255) * 0.587 + (base & 255) * 0.114 > 150;
   texts.text(label, x + w / 2, y + h / 2 + 0.5, dark ? 0x3a1e08 : WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a, plain: dark });
+}
+
+// ================================================================== appended: the camp screens' parts (companions,
+// the camp's build mode, the region card): round tokens, text cards, wax seals and sockets, a tooltip, sprite boxes.
+
+const BOXES = new Map<string, Rect>();
+
+/** The box of a texture's visible pixels (cached): to centre, crop or seat a sprite on what it actually shows. */
+export function opaqueBox(kit: CampKit, key: string): Rect {
+  let b = BOXES.get(key);
+  if (b) return b;
+  const [w, h] = kit.imgs.size(key);
+  b = { x: 0, y: 0, w, h };
+  const src = kit.s.textures.get(key).getSourceImage() as HTMLCanvasElement;
+  const ctx = typeof src.getContext === 'function' ? src.getContext('2d') : null;
+  if (ctx) {
+    const d = ctx.getImageData(0, 0, w, h).data;
+    let x0 = w;
+    let y0 = h;
+    let x1 = -1;
+    let y1 = -1;
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++)
+        if (d[(y * w + x) * 4 + 3] > 0) {
+          x0 = Math.min(x0, x);
+          y0 = Math.min(y0, y);
+          x1 = Math.max(x1, x);
+          y1 = Math.max(y1, y);
+        }
+    if (x1 >= 0) b = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  }
+  BOXES.set(key, b);
+  return b;
+}
+
+export interface TokenOpts {
+  /** The ring's colours [hi, base, lo, deep] (a rarity's face). */
+  face: Face;
+  /** A sprite shown in the well: an 11 x 11 window of `key` with its top-left at `at` (texture px). */
+  sprite?: { key: string; at: [number, number]; tint?: number };
+  /** Or an emblem drawn centred in the well. */
+  emblem?: (g: G, cx: number, cy: number, alpha: number) => void;
+  selected?: boolean;
+  /** Greyed out (not met yet): a dark ring. */
+  dim?: boolean;
+  /** A green check at the top right (equipped, done). */
+  check?: boolean;
+  /** A padlock over the well. */
+  locked?: boolean;
+  alpha?: number;
+  /** The well's colour (default: deep ink). */
+  well?: number;
+}
+
+/**
+ * A round token, 17 x 17 (the companions' strip, the sockets they go in): a dark well holding an 11 x 11 sprite window
+ * (or an emblem), a ring in its colours lit from the top left and outlined in ink, drawn over the window's corners so
+ * it reads round. Selected tokens lift 2 px with a gold halo and a gold ring; pressed ones sink. Returns the rect drawn.
+ */
+export function token(kit: CampKit, l: Layer, r: Rect, o: TokenOpts, now: number): Rect {
+  const a = o.alpha ?? 1;
+  const pr = isPressed(r, now);
+  const rr = { ...r, y: r.y + (pr ? 1 : o.selected ? -2 : 0) };
+  const cx = rr.x + rr.w / 2;
+  const cy = rr.y + rr.h / 2;
+  const R = rr.w / 2;
+  const [hi, base, lo, deep] = o.dim ? ([0x6a6078, 0x4a4058, 0x3a3048, 0x2a2438] as const) : o.face;
+  const g = l.g;
+  const ov = l.over;
+  if (o.selected) {
+    fillEllipse(g, cx, cy, R + 3, R + 3, 0xffd23a, (0.18 + 0.14 * pulse(now, 1000)) * a);
+    fillEllipse(g, cx, cy, R + 2, R + 2, 0xffd23a, (0.2 + 0.12 * pulse(now, 1000)) * a);
+  }
+  fillEllipse(g, cx, cy + 2, R + 0.5, R + 0.5, INK, 0.45 * a);
+  fillEllipse(g, cx, cy, R - 1.5, R - 1.5, o.well ?? mix(deep, INK, 0.6), a);
+  fillEllipse(g, cx, cy - 2, R - 3, R - 4, mix(deep, base, 0.35), 0.5 * a);
+  if (o.sprite && kit.has(o.sprite.key)) {
+    const [sx, sy] = o.sprite.at;
+    kit.sprites.draw(o.sprite.key, Math.round(cx - 5.5), Math.round(cy - 5.5), l.icons, { crop: [sx, sy, 11, 11], tint: o.sprite.tint, alpha: a });
+  }
+  if (o.emblem) o.emblem(ov, cx, cy, o.dim ? 0.5 * a : a);
+  // the ring (over the window's corners) and its ink rim, pixel by pixel
+  const ring = o.selected ? ([GOLD[4], GOLD[3], GOLD[2], GOLD[1]] as const) : [hi, base, lo, deep];
+  for (let y = Math.floor(rr.y - 1); y <= rr.y + rr.h; y++)
+    for (let x = Math.floor(rr.x - 1); x <= rr.x + rr.w; x++) {
+      const dx = x + 0.5 - cx;
+      const dy = y + 0.5 - cy;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d > R + 0.7 || d < R - 2.3) continue;
+      let c: number;
+      if (d > R - 0.3) c = INK;
+      else if (d < R - 1.6) c = INK;
+      else {
+        const lit = -dx - dy; // top-left is lit
+        c = lit > R * 0.6 ? ring[0] : lit < -R * 0.6 ? ring[3] : lit < 0 ? ring[2] : ring[1];
+      }
+      ov.fillStyle(c, a);
+      ov.fillRect(x, y, 1, 1);
+    }
+  if (o.locked) {
+    ov.fillStyle(INK, 0.45 * a);
+    ov.fillRect(Math.round(cx - 4), Math.round(cy - 3), 9, 8);
+    padlockAt(ov, Math.round(cx - 3), Math.round(cy - 4), a);
+  }
+  if (o.check) pix(ov, 'check', Math.round(rr.x + rr.w - 6), Math.round(rr.y - 3), a);
+  return rr;
+}
+
+/** A small gold padlock (6 x 8) with its top-left at (x, y). */
+export function padlockAt(g: G, x: number, y: number, a = 1): void {
+  g.fillStyle(INK, a);
+  g.fillRect(x + 1, y, 4, 1);
+  g.fillRect(x, y + 1, 1, 3);
+  g.fillRect(x + 5, y + 1, 1, 3);
+  g.fillRect(x - 1, y + 3, 8, 6);
+  g.fillStyle(0xb8c2d8, a);
+  g.fillRect(x + 1, y + 1, 4, 1);
+  g.fillStyle(GOLD[3], a);
+  g.fillRect(x, y + 4, 6, 4);
+  g.fillStyle(GOLD[4], a);
+  g.fillRect(x, y + 4, 6, 1);
+  g.fillStyle(GOLD[1], a);
+  g.fillRect(x + 2, y + 5, 2, 2);
+}
+
+export interface TextCardOpts {
+  /** An icon (camp-kit pix / HUD icon key) on a round disc at the left, the disc in `iconCol`. */
+  icon?: string;
+  iconCol?: number;
+  title: string;
+  titleCol?: number;
+  body: string;
+  /** Body in the bold face (bigger) or the small one. */
+  bold?: boolean;
+  bodyCol?: number;
+  /** Greyed (a companion not met yet: still readable). */
+  dim?: boolean;
+  rim?: number;
+  alpha?: number;
+}
+
+/** Where a text card's body wraps (its lines) for a card `w` wide. */
+export function textCardLines(w: number, o: Pick<TextCardOpts, 'icon' | 'body' | 'bold'>): string[] {
+  return wrapText(o.body, w - (o.icon ? 20 : 8), !!o.bold);
+}
+
+/** A text card's height for its wrapped body. */
+export function textCardH(lines: number, bold: boolean, tight = false): number {
+  return (tight ? 11 : 12) + lines * (bold ? 10 : 8) + (tight ? 1 : 2);
+}
+
+/**
+ * A card that is read (a companion's perk, an upgrade): a glass plate, an icon on a coloured disc at the left, the
+ * title bold in its colour, the body wrapped under it (bold, or small for long ones). `tight` packs it a little.
+ */
+export function textCard(_kit: CampKit, l: Layer, r: Rect, o: TextCardOpts, now: number, tight = false): void {
+  const a = o.alpha ?? 1;
+  const g = l.g;
+  const pr = isPressed(r, now);
+  const rr = { ...r, y: r.y + (pr ? 1 : 0) };
+  glass(g, rr, { alpha: a, rim: o.rim, clear: 0.2 });
+  let x = rr.x + 4;
+  if (o.icon) {
+    const col = o.dim ? 0x4a4058 : (o.iconCol ?? 0x3a5a8a);
+    const cx = rr.x + 9;
+    const cy = rr.y + 8;
+    fillEllipse(g, cx, cy, 7, 7, INK, a);
+    fillEllipse(g, cx, cy, 6, 6, col, a);
+    fillEllipse(g, cx - 1, cy - 1, 4, 4, mix(col, WHITE, 0.25), 0.6 * a);
+    const [iw, ih] = pixSize(o.icon);
+    pix(l.over, o.icon, Math.round(cx - iw / 2), Math.round(cy - ih / 2), (o.dim ? 0.6 : 1) * a);
+    x = rr.x + 18;
+  }
+  const ty = rr.y + (tight ? 1 : 2);
+  l.texts.text(o.title, x, ty, o.dim ? 0x9a90b8 : (o.titleCol ?? GOLD_TXT), { bold: true, alpha: a });
+  const lines = textCardLines(rr.w, o);
+  const lh = o.bold ? 10 : 8;
+  lines.forEach((s, i) => l.texts.text(s, x, ty + (tight ? 9 : 10) + i * lh, o.dim ? 0x9a90b8 : (o.bodyCol ?? 0xe8e0f8), { bold: !!o.bold, alpha: a }));
+}
+
+/** A wax seal stamped with an emblem (the region card: done things): a blob of wax in `col` with a lit rim. */
+export function waxSeal(g: G, cx: number, cy: number, rad: number, col: Face, alpha = 1, emblem?: (g: G, cx: number, cy: number, alpha: number) => void): void {
+  const [hi, base, lo, deep] = col;
+  fillEllipse(g, cx, cy + 1.5, rad + 1, rad, INK, 0.4 * alpha);
+  // the wax blob, with a few drips round its edge
+  fillEllipse(g, cx, cy, rad + 1, rad + 1, INK, alpha);
+  for (const [dx, dy] of [
+    [-rad, -2],
+    [rad - 1, 2],
+    [-2, rad],
+  ]) {
+    g.fillStyle(INK, alpha);
+    g.fillRect(Math.round(cx + dx) - 1, Math.round(cy + dy) - 1, 3, 3);
+    g.fillStyle(lo, alpha);
+    g.fillRect(Math.round(cx + dx), Math.round(cy + dy), 1, 1);
+  }
+  fillEllipse(g, cx, cy, rad, rad, lo, alpha);
+  fillEllipse(g, cx - 0.5, cy - 0.5, rad - 0.5, rad - 0.5, base, alpha);
+  // the pressed ring and the stamped centre
+  fillEllipse(g, cx, cy, rad - 2, rad - 2, deep, alpha);
+  fillEllipse(g, cx, cy, rad - 2.5, rad - 2.5, base, alpha);
+  g.fillStyle(hi, alpha);
+  g.fillRect(Math.round(cx - rad * 0.6), Math.round(cy - rad + 1), Math.max(1, Math.round(rad * 0.6)), 1);
+  if (emblem) emblem(g, cx, cy, alpha);
+}
+
+/** An empty socket (what's left to do): a dim hollow with a dashed rim that breathes slowly. */
+export function socket(g: G, cx: number, cy: number, rad: number, now: number, alpha = 1, col = 0x8a7cc0): void {
+  fillEllipse(g, cx, cy, rad + 0.5, rad + 0.5, INK, 0.5 * alpha);
+  fillEllipse(g, cx, cy, rad - 0.5, rad - 0.5, 0x000000, 0.25 * alpha);
+  const n = Math.max(8, Math.round(rad * 2.4));
+  const k = 0.35 + 0.25 * pulse(now, 2400, cx * 37);
+  g.fillStyle(col, k * alpha);
+  for (let i = 0; i < n; i += 2) {
+    const ang = (i / n) * Math.PI * 2;
+    g.fillRect(Math.round(cx + Math.cos(ang) * rad - 0.5), Math.round(cy + Math.sin(ang) * rad - 0.5), 1, 1);
+  }
+}
+
+/**
+ * A short label on a small glass plate with a tail down to (x, y) (a tapped seal names itself): it pops in and
+ * fades out over `life` ms from `at`. Kept inside [x0, x1].
+ */
+export function tooltip(l: Layer, text: string, x: number, y: number, now: number, at: number, x0: number, x1: number, life = 1600): void {
+  const age = now - at;
+  if (age < 0 || age > life) return;
+  const k = popK(now, at, 0, 0, 180);
+  const a = Math.min(1, (life - age) / 220);
+  const w = textWidth(text, 1, true) + 8;
+  const h = 12;
+  const bx = Math.round(Math.max(x0, Math.min(x1 - w, x - w / 2)));
+  const by = Math.round(y - h - 4 - (1 - k) * 3);
+  glass(l.g, { x: bx, y: by, w, h }, { alpha: a, rim: GOLD[2], clear: 0.05 });
+  l.g.fillStyle(INK, a);
+  l.g.fillRect(Math.round(x) - 2, by + h + 1, 5, 1);
+  l.g.fillRect(Math.round(x) - 1, by + h + 2, 3, 1);
+  l.g.fillRect(Math.round(x), by + h + 3, 1, 1);
+  l.texts.text(text, bx + w / 2, by + h / 2, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
 }

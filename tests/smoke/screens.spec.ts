@@ -614,6 +614,52 @@ test('camp: companions (two slots with the Perch), upgrades, region progress', a
   await expect(page).toHaveScreenshot('progress.png', shot);
 });
 
+test('camp: build mode (ghosts and hammers over the camp), the Lucky Stone card, then the stone just built by the tent', async ({ page }) => {
+  const camp = await metaCamp(page);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p = (window as any).__cq3.app.profile;
+    p.mastery.push('sableActs3'); // Sable's milestone: the Lucky Stone can be built
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => {
+    c.go('upgrades', now);
+    c.upgrades.select('luckyStone', now);
+  });
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('build-card.png', shot);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => {
+    const b = c.upgrades.buyRect();
+    c.upgrades.tap(b.x + b.w / 2, b.y + b.h / 2, now);
+  });
+  await frames(page, 84); // the dust has settled: the stone stands there, sparkling, its name over it
+  await expect(page).toHaveScreenshot('build-done.png', shot);
+});
+
+test('camp: the region card near 100% (one hidden treasure left: its socket tapped names it)', async ({ page }) => {
+  const camp = await metaCamp(page);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p = (window as any).__cq3.app.profile;
+    p.actsCleared = 3;
+    p.regions.greenmarch = { bounties: [0, 1, 2], treasures: [0, 2], events: ['herbalist', 'shrine', 'well'], chest: false };
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => {
+    c.go('progress', now);
+    c.progress.open(now, 0);
+  });
+  await frames(page, 60);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => {
+    const m = c.progress.seal('treasures', 1);
+    c.progress.tap(m.x, m.y, now);
+  });
+  await frames(page, 14);
+  await expect(page).toHaveScreenshot('progress-near.png', shot);
+});
+
 test('camp: Sable joins after Act 1', async ({ page }) => {
   await boot(page);
   await frames(page, 10);
