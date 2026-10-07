@@ -14,6 +14,8 @@
 // clock and the seeded Math.random (screenshots stay exact).
 import type Phaser from 'phaser';
 import { isRed, type BlockKind, type Combat, type CombatEvent } from '../../core/combat';
+import { windUpMult } from '../../core/kit-fx';
+import { guardMax, guardOf } from '../../core/styles';
 import { COMPANIONS, type CompanionId } from '../../data/companions';
 import { heroDef, type AllyKind, type HeroId } from '../../data/heroes';
 import { relicById } from '../../data/relics';
@@ -23,7 +25,8 @@ import { BLOCKER_FACE, sparkle } from './bar-kinds';
 import { ALLY_COL, PERK_PET, PET_COL } from './party';
 import { COIN_FROM, PERK_ALLY, PERK_SPAWN, perkTargets, type PerkTarget } from './perk-at';
 import { perkSource, TAG_FACE } from './relic-ui';
-import { clamp01, ease, INK, mix, rand, WHITE, type EnemyView } from './shared';
+import { clamp01, ease, INK, mix, pulse, rand, WHITE, type EnemyView } from './shared';
+import { TextPool } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
 type PerkEvent = Extract<CombatEvent, { type: 'perk' }>;
@@ -45,6 +48,9 @@ const KIND_GAP: Partial<Record<PerkTarget, number>> = { hero: 350, cursor: 300, 
 const FIRE = [0xfff0a0, 0xffd060, 0xff8a2a, 0xe0461a, 0x8a1a22] as const;
 const GOLD = [0xfff0a0, 0xf2c230, 0xd8901c, 0x9a5a14] as const;
 const HEAL = [0xe8ffd8, 0x9af06a, 0x5ad848] as const;
+/** Hollis's steel (Shield Slam, the Bulwark) [white-hot, light, base, deep]; Wind-Up's heat. */
+const STEEL = [0xf4f8ff, 0xc8d8f0, 0x8aa4d0, 0x3a4a72] as const;
+const HEAT = [0xfff0a0, 0xffb060, 0xff7a3a] as const;
 /** Sable's violet (her dash, her smoke). */
 const SMOKE = [0xe0d0f0, 0xb8a8d0, 0x8a78a8] as const;
 
@@ -96,6 +102,28 @@ interface HeroSpark {
   stars: Array<{ dx: number; dy: number; delay: number; col: number }>;
 }
 
+/** A Shield Slam's shield flying from the hero's guard to the red's owner (world px, scene time). */
+interface Bash {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  at: number;
+  ms: number;
+  perfect: boolean;
+  /** Wide Slam's: a smaller shield. */
+  small: boolean;
+}
+
+/** A Bulwark: a great shield sweeping from the hero across every foe (world px, scene time). */
+interface Wave {
+  x0: number;
+  x1: number;
+  y: number;
+  at: number;
+  ms: number;
+}
+
 interface Sweep {
   x0: number;
   x1: number;
@@ -107,6 +135,8 @@ interface Sweep {
 interface Batch {
   hitPos: number | null;
   hitFoe: number;
+  /** The last block in the batch was a Perfect one (its Shield Slam is the bigger one). */
+  blockPerfect: boolean;
   tapPos: number | null;
   missPos: number | null;
   holdPos: number | null;
@@ -117,7 +147,7 @@ interface Batch {
   gone: Array<{ lo: number; hi: number }>;
 }
 
-const freshBatch = (): Batch => ({ hitPos: null, hitFoe: 0, tapPos: null, missPos: null, holdPos: null, spawned: [], cleared: [], kills: [], blasts: [], gone: [] });
+const freshBatch = (): Batch => ({ hitPos: null, hitFoe: 0, blockPerfect: false, tapPos: null, missPos: null, holdPos: null, spawned: [], cleared: [], kills: [], blasts: [], gone: [] });
 
 export class OnSite {
   /** Over the blocks, under the cursor: boxes, smoke, the cursor's kick, twinkles. */
@@ -132,6 +162,14 @@ export class OnSite {
   private marks: Mark[] = [];
   private sparks: HeroSpark[] = [];
   private sweeps: Sweep[] = [];
+  private bashes: Bash[] = [];
+  private waves: Wave[] = [];
+  /** A Summoner's allies' strength (their 'ally' events say it: 1 = a fresh hero's); bigger jabs and heals read so. */
+  allyPower = 1;
+  /** When Heavy Slam or Retaliate last made a Shield Slam hit harder (anim ms): the slam landing then lands heavier. */
+  private slamBoost = -1e9;
+  /** Words drawn with the bar (Wind-Up's live multiplier over the cursor). */
+  private texts: TextPool;
   /** Burning foes: id -> scene time the flames hold until (refreshed by each tick), and when it last ticked. */
   private burnUntil = new Map<number, number>();
   private burnTickAt = new Map<number, number>();
@@ -142,7 +180,9 @@ export class OnSite {
   private heal: { sum: number; at: number } | null = null;
   private b: Batch = freshBatch();
 
-  constructor(private readonly s: FightScene) {}
+  constructor(private readonly s: FightScene) {
+    this.texts = new TextPool(s, 11.36);
+  }
 
   /** A new layout: the graphics (kept across layouts), nothing in flight. */
   build(): void {
@@ -161,6 +201,9 @@ export class OnSite {
     this.marks = [];
     this.sparks = [];
     this.sweeps = [];
+    this.bashes = [];
+    this.waves = [];
+    this.allyPower = 1;
     this.burnUntil.clear();
     this.burnTickAt.clear();
     this.last.clear();
@@ -183,6 +226,9 @@ export class OnSite {
         b.tapPos = e.pos;
         break;
       case 'block':
+        b.tapPos = e.pos;
+        b.blockPerfect = e.perfect;
+        break;
       case 'chip':
       case 'wardBreak':
       case 'counter':
@@ -305,6 +351,7 @@ export class OnSite {
     const targets = perkTargets(id, e);
     const col = this.colOf(id);
     const pet = PERK_PET[id] as CompanionId | undefined;
+    this.special(e);
     const has = (t: PerkTarget) => targets.includes(t);
     // what lands on the bar (when its companion sends a streak there first, it lands with the streak)
     const onBar = () => {
@@ -333,7 +380,7 @@ export class OnSite {
             const h = s.fighters.h;
             s.fx.bolt(src.x + 3, src.y, h.x + 1, s.ground - 22, 220, PET_COL[pet!]);
             s.later(220, () => this.healOnHero(e.amount, PET_COL[pet!]));
-          } else this.healOnHero(e.amount);
+          } else this.healOnHero(e.amount, undefined, id === 'glowmoth' ? this.allyPower : 1);
           break;
         }
         case 'meter':
@@ -389,6 +436,177 @@ export class OnSite {
           this.burnTick(e.enemyId, e.amount);
           break;
       }
+  }
+
+  /** The perks with a show of their own on what they touch (round 6: Hollis's Bulwark, Neve's Glacier and Big Freeze,
+   *  Tam's Turnabout, Torva's Wind-Up multiplier, Vesper's Patience). */
+  private special(e: PerkEvent): void {
+    const s = this.s;
+    const c = this.c;
+    if (!c) return;
+    switch (e.id) {
+      case 'bulwark':
+        this.bulwark(e.pos);
+        break;
+      case 'heavySlam':
+      case 'retaliate':
+        // the slam they made stronger lands heavier (shieldSlam reads this as it lands)
+        this.slamBoost = s.anim;
+        break;
+      case 'turnabout': {
+        // each red flips into one of Tam's kegs where it stood
+        if (e.pos === undefined) break;
+        const keg = this.b.spawned.filter((x) => x.kind === 'keg').find((x) => Math.abs(x.pos - e.pos!) < 0.002);
+        if (keg) s.barView.turnInto(e.pos, keg.id, 'flip');
+        break;
+      }
+      case 'bigFreeze': {
+        // every red Glacier froze is iced over into a block to smash
+        for (const r of this.b.cleared) {
+          if (!isRed(r.kind)) continue;
+          const ice = this.b.spawned.find((x) => x.kind === 'frozen' && Math.abs(x.pos - r.pos) < 0.002);
+          if (ice) s.barView.turnInto(r.pos, ice.id, 'ice');
+        }
+        break;
+      }
+      case 'glacier':
+        // every red on the bar freezes solid: a burst of frost off each (its ice coat stays while it's frozen)
+        for (const b of c.blocks)
+          if (isRed(b.kind)) {
+            const p = this.barPt(b.pos);
+            s.fx.chips(p.x, s.bar.y - 4, 8, [WHITE, 0xe0faff, 0x8ae0f6], 6, -1);
+          }
+        break;
+      case 'windUp': {
+        // Torva's smash lands: its multiplier over the foe it struck ("x2.6!"), hot
+        const v = this.foe(e.enemyId);
+        if (!v || e.amount <= 0) break;
+        const m = (e.amount / 100).toFixed(1);
+        // (beside the foe, left of where its damage number rises)
+        s.fx.addFloater(Math.max(30, v.x - v.img.displayWidth / 2 - 24), Math.max(36, v.y - v.img.displayHeight / 2 - 4), `x${m}!`, HEAT[1], 2, true, 0, -12, 0, 900, true);
+        break;
+      }
+      case 'patience': {
+        // Vesper's full Focus fired by a Perfect (no green in reach): gold on the hit and on the foe it struck
+        const t = this.foe(this.b.hitFoe) ? this.b.hitFoe : (c.currentTarget()?.id ?? 0);
+        const v = this.foe(t);
+        if (v) {
+          const { x, y } = this.chest(v);
+          s.fx.stars.push({ x, y, at: s.anim, r: 20, color: 0xffd23a });
+        }
+        break;
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------ Hollis: Shield Slam and the Bulwark
+
+  /**
+   * A Shield Slam: a shield flies from the hero's guard into the red's owner and lands with a clang (the 'slam'
+   * impact tier, `audio.shieldCounter`), steel sparks and a chunky steel number (brighter and with a starburst for a
+   * Perfect block's). Wide Slam's on the other foes: a smaller shield, no impact of its own.
+   */
+  shieldSlam(v: EnemyView, amount: number, wide: boolean): void {
+    const s = this.s;
+    const h = s.fighters.h;
+    const perfect = this.b.blockPerfect;
+    const x0 = h.x + 12;
+    const y0 = s.ground - 20;
+    const x1 = v.x - v.img.displayWidth * 0.3;
+    const y1 = v.y - v.img.displayHeight / 2;
+    const ms = wide ? 120 : 90;
+    this.bashes.push({ x0, y0, x1, y1, at: s.anim, ms, perfect, small: wide });
+    if (this.bashes.length > 8) this.bashes.shift();
+    s.later(ms, () => {
+      const fx = s.fx;
+      if (!wide) {
+        const feel = fx.impact(fx.weight('slam') * (perfect ? 1.15 : 1));
+        s.app.audio.shieldCounter(perfect);
+        v.kickDist = feel.knockPx + (perfect ? 3 : 1);
+      } else v.kickDist = 4;
+      v.flashUntil = s.anim + (perfect ? 80 : 60);
+      v.kickAt = s.anim;
+      v.knockUntil = s.anim + 100;
+      if (!v.dieAt) s.fighters.setEnemyPose(v, 'hurt', 150);
+      fx.sparks.push({ x: x1, y: y1, at: s.anim, size: perfect ? 15 : wide ? 9 : 12, color: STEEL[1] });
+      fx.burst(x1, y1, STEEL[1], perfect ? 12 : 8, true, 1.2, true);
+      fx.chips(x1, y1, 6, [WHITE, STEEL[1], STEEL[2]], perfect ? 10 : 6, 0);
+      fx.glow(x1, y1, perfect ? 16 : 11, 0xc8e0ff, 170, v.fly ? undefined : s.ground);
+      if (perfect) {
+        fx.stars.push({ x: x1 + 2, y: y1 - 2, at: s.anim, r: 18, color: STEEL[1] });
+        fx.ring(x1, y1, 22, STEEL[0], true);
+      }
+      // Heavy Slam / Retaliate made this one hit harder: a heavier landing (a ground shock, a hot-steel starburst)
+      if (!wide && s.anim - this.slamBoost <= ms + 40) {
+        v.kickDist += 2;
+        fx.stars.push({ x: x1 - 2, y: y1 + 2, at: s.anim, r: 22, color: 0xffd0a0 });
+        if (!v.fly) fx.shock(v.x, s.ground, 24, STEEL[1]);
+      }
+      const big = perfect && !wide;
+      fx.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, `${amount}`, big ? STEEL[0] : wide ? STEEL[2] : STEEL[1], wide ? 1 : 2);
+    });
+  }
+
+  /** How long until a Bulwark's sweeping shield reaches a foe (ms; 0 without a Bulwark going). */
+  bulwarkReach(v: EnemyView): number {
+    const w = this.waves[this.waves.length - 1];
+    if (!w) return 0;
+    const k = clamp01((v.x - v.img.displayWidth * 0.3 - w.x0) / Math.max(1, w.x1 - w.x0));
+    return Math.max(0, w.at - this.s.anim) + w.ms * ease(k) * 0.9;
+  }
+
+  /** One foe's Bulwark blow, as the shield reaches it: a big steel hit and a big number. */
+  bulwarkHit(v: EnemyView, amount: number): void {
+    const s = this.s;
+    const fx = s.fx;
+    const { x, y } = this.chest(v);
+    v.flashUntil = s.anim + 110;
+    v.kickAt = s.anim;
+    v.kickDist = 12;
+    v.knockUntil = s.anim + 160;
+    if (!v.dieAt) s.fighters.setEnemyPose(v, 'hurt', 220);
+    fx.sparks.push({ x: x - 4, y, at: s.anim, size: 18, color: STEEL[1] });
+    fx.stars.push({ x, y: y - 4, at: s.anim, r: 26, color: STEEL[1] });
+    fx.burst(x, y, STEEL[0], 14, true, 1.5, true);
+    fx.chips(x, y, 10, [WHITE, STEEL[1], STEEL[2]], 12, 0);
+    fx.ring(x, y, 30, STEEL[1], true);
+    if (!v.fly) fx.shock(v.x, s.ground, 34, 0xd8e8ff);
+    fx.floatNum(v.x + 4, v.y - v.img.displayHeight - 12, `${amount}`, STEEL[0], 3);
+  }
+
+  /**
+   * The Bulwark (full Guard unleashed on every foe): the hero slams their shield down (the 'bulwark' impact tier, two
+   * white frames, the music ducks, `audio.bulwark`), a great shield sweeps out across every foe (each struck as it
+   * reaches them: bulwarkHit), the ground shakes, and on the bar the Guard tab's pips burst out and a steel flash runs
+   * the bar's length.
+   */
+  private bulwark(pos?: number): void {
+    const s = this.s;
+    const fx = s.fx;
+    const h = s.fighters.h;
+    const foes = [...s.fighters.enemies.values()].filter((v) => !v.dieAt);
+    const x0 = h.x + 10;
+    const x1 = Math.max(x0 + 60, ...foes.map((v) => v.x + v.img.displayWidth / 2 + 14));
+    this.waves.push({ x0, x1, y: s.ground - 16, at: s.anim + 40, ms: 300 });
+    if (this.waves.length > 3) this.waves.shift();
+    fx.impact(fx.weight('bulwark'));
+    s.app.audio.bulwark();
+    fx.screenFlash(0xd8e8ff, performance.now(), 220);
+    fx.ring(h.x + 4, s.ground - 18, 26, STEEL[0], true);
+    s.later(70, () => fx.ring(h.x + 4, s.ground - 18, 40, STEEL[1], true));
+    fx.burst(h.x + 8, s.ground - 18, STEEL[1], 16, true, 1.4, true);
+    fx.glow(h.x + 8, s.ground - 18, 30, 0xc8e0ff, 420, s.ground);
+    fx.shock(h.x + 8, s.ground, 70, 0xd8e8ff);
+    fx.dust(h.x + 6, s.ground, 10, 0, 1.4);
+    fx.shake(4, 260);
+    // the bar: a steel flash along it, the Guard tab bursting
+    this.span(0, 1, STEEL[1]);
+    if (pos !== undefined) this.box(pos, STEEL[0]);
+    const tab = s.callouts.tab;
+    if (tab) {
+      fx.chips(tab.x + tab.w / 2, tab.y + tab.h / 2, tab.w, [WHITE, STEEL[1], 0x9ad8ff], 14, 0);
+      fx.ring(tab.x + tab.w / 2, tab.y + tab.h / 2, 16, STEEL[0], false);
+    }
   }
 
   /** A 'bounce' perk's blow starts at the foe the tap just hit (a ricochet, a pierce, a shatter): where, if it does. */
@@ -518,6 +736,7 @@ export class OnSite {
   ally(e: Extract<CombatEvent, { type: 'ally' }>): void {
     const s = this.s;
     const party = s.fighters.party;
+    if (e.power) this.allyPower = e.power;
     if (e.action === 'call') {
       // the green that called it sends a leaf up to where it pops in
       const from = this.b.hitPos ?? this.b.tapPos;
@@ -590,7 +809,7 @@ export class OnSite {
       const newest = c.blocks.filter((x) => x.kind === kind).sort((a, b) => b.id - a.id)[0];
       if (newest) list = [{ id: newest.id, kind, pos: newest.pos }];
     }
-    if (id !== 'stockpile') list = list.slice(-1);
+    list = list.slice(-1);
     const party = s.fighters.party;
     const src = pet && party.visible(pet) ? party.petPos(pet) : id === 'seedling' ? party.allyPos('seedling') : null;
     for (const blk of list) {
@@ -723,14 +942,15 @@ export class OnSite {
 
   /** A heal on the hero: green stars twinkling up round them (Mote's in its starlight), and a +N over them that merges
    *  the heals of a moment. */
-  private healOnHero(amount: number, tint?: number): void {
+  private healOnHero(amount: number, tint?: number, power = 1): void {
     const s = this.s;
     const a = s.anim;
     if (amount <= 0) return;
     const h = s.fighters.h;
     if (!this.sparks.length || a - this.sparks[this.sparks.length - 1].at > 260) {
       const cols = tint ? [tint, HEAL[1], WHITE] : [HEAL[1], HEAL[0], HEAL[2]];
-      const stars = Array.from({ length: 7 }, (_, i) => ({ dx: rand(-13, 13), dy: rand(-30, -2), delay: i * 40, col: cols[i % cols.length] }));
+      // (an ally's heal grows with its power: more stars)
+      const stars = Array.from({ length: 7 + Math.round(Math.max(0, power - 1) * 8) }, (_, i) => ({ dx: rand(-13, 13), dy: rand(-30, -2), delay: i * 40, col: cols[i % cols.length] }));
       this.sparks.push({ at: a, stars });
       if (this.sparks.length > 4) this.sparks.shift();
       s.fx.glow(h.x + 1, s.ground - 18, 14, tint ?? HEAL[1], 320);
@@ -757,7 +977,7 @@ export class OnSite {
   /** Whether a foe is burning now (its own burn field once the core has one; else the ticks and Newt's bite). */
   burning(id: number): boolean {
     const c = this.c;
-    const e = c?.enemyById(id) as { burn?: number } | undefined;
+    const e = c?.enemyById(id);
     if (e && typeof e.burn === 'number') return e.burn > 0;
     if (this.s.anim < (this.burnUntil.get(id) ?? -1e9)) return true;
     return !!c && c.perk.burnTicks > 0 && c.perk.burnFoe === id;
@@ -788,11 +1008,70 @@ export class OnSite {
       this.flights = [];
       return;
     }
+    this.texts.begin();
+    this.drawReady(g, c, now);
     this.drawBoxes(g, c, s.app.renderTime(now));
     this.drawSmoke(g);
     this.drawKicks(g, c);
     this.drawTwinkles(g);
+    this.drawWindUp(g, c, now);
     this.drawFlights(gf, now);
+    this.texts.end();
+  }
+
+  /**
+   * Bulwark ready (a Guardian at full Guard: the next block or hit sets it off): the Guard tab glows steel and breathes,
+   * and the cursor is armed (a steel aura, a shield bobbing over it), so the payoff is waiting where the eyes are.
+   */
+  private drawReady(g: G, c: Combat, now: number): void {
+    const s = this.s;
+    if (s.app.run.phase !== 'fight' || heroDef(c.heroId as HeroId).style !== 'guardian' || guardOf(c) < guardMax(c)) return;
+    const B = s.bar;
+    const p = pulse(now, 520);
+    const tab = s.callouts.tab;
+    if (tab) {
+      for (let i = 1; i <= 3; i++) {
+        g.fillStyle(STEEL[1], (0.5 - i * 0.1) * (0.6 + 0.4 * p));
+        g.fillRect(tab.x - i - 1, tab.y - i - 1, tab.w + 2 * i + 2, tab.h + 2 * i + 2);
+      }
+      // a bright steel rim round it, breathing
+      g.fillStyle(mix(STEEL[1], WHITE, p), 0.55 + 0.45 * p);
+      g.fillRect(tab.x - 1, tab.y - 1, tab.w + 2, 1);
+      g.fillRect(tab.x - 1, tab.y + tab.h, tab.w + 2, 1);
+      g.fillRect(tab.x - 1, tab.y, 1, tab.h);
+      g.fillRect(tab.x + tab.w, tab.y, 1, tab.h);
+      // a glint running round the rim
+      const per = 2 * (tab.w + tab.h);
+      const d = Math.floor((now / 12) % per);
+      const gx = d < tab.w ? tab.x + d : d < tab.w + tab.h ? tab.x + tab.w : d < 2 * tab.w + tab.h ? tab.x + tab.w - (d - tab.w - tab.h) : tab.x - 1;
+      const gy = d < tab.w ? tab.y - 1 : d < tab.w + tab.h ? tab.y + (d - tab.w) : d < 2 * tab.w + tab.h ? tab.y + tab.h : tab.y + tab.h - (d - 2 * tab.w - tab.h);
+      sparkle(g, gx, gy, 2, WHITE, 0.9);
+    }
+    // the cursor (the next block or hit sets it off) is armed: a steel aura round the blade, breathing, and a shield
+    // bobbing over its top cap, a glint crossing it now and then
+    const x = Math.round(this.barPt(c.cursorPosAt(s.app.renderTime(now))).x);
+    for (let i = 0; i < 3; i++) {
+      g.fillStyle(mix(STEEL[1], WHITE, 0.3), (0.26 + 0.16 * p) * (1 - i * 0.28));
+      g.fillRect(x - 3 - i * 2, B.y - 8 - i, 7 + i * 4, B.h + 16 + i * 2);
+    }
+    const sy = B.y - 17 - Math.round(p * 2);
+    g.fillStyle(STEEL[1], 0.25 + 0.2 * p);
+    g.fillRect(x - 6, sy - 7, 13, 14);
+    this.shield(g, x + 0.5, sy, 11, 1, mix(STEEL[1], WHITE, p * 0.6));
+    if (Math.floor(now / 260) % 4 === 0) sparkle(g, x + 3, sy - 3, 2, WHITE, 1);
+  }
+
+  /** Torva's Wind-Up armed: its smash multiplier right now ("x2.6"), riding over the cursor, hot, growing with the
+   *  combo. */
+  private drawWindUp(g: G, c: Combat, now: number): void {
+    const s = this.s;
+    if (c.heroId !== 'torva' || c.perk.windUp !== 1 || s.app.run.phase !== 'fight') return;
+    const B = s.bar;
+    const x = Math.round(this.barPt(c.cursorPosAt(s.app.renderTime(now))).x);
+    const txt = `x${windUpMult(c).toFixed(1)}`;
+    const y = B.y - 18 - Math.round(pulse(now, 300));
+    this.texts.text(txt, x, y, mix(HEAT[1], HEAT[0], pulse(now, 300)), { bold: true, ox: 0.5, oy: 0.5 });
+    void g;
   }
 
   private drawBoxes(g: G, c: Combat, t: number): void {
@@ -1110,8 +1389,107 @@ export class OnSite {
     if (!c || !s.fightHud()) return;
     this.drawBurns(g, c, now);
     this.drawSweeps(g);
+    this.drawWaves(g);
+    this.drawBashes(g);
     this.drawMarks(g);
     this.drawHeal(g);
+    this.drawAllyPower(g, now);
+  }
+
+  /** A heater shield (its point down), `h` px tall, centred on (x, y): ink rim, steel face lit on the left, a boss. */
+  private shield(g: G, x: number, y: number, h: number, a: number, face: number = STEEL[1]): void {
+    const w = Math.max(3, Math.round(h * 0.75));
+    const top = Math.round(y - h / 2);
+    const rowW = (i: number) => (i < h * 0.55 ? w : Math.max(1, Math.round(w * (1 - (i - h * 0.55) / (h * 0.45)))));
+    for (const [col, pad] of [
+      [INK, 1],
+      [face, 0],
+    ] as const) {
+      g.fillStyle(col, a);
+      for (let i = -pad; i < h + pad; i++) {
+        const rw = rowW(Math.max(0, Math.min(h - 1, i))) + pad * 2;
+        g.fillRect(Math.round(x - rw / 2), top + i, rw, 1);
+      }
+    }
+    g.fillStyle(STEEL[0], a);
+    g.fillRect(Math.round(x - w / 2), top, 1, Math.round(h * 0.55));
+    g.fillRect(Math.round(x - w / 2), top, w, 1);
+    g.fillStyle(STEEL[3], a);
+    g.fillRect(Math.round(x), top + 2, 1, h - 4);
+    g.fillStyle(WHITE, a);
+    g.fillRect(Math.round(x) - 1, Math.round(y - h * 0.15), 2, 2);
+  }
+
+  /** Shield Slams in flight: the shield spinning edge-on and back as it flies, a steel streak behind it. */
+  private drawBashes(g: G): void {
+    const s = this.s;
+    for (let i = this.bashes.length - 1; i >= 0; i--) {
+      const b = this.bashes[i];
+      const k = (s.anim - b.at) / b.ms;
+      if (k >= 1.6) {
+        this.bashes.splice(i, 1);
+        continue;
+      }
+      if (k < 0) continue;
+      const q = Math.min(1, k);
+      const x = b.x0 + (b.x1 - b.x0) * ease(q);
+      const y = b.y0 + (b.y1 - b.y0) * ease(q) - Math.sin(q * Math.PI) * 4;
+      if (k < 1) {
+        for (let j = 1; j <= 5; j++) {
+          const qq = Math.max(0, q - j * 0.08);
+          const tx = b.x0 + (b.x1 - b.x0) * ease(qq);
+          const ty = b.y0 + (b.y1 - b.y0) * ease(qq) - Math.sin(qq * Math.PI) * 4;
+          g.fillStyle(j < 2 ? STEEL[0] : STEEL[1], 0.8 * (1 - j / 6));
+          g.fillRect(Math.round(tx) - 1, Math.round(ty) - 1, 3 - (j >> 1), 3 - (j >> 1));
+        }
+        this.shield(g, x, y, b.small ? 7 : b.perfect ? 11 : 9, 1, b.perfect ? STEEL[0] : STEEL[1]);
+      } else {
+        // the bash: its imprint flashes on the foe and fades
+        const a = 1 - (k - 1) / 0.6;
+        this.shield(g, b.x1, b.y1, (b.small ? 9 : b.perfect ? 15 : 12) + Math.round((k - 1) * 8), 0.75 * a, WHITE);
+      }
+    }
+  }
+
+  /** The Bulwark's great shield sweeping across every foe, with its afterimages, a steel wall of light behind it. */
+  private drawWaves(g: G): void {
+    const s = this.s;
+    for (let i = this.waves.length - 1; i >= 0; i--) {
+      const w = this.waves[i];
+      const k = (s.anim - w.at) / w.ms;
+      if (k >= 1.25) {
+        this.waves.splice(i, 1);
+        continue;
+      }
+      if (k < 0) continue;
+      const q = Math.min(1, k);
+      const x = w.x0 + (w.x1 - w.x0) * ease(q);
+      const fade = k < 1 ? 1 : 1 - (k - 1) / 0.25;
+      // the wall of light it leaves: a band of steel along the foes' line, brightest at the shield
+      for (let xx = Math.round(w.x0); xx < x; xx += 2) {
+        const qq = (xx - w.x0) / Math.max(1, x - w.x0);
+        g.fillStyle(STEEL[1], 0.28 * qq * fade);
+        g.fillRect(xx, w.y - 18, 2, 34);
+        g.fillStyle(WHITE, 0.35 * qq * qq * fade);
+        g.fillRect(xx, w.y - 4, 2, 8);
+      }
+      // afterimages, then the shield itself (tall as a foe)
+      for (let j = 3; j >= 1; j--) this.shield(g, x - j * 10, w.y, 26 - j * 2, 0.22 * (4 - j) * fade, STEEL[2]);
+      this.shield(g, x, w.y, 28, fade, STEEL[1]);
+    }
+  }
+
+  /** A Summoner's allies glow with their power (the Companion stat): a soft aura under each from x1.2. */
+  private drawAllyPower(g: G, now: number): void {
+    const s = this.s;
+    const k = clamp01((this.allyPower - 1.15) / 0.5);
+    if (k <= 0) return;
+    for (const v of s.fighters.party.allies.values()) {
+      if (!v.img.visible || v.leaveAt) continue;
+      const p = pulse(now, 900, v.id * 170);
+      g.fillStyle(ALLY_COL[v.kind], (0.1 + 0.12 * k) * (0.6 + 0.4 * p));
+      g.fillCircle(Math.round(v.img.x), Math.round(v.img.y - (v.kind === 'glowmoth' ? 0 : 9)), 9 + Math.round(3 * k));
+    }
   }
 
   /**
@@ -1130,13 +1508,15 @@ export class OnSite {
       const W = v.img.displayWidth;
       const H = v.img.displayHeight;
       const flare = clamp01(1 - (a - (this.burnTickAt.get(v.id) ?? -1e9)) / 260);
+      // (a hotter burn, more damage a second for its size, burns taller: up to half again at 3% of its HP a second)
+      const hot = 1 + 0.5 * clamp01((e.burnDps ?? 0) / Math.max(1, e.maxHp * 0.03));
       const n = W > 30 ? 5 : 4;
       const x0 = v.x - W * 0.36;
       const base = v.y - Math.round(H * 0.12);
       for (let i = 0; i < n; i++) {
         const fx = Math.round(x0 + i * ((W * 0.62) / (n - 1)));
         const flick = (Math.floor(a / 70) + i * 2) % 4;
-        const h = Math.round((5 + ((i * 3) % 4) + flick) * (1 + 0.6 * flare));
+        const h = Math.round((5 + ((i * 3) % 4) + flick) * (1 + 0.6 * flare) * hot);
         const fy = base - Math.round(((i * 5) % 7) * (H / 40));
         flame(g, fx, fy, h, flick, flare > 0.3);
       }

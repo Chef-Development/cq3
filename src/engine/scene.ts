@@ -538,7 +538,7 @@ export class FightScene extends Phaser.Scene implements View {
           break;
         // ---- the bar's newer pieces: patches, icicles, mirrors, dashes, holds, iced yellows, frozen reds, the wall
         case 'zoneOn':
-          bar.zoneOn(e.kind, e.lo, e.hi, e.id);
+          bar.zoneOn(e.kind, e.lo, e.hi);
           break;
         case 'zoneOff':
           bar.zoneOff(e.id);

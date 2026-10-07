@@ -15,6 +15,8 @@ export type PerkTarget =
   | 'tab' // a mote flies from its bar position (or the tap) into the style tab on the bar
   | 'foe' // a mark on its event's foe (brackets closing in on it, a ring)
   | 'bolt' // a bolt from the hero (or the ally that struck) to its foe, then the hit (fighters.perkFx)
+  | 'bash' // a shield flies from the hero's guard into its foe and lands with a clang, a steel number (Shield Slam)
+  | 'turn' // the red at its position turns into the block it made, where it stood (a keg flips in, ice climbs over)
   | 'bounce' // a bolt from the foe the tap just hit on to its foe (a ricochet, a pierce, a shatter)
   | 'hero' // a ring and sparks on the hero
   | 'heal' // a heal sparkle on the hero and a green +N there (and the HP readout's own +N)
@@ -53,6 +55,7 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   twinFang: ['meter'],
   // ---- Neve (and the Controller style's Bend)
   flashFreeze: ['bar'], // (its iceBlock event frosts the block too)
+  glacier: ['reds'], // every red frozen solid (encased in ice on the bar while it lasts: bar-kinds drawSolid)
   bend: ['reds'],
   // ---- Moss: the allies (their 'ally' events: view/party.ts and onsite.ally)
   rally: ['show'],
@@ -63,23 +66,16 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   // ---- Tam
   fuseUp: ['spawn'],
   bigBang: ['show'],
-  turnabout: ['reds', 'spawn'], // (round 6) Big Bang turns the reds into kegs
-  // (round 6) Neve's Glacier freezes every red and slows the bar; Big Freeze turns the reds into ice
-  glacier: ['reds', 'cursor'],
-  bigFreeze: ['reds'],
-  // (round 6) Hollis's Bulwark: at full Guard a block or hit sets it off on every foe
-  bulwark: ['tab', 'foes'],
-  bulwarkBlow: ['bolt'],
-  // (round 6) Vesper's Patience: at full Focus with no green in reach, a Perfect fires the shot
-  patience: ['target'],
-  // ---- Hollis (and the Guardian style's Guard)
+  // ---- Hollis (and the Guardian style's Guard): every block slams; full Guard sets off a Bulwark on every foe
   guardUp: ['tab'],
-  guard: ['target'],
-  shieldSlam: ['bolt'],
+  shieldSlam: ['bash'], // (Perfect: a bigger shield, a starburst, a brighter number; the 'slam' tier, shieldCounter)
+  bulwark: ['show'], // the hero slams down, a great shield sweeps every foe, the Guard tab bursts ('bulwark' tier)
+  bulwarkBlow: ['show'], // each foe struck as the great shield reaches it (a big steel number)
   // ---- Vesper (the Marksman style's Power Shot)
   powerShot: ['bolt'],
   pierce: ['bounce'],
   volley: ['show'],
+  patience: ['bar', 'target'], // a Perfect fires the full Focus (no green in reach): gold on the hit and the foe
   // ---- Torva
   quake: ['reds'],
   windUp: ['bar', 'foe'], // (its stun event: stars over the foe)
@@ -191,7 +187,7 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   nightCloak: ['bar', 'foe'],
   // ---- Neve
   brittle: ['bar', 'foe'],
-  shatterburst: ['bounce'],
+  bigFreeze: ['turn'], // the frozen reds iced over into blocks to smash
   iceAge: ['bar'],
   longBend: ['reds'],
   frostAura: ['reds'],
@@ -210,7 +206,7 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   moonglow: ['reds'],
   pollenBurst: ['bolt'],
   // ---- Tam
-  stockpile: ['spawn'],
+  turnabout: ['turn'], // Big Bang flips each red into a keg where it stood
   restock: ['bar', 'spawn'],
   minefield: ['bar'],
   packedPowder: ['blast'],
@@ -221,11 +217,11 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   kaboom: ['blast', 'meter'],
   // ---- Hollis
   sureGuard: ['tab'],
-  deepGuard: ['bar', 'foe'],
-  avalanche: ['bounce'],
-  heavySlam: ['foe'],
-  wideSlam: ['bounce'],
-  retaliate: ['bolt'],
+  deepGuard: ['bar'], // (the Bulwark hit harder: its block)
+  avalanche: ['foes'], // (a Bulwark stuns every foe: their stun stars)
+  heavySlam: ['show'], // the slam it made stronger lands heavier on its foe (a ground shock, a hot-steel starburst)
+  wideSlam: ['bash'], // smaller shields into every other foe
+  retaliate: ['show'], // (stored Guard): the slam lands heavier on its foe, like Heavy Slam
   longRampart: ['left'],
   wallUp: ['left'],
   echoWall: ['meter'],
@@ -256,8 +252,6 @@ export const PERK_SPAWN: Record<string, BlockKind> = {
   starlight: 'green',
   fuseUp: 'keg',
   restock: 'keg',
-  stockpile: 'keg',
-  turnabout: 'keg',
   partingGift: 'bomb',
 };
 
