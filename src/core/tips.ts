@@ -100,6 +100,7 @@ export class TipCoach {
       } else if (e.type === 'zoneOn' && (e.kind === 'ice' || e.kind === 'snow')) due({ id: e.kind });
       else if (e.type === 'chip' && e.left > 1) due({ id: 'iced', block: e.id });
       else if (e.type === 'pairOn') due({ id: 'pair', block: e.id });
+      else if (e.type === 'mark') due({ id: 'icicle' });
       else if (e.type === 'telegraph') due({ id: 'special', enemy: e.enemyId });
       else if (e.type === 'meterFull') due({ id: 'finisher' });
       else if (e.type === 'comboBreak' && e.lostStacks >= this.o.breakStacks) due({ id: 'comboBreak' });

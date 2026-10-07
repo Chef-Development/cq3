@@ -170,3 +170,7 @@ L2. **Lab fights count toward the accuracy readout.** Practice fights (the Train
     log of its own (`cq3.lab.acc`, shared by every lab scenario and kept across reloads), and the lab report's accuracy
     line counts the real game's samples and the lab's together, then says how many came from lab fights. The real
     save is still never written by the lab.
+L3. **Bar rules' first-meeting tips.** Every bar rule already had one (holds, ice, snow, mirrors, iced yellows, kegs,
+    frozen reds, drifting and paired blocks); the playtester never saw them because the lab's bar-rule scenarios ran
+    with every tip marked seen. Those scenarios now show their rule's tip (reworked: they ask for a new rating), and an
+    icicle's mark (where it will drop) got a tip of its own.

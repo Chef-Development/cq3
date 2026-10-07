@@ -116,14 +116,17 @@ const petFight = (id: string, pets: [CompanionId, CompanionId], label: string, t
   profile: { camp: PERCH, pets, petsOn: pets },
 });
 
-/** A bar rule alone against the Training Dummy (nothing hurts). */
-const barRule = (id: string, label: string, tryLine: string, bar: BarRules): LabScenario => ({
+/** A bar rule alone against the Training Dummy (nothing hurts), its first-meeting tip on (playtest round 6: the
+ *  lab had every tip seen, so the rule came with no word on what it does). */
+const barRule = (id: string, label: string, tryLine: string, bar: BarRules, tips: TipId[]): LabScenario => ({
   id,
   group: 'bar',
   label,
   secs: 30,
+  rev: 1,
   try: tryLine,
   setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['dummy']], bar, safe: true },
+  profile: { tips },
 });
 
 /** This session's new content (playtest round 5: the heroes' and companions' fights reworked to be long enough to
@@ -199,12 +202,18 @@ export const LAB_EARLIER: LabScenario[] = [
   { id: 'completionNear', group: 'camp', label: 'Completion: almost', secs: 30, try: "Check what's left for 100%.", setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'near' } },
 
   // ---- the second region's bar rules, alone against the Training Dummy
-  barRule('barIce', 'Ice patches', 'The cursor speeds up on ice: tap early.', { ice: { every: 5, width: 0.22, life: 6, fromRow: 0, max: 2 } }),
-  barRule('barHolds', 'Hold blocks', 'Hold from the first notch to the last.', { holds: { share: 0.3, fromRow: 0, width: 1 } }),
-  barRule('barSnow', 'Snowdrifts + ice', 'Fast on ice, slow in snow: re-time.', {
-    ice: { every: 6, width: 0.2, life: 6, fromRow: 0, max: 2 },
-    snow: { every: 7, width: 0.2, life: 6, fromRow: 0, max: 1 },
-  }),
+  barRule('barIce', 'Ice patches', 'The cursor speeds up on ice: tap early.', { ice: { every: 5, width: 0.22, life: 6, fromRow: 0, max: 2 } }, ['ice']),
+  barRule('barHolds', 'Hold blocks', 'Hold from the first notch to the last.', { holds: { share: 0.3, fromRow: 0, width: 1 } }, ['hold']),
+  barRule(
+    'barSnow',
+    'Snowdrifts + ice',
+    'Fast on ice, slow in snow: re-time.',
+    {
+      ice: { every: 6, width: 0.2, life: 6, fromRow: 0, max: 2 },
+      snow: { every: 7, width: 0.2, life: 6, fromRow: 0, max: 1 },
+    },
+    ['ice', 'snow'],
+  ),
 
   // ---- spoilers (hidden by default): the next region's foes, mini-bosses, boss and story, by act number only
   { id: 'spAct4', group: 'spoiler', spoiler: true, label: 'Act 4 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 3, waves: [['rimeImp', 'yetiCub'], ['icicleBat', 'icicleBat'], ['snowOgre']], bar: 'act', row: 3 } },
@@ -220,8 +229,8 @@ export const LAB_EARLIER: LabScenario[] = [
   { id: 'spStory6', group: 'spoiler', spoiler: true, label: 'Act 6 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 5, scenes: ['frost3', 'glacia', 'glacia2', 'glacia3', 'frostVictory'] } },
   { id: 'spArrivals', group: 'spoiler', spoiler: true, label: 'Hero arrivals', secs: 60, try: 'Read how each chest hero arrives.', setup: { kind: 'story', act: 1, scenes: ['meetMoss', 'meetTam', 'meetHollis', 'meetVesper', 'meetTorva'] } },
   // ---- spoilers: the third region (acts 7-9): its two bar rules, foes, mini-bosses, boss and story
-  { id: 'spBar7', group: 'spoiler', spoiler: true, label: 'Act 7 bar rule', secs: 45, try: 'Watch the blocks move. Nothing hurts.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, waves: [['dummy']], bar: { drift: { share: 0.6, fromRow: 0, speed: 0.07 } }, safe: true } },
-  { id: 'spBar8', group: 'spoiler', spoiler: true, label: 'Act 8 bar rule', secs: 45, try: 'Hit one, then the other. Nothing hurts.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 7, waves: [['dummy']], bar: { links: { share: 0.5, fromRow: 0 } }, safe: true } },
+  { id: 'spBar7', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 7 bar rule', secs: 45, try: 'Watch the blocks move. Nothing hurts.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, waves: [['dummy']], bar: { drift: { share: 0.6, fromRow: 0, speed: 0.07 } }, safe: true }, profile: { tips: ['drift'] } },
+  { id: 'spBar8', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 8 bar rule', secs: 45, try: 'Hit one, then the other. Nothing hurts.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 7, waves: [['dummy']], bar: { links: { share: 0.5, fromRow: 0 } }, safe: true }, profile: { tips: ['pair'] } },
   { id: 'spAct7', group: 'spoiler', spoiler: true, label: 'Act 7 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, waves: [['cinderling', 'cragCrab'], ['cinderKite', 'cinderKite'], ['obsidianOx']], bar: 'act', row: 3 } },
   { id: 'spMini7', group: 'spoiler', spoiler: true, label: 'Act 7 mini-boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, waves: [['rumbleback']], bar: 'act', row: 6, safe: true } },
   { id: 'spAct8', group: 'spoiler', spoiler: true, label: 'Act 8 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 7, waves: [['glassblower', 'prismBat'], ['glassMantis', 'cinderKite'], ['kilnWarden']], bar: 'act', row: 3 } },

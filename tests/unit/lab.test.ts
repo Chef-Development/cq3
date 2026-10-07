@@ -332,7 +332,7 @@ describe('Test lab ratings and report', () => {
   it('the report has every rating and note, the accuracy line and the build; hidden spoilers stay out unless rated', () => {
     const st = newLabState();
     rateScenario(st, 'sable', 'good', 'dash feels great', 1, byId('sable').rev ?? 0);
-    rateScenario(st, 'barHolds', 'work', 'release is strict');
+    rateScenario(st, 'barHolds', 'work', 'release is strict', 2, byId('barHolds').rev ?? 0);
     const out = labReport({ state: st, accuracy: 'CQ3 accuracy Oct 6: 84% from 200 taps', build: 'abc1234 10-06 07:00' });
     expect(out).toContain('Version abc1234 10-06 07:00');
     expect(out).toContain('- Sable: Good - "dash feels great"');
@@ -367,8 +367,9 @@ describe('Test lab ratings and report', () => {
     expect(staleRating(back, moss)).toBeUndefined();
     expect(labReport({ state: back, accuracy: '', build: 'x' })).toContain('- Moss: Good - "allies show"');
     // an unreworked scenario rated with no rev still counts
-    rateScenario(back, 'barIce', 'good', '', 3);
-    expect(ratingOf(back, byId('barIce'))?.rating).toBe('good');
+    const plain = LAB_SCENARIOS.find((x) => !x.rev && !x.spoiler)!;
+    rateScenario(back, plain.id, 'good', '', 3);
+    expect(ratingOf(back, plain)?.rating).toBe('good');
   });
 });
 

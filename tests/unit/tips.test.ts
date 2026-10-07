@@ -42,7 +42,7 @@ function goTo(run: Run, type: string): void {
   run.chooseNode(target.id);
 }
 
-const spawn = (id: number, kind: 'red' | 'purple' | 'green' | 'yellow'): CombatEvent => ({ type: 'spawn', id, kind, ownerId: 1, special: false });
+const spawn = (id: number, kind: 'red' | 'purple' | 'green' | 'yellow' | 'hold' | 'mirror' | 'keg' | 'frozen'): CombatEvent => ({ type: 'spawn', id, kind, ownerId: 1, special: false });
 const setTime = (run: Run, s: number) => (run.combat!.tick = Math.round(s / DT));
 
 describe('tips data', () => {
@@ -152,6 +152,28 @@ describe('the coach', () => {
     goTo(run, 'fight');
     coach.feed([{ type: 'comboBreak', lost: 12, lostStacks: 1 }], run.combat!);
     expect(coach.next({ run, safe: true })).toBeNull();
+  });
+
+  it("every bar rule's first meeting fires its tip: holds, ice and snow, mirrors, iced yellows, kegs, frozen reds, drifting and paired blocks, an icicle's mark", () => {
+    const cases: Array<[CombatEvent, TipId]> = [
+      [spawn(5, 'hold'), 'hold'],
+      [{ type: 'zoneOn', id: 1, kind: 'ice', lo: 0.4, hi: 0.6 }, 'ice'],
+      [{ type: 'zoneOn', id: 2, kind: 'snow', lo: 0.4, hi: 0.6 }, 'snow'],
+      [spawn(6, 'mirror'), 'mirror'],
+      [{ type: 'chip', id: 7, pos: 0.5, left: 2 }, 'iced'],
+      [spawn(8, 'keg'), 'keg'],
+      [spawn(9, 'frozen'), 'frozen'],
+      [{ type: 'spawn', id: 10, kind: 'yellow', ownerId: 1, special: false, drift: true }, 'drift'],
+      [{ type: 'pairOn', id: 11, partner: 12 }, 'pair'],
+      [{ type: 'mark', pos: 0.5, sec: 1 }, 'icicle'],
+    ];
+    for (const [ev, id] of cases) {
+      const { run, coach } = setup();
+      goTo(run, 'fight');
+      for (const d of TIPS) if (d.basic) run.profile.tips.push(d.id); // a veteran: the basics are seen
+      coach.feed([ev], run.combat!);
+      expect(coach.next({ run, safe: true })?.id, id).toBe(id);
+    }
   });
 
   it('one at a time, by priority; a fight event that cannot show at once waits briefly, then for next time', () => {

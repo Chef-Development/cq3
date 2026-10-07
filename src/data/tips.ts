@@ -79,6 +79,8 @@ export type TipId =
   | 'frozen'
   | 'drift'
   | 'pair'
+  // playtest round 6: an icicle's mark (where it will drop)
+  | 'icicle'
   | 'chest'
   | 'shrine'
   | 'companions'
@@ -137,6 +139,7 @@ export const TIPS: readonly TipDef[] = [
   { id: 'frozen', lines: ['A frozen red: hit it like a yellow', 'to shatter it for a big hit!'], anchor: 'frozenBlock', fight: 'pause' },
   { id: 'drift', lines: ['Some blocks drift along the bar.', "Watch which way they're heading!"], anchor: 'bar', fight: 'pause' },
   { id: 'pair', lines: ['A pair: hit one, then the other.', 'Too slow? Both count as misses.'], anchor: 'bar', fight: 'pause' },
+  { id: 'icicle', lines: ['An icicle will drop on the mark.', 'Block it like a red when it lands.'], anchor: 'bar', fight: 'pause' },
   {
     id: 'finisher',
     lines: ['Meter full! Swipe for a finisher.', 'More stacks, bigger finisher.'],
