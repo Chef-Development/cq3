@@ -193,3 +193,6 @@ C4. **Camp upgrades are objects in the camp; the Upgrades screen is build mode o
     tapping a built object (home or build mode) opens its card again; the perch opens the companions, the dummy
     practices. The Camp button glows with a gold "!" when an upgrade can be built now. No new save data: what stands
     is `profile.camp`; the build animation plays only when it's bought.
+C5. **Test lab:** the four camp scenarios on the reworked screens (Companions, Camp upgrades, Completion: almost /
+    100%) get `rev: 1` and new "try" lines (a rating given to the old screens asks again). They stay where they are in
+    LAB_EARLIER: moving this round's items into LAB_NEW is left to the merge, since every agent this round touches it.
