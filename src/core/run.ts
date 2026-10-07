@@ -117,7 +117,7 @@ export function boostLabel(t: Tuning, o: BoostOffer): [string, string] {
     case 'comboPower':
       return ['Combo Power', `+${round1(b.comboPower * m)}`];
     case 'pet':
-      return ['Companion Power', `Pip +${Math.round(b.pet * m)} dmg`];
+      return ['Companion Power', `+${Math.round(b.pet * m)}`];
     case 'heal':
       return ['Full Heal', o.rarity === 'common' ? 'HP to max' : `+${healBonusHp(t, o.rarity)} max HP`];
   }
@@ -205,7 +205,7 @@ export function boostPreview(t: Tuning, hero: Hero, offer: BoostOffer): BoostPre
       return { stat: 'Combo', before: one(s0.comboPower), after: one(s1.comboPower) };
     case 'pet': {
       const [a, b] = pair(s0.companion, s1.companion);
-      return { stat: 'Pip', before: a, after: b };
+      return { stat: 'Companion', before: a, after: b };
     }
     case 'heal':
       return { stat: 'HP', before: `${hero.hp}`, after: `${after.hp}` };

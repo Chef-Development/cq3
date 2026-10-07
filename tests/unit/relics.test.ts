@@ -908,7 +908,7 @@ describe('unlocks', () => {
     expect(unlocksFor('elite', 1)).toEqual(['partingGift']);
     expect(unlocksFor('event', 'shiny', 0)).toEqual(['huntingOwl']);
     expect(unlocksFor('event', 'shiny', 1)).toEqual([]);
-    expect(unlockHint('shortFuse')).toBe('Clear Act 1 for the first time');
+    expect(unlockHint('shortFuse')).toBe('Clear Act 1');
     expect(unlockHint('mirrorGuard')).toBe('Beat an elite in Act 1');
     expect(unlockHint('huntingOwl')).toContain('Let Pip keep it');
     expect(unlockHint('sapper')).toBe('Unlocked from the start');

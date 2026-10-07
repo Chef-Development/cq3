@@ -97,6 +97,6 @@ describe('boost rarity', () => {
     c.tap(0.7);
     const pet = c.drainEvents().find((e) => e.type === 'pet');
     expect(pet && pet.type === 'pet' && pet.damage).toBe(t.companion.damage + 8);
-    expect(boostLabel(t, { id: 'pet', rarity: 'common' })).toEqual(['Companion Power', 'Pip +4 dmg']);
+    expect(boostLabel(t, { id: 'pet', rarity: 'common' })).toEqual(['Companion Power', '+4']);
   });
 });
