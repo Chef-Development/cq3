@@ -37,12 +37,12 @@ export const GREENMARCH: RegionDef = {
     {
       name: 'Old Ruins',
       theme: 'ruins',
-      hpMult: 1.4,
+      hpMult: 1.7,
       atkMult: 5.5,
       pace: 0.85,
       redSpeed: 1.05,
       rows: 7,
-      waves: { first: 4, last: 6, eliteEscort: 2 },
+      waves: { first: 3, last: 6, eliteEscort: 2 },
       fights: {
         early: [['archer'], ['beetle'], ['shaman', 'slime']],
         late: [['beetle', 'archer'], ['shaman', 'bandit'], ['crow', 'archer'], ['beetle', 'shaman']],

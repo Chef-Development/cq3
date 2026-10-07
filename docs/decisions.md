@@ -161,3 +161,10 @@ Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.m
     nearly always wins; at Act 3's numbers a fresh lab hero, Rowan included, lost half of them); companion fights
     four waves. A reworked item asks for a new rating: a rating given to its old version shows as "Reworked" in
     the list and as "before: ..." in the report.
+
+## Overnight polish run (playtest round 6)
+45. **Act 2's foes have more HP:** the act's HP x1.7 (was x1.4: each foe about +21%). To keep its fights about as
+    long as before (and under Act 3's: "normal fights don't get shorter act over act"), its first map rows deal one
+    wave fewer (3 to 6 waves, was 4 to 6; the last rows and the lab's six-wave fight are unchanged). The Ruin Golem's
+    base HP 2100 -> 1900 (with the act's x1.7 it has 10% more than before, so its fight stays the act's longest).
+    85% bot (the guard's seeds): Act 2 first try 81% (target 80-90%), its fights 25 s, Act 3 untouched (26 s).

@@ -155,7 +155,7 @@ accuracy, ${Math.round((Date.now() - t0) / 1000)} s to run.
 - A lost act is retried from its start (up to 6 tries), with the hero and coins as they entered it; a cleared act
   carries the hero (healed to full) into the next.
 - Fights are runs of foes, one wave after another (Act 1: 3 waves in the first row up to 5 before the boss; Act 2:
-  4-6; Act 3: 4-7; an elite comes after an escort). A tap that overlaps an attack always blocks it first.
+  3-6; Act 3: 4-7; an elite comes after an escort). A tap that overlaps an attack always blocks it first.
 
 ## Targets (a gentle start, then a ramp; set for the playtester, an ${pct(TYPICAL_ACCURACY)} player, with the gear found on the way)
 
