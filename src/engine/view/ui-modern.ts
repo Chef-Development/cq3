@@ -538,3 +538,33 @@ export class Sheet {
 }
 
 const isDark = (c: number) => ((c >> 16) & 255) * 0.299 + ((c >> 8) & 255) * 0.587 + (c & 255) * 0.114 < 140;
+
+// ------------------------------------------------------------------ appended: the chests and the shrine (S)
+
+/**
+ * A count badge: a round (or pill) token in `face` colours with a bold number, an ink rim and a shine; it bobs
+ * gently, and pops when `popAt` (when the count last changed) is recent. Centred on (cx, cy).
+ */
+export function countBadge(g: G, texts: TextPool, cx: number, cy: number, label: string, now: number, o: { face?: Face; alpha?: number; popAt?: number } = {}): void {
+  const a = o.alpha ?? 1;
+  const [hi, base, lo, deep] = o.face ?? [GOLD[4], GOLD[3], GOLD[2], GOLD[1]];
+  const tw = textWidth(label, 1, true);
+  const pk = o.popAt !== undefined ? clamp01((now - o.popAt) / 260) : 1;
+  const pop = pk < 1 ? Math.round(Math.sin(pk * Math.PI) * 2) : 0;
+  const bob = Math.round(Math.sin(now / 420) * 0.6);
+  const h = 11 + pop;
+  const w = Math.max(h, tw + 7 + pop);
+  const x = Math.round(cx - w / 2);
+  const y = Math.round(cy - h / 2) + bob;
+  rows(g, x - 1, y + 1, w + 2, h + 1, 4, INK, 0.45 * a);
+  rows(g, x - 1, y - 1, w + 2, h + 2, 4, INK, a);
+  rows(g, x, y, w, h, 3, base, a);
+  band(g, x, y, w, h, 3, 0, 2, hi, a);
+  band(g, x, y, w, h, 3, h - 2, h, lo, a);
+  g.fillStyle(deep, a);
+  g.fillRect(x + 3, y + h - 1, w - 6, 1);
+  g.fillStyle(WHITE, 0.8 * a);
+  g.fillRect(x + 2, y + 1, 2, 1);
+  const dark = ((base >> 16) & 255) * 0.299 + ((base >> 8) & 255) * 0.587 + (base & 255) * 0.114 > 150;
+  texts.text(label, x + w / 2, y + h / 2 + 0.5, dark ? 0x3a1e08 : WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a, plain: dark });
+}

@@ -776,7 +776,17 @@ test('camp (M5): open a hero chest (a new hero arrives), buy and open a Rare che
   await expect.poll(() => a((x) => x.run.phase)).toBe('camp');
   await page.waitForTimeout(600);
 
-  // the chests by the tent: their plate opens the chest screen; Open plays the reveal (a known prize: a new hero)
+  /** Tap through a chest opening (each tap jumps a step; the reveal still plays) until it has closed. */
+  const tapThrough = async (revealing: () => Promise<unknown>) => {
+    for (let i = 0; i < 40 && (await revealing()); i++) {
+      await tapGame(page, 163, 75);
+      await page.waitForTimeout(260);
+    }
+    expect(await revealing()).toBe(false);
+  };
+
+  // the chests by the tent: their plate opens the vault; a tap on the hero chest plays its opening (a known prize: a
+  // new hero)
   await a((x) => x.view.camp.chests.reseed(24));
   const plate = (await a((x) => x.view.camp.plates().find((p: Any) => p.id === 'chests').r)) as Any;
   await tapRect(plate);
@@ -787,10 +797,13 @@ test('camp (M5): open a hero chest (a new hero arrives), buy and open a Rare che
   expect(await a((x) => x.profile.chests.hero)).toBe(0);
   expect(await a((x) => x.profile.heroes.moss.unlocked)).toBe(true);
   await page.waitForTimeout(500);
-  await tapGame(page, 163, 75); // skip the build: it bursts
-  await page.waitForTimeout(1300);
+  for (let i = 0; i < 12 && (await a((x) => x.view.camp.chests.opening.state.phase)) !== 'reveal'; i++) {
+    await tapGame(page, 163, 75); // fast-forward a step
+    await page.waitForTimeout(200);
+  }
+  await page.waitForTimeout(900);
   await page.screenshot({ path: 'test-results/chest-reveal.png' });
-  await tapGame(page, 163, 75); // close the card: Moss's arrival scene plays (once)
+  await tapThrough(() => a((x) => x.view.camp.chests.revealing)); // close it: Moss's arrival scene plays (once)
   await expect.poll(() => a((x) => x.storyOverlay)).toBe('meetMoss');
   expect((await saved()).seen).toContain('meetMoss');
   await a((x) => x.storySkip());
@@ -799,27 +812,28 @@ test('camp (M5): open a hero chest (a new hero arrives), buy and open a Rare che
   await expect.poll(mode).toBe('home');
   await page.waitForTimeout(500);
 
-  // the shrine: Buy (gems) puts a Rare chest by the tent; Open goes straight to its reveal
+  // the shrine: Open pays the gems and opens a Rare chest right there (its opening plays over the shrine)
   await tapRect((await a((x) => x.view.camp.plates().find((p: Any) => p.id === 'shrine').r)) as Any);
   await expect.poll(mode).toBe('shrine');
   await page.waitForTimeout(400);
   const gems = (await a((x) => x.profile.gems)) as number; // (a third hero is an achievement: it paid gems)
   const cost = (await a((x) => x.tuning.chests.rareCost)) as number;
   await tapRect((await a((x) => x.view.camp.shrine.buyRect())) as Any);
-  await expect.poll(() => a((x) => ({ gems: x.profile.gems, rare: x.profile.chests.rare }))).toEqual({ gems: gems - cost, rare: 1 });
-  await page.waitForTimeout(300);
-  await tapRect((await a((x) => x.view.camp.shrine.openRect())) as Any);
-  await expect.poll(mode).toBe('chests');
-  expect(await a((x) => x.view.camp.chests.revealing)).toBe(true);
-  expect(await a((x) => x.profile.chests.rare)).toBe(0);
+  await expect.poll(() => a((x) => ({ gems: x.profile.gems, rare: x.profile.chests.rare, revealing: x.view.camp.shrine.revealing }))).toEqual({ gems: gems - cost, rare: 0, revealing: true });
+  expect(await mode()).toBe('shrine');
   expect(await a((x) => x.profile.pity.rare + x.profile.pity.top)).toBeGreaterThan(0);
-  await page.waitForTimeout(2600);
-  await tapGame(page, 163, 75);
   await page.waitForTimeout(400);
-  await a((x) => x.storyOverlay && x.storySkip()); // (a new chest hero's scene, if it was one)
-  await tapRect((await a((x) => x.view.camp.kit.backRect())) as Any); // back to the shrine
-  await expect.poll(mode).toBe('shrine');
+  await tapThrough(() => a((x) => x.view.camp.shrine.revealing));
   await page.waitForTimeout(300);
+  await a((x) => x.storyOverlay && x.storySkip()); // (a new chest hero's scene, if it was one)
+  // short of gems: Open shakes and nothing is bought
+  await a((x) => {
+    x.profile.gems = 5;
+  });
+  await page.waitForTimeout(300);
+  await tapRect((await a((x) => x.view.camp.shrine.buyRect())) as Any);
+  await page.waitForTimeout(300);
+  expect(await a((x) => ({ gems: x.profile.gems, revealing: x.view.camp.shrine.revealing }))).toEqual({ gems: 5, revealing: false });
   await tapRect((await a((x) => x.view.camp.kit.backRect())) as Any);
   await expect.poll(mode).toBe('home');
   await page.waitForTimeout(400);
