@@ -26,7 +26,7 @@ import { SLOT_KEYS, slotOf } from '../data/gear';
 import { DT, heroAtk, heroMaxHp, heroStats, isRed, type Combat, type CombatEvent, type Hero } from './combat';
 import { emptyLoadout, itemPower, slotOfItem, upgradeCost, type StatBlock } from './gear';
 import { buildBonus, canLearn, learn, pointsLeft, treeOf, type HeroId } from './heroes';
-import { focusOf, guardOf } from './styles';
+import { focusOf, guardMax, guardOf } from './styles';
 import { buyRareChest, openChest } from './chests';
 import { buyCamp } from './meta';
 import { ownedPets, petSlots } from './roster';
@@ -711,6 +711,8 @@ function wantsFinisher(c: Combat, risk: number): boolean {
   if (c.stacks >= max) return true;
   const target = c.currentTarget();
   if (target && c.finisherDamage() * finisherKitMult(c) >= target.hp) return true;
+  // a Guardian with a Bulwark ready sets it off with the next tap first (Rampart would spend that Guard on one foe)
+  if (c.heroId === 'hollis' && guardOf(c) >= guardMax(c)) return false;
   const hitsNeeded = Math.max(1, (1 - c.meter) / Math.max(0.01, M.perHit));
   const survive = Math.pow(1 - Math.min(0.95, risk), hitsNeeded);
   return survive * (c.finisherDamage(c.stacks + 1) / Math.max(1, c.finisherDamage())) < 1;
@@ -739,7 +741,7 @@ function finisherKitMult(c: Combat): number {
     case 'moss':
       return 1 + K.moss.overgrowth * c.allies.length;
     case 'hollis':
-      return 1 + guardOf(c) * K.hollis.rampartGuard; // Rampart spends the Guard
+      return 1 + guardOf(c) * c.tuning.styles.guardPer * K.hollis.rampartGuard; // Rampart spends the Guard
     case 'vesper': {
       const d = Math.max(1, c.finisherDamage());
       return 1 + (focusOf(c) * K.vesper.volleyFocus) / d; // the Volley spends the Focus

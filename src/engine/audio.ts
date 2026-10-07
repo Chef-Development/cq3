@@ -2204,6 +2204,41 @@ export class Synth {
     this.voice({ at: t, type: 'noise', filter: 'highpass', ff: [[0, 7000], [0.4, 3000]], amp: [[0.02, 0.12], [0.45, 0]] });
   }
 
+  /** A Guardian's Shield Slam (every block hits back): a punchy metallic clang, a shield edge biting in, a short
+   *  ring. Heavier than a block (its impact tier is 'slam'); a Perfect block's slam rings brighter and longer. Play it
+   *  as the slam lands (with the block's own sound under it). */
+  shieldCounter(perfect = false, at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    const gr = this.graph!;
+    this.impact(impactWeight(this.tuning, 'slam') * (perfect ? 1.08 : 1), 'metal', t);
+    const f = (perfect ? 520 : 460) * (1 + (this.rand() - 0.5) * 0.03);
+    // the punch: a fast downward square knock through the crunch bus, then the clang's partials
+    this.tone({ type: 'square', f: f * 0.5, f1: f * 0.3, glide: 0.06, at: t, dur: 0.08, gain: 0.12, out: gr.crunch });
+    this.tone({ type: 'square', f, at: t + 0.004, dur: 0.22, gain: 0.07, rev: 0.25 });
+    this.tone({ type: 'triangle', f: f * 2.76, at: t + 0.004, dur: perfect ? 0.34 : 0.22, gain: 0.12, rev: 0.25 });
+    this.tone({ type: 'triangle', f: f * 4.07, at: t + 0.004, dur: perfect ? 0.24 : 0.15, gain: 0.08, rev: 0.25 });
+    this.noise({ at: t, dur: 0.06, gain: 0.14, filter: 'bandpass', f: 2600, q: 2.5 });
+    if (perfect) this.bell(f * 5.4, t + 0.03, 0.06, 0.5);
+  }
+
+  /** A Bulwark: full Guard unleashed on every foe. A deep shield-boom (impact tier 'bulwark'), a ringing gong under
+   *  it, and a rush of air. */
+  bulwark(at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    const gr = this.graph!;
+    this.impact(impactWeight(this.tuning, 'bulwark'), 'metal', t);
+    this.tone({ type: 'square', f: 140, f1: 55, glide: 0.35, at: t, dur: 0.4, gain: 0.14, out: gr.crunch });
+    for (const [k, g] of [
+      [1, 0.09],
+      [2.32, 0.07],
+      [3.86, 0.05],
+    ] as const)
+      this.tone({ type: 'triangle', f: 196 * k, at: t + 0.01, dur: 0.9, gain: g, rev: 0.45 });
+    this.noise({ at: t, dur: 0.5, gain: 0.18, filter: 'lowpass', f: 3000, f1: 400, sweep: 0.45, rev: 0.3 });
+  }
+
   /** An enemy's raised guard counters the attack: a hard, bright clang, then the hero takes a thud. Includes the
    *  hurt thud, so don't also play hurt() for the same blow. */
   counter(at?: number): void {
@@ -3797,6 +3832,9 @@ export const SFX: SfxEntry[] = [
   { id: 'stompLand', label: 'Stomp lands', len: 1.4, play: (s, at) => s.stompLand(at) },
   { id: 'freeze', label: 'Cursor freeze', len: 0.8, play: (s, at) => s.freeze(at) },
   { id: 'counter', label: 'Guard counter', len: 1, play: (s, at) => s.counter(at) },
+  { id: 'shieldCounter', label: 'Shield Slam (a block hits back)', len: 0.8, play: (s, at) => s.shieldCounter(false, at) },
+  { id: 'shieldCounterPerfect', label: 'Shield Slam (Perfect block)', len: 0.9, play: (s, at) => s.shieldCounter(true, at) },
+  { id: 'bulwark', label: 'Bulwark (full Guard on every foe)', len: 1.6, play: (s, at) => s.bulwark(at) },
   { id: 'wardCrack', label: 'Shell block cracks', len: 0.6, play: (s, at) => s.wardBreak(false, at) },
   { id: 'wardShatter', label: 'Shell shatters', len: 1, play: (s, at) => s.wardBreak(true, at) },
   { id: 'sporePop', label: 'Spore pop', len: 0.3, play: (s, at) => s.sporePop(at) },

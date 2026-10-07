@@ -5,10 +5,11 @@ import { describe, expect, it } from 'vitest';
 import { HERO_IDS, type HeroId } from '../../src/data/heroes';
 import { RELICS } from '../../src/data/relics';
 import { SKILL_NODES, SKILL_TREES, skillHero } from '../../src/data/skills';
-import { Combat, newHero, type Block, type BlockKind, type CombatEvent } from '../../src/core/combat';
+import { Combat, isRed, newHero, type Block, type BlockKind, type CombatEvent } from '../../src/core/combat';
 import { emptyLoadout } from '../../src/core/gear';
 import { learn, newHeroProgress, pointsLeft, skillN, skillText, treeOf, xpForLevel } from '../../src/core/heroes';
 import { SKILL_HOOKS } from '../../src/core/skill-fx';
+import { windUpMult } from '../../src/core/kit-fx';
 import { callAlly, focusCap, focusOf, guardMax, guardOf } from '../../src/core/styles';
 import { cloneTuning, DEFAULT_TUNING, type Tuning } from '../../src/core/tuning';
 import type { BarRules } from '../../src/data/types';
@@ -336,16 +337,29 @@ describe('Neve', () => {
     expect(lastHit(on.c.drainEvents()).damage).toBe(Math.round(on.c.stats().atk));
   });
 
-  it('Shatterburst: a shatter also hits every other foe for n% of its damage (a yellow does not)', () => {
-    const { on, off } = both('neve', ['shatterburst'], { enemies: ['slime', 'slime', 'slime'] });
-    tapNew(on.c, 'yellow', false);
-    expect(on.c.enemies[1].hp).toBe(80);
-    for (const { c } of [on, off]) tapNew(c, 'frozen', false);
-    const shatter = Math.round(on.c.stats().atk * on.t.blocks.frozenMult);
-    const burst = Math.round((shatter * skillN(on.t, 'shatterburst')) / 100);
-    expect(on.c.enemies.slice(1).map((e) => e.hp)).toEqual([80 - burst, 80 - burst]);
-    expect(off.c.enemies.slice(1).map((e) => e.hp)).toEqual([80, 80]);
-    expect(perks(on.c.drainEvents(), 'shatterburst')).toHaveLength(2);
+  it('Big Freeze: Glacier turns every red into ice to smash (without it, the reds are held in place, still reds)', () => {
+    const { on, off } = both('neve', ['bigFreeze'], { enemies: ['bandit'] });
+    for (const { c } of [on, off]) {
+      c.spawnBlock('red', 0.8);
+      c.spawnBlock('shield', 0.55);
+      c.stacks = 1;
+      c.finisher();
+    }
+    expect(kinds(on.c, 'frozen')).toHaveLength(2);
+    expect(on.c.blocks.filter((b) => isRed(b.kind))).toHaveLength(0);
+    expect(perks(on.c.drainEvents(), 'bigFreeze')).toEqual([expect.objectContaining({ amount: 2 })]);
+    expect(kinds(off.c, 'frozen')).toHaveLength(0);
+    const held = off.c.blocks.filter((b) => isRed(b.kind));
+    expect(held).toHaveLength(2);
+    for (const b of held) expect(b.chill > 0 && b.chillMult === 0).toBe(true);
+    // the ice smashes for x frozenMult (and fills the meter like a hit)
+    const ice = kinds(on.c, 'frozen')[0];
+    const hp = on.c.enemies[0].hp;
+    on.c.meter = 0;
+    const at = on.c.time + on.c.travelTime(on.c.cursorPos(), ice.pos, on.c.cursorDirAt(on.c.time));
+    go(on.c, at);
+    expect(on.c.tap(at).outcome).toBe('hit');
+    expect(hp - on.c.enemies[0].hp).toBeGreaterThanOrEqual(Math.round(on.c.stats().atk * on.t.blocks.frozenMult));
   });
 
   it('Ice Age: every block freezes its red (once: a Perfect block that Flash Freeze took is not frozen twice)', () => {
@@ -602,19 +616,24 @@ describe('Moss', () => {
 describe('Tam', () => {
   const kegDmg = (c: Combat) => Math.round(c.stats().atk * c.tuning.styles.kegMult);
 
-  it('Stockpile: each wave starts with n kegs on the bar', () => {
-    const waves = [['slime'], ['slime']];
-    const { on, off } = both('tam', ['stockpile'], { waves });
-    expect(kinds(on.c, 'keg')).toHaveLength(skillN(on.t, 'stockpile'));
+  it('Turnabout: Big Bang turns every red on the bar into a keg where it was (without it, the reds are knocked off)', () => {
+    const { on, off } = both('tam', ['turnabout'], { enemies: ['bandit'], tune: (t) => (t.kits.tam.bangKegs = 0) });
+    const spots: number[] = [];
+    for (const { c } of [on, off]) {
+      spots.push(c.spawnBlock('red', 0.85).pos, c.spawnBlock('bomb', 0.6).pos);
+      c.stacks = 1;
+      c.finisher();
+    }
+    expect(on.c.blocks.filter((b) => isRed(b.kind))).toHaveLength(0);
+    expect(kinds(on.c, 'keg').map((k) => k.pos).sort()).toEqual([spots[0], spots[1]].sort());
+    expect(perks(on.c.drainEvents(), 'turnabout')).toHaveLength(2);
+    expect(off.c.blocks.filter((b) => isRed(b.kind))).toHaveLength(0);
     expect(kinds(off.c, 'keg')).toHaveLength(0);
-    expect(perks(on.early, 'stockpile')).toHaveLength(1);
-    for (const k of kinds(on.c, 'keg')) on.c.removeBlock(k, 'hit');
-    on.c.enemies[0].hp = 1;
-    on.c.stacks = 1;
-    on.c.finisher();
-    go(on.c, on.c.time + on.t.waves.gapSec + 0.1);
-    expect(on.c.waveIndex).toBe(1);
-    expect(kinds(on.c, 'keg')).toHaveLength(skillN(on.t, 'stockpile'));
+    // a keg it made is hers: hit it and it blasts every foe
+    const hp = on.c.enemies[0].hp;
+    const keg = kinds(on.c, 'keg').sort((a, b) => a.pos - b.pos)[0];
+    expect(tapWhenThere(on.c, keg).outcome).toBe('hit');
+    expect(hp - on.c.enemies[0].hp).toBeGreaterThanOrEqual(kegDmg(on.c));
   });
 
   it('Restock: a Perfect hit on a keg drops a new keg (not a plain one)', () => {
@@ -751,72 +770,77 @@ describe('Hollis', () => {
     expect(guardOf(on.c)).toBe(2 + skillN(on.t, 'sureGuard'));
   });
 
-  it('Deep Guard: each Guard charge a hit unleashes adds n% more', () => {
-    const { on, off } = both('hollis', ['deepGuard']);
-    for (const { c } of [on, off]) {
-      tapNew(c, 'red', false);
-      tapNew(c, 'red', false);
-      tapNew(c, 'yellow', false);
-    }
-    const atk = on.c.stats().atk;
-    const g = on.t.styles.guardPer;
-    expect(lastHit(off.c.drainEvents()).damage).toBe(Math.round(atk * (1 + 2 * g)));
-    const ev = on.c.drainEvents();
-    expect(lastHit(ev).damage).toBe(Math.round(atk * (1 + 2 * g * (1 + skillN(on.t, 'deepGuard') / 100))));
-    expect(perks(ev, 'deepGuard')).toHaveLength(1);
-  });
+  /** The Bulwark's blow on each foe: the style's share of attack per Guard charge. */
+  const bulwarkDmg = (c: Combat, g: number) => Math.round(c.stats().atk * c.tuning.styles.bulwarkPer * g);
 
-  it('Avalanche: a hit at full Guard strikes every other foe for as much', () => {
-    const { on, off } = both('hollis', ['avalanche'], { enemies: ['slime', 'slime'] });
+  it('Deep Guard: the Bulwark (full Guard unleashed on every foe) hits n% harder', () => {
+    const { on, off } = both('hollis', ['deepGuard'], { enemies: ['bandit', 'bandit'], tune: (t) => (t.enemies.bandit.hp = 900) });
     for (const { c } of [on, off]) {
       c.perk.guard = guardMax(c);
       tapNew(c, 'yellow', false);
     }
-    const hit = 80 - on.c.enemies[0].hp;
-    expect(on.c.enemies[1].hp).toBe(80 - hit);
-    expect(off.c.enemies[1].hp).toBe(80);
-    // short of full: one hit
-    const s = fight('hollis', ['avalanche'], { enemies: ['slime', 'slime'] });
+    const hit = Math.round(on.c.stats().atk);
+    const g = guardMax(on.c);
+    expect(off.c.enemies.map((e) => 900 - e.hp)).toEqual([hit + bulwarkDmg(off.c, g), bulwarkDmg(off.c, g)]);
+    expect(on.c.enemies.map((e) => 900 - e.hp)).toEqual([hit, 0].map((x) => x + Math.round(bulwarkDmg(on.c, g) * (1 + skillN(on.t, 'deepGuard') / 100))));
+    expect(perks(on.c.drainEvents(), 'deepGuard')).toHaveLength(1);
+    // a hit short of full Guard: no Bulwark, nothing to boost
+    const s = fight('hollis', ['deepGuard'], { enemies: ['bandit'] });
     s.c.perk.guard = guardMax(s.c) - 1;
     tapNew(s.c, 'yellow', false);
-    expect(s.c.enemies[1].hp).toBe(80);
+    expect(140 - s.c.enemies[0].hp).toBe(hit);
+    expect(perks(s.c.drainEvents(), 'deepGuard')).toHaveLength(0);
+  });
+
+  it('Avalanche: a Bulwark also stuns every foe for n s', () => {
+    const { on, off } = both('hollis', ['avalanche'], { enemies: ['bandit', 'bandit'] });
+    for (const { c } of [on, off]) {
+      c.perk.guard = guardMax(c);
+      tapNew(c, 'red', false, c.enemies[0].id);
+    }
+    expect(on.c.enemies.map((e) => e.stun)).toEqual([skillN(on.t, 'avalanche'), skillN(on.t, 'avalanche')]);
+    expect(off.c.enemies.map((e) => e.stun)).toEqual([0, 0]);
+    expect(perks(on.c.drainEvents(), 'avalanche')).toHaveLength(1);
+    // short of full Guard: a block stores a charge, no stun
+    const s = fight('hollis', ['avalanche'], { enemies: ['bandit'] });
+    s.c.perk.guard = guardMax(s.c) - 1;
+    tapNew(s.c, 'red', false);
+    expect(s.c.enemies[0].stun).toBe(0);
   });
 
   it('Heavy Slam: Shield Slam hits n% harder', () => {
     const { on, off } = both('hollis', ['heavySlam'], { enemies: ['bandit'] });
     tapNew(on.c, 'red', true);
     tapNew(off.c, 'red', true);
-    const slam = Math.round(off.c.stats().atk * off.t.kits.hollis.slam);
+    const slam = Math.round(off.c.stats().atk * off.t.kits.hollis.slamPerfect);
     expect(140 - off.c.enemies[0].hp).toBe(slam);
     expect(140 - on.c.enemies[0].hp).toBe(Math.round(slam * (1 + skillN(on.t, 'heavySlam') / 100)));
     expect(perks(on.c.drainEvents(), 'heavySlam')).toHaveLength(1);
+    expect(perks(off.c.drainEvents(), 'heavySlam')).toHaveLength(0);
   });
 
-  it("Wide Slam: Shield Slam also hits every other foe for n% (a plain block doesn't slam)", () => {
+  it('Wide Slam: Shield Slam (a plain block\'s and a Perfect one\'s) also hits every other foe for n%', () => {
     const { on, off } = both('hollis', ['wideSlam'], { enemies: ['bandit', 'bandit'] });
-    tapNew(on.c, 'red', false, on.c.enemies[0].id);
-    expect(on.c.enemies[1].hp).toBe(140);
     for (const { c } of [on, off]) tapNew(c, 'red', true, c.enemies[0].id);
-    const slam = on.c.stats().atk * on.t.kits.hollis.slam;
+    const slam = on.c.stats().atk * on.t.kits.hollis.slamPerfect;
     expect(on.c.enemies.map((e) => e.hp)).toEqual([140 - Math.round(slam), 140 - Math.round((slam * skillN(on.t, 'wideSlam')) / 100)]);
     expect(off.c.enemies.map((e) => e.hp)).toEqual([140 - Math.round(slam), 140]);
+    const plain = fight('hollis', ['wideSlam'], { enemies: ['bandit', 'bandit'] });
+    tapNew(plain.c, 'red', false, plain.c.enemies[0].id);
+    expect(140 - plain.c.enemies[1].hp).toBe(Math.round((plain.c.stats().atk * plain.t.kits.hollis.slam * skillN(plain.t, 'wideSlam')) / 100));
   });
 
-  it('Retaliate: a plain block slams back too, for n% of a Shield Slam (Wide Slam spreads it)', () => {
-    const { on, off } = both('hollis', ['retaliate'], { enemies: ['bandit'] });
-    tapNew(on.c, 'red', false);
-    tapNew(off.c, 'red', false);
+  it('Retaliate: each Guard charge stored makes Shield Slam n% stronger', () => {
+    const { on, off } = both('hollis', ['retaliate'], { enemies: ['bandit'], tune: (t) => (t.enemies.bandit.hp = 900) });
+    for (const { c } of [on, off]) {
+      c.perk.guard = 2;
+      tapNew(c, 'red', false); // its own charge makes 3
+    }
     const slam = on.c.stats().atk * on.t.kits.hollis.slam;
-    expect(140 - on.c.enemies[0].hp).toBe(Math.round((slam * skillN(on.t, 'retaliate')) / 100));
-    expect(off.c.enemies[0].hp).toBe(140);
-    expect(perks(on.c.drainEvents(), 'retaliate')).toHaveLength(1);
-    // a Perfect block slams as before (no extra)
-    on.c.enemies[0].hp = 140;
-    tapNew(on.c, 'red', true);
-    expect(140 - on.c.enemies[0].hp).toBe(Math.round(slam));
-    const w = fight('hollis', ['wideSlam', 'retaliate'], { enemies: ['bandit', 'bandit'] });
-    tapNew(w.c, 'red', false, w.c.enemies[0].id);
-    expect(140 - w.c.enemies[1].hp).toBe(Math.round((((slam * skillN(w.t, 'retaliate')) / 100) * skillN(w.t, 'wideSlam')) / 100));
+    expect(900 - off.c.enemies[0].hp).toBe(Math.round(slam));
+    expect(900 - on.c.enemies[0].hp).toBe(Math.round(Math.round(slam) * (1 + (3 * skillN(on.t, 'retaliate')) / 100)));
+    expect(perks(on.c.drainEvents(), 'retaliate')).toEqual([expect.objectContaining({ amount: 3 })]);
+    expect(perks(off.c.drainEvents(), 'retaliate')).toHaveLength(0);
   });
 
   it("Long Rampart: Rampart's wall stands n s longer", () => {
@@ -1007,7 +1031,7 @@ describe('Torva', () => {
       tapNew(c, 'green', false);
       tapNew(c, 'yellow', false);
     }
-    const base = heavy(off.c) * off.t.kits.torva.windUp;
+    const base = heavy(off.c) * windUpMult(off.c);
     expect(lastHit(off.c.drainEvents()).damage).toBe(Math.round(base));
     const ev = on.c.drainEvents();
     expect(lastHit(ev).damage).toBe(Math.round(base * (1 + skillN(on.t, 'haymaker') / 100)));
@@ -1026,7 +1050,7 @@ describe('Torva', () => {
     expect(on.c.perk.windUp).toBe(1);
     expect(off.c.perk.windUp ?? 0).toBe(0);
     tapNew(on.c, 'yellow', false);
-    expect(lastHit(on.c.drainEvents()).damage).toBe(Math.round(heavy(on.c) * on.t.kits.torva.windUp));
+    expect(lastHit(on.c.drainEvents()).damage).toBe(Math.round(heavy(on.c) * windUpMult(on.c)));
     expect(on.c.enemies[0].stun).toBeGreaterThan(0);
   });
 
@@ -1083,7 +1107,7 @@ describe('Torva', () => {
     expect(m.c.perk.unstoppable ?? 0).toBe(0);
   });
 
-  it('Payback: a red that hits her winds up her next hit (x2.5 and a stun)', () => {
+  it('Payback: a red that hits her winds up her next hit (a smash and a stun)', () => {
     const { on, off } = both('torva', ['payback'], { enemies: ['bandit'], tune: (t) => ((t.blocks.redTravelSec = 1), (t.enemies.bandit.hp = 500)) });
     for (const { c } of [on, off]) {
       letRedThrough(c);
@@ -1091,7 +1115,7 @@ describe('Torva', () => {
     }
     expect(lastHit(off.c.drainEvents()).damage).toBe(Math.round(heavy(off.c)));
     const ev = on.c.drainEvents();
-    expect(lastHit(ev).damage).toBe(Math.round(heavy(on.c) * on.t.kits.torva.windUp));
+    expect(lastHit(ev).damage).toBe(Math.round(heavy(on.c) * windUpMult(on.c)));
     expect(on.c.enemies[0].stun).toBeGreaterThan(0);
     expect(perks(ev, 'payback')).toHaveLength(1);
     tapNew(on.c, 'yellow', false);

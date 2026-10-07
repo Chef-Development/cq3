@@ -33,6 +33,23 @@ export function spendGuard(c: Combat): number {
   return g * S(c).guardPer;
 }
 
+/**
+ * A Bulwark: every Guard charge unleashed at once, a blow on every foe (styles.bulwarkPer x attack per charge), with
+ * a big hit-stop. The 'bulwark' perk event is the moment (amount: the charges, pos: the block or hit that set it
+ * off); each foe's blow is a 'bulwarkBlow' strike. `c.perk.bulwarkNow` is 1 until the next tick (nodes read it).
+ */
+export function bulwark(c: Combat, pos: number): number {
+  const g = guardOf(c);
+  if (g <= 0 || c.result) return 0;
+  c.perk.guard = 0;
+  c.perk.bulwarkNow = 1;
+  c.perkFx('bulwark', g, 0, pos);
+  const dmg = c.stats().atk * S(c).bulwarkPer * g;
+  for (const e of c.aliveFoes()) c.strike(e, dmg, 'bulwarkBlow', false, pos);
+  c.hitStopFor(c.tuning.juice.bulwarkStopMs);
+  return g;
+}
+
 // ---------------------------------------------------------------- Marksman: Focus
 
 export const focusOf = (c: Combat): number => c.perk.focus ?? 0;
@@ -66,6 +83,16 @@ export function powerShot(c: Combat, crit = false): number {
 
 // ---------------------------------------------------------------- Summoner: allies
 
+/**
+ * How strong a Summoner's allies are: 1 for a fresh hero, plus kits.moss.allyComp for every Companion point (the
+ * stat companions use) above a fresh hero's (tuning.companion.damage), as a share of it. Thornling jabs and Glowmoth
+ * heals scale with it; Barkbacks brace and Seedlings plant that much more often.
+ */
+export function allyPower(c: Combat): number {
+  const base = Math.max(1, c.tuning.companion.damage);
+  return 1 + c.tuning.kits.moss.allyComp * Math.max(0, (c.stats().companion - base) / base);
+}
+
 /** How long a summoned ally stays (Moss's 3 stars: longer). */
 export const allySec = (c: Combat): number => (c.heroId === 'moss' && c.stars >= 3 ? c.tuning.kits.moss.allySec3 : c.tuning.kits.moss.allySec);
 
@@ -75,10 +102,11 @@ export function allyKinds(c: Combat): AllyKind[] {
   return c.heroId === 'moss' && c.stars >= 5 ? [...list, 'seedling'] : list;
 }
 
-/** When an ally acts first, and then every this many seconds. */
-function allyEvery(c: Combat, kind: AllyKind): number {
+/** When an ally acts first, and then every this many seconds (a Barkback's brace and a Seedling's seed come sooner
+ *  with the allies' power). */
+export function allyEvery(c: Combat, kind: AllyKind): number {
   const k = c.tuning.kits.moss;
-  return kind === 'thornling' ? k.thornEvery : kind === 'barkback' ? k.barkEvery : kind === 'glowmoth' ? k.mothEvery : k.seedEvery;
+  return kind === 'thornling' ? k.thornEvery : kind === 'barkback' ? k.barkEvery / allyPower(c) : kind === 'glowmoth' ? k.mothEvery : k.seedEvery / allyPower(c);
 }
 
 /**
@@ -92,7 +120,7 @@ export function callAlly(c: Combat): void {
   if (missing && c.allies.length < max) {
     const a: Ally = { id: (c.perk.allyId = (c.perk.allyId ?? 0) + 1), kind: missing, left: allySec(c), timer: allyEvery(c, missing) * 0.5, braced: false };
     c.allies.push(a);
-    c.events.push({ type: 'ally', kind: missing, action: 'call', id: a.id });
+    c.events.push({ type: 'ally', kind: missing, action: 'call', id: a.id, power: allyPower(c) });
     return;
   }
   // a Rally: everyone stays longer and acts now (a Barkback that just took a red keeps resting: one red per rest)
@@ -108,16 +136,21 @@ export function callAlly(c: Combat): void {
 
 function allyAct(c: Combat, a: Ally): void {
   const k = c.tuning.kits.moss;
+  const power = allyPower(c);
+  let amount = 0;
   if (a.kind === 'thornling') {
     const t = c.currentTarget();
-    if (t) c.strike(t, c.stats().atk * k.thornDmg, 'thornling');
+    if (t) {
+      amount = Math.max(1, Math.round(c.stats().atk * k.thornDmg * power));
+      c.strike(t, amount, 'thornling');
+    }
   } else if (a.kind === 'barkback') a.braced = true;
-  else if (a.kind === 'glowmoth') c.healPerk(c.maxHp() * k.mothHeal, 'glowmoth');
+  else if (a.kind === 'glowmoth') amount = c.healPerk(c.maxHp() * k.mothHeal * power, 'glowmoth');
   else {
     const front = c.frontEnemy();
     if (front && c.trySpawn('green', front.id)) c.perkFx('seedling');
   }
-  c.events.push({ type: 'ally', kind: a.kind, action: 'act', id: a.id });
+  c.events.push({ type: 'ally', kind: a.kind, action: 'act', id: a.id, amount, power });
 }
 
 function stepAllies(c: Combat, dt: number): void {
@@ -177,23 +210,30 @@ export const STYLE_HOOKS: Record<StyleId, FightHooks> = {
       if (!c.perk.veil) c.perk.chain = 0;
     },
   },
-  // Guard: blocks store charges; the next hit unleashes them as bonus damage
+  // Guard: blocks store charges; at full Guard the next block or hit unleashes them all as a Bulwark on every foe
+  // (playtest round 6: spent on every hit, Guard never built to anything)
   guardian: {
+    step: (c) => {
+      c.perk.bulwarkNow = 0;
+    },
     afterBlock: (c, x) => {
       if (x.cracked) return; // a shield counts once, when it breaks
+      if (!x.echo && guardOf(c) >= guardMax(c)) bulwark(c, x.block.pos);
       const before = guardOf(c);
       addGuard(c, 1);
       if (guardOf(c) > before) c.perkFx('guardUp', guardOf(c), 0, x.block.pos);
     },
-    hitMult: (c, x, v) => (x.echo || guardOf(c) <= 0 ? v : v + S(c).guardPer * guardOf(c)),
     afterHit: (c, x) => {
-      if (x.echo || guardOf(c) <= 0) return;
-      c.perkFx('guard', guardOf(c));
-      c.perk.guard = 0;
+      if (!x.echo && guardOf(c) >= guardMax(c)) bulwark(c, x.block.pos);
     },
   },
-  // Focus: hits hold some damage back as Focus; a green hit fires it all
+  // Focus: hits hold some damage back as Focus; a green hit fires it all. Greens are the targets that fire it: they
+  // come wider and carry `target` (the view draws them as targets)
   marksman: {
+    blockWidth: (c, kind, w) => (kind === 'green' ? w * S(c).targetWidth : w),
+    spawned: (_c, b) => {
+      if (b.kind === 'green') b.target = true;
+    },
     hitMult: (c, x, v) => (x.echo || x.green ? v : v * S(c).focusShare),
     afterHit: (c, x) => {
       if (x.echo) return;
@@ -249,7 +289,7 @@ export const STYLE_HOOKS: Record<StyleId, FightHooks> = {
       const bark = c.allies.find((a) => a.kind === 'barkback' && a.braced);
       if (!bark) return false;
       bark.braced = false;
-      bark.timer = c.tuning.kits.moss.barkEvery;
+      bark.timer = allyEvery(c, 'barkback');
       c.events.push({ type: 'ally', kind: 'barkback', action: 'block', id: bark.id });
       c.perkFx('barkback');
       return true;

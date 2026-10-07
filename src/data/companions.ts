@@ -69,7 +69,7 @@ export const COMPANIONS: Record<CompanionId, CompanionDef> = {
     every: 4,
     dmg: 0.8,
     attack: 'Bite',
-    perks: [{ name: 'Ember Bite', text: 'Bites burn the target for 3 s.' }],
+    perks: [{ name: 'Ember Bite', text: 'Bites set foes on fire: half a bite each second for 4 s.' }],
     flies: false,
   },
   sprocket: {

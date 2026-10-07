@@ -55,13 +55,17 @@ export interface Block {
   link: number;
   /** A drifting block: seconds it keeps drifting (Infinity = for good). */
   driftSec: number;
+  /** A Marksman's crit target: a green that fires the stored Focus (it comes wider; the view draws it as a target). */
+  target: boolean;
 }
 
 /** A patch on the bar that changes the cursor's speed inside it: ice speeds it up, snowdrifts and slow patches
  *  slow it. Patches can overlap (their speeds multiply) and slide (an Aurora's Shimmer). */
 export interface Zone {
   id: number;
-  kind: ZoneKind | 'slow' | 'dash'; // 'dash': Shadow Dash's burst of speed toward the next block (drawn as a streak)
+  // 'dash': Shadow Dash's burst of speed toward the next block (drawn as a streak); 'land': the short slow-down where
+  // the dash lands (it ends at the next block's near edge, or once the cursor is through it)
+  kind: ZoneKind | 'slow' | 'dash' | 'land';
   lo: number;
   hi: number;
   mult: number;
@@ -116,6 +120,10 @@ export interface Enemy {
   driftEvery: number; // every Nth yellow it sends drifts (0 = none; a bar rule from a special)
   linkEvery: number; // every Nth yellow it sends comes as a linked pair (0 = none)
   sent: number; // yellows it has sent (for driftEvery / linkEvery)
+  /** Burning (a companion's Ember Bite): seconds left, damage a second, and seconds to the next tick (0 = none). */
+  burn: number;
+  burnDps: number;
+  burnTick: number;
 }
 
 /** A special being telegraphed: the enemy winds up for `total` seconds, then the special's actions fire. */
@@ -281,7 +289,8 @@ export type CombatEvent =
   | { type: 'cursorFloor'; mult: number }
   | { type: 'phase'; enemyId: number; phase: number }
   | { type: 'heroHurt'; damage: number; source: HurtSource; enemyId: number; perk?: string }
-  | { type: 'enemyHurt'; enemyId: number; damage: number; crit: boolean; source: DamageSource }
+  // perk: which perk struck (a perk's blow: source 'perk'; e.g. 'shieldSlam', 'bulwarkBlow', 'emberBite')
+  | { type: 'enemyHurt'; enemyId: number; damage: number; crit: boolean; source: DamageSource; perk?: string }
   | { type: 'heal'; amount: number }
   | { type: 'statGain'; enemyId: number; atk: number; maxHp: number; comboPower: number }
   | { type: 'pet'; pet: string; enemyId: number; damage: number; crit: boolean }
@@ -309,7 +318,9 @@ export type CombatEvent =
   | { type: 'driftShift'; flip: boolean; mult: number } // a special turned or sped up every drifting block
   | { type: 'chip'; id: number; pos: number; left: number } // an iced yellow took a tap (it needs more)
   | { type: 'iceBlock'; id: number; pos: number } // a red froze in place (Flash Freeze, Glacier)
-  | { type: 'ally'; kind: AllyKind; action: 'call' | 'act' | 'leave' | 'rally' | 'block'; id: number }
+  // amount: what an 'act' did (a Thornling's damage, a Glowmoth's heal; 0 for a brace or a seed); power: the allies'
+  // strength from the Companion stat (1 = a fresh hero's), on 'call' and 'act'
+  | { type: 'ally'; kind: AllyKind; action: 'call' | 'act' | 'leave' | 'rally' | 'block'; id: number; amount?: number; power?: number }
   | { type: 'stun'; enemyId: number; sec: number }
   | { type: 'deflect'; pos: number } // a red bounced off the left end (Rampart)
   | { type: 'finisher'; damage: number; combo: number; stacks: number; targets: number[] }
@@ -664,12 +675,20 @@ export class Combat {
     return Math.max(1, Math.round(this.mod(this.tuning.meter.maxStacks, (h, v) => h.maxStacks?.(this, v))));
   }
 
-  /** A perk strikes a foe (a counterattack, a ricochet, an echo): no shell, no crit roll. */
-  strike(e: Enemy, dmg: number, id: string, crit = false): void {
+  /** A perk strikes a foe (a counterattack, a ricochet, an echo): no shell, no crit roll. Its 'perk' event names it
+   *  (with `pos`, where on the bar it came from) and its 'enemyHurt' carries the perk's id. */
+  strike(e: Enemy, dmg: number, id: string, crit = false, pos?: number): void {
     if (!e.alive || dmg <= 0) return;
     const d = Math.max(1, Math.round(dmg));
-    this.perkFx(id, d, e.id);
-    this.damageEnemy(e, d, crit, 'perk');
+    this.perkFx(id, d, e.id, pos);
+    this.damageEnemy(e, d, crit, 'perk', id);
+  }
+
+  /** A perk's own hit-stop: the bar (cursor and reds) freezes for `ms` (a Shield Slam, a Bulwark). */
+  hitStopFor(ms: number): void {
+    if (ms <= 0) return;
+    this.hitStop = Math.max(this.hitStop, ms / 1000);
+    this.events.push({ type: 'hitStop', ms: Math.round(ms) });
   }
 
   /** A perk hits a yellow/green on the bar as if it were tapped (Blast Wave). Never a hold. */
@@ -757,6 +776,9 @@ export class Combat {
       driftEvery: 0,
       linkEvery: 0,
       sent: 0,
+      burn: 0,
+      burnDps: 0,
+      burnTick: 0,
     };
   }
 
@@ -1012,7 +1034,8 @@ export class Combat {
     const B = this.tuning.bar;
     const w = Math.max(0.02, Math.min(1, width));
     const c = Math.max(w / 2, Math.min(1 - w / 2, center));
-    const mult = kind === 'ice' ? B.iceMult : kind === 'snow' ? B.snowMult : kind === 'dash' ? this.tuning.kits.sable.dashMult : B.slowMult;
+    const S = this.tuning.kits.sable;
+    const mult = kind === 'ice' ? B.iceMult : kind === 'snow' ? B.snowMult : kind === 'dash' ? S.dashMult : kind === 'land' ? S.landMult : B.slowMult;
     const z: Zone = { id: this.nextId++, kind, lo: c - w / 2, hi: c + w / 2, mult, life: life > 0 ? life : Infinity, vel: 0, slide: 0, phase };
     this.zones.push(z);
     this.events.push({ type: 'zoneOn', id: z.id, kind, lo: z.lo, hi: z.hi });
@@ -1385,7 +1408,9 @@ export class Combat {
       if (this.result) return;
       if (!this.blocks.includes(b)) continue; // gone mid-loop (a blast that reached the hero, a revive)
       if (isRed(b.kind) && b.still) {
-        // an icicle: sits where it landed until blocked, or its fuse runs out
+        // an icicle: sits where it landed until blocked, or its fuse runs out (frozen solid: the fuse waits)
+        if (b.chill > 0) b.chill = Math.max(0, b.chill - DT);
+        if (b.chill > 0 && b.chillMult <= 0) continue;
         b.impactTimer -= DT;
         if (b.impactTimer <= 1e-9) this.impact(b);
       } else if (isRed(b.kind)) {
@@ -1411,7 +1436,8 @@ export class Combat {
               this.knockBack(b, 1, B.knockbackSec * 3);
             } else b.impactTimer = B.impactGraceMs / 1000;
           }
-        } else {
+        } else if (!(b.chill > 0 && b.chillMult <= 0)) {
+          // at the left end, about to strike (a pinned or frozen one waits)
           b.impactTimer -= DT;
           if (b.impactTimer <= 1e-9) this.impact(b);
         }
@@ -1663,6 +1689,7 @@ export class Combat {
       chillMult: 1,
       link: 0,
       driftSec: Infinity,
+      target: false,
     };
     if (o.drift && !isRed(kind)) b.vel = o.drift;
     for (const h of this.hooks) h.spawned?.(this, b);
@@ -1698,6 +1725,14 @@ export class Combat {
     const f = this.spawnBlock('frozen', pos, b.ownerId, w);
     this.events.push({ type: 'iceBlock', id: f.id, pos: f.pos });
     return f;
+  }
+
+  /** Freeze a red solid where it is for `sec` (Glacier): it doesn't move, and one waiting at the left end (or an
+   *  icicle on its fuse) doesn't strike until it thaws. It stays a red: blocking it still counts. */
+  holdRed(b: Block, sec: number): void {
+    if (!isRed(b.kind) || sec <= 0) return;
+    b.chill = Math.max(b.chill, sec);
+    b.chillMult = 0;
   }
 
   /** Slow a red for `sec` (mult 0: pinned in place). */
@@ -2417,14 +2452,14 @@ export class Combat {
     return floor;
   }
 
-  private damageEnemy(e: Enemy, dmg: number, crit: boolean, source: DamageSource): void {
+  private damageEnemy(e: Enemy, dmg: number, crit: boolean, source: DamageSource, perk?: string): void {
     if (!e.alive) return;
     dmg = this.damageTaken(e, dmg, source);
     const floor = Math.min(e.hp, this.hpFloor(e));
     const dealt = Math.min(dmg, e.hp - floor);
     const overkill = Math.max(0, dmg - dealt);
     e.hp -= dealt;
-    this.events.push({ type: 'enemyHurt', enemyId: e.id, damage: dmg, crit, source });
+    this.events.push(perk ? { type: 'enemyHurt', enemyId: e.id, damage: dmg, crit, source, perk } : { type: 'enemyHurt', enemyId: e.id, damage: dmg, crit, source });
     if (e.hp > 0) return;
     e.alive = false;
     if (this.telegraph?.enemyId === e.id) {

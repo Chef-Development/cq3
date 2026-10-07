@@ -257,6 +257,8 @@ export function kitN(t: Tuning, id: HeroId, which: KitWhich): number {
       return k.hollis.ironHide * 100;
     case 'torva.passive':
       return k.torva.unstoppable * 100;
+    case 'torva.ability':
+      return k.torva.windUpBase;
     default:
       return 0;
   }

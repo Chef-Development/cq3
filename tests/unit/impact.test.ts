@@ -3,10 +3,11 @@ import { finisherShowMs, finisherStrikeAt, finisherStrikes, IMPACT_TIERS, impact
 import { cloneTuning } from '../../src/core/tuning';
 
 const t = cloneTuning();
-/** Every impact, lightest first: hit < perfect < block < crit < bomb < finisher x1..x5 < kill < boss kill. */
+/** Every impact, lightest first: hit < perfect < block < slam < crit < bomb < finisher x1..x5 < bulwark < kill < boss kill. */
 const ladder: Array<[string, number]> = [
-  ...(['hit', 'perfect', 'block', 'crit', 'bomb'] as ImpactTier[]).map((k): [string, number] => [k, impactWeight(t, k)]),
+  ...(['hit', 'perfect', 'block', 'slam', 'crit', 'bomb'] as ImpactTier[]).map((k): [string, number] => [k, impactWeight(t, k)]),
   ...[1, 2, 3, 4, 5].map((n): [string, number] => [`finisher x${n}`, impactWeight(t, 'finisher', n)]),
+  ['bulwark', impactWeight(t, 'bulwark')],
   ['kill', impactWeight(t, 'kill')],
   ['bossKill', impactWeight(t, 'bossKill')],
 ];
@@ -14,7 +15,7 @@ const ladder: Array<[string, number]> = [
 describe('impact tiers', () => {
   it('every tier is heavier than the last, and the finisher grows with stacks', () => {
     for (let i = 1; i < ladder.length; i++) expect(ladder[i][1], `${ladder[i][0]} > ${ladder[i - 1][0]}`).toBeGreaterThan(ladder[i - 1][1]);
-    expect(IMPACT_TIERS).toHaveLength(8);
+    expect(IMPACT_TIERS).toHaveLength(10);
     expect(impactWeight(t, 'finisher', 9)).toBe(impactWeight(t, 'finisher', 5)); // capped at 5 stacks
   });
 
@@ -43,6 +44,8 @@ describe('impact tiers', () => {
     const f = (tier: ImpactTier, n = 1) => impactFeel(t, impactWeight(t, tier, n));
     expect(f('hit').frames).toBe(0);
     expect(f('block').frames).toBe(0);
+    expect(f('slam').frames).toBe(0);
+    expect(f('bulwark').frames).toBe(2); // a Bulwark lands like a full finisher
     expect(f('crit').frames).toBe(1);
     expect(f('finisher', 5).frames).toBe(2);
     expect(f('bossKill').frames).toBe(2);

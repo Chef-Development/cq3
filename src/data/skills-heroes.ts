@@ -67,7 +67,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
         atk('frostEdge', 'Frost Edge', 10),
         crit('iceShards', 'Ice Shards', 6),
         rule('brittle', 'Brittle', 'Frozen blocks shatter for {n}% more.', 'A shatter hits hard.', 'Shatters deal +{n}% more.', 30),
-        rule('shatterburst', 'Shatterburst', 'A shatter also hits every other foe for {n}%.', 'A shatter hits one foe.', 'It hits the others for {n}%.', 40),
+        rule('bigFreeze', 'Big Freeze', 'Glacier turns every red into ice to smash.', 'Glacier holds reds in place.', 'Glacier turns reds to ice.'),
         cap('iceAge', 'Ice Age', 'Every block freezes its red.', 'Only some blocks freeze a red.', 'Blocks always freeze reds.'),
       ],
     },
@@ -144,7 +144,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
       nodes: [
         hp('deepPockets', 'Deep Pockets', 8),
         def('leatherApron', 'Leather Apron', 6),
-        rule('stockpile', 'Stockpile', 'Each wave starts with {n} keg on the bar.', 'Kegs come with the yellows.', 'Each wave opens with {n} keg.', 1),
+        rule('turnabout', 'Turnabout', 'Big Bang turns every red into a keg.', 'Big Bang knocks reds off.', 'Big Bang turns reds to kegs.'),
         rule('restock', 'Restock', 'A Perfect hit on a keg drops a new keg.', 'A keg is gone once it blows.', 'A Perfect keg hit drops another.'),
         cap('minefield', 'Minefield', 'A red that runs into a keg sets it off.', 'Reds slide past kegs.', 'Reds set off the kegs they touch.'),
       ],
@@ -184,8 +184,8 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
         atk('heavyArm', 'Heavy Arm', 10),
         crit('battleReady', 'Battle Ready', 6),
         rule('sureGuard', 'Sure Guard', 'Perfect blocks store {n} more Guard.', 'Each block stores 1 Guard.', 'A Perfect block stores {n} more.', 1),
-        rule('deepGuard', 'Deep Guard', 'Each Guard charge adds {n}% more damage.', 'Guard adds a set bonus.', 'Each charge adds {n}% more.', 50),
-        cap('avalanche', 'Avalanche', 'A hit at full Guard strikes every foe.', 'Guard goes into one hit.', 'At full Guard, a hit strikes all.'),
+        rule('deepGuard', 'Deep Guard', 'The Bulwark hits {n}% harder.', 'A Bulwark hits with your Guard.', 'It hits {n}% harder.', 50),
+        cap('avalanche', 'Avalanche', 'A Bulwark also stuns every foe for {n} s.', 'A Bulwark only hits.', 'It stuns every foe {n} s.', 1),
       ],
     },
     {
@@ -197,7 +197,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
         combo('ironStance', 'Iron Stance', 1),
         rule('heavySlam', 'Heavy Slam', 'Shield Slam hits {n}% harder.', 'Shield Slam is a quick jab.', 'It hits {n}% harder.', 50),
         rule('wideSlam', 'Wide Slam', 'Shield Slam also hits every other foe for {n}%.', 'Shield Slam hits one foe.', 'It hits the others for {n}%.', 50),
-        cap('retaliate', 'Retaliate', 'Every block slams back: a plain one for {n}% of a slam.', 'Only Perfect blocks slam.', 'Plain blocks slam for {n}%.', 50),
+        cap('retaliate', 'Retaliate', 'Each Guard you store makes slams {n}% harder.', 'Slams ignore your Guard.', '+{n}% slam per Guard stored.', 20),
       ],
     },
     {

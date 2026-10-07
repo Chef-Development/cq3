@@ -267,14 +267,48 @@ describe("every companion's perk (with and without it)", () => {
     }
   });
 
-  it('Newt: a bite burns the target for a few seconds', () => {
+  it('Newt: a bite sets its foe burning: a share of the bite every second for a few seconds, ticking as Ember Bite', () => {
     const hp = (pet: Pet | null) => {
-      const { c } = fight(pet, (x) => (x.companion.damage = 1));
+      const { c } = fight(pet, (x) => (x.companion.damage = 20));
       hitsFor(c, 'newt');
-      c.advanceTo(c.time + 3.2);
-      return c.enemies[0].hp;
+      const e = c.enemies[0];
+      const bite = c.drainEvents().find((x) => x.type === 'pet');
+      const T = c.tuning.pets;
+      if (pet) {
+        expect(e.burn).toBeCloseTo(T.newtSec);
+        expect(e.burnDps).toBeCloseTo((bite?.type === 'pet' ? bite.damage : 0) * T.newtBurnShare);
+      } else expect(e.burn).toBe(0);
+      const before = e.hp;
+      c.advanceTo(c.time + T.newtSec + 0.05);
+      const ticks = c.drainEvents().filter((x) => x.type === 'enemyHurt' && x.perk === 'emberBite');
+      if (pet) {
+        expect(ticks).toHaveLength(Math.round(T.newtSec)); // one a second
+        const burnt = ticks.reduce((n, x) => n + (x.type === 'enemyHurt' ? x.damage : 0), 0);
+        expect(before - e.hp).toBe(burnt);
+        expect(burnt).toBeGreaterThanOrEqual(bite?.type === 'pet' ? bite.damage : 99); // the burn deals more than the bite
+        expect(e.burn).toBe(0); // and then it's out
+      } else expect(ticks).toHaveLength(0);
+      return e.hp;
     };
-    expect(hp('newt')).toBeLessThan(hp(null) - 5);
+    hp('newt');
+    hp(null);
+  });
+
+  it('Newt: each foe burns on its own, and a bite on a burning foe refreshes its burn', () => {
+    const { c } = fight('newt', (x) => (x.companion.damage = 20));
+    /** A yellow right under the cursor, hit now. */
+    const hitHere = () => {
+      c.spawnBlock('yellow', c.cursorPosAt(c.time));
+      c.tap(c.time);
+    };
+    for (let i = 0; i < COMPANIONS.newt.every; i++) hitHere();
+    const e = c.enemies[0];
+    c.advanceTo(c.time + 2.5);
+    expect(e.burn).toBeCloseTo(c.tuning.pets.newtSec - 2.5, 1);
+    for (let i = 0; i < COMPANIONS.newt.every; i++) hitHere();
+    expect(e.burn).toBeCloseTo(c.tuning.pets.newtSec, 1);
+    const other = c.addEnemy('slime')!;
+    expect(other.burn).toBe(0);
   });
 
   it('Sprocket: every few seconds the next block has a wider Perfect zone', () => {
