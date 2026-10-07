@@ -1,4 +1,109 @@
-# Combo Quest 3: status report (M5: heroes, companions, two new regions, the Test lab)
+# Combo Quest 3: status report (playtest round 6: the overnight polish run)
+
+## Playtest round 6: the overnight polish run (Test lab report on build 430c962: 24 rated, 10 good, 14 needs work)
+
+No new regions or content: a polish, clarity and tuning pass on the three themes of the report (menus dated and
+empty, fight effects hard to read, specific hero notes). Every call is in `docs/decisions.md` ("Overnight polish run").
+
+- **Live build:** https://chef-development.github.io/cq3/ (every push deploys).
+- **Branch:** `claude/eloquent-ptolemy-b7qwvk`, built on `claude/m5-heroes` (PR Chef-Development/cq3#5 was still
+  open): the new PR includes #5 and supersedes it. Merge the new PR; #5 (and #1-#4) can be closed.
+- **How to check it:** open the **Test lab** (title screen, top left). "New" holds this round (about 21 minutes
+  without spoilers): every reworked item asks for a new rating and shows its old one. "Copy report" now counts the
+  lab fights' taps in the accuracy line.
+- **Tests:** unit tests (`npm test`) and the Playwright smoke and pixel-exact screenshot tests; final counts at the end of the run.
+
+### What changed
+1. **UI direction first** (`docs/ui-style.md`): what "modern" means here (one big animated focal point, few words with
+   details behind a tap, painted depth with light and rarity glows, motion, one shared component set, large type), a
+   layout plan per screen, and a six-question check every screen was rendered and checked against.
+2. **The menus, redesigned** on one shared set (`view/ui-modern.ts`, painted stages in `art-ui-stage.ts`):
+   - **Hero select:** the hero full-body at 3x, breathing on a lit stage themed to their style (castle yard, moonlit
+     rooftops, fortress gate, dusk forest, quarry, ice cave, glowing grove, workshop), a rarity aura, swipe or big
+     arrows (the hero slides out, the next lands with a dust puff), the kit as four icon cards (tap for the detail),
+     stars, shards, mastery seals and XP as meters, a big Pick.
+   - **Skill tree:** a real tree: three branches grow from a root on the hero's stage, nodes as big emblems, capstones
+     as gold crests with rays, paths that glow once learned; learning runs energy along the path into the node (flash,
+     ring, stars, a rising chime).
+   - **Companions:** the companion at 3x on a mossy stump in a night grove; its perks stay as readable text cards (the
+     playtester liked reading them); Along sockets and a big Equip.
+   - **Camp upgrades** are objects in the camp now: build mode over the live camp shows blueprint ghosts with hammer
+     markers; building plays dust, clangs and sparkles, and the object (perch, lucky stone, war table, reroll charm,
+     map table, the dummy) stays in the camp. The second companion sits on the Perch.
+   - **Completion:** a region card: a hand-painted parchment map in a frame with flags and wax seals on its act sites,
+     a ring with the %, the region chest on a pedestal that glows as it climbs (later regions stay "???").
+   - **Shrine:** a place: an arch, runes and candles, the Rare chest on an altar under a crystal, pity as a vial filling
+     with light ("8 left"), odds behind an "i", one big Open that pays and opens right there.
+   - **Chests:** a vault with the three chests big under spotlights, count badges, Open all.
+3. **Chests feel exciting:** three new chests (oak and gold, navy and crystal, violet and gold) drawn as lid and base.
+   The opening: the chest slams down (dust, shake), pulses once per tier with cracks of light, the glow climbing
+   through the rarity colours to the prize's tier (Divine: eight steps), then the lid bursts (rays, particles), the
+   prize rises as a silhouette rimmed in its tier's light, flashes in, and a banner and a fanfare sized to the tier
+   play. A tap jumps to the next step (never past the reveal); Open all chains them and ends on a summary.
+4. **Clarity in fights:** every hero, ally, companion and relic effect now shows on what it touched (the block, the
+   foe, the cursor, the hero), not only as a word; a unit test fails if a new perk has no place to show. Sable's dash
+   is a violet streak with afterimages and a violet "landing" patch where the cursor slows; Bun's coin pops out of the
+   block and flies to the counter; Mote's star streaks to the green it makes, Mend sparkles on the hero; Sunny's
+   breath sweeps fire over every foe and burns traps off the bar; Newt's burn sets foes alight and ticks. Bar rules'
+   first-meeting tips now show in the lab (they existed but the lab had them all marked seen); icicle marks got a tip.
+   A dedicated editor made a text pass over every player-facing line (about 150 strings: plain words, shorter,
+   consistent terms: "foe", "shattered", "Pick", "Bounty"; it also fixed an act-clear screen that named the next
+   region too early).
+5. **Hero and companion tuning:**
+   - **Neve:** her meter fills slower (shattered ice is worth half a hit); Glacier freezes every red solid and slows the
+     whole bar for 1.5 s; new tree option **Big Freeze**: Glacier turns the reds into ice to shatter.
+   - **Tam:** new tree option **Turnabout**: Big Bang turns the reds into her kegs.
+   - **Torva:** the Wind-Up smash grows with the combo (x1.8 + 0.04 a combo, up to x4), shown over the cursor.
+   - **Vesper:** her greens are targets (wider, bracketed, gold at full Focus); at full Focus with no green in reach,
+     a Perfect fires the shot, so a flooded bar stays fair.
+   - **Hollis** (diagnosis: most blocks did nothing you could see or hear, and Guard was spent as a small bonus on the
+     next hit, so blocking never paid off): every block now slams the red's owner (a shield flies into it, its own
+     hit-stop, clang and steel number; Perfect harder), and Guard builds to a **Bulwark**: at full Guard the next block
+     or hit sends a great shield across every foe.
+   - **Moss and his allies** scale with Companion power, with bigger visible effects; trimmed to stay level.
+   - **Act 2's foes** have more HP (x1.7, was x1.4); its first rows a wave fewer so fights stay about as long.
+   - **Parity** (300 runs per hero, both regions): every hero within +/-10 of Rowan in every act; Vesper's late
+     Frostpeaks gap went from -20 to -3 (her Volley now pins the boss's icicles). Table in docs/balance-heroes.md.
+6. **Test lab:** New has the seven heroes again, Neve's and Tam's new tree options already learned, the four companion
+   pairs, Act 2's tougher foes, a chest opening at five rarities (Rare to Divine; a demo that grants nothing), Open
+   all, a walk through every redesigned menu, and the bar rules with their tips. Lab and practice fights now count
+   toward the accuracy readout.
+7. **Saves:** a save that learned a replaced node (Shatterburst, Stockpile) keeps its branch (the new node takes its
+   place); nothing else changed shape.
+
+### Balance (85% player)
+- **Greenmarch** (300-run report regenerated): Act 1 100% first try, Act 2 84%, the Boar King's first fight 77%.
+- **Heroes vs Rowan, both regions:** all 42 hero-acts within +/-10 (Moss +10 in Act 3 and Hollis +10 in Act 6 are on
+  the edge).
+
+### Decisions worth a look
+1. Hollis's rework: the slam on every block and the Bulwark payoff replace "Guard spent on the next hit" (52).
+2. Glacier no longer turns reds into ice by default (that was most of Neve's fast meter); it's the Big Freeze option.
+3. Vesper's fairness fix is both: target greens and a Perfect that fires a full Focus with no green in reach (51).
+4. Act 2: more HP per foe, one wave fewer in its first rows (45).
+5. The hero select's kit cards are labelled Special / Green / Trait / Swipe (one word that fits at 8x) (H2).
+6. The Test lab runs about 21 minutes this round (most of last round's items were reworked) (L4).
+7. Text: "foe" everywhere, US spelling, "Pick" for choices; the act clear and victory screens name the right place (E1-E4).
+
+### Still unverified on the iPhone
+- The swipe on the hero stage with a real thumb; the hero select and skill tree's density at 8x with the island.
+- The chest build-up's pace and its sounds (the slam is fairly quiet on a phone speaker).
+- How the slam on every block and the Bulwark feel for Hollis; Neve's frozen-solid reds; Vesper's targets on a
+  flooded bar.
+
+### Known gaps and next steps
+1. Moss (Act 3) and Hollis (Act 6) sit at +10, the edge of the parity band.
+2. Only Rowan was measured in the third region (as last round).
+3. A landing puff or energy burst can still play on the next camp screen if you leave within about half a second;
+   the hero select's Stars sheet covers half the name while open; Neve's and Torva's heads come within a few px of
+   the top bar on the phone.
+4. Heavy Slam / Retaliate and Patience are matched to their blow by timing in the view (docs/fight-events.md,
+   "Needs from core" 7-8).
+5. The Test lab is long (about 21 minutes): the playtester may want to start with the menus and the chests.
+
+
+## Earlier rounds
+
 
 ## Playtest round 5 follow-up (the Test lab report on version 90968f6: 8 of 22 rated, 2 good, 6 needs work)
 
