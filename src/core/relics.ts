@@ -120,7 +120,7 @@ export function unlocksFor(kind: 'act' | 'elite' | 'event', a: number | string, 
 export function unlockHint(id: RelicId): string {
   const u = relicById(id)?.unlock;
   if (!u) return 'Unlocked from the start';
-  if (u.kind === 'act') return `Clear Act ${u.act + 1} for the first time`;
+  if (u.kind === 'act') return `Clear Act ${u.act + 1}`;
   if (u.kind === 'elite') return `Beat an elite in Act ${u.act + 1}`;
   if (u.kind === 'mastery') {
     const m = MASTERY.find((x) => x.reward.kind === 'relic' && x.reward.relic === id);

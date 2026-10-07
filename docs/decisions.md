@@ -450,3 +450,9 @@ E5. **Left alone:** the story scenes and banter (already two short lines, in the
     pair"); foe and special-move names (no typos found); the Sound lab and the cheat toggles in the options panel
     (testing tools); the fight-view files another agent owns (callouts, hud, bar...), and player-facing strings built
     in src/core (boost cards, completion labels), which this pass wasn't given.
+E6. **Text pass, round 2 (the fight view and the strings src/core builds).** The fight view's words were already
+    short game words (every callout within 7 letters, "Foe 3/7", "Perfect!", "Swipe!"): nothing changed there. In
+    src/core, the Companion Power boost card no longer says "Pip" ("+4" under its name, "Companion 6 > 10" as its
+    preview, like the stat's short name), and a relic's unlock line reads "Clear Act 1" (it said "for the first
+    time": only a first clear can unlock one). Completion labels, build names, bounty goals and the skirmish and
+    roamer code were already plain; Sound lab names stay (testing tool).
