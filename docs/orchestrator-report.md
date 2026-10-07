@@ -11,7 +11,10 @@ empty, fight effects hard to read, specific hero notes). Every call is in `docs/
 - **How to check it:** open the **Test lab** (title screen, top left). "New" holds this round (about 21 minutes
   without spoilers): every reworked item asks for a new rating and shows its old one. "Copy report" now counts the
   lab fights' taps in the accuracy line.
-- **Tests:** unit tests (`npm test`) and the Playwright smoke and pixel-exact screenshot tests; final counts at the end of the run.
+- **Tests:** 775 Vitest unit tests (`npm test`) and 85 Playwright smoke and pixel-exact screenshot tests, all green
+  (new: the lab's accuracy, practice samples, bar-rule tips, the skill-node migration, every perk having a place to
+  show, the new kits and tree options, the hero-stage swipe, the chest opening and Open all, the shrine's buy-and-open,
+  build mode; 30+ new screenshots of the redesigned screens and the new fight looks).
 
 ### What changed
 1. **UI direction first** (`docs/ui-style.md`): what "modern" means here (one big animated focal point, few words with
@@ -46,7 +49,7 @@ empty, fight effects hard to read, specific hero notes). Every call is in `docs/
    block and flies to the counter; Mote's star streaks to the green it makes, Mend sparkles on the hero; Sunny's
    breath sweeps fire over every foe and burns traps off the bar; Newt's burn sets foes alight and ticks. Bar rules'
    first-meeting tips now show in the lab (they existed but the lab had them all marked seen); icicle marks got a tip.
-   A dedicated editor made a text pass over every player-facing line (about 150 strings: plain words, shorter,
+   A dedicated editor made a text pass over every player-facing line (about 130 strings: plain words, shorter,
    consistent terms: "foe", "shattered", "Pick", "Bounty"; it also fixed an act-clear screen that named the next
    region too early).
 5. **Hero and companion tuning:**
