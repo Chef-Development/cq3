@@ -74,15 +74,25 @@ function glowAt(ctx: Ctx, c: string, cx: number, cy: number, r: number, a = 0.5,
 function vbands(ctx: Ctx, x: number, y0: number, w: number, y1: number, cols: string[]): void {
   const n = cols.length;
   const h = y1 - y0;
+  if (h <= 0 || w <= 0) return;
+  // written as pixels in one go (opaque, like the fills they replace)
+  const rgb = cols.map((c) => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]);
+  const img = ctx.createImageData(w, h);
+  const d = img.data;
   for (let y = y0; y < y1; y++) {
     const f = ((y - y0) / h) * n;
     const i = Math.min(n - 1, Math.floor(f));
     const t = (f - i - 0.66) / 0.34;
     for (let xx = x; xx < x + w; xx++) {
-      ctx.fillStyle = i + 1 < n && t > 0 && t * 16 > B4[y & 3][xx & 3] ? cols[i + 1] : cols[i];
-      ctx.fillRect(xx, y, 1, 1);
+      const c = rgb[i + 1 < n && t > 0 && t * 16 > B4[y & 3][xx & 3] ? i + 1 : i];
+      const o = ((y - y0) * w + (xx - x)) * 4;
+      d[o] = c[0];
+      d[o + 1] = c[1];
+      d[o + 2] = c[2];
+      d[o + 3] = 255;
     }
   }
+  ctx.putImageData(img, x, y0);
 }
 
 /** A silhouette from a height function (top y per column), its top row lit. */

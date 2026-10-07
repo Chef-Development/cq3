@@ -165,6 +165,11 @@ type Ctx = CanvasRenderingContext2D;
 function bands(ctx: Ctx, w: number, y0: number, y1: number, cols: string[]): void {
   const n = cols.length;
   const h = y1 - y0;
+  if (h <= 0) return;
+  // written as pixels in one go (a fillRect per pixel made a stage's first paint take tens of ms)
+  const rgb = cols.map((c) => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]);
+  const img = ctx.createImageData(w, h);
+  const d = img.data;
   for (let y = y0; y < y1; y++) {
     const f = ((y - y0) / h) * n;
     const i = Math.min(n - 1, Math.floor(f));
@@ -172,11 +177,15 @@ function bands(ctx: Ctx, w: number, y0: number, y1: number, cols: string[]): voi
     // the last third of each band dithers into the next one
     const t = (frac - 0.66) / 0.34;
     for (let x = 0; x < w; x++) {
-      const next = i + 1 < n && t > 0 && t * 16 > B4[y & 3][x & 3] ? i + 1 : i;
-      ctx.fillStyle = cols[next];
-      ctx.fillRect(x, y, 1, 1);
+      const c = rgb[i + 1 < n && t > 0 && t * 16 > B4[y & 3][x & 3] ? i + 1 : i];
+      const o = ((y - y0) * w + x) * 4;
+      d[o] = c[0];
+      d[o + 1] = c[1];
+      d[o + 2] = c[2];
+      d[o + 3] = 255;
     }
   }
+  ctx.putImageData(img, 0, y0);
 }
 
 /** A silhouette from a height function (top y per column), its top row lit. */

@@ -1,7 +1,7 @@
 // The hero select (a camp screen: tap the hero chip at the top left, or a hero by the fire). All eight heroes, one at
 // a time (docs/ui-style.md, "Hero select"):
 //   the stage (left)   the hero full-body at 3x in their fight idle frames, breathing, on a lit stage disc in a
-//                      backdrop themed by their style (art-ui-stage.ts), their rarity's aura behind them. Big arrows
+//                      backdrop themed by their style (art-ui-styles.ts), their rarity's aura behind them. Big arrows
 //                      either side and a horizontal swipe on the stage page through the heroes: the hero slides out,
 //                      the next hops in and lands in a puff of dust. A hero not met yet is a dark silhouette with a
 //                      "?" on a dim stage.
@@ -15,7 +15,7 @@
 // stars (what each gives, the shards), the seals (each goal and what it unlocks for everyone), the level (XP, points)
 // and the name or chips (the bio, the style's rule, the soft strength). Gear is shared by every hero.
 import type Phaser from 'phaser';
-import { HERO_IDS, HEROES, type HeroId, type KitPart } from '../../data/heroes';
+import { HERO_IDS, HEROES, type HeroId } from '../../data/heroes';
 import { TIER_INFO } from '../../data/rarity';
 import { STYLES } from '../../data/styles';
 import type { FoeTag } from '../../data/types';
@@ -37,6 +37,13 @@ type G = Phaser.GameObjects.Graphics;
 
 export { kitText };
 
+/** The stage's width (the left part of the safe area) and the column's, right of it, for safe edges L..R. */
+export const heroStageW = (L: number, R: number): number => Math.round((R - L) * 0.46);
+export const heroColW = (L: number, R: number): number => R - 3 - (L + heroStageW(L, R) + 4);
+/** The kit cards' one-word labels (signature, ability, passive, finisher), and the cards' width. */
+export const KIT_LABELS = ['Special', 'Green', 'Trait', 'Swipe'];
+export const KIT_CARD_W = 32;
+
 type KitWhich = 'signature' | 'ability' | 'passive' | 'finisher';
 /** The kit's four cards: a frame, an emblem, the one-word label, the long name the sheet gives it. */
 const KIT: Array<{ which: KitWhich; face: Face; name: number; label: string; long: string; map: string[]; pal: Record<string, number> }> = [
@@ -44,7 +51,7 @@ const KIT: Array<{ which: KitWhich; face: Face; name: number; label: string; lon
     which: 'signature',
     face: [0xffc8f0, 0xb84a9a, 0x8a3478, 0x5a1a4a],
     name: 0xffb8e8,
-    label: 'Special',
+    label: KIT_LABELS[0],
     long: 'Signature move',
     map: ['...W...', '...P...', '..PWP..', 'WPWWWPW', '..PWP..', '...P...', '...W...'],
     pal: { W: 0xfff4fc, P: 0xff7ad8 },
@@ -53,7 +60,7 @@ const KIT: Array<{ which: KitWhich; face: Face; name: number; label: string; lon
     which: 'ability',
     face: [0xb4f070, 0x3a9a3a, 0x2e7a30, 0x1a5a26],
     name: 0xb4f070,
-    label: 'Green',
+    label: KIT_LABELS[1],
     long: 'Green hits',
     map: ['hhhhb', 'hWbbl', 'hbbbl', 'hbbbl', 'hbbbl', 'hbbbl', 'bllll'],
     pal: { h: 0xa8f590, W: WHITE, b: 0x4ccf4a, l: 0x2a9a3a },
@@ -62,7 +69,7 @@ const KIT: Array<{ which: KitWhich; face: Face; name: number; label: string; lon
     which: 'passive',
     face: [0x9ad8ff, 0x2a62c8, 0x22489c, 0x1a3070],
     name: 0x9ad8ff,
-    label: 'Trait',
+    label: KIT_LABELS[2],
     long: 'Always on',
     map: ['..lll..', '.lWllb.', 'lWlllbb', 'bllllbd', '.bllbd.', '..bbd..', '...d...'],
     pal: { l: 0x9ad8ff, W: WHITE, b: 0x3a8ae8, d: 0x1a3c8a },
@@ -71,7 +78,7 @@ const KIT: Array<{ which: KitWhich; face: Face; name: number; label: string; lon
     which: 'finisher',
     face: [0xfff0a0, 0xc88a1c, 0x9a5a14, 0x5a3410],
     name: 0xffe680,
-    label: 'Swipe',
+    label: KIT_LABELS[3],
     long: 'Finisher (swipe)',
     map: ['...yW', '..yy.', '.yy..', 'yyyyy', '..yy.', '.yy..', 'yy...'],
     pal: { y: 0xffd23a, W: 0xfff0a0 },
@@ -106,19 +113,6 @@ export function strengthText(id: HeroId): string {
 
 /** How a hero not met yet joins. */
 export const howFound = (id: HeroId): string => (HEROES[id].joins === 'chest' ? 'Found in hero chests' : 'Joins in the story');
-
-/** The narrowest width that fits `s` in two lines (the best place to break it). */
-export function twoLineW(s: string): number {
-  const words = s.split(' ');
-  let best = textWidth(s, 1, false);
-  for (let i = 1; i < words.length; i++) best = Math.min(best, Math.max(textWidth(words.slice(0, i).join(' '), 1, false), textWidth(words.slice(i).join(' '), 1, false)));
-  return best;
-}
-
-/** A kit column's width (an icon tile and name, its short line in two lines at most). */
-export function kitColW(part: KitPart, bold: boolean): number {
-  return Math.max(17 + textWidth(part.name, 1, bold), twoLineW(part.short) + 2);
-}
 
 /** Word-wrap with a shorter first line (text that follows a label on the same line). */
 export function wrapFlow(s: string, firstW: number, restW: number): string[] {
@@ -207,8 +201,7 @@ export class HeroesScreen {
   /** The stage: the left part of the screen under the top bar, where the hero stands (and swipes page). */
   stage(): Rect {
     const s = this.kit.s;
-    const w = Math.round((s.R - s.L) * 0.46);
-    return { x: s.L, y: 19, w, h: s.B - 19 };
+    return { x: s.L, y: 19, w: heroStageW(s.L, s.R), h: s.B - 19 };
   }
 
   /** The stage disc's top, where the hero's feet are. */
@@ -268,7 +261,7 @@ export class HeroesScreen {
   kitCards(): Array<{ which: KitWhich; r: Rect }> {
     const c = this.col();
     const y = this.rowY().cards;
-    const w = 32;
+    const w = KIT_CARD_W;
     const gap = Math.floor((c.w - 4 * w) / 3);
     return KIT.map((q, i) => ({ which: q.which, r: { x: c.x + i * (w + gap), y, w, h: 22 } }));
   }
@@ -446,8 +439,14 @@ export class HeroesScreen {
         notePress(c.r);
         return this.openSheet(c.which, now);
       }
-    if (inRect(this.starsRect(), x, y, 3)) return this.openSheet('stars', now);
-    if (inRect(this.sealsRect(), x, y, 3)) return this.openSheet('mastery', now);
+    if (inRect(this.starsRect(), x, y, 3)) {
+      notePress(this.starsRect());
+      return this.openSheet('stars', now);
+    }
+    if (inRect(this.sealsRect(), x, y, 3)) {
+      notePress(this.sealsRect());
+      return this.openSheet('mastery', now);
+    }
     if (inRect(this.levelRect(), x, y, 3)) return owned ? this.openSheet('level', now) : this.refuse(now);
     if (inRect(this.infoRect(), x, y)) return this.openSheet('info', now);
     // tapping the hero: a hop (or a shake for one not met yet)
