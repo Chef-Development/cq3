@@ -574,7 +574,7 @@ export class OnSite {
     else if (e.pos !== undefined) to = this.barPt(e.pos);
     if (!to) return land();
     const look: FlyLook = pet === 'brick' ? 'rock' : 'spark';
-    this.fly(from.x, from.y, to.x, to.y - 2, pet === 'brick' ? 130 : 170, col, look, pet === 'brick' ? 6 : 14, land);
+    this.fly(from.x, from.y, to.x, to.y - 2, pet === 'brick' ? 140 : 190, col, look, pet === 'brick' ? 10 : 26, land);
   }
 
   /** The blocks a 'spawn' perk just put on the bar: each lands with a twinkle, flying in from its companion (Mote's
@@ -957,17 +957,26 @@ export class OnSite {
       const trail = small ? 5 : 10;
       const step = small ? 0.06 : 0.045;
       const tcol = f.look === 'leaf' || f.look === 'seed' ? HEAL[1] : f.col;
-      for (let j = trail; j >= 1; j--) {
-        if (k - j * step < 0) continue;
-        const [x, y] = at(k - j * step);
-        const fade = 1 - j / (trail + 1);
-        const col = f.look === 'fire' ? FIRE[Math.min(4, (j + 1) >> 1)] : j <= 2 ? mix(tcol, WHITE, 0.5) : tcol;
-        const sz = small ? (j < 2 ? 2 : 1) : j <= 3 ? 3 : j <= 6 ? 2 : 1;
-        g.fillStyle(col, 0.9 * fade);
-        g.fillRect(Math.round(x) - (sz >> 1), Math.round(y) - (sz >> 1), sz, sz);
-        // a star's trail glitters
-        if (f.look === 'star' && j % 2 === 0 && Math.floor(now / 50 + j) % 2) sparkle(g, Math.round(x) + (j % 4 ? 2 : -2), Math.round(y) - 3, 1, WHITE, fade);
-      }
+      // (an ink rim under it first, so it reads over the sky, the hero, anything)
+      for (const ink of [true, false])
+        for (let j = trail; j >= 1; j--) {
+          if (k - j * step < 0) continue;
+          const [x, y] = at(k - j * step);
+          const fade = 1 - j / (trail + 1);
+          const col = f.look === 'fire' ? FIRE[Math.min(4, (j + 1) >> 1)] : j <= 2 ? mix(tcol, WHITE, 0.5) : tcol;
+          const sz = small ? (j < 2 ? 2 : 1) : j <= 3 ? 3 : j <= 6 ? 2 : 1;
+          const X = Math.round(x) - (sz >> 1);
+          const Y = Math.round(y) - (sz >> 1);
+          if (ink) {
+            g.fillStyle(INK, 0.45 * fade);
+            g.fillRect(X - 1, Y - 1, sz + 2, sz + 2);
+            continue;
+          }
+          g.fillStyle(col, 0.95 * fade);
+          g.fillRect(X, Y, sz, sz);
+          // a star's trail glitters
+          if (f.look === 'star' && j % 2 === 0 && Math.floor(now / 50 + j) % 2) sparkle(g, Math.round(x) + (j % 4 ? 2 : -2), Math.round(y) - 3, 1, WHITE, fade);
+        }
       const [hx, hy] = at(k);
       this.drawHead(g, f, Math.round(hx), Math.round(hy), now);
     }

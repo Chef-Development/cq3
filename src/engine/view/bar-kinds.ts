@@ -1,8 +1,9 @@
 // The timing bar's newer pieces, as plain painters on the bar's Graphics (view/bar.ts places them): patches (ice,
 // snowdrifts, slow runes), the block kinds the heroes and the second region brought (a Bomber's keg, a frozen block, a
 // hold with its start and end notches, an iced yellow's coat and its cracks), a still red's fuse ring, a chilled red's
-// frost (vines for Moss, an arrow for a Volley pin), the Rampart wall at the left end and Overgrowth's vines along the
-// bar. Every piece reads at a glance at 8x and none of them needs a sound to be understood.
+// frost (vines for Moss, an arrow for a Volley pin), the Rampart wall at the left end, Overgrowth's vines along the
+// bar and a Shadow Dash's afterimages of the cursor. Every piece reads at a glance at 8x and none of them needs a sound
+// to be understood.
 import type Phaser from 'phaser';
 import { brick, rows } from './pixels';
 import { clamp01, INK, mix, pulse, WHITE, type Rect } from './shared';

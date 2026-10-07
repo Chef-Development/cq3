@@ -3,7 +3,8 @@
 // in with a pop and a puff of leaves, a front row at the hero's feet). Each companion plays its act frame when it
 // attacks (fliers swoop, walkers dash in; Sunny breathes on every foe) and flares when one of its perks kicks in; each
 // ally plays its act frame when it acts (a Barkback holds its bark up while braced and hops in front of the hero to
-// take a red), blinks when it's about to leave and goes in a puff.
+// take a red), blinks when it's about to leave and goes in a puff. A companion hops when its perk finds a coin (Bun),
+// and a called ally pops in when the leaf from the green that called it lands (view/onsite.ts).
 import Phaser from 'phaser';
 import { COMPANIONS, type CompanionId } from '../../data/companions';
 import type { AllyKind } from '../../data/heroes';

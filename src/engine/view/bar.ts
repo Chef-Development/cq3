@@ -2,12 +2,14 @@
 // blocks (and how they leave), the cursor blade, hit beams and the swipe hint. The second region's pieces: a hold's
 // notches and fill, a mirror shard standing on the bar (a flash when the cursor bounces), an iced yellow's coat and
 // its cracks, an icicle's mark before it lands and its fuse ring once it has, a red's trail of ice-to-be. The heroes'
-// pieces: kegs, frozen blocks, chilled and pinned reds, Shadow Dash's streak, the Rampart wall, Overgrowth's vines,
+// pieces: kegs, frozen blocks, chilled and pinned reds, Shadow Dash's streak (its afterimages, the burst where it lands,
+// the violet slow patch there), the Rampart wall, Overgrowth's vines,
 // Big Bang's kegs flying in, Volley's arrows, Glacier's frost wave and Earthsplitter's crack. A block that changes
 // kind (Chain Reaction) flashes as it turns. The cursor leaves a speed streak on ice and drags in snow. What's armed
 // shows before it acts (no sound needed): a blocker standing ready at the left end (Rock Wall, a braced Barkback, an
 // afterimage), Oil Can's wider Perfect zones on the blocks, Wind-Up's burning cursor, a green ability's window as a
-// green sheen on the cursor. (The words that pop over the bar are view/callouts.ts.)
+// green sheen on the cursor. A trap a companion's fire burns away chars and smokes off the bar. (The words that pop over
+// the bar are view/callouts.ts; what perks, allies and companions do to the blocks is view/onsite.ts.)
 import Phaser from 'phaser';
 import { isAttack, isRed, type Block, type BlockKind, type Combat, type RemoveReason } from '../../core/combat';
 import type { FightScene } from '../scene';

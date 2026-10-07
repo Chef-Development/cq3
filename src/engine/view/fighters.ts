@@ -9,7 +9,8 @@
 // round the hero. Every hero fights in their own frames (`${art}_${pose}`, HEROES[id].art: Rowan's are hero_*), falling
 // back to Rowan's for a pose they don't have; the green ability shows their `cast` pose and the finisher their `fin`,
 // each in its own show (view/finishers.ts). The party (the companions and a Summoner's allies) is view/party.ts. A
-// boss shows its phase's look (`${sprite}${phase}_*`, when it has one) and a stunned foe sees stars.
+// boss shows its phase's look (`${sprite}${phase}_*`, when it has one) and a stunned foe sees stars. What each perk did
+// to its target (a mark on the foe, a box on the block, a burning foe's flames, Sunny's sweep) is view/onsite.ts.
 import Phaser from 'phaser';
 import { isAshArtKey } from '../art-ash';
 import { rimMask, STAGE_LIGHT } from '../art-stage';
