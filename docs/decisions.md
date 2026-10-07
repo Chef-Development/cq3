@@ -397,3 +397,25 @@ L5. **Save migration: replaced skill nodes.** Neve's Shatterburst became Big Fre
     (`SKILL_RENAMED` in core/heroes.ts), so the rest of the branch stays learned. Nothing else in this round changes the
     shape of the profile or the run save (the camp's built objects come from `profile.camp`; the lab's accuracy has its
     own key), so `SAVE_VERSION` and the profile key are unchanged.
+E1. **Text pass: one word per idea.** "Foe", never "enemy" (tips, relics, Tam's Blast Shield). Neve's ice is
+    "shattered" (her kit, tip, Big Freeze, the lab line); "smash" stays Torva's (Wind-Up). "Chain" is capitalised
+    like Guard and Focus when it's Sable's style meter. "Pick" for choices ("Pick a Relic", "Pick an act", the event
+    tip), "Bounty" for the map's bounty stop (it said "Quest"), "Finish" for holds and pairs, "Beat" for foes. US
+    spelling throughout (traveler, favorite, gray), as the UI already was (Armor, Defense).
+E2. **The finisher lines lost their "Swipe:" prefix** (the hero select's kit sheet already heads them "Finisher
+    (swipe)"); the gesture keeps the word "swipe" everywhere else (the finisher tip, the lab lines).
+E3. **Two stat lines were wrong or too wide.** Companion Power's short name was "Pip dmg" and its line "Damage of
+    Pip's pecks" (every companion, and Moss's allies, use it): now "Companion" (narrower than "Slower cursor", so it
+    fits every list) and "Companions hit harder." Steady Cursor's line overflowed the stats screen's pane on the
+    phone (302 px of 263): "Combo speeds the cursor up less."
+E4. **The act clear and the region victory named the wrong place.** After a region's boss the act clear said "The
+    road to <the next region's first act> is open" (a later region's name before its scene); it now says
+    "<Region> is safe again", as it did when Greenmarch was the whole campaign. The victory said "The Kingdom is
+    saved!", "The first weight is home. Eleven to go." and "Next: the Frostpeaks (coming soon)" after every region;
+    it now names the region won, counts the weights from the profile and names the next region (the victory scene has
+    just named it) or "More lands soon".
+E5. **Left alone:** the story scenes and banter (already two short lines, in the characters' voices: only spelling
+    and Pip's pair line in Ashfell, which said "to break a pair, hit both ends", the opposite of the game's "broken
+    pair"); foe and special-move names (no typos found); the Sound lab and the cheat toggles in the options panel
+    (testing tools); the fight-view files another agent owns (callouts, hud, bar...), and player-facing strings built
+    in src/core (boost cards, completion labels), which this pass wasn't given.

@@ -249,8 +249,8 @@ export class CompanionsScreen {
       [
         { text: `${def.kind}, ${def.role.toLowerCase()}. ${def.bio}`, col: 0xfff0c0 },
         { text: `${attackText(this.sel)}.`, icon: 'crit' },
-        { text: 'Levels up with the XP your hero earns while it comes along.', icon: 'up' },
-        { text: 'A duplicate from a chest gives shards: enough shards add a star.', icon: 'shard' },
+        { text: 'Levels up from XP earned while it comes along.', icon: 'up' },
+        { text: 'Dupes from chests give shards; enough add a star.', icon: 'shard' },
       ],
       now,
       TIER_INFO[def.rarity].face,

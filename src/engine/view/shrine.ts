@@ -197,7 +197,7 @@ export class ShrineScreen {
       [
         { text: left.legendary === 1 ? 'A Legendary or better: the next chest!' : `A Legendary or better within ${left.legendary} chests.`, col: mix(LEG_FACE[0], WHITE, 0.2), bold: true },
         { text: left.top === 1 ? 'A Celestial or better: the next chest!' : `A Celestial or better within ${left.top} chests.`, col: mix(CEL_FACE[0], WHITE, 0.1), bold: true },
-        { text: `From the ${Math.round(t.softPity)}th chest on, the Legendary odds climb every chest.` },
+        { text: `From chest ${Math.round(t.softPity)} on, Legendary odds rise with every chest.` },
         { text: 'Gems come only from playing.' },
       ],
       now,

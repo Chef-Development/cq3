@@ -1670,7 +1670,7 @@ export class WorldView {
     // the call to action over Rowan: his region (Greenmarch), and a glossy "Tap to begin!" button (hidden while a
     // card is up)
     const [hx, hy] = WORLD_ACTS[this.actNow()].stand;
-    const sub = P.actsCleared > 0 ? 'Choose an act' : 'Tap to begin!';
+    const sub = P.actsCleared > 0 ? 'Pick an act' : 'Tap to begin!';
     const name = REGIONS[regionOfAct(this.actNow())].name;
     const bw = textWidth(sub, 1, true) + 8;
     const w = Math.max(textWidth(name, 1, true) + 12, bw + 6);

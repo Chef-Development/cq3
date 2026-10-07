@@ -16,8 +16,8 @@ export function runCalibration(app: App, onDone: () => void): void {
   root.innerHTML = `
     <div class="cal-box">
       <div class="cal-title">CALIBRATE</div>
-      <p class="cal-help">Tap anywhere on this screen each time the line crosses the center mark.
-      ${COUNT_IN} count-in beats, then ${RECORD} beats. Watch the line; the click is a guide.</p>
+      <p class="cal-help">Tap anywhere as the line crosses the mark:
+      ${COUNT_IN} beats to get ready, then ${RECORD} taps. Watch the line, not the click.</p>
       <div class="cal-bar"><div class="cal-mark"></div><div class="cal-cursor"></div></div>
       <div class="cal-status">Press Start, then tap along.</div>
       <div class="cal-buttons">
@@ -85,7 +85,7 @@ export function runCalibration(app: App, onDone: () => void): void {
       const dir = r.offsetMs >= 0 ? 'late' : 'early';
       status.textContent = `You tap ${Math.abs(r.offsetMs)} ms ${dir} (spread ${r.spreadMs} ms, ${r.count} taps). Save to apply.`;
       btnSave.hidden = false;
-    } else status.textContent = `Only ${offsets.length} taps counted. Need 8+. Retry?`;
+    } else status.textContent = `Only ${offsets.length} taps counted; 8 needed. Retry?`;
   };
 
   const close = () => {

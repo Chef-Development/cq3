@@ -408,7 +408,7 @@ export class NodeScreens {
     if (ok) glow(g, buy, 0xffd23a, 0.3 + 0.3 * pulse(now, 900), 3);
     button3d(g, buy, ok ? (price === 0 ? FACE.green : FACE.gold) : FACE.grey, pr);
     const dy2 = pr ? 2 : 0;
-    if (price === 0) this.texts.text('Take it: Free!', buy.x + buy.w / 2, buy.y + buy.h / 2 + dy2, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    if (price === 0) this.texts.text('Take it!', buy.x + buy.w / 2, buy.y + buy.h / 2 + dy2, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     else {
       const label = 'Buy';
       const pw = textWidth(`${price}`, 1, true);
@@ -562,7 +562,7 @@ export class NodeScreens {
       glow(g, r, 0x8af06a, 0.3 + 0.3 * pulse(now, 900), 3);
       button3d(g, r, FACE.green, isPressed(r, now));
       this.texts.text('Continue', r.x + r.w / 2, r.y + r.h / 2 + (isPressed(r, now) ? 2 : 0), WHITE, { bold: true, ox: 0.5, oy: 0.5 });
-      if (ev.boost) this.texts.text('A boost pick awaits!', b.x + b.w / 2, this.eventButton(0).y + 8, 0x9ad8ff, { bold: true, ox: 0.5, oy: 0.5 });
+      if (ev.boost) this.texts.text('A boost pick is next!', b.x + b.w / 2, this.eventButton(0).y + 8, 0x9ad8ff, { bold: true, ox: 0.5, oy: 0.5 });
       return;
     }
     def.choices.forEach((c, i) => {

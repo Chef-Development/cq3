@@ -134,7 +134,7 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
     c.appendChild(el('div', 'lab-card-title', s.label));
     c.appendChild(el('div', 'lab-card-meta', `${LAB_GROUPS.find((g) => g.id === s.group)?.name ?? ''} · about ${s.secs} s${s.spoiler ? ' · Spoiler' : ''}`));
     c.appendChild(el('div', 'lab-try', s.try));
-    c.appendChild(el('div', 'lab-hint', 'Tap Done (top) when you have seen enough.'));
+    c.appendChild(el('div', 'lab-hint', "Tap Done (top) when you've seen enough."));
     const row = el('div', 'lab-row');
     row.appendChild(button('lab-btn big go', 'Start', () => start(s)));
     row.appendChild(button('lab-btn big', 'Back', showList));

@@ -234,7 +234,7 @@ export class RelicLogScreen {
     texts.text(`${have}/${RELICS.length}`, cx, c.y + 30, WHITE, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: NAVY[1] });
     texts.text('relics unlocked', cx, c.y + 44, 0xd8d0f0, { ox: 0.5, oy: 0.5 });
     let y = c.y + 60;
-    for (const l of wrapText('Win them as picks after fights. Clear acts, beat elites and try events to unlock more.', c.w - 14)) {
+    for (const l of wrapText('Pick them after fights. Clear acts, beat elites and try events to unlock more.', c.w - 14)) {
       texts.text(l, cx, y, DIM_TXT, { ox: 0.5, oy: 0.5 });
       y += 8;
     }

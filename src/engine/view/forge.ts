@@ -692,7 +692,7 @@ export class ForgeScreen {
     const iw = c.w - 14;
     if (!it.bonus.length) {
       let y = c.y + 22;
-      for (const l of wrapText('This item has no bonus stats to reroll. Uncommon and better items have them.', iw)) {
+      for (const l of wrapText('No bonus stats to reroll. Uncommon and better items have them.', iw)) {
         texts.text(l, ix, y, 0xd8d0f0, { oy: 0.5 });
         y += 9;
       }

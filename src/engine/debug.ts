@@ -289,8 +289,8 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
     const over = el('button', 'dbg-btn', 'Start over');
     over.onclick = () => {
       // the same as the title's New game: erases it all (twice asked: it can't be undone)
-      if (!window.confirm('Start over? This erases ALL progress: cleared acts, gear, coins, scrap, hero levels, skills and relics.')) return;
-      if (!window.confirm('Really erase everything? This cannot be undone.')) return;
+      if (!window.confirm('Start over? This erases ALL progress: acts, gear, coins, scrap, heroes, skills and relics.')) return;
+      if (!window.confirm('Really erase everything? There is no undo.')) return;
       app.startOver();
     };
     // the tips ("teach it slowly"): turn them off, or see every one again
@@ -344,7 +344,7 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
     if (e) meta.appendChild(el('div', 'acc-line', `from ${e.n} recent taps · timing spread ±${Math.round(e.sd)} ms · ${lateness(e.bias)}`));
     else {
       const have = log.recent.filter((x) => Math.abs(x) <= AIM_WINDOW_MS).length;
-      meta.appendChild(el('div', 'acc-line', `Play a few fights to measure it: it needs ${MIN_SAMPLES} clear taps at plain yellow blocks (${have} so far).`));
+      meta.appendChild(el('div', 'acc-line', `Play a few fights to measure it: it needs ${MIN_SAMPLES} taps on plain yellows (${have} so far).`));
     }
     // a meter: your accuracy against the accuracy the game is tuned for (TYPICAL_ACCURACY)
     const bar = el('div', 'acc-bar');
@@ -368,9 +368,9 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
         list.appendChild(li);
       }
       sec.appendChild(list);
-    } else sec.appendChild(el('div', 'dbg-note', 'Clear an act to start your history (one entry per act cleared).'));
+    } else sec.appendChild(el('div', 'dbg-note', 'Clear an act to start your history.'));
     sec.appendChild(
-      el('div', 'dbg-note', `The share of plain yellow blocks you hit at the starting speed. The game is set for ${pct(target)}.`),
+      el('div', 'dbg-note', `The share of plain yellows you hit at the starting speed. The game is tuned for ${pct(target)}.`),
     );
   }
 

@@ -729,7 +729,7 @@ export class MapView implements MapHost {
       case 'rush':
         return { icon: 'coin', text: 'Rush', col: 0xffe680 };
       case 'bounty':
-        return { icon: 'warn', text: 'Quest', col: 0xffd890 };
+        return { icon: 'warn', text: 'Bounty', col: 0xffd890 };
     }
   }
 

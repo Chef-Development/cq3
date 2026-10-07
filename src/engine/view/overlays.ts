@@ -6,7 +6,8 @@
 import Phaser from 'phaser';
 import { heroMaxHp } from '../../core/combat';
 import { relicById, type RelicId, type RelicTag } from '../../data/relics';
-import { heroProgress, progressLabel } from '../../core/profile';
+import { heroProgress, progressLabel, WEIGHTS_TOTAL } from '../../core/profile';
+import { lastActOfRegion, REGIONS } from '../../data/regions';
 import { buildName, relicText, topTags } from '../../core/relics';
 import { levelProgress } from '../../core/heroes';
 import { boostLabel, boostPreview, isRelicOffer, type BoostOffer, type BoostPreview, type Phase, type Rarity } from '../../core/run';
@@ -26,6 +27,9 @@ import { pix } from './camp-kit';
 // ------------------------------------------------------------------ small UI glyphs (shared by the menus)
 
 const K = 0x140c1c;
+/** The region victory's line: which weight came home, and how many are left (in words). */
+const ORDINAL = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth'];
+const COUNT = ['None', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven'];
 
 /** Add a 1 px ink outline ('k') around the filled pixels of a glyph map. */
 function outlined(map: string[]): string[] {
@@ -812,7 +816,7 @@ export class Overlays {
     if (pa > 0) {
       const ty = s.splitY + 32 + Math.round((GAME_H - s.splitY - 32 - (GAME_H - s.B)) / 2);
       const tips: Array<[readonly number[], string]> = [
-        [COL.yellow, 'Tap on blocks'],
+        [COL.yellow, 'Tap yellow'],
         [COL.red, 'Tap red to block'],
         [COL.purple, 'Avoid purple'],
       ];
@@ -858,8 +862,8 @@ export class Overlays {
         : run.pickKind === 'secret'
           ? 'Hidden Relic'
           : run.boostChoices.some(isRelicOffer)
-            ? 'Choose a Relic'
-            : 'Choose a Boost';
+            ? 'Pick a Relic'
+            : 'Pick a Boost';
     ribbon(gc, p.x + p.w / 2, p.y - 6, Math.max(112, textWidth(title, 1, true) + 22), 13, RIBBON.purple);
     this.texts.text(title, p.x + p.w / 2, p.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     const owned = run.hero.relics;
@@ -1175,8 +1179,9 @@ export class Overlays {
     // ---- the line under the headline
     const lk = clamp01((since - 160) / 220);
     if (lk > 0) {
-      const next = run.region.acts[run.actIndex + 1];
-      const line = next ? `The road to ${next.name} is open` : `${run.region.name} is safe again`;
+      // (a region's last act: its own name, never the next region's first act: that's the victory scene's news)
+      const next = lastActOfRegion(run.actIndex) ? undefined : run.region.acts[run.actIndex + 1];
+      const line = next ? `The road to ${next.name} is open` : `${run.regionDef.name} is safe again`;
       this.subLine(gc, line, cx, 49 - Math.round((1 - lk) * 3), lk);
     }
     // ---- accuracy: a small, quiet chip in the top-left corner (the planning chat reads it off the act clear)
@@ -1298,13 +1303,13 @@ export class Overlays {
     const live = t > 700;
     this.consoleButtons(gc, now, t - 300, [
       { r: b.camp, face: FACE.navy, label: 'Camp', icon: 'tent', delay: 0 },
-      { r: b.retry, face: FACE.gold, label: 'Retry the act', icon: '', delay: 80 },
+      { r: b.retry, face: FACE.gold, label: 'Retry', icon: '', delay: 80 },
     ], live);
   }
 
   /**
    * The region saved, in the same hierarchy: one headline on a gold ribbon over slow golden rays, one line under it,
-   * and the way on (where the road goes next, coming soon) on the console under "Tap to continue".
+   * and the way on (the next region, or more to come) on the console under "Tap to continue".
    */
   private drawVictory(g: G, gc: G, now: number, since: number): void {
     const s = this.s;
@@ -1324,15 +1329,20 @@ export class Overlays {
     g.fillStyle(0x07040c, 0.5 * clamp01(since / 300));
     g.fillRect(0, s.splitY, GAME_W, GAME_H - s.splitY);
     const k = easeBack(since / 420, 1.5);
-    const title = `${s.app.run.region.name} is saved!`;
+    const run = s.app.run;
+    const title = `${run.regionDef.name} is saved!`;
     const tw = textWidth(title, 2, true);
     const y = Math.round(20 - (1 - k) * 50);
     ribbon(gc, cx, y, Math.round((tw + 24) * Math.min(1, k)), 22, RIBBON.gold, 1, k > 0.9);
     if (k > 0.5) this.texts.text(title, cx, y + 11, 0xfff6c0, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a });
-    if (since > 400) this.subLine(gc, 'The first weight is home. Eleven to go.', cx, 49, clamp01((since - 400) / 250));
+    const home = `The ${ORDINAL[run.regionIndex] ?? 'next'} weight is home.`;
+    const left = WEIGHTS_TOTAL - run.profile.weights;
+    if (since > 400) this.subLine(gc, left > 0 ? `${home} ${COUNT[left] ?? left} to go.` : `${home} That's all of them!`, cx, 49, clamp01((since - 400) / 250));
     if (since > 1500) {
       this.prompt(g, 'Tap to continue', s.splitY + 16, now, 0xfff07a);
-      this.texts.text('Next: the Frostpeaks (coming soon)', cx, s.splitY + 34, 0xa8c8e8, { ox: 0.5, oy: 0.5, alpha: clamp01((since - 1500) / 300) });
+      // where the road goes next (the victory scene has just named it), or more to come
+      const nextRegion = REGIONS[run.regionIndex + 1];
+      this.texts.text(nextRegion ? `Next: ${nextRegion.name}` : 'More lands soon', cx, s.splitY + 34, 0xa8c8e8, { ox: 0.5, oy: 0.5, alpha: clamp01((since - 1500) / 300) });
     }
     // a little shower of golden sparks
     if (Math.random() < 0.5) s.fx.particles.push({ x: rand(20, GAME_W - 20), y: -2, vx: rand(-10, 10), vy: rand(20, 40), g: 30, born: now, life: 2200, color: Math.random() < 0.5 ? 0xffe680 : WHITE, size: 1, world: true, streak: false });
