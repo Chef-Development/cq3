@@ -14,7 +14,7 @@ import { isRed } from './blocks';
 import type { Block, Combat } from './combat';
 import { skillN } from './heroes';
 import type { FightHooks } from './hooks';
-import { holdReds, nearestRed, rewindReds, roar, stopEvery, stopwatch } from './kit-fx';
+import { holdReds, nearestRed, onItsWay, rewindReds, roar, stopEvery, stopwatch } from './kit-fx';
 
 const N = (c: Combat, id: string): number => skillN(c.tuning, id);
 /** A node's number as a share (25 -> 0.25). */
@@ -52,7 +52,7 @@ const GORM: Record<string, FightHooks> = {
     afterHit: (c, x) => {
       if (!rocked(c, x.block.id)) return;
       let n = 0;
-      for (const b of c.blocks.filter((r) => isRed(r.kind) && !r.still && r.id !== c.perk.rockRed).sort((a, b) => b.pos - a.pos))
+      for (const b of c.blocks.filter((r) => onItsWay(r) && r.id !== c.perk.rockRed).sort((a, b) => b.pos - a.pos))
         if (c.pushBack(b, c.tuning.kits.gorm.shove) > 0) n++;
       if (n) c.perkFx('stoneRain', n);
     },

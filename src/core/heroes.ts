@@ -279,7 +279,7 @@ export function kitN(t: Tuning, id: HeroId, which: KitWhich): number {
     case 'tess.ability':
       return k.tess.abilitySec;
     case 'tess.passive':
-      return k.tess.steady * 100;
+      return Math.round((1 - k.tess.steady) * 100); // steady: the share of a patch's pull she still feels
     // part6:D
     default:
       return 0;

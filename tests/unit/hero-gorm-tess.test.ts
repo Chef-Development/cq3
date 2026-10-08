@@ -104,6 +104,23 @@ describe("Gorm's kit", () => {
     expect(perks(s3.c.drainEvents(), 'rockfall')).toHaveLength(1);
   });
 
+  it('Rockfall leaves a red already striking at the left end alone (a push would start its strike over): it shoves the nearest one still on its way', () => {
+    const { c } = fight('gorm', [], { enemies: ['bandit'], tune: (t) => (t.enemies.bandit.hp = 5000) });
+    toRockfall(c);
+    const striking = c.spawnBlock('red', 0.05);
+    striking.impactTimer = 0.1;
+    const coming = c.spawnBlock('red', 0.6);
+    const p0 = coming.pos;
+    recentre(c);
+    tapNew(c, 'yellow');
+    expect(perks(c.drainEvents(), 'rockfall')).toHaveLength(1);
+    expect(c.perk.rockRed).toBe(coming.id);
+    expect(striking.impactTimer).toBeCloseTo(0.1, 5);
+    expect(striking.push).toBe(0);
+    go(c, c.time + 0.3);
+    expect(coming.pos).toBeGreaterThan(p0);
+  });
+
   it('Roar: a green hit slows every red on the bar (to roarMult, for the ability) and the foes flinch; a yellow does not', () => {
     const { c, t } = fight('gorm');
     const a = c.spawnBlock('red', 0.7);
@@ -247,7 +264,7 @@ describe("Tess's kit", () => {
     expect(n.chill).toBe(0);
   });
 
-  it('Steady Hands: ice and snow patches change her cursor speed `steady` less (other patches as usual)', () => {
+  it("Steady Hands: on ice and snow her cursor keeps only `steady` of the patch's pull (other patches as usual); the text says how much less", () => {
     const { c, t } = fight('tess');
     const r = fight('rowan');
     for (const kind of ['ice', 'snow'] as const) {
@@ -257,6 +274,7 @@ describe("Tess's kit", () => {
     }
     const slow = c.addZone('slow', 0.5, 0.2, 0);
     expect(c.zoneMult(slow)).toBeCloseTo(t.bar.slowMult);
+    expect(kitText(t, 'tess', 'passive')).toContain(`${Math.round((1 - t.kits.tess.steady) * 100)}% less`);
   });
 
   it('Rewind: hits every foe; every red winds back to where it came on (the far ones queue up), an icicle to a full fuse; 5 stars: then time stops', () => {

@@ -463,12 +463,16 @@ export const perkHittable = (b: Block): boolean => isAttack(b.kind) && b.kind !=
 /** Hits from one Rockfall to the next (Gorm's 3 stars: one sooner). */
 export const rockEvery = (c: Combat): number => Math.max(2, Math.round(c.stars >= 3 ? K(c).gorm.rockEvery3 : K(c).gorm.rockEvery));
 
-/** The red nearest the hero (the furthest left) that can be pushed: not an icicle, not already flying back. */
+/** The red nearest the hero (the furthest left) still on its way: not an icicle, not one already striking at the
+ *  left end (any push would start its strike over: a free save every few hits). */
 export function nearestRed(c: Combat): Block | null {
   let best: Block | null = null;
-  for (const b of c.blocks) if (isRed(b.kind) && !b.still && (!best || b.pos < best.pos)) best = b;
+  for (const b of c.blocks) if (onItsWay(b) && (!best || b.pos < best.pos)) best = b;
   return best;
 }
+
+/** A red travelling the bar (or being pushed back): not an icicle, not one at the left end about to strike. */
+export const onItsWay = (b: Block): boolean => isRed(b.kind) && !b.still && b.impactTimer < 0;
 
 /** A Rockfall: the heavy blow landed (its perk event: the blow's damage, its foe, where on the bar), and it shoves the
  *  nearest red back (c.perk.rockRed: that red's id, for the view; c.perk.rockHit: the hit, for the skill nodes). */
