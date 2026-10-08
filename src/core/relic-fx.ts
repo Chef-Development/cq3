@@ -327,6 +327,7 @@ export const RELIC_HOOKS: Partial<Record<RelicId, FightHooks>> = {
   // Clutch: a miss no longer breaks the combo, but costs (at least) n HP
   clutch: {
     miss: (c, x) => {
+      if (!c.canForgive()) return; // (every effect together forgives only so many misses a fight)
       x.breaks = false;
       x.damage = Math.max(x.damage, Math.round((c.maxHp() * n(c, 'clutch')) / 100));
       c.perkFx('clutch');
@@ -489,7 +490,7 @@ export const RELIC_HOOKS: Partial<Record<RelicId, FightHooks>> = {
   // Wingman: a peck fills the meter like a hit
   wingman: {
     afterPeck: (c, x) => {
-      c.fillMeter(c.tuning.meter.perHit, 'peck');
+      c.fillMeter(c.tuning.meter.perHit, 'peck', 'wingman');
       c.perkFx('wingman', 0, x.target.id);
     },
   },

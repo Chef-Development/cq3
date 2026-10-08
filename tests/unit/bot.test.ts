@@ -93,16 +93,16 @@ describe('balance bot', () => {
 
 describe('balance targets (guards the defaults; the full report is npm run balance)', () => {
   // The bot aims like a person (a timing spread in ms, reaction time, a thumb's tap rate), so these are a player's
-  // odds. The targets are set for the playtester (TYPICAL_ACCURACY = 85%: hits 85% of plain yellow blocks at the
-  // starting speed), on a first playthrough with found gear. 150 runs per row (a few seconds); the bands are a little
-  // wider than the targets to allow for sampling.
+  // odds. The targets are set for the playtester (TYPICAL_ACCURACY = 75% since playtest round 7: hits 75% of plain
+  // yellow blocks at the starting speed; their lab readout measured 70%), on a first playthrough with found gear. 150
+  // runs per row (a few seconds); the bands are a little wider than the targets to allow for sampling.
   const [a1, a2, a3] = balance(cloneTuning(), [TYPICAL_ACCURACY], 150, 9);
   const [, , w3] = balance(cloneTuning(), [0.7], 150, 9, 6);
-  // a cautious 85% player: never takes the relics that charge HP (Clutch, Glass Edge, Blood Price, Purple Pact)
+  // a cautious 75% player: never takes the relics that charge HP (Clutch, Glass Edge, Blood Price, Purple Pact)
   const [, c2, c3] = balance(cloneTuning(), [TYPICAL_ACCURACY], 150, 9, 6, 3, undefined, ['clutch', 'glassEdge', 'bloodPrice', 'purplePact']);
 
-  it('the curve is aimed at the playtester (85%)', () => {
-    expect(TYPICAL_ACCURACY).toBe(0.85);
+  it('the curve is aimed at the playtester (75%)', () => {
+    expect(TYPICAL_ACCURACY).toBe(0.75);
   });
 
   it('Act 1 is a gentle start: the playtester nearly always clears it first try', () => {
@@ -115,7 +115,7 @@ describe('balance targets (guards the defaults; the full report is npm run balan
     expect(a2.firstTry).toBeLessThanOrEqual(a1.firstTry);
   });
 
-  // Later acts' reds are faster (acts[i].redSpeed): what reaches an 85% player, who blocks nearly every red at 2.8 s.
+  // Later acts' reds are faster (acts[i].redSpeed): what reaches a 75% player, who blocks most reds at 2.8 s.
   it('the Boar King is the real test: the first fight is won about 60-75% of the time, by a cautious player too', () => {
     expect(a3.bossFirstTry).toBeGreaterThanOrEqual(0.55);
     expect(a3.bossFirstTry).toBeLessThanOrEqual(0.82);

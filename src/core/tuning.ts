@@ -33,7 +33,27 @@ export const DEFAULT_TUNING = {
     graceMs: 20, // extra hit window on each side, in time (at the speed the cursor and the block close at)
     redGraceMs: 40, // the same for blocking red attacks: defending is forgiving, attacking stays sharp
     maxRewindMs: 300, // how far back a tap timestamp may be judged
-    missSelfDamage: 1, // Classic mode: damage for tapping empty bar
+    missSelfDamage: 1, // Classic mode: damage for tapping empty bar (at least this)...
+    missHpShare: 0.006, // ...or this share of max HP (a flat 1 HP was nothing to a late hero: mashing paid)...
+    missStreakSec: 0.5, // ...and a miss this soon after the last one costs one more time as much (a flailing thumb)...
+    missStreakMax: 4, // ...up to this many times
+  },
+  spam: {
+    // Playtest round 7 ("late fights become spam, spam, finisher x5, spam"): the bar never fills up, each finisher
+    // stack costs more than the last, meter and heal effects stack with diminishing returns, heals per fight are
+    // capped, and a miss always costs something (docs/balance-spam.md). The rules live in core/combat.ts.
+    cover: 0.45, // blocks may cover at most this share of the bar: a foe's static that doesn't fit isn't sent (its
+    // pattern goes on at its pace); reds, specials' formations and the hero's own blocks always come
+    stackStep: 0.32, // each finisher stack costs this much more meter than the one before (x1, 1.32, 1.64, 1.96, 2.28:
+    // 6 / 8 / 10 / 12 / 14 plain hits)
+    meterKnee: 0.25, // Meter Gain (gear, skills) counts in full up to this...
+    meterSoft: 0.5, // ...then with diminishing returns, never more than knee + soft in all
+    meterStack: 0.33, // relics that add meter: the 2nd to kick in in a fight counts 1 / (1 + this), the 3rd 1 / (1 + 2x this)...
+    healCap: 0.35, // heals in a fight stop at this share of max HP (rests and potions are between fights)
+    healStack: 0.33, // heal effects: the 2nd source to heal in a fight heals 1 / (1 + this), the 3rd 1 / (1 + 2x this)...
+    forgiveMax: 3, // misses forgiven per fight by every effect together (Footpad, Clutch, Smoke Veil, Crampons, Spare
+    // Link); after that a miss breaks the combo
+    forgiveMeter: 1, // a forgiven miss still loses this share of the meter's fill toward the next stack
   },
   blocks: {
     attackWidth: 0.07, // yellow width (fraction of bar); narrow like the reference, timing has to be sharp
@@ -375,7 +395,7 @@ export const DEFAULT_TUNING = {
     focusStore: 0.35, // ...and store this share of your attack as Focus...
     focusCap: 6, // ...up to this many times your attack; a green hit fires it all...
     targetWidth: 1.35, // ...and greens (the targets that fire it) come this much wider
-    heavyMult: 1.6, // Brute (Heavy): every hit deals this much...
+    heavyMult: 1.5, // Brute (Heavy): every hit deals this much...
     heavyGap: 1.45, // ...static blocks come this much further apart...
     heavyWidth: 1.15, // ...yellows are this much wider...
     heavyMin: 1, // ...and the bar keeps at least this many yellows
@@ -385,7 +405,7 @@ export const DEFAULT_TUNING = {
     callEvery: 5, // ...and every this many yellows comes as a green (a call)
     kegEvery: 5, // Bomber (Powder): every Nth yellow comes as a keg...
     kegMult: 1.2, // ...whose blast hits every foe for this x your attack...
-    kegRadius: 0.12, // ...and knocks reds this close off the bar
+    kegRadius: 0.09, // ...and knocks reds this close off the bar
   },
   kits: {
     // Each hero's own numbers (core/kit-fx.ts; src/data/heroes.ts has the words). hp: base max HP; atk: share of
@@ -396,13 +416,13 @@ export const DEFAULT_TUNING = {
     // for slowSec
     neve: { hp: 108, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, iceMeter: 0.5, glacierMult: 0.7, glacierSec: 2.5, glacierBarSec: 1.5, slowSec: 4, slowWidth: 0.34 },
     // moss: allyComp: the allies grow this much stronger (as a share) for each Companion point above a fresh hero's
-    moss: { hp: 90, atk: 0.62, abilitySec: 3, allySec: 6, allySec3: 14, allyComp: 0.15, thornEvery: 1.5, thornDmg: 0.3, barkEvery: 16, mothEvery: 3, mothHeal: 0.004, seedEvery: 5, roots: 0.04, overgrowth: 0.1, vineSec: 3, vineMult: 0.7 },
-    tam: { hp: 100, atk: 0.9, abilitySec: 3, kegEvery3: 4, blastShield: 0.35, bangKegs: 3, wide5: 2 },
+    moss: { hp: 85, atk: 0.62, abilitySec: 3, allySec: 6, allySec3: 14, allyComp: 0.15, thornEvery: 1.5, thornDmg: 0.3, barkEvery: 32, mothEvery: 3, mothHeal: 0.004, seedEvery: 5, roots: 0.04, overgrowth: 0.1, vineSec: 3, vineMult: 0.7 },
+    tam: { hp: 95, atk: 0.9, abilitySec: 3, kegEvery3: 4, blastShield: 0.35, bangKegs: 3, wide5: 2 },
     // hollis: every block slams its red's owner for slam x attack (a Perfect one slamPerfect)
-    hollis: { hp: 95, atk: 0.9, abilitySec: 3, slam: 0.4, slamPerfect: 0.8, ironHide: 0.2, rampartSec: 3, rampartGuard: 1.2, guardMax3: 7 },
+    hollis: { hp: 95, atk: 0.9, abilitySec: 3, slam: 0.4, slamPerfect: 0.8, ironHide: 0.1, rampartSec: 2, rampartGuard: 1.2, guardMax3: 7 },
     vesper: { hp: 115, atk: 1.13, abilitySec: 3, pierce: 0.5, volleyFocus: 1.7, pinSec: 2, cap3: 1.5 },
     // torva: a Wind-Up smash deals x(windUpBase + windUpStep per combo), up to windUpMax
-    torva: { hp: 108, atk: 0.86, abilitySec: 3, quake: 0.08, windUpBase: 1.8, windUpStep: 0.04, windUpMax: 4, stunSec: 1, unstoppable: 0.08, unstoppableMax: 5, calmSec: 1.2 },
+    torva: { hp: 108, atk: 0.86, abilitySec: 3, quake: 0.08, windUpBase: 1.7, windUpStep: 0.04, windUpMax: 4, stunSec: 1, unstoppable: 0.08, unstoppableMax: 5, calmSec: 1.2 },
     // part6:A
     // part6:B
     // part6:C
@@ -707,6 +727,23 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('judge.redGraceMs', 'Red grace (ms)', 0, 120, 1),
         s('judge.maxRewindMs', 'Max rewind (ms)', 0, 600, 10),
         s('judge.missSelfDamage', 'Miss self-dmg', 0, 20, 1),
+        s('judge.missHpShare', 'Miss self-dmg (max HP)', 0, 0.05, 0.001),
+        s('judge.missStreakSec', 'Miss after a miss within (s)', 0, 2, 0.05),
+        s('judge.missStreakMax', '...costs up to x', 1, 8, 0.5),
+      ],
+    },
+    {
+      title: 'Anti-spam',
+      sliders: [
+        s('spam.cover', 'Bar covered at most', 0.2, 1, 0.01),
+        s('spam.stackStep', 'Each stack costs +', 0, 1, 0.01),
+        s('spam.meterKnee', 'Meter Gain full to', 0, 1, 0.01),
+        s('spam.meterSoft', '...then up to +', 0, 2, 0.05),
+        s('spam.meterStack', 'Meter relics stack -', 0, 2, 0.01),
+        s('spam.healCap', 'Heals per fight', 0, 2, 0.01),
+        s('spam.healStack', 'Heal sources stack -', 0, 2, 0.01),
+        s('spam.forgiveMax', 'Misses forgiven', 0, 10, 1),
+        s('spam.forgiveMeter', 'Forgiven miss: meter lost', 0, 1, 0.05),
       ],
     },
     {

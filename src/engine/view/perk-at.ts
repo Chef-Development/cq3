@@ -98,6 +98,9 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   emberwright: ['heal'],
   // ---- the Test lab's banked stacks
   testLab: ['meter'],
+  // ---- the anti-spam rules (playtest round 7): the fight's heals used up; no more misses forgiven this fight
+  healCap: ['hero'],
+  missCap: ['combo'],
   // ---- relics: bombs
   powderKeg: ['meter'],
   shortFuse: ['bar'],
