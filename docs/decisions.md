@@ -714,3 +714,16 @@ H18. **Brann (Guardian, Epic):** every block rings his bell (Toll: +20% to his n
     wait** (a stun cancels the special a boss is telling: the same lesson as Torva's). Stunning Toll follows that rule.
 H19. **Parity (200 runs x two seed sets, 75%):** Fizz -4 to +8.5, Brann -7 to +10 (Act 3 at the edge: the Boar King,
     where every hero leads Rowan). A seeded test chest now rolls Fizz (the Legendary pool grew).
+H20. **Solenne (Blade, Mythic):** Sunrise (every 15 combo her blade burns for 3 s: hits also cut every other foe for
+    50%), Gleam (a green gilds the next yellow: +1 combo and a little meter), Dawn Oath (at 30+ combo a miss keeps half
+    the combo; the stacks and meter still go, so a miss is never free), Sunfall (hits every foe, +1% a combo up to +50%,
+    clears the reds and gilds the next 2 yellows); her gift, Radiance: while Sunrise burns, reds move at x0.85. The
+    design's 25 / 50 combo thresholds were almost never reached at 85%, so 15 / 30; at 75% she ran 27-34 points ahead
+    at the bosses until Radiance and Gleam came down. HP 105 (the lab fight and Act 8's paired boss). Rekindle (a skill)
+    relights Sunrise only when 6+ combo is lost, or a wild tapper's constant breaks would keep it lit.
+H21. **Wren (Shadow, Rare):** Slip (4 Perfects in a row ready a dodge: the next red that reaches her misses), Smoke Pop
+    (a green: for 3 s reds that reach her deal 25% less: built as "hits softer", since hiding the reds would only hurt
+    the player), Light Feet (her Chain survives one Good hit), Rooftop Drop (hits the target x1.25, then each Chain link
+    throws a knife at every foe: a pure single-target finisher ran her multi-foe fights long).
+H22. **The hero select's fifth card, "Gift",** shows for any hero with a gift (Solenne and Yara), in a tighter
+    five-card row. Parity (200 runs x two seed sets, 75%): Solenne -9 to +8, Wren -8 to +7.5.
