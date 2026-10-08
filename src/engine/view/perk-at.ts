@@ -247,6 +247,13 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   seething: ['tab', 'hero'],
   payback: ['cursor'],
   berserk: ['bar', 'foe'],
+  // ---- Part 6 companions (their looks: view/onsite-pets.ts)
+  prickly: ['show'], // Burr curls up and spines fly from him into the foe whose red hit you
+  wakeSong: ['show'], // Lark's note flies to the next yellow and glows on it until it's hit
+  wakeNote: ['bar', 'combo', 'show'], // the singing yellow hit: the note bursts, the combo counter swells (+3 by it)
+  nightEyes: ['show'], // Gloam pounces: a claw swipe across the trap, which turns into a yellow where it stood
+  tide: ['show'], // a wave rolls across the bar from the left end; each red it reaches is carried back
+  calmSeas: ['cursor', 'show'], // the sea calms: the cursor glows aqua while the combo stays up; hits ripple
 };
 
 /** The block a 'spawn' perk puts on the bar. */

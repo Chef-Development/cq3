@@ -24,6 +24,7 @@ import type { FightScene } from '../scene';
 import { STYLE_LOOK } from './camp-kit';
 import { BLOCKER_FACE, sparkle } from './bar-kinds';
 import { ALLY_COL, PERK_PET, PET_COL } from './party';
+import { PetSite } from './onsite-pets';
 import { COIN_FROM, PERK_ALLY, PERK_SPAWN, perkTargets, type PerkTarget } from './perk-at';
 import { perkSource, TAG_FACE } from './relic-ui';
 import { clamp01, ease, INK, mix, pulse, rand, WHITE, type EnemyView } from './shared';
@@ -180,9 +181,12 @@ export class OnSite {
   /** The heal on the hero merging into one +N. */
   private heal: { sum: number; at: number } | null = null;
   private b: Batch = freshBatch();
+  /** Round 7's companions (Burr, Lark, Gloam, Nimbus): their looks live in view/onsite-pets.ts. */
+  readonly p6: PetSite;
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, 11.36);
+    this.p6 = new PetSite(s);
   }
 
   /** A new layout: the graphics (kept across layouts), nothing in flight. */
@@ -210,6 +214,7 @@ export class OnSite {
     this.last.clear();
     this.heal = null;
     this.b = freshBatch();
+    this.p6.newFight();
   }
 
   // ------------------------------------------------------------------ the batch's context
@@ -220,6 +225,7 @@ export class OnSite {
     const s = this.s;
     const c = s.app.run.combat;
     const b = this.b;
+    this.p6.onEvent(e);
     switch (e.type) {
       case 'hit':
         b.hitPos = e.pos;
@@ -353,6 +359,7 @@ export class OnSite {
     const col = this.colOf(id);
     const pet = PERK_PET[id] as CompanionId | undefined;
     this.special(e);
+    this.p6.perk(e);
     const has = (t: PerkTarget) => targets.includes(t);
     // what lands on the bar (when its companion sends a streak there first, it lands with the streak)
     const onBar = () => {
@@ -1015,6 +1022,7 @@ export class OnSite {
     this.drawKicks(g, c);
     this.drawTwinkles(g);
     this.drawWindUp(g, c, now);
+    this.p6.drawBar(g, gf, c, now);
     this.drawFlights(gf, now);
     this.texts.end();
   }
@@ -1394,6 +1402,7 @@ export class OnSite {
     this.drawMarks(g);
     this.drawHeal(g);
     this.drawAllyPower(g, now);
+    this.p6.drawWorld(g, c, now);
   }
 
   /** A heater shield (its point down), `h` px tall, centred on (x, y): ink rim, steel face lit on the left, a boss. */
