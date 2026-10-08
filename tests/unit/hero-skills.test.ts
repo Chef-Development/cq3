@@ -531,7 +531,7 @@ describe('Moss', () => {
   });
 
   it('Quick Brace: Barkbacks brace n% faster', () => {
-    const { on, off } = both('moss', ['quickBrace'], { tune: (t) => (t.kits.moss.allySec = 30) }); // (it stays long enough to brace)
+    const { on, off } = both('moss', ['quickBrace'], { tune: (t) => (t.kits.moss.allySec = t.kits.moss.barkEvery + 30) }); // (it stays long enough to brace)
     // a Barkback first braces after half its time; n% faster with Quick Brace
     const half = on.t.kits.moss.barkEvery / 2;
     const quick = half / (1 + skillN(on.t, 'quickBrace') / 100);
@@ -1058,7 +1058,7 @@ describe('Torva', () => {
     expect(off.c.perk.windUp ?? 0).toBe(0);
     tapNew(on.c, 'yellow', false);
     expect(lastHit(on.c.drainEvents()).damage).toBe(Math.round(heavy(on.c) * windUpMult(on.c)));
-    expect(on.c.enemies[0].stun).toBeGreaterThan(0);
+    expect(on.c.enemies[0].stun).toBeCloseTo(on.t.kits.torva.stunSec, 1); // (its stun, if the kit has one: 0 as shipped)
   });
 
   it('Fault Line: Quakes knock reds n% further', () => {
@@ -1114,7 +1114,7 @@ describe('Torva', () => {
     expect(m.c.perk.unstoppable ?? 0).toBe(0);
   });
 
-  it('Payback: a red that hits her winds up her next hit (a smash and a stun)', () => {
+  it('Payback: a red that hits her winds up her next hit (a smash)', () => {
     const { on, off } = both('torva', ['payback'], { enemies: ['bandit'], tune: (t) => ((t.blocks.redTravelSec = 1), (t.enemies.bandit.hp = 500)) });
     for (const { c } of [on, off]) {
       letRedThrough(c);
@@ -1123,7 +1123,7 @@ describe('Torva', () => {
     expect(lastHit(off.c.drainEvents()).damage).toBe(Math.round(heavy(off.c)));
     const ev = on.c.drainEvents();
     expect(lastHit(ev).damage).toBe(Math.round(heavy(on.c) * windUpMult(on.c)));
-    expect(on.c.enemies[0].stun).toBeGreaterThan(0);
+    expect(on.c.enemies[0].stun).toBeCloseTo(on.t.kits.torva.stunSec, 1);
     expect(perks(ev, 'payback')).toHaveLength(1);
     tapNew(on.c, 'yellow', false);
     expect(lastHit(on.c.drainEvents()).damage).toBe(Math.round(heavy(on.c)));

@@ -259,8 +259,12 @@ export function kitN(t: Tuning, id: HeroId, which: KitWhich): number {
       return k.moss.roots * 100;
     case 'hollis.signature':
       return k.hollis.slam * 100;
+    case 'hollis.ability':
+      return k.hollis.abilitySec;
     case 'hollis.passive':
       return k.hollis.ironHide * 100;
+    case 'vesper.ability':
+      return k.vesper.pierce * 100;
     case 'torva.passive':
       return k.torva.unstoppable * 100;
     case 'torva.ability':

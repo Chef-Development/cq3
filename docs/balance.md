@@ -191,6 +191,102 @@ Notes:
   map row. HP carries from node to node (kills heal only 1%), so rests, potions and Full
   Heal cards matter.
 
+## Playtest round 8: hero parity at 75% (Rowan, the act curve and the styles kept)
+
+The brief: every hero within +/-10 of Rowan in every act at the 75% player. Rowan stays the reference (the Part 6
+heroes are tuned against him at 75%), so he, the act curve and **every style number** are as round 7 left them: the
+Part 6 heroes take all six other styles (Summoner, Marksman, Brute, Controller, Bomber, Guardian), so a style number
+would move them too. Every change is in one hero's own kit numbers (`tuning.kits.<id>`) or soft strengths
+(`src/data/heroes.ts`).
+
+Measured with `npm run campaign` at 75%, all three regions, **400 runs per hero: two samples of 200** (`SEED=1`, the
+seeds of every earlier table, and `SEED=2`, the next 200). The noise is bigger than the earlier tables said: the
+two samples of the same numbers differ by up to 11 points an act (Vesper's Act 6 before: 35% and 46%), and a gap to
+Rowan by up to 12 (Hollis's Act 9 after: +21 and +9), so a 200-run gap is good to about +/-9 and a 400-run gap to about
++/-6. Each act's first try, the gap to Rowan in brackets (Rowan's row: the region boss's first fight in brackets).
+
+| Hero | Act 1 | Act 2 | Act 3 (boss) | Act 4 | Act 5 | Act 6 (boss) | Act 7 | Act 8 | Act 9 (boss) |
+|---|---|---|---|---|---|---|---|---|---|
+| Rowan (Blade) | 100% | 85% | 64% (67%) | 85% | 68% | 58% (60%) | 88% | 70% | 56% (56%) |
+| Sable (Shadow) | 100% (0) | 84% (-1) | 68% (+4) | 91% (+6) | 80% (**+12**) | 52% (-6) | 93% (+5) | 65% (-5) | 58% (+2) |
+| Neve (Controller) | 100% (0) | 79% (-6) | 77% (**+13**) | 85% (0) | 66% (-2) | 59% (+1) | 81% (-7) | 75% (+5) | 49% (-7) |
+| Moss (Summoner) | 98% (-2) | 81% (-4) | 70% (+6) | 93% (+8) | 71% (+3) | 52% (-6) | 95% (+7) | 70% (0) | 69% (**+13**) |
+| Tam (Bomber) | 100% (0) | 91% (+6) | 74% (+10) | 93% (+8) | 78% (+10) | 53% (-5) | 96% (+8) | 75% (+5) | 64% (+8) |
+| Hollis (Guardian) | 100% (0) | 84% (-1) | 76% (**+12**) | 93% (+8) | 66% (-2) | 51% (-7) | 89% (+1) | 69% (-1) | 71% (**+15**) |
+| Vesper (Marksman) | 100% (0) | 90% (+5) | 74% (+10) | 91% (+6) | 73% (+5) | 49% (-9) | 84% (-4) | 67% (-3) | 57% (+1) |
+| Torva (Brute) | 100% (0) | 89% (+4) | 74% (+10) | 82% (-3) | 81% (**+13**) | 53% (-5) | 88% (0) | 69% (-1) | 66% (+10) |
+
+**6 of 56 hero-acts outside +/-10 (was 19 of 56 on the same 400 runs; the mean gap 5.2 points, was 8.7; the largest
+15, was 31).** Before, on the same seeds (round 7's kits on the merged build):
+
+| Hero | Act 1 | Act 2 | Act 3 (boss) | Act 4 | Act 5 | Act 6 (boss) | Act 7 | Act 8 | Act 9 (boss) |
+|---|---|---|---|---|---|---|---|---|---|
+| Rowan (Blade) | 100% | 85% | 64% (67%) | 85% | 68% | 58% (60%) | 88% | 70% | 56% (56%) |
+| Sable (Shadow) | 100% (0) | 84% (-1) | 68% (+4) | 91% (+6) | 80% (**+12**) | 52% (-6) | 93% (+5) | 65% (-5) | 58% (+2) |
+| Neve (Controller) | 100% (0) | 78% (-7) | 71% (+7) | 82% (-3) | 59% (-9) | 45% (**-13**) | 78% (-10) | 75% (+5) | 48% (-8) |
+| Moss (Summoner) | 100% (0) | 88% (+3) | 90% (**+26**) | 97% (**+12**) | 80% (**+12**) | 73% (**+15**) | 97% (+9) | 79% (+9) | 87% (**+31**) |
+| Tam (Bomber) | 100% (0) | 92% (+7) | 80% (**+16**) | 94% (+9) | 82% (**+14**) | 56% (-2) | 96% (+8) | 80% (+10) | 71% (**+15**) |
+| Hollis (Guardian) | 100% (0) | 92% (+7) | 92% (**+28**) | 98% (**+13**) | 75% (+7) | 65% (+7) | 97% (+9) | 79% (+9) | 81% (**+25**) |
+| Vesper (Marksman) | 100% (0) | 90% (+5) | 79% (**+15**) | 88% (+3) | 71% (+3) | 41% (**-17**) | 89% (+1) | 67% (-3) | 58% (+2) |
+| Torva (Brute) | 100% (0) | 96% (**+11**) | 84% (**+20**) | 91% (+6) | 84% (**+16**) | 62% (+4) | 94% (+6) | 80% (+10) | 75% (**+19**) |
+
+**Why the heroes led (the bot's first fight with each region boss, 100-120 runs, `DIAG` in a scratch probe):** a
+boss's red hits for about 35% of max HP, so a boss fight turns on how many reds get through, and at 75% Rowan is at
+the edge: at the Boar King he lets 2.4 through (dies at 3.3) and comes in without his revive in 15% of runs. The others
+let fewer through by different routes:
+- Moss 1.3: a Barkback stopped a red every 32 s and Overgrowth's vines slowed the reds for 3 s after every finisher.
+- Hollis 1.4: he killed the boss in 41 s (Rowan 54): Rampart's Guard multiplier (x1.2 a charge) made a single-target
+  finisher 2-2.8x; and each red hurt 28% less (Iron Hide 10%, his strength against Brutes: the bosses of Acts 3, 4, 7
+  and 9 are all brutes).
+- Torva: his Wind-Up stun **cancels the special the boss is telling** (`Combat.stun`), so every green hit at a boss
+  took a Charge, a Roll Out or a Chain Lash off the bar; the stun's length hardly mattered, only that there was one
+  (0.25 s left the table at +18 / +18 / +15 in Acts 3, 5 and 9).
+- Tam: kegs knock reds off the bar: at Matron (Act 5) he took 0.6 reds a fight to Rowan's 1.1.
+- Vesper's Act 3: Piercing Shot hits the Boar King's piglets for half every Power Shot.
+- Neve and Vesper trailed in the second region: Rowan has +15% against Frost foes there, and they had nothing.
+
+What changed (each kept where it moved its acts toward Rowan in the probes, 100-200 runs, and in the 400-run table):
+1. **Moss:** a Barkback rests 96 s after it stops a red (was 32; it braces at once on a Rally, or half that after its
+   call: about one red a fight); Thornlings jab for 20% (30%); Overgrowth's vines last 1 s at x0.8 speed (3 s, x0.7).
+2. **Hollis:** Shield Slam 30% / 60% on a Perfect (40 / 80); Iron Hide 5% (10); Brace 1.5 s (3); Rampart's wall 1 s
+   (2) and its Guard x0.4 a charge (x1.2); attack share 0.82 (0.9); his soft strength guards against **Flyers** (was
+   Brutes). The Brace and Piercing Shot texts read their numbers now.
+3. **Tam:** Big Bang drops 1 keg (3); HP 85 (95).
+4. **Torva:** Wind-Up no longer stuns (`stunSec` 0, was 1; the slider stays); Quake knocks reds back 0.03 (0.08);
+   Wind-Up from x1.5 (1.7); Earthsplitter's calm 0.4 s (1.2); Unstoppable 4% a hit (8%); HP 100 (108); attack 0.8
+   (0.86).
+5. **Neve:** a second soft strength, takes 25% less from Frost foes (only the second region has them); Glacier x0.8
+   (0.7).
+6. **Vesper:** a second soft strength, +25% damage to Frost foes; Piercing Shot hits the foe behind for 25% (50%);
+   +20% damage to Flyers (25%).
+7. Sable, Rowan, the acts and the styles: unchanged.
+
+Tried and dropped (no move beyond the noise, or the wrong acts moved): Hollis's wall at 0.5 s or none, Guard x0.3,
+slams 20 / 40%, HP 85-90, attack 0.78 or 0.86, no Avalanche (skill), shorter Long Rampart / Wall Up; Moss's Barkback
+at 48-64 s, swarm strength 15%, HP 78; Tam's Wide Blast at 25%, attack 0.85, 2 kegs (Act 5 stayed +19); Torva's stun
+at 0.25-0.5 s (it still cancels), calm 0.6 s alone; Vesper's pins 1.5 s (Act 6 fell to -17), Volley x1.5, a frost
+guard instead of damage, frost damage in place of flyer damage (Act 7 fell to -14), attack 1.08, HP 108; Neve's frost
+damage instead of the guard, casters instead of beasts, Glacier x0.75, x0.9 or Flash Freeze 50% (the last two lift
+Act 3 to +15-18).
+
+**Still outside +/-10** (400 runs):
+- **Hollis, Acts 3 and 9 (+12, +15):** at Bellows he lets 1.5 reds through to Rowan's 2.5 with the same reds sent,
+  and no kit number moves it (his wall at 0.5 s, slams 20 / 40% with HP 90, attack 0.78 or 0.86, the Bulwark's damage
+  off, his wall skills shorter, Avalanche off: 65-77% in Act 9 on 100 runs, Rowan 53%): it's the Guardian style
+  (shared with a Part 6 hero) and his skill tree (in a third of runs Avalanche's stun cancels Bellows's specials; Long
+  Rampart adds 2 s of wall).
+- **Neve, Act 3 (+13):** she leads only at the Boar King: +15% against Beasts (the Boar King and his piglets), and
+  Glacier x0.8 (for the second region) lifted it from +7; x0.75 took Act 9 to -11 and Act 3 only to +12.
+- **Moss, Act 9 (+13):** his +25% against Swarms meets the third region's cinderlings and stoker imps on the way to
+  Bellows.
+- **Torva, Act 5 (+13):** +10 and +17 on the two samples (likely Earthsplitter: it clears every block off the bar,
+  Matron's holds and webs too).
+- **Sable, Act 5 (+12):** unchanged hero; +20% against Casters in the caster-heavy second region.
+
+The Boar King is where Rowan is weakest against everyone (every hero is +4 to +13 in Act 3): he uses his revive before
+the boss more often and has no tool against the reds that reach him. Closing the Act 3 gaps further belongs to Rowan or
+the Boar King, which would move the Part 6 reference: left as it is for now.
+
 ## Playtest round 7: the anti-spam rules, the curve re-aimed at a 75% player
 
 Measured with `npm run campaign` (all three regions; a fresh profile per run, camp between regions), **75% player,

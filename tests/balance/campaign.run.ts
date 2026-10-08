@@ -2,7 +2,8 @@
 // per run: Greenmarch from the start, then the next region's fresh run with the gear and levels earned), and prints
 // each act's first-try clear and boss first fight per hero, with each hero's gap to Rowan. Writes
 // docs/balance-campaign.md (docs/balance.md quotes it).
-//   HEROES=rowan,sable  RUNS=150  ACC=0.85  REGIONS=2  OUT=path
+//   HEROES=rowan,sable  RUNS=150  ACC=0.85  REGIONS=2  OUT=path  SEED=2 (another sample of runs: the parity tables
+//   in docs/balance-heroes.md add SEED=1 and SEED=2)
 import { writeFileSync } from 'node:fs';
 import { it } from 'vitest';
 import { balanceCampaign, TYPICAL_ACCURACY, type ActRow } from '../../src/core/bot';
@@ -15,6 +16,7 @@ const ACC = Number(process.env.ACC ?? TYPICAL_ACCURACY);
 const REG = Number(process.env.REGIONS ?? REGIONS.length);
 const HERO_LIST = (process.env.HEROES ? process.env.HEROES.split(',') : HERO_IDS) as HeroId[];
 const OUT = process.env.OUT ?? 'docs/balance-campaign.md';
+const SEED = Number(process.env.SEED ?? 1);
 
 const pct = (v: number) => (Number.isFinite(v) ? `${Math.round(v * 100)}%` : '-');
 const num = (v: number) => (Number.isFinite(v) ? v.toFixed(1) : '-');
@@ -24,7 +26,7 @@ it('campaign balance per hero', () => {
   const by: Record<string, ActRow[]> = {};
   const t0 = Date.now();
   for (const h of HERO_LIST) {
-    by[h] = balanceCampaign(t, [ACC], RUNS, 1, h, REG);
+    by[h] = balanceCampaign(t, [ACC], RUNS, SEED, h, REG);
     console.log(`${h}: ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   }
   const acts = by[HERO_LIST[0]].map((r) => r.act);
