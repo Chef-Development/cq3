@@ -3,7 +3,7 @@ import { balanceCampaign, TYPICAL_ACCURACY } from '../../src/core/bot';
 import { cloneTuning } from '../../src/core/tuning';
 
 // The second region, from a typical end-of-Greenmarch hero (core/bot.ts playCampaign: the story from a fresh profile,
-// then camp, then the region's fresh run). Targets for the playtester (85%) with Rowan: Act 1 about 90% first try,
+// then camp, then the region's fresh run). Targets for the playtester (75%) with Rowan: Act 1 about 90% first try,
 // Act 2 about 75%, Act 3 about 60%, its boss's first fight about 55-65%. 80 runs: the bands allow for sampling. The
 // full per-hero report (every hero within +/-10 points of Rowan) is npm run campaign.
 describe('balance targets: the second region', () => {

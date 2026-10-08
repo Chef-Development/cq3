@@ -217,9 +217,10 @@ describe('style rules', () => {
     const kinds = Array.from({ length: t.styles.callEvery * 3 }, () => STYLE_HOOKS.summoner.spawnKind!(c, 'yellow', c.enemies[0].id));
     expect(kinds.filter((k) => k === 'green')).toHaveLength(3);
     expect(STYLE_HOOKS.summoner.spawnKind!(c, 'red', c.enemies[0].id)).toBe('red');
-    // the same foes, untouched for 20 s: a Summoner sees well over the greens another hero does
+    // the same foes, untouched for 20 s: a Summoner sees well over the greens another hero does (the crowding limit
+    // off: an untouched bar would fill up to it and stop taking blocks)
     const greens = (hero: HeroId) => {
-      const { c: f } = fight(hero, { enemies: ['slime', 'bandit'], spawning: true });
+      const { c: f } = fight(hero, { enemies: ['slime', 'bandit'], spawning: true, tune: (t) => (t.spam.cover = 1) });
       let n = 0;
       for (let k = 0; k < 20; k++) {
         go(f, f.time + 1);

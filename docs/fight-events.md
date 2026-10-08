@@ -140,6 +140,8 @@ shows on its target.
 | `sanctuary` | Sanctuary aura | heal stars twinkle up round the hero, +N there |
 | `emberwright` | Emberwright set (4) | heal stars twinkle up round the hero, +N there |
 | `testLab` | Test lab stacks | sparks off the meter |
+| `healCap` | the fight's heals used up ("No more heals", once a fight; tuning.spam.healCap) | a ring and sparks on the hero |
+| `missCap` | no more misses forgiven this fight ("No more saves", once; tuning.spam.forgiveMax) | the combo counter flashes |
 | `powderKeg` | relic: Powder Keg | sparks off the meter |
 | `shortFuse` | relic: Short Fuse | a box flashes out of the block it touched |
 | `sapper` | relic: Sapper's Fuse | a box flashes out of the block it touched |

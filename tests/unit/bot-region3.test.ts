@@ -3,7 +3,7 @@ import { balanceCampaign, TYPICAL_ACCURACY } from '../../src/core/bot';
 import { cloneTuning } from '../../src/core/tuning';
 
 // The third region, from a typical end-of-second-region hero (the story from a fresh profile through both regions,
-// camp between them). Targets for the playtester (85%) with Rowan: Act 1 about 85% first try, Act 2 about 70%,
+// camp between them). Targets for the playtester (75%) with Rowan: Act 1 about 85% first try, Act 2 about 70%,
 // Act 3 about 55%, its boss's first fight about 50-60%. 60 runs: the bands allow for sampling.
 describe('balance targets: the third region', () => {
   const rows = balanceCampaign(cloneTuning(), [TYPICAL_ACCURACY], 60, 5, 'rowan', 3);

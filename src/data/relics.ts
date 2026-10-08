@@ -132,7 +132,7 @@ export const RELICS: RelicDef[] = [
   R('chainReaction', 'Chain Reaction', ['combo', 'green'], 'rare', 'Every {n} combo, all yellows on the bar turn green.', 15, { kind: 'act', act: 0 }),
   R('momentum', 'Momentum', ['combo'], 'common', 'Damage grows with cursor speed: +{n}% at max.', 40),
   R('crescendo', 'Crescendo', ['combo', 'finisher'], 'rare', 'Your finisher deals +{n}% per combo.', 1, { kind: 'act', act: 1 }),
-  R('clutch', 'Clutch', ['combo', 'risk'], 'common', 'A miss no longer breaks your combo, but costs {n}% HP.', 4),
+  R('clutch', 'Clutch', ['combo', 'risk'], 'common', 'A miss no longer breaks your combo, but costs {n}% HP.', 2),
   R('overdrive', 'Overdrive', ['combo', 'risk'], 'epic', 'At {n}+ combo, deal and take double damage.', 30, { kind: 'act', act: 2 }),
   R('goldFever', 'Gold Fever', ['coins', 'combo'], 'common', '+1 coin per 10 combo; shops cost {n}% more.', 20),
   // Finisher
@@ -141,7 +141,7 @@ export const RELICS: RelicDef[] = [
   R('overcharge', 'Overcharge', ['finisher', 'risk'], 'rare', '+2 max stacks, but lose one after {n} s without a hit.', 8),
   R('quickDraw', 'Quick Draw', ['finisher'], 'common', 'A 1-stack finisher deals {n}x damage.', 3),
   R('echoStrike', 'Echo Strike', ['finisher'], 'epic', 'Your finisher strikes again a moment later for {n}%.', 50, { kind: 'act', act: 2 }),
-  R('bloodPrice', 'Blood Price', ['finisher', 'risk'], 'rare', 'Your finisher deals double but costs {n}% HP.', 10, { kind: 'event', event: 'dummy', choice: 0 }),
+  R('bloodPrice', 'Blood Price', ['finisher', 'risk'], 'rare', 'Your finisher deals double but costs {n}% HP.', 6, { kind: 'event', event: 'dummy', choice: 0 }),
   R('purplePact', 'Purple Pact', ['risk', 'finisher'], 'rare', 'Tapped traps just cost {n} HP and give a stack.', 5),
   // Green
   R('greenhouse', 'Greenhouse', ['green'], 'common', 'Greens come twice as often; yellows deal {n}% less.', 20),

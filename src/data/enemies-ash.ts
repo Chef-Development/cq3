@@ -96,7 +96,7 @@ export const ASH_ENEMIES: Record<string, EnemyDef> = {
   rumbleback: {
     name: 'Rumbleback',
     tags: ['brute', 'armored'],
-    hp: 4000,
+    hp: 3200,
     atk: 19,
     special: 16,
     interval: 0.6,
@@ -222,7 +222,7 @@ export const ASH_ENEMIES: Record<string, EnemyDef> = {
   hobnob: {
     name: 'Hob & Nob',
     tags: ['beast', 'fire'],
-    hp: 3400,
+    hp: 2800,
     atk: 17,
     special: 17,
     interval: 0.6,
@@ -347,7 +347,7 @@ export const ASH_ENEMIES: Record<string, EnemyDef> = {
   bellows: {
     name: 'Bellows',
     tags: ['brute', 'fire'],
-    hp: 8400,
+    hp: 7600,
     atk: 19,
     special: 17,
     interval: 0.55,
