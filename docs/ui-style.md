@@ -66,6 +66,7 @@ HTML gear button (`kit.hudZone()`).
 | `Sheet` | A detail sheet: slides up over the screen on a glass plate, a title, wrapped body lines, closes on any tap outside it. |
 | `enterK(now, at, i)` | The stagger: 0 -> 1 for item `i` of a screen opened at `at`. |
 | `bigName(texts, s, x, y, col, o)` | Bold scale 2 with an extrusion: the screen's focal name. |
+| `SwipePager` | A stage that pages with a horizontal swipe: the press held until let go (a tap if it stayed put), the focal thing following the finger, a page turn past `SWIPE_PAGE_PX` or on a flick, else a snap back (`offset(now)`). The companions screen uses it; the hero select has its own copy of the same logic. |
 
 The camp kit (`camp-kit.ts`) keeps its buttons, counters, frames, toasts and the `CampFx` particles; the modern parts
 use them.
@@ -105,16 +106,23 @@ Coordinates are game px inside the safe area (`L` to `R`, 0 to `B`); "the stage"
   branch's name; the big Learn button at its foot (or "Learned", or what it needs).
 - **Top bar:** Back, the hero faces, the points counter (a big star and a number), Reset.
 
-### Companions
+### Companions (reworked in round 7 to match the hero select)
 
-- **Focal:** the companion at 3x on a perch or a mossy stump, under a soft light, its rarity aura behind it, idling
-  (fliers hover and flap, walkers breathe); a night grove backdrop with fireflies.
-- **The descriptions stay** (the playtester likes reading them): each perk as a card on glass (an icon, the name in
-  its colour, the one-line description in bold-scale-1-friendly words), the attack ("Breathes on every foe every 6
-  hits") as the first card.
-- **Meters:** level (Lv and an XP meter), stars (pips) and shards (a meter).
-- **Along:** two sockets (the second locked until the Companion Perch) showing who comes along; Equip/Unequip as the big
-  button. The strip of companions across the top as round tokens in rarity rings (silhouettes when not met).
+- **Focal (the stage, left, the hero select's width):** the companion at 3x, centred on a low mossy stump in a moonlit
+  grove (the moon behind its head), a lamp's light in its own colour on it, its rarity aura behind it, fireflies;
+  fliers hover and flap, walkers breathe. A tap: a hop, its attack pose, a chirp, a ring. Not met: a rim-lit
+  silhouette with a "?" on a dim stage.
+- **Paging:** big arrows either side and a swipe on the stage (`SwipePager`): it slides out, the next hops in and
+  lands (dust for a walker, a flutter for a flier). The strip of round tokens in the top bar (silhouettes when not
+  met, a check on those along) jumps straight to one; it shrinks to 15 or 13 px so twelve still fit.
+- **Along (the stage's foot):** two sockets (the second padlocked until the Companion Perch: a tap rattles it and a
+  tip says "Build the Perch") and the big Equip/Unequip (Along, Locked).
+- **The column:** a glass head with the name (bold 2) and its rarity chip, the stars (pips, a shard meter under them)
+  and the level (an XP meter); then **what it does**, read as cards on one glass plate: the attack, then each perk (an
+  icon, the name in its colour, the description in bold). Every description shows in full when they all fit; when it's
+  crowded (three perks on a phone) the attack shrinks to one row and each perk shows its short line with a chevron.
+  A tap on any card opens its `Sheet` (the full line, what stars do to it); the stars, the level and the name open
+  theirs. The words are built in one place: `view/companion-cards.ts`.
 
 ### Camp upgrades (in the camp scene)
 
