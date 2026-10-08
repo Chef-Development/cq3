@@ -90,11 +90,24 @@ export class WorldRoam {
     return !!this.card;
   }
 
+  /** The card: 150 px wide, wider when its foes need it at 2x (the later regions' elites are wide) with what it pays
+   *  beside them. */
   private cardRect(): Rect {
     const s = this.s;
-    const w = 150;
+    const f = this.foe();
+    const l = f ? this.lineup(f, 0) : null;
+    const w = Math.min(s.R - s.L - 16, Math.max(150, l ? 20 + l.span + l.half[l.half.length - 1] + 58 : 0));
     const h = 66;
     return { x: Math.round((s.L + s.R) / 2 - w / 2), y: Math.round((s.B - h) / 2) + 8, w, h };
+  }
+
+  /** The card's foes in a row at 2x (the elite last): each one's mini, half its drawn width, and the steps between
+   *  their middles (24 px, more for wide ones). */
+  private lineup(f: Skirmish, now: number): { texs: string[]; half: number[]; steps: number[]; span: number } {
+    const texs = f.waves.flat().map((key, i) => this.mini(key, now + i * 170));
+    const half = texs.map((tex) => this.cardPool.size(tex)[0]);
+    const steps = half.slice(1).map((hw, i) => Math.max(24, half[i] + hw));
+    return { texs, half, steps, span: steps.reduce((a, d) => a + d, 0) };
   }
 
   /** The card's Fight (0) and Later (1). */
@@ -201,18 +214,22 @@ export class WorldRoam {
     if (k < 0.98) return;
     ribbon(g, c.x + c.w / 2, c.y - 6, 84, 12, RIBBON.red);
     T.text('Skirmish!', c.x + c.w / 2, c.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
-    // the foes: one mini sprite per foe at 2x (the elite last), standing on a strip
+    // the foes: one mini sprite per foe at 2x (the elite last), standing on a strip (the card widens for wide ones;
+    // past the screen's width they squeeze together, the elite on top, rather than run into what it pays)
     const keys = f.waves.flat();
-    const step = 24;
     const x0 = Math.round(c.x + 10);
     const fy = c.y + 34;
+    const { texs, half, steps, span } = this.lineup(f, now);
+    const room = c.x + c.w - 58 - half[half.length - 1] - (x0 + 10); // (the gear bag stands at c.w - 52)
+    const squeeze = span > room ? room / span : 1;
+    const cx = [x0 + 10];
+    for (const d of steps) cx.push(cx[cx.length - 1] + d * squeeze);
     g.fillStyle(0x000000, 0.25);
-    g.fillRect(x0 - 2, fy, keys.length * step, 2);
+    g.fillRect(x0 - 2, fy, Math.round(cx[cx.length - 1] + Math.max(12, half[half.length - 1]) - (x0 - 2)), 2);
     keys.forEach((key, i) => {
       const elite = !!s.app.tuning.enemies[key]?.elite;
-      const tex = this.mini(key, now + i * 170);
-      const [w, h] = this.cardPool.size(tex);
-      this.cardPool.scaled(tex, x0 + 10 + i * step - w, fy + 1 - h * 2 - (elite ? Math.floor(now / 300) % 2 : 0), D_CARD + 0.005, 2);
+      const [w, h] = this.cardPool.size(texs[i]);
+      this.cardPool.scaled(texs[i], Math.round(cx[i]) - w, fy + 1 - h * 2 - (elite ? Math.floor(now / 300) % 2 : 0), D_CARD + 0.005, 2);
     });
     // what it pays: a gear bag and XP
     const rx = c.x + c.w - 52;

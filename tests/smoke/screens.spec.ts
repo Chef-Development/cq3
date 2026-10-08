@@ -1324,6 +1324,37 @@ test('world map: a wandering foe on the road, and its skirmish card', async ({ p
   await expect(page).toHaveScreenshot('world-skirmish.png', shot);
 });
 
+test("world map: a wandering foe from the third region, its skirmish card wider for its wide foes", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    Object.assign(app.profile, { actsCleared: 9, weights: 2, sableMet: true });
+    app.profile.seen.push('unveil:frostpeaks', 'unveil:ashfell'); // (their reveals already played)
+    app.profile.wander = { fights: 99, n: 0, up: true }; // (the first one out: two of the cinder flats' foes, then its elite)
+    app.newRun();
+  });
+  await frames(page, 20);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = (window as any).__cq3.app.view.worldMap;
+    const r = w.roam.foeRect();
+    const c = w.camera();
+    w.lookAt(c.x + r.x + r.w / 2, c.y + r.y + r.h / 2);
+  });
+  await frames(page, 10);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = (window as any).__cq3.app.view.worldMap;
+    const r = w.roam.foeRect();
+    w.tap(r.x + r.w / 2, r.y + r.h / 2);
+  });
+  await frames(page, 30);
+  expect(await page.evaluate(() => (window as unknown as { __cq3: { miniMisses: string[] } }).__cq3.miniMisses)).toEqual([]);
+  await expect(page).toHaveScreenshot('world-skirmish-wide.png', shot);
+});
+
 test('world map: everything on it moves with the map when it pans (nothing follows the camera)', async ({ page }) => {
   test.setTimeout(120_000);
   await boot(page);
