@@ -293,6 +293,84 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
   ],
   // part6:A
   // part6:B
+  // ---------------------------------------------------------------- Yara (Summoner): one branch per spirit (Part 6)
+  yara: [
+    {
+      id: 'yaraPack',
+      name: 'Pack',
+      theme: 'Spirit Wolf',
+      nodes: [
+        atk('wolfsong', 'Wolfsong', 10),
+        crit('keenNose', 'Keen Nose', 6),
+        rule('longFang', 'Long Fang', 'Wolf bites hit {n}% harder.', 'The Wolf nips.', 'Its bites hit {n}% harder.', 50),
+        rule('twinBite', 'Twin Bite', 'A wolf bite also hits another foe for {n}%.', 'The Wolf bites one foe.', 'Another foe takes {n}% of it.', 50),
+        cap('huntingCall', 'Hunting Call', 'Every {n}th Perfect hit sends the Wolf in at once.', 'The Wolf bites in its own time.', 'Every {n}th Perfect, it bites now.', 3),
+      ],
+    },
+    {
+      id: 'yaraShell',
+      name: 'Shell',
+      theme: 'Spirit Tortoise',
+      nodes: [
+        hp('oldSoul', 'Old Soul', 10),
+        def('shellback', 'Shellback', 6),
+        rule('quickShell', 'Quick Shell', 'The shell comes up {n}% sooner.', 'The shell is slow to rise.', 'It rises {n}% sooner.', 50),
+        rule('spikedShell', 'Spiked Shell', "A shell block hits the red's owner for {n}% attack.", 'The shell only softens reds.', 'It hits the owner for {n}%.', 80),
+        cap('stoneWard', 'Stone Ward', 'With the shell up, Perfect blocks hit all foes for {n}%.', 'The shell softens one red.', 'Shell up: Perfect blocks hit all.', 40),
+      ],
+    },
+    {
+      id: 'yaraStars',
+      name: 'Stars',
+      theme: 'Wisps and the stag',
+      nodes: [
+        meter('nightSky', 'Night Sky', 12),
+        combo('starSong', 'Star Song', 1),
+        rule('brightWisps', 'Bright Wisps', 'Wisps fill {n}% more meter.', 'Wisps fill a little meter.', 'They fill {n}% more.', 50),
+        rule('longBond', 'Long Bond', 'Spirits stay {n} s longer.', 'Spirits leave after a while.', 'They stay {n} s longer.', 2),
+        cap('thunderhoof', 'Thunderhoof', 'Each Great Spirit strike knocks every red back {n}%.', 'The stag only strikes foes.', 'Its strikes push reds back {n}%.', 8),
+      ],
+    },
+  ],
+  // ---------------------------------------------------------------- Dell (Marksman): bounces, Focus, the storm (Part 6)
+  dell: [
+    {
+      id: 'dellBounce',
+      name: 'Bounce',
+      theme: 'Ricochet',
+      nodes: [
+        atk('strongArm', 'Strong Arm', 10),
+        crit('sharpEye', 'Sharp Eye', 6),
+        rule('hardBounce', 'Hard Bounce', 'Ricochet bounces for {n}% of the shot.', 'It bounces for half.', 'It bounces for {n}%.', 75),
+        rule('luckyBounce', 'Lucky Bounce', "A crit shot's bounces crit too.", 'A bounce never crits.', 'A crit shot bounces crits.'),
+        cap('pinball', 'Pinball', 'Ricochet bounces on to every foe.', 'It bounces to one foe.', 'It bounces to every foe.'),
+      ],
+    },
+    {
+      id: 'dellPouch',
+      name: 'Pouch',
+      theme: 'Storing Focus',
+      nodes: [
+        meter('slingcraft', 'Slingcraft', 12),
+        combo('steadyFeet', 'Steady Feet', 1),
+        rule('fullPouch', 'Full Pouch', 'Focus holds {n}% more.', 'Focus fills up fast.', 'It holds {n}% more.', 40),
+        rule('fourLeaf', 'Four Leaf', 'Perfect hits store {n}% more Focus.', 'Every hit stores the same.', 'Perfects store {n}% more.', 50),
+        cap('luckyStreak', 'Lucky Streak', 'After a Lucky Shot, your next {n} hits crit.', 'A Lucky Shot crits once.', 'The next {n} hits crit too.', 3),
+      ],
+    },
+    {
+      id: 'dellStorm',
+      name: 'Storm',
+      theme: 'Pebble Storm',
+      nodes: [
+        hp('farmHardy', 'Farm Hardy', 10),
+        def('overalls', 'Overalls', 6),
+        rule('hailstones', 'Hailstones', 'Pebble Storm hits {n}% harder.', 'The storm hits as usual.', 'It hits {n}% harder.', 30),
+        rule('bigKnock', 'Big Knock', 'Pebble Storm knocks reds {n}% further.', 'Reds fly back a way.', 'Reds fly {n}% further.', 50),
+        cap('pelt', 'Pelt', "A Power Shot knocks its foe's reds back.", 'A shot only hurts.', "It knocks its foe's reds back."),
+      ],
+    },
+  ],
   // part6:C
   // part6:D
 };

@@ -370,6 +370,19 @@ const KIT_NAME: Record<string, string> = {
   // gear that heals
   rimewalker: SETS.rimewalker.name,
   sanctuary: AURAS.sanctuary.name,
+  // ---- Yara (Part 6) and her spirits
+  spiritWolf: 'Spirit Wolf',
+  spiritTortoise: 'Spirit Tortoise',
+  wispSwarm: 'Wisp Swarm',
+  spiritStag: HEROES.yara.gift!.name,
+  greatSpirit: HEROES.yara.gift!.name,
+  kinship: HEROES.yara.passive.name,
+  spiritStampede: HEROES.yara.finisher.name,
+  // ---- Dell (Part 6)
+  luckyShot: HEROES.dell.ability.name,
+  ricochetShot: HEROES.dell.signature.name,
+  pocketful: HEROES.dell.passive.name,
+  pebbleStorm: HEROES.dell.finisher.name,
 };
 
 export type PerkSource = 'relic' | 'skill' | 'kit';

@@ -22,6 +22,7 @@ export const BLOCKER_FACE: Record<string, readonly [number, number, number]> = {
   barkback: [0xd09a5e, 0x8e5a2e, 0x4e2c16],
   rockWall: [0xd8d0c0, 0x9a9080, 0x5a5448],
   afterimage: [0xe0c0ff, 0x9a52d8, 0x4a2470],
+  spiritTortoise: [0xb0ffe0, 0x3ab890, 0x1a5a50], // Yara's Spirit Tortoise, its shell up (Part 6)
 };
 
 /** A little six-pointed snowflake centred on (x, y) (never a "+": that's a green's mark). */

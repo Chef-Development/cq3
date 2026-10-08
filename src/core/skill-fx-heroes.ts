@@ -22,7 +22,7 @@ import type { Ally, Block, Combat, CombatEvent, Enemy } from './combat';
 import { skillN } from './heroes';
 import type { FightHooks, HitCtx } from './hooks';
 import { shadowDash, slamShare } from './kit-fx';
-import { addFocus, addGuard, allySec, callAlly, chainOf, dropKeg, focusCap, focusOf, guardOf, powerShot } from './styles';
+import { addFocus, addGuard, allyAct, allyEvery, allyPower, allySec, callAlly, chainOf, dropKeg, focusCap, focusOf, guardOf, powerShot } from './styles';
 
 const DT = 1 / 120;
 const N = (c: Combat, id: string): number => skillN(c.tuning, id);
@@ -815,3 +815,226 @@ const TORVA: Record<string, FightHooks> = {
 
 /** Every hero's rule nodes and capstones but Rowan's (skill-fx.ts merges them into SKILL_HOOKS). */
 export const HERO_SKILL_HOOKS: Record<string, FightHooks> = { ...SABLE, ...NEVE, ...MOSS, ...TAM, ...HOLLIS, ...VESPER, ...TORVA };
+
+// ---- Yara (Part 6): one branch per spirit (her Wolf, her Tortoise, her Wisps and the Great Spirit stag)
+//   wolfMult / wispMult      Long Fang's and Bright Wisps' share on the Wolf's bites and the Wisps' fill (styles.ts)
+//   huntingCall              Perfect hits toward the next Hunting Call
+//   <node><allyId>           a node's memory of a spirit (its timer, its time left: Long Bond)
+//   spikedShell / thunderhoof   the shell blocks and the stag's strikes seen so far
+
+/** Every living foe but the current target: who a Twin Bite hits (the next one in line). */
+const otherFoe = (c: Combat): Enemy | undefined => {
+  const t = c.currentTarget();
+  return c.aliveFoes().find((e) => e !== t);
+};
+
+/** A Wolf's bite now (what styles.ts allyAct deals): its share of attack, its power, Long Fang. */
+const wolfBite = (c: Combat): number => c.stats().atk * c.tuning.kits.yara.wolfDmg * allyPower(c) * (c.perk.wolfMult ?? 1);
+
+/** A Tortoise with its shell up (braced). */
+const shellUp = (c: Combat): boolean => c.allies.some((a) => a.kind === 'spiritTortoise' && a.braced);
+
+const YARA: Record<string, FightHooks> = {
+  // Long Fang: the Wolf's bites hit n% harder (named on each bite, on the Wolf)
+  longFang: {
+    start: (c) => {
+      c.perk.wolfMult = (c.perk.wolfMult ?? 1) * (1 + P(c, 'longFang'));
+    },
+    step: (c) => {
+      if (allyActs(c, 'longFang', 'spiritWolf').length) c.perkFx('longFang');
+    },
+  },
+  // Twin Bite: a wolf bite also hits another foe (the next in line) for n% of it
+  twinBite: {
+    step: (c) => {
+      for (let i = allyActs(c, 'twinBite', 'spiritWolf').length; i > 0 && !c.result; i--) {
+        const e = otherFoe(c);
+        if (e) c.strike(e, wolfBite(c) * P(c, 'twinBite'), 'twinBite');
+      }
+    },
+  },
+  // Hunting Call (capstone): every n-th Perfect hit sends the Wolf in to bite at once (its own timer starts over)
+  huntingCall: {
+    afterHit: (c, x) => {
+      if (!x.perfect || x.echo || c.result) return;
+      c.perk.huntingCall = (c.perk.huntingCall ?? 0) + 1;
+      if (c.perk.huntingCall % every(c, 'huntingCall') !== 0) return;
+      const wolf = c.allies.find((a) => a.kind === 'spiritWolf');
+      if (!wolf) return;
+      allyAct(c, wolf);
+      wolf.timer = allyEvery(c, 'spiritWolf');
+      c.perkFx('huntingCall', 0, c.currentTarget()?.id ?? 0, x.block.pos);
+    },
+  },
+  // Quick Shell: the Tortoise's shell comes up n% sooner (on arrival and after each block)
+  quickShell: {
+    step: (c) => {
+      for (const a of c.allies) if (a.kind === 'spiritTortoise' && !a.braced) a.timer -= DT * P(c, 'quickShell');
+      if (arrived(c, 'quickShellId', 'spiritTortoise')) c.perkFx('quickShell');
+    },
+  },
+  // Spiked Shell: a shell block hits the red's owner (else the front foe) for n% attack
+  spikedShell: {
+    step: (c) => {
+      const n = c.perk.shellBlocks ?? 0;
+      const seen = c.perk.spikedShell ?? 0;
+      c.perk.spikedShell = n;
+      if (n <= seen || c.result) return;
+      const owner = c.enemyById(c.perk.shellOwner ?? 0);
+      const e = owner?.alive ? owner : c.frontEnemy();
+      if (e) c.strike(e, c.stats().atk * P(c, 'spikedShell') * (n - seen), 'spikedShell', false, 0);
+    },
+  },
+  // Stone Ward (capstone): with the shell up, a Perfect block hits every foe for n% attack
+  stoneWard: {
+    afterBlock: (c, x) => {
+      if (!x.perfect || x.cracked || x.echo || c.result || !shellUp(c)) return;
+      strikeAll(c, P(c, 'stoneWard'), 'stoneWard');
+    },
+  },
+  // Bright Wisps: the Wisps fill n% more meter (named as they do)
+  brightWisps: {
+    start: (c) => {
+      c.perk.wispMult = (c.perk.wispMult ?? 1) * (1 + P(c, 'brightWisps'));
+    },
+    step: (c) => {
+      if (allyActs(c, 'brightWisps', 'wispSwarm').length) c.perkFx('brightWisps');
+    },
+  },
+  // Long Bond: spirits stay n s longer (each time they're called or rallied: their time left jumps back up)
+  longBond: {
+    step: (c) => {
+      let n = 0;
+      for (const a of c.allies) {
+        const k = `longBond${a.id}`;
+        const was = c.perk[k];
+        if (was === undefined || a.left > was + 1e-6) {
+          a.left += Math.max(0, N(c, 'longBond'));
+          n++;
+        }
+        c.perk[k] = a.left;
+      }
+      if (n) c.perkFx('longBond', n);
+    },
+  },
+  // Thunderhoof (capstone): each Great Spirit strike knocks every red on the bar back n% of the bar
+  thunderhoof: {
+    step: (c) => {
+      const n = c.perk.stagStrikes ?? 0;
+      const seen = c.perk.thunderhoof ?? 0;
+      c.perk.thunderhoof = n;
+      if (n <= seen || c.result) return;
+      let k = 0;
+      for (const b of movingReds(c).sort((a, b) => b.pos - a.pos)) if (c.pushBack(b, P(c, 'thunderhoof')) > 0) k++;
+      if (k) c.perkFx('thunderhoof', k);
+    },
+  },
+};
+
+// ---- Dell (Part 6): his Ricochet (kit-fx.ts reads c.perk.ricochetShare, pinball and luckyBounce, set here at the
+// start), his Focus pouch, his Pebble Storm (c.perk.stormKnock)
+//   luckyStreak     crits left from the last Lucky Shot
+
+/** A Power Shot's bounce (kit-fx.ts ricochet's 'ricochetShot' strikes) happened since the green's own hit. */
+const bounced = (c: Combat, x: HitCtx): boolean => since(c, hitIndex(c, x)).some((e) => e.type === 'perk' && e.id === 'ricochetShot');
+
+const DELL: Record<string, FightHooks> = {
+  // Hard Bounce: Ricochet bounces for n% of the shot (not half)
+  hardBounce: {
+    start: (c) => {
+      c.perk.ricochetShare = P(c, 'hardBounce');
+    },
+    afterHit: (c, x) => {
+      if (x.green && !x.echo && bounced(c, x)) c.perkFx('hardBounce', 0, 0, x.block.pos);
+    },
+  },
+  // Lucky Bounce: a crit Power Shot's bounces crit too
+  luckyBounce: {
+    start: (c) => {
+      c.perk.luckyBounce = 1;
+    },
+    afterHit: (c, x) => {
+      if (x.green && !x.echo && x.crit && bounced(c, x)) c.perkFx('luckyBounce', 0, 0, x.block.pos);
+    },
+  },
+  // Pinball (capstone): Ricochet bounces on to every other foe
+  pinball: {
+    start: (c) => {
+      c.perk.pinball = 1;
+    },
+    afterHit: (c, x) => {
+      if (!x.green || x.echo) return;
+      const n = since(c, hitIndex(c, x)).filter((e) => e.type === 'perk' && e.id === 'ricochetShot').length;
+      if (n >= 2) c.perkFx('pinball', n, 0, x.block.pos);
+    },
+  },
+  // Full Pouch: Focus holds n% more (styles.ts focusCap reads c.perk.focusCapMult)
+  fullPouch: {
+    start: (c) => {
+      c.perk.focusCapMult = (c.perk.focusCapMult ?? 1) * (1 + P(c, 'fullPouch'));
+    },
+    afterHit: (c, x) => {
+      // (named the first time a hit stores Focus past what it used to hold)
+      if (x.echo || x.green || c.perk.fullPouchShown || focusCap(c) <= 0) return;
+      if (focusOf(c) > focusCap(c) / (c.perk.focusCapMult ?? 1) + 1e-9) {
+        c.perk.fullPouchShown = 1;
+        c.perkFx('fullPouch', 0, 0, x.block.pos);
+      }
+    },
+  },
+  // Four Leaf: Perfect hits store n% more Focus
+  fourLeaf: {
+    afterHit: (c, x) => {
+      if (!x.perfect || x.green || x.echo) return;
+      const before = focusOf(c);
+      addFocus(c, c.stats().atk * c.tuning.styles.focusStore * P(c, 'fourLeaf'));
+      if (focusOf(c) > before) c.perkFx('fourLeaf', focusOf(c) - before, 0, x.block.pos);
+    },
+  },
+  // Lucky Streak (capstone): after a Lucky Shot (a Perfect green), the next n hits crit; a miss ends it
+  luckyStreak: {
+    critChance: (c, x, v) => (!x.echo && !x.green && (c.perk.luckyStreak ?? 0) > 0 ? Math.max(v, 1) : v),
+    afterHit: (c, x) => {
+      if (x.echo) return;
+      if (x.green) {
+        if (x.perfect) c.perk.luckyStreak = every(c, 'luckyStreak');
+        return;
+      }
+      if ((c.perk.luckyStreak ?? 0) <= 0) return;
+      c.perk.luckyStreak--;
+      c.perkFx('luckyStreak', c.perk.luckyStreak, x.target?.id ?? 0, x.block.pos);
+    },
+    miss: (c) => {
+      c.perk.luckyStreak = 0;
+    },
+  },
+  // Hailstones: Pebble Storm hits n% harder
+  hailstones: {
+    finisher: (c, _x, v) => {
+      c.perkFx('hailstones');
+      return v * (1 + P(c, 'hailstones'));
+    },
+  },
+  // Big Knock: Pebble Storm knocks the reds n% further (kit-fx.ts reads c.perk.stormKnock)
+  bigKnock: {
+    start: (c) => {
+      c.perk.stormKnock = (c.perk.stormKnock ?? 1) * (1 + P(c, 'bigKnock'));
+    },
+    afterFinisher: (c) => {
+      if (movingReds(c).length) c.perkFx('bigKnock');
+    },
+  },
+  // Pelt (capstone): a Power Shot knocks its foe's reds back (half as far as Pebble Storm)
+  pelt: {
+    afterHit: (c, x) => {
+      if (!x.green || x.echo || c.result) return;
+      const shot = since(c, hitIndex(c, x)).find((e): e is Extract<CombatEvent, { type: 'perk' }> => e.type === 'perk' && e.id === 'powerShot');
+      if (!shot) return;
+      let n = 0;
+      for (const b of movingReds(c).filter((r) => r.ownerId === shot.enemyId).sort((a, b) => b.pos - a.pos)) if (c.pushBack(b, c.tuning.kits.dell.stormKnock / 2) > 0) n++;
+      if (n) c.perkFx('pelt', n, shot.enemyId);
+    },
+  },
+};
+
+Object.assign(HERO_SKILL_HOOKS, YARA, DELL);

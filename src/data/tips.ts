@@ -100,7 +100,10 @@ export type TipId =
   | 'kitTam'
   | 'kitHollis'
   | 'kitVesper'
-  | 'kitTorva';
+  | 'kitTorva'
+  // round 7 (Part 6): the new heroes' how-to cards
+  | 'kitYara'
+  | 'kitDell';
 
 export interface TipDef {
   id: TipId;
@@ -167,6 +170,8 @@ export const TIPS: readonly TipDef[] = [
   { id: 'kitTorva', hero: 'torva', lines: ['Torva: a green winds up a smash.', 'It grows with your combo!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // part6:A
   // part6:B
+  { id: 'kitYara', hero: 'yara', lines: ['Yara: greens call spirits, in turn.', 'All 3 out? A Rally calls the stag!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'kitDell', hero: 'dell', lines: ['Dell: greens fire your Focus.', 'A Perfect one crits and bounces!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // part6:C
   // part6:D
   { id: 'relicBelt', lines: ['Your relics sit here.', 'Tap one to read what it does.'], anchor: 'relicBelt', fight: 'pre', after: ['tapYellow'] },
