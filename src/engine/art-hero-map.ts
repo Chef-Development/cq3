@@ -230,6 +230,58 @@ const WALKERS: Record<string, Walker> = {
     },
     flap: [['n.', 'N.'], 0, 7],
   },
+  // ---- Part 6. Fizz: wild teal hair under the scorched cap and its red lens, the cream lab coat with its bandolier,
+  // the ladle on her shoulder
+  fizz: {
+    pal: {
+      h: '#1aa896', H: '#4cdcbc', c: '#5e3a26', C: '#845a38', L: '#f2c230', R: '#e03a3a', S: '#fccaa0', s: '#eaa47e', k: '#140c1c',
+      w: '#eee4c8', W: '#bcae94', b: '#3a2218', r: '#ff6a4a', o: '#62b0ff', g: '#7ae25a', t: '#8e5a2e', T: '#b8c2d8', p: '#2a2634', e: '#563826', E: '#36201a',
+    },
+    top: [
+      '.T..cccC...',
+      'TThcccccLR.',
+      '.thhccccLL.',
+      'hhHhSSSSSS.',
+      '.hhtSSkSSk.',
+      'hhhtSSSSSs.',
+      '..wtbwwwsS.',
+      '.wwwwbrwSs.',
+      '..wwwwbow..',
+      '..WwwwwwwW.',
+    ],
+    legs: {
+      stand: ['...pp.pp...', '..eeE.eeE..'],
+      a: ['..pp...pp..', '.eeE...eeE.'],
+      pass: ['....ppp....', '...eeEE....'],
+      b: ['..pp...pp..', '.eEE...eEE.'],
+    },
+    flap: [['W.', 'WW'], -1, 8],
+  },
+  // Brann: the shaved head, grey brows and beard, the saffron robe over maroon, the beads, the big bronze bell on his back
+  brann: {
+    pal: {
+      B: '#cc8c40', b: '#9a5a24', G: '#eec070', s: '#f6d8c6', S: '#e0b8a8', n: '#aeaebc', k: '#140c1c', d: '#80808e', D: '#aeaebc',
+      y: '#ea861c', Y: '#ffb43c', o: '#4a2a1a', m: '#701e2c', M: '#943240', h: '#b45610', e: '#6e4426',
+    },
+    top: [
+      '.GB..sss...',
+      'GBBbsssss..',
+      'BBBbsSSnSn.',
+      'BGBbsSSkSk.',
+      'BBBbSSSSSS.',
+      'BBBbdDddDd.',
+      '.YyyyddyyY.',
+      'YyyyoyyoyyY',
+      '..mmmommM..',
+      '..mmmmmmM..',
+    ],
+    legs: {
+      stand: ['..hhhhhhh..', '...ee.ee...'],
+      a: ['..hhhhhhh..', '..ee...ee..'],
+      pass: ['..hhhhhhh..', '....eee....'],
+      b: ['..hhhhhhh..', '..ee...ee..'],
+    },
+  },
 };
 
 function walkerFrame(w: Walker, legs: keyof Walker['legs'], bob: number, flap: boolean): HTMLCanvasElement {

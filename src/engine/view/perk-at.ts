@@ -285,6 +285,39 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   nightEyes: ['show'], // Gloam pounces: a claw swipe across the trap, which turns into a yellow where it stood
   tide: ['show'], // a wave rolls across the bar from the left end; each red it reaches is carried back
   calmSeas: ['cursor', 'show'], // the sea calms: the cursor glows aqua while the combo stays up; hits ripple
+  // ---- Fizz (Part 6): her flasks' brews burst where they blew (view/kit-fizz-brann.ts draws each brew's burst)
+  fireBrew: ['foes'], // every foe set burning (their flames: Enemy.burn)
+  frostBrew: ['reds'], // every red slowed (the chill's own frost look)
+  sparkBrew: ['blast'], // the bigger blast
+  brewBurn: ['burn'], // the burns' ticks
+  toss: ['show'], // a flask arcs from her hand to the foe, shatters there in its brew's colours, then the hit
+  fumeMask: ['hero'],
+  grandReaction: ['show'],
+  slowBurn: ['foes'],
+  hardFrost: ['bar'], // the new red it slowed
+  wildfire: ['foe'],
+  longArm: ['foe'],
+  splash: ['bounce'],
+  doubleToss: ['target'],
+  meltdown: ['patches'],
+  fumeHood: ['combo'],
+  catalyst: ['blast'],
+  // ---- Brann (Part 6): the bell
+  toll: ['tab'], // (and a bronze ring off the block: the bell rang; its pips on the Guard tab)
+  tollHit: ['bar', 'foe'], // (and a bell's boom on the foe, bigger with the tolls)
+  peal: ['show'], // a sound wave rolls from the hero across the stage; each foe struck as it reaches it
+  stillMind: ['tab'],
+  greatBell: ['show'],
+  bellBoom: ['bolt'], // Great Bell's boom on the other foes
+  loudToll: ['bar', 'foe'],
+  doubleToll: ['tab'],
+  resound: ['bounce'],
+  longPeal: ['cursor'],
+  resonance: ['tab'],
+  bellWard: ['left'],
+  unshaken: ['hero'],
+  stunningToll: ['bar', 'foe'],
+  innerBell: ['tab'], // (the Bulwark it set off shows itself)
 };
 
 /** The block a 'spawn' perk puts on the bar. */

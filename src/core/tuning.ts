@@ -440,6 +440,16 @@ export const DEFAULT_TUNING = {
     dell: { hp: 108, atk: 1.14, abilitySec: 3, ricochet: 0.35, stormMult: 1, stormKnock: 0.3, luckyStun: 1 },
     // part6:C
     // part6:D
+    // fizz: kegs are flasks in turn (fire, frost, spark): fire burns every foe for fireDps x attack a second for fireSec;
+    // frost slows every red on the bar to frostMult for frostSec; spark blasts sparkRadius wider and sparkMult harder.
+    // Toss (green) throws the next flask at the target for tossMult x attack; Fume Mask cuts trap damage by fumeMask;
+    // potent (3 stars) x the brews; Grand Reaction lands bangFlasks new flasks
+    fizz: { hp: 104, atk: 0.84, abilitySec: 3, fireDps: 0.12, fireSec: 3, frostSec: 1.5, frostMult: 0.85, sparkMult: 1.3, sparkRadius: 1.25, tossMult: 1.5, fumeMask: 0.5, potent: 1.5, grandMult: 1, bangFlasks: 2 },
+    // brann: each block rings a toll (up to tollMax; 3 stars tollMax3): +tollPer damage each on the next hit; Peal (green)
+    // echoes pealShare of a blocked red's blow at every foe; Still Mind: Perfect blocks store stillMind more Guard; Great
+    // Bell: the target, +bellGuard per Guard share spent; its boom hits the others for bellEcho of it (5 stars: bellEcho5); every
+    // foe stunned bellStun s (a boss: its reds wait)
+    brann: { hp: 98, atk: 0.95, abilitySec: 3, tollPer: 0.2, tollMax: 3, tollMax3: 5, pealShare: 0.3, stillMind: 1, bellGuard: 0.3, bellStun: 0.5, bellEcho: 0.9, bellEcho5: 1.3 },
   },
   chests: {
     // Hero chests (core/chests.ts): a hero or a companion, weighted toward the low tiers, or shards for one you own.

@@ -15,6 +15,7 @@ export type HeroId =
   | 'yara' | 'dell'
   // part6:C
   // part6:D
+  | 'fizz' | 'brann'
   ;
 export const HERO_IDS: HeroId[] = [
   'rowan', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva',
@@ -23,6 +24,7 @@ export const HERO_IDS: HeroId[] = [
   'yara', 'dell',
   // part6:C
   // part6:D
+  'fizz', 'brann',
 ];
 
 /** Broad archetypes, defined by what they reward (each can hold many heroes later). */
@@ -288,6 +290,47 @@ export const HEROES: Record<HeroId, HeroDef> = {
   },
   // part6:C
   // part6:D
+  // ---- Fizz and Brann (Part 6): a second Bomber and a second Guardian
+  fizz: {
+    id: 'fizz',
+    name: 'Fizz',
+    style: 'bomber',
+    rarity: 'legendary',
+    title: 'Alchemist',
+    bio: 'Blew up her lab. Took notes.',
+    signature: part('Mixed Brew', 'Her kegs are flasks, in turn: fire burns every foe, frost slows the reds, spark blasts bigger.', 'Flasks in three brews.'),
+    ability: part('Toss', 'Green hits throw the next flask at the target: x{n} attack, and its brew.', 'Green hits throw a flask.'),
+    passive: part('Fume Mask', 'Traps hurt her {n}% less.', 'Shrugs off traps.'),
+    finisher: { name: 'Grand Reaction', text: 'Hits all; every flask on the bar goes off, then two new ones land.', short: 'Sets off every flask.', bar: 'Blows flasks, adds 2' },
+    strengths: [{ tag: 'frost', kind: 'dmg', n: 0.2 }],
+    joins: 'chest',
+    meetScene: 'meetFizz',
+    stars: [
+      part('Potent Brews', 'Every brew burns, chills and blasts half again as much.', 'Stronger brews.'),
+      part('Full Rack', 'Grand Reaction lands a flask of every brew.', 'Finisher adds 3 flasks.'),
+    ],
+    art: 'fizz',
+  },
+  brann: {
+    id: 'brann',
+    name: 'Brann',
+    style: 'guardian',
+    rarity: 'epic',
+    title: 'Bellwarden',
+    bio: 'Took a vow of silence. Carries a bell.',
+    signature: part('Toll', 'Every block rings his bell: each toll adds {n}% to his next hit (up to 3).', 'Blocks ring his bell.'),
+    ability: part('Peal', 'Green hits: for {n} s, each red you block echoes back at every foe.', 'Green hits echo blocks.'),
+    passive: part('Still Mind', 'Perfect blocks store {n} more Guard.', 'Perfect blocks store more.'),
+    finisher: { name: 'Great Bell', text: 'The bell drops on the target with all your Guard; its boom hits the rest; all are stunned.', short: 'One huge hit, stuns all.', bar: 'Stops new reds' },
+    strengths: [{ tag: 'caster', kind: 'guard', n: 0.2 }],
+    joins: 'chest',
+    meetScene: 'meetBrann',
+    stars: [
+      part('Deep Toll', 'The bell holds up to 5 tolls.', 'More tolls.'),
+      part('Echoing Bell', "Great Bell's boom hits the other foes harder.", 'A bigger boom.'),
+    ],
+    art: 'brann',
+  },
 };
 
 export const heroDef = (id: HeroId): HeroDef => HEROES[id] ?? HEROES.rowan;

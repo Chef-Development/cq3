@@ -185,6 +185,8 @@ export type Speaker =
   | 'dell'
   // part6:C
   // part6:D
+  | 'fizz'
+  | 'brann'
   | 'rimehorn'
   | 'matron'
   | 'glacia'

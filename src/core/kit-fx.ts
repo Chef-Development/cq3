@@ -9,6 +9,7 @@ import type { Block, Combat, Enemy } from './combat';
 import type { HeroBuild } from './heroes';
 import type { FightHooks } from './hooks';
 import { addFocus, addGuard, allyPower, dropKeg, focusCap, focusOf, guardOf, powerShot, spendGuard } from './styles';
+import { BRANN_KIT, FIZZ_KIT } from './kit-fizz-brann';
 
 const K = (c: Combat) => c.tuning.kits;
 const ability = (c: Combat): boolean => c.hero.abilityTimer > 0;
@@ -428,6 +429,8 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
   },
   // part6:C
   // part6:D
+  fizz: FIZZ_KIT,
+  brann: BRANN_KIT,
 };
 
 // ---------------------------------------------------------------- Yara and Dell (Part 6)

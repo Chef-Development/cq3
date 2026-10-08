@@ -55,6 +55,8 @@ reuse it. One number each in `tuning.styles`.
 | Torva | Brute | Epic | hero chests |
 | Yara | Summoner | Mythic | hero chests (round 7) |
 | Dell | Marksman | Rare | hero chests (round 7) |
+| Fizz | Bomber | Legendary | hero chests (Part 6) |
+| Brann | Guardian | Epic | hero chests (Part 6) |
 
 Higher rarity = a richer kit: Legendary heroes' finishers do two things to the bar, and their passives interact with
 the region rules.
@@ -183,6 +185,35 @@ the region rules.
   ping from foe to foe, his lucky golden pebble hops through them all.
 - Strength: +20% damage to Flyers.
 
+### Fizz, Alchemist (Bomber, Legendary) — Part 6
+- Look: a wiry, wild-haired alchemist: bright teal hair bursting out under a scorched leather cap with a brass-rimmed
+  red lens, a stained cream lab coat with rolled sleeves, a bandolier of coloured flasks, a long-handled ladle.
+  Palette: teal, lab-coat cream, glass colours (fire red, frost blue, spark green), soot.
+- Kegs: her kegs (every 5th yellow, the Bomber's Powder) are flasks, in turn from her bandolier: **fire** (its blast
+  sets every foe burning: 12% attack a second for 3 s), **frost** (slows every red on the bar by 15% for 1.5 s),
+  **spark** (blasts 25% wider and x1.3 harder). The bar paints each flask in its brew; the tab shows the next one.
+- Signature **Mixed Brew**: kegs come in three brews, each with its own effect on top of the blast.
+- Ability (green) **Toss**: a green hit throws the next flask straight at the target (x1.5 attack, and its brew there:
+  fire burns it, frost slows its reds, spark hits harder).
+- Passive **Fume Mask**: traps hurt her 50% less.
+- Finisher **Grand Reaction**: hits all foes; every flask on the bar goes off (each with its brew), then two new
+  flasks land. (Two things to the bar.) Signature moment: three flasks hang over the foes, pour their brews, then
+  smash together into one great bubble.
+- Strength: +20% damage to Frost foes.
+
+### Brann, Bellwarden (Guardian, Epic) — Part 6
+- Look: a broad, calm monk with a shaved head, a grey beard and pale skin, saffron-and-maroon robes, prayer beads, a
+  huge bronze temple bell (bosses, two bands, a striking pad) carried on his back and swung as a shield.
+  Palette: bronze/brass, saffron, maroon.
+- Signature **Toll**: every block rings his bell; each toll adds 20% to his next hit (up to 3; the hit spends them).
+- Ability (green) **Peal**: for 3 s after a green hit, each red he blocks echoes 30% of its blow at every foe.
+- Passive **Still Mind**: Perfect blocks store 1 more Guard.
+- Finisher **Great Bell**: the bell drops on the target: one big hit that spends all stored Guard (+9% a Guard), its
+  boom hits every other foe for 90% of it, and every foe is stunned for 0.5 s (a boss shrugs the stun off; only its
+  reds wait). Signature moment: a giant temple bell comes down over the target, rings with each strike, drops on it;
+  sound rolls across the stage.
+- Strength: takes 20% less from Casters.
+
 ### Stars (1-5, from shards of duplicates)
 Every hero: 2★ +6% attack, 4★ +8% max HP. 3★ and 5★ unlock a move (data: `HERO_STARS`):
 
@@ -198,6 +229,8 @@ Every hero: 2★ +6% attack, 4★ +8% max HP. 3★ and 5★ unlock a move (data:
 | Torva | Quake also on blocks | Earthsplitter keeps 1 stack |
 | Yara | the Tortoise's shell takes two reds | the Great Spirit stays twice as long |
 | Dell | Ricochet bounces on to one more foe | a Lucky Shot stuns its foe (1 s) |
+| Fizz | brews 50% stronger (burn, chill, blast) | Grand Reaction lands a flask of every brew |
+| Brann | the bell holds 5 tolls | Great Bell's boom hits the other foes for 130% (from 90%) |
 
 ---
 

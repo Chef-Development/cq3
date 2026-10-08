@@ -103,7 +103,10 @@ export type TipId =
   | 'kitTorva'
   // round 7 (Part 6): the new heroes' how-to cards
   | 'kitYara'
-  | 'kitDell';
+  | 'kitDell'
+  // ---- Part 6: Fizz and Brann
+  | 'kitFizz'
+  | 'kitBrann';
 
 export interface TipDef {
   id: TipId;
@@ -174,6 +177,8 @@ export const TIPS: readonly TipDef[] = [
   { id: 'kitDell', hero: 'dell', lines: ['Dell: greens fire your Focus.', 'A Perfect one crits and bounces!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // part6:C
   // part6:D
+  { id: 'kitFizz', hero: 'fizz', lines: ['Fizz: kegs are flasks: fire, frost,', 'spark. A green throws one!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'kitBrann', hero: 'brann', lines: ['Brann: every block rings his bell.', 'Rings power up his next hit!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   { id: 'relicBelt', lines: ['Your relics sit here.', 'Tap one to read what it does.'], anchor: 'relicBelt', fight: 'pre', after: ['tapYellow'] },
   { id: 'rush', lines: ['Coin Rush! Hits knock out coins.', 'Keep your combo going for more!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // ---- in a fight, once the basics are in (the fight waits while the tip is up; a couple per fight at most)

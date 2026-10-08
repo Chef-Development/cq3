@@ -13,6 +13,7 @@ import type { Combat } from './combat';
 import { isRed } from './blocks';
 import { skillN } from './heroes';
 import { HERO_SKILL_HOOKS } from './skill-fx-heroes';
+import { FIZZ_BRANN_SKILL_HOOKS } from './skill-fx-fizz-brann';
 
 /** Shield Wall: blocks needed per bubble (at least 1). */
 const wallEvery = (c: Combat): number => Math.max(1, Math.round(skillN(c.tuning, 'shieldWall')));
@@ -20,6 +21,8 @@ const wallEvery = (c: Combat): number => Math.max(1, Math.round(skillN(c.tuning,
 export const SKILL_HOOKS: Record<string, FightHooks> = {
   // the other heroes' nodes (skill-fx-heroes.ts)
   ...HERO_SKILL_HOOKS,
+  // ---- Fizz and Brann (Part 6): skill-fx-fizz-brann.ts
+  ...FIZZ_BRANN_SKILL_HOOKS,
 
   // ---------------------------------------------------------------- Blade (attack and crits)
 

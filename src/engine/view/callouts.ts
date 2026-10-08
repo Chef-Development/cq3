@@ -118,6 +118,19 @@ export const CALLOUT_WORDS: Record<string, string> = {
   pebbleStorm: 'Knock!',
   // part6:C
   // part6:D
+  fireBrew: 'Fire!',
+  frostBrew: 'Frost!',
+  sparkBrew: 'Spark!',
+  toss: 'Toss!',
+  grandReaction: 'React!',
+  fumeMask: 'Mask',
+  toll: 'Toll',
+  tollHit: 'Dong!',
+  peal: 'Peal!',
+  stillMind: 'Calm',
+  greatBell: 'Bell!',
+  bellBoom: 'Boom!',
+  'ability:brann': 'Peal',
   // the companions ("+N": the coins found)
   luckyFoot: '+N',
   owlWatch: 'Peck!',
@@ -171,6 +184,10 @@ const SKILL_WORDS = new Set(['bigFreeze', 'turnabout', 'avalanche']);
 const PET_ALWAYS = new Set(['wakeNote', 'prickly']);
 /** Perks with no word: a Bulwark's blow on each foe (the Bulwark's own word covers them). */
 const NO_WORD = new Set(['bulwarkBlow']);
+// ---- Fizz and Brann (Part 6): her burns tick with no word (the flames show them); his bell rings on every block with
+// no word (the ring and the tab's pips show it: "Guard N" already speaks for the block), the hit that spends it does
+for (const id of ['brewBurn', 'toll']) NO_WORD.add(id);
+SLOW_GAP['ability:brann'] = 2000;
 /** The perks that are coins found (gold words). */
 const COIN_PERKS = new Set(['luckyFoot', 'goldHoard']);
 // ---- Yara and Dell (Part 6): the Tortoise's shell takes reds at the left end; the spirits' own doings share the
@@ -335,6 +352,7 @@ export class Callouts {
         if (e.id === 'guardUp') word = `Guard ${whole(Math.max(1, guardOf(c), e.amount))}`;
         else if (e.id === 'windUp') word = e.amount > 0 ? mult(e.amount / 100) : 'Smash!';
         else if (e.id === 'chain') word = `Chain ${whole(Math.max(2, e.amount))}`;
+        else if (e.id === 'tollHit') word = `Dong x${whole(Math.max(1, e.amount))}`; // (Brann: the tolls spent)
         else if (COIN_PERKS.has(e.id)) word = signed(Math.max(1, e.amount));
         let pos: Pending['pos'] = e.pos ?? (AT_LEFT.has(e.id) ? 'left' : null);
         if (pos === null && (e.id === 'seedling' || e.id === 'starlight')) pos = this.spawnPos.get('green') ?? null;
@@ -384,6 +402,8 @@ export class Callouts {
       dash.word = `Dash x${chain.word.replace(/\D/g, '')}`;
       this.pend.splice(this.pend.indexOf(chain), 1);
     }
+    // ---- Part 6: Fizz's flask names its own blast ("Fire!", not "Blast!" too)
+    if (this.pend.some((p) => p.id === 'fireBrew' || p.id === 'frostBrew' || p.id === 'sparkBrew')) this.pend = this.pend.filter((p) => p.id !== 'keg');
     for (const p of this.pend) {
       if (!this.allowed(p, now)) continue;
       const pos = p.pos === 'left' ? 0 : (p.pos ?? this.tapPos ?? c.cursorPos());

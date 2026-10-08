@@ -117,6 +117,8 @@ const KIT_TIP: Partial<Record<HeroId, TipId>> = {
   dell: 'kitDell',
   // part6:C
   // part6:D
+  fizz: 'kitFizz',
+  brann: 'kitBrann',
 };
 
 /** A hero's fight, long enough to feel the kit (playtest round 5: the old two-wave ones ended before it showed): six
@@ -223,6 +225,9 @@ export const LAB_NEW: LabScenario[] = [
   heroFight('dell', 'dell', 'Dell', 'Perfect green: a crit shot that bounces.', [['crow', 'crow'], ['archer', 'slime'], ['bandit', 'crow'], ['boar', 'crow', 'slime'], ['shaman', 'archer'], ['knight', 'crow']], { rev: 0 }),
   // part6:C
   // part6:D
+  // ---- Part 6: Fizz (Bomber) and Brann (Guardian), the how-to card first
+  heroFight('fizz', 'fizz', 'Fizz', 'Hit flasks: fire, frost, spark. Greens throw one.', [['beetle', 'archer'], ['wolf', 'wolf', 'archer'], ['shaman', 'boar'], ['bandit', 'crow', 'crow'], ['slime', 'slime', 'shaman'], ['knight', 'beetle']], { rev: 0 }),
+  heroFight('brann', 'brann', 'Brann', 'Block to ring the bell, then hit. Greens: echoes.', [['boar', 'archer'], ['bandit', 'shaman'], ['wolf', 'wolf'], ['beetle', 'boar'], ['archer', 'shaman'], ['bigSlime', 'boar']], { rev: 0 }),
   // part6:E
   // ---- round 7's four companions, in pairs with the Perch: each effect shows on what it touches
   petFight('petsBurrLark', ['burr', 'lark'], 'Burr + Lark', 'Take a red: spines fly back. Combo 10: hit the note.', [['crow', 'slime'], ['boar', 'bandit'], ['wolf', 'archer'], ['boar', 'crow']]),
