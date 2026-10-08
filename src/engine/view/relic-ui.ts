@@ -345,6 +345,20 @@ const KIT_NAME: Record<string, string> = {
   quake: HEROES.torva.signature.name,
   windUp: HEROES.torva.ability.name,
   secondSwing: HEROES.torva.stars[1].name,
+  // ---- Fizz and Brann (Part 6)
+  fireBrew: 'Fire Brew',
+  frostBrew: 'Frost Brew',
+  sparkBrew: 'Spark Brew',
+  brewBurn: 'Fire Brew',
+  toss: HEROES.fizz.ability.name,
+  fumeMask: HEROES.fizz.passive.name,
+  grandReaction: HEROES.fizz.finisher.name,
+  toll: HEROES.brann.signature.name,
+  tollHit: HEROES.brann.signature.name,
+  peal: HEROES.brann.ability.name,
+  stillMind: HEROES.brann.passive.name,
+  greatBell: HEROES.brann.finisher.name,
+  bellBoom: HEROES.brann.finisher.name,
   // the styles' rules
   chain: STYLES.shadow.rule.name,
   bend: STYLES.controller.rule.name,
@@ -370,6 +384,19 @@ const KIT_NAME: Record<string, string> = {
   // gear that heals
   rimewalker: SETS.rimewalker.name,
   sanctuary: AURAS.sanctuary.name,
+  // ---- Yara (Part 6) and her spirits
+  spiritWolf: 'Spirit Wolf',
+  spiritTortoise: 'Spirit Tortoise',
+  wispSwarm: 'Wisp Swarm',
+  spiritStag: HEROES.yara.gift!.name,
+  greatSpirit: HEROES.yara.gift!.name,
+  kinship: HEROES.yara.passive.name,
+  spiritStampede: HEROES.yara.finisher.name,
+  // ---- Dell (Part 6)
+  luckyShot: HEROES.dell.ability.name,
+  ricochetShot: HEROES.dell.signature.name,
+  pocketful: HEROES.dell.passive.name,
+  pebbleStorm: HEROES.dell.finisher.name,
 };
 
 // ---- Solenne and Wren (Part 6)

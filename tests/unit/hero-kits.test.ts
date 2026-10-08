@@ -39,14 +39,17 @@ const fight = (hero: HeroId, o: Parameters<typeof setup>[0] = {}) => {
 };
 
 describe('the heroes as data', () => {
-  it('a hero or two per style, Rare to Mythic, each with a signature, ability, passive, finisher and strengths (a Mythic: a gift too)', () => {
-    // (round 7 adds a second hero per style: counted from the data, so it holds while they come in)
+  it('every style has a hero (round 7: a second one each), Rare to Mythic, each with a signature, ability, passive, finisher and strengths', () => {
+    // (Part 6 adds a second hero per style, from several branches: counted from the data)
     expect(HERO_IDS.length).toBeGreaterThanOrEqual(8);
     expect(new Set(HERO_IDS).size).toBe(HERO_IDS.length);
     expect(new Set(HERO_IDS.map((id) => HEROES[id].style)).size).toBe(8);
     for (const s of STYLE_IDS) expect(HERO_IDS.filter((id) => HEROES[id].style === s).length, s).toBeLessThanOrEqual(2);
+    for (const st of STYLE_IDS) expect(HERO_IDS.filter((id) => HEROES[id].style === st).length, st).toBeLessThanOrEqual(2);
     expect(STYLE_IDS.every((s) => !!STYLES[s] && !!STYLE_HOOKS[s])).toBe(true);
     for (const id of HERO_IDS) expect(['rare', 'epic', 'legendary', 'mythic'], id).toContain(HEROES[id].rarity);
+    // a Mythic hero has a fifth kit part (its gift); no one else does
+    for (const id of HERO_IDS) expect(!!HEROES[id].gift, id).toBe(HEROES[id].rarity === 'mythic');
     for (const id of HERO_IDS) {
       const h = HEROES[id];
       // a Mythic hero has a fifth kit part, the gift; no one below Mythic does

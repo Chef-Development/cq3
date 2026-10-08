@@ -114,8 +114,12 @@ const KIT_TIP: Partial<Record<HeroId, TipId>> = {
   // part6:A
   solenne: 'kitSolenne', wren: 'kitWren',
   // part6:B
+  yara: 'kitYara',
+  dell: 'kitDell',
   // part6:C
   // part6:D
+  fizz: 'kitFizz',
+  brann: 'kitBrann',
 };
 
 /** A hero's fight, long enough to feel the kit (playtest round 5: the old two-wave ones ended before it showed): six
@@ -220,8 +224,14 @@ export const LAB_NEW: LabScenario[] = [
   heroFight('solenne', 'solenne', 'Solenne', 'Combo up: at 15 her blade burns. Hit gold yellows.', [['bandit', 'slime'], ['wolf', 'archer'], ['shaman', 'slime'], ['boar', 'crow'], ['archer', 'wolf'], ['knight', 'slime']], { rev: 0 }),
   heroFight('wren', 'wren', 'Wren', '4 Perfects in a row: a dodge. Greens pop smoke.', [['crow', 'crow'], ['bandit', 'archer'], ['wolf', 'wolf'], ['crow', 'shaman'], ['boar', 'crow'], ['knight', 'crow']], { rev: 0 }),
   // part6:B
+  // ---- Yara and Dell: a second Summoner (Mythic) and a second Marksman (Rare), their how-to card first
+  heroFight('yara', 'yara', 'Yara', 'Greens call spirits. All 3 out: the stag!', [['wolf', 'slime'], ['slime', 'crow'], ['boar', 'shaman'], ['wolf', 'archer'], ['bandit', 'shaman'], ['knight', 'slime']], { rev: 0 }),
+  heroFight('dell', 'dell', 'Dell', 'Perfect green: a crit shot that bounces.', [['crow', 'crow'], ['archer', 'slime'], ['bandit', 'crow'], ['boar', 'crow', 'slime'], ['shaman', 'archer'], ['knight', 'crow']], { rev: 0 }),
   // part6:C
   // part6:D
+  // ---- Part 6: Fizz (Bomber) and Brann (Guardian), the how-to card first
+  heroFight('fizz', 'fizz', 'Fizz', 'Hit flasks: fire, frost, spark. Greens throw one.', [['beetle', 'archer'], ['wolf', 'wolf', 'archer'], ['shaman', 'boar'], ['bandit', 'crow', 'crow'], ['slime', 'slime', 'shaman'], ['knight', 'beetle']], { rev: 0 }),
+  heroFight('brann', 'brann', 'Brann', 'Block to ring the bell, then hit. Greens: echoes.', [['boar', 'archer'], ['bandit', 'shaman'], ['wolf', 'wolf'], ['beetle', 'boar'], ['archer', 'shaman'], ['bigSlime', 'boar']], { rev: 0 }),
   // part6:E
   // ---- round 7's four companions, in pairs with the Perch: each effect shows on what it touches
   petFight('petsBurrLark', ['burr', 'lark'], 'Burr + Lark', 'Take a red: spines fly back. Combo 10: hit the note.', [['crow', 'slime'], ['boar', 'bandit'], ['wolf', 'archer'], ['boar', 'crow']]),

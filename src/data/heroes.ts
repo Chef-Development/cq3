@@ -13,16 +13,20 @@ export type HeroId =
   // part6:A
   | 'solenne' | 'wren'
   // part6:B
+  | 'yara' | 'dell'
   // part6:C
   // part6:D
+  | 'fizz' | 'brann'
   ;
 export const HERO_IDS: HeroId[] = [
   'rowan', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva',
   // part6:A
   'solenne', 'wren',
   // part6:B
+  'yara', 'dell',
   // part6:C
   // part6:D
+  'fizz', 'brann',
 ];
 
 /** Broad archetypes, defined by what they reward (each can hold many heroes later). */
@@ -49,7 +53,11 @@ export interface Strength {
 }
 
 /** Summoner allies: who a green hit calls, and what each one does. */
-export type AllyKind = 'thornling' | 'barkback' | 'glowmoth' | 'seedling';
+export type AllyKind =
+  | 'thornling' | 'barkback' | 'glowmoth' | 'seedling'
+  // Yara's spirits (Part 6), and the Great Spirit a Rally of hers calls (it comes and goes on its own, never one of
+  // the three a call counts)
+  | 'spiritWolf' | 'spiritTortoise' | 'wispSwarm' | 'spiritStag';
 
 export interface HeroDef {
   id: HeroId;
@@ -281,8 +289,91 @@ export const HEROES: Record<HeroId, HeroDef> = {
     art: 'wren',
   },
   // part6:B
+  yara: {
+    id: 'yara',
+    name: 'Yara',
+    style: 'summoner',
+    rarity: 'mythic',
+    title: 'Spirit Caller',
+    bio: 'Talks to the stars. They owe her favours.',
+    signature: part('Spirit Bond', 'Spirits come in order and grow with your Companion stat; with all 3 out, a call is a Rally.', 'Calls the spirits.'),
+    ability: part('Call', 'Green hits call the next spirit: Wolf, Tortoise, Wisps.', 'Green hits call spirits.'),
+    passive: part('Kinship', 'Each spirit out adds {n}% crit chance.', 'Luckier with spirits out.'),
+    finisher: { name: 'Spirit Stampede', text: 'The spirits charge every foe, more per spirit out; reds and traps go.', short: 'Spirits trample all.', bar: 'Clears reds and traps' },
+    gift: part('Great Spirit', 'A Rally calls the great spirit stag for a few seconds: it strikes every foe.', 'A Rally calls the stag.'),
+    strengths: [{ tag: 'swarm', kind: 'guard', n: 0.2 }],
+    joins: 'chest',
+    meetScene: 'meetYara',
+    stars: [
+      part('Shell Ward', "The Tortoise's shell takes two reds.", 'The shell holds longer.'),
+      part('Elder Stag', 'The Great Spirit stays twice as long.', 'The stag stays longer.'),
+    ],
+    art: 'yara',
+    allies: ['spiritWolf', 'spiritTortoise', 'wispSwarm'],
+  },
+  dell: {
+    id: 'dell',
+    name: 'Dell',
+    style: 'marksman',
+    rarity: 'rare',
+    title: 'Slinger',
+    bio: 'Scares crows for a living. Mostly.',
+    signature: part('Ricochet', "The Power Shot bounces to the weakest other foe for {n}%.", 'Shots bounce on.'),
+    ability: part('Lucky Shot', 'A Perfect green crits, and so does its Power Shot.', 'Perfect greens crit.'),
+    passive: part('Pocketful', "A miss doesn't empty your meter (it still breaks the combo).", 'Misses cost less.'),
+    finisher: { name: 'Pebble Storm', text: 'Pebbles hail on every foe and knock every red back; far ones fly off.', short: 'Hits all, knocks reds back.', bar: 'Knocks reds back' },
+    strengths: [{ tag: 'flyer', kind: 'dmg', n: 0.2 }],
+    joins: 'chest',
+    meetScene: 'meetDell',
+    stars: [
+      part('Skip Stone', 'Ricochet bounces on to one more foe.', 'Bounces once more.'),
+      part('Stunner', 'A Lucky Shot stuns its foe.', 'Lucky Shots stun.'),
+    ],
+    art: 'dell',
+  },
   // part6:C
   // part6:D
+  // ---- Fizz and Brann (Part 6): a second Bomber and a second Guardian
+  fizz: {
+    id: 'fizz',
+    name: 'Fizz',
+    style: 'bomber',
+    rarity: 'legendary',
+    title: 'Alchemist',
+    bio: 'Blew up her lab. Took notes.',
+    signature: part('Mixed Brew', 'Her kegs are flasks, in turn: fire burns every foe, frost slows the reds, spark blasts bigger.', 'Flasks in three brews.'),
+    ability: part('Toss', 'Green hits throw the next flask at the target: x{n} attack, and its brew.', 'Green hits throw a flask.'),
+    passive: part('Fume Mask', 'Traps hurt her {n}% less.', 'Shrugs off traps.'),
+    finisher: { name: 'Grand Reaction', text: 'Hits all; every flask on the bar goes off, then two new ones land.', short: 'Sets off every flask.', bar: 'Blows flasks, adds 2' },
+    strengths: [{ tag: 'frost', kind: 'dmg', n: 0.2 }],
+    joins: 'chest',
+    meetScene: 'meetFizz',
+    stars: [
+      part('Potent Brews', 'Every brew burns, chills and blasts half again as much.', 'Stronger brews.'),
+      part('Full Rack', 'Grand Reaction lands a flask of every brew.', 'Finisher adds 3 flasks.'),
+    ],
+    art: 'fizz',
+  },
+  brann: {
+    id: 'brann',
+    name: 'Brann',
+    style: 'guardian',
+    rarity: 'epic',
+    title: 'Bellwarden',
+    bio: 'Took a vow of silence. Carries a bell.',
+    signature: part('Toll', 'Every block rings his bell: each toll adds {n}% to his next hit (up to 3).', 'Blocks ring his bell.'),
+    ability: part('Peal', 'Green hits: for {n} s, each red you block echoes back at every foe.', 'Green hits echo blocks.'),
+    passive: part('Still Mind', 'Perfect blocks store {n} more Guard.', 'Perfect blocks store more.'),
+    finisher: { name: 'Great Bell', text: 'The bell drops on the target with all your Guard; its boom hits the rest; all are stunned.', short: 'One huge hit, stuns all.', bar: 'Stops new reds' },
+    strengths: [{ tag: 'caster', kind: 'guard', n: 0.2 }],
+    joins: 'chest',
+    meetScene: 'meetBrann',
+    stars: [
+      part('Deep Toll', 'The bell holds up to 5 tolls.', 'More tolls.'),
+      part('Echoing Bell', "Great Bell's boom hits the other foes harder.", 'A bigger boom.'),
+    ],
+    art: 'brann',
+  },
 };
 
 export const heroDef = (id: HeroId): HeroDef => HEROES[id] ?? HEROES.rowan;

@@ -7,6 +7,8 @@ import type Phaser from 'phaser';
 import type { Combat } from '../../core/combat';
 import { allyKinds, chainOf, focusCap, focusOf, guardMax, guardOf } from '../../core/styles';
 import { sunEvery } from '../../core/kit-fx';
+import { BREWS, nextBrew, tollMax, tollOf } from '../../core/kit-fizz-brann';
+import { BREW_COL, BRONZE_COL } from './fizz-brann-paint';
 import { heroDef, type HeroId } from '../../data/heroes';
 import type { FightScene } from '../scene';
 import { textWidth } from '../font';
@@ -24,6 +26,9 @@ export function styleState(s: FightScene, c: Combat): { key: string; empty: bool
   const own = dawnRoofState(c);
   if (own) return own;
   const style = heroDef(c.heroId as HeroId).style;
+  // ---- Part 6: Fizz's bandolier (the next brew), Brann's Guard and the tolls rung toward his next hit
+  if (c.heroId === 'fizz') return { key: `brew${nextBrew(c)}`, empty: false };
+  if (c.heroId === 'brann') return { key: `guard${guardOf(c)}/${guardMax(c)}toll${tollOf(c)}/${tollMax(c)}`, empty: guardOf(c) <= 0 && tollOf(c) <= 0 };
   if (style === 'shadow') {
     const n = chainOf(c);
     return { key: `chain${n < 2 ? 0 : n}`, empty: n < 2 };
@@ -61,6 +66,8 @@ export function drawStyleChip(s: FightScene, g: G, texts: TextPool, c: Combat, x
     return r;
   };
   if (c.heroId === 'solenne' || c.heroId === 'wren') return drawDawnRoofChip(s, g, texts, c, now, chip, A, !!o.empty);
+  if (c.heroId === 'fizz') return fizzChip(g, c, now, A, chip);
+  if (c.heroId === 'brann') return brannChip(g, c, now, A, chip, !!o.empty);
   if (style === 'shadow') {
     const n = chainOf(c);
     if (n < 2 && !o.empty) return null;
@@ -148,7 +155,9 @@ export function drawStyleChip(s: FightScene, g: G, texts: TextPool, c: Combat, x
     if (n <= 0 && !o.empty) return null;
     const all = kinds.every((k) => c.allies.some((a) => a.kind === k));
     const r = chip(10 + kinds.length * 5, all ? 0xffe680 : null);
-    icon(g, GLYPHS.leaf, r.x + 1, r.y + 1, n > 0 ? 0x9af06a : 0x5a8a4a);
+    // (Yara's spirits: a rune in spirit light; Moss's grove: a leaf)
+    const yara = c.heroId === 'yara';
+    icon(g, yara ? GLYPHS.rune : GLYPHS.leaf, r.x + 1, r.y + 1, n > 0 ? (yara ? 0x9ae8ff : 0x9af06a) : yara ? 0x4a7a8a : 0x5a8a4a);
     kinds.forEach((k, i) => {
       const out = c.allies.some((a) => a.kind === k);
       const px = r.x + 10 + i * 5;
@@ -251,6 +260,77 @@ function drawDawnRoofChip(s: FightScene, g: G, texts: TextPool, c: Combat, now: 
     g.fillStyle(0xfff08a, A);
     g.fillRect(px, r.y + 3, 3, 1);
     g.fillRect(px, r.y + 3, 1, 3);
+  }
+  return r;
+}
+
+// ---- Part 6: Fizz and Brann
+
+/** Fizz's bandolier: her three flasks in turn (fire, frost, spark), the next one (the next flask or toss) up and lit,
+ *  bubbling; the others dim behind it. */
+function fizzChip(g: G, c: Combat, now: number, A: number, chip: (w: number, hot: number | null) => Rect): Rect {
+  const next = nextBrew(c);
+  const r = chip(19, BREW_COL[next][2]);
+  BREWS.forEach((brew, i) => {
+    const on = brew === next;
+    const [deep, base, light, glint] = BREW_COL[brew];
+    const fx = r.x + 2 + i * 6;
+    const fy = r.y + (on ? 2 : 3) - (on && Math.floor(now / 300) % 2 ? 1 : 0);
+    // a tiny flask: a cork, a neck, a round body of brew
+    g.fillStyle(on ? 0xd8b080 : 0x7a6450, A);
+    g.fillRect(fx + 1, fy, 2, 1);
+    g.fillStyle(on ? 0xdce8ee : 0x6a7480, A);
+    g.fillRect(fx + 1, fy + 1, 2, 1);
+    g.fillStyle(on ? base : deep, A);
+    g.fillRect(fx, fy + 2, 4, 4);
+    g.fillStyle(on ? light : base, on ? A : 0.7 * A);
+    g.fillRect(fx, fy + 2, 4, 1);
+    if (on) {
+      g.fillStyle(WHITE, A);
+      g.fillRect(fx, fy + 3, 1, 1);
+      g.fillStyle(glint, A);
+      g.fillRect(fx + 2, fy + 4 - (Math.floor(now / 200) % 2), 1, 1);
+    }
+  });
+  return r;
+}
+
+/** Brann: his Guard pips (as a Guardian's), then a little bell and a pip per toll rung toward his next hit. */
+function brannChip(g: G, c: Combat, now: number, A: number, chip: (w: number, hot: number | null) => Rect, empty: boolean): Rect | null {
+  const n = guardOf(c);
+  const max = guardMax(c);
+  const t = tollOf(c);
+  const tm = tollMax(c);
+  if (n <= 0 && t <= 0 && !empty) return null;
+  const r = chip(10 + max * 3 + 8 + tm * 3, n >= max ? 0x9ad8ff : t >= tm ? BRONZE_COL[4] : null);
+  hudIcon(g, 'shield', r.x + 1, r.y + 1, 1, n > 0 ? A : 0.6 * A);
+  for (let i = 0; i < max; i++) {
+    g.fillStyle(i < n ? 0x9ad8ff : NAVY[1], A);
+    g.fillRect(r.x + 9 + i * 3, r.y + 3, 2, 4);
+    if (i < n) {
+      g.fillStyle(WHITE, A);
+      g.fillRect(r.x + 9 + i * 3, r.y + 3, 2, 1);
+    }
+  }
+  // the bell: a crown, a body, a lip
+  const bx = r.x + 9 + max * 3 + 1;
+  const lit = t > 0;
+  const swing = lit && Math.floor(now / 180) % 2 ? 1 : 0;
+  g.fillStyle(lit ? BRONZE_COL[3] : 0x6a5a48, A);
+  g.fillRect(bx + 2 + swing, r.y + 1, 1, 1);
+  g.fillRect(bx + 1 + swing, r.y + 2, 3, 3);
+  g.fillRect(bx + swing, r.y + 5, 5, 2);
+  g.fillStyle(lit ? BRONZE_COL[5] : 0x8a7a60, A);
+  g.fillRect(bx + 1 + swing, r.y + 2, 1, 2);
+  g.fillStyle(lit ? BRONZE_COL[1] : 0x3a3028, A);
+  g.fillRect(bx + 2 + swing, r.y + 7, 1, 1);
+  for (let i = 0; i < tm; i++) {
+    g.fillStyle(i < t ? BRONZE_COL[4] : NAVY[1], A);
+    g.fillRect(bx + 7 + i * 3, r.y + 3, 2, 4);
+    if (i < t) {
+      g.fillStyle(BRONZE_COL[5], A);
+      g.fillRect(bx + 7 + i * 3, r.y + 3, 2, 1);
+    }
   }
   return r;
 }

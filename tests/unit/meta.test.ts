@@ -34,9 +34,9 @@ describe('hero chests and the shrine', () => {
 
   it('a chest never brings a story hero or the starter as a new hero', () => {
     // (round 7's heroes join from chests too: every chest hero, and only those, is in the pool)
-    expect(CHEST_HEROES.sort()).toEqual(expect.arrayContaining(['hollis', 'moss', 'tam', 'torva', 'vesper']));
+    for (const id of ['hollis', 'moss', 'tam', 'torva', 'vesper', 'solenne', 'wren', 'yara', 'dell', 'fizz', 'brann']) expect(CHEST_HEROES, id).toContain(id);
     expect(CHEST_HEROES.sort()).toEqual(HERO_IDS.filter((id) => HEROES[id].joins === 'chest').sort());
-    for (const id of ['rowan', 'sable', 'neve'] as const) expect(CHEST_HEROES).not.toContain(id);
+    for (const id of ['rowan', 'sable', 'neve']) expect(CHEST_HEROES, id).not.toContain(id);
     const rng = new Rng(3);
     for (let i = 0; i < 300; i++) {
       const p = newProfile();

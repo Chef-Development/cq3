@@ -52,8 +52,12 @@ export type SignatureId =
   | 'sunfall'
   | 'rooftopDrop'
   // part6:B
+  | 'spiritStampede'
+  | 'pebbleStorm'
   // part6:C
   // part6:D
+  | 'grandReaction'
+  | 'greatBell'
   // the styles' defaults
   | 'crossCut'
   | 'rift'
@@ -86,8 +90,12 @@ export const SIGNATURES: Record<SignatureId, SignatureSpec> = {
   sunfall: { name: 'a sun kindles on her raised blade, rises, spears the foes with sunbeams, then falls on them', move: 'stand' },
   rooftopDrop: { name: 'hooked up out of sight, knives rain on the target, then she drops on it from the sky', move: 'blink' },
   // part6:B
+  spiritStampede: { name: 'stars join into a stag; her spirits stampede through every foe, then the great stag leaps down' },
+  pebbleStorm: { name: 'pebbles ping from foe to foe; his lucky golden pebble hops through them all' },
   // part6:C
   // part6:D
+  grandReaction: { name: 'three flasks hang over the foes, pour fire, frost and spark, then smash into one great bubble' },
+  greatBell: { name: 'a giant temple bell rings over the target, then drops on it; sound rolls across the stage' },
   crossCut: { name: 'a great cross cut over every foe', styleDefault: 'blade' },
   rift: { name: 'a rift tears open behind the foes', styleDefault: 'shadow' },
   shieldDome: { name: 'a shield dome over the hero bursts outward', styleDefault: 'guardian' },
@@ -112,8 +120,12 @@ export const HERO_SIGNATURE: Readonly<Record<string, SignatureId>> = {
   solenne: 'sunfall',
   wren: 'rooftopDrop',
   // part6:B
+  yara: 'spiritStampede',
+  dell: 'pebbleStorm',
   // part6:C
   // part6:D
+  fizz: 'grandReaction',
+  brann: 'greatBell',
 };
 
 /** Each style's default moment. */

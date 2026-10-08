@@ -26,8 +26,13 @@ import { TORVA_CAMP, TORVA_CARD, TORVA_POSES, TORVA_RIG } from './art-hero-torva
 import { SOLENNE_CAMP, SOLENNE_CARD, SOLENNE_POSES, SOLENNE_RIG } from './art-hero-solenne';
 import { WREN_CAMP, WREN_CARD, WREN_POSES, WREN_RIG } from './art-hero-wren';
 // part6:B
+import { buildSpiritArt } from './art-hero-spirits';
+import { YARA_CAMP, YARA_CARD, YARA_POSES, YARA_RIG } from './art-hero-yara';
+import { DELL_CAMP, DELL_CARD, DELL_POSES, DELL_RIG } from './art-hero-dell';
 // part6:C
 // part6:D
+import { FIZZ_CAMP, FIZZ_CARD, FIZZ_POSES, FIZZ_RIG } from './art-hero-fizz';
+import { BRANN_CAMP, BRANN_CARD, BRANN_POSES, BRANN_RIG } from './art-hero-brann';
 import { VESPER_CAMP, VESPER_CARD, VESPER_POSES, VESPER_RIG } from './art-hero-vesper';
 import { fireRim, paintRig, rigFrame, type Add, type HeroCardSpec, type Rig, type RigPose } from './art-rig';
 import { heroCard } from './art-sable';
@@ -35,7 +40,7 @@ import { heroCard } from './art-sable';
 /** The poses every M5 hero has a fight frame for. */
 export const HERO_POSE_KEYS = ['idle0', 'idle1', 'dash', 'slashA', 'slashB', 'windup', 'parry', 'hurt', 'leap', 'down', 'fin', 'cast'] as const;
 /** The M5 heroes with art. */
-export const M5_HEROES = ['neve', 'moss', 'tam', 'hollis', 'vesper', 'torva'] as const;
+export const M5_HEROES = ['neve', 'moss', 'tam', 'hollis', 'vesper', 'torva', 'fizz', 'brann'] as const;
 
 /** The camp sprites' box (drawn bottom-centre at a spot, like camp_sable0/1): the feet centred, one row under them. */
 export const HERO_CAMP_W = 32;
@@ -58,8 +63,12 @@ const HEROES: Record<string, HeroArt> = {
   solenne: { rig: SOLENNE_RIG, poses: SOLENNE_POSES, card: SOLENNE_CARD, camp: SOLENNE_CAMP },
   wren: { rig: WREN_RIG, poses: WREN_POSES, card: WREN_CARD, camp: WREN_CAMP },
   // part6:B
+  yara: { rig: YARA_RIG, poses: YARA_POSES, card: YARA_CARD, camp: YARA_CAMP },
+  dell: { rig: DELL_RIG, poses: DELL_POSES, card: DELL_CARD, camp: DELL_CAMP },
   // part6:C
   // part6:D
+  fizz: { rig: FIZZ_RIG, poses: FIZZ_POSES, card: FIZZ_CARD, camp: FIZZ_CAMP },
+  brann: { rig: BRANN_RIG, poses: BRANN_POSES, card: BRANN_CARD, camp: BRANN_CAMP },
 };
 
 /**
@@ -79,7 +88,7 @@ function campFrame(rig: Rig, p: RigPose): HTMLCanvasElement {
 }
 
 export function buildHeroArt(add: Add): void {
-  // (every hero with art on the rig: the M5 heroes and round 7's, keyed by their art prefix)
+  // (every hero in the registry: the M5 six and round 7's, Part 6)
   for (const [id, h] of Object.entries(HEROES)) {
     for (const k of HERO_POSE_KEYS) add(`${id}_${k}`, rigFrame(h.rig, h.poses[k]));
     add(`hero_card_${id}`, heroCard(h.card.glow, h.card.motes, rigFrame(h.rig, h.card.pose)));
@@ -88,5 +97,6 @@ export function buildHeroArt(add: Add): void {
   buildHeroPortraits(add);
   buildHeroWalkers(add);
   buildAllyArt(add);
+  buildSpiritArt(add); // Yara's spirits (Part 6)
   add('keg_icon', kegIcon());
 }

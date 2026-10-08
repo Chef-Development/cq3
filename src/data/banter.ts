@@ -41,8 +41,10 @@ export type CampSpeaker =
   // part6:A
   | 'solenne' | 'wren'
   // part6:B
+  | 'yara' | 'dell'
   // part6:C
   // part6:D
+  | 'fizz' | 'brann'
   ;
 
 /**
@@ -140,4 +142,44 @@ export const HERO_BANTER: HeroBanterLine[] = [
   { who: 'wren', text: 'Pip! Race you up that tree.', with: ['pip'] },
   { who: 'sable', text: 'Wren, that was MY dagger.', with: ['wren'] },
   { who: 'solenne', text: "Wren, it's dawn somewhere! Up!", with: ['wren'] },
+
+  // ---- Yara (Part 6): a calm young spirit caller, a little otherworldly, very fond of her spirits
+  { who: 'yara', text: 'The stars say hello. They say it slowly.' },
+  { who: 'yara', text: 'Wolf wants to play fetch. With a boar.' },
+  { who: 'yara', text: 'Tortoise is older than this forest.' },
+  { who: 'yara', text: 'Shh. The fire spirit is telling a story.' },
+  { who: 'yara', text: 'Moss, your trees gossip about you.', with: ['moss'] },
+  { who: 'pip', text: 'Hoo. The wisps nest in my feathers now.', with: ['yara'] },
+  { who: 'rowan', text: "Yara's wolf ate my boot. A spirit boot?", with: ['yara'] },
+
+  // ---- Dell (Part 6): a cheerful farm kid, a little too keen with the slingshot
+  { who: 'dell', text: 'Pebbles in my boots again. Ow.' },
+  { who: 'dell', text: 'Miss the farm. Not the chores, though.' },
+  { who: 'dell', text: 'Can I roast corn on this? Asking for me.' },
+  { who: 'dell', text: 'Ma says aim small, miss small.' },
+  { who: 'dell', text: 'Vesper! Teach me the bow? Please?', with: ['vesper'] },
+  { who: 'vesper', text: 'Dell. A slingshot. Adorable. Lower it.', with: ['dell'] },
+  { who: 'smith', text: 'Dell. My anvil is NOT a target.', with: ['dell'] },
+
+  // ---- Part 6. Fizz: a wild, cheerful alchemist who brews by the fire (and blows things up, carefully-ish)
+  { who: 'fizz', text: 'This fire is boring. One drop of red?' },
+  { who: 'fizz', text: 'Do NOT drink the blue one. Trust me.' },
+  { who: 'fizz', text: 'My eyebrows grow back. Mostly.' },
+  { who: 'fizz', text: "It's not smoke. It's a breakthrough!" },
+  { who: 'fizz', text: 'Mags! Can I borrow your hottest fire?', with: ['smith'] },
+  { who: 'fizz', text: 'Tam! Your kegs and my flasks? BIG!', with: ['tam'] },
+  { who: 'tam', text: 'Fizz gets it. Loud is a science!', with: ['fizz'] },
+  { who: 'rowan', text: "Fizz made me tea. It's still fizzing.", with: ['fizz'] },
+  { who: 'smith', text: 'Fizz. That flask ate my tongs.', with: ['fizz'] },
+
+  // Brann: a calm, near-silent bell monk (his bell talks for him)
+  { who: 'brann', text: '...' },
+  { who: 'brann', text: 'Silence is a bell that waits.' },
+  { who: 'brann', text: 'Breathe in. Block. Breathe out. Bonng.' },
+  { who: 'brann', text: 'The fire is loud. I forgive it.' },
+  { who: 'brann', text: 'Rowan. You nap well. A true master.', with: ['rowan'] },
+  { who: 'brann', text: 'Hollis. We are both walls. Sit.', with: ['hollis'] },
+  { who: 'pip', text: "Hoo. Brann's bell hums at me.", with: ['brann'] },
+  { who: 'sable', text: 'Tried to ring the bell. It rang ME.', with: ['brann'] },
+  { who: 'fizz', text: 'Brann, can I put a fuse on the bell?', with: ['brann'] },
 ];

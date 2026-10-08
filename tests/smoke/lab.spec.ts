@@ -140,6 +140,13 @@ test('the Test lab: open from the title, play and rate two scenarios, copy the r
 
 /** Press one of the Finisher gallery's buttons where it is drawn (game px -> CSS px). */
 async function galleryTap(page: Page, name: string): Promise<void> {
+  // (the controls take taps only once they've slid back up after a show: wait for that, on a busy machine too)
+  await expect
+    .poll(() => page.evaluate((name) => {
+      const g = (window as Any).__cq3.app.view.gallery;
+      return g.active && g.state === 'idle' && !g.queued && !!g.buttons()[name];
+    }, name), { timeout: 20_000 })
+    .toBe(true);
   const p = (await page.evaluate((name) => {
     const app = (window as Any).__cq3.app;
     const r = app.view.gallery.buttons()[name];

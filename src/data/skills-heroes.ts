@@ -371,6 +371,162 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
     },
   ],
   // part6:B
+  // ---------------------------------------------------------------- Yara (Summoner): one branch per spirit (Part 6)
+  yara: [
+    {
+      id: 'yaraPack',
+      name: 'Pack',
+      theme: 'Spirit Wolf',
+      nodes: [
+        atk('wolfsong', 'Wolfsong', 10),
+        crit('keenNose', 'Keen Nose', 6),
+        rule('longFang', 'Long Fang', 'Wolf bites hit {n}% harder.', 'The Wolf nips.', 'Its bites hit {n}% harder.', 50),
+        rule('twinBite', 'Twin Bite', 'A wolf bite also hits another foe for {n}%.', 'The Wolf bites one foe.', 'Another foe takes {n}% of it.', 50),
+        cap('huntingCall', 'Hunting Call', 'Every {n}th Perfect hit sends the Wolf in at once.', 'The Wolf bites in its own time.', 'Every {n}th Perfect, it bites now.', 3),
+      ],
+    },
+    {
+      id: 'yaraShell',
+      name: 'Shell',
+      theme: 'Spirit Tortoise',
+      nodes: [
+        hp('oldSoul', 'Old Soul', 10),
+        def('shellback', 'Shellback', 6),
+        rule('quickShell', 'Quick Shell', 'The shell comes up {n}% sooner.', 'The shell is slow to rise.', 'It rises {n}% sooner.', 50),
+        rule('spikedShell', 'Spiked Shell', "A shell block hits the red's owner for {n}% attack.", 'The shell only softens reds.', 'It hits the owner for {n}%.', 80),
+        cap('stoneWard', 'Stone Ward', 'With the shell up, Perfect blocks hit all foes for {n}%.', 'The shell softens one red.', 'Shell up: Perfect blocks hit all.', 40),
+      ],
+    },
+    {
+      id: 'yaraStars',
+      name: 'Stars',
+      theme: 'Wisps and the stag',
+      nodes: [
+        meter('nightSky', 'Night Sky', 12),
+        combo('starSong', 'Star Song', 1),
+        rule('brightWisps', 'Bright Wisps', 'Wisps fill {n}% more meter.', 'Wisps fill a little meter.', 'They fill {n}% more.', 50),
+        rule('longBond', 'Long Bond', 'Spirits stay {n} s longer.', 'Spirits leave after a while.', 'They stay {n} s longer.', 2),
+        cap('thunderhoof', 'Thunderhoof', 'Each Great Spirit strike knocks every red back {n}%.', 'The stag only strikes foes.', 'Its strikes push reds back {n}%.', 8),
+      ],
+    },
+  ],
+  // ---------------------------------------------------------------- Dell (Marksman): bounces, Focus, the storm (Part 6)
+  dell: [
+    {
+      id: 'dellBounce',
+      name: 'Bounce',
+      theme: 'Ricochet',
+      nodes: [
+        atk('strongArm', 'Strong Arm', 10),
+        crit('sharpEye', 'Sharp Eye', 6),
+        rule('hardBounce', 'Hard Bounce', 'Ricochet bounces for {n}% of the shot.', 'It bounces for half.', 'It bounces for {n}%.', 75),
+        rule('luckyBounce', 'Lucky Bounce', "A crit shot's bounces crit too.", 'A bounce never crits.', 'A crit shot bounces crits.'),
+        cap('pinball', 'Pinball', 'Ricochet bounces on to every foe.', 'It bounces to one foe.', 'It bounces to every foe.'),
+      ],
+    },
+    {
+      id: 'dellPouch',
+      name: 'Pouch',
+      theme: 'Storing Focus',
+      nodes: [
+        meter('slingcraft', 'Slingcraft', 12),
+        combo('steadyFeet', 'Steady Feet', 1),
+        rule('fullPouch', 'Full Pouch', 'Focus holds {n}% more.', 'Focus fills up fast.', 'It holds {n}% more.', 40),
+        rule('fourLeaf', 'Four Leaf', 'Perfect hits store {n}% more Focus.', 'Every hit stores the same.', 'Perfects store {n}% more.', 50),
+        cap('luckyStreak', 'Lucky Streak', 'After a Lucky Shot, your next {n} hits crit.', 'A Lucky Shot crits once.', 'The next {n} hits crit too.', 3),
+      ],
+    },
+    {
+      id: 'dellStorm',
+      name: 'Storm',
+      theme: 'Pebble Storm',
+      nodes: [
+        hp('farmHardy', 'Farm Hardy', 10),
+        def('overalls', 'Overalls', 6),
+        rule('hailstones', 'Hailstones', 'Pebble Storm hits {n}% harder.', 'The storm hits as usual.', 'It hits {n}% harder.', 30),
+        rule('bigKnock', 'Big Knock', 'Pebble Storm knocks reds {n}% further.', 'Reds fly back a way.', 'Reds fly {n}% further.', 50),
+        cap('pelt', 'Pelt', "A Power Shot knocks its foe's reds back.", 'A shot only hurts.', "It knocks its foe's reds back."),
+      ],
+    },
+  ],
   // part6:C
   // part6:D
+  // ---------------------------------------------------------------- Fizz (Bomber): brews, tosses, the lab
+  fizz: [
+    {
+      id: 'fizzBrews',
+      name: 'Brews',
+      theme: 'Stronger brews',
+      nodes: [
+        atk('acidWash', 'Acid Wash', 10),
+        crit('steadyPour', 'Steady Pour', 6),
+        rule('slowBurn', 'Slow Burn', 'Fire brews burn {n} s longer.', 'Fire burns for a few seconds.', 'It burns {n} s longer.', 2),
+        rule('hardFrost', 'Hard Frost', 'Frost brews also slow new reds for {n} s.', 'Frost slows the reds out now.', 'New reds slow for {n} s too.', 2),
+        cap('wildfire', 'Wildfire', 'Burning foes take {n}% more from your flasks.', 'Flasks hit burning foes as usual.', '+{n}% flask damage on burning foes.', 35),
+      ],
+    },
+    {
+      id: 'fizzToss',
+      name: 'Toss',
+      theme: 'Throwing flasks',
+      nodes: [
+        meter('quickMix', 'Quick Mix', 12),
+        combo('bubbling', 'Bubbling', 1),
+        rule('longArm', 'Long Arm', 'Tossed flasks hit {n}% harder.', 'A toss hits for its share.', 'Tosses hit {n}% harder.', 40),
+        rule('splash', 'Splash', 'A tossed flask also splashes every other foe for {n}%.', 'A toss hits its target.', 'It splashes the rest for {n}%.', 50),
+        cap('doubleToss', 'Double Toss', 'Every {n}th toss throws the next flask too.', 'A green throws one flask.', 'Every {n}th green throws two.', 3),
+      ],
+    },
+    {
+      id: 'fizzLab',
+      name: 'Lab',
+      theme: 'Fumes and fire',
+      nodes: [
+        hp('labCoat', 'Lab Coat', 10),
+        def('thickGoggles', 'Thick Goggles', 6),
+        rule('meltdown', 'Meltdown', 'Fire blasts melt the ice patches they reach.', 'Ice patches stay put.', 'Fire blasts melt the ice.'),
+        rule('fumeHood', 'Fume Hood', 'A trap no longer breaks your combo.', 'A trap breaks your combo.', 'Traps leave your combo.'),
+        cap('catalyst', 'Catalyst', 'A Perfect hit sets off the flasks a blast from it.', 'Flasks only go off when hit.', 'Perfects set off flasks nearby.'),
+      ],
+    },
+  ],
+  // ---------------------------------------------------------------- Brann (Guardian): tolls, peals, calm
+  brann: [
+    {
+      id: 'brannBell',
+      name: 'Bell',
+      theme: 'Tolls',
+      nodes: [
+        atk('bronzeArm', 'Bronze Arm', 10),
+        crit('clearTone', 'Clear Tone', 6),
+        rule('loudToll', 'Loud Toll', 'Each toll adds {n}% more.', 'Each toll adds its share.', 'Tolls add {n}% more.', 40),
+        rule('doubleToll', 'Double Toll', 'Perfect blocks ring two tolls.', 'A block rings once.', 'A Perfect block rings twice.'),
+        cap('resound', 'Resound', 'A hit with {n}+ tolls rings out at every other foe.', 'Tolls go into one hit.', 'Full tolls hit every foe.', 3),
+      ],
+    },
+    {
+      id: 'brannPeal',
+      name: 'Peal',
+      theme: 'Echoes',
+      nodes: [
+        meter('chanting', 'Chanting', 12),
+        combo('mantra', 'Mantra', 1),
+        rule('longPeal', 'Long Peal', 'Peal rings {n} s longer.', 'Peal rings for a few seconds.', 'It rings {n} s longer.', 1.5),
+        rule('resonance', 'Resonance', 'During Peal, blocks store {n} more Guard.', 'Peal only echoes.', 'Blocks store {n} more in it.', 1),
+        cap('bellWard', 'Bell Ward', 'During Peal, the first red to reach you is rung away.', 'Peal only echoes blocks.', 'It stops a red that gets by.'),
+      ],
+    },
+    {
+      id: 'brannCalm',
+      name: 'Calm',
+      theme: 'Still Mind',
+      nodes: [
+        hp('saffronRobe', 'Saffron Robe', 10),
+        def('prayerBeads', 'Prayer Beads', 6),
+        rule('unshaken', 'Unshaken', 'A red that hits you still rings the bell.', 'Only blocks ring the bell.', 'Hits taken ring it too.'),
+        rule('stunningToll', 'Stunning Toll', 'A Perfect block stuns its foe for {n} s.', 'A block only stops the red.', 'A Perfect block stuns {n} s.', 0.6),
+        cap('innerBell', 'Inner Bell', 'Every {n}th Perfect block sets off a Bulwark at once.', 'A Bulwark waits for full Guard.', 'Every {n}th Perfect sets one off.', 4),
+      ],
+    },
+  ],
 };

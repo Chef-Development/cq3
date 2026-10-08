@@ -23,8 +23,10 @@ const LEFT: Speaker[] = [
   // part6:A
   'solenne', 'wren',
   // part6:B
+  'yara', 'dell',
   // part6:C
   // part6:D
+  'fizz', 'brann',
 ];
 /** Friends who aren't heroes (Mags the smith): on the right like a villain, but in warm forge colors. */
 const ALLY: Speaker[] = ['smith'];

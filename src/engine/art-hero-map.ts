@@ -176,6 +176,114 @@ const WALKERS: Record<string, Walker> = {
       b: ['..pp...pp..', '.bBB...bBB.'],
     },
   },
+  // ---- Yara (Part 6): dark hair with beads, the starry indigo shawl, the white tunic and beaded sash, bare feet, the
+  // carved staff with its spirit stone
+  yara: {
+    pal: {
+      h: '#2c2036', H: '#5e4a6c', O: '#f08a30', R: '#d84a3a', S: '#cc8a58', s: '#a8643c', k: '#140c1c', F: '#cc8a58',
+      c: '#2c2c8c', C: '#1e1a5a', '*': '#fff6d8', w: '#eeeef8', W: '#cacae0', o: '#f08a30', y: '#f2c230', q: '#3ac8b8',
+      r: '#d84a3a', t: '#9a6a3e', T: '#74482a', e: '#7ae4f8', E: '#ffffff', f: '#a8643c',
+    },
+    top: [
+      '...hhhh..Ee',
+      '..hHhhhh.et',
+      '.hhhhhSSS.t',
+      '.hOhSkSSk.T',
+      '.hRhSSSSs.t',
+      '.cc*ccccSFt',
+      'cC*wwwwcc.T',
+      '.c.wwwwWw.t',
+      '...oryqow.t',
+      '...wwwwWw.t',
+    ],
+    legs: {
+      stand: ['...ss.ss..T', '...ff.ff...'],
+      a: ['..ss...ss.T', '.ff.....ff.'],
+      pass: ['....sss...T', '....fff....'],
+      b: ['..ss...ss.T', '.ff.....ff.'],
+    },
+    flap: [['c.', 'C*'], -1, 6],
+  },
+  // ---- Dell (Part 6): the straw hat and its red band, ginger hair, the red neckerchief, patched overalls, the
+  // slingshot in hand
+  dell: {
+    pal: {
+      Y: '#fff0a0', y: '#f2cc5a', u: '#d0a030', r: '#d03030', h: '#c0602e', S: '#fcd0b0', s: '#eeaa86', k: '#140c1c',
+      f: '#c8704a', n: '#d03030', N: '#f05a48', d: '#345496', D: '#22366a', B: '#f2c230', P: '#f05a48', e: '#e4d6b4',
+      w: '#9a6438', W: '#c8945a', b: '#4e2c1c', c: '#4c76bc',
+    },
+    top: [
+      '...........',
+      '...yYYy....',
+      '..yYYYYy...',
+      '.urrrrrru..',
+      'uyyyyyyyyyu',
+      '..hSSSSSS..',
+      '..hSkSSkS..',
+      '..eNnnnNe.W',
+      '.eddBddBdeW',
+      '..ddddPPd..',
+    ],
+    legs: {
+      stand: ['...dd.dd...', '...bb.bb...'],
+      a: ['..dd...dd..', '.bb.....bb.'],
+      pass: ['....ddd....', '....bbb....'],
+      b: ['..dd...dd..', '.bb.....bb.'],
+    },
+    flap: [['n.', 'N.'], 0, 7],
+  },
+  // ---- Part 6. Fizz: wild teal hair under the scorched cap and its red lens, the cream lab coat with its bandolier,
+  // the ladle on her shoulder
+  fizz: {
+    pal: {
+      h: '#1aa896', H: '#4cdcbc', c: '#5e3a26', C: '#845a38', L: '#f2c230', R: '#e03a3a', S: '#fccaa0', s: '#eaa47e', k: '#140c1c',
+      w: '#eee4c8', W: '#bcae94', b: '#3a2218', r: '#ff6a4a', o: '#62b0ff', g: '#7ae25a', t: '#8e5a2e', T: '#b8c2d8', p: '#2a2634', e: '#563826', E: '#36201a',
+    },
+    top: [
+      '.T..cccC...',
+      'TThcccccLR.',
+      '.thhccccLL.',
+      'hhHhSSSSSS.',
+      '.hhtSSkSSk.',
+      'hhhtSSSSSs.',
+      '..wtbwwwsS.',
+      '.wwwwbrwSs.',
+      '..wwwwbow..',
+      '..WwwwwwwW.',
+    ],
+    legs: {
+      stand: ['...pp.pp...', '..eeE.eeE..'],
+      a: ['..pp...pp..', '.eeE...eeE.'],
+      pass: ['....ppp....', '...eeEE....'],
+      b: ['..pp...pp..', '.eEE...eEE.'],
+    },
+    flap: [['W.', 'WW'], -1, 8],
+  },
+  // Brann: the shaved head, grey brows and beard, the saffron robe over maroon, the beads, the big bronze bell on his back
+  brann: {
+    pal: {
+      B: '#cc8c40', b: '#9a5a24', G: '#eec070', s: '#f6d8c6', S: '#e0b8a8', n: '#aeaebc', k: '#140c1c', d: '#80808e', D: '#aeaebc',
+      y: '#ea861c', Y: '#ffb43c', o: '#4a2a1a', m: '#701e2c', M: '#943240', h: '#b45610', e: '#6e4426',
+    },
+    top: [
+      '.GB..sss...',
+      'GBBbsssss..',
+      'BBBbsSSnSn.',
+      'BGBbsSSkSk.',
+      'BBBbSSSSSS.',
+      'BBBbdDddDd.',
+      '.YyyyddyyY.',
+      'YyyyoyyoyyY',
+      '..mmmommM..',
+      '..mmmmmmM..',
+    ],
+    legs: {
+      stand: ['..hhhhhhh..', '...ee.ee...'],
+      a: ['..hhhhhhh..', '..ee...ee..'],
+      pass: ['..hhhhhhh..', '....eee....'],
+      b: ['..hhhhhhh..', '..ee...ee..'],
+    },
+  },
 };
 
 // ---- Solenne and Wren (Part 6): drawn in their own art files

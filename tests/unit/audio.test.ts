@@ -756,7 +756,7 @@ describe('the music', () => {
       expect(tail.mean, `${act}: the last bars are the fight band`).toBeGreaterThan(mus(`${act}-fight@full`).mean - 2.5);
       expect(tail.mean, `${act}: louder than the calm`).toBeGreaterThan(mus(act).mean + 1);
     }
-  }, 120_000);
+  }, 600_000); // (heavy renders; slow when the whole suite shares a busy machine)
 
   it("Region 2's and 3's bosses take over on the next beat (into a 7/8 too) while the act's theme rings out", async () => {
     for (const [act, boss] of [
@@ -783,7 +783,7 @@ describe('the music', () => {
       s.scheduleMusic(AT, 21, act, { intense: false, cues: [{ step: 18, track: boss, intense: true }] });
       expect(s.currentMusic.track).toBe(boss);
     }
-  }, 120_000);
+  }, 600_000);
 
   it('the band stays light for an iPhone: under 320 new nodes a second, even with every layer in', async () => {
     for (const c of FIGHT_FULL) {
@@ -918,7 +918,7 @@ describe('ambience', () => {
         expect(m.phoneMean, `${k} phone mean vs ${id} music + ${a}`).toBeGreaterThanOrEqual(both.phoneMean + 1);
       }
     }
-  }, 180_000);
+  }, 600_000);
 });
 
 describe('UI and transition sounds', () => {

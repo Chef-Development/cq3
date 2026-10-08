@@ -55,6 +55,10 @@ reuse it. One number each in `tuning.styles`.
 | Torva | Brute | Epic | hero chests |
 | Solenne | Blade | Mythic | hero chests (round 7) |
 | Wren | Shadow | Rare | hero chests (round 7) |
+| Yara | Summoner | Mythic | hero chests (round 7) |
+| Dell | Marksman | Rare | hero chests (round 7) |
+| Fizz | Bomber | Legendary | hero chests (Part 6) |
+| Brann | Guardian | Epic | hero chests (Part 6) |
 
 Higher rarity = a richer kit: Legendary heroes' finishers do two things to the bar, and their passives interact with
 the region rules.
@@ -172,6 +176,75 @@ the region rules.
 - Finisher show: her hook flies up and yanks her out of sight, she races over the foes throwing knives (one per
   strike), then drops onto the target: a white cut, smoke and roof tiles.
 
+### Yara, Spirit Caller (Summoner, Mythic) — round 7
+- Look: a young spirit caller with warm brown skin, dark braided hair threaded with beads, a deep-blue (indigo) shawl
+  patterned with stars over a white tunic with a beaded sash, bare feet (a bead anklet), a carved staff whose ring
+  holds a cyan spirit stone, charms (beads, a white feather) hanging from it, soft cyan spirit-light round her hands.
+  Palette: indigo, star white, cyan spirit-light, warm bead colours.
+- 80 HP, attack 0.6 of Rowan's (her spirits do much of the work).
+- Spirits (called by green hits in order, like Moss's allies; they grow a little with the Companion stat; each stays
+  6 s; a call with all three out is a Rally):
+  - **Spirit Wolf** (attack): bites the target for 25% of her attack every 2 s.
+  - **Spirit Tortoise** (block): its shell comes up 3 s after it's called and takes a quarter of the next red that
+    reaches her (the rest lands: a hit); then it rests 30 s (a Tortoise called while the last one's rest runs waits it
+    out). (Designed to stop the red whole: at 75% that alone put her 10-20 points over Rowan at every boss, where a red
+    is a third of her HP.)
+  - **Wisp Swarm** (meter): fills 30% of a hit's meter every 2 s (never heals).
+- Signature **Spirit Bond**: spirits come in order; a call with all three out is a Rally.
+- Ability (green) **Call**: call the next spirit.
+- Passive **Kinship**: each spirit out adds +3% crit chance.
+- Finisher **Spirit Stampede**: hits all foes, +8% per spirit out; knocks the reds off and tramples the traps. (Two
+  things to the bar.) Its show: stars join into a stag in the sky, her spirits stampede through the foes, the great
+  stag of starlight leaps down through them.
+- Mythic gift **Great Spirit**: a Rally calls the great spirit stag for 4 s; it strikes every foe for 13% of her
+  attack each second.
+- Strength: takes 20% less from Swarms (slimes, piglets, cinderlings). (Not Beasts: all three region bosses are
+  Beasts; not Casters: the second region is full of them, its Act 5 boss too.)
+
+### Dell, Slinger (Marksman, Rare) — round 7
+- Look: a freckled farm kid (a head shorter than the grown-ups) with ginger hair under a wide straw hat with a red
+  band, a red neckerchief, patched denim overalls over a cream shirt, scuffed boots, a forked slingshot and a pouch
+  of pebbles at his hip. Palette: straw yellow, denim blue, red, freckled skin.
+- 108 HP, attack 1.14 of Rowan's.
+- Signature **Ricochet**: the Power Shot bounces on to the weakest other foe (the least HP) for 35% of it.
+- Ability (green, the style's Power Shot) **Lucky Shot**: a Perfect green crits, and so does the Power Shot it fires.
+- Passive **Pocketful**: a miss doesn't empty the meter's fill toward the next stack (the combo and the banked
+  stacks still go). (Designed as "a miss doesn't lose Focus", but a Marksman's Focus never falls on a miss.)
+- Finisher **Pebble Storm**: hits all foes; every red on the bar is knocked back 0.3 of the bar, and one knocked
+  past the far end flies off it (an icicle, which can't move, is knocked off). (Knocked back only, they all
+  came again: at 75% he took twice Rowan's hits a second at the second and third regions' bosses.) Its show: pebbles
+  ping from foe to foe, his lucky golden pebble hops through them all.
+- Strength: +20% damage to Flyers.
+
+### Fizz, Alchemist (Bomber, Legendary) — Part 6
+- Look: a wiry, wild-haired alchemist: bright teal hair bursting out under a scorched leather cap with a brass-rimmed
+  red lens, a stained cream lab coat with rolled sleeves, a bandolier of coloured flasks, a long-handled ladle.
+  Palette: teal, lab-coat cream, glass colours (fire red, frost blue, spark green), soot.
+- Kegs: her kegs (every 5th yellow, the Bomber's Powder) are flasks, in turn from her bandolier: **fire** (its blast
+  sets every foe burning: 12% attack a second for 3 s), **frost** (slows every red on the bar by 15% for 1.5 s),
+  **spark** (blasts 25% wider and x1.3 harder). The bar paints each flask in its brew; the tab shows the next one.
+- Signature **Mixed Brew**: kegs come in three brews, each with its own effect on top of the blast.
+- Ability (green) **Toss**: a green hit throws the next flask straight at the target (x1.5 attack, and its brew there:
+  fire burns it, frost slows its reds, spark hits harder).
+- Passive **Fume Mask**: traps hurt her 50% less.
+- Finisher **Grand Reaction**: hits all foes; every flask on the bar goes off (each with its brew), then two new
+  flasks land. (Two things to the bar.) Signature moment: three flasks hang over the foes, pour their brews, then
+  smash together into one great bubble.
+- Strength: +20% damage to Frost foes.
+
+### Brann, Bellwarden (Guardian, Epic) — Part 6
+- Look: a broad, calm monk with a shaved head, a grey beard and pale skin, saffron-and-maroon robes, prayer beads, a
+  huge bronze temple bell (bosses, two bands, a striking pad) carried on his back and swung as a shield.
+  Palette: bronze/brass, saffron, maroon.
+- Signature **Toll**: every block rings his bell; each toll adds 20% to his next hit (up to 3; the hit spends them).
+- Ability (green) **Peal**: for 3 s after a green hit, each red he blocks echoes 30% of its blow at every foe.
+- Passive **Still Mind**: Perfect blocks store 1 more Guard.
+- Finisher **Great Bell**: the bell drops on the target: one big hit that spends all stored Guard (+9% a Guard), its
+  boom hits every other foe for 90% of it, and every foe is stunned for 0.5 s (a boss shrugs the stun off; only its
+  reds wait). Signature moment: a giant temple bell comes down over the target, rings with each strike, drops on it;
+  sound rolls across the stage.
+- Strength: takes 20% less from Casters.
+
 ### Stars (1-5, from shards of duplicates)
 Every hero: 2★ +6% attack, 4★ +8% max HP. 3★ and 5★ unlock a move (data: `HERO_STARS`):
 
@@ -187,6 +260,10 @@ Every hero: 2★ +6% attack, 4★ +8% max HP. 3★ and 5★ unlock a move (data:
 | Torva | Quake also on blocks | Earthsplitter keeps 1 stack |
 | Solenne | Sunrise burns 5 s (Long Dawn) | Sunfall gilds every yellow on the bar (High Noon) |
 | Wren | after a dodge, her next hit crits (Grapple) | Rooftop Drop readies a dodge (Roof Hop) |
+| Yara | the Tortoise's shell takes two reds | the Great Spirit stays twice as long |
+| Dell | Ricochet bounces on to one more foe | a Lucky Shot stuns its foe (1 s) |
+| Fizz | brews 50% stronger (burn, chill, blast) | Grand Reaction lands a flask of every brew |
+| Brann | the bell holds 5 tolls | Great Bell's boom hits the other foes for 130% (from 90%) |
 
 ---
 

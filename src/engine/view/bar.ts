@@ -20,6 +20,8 @@ import { brick, ellipse, icon, rows, slab } from './pixels';
 import { BLOCK_ICONS, FOE_ICONS } from './icons';
 import { isGilded } from '../../core/kit-fx';
 import { drawGilded } from './dawn-roof';
+import { brewOf } from '../../core/kit-fizz-brann';
+import { paintBarFlask } from './fizz-brann-paint';
 import { BLOCKER_FACE, cursorGhost, drawBlocker, drawChill, drawFrozen, drawFuse, drawGrow, drawHold, drawIceCoat, drawKeg, drawPatch, drawVines, drawWall, sparkle, type PatchLook } from './bar-kinds';
 import { BOMB_COL, clamp01, deepOf, DYING_MS, dyingStyle, ease, INK, kindCol, mix, pulse, rand, stackCol, WHITE, type Dying } from './shared';
 import { focusCap, focusOf } from '../../core/styles';
@@ -633,7 +635,8 @@ export class BarView {
     const H = h - squash;
     // a Marksman's target (a green that fires the stored Focus): a soft halo behind it
     if (b.target && b.kind === 'green') this.targetHalo(g, c, X, Y, W, H, now, b.id);
-    if (b.kind === 'keg') drawKeg(g, X, Y, W, H, now);
+    if (b.kind === 'keg' && brewOf(b)) paintBarFlask(g, X, Y, W, H, brewOf(b)!, now); // (Part 6: Fizz's flasks)
+    else if (b.kind === 'keg') drawKeg(g, X, Y, W, H, now);
     else if (b.kind === 'frozen') drawFrozen(g, X, Y, W, H, now, b.life, b.id);
     else if (b.kind === 'hold') {
       const held = c.holding?.id === b.id;
@@ -907,6 +910,7 @@ export class BarView {
     // (in the order they'd take a red: the style's ally, the kit's afterimage, then the companion; the first nearest)
     const ready: string[] = [];
     if (c.allies.some((a) => a.kind === 'barkback' && a.braced)) ready.push('barkback');
+    if (c.allies.some((a) => a.kind === 'spiritTortoise' && a.braced)) ready.push('spiritTortoise'); // (Yara's, Part 6)
     if (c.perk.afterimage) ready.push('afterimage');
     if ((c.perk.slip ?? 0) > 0 && c.heroId === 'wren') ready.push('slip'); // (Wren's ready dodge)
     if (c.perk.rockReady) ready.push('rockWall');

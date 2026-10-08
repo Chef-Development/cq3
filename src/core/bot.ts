@@ -782,6 +782,7 @@ function wantsFinisher(c: Combat, risk: number): boolean {
   if (target && c.finisherDamage() * finisherKitMult(c) >= target.hp) return true;
   // a Guardian with a Bulwark ready sets it off with the next tap first (Rampart would spend that Guard on one foe)
   if (c.heroId === 'hollis' && guardOf(c) >= guardMax(c)) return false;
+  if (c.heroId === 'brann' && guardOf(c) >= guardMax(c)) return false; // (Part 6: Brann's Great Bell spends it too)
   const hitsNeeded = Math.max(1, c.hitsToStack()); // each stack costs more than the last
   const survive = Math.pow(1 - Math.min(0.95, risk), hitsNeeded);
   return survive * (c.finisherDamage(c.stacks + 1) / Math.max(1, c.finisherDamage())) < 1;
@@ -815,6 +816,16 @@ function finisherKitMult(c: Combat): number {
       const d = Math.max(1, c.finisherDamage());
       return 1 + (focusOf(c) * K.vesper.volleyFocus) / d; // the Volley spends the Focus
     }
+    // ---- Part 6
+    case 'yara':
+      return 1 + K.yara.stampede * c.allies.length; // Spirit Stampede: more per spirit out
+    case 'dell':
+      return K.dell.stormMult;
+    // ---- Part 6: Fizz (Grand Reaction), Brann (Great Bell spends the Guard)
+    case 'fizz':
+      return K.fizz.grandMult;
+    case 'brann':
+      return 1 + guardOf(c) * c.tuning.styles.guardPer * K.brann.bellGuard;
     default:
       return 1;
   }

@@ -436,8 +436,29 @@ export const DEFAULT_TUNING = {
     // target for dropMult; then every foe takes dropLink of the finisher per Chain link
     wren: { hp: 100, atk: 0.95, abilitySec: 3, slipEvery: 4, smokeCut: 0.25, feet: 1, dropMult: 1.25, dropLink: 0.12 },
     // part6:B
+    // yara (Part 6): her spirits stay allySec (spirits); the Wolf bites wolfDmg x attack every wolfEvery s; the Tortoise's
+    // shell comes up shellFirst s after it's called and takes shellSoak of the next red that reaches her (1: all of it;
+    // shell3 reds at 3 stars), then rests shellRest s (a new Tortoise waits it out); the Wisps fill wispMeter of a hit's meter every wispEvery s (all three grow with the
+    // Companion stat, like Moss's: allyComp); Kinship: kinship crit per spirit out; Spirit Stampede: x(1 + stampede per
+    // spirit out); Great Spirit: a Rally calls the stag for stagSec (x2 at 5 stars), striking every foe for stagDmg x
+    // attack every stagEvery s
+    yara: { hp: 80, atk: 0.6, abilitySec: 3, allySec: 6, allyComp: 0.05, wolfEvery: 2, wolfDmg: 0.25, shellFirst: 3, shellRest: 30, shell3: 2, shellSoak: 0.25, wispEvery: 2, wispMeter: 0.3, kinship: 0.03, stampede: 0.08, stagSec: 4, stagEvery: 1, stagDmg: 0.13 },
+    // dell (Part 6): Ricochet bounces ricochet of the Power Shot onto the weakest other foe; Pebble Storm hits every foe
+    // x stormMult and knocks every red back stormKnock of the bar (one knocked past the far end, or an icicle, which
+    // can't move, is knocked off); a Lucky Shot stuns for luckyStun s at 5 stars
+    dell: { hp: 108, atk: 1.14, abilitySec: 3, ricochet: 0.35, stormMult: 1, stormKnock: 0.3, luckyStun: 1 },
     // part6:C
     // part6:D
+    // fizz: kegs are flasks in turn (fire, frost, spark): fire burns every foe for fireDps x attack a second for fireSec;
+    // frost slows every red on the bar to frostMult for frostSec; spark blasts sparkRadius wider and sparkMult harder.
+    // Toss (green) throws the next flask at the target for tossMult x attack; Fume Mask cuts trap damage by fumeMask;
+    // potent (3 stars) x the brews; Grand Reaction lands bangFlasks new flasks
+    fizz: { hp: 104, atk: 0.84, abilitySec: 3, fireDps: 0.12, fireSec: 3, frostSec: 1.5, frostMult: 0.85, sparkMult: 1.3, sparkRadius: 1.25, tossMult: 1.5, fumeMask: 0.5, potent: 1.5, grandMult: 1, bangFlasks: 2 },
+    // brann: each block rings a toll (up to tollMax; 3 stars tollMax3): +tollPer damage each on the next hit; Peal (green)
+    // echoes pealShare of a blocked red's blow at every foe; Still Mind: Perfect blocks store stillMind more Guard; Great
+    // Bell: the target, +bellGuard per Guard share spent; its boom hits the others for bellEcho of it (5 stars: bellEcho5); every
+    // foe stunned bellStun s (a boss: its reds wait)
+    brann: { hp: 98, atk: 0.95, abilitySec: 3, tollPer: 0.2, tollMax: 3, tollMax3: 5, pealShare: 0.3, stillMind: 1, bellGuard: 0.3, bellStun: 0.5, bellEcho: 0.9, bellEcho5: 1.3 },
   },
   chests: {
     // Hero chests (core/chests.ts): a hero or a companion, weighted toward the low tiers, or shards for one you own.

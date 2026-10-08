@@ -550,7 +550,7 @@ test('camp: a hero chest opens (the slam, the build-up through the rarity colour
   await expect(page).toHaveScreenshot('chests.png', shot);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await camp((c: any, now) => {
-    c.chests.reseed(37); // a Legendary hero, new: Vesper (5 steps: grey, green, blue, purple, orange)
+    c.chests.reseed(37); // a Legendary hero, new: Fizz (5 steps: grey, green, blue, purple, orange)
     c.chests.openKind('hero', now);
   });
   await frames(page, 120); // the third step (blue): the lid hops, light leaks from the seam
@@ -1944,4 +1944,155 @@ test("unique finishers, Blade (Solenne, Mythic): a sun kindles on her raised bla
 test("unique finishers, Shadow (Wren): hooked up out of sight, racing over the foes throwing knives, then dropping onto the target", async ({ page }) => {
   await finisherShow(page, 'wren', { at: 36 });
   await expect(page).toHaveScreenshot('finisher-wren.png', shot);
+});
+
+// ------------------------------------------------------------------ Yara and Dell (Part 6)
+
+test('Part 6: Yara calls her spirits (Wolf, Tortoise braced at the left end, Wisps), then a Rally brings the Great Spirit', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'yara' });
+  await bar(page, `c.tuning.kits.yara.shellFirst = 1;`); // (the shell up soon after the call, whatever the tuning)
+  for (let i = 0; i < 3; i++) {
+    await bar(page, `const p = c.cursorPos(); c.spawnBlock('green', p); app.barTap(performance.now());`);
+    await frames(page, 30);
+  }
+  await frames(page, 40); // the Tortoise's shell is up
+  await expect(page).toHaveScreenshot('yara-spirits.png', shot);
+  // a fourth call with all three out: a Rally, and the stag comes down
+  await bar(page, `const p = c.cursorPos(); c.spawnBlock('green', p); app.barTap(performance.now());`);
+  await frames(page, 24);
+  await expect(page).toHaveScreenshot('yara-stag.png', shot);
+});
+
+test('Part 6: Dell fires a Lucky Shot (a Perfect green: a crit) and it bounces to the weaker foe (Ricochet)', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'dell' });
+  await bar(page, `c.addEnemy('crow', { hp: 30 }); view.fighters.addEnemies(c); c.perk.focus = 9999;`);
+  await frames(page, 40);
+  await bar(page, `const p = c.cursorPos(); c.spawnBlock('green', p); app.barTap(performance.now());`);
+  await frames(page, 7);
+  await expect(page).toHaveScreenshot('dell-lucky-shot.png', shot);
+});
+
+test('Part 6: the hero select shows Yara (Mythic, a Summoner) and Dell (a Marksman)', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stockProfile(page);
+  await heroProfile(page);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.profile.heroes.yara.unlocked = true;
+    app.profile.heroes.dell.unlocked = true;
+    app.newRun();
+    app.openCamp();
+  });
+  await frames(page, 30);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const camp = (fn: (c: any, now: number) => void) => page.evaluate(`(${fn.toString()})(window.__cq3.app.view.camp, performance.now())`);
+  await camp((c, now) => c.go('heroes', now, 'yara'));
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('hero-select-yara.png', shot);
+  await camp((c, now) => c.heroes.show('dell', now));
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('hero-select-dell.png', shot);
+});
+
+test('Part 6: unique finishers, Summoner (Yara): stars join into a stag in the sky while she calls; her spirits stampede through the foes; the great stag leaps down through them', async ({ page }) => {
+  await finisherShow(page, 'yara', { at: 22 });
+  await expect(page).toHaveScreenshot('finisher-yara-call.png', shot);
+  await frames(page, 12);
+  await expect(page).toHaveScreenshot('finisher-yara-stampede.png', shot);
+  await frames(page, 22);
+  await expect(page).toHaveScreenshot('finisher-yara-stag.png', shot);
+});
+
+test('Part 6: unique finishers, Marksman (Dell): pebbles ping from foe to foe; his lucky golden pebble hops through them all', async ({ page }) => {
+  await finisherShow(page, 'dell', { at: 30 });
+  await expect(page).toHaveScreenshot('finisher-dell-pebbles.png', shot);
+  await frames(page, 26);
+  await expect(page).toHaveScreenshot('finisher-dell-lucky.png', shot);
+});
+
+// ------------------------------------------------------------------ Part 6: Fizz and Brann
+
+test("Part 6, Fizz: her flasks on the bar in three brews (fire, frost, spark) and her bandolier tab; a fire flask goes off (flames on the bar, the foes burning); a toss flies to the target", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'fizz' });
+  await bar(page, `c.addEnemy('wolf'); view.fighters.addEnemies(c);`);
+  await frames(page, 40);
+  await bar(page, `c.spawnBlock('keg', 0.3); c.spawnBlock('keg', 0.55); c.spawnBlock('keg', 0.8); c.spawnBlock('red', 0.92, foe.id); c.setCursor(0.12, 1);`);
+  await frames(page, 14);
+  await expect(page).toHaveScreenshot('fizz-flasks.png', shot);
+  await bar(page, `const k = c.blocks.find((b) => b.kind === 'keg'); c.setCursor(k.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 6);
+  await expect(page).toHaveScreenshot('fizz-fire-flask.png', shot);
+  await frames(page, 70);
+  await bar(page, `for (const b of c.blocks.slice()) if (b.kind === 'red') c.removeBlock(b, 'perk'); c.perk.brew = 2; const g = c.spawnBlock('green', 0.45); c.setCursor(g.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 7);
+  await expect(page).toHaveScreenshot('fizz-toss.png', shot);
+});
+
+test("Part 6, Brann: every block rings his bell (a sound ring, a little bell over the block, toll pips on the Guard tab); the next hit lands with a bell's boom; Peal echoes a blocked red at every foe", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'brann' });
+  await bar(page, `c.addEnemy('wolf'); view.fighters.addEnemies(c);`);
+  await frames(page, 40);
+  await bar(page, `c.spawnBlock('red', 0.35, foe.id); c.setCursor(0.35, 1); app.barTap(performance.now());`);
+  await frames(page, 20);
+  await bar(page, `c.spawnBlock('red', 0.5, foe.id); c.setCursor(0.5, 1); app.barTap(performance.now());`);
+  await frames(page, 6);
+  await expect(page).toHaveScreenshot('brann-toll.png', shot);
+  await frames(page, 30);
+  await bar(page, `const y = c.spawnBlock('yellow', 0.6); c.setCursor(y.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 8);
+  await expect(page).toHaveScreenshot('brann-toll-hit.png', shot);
+  await frames(page, 40);
+  await bar(page, `const g = c.spawnBlock('green', 0.3); c.setCursor(g.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 20);
+  await bar(page, `c.spawnBlock('red', 0.45, foe.id); c.setCursor(0.45, 1); app.barTap(performance.now());`);
+  await frames(page, 9);
+  await expect(page).toHaveScreenshot('brann-peal.png', shot);
+});
+
+test('Part 6: the hero select shows Fizz (a Bomber in her workshop) and Brann (a Guardian at his gate), their kit cards', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stockProfile(page);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.profile.heroes.fizz.unlocked = true;
+    app.profile.heroes.brann.unlocked = true;
+    app.profile.heroes.brann.stars = 3;
+    app.newRun();
+    app.openCamp();
+  });
+  await frames(page, 30);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const camp = (fn: (c: any, now: number) => void) => page.evaluate(`(${fn.toString()})(window.__cq3.app.view.camp, performance.now())`);
+  await camp((c, now) => c.go('heroes', now, 'fizz'));
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('hero-select-fizz.png', shot);
+  await camp((c, now) => c.heroes.show('brann', now));
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('hero-select-brann.png', shot);
+});
+
+test("Part 6, Fizz's finisher: three flasks hang over the foes, each pouring its brew (fire, frost, spark), on a smoky burning sky", async ({ page }) => {
+  await finisherShow(page, 'fizz');
+  await expect(page).toHaveScreenshot('finisher-fizz.png', shot);
+  await frames(page, 26);
+  await expect(page).toHaveScreenshot('finisher-fizz-blow.png', shot);
+});
+
+test("Part 6, Brann's finisher: a giant temple bell rings over the target, then drops on it; sound rolls across the stage", async ({ page }) => {
+  await finisherShow(page, 'brann');
+  await expect(page).toHaveScreenshot('finisher-brann.png', shot);
+  await frames(page, 26);
+  await expect(page).toHaveScreenshot('finisher-brann-blow.png', shot);
 });

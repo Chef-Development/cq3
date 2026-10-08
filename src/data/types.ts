@@ -183,8 +183,12 @@ export type Speaker =
   | 'solenne'
   | 'wren'
   // part6:B
+  | 'yara'
+  | 'dell'
   // part6:C
   // part6:D
+  | 'fizz'
+  | 'brann'
   | 'rimehorn'
   | 'matron'
   | 'glacia'

@@ -41,6 +41,8 @@ import {
 } from './finisher-fx';
 import { arrow, heaterShield, rockSpike, vine } from './finisher-kits';
 import { DAWN_ROOF_MARKS, ROOFTOP_DROP, SUNFALL } from './finisher-dawn-roof';
+import { PART6B_SIGNATURES } from './finisher-signatures-b';
+import { FIZZ_BRANN_MARKS, GRAND_REACTION, GREAT_BELL } from './finisher-sig-fizz-brann';
 
 /** Where the hero is and how they look at a moment of the show. */
 export interface HeroMotion {
@@ -930,8 +932,12 @@ export const SIGNATURE_DRAW: Record<SignatureId, SignatureDraw> = {
   sunfall: SUNFALL,
   rooftopDrop: ROOFTOP_DROP,
   // part6:B
+  spiritStampede: PART6B_SIGNATURES.spiritStampede,
+  pebbleStorm: PART6B_SIGNATURES.pebbleStorm,
   // part6:C
   // part6:D
+  grandReaction: GRAND_REACTION,
+  greatBell: GREAT_BELL,
   crossCut: CROSS_CUT,
   rift: RIFT,
   shieldDome: SHIELD_DOME,
@@ -1082,6 +1088,8 @@ export const SIG_MARKS: Record<string, MarkDraw> = {
     line(g, mx - dx, my - dy, mx + dx, my + dy, 1, WHITE, a);
     line(g, mx - dx, my + dy, mx + dx, my - dy, 1, WHITE, a);
   },
+  // ---- Part 6: Fizz's and Brann's (view/finisher-sig-fizz-brann.ts)
+  ...FIZZ_BRANN_MARKS,
 };
 
 

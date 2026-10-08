@@ -6,6 +6,8 @@ import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 import { and, bez, ell, fill, not, or, rimShade, sphere, stroke, tone } from './art-paint';
 import { solennePortrait } from './art-hero-solenne';
 import { wrenPortrait } from './art-hero-wren';
+import { fizzPortrait } from './art-hero-fizz';
+import { brannPortrait } from './art-hero-brann';
 
 const P = 40;
 const INK = '#140c1c';
@@ -22,8 +24,12 @@ export const PORTRAIT_FACE_AT: Record<string, [number, number]> = {
   solenne: [15, 9],
   wren: [15, 10],
   // part6:B
+  yara: [15, 9],
+  dell: [15, 10],
   // part6:C
   // part6:D
+  fizz: [15, 10],
+  brann: [15, 11],
 };
 
 const SKIN_FAIR = ['#8a4a3a', '#c87a5e', '#eeaa86', '#fcd0b0', '#fff0e0'];
@@ -544,6 +550,174 @@ function moss(): HTMLCanvasElement {
   return toCanvas(g);
 }
 
+// ------------------------------------------------------------------ Yara (Part 6)
+
+const Y_SKIN = ['#4a2418', '#7a4228', '#a8643c', '#cc8a58', '#e8ae7c'];
+const Y_HAIR = ['#0e0a14', '#1c1424', '#2c2036', '#40304c', '#5e4a6c'];
+const Y_SHAWL = ['#120c30', '#1e1a5a', '#2c2c8c', '#4042b8', '#6a6ede'];
+const Y_TUNIC = ['#7a7a9e', '#aaaacc', '#d6d6ea', '#f2f2fa', '#ffffff'];
+const Y_SPIRIT = ['#1a6a8a', '#3ab4d8', '#7ae4f8', '#c4f8ff', '#ffffff'];
+const Y_BEADS = ['#f08a30', '#3ac8b8', '#f2c230', '#d84a3a'];
+
+function yara(): HTMLCanvasElement {
+  const g = grid(P, P);
+  // the braid falling behind her shoulder, threaded with beads
+  for (let i = 0; i < 7; i++) {
+    const cx = 10.5 - i * 0.6;
+    const cy = 19 + i * 2.6;
+    fill(g, ell(cx, cy, 2.6, 1.7), sphere(Y_HAIR, cx - 1.2, cy - 1, 3.4, 2.6, i % 2 ? -0.04 : 0.1));
+    if (i % 2 === 1) put(g, Math.round(cx + 1), Math.round(cy), Y_BEADS[(i >> 1) % 4]);
+  }
+  // the shawl round her shoulders (indigo, star specks), the white tunic at the throat
+  const shawl = ell(21, 42, 17, 11);
+  fill(g, shawl, sphere(Y_SHAWL, 14, 34, 22, 14, 0.06));
+  rimShade(g, shawl, Y_SHAWL[1]);
+  // (a V of it between the shawl's edges)
+  const tunic = and(ell(23, 41, 5, 9), (x, y) => y >= 32 && Math.abs(x + 0.5 - 23) <= (y - 30) * 0.9);
+  fill(g, tunic, sphere(Y_TUNIC, 20, 33, 9, 9, 0.02));
+  // the shawl's edges crossing over the tunic
+  for (let y = 32; y < 40; y++) {
+    put(g, 17 + Math.round((y - 32) * 0.4), y, Y_SHAWL[3]);
+    put(g, 29 - Math.round((y - 32) * 0.3), y, Y_SHAWL[2]);
+  }
+  for (const [x, y] of [
+    [9, 35],
+    [13, 33],
+    [6, 38],
+    [33, 35],
+    [36, 38],
+    [11, 38],
+  ])
+    put(g, x, y, '#fff6d8');
+  put(g, 30, 33, '#b8bcff');
+  // the head: dark hair with soft bangs
+  const hair = or(ell(20.5, 16, 11.5, 11.5), ell(15, 20, 5.5, 5.5));
+  fill(g, hair, sphere(Y_HAIR, 15, 9, 16, 16, 0.08, 0.06));
+  rimShade(g, hair, Y_HAIR[0], 2);
+  for (const [x, y] of bez([11, 14], [14, 6], [20, 4.5], [27, 5.5], 30)) put(g, Math.round(x), Math.round(y), Y_HAIR[4]);
+  for (const [x, y] of bez([28, 8], [22, 7.5], [16, 10], [12, 17], 30)) if (hair(Math.round(x), Math.round(y))) put(g, Math.round(x), Math.round(y), Y_HAIR[3]);
+  // the face: soft, a rounded chin
+  const face = and(or(ell(27.5, 20, 6.8, 7.2), ell(27.5, 24.5, 5, 4), ell(34.2, 22, 1.2, 1.4)), (_x, y) => y >= 12);
+  fill(g, face, sphere(Y_SKIN, 26, 16, 9, 10, 0.28));
+  rimShade(g, face, Y_SKIN[1]);
+  // bangs over the brow
+  lock(g, [[21, 11], [26, 12.5], [30, 14]], 2, 0.6, Y_HAIR, 0.1);
+  lock(g, [[25, 10], [30, 11], [33, 14]], 1.4, 0.5, Y_HAIR, 0.14);
+  // the ear, a bead string hanging from the temple
+  fill(g, ell(20.5, 21, 1.6, 2.4), sphere(Y_SKIN, 19.5, 20, 3, 3.5, 0.1));
+  for (let k = 0; k < 5; k++) put(g, 20, 23 + k, k % 2 ? Y_BEADS[k % 4] : '#c8b89a');
+  // brows, warm brown eyes, a calm smile
+  for (const [x, y] of [
+    [23, 16],
+    [24, 15],
+    [25, 15],
+    [30, 15],
+    [31, 15],
+    [32, 16],
+  ])
+    put(g, x, y, Y_HAIR[1]);
+  const eye: Pal = { k: INK, W: '#ffffff', a: '#7a3a1e', A: '#4a200e' };
+  eyes(g, ['kkkk', 'WaAk', '.kk.'], eye, 23, 17);
+  eyes(g, ['kkk', 'WaA', '.kk'], eye, 30, 17);
+  put(g, 34, 23, Y_SKIN[2]);
+  for (const [x, y] of [
+    [28, 26],
+    [29, 26],
+    [30, 26],
+    [27, 25],
+  ])
+    put(g, x, y, '#7a2a2a');
+  // spirit-light: a mote drifting by her shoulder
+  for (const [dx, dy, c] of [
+    [0, 0, Y_SPIRIT[4]],
+    [1, 0, Y_SPIRIT[3]],
+    [-1, 0, Y_SPIRIT[3]],
+    [0, 1, Y_SPIRIT[3]],
+    [0, -1, Y_SPIRIT[3]],
+    [2, 2, Y_SPIRIT[2]],
+  ] as Array<[number, number, string]>)
+    put(g, 36 + dx, 29 + dy, c);
+  return toCanvas(g);
+}
+
+// ------------------------------------------------------------------ Dell (Part 6)
+
+const D_SKIN = ['#8a4a3a', '#c87a5e', '#eeaa86', '#fcd0b0', '#fff0e0'];
+const D_STRAW = ['#5a3a10', '#9a6a18', '#d0a030', '#f2cc5a', '#fff0a0'];
+const D_DENIM = ['#141e44', '#22366a', '#345496', '#4c76bc', '#78a0e0'];
+const D_RED = ['#4a0f1a', '#8a1a22', '#d03030', '#f05a48', '#ff9a80'];
+const D_HAIR = ['#4a1a0e', '#8a3a1a', '#c0602e', '#e08a48', '#f8b070'];
+const D_SHIRT = ['#7a6a52', '#b8a888', '#e4d6b4', '#fbf2dc'];
+
+function dell(): HTMLCanvasElement {
+  const g = grid(P, P);
+  // the shoulders: a cream shirt, the overalls' bib and straps, a brass button
+  const shirt = ell(21, 43, 16, 11);
+  fill(g, shirt, sphere(D_SHIRT, 14, 35, 22, 13, 0.1));
+  rimShade(g, shirt, D_SHIRT[1]);
+  const bib = and(ell(23, 44, 9, 10), (_x, y) => y >= 35);
+  fill(g, bib, sphere(D_DENIM, 20, 37, 12, 9, 0.12));
+  for (const sx of [15, 30])
+    for (let y = 31; y < 40; y++) {
+      put(g, sx + Math.round((y - 31) * (sx < 20 ? 0.35 : -0.3)), y, D_DENIM[3]);
+      put(g, sx + 1 + Math.round((y - 31) * (sx < 20 ? 0.35 : -0.3)), y, D_DENIM[2]);
+    }
+  stamp(g, ['ab', 'bc'], { a: '#fff0a0', b: '#f2c230', c: '#9a5a14' }, 18, 37);
+  stamp(g, ['ab', 'bc'], { a: '#fff0a0', b: '#f2c230', c: '#9a5a14' }, 28, 37);
+  // the red neckerchief knotted at the throat
+  const scarf = or(ell(23, 32, 7, 2.6), ell(23, 35, 2.6, 2.4));
+  fill(g, scarf, sphere(D_RED, 20, 30, 9, 5, 0.1));
+  rimShade(g, scarf, D_RED[1]);
+  // ginger hair under the hat
+  const hair = or(ell(20, 18, 10.5, 9), ell(15, 22, 5, 5));
+  fill(g, hair, sphere(D_HAIR, 15, 13, 14, 12, 0.06));
+  rimShade(g, hair, D_HAIR[0]);
+  // the face: round cheeks, a snub nose
+  const face = and(or(ell(27, 21, 7.2, 7.2), ell(27, 25.5, 5.6, 3.8), ell(34, 22.8, 1.4, 1.4)), (_x, y) => y >= 13);
+  fill(g, face, sphere(D_SKIN, 25, 17, 9, 10, 0.3));
+  rimShade(g, face, D_SKIN[1]);
+  fill(g, ell(20.5, 21.5, 1.8, 2.5), sphere(D_SKIN, 19.5, 20.5, 3, 3.5, 0.12));
+  put(g, 21, 22, D_SKIN[1]);
+  // tufts poking out at the brow
+  for (const [x, y] of [
+    [22, 14],
+    [24, 15],
+    [21, 15],
+    [26, 14],
+  ])
+    put(g, x, y, D_HAIR[3]);
+  // big green eyes, freckles, a gap-toothed grin
+  const eye: Pal = { k: INK, W: '#ffffff', a: '#3aa04a', A: '#1e6a34' };
+  eyes(g, ['.kk.', 'kWak', 'kaAk', '.kk.'], eye, 22, 17);
+  eyes(g, ['.kk', 'kWa', 'kaA', '.kk'], eye, 30, 17);
+  for (const [x, y] of [
+    [23, 22],
+    [25, 23],
+    [24, 21],
+    [30, 22],
+    [32, 21],
+    [31, 23],
+    [27, 22],
+  ])
+    put(g, x, y, '#c8704a');
+  put(g, 34, 23, D_SKIN[2]);
+  stamp(g, ['xxxxx', 'xW.Wx', '.xxx.'], { x: '#8a3030', W: '#fff4e8', '.': '#c05050' }, 26, 25);
+  // the straw hat: a domed crown with a red band, a wide brim tilted back
+  const crown = ell(21, 7.5, 8, 5.5);
+  fill(g, crown, sphere(D_STRAW, 17, 4, 11, 7, 0.1));
+  rimShade(g, crown, D_STRAW[1]);
+  for (let x = 13; x <= 29; x++) {
+    put(g, x, 11, x % 2 ? D_RED[2] : D_RED[3]);
+    put(g, x, 12, D_RED[1]);
+  }
+  const brim = ell(21, 13.5, 17, 3);
+  fill(g, and(brim, (_x, y) => y >= 12), (x, y) => (y <= 13 ? ((x + y) % 2 ? D_STRAW[3] : D_STRAW[4]) : (x + y) % 2 ? D_STRAW[2] : D_STRAW[1]));
+  // the weave: a few darker strands across the crown
+  for (let x = 15; x <= 27; x += 3) put(g, x, 7, D_STRAW[2]);
+  for (let x = 16; x <= 26; x += 3) put(g, x, 9, D_STRAW[2]);
+  return toCanvas(g);
+}
+
 // ------------------------------------------------------------------ build
 
 export function buildHeroPortraits(add: (key: string, c: HTMLCanvasElement) => void): void {
@@ -557,6 +731,10 @@ export function buildHeroPortraits(add: (key: string, c: HTMLCanvasElement) => v
   add('portrait_solenne', solennePortrait());
   add('portrait_wren', wrenPortrait());
   // part6:B
+  add('portrait_yara', yara());
+  add('portrait_dell', dell());
   // part6:C
   // part6:D
+  add('portrait_fizz', fizzPortrait());
+  add('portrait_brann', brannPortrait());
 }
