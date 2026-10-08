@@ -338,7 +338,8 @@ describe("Test lab hero fights are long enough to feel the kit (playtest round 5
     it(s.id, () => {
       let won = 0;
       let sec = 0;
-      const N = 10;
+      // (30 fights: at 10, a hero who wins 90% of them fell under 80% on the seeds alone: Torva, 6 of 10, round 8)
+      const N = 30;
       for (let r = 0; r < N; r++) {
         const run = new Run(t, { ...DEFAULT_SETTINGS }, 100 + r, labProfile(t, s));
         startLabScenario(run, s, 1000 + r);

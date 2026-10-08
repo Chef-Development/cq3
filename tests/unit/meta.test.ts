@@ -71,6 +71,36 @@ describe('hero chests and the shrine', () => {
     expect(p.pity.top).toBe(0);
   });
 
+  it('a Mythic companion (Nimbus) comes out at tiny odds, and from the top pity when the chest holds a companion', () => {
+    const mythic = tierIndex('mythic');
+    expect(COMPANIONS.nimbus.rarity).toBe('mythic');
+    for (const kind of ['hero', 'rare'] as const) {
+      const odds = chestOdds(t, kind)[mythic];
+      expect(odds, kind).toBeGreaterThan(0);
+      expect(odds, kind).toBeLessThan(0.02);
+    }
+    // the top pity forces Celestial or better: with nothing there yet, a companion is the best there is (Nimbus)
+    const pets = new Set<string>();
+    for (let seed = 1; seed < 60 && !pets.size; seed++) {
+      const p = newProfile();
+      p.pity.top = Math.round(t.chests.topPity) - 1;
+      const prize = rollChest(new Rng(seed), t, p, 'rare');
+      if (prize.kind === 'pet') {
+        pets.add(prize.id);
+        expect(prize.tier).toBe('mythic');
+      }
+    }
+    expect([...pets]).toEqual(['nimbus']);
+    // and every companion is in the chests' pool: each tier's companions come out of a plain roll now and then
+    const seen = new Set<string>();
+    const rng = new Rng(9);
+    for (let i = 0; i < 4000; i++) {
+      const prize = rollChest(rng, t, newProfile(), 'hero');
+      if (prize.kind === 'pet') seen.add(prize.id);
+    }
+    for (const id of ['burr', 'lark', 'gloam']) expect(seen.has(id), id).toBe(true);
+  });
+
   it('gems buy a Rare chest only when there are enough', () => {
     const p = newProfile();
     p.gems = t.chests.rareCost - 1;
@@ -370,6 +400,198 @@ describe("every companion's perk (with and without it)", () => {
       c.advanceTo(c.time + 0.3);
       expect(z.life < 0.6).toBe(!!pet);
     }
+  });
+
+  // ---- Part 6 companions (round 7)
+  /** Tap a block already on the bar when the cursor gets there. */
+  const tapBlock = (c: ReturnType<typeof fight>['c'], b: { pos: number }) => {
+    const at = c.time + c.travelTime(c.cursorPos(), b.pos, c.cursorDirAt(c.time));
+    c.advanceTo(at);
+    return c.tap(at);
+  };
+
+  it('Burr: a red that hits you sends spines back at the foe that threw it (a share of his roll), the tick after', () => {
+    for (const pet of ['burr', null] as const) {
+      const { c } = fight(pet, (x) => ((x.blocks.redTravelSec = 1), (x.companion.damage = 10), (x.companion.everyHits = 0)));
+      const e = c.enemies[0];
+      const hp = e.hp;
+      c.spawnBlock('red', 0.06, e.id);
+      c.advanceTo(1);
+      expect(c.hero.hp).toBeLessThan(c.maxHp()); // the red hit
+      const spines = c.drainEvents().filter((x) => x.type === 'enemyHurt' && x.perk === 'prickly');
+      expect(spines).toHaveLength(pet ? 1 : 0);
+      if (pet) expect(hp - e.hp).toBe(Math.max(1, Math.round(10 * COMPANIONS.burr.dmg * c.tuning.pets.prickly)));
+      else expect(e.hp).toBe(hp);
+    }
+  });
+
+  it('Burr: a red a perk stopped (Brick) never pricks; a trap or a miss never does', () => {
+    const { c } = fight('burr', (x) => ((x.blocks.redTravelSec = 1), (x.companion.everyHits = 0)));
+    (c.hooks as unknown as unknown[]).unshift({ impact: () => true });
+    c.spawnBlock('red', 0.06);
+    const trap = c.spawnBlock('purple', 0.5);
+    c.advanceTo(0.4);
+    tapBlock(c, trap);
+    c.tap(c.time); // (on nothing: a miss)
+    c.advanceTo(c.time + 0.05);
+    expect(c.hero.hp).toBeLessThan(c.maxHp()); // the trap went off
+    expect(c.drainEvents().some((x) => x.type === 'perk' && x.id === 'prickly')).toBe(false);
+  });
+
+  it('Lark: every N combo the next yellow sings (a note on it); hitting it adds more combo', () => {
+    for (const pet of ['lark', null] as const) {
+      const { c } = fight(pet, (x) => ((x.pets.songEvery = 2), (x.companion.everyHits = 0)));
+      hitAt(c, 0.2);
+      hitAt(c, 0.4); // combo 2: a song, waiting for a yellow
+      const y = c.spawnBlock('yellow', 0.7);
+      c.advanceTo(c.time + 0.02);
+      expect(c.perk.songNote === y.id).toBe(!!pet);
+      expect(c.drainEvents().some((x) => x.type === 'perk' && x.id === 'wakeSong' && x.pos === y.pos)).toBe(!!pet);
+      const before = c.combo;
+      expect(tapBlock(c, y).outcome).toBe('hit');
+      expect(c.combo - before).toBe(pet ? 1 + c.tuning.pets.songCombo : 1);
+      expect(c.drainEvents().some((x) => x.type === 'perk' && x.id === 'wakeNote' && x.amount === c.tuning.pets.songCombo)).toBe(!!pet);
+      expect(c.perk.songNote ?? 0).toBe(0);
+    }
+  });
+
+  it('Lark: one song at a time; a noted yellow gone some other way passes its note to the next yellow', () => {
+    const { c } = fight('lark', (x) => ((x.pets.songEvery = 5), (x.companion.everyHits = 0)));
+    const a = c.spawnBlock('yellow', 0.5);
+    const b = c.spawnBlock('yellow', 0.8);
+    c.combo = 4;
+    hitAt(c, 0.2); // combo 5: a song on the next yellow (a)
+    c.advanceTo(c.time + 0.02);
+    expect(c.perk.songNote).toBe(a.id);
+    c.combo = 9;
+    c.perk.songWant = 0;
+    hitAt(c, 0.3); // combo 10: the song on a still waits to be hit (no second one)
+    c.advanceTo(c.time + 0.02);
+    expect(c.perk.songWant ?? 0).toBe(0);
+    c.removeBlock(a, 'expire');
+    c.advanceTo(c.time + 0.02);
+    expect(c.perk.songNote).toBe(b.id);
+  });
+
+  it('Gloam: every few seconds the next trap is swatted into a yellow where it stands (nothing added to the bar)', () => {
+    for (const pet of ['gloam', null] as const) {
+      const { c } = fight(pet, (x) => ((x.pets.nightEvery = 0.5), (x.companion.everyHits = 0)));
+      const trap = c.spawnBlock('purple', 0.8);
+      const n = c.blocks.length;
+      c.advanceTo(0.3);
+      expect(trap.kind).toBe('purple'); // not yet
+      c.advanceTo(0.6);
+      expect(trap.kind).toBe(pet ? 'yellow' : 'purple');
+      expect(c.blocks.length).toBe(n);
+      const ev = c.drainEvents();
+      expect(ev.some((x) => x.type === 'morph' && x.id === trap.id)).toBe(!!pet);
+      expect(ev.some((x) => x.type === 'perk' && x.id === 'nightEyes' && x.pos === trap.pos)).toBe(!!pet);
+      // the swatted trap is a plain yellow now: a tap hits it
+      expect(tapBlock(c, trap).outcome).toBe(pet ? 'hit' : 'trap');
+    }
+  });
+
+  it('Gloam leaves the trap Pip already picked (Owl Watch pecks it away)', () => {
+    const { c } = fight('gloam', (x) => ((x.pets.nightEvery = 0.01), (x.companion.everyHits = 0)));
+    (c.hooks as unknown as unknown[]).unshift(...companionHooks([{ id: 'pip', level: 1, stars: 1 }]));
+    c.advanceTo(0.05);
+    c.spawnBlock('purple', 0.6);
+    c.advanceTo(0.1);
+    expect(c.blocks.some((b) => b.kind === 'yellow')).toBe(false);
+    expect(c.blocks.some((b) => b.kind === 'purple')).toBe(false);
+  });
+
+  it("the new perks keep the anti-spam rules: nothing added to the bar's cover, no heals, no forgiven misses", () => {
+    // Gloam's swat replaces the trap (same block, same width); Lark's song marks a yellow; the Tide moves reds
+    const { c } = fight('gloam', (x) => ((x.pets.nightEvery = 0.2), (x.pets.tideEvery = 0.2), (x.pets.songEvery = 1), (x.companion.everyHits = 0)));
+    (c.hooks as unknown as unknown[]).push(...companionHooks(['lark', 'nimbus', 'burr'].map((id) => ({ id: id as Pet, level: 1, stars: 5 }))));
+    c.spawnBlock('purple', 0.7);
+    c.spawnBlock('yellow', 0.85);
+    c.spawnBlock('red', 0.45);
+    const cover = c.covered();
+    const n = c.blocks.length;
+    c.hero.hp = Math.round(c.maxHp() / 2);
+    const hp = c.hero.hp;
+    c.advanceTo(0.5);
+    hitAt(c, 0.3);
+    expect(c.blocks.some((b) => b.kind === 'purple')).toBe(false); // swatted
+    expect(c.blocks.length).toBe(n); // (the hit's own block came and went)
+    expect(c.covered()).toBeCloseTo(cover, 6);
+    expect(c.hero.hp).toBe(hp); // nothing healed
+    const ev = c.drainEvents();
+    expect(ev.some((x) => x.type === 'heal')).toBe(false);
+    expect(ev.some((x) => x.type === 'perk' && x.id === 'tide')).toBe(true);
+    // a miss still breaks the combo with Burr, Lark and Nimbus along
+    c.combo = 12;
+    c.tap(c.time);
+    expect(c.combo).toBe(0);
+  });
+
+  it('Nimbus: every few seconds a wave crosses the bar and pushes every red back (once a red is in the near half)', () => {
+    for (const pet of ['nimbus', null] as const) {
+      const { c } = fight(pet, (x) => ((x.pets.tideEvery = 0.2), (x.companion.everyHits = 0), (x.blocks.redTravelSec = 4)));
+      const near = c.spawnBlock('red', 0.45);
+      const far = c.spawnBlock('red', 0.8);
+      c.advanceTo(0.15);
+      expect(c.perk.tideX ?? 0).toBe(0); // not yet
+      c.advanceTo(0.95);
+      // each moved left ~0.22 of the bar on its own; the wave carried each back (up to 0.3: a red stops short of the
+      // red behind it)
+      expect(near.pos > 0.45).toBe(!!pet);
+      expect(far.pos > 0.8).toBe(!!pet);
+      const tides = c.drainEvents().filter((x) => x.type === 'perk' && x.id === 'tide');
+      expect(tides).toHaveLength(pet ? 1 : 0);
+    }
+  });
+
+  it('Nimbus: the Tide waits for a red in the near half; then each red is pushed once a wave', () => {
+    const { c } = fight('nimbus', (x) => ((x.pets.tideEvery = 0.1), (x.companion.everyHits = 0), (x.blocks.redTravelSec = 400)));
+    const r = c.spawnBlock('red', 0.9);
+    c.advanceTo(0.5);
+    expect(c.perk.tideReady).toBe(1); // ready, waiting: the red is still far
+    expect(c.perk.tideN ?? 0).toBe(0);
+    r.pos = 0.4;
+    c.advanceTo(1.5);
+    expect(c.perk.tideN).toBe(1); // one wave (the next waits for a red in the near half again)
+    expect(c.perk.tideX ?? 0).toBe(0); // it has crossed
+    expect(r.pos).toBeCloseTo(0.4 + c.tuning.pets.tidePush, 1);
+  });
+
+  it('Nimbus: at a high combo your hits deal more (Calm Seas, called as the combo gets there)', () => {
+    const dmg = (pet: Pet | null, combo: number) => {
+      const { c } = fight(pet, (x) => (x.companion.everyHits = 0));
+      c.combo = combo;
+      hitAt(c, 0.5);
+      const ev = c.drainEvents();
+      const hit = ev.find((x) => x.type === 'hit');
+      return { dmg: hit?.type === 'hit' ? hit.damage : 0, calm: ev.some((x) => x.type === 'perk' && x.id === 'calmSeas') };
+    };
+    const at = t.pets.calmAt;
+    expect(dmg('nimbus', at + 5).dmg).toBeGreaterThan(dmg(null, at + 5).dmg);
+    expect(dmg('nimbus', at - 5).dmg).toBe(dmg(null, at - 5).dmg);
+    expect(dmg('nimbus', at - 1).calm).toBe(true);
+    expect(dmg('nimbus', at + 5).calm).toBe(false);
+    expect(dmg(null, at - 1).calm).toBe(false);
+  });
+
+  it('stars make the new perks a step stronger', () => {
+    const [one, five] = [1, 5].map((stars) => {
+      const s = setup({ enemies: ['bandit'], tune: (x) => ((x.pets.songEvery = 2), (x.companion.everyHits = 0)) });
+      (s.c.hooks as unknown as unknown[]).push(...companionHooks([{ id: 'lark', level: 1, stars }]));
+      return s.c;
+    });
+    for (const c of [one, five]) {
+      c.combo = 9;
+      c.spawnBlock('yellow', 0.8);
+      hitAt(c, 0.3);
+      c.advanceTo(c.time + 0.02);
+    }
+    const y1 = one.blocks.find((b) => b.id === one.perk.songNote)!;
+    const y5 = five.blocks.find((b) => b.id === five.perk.songNote)!;
+    const [b1, b5] = [one.combo, five.combo];
+    tapBlock(one, y1);
+    tapBlock(five, y5);
+    expect(five.combo - b5).toBeGreaterThan(one.combo - b1);
   });
 });
 

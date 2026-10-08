@@ -1187,6 +1187,73 @@ test("Newt's Ember Bite: the bitten foe burns while the ticks come (flames on it
   await expect(page).toHaveScreenshot('newt-burn.png', shot);
 });
 
+// ---- Part 6 companions (round 7): Burr, Lark, Gloam, Nimbus
+
+test("Burr's Prickly: a red hits the hero, Burr curls up and a fan of spines flies into the foe that threw it", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'rowan', pets: ['burr', 'lark'] });
+  await bar(page, `c.spawnBlock('red', 0.05, foe.id); c.spawnBlock('yellow', 0.6); c.setCursor(0.4, 1);`);
+  await frames(page, 15);
+  await expect(page).toHaveScreenshot('burr-spines.png', shot);
+});
+
+test("Lark's Wake-up Song: a note flies to the next yellow and glows on it; hit, it bursts into notes, +3 by the combo", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'rowan', pets: ['burr', 'lark'] });
+  await bar(page, `c.combo = 9; c.setCursor(0.6, 1); c.spawnBlock('yellow', 0.6); c.spawnBlock('yellow', 0.3); app.barTap(performance.now());`);
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('lark-song.png', shot);
+  await bar(page, `const y = c.blocks.find((b) => b.id === c.perk.songNote); c.setCursor(y.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 12);
+  await expect(page).toHaveScreenshot('lark-encore.png', shot);
+});
+
+test("Gloam's Night Eyes: glints in its eyes while ready; a claw swipe rakes the trap and it turns yellow", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'rowan', pets: ['gloam', 'nimbus'] });
+  await bar(page, `c.perk.nightReady = 1; c.spawnBlock('yellow', 0.75); c.setCursor(0.2, 1);`);
+  await frames(page, 12);
+  await expect(page).toHaveScreenshot('gloam-ready.png', shot);
+  await bar(page, `c.spawnBlock('purple', 0.5, foe.id);`);
+  await frames(page, 6);
+  await expect(page).toHaveScreenshot('gloam-swat.png', shot);
+});
+
+test("Nimbus: the Tide rolls along the bar carrying the reds back, Calm Seas glows on the cursor; its spray rains on every foe", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'rowan', pets: ['gloam', 'nimbus'] });
+  await bar(page, `c.combo = 34; c.spawnBlock('red', 0.3, foe.id); c.spawnBlock('red', 0.62, foe.id); c.spawnBlock('red', 0.86, foe.id); c.spawnBlock('yellow', 0.46); c.setCursor(0.16, -1); c.perk.tideReady = 1;`);
+  await frames(page, 15);
+  await expect(page).toHaveScreenshot('nimbus-tide.png', shot);
+  await bar(page, `for (const b of c.blocks.slice()) c.removeBlock(b, "perk"); c.addEnemy('slime'); c.addEnemy('slime'); view.fighters.addEnemies(c);`);
+  await frames(page, 60);
+  await bar(page, `view.fighters.petAttack('nimbus', foe.id, 21, false);`);
+  await frames(page, 22);
+  await expect(page).toHaveScreenshot('nimbus-spray.png', shot);
+});
+
+test('camp: the companions screen with the four new ones (a walker, a flier, a black cat on the stump, the sky whale)', async ({ page }) => {
+  const camp = await metaCamp(page);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p = (window as any).__cq3.app.profile;
+    for (const id of ['burr', 'lark', 'gloam', 'nimbus']) p.pets[id].owned = true;
+    p.pets.lark.stars = 2;
+    p.pets.gloam.stars = 3;
+    p.pets.gloam.xp = 2400;
+    p.pets.nimbus.xp = 900;
+  });
+  for (const id of ['burr', 'lark', 'gloam', 'nimbus']) {
+    await camp(`(c, now) => { c.go('home', now); c.go('pets', now, undefined, '${id}'); }` as unknown as (c: unknown, now: number) => void);
+    await frames(page, 40);
+    await expect(page).toHaveScreenshot(`companions-${id}.png`, shot);
+  }
+});
+
 test("perks on what they touch: a box on the block (Turtle Shell), brackets on the foe (Sharpshooter), the cursor kicks (Momentum), smoke where a miss was forgiven", async ({ page }) => {
   await boot(page);
   await frames(page, 10);
@@ -1328,7 +1395,7 @@ test("Tam's Turnabout: Big Bang flips each red into a keg where it stood (the re
   await expect(page).toHaveScreenshot('tam-turnabout-kegs.png', shot);
 });
 
-test("Torva's Wind-Up: the smash's multiplier rides over the cursor (x2.5 at 20 combo) and lands beside the foe it hits", async ({ page }) => {
+test("Torva's Wind-Up: the smash's multiplier rides over the cursor (x2.3 at 20 combo) and lands beside the foe it hits", async ({ page }) => {
   await boot(page);
   await frames(page, 10);
   await stagedFight(page, { hero: 'torva' });

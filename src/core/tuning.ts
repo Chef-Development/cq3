@@ -414,15 +414,17 @@ export const DEFAULT_TUNING = {
     sable: { hp: 110, atk: 0.95, abilitySec: 3, silentStep: 0.25, dashLead: 0.15, dashMult: 2.5, landSec: 0.3, landMult: 0.5, fangMult: 1.4, fangKeep: 1 },
     // neve: shattered ice fills iceMeter of a hit's meter (Cold Snap); Glacier freezes every red solid for glacierSec, slows the whole bar for glacierBarSec, the middle (slowWidth)
     // for slowSec
-    neve: { hp: 108, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, iceMeter: 0.5, glacierMult: 0.7, glacierSec: 2.5, glacierBarSec: 1.5, slowSec: 4, slowWidth: 0.34 },
+    neve: { hp: 108, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, iceMeter: 0.5, glacierMult: 0.8, glacierSec: 2.5, glacierBarSec: 1.5, slowSec: 4, slowWidth: 0.34 },
     // moss: allyComp: the allies grow this much stronger (as a share) for each Companion point above a fresh hero's
-    moss: { hp: 85, atk: 0.62, abilitySec: 3, allySec: 6, allySec3: 14, allyComp: 0.15, thornEvery: 1.5, thornDmg: 0.3, barkEvery: 32, mothEvery: 3, mothHeal: 0.004, seedEvery: 5, roots: 0.04, overgrowth: 0.1, vineSec: 3, vineMult: 0.7 },
-    tam: { hp: 95, atk: 0.9, abilitySec: 3, kegEvery3: 4, blastShield: 0.35, bangKegs: 3, wide5: 2 },
+    // barkEvery: a Barkback rests this long after it stops a red (it first braces at half that, or at once on a Rally)
+    moss: { hp: 85, atk: 0.62, abilitySec: 3, allySec: 6, allySec3: 14, allyComp: 0.15, thornEvery: 1.5, thornDmg: 0.2, barkEvery: 96, mothEvery: 3, mothHeal: 0.004, seedEvery: 5, roots: 0.04, overgrowth: 0.1, vineSec: 1, vineMult: 0.8 },
+    tam: { hp: 85, atk: 0.9, abilitySec: 3, kegEvery3: 4, blastShield: 0.35, bangKegs: 1, wide5: 2 },
     // hollis: every block slams its red's owner for slam x attack (a Perfect one slamPerfect)
-    hollis: { hp: 95, atk: 0.9, abilitySec: 3, slam: 0.4, slamPerfect: 0.8, ironHide: 0.1, rampartSec: 2, rampartGuard: 1.2, guardMax3: 7 },
-    vesper: { hp: 115, atk: 1.13, abilitySec: 3, pierce: 0.5, volleyFocus: 1.7, pinSec: 2, cap3: 1.5 },
+    hollis: { hp: 95, atk: 0.82, abilitySec: 1.5, slam: 0.3, slamPerfect: 0.6, ironHide: 0.05, rampartSec: 1, rampartGuard: 0.4, guardMax3: 7 },
+    vesper: { hp: 115, atk: 1.13, abilitySec: 3, pierce: 0.25, volleyFocus: 1.7, pinSec: 2, cap3: 1.5 },
     // torva: a Wind-Up smash deals x(windUpBase + windUpStep per combo), up to windUpMax
-    torva: { hp: 108, atk: 0.86, abilitySec: 3, quake: 0.08, windUpBase: 1.7, windUpStep: 0.04, windUpMax: 4, stunSec: 1, unstoppable: 0.08, unstoppableMax: 5, calmSec: 1.2 },
+    // ...and stuns for stunSec (0: a stun cancels the special a foe is telling, a red-stopper at every boss: round 8)
+    torva: { hp: 100, atk: 0.8, abilitySec: 3, quake: 0.03, windUpBase: 1.5, windUpStep: 0.04, windUpMax: 4, stunSec: 0, unstoppable: 0.04, unstoppableMax: 5, calmSec: 0.4 },
     // part6:A
     // solenne: every sunEvery combo Sunrise burns for sunSec (3 stars: sunSec3): hits cut every other foe for sunCut of
     // their damage, and (Radiance) reds move at radiance x their speed; a gilded yellow (Gleam) adds gleamCombo combo and
@@ -490,6 +492,16 @@ export const DEFAULT_TUNING = {
     hoard: 0.15, // Sunny: kills drop this much more coins...
     burnAt: 25, // ...at this combo its breath burns away traps...
     glow: 2, // ...and ice patches under you melt this much faster
+    // ---- Part 6 companions (round 7)
+    prickly: 1.5, // Burr: a red that hits you sends spines back at its foe for this x Burr's roll
+    songEvery: 10, // Lark: every this many combo, the next yellow sings...
+    songCombo: 3, // ...and hitting it adds this much more combo
+    nightEvery: 12, // Gloam: every this many seconds, the next trap is swatted into a yellow
+    tideEvery: 20, // Nimbus: every this many seconds (once a red is in the bar's near half), a wave...
+    tidePush: 0.3, // ...pushes every red back this far (share of the bar)...
+    tideSec: 0.45, // ...crossing the bar in this long
+    calmAt: 30, // ...and at this combo or more (Calm Seas)...
+    calmDmg: 0.15, // ...your hits deal this much more
   },
   stars: {
     // Shards raise a hero's or companion's stars (1-5): shards for the next star

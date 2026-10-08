@@ -648,3 +648,42 @@ A13. **Test lab "Late-game stress"** (Fights): Rowan at level 20, 3 stars, Epic 
     relics, Pip + Mote, stacks banked, six waves of the first region's Act 3 foes at Act 9's numbers on Act 3's stage
     (no spoilers). Mash: you lose; aim: you win (guarded). Lab fights can carry `relics`, show another act's `stage` and
     wear a better kit (`profile.gear`). The lab hero-fight guard runs at 75%.
+
+### Part 6: more heroes and companions
+H11. **The eight new heroes' identities** (names, looks, rarities, kit ideas) were set by the integrator before the
+    builders started, two heroes per builder: a second hero per style, rarities spread Rare 2 / Epic 2 / Legendary 2 /
+    Mythic 2 (the first Mythic heroes): Solenne (Blade, Mythic), Wren (Shadow, Rare), Brann (Guardian, Epic), Dell
+    (Marksman, Rare), Gorm (Brute, Legendary), Tess (Controller, Epic), Yara (Summoner, Mythic), Fizz (Bomber,
+    Legendary). All come from hero chests. A Mythic hero has a fifth kit part (`HeroDef.gift`), shown as a fifth card.
+H12. **Parallel builders without collisions:** slot markers (`// part6:A`-`E`) were seeded in the shared lists
+    (hero and companion ids, records, tuning kits, art registries, tips, story speakers, lab), each builder adding its
+    lines after its own marker. New kits use only the existing fight hooks (the combat core keeps one owner).
+P5. **Four more companions (12 in all), each with an effect that shows on what it touches:** Burr (Common hedgehog;
+    Prickly: a red or bomb that hurts you sends spines into the foe that threw it, 1.5x his roll; never for a red
+    another perk stopped, nor traps or misses), Lark (Rare songbird; Wake-up Song: every 10 combo the next yellow in
+    the cursor's path gets a note, hitting it adds 3 combo; one note at a time), Gloam (Epic black cat; Night Eyes:
+    every 12 s the next trap is swatted into a yellow, the same block and width, so the bar's cover doesn't grow; it
+    leaves Pip's chosen trap alone), Nimbus (Mythic sky whale; Tide: every 20 s, once a red is in the bar's near half, a
+    wave crosses the bar in 0.45 s pushing each red back (icicles skipped: pushing one starts its fuse); Calm Seas: +15%
+    at combo 30+, a glow on the cursor rather than a word on every hit). Numbers in `tuning.pets` with sliders; stars
+    step them like the others. A Mythic companion drops at under 2% and from the shrine's top pity.
+P6. **Test lab:** "Burr + Lark" and "Gloam + Nimbus" pair fights; the companions screen scenario owns the new four.
+
+### Hero parity at 75% (after the anti-spam rules; docs/balance-heroes.md)
+Q1. **Rowan, the 75% act curve and every style number stay as they are** (the eight new heroes are tuned against
+    Rowan, and they share six of the styles); every change is in one hero's own kit numbers or soft strengths.
+Q2. **Why the others led at 75%:** Rowan is right at the edge in boss fights (about 2.4 reds get through to him at the
+    Boar King; he loses once about 3.3 do), and each leading hero had a way to let fewer reds through.
+Q3. **Trimmed:** Moss (a Barkback rests 96 s after a block: about one red a fight; Thornling 20%; Overgrowth's vines
+    1 s at x0.8), Hollis (slams 30% / 60%, Iron Hide 5%, Brace 1.5 s, Rampart's wall 1 s, Guard x0.4 a charge, attack
+    0.82; his soft strength guards against Flyers instead of Brutes: four region bosses are brutes), Tam (Big Bang
+    drops 1 keg, HP 85), Torva (Wind-Up no longer stuns: any stun cancels a boss's told special; Quake 0.03, Wind-Up
+    from x1.5, calm 0.4 s, Unstoppable 4%, HP 100, attack 0.8).
+Q4. **Lifted in the second region:** Neve (takes 25% less from Frost foes; Glacier x0.8) and Vesper (+25% to Frost
+    foes; Flyers 20%; Piercing Shot 25%: it hit the Boar King's piglets for half of every Power Shot).
+Q5. **Result on 400 runs per hero** (two seed sets: a 200-run gap moved by up to 12 between samples): 6 of 56
+    hero-acts outside +/-10 (was 19), mean gap 5.2 (was 8.7), the largest +15 (was +31). Still outside: Hollis Acts 3
+    and 9 (+12, +15: the Guardian style and his tree's Avalanche stun and Long Rampart), Neve Act 3 (+13: her Beast
+    strength at the Boar King), Moss Act 9 (+13: Swarms before the last boss), Torva Act 5 (+13: +10 and +17 on the two
+    samples), Sable Act 5 (+12: Casters in the second region). Every hero is ahead at the Boar King: closing that would
+    mean changing Rowan or the boss, which would move the new heroes' reference, so it waits for the playtester's word.

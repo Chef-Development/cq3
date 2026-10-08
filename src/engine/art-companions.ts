@@ -24,7 +24,7 @@ type Add = (key: string, canvas: HTMLCanvasElement) => void;
 type Pose = 'idle0' | 'idle1' | 'act';
 
 /** The companions drawn here (Pip's frames live in art.ts). */
-export const COMPANION_ART = ['bun', 'newt', 'sprocket', 'brick', 'flurry', 'mote', 'sunny'] as const;
+export const COMPANION_ART = ['bun', 'newt', 'sprocket', 'brick', 'flurry', 'mote', 'sunny', 'burr', 'lark', 'gloam', 'nimbus'] as const;
 export type CompanionArtId = (typeof COMPANION_ART)[number];
 
 // The companion box (Pip's: art.ts PIP_W x PIP_H), repeated here as plain numbers so this module never reads art.ts
@@ -816,6 +816,394 @@ function sunny(g: Grid, pose: Pose): Glow {
   }
 }
 
+// ------------------------------------------------------------------ Part 6 companions (round 7)
+
+// ---- Burr: a round brown hedgehog with a leaf stuck on his spines
+
+const QUILL = ['#24101a', '#3e2016', '#5e3620', '#86542e', '#b07e4a', '#e0b880']; // brown quills, shadows lean plum
+const HOG = ['#8a5236', '#c8905e', '#ecc08c', '#fde6c0']; // his face and belly, tan
+const SPROUT = ['#1e3c2a', '#2e5a32', '#4a7e36', '#78a83c', '#b4d058', '#e0f080'];
+
+/** A spiky dome (or a ball, `all`): the body ellipse with quills sticking out of its back, swept toward the tail
+ *  (`sweep`: their tips' turn, in radians), shaded as quills: dark roots, light tips, a groove between each. */
+function quills(g: Grid, cx: number, cy: number, rx: number, ry: number, o: { from: number; to: number; n: number; len: number; sweep: number; floor?: number }): void {
+  const spikes: Inside[] = [];
+  for (let i = 0; i < o.n; i++) {
+    const a = o.from + ((o.to - o.from) * i) / Math.max(1, o.n - 1);
+    const da = 0.2;
+    const p = (ang: number, k: number) => [cx + Math.cos(ang) * rx * k, cy - Math.sin(ang) * ry * k] as const;
+    const [ax, ay] = p(a - da, 0.86);
+    const [bx, by] = p(a + da, 0.86);
+    const [tx, ty] = p(a + o.sweep, 1 + o.len / Math.max(rx, ry));
+    spikes.push(tri(ax, ay, bx, by, tx, ty));
+  }
+  const body = ell(cx, cy, rx, ry);
+  const inside: Inside = (x, y) => (o.floor === undefined || y <= o.floor) && (body(x, y) || spikes.some((f) => f(x, y)));
+  form(g, inside, (x, y) => {
+    const dx = (x + 0.5 - cx) / rx;
+    const dy = (y + 0.5 - cy) / ry;
+    const r = Math.hypot(dx, dy);
+    const ang = Math.atan2(-dy, dx);
+    // the light from the top left, the quills' tips lighter, a darker groove between quills
+    const lit = 0.15 + 0.9 * lambert(dx * 0.8, dy * 0.8);
+    const groove = ((((ang - o.from) / ((o.to - o.from) / Math.max(1, o.n - 1)) + 0.5) % 1) + 1) % 1;
+    const tip = r > 1.04 ? 0.36 : r > 0.88 ? 0.14 : 0;
+    return tone(QUILL, lit + tip - (groove < 0.26 || groove > 0.86 ? 0.3 : 0));
+  });
+}
+
+/** The leaf stuck on his spines (its tip pointing up and back). */
+function leaf(g: Grid, x: number, y: number, flip = false): void {
+  const rows = ['...ab', '..abb', '.abbc', 'abbcc', 'dcc..'];
+  stamp(g, flip ? rows.map((r) => [...r].reverse().join('')) : rows, { a: SPROUT[5], b: SPROUT[4], c: SPROUT[3], d: '#6e4426' }, x, y);
+  // the midrib
+  put(g, x + (flip ? 3 : 1), y + 3, SPROUT[2]);
+  put(g, x + 2, y + 2, SPROUT[2]);
+}
+
+function burr(g: Grid, pose: Pose): void {
+  const SEP = HOG[0];
+  if (pose === 'act') {
+    // the roll: curled into a spiky ball, spinning at the foe; his tan belly curls round the front, speed lines behind
+    const cx = 20;
+    const cy = 13.5;
+    quills(g, cx, cy, 7.4, 7.4, { from: -2.6, to: 3.3, n: 13, len: 2.6, sweep: 0.5 });
+    form(g, (x, y) => ell(cx + 1.8, cy + 2, 4.8, 4.6)(x, y) && !ell(cx - 1.2, cy - 1.4, 4.6, 4.4)(x, y), sphere(HOG, cx + 2, cy + 1, 6, 6, 0.45), HOG[0]);
+    stamp(g, ['kk', 'k.'], { k: '#1c1028' }, cx + 4, cy - 1); // a nose tucked in
+    stamp(g, ['k.k', '.k.'], { k: '#5a2a1a' }, cx + 1, cy + 1); // eyes squeezed shut
+    leaf(g, cx - 4, cy - 11);
+    for (const [x, y, n] of [
+      [2, 9, 4],
+      [0, 13, 6],
+      [3, 17, 4],
+    ])
+      for (let k = 0; k < n; k++) put(g, x + k, y, k === n - 1 ? '#e0d8f0' : '#ffffff');
+    stamp(g, ['.dd.', 'dddd'], { d: '#c8b090' }, 8, FEET - 1);
+    return;
+  }
+  const f = pose === 'idle1' ? 1 : 0;
+  const bx = 14.5;
+  const by = 16.5 - f * 0.5;
+  // back foot, the spiny dome (quills swept back toward the tail)
+  blob(g, HOG, 9.5, FEET - 0.3, 1.8, 1.2, { bias: -0.1 });
+  quills(g, bx, by, 8.6, 6.6 + f * 0.4, { from: 0.35, to: 3.35, n: 10, len: 2.4, sweep: 0.42, floor: FEET - 1 });
+  // the leaf caught on top
+  leaf(g, 10, 4 - f);
+  // his face and belly: tan, a pointed snout with a big black nose
+  const hx = 21;
+  const hy = 16.5;
+  blob(g, HOG, hx, hy + 0.6, 4.6, 4.4, { bias: 0.3, sep: SEP });
+  stroke(g, [[hx + 2, hy + 0.6], [hx + 5, hy + 1.2 - f * 0.4], [hx + 7, hy + 1.5 - f * 0.6]], (t) => 2.3 - t * 1.3, sphere(HOG, hx + 3, hy - 1, 6, 4, 0.35));
+  stamp(g, ['kk', 'kq'], { k: '#1c1028', q: '#6a4a5a' }, Math.round(hx + 6.6), Math.round(hy + 0.4 - f * 0.6));
+  // a little round ear in the quills' edge, a big shiny eye, a rosy cheek, a small smile
+  stamp(g, ['ab', 'bc'], { a: HOG[3], b: HOG[1], c: HOG[0] }, Math.round(hx - 3), Math.round(hy - 5));
+  eye(g, hx, hy - 3, { big: true, iris: '#7a3a1a' });
+  put(g, hx, hy + 1, '#f48a8a');
+  put(g, hx + 1, hy + 1, '#ffb0a0');
+  line(g, [[hx + 3, hy + 2.5], [hx + 4.5, hy + 3]], HOG[0]);
+  // front paws
+  blob(g, HOG, 18, FEET - 0.3, 1.6, 1.1, { sep: SEP, bias: 0.1 });
+  blob(g, HOG, 22.5, FEET - 0.3, 1.6, 1.1, { sep: SEP, bias: 0.2 });
+}
+
+// ---- Lark: a small yellow songbird with a red cap
+
+const LARK = ['#8a4a14', '#d08a1c', '#f8c030', '#ffe04a', '#fff28a', '#fffcd8']; // yellow, shadows lean amber
+const CAP = ['#5a1020', '#a8202a', '#e8443a', '#ff8a6a'];
+const OLIVE = ['#3a2a10', '#6a5020', '#9a7a30', '#c8a848', '#f0dc88']; // wings and tail
+const BEAK = ['#7a3410', '#d0701c', '#ffb040'];
+
+/** A songbird's wing from the shoulder: folded on its side, raised over its back, or swept back in a dive. */
+function larkWing(g: Grid, sx: number, sy: number, how: 'down' | 'up' | 'back'): void {
+  const pts: Array<[number, number]> =
+    how === 'down'
+      ? [
+          [sx, sy],
+          [sx - 3, sy + 2],
+          [sx - 7, sy + 3],
+        ]
+      : how === 'up'
+        ? [
+            [sx, sy],
+            [sx - 2, sy - 4],
+            [sx - 5, sy - 8],
+          ]
+        : [
+            [sx, sy],
+            [sx - 5, sy - 1],
+            [sx - 10, sy - 1.5],
+          ];
+  stroke(g, pts, (t) => 2.6 - t * 1.6, (x, y) => tone(OLIVE, 0.85 - Math.hypot(x - sx, y - sy) / 14));
+  // the wing bars: two pale stripes across it
+  for (const k of [0.45, 0.75]) {
+    const i = Math.min(pts.length - 2, Math.floor(k * (pts.length - 1)));
+    const t = k * (pts.length - 1) - i;
+    const x = pts[i][0] + (pts[i + 1][0] - pts[i][0]) * t;
+    const y = pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t;
+    put(g, x, y, OLIVE[4]);
+    put(g, x + (how === 'up' ? 1 : 0), y + (how === 'up' ? 0 : 1), OLIVE[4]);
+  }
+}
+
+function lark(g: Grid, pose: Pose): Glow {
+  const act = pose === 'act';
+  const f = pose === 'idle1' ? 1 : 0;
+  const tilt = act ? 1 : 0; // the peck: it leans in
+  const cx = 16 + tilt * 2;
+  const cy = 13 + (f ? -1 : 0);
+  // the tail: a fan of olive feathers out the back, cocked up
+  const tail: Array<[number, number]> = act
+    ? [
+        [cx - 4, cy],
+        [cx - 9, cy - 1],
+        [cx - 12, cy - 2],
+      ]
+    : [
+        [cx - 4, cy + 1],
+        [cx - 8, cy - 1],
+        [cx - 10.5, cy - 3 + f],
+      ];
+  stroke(g, tail, (t) => 1.6 - t * 0.4, (_x, y) => tone(OLIVE, 0.7 - (y - cy + 4) / 12));
+  const [tx, ty] = tail[tail.length - 1];
+  put(g, tx - 1, ty, OLIVE[1]);
+  // the far wing (raised in the flap)
+  if (f && !act) larkWing(g, cx - 1, cy - 3, 'up');
+  // the round body: yellow, a paler breast with a few streaks
+  blob(g, LARK, cx, cy, 6, 4.9, { bias: 0.32, sep: LARK[1] });
+  blob(g, LARK, cx + 2, cy + 1.5, 3.2, 2.8, { bias: 0.55 });
+  for (const [x, y] of [
+    [cx + 1, cy + 1],
+    [cx + 3, cy + 2],
+    [cx + 1, cy + 3],
+  ])
+    put(g, x, y, LARK[2]);
+  // tiny feet tucked under
+  put(g, cx - 1, cy + 5, BEAK[1]);
+  put(g, cx + 1, cy + 5, BEAK[1]);
+  // the near wing
+  larkWing(g, cx + 1, cy - 1, act ? 'back' : f ? 'down' : 'down');
+  // the head: round, a red cap, a short pointed beak
+  const hx = cx + 5 + tilt;
+  const hy = cy - 4 + tilt;
+  blob(g, LARK, hx, hy, 4.4, 4.1, { bias: 0.38, sep: LARK[1] });
+  form(g, (x, y) => ell(hx - 0.5, hy - 1.8, 4.2, 2.8)(x, y) && y + 0.5 < hy - 0.6 + (x - hx) * 0.15, sphere(CAP, hx - 1.5, hy - 3, 4, 3, 0.15), CAP[0]);
+  put(g, hx - 4, hy - 1, CAP[1]); // the cap's tuft at the back
+  if (act) {
+    // beak open: a peck (or a song)
+    stamp(g, ['aab.', 'aabb', '....', 'ccc.'], { a: BEAK[2], b: BEAK[1], c: BEAK[0] }, hx + 3, hy - 1);
+    stamp(g, ['k.k', '.k.'], { k: '#2a1018' }, hx - 1, hy - 1);
+  } else {
+    stamp(g, ['aab.', 'aabb', 'cc..'], { a: BEAK[2], b: BEAK[1], c: BEAK[0] }, hx + 3, hy - 0.5);
+    eye(g, hx - 0.5, hy - 1.5, { big: true, iris: '#5a2a10' });
+    put(g, hx + 1, hy + 2, '#ff9a80'); // cheek
+  }
+  // its song: a little note floating up ahead (the flap), two in the peck
+  return (ctx) => {
+    const notes: Array<[number, number]> = act ? [[31, 5], [34, 9]] : f ? [[30, 2]] : [];
+    for (const [x, y] of notes) {
+      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) dot(ctx, x + dx, y + 2 + dy, '#fff6c0', 0.95);
+      dot(ctx, x + 2, y - 1, '#fff6c0', 0.85);
+      dot(ctx, x + 2, y, '#fff6c0', 0.85);
+      dot(ctx, x + 2, y + 1, '#fff6c0', 0.85);
+      dot(ctx, x + 3, y - 1, '#ffe070', 0.7);
+    }
+  };
+}
+
+// ---- Gloam: a slim black cat with glowing violet eyes and a moon mark
+
+const NIGHT_FUR = ['#0c0a18', '#16132a', '#221d3e', '#332b58', '#4c4280', '#7468ac']; // black, lit violet-grey
+const EYE_GLOW = ['#5a1aa0', '#9a52f0', '#d4a8ff', '#ffffff'];
+const MOON = ['#c8a850', '#fff0a8', '#fffbe8'];
+
+function gloam(g: Grid, pose: Pose): Glow {
+  const act = pose === 'act';
+  const f = pose === 'idle1' ? 1 : 0;
+  const SEP = NIGHT_FUR[3];
+  const lit = (cx: number, cy: number, rx: number, ry: number, bias = 0) => sphere(NIGHT_FUR, cx - rx * 0.3, cy - ry * 0.35, rx * 1.2, ry * 1.2, bias, 0.08);
+  // the tail: up from the rump in a slow S, its tip curling forward (it flicks)
+  const tail: Array<[number, number]> = act
+    ? [
+        [8, 14],
+        [4.5, 12],
+        [3.5, 8],
+        [5.5, 4.5],
+      ]
+    : [
+        [8, 14],
+        [5, 12],
+        [4, 8],
+        [5.5 + f, 4.5 - f * 0.5],
+        [7.5 + f * 0.5, 4 + f],
+      ];
+  stroke(g, tail, (t) => 1.25 - t * 0.3, (x, y) => tone(NIGHT_FUR, 0.35 + 0.55 * lambert((x + 0.5 - 4) / 3, (y + 0.5 - 9) / 6)));
+  // far legs (darker)
+  form(g, rect(11, 17, 12, FEET), (x) => (x === 11 ? NIGHT_FUR[2] : NIGHT_FUR[1]));
+  const fx = act ? 22 : 21;
+  form(g, rect(fx, 16, fx + 1, FEET), (x) => (x === fx ? NIGHT_FUR[2] : NIGHT_FUR[1]));
+  // the slim body, low and long, and the haunch
+  const by = 14.8;
+  form(g, ell(14.5, by, 7.2, 3.2), lit(14.5, by, 7.2, 3.2, 0.06), SEP);
+  form(g, ell(9.5, 16, 2.8, 3), lit(9, 15, 3, 3, 0.1), SEP);
+  // near legs, slim, with pale-violet toes
+  form(g, rect(8, 18, 9, FEET), (x, y) => (y === FEET ? '#8a7ab8' : x === 8 ? NIGHT_FUR[3] : NIGHT_FUR[2]), SEP);
+  if (act) {
+    // the swipe: the near forepaw thrown up and out, claws bared
+    stroke(g, [[19, 15], [23, 13], [26.5, 11]], 1.1, lit(23, 12, 5, 4, 0.12));
+    for (const [x, y] of [
+      [28, 9],
+      [28, 11],
+      [27.5, 12.5],
+    ])
+      put(g, x, y, '#f4ecff');
+  } else form(g, rect(19, 16, 20, FEET), (x, y) => (y === FEET ? '#8a7ab8' : x === 19 ? NIGHT_FUR[3] : NIGHT_FUR[2]), SEP);
+  // the head: neat and round, two tall pointed ears
+  const hx = act ? 23.5 : 23;
+  const hy = act ? 11 : 10 + f * 0.5;
+  const earL = ear(hx - 4.5, hx - 1, hy - 2, hx - 4.2, hy - 8);
+  const earR = ear(hx - 0.5, hx + 3, hy - 2.5, hx + (act ? 0.5 : 1.8), hy - 8.5);
+  form(g, earL, lit(hx - 3, hy - 5, 3, 4, 0.05));
+  form(g, ell(hx, hy, 4.7, 4.4), lit(hx, hy, 4.7, 4.4, 0.12), SEP);
+  form(g, earR, lit(hx + 1, hy - 5, 3, 4, 0.15), SEP);
+  line(g, [[hx + 0.5, hy - 3.5], [hx + 1.2, hy - 6]], '#5a2a7a'); // inner ear
+  // a little muzzle and nose
+  form(g, ell(hx + 3.8, hy + 1.6, 1.8, 1.3), lit(hx + 3, hy + 1, 2, 2, 0.2));
+  put(g, hx + 5.2, hy + 1, '#a06ab0');
+  // a rim of moonlight along its top and left edges, so a black cat still reads on a dark night
+  const fur = new Set(NIGHT_FUR);
+  const rim: Array<[number, number, string]> = [];
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const c = g[y][x];
+      if (!c || !fur.has(c)) continue;
+      if (!g[y - 1]?.[x]) rim.push([x, y, NIGHT_FUR[5]]);
+      else if (!g[y][x - 1]) rim.push([x, y, NIGHT_FUR[4]]);
+    }
+  for (const [x, y, c] of rim) g[y][x] = c;
+  // the moon mark: a pale gold crescent on the brow
+  stamp(g, ['.ab', 'a..', '.ab'], { a: MOON[1], b: MOON[0] }, Math.round(hx - 1.5), Math.round(hy - 5));
+  // eyes: glowing violet with a slit pupil (narrowed in the swipe)
+  const ex = Math.round(hx - 2);
+  const ey = Math.round(hy - 1);
+  if (act) {
+    stamp(g, ['abb', '.kb'], { a: EYE_GLOW[3], b: EYE_GLOW[2], k: '#2a0a40' }, ex, ey);
+    stamp(g, ['ab', 'k.'], { a: EYE_GLOW[3], b: EYE_GLOW[2], k: '#2a0a40' }, ex + 4, ey);
+    // three claw marks raked through the air
+    for (let i = 0; i < 3; i++)
+      line(g, [[28 + i * 3, 3 + i], [29 + i * 3, 6 + i], [29.5 + i * 3, 9 + i]], (k) => (k >= 2 && k <= 4 ? '#ffffff' : '#d8b8ff'));
+  } else {
+    stamp(g, ['akb', 'bkc'], { a: EYE_GLOW[3], b: EYE_GLOW[2], c: EYE_GLOW[1], k: '#2a0a40' }, ex, ey);
+    stamp(g, ['ab', 'kc'], { a: EYE_GLOW[3], b: EYE_GLOW[2], c: EYE_GLOW[1], k: '#2a0a40' }, ex + 4, ey);
+  }
+  // the eyes' glow: a soft violet halo (no outline)
+  return (ctx) => {
+    for (const [x, y, a] of [
+      [ex - 1, ey, 0.4],
+      [ex + 1, ey - 1, 0.35],
+      [ex + 3, ey, 0.3],
+      [ex + 6, ey, 0.4],
+      [ex + 5, ey - 1, 0.3],
+      [ex + 1, ey + 2, 0.25],
+      [ex + 5, ey + 2, 0.25],
+    ] as Array<[number, number, number]>)
+      dot(ctx, x, y, EYE_GLOW[2], a);
+  };
+}
+
+// ---- Nimbus: a tiny sky whale wrapped in a cloud, star freckles
+
+const WHALE = ['#22205a', '#343a8a', '#4c64be', '#7090e0', '#a0c0f6', '#d8ecff']; // periwinkle, shadows lean indigo
+const WHALE_BELLY = ['#7a90c0', '#b8cce8', '#e8f2ff'];
+const CLOUD = ['#7c80b4', '#aab2dc', '#d8e0f6', '#f4f8ff', '#ffffff'];
+const SPOUT = ['#3a9ad8', '#7ad8f6', '#c8f4ff', '#ffffff'];
+
+/** A cloud's puffs: overlapping round lumps, lit from the top left, parted from each other by a soft blue-grey. */
+function cloud(g: Grid, puffs: Array<[number, number, number]>): void {
+  for (const [x, y, r] of puffs) form(g, ell(x, y, r, r * 0.86), sphere(CLOUD, x - r * 0.4, y - r * 0.5, r * 1.3, r * 1.2, 0.1, 0.12), CLOUD[1]);
+}
+
+function nimbus(g: Grid, pose: Pose): Glow {
+  const act = pose === 'act';
+  const f = pose === 'idle1' ? 1 : 0;
+  const cy = 11 + (f ? -1 : 0);
+  // the tail, rising behind to its flukes (they beat up and down)
+  const tail: Array<[number, number]> = [
+    [13, cy + 2],
+    [9, cy + 1],
+    [6, cy - 1 - f],
+  ];
+  stroke(g, tail, (t) => 3 - t * 1.9, sphere(WHALE, 8, cy - 2, 7, 5, 0.1));
+  const [fx, fy] = tail[tail.length - 1];
+  form(g, tri(fx + 0.5, fy + 0.5, fx - 4, fy - 3 - (f ? 0 : 1), fx - 2.5, fy + 1), sphere(WHALE, fx - 2, fy - 2, 4, 3, 0.15), WHALE[1]);
+  form(g, tri(fx + 0.5, fy + 0.5, fx - 4, fy + 3 - f, fx - 1.5, fy + 2), sphere(WHALE, fx - 2, fy + 1, 4, 3, -0.05), WHALE[1]);
+  // the body: a big round head tapering back, a pale grooved belly
+  const body: Inside = (x, y) => {
+    const px = x + 0.5;
+    const t = Math.max(0, Math.min(1, (px - 10) / 17));
+    const r = 2.6 + 4.6 * Math.sin(t * Math.PI * 0.62 + 0.25);
+    return px >= 10 && px <= 29 && Math.abs(y + 0.5 - (cy + 0.8 - t * 0.6)) <= r && ell(20.5, cy + 0.4, 9.2, 6.8)(x, y);
+  };
+  form(g, (x, y) => body(x, y) || ell(21, cy + 0.2, 7.6, 6.2)(x, y), sphere(WHALE, 18, cy - 3, 11, 8, 0.18), WHALE[1]);
+  form(g, (x, y) => ell(21.5, cy + 4.6, 7.5, 2.4)(x, y) && (body(x, y) || ell(21, cy + 0.2, 7.6, 6.2)(x, y)), (x, y) => ((x + y) % 3 === 0 ? WHALE_BELLY[0] : y > cy + 5 ? WHALE_BELLY[1] : WHALE_BELLY[2]));
+  // the flipper, tucked
+  form(g, ell(18.5, cy + 3.5, 2.4, 1.3), sphere(WHALE, 17.5, cy + 3, 3, 2, 0.2), WHALE[1]);
+  // a sleepy-happy eye, a wide smile, star freckles on the cheek
+  if (act) stamp(g, ['k.k', '.k.'], { k: '#1c1430' }, 23, cy - 1);
+  else {
+    eye(g, 24, cy - 1.5, { tall: true, dark: '#1c1430', iris: '#2a3a8a' });
+  }
+  line(g, [[25.5, cy + 2], [27, cy + 2.8], [28.5, cy + 2.4]], WHALE[1]);
+  put(g, 23.5, cy + 2, '#ff9ab8'); // blush
+  for (const [x, y] of [
+    [21, cy],
+    [26.5, cy - 3.5],
+    [19, cy - 3],
+  ])
+    put(g, x, y, '#fff2a0');
+  put(g, 22, cy + 1, '#ffd24a');
+  // the blowhole on top
+  put(g, 20, cy - 5.5, WHALE[0]);
+  put(g, 21, cy - 5.5, WHALE[1]);
+  // the cloud wrapped round its belly and tail
+  cloud(g, act
+    ? [
+        [9, cy + 5, 3],
+        [14, cy + 6.5, 3.6],
+        [20, cy + 7, 3.8],
+        [26, cy + 6, 3.2],
+      ]
+    : [
+        [9 - f, cy + 5, 3.2],
+        [14, cy + 6.5 + f * 0.4, 3.6],
+        [20, cy + 7 - f * 0.4, 3.8],
+        [26 + f, cy + 6, 3.2],
+        [30, cy + 4.5, 2],
+      ]);
+  if (act) {
+    // the spray: a spout from the blowhole, arcing forward in a fan of drops
+    stroke(g, [[20.5, cy - 6], [21, cy - 9], [23, cy - 11]], (t) => 1.4 - t * 0.5, (_x, y) => (y < cy - 9 ? SPOUT[2] : SPOUT[1]));
+    for (const [x, y, c] of [
+      [25, cy - 11, 3],
+      [27, cy - 10, 2],
+      [29, cy - 8, 2],
+      [31, cy - 6, 1],
+      [24, cy - 9, 1],
+      [26, cy - 7, 1],
+      [28, cy - 5, 2],
+      [32, cy - 3, 1],
+    ])
+      put(g, x, y, SPOUT[c]);
+  }
+  // its star freckles twinkle; a few sparkles round it
+  return (ctx) => {
+    const sp: Array<[number, number]> = act ? [[16, cy - 9], [33, cy - 1]] : f ? [[30, cy - 6], [4, cy + 6]] : [[29, cy - 7], [6, cy + 7]];
+    for (const [x, y] of sp) {
+      dot(ctx, x, y, '#ffffff', 1);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) dot(ctx, x + dx, y + dy, '#fff2a0', 0.7);
+    }
+  };
+}
+
 // ------------------------------------------------------------------ cards
 
 const CARD_W = 40;
@@ -939,6 +1327,11 @@ const PAINT: Record<CompanionArtId, (g: Grid, pose: Pose) => Glow> = {
   flurry,
   mote,
   sunny,
+  // ---- Part 6 companions
+  burr,
+  lark,
+  gloam,
+  nimbus,
 };
 
 /** Card glows [heart, rim]: the rim in the rarity's colour, the heart in the companion's own accent. */
@@ -951,6 +1344,11 @@ const CARD_GLOW: Record<CompanionArtId | 'pip', [string, string]> = {
   flurry: ['#e0f6ff', '#b05ae0'],
   mote: ['#fff6c0', '#b05ae0'],
   sunny: ['#fff0a0', '#ffa030'],
+  // ---- Part 6 companions
+  burr: ['#f0d0a0', '#9aa0b4'],
+  lark: ['#fff070', '#3a8ae8'],
+  gloam: ['#d8b8ff', '#b05ae0'],
+  nimbus: ['#c0f4ff', '#f03c3c'],
 };
 const MOTES: Array<[number, number]> = [
   [6, 12],
@@ -958,8 +1356,12 @@ const MOTES: Array<[number, number]> = [
   [35, 26],
 ];
 
+/** Where a companion's face is in its frame (x, y), for its round token in the companions screen's strip (others: the
+ *  top of what it shows, centred). Round 7's four look sideways, so their faces sit off to the right. */
+export const COMPANION_FACE: Partial<Record<string, readonly [number, number]>> = { burr: [23, 15], lark: [22, 9], gloam: [24, 9.5], nimbus: [24, 10] };
+
 /** Hovering companions sit this many px above the plinth on their card. */
-const HOVER: Partial<Record<CompanionArtId, number>> = { mote: 6, sunny: 2 };
+const HOVER: Partial<Record<CompanionArtId, number>> = { mote: 6, sunny: 2, lark: 4, nimbus: 2 };
 /** The pose each card shows (wings up for the drake). */
 const CARD_POSE: Partial<Record<CompanionArtId, Pose>> = { sunny: 'idle1' };
 

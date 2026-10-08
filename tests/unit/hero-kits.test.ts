@@ -184,7 +184,7 @@ describe('style rules', () => {
 
   it('Summoner (Call): green hits call allies in order; a Thornling strikes, a Barkback stops a red, a Glowmoth heals; a 4th call is a Rally', () => {
     // (allies stay the whole test: their stay is the next test's)
-    const { c, t } = fight('moss', { tune: (t) => ((t.blocks.redTravelSec = 1), (t.kits.moss.allySec = 30)) });
+    const { c, t } = fight('moss', { tune: (t) => ((t.blocks.redTravelSec = 1), (t.kits.moss.allySec = t.kits.moss.barkEvery + 30)) });
     tapNew(c, t, 'green', 0.2);
     expect(c.allies.map((a) => a.kind)).toEqual(['thornling']);
     const hp = c.enemies[0].hp;
@@ -435,8 +435,10 @@ describe('hero kits', () => {
     expect(c.blocks.includes(icicle)).toBe(false); // then it strikes
   });
 
-  it("Torva: Quake knocks reds back on a Perfect; Wind-Up's next hit smashes (x base + a step per combo) and stuns; Earthsplitter clears the bar", () => {
-    const { c, t } = fight('torva', { tune: (t) => (t.blocks.redTravelSec = 20) });
+  it("Torva: Quake knocks reds back on a Perfect; Wind-Up's next hit smashes (x base + a step per combo) and stuns for kits.torva.stunSec; Earthsplitter clears the bar", () => {
+    // (the shipped Wind-Up doesn't stun: stunSec 0, since a stun cancels a special being told, a red-stopper at the bosses;
+    // the number stays a slider, so the stun is checked here at 1 s and at the shipped 0 below)
+    const { c, t } = fight('torva', { tune: (t) => ((t.blocks.redTravelSec = 20), (t.kits.torva.stunSec = 1)) });
     const k = t.kits.torva;
     const r = c.spawnBlock('red', 0.8);
     const p0 = r.pos;
@@ -457,6 +459,13 @@ describe('hero kits', () => {
     c.stacks = 1;
     c.finisher();
     expect(c.blocks).toHaveLength(0);
+    // as shipped: the smash lands, no stun
+    const s = fight('torva');
+    expect(s.t.kits.torva.stunSec).toBe(0);
+    tapNew(s.c, s.t, 'green', 0.35, 25);
+    tapNew(s.c, s.t, 'yellow', 0.5, 25);
+    expect(s.c.drainEvents().some((e) => e.type === 'perk' && e.id === 'windUp')).toBe(true);
+    expect(s.c.enemies[0].stun).toBe(0);
   });
 
   it("Sable's Shadow Dash lands slow: the cursor runs at landMult up to the block it dashed to (about landSec), then it's gone", () => {
