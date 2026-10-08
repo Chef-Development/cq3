@@ -248,7 +248,7 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   payback: ['cursor'],
   berserk: ['bar', 'foe'],
   // ---- Gorm (Part 6): Rockfall's boulder flies from the blow to the red it shoves, a Roar makes the foes flinch,
-  // Thick Skin chips stone off the hero (onsite-gorm-tess.ts); Landslide's rubble lies over the bar's right end
+  // Thick Skin chips stone off the hero (onsite.ts gormTess); Landslide's rubble lies over the bar's right end
   // (bar-gorm-tess.ts) and each red it slows flashes
   rockfall: ['bar', 'foe'],
   roar: ['reds', 'foes'],
@@ -279,6 +279,13 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   windBack: ['foes'],
   backspin: ['bar'],
   timeLoop: ['reds'],
+  // ---- Part 6 companions (their looks: view/onsite-pets.ts)
+  prickly: ['show'], // Burr curls up and spines fly from him into the foe whose red hit you
+  wakeSong: ['show'], // Lark's note flies to the next yellow and glows on it until it's hit
+  wakeNote: ['bar', 'combo', 'show'], // the singing yellow hit: the note bursts, the combo counter swells (+3 by it)
+  nightEyes: ['show'], // Gloam pounces: a claw swipe across the trap, which turns into a yellow where it stood
+  tide: ['show'], // a wave rolls across the bar from the left end; each red it reaches is carried back
+  calmSeas: ['cursor', 'show'], // the sea calms: the cursor glows aqua while the combo stays up; hits ripple
 };
 
 /** The block a 'spawn' perk puts on the bar. */

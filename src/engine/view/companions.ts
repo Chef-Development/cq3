@@ -19,6 +19,7 @@
 import type Phaser from 'phaser';
 import { pct as fmtPct, whole } from '../../core/format';
 import { COMPANIONS, COMPANION_IDS, type CompanionId } from '../../data/companions';
+import { COMPANION_FACE } from '../art-companions';
 import { TIER_INFO } from '../../data/rarity';
 import { levelProgress } from '../../core/heroes';
 import { equipPet, petLevel, petOwned, petSlots, shardsToNext } from '../../core/roster';
@@ -802,6 +803,9 @@ export class CompanionsScreen {
 
   /** The 11 x 11 window on a companion's frame that shows its face (the top of what it shows, centred). */
   private faceAt(key: string): [number, number] {
+    // (one with its face placed by hand: round 7's companions)
+    const face = COMPANION_FACE[key.replace(/^comp_|_idle0$/g, '')];
+    if (face) return [Math.max(0, Math.round(face[0] - 5.5)), Math.max(0, Math.round(face[1] - 5.5))];
     const b = opaqueBox(this.kit, key);
     const fx = Math.round(b.x + b.w / 2 - 5.5);
     const fy = Math.round(b.y + Math.min(b.h, 14) / 2 - 5.5);
