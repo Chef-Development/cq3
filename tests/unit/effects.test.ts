@@ -31,7 +31,9 @@ describe('gear stats in a fight', () => {
       c.advanceTo(timeAt(t, 0.3) + 0.01);
       c.tap(timeAt(t, 0.3));
     }
-    expect(b.c.meter).toBeCloseTo(a.c.meter * 1.5);
+    // +50% Meter Gain: in full up to tuning.spam.meterKnee, the rest with diminishing returns (tests/unit/spam.test.ts)
+    expect(b.c.meter).toBeCloseTo(a.c.meter * (1 + b.c.meterGain()));
+    expect(b.c.meter).toBeGreaterThan(a.c.meter * 1.3);
   });
 
   it('Companion power adds to every peck', () => {

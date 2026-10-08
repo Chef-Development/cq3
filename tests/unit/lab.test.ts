@@ -17,7 +17,7 @@ import { campAvailable } from '../../src/core/meta';
 import { labFight, labMinutes, labProfile, labReport, labVisible, rateScenario, ratingOf, readLabState, staleRating, startLabScenario, newLabState, labHomePhase } from '../../src/core/lab';
 import { equippedItems, newProfile, readProfile } from '../../src/core/profile';
 import { ownedHeroes, petBuilds } from '../../src/core/roster';
-import { fight } from '../../src/core/bot';
+import { fight, TYPICAL_ACCURACY } from '../../src/core/bot';
 import { Rng } from '../../src/core/rng';
 import { Run } from '../../src/core/run';
 import { snapshotRun } from '../../src/core/save';
@@ -313,7 +313,7 @@ describe('Test lab scenarios play', () => {
 
   it('story scenarios play their scenes in order; map scenarios stand on their act\'s map; camp scenarios at the camp', () => {
     for (const s of LAB_SCENARIOS) {
-      if (s.setup.kind === 'fight') continue;
+      if (s.setup.kind === 'fight' || s.setup.kind === 'gallery') continue; // (the gallery's own tests: finisher-show.test.ts)
       const r = new Run(t, { ...DEFAULT_SETTINGS }, 5, labProfile(t, s));
       startLabScenario(r, s, 3);
       if (s.setup.kind === 'story') {
@@ -332,7 +332,8 @@ describe('Test lab scenarios play', () => {
 });
 
 describe("Test lab hero fights are long enough to feel the kit (playtest round 5: the old ones were over too fast)", () => {
-  // the 85% bot plays each hero's lab fight: it lasts a good while and is nearly always won (a practice, not a test)
+  // the typical player (TYPICAL_ACCURACY, 75%) plays each hero's lab fight: it lasts a good while and is nearly always
+  // won (a practice, not a test)
   for (const s of LAB_SCENARIOS.filter((x) => x.group === 'heroes' && x.setup.kind === 'fight')) {
     it(s.id, () => {
       let won = 0;
@@ -341,7 +342,7 @@ describe("Test lab hero fights are long enough to feel the kit (playtest round 5
       for (let r = 0; r < N; r++) {
         const run = new Run(t, { ...DEFAULT_SETTINGS }, 100 + r, labProfile(t, s));
         startLabScenario(run, s, 1000 + r);
-        const st = fight(run, run.combat!, new Rng(5000 + r), { accuracy: 0.85, seed: 5000 + r });
+        const st = fight(run, run.combat!, new Rng(5000 + r), { accuracy: TYPICAL_ACCURACY, seed: 5000 + r });
         if (st.won) won++;
         sec += st.seconds;
       }
@@ -349,6 +350,48 @@ describe("Test lab hero fights are long enough to feel the kit (playtest round 5
       expect(won / N, 'won').toBeGreaterThanOrEqual(0.8);
     });
   }
+});
+
+describe('the late-game stress test (playtest round 7: "spam, spam, finisher x5, spam")', () => {
+  // a strong late build (level 20, Epic gear, a green build with heal relics, two companions, stacks banked) in a
+  // crowded fight of Region 1 foes at the last act's numbers, on Act 3's stage: aiming wins it, mashing never does
+  const s = byId('lateStress');
+  const play = (o: { accuracy: number; mashFrom?: number }, r: number) => {
+    const run = new Run(t, { ...DEFAULT_SETTINGS }, 100 + r, labProfile(t, s));
+    startLabScenario(run, s, 1000 + r);
+    return fight(run, run.combat!, new Rng(5000 + r), { ...o, seed: 5000 + r });
+  };
+
+  it('is a New fights item, no spoiler: Region 1 foes at the last act\'s numbers, on an earlier stage', () => {
+    expect(LAB_NEW).toContain(s);
+    expect(s.group).toBe('fights');
+    expect(s.spoiler).toBeFalsy();
+    const f = labFight(s)!;
+    expect(f.act).toBe(ALL_ACTS.length - 1);
+    expect(f.stage).toBeLessThan(GREENMARCH.acts.length);
+    const r1 = new Set(GREENMARCH.acts.flatMap((a) => [...a.fights.early.flat(), ...a.fights.late.flat(), ...a.elites.flat()]));
+    for (const k of f.waves.flat()) expect(r1.has(k), k).toBe(true);
+    expect(f.relics).toEqual(expect.arrayContaining(['photosynthesis', 'vampiricFang']));
+    expect(f.stacks).toBeGreaterThanOrEqual(1);
+    const p = labProfile(t, s);
+    expect(equippedItems(p).every((i) => i.rarity === 'epic')).toBe(true);
+    expect(p.petsOn.length).toBe(2);
+    const run = new Run(t, { ...DEFAULT_SETTINGS }, 5, p);
+    startLabScenario(run, s, 11);
+    expect(run.actIndex).toBe(f.stage);
+    expect(run.hero.relics).toEqual(f.relics);
+  });
+
+  it('the typical player usually wins it; the masher never does', () => {
+    const N = 6;
+    const aim = Array.from({ length: N }, (_, r) => play({ accuracy: TYPICAL_ACCURACY }, r));
+    const mash = Array.from({ length: N }, (_, r) => play({ accuracy: TYPICAL_ACCURACY, mashFrom: 0 }, r));
+    expect(aim.filter((f) => f.won).length).toBeGreaterThanOrEqual(N - 2);
+    expect(aim.reduce((n, f) => n + f.seconds, 0) / N).toBeGreaterThanOrEqual(22);
+    expect(mash.filter((f) => f.won).length).toBe(0);
+    // the rules show: the heals stop at the fight's cap
+    expect(aim.some((f) => f.healCut > 0)).toBe(true);
+  });
 });
 
 describe('Test lab ratings and report', () => {

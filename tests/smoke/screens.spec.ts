@@ -1283,6 +1283,73 @@ test("a new hero's finisher: Glacier rolls a frost wave out, freezes every red s
   await expect(page).toHaveScreenshot('finisher-glacier-mid.png', shot);
 });
 
+// ------------------------------------------------------------------ round 7: every hero's finisher their own
+
+/**
+ * A finisher show caught `at` frames in (mid-flurry by default): the hero against three foes (a flier among them, all
+ * tough enough to live through it), two reds and a yellow on the bar, `stacks` banked; `tier` draws it at another
+ * rarity (the Test lab gallery's pick).
+ */
+async function finisherShow(page: Page, hero: string, o: { stacks?: number; tier?: string; at?: number } = {}): Promise<void> {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero });
+  await bar(page, `c.addEnemy('wolf'); c.addEnemy('crow'); view.fighters.addEnemies(c);`);
+  await frames(page, 50);
+  await bar(
+    page,
+    `for (const e of c.enemies) { e.maxHp *= 20; e.hp = e.maxHp; } c.spawnBlock('red', 0.55, foe.id); c.spawnBlock('red', 0.8, foe.id); c.spawnBlock('yellow', 0.3); c.stacks = ${o.stacks ?? 3}; c.meter = 0; ${o.tier ? `view.fighters.showTier = '${o.tier}';` : ''}`,
+  );
+  await frames(page, 6);
+  await bar(page, `app.finisher();`);
+  await frames(page, o.at ?? 40);
+}
+
+test('unique finishers, Blade (Rowan): a steel whirlwind sweeps through the foes, crescent cuts on each, the pale steel sky cut by every strike', async ({ page }) => {
+  await finisherShow(page, 'rowan');
+  await expect(page).toHaveScreenshot('finisher-blade.png', shot);
+});
+
+test('unique finishers, Shadow (Sable): out of the shadows onto her target, violet afterimages round it, rifts behind, a moonlit night', async ({ page }) => {
+  await finisherShow(page, 'sable');
+  await expect(page).toHaveScreenshot('finisher-shadow.png', shot);
+});
+
+test('unique finishers, Controller (Neve): frost creeps to the foes, a glacier rises behind them, ice spikes stab up, an aurora and snow', async ({ page }) => {
+  await finisherShow(page, 'neve');
+  await expect(page).toHaveScreenshot('finisher-controller.png', shot);
+});
+
+test('unique finishers, Summoner (Moss): a great tree grows behind the foes, spirit wisps fly in and burst into leaves, a deep grove', async ({ page }) => {
+  await finisherShow(page, 'moss');
+  await expect(page).toHaveScreenshot('finisher-summoner.png', shot);
+});
+
+test('unique finishers, Bomber (Tam): the giant keg among the foes, its fuse burning down, bombs bursting on them, a smoky burning sky', async ({ page }) => {
+  await finisherShow(page, 'tam');
+  await expect(page).toHaveScreenshot('finisher-bomber.png', shot);
+});
+
+test('unique finishers, Guardian (Hollis): his rampart wall stands before him, shields fly into the target, a royal sky of golden rays', async ({ page }) => {
+  await finisherShow(page, 'hollis');
+  await expect(page).toHaveScreenshot('finisher-guardian.png', shot);
+});
+
+test('unique finishers, Marksman (Vesper): a sky of arrows over the foes, reticles locked on them, arrows streaking in, the dusk', async ({ page }) => {
+  await finisherShow(page, 'vesper');
+  await expect(page).toHaveScreenshot('finisher-marksman.png', shot);
+});
+
+test('unique finishers, Brute (Torva): the earth splits from her landing to the foes, magma glowing in the crack, a dust storm', async ({ page }) => {
+  await finisherShow(page, 'torva');
+  await expect(page).toHaveScreenshot('finisher-brute.png', shot);
+});
+
+test("the finisher's rarity scaler: Rowan's whirlwind at 5 stacks drawn at Divine (the gallery's pick): a long build-up, light converging on him, prism sparkles, dark edges", async ({ page }) => {
+  await finisherShow(page, 'rowan', { stacks: 5, tier: 'divine', at: 18 });
+  await expect(page).toHaveScreenshot('finisher-divine.png', shot);
+});
+
 // ------------------------------------------------------------------ round 6: the heroes' new moments, on what they touch
 
 test("Hollis: every block slams a shield into the red's foe (a steel number); full Guard arms a Bulwark (the Guard tab and the cursor glow steel, a shield over it); the next block sets it off, a great shield sweeping every foe", async ({ page }) => {
@@ -1328,7 +1395,7 @@ test("Tam's Turnabout: Big Bang flips each red into a keg where it stood (the re
   await expect(page).toHaveScreenshot('tam-turnabout-kegs.png', shot);
 });
 
-test("Torva's Wind-Up: the smash's multiplier rides over the cursor (x2.6 at 20 combo) and lands beside the foe it hits", async ({ page }) => {
+test("Torva's Wind-Up: the smash's multiplier rides over the cursor (x2.5 at 20 combo) and lands beside the foe it hits", async ({ page }) => {
   await boot(page);
   await frames(page, 10);
   await stagedFight(page, { hero: 'torva' });

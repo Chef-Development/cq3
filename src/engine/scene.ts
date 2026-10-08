@@ -34,6 +34,7 @@ import { buildRoamArt } from './art-roam';
 import { BAND_H, COL, DASH_MS, DEATH_CHARGE_MS, inRect, kindCol, stackCol, tintGrad, WHITE, type Pending, type Rect } from './view/shared';
 import { Stage } from './view/stage';
 import { TipsView } from './view/tips';
+import { FinisherGallery } from './view/finisher-gallery';
 import { Transition } from './view/transition';
 
 export class FightScene extends Phaser.Scene implements View {
@@ -95,6 +96,8 @@ export class FightScene extends Phaser.Scene implements View {
   readonly gains = new GainsView(this);
   readonly transition = new Transition(this);
   readonly tips = new TipsView(this);
+  /** The Test lab's Finisher gallery (its controls over the bar's band). */
+  readonly gallery = new FinisherGallery(this);
 
   constructor() {
     super('fight');
@@ -225,6 +228,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.loot.build();
     this.gains.build();
     this.tips.build();
+    this.gallery.build();
     this.stage.build();
     this.fighters.build();
     this.hud.reset();
@@ -816,6 +820,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.fx.updateFloaters(now);
     this.transition.draw(now);
     this.tips.draw(now);
+    this.gallery.draw(now);
   }
 
   private drawWorld(now: number): void {

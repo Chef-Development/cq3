@@ -169,6 +169,11 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
         else scene.campTap(clientX < 0 ? -1 : g.x, g.y);
         return;
     }
+    if (scene.gallery.active) {
+      // the Test lab's Finisher gallery: its controls take every tap (never the bar)
+      scene.gallery.tap(clientX < 0 ? -1 : g.x, g.y, now);
+      return;
+    }
     if (app.storyOverlay) {
       // a boss's mid-fight scene: tap through it (or skip it), then the fight goes on
       if (scene.storySkipAt(g.x, g.y)) app.storySkip();
@@ -311,7 +316,7 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
     const k = e.key;
     if (k === ' ' || k === 'j' || k === 'k' || k === 'Enter') {
       e.preventDefault();
-      if (app.run.phase === 'fight' && !app.userPaused && !app.awaitingBegin && !app.tipUp) pressed(-2, app.barTap(e.timeStamp));
+      if (app.run.phase === 'fight' && !app.userPaused && !app.awaitingBegin && !app.tipUp && !getScene()?.gallery.active) pressed(-2, app.barTap(e.timeStamp));
       else down(-1, -1, e.timeStamp, -1);
     } else if (k === 'f' || k === 'ArrowUp') app.finisher();
     else if (k === 'p' || k === 'Escape') {

@@ -22,7 +22,8 @@ import { EFFECTS, RARITY_INFO, type EffectId } from '../../data/gear';
 import { relicById } from '../../data/relics';
 import { rarityIndex } from '../../core/gear';
 import { equippedIn, equippedItems } from '../../core/profile';
-import { FINISHER_BLOW_AT, finisherStrikeAt, finisherStrikes, type ImpactFeel } from '../../core/impact';
+import type { ImpactFeel } from '../../core/impact';
+import type { Tier } from '../../data/rarity';
 import type { FightScene } from '../scene';
 import { HERO_FEET_X, HERO_W, ICONS } from '../art';
 import { GAME_W } from '../layout';
@@ -32,7 +33,8 @@ import { FOE_ICONS } from './icons';
 import { ALLY_COL, Party, PERK_PET } from './party';
 import { BLOCKER_FACE } from './bar-kinds';
 import { PERK_AT } from './perk-at';
-import { drawShow, MELEE, quakeLand, SHOW_KIND, showFinal, showStart, showStrike, type ShowKind } from './finishers';
+import { FinisherShow } from './finishers';
+import type { HeroMotion } from './finisher-signatures';
 import {
   clamp01,
   comboSlashCol,
@@ -42,7 +44,6 @@ import {
   ENEMY_COL,
   ENGAGE_MS,
   ENTER_MS,
-  FINISHER_NAME,
   inRect,
   LEAP_MS,
   rand,
@@ -92,9 +93,7 @@ export class Fighters {
   private ghostTrail: Array<{ x: number; y: number; tex: string; flip: boolean; at: number }> = [];
   private gShadow!: G;
   private gSuper!: G;
-  private superAt = -1e9;
   superMs = superMsFor(1);
-  private superStacks = 1;
   superFinalAt = -1e9; // anim time of the finisher's last blow
   burstAt = new Map<number, number>(); // enemy id -> anim time it bursts
   lastBurstAt = -1e9;
@@ -118,10 +117,12 @@ export class Fighters {
   /** Effect and perk names shown this fight: each name shows the first time it kicks in, then only what it does. */
   private named = new Set<string>();
   private namedFight: unknown = null;
-  /** The finisher show's kind (each hero has their own: view/finishers.ts). */
-  private superKind: ShowKind = 'whirl';
-  /** The quake's landing (Earthsplitter) played this show. */
-  private quakeLanded = true;
+  /** The finisher show (each hero's own: their style's kit, their signature moment, their rarity's scale). */
+  readonly show: FinisherShow;
+  /** The Test lab's Finisher gallery shows a finisher at another rarity than the hero's own (null: their own). */
+  showTier: Tier | null = null;
+  /** The hero is hidden by the show (a tornado, a shadow stands in for them). */
+  private showHidden = false;
   /** Shield Wall's bubble as last drawn (charged or not), and when it changed. */
   private bubble = false;
   private bubbleAt = -1e9;
@@ -129,6 +130,7 @@ export class Fighters {
   constructor(private readonly s: FightScene) {
     this.h = this.freshHero();
     this.party = new Party(s);
+    this.show = new FinisherShow(s);
   }
 
   freshHero(): HeroAnim {
@@ -192,6 +194,7 @@ export class Fighters {
     this.hero = s.add.image(s.heroHome, s.ground, 'hero_idle0').setScale(SPRITE_SCALE);
     this.heroRim = this.makeRim();
     s.actors.add([this.heroGlow, this.hero, this.heroRim]);
+    this.show.build();
   }
 
   private makeRim(): Phaser.GameObjects.Image {
@@ -242,7 +245,7 @@ export class Fighters {
     this.splitFrom.clear();
     this.h = this.freshHero();
     this.superFinalAt = -1e9;
-    this.superAt = -1e9;
+    this.show.reset();
     this.bubble = false;
     this.party.newFight();
   }
@@ -549,7 +552,8 @@ export class Fighters {
     const col = finisher ? 0xff8a2a : crit ? 0xffb020 : perfect ? 0xfff07a : 0xffe040;
     // contact point: the enemy's front edge, at chest height
     const hx = Math.round(v.x - v.img.displayWidth * 0.3);
-    if (big) fx.stars.push({ x: v.x, y: cy - 8, at: s.anim, r: finisher ? 34 : 24, color: finisher ? 0xffb03a : 0xfff07a });
+    // (a finisher's last blow brings its style's own burst and cut: view/finishers.ts)
+    if (big && !finisher) fx.stars.push({ x: v.x, y: cy - 8, at: s.anim, r: 24, color: 0xfff07a });
     fx.sparks.push({ x: hx, y: cy, at: s.anim, size: finisher ? 18 : crit ? 14 : 10, color: big ? 0xfff07a : 0xbfe8ff });
     const numScale = scale || (finisher ? 3 : 2);
     // quick successive numbers cascade upward and alternate sides instead of piling on each other
@@ -565,7 +569,7 @@ export class Fighters {
     if (wl) {
       const [hi, base, , deep] = wl.face;
       fx.slashes.push({ x: v.x, y: cy, at: s.anim, big: big || tier >= 2, dir: this.h.alt ? 1 : -1, color: crit ? hi : base, rim: deep, core: mix(tier > 0 || crit ? slashCol : hi, WHITE, 0.45) });
-    } else fx.slashes.push({ x: v.x, y: cy, at: s.anim, big: big || tier >= 2, dir: this.h.alt ? 1 : -1, color: slashCol });
+    } else if (!finisher) fx.slashes.push({ x: v.x, y: cy, at: s.anim, big: big || tier >= 2, dir: this.h.alt ? 1 : -1, color: slashCol });
     fx.burst(hx, cy, WHITE, (big ? 14 : 8) + tier * 2, true, big ? 1.6 : 1.1, true);
     fx.chips(hx, cy, 6, [WHITE, col, ENEMY_COL[v.sprite] ?? WHITE], big ? 10 : 5, 0);
     if (big) fx.ring(v.x, cy, 28, col, true);
@@ -608,64 +612,52 @@ export class Fighters {
   }
 
   /**
-   * The finisher show, scaled by the stacks spent: the hero goes in (or stands back and casts, throws, shoots) for a
-   * flurry of strikes in their finisher's look (more stacks = more strikes, a longer show and a hotter backdrop), then
-   * lands one huge blow whose number counts up. Kills and the HP bars wait for that last blow. Each hero's show also
-   * does its own thing to the stage and the bar (view/finishers.ts).
+   * The finisher show (view/finishers.ts), each hero's own: their style's kit (its sky, strikes and last blow), their
+   * signature moment, scaled by their rarity (the Test lab's gallery can pick another: `showTier`) and the stacks spent
+   * (more strikes, rings and sky). It always fits the envelope the core holds the cursor for (finisherShowMs). The last
+   * blow lands here: the hit on every target and its number counting up. Kills and the HP bars wait for it.
    */
   heroFinisher(damage: number, stacks: number, targets: number[] = []): void {
     const s = this.s;
     const fx = s.fx;
     const h = this.h;
-    const n = Math.max(1, Math.min(5, stacks));
     // who it hits: every foe, or the one target (Twin Fang, Rampart)
     const all = [...this.enemies.values()].filter((v) => !v.dieAt);
     const hit = targets.length ? all.filter((v) => targets.includes(v.id)) : all;
     const views = hit.length ? hit : all;
-    const front = views.slice().sort((a, b) => a.homeX - b.homeX)[0];
-    const kind = SHOW_KIND[this.heroId()] ?? 'whirl';
-    this.superKind = kind;
-    this.quakeLanded = kind !== 'quake';
-    this.superMs = superMsFor(n);
-    this.superStacks = n;
+    const id = this.heroId();
+    const c = this.show.start({
+      hero: id,
+      tier: this.showTier ?? heroDef(id as HeroId).rarity,
+      stacks,
+      views,
+      heroX: h.x,
+      damage,
+      heroTex: (pose) => this.heroTex(pose),
+      heroAt: () => ({ x: this.h.x, lift: -this.h.y }),
+    });
+    const n = c.n;
+    this.superMs = c.tl.ms;
     const ms = this.superMs;
     h.state = 'super';
     h.fromX = h.x;
-    h.toX = MELEE.has(kind) ? (front ? front.homeX - 8 - (kind === 'whirl' || kind === 'fang' ? 0 : 14) : h.x + 80) : Math.min(h.x + 14, front ? front.homeX - 40 : h.x + 14);
+    h.toX = c.toX;
     h.t0 = s.anim;
     h.lastAction = s.anim + ms;
-    this.superAt = s.anim;
-    const finalK = FINISHER_BLOW_AT;
+    const finalK = c.tl.blow;
     this.superFinalAt = s.anim + ms * finalK;
-    const [col, hi] = stackCol(n);
-    const name = heroDef(this.heroId() as HeroId).finisher.name;
-    const title = kind === 'whirl' ? (FINISHER_NAME[n] ?? 'Finisher!') : n > 1 ? `${name} x${n}!` : `${name}!`;
+    const [, hi] = stackCol(n);
+    const name = heroDef(id as HeroId).finisher.name;
+    const title = n > 1 ? `${name} x${n}!` : `${name}!`;
     fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, n >= 2 ? 3 : 2, true, 0, -6, 0, ms * 0.95, true);
-    showStart(s, kind, h.x);
-    // the flurry: 1 + 2n quick strikes between 30% and 70% of the show
-    const strikes = finisherStrikes(n);
-    for (let st = 0; st < strikes; st++) {
-      const k = finisherStrikeAt(st, strikes);
-      s.later(ms * k, () => {
-        for (const v of views) showStrike(s, kind, v, st, col, hi);
-        s.app.audio.finisherStrike(st, strikes);
-        fx.kick(st % 2 ? 2 : -2, 60);
-        fx.freeze(25);
-      });
-    }
-    // the last blow
+    // the last blow (three or more foes side by side: smaller numbers, so they read)
+    const crowd = views.length > 2;
+    let row = 0;
     s.later(ms * finalK, () => {
       s.app.audio.finisherBoom(n);
       const feel = fx.impact(fx.weight('finisher', n));
-      if (kind === 'fang')
-        for (const v of views) {
-          // the fang: both daggers cross on the target
-          const cy = v.y - v.img.displayHeight / 2;
-          fx.slashes.push({ x: v.x, y: cy, at: s.anim, big: true, dir: 1, color: hi });
-          fx.slashes.push({ x: v.x, y: cy - 2, at: s.anim, big: true, dir: -1, color: col });
-        }
       for (const v of views) {
-        this.enemyHurtFx(v.id, damage, false, false, feel, true, 3);
+        this.enemyHurtFx(v.id, damage, false, false, feel, true, crowd ? 2 : 3);
         // the damage number (the floater enemyHurtFx just made) counts up over the enemy, hangs longer, rises slowly
         const num = fx.floaters[fx.floaters.length - 1];
         if (num && damage > 0) {
@@ -676,15 +668,16 @@ export class Fighters {
           num.g = 20;
           num.vx = 0;
         }
-        const cy = v.y - v.img.displayHeight / 2;
-        for (let r = 0; r < n; r++) s.later(r * 70, () => fx.ring(v.x, cy, 30 + r * 14, r % 2 ? hi : col, true));
-        fx.stars.push({ x: v.x, y: cy - 6, at: s.anim, r: 30 + n * 6, color: col });
-        fx.burst(v.x, cy, col, 16 + n * 8, true, 1.6 + n * 0.15);
-        showFinal(s, kind, v, n);
+        // (side by side: every other number a row higher, all spread a little apart, so they never pile up)
+        if (num && damage > 0 && crowd) {
+          num.y -= (row % 2) * 18;
+          num.x += (row - (views.length - 1) / 2) * 6;
+          row++;
+        }
+        fx.burst(v.x, v.y - v.img.displayHeight / 2, c.pal.light, 10 + n * 6, true, 1.4 + n * 0.15);
       }
-      fx.screenFlash(n >= 3 ? 0xfff0c0 : WHITE, performance.now(), 160 + 40 * n);
-      fx.shock(h.toX + 8, s.ground, 50 + n * 12, hi);
-      fx.kick(6, 160);
+      // the style's last blow and the signature's (a cut, fangs, a shattering glacier, a toppling wall...)
+      this.show.blow();
     });
   }
 
@@ -1042,6 +1035,7 @@ export class Fighters {
     const h = this.h;
     const a = s.anim;
     let yOff = 0;
+    let sm: HeroMotion | null = null;
     if (h.state === 'dash') {
       const k = clamp01((a - h.t0) / DASH_MS);
       h.x = h.fromX + (h.toX - h.fromX) * ease(k);
@@ -1052,19 +1046,18 @@ export class Fighters {
       yOff = -Math.sin(k * Math.PI) * 24;
       if (k >= 1) h.state = 'engaged';
     } else if (h.state === 'super') {
+      // the finisher show moves the hero (view/finishers.ts: their style's way in, their signature's own moves)
       const k = clamp01((a - h.t0) / this.superMs);
-      if (k < 0.3) h.x = h.fromX + (h.toX - h.fromX) * ease(k / 0.3);
-      else if (k < 0.75) h.x = h.toX + (this.superKind === 'whirl' ? Math.sin(a / 25) * 3 : 0);
-      else h.x = h.toX + (s.heroHome - h.toX) * ease((k - 0.75) / 0.25);
-      // Twin Fang and Earthsplitter: a leap onto the target (the quake lands with a slam)
-      if ((this.superKind === 'fang' || this.superKind === 'quake') && k < 0.3) yOff = -Math.sin((k / 0.3) * Math.PI) * (this.superKind === 'quake' ? 26 : 22);
-      if (!this.quakeLanded && k >= 0.3) {
-        this.quakeLanded = true;
-        quakeLand(s, h.x);
+      sm = this.show.motion(a, s.heroHome);
+      if (sm) {
+        h.x = sm.x;
+        yOff = -sm.lift;
       }
       if (k >= 1) {
         h.state = 'idle';
         h.x = s.heroHome;
+        yOff = 0;
+        sm = null;
       }
     } else if (h.state === 'return') {
       const k = clamp01((a - h.t0) / RETURN_MS);
@@ -1077,28 +1070,11 @@ export class Fighters {
 
     let pose: string;
     let flip = false;
-    const sk = h.state === 'super' ? (a - h.t0) / this.superMs : -1;
     if (h.down) pose = 'down';
     else if (a < h.hurtUntil) pose = 'hurt';
-    else if (this.superKind === 'fang' && sk >= 0 && sk < 1) {
-      // Twin Fang: the leap, a flurry of strikes with both hands, the fang strike, then back
-      if (sk < 0.3) pose = 'leap';
-      else if (sk < FINISHER_BLOW_AT - 0.04) pose = Math.floor(a / 60) % 2 ? 'slashA' : 'slashB';
-      else if (sk < 0.75) pose = 'fang';
-      else {
-        pose = 'dash';
-        flip = true;
-      }
-    } else if (sk >= 0 && sk < 1 && this.superKind !== 'whirl') {
-      // the others: in (a dash, a leap) or a cast, their finisher pose while it plays out, then back
-      const kind = this.superKind;
-      const back = sk >= (MELEE.has(kind) ? 0.75 : 0.8);
-      if (back) {
-        pose = Math.abs(h.x - s.heroHome) > 3 ? 'dash' : 'idle0';
-        flip = pose === 'dash';
-      } else if (kind === 'quake') pose = sk < 0.3 ? 'leap' : 'fin';
-      else if (kind === 'rampart') pose = sk < 0.3 ? 'dash' : 'fin';
-      else pose = sk < 0.14 ? (this.hasPose('cast') ? 'cast' : 'windup') : 'fin';
+    else if (sm) {
+      pose = sm.pose === 'cast' && !this.hasPose('cast') ? 'windup' : sm.pose;
+      flip = sm.flip;
     } else if (h.state === 'leap') pose = a - h.t0 < LEAP_MS * 0.7 ? 'leap' : 'slashA';
     else if (a < h.poseUntil) pose = h.pose;
     else if (h.state === 'dash') pose = 'dash';
@@ -1114,8 +1090,11 @@ export class Fighters {
       s.fx.dust(h.x - 4, s.ground, 3, -1, 0.8);
     }
     h.y = yOff;
-    const spinning = this.superKind === 'whirl' && h.state === 'super' && a - h.t0 > this.superMs * 0.06 && a - h.t0 < this.superMs * 0.94;
-    this.hero.setVisible(!spinning && !this.showcase);
+    // (a show can hide the hero: a tornado, a shadow stands in for them) or fade them (into the shadows)
+    const hidden = !!sm && sm.hidden;
+    this.showHidden = hidden;
+    this.hero.setVisible(!hidden && !this.showcase);
+    this.hero.setAlpha(sm ? sm.alpha : 1);
     this.hero.setTexture(this.heroTex(pose));
     this.hero.setFlipX(flip);
     this.hero.setOrigin((flip ? HERO_W - HERO_FEET_X : HERO_FEET_X) / HERO_W, 1);
@@ -1124,7 +1103,7 @@ export class Fighters {
     const lunge = lk >= 0 && lk < 1 ? Math.round(4 * Math.sin(lk * Math.PI)) : 0;
     this.hero.setPosition(Math.round(h.x + knock + lunge), Math.round(s.ground + yOff));
     // afterimages while dashing, returning or leaping
-    const moving = (h.state === 'dash' || h.state === 'return' || h.state === 'leap' || (h.state === 'super' && !spinning)) && this.hero.visible;
+    const moving = (h.state === 'dash' || h.state === 'return' || h.state === 'leap' || (h.state === 'super' && !hidden)) && this.hero.visible;
     const last = this.ghostTrail[this.ghostTrail.length - 1];
     if (moving && (!last || a - last.at > 22)) {
       this.ghostTrail.push({ x: this.hero.x, y: this.hero.y, tex: this.heroTex(pose), flip, at: a });
@@ -1135,7 +1114,9 @@ export class Fighters {
       const age = tr ? a - tr.at : 1e9;
       if (!tr || age > 140) return void gh.setVisible(false);
       gh.setTexture(tr.tex).setFlipX(tr.flip).setOrigin(this.hero.originX, 1).setPosition(tr.x, tr.y);
-      gh.setTint(i === 0 ? 0xbfe8ff : 0x6ab4ff).setAlpha((0.5 - i * 0.14) * (1 - age / 140)).setVisible(true);
+      // (in a finisher show they take its style's colour)
+      const tint = h.state === 'super' ? this.show.look.ghost : i === 0 ? 0xbfe8ff : 0x6ab4ff;
+      gh.setTint(tint).setAlpha((0.5 - i * 0.14) * (1 - age / 140) * (sm ? sm.alpha : 1)).setVisible(true);
     });
     const flashing = a < h.flashUntil;
     if (flashing) this.hero.setTint(h.flashColor).setTintMode(Phaser.TintModes.FILL);
@@ -1173,7 +1154,7 @@ export class Fighters {
     const run = s.app.run;
     const c = run.combat;
     // Rowan (hidden while he whirls: the tornado stands on the ground instead), and Pip's small, faint shadow below him
-    const spin = !this.hero.visible && this.h.state === 'super';
+    const spin = this.showHidden && this.h.state === 'super';
     if (!this.showcase) this.shadow(this.h.x + 1, s.ground, spin ? 26 : 15, -this.h.y, spin ? 0.8 : 1);
     this.party.shadows((x, y, w, lift, alpha) => this.shadow(x, y, w, lift, alpha));
     if (run.hero.abilityTimer > 0 && Math.floor(now / 90) % 2 === 0) {
@@ -1487,63 +1468,12 @@ export class Fighters {
   }
 
   /**
-   * Finisher special: the sky swaps to a streaked backdrop while the hero whirls through the enemies. Its colors
-   * heat up with the stacks spent (blue, violet, gold, crimson, then a cycling rainbow), with radial speed lines.
+   * The finisher show's frame: its style's sky behind the actors (it takes over the stage's sky, more fully for a rarer
+   * hero), the signature moment and the marks on and round the foes, the rarity's layers (view/finishers.ts).
    */
   drawSuper(now: number): void {
-    const s = this.s;
     const g = this.gSuper;
     g.clear();
-    const k = (s.anim - this.superAt) / this.superMs;
-    if (k < 0 || k >= 1) return;
-    const n = this.superStacks;
-    const alpha = k < 0.08 ? k / 0.08 : k > 0.86 ? (1 - k) / 0.14 : 1;
-    const bottom = s.ground - 8;
-    const PAL: Record<number, number[]> = {
-      1: [0x1022a8, 0x1a3cc8, 0x2a62dc, 0x3a8ae8, 0x48b4f0, 0x5ad8f4],
-      2: [0x2a0e6a, 0x441a9a, 0x6a2ac8, 0x8a4ae0, 0xb07af0, 0xd8b0ff],
-      3: [0x6a2a08, 0x9a420a, 0xc86a10, 0xe8941a, 0xf8c040, 0xffe890],
-      4: [0x5a0a1e, 0x8a1230, 0xb81c3e, 0xe0344e, 0xf86a6a, 0xffb0a0],
-    };
-    let bands = PAL[Math.min(4, n)];
-    if (n >= 5) {
-      // white-hot: cycle through every palette
-      const cyc = [PAL[1], PAL[2], PAL[3], PAL[4]];
-      bands = cyc[Math.floor(s.anim / 90) % cyc.length];
-    }
-    const bh = Math.ceil(bottom / bands.length);
-    bands.forEach((col, i) => {
-      g.fillStyle(col, alpha);
-      g.fillRect(0, i * bh, GAME_W, Math.min(bh, bottom - i * bh));
-    });
-    const lines = 14 + n * 4;
-    const hiCol = stackCol(n)[1];
-    for (let i = 0; i < lines; i++) {
-      const y = 4 + ((i * 37) % Math.max(1, bottom - 8));
-      const len = 18 + ((i * 53) % 46) + n * 4;
-      const speed = 0.5 + (i % 3) * 0.25 + n * 0.08;
-      const x = ((((i * 97 - now * speed) % (GAME_W + 80)) + GAME_W + 80) % (GAME_W + 80)) - 40;
-      g.fillStyle(i % 3 === 0 ? hiCol : WHITE, alpha * (i % 2 ? 0.85 : 0.5));
-      g.fillRect(Math.round(x), y, len, i % 4 === 0 ? 2 : 1);
-    }
-    // the show's own stage effects (a frost wave, vines, a big keg, arrows), and Rowan's whirlwind where he is
-    const h = this.h;
-    if (h.state === 'super' && this.superKind !== 'whirl') drawShow(s.gFx, s, this.superKind, k, h.x, [...this.enemies.values()].filter((v) => !v.dieAt));
-    if (h.state !== 'super' || this.superKind !== 'whirl') return;
-    const fx = s.gFx;
-    const cx = h.x + 2;
-    const [c1, c2] = stackCol(n);
-    // a tornado: stacked spinning rings, wider at the top (taller with more stacks)
-    for (let arc = 0; arc < 4 + n; arc++) {
-      const base = s.anim / 30 + arc * 1.7;
-      const r = 7 + arc * 4;
-      const cy = s.ground - 4 - arc * 6;
-      for (let j = 0; j < 18; j++) {
-        const ang = base + j * 0.17;
-        fx.fillStyle(j < 6 ? WHITE : j < 12 ? c2 : c1, 1 - j / 20);
-        fx.fillRect(Math.round(cx + Math.cos(ang) * r), Math.round(cy + Math.sin(ang) * r * 0.35), 3, 2);
-      }
-    }
-    if (Math.random() < 0.5) s.fx.burst(cx, s.ground - 2, 0xd8c8a0, 1, true, 0.6);
+    this.show.draw(g, this.s.gFx, now);
   }
 }
