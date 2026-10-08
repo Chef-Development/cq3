@@ -205,6 +205,10 @@ duplicates (each star: +12% damage, perk numbers up a step; 3★ attacks one hit
 | Flurry | Epic | a white snow fox with a frosty tail | bites every 4 hits | **Chill Bite:** bites slow the target's reds; **Snow Dash:** after a block, the next red slows for 1 s |
 | Mote | Epic | a tiny star wisp | twinkles every 5 hits | **Starlight:** every 15 combo, a green block appears; **Mend:** at 10+ combo, heals 1% every 5 s |
 | Sunny | Legendary | a golden drake whelp | breathes on every foe every 6 hits | **Gold Hoard:** +15% coins; **Fire Breath:** at 25+ combo, its breath burns away traps; **Warm Glow:** ice patches under you melt twice as fast |
+| Burr | Common | a round brown hedgehog with a leaf stuck on his spines | rolls into the target every 6 hits | **Prickly:** when a red (or bomb) hits you, spines fly back at the foe that threw it (1.5x his roll) |
+| Lark | Rare | a small yellow songbird with a red cap (a flier) | pecks every 4 hits | **Wake-up Song:** every 10 combo, the next yellow glows with a note: hitting it adds 3 more combo |
+| Gloam | Epic | a slim black cat with glowing violet eyes and a moon mark | swipes every 5 hits | **Night Eyes:** every 12 s, the next trap on the bar is swatted into a yellow (where it stands: nothing is added) |
+| Nimbus | Mythic | a tiny sky whale wrapped in a cloud, star freckles (a flier) | sprays every foe every 7 hits | **Tide:** every 20 s (once a red is in the bar's near half), a wave crosses the bar and pushes every red back; **Calm Seas:** at 30+ combo, hits deal 15% more |
 
 ---
 

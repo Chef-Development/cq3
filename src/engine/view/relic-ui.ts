@@ -374,6 +374,13 @@ const KIT_NAME: Record<string, string> = {
   fireBreath: perkOf('sunny', 1),
   chillBite: perkOf('flurry', 0),
   snowDash: perkOf('flurry', 1),
+  // ---- Part 6 companions
+  prickly: perkOf('burr', 0),
+  wakeSong: perkOf('lark', 0),
+  wakeNote: perkOf('lark', 0),
+  nightEyes: perkOf('gloam', 0),
+  tide: perkOf('nimbus', 0),
+  calmSeas: perkOf('nimbus', 1),
   // gear that heals
   rimewalker: SETS.rimewalker.name,
   sanctuary: AURAS.sanctuary.name,

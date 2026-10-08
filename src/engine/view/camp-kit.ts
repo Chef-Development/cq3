@@ -214,6 +214,32 @@ const PIX: Record<string, { rows: string[]; pal: Record<string, number> }> = {
     rows: outlined(['...P...', '..PWP..', '.PWPPp.', 'PPPPPpp', '.pPPpp.', '..ppp..', '...p...']),
     pal: { k: K, P: 0xa86ae0, W: 0xf0d8ff, p: 0x6e30a8 },
   },
+  // ---- Part 6 companions' perks (the companions screen's cards)
+  // a spiky burr of quills (Burr's Prickly)
+  spines: {
+    rows: outlined(['.t.t.t.', '..BBB..', 'tBWBBdt', '.BBBBd.', 'tBBBddt', '..ddd..', '.t.t.t.']),
+    pal: { k: K, t: 0xf0d0a0, B: 0x98663a, W: 0xe0bc84, d: 0x5e3620 },
+  },
+  // an eighth note (Lark's Wake-up Song)
+  note: {
+    rows: outlined(['..NN.', '..N.N', '..N..', '..N..', 'NNN..', 'NWN..', '.N...']),
+    pal: { k: K, N: 0xffd84a, W: 0xfff6b0 },
+  },
+  // a crescent moon (Gloam's Night Eyes)
+  moon: {
+    rows: outlined(['..MMM', '.MMm.', 'MMm..', 'MM...', 'MMm..', '.MMm.', '..MMM']),
+    pal: { k: K, M: 0xfff0a8, m: 0xc8a850 },
+  },
+  // a curling wave (Nimbus's Tide)
+  wave: {
+    rows: outlined(['..WWW..', '.WAAAW.', 'WAA..W.', 'AA.....', 'AAAAAAA', 'aaaaaaa']),
+    pal: { k: K, W: 0xe8fcff, A: 0x6ae8e8, a: 0x2a9ac8 },
+  },
+  // a calm sea under a twinkle (Nimbus's Calm Seas)
+  calm: {
+    rows: outlined(['...Y...', '..YWY..', '...Y...', '.......', 'AAaAAaA', 'aAAaAAa']),
+    pal: { k: K, Y: 0xffe070, W: 0xfffbe0, A: 0x9af0f0, a: 0x3aaac8 },
+  },
 };
 
 const runCache = new Map<string, Array<[number, number, number, number]>>();
@@ -1128,13 +1154,21 @@ export class CampKit {
 
   /**
    * Where the tuning panel's gear button sits in the top bar's middle (an HTML button over the canvas, right of the
-   * hidden pause button: style.css #hud): keep the top bar clear of it.
+   * hidden pause button: style.css #hud), and the Test lab's Done beside it while a scenario plays: keep the top bar
+   * clear of them.
    */
   hudZone(): Rect {
     const l = this.app.layout;
     const vw = typeof window !== 'undefined' ? window.innerWidth : l.cssW;
     const cx = ((vw / 2 - l.left) * GAME_W) / l.cssW;
-    return { x: Math.floor(cx - 1), y: 0, w: 19, h: 19 };
+    const z = { x: Math.floor(cx - 1), y: 0, w: 19, h: 19 };
+    // the Test lab's Done button sits right of the gear while a scenario plays: keep the top bar clear of it too
+    const done = typeof document !== 'undefined' ? document.getElementById('btn-lab-done') : null;
+    if (done && !done.hidden) {
+      const right = ((done.getBoundingClientRect().right - l.left) * GAME_W) / l.cssW;
+      if (right > z.x + z.w) z.w = Math.ceil(right - z.x);
+    }
+    return z;
   }
 
   /** Show a toast (what just changed) centred on (cx, cy). */

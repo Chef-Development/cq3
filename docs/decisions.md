@@ -648,3 +648,23 @@ A13. **Test lab "Late-game stress"** (Fights): Rowan at level 20, 3 stars, Epic 
     relics, Pip + Mote, stacks banked, six waves of the first region's Act 3 foes at Act 9's numbers on Act 3's stage
     (no spoilers). Mash: you lose; aim: you win (guarded). Lab fights can carry `relics`, show another act's `stage` and
     wear a better kit (`profile.gear`). The lab hero-fight guard runs at 75%.
+
+### Part 6: more heroes and companions
+H11. **The eight new heroes' identities** (names, looks, rarities, kit ideas) were set by the integrator before the
+    builders started, two heroes per builder: a second hero per style, rarities spread Rare 2 / Epic 2 / Legendary 2 /
+    Mythic 2 (the first Mythic heroes): Solenne (Blade, Mythic), Wren (Shadow, Rare), Brann (Guardian, Epic), Dell
+    (Marksman, Rare), Gorm (Brute, Legendary), Tess (Controller, Epic), Yara (Summoner, Mythic), Fizz (Bomber,
+    Legendary). All come from hero chests. A Mythic hero has a fifth kit part (`HeroDef.gift`), shown as a fifth card.
+H12. **Parallel builders without collisions:** slot markers (`// part6:A`-`E`) were seeded in the shared lists
+    (hero and companion ids, records, tuning kits, art registries, tips, story speakers, lab), each builder adding its
+    lines after its own marker. New kits use only the existing fight hooks (the combat core keeps one owner).
+P5. **Four more companions (12 in all), each with an effect that shows on what it touches:** Burr (Common hedgehog;
+    Prickly: a red or bomb that hurts you sends spines into the foe that threw it, 1.5x his roll; never for a red
+    another perk stopped, nor traps or misses), Lark (Rare songbird; Wake-up Song: every 10 combo the next yellow in
+    the cursor's path gets a note, hitting it adds 3 combo; one note at a time), Gloam (Epic black cat; Night Eyes:
+    every 12 s the next trap is swatted into a yellow, the same block and width, so the bar's cover doesn't grow; it
+    leaves Pip's chosen trap alone), Nimbus (Mythic sky whale; Tide: every 20 s, once a red is in the bar's near half, a
+    wave crosses the bar in 0.45 s pushing each red back (icicles skipped: pushing one starts its fuse); Calm Seas: +15%
+    at combo 30+, a glow on the cursor rather than a word on every hit). Numbers in `tuning.pets` with sliders; stars
+    step them like the others. A Mythic companion drops at under 2% and from the shrine's top pity.
+P6. **Test lab:** "Burr + Lark" and "Gloam + Nimbus" pair fights; the companions screen scenario owns the new four.

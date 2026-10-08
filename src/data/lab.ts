@@ -174,10 +174,10 @@ export const LAB_NEW: LabScenario[] = [
     profile: {
       actsCleared: 2,
       camp: PERCH,
-      pets: ['pip', 'bun', 'newt', 'sprocket', 'brick', 'flurry', 'sunny'],
+      pets: ['pip', 'bun', 'newt', 'sprocket', 'brick', 'flurry', 'sunny', 'burr', 'lark', 'gloam', 'nimbus'],
       petsOn: ['pip'],
-      petLevels: { pip: 12, bun: 4, newt: 7, sprocket: 9, brick: 2, flurry: 15, sunny: 20 },
-      petStars: { pip: 3, bun: 5, newt: 1, sprocket: 2, brick: 1, flurry: 4, sunny: 2 },
+      petLevels: { pip: 12, bun: 4, newt: 7, sprocket: 9, brick: 2, flurry: 15, sunny: 20, burr: 3, lark: 6, gloam: 10, nimbus: 14 },
+      petStars: { pip: 3, bun: 5, newt: 1, sprocket: 2, brick: 1, flurry: 4, sunny: 2, burr: 1, lark: 2, gloam: 3, nimbus: 1 },
     },
   },
 
@@ -224,6 +224,9 @@ export const LAB_NEW: LabScenario[] = [
   heroFight('fizz', 'fizz', 'Fizz', 'Hit flasks: fire, frost, spark. Greens throw one.', [['beetle', 'archer'], ['wolf', 'wolf', 'archer'], ['shaman', 'boar'], ['bandit', 'crow', 'crow'], ['slime', 'slime', 'shaman'], ['knight', 'beetle']], { rev: 0 }),
   heroFight('brann', 'brann', 'Brann', 'Block to ring the bell, then hit. Greens: echoes.', [['boar', 'archer'], ['bandit', 'shaman'], ['wolf', 'wolf'], ['beetle', 'boar'], ['archer', 'shaman'], ['bigSlime', 'boar']], { rev: 0 }),
   // part6:E
+  // ---- round 7's four companions, in pairs with the Perch: each effect shows on what it touches
+  petFight('petsBurrLark', ['burr', 'lark'], 'Burr + Lark', 'Take a red: spines fly back. Combo 10: hit the note.', [['crow', 'slime'], ['boar', 'bandit'], ['wolf', 'archer'], ['boar', 'crow']]),
+  petFight('petsGloamNimbus', ['gloam', 'nimbus'], 'Gloam + Nimbus', 'Traps turn yellow. Waves push reds. Combo 30: calm.', [['bandit', 'shaman'], ['bandit', 'crow', 'bandit'], ['shaman', 'boar'], ['shaman', 'bandit', 'archer']]),
 
   // ---- finishers
   {
