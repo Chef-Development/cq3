@@ -1195,10 +1195,11 @@ export class Synth {
         if (beat === 'start') {
           this.noise({ at: t, dur: 0.34, attack: 0.26, gain: 0.26, filter: 'lowpass', f: 300, f1: 2400, sweep: 0.3, q: 1.4 });
           this.tone({ type: 'sine', f: 62, f1: 46, at: t, attack: 0.2, dur: 0.42, gain: 0.12 });
-        } else if (beat === 'strike') this.noise({ at: t, dur: 0.08, gain: 0.18, filter: 'bandpass', f: 1600, f1: 500, sweep: 0.07, q: 1.2 });
+        } else if (beat === 'strike') this.noise({ at: t, dur: 0.08, gain: 0.26, filter: 'bandpass', f: 1800, f1: 600, sweep: 0.07, q: 1.2 });
         else {
           // a whoosh sucked backwards into a dark thud
-          this.noise({ at: Math.max(0, t - 0.02), dur: 0.14, attack: 0.12, gain: 0.24, filter: 'bandpass', f: 400, f1: 3000, sweep: 0.13, q: 1 });
+          this.noise({ at: Math.max(0, t - 0.02), dur: 0.14, attack: 0.12, gain: 0.3, filter: 'bandpass', f: 600, f1: 3200, sweep: 0.13, q: 1 });
+          this.noise({ at: t, dur: 0.12, gain: 0.16, filter: 'bandpass', f: 1400, f1: 500, sweep: 0.1, q: 1.4 });
           this.tone({ type: 'sine', f: 110, f1: 40, at: t, dur: 0.36, gain: 0.24, rev: 0.3 });
         }
         break;
@@ -1208,13 +1209,13 @@ export class Synth {
           this.tone({ type: 'triangle', f: 1130, at: t, dur: 0.2, gain: 0.08, rev: 0.3 });
           this.tone({ type: 'triangle', f: 1870, at: t, dur: 0.12, gain: 0.05, rev: 0.3 });
         } else if (beat === 'strike') {
-          this.tone({ type: 'triangle', f: 900 * (1 + 0.1 * k), at: t, dur: 0.1, gain: 0.07 });
-          this.tone({ type: 'square', f: 520 * (1 + 0.1 * k), at: t, dur: 0.08, gain: 0.03 });
+          this.tone({ type: 'triangle', f: 900 * (1 + 0.1 * k), at: t, dur: 0.1, gain: 0.11 });
+          this.tone({ type: 'square', f: 520 * (1 + 0.1 * k), at: t, dur: 0.08, gain: 0.04 });
         } else {
           // a huge clang, and a low gong under it
           this.tone({ type: 'square', f: 330, at: t, dur: 0.5, gain: 0.05, rev: 0.4 });
-          this.tone({ type: 'triangle', f: 880, at: t, dur: 0.4, gain: 0.08, rev: 0.4 });
-          this.tone({ type: 'triangle', f: 1480, at: t, dur: 0.25, gain: 0.05, rev: 0.4 });
+          this.tone({ type: 'triangle', f: 880, at: t, dur: 0.4, gain: 0.13, rev: 0.4 });
+          this.tone({ type: 'triangle', f: 1480, at: t, dur: 0.25, gain: 0.08, rev: 0.4 });
           this.tone({ type: 'sine', f: 110, at: t, dur: 1.0, gain: 0.18, rev: 0.4 });
           this.tone({ type: 'sine', f: 165, at: t, dur: 0.8, gain: 0.07, rev: 0.4 });
         }
@@ -1223,17 +1224,17 @@ export class Synth {
         if (beat === 'start') {
           // the string drawn (a creak), then let go (a twang)
           this.noise({ at: t, dur: 0.2, attack: 0.15, gain: 0.08, filter: 'bandpass', f: 900, f1: 1300, sweep: 0.2, q: 8 });
-          this.tone({ type: 'triangle', f: 220, f1: 180, at: t + 0.2, dur: 0.14, gain: 0.12 });
-          this.noise({ at: t + 0.2, dur: 0.03, gain: 0.08, filter: 'highpass', f: 3000 });
+          this.tone({ type: 'triangle', f: 220, f1: 180, at: t + 0.2, dur: 0.14, gain: 0.2 });
+          this.noise({ at: t + 0.2, dur: 0.03, gain: 0.12, filter: 'highpass', f: 3000 });
         } else if (beat === 'strike') {
-          this.tone({ type: 'triangle', f: 196 * (1 + 0.05 * k), f1: 170, at: t, dur: 0.08, gain: 0.08 });
-          this.tone({ type: 'sine', f: 2600, f1: 1700, at: t, dur: 0.09, gain: 0.05 });
+          this.tone({ type: 'triangle', f: 196 * (1 + 0.05 * k), f1: 170, at: t, dur: 0.08, gain: 0.16 });
+          this.tone({ type: 'sine', f: 2600, f1: 1700, at: t, dur: 0.09, gain: 0.09 });
         } else {
           // a volley: arrows whistling down and thudding home
           for (let j = 0; j < 6; j++) {
             const d = j * 0.03 + this.rand() * 0.02;
-            this.tone({ type: 'sine', f: 2800 - j * 90, f1: 1500, at: t + d, dur: 0.12, gain: 0.035 });
-            this.noise({ at: t + d + 0.1, dur: 0.04, gain: 0.12, filter: 'lowpass', f: 600 });
+            this.tone({ type: 'sine', f: 2800 - j * 90, f1: 1500, at: t + d, dur: 0.12, gain: 0.07 });
+            this.noise({ at: t + d + 0.1, dur: 0.04, gain: 0.2, filter: 'bandpass', f: 700, q: 1.2 });
           }
         }
         break;
@@ -1279,10 +1280,12 @@ export class Synth {
         if (beat === 'start') this.noise({ at: t, dur: 0.4, gain: 0.07, filter: 'highpass', f: 5000 });
         else if (beat === 'strike') {
           this.noise({ at: t, dur: 0.12, gain: 0.22, filter: 'lowpass', f: 500 });
+          this.noise({ at: t, dur: 0.08, gain: 0.2, filter: 'bandpass', f: 900, q: 1 });
           this.tone({ type: 'sine', f: 90, f1: 45, at: t, dur: 0.14, gain: 0.16 });
         } else {
           this.tone({ type: 'sine', f: 70, f1: 28, at: t, dur: 0.7, gain: 0.28 });
           this.noise({ at: t, dur: 0.9, gain: 0.32, filter: 'lowpass', f: 400, f1: 120, rate: 0.6 });
+          this.noise({ at: t, dur: 0.45, gain: 0.34, filter: 'bandpass', f: 900, f1: 300, q: 0.9 });
         }
         break;
     }
