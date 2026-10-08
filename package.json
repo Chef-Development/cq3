@@ -20,7 +20,8 @@
     "snowball": "vitest run --config vitest.balance.config.ts tests/balance/snowball.run.ts",
     "perks": "vitest run --config vitest.balance.config.ts tests/balance/perks.run.ts",
     "campaign": "vitest run --config vitest.balance.config.ts tests/balance/campaign.run.ts",
-    "region-tune": "vitest run --config vitest.balance.config.ts tests/balance/region-tune.run.ts"
+    "region-tune": "vitest run --config vitest.balance.config.ts tests/balance/region-tune.run.ts",
+    "spam": "vitest run --config vitest.balance.config.ts tests/balance/spam.run.ts"
   },
   "dependencies": {
     "phaser": "^4.2.1"

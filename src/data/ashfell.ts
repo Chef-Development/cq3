@@ -23,8 +23,8 @@ export const ASHFELL: RegionDef = {
     {
       name: 'Cinder Flats',
       theme: 'cinder',
-      hpMult: 8.6,
-      atkMult: 16.5,
+      hpMult: 6.2,
+      atkMult: 13.5,
       pace: 0.82,
       redSpeed: 1.16,
       rows: 7,
@@ -47,8 +47,8 @@ export const ASHFELL: RegionDef = {
     {
       name: 'Glass Warrens',
       theme: 'glass',
-      hpMult: 8.8,
-      atkMult: 17,
+      hpMult: 6.4,
+      atkMult: 13.8,
       pace: 0.78,
       redSpeed: 1.18,
       rows: 7,
@@ -71,10 +71,10 @@ export const ASHFELL: RegionDef = {
     {
       name: 'The Black Forge',
       theme: 'forge',
-      hpMult: 10.5,
-      atkMult: 24,
+      hpMult: 7,
+      atkMult: 15,
       pace: 0.74,
-      redSpeed: 1.2,
+      redSpeed: 1.25,
       rows: 7,
       waves: { first: 3, last: 6, eliteEscort: 2 },
       fights: {

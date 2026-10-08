@@ -121,6 +121,8 @@ const mus = (id: string) => {
   return m;
 };
 
+// (every sound and cue rendered once: heavy, and slower when the whole suite runs in parallel on a busy machine,
+// so the hook gets far more than the default 10 s)
 beforeAll(async () => {
   for (const e of SFX) {
     const ch = await renderRaw(e.play, e.len);
@@ -218,7 +220,7 @@ describe('rendered sound levels', () => {
       expect(Math.abs(show.loud - plain.loud), `${st} show vs the plain show`).toBeLessThan(1.5);
     }
   });
-});
+}, 600_000);
 
 describe('impact layers', () => {
   const crit = SFX.find((e) => e.id === 'crit')!;
