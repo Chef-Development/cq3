@@ -244,6 +244,38 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   seething: ['tab', 'hero'],
   payback: ['cursor'],
   berserk: ['bar', 'foe'],
+  // ---- Gorm (Part 6): Rockfall's boulder flies from the blow to the red it shoves, a Roar makes the foes flinch,
+  // Thick Skin chips stone off the hero (onsite-gorm-tess.ts); Landslide's rubble lies over the bar's right end
+  // (bar-gorm-tess.ts) and each red it slows flashes
+  rockfall: ['bar', 'foe'],
+  roar: ['reds', 'foes'],
+  stoneSkin: ['hero'],
+  rubble: ['show'],
+  rubbleSlow: ['bar'],
+  bigShove: ['bar'],
+  splitRock: ['bolt'],
+  stoneRain: ['reds'],
+  longRoar: ['reds'],
+  earRinger: ['foe'], // (its stun event: stars over the foe)
+  warCry: ['bar', 'reds'],
+  secondSkin: ['hero'],
+  shrugOff: ['combo', 'hero'],
+  bedrock: ['bar', 'foe'],
+  // ---- Tess (Part 6): the Stopwatch holds every red (a clock over the bar while time is stopped, the held reds
+  // greyed with a ticking hand: bar-gorm-tess.ts), Slow Time's reds tick slowly, Rewind's reds fly back
+  stopwatch: ['reds', 'cursor'],
+  secondHand: ['reds', 'cursor'],
+  slowTime: ['reds'],
+  rewind: ['reds'],
+  longPause: ['reds'],
+  quickTick: ['bar', 'foe'],
+  perfectTime: ['bar', 'tab'],
+  lingering: ['reds'],
+  borrowedTime: ['bar', 'reds'],
+  standstill: ['reds', 'cursor'],
+  windBack: ['foes'],
+  backspin: ['bar'],
+  timeLoop: ['reds'],
 };
 
 /** The block a 'spawn' perk puts on the bar. */

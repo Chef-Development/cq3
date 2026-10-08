@@ -406,6 +406,14 @@ export const DEFAULT_TUNING = {
     // part6:A
     // part6:B
     // part6:C
+    // gorm: every rockEvery-th hit (3 stars: rockEvery3) deals rockMult and shoves the nearest red back `shove`; a green
+    // Roar slows the reds on the bar to roarMult for abilitySec; Thick Skin: the wave's first hit deals `skin` less;
+    // Landslide's rubble covers rubbleWidth of the bar's right end for rubbleSec (5 stars: x2), reds in it at rubbleMult
+    gorm: { hp: 112, atk: 0.8, abilitySec: 1.5, rockEvery: 4, rockEvery3: 3, rockMult: 1.6, shove: 0.25, roarMult: 0.5, skin: 0.5, rubbleSec: 4, rubbleWidth: 0.25, rubbleMult: 0.5 },
+    // tess: every stopEvery hits (3 stars: stopEvery3) the reds hold still for stopSec; a green's Slow Time runs reds
+    // at slowMult for abilitySec; ice and snow change her cursor's speed `steady` less; Rewind winds reds back over
+    // rewindSec (5 stars: then a Stopwatch)
+    tess: { hp: 100, atk: 0.95, abilitySec: 3, stopEvery: 12, stopEvery3: 9, stopSec: 1.2, slowMult: 0.6, steady: 0.5, rewindSec: 0.6 },
     // part6:D
   },
   chests: {

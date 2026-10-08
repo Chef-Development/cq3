@@ -22,6 +22,7 @@ import type { Ally, Block, Combat, CombatEvent, Enemy } from './combat';
 import { skillN } from './heroes';
 import type { FightHooks, HitCtx } from './hooks';
 import { shadowDash, slamShare } from './kit-fx';
+import { GORM_TESS_SKILL_HOOKS } from './skill-fx-gorm-tess';
 import { addFocus, addGuard, allySec, callAlly, chainOf, dropKeg, focusCap, focusOf, guardOf, powerShot } from './styles';
 
 const DT = 1 / 120;
@@ -815,3 +816,6 @@ const TORVA: Record<string, FightHooks> = {
 
 /** Every hero's rule nodes and capstones but Rowan's (skill-fx.ts merges them into SKILL_HOOKS). */
 export const HERO_SKILL_HOOKS: Record<string, FightHooks> = { ...SABLE, ...NEVE, ...MOSS, ...TAM, ...HOLLIS, ...VESPER, ...TORVA };
+
+// ---- Gorm and Tess (Part 6): their nodes live in skill-fx-gorm-tess.ts
+Object.assign(HERO_SKILL_HOOKS, GORM_TESS_SKILL_HOOKS);

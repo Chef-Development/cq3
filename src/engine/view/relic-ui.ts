@@ -360,6 +360,17 @@ const KIT_NAME: Record<string, string> = {
   // gear that heals
   rimewalker: SETS.rimewalker.name,
   sanctuary: AURAS.sanctuary.name,
+  // ---- Gorm (Part 6)
+  rockfall: HEROES.gorm.signature.name,
+  roar: HEROES.gorm.ability.name,
+  stoneSkin: HEROES.gorm.passive.name,
+  rubble: HEROES.gorm.finisher.name,
+  rubbleSlow: HEROES.gorm.finisher.name,
+  // ---- Tess (Part 6)
+  stopwatch: HEROES.tess.signature.name,
+  slowTime: HEROES.tess.ability.name,
+  rewind: HEROES.tess.finisher.name,
+  secondHand: HEROES.tess.stars[1].name,
 };
 
 export type PerkSource = 'relic' | 'skill' | 'kit';

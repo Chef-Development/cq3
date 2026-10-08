@@ -359,6 +359,84 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
   // part6:A
   // part6:B
   // part6:C
+  gorm: {
+    // Rockfall: every n-th hit (3 stars: sooner) lands heavy and shoves the nearest red back
+    hitMult: (c, x, v) => {
+      if (x.echo || (c.perk.rockfall ?? 0) + 1 < rockEvery(c)) return v;
+      c.perk.rockNow = x.block.id;
+      return v * K(c).gorm.rockMult;
+    },
+    afterHit: (c, x) => {
+      if (x.echo) return;
+      if (c.perk.rockNow === x.block.id) {
+        c.perk.rockNow = 0;
+        c.perk.rockfall = 0;
+        rockfall(c, x.damage, x.target?.id ?? 0, x.block.pos, x.block.id);
+      } else c.perk.rockfall = (c.perk.rockfall ?? 0) + 1;
+      // Roar: a green hit makes the foes flinch: the reds on the bar slow for a moment
+      if (x.green && !c.result) roar(c);
+    },
+    // Thick Skin: the first hit taken each wave deals less (c.perk.skinNow: the tick it did, for the Hide nodes)
+    hurt: (c, amount, source) => {
+      if (amount <= 0 || source === 'miss' || source === 'perk' || c.perk.skinWave === c.waveIndex + 1) return amount;
+      c.perk.skinWave = c.waveIndex + 1;
+      c.perk.skinNow = c.tick;
+      const cut = amount * K(c).gorm.skin;
+      c.perkFx('stoneSkin', cut);
+      return amount - cut;
+    },
+    // Landslide: boulders hit every foe and smash every red (the core's usual clear); then rubble lies over the bar's
+    // right end for a while (5 stars: twice as long), and reds crossing it slow down
+    afterFinisher: (c) => {
+      const k = K(c).gorm;
+      c.perk.rubble = c.perk.rubbleMax = k.rubbleSec * (c.stars >= 5 ? 2 : 1);
+      c.perkFx('rubble', 0, 0, 1 - k.rubbleWidth / 2);
+    },
+    step: (c) => {
+      if (!(c.perk.rubble > 0)) return;
+      c.perk.rubble = Math.max(0, c.perk.rubble - 1 / 120);
+      rubbleSlow(c);
+    },
+  },
+  tess: {
+    // Steady Hands: ice and snow patches change her cursor's speed less
+    zoneMult: (c, z, v) => (z.kind === 'ice' || z.kind === 'snow' ? 1 + (v - 1) * K(c).tess.steady : v),
+    spawned: (_c, b) => {
+      if (isRed(b.kind) && b.still) FUSE.set(b, b.impactTimer); // an icicle's fuse, for Rewind
+    },
+    afterHit: (c, x) => {
+      if (x.echo || c.result) return;
+      // Slow Time: a green hit slows every red on the bar (and the ones that come) while the ability lasts
+      if (x.green) {
+        const n = slowReds(c);
+        c.perkFx('slowTime', n, 0, x.block.pos);
+      }
+      // Stopwatch: every n hits (3 stars: sooner), time stops for the reds
+      c.perk.tick = (c.perk.tick ?? 0) + 1;
+      if (c.perk.tick >= stopEvery(c)) {
+        c.perk.tick = 0;
+        c.perk.stopHit = x.block.id;
+        stopwatch(c, x.block.pos);
+      }
+    },
+    step: (c) => {
+      if (c.perk.stop > 0) {
+        c.perk.stop = Math.max(0, c.perk.stop - 1 / 120);
+        if (c.perk.stop > 0) holdReds(c, c.perk.stop);
+      }
+      if (ability(c)) slowReds(c);
+    },
+    // Rewind: hits every foe; every red on the bar winds back to where it started (5 stars: then time stops)
+    finisher: (_c, x, v) => {
+      x.reds = 'keep';
+      return v;
+    },
+    afterFinisher: (c) => {
+      const n = rewindReds(c);
+      c.perkFx('rewind', n);
+      if (c.stars >= 5 && !c.result) stopwatch(c, 0.5, 'secondHand');
+    },
+  },
   // part6:D
 };
 
@@ -379,3 +457,118 @@ export function kitHooks(build: HeroBuild): FightHooks[] {
 
 /** Whether a block is one of your own attack blocks a perk may hit for you (never a hold, nor half a linked pair). */
 export const perkHittable = (b: Block): boolean => isAttack(b.kind) && b.kind !== 'hold' && !b.link;
+
+// ---- Gorm and Tess (Part 6)
+
+/** Hits from one Rockfall to the next (Gorm's 3 stars: one sooner). */
+export const rockEvery = (c: Combat): number => Math.max(2, Math.round(c.stars >= 3 ? K(c).gorm.rockEvery3 : K(c).gorm.rockEvery));
+
+/** The red nearest the hero (the furthest left) that can be pushed: not an icicle, not already flying back. */
+export function nearestRed(c: Combat): Block | null {
+  let best: Block | null = null;
+  for (const b of c.blocks) if (isRed(b.kind) && !b.still && (!best || b.pos < best.pos)) best = b;
+  return best;
+}
+
+/** A Rockfall: the heavy blow landed (its perk event: the blow's damage, its foe, where on the bar), and it shoves the
+ *  nearest red back (c.perk.rockRed: that red's id, for the view; c.perk.rockHit: the hit, for the skill nodes). */
+function rockfall(c: Combat, dmg: number, enemyId: number, pos: number, hitId: number): void {
+  const r = nearestRed(c);
+  c.perk.rockRed = r && c.pushBack(r, K(c).gorm.shove) > 0 ? r.id : 0;
+  c.perk.rockHit = hitId;
+  c.perkFx('rockfall', dmg, enemyId, pos);
+}
+
+/** Roar: every red on the bar slows (kits.gorm.roarMult) while the green ability lasts. Returns how many. */
+export function roar(c: Combat, sec = c.abilitySec()): number {
+  let n = 0;
+  for (const b of c.blocks)
+    if (isRed(b.kind) && !b.still) {
+      c.chillRed(b, sec, K(c).gorm.roarMult);
+      n++;
+    }
+  c.perkFx('roar', n);
+  return n;
+}
+
+/** Landslide's rubble over the bar's right end: a red in it with no slow on it slows (kits.gorm.rubbleMult) for as long
+ *  as it takes to cross it at that speed (so the bot, and a player, can read where it will be). */
+function rubbleSlow(c: Combat): void {
+  const k = K(c).gorm;
+  const lo = 1 - rubbleWidth(c);
+  for (const b of c.blocks) {
+    if (!isRed(b.kind) || b.still || b.push > 0 || b.chill > 0 || b.pos < lo) continue;
+    const v = Math.abs(c.redVel(b.width, b.speed)) * Math.max(0.05, k.rubbleMult);
+    c.chillRed(b, (b.pos - lo) / v + 0.05, k.rubbleMult);
+    c.perkFx('rubbleSlow', 0, 0, b.pos);
+  }
+}
+
+/** How much of the bar's right end Landslide's rubble covers. */
+export const rubbleWidth = (c: Combat): number => Math.max(0.05, Math.min(0.6, K(c).gorm.rubbleWidth));
+
+/** An icicle's fuse when it landed (Rewind winds it back to that). */
+const FUSE = new WeakMap<Block, number>();
+
+/** Hits from one Stopwatch to the next (Tess's 3 stars: sooner). */
+export const stopEvery = (c: Combat): number => Math.max(2, Math.round(c.stars >= 3 ? K(c).tess.stopEvery3 : K(c).tess.stopEvery));
+
+/** Hold every red still for `sec` (an icicle's fuse waits): a red already held keeps the longer hold; a slowed one
+ *  stops (its slow comes back after if Slow Time is still on). */
+export function holdReds(c: Combat, sec: number): number {
+  let n = 0;
+  for (const b of c.blocks) {
+    if (!isRed(b.kind)) continue;
+    n++;
+    if (b.chill > 0 && b.chillMult <= 0) {
+      if (b.chill < sec) b.chill = sec;
+    } else {
+      b.chill = sec;
+      b.chillMult = 0;
+    }
+  }
+  return n;
+}
+
+/** The Stopwatch: time stops for the reds (kits.tess.stopSec; longer if it's already stopped for longer). `id` names
+ *  it (a node's or a star's stopwatch). c.perk.stop is the seconds left; c.perk.stops counts them. */
+export function stopwatch(c: Combat, pos?: number, id = 'stopwatch', sec = K(c).tess.stopSec): number {
+  c.perk.stop = Math.max(c.perk.stop ?? 0, sec);
+  c.perk.stops = (c.perk.stops ?? 0) + 1;
+  const n = holdReds(c, c.perk.stop);
+  c.perkFx(id, n, 0, pos);
+  return n;
+}
+
+/** Slow Time: every moving red with no slow or hold on it slows (kits.tess.slowMult) for what's left of the ability. */
+function slowReds(c: Combat): number {
+  const left = c.hero.abilityTimer;
+  if (left <= 0) return 0;
+  let n = 0;
+  for (const b of c.blocks)
+    if (isRed(b.kind) && !b.still && !(b.chill > 0)) {
+      c.chillRed(b, left, K(c).tess.slowMult);
+      n++;
+    }
+  return n;
+}
+
+/** Rewind: every red winds back to where it came onto the bar (the right end: the furthest first, so they queue up
+ *  behind each other), over kits.tess.rewindSec; an icicle's fuse winds back to full. Returns how many. */
+export function rewindReds(c: Combat): number {
+  let n = 0;
+  const reds = c.blocks.filter((b) => isRed(b.kind)).sort((a, b) => b.pos - a.pos);
+  for (const b of reds) {
+    if (b.still) {
+      const f = FUSE.get(b);
+      if (f !== undefined && b.impactTimer < f) {
+        b.impactTimer = f;
+        n++;
+      }
+      continue;
+    }
+    const d = b.from - b.pos - b.push;
+    if (d > 0.005 && c.pushBack(b, d, K(c).tess.rewindSec) > 0) n++;
+  }
+  return n;
+}

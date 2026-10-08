@@ -33,7 +33,11 @@ describe('hero chests and the shrine', () => {
   });
 
   it('a chest never brings a story hero or the starter as a new hero', () => {
-    expect(CHEST_HEROES.sort()).toEqual(['hollis', 'moss', 'tam', 'torva', 'vesper']);
+    for (const id of ['hollis', 'moss', 'tam', 'torva', 'vesper']) expect(CHEST_HEROES).toContain(id);
+    expect(CHEST_HEROES).not.toContain('rowan');
+    expect(CHEST_HEROES).not.toContain('sable');
+    expect(CHEST_HEROES).not.toContain('neve');
+    for (const id of CHEST_HEROES) expect(HEROES[id].joins, id).toBe('chest');
     const rng = new Rng(3);
     for (let i = 0; i < 300; i++) {
       const p = newProfile();

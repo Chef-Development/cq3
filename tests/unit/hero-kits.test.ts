@@ -39,12 +39,14 @@ const fight = (hero: HeroId, o: Parameters<typeof setup>[0] = {}) => {
 };
 
 describe('the heroes as data', () => {
-  it('8 heroes, one per style, Rare to Legendary, each with a signature, ability, passive, finisher and strengths', () => {
-    expect(HERO_IDS).toHaveLength(8);
+  it('a hero (or two: round 7) for each of the 8 styles, Rare to Mythic, each with a signature, ability, passive, finisher and strengths', () => {
+    expect(HERO_IDS.length).toBeGreaterThanOrEqual(8);
     expect(new Set(HERO_IDS.map((id) => HEROES[id].style)).size).toBe(8);
+    for (const st of STYLE_IDS) expect(HERO_IDS.filter((id) => HEROES[id].style === st).length, st).toBeLessThanOrEqual(2);
     expect(STYLE_IDS.every((s) => !!STYLES[s] && !!STYLE_HOOKS[s])).toBe(true);
     const tiers = new Set(HERO_IDS.map((id) => HEROES[id].rarity));
-    expect([...tiers].sort()).toEqual(['epic', 'legendary', 'rare']);
+    for (const tier of ['rare', 'epic', 'legendary']) expect(tiers.has(tier as never), tier).toBe(true);
+    for (const tier of tiers) expect(['rare', 'epic', 'legendary', 'mythic'], tier).toContain(tier);
     for (const id of HERO_IDS) {
       const h = HEROES[id];
       for (const p of [h.signature, h.ability, h.passive, h.finisher]) expect(p.name.length * p.text.length * p.short.length, `${id} ${p.name}`).toBeGreaterThan(0);

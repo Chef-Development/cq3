@@ -268,6 +268,18 @@ export function kitN(t: Tuning, id: HeroId, which: KitWhich): number {
     // part6:A
     // part6:B
     // part6:C
+    case 'gorm.signature':
+      return k.gorm.rockEvery;
+    case 'gorm.ability':
+      return k.gorm.abilitySec;
+    case 'gorm.passive':
+      return k.gorm.skin * 100;
+    case 'tess.signature':
+      return k.tess.stopEvery;
+    case 'tess.ability':
+      return k.tess.abilitySec;
+    case 'tess.passive':
+      return k.tess.steady * 100;
     // part6:D
     default:
       return 0;

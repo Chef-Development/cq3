@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { swipeAllowed } from '../../src/core/swipe';
 import { setup, timeAt } from './helpers';
+import { HERO_IDS } from '../../src/data/heroes';
 import type { Combat } from '../../src/core/combat';
 
 /** Step the fight until time t. */
@@ -334,7 +335,7 @@ describe('the third region: drifting blocks and linked pairs', () => {
   });
 
   it('every hero can finish a linked pair and hit a drifting block', () => {
-    for (const hero of ['rowan', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva'] as const) {
+    for (const hero of HERO_IDS) {
       const { c, t } = setup({ enemies: ['bandit'], hero });
       pair(c);
       go(c, timeAt(t, 0.4));

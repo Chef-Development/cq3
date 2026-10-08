@@ -13,6 +13,8 @@ export type HeroId =
   // part6:A
   // part6:B
   // part6:C
+  | 'gorm'
+  | 'tess'
   // part6:D
   ;
 export const HERO_IDS: HeroId[] = [
@@ -20,6 +22,8 @@ export const HERO_IDS: HeroId[] = [
   // part6:A
   // part6:B
   // part6:C
+  'gorm',
+  'tess',
   // part6:D
 ];
 
@@ -239,6 +243,46 @@ export const HEROES: Record<HeroId, HeroDef> = {
   // part6:A
   // part6:B
   // part6:C
+  gorm: {
+    id: 'gorm',
+    name: 'Gorm',
+    style: 'brute',
+    rarity: 'legendary',
+    title: 'Stonefist',
+    bio: 'Gentle as a hill. Hits like one, too.',
+    signature: part('Rockfall', 'Every {n}th hit lands heavy and shoves the nearest red back.', 'Every few hits lands heavy.'),
+    ability: part('Roar', 'Green hits: the foes flinch; reds on the bar slow for {n} s.', 'Green hits slow the reds.'),
+    passive: part('Thick Skin', 'The first hit you take each wave deals {n}% less.', 'Shrugs off the first hit.'),
+    finisher: { name: 'Landslide', text: 'Boulders hit all and smash every red; rubble slows new reds.', short: 'Smashes reds, leaves rubble.', bar: 'Smashes reds, rubble' },
+    strengths: [{ tag: 'armored', kind: 'dmg', n: 0.2 }],
+    joins: 'chest',
+    meetScene: 'meetGorm',
+    stars: [
+      part('Rolling Stone', 'Rockfall comes a hit sooner.', 'Heavy hits come sooner.'),
+      part('Rockslide', "Landslide's rubble stays twice as long.", 'Rubble stays longer.'),
+    ],
+    art: 'gorm',
+  },
+  tess: {
+    id: 'tess',
+    name: 'Tess',
+    style: 'controller',
+    rarity: 'epic',
+    title: 'Timekeeper',
+    bio: 'Fixed the town clock. Then time itself.',
+    signature: part('Stopwatch', 'Every {n} hits, time stops: reds hold still for a blink.', 'Hits stop time.'),
+    ability: part('Slow Time', 'Green hits: for {n} s, every red moves slower.', 'Green hits slow the reds.'),
+    passive: part('Steady Hands', 'Ice and snow patches bother her cursor {n}% less.', 'Steady on ice and snow.'),
+    finisher: { name: 'Rewind', text: 'Hits all foes and winds every red back to its start.', short: 'Hits all, rewinds reds.', bar: 'Winds reds back' },
+    strengths: [{ tag: 'construct', kind: 'dmg', n: 0.2 }],
+    joins: 'chest',
+    meetScene: 'meetTess',
+    stars: [
+      part('Overwound', 'The Stopwatch comes 3 hits sooner.', 'Time stops more often.'),
+      part('Second Hand', 'Rewind stops time too.', 'Finisher stops time.'),
+    ],
+    art: 'tess',
+  },
   // part6:D
 };
 
