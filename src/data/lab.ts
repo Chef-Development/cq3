@@ -29,7 +29,7 @@ export const LAB_GROUPS: Array<{ id: LabGroupId; name: string; spoiler?: boolean
 ];
 
 /** A camp screen a scenario opens. */
-export type LabScreen = 'heroes' | 'skills' | 'chest' | 'chestDemo' | 'shrine' | 'companions' | 'upgrades' | 'completion';
+export type LabScreen = 'heroes' | 'skills' | 'chest' | 'chestDemo' | 'chestHd' | 'shrine' | 'companions' | 'upgrades' | 'completion';
 
 /** What a scenario drops the playtester into. */
 export type LabSetup =
@@ -38,7 +38,8 @@ export type LabSetup =
    *  banked at the start; `safe`: nothing hurts the hero. */
   | { kind: 'fight'; hero: HeroId; stars?: number; pets?: CompanionId[]; act: number; waves: string[][]; bar?: BarRules | 'act'; row?: number; safe?: boolean; stacks?: number }
   /** A camp screen (with `hero` shown first where it has one). 'chestDemo': the chest opening played at these
-   *  `tiers` one after another (a demo: nothing is granted), from a chest of kind `chest`. */
+   *  `tiers` one after another (a demo: nothing is granted), from a chest of kind `chest`. 'chestHd': the old chest
+   *  reveal and the sharper one side by side, Rare to Divine (a demo; view/chest-compare.ts). */
   | { kind: 'camp'; screen: LabScreen; hero?: HeroId; tiers?: Tier[]; chest?: 'hero' | 'rare' | 'region' }
   /** Story scenes in a row, over act `act`'s stage. */
   | { kind: 'story'; act: number; scenes: string[] };
@@ -136,7 +137,10 @@ const barRule = (id: string, label: string, tryLine: string, bar: BarRules, tips
 /** This session's new content (playtest round 7: numbers, tips, map sprites and the completion tracker that stay
  *  fixed; the anti-spam balance; a unique finisher per hero; the sharper chest reveal; the companions screen).
  *  Reworked items carry a new rev: a rating given to their earlier version shows as "Reworked" with the old rating. */
-export const LAB_NEW: LabScenario[] = [];
+export const LAB_NEW: LabScenario[] = [
+  // ---- sharper chest reveal
+  { id: 'chestHd', group: 'chests', label: 'Sharper chest reveal', secs: 60, try: 'Old left, new right. Tap Old, New or Both.', setup: { kind: 'camp', screen: 'chestHd' }, profile: { actsCleared: 1 } },
+];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,
  *  the first region's Act 1 fight and the later regions (spoilers). */
