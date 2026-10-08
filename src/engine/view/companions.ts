@@ -208,7 +208,7 @@ export class CompanionsScreen {
   /** The name row (a tap: who it is). */
   infoRect(): Rect {
     const c = this.col();
-    return { x: c.x - 2, y: 18, w: c.w + 2, h: 19 };
+    return { x: c.x - 2, y: 18, w: c.w + 2, h: 22 };
   }
 
   /** The "i" at the name row's right end (drawn when it fits after the rarity chip). */
@@ -217,23 +217,23 @@ export class CompanionsScreen {
     return { x: c.x + c.w - 12, y: 21, w: 11, h: 11 };
   }
 
-  /** The stars (and their shard meter): under the name, clear of its descenders. */
+  /** The stars (and their shard meter): under the name, clear of its descenders (bold 2 hangs 4 px below its box). */
   starsRect(): Rect {
     const c = this.col();
-    return { x: c.x, y: 39, w: 5 * 8 + 4 * 2, h: 12 };
+    return { x: c.x, y: 42, w: 5 * 8 + 4 * 2, h: 12 };
   }
 
   /** The level and its XP meter. */
   levelRect(): Rect {
     const c = this.col();
     const x = c.x + this.starsRect().w + 7;
-    return { x, y: 39, w: c.x + c.w - x, h: 10 };
+    return { x, y: 42, w: c.x + c.w - x, h: 10 };
   }
 
   /** The cards' plate: under the meters, down to the foot of the column. */
   private cardsArea(): Rect {
     const c = this.col();
-    const y = 55;
+    const y = 58;
     return { x: c.x, y, w: c.w, h: this.kit.s.B - 2 - y };
   }
 
@@ -822,7 +822,7 @@ export class CompanionsScreen {
     const dxOf = (i: number) => Math.round((1 - easeOut3(kOf(i))) * 10 * (this.dir || 1));
     const tier = TIER_INFO[def.rarity];
     const pk = enterK(now, this.openAt, 1, 0, 220);
-    glass(g, { x: c.x - 4, y: 18, w: c.w + 6, h: 34 }, { alpha: pk, rim: owned ? mix(tier.face[0], INK, 0.45) : undefined, clear: 0.3 });
+    glass(g, { x: c.x - 4, y: 18, w: c.w + 6, h: 37 }, { alpha: pk, rim: owned ? mix(tier.face[0], INK, 0.45) : undefined, clear: 0.3 });
     // the name (bold 2), its rarity after it, the "i" at the end when there's room
     let k = kOf(0);
     let dx = dxOf(0);
@@ -839,7 +839,7 @@ export class CompanionsScreen {
     const pr = p.pets[id];
     if (!owned) {
       const msg = 'Found in hero chests';
-      const r = { x: c.x + dx, y: 39, w: Math.min(textWidth(msg, 1, true) + 22, c.w), h: 12 };
+      const r = { x: c.x + dx, y: 42, w: Math.min(textWidth(msg, 1, true) + 22, c.w), h: 12 };
       glow(g, r, GOLD[3], (0.2 + 0.25 * pulse(now, 1200)) * k, 2);
       tag(g, r, [GOLD[4], GOLD[3], GOLD[2], GOLD[0]], k);
       pix(kit.gOver, 'chest', r.x + 4, r.y + 2, k);
