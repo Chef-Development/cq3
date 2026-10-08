@@ -1,4 +1,99 @@
-# Combo Quest 3: status report (playtest round 6: the overnight polish run)
+# Combo Quest 3: status report (playtest round 7: fixes that stay fixed, anti-spam, unique finishers, 16 heroes)
+
+## Playtest round 7: the overnight run (Test lab: 25 of 27 good; plus a first stretch of real play)
+
+No new regions. Every part of the brief finished (1-8, including the optional Part 6). Every call is in
+`docs/decisions.md` ("Overnight run, playtest round 7"); the balance tables are in `docs/balance-spam.md` and
+`docs/balance-heroes.md`.
+
+- **Live build:** https://chef-development.github.io/cq3/ (every push deploys).
+- **Branch:** `claude/bold-hypatia-88tmo3`, built on PR #6's branch (still open; `main` has only the initial commit):
+  its PR includes #6 and supersedes it. Merge the new PR; #1-#6 can be closed.
+- **How to check it:** open the **Test lab** (title screen, top left). "New" is about 18 minutes without spoilers (22
+  with): the eight new heroes, the Finisher gallery, two companion pairs, the late-game stress test, tips in a first
+  fight, heals and upgrades, the sharper chest reveal (old and new side by side), the reworked companions screen and
+  completion tracker (marked "Reworked" with their old rating). Then "Copy report" for the planning chat.
+- **Tests:** 1,076 Vitest unit tests in 53 files and PWCOUNT Playwright smoke, screenshot and lab tests, all green.
+
+### What changed
+1. **Fixes that stay fixed** (each with a test that would have caught it):
+   - **Numbers:** one formatter for every number on screen (`src/core/format.ts`: whole HP, damage, costs; at most one
+     decimal where it means something; rounded percentages). The long decimals came from fractional HP (each kill adds
+     max HP) printed raw on the Full Heal card, the rest screen, the forge's toasts, the shrine's odds and relic texts.
+     A safety net rounds any long decimal on its way to the screen and records it; every Playwright test fails on one,
+     and a new spec walks every screen with awkward numbers.
+   - **Tips:** a fixed teaching order with prerequisites; the five basics (yellow, red, green, purple, finisher) all
+     come in the first fight (a lesson brings its block if the fight doesn't); a tip is skipped once the player has
+     shown they know it (10 yellows hit, 3 reds blocked...); region and hero tips on first meeting only. The bug: "tap
+     yellow" was a pre-fight tip that a quick TAP TO BEGIN skipped, so it waited for a later fight.
+   - **Map sprites:** all 29 foes of the second and third regions have their own act-map sprite; one lookup records a
+     miss and a unit and a Playwright test fail on it.
+   - **Completion tracker:** all 15 items are seals or sockets on the map, the map pans, and every count (seals, ring,
+     chest) comes from one list. The "11 shown, 13/15" came from acts drawn as small flags and the last two items as
+     faint rings.
+2. **Anti-spam** (one owner for the combat core): blocks cover at most 45% of the bar; each finisher stack costs more
+   (6/8/10/12/14 hits); meter gain and stacked heals have diminishing returns; in-fight heals stop at 35% of max HP;
+   at most 3 forgiven misses a fight; misses cost a little HP, more when flailing. A masher bot (ten taps a second, no
+   aim) now loses every region's Act 3 (0% first try, was 40-69%). Retargeted at a **75%** player.
+3. **Unique finishers:** a style kit (sky, strikes, last blow, sound layer) for each of the 8 styles plus one moment that
+   belongs to each hero alone (Rowan's whirlwind, Sable's shadow leap, Neve's glacier, Moss's great tree, Tam's giant
+   keg, Hollis's wall, Vesper's sky of arrows, Torva's earth split, and the new heroes' own); rarity scales the build-up
+   and layers; every show under 1.5 s. The title now sits over the HUD. **Finisher gallery** in the lab.
+4. **Sharper chest reveal (a test):** the chest, prize card, lettering and effects drawn on a 2x finer grid on a layer
+   over the game (fighters and world unchanged); the real game keeps the old one. The lab shows both side by side (Old /
+   New / Both, Replay). Rollout plan: decisions S6.
+5. **Companions screen:** rebuilt like the hero select: the companion big and animated on a moonlit stage with its
+   rarity aura, swipe or arrows to page, the descriptions kept as readable cards (full lines when they fit, short lines
+   with a sheet when crowded), level and stars as meters, the Along sockets and Equip at the stage's foot.
+6. **Eight more heroes, four more companions:** a second hero per style, Rare to Mythic: **Solenne** (Blade, Mythic),
+   **Yara** (Summoner, Mythic: the first Mythics, each with a fifth kit part, a "Gift"), **Gorm** (Brute, Legendary),
+   **Fizz** (Bomber, Legendary), **Brann** (Guardian, Epic), **Tess** (Controller, Epic), **Wren** (Shadow, Rare),
+   **Dell** (Marksman, Rare). Each has a full sprite set, portrait, walker, card and chest reveal, a kit, a 3x5 tree,
+   soft strengths, a how-to card, a meet scene, banter, mastery, a unique finisher and a lab fight; all are in the hero
+   chests. Companions: **Burr** (Common), **Lark** (Rare), **Gloam** (Epic), **Nimbus** (Mythic), each with an effect
+   that shows on what it touches.
+7. **Test lab:** items for every change (above); round 6's items moved to Earlier.
+8. **Saves:** nothing changed shape: a round 6 profile loads with everything kept and the newcomers locked (tested);
+   the tips' known counts are a new optional field.
+
+### Balance (details: docs/balance-spam.md, docs/balance-heroes.md)
+- **Max-stack finishers per fight, each region's Act 3 (normal fights / boss):** 75% player before 0.02/0.28,
+  0.01/0.14, 0.01/0.29; after 0.00/0.01, 0.00/0.01, 0.00/0.02. (An 85% player had about 2 max-stack finishers in every
+  boss fight; now 0.1-0.2.)
+- **Clear rates after (first try per act, Rowan; Acts 1-9):** 70%: 99 77 65 | 75 65 52 | 78 62 51. 75%: 100 85 63 | 85
+  68 59 | 90 69 52. 85%: 100 95 75 | 95 83 53 | 96 86 64.
+- **Hero parity at 75%** (400 runs each, all 16 heroes): 126 of 135 hero-acts within +/-10 of Rowan, mean gap 5. The 9
+  outside are all leads at the boss-decided acts, where Rowan is weakest (largest: Moss +15 in Act 9). Of
+  the new heroes only Tess is outside (+13.5 in Act 3, mostly the Controller style she shares with Neve).
+
+### Decisions worth a look
+1. **Misses cost HP** (A6): without it the masher still won; 0.6% of max HP, up to x4 when flailing.
+2. **Retarget at 75%** (A8) rather than 70%: between the measured 70% and the guessed 80-90%.
+3. **The parity pass kept Rowan, the curve and every style number** (Q1) so the new heroes had a fixed reference;
+   closing the remaining boss-act leads means changing Rowan or the bosses (Q5): your call.
+4. **Stuns never cancel a boss's special** any more (Torva's Wind-Up, Brann's Great Bell, Gorm's Ear Ringer): a stun
+   cancelled the told special, a free save at every boss (Q3, H18, H25).
+5. **Yara's Tortoise softens a red instead of stopping it** (H14); several design numbers were cut for parity (H17-H25).
+6. **The first fight places a red, green or purple for its lesson if the fight hasn't brought one** (T5).
+7. **The sharper reveal is k = 2** (S2): finer, still pixel art; k = 4 looked like smooth art.
+
+### Still unverified on the iPhone
+- The swipe and paging on the companions screen; the Gift card's five-card row at 8x; 16 faces in the hero strip.
+- Whether the 45% bar feels too sparse, whether the escalated miss cost feels fair to a 70% thumb, and whether "No more
+  heals" / "No more saves" read; the late-game stress test (mash: lose; aim: win).
+- The sharper chest reveal's alignment through rotation and the safe areas, and 60 fps (measured only headless).
+- New heroes' bar marks at size (Fizz's three flask colours, Tess's 0.3 s Stopwatch, Gorm's small Roar slow).
+
+### Known gaps and next steps
+1. Parity: 9 boss-act leads of +10.5 to +15 (Moss and Hollis in Act 9, Sable Act 5, Tess and Neve and Hollis in Act 3,
+   Torva and Tam in Act 5 or 9).
+2. The HUD doesn't show a stack's cost yet (the meter just fills slower); the replay kit (`tuning.kit`) was measured at
+   85% and not re-measured.
+3. The masher still wins about 3 boss first fights in 120 when mashing a boss alone with a stack-banking relic build.
+4. Some new heroes' effects are small by necessity at 75% (red control compounds): they lean on visuals and callouts.
+
+
+## Earlier rounds
 
 ## Playtest round 6: the overnight polish run (Test lab report on build 430c962: 24 rated, 10 good, 14 needs work)
 
@@ -105,7 +200,6 @@ empty, fight effects hard to read, specific hero notes). Every call is in `docs/
 5. The Test lab is long (about 21 minutes): the playtester may want to start with the menus and the chests.
 
 
-## Earlier rounds
 
 
 ## Playtest round 5 follow-up (the Test lab report on version 90968f6: 8 of 22 rated, 2 good, 6 needs work)
