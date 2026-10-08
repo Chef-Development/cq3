@@ -259,6 +259,17 @@ export function ringToll(c: Combat, pos: number): number {
   return c.perk.toll;
 }
 
+/**
+ * Brann's stuns (Great Bell, Stunning Toll): a foe stops attacking for `sec`; a boss shrugs the stun off (a stun
+ * cancels the special it is telling, which put a stunning hero 15-20 ahead of Rowan at the bosses at 75%): only its
+ * reds wait.
+ */
+export function bellStun(c: Combat, e: Enemy, sec: number): void {
+  if (!e.alive || sec <= 0) return;
+  if (c.tuning.enemies[e.key]?.boss) e.spawnTimer = Math.max(e.spawnTimer, sec);
+  else c.stun(e, sec);
+}
+
 export const BRANN_KIT: FightHooks = {
   afterBlock: (c, x) => {
     if (x.cracked || x.echo || c.result) return; // (a shield rings once, when it breaks)
@@ -305,9 +316,7 @@ export const BRANN_KIT: FightHooks = {
     if (x.damage > 0 && echo > 0) for (const e of c.aliveFoes()) if (!x.targets.includes(e)) c.strike(e, x.damage * echo, 'bellBoom');
     let n = 0;
     for (const e of c.aliveFoes()) {
-      // (a boss shrugs the stun off, its special still coming: only its reds wait)
-      if (c.tuning.enemies[e.key]?.boss) e.spawnTimer = Math.max(e.spawnTimer, B(c).bellStun);
-      else c.stun(e, B(c).bellStun);
+      bellStun(c, e, B(c).bellStun);
       n++;
     }
     c.perkFx('greatBell', n, x.targets[0]?.id ?? 0);

@@ -13,7 +13,7 @@ import { isRed } from './blocks';
 import type { Combat } from './combat';
 import { skillN } from './heroes';
 import type { FightHooks } from './hooks';
-import { inFlask, ringToll, setOff, tossFlask } from './kit-fizz-brann';
+import { bellStun, inFlask, ringToll, setOff, tossFlask } from './kit-fizz-brann';
 import { addGuard, bulwark, guardOf } from './styles';
 
 const N = (c: Combat, id: string): number => skillN(c.tuning, id);
@@ -175,7 +175,7 @@ const BRANN: Record<string, FightHooks> = {
   stunningToll: {
     afterBlock: (c, x) => {
       if (!x.perfect || x.cracked || x.echo || !x.owner?.alive || c.result) return;
-      c.stun(x.owner, Math.max(0, N(c, 'stunningToll')));
+      bellStun(c, x.owner, Math.max(0, N(c, 'stunningToll'))); // (a boss: only its reds wait)
       c.perkFx('stunningToll', 0, x.owner.id, x.block.pos);
     },
   },

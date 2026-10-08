@@ -148,7 +148,7 @@ the region rules.
   red lens, a stained cream lab coat with rolled sleeves, a bandolier of coloured flasks, a long-handled ladle.
   Palette: teal, lab-coat cream, glass colours (fire red, frost blue, spark green), soot.
 - Kegs: her kegs (every 5th yellow, the Bomber's Powder) are flasks, in turn from her bandolier: **fire** (its blast
-  sets every foe burning: 12% attack a second for 3.5 s), **frost** (slows every red on the bar by 15% for 1.5 s),
+  sets every foe burning: 12% attack a second for 3 s), **frost** (slows every red on the bar by 15% for 1.5 s),
   **spark** (blasts 25% wider and x1.3 harder). The bar paints each flask in its brew; the tab shows the next one.
 - Signature **Mixed Brew**: kegs come in three brews, each with its own effect on top of the blast.
 - Ability (green) **Toss**: a green hit throws the next flask straight at the target (x1.5 attack, and its brew there:

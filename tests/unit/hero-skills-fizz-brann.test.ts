@@ -261,13 +261,19 @@ describe('Brann', () => {
     expect(perks(on.c.drainEvents(), 'unshaken')).toHaveLength(1);
   });
 
-  it('Stunning Toll: a Perfect block stuns its foe for n s (a plain block does not)', () => {
+  it('Stunning Toll: a Perfect block stuns its foe for n s (a plain block does not; a boss: its reds wait)', () => {
     const { on, off } = both('brann', ['stunningToll']);
     tapNew(on.c, 'red', false, on.c.enemies[0].id);
     expect(on.c.enemies[0].stun).toBe(0);
     for (const { c } of [on, off]) tapNew(c, 'red', true, c.enemies[0].id);
     expect(on.c.enemies[0].stun).toBeCloseTo(skillN(on.t, 'stunningToll'), 1);
     expect(off.c.enemies[0].stun).toBe(0);
+    // a boss shrugs it off (a stun would cancel the special it is telling): only its reds wait
+    const boss = fight('brann', ['stunningToll'], { enemies: ['boarKing'] });
+    tapNew(boss.c, 'red', true, boss.c.enemies[0].id);
+    expect(boss.c.enemies[0].stun).toBe(0);
+    expect(boss.c.enemies[0].spawnTimer).toBeGreaterThanOrEqual(skillN(boss.t, 'stunningToll') - 1e-9);
+    expect(perks(boss.c.drainEvents(), 'stunningToll')).toHaveLength(1);
   });
 
   it('Inner Bell: every nth Perfect block sets off a Bulwark with the Guard stored, at once', () => {
