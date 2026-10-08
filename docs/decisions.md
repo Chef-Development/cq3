@@ -727,3 +727,18 @@ H21. **Wren (Shadow, Rare):** Slip (4 Perfects in a row ready a dodge: the next 
     throws a knife at every foe: a pure single-target finisher ran her multi-foe fights long).
 H22. **The hero select's fifth card, "Gift",** shows for any hero with a gift (Solenne and Yara), in a tighter
     five-card row. Parity (200 runs x two seed sets, 75%): Solenne -9 to +8, Wren -8 to +7.5.
+H23. **Gorm (Brute, Legendary):** Rockfall (every 4th hit lands heavy, x1.6 on top of Heavy, and nudges the nearest
+    travelling red back), Roar (a green: the foes flinch and every red runs at x0.92 for 1 s), Thick Skin (the first
+    hit each wave deals 10% less), Landslide (hits every foe, clears the reds, then rubble on the bar's right quarter for
+    2 s slows the reds crossing it). HP 85, attack 0.75 of Rowan's.
+H24. **Tess (Controller, Epic):** Stopwatch (every 16 hits every red holds still for 0.3 s, icicle fuses wait), Slow
+    Time (a green: every red at x0.9 for 1.5 s), Steady Hands (ice and snow change her cursor's speed 75% less), Rewind
+    (hits every foe and winds each red back to where it came on). A second soft strength against Fire foes (Rewind keeps
+    the reds, which costs her in the third region).
+H25. **Why their numbers are small:** at 75%, red control compounds (a held, slowed or pushed red is easier to hit and
+    keeps the next red off the bar: only 3 fit), and the first numbers put both about +30 at the Boar King; with every
+    kit part off, Gorm was +5 and Tess -12. Any push restarts a red already striking, so Rockfall (and two nodes) skip a
+    red at the left end (`onItsWay`); Ear Ringer delays the foes' next attack instead of stunning (a stun cancels a told
+    special).
+H26. **Parity (200 runs x two seed sets, 75%):** Gorm -7.5 to +8.5; Tess -5.5 to +3 except Act 3 at +13.5, about 10 of
+    which is the Controller's shared Bend rule (Neve is +13 there too); style numbers stay untouched (Q1).
