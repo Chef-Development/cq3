@@ -701,3 +701,16 @@ H15. **Dell (Marksman, Rare):** Ricochet (the Power Shot bounces to the weakest 
     on a miss, so the design's line would have done nothing), Pebble Storm (a hail on every foe that knocks the reds
     back; one knocked past the far end leaves the bar: knocked back only, every red came again).
 H16. **Parity (200 runs x two seed sets, 75%):** Yara -4.5 to +9, Dell -4.5 to +9.5 against Rowan in every act.
+H17. **Fizz (Bomber, Legendary):** her kegs are flasks taken in turn from her bandolier: fire (burns every foe, 12% of
+    her attack a second for 3 s), frost (every red x0.85 for 1.5 s) and spark (a 25% wider, x1.3 blast). Toss: a green
+    throws the next flask at the target (x1.5) and bursts its brew there. Fume Mask: traps hurt half. Grand Reaction:
+    every flask on the bar goes off with its brew, then 2 land. The design's stronger brews (half-speed reds for 3 s,
+    x1.5 sparks) put her 20-31 points ahead at the Boar King. She keeps 2 flasks after her finisher (Tam's Big Bang
+    went to 1 in the parity pass): she measured inside the band with them.
+H18. **Brann (Guardian, Epic):** every block rings his bell (Toll: +20% to his next hit, up to 3); Peal (a green: for
+    3 s each red he blocks echoes 30% of its owner's attack at every foe); Still Mind (Perfect blocks store 1 more
+    Guard). Great Bell hits the target with his Guard and booms on every other foe for 90% (without the boom his fights
+    ran 30% longer and he lost far more of Act 6); its stun is 0.5 s and **a boss is never stunned, only its reds
+    wait** (a stun cancels the special a boss is telling: the same lesson as Torva's). Stunning Toll follows that rule.
+H19. **Parity (200 runs x two seed sets, 75%):** Fizz -4 to +8.5, Brann -7 to +10 (Act 3 at the edge: the Boar King,
+    where every hero leads Rowan). A seeded test chest now rolls Fizz (the Legendary pool grew).
