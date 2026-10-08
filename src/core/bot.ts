@@ -746,6 +746,11 @@ function finisherKitMult(c: Combat): number {
       const d = Math.max(1, c.finisherDamage());
       return 1 + (focusOf(c) * K.vesper.volleyFocus) / d; // the Volley spends the Focus
     }
+    // ---- Part 6
+    case 'yara':
+      return 1 + K.yara.stampede * c.allies.length; // Spirit Stampede: more per spirit out
+    case 'dell':
+      return K.dell.stormMult;
     default:
       return 1;
   }
