@@ -754,6 +754,11 @@ export class Fighters {
       this.perkLabel(id);
       return true;
     }
+    if (o.strike && v && amount > 0 && !v.dieAt && s.onsite.p6.ownBlow(id, v, amount)) {
+      // a blow with a look of its own (Burr's spines: view/onsite-pets.ts)
+      this.perkLabel(id);
+      return true;
+    }
     if (o.strike && v && amount > 0 && id === 'bulwarkBlow') {
       // a Bulwark's blow lands as its great shield reaches the foe (the 'bulwark' perk event came first)
       s.later(s.onsite.bulwarkReach(v), () => s.onsite.bulwarkHit(v, amount));
@@ -923,17 +928,20 @@ export class Fighters {
     if (!v) return;
     const def = COMPANIONS[pet as CompanionId];
     const all = !!def?.allFoes;
+    // (Nimbus sprays water, not fire)
+    const wet = def?.id === 'nimbus';
     const strikeOne = (u: EnemyView, fire: boolean) => {
       const cy = u.y - u.img.displayHeight / 2;
       u.flashUntil = s.anim + 50;
       u.knockUntil = s.anim + 60;
-      s.fx.floatNum(u.x + rand(-4, 4), u.y - u.img.displayHeight - 8, whole(damage), crit ? 0xffb020 : fire ? 0xffc060 : 0x6aff5a, crit ? 2 : 1);
-      s.fx.burst(u.x - 6, cy, fire ? 0xff8a2a : crit ? 0xffe070 : 0xb8e4ff, crit ? 14 : 8, true, 1, true);
+      s.fx.floatNum(u.x + rand(-4, 4), u.y - u.img.displayHeight - 8, whole(damage), crit ? 0xffb020 : wet ? 0x9af0ff : fire ? 0xffc060 : 0x6aff5a, crit ? 2 : 1);
+      s.fx.burst(u.x - 6, cy, wet ? 0x6ae8e8 : fire ? 0xff8a2a : crit ? 0xffe070 : 0xb8e4ff, crit ? 14 : 8, true, 1, true);
       if (crit) s.fx.stars.push({ x: u.x - 4, y: cy, at: s.anim, r: 16, color: 0xfff07a });
     };
     const views = all ? [...this.enemies.values()].filter((u) => !u.dieAt) : [];
     const foes = all ? views.map((u) => ({ x: u.x, y: u.y - u.img.displayHeight / 2 })) : null;
-    if (all) s.onsite.fireSweep(views, (u) => strikeOne(u, true));
+    if (all && wet) s.onsite.p6.spraySweep(views, (u) => strikeOne(u, true));
+    else if (all) s.onsite.fireSweep(views, (u) => strikeOne(u, true));
     this.party.attack((def?.id ?? 'pip') as CompanionId, { x: v.homeX, y: v.y, w: v.img.displayWidth, h: v.img.displayHeight, fly: v.fly }, foes, () => {
       if (!all) strikeOne(v, false);
       s.app.audio.pet();
