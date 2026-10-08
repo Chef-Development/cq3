@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 
 // The test handle main.ts puts on window (loosely typed: the tests poke at the app's state).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

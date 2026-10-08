@@ -9,6 +9,7 @@
 // Text box (what Phaser measures, what origins refer to): top outline + caps + bottom outline + shadow,
 // i.e. FONT_BOLD_H = 10 and FONT_H = 8 at scale 1; descenders hang below the box.
 import type Phaser from 'phaser';
+import { guardText } from '../core/format';
 
 export const FONT = 'px';
 export const FONT_BOLD = 'pxb';
@@ -412,8 +413,11 @@ const SUBST: Record<string, string> = {
   '\t': ' ',
 };
 
-/** Maps characters the fonts lack to the closest ones they have. Keeps case. */
+/** Maps characters the fonts lack to the closest ones they have. Keeps case. Every string the canvas draws (the text
+ *  pool, the scene's named texts, the floaters) and measures comes through here, so this is where the numbers safety
+ *  net runs: a long decimal ("137.35") is rounded to one before it is drawn and recorded (core/format.ts guardText). */
 export function fontText(s: string): string {
+  s = guardText(s);
   let out = '';
   for (const c of s) {
     if (c in W_BOLD || c === '\n') out += c;

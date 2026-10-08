@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 
 // The Test lab (engine/lab.ts): opened from the title, a hero scenario and a bar-rule scenario played and rated, the
 // report copied, and the real game's save untouched throughout (the lab plays on its own keys).

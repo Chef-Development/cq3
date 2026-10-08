@@ -4,6 +4,7 @@ import { App } from './engine/app';
 import { installDebug } from './engine/debug';
 import { installInput } from './engine/input';
 import { installLab } from './engine/lab';
+import { installNumberGuard } from './engine/number-guard';
 import { hudButtonImages } from './engine/chrome';
 import { applyCanvasLayout, GAME_H, GAME_W } from './engine/layout';
 import { FightScene } from './engine/scene';
@@ -40,7 +41,7 @@ const relayout = (force = false) => {
 };
 game.events.once(Phaser.Core.Events.READY, () => relayout(true));
 // Debug/test handle (used by the Playwright smoke test).
-(window as unknown as { __cq3: unknown }).__cq3 = {
+const handle: Record<string, unknown> = {
   app,
   game,
   get ready() {
@@ -49,6 +50,9 @@ game.events.once(Phaser.Core.Events.READY, () => relayout(true));
   /** Foe sprites a map asked for that have no mini (drawn as the crossed swords): the tests expect none. */
   miniMisses: MINI_MISSES,
 };
+(window as unknown as { __cq3: unknown }).__cq3 = handle;
+// the numbers safety net's record (textViolations) on the handle, and the HTML panels' text guarded like the canvas's
+installNumberGuard(handle);
 // iOS opens a home-screen app upright and turns it sideways as it launches. Its resize events can come before
 // the new size is readable, or not at all, and the safe-area insets settle late too. So any hint of a change is
 // re-checked a few times over the next two seconds, and a slow watch catches whatever no event announced

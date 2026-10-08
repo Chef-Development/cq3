@@ -1,7 +1,7 @@
 // Screenshot regression tests. Time is faked (Playwright clock, paused and stepped one frame at a time) and
 // Math.random is seeded, so every run renders the same pixels. After an intentional visual change, refresh
 // the baselines with `npm run screens:update` and look at the new PNGs before committing them.
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 
 interface Cq3Window {
   __cq3?: {
