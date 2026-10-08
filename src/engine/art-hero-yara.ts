@@ -443,7 +443,7 @@ export const YARA_POSES: Record<string, RigPose> = {
   },
   // Call: the staff planted, a hand raised and glowing, a spirit's sign at her feet
   cast: {
-    near: { at: [-6, 24] },
+    near: { at: [-10, 22] },
     far: { at: [9, 12], item: staff('u', 14, 9, { bright: true, swing: 0 }) },
     farFront: true,
     head: 'call',
