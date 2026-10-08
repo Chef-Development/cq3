@@ -52,6 +52,8 @@ export type SignatureId =
   // part6:B
   // part6:C
   // part6:D
+  | 'grandReaction'
+  | 'greatBell'
   // the styles' defaults
   | 'crossCut'
   | 'rift'
@@ -84,6 +86,8 @@ export const SIGNATURES: Record<SignatureId, SignatureSpec> = {
   // part6:B
   // part6:C
   // part6:D
+  grandReaction: { name: 'three flasks hang over the foes, pour fire, frost and spark, then smash into one great bubble' },
+  greatBell: { name: 'a giant temple bell rings over the target, then drops on it; sound rolls across the stage' },
   crossCut: { name: 'a great cross cut over every foe', styleDefault: 'blade' },
   rift: { name: 'a rift tears open behind the foes', styleDefault: 'shadow' },
   shieldDome: { name: 'a shield dome over the hero bursts outward', styleDefault: 'guardian' },
@@ -108,6 +112,8 @@ export const HERO_SIGNATURE: Readonly<Record<string, SignatureId>> = {
   // part6:B
   // part6:C
   // part6:D
+  fizz: 'grandReaction',
+  brann: 'greatBell',
 };
 
 /** Each style's default moment. */

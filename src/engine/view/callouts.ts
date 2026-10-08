@@ -368,6 +368,8 @@ export class Callouts {
       dash.word = `Dash x${chain.word.replace(/\D/g, '')}`;
       this.pend.splice(this.pend.indexOf(chain), 1);
     }
+    // ---- Part 6: Fizz's flask names its own blast ("Fire!", not "Blast!" too)
+    if (this.pend.some((p) => p.id === 'fireBrew' || p.id === 'frostBrew' || p.id === 'sparkBrew')) this.pend = this.pend.filter((p) => p.id !== 'keg');
     for (const p of this.pend) {
       if (!this.allowed(p, now)) continue;
       const pos = p.pos === 'left' ? 0 : (p.pos ?? this.tapPos ?? c.cursorPos());

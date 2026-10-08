@@ -747,6 +747,12 @@ export class Fighters {
       this.perkLabel(id);
       return true;
     }
+    if (o.strike && v && amount > 0 && !v.dieAt && (id === 'toss' || id === 'peal') && s.app.run.combat) {
+      // ---- Part 6: Fizz's toss (a flask flies to the foe and shatters), Brann's peal (arcs of sound roll to it)
+      s.onsite.p6d.strike(id, v, amount, s.app.run.combat);
+      this.perkLabel(id);
+      return true;
+    }
     if (o.strike && v && amount > 0 && id === 'bulwarkBlow') {
       // a Bulwark's blow lands as its great shield reaches the foe (the 'bulwark' perk event came first)
       s.later(s.onsite.bulwarkReach(v), () => s.onsite.bulwarkHit(v, amount));

@@ -1796,3 +1796,84 @@ test('world map: the third region unveiled (its three landmarks round the volcan
   await frames(page, 30);
   await expect(page).toHaveScreenshot('ash-world-cave.png', shot);
 });
+
+// ------------------------------------------------------------------ Part 6: Fizz and Brann
+
+test("Part 6, Fizz: her flasks on the bar in three brews (fire, frost, spark) and her bandolier tab; a fire flask goes off (flames on the bar, the foes burning); a toss flies to the target", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'fizz' });
+  await bar(page, `c.addEnemy('wolf'); view.fighters.addEnemies(c);`);
+  await frames(page, 40);
+  await bar(page, `c.spawnBlock('keg', 0.3); c.spawnBlock('keg', 0.55); c.spawnBlock('keg', 0.8); c.spawnBlock('red', 0.92, foe.id); c.setCursor(0.12, 1);`);
+  await frames(page, 14);
+  await expect(page).toHaveScreenshot('fizz-flasks.png', shot);
+  await bar(page, `const k = c.blocks.find((b) => b.kind === 'keg'); c.setCursor(k.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 6);
+  await expect(page).toHaveScreenshot('fizz-fire-flask.png', shot);
+  await frames(page, 70);
+  await bar(page, `for (const b of c.blocks.slice()) if (b.kind === 'red') c.removeBlock(b, 'perk'); c.perk.brew = 2; const g = c.spawnBlock('green', 0.45); c.setCursor(g.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 7);
+  await expect(page).toHaveScreenshot('fizz-toss.png', shot);
+});
+
+test("Part 6, Brann: every block rings his bell (a sound ring, a little bell over the block, toll pips on the Guard tab); the next hit lands with a bell's boom; Peal echoes a blocked red at every foe", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'brann' });
+  await bar(page, `c.addEnemy('wolf'); view.fighters.addEnemies(c);`);
+  await frames(page, 40);
+  await bar(page, `c.spawnBlock('red', 0.35, foe.id); c.setCursor(0.35, 1); app.barTap(performance.now());`);
+  await frames(page, 20);
+  await bar(page, `c.spawnBlock('red', 0.5, foe.id); c.setCursor(0.5, 1); app.barTap(performance.now());`);
+  await frames(page, 6);
+  await expect(page).toHaveScreenshot('brann-toll.png', shot);
+  await frames(page, 30);
+  await bar(page, `const y = c.spawnBlock('yellow', 0.6); c.setCursor(y.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 8);
+  await expect(page).toHaveScreenshot('brann-toll-hit.png', shot);
+  await frames(page, 40);
+  await bar(page, `const g = c.spawnBlock('green', 0.3); c.setCursor(g.pos, 1); app.barTap(performance.now());`);
+  await frames(page, 20);
+  await bar(page, `c.spawnBlock('red', 0.45, foe.id); c.setCursor(0.45, 1); app.barTap(performance.now());`);
+  await frames(page, 9);
+  await expect(page).toHaveScreenshot('brann-peal.png', shot);
+});
+
+test('Part 6: the hero select shows Fizz (a Bomber in her workshop) and Brann (a Guardian at his gate), their kit cards', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stockProfile(page);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.profile.heroes.fizz.unlocked = true;
+    app.profile.heroes.brann.unlocked = true;
+    app.profile.heroes.brann.stars = 3;
+    app.newRun();
+    app.openCamp();
+  });
+  await frames(page, 30);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const camp = (fn: (c: any, now: number) => void) => page.evaluate(`(${fn.toString()})(window.__cq3.app.view.camp, performance.now())`);
+  await camp((c, now) => c.go('heroes', now, 'fizz'));
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('hero-select-fizz.png', shot);
+  await camp((c, now) => c.heroes.show('brann', now));
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('hero-select-brann.png', shot);
+});
+
+test("Part 6, Fizz's finisher: three flasks hang over the foes, each pouring its brew (fire, frost, spark), on a smoky burning sky", async ({ page }) => {
+  await finisherShow(page, 'fizz');
+  await expect(page).toHaveScreenshot('finisher-fizz.png', shot);
+  await frames(page, 26);
+  await expect(page).toHaveScreenshot('finisher-fizz-blow.png', shot);
+});
+
+test("Part 6, Brann's finisher: a giant temple bell rings over the target, then drops on it; sound rolls across the stage", async ({ page }) => {
+  await finisherShow(page, 'brann');
+  await expect(page).toHaveScreenshot('finisher-brann.png', shot);
+  await frames(page, 26);
+  await expect(page).toHaveScreenshot('finisher-brann-blow.png', shot);
+});
