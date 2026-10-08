@@ -180,8 +180,9 @@ test('the Finisher gallery: two heroes played on demand (stacks and rarity picke
     blocks: 0,
   });
   // big, simple controls: every button a thumb's size or more
+  // (the plate slides in first: its buttons exist once it's up)
+  await expect.poll(() => a((x) => Object.keys(x.view.gallery.buttons()).sort()), { timeout: 20_000 }).toEqual(['back', 'heroL', 'heroR', 'play', 'stackL', 'stackR', 'tierL', 'tierR']);
   const btns = (await a((x) => x.view.gallery.buttons())) as Record<string, { w: number; h: number }>;
-  expect(Object.keys(btns).sort()).toEqual(['back', 'heroL', 'heroR', 'play', 'stackL', 'stackR', 'tierL', 'tierR']);
   for (const [k, r] of Object.entries(btns)) expect(Math.min(r.w, r.h), k).toBeGreaterThanOrEqual(14);
   await page.screenshot({ path: 'test-results/lab-gallery.png' });
 
