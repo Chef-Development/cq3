@@ -25,6 +25,7 @@ import {
   type StatId,
 } from '../data/gear';
 import type { NodeType } from '../data/types';
+import { mult, one, whole } from './format';
 import type { Rng } from './rng';
 import type { Tuning } from './tuning';
 
@@ -149,18 +150,20 @@ export const hasEffect = (L: Loadout | undefined, e: EffectId): boolean => !!L &
 export const hasAura = (L: Loadout | undefined, a: AuraId): boolean => !!L && (L.auras ?? []).includes(a);
 export const setPieces = (L: Loadout | undefined, s: SetId): number => L?.sets[s] ?? 0;
 
-/** A stat value as the UI prints it ("+12", "+4.5%", "x0.15"). */
+/** The sign a stat's text takes: '+' when signed and not negative, '-' when negative and not printed as zero. */
+const statSign = (v: number, signed: boolean, body: string): string => (v < 0 && /[1-9]/.test(body) ? '-' : signed && !(v < 0) ? '+' : '');
+
+/** A stat value as the forge's before -> after prints it ("+12", "+4.5%", and crit damage as a percent: "+15%"):
+ *  a percent under 10% keeps one decimal (so one forge level visibly moves it), everything else is whole (format.ts). */
 export function fmtStat(stat: StatId, v: number, signed = true): string {
   const u = STAT_INFO[stat].unit;
-  const sign = signed && v >= 0 ? '+' : v < 0 ? '-' : '';
-  const a = Math.abs(v);
-  if (u === 'pct') {
-    const pct = a * 100;
-    return `${sign}${pct >= 10 ? Math.round(pct) : Math.round(pct * 10) / 10}%`;
-  }
-  if (u === 'mult') return `${sign}${(Math.round(a * 100) / 100).toFixed(2)}x`;
-  if (stat === 'hp') return `${sign}${Math.round(a)}`;
-  return `${sign}${a >= 20 ? Math.round(a) : Math.round(a * 10) / 10}`;
+  const a = Math.abs(Number.isFinite(v) ? v : 0);
+  let body: string;
+  if (u !== 'flat') {
+    const p = a * 100;
+    body = `${p >= 10 ? whole(p) : one(p)}%`;
+  } else body = stat === 'hp' || a >= 20 ? whole(a) : one(a);
+  return statSign(v, signed, body) + body;
 }
 
 /**
@@ -169,15 +172,14 @@ export function fmtStat(stat: StatId, v: number, signed = true): string {
  * the precise form for the forge's before -> after and the hero's totals.)
  */
 export function fmtStatShort(stat: StatId, v: number, signed = true): string {
-  const sign = signed && v >= 0 ? '+' : v < 0 ? '-' : '';
-  const a = Math.abs(v);
-  if (STAT_INFO[stat].unit !== 'flat') return `${sign}${a > 0 ? Math.max(1, Math.round(a * 100)) : 0}%`;
-  return `${sign}${a > 0 && a < 0.95 ? Math.max(0.1, Math.round(a * 10) / 10) : Math.round(a)}`;
+  const a = Math.abs(Number.isFinite(v) ? v : 0);
+  const body = STAT_INFO[stat].unit !== 'flat' ? `${a > 0 ? whole(Math.max(1, a * 100)) : '0'}%` : a > 0 && a < 0.95 ? one(Math.max(0.1, a)) : whole(a);
+  return statSign(v, signed, body) + body;
 }
 
-/** A hero's total as lists print it: like fmtStatShort unsigned, but crit damage stays a multiplier ("x2.2"). */
+/** A hero's total as lists print it: like fmtStatShort unsigned, but crit damage stays a multiplier ("x2.2", "x2"). */
 export function fmtTotal(stat: StatId, v: number): string {
-  if (STAT_INFO[stat].unit === 'mult') return `x${(Math.round(v * 10) / 10).toFixed(1)}`;
+  if (STAT_INFO[stat].unit === 'mult') return mult(v);
   return fmtStatShort(stat, v, false);
 }
 

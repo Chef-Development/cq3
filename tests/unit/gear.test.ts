@@ -150,8 +150,10 @@ describe('stat math', () => {
     expect(fmtStat('atk', 2.34)).toBe('+2.3');
     expect(fmtStat('critChance', 0.045)).toBe('+4.5%');
     expect(fmtStat('luck', 0.12)).toBe('+12%');
-    expect(fmtStat('critDmg', 0.15)).toBe('+0.15x');
+    expect(fmtStat('critDmg', 0.15)).toBe('+15%'); // (it was "+0.15x": two decimals on the forge's upgrade)
+    expect(fmtStat('critDmg', 0.045)).toBe('+4.5%');
     expect(fmtStat('def', -3)).toBe('-3');
+    expect(fmtStat('def', -0.02)).toBe('0');
   });
 
   it('prints stats short for lists: whole numbers in plain units, never "+0"', () => {
@@ -165,6 +167,7 @@ describe('stat math', () => {
     expect(fmtStatShort('steady', 0.091, false)).toBe('9%');
     expect(fmtStatShort('def', 0, false)).toBe('0');
     expect(fmtTotal('critDmg', 2.16)).toBe('x2.2');
+    expect(fmtTotal('critDmg', 2)).toBe('x2');
     expect(fmtTotal('atk', 16.1)).toBe('16');
     expect(fmtTotal('critChance', 0.077)).toBe('8%');
     expect(statShows('atk', 0.04)).toBe(false);
