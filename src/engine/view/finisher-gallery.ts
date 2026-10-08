@@ -234,7 +234,8 @@ export class FinisherGallery {
     const r1 = plate.y + 3;
     const x0 = plate.x + 4;
     const room = plate.w - 8;
-    const nameW = Math.max(56, Math.min(92, room - 196));
+    // (on a phone between its safe areas there are ~270 px: the names (40 at most) and "Legendary" (55) still fit)
+    const nameW = Math.max(48, Math.min(92, room - 206));
     const arrowW = 16;
     const heroL: Rect = { x: x0, y: r1, w: arrowW, h: 16 };
     const heroR: Rect = { x: x0 + arrowW + 2 + nameW + 2, y: r1, w: arrowW, h: 16 };
@@ -251,7 +252,7 @@ export class FinisherGallery {
     this.smallButton(g, texts, stackR, '+', now);
     texts.text(`x${this.stacks}`, sx + 16 + 12, r1 + 8, 0xfff0a0, { bold: true, ox: 0.5, oy: 0.5 });
     const tx = stackR.x + 16 + 8;
-    const tierW = Math.max(50, plate.x + plate.w - 4 - tx - 2 * arrowW - 4);
+    const tierW = Math.max(56, plate.x + plate.w - 4 - tx - 2 * arrowW - 4);
     const tierL: Rect = { x: tx, y: r1, w: arrowW, h: 16 };
     const tierR: Rect = { x: tx + arrowW + 2 + tierW + 2, y: r1, w: arrowW, h: 16 };
     pageArrow(g, tierL, -1, now);

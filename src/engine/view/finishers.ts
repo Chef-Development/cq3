@@ -148,14 +148,6 @@ export class FinisherShow {
     return this.kit;
   }
 
-  /** How far through the show it is (0..1; -1 when none plays). */
-  k(): number {
-    const c = this.ctx;
-    if (!c) return -1;
-    const k = (this.s.anim - c.at) / c.tl.ms;
-    return k >= 0 && k < 1 ? k : -1;
-  }
-
   /** Start a show (its strikes are scheduled here; the fighters call `blow` at the last blow). */
   start(o: ShowStart): ShowCtx {
     const s = this.s;
