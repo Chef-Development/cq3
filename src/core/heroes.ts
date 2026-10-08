@@ -269,6 +269,16 @@ export function kitN(t: Tuning, id: HeroId, which: KitWhich): number {
     // part6:B
     // part6:C
     // part6:D
+    case 'fizz.ability':
+      return k.fizz.tossMult;
+    case 'fizz.passive':
+      return k.fizz.fumeMask * 100;
+    case 'brann.signature':
+      return k.brann.tollPer * 100;
+    case 'brann.ability':
+      return k.brann.abilitySec;
+    case 'brann.passive':
+      return k.brann.stillMind;
     default:
       return 0;
   }

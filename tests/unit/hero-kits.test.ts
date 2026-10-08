@@ -40,7 +40,7 @@ const fight = (hero: HeroId, o: Parameters<typeof setup>[0] = {}) => {
 
 describe('the heroes as data', () => {
   it('8 heroes, one per style, Rare to Legendary, each with a signature, ability, passive, finisher and strengths', () => {
-    expect(HERO_IDS).toHaveLength(8);
+    expect(HERO_IDS.length).toBeGreaterThanOrEqual(8); // (Part 6 adds a second hero to each style)
     expect(new Set(HERO_IDS.map((id) => HEROES[id].style)).size).toBe(8);
     expect(STYLE_IDS.every((s) => !!STYLES[s] && !!STYLE_HOOKS[s])).toBe(true);
     const tiers = new Set(HERO_IDS.map((id) => HEROES[id].rarity));

@@ -102,6 +102,19 @@ export const CALLOUT_WORDS: Record<string, string> = {
   // part6:B
   // part6:C
   // part6:D
+  fireBrew: 'Fire!',
+  frostBrew: 'Frost!',
+  sparkBrew: 'Spark!',
+  toss: 'Toss!',
+  grandReaction: 'React!',
+  fumeMask: 'Mask',
+  toll: 'Toll',
+  tollHit: 'Dong!',
+  peal: 'Peal!',
+  stillMind: 'Calm',
+  greatBell: 'Bell!',
+  echoingBell: 'Echo!',
+  'ability:brann': 'Peal',
   // the companions ("+N": the coins found)
   luckyFoot: '+N',
   owlWatch: 'Peck!',
@@ -145,6 +158,10 @@ const SLOW_GAP: Record<string, number> = {
 const SKILL_WORDS = new Set(['bigFreeze', 'turnabout', 'avalanche']);
 /** Perks with no word: a Bulwark's blow on each foe (the Bulwark's own word covers them). */
 const NO_WORD = new Set(['bulwarkBlow']);
+// ---- Fizz and Brann (Part 6): her burns tick with no word (the flames show them); his bell rings on every block with
+// no word (the ring and the tab's pips show it: "Guard N" already speaks for the block), the hit that spends it does
+for (const id of ['brewBurn', 'toll']) NO_WORD.add(id);
+SLOW_GAP['ability:brann'] = 2000;
 /** The perks that are coins found (gold words). */
 const COIN_PERKS = new Set(['luckyFoot', 'goldHoard']);
 /** The style readout's tab shows its empty state (dim pips or gauge waiting to fill) for these styles. */
@@ -302,6 +319,7 @@ export class Callouts {
         if (e.id === 'guardUp') word = `Guard ${whole(Math.max(1, guardOf(c), e.amount))}`;
         else if (e.id === 'windUp') word = e.amount > 0 ? mult(e.amount / 100) : 'Smash!';
         else if (e.id === 'chain') word = `Chain ${whole(Math.max(2, e.amount))}`;
+        else if (e.id === 'tollHit') word = `Dong x${whole(Math.max(1, e.amount))}`; // (Brann: the tolls spent)
         else if (COIN_PERKS.has(e.id)) word = signed(Math.max(1, e.amount));
         let pos: Pending['pos'] = e.pos ?? (AT_LEFT.has(e.id) ? 'left' : null);
         if (pos === null && (e.id === 'seedling' || e.id === 'starlight')) pos = this.spawnPos.get('green') ?? null;
