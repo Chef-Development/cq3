@@ -60,6 +60,9 @@ export interface HeroDef {
   ability: KitPart; // what a green hit does
   passive: KitPart;
   finisher: FinisherPart;
+  /** Mythic and above: one more kit part on top of the four (round 7's first Mythic heroes; the hero select shows it
+   *  as a fifth card). */
+  gift?: KitPart;
   strengths: Strength[];
   /** How the hero is first met: the start, a story scene, or a hero chest (whose first reveal plays `meetScene`). */
   joins: 'start' | 'story' | 'chest';
