@@ -138,7 +138,8 @@ export function clearTextViolations(): void {
 }
 
 function noteViolation(raw: string): void {
-  if (seenViolations.has(raw)) return;
+  // (bounded: a number that changes every frame must not grow the record without end in a long session)
+  if (seenViolations.has(raw) || seenViolations.size >= 500) return;
   seenViolations.add(raw);
   if (textViolations.length < 200) textViolations.push(raw);
   for (const f of violationListeners) f(raw);
