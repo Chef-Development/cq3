@@ -437,3 +437,20 @@ eight style kits) and `view/finisher-signatures.ts` (each hero's moment, and eac
   shake, darker stage edges, a fuller sky with more animated layers; Celestial adds falling stars, Divine a prism.
 - The blow's hit and the counting number stay the fighters' (`heroFinisher`); with three or more targets the numbers
   are smaller and staggered. The Test lab's **Finisher gallery** (`view/finisher-gallery.ts`) plays any of it on demand.
+
+### Solenne and Wren (round 7, Part 6; `view/dawn-roof.ts`)
+
+| Hero | Moment / perk | What shows, on what |
+| --- | --- | --- |
+| Solenne | a gilded yellow (`isGilded(b)`, Gleam and Sunfall) | the block is gold through and through, a white sun mark in its middle, a glint crossing it now and then, a twinkle on its corner (`drawGilded`, bar.ts) |
+| Solenne | Sunrise burning (`c.perk.sunrise` > 0) | the cursor stands in a stepped column of morning light, rays fanning off its top cap, motes rising; the reds Radiance slows shimmer warm along their top edge (`drawDawnRoof`); the tab's sun gauge full and glowing |
+| Solenne | `sunrise` (it lights) | a burst of light off the cursor, a ring of dawn and a glow round her; "Sunrise" |
+| Solenne | `radiance` | every red on the bar flashes ("Slow!") |
+| Solenne | `sunCut` | a bolt from the foe the tap hit on to each other foe ("Cut!" at most every 1.5 s) |
+| Solenne | `gleam`, `gilded` | a box on the yellow it gilded; a gilded hit: a box on it, the combo counter swells, sparks off the meter, "+3" |
+| Solenne | `dawnOath` | the combo counter swells, a ring on her ("Oath!") |
+| Wren | Slip ready (`c.perk.slip`) | a mustard slab standing at the bar's left end (`BLOCKER_FACE.slip`, bar.ts drawReady); a mustard pip per ready dodge on her Chain tab |
+| Wren | `slip` | the slab pops as it takes the red, smoke puffs off her where she stood and a streak where she went, a ring on her ("Slip!" at the left end) |
+| Wren | Smoke Pop hanging (her green ability's window) | soft clouds drift along the bar's track; every red on it is veiled grey (still drawn, still blocked) |
+| Wren | `smokePop`, `smokeFade` | smoke chips burst over the bar; a red softened by the smoke: the left end, a ring on her ("Faded") |
+| Wren | `lightFeet` | a box on the Good hit it forgave, a mote into the Chain tab ("Light!") |

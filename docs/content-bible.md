@@ -53,6 +53,8 @@ reuse it. One number each in `tuning.styles`.
 | Hollis | Guardian | Rare | hero chests |
 | Vesper | Marksman | Legendary | hero chests |
 | Torva | Brute | Epic | hero chests |
+| Solenne | Blade | Mythic | hero chests (round 7) |
+| Wren | Shadow | Rare | hero chests (round 7) |
 
 Higher rarity = a richer kit: Legendary heroes' finishers do two things to the bar, and their passives interact with
 the region rules.
@@ -141,6 +143,34 @@ the region rules.
 - Finisher **Earthsplitter**: hits all foes and clears the whole bar (every block), and no reds come for 2 s.
 - Strength: +20% damage to Constructs (golems, ice knights).
 
+### Solenne, Dawnblade (Blade, Mythic) — round 7
+- Look: a tall sun-knight in white enamel plate trimmed with gold, a short crimson half-cape, warm brown skin, a
+  cropped crop of silver-white hair under a gold circlet with a sun-stone, a long sword whose blade glows like morning
+  light. Palette: ivory/white plate, gold, crimson, a warm sunrise glow.
+- Signature **Sunrise**: every 25 combo her blade burns for 4 s: her hits also cut every other foe for half their damage.
+- Ability (green) **Gleam**: a green hit gilds the next yellow ahead (a gold block with a sun mark; with none on the
+  bar, the next to come): hitting it adds +3 combo and 0.12 of a meter.
+- Passive **Dawn Oath**: at 50+ combo, a miss keeps half the combo (its stacks and meter still go).
+- Finisher **Sunfall**: hits every foe, +1% per combo (up to +50%); clears the reds; gilds the two yellows nearest the
+  left end (where the cursor starts again).
+- Mythic gift **Radiance**: while Sunrise burns, the reds on the bar (and those that come) move at x0.7.
+- Strength: +20% damage to Frost foes.
+- Finisher show: a sun kindles on her raised blade, shoots up, sunbeams spear the foes, then the sun falls on them.
+
+### Wren, Rooftop Runner (Shadow, Rare) — round 7
+- Look: a small, quick street runner: a charcoal hood, a long mustard scarf, bandaged hands, soft boots, a grappling
+  hook on a coil of rope at her hip, a single curved knife. Palette: charcoal greys, mustard yellow, brick red.
+- Signature **Slip**: 3 Perfect hits in a row ready a dodge (one at a time; a mustard slab at the bar's left end):
+  the next red that reaches her misses (smoke puffs off her).
+- Ability (green) **Smoke Pop**: a green hit pops smoke over the bar for 3 s: the reds fade, and one that reaches her
+  in the smoke deals half. (Built as "hit softer" rather than "fade from view": hiding the reds would only hurt the
+  player.)
+- Passive **Light Feet**: her Chain (and Slip's run) survives one Good hit between Perfects.
+- Finisher **Rooftop Drop**: the target alone, x1.25, +12% per Chain link; clears the reds.
+- Strength: +20% damage to Flyers.
+- Finisher show: her hook flies up and yanks her out of sight, she races over the foes throwing knives (one per
+  strike), then drops onto the target: a white cut, smoke and roof tiles.
+
 ### Stars (1-5, from shards of duplicates)
 Every hero: 2★ +6% attack, 4★ +8% max HP. 3★ and 5★ unlock a move (data: `HERO_STARS`):
 
@@ -154,6 +184,8 @@ Every hero: 2★ +6% attack, 4★ +8% max HP. 3★ and 5★ unlock a move (data:
 | Hollis | Guard holds 7 charges | Shield Slam on every block |
 | Vesper | Focus cap +50% | Volley pins reds 4 s |
 | Torva | Quake also on blocks | Earthsplitter keeps 1 stack |
+| Solenne | Sunrise burns 6 s (Long Dawn) | Sunfall gilds every yellow on the bar (High Noon) |
+| Wren | after a dodge, her next hit crits (Grapple) | Rooftop Drop readies a dodge (Roof Hop) |
 
 ---
 
