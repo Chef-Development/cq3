@@ -571,3 +571,36 @@ N5. **Tests that keep it fixed:** every Playwright spec imports `test` from `tes
 N6. **The fight's debug line** (only while the gear panel is open) shows the cursor as a percent with one decimal.
 N7. **Test lab "Heals and upgrades":** Rowan with Mote and two healing relics, four waves at Act 2's numbers, then
     three stat cards (nothing kept); lab fights can carry `relics` and end in a stat `pick`.
+
+### Part 3: a unique finisher per hero
+F1. **Structure:** a pure plan (`core/finisher-show.ts`: each style's way of moving through the show, every
+    signature moment, each style's default, the rarity scaler, the timeline), eight style kits
+    (`view/finisher-kits.ts`), the heroes' moments (`view/finisher-signatures.ts`, typed over every signature id so the
+    build fails if one is missing), the runner (`view/finishers.ts`) and shared parts (`view/finisher-fx.ts`). A hero
+    without a moment of their own plays their style's default; every show fits `finisherShowMs` (1.41 s at 5 stacks):
+    the core's timing and the cursor hold are untouched.
+F2. **The style kits** (each its own sky, strikes, last blow and sound layer): Blade, a pale steel sky cut by every
+    strike, crescent slashes and a splitting long cut; Shadow, a moonlit violet night, afterimages blinking round the
+    foe, rifts and jaws of shadow; Guardian, royal blue fanned with golden rays, shields flung edge-on and a steel dome
+    shockwave; Marksman, dusk and first stars, reticles locking gold, arrows that stick, one great arrow through all;
+    Brute, a dust storm with rocks floating up, cracking ground and rock spikes; Controller, aurora and cold mist, ice
+    spikes and a foe locked in a crystal that shatters; Summoner, a deep grove with light shafts, spirit wisps bursting
+    into leaves, vines coiling up the foe; Bomber, smoke over a burning horizon, lobbed bombs and a fireball column.
+F3. **Each hero's moment:** Rowan, a steel whirlwind back and forth through every foe bursting into a ring of
+    blades; Sable sinks into her shadow and bursts out of the target's, twin fangs crossing; Neve, a glacier rising
+    behind the foes, surging over them and shattering; Moss, a seed that grows a great tree behind the foes, roots and a
+    leaf storm; Tam, a keg bigger than she is, its fuse burning down, the biggest blast; Hollis, a banner-topped wall
+    rising before him and toppling onto the foes; Vesper, one arrow up that becomes a sky of arrows and a giant golden
+    arrow in a column of light; Torva, a towering leap, the earth splitting to the foes with magma, then erupting.
+F4. **Rarity scales the spectacle** (`showScale`), Rare to Divine: build-up share 0.24 -> 0.46 of the same total,
+    1 -> 6 layers (the rarity's colour charging behind the hero, converging light, a halo, rings and sparkles), flash
+    90 -> 200 ms, more shake, darker edges, a fuller sky; Celestial adds falling stars, Divine a prism. Rarer heroes
+    build up longer and strike faster inside the same envelope; the freeze per strike is capped so no show runs longer.
+F5. **Readability:** titles read "<finisher> xN!"; the finisher hit no longer adds the generic star and slash (the
+    style draws its own); the blow's flash is shorter and in the style's colour; with 3+ foes the numbers are big and
+    staggered in two rows.
+F6. **Sound:** a style layer rides on the shared finisher sounds (blade ring, shadow whoosh, shield clang, bowstring
+    volley, rock crunch, ice crack, leafy rush, boom), in the SFX catalog and level-tested.
+F7. **The Finisher gallery** (Test lab, Heroes): a calm practice stage (no blocks, no specials, nothing hurts or dies,
+    nothing saved, the clock held between shows) with a plate to pick the hero (every hero in HEROES), stacks and
+    rarity, and Play: two reds and a yellow go on the bar so what the finisher does to the bar shows too.
