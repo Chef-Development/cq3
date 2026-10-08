@@ -279,7 +279,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     meetScene: 'meetBrann',
     stars: [
       part('Deep Toll', 'The bell holds up to 5 tolls.', 'More tolls.'),
-      part('Echoing Bell', "Great Bell's boom hits the other foes twice as hard.", 'A bigger boom.'),
+      part('Echoing Bell', "Great Bell's boom hits the other foes harder.", 'A bigger boom.'),
     ],
     art: 'brann',
   },

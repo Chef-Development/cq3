@@ -102,7 +102,7 @@ test('the sharper chest reveal: a hero chest builds up, bursts and reveals its p
   expect(await layer(page)).toBeNull();
   await camp((c, now) => {
     c.chests.opening.view = 'hd';
-    c.chests.reseed(37); // a Legendary hero, new: Vesper (5 steps: grey, green, blue, purple, orange)
+    c.chests.reseed(37); // a Legendary hero, new: Fizz (5 steps: grey, green, blue, purple, orange)
     c.chests.openKind('hero', now);
   });
   await frames(page, 120); // the third step (blue): the lid hops, light leaks from the seam
@@ -118,7 +118,7 @@ test('the sharper chest reveal: a hero chest builds up, bursts and reveals its p
   await frames(page, 20);
   expect(await camp((c) => c.chests.opening.active)).toBe(false);
   expect((await layer(page))?.shown).toBe(false);
-  expect(await page.evaluate(() => (window as Any).__cq3.app.profile.heroes.vesper.unlocked)).toBe(true);
+  expect(await page.evaluate(() => (window as Any).__cq3.app.profile.heroes.fizz.unlocked)).toBe(true);
 });
 
 test('the sharper chest reveal: a tap fast-forwards a step, never past the reveal; the Divine demo at its last step', async ({ page }) => {

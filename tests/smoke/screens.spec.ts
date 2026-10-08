@@ -550,7 +550,7 @@ test('camp: a hero chest opens (the slam, the build-up through the rarity colour
   await expect(page).toHaveScreenshot('chests.png', shot);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await camp((c: any, now) => {
-    c.chests.reseed(37); // a Legendary hero, new: Vesper (5 steps: grey, green, blue, purple, orange)
+    c.chests.reseed(37); // a Legendary hero, new: Fizz (5 steps: grey, green, blue, purple, orange)
     c.chests.openKind('hero', now);
   });
   await frames(page, 120); // the third step (blue): the lid hops, light leaks from the seam
