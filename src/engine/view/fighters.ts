@@ -649,7 +649,8 @@ export class Fighters {
     const [, hi] = stackCol(n);
     const name = heroDef(id as HeroId).finisher.name;
     const title = n > 1 ? `${name} x${n}!` : `${name}!`;
-    fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, n >= 2 ? 3 : 2, true, 0, -6, 0, ms * 0.95, true);
+    // (over the HUD, not in the world: the act's name and the foe pips sat on top of it; it doesn't shake either)
+    fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, n >= 2 ? 3 : 2, true, 0, -6, 0, ms * 0.95, false);
     // the last blow (three or more foes side by side: smaller numbers, so they read)
     const crowd = views.length > 2;
     let row = 0;
