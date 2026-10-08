@@ -87,7 +87,7 @@ the region rules.
   half as much.
 - Finisher **Glacier**: hits every foe (x0.8), freezes every red on the bar into frozen blocks, and lays a slow patch
   over the middle of the bar for 4 s. (Reshapes the bar.)
-- Strength: +20% damage to Beasts; ice patches bother her half as much.
+- Strength: +15% damage to Beasts, takes 25% less from Frost foes; ice patches bother her half as much.
 
 ### Moss, Grove Caller (Summoner, Epic)
 - Look: a small round grove keeper (gnome-sized), a cloak of overlapping leaves, a twig crown with two buds, a big
@@ -111,7 +111,7 @@ the region rules.
 - Signature **Chain Fuse**: a keg's blast sets off every keg near it.
 - Ability (green) **Fuse Up**: a green hit drops a keg on the bar.
 - Passive **Blast Shield**: enemy bombs that reach you deal half damage.
-- Finisher **Big Bang**: hits all foes, then drops 3 kegs on the bar. (Fills the bar.)
+- Finisher **Big Bang**: hits all foes, then drops a keg on the bar. (Adds a keg.)
 - Strength: +20% damage to Armored foes (shells, shields).
 
 ### Hollis, Shieldwarden (Guardian, Rare)
@@ -122,23 +122,23 @@ the region rules.
 - Passive **Iron Hide**: reds that reach you deal 25% less.
 - Finisher **Rampart**: hits the target with the finisher plus all stored Guard x2; then for 3 s, reds that reach the
   left end bounce back across the bar instead of hitting you. (Changes the bar's end.)
-- Strength: takes 20% less from Brutes.
+- Strength: takes 20% less from Flyers.
 
 ### Vesper, Dusk Ranger (Marksman, Legendary)
 - Look: a tall, keen-eyed ranger with pointed ears, a dusk-purple hooded cloak lined with gold, a silver longbow, a
   quiver of white-fletched arrows, dark green leathers. Palette: dusk purples, gold, silver, forest green.
 - Signature **Eagle Eye**: Perfect hits store double Focus.
-- Ability (green) **Piercing Shot**: the Power Shot also hits the foe behind the target for half.
+- Ability (green) **Piercing Shot**: the Power Shot also hits the foe behind the target for a quarter of it.
 - Passive **Patience**: Focus is kept between waves; a full Focus glows (your next green crits).
 - Finisher **Volley**: arrows rain on every foe and spend all Focus (x1.5); every red on the bar is pinned in place
   for 2 s. (Freezes reds.)
-- Strength: +25% damage to Flyers.
+- Strength: +20% damage to Flyers, +25% to Frost foes.
 
 ### Torva, Hammer Brute (Brute, Epic)
 - Look: a towering, muscular woman with a thick red braid, freckles, fur pauldrons over a leather harness, wrist
   wraps, tattoos on her arms, a giant stone-headed warhammer. Palette: warm skin, red hair, fur greys, stone.
 - Signature **Quake**: a Perfect hit knocks every red on the bar back.
-- Ability (green) **Wind-Up**: your next hit deals x2.5 and stuns its target for 1.5 s.
+- Ability (green) **Wind-Up**: your next hit smashes (x1.5, more with a higher combo).
 - Passive **Unstoppable**: each hit you take adds +8% damage for the rest of the fight (up to 5).
 - Finisher **Earthsplitter**: hits all foes and clears the whole bar (every block), and no reds come for 2 s.
 - Strength: +20% damage to Constructs (golems, ice knights).
