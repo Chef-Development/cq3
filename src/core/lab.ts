@@ -13,6 +13,7 @@ import { ALL_ACTS, REGIONS } from '../data/regions';
 import type { RelicId } from '../data/relics';
 import type { BarRules } from '../data/types';
 import type { Combat } from './combat';
+import type { Tier } from '../data/rarity';
 import { itemLevel, makeItem } from './gear';
 import { nodeAt, xpForLevel } from './heroes';
 import { addItem, equip, newProfile, newRegionLog, type Profile } from './profile';
@@ -47,14 +48,15 @@ export function labBaseProfile(): Profile {
 // a Rare piece per slot, Region 1 bases only (the bag never shows a secret item)
 const KIT: Record<SlotKey, string> = { weapon: 'hedgeSaber', helm: 'leatherCap', armor: 'paddedVest', boots: 'wornBoots', trinket1: 'emberLocket', trinket2: 'whetstone' };
 
-/** Dress the profile in a Rare kit at act `act`'s item level (seeded: the same kit every time). */
-function giveKit(p: Profile, t: Tuning, act: number): void {
+/** Dress the profile in a kit of `rarity` (Rare unless a scenario asks for better) at act `act`'s item level (seeded:
+ *  the same kit every time). */
+function giveKit(p: Profile, t: Tuning, act: number, rarity: Tier = 'rare'): void {
   const rng = new Rng(0x1ab5eed + act * 7919);
   const ilvl = itemLevel(t, act, 3);
   for (const k of SLOT_KEYS) {
     const base = BASE_BY_ID[KIT[k]];
     if (!base) continue;
-    const { item, salvaged } = addItem(p, t, makeItem(rng, base, 'rare', ilvl));
+    const { item, salvaged } = addItem(p, t, makeItem(rng, base, rarity, ilvl));
     if (!salvaged) {
       item.fresh = false;
       equip(p, item.uid, k);
@@ -147,7 +149,7 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
     p.tipsOff = false;
     p.tips = TIPS.map((d) => d.id).filter((id) => !spec.tips!.includes(id));
   }
-  giveKit(p, t, act);
+  giveKit(p, t, act, spec.gear);
   return p;
 }
 
@@ -159,12 +161,14 @@ export interface LabFightPlan {
   stars?: number;
   waves: string[][];
   act: number;
+  /** The act whose stage, music and name show around the fight. */
+  stage: number;
   bar?: BarRules;
   row: number;
   safe: boolean;
   stacks: number;
   /** Relics carried into the fight, and whether a won fight ends in a stat card pick. */
-  relics?: RelicId[];
+  relics: RelicId[];
   pick?: boolean;
 }
 
@@ -172,7 +176,7 @@ export function labFight(s: LabScenario): LabFightPlan | null {
   if (s.setup.kind !== 'fight') return null;
   const f = s.setup;
   const bar = f.bar === 'act' ? ALL_ACTS[f.act]?.bar : f.bar;
-  return { hero: f.hero, stars: f.stars, waves: f.waves.map((w) => w.slice()), act: f.act, bar, row: f.row ?? 9, safe: !!f.safe, stacks: Math.max(0, f.stacks ?? 0), relics: f.relics?.slice(), pick: !!f.pick };
+  return { hero: f.hero, stars: f.stars, waves: f.waves.map((w) => w.slice()), act: f.act, stage: f.stage ?? f.act, bar, row: f.row ?? 9, safe: !!f.safe, stacks: Math.max(0, f.stacks ?? 0), relics: (f.relics ?? []).slice(), pick: !!f.pick };
 }
 
 /** The phase a scenario plays in: its fight (the Finisher gallery's too), its scenes, an act's map, or the camp (the
@@ -187,8 +191,8 @@ export function startLabScenario(run: Run, s: LabScenario, seed: number): void {
   run.phase = 'camp';
   const f = labFight(s);
   if (f) {
-    run.actIndex = f.act; // the act's stage, music and name around the fight
-    run.startPractice({ hero: f.hero, stars: f.stars, waves: f.waves, act: f.act, bar: f.bar, row: f.row, safe: f.safe, then: 'camp', seed, relics: f.relics, pick: f.pick });
+    run.startPractice({ hero: f.hero, stars: f.stars, waves: f.waves, act: f.act, bar: f.bar, row: f.row, safe: f.safe, then: 'camp', seed, relics: f.relics.length ? f.relics : undefined, pick: f.pick });
+    run.actIndex = f.stage; // the act's stage, music and name around the fight
     // the finisher is ready to try at once
     if (f.stacks && run.combat) run.combat.bankStacks(f.stacks, 'testLab');
   } else if (s.setup.kind === 'gallery') galleryFight(run, s, s.setup.hero ?? galleryHeroes()[0], seed);

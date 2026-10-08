@@ -1,5 +1,6 @@
-// The balance report: npm run balance. Plays 1,000 whole runs of Greenmarch for a 55%, 70%, 85% and 95% player
-// (random node choices on each act's map), prints the table and writes docs/balance.md.
+// The balance report: npm run balance. Plays 1,000 whole runs of Greenmarch for a 55%, 70%, 75% (the playtester,
+// TYPICAL_ACCURACY) and 85% player (random node choices on each act's map), prints the table and writes docs/balance.md.
+// RUNS, FARM_RUNS, CONTROL_RUNS (env) for a quicker report.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { it } from 'vitest';
 import { balance, GREENMARCH_ACTS, playFarm, timingSpread, type ActRow, type FarmResult, TYPICAL_ACCURACY } from '../../src/core/bot';
@@ -9,7 +10,7 @@ import type { RelicId } from '../../src/data/relics';
 const RUNS = Number(process.env.RUNS ?? 1000);
 const FARM_RUNS = Number(process.env.FARM_RUNS ?? Math.round(RUNS / 3));
 const FARMS = 6;
-const ACCURACIES = [0.55, 0.7, 0.85, 0.95];
+const ACCURACIES = [...new Set([0.55, 0.7, TYPICAL_ACCURACY, 0.85])].sort((a, b) => a - b);
 const CONTROL_RUNS = Number(process.env.CONTROL_RUNS ?? Math.round(RUNS / 2));
 
 /** With relics vs the same player with stat cards only. */
@@ -115,16 +116,17 @@ it('balance report', () => {
   const t = cloneTuning();
   const t0 = Date.now();
   const rows = balance(t, ACCURACIES, RUNS);
-  const farms = [0.55, 0.7, 0.85].map((a) => farming(t, a));
-  // a cautious 85% player: never takes the relics that charge HP
+  const farms = [0.55, 0.7, TYPICAL_ACCURACY].map((a) => farming(t, a));
+  // a cautious player of the curve's accuracy: never takes the relics that charge HP
   const CAUTIOUS: RelicId[] = ['clutch', 'glassEdge', 'bloodPrice', 'purplePact'];
-  const cautious = balance(t, [0.85], CONTROL_RUNS, 1, 6, GREENMARCH_ACTS, undefined, CAUTIOUS);
+  const cautious = balance(t, [TYPICAL_ACCURACY], CONTROL_RUNS, 1, 6, GREENMARCH_ACTS, undefined, CAUTIOUS);
   // the control: the same player with stat cards only (no relics), as before M4a
   const off = cloneTuning();
   off.relics.on = 0;
-  const control = balance(off, [0.7, 0.85], CONTROL_RUNS);
+  const control = balance(off, [0.7, TYPICAL_ACCURACY], CONTROL_RUNS);
   const at = (acc: number, act: number) => rows.find((r) => r.accuracy === acc && r.act === act)!;
-  const [a1, a2, a3] = [0, 1, 2].map((a) => at(0.85, a));
+  const P = pct(TYPICAL_ACCURACY);
+  const [a1, a2, a3] = [0, 1, 2].map((a) => at(TYPICAL_ACCURACY, a));
   const [c1, c2, c3] = [0, 1, 2].map((a) => at(0.7, a));
   const [b1, b2] = [0, 1].map((a) => at(0.55, a));
   const ms = (acc: number) => Math.round(timingSpread(t, acc) * 1000);
@@ -144,7 +146,7 @@ accuracy, ${Math.round((Date.now() - t0) / 1000)} s to run.
   thin blocks, fast reds and a fast cursor are as hard for the bot as for a person: a block the cursor crosses in
   60 ms is missed far more often than one it crosses in 150 ms.
 - "Accuracy" names the player: the share of plain yellow blocks they hit at the starting cursor speed. A 55% player
-  has a timing spread of ${ms(0.55)} ms, 70% ${ms(0.7)} ms, 85% ${ms(0.85)} ms, 95% ${ms(0.95)} ms (one standard deviation).
+  has a timing spread of ${ms(0.55)} ms, 70% ${ms(0.7)} ms, 75% ${ms(0.75)} ms, 85% ${ms(0.85)} ms (one standard deviation).
 - It reads telegraphs like a person: while a Hedge Knight's shield is up it holds off yellow (as often as its
   accuracy), and it waits out a frozen cursor. Spores and shell blocks are just more blocks to tap.
 - It cashes in the finisher when waiting for another stack isn't worth the risk of a combo break.
@@ -156,23 +158,27 @@ accuracy, ${Math.round((Date.now() - t0) / 1000)} s to run.
   carries the hero (healed to full) into the next.
 - Fights are runs of foes, one wave after another (Act 1: 3 waves in the first row up to 5 before the boss; Act 2:
   3-6; Act 3: 4-7; an elite comes after an escort). A tap that overlaps an attack always blocks it first.
+- The anti-spam rules (playtest round 7, docs/balance-spam.md) are in play: blocks cover at most ${pct(t.spam.cover)} of the
+  bar, each finisher stack costs more than the last, heals in a fight stop at ${pct(t.spam.healCap)} of max HP, misses cost a
+  share of max HP (more right after a miss), and only ${t.spam.forgiveMax} misses a fight can be forgiven.
 
-## Targets (a gentle start, then a ramp; set for the playtester, an ${pct(TYPICAL_ACCURACY)} player, with the gear found on the way)
+## Targets (a gentle start, then a ramp; set for the playtester, ${pct(TYPICAL_ACCURACY)} accuracy, with the gear found on the way)
 
-The curve is aimed at the playtester (\`TYPICAL_ACCURACY\` = ${pct(TYPICAL_ACCURACY)}: their accuracy readout says 80-90%) on a fresh
-first playthrough (New game wipes the profile). Until playtest round 4 it was set for a typical 70% player.
+The curve is aimed at the playtester (\`TYPICAL_ACCURACY\` = ${pct(TYPICAL_ACCURACY)}: their lab readout measured 70% over 223 taps,
+where they guessed 80-90%) on a fresh first playthrough (New game wipes the profile). It was set for an 85% player in
+playtest rounds 4-6, and for a typical 70% player before.
 
 | Target | Result |
 |---|---|
-| Act 1 is a gentle start: the playtester nearly always clears it first try (about 95-100%) | 85% player **${pct(a1.firstTry)}** (70% ${pct(c1.firstTry)}, 55% ${pct(b1.firstTry)}) |
+| Act 1 is a gentle start: the playtester nearly always clears it first try (about 95-100%) | ${P} player **${pct(a1.firstTry)}** (70% ${pct(c1.firstTry)}, 55% ${pct(b1.firstTry)}) |
 | Act 2: the playtester clears it first try about 80-90% of the time | **${pct(a2.firstTry)}** (70% player ${pct(c2.firstTry)}, 55% ${pct(b2.firstTry)}) |
 | The Boar King: the playtester wins the first fight about 60-75% of the time, a cautious one too (never takes the relics that charge HP) | **${pct(a3.bossFirstTry)}**, cautious **${pct(cautious[2].bossFirstTry)}**; ${pct(a3.clearRate)} clear Act 3 within 6 tries (cautious: Act 1 / 2 first try ${pct(cautious[0].firstTry)} / ${pct(cautious[1].firstTry)}) |
 | A 70% player can still finish Act 3 with retries and farming | ${pct(c3.clearRate)} clear Act 3 within 6 tries (Boar King first fight ${pct(c3.bossFirstTry)}); farming: the table below |
-| Late fights cost HP, from the foes too: an 85% player's HP lost per normal fight rises act over act | ${pct(a1.hpLostFight)} / ${pct(a2.hpLostFight)} / ${pct(a3.hpLostFight)} of max HP; from foes alone ${pct1(a1.foesHpFight)} / ${pct1(a2.foesHpFight)} / ${pct1(a3.foesHpFight)} (cautious player ${pct1(cautious[0].foesHpFight)} / ${pct1(cautious[1].foesHpFight)} / ${pct1(cautious[2].foesHpFight)}); the rest is misses and relic prices |
-| Normal fights don't get shorter act over act | ${sec(a1.fightSec)} / ${sec(a2.fightSec)} / ${sec(a3.fightSec)} (85% player), ${sec(c1.fightSec)} / ${sec(c2.fightSec)} / ${sec(c3.fightSec)} (70%); bosses ${sec(a1.bossSec)} / ${sec(a2.bossSec)} / ${sec(a3.bossSec)} (85%) |
+| Late fights cost HP, from the foes too: a ${P} player's HP lost per normal fight rises act over act | ${pct(a1.hpLostFight)} / ${pct(a2.hpLostFight)} / ${pct(a3.hpLostFight)} of max HP; from foes alone ${pct1(a1.foesHpFight)} / ${pct1(a2.foesHpFight)} / ${pct1(a3.foesHpFight)} (cautious player ${pct1(cautious[0].foesHpFight)} / ${pct1(cautious[1].foesHpFight)} / ${pct1(cautious[2].foesHpFight)}); the rest is misses and relic prices |
+| Normal fights don't get shorter act over act | ${sec(a1.fightSec)} / ${sec(a2.fightSec)} / ${sec(a3.fightSec)} (${P} player), ${sec(c1.fightSec)} / ${sec(c2.fightSec)} / ${sec(c3.fightSec)} (70%); bosses ${sec(a1.bossSec)} / ${sec(a2.bossSec)} / ${sec(a3.bossSec)} (${P}) |
 | No boss can be one-shot by a max-stack finisher | boss HP / max finisher ${num(a1.bossVsMaxFinisher)} / ${num(a2.bossVsMaxFinisher)} / ${num(a3.bossVsMaxFinisher)}; one-shots ${pct(a1.bossOneShotRate)} / ${pct(a2.bossOneShotRate)} / ${pct(a3.bossOneShotRate)} (each boss has a phase gate that damage can't skip) |
 
-Later acts' reds cross the bar faster (\`acts[i].redSpeed\`: x1 / x1.05 / x1.15): an 85% player blocks nearly every red
+Later acts' reds cross the bar faster (\`acts[i].redSpeed\`: x1 / x1.05 / x1.15): a ${P} player blocks most reds
 at the normal 2.8 s (a red crosses the cursor's path 2-3 times, finishers and kills knock reds off the bar), so enemy HP
 and attack alone barely reach them.
 
@@ -180,7 +186,7 @@ and attack alone barely reach them.
 
 ${fightCost(rows)}
 
-A cautious 85% player (never takes Clutch, Glass Edge, Blood Price or Purple Pact; ${CONTROL_RUNS} runs):
+A cautious ${P} player (never takes Clutch, Glass Edge, Blood Price or Purple Pact; ${CONTROL_RUNS} runs):
 
 ${fightCost(cautious)}
 

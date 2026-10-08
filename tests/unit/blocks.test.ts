@@ -217,6 +217,7 @@ describe('block types', () => {
         t.enemies.bigSlime.interval = 0.2;
         t.blocks.maxStatic = 8;
         t.blocks.maxRed = 6;
+        t.spam.cover = 1; // (the crowding limit off: the bar churns freely)
       },
     });
     const widths = new Map<string, number[]>();
