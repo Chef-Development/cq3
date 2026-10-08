@@ -268,6 +268,23 @@ shows on its target.
 | `seething` | skill: Seething | a mote flies from the bar's left end into the style tab; a ring and sparks on the hero |
 | `payback` | skill: Payback | the cursor kicks (a column of light, a ring) |
 | `berserk` | skill: Berserk | a box flashes out of the block it touched; brackets close in on its foe |
+| `spiritWolf` | Yara: Spirit Wolf | a bolt from the wolf to its foe, then the hit |
+| `spiritTortoise` | Yara: Spirit Tortoise | the bar's left end (the shell's jade slab takes the red) |
+| `wispSwarm` | Yara: Wisp Swarm | three motes of starlight fly from the wisps into the meter, which sparkles |
+| `spiritStag` | Yara: Great Spirit (its strikes) | a bolt from the stag to each foe, then the hit |
+| `greatSpirit` | Yara: Great Spirit (its coming) | its own show (the stag comes down in a column of starlight behind her) |
+| `kinship` | Yara: Kinship | brackets close in on the foe the crit hit |
+| `spiritStampede` | Yara: Spirit Stampede | where the traps it trampled were |
+| `longFang` / `huntingCall` / `quickShell` / `brightWisps` | skills: Yara's spirits | a ring on its spirit (Hunting Call: and on the foe) |
+| `twinBite` / `spikedShell` / `stoneWard` | skills: Twin Bite, Spiked Shell, Stone Ward | a bolt (from the wolf, the tortoise, the hero) to its foe, then the hit |
+| `longBond` | skill: Long Bond | a ring of starlight on every spirit |
+| `thunderhoof` | skill: Thunderhoof | every red on the bar flashes |
+| `luckyShot` | Dell: Lucky Shot | a box flashes out of the green; brackets close in on its foe |
+| `ricochetShot` | Dell: Ricochet | a bolt from the foe just hit on to the one it bounced to |
+| `pocketful` | Dell: Pocketful | sparks off the meter (the fill it kept) |
+| `pebbleStorm` | Dell: Pebble Storm | every red on the bar flashes (each knocked back) |
+| `hardBounce` / `luckyBounce` / `fourLeaf` / `fullPouch` / `luckyStreak` / `pinball` | skills: Dell's | a box on the green (Four Leaf, Full Pouch: a mote into the style tab; Lucky Streak and Pinball: their foes too) |
+| `hailstones` / `bigKnock` / `pelt` | skills: Hailstones, Big Knock, Pelt | the finisher's own show / every red flashes / its foe's reds flash |
 
 ## Needs from core
 
