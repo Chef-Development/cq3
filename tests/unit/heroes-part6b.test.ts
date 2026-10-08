@@ -126,7 +126,7 @@ describe('Yara: spirits, Kinship, Spirit Stampede, the Great Spirit', () => {
     }
   });
 
-  it('a shell that takes only shellSoak of a red: the rest lands, the combo and the stacks hold (a red past no shell breaks them)', () => {
+  it('a shell that takes only shellSoak of a red: the rest lands (a hit: the combo breaks)', () => {
     const hit = (shell: boolean) => {
       const { c } = fight('yara', [], { tune: (t) => ((t.kits.yara.allySec = 60), (t.blocks.redTravelSec = 1), (t.kits.yara.shellSoak = 0.6)) });
       if (shell) {
@@ -143,7 +143,7 @@ describe('Yara: spirits, Kinship, Spirit Stampede, the Great Spirit', () => {
     const full = hit(false);
     const soaked = hit(true);
     expect(full).toMatchObject({ combo: 0, stacks: 0, shells: 0 });
-    expect(soaked).toMatchObject({ combo: 12, stacks: 1, shells: 1 });
+    expect(soaked).toMatchObject({ combo: 0, stacks: 0, shells: 1 });
     expect(soaked.lost).toBeGreaterThan(0);
     expect(Math.abs(soaked.lost - full.lost * 0.4)).toBeLessThanOrEqual(1);
   });

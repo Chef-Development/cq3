@@ -371,18 +371,11 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       greatSpirit(c);
       stepStag(c);
     },
-    // the Tortoise's shell took its share of this red (core/styles.ts: impact): the rest lands, the combo holds
+    // the Tortoise's shell took its share of this red (core/styles.ts: impact): the rest lands (a hit: the combo breaks)
     hurt: (c, amount, source) => {
       if ((source !== 'red' && source !== 'bomb') || c.perk.shellSoakAt !== c.time) return amount;
       c.perk.shellSoakAt = -1;
-      c.perk.shellHeld = c.time;
       return amount * (1 - (c.perk.shellSoak ?? 1));
-    },
-    comboBreak: (c, x) => {
-      if (x.cause !== 'hurt' || c.perk.shellHeld !== c.time) return;
-      x.keepCombo = Math.max(x.keepCombo, x.combo);
-      x.keepStacks = Math.max(x.keepStacks, x.stacks);
-      x.keepMeter = Math.max(x.keepMeter, x.meter);
     },
     // Spirit Stampede: every foe, more per spirit out; the reds go (the core's), and the spirits trample the traps
     finisher: (c, _x, v) => v * (1 + K(c).yara.stampede * c.allies.length),
