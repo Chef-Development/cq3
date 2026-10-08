@@ -220,6 +220,29 @@ test('Act 3 map', async ({ page }) => {
   await expect(page).toHaveScreenshot('map-act3.png', shot);
 });
 
+// the later regions' act maps: each foe stands on its node as its own mini (they showed crossed swords: round 7)
+for (const [act, name] of [
+  [3, 'map-act4.png'],
+  [6, 'map-act7.png'],
+] as const)
+  test(`Act ${act + 1} map (a later region's foes on their nodes, a pack roaming, the boss before its lair)`, async ({ page }) => {
+    await boot(page);
+    await frames(page, 10);
+    await page.evaluate((act) => {
+      const app = (window as Cq3Window).__cq3!.app;
+      app.setPhase(() => {
+        app.run.newRun();
+        app.run.skipScenes();
+        app.run.enterAct(act);
+        app.run.skipScenes();
+        app.run.coins = 87;
+      });
+    }, act);
+    await frames(page, 30);
+    expect(await page.evaluate(() => (window as unknown as { __cq3: { miniMisses: string[] } }).__cq3.miniMisses)).toEqual([]);
+    await expect(page).toHaveScreenshot(name, shot);
+  });
+
 test('living maps: critters and a sparkle on the act map, its pop; gulls and a sparkle at sea', async ({ page }) => {
   await boot(page);
   await frames(page, 10);
@@ -1402,6 +1425,16 @@ async function artSheet(page: Page, rows: string[][], scale: number, bg: string)
     { rows, scale, bg },
   );
 }
+
+test("map minis: every foe's, both frames, at the phone's 8x (each region's in turn)", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  // the textures art-map.ts painted from art-minis.ts, in its order (the first region's, the second's, the third's)
+  const keys = (await page.evaluate(() => Object.keys((window as unknown as { __cq3: { app: { view: { textures: { list: object } } } } }).__cq3.app.view.textures.list).filter((k) => k.startsWith('mfoe_')))) as string[];
+  expect(keys.length).toBeGreaterThanOrEqual(70);
+  await artSheet(page, [keys], 8, '#5a6a50');
+  await expect(page).toHaveScreenshot('map-minis.png', shot);
+});
 
 const ASH_FOES = ['cinderling', 'cinderkite', 'cragcrab', 'obsidianox', 'rumbleback', 'glassblower', 'prismbat', 'glassmantis', 'kilnwarden', 'hobnob', 'stokerimp', 'magmaeel', 'forgehand', 'chainsentinel', 'bellows'];
 
