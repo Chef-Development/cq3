@@ -11,6 +11,7 @@ export type HeroId =
   | 'rowan' | 'sable' | 'neve' | 'moss' | 'tam' | 'hollis' | 'vesper' | 'torva'
   // round 7 (Part 6): a second hero per style; each agent adds its ids after its own marker
   // part6:A
+  | 'solenne' | 'wren'
   // part6:B
   // part6:C
   // part6:D
@@ -18,6 +19,7 @@ export type HeroId =
 export const HERO_IDS: HeroId[] = [
   'rowan', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva',
   // part6:A
+  'solenne', 'wren',
   // part6:B
   // part6:C
   // part6:D
@@ -237,6 +239,47 @@ export const HEROES: Record<HeroId, HeroDef> = {
     art: 'torva',
   },
   // part6:A
+  solenne: {
+    id: 'solenne',
+    name: 'Solenne',
+    style: 'blade',
+    rarity: 'mythic',
+    title: 'Dawnblade',
+    bio: 'Up before the sun. Tells it so.',
+    signature: part('Sunrise', 'Every {n} combo her blade burns: hits also cut every other foe.', 'Combos light her blade.'),
+    ability: part('Gleam', 'Green hits gild the next yellow: hit it for +{n} combo and meter.', 'Greens gild a yellow.'),
+    passive: part('Dawn Oath', 'At {n}+ combo, a miss costs only half your combo.', 'Misses cost half.'),
+    finisher: { name: 'Sunfall', text: 'A sun falls on every foe, bigger with combo; clears reds, gilds yellows.', short: 'Hits all, gilds yellows.', bar: 'Clears reds, gilds yellows' },
+    gift: part('Radiance', 'While her blade burns, reds move {n}% slower.', 'Her fire slows reds.'),
+    strengths: [{ tag: 'frost', kind: 'dmg', n: 0.2 }],
+    joins: 'chest',
+    meetScene: 'meetSolenne',
+    stars: [
+      part('Long Dawn', 'Sunrise burns longer.', 'Longer Sunrise.'),
+      part('High Noon', 'Sunfall gilds every yellow on the bar.', 'Finisher gilds them all.'),
+    ],
+    art: 'solenne',
+  },
+  wren: {
+    id: 'wren',
+    name: 'Wren',
+    style: 'shadow',
+    rarity: 'rare',
+    title: 'Rooftop Runner',
+    bio: 'Never uses doors. Or stairs. Or manners.',
+    signature: part('Slip', '{n} Perfects in a row ready a dodge: the next red to reach her misses.', 'Perfects ready a dodge.'),
+    ability: part('Smoke Pop', 'Green hits pop smoke: for a moment, reds that reach her deal {n}% less.', 'Greens fade the reds.'),
+    passive: part('Light Feet', "Your Chain survives one hit that isn't Perfect.", 'Chains last longer.'),
+    finisher: { name: 'Rooftop Drop', text: 'Drops on the target, plus a hit per Chain link; clears reds.', short: 'Drops on one foe.', bar: 'Clears reds' },
+    strengths: [{ tag: 'flyer', kind: 'dmg', n: 0.2 }],
+    joins: 'chest',
+    meetScene: 'meetWren',
+    stars: [
+      part('Grapple', 'After a dodge, her next hit crits.', 'Dodges set up crits.'),
+      part('Roof Hop', 'Rooftop Drop readies a dodge.', 'Finisher readies a dodge.'),
+    ],
+    art: 'wren',
+  },
   // part6:B
   // part6:C
   // part6:D

@@ -39,15 +39,19 @@ const fight = (hero: HeroId, o: Parameters<typeof setup>[0] = {}) => {
 };
 
 describe('the heroes as data', () => {
-  it('8 heroes, one per style, Rare to Legendary, each with a signature, ability, passive, finisher and strengths', () => {
-    expect(HERO_IDS).toHaveLength(8);
+  it('a hero or two per style, Rare to Mythic, each with a signature, ability, passive, finisher and strengths (a Mythic: a gift too)', () => {
+    // (round 7 adds a second hero per style: counted from the data, so it holds while they come in)
+    expect(HERO_IDS.length).toBeGreaterThanOrEqual(8);
+    expect(new Set(HERO_IDS).size).toBe(HERO_IDS.length);
     expect(new Set(HERO_IDS.map((id) => HEROES[id].style)).size).toBe(8);
+    for (const s of STYLE_IDS) expect(HERO_IDS.filter((id) => HEROES[id].style === s).length, s).toBeLessThanOrEqual(2);
     expect(STYLE_IDS.every((s) => !!STYLES[s] && !!STYLE_HOOKS[s])).toBe(true);
-    const tiers = new Set(HERO_IDS.map((id) => HEROES[id].rarity));
-    expect([...tiers].sort()).toEqual(['epic', 'legendary', 'rare']);
+    for (const id of HERO_IDS) expect(['rare', 'epic', 'legendary', 'mythic'], id).toContain(HEROES[id].rarity);
     for (const id of HERO_IDS) {
       const h = HEROES[id];
-      for (const p of [h.signature, h.ability, h.passive, h.finisher]) expect(p.name.length * p.text.length * p.short.length, `${id} ${p.name}`).toBeGreaterThan(0);
+      // a Mythic hero has a fifth kit part, the gift; no one below Mythic does
+      expect(!!h.gift, id).toBe(h.rarity === 'mythic');
+      for (const p of [h.signature, h.ability, h.passive, h.finisher, ...(h.gift ? [h.gift] : [])]) expect(p.name.length * p.text.length * p.short.length, `${id} ${p.name}`).toBeGreaterThan(0);
       expect(h.strengths.length).toBeGreaterThan(0);
       for (const s of h.strengths) expect(s.n).toBeGreaterThanOrEqual(0.15), expect(s.n).toBeLessThanOrEqual(0.25);
       expect(h.stars).toHaveLength(2);
@@ -61,7 +65,7 @@ describe('the heroes as data', () => {
   it('kit and style texts fill in their numbers (no stray {n})', () => {
     const { t } = setup();
     for (const id of HERO_IDS) {
-      for (const w of ['signature', 'ability', 'passive', 'finisher'] as const) expect(kitText(t, id, w), `${id} ${w}`).not.toContain('{n}');
+      for (const w of ['signature', 'ability', 'passive', 'finisher', 'gift'] as const) expect(kitText(t, id, w), `${id} ${w}`).not.toContain('{n}');
       expect(styleText(t, id)).not.toContain('{n}');
     }
   });

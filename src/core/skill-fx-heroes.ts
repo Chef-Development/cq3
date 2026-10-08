@@ -21,7 +21,7 @@ import { isRed } from './blocks';
 import type { Ally, Block, Combat, CombatEvent, Enemy } from './combat';
 import { skillN } from './heroes';
 import type { FightHooks, HitCtx } from './hooks';
-import { shadowDash, slamShare } from './kit-fx';
+import { gildNext, ignite, isGilded, oathAt, shadowDash, slamShare, sunEvery } from './kit-fx';
 import { addFocus, addGuard, allySec, callAlly, chainOf, dropKeg, focusCap, focusOf, guardOf, powerShot } from './styles';
 
 const DT = 1 / 120;
@@ -815,3 +815,205 @@ const TORVA: Record<string, FightHooks> = {
 
 /** Every hero's rule nodes and capstones but Rowan's (skill-fx.ts merges them into SKILL_HOOKS). */
 export const HERO_SKILL_HOOKS: Record<string, FightHooks> = { ...SABLE, ...NEVE, ...MOSS, ...TAM, ...HOLLIS, ...VESPER, ...TORVA };
+
+// ---- Solenne and Wren (Part 6)
+//   sunLits / flareSeen / mornSeen   Sunrise's lightings, and the ones Solar Flare and Long Morning have answered
+//   giltHit                          the gilded hit Gilt Strike made stronger
+//   slips / tumbleSeen               Slip's dodges, and the ones Tumble has hit back for
+//   backstabHit                      the hit Backstab made stronger
+
+/** Sunrise lit since a node last looked (c.perk[seen] counts the ones it answered). */
+function sunLitSince(c: Combat, seen: string): boolean {
+  const lits = c.perk.sunLits ?? 0;
+  if (lits <= (c.perk[seen] ?? 0)) return false;
+  c.perk[seen] = lits;
+  return true;
+}
+
+/** Solar Flare: as Sunrise lights, a flare hits every foe for n% attack. */
+function solarFlare(c: Combat): void {
+  if (!c.result && sunLitSince(c, 'flareSeen')) strikeAll(c, P(c, 'solarFlare'), 'solarFlare');
+}
+
+/** Long Morning: Sunrise burns n s longer (the kit adds c.perk.sunBonus to its burn); it names itself as it lights. */
+function longMorning(c: Combat): void {
+  if (sunLitSince(c, 'mornSeen')) c.perkFx('longMorning', N(c, 'longMorning'));
+}
+
+const SOLENNE: Record<string, FightHooks> = {
+  // Early Light: Sunrise comes every n combo (the kit reads c.perk.sunEvery)
+  earlyLight: {
+    start: (c) => {
+      c.perk.sunEvery = Math.max(2, Math.round(N(c, 'earlyLight')));
+    },
+    combo: (c, before, after) => {
+      const n = sunEvery(c);
+      const base = Math.max(2, Math.round(c.tuning.kits.solenne.sunEvery));
+      if (Math.floor(after / n) > Math.floor(before / n) && Math.floor(after / base) <= Math.floor(before / base)) c.perkFx('earlyLight', after);
+    },
+  },
+  // Long Morning: Sunrise burns n s longer
+  longMorning: {
+    start: (c) => {
+      c.perk.sunBonus = Math.max(0, N(c, 'longMorning'));
+    },
+    combo: (c) => longMorning(c),
+    comboBreak: (c) => longMorning(c),
+    step: (c) => longMorning(c),
+  },
+  // Solar Flare (capstone): as Sunrise lights, a flare hits every foe (the kit lights it on a combo step; Rekindle on a
+  // break; a step catches any other)
+  solarFlare: {
+    combo: (c) => solarFlare(c),
+    comboBreak: (c) => solarFlare(c),
+    step: (c) => solarFlare(c),
+  },
+  // Twin Gleam: a green gilds n yellows (the kit reads c.perk.gleams)
+  twinGleam: {
+    start: (c) => {
+      c.perk.gleams = Math.max(1, Math.round(N(c, 'twinGleam')));
+    },
+    afterHit: (c, x) => {
+      if (x.green && !x.echo) c.perkFx('twinGleam', 0, 0, x.block.pos);
+    },
+  },
+  // Gilt Strike: a gilded hit deals n% more
+  giltStrike: {
+    hitMult: (c, x, v) => {
+      if (x.echo || !isGilded(x.block)) return v;
+      c.perk.giltHit = x.block.id;
+      return v * (1 + P(c, 'giltStrike'));
+    },
+    afterHit: (c, x) => {
+      if (c.perk.giltHit !== x.block.id) return;
+      c.perk.giltHit = 0;
+      c.perkFx('giltStrike', x.damage, x.target?.id ?? 0, x.block.pos);
+    },
+  },
+  // Midas Touch (capstone): a Perfect on a gilded yellow gilds the next one (the kit notes the gilded hit)
+  midasTouch: {
+    afterHit: (c, x) => {
+      if (x.echo || !x.perfect || c.perk.gildedHit !== x.block.id || c.result) return;
+      const b = gildNext(c);
+      if (b) c.perkFx('midasTouch', 0, 0, b.pos);
+    },
+  },
+  // Firm Oath: Dawn Oath holds from n combo (the kit reads c.perk.oathAt); it names itself when it kept a combo the
+  // kit alone wouldn't have
+  firmOath: {
+    start: (c) => {
+      c.perk.oathAt = Math.max(1, Math.round(N(c, 'firmOath')));
+    },
+    comboBreak: (c, x) => {
+      if (x.cause === 'miss' && x.combo >= oathAt(c) && x.combo < c.tuning.kits.solenne.oathAt && x.keepCombo > 0) c.perkFx('firmOath', x.keepCombo);
+    },
+  },
+  // Sun Ward: while Sunrise burns, reds (and bombs) that reach her deal n% less
+  sunWard: {
+    hurt: (c, amount, source) => {
+      if (!(c.perk.sunrise > 0) || (source !== 'red' && source !== 'bomb') || amount <= 0) return amount;
+      const cut = amount * Math.min(1, P(c, 'sunWard'));
+      c.perkFx('sunWard', cut);
+      return amount - cut;
+    },
+  },
+  // Rekindle (capstone): a combo break lights Sunrise for n s
+  rekindle: {
+    comboBreak: (c, x) => {
+      if (x.combo <= 0 || c.result) return;
+      ignite(c, Math.max(0, N(c, 'rekindle')));
+      c.perkFx('rekindle', N(c, 'rekindle'));
+    },
+  },
+};
+
+const WREN: Record<string, FightHooks> = {
+  // Nimble: the Chain survives n Good hits between Perfects (the kit reads c.perk.feet)
+  nimble: {
+    start: (c) => {
+      c.perk.feet = Math.max(0, Math.round(N(c, 'nimble')));
+    },
+    afterHit: (c, x) => {
+      if (!x.echo && c.perk.feetHit === x.block.id && (c.perk.feetUsed ?? 0) > c.tuning.kits.wren.feet) c.perkFx('nimble', chainOf(c), x.target?.id ?? 0, x.block.pos);
+    },
+  },
+  // Backstab: at full Chain (going into the hit), her hits deal n% more
+  backstab: {
+    hitMult: (c, x, v) => {
+      if (x.echo || chainOf(c) < Math.round(c.tuning.styles.chainMax)) return v;
+      c.perk.backstabHit = x.block.id;
+      return v * (1 + P(c, 'backstab'));
+    },
+    afterHit: (c, x) => {
+      if (c.perk.backstabHit !== x.block.id) return;
+      c.perk.backstabHit = 0;
+      c.perkFx('backstab', x.damage, x.target?.id ?? 0, x.block.pos);
+    },
+  },
+  // Knife Storm (capstone): a Perfect at full Chain (going into it) also hits every foe for n% attack
+  knifeStorm: {
+    afterHit: (c, x) => {
+      if (x.echo || !x.perfect || c.result || (c.perk.feetWas ?? 0) < Math.round(c.tuning.styles.chainMax)) return;
+      strikeAll(c, P(c, 'knifeStorm'), 'knifeStorm');
+    },
+  },
+  // Quick Slip: Slip readies after n Perfects in a row (the kit reads c.perk.slipEvery)
+  quickSlip: {
+    start: (c) => {
+      c.perk.slipEvery = Math.max(1, Math.round(N(c, 'quickSlip')));
+    },
+    afterHit: (c, x) => {
+      if (!x.echo && c.perk.slipReadyHit === x.block.id) c.perkFx('quickSlip', 0, 0, x.block.pos);
+    },
+  },
+  // Tumble: a dodge hits the red's owner for n% attack (the kit counts the dodges: c.perk.slips)
+  tumble: {
+    step: (c) => {
+      const n = c.perk.slips ?? 0;
+      if (n <= (c.perk.tumbleSeen ?? 0)) return;
+      c.perk.tumbleSeen = n;
+      const e = c.enemyById(c.perk.slipOwner ?? 0);
+      if (e?.alive && !c.result) c.strike(e, c.stats().atk * P(c, 'tumble'), 'tumble', false, 0);
+    },
+  },
+  // Untouchable (capstone): Slip holds up to n dodges (the kit reads c.perk.slipMax)
+  untouchable: {
+    start: (c) => {
+      c.perk.slipMax = Math.max(1, Math.round(N(c, 'untouchable')));
+    },
+    afterHit: (c, x) => {
+      if (!x.echo && c.perk.slipReadyHit === x.block.id && (c.perk.slip ?? 0) >= 2) c.perkFx('untouchable', c.perk.slip, 0, x.block.pos);
+    },
+  },
+  // Long Haze: Smoke Pop lasts n s longer
+  longHaze: {
+    afterHit: (c, x) => {
+      if (!x.green || x.echo) return;
+      c.hero.abilityTimer += Math.max(0, N(c, 'longHaze'));
+      c.perkFx('longHaze', N(c, 'longHaze'), 0, x.block.pos);
+    },
+  },
+  // Choking Smoke: reds in the smoke (on the bar when it pops, or coming while it hangs) move n% slower
+  chokingSmoke: {
+    afterHit: (c, x) => {
+      if (!x.green || x.echo) return;
+      const list = movingReds(c);
+      for (const b of list) c.chillRed(b, c.hero.abilityTimer, 1 - Math.min(1, P(c, 'chokingSmoke')));
+      if (list.length) c.perkFx('chokingSmoke', list.length);
+    },
+    spawned: (c, b) => {
+      if (ability(c) && isRed(b.kind)) c.chillRed(b, c.hero.abilityTimer, 1 - Math.min(1, P(c, 'chokingSmoke')));
+    },
+  },
+  // Blinding Smoke (capstone): a green blinds every foe: no reds (they're stunned) for n s
+  blindingSmoke: {
+    afterHit: (c, x) => {
+      if (!x.green || x.echo || c.result) return;
+      const foes = c.aliveFoes();
+      for (const e of foes) c.stun(e, Math.max(0, N(c, 'blindingSmoke')));
+      if (foes.length) c.perkFx('blindingSmoke', foes.length);
+    },
+  },
+};
+
+Object.assign(HERO_SKILL_HOOKS, SOLENNE, WREN);

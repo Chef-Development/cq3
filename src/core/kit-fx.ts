@@ -8,7 +8,7 @@ import { isAttack, isRed } from './blocks';
 import type { Block, Combat, Enemy } from './combat';
 import type { HeroBuild } from './heroes';
 import type { FightHooks } from './hooks';
-import { addFocus, addGuard, dropKeg, focusCap, focusOf, guardOf, powerShot, spendGuard } from './styles';
+import { addFocus, addGuard, chainOf, dropKeg, focusCap, focusOf, guardOf, powerShot, spendGuard } from './styles';
 
 const K = (c: Combat) => c.tuning.kits;
 const ability = (c: Combat): boolean => c.hero.abilityTimer > 0;
@@ -357,6 +357,145 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
     },
   },
   // part6:A
+  solenne: {
+    start: (c) => {
+      c.perk.sunrise = 0;
+    },
+    // Sunrise: every sunEvery combo her blade burns (and Radiance slows the reds while it does)
+    combo: (c, before, after) => {
+      const n = sunEvery(c);
+      if (after > 0 && Math.floor(after / n) > Math.floor(before / n)) ignite(c, sunSec(c));
+    },
+    step: (c) => {
+      if (c.perk.sunrise > 0) c.perk.sunrise = Math.max(0, c.perk.sunrise - 1 / 120);
+    },
+    // ...hits cut every other foe while it burns
+    afterHit: (c, x) => {
+      if (x.echo || c.result) return;
+      if (x.green) gleam(c);
+      if (GILDED.has(x.block)) {
+        GILDED.delete(x.block);
+        c.perk.gildedHit = x.block.id;
+        c.perkFx('gilded', K(c).solenne.gleamCombo, x.target?.id ?? 0, x.block.pos);
+      }
+      if (c.perk.sunrise > 0 && x.damage > 0) for (const e of c.aliveFoes()) if (e !== x.target) c.strike(e, x.damage * K(c).solenne.sunCut, 'sunCut', false, x.block.pos);
+    },
+    // Radiance: a red that comes onto the bar while the blade burns moves slower too
+    spawned: (c, b) => {
+      if (c.perk.sunrise > 0 && isRed(b.kind)) c.chillRed(b, c.perk.sunrise, K(c).solenne.radiance);
+      // Sunfall's gilding waits for yellows that weren't on the bar yet
+      if (b.kind === 'yellow' && c.perk.gildNext > 0) {
+        c.perk.gildNext--;
+        GILDED.add(b);
+      }
+    },
+    // Gleam: a gilded yellow adds combo and meter
+    comboGain: (c, from, _p, n) => (from === 'hit' && gildedHit(c) ? n + Math.max(0, Math.round(K(c).solenne.gleamCombo)) : n),
+    meter: (c, source, v) => (source === 'hit' && gildedHit(c) ? v + K(c).solenne.gleamMeter : v),
+    // Dawn Oath: at oathAt+ combo, a miss keeps half the combo (the stacks and the meter still go)
+    comboBreak: (c, x) => {
+      if (x.cause !== 'miss' || x.combo < oathAt(c)) return;
+      const keep = Math.floor(x.combo * K(c).solenne.oathKeep);
+      if (keep <= x.keepCombo) return;
+      x.keepCombo = keep;
+      c.perkFx('dawnOath', keep);
+    },
+    // Sunfall: every foe (the core's default), bigger with the combo; the reds go (the usual); then it gilds yellows
+    finisher: (c, x, v) => v * (1 + Math.min(K(c).solenne.sunfallMax, K(c).solenne.sunfallStep * Math.max(0, x.combo))),
+    afterFinisher: (c) => {
+      // (the cursor starts again from the left: the yellows nearest that end are the next ones; 5 stars: every one)
+      const want = c.stars >= 5 ? Infinity : Math.max(0, Math.round(K(c).solenne.sunfallGild));
+      const list = c.blocks.filter((b) => b.kind === 'yellow' && !GILDED.has(b)).sort((a, b) => a.pos - b.pos);
+      let n = 0;
+      for (const b of list) {
+        if (n >= want) break;
+        GILDED.add(b);
+        n++;
+      }
+      if (want !== Infinity && n < want) c.perk.gildNext = want - n;
+      c.perkFx('sunfall', n);
+    },
+  },
+  wren: {
+    // Light Feet and Slip read the Chain going into the hit (the style resets it on a hit that isn't Perfect)
+    hitMult: (c, x, v) => {
+      if (!x.echo) c.perk.feetWas = chainOf(c);
+      return v;
+    },
+    critChance: (c, x, v) => (c.perk.grapple && !x.echo ? 1 : v),
+    afterHit: (c, x) => {
+      if (x.echo) return;
+      if (c.perk.grapple) {
+        c.perk.grapple = 0;
+        c.perkFx('grapple', 0, x.target?.id ?? 0, x.block.pos);
+      }
+      // Smoke Pop: a green's smoke drifts over the bar (the green ability's window is the smoke)
+      if (x.green) c.perkFx('smokePop', c.blocks.filter((b) => isRed(b.kind)).length, 0, x.block.pos);
+      if (x.perfect) {
+        c.perk.feetUsed = 0;
+        // Slip: every slipEvery Perfect hits in a row ready a dodge (one at a time)
+        c.perk.slipRun = (c.perk.slipRun ?? 0) + 1;
+        if (c.perk.slipRun >= slipEvery(c)) {
+          c.perk.slipRun = 0;
+          if ((c.perk.slip ?? 0) < slipMax(c)) {
+            c.perk.slip = (c.perk.slip ?? 0) + 1;
+            c.perk.slipReadyHit = x.block.id;
+            c.perkFx('slipReady', c.perk.slip, 0, x.block.pos);
+          }
+        }
+        return;
+      }
+      // Light Feet: the Chain (and Slip's run) survives a Good hit or two between Perfects
+      const was = c.perk.feetWas ?? 0;
+      if (was > 0 && (c.perk.feetUsed ?? 0) < feetMax(c)) {
+        c.perk.feetUsed = (c.perk.feetUsed ?? 0) + 1;
+        c.perk.chain = was;
+        c.perk.feetHit = x.block.id;
+        c.perkFx('lightFeet', was, x.target?.id ?? 0, x.block.pos);
+      } else c.perk.slipRun = 0;
+    },
+    miss: (c) => {
+      if (!c.perk.veil) c.perk.slipRun = 0;
+    },
+    comboBreak: (c) => {
+      c.perk.slipRun = 0;
+    },
+    // Slip: the ready dodge takes the next red (or bomb) that reaches her; Smoke Pop: one that hits her in the smoke
+    // deals less (hurt, below)
+    impact: (c, b) => {
+      if ((c.perk.slip ?? 0) > 0) {
+        c.perk.slip--;
+        // (the dodges so far and whose red it was: Tumble hits back)
+        c.perk.slips = (c.perk.slips ?? 0) + 1;
+        c.perk.slipOwner = b.ownerId;
+        if (c.stars >= 3) c.perk.grapple = 1;
+        c.perkFx('slip', 0, b.ownerId, b.pos);
+        return true;
+      }
+      if (ability(c)) c.perk.smokeHit = c.tick;
+      return false;
+    },
+    hurt: (c, amount, source, enemyId) => {
+      if ((source !== 'red' && source !== 'bomb') || c.perk.smokeHit !== c.tick || amount <= 0) return amount;
+      c.perk.smokeHit = -1;
+      const cut = amount * Math.max(0, Math.min(1, K(c).wren.smokeCut));
+      c.perkFx('smokeFade', cut, enemyId, 0);
+      return amount - cut;
+    },
+    // Rooftop Drop: the target alone, harder, plus a hit's worth per Chain link
+    finisher: (c, x, v) => {
+      const target = c.currentTarget();
+      if (target) x.targets = [target];
+      return v * K(c).wren.dropMult * (1 + K(c).wren.dropLink * chainOf(c));
+    },
+    afterFinisher: (c) => {
+      // 5 stars: the drop readies a dodge
+      if (c.stars >= 5 && (c.perk.slip ?? 0) < slipMax(c)) {
+        c.perk.slip = (c.perk.slip ?? 0) + 1;
+        c.perkFx('roofHop', c.perk.slip);
+      }
+    },
+  },
   // part6:B
   // part6:C
   // part6:D
@@ -379,3 +518,70 @@ export function kitHooks(build: HeroBuild): FightHooks[] {
 
 /** Whether a block is one of your own attack blocks a perk may hit for you (never a hold, nor half a linked pair). */
 export const perkHittable = (b: Block): boolean => isAttack(b.kind) && b.kind !== 'hold' && !b.link;
+
+// ---- Solenne and Wren (Part 6)
+
+/** Solenne's gilded yellows (Gleam, Sunfall): hitting one adds combo and meter. The view draws them gold. */
+const GILDED = new WeakSet<Block>();
+export const isGilded = (b: Block): boolean => GILDED.has(b);
+
+/** Whether the hit being resolved is on a gilded yellow (not a perk's echo). */
+const gildedHit = (c: Combat): boolean => !!c.hitNow && !c.hitNow.echo && GILDED.has(c.hitNow.block);
+
+/** Sunrise's combo step (Early Light lowers it: c.perk.sunEvery), its burn (3 stars, Long Morning: longer). */
+export const sunEvery = (c: Combat): number => Math.max(2, Math.round(c.perk.sunEvery || K(c).solenne.sunEvery));
+export const sunSec = (c: Combat): number => (c.stars >= 3 ? K(c).solenne.sunSec3 : K(c).solenne.sunSec) + (c.perk.sunBonus ?? 0);
+/** Dawn Oath's combo line (Firm Oath lowers it: c.perk.oathAt). */
+export const oathAt = (c: Combat): number => Math.max(1, Math.round(c.perk.oathAt || K(c).solenne.oathAt));
+
+/**
+ * Sunrise: her blade burns for `sec` (refreshed, never shortened). Radiance: every red on the bar slows for as long
+ * (and the ones that come while it burns: the kit's spawned hook). Returns whether it lit (it wasn't burning).
+ */
+export function ignite(c: Combat, sec: number): boolean {
+  if (sec <= 0 || c.result) return false;
+  const was = c.perk.sunrise > 0;
+  c.perk.sunrise = Math.max(c.perk.sunrise ?? 0, sec);
+  // (how many times it has lit: Solar Flare and Long Morning answer each one)
+  if (!was) c.perk.sunLits = (c.perk.sunLits ?? 0) + 1;
+  let n = 0;
+  for (const b of c.blocks)
+    if (isRed(b.kind) && !b.still) {
+      c.chillRed(b, c.perk.sunrise, K(c).solenne.radiance);
+      n++;
+    }
+  c.perkFx('sunrise', 0, 0);
+  if (n) c.perkFx('radiance', n);
+  return !was;
+}
+
+/** The yellows on the bar in the order the cursor will reach them (turning at the wall), not gilded yet. */
+export function yellowsAhead(c: Combat): Block[] {
+  const p = c.cursorPos();
+  const dir = c.cursorDirAt(c.time);
+  const along = (b: Block): number => ((b.pos - p) * dir >= 0 ? (b.pos - p) * dir : dir > 0 ? 1 - p + (1 - b.pos) : p + b.pos);
+  return c.blocks.filter((b) => b.kind === 'yellow' && !GILDED.has(b)).sort((a, b) => along(a) - along(b));
+}
+
+/** Gleam: gild the next yellow the cursor reaches (Twin Gleam: c.perk.gleams of them); with none on the bar, the next
+ *  ones to come. */
+function gleam(c: Combat): void {
+  const want = Math.max(1, Math.round(c.perk.gleams || 1));
+  const list = yellowsAhead(c).slice(0, want);
+  for (const b of list) GILDED.add(b);
+  if (list.length < want) c.perk.gildNext = Math.max(c.perk.gildNext ?? 0, want - list.length);
+  c.perkFx('gleam', list.length, 0, list[0]?.pos);
+}
+
+/** Gild one more yellow (Midas Touch): the next the cursor reaches. */
+export function gildNext(c: Combat): Block | null {
+  const b = yellowsAhead(c)[0] ?? null;
+  if (b) GILDED.add(b);
+  return b;
+}
+
+/** Wren's Slip: Perfect hits in a row per dodge (Quick Slip: c.perk.slipEvery), dodges held at once (Untouchable),
+ *  and the Good hits Light Feet lets the Chain survive (Nimble: c.perk.feet). */
+export const slipEvery = (c: Combat): number => Math.max(1, Math.round(c.perk.slipEvery || K(c).wren.slipEvery));
+export const slipMax = (c: Combat): number => Math.max(1, Math.round(c.perk.slipMax || 1));
+export const feetMax = (c: Combat): number => Math.max(0, Math.round(c.perk.feet || K(c).wren.feet));
