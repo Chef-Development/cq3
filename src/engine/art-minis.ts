@@ -244,7 +244,7 @@ const FROST_MINIS: Record<string, Mini> = {
       'mSm.ut..ut.',
       'MmM.11..11.',
     ];
-    return { pal: { 1: '#4e4e78', 2: '#7a7ea6', 3: '#a6aecc', 4: '#d0d8ec', 5: '#f4f8ff', k: INK, O: '#5a5e8a', p: '#c87878', P: '#f0a8a0', t: '#7c8aa2', u: '#56627e', S: '#8e5a2e', m: '#b8c2d8', M: '#7c86a6' }, frames: [f0, bob(f0, 7)] };
+    return { pal: { 1: '#4e4e78', 2: '#7a7ea6', 3: '#a6aecc', 4: '#c4cce4', 5: '#e8eef8', k: INK, O: '#5a5e8a', p: '#c87878', P: '#f0a8a0', t: '#7c8aa2', u: '#56627e', S: '#8e5a2e', m: '#b8c2d8', M: '#7c86a6' }, frames: [f0, bob(f0, 7)] };
   })(),
   // a ribbon of aurora light round a small bright core
   aurorawisp: {
