@@ -1328,7 +1328,7 @@ test("Tam's Turnabout: Big Bang flips each red into a keg where it stood (the re
   await expect(page).toHaveScreenshot('tam-turnabout-kegs.png', shot);
 });
 
-test("Torva's Wind-Up: the smash's multiplier rides over the cursor (x2.5 at 20 combo) and lands beside the foe it hits", async ({ page }) => {
+test("Torva's Wind-Up: the smash's multiplier rides over the cursor (x2.3 at 20 combo) and lands beside the foe it hits", async ({ page }) => {
   await boot(page);
   await frames(page, 10);
   await stagedFight(page, { hero: 'torva' });
