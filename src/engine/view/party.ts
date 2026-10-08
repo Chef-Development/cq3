@@ -23,6 +23,11 @@ export const PET_COL: Record<CompanionId, number> = {
   flurry: 0xe0f6ff,
   mote: 0xfff0a0,
   sunny: 0xffb030,
+  // ---- Part 6 companions
+  burr: 0xd8a868,
+  lark: 0xffd84a,
+  gloam: 0xb88aff,
+  nimbus: 0x6ae8e8,
 };
 /** The companion whose perk a perk id is (it flares when the perk kicks in). */
 export const PERK_PET: Record<string, CompanionId> = {
@@ -37,6 +42,13 @@ export const PERK_PET: Record<string, CompanionId> = {
   fireBreath: 'sunny',
   chillBite: 'flurry',
   snowDash: 'flurry',
+  // ---- Part 6 companions
+  prickly: 'burr',
+  wakeSong: 'lark',
+  wakeNote: 'lark',
+  nightEyes: 'gloam',
+  tide: 'nimbus',
+  calmSeas: 'nimbus',
 };
 /** Allies' fixed places in the front row (so they never shuffle as others come and go; the Glowmoth hovers by the
  *  hero's shoulder instead), and their colours. */
@@ -287,6 +299,26 @@ export class Party {
     const s = this.s;
     const P = this.pets.find((p) => p.id === id) ?? this.pets[0];
     if (!P) return land();
+    if (all && id === 'nimbus') {
+      // Nimbus's spray: a spout from its blowhole arcs over onto every foe, drops flying (the rain over them that
+      // strikes each is view/onsite-pets.ts)
+      P.state = 'breathe';
+      P.actUntil = s.anim + 460;
+      const bx = P.x + 3;
+      const by = P.y - 7;
+      const foes = all.length ? all : [{ x: target.x, y: target.y - target.h / 2 }];
+      foes.forEach((f, j) => {
+        s.later(j * 30, () => s.fx.bolt(bx, by, f.x - 2, f.y - 30, 160, 0x6ae8e8));
+        s.later(60 + j * 30, () => s.fx.bolt(bx + 1, by - 1, f.x + 2, f.y - 26, 150, 0xc8f8ff));
+      });
+      for (let w = 0; w < 3; w++)
+        s.later(w * 60, () => {
+          for (let i = 0; i < 8; i++)
+            s.fx.particles.push({ x: bx + rand(-1, 1), y: by, vx: rand(10, 90), vy: rand(-170, -110), g: 420, born: performance.now(), life: rand(320, 460), color: i % 3 === 0 ? 0xffffff : i % 3 === 1 ? 0xc8f8ff : 0x6ae8e8, size: i % 4 === 0 ? 2 : 1, world: true, streak: false, shape: 'chip' });
+        });
+      s.later(150, land);
+      return;
+    }
     if (all) {
       // a breath over the whole enemy line: streams of fire from its mouth to every foe, flames spraying
       P.state = 'breathe';

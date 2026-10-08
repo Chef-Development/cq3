@@ -65,6 +65,12 @@ export const PERK_LOOK: Record<string, CardLook & { short: string }> = {
   'Gold Hoard': { icon: 'coin', col: 0x9a6a14, text: 0xffe680, short: 'Kills drop more coins.' },
   'Fire Breath': { icon: 'flame', col: 0xa8401c, text: 0xffb070, short: 'Combos burn traps.' },
   'Warm Glow': { icon: 'flame', col: 0xb8601c, text: 0xffd08a, short: 'Melts ice faster.' },
+  // ---- Part 6 companions
+  Prickly: { icon: 'spines', col: 0x7a4a24, text: 0xf0c890, short: 'Spines hit back.' },
+  'Wake-up Song': { icon: 'note', col: 0x9a7a14, text: 0xfff07a, short: 'Its song adds combo.' },
+  'Night Eyes': { icon: 'moon', col: 0x4a2a7a, text: 0xd8b8ff, short: 'Traps turn yellow.' },
+  Tide: { icon: 'wave', col: 0x1a6a8a, text: 0x9af0f0, short: 'Waves push reds.' },
+  'Calm Seas': { icon: 'calm', col: 0x2a5a9a, text: 0xb8e0ff, short: 'Big combos hit hard.' },
 };
 /** A perk without a look of its own yet. */
 export const PERK_DEFAULT: CardLook = { icon: 'rune', col: 0x4a3a7a, text: 0xd8c8ff };
@@ -72,6 +78,8 @@ export const PERK_DEFAULT: CardLook = { icon: 'rune', col: 0x4a3a7a, text: 0xd8c
 export const ATTACK_LOOK: CardLook = { icon: 'crit', col: 0x8a2a2a, text: 0xffffff };
 
 const VERB: Record<string, string> = { Kick: 'Kicks', Peck: 'Pecks', Bite: 'Bites', Zap: 'Zaps', Headbutt: 'Headbutts', Twinkle: 'Twinkles', Breath: 'Breathes' };
+// ---- Part 6 companions
+Object.assign(VERB, { Roll: 'Rolls in', Swipe: 'Swipes', Spray: 'Sprays' });
 
 /** How a companion attacks, in plain words ("Pecks every 4 hits", "Breathes on every foe every 6 hits"). */
 export function attackText(id: CompanionId): string {
@@ -121,4 +129,9 @@ export const COMPANION_LIGHT: Record<CompanionId, number> = {
   flurry: 0xc0f4ff, // ice
   mote: 0xe4ccff, // starlight
   sunny: 0xffe48a, // gold
+  // ---- Part 6 companions
+  burr: 0xf0d0a0, // a warm hearth
+  lark: 0xfff4b0, // sunrise
+  gloam: 0xd4b8ff, // violet moonlight
+  nimbus: 0xc0f4ff, // sky
 };
