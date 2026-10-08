@@ -6,7 +6,7 @@
 import type Phaser from 'phaser';
 import { RARITY_INFO } from '../../data/gear';
 import type { Skirmish } from '../../core/skirmish';
-import { MINI_FOES } from '../art-map';
+import { miniKey } from '../art-minis';
 import { MEADOW_ROAD } from '../art-world';
 import type { FightScene } from '../scene';
 import { bagPal, glyph, glyphSize } from './overlays';
@@ -151,11 +151,9 @@ export class WorldRoam {
     this.texts.end();
   }
 
+  /** A foe's mini sprite key (by enemy key; art-minis.ts records a sprite that has none). */
   private mini(key: string, t: number): string {
-    const sprite = this.s.app.tuning.enemies[key]?.sprite ?? key;
-    if (!MINI_FOES.includes(sprite)) return 'mapicon_fight';
-    const f = `mfoe_${sprite}_1`;
-    return this.s.textures.exists(f) && Math.floor(t / 420) % 2 ? f : `mfoe_${sprite}_0`;
+    return miniKey(this.s.app.tuning.enemies[key]?.sprite ?? key, t);
   }
 
   /** The foe on the road: its lead sprite, a ring at its feet, a red "!" bobbing over it. */

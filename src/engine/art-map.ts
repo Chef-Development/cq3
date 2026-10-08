@@ -2,7 +2,8 @@
 // theme (the sunny Meadow Road, the Old Ruins at dusk, the Boar King's Hollow at sunset; the Frostpeaks' snowbound
 // pass, the crystal-lit ice caves and the glacier under the aurora). Two kinds of art:
 //   - sprites built once at boot (buildMapArt): map-scale Rowan, Sable and Pip, a mini version of every enemy for the
-//     fight nodes, the node props (campfire, chest, stall, "?", flag), the boss lairs and the ambient critters;
+//     fight nodes (their character maps live in art-minis.ts), the node props (campfire, chest, stall, "?", flag),
+//     the boss lairs and the ambient critters;
 //   - the act's landscape (paintLand), painted per map with the backdrop toolkit because the roads and the
 //     clearings follow that map's nodes. It comes out as LAND_FRAMES frames that differ only in how the trees,
 //     bushes and grass lean, so the view can cycle them for a cheap wind sway.
@@ -35,6 +36,7 @@ import {
   THEMES,
 } from './backdrop';
 import { cluster, serac, shard } from './backdrop-frost';
+import { MINIS } from './art-minis';
 
 type Add = (key: string, c: HTMLCanvasElement) => void;
 export type Pt = [number, number];
@@ -162,97 +164,9 @@ function pipFrame(up: boolean): HTMLCanvasElement {
   return toCanvas(g);
 }
 
-// ------------------------------------------------------------------ mini enemies (facing left, toward Rowan)
+// ------------------------------------------------------------------ mini enemies (art-minis.ts: pure data, painted below)
 
-const SLIME = { 1: '#14284a', 2: '#1b5464', 3: '#25866e', 4: '#3fb47e', 5: '#7cdc8e', 6: '#d4fac0' };
-const CROW = { 0: '#100c20', 1: '#1e1e3c', 2: '#2e3460', 3: '#42548a', 4: '#6488bc', 5: '#9ccce0' };
-const FUR = { 1: '#2e1622', 2: '#5a2e26', 3: '#8a4a2c', 4: '#b06a36', 5: '#d8964e' };
-const PURP = { 1: '#1e1430', 2: '#36244e', 3: '#523a72', 4: '#7a5a9a', 5: '#a888c8' };
 const GOLD_P = { G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14' };
-
-interface Mini {
-  pal: Pal;
-  frames: string[][];
-}
-
-/** Every enemy sprite's map-scale stand-in: `mfoe_${sprite}_${frame}`. */
-const MINIS: Record<string, Mini> = {
-  slime: {
-    pal: { ...SLIME, W: '#ffffff', k: INK_S },
-    frames: [
-      ['...5555...', '..566654..', '.56W65544.', '.5k55k444.', '45k55k4443', '4555554433', '3444443332', '.22222221.'],
-      ['..........', '...55554..', '.556W6544.', '45k55k5443', '45k55k4443', '4555544433', '3444443332', '2222222221'],
-    ],
-  },
-  slimelet: {
-    pal: { ...SLIME, W: '#ffffff', k: INK_S },
-    frames: [
-      ['..555..', '.56W54.', '5k5k443', '4555433', '.22221.'],
-      ['.......', '.5565..', '5k5k543', '4555433', '2222221'],
-    ],
-  },
-  bigslime: {
-    pal: { ...SLIME, ...GOLD_P, W: '#ffffff', k: INK_S },
-    frames: [
-      ['.....g.g.g...', '.....gyGyg...', '...5555555...', '..566666554..', '.56W66655544.', '.5k55k555444.', '45k55k5554443', '4555555544433', '3444444443332', '.22222222221.'],
-      ['.............', '.....g.g.g...', '.....gyGyg...', '..555555554..', '.566W6665544.', '45k55k5554443', '45k55k5554443', '4555555544433', '3444444443332', '2222222222221'],
-    ],
-  },
-  crow: {
-    pal: { ...CROW, ...GOLD_P, E: '#ff4a3a', k: INK_S },
-    frames: [
-      ['...........', '..443......', '.45433.....', 'ggE33332...', '.y3333222..', '..33222221.', '...2222.111', '....y..y...'],
-      ['......4....', '..443.43...', '.454334....', 'ggE33332...', '.y3333222..', '..33222221.', '...2222.111', '....y..y...'],
-    ],
-  },
-  boar: {
-    pal: { ...FUR, W: '#fff4e0', p: '#d88078', P: '#a85458', k: INK_S, h: '#2a1c24' },
-    frames: [['.....1.1.1..', '...13444321.', '..345444433.', '.3k44444332.', 'pp444444332.', 'PW343333221.', '.W.h1..h1...']],
-  },
-  bandit: {
-    pal: { ...PURP, S: '#f2b888', s: '#d88a5a', k: INK_S, A: '#eef3fa', a: '#7c86a6', d: '#2a1810', D: '#4a2c18' },
-    frames: [['...443...', '..45443..', '.4kkkk3..', '.4SkSs3..', '..3s432..', '.433332..', 'A4433322.', 'a.43332..', '..3.32...', '..d..d...']],
-  },
-  knight: {
-    pal: { 1: '#2a3440', 2: '#465462', 3: '#6e7e8a', 4: '#a4b2b4', 5: '#e2ead8', k: INK_S, E: '#d8ff6a', L: '#b4d058', l: '#78a83c', f: '#4a7e36', F: '#2e5a32', g: '#f2c230', y: '#d8901c' },
-    frames: [['...lL4...', '..L4543..', '..4kEk3..', '..33332..', 'gLlf432..', 'yllff332.', 'yfff4332.', '.yff3332.', '..y.3.2..', '...2..2..']],
-  },
-  captain: {
-    pal: { ...PURP, ...GOLD_P, W: '#ffffff', w: '#ece6f8', S: '#f2b888', s: '#d88a5a', k: INK_S, R: '#8a1a22', q: '#d03030', m: '#2a1810', d: '#2a1810' },
-    frames: [['.....wW....', '...4444w...', '.g44554gg..', '..gyyyyy...', '...kSSs....', '...Smms....', '..qqqqR....', '.3qR4432...', '.334g4332..', '..33g332...', '..3.3.3....', '..d...d....']],
-  },
-  archer: {
-    pal: { 1: '#14262a', 2: '#204630', 3: '#3a6e34', 4: '#68a03c', 5: '#a4d04e', h: '#6e4024', H: '#986434', j: '#48261e', E: '#ffe04a', k: INK_S, o: '#6e4020', a: '#b07a44', s: '#e8e0c8', c: '#4e344c', C: '#704a60', d: '#2a1810' },
-    frames: [['...HHh...', '..HhhhH..', '.54Ek4h..', '5544442h.', '.a.43jh..', 'a.cCCCc..', 'as.cCCc..', '.a.cCc...', '..ac.c...', '...d.d...']],
-  },
-  shaman: {
-    pal: { 1: '#501650', 2: '#7e1e68', 3: '#ac2c7c', 4: '#d85a92', 5: '#ff9cb4', O: '#fff4e4', g: '#3e1438', f: '#2e1a30', E: '#eaff8a', w: '#e8f0d8', r: '#2c7064', R: '#4c967a', t: '#1e5050', s: '#8e5a2e', S: '#4e2c16', L: '#f4ffc8', l: '#b4f05a' },
-    frames: [['l..........', 'Ls.444.....', '.s45O443...', '.443444O32.', '.s3444443321', '.sggggggg1..', '.s.fEfE....', '.s.wwww....', '.s.rRRrt...', '.s.rRrtt...', '.s..rrt....', '.S..t.t....']],
-  },
-  beetle: {
-    pal: { 1: '#123a4a', 2: '#1a6066', 3: '#2a8c84', 4: '#58c0a2', 5: '#c4f4c8', b: '#dca444', B: '#a86a26', u: '#30223c', E: '#ff6a3a', k: INK_S },
-    frames: [['.....4443...', '...445543332', '..4554433322', '.u45433333221', 'uEbbbbbbbbbB.', '.uu.u..u..u..']],
-  },
-  golem: {
-    pal: { 1: '#34344a', 2: '#545264', 3: '#78747c', 4: '#a09a96', 5: '#c8c0b2', C: '#447436', D: '#6e9c3c', E: '#a8c850', t: '#22a098', u: '#62e4d4', U: '#d8fff6', k: INK_S },
-    frames: [['....DEDC....', '...45543....', '...4uU42....', '.DE443332E..', '45542u33221.', '4544u3332321', '.442333322..', '..43333321..', '..432..321..', '.4432..3321.']],
-  },
-  wolf: {
-    pal: { 1: '#28304c', 2: '#404c6e', 3: '#5e6e92', 4: '#8a9cb8', 5: '#c0ccd8', W: '#f6f4ee', w: '#b4bccc', E: '#ffd84a', k: INK_S },
-    frames: [['..4.4.......', '..444.......', '.4E443...44.', 'k44444333421', '.wW4433333..', '..w43332221.', '...4.3..3.2.', '...4.3..3.2.']],
-  },
-  boarking: {
-    pal: { 1: '#3a1a22', 2: '#5e3030', 3: '#844a38', 4: '#a86a48', 5: '#c88e5e', m: '#1e1018', n: '#2e1622', o: '#46222e', ...GOLD_P, W: '#fff4e0', w: '#d8c8a8', p: '#d88078', P: '#a85458', e: '#ff5a3a', k: INK_S, h: '#2a1c24' },
-    frames: [
-      ['....g.g.g......', '....gGgGg......', '....yyyyynnm...', '...34444onnnmm..', '..3e44443onnnmm.', '.34444443oonnm..', 'pp4444443332221.', 'PW344443333221..', 'W.w33333322221..', '..h21..h2..h21..'],
-    ],
-  },
-  piglet: {
-    pal: { 1: '#7a4430', 2: '#a8683e', 3: '#d08e52', 4: '#f0b870', p: '#d88078', k: INK_S, h: '#2a1c24' },
-    frames: [['..4.....', '.4433333', 'pk433322', 'p3332221', '.h1..h1.']],
-  },
-};
-export const MINI_FOES = Object.keys(MINIS);
 
 // ------------------------------------------------------------------ node props
 
@@ -3487,7 +3401,7 @@ export function buildMapArt(add: Add, w: number, h: number): void {
   add('msab_walk3', sableFrame('pass', -1, false));
   add('mpip_0', pipFrame(false));
   add('mpip_1', pipFrame(true));
-  // the enemies' stand-ins
+  // the enemies' stand-ins (art-minis.ts; each grid gets its ink outline here)
   for (const [name, m] of Object.entries(MINIS))
     m.frames.forEach((rows, i) => {
       const g = grid(Math.max(...rows.map((r) => r.length)) + 2, rows.length + 2);
