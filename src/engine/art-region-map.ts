@@ -5,54 +5,66 @@
 // registered as the screen's stage theme ('atlas': a plank wall, map racks, a lantern). All painted the first time
 // the screen opens (`ensureRegionArt`), never at boot.
 //
+// The map is bigger than its frame (region-sites.ts: the sheet in the middle holds the sites and the seals; the
+// landscape carries on into a margin round it, which the card pans to). Each region is painted in sheet coordinates
+// on a Paper whose origin sits REGION_PAD_X / REGION_PAD_Y in, so the coasts, washes and rivers run on past the
+// sheet's edges.
+//
 // Textures:
-//   rmap_<regionId> / rmap_fog   REGION_MAP_W x REGION_MAP_H, the map itself (REGION_SITES: the act sites on it)
-//   rmap_frame                   the frame, FRAME_W x FRAME_H, the map's window FRAME_IN px in from each side
+//   rmap_<regionId> / rmap_fog   REGION_MAP_W x REGION_MAP_H, the map itself (REGION_SITES: the act sites on its sheet)
+//   rmap_frame                   the frame, FRAME_W x FRAME_H, its window (REGION_VIEW_W x REGION_VIEW_H) FRAME_IN in
 //   rmap_pedestal                PEDESTAL_W x PEDESTAL_H, a carved stone plinth (the chest's feet on its top: y 3)
 import type Phaser from 'phaser';
 import { fbm, hash, noise } from './backdrop';
 import { registerStageTheme, type StageSpec } from './art-ui-stage';
+import { REGION_MAP_H, REGION_MAP_W, REGION_PAD_X, REGION_PAD_Y, REGION_SITES, REGION_VIEW_H, REGION_VIEW_W } from './region-sites';
 
-export const REGION_MAP_W = 190;
-export const REGION_MAP_H = 110;
+export { REGION_MAP_H, REGION_MAP_W, REGION_SITES } from './region-sites';
 export const FRAME_IN = 5;
-export const FRAME_W = REGION_MAP_W + FRAME_IN * 2;
-export const FRAME_H = REGION_MAP_H + FRAME_IN * 2;
+export const FRAME_W = REGION_VIEW_W + FRAME_IN * 2;
+export const FRAME_H = REGION_VIEW_H + FRAME_IN * 2;
 export const PEDESTAL_W = 46;
 export const PEDESTAL_H = 18;
 export const ATLAS_THEME = 'atlas';
 
 type Pt = [number, number];
 
-/** The act sites on each region's map (map px), in act order; and where its events' seals go. */
-export const REGION_SITES: Record<string, { acts: Pt[]; events: Pt }> = {
-  greenmarch: { acts: [[46, 62], [100, 26], [158, 58]], events: [98, 100] },
-  frostpeaks: { acts: [[38, 50], [102, 66], [160, 28]], events: [100, 100] },
-  ashfell: { acts: [[42, 70], [98, 58], [142, 22]], events: [100, 100] },
-};
-
 // ------------------------------------------------------------------ a little pixel buffer
 
 class Paper {
   readonly d: Uint8ClampedArray;
+  /** What the painters draw in: coordinates from (x0, y0) to (x1, y1) (the origin sits ox, oy into the canvas). */
+  readonly x0: number;
+  readonly y0: number;
+  readonly x1: number;
+  readonly y1: number;
   constructor(
     readonly w: number,
     readonly h: number,
+    readonly ox = 0,
+    readonly oy = 0,
   ) {
     this.d = new Uint8ClampedArray(w * h * 4);
+    this.x0 = -ox;
+    this.y0 = -oy;
+    this.x1 = w - ox;
+    this.y1 = h - oy;
   }
   in(x: number, y: number): boolean {
-    return x >= 0 && y >= 0 && x < this.w && y < this.h;
+    return x >= this.x0 && y >= this.y0 && x < this.x1 && y < this.y1;
+  }
+  private at(x: number, y: number): number {
+    return ((y + this.oy) * this.w + x + this.ox) * 4;
   }
   get(x: number, y: number): number {
-    const i = (y * this.w + x) * 4;
+    const i = this.at(x, y);
     return (this.d[i] << 16) | (this.d[i + 1] << 8) | this.d[i + 2];
   }
   set(x: number, y: number, c: number, a = 255): void {
     x = Math.round(x);
     y = Math.round(y);
     if (!this.in(x, y)) return;
-    const i = (y * this.w + x) * 4;
+    const i = this.at(x, y);
     this.d[i] = c >> 16;
     this.d[i + 1] = (c >> 8) & 255;
     this.d[i + 2] = c & 255;
@@ -63,7 +75,7 @@ class Paper {
     x = Math.round(x);
     y = Math.round(y);
     if (!this.in(x, y) || k <= 0) return;
-    const i = (y * this.w + x) * 4;
+    const i = this.at(x, y);
     if (!this.d[i + 3]) return;
     const kk = Math.min(1, k);
     this.d[i] += ((c >> 16) - this.d[i]) * kk;
@@ -98,13 +110,15 @@ const BURN = 0x7a5430;
 
 /** Parchment: mottled, warmer and darker toward the rim, a couple of stains and two folds. */
 function parchment(p: Paper, seed: number): void {
-  const { w, h } = p;
-  for (let y = 0; y < h; y++)
-    for (let x = 0; x < w; x++) {
+  const { w, h, ox, oy } = p;
+  for (let Y = 0; Y < h; Y++)
+    for (let X = 0; X < w; X++) {
+      const x = X - ox;
+      const y = Y - oy;
       const n = fbm(x * 0.06, y * 0.08, seed);
       let c = mixc(PAPER_HI, PAPER, n * 1.3 - 0.15);
-      const ex = Math.min(x, w - 1 - x) / (w * 0.5);
-      const ey = Math.min(y, h - 1 - y) / (h * 0.5);
+      const ex = Math.min(X, w - 1 - X) / (w * 0.5);
+      const ey = Math.min(Y, h - 1 - Y) / (h * 0.5);
       const e = Math.min(ex * 1.4, ey * 1.4, 1);
       c = mixc(PAPER_LO, c, 0.35 + e * 0.65 + (hash(x, y, seed) - 0.5) * 0.08);
       p.set(x, y, c);
@@ -117,33 +131,33 @@ function parchment(p: Paper, seed: number): void {
     for (let y = -r - 2; y <= r + 2; y++)
       for (let x = -r - 2; x <= r + 2; x++) {
         const d = Math.hypot(x, y * 1.1);
-        if (Math.abs(d - r) < 0.9 && hash(x, y, seed + 3) > 0.25) p.tint(cx + x, cy + y, PAPER_LO, 0.35);
-        else if (d < r) p.tint(cx + x, cy + y, PAPER_LO, 0.08);
+        if (Math.abs(d - r) < 0.9 && hash(x, y, seed + 3) > 0.25) p.tint(cx + x - ox, cy + y - oy, PAPER_LO, 0.35);
+        else if (d < r) p.tint(cx + x - ox, cy + y - oy, PAPER_LO, 0.08);
       }
   // folds: a light ridge and its shadow
-  const fx = Math.round(w / 2);
-  const fy = Math.round(h / 2);
-  for (let y = 0; y < h; y++) {
+  const fx = Math.round(w / 2) - ox;
+  const fy = Math.round(h / 2) - oy;
+  for (let y = p.y0; y < p.y1; y++) {
     p.tint(fx, y, 0xfff4d8, 0.35);
     p.tint(fx + 1, y, PAPER_LO, 0.25);
   }
-  for (let x = 0; x < w; x++) {
+  for (let x = p.x0; x < p.x1; x++) {
     p.tint(x, fy, 0xfff4d8, 0.3);
     p.tint(x, fy + 1, PAPER_LO, 0.22);
   }
   // a burnt, ragged rim
-  for (let y = 0; y < h; y++)
-    for (let x = 0; x < w; x++) {
-      const d = Math.min(x, y, w - 1 - x, h - 1 - y);
-      const rag = noise(x * 0.3 + y * 0.3, 0, seed + 5) * 2.4;
-      if (d < rag) p.tint(x, y, BURN, 0.75 - d * 0.2);
+  for (let Y = 0; Y < h; Y++)
+    for (let X = 0; X < w; X++) {
+      const d = Math.min(X, Y, w - 1 - X, h - 1 - Y);
+      const rag = noise(X * 0.3 + Y * 0.3, 0, seed + 5) * 2.4;
+      if (d < rag) p.tint(X - ox, Y - oy, BURN, 0.75 - d * 0.2);
     }
 }
 
 /** A watercolour wash over `inside`: the paper tinted toward `col`, pooling darker along the shape's edge. */
 function wash(p: Paper, inside: (x: number, y: number) => boolean, col: number, k: number, seed: number): void {
-  for (let y = 0; y < p.h; y++)
-    for (let x = 0; x < p.w; x++) {
+  for (let y = p.y0; y < p.y1; y++)
+    for (let x = p.x0; x < p.x1; x++) {
       if (!inside(x, y)) continue;
       const edge = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
       const edge2 = !inside(x - 2, y) || !inside(x + 2, y) || !inside(x, y - 2) || !inside(x, y + 2);
@@ -154,8 +168,8 @@ function wash(p: Paper, inside: (x: number, y: number) => boolean, col: number, 
 
 /** An ink outline round `inside` (its outer edge), broken here and there like a pen line. */
 function inkEdge(p: Paper, inside: (x: number, y: number) => boolean, seed: number, col = INK_SOFT, gaps = 0.12): void {
-  for (let y = 0; y < p.h; y++)
-    for (let x = 0; x < p.w; x++) {
+  for (let y = p.y0; y < p.y1; y++)
+    for (let x = p.x0; x < p.x1; x++) {
       if (!inside(x, y)) continue;
       if (inside(x - 1, y) && inside(x + 1, y) && inside(x, y - 1) && inside(x, y + 1)) continue;
       if (hash(x >> 1, y >> 1, seed) < gaps) continue;
@@ -372,6 +386,7 @@ function greenmarch(p: Paper): void {
   wash(p, blob(70, 86, 30, 18, 9), 0xb8c878, 0.3, 10);
   // a river from the hills in the north down to the sea
   const river: Pt[] = [
+    [130, -26],
     [124, -2],
     [118, 18],
     [126, 40],
@@ -379,6 +394,7 @@ function greenmarch(p: Paper): void {
     [86, 76],
     [60, 92],
     [30, 108],
+    [8, 130],
   ];
   const riv = band(smooth(river), (t) => 1 + t * 1.6);
   wash(p, riv, 0x5a90b0, 0.7, 11);
@@ -405,8 +421,27 @@ function greenmarch(p: Paper): void {
     [156, 14, 6],
     [172, 22, 8],
     [86, 50, 6],
+    // (the margins: more hills north and east, past the sheet)
+    [96, -8, 7],
+    [150, -10, 8],
+    [188, -4, 6],
+    [206, 28, 7],
+    [212, 100, 6],
+    [196, 124, 7],
+    [120, 124, 6],
   ])
     hill(p, x, y, wd);
+  // the margins' woods: a wood up north-east and one far east
+  for (let i = 0; i < 14; i++) {
+    const x = 60 + Math.floor(hash(i, 4, 19) * 150);
+    const y = -16 + Math.floor(hash(i, 5, 19) * 12);
+    tree(p, x, y, i % 3 ? 0x3e7a3a : 0x5a8a48);
+  }
+  for (let i = 0; i < 10; i++) {
+    const x = 194 + Math.floor(hash(i, 6, 19) * 22);
+    const y = 40 + Math.floor(hash(i, 7, 19) * 50);
+    tree(p, x, y, i % 2 ? 0xc0702c : 0x3e7a3a);
+  }
   // the village fields by the Meadow Road
   for (let i = 0; i < 6; i++) {
     const x = 60 + (i % 3) * 7;
@@ -414,7 +449,7 @@ function greenmarch(p: Paper): void {
     wash(p, (xx, yy) => xx >= x && xx < x + 6 && yy >= y && yy < y + 4, i % 2 ? 0xd8b860 : 0x8ab05a, 0.45, 20 + i);
   }
   // the road: from the coast past each act's site
-  road(p, [[14, 76], S[0], [72, 52], S[1], [128, 40], S[2], [192, 70]], S);
+  road(p, [[14, 76], S[0], [72, 52], S[1], [128, 40], S[2], [192, 70], [218, 82]], S);
   // the sites
   mark(p, TENTS, { k: INK, R: 0xc04030, r: 0x8a2a20, Y: 0xd8a040, y: 0x9a6a20 }, S[0][0], S[0][1] + 2);
   mark(p, RUINS, { k: INK, S: 0xa8a49a }, S[1][0], S[1][1] + 2);
@@ -447,6 +482,15 @@ function frostpeaks(p: Paper): void {
     [24, 92, 10, false],
     [176, 96, 12, true],
     [150, 104, 9, false],
+    // (the margins: the range runs on north, west and east)
+    [-14, 46, 13, true],
+    [-8, 104, 11, true],
+    [40, 4, 12, true],
+    [100, 2, 14, true],
+    [170, 0, 12, true],
+    [206, 56, 15, true],
+    [204, 124, 11, false],
+    [96, 128, 9, false],
   ] as const)
     mountain(p, x, y, hgt, snow);
   // pines in the valleys
@@ -455,7 +499,7 @@ function frostpeaks(p: Paper): void {
     const y = 50 + Math.floor(hash(i, 2, 40) * 58);
     if (!lake(x, y) && !glacier(x, y) && S.every(([sx, sy]) => Math.hypot(x - sx, y - sy) > 12)) pine(p, x, y, 0x3a6a5a);
   }
-  road(p, [[2, 58], S[0], [70, 70], S[1], [136, 50], S[2]], S, 0x6a5a6a);
+  road(p, [[-28, 52], [2, 58], S[0], [70, 70], S[1], [136, 50], S[2], [196, 14]], S, 0x6a5a6a);
   mark(p, FLAGS, { k: INK, R: 0xc04030, Y: 0xe0b040, B: 0x3a7ac0, G: 0x4a9a4a }, S[0][0], S[0][1] + 2);
   mark(p, CAVE, { k: INK, S: 0x8a94a8 }, S[1][0], S[1][1] + 2);
   mark(p, KEEP, { k: INK, S: 0xb8c0d0 }, S[2][0], S[2][1] + 2);
@@ -469,6 +513,16 @@ function ashfell(p: Paper): void {
   const basalt = blob(40, 30, 28, 16, 53);
   wash(p, basalt, 0x5a5452, 0.45, 54);
   for (let x = 18; x < 64; x += 3) for (let y = 20; y < 44; y++) if (basalt(x, y) && (y + x) % 5 === 0) p.set(x, y, 0x3a3432);
+  // (the margins: more basalt east and south-west)
+  for (const [bx, by, brx, bry, seed] of [
+    [204, 34, 16, 22, 58],
+    [-6, 118, 22, 12, 59],
+    [150, -10, 26, 10, 60],
+  ] as const) {
+    const b2 = blob(bx, by, brx, bry, seed);
+    wash(p, b2, 0x5a5452, 0.45, seed + 10);
+    for (let x = bx - brx; x < bx + brx; x += 3) for (let y = by - bry; y < by + bry; y++) if (b2(x, y) && (y + x) % 5 === 0) p.set(x, y, 0x3a3432);
+  }
   // the volcano: a broad cone with a glowing crater
   const vx = 112;
   const vy = 46;
@@ -494,12 +548,14 @@ function ashfell(p: Paper): void {
       [86, 66],
       [60, 84],
       [30, 104],
+      [6, 126],
     ],
     [
       [vx + 3, vy - 24],
       [vx + 14, vy],
       [150, 70],
       [176, 96],
+      [204, 122],
     ],
   ] as Pt[][]) {
     const b = band(smooth(flow), (t) => 1 + t * 1.4);
@@ -513,7 +569,7 @@ function ashfell(p: Paper): void {
     p.set(x, y, i % 2 ? 0x6ae0e8 : 0xe06ad8);
     p.set(x, y - 1, 0xffffff);
   }
-  road(p, [[2, 88], S[0], [70, 76], S[1], [130, 44], S[2]], S, 0x5a3a2a);
+  road(p, [[-28, 94], [2, 88], S[0], [70, 76], S[1], [130, 44], S[2], [178, 4]], S, 0x5a3a2a);
   mark(p, BARRIER, { k: INK, R: 0xc04030, W: 0xf0e8d8 }, S[0][0], S[0][1] + 2);
   mark(p, CAVE, { k: INK, S: 0x6a6070 }, S[1][0], S[1][1] + 2);
   mark(p, FORGE, { k: INK, S: 0x4a4048, O: 0xff8a2a }, S[2][0], S[2][1] + 2);
@@ -527,7 +583,7 @@ function fog(p: Paper): void {
 }
 
 function regionMap(id: string): HTMLCanvasElement {
-  const p = new Paper(REGION_MAP_W, REGION_MAP_H);
+  const p = new Paper(REGION_MAP_W, REGION_MAP_H, REGION_PAD_X, REGION_PAD_Y);
   parchment(p, id.length * 13 + 1);
   if (id === 'greenmarch') greenmarch(p);
   else if (id === 'frostpeaks') frostpeaks(p);

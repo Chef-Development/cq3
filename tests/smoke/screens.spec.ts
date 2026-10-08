@@ -660,6 +660,69 @@ test('camp: the region card near 100% (one hidden treasure left: its socket tapp
   await expect(page).toHaveScreenshot('progress-near.png', shot);
 });
 
+test('camp: the region card with everything done (all 15 seals, 100% and 15/15 agree), then dragged: the map pans', async ({ page }) => {
+  // the playtester: "only 11 categories show, the map can't be scrolled, and the chest says 13/15"
+  const camp = await metaCamp(page);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p = (window as any).__cq3.app.profile;
+    p.actsCleared = 3;
+    p.regions.greenmarch = { bounties: [0, 1, 2], treasures: [0, 1, 2], events: ['herbalist', 'shrine', 'well'], chest: false };
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => {
+    c.go('progress', now);
+    c.progress.open(now, 0);
+  });
+  await frames(page, 60);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const look = () => camp((c: any) => ({ marks: c.progress.markList(), cam: c.progress.camera(), win: c.progress.mapRect() })) as Promise<{ marks: Array<{ key: string; done: boolean; x: number; y: number; vis: number }>; cam: { x: number; y: number }; win: { x: number; y: number; w: number; h: number } }>;
+  const before = await look();
+  // fifteen marks, every one a lit seal and in view: three of each act's row and three events
+  expect(before.marks).toHaveLength(15);
+  expect(before.marks.every((m) => m.done && m.vis === 1)).toBe(true);
+  expect(before.marks.map((m) => m.key).sort()).toEqual(['acts', 'acts', 'acts', 'boss', 'bounties', 'bounties', 'bounties', 'events', 'events', 'events', 'minis', 'minis', 'treasures', 'treasures', 'treasures']);
+  // the ring and the count say what the seals say
+  const shown = (await page.evaluate(() =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ((window as any).__cq3.app.view.children.list as any[]).filter((o) => o.type === 'BitmapText' && o.visible).map((o) => o.text as string),
+  )) as string[];
+  expect(shown).toContain('100%');
+  expect(shown).toContain(`${before.marks.filter((m) => m.done).length}/${before.marks.length}`);
+  await expect(page).toHaveScreenshot('progress-everything.png', shot);
+  // a drag on the map pans it (left and up: the map's east and south margins come into view); the seals go with it
+  const l = (await page.evaluate('window.__cq3.app.layout')) as { left: number; top: number; cssW: number; cssH: number };
+  const css = (x: number, y: number): [number, number] => [l.left + (x * l.cssW) / 327, l.top + (y * l.cssH) / 150];
+  const [sx, sy] = css(before.win.x + before.win.w / 2, before.win.y + before.win.h / 2);
+  await page.mouse.move(sx, sy);
+  await page.mouse.down();
+  for (let k = 1; k <= 8; k++) {
+    const [mx, my] = css(before.win.x + before.win.w / 2 - k * 5, before.win.y + before.win.h / 2 - k * 3);
+    await page.mouse.move(mx, my);
+    await frames(page, 1);
+  }
+  await page.mouse.up();
+  await frames(page, 4);
+  const after = await look();
+  expect(after.cam.x).toBeGreaterThan(before.cam.x);
+  expect(after.cam.y).toBeGreaterThan(before.cam.y);
+  const dx = after.cam.x - before.cam.x;
+  const dy = after.cam.y - before.cam.y;
+  after.marks.forEach((m, i) => expect([m.x, m.y]).toEqual([before.marks[i].x - dx, before.marks[i].y - dy]));
+  // a drag is never a tap: no seal named
+  await expect(page).toHaveScreenshot('progress-panned.png', shot);
+  // a press let go in place is a tap: it names the seal under it
+  const seal = after.marks.find((m) => m.key === 'boss')!;
+  const [tx, ty] = css(seal.x, seal.y);
+  await page.mouse.move(tx, ty);
+  await page.mouse.down();
+  await page.mouse.up();
+  await frames(page, 4);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  expect(await camp((c: any) => c.progress.tipText())).toBe('Boss 1/1');
+  expect((await look()).cam).toEqual(after.cam);
+});
+
 test('camp: Sable joins after Act 1', async ({ page }) => {
   await boot(page);
   await frames(page, 10);
