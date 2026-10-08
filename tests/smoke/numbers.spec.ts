@@ -164,7 +164,7 @@ test('numbers: the title, the world map (an act card, the picker, the region chi
   await check(page, 'the world map: the wandering foe and its card');
 });
 
-test('numbers: the act map (every stop, the roamers, the bounty tracker, the secret); rest, shop, an event, a treasure', async ({ page }) => {
+test('numbers: the act map (every stop, the roamers, the bounty tracker), Coin Rush; rest, shop, an event, a treasure', async ({ page }) => {
   test.setTimeout(90_000);
   await ready(page);
   await onMap(page, { roamers: true });
