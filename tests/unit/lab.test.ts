@@ -309,7 +309,7 @@ describe('Test lab scenarios play', () => {
 
   it('story scenarios play their scenes in order; camp scenarios stand at the camp', () => {
     for (const s of LAB_SCENARIOS) {
-      if (s.setup.kind === 'fight') continue;
+      if (s.setup.kind === 'fight' || s.setup.kind === 'gallery') continue; // (the gallery's own tests: finisher-show.test.ts)
       const r = new Run(t, { ...DEFAULT_SETTINGS }, 5, labProfile(t, s));
       startLabScenario(r, s, 3);
       if (s.setup.kind === 'story') {

@@ -11,6 +11,7 @@ import { TIPS } from '../data/tips';
 import { LAB_EARLIER, LAB_GROUPS, LAB_NEW, type LabScenario } from '../data/lab';
 import { ALL_ACTS, REGIONS } from '../data/regions';
 import type { BarRules } from '../data/types';
+import type { Combat } from './combat';
 import { itemLevel, makeItem } from './gear';
 import { nodeAt, xpForLevel } from './heroes';
 import { addItem, equip, newProfile, newRegionLog, type Profile } from './profile';
@@ -24,7 +25,7 @@ export const labLevel = (act: number): number => Math.max(1, Math.min(30, 3 + 2 
 
 /** The act a scenario plays at (a camp screen: the last act its profile has cleared). */
 export function labAct(s: LabScenario): number {
-  if (s.setup.kind === 'fight' || s.setup.kind === 'story') return s.setup.act;
+  if (s.setup.kind === 'fight' || s.setup.kind === 'story' || s.setup.kind === 'gallery') return s.setup.act;
   return Math.max(0, (s.profile?.actsCleared ?? 0) - 1);
 }
 
@@ -81,6 +82,8 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
     p.heroes[id].stars = Math.max(1, Math.min(5, Math.round(stars)));
   }
   if (s.setup.kind === 'fight') p.heroes[s.setup.hero].unlocked = true;
+  // (the Finisher gallery shows every hero)
+  if (s.setup.kind === 'gallery') for (const id of HERO_IDS) p.heroes[id].unlocked = true;
   const level = spec.level ?? labLevel(act);
   for (const id of HERO_IDS) if (p.heroes[id].unlocked) p.heroes[id].xp = xpForLevel(t, level);
   // skill nodes learned (a tree option to try): each with the nodes before it in its branch
@@ -92,7 +95,7 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
       for (const prev of at.branch.nodes.slice(0, at.index + 1)) if (!h.skills.includes(prev.id)) h.skills.push(prev.id);
     }
   }
-  const pick = spec.hero ?? (s.setup.kind === 'fight' ? s.setup.hero : s.setup.kind === 'camp' ? s.setup.hero : undefined);
+  const pick = spec.hero ?? (s.setup.kind === 'fight' ? s.setup.hero : s.setup.kind === 'camp' || s.setup.kind === 'gallery' ? s.setup.hero : undefined);
   if (pick && p.heroes[pick].unlocked) p.hero = pick;
   // companions: Pip always, the listed ones, all at a level that fits
   for (const id of spec.pets ?? []) p.pets[id].owned = true;
@@ -150,7 +153,7 @@ export function labFight(s: LabScenario): LabFightPlan | null {
 
 /** The phase a scenario plays in: its fight, its scenes, or the camp (the engine opens the camp screen). Once the
  *  run leaves it the scenario is over (the rating card comes up). */
-export const labHomePhase = (s: LabScenario): 'fight' | 'scene' | 'camp' => (s.setup.kind === 'fight' ? 'fight' : s.setup.kind === 'story' ? 'scene' : 'camp');
+export const labHomePhase = (s: LabScenario): 'fight' | 'scene' | 'camp' => (s.setup.kind === 'fight' || s.setup.kind === 'gallery' ? 'fight' : s.setup.kind === 'story' ? 'scene' : 'camp');
 
 /** Where a scenario plays on the lab's run: its practice fight (then back to the lab's camp), its story scenes, or
  *  the lab's camp (the engine opens the camp screen). The run must be the lab's, built on labProfile. */
@@ -163,7 +166,59 @@ export function startLabScenario(run: Run, s: LabScenario, seed: number): void {
     run.startPractice({ hero: f.hero, stars: f.stars, waves: f.waves, act: f.act, bar: f.bar, row: f.row, safe: f.safe, then: 'camp', seed });
     // the finisher is ready to try at once
     if (f.stacks && run.combat) run.combat.bankStacks(f.stacks, 'testLab');
-  } else if (s.setup.kind === 'story') run.enterAct(s.setup.act, s.setup.scenes);
+  } else if (s.setup.kind === 'gallery') galleryFight(run, s, s.setup.hero ?? galleryHeroes()[0], seed);
+  else if (s.setup.kind === 'story') run.enterAct(s.setup.act, s.setup.scenes);
+}
+
+// ---------------------------------------------------------------- the Finisher gallery
+
+/** Every hero the gallery offers: all of them (a hero added to HEROES shows up here by itself). */
+export const galleryHeroes = (): HeroId[] => HERO_IDS.slice();
+
+/**
+ * The gallery's stage for one hero: a practice fight against the scenario's foes that never plays on its own (no
+ * blocks come, the foes use no specials, nothing hurts the hero; the engine holds its clock between shows). Called
+ * again to switch heroes (a fresh fight as that hero: their own finisher hooks).
+ */
+export function galleryFight(run: Run, s: LabScenario, hero: HeroId, seed: number): void {
+  if (s.setup.kind !== 'gallery') return;
+  const g = s.setup;
+  run.actIndex = g.act;
+  run.startPractice({ hero, stars: 1, waves: [g.foes.slice()], act: g.act, row: 3, safe: true, then: 'camp', seed });
+  const c = run.combat;
+  if (!c) return;
+  c.spawning = false;
+  c.specialsOn = false;
+  for (const b of c.blocks.slice()) c.removeBlock(b, 'expire');
+  c.drainEvents(); // (its opening blocks never showed)
+}
+
+/**
+ * Before each Play: the bar cleared, then two reds and a yellow put on it (to see what this finisher does to them),
+ * every foe at full health with far more than the finisher deals (nobody dies), `stacks` banked (1 to max). Returns
+ * whether the finisher can fire.
+ */
+export function galleryArm(c: Combat, stacks: number): boolean {
+  for (const b of c.blocks.slice()) c.removeBlock(b, 'expire');
+  const foes = c.enemies.filter((e) => e.alive);
+  if (!foes.length) return false;
+  const n = Math.max(1, Math.min(c.maxStacks(), Math.round(stacks)));
+  const dmg = Math.max(1, c.finisherDamage(n));
+  for (const e of foes) {
+    e.maxHp = Math.max(e.maxHp, dmg * 8);
+    e.hp = e.maxHp;
+  }
+  c.spawnBlock('yellow', 0.3);
+  c.spawnBlock('red', 0.55, foes[0].id);
+  c.spawnBlock('red', 0.8, foes[foes.length - 1].id);
+  c.stacks = n;
+  c.meter = 0;
+  return c.finisherReady;
+}
+
+/** After a show: the foes healed back to full (the gallery never wears them down). */
+export function galleryRest(c: Combat): void {
+  for (const e of c.enemies) if (e.alive) e.hp = e.maxHp;
 }
 
 

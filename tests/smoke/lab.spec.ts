@@ -137,6 +137,76 @@ test('the Test lab: open from the title, play and rate two scenarios, copy the r
   expect(errors).toEqual([]);
 });
 
+/** Press one of the Finisher gallery's buttons where it is drawn (game px -> CSS px). */
+async function galleryTap(page: Page, name: string): Promise<void> {
+  const p = (await page.evaluate((name) => {
+    const app = (window as Any).__cq3.app;
+    const r = app.view.gallery.buttons()[name];
+    const l = app.layout;
+    return r ? { x: l.left + ((r.x + r.w / 2) * l.cssW) / 327, y: l.top + ((r.y + r.h / 2) * l.cssH) / 150 } : null;
+  }, name)) as { x: number; y: number } | null;
+  expect(p, name).not.toBeNull();
+  await page.mouse.click(p!.x, p!.y);
+}
+
+test('the Finisher gallery: two heroes played on demand (stacks and rarity picked), nothing dies, Back returns to the lab', async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors: string[] = [];
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  page.on('pageerror', (e) => errors.push(e.message));
+  await ready(page);
+  const a = app(page);
+  await page.click('#btn-lab');
+  await page.click('.lab-item[data-id="finisherGallery"]');
+  await page.click('.lab-btn.go');
+  await expect.poll(() => a((x) => x.view.gallery.active)).toBe(true);
+  // a calm practice fight as the first hero, its clock held, no TAP TO BEGIN
+  expect(await a((x) => ({ phase: x.run.phase, hero: x.run.hero.build.id, safe: x.run.combat.practice, held: x.galleryHold, waiting: x.awaitingBegin, blocks: x.run.combat.blocks.length }))).toEqual({
+    phase: 'fight',
+    hero: 'rowan',
+    safe: true,
+    held: true,
+    waiting: false,
+    blocks: 0,
+  });
+  // big, simple controls: every button a thumb's size or more
+  const btns = (await a((x) => x.view.gallery.buttons())) as Record<string, { w: number; h: number }>;
+  expect(Object.keys(btns).sort()).toEqual(['back', 'heroL', 'heroR', 'play', 'stackL', 'stackR', 'tierL', 'tierR']);
+  for (const [k, r] of Object.entries(btns)) expect(Math.min(r.w, r.h), k).toBeGreaterThanOrEqual(14);
+  await page.screenshot({ path: 'test-results/lab-gallery.png' });
+
+  // Play: Rowan's finisher at 3 stacks; the controls slide away while it plays and come back
+  await page.waitForTimeout(800); // (the foes have walked in)
+  await galleryTap(page, 'play');
+  await expect.poll(() => a((x) => x.view.gallery.played), { timeout: 5000 }).toBe(1);
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'test-results/lab-gallery-rowan.png' });
+  await expect.poll(() => a((x) => x.view.gallery.state), { timeout: 8000 }).toBe('idle');
+  expect(await a((x) => ({ best: x.run.combat.log.bestFinisher, alive: x.run.combat.enemies.every((e: Any) => e.alive), held: x.galleryHold, hp: x.run.hero.hp === x.run.combat.maxHp() }))).toEqual({ best: 3, alive: true, held: true, hp: true });
+
+  // the next hero, one more stack, a rarer show than her own: Play again (it waits for the foes to walk back in)
+  await galleryTap(page, 'heroR');
+  await expect.poll(() => a((x) => x.run.hero.build.id)).toBe('sable');
+  await galleryTap(page, 'stackR');
+  await galleryTap(page, 'tierR');
+  expect(await a((x) => ({ stacks: x.view.gallery.stacks, tier: x.view.gallery.tier }))).toEqual({ stacks: 4, tier: 'legendary' });
+  await galleryTap(page, 'play');
+  await expect.poll(() => a((x) => x.view.gallery.played), { timeout: 6000 }).toBe(2);
+  expect(await a((x) => x.view.fighters.showTier)).toBe('legendary');
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: 'test-results/lab-gallery-sable.png' });
+  await expect.poll(() => a((x) => x.view.gallery.state), { timeout: 8000 }).toBe('idle');
+  expect(await a((x) => ({ best: x.run.combat.log.bestFinisher, alive: x.run.combat.enemies.every((e: Any) => e.alive) }))).toEqual({ best: 4, alive: true });
+
+  // Back: the scenario ends (the rating card over the lab's camp), the clock no longer held
+  await galleryTap(page, 'back');
+  await expect(page.locator('#lab[data-view="rate"]')).toBeVisible();
+  expect(await a((x) => ({ phase: x.run.phase, open: x.view.gallery.active, held: x.galleryHold, tier: x.view.fighters.showTier }))).toEqual({ phase: 'camp', open: false, held: false, tier: null });
+  expect(errors).toEqual([]);
+});
+
 test('every Test lab scenario starts and ends without errors (spoilers included)', async ({ page }) => {
   test.setTimeout(180_000);
   const errors: string[] = [];

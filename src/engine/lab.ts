@@ -150,6 +150,8 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
     home = app.run.phase;
     getScene()?.hud.resetCoins(); // (the coin chip counts the lab's purse, not the last one shown)
     if (s.setup.kind === 'camp') openScreen(s);
+    // the Finisher gallery: its controls over the fight (Back ends it, like Done)
+    if (s.setup.kind === 'gallery') getScene()?.gallery.open(s, end);
   }
 
   /** A camp scenario opens its screen over the lab's camp. */
@@ -184,6 +186,7 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
   function stop(): LabScenario | null {
     const s = playing;
     playing = null;
+    getScene()?.gallery.close();
     if (!s || !app.inLab) return s;
     const run = app.run;
     if (run.phase !== 'camp' || run.practice)

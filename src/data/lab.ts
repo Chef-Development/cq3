@@ -41,7 +41,11 @@ export type LabSetup =
    *  `tiers` one after another (a demo: nothing is granted), from a chest of kind `chest`. */
   | { kind: 'camp'; screen: LabScreen; hero?: HeroId; tiers?: Tier[]; chest?: 'hero' | 'rare' | 'region' }
   /** Story scenes in a row, over act `act`'s stage. */
-  | { kind: 'story'; act: number; scenes: string[] };
+  | { kind: 'story'; act: number; scenes: string[] }
+  /** The Finisher gallery: any hero's finisher on demand (every hero in HEROES, at 1 to max stacks, at any rarity)
+   *  against these foes at act `act`'s stage, as often as wanted; `hero` comes first. Nothing hurts, nothing dies,
+   *  nothing is saved. */
+  | { kind: 'gallery'; act: number; foes: string[]; hero?: HeroId };
 
 /** What the lab's profile holds for a scenario (core/lab.ts builds it on a fresh profile). */
 export interface LabProfileSpec {
@@ -136,7 +140,17 @@ const barRule = (id: string, label: string, tryLine: string, bar: BarRules, tips
 /** This session's new content (playtest round 7: numbers, tips, map sprites and the completion tracker that stay
  *  fixed; the anti-spam balance; a unique finisher per hero; the sharper chest reveal; the companions screen).
  *  Reworked items carry a new rev: a rating given to their earlier version shows as "Reworked" with the old rating. */
-export const LAB_NEW: LabScenario[] = [];
+export const LAB_NEW: LabScenario[] = [
+  // ---- finishers
+  {
+    id: 'finisherGallery',
+    group: 'heroes',
+    label: 'Finisher gallery',
+    secs: 60,
+    try: 'Pick a hero, stacks and rarity. Press Play.',
+    setup: { kind: 'gallery', act: 1, foes: ['slime', 'wolf', 'crow'] },
+  },
+];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,
  *  the first region's Act 1 fight and the later regions (spoilers). */
