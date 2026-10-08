@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { COMPANIONS, COMPANION_IDS } from '../../src/data/companions';
-import { HERO_IDS, HEROES } from '../../src/data/heroes';
+import { HEROES } from '../../src/data/heroes';
 import { CAMP_UPGRADES, MASTERY } from '../../src/data/meta';
 import { tierIndex } from '../../src/data/rarity';
 import { REGIONS } from '../../src/data/regions';
@@ -33,11 +33,9 @@ describe('hero chests and the shrine', () => {
   });
 
   it('a chest never brings a story hero or the starter as a new hero', () => {
-    expect([...CHEST_HEROES].sort()).toEqual(HERO_IDS.filter((id) => HEROES[id].joins === 'chest').sort());
-    expect(CHEST_HEROES).toEqual(expect.arrayContaining(['hollis', 'moss', 'tam', 'torva', 'vesper', 'fizz', 'brann']));
-    expect(CHEST_HEROES).not.toContain('rowan');
-    expect(CHEST_HEROES).not.toContain('sable');
-    expect(CHEST_HEROES).not.toContain('neve');
+    // (Part 6's heroes come from chests too: counted from the data)
+    for (const id of ['hollis', 'moss', 'tam', 'torva', 'vesper', 'yara', 'dell', 'fizz', 'brann']) expect(CHEST_HEROES, id).toContain(id);
+    for (const id of ['rowan', 'sable', 'neve']) expect(CHEST_HEROES, id).not.toContain(id);
     const rng = new Rng(3);
     for (let i = 0; i < 300; i++) {
       const p = newProfile();

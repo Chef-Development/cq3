@@ -9,7 +9,10 @@ import Phaser from 'phaser';
 import { COMPANIONS, type CompanionId } from '../../data/companions';
 import type { AllyKind } from '../../data/heroes';
 import type { FightScene } from '../scene';
+import { STAG_H } from '../art-hero-spirits';
 import { clamp01, ease, PIP_BACK_MS, PIP_SWOOP_MS, rand } from './shared';
+
+const WHITE_SPARK = 0xf4fcff;
 
 type Img = Phaser.GameObjects.Image;
 
@@ -52,8 +55,26 @@ export const PERK_PET: Record<string, CompanionId> = {
 };
 /** Allies' fixed places in the front row (so they never shuffle as others come and go; the Glowmoth hovers by the
  *  hero's shoulder instead), and their colours. */
-const ALLY_SLOT: Record<AllyKind, number> = { thornling: 0, barkback: 1, seedling: 2, glowmoth: 0 };
-export const ALLY_COL: Record<AllyKind, number> = { thornling: 0xb4d058, barkback: 0xb07a44, glowmoth: 0xffe070, seedling: 0x9af06a };
+const ALLY_SLOT: Record<AllyKind, number> = { thornling: 0, barkback: 1, seedling: 2, glowmoth: 0, spiritWolf: 0, spiritTortoise: 1, wispSwarm: 0, spiritStag: 0 };
+export const ALLY_COL: Record<AllyKind, number> = {
+  thornling: 0xb4d058,
+  barkback: 0xb07a44,
+  glowmoth: 0xffe070,
+  seedling: 0x9af06a,
+  // Yara's spirits (Part 6): spirit-light cyan, jade, star white; the Great Spirit stag a bright cyan
+  spiritWolf: 0x7ad8ff,
+  spiritTortoise: 0x6af0c0,
+  wispSwarm: 0xe8e0ff,
+  spiritStag: 0xb0f4ff,
+};
+/** Allies that hover by the hero's shoulder (the Glowmoth, Yara's Wisps) rather than stand in the front row. */
+const hovers = (kind: AllyKind): boolean => kind === 'glowmoth' || kind === 'wispSwarm';
+/** Allies that stand guard (braced, they hold their act pose: a Barkback's bark, a Tortoise's shell). */
+const guards = (kind: AllyKind): boolean => kind === 'barkback' || kind === 'spiritTortoise';
+/** Yara's spirits come and go in spirit light (Moss's allies in leaves). */
+export const isSpirit = (kind: AllyKind): boolean => kind === 'spiritWolf' || kind === 'spiritTortoise' || kind === 'wispSwarm' || kind === 'spiritStag';
+/** The colour of the puff an ally comes and goes in. */
+const puffCol = (kind: AllyKind): number => (isSpirit(kind) ? 0x9ae8ff : 0x78a83c);
 const WALK_MS = 170;
 
 interface PetView {
@@ -201,14 +222,24 @@ export class Party {
     const c = s.app.run.combat;
     for (const v of this.allies.values()) {
       const slot = ALLY_SLOT[v.kind] ?? 0;
-      const moth = v.kind === 'glowmoth';
+      const moth = hovers(v.kind);
+      const stag = v.kind === 'spiritStag';
       const homeX = this.allyHomeX(v.kind);
       v.x += (homeX - v.x) * 0.2;
       const ally = c?.allies.find((x) => x.id === v.id);
       let pose = Math.floor((a + slot * 130) / (moth ? 140 : 320)) % 2 ? '1' : '0';
-      if (a - v.actAt < 260 || (v.kind === 'barkback' && ally?.braced)) pose = 'act';
+      if (a - v.actAt < 260 || (guards(v.kind) && ally?.braced)) pose = 'act';
       let x = v.x;
       let y = moth ? s.ground - 34 + Math.sin(a / 230) * 2 : s.ground + 4;
+      if (stag) {
+        // the Great Spirit (not one of c.allies): it rears and lunges toward the foes as it strikes
+        pose = Math.floor(a / 300) % 2 ? '1' : '0';
+        const sk = (a - v.actAt) / 300;
+        if (sk >= 0 && sk < 1) {
+          pose = 'act';
+          x += Math.round(Math.sin(sk * Math.PI) * 8);
+        }
+      }
       // a Barkback hopping in front of the hero to take a red
       const hk = (a - v.hopAt) / 380;
       if (hk >= 0 && hk < 1) {
@@ -230,6 +261,9 @@ export class Party {
         }
         alpha = 1 - lk;
       } else if (ally && ally.left < 1.5 && Math.floor(a / 110) % 2 === 0) alpha = 0.35; // about to leave
+      else if (stag && (c?.perk.stag ?? 0) < 1 && Math.floor(a / 110) % 2 === 0) alpha = 0.35;
+      // (the spirits shimmer a little: spirit light)
+      if (isSpirit(v.kind)) alpha *= 0.86 + 0.14 * Math.sin(a / 170 + v.id);
       const key = `ally_${v.kind}_${pose}`;
       v.img
         .setTexture(s.textures.exists(key) ? key : `ally_${v.kind}_0`)
@@ -243,12 +277,13 @@ export class Party {
   /** Where an ally stands (the walkers in a row at the hero's feet; the Glowmoth by the hero's shoulder). */
   private allyHomeX(kind: AllyKind): number {
     const s = this.s;
-    return kind === 'glowmoth' ? s.heroHome + 12 : s.heroHome - 19 - (ALLY_SLOT[kind] ?? 0) * 17;
+    if (kind === 'spiritStag') return s.heroHome - 8;
+    return hovers(kind) ? s.heroHome + 12 : s.heroHome - 19 - (ALLY_SLOT[kind] ?? 0) * 17;
   }
 
   /** The middle of an ally's place (where it pops in when called). */
   allyHome(kind: AllyKind): { x: number; y: number } {
-    return { x: this.allyHomeX(kind), y: kind === 'glowmoth' ? this.s.ground - 34 : this.s.ground - 6 };
+    return { x: this.allyHomeX(kind), y: hovers(kind) ? this.s.ground - 34 : kind === 'spiritStag' ? this.s.ground - 18 : this.s.ground - 6 };
   }
 
   /** Where a companion is (for a ring, a bolt). */
@@ -272,7 +307,7 @@ export class Party {
 
   /** Where an ally is (the middle of its sprite). */
   allyPos(kind: AllyKind): { x: number; y: number } | null {
-    for (const v of this.allies.values()) if (v.kind === kind && !v.leaveAt) return { x: v.img.x, y: v.img.y - (v.kind === 'glowmoth' ? 0 : 10) };
+    for (const v of this.allies.values()) if (v.kind === kind && !v.leaveAt) return { x: v.img.x, y: v.img.y - (hovers(v.kind) ? 0 : v.kind === 'spiritStag' ? 24 : 10) };
     return null;
   }
 
@@ -286,7 +321,8 @@ export class Party {
     }
     for (const v of this.allies.values()) {
       if (!v.img.visible || v.leaveAt) continue;
-      if (v.kind === 'glowmoth') shadow(v.img.x, s.ground, 8, 30, 0.5);
+      if (hovers(v.kind)) shadow(v.img.x, s.ground, 8, 30, 0.5);
+      else if (v.kind === 'spiritStag') shadow(v.img.x, s.ground + 4, 26, 0, 0.6);
       else shadow(v.img.x, s.ground + 4, 10, Math.max(0, s.ground + 4 - v.img.y));
     }
   }
@@ -377,12 +413,22 @@ export class Party {
     const col = ALLY_COL[kind];
     if (action === 'call') {
       const x = this.allyHomeX(kind);
-      const img = s.add.image(x, s.ground + 4, `ally_${kind}_0`).setOrigin(0.5, kind === 'glowmoth' ? 0.5 : 20 / 22).setVisible(false);
-      s.actors.add(img);
+      const img = s.add.image(x, s.ground + 4, `ally_${kind}_0`).setOrigin(0.5, hovers(kind) ? 0.5 : kind === 'spiritStag' ? (STAG_H - 2) / STAG_H : 20 / 22).setVisible(false);
+      // (the Great Spirit stands tall behind the hero)
+      if (kind === 'spiritStag') s.actors.addAt(img, 0);
+      else s.actors.add(img);
       this.allies.set(id, { id, kind, img, bornAt: s.anim + delay, actAt: -1e9, hopAt: -1e9, leaveAt: 0, x });
-      const y = kind === 'glowmoth' ? s.ground - 34 : s.ground - 4;
+      const y = hovers(kind) ? s.ground - 34 : kind === 'spiritStag' ? s.ground - 20 : s.ground - 4;
+      if (kind === 'spiritStag') {
+        // the Great Spirit comes down in a column of starlight
+        s.fx.glow(x, s.ground - 20, 30, col, 520, s.ground);
+        s.fx.ring(x, s.ground - 20, 26, col, true);
+        s.fx.burst(x, s.ground - 30, WHITE_SPARK, 16, true, 1.2, true);
+        s.fx.dust(x, s.ground + 4, 8, 0, 1.2);
+        return;
+      }
       s.later(delay, () => {
-        s.fx.burst(x, y, 0x78a83c, 10, true, 0.8);
+        s.fx.burst(x, y, puffCol(kind), 10, true, 0.8);
         s.fx.burst(x, y, col, 5, true, 0.6);
         s.fx.ring(x, y, 12, col, true);
         s.fx.dust(x, s.ground + 4, 4, 0, 0.8);
@@ -402,7 +448,7 @@ export class Party {
     if (!v) return;
     if (action === 'leave') {
       v.leaveAt = s.anim;
-      s.fx.burst(v.img.x, v.img.y - 8, 0x78a83c, 8, true, 0.7);
+      s.fx.burst(v.img.x, v.img.y - 8, puffCol(kind), 8, true, 0.7);
       s.fx.dust(v.img.x, s.ground + 4, 5, 0, 0.9);
       return;
     }
@@ -414,6 +460,8 @@ export class Party {
     // act: its act frame, and a little glow in its colour
     v.actAt = s.anim;
     if (kind === 'glowmoth') s.fx.glow(v.img.x, v.img.y, 10, 0xffe070, 260);
+    else if (kind === 'wispSwarm') s.fx.glow(v.img.x, v.img.y, 9, col, 240);
+    else if (kind === 'spiritStag') s.fx.glow(v.img.x + 8, v.img.y - 20, 18, col, 260);
     else if (kind === 'seedling') s.fx.burst(v.img.x + 6, v.img.y - 6, 0x9af06a, 6, true, 0.7);
   }
 }

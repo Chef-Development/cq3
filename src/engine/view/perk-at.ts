@@ -247,6 +247,37 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   seething: ['tab', 'hero'],
   payback: ['cursor'],
   berserk: ['bar', 'foe'],
+  // ---- Yara (Part 6): her spirits (their 'ally' events: view/party.ts and onsite.ally), her kit and nodes
+  spiritWolf: ['bolt'], // the Wolf bites its target
+  spiritTortoise: ['left'], // the shell took the red at the left end (its slab: bar-kinds BLOCKER_FACE)
+  wispSwarm: ['show'], // the wisps fly into the meter (onsite.ally)
+  spiritStag: ['bolt'], // the Great Spirit strikes each foe (from the stag)
+  greatSpirit: ['show'], // the stag comes down in a column of starlight (party.ts)
+  kinship: ['foe'], // a crit with spirits out: their light on the foe
+  spiritStampede: ['cleared'], // the traps the spirits trampled
+  longFang: ['ally'],
+  twinBite: ['bolt'], // from the Wolf to the other foe
+  huntingCall: ['ally', 'foe'],
+  quickShell: ['ally'],
+  spikedShell: ['bolt'], // from the Tortoise to the red's owner
+  stoneWard: ['bolt'],
+  brightWisps: ['ally'],
+  longBond: ['show'], // a ring on every spirit (onsite.special)
+  thunderhoof: ['reds'],
+  // ---- Dell (Part 6)
+  luckyShot: ['bar', 'foe'], // the Perfect green and the foe its crit shot hits
+  ricochetShot: ['bounce'], // from the foe the shot hit to the one it bounced to
+  pocketful: ['meter'], // the meter's fill kept through a miss
+  pebbleStorm: ['reds'], // every red knocked back
+  hardBounce: ['bar'],
+  luckyBounce: ['bar'],
+  pinball: ['bar', 'foes'],
+  fullPouch: ['tab'],
+  fourLeaf: ['tab'],
+  luckyStreak: ['bar', 'foe'],
+  hailstones: ['show'], // (the finisher's own show)
+  bigKnock: ['reds'],
+  pelt: ['foeReds'],
   // ---- Part 6 companions (their looks: view/onsite-pets.ts)
   prickly: ['show'], // Burr curls up and spines fly from him into the foe whose red hit you
   wakeSong: ['show'], // Lark's note flies to the next yellow and glows on it until it's hit
@@ -304,6 +335,13 @@ export const PERK_ALLY: Record<string, AllyKind> = {
   thornRush: 'thornling',
   rooted: 'thornling',
   quickBrace: 'barkback',
+  // ---- Yara (Part 6): her nodes' spirits (a 'bolt' of one of them starts at that spirit: fighters.perkFx)
+  longFang: 'spiritWolf',
+  twinBite: 'spiritWolf',
+  huntingCall: 'spiritWolf',
+  quickShell: 'spiritTortoise',
+  spikedShell: 'spiritTortoise',
+  brightWisps: 'wispSwarm',
 };
 
 /**

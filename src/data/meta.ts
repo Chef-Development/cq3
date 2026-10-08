@@ -84,6 +84,14 @@ export const MASTERY: MasteryDef[] = [
   boss('torva', { kind: 'cosmetic', id: 'bannerTorva', name: "Torva's banner" }, 'A banner for the camp'),
   // part6:A
   // part6:B
+  lv('yara', 5, { kind: 'relic', relic: 'evergreen' }, 'Relic: Evergreen'),
+  acts('yara', 3, { kind: 'gems', n: 40 }, '40 gems'),
+  lv('yara', 10, { kind: 'gems', n: 50 }, '50 gems'),
+  boss('yara', { kind: 'cosmetic', id: 'bannerYara', name: "Yara's banner" }, 'A banner for the camp'),
+  lv('dell', 5, { kind: 'relic', relic: 'luckyPenny' }, 'Relic: Lucky Penny'),
+  acts('dell', 3, { kind: 'gems', n: 30 }, '30 gems'),
+  lv('dell', 10, { kind: 'gems', n: 40 }, '40 gems'),
+  boss('dell', { kind: 'cosmetic', id: 'bannerDell', name: "Dell's banner" }, 'A banner for the camp'),
   // part6:C
   // part6:D
   lv('fizz', 5, { kind: 'relic', relic: 'frostRune' }, 'Relic: Frost Rune'),

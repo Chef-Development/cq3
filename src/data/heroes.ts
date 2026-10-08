@@ -12,6 +12,7 @@ export type HeroId =
   // round 7 (Part 6): a second hero per style; each agent adds its ids after its own marker
   // part6:A
   // part6:B
+  | 'yara' | 'dell'
   // part6:C
   // part6:D
   | 'fizz' | 'brann'
@@ -20,6 +21,7 @@ export const HERO_IDS: HeroId[] = [
   'rowan', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva',
   // part6:A
   // part6:B
+  'yara', 'dell',
   // part6:C
   // part6:D
   'fizz', 'brann',
@@ -49,7 +51,11 @@ export interface Strength {
 }
 
 /** Summoner allies: who a green hit calls, and what each one does. */
-export type AllyKind = 'thornling' | 'barkback' | 'glowmoth' | 'seedling';
+export type AllyKind =
+  | 'thornling' | 'barkback' | 'glowmoth' | 'seedling'
+  // Yara's spirits (Part 6), and the Great Spirit a Rally of hers calls (it comes and goes on its own, never one of
+  // the three a call counts)
+  | 'spiritWolf' | 'spiritTortoise' | 'wispSwarm' | 'spiritStag';
 
 export interface HeroDef {
   id: HeroId;
@@ -240,6 +246,48 @@ export const HEROES: Record<HeroId, HeroDef> = {
   },
   // part6:A
   // part6:B
+  yara: {
+    id: 'yara',
+    name: 'Yara',
+    style: 'summoner',
+    rarity: 'mythic',
+    title: 'Spirit Caller',
+    bio: 'Talks to the stars. They owe her favours.',
+    signature: part('Spirit Bond', 'Spirits come in order and grow with your Companion stat; with all 3 out, a call is a Rally.', 'Calls the spirits.'),
+    ability: part('Call', 'Green hits call the next spirit: Wolf, Tortoise, Wisps.', 'Green hits call spirits.'),
+    passive: part('Kinship', 'Each spirit out adds {n}% crit chance.', 'Luckier with spirits out.'),
+    finisher: { name: 'Spirit Stampede', text: 'The spirits charge every foe, more per spirit out; reds and traps go.', short: 'Spirits trample all.', bar: 'Clears reds and traps' },
+    gift: part('Great Spirit', 'A Rally calls the great spirit stag for a few seconds: it strikes every foe.', 'A Rally calls the stag.'),
+    strengths: [{ tag: 'swarm', kind: 'guard', n: 0.2 }],
+    joins: 'chest',
+    meetScene: 'meetYara',
+    stars: [
+      part('Shell Ward', "The Tortoise's shell takes two reds.", 'The shell holds longer.'),
+      part('Elder Stag', 'The Great Spirit stays twice as long.', 'The stag stays longer.'),
+    ],
+    art: 'yara',
+    allies: ['spiritWolf', 'spiritTortoise', 'wispSwarm'],
+  },
+  dell: {
+    id: 'dell',
+    name: 'Dell',
+    style: 'marksman',
+    rarity: 'rare',
+    title: 'Slinger',
+    bio: 'Scares crows for a living. Mostly.',
+    signature: part('Ricochet', "The Power Shot bounces to the weakest other foe for {n}%.", 'Shots bounce on.'),
+    ability: part('Lucky Shot', 'A Perfect green crits, and so does its Power Shot.', 'Perfect greens crit.'),
+    passive: part('Pocketful', "A miss doesn't empty your meter (it still breaks the combo).", 'Misses cost less.'),
+    finisher: { name: 'Pebble Storm', text: 'Pebbles hail on every foe and knock every red back; far ones fly off.', short: 'Hits all, knocks reds back.', bar: 'Knocks reds back' },
+    strengths: [{ tag: 'flyer', kind: 'dmg', n: 0.2 }],
+    joins: 'chest',
+    meetScene: 'meetDell',
+    stars: [
+      part('Skip Stone', 'Ricochet bounces on to one more foe.', 'Bounces once more.'),
+      part('Stunner', 'A Lucky Shot stuns its foe.', 'Lucky Shots stun.'),
+    ],
+    art: 'dell',
+  },
   // part6:C
   // part6:D
   // ---- Fizz and Brann (Part 6): a second Bomber and a second Guardian

@@ -8,7 +8,7 @@ import { isAttack, isRed } from './blocks';
 import type { Block, Combat, Enemy } from './combat';
 import type { HeroBuild } from './heroes';
 import type { FightHooks } from './hooks';
-import { addFocus, addGuard, dropKeg, focusCap, focusOf, guardOf, powerShot, spendGuard } from './styles';
+import { addFocus, addGuard, allyPower, dropKeg, focusCap, focusOf, guardOf, powerShot, spendGuard } from './styles';
 import { BRANN_KIT, FIZZ_KIT } from './kit-fizz-brann';
 
 const K = (c: Combat) => c.tuning.kits;
@@ -359,11 +359,157 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
   },
   // part6:A
   // part6:B
+  // ---- Yara (Part 6): Spirit Bond and Call are the Summoner style's (core/styles.ts: her Wolf, Tortoise and Wisps)
+  yara: {
+    // Kinship: each spirit out adds crit chance (named when a hit crits with spirits out)
+    critChance: (c, x, v) => (x.echo ? v : v + K(c).yara.kinship * c.allies.length),
+    afterHit: (c, x) => {
+      if (x.crit && !x.echo && c.allies.length) c.perkFx('kinship', c.allies.length, x.target?.id ?? 0, x.block.pos);
+      greatSpirit(c);
+    },
+    // Great Spirit (her Mythic gift): a Rally calls the stag, which strikes every foe while it stays
+    step: (c) => {
+      greatSpirit(c);
+      stepStag(c);
+    },
+    // the Tortoise's shell took its share of this red (core/styles.ts: impact): the rest lands (a hit: the combo breaks)
+    hurt: (c, amount, source) => {
+      if ((source !== 'red' && source !== 'bomb') || c.perk.shellSoakAt !== c.time) return amount;
+      c.perk.shellSoakAt = -1;
+      return amount * (1 - (c.perk.shellSoak ?? 1));
+    },
+    // Spirit Stampede: every foe, more per spirit out; the reds go (the core's), and the spirits trample the traps
+    finisher: (c, _x, v) => v * (1 + K(c).yara.stampede * c.allies.length),
+    afterFinisher: (c) => {
+      let n = 0;
+      for (const b of c.blocks.slice())
+        if (b.kind === 'purple') {
+          c.removeBlock(b, 'perk');
+          n++;
+        }
+      c.perkFx('spiritStampede', n);
+    },
+  },
+  // ---- Dell (Part 6): Focus and the Power Shot are the Marksman style's
+  dell: {
+    // Lucky Shot: a Perfect green crits, so the Power Shot it fires does too (the style fires it with the hit's crit)
+    critChance: (_c, x, v) => (x.green && x.perfect && !x.echo ? Math.max(v, 1) : v),
+    afterHit: (c, x) => {
+      if (!x.green || x.echo) return;
+      if (x.perfect) {
+        c.perkFx('luckyShot', 0, x.target?.id ?? 0, x.block.pos);
+        // 5 stars: the Lucky Shot stuns its foe
+        if (c.stars >= 5 && x.target?.alive && !c.result) c.stun(x.target, K(c).dell.luckyStun);
+      }
+      // Ricochet: the Power Shot just fired bounces on
+      ricochet(c);
+    },
+    // Pocketful: a miss keeps the meter's fill toward the next stack (the combo and the stacks still go)
+    comboBreak: (c, x) => {
+      if (x.cause !== 'miss' || x.stacks >= c.maxStacks() || x.meter <= 0) return;
+      x.keepMeter = Math.max(x.keepMeter, Math.min(x.meter, 0.999));
+      c.perkFx('pocketful');
+    },
+    // Pebble Storm: every foe; the reds stay on the bar to be knocked back, and one knocked past the far end goes
+    // off it (as does an icicle, which can't move: it shatters)
+    finisher: (c, x, v) => {
+      x.reds = 'keep';
+      return v * K(c).dell.stormMult;
+    },
+    afterFinisher: (c) => {
+      const d = K(c).dell.stormKnock * (c.perk.stormKnock ?? 1);
+      let n = 0;
+      for (const b of c.blocks.filter((r) => isRed(r.kind)).sort((a, b) => b.pos - a.pos)) {
+        if (b.still || b.pos + b.push + d > 1 - b.width / 2) c.removeBlock(b, 'perk');
+        else c.pushBack(b, d);
+        n++;
+      }
+      c.perkFx('pebbleStorm', n);
+    },
+  },
   // part6:C
   // part6:D
   fizz: FIZZ_KIT,
   brann: BRANN_KIT,
 };
+
+// ---------------------------------------------------------------- Yara and Dell (Part 6)
+
+const DT = 1 / 120;
+
+/** Great Spirit: a Rally (core/styles.ts counts them in c.perk.rallies) calls the great spirit stag, or keeps it longer
+ *  if it's out. Its state: c.perk.stag (seconds left), stagTimer (to its next strike), stagId (its 'ally' events'). */
+function greatSpirit(c: Combat): void {
+  const n = c.perk.rallies ?? 0;
+  if (n === (c.perk.stagRally ?? 0)) return;
+  c.perk.stagRally = n;
+  if (c.result) return;
+  const sec = K(c).yara.stagSec * (c.stars >= 5 ? 2 : 1);
+  if (!(c.perk.stag > 0)) {
+    c.perk.stagId = c.perk.allyId = (c.perk.allyId ?? 0) + 1;
+    c.perk.stagTimer = Math.min(0.3, K(c).yara.stagEvery);
+    c.events.push({ type: 'ally', kind: 'spiritStag', action: 'call', id: c.perk.stagId, power: allyPower(c) });
+  }
+  c.perk.stag = sec;
+  c.perkFx('greatSpirit');
+}
+
+/** The stag strikes every foe every kits.yara.stagEvery s while it stays (waiting between waves), then goes. */
+function stepStag(c: Combat): void {
+  if (!(c.perk.stag > 0)) return;
+  c.perk.stag -= DT;
+  if (c.perk.stag <= 0) {
+    c.perk.stag = 0;
+    c.events.push({ type: 'ally', kind: 'spiritStag', action: 'leave', id: c.perk.stagId });
+    return;
+  }
+  c.perk.stagTimer -= DT;
+  if (c.perk.stagTimer > 0 || !c.frontEnemy() || c.result) return;
+  c.perk.stagTimer = K(c).yara.stagEvery;
+  const power = allyPower(c);
+  const dmg = c.stats().atk * K(c).yara.stagDmg * power;
+  const foes = c.aliveFoes();
+  for (const e of foes) c.strike(e, dmg, 'spiritStag');
+  c.events.push({ type: 'ally', kind: 'spiritStag', action: 'act', id: c.perk.stagId, amount: Math.round(dmg), power });
+  c.perk.stagStrikes = (c.perk.stagStrikes ?? 0) + 1;
+}
+
+/** Whether the great spirit stag is out now. */
+export const stagOut = (c: Combat): boolean => c.perk.stag > 0;
+
+/** The Power Shot a green just fired (the style's afterHit fires it before the kit's): its damage, foe and crit,
+ *  read from the events since the green's own 'hit'. */
+function lastShot(c: Combat): { dmg: number; target: Enemy | undefined; crit: boolean } | null {
+  let dmg = 0;
+  let target: Enemy | undefined;
+  let crit = false;
+  for (let i = c.events.length - 1; i >= 0; i--) {
+    const e = c.events[i];
+    if (e.type === 'hit') break;
+    if (e.type === 'enemyHurt' && e.perk === 'powerShot') crit = e.crit;
+    if (e.type === 'perk' && e.id === 'powerShot') {
+      dmg = e.amount;
+      target = c.enemyById(e.enemyId);
+    }
+  }
+  return dmg > 0 ? { dmg, target, crit } : null;
+}
+
+/**
+ * Ricochet: the Power Shot bounces on to the weakest other foe (the least HP left) for kits.dell.ricochet of it (Hard
+ * Bounce: more); 3 stars: on to one more; Pinball: to every other foe. Lucky Bounce: a crit shot's bounces crit too.
+ * Skill nodes set c.perk.ricochetShare, pinball and luckyBounce at the start of the fight.
+ */
+function ricochet(c: Combat): void {
+  if (c.result) return;
+  const shot = lastShot(c);
+  if (!shot) return;
+  const others = c.aliveFoes().filter((e) => e !== shot.target).sort((a, b) => a.hp - b.hp || a.slot - b.slot);
+  const n = c.perk.pinball ? others.length : c.stars >= 3 ? 2 : 1;
+  const share = c.perk.ricochetShare ?? K(c).dell.ricochet;
+  const crit = shot.crit && !!c.perk.luckyBounce;
+  for (const e of others.slice(0, n)) c.strike(e, shot.dmg * share, 'ricochetShot', crit);
+}
 
 function quake(c: Combat): void {
   let n = 0;

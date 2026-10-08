@@ -40,6 +40,7 @@ export type CampSpeaker =
   | BanterSpeaker | 'smith' | 'neve' | 'moss' | 'tam' | 'hollis' | 'vesper' | 'torva'
   // part6:A
   // part6:B
+  | 'yara' | 'dell'
   // part6:C
   // part6:D
   | 'fizz' | 'brann'
@@ -126,6 +127,24 @@ export const HERO_BANTER: HeroBanterLine[] = [
   { who: 'rowan', text: 'Torva hugged me. My armor folded.', with: ['torva'] },
   { who: 'sable', text: 'Torva, carry the loot? All of it?', with: ['torva'] },
   { who: 'smith', text: "Torva's hammer? Second best here.", with: ['torva'] },
+
+  // ---- Yara (Part 6): a calm young spirit caller, a little otherworldly, very fond of her spirits
+  { who: 'yara', text: 'The stars say hello. They say it slowly.' },
+  { who: 'yara', text: 'Wolf wants to play fetch. With a boar.' },
+  { who: 'yara', text: 'Tortoise is older than this forest.' },
+  { who: 'yara', text: 'Shh. The fire spirit is telling a story.' },
+  { who: 'yara', text: 'Moss, your trees gossip about you.', with: ['moss'] },
+  { who: 'pip', text: 'Hoo. The wisps nest in my feathers now.', with: ['yara'] },
+  { who: 'rowan', text: "Yara's wolf ate my boot. A spirit boot?", with: ['yara'] },
+
+  // ---- Dell (Part 6): a cheerful farm kid, a little too keen with the slingshot
+  { who: 'dell', text: 'Pebbles in my boots again. Ow.' },
+  { who: 'dell', text: 'Miss the farm. Not the chores, though.' },
+  { who: 'dell', text: 'Can I roast corn on this? Asking for me.' },
+  { who: 'dell', text: 'Ma says aim small, miss small.' },
+  { who: 'dell', text: 'Vesper! Teach me the bow? Please?', with: ['vesper'] },
+  { who: 'vesper', text: 'Dell. A slingshot. Adorable. Lower it.', with: ['dell'] },
+  { who: 'smith', text: 'Dell. My anvil is NOT a target.', with: ['dell'] },
 
   // ---- Part 6. Fizz: a wild, cheerful alchemist who brews by the fire (and blows things up, carefully-ish)
   { who: 'fizz', text: 'This fire is boring. One drop of red?' },

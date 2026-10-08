@@ -27,12 +27,13 @@ import type { Tier } from '../../data/rarity';
 import type { FightScene } from '../scene';
 import { HERO_FEET_X, HERO_W, ICONS } from '../art';
 import { GAME_W } from '../layout';
+import { textWidth } from '../font';
 import { hpBar, icon } from './pixels';
 import { perkColor, perkName, perkSource, TAG_FACE } from './relic-ui';
 import { FOE_ICONS } from './icons';
 import { ALLY_COL, Party, PERK_PET } from './party';
 import { BLOCKER_FACE } from './bar-kinds';
-import { PERK_AT } from './perk-at';
+import { PERK_ALLY, PERK_AT } from './perk-at';
 import { FinisherShow } from './finishers';
 import type { HeroMotion } from './finisher-signatures';
 import {
@@ -77,9 +78,9 @@ const SWORD_TIP: Record<string, [number, number]> = {
 /** The frame to use for a pose a hero doesn't have (their own first, then Rowan's). */
 const HERO_ALT: Record<string, string> = { slashX: 'slashB', fang: 'slashA', down: 'hurt', fin: 'slashB', cast: 'windup' };
 /** Perks that never name themselves in the lane (the allies' own doings, shown on them). */
-const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally']);
+const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally', 'spiritWolf', 'wispSwarm', 'spiritStag']);
 /** Allies whose perk is a blow or a heal: the bolt starts at the ally (not the hero). */
-const ALLY_PERK = new Set(['thornling', 'glowmoth', 'seedling']);
+const ALLY_PERK = new Set(['thornling', 'glowmoth', 'seedling', 'spiritWolf', 'spiritStag']);
 /** Perks that heal (their amount is HP; any relic tagged Sustain does too). */
 const HEAL_PERKS = new Set(['photosynthesis', 'vampiricFang', 'glowmoth', 'mend', 'rimewalker', 'sanctuary', 'hotCocoa']);
 
@@ -650,7 +651,10 @@ export class Fighters {
     const name = heroDef(id as HeroId).finisher.name;
     const title = n > 1 ? `${name} x${n}!` : `${name}!`;
     // (over the HUD, not in the world: the act's name and the foe pips sat on top of it; it doesn't shake either)
-    fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, n >= 2 ? 3 : 2, true, 0, -6, 0, ms * 0.95, false);
+    // (a long name steps down a size so the title stays on screen: Part 6's "Spirit Stampede x3!" ran off it)
+    const big = n >= 2 ? 3 : 2;
+    const fit = Math.max(1, Math.min(big, Math.floor((GAME_W - 12) / Math.max(1, textWidth(title, 1, true)))));
+    fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, fit, true, 0, -6, 0, ms * 0.95, false);
     // the last blow (three or more foes side by side: smaller numbers, so they read)
     const crowd = views.length > 2;
     let row = 0;
@@ -725,8 +729,10 @@ export class Fighters {
     const h = this.h;
     s.hud.perkKicked(id);
     const relic = relicById(id);
-    const ally = ALLY_PERK.has(id) ? this.party.allyPos(id as AllyKind) : null;
-    const col = relic ? TAG_FACE[relic.tags[0]][1] : ally ? ALLY_COL[id as AllyKind] : perkSource(id) === 'skill' ? 0x9ad8ff : 0xc8a0ff;
+    // (a node's blow that one of Yara's spirits strikes starts at that spirit too: PERK_ALLY)
+    const kin = PERK_AT[id]?.includes('bolt') ? PERK_ALLY[id] : undefined;
+    const ally = ALLY_PERK.has(id) ? this.party.allyPos(id as AllyKind) : kin ? this.party.allyPos(kin) : null;
+    const col = relic ? TAG_FACE[relic.tags[0]][1] : ally && ALLY_PERK.has(id) ? ALLY_COL[id as AllyKind] : perkSource(id) === 'skill' ? 0x9ad8ff : 0xc8a0ff;
     const v = enemyId ? this.enemies.get(enemyId) : undefined;
     // a companion's perk: it flares; a blocker took a red at the bar's left end: its slab there
     const pet = PERK_PET[id];

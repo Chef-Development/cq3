@@ -40,6 +40,7 @@ import {
   type ShowCtx,
 } from './finisher-fx';
 import { arrow, heaterShield, rockSpike, vine } from './finisher-kits';
+import { PART6B_SIGNATURES } from './finisher-signatures-b';
 import { FIZZ_BRANN_MARKS, GRAND_REACTION, GREAT_BELL } from './finisher-sig-fizz-brann';
 
 /** Where the hero is and how they look at a moment of the show. */
@@ -928,6 +929,8 @@ export const SIGNATURE_DRAW: Record<SignatureId, SignatureDraw> = {
   earthSplit: EARTH_SPLIT,
   // part6:A
   // part6:B
+  spiritStampede: PART6B_SIGNATURES.spiritStampede,
+  pebbleStorm: PART6B_SIGNATURES.pebbleStorm,
   // part6:C
   // part6:D
   grandReaction: GRAND_REACTION,

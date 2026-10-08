@@ -151,7 +151,9 @@ export function drawStyleChip(s: FightScene, g: G, texts: TextPool, c: Combat, x
     if (n <= 0 && !o.empty) return null;
     const all = kinds.every((k) => c.allies.some((a) => a.kind === k));
     const r = chip(10 + kinds.length * 5, all ? 0xffe680 : null);
-    icon(g, GLYPHS.leaf, r.x + 1, r.y + 1, n > 0 ? 0x9af06a : 0x5a8a4a);
+    // (Yara's spirits: a rune in spirit light; Moss's grove: a leaf)
+    const yara = c.heroId === 'yara';
+    icon(g, yara ? GLYPHS.rune : GLYPHS.leaf, r.x + 1, r.y + 1, n > 0 ? (yara ? 0x9ae8ff : 0x9af06a) : yara ? 0x4a7a8a : 0x5a8a4a);
     kinds.forEach((k, i) => {
       const out = c.allies.some((a) => a.kind === k);
       const px = r.x + 10 + i * 5;

@@ -687,3 +687,17 @@ Q5. **Result on 400 runs per hero** (two seed sets: a 200-run gap moved by up to
     strength at the Boar King), Moss Act 9 (+13: Swarms before the last boss), Torva Act 5 (+13: +10 and +17 on the two
     samples), Sable Act 5 (+12: Casters in the second region). Every hero is ahead at the Boar King: closing that would
     mean changing Rowan or the boss, which would move the new heroes' reference, so it waits for the playtester's word.
+H13. **Yara (Summoner, Mythic):** greens call her spirits in order (a Wolf that bites, a Tortoise whose shell softens
+    the next red, Wisps that fill the meter); with all three out a call is a Rally; Kinship adds crit per spirit; her
+    finisher, Spirit Stampede, charges every spirit through the foes (more per spirit) and clears the traps. Her gift,
+    Great Spirit: a Rally calls a spirit stag for 4 s that strikes every foe each second. The Summoner style became
+    data-driven (a summoner lists its ally kinds; blockers are marked), Moss unchanged.
+H14. **Yara's Tortoise softens a red (takes 25%) instead of stopping it:** at 75% a boss red is about a third of her HP,
+    and even one full block a fight kept her about 25 points ahead at the Boar King; a new Tortoise also waits out the
+    last one's rest (it used to block on every call). Her soft strength is Swarms (the design's Beasts would hit all
+    three region bosses).
+H15. **Dell (Marksman, Rare):** Ricochet (the Power Shot bounces to the weakest other foe for 35%), Lucky Shot (a
+    Perfect green crits), Pocketful (a miss keeps the meter's fill toward the next stack: a Marksman never loses Focus
+    on a miss, so the design's line would have done nothing), Pebble Storm (a hail on every foe that knocks the reds
+    back; one knocked past the far end leaves the bar: knocked back only, every red came again).
+H16. **Parity (200 runs x two seed sets, 75%):** Yara -4.5 to +9, Dell -4.5 to +9.5 against Rowan in every act.

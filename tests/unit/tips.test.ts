@@ -534,7 +534,8 @@ describe('the coach', () => {
     expect(take({ preFight: true })).toBe('kitMoss');
     // every hero but Rowan has one, each fits the card, and none shows mid-fight
     for (const d of TIPS.filter((x) => x.hero)) expect(d.fight).toBe('pre');
-    expect(new Set(TIPS.filter((x) => x.hero).map((x) => x.hero)).size).toBe(HERO_IDS.length - 1); // (every hero but Rowan)
+    // (every hero but Rowan: counted from the data, Part 6's new heroes too)
+    expect(new Set(TIPS.filter((x) => x.hero).map((x) => x.hero)).size).toBe(HERO_IDS.length - 1);
     expect(TIPS.some((x) => x.hero === 'rowan')).toBe(false);
   });
 });

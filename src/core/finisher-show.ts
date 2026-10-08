@@ -50,6 +50,8 @@ export type SignatureId =
   // round 7 (Part 6): the second hero of each style
   // part6:A
   // part6:B
+  | 'spiritStampede'
+  | 'pebbleStorm'
   // part6:C
   // part6:D
   | 'grandReaction'
@@ -84,6 +86,8 @@ export const SIGNATURES: Record<SignatureId, SignatureSpec> = {
   earthSplit: { name: 'a towering leap, the earth splits to the foes and erupts in rock and fire', move: 'leap' },
   // part6:A
   // part6:B
+  spiritStampede: { name: 'stars join into a stag; her spirits stampede through every foe, then the great stag leaps down' },
+  pebbleStorm: { name: 'pebbles ping from foe to foe; his lucky golden pebble hops through them all' },
   // part6:C
   // part6:D
   grandReaction: { name: 'three flasks hang over the foes, pour fire, frost and spark, then smash into one great bubble' },
@@ -110,6 +114,8 @@ export const HERO_SIGNATURE: Readonly<Record<string, SignatureId>> = {
   torva: 'earthSplit',
   // part6:A
   // part6:B
+  yara: 'spiritStampede',
+  dell: 'pebbleStorm',
   // part6:C
   // part6:D
   fizz: 'grandReaction',

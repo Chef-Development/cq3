@@ -101,6 +101,9 @@ export type TipId =
   | 'kitHollis'
   | 'kitVesper'
   | 'kitTorva'
+  // round 7 (Part 6): the new heroes' how-to cards
+  | 'kitYara'
+  | 'kitDell'
   // ---- Part 6: Fizz and Brann
   | 'kitFizz'
   | 'kitBrann';
@@ -170,6 +173,8 @@ export const TIPS: readonly TipDef[] = [
   { id: 'kitTorva', hero: 'torva', lines: ['Torva: a green winds up a smash.', 'It grows with your combo!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // part6:A
   // part6:B
+  { id: 'kitYara', hero: 'yara', lines: ['Yara: greens call spirits, in turn.', 'All 3 out? A Rally calls the stag!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'kitDell', hero: 'dell', lines: ['Dell: greens fire your Focus.', 'A Perfect one crits and bounces!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // part6:C
   // part6:D
   { id: 'kitFizz', hero: 'fizz', lines: ['Fizz: kegs are flasks: fire, frost,', 'spark. A green throws one!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },

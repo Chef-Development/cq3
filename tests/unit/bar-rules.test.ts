@@ -334,7 +334,7 @@ describe('the third region: drifting blocks and linked pairs', () => {
   });
 
   it('every hero can finish a linked pair and hit a drifting block', () => {
-    for (const hero of ['rowan', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva', 'fizz', 'brann'] as const) {
+    for (const hero of ['rowan', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva', 'yara', 'dell', 'fizz', 'brann'] as const) {
       const { c, t } = setup({ enemies: ['bandit'], hero });
       pair(c);
       go(c, timeAt(t, 0.4));

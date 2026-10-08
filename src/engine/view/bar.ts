@@ -907,6 +907,7 @@ export class BarView {
     // (in the order they'd take a red: the style's ally, the kit's afterimage, then the companion; the first nearest)
     const ready: string[] = [];
     if (c.allies.some((a) => a.kind === 'barkback' && a.braced)) ready.push('barkback');
+    if (c.allies.some((a) => a.kind === 'spiritTortoise' && a.braced)) ready.push('spiritTortoise'); // (Yara's, Part 6)
     if (c.perk.afterimage) ready.push('afterimage');
     if (c.perk.rockReady) ready.push('rockWall');
     for (const id of [...this.readyAt.keys()]) if (!ready.includes(id)) this.readyAt.delete(id);
