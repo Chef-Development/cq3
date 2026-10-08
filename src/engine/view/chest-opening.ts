@@ -27,6 +27,9 @@ import { HERO_FEET_X } from '../art';
 import { BIG_CHEST } from '../art-chests';
 import { textWidth } from '../font';
 import { D, familyChipW, GOLD_TXT, type CampKit } from './camp-kit';
+import { ChestHd, REVEAL_STAR_AT, type HdScene } from './chest-hd';
+import { loadChestReveal } from '../storage';
+import type { HdLayerRect } from '../hd-layer';
 import { star } from './loot';
 import { chevron, gauge, glow, GOLD, hudIcon, rows } from './pixels';
 import { clamp01, easeBack, easeOut3, mix, pulse, WHITE } from './shared';
@@ -168,6 +171,19 @@ const DD = {
   flash: D.top + 0.0095,
 };
 
+/**
+ * Which reveal draws (the opening itself is shared: its timeline, taps, sounds and queue): the game's own ('old', the
+ * default), the sharper test on a finer grid ('hd', chest-hd.ts; the 'cq3.chestReveal' setting), or both side by
+ * side ('split': the Test lab's compare, old in the left half, new in the right).
+ */
+export type RevealView = 'old' | 'hd' | 'split';
+
+/** What the Test lab draws over the reveal on the fine layer (its buttons), and whether a tap was its. */
+export interface RevealExtra {
+  draw(ctx: CanvasRenderingContext2D, r: HdLayerRect, now: number): void;
+  tap(x: number, y: number, now: number): boolean;
+}
+
 const heroPrize = (p: ChestPrize) => p.kind === 'hero' || p.kind === 'heroShards';
 const freshPrize = (p: ChestPrize) => (p.kind === 'hero' || p.kind === 'pet') && p.fresh;
 export const prizeName = (p: ChestPrize): string => (heroPrize(p) ? HEROES[p.id as HeroId].name : COMPANIONS[p.id as CompanionId].name);
@@ -188,9 +204,36 @@ export class ChestOpening {
   private rng: Rng | null = null;
   /** The Test lab's demo: the opened chests are made up, nothing is granted. */
   private demoMode = false;
+  /** The sharper reveal (its own canvas over the game's), the reveal on screen, the lab's buttons over it. */
+  private readonly hd: ChestHd;
+  view: RevealView = loadChestReveal();
+  extra: RevealExtra | null = null;
 
   constructor(private readonly kit: CampKit) {
     this.imgs = new FxImages(kit.s);
+    this.hd = new ChestHd(kit);
+  }
+
+  /** The reveal the setting picks (the lab's compare is over). */
+  resetView(): void {
+    this.view = loadChestReveal();
+  }
+
+  /** Side by side and a chest is on screen (the summary is always the game's own, full width). */
+  get splitShown(): boolean {
+    return this.view === 'split' && !!this.cur;
+  }
+
+  /** Where the old reveal is centred: the screen's middle, or the left half's (side by side). */
+  private oldCentre(): number {
+    const s = this.kit.s;
+    return this.view === 'split' ? Math.round((s.L + (s.L + s.R) / 2) / 2) : Math.round((s.L + s.R) / 2);
+  }
+
+  /** The new reveal's centre: the screen's middle, or the right half's (side by side). */
+  private hdCentre(): number {
+    const s = this.kit.s;
+    return this.view === 'split' ? Math.round(((s.L + s.R) / 2 + s.R) / 2) : Math.round((s.L + s.R) / 2);
   }
 
   /** The layout rebuilt the textures: the opening's images go with them. */
@@ -293,6 +336,29 @@ export class ChestOpening {
     this.begin(items, now, onDone);
   }
 
+  /** The Test lab's compare: these made-up chests one after another (nothing rolled or granted), no summary. */
+  playDemo(items: OpenedChest[], now: number, onDone?: () => void): void {
+    if (!items.length) return;
+    this.demoMode = true;
+    this.noSummary = true;
+    this.begin(items, now, onDone);
+  }
+  private noSummary = false;
+
+  /** The chest on screen again from its slam (the lab's Replay). False when none is playing. */
+  replay(now: number): boolean {
+    const r = this.cur;
+    if (!r) return false;
+    Object.assign(r, { at: now, skip: 0, fired: 0, shakes: [], starPopped: false, outAt: 0 });
+    this.kit.app.audio.whoosh();
+    return true;
+  }
+
+  /** A tap the lab's buttons take first (true: taken). */
+  tapExtra(x: number, y: number, now: number): boolean {
+    return !!this.extra?.tap(x, y, now);
+  }
+
   private begin(items: OpenedChest[], now: number, onDone?: () => void): void {
     if (!this.active) {
       this.since = now;
@@ -308,7 +374,7 @@ export class ChestOpening {
     const item = this.runs.shift();
     if (!item) {
       this.cur = null;
-      if (this.opened.length > 1) {
+      if (this.opened.length > 1 && !this.noSummary) {
         this.summary = { items: this.opened, at: now, outAt: 0 };
         this.kit.app.audio.panelOpen();
       } else this.finish();
@@ -316,6 +382,7 @@ export class ChestOpening {
     }
     const t = tierIndex(item.prize.tier);
     this.cur = { item, t, tl: timeline(t), at: now, skip: 0, fired: 0, shakes: [], spin: this.opened.length % 2 ? -1 : 1, starPopped: false, outAt: 0 };
+    if (this.view !== 'old') this.hd.prepare(item.kind, item.prize.tier);
     this.opened.push(item);
     this.kit.app.audio.whoosh();
   }
@@ -325,6 +392,7 @@ export class ChestOpening {
     this.summary = null;
     this.opened = [];
     this.demoMode = false;
+    this.noSummary = false;
     const done = this.onDone;
     this.onDone = null;
     done?.();
@@ -359,6 +427,7 @@ export class ChestOpening {
   hide(): void {
     this.imgs.begin();
     this.imgs.end();
+    this.hd.hide();
   }
 
   // ------------------------------------------------------------------ events
@@ -376,6 +445,8 @@ export class ChestOpening {
   private fire(r: Run, lt: number, cx: number, chestMid: number, prizeMid: number, now: number): void {
     const kit = this.kit;
     const audio = kit.app.audio;
+    // (the new reveal draws its own particles: the camp's only for the old one)
+    const fx = this.view === 'hd' ? null : kit.fx;
     const tl = r.tl;
     const events: Array<[number, () => void]> = [
       [
@@ -384,7 +455,7 @@ export class ChestOpening {
           audio.chestSlam();
           r.shakes.push([SLAM, 4, 260]);
           const fy = chestMid + BIG_CHEST.h;
-          for (const side of [-1, 1]) kit.fx.burst(cx + side * 40, fy - 2, [0x6a5a7a, 0x8a7a92, 0x4a4058, 0xb0a4b8], 14, 0.9, { kind: 'chip', g: 160, up: 50, spread: 0.9, life: 650 });
+          for (const side of [-1, 1]) fx?.burst(cx + side * 40, fy - 2, [0x6a5a7a, 0x8a7a92, 0x4a4058, 0xb0a4b8], 14, 0.9, { kind: 'chip', g: 160, up: 50, spread: 0.9, life: 650 });
         },
       ],
       ...tl.steps.map((at, i): [number, () => void] => [
@@ -393,8 +464,8 @@ export class ChestOpening {
           audio.tierStep(i);
           r.shakes.push([at, 1.5 + i * 0.55, 300]);
           const face = this.stepFace(i, now);
-          kit.fx.ring(cx, chestMid, 30 + i * 5, face[0], 420);
-          kit.fx.burst(cx, chestMid + 8, [face[0], face[1], WHITE], 6 + i * 2, 0.8, { kind: 'spark', g: 140, life: 520 });
+          fx?.ring(cx, chestMid, 30 + i * 5, face[0], 420);
+          fx?.burst(cx, chestMid + 8, [face[0], face[1], WHITE], 6 + i * 2, 0.8, { kind: 'spark', g: 140, life: 520 });
           if (i >= 2 && i % 2 === 0) kit.after(90, () => audio.chestCrack(i / 7));
         },
       ]),
@@ -412,11 +483,11 @@ export class ChestOpening {
           r.shakes.push([tl.burst, 3 + r.t * 0.7, 380 + r.t * 30]);
           const face = this.stepFace(r.t, now);
           const by = chestMid;
-          kit.fx.burst(cx, by, [face[0], face[1], WHITE, GOLD[3]], 34 + r.t * 8, 1.5, { kind: 'star', g: 70, life: 1000 });
-          kit.fx.burst(cx, by, [face[0], WHITE], 22 + r.t * 3, 1.2, { kind: 'spark', g: 130, life: 760 });
-          kit.fx.burst(cx, by, [face[1], face[2]], 16, 1.1, { kind: 'chip', g: 220, up: 70, life: 900 });
-          kit.fx.ring(cx, by, 44 + r.t * 5, face[0], 560);
-          kit.fx.ring(cx, by, 26, WHITE, 400);
+          fx?.burst(cx, by, [face[0], face[1], WHITE, GOLD[3]], 34 + r.t * 8, 1.5, { kind: 'star', g: 70, life: 1000 });
+          fx?.burst(cx, by, [face[0], WHITE], 22 + r.t * 3, 1.2, { kind: 'spark', g: 130, life: 760 });
+          fx?.burst(cx, by, [face[1], face[2]], 16, 1.1, { kind: 'chip', g: 220, up: 70, life: 900 });
+          fx?.ring(cx, by, 44 + r.t * 5, face[0], 560);
+          fx?.ring(cx, by, 26, WHITE, 400);
         },
       ],
       [
@@ -424,9 +495,9 @@ export class ChestOpening {
         () => {
           audio.fanfare(r.t);
           const face = TIER_INFO[r.item.prize.tier].face as Face;
-          kit.fx.burst(cx, prizeMid, [face[0], WHITE, face[1]], 24 + r.t * 6, 1.2, { kind: 'star', g: 30, life: 1100 });
-          kit.fx.ring(cx, prizeMid, 40 + r.t * 4, face[0], 600);
-          if (r.t >= tierIndex('legendary')) kit.after(160, () => kit.fx.ring(cx, prizeMid, 60 + r.t * 4, WHITE, 700));
+          fx?.burst(cx, prizeMid, [face[0], WHITE, face[1]], 24 + r.t * 6, 1.2, { kind: 'star', g: 30, life: 1100 });
+          fx?.ring(cx, prizeMid, 40 + r.t * 4, face[0], 600);
+          if (fx && r.t >= tierIndex('legendary')) kit.after(160, () => fx.ring(cx, prizeMid, 60 + r.t * 4, WHITE, 700));
         },
       ],
     ];
@@ -456,6 +527,8 @@ export class ChestOpening {
     if (this.summary && this.summary.outAt && now - this.summary.outAt >= 200) this.finish();
     if (!this.active) {
       this.imgs.end();
+      if (this.view !== 'old') this.hd.warmChests();
+      this.hd.frame(null, this.extraDraw(now));
       // the arrival scenes of the chest heroes met, one after another
       const app = kit.app;
       if (this.scenes.length && !app.storyOverlay) {
@@ -468,12 +541,70 @@ export class ChestOpening {
     const g = kit.gTop;
     const k = easeOut3((now - this.since) / 220);
     const out = this.summary?.outAt ? clamp01((now - this.summary.outAt) / 200) : 0;
-    g.fillStyle(0x05030a, 0.93 * k * (1 - out));
-    g.fillRect(-20, -10, s.R + s.L + 400, s.B + 200);
-    if (this.cur) this.drawRun(now, this.cur);
-    else if (this.summary) this.drawSummary(now, this.summary);
-    vignette(g, s, k * (1 - out));
+    // the game's own reveal (and always the summary) on the game canvas; the new one on its finer layer over it
+    const old = this.view !== 'hd' || !this.cur;
+    if (old) {
+      g.fillStyle(0x05030a, 0.93 * k * (1 - out));
+      g.fillRect(-20, -10, s.R + s.L + 400, s.B + 200);
+    }
+    if (this.cur) {
+      if (this.view !== 'hd') this.drawRun(now, this.cur);
+      else this.fireOnly(now, this.cur);
+    } else if (this.summary) this.drawSummary(now, this.summary);
+    if (old) vignette(g, s, k * (1 - out));
+    this.hd.frame(this.cur && this.view !== 'old' ? this.hdScene(now, this.cur, k) : null, this.extraDraw(now));
     this.imgs.end();
+  }
+
+  /** The lab's buttons on the fine layer, if any. */
+  private extraDraw(now: number): ((ctx: CanvasRenderingContext2D, r: HdLayerRect) => void) | null {
+    const ex = this.extra;
+    return ex ? (ctx, r) => ex.draw(ctx, r, now) : null;
+  }
+
+  /** The new reveal only: the timeline's events still fire (sounds, shakes) and a gained star still chimes. */
+  private fireOnly(now: number, r: Run): void {
+    const s = this.kit.s;
+    const lt = now - r.at + r.skip;
+    const ground = s.B - 6;
+    const footY = s.B - 39;
+    this.fire(r, lt, this.oldCentre(), ground - BIG_CHEST.h, footY - 36, now);
+    const since = lt - r.tl.reveal;
+    if (r.item.prize.starsUp > 0 && !freshPrize(r.item.prize) && since >= REVEAL_STAR_AT && !r.starPopped) {
+      r.starPopped = true;
+      for (let i = 0; i < 3; i++) this.kit.after(i * 90, () => this.kit.app.audio.statUp(i));
+    }
+  }
+
+  /** The chest on screen as the new reveal draws it. */
+  private hdScene(now: number, r: Run, veil: number): HdScene {
+    const s = this.kit.s;
+    const it = r.item;
+    const split = this.view === 'split';
+    const mid = (s.L + s.R) / 2;
+    return {
+      now,
+      veil,
+      cx: this.hdCentre(),
+      clip: split ? { x0: mid, x1: s.R + s.L + 400 } : null,
+      opaque: split,
+      hint: split ? { x: mid + 4, y: 41, ox: 0 } : undefined,
+      run: {
+        kind: it.kind,
+        prize: it.prize,
+        before: it.before,
+        after: it.after,
+        t: r.t,
+        tl: r.tl,
+        slam: SLAM,
+        lt: now - r.at + r.skip,
+        shakes: r.shakes,
+        spin: r.spin,
+        A: r.outAt ? 1 - clamp01((now - r.outAt) / 200) : 1,
+        left: this.runs.length,
+        closing: !!r.outAt,
+      },
+    };
   }
 
   private drawRun(now: number, r: Run): void {
@@ -488,7 +619,7 @@ export class ChestOpening {
     const kind = r.item.kind;
     const pz = r.item.prize;
     const [shx, shy] = this.shake(r, lt);
-    const cx0 = Math.round((s.L + s.R) / 2);
+    const cx0 = this.oldCentre();
     const cx = cx0 + shx;
     const ground = s.B - 6 + shy;
     const SC = 2;
