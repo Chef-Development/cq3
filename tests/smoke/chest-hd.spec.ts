@@ -230,6 +230,7 @@ test('the Test lab: Sharper chest reveal opens side by side; Old, New and Both s
   // Done: the scenario ends, the reveal goes back to the setting's (the old one), the buttons go
   await page.click('#btn-lab-done');
   await frames(page, 10);
-  expect(await camp((c) => ({ view: c.chests.opening.view, compare: !!c.chests.opening.extra }))).toEqual({ view: 'old', compare: false });
+  expect(await camp((c) => ({ view: c.chests.opening.view, compare: !!c.chests.opening.extra, active: c.chests.opening.active }))).toEqual({ view: 'old', compare: false, active: false });
+  expect((await layer(page))?.shown).toBe(false);
   expect(errors).toEqual([]);
 });

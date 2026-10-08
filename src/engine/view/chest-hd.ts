@@ -166,7 +166,8 @@ function tinted(src: HTMLCanvasElement, col: number): HTMLCanvasElement {
   }
   let c = m.get(col);
   if (!c) {
-    if (m.size > 24) m.clear();
+    // (the biggest, the burst's last frames, keep two colours: one reveal's worth)
+    if (m.size >= (src.width * src.height > 100000 ? 2 : 24)) m.clear();
     c = document.createElement('canvas');
     c.width = src.width;
     c.height = src.height;

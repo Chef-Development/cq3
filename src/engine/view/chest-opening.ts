@@ -357,6 +357,16 @@ export class ChestOpening {
     return true;
   }
 
+  /** Drop a demo on screen and any queued after it (the lab's compare is over; nothing was granted). */
+  cancelDemo(): void {
+    if (!this.demoMode) return;
+    this.runs = [];
+    this.cur = null;
+    this.summary = null;
+    this.onDone = null;
+    this.finish();
+  }
+
   /** A tap the lab's buttons take first (true: taken). */
   tapExtra(x: number, y: number, now: number): boolean {
     return !!this.extra?.tap(x, y, now);

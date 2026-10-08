@@ -91,6 +91,7 @@ export class ChestCompare {
     if (!this.on) return;
     this.on = false;
     this.op.extra = null;
+    this.op.cancelDemo();
     this.op.resetView();
   }
 
