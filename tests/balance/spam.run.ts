@@ -15,7 +15,7 @@ import { REGIONS, regionStart } from '../../src/data/regions';
 import type { HeroId } from '../../src/data/heroes';
 
 const RUNS = Number(process.env.RUNS ?? 100);
-const ACCS = (process.env.ACC ?? '0.7,0.75,0.85').split(',').map(Number);
+const ACCS = (process.env.ACC ?? '0.7,0.75,0.85').split(',').filter((x) => x && x !== 'none').map(Number); // ACC=none: the masher only
 const MASH = Number(process.env.MASH ?? 30);
 const MASHACC = Number(process.env.MASHACC ?? 0.75);
 const HERO = (process.env.HERO ?? 'rowan') as HeroId;
@@ -70,8 +70,8 @@ it('anti-spam report', () => {
   }
   if (MASH > 0) {
     say(`\n## The masher (a tap every ${MASH_GAP_MS} ms, no aim), from the hero a ${pct(MASHACC)} player brings\n`);
-    say('| Region | Act 3: runs that got there | first try | cleared (6 tries) | its boss fights won | Boss alone (the act played by the aiming bot): won | Masher misses per tap | taps/s |');
-    say('|---|---|---|---|---|---|---|---|');
+    say('| Region | Act 3: runs that got there | first try | cleared (6 tries) | its boss fights won | Boss alone (the act played by the aiming bot): first fight won | every try | Masher misses per tap | taps/s |');
+    say('|---|---|---|---|---|---|---|---|---|');
     for (let r = 0; r < REGIONS.length; r++) {
       const act = lastActs[r];
       const runs = Array.from({ length: MASH }, (_, k) => playCampaign(t, { accuracy: MASHACC, seed: seedOf(MASHACC, k), hero: HERO, mashFrom: act }, r + 1));
@@ -83,9 +83,10 @@ it('anti-spam report', () => {
         .map((x) => x.acts.find((a) => a.act === act))
         .flatMap((a) => a?.attempts.flatMap((x) => x.fights) ?? [])
         .filter((f) => f.type === 'boss' && f.mashed);
+      const firsts = boss.map((x) => x.acts.find((a) => a.act === act)?.attempts.flatMap((y) => y.fights).find((f) => f.type === 'boss' && f.mashed)).filter((f) => !!f);
       const taps = fights.reduce((a, f) => a + f.taps, 0);
       say(
-        `| ${r + 1} | ${at.length} | **${pct(at.filter((a) => a!.attempts[0]?.won).length / Math.max(1, at.length))}** | ${pct(at.filter((a) => a!.cleared).length / Math.max(1, at.length))} | ${bossFights.filter((f) => f.won).length} of ${bossFights.length} | **${alone.filter((f) => f.won).length} of ${alone.length}** | ${pct(fights.reduce((a, f) => a + f.misses, 0) / Math.max(1, taps))} | ${f1(taps / Math.max(1, fights.reduce((a, f) => a + f.seconds, 0)))} |`,
+        `| ${r + 1} | ${at.length} | **${pct(at.filter((a) => a!.attempts[0]?.won).length / Math.max(1, at.length))}** | ${pct(at.filter((a) => a!.cleared).length / Math.max(1, at.length))} | ${bossFights.filter((f) => f.won).length} of ${bossFights.length} | **${firsts.filter((f) => f!.won).length} of ${firsts.length}** | ${alone.filter((f) => f.won).length} of ${alone.length} | ${pct(fights.reduce((a, f) => a + f.misses, 0) / Math.max(1, taps))} | ${f1(taps / Math.max(1, fights.reduce((a, f) => a + f.seconds, 0)))} |`,
       );
     }
   }
