@@ -210,3 +210,43 @@ describe('profile storage', () => {
     expect(p.coins).toBe(60); // not twice
   });
 });
+
+describe('round 7 save migration', () => {
+  // round 6's build saved 8 heroes and 8 companions and had no tip counts: a profile it wrote must load into this one
+  // with everything kept and every newcomer (heroes, companions) present, locked, at their defaults
+  const ROUND6_HEROES = ['rowan', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva'];
+  const ROUND6_PETS = ['bun', 'pip', 'newt', 'sprocket', 'brick', 'flurry', 'mote', 'sunny'];
+
+  it("loads a round 6 profile: what it had is kept, the new heroes and companions are there, locked, and the tips' counts start at none", async () => {
+    const { HERO_IDS } = await import('../../src/data/heroes');
+    const { COMPANION_IDS } = await import('../../src/data/companions');
+    const { p } = stocked();
+    p.heroes.sable.unlocked = true;
+    p.heroes.sable.xp = 900;
+    p.pets.flurry = { owned: true, xp: 300, stars: 2, shards: 1 };
+    const old = viaJson(p) as unknown as Record<string, unknown>;
+    // what round 6 didn't have
+    const hs = old.heroes as Record<string, unknown>;
+    for (const id of Object.keys(hs)) if (!ROUND6_HEROES.includes(id)) delete hs[id];
+    const ps = old.pets as Record<string, unknown>;
+    for (const id of Object.keys(ps)) if (!ROUND6_PETS.includes(id)) delete ps[id];
+    delete old.tipsDone;
+    const q = readProfile(old, T);
+    expect(q.version ?? PROFILE_VERSION).toBe(PROFILE_VERSION);
+    expect(q.heroes.sable).toMatchObject({ unlocked: true, xp: 900 });
+    expect(q.pets.flurry).toMatchObject({ owned: true, xp: 300, stars: 2, shards: 1 });
+    expect(q.coins).toBe(420);
+    expect(q.equipped).toEqual(p.equipped);
+    for (const id of HERO_IDS) {
+      expect(q.heroes[id], id).toBeDefined();
+      if (!ROUND6_HEROES.includes(id)) expect(q.heroes[id], id).toMatchObject({ unlocked: false, xp: 0 });
+    }
+    for (const id of COMPANION_IDS) {
+      expect(q.pets[id], id).toBeDefined();
+      if (!ROUND6_PETS.includes(id)) expect(q.pets[id].owned, id).toBe(false);
+    }
+    expect(HERO_IDS.length).toBeGreaterThan(ROUND6_HEROES.length);
+    expect(COMPANION_IDS.length).toBeGreaterThan(ROUND6_PETS.length);
+    expect(q.tipsDone).toEqual({});
+  });
+});
