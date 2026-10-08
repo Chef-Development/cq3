@@ -96,10 +96,11 @@ const DEFAULT_LAPSE = 0.03;
 
 /**
  * The player the difficulty curve is set for: the balance targets (tests/unit/bot.test.ts) are this player's odds.
- * 85%: the playtester (their accuracy readout says 80-90%), the only player. It was 70% (a typical player) before
- * playtest round 4. To re-aim the curve at another player, `ACC=0.62 npm run retarget` (it writes docs/retarget.md).
+ * 75% since playtest round 7: the playtester's lab readout measured 70% (223 taps) where they guessed 80-90%. It was
+ * 85% in rounds 4-6 and 70% (a typical player) before. To re-aim the curve at another player, `ACC=0.62 npm run
+ * retarget` (it writes docs/retarget.md).
  */
-export const TYPICAL_ACCURACY = 0.85;
+export const TYPICAL_ACCURACY = 0.75;
 
 /** Region 1's acts (the bot's story runs play these; later regions are played from their first act). */
 export const GREENMARCH_ACTS = REGIONS[0].acts.length;
