@@ -900,39 +900,55 @@ interface Crack {
   stage: number;
 }
 
-/** Jagged cracks running from the seam over the lid (up) and the box (down), branching now and then. */
+/** Jagged cracks running from the seam over the lid (up) and the box (down): zigzags of short straight segments,
+ *  leaning one way then the other, with a branch off the longer ones. Deterministic per kind. */
 function cracks(p: Parts, seed: number): Crack[] {
   const out: Crack[] = [];
-  const starts = [0.26, 0.64, 0.47, 0.18, 0.8, 0.36, 0.9, 0.56, 0.08];
-  starts.forEach((f, i) => {
-    const lidSide = i % 2 === 0;
-    const run = (x0: number, y0: number, len: number, stage: number) => {
-      let x = x0;
-      let y = y0;
-      const pts: Array<[number, number]> = [];
-      for (let k = 0; k < len; k++) {
-        pts.push([x, y]);
-        const r = hash(i * 7 + stage, k, seed);
-        if (r < 0.28) x -= 1;
-        else if (r > 0.72) x += 1;
-        else y += lidSide ? -1 : 1;
-        if (r >= 0.28 && r <= 0.72) continue;
-        y += lidSide ? -1 : 1;
-        const on = lidSide ? p.lid.has(x, y) : p.base.has(x, y) && y < BB - 6;
-        if (!on) break;
+  const onPart = (lid: boolean, x: number, y: number) => (lid ? p.lid.has(x, y) && y < BT - 9 : p.base.has(x, y) && y > BT + 6 && y < BB - 8);
+  const zig = (x0: number, y0: number, lid: boolean, segs: number, sd: number): Array<[number, number]> => {
+    const pts: Array<[number, number]> = [];
+    let x = x0;
+    let y = y0;
+    let lean = hash(sd, 0, seed) < 0.5 ? -1 : 1;
+    for (let k = 0; k < segs; k++) {
+      const len = 4 + Math.floor(hash(sd, k + 1, seed) * 6);
+      const ang = lean * (0.3 + hash(sd, k + 20, seed) * 0.65); // from straight away from the seam
+      const ex = Math.round(x + Math.sin(ang) * len);
+      const ey = Math.round(y + (lid ? -1 : 1) * Math.cos(ang) * len);
+      // a straight line (Bresenham) to the segment's end
+      const dx = Math.abs(ex - x);
+      const dy = Math.abs(ey - y);
+      const sx = ex > x ? 1 : -1;
+      const sy = ey > y ? 1 : -1;
+      let err = dx - dy;
+      for (;;) {
+        if (!onPart(lid, x, y)) return pts;
+        if (!pts.length || pts[pts.length - 1][0] !== x || pts[pts.length - 1][1] !== y) pts.push([x, y]);
+        if (x === ex && y === ey) break;
+        const e2 = err * 2;
+        if (e2 > -dy) {
+          err -= dy;
+          x += sx;
+        }
+        if (e2 < dx) {
+          err += dx;
+          y += sy;
+        }
       }
-      return pts;
-    };
-    const x = Math.round(X0 + 8 + f * (X1 - X0 - 16));
-    const y = lidSide ? BT - 9 : BT + 7;
+      lean = hash(sd, k + 40, seed) < 0.8 ? -lean : lean;
+    }
+    return pts;
+  };
+  const starts = [0.27, 0.66, 0.46, 0.15, 0.82, 0.36, 0.92, 0.57, 0.07];
+  starts.forEach((f, i) => {
+    const lid = i % 2 === 0;
     const stage = i < 3 ? 1 : 2;
-    const len = i < 3 ? 14 + (i % 2) * 5 : 22 + ((i * 7) % 14);
-    const pts = run(x, y, len, stage);
-    out.push({ pts, lid: lidSide, stage });
-    // a branch off its middle
-    if (pts.length > 10) {
-      const [bx, by] = pts[Math.floor(pts.length / 2)];
-      out.push({ pts: run(bx + (i % 3 === 0 ? -1 : 1), by, 8 + (i % 4) * 2, stage + 0), lid: lidSide, stage: Math.min(2, stage + 1) });
+    const x = Math.round(X0 + 8 + f * (X1 - X0 - 16));
+    const pts = zig(x, lid ? BT - 10 : BT + 7, lid, stage === 1 ? 2 + (i % 2) : 3 + (i % 2), i * 13 + 1);
+    out.push({ pts, lid, stage });
+    if (pts.length > 9) {
+      const [bx, by] = pts[Math.floor(pts.length * 0.55)];
+      out.push({ pts: zig(bx, by, lid, 2, i * 13 + 7), lid, stage: 2 });
     }
   });
   return out;
@@ -976,20 +992,27 @@ function leakMasks(p: Parts, seed: number): Leaks {
     lid.push(
       maskCanvas((x, y) => {
         if (!p.lid.has(x, y)) return 0;
-        if (y === BT - 1 && seam(x)) return n === 0 ? 0.85 : 1;
-        if (y === BT - 2 && seam(x)) return n === 0 ? 0.4 : 0.7;
-        if (y === BT - 3 && seam(x) && n === 2) return 0.35;
+        // the seam: a bright line with light bleeding up the lid's rim (wider as it builds)
+        if (seam(x)) {
+          const d = BT - 1 - y;
+          const rows = n === 0 ? [0.9, 0.45] : n === 1 ? [1, 0.75, 0.4] : [1, 0.85, 0.55, 0.3];
+          if (d >= 0 && d < rows.length) return rows[d];
+        }
         return crackAt(x, y, true, n);
       }),
     );
     base.push(
       maskCanvas((x, y) => {
         if (!p.base.has(x, y)) return 0;
-        if (y === BT && seam(x)) return n === 0 ? 0.85 : 1;
-        if (y === BT + 1 && seam(x)) return n === 0 ? 0.4 : 0.65;
-        if (y === BT + 2 && seam(x) && n >= 1) return 0.3;
-        // the keyhole glows from the start
-        if (Math.hypot(x + 0.5 - kx, y + 0.5 - ky) <= 3.2) return 1;
+        if (seam(x)) {
+          const d = y - BT;
+          const rows = n === 0 ? [0.9, 0.45] : n === 1 ? [1, 0.75, 0.4] : [1, 0.85, 0.55, 0.3];
+          if (d >= 0 && d < rows.length) return rows[d];
+        }
+        // the keyhole glows from the start, a halo round it as it builds
+        const kd = Math.hypot(x + 0.5 - kx, y + 0.5 - ky);
+        if (kd <= 3.2) return 1;
+        if (kd <= 4.6 && n >= 1) return 0.45;
         return crackAt(x, y, false, n);
       }),
     );
