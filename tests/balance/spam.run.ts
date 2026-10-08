@@ -6,11 +6,12 @@
 //    HP (by source), misses forgiven, statics the crowding limit kept off the bar;
 //  - the masher (core/bot.ts mashFrom: no aim, a tap every MASH_GAP_MS) on each region's Act 3 and on its boss, from
 //    the hero a 75% player brings there (first try, clear within 6 tries, boss fights won).
-//   RUNS=100  ACC=0.7,0.75,0.85  MASH=30 (masher runs per region; 0 = none)  MASHACC=0.75  HERO=rowan  OUT=path
+//   RUNS=100  ACC=0.7,0.75,0.85 (none: the masher only)  MASH=30 (masher runs per region; 0 = none)  MASHACC=0.75
+//   HERO=rowan  OUT=path  TUNE=json
 import { writeFileSync } from 'node:fs';
 import { it } from 'vitest';
 import { MASH_GAP_MS, playCampaign, summarize, type FightStats, type RunStats } from '../../src/core/bot';
-import { cloneTuning } from '../../src/core/tuning';
+import { cloneTuning, setPath } from '../../src/core/tuning';
 import { REGIONS, regionStart } from '../../src/data/regions';
 import type { HeroId } from '../../src/data/heroes';
 
@@ -50,6 +51,8 @@ function lateRow(label: string, fs: FightStats[]): string {
 
 it('anti-spam report', () => {
   const t = cloneTuning();
+  // TUNE='{"judge.missStreakMax":6}': numbers to try (paths into the tuning)
+  for (const [k, v] of Object.entries(JSON.parse(process.env.TUNE ?? '{}') as Record<string, number>)) setPath(t, k, v);
   const t0 = Date.now();
   say(`# Anti-spam measures (${HERO}, ${RUNS} runs per accuracy; masher ${MASH} runs per region at ${MASH_GAP_MS} ms)`);
   for (const acc of ACCS) {

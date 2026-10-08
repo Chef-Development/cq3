@@ -2367,10 +2367,11 @@ export class Combat {
   missStreak = 0;
   private lastMissAt = -Infinity;
 
-  /** Classic mode: what a tap on empty bar costs (a share of max HP, at least judge.missSelfDamage), before a streak. */
+  /** Classic mode: what a tap on empty bar costs (a share of max HP, at least judge.missSelfDamage), before a streak
+   *  (unrounded: a streak multiplies it first, so a small hero's 1.4 HP miss doesn't round down to 1 x the streak). */
   missDamage(): number {
     const J = this.tuning.judge;
-    return Math.max(J.missSelfDamage, Math.round(this.maxHp() * Math.max(0, J.missHpShare)));
+    return Math.max(J.missSelfDamage, this.maxHp() * Math.max(0, J.missHpShare));
   }
 
   /** Misses the perks may still forgive this fight (tuning.spam.forgiveMax for every effect together). */
