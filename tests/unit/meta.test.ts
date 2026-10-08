@@ -68,6 +68,36 @@ describe('hero chests and the shrine', () => {
     expect(p.pity.top).toBe(0);
   });
 
+  it('a Mythic companion (Nimbus) comes out at tiny odds, and from the top pity when the chest holds a companion', () => {
+    const mythic = tierIndex('mythic');
+    expect(COMPANIONS.nimbus.rarity).toBe('mythic');
+    for (const kind of ['hero', 'rare'] as const) {
+      const odds = chestOdds(t, kind)[mythic];
+      expect(odds, kind).toBeGreaterThan(0);
+      expect(odds, kind).toBeLessThan(0.02);
+    }
+    // the top pity forces Celestial or better: with nothing there yet, a companion is the best there is (Nimbus)
+    const pets = new Set<string>();
+    for (let seed = 1; seed < 60 && !pets.size; seed++) {
+      const p = newProfile();
+      p.pity.top = Math.round(t.chests.topPity) - 1;
+      const prize = rollChest(new Rng(seed), t, p, 'rare');
+      if (prize.kind === 'pet') {
+        pets.add(prize.id);
+        expect(prize.tier).toBe('mythic');
+      }
+    }
+    expect([...pets]).toEqual(['nimbus']);
+    // and every companion is in the chests' pool: each tier's companions come out of a plain roll now and then
+    const seen = new Set<string>();
+    const rng = new Rng(9);
+    for (let i = 0; i < 4000; i++) {
+      const prize = rollChest(rng, t, newProfile(), 'hero');
+      if (prize.kind === 'pet') seen.add(prize.id);
+    }
+    for (const id of ['burr', 'lark', 'gloam']) expect(seen.has(id), id).toBe(true);
+  });
+
   it('gems buy a Rare chest only when there are enough', () => {
     const p = newProfile();
     p.gems = t.chests.rareCost - 1;

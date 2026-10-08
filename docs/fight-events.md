@@ -74,6 +74,12 @@ shows on its target.
 | Sprocket | Oil Can | (ready: the gold Perfect zones on every block) a streak from Sprocket to the block hit Perfectly; a gold box there |
 | Brick | Rock Wall | (ready: its slab at the left end) a pebble from Brick to the left end; its slab takes the red |
 | Flurry | Chill Bite, Snow Dash | a streak from Flurry to the red; its reds frost over (the chill's own look) and flash |
+| Burr | Prickly (a red that hits you sends spines back) | Burr curls up (his roll frame) and a fan of six spines arcs from him into the foe whose red hit you; it flinches, a tan starburst, a tan number (`view/onsite-pets.ts`, asked by `fighters.perkFx` before its bolt) |
+| Lark | Wake-up Song (every 10 combo, the next yellow sings) | a note flies from Lark down to the yellow and stays on it, white on the yellow, bobbing, a gold rim breathing round the block; hit (`wakeNote`), the note bursts into little notes floating up, a gold ring, "+3" right of the combo counter (which swells) |
+| Gloam | Night Eyes (every 12 s a trap turns yellow) | (ready: violet glints in its eyes) three white-hot claw marks rake down across the trap as it turns yellow (the `morph` flash), purple shards fly, a violet streak from Gloam |
+| Nimbus | its spray (attacks every foe) | a spout from its blowhole, drops flying; a curtain of rain sweeps across every foe, each struck (an aqua number) as it reaches it |
+| Nimbus | Tide (every 20 s a wave pushes every red back) | a stream from Nimbus to the bar's left end; a curling wall of water rolls along the bar at the core's front (`c.perk.tideX`), foam and bubbles in its wake; each red splashes as the wave reaches it and is carried back |
+| Nimbus | Calm Seas (hits deal more at 30+ combo) | as the combo gets there: ripples run out along the bar from the cursor; while it stays up, the cursor glows aqua with a little wave over its cap, and each hit ripples where it landed |
 
 ### The heroes' moments (playtest round 6)
 
@@ -136,6 +142,12 @@ shows on its target.
 | `fireBreath` | Sunny: Fire Breath | a streak from the companion to what it touched; where the blocks it cleared were |
 | `chillBite` | Flurry: Chill Bite | a streak from the companion to what it touched; the bitten foe's reds flash |
 | `snowDash` | Flurry: Snow Dash | a streak from the companion to what it touched; a box flashes out of the block it touched |
+| `prickly` | Burr: Prickly | its own show: spines from Burr into the foe (a `strike`: its blow) |
+| `wakeSong` | Lark: Wake-up Song (the note lands) | its own show: the note flies to the yellow and glows on it |
+| `wakeNote` | Lark: Wake-up Song (the singing yellow hit) | a box on the block; the combo counter swells; its own show: the note bursts, +3 |
+| `nightEyes` | Gloam: Night Eyes | its own show: claw marks across the trap turning yellow |
+| `tide` | Nimbus: Tide | its own show: the wave along the bar |
+| `calmSeas` | Nimbus: Calm Seas | the cursor kicks; its own show: ripples from the cursor |
 | `rimewalker` | Rimewalker set (4) | heal stars twinkle up round the hero, +N there |
 | `sanctuary` | Sanctuary aura | heal stars twinkle up round the hero, +N there |
 | `emberwright` | Emberwright set (4) | heal stars twinkle up round the hero, +N there |
