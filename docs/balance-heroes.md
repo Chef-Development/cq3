@@ -1,3 +1,58 @@
+## Playtest round 7: the anti-spam rules, the curve re-aimed at a 75% player
+
+Measured with `npm run campaign` (all three regions; a fresh profile per run, camp between regions), **75% player,
+200 runs per hero**, the same seeds for every hero. Each act's first try, the gap to Rowan in brackets (Rowan's row:
+the region boss's first fight in brackets). At 200 runs a gap is good to about +/-5 (two runs of the same numbers moved up to 5-8
+points an act this round).
+
+| Hero | Act 1 | Act 2 | Act 3 (boss) | Act 4 | Act 5 | Act 6 (boss) | Act 7 | Act 8 | Act 9 (boss) |
+|---|---|---|---|---|---|---|---|---|---|
+| Rowan (Blade) | 100% | 85% | 63% (66%) | 87% | 73% | 59% (62%) | 89% | 71% | 52% (52%) |
+| Sable (Shadow) | 100% (0) | 83% (-2) | 66% (+3) | 94% (+7) | 82% (+9) | 51% (-8) | 92% (+3) | 66% (-5) | 61% (+9) |
+| Neve (Controller) | 100% (0) | 78% (-7) | 74% (**+11**) | 82% (-5) | 61% (**-12**) | 42% (**-17**) | 81% (-8) | 72% (+1) | 54% (+2) |
+| Moss (Summoner) | 100% (0) | 93% (+8) | 90% (**+27**) | 97% (+10) | 81% (+8) | 74% (**+15**) | 99% (+10) | 84% (**+13**) | 83% (**+31**) |
+| Tam (Bomber) | 100% (0) | 90% (+5) | 78% (**+15**) | 94% (+7) | 82% (+9) | 56% (-3) | 97% (+8) | 83% (**+12**) | 72% (**+20**) |
+| Hollis (Guardian) | 100% (0) | 93% (+8) | 94% (**+31**) | 99% (**+12**) | 76% (+3) | 68% (+9) | 95% (+6) | 79% (+8) | 81% (**+29**) |
+| Vesper (Marksman) | 100% (0) | 92% (+7) | 77% (**+14**) | 86% (-1) | 68% (-5) | 34% (**-25**) | 88% (-1) | 68% (-3) | 54% (+2) |
+| Torva (Brute) | 100% (0) | 94% (+9) | 85% (**+22**) | 92% (+5) | 89% (**+16**) | 64% (+5) | 93% (+4) | 80% (+9) | 70% (**+18**) |
+
+**Not every hero is within +/-10 of Rowan at 75%: 18 of 56 hero-acts are outside, most of them at the region bosses
+(Acts 3 and 9).** Those gaps were there before this round's rules: the round 6 build played at 75% (same seeds, 200
+runs; Rowan 100 / 81 / 44 | 81 / 78 / 68 | 69 / 42 / 44) had **30 of 56 outside**:
+
+| Hero (round 6 build, 75%) | Act 2 | Act 3 | Act 4 | Act 5 | Act 6 | Act 7 | Act 8 | Act 9 |
+|---|---|---|---|---|---|---|---|---|
+| Sable | +7 | **+37** | **+13** | **+17** | **+11** | **+21** | **+21** | **+30** |
+| Neve | -10 | +9 | -3 | **-13** | **-15** | 0 | +7 | -2 |
+| Moss | **+11** | **+39** | **+17** | **+13** | **+19** | **+26** | **+20** | **+32** |
+| Tam | +10 | +9 | **+11** | +10 | -3 | **+20** | **+14** | **+12** |
+| Hollis | +8 | **+43** | **+18** | +6 | **+11** | **+25** | **+24** | **+38** |
+| Vesper | **+12** | +2 | +8 | -2 | **-12** | +2 | +1 | **+13** |
+| Torva | **+11** | **+15** | +6 | **+14** | -1 | **+13** | +10 | +9 |
+
+(Act 1: every hero within 1.) So the 85% parity (round 6) doesn't hold at 75%; the rules narrowed most gaps (Sable
+from +37 to +3 in Act 3; Moss and Hollis by 5-15 an act) and made three worse: Vesper in Act 6 (-12 -> -25) and Act 3
+(+2 -> +14), Torva in Act 9 (+9 -> +18), Tam in Act 3 (+9 -> +15).
+
+**Why, from the bot's boss fights** (each region's last boss, 30-40 first fights per hero): the boss's reds hit for
+about a third of max HP, so the fight turns on how many get through. Rowan (and Sable) let about 2.3 a fight through at
+75% and lose ~110% of max HP (revive and heals included); Moss lets 0.8-1.6 through (a Barkback stops one, Overgrowth's
+vines slow them), Hollis about 1 and each hurts less (Iron Hide, and his soft strength guards against brutes: both the
+Boar King and the third region's boss are brutes). At 85% Rowan let fewer through and the kits were level.
+
+What changed for parity this round (each kept only where it moved the gaps the right way, within the noise):
+- **Moss:** a Barkback rests 32 s after stopping a red (was 16), HP 85 (was 90).
+- **Hollis:** Iron Hide 10% (was 20%), Rampart's wall 2 s (was 3).
+- **Tam:** a keg knocks reds within 0.09 of the bar off (was 0.12), HP 95 (was 100).
+- **Torva:** Heavy hits x1.5 (was 1.6), Wind-Up's smash from x1.7 (was 1.8).
+- Tried and dropped (no effect beyond the noise at the bosses): Moss's Barkback resting 40-60 s, Thornling 0.24,
+  ally power 0.1; Hollis's slams 0.3 / 0.6, Iron Hide 5%, Bulwark 0.3 a charge; Tam's kegs x0.95; Torva's Quake 0.04,
+  calm 0.6 s; Vesper's Volley pins 3.5 s (Act 6 stayed at -21).
+
+The gap is Rowan's own at the bosses at 75% (he has no tool against the reds that get through), not a hero running
+away: next round's hero pass should give him one (a red stopped at the left end now and then, or a lighter boss red),
+then re-aim the region bosses for him, and look again at Neve and Vesper in the second region (its boss).
+
 ## Playtest round 6: the kits reworked, Act 2's foes tougher, Vesper's last-act gap closed
 
 Measured with `npm run campaign` (REGIONS=2: Greenmarch from a fresh profile, camp, then the second region's fresh run
