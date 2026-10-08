@@ -219,7 +219,7 @@ export const LAB_NEW: LabScenario[] = [
   // part6:A
   // part6:B
   // ---- Yara and Dell: a second Summoner (Mythic) and a second Marksman (Rare), their how-to card first
-  heroFight('yara', 'yara', 'Yara', 'Greens call spirits. All 3 out: the stag!', [['wolf', 'wolf'], ['slime', 'crow'], ['boar', 'shaman'], ['wolf', 'archer'], ['bandit', 'boar'], ['knight', 'wolf']], { rev: 0 }),
+  heroFight('yara', 'yara', 'Yara', 'Greens call spirits. All 3 out: the stag!', [['wolf', 'slime'], ['slime', 'crow'], ['boar', 'shaman'], ['wolf', 'archer'], ['bandit', 'shaman'], ['knight', 'slime']], { rev: 0 }),
   heroFight('dell', 'dell', 'Dell', 'Perfect green: a crit shot that bounces.', [['crow', 'crow'], ['archer', 'slime'], ['bandit', 'crow'], ['boar', 'crow', 'slime'], ['shaman', 'archer'], ['knight', 'crow']], { rev: 0 }),
   // part6:C
   // part6:D
