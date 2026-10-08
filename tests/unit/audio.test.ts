@@ -12,6 +12,7 @@ import { OfflineAudioContext } from 'node-web-audio-api';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { cloneTuning, type Tuning } from '../../src/core/tuning';
 import { ASH_NEW_SOUNDS } from '../../src/data/enemies-ash';
+import { STYLE_IDS } from '../../src/data/heroes';
 import { AMBIENCES, SFX, Synth, TELL_SOUNDS, type Ambience, type TellSound } from '../../src/engine/audio';
 import { Band, midi, MUSIC_PIECES, MUSIC_TRACKS, SONGS, stepSec, type MusicPiece, type MusicRender, type MusicTrack } from '../../src/engine/music';
 import { BANDS, envelope, measure, seeded, spectralDistance, spectrogram, type Measure } from './loudness';
@@ -201,6 +202,20 @@ describe('rendered sound levels', () => {
       const b = results.get(order[i])!;
       expect(b.energy, `${order[i]} > ${order[i - 1]} (energy)`).toBeGreaterThan(a.energy);
       expect(b.phoneEnergy, `${order[i]} > ${order[i - 1]} (phone energy)`).toBeGreaterThan(a.phoneEnergy);
+    }
+  });
+
+  it("each style's finisher layer (playtest round 7) reads on a phone speaker, rides well under the last blow, and its whole show stays as heavy", () => {
+    const boom = results.get('finisher3')!;
+    const plain = results.get('finisher-show3')!;
+    for (const st of STYLE_IDS) {
+      const layer = results.get(`finLayer-${st}`)!;
+      const show = results.get(`finShow-${st}`)!;
+      expect(layer, st).toBeDefined();
+      expect(layer.phoneLoud, `${st} layer on a phone`).toBeGreaterThan(-28);
+      expect(layer.loud, `${st} layer under the last blow`).toBeLessThan(boom.loud - 5);
+      // (a layer adds character, not weight: the show is about as loud as the plain one)
+      expect(Math.abs(show.loud - plain.loud), `${st} show vs the plain show`).toBeLessThan(1.5);
     }
   });
 });

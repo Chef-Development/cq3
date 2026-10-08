@@ -395,3 +395,45 @@ id, amount, enemyId, pos? }` (from `c.perkFx`); a perk's blow on a foe is a perk
   (bigger with `burnDps`), and the tick numbers in ember orange.
 - The old `c.perk.burnFoe` / `c.perk.burnTicks` are still kept for the last foe bitten (the current flames read
   them), but move to `e.burn`: several foes can burn at once now.
+
+## The finisher show (playtest round 7: every hero's finisher their own)
+
+The core's `finisher` event (`damage`, `stacks`, `targets`) starts the show; the core holds the cursor for
+`finisherShowMs(stacks)` and the show always fits inside it. The plan is pure (`src/core/finisher-show.ts`, tested in
+`tests/unit/finisher-show.test.ts`); the drawing is `view/finishers.ts` (runs a show), `view/finisher-kits.ts` (the
+eight style kits) and `view/finisher-signatures.ts` (each hero's moment, and each style's default).
+
+- **Timeline** (`showTimeline(tier, stacks)`): the build-up, then `finisherStrikes(stacks)` strikes up to 70% of the
+  show (an Epic hero strikes exactly on `finisherStrikeAt`), the last blow at `FINISHER_BLOW_AT`, the hero home after.
+- **Style kit** (shared by every hero of the style): its own sky (behind the actors, over the stage's), strike, last
+  blow layer, marks and sound layer (`audio.finisherFlavor`).
+
+| Style | Sky | Strike | Last blow | Sound layer |
+| --- | --- | --- | --- | --- |
+| Blade | pale steel, speed lines, cut by each strike | crescent slashes, a steel glint, a cut that lingers | a cross of crescents, a long cut that splits | blade ring |
+| Shadow | moonlit violet night, mist | violet afterimages beside the foe, an X cut, a rift, ink smoke | a tall rift tears open, jaws of shadow snap | whoosh, dark thud |
+| Guardian | royal blue, golden rays | a shield flung edge-on into the foe, a shield arc | a steel dome of a shockwave, the tower emblem | shield clang, gong |
+| Marksman | dusk, first stars, the sun low | an arrow streaks in and sticks; reticles close and tick | reticles lock gold; one great arrow pierces all | bowstring, volley |
+| Brute | dust storm, rocks floating up | a heavy blow cracks the ground, debris | rock spikes burst up | rock crunch, rumble |
+| Controller | aurora, snow; cold mist on the ground | an ice spike stabs up, frost shards | the foe locked in an ice crystal that shatters | ice crack, shatter |
+| Summoner | deep grove, light shafts, leaves | a spirit wisp arcs in, bursts into leaves, a vine lash | vines coil up the foe, a burst of leaves | leafy rush, chime |
+| Bomber | smoke over a burning horizon, embers | a bomb lobbed in an arc blows on the foe | a fireball that rolls into a smoke column | fuse, booms |
+
+- **Signature moment** (`HERO_SIGNATURE`; a hero without one plays their style's `STYLE_DEFAULT`):
+
+| Hero | Moment |
+| --- | --- |
+| Rowan | a steel whirlwind sweeps through every foe and bursts into a ring of blades |
+| Sable | sinks into her shadow, it slides under the target, she bursts out of its shadow; twin fangs cross on it |
+| Neve | frost creeps to the foes, a glacier rises behind them, surges over them at the blow and shatters |
+| Moss | a seed flies over the foes, a great tree grows behind them; roots burst up, a leaf storm |
+| Tam | a keg bigger than she is lobbed among the foes; its fuse burns down, it swells, the biggest blast |
+| Hollis | a wall of stone and steel (his banner on it) rises before him and topples onto the foes |
+| Vesper | one arrow up bursts into a sky of arrows over the foes; they rain down; a giant golden arrow last |
+| Torva | a towering leap, a slam, the earth splits to the foes glowing with magma and erupts under them |
+
+- **Rarity scaler** (`showScale(tier)`): a longer build-up inside the same total, more layers (the rarity's colour
+  charging behind the hero and light converging on them, rings and sparkles on the strikes), a bigger flash and
+  shake, darker stage edges, a fuller sky with more animated layers; Celestial adds falling stars, Divine a prism.
+- The blow's hit and the counting number stay the fighters' (`heroFinisher`); with three or more targets the numbers
+  are smaller and staggered. The Test lab's **Finisher gallery** (`view/finisher-gallery.ts`) plays any of it on demand.

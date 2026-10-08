@@ -87,6 +87,8 @@ export class App {
   tips: TipCoach;
   /** A tip card is up: the next tap only dismisses it, and a fight waits for it. */
   tipUp = false;
+  /** The Test lab's Finisher gallery holds its fight's clock between shows (view/finisher-gallery.ts). */
+  galleryHold = false;
   private begunCombat: unknown = null;
   private syncHoldUntil = 0; // performance.now() until which phase changes wait (kill animations)
   phaseSince = 0;
@@ -196,6 +198,7 @@ export class App {
       !this.awaitingBegin &&
       !this.storyOverlay &&
       !this.tipUp &&
+      !this.galleryHold &&
       performance.now() >= this.introUntil &&
       (!this.panelOpen || this.playWhilePanelOpen)
     );
@@ -489,6 +492,7 @@ export class App {
     this.storyBox = 0;
     this.userPaused = false;
     this.awaitingBegin = false;
+    this.galleryHold = false;
     this.clock.reset(0);
     this.showRun(prev);
     if (setup) this.setPhase(() => setup(this.run));
@@ -501,6 +505,7 @@ export class App {
     if (!r) return;
     const prev = this.run.phase;
     this.real = null;
+    this.galleryHold = false;
     setStorageSlot('main');
     this.run = r.run;
     this.profile = r.profile;

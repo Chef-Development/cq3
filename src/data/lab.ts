@@ -47,7 +47,11 @@ export type LabSetup =
   | { kind: 'story'; act: number; scenes: string[] }
   /** Act `act`'s map (its scenes skipped), with its foes, roaming packs and stops, to look at; over once the run
    *  leaves it (a node tapped, the camp). */
-  | { kind: 'map'; act: number };
+  | { kind: 'map'; act: number }
+  /** The Finisher gallery: any hero's finisher on demand (every hero in HEROES, at 1 to max stacks, at any rarity)
+   *  against these foes at act `act`'s stage, as often as wanted; `hero` comes first. Nothing hurts, nothing dies,
+   *  nothing is saved. */
+  | { kind: 'gallery'; act: number; foes: string[]; hero?: HeroId };
 
 /** What the lab's profile holds for a scenario (core/lab.ts builds it on a fresh profile). */
 export interface LabProfileSpec {
@@ -217,6 +221,16 @@ export const LAB_NEW: LabScenario[] = [
   heroFight('fizz', 'fizz', 'Fizz', 'Hit flasks: fire, frost, spark. Greens throw one.', [['beetle', 'archer'], ['wolf', 'wolf', 'archer'], ['shaman', 'boar'], ['bandit', 'crow', 'crow'], ['slime', 'slime', 'shaman'], ['knight', 'beetle']], { rev: 0 }),
   heroFight('brann', 'brann', 'Brann', 'Block to ring the bell, then hit. Greens: echoes.', [['boar', 'archer'], ['bandit', 'shaman'], ['wolf', 'wolf'], ['beetle', 'boar'], ['archer', 'shaman'], ['bigSlime', 'boar']], { rev: 0 }),
   // part6:E
+
+  // ---- finishers
+  {
+    id: 'finisherGallery',
+    group: 'heroes',
+    label: 'Finisher gallery',
+    secs: 60,
+    try: 'Pick a hero, stacks and rarity. Press Play.',
+    setup: { kind: 'gallery', act: 1, foes: ['slime', 'wolf', 'crow'] },
+  },
 ];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,
