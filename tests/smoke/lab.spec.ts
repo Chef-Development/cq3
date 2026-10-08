@@ -155,7 +155,7 @@ test('every Test lab scenario starts and ends without errors (spoilers included)
     await page.click('.lab-btn.go');
     await expect(page.locator('#btn-lab-done')).toBeVisible();
     const home = (await a((x) => x.run.phase)) as string;
-    expect(['fight', 'camp', 'scene'], id).toContain(home);
+    expect(['fight', 'camp', 'scene', 'map'], id).toContain(home);
     if (home === 'fight') {
       await page.mouse.click(437, 200); // TAP TO BEGIN
       await page.waitForTimeout(500);
@@ -168,6 +168,8 @@ test('every Test lab scenario starts and ends without errors (spoilers included)
     await expect(page.locator('#lab[data-view="list"]')).toBeVisible();
   }
   await page.click('.lab-btn', { hasText: 'Hide spoilers' } as Any);
+  // (the later acts' maps drew every foe as its own mini: none fell back to the crossed swords)
+  expect(await page.evaluate(() => (window as Any).__cq3.miniMisses)).toEqual([]);
   expect(errors).toEqual([]);
 });
 
