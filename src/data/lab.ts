@@ -55,6 +55,9 @@ export interface LabProfileSpec {
   /** Companions owned (Pip always), and the ones brought into fights. */
   pets?: CompanionId[];
   petsOn?: CompanionId[];
+  /** Owned companions' levels and stars (default: a level that fits, 1 star; a star's shards part way to the next). */
+  petLevels?: Partial<Record<CompanionId, number>>;
+  petStars?: Partial<Record<CompanionId, number>>;
   camp?: CampUpgradeId[];
   /** Mastery milestones reached (they make camp upgrades buyable). */
   mastery?: string[];
@@ -136,7 +139,26 @@ const barRule = (id: string, label: string, tryLine: string, bar: BarRules, tips
 /** This session's new content (playtest round 7: numbers, tips, map sprites and the completion tracker that stay
  *  fixed; the anti-spam balance; a unique finisher per hero; the sharper chest reveal; the companions screen).
  *  Reworked items carry a new rev: a rating given to their earlier version shows as "Reworked" with the old rating. */
-export const LAB_NEW: LabScenario[] = [];
+export const LAB_NEW: LabScenario[] = [
+  // ---- companions screen
+  {
+    id: 'companions',
+    group: 'camp',
+    label: 'Companions',
+    secs: 40,
+    rev: 2,
+    try: 'Swipe through them. Tap a card. Bring two along.',
+    setup: { kind: 'camp', screen: 'companions' },
+    profile: {
+      actsCleared: 2,
+      camp: PERCH,
+      pets: ['pip', 'bun', 'newt', 'sprocket', 'brick', 'flurry', 'sunny'],
+      petsOn: ['pip'],
+      petLevels: { pip: 12, bun: 4, newt: 7, sprocket: 9, brick: 2, flurry: 15, sunny: 20 },
+      petStars: { pip: 3, bun: 5, newt: 1, sprocket: 2, brick: 1, flurry: 4, sunny: 2 },
+    },
+  },
+];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,
  *  the first region's Act 1 fight and the later regions (spoilers). */
@@ -191,16 +213,7 @@ export const LAB_EARLIER: LabScenario[] = [
     setup: { kind: 'camp', screen: 'skills', hero: 'moss' },
     profile: { actsCleared: 2, heroes: { moss: 1, torva: 1 }, hero: 'moss', level: 10 },
   },
-  {
-    id: 'companions',
-    group: 'camp',
-    label: 'Companions',
-    secs: 30,
-    rev: 1,
-    try: 'Read each one. Bring two along.',
-    setup: { kind: 'camp', screen: 'companions' },
-    profile: { actsCleared: 2, camp: PERCH, pets: ['pip', 'bun', 'newt', 'brick', 'mote', 'sunny'], petsOn: ['pip'] },
-  },
+  // (the companions screen, reworked again: in New)
   {
     id: 'campUpgrades',
     group: 'camp',

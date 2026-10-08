@@ -15,6 +15,7 @@ import { itemLevel, makeItem } from './gear';
 import { nodeAt, xpForLevel } from './heroes';
 import { addItem, equip, newProfile, newRegionLog, type Profile } from './profile';
 import { Rng } from './rng';
+import { shardsToNext } from './roster';
 import { unveilKey } from './world-plan';
 import type { Run } from './run';
 import type { Tuning } from './tuning';
@@ -96,7 +97,15 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
   if (pick && p.heroes[pick].unlocked) p.hero = pick;
   // companions: Pip always, the listed ones, all at a level that fits
   for (const id of spec.pets ?? []) p.pets[id].owned = true;
-  for (const id of COMPANION_IDS) if (p.pets[id].owned) p.pets[id].xp = xpForLevel(t, Math.max(1, Math.round(level / 2)));
+  for (const id of COMPANION_IDS) if (p.pets[id].owned) p.pets[id].xp = xpForLevel(t, Math.max(1, Math.round(spec.petLevels?.[id] ?? level / 2)));
+  // their stars as listed, the shards part way to the next star (so its meter shows)
+  for (const [id, stars] of Object.entries(spec.petStars ?? {}) as Array<[CompanionId, number]>) {
+    const x = p.pets[id];
+    if (!x.owned) continue;
+    x.stars = Math.max(1, Math.min(5, Math.round(stars)));
+    const need = shardsToNext(t, x.stars);
+    x.shards = need === null ? 0 : Math.floor(need * [0.3, 0.55, 0.8][x.stars % 3]);
+  }
   p.camp = [...new Set(spec.camp ?? [])];
   const slots = p.camp.includes('perch') ? 2 : 1;
   const on = (spec.petsOn ?? ['pip']).filter((id: CompanionId) => p.pets[id].owned);
