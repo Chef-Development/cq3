@@ -395,7 +395,7 @@ export const DEFAULT_TUNING = {
     focusStore: 0.35, // ...and store this share of your attack as Focus...
     focusCap: 6, // ...up to this many times your attack; a green hit fires it all...
     targetWidth: 1.35, // ...and greens (the targets that fire it) come this much wider
-    heavyMult: 1.6, // Brute (Heavy): every hit deals this much...
+    heavyMult: 1.5, // Brute (Heavy): every hit deals this much...
     heavyGap: 1.45, // ...static blocks come this much further apart...
     heavyWidth: 1.15, // ...yellows are this much wider...
     heavyMin: 1, // ...and the bar keeps at least this many yellows
@@ -405,7 +405,7 @@ export const DEFAULT_TUNING = {
     callEvery: 5, // ...and every this many yellows comes as a green (a call)
     kegEvery: 5, // Bomber (Powder): every Nth yellow comes as a keg...
     kegMult: 1.2, // ...whose blast hits every foe for this x your attack...
-    kegRadius: 0.12, // ...and knocks reds this close off the bar
+    kegRadius: 0.09, // ...and knocks reds this close off the bar
   },
   kits: {
     // Each hero's own numbers (core/kit-fx.ts; src/data/heroes.ts has the words). hp: base max HP; atk: share of
@@ -416,13 +416,13 @@ export const DEFAULT_TUNING = {
     // for slowSec
     neve: { hp: 108, atk: 0.95, abilitySec: 3, freeze: 0.35, freeze3: 0.6, chill: 0.75, iceResist: 0.5, iceMeter: 0.5, glacierMult: 0.7, glacierSec: 2.5, glacierBarSec: 1.5, slowSec: 4, slowWidth: 0.34 },
     // moss: allyComp: the allies grow this much stronger (as a share) for each Companion point above a fresh hero's
-    moss: { hp: 90, atk: 0.62, abilitySec: 3, allySec: 6, allySec3: 14, allyComp: 0.15, thornEvery: 1.5, thornDmg: 0.3, barkEvery: 16, mothEvery: 3, mothHeal: 0.004, seedEvery: 5, roots: 0.04, overgrowth: 0.1, vineSec: 3, vineMult: 0.7 },
-    tam: { hp: 100, atk: 0.9, abilitySec: 3, kegEvery3: 4, blastShield: 0.35, bangKegs: 3, wide5: 2 },
+    moss: { hp: 85, atk: 0.62, abilitySec: 3, allySec: 6, allySec3: 14, allyComp: 0.15, thornEvery: 1.5, thornDmg: 0.3, barkEvery: 32, mothEvery: 3, mothHeal: 0.004, seedEvery: 5, roots: 0.04, overgrowth: 0.1, vineSec: 3, vineMult: 0.7 },
+    tam: { hp: 95, atk: 0.9, abilitySec: 3, kegEvery3: 4, blastShield: 0.35, bangKegs: 3, wide5: 2 },
     // hollis: every block slams its red's owner for slam x attack (a Perfect one slamPerfect)
-    hollis: { hp: 95, atk: 0.9, abilitySec: 3, slam: 0.4, slamPerfect: 0.8, ironHide: 0.2, rampartSec: 3, rampartGuard: 1.2, guardMax3: 7 },
+    hollis: { hp: 95, atk: 0.9, abilitySec: 3, slam: 0.4, slamPerfect: 0.8, ironHide: 0.1, rampartSec: 2, rampartGuard: 1.2, guardMax3: 7 },
     vesper: { hp: 115, atk: 1.13, abilitySec: 3, pierce: 0.5, volleyFocus: 1.7, pinSec: 2, cap3: 1.5 },
     // torva: a Wind-Up smash deals x(windUpBase + windUpStep per combo), up to windUpMax
-    torva: { hp: 108, atk: 0.86, abilitySec: 3, quake: 0.08, windUpBase: 1.8, windUpStep: 0.04, windUpMax: 4, stunSec: 1, unstoppable: 0.08, unstoppableMax: 5, calmSec: 1.2 },
+    torva: { hp: 108, atk: 0.86, abilitySec: 3, quake: 0.08, windUpBase: 1.7, windUpStep: 0.04, windUpMax: 4, stunSec: 1, unstoppable: 0.08, unstoppableMax: 5, calmSec: 1.2 },
   },
   chests: {
     // Hero chests (core/chests.ts): a hero or a companion, weighted toward the low tiers, or shards for one you own.
