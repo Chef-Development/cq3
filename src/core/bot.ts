@@ -51,7 +51,17 @@ export interface BotOptions {
   noGear?: boolean; // measurement: never wear what drops (the balance report's "without gear" ablation)
   avoid?: RelicId[]; // measurement: relics it never takes (to weigh one relic against going without it)
   focus?: string; // measurement: the skill branch it goes down first (default: rolled once per profile)
+  /** The masher (measurement): from this act on (global index) it stops aiming and taps as fast as a thumb can,
+   *  wherever the cursor is; the judge decides what each tap lands on. Before it, it plays like a person. */
+  mashFrom?: number;
+  /** ...only in boss fights (the act's other fights played like a person). */
+  mashBoss?: boolean;
+  /** ...ms between its taps (default MASH_GAP_MS). */
+  mashGapMs?: number;
 }
+
+/** The masher's tap rate: two thumbs drumming, about 10 taps a second (an aimed thumb manages a tap per 140 ms). */
+export const MASH_GAP_MS = 100;
 
 /** Inverse of the standard normal CDF (Acklam's approximation; |error| < 1e-8 over (0, 1)). */
 function normInv(p: number): number {
@@ -109,7 +119,18 @@ export interface FightStats {
   damage: number; // HP actually removed from enemies
   finisherDamage: number;
   finishers: number;
-  maxStackFinishers: number;
+  maxStackFinishers: number; // finishers fired with 5 stacks or more (tuning.meter.maxStacks)
+  finAtMax: number; // finishers fired at the max stacks the hero had right then (Overcharge raises it)
+  stacksSpent: number; // stacks the finishers spent in all
+  // ---- the anti-spam measures (docs/balance-spam.md)
+  coverMean: number; // share of the bar covered by blocks, over the fight's ticks...
+  coverPeak: number; // ...and its peak
+  healBy: Record<string, number>; // HP healed in the fight by source (Combat.tally)
+  healCut: number; // HP the heal cap and the stacking rule took off heals
+  forgiven: number; // misses that didn't break the combo
+  softened: number; // misses whose break kept some combo or stacks
+  refused: number; // statics the crowding limit kept off the bar
+  mashed: boolean; // the masher played it
   taps: number;
   misses: number;
   perfects: number;
@@ -504,6 +525,16 @@ function newFight(run: Run, c: Combat): FightStats {
     finisherDamage: 0,
     finishers: 0,
     maxStackFinishers: 0,
+    finAtMax: 0,
+    stacksSpent: 0,
+    coverMean: 0,
+    coverPeak: 0,
+    healBy: {},
+    healCut: 0,
+    forgiven: 0,
+    softened: 0,
+    refused: 0,
+    mashed: false,
     taps: 0,
     misses: 0,
     perfects: 0,
@@ -619,7 +650,9 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
         }
       else if (e.type === 'finisher') {
         st.finishers++;
+        st.stacksSpent += e.stacks;
         if (e.stacks >= Math.round(T.meter.maxStacks)) st.maxStackFinishers++;
+        if (e.stacks >= c.maxStacks()) st.finAtMax++;
       } else if (e.type === 'comboBreak') breaks++;
       else if (e.type === 'miss') st.misses++;
       else if (e.type === 'trap') st.traps++;
@@ -651,9 +684,39 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
     }
   };
 
+  // the masher: no aim, a tap every mashGap (a little uneven), wherever the cursor is
+  const mash = o.mashFrom !== undefined && run.actIndex >= o.mashFrom && (!o.mashBoss || run.node?.type === 'boss');
+  const mashGap = (o.mashGapMs ?? MASH_GAP_MS) / 1000;
+  st.mashed = mash;
+  let cover = 0;
+
   while (run.phase === 'fight' && c.time < maxSec) {
     c.step();
     const t = c.time;
+    const cv = c.covered();
+    cover += cv;
+    if (cv > st.coverPeak) st.coverPeak = cv;
+    if (mash) {
+      // a hold its tap happened to catch it keeps pressing until the hold is done (it finishes at the far end on its
+      // own): its best shot; it swipes the finisher like the aiming bot does
+      if (!c.holding && t >= busyUntil) {
+        if (c.finisherReady && wantsFinisher(c, (breaks + 3 * (1 - o.accuracy)) / (combos + 3))) {
+          c.finisher();
+          busyUntil = t + 0.3;
+        } else {
+          c.tap(t);
+          st.taps++;
+          busyUntil = t + mashGap * (0.8 + 0.4 * rng.next());
+        }
+      }
+      tally(c.drainEvents());
+      comboTicks += c.combo;
+      ticks++;
+      if (c.combo > st.peakCombo) st.peakCombo = c.combo;
+      st.seconds = t;
+      run.sync();
+      continue;
+    }
     if (pending) {
       if (!c.blocks.some((b) => b.id === pending!.blockId)) pending = null; // it's gone (bomb, finisher): don't tap
       else if (t >= pending.at) {
@@ -695,6 +758,12 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
     run.sync();
   }
   st.avgCombo = ticks ? comboTicks / ticks : 0;
+  st.coverMean = ticks ? cover / ticks : 0;
+  st.healBy = { ...c.tally.healBy };
+  st.healCut = c.tally.healCut;
+  st.forgiven = c.tally.forgiven;
+  st.softened = c.tally.softened;
+  st.refused = c.tally.refused;
   st.healed = Math.max(0, run.hero.hp - hp0 + st.hpLost);
   st.won = run.phase !== 'defeat' && c.result === 'won';
   st.hpEnd = run.hero.hp / heroMaxHp(T, run.hero);
@@ -706,14 +775,13 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
  * cashing in now: P(no break over the hits the next stack needs) x (damage with n+1 stacks / with n) < 1.
  */
 function wantsFinisher(c: Combat, risk: number): boolean {
-  const M = c.tuning.meter;
   const max = c.maxStacks(); // relics can raise it (Overcharge)
   if (c.stacks >= max) return true;
   const target = c.currentTarget();
   if (target && c.finisherDamage() * finisherKitMult(c) >= target.hp) return true;
   // a Guardian with a Bulwark ready sets it off with the next tap first (Rampart would spend that Guard on one foe)
   if (c.heroId === 'hollis' && guardOf(c) >= guardMax(c)) return false;
-  const hitsNeeded = Math.max(1, (1 - c.meter) / Math.max(0.01, M.perHit));
+  const hitsNeeded = Math.max(1, c.hitsToStack()); // each stack costs more than the last
   const survive = Math.pow(1 - Math.min(0.95, risk), hitsNeeded);
   return survive * (c.finisherDamage(c.stacks + 1) / Math.max(1, c.finisherDamage())) < 1;
 }

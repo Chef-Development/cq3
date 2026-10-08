@@ -2,7 +2,7 @@
 // Time is in seconds of simulation time, advanced in fixed 1/120 s ticks.
 
 import type { EffectId } from '../data/gear';
-import type { RelicId } from '../data/relics';
+import { isRelicId, type RelicId } from '../data/relics';
 import type { AllyKind } from '../data/heroes';
 import type { BarRules, FormationEntry, SpecialDef, ZoneKind } from '../data/types';
 import { CODE_KIND, isAttack, isRed, untappable, type BlockKind } from './blocks';
@@ -400,6 +400,16 @@ export interface FightLog {
   bestFinisher: number; // the most stacks a finisher spent
 }
 
+/** What the anti-spam rules watch in a fight (the caps read it; the balance bot reports it). */
+export interface SpamTally {
+  healed: number; // HP healed in the fight (every in-fight heal; a revive and kill gains to max HP don't count)
+  healBy: Record<string, number>; // ...by source (a perk's id, a gear effect's, 'kill')
+  healCut: number; // HP the heal cap and the stacking rule took off heals
+  forgiven: number; // misses that didn't break the combo (Footpad, Clutch, Smoke Veil, Crampons, Spare Link...)
+  softened: number; // misses whose break kept some of the combo or stacks (Hoarder, Unbroken)
+  refused: number; // statics the crowding limit kept off the bar
+}
+
 export class Combat {
   readonly tuning: Tuning;
   readonly settings: Settings;
@@ -461,6 +471,12 @@ export class Combat {
   /** The perks in play (the hero's kit, learned skills, relics; core/hooks.ts), and their per-fight state, keyed by
    *  the perk's id (counters, timers). */
   readonly hooks: FightHooks[];
+  /** Whose each hook is (parallel to `hooks`): 'kit' (style and kit), 'pet', a skill node's id, a relic's id. */
+  private readonly hookIds: string[];
+  /** Relics that added meter, and heal sources that healed, in the order they first did this fight (the stacking
+   *  rules: the first counts in full, each later one a little less). */
+  private meterRelics: string[] = [];
+  private healSources: string[] = [];
   perk: Record<string, number> = {};
   /** Coins perks found mid-fight (the run banks them with the kills' coins). */
   coinsEarned = 0;
@@ -471,6 +487,8 @@ export class Combat {
   rushCoins = 0;
   /** What happened so far (the side quests read it when the fight is won). */
   log: FightLog = { blocks: 0, bestCombo: 0, breaks: 0, cleanWaves: 0, kills: 0, hits: 0, holds: 0, bestFinisher: 0 };
+  /** Heals, forgiven misses and crowded spawns so far (the anti-spam rules; the bot's report). */
+  tally: SpamTally = { healed: 0, healBy: {}, healCut: 0, forgiven: 0, softened: 0, refused: 0 };
   /** Breaks when the current wave came in (a wave cleared with none since is clean). */
   private waveBreaks = 0;
   /** The attack hit being resolved right now (comboGain and meter hooks read whether it was Perfect), or null. */
@@ -521,10 +539,14 @@ export class Combat {
     this.rush = Math.max(0, o.rush ?? 0);
     // the hero's style rule, then their kit (signature, ability, passive, finisher, stars, strengths), skills, relics
     // (Coin Rush is pure aim: the style and kit only)
-    const kit = [STYLE_HOOKS[heroDef(build.id).style], ...kitHooks(build)];
+    const kit: Array<[string, FightHooks | undefined]> = [STYLE_HOOKS[heroDef(build.id).style], ...kitHooks(build)].map((h) => ['kit', h]);
     // the companions' perks (only when the build names its companions: a profile's always does)
-    const pets = build.pets ? companionHooks(build.pets) : [];
-    this.hooks = (this.rush ? kit : [...kit, ...pets, ...build.skills.map((id) => SKILL_HOOKS[id]), ...(o.hero.relics ?? []).map((id) => RELIC_HOOKS[id])]).filter((h): h is FightHooks => !!h);
+    const pets: Array<[string, FightHooks | undefined]> = (build.pets ? companionHooks(build.pets) : []).map((h) => ['pet', h]);
+    const skills: Array<[string, FightHooks | undefined]> = build.skills.map((id) => [id, SKILL_HOOKS[id]]);
+    const relics: Array<[string, FightHooks | undefined]> = (o.hero.relics ?? []).map((id) => [id, RELIC_HOOKS[id]]);
+    const all = (this.rush ? kit : [...kit, ...pets, ...skills, ...relics]).filter((x): x is [string, FightHooks] => !!x[1]);
+    this.hooks = all.map((x) => x[1]);
+    this.hookIds = all.map((x) => x[0]);
     this.bar = o.bar ?? null;
     this.row = Math.max(0, o.row ?? 0);
     this.practice = !!o.practice;
@@ -579,7 +601,7 @@ export class Combat {
     }
     if (this.spawning && this.frontEnemy()) {
       const front = this.frontEnemy() ?? this.enemies[0];
-      for (let i = 0; i < this.tuning.blocks.openingSpawns; i++) this.trySpawn('yellow', front.id);
+      for (let i = 0; i < this.tuning.blocks.openingSpawns; i++) this.trySpawn('yellow', front.id, true);
     }
     if (!this.result) for (const h of this.hooks) h.start?.(this);
     this.record();
@@ -625,11 +647,38 @@ export class Combat {
 
   /** Heal the hero for a perk (up to max HP). Returns how much. */
   healPerk(amount: number, id: string): number {
+    const heal = this.gainHp(amount, id);
+    if (heal > 0) this.perkFx(id, heal);
+    return heal;
+  }
+
+  /**
+   * Every heal in a fight comes through here (perks, gear effects, kills): up to max HP. Heal effects stack with
+   * diminishing returns (the second source to heal this fight heals 1 / (1 + spam.healStack) as much, the third
+   * 1 / (1 + 2x)...; a kill's heal is everyone's and doesn't count as one), and a fight's heals stop at spam.healCap
+   * of max HP (a revive isn't a heal; rests and potions are between fights). Returns the HP gained.
+   */
+  private gainHp(amount: number, source: string): number {
     const H = this.hero;
-    const heal = Math.min(this.maxHp() - H.hp, Math.max(0, Math.round(amount)));
-    if (heal <= 0 || H.hp <= 0) return 0;
+    if (H.hp <= 0) return 0;
+    const S = this.tuning.spam;
+    const T = this.tally;
+    const max = this.maxHp();
+    const want = Math.min(max - H.hp, Math.max(0, Math.round(amount)));
+    if (want <= 0) return 0;
+    const share = source === 'kill' ? 1 : this.stackShare(this.healSources, source, S.healStack);
+    const room = Math.max(0, Math.round(S.healCap * max) - T.healed);
+    const heal = Math.max(0, Math.min(want, Math.round(Math.max(0, amount) * share), room));
+    T.healCut += want - heal;
+    if (heal < want && room < want && !this.perk.healCap) {
+      // the fight's heals are used up: the view says so once
+      this.perk.healCap = 1;
+      this.perkFx('healCap');
+    }
+    if (heal <= 0) return 0;
     H.hp += heal;
-    this.perkFx(id, heal);
+    T.healed += heal;
+    T.healBy[source] = (T.healBy[source] ?? 0) + heal;
     return heal;
   }
 
@@ -646,18 +695,56 @@ export class Combat {
     this.events.push({ type: 'coins', amount: c, id });
   }
 
-  /** Bank finisher stacks (up to the max). Returns how many were added. */
+  /** Bank finisher stacks (up to the max). Returns how many were added. A relic's stacks stack with diminishing
+   *  returns (tuning.spam.meterStack): from the second relic that adds meter in a fight on, a "stack" is that share of
+   *  the next stack's meter. */
   bankStacks(n: number, id: string): number {
     const max = this.maxStacks();
+    const share = isRelicId(id) ? this.stackShare(this.meterRelics, id, this.tuning.spam.meterStack) : 1;
     let added = 0;
-    while (added < n && this.stacks < max) {
-      this.stacks++;
-      added++;
-      this.events.push({ type: 'meterFull', stacks: this.stacks });
-    }
+    if (share < 1) {
+      const before = this.stacks;
+      if (before < max) this.fillRaw(n * share * this.stackCost());
+      added = this.stacks - before;
+    } else
+      while (added < n && this.stacks < max) {
+        this.stacks++;
+        added++;
+        this.events.push({ type: 'meterFull', stacks: this.stacks });
+      }
     if (this.stacks >= max) this.meter = 1;
-    if (added) this.perkFx(id, added);
+    if (added || share < 1) this.perkFx(id, added);
     return added;
+  }
+
+  /** Stacking rule (heals, relics' meter): the share a source gets by the order it first acted in this fight (the
+   *  first 1, the second 1 / (1 + step), the third 1 / (1 + 2 step)...). `list` remembers the order. */
+  private stackShare(list: string[], id: string, step: number): number {
+    let i = list.indexOf(id);
+    if (i < 0) i = list.push(id) - 1;
+    return 1 / (1 + Math.max(0, step) * i);
+  }
+
+  /** What the next finisher stack costs, as a share of the first's: each costs tuning.spam.stackStep more than the
+   *  one before (about 6 / 8 / 10 / 12 / 14 hits). The meter (0..1) is the fill toward it. */
+  stackCost(k = this.stacks): number {
+    return 1 + Math.max(0, this.tuning.spam.stackStep) * Math.max(0, k);
+  }
+
+  /** Plain hits (not Perfect, before Meter Gain) still needed for the next stack (the bot's read of the wait). */
+  hitsToStack(): number {
+    return ((1 - Math.min(1, Math.max(0, this.meter))) * this.stackCost()) / Math.max(0.01, this.tuning.meter.perHit);
+  }
+
+  /** Meter Gain (gear and skills) as it counts: in full up to tuning.spam.meterKnee, then with diminishing returns
+   *  (never more than knee + meterSoft). */
+  meterGain(): number {
+    const S = this.tuning.spam;
+    const g = Math.max(0, heroStats(this.tuning, this.hero).meterGain);
+    const knee = Math.max(0, S.meterKnee);
+    if (g <= knee) return g;
+    const soft = Math.max(0, S.meterSoft);
+    return soft > 0 ? knee + (g - knee) / (1 + (g - knee) / soft) : knee;
   }
 
   /** Lose finisher stacks (Overcharge). */
@@ -726,9 +813,10 @@ export class Combat {
     return heroStats(this.tuning, this.hero);
   }
 
-  /** Fill the meter for a perk, as if from `source` (Wingman: a peck fills it like a hit). */
-  fillMeter(x: number, source: MeterSource = 'perk'): void {
-    this.addMeter(x, source);
+  /** Fill the meter for a perk, as if from `source` (Wingman: a peck fills it like a hit). `id`: the perk's (a relic's
+   *  fill stacks with the other meter relics' with diminishing returns). */
+  fillMeter(x: number, source: MeterSource = 'perk', id?: string): void {
+    this.addMeter(x, source, id);
   }
 
   /** A perk counts a yellow/green a bomb's blast already took off the bar as a hit of yours (Blast Wave). */
@@ -1489,7 +1577,7 @@ export class Combat {
       const attacks = this.blocks.reduce((n, b) => n + (isAttack(b.kind) ? 1 : 0), 0);
       const front = this.frontEnemy();
       const min = Math.round(this.mod(B.minAttack, (h, v) => h.minAttack?.(this, v)));
-      if (front && attacks < min && this.trySpawn('yellow', front.id)) this.refillTimer = 0.12;
+      if (front && attacks < min && this.trySpawn('yellow', front.id, true)) this.refillTimer = 0.12;
     }
     for (const e of this.enemies) {
       if (!e.alive || this.telegraph?.enemyId === e.id) continue; // busy winding up a special
@@ -1510,7 +1598,8 @@ export class Combat {
         e.seq++;
         continue;
       }
-      if (this.trySpawn(kind, e.id)) {
+      if (this.trySpawn(kind, e.id, true) || this.crowded) {
+        // (crowded: the bar is covered up to the limit, so this static isn't sent; the pattern goes on at its pace)
         e.seq++;
         // perks can space out the static blocks (Heavy: fewer, wider yellows)
         const gap = isRed(kind) ? 1 : this.mod(1, (h, v) => h.staticGap?.(this, v));
@@ -1524,9 +1613,24 @@ export class Combat {
     }
   }
 
-  /** Spawn a block from a pattern (random free position for static blocks, right end for reds), at a random width. */
-  trySpawn(kind: BlockKind, ownerId: number): boolean {
+  /** Whether a static that wants `w` of the bar would push the blocks past the crowding limit (tuning.spam.cover). A
+   *  bar with no yellow or green left always takes one (there is always something to hit). */
+  wouldCrowd(w: number): boolean {
+    if (this.covered() + w <= this.tuning.spam.cover + 1e-9) return false;
+    return this.blocks.some((b) => isAttack(b.kind));
+  }
+
+  /** The last trySpawn was turned away by the crowding limit (not for want of a free spot). */
+  crowded = false;
+
+  /**
+   * Spawn a block from a pattern (random free position for static blocks, right end for reds), at a random width.
+   * `capped`: a foe's pattern or the refill (the crowding limit applies to their statics; never to reds, specials'
+   * formations or the hero's own blocks).
+   */
+  trySpawn(kind: BlockKind, ownerId: number, capped = false): boolean {
     const B = this.tuning.blocks;
+    this.crowded = false;
     for (const h of this.hooks) if (h.spawnKind) kind = h.spawnKind(this, kind, ownerId);
     if (kind === 'yellow' && this.wantsHold(ownerId)) kind = 'hold';
     // blocks come in varied widths: some small, some big, for every kind
@@ -1543,6 +1647,12 @@ export class Combat {
     }
     const statics = this.blocks.filter((b) => !isRed(b.kind));
     if (statics.length >= B.maxStatic) return false;
+    if (capped && this.wouldCrowd(w)) {
+      // the bar is covered up to the limit: this one isn't sent (there's always room to miss)
+      this.crowded = true;
+      this.tally.refused++;
+      return false;
+    }
     // the region's bar rules: a yellow may come as a linked pair, or drifting (the random draws only happen in an
     // act that has these rules, so other acts play exactly as before)
     const R = this.bar;
@@ -1555,7 +1665,7 @@ export class Combat {
       if (owner.linkEvery && owner.sent % owner.linkEvery === 0) callLink = true;
       else if (owner.driftEvery && owner.sent % owner.driftEvery === 0) callDrift = true;
     }
-    if (kind === 'yellow' && (callLink || (R?.links && this.row >= R.links.fromRow && this.spawnRng.next() < R.links.share)) && statics.length + 2 <= B.maxStatic) {
+    if (kind === 'yellow' && (callLink || (R?.links && this.row >= R.links.fromRow && this.spawnRng.next() < R.links.share)) && statics.length + 2 <= B.maxStatic && !(capped && this.wouldCrowd(2 * w))) {
       if (this.spawnPair(w, ownerId)) return true;
     }
     let drift = 0;
@@ -1625,6 +1735,13 @@ export class Combat {
     if (isRed(b.kind) || !this.blocks.includes(b)) return;
     b.vel = speed === 0 ? 0 : speed;
     b.driftSec = speed === 0 ? Infinity : sec;
+  }
+
+  /** The share of the bar the blocks on it cover (every block's width added up, reds and holds included; 1 at most). */
+  covered(): number {
+    let w = 0;
+    for (const b of this.blocks) w += b.width;
+    return Math.min(1, w);
   }
 
   /** A random spot (block center) where a static block of width w fits without touching the others, or null. */
@@ -1848,7 +1965,8 @@ export class Combat {
     this.events.push({ type: 'linkBroken', ids: [L.id, L.partner], pos });
     const x: LinkCtx = { pos, forgive: false };
     for (const h of this.hooks) h.linkBroken?.(this, x);
-    if (!x.forgive) this.miss(pos, true);
+    if (x.forgive && this.canForgive()) this.forgive();
+    else this.miss(pos, true);
   }
 
   /** An iced yellow takes a tap: its coat cracks (it needs `taps` in all); the combo holds, nothing else happens. */
@@ -2086,11 +2204,8 @@ export class Combat {
 
   /** Heal the hero (gear effects), up to max HP. */
   private healHero(amount: number, fx: EffectId): void {
-    const H = this.hero;
-    const heal = Math.min(heroMaxHp(this.tuning, H) - H.hp, Math.max(0, Math.round(amount)));
-    if (heal <= 0 || H.hp <= 0) return;
-    H.hp += heal;
-    this.events.push({ type: 'gearFx', fx, amount: heal, enemyId: 0 });
+    const heal = this.gainHp(amount, fx);
+    if (heal > 0) this.events.push({ type: 'gearFx', fx, amount: heal, enemyId: 0 });
   }
 
   /** Pendulum Shard: every Nth combo hit spawns a green block. */
@@ -2219,19 +2334,66 @@ export class Combat {
   }
 
   private miss(pos: number, slip = false): void {
-    if (!this.missForgiven && setPieces(this.hero.gear, 'footpad') >= 2) {
+    if (!this.missForgiven && setPieces(this.hero.gear, 'footpad') >= 2 && this.canForgive()) {
       // Footpad set: the fight's first miss doesn't break the combo (or hurt)
       this.missForgiven = true;
+      this.forgive();
       this.events.push({ type: 'miss', pos, selfDamage: false });
       this.events.push({ type: 'gearFx', fx: 'footpad', amount: 0, enemyId: 0 });
       return;
     }
-    const classic = this.settings.mode === 'classic';
-    const x: MissCtx = { slip, damage: classic && !this.rush ? this.tuning.judge.missSelfDamage : 0, breaks: true };
+    // a miss soon after a miss costs more (a flailing thumb: mashing), up to judge.missStreakMax times
+    const J = this.tuning.judge;
+    this.missStreak = this.time - this.lastMissAt <= J.missStreakSec + 1e-9 ? this.missStreak + 1 : 0;
+    this.lastMissAt = this.time;
+    const base = this.settings.mode === 'classic' && !this.rush ? Math.round(this.missDamage() * Math.min(Math.max(1, J.missStreakMax), 1 + this.missStreak)) : 0;
+    const x: MissCtx = { slip, damage: base, breaks: true };
     for (const h of this.hooks) h.miss?.(this, x);
+    if (!x.breaks) {
+      // a perk forgave it (Clutch, Smoke Veil, Crampons): only so many a fight, and it still costs the meter's fill
+      if (this.canForgive()) this.forgive();
+      else {
+        x.breaks = true;
+        x.damage = Math.max(base, x.damage);
+      }
+    }
     this.events.push({ type: 'miss', pos, selfDamage: x.damage > 0 });
     if (x.damage > 0) this.heroDamage(x.damage, 'miss', 0, !x.breaks);
     else if (x.breaks) this.breakCombo('miss');
+  }
+
+  /** Misses in a row, each within judge.missStreakSec of the last (0: the last one stood alone), and when the last
+   *  one was. */
+  missStreak = 0;
+  private lastMissAt = -Infinity;
+
+  /** Classic mode: what a tap on empty bar costs (a share of max HP, at least judge.missSelfDamage), before a streak. */
+  missDamage(): number {
+    const J = this.tuning.judge;
+    return Math.max(J.missSelfDamage, Math.round(this.maxHp() * Math.max(0, J.missHpShare)));
+  }
+
+  /** Misses the perks may still forgive this fight (tuning.spam.forgiveMax for every effect together). */
+  forgiveLeft(): number {
+    return Math.max(0, Math.round(this.tuning.spam.forgiveMax) - this.tally.forgiven);
+  }
+
+  /** Whether a perk may forgive a miss now (Clutch, Smoke Veil, Crampons, Spare Link, Footpad). When the fight's
+   *  forgiven misses are used up the answer is no, and the view says so (once a fight). */
+  canForgive(): boolean {
+    if (this.forgiveLeft() > 0) return true;
+    if (!this.perk.missCap) {
+      this.perk.missCap = 1;
+      this.perkFx('missCap');
+    }
+    return false;
+  }
+
+  /** A miss was forgiven: it's counted, and it still costs the meter's fill toward the next stack (a miss always
+   *  costs some combo progress). */
+  private forgive(): void {
+    this.tally.forgiven++;
+    if (this.stacks < this.maxStacks()) this.meter = Math.max(0, this.meter * (1 - Math.min(1, Math.max(0, this.tuning.spam.forgiveMeter))));
   }
 
   /** Damage the finisher would deal right now (0 if no stacks are banked). */
@@ -2330,21 +2492,52 @@ export class Combat {
 
   // ---------------------------------------------------------------- damage
 
-  /** Fill the meter; every time it fills, bank a stack (up to meter.maxStacks; the last one stays full). */
-  private addMeter(x: number, source: MeterSource = 'perk'): void {
+  /** Fill the meter; every time it fills, bank a stack (up to meter.maxStacks; the last one stays full). Each stack
+   *  costs more than the one before (stackCost); Meter Gain and relics' meter count with diminishing returns. */
+  private addMeter(x: number, source: MeterSource = 'perk', id?: string): void {
     const max = this.maxStacks();
-    x = this.mod(x, (h, v) => h.meter?.(this, source, v));
+    x = this.meterHooks(x, source);
+    if (id && isRelicId(id) && x > 0) x *= this.stackShare(this.meterRelics, id, this.tuning.spam.meterStack);
     if (this.stacks >= max) {
       this.meter = 1;
       return;
     }
     if (x <= 0) return;
-    this.meter += x * (1 + Math.max(0, heroStats(this.tuning, this.hero).meterGain));
-    while (this.meter >= 1 - 1e-9 && this.stacks < max) {
+    this.fillRaw(x * (1 + this.meterGain()));
+  }
+
+  /** The meter hooks (style, kit, skills, relics) on a fill; a relic's boost stacks with the other meter relics'
+   *  with diminishing returns (stackShare). */
+  private meterHooks(x: number, source: MeterSource): number {
+    let v = x;
+    for (let i = 0; i < this.hooks.length; i++) {
+      const f = this.hooks[i].meter;
+      if (!f) continue;
+      const nv = f(this, source, v);
+      if (nv === undefined) continue;
+      const id = this.hookIds[i];
+      v = nv > v && v > 0 && isRelicId(id) ? v + (nv - v) * this.stackShare(this.meterRelics, id, this.tuning.spam.meterStack) : nv;
+    }
+    return v;
+  }
+
+  /** Add `x` (in first-stack meter) to the meter: each stack banked takes its own cost. */
+  private fillRaw(x: number): void {
+    const max = this.maxStacks();
+    let left = x;
+    while (left > 0 && this.stacks < max) {
+      const cost = this.stackCost();
+      const need = Math.max(0, 1 - this.meter) * cost;
+      if (left < need - 1e-9) {
+        this.meter += left / cost;
+        return;
+      }
+      left = Math.max(0, left - need);
       this.stacks++;
-      this.meter = this.stacks >= max ? 1 : Math.max(0, this.meter - 1);
+      this.meter = 0;
       this.events.push({ type: 'meterFull', stacks: this.stacks });
     }
+    if (this.stacks >= max) this.meter = 1;
   }
 
   private startHitStop(): void {
@@ -2362,6 +2555,7 @@ export class Combat {
     const combo = Math.max(0, Math.min(this.combo, Math.round(x.keepCombo)));
     const stacks = Math.max(0, Math.min(this.stacks, Math.round(x.keepStacks)));
     const meter = Math.max(0, Math.min(this.meter, x.keepMeter));
+    if (cause === 'miss' && (combo > 0 || stacks > 0)) this.tally.softened++;
     if (this.combo > combo || this.stacks > stacks || this.meter > meter) this.events.push({ type: 'comboBreak', lost: this.combo - combo, lostStacks: this.stacks - stacks });
     this.combo = combo;
     this.meter = stacks >= this.maxStacks() ? 1 : meter;
@@ -2481,11 +2675,8 @@ export class Combat {
     }
     // kills heal a little (more with the Greenwarden 4-piece)
     const healShare = Math.max(this.tuning.hero.healOnKill, setPieces(this.hero.gear, 'greenwarden') >= 4 ? this.tuning.effects.greenwardenKillHeal : 0);
-    const heal = Math.min(heroMaxHp(this.tuning, this.hero) - this.hero.hp, Math.round(heroMaxHp(this.tuning, this.hero) * healShare));
-    if (heal > 0 && this.hero.hp > 0) {
-      this.hero.hp += heal;
-      this.events.push({ type: 'heal', amount: heal });
-    }
+    const heal = this.gainHp(heroMaxHp(this.tuning, this.hero) * healShare, 'kill');
+    if (heal > 0) this.events.push({ type: 'heal', amount: heal });
     this.killQueue.push(e.id);
     // linked summons run off when their summoner falls
     for (const x of this.enemies) if (x.alive && x.summoner === e.id) this.retire(x, 'fled');

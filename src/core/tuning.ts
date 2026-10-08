@@ -33,7 +33,27 @@ export const DEFAULT_TUNING = {
     graceMs: 20, // extra hit window on each side, in time (at the speed the cursor and the block close at)
     redGraceMs: 40, // the same for blocking red attacks: defending is forgiving, attacking stays sharp
     maxRewindMs: 300, // how far back a tap timestamp may be judged
-    missSelfDamage: 1, // Classic mode: damage for tapping empty bar
+    missSelfDamage: 1, // Classic mode: damage for tapping empty bar (at least this)...
+    missHpShare: 0.006, // ...or this share of max HP (a flat 1 HP was nothing to a late hero: mashing paid)...
+    missStreakSec: 0.5, // ...and a miss this soon after the last one costs one more time as much (a flailing thumb)...
+    missStreakMax: 4, // ...up to this many times
+  },
+  spam: {
+    // Playtest round 7 ("late fights become spam, spam, finisher x5, spam"): the bar never fills up, each finisher
+    // stack costs more than the last, meter and heal effects stack with diminishing returns, heals per fight are
+    // capped, and a miss always costs something (docs/balance-spam.md). The rules live in core/combat.ts.
+    cover: 0.45, // blocks may cover at most this share of the bar: a foe's static that doesn't fit isn't sent (its
+    // pattern goes on at its pace); reds, specials' formations and the hero's own blocks always come
+    stackStep: 0.32, // each finisher stack costs this much more meter than the one before (x1, 1.32, 1.64, 1.96, 2.28:
+    // 6 / 8 / 10 / 12 / 14 plain hits)
+    meterKnee: 0.25, // Meter Gain (gear, skills) counts in full up to this...
+    meterSoft: 0.5, // ...then with diminishing returns, never more than knee + soft in all
+    meterStack: 0.33, // relics that add meter: the 2nd to kick in in a fight counts 1 / (1 + this), the 3rd 1 / (1 + 2x this)...
+    healCap: 0.35, // heals in a fight stop at this share of max HP (rests and potions are between fights)
+    healStack: 0.33, // heal effects: the 2nd source to heal in a fight heals 1 / (1 + this), the 3rd 1 / (1 + 2x this)...
+    forgiveMax: 3, // misses forgiven per fight by every effect together (Footpad, Clutch, Smoke Veil, Crampons, Spare
+    // Link); after that a miss breaks the combo
+    forgiveMeter: 1, // a forgiven miss still loses this share of the meter's fill toward the next stack
   },
   blocks: {
     attackWidth: 0.07, // yellow width (fraction of bar); narrow like the reference, timing has to be sharp
@@ -703,6 +723,23 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('judge.redGraceMs', 'Red grace (ms)', 0, 120, 1),
         s('judge.maxRewindMs', 'Max rewind (ms)', 0, 600, 10),
         s('judge.missSelfDamage', 'Miss self-dmg', 0, 20, 1),
+        s('judge.missHpShare', 'Miss self-dmg (max HP)', 0, 0.05, 0.001),
+        s('judge.missStreakSec', 'Miss after a miss within (s)', 0, 2, 0.05),
+        s('judge.missStreakMax', '...costs up to x', 1, 8, 0.5),
+      ],
+    },
+    {
+      title: 'Anti-spam',
+      sliders: [
+        s('spam.cover', 'Bar covered at most', 0.2, 1, 0.01),
+        s('spam.stackStep', 'Each stack costs +', 0, 1, 0.01),
+        s('spam.meterKnee', 'Meter Gain full to', 0, 1, 0.01),
+        s('spam.meterSoft', '...then up to +', 0, 2, 0.05),
+        s('spam.meterStack', 'Meter relics stack -', 0, 2, 0.01),
+        s('spam.healCap', 'Heals per fight', 0, 2, 0.01),
+        s('spam.healStack', 'Heal sources stack -', 0, 2, 0.01),
+        s('spam.forgiveMax', 'Misses forgiven', 0, 10, 1),
+        s('spam.forgiveMeter', 'Forgiven miss: meter lost', 0, 1, 0.05),
       ],
     },
     {
