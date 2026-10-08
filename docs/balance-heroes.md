@@ -27,9 +27,9 @@ up to 12 an act). Bold: outside +/-10.
 
 outside +/-10: 9 of 135; largest 15; mean gap 5.0
 
-All 135 hero-acts but 9 are within +/-10 of Rowan; every one of the 9 is a lead, and all but Sable's (Act 5, the
-second region's mini-boss) are at a region boss act (Acts 3, 5 and 9), where Rowan is weakest against everyone (he lets
-about 2.4 boss reds through a fight at the Boar King and loses at about 3.3). Of the eight new heroes only Tess is
+All 135 hero-acts but 9 are within +/-10 of Rowan; every one of the 9 is a lead, at the acts decided by their bosses
+(Acts 3 and 9, the first and third regions' bosses; Act 5, the second region's toughest mini-boss), where Rowan is
+weakest against everyone (he lets about 2.4 boss reds through a fight at the Boar King and loses at about 3.3). Of the eight new heroes only Tess is
 outside (Act 3, +13.5), about 10 points of it the Controller's shared Bend rule (Neve, the other Controller, is +12.5
 there too). Closing the boss-act leads would mean changing Rowan or the bosses, which moves every hero's reference; it
 waits for the playtester's word (decisions Q5).
