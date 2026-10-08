@@ -6,6 +6,7 @@
 // level-2 text 28 (= bold scale 2). Dark ink on a light surface drops the outline (like font.ts's plain twins).
 //
 // The masks are pure (unit-tested); hdText paints a cached canvas (DOM).
+import { guardText } from '../core/format';
 import { glyphMask } from './font';
 
 export interface Mask {
@@ -92,6 +93,7 @@ const cache = new Map<string, HdTextImage>();
 
 /** A text's image on the fine grid (cached). */
 export function hdText(s: string, st: HdTextStyle): HdTextImage {
+  s = guardText(s); // the numbers' safety net, like every string the game canvas draws (core/format.ts)
   const level = st.level ?? 1;
   const bold = st.bold ?? true;
   const deep = st.deep ?? mixC(st.color, 0x140c1c, 0.6);
@@ -142,5 +144,6 @@ export function hdText(s: string, st: HdTextStyle): HdTextImage {
 
 /** A text's width on the fine grid (outline included), without painting it. */
 export function hdTextW(s: string, level: 1 | 2 = 1, bold = true, plain = false): number {
+  s = guardText(s);
   return glyphMask(s, bold).w * (1 << level) + (plain ? 0 : 2);
 }

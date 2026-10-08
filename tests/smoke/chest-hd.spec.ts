@@ -2,7 +2,7 @@
 // game's resolution, and the Test lab's "Sharper chest reveal" (old and new side by side, Old / New / Both, Replay).
 // Time is faked and Math.random seeded as in screens.spec.ts, so the frames are exact. The screenshots are taken at
 // the device's scale (2622 x 1206): at CSS scale a fine pixel (1.33 CSS px) would be resampled away.
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;

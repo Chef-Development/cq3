@@ -2,7 +2,7 @@
 // later regions' act maps (their fight, elite and boss nodes and the packs roaming them) and the world map's wandering
 // foe from a later act (on the road and on its skirmish card). art-minis.ts records any sprite drawn without a mini
 // in `window.__cq3.miniMisses`. Playtest round 7: the second region's act maps showed swords for every foe.
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;

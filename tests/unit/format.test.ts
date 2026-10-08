@@ -181,3 +181,19 @@ describe('the safety net (guardText)', () => {
     expect(heard).toEqual(['12.345', '0.25%']);
   });
 });
+
+describe('every Playwright spec runs under the numbers guard', () => {
+  // (tests/smoke/fixtures.ts fails a test whose screens drew a long decimal: a spec importing @playwright/test directly
+  // would silently skip it)
+  it('imports test from ./fixtures', async () => {
+    const { readdirSync, readFileSync } = await import('node:fs');
+    const dir = new URL('../smoke/', import.meta.url);
+    const specs = readdirSync(dir).filter((f) => f.endsWith('.spec.ts'));
+    expect(specs.length).toBeGreaterThan(3);
+    for (const f of specs) {
+      const src = readFileSync(new URL(f, dir), 'utf8');
+      expect(src.includes("from './fixtures'"), f).toBe(true);
+      expect(/import\s*\{[^}]*\btest\b[^}]*\}\s*from\s*'@playwright\/test'/.test(src), f).toBe(false);
+    }
+  });
+});
