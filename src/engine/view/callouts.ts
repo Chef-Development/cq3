@@ -108,7 +108,6 @@ export const CALLOUT_WORDS: Record<string, string> = {
   'call:spiritWolf': '+Wolf',
   'call:spiritTortoise': '+Shell',
   'call:wispSwarm': '+Wisps',
-  'call:spiritStag': 'Stag!',
   greatSpirit: 'Spirit!',
   kinship: 'Kinship',
   spiritStampede: 'Charge!',
@@ -347,7 +346,8 @@ export class Callouts {
         if (e.own) this.pend.push({ id: 'keg', word: CALLOUT_WORDS.keg, ...this.heroLook(c), pos: e.pos });
         break;
       case 'ally':
-        if (e.action === 'call') {
+        // (the Great Spirit's coming names itself: 'Spirit!', its perk)
+        if (e.action === 'call' && e.kind !== 'spiritStag') {
           const col = ALLY_COL[e.kind];
           this.pend.push({ id: `call:${e.kind}`, word: CALLOUT_WORDS[`call:${e.kind}`] ?? '+Ally', col: mix(col, WHITE, 0.25), mark: { kind: 'leaf', col }, pos: null, bucket: 'ally', always: true });
         }

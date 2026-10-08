@@ -40,6 +40,7 @@ import {
   type ShowCtx,
 } from './finisher-fx';
 import { arrow, heaterShield, rockSpike, vine } from './finisher-kits';
+import { PART6B_SIGNATURES } from './finisher-signatures-b';
 
 /** Where the hero is and how they look at a moment of the show. */
 export interface HeroMotion {
@@ -927,6 +928,8 @@ export const SIGNATURE_DRAW: Record<SignatureId, SignatureDraw> = {
   earthSplit: EARTH_SPLIT,
   // part6:A
   // part6:B
+  spiritStampede: PART6B_SIGNATURES.spiritStampede,
+  pebbleStorm: PART6B_SIGNATURES.pebbleStorm,
   // part6:C
   // part6:D
   crossCut: CROSS_CUT,

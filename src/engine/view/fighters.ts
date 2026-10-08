@@ -27,6 +27,7 @@ import type { Tier } from '../../data/rarity';
 import type { FightScene } from '../scene';
 import { HERO_FEET_X, HERO_W, ICONS } from '../art';
 import { GAME_W } from '../layout';
+import { textWidth } from '../font';
 import { hpBar, icon } from './pixels';
 import { perkColor, perkName, perkSource, TAG_FACE } from './relic-ui';
 import { FOE_ICONS } from './icons';
@@ -649,7 +650,10 @@ export class Fighters {
     const [, hi] = stackCol(n);
     const name = heroDef(id as HeroId).finisher.name;
     const title = n > 1 ? `${name} x${n}!` : `${name}!`;
-    fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, n >= 2 ? 3 : 2, true, 0, -6, 0, ms * 0.95, true);
+    // (a long name steps down a size so the title stays on screen: Part 6's "Spirit Stampede x3!" ran off it)
+    const big = n >= 2 ? 3 : 2;
+    const fit = Math.max(1, Math.min(big, Math.floor((GAME_W - 12) / Math.max(1, textWidth(title, 1, true)))));
+    fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, fit, true, 0, -6, 0, ms * 0.95, true);
     // the last blow (three or more foes side by side: smaller numbers, so they read)
     const crowd = views.length > 2;
     let row = 0;

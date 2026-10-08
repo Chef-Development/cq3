@@ -1819,7 +1819,7 @@ test('Part 6: Dell fires a Lucky Shot (a Perfect green: a crit) and it bounces t
   await boot(page);
   await frames(page, 10);
   await stagedFight(page, { hero: 'dell' });
-  await bar(page, `const e = c.addEnemy('crow', { hp: 30 }); c.events.push({ type: 'summon', enemyId: foe.id, ids: [e.id] }); c.perk.focus = 9999;`);
+  await bar(page, `c.addEnemy('crow', { hp: 30 }); view.fighters.addEnemies(c); c.perk.focus = 9999;`);
   await frames(page, 40);
   await bar(page, `const p = c.cursorPos(); c.spawnBlock('green', p); app.barTap(performance.now());`);
   await frames(page, 7);
@@ -1848,4 +1848,20 @@ test('Part 6: the hero select shows Yara (Mythic, a Summoner) and Dell (a Marksm
   await camp((c, now) => c.heroes.show('dell', now));
   await frames(page, 30);
   await expect(page).toHaveScreenshot('hero-select-dell.png', shot);
+});
+
+test('Part 6: unique finishers, Summoner (Yara): stars join into a stag in the sky while she calls; her spirits stampede through the foes; the great stag leaps down through them', async ({ page }) => {
+  await finisherShow(page, 'yara', { at: 22 });
+  await expect(page).toHaveScreenshot('finisher-yara-call.png', shot);
+  await frames(page, 12);
+  await expect(page).toHaveScreenshot('finisher-yara-stampede.png', shot);
+  await frames(page, 22);
+  await expect(page).toHaveScreenshot('finisher-yara-stag.png', shot);
+});
+
+test('Part 6: unique finishers, Marksman (Dell): pebbles ping from foe to foe; his lucky golden pebble hops through them all', async ({ page }) => {
+  await finisherShow(page, 'dell', { at: 30 });
+  await expect(page).toHaveScreenshot('finisher-dell-pebbles.png', shot);
+  await frames(page, 26);
+  await expect(page).toHaveScreenshot('finisher-dell-lucky.png', shot);
 });
