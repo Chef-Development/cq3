@@ -268,6 +268,21 @@ shows on its target.
 | `seething` | skill: Seething | a mote flies from the bar's left end into the style tab; a ring and sparks on the hero |
 | `payback` | skill: Payback | the cursor kicks (a column of light, a ring) |
 | `berserk` | skill: Berserk | a box flashes out of the block it touched; brackets close in on its foe |
+| `fireBrew` | Fizz: a fire flask (Mixed Brew) | flames lick up off the bar where it blew; every foe burning (`Enemy.burn`'s flames) |
+| `frostBrew` | Fizz: a frost flask | a cold ring and shards off the bar where it blew; every red flashes (and wears the chill's frost) |
+| `sparkBrew` | Fizz: a spark flask | green lightning forks out along the bar to the wide blast's edges, a white flash; where it blew |
+| `brewBurn` | Fizz: a burn's tick | flames flare on the foe, a small orange number (as Newt's; Newt ticks them when he's along) |
+| `toss` | Fizz: Toss | a flask in its brew's glass arcs from her hand to the foe, spinning, and shatters there (glass chips, the brew's splash), then the number |
+| `fumeMask` | Fizz: Fume Mask | a ring and sparks on the hero |
+| `grandReaction` | Fizz: Grand Reaction | its own show (the flasks' blasts show on the bar) |
+| `slowBurn`, `hardFrost`, `wildfire`, `longArm`, `splash`, `doubleToss`, `meltdown`, `fumeHood`, `catalyst` | Fizz's skill nodes | foes / the new red / its foe / its foe / a bolt on to the next / the target / the patches melted / the combo counter / where the flasks blew |
+| `toll` | Brann: Toll | a little bell swings in the bar's track where he blocked, sound rings off it; a mote into the style tab (its toll pips) |
+| `tollHit` | Brann: the hit that spends the tolls | a box on the block hit; a bell's boom on its foe (more rings with more tolls) |
+| `peal` | Brann: Peal | arcs of sound roll from him to each foe; each struck (a bronze ring, a number) as they reach it |
+| `stillMind` | Brann: Still Mind | a mote flies from the block into the style tab |
+| `greatBell` | Brann: Great Bell | its own show (each foe's stun stars) |
+| `echoingBell` | Brann: Echoing Bell (5 stars) | a bolt to its foe, then the hit |
+| `loudToll`, `doubleToll`, `resound`, `longPeal`, `resonance`, `bellWard`, `unshaken`, `stunningToll`, `innerBell` | Brann's skill nodes | the block and its foe / the tab / a bolt on to the next / the cursor / the tab / the left end / the hero / the block and its foe / the tab (the Bulwark shows itself) |
 
 ## Needs from core
 
