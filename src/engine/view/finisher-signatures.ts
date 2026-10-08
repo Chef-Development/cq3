@@ -40,6 +40,7 @@ import {
   type ShowCtx,
 } from './finisher-fx';
 import { arrow, heaterShield, rockSpike, vine } from './finisher-kits';
+import { GORM_TESS_SIGNATURES } from './finisher-signatures-gorm-tess';
 
 /** Where the hero is and how they look at a moment of the show. */
 export interface HeroMotion {
@@ -928,6 +929,7 @@ export const SIGNATURE_DRAW: Record<SignatureId, SignatureDraw> = {
   // part6:A
   // part6:B
   // part6:C
+  ...GORM_TESS_SIGNATURES,
   // part6:D
   crossCut: CROSS_CUT,
   rift: RIFT,

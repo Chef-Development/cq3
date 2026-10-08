@@ -51,6 +51,8 @@ export type SignatureId =
   // part6:A
   // part6:B
   // part6:C
+  | 'boulderRoll'
+  | 'clockRewind'
   // part6:D
   // the styles' defaults
   | 'crossCut'
@@ -83,6 +85,8 @@ export const SIGNATURES: Record<SignatureId, SignatureSpec> = {
   // part6:A
   // part6:B
   // part6:C
+  boulderRoll: { name: 'a slam sets boulders rolling through the foes; a great one drops on them', move: 'leap' },
+  clockRewind: { name: 'a great clock behind the foes spins backwards, then chimes' },
   // part6:D
   crossCut: { name: 'a great cross cut over every foe', styleDefault: 'blade' },
   rift: { name: 'a rift tears open behind the foes', styleDefault: 'shadow' },
@@ -107,6 +111,8 @@ export const HERO_SIGNATURE: Readonly<Record<string, SignatureId>> = {
   // part6:A
   // part6:B
   // part6:C
+  gorm: 'boulderRoll',
+  tess: 'clockRewind',
   // part6:D
 };
 
