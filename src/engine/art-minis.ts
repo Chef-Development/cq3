@@ -2,7 +2,8 @@
 // and boss nodes, walks with a roaming pack, paces the world map's road and stands on the skirmish card. Facing left
 // (toward the hero), 1-2 frames (an idle bob, a flap, a flicker), drawn from each foe's fight sprite (art-foes.ts,
 // art-frost.ts, art-ash.ts) so it reads as that foe: its silhouette, its palette, its signature feature. Ordinary foes
-// are about 8-12 px wide, elites a little bigger, mini-bosses and bosses bigger again (they stand before their lair).
+// are about 8-12 px wide (up to 16 with wings or legs spread), elites a little bigger, the later regions' mini-bosses
+// bigger again and each region's boss biggest (they stand before their lair).
 //
 // Pure data and one lookup, no DOM and no Phaser (the unit tests import it: tests/unit/minis.test.ts fails when a foe
 // that can stand on a map has none). art-map.ts paints them at boot as `mfoe_${sprite}_${frame}` (each grid gets a
@@ -561,7 +562,6 @@ const ASH_MINIS: Record<string, Mini> = {
 
 /** Every foe sprite's map-scale stand-in: `mfoe_${sprite}_${frame}`. */
 export const MINIS: Record<string, Mini> = { ...GREENMARCH_MINIS, ...FROST_MINIS, ...ASH_MINIS };
-export const MINI_FOES = Object.keys(MINIS);
 
 /** What's drawn for a sprite with no mini (and recorded in MINI_MISSES): the crossed swords. */
 export const MINI_FALLBACK = 'mapicon_fight';
