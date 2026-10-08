@@ -668,3 +668,22 @@ P5. **Four more companions (12 in all), each with an effect that shows on what i
     at combo 30+, a glow on the cursor rather than a word on every hit). Numbers in `tuning.pets` with sliders; stars
     step them like the others. A Mythic companion drops at under 2% and from the shrine's top pity.
 P6. **Test lab:** "Burr + Lark" and "Gloam + Nimbus" pair fights; the companions screen scenario owns the new four.
+
+### Hero parity at 75% (after the anti-spam rules; docs/balance-heroes.md)
+Q1. **Rowan, the 75% act curve and every style number stay as they are** (the eight new heroes are tuned against
+    Rowan, and they share six of the styles); every change is in one hero's own kit numbers or soft strengths.
+Q2. **Why the others led at 75%:** Rowan is right at the edge in boss fights (about 2.4 reds get through to him at the
+    Boar King; he loses once about 3.3 do), and each leading hero had a way to let fewer reds through.
+Q3. **Trimmed:** Moss (a Barkback rests 96 s after a block: about one red a fight; Thornling 20%; Overgrowth's vines
+    1 s at x0.8), Hollis (slams 30% / 60%, Iron Hide 5%, Brace 1.5 s, Rampart's wall 1 s, Guard x0.4 a charge, attack
+    0.82; his soft strength guards against Flyers instead of Brutes: four region bosses are brutes), Tam (Big Bang
+    drops 1 keg, HP 85), Torva (Wind-Up no longer stuns: any stun cancels a boss's told special; Quake 0.03, Wind-Up
+    from x1.5, calm 0.4 s, Unstoppable 4%, HP 100, attack 0.8).
+Q4. **Lifted in the second region:** Neve (takes 25% less from Frost foes; Glacier x0.8) and Vesper (+25% to Frost
+    foes; Flyers 20%; Piercing Shot 25%: it hit the Boar King's piglets for half of every Power Shot).
+Q5. **Result on 400 runs per hero** (two seed sets: a 200-run gap moved by up to 12 between samples): 6 of 56
+    hero-acts outside +/-10 (was 19), mean gap 5.2 (was 8.7), the largest +15 (was +31). Still outside: Hollis Acts 3
+    and 9 (+12, +15: the Guardian style and his tree's Avalanche stun and Long Rampart), Neve Act 3 (+13: her Beast
+    strength at the Boar King), Moss Act 9 (+13: Swarms before the last boss), Torva Act 5 (+13: +10 and +17 on the two
+    samples), Sable Act 5 (+12: Casters in the second region). Every hero is ahead at the Boar King: closing that would
+    mean changing Rowan or the boss, which would move the new heroes' reference, so it waits for the playtester's word.
