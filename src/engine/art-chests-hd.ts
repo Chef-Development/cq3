@@ -962,26 +962,24 @@ interface Leaks {
 
 function leakMasks(p: Parts, seed: number): Leaks {
   const cr = cracks(p, seed);
-  const at = new Map<number, number>(); // y * W + x -> the earliest stage a crack lights it (lid +1000)
-  for (const c of cr)
-    for (const [x, y] of c.pts) {
-      const k = y * W + x + (c.lid ? 1e6 : 0);
-      at.set(k, Math.min(at.get(k) ?? 9, c.stage));
-    }
+  // the earliest stage a crack lights each pixel (9: never), and the earliest a neighbour does (its soft halo)
+  const grids = (isLid: boolean) => {
+    const st = new Uint8Array(W * H).fill(9);
+    for (const c of cr) if (c.lid === isLid) for (const [x, y] of c.pts) if (x >= 0 && y >= 0 && x < W && y < H) st[y * W + x] = Math.min(st[y * W + x], c.stage);
+    const halo = new Uint8Array(W * H).fill(9);
+    for (let y = 1; y < H - 1; y++)
+      for (let x = 1; x < W - 1; x++) {
+        const i = y * W + x;
+        halo[i] = Math.min(st[i - 1], st[i + 1], st[i - W], st[i + W]);
+      }
+    return { st, halo };
+  };
+  const G = { lid: grids(true), base: grids(false) };
   const crackAt = (x: number, y: number, isLid: boolean, n: number): number => {
-    const st = at.get(y * W + x + (isLid ? 1e6 : 0));
-    if (st !== undefined && st <= n) return 1;
-    // a soft halo beside a lit crack
-    for (const [dx, dy] of [
-      [-1, 0],
-      [1, 0],
-      [0, -1],
-      [0, 1],
-    ]) {
-      const s2 = at.get((y + dy) * W + x + dx + (isLid ? 1e6 : 0));
-      if (s2 !== undefined && s2 <= n) return 0.38;
-    }
-    return 0;
+    const g = isLid ? G.lid : G.base;
+    const i = y * W + x;
+    if (g.st[i] <= n) return 1;
+    return g.halo[i] <= n ? 0.38 : 0;
   };
   const lid: HTMLCanvasElement[] = [];
   const base: HTMLCanvasElement[] = [];
