@@ -4,6 +4,8 @@
 // 18x18 badge window can find both eyes (PORTRAIT_FACE_AT).
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 import { and, bez, ell, fill, not, or, rimShade, sphere, stroke, tone } from './art-paint';
+import { solennePortrait } from './art-hero-solenne';
+import { wrenPortrait } from './art-hero-wren';
 
 const P = 40;
 const INK = '#140c1c';
@@ -17,6 +19,8 @@ export const PORTRAIT_FACE_AT: Record<string, [number, number]> = {
   vesper: [15, 9],
   torva: [14, 8],
   // part6:A
+  solenne: [15, 9],
+  wren: [15, 10],
   // part6:B
   // part6:C
   // part6:D
@@ -550,6 +554,8 @@ export function buildHeroPortraits(add: (key: string, c: HTMLCanvasElement) => v
   add('portrait_vesper', vesper());
   add('portrait_torva', torva());
   // part6:A
+  add('portrait_solenne', solennePortrait());
+  add('portrait_wren', wrenPortrait());
   // part6:B
   // part6:C
   // part6:D

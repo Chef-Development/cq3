@@ -23,6 +23,8 @@ import { buildHeroPortraits } from './art-hero-portraits';
 import { TAM_CAMP, TAM_CARD, TAM_POSES, TAM_RIG, kegIcon } from './art-hero-tam';
 import { TORVA_CAMP, TORVA_CARD, TORVA_POSES, TORVA_RIG } from './art-hero-torva';
 // part6:A
+import { SOLENNE_CAMP, SOLENNE_CARD, SOLENNE_POSES, SOLENNE_RIG } from './art-hero-solenne';
+import { WREN_CAMP, WREN_CARD, WREN_POSES, WREN_RIG } from './art-hero-wren';
 // part6:B
 // part6:C
 // part6:D
@@ -45,7 +47,7 @@ interface HeroArt {
   card: HeroCardSpec;
   camp: [RigPose, RigPose];
 }
-const HEROES: Record<(typeof M5_HEROES)[number], HeroArt> = {
+const HEROES: Record<string, HeroArt> = {
   neve: { rig: NEVE_RIG, poses: NEVE_POSES, card: NEVE_CARD, camp: NEVE_CAMP },
   moss: { rig: MOSS_RIG, poses: MOSS_POSES, card: MOSS_CARD, camp: MOSS_CAMP },
   tam: { rig: TAM_RIG, poses: TAM_POSES, card: TAM_CARD, camp: TAM_CAMP },
@@ -53,6 +55,8 @@ const HEROES: Record<(typeof M5_HEROES)[number], HeroArt> = {
   vesper: { rig: VESPER_RIG, poses: VESPER_POSES, card: VESPER_CARD, camp: VESPER_CAMP },
   torva: { rig: TORVA_RIG, poses: TORVA_POSES, card: TORVA_CARD, camp: TORVA_CAMP },
   // part6:A
+  solenne: { rig: SOLENNE_RIG, poses: SOLENNE_POSES, card: SOLENNE_CARD, camp: SOLENNE_CAMP },
+  wren: { rig: WREN_RIG, poses: WREN_POSES, card: WREN_CARD, camp: WREN_CAMP },
   // part6:B
   // part6:C
   // part6:D
@@ -75,8 +79,8 @@ function campFrame(rig: Rig, p: RigPose): HTMLCanvasElement {
 }
 
 export function buildHeroArt(add: Add): void {
-  for (const id of M5_HEROES) {
-    const h = HEROES[id];
+  // (every hero with art on the rig: the M5 heroes and round 7's, keyed by their art prefix)
+  for (const [id, h] of Object.entries(HEROES)) {
     for (const k of HERO_POSE_KEYS) add(`${id}_${k}`, rigFrame(h.rig, h.poses[k]));
     add(`hero_card_${id}`, heroCard(h.card.glow, h.card.motes, rigFrame(h.rig, h.card.pose)));
     h.camp.forEach((p, i) => add(`camp_${id}${i}`, campFrame(h.rig, p)));
