@@ -108,6 +108,8 @@ const KIT_TIP: Partial<Record<HeroId, TipId>> = {
   // part6:B
   // part6:C
   // part6:D
+  fizz: 'kitFizz',
+  brann: 'kitBrann',
 };
 
 /** A hero's fight, long enough to feel the kit (playtest round 5: the old two-wave ones ended before it showed): six
@@ -211,6 +213,9 @@ export const LAB_NEW: LabScenario[] = [
   // part6:B
   // part6:C
   // part6:D
+  // ---- Part 6: Fizz (Bomber) and Brann (Guardian), the how-to card first
+  heroFight('fizz', 'fizz', 'Fizz', 'Hit flasks: fire, frost, spark. Greens throw one.', [['beetle', 'archer'], ['wolf', 'wolf', 'archer'], ['shaman', 'boar'], ['bandit', 'crow', 'crow'], ['slime', 'slime', 'shaman'], ['knight', 'beetle']], { rev: 0 }),
+  heroFight('brann', 'brann', 'Brann', 'Block to ring the bell, then hit. Greens: echoes.', [['boar', 'archer'], ['bandit', 'shaman'], ['wolf', 'wolf'], ['beetle', 'boar'], ['archer', 'shaman'], ['bigSlime', 'boar']], { rev: 0 }),
   // part6:E
 ];
 

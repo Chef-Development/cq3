@@ -24,6 +24,8 @@ export const SPEAKER_NAME: Record<Speaker, string> = {
   // part6:B
   // part6:C
   // part6:D
+  fizz: 'Fizz',
+  brann: 'Brann',
   rimehorn: 'Rimehorn',
   matron: 'Loom Matron',
   glacia: 'Glacia',
@@ -248,6 +250,19 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'torva', text: 'HA! TORVA! Hammer brute! What needs\nsmashing? Point me at it, friend!' },
     { who: 'rowan', text: 'Nothing needs smashing. Well. Not anymore.\nThat was a really nice chest.' },
     { who: 'torva', text: 'Problem? HAMMER. Locked door? HAMMER.\nFeeling sad? HAMMER HUG! Come here!' },
+  ],
+  // ---- Part 6: Fizz and Brann
+  meetFizz: [
+    { who: 'narrator', text: 'The chest hisses, fizzes and pops. Green\nsmoke pours out, then a scorched cap.' },
+    { who: 'fizz', text: "Fizz! Alchemist! Don't touch the red one.\nOr the blue one. The green one's fine. Ish." },
+    { who: 'pip', text: 'Hoo. She smells like a burnt kettle.\nI like her already.' },
+    { who: 'fizz', text: 'Three brews, one belt, no eyebrows.\nWhere is the lab? ...This is the lab now.' },
+  ],
+  meetBrann: [
+    { who: 'narrator', text: 'A deep BONNNG rolls out of the chest. A calm\nmonk climbs out, a huge bell on his back.' },
+    { who: 'brann', text: 'Brann. Bellwarden. I took a vow of silence.\nThe bell did not.' },
+    { who: 'rowan', text: 'Could it ring a bit... quieter? Some of us\nare trying to nap. Forever, ideally.' },
+    { who: 'narrator', text: 'He rings it once, very softly. It is the\nloudest thing Rowan has ever heard.' },
   ],
 };
 

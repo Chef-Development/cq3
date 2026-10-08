@@ -86,6 +86,14 @@ export const MASTERY: MasteryDef[] = [
   // part6:B
   // part6:C
   // part6:D
+  lv('fizz', 5, { kind: 'relic', relic: 'frostRune' }, 'Relic: Frost Rune'),
+  acts('fizz', 3, { kind: 'gems', n: 30 }, '30 gems'),
+  lv('fizz', 10, { kind: 'gems', n: 40 }, '40 gems'),
+  boss('fizz', { kind: 'cosmetic', id: 'bannerFizz', name: "Fizz's banner" }, 'A banner for the camp'),
+  lv('brann', 5, { kind: 'relic', relic: 'crampons' }, 'Relic: Crampons'),
+  acts('brann', 3, { kind: 'gems', n: 30 }, '30 gems'),
+  lv('brann', 10, { kind: 'gems', n: 40 }, '40 gems'),
+  boss('brann', { kind: 'cosmetic', id: 'bannerBrann', name: "Brann's banner" }, 'A banner for the camp'),
 ];
 
 export type AchievementId =

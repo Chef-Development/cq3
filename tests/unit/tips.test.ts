@@ -5,6 +5,7 @@
 // seen); the welcome back plays once, only for a returning player.
 import { describe, expect, it } from 'vitest';
 import { STORY } from '../../src/data/story';
+import { HERO_IDS } from '../../src/data/heroes';
 import { BASIC_TIPS, FIRST_FIGHT, TIP_IDS, TIP_TEXT_W, TIPS, WELCOME_ID, tipById, type TipId } from '../../src/data/tips';
 import { DT, isRed, type Combat, type CombatEvent } from '../../src/core/combat';
 import { newProfile, readProfile, type Profile } from '../../src/core/profile';
@@ -533,7 +534,7 @@ describe('the coach', () => {
     expect(take({ preFight: true })).toBe('kitMoss');
     // every hero but Rowan has one, each fits the card, and none shows mid-fight
     for (const d of TIPS.filter((x) => x.hero)) expect(d.fight).toBe('pre');
-    expect(new Set(TIPS.filter((x) => x.hero).map((x) => x.hero)).size).toBe(7);
+    expect(new Set(TIPS.filter((x) => x.hero).map((x) => x.hero)).size).toBe(HERO_IDS.length - 1); // (every hero but Rowan)
     expect(TIPS.some((x) => x.hero === 'rowan')).toBe(false);
   });
 });

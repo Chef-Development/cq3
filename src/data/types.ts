@@ -183,6 +183,8 @@ export type Speaker =
   // part6:B
   // part6:C
   // part6:D
+  | 'fizz'
+  | 'brann'
   | 'rimehorn'
   | 'matron'
   | 'glacia'

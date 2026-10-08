@@ -42,6 +42,7 @@ export type CampSpeaker =
   // part6:B
   // part6:C
   // part6:D
+  | 'fizz' | 'brann'
   ;
 
 /**
@@ -125,4 +126,26 @@ export const HERO_BANTER: HeroBanterLine[] = [
   { who: 'rowan', text: 'Torva hugged me. My armor folded.', with: ['torva'] },
   { who: 'sable', text: 'Torva, carry the loot? All of it?', with: ['torva'] },
   { who: 'smith', text: "Torva's hammer? Second best here.", with: ['torva'] },
+
+  // ---- Part 6. Fizz: a wild, cheerful alchemist who brews by the fire (and blows things up, carefully-ish)
+  { who: 'fizz', text: 'This fire is boring. One drop of red?' },
+  { who: 'fizz', text: 'Do NOT drink the blue one. Trust me.' },
+  { who: 'fizz', text: 'My eyebrows grow back. Mostly.' },
+  { who: 'fizz', text: "It's not smoke. It's a breakthrough!" },
+  { who: 'fizz', text: 'Mags! Can I borrow your hottest fire?', with: ['smith'] },
+  { who: 'fizz', text: 'Tam! Your kegs and my flasks? BIG!', with: ['tam'] },
+  { who: 'tam', text: 'Fizz gets it. Loud is a science!', with: ['fizz'] },
+  { who: 'rowan', text: "Fizz made me tea. It's still fizzing.", with: ['fizz'] },
+  { who: 'smith', text: 'Fizz. That flask ate my tongs.', with: ['fizz'] },
+
+  // Brann: a calm, near-silent bell monk (his bell talks for him)
+  { who: 'brann', text: '...' },
+  { who: 'brann', text: 'Silence is a bell that waits.' },
+  { who: 'brann', text: 'Breathe in. Block. Breathe out. Bonng.' },
+  { who: 'brann', text: 'The fire is loud. I forgive it.' },
+  { who: 'brann', text: 'Rowan. You nap well. A true master.', with: ['rowan'] },
+  { who: 'brann', text: 'Hollis. We are both walls. Sit.', with: ['hollis'] },
+  { who: 'pip', text: "Hoo. Brann's bell hums at me.", with: ['brann'] },
+  { who: 'sable', text: 'Tried to ring the bell. It rang ME.', with: ['brann'] },
+  { who: 'fizz', text: 'Brann, can I put a fuse on the bell?', with: ['brann'] },
 ];

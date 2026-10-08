@@ -146,7 +146,7 @@ describe('story', () => {
     expect(STORY.neveJoin.some((b) => b.who === 'neve')).toBe(true);
     expect(STORY.frostVictory.map((b) => b.text).join(' ')).toMatch(/TWICE/);
     expect(STORY.frostVictory.map((b) => b.text).join(' ')).toMatch(/Ashfell/);
-    for (const [id, who] of [['meetMoss', 'moss'], ['meetTam', 'tam'], ['meetHollis', 'hollis'], ['meetVesper', 'vesper'], ['meetTorva', 'torva']] as const) {
+    for (const [id, who] of [['meetMoss', 'moss'], ['meetTam', 'tam'], ['meetHollis', 'hollis'], ['meetVesper', 'vesper'], ['meetTorva', 'torva'], ['meetFizz', 'fizz'], ['meetBrann', 'brann']] as const) {
       expect(STORY[id], id).toBeDefined();
       expect(STORY[id].length, id).toBeGreaterThanOrEqual(2);
       expect(STORY[id].length, id).toBeLessThanOrEqual(4);
@@ -202,7 +202,7 @@ describe('camp banter', () => {
   });
 
   it("the new heroes' lines need whoever they name; each new hero has a few of their own", () => {
-    const NEW: CampSpeaker[] = ['neve', 'moss', 'tam', 'hollis', 'vesper', 'torva'];
+    const NEW: CampSpeaker[] = ['neve', 'moss', 'tam', 'hollis', 'vesper', 'torva', 'fizz', 'brann'];
     const everyone: CampSpeaker[] = ['rowan', 'pip', 'sable', 'smith', ...NEW];
     for (const l of HERO_BANTER) {
       const needs = [l.who, ...(l.with ?? [])];
