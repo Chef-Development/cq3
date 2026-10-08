@@ -168,6 +168,11 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
         // the opening at each tier in turn (a demo: nothing is granted)
         camp.go('chests', now);
         return camp.chests.demo(s.setup.tiers ?? ['rare', 'legendary'], s.setup.chest ?? 'rare', now);
+      case 'chestHd':
+        // the old reveal and the sharper one side by side (a demo: nothing is granted)
+        camp.go('chests', now);
+        camp.chests.compare(now);
+        return;
       case 'shrine':
         return camp.go('shrine', now);
       case 'companions':
@@ -184,6 +189,7 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
   function stop(): LabScenario | null {
     const s = playing;
     playing = null;
+    getScene()?.camp.chests.endCompare();
     if (!s || !app.inLab) return s;
     const run = app.run;
     if (run.phase !== 'camp' || run.practice)

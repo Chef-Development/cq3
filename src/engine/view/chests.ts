@@ -13,6 +13,7 @@ import { CHEST_KINDS, type ChestKind } from '../../core/profile';
 import { BIG_CHEST, VAULT_SLOT_DX, VAULT_TORCHES } from '../art-chests';
 import { textWidth } from '../font';
 import { CampKit, D, DIM_TXT } from './camp-kit';
+import { ChestCompare } from './chest-compare';
 import { chestOpening, FxImages, type ChestOpening } from './chest-opening';
 import { star } from './loot';
 import { clamp01, inRect, mix, pulse, WHITE, type Rect } from './shared';
@@ -40,6 +41,7 @@ export class ChestScreen {
   private lastCount: Partial<Record<ChestKind, number>> = {};
   private fx: FxImages;
   readonly opening: ChestOpening;
+  private cmp: ChestCompare | null = null;
 
   constructor(private readonly kit: CampKit) {
     this.opening = chestOpening(kit);
@@ -99,6 +101,7 @@ export class ChestScreen {
 
   tap(x: number, y: number, now: number): 'back' | void {
     const kit = this.kit;
+    if (this.opening.tapExtra(x, y, now)) return;
     if (this.opening.active) return this.opening.tap(now);
     if (x < 0 || inRect(kit.backRect(), x, y, 3)) {
       notePress(kit.backRect());
@@ -141,6 +144,17 @@ export class ChestScreen {
   /** The Test lab's demo: the opening at forced tiers, nothing rolled or granted (ChestOpening.demo). */
   demo(tiers: Tier | Tier[], kind: ChestKind = 'rare', now = performance.now()): void {
     this.opening.demo(tiers, kind, now);
+  }
+
+  /** The Test lab's "Sharper chest reveal": the old reveal and the new one side by side (chest-compare.ts). */
+  compare(now = performance.now()): ChestCompare {
+    this.cmp ??= new ChestCompare(this.kit, this.opening);
+    this.cmp.start(now);
+    return this.cmp;
+  }
+
+  endCompare(): void {
+    this.cmp?.end();
   }
 
   // ------------------------------------------------------------------ drawing

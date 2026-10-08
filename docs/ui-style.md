@@ -170,6 +170,16 @@ Coordinates are game px inside the safe area (`L` to `R`, 0 to `B`); "the stage"
   tier's light, then fills in with a white flash; a rarity banner, the name, and a fanfare sized to the tier.
 - A tap during the build-up jumps to the next step (fast-forward, never skipping the reveal); "Open all" chains them.
 
+### The sharper chest reveal (playtest round 7, a test; the old reveal stays the default)
+
+- The same opening drawn on a finer grid: a canvas over the game's at 2x its resolution (`hd-layer.ts`, 654 x 300 fine
+  px, 4 device px each on the phone), only for the reveal (`view/chest-hd.ts`). Still pixel art: hard pixels, no
+  smoothing or blur, 1 fine-px ink outlines, ramps lit from the top left; the chests (`art-chests-hd.ts`) at 4x the
+  old big chest's detail, the ribbon, tags, gems and light (`art-reveal-hd.ts`), the lettering (`font-hd.ts`: the
+  game's fonts doubled with Scale2x; level 1 = bold scale 1, level 2 = bold scale 2). The prize sprite keeps the
+  game's grid (scaled whole); only its rim is finer. Never mix grids inside one piece of art.
+- The setting `cq3.chestReveal` (storage.ts, 'old' unless 'hd') picks it; the Test lab compares both side by side.
+
 ## Checking a screen
 
 Render each redesigned screen to a screenshot (the Playwright screenshot tests, 874 x 402 at 3x) and check:
