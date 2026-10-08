@@ -430,7 +430,7 @@ export const DEFAULT_TUNING = {
     // their damage, and (Radiance) reds move at radiance x their speed; a gilded yellow (Gleam) adds gleamCombo combo and
     // gleamMeter of a meter; at oathAt+ combo a miss keeps oathKeep of the combo (Dawn Oath); Sunfall deals +sunfallStep
     // per combo (up to +sunfallMax) and gilds sunfallGild yellows
-    solenne: { hp: 95, atk: 1, abilitySec: 3, sunEvery: 15, sunSec: 3, sunSec3: 5, sunCut: 0.5, gleamCombo: 1, gleamMeter: 0.12, oathAt: 30, oathKeep: 0.5, sunfallStep: 0.01, sunfallMax: 0.5, sunfallGild: 2, radiance: 0.85, rekindleAt: 6 },
+    solenne: { hp: 100, atk: 1, abilitySec: 3, sunEvery: 15, sunSec: 3, sunSec3: 5, sunCut: 0.5, gleamCombo: 1, gleamMeter: 0.12, oathAt: 30, oathKeep: 0.5, sunfallStep: 0.01, sunfallMax: 0.5, sunfallGild: 2, radiance: 0.85, rekindleAt: 6 },
     // wren: slipEvery Perfect hits in a row ready a dodge (Slip); for abilitySec after a green, reds that reach her deal
     // smokeCut less (Smoke Pop); feet: Good hits the Chain survives between Perfects (Light Feet); Rooftop Drop hits the
     // target for dropMult; then every foe takes dropLink of the finisher per Chain link

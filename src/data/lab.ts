@@ -217,7 +217,7 @@ export const LAB_NEW: LabScenario[] = [
   },
   // part6:A
   // ---- round 7's heroes: Solenne (Blade, Mythic) and Wren (Shadow, Rare)
-  heroFight('solenne', 'solenne', 'Solenne', 'Combo up: at 15 her blade burns. Hit gold yellows.', [['bandit', 'slime'], ['wolf', 'archer'], ['shaman', 'bandit'], ['boar', 'crow'], ['archer', 'wolf', 'slime'], ['knight', 'bandit']], { rev: 0 }),
+  heroFight('solenne', 'solenne', 'Solenne', 'Combo up: at 15 her blade burns. Hit gold yellows.', [['bandit', 'slime'], ['wolf', 'archer'], ['shaman', 'slime'], ['boar', 'crow'], ['archer', 'wolf'], ['knight', 'slime']], { rev: 0 }),
   heroFight('wren', 'wren', 'Wren', '4 Perfects in a row: a dodge. Greens pop smoke.', [['crow', 'crow'], ['bandit', 'archer'], ['wolf', 'wolf'], ['crow', 'shaman'], ['boar', 'crow'], ['knight', 'crow']], { rev: 0 }),
   // part6:B
   // part6:C
