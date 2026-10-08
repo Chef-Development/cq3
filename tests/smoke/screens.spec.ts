@@ -614,6 +614,65 @@ test('camp: companions (two slots with the Perch), upgrades, region progress', a
   await expect(page).toHaveScreenshot('progress.png', shot);
 });
 
+test('camp: companions: a walker, Equip (its burst), the page turn, one not met, a card opened, the padlocked socket', async ({ page }) => {
+  const camp = await metaCamp(page);
+  // Flurry: a walker on the stump, three stars, every card in full
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => c.go('pets', now, undefined, 'flurry'));
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('companions-walker.png', shot);
+  // Equip: it hops, rings and stars, and flies into the socket Equip aimed at
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any) => {
+    const r = c.pets.equipRect();
+    c.tap(r.x + r.w / 2, r.y + r.h / 2);
+  });
+  await frames(page, 12);
+  await expect(page).toHaveScreenshot('companions-equip.png', shot);
+  // the next arrow: Flurry slides out, Mote (not met yet) hops in, then stands there as a silhouette
+  await frames(page, 60);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any) => {
+    const r = c.pets.arrows().next;
+    c.tap(r.x + r.w / 2, r.y + r.h / 2);
+  });
+  await frames(page, 8);
+  await expect(page).toHaveScreenshot('companions-paging.png', shot);
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('companions-not-met.png', shot);
+  // Sunny's Fire Breath card (its short line on a crowded column) opened: the full line in a sheet
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => c.pets.select('sunny', now));
+  await frames(page, 40);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any) => {
+    const r = c.pets.cards()[2].r;
+    c.tap(r.x + r.w / 2, r.y + r.h / 2);
+  });
+  await frames(page, 20);
+  await expect(page).toHaveScreenshot('companions-sheet.png', shot);
+  // no Perch yet: one along, the second socket padlocked; tapped, it rattles and says what opens it
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p = (window as any).__cq3.app.profile;
+    p.camp = ['dummy'];
+    p.petsOn = ['pip'];
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any, now) => {
+    c.go('home', now);
+    c.go('pets', now, undefined, 'bun');
+  });
+  await frames(page, 40);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await camp((c: any) => {
+    const r = c.pets.slots()[1];
+    c.tap(r.x + r.w / 2, r.y + r.h / 2);
+  });
+  await frames(page, 12);
+  await expect(page).toHaveScreenshot('companions-locked.png', shot);
+});
+
 test('camp: build mode (ghosts and hammers over the camp), the Lucky Stone card, then the stone just built by the tent', async ({ page }) => {
   const camp = await metaCamp(page);
   await page.evaluate(() => {

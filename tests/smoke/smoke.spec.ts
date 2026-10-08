@@ -805,6 +805,96 @@ test('camp: the hero select pages with a swipe on its stage; a tap there stays a
   expect(errors).toEqual([]);
 });
 
+test('camp: the companions page with a swipe and the arrows; one not met is locked; equip, the padlocked socket, the Perch, unequip', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  await ready(page);
+  const a = app(page);
+  await a((x) => {
+    const p = x.profile;
+    p.actsCleared = 1;
+    p.sableMet = true; // (else her arrival plays over the camp)
+    p.heroes.sable.unlocked = true;
+    p.pets.bun.owned = true;
+    p.pets.sunny.owned = true;
+    p.petsOn = ['pip'];
+    p.camp = [];
+    x.newRun();
+    x.openCamp();
+  });
+  await expect.poll(() => a((x) => x.run.phase)).toBe('camp');
+  await page.waitForTimeout(400);
+  await a((x) => x.view.camp.go('pets', performance.now(), undefined, 'pip'));
+  await page.waitForTimeout(500);
+  const l = (await page.evaluate('window.__cq3.app.layout')) as { left: number; top: number; cssW: number; cssH: number };
+  const css = (x: number, y: number) => [l.left + (x * l.cssW) / 327, l.top + (y * l.cssH) / 150] as const;
+  const tapRect = async (r: { x: number; y: number; w: number; h: number }) => page.mouse.click(...css(r.x + r.w / 2, r.y + r.h / 2));
+  const sel = () => a((x) => x.view.camp.pets.sel);
+  const petsOn = () => a((x) => x.profile.petsOn.join());
+  const saved = async () => JSON.parse(((await page.evaluate(() => localStorage.getItem('cq3.profile.v2'))) as string) ?? '{}');
+  // a tap on the companion: it hops (its attack), never a page turn
+  const cr = (await a((x) => x.view.camp.pets.creatureRect())) as { x: number; y: number; w: number; h: number };
+  const [cx, cy] = css(cr.x + cr.w / 2, cr.y + cr.h / 2);
+  await page.mouse.click(cx, cy);
+  await page.waitForTimeout(250);
+  expect(await sel()).toBe('pip');
+  // a swipe to the left: the next one (Newt, not met yet: its Equip says Locked and does nothing)
+  const swipe = async (dx: number) => {
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.move(cx + dx * 0.5, cy, { steps: 4 });
+    await page.mouse.move(cx + dx, cy, { steps: 4 });
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+  };
+  const swipeW = css(40, 0)[0] - l.left;
+  await swipe(-swipeW);
+  expect(await sel()).toBe('newt');
+  await tapRect((await a((x) => x.view.camp.pets.equipRect())) as Any);
+  await page.waitForTimeout(200);
+  expect(await petsOn()).toBe('pip');
+  // back to the right; a short drag snaps back (no page turn)
+  await swipe(swipeW);
+  expect(await sel()).toBe('pip');
+  await swipe(-swipeW * 0.25);
+  expect(await sel()).toBe('pip');
+  // the big arrows page too: the one before Pip is Bun; Equip puts it in the only slot
+  await tapRect(((await a((x) => x.view.camp.pets.arrows())) as Any).prev);
+  await expect.poll(sel).toBe('bun');
+  await page.waitForTimeout(300);
+  await tapRect((await a((x) => x.view.camp.pets.equipRect())) as Any);
+  await expect.poll(petsOn).toBe('bun');
+  expect((await saved()).petsOn).toEqual(['bun']);
+  // the second socket is padlocked without the Companion Perch: a tap rattles it and says so, nothing changes
+  await tapRect(((await a((x) => x.view.camp.pets.slots())) as Any)[1]);
+  await page.waitForTimeout(200);
+  expect(await a((x) => x.view.camp.pets.lockTipAt > 0)).toBe(true);
+  expect(await petsOn()).toBe('bun');
+  // with the Perch built, Sunny (the strip's last token) comes along in the second slot; then Unequip sends it home
+  await a((x) => {
+    x.profile.camp = ['perch'];
+  });
+  await tapRect((await a((x) => x.view.camp.pets.cell(7))) as Any);
+  await expect.poll(sel).toBe('sunny');
+  await page.waitForTimeout(400);
+  await tapRect((await a((x) => x.view.camp.pets.equipRect())) as Any);
+  await expect.poll(petsOn).toBe('bun,sunny');
+  await page.waitForTimeout(500);
+  await tapRect((await a((x) => x.view.camp.pets.equipRect())) as Any);
+  await expect.poll(petsOn).toBe('bun');
+  expect((await saved()).petsOn).toEqual(['bun']);
+  // a card opens its sheet (the full line); any tap closes it
+  await tapRect(((await a((x) => x.view.camp.pets.cards())) as Any)[1].r);
+  await expect.poll(() => a((x) => x.view.camp.pets.sheet.open)).toBe(true);
+  await page.mouse.click(cx, cy);
+  await expect.poll(() => a((x) => x.view.camp.pets.sheet.open)).toBe(false);
+  expect(await sel()).toBe('sunny');
+  expect(errors).toEqual([]);
+});
+
 test('camp (M5): open a hero chest (a new hero arrives), buy and open a Rare chest at the shrine, equip a companion, build the Training Dummy and practice', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
