@@ -13,7 +13,7 @@ No new regions. Every part of the brief finished (1-8, including the optional Pa
   with): the eight new heroes, the Finisher gallery, two companion pairs, the late-game stress test, tips in a first
   fight, heals and upgrades, the sharper chest reveal (old and new side by side), the reworked companions screen and
   completion tracker (marked "Reworked" with their old rating). Then "Copy report" for the planning chat.
-- **Tests:** 1,076 Vitest unit tests in 53 files and PWCOUNT Playwright smoke, screenshot and lab tests, all green.
+- **Tests:** 1,076 Vitest unit tests in 53 files and 144 Playwright smoke, screenshot and lab tests, all green (every Playwright test also fails on an on-screen long decimal).
 
 ### What changed
 1. **Fixes that stay fixed** (each with a test that would have caught it):
