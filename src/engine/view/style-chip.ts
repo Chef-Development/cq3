@@ -6,6 +6,7 @@
 import type Phaser from 'phaser';
 import type { Combat } from '../../core/combat';
 import { allyKinds, chainOf, focusCap, focusOf, guardMax, guardOf } from '../../core/styles';
+import { sunEvery } from '../../core/kit-fx';
 import { heroDef, type HeroId } from '../../data/heroes';
 import type { FightScene } from '../scene';
 import { textWidth } from '../font';
@@ -20,6 +21,8 @@ type G = Phaser.GameObjects.Graphics;
 /** What a style stores right now, as a short key (it changes exactly when the chip's look does: the bar's tab pulses
  *  then). Null when the hero's style has nothing to show. `empty`: nothing stored yet. */
 export function styleState(s: FightScene, c: Combat): { key: string; empty: boolean } | null {
+  const own = dawnRoofState(c);
+  if (own) return own;
   const style = heroDef(c.heroId as HeroId).style;
   if (style === 'shadow') {
     const n = chainOf(c);
@@ -57,6 +60,7 @@ export function drawStyleChip(s: FightScene, g: G, texts: TextPool, c: Combat, x
     tag(g, r, [NAVY[5], NAVY[3], NAVY[2], NAVY[1]], 0.94 * A);
     return r;
   };
+  if (c.heroId === 'solenne' || c.heroId === 'wren') return drawDawnRoofChip(s, g, texts, c, now, chip, A, !!o.empty);
   if (style === 'shadow') {
     const n = chainOf(c);
     if (n < 2 && !o.empty) return null;
@@ -158,4 +162,95 @@ export function drawStyleChip(s: FightScene, g: G, texts: TextPool, c: Combat, x
     return r;
   }
   return null;
+}
+
+// ---- Solenne and Wren (Part 6)
+
+/** Solenne: how far the combo is toward the next Sunrise (or the blade burning); Wren: the Chain and a ready dodge. */
+function dawnRoofState(c: Combat): { key: string; empty: boolean } | null {
+  if (c.heroId === 'solenne') {
+    const burn = (c.perk.sunrise ?? 0) > 0;
+    const n = sunEvery(c);
+    const k = (c.combo % n) / n;
+    return { key: burn ? 'sunburn' : `sun${Math.floor(k * 12)}`, empty: !burn && c.combo % n === 0 };
+  }
+  if (c.heroId === 'wren') {
+    const n = chainOf(c);
+    const d = c.perk.slip ?? 0;
+    return { key: `chain${n < 2 ? 0 : n}slip${d}`, empty: n < 2 && d <= 0 };
+  }
+  return null;
+}
+
+function drawDawnRoofChip(s: FightScene, g: G, texts: TextPool, c: Combat, now: number, chip: (w: number, hot: number | null) => Rect, A: number, empty: boolean): Rect | null {
+  if (c.heroId === 'solenne') {
+    // a sun and a gauge filling toward the next Sunrise; burning: full, gold and glowing
+    const burn = (c.perk.sunrise ?? 0) > 0;
+    const n = sunEvery(c);
+    const k = burn ? 1 : (c.combo % n) / n;
+    if (!burn && k <= 0 && !empty) return null;
+    const r = chip(30, burn ? 0xffe080 : null);
+    const sx = r.x + 5;
+    const sy = r.y + 5;
+    g.fillStyle(burn ? 0xffd23a : 0xd8901c, A);
+    g.fillRect(sx - 2, sy - 1, 5, 3);
+    g.fillRect(sx - 1, sy - 2, 3, 5);
+    g.fillStyle(burn ? WHITE : 0xfff0a0, A);
+    g.fillRect(sx - 1, sy - 1, 2, 2);
+    if (burn || Math.floor(now / 300) % 2 === 0) {
+      g.fillStyle(0xffe080, 0.8 * A);
+      g.fillRect(sx, sy - 4, 1, 1);
+      g.fillRect(sx, sy + 3, 1, 1);
+      g.fillRect(sx - 4, sy, 1, 1);
+      g.fillRect(sx + 3, sy, 1, 1);
+    }
+    const bx = r.x + 10;
+    const bw = 18;
+    g.fillStyle(INK, A);
+    g.fillRect(bx - 1, r.y + 2, bw + 2, 6);
+    g.fillStyle(NAVY[1], A);
+    g.fillRect(bx, r.y + 3, bw, 4);
+    const fw = Math.round(bw * clamp01(k));
+    if (fw > 0) {
+      g.fillStyle(burn ? 0xffd23a : 0xd8901c, A);
+      g.fillRect(bx, r.y + 3, fw, 4);
+      g.fillStyle(burn ? WHITE : 0xffe080, A);
+      g.fillRect(bx, r.y + 3, fw, 1);
+      if (burn && Math.floor(now / 140) % 2) {
+        g.fillStyle(WHITE, 0.8 * A);
+        g.fillRect(bx + ((Math.floor(now / 40) % bw) | 0), r.y + 3, 2, 4);
+      }
+    }
+    void s;
+    return r;
+  }
+  // Wren: the Chain ("x3") like any Shadow, and a mustard pip per dodge Slip has ready
+  const n = chainOf(c);
+  const d = c.perk.slip ?? 0;
+  if (n < 2 && d <= 0 && !empty) return null;
+  const max = Math.round(s.app.tuning.styles.chainMax);
+  const txt = `x${Math.max(1, n)}`;
+  const dim = n < 2;
+  const pipW = d > 0 ? 3 + d * 4 : 0;
+  const r = chip(12 + textWidth(txt, 1, true) + pipW, d > 0 ? 0xfff08a : n >= max ? 0xdab0ff : null);
+  const link = dim ? NAVY[6] : 0xfff08a;
+  for (const [lx, ly] of [
+    [r.x + 2, r.y + 2],
+    [r.x + 5, r.y + 4],
+  ])
+    rows(g, lx, ly, 5, 4, 1, link, A);
+  g.fillStyle(NAVY[3], A);
+  g.fillRect(r.x + 3, r.y + 3, 3, 2);
+  g.fillRect(r.x + 6, r.y + 5, 3, 2);
+  texts.text(txt, r.x + 11, r.y + 5, dim ? 0x9a94b0 : n >= max ? WHITE : 0xfff0c0, { bold: true, oy: 0.5, alpha: A });
+  // the ready dodges: a little mustard wing each
+  for (let i = 0; i < d; i++) {
+    const px = r.x + r.w - pipW + 1 + i * 4;
+    g.fillStyle(0xd0a024, A);
+    g.fillRect(px, r.y + 3, 3, 4);
+    g.fillStyle(0xfff08a, A);
+    g.fillRect(px, r.y + 3, 3, 1);
+    g.fillRect(px, r.y + 3, 1, 3);
+  }
+  return r;
 }

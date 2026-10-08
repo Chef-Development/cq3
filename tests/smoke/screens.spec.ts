@@ -1729,3 +1729,70 @@ test('world map: the third region unveiled (its three landmarks round the volcan
   await frames(page, 30);
   await expect(page).toHaveScreenshot('ash-world-cave.png', shot);
 });
+
+// ---- Solenne and Wren (Part 6)
+
+test("Solenne: a green gilds the next yellow (gold, a sun mark); at 25 combo Sunrise lights her blade (the cursor burns, the slowed reds shimmer); her sun gauge on the tab", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'solenne' });
+  // a green under the cursor, yellows ahead: the green gilds the nearest one ahead
+  // (blocks placed from where the cursor is: no teleport, so everything drawn at the cursor sits on it)
+  await bar(page, `c.setCursor(0.3, 1);`);
+  await frames(page, 4);
+  await bar(page, `const p = c.cursorPos(); c.spawnBlock('yellow', p + 0.3); c.spawnBlock('yellow', p + 0.52); c.spawnBlock('red', 0.95, foe.id); c.combo = 18; c.spawnBlock('green', p); app.barTap(performance.now());`);
+  await frames(page, 14);
+  await expect(page).toHaveScreenshot('solenne-gleam.png', shot);
+  // the 25th: Sunrise
+  await bar(page, `foe.hp = foe.maxHp; c.combo = 24; c.spawnBlock('yellow', c.cursorPos()); app.barTap(performance.now());`);
+  await frames(page, 16);
+  await expect(page).toHaveScreenshot('solenne-sunrise.png', shot);
+});
+
+test("Wren: three Perfects ready a dodge (a mustard slab at the left end, a pip on her Chain tab); a green pops smoke over the bar and the reds in it fade", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'wren' });
+  await bar(page, `c.setCursor(0.2, 1);`);
+  await frames(page, 4);
+  for (let i = 0; i < 3; i++) {
+    await bar(page, `foe.hp = foe.maxHp; c.spawnBlock('yellow', c.cursorPos()); app.barTap(performance.now());`);
+    await frames(page, 6);
+  }
+  await bar(page, `c.spawnBlock('yellow', Math.min(0.9, c.cursorPos() + 0.25));`);
+  await frames(page, 16);
+  await expect(page).toHaveScreenshot('wren-slip-ready.png', shot);
+  await bar(page, `c.spawnBlock('red', 0.8, foe.id); c.spawnBlock('red', 0.95, foe.id); foe.hp = foe.maxHp; c.spawnBlock('green', c.cursorPos()); app.barTap(performance.now());`);
+  await frames(page, 16);
+  await expect(page).toHaveScreenshot('wren-smoke.png', shot);
+});
+
+test('hero select: Solenne (a Mythic: five kit cards, the fifth her Gift) and Wren', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => {
+    const app = (window as Cq3Window).__cq3!.app as unknown as { newRun(): void; openCamp(): void; profile: { allUnlocked: boolean } };
+    app.profile.allUnlocked = true;
+    app.newRun();
+    app.openCamp();
+  });
+  await frames(page, 30);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const camp = (fn: (c: any, now: number) => void) => page.evaluate(`(${fn.toString()})(window.__cq3.app.view.camp, performance.now())`);
+  await camp((c, now) => c.go('heroes', now, 'solenne'));
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('hero-select-solenne.png', shot);
+  // her Gift card tapped: its sheet
+  await camp((c, now) => {
+    const r = c.heroes.kitCards()[4].r;
+    c.heroes.tap(r.x + r.w / 2, r.y + r.h / 2, now);
+  });
+  await frames(page, 20);
+  await expect(page).toHaveScreenshot('hero-select-solenne-gift.png', shot);
+  await camp((c, now) => {
+    c.heroes.sheet.close(now);
+    c.heroes.show('wren', now);
+  });
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('hero-select-wren.png', shot);
+});
