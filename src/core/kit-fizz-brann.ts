@@ -10,8 +10,8 @@
 //
 // Brann, Bellwarden (Guardian, Epic): every block rings his bell (`c.perk.toll`, up to tollMax): his next hit deals
 // more per toll and spends them. Peal (green): for a few seconds, a blocked red's blow echoes at every foe. Still
-// Mind: a Perfect block stores more Guard. Great Bell: one huge hit on the target with all the Guard, and every foe
-// is stunned (no new reds) for a moment.
+// Mind: a Perfect block stores more Guard. Great Bell: one huge hit on the target with all the Guard (its boom hits the
+// others for a share), and every foe is stunned (no new reds) for a moment.
 //
 // Per-fight state in c.perk (the view reads some of it):
 //   brew        the next brew in Fizz's bandolier (0 fire, 1 frost, 2 spark)
@@ -292,15 +292,17 @@ export const BRANN_KIT: FightHooks = {
     if (boost > 0) c.perkFx('loudToll', n, x.target?.id ?? 0, x.block.pos);
     return v * (1 + bonus);
   },
-  // Great Bell: the bell drops on the target with all the Guard; every foe is stunned (no new reds) for a moment; 5
-  // stars: the others take half the blow
+  // Great Bell: the bell drops on the target with all the Guard; its boom hits the others for a share (5 stars: more);
+  // every foe is stunned (no new reds) for a moment
   finisher: (c, x, v) => {
     const target = c.currentTarget();
     if (target) x.targets = [target];
     return guardOf(c) > 0 ? v * (1 + spendGuard(c) * B(c).bellGuard) : v;
   },
   afterFinisher: (c, x) => {
-    if (c.stars >= 5 && x.damage > 0) for (const e of c.aliveFoes()) if (!x.targets.includes(e)) c.strike(e, x.damage * B(c).echo5, 'echoingBell');
+    // its boom hits the others (5 stars: harder)
+    const echo = c.stars >= 5 ? B(c).bellEcho5 : B(c).bellEcho;
+    if (x.damage > 0 && echo > 0) for (const e of c.aliveFoes()) if (!x.targets.includes(e)) c.strike(e, x.damage * echo, 'bellBoom');
     let n = 0;
     for (const e of c.aliveFoes()) {
       // (a boss shrugs the stun off, its special still coming: only its reds wait)

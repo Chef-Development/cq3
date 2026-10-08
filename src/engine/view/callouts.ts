@@ -113,7 +113,7 @@ export const CALLOUT_WORDS: Record<string, string> = {
   peal: 'Peal!',
   stillMind: 'Calm',
   greatBell: 'Bell!',
-  echoingBell: 'Echo!',
+  bellBoom: 'Boom!',
   'ability:brann': 'Peal',
   // the companions ("+N": the coins found)
   luckyFoot: '+N',

@@ -358,7 +358,7 @@ const KIT_NAME: Record<string, string> = {
   peal: HEROES.brann.ability.name,
   stillMind: HEROES.brann.passive.name,
   greatBell: HEROES.brann.finisher.name,
-  echoingBell: HEROES.brann.stars[1].name,
+  bellBoom: HEROES.brann.finisher.name,
   // the styles' rules
   chain: STYLES.shadow.rule.name,
   bend: STYLES.controller.rule.name,

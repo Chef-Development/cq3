@@ -283,7 +283,7 @@ shows on its target.
 | `peal` | Brann: Peal | arcs of sound roll from him to each foe; each struck (a bronze ring, a number) as they reach it |
 | `stillMind` | Brann: Still Mind | a mote flies from the block into the style tab |
 | `greatBell` | Brann: Great Bell | its own show (each foe's stun stars) |
-| `echoingBell` | Brann: Echoing Bell (5 stars) | a bolt to its foe, then the hit |
+| `bellBoom` | Brann: Great Bell's boom on the other foes (5 stars, Echoing Bell: harder) | a bolt to its foe, then the hit |
 | `loudToll`, `doubleToll`, `resound`, `longPeal`, `resonance`, `bellWard`, `unshaken`, `stunningToll`, `innerBell` | Brann's skill nodes | the block and its foe / the tab / a bolt on to the next / the cursor / the tab / the left end / the hero / the block and its foe / the tab (the Bulwark shows itself) |
 
 ## Needs from core

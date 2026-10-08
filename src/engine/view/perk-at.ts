@@ -270,7 +270,7 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   peal: ['show'], // a sound wave rolls from the hero across the stage; each foe struck as it reaches it
   stillMind: ['tab'],
   greatBell: ['show'],
-  echoingBell: ['bolt'],
+  bellBoom: ['bolt'], // Great Bell's boom on the other foes
   loudToll: ['bar', 'foe'],
   doubleToll: ['tab'],
   resound: ['bounce'],

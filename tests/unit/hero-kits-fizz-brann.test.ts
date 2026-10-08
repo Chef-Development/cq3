@@ -229,7 +229,7 @@ describe("Brann's kit", () => {
     expect(perks(c.drainEvents(), 'stillMind')).toHaveLength(1);
   });
 
-  it('Great Bell: the target alone, with all the Guard (x(1 + Guard x guardPer x bellGuard)); every foe is stunned (a boss: its reds wait)', () => {
+  it('Great Bell: the target, with all the Guard (x(1 + Guard x guardPer x bellGuard)); its boom hits the rest (bellEcho); every foe is stunned (a boss: its reds wait)', () => {
     const { c, t } = fight('brann', { enemies: ['slime', 'slime'], tune: (t) => (t.enemies.slime.hp = 5000) });
     c.perk.guard = 3;
     c.stacks = 1;
@@ -237,7 +237,7 @@ describe("Brann's kit", () => {
     c.finisher();
     const k = t.kits.brann;
     expect(5000 - c.enemies[0].hp).toBe(Math.round(base * (1 + 3 * t.styles.guardPer * k.bellGuard)));
-    expect(c.enemies[1].hp).toBe(5000);
+    expect(5000 - c.enemies[1].hp).toBe(Math.round(Math.round(base * (1 + 3 * t.styles.guardPer * k.bellGuard)) * k.bellEcho)); // its boom
     expect(guardOf(c)).toBe(0);
     for (const e of c.enemies) expect(e.stun).toBeCloseTo(k.bellStun, 1);
     // stunned foes send nothing (their spawn clocks wait)
@@ -248,12 +248,12 @@ describe("Brann's kit", () => {
     boss.c.finisher();
     expect(boss.c.enemies[0].stun).toBe(0);
     expect(boss.c.enemies[0].spawnTimer).toBeGreaterThanOrEqual(boss.t.kits.brann.bellStun - 1e-9);
-    // 5 stars: the others take half the blow
+    // 5 stars (Echoing Bell): the boom hits the others harder
     const five = fight('brann', { stars: 5, enemies: ['slime', 'slime'], tune: (t) => (t.enemies.slime.hp = 5000) });
     five.c.stacks = 1;
     five.c.finisher();
     const hit = 5000 - five.c.enemies[0].hp;
-    expect(5000 - five.c.enemies[1].hp).toBe(Math.round(hit * five.t.kits.brann.echo5));
+    expect(5000 - five.c.enemies[1].hp).toBe(Math.round(hit * five.t.kits.brann.bellEcho5));
   });
 
   it('soft strengths: Brann takes 20% less from Casters; Fizz deals 20% more to Frost foes', () => {
