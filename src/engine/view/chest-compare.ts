@@ -122,6 +122,12 @@ export class ChestCompare {
     return out;
   }
 
+  /** Side by side, the new reveal's "Next (n)" / "Tap" sits in the button row, left of Replay (clear of the prize). */
+  hintAt(): { x: number; y: number; ox: number } {
+    const r = this.buttons()[3].r;
+    return { x: r.x - 5, y: r.y + r.h / 2, ox: 1 };
+  }
+
   /** A tap: on a button, it's taken. */
   tap(x: number, y: number, now: number): boolean {
     for (const b of this.buttons()) {

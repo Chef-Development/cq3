@@ -182,6 +182,8 @@ export type RevealView = 'old' | 'hd' | 'split';
 export interface RevealExtra {
   draw(ctx: CanvasRenderingContext2D, r: HdLayerRect, now: number): void;
   tap(x: number, y: number, now: number): boolean;
+  /** Where the new reveal's "Tap" / "Next (n)" goes side by side (game px). */
+  hintAt(): { x: number; y: number; ox: number };
 }
 
 const heroPrize = (p: ChestPrize) => p.kind === 'hero' || p.kind === 'heroShards';
@@ -208,6 +210,8 @@ export class ChestOpening {
   private readonly hd: ChestHd;
   view: RevealView = loadChestReveal();
   extra: RevealExtra | null = null;
+  /** The lab's compare loops its chests with no summary. */
+  private noSummary = false;
 
   constructor(private readonly kit: CampKit) {
     this.imgs = new FxImages(kit.s);
@@ -219,7 +223,7 @@ export class ChestOpening {
     this.view = loadChestReveal();
   }
 
-  /** Side by side and a chest is on screen (the summary is always the game's own, full width). */
+  /** Side by side and a chest is on screen (side by side, the summary is the game's own, full width). */
   get splitShown(): boolean {
     return this.view === 'split' && !!this.cur;
   }
@@ -343,7 +347,6 @@ export class ChestOpening {
     this.noSummary = true;
     this.begin(items, now, onDone);
   }
-  private noSummary = false;
 
   /** The chest on screen again from its slam (the lab's Replay). False when none is playing. */
   replay(now: number): boolean {
@@ -595,7 +598,7 @@ export class ChestOpening {
       cx: this.hdCentre(),
       clip: split ? { x0: mid, x1: s.R + s.L + 400 } : null,
       opaque: split,
-      hint: split ? { x: mid + 4, y: 41, ox: 0 } : undefined,
+      hint: split ? (this.extra?.hintAt() ?? { x: mid + 4, y: 41, ox: 0 }) : undefined,
       run: {
         kind: it.kind,
         prize: it.prize,
