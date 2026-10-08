@@ -25,6 +25,8 @@ import { TORVA_CAMP, TORVA_CARD, TORVA_POSES, TORVA_RIG } from './art-hero-torva
 // part6:A
 // part6:B
 // part6:C
+import { GORM_CAMP, GORM_CARD, GORM_POSES, GORM_RIG } from './art-hero-gorm';
+import { TESS_CAMP, TESS_CARD, TESS_POSES, TESS_RIG } from './art-hero-tess';
 // part6:D
 import { VESPER_CAMP, VESPER_CARD, VESPER_POSES, VESPER_RIG } from './art-hero-vesper';
 import { fireRim, paintRig, rigFrame, type Add, type HeroCardSpec, type Rig, type RigPose } from './art-rig';
@@ -45,7 +47,7 @@ interface HeroArt {
   card: HeroCardSpec;
   camp: [RigPose, RigPose];
 }
-const HEROES: Record<(typeof M5_HEROES)[number], HeroArt> = {
+const HEROES: Record<string, HeroArt> = {
   neve: { rig: NEVE_RIG, poses: NEVE_POSES, card: NEVE_CARD, camp: NEVE_CAMP },
   moss: { rig: MOSS_RIG, poses: MOSS_POSES, card: MOSS_CARD, camp: MOSS_CAMP },
   tam: { rig: TAM_RIG, poses: TAM_POSES, card: TAM_CARD, camp: TAM_CAMP },
@@ -55,6 +57,8 @@ const HEROES: Record<(typeof M5_HEROES)[number], HeroArt> = {
   // part6:A
   // part6:B
   // part6:C
+  gorm: { rig: GORM_RIG, poses: GORM_POSES, card: GORM_CARD, camp: GORM_CAMP },
+  tess: { rig: TESS_RIG, poses: TESS_POSES, card: TESS_CARD, camp: TESS_CAMP },
   // part6:D
 };
 
@@ -75,8 +79,7 @@ function campFrame(rig: Rig, p: RigPose): HTMLCanvasElement {
 }
 
 export function buildHeroArt(add: Add): void {
-  for (const id of M5_HEROES) {
-    const h = HEROES[id];
+  for (const [id, h] of Object.entries(HEROES)) {
     for (const k of HERO_POSE_KEYS) add(`${id}_${k}`, rigFrame(h.rig, h.poses[k]));
     add(`hero_card_${id}`, heroCard(h.card.glow, h.card.motes, rigFrame(h.rig, h.card.pose)));
     h.camp.forEach((p, i) => add(`camp_${id}${i}`, campFrame(h.rig, p)));

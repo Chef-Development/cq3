@@ -4,6 +4,7 @@
 // 18x18 badge window can find both eyes (PORTRAIT_FACE_AT).
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 import { and, bez, ell, fill, not, or, rimShade, sphere, stroke, tone } from './art-paint';
+import { gormPortrait, tessPortrait } from './art-hero-portraits-gorm-tess';
 
 const P = 40;
 const INK = '#140c1c';
@@ -19,6 +20,8 @@ export const PORTRAIT_FACE_AT: Record<string, [number, number]> = {
   // part6:A
   // part6:B
   // part6:C
+  gorm: [21, 11],
+  tess: [20, 12],
   // part6:D
 };
 
@@ -552,5 +555,7 @@ export function buildHeroPortraits(add: (key: string, c: HTMLCanvasElement) => v
   // part6:A
   // part6:B
   // part6:C
+  add('portrait_gorm', gormPortrait());
+  add('portrait_tess', tessPortrait());
   // part6:D
 }

@@ -174,6 +174,58 @@ const WALKERS: Record<string, Walker> = {
       b: ['..pp...pp..', '.bBB...bBB.'],
     },
   },
+  // ---- Gorm and Tess (Part 6)
+  // the moss tuft and the big jaw, grey-green and broad, the stone gauntlets hanging at his sides
+  gorm: {
+    pal: {
+      h: '#689a3a', H: '#a2c84e', s: '#67766a', S: '#889684', z: '#4b5854', k: '#140c1c', t: '#ece4c8', l: '#6a4224',
+      o: '#aba396', g: '#837e7e', G: '#aba396', d: '#3c3a48', p: '#52464a', P: '#383036', f: '#4b5854', F: '#67766a',
+    },
+    top: [
+      '....hHh....',
+      '...hSSSs...',
+      '...sSkSk...',
+      '...sSSSSs..',
+      '...ztsstz..',
+      '.SSSssssSS.',
+      'SSlsssssls.',
+      'GGsslolssGG',
+      'GgdssssszGg',
+      'dd.lllll.dd',
+    ],
+    legs: {
+      stand: ['...pp.pp...', '..FFf.FFf..'],
+      a: ['..pp...pp..', '.FFf...FFf.'],
+      pass: ['....ppp....', '...FFff....'],
+      b: ['..pp...pp..', '.Fff...Fff.'],
+    },
+  },
+  // the grey bun and its gear, round brass spectacles, the teal waistcoat, the pocket watch on its staff
+  tess: {
+    pal: {
+      G: '#ecbc34', b: '#a2a2b0', h: '#cacad2', s: '#f2c8ac', Y: '#c88a1c', k: '#140c1c', c: '#f6eed8', v: '#309686',
+      V: '#1e6c68', B: '#ecbc34', l: '#6e4426', q: '#4c3c4c', Q: '#362a38', K: '#2a2028', w: '#966236', O: '#fff0a0',
+      W: '#f6eed8',
+    },
+    top: [
+      '.........G.',
+      '.Gb.....GOG',
+      'Gbbhhh..GWG',
+      '.bhhhhhh.Gw',
+      '..hhsYkYk.w',
+      '..hhsssss.w',
+      '...ccvcc..w',
+      '..cvvBvvcsw',
+      '...lllll..w',
+      '..qqqqqqq.w',
+    ],
+    legs: {
+      stand: ['..qqqqqqq.w', '...KK.KK..w'],
+      a: ['..qqqqqqqqw', '..KK...KK.w'],
+      pass: ['..qqqqqqq.w', '....KKK...w'],
+      b: ['.qqqqqqqq.w', '..KK...KK.w'],
+    },
+  },
 };
 
 function walkerFrame(w: Walker, legs: keyof Walker['legs'], bob: number, flap: boolean): HTMLCanvasElement {
