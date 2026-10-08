@@ -1799,7 +1799,7 @@ test('world map: the third region unveiled (its three landmarks round the volcan
 
 // ---- Solenne and Wren (Part 6)
 
-test("Solenne: a green gilds the next yellow (gold, a sun mark); at 25 combo Sunrise lights her blade (the cursor burns, the slowed reds shimmer); her sun gauge on the tab", async ({ page }) => {
+test("Solenne: a green gilds the next yellow (gold, a sun mark); on a Sunrise step (every 15 combo) her blade lights (the cursor burns, the slowed reds shimmer); her sun gauge on the tab", async ({ page }) => {
   await boot(page);
   await frames(page, 10);
   await stagedFight(page, { hero: 'solenne' });
@@ -1807,11 +1807,11 @@ test("Solenne: a green gilds the next yellow (gold, a sun mark); at 25 combo Sun
   // (blocks placed from where the cursor is: no teleport, so everything drawn at the cursor sits on it)
   await bar(page, `c.setCursor(0.3, 1);`);
   await frames(page, 4);
-  await bar(page, `const p = c.cursorPos(); c.spawnBlock('yellow', p + 0.3); c.spawnBlock('yellow', p + 0.52); c.spawnBlock('red', 0.95, foe.id); c.combo = 18; c.spawnBlock('green', p); app.barTap(performance.now());`);
+  await bar(page, `const p = c.cursorPos(); c.spawnBlock('yellow', p + 0.3); c.spawnBlock('yellow', p + 0.52); c.spawnBlock('red', 0.95, foe.id); c.combo = c.tuning.kits.solenne.sunEvery + 3; c.spawnBlock('green', p); app.barTap(performance.now());`);
   await frames(page, 14);
   await expect(page).toHaveScreenshot('solenne-gleam.png', shot);
-  // the 25th: Sunrise
-  await bar(page, `foe.hp = foe.maxHp; c.combo = 24; c.spawnBlock('yellow', c.cursorPos()); app.barTap(performance.now());`);
+  // the next Sunrise step (the 30th): Sunrise
+  await bar(page, `foe.hp = foe.maxHp; c.combo = 2 * c.tuning.kits.solenne.sunEvery - 1; c.spawnBlock('yellow', c.cursorPos()); app.barTap(performance.now());`);
   await frames(page, 16);
   await expect(page).toHaveScreenshot('solenne-sunrise.png', shot);
 });
