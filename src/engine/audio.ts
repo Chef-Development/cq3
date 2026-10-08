@@ -34,6 +34,8 @@ import {
   type ImpactVoice,
 } from '../core/impact';
 import { DEFAULT_TUNING, type Tuning } from '../core/tuning';
+import { STYLE_IDS, type StyleId } from '../data/heroes';
+import { STYLES } from '../data/styles';
 import { Band, type MusicRender, type MusicTrack } from './music';
 
 export { MUSIC_PIECES, MUSIC_TRACKS, type MusicPiece, type MusicTrack } from './music';
@@ -1162,6 +1164,148 @@ export class Synth {
     if (n >= 3) this.tone({ type: 'square', f: hz(root + 24), at: t, delay: 0.12, dur: 0.6, gain: 0.035 * lvl, rev: 0.6 });
     this.bell(hz(root + 36), t + 0.04, 0.07 * lvl, 0.6);
     if (n >= 2) this.bell(hz(root + 43), t + 0.12, 0.05 * lvl, 0.6);
+  }
+
+  /**
+   * A finisher's style layer, on top of the shared wind-up, strikes and last blow (playtest round 7: every hero's
+   * finisher its own): 'start' as the show begins, 'strike' on each strike of the flurry (i of n), 'blow' on the last
+   * blow. Blade: a blade ring; Shadow: a whoosh; Guardian: a shield clang; Marksman: a bowstring, arrows whistling in,
+   * a volley at the blow; Brute: a rock crunch; Controller: an ice crack, a shatter at the blow; Summoner: a leafy
+   * rush and a spirit chime; Bomber: a fizzing fuse and booms.
+   */
+  finisherFlavor(style: StyleId, beat: 'start' | 'strike' | 'blow', i = 0, n = 1, at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    const k = n > 1 ? i / (n - 1) : 0;
+    const crunch = this.graph!.crunch;
+    switch (style) {
+      case 'blade':
+        if (beat === 'start') {
+          // the blade drawn: a rising shing, then its ring
+          this.noise({ at: t, dur: 0.22, attack: 0.15, gain: 0.16, filter: 'bandpass', f: 2500, f1: 8000, sweep: 0.2, q: 3 });
+          this.metal(2637, t + 0.16, 0.05, 0.5);
+        } else if (beat === 'strike') this.metal(2349 * (1 + 0.25 * k), t, 0.04, 0.16);
+        else {
+          this.noise({ at: t, dur: 0.3, gain: 0.16, filter: 'highpass', f: 4000 });
+          this.metal(1760, t, 0.07, 0.9);
+          this.metal(2637, t + 0.02, 0.05, 0.7);
+        }
+        break;
+      case 'shadow':
+        if (beat === 'start') {
+          this.noise({ at: t, dur: 0.34, attack: 0.26, gain: 0.26, filter: 'lowpass', f: 300, f1: 2400, sweep: 0.3, q: 1.4 });
+          this.tone({ type: 'sine', f: 62, f1: 46, at: t, attack: 0.2, dur: 0.42, gain: 0.12 });
+        } else if (beat === 'strike') this.noise({ at: t, dur: 0.08, gain: 0.18, filter: 'bandpass', f: 1600, f1: 500, sweep: 0.07, q: 1.2 });
+        else {
+          // a whoosh sucked backwards into a dark thud
+          this.noise({ at: Math.max(0, t - 0.02), dur: 0.14, attack: 0.12, gain: 0.24, filter: 'bandpass', f: 400, f1: 3000, sweep: 0.13, q: 1 });
+          this.tone({ type: 'sine', f: 110, f1: 40, at: t, dur: 0.36, gain: 0.24, rev: 0.3 });
+        }
+        break;
+      case 'guardian':
+        if (beat === 'start') {
+          this.tone({ type: 'square', f: 420, at: t, dur: 0.3, gain: 0.04, rev: 0.3 });
+          this.tone({ type: 'triangle', f: 1130, at: t, dur: 0.2, gain: 0.08, rev: 0.3 });
+          this.tone({ type: 'triangle', f: 1870, at: t, dur: 0.12, gain: 0.05, rev: 0.3 });
+        } else if (beat === 'strike') {
+          this.tone({ type: 'triangle', f: 900 * (1 + 0.1 * k), at: t, dur: 0.1, gain: 0.07 });
+          this.tone({ type: 'square', f: 520 * (1 + 0.1 * k), at: t, dur: 0.08, gain: 0.03 });
+        } else {
+          // a huge clang, and a low gong under it
+          this.tone({ type: 'square', f: 330, at: t, dur: 0.5, gain: 0.05, rev: 0.4 });
+          this.tone({ type: 'triangle', f: 880, at: t, dur: 0.4, gain: 0.08, rev: 0.4 });
+          this.tone({ type: 'triangle', f: 1480, at: t, dur: 0.25, gain: 0.05, rev: 0.4 });
+          this.tone({ type: 'sine', f: 110, at: t, dur: 1.0, gain: 0.18, rev: 0.4 });
+          this.tone({ type: 'sine', f: 165, at: t, dur: 0.8, gain: 0.07, rev: 0.4 });
+        }
+        break;
+      case 'marksman':
+        if (beat === 'start') {
+          // the string drawn (a creak), then let go (a twang)
+          this.noise({ at: t, dur: 0.2, attack: 0.15, gain: 0.08, filter: 'bandpass', f: 900, f1: 1300, sweep: 0.2, q: 8 });
+          this.tone({ type: 'triangle', f: 220, f1: 180, at: t + 0.2, dur: 0.14, gain: 0.12 });
+          this.noise({ at: t + 0.2, dur: 0.03, gain: 0.08, filter: 'highpass', f: 3000 });
+        } else if (beat === 'strike') {
+          this.tone({ type: 'triangle', f: 196 * (1 + 0.05 * k), f1: 170, at: t, dur: 0.08, gain: 0.08 });
+          this.tone({ type: 'sine', f: 2600, f1: 1700, at: t, dur: 0.09, gain: 0.05 });
+        } else {
+          // a volley: arrows whistling down and thudding home
+          for (let j = 0; j < 6; j++) {
+            const d = j * 0.03 + this.rand() * 0.02;
+            this.tone({ type: 'sine', f: 2800 - j * 90, f1: 1500, at: t + d, dur: 0.12, gain: 0.035 });
+            this.noise({ at: t + d + 0.1, dur: 0.04, gain: 0.12, filter: 'lowpass', f: 600 });
+          }
+        }
+        break;
+      case 'brute':
+        if (beat === 'start') this.noise({ at: t, dur: 0.35, attack: 0.1, gain: 0.3, filter: 'lowpass', f: 260, out: crunch });
+        else if (beat === 'strike') {
+          this.noise({ at: t, dur: 0.09, gain: 0.3, filter: 'lowpass', f: 900, f1: 300, out: crunch });
+          for (let j = 0; j < 3; j++) this.noise({ at: t + 0.02 + j * 0.02, dur: 0.01, gain: 0.06, filter: 'highpass', f: 2500 });
+        } else {
+          this.noise({ at: t, dur: 0.9, gain: 0.36, filter: 'lowpass', f: 180 });
+          this.noise({ at: t, dur: 0.2, gain: 0.32, filter: 'lowpass', f: 1200, f1: 300, out: crunch });
+          for (let j = 0; j < 8; j++) this.noise({ at: t + 0.05 + j * 0.05 + this.rand() * 0.02, dur: 0.012, gain: 0.07, filter: 'highpass', f: 2200 });
+        }
+        break;
+      case 'controller':
+        if (beat === 'start') {
+          for (let j = 0; j < 6; j++) this.noise({ at: t + j * 0.04 + this.rand() * 0.015, dur: 0.008, gain: 0.12, filter: 'highpass', f: 6000 });
+          this.bell(3136, t + 0.2, 0.05, 0.5);
+        } else if (beat === 'strike') {
+          this.noise({ at: t, dur: 0.03, gain: 0.18, filter: 'highpass', f: 5000 });
+          this.bell(2349 * (1 + 0.2 * k), t, 0.035, 0.4);
+        } else {
+          // the shatter: a crack and a spray of glassy tinkles
+          this.noise({ at: t, dur: 0.06, gain: 0.28, filter: 'highpass', f: 3000 });
+          for (let j = 0; j < 10; j++) this.bell(2600 + this.rand() * 2600, t + j * 0.035, 0.025 + this.rand() * 0.015, 0.5);
+        }
+        break;
+      case 'summoner':
+        if (beat === 'start') {
+          this.noise({ at: t, dur: 0.45, attack: 0.3, gain: 0.18, filter: 'bandpass', f: 800, f1: 2600, sweep: 0.4, q: 0.8 });
+          [84, 88, 91].forEach((m, j) => this.tone({ type: 'sine', f: hz(m), at: t + 0.1 + j * 0.08, dur: 0.4, gain: 0.04, rev: 0.5 }));
+        } else if (beat === 'strike') {
+          this.noise({ at: t, dur: 0.06, gain: 0.12, filter: 'bandpass', f: 2200, q: 1.5 });
+          this.tone({ type: 'sine', f: hz(79 + [0, 2, 4, 7, 9][i % 5]), at: t, dur: 0.2, gain: 0.035, rev: 0.4 });
+        } else {
+          // a woody knock, and the canopy's rush
+          this.tone({ type: 'triangle', f: 180, at: t, dur: 0.12, gain: 0.18 });
+          this.tone({ type: 'triangle', f: 270, at: t + 0.01, dur: 0.09, gain: 0.1 });
+          this.noise({ at: t, dur: 0.5, attack: 0.05, gain: 0.2, filter: 'bandpass', f: 600, f1: 3000, sweep: 0.45, q: 0.8 });
+        }
+        break;
+      case 'bomber':
+        if (beat === 'start') this.noise({ at: t, dur: 0.4, gain: 0.07, filter: 'highpass', f: 5000 });
+        else if (beat === 'strike') {
+          this.noise({ at: t, dur: 0.12, gain: 0.22, filter: 'lowpass', f: 500 });
+          this.tone({ type: 'sine', f: 90, f1: 45, at: t, dur: 0.14, gain: 0.16 });
+        } else {
+          this.tone({ type: 'sine', f: 70, f1: 28, at: t, dur: 0.7, gain: 0.28 });
+          this.noise({ at: t, dur: 0.9, gain: 0.32, filter: 'lowpass', f: 400, f1: 120, rate: 0.6 });
+        }
+        break;
+    }
+  }
+
+  /** Metal ringing (a blade, a bell of steel): inharmonic sine partials, the top two beating a little. */
+  private metal(f: number, at: number, gain: number, dur: number): void {
+    this.tone({ type: 'sine', f, at, dur, gain, rev: 0.3 });
+    this.tone({ type: 'sine', f: f * 1.004, at, dur, gain: gain * 0.6, rev: 0.3 });
+    this.tone({ type: 'sine', f: f * 2.32, at, dur: dur * 0.6, gain: gain * 0.45, rev: 0.3 });
+    this.tone({ type: 'sine', f: f * 4.25, at, dur: dur * 0.3, gain: gain * 0.25, rev: 0.3 });
+  }
+
+  /** A style's finisher layer alone, as a show of `stacks` hears it (the Sound lab). */
+  finisherFlavorSequence(style: StyleId, stacks: number, at?: number): void {
+    if (!this.ready) return;
+    const t = this.now(at);
+    const n = Math.max(1, Math.min(5, stacks));
+    const ms = finisherShowMs(n) / 1000;
+    const strikes = finisherStrikes(n);
+    this.finisherFlavor(style, 'start', 0, strikes, t);
+    for (let i = 0; i < strikes; i++) this.finisherFlavor(style, 'strike', i, strikes, t + ms * finisherStrikeAt(i, strikes));
+    this.finisherFlavor(style, 'blow', 0, strikes, t + ms * FINISHER_BLOW_AT);
   }
 
   /** A finisher stack was banked: a rising arpeggio that starts higher for every stack. */
@@ -2848,8 +2992,9 @@ export class Synth {
     this.bell(hz(103), t + 14 * E + 0.15, 0.05, 0.6);
   }
 
-  /** The whole finisher as heard in a fight (wind-up, flurry, last blow), scheduled from `at`. For the Sound lab. */
-  finisherSequence(stacks: number, at?: number): void {
+  /** The whole finisher as heard in a fight (wind-up, flurry, last blow; a style's layer on top when given),
+   *  scheduled from `at`. For the Sound lab. */
+  finisherSequence(stacks: number, at?: number, style?: StyleId): void {
     if (!this.ready) return;
     const t = this.now(at);
     const n = Math.max(1, Math.min(5, stacks));
@@ -2858,6 +3003,7 @@ export class Synth {
     this.finisherStart(n, t);
     for (let i = 0; i < strikes; i++) this.finisherStrike(i, strikes, t + ms * finisherStrikeAt(i, strikes));
     this.finisherBoom(n, t + ms * FINISHER_BLOW_AT);
+    if (style) this.finisherFlavorSequence(style, n, t);
   }
 
   /** Metronome click scheduled at an absolute AudioContext time. Dry, and bypasses the compressor. */
@@ -3922,6 +4068,18 @@ export interface SfxEntry {
 /** The rarity tiers' names, Common to Divine, for the chest opening's sounds in the Sound lab. */
 const CHEST_TIERS = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic', 'Celestial', 'Divine'];
 
+/** Each style's finisher layer, in a word or two (the Sound lab). */
+export const FINISHER_LAYER: Record<StyleId, string> = {
+  blade: 'blade ring',
+  shadow: 'shadow whoosh',
+  guardian: 'shield clang',
+  marksman: 'bowstring volley',
+  brute: 'rock crunch',
+  controller: 'ice crack',
+  summoner: 'leafy rush',
+  bomber: 'boom',
+};
+
 /** Sound lab names for telegraph sounds whose id would name a region's foe (spoilers). */
 const TELL_LABEL: Record<string, string> = { bellows: 'furnace breath' };
 
@@ -3938,6 +4096,9 @@ export const SFX: SfxEntry[] = [
   { id: 'bossKill', label: 'Boss kill', tier: 'bossKill', len: 2.5, play: (s, at) => s.enemyPop(true, at) },
   { id: 'finisher-show3', label: 'Finisher x3 (whole show)', len: 3, play: (s, at) => s.finisherSequence(3, at) },
   { id: 'finisher-show5', label: 'Finisher x5 (whole show)', len: 3.5, play: (s, at) => s.finisherSequence(5, at) },
+  // each style's finisher layer alone, then a whole x3 show with it (playtest round 7: every hero's finisher its own)
+  ...STYLE_IDS.map((st): SfxEntry => ({ id: `finLayer-${st}`, label: `Finisher layer: ${FINISHER_LAYER[st]}`, len: 2, play: (s, at) => s.finisherFlavorSequence(st, 3, at) })),
+  ...STYLE_IDS.map((st): SfxEntry => ({ id: `finShow-${st}`, label: `Finisher x3, ${STYLES[st].name} (whole show)`, len: 3, play: (s, at) => s.finisherSequence(3, at, st) })),
   { id: 'hurt', label: 'Hurt', len: 1, play: (s, at) => s.hurt(at) },
   { id: 'miss', label: 'Miss', len: 0.5, play: (s, at) => s.miss(at) },
   { id: 'swish', label: 'Swing', len: 0.3, play: (s, at) => s.swish(at) },
