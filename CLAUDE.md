@@ -15,6 +15,11 @@ Playtest round 6 (an overnight polish run, no new content) **redesigned the menu
 stage, a real skill tree, the camp's upgrades as objects in the camp, a region card, the shrine as a place, a vault of
 chests), made **chests build up to their reveal**, made **every fight effect show on what it touched**, and re-tuned the
 heroes (Neve, Tam, Torva, Vesper, Hollis, Moss, Sable, Newt) with a full text pass.
+Playtest round 7 (an overnight run, no new regions) made fixes that **stay fixed** (one number formatter with a safety
+net, tips in a teaching order, a map sprite for every foe, a completion tracker whose counts agree, each with a test),
+an **anti-spam balance** (a crowding limit, escalating stack costs, heal and forgiveness caps, a masher bot that must
+lose; retargeted at a **75%** player), a **unique finisher per hero**, a sharper chest reveal (a test), a redesigned
+companions screen, **eight more heroes** (a second per style, the first Mythics) and **four more companions**.
 The user playtests on an iPhone 16 Pro and does not read long output; a separate planning chat orchestrates.
 
 ## Rules
@@ -23,7 +28,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `src/engine/art.ts` (hero, Pip, first enemies), `art-foes.ts` (Greenmarch enemies), `art-story.ts` (portraits, map
   icons), `art-world.ts` + `art-world-sites.ts` (the kingdom world map: the land, and what stands on it), `art-map.ts` (act map landscapes, map-scale Rowan, node props),
   `art-stage.ts` (per-act fight lighting), `art-sable.ts` (Sable's frames, map walker, hero cards), `art-relics.ts`
-  (relic, tag and skill icons), `art-life.ts` (the maps' critters), `art-ash.ts` + `art-relics-ash.ts` (the third region's
+  (relic, tag and skill icons), `art-life.ts` (the maps' critters), `art-minis.ts` (every foe's map-scale sprite: pure
+  data and the one lookup, no DOM; painted at boot by `art-map.ts`), `art-hero-<id>.ts` (each hero's sprite set on the
+  shared rig, `art-rig.ts`), `art-ash.ts` + `art-relics-ash.ts` (the third region's
   foes, portraits and bar pieces, painted in idle slices after boot or at once when a fight or scene needs them,
   `scene.ensureAshArt()`; its relic and tag icons), `backdrop.ts`, `backdrop-frost.ts` + `backdrop-ash.ts` (the later regions' fight backdrops: painted
   the first time an act needs one, `Stage.ensure`, not at boot) and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
@@ -44,7 +51,8 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   hero's kit, style, allies and companions also pop a short word just above the bar where it happened,
   `view/callouts.ts`: give a new one a word there, with a `pos` when it isn't the tap). Every
   relic and every rule node/capstone has a with/without unit test (`tests/unit/relics.test.ts`, `skills.test.ts`,
-  `hero-skills.test.ts`). Relics never flat-bump a stat. Run-level relics (shops, rests, map steps) live in `run.ts`.
+  `hero-skills.test.ts`). Relics never flat-bump a stat. A kit's perk id never reuses a skill-node or relic id (perk
+  names, sources and colours look up relics, then skill nodes, first). Run-level relics (shops, rests, map steps) live in `run.ts`.
   Offers (`core/relics.ts`): mostly relics plus at most one stat card, leaning toward owned tags ("Synergy!"); relics
   carry and reset like boosts (`hero.relics`, never mutated in place); replays draft `kit.relicPicks` per act behind.
 - **Every fight effect shows on what it touched** (the block, the foe, the cursor, the hero), not only as a word:
@@ -56,7 +64,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 - **Menus follow `docs/ui-style.md`**: one big animated focal point per screen, few words (details behind a tap, in a
   `Sheet`), depth (a painted stage per screen, light, vignette, rarity auras), motion, bold scale 1 as the smallest
   must-read type. They're built from one shared set: `view/ui-modern.ts` (stages, glass plates, icon cards, meters,
-  pips, rings, the big button, sheets, tokens, badges; append new parts at its end) and `art-ui-stage.ts` (the painted
+  pips, rings, the big button, sheets, tokens, badges, the swipe pager `SwipePager`; append new parts at its end) and `art-ui-stage.ts` (the painted
   stages: `ensureStage`, a screen's own theme registered with `registerStageTheme` from its own art file). camp.ts
   skips its dim behind a screen that paints its own stage (`STAGED_MODES`). Render a redesigned screen and check it
   against the guide's six questions before moving on.
@@ -111,22 +119,41 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `skill-fx.ts` + `skill-fx-heroes.ts`), a rarity (`src/data/rarity.ts`: 8 tiers, Common to Divine; Celestial pale cyan
   with stars, Divine prismatic gold; above Mythic adds new things, never only numbers) and soft strengths (15-25% vs
   some enemy tags, shown on the hero select; `tuning.hero.strengthScale`, 0 in unit tests). Data: `src/data/heroes.ts`
-  (8 heroes: Rowan the starter, Sable and Neve join through the story, the rest come from hero chests); the kits are
+  (16 heroes, two per style: Rowan the starter, Sable and Neve join through the story, the rest come from hero chests;
+  round 7's eight in the `// part6:A-D` slots; a Mythic hero has a fifth kit part, `gift`, shown as a fifth "Gift" card
+  on the hero select); the kits are
   `core/kit-fx.ts` (`KIT_HOOKS`, numbers `tuning.kits.<id>`: base HP and attack share, ability, passive, finisher, 3-
   and 5-star moves). Gear is shared; each hero has their own XP, level and tree (`core/heroes.ts`), stars 1-5 from
   shards (`core/roster.ts`). The fight reads who is fighting from the profile as `hero.build` (switching heroes at camp
   mid-act works). A new hero needs: data, kit hooks, a tree with with/without tests, a full sprite set, portrait and
-  chest reveal, a Test lab scenario, and the parity check (`npm run campaign`: every hero within +/-10 points of Rowan
-  in every act at 85%).
+  chest reveal, a Test lab scenario, a finisher, and the parity check (`npm run campaign`: every hero within +/-10
+  points of Rowan in every act at the target accuracy, 75%; two 200-run samples of the same numbers differ by up to 12
+  points an act, so average `SEED=1` and `SEED=2`). **A finisher** = the style's kit (it comes free) + the hero's own
+  moment: a `SignatureId` in `core/finisher-show.ts` (`SIGNATURES` + `HERO_SIGNATURE`) and its drawing in
+  `view/finisher-signatures.ts` (`SIGNATURE_DRAW` is typed over every id; a hero without one plays the style's
+  default); shows always fit `finisherShowMs`, rarity scales them (`showScale`), style sound layers are
+  `audio.finisherFlavor` (`finLayer-*` / `finShow-*` in the SFX catalog). Lessons from round 7's tuning at 75%: anything
+  that stops a boss's red is worth 10-25 points at the bosses (prefer a partial soak or a rare block); red control
+  compounds (only 3 reds fit), so tune it small; a stun cancels the special a foe is telling, so never stun a boss
+  often (route it through a reds-wait rule like `bellStun()`); any push restarts a red already striking (skip one at
+  the left end: kit-fx `onItsWay`); a soft strength against a tag the region bosses carry skews the boss acts; a
+  finisher that keeps the reds gives up the core's red clear. The Summoner style is data-driven (a summoner lists its
+  ally kinds in `HEROES[id].allies`; blockers in `isBlocker`).
 - **Companions** (`src/data/companions.ts`, perks in `core/companion-fx.ts`, levels/stars/slots in `core/roster.ts`):
-  8 of them, Pip first; each brings bar perks, levels from XP earned with them, stars from shards; one slot, a second
-  with the camp's Companion Perch.
+  12 of them, Pip first (round 7 added Burr, Lark, Gloam and the first Mythic, Nimbus: their looks on the bar in
+  `view/onsite-pets.ts`); each brings bar perks, levels from XP earned with them, stars from shards; one slot, a second
+  with the camp's Companion Perch. The companions screen's words live in `view/companion-cards.ts`: a new perk needs a
+  look and a short line there (`tests/unit/companions-screen.test.ts` fails without them); `COMPANION_FACE`
+  (`art-companions.ts`) places a companion's face in its token when the default crop misses it.
 - **Chests, gems, the shrine, completion** (`core/chests.ts`, `core/meta.ts`, `core/completion.ts`; numbers
   `tuning.chests`/`tuning.gems`): hero chests (bosses, bounties, rarely elites; opened free) hold a hero or companion
   weighted low, or shards for one you own; gems come only from playing (first clears, bosses, bounties, hidden
   treasures, achievements, 100% regions), and the shrine sells Rare chests for gems with pity (a Legendary or better
   within 30). **No timers, no energy, no real money, ever.** A region's completion counts acts, mini-bosses, the boss,
-  bounties, hidden treasures and events; 100% gives a region chest and a map badge. Mastery milestones (4 per hero)
+  bounties, hidden treasures and events (15 items); 100% gives a region chest and a map badge. `regionCompletion` lists
+  every item and every count (the seals, the ring's %, the chest's N/15) comes from that list; the card
+  (`view/progress.ts`, geometry in `engine/region-sites.ts`) stamps one seal or socket per item, all 15 in the opening
+  view, on a map bigger than its frame that pans (`DRAG_PX`, tap vs drag). Mastery milestones (4 per hero)
   unlock things for everyone (relics, set pieces, camp upgrades, cosmetics); camp upgrades are bought with coins and
   add options more than numbers. There is no catch-up XP.
 - **Regions.** Acts are numbered globally (`src/data/regions.ts`: Greenmarch 0-2, the Frostpeaks 3-5, Ashfell 6-8;
@@ -159,18 +186,22 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `enterAct(i, scenes, false)`; the next act has them); older saves are dropped). The **profile** (`core/profile.ts`, key `cq3.profile.v2`) is kept
   across runs: progress, the bag (60 items), what's equipped, coins (the purse carries over between runs), scrap, each
   signature drop's bad-luck counter, the accuracy log, whether the smith was met; v3 adds the heroes (picked, XP, skills, Sable met, the twin tutorial
-  shown) and the relics unlocked, the tips seen and whether tips are off, the world map's wandering foe (`wander`), the map sparkles picked up, whether the world map's first-visit reveal played (`worldTour`) (still v3: missing reads as none; a profile
+  shown) and the relics unlocked, the tips seen and whether tips are off (and the tips' known counts, `tipsDone`), the world map's wandering foe (`wander`), the map sparkles picked up, whether the world map's first-visit reveal played (`worldTour`) (still v3: missing reads as none; a profile
   from before the tips that has cleared an act gets the basics' tips marked seen). `readProfile` migrates v1 (progress only) and v2 (Rowan gets the cleared acts'
   first-clear XP; their relics unlock). Gear is not saved in the run: the hero's `gear` loadout always comes from the profile (`run.refreshGear()`).
   Gear and coins found are kept when you die. The title offers Continue (the run, or the world map with everything
   kept) and **New game**, which wipes everything: tapped twice, it erases the profile and the run, keeping tuning and
   settings (`eraseProgress`, `app.newGame()`; the gear panel's "Start over" does the same, asked twice).
 - **Teach it slowly (tips).** One short tip, shown once, the moment a system first matters: the words in
-  `src/data/tips.ts` (max 2 lines, `TIP_TEXT_W` px each, an anchor, pre-fight or pausing; the order is the priority),
-  each hero but Rowan has a how-to card before their first fight (`kit<Hero>` tips, `TipDef.hero`),
+  `src/data/tips.ts` (max 2 lines, `TIP_TEXT_W` px each, an anchor, pre-fight or pausing). **`TIPS` is the teaching
+  order**; `after` lists the tips one waits for (seen or known). The first fight teaches `FIRST_FIGHT` (tap yellow,
+  block red, green, purple, finisher), never capped, `lessonGapSec` apart; a lesson places its block (or a finisher
+  stack) when the fight hasn't brought one. Fight tips are due while their thing is on the bar. A tip is skipped once
+  the player has shown they know it (`known`: counts in `profile.tipsDone` from the fight's events). Bar rules (`rule`)
+  and heroes' how-to cards show on first meeting only, uncapped. TAP TO BEGIN brings up a due pre-fight tip first
+  (`holdBegin`). Each hero but Rowan has a how-to card before their first fight (`kit<Hero>` tips, `TipDef.hero`),
   the when in `core/tips.ts` (`TipCoach`: fed the fight's events and asked every frame; one at a time, one per screen,
-  a few seconds apart in a fight, counted from the first that stops it (the first red's tip comes first: Act 1's first
-  fight always teaches blocking); seen ids in `profile.tips`), the card in `view/tips.ts` (only at a safe moment: no
+  a few seconds apart in a fight; seen ids in `profile.tips`), the card in `view/tips.ts` (only at a safe moment: no
   scene, wipe, card, toast, panel or tutorial; seen and saved the moment it shows; in a fight `App.tipUp` stops the
   clock and the next tap only dismisses it). The gear panel has "Tips: on/off" and "Show tips again". A returning
   player's first launch of a new version plays Pip's welcome back over the title once (`welcomeScene`; new players
@@ -202,10 +233,11 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 - **Balance:** combat numbers were set with the bot, which plays whole acts picking map nodes at random and aims
   like a person (a timing error in ms, reaction time, a thumb's tap rate; the real judge decides each tap), so thin
   or fast blocks and a fast cursor are as hard for it as for a player. It wears the best gear it finds (item power).
-  `tests/unit/bot.test.ts` guards the targets, set for the playtester (`TYPICAL_ACCURACY` = 85%; it was a typical 70%
-  player until playtest round 4) on a fresh first playthrough with found gear only: Act 1 ~100% first try, Act 2
-  ~80-90%, the Boar King's first fight won ~60-75%, also by a cautious 85% bot that never takes the relics charging HP
-  (`avoid`); a 70% player still clears Act 3 within 6 tries (~85-90%); an 85% player loses more HP to foes per fight
+  `tests/unit/bot.test.ts` guards the targets, set for the playtester (`TYPICAL_ACCURACY` = **75%** since playtest
+  round 7: the lab's readout measured 70% where the playtester guessed 80-90%; it was 85% in rounds 4-6 and a typical
+  70% before) on a fresh first playthrough with found gear only: Act 1 ~100% first try, Act 2
+  ~80-90%, the Boar King's first fight won ~60-75%, also by a cautious 75% bot that never takes the relics charging HP
+  (`avoid`); a 70% player still clears Act 3 within 6 tries (~85-90%); a 75% player loses more HP to foes per fight
   act over act (later acts' reds are faster: `acts[i].redSpeed`), and normal fights don't get shorter act over act; and
   farming the Boar King (replaying Act 3 with the gear kept, `playFarm`) measurably raises the win rate. Replays start
   with `tuning.kit` (what an 85% story run has gained per act behind, re-measured: keep it in step with the story).
@@ -217,12 +249,46 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   visits camp between regions (every Rare chest its gems buy, chests opened, affordable camp upgrades, its rarest
   companions). **Later regions** are balanced from a typical end-of-Greenmarch hero (`playCampaign`):
   `tests/unit/bot-region2.test.ts` guards the second region (Act 1 ~90% first try, Act 2 ~75%, Act 3 ~60%, its boss
-  ~55-65%); `npm run campaign` reports every hero against Rowan; `npm run region-tune` replays one region from cached
+  ~55-65%) and `bot-region3.test.ts` the third (Act 1 ~85%, Act 2 ~70%, Act 3 ~55%, its boss 50-60%), now for a 75%
+  player (`tuning.kit`, the replay kit, was measured at 85% and not re-measured); `npm run campaign` reports every hero against Rowan; `npm run region-tune` replays one region from cached
   end-of-region heroes with numbers to try (`TUNE='{"acts.4.hpMult":7}'`, `FOCUS=bulwark`, `BRANCHES=1`). It meets roamers when its random
   route runs into them (an ambush; the merchant's shop like a shop), plays Coin Rush with its normal aim (not counted
   in the fight stats: `ActAttempt.extras`), takes every bounty and opens a secret half the time. The report also shows relic win
   rates (by build and by relic, and against a stat-cards-only control). Re-run `npm run balance` after changing them.
   `ACC=0.62 npm run retarget` re-aims the whole curve at another player (writes docs/retarget.md with the act numbers).
+- **Anti-spam (round 7, docs/balance-spam.md).** Late fights must never be "spam, spam, finisher x5": blocks cover
+  at most 45% of the bar (`tuning.spam.cover`; a foe's static block that doesn't fit isn't sent and its pattern keeps
+  its pace; reds, formations and the hero's own blocks always come); each finisher stack costs 32% more hits than the
+  last (6 / 8 / 10 / 12 / 14; `c.meter` stays 0..1 toward the next); Meter Gain counts in full to +25%, then with
+  diminishing returns; relic meter and heal sources stack with diminishing returns by the order they act; in-fight heals
+  stop at 35% of max HP a fight (every heal goes through `gainHp`; rests, potions and between-fight heals don't count;
+  perk `healCap`); at most 3 forgiven misses a fight (a forgiving perk asks `c.canForgive()`; perk `missCap`; a
+  forgiven miss still empties the meter's fill); a classic miss costs 0.6% of max HP, x2 to x4 for a miss within 0.5 s
+  of the last. The masher bot (`bot.ts` `mashFrom`, taps every ~100 ms with no aim) must lose every region's Act 3 and
+  its boss's first fight (`tests/unit/bot-masher.test.ts`). `npm run spam` reports max-stack finishers per fight, the
+  bar covered, heals, forgiven misses, the masher and clear rates at 70 / 75 / 85%.
+- **Numbers on screen go through `src/core/format.ts`** (round 7: long decimals kept coming back screen by screen):
+  `whole` (HP, damage, heals, costs, coins, gems, scrap, XP, counts), `one` / `mult` / `secs` (at most one decimal,
+  a trailing .0 dropped), `pct` / `pctOf` / `odds`, `signed`, `hpNow` / `hpOf`, `compact` for plates, `fillN` for a data
+  text's `{n}`. Never put a computed number into player text raw (no `${hp}`, no toFixed). **The safety net:** every
+  string the canvas draws or measures (`font.ts fontText`), the sharper reveal's lettering (`font-hd.ts`) and the HTML
+  panels' text (`engine/number-guard.ts`; the tuning sliders' readouts excepted) go through `guardText`: a number with
+  two or more decimals is rounded to one on screen and recorded in `window.__cq3.textViolations` (NaN, Infinity and
+  exponents too). Every Playwright spec imports `test` from `tests/smoke/fixtures.ts`, which fails a test on any
+  violation (`tests/unit/format.test.ts` checks every spec does); a new screen gets a step in
+  `tests/smoke/numbers.spec.ts`, which walks every screen with awkward numbers.
+- **Every foe that can stand on a map has its own map sprite** (`src/engine/art-minis.ts`, about 8-16 px wide,
+  mini-bosses and region bosses bigger, 1-2 frames facing left). Views draw them only through `miniKey`, which records
+  a missing one in `window.__cq3.miniMisses` and draws the crossed swords; `tests/unit/minis.test.ts` (every act's
+  fights, elites, boss and packs; the maps as built; the world map's skirmishes; only the coin sack and the dummy exempt)
+  and `tests/smoke/minis.spec.ts` fail on a miss.
+- **The sharper chest reveal (a test, round 7; old by default).** `view/chest-hd.ts` draws the chest opening on its own
+  DOM canvas over the game canvas at `HD_K` = 2x the game's resolution (`hd-layer.ts`: 654x300 fine px, shown only on
+  frames that draw on it). Hard pixels only (filled rects and pre-painted canvases, no paths, smoothing off; particles
+  from the time and a seed); its art is drawn on the fine grid (`art-chests-hd.ts`, `art-reveal-hd.ts`, `font-hd.ts`:
+  the game fonts doubled with Scale2x), sprites keep the game grid (never mix grids inside one piece of art).
+  `ChestOpening.view` is 'old' | 'hd' | 'split'; the setting is `cq3.chestReveal` (`storage.ts`, not in the gear
+  panel); the timeline, taps, sounds and queue are shared. The rollout plan is in docs/decisions.md (S6).
 - **Accuracy readout** (`core/accuracy.ts`): every tap aimed at an isolated yellow gives a timing error; the median and
   MAD of the recent ones, mapped through `SD_CALIBRATION` (made with bots of known accuracy: `npm run calibrate`; re-run
   it after changing block widths, the cursor or the acts' pace; `tests/unit/accuracy.test.ts` fails when it drifts),
@@ -245,7 +311,12 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   A scenario reworked after a playtest bumps its `rev` (a rating given to the old version shows as "Reworked" and asks
   again). Fights must be long enough to feel what's being tried (hero fights: six waves at Act 2's numbers; the bot
   guards their length and that they're nearly always won, `tests/unit/lab.test.ts`); a scenario can leave tips on for
-  a card it needs (`profile.tips`: a hero's how-to, a bar rule's tip) and learn skill nodes (`profile.skills`).
+  a card it needs (`profile.tips`: a hero's how-to, a bar rule's tip) and learn skill nodes (`profile.skills`). A lab
+  fight can carry `relics`, end in a stat card `pick`, show another act's `stage` and wear a better kit
+  (`profile.gear`); a scenario can set companions' levels and stars (`petLevels` / `petStars`). Setups: `fight`,
+  `camp` (incl. `chestDemo` and `chestHd`, the old and sharper reveals side by side), `story`, `map` (act N's map to
+  look at) and `gallery` (the Finisher gallery: any hero's finisher on demand; `App.galleryHold` holds its clock).
+  The lab smoke test that walks every scenario has 7 minutes (the list grows every round).
   Practice and lab fights count toward the accuracy readout: the lab's taps go to its own log (`cq3.lab.acc`) and the
   lab report counts them with the real game's (the real save is never written). `chestDemo` plays the chest opening
   at forced tiers without granting anything (`camp.chests.demo(tiers, kind, now)`).
@@ -259,7 +330,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 src/data/      enemies.ts (stats, patterns, specials), greenmarch.ts (acts, encounters, map weights), events.ts,
                story.ts (scenes), types.ts
 src/data/gear.ts  stats, slots, rarities, base items, sets, unique effects, signature drops
-src/data/relics.ts (the relics, tags, build names; relics-ash.ts the third region's), heroes.ts (the eight heroes), styles.ts (the eight styles), rarity.ts, companions.ts, meta.ts (achievements, mastery, camp upgrades), regions.ts + frostpeaks.ts + enemies-frost.ts (the second region), skills.ts + skills-heroes.ts (the eight trees), tips.ts (the tips),
+src/data/relics.ts (the relics, tags, build names; relics-ash.ts the third region's), heroes.ts (the sixteen heroes), styles.ts (the eight styles), rarity.ts, companions.ts, meta.ts (achievements, mastery, camp upgrades), regions.ts + frostpeaks.ts + enemies-frost.ts (the second region), skills.ts + skills-heroes.ts (the trees), tips.ts (the tips),
                quests.ts (the bounties' goals), lab.ts (the Test lab's scenarios: New and Earlier)
 src/core/      tuning.ts (numbers), combat.ts (sim; heroStats, gear effects), specials.ts (special-move actions),
                blocks.ts, map.ts (act maps), run.ts (region flow: map, nodes, loot, boosts, shop, events, scenes,
@@ -271,8 +342,9 @@ src/core/      tuning.ts (numbers), combat.ts (sim; heroStats, gear effects), sp
                roam.ts (the map's extras: Coin Rush and bounty stops, the secret, roamers and their steps), quests.ts
                (bounties), skirmish.ts (the world map's wandering foe), lab.ts (the Test lab: each scenario's profile
                and fight, ratings, the report), save.ts
-               (save at every node, migrations), bot.ts (balance bot, farming), tips.ts (which tip shows when; the
-               welcome back), sparkle.ts (the maps' sparkles: when, where, what they pay, claimed once), world-plan.ts
+               (save at every node, migrations), bot.ts (balance bot, farming, the masher), tips.ts (which tip shows when, in
+               the teaching order; the welcome back), format.ts (every number the player sees), finisher-show.ts (each
+               hero's finisher plan: style moves, signature moments, the rarity scaler), sparkle.ts (the maps' sparkles: when, where, what they pay, claimed once), world-plan.ts
                (the world map's 12 regions: which lands are open, the far lands' fog per weights home), clock.ts,
                calibration.ts, swipe.ts, rng.ts
 src/engine/    app.ts (time + input glue, music cues, story state, the Test lab's swap to its own save), scene.ts
@@ -285,17 +357,22 @@ src/engine/    app.ts (time + input glue, music cues, story state, the Test lab'
                art-ash.ts (the third region's foes, portraits, bar pieces), art-relics-ash.ts (its relic and tag icons),
                art-roam.ts (the coin sack, the board, the secret rock, the merchant),
                art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-camp-build.ts (the camp
-               upgrades as objects in the clearing and their blueprint ghosts), art-grove.ts (the companions' night
-               grove and stump), art-region-map.ts (the region card's parchment maps, frame, pedestal and study),
+               upgrades as objects in the clearing and their blueprint ghosts), art-grove.ts (the companions' moonlit
+               grove, its floor and the stump), art-region-map.ts (the region card's parchment maps, frame, pedestal and study),
                art-dummy.ts (the camp's Training Dummy, a foe for practice fights), art-paint.ts (painting helpers),
                art-ui-stage.ts (the menus' painted stages; art-ui-styles.ts the eight style stages), art-chests.ts (the
                three chests in parts, their cracks and light; the vault stage), art-shrine.ts (the shrine stage, altar,
-               crystal, vials),
+               crystal, vials), art-minis.ts (every foe's map sprite and the one lookup), art-hero-<id>.ts (each hero's
+               sprite set), hd-layer.ts + font-hd.ts + art-chests-hd.ts + art-reveal-hd.ts (the sharper chest reveal's
+               fine canvas, lettering and art), region-sites.ts (the completion card's geometry), number-guard.ts (the
+               HTML half of the numbers' safety net),
                art-life.ts (the maps' critters),
                backdrop.ts (forest, ruins, hollow), backdrop-frost.ts (pass, caves, glacier), backdrop-ash.ts (cinder,
                glass, forge), chrome.ts (UI textures), font.ts, layout.ts, storage.ts
 src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero in `${art}_${pose}` frames, enemies and a boss's
-               phase look, telegraphs, summons, stuns, finisher show, deaths; finishers.ts each hero's own show; party.ts
+               phase look, telegraphs, summons, stuns, finisher show, deaths; finishers.ts runs each hero's show
+               (finisher-kits.ts the style kits, finisher-signatures.ts the heroes' moments, finisher-fx.ts shared parts,
+               finisher-gallery.ts the lab's gallery); party.ts
                the companions and a Summoner's allies), effects.ts (particles, floaters, camera), bar.ts (timing bar,
                blocks, telegraph previews, cursor, holds, mirrors, icicle marks, dashes; bar-kinds.ts the painters for
                patches, kegs, frozen blocks, holds, ice coats, fuses, chilled reds, the Rampart wall, vines), hud.ts (hero
@@ -307,18 +384,22 @@ src/engine/view/  stage.ts (backdrop, clouds, ambient), fighters.ts (hero in `${
                map; map-roam.ts its roamers, telegraphs, secret and bounty tracker), map-life.ts and world-life.ts (their
                critters and sparkles; life.ts the shared critters, glint and pop), stops.ts (the bounty board), story.ts (scenes),
                nodes.ts (rest, shop, events), camp.ts (the camp home; bag.ts, forge.ts, heroes.ts (hero select: all
-               eight, the hero at 3x on their style's stage, swipe or arrows to page, the kit as icon cards, stars, seals and
+               sixteen, the hero at 3x on their style's stage, swipe or arrows to page, the kit as icon cards, stars, seals and
                XP as meters, details in sheets), stats.ts, skills.ts (skill trees: three branches growing from a root,
                paths that light up, an energy run into a node as it's learned), relic-log.ts, chests.ts (the vault: the
-               chests waiting, Open all; chest-opening.ts the build-up and reveal, shared with the shrine), shrine.ts (the
+               chests waiting, Open all; chest-opening.ts the build-up and reveal, shared with the shrine;
+               chest-hd.ts the sharper reveal, chest-compare.ts the lab's side by side), shrine.ts (the
                shrine as a place: the chest on the altar, the pity vials, odds behind an "i", buy-and-open), companions.ts
-               (the companion at 3x on a stump, its perks as cards, the Along sockets), upgrades.ts (build mode: the upgrades as objects over the live camp, a card per
+               (like the hero select: the companion at 3x on a stump in a moonlit grove, swipe or arrows to page, the Along
+               sockets and Equip at the stage's foot, what it does as cards: every description when they fit, short lines
+               and sheets when crowded; companion-cards.ts builds their words), upgrades.ts (build mode: the upgrades as objects over the live camp, a card per
                spot, the build animation; Practice with the Training Dummy), progress.ts
                (region completion; camp.openProgress(r) opens it from elsewhere) its screens; item-grid.ts the bag
                grid and worn slots; camp-kit.ts their shared layers, effects, buttons, hero tabs, rarity frames and
                stars; the top bar's middle is kept clear for the HTML gear button: kit.hudZone(), kit.topRow()),
                gains.ts (run.gains, what a fight or an act gave beyond the loot, shown briefly), relic-ui.ts (relic icons, tag chips, relic
-               cards, perk names), perk-at.ts + onsite.ts (where each fight effect lands and its look there), ui-modern.ts
+               cards, perk names), perk-at.ts + onsite.ts (where each fight effect lands and its look there; onsite-pets.ts round 7's
+               companions), ui-modern.ts
                (the menus' shared parts: docs/ui-style.md), loot.ts (loot reveal and Legendary/Mythic cards), items.ts (item cells with rarity frames, item text),
                ui.ts (text pool, panels), transition.ts (screen wipes), tips.ts (the tip card), icons.ts, pixels.ts (panels, gauges,
                buttons), shared.ts
@@ -327,7 +408,9 @@ tests/unit/    Vitest tests for src/core and src/data (specials, waves, map, run
                audio.test.ts: renders every sound on an OfflineAudioContext (node-web-audio-api) and checks levels
                (no clipping, impacts >= music, tiers get heavier, telegraphs read over the music)
 tests/balance/ npm run balance: the bot plays 1,000 whole runs per accuracy and writes docs/balance.md
-tests/smoke/   Playwright smoke tests (874x402 @3x, landscape: intro, map, fight, every enemy's specials, reload)
+tests/smoke/   Playwright smoke tests (874x402 @3x, landscape: intro, map, fight, every enemy's specials, reload; every spec
+               imports `test` from fixtures.ts, the numbers guard; numbers.spec.ts walks every screen; minis.spec.ts the
+               map sprites; chest-hd.spec.ts the sharper reveal at device scale)
                and screenshot regression tests (screens.spec.ts: fake clock + seeded Math.random, pixel-exact)
 scripts/       make-icons.mjs, sw-template.js (service worker, precache list injected at build)
 ```
@@ -346,7 +429,8 @@ npm run screens:update  # refresh the baselines after an intentional visual chan
 npm run balance      # balance bot report -> docs/balance.md (a few min); re-run after changing combat numbers
 npm run calibrate    # accuracy readout calibration table (paste into core/accuracy.ts SD_CALIBRATION)
 ACC=0.62 npm run retarget  # re-aim the difficulty curve at a player of that accuracy -> docs/retarget.md
-npm run campaign     # every hero through both regions at 85%, gaps to Rowan (HEROES, RUNS, ACC; writes docs/balance-campaign.md)
+npm run campaign     # every hero through every region at 75%, gaps to Rowan (HEROES, RUNS, ACC, SEED, REGIONS; writes docs/balance-campaign.md)
+npm run spam         # anti-spam report: max-stack finishers, bar covered, heals, forgiven misses, the masher, clear rates at 70/75/85% (RUNS, ACC, MASH, TUNE, OUT)
 npm run region-tune  # one later region from cached end-of-region heroes (TUNE, FOCUS, BRANCHES, HEROES, RUNS)
 npm run snowball     # what fights cost per act, stat sources, ablations, a veteran (RUNS, ACC, HERO, TUNE, AVOID env)
 npm run perks        # each relic and skill node alone on a typical Act 3 hero (RUNS, ACC, HERO, BUILD=relic,... env)
