@@ -315,8 +315,8 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
         hp('oldSoul', 'Old Soul', 10),
         def('shellback', 'Shellback', 6),
         rule('quickShell', 'Quick Shell', 'The shell comes up {n}% sooner.', 'The shell is slow to rise.', 'It rises {n}% sooner.', 50),
-        rule('spikedShell', 'Spiked Shell', "A shell block hits the red's owner for {n}% attack.", 'The shell only stops reds.', 'It hits the owner for {n}%.', 80),
-        cap('stoneWard', 'Stone Ward', 'With the shell up, Perfect blocks hit all foes for {n}%.', 'A block stops one red.', 'Shell up: Perfect blocks hit all.', 40),
+        rule('spikedShell', 'Spiked Shell', "A shell block hits the red's owner for {n}% attack.", 'The shell only softens reds.', 'It hits the owner for {n}%.', 80),
+        cap('stoneWard', 'Stone Ward', 'With the shell up, Perfect blocks hit all foes for {n}%.', 'The shell softens one red.', 'Shell up: Perfect blocks hit all.', 40),
       ],
     },
     {

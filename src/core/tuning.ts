@@ -428,16 +428,16 @@ export const DEFAULT_TUNING = {
     // part6:A
     // part6:B
     // yara (Part 6): her spirits stay allySec (spirits); the Wolf bites wolfDmg x attack every wolfEvery s; the Tortoise's
-    // shell comes up shellFirst s after it's called and stops the next red that reaches her (shell3 reds at 3 stars),
-    // then rests shellRest s; the Wisps fill wispMeter of a hit's meter every wispEvery s (all three grow with the
+    // shell comes up shellFirst s after it's called and takes shellSoak of the next red that reaches her (1: all of it;
+    // shell3 reds at 3 stars), then rests shellRest s (a new Tortoise waits it out); the Wisps fill wispMeter of a hit's meter every wispEvery s (all three grow with the
     // Companion stat, like Moss's: allyComp); Kinship: kinship crit per spirit out; Spirit Stampede: x(1 + stampede per
     // spirit out); Great Spirit: a Rally calls the stag for stagSec (x2 at 5 stars), striking every foe for stagDmg x
     // attack every stagEvery s
-    yara: { hp: 85, atk: 0.6, abilitySec: 3, allySec: 7, allyComp: 0.1, wolfEvery: 2, wolfDmg: 0.4, shellFirst: 3, shellRest: 30, shell3: 2, shellSoak: 1, wispEvery: 2, wispMeter: 0.5, kinship: 0.04, stampede: 0.12, stagSec: 4, stagEvery: 1, stagDmg: 0.22 },
+    yara: { hp: 80, atk: 0.6, abilitySec: 3, allySec: 6, allyComp: 0.05, wolfEvery: 2, wolfDmg: 0.25, shellFirst: 3, shellRest: 30, shell3: 2, shellSoak: 0.25, wispEvery: 2, wispMeter: 0.3, kinship: 0.03, stampede: 0.08, stagSec: 4, stagEvery: 1, stagDmg: 0.13 },
     // dell (Part 6): Ricochet bounces ricochet of the Power Shot onto the weakest other foe; Pebble Storm hits every foe
-    // x stormMult and knocks every red back stormKnock of the bar (an icicle, which can't move, is knocked off); a Lucky
-    // Shot stuns for luckyStun s at 5 stars
-    dell: { hp: 108, atk: 1.18, abilitySec: 3, ricochet: 0.5, stormMult: 1.15, stormKnock: 0.3, luckyStun: 1 },
+    // x stormMult and knocks every red back stormKnock of the bar (one knocked past the far end, or an icicle, which
+    // can't move, is knocked off); a Lucky Shot stuns for luckyStun s at 5 stars
+    dell: { hp: 108, atk: 1.14, abilitySec: 3, ricochet: 0.35, stormMult: 1, stormKnock: 0.3, luckyStun: 1 },
     // part6:C
     // part6:D
   },

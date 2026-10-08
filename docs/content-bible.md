@@ -148,32 +148,37 @@ the region rules.
   patterned with stars over a white tunic with a beaded sash, bare feet (a bead anklet), a carved staff whose ring
   holds a cyan spirit stone, charms (beads, a white feather) hanging from it, soft cyan spirit-light round her hands.
   Palette: indigo, star white, cyan spirit-light, warm bead colours.
-- Spirits (called by green hits in order, like Moss's allies; they grow with the Companion stat; each stays 7 s; a
-  call with all three out is a Rally):
-  - **Spirit Wolf** (attack): bites the target for 40% of her attack every 2 s.
-  - **Spirit Tortoise** (block): its shell comes up 3 s after it's called and stops the next red that reaches her;
-    then it rests 30 s (a Tortoise called while the last one's rest runs waits it out).
-  - **Wisp Swarm** (meter): fills half a hit's meter every 2 s (never heals).
+- 80 HP, attack 0.6 of Rowan's (her spirits do much of the work).
+- Spirits (called by green hits in order, like Moss's allies; they grow a little with the Companion stat; each stays
+  6 s; a call with all three out is a Rally):
+  - **Spirit Wolf** (attack): bites the target for 25% of her attack every 2 s.
+  - **Spirit Tortoise** (block): its shell comes up 3 s after it's called and takes a quarter of the next red that
+    reaches her (the rest lands: a hit); then it rests 30 s (a Tortoise called while the last one's rest runs waits it
+    out). (Designed to stop the red whole: at 75% that alone put her 10-20 points over Rowan at every boss, where a red
+    is a third of her HP.)
+  - **Wisp Swarm** (meter): fills 30% of a hit's meter every 2 s (never heals).
 - Signature **Spirit Bond**: spirits come in order; a call with all three out is a Rally.
 - Ability (green) **Call**: call the next spirit.
-- Passive **Kinship**: each spirit out adds +4% crit chance.
-- Finisher **Spirit Stampede**: hits all foes, +12% per spirit out; knocks the reds off and tramples the traps. (Two
+- Passive **Kinship**: each spirit out adds +3% crit chance.
+- Finisher **Spirit Stampede**: hits all foes, +8% per spirit out; knocks the reds off and tramples the traps. (Two
   things to the bar.) Its show: stars join into a stag in the sky, her spirits stampede through the foes, the great
   stag of starlight leaps down through them.
-- Mythic gift **Great Spirit**: a Rally calls the great spirit stag for 4 s; it strikes every foe for 30% of her
+- Mythic gift **Great Spirit**: a Rally calls the great spirit stag for 4 s; it strikes every foe for 13% of her
   attack each second.
-- Strength: takes 20% less from Casters (shamans, imps, wraiths). (Not Beasts: all three region bosses are Beasts.)
+- Strength: takes 20% less from Swarms (slimes, piglets, cinderlings). (Not Beasts: all three region bosses are
+  Beasts; not Casters: the second region is full of them, its Act 5 boss too.)
 
 ### Dell, Slinger (Marksman, Rare) — round 7
 - Look: a freckled farm kid (a head shorter than the grown-ups) with ginger hair under a wide straw hat with a red
   band, a red neckerchief, patched denim overalls over a cream shirt, scuffed boots, a forked slingshot and a pouch
   of pebbles at his hip. Palette: straw yellow, denim blue, red, freckled skin.
-- Signature **Ricochet**: the Power Shot bounces on to the weakest other foe (the least HP) for 50% of it.
+- 108 HP, attack 1.14 of Rowan's.
+- Signature **Ricochet**: the Power Shot bounces on to the weakest other foe (the least HP) for 35% of it.
 - Ability (green, the style's Power Shot) **Lucky Shot**: a Perfect green crits, and so does the Power Shot it fires.
 - Passive **Pocketful**: a miss doesn't empty the meter's fill toward the next stack (the combo and the banked
   stacks still go). (Designed as "a miss doesn't lose Focus", but a Marksman's Focus never falls on a miss.)
-- Finisher **Pebble Storm**: hits all foes, x1.15; every red on the bar is knocked back 0.4 of the bar, and one
-  knocked past the far end flies off it (an icicle, which can't move, is knocked off). (Knocked back only, they all
+- Finisher **Pebble Storm**: hits all foes; every red on the bar is knocked back 0.3 of the bar, and one knocked
+  past the far end flies off it (an icicle, which can't move, is knocked off). (Knocked back only, they all
   came again: at 75% he took twice Rowan's hits a second at the second and third regions' bosses.) Its show: pebbles
   ping from foe to foe, his lucky golden pebble hops through them all.
 - Strength: +20% damage to Flyers.
@@ -191,7 +196,7 @@ Every hero: 2★ +6% attack, 4★ +8% max HP. 3★ and 5★ unlock a move (data:
 | Hollis | Guard holds 7 charges | Shield Slam on every block |
 | Vesper | Focus cap +50% | Volley pins reds 4 s |
 | Torva | Quake also on blocks | Earthsplitter keeps 1 stack |
-| Yara | the Tortoise's shell stops two reds | the Great Spirit stays twice as long |
+| Yara | the Tortoise's shell takes two reds | the Great Spirit stays twice as long |
 | Dell | Ricochet bounces on to one more foe | a Lucky Shot stuns its foe (1 s) |
 
 ---

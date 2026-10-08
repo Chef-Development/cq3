@@ -1870,6 +1870,7 @@ test('Part 6: Yara calls her spirits (Wolf, Tortoise braced at the left end, Wis
   await boot(page);
   await frames(page, 10);
   await stagedFight(page, { hero: 'yara' });
+  await bar(page, `c.tuning.kits.yara.shellFirst = 1;`); // (the shell up soon after the call, whatever the tuning)
   for (let i = 0; i < 3; i++) {
     await bar(page, `const p = c.cursorPos(); c.spawnBlock('green', p); app.barTap(performance.now());`);
     await frames(page, 30);
