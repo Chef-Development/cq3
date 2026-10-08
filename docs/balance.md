@@ -191,7 +191,7 @@ Notes:
   map row. HP carries from node to node (kills heal only 1%), so rests, potions and Full
   Heal cards matter.
 
-## Playtest round 8: hero parity at 75% (Rowan, the act curve and the styles kept)
+## Playtest round 7, the parity pass: hero parity at 75% (Rowan, the act curve and the styles kept)
 
 The brief: every hero within +/-10 of Rowan in every act at the 75% player. Rowan stays the reference (the Part 6
 heroes are tuned against him at 75%), so he, the act curve and **every style number** are as round 7 left them: the

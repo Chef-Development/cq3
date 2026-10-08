@@ -423,7 +423,7 @@ export const DEFAULT_TUNING = {
     hollis: { hp: 95, atk: 0.82, abilitySec: 1.5, slam: 0.3, slamPerfect: 0.6, ironHide: 0.05, rampartSec: 1, rampartGuard: 0.4, guardMax3: 7 },
     vesper: { hp: 115, atk: 1.13, abilitySec: 3, pierce: 0.25, volleyFocus: 1.7, pinSec: 2, cap3: 1.5 },
     // torva: a Wind-Up smash deals x(windUpBase + windUpStep per combo), up to windUpMax
-    // ...and stuns for stunSec (0: a stun cancels the special a foe is telling, a red-stopper at every boss: round 8)
+    // ...and stuns for stunSec (0: a stun cancels the special a foe is telling, a red-stopper at every boss: round 7, decisions Q3)
     torva: { hp: 100, atk: 0.8, abilitySec: 3, quake: 0.03, windUpBase: 1.5, windUpStep: 0.04, windUpMax: 4, stunSec: 0, unstoppable: 0.04, unstoppableMax: 5, calmSec: 0.4 },
     // part6:A
     // solenne: every sunEvery combo Sunrise burns for sunSec (3 stars: sunSec3): hits cut every other foe for sunCut of
