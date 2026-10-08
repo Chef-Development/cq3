@@ -212,7 +212,10 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
 
   app.phaseListeners.push((prev, next) => {
     if (!app.inLab || !playing || next === prev) return;
-    if (prev === home) end();
+    // (a fight that ends in a stat pick plays on through the pick)
+    const pick = playing.setup.kind === 'fight' && !!playing.setup.pick;
+    if (pick && prev === home && next === 'boost') return;
+    if (prev === home || (pick && prev === 'boost')) end();
   });
 
   // ------------------------------------------------------------------ rating

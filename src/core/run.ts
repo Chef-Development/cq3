@@ -901,6 +901,14 @@ export class Run {
       c.coinsEarned = 0;
       if (c.aims.length) addSamples(this.profile.acc, c.aims);
       c.aims.length = 0;
+      if (c.result === 'won' && this.practice.pick) {
+        // (the Test lab's numbers check: three stat cards on the fought hero, nothing kept; picking one ends it)
+        this.practice.pick = false;
+        this.boostThen = 'map';
+        this.boostChoices = rollBoosts(this.rng, this.tuning, 'rare');
+        this.phase = 'boost';
+        return;
+      }
       if (c.result) this.endPractice(c.result === 'won');
       return;
     }
@@ -1023,7 +1031,7 @@ export class Run {
   // and the Test lab's scenarios)
 
   /** A practice fight on screen: the run as it was (put back after), where it goes back to, and when it ended. */
-  practice: { hero: Hero; combat: Combat | null; actIndex: number; phase: Phase; then: Phase } | null = null;
+  practice: { hero: Hero; combat: Combat | null; actIndex: number; phase: Phase; then: Phase; pick?: boolean } | null = null;
   /** The last practice fight just ended (won or not): the view shows what comes next and empties it. */
   practiceEnded: { won: boolean } | null = null;
 
@@ -1031,9 +1039,10 @@ export class Run {
    * A practice fight: no rewards, no XP, nothing saved. By default against the Training Dummy, as the picked hero,
    * with nothing able to hurt the hero (`safe`); the Test lab sets the hero, stars, companions, foes, act and bar rules.
    */
-  startPractice(o: { hero?: HeroId; stars?: number; pets?: PetBuild[]; enemies?: string[]; waves?: string[][]; act?: number; bar?: BarRules; row?: number; safe?: boolean; then?: Phase; seed?: number; relics?: RelicId[] } = {}): void {
+  startPractice(o: { hero?: HeroId; stars?: number; pets?: PetBuild[]; enemies?: string[]; waves?: string[][]; act?: number; bar?: BarRules; row?: number; safe?: boolean; then?: Phase; seed?: number; relics?: RelicId[]; pick?: boolean } = {}): void {
     if (!this.practice) this.practice = { hero: this.hero, combat: this.combat, actIndex: this.actIndex, phase: this.phase === 'fight' ? 'camp' : this.phase, then: o.then ?? (this.phase === 'fight' ? 'camp' : this.phase) };
     else this.practice.then = o.then ?? this.practice.then;
+    this.practice.pick = !!o.pick;
     const act = Math.max(0, Math.min(this.region.acts.length - 1, o.act ?? 0));
     const id = o.hero ?? this.profile.hero;
     const base = profileBuild(this.profile, this.tuning, id);
@@ -1153,6 +1162,7 @@ export class Run {
     if (this.pickKind === 'secret' && isRelicOffer(offer)) this.unlock([offer.relic]);
     this.pickKind = null;
     this.boostChoices = [];
+    if (this.practice) return this.endPractice(true); // a practice fight's pick (the Test lab): nothing is kept
     if (this.startPick) {
       this.startPicks--;
       // the drafted relics are part of how the hero enters the act (a retry keeps them)

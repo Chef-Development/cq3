@@ -147,7 +147,7 @@ describe('Test lab scenarios (data)', () => {
       expect(s.rev ?? 0, s.id).toBeGreaterThanOrEqual(2);
     }
     // Act 2's tougher foes: a late fight with as many waves as the map deals it
-    const a2 = fresh.find((x) => x.group === 'fights' && x.setup.kind === 'fight' && x.setup.act === 1);
+    const a2 = fresh.find((x) => x.id === 'foesAct2'); // (by id: newer 'fights' items play Act 2 too)
     expect(a2, 'act 2').toBeDefined();
     expect(a2!.rev ?? 0).toBeGreaterThanOrEqual(2);
     expect(labFight(a2!)!.waves.length).toBe(GREENMARCH.acts[1].waves.last);
@@ -471,5 +471,36 @@ describe('Test lab storage: its own keys, never the real ones', () => {
     expect(loadRunSave(t, loadProfile(t))).not.toBeNull();
     // the ratings live apart from both saves and survive the switch
     expect(readLabState(loadLabState()).ratings.sable.rating).toBe('good');
+  });
+});
+
+describe('Test lab: the numbers scenario (round 7: heals and upgrades read whole)', () => {
+  it('heals from its relics and companion in a real fight, then a stat pick on the fought hero (nothing kept), then the camp', () => {
+    const s = byId('numbersHeals');
+    expect(s.group).toBe('fights');
+    let picked = 0;
+    for (let k = 0; k < 4; k++) {
+      const r = new Run(t, { ...DEFAULT_SETTINGS }, 7 + k, labProfile(t, s));
+      startLabScenario(r, s, 21 + k);
+      expect(labHomePhase(s)).toBe('fight');
+      expect(r.hero.relics).toEqual(['photosynthesis', 'vampiricFang']);
+      expect(r.hero.build?.pets?.map((q) => q.id)).toContain('mote');
+      expect(r.combat!.practice).toBe(false); // real damage: the heals matter
+      const before = r.practice!.hero;
+      const st = fight(r, r.combat!, new Rng(900 + k), { accuracy: 0.9, seed: 900 + k });
+      expect(st.healed, 'healed').toBeGreaterThan(0);
+      if (!st.won) continue;
+      picked++;
+      // the pick: three stat cards (no relic), previewed on the hero who fought
+      expect(r.phase).toBe('boost');
+      expect(r.boostChoices).toHaveLength(3);
+      expect(r.boostChoices.every((o) => o.id !== 'relic')).toBe(true);
+      expect(r.practice).not.toBeNull();
+      r.pickBoost(0);
+      expect(r.phase).toBe('camp');
+      expect(r.practice).toBeNull();
+      expect(r.hero).toBe(before); // nothing kept
+    }
+    expect(picked, 'won and picked').toBeGreaterThanOrEqual(3);
   });
 });

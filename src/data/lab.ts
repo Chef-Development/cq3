@@ -10,6 +10,7 @@
 
 import type { CompanionId } from './companions';
 import type { HeroId } from './heroes';
+import type { RelicId } from './relics';
 import type { CampUpgradeId } from './meta';
 import type { Tier } from './rarity';
 import { FIRST_FIGHT, type TipId } from './tips';
@@ -35,8 +36,9 @@ export type LabScreen = 'heroes' | 'skills' | 'chest' | 'chestDemo' | 'chestHd' 
 export type LabSetup =
   /** A practice fight (no rewards, nothing saved): the hero at `act` (acts are global: 3-5 are Region 2's) with
    *  `stars`, these companions, these waves of foes, the bar rules ('act': the act's own), `stacks` finisher stacks
-   *  banked at the start; `safe`: nothing hurts the hero. */
-  | { kind: 'fight'; hero: HeroId; stars?: number; pets?: CompanionId[]; act: number; waves: string[][]; bar?: BarRules | 'act'; row?: number; safe?: boolean; stacks?: number }
+   *  banked at the start; `safe`: nothing hurts the hero; `relics` carried into it; `pick`: a won fight ends in a
+   *  stat card pick (three cards, nothing kept) before the rating card. */
+  | { kind: 'fight'; hero: HeroId; stars?: number; pets?: CompanionId[]; act: number; waves: string[][]; bar?: BarRules | 'act'; row?: number; safe?: boolean; stacks?: number; relics?: RelicId[]; pick?: boolean }
   /** A camp screen (with `hero` shown first where it has one). 'chestDemo': the chest opening played at these
    *  `tiers` one after another (a demo: nothing is granted), from a chest of kind `chest`. 'chestHd': the old chest
    *  reveal and the sharper one side by side, Rare to Divine (a demo; view/chest-compare.ts). */
@@ -188,6 +190,17 @@ export const LAB_NEW: LabScenario[] = [
   // (a region at 100% means the next one is reached: the progress screen names it, so these wait behind spoilers)
   { id: 'completionDone', group: 'spoiler', spoiler: true, label: 'Completion: 100%', secs: 30, rev: 2, try: 'All 15 seals lit? Claim the reward.', setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'done' } },
   { id: 'completionAll', group: 'spoiler', spoiler: true, label: 'Completion: all', secs: 45, try: 'Every region at 100%: check each tab, drag each map.', setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'all' } },
+
+  // ---- numbers: every number on screen whole (heals, HP, the upgrade cards' before -> after)
+  {
+    id: 'numbersHeals',
+    group: 'fights',
+    label: 'Heals and upgrades',
+    secs: 60,
+    try: 'Heal, then pick an upgrade. Every number whole?',
+    setup: { kind: 'fight', hero: 'rowan', stars: 2, pets: ['mote'], act: 1, waves: [['bandit', 'slime'], ['archer', 'boar'], ['shaman', 'crow'], ['beetle', 'bandit']], stacks: 1, relics: ['photosynthesis', 'vampiricFang'], pick: true },
+    profile: { pets: ['mote'], petsOn: ['mote'] },
+  },
 ];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,

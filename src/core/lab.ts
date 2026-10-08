@@ -10,6 +10,7 @@ import { EVENTS } from '../data/events';
 import { TIPS } from '../data/tips';
 import { LAB_EARLIER, LAB_GROUPS, LAB_NEW, type LabScenario } from '../data/lab';
 import { ALL_ACTS, REGIONS } from '../data/regions';
+import type { RelicId } from '../data/relics';
 import type { BarRules } from '../data/types';
 import { itemLevel, makeItem } from './gear';
 import { nodeAt, xpForLevel } from './heroes';
@@ -159,13 +160,16 @@ export interface LabFightPlan {
   row: number;
   safe: boolean;
   stacks: number;
+  /** Relics carried into the fight, and whether a won fight ends in a stat card pick. */
+  relics?: RelicId[];
+  pick?: boolean;
 }
 
 export function labFight(s: LabScenario): LabFightPlan | null {
   if (s.setup.kind !== 'fight') return null;
   const f = s.setup;
   const bar = f.bar === 'act' ? ALL_ACTS[f.act]?.bar : f.bar;
-  return { hero: f.hero, stars: f.stars, waves: f.waves.map((w) => w.slice()), act: f.act, bar, row: f.row ?? 9, safe: !!f.safe, stacks: Math.max(0, f.stacks ?? 0) };
+  return { hero: f.hero, stars: f.stars, waves: f.waves.map((w) => w.slice()), act: f.act, bar, row: f.row ?? 9, safe: !!f.safe, stacks: Math.max(0, f.stacks ?? 0), relics: f.relics?.slice(), pick: !!f.pick };
 }
 
 /** The phase a scenario plays in: its fight, its scenes, an act's map, or the camp (the engine opens the camp
@@ -181,7 +185,7 @@ export function startLabScenario(run: Run, s: LabScenario, seed: number): void {
   const f = labFight(s);
   if (f) {
     run.actIndex = f.act; // the act's stage, music and name around the fight
-    run.startPractice({ hero: f.hero, stars: f.stars, waves: f.waves, act: f.act, bar: f.bar, row: f.row, safe: f.safe, then: 'camp', seed });
+    run.startPractice({ hero: f.hero, stars: f.stars, waves: f.waves, act: f.act, bar: f.bar, row: f.row, safe: f.safe, then: 'camp', seed, relics: f.relics, pick: f.pick });
     // the finisher is ready to try at once
     if (f.stacks && run.combat) run.combat.bankStacks(f.stacks, 'testLab');
   } else if (s.setup.kind === 'story') run.enterAct(s.setup.act, s.setup.scenes);
