@@ -1009,6 +1009,37 @@ test('tips: the first map and fight teach as they go; a tap only dismisses a tip
   expect(errors).toEqual([]);
 });
 
+test('tips: a quick TAP TO BEGIN brings up "tap yellow" first (the playtester met it three fights in); the next taps dismiss it, then begin', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await ready(page, { tips: true });
+  const a = app(page);
+  const tip = () => a((x) => x.view.tips.current);
+  // the first fight, tapped at once (inside the iris, long before the screen settles)
+  await a((x) => {
+    x.profile.tips.push('map');
+    x.setPhase(() => x.run.debugFight(0, ['slime'], 'fight', x.run.hero));
+  });
+  await tapGame(page, 163, 75);
+  expect(await tip()).toBe('tapYellow');
+  expect(await a((x) => ({ waiting: x.awaitingBegin, up: x.tipUp, tick: x.run.combat.tick }))).toEqual({ waiting: true, up: true, tick: 0 });
+  // a tap dismisses it (the fight still waits), the next begins
+  await page.waitForTimeout(400);
+  await tapGame(page, 163, 75);
+  await expect.poll(tip).toBeNull();
+  expect(await a((x) => x.awaitingBegin)).toBe(true);
+  await tapGame(page, 163, 75);
+  await expect.poll(() => a((x) => x.awaitingBegin)).toBe(false);
+  await expect.poll(() => a((x) => x.run.combat.tick), { timeout: 3000 }).toBeGreaterThan(0);
+  // never again: the next fight begins on the first tap
+  await a((x) => x.setPhase(() => x.run.debugFight(0, ['crow'], 'fight', x.run.hero)));
+  await page.waitForTimeout(100);
+  await tapGame(page, 163, 75);
+  await expect.poll(() => a((x) => x.awaitingBegin)).toBe(false);
+  expect(await tip()).toBeNull();
+  expect(errors).toEqual([]);
+});
+
 test("welcome back: a returning player's first launch plays Pip's scene over the title, once", async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));

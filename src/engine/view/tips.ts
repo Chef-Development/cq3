@@ -4,8 +4,9 @@
 // pulses round it and an arrow points at it. When that can't be found (the layout moved it, it's off screen) the
 // card shows on its own, centred. A tip only comes up at a safe moment (no scene, screen wipe, card, toast, panel or
 // tutorial in the way, the screen settled), is marked seen (and the profile saved) the moment it shows, and goes
-// with its screen. In a fight it stops the clock (App.tipUp; a pre-fight tip shows before TAP TO BEGIN). While it's
-// up a tap only dismisses it (input.ts): never a bar tap, a finisher, or a press of what's under it.
+// with its screen. In a fight it stops the clock (App.tipUp; a pre-fight tip shows before TAP TO BEGIN, and a TAP TO
+// BEGIN that comes before it brings it up at once instead of starting the fight: beforeBegin). While it's up a tap
+// only dismisses it (input.ts): never a bar tap, a finisher, or a press of what's under it.
 import type Phaser from 'phaser';
 import { tipById, type TipAnchor } from '../../data/tips';
 import type { TipCue, TipMoment } from '../../core/tips';
@@ -152,6 +153,27 @@ export class TipsView {
     if (cue && !this.cue) this.show(cue, m, now);
     if (this.cue) this.drawCard(g, now);
     this.texts.end();
+  }
+
+  /**
+   * TAP TO BEGIN was tapped (App.begin): a pre-fight tip still due comes up now, whether or not the screen has
+   * settled, and the fight keeps waiting (true). A player who taps at once still meets "tap yellow" before the first
+   * fight (the playtester met it three fights in: the tip only came after the fight's settle, and their tap beat it).
+   */
+  beforeBegin(now: number): boolean {
+    const app = this.s.app;
+    if (this.cue) return true;
+    if (app.run.phase !== 'fight' || !app.awaitingBegin || app.profile.tipsOff) return false;
+    const key = this.screenKey();
+    if (key !== this.screen) {
+      this.screen = key;
+      this.okSince = 0;
+    }
+    const m = this.moment(true);
+    const cue = app.tips.holdBegin(m);
+    if (!cue) return false;
+    this.show(cue, m, now);
+    return true;
   }
 
   private show(cue: TipCue, m: TipMoment, now: number): void {

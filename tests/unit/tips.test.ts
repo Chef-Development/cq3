@@ -1,13 +1,17 @@
 // "Teach it slowly": the tips (src/data/tips.ts) and the coach that picks one (src/core/tips.ts): each tip fires at
-// its moment and only once, by priority and one at a time, never while tips are off; seen tips live in the profile
-// (a returning player has the basics marked seen); the welcome back plays once, only for a returning player.
+// its moment and only once, in the teaching order (each after the tips it waits for) and one at a time, never while
+// tips are off; a tip the player has shown they know is skipped; the first fight teaches the five basics; a bar rule's
+// and a hero's tip come on first meeting only; seen tips live in the profile (a returning player has the basics marked
+// seen); the welcome back plays once, only for a returning player.
 import { describe, expect, it } from 'vitest';
 import { STORY } from '../../src/data/story';
-import { BASIC_TIPS, TIP_IDS, TIP_TEXT_W, TIPS, WELCOME_ID, type TipId } from '../../src/data/tips';
-import { DT, type CombatEvent } from '../../src/core/combat';
+import { BASIC_TIPS, FIRST_FIGHT, TIP_IDS, TIP_TEXT_W, TIPS, WELCOME_ID, tipById, type TipId } from '../../src/data/tips';
+import { DT, isRed, type Combat, type CombatEvent } from '../../src/core/combat';
 import { newProfile, readProfile, type Profile } from '../../src/core/profile';
+import { Rng } from '../../src/core/rng';
 import { Run } from '../../src/core/run';
-import { markWelcomed, TipCoach, welcomeScene, type TipMoment } from '../../src/core/tips';
+import { COACH_DEFAULTS, markWelcomed, TipCoach, welcomeScene, type TipMoment } from '../../src/core/tips';
+import { REGIONS } from '../../src/data/regions';
 import { cloneTuning, DEFAULT_SETTINGS } from '../../src/core/tuning';
 import { textWidth } from '../../src/engine/font';
 
@@ -42,8 +46,122 @@ function goTo(run: Run, type: string): void {
   run.chooseNode(target.id);
 }
 
-const spawn = (id: number, kind: 'red' | 'purple' | 'green' | 'yellow' | 'hold' | 'mirror' | 'keg' | 'frozen'): CombatEvent => ({ type: 'spawn', id, kind, ownerId: 1, special: false });
 const setTime = (run: Run, s: number) => (run.combat!.tick = Math.round(s / DT));
+/** The tips a profile has learned up to (and not including) `id` in the first fight's order. */
+const before = (id: TipId): TipId[] => FIRST_FIGHT.slice(0, FIRST_FIGHT.indexOf(id));
+
+// ---------------------------------------------------------------- a new player's first fights, as the app plays them
+
+/** The fight's iris (view/transition.ts) and its settle (view/tips.ts SETTLE.fight): before then the view never
+ *  offers a pre-fight tip on its own. */
+const IRIS_MS = 330;
+const SETTLE_FIGHT_MS = 450;
+const FRAME_MS = 1000 / 60;
+
+interface Shown {
+  id: TipId;
+  fight: number;
+  /** Fight time (s) when it went up (0 before the fight began). */
+  at: number;
+  pre: boolean;
+}
+
+/** A new player's thumb: taps a yellow, green or red once it has been on the bar a reaction time (0.3 s), aiming at its
+ *  middle, hitting 85% of the time (a miss lets the cursor pass), at most one tap every 0.15 s; never a purple; the
+ *  finisher only once taught. */
+function playStep(c: Combat, rng: Rng, st: { decided: Map<string, boolean>; busy: number }, knowsFinisher: boolean): void {
+  const t = c.time;
+  if (knowsFinisher && c.finisherReady && t >= st.busy) {
+    c.finisher();
+    st.busy = t + 0.3;
+    return;
+  }
+  const u = c.underCursor(t);
+  const b = u.red ?? u.attack;
+  if (!b || t < st.busy || t - b.bornAt < 0.3 || !(b.kind === 'yellow' || b.kind === 'green' || isRed(b.kind))) return;
+  const key = `${b.id}:${Math.floor(c.cursorPhase)}`;
+  if (!st.decided.has(key)) st.decided.set(key, rng.next() < 0.85);
+  if (st.decided.get(key) && Math.abs(c.cursorPos() - b.pos) < b.width * 0.2) {
+    st.decided.set(key, false);
+    c.tap(t);
+    st.busy = t + 0.15;
+  }
+}
+
+/**
+ * A new player's first fights through the real flow: a fresh profile (or `profile`), Act 1 via Run (the map, then a
+ * fight node each step), the coach asked every frame at the safe moments the app gives (any screen once it's up; a
+ * fight's pre-fight tip only after the iris and the settle, unless TAP TO BEGIN asks for it: `holdBegin`, as App.begin
+ * does), fed every step's events, the fight stepped with the new player's thumb. TAP TO BEGIN comes `beginMs(n)` ms
+ * after fight n's screen opens. `oldGame`: as the game was (TAP TO BEGIN never held, nothing counted toward a tip's
+ * `known`). Returns every tip shown.
+ */
+function firstFights(o: { seed: number; fights: number; beginMs: (n: number) => number; profile?: Profile; oldGame?: boolean }): Shown[] {
+  const p = o.profile ?? newProfile();
+  const run = new Run(T, { ...DEFAULT_SETTINGS }, o.seed, p);
+  const coach = new TipCoach(p);
+  const rng = new Rng(o.seed * 31 + 7);
+  const shown: Shown[] = [];
+  let fight = 0;
+  const show = (m: TipMoment, cue: ReturnType<TipCoach['next']>, at: number) => {
+    if (!cue) return;
+    coach.shown(cue, m);
+    shown.push({ id: cue.id, fight, at, pre: !!m.preFight });
+  };
+  run.newRun();
+  run.skipScenes();
+  for (let guard = 0; guard < 300; guard++) {
+    const ph = run.phase;
+    if (ph === 'map') {
+      const m = { run, safe: true };
+      show(m, coach.next(m), 0);
+      const ch = run.choices();
+      run.chooseNode(ch.find((id) => run.map.nodes[id].type === 'fight') ?? ch[0]);
+    } else if (ph === 'fight') {
+      fight++;
+      if (fight > o.fights) break;
+      const c = run.combat!;
+      if (o.oldGame) p.tipsDone = {};
+      // waiting for TAP TO BEGIN: the view offers a pre-fight tip once the screen has settled
+      for (let ms = 0; ms < o.beginMs(fight); ms += FRAME_MS) {
+        const m = { run, safe: ms >= IRIS_MS + SETTLE_FIGHT_MS, preFight: true };
+        show(m, coach.next(m), 0);
+      }
+      // the tap (and the taps that dismiss what it brought up, then begin)
+      for (let k = 0; !o.oldGame && k < 5; k++) {
+        const m = { run, safe: true, preFight: true };
+        const cue = coach.holdBegin(m);
+        if (!cue) break;
+        show(m, cue, 0);
+      }
+      const st = { decided: new Map<string, boolean>(), busy: 0 };
+      for (let i = 0; i < 300 / DT && !c.result; i++) {
+        c.step();
+        playStep(c, rng, st, coach.learned('finisher'));
+        coach.feed(c.drainEvents(), c);
+        const m = { run, safe: true };
+        show(m, coach.next(m), c.time);
+        run.sync();
+      }
+      run.sync();
+    } else if (ph === 'loot') run.collectLoot();
+    else if (ph === 'boost') run.pickBoost(0);
+    else if (ph === 'treasure') run.openTreasure();
+    else if (ph === 'rest') run.rest();
+    else if (ph === 'shop') run.leaveShop();
+    else if (ph === 'bounty') run.takeQuest();
+    else if (ph === 'event') {
+      run.chooseEvent(0);
+      run.endEvent();
+      if (run.phase === 'event') run.phase = 'map';
+    } else if (ph === 'scene') run.skipScenes();
+    else break;
+  }
+  return shown;
+}
+
+/** The playtester: TAP TO BEGIN at once (0.3 s) in the first two fights, a moment's pause (1.5 s) in the third. */
+const QUICK = (n: number) => (n < 3 ? 300 : 1500);
 
 describe('tips data', () => {
   it('has unique ids, one or two lines each, and every line fits the card at 8x', () => {
@@ -89,20 +207,38 @@ describe('the coach', () => {
     // not before the fight's TAP TO BEGIN unless it's the pre-fight tip; never twice
     expect(take({ preFight: true })).toBe('tapYellow');
     expect(take({ preFight: true })).toBeNull();
-    // a red spawned while still waiting to begin is not shown before the fight runs
-    coach.feed([spawn(41, 'red')], run.combat!);
+    // a red on the bar while still waiting to begin is not shown before the fight runs
+    const c = run.combat!;
+    const red = c.spawnBlock('red', 0.85);
     expect(take({ preFight: true })).toBeNull();
-    // the fight runs: the first red's tip comes up at once, about that block (the pre-fight tip doesn't hold it back)
+    // the fight runs: the red's tip comes up at once, about that block (the pre-fight tip doesn't hold it back)
     setTime(run, 2);
-    coach.feed([spawn(43, 'red')], run.combat!);
     const cue = coach.next({ run, safe: true });
-    expect(cue).toMatchObject({ id: 'blockRed', block: 43 });
+    expect(cue).toMatchObject({ id: 'blockRed', block: red.id });
     coach.shown(cue!, { run, safe: true });
     expect(p.tips).toContain('blockRed');
     // only once
     setTime(run, 20);
-    coach.feed([spawn(44, 'red')], run.combat!);
+    c.spawnBlock('red', 0.6);
     expect(coach.next({ run, safe: true })).toBeNull();
+  });
+
+  it("TAP TO BEGIN holds for a pre-fight tip still due (the caller shows it), and only for one", () => {
+    const { run, coach, p } = setup();
+    goTo(run, 'fight');
+    const m = { run, safe: false, preFight: true };
+    // not settled yet (the view would wait), but the tap asks: it comes up now
+    expect(coach.next(m)).toBeNull();
+    const cue = coach.holdBegin(m);
+    expect(cue?.id).toBe('tapYellow');
+    coach.shown(cue!, m);
+    expect(coach.holdBegin(m)).toBeNull(); // then the next tap begins
+    // tips off: never held
+    const off = setup();
+    off.p.tipsOff = true;
+    goTo(off.run, 'fight');
+    expect(off.coach.holdBegin({ run: off.run, safe: false, preFight: true })).toBeNull();
+    expect(p.tips).toContain('tapYellow');
   });
 
   it("Act 1's first fight teaches blocking: the red's tip comes up in it, soon after the first red", () => {
@@ -127,80 +263,132 @@ describe('the coach', () => {
       expect(redTip, `seed ${seed}: the red's tip in the first fight`).toBeGreaterThanOrEqual(0);
       if (redTip - firstRed > 0.1) late++;
     }
-    // nearly always at the very first red (a special's tip just before it can push it to the next one)
-    expect(late).toBeLessThanOrEqual(6);
+    // at the very first red: nothing comes before it any more (a special's tip waits for the basics)
+    expect(late).toBe(0);
   });
 
-  it('each fight event fires its tip: purple, green, a telegraph, a full meter, a combo break costing 2+ stacks', () => {
-    const cases: Array<[CombatEvent, TipId]> = [
-      [spawn(5, 'purple'), 'purple'],
-      [spawn(6, 'green'), 'green'],
-      [{ type: 'telegraph', enemyId: 1, special: 'x', name: 'X', sound: 'growl', sec: 0.8 }, 'special'],
-      [{ type: 'meterFull', stacks: 1 }, 'finisher'],
-      [{ type: 'comboBreak', lost: 9, lostStacks: 2 }, 'comboBreak'],
-    ];
-    for (const [ev, id] of cases) {
-      const { run, coach } = setup();
+  it("each basic's tip comes while its thing is on the bar, once the ones before it are learned: a red, a green, a purple, a full meter", () => {
+    const put: Record<string, (c: Combat) => number | undefined> = {
+      blockRed: (c) => c.spawnBlock('red', 0.85).id,
+      green: (c) => c.spawnBlock('green', 0.5).id,
+      purple: (c) => c.spawnBlock('purple', 0.3).id,
+      finisher: (c) => {
+        c.stacks = 1;
+        return undefined;
+      },
+    };
+    for (const id of FIRST_FIGHT.slice(1)) {
+      // its turn: nothing until its thing is on the bar, then it (about that block)
+      const { run, coach, p } = setup();
+      p.tips.push(...before(id));
       goTo(run, 'fight');
-      coach.feed([spawn(1, 'yellow'), ev], run.combat!);
-      const cue = coach.next({ run, safe: true });
-      expect(cue?.id, id).toBe(id);
-      if (id === 'special') expect(cue?.enemy).toBe(1);
+      setTime(run, 1);
+      const c = run.combat!;
+      expect(coach.next({ run, safe: true }), `${id}: not on the bar yet`).toBeNull();
+      const block = put[id](c);
+      expect(coach.next({ run, safe: true }), id).toEqual(block === undefined ? { id } : { id, block });
+      // before its turn (the tip before it not learned yet): it waits
+      const early = setup();
+      early.p.tips.push(...before(id).slice(0, -1));
+      goTo(early.run, 'fight');
+      setTime(early.run, 1);
+      put[id](early.run.combat!);
+      expect(early.coach.next({ run: early.run, safe: true })?.id, `${id} waits for ${before(id)[before(id).length - 1]}`).not.toBe(id);
     }
-    // a combo break that costs one stack (or none) is not worth stopping the fight for
-    const { run, coach } = setup();
+    // after the five basics: a special winding up (about its foe); a combo break that cost 2+ stacks (one stack: not
+    // worth stopping the fight for)
+    const { run, coach, p } = setup();
     goTo(run, 'fight');
-    coach.feed([{ type: 'comboBreak', lost: 12, lostStacks: 1 }], run.combat!);
+    setTime(run, 1);
+    const c = run.combat!;
+    const e = c.enemies[0];
+    c.telegraph = { enemyId: e.id, index: 0, left: 0.8, total: 0.8 };
+    expect(coach.next({ run, safe: true }), 'a special waits for the basics').toBeNull();
+    p.tips.push(...FIRST_FIGHT);
+    expect(coach.next({ run, safe: true })).toEqual({ id: 'special', enemy: e.id });
+    c.telegraph = null;
+    coach.feed([{ type: 'comboBreak', lost: 12, lostStacks: 1 }], c);
     expect(coach.next({ run, safe: true })).toBeNull();
+    coach.feed([{ type: 'comboBreak', lost: 9, lostStacks: 2 }], c);
+    expect(coach.next({ run, safe: true })?.id).toBe('comboBreak');
   });
 
   it("every bar rule's first meeting fires its tip: holds, ice and snow, mirrors, iced yellows, kegs, frozen reds, drifting and paired blocks, an icicle's mark", () => {
-    const cases: Array<[CombatEvent, TipId]> = [
-      [spawn(5, 'hold'), 'hold'],
-      [{ type: 'zoneOn', id: 1, kind: 'ice', lo: 0.4, hi: 0.6 }, 'ice'],
-      [{ type: 'zoneOn', id: 2, kind: 'snow', lo: 0.4, hi: 0.6 }, 'snow'],
-      [spawn(6, 'mirror'), 'mirror'],
-      [{ type: 'chip', id: 7, pos: 0.5, left: 2 }, 'iced'],
-      [spawn(8, 'keg'), 'keg'],
-      [spawn(9, 'frozen'), 'frozen'],
-      [{ type: 'spawn', id: 10, kind: 'yellow', ownerId: 1, special: false, drift: true }, 'drift'],
-      [{ type: 'pairOn', id: 11, partner: 12 }, 'pair'],
-      [{ type: 'mark', pos: 0.5, sec: 1 }, 'icicle'],
+    const cases: Array<[TipId, (c: Combat) => CombatEvent[] | void]> = [
+      ['hold', (c) => void c.spawnBlock('hold', 0.5)],
+      ['ice', (c) => void c.addZone('ice', 0.5, 0.2, 5)],
+      ['snow', (c) => void c.addZone('snow', 0.5, 0.2, 5)],
+      ['mirror', (c) => void c.spawnBlock('mirror', 0.5)],
+      ['iced', () => [{ type: 'chip', id: 7, pos: 0.5, left: 2 }]],
+      ['keg', (c) => void c.spawnBlock('keg', 0.5)],
+      ['frozen', (c) => void c.spawnBlock('frozen', 0.5)],
+      ['drift', (c) => void c.spawnBlock('yellow', 0.5, undefined, undefined, { drift: 0.1 })],
+      [
+        'pair',
+        (c) => {
+          const a = c.spawnBlock('yellow', 0.3);
+          const b = c.spawnBlock('yellow', 0.7);
+          a.link = b.id;
+          b.link = a.id;
+        },
+      ],
+      ['icicle', () => [{ type: 'mark', pos: 0.5, sec: 1 }]],
     ];
-    for (const [ev, id] of cases) {
+    for (const [id, put] of cases) {
       const { run, coach } = setup();
       goTo(run, 'fight');
       for (const d of TIPS) if (d.basic) run.profile.tips.push(d.id); // a veteran: the basics are seen
-      coach.feed([ev], run.combat!);
+      setTime(run, 1);
+      const c = run.combat!;
+      coach.feed([], c);
+      expect(coach.next({ run, safe: true }), `${id}: never before it comes`).toBeNull();
+      coach.feed(put(c) ?? [], c);
       expect(coach.next({ run, safe: true })?.id, id).toBe(id);
     }
   });
 
-  it('one at a time, by priority; a fight event that cannot show at once waits briefly, then for next time', () => {
-    const { run, coach } = setup();
+  it("one at a time, in teaching order; a few seconds apart and a couple per fight, but never capping the first fight's lessons or a bar rule", () => {
+    const { run, coach, p } = setup();
+    p.tips.push('tapYellow');
     goTo(run, 'fight');
-    // a telegraph and a red at once: the red goes first (blocking is the first lesson); the special waits for the
-    // gap, by then it's stale
-    const telegraph: CombatEvent = { type: 'telegraph', enemyId: 1, special: 'x', name: 'X', sound: 'growl', sec: 0.8 };
-    coach.feed([spawn(2, 'red'), telegraph], run.combat!);
-    const first = coach.next({ run, safe: true })!;
-    expect(first.id).toBe('blockRed');
-    coach.shown(first, { run, safe: true });
-    expect(coach.next({ run, safe: true })).toBeNull(); // one at a time: the gap
-    setTime(run, 4.5);
-    expect(coach.next({ run, safe: true })).toBeNull(); // the special's moment passed
-    coach.feed([telegraph], run.combat!);
-    const second = coach.next({ run, safe: true })!;
-    expect(second.id).toBe('special');
-    coach.shown(second, { run, safe: true });
-    // at most two tips stop one fight
+    setTime(run, 1);
+    const c = run.combat!;
+    const take = () => {
+      const cue = coach.next({ run, safe: true });
+      if (cue) coach.shown(cue, { run, safe: true });
+      return cue?.id ?? null;
+    };
+    // a green and a red at once: the red first (blocking comes before greens), then one at a time
+    c.spawnBlock('green', 0.4);
+    c.spawnBlock('red', 0.9);
+    expect(take()).toBe('blockRed');
+    expect(take()).toBeNull();
+    // the lessons come lessonGapSec apart, four in one fight (never capped)
+    const gap = COACH_DEFAULTS.lessonGapSec;
+    setTime(run, 1 + gap - 0.1);
+    expect(take()).toBeNull();
+    setTime(run, 1 + gap);
+    expect(take()).toBe('green');
+    setTime(run, 1 + 2 * gap);
+    c.spawnBlock('purple', 0.7);
+    expect(take()).toBe('purple');
+    setTime(run, 1 + 3 * gap);
+    c.stacks = 1;
+    expect(take()).toBe('finisher');
+    // the basics in: a special waits for the next fight (two tips per fight at most, four shown)
+    c.stacks = 0;
     setTime(run, 30);
-    coach.feed([spawn(4, 'purple')], run.combat!);
-    expect(coach.next({ run, safe: true })).toBeNull();
+    c.telegraph = { enemyId: c.enemies[0].id, index: 0, left: 0.8, total: 0.8 };
+    expect(take()).toBeNull();
+    // a bar rule's first meeting is never capped
+    c.addZone('ice', 0.5, 0.2, 5);
+    expect(take()).toBe('ice');
     // the next fight is a new one
     run.startFight();
-    coach.feed([spawn(5, 'purple')], run.combat!);
-    expect(coach.next({ run, safe: true })?.id).toBe('purple');
+    setTime(run, 1);
+    const c2 = run.combat!;
+    c2.telegraph = { enemyId: c2.enemies[0].id, index: 0, left: 0.8, total: 0.8 };
+    expect(take()).toBe('special');
   });
 
   it('nothing while it is not safe (a scene, a wipe, a card in the way), and the moment waits for a safe one', () => {
@@ -208,7 +396,9 @@ describe('the coach', () => {
     expect(coach.next({ run, safe: false })).toBeNull();
     expect(coach.next({ run, safe: true })?.id).toBe('map');
     goTo(run, 'fight');
-    coach.feed([spawn(9, 'red')], run.combat!);
+    run.profile.tips.push('tapYellow');
+    setTime(run, 1);
+    run.combat!.spawnBlock('red', 0.85);
     expect(coach.next({ run, safe: false })).toBeNull();
     expect(coach.next({ run, safe: true })?.id).toBe('blockRed');
     // the fight is over: its tips are gone
@@ -221,14 +411,17 @@ describe('the coach', () => {
     p.tipsOff = true;
     expect(take()).toBeNull();
     goTo(run, 'fight');
-    coach.feed([spawn(9, 'red')], run.combat!);
+    run.combat!.spawnBlock('red', 0.85);
+    coach.feed([], run.combat!);
     expect(take({ preFight: true })).toBeNull();
     expect(take()).toBeNull();
     p.tipsOff = false;
     p.tips = [...TIP_IDS];
+    p.tipsDone = { tapYellow: 10, finisher: 1 };
     coach.reset();
     expect(p.tipsOff).toBe(false);
     expect(p.tips).toEqual([]);
+    expect(p.tipsDone).toEqual({});
     expect(take({ preFight: true })).toBe('tapYellow');
   });
 
@@ -376,7 +569,8 @@ describe('seen tips in the profile', () => {
     run.hero.relics = ['powderKeg'];
     run.startFight();
     expect(take({ preFight: true })).toBe('relicBelt');
-    coach.feed([spawn(1, 'red')], run.combat!);
+    run.combat!.spawnBlock('red', 0.85);
+    coach.feed([], run.combat!);
     expect(take()).toBeNull();
   });
 });
@@ -468,5 +662,240 @@ describe('the map extras each teach once, the moment they matter', () => {
     expect(cue?.id).toBe('skirmish');
     coach.shown(cue!, m);
     expect(coach.next({ run, safe: true })).toBeNull();
+  });
+});
+
+describe('the teaching order', () => {
+  it("is data: the first fight's five basics in order, each after the one before; a tip only ever waits for tips taught before it", () => {
+    expect(FIRST_FIGHT).toEqual(['tapYellow', 'blockRed', 'green', 'purple', 'finisher']);
+    FIRST_FIGHT.forEach((id, i) => {
+      const d = tipById(id)!;
+      expect(d.basic, id).toBe(true);
+      expect(d.after ?? [], id).toEqual(i ? [FIRST_FIGHT[i - 1]] : []);
+      expect(d.known, `${id}: skipped once the player shows they know it`).toBeGreaterThan(0);
+    });
+    // TIPS is the teaching order: the five basics first, and a tip only waits for tips listed before it
+    expect(TIP_IDS.slice(0, FIRST_FIGHT.length)).toEqual([...FIRST_FIGHT]);
+    TIPS.forEach((d, i) => {
+      for (const a of d.after ?? []) expect(TIP_IDS.indexOf(a), `${d.id} waits for ${a}`).toBeLessThan(i);
+    });
+    // every other fight tip waits: the pre-fight ones for tap yellow, the ones that stop a fight for the five basics
+    for (const d of TIPS.filter((x) => x.fight && !FIRST_FIGHT.includes(x.id))) {
+      if (d.fight === 'pre') expect(d.after, d.id).toEqual(['tapYellow']);
+      else expect(d.after, d.id).toEqual(['finisher']);
+    }
+    // a lesson only for the first fight's basics; every bar rule (and a hero's block) is a first meeting
+    for (const d of TIPS.filter((x) => x.lesson)) expect(FIRST_FIGHT, d.id).toContain(d.id);
+    for (const id of ['hold', 'ice', 'snow', 'mirror', 'iced', 'keg', 'frozen', 'drift', 'pair', 'icicle'] as TipId[]) expect(tipById(id)!.rule, id).toBe(true);
+  });
+
+  it("Act 1's first row never brings a purple (so the purple's lesson places one), but it brings reds and greens", () => {
+    const act = REGIONS[0].acts[0];
+    const pats = act.fights.early.flat().map((k) => T.enemies[k].pattern);
+    expect(pats.some((x) => x.includes('P'))).toBe(false);
+    expect(pats.every((x) => x.includes('R') && x.includes('G'))).toBe(true);
+  });
+});
+
+describe("a new player's first fights (the playtester: \"'yellow blocks are attacks' came 3 fights in\")", () => {
+  it('the cause: "tap yellow" waited for the fight screen to settle, and a quick TAP TO BEGIN beat it, fight after fight', () => {
+    // the game as it was: TAP TO BEGIN began at once; tapped inside the iris and the settle (~0.8 s), the pre-fight tip
+    // was never offered, and it stayed due until the first fight the player lingered on
+    for (let seed = 1; seed <= 5; seed++) {
+      const shown = firstFights({ seed, fights: 3, beginMs: QUICK, oldGame: true });
+      expect(shown.find((x) => x.id === 'tapYellow'), `seed ${seed}`).toMatchObject({ fight: 3, pre: true });
+    }
+  });
+
+  it('now TAP TO BEGIN brings it up first: "tap yellow" before the first fight begins, however quick the tap, once', () => {
+    for (let seed = 1; seed <= 5; seed++) {
+      const shown = firstFights({ seed, fights: 3, beginMs: QUICK });
+      expect(shown.filter((x) => x.id === 'tapYellow'), `seed ${seed}`).toEqual([{ id: 'tapYellow', fight: 1, at: 0, pre: true }]);
+    }
+    // (a player who waits gets it from the view, as before)
+    expect(firstFights({ seed: 1, fights: 1, beginMs: () => 1500 }).find((x) => x.id === 'tapYellow')).toMatchObject({ fight: 1, pre: true });
+  });
+
+  it('all five basics come in the first fight, in the teaching order, each after the tips it waits for; the others wait for fight 2', () => {
+    for (let seed = 1; seed <= 30; seed++) {
+      const shown = firstFights({ seed, fights: 2, beginMs: QUICK });
+      const ids = shown.map((x) => x.id);
+      const basics = shown.filter((x) => FIRST_FIGHT.includes(x.id));
+      expect(
+        basics.map((x) => `${x.id}@${x.fight}`),
+        `seed ${seed}`,
+      ).toEqual(FIRST_FIGHT.map((id) => `${id}@1`));
+      shown.forEach((x, i) => {
+        for (const a of tipById(x.id)!.after ?? []) {
+          const j = ids.indexOf(a);
+          expect(j >= 0 && j < i, `seed ${seed}: ${x.id} came after ${a}`).toBe(true);
+        }
+      });
+      // nothing else stops the first fight (a special, a combo break: the next fight)
+      expect(shown.filter((x) => x.fight === 1 && tipById(x.id)!.fight === 'pause' && !FIRST_FIGHT.includes(x.id)), `seed ${seed}`).toEqual([]);
+    }
+  });
+});
+
+describe('a tip the player already knows is skipped', () => {
+  it('a profile that has hit 10 yellows never sees "tap yellow": the red is the first lesson', () => {
+    for (const seed of [2, 7]) {
+      const p = newProfile();
+      p.tipsDone.tapYellow = 10;
+      const shown = firstFights({ profile: p, seed, fights: 2, beginMs: QUICK });
+      expect(shown.map((x) => x.id)).not.toContain('tapYellow');
+      expect(shown.filter((x) => x.fight === 1 && FIRST_FIGHT.includes(x.id)).map((x) => x.id)).toEqual(FIRST_FIGHT.slice(1));
+    }
+    // and nine yellows don't make it known
+    const { run, coach, p } = setup();
+    p.tipsDone.tapYellow = 9;
+    goTo(run, 'fight');
+    expect(coach.holdBegin({ run, safe: false, preFight: true })?.id).toBe('tapYellow');
+  });
+
+  it("counted from the fight's events (10 yellows hit, 3 reds blocked, 3 greens hit, 3 purples let pass, a finisher), even with tips off; kept in the profile; \"Show tips again\" forgets them", () => {
+    const { run, coach, p } = setup();
+    goTo(run, 'fight');
+    const c = run.combat!;
+    const hit = (kind: 'yellow' | 'green', echo = false): CombatEvent => ({ type: 'hit', kind, pos: 0.5, perfect: false, crit: false, damage: 1, enemyId: 1, combo: 1, echo });
+    const block: CombatEvent = { type: 'block', kind: 'red', pos: 0.5, perfect: false, cracked: false, ownerId: 1, combo: 1, knock: 0, echo: false };
+    const passed: CombatEvent = { type: 'remove', id: 9, kind: 'purple', pos: 0.5, width: 0.05, ownerId: 1, reason: 'expire' };
+    const tapped: CombatEvent = { type: 'remove', id: 9, kind: 'purple', pos: 0.5, width: 0.05, ownerId: 1, reason: 'hit' };
+    p.tipsOff = true;
+    coach.feed(Array.from({ length: 9 }, () => hit('yellow')), c);
+    coach.feed([hit('yellow', true)], c); // an echo is no tap of yours
+    expect(coach.known('tapYellow')).toBe(false);
+    coach.feed([hit('yellow'), hit('yellow')], c);
+    expect(coach.known('tapYellow')).toBe(true);
+    expect(p.tipsDone.tapYellow).toBe(10); // (counted up to its number, no further)
+    coach.feed([block, block, hit('green'), hit('green'), hit('green'), passed, passed, tapped], c);
+    expect(FIRST_FIGHT.map((id) => coach.known(id))).toEqual([true, false, true, false, false]);
+    coach.feed([block, passed, { type: 'finisher', damage: 50, combo: 8, stacks: 1, targets: [1] }], c);
+    expect(FIRST_FIGHT.every((id) => coach.known(id))).toBe(true);
+    // everything known: tips back on, nothing of the five comes
+    p.tipsOff = false;
+    expect(coach.holdBegin({ run, safe: true, preFight: true })).toBeNull();
+    setTime(run, 3);
+    c.spawnBlock('red', 0.85);
+    c.spawnBlock('purple', 0.3);
+    expect(coach.next({ run, safe: true })).toBeNull();
+    // kept in the profile; unknown ids and junk dropped; missing reads as none
+    expect(readProfile(viaJson(p)).tipsDone).toEqual({ tapYellow: 10, blockRed: 3, green: 3, purple: 3, finisher: 1 });
+    const data = viaJson(p) as unknown as Record<string, unknown>;
+    data.tipsDone = { tapYellow: 4, laser: 3, green: 'x', purple: -2 };
+    expect(readProfile(data).tipsDone).toEqual({ tapYellow: 4 });
+    delete data.tipsDone;
+    expect(readProfile(data).tipsDone).toEqual({});
+    // "Show tips again": every tip shows once more
+    coach.reset();
+    expect(p.tipsDone).toEqual({});
+    expect(coach.known('tapYellow')).toBe(false);
+  });
+});
+
+describe("a bar rule's tip: on first meeting only", () => {
+  it('never before the rule shows up, the moment it does (past the per-fight cap), never twice', () => {
+    const p = newProfile();
+    p.tips = TIP_IDS.filter((id) => !['special', 'comboBreak', 'hold', 'ice'].includes(id));
+    const { run, coach } = setup(p);
+    goTo(run, 'fight');
+    const c = run.combat!;
+    const take = () => {
+      const cue = coach.next({ run, safe: true });
+      if (cue) coach.shown(cue, { run, safe: true });
+      return cue?.id ?? null;
+    };
+    // two tips stop this fight: its cap
+    setTime(run, 1);
+    c.telegraph = { enemyId: c.enemies[0].id, index: 0, left: 0.8, total: 0.8 };
+    expect(take()).toBe('special');
+    c.telegraph = null;
+    setTime(run, 6);
+    coach.feed([{ type: 'comboBreak', lost: 9, lostStacks: 3 }], c);
+    expect(take()).toBe('comboBreak');
+    // no hold, no ice yet: nothing
+    setTime(run, 11);
+    expect(take()).toBeNull();
+    // a hold comes: its tip, though the fight has had its two
+    c.spawnBlock('hold', 0.5);
+    expect(take()).toBe('hold');
+    // ice comes (a gap later): its tip
+    setTime(run, 16);
+    c.addZone('ice', 0.3, 0.2, 5);
+    expect(take()).toBe('ice');
+    // never twice, in this fight or the next
+    setTime(run, 30);
+    c.spawnBlock('hold', 0.8);
+    expect(take()).toBeNull();
+    run.startFight();
+    setTime(run, 5);
+    run.combat!.spawnBlock('hold', 0.5);
+    run.combat!.addZone('ice', 0.3, 0.2, 5);
+    expect(take()).toBeNull();
+  });
+});
+
+describe("the first fight's lessons: what the fight doesn't bring is placed in time", () => {
+  /** Step the fight (no taps) until a tip is due; the tip and the fight time. */
+  const stepToTip = (run: Run, coach: TipCoach, sec = 10) => {
+    const c = run.combat!;
+    for (let i = 0; i < sec / DT && !c.result; i++) {
+      c.step();
+      coach.feed(c.drainEvents(), c);
+      const cue = coach.next({ run, safe: true });
+      if (cue) return { cue, t: c.time };
+    }
+    return { cue: null, t: c.time };
+  };
+
+  it("a purple: Act 1's first foes never bring one, so its lesson places one lessonSec into its turn, and the tip points at it", () => {
+    const { run, coach, p } = setup();
+    p.tips.push(...before('purple'));
+    goTo(run, 'fight');
+    const { cue, t } = stepToTip(run, coach);
+    expect(cue?.id).toBe('purple');
+    expect(run.combat!.blocks.find((b) => b.id === cue!.block)?.kind).toBe('purple');
+    expect(t).toBeLessThan(COACH_DEFAULTS.lessonSec + 0.5);
+  });
+
+  it('a green and a red when none has come; for the finisher, a stack', () => {
+    for (const id of ['blockRed', 'green', 'finisher'] as TipId[]) {
+      const { run, coach, p } = setup();
+      p.tips.push(...before(id));
+      goTo(run, 'fight');
+      const c = run.combat!;
+      // (none of its own on the bar at the start)
+      c.blocks = c.blocks.filter((b) => b.kind === 'yellow');
+      const { cue, t } = stepToTip(run, coach);
+      expect(cue?.id, id).toBe(id);
+      expect(t, id).toBeLessThan(COACH_DEFAULTS.lessonSec + 2);
+      if (id === 'finisher') expect(c.stacks).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('never with tips off, once learned, or in a Coin Rush', () => {
+    const purples = (run: Run, coach: TipCoach) => {
+      const c = run.combat!;
+      for (let i = 0; i < 6 / DT && !c.result; i++) {
+        c.step();
+        coach.feed(c.drainEvents(), c);
+        if (c.blocks.some((b) => b.kind === 'purple') || c.queue.some((q) => q.entry.kind === 'purple')) return true;
+      }
+      return false;
+    };
+    const off = setup();
+    off.p.tips.push(...before('purple'));
+    off.p.tipsOff = true;
+    goTo(off.run, 'fight');
+    expect(purples(off.run, off.coach)).toBe(false);
+    const learned = setup();
+    learned.p.tips.push(...FIRST_FIGHT);
+    goTo(learned.run, 'fight');
+    expect(purples(learned.run, learned.coach)).toBe(false);
+    const rush = setup();
+    rush.p.tips.push(...before('purple'));
+    goTo(rush.run, 'rush');
+    expect(rush.run.combat!.rush).toBeGreaterThan(0);
+    expect(purples(rush.run, rush.coach)).toBe(false);
   });
 });

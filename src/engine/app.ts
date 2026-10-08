@@ -18,6 +18,8 @@ export interface View {
   onEvents(events: CombatEvent[]): number;
   onPhase(prev: Phase, next: Phase): void;
   onLayout(): void;
+  /** The tip card (view/tips.ts): TAP TO BEGIN asks it first (a pre-fight tip still due comes up instead). */
+  readonly tips: { beforeBegin(now: number): boolean };
 }
 
 const MAX_CATCHUP_S = 0.25;
@@ -389,6 +391,9 @@ export class App {
   }
 
   begin(): void {
+    // a pre-fight tip still to show (tap yellow, a hero's how-to) comes first: a TAP TO BEGIN before it came up brings
+    // it up instead, and the fight keeps waiting (the playtester tapped at once and met "tap yellow" three fights in)
+    if (this.view?.tips.beforeBegin(performance.now())) return;
     this.awaitingBegin = false;
     this.syncClock(performance.now());
   }
@@ -579,8 +584,9 @@ export class App {
     if (!c) return;
     const events = c.drainEvents();
     const now = performance.now();
+    // every flush, events or not: the coach counts what the player did and places a first-fight lesson's block on time
+    this.tips.feed(events, c);
     if (events.length) {
-      this.tips.feed(events, c);
       this.sounds(events);
       const hold = this.view?.onEvents(events) ?? 0;
       if (hold > 0) this.syncHoldUntil = Math.max(this.syncHoldUntil, now + hold);

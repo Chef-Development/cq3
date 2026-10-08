@@ -12,7 +12,7 @@ import type { CompanionId } from './companions';
 import type { HeroId } from './heroes';
 import type { CampUpgradeId } from './meta';
 import type { Tier } from './rarity';
-import type { TipId } from './tips';
+import { FIRST_FIGHT, type TipId } from './tips';
 import type { BarRules } from './types';
 
 export type LabGroupId = 'heroes' | 'companions' | 'fights' | 'chests' | 'camp' | 'bar' | 'spoiler';
@@ -136,7 +136,19 @@ const barRule = (id: string, label: string, tryLine: string, bar: BarRules, tips
 /** This session's new content (playtest round 7: numbers, tips, map sprites and the completion tracker that stay
  *  fixed; the anti-spam balance; a unique finisher per hero; the sharper chest reveal; the companions screen).
  *  Reworked items carry a new rev: a rating given to their earlier version shows as "Reworked" with the old rating. */
-export const LAB_NEW: LabScenario[] = [];
+export const LAB_NEW: LabScenario[] = [
+  // ---- tips and completion
+  // Act 1's first fight with the fight's tips fresh (tips on, every other tip seen): the five basics in order
+  {
+    id: 'tipsFirstFight',
+    group: 'fights',
+    label: 'Tips: first fight',
+    secs: 60,
+    try: 'Tap to begin at once. Do the tips come in order?',
+    setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['slime'], ['crow'], ['boar']], row: 0 },
+    profile: { tips: [...FIRST_FIGHT, 'special', 'comboBreak'] },
+  },
+];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,
  *  the first region's Act 1 fight and the later regions (spoilers). */

@@ -2,7 +2,8 @@
 // Great Pendulum's weights home, and the gear chase: the bag, what Rowan wears, coins and scrap (both carry over
 // between runs), each signature drop's bad-luck counter, and the accuracy log. M4a adds the heroes (who is picked,
 // each one's XP and skills; Sable is unlocked by a scene after Act 1) and the relics unlocked so far. The tips seen
-// so far ("teach it slowly", core/tips.ts) and whether tips are off are kept too, and the map sparkles picked up
+// so far ("teach it slowly", core/tips.ts), whether tips are off and what the player has done of what each teaches
+// (tipsDone: a tip they've shown they know is skipped) are kept too, and the map sparkles picked up
 // (core/sparkle.ts) and whether the world map's first-visit reveal has played (still v3: missing reads as none).
 //
 // v1 was "progress" (acts cleared and weights only), v2 the gear; readProfile migrates both.
@@ -13,7 +14,7 @@ import { COMPANION_IDS, isCompanionId, type CompanionId } from '../data/companio
 import { ACHIEVEMENTS, CAMP_UPGRADE_IDS, type AchievementId, type CampUpgradeId } from '../data/meta';
 import { SLOT_KEYS, slotOf, type GearRarity, type SlotKey, type StatId } from '../data/gear';
 import { RELICS, isRelicId, relicById, type RelicId } from '../data/relics';
-import { BASIC_TIPS, isSeenId, WELCOME_ID, type SeenId } from '../data/tips';
+import { BASIC_TIPS, isSeenId, isTipId, WELCOME_ID, type SeenId, type TipId } from '../data/tips';
 import { newAccuracyLog, readAccuracyLog, type AccuracyLog } from './accuracy';
 import { readSparkles } from './sparkle';
 import { HERO_IDS, actXp, isHeroId, levelFromXp, newHeroProgress, validSkills, type HeroBuild, type HeroId, type HeroProgress } from './heroes';
@@ -59,6 +60,10 @@ export interface Profile {
   sableMet: boolean; // Sable's scene played (after Act 1): Sable is unlocked
   tips: SeenId[]; // tips already shown (each shows once), and the welcome back once it has played
   tipsOff: boolean; // the gear panel's "Tips: off"
+  /** How many times the player has done what a tip teaches (yellows hit, reds blocked, greens hit, purples let pass,
+   *  finishers fired; core/tips.ts counts them from the fight's events, up to the tip's `known`): a tip whose count has
+   *  reached its `known` is skipped. Still v4: missing reads as none yet. */
+  tipsDone: Partial<Record<TipId, number>>;
   sparkles: number[]; // the map sparkles picked up (core/sparkle.ts: their keys, newest last): never paid twice
   worldTour: boolean; // the world map's first-visit reveal (a glide over the whole world) has played
   /** The world map's wandering foe (core/skirmish.ts): fights won since the last skirmish, skirmishes so far, and
@@ -139,6 +144,7 @@ export function newProfile(): Profile {
     sableMet: false,
     tips: [WELCOME_ID], // a new player has nothing to be welcomed back to
     tipsOff: false,
+    tipsDone: {},
     sparkles: [],
     worldTour: false,
     wander: { fights: 0, n: 0, up: false },
@@ -282,6 +288,13 @@ function readTips(p: Profile, d: Record<string, unknown>): void {
     if (!hasProgress(p)) p.tips.push(WELCOME_ID); // nothing to come back to: no welcome back
   }
   p.tipsOff = d.tipsOff === true;
+  // what the player has done of what each tip teaches (still v4: missing reads as none; known tips, small counts)
+  const done = (d.tipsDone ?? {}) as Record<string, unknown>;
+  if (done && typeof done === 'object')
+    for (const k of Object.keys(done)) {
+      const n = int(done[k], 0, 999);
+      if (isTipId(k) && n > 0) p.tipsDone[k] = n;
+    }
 }
 
 /** Whether the player has played before: an act cleared, any hero XP, or any gear found. */
