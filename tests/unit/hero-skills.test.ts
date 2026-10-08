@@ -1166,7 +1166,8 @@ describe('every tree on a bar with ice patches and holds (one cursor)', () => {
           const u = c.underCursor(c.time);
           if (u.red || u.attack || rand() < 0.3) c.tap(c.time);
         }
-        if (c.stacks >= 2 && rand() < 0.01) c.finisher();
+        // (one stack is enough: round 7's escalating stack costs made a second one rare in 25 s of random taps)
+        if (c.stacks >= 1 && rand() < 0.01) c.finisher();
         for (const e of c.drainEvents()) if (e.type === 'perk') seen.add(e.id);
         expect(Number.isFinite(c.hero.hp), hero).toBe(true);
         for (const e of c.enemies) expect(Number.isFinite(e.hp), `${hero} ${e.key}`).toBe(true);
