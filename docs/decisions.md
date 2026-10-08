@@ -483,3 +483,66 @@ C11. **The grove got richer instead of a stage per kind** (a moon behind the com
     clearing floor, the lamp light in the companion's colour). The token strip shrinks 17 -> 15 -> 13 px to fit 12.
 C12. **`SwipePager` is a shared part** (`ui-modern.ts`); the hero select keeps its own paging for now. Lab
     scenarios can set companions' levels and stars (`petLevels`, `petStars`).
+
+### Part 1: fixes that stay fixed (each with a test that would have caught it)
+T1. **Why "tap yellow" came three fights in:** it is a pre-fight tip, but the view only offered it once the fight
+    screen had settled (~0.8 s) while TAP TO BEGIN started the fight at once, so a quick tap skipped it and it stayed
+    due until the first fight the player paused on. Also, the old order was "whatever happens first" under a cap of
+    two tips a fight, so a special or the finisher often beat red and green, and Act 1's first row has no purple.
+T2. **TAP TO BEGIN asks the coach first** (`TipCoach.holdBegin`): a due pre-fight tip (tap yellow, a hero's how-to,
+    the relic belt) comes up and the fight waits for it.
+T3. **The teaching order is data:** `TIPS` order is the teaching order and each tip lists what it waits for
+    (`after`). The first fight teaches `FIRST_FIGHT`: tap yellow, block red, green, purple, finisher (red before green
+    keeps round 4's "the first fight teaches blocking"); specials and combo breaks wait for the finisher, bar rules
+    too, pre-fight tips for tap yellow.
+T4. **The five basics are never capped** and come 2.5 s of fight time apart (`lessonGapSec`); other fight tips keep
+    the 4 s gap and two a fight, so they move to fight 2. A simulated 85% new player gets all five in fight 1, in
+    order, on 30 of 30 seeds (~1, 4, 6, 9 s into a ~15 s fight).
+T5. **A lesson brings its block when fight 1 doesn't:** when a basic's turn comes and nothing of its kind has been on
+    the bar for 1.5 s, the coach places one through combat's public `enqueue` (a red, green or purple) or fills a
+    finisher stack for the finisher's tip. Only while tips are on and the tip isn't learned, never in a Coin Rush;
+    Act 1's data and the core are untouched, and the balance bot never runs the coach.
+T6. **Fight tips are due while their thing is on the bar** (not only the moment it spawns), so a tip waiting its turn
+    still comes at the first meeting; bar-rule and hero tips (`rule`) are uncapped, first meeting only, never twice.
+T7. **"Known" skips a tip:** 10 yellows hit, 3 reds blocked, 3 greens, 3 purples let pass, 1 finisher; counted into
+    `profile.tipsDone` (optional: missing reads as none; counted with tips off too; "Show tips again" clears it).
+P1. **Why the tracker showed 11 marks beside "13/15":** the three acts were counted but drawn as small flags on the
+    act sites (not seals) and the two items left as faint dotted rings, so only 11 wax seals showed; the marks were
+    also laid out apart from the counts (bounties counted by log length but lit by act), so they could disagree.
+P2. **One source for every count:** `regionCompletion` lists every counted item and the parts, totals and % are
+    counted from that list; the card stamps one mark per item (a row of four under each act site: the act's flag
+    seal, its mini-boss or boss, bounty, treasure; plus three event seals). An empty socket shows its emblem ghosted.
+P3. **The map pans:** 250x150 behind the 190x110 window, opening on the old view (all 15 seals in it); a press that
+    moves more than 4 game px drags (clamped), one let go in place names the seal; gold chevrons show more map.
+P4. **"Unlock all heroes and companions" leaves completion alone** (it counts what was played); the lab's
+    "Completion: all" item checks every region at 15/15 with everything unlocked.
+M1. **Every foe has its own act-map sprite:** the second and third regions' 29 foes (21 with a second frame; region
+    bosses 18-20 px, mini-bosses 16-18), drawn from their fight art and compared side by side. All map sprites live in
+    a pure file (`art-minis.ts`) so a unit test can check every foe that can stand on a map; the Coin Rush sack and
+    the Training Dummy are exempt (and checked never to be on a map). They paint at boot (76 frames, ~9 ms).
+M2. **One lookup, `miniKey`,** for the act map, its packs and the world map's wandering foe: a missing sprite is
+    recorded (`window.__cq3.miniMisses`) and a Playwright test fails on it. The skirmish card spaces foes by their
+    widths (the later regions' wide elites overlapped).
+M3. **Test lab setup `map`** (an act's map to look at; scenes skipped): "Act 4 map" to "Act 9 map" (spoilers).
+
+### Part 4: the sharper chest reveal (a test)
+S1. **A separate canvas only for the reveal** (`#hd-layer`, a DOM 2D canvas laid exactly over the game canvas, sized
+    from the layout every frame it draws, hidden otherwise, no input). Rendering the whole game finer was far too big.
+S2. **k = 2** (654x300 fine px; 4 device px each on the phone): about the internal size of modern HD pixel-art games,
+    so it still reads as pixel art; k = 4 looked like smooth art.
+S3. **Hard pixels only:** filled rectangles and pre-painted canvases, never paths (canvas paths anti-alias), smoothing
+    off, nearest-neighbour rotation, stepped light; particles from the time and a seed. The three chests, ribbon,
+    tags, tier gems, stars, rays and bursts are drawn on the fine grid; hero and companion sprites keep the game grid
+    (as asked: fighters stay on it), only their rim light is finer. Lettering: the game fonts doubled with Scale2x.
+S4. **One opening, two drawings:** `ChestOpening` keeps the timeline, taps, sounds and grants; its `view` ('old',
+    'hd', 'split') only picks the drawing. The setting is `cq3.chestReveal` (old unless 'hd'), not in the gear panel.
+S5. **Side by side shows each reveal at full size in its own half** (shrinking would throw away the pixels being
+    compared); one chest drawn twice, so they stay in sync. The lab item "Sharper chest reveal": Old / New / Both,
+    Replay.
+S6. **Rollout plan, if the playtester likes it:** (1) flip the default (`readChestReveal` returns 'hd' unless 'old'
+    is stored) and keep the lab's Old/New/Both one more round; (2) paint the three fine chests in idle slices after
+    boot like the world map (today each paints on the first tap: a small hitch); (3) next on the same layer: the loot
+    screen's Legendary/Mythic cards and the act-clear chest (the ribbon, tags, lettering, rays and bursts are
+    reusable); (4) later perhaps the menus' big focal names; the world, fighters, maps and HUD stay on the game grid;
+    (5) each step: device-scale screenshots, a 60 fps check on the phone, the old path behind the setting until
+    signed off; (6) after a round as default, delete the old reveal's drawing code and textures.
