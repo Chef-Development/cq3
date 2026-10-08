@@ -48,8 +48,8 @@ describe('Fizz and Brann as data', () => {
         expect(kitText(t, id, w), `${id} ${w}`).not.toContain('{n}');
         expect(HEROES[id][w].short).not.toMatch(/\d/);
       }
-    expect(kitText(t, 'fizz', 'passive')).toContain('50%');
-    expect(kitText(t, 'brann', 'signature')).toContain('25%');
+    expect(kitText(t, 'fizz', 'passive')).toContain(`${Math.round(t.kits.fizz.fumeMask * 100)}%`);
+    expect(kitText(t, 'brann', 'signature')).toContain(`${Math.round(t.kits.brann.tollPer * 100)}%`);
   });
 });
 

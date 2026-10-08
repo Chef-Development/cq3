@@ -94,8 +94,9 @@ describe('Fizz', () => {
       tapNew(c, 'green', false);
       return perks(c.drainEvents(), 'toss')[0].amount;
     };
-    const base = toss(off.c);
-    expect(toss(on.c)).toBe(Math.round((base * (100 + skillN(on.t, 'longArm'))) / 100));
+    const raw = off.c.stats().atk * off.t.kits.fizz.tossMult;
+    expect(toss(off.c)).toBe(Math.round(raw));
+    expect(toss(on.c)).toBe(Math.round((raw * (100 + skillN(on.t, 'longArm'))) / 100));
   });
 
   it('Splash: a toss also splashes every other foe for n% of its blow', () => {
