@@ -1358,7 +1358,7 @@ const MOTES: Array<[number, number]> = [
 
 /** Where a companion's face is in its frame (x, y), for its round token in the companions screen's strip (others: the
  *  top of what it shows, centred). Round 7's four look sideways, so their faces sit off to the right. */
-export const COMPANION_FACE: Partial<Record<string, readonly [number, number]>> = { burr: [23, 15], lark: [22, 9], gloam: [24, 9.5], nimbus: [24, 10] };
+export const COMPANION_FACE: Partial<Record<string, readonly [number, number]>> = { flurry: [25, 10], burr: [23, 15], lark: [22, 9], gloam: [24, 9.5], nimbus: [24, 10] };
 
 /** Hovering companions sit this many px above the plinth on their card. */
 const HOVER: Partial<Record<CompanionArtId, number>> = { mote: 6, sunny: 2, lark: 4, nimbus: 2 };
