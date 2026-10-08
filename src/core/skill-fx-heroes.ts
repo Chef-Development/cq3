@@ -917,10 +917,10 @@ const SOLENNE: Record<string, FightHooks> = {
       return amount - cut;
     },
   },
-  // Rekindle (capstone): a combo break lights Sunrise for n s
+  // Rekindle (capstone): losing rekindleAt+ combo lights Sunrise for n s (a combo built first: tapping wild earns none)
   rekindle: {
     comboBreak: (c, x) => {
-      if (x.combo <= 0 || c.result) return;
+      if (x.combo < Math.max(1, c.tuning.kits.solenne.rekindleAt) || c.result) return;
       ignite(c, Math.max(0, N(c, 'rekindle')));
       c.perkFx('rekindle', N(c, 'rekindle'));
     },

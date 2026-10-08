@@ -19,6 +19,7 @@ import { labFight } from '../../src/core/lab';
 import { MASTERY } from '../../src/data/meta';
 import { relicById } from '../../src/data/relics';
 import { STORY } from '../../src/data/story';
+import { HERO_TREES } from '../../src/data/skills-heroes';
 import { setup } from './helpers';
 
 // ---------------------------------------------------------------- helpers (as tests/unit/hero-skills.test.ts)
@@ -518,6 +519,18 @@ describe("Solenne's tree", () => {
     expect(on.c.perk.sunrise).toBeCloseTo(skillN(on.t, 'rekindle'), 5);
     expect(off.c.perk.sunrise ?? 0).toBe(0);
     expect(perks(on.c.drainEvents(), 'rekindle')).toHaveLength(1);
+  });
+
+  it('Rekindle: a short combo lost lights nothing (tapping wild earns no Sunrise)', () => {
+    const { on } = both('solenne', ['rekindle'], { tune: (t) => (t.kits.solenne.hp = 400) });
+    const at = on.t.kits.solenne.rekindleAt;
+    const node = HERO_TREES.solenne.flatMap((b) => b.nodes).find((n) => n.id === 'rekindle');
+    expect(node?.text).toContain(`${at}+`);
+    expect(node?.after).toContain(`${at}+`);
+    on.c.combo = at - 1;
+    missNow(on.c);
+    expect(on.c.perk.sunrise ?? 0).toBe(0);
+    expect(perks(on.c.drainEvents(), 'rekindle')).toHaveLength(0);
   });
 });
 

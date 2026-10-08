@@ -327,7 +327,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
         def('enamel', 'Enamel', 6),
         rule('firmOath', 'Firm Oath', 'Dawn Oath holds from {n} combo.', 'Dawn Oath holds from 30 combo.', 'It holds from {n} combo.', 20),
         rule('sunWard', 'Sun Ward', 'While Sunrise burns, reds deal {n}% less.', 'Sunrise only attacks.', 'Reds deal {n}% less in it.', 30),
-        cap('rekindle', 'Rekindle', 'A combo break lights Sunrise for {n} s.', 'A break puts the fire out.', 'A break lights it for {n} s.', 3),
+        cap('rekindle', 'Rekindle', 'Losing 5+ combo lights Sunrise for {n} s.', 'A break puts the fire out.', 'Losing 5+ lights it for {n} s.', 3),
       ],
     },
   ],
