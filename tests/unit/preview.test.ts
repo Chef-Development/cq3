@@ -18,7 +18,7 @@ describe('boost preview (what a card shows)', () => {
     expect(boostPreview(t, h, { id: 'crit', rarity: 'common' })).toEqual({ stat: 'Crit', before: '5%', after: '10%' });
     expect(boostPreview(t, h, { id: 'crit', rarity: 'epic' }).after).toBe('20%');
     expect(boostPreview(t, h, { id: 'maxHp', rarity: 'rare' })).toEqual({ stat: 'Max HP', before: `${base.hp}`, after: `${base.hp + t.boosts.maxHp * 2}` });
-    expect(boostPreview(t, h, { id: 'critDmg', rarity: 'common' })).toEqual({ stat: 'Crit dmg', before: 'x2.0', after: 'x2.5' });
+    expect(boostPreview(t, h, { id: 'critDmg', rarity: 'common' })).toEqual({ stat: 'Crit dmg', before: 'x2', after: 'x2.5' }); // (a trailing .0 dropped)
     expect(boostPreview(t, h, { id: 'comboPower', rarity: 'common' })).toEqual({ stat: 'Combo', before: '5', after: '5.5' });
     expect(boostPreview(t, h, { id: 'pet', rarity: 'common' })).toEqual({ stat: 'Companion', before: '6', after: '10' });
   });
@@ -30,6 +30,16 @@ describe('boost preview (what a card shows)', () => {
     expect(boostPreview(t, h, { id: 'heal', rarity: 'common' })).toEqual({ stat: 'HP', before: '60', after: '100' });
     const epic = boostPreview(t, h, { id: 'heal', rarity: 'epic' });
     expect(Number(epic.after)).toBeGreaterThan(100);
+    // HP is fractional inside (kill gains of 0.6, heals in shares): the card printed it raw ("61.80000000000001")
+    h.hp = 61.80000000000001;
+    expect(boostPreview(t, h, { id: 'heal', rarity: 'common' })).toEqual({ stat: 'HP', before: '62', after: '100' });
+    h.bonusMaxHp = 37.35;
+    h.bonusCritDmg = 0.15 * 1.3;
+    for (const id of BOOST_IDS)
+      for (const rarity of RARITIES) {
+        const pv = boostPreview(t, h, { id, rarity });
+        for (const s of [pv.before, pv.after]) expect(s, `${id} ${rarity}`).not.toMatch(/\d\.\d{2}/);
+      }
   });
 
   it('counts the gear the hero wears', () => {
