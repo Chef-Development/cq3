@@ -99,7 +99,7 @@ export const CALLOUT_WORDS: Record<string, string> = {
   secondSwing: '+Stack',
   'ability:torva': 'Wind-Up',
   // part6:A
-  // Solenne ("Gleam" on the green, "+3" on a gilded hit: the combo it added)
+  // Solenne ("Gleam" on the green, "+1" on a gilded hit: the combo it added)
   sunrise: 'Sunrise',
   radiance: 'Slow!',
   sunCut: 'Cut!',

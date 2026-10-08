@@ -89,7 +89,7 @@ describe('Solenne and Wren as data', () => {
     expect(HEROES.wren.gift).toBeUndefined();
     const t = cloneTuning();
     expect(kitText(t, 'solenne', 'signature')).toContain(String(t.kits.solenne.sunEvery));
-    expect(kitText(t, 'solenne', 'gift')).toContain('30%');
+    expect(kitText(t, 'solenne', 'gift')).toContain(`${Math.round((1 - t.kits.solenne.radiance) * 100)}%`);
     expect(kitText(t, 'wren', 'ability')).toContain(`${Math.round(t.kits.wren.smokeCut * 100)}%`);
     expect(kitText(t, 'wren', 'gift')).toBe('');
     // the hero select's short lines carry no numbers

@@ -449,7 +449,7 @@ eight style kits) and `view/finisher-signatures.ts` (each hero's moment, and eac
 | Solenne | `sunrise` (it lights) | a burst of light off the cursor, a ring of dawn and a glow round her; "Sunrise" |
 | Solenne | `radiance` | every red on the bar flashes ("Slow!") |
 | Solenne | `sunCut` | a bolt from the foe the tap hit on to each other foe ("Cut!" at most every 1.5 s) |
-| Solenne | `gleam`, `gilded` | a box on the yellow it gilded; a gilded hit: a box on it, the combo counter swells, sparks off the meter, "+3" |
+| Solenne | `gleam`, `gilded` | a box on the yellow it gilded; a gilded hit: a box on it, the combo counter swells, sparks off the meter, "+1" (the combo it added) |
 | Solenne | `dawnOath` | the combo counter swells, a ring on her ("Oath!") |
 | Wren | Slip ready (`c.perk.slip`) | a mustard slab standing at the bar's left end (`BLOCKER_FACE.slip`, bar.ts drawReady); a mustard pip per ready dodge on her Chain tab |
 | Wren | `slip` | the slab pops as it takes the red, smoke puffs off her where she stood and a streak where she went, a ring on her ("Slip!" at the left end) |

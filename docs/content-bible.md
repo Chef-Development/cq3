@@ -147,13 +147,13 @@ the region rules.
 - Look: a tall sun-knight in white enamel plate trimmed with gold, a short crimson half-cape, warm brown skin, a
   cropped crop of silver-white hair under a gold circlet with a sun-stone, a long sword whose blade glows like morning
   light. Palette: ivory/white plate, gold, crimson, a warm sunrise glow.
-- Signature **Sunrise**: every 15 combo her blade burns for 4 s: her hits also cut every other foe for half their damage.
+- Signature **Sunrise**: every 15 combo her blade burns for 3 s: her hits also cut every other foe for half their damage.
 - Ability (green) **Gleam**: a green hit gilds the next yellow ahead (a gold block with a sun mark; with none on the
-  bar, the next to come): hitting it adds +3 combo and 0.12 of a meter.
+  bar, the next to come): hitting it adds +1 combo and 0.12 of a meter.
 - Passive **Dawn Oath**: at 30+ combo, a miss keeps half the combo (its stacks and meter still go).
 - Finisher **Sunfall**: hits every foe, +1% per combo (up to +50%); clears the reds; gilds the two yellows nearest the
   left end (where the cursor starts again).
-- Mythic gift **Radiance**: while Sunrise burns, the reds on the bar (and those that come) move at x0.7.
+- Mythic gift **Radiance**: while Sunrise burns, the reds on the bar (and those that come) move at x0.85.
 - Strength: +20% damage to Frost foes.
 - Finisher show: a sun kindles on her raised blade, shoots up, sunbeams spear the foes, then the sun falls on them.
 
@@ -185,7 +185,7 @@ Every hero: 2★ +6% attack, 4★ +8% max HP. 3★ and 5★ unlock a move (data:
 | Hollis | Guard holds 7 charges | Shield Slam on every block |
 | Vesper | Focus cap +50% | Volley pins reds 4 s |
 | Torva | Quake also on blocks | Earthsplitter keeps 1 stack |
-| Solenne | Sunrise burns 6 s (Long Dawn) | Sunfall gilds every yellow on the bar (High Noon) |
+| Solenne | Sunrise burns 5 s (Long Dawn) | Sunfall gilds every yellow on the bar (High Noon) |
 | Wren | after a dodge, her next hit crits (Grapple) | Rooftop Drop readies a dodge (Roof Hop) |
 
 ---
