@@ -83,7 +83,8 @@ const BLADE: StyleKit = {
   flash: WHITE,
   sky(g, c, _k, a, now) {
     const bottom = skyFloor(c);
-    bands(g, [0x10162a, 0x182038, 0x222c4a, 0x2e3a5e, 0x404e76, 0x56648e], 0, bottom, a);
+    // a pale steel dawn, brightest at the horizon (the foes stand dark against it)
+    bands(g, [0x283250, 0x3a4668, 0x525e84, 0x6e7aa0, 0x8e9abc, 0xb0bad4], 0, bottom, a);
     // speed lines racing left, more and faster with the stacks
     const n = c.n;
     const lines = 12 + n * 4;
@@ -92,7 +93,7 @@ const BLADE: StyleKit = {
       const len = 16 + ((i * 53) % 40) + n * 4;
       const speed = 0.5 + (i % 3) * 0.25 + n * 0.08;
       const x = ((((i * 97 - now * speed) % (GAME_W + 80)) + GAME_W + 80) % (GAME_W + 80)) - 40;
-      g.fillStyle(i % 3 === 0 ? 0xb8c2d8 : WHITE, a * (i % 2 ? 0.7 : 0.4));
+      g.fillStyle(i % 3 === 0 ? 0x2a2f45 : WHITE, a * (i % 3 === 0 ? 0.5 : i % 2 ? 0.75 : 0.45));
       g.fillRect(Math.round(x), y, len, i % 4 === 0 ? 2 : 1);
     }
     // a cold glint of sun up left, a streak through it
@@ -287,7 +288,7 @@ const GUARDIAN: StyleKit = {
     bands(g, [0x0a1430, 0x101e44, 0x16295a, 0x1c3672, 0x24458a, 0x2e56a4], 0, bottom, a);
     // golden rays fanning from behind the hero, turning slowly; brighter on each strike
     const h = c.heroAt();
-    const cx = h.x + 6;
+    const cx = h.x - 4;
     const cy = c.s.ground - 26;
     const rays = 12;
     const flare = c.tl.strikes.some((t) => k >= t && k < t + 0.04) ? 1.6 : 1;
@@ -592,14 +593,13 @@ const BRUTE: StyleKit = {
       const q = ((now + hash(i, 21) * life) % life) / life;
       const x = Math.round(hash(i, 22) * GAME_W + Math.sin(now / 300 + i) * 2);
       const y = Math.round(bottom - q * (bottom * 0.8));
-      const sz = 2 + (i % 3);
-      const fade = q < 0.15 ? q / 0.15 : q > 0.8 ? (1 - q) / 0.2 : 1;
-      g.fillStyle(INK, a * fade);
-      g.fillRect(x - 1, y - 1, sz + 2, sz + 1);
-      g.fillStyle(0x6e4426, a * fade);
+      const sz = 2 + (i % 2);
+      const fade = (q < 0.15 ? q / 0.15 : q > 0.8 ? (1 - q) / 0.2 : 1) * 0.85;
+      g.fillStyle(0x4a2c18, a * fade);
       g.fillRect(x, y, sz, sz - 1);
+      g.fillRect(x + 1, y + sz - 1, Math.max(1, sz - 1), 1);
       g.fillStyle(0xc0905a, a * fade);
-      g.fillRect(x, y, sz - 1, 1);
+      g.fillRect(x, y, Math.max(1, sz - 1), 1);
     }
   },
   strike(c, v, i) {
@@ -611,7 +611,6 @@ const BRUTE: StyleKit = {
     mark(c, 'crack', { x: v.x + rand(-6, 6), y: s.ground, dir: i % 2 ? 1 : -1, r: 10 + (i % 3) * 5, seed: i * 13 + 1, life: c.tl.ms * (1 - (s.anim - c.at) / c.tl.ms) + 200, sky: true });
     fx.rubble(v.x, s.ground, 2, 0.8);
     if (i % 2 === 0) fx.dust(v.x, s.ground, 1, 0, 0.8);
-    fx.shock(v.x, s.ground, 22, 0xe0bc84);
     fx.kick(i % 2 ? 3 : -3, 70);
     if (c.scale.layers >= 3) fx.chips(v.x, cy, 8, [0xe0bc84, 0x98663a, 0x4a2c18], 6, 0);
   },
@@ -887,7 +886,7 @@ const SUMMONER: StyleKit = {
     mark(c, 'wisp', { x: from.x, y: from.y, x1: tx, y1: ty, life: ms, seed: i });
     s.later(ms, () => {
       hitFoe(c, v, 3);
-      s.fx.chips(tx, ty, 8, [0xb4f070, 0x78a83c, 0x4a9e3a, 0xff9ac0], 8, 0);
+      s.fx.chips(tx, ty, 8, [0xb4f070, 0x78a83c, 0x4a9e3a, 0xff9ac0], 5, 0);
       s.fx.sparks.push({ x: tx, y: ty, at: s.anim, size: 6, color: 0xd0ff90 });
       mark(c, 'lash', { x: tx, y: ty, x1: v.x + (i % 2 ? 12 : -12), y1: s.ground, life: 150, seed: i });
       if (c.scale.layers >= 3) s.fx.ring(tx, ty, 9, 0xb4f070, true);
@@ -934,12 +933,17 @@ const SUMMONER_MARKS: Record<string, MarkDraw> = {
     const [x, y] = at(k);
     g.fillStyle(0xd0ff90, 0.35);
     g.fillCircle(Math.round(x), Math.round(y), 5);
-    g.fillStyle(INK, 1);
-    g.fillRect(Math.round(x) - 2, Math.round(y) - 2, 5, 5);
-    g.fillStyle(0xf0ffd0, 1);
-    g.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3);
+    // a soft round spirit: a cross-shaped glowing heart (a leaf-green rim), white at its middle
+    const X = Math.round(x);
+    const Y = Math.round(y);
+    g.fillStyle(0x2e5a32, 1);
+    g.fillRect(X - 1, Y - 3, 3, 7);
+    g.fillRect(X - 3, Y - 1, 7, 3);
+    g.fillStyle(0xd0ff90, 1);
+    g.fillRect(X - 1, Y - 2, 3, 5);
+    g.fillRect(X - 2, Y - 1, 5, 3);
     g.fillStyle(WHITE, 1);
-    g.fillRect(Math.round(x), Math.round(y) - 1, 1, 1);
+    g.fillRect(X, Y - 1, 1, 2);
   },
   lash(g, m, k) {
     vine(g, m.x1, m.y1, m.x, m.y, k * 3, m.seed, k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4);

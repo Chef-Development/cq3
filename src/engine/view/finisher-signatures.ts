@@ -100,6 +100,12 @@ const WHIRLWIND: SignatureDraw = {
       const spin = now / 30 + arc * 1.7;
       const r = 7 + arc * 4;
       const cy = ground - 4 - arc * 6;
+      // an ink-dark streak under each ring (it reads on the pale steel sky), then its bright steel
+      for (let j = 0; j < 18; j++) {
+        const ang = spin + j * 0.17;
+        g.fillStyle(0x1a2238, (1 - j / 20) * 0.8);
+        g.fillRect(Math.round(cx + Math.cos(ang) * r) - 1, Math.round(cy + Math.sin(ang) * r * 0.35) - 1, 5, 4);
+      }
       for (let j = 0; j < 18; j++) {
         const ang = spin + j * 0.17;
         g.fillStyle(j < 6 ? WHITE : j < 12 ? light : base, 1 - j / 20);
@@ -543,7 +549,7 @@ const GIANT_KEG: SignatureDraw = {
 // ================================================================== Hollis: the rampart wall
 
 /** Where the wall stands: just ahead of him. */
-const wallX = (c: ShowCtx): number => c.toX + 16;
+const wallX = (c: ShowCtx): number => c.toX + 22;
 
 /** The wall standing (h tall), or toppling forward by `fall` (0 upright .. 1 flat on the foes). */
 function drawWall(g: G, c: ShowCtx, h: number, fall: number, a: number): void {
@@ -590,16 +596,17 @@ function drawWall(g: G, c: ShowCtx, h: number, fall: number, a: number): void {
 const RAMPART_WALL: SignatureDraw = {
   back(g, c, k) {
     const tl = c.tl;
-    if (k >= tl.blow) return;
+    if (k >= tl.blow - 0.08) return;
     const rise = outQuad(between(k, tl.build * 0.5, tl.build + 0.12));
     drawWall(g, c, wallH(c) * rise, 0, 1);
   },
   front(g, c, k) {
     const tl = c.tl;
-    if (k < tl.blow - 0.05 || k >= 1) return;
+    if (k < tl.blow - 0.08 || k >= 1) return;
     // it topples onto the foes (landing on the last blow), then crumbles away
-    const fall = ease(between(k, tl.blow - 0.05, tl.blow));
-    const a = 1 - between(k, tl.blow + 0.08, 0.98);
+    const q = between(k, tl.blow - 0.08, tl.blow);
+    const fall = q * q;
+    const a = 1 - between(k, tl.blow + 0.1, 0.99);
     drawWall(g, c, wallH(c), fall, a);
   },
   start(c) {
@@ -729,6 +736,27 @@ function fissure(c: ShowCtx): { x0: number; x1: number } {
   return { x0: c.toX + 10, x1: hi + 18 };
 }
 
+/** The fissure's two lips now (top and bottom points every 3 px), and how open it is. */
+function fissureLips(c: ShowCtx, k: number): { top: Array<[number, number]>; bot: Array<[number, number]>; wide: number; a: number; x0: number; end: number } {
+  const tl = c.tl;
+  const ground = c.s.ground;
+  const { x0, x1 } = fissure(c);
+  const run = outQuad(between(k, tl.build, tl.build + (tl.blow - tl.build) * 0.35));
+  const wide = between(k, tl.build, tl.blow);
+  const close = between(k, tl.blow + 0.06, 1);
+  const end = x0 + (x1 - x0) * run;
+  const top: Array<[number, number]> = [];
+  const bot: Array<[number, number]> = [];
+  for (let x = x0; x <= end; x += 3) {
+    const q = (x - x0) / Math.max(1, x1 - x0);
+    const w = (2 + 3 * wide) * (1 - q * 0.35) * (1 - close);
+    const y = ground - 1 + Math.round((hash(x, 101) - 0.5) * 4);
+    top.push([x, y - w]);
+    bot.push([x, y + w * 0.6 + 1]);
+  }
+  return { top, bot, wide, a: 1 - close, x0, end };
+}
+
 const EARTH_SPLIT: SignatureDraw = {
   motion(c, k, def) {
     // a towering leap (the default arc, higher)
@@ -739,34 +767,11 @@ const EARTH_SPLIT: SignatureDraw = {
     const tl = c.tl;
     if (k < tl.build) return;
     const ground = c.s.ground;
-    const { x0, x1 } = fissure(c);
-    const run = outQuad(between(k, tl.build, tl.build + (tl.blow - tl.build) * 0.35));
-    const wide = between(k, tl.build, tl.blow);
-    const close = between(k, tl.blow + 0.06, 1);
-    const end = x0 + (x1 - x0) * run;
-    const a = 1 - close;
-    // a jagged crack glowing with magma, wider the longer it runs, its heat glowing up off it
-    const top: Array<[number, number]> = [];
-    const bot: Array<[number, number]> = [];
-    for (let x = x0; x <= end; x += 3) {
-      const q = (x - x0) / Math.max(1, x1 - x0);
-      const w = (2 + 3 * wide) * (1 - q * 0.35) * (1 - close);
-      const y = ground - 1 + Math.round((hash(x, 101) - 0.5) * 4);
-      top.push([x, y - w]);
-      bot.push([x, y + w * 0.6 + 1]);
-    }
+    // a jagged crack in the ground, wider the longer it runs (its glowing heart is drawn over the actors: front)
+    const { top, bot, wide, a, x0, end } = fissureLips(c, k);
     if (top.length > 1) {
-      g.fillStyle(0xff7a2a, 0.14 * a * (0.7 + 0.3 * Math.sin(now / 90)));
-      g.fillRect(Math.round(x0), ground - 12, Math.round(end - x0), 12);
       for (let i = 0; i < top.length - 1; i++) line(g, top[i][0], top[i][1] - 1, top[i + 1][0], top[i + 1][1] - 1, 1, 0x140c1c, a);
       poly(g, [...top, ...bot.slice().reverse()], 0x2a0e08, a);
-      for (let i = 0; i < top.length - 1; i++) {
-        const glow = 0.7 + 0.3 * Math.sin(now / 80 + i);
-        const my0 = (top[i][1] + bot[i][1]) / 2;
-        const my1 = (top[i + 1][1] + bot[i + 1][1]) / 2;
-        line(g, top[i][0], my0, top[i + 1][0], my1, wide > 0.4 ? 2 : 1, i % 3 ? 0xff7a2a : 0xffd060, a * glow);
-        if (i % 4 === 1) line(g, top[i][0], my0, top[i][0] + 1, my0, 1, 0xfff0c0, a);
-      }
     }
     // lava spitting out of it
     for (let i = 0; i < 6 + c.n * 2; i++) {
@@ -776,6 +781,22 @@ const EARTH_SPLIT: SignatureDraw = {
       const sy = ground - 2 - Math.sin(q * Math.PI) * (8 + 10 * hash(i, 105)) * wide;
       g.fillStyle(i % 2 ? 0xff7a2a : 0xffd060, a * (1 - q));
       g.fillRect(Math.round(sx), Math.round(sy), 1 + (i % 2), 1 + (i % 2));
+    }
+  },
+  front(g, c, k, now) {
+    if (k < c.tl.build) return;
+    // the magma in the crack: a white-hot heart, its heat glowing up off the ground
+    const { top, bot, wide, a } = fissureLips(c, k);
+    for (let i = 0; i < top.length - 1; i++) {
+      const glow = 0.75 + 0.25 * Math.sin(now / 80 + i);
+      const my0 = (top[i][1] + bot[i][1]) / 2;
+      const my1 = (top[i + 1][1] + bot[i + 1][1]) / 2;
+      g.fillStyle(0xff7a2a, 0.22 * a * glow);
+      g.fillRect(Math.round(top[i][0]), Math.round(my0 - 4 - 4 * wide), 3, Math.round(3 + 4 * wide));
+      g.fillStyle(0xffa040, 0.14 * a * glow);
+      g.fillRect(Math.round(top[i][0]), Math.round(my0 - 9 - 6 * wide), 3, Math.round(5 + 3 * wide));
+      line(g, top[i][0], my0, top[i + 1][0], my1, wide > 0.4 ? 2 : 1, i % 3 ? 0xff7a2a : 0xffd060, a * glow);
+      if (i % 3 === 1) line(g, top[i][0], my0, top[i][0] + 1, my0, 1, 0xfff0c0, a);
     }
   },
   start(c) {

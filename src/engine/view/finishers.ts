@@ -13,7 +13,7 @@
 // hit and its counting-up number themselves before calling `blow`.
 import Phaser from 'phaser';
 import { moveOf, showScale, showTimeline, signatureOf, styleOf, type ShowMove } from '../../core/finisher-show';
-import type { Tier } from '../../data/rarity';
+import { TIER_INFO, type Tier } from '../../data/rarity';
 import type { FightScene } from '../scene';
 import { HERO_FEET_X, HERO_W } from '../art';
 import { GAME_W } from '../layout';
@@ -265,10 +265,22 @@ export class FinisherShow {
       const fade = showFade(k);
       this.kit.sky(gBack, c, k, fade * c.scale.sky, now);
       this.skyExtras(gBack, c, fade, now);
-      if (c.scale.layers >= 4 && k < c.tl.build + 0.05) {
+      if (c.scale.layers >= 2 && k < c.tl.build + 0.06) {
+        // the hero's rarity, charging up behind them in its colour (wider and brighter the rarer), a pool of it at
+        // their feet from Mythic up
         const h = c.heroAt();
-        gBack.fillStyle(c.pal.light, 0.22 * (1 - clamp01((k - c.tl.build) / 0.05)));
-        gBack.fillEllipse(Math.round(h.x + 2), this.s.ground, 44, 8);
+        const [hi, base] = TIER_INFO[c.scale.tier].face;
+        const a = Math.min(1, k / 0.06) * (1 - clamp01((k - c.tl.build) / 0.06));
+        const L = c.scale.layers;
+        const pulse = 0.85 + 0.15 * Math.sin(now / 70);
+        for (let i = 0; i < 3; i++) {
+          gBack.fillStyle(i === 2 ? hi : base, (0.1 + 0.03 * L) * a * pulse);
+          gBack.fillEllipse(Math.round(h.x + 2), Math.round(this.s.ground - 16 - h.lift), Math.round((16 + 4 * L) * (1 - i * 0.28)), Math.round((40 + 3 * L) * (1 - i * 0.22)));
+        }
+        if (L >= 4) {
+          gBack.fillStyle(hi, 0.25 * a);
+          gBack.fillEllipse(Math.round(h.x + 2), this.s.ground, 44, 8);
+        }
       }
       this.sig.back?.(gBack, c, k, now);
     }
@@ -388,7 +400,8 @@ export class FinisherShow {
         const ang = (i / 8) * Math.PI * 2 + 0.3;
         const r0 = 70 * (1 - bq) + 12;
         const r1 = r0 + 14;
-        line(g, hx + Math.cos(ang) * r1, hy + Math.sin(ang) * r1 * 0.6, hx + Math.cos(ang) * r0, hy + Math.sin(ang) * r0 * 0.6, 1, i % 2 ? c.pal.hot : c.pal.light, 0.8 * bq);
+        const [thi, tbase] = TIER_INFO[c.scale.tier].face;
+        line(g, hx + Math.cos(ang) * r1, hy + Math.sin(ang) * r1 * 0.6, hx + Math.cos(ang) * r0, hy + Math.sin(ang) * r0 * 0.6, 2, i % 2 ? thi : tbase, 0.9 * bq);
       }
     }
     if (c.scale.sparkle === 'stars') {
@@ -410,7 +423,7 @@ export class FinisherShow {
             [x0 + 10 + (i - 2) * 16, this.s.ground],
           ],
           cols[i],
-          0.06 * fade,
+          0.1 * fade,
         );
       }
       for (let i = 0; i < 8; i++) {

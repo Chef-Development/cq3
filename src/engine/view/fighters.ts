@@ -667,8 +667,12 @@ export class Fighters {
           num.g = 20;
           num.vx = 0;
         }
-        // (side by side, every other number sits a row higher, so three foes' numbers never pile up)
-        if (num && damage > 0 && crowd) num.y -= (row++ % 2) * 18;
+        // (side by side: every other number a row higher, all spread a little apart, so they never pile up)
+        if (num && damage > 0 && crowd) {
+          num.y -= (row % 2) * 18;
+          num.x += (row - (views.length - 1) / 2) * 6;
+          row++;
+        }
         fx.burst(v.x, v.y - v.img.displayHeight / 2, c.pal.light, 10 + n * 6, true, 1.4 + n * 0.15);
       }
       // the style's last blow and the signature's (a cut, fangs, a shattering glacier, a toppling wall...)
