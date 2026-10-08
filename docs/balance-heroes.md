@@ -1,3 +1,39 @@
+## Playtest round 7, the final check: all sixteen heroes at 75%
+
+Measured on the merged build (every round 7 change in: the anti-spam rules, the parity pass, the eight new heroes and
+four new companions) with `npm run campaign`, 75% player, three regions, **200 runs x SEED=1 and SEED=2** (400 per
+hero; the same seeds for every hero). Each act's first-try clear, averaged over the two samples; the new heroes' rows
+are their gap to Rowan in points. A 400-run gap is good to about +/-6 (two 200-run samples of the same numbers differ by
+up to 12 an act). Bold: outside +/-10.
+
+| Hero | A1 | A2 | A3 | A4 | A5 | A6 | A7 | A8 | A9 |
+|---|---|---|---|---|---|---|---|---|---|
+| Rowan | 100 | 85 | 64.5 | 84.5 | 67 | 56.5 | 86 | 71.5 | 53 |
+| Sable | +0 | -1 | +3 | +6.5 | **+14.5** | -4.5 | +6.5 | -6.5 | +3 |
+| Neve | +0 | -6 | **+12.5** | -0.5 | -4 | +2.5 | -8.5 | +2 | -6.5 |
+| Moss | -2 | -4 | +5.5 | +7 | +4 | -7 | +6 | +2 | **+15** |
+| Tam | +0 | +6 | +10 | +7 | **+10.5** | -6.5 | +8.5 | +3.5 | +7 |
+| Hollis | +0 | -0.5 | **+12** | +7.5 | -6 | -8 | -2.5 | -3.5 | **+12.5** |
+| Vesper | +0 | +5.5 | +9 | +7 | +4.5 | -8.5 | -6.5 | -9 | -4 |
+| Torva | +0 | +4 | +10 | -1 | **+11** | -1.5 | -0.5 | -8 | **+11.5** |
+| Solenne | +0 | -2 | +8 | +5 | -2 | -2.5 | -5 | -8.5 | +5 |
+| Wren | -0.5 | +0 | +4.5 | +5.5 | +5 | -6 | -3 | -8.5 | +7 |
+| Yara | -2 | -4.5 | +2.5 | +3.5 | +4 | +3.5 | +1.5 | +3 | +9 |
+| Dell | +0 | +6.5 | +9.5 | +8.5 | +5.5 | -5 | -1 | -1.5 | +4 |
+| Gorm | +0 | +5.5 | +8.5 | -3.5 | +7 | -7.5 | +4.5 | -1.5 | +8.5 |
+| Tess | +0 | +3 | **+13.5** | -1 | -4 | +0 | -4.5 | -6.5 | +0 |
+| Fizz | +0 | +7.5 | +8.5 | +8 | +6.5 | -3 | -1 | -0.5 | -2.5 |
+| Brann | +0 | +2 | +10 | +5.5 | +9 | -7 | +4 | -5.5 | +6.5 |
+
+outside +/-10: 9 of 135; largest 15; mean gap 5.0
+
+All 135 hero-acts but 9 are within +/-10 of Rowan; every one of the 9 is a lead, and all but Sable's (Act 5, the
+second region's mini-boss) are at a region boss act (Acts 3, 5 and 9), where Rowan is weakest against everyone (he lets
+about 2.4 boss reds through a fight at the Boar King and loses at about 3.3). Of the eight new heroes only Tess is
+outside (Act 3, +13.5), about 10 points of it the Controller's shared Bend rule (Neve, the other Controller, is +12.5
+there too). Closing the boss-act leads would mean changing Rowan or the bosses, which moves every hero's reference; it
+waits for the playtester's word (decisions Q5).
+
 ## Playtest round 7, the parity pass: hero parity at 75% (Rowan, the act curve and the styles kept)
 
 The brief: every hero within +/-10 of Rowan in every act at the 75% player. Rowan stays the reference (the Part 6
