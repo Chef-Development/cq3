@@ -11,6 +11,7 @@
 // accuracy: the share of plain yellows that spread (and that average lateness) would hit at the starting speed.
 // tests/unit/accuracy.test.ts checks that bots of known accuracy read back right.
 
+import { pct, signed, whole } from './format';
 import type { Tuning } from './tuning';
 
 /** Samples kept for the running number, and act-clear entries kept in the history. */
@@ -162,13 +163,12 @@ export function readAccuracyLog(data: unknown): AccuracyLog {
  */
 export function accuracyCopyLine(t: Tuning, log: AccuracyLog, calibrationMs: number, now = Date.now()): string {
   const e = estimateAccuracy(t, log.recent);
-  const pct = (v: number) => `${Math.round(v * 100)}%`;
   const date = (at: number) => new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const hist = log.history
     .slice(-6)
     .reverse()
-    .map((h) => `Act ${h.act + 1} ${pct(h.acc)} (${h.n} taps, ±${h.sd} ms, ${h.bias >= 0 ? '+' : ''}${h.bias} ms, ${date(h.at)})`)
+    .map((h) => `Act ${h.act + 1} ${pct(h.acc)} (${whole(h.n)} taps, ±${whole(h.sd)} ms, ${signed(h.bias)} ms, ${date(h.at)})`)
     .join('; ');
-  const cur = e ? `${pct(e.acc)} from ${e.n} taps (spread ±${Math.round(e.sd)} ms, raw ±${Math.round(e.rawSd)} ms, ${e.bias >= 0 ? '+' : ''}${Math.round(e.bias)} ms)` : `not enough taps yet (${log.recent.length})`;
-  return `CQ3 accuracy ${date(now)}: ${cur}; calibration ${calibrationMs} ms${hist ? `; acts: ${hist}` : ''}`;
+  const cur = e ? `${pct(e.acc)} from ${whole(e.n)} taps (spread ±${whole(e.sd)} ms, raw ±${whole(e.rawSd)} ms, ${signed(e.bias)} ms)` : `not enough taps yet (${log.recent.length})`;
+  return `CQ3 accuracy ${date(now)}: ${cur}; calibration ${whole(calibrationMs)} ms${hist ? `; acts: ${hist}` : ''}`;
 }

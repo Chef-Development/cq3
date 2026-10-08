@@ -4,6 +4,7 @@
 // views choose the spots). Every pose is a pure function of `now` and a seed, plus the moment of the last tap, so
 // screenshots stay pixel-exact. Drawing is cheap: a few pooled images and a few dozen rects a frame.
 import type Phaser from 'phaser';
+import { signed } from '../../core/format';
 import { buildLifeArt } from '../art-life';
 import { hash } from '../backdrop';
 import type { FightScene } from '../scene';
@@ -461,5 +462,5 @@ export function drawPop(L: LifeLayers, p: Pop, now: number): void {
   const [cw, ch] = iconSize('coin');
   const cy = Math.round(y - 4 - ch - ease(k) * 7);
   hudIcon(g, 'coin', x - Math.round(cw / 2) - 4, cy, 1, fade);
-  L.text(`+${p.coins}`, x - Math.round(cw / 2) - 4 + cw + 1, cy + ch / 2 + 0.5, 0xffe680, { bold: true, oy: 0.5, alpha: fade });
+  L.text(signed(p.coins), x - Math.round(cw / 2) - 4 + cw + 1, cy + ch / 2 + 0.5, 0xffe680, { bold: true, oy: 0.5, alpha: fade });
 }

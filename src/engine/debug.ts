@@ -1,5 +1,6 @@
 // Debug / tuning panel (DOM). Every change applies live and is saved to localStorage. At the top: the player's
 // accuracy (as the balance bot measures it) and its history, with a Copy button for the playtester.
+import { pct, whole } from '../core/format';
 import { REGIONS } from '../data/regions';
 import { accuracyCopyLine, AIM_WINDOW_MS, estimateAccuracy, MIN_SAMPLES } from '../core/accuracy';
 import { TYPICAL_ACCURACY } from '../core/bot';
@@ -334,14 +335,13 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
     const log = app.realProfile.acc; // (the real game's, also from inside the Test lab)
     const e = estimateAccuracy(app.tuning, log.recent);
     const target = TYPICAL_ACCURACY;
-    const pct = (v: number) => `${Math.round(v * 100)}%`;
-    const lateness = (b: number) => (Math.abs(b) < 1 ? 'right on time on average' : `${Math.round(Math.abs(b))} ms ${b > 0 ? 'late' : 'early'} on average`);
+    const lateness = (b: number) => (Math.abs(b) < 1 ? 'right on time on average' : `${whole(Math.abs(b))} ms ${b > 0 ? 'late' : 'early'} on average`);
     const date = (at: number) => new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
     const top = el('div', 'acc-top');
     const big = el('div', `acc-big${e ? (e.acc >= target ? ' good' : e.acc < target - 0.1 ? ' low' : '') : ' none'}`, e ? pct(e.acc) : '--');
     const meta = el('div', 'acc-meta');
-    if (e) meta.appendChild(el('div', 'acc-line', `from ${e.n} recent taps · timing spread ±${Math.round(e.sd)} ms · ${lateness(e.bias)}`));
+    if (e) meta.appendChild(el('div', 'acc-line', `from ${whole(e.n)} recent taps · timing spread ±${whole(e.sd)} ms · ${lateness(e.bias)}`));
     else {
       const have = log.recent.filter((x) => Math.abs(x) <= AIM_WINDOW_MS).length;
       meta.appendChild(el('div', 'acc-line', `Play a few fights to measure it: it needs ${MIN_SAMPLES} taps on plain yellows (${have} so far).`));
@@ -364,7 +364,7 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
       const list = el('ul', 'acc-hist');
       for (const h of log.history.slice().reverse()) {
         const li = el('li', h.acc >= target ? 'good' : h.acc < target - 0.1 ? 'low' : undefined);
-        li.textContent = `Act ${h.act + 1} cleared · ${pct(h.acc)} · ${h.n} taps · ${date(h.at)}`;
+        li.textContent = `Act ${h.act + 1} cleared · ${pct(h.acc)} · ${whole(h.n)} taps · ${date(h.at)}`;
         list.appendChild(li);
       }
       sec.appendChild(list);

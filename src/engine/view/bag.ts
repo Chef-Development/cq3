@@ -4,6 +4,7 @@
 // effect, its set; Equip / Unequip and Lock.
 // With nothing selected the card shows the picked hero's core stats and set bonuses (gear is shared by the heroes).
 // Equipping is loud: the icon flies into its slot, the slot flashes, and a toast lists each stat before -> after.
+import { signed, whole } from '../../core/format';
 import type Phaser from 'phaser';
 import { BASE_BY_ID, EFFECTS, RARITY_INFO, SETS, SLOT_NAME, STAT_IDS, STAT_INFO, CORE_STATS, slotOf, type Slot, type SlotKey, type StatId } from '../../data/gear';
 import { baseStats, bonusStats, fmtStatShort, fmtTotal, itemPower, itemStats, setOf, slotOfItem, statAmount, zeroStats, type Item, type StatBlock } from '../../core/gear';
@@ -332,7 +333,7 @@ export class BagScreen {
     texts.text(HEROES[p.hero].name, pr.x + pr.w / 2, pr.y + 9, 0xfff0c0, { bold: true, ox: 0.5, oy: 0.5 });
     const gp = equippedItems(p).reduce((a, i) => a + itemPower(t, i), 0);
     let y = pr.y + 20;
-    texts.text(`Gear power ${gp}`, pr.x + pr.w / 2, y, 0xc8c0e8, { ox: 0.5, oy: 0.5 });
+    texts.text(`Gear power ${whole(gp)}`, pr.x + pr.w / 2, y, 0xc8c0e8, { ox: 0.5, oy: 0.5 });
     y += 9;
     CORE_STATS.forEach((id, i) => {
       const ry = y + i * 15;
@@ -558,11 +559,11 @@ export class BagScreen {
   private verdict(g: G, r: Rect, kind: 'better' | 'worse' | 'same' | 'empty' | 'worn', n: number): void {
     const texts = this.kit.texts;
     const look = {
-      better: { face: [0x8af06a, 0x235a2c, 0x1c4a24, 0x0e2a14] as const, col: GREEN, text: `Better: +${n} power`, arrow: true },
+      better: { face: [0x8af06a, 0x235a2c, 0x1c4a24, 0x0e2a14] as const, col: GREEN, text: `Better: ${signed(n)} power`, arrow: true },
       empty: { face: [0x8af06a, 0x235a2c, 0x1c4a24, 0x0e2a14] as const, col: GREEN, text: 'Nothing worn here', arrow: false },
-      worse: { face: [0xff8a7a, 0x5a2030, 0x4a1a26, 0x2a0a14] as const, col: RED, text: `Worse: ${n} power`, arrow: true },
+      worse: { face: [0xff8a7a, 0x5a2030, 0x4a1a26, 0x2a0a14] as const, col: RED, text: `Worse: ${whole(n)} power`, arrow: true },
       same: { face: [NAVY[6], NAVY[3], NAVY[2], NAVY[1]] as const, col: 0xc8c0e8, text: 'Same power', arrow: false },
-      worn: { face: [GOLD[4], GOLD[3], GOLD[2], GOLD[1]] as const, col: 0x3a1e08, text: `Worn: ${n} power`, arrow: false },
+      worn: { face: [GOLD[4], GOLD[3], GOLD[2], GOLD[1]] as const, col: 0x3a1e08, text: `Worn: ${whole(n)} power`, arrow: false },
     }[kind];
     tag(g, r, look.face);
     const tw = textWidth(look.text, 1, true);

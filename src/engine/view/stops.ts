@@ -2,6 +2,7 @@
 // goal in one short line and what it pays (an item, coins, a relic pick), "Take it" or "Pass". Taking it puts the
 // tiny tracker on the map (view/map-roam.ts). Pops in like the other node screens (view/nodes.ts).
 import type Phaser from 'phaser';
+import { signed } from '../../core/format';
 import { questById } from '../../data/quests';
 import { RARITY_INFO } from '../../data/gear';
 import { questText } from '../../core/quests';
@@ -110,7 +111,7 @@ export class StopScreens {
     } else if (def.reward === 'coins') {
       const [cw, ch] = glyphSize('coin');
       glyph(g, 'coin', rx, ry - Math.round(ch / 2));
-      T.text(`+${Math.round(run.tuning.quests.coins * (run.actIndex + 1))}`, rx + cw + 3, ry, 0x9a5a14, { bold: true, oy: 0.5 });
+      T.text(signed(run.tuning.quests.coins * (run.actIndex + 1)), rx + cw + 3, ry, 0x9a5a14, { bold: true, oy: 0.5 });
     } else {
       const [sw, sh] = iconSize('star');
       hudIcon(g, 'star', rx, ry - Math.round(sh / 2));

@@ -16,6 +16,7 @@
 // only when the map or the layout changes; each frame moves a few dozen images and draws a few hundred rects.
 // Everything animates from draw(now) (and the walk from performance.now()), so screenshots are repeatable.
 import type Phaser from 'phaser';
+import { whole } from '../../core/format';
 import type { MapNode } from '../../core/map';
 import { RARITY_INFO } from '../../data/gear';
 import type { FightScene } from '../scene';
@@ -275,7 +276,7 @@ export class MapView implements MapHost {
     const s = this.s;
     const run = s.app.run;
     const [cw] = iconSize('coin');
-    const coinW = cw + textWidth(`${run.coins}`, 1, true) + 14;
+    const coinW = cw + textWidth(whole(run.coins), 1, true) + 14;
     const rr = run.rerolls > 0 ? `Rerolls: ${run.rerolls}` : '';
     const boxW = Math.max(coinW, rr ? textWidth(rr, 1, false) + 12 : 0);
     return { x: s.R - 3 - boxW, y: 3, w: boxW, h: rr ? 25 : 16 };
@@ -1263,7 +1264,7 @@ export class MapView implements MapHost {
     T.text(`Act ${run.actIndex + 1}`, L + 7, 10, 0xf2c230, { bold: true, oy: 0.5 });
     T.text(actName, L + 7, 20, 0xe8e0f4, { oy: 0.5 });
     // coins (top right) and rerolls
-    const coins = `${run.coins}`;
+    const coins = whole(run.coins);
     const [cw] = iconSize('coin');
     const coinW = cw + textWidth(coins, 1, true) + 14;
     const rr = run.rerolls > 0 ? `Rerolls: ${run.rerolls}` : '';

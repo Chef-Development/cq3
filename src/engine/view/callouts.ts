@@ -11,6 +11,7 @@
 // are painted by view/bar.ts. Everything animates from performance.now (the fake clock in screenshot tests).
 import type Phaser from 'phaser';
 import type { Combat, CombatEvent } from '../../core/combat';
+import { mult, signed, whole } from '../../core/format';
 import { guardOf } from '../../core/styles';
 import type { CompanionId } from '../../data/companions';
 import { heroDef, type AllyKind, type HeroId } from '../../data/heroes';
@@ -294,10 +295,10 @@ export class Callouts {
         const look = this.lookOf(c, e.id);
         if (!look) break;
         let word = look.word;
-        if (e.id === 'guardUp') word = `Guard ${Math.max(1, guardOf(c), e.amount)}`;
-        else if (e.id === 'windUp') word = e.amount > 0 ? `x${(e.amount / 100).toFixed(1)}` : 'Smash!';
-        else if (e.id === 'chain') word = `Chain ${Math.max(2, e.amount)}`;
-        else if (COIN_PERKS.has(e.id)) word = `+${Math.max(1, e.amount)}`;
+        if (e.id === 'guardUp') word = `Guard ${whole(Math.max(1, guardOf(c), e.amount))}`;
+        else if (e.id === 'windUp') word = e.amount > 0 ? mult(e.amount / 100) : 'Smash!';
+        else if (e.id === 'chain') word = `Chain ${whole(Math.max(2, e.amount))}`;
+        else if (COIN_PERKS.has(e.id)) word = signed(Math.max(1, e.amount));
         let pos: Pending['pos'] = e.pos ?? (AT_LEFT.has(e.id) ? 'left' : null);
         if (pos === null && (e.id === 'seedling' || e.id === 'starlight')) pos = this.spawnPos.get('green') ?? null;
         if (pos === null && e.id === 'fuseUp') pos = this.spawnPos.get('keg') ?? null;
@@ -307,7 +308,7 @@ export class Callouts {
       }
       case 'coins':
         // Sunny's Gold Hoard (no perk event of its own): the extra coins a kill dropped
-        if (e.id === 'goldHoard') this.pend.push({ id: e.id, word: `+${e.amount}`, col: 0xffe680, mark: { kind: 'paw', col: PET_COL.sunny }, pos: null, bucket: 'pet' });
+        if (e.id === 'goldHoard') this.pend.push({ id: e.id, word: signed(e.amount), col: 0xffe680, mark: { kind: 'paw', col: PET_COL.sunny }, pos: null, bucket: 'pet' });
         break;
       case 'dash':
         // Shadow Dash: where it started (the cursor bursts away from there, so the word sits behind it)

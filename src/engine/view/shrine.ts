@@ -9,6 +9,7 @@
 // under the altar: Open, with its gem price: it pays and opens the chest right there (the opening: chest-opening.ts);
 // a Rare chest already waiting opens free first. Short of gems, it shakes and says how many are missing. Gems come
 // only from playing: no timers, no real money.
+import { odds, whole } from '../../core/format';
 import type Phaser from 'phaser';
 import { TIERS, TIER_INFO, tierIndex } from '../../data/rarity';
 import { buyRareChest, chestOdds, pityLeft } from '../../core/chests';
@@ -26,13 +27,8 @@ import { bigButton, countBadge, drawStage, enterK, fillEllipse, infoButton, popK
 type G = Phaser.GameObjects.Graphics;
 type Face = readonly [number, number, number, number];
 
-/** An odds figure: "60%", "8.5%", "0.25%". */
-export function oddsText(x: number): string {
-  const p = x * 100;
-  if (p >= 10) return `${Math.round(p)}%`;
-  if (p >= 1) return `${Math.round(p * 10) / 10}%`;
-  return `${Math.round(p * 100) / 100}%`;
-}
+/** An odds figure: "60%", "8.5%", "0.3%", "<0.1%" (at most one decimal: core/format.ts odds; it printed "0.25%"). */
+export const oddsText = (x: number): string => odds(x);
 
 const SPIRIT = 0xb48ae8;
 const FLAME = [0xd8401c, 0xffb02a, 0xffe070, 0xfff8d0];
@@ -157,7 +153,7 @@ export class ShrineScreen {
     if (!buyRareChest(p, kit.tuning)) {
       this.shakeAt = now;
       kit.app.audio.lockToggle();
-      kit.fx.float(`Need ${cost - p.gems} more`, b.x + b.w / 2, b.y - 7, 0xffb0a0, { life: 1400, icon: 'gem' });
+      kit.fx.float(`Need ${whole(cost - p.gems)} more`, b.x + b.w / 2, b.y - 7, 0xffb0a0, { life: 1400, icon: 'gem' });
       return false;
     }
     kit.commit();
@@ -197,7 +193,7 @@ export class ShrineScreen {
       [
         { text: left.legendary === 1 ? 'A Legendary or better: the next chest!' : `A Legendary or better within ${left.legendary} chests.`, col: mix(LEG_FACE[0], WHITE, 0.2), bold: true },
         { text: left.top === 1 ? 'A Celestial or better: the next chest!' : `A Celestial or better within ${left.top} chests.`, col: mix(CEL_FACE[0], WHITE, 0.1), bold: true },
-        { text: `From chest ${Math.round(t.softPity)} on, Legendary odds rise with every chest.` },
+        { text: `From chest ${whole(t.softPity)} on, Legendary odds rise with every chest.` },
         { text: 'Gems come only from playing.' },
       ],
       now,

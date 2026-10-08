@@ -20,6 +20,7 @@
 // else is drawn in world px less the camera. Everything animates from `now` (deterministic for the screenshot
 // tests): the art was pre-rendered at boot, so a frame only moves images, swaps their frames, and draws a modest
 // number of rects (only for what's in view).
+import { pctOf, whole } from '../../core/format';
 import type Phaser from 'phaser';
 import { regionBadge, regionCompletion } from '../../core/completion';
 import { itemLevel, type Item } from '../../core/gear';
@@ -596,7 +597,7 @@ export class WorldView {
     const region = this.regionInView();
     const name = REGIONS[region].name;
     const c = regionCompletion(P, region);
-    const right = c.done ? iconSize('badge_region')[0] : textWidth(`${c.pct}%`, 1, false);
+    const right = c.done ? iconSize('badge_region')[0] : textWidth(pctOf(c.pct), 1, false);
     const w = textWidth(name, 1, true) + right + 16;
     const s = this.s;
     return { r: { x: s.R - w - 5, y: 5, w, h: 16 }, region, name, pct: c.pct, done: c.done };
@@ -1756,7 +1757,7 @@ export class WorldView {
       if (chip.done) {
         const [, ih] = iconSize('badge_region');
         hudIcon(g, 'badge_region', r.x + 10 + tw, r.y + Math.round((r.h - ih) / 2) + dy, 1, ca);
-      } else this.texts.text(`${chip.pct}%`, r.x + 10 + tw, r.y + r.h / 2 + dy, 0xffe680, { oy: 0.5, alpha: ca });
+      } else this.texts.text(pctOf(chip.pct), r.x + 10 + tw, r.y + r.h / 2 + dy, 0xffe680, { oy: 0.5, alpha: ca });
     }
 
     // a land's first reveal: a card names it as its veil thins away
@@ -1904,13 +1905,13 @@ export class WorldView {
     const rname = REGIONS[region].name;
     const tw = textWidth(rname, 1, true);
     const [bw, bh] = iconSize('badge_region');
-    const rw = comp.done ? bw : textWidth(`${comp.pct}%`, 1, false);
+    const rw = comp.done ? bw : textWidth(pctOf(comp.pct), 1, false);
     const tot = tw + 5 + rw;
     ribbon(g, cx, p.y - 6, Math.max(104, tot + 26), 13, RIBBON.green);
     const tx0 = Math.round(cx - tot / 2);
     T.text(rname, tx0, p.y + 0.5, WHITE, { bold: true, oy: 0.5 });
     if (comp.done) hudIcon(g, 'badge_region', tx0 + tw + 5, Math.round(p.y + 0.5 - bh / 2));
-    else T.text(`${comp.pct}%`, tx0 + tw + 5, p.y + 0.5, 0xfff0a0, { oy: 0.5 });
+    else T.text(pctOf(comp.pct), tx0 + tw + 5, p.y + 0.5, 0xfff0a0, { oy: 0.5 });
     // a small arrow: the ribbon opens the region's progress
     if (app.profile.actsCleared >= 1) chevron(g, tx0 + tot + 4, Math.round(p.y - 2), 5, 0xfff0a0, 0.9, 1);
     // close: a red key with an X
@@ -1982,7 +1983,7 @@ export class WorldView {
       const mx = r.x + 134;
       const lo = itemLevel(run.tuning, gi, 0);
       const hi = itemLevel(run.tuning, gi, act.rows);
-      T.text(`Gear Lv ${lo}-${hi}`, mx, r.y + 7, locked ? 0x8a84a0 : 0xc8c0e8, { oy: 0.5, alpha: a });
+      T.text(`Gear Lv ${whole(lo)}-${whole(hi)}`, mx, r.y + 7, locked ? 0x8a84a0 : 0xc8c0e8, { oy: 0.5, alpha: a });
       const sigs = act.boss.flatMap((b) => SIGNATURES[b] ?? []);
       sigs.forEach((id, j) => {
         const base = BASE_BY_ID[id];

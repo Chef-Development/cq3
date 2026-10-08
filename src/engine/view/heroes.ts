@@ -14,6 +14,7 @@
 // Details live behind a tap, in a Sheet: a kit card (its full line with the numbers, what it does to the bar), the
 // stars (what each gives, the shards), the seals (each goal and what it unlocks for everyone), the level (XP, points)
 // and the name or chips (the bio, the style's rule, the soft strength). Gear is shared by every hero.
+import { pct, signedPct, whole } from '../../core/format';
 import type Phaser from 'phaser';
 import { HERO_IDS, HEROES, type HeroId } from '../../data/heroes';
 import { TIER_INFO } from '../../data/rarity';
@@ -108,7 +109,7 @@ export const FOE_KIND: Record<FoeTag, string> = {
 
 /** A hero's soft strength in plain words ("+20% damage to Folk", "Takes 20% less from Brutes"). */
 export function strengthText(id: HeroId): string {
-  return HEROES[id].strengths.map((s) => (s.kind === 'dmg' ? `+${Math.round(s.n * 100)}% damage to ${FOE_KIND[s.tag]}` : `Takes ${Math.round(s.n * 100)}% less from ${FOE_KIND[s.tag]}`)).join(', ');
+  return HEROES[id].strengths.map((s) => (s.kind === 'dmg' ? `${signedPct(s.n)} damage to ${FOE_KIND[s.tag]}` : `Takes ${pct(s.n)} less from ${FOE_KIND[s.tag]}`)).join(', ');
 }
 
 /** How a hero not met yet joins. */
@@ -550,9 +551,9 @@ export class HeroesScreen {
       title = 'Stars';
       face = [GOLD[4], GOLD[3], GOLD[2], GOLD[1]];
       const rowsDef: Array<[number, string]> = [
-        [2, `+${Math.round(T.star2Atk * 100)}% attack`],
+        [2, `${signedPct(T.star2Atk)} attack`],
         [3, `${def.stars[0].name}: ${def.stars[0].text}`],
-        [4, `+${Math.round(T.star4Hp * 100)}% max HP`],
+        [4, `${signedPct(T.star4Hp)} max HP`],
         [5, `${def.stars[1].name}: ${def.stars[1].text}`],
       ];
       lines = rowsDef.map(([n, text]) => ({ text: `${n}: ${text}`, icon: stars >= n ? 'star_on' : 'star_off', col: stars >= n ? 0xfff0c0 : 0xb8b0d0, bold: stars >= n }));
@@ -568,7 +569,7 @@ export class HeroesScreen {
       title = `Lv ${L.level}`;
       face = [0x9ad8ff, 0x2a62c8, 0x22489c, 0x1a3070];
       lines = [
-        { text: L.need ? `${L.into}/${L.need} XP to Lv ${L.level + 1}` : 'Max level', bold: true, col: 0xc8e0ff },
+        { text: L.need ? `${whole(L.into)}/${whole(L.need)} XP to Lv ${L.level + 1}` : 'Max level', bold: true, col: 0xc8e0ff },
         { text: L.points > 0 ? `${L.points} skill point${L.points > 1 ? 's' : ''} to spend` : 'A skill point every 2 levels', col: L.points > 0 ? GOLD_TXT : 0xd8d0f0, bold: L.points > 0, icon: 'skills' },
         { text: 'Each hero levels up on their own', col: 0xb8b0d0 },
       ];

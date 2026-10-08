@@ -15,6 +15,7 @@
 // hero's arrival (Sable, then Neve: run.campScene); a chest hero's arrival plays after their reveal. While the home
 // sits idle, now and then (every 12-20 s) someone by the fire says a one-line quip in a small speech bubble
 // (src/data/banter.ts: BANTER, and HERO_BANTER once its speakers are at the camp).
+import { signed } from '../../core/format';
 import Phaser from 'phaser';
 import { COMPANIONS, type CompanionId } from '../../data/companions';
 import { HEROES, HERO_IDS, type HeroId } from '../../data/heroes';
@@ -625,7 +626,7 @@ export class CampView {
         this.kit.after(260, () => {
           this.kit.fx.burst(r.x + r.w / 2, r.y + r.h / 2, d > 0 ? [0xfff0a0, 0xffd23a, WHITE, 0x8af06a] : [0xb0a8c8, WHITE], 20, 0.8, { kind: 'star', g: -20, life: 900 });
           this.kit.fx.ring(r.x + r.w / 2, r.y + r.h / 2, 18, d > 0 ? 0xfff0a0 : 0xb0a8c8, 500);
-          this.kit.fx.float(`Gear power ${d > 0 ? '+' : ''}${d}!`, r.x + r.w / 2, r.y - 12, d > 0 ? 0x8af06a : 0xff8a7a, { life: 1800 });
+          this.kit.fx.float(`Gear power ${signed(d)}!`, r.x + r.w / 2, r.y - 12, d > 0 ? 0x8af06a : 0xff8a7a, { life: 1800 });
           if (d > 0) app.audio.coin();
         });
       }

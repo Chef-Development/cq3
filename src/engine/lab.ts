@@ -4,6 +4,7 @@
 // Broken, an optional note); "Copy report" copies every rating and note, the accuracy line and the build. The
 // ratings and the spoiler switch persist in their own key (a reload keeps them). Opened from the title's "Test lab"
 // button and the gear panel's.
+import { secs } from '../core/format';
 import { accuracyCopyLine } from '../core/accuracy';
 import { LAB_RATINGS, RATING_NAME, labMinutes, labProfile, labReport, labVisible, rateScenario, ratingOf, readLabState, staleRating, startLabScenario, type LabRating, type LabState } from '../core/lab';
 import { LAB_EARLIER, LAB_GROUPS, LAB_NEW, type LabScenario } from '../data/lab';
@@ -107,7 +108,7 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
         const b = button(`lab-item${r ? ` r-${r.rating}` : ''}${redo ? ' redo' : ''}${s.spoiler ? ' spoiler' : ''}`, '', () => showStart(s));
         b.dataset.id = s.id;
         b.appendChild(el('span', 'lab-name', s.label));
-        b.appendChild(el('span', 'lab-meta', `${s.secs} s`));
+        b.appendChild(el('span', 'lab-meta', secs(s.secs)));
         b.appendChild(el('span', 'lab-badge', r ? RATING_NAME[r.rating] + (r.note ? ' *' : '') : redo ? 'Reworked' : ''));
         grid.appendChild(b);
       }
@@ -132,7 +133,7 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
     root.classList.remove('over-game');
     const c = card('start');
     c.appendChild(el('div', 'lab-card-title', s.label));
-    c.appendChild(el('div', 'lab-card-meta', `${LAB_GROUPS.find((g) => g.id === s.group)?.name ?? ''} · about ${s.secs} s${s.spoiler ? ' · Spoiler' : ''}`));
+    c.appendChild(el('div', 'lab-card-meta', `${LAB_GROUPS.find((g) => g.id === s.group)?.name ?? ''} · about ${secs(s.secs)}${s.spoiler ? ' · Spoiler' : ''}`));
     c.appendChild(el('div', 'lab-try', s.try));
     c.appendChild(el('div', 'lab-hint', "Tap Done (top) when you've seen enough."));
     const row = el('div', 'lab-row');

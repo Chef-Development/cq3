@@ -7,6 +7,7 @@
 // sparks, the object rising out of the dust, a burst of sparkles, its name; it stands in the camp from then on (the
 // camp draws it: objectAlpha), and tapping it opens its card again.
 // The region progress is a button in the top bar.
+import { whole } from '../../core/format';
 import { HEROES } from '../../data/heroes';
 import { CAMP_UPGRADES, CAMP_UPGRADE_IDS, MASTERY, type CampUpgradeId } from '../../data/meta';
 import { buyCamp, campAvailable, hasCamp } from '../../core/meta';
@@ -157,7 +158,7 @@ export class UpgradesScreen {
   /** The coins (what upgrades cost), top right. */
   private coinsRect(): Rect {
     const kit = this.kit;
-    const w = Math.max(30, textWidth(`${Math.round(kit.coinsShown)}`, 1, true) + 16);
+    const w = Math.max(30, textWidth(whole(kit.coinsShown), 1, true) + 16);
     return { x: kit.s.R - 3 - w, y: 4, w, h: 12 };
   }
 
@@ -219,7 +220,7 @@ export class UpgradesScreen {
     if (!buyCamp(p, id)) {
       this.shakeAt = now;
       kit.app.audio.lockToggle();
-      kit.fx.float(`Need ${CAMP_UPGRADES[id].cost - p.coins} more coins`, b.x + b.w / 2, b.y - 6, 0xffb0a0, { life: 1400 });
+      kit.fx.float(`Need ${whole(CAMP_UPGRADES[id].cost - p.coins)} more coins`, b.x + b.w / 2, b.y - 6, 0xffb0a0, { life: 1400 });
       return;
     }
     kit.commit();

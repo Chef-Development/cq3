@@ -8,6 +8,7 @@ import { HEROES } from '../data/heroes';
 import { MASTERY } from '../data/meta';
 import { eventById } from '../data/events';
 import { BUILD_NAME, PAIR_NAME, RELIC_TAGS, RELICS, relicById, type RelicDef, type RelicId, type RelicRarity, type RelicTag } from '../data/relics';
+import { fillN } from './format';
 import type { Rng } from './rng';
 import type { Tuning } from './tuning';
 
@@ -23,8 +24,7 @@ export const relicNumber = (t: Tuning, id: RelicId): number => t.relics.n[id] ??
 export function relicText(t: Tuning, id: RelicId): string {
   const r = relicById(id);
   if (!r) return '';
-  const n = relicNumber(t, id);
-  return r.text.replace('{n}', `${Math.round(n * 100) / 100}`);
+  return fillN(r.text, relicNumber(t, id));
 }
 
 /** How many owned relics carry each tag. */

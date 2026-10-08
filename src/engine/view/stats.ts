@@ -3,6 +3,7 @@
 // bar of where it comes from (the hero's base, their level, their skills, what this run has added, the gear; a legend
 // at the top right). A tap on a card turns it over: the exact parts. "More stats" opens the other six the same way,
 // and what the tapped one does.
+import { whole } from '../../core/format';
 import type Phaser from 'phaser';
 import { CORE_STATS, STAT_IDS, STAT_INFO, type StatId } from '../../data/gear';
 import { HEROES, type HeroId } from '../../data/heroes';
@@ -258,7 +259,7 @@ export class StatsScreen {
     kit.imgs.scaled(pip, px, Math.round(fy - 24 + Math.sin(now / 300) * 3) - ph * 2, D.icons, 2);
     // the gear power under him (the one number that sums the gear up)
     const gp = equippedItems(kit.profile).reduce((a, i) => a + itemPower(kit.tuning, i), 0);
-    texts.text(`Gear power ${gp}`, fx - 6, fy + 10, 0xfff0c0, { bold: true, ox: 0.5, oy: 0.5 });
+    texts.text(`Gear power ${whole(gp)}`, fx - 6, fy + 10, 0xfff0c0, { bold: true, ox: 0.5, oy: 0.5 });
     // what the bars' colours mean
     const lk = clamp01((since - 300) / 200);
     if (lk > 0 && fy + 22 + 9 <= s.B - 2) this.legend(g, s.L + 8, fy + 22, lk);

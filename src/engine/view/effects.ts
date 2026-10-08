@@ -3,6 +3,7 @@
 // freeze, screen flash). Everything is fire-and-forget; the scene draws it each frame.
 import Phaser from 'phaser';
 import { STAGE_LIGHT } from '../art-stage';
+import { whole } from '../../core/format';
 import { impactFeel, impactWeight, type ImpactFeel, type ImpactTier } from '../../core/impact';
 import type { FightScene } from '../scene';
 import { FONT, FONT_BOLD, fontText, readable, textWidth } from '../font';
@@ -769,7 +770,7 @@ export class Effects {
       if (f.count) {
         f.count.at ??= now;
         const q = Math.min(1, (now - f.count.at) / f.count.dur);
-        f.t.setText(fontText(`${Math.round(f.count.to * ease(q))}`));
+        f.t.setText(fontText(whole(f.count.to * ease(q))));
         if (q >= 1) f.count = undefined;
       }
       const popS = f.pop && age < 90 ? f.scale + 1 : f.scale;

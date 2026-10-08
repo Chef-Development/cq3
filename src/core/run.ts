@@ -24,6 +24,7 @@ import { actXp, addXp, defaultBuild, killXp, type HeroBuild } from './heroes';
 import { actSeed, buildActMap, type ActMap, type MapNode } from './map';
 import { addItem, heroProgress, meetNeve, meetSable, newProfile, profileBuild, profileLoadout, recordAct, recordRegion, unlockedRelics, unlockRelic, type ChestKind, type Profile } from './profile';
 import { claimRegionReward, logBounty, logEvent, logTreasure } from './completion';
+import { hpNow, mult, one, signed, signedPct, whole } from './format';
 import { awardGems, bump, checkAchievements, checkMastery, hasCamp, type FeatCtx } from './meta';
 import { addPetXp, ownedHeroes } from './roster';
 import type { AchievementDef, MasteryDef } from '../data/meta';
@@ -95,8 +96,6 @@ export function rarityMult(t: Tuning, r: Rarity): number {
   return r === 'epic' ? t.boosts.epicMult : r === 'rare' ? t.boosts.rareMult : 1;
 }
 
-const round1 = (v: number) => Math.round(v * 10) / 10;
-
 /** Max HP a Full Heal card adds on top of the heal (rare and epic only). */
 const healBonusHp = (t: Tuning, r: Rarity) => Math.round(t.boosts.maxHp * (rarityMult(t, r) - 1) * 0.5);
 
@@ -107,19 +106,19 @@ export function boostLabel(t: Tuning, o: BoostOffer): [string, string] {
     case 'relic':
       return [relicById(o.relic ?? '')?.name ?? 'Relic', ''];
     case 'maxHp':
-      return ['Max HP', `+${Math.round(b.maxHp * m)}`];
+      return ['Max HP', signed(b.maxHp * m)];
     case 'damage':
-      return ['Damage', `+${Math.round(b.damage * m * 100)}%`];
+      return ['Damage', signedPct(b.damage * m)];
     case 'crit':
-      return ['Crit Chance', `+${Math.round(b.crit * m * 100)}%`];
+      return ['Crit Chance', signedPct(b.crit * m)];
     case 'critDmg':
-      return ['Crit Damage', `+${round1(b.critDmg * m)}x`];
+      return ['Crit Damage', `${signed(b.critDmg * m, one)}x`];
     case 'comboPower':
-      return ['Combo Power', `+${round1(b.comboPower * m)}`];
+      return ['Combo Power', signed(b.comboPower * m, one)];
     case 'pet':
-      return ['Companion Power', `+${Math.round(b.pet * m)}`];
+      return ['Companion Power', signed(b.pet * m)];
     case 'heal':
-      return ['Full Heal', o.rarity === 'common' ? 'HP to max' : `+${healBonusHp(t, o.rarity)} max HP`];
+      return ['Full Heal', o.rarity === 'common' ? 'HP to max' : `${signed(healBonusHp(t, o.rarity))} max HP`];
   }
 }
 
@@ -165,13 +164,12 @@ export interface BoostPreview {
   after: string;
 }
 
-/** Whole numbers, unless that would hide the change (then one decimal). */
-function pair(a: number, b: number, fmt: (v: string) => string = (v) => v): [string, string] {
-  const r0 = Math.round(a);
-  const r1 = Math.round(b);
-  if (r0 !== r1 || Math.abs(b - a) < 1e-9) return [fmt(`${r0}`), fmt(`${r1}`)];
-  const d = (v: number) => `${Math.round(v * 10) / 10}`;
-  return [fmt(d(a)), fmt(d(b))];
+/** Whole numbers, unless that would hide the change (then one decimal; never for HP: `wholeOnly`). (core/format.ts) */
+function pair(a: number, b: number, fmt: (v: string) => string = (v) => v, wholeOnly = false): [string, string] {
+  const r0 = whole(a);
+  const r1 = whole(b);
+  if (wholeOnly || r0 !== r1 || Math.abs(b - a) < 1e-9) return [fmt(r0), fmt(r1)];
+  return [fmt(one(a)), fmt(one(b))];
 }
 
 /**
@@ -183,12 +181,11 @@ export function boostPreview(t: Tuning, hero: Hero, offer: BoostOffer): BoostPre
   applyBoost(t, after, offer);
   const s0 = heroStats(t, hero);
   const s1 = heroStats(t, after);
-  const one = (v: number) => `${Math.round(v * 10) / 10}`;
   switch (offer.id) {
     case 'relic':
       return { stat: '', before: '', after: '' }; // a relic changes a rule, not a stat (the card shows its text)
     case 'maxHp': {
-      const [a, b] = pair(s0.hp, s1.hp);
+      const [a, b] = pair(s0.hp, s1.hp, undefined, true);
       return { stat: 'Max HP', before: a, after: b };
     }
     case 'damage': {
@@ -200,7 +197,7 @@ export function boostPreview(t: Tuning, hero: Hero, offer: BoostOffer): BoostPre
       return { stat: 'Crit', before: a, after: b };
     }
     case 'critDmg':
-      return { stat: 'Crit dmg', before: `x${s0.critDmg.toFixed(1)}`, after: `x${s1.critDmg.toFixed(1)}` };
+      return { stat: 'Crit dmg', before: mult(s0.critDmg), after: mult(s1.critDmg) };
     case 'comboPower':
       return { stat: 'Combo', before: one(s0.comboPower), after: one(s1.comboPower) };
     case 'pet': {
@@ -208,7 +205,8 @@ export function boostPreview(t: Tuning, hero: Hero, offer: BoostOffer): BoostPre
       return { stat: 'Companion', before: a, after: b };
     }
     case 'heal':
-      return { stat: 'HP', before: `${hero.hp}`, after: `${after.hp}` };
+      // (HP is fractional inside: "61.0004 -> 137" was the playtester's "massive floating point numbers")
+      return { stat: 'HP', before: hpNow(hero.hp, s0.hp), after: hpNow(after.hp, s1.hp) };
   }
 }
 
@@ -235,7 +233,7 @@ export function skillStatPreview(t: Tuning, hero: Hero, nodeId: string): BoostPr
       return { stat: 'Crit', before: a, after: b };
     }
     case 'hpPct': {
-      const [a, b] = pair(s0.hp, s1.hp);
+      const [a, b] = pair(s0.hp, s1.hp, undefined, true);
       return { stat: 'Max HP', before: a, after: b };
     }
     case 'def': {
@@ -247,7 +245,7 @@ export function skillStatPreview(t: Tuning, hero: Hero, nodeId: string): BoostPr
       return { stat: 'Meter', before: a, after: b };
     }
     case 'comboPower':
-      return { stat: 'Combo', before: `${Math.round(s0.comboPower * 10) / 10}`, after: `${Math.round(s1.comboPower * 10) / 10}` };
+      return { stat: 'Combo', before: one(s0.comboPower), after: one(s1.comboPower) };
   }
 }
 

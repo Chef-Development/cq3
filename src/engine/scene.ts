@@ -3,6 +3,7 @@
 // effects (particles, text, camera), bar (timing bar), hud (stats, meter, rewards) and overlays (menus).
 // This file owns the layout, the layers, the animation clock, and routes core events to those modules.
 import Phaser from 'phaser';
+import { signed, whole } from '../core/format';
 import type { Combat, CombatEvent } from '../core/combat';
 import { heroDef } from '../data/heroes';
 import type { Phase } from '../core/run';
@@ -464,7 +465,7 @@ export class FightScene extends Phaser.Scene implements View {
             h.hurtUntil = this.anim + 220;
             h.flashUntil = this.anim + J.flashMs * 1.5;
             h.flashColor = 0xff3030;
-            if (e.damage > 0 || this.app.settings.godMode) fx.floatNum(h.x, this.ground - 40, `${e.damage}`, 0xff4a4a, 1);
+            if (e.damage > 0 || this.app.settings.godMode) fx.floatNum(h.x, this.ground - 40, whole(e.damage), 0xff4a4a, 1);
             fx.burst(h.x + 4, this.ground - 16, 0xff5a5a, e.source === 'miss' ? 3 : 10, true);
             fx.shake(e.source === 'miss' ? J.shakeMinPx : J.shakeMaxPx, J.shakeMs);
           });
@@ -677,7 +678,7 @@ export class FightScene extends Phaser.Scene implements View {
         case 'enemyHeal': {
           const v = f.enemies.get(e.enemyId);
           if (v) {
-            fx.floatNum(v.x, v.y - v.img.displayHeight - 6, `+${e.amount}`, 0x9af06a, 1);
+            fx.floatNum(v.x, v.y - v.img.displayHeight - 6, signed(e.amount), 0x9af06a, 1);
             fx.burst(v.x, v.y - v.img.displayHeight / 2, 0x9af06a, 8, true, 0.8);
           }
           break;
@@ -737,7 +738,7 @@ export class FightScene extends Phaser.Scene implements View {
           if (c.rush) {
             hold = Math.max(hold, 1700);
             this.overlays.showBanner("TIME'S UP!");
-            fx.iconFloat(GAME_W / 2 + 40, this.ground - 52, `+${c.rushCoins}`, 0xffe066, 'coin');
+            fx.iconFloat(GAME_W / 2 + 40, this.ground - 52, signed(c.rushCoins), 0xffe066, 'coin');
             this.app.audio.rareSting(true);
           }
           break;

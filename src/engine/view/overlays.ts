@@ -4,6 +4,7 @@
 // the fight banner, and the screen flash. Panels pop in with a little overshoot; cards and buttons stagger in.
 // Also the small UI glyphs the menus share (bag, heart, coin, warning, tent, tick, padlock, target, arrow).
 import Phaser from 'phaser';
+import { pct, signed, whole } from '../../core/format';
 import { heroMaxHp } from '../../core/combat';
 import { relicById, type RelicId, type RelicTag } from '../../data/relics';
 import { heroProgress, progressLabel, WEIGHTS_TOTAL } from '../../core/profile';
@@ -282,7 +283,7 @@ export class Overlays {
     const coins = s.app.run.treasure?.coins ?? 0;
     const x = this.chest?.x ?? 0;
     s.hud.dropCoins(x, s.ground - 20, coins);
-    s.fx.iconFloat(x + 18, s.ground - 44, `+${coins}`, 0xffe066, 'coin');
+    s.fx.iconFloat(x + 18, s.ground - 44, signed(coins), 0xffe066, 'coin');
     s.later(900, () => {
       if (s.app.run.phase === 'treasure') s.app.setPhase(() => s.app.run.openTreasure());
     });
@@ -1190,7 +1191,7 @@ export class Overlays {
       const e = run.actAccuracy;
       const [gw] = glyphSize('target');
       const count = clamp01((s.anim - this.accAt - Overlays.CLEAR_ACC_MS - 80) / 600);
-      const full = e ? `${Math.round(e.acc * 100)}%` : '';
+      const full = e ? pct(e.acc) : '';
       const label = e ? 'accuracy' : 'Accuracy: not yet';
       const w = gw + 3 + (e ? textWidth(full, 1, true) + 3 : 0) + textWidth(label, 1, false) + 6;
       const r: Rect = { x: s.L + 4, y: 4 - Math.round((1 - ak) * 4), w, h: 11 };
@@ -1200,7 +1201,7 @@ export class Overlays {
       x += gw + 3;
       if (e) {
         const done = count >= 1;
-        this.texts.text(`${Math.round(e.acc * 100 * easeOut3(count))}%`, x, r.y + 5.5, done ? 0xffe066 : WHITE, { bold: true, oy: 0.5, alpha: ak });
+        this.texts.text(pct(e.acc * easeOut3(count)), x, r.y + 5.5, done ? 0xffe066 : WHITE, { bold: true, oy: 0.5, alpha: ak });
         x += textWidth(full, 1, true) + 3;
       }
       this.texts.text(label, x, r.y + 6, 0xb0a8cc, { oy: 0.5, alpha: ak });
@@ -1248,7 +1249,7 @@ export class Overlays {
     const max = heroMaxHp(run.tuning, H);
     const dy = Math.round((1 - easeBack((now - this.phaseAt - 80) / 300, 1.4)) * 30);
     const y = s.splitY + 9 + dy;
-    const coins = `${s.hud.coinsShown}`;
+    const coins = whole(s.hud.coinsShown);
     const cw = textWidth(coins, 1, true) + 15;
     const total = 16 + 104 + 8 + cw + 6 + 20;
     let x = Math.round((s.L + s.R) / 2 - total / 2);
@@ -1490,8 +1491,8 @@ export class Overlays {
     if (this.coinTickShown >= 0 && shown > this.coinTickShown) app.audio.coinTick(Math.min(12, Math.round(ck * 12)));
     const coinPop = this.coinTickShown >= 0 && shown > this.coinTickShown;
     this.coinTickShown = shown;
-    const coins = `${shown}`;
-    const cw = textWidth(`${coinsNow}`, 1, true) + 15;
+    const coins = whole(shown);
+    const cw = textWidth(whole(coinsNow), 1, true) + 15;
     const lv = `Lv ${lp.level}`;
     const lw = textWidth(lv, 1, true) + 8;
     const gw = 100;
@@ -1509,7 +1510,7 @@ export class Overlays {
     const frac = lp.need > 0 ? lp.into / lp.need : 1;
     gauge(gc, x, y + 1, gw, 8, frac, frac, { ramp: [0xd0f8ff, 0x5ad0f0, 0x2a8ac8, 0x1a4a8a], seg: 10, glow: upK >= 0 && upK < 1 ? 1 - upK : 0 });
     const gain = app.run.actXpGained;
-    const label = lp.need > 0 ? (gain > 0 ? `+${Math.round(gain * k)} XP` : `${lp.into}/${lp.need} XP`) : 'Max level';
+    const label = lp.need > 0 ? (gain > 0 ? `+${whole(gain * k)} XP` : `${whole(lp.into)}/${whole(lp.need)} XP`) : 'Max level';
     this.texts.text(label, x + gw / 2, y + 5, k > 0 && k < 1 ? 0xe0f6ff : WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     if (leveled && !this.unlockActive()) {
       // "Level up!" pops out over the level chip and stays while the screen is up (hidden while a "New relic

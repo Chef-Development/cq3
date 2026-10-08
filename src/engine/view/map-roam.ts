@@ -4,6 +4,7 @@
 // the hero's walk. The secret cache beside its node (a mossy boulder: shown when its node is in reach, its crack lit
 // and tappable while the hero stands there). The bounty's tracker: a tiny plate beside the act's (the goal's icon and
 // "12/25", a tick once met). Everything animates from `now` (the walk from performance.now()), like the map.
+import { whole } from '../../core/format';
 import Phaser from 'phaser';
 import { questById } from '../../data/quests';
 import type { MapNode } from '../../core/map';
@@ -200,7 +201,7 @@ export class MapRoam {
     const q = run.quest;
     if (!q) return null;
     const [iw] = iconSize(questById(q.id)?.icon ?? 'star');
-    const w = 4 + iw + 3 + (q.done ? glyphSize('check')[0] : textWidth(`${q.n}/${q.goal}`, 1, true)) + 6;
+    const w = 4 + iw + 3 + (q.done ? glyphSize('check')[0] : textWidth(`${whole(q.n)}/${whole(q.goal)}`, 1, true)) + 6;
     return { x: this.host.coinPlate().x - w - 3, y: 3, w, h: 16 };
   }
 
@@ -430,7 +431,7 @@ export class MapRoam {
     hudIcon(g, icon, r.x + 4, r.y + Math.round((r.h - ih) / 2));
     const tx = r.x + 4 + iw + 3;
     if (q.done) glyph(g, 'check', tx, r.y + Math.round((r.h - glyphSize('check')[1]) / 2));
-    else this.texts.text(`${q.n}/${q.goal}`, tx, r.y + r.h / 2 + 0.5, q.n > 0 ? 0xffe680 : 0xe8e0f4, { bold: true, oy: 0.5 });
+    else this.texts.text(`${whole(q.n)}/${whole(q.goal)}`, tx, r.y + r.h / 2 + 0.5, q.n > 0 ? 0xffe680 : 0xe8e0f4, { bold: true, oy: 0.5 });
   }
 
   // ------------------------------------------------------------------ helpers

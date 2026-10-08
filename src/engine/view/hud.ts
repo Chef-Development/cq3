@@ -10,6 +10,7 @@
 // little overshoot when a fight starts.
 import Phaser from 'phaser';
 import { heroStats, type Combat } from '../../core/combat';
+import { compact, hpNow as fmtHp, mult, one, whole } from '../../core/format';
 import { fmtStatShort, type StatBlock } from '../../core/gear';
 import { STAT_IDS, STAT_INFO, type StatId } from '../../data/gear';
 import type { RelicId } from '../../data/relics';
@@ -29,8 +30,6 @@ import { pix } from './camp-kit';
 
 type G = Phaser.GameObjects.Graphics;
 
-/** 17062 -> "17.1k" (rounded up, so a foe never reads as dead early). */
-const kNum = (n: number): string => (n < 10000 ? `${n}` : n < 100000 ? `${Math.ceil(n / 100) / 10}k` : `${Math.ceil(n / 1000)}k`);
 
 /** The fight's foe counter: foes beaten so far and every foe in its waves. */
 const foeCount = (c: Combat): { beaten: number; total: number } => ({ beaten: c.foesBeaten, total: c.foesTotal });
@@ -309,7 +308,7 @@ export class Hud {
     const out = clamp01((age - (life - 300)) / 300);
     const a = 1 - out;
     // (HP is fractional inside: a heal that topped it up can be a sliver; show whole HP)
-    const txt = `+${Math.max(1, Math.round(h.sum))}`;
+    const txt = `+${whole(Math.max(1, h.sum))}`;
     const right = plate.x + plate.w - 1;
     const y = plate.y + plate.h + 6 + bump - Math.round(out * 3);
     const tw = textWidth(txt, 1, true);
@@ -538,7 +537,7 @@ export class Hud {
     const s = this.s;
     const S = s.app.settings;
     const d = s.app.lastTap;
-    s.setText('debug', d ? `TAP ${d.outcome} ${d.cursorPos.toFixed(3)}  CAL ${S.calibrationMs}MS` : `CAL ${S.calibrationMs}MS`, GAME_W / 2, s.splitY - 9, 0xc8c8d4, 1, 0.5, 0, s.app.panelOpen && s.fightHud());
+    s.setText('debug', d ? `TAP ${d.outcome} ${one(d.cursorPos * 100)}%  CAL ${whole(S.calibrationMs)}MS` : `CAL ${whole(S.calibrationMs)}MS`, GAME_W / 2, s.splitY - 9, 0xc8c8d4, 1, 0.5, 0, s.app.panelOpen && s.fightHud());
     if (!s.fightHud()) return;
     const txt = s.txt;
     for (const k of ['level', 'heroHp', 'coins', 'ability', 'enemyName', 'enemyHp', 'combo', 'comboLabel', 'speed', 'tier', 'meterLabel']) txt[k]?.setVisible(false);
@@ -604,7 +603,7 @@ export class Hud {
     const hpK = (now - Math.max(this.hpPopAt, this.hpPulseAt)) / 160;
     const hpBump = hpK >= 0 && hpK < 1 ? -Math.round(2 * (1 - hpK)) : 0;
     const hpCol = this.hpPulseAt > now - 300 ? 0xc8ff9a : hpK >= 0 && hpK < 0.5 ? 0xfff6c0 : WHITE;
-    this.texts.text(`${Math.ceil(this.hpNum)}/${maxHp}`, gx + 38, gy + 4 + hpBump, hpCol, { bold: true, ox: 0.5, oy: 0.5 });
+    this.texts.text(`${fmtHp(this.hpNum)}/${whole(maxHp)}`, gx + 38, gy + 4 + hpBump, hpCol, { bold: true, ox: 0.5, oy: 0.5 });
     this.drawHeal(g, plate, now);
 
     // the Tusk Crown's crit buff: a gold timer along the plate's bottom edge
@@ -656,7 +655,7 @@ export class Hud {
     tag(g, cr, [NAVY[5], NAVY[3], NAVY[2], NAVY[1]], 0.94);
     if (cpop) glow(g, cr, 0xffe680, 0.7 * (1 - ck), 2);
     hudIcon(g, 'coin', cr.x + 1, cr.y + 0 - (cpop ? Math.round(2 * Math.sin(ck * Math.PI)) : 0));
-    this.texts.text(`${coins}`, cr.x + 11, cr.y + 5, cpop && ck < 0.5 ? WHITE : 0xffe680, { bold: true, oy: 0.5 });
+    this.texts.text(whole(coins), cr.x + 11, cr.y + 5, cpop && ck < 0.5 ? WHITE : 0xffe680, { bold: true, oy: 0.5 });
     const [pw] = iconSize('potionS');
     const rr: Rect = { x: cr.x + cr.w + 3, y: cr.y, w: pw + 4, h: 10 };
     const lit = H.revives > 0;
@@ -681,7 +680,7 @@ export class Hud {
 
   /** The coin chip under the HP plate, right of the portrait (the coins fly into it). */
   private coinChip(X: number, coins: number): Rect {
-    return { x: X + 27, y: CHIP_Y, w: 13 + textWidth(`${coins}`, 1, true), h: 10 };
+    return { x: X + 27, y: CHIP_Y, w: 13 + textWidth(whole(coins), 1, true), h: 10 };
   }
 
   /**
@@ -787,7 +786,7 @@ export class Hud {
       const urgent = left < 3 && left > 0 && Math.floor(now / 160) % 2 === 0;
       gauge(g, gx, gy, 76, 8, share, share, { ramp: urgent ? RAMP.foe : RAMP.gold, mirror: true, seg: Math.max(1, Math.round(c.rush)) });
       hudIcon(g, 'clock', gx + 21, gy - 1);
-      this.texts.text(`${Math.ceil(left)}`, gx + 32, gy + 4, urgent ? 0xfff0c0 : WHITE, { bold: true, oy: 0.5 });
+      this.texts.text(whole(Math.ceil(left)), gx + 32, gy + 4, urgent ? 0xfff0c0 : WHITE, { bold: true, oy: 0.5 });
       this.texts.text(def.name, gx, y0 + 18, 0xffe680, { bold: true, oy: 0.5 });
       const b: Rect = { x: X - 22, y: y0, w: 22, h: 22 };
       this.badge(g, b, [0xfff0a0, 0xf2c230, 0x9a5a14], [0x6a4a10, 0x3a2408]);
@@ -801,8 +800,8 @@ export class Hud {
     if (Math.ceil(this.foeNum) !== prevNum) this.foeNumPopAt = now;
     const pk = (now - this.foeNumPopAt) / 140;
     // big numbers (late bosses) shorten to "17.1k" so the readout stays bold and inside the gauge
-    const full = `${Math.ceil(this.foeNum)}/${target.maxHp}`;
-    const hpText = textWidth(full, 1, true) <= 72 ? full : `${kNum(Math.ceil(this.foeNum))}/${kNum(target.maxHp)}`;
+    const full = `${fmtHp(this.foeNum)}/${whole(target.maxHp)}`;
+    const hpText = textWidth(full, 1, true) <= 72 ? full : `${compact(this.foeNum)}/${compact(target.maxHp)}`;
     this.texts.text(hpText, gx + 38, gy + 4 - (pk >= 0 && pk < 1 ? Math.round(1.5 * (1 - pk)) : 0), pk >= 0 && pk < 0.4 ? 0xfff0c0 : WHITE, { bold: textWidth(hpText, 1, true) <= 74, ox: 0.5, oy: 0.5 });
 
     // row 2: the name (rank-colored), bold when it fits, the whole width of the plate
@@ -949,7 +948,7 @@ export class Hud {
     const tier = tierOf(n);
     const hue = TIER_HUE[tier];
     const rainbow = tier === 4 ? RAINBOW[Math.floor(now / 80) % 6] : hue;
-    const num = `${n}`;
+    const num = whole(n);
     const nw = textWidth(num, 2, true);
     // (the bar's callouts keep clear of it: the number, the label, the progress bar and the next milestone)
     this.comboRect = { x: x - 3, y: y - 20, w: nw + 52, h: 20 };
@@ -988,14 +987,14 @@ export class Hud {
         g.fillStyle(WHITE, 0.6);
         g.fillRect(lx, by, fw, 1);
       }
-      if (next) this.texts.text(`${next}`, lx + bw + 2, by + 1, 0x9a94b0, { oy: 0.5 });
+      if (next) this.texts.text(whole(next), lx + bw + 2, by + 1, 0x9a94b0, { oy: 0.5 });
     }
     // the stamp lands just after the swell (one beat, then the other: never on top of each other)
     if (live && fl.stamp && ft >= STAMP_DELAY) this.drawStamp(g, x + Math.round((nw + 34) / 2), y - 18, ft - STAMP_DELAY, fl.n);
     // combo tiers (a setting): the damage multiplier they give
     if (s.app.settings.comboTiers) {
       const tm = n >= T.tiers.t3 ? T.tiers.m3 : n >= T.tiers.t2 ? T.tiers.m2 : n >= T.tiers.t1 ? T.tiers.m1 : 1;
-      if (tm > 1 && !(live && fl.stamp)) this.texts.text(`DMG x${tm}`, x, y - 26, 0xffd23a, { alpha });
+      if (tm > 1 && !(live && fl.stamp)) this.texts.text(`DMG ${mult(tm)}`, x, y - 26, 0xffd23a, { alpha });
     }
   }
 

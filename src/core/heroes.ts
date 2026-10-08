@@ -6,6 +6,7 @@
 import { HERO_IDS, HEROES, type HeroId } from '../data/heroes';
 import { STYLES } from '../data/styles';
 import { SKILL_TREES, skillById, type SkillBranch, type SkillNode, type SkillStat } from '../data/skills';
+import { fillN, one, pctOf, signed } from './format';
 import type { PetBuild } from './roster';
 import type { Tuning } from './tuning';
 
@@ -165,8 +166,7 @@ export const skillN = (t: Tuning, id: string): number => t.skills.n[id] ?? skill
 
 /** A node's text with its number filled in. */
 export function skillText(t: Tuning, node: SkillNode, text = node.text): string {
-  const n = skillN(t, node.id);
-  return text.replace('{n}', `${Math.round(n * 100) / 100}`);
+  return fillN(text, skillN(t, node.id));
 }
 
 // ---------------------------------------------------------------- what level and skills add
@@ -231,8 +231,8 @@ export function skillPreview(t: Tuning, node: SkillNode): { stat: string; delta:
   if (node.kind === 'stat' && node.stat) {
     const n = skillN(t, node.id);
     const name: Record<SkillStat, string> = { atkPct: 'ATK', critChance: 'Crit', hpPct: 'Max HP', def: 'DEF', meterGain: 'Meter', comboPower: 'Combo' };
-    const pct = node.stat === 'def' || node.stat === 'comboPower' ? '' : '%';
-    return { stat: name[node.stat], delta: `+${Math.round(n * 100) / 100}${pct}` };
+    const flat = node.stat === 'def' || node.stat === 'comboPower';
+    return { stat: name[node.stat], delta: flat ? signed(n, one) : signed(n, pctOf) };
   }
   return { before: skillText(t, node, node.before ?? ''), after: skillText(t, node, node.after ?? node.text) };
 }
@@ -274,7 +274,7 @@ export function kitN(t: Tuning, id: HeroId, which: KitWhich): number {
 export function kitText(t: Tuning, id: HeroId, which: KitWhich): string {
   const part = HEROES[id]?.[which];
   if (!part) return '';
-  return part.text.replace('{n}', `${Math.round(kitN(t, id, which) * 100) / 100}`);
+  return fillN(part.text, kitN(t, id, which));
 }
 
 /** A style's shared rule with its number filled in. */
@@ -282,5 +282,5 @@ export function styleText(t: Tuning, id: HeroId): string {
   const st = STYLES[HEROES[id].style];
   const S = t.styles;
   const n: Record<string, number> = { blade: S.bladeFill * 100, shadow: S.chainStep * 100, brute: S.heavyMult };
-  return st.rule.text.replace('{n}', `${Math.round((n[HEROES[id].style] ?? 0) * 100) / 100}`);
+  return fillN(st.rule.text, n[HEROES[id].style] ?? 0);
 }

@@ -14,6 +14,7 @@
 import Phaser from 'phaser';
 import { isAshArtKey } from '../art-ash';
 import { rimMask, STAGE_LIGHT } from '../art-stage';
+import { whole } from '../../core/format';
 import type { Combat } from '../../core/combat';
 import { COMPANIONS, type CompanionId } from '../../data/companions';
 import { heroDef, type AllyKind, type HeroId } from '../../data/heroes';
@@ -472,7 +473,7 @@ export class Fighters {
           F.sparks.push({ x: tx, y: ty, at: s.anim, size: 11, color: 0x9ad8ff });
           F.burst(tx, ty, 0x9ad8ff, 8, true, 1.2, true);
           F.glow(tx, ty, 12, 0x9ad8ff, 160);
-          F.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, `${amount}`, 0x9ad8ff, 2);
+          F.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, whole(amount), 0x9ad8ff, 2);
           audio.hit(0, false);
         });
         this.gearName(fx, name);
@@ -556,7 +557,7 @@ export class Fighters {
     v.numLevel = recent ? (v.numLevel + 1) % 3 : 0;
     v.numAt = s.anim;
     // (a Coin Rush counts coins, not damage: the coins float up instead, from onsite.coins)
-    if (damage > 0 && !s.app.run.combat?.rush) fx.floatNum(v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2), v.y - v.img.displayHeight - 10 - v.numLevel * 11, `${damage}`, col, numScale);
+    if (damage > 0 && !s.app.run.combat?.rush) fx.floatNum(v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2), v.y - v.img.displayHeight - 10 - v.numLevel * 11, whole(damage), col, numScale);
     const tier = combo >= 50 ? 3 : combo >= 25 ? 2 : combo >= 10 ? 1 : 0;
     const slashCol = crit ? 0xffd23a : comboSlashCol(combo);
     // a weapon better than Common slashes in its rarity's colours (the combo's heat still shows in the inner band)
@@ -779,7 +780,7 @@ export class Fighters {
         F.burst(tx, ty, col, Math.round(8 * pw), true, 1.2, true);
         F.glow(tx, ty, 12 * pw, col, 160);
         // (an ally's jabs come often: small numbers, unless it hits hard)
-        F.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, `${amount}`, mixWhite(col), ally && pw < 1.4 ? 1 : 2);
+        F.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, whole(amount), mixWhite(col), ally && pw < 1.4 ? 1 : 2);
         s.app.audio.hit(0, false);
       });
       if (this.perkLabel(id)) s.app.audio.gearProc(0.5);
@@ -809,7 +810,7 @@ export class Fighters {
     const h = this.h;
     h.flashUntil = s.anim + 120;
     h.flashColor = 0xc070ff;
-    if (damage > 0) s.fx.floatNum(h.x, s.ground - 40, `-${damage}`, 0xd890ff, 1);
+    if (damage > 0) s.fx.floatNum(h.x, s.ground - 40, `-${whole(damage)}`, 0xd890ff, 1);
     s.fx.burst(h.x + 4, s.ground - 16, 0xc070ff, 6, true, 0.8);
     this.perkLabel(id);
   }
@@ -926,7 +927,7 @@ export class Fighters {
       const cy = u.y - u.img.displayHeight / 2;
       u.flashUntil = s.anim + 50;
       u.knockUntil = s.anim + 60;
-      s.fx.floatNum(u.x + rand(-4, 4), u.y - u.img.displayHeight - 8, `${damage}`, crit ? 0xffb020 : fire ? 0xffc060 : 0x6aff5a, crit ? 2 : 1);
+      s.fx.floatNum(u.x + rand(-4, 4), u.y - u.img.displayHeight - 8, whole(damage), crit ? 0xffb020 : fire ? 0xffc060 : 0x6aff5a, crit ? 2 : 1);
       s.fx.burst(u.x - 6, cy, fire ? 0xff8a2a : crit ? 0xffe070 : 0xb8e4ff, crit ? 14 : 8, true, 1, true);
       if (crit) s.fx.stars.push({ x: u.x - 4, y: cy, at: s.anim, r: 16, color: 0xfff07a });
     };

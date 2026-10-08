@@ -7,6 +7,7 @@
 //            stats like a slot machine and lands on its new roll.
 //   Salvage  melt this item into scrap (a second tap confirms; never locked or worn items), or melt every unlocked,
 //            unworn Common and Uncommon at once (the count and the scrap are shown first; a second tap confirms).
+import { one, signed, whole } from '../../core/format';
 import type Phaser from 'phaser';
 import { BASE_BY_ID, RARITY_INFO, STAT_IDS, STAT_INFO, type StatId } from '../../data/gear';
 import { baseStats, bonusValue, fmtStat, fmtStatShort, itemPower, rerollCost, salvageValue, upgradeCost, type BonusRoll, type Item } from '../../core/gear';
@@ -309,8 +310,8 @@ export class ForgeScreen {
   private spend(scrap: number, coins: number): void {
     const kit = this.kit;
     const tags = kit.purseRects(kit.s.R - 3, 3);
-    if (scrap) kit.fx.float(`-${scrap}`, tags.scrap.x + tags.scrap.w / 2, tags.scrap.y + 17, RED, { icon: 'scrap', life: 1000, rise: -8 });
-    if (coins) kit.fx.float(`-${coins}`, tags.coins.x + tags.coins.w / 2, tags.coins.y + 17, RED, { icon: 'coin', life: 1000, rise: -8 });
+    if (scrap) kit.fx.float(`-${whole(scrap)}`, tags.scrap.x + tags.scrap.w / 2, tags.scrap.y + 17, RED, { icon: 'scrap', life: 1000, rise: -8 });
+    if (coins) kit.fx.float(`-${whole(coins)}`, tags.coins.x + tags.coins.w / 2, tags.coins.y + 17, RED, { icon: 'coin', life: 1000, rise: -8 });
   }
 
   private doReroll(it: Item, now: number): void {
@@ -322,7 +323,7 @@ export class ForgeScreen {
     if (this.line < 0 || !it.bonus[this.line]) return this.shake('main', now, 'Tap a line to pick it first', GOLD_TXT);
     if (this.spin && now - this.spin.at < 700) return;
     const cost = rerollCost(t, it);
-    if (p.coins < cost) return this.shake('main', now, `Need ${cost - p.coins} more coins`);
+    if (p.coins < cost) return this.shake('main', now, `Need ${whole(cost - p.coins)} more coins`);
     const from = { ...it.bonus[this.line] };
     if (reroll(p, t, it.uid, this.line, this.rng) !== 'ok') return this.shake('main', now, 'No other stat to roll');
     kit.commit();
@@ -376,7 +377,7 @@ export class ForgeScreen {
       kit.app.audio.salvage();
       this.melt(c, rarityFace(it.rarity), v, 1);
     });
-    kit.after(450, () => kit.toast({ title: 'Melted!', ribbon: RIBBON.red, lines: [{ label: 'Scrap', from: `${p.scrap - v}`, to: `${p.scrap}`, good: true }], ...this.toastAt() }));
+    kit.after(450, () => kit.toast({ title: 'Melted!', ribbon: RIBBON.red, lines: [{ label: 'Scrap', from: whole(p.scrap - v), to: whole(p.scrap), good: true }], ...this.toastAt() }));
   }
 
   private shakeAt(key: string, now: number, msg: string, r: Rect): void {
@@ -404,7 +405,7 @@ export class ForgeScreen {
         delay: 80 + i * 20,
         done: i === n - 1 ? () => kit.app.audio.coin() : undefined,
       });
-    kit.fx.float(`+${scrap}`, tags.scrap.x + tags.scrap.w / 2, tags.scrap.y + 17, GREEN, { icon: 'scrap', life: 1400, delay: 500, rise: -8 });
+    kit.fx.float(signed(scrap), tags.scrap.x + tags.scrap.w / 2, tags.scrap.y + 17, GREEN, { icon: 'scrap', life: 1400, delay: 500, rise: -8 });
   }
 
   /** The unlocked, unworn Common and Uncommon items (what "Salvage all" would melt), and their scrap. */
@@ -443,7 +444,7 @@ export class ForgeScreen {
         ribbon: RIBBON.red,
         lines: [
           { label: 'Items', from: `${r.count + p.items.length}`, to: `${p.items.length}`, good: null },
-          { label: 'Scrap', from: `${p.scrap - r.scrap}`, to: `${p.scrap}`, good: true },
+          { label: 'Scrap', from: whole(p.scrap - r.scrap), to: whole(p.scrap), good: true },
         ],
         ...this.toastAt(),
       }),
@@ -657,7 +658,7 @@ export class ForgeScreen {
     const pa = itemPower(t, shown);
     const pb = max ? pa : itemPower(t, { ...it, plus: plus + 1 });
     texts.text('Power', ix, y, 0xc8c0e8, { oy: 0.5 });
-    texts.text(max ? `${pa}` : `${pa} > ${pb}`, ix + iw, y, max ? WHITE : 0xd8ffc0, { bold: true, ox: 1, oy: 0.5 });
+    texts.text(max ? whole(pa) : `${whole(pa)} > ${whole(pb)}`, ix + iw, y, max ? WHITE : 0xd8ffc0, { bold: true, ox: 1, oy: 0.5 });
     y += 9;
     kit.divider(g, ix, y, iw);
     y += 8;
@@ -668,7 +669,7 @@ export class ForgeScreen {
       return;
     }
     // the price sits on the button (red where you're short); what's missing, in words, only when it is
-    const short = p.scrap < cost.scrap ? `Need ${cost.scrap - p.scrap} more scrap` : p.coins < cost.coins ? `Need ${cost.coins - p.coins} more coins` : '';
+    const short = p.scrap < cost.scrap ? `Need ${whole(cost.scrap - p.scrap)} more scrap` : p.coins < cost.coins ? `Need ${whole(cost.coins - p.coins)} more coins` : '';
     if (short) {
       // a refused tap makes it flash and jump
       const sk = clamp01(1 - (now - this.shortAt) / 450);
@@ -749,7 +750,7 @@ export class ForgeScreen {
       const why = worn ? 'Worn: unequip it first' : it.locked ? 'Locked: unlock it first' : '';
       texts.text(why ? fit(why, iw) : 'Melt this item into scrap:', ix, c.y + 7, why ? 0xffb0a0 : 0xd8d0f0, { oy: 0.5 });
       pix(g, 'scrap', ix, c.y + 12);
-      texts.text(`+${v} scrap`, ix + 10, c.y + 16, why ? 0x9890b8 : GREEN, { bold: true, oy: 0.5 });
+      texts.text(`${signed(v)} scrap`, ix + 10, c.y + 16, why ? 0x9890b8 : GREEN, { bold: true, oy: 0.5 });
       const armed = this.armed?.what === 'one' && now < this.armed.until;
       kit.button(g, texts, one, armed ? 'Tap again to melt it!' : 'Salvage', FACE.red, now, { icon: armed ? undefined : 'flame', disabled: !!why, glowCol: armed ? 0xff5a48 : undefined, shakeAt: this.shakes.get('one') });
     } else texts.text('No item on the anvil.', ix, c.y + 12, 0x9890b8, { oy: 0.5 });
@@ -762,9 +763,9 @@ export class ForgeScreen {
     y += 10;
     if (j.count) {
       texts.text(`${j.count} item${j.count > 1 ? 's' : ''}`, ix, y, 0xd8d0f0, { oy: 0.5 });
-      const sw = textWidth(`+${j.scrap}`, 1, true);
+      const sw = textWidth(signed(j.scrap), 1, true);
       pix(g, 'scrap', ix + iw - sw - 11, y - 4);
-      texts.text(`+${j.scrap}`, ix + iw, y, GREEN, { bold: true, ox: 1, oy: 0.5 });
+      texts.text(signed(j.scrap), ix + iw, y, GREEN, { bold: true, ox: 1, oy: 0.5 });
       y += 8;
       const skips = 'Skips locked & worn items';
       texts.text(textWidth(skips) <= iw ? skips : 'Skips locked & worn', ix, y, 0xa49ec0, { oy: 0.5 });
@@ -809,8 +810,9 @@ export class ForgeScreen {
   }
 }
 
-/** A stat precise enough that one forge level visibly moves it (flat stats keep a decimal under 100). */
+/** A stat precise enough that one forge level visibly moves it: flat stats keep one decimal under 100 (HP is whole),
+ *  percents one under 10% (fmtStat; core/format.ts). */
 function fine(stat: StatId, v: number): string {
-  if (STAT_INFO[stat].unit !== 'flat' || Math.abs(v) >= 100) return fmtStat(stat, v, false);
-  return (Math.round(v * 10) / 10).toFixed(1);
+  if (STAT_INFO[stat].unit !== 'flat' || Math.abs(v) >= 100 || stat === 'hp') return fmtStat(stat, v, false);
+  return one(v);
 }

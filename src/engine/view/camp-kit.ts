@@ -2,6 +2,7 @@
 // depth range 30.95-31.35), the camp's own juice (particles, rings, flying icons, floating numbers, flashes: the
 // scene's effects draw under the camp), buttons, the purse and scrap counters that roll to their new values, the
 // "before -> after" stat toast, and a few small pixel icons.
+import { mult, one, whole } from '../../core/format';
 import type Phaser from 'phaser';
 import { STAT_INFO, type StatId } from '../../data/gear';
 import { HERO_IDS, HEROES, type HeroId, type StyleId } from '../../data/heroes';
@@ -480,15 +481,16 @@ export interface Toast {
 }
 
 /**
- * A stat before -> after as the toasts print it: whole numbers like the totals everywhere else ("16 > 17", "x2.0 >
- * x2.2"), unless that would hide the change (then the precise form: "16.1 > 16.4").
+ * A stat before -> after as the toasts print it: whole numbers like the totals everywhere else ("16 > 17", "x2 >
+ * x2.2"), unless that would hide the change (then one decimal: "16.1 > 16.4", "4.5% > 4.8%"; never more: a change
+ * too small to show at one decimal isn't listed). HP is always whole. (core/format.ts)
  */
 export function statPair(id: StatId, a: number, b: number): [string, string] {
   const sa = fmtTotal(id, a);
   const sb = fmtTotal(id, b);
-  if (sa !== sb) return [sa, sb];
+  if (sa !== sb || id === 'hp') return [sa, sb];
   const u = STAT_INFO[id].unit;
-  const fine = (v: number) => (u === 'mult' ? `x${v.toFixed(2)}` : u === 'pct' ? `${Math.round(v * 1000) / 10}%` : `${Math.round(v * 10) / 10}`);
+  const fine = (v: number) => (u === 'mult' ? mult(v) : u === 'pct' ? `${one(v * 100)}%` : one(v));
   return [fine(a), fine(b)];
 }
 
@@ -831,7 +833,7 @@ export class CampKit {
     const gap = o.icon && label ? 2 : 0;
     // the price: a dark inset after the label, an icon and a number per currency
     const cost = o.cost ?? [];
-    const pieceW = (c: { icon: string; n: number }) => pixSize(c.icon)[0] + 2 + textWidth(`${c.n}`, 1, true);
+    const pieceW = (c: { icon: string; n: number }) => pixSize(c.icon)[0] + 2 + textWidth(whole(c.n), 1, true);
     const costW = cost.length ? cost.reduce((a, c) => a + pieceW(c), 0) + (cost.length - 1) * 5 + 8 : 0;
     const total = tw + iw + gap + (costW ? costW + 6 : 0);
     const x0 = Math.round(rr.x + (rr.w - total) / 2);
@@ -846,8 +848,8 @@ export class CampKit {
         const [cw, ch] = pixSize(c.icon);
         pix(g, c.icon, cx, Math.round(cy - ch / 2), o.disabled ? 0.7 : 1);
         cx += cw + 2;
-        texts.text(`${c.n}`, cx, cy, c.short ? 0xff8a7a : c.icon === 'coin' ? GOLD_TXT : c.icon === 'gem' ? GEM_TXT : SCRAP_TXT, { bold: true, oy: 0.5, alpha: o.alpha });
-        cx += textWidth(`${c.n}`, 1, true) + 5;
+        texts.text(whole(c.n), cx, cy, c.short ? 0xff8a7a : c.icon === 'coin' ? GOLD_TXT : c.icon === 'gem' ? GEM_TXT : SCRAP_TXT, { bold: true, oy: 0.5, alpha: o.alpha });
+        cx += textWidth(whole(c.n), 1, true) + 5;
       }
     }
     if (o.sub) texts.text(o.sub, rr.x + rr.w / 2, cy + 8, o.disabled ? 0xc8ccd8 : (o.subCol ?? 0xfff0c0), { ox: 0.5, oy: 0.5 });
@@ -879,7 +881,7 @@ export class CampKit {
 
   /** A counter tag at r: icon and a number that rolls; pulses green when it grows and red when it shrinks. */
   private counter(g: G, texts: TextPool, r: Rect, icon: string, value: number, pulseAt: { at: number; dir: number }, col: number, now: number): void {
-    const txt = `${Math.round(value)}`;
+    const txt = whole(value);
     const k = clamp01((now - pulseAt.at) / 500);
     const hot = k < 1 ? 1 - k : 0;
     tag(g, r, [NAVY[6], NAVY[3], NAVY[2], NAVY[1]]);
@@ -893,8 +895,8 @@ export class CampKit {
   /** Where the coin and scrap tags sit, right-aligned at `right` (for effects that fly to them). */
   purseRects(right: number, y: number, tight = false): { coins: Rect; scrap: Rect } {
     const t = tight ? 1 : 0;
-    const sw = Math.max(30 - 2 * t, textWidth(`${Math.round(this.scrapShown)}`, 1, true) + 16 - t);
-    const cw = Math.max(30 - 2 * t, textWidth(`${Math.round(this.coinsShown)}`, 1, true) + 16 - t);
+    const sw = Math.max(30 - 2 * t, textWidth(whole(this.scrapShown), 1, true) + 16 - t);
+    const cw = Math.max(30 - 2 * t, textWidth(whole(this.coinsShown), 1, true) + 16 - t);
     const scrap = { x: right - sw, y, w: sw, h: 12 };
     return { coins: { x: scrap.x - 4 + t - cw, y, w: cw, h: 12 }, scrap };
   }
@@ -1018,7 +1020,7 @@ export class CampKit {
   gemsTag(g: G, texts: TextPool, right: number, y: number, now: number): Rect {
     const p = this.profile;
     if (this.lastGems < 0) this.gemsShown = this.lastGems = p.gems;
-    const w = Math.max(28, textWidth(`${Math.round(this.gemsShown)}`, 1, true) + 18);
+    const w = Math.max(28, textWidth(whole(this.gemsShown), 1, true) + 18);
     const r = { x: right - w, y, w, h: 12 };
     this.counter(g, texts, r, 'gem', this.gemsShown, this.gemPulse, GEM_TXT, now);
     return r;
@@ -1030,7 +1032,7 @@ export class CampKit {
     const lv = `Lv ${L.level}`;
     const lw = textWidth(lv, 1, true);
     texts.text(lv, r.x, r.y + r.h / 2, GOLD_TXT, { bold: true, oy: 0.5, alpha: o.alpha });
-    const xp = L.need ? `${L.into}/${L.need} XP` : 'Max level';
+    const xp = L.need ? `${whole(L.into)}/${whole(L.need)} XP` : 'Max level';
     const xw = o.small ? 0 : textWidth(xp, 1, false);
     const bx = r.x + lw + 4;
     const bw = Math.max(8, r.w - lw - 4 - (xw ? xw + 4 : 0));

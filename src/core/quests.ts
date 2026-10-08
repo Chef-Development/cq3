@@ -8,6 +8,7 @@
 import { QUESTS, STYLE_QUEST, questById, type QuestDef, type QuestId } from '../data/quests';
 import type { StyleId } from '../data/heroes';
 import type { FightLog } from './combat';
+import { fillN } from './format';
 import type { ActMap } from './map';
 import { Rng } from './rng';
 import type { Tuning } from './tuning';
@@ -41,8 +42,8 @@ export function questGoal(t: Tuning, id: QuestId): number {
 
 /** The goal in words, its number filled in ("Block 25 reds", "Win a fight above 80% HP"). */
 export function questText(t: Tuning, def: QuestDef): string {
-  const n = def.id === 'healthy' ? Math.round(t.quests.healthy * 100) : questGoal(t, def.id);
-  return def.text.replace('{n}', `${n}`);
+  const n = def.id === 'healthy' ? t.quests.healthy * 100 : questGoal(t, def.id);
+  return fillN(def.text, n);
 }
 
 export function newQuest(t: Tuning, id: QuestId): QuestState {

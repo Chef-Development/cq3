@@ -4,6 +4,7 @@
 // the left) and on the victory (rows near the bottom). Each pill pops in after the one before with a sparkle and a
 // chime, stays a few seconds and fades. Nothing to tap: it never holds the screen up. Taking them empties run.gains
 // (the camp shows any left over as a toast).
+import { signed } from '../../core/format';
 import type Phaser from 'phaser';
 import { HEROES } from '../../data/heroes';
 import type { AchievementDef, MasteryDef } from '../../data/meta';
@@ -39,7 +40,7 @@ export function takeGains(g: Gains): GainLine[] {
   const out: GainLine[] = [];
   if (g.region) out.push({ icon: 'badge_region', sub: 'Region complete!', text: '100%! Region chest', col: 0xdab0ff });
   if (g.chests > 0) out.push({ icon: 'chest', text: g.chests > 1 ? `${g.chests} hero chests!` : 'Hero chest!', col: 0xffe680 });
-  if (g.gems > 0) out.push({ icon: 'gem', text: `+${g.gems} gems`, col: 0xf6c8ff });
+  if (g.gems > 0) out.push({ icon: 'gem', text: `${signed(g.gems)} gems`, col: 0xf6c8ff });
   for (const a of g.achievements) out.push({ icon: 'skills', sub: 'Achievement!', text: a.name, col: 0xfff0a0 });
   for (const m of g.mastery) out.push({ icon: 'up', sub: `${HEROES[m.hero].name}: mastery!`, text: m.rewardText, col: 0xb4f070 });
   g.gems = 0;

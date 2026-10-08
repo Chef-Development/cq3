@@ -14,6 +14,7 @@
 // clock and the seeded Math.random (screenshots stay exact).
 import type Phaser from 'phaser';
 import { isRed, type BlockKind, type Combat, type CombatEvent } from '../../core/combat';
+import { mult, signed, whole } from '../../core/format';
 import { windUpMult } from '../../core/kit-fx';
 import { guardMax, guardOf } from '../../core/styles';
 import { COMPANIONS, type CompanionId } from '../../data/companions';
@@ -481,9 +482,8 @@ export class OnSite {
         // Torva's smash lands: its multiplier over the foe it struck ("x2.6!"), hot
         const v = this.foe(e.enemyId);
         if (!v || e.amount <= 0) break;
-        const m = (e.amount / 100).toFixed(1);
         // (beside the foe, left of where its damage number rises)
-        s.fx.addFloater(Math.max(30, v.x - v.img.displayWidth / 2 - 24), Math.max(36, v.y - v.img.displayHeight / 2 - 4), `x${m}!`, HEAT[1], 2, true, 0, -12, 0, 900, true);
+        s.fx.addFloater(Math.max(30, v.x - v.img.displayWidth / 2 - 24), Math.max(36, v.y - v.img.displayHeight / 2 - 4), `${mult(e.amount / 100)}!`, HEAT[1], 2, true, 0, -12, 0, 900, true);
         break;
       }
       case 'patience': {
@@ -543,7 +543,7 @@ export class OnSite {
         if (!v.fly) fx.shock(v.x, s.ground, 24, STEEL[1]);
       }
       const big = perfect && !wide;
-      fx.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, `${amount}`, big ? STEEL[0] : wide ? STEEL[2] : STEEL[1], wide ? 1 : 2);
+      fx.floatNum(v.x + 6, v.y - v.img.displayHeight - 10, whole(amount), big ? STEEL[0] : wide ? STEEL[2] : STEEL[1], wide ? 1 : 2);
     });
   }
 
@@ -571,7 +571,7 @@ export class OnSite {
     fx.chips(x, y, 10, [WHITE, STEEL[1], STEEL[2]], 12, 0);
     fx.ring(x, y, 30, STEEL[1], true);
     if (!v.fly) fx.shock(v.x, s.ground, 34, 0xd8e8ff);
-    fx.floatNum(v.x + 4, v.y - v.img.displayHeight - 12, `${amount}`, STEEL[0], 3);
+    fx.floatNum(v.x + 4, v.y - v.img.displayHeight - 12, whole(amount), STEEL[0], 3);
   }
 
   /**
@@ -632,7 +632,7 @@ export class OnSite {
     const perk = after?.type === 'perk' && after.id === e.id ? after : null;
     const from = COIN_FROM[e.id] ?? 'foe';
     const n = Math.min(4, e.amount);
-    const label = `+${e.amount}`;
+    const label = signed(e.amount);
     if (from === 'block') {
       // Bun's Lucky Foot: Bun hops, a coin pops up out of the block just hit
       const pos = this.b.hitPos ?? c?.cursorPos() ?? 0.5;
@@ -692,8 +692,8 @@ export class OnSite {
     fx.ring(x, y, 24, GOLD[0], true);
     s.later(80, () => fx.ring(x, y, 32, GOLD[2], true));
     fx.chips(x, y - 6, 14, [GOLD[0], GOLD[1], WHITE], 12, -1);
-    s.hud.dropCoins(x, y - 4, amount, Math.max(3, Math.min(6, amount)), `+${amount}`);
-    fx.iconFloat(x - 4, Math.max(34, v.y - v.img.displayHeight - 14), `+${amount}`, 0xffe066, 'coin');
+    s.hud.dropCoins(x, y - 4, amount, Math.max(3, Math.min(6, amount)), signed(amount));
+    fx.iconFloat(x - 4, Math.max(34, v.y - v.img.displayHeight - 14), signed(amount), 0xffe066, 'coin');
   }
 
   // ------------------------------------------------------------------ companions and allies
@@ -957,7 +957,7 @@ export class OnSite {
     }
     const sum = this.heal && a - this.heal.at < 900 ? this.heal.sum + amount : amount;
     this.heal = { sum, at: a };
-    s.fx.replaceFloater('onsiteHeal', () => s.fx.addFloater(h.x - 19, s.ground - 34, `+${Math.max(1, Math.round(sum))}`, HEAL[1], 1, true, 0, -14, 0, 800, true));
+    s.fx.replaceFloater('onsiteHeal', () => s.fx.addFloater(h.x - 19, s.ground - 34, `+${whole(Math.max(1, sum))}`, HEAL[1], 1, true, 0, -14, 0, 800, true));
   }
 
   /** Newt's Ember Bite ticked on a foe: its flames flare, a small orange number. */
@@ -971,7 +971,7 @@ export class OnSite {
     const { x, y } = this.chest(v);
     s.fx.burst(x - 2, y + 4, FIRE[2], 6, true, 0.7);
     s.fx.burst(x - 2, y, FIRE[0], 3, true, 0.9, true);
-    if (damage > 0) s.fx.floatNum(x + rand(-5, 5), v.y - v.img.displayHeight - 6, `${damage}`, 0xffa040, 1);
+    if (damage > 0) s.fx.floatNum(x + rand(-5, 5), v.y - v.img.displayHeight - 6, whole(damage), 0xffa040, 1);
   }
 
   /** Whether a foe is burning now (its own burn field once the core has one; else the ticks and Newt's bite). */
@@ -1068,7 +1068,7 @@ export class OnSite {
     if (c.heroId !== 'torva' || c.perk.windUp !== 1 || s.app.run.phase !== 'fight') return;
     const B = s.bar;
     const x = Math.round(this.barPt(c.cursorPosAt(s.app.renderTime(now))).x);
-    const txt = `x${windUpMult(c).toFixed(1)}`;
+    const txt = mult(windUpMult(c));
     const y = B.y - 18 - Math.round(pulse(now, 300));
     this.texts.text(txt, x, y, mix(HEAT[1], HEAT[0], pulse(now, 300)), { bold: true, ox: 0.5, oy: 0.5 });
     void g;

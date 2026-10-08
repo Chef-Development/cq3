@@ -17,6 +17,7 @@
 // Details live behind a tap, in a Sheet: a card (its full line, what stars do to it), the stars, the level, the name
 // (its kind, its joke, its role, how it's found). The cards' text is built in one place: companion-cards.ts.
 import type Phaser from 'phaser';
+import { pct as fmtPct, whole } from '../../core/format';
 import { COMPANIONS, COMPANION_IDS, type CompanionId } from '../../data/companions';
 import { TIER_INFO } from '../../data/rarity';
 import { levelProgress } from '../../core/heroes';
@@ -286,7 +287,7 @@ export class CompanionsScreen {
   /** A title row's words after the name: the attack's "every 6 hits" when it fits on the row. */
   private rowTail(b: CardBox, w: number): string {
     if (b.card.kind !== 'attack') return '';
-    const tail = `every ${COMPANIONS[this.sel].every} hits`;
+    const tail = `every ${whole(COMPANIONS[this.sel].every)} hits`;
     return textWidth(b.card.name, 1, true) + 5 + textWidth(tail, 1, true) <= cardTextW(w, true) ? tail : '';
   }
 
@@ -572,7 +573,7 @@ export class CompanionsScreen {
     const owned = this.owned(id);
     const pr = kit.profile.pets[id];
     const T = t.pets;
-    const pct = (n: number) => `${Math.round(n * 100)}%`;
+    const pct = (n: number) => fmtPct(n);
     let title = '';
     let lines: SheetLine[] = [];
     let face: Face = TIER_INFO[def.rarity].face;
@@ -601,7 +602,7 @@ export class CompanionsScreen {
       lines = [
         { text: `${pr.stars} of 5 stars`, bold: true, col: 0xfff0c0, icon: 'star_on' },
         { text: `Each star: +${pct(T.starDmg)} damage, perks ${pct(T.perkStep)} stronger.` },
-        { text: need === null ? 'All five stars!' : `Shards ${pr.shards}/${need}: dupes from hero chests.`, col: 0xe8d0ff, icon: 'shard' },
+        { text: need === null ? 'All five stars!' : `Shards ${whole(pr.shards)}/${whole(need)}: dupes from hero chests.`, col: 0xe8d0ff, icon: 'shard' },
       ];
     } else if (kind === 'level') {
       const lv = petLevel(t, pr.xp);
@@ -610,7 +611,7 @@ export class CompanionsScreen {
       title = `Lv ${lv}`;
       face = [0x9ad8ff, 0x2a62c8, 0x22489c, 0x1a3070];
       lines = [
-        { text: max ? 'Max level' : `${lp.into}/${lp.need} XP to Lv ${lv + 1}`, bold: true, col: 0xc8e0ff },
+        { text: max ? 'Max level' : `${whole(lp.into)}/${whole(lp.need)} XP to Lv ${lv + 1}`, bold: true, col: 0xc8e0ff },
         { text: 'Earns XP when it comes along.', icon: 'up' },
         { text: `+${pct(T.levelDmg)} damage a level, up to Lv ${Math.round(T.maxLevel)}.`, col: 0xd8d0f0 },
       ];

@@ -7,6 +7,7 @@
 import type Phaser from 'phaser';
 import { eventById } from '../../data/events';
 import { relicById } from '../../data/relics';
+import { hpNow, pct, signed, signedPct, whole } from '../../core/format';
 import { heroMaxHp } from '../../core/combat';
 import { relicText } from '../../core/relics';
 import { boostLabel, boostPreview, isRelicOffer, type BoostPreview, type ShopItem } from '../../core/run';
@@ -145,7 +146,7 @@ export class NodeScreens {
       const f = s.fighters.h;
       f.flashUntil = s.anim + 300;
       f.flashColor = 0x9af0a0;
-      s.fx.iconFloat(f.x + 2, s.ground - 46, `+${heal}`, 0x9af06a, 'heart');
+      s.fx.iconFloat(f.x + 2, s.ground - 46, signed(Math.max(1, heal)), 0x9af06a, 'heart');
       s.fx.burst(f.x, s.ground - 16, 0x9af0a0, 16, true, 0.9);
       s.later(750, () => {
         if (app.run.phase === 'rest') app.setPhase(() => app.run.rest());
@@ -346,7 +347,7 @@ export class NodeScreens {
     if (pw > cw) g.fillRect(px + 18 + cw, y0 + 4, pw - cw, 8);
     gauge(g, px + 18, y0 + 4, Math.max(1, cw), 8, 1, 1, { ramp: RAMP.hp });
     this.texts.text(hpLabel(H.hp, max), px + 18 + gw / 2, y0 + 8, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
-    this.texts.text(heal > 0 ? `Rest: +${heal} HP (${Math.round(run.restShare * 100)}% of max)` : 'Already at full HP', px + 18, y0 + 18, heal > 0 ? 0xb4f070 : 0xc8c0e8, { oy: 0.5 });
+    this.texts.text(heal > 0 ? `Rest: ${signed(Math.max(1, heal))} HP (${pct(run.restShare)} of max)` : 'Already at full HP', px + 18, y0 + 18, heal > 0 ? 0xb4f070 : 0xc8c0e8, { oy: 0.5 });
     const b = { ...this.restButton(), y: this.restButton().y + dy };
     if (!done) glow(g, b, 0x8af06a, 0.35 + 0.35 * pulse(now, 900), 3);
     button3d(g, b, done ? FACE.grey : FACE.green, done || isPressed(this.restButton(), now));
@@ -365,11 +366,11 @@ export class NodeScreens {
     ribbon(g, b.x + b.w / 2, b.y - 6, 70, 12, run.merchant ? RIBBON.blue : RIBBON.green);
     this.texts.text(title, b.x + b.w / 2, b.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     // the purse: a gold tag on the panel's corner
-    const cw = textWidth(`${run.coins}`, 1, true) + 15;
+    const cw = textWidth(whole(run.coins), 1, true) + 15;
     const cr: Rect = { x: b.x + b.w - cw - 6, y: b.y - 5, w: cw, h: 11 };
     tag(g, cr, [GOLD[4], GOLD[2], GOLD[1], GOLD[0]]);
     hudIcon(g, 'coin', cr.x + 2, cr.y + 1);
-    this.texts.text(`${run.coins}`, cr.x + 12, cr.y + 5.5, WHITE, { bold: true, oy: 0.5 });
+    this.texts.text(whole(run.coins), cr.x + 12, cr.y + 5.5, WHITE, { bold: true, oy: 0.5 });
     const since = now - this.phaseAt;
     // a relic's card open: it alone on the board
     if (this.detail !== null) return this.drawDetail(g, now);
@@ -411,12 +412,12 @@ export class NodeScreens {
     if (price === 0) this.texts.text('Take it!', buy.x + buy.w / 2, buy.y + buy.h / 2 + dy2, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
     else {
       const label = 'Buy';
-      const pw = textWidth(`${price}`, 1, true);
+      const pw = textWidth(whole(price), 1, true);
       const w = textWidth(label, 1, true) + 4 + 10 + pw;
       const x0 = Math.round(buy.x + buy.w / 2 - w / 2);
       this.texts.text(label, x0, buy.y + buy.h / 2 + dy2, ok ? 0x3a1e08 : 0xc8ccd8, { bold: true, oy: 0.5 });
       hudIcon(g, 'coin', x0 + textWidth(label, 1, true) + 4, buy.y + 3 + dy2);
-      this.texts.text(`${price}`, x0 + textWidth(label, 1, true) + 14, buy.y + buy.h / 2 + dy2, ok ? 0x3a1e08 : 0xff8a7a, { bold: true, oy: 0.5 });
+      this.texts.text(whole(price), x0 + textWidth(label, 1, true) + 14, buy.y + buy.h / 2 + dy2, ok ? 0x3a1e08 : 0xff8a7a, { bold: true, oy: 0.5 });
     }
   }
 
@@ -449,7 +450,7 @@ export class NodeScreens {
         rows(g, pt.x, pt.y, pt.w, pt.h, 2, NAVY[0]);
         band(g, pt.x, pt.y, pt.w, pt.h, 2, 0, 1, INK);
         hudIcon(g, 'coin', pt.x + 2, Math.round(r.y + r.h / 2 - 5));
-        this.texts.text(`${price}`, pt.x + pt.w - 3, r.y + r.h / 2, afford ? 0xffe680 : 0xff6a5a, { bold: true, ox: 1, oy: 0.5 });
+        this.texts.text(whole(price), pt.x + pt.w - 3, r.y + r.h / 2, afford ? 0xffe680 : 0xff6a5a, { bold: true, ox: 1, oy: 0.5 });
       }
     };
     if (relic) {
@@ -496,13 +497,13 @@ export class NodeScreens {
         const H = run.hero;
         const max = heroMaxHp(run.tuning, H);
         const after = Math.min(max, H.hp + Math.round(max * run.tuning.map.potionHeal));
-        if (item.sold) val = `+${Math.round(run.tuning.map.potionHeal * 100)}% HP`;
-        else if (after > H.hp) preview = { stat: 'HP', before: `${Math.ceil(H.hp - 1e-6)}`, after: `${Math.ceil(after - 1e-6)}` };
+        if (item.sold) val = `${signedPct(run.tuning.map.potionHeal)} HP`;
+        else if (after > H.hp) preview = { stat: 'HP', before: hpNow(H.hp, max), after: hpNow(after, max) };
         else val = 'HP full';
         // a half row too tight for "100 -> 130": the share it heals
         if (preview && r.x + 25 + textWidth(name, 1, true) + previewWidth(preview) > tx - 4) {
           preview = null;
-          val = `+${Math.round(run.tuning.map.potionHeal * 100)}%`;
+          val = signedPct(run.tuning.map.potionHeal);
         }
         icon = 'potion';
       } else {
@@ -576,11 +577,11 @@ export class NodeScreens {
       button3d(g, r, ok ? (i === 0 ? FACE.gold : FACE.navy) : FACE.grey, pr);
       this.texts.text(c.label, r.x + r.w / 2, r.y + r.h / 2 + (pr ? 2 : 0), ok ? WHITE : 0xc8ccd8, { bold: true, ox: 0.5, oy: 0.5 });
       if (c.cost) {
-        const cw = textWidth(`${c.cost}`, 1, true) + 14;
+        const cw = textWidth(whole(c.cost), 1, true) + 14;
         const cr: Rect = { x: r.x + r.w - cw - 4, y: r.y + 3 + (pr ? 2 : 0), w: cw, h: r.h - 6 };
         rows(g, cr.x, cr.y, cr.w, cr.h, 2, NAVY[0], 0.8);
         hudIcon(g, 'coin', cr.x + 1, cr.y + ((cr.h - 9) >> 1));
-        this.texts.text(`${c.cost}`, cr.x + 11, cr.y + cr.h / 2, ok ? 0xffe680 : 0xff8a7a, { bold: true, oy: 0.5 });
+        this.texts.text(whole(c.cost), cr.x + 11, cr.y + cr.h / 2, ok ? 0xffe680 : 0xff8a7a, { bold: true, oy: 0.5 });
       }
     });
   }

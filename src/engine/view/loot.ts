@@ -7,6 +7,7 @@
 // reveal card (rays, the icon at 2x in an ornate frame, its name, rarity ribbon, kind, stats and unique effect);
 // a tap dismisses each card. Then "Tap to continue" collects the loot (it is already in the bag) and the boost pick
 // follows. Taps in the first moment are ignored; a tap during the burst lands everything at once.
+import { whole } from '../../core/format';
 import Phaser from 'phaser';
 import { BASE_BY_ID, EFFECTS, RARITY_INFO } from '../../data/gear';
 import { itemPower, rarityIndex, type Item } from '../../core/gear';
@@ -738,7 +739,7 @@ export class LootView {
     this.texts.text(text, cx, cy + 0.5, mix(0xfff07a, WHITE, 0.5 * p), { bold: true, ox: 0.5, oy: 0.5, alpha: k * (0.8 + 0.2 * p) });
     const scrap = this.s.app.run.lootSalvaged;
     if (scrap > 0) {
-      const line = `Bag full! Salvaged into ${scrap} scrap`;
+      const line = `Bag full! Salvaged into ${whole(scrap)} scrap`;
       const lw = textWidth(line, 1, false) + 16;
       const tr: Rect = { x: Math.round(cx - lw / 2), y: s.splitY - 13, w: lw, h: 10 };
       tag(g, tr, [0xff9a80, 0x7a1a22, 0x5a1020, 0x3a0a14], k);
