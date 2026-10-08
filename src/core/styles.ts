@@ -344,7 +344,12 @@ export const STYLE_HOOKS: Record<StyleId, FightHooks> = {
           bark.timer = allyEvery(c, bark.kind);
         }
         c.perkFx('spiritTortoise');
-        return true;
+        // the shell takes kits.yara.shellSoak of the red; the rest still lands (Yara's kit: hurt), the combo holds
+        const soak = c.tuning.kits.yara.shellSoak;
+        if (soak >= 1) return true;
+        c.perk.shellSoak = soak;
+        c.perk.shellSoakAt = c.time;
+        return false;
       }
       bark.braced = false;
       bark.timer = allyEvery(c, 'barkback');

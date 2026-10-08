@@ -103,7 +103,7 @@ describe('Yara: spirits, Kinship, Spirit Stampede, the Great Spirit', () => {
 
   it("the Tortoise's shell comes up after shellFirst s and stops the next red that reaches her; then it rests (3 stars: two reds)", () => {
     for (const stars of [1, 3]) {
-      const { c, t } = fight('yara', [], { stars, tune: (t) => ((t.kits.yara.allySec = 60), (t.blocks.redTravelSec = 1)) });
+      const { c, t } = fight('yara', [], { stars, tune: (t) => ((t.kits.yara.allySec = 60), (t.blocks.redTravelSec = 1), (t.kits.yara.shellSoak = 1)) });
       callAlly(c);
       callAlly(c);
       const shell = c.allies.find((a) => a.kind === 'spiritTortoise')!;
@@ -124,6 +124,28 @@ describe('Yara: spirits, Kinship, Spirit Stampede, the Great Spirit', () => {
       expect(c.hero.hp).toBeLessThan(hp);
       expect(shell.timer).toBeGreaterThan(t.kits.yara.shellRest - 1);
     }
+  });
+
+  it('a shell that takes only shellSoak of a red: the rest lands, the combo and the stacks hold (a red past no shell breaks them)', () => {
+    const hit = (shell: boolean) => {
+      const { c } = fight('yara', [], { tune: (t) => ((t.kits.yara.allySec = 60), (t.blocks.redTravelSec = 1), (t.kits.yara.shellSoak = 0.6)) });
+      if (shell) {
+        callAlly(c);
+        callAlly(c);
+        go(c, c.time + c.tuning.kits.yara.shellFirst + 0.02);
+      }
+      c.combo = 12;
+      c.stacks = 1;
+      const hp = c.hero.hp;
+      letRedThrough(c);
+      return { lost: hp - c.hero.hp, combo: c.combo, stacks: c.stacks, shells: perks(c.drainEvents(), 'spiritTortoise').length };
+    };
+    const full = hit(false);
+    const soaked = hit(true);
+    expect(full).toMatchObject({ combo: 0, stacks: 0, shells: 0 });
+    expect(soaked).toMatchObject({ combo: 12, stacks: 1, shells: 1 });
+    expect(soaked.lost).toBeGreaterThan(0);
+    expect(Math.abs(soaked.lost - full.lost * 0.4)).toBeLessThanOrEqual(1);
   });
 
   it("a Tortoise called after one rested off keeps its rest (a new call doesn't skip it); with no rest left, shellFirst s", () => {
