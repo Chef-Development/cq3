@@ -352,7 +352,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
       nodes: [
         meter('fleetfoot', 'Fleetfoot', 12),
         combo('rooftopRun', 'Rooftop Run', 1),
-        rule('quickSlip', 'Quick Slip', 'Slip readies after {n} Perfects in a row.', 'Slip needs 3 Perfects.', 'It needs only {n}.', 2),
+        rule('quickSlip', 'Quick Slip', 'Slip readies after {n} Perfects in a row.', 'Slip needs 4 Perfects.', 'It needs only {n}.', 3),
         rule('tumble', 'Tumble', "A dodge hits the red's owner for {n}% attack.", 'A dodge only saves you.', 'It hits back for {n}%.', 100),
         cap('untouchable', 'Untouchable', 'Slip holds up to {n} dodges.', 'Slip holds one dodge.', 'It holds {n} dodges.', 2),
       ],
@@ -364,9 +364,9 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
       nodes: [
         hp('scarfWrap', 'Scarf Wrap', 10),
         def('paddedHood', 'Padded Hood', 6),
-        rule('longHaze', 'Long Haze', 'Smoke Pop lasts {n} s longer.', 'The smoke clears fast.', 'It lasts {n} s longer.', 1.5),
-        rule('chokingSmoke', 'Choking Smoke', 'Reds in the smoke move {n}% slower.', 'Smoke only softens reds.', 'Reds slow {n}% in it.', 25),
-        cap('blindingSmoke', 'Blinding Smoke', 'Green hits blind every foe: no reds for {n} s.', 'Foes see through the smoke.', 'Greens blind all for {n} s.', 1),
+        rule('longHaze', 'Long Haze', 'Smoke Pop lasts {n} s longer.', 'The smoke clears fast.', 'It lasts {n} s longer.', 1),
+        rule('chokingSmoke', 'Choking Smoke', 'Reds in the smoke move {n}% slower.', 'Smoke only softens reds.', 'Reds slow {n}% in it.', 15),
+        cap('blindingSmoke', 'Blinding Smoke', 'Green hits blind every foe: no reds for {n} s.', 'Foes see through the smoke.', 'Greens blind all for {n} s.', 0.6),
       ],
     },
   ],

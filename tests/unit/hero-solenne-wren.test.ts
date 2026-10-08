@@ -279,16 +279,17 @@ describe("Solenne's kit", () => {
 // ---------------------------------------------------------------- Wren's kit
 
 describe("Wren's kit", () => {
-  it('Slip: 3 Perfect hits in a row ready a dodge; the next red that reaches her misses (no hurt, the combo kept)', () => {
-    const { c, t } = fight('wren', [], { tune: (t) => (t.blocks.redTravelSec = 1) });
-    tapNew(c, 'yellow', true);
-    tapNew(c, 'yellow', true);
+  it('Slip: slipEvery Perfect hits in a row ready a dodge; the next red that reaches her misses (no hurt, the combo kept)', () => {
+    const { c, t } = fight('wren', [], { tune: (t) => ((t.blocks.redTravelSec = 1), (t.enemies.slime.hp = 900)) });
+    const n = t.kits.wren.slipEvery;
+    expect(n).toBeGreaterThan(1);
+    for (let i = 0; i < n - 1; i++) tapNew(c, 'yellow', true);
     expect(c.perk.slip ?? 0).toBe(0);
     tapNew(c, 'yellow', true);
     expect(c.perk.slip).toBe(1);
     expect(perks(c.drainEvents(), 'slipReady')).toHaveLength(1);
-    // a fourth Perfect doesn't stack a second dodge
-    for (let i = 0; i < t.kits.wren.slipEvery; i++) tapNew(c, 'yellow', true);
+    // another run doesn't stack a second dodge
+    for (let i = 0; i < n; i++) tapNew(c, 'yellow', true);
     expect(c.perk.slip).toBe(1);
     const combo = c.combo;
     letRedThrough(c);
@@ -302,16 +303,15 @@ describe("Wren's kit", () => {
   });
 
   it('Slip: a Good hit (past Light Feet) or a miss starts the run over', () => {
-    const { c } = fight('wren', []);
-    tapNew(c, 'yellow', true);
-    tapNew(c, 'yellow', true);
+    const { c, t } = fight('wren', [], { tune: (t) => (t.enemies.slime.hp = 900) });
+    const n = t.kits.wren.slipEvery;
+    for (let i = 0; i < n - 1; i++) tapNew(c, 'yellow', true);
     missNow(c);
     tapNew(c, 'yellow', true);
     expect(c.perk.slip ?? 0).toBe(0);
     tapNew(c, 'yellow', false); // Light Feet keeps it
     tapNew(c, 'yellow', false); // not twice
-    tapNew(c, 'yellow', true);
-    tapNew(c, 'yellow', true);
+    for (let i = 0; i < n - 1; i++) tapNew(c, 'yellow', true);
     expect(c.perk.slip ?? 0).toBe(0);
     tapNew(c, 'yellow', true);
     expect(c.perk.slip).toBe(1);
@@ -602,9 +602,9 @@ describe("Wren's tree", () => {
   });
 
   it('Untouchable: Slip holds up to n dodges', () => {
-    const { on, off } = both('wren', ['untouchable'], { tune: (t) => (t.blocks.redTravelSec = 1) });
+    const { on, off } = both('wren', ['untouchable'], { tune: (t) => ((t.blocks.redTravelSec = 1), (t.enemies.slime.hp = 900)) });
     const n = skillN(on.t, 'untouchable');
-    for (const { c } of [on, off]) for (let i = 0; i < 3 * n; i++) tapNew(c, 'yellow', true);
+    for (const { c } of [on, off]) for (let i = 0; i < on.t.kits.wren.slipEvery * n; i++) tapNew(c, 'yellow', true);
     expect(on.c.perk.slip).toBe(n);
     expect(off.c.perk.slip).toBe(1);
     expect(perks(on.c.drainEvents(), 'untouchable').length).toBeGreaterThan(0);

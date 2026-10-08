@@ -1816,13 +1816,16 @@ test("Solenne: a green gilds the next yellow (gold, a sun mark); on a Sunrise st
   await expect(page).toHaveScreenshot('solenne-sunrise.png', shot);
 });
 
-test("Wren: three Perfects ready a dodge (a mustard slab at the left end, a pip on her Chain tab); a green pops smoke over the bar and the reds in it fade", async ({ page }) => {
+test("Wren: Perfects in a row ready a dodge (a mustard slab at the left end, a pip on her Chain tab); a green pops smoke over the bar and the reds in it fade", async ({ page }) => {
   await boot(page);
   await frames(page, 10);
   await stagedFight(page, { hero: 'wren' });
-  await bar(page, `c.setCursor(0.2, 1);`);
+  // (from near the left end: after the run the cursor is still short of the reds the smoke shot puts at the right)
+  await bar(page, `c.setCursor(0.05, 1);`);
   await frames(page, 4);
-  for (let i = 0; i < 3; i++) {
+  // Slip's run (tuning.kits.wren.slipEvery Perfects)
+  const runOf = Number(await bar(page, `return c.tuning.kits.wren.slipEvery;`));
+  for (let i = 0; i < runOf; i++) {
     await bar(page, `foe.hp = foe.maxHp; c.spawnBlock('yellow', c.cursorPos()); app.barTap(performance.now());`);
     await frames(page, 6);
   }

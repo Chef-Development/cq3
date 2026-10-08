@@ -160,10 +160,10 @@ the region rules.
 ### Wren, Rooftop Runner (Shadow, Rare) — round 7
 - Look: a small, quick street runner: a charcoal hood, a long mustard scarf, bandaged hands, soft boots, a grappling
   hook on a coil of rope at her hip, a single curved knife. Palette: charcoal greys, mustard yellow, brick red.
-- Signature **Slip**: 3 Perfect hits in a row ready a dodge (one at a time; a mustard slab at the bar's left end):
+- Signature **Slip**: 4 Perfect hits in a row ready a dodge (one at a time; a mustard slab at the bar's left end):
   the next red that reaches her misses (smoke puffs off her).
 - Ability (green) **Smoke Pop**: a green hit pops smoke over the bar for 3 s: the reds fade, and one that reaches her
-  in the smoke deals 40% less. (Built as "hit softer" rather than "fade from view": hiding the reds would only hurt the
+  in the smoke deals 25% less. (Built as "hit softer" rather than "fade from view": hiding the reds would only hurt the
   player.)
 - Passive **Light Feet**: her Chain (and Slip's run) survives one Good hit between Perfects.
 - Finisher **Rooftop Drop**: the target alone, x1.25; then each Chain link throws a knife at every foe (12% of the

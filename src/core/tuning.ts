@@ -432,7 +432,7 @@ export const DEFAULT_TUNING = {
     // wren: slipEvery Perfect hits in a row ready a dodge (Slip); for abilitySec after a green, reds that reach her deal
     // smokeCut less (Smoke Pop); feet: Good hits the Chain survives between Perfects (Light Feet); Rooftop Drop hits the
     // target for dropMult; then every foe takes dropLink of the finisher per Chain link
-    wren: { hp: 100, atk: 0.95, abilitySec: 3, slipEvery: 3, smokeCut: 0.4, feet: 1, dropMult: 1.25, dropLink: 0.12 },
+    wren: { hp: 100, atk: 0.95, abilitySec: 3, slipEvery: 4, smokeCut: 0.25, feet: 1, dropMult: 1.25, dropLink: 0.12 },
     // part6:B
     // part6:C
     // part6:D
