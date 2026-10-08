@@ -1128,13 +1128,21 @@ export class CampKit {
 
   /**
    * Where the tuning panel's gear button sits in the top bar's middle (an HTML button over the canvas, right of the
-   * hidden pause button: style.css #hud): keep the top bar clear of it.
+   * hidden pause button: style.css #hud), and the Test lab's Done beside it while a scenario plays: keep the top bar
+   * clear of them.
    */
   hudZone(): Rect {
     const l = this.app.layout;
     const vw = typeof window !== 'undefined' ? window.innerWidth : l.cssW;
     const cx = ((vw / 2 - l.left) * GAME_W) / l.cssW;
-    return { x: Math.floor(cx - 1), y: 0, w: 19, h: 19 };
+    const z = { x: Math.floor(cx - 1), y: 0, w: 19, h: 19 };
+    // the Test lab's Done button sits right of the gear while a scenario plays: keep the top bar clear of it too
+    const done = typeof document !== 'undefined' ? document.getElementById('btn-lab-done') : null;
+    if (done && !done.hidden) {
+      const right = ((done.getBoundingClientRect().right - l.left) * GAME_W) / l.cssW;
+      if (right > z.x + z.w) z.w = Math.ceil(right - z.x);
+    }
+    return z;
   }
 
   /** Show a toast (what just changed) centred on (cx, cy). */
