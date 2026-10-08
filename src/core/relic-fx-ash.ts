@@ -52,7 +52,7 @@ export const ASH_RELIC_HOOKS: Partial<Record<RelicId, FightHooks>> = {
   slipstream: {
     afterHit: (c, x) => {
       if (!drifted(x)) return;
-      c.fillMeter(c.tuning.meter.perHit * Math.max(0, n(c, 'slipstream') - 1), 'hit');
+      c.fillMeter(c.tuning.meter.perHit * Math.max(0, n(c, 'slipstream') - 1), 'hit', 'slipstream');
     },
   },
   // Flotsam: each drifting block you hit drops n coins
@@ -96,7 +96,7 @@ export const ASH_RELIC_HOOKS: Partial<Record<RelicId, FightHooks>> = {
   // Spare Link: once a fight, a broken pair doesn't break the combo
   spareLink: {
     linkBroken: (c, x) => {
-      if (c.perk.spareLink) return;
+      if (c.perk.spareLink || !c.canForgive()) return;
       c.perk.spareLink = 1;
       x.forgive = true;
       c.perkFx('spareLink', 0, 0, x.pos);

@@ -9,8 +9,8 @@
 // one short line each (the playtester reads little).
 
 import type { CompanionId } from './companions';
-import type { HeroId } from './heroes';
 import type { RelicId } from './relics';
+import type { HeroId } from './heroes';
 import type { CampUpgradeId } from './meta';
 import type { Tier } from './rarity';
 import { FIRST_FIGHT, type TipId } from './tips';
@@ -37,8 +37,9 @@ export type LabSetup =
   /** A practice fight (no rewards, nothing saved): the hero at `act` (acts are global: 3-5 are Region 2's) with
    *  `stars`, these companions, these waves of foes, the bar rules ('act': the act's own), `stacks` finisher stacks
    *  banked at the start; `safe`: nothing hurts the hero; `relics` carried into it; `pick`: a won fight ends in a
-   *  stat card pick (three cards, nothing kept) before the rating card. */
-  | { kind: 'fight'; hero: HeroId; stars?: number; pets?: CompanionId[]; act: number; waves: string[][]; bar?: BarRules | 'act'; row?: number; safe?: boolean; stacks?: number; relics?: RelicId[]; pick?: boolean }
+   *  stat card pick (three cards, nothing kept) before the rating card. `stage`: the act whose stage, music and name show around it (default `act`: a
+   *  later act's numbers can play on an earlier act's stage). */
+  | { kind: 'fight'; hero: HeroId; stars?: number; pets?: CompanionId[]; act: number; waves: string[][]; bar?: BarRules | 'act'; row?: number; safe?: boolean; stacks?: number; relics?: RelicId[]; pick?: boolean; stage?: number }
   /** A camp screen (with `hero` shown first where it has one). 'chestDemo': the chest opening played at these
    *  `tiers` one after another (a demo: nothing is granted), from a chest of kind `chest`. 'chestHd': the old chest
    *  reveal and the sharper one side by side, Rare to Divine (a demo; view/chest-compare.ts). */
@@ -84,6 +85,8 @@ export interface LabProfileSpec {
   tips?: TipId[];
   /** Skill nodes learned (each node's branch is learned up to it): a tree option to try in a fight. */
   skills?: Partial<Record<HeroId, string[]>>;
+  /** The worn kit's rarity (default Rare), at the scenario's act's item level. */
+  gear?: Tier;
 }
 
 export interface LabScenario {
@@ -229,6 +232,31 @@ export const LAB_NEW: LabScenario[] = [
     secs: 60,
     try: 'Pick a hero, stacks and rarity. Press Play.',
     setup: { kind: 'gallery', act: 1, foes: ['slime', 'wolf', 'crow'] },
+  },
+
+  // ---- anti-spam
+  // Playtest round 7: "late fights become spam, spam, finisher x5, spam". A strong late build (level 20, Epic gear,
+  // a green build with heal relics, two companions, stacks banked) in a crowded fight of Region 1 foes at the last
+  // act's numbers, on Act 3's stage (no later region's foes, stage or name: not a spoiler). The bar stays under its
+  // crowding limit, each stack costs more, heals stop at the fight's cap, misses cost HP (more when flailing).
+  {
+    id: 'lateStress',
+    group: 'fights',
+    label: 'Late-game stress',
+    secs: 90,
+    try: 'Spam taps: you should lose. Then aim and win.',
+    setup: {
+      kind: 'fight',
+      hero: 'rowan',
+      stars: 3,
+      act: 8,
+      stage: 2,
+      row: 6,
+      stacks: 2,
+      relics: ['photosynthesis', 'vampiricFang', 'greenhouse', 'verdantSurge', 'chainReaction', 'evergreen', 'wingman', 'clutch', 'hoarder'],
+      waves: [['wolf', 'wolf', 'archer'], ['beetle', 'boar'], ['boar', 'bandit'], ['wolf', 'wolf', 'shaman'], ['knight', 'wolf'], ['bigSlime', 'boar']],
+    },
+    profile: { actsCleared: 2, level: 20, gear: 'epic', camp: PERCH, pets: ['mote'], petsOn: ['pip', 'mote'] },
   },
 ];
 

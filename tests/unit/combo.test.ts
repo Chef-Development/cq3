@@ -81,7 +81,7 @@ describe('finisher', () => {
     c.advanceTo(0.8);
     c.tap(timeAt(t, 0.53));
     expect(c.stacks).toBe(1);
-    expect(c.meter).toBeCloseTo(0.2);
+    expect(c.meter).toBeCloseTo(0.2 / c.stackCost(1)); // the overflow fills the next stack, which costs more
     expect(c.finisherReady).toBe(true);
     expect(c.drainEvents().filter((e) => e.type === 'meterFull')).toEqual([{ type: 'meterFull', stacks: 1 }]);
   });
