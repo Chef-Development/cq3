@@ -220,7 +220,7 @@ export const LAB_NEW: LabScenario[] = [
   // part6:C
   // ---- Gorm and Tess (Part 6): the second Brute and the second Controller, the how-to card first
   heroFight('gorm', 'gorm', 'Gorm', 'Every 4th hit lands heavy. Greens: Roar. Swipe!', [['beetle', 'bandit'], ['wolf', 'wolf'], ['boar', 'archer'], ['beetle', 'crow'], ['bandit', 'boar'], ['knight', 'beetle']]),
-  heroFight('tess', 'tess', 'Tess', 'Hits wind the Stopwatch. Greens slow reds. Swipe!', [['bandit', 'archer'], ['wolf', 'crow'], ['shaman', 'boar'], ['archer', 'archer'], ['beetle', 'bandit'], ['knight', 'shaman']]),
+  heroFight('tess', 'tess', 'Tess', 'Hits wind the Stopwatch. Greens slow reds. Swipe!', [['boar', 'bandit'], ['wolf', 'crow'], ['beetle', 'boar'], ['bandit', 'archer'], ['crow', 'boar'], ['knight', 'wolf']]),
   // part6:D
   // part6:E
   // ---- round 7's four companions, in pairs with the Perch: each effect shows on what it touches
