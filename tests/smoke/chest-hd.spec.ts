@@ -179,6 +179,20 @@ test('the sharper chest reveal: Open all, one chest after another, then what cam
   expect((await layer(page))?.shown).toBe(false);
 });
 
+test('side by side (the Test lab compare): the old reveal in the left half, the new one in the right, one chest', async ({ page }) => {
+  // (started directly, not through the lab's buttons: real clicks would move the seeded particles of the old half)
+  const camp = await vault(page);
+  await camp((c, now) => c.chests.compare(now));
+  await frames(page, 100); // the build-up: the second step (green), light leaking from the seams
+  expect(await camp((c) => ({ view: c.chests.opening.view, tier: c.chests.opening.state.tier }))).toEqual({ view: 'split', tier: 'rare' });
+  await expect(page).toHaveScreenshot('chest-hd-split.png', shot);
+  await frames(page, 190); // revealed: the ribbon, the name, New companion!, Next (4) by Replay
+  await expect(page).toHaveScreenshot('chest-hd-split-prize.png', shot);
+  await camp((c) => c.chests.endCompare());
+  await frames(page, 3);
+  expect((await layer(page))?.shown).toBe(false);
+});
+
 test('the Test lab: Sharper chest reveal opens side by side; Old, New and Both switch it; Replay; Done puts it away', async ({ page }) => {
   const errors: string[] = [];
   page.on('console', (m) => {
@@ -201,11 +215,8 @@ test('the Test lab: Sharper chest reveal opens side by side; Old, New and Both s
   // side by side: the old reveal in the left half, the new one in the right, playing the same chest (a demo)
   expect(await camp((c) => ({ view: c.chests.opening.view, compare: !!c.chests.opening.extra, active: c.chests.opening.active }))).toEqual({ view: 'split', compare: true, active: true });
   expect(await camp((c) => c.chests.opening.state.tier)).toBe('rare');
-  await frames(page, 60); // the build-up: the second step (green), light leaking from the seams
+  await frames(page, 60);
   expect((await layer(page))?.shown).toBe(true);
-  await expect(page).toHaveScreenshot('chest-hd-split.png', shot);
-  await frames(page, 190); // revealed: the ribbon, the name, New companion!
-  await expect(page).toHaveScreenshot('chest-hd-split-prize.png', shot);
   // the buttons (pressed with the pointer, through the game's input)
   const press = async (id: string) => {
     const pt = (await camp((c) => {
