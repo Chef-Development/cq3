@@ -1,4 +1,4 @@
-# Decisions log (overnight run, M5 "heroes")
+# Decisions log (overnight runs: M5 "heroes", the round 6 polish run, the round 7 "stays fixed" run)
 
 The playtester was asleep; every call made without asking is logged here, newest at the bottom of each section.
 Region-specific details (enemy names, bosses, plot) are in `docs/content-bible.md` (spoilers).
@@ -456,3 +456,30 @@ E6. **Text pass, round 2 (the fight view and the strings src/core builds).** The
     preview, like the stat's short name), and a relic's unlock line reads "Clear Act 1" (it said "for the first
     time": only a first clear can unlock one). Completion labels, build names, bounty goals and the skirmish and
     roamer code were already plain; Sound lab names stay (testing tool).
+
+## Overnight run, playtest round 7 ("fixes that stay fixed", anti-spam, unique finishers; Test lab: 25 of 27 good)
+R1. **Base branch.** PR #6 (`claude/eloquent-ptolemy-b7qwvk`) was still open and `main` has only the initial commit,
+    so this run is built on #6 (branch `claude/bold-hypatia-88tmo3`); its PR includes #6 and supersedes it.
+R2. **The work ran as parallel agents in their own worktrees** (one owner for the combat core: the anti-spam agent);
+    each part was merged, tested and pushed on its own. Round 6's lab items moved to Earlier first; New starts empty.
+
+### Part 5: the companions screen
+C7. **Why it felt weaker than the hero select:** the right side was four stacked full-width slabs of bold text, all
+    the same weight, so the eye went to the text; the stage was cramped (name, rarity, stars and "i" squeezed into its
+    corner, the sockets and button over its floor), the companion stood off-centre and sank into the stump, the grove
+    was murky; no paging (17 px tokens only), 3 px meters, and a token strip that couldn't hold 12 companions.
+C8. **Laid out like the hero select:** the stage on the left (46%), the companion centred at 3x, big arrows and a
+    swipe (it slides out; the next hops in and lands in dust, or flutters in), a glass head with the name (bold 2),
+    rarity chip, stars over a shard meter, level and XP. The Along sockets and Equip sit at the stage's foot so the
+    descriptions get the column's full height.
+C9. **The descriptions stay as readable cards** (the attack first, then each perk: icon, name in its colour, the
+    line in bold). Every description shows in full when it fits (7 of 8 on the phone); when crowded (Sunny's three
+    perks) the attack shrinks to one row and each perk shows a short line with a chevron; any card opens a Sheet
+    with the full line and what stars do. The words are built in one place (`view/companion-cards.ts`).
+C10. **Motion:** fliers hover and flap over the stump, walkers breathe; a tap hops, plays the attack pose, chirps and
+    rings; Equip hops, rings, bursts stars and flies the companion into its socket ("Comes along!"); not met is a
+    rim-lit silhouette with a "?" and "Found in hero chests"; the padlocked socket rattles ("Build the Perch").
+C11. **The grove got richer instead of a stage per kind** (a moon behind the companion, layered trunks, a lit
+    clearing floor, the lamp light in the companion's colour). The token strip shrinks 17 -> 15 -> 13 px to fit 12.
+C12. **`SwipePager` is a shared part** (`ui-modern.ts`); the hero select keeps its own paging for now. Lab
+    scenarios can set companions' levels and stars (`petLevels`, `petStars`).
