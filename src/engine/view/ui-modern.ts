@@ -899,3 +899,83 @@ export function tooltip(l: Layer, text: string, x: number, y: number, now: numbe
   l.g.fillRect(Math.round(x), by + h + 3, 1, 1);
   l.texts.text(text, bx + w / 2, by + h / 2, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
 }
+
+// ================================================================== appended: the companions screen (a swipe pager)
+
+/** A press that moves more than this (game px) is a swipe, not a tap (as the world map's drag). */
+export const SWIPE_DRAG_PX = 4;
+/** A swipe pages when it went this far (or was a quick flick). */
+export const SWIPE_PAGE_PX = 22;
+
+/**
+ * A stage that pages with a horizontal swipe (the hero select's way, for any screen with one focal thing at a time):
+ * a press is held until it's let go; once it moves past SWIPE_DRAG_PX it's a swipe and `dragDx` follows the finger (a
+ * little resistance past 40 px); let go far enough (or with a flick) it pages that way, else it snaps back. A press let
+ * go in place is a tap. `offset(now)` is where the focal thing should be drawn (the drag, or the snap easing home).
+ */
+export class SwipePager {
+  private press: { x: number; y: number; at: number; drag: boolean } | null = null;
+  dragDx = 0;
+  private snap = { at: -1e9, from: 0 };
+
+  /** A finger is down (and maybe dragging). */
+  get pressing(): boolean {
+    return this.press !== null;
+  }
+
+  get dragging(): boolean {
+    return !!this.press?.drag;
+  }
+
+  pressAt(x: number, y: number, now: number): void {
+    this.press = { x, y, at: now, drag: false };
+  }
+
+  dragTo(x: number, y: number, now: number): void {
+    const p = this.press;
+    if (!p) return;
+    if (!p.drag && Math.hypot(x - p.x, y - p.y) <= SWIPE_DRAG_PX) return;
+    if (!p.drag) p.at = now;
+    p.drag = true;
+    const dx = x - p.x;
+    this.dragDx = Math.abs(dx) <= 40 ? dx : Math.sign(dx) * (40 + (Math.abs(dx) - 40) * 0.4);
+  }
+
+  /** Let go: a tap (it stayed put), or a swipe that pages (1: the next, -1: the previous; `from`: the offset it let
+   *  go at) or snaps back (page 0). */
+  releaseAt(x: number, now: number): { tap: boolean; page: number; from: number } {
+    const p = this.press;
+    this.press = null;
+    if (!p) return { tap: false, page: 0, from: 0 };
+    if (!p.drag) return { tap: true, page: 0, from: 0 };
+    const dx = x - p.x;
+    const from = this.dragDx;
+    this.dragDx = 0;
+    const flick = Math.abs(dx) >= 10 && Math.abs(dx) / Math.max(1, now - p.at) > 0.12;
+    if (Math.abs(dx) >= SWIPE_PAGE_PX || flick) return { tap: false, page: dx < 0 ? 1 : -1, from };
+    this.snap = { at: now, from };
+    return { tap: false, page: 0, from };
+  }
+
+  /** The press was taken away (the pointer left, the screen changed): a drag snaps back. */
+  cancel(now: number): void {
+    const from = this.press?.drag ? this.dragDx : null;
+    this.press = null;
+    this.dragDx = 0;
+    if (from !== null) this.snap = { at: now, from };
+  }
+
+  /** Forget the press and the snap (a page turn, opening the screen). */
+  reset(): void {
+    this.press = null;
+    this.dragDx = 0;
+    this.snap = { at: -1e9, from: 0 };
+  }
+
+  offset(now: number): number {
+    let off = this.press?.drag ? this.dragDx : 0;
+    const sk = (now - this.snap.at) / 240;
+    if (sk >= 0 && sk < 1) off += Math.round(this.snap.from * (1 - easeBack(sk, 1.8)));
+    return off;
+  }
+}
