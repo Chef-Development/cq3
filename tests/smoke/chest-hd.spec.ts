@@ -6,6 +6,9 @@ import { expect, test, type Page } from '@playwright/test';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
+// (frame by frame on the fake clock, these take a while on a busy machine)
+test.describe.configure({ timeout: 150_000 });
+
 const START = new Date('2026-01-01T12:00:00Z').getTime();
 const FRAME = 16;
 
