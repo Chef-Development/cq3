@@ -53,7 +53,8 @@ test('the Test lab: open from the title, play and rate two scenarios, copy the r
   expect(await a((x) => x.inLab)).toBe(true);
   expect(await page.locator('.lab-item').count()).toBeGreaterThan(15);
   expect(await page.locator('.lab-item.spoiler').count()).toBe(0);
-  await expect(page.locator('.lab-group', { hasText: 'Heroes' })).toBeVisible();
+  // (a Heroes group in New and another in Earlier: the first will do)
+  await expect(page.locator('.lab-group', { hasText: 'Heroes' }).first()).toBeVisible();
   await page.waitForTimeout(400);
   await page.screenshot({ path: 'test-results/lab-list.png' });
 
@@ -208,7 +209,7 @@ test('the Finisher gallery: two heroes played on demand (stacks and rarity picke
 });
 
 test('every Test lab scenario starts and ends without errors (spoilers included)', async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000); // (about 50 scenarios, each started and ended)
   const errors: string[] = [];
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());
