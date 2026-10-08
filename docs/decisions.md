@@ -546,3 +546,28 @@ S6. **Rollout plan, if the playtester likes it:** (1) flip the default (`readChe
     reusable); (4) later perhaps the menus' big focal names; the world, fighters, maps and HUD stay on the game grid;
     (5) each step: device-scale screenshots, a 60 fps check on the phone, the old path behind the setting until
     signed off; (6) after a round as default, delete the old reveal's drawing code and textures.
+N1. **Where the long decimals came from:** HP is fractional inside (each kill adds +0.6 max HP; heals fill to max
+    minus HP), and several screens still printed it raw: the Full Heal card ("61.80000000000001 -> 120": most likely
+    the playtester's "healing values, upgrades"), the rest screen's "+N HP" and its floater, stat toasts after the
+    forge or equipping ("x2.15 > x2.18"), the forge's crit damage ("+0.15x"), the shrine's odds ("0.54%"), relic,
+    skill, kit and style texts filling `{n}` with two decimals, the foe plate's max HP, and fractional coins, XP, gems
+    and scrap. Damage floaters were raw too (harmless today: combat rounds them).
+N2. **One formatter, `src/core/format.ts`:** `whole` (HP, damage, heals, costs, coins, gems, scrap, XP, counts; never
+    "-0", NaN or an exponent; huge values "1.2M"), `one`/`mult`/`secs` (at most one decimal, float-safe, a trailing
+    ".0" dropped), `pct`/`pctOf`/`odds` (rounded percentages; under 0.1% reads "<0.1%"), `signed`/`signedPct`,
+    `hpNow`/`hpOf` (current HP rounds up so a sliver reads 1), `compact` for plates ("12.4k"), `fillN` for a data
+    text's `{n}`. Gear stats print through it.
+N3. **Visible changes:** no trailing ".0" anywhere ("x2", not "x2.0"); the forge's crit damage reads "+15%"; HP is
+    whole in every before -> after line (a change too small to show isn't listed); a heal shows at least "+1".
+N4. **The safety net:** every string the game canvas draws or measures (`font.ts fontText`), the sharper reveal's
+    lettering (`font-hd.ts`) and the HTML panels' text (`engine/number-guard.ts`, a MutationObserver; the tuning
+    sliders' readouts are skipped: a developer tool) goes through `guardText`: a number with two or more decimals
+    (`/(?<![\d.])\d+\.\d{2,}(?!\d|\.\d)/`: not versions, dates or times) is rounded to one on screen and the raw
+    string recorded in `window.__cq3.textViolations` (NaN, Infinity and exponents are recorded too; bounded).
+N5. **Tests that keep it fixed:** every Playwright spec imports `test` from `tests/smoke/fixtures.ts`, which fails a
+    test on any violation as it happens (a unit test checks every spec imports it); `tests/smoke/numbers.spec.ts`
+    walks every screen with awkward numbers (max HP 137.35, heals of 12.3456, fractional stats). Putting back five raw
+    spots made it fail in 5 of its 8 tests, naming the strings.
+N6. **The fight's debug line** (only while the gear panel is open) shows the cursor as a percent with one decimal.
+N7. **Test lab "Heals and upgrades":** Rowan with Mote and two healing relics, four waves at Act 2's numbers, then
+    three stat cards (nothing kept); lab fights can carry `relics` and end in a stat `pick`.
