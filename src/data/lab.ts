@@ -12,7 +12,7 @@ import type { CompanionId } from './companions';
 import type { HeroId } from './heroes';
 import type { CampUpgradeId } from './meta';
 import type { Tier } from './rarity';
-import type { TipId } from './tips';
+import { FIRST_FIGHT, type TipId } from './tips';
 import type { BarRules } from './types';
 
 export type LabGroupId = 'heroes' | 'companions' | 'fights' | 'chests' | 'camp' | 'bar' | 'spoiler';
@@ -71,8 +71,9 @@ export interface LabProfileSpec {
   chests?: { hero?: number; rare?: number; region?: number };
   /** Rare chests until the shrine's guaranteed Legendary. */
   pityLeft?: number;
-  /** Region 1's completion tracker: one short of 100%, or at 100% with its reward still to claim. */
-  completion?: 'near' | 'done';
+  /** Region 1's completion tracker: one short of 100%, or at 100% with its reward still to claim; 'all': everything
+   *  unlocked (every region's acts cleared and everything logged, every hero and companion unlocked). */
+  completion?: 'near' | 'done' | 'all';
   /** Tips still to show (tips on; every other tip seen): a hero's how-to card before the fight. */
   tips?: TipId[];
   /** Skill nodes learned (each node's branch is learned up to it): a tree option to try in a fight. */
@@ -170,6 +171,23 @@ export const LAB_NEW: LabScenario[] = [
 
   // ---- sharper chest reveal
   { id: 'chestHd', group: 'chests', label: 'Sharper chest reveal', secs: 60, try: 'Old left, new right. Tap Old, New or Both.', setup: { kind: 'camp', screen: 'chestHd' }, profile: { actsCleared: 1 } },
+
+  // ---- tips and completion
+  // Act 1's first fight with the fight's tips fresh (tips on, every other tip seen): the five basics in order
+  {
+    id: 'tipsFirstFight',
+    group: 'fights',
+    label: 'Tips: first fight',
+    secs: 60,
+    try: 'Tap to begin at once. Do the tips come in order?',
+    setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['slime'], ['crow'], ['boar']], row: 0 },
+    profile: { tips: [...FIRST_FIGHT, 'special', 'comboBreak'] },
+  },
+  // the region card reworked (rev 2): every one of the 15 a seal or a socket, the map pans, one count everywhere
+  { id: 'completionNear', group: 'camp', label: 'Completion: almost', secs: 30, rev: 2, try: "Count the seals: what's left? Drag the map.", setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'near' } },
+  // (a region at 100% means the next one is reached: the progress screen names it, so these wait behind spoilers)
+  { id: 'completionDone', group: 'spoiler', spoiler: true, label: 'Completion: 100%', secs: 30, rev: 2, try: 'All 15 seals lit? Claim the reward.', setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'done' } },
+  { id: 'completionAll', group: 'spoiler', spoiler: true, label: 'Completion: all', secs: 45, try: 'Every region at 100%: check each tab, drag each map.', setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'all' } },
 ];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,
@@ -236,7 +254,6 @@ export const LAB_EARLIER: LabScenario[] = [
     setup: { kind: 'camp', screen: 'upgrades' },
     profile: { actsCleared: 2, mastery: ['rowanActs3'], coins: 1500 },
   },
-  { id: 'completionNear', group: 'camp', label: 'Completion: almost', secs: 30, rev: 1, try: "Tap the seals: what's left for 100%?", setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'near' } },
 
   // ---- the bar rules, now with their first-meeting tip
   barRule('barIce', 'Ice patches', 'The cursor speeds up on ice: tap early.', { ice: { every: 5, width: 0.22, life: 6, fromRow: 0, max: 2 } }, ['ice']),
@@ -265,8 +282,6 @@ export const LAB_EARLIER: LabScenario[] = [
   { id: 'spMini5', group: 'spoiler', spoiler: true, label: 'Act 5 mini-boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 4, waves: [['matron']], bar: 'act', row: 6, safe: true } },
   { id: 'spAct6', group: 'spoiler', spoiler: true, label: 'Act 6 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 5, waves: [['driftTroll', 'auroraWisp'], ['frostWeaver', 'hailcaller'], ['frostKnight']], bar: 'act', row: 3 } },
   { id: 'spBoss6', group: 'spoiler', spoiler: true, label: 'Act 6 boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 5, waves: [['glacia']], bar: 'act', row: 6, safe: true } },
-  // (a region at 100% means the next one is reached: the progress screen names it, so this one waits here)
-  { id: 'completionDone', group: 'spoiler', spoiler: true, label: 'Completion: 100%', secs: 30, rev: 1, try: 'Claim the 100% reward.', setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'done' } },
   { id: 'spStory4', group: 'spoiler', spoiler: true, label: 'Act 4 story', secs: 60, try: 'Read the scenes.', setup: { kind: 'story', act: 3, scenes: ['frost1', 'rimehorn', 'neveJoin'] } },
   { id: 'spStory5', group: 'spoiler', spoiler: true, label: 'Act 5 story', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 4, scenes: ['frost2', 'matron'] } },
   { id: 'spStory6', group: 'spoiler', spoiler: true, label: 'Act 6 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 5, scenes: ['frost3', 'glacia', 'glacia2', 'glacia3', 'frostVictory'] } },

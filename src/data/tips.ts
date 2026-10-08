@@ -1,12 +1,21 @@
 // Tips (plain data, no logic): one short tip, shown once, the moment a system first matters ("teach it slowly").
 // src/core/tips.ts decides which tip fires and when (TipCoach); src/engine/view/tips.ts draws the card and points
-// at its anchor. The order of TIPS is the priority when two could show at once. Seen tips are kept in the profile.
+// at its anchor. Seen tips are kept in the profile.
+//
+// The teaching order: TIPS is in the order things are taught (the first of two that could show at once goes first),
+// and a tip's `after` are the tips it waits for (each seen, or known: below). The first fight teaches the five basics
+// in FIRST_FIGHT's order (tap yellow before it begins, then block a red, hit a green, let a purple pass, fire the
+// finisher); the per-fight cap never holds one of them back, and when its turn comes and the fight hasn't put its
+// block on the bar, the coach places one (`lesson`: Act 1's first foes never bring a purple). A tip is skipped once
+// the player has shown they know it (`known`: they've done what it teaches that many times, counted from the fight's
+// events into profile.tipsDone). A bar rule's tip (`rule`) and a hero's how-to (`hero`) show on first meeting only.
 //
 // Each tip: one or two lines (tests/unit/tips.test.ts checks they fit the card at 8x), what it points at (the view
 // resolves the anchor to a rect on the screen it's on; none = the card shows centred), and whether it pauses a
 // fight (the pre-fight ones show before TAP TO BEGIN, the others stop the fight's clock until they're tapped away).
 
 import type { HeroId } from './heroes';
+import type { FormationEntry } from './types';
 
 /** What a tip points at. The view finds it on the screen it's on (when it can't, the card shows without an arrow). */
 export type TipAnchor =
@@ -106,40 +115,36 @@ export interface TipDef {
   basic?: boolean;
   /** A hero's how-to: shown before their first fight (pre-fight), only when they're the one fighting. */
   hero?: HeroId;
+  /** The tips this one waits for (the teaching order): each must be seen or known first. */
+  after?: readonly TipId[];
+  /** Known after the player has done what it teaches this many times (yellows hit, reds blocked...: core/tips.ts
+   *  counts them into profile.tipsDone): it's skipped from then on. */
+  known?: number;
+  /** One of the first fight's lessons: when its turn comes (its `after` learned) and nothing on the bar shows it for a
+   *  moment, the coach places this block, or ('stack') fills the meter to a finisher stack, so its tip comes as soon as
+   *  the gap since the last one allows (one at a time, a few times per fight at most). */
+  lesson?: FormationEntry | 'stack';
+  /** A bar rule's (or a hero's block's) first meeting: shown when it first comes, never held back by the per-fight cap. */
+  rule?: boolean;
 }
 
 /** The widest a tip's line may be (game px, the small font): the card is this plus its margins. */
 export const TIP_TEXT_W = 180;
 
+/** The first fight's lessons, in teaching order: each is shown (or known) before or during the player's first fight,
+ *  each after the one before it (their `after`). */
+export const FIRST_FIGHT: readonly TipId[] = ['tapYellow', 'blockRed', 'green', 'purple', 'finisher'];
+
+/** What waits for the five basics: the bar rules and the rest of the fight's tips come after the finisher. */
+const BASICS: readonly TipId[] = ['finisher'];
+
 export const TIPS: readonly TipDef[] = [
-  // ---- before a fight begins
-  { id: 'tapYellow', lines: ['Tap when the cursor is on yellow.', 'Each hit strikes the foe!'], anchor: 'yellowBlock', fight: 'pre', basic: true },
-  // (a hero's how-to: what their kit does, the first time they fight; Rowan's is the basics)
-  { id: 'kitSable', hero: 'sable', lines: ['Sable: a Perfect makes you dash.', 'It slows at the next block: tap it!'], anchor: 'bar', fight: 'pre' },
-  { id: 'kitNeve', hero: 'neve', lines: ['Neve: blocked reds can freeze.', 'Shatter the ice: double damage!'], anchor: 'bar', fight: 'pre' },
-  { id: 'kitMoss', hero: 'moss', lines: ['Moss: greens come often.', 'Each calls an ally. 3 out? A Rally!'], anchor: 'bar', fight: 'pre' },
-  { id: 'kitTam', hero: 'tam', lines: ['Tam: kegs show up on the bar.', 'Hit one to blast every foe!'], anchor: 'bar', fight: 'pre' },
-  { id: 'kitHollis', hero: 'hollis', lines: ['Hollis: every block hits back.', 'Full Guard? Next tap hits all foes!'], anchor: 'bar', fight: 'pre' },
-  { id: 'kitVesper', hero: 'vesper', lines: ['Vesper: hits store Focus.', 'Hit a green to fire it all!'], anchor: 'bar', fight: 'pre' },
-  { id: 'kitTorva', hero: 'torva', lines: ['Torva: a green winds up a smash.', 'It grows with your combo!'], anchor: 'bar', fight: 'pre' },
-  { id: 'relicBelt', lines: ['Your relics sit here.', 'Tap one to read what it does.'], anchor: 'relicBelt', fight: 'pre' },
-  { id: 'rush', lines: ['Coin Rush! Hits knock out coins.', 'Keep your combo going for more!'], anchor: 'bar', fight: 'pre' },
-  // ---- in a fight (the fight waits while the tip is up)
-  // (the first red comes first: blocking is the lesson right after tapping yellow)
-  { id: 'blockRed', lines: ['Red is an attack coming at you!', 'Tap it like a yellow to block it!'], anchor: 'redBlock', fight: 'pause', basic: true },
-  { id: 'special', lines: ['A special move is coming!', 'Watch the foe!'], anchor: 'enemy', fight: 'pause', basic: true },
-  { id: 'purple', lines: ['Purple is a trap: let it pass.', 'Tapping it hurts you.'], anchor: 'purpleBlock', fight: 'pause', basic: true },
-  { id: 'green', lines: ['Green powers up your ability.', 'Tap it like a yellow!'], anchor: 'greenBlock', fight: 'pause', basic: true },
-  { id: 'hold', lines: ['Hold block! Press at its start', 'and hold it to its end.'], anchor: 'holdBlock', fight: 'pause' },
-  { id: 'ice', lines: ['Ice! The cursor speeds up on it:', 'tap blocks on ice a bit early.'], anchor: 'bar', fight: 'pause' },
-  { id: 'snow', lines: ['Snow slows the cursor:', 'wait a beat for blocks in snow.'], anchor: 'bar', fight: 'pause' },
-  { id: 'mirror', lines: ['A mirror! The cursor', 'bounces back off it.'], anchor: 'mirrorBlock', fight: 'pause' },
-  { id: 'iced', lines: ['An iced yellow takes a few taps.', 'Each tap cracks the ice.'], anchor: 'yellowBlock', fight: 'pause' },
-  { id: 'keg', lines: ['A keg! Hit it like a yellow', 'and it blasts every foe.'], anchor: 'kegBlock', fight: 'pause' },
-  { id: 'frozen', lines: ['A frozen red: hit it like a yellow', 'to shatter it for a big hit!'], anchor: 'frozenBlock', fight: 'pause' },
-  { id: 'drift', lines: ['Some blocks drift along the bar.', "Watch which way they're heading!"], anchor: 'bar', fight: 'pause' },
-  { id: 'pair', lines: ['A pair: hit one, then the other.', 'Too slow? Both count as misses.'], anchor: 'bar', fight: 'pause' },
-  { id: 'icicle', lines: ['An icicle will drop on the mark.', 'Block it like a red when it lands.'], anchor: 'bar', fight: 'pause' },
+  // ---- the first fight's five lessons (FIRST_FIGHT), in order: yellow before TAP TO BEGIN, then (the fight waits
+  // while each is up) the first red, a green, a purple (placed if none comes), and the full meter
+  { id: 'tapYellow', lines: ['Tap when the cursor is on yellow.', 'Each hit strikes the foe!'], anchor: 'yellowBlock', fight: 'pre', basic: true, known: 10 },
+  { id: 'blockRed', lines: ['Red is an attack coming at you!', 'Tap it like a yellow to block it!'], anchor: 'redBlock', fight: 'pause', basic: true, after: ['tapYellow'], known: 3, lesson: { kind: 'red' } },
+  { id: 'green', lines: ['Green powers up your ability.', 'Tap it like a yellow!'], anchor: 'greenBlock', fight: 'pause', basic: true, after: ['blockRed'], known: 3, lesson: { kind: 'green' } },
+  { id: 'purple', lines: ['Purple is a trap: let it pass.', 'Tapping it hurts you.'], anchor: 'purpleBlock', fight: 'pause', basic: true, after: ['green'], known: 3, lesson: { kind: 'purple' } },
   {
     id: 'finisher',
     lines: ['Meter full! Swipe for a finisher.', 'More stacks, bigger finisher.'],
@@ -147,8 +152,35 @@ export const TIPS: readonly TipDef[] = [
     anchor: 'meter',
     fight: 'pause',
     basic: true,
+    after: ['purple'],
+    known: 1,
+    lesson: 'stack',
   },
-  { id: 'comboBreak', lines: ['A miss or a hit taken breaks your', 'combo and loses your stacks.'], anchor: 'meter', fight: 'pause', basic: true },
+  // ---- before a fight begins: a hero's how-to (what their kit does, the first time they fight; Rowan's is the
+  // basics), the relic belt, a Coin Rush
+  { id: 'kitSable', hero: 'sable', lines: ['Sable: a Perfect makes you dash.', 'It slows at the next block: tap it!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'kitNeve', hero: 'neve', lines: ['Neve: blocked reds can freeze.', 'Shatter the ice: double damage!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'kitMoss', hero: 'moss', lines: ['Moss: greens come often.', 'Each calls an ally. 3 out? A Rally!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'kitTam', hero: 'tam', lines: ['Tam: kegs show up on the bar.', 'Hit one to blast every foe!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'kitHollis', hero: 'hollis', lines: ['Hollis: every block hits back.', 'Full Guard? Next tap hits all foes!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'kitVesper', hero: 'vesper', lines: ['Vesper: hits store Focus.', 'Hit a green to fire it all!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'kitTorva', hero: 'torva', lines: ['Torva: a green winds up a smash.', 'It grows with your combo!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'relicBelt', lines: ['Your relics sit here.', 'Tap one to read what it does.'], anchor: 'relicBelt', fight: 'pre', after: ['tapYellow'] },
+  { id: 'rush', lines: ['Coin Rush! Hits knock out coins.', 'Keep your combo going for more!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  // ---- in a fight, once the basics are in (the fight waits while the tip is up; a couple per fight at most)
+  { id: 'special', lines: ['A special move is coming!', 'Watch the foe!'], anchor: 'enemy', fight: 'pause', basic: true, after: BASICS },
+  { id: 'comboBreak', lines: ['A miss or a hit taken breaks your', 'combo and loses your stacks.'], anchor: 'meter', fight: 'pause', basic: true, after: BASICS },
+  // ---- a bar rule's (or a hero's block's) first meeting: when it first comes, never capped per fight
+  { id: 'hold', lines: ['Hold block! Press at its start', 'and hold it to its end.'], anchor: 'holdBlock', fight: 'pause', rule: true, after: BASICS },
+  { id: 'ice', lines: ['Ice! The cursor speeds up on it:', 'tap blocks on ice a bit early.'], anchor: 'bar', fight: 'pause', rule: true, after: BASICS },
+  { id: 'snow', lines: ['Snow slows the cursor:', 'wait a beat for blocks in snow.'], anchor: 'bar', fight: 'pause', rule: true, after: BASICS },
+  { id: 'mirror', lines: ['A mirror! The cursor', 'bounces back off it.'], anchor: 'mirrorBlock', fight: 'pause', rule: true, after: BASICS },
+  { id: 'iced', lines: ['An iced yellow takes a few taps.', 'Each tap cracks the ice.'], anchor: 'yellowBlock', fight: 'pause', rule: true, after: BASICS },
+  { id: 'keg', lines: ['A keg! Hit it like a yellow', 'and it blasts every foe.'], anchor: 'kegBlock', fight: 'pause', rule: true, after: BASICS },
+  { id: 'frozen', lines: ['A frozen red: hit it like a yellow', 'to shatter it for a big hit!'], anchor: 'frozenBlock', fight: 'pause', rule: true, after: BASICS },
+  { id: 'drift', lines: ['Some blocks drift along the bar.', "Watch which way they're heading!"], anchor: 'bar', fight: 'pause', rule: true, after: BASICS },
+  { id: 'pair', lines: ['A pair: hit one, then the other.', 'Too slow? Both count as misses.'], anchor: 'bar', fight: 'pause', rule: true, after: BASICS },
+  { id: 'icicle', lines: ['An icicle will drop on the mark.', 'Block it like a red when it lands.'], anchor: 'bar', fight: 'pause', rule: true, after: BASICS },
   // ---- the run
   { id: 'defeat', lines: ['Back to the start of the act.', 'Found gear and coins are kept.'], anchor: 'retryButton', basic: true },
   { id: 'actClear', lines: ['Act cleared! Gear up at camp,', 'or go on to the next act.'], anchor: 'campButton', basic: true },

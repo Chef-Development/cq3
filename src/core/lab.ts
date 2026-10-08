@@ -116,16 +116,27 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
   p.chests = { hero: spec.chests?.hero ?? 0, rare: spec.chests?.rare ?? 0, region: spec.chests?.region ?? 0 };
   if (spec.pityLeft !== undefined) p.pity.rare = Math.max(0, Math.round(t.chests.pity) - Math.max(1, Math.round(spec.pityLeft)));
   if (spec.completion) {
-    // Region 1 with every bounty, treasure and event logged; 'done': its boss beaten too, 'near': the boss still to go
-    // (so the next region isn't reached: its name stays "???" on the progress screen)
-    const log = newRegionLog();
+    // Region 1 (every region for 'all') with every bounty, treasure and event logged; 'done': its boss beaten too,
+    // 'near': the boss still to go (so the next region isn't reached: its name stays "???" on the progress screen);
+    // 'all': everything unlocked (every act cleared, every hero and companion)
+    const all = spec.completion === 'all';
+    for (const def of all ? REGIONS : REGIONS.slice(0, 1)) {
+      const log = newRegionLog();
+      const n = def.acts.length;
+      log.bounties = Array.from({ length: n }, (_, i) => i);
+      log.treasures = Array.from({ length: n }, (_, i) => i);
+      log.events = EVENTS.slice(0, 3).map((e) => e.id);
+      p.regions[def.id] = log;
+    }
     const n = REGIONS[0].acts.length;
-    log.bounties = Array.from({ length: n }, (_, i) => i);
-    log.treasures = Array.from({ length: n }, (_, i) => i);
-    log.events = EVENTS.slice(0, 3).map((e) => e.id);
-    p.regions[REGIONS[0].id] = log;
-    p.actsCleared = spec.completion === 'done' ? Math.max(p.actsCleared, n) : n - 1;
-    p.weights = spec.completion === 'done' ? 1 : 0;
+    p.actsCleared = all ? ALL_ACTS.length : spec.completion === 'done' ? Math.max(p.actsCleared, n) : n - 1;
+    p.weights = all ? REGIONS.length : spec.completion === 'done' ? 1 : 0;
+    if (all) {
+      p.neveMet = true;
+      p.heroes.neve.unlocked = true;
+      p.allUnlocked = true;
+      p.seen.push('magsTale'); // (the third region's camp tale never plays over the lab's camp)
+    }
   }
   if (spec.tips?.length) {
     // these tips still to show (a hero's how-to card), every other one seen: tips on

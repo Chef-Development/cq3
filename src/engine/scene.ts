@@ -297,26 +297,31 @@ export class FightScene extends Phaser.Scene implements View {
   /** A press on the hero select's or the companions' stage, which swipes: true takes it (judged on release; a tap if
    *  it stays put). */
   campPressAt(x: number, y: number, now: number): boolean {
+    // the hero select's and the companions' stages swipe; the region card's map pans (a press let go in place is a tap)
     const c = this.camp;
     if (c.mode === 'heroes') return c.heroes.pressAt(x, y, now);
+    if (c.mode === 'progress') return c.progress.pressAt(x, y, now);
     return c.mode === 'pets' && c.pets.pressAt(x, y, now);
   }
 
   campDragTo(x: number, y: number, now: number): void {
     if (this.camp.mode === 'heroes') this.camp.heroes.dragTo(x, y, now);
     else if (this.camp.mode === 'pets') this.camp.pets.dragTo(x, y, now);
+    else if (this.camp.mode === 'progress') this.camp.progress.dragTo(x, y, now);
   }
 
   /** Let go: a press that stayed put is a tap, through the camp's usual route. */
   campReleaseAt(x: number, y: number, now: number): void {
     const c = this.camp;
-    const tap = c.mode === 'heroes' ? c.heroes.releaseAt(x, y, now) : c.mode === 'pets' ? c.pets.releaseAt(x, y, now) : false;
+    const tap =
+      c.mode === 'heroes' ? c.heroes.releaseAt(x, y, now) : c.mode === 'pets' ? c.pets.releaseAt(x, y, now) : c.mode === 'progress' ? c.progress.releaseAt(x, y, now) : false;
     if (tap) c.tap(x, y);
   }
 
   campCancelPress(): void {
     this.camp.heroes.cancelPress();
     this.camp.pets.cancelPress();
+    this.camp.progress.cancelPress();
   }
 
   /** The loot screen after a fight or a chest. */

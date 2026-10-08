@@ -1,15 +1,20 @@
 // Region completion (a camp screen, also opened from the world map: camp.openProgress): the region as a card. Its map,
-// hand-drawn on parchment in a wooden frame (art-region-map.ts), its three act sites joined by the road; on it, what's
-// done is stamped: a flag on each cleared act's site, under each site a crown seal (its mini-boss) or a skull seal
-// (the boss), a scroll seal (its bounty) and a chest seal (its hidden treasure), and three star seals for the region's
-// events; what's left is an empty socket. A tap on a seal names it ("Bounties 2/3"). Beside the map: a ring with the
-// region's %, and the 100% reward on a pedestal (the region chest, its gems on the plinth), glowing more as the %
-// climbs: Claim when it's earned (the chest bursts open), Claimed after. The regions are tabs in the top bar (one not
-// reached yet is "???" and its map a fogged sheet: its name and land are a surprise).
+// hand-drawn on parchment in a wooden frame (art-region-map.ts), its three act sites joined by the road; the map is
+// bigger than the frame and pans (a press that moves more than DRAG_PX is a drag, as on the world map; one let go in
+// place is a tap), gold chevrons on the frame showing where there's more. On it, one mark per thing the tracker counts
+// (core/completion.ts regionCompletion's items; where each sits: region-sites.ts regionMarks): under each act's site a
+// row of four (a flag seal for the act, a crown seal for its mini-boss or a skull seal for the boss, a scroll seal for
+// its bounty, a chest seal for its hidden treasure), and three star seals for the region's events. Done: the wax seal;
+// still to do: an inked socket with the seal's emblem ghosted in it. All fifteen are in view when the card opens. A tap
+// on one names it ("Bounties 2/3"). Beside the map: a ring with the region's % and N/15, and the 100% reward on a
+// pedestal (the region chest, its gems on the plinth), glowing more as the % climbs: Claim when it's earned (the chest
+// bursts open), Claimed after. Every count comes from the same regionCompletion. The regions are tabs in the top bar
+// (one not reached yet is "???" and its map a fogged sheet: its name and land are a surprise).
 import type Phaser from 'phaser';
 import { REGIONS, regionStart } from '../../data/regions';
 import { claimRegionReward, regionCompletion, regionLog, type CompletionKey } from '../../core/completion';
-import { ATLAS_THEME, ensureRegionArt, FRAME_H, FRAME_IN, FRAME_W, PEDESTAL_W, REGION_SITES } from '../art-region-map';
+import { ATLAS_THEME, ensureRegionArt, FRAME_H, FRAME_IN, FRAME_W, PEDESTAL_W } from '../art-region-map';
+import { clampCamera, OPENING_CAMERA, REGION_MAP_H, REGION_MAP_W, REGION_VIEW_H, REGION_VIEW_W, regionMarks, SEAL_R, type RegionMark } from '../region-sites';
 import { STAGE_THEMES } from '../art-ui-stage';
 import { textWidth } from '../font';
 import { CampKit, D, GEM_TXT, GOLD_TXT } from './camp-kit';
@@ -22,7 +27,8 @@ import { bigButton, drawStage, enterK, fillEllipse, popK, ring, spotlight, toolt
 type G = Phaser.GameObjects.Graphics;
 
 /** Each part's seal: its wax, its emblem (5 px wide, '#' = the emblem's colour) and its name on the tooltip. */
-const SEALS: Record<Exclude<CompletionKey, 'acts'>, { wax: Face; mark: string[]; ink: number; name: string }> = {
+const SEALS: Record<CompletionKey, { wax: Face; mark: string[]; ink: number; name: string }> = {
+  acts: { wax: [0xb8f4e8, 0x3ac0a8, 0x228a7a, 0x10504a], mark: ['#....', '####.', '###..', '#....'], ink: 0xfff4d8, name: 'Acts' },
   minis: { wax: [0xfff0a0, 0xf2c230, 0xd8901c, 0x9a5a14], mark: ['#.#.#', '#####', '#####'], ink: 0x6a2e08, name: 'Mini-bosses' },
   boss: { wax: [0xff9a80, 0xd03030, 0x8a1a22, 0x4a0f1a], mark: ['.###.', '#.#.#', '.###.', '.#.#.'], ink: 0xf4ecd8, name: 'Boss' },
   bounties: { wax: [0x9ad8ff, 0x3a8ae8, 0x2a5ac0, 0x1a3070], mark: ['#####', '.#..#', '#####'], ink: 0xe8f4ff, name: 'Bounties' },
@@ -30,13 +36,14 @@ const SEALS: Record<Exclude<CompletionKey, 'acts'>, { wax: Face; mark: string[];
   events: { wax: [0xdab0ff, 0x9a52d8, 0x6e30a8, 0x40186a], mark: ['..#..', '#####', '.###.', '#...#'], ink: 0xfff0a0, name: 'Events' },
 };
 
-/** A seal or a socket on the map: where, what it stands for, whether it's done. */
-interface Mark {
-  x: number;
-  y: number;
-  key: CompletionKey;
-  done: boolean;
+/** A press that moves more than this (game px) is a drag: it pans the map (as on the world map, view/world.ts). */
+const DRAG_PX = 4;
+
+/** A seal or a socket on the screen: what it stands for, whether it's done, where (screen px), its place in the list,
+ *  and how much of it shows (it fades out at the frame's edge as the map pans). */
+interface Mark extends RegionMark {
   i: number;
+  vis: number;
 }
 
 export class ProgressScreen {
@@ -48,6 +55,9 @@ export class ProgressScreen {
   private claimAt = -1e9;
   private shakeAt = -1e9;
   private tip: { text: string; x: number; y: number; at: number } | null = null;
+  /** The camera on the map (map px at the window's top-left), and a press on the map (it may become a drag). */
+  private cam: { x: number; y: number } = { ...OPENING_CAMERA };
+  private press: { x: number; y: number; cx: number; cy: number; drag: boolean } | null = null;
 
   constructor(private readonly kit: CampKit) {}
 
@@ -56,6 +66,8 @@ export class ProgressScreen {
     this.openAt = now;
     this.regionAt = now;
     this.tip = null;
+    this.press = null;
+    this.cam = { ...OPENING_CAMERA };
     this.region = Math.max(0, Math.min(REGIONS.length - 1, region ?? this.current()));
   }
 
@@ -116,37 +128,83 @@ export class ProgressScreen {
     return { x: sd.x + 3, y: this.kit.s.B - 19, w: sd.w - 6, h: 17 };
   }
 
-  /** Every seal and socket on the map, in screen px. */
+  /** The window the frame shows of the map (screen px). */
+  mapRect(): Rect {
+    const f = this.frame();
+    return { x: f.x + FRAME_IN, y: f.y + FRAME_IN, w: REGION_VIEW_W, h: REGION_VIEW_H };
+  }
+
+  /** Every seal and socket on the map (one per item regionCompletion counts), in screen px. */
   private marks(): Mark[] {
     const r = this.region;
-    const def = REGIONS[r];
-    const sites = REGION_SITES[def.id];
-    if (!sites || !this.reached(r)) return [];
-    const p = this.kit.profile;
-    const log = regionLog(p, r);
-    const comp = regionCompletion(p, r);
-    const cleared = comp.parts.find((x) => x.key === 'acts')!.have;
-    const f = this.frame();
-    const mx = f.x + FRAME_IN;
-    const my = f.y + FRAME_IN;
-    const out: Mark[] = [];
-    const n = def.acts.length;
-    sites.acts.slice(0, n).forEach(([sx, sy], a) => {
-      out.push({ x: mx + sx + 9, y: my + sy - 8, key: 'acts', done: cleared > a, i: out.length });
-      const last = a === n - 1;
-      out.push({ x: mx + sx - 11, y: my + sy + 9, key: last ? 'boss' : 'minis', done: cleared > a, i: out.length });
-      out.push({ x: mx + sx, y: my + sy + 9, key: 'bounties', done: log.bounties.includes(a), i: out.length });
-      out.push({ x: mx + sx + 11, y: my + sy + 9, key: 'treasures', done: log.treasures.includes(a), i: out.length });
+    if (!this.reached(r)) return [];
+    const win = this.mapRect();
+    const comp = regionCompletion(this.kit.profile, r);
+    return regionMarks(REGIONS[r].id, comp.items).map((m, i) => {
+      const x = win.x + m.x - this.cam.x;
+      const y = win.y + m.y - this.cam.y;
+      // fully shown a seal's width in from the frame's edge, gone at the edge
+      const edge = Math.min(x - win.x, win.x + win.w - x, y - win.y, win.y + win.h - y);
+      return { ...m, x, y, i, vis: clamp01((edge - SEAL_R + 1) / 4) };
     });
-    const ev = comp.parts.find((x) => x.key === 'events')!;
-    for (let e = 0; e < ev.of; e++) out.push({ x: mx + sites.events[0] + (e - (ev.of - 1) / 2) * 12, y: my + sites.events[1], key: 'events', done: e < ev.have, i: out.length });
-    return out;
+  }
+
+  /** The marks as drawn (tests: one per counted item; `vis` > 0 when in view). */
+  markList(): Array<{ key: CompletionKey; n: number; done: boolean; x: number; y: number; vis: number }> {
+    return this.marks().map(({ key, n, done, x, y, vis }) => ({ key, n, done, x, y, vis }));
   }
 
   /** Where the `n`th seal or socket of a part is (screen px; tests tap it), or null. */
   seal(key: CompletionKey, n = 0): { x: number; y: number } | null {
     const m = this.marks().filter((q) => q.key === key)[n];
     return m ? { x: m.x, y: m.y } : null;
+  }
+
+  /** The camera on the map (map px at the window's top-left), for tests. */
+  camera(): { x: number; y: number } {
+    return { ...this.cam };
+  }
+
+  /** What the seal tapped last says ("Bounties 2/3"; null: none up), for tests. */
+  tipText(): string | null {
+    return this.tip?.text ?? null;
+  }
+
+  // ------------------------------------------------------------------ the map pans (tap vs drag, like the world map)
+
+  /** A press: on the map it's held (a drag pans it; let go in place, it's a tap). Returns whether it's taken. */
+  pressAt(x: number, y: number, _now: number): boolean {
+    if (!this.reached(this.region) || !inRect(this.mapRect(), x, y)) return false;
+    this.press = { x, y, cx: this.cam.x, cy: this.cam.y, drag: false };
+    return true;
+  }
+
+  /** The finger moves: past DRAG_PX it's a drag, and the map follows it (kept within its edges). */
+  dragTo(x: number, y: number, _now: number): void {
+    const p = this.press;
+    if (!p) return;
+    if (!p.drag) {
+      if (Math.hypot(x - p.x, y - p.y) <= DRAG_PX) return;
+      // a drag from here on, starting where the finger is now (no jump)
+      p.drag = true;
+      p.x = x;
+      p.y = y;
+      p.cx = this.cam.x;
+      p.cy = this.cam.y;
+      this.tip = null;
+    }
+    this.cam = clampCamera(p.cx - (x - p.x), p.cy - (y - p.y));
+  }
+
+  /** The finger lifts: true when it was a tap (the camp then taps there as usual). */
+  releaseAt(_x: number, _y: number, _now: number): boolean {
+    const p = this.press;
+    this.press = null;
+    return !!p && !p.drag;
+  }
+
+  cancelPress(): void {
+    this.press = null;
   }
 
   // ------------------------------------------------------------------ taps
@@ -164,6 +222,7 @@ export class ProgressScreen {
           this.region = t.region;
           this.regionAt = now;
           this.tip = null;
+          this.cam = { ...OPENING_CAMERA };
           kit.app.audio.uiClick();
         }
         return;
@@ -186,6 +245,7 @@ export class ProgressScreen {
     let best: Mark | null = null;
     let bd = 8;
     for (const m of this.marks()) {
+      if (m.vis <= 0.3) continue;
       const d = Math.hypot(x - m.x, y - m.y);
       if (d < bd) {
         bd = d;
@@ -194,7 +254,7 @@ export class ProgressScreen {
     }
     if (best) {
       const part = comp.parts.find((q) => q.key === best!.key)!;
-      const name = best.key === 'acts' ? 'Acts' : SEALS[best.key].name;
+      const name = SEALS[best.key].name;
       this.tip = { text: `${name} ${part.have}/${part.of}`, x: best.x, y: best.y - 5, at: now };
       kit.app.audio.uiClick();
     }
@@ -273,7 +333,9 @@ export class ProgressScreen {
     fillEllipse(g, f.x + FRAME_W / 2, f.y + FRAME_H / 2, FRAME_W * 0.6, FRAME_H * 0.7, 0xffc070, 0.05 * k * fl);
     g.fillStyle(INK, 0.45 * k);
     g.fillRect(f.x + 2, f.y + 4 + dy, FRAME_W, FRAME_H);
-    kit.imgs.at(key, f.x + FRAME_IN, f.y + FRAME_IN + dy, D.icons - 0.006, clamp01(k * 1.5) * (0.35 + 0.65 * mk));
+    // the window on the map: the camera's view of it (the map is bigger than the frame)
+    const win = this.mapRect();
+    kit.sprites.draw(key, win.x, win.y + dy, D.icons - 0.006, { crop: [this.cam.x, this.cam.y, REGION_VIEW_W, REGION_VIEW_H], alpha: clamp01(k * 1.5) * (0.35 + 0.65 * mk) });
     kit.imgs.at('rmap_frame', f.x, f.y + dy, D.icons - 0.005, clamp01(k * 1.5));
     if (!reached) {
       kit.texts.text('???', f.x + FRAME_W / 2, f.y + FRAME_H / 2 + dy, 0x6a5a6a, { bold: true, scale: 2, ox: 0.5, oy: 0.5, alpha: k * mk });
@@ -283,48 +345,54 @@ export class ProgressScreen {
     const ov = kit.gOver;
     for (const m of this.marks()) {
       const sk = popK(now, Math.max(this.regionAt, this.openAt + 200), m.i, 45, 220);
-      if (sk <= 0) continue;
-      if (m.key === 'acts') {
-        this.drawFlag(ov, m.x, m.y + 4, m.done, now, sk);
-        continue;
-      }
-      if (!m.done) {
-        inkSocket(ov, m.x, m.y, 4, now, sk);
-        continue;
-      }
+      if (sk <= 0 || m.vis <= 0) continue;
       const sl = SEALS[m.key];
-      const rad = 4.6 * (sk < 1 ? 1 + (1 - sk) * 0.8 : 1);
-      waxSeal(ov, m.x, m.y, rad, sl.wax, Math.min(1, sk * 1.5), (gg, cx, cy, a) => {
-        gg.fillStyle(sl.ink, a);
+      const stamp = (gg: G, cx: number, cy: number, col: number, a: number) => {
+        gg.fillStyle(col, a);
         sl.mark.forEach((row, j) => [...row].forEach((ch, i) => ch === '#' && gg.fillRect(Math.round(cx - 2.5 + i), Math.round(cy - sl.mark.length / 2 + j), 1, 1)));
-      });
+      };
+      if (!m.done) {
+        inkSocket(ov, m.x, m.y, SEAL_R - 0.5, now, sk * m.vis, (cx, cy, a) => stamp(ov, cx, cy, 0x6a4a2c, a));
+        continue;
+      }
+      const rad = (SEAL_R - 0.4) * (sk < 1 ? 1 + (1 - sk) * 0.8 : 1);
+      waxSeal(ov, m.x, m.y, rad, sl.wax, Math.min(1, sk * 1.5) * m.vis, (gg, cx, cy, a) => stamp(gg, cx, cy, sl.ink, a));
     }
+    this.drawChevrons(ov, f, dy, now, k);
   }
 
-  /** A flag planted on a cleared act's site (it waves), or an empty socket where it will go. */
-  private drawFlag(g: G, x: number, y: number, done: boolean, now: number, k: number): void {
-    if (!done) {
-      inkSocket(g, x, y - 3, 4, now, k);
-      return;
-    }
-    const rise = Math.round((1 - k) * 5);
-    const top = y - 12 + rise;
-    g.fillStyle(INK, k);
-    g.fillRect(x - 1, top - 1, 3, 13 - rise);
-    g.fillStyle(0xd09a5e, k);
-    g.fillRect(x, top, 1, 12 - rise);
-    // the cloth, rippling (two frames)
-    const wave = Math.floor(now / 260 + x) % 2;
-    const rows = wave ? ['GGGGg', 'GGGgg', 'GGgg.'] : ['GGGG.', 'GGGgg', 'GGGgg'];
-    g.fillStyle(INK, k);
-    g.fillRect(x + 1, top - 1, 7, 5);
-    rows.forEach((row, j) => [...row].forEach((ch, i) => {
-      if (ch === '.') return;
-      g.fillStyle(ch === 'G' ? 0x8af06a : 0x2a9a3a, k);
-      g.fillRect(x + 1 + i, top + j, 1, 1);
-    }));
-    g.fillStyle(0xfff0a0, k);
-    g.fillRect(x, top - 1, 1, 1);
+  /** Gold chevrons on the frame where the map goes on past the window (pulsing; gone at that edge). */
+  private drawChevrons(g: G, f: { x: number; y: number }, dy: number, now: number, k: number): void {
+    const maxX = REGION_MAP_W - REGION_VIEW_W;
+    const maxY = REGION_MAP_H - REGION_VIEW_H;
+    const a = (0.6 + 0.4 * pulse(now, 1100)) * k;
+    const cx = Math.round(f.x + FRAME_W / 2);
+    const cy = Math.round(f.y + FRAME_H / 2 + dy);
+    // a thick arrowhead pointing right (3 x 5), turned for each edge; inked under, gold with a lit tip
+    const RIGHT = ['X..', 'XX.', '.XX', 'XX.', 'X..'];
+    const chevron = (x0: number, y0: number, dir: 'l' | 'r' | 'u' | 'd') => {
+      const cells: Array<[number, number]> = [];
+      RIGHT.forEach((row, j) =>
+        [...row].forEach((ch, i) => {
+          if (ch !== 'X') return;
+          const ii = i - 1;
+          const jj = j - 2;
+          cells.push(dir === 'r' ? [ii, jj] : dir === 'l' ? [-ii, jj] : dir === 'd' ? [jj, ii] : [jj, -ii]);
+        }),
+      );
+      g.fillStyle(INK, a * 0.85);
+      for (const [i, j] of cells) g.fillRect(x0 + i - 1, y0 + j - 1, 3, 3);
+      g.fillStyle(0xffd23a, a);
+      for (const [i, j] of cells) g.fillRect(x0 + i, y0 + j, 1, 1);
+      g.fillStyle(0xfff4c0, a);
+      const tip = dir === 'r' ? [1, 0] : dir === 'l' ? [-1, 0] : dir === 'd' ? [0, 1] : [0, -1];
+      g.fillRect(x0 + tip[0], y0 + tip[1], 1, 1);
+    };
+    const mid = Math.floor(FRAME_IN / 2);
+    if (this.cam.x > 0) chevron(f.x + mid, cy, 'l');
+    if (this.cam.x < maxX) chevron(f.x + FRAME_W - 1 - mid, cy, 'r');
+    if (this.cam.y > 0) chevron(cx, f.y + mid + dy, 'u');
+    if (this.cam.y < maxY) chevron(cx, f.y + FRAME_H - 1 - mid + dy, 'd');
   }
 
   /** The ring with the %, and the 100% reward on its pedestal; Claim / Claimed under it. */
@@ -350,9 +418,11 @@ export class ProgressScreen {
     fillEllipse(g, ra.x, ra.y, ra.r - 6, ra.r - 6, 0x1a1226, 0.85 * k);
     if (!reached) texts.text('?', ra.x, ra.y, 0x9890b8, { bold: true, scale: 2, ox: 0.5, oy: 0.5, alpha: k });
     else if (done) {
-      const [bw, bh] = iconSize('badge_region');
-      hudIcon(kit.gOver, 'badge_region', Math.round(ra.x - bw / 2), Math.round(ra.y - bh / 2 - 4), 1, k);
-      texts.text('100%', ra.x, ra.y + 9, GOLD_TXT, { bold: true, ox: 0.5, oy: 0.5, alpha: k });
+      // the badge, 100%, and the count (the same N/15 as before it was done: every count agrees)
+      const [bw] = iconSize('badge_region');
+      hudIcon(kit.gOver, 'badge_region', Math.round(ra.x - bw / 2), Math.round(ra.y - 15), 1, k);
+      texts.text('100%', ra.x, ra.y + 3, GOLD_TXT, { bold: true, ox: 0.5, oy: 0.5, alpha: k });
+      texts.text(`${comp.have}/${comp.of}`, ra.x, ra.y + 11, 0xe8d8a0, { ox: 0.5, oy: 0.5, alpha: k });
     } else {
       const pct = `${Math.round(comp.pct * ck)}`;
       const nw = textWidth(pct, 2, true);
@@ -431,16 +501,18 @@ export class ProgressScreen {
   }
 }
 
-/** A socket inked on the parchment (what's left): a faint pressed hollow and a dotted ring that breathes. */
-function inkSocket(g: G, cx: number, cy: number, rad: number, now: number, a: number): void {
-  fillEllipse(g, cx, cy, rad, rad, 0x8a6a44, 0.22 * a);
-  const n = Math.round(rad * 6);
-  const k = 0.55 + 0.3 * pulse(now, 2400, cx * 37);
-  g.fillStyle(0x4a3018, k * a);
-  for (let i = 0; i < n; i += 2) {
+/** A socket inked on the parchment (what's still to do): a pressed hollow, a solid inked ring that breathes, and the
+ *  seal's emblem ghosted in it (so an empty one still says what goes there). */
+function inkSocket(g: G, cx: number, cy: number, rad: number, now: number, a: number, emblem: (cx: number, cy: number, a: number) => void): void {
+  fillEllipse(g, cx, cy, rad, rad, 0x8a6a44, 0.32 * a);
+  const n = Math.round(rad * 8);
+  const k = 0.7 + 0.25 * pulse(now, 2400, cx * 37);
+  g.fillStyle(0x3a2412, k * a);
+  for (let i = 0; i < n; i++) {
     const ang = (i / n) * Math.PI * 2;
     g.fillRect(Math.round(cx + Math.cos(ang) * rad - 0.5), Math.round(cy + Math.sin(ang) * rad - 0.5), 1, 1);
   }
-  g.fillStyle(0xfff4d8, 0.35 * a);
-  g.fillRect(Math.round(cx + rad * 0.4), Math.round(cy + rad * 0.75), 2, 1);
+  emblem(cx, cy, 0.5 * a);
+  g.fillStyle(0xfff4d8, 0.4 * a);
+  g.fillRect(Math.round(cx + rad * 0.4), Math.round(cy + rad * 0.85), 2, 1);
 }
