@@ -156,21 +156,27 @@ export function drawStyleChip(s: FightScene, g: G, texts: TextPool, c: Combat, x
     const n = Math.min(every - 1, c.perk.rockfall ?? 0);
     if (n <= 0 && !o.empty) return null;
     const ready = n >= every - 1;
-    const r = chip(10 + (every - 1) * 4, ready ? 0xe0d0b0 : null);
-    g.fillStyle(0x4a4858, A);
-    g.fillRect(r.x + 2, r.y + 3, 6, 5);
-    g.fillRect(r.x + 3, r.y + 2, 4, 7);
+    const r = chip(11 + (every - 1) * 4, ready ? 0xe0d0b0 : null);
+    // a round boulder, lit from the top left, a tuft of moss
+    g.fillStyle(INK, A);
+    g.fillRect(r.x + 2, r.y + 2, 7, 7);
+    g.fillStyle(0x5c5864, A);
+    g.fillRect(r.x + 3, r.y + 2, 5, 7);
+    g.fillRect(r.x + 2, r.y + 3, 7, 5);
     g.fillStyle(0x96908e, A);
     g.fillRect(r.x + 3, r.y + 3, 4, 4);
-    g.fillStyle(0xc4bcae, A);
+    g.fillStyle(0xd6cdb8, A);
     g.fillRect(r.x + 3, r.y + 3, 2, 1);
+    g.fillRect(r.x + 3, r.y + 4, 1, 1);
+    g.fillStyle(0xa2c84e, A);
+    g.fillRect(r.x + 6, r.y + 2, 2, 1);
     for (let i = 0; i < every - 1; i++) {
       const on = i < n;
-      g.fillStyle(on ? (ready ? 0xfff0c8 : 0xc4bcae) : NAVY[1], A);
-      g.fillRect(r.x + 10 + i * 4, r.y + 3, 3, 4);
+      g.fillStyle(on ? (ready ? 0xfff0c8 : 0xc4bcae) : 0x4a4858, A);
+      g.fillRect(r.x + 11 + i * 4, r.y + 3, 3, 4);
       if (on) {
         g.fillStyle(WHITE, 0.8 * A);
-        g.fillRect(r.x + 10 + i * 4, r.y + 3, 3, 1);
+        g.fillRect(r.x + 11 + i * 4, r.y + 3, 3, 1);
       }
     }
     return r;

@@ -53,6 +53,8 @@ reuse it. One number each in `tuning.styles`.
 | Hollis | Guardian | Rare | hero chests |
 | Vesper | Marksman | Legendary | hero chests |
 | Torva | Brute | Epic | hero chests |
+| Gorm | Brute | Legendary | hero chests (round 7) |
+| Tess | Controller | Epic | hero chests (round 7) |
 
 Higher rarity = a richer kit: Legendary heroes' finishers do two things to the bar, and their passives interact with
 the region rules.
@@ -141,6 +143,32 @@ the region rules.
 - Finisher **Earthsplitter**: hits all foes and clears the whole bar (every block), and no reds come for 2 s.
 - Strength: +20% damage to Constructs (golems, ice knights).
 
+### Gorm, Stonefist (Brute, Legendary) — round 7
+- Look: a huge, gentle half-giant with grey-green skin, a big jaw with two little lower teeth, a tuft of moss-green
+  hair, a leather harness studded with stones, and two enormous stone gauntlets (moss on top). Palette: stone greys,
+  moss green, leather browns. The broadest hero in the box: a small head on great shoulders.
+- Signature **Rockfall**: every 4th hit lands heavy (x1.6 on top of Heavy) and shoves the nearest red back.
+- Ability (green) **Roar**: the foes flinch; every red on the bar slows to half speed for 1.5 s.
+- Passive **Thick Skin**: the first hit you take each wave deals 50% less.
+- Finisher **Landslide**: boulders hit every foe and smash every red; then rubble lies over the bar's right quarter
+  for 4 s and every red crossing it moves at half speed. (Two things to the bar.)
+- Its show: a slam sets boulders rolling through the foes; last, a great boulder drops on them; a heap of rubble.
+- Strength: +20% damage to Armored foes (shells, knights).
+- Meets the party out of a hero chest (`meetGorm`): napping in it, folded up "like a nice rock".
+
+### Tess, Timekeeper (Controller, Epic) — round 7
+- Look: a small, sharp old clockmaker: a grey bun pinned with a brass gear, round brass spectacles, a teal waistcoat
+  over a cream blouse, a tool belt, a staff topped with a big brass pocket watch. Palette: brass, teal, cream.
+- Signature **Stopwatch**: every 12 hits, time stops for the reds: they hold still for 1.2 s while the cursor moves
+  (an icicle's fuse waits too).
+- Ability (green) **Slow Time**: for 3 s, every red moves at 60% speed (the ones that come in too).
+- Passive **Steady Hands**: ice and snow patches change her cursor's speed half as much.
+- Finisher **Rewind**: hits all foes and winds every red on the bar back to where it came on (an icicle's fuse to
+  full).
+- Its show: a great brass clock rises behind the foes, its hands spin backwards, faster and faster, and it chimes.
+- Strength: +20% damage to Constructs.
+- Meets the party out of a hero chest (`meetTess`): "You're four minutes late."
+
 ### Stars (1-5, from shards of duplicates)
 Every hero: 2★ +6% attack, 4★ +8% max HP. 3★ and 5★ unlock a move (data: `HERO_STARS`):
 
@@ -154,6 +182,8 @@ Every hero: 2★ +6% attack, 4★ +8% max HP. 3★ and 5★ unlock a move (data:
 | Hollis | Guard holds 7 charges | Shield Slam on every block |
 | Vesper | Focus cap +50% | Volley pins reds 4 s |
 | Torva | Quake also on blocks | Earthsplitter keeps 1 stack |
+| Gorm | Rockfall every 3rd hit | Landslide's rubble stays twice as long |
+| Tess | the Stopwatch every 9 hits | Rewind stops time too |
 
 ---
 

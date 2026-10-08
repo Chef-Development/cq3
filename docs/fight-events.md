@@ -92,6 +92,13 @@ shows on its target.
 | Sable | the dash lands | the `'land'` zone (events above): the brake toward the block, brackets on it |
 | Moss | ally power | see `ally` power above |
 | Newt | a burn per foe | see the companions |
+| Gorm (round 7) | Rockfall | a box on the heavy hit, stone chips off it, a boulder flies from it onto the nearest red (dust and a ring where it lands, the red's box) as the red is shoved back; the foe is rocked (a heavy kick, rubble at its feet); "Heavy!"; the style tab counts the hits toward the next one (a boulder and a pip a hit, all lit and glowing: the next hit is the Rockfall) |
+| Gorm | Roar | rings of sound roll out of his mouth, every foe flinches back (its hurt pose), every red flashes and is dusted over while it's slowed (speckled stone dust, pebbles on its top edge: `bar-gorm-tess.ts` `drawKitChill`), "Roar!" |
+| Gorm | Thick Skin | stone chips burst off the hero, a grey ring, "Tough!" |
+| Gorm | Landslide's rubble | rocks piled along the bar's top and bottom edges over its right end, a dusty wash over the track, a dashed edge where it starts; it settles and fades as it runs out (`drawKitBar`); each red it slows flashes and is dusted ("Slow", at most every 1.5 s) |
+| Tess (round 7) | the Stopwatch | a brass ring round every red it holds and the cursor's kick, "Stop!"; while time is stopped, every held red goes grey under a white clock face whose hand sweeps round as the stop runs out (blinking at the end), and the bar's frame ticks like a clock's rim (twelve brass ticks top and bottom, the lit one stepping round); the style tab is a pocket watch and a brass gauge filling hit by hit, full and glowing while time is stopped |
+| Tess | Slow Time | every red flashes; each slowed red takes a teal wash and a small hourglass whose sand runs, "Slow!" |
+| Tess | Rewind (and Backspin, Time Loop) | every red flashes teal; a red being wound back trails two teal rewind arrows pointing the way it goes |
 
 ### Every perk
 
@@ -268,6 +275,32 @@ shows on its target.
 | `seething` | skill: Seething | a mote flies from the bar's left end into the style tab; a ring and sparks on the hero |
 | `payback` | skill: Payback | the cursor kicks (a column of light, a ring) |
 | `berserk` | skill: Berserk | a box flashes out of the block it touched; brackets close in on its foe |
+| `rockfall` | Gorm: Rockfall | a box on the hit, brackets on its foe; its boulder onto the red it shoves (`onsite.gormTess`) |
+| `roar` | Gorm: Roar | every red flashes; every foe marked (and flinches) |
+| `stoneSkin` | Gorm: Thick Skin | a ring on the hero (stone chips off it) |
+| `rubble` | Gorm: Landslide | its own show (the rubble on the bar) |
+| `rubbleSlow` | Gorm: Landslide's rubble | a box flashes out of the red it slowed |
+| `bigShove` | skill: Big Shove | a box on the red it shoved further |
+| `splitRock` | skill: Split Rock | a bolt to each other foe, then the hit |
+| `stoneRain` | skill: Stone Rain | every red flashes |
+| `longRoar` | skill: Long Roar | every red flashes |
+| `earRinger` | skill: Ear Ringer | brackets on each foe (and its stun stars) |
+| `warCry` | skill: War Cry | a box on the block that set it off; every red flashes |
+| `secondSkin` | skill: Second Skin | a ring on the hero (stone chips) |
+| `shrugOff` | skill: Shrug It Off | the combo counter swells; a ring on the hero |
+| `bedrock` | skill: Bedrock | a box on the hit, brackets on its foe |
+| `stopwatch` / `secondHand` | Tess: Stopwatch (Second Hand: 5 stars) | every red flashes, a brass ring round each; the cursor's kick |
+| `slowTime` | Tess: Slow Time | every red flashes |
+| `rewind` | Tess: Rewind | every red flashes (teal) |
+| `longPause` | skill: Long Pause | every red flashes |
+| `quickTick` | skill: Quick Tick | a box on the hit, brackets on its foe |
+| `perfectTime` | skill: Perfect Time | a box on the hit; a mote into the style tab |
+| `lingering` | skill: Lingering | every red flashes |
+| `borrowedTime` | skill: Spare Time | a box on the red blocked; every red flashes |
+| `standstill` | skill: Standstill | every red flashes; the cursor's kick |
+| `windBack` | skill: Wind Back | every foe marked |
+| `backspin` | skill: Backspin | a box on the red it winds back |
+| `timeLoop` | skill: Time Loop | every red flashes |
 
 ## Needs from core
 
