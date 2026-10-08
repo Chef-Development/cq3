@@ -53,7 +53,8 @@ export function bulwark(c: Combat, pos: number): number {
 // ---------------------------------------------------------------- Marksman: Focus
 
 export const focusOf = (c: Combat): number => c.perk.focus ?? 0;
-export const focusCap = (c: Combat): number => c.stats().atk * S(c).focusCap * (c.heroId === 'vesper' && c.stars >= 3 ? c.tuning.kits.vesper.cap3 : 1);
+export const focusCap = (c: Combat): number =>
+  c.stats().atk * S(c).focusCap * (c.heroId === 'vesper' && c.stars >= 3 ? c.tuning.kits.vesper.cap3 : 1) * (c.perk.focusCapMult ?? 1); // (Dell's Full Pouch)
 
 export function addFocus(c: Combat, amount: number): void {
   c.perk.focus = Math.min(focusCap(c), focusOf(c) + Math.max(0, amount));
@@ -91,11 +92,16 @@ export function powerShot(c: Combat, crit = false): number {
  */
 export function allyPower(c: Combat): number {
   const base = Math.max(1, c.tuning.companion.damage);
-  return 1 + c.tuning.kits.moss.allyComp * Math.max(0, (c.stats().companion - base) / base);
+  const comp = c.heroId === 'yara' ? c.tuning.kits.yara.allyComp : c.tuning.kits.moss.allyComp;
+  return 1 + comp * Math.max(0, (c.stats().companion - base) / base);
 }
 
-/** How long a summoned ally stays (Moss's 3 stars: longer). */
-export const allySec = (c: Combat): number => (c.heroId === 'moss' && c.stars >= 3 ? c.tuning.kits.moss.allySec3 : c.tuning.kits.moss.allySec);
+/** How long a summoned ally stays (Moss's 3 stars: longer; Yara's spirits: her own). */
+export const allySec = (c: Combat): number =>
+  c.heroId === 'yara' ? c.tuning.kits.yara.allySec : c.heroId === 'moss' && c.stars >= 3 ? c.tuning.kits.moss.allySec3 : c.tuning.kits.moss.allySec;
+
+/** Allies that stand guard: braced, they stop the next red that reaches the hero (Moss's Barkback, Yara's Tortoise). */
+export const isBlocker = (kind: AllyKind): boolean => kind === 'barkback' || kind === 'spiritTortoise';
 
 /** The ally kinds this hero calls, in order (Moss's 5 stars add the Seedling). */
 export function allyKinds(c: Combat): AllyKind[] {
@@ -106,8 +112,22 @@ export function allyKinds(c: Combat): AllyKind[] {
 /** When an ally acts first, and then every this many seconds. */
 export function allyEvery(c: Combat, kind: AllyKind): number {
   const k = c.tuning.kits.moss;
+  const y = c.tuning.kits.yara;
+  switch (kind) {
+    case 'spiritWolf':
+      return y.wolfEvery;
+    case 'spiritTortoise':
+      return y.shellRest; // (after a block: its shell first comes up shellFirst s after it's called)
+    case 'wispSwarm':
+      return y.wispEvery;
+    case 'spiritStag':
+      return y.stagEvery;
+  }
   return kind === 'thornling' ? k.thornEvery : kind === 'barkback' ? k.barkEvery : kind === 'glowmoth' ? k.mothEvery : k.seedEvery;
 }
+
+/** When a newly called ally acts first: half its time (a Tortoise raises its shell after kits.yara.shellFirst). */
+const allyFirst = (c: Combat, kind: AllyKind): number => (kind === 'spiritTortoise' ? c.tuning.kits.yara.shellFirst : allyEvery(c, kind) * 0.5);
 
 /**
  * A green hit calls the next ally in order (up to the cap). With every kind out already, it's a Rally: every ally's
@@ -118,23 +138,26 @@ export function callAlly(c: Combat): void {
   const max = Math.min(Math.round(S(c).allyMax) + (kinds.length > 3 ? 1 : 0), kinds.length);
   const missing = kinds.find((k) => !c.allies.some((a) => a.kind === k));
   if (missing && c.allies.length < max) {
-    const a: Ally = { id: (c.perk.allyId = (c.perk.allyId ?? 0) + 1), kind: missing, left: allySec(c), timer: allyEvery(c, missing) * 0.5, braced: false };
+    const a: Ally = { id: (c.perk.allyId = (c.perk.allyId ?? 0) + 1), kind: missing, left: allySec(c), timer: allyFirst(c, missing), braced: false };
     c.allies.push(a);
     c.events.push({ type: 'ally', kind: missing, action: 'call', id: a.id, power: allyPower(c) });
     return;
   }
-  // a Rally: everyone stays longer and acts now (a Barkback that just took a red keeps resting: one red per rest)
+  // a Rally: everyone stays longer and acts now (a Barkback that just took a red keeps resting: one red per rest);
+  // c.perk.rallies counts them (Yara's Great Spirit answers one)
   c.events.push({ type: 'ally', kind: kinds[0], action: 'rally', id: 0 });
   c.perkFx('rally');
+  c.perk.rallies = (c.perk.rallies ?? 0) + 1;
   for (const a of c.allies) {
     a.left = allySec(c);
-    if (a.kind === 'barkback' && !a.braced && a.timer > 0) continue;
+    if (isBlocker(a.kind) && !a.braced && a.timer > 0) continue;
     allyAct(c, a);
     a.timer = allyEvery(c, a.kind);
   }
 }
 
-function allyAct(c: Combat, a: Ally): void {
+/** An ally acts now (its own timer, a Rally, or a node that sends it in: Yara's Hunting Call). */
+export function allyAct(c: Combat, a: Ally): void {
   const k = c.tuning.kits.moss;
   const power = allyPower(c);
   let amount = 0;
@@ -146,7 +169,22 @@ function allyAct(c: Combat, a: Ally): void {
     }
   } else if (a.kind === 'barkback') a.braced = true;
   else if (a.kind === 'glowmoth') amount = c.healPerk(c.maxHp() * k.mothHeal * power, 'glowmoth');
-  else {
+  else if (a.kind === 'spiritWolf') {
+    // Yara's Spirit Wolf bites the target
+    const t = c.currentTarget();
+    if (t) {
+      amount = Math.max(1, Math.round(c.stats().atk * c.tuning.kits.yara.wolfDmg * power * (c.perk.wolfMult ?? 1))); // (Long Fang)
+      c.strike(t, amount, 'spiritWolf');
+    }
+  } else if (a.kind === 'spiritTortoise') {
+    // ...her Spirit Tortoise raises its shell (it stops the next red; at 3 stars, the next two)
+    a.braced = true;
+    c.perk[`shell${a.id}`] = c.heroId === 'yara' && c.stars >= 3 ? Math.max(1, Math.round(c.tuning.kits.yara.shell3)) : 1;
+  } else if (a.kind === 'wispSwarm') {
+    // ...her Wisp Swarm fills the meter a little (never a heal)
+    c.fillMeter(c.tuning.meter.perHit * c.tuning.kits.yara.wispMeter * power * (c.perk.wispMult ?? 1), 'perk'); // (Bright Wisps)
+    c.perkFx('wispSwarm');
+  } else {
     const front = c.frontEnemy();
     if (front && c.trySpawn('green', front.id)) c.perkFx('seedling');
   }
@@ -161,7 +199,7 @@ function stepAllies(c: Combat, dt: number): void {
       c.events.push({ type: 'ally', kind: a.kind, action: 'leave', id: a.id });
       continue;
     }
-    if (a.kind === 'barkback' && a.braced) continue; // braced: waits for a red
+    if (isBlocker(a.kind) && a.braced) continue; // braced: waits for a red
     a.timer -= dt;
     if (a.timer <= 0) {
       a.timer = allyEvery(c, a.kind);
@@ -284,13 +322,27 @@ export const STYLE_HOOKS: Record<StyleId, FightHooks> = {
       if (x.green && !x.echo) callAlly(c);
     },
     step: (c) => stepAllies(c, DT),
-    impact: (c) => {
-      // a braced Barkback stops a red that reaches you
-      const bark = c.allies.find((a) => a.kind === 'barkback' && a.braced);
+    impact: (c, b) => {
+      // a braced Barkback (or Yara's Tortoise, its shell up) stops a red that reaches you
+      const bark = c.allies.find((a) => isBlocker(a.kind) && a.braced);
       if (!bark) return false;
+      c.events.push({ type: 'ally', kind: bark.kind, action: 'block', id: bark.id });
+      if (bark.kind === 'spiritTortoise') {
+        // (a shell with a block left in it stays up: 3 stars)
+        // (Yara's Shell nodes count the blocks and whose red it was)
+        c.perk.shellBlocks = (c.perk.shellBlocks ?? 0) + 1;
+        c.perk.shellOwner = b.ownerId;
+        const left = (c.perk[`shell${bark.id}`] ?? 1) - 1;
+        c.perk[`shell${bark.id}`] = left;
+        if (left <= 0) {
+          bark.braced = false;
+          bark.timer = allyEvery(c, bark.kind);
+        }
+        c.perkFx('spiritTortoise');
+        return true;
+      }
       bark.braced = false;
       bark.timer = allyEvery(c, 'barkback');
-      c.events.push({ type: 'ally', kind: 'barkback', action: 'block', id: bark.id });
       c.perkFx('barkback');
       return true;
     },

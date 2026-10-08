@@ -23,7 +23,7 @@ import { relicById } from '../../data/relics';
 import type { FightScene } from '../scene';
 import { STYLE_LOOK } from './camp-kit';
 import { BLOCKER_FACE, sparkle } from './bar-kinds';
-import { ALLY_COL, PERK_PET, PET_COL } from './party';
+import { ALLY_COL, isSpirit, PERK_PET, PET_COL } from './party';
 import { COIN_FROM, PERK_ALLY, PERK_SPAWN, perkTargets, type PerkTarget } from './perk-at';
 import { perkSource, TAG_FACE } from './relic-ui';
 import { clamp01, ease, INK, mix, pulse, rand, WHITE, type EnemyView } from './shared';
@@ -42,7 +42,7 @@ const HEAL_MS = 760;
 /** A burn tick keeps the flames up this long (the ticks come every second). */
 const BURN_HOLD_MS = 1250;
 /** Perks that come with nearly every tap are shown at most this often (ms). */
-const GAP: Record<string, number> = { snowDash: 1100, vampiricFang: 300, guardUp: 120, chain: 120 };
+const GAP: Record<string, number> = { snowDash: 1100, vampiricFang: 300, guardUp: 120, chain: 120, kinship: 700 };
 /** The same kind of mark on the same thing at most this often (ms). */
 const KIND_GAP: Partial<Record<PerkTarget, number>> = { hero: 350, cursor: 300, reds: 300, combo: 280, meter: 150, foes: 300, target: 200 };
 /** Fire, gold, a heal's greens. */
@@ -486,6 +486,10 @@ export class OnSite {
         s.fx.addFloater(Math.max(30, v.x - v.img.displayWidth / 2 - 24), Math.max(36, v.y - v.img.displayHeight / 2 - 4), `${mult(e.amount / 100)}!`, HEAT[1], 2, true, 0, -12, 0, 900, true);
         break;
       }
+      case 'longBond':
+        // Yara's spirits stay longer: a ring of starlight on each (Part 6)
+        for (const v of s.fighters.party.allies.values()) if (!v.leaveAt && isSpirit(v.kind)) s.fx.ring(v.img.x, v.img.y - 8, 12, ALLY_COL[v.kind], true);
+        break;
       case 'patience': {
         // Vesper's full Focus fired by a Perfect (no green in reach): gold on the hit and on the foe it struck
         const t = this.foe(this.b.hitFoe) ? this.b.hitFoe : (c.currentTarget()?.id ?? 0);
@@ -737,27 +741,40 @@ export class OnSite {
     const s = this.s;
     const party = s.fighters.party;
     if (e.power) this.allyPower = e.power;
-    if (e.action === 'call') {
-      // the green that called it sends a leaf up to where it pops in
+    if (e.action === 'call' && e.kind !== 'spiritStag') {
+      // the green that called it sends a leaf up to where it pops in (Yara's spirits: a star of spirit light)
       const from = this.b.hitPos ?? this.b.tapPos;
       if (from !== null) {
         const p = this.barPt(from);
         const home = party.allyHome(e.kind);
         const to = this.screen(home.x, home.y);
         const ms = 200;
-        this.fly(p.x, s.bar.y - 4, to.x, to.y, ms, 0x9af06a, 'leaf', 18);
+        const spirit = isSpirit(e.kind);
+        this.fly(p.x, s.bar.y - 4, to.x, to.y, ms, spirit ? ALLY_COL[e.kind] : 0x9af06a, spirit ? 'star' : 'leaf', 18);
         party.ally(e.kind, 'call', e.id, ms);
         return;
       }
     }
     party.ally(e.kind, e.action, e.id);
-    if (e.action === 'act' && e.kind === 'barkback') {
-      // braced: it sets its bark against the bar's left end, where it will take the next red
-      const p = party.allyPos('barkback');
+    if (e.action === 'act' && (e.kind === 'barkback' || e.kind === 'spiritTortoise')) {
+      // braced: it sets its bark (or its shell) against the bar's left end, where it will take the next red
+      const p = party.allyPos(e.kind);
       if (p) {
         const sp = this.screen(p.x, p.y);
         const to = this.barPt(0);
-        this.fly(sp.x, sp.y, to.x - 2, to.y, 220, ALLY_COL.barkback, 'mote', 10);
+        this.fly(sp.x, sp.y, to.x - 2, to.y, 220, ALLY_COL[e.kind], 'mote', 10);
+      }
+    }
+    if (e.action === 'act' && e.kind === 'wispSwarm') {
+      // Yara's Wisps: three motes of starlight fly into the meter, which sparkles where it's filled to
+      const p = party.allyPos('wispSwarm');
+      const c = this.c;
+      if (p && c) {
+        const sp = this.screen(p.x, p.y);
+        const m = s.meter;
+        const tx = m.x + m.w * (c.finisherReady ? 1 : clamp01(c.meter));
+        for (let i = 0; i < 3; i++)
+          s.later(i * 50, () => this.fly(sp.x + (i - 1) * 3, sp.y + (i % 2) * 2, tx, m.y + m.h / 2, 240, i === 1 ? WHITE : ALLY_COL.wispSwarm, 'star', 14 + i * 4, i === 2 ? () => this.meter(ALLY_COL.wispSwarm) : undefined));
       }
     }
   }

@@ -100,6 +100,23 @@ export const CALLOUT_WORDS: Record<string, string> = {
   'ability:torva': 'Wind-Up',
   // part6:A
   // part6:B
+  // Yara (her spirits; 'Stag!' is each of the Great Spirit's strikes)
+  spiritWolf: 'Bite!',
+  spiritTortoise: 'Shell!',
+  wispSwarm: 'Wisps',
+  spiritStag: 'Stag!',
+  'call:spiritWolf': '+Wolf',
+  'call:spiritTortoise': '+Shell',
+  'call:wispSwarm': '+Wisps',
+  'call:spiritStag': 'Stag!',
+  greatSpirit: 'Spirit!',
+  kinship: 'Kinship',
+  spiritStampede: 'Charge!',
+  // Dell
+  luckyShot: 'Lucky!',
+  ricochetShot: 'Bounce!',
+  pocketful: 'Kept!',
+  pebbleStorm: 'Knock!',
   // part6:C
   // part6:D
   // the companions ("+N": the coins found)
@@ -147,6 +164,12 @@ const SKILL_WORDS = new Set(['bigFreeze', 'turnabout', 'avalanche']);
 const NO_WORD = new Set(['bulwarkBlow']);
 /** The perks that are coins found (gold words). */
 const COIN_PERKS = new Set(['luckyFoot', 'goldHoard']);
+// ---- Yara and Dell (Part 6): the Tortoise's shell takes reds at the left end; the spirits' own doings share the
+// allies' bucket (the stag strikes every second); a crit with spirits out shows now and then
+AT_LEFT.add('spiritTortoise');
+for (const id of ['spiritWolf', 'wispSwarm', 'spiritStag']) ALLY_DOINGS.add(id);
+Object.assign(SLOW_GAP, { kinship: 1800, pocketful: 1500 });
+
 /** The style readout's tab shows its empty state (dim pips or gauge waiting to fill) for these styles. */
 const EMPTY_TAB = new Set(['guardian', 'marksman', 'summoner']);
 
@@ -267,7 +290,7 @@ export class Callouts {
     if (id === 'rally') return { word, col: 0xffe680, mark: { kind: 'leaf', col: 0x9af06a }, always: true };
     if (id in ALLY_COL) {
       const col = ALLY_COL[id as AllyKind];
-      return { word, col: mix(col, WHITE, 0.25), mark: { kind: 'leaf', col }, bucket: ALLY_DOINGS.has(id) ? 'ally' : undefined, always: id === 'barkback' };
+      return { word, col: mix(col, WHITE, 0.25), mark: { kind: 'leaf', col }, bucket: ALLY_DOINGS.has(id) ? 'ally' : undefined, always: id === 'barkback' || id === 'spiritTortoise' };
     }
     return { word, ...this.heroLook(c) };
   }

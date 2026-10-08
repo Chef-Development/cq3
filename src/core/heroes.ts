@@ -267,6 +267,10 @@ export function kitN(t: Tuning, id: HeroId, which: KitWhich): number {
       return k.torva.windUpBase;
     // part6:A
     // part6:B
+    case 'yara.passive':
+      return k.yara.kinship * 100;
+    case 'dell.signature':
+      return k.dell.ricochet * 100;
     // part6:C
     // part6:D
     default:

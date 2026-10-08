@@ -22,6 +22,8 @@ export const SPEAKER_NAME: Record<Speaker, string> = {
   torva: 'Torva',
   // part6:A
   // part6:B
+  yara: 'Yara',
+  dell: 'Dell',
   // part6:C
   // part6:D
   rimehorn: 'Rimehorn',
@@ -248,6 +250,19 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'torva', text: 'HA! TORVA! Hammer brute! What needs\nsmashing? Point me at it, friend!' },
     { who: 'rowan', text: 'Nothing needs smashing. Well. Not anymore.\nThat was a really nice chest.' },
     { who: 'torva', text: 'Problem? HAMMER. Locked door? HAMMER.\nFeeling sad? HAMMER HUG! Come here!' },
+  ],
+  // ---- Yara and Dell (Part 6): their first chest reveal
+  meetYara: [
+    { who: 'narrator', text: 'Starlight spills from the chest. A wolf\nmade of light pads out. Then a girl.' },
+    { who: 'yara', text: "I'm Yara. I call spirits. This is Wolf.\nHe says you smell like boar. Sorry." },
+    { who: 'yara', text: 'That is Tortoise. Never say turtle.\nShe holds a grudge for a hundred years.' },
+    { who: 'pip', text: 'Hoo. The little lights keep landing on\nme. I am a fine owl, NOT a lamp.' },
+  ],
+  meetDell: [
+    { who: 'narrator', text: 'A pebble pings off the lid from inside.\nThen a straw hat pokes out.' },
+    { who: 'dell', text: "Howdy! I'm Dell. I scare crows off the\nfarm. With my slingshot. And rocks." },
+    { who: 'pip', text: "Hoo. Hold on. Crows? I'm a bird, kid.\nWe have an understanding, yes?" },
+    { who: 'dell', text: 'Course! Owls are pals. Owls are great.\n...Unless you eat my corn.' },
   ],
 };
 

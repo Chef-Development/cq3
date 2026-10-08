@@ -181,6 +181,8 @@ export type Speaker =
   | 'torva'
   // part6:A
   // part6:B
+  | 'yara'
+  | 'dell'
   // part6:C
   // part6:D
   | 'rimehorn'

@@ -31,7 +31,7 @@ import { perkColor, perkName, perkSource, TAG_FACE } from './relic-ui';
 import { FOE_ICONS } from './icons';
 import { ALLY_COL, Party, PERK_PET } from './party';
 import { BLOCKER_FACE } from './bar-kinds';
-import { PERK_AT } from './perk-at';
+import { PERK_ALLY, PERK_AT } from './perk-at';
 import { drawShow, MELEE, quakeLand, SHOW_KIND, showFinal, showStart, showStrike, type ShowKind } from './finishers';
 import {
   clamp01,
@@ -76,9 +76,9 @@ const SWORD_TIP: Record<string, [number, number]> = {
 /** The frame to use for a pose a hero doesn't have (their own first, then Rowan's). */
 const HERO_ALT: Record<string, string> = { slashX: 'slashB', fang: 'slashA', down: 'hurt', fin: 'slashB', cast: 'windup' };
 /** Perks that never name themselves in the lane (the allies' own doings, shown on them). */
-const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally']);
+const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally', 'spiritWolf', 'wispSwarm', 'spiritStag']);
 /** Allies whose perk is a blow or a heal: the bolt starts at the ally (not the hero). */
-const ALLY_PERK = new Set(['thornling', 'glowmoth', 'seedling']);
+const ALLY_PERK = new Set(['thornling', 'glowmoth', 'seedling', 'spiritWolf', 'spiritStag']);
 /** Perks that heal (their amount is HP; any relic tagged Sustain does too). */
 const HEAL_PERKS = new Set(['photosynthesis', 'vampiricFang', 'glowmoth', 'mend', 'rimewalker', 'sanctuary', 'hotCocoa']);
 
@@ -731,8 +731,10 @@ export class Fighters {
     const h = this.h;
     s.hud.perkKicked(id);
     const relic = relicById(id);
-    const ally = ALLY_PERK.has(id) ? this.party.allyPos(id as AllyKind) : null;
-    const col = relic ? TAG_FACE[relic.tags[0]][1] : ally ? ALLY_COL[id as AllyKind] : perkSource(id) === 'skill' ? 0x9ad8ff : 0xc8a0ff;
+    // (a node's blow that one of Yara's spirits strikes starts at that spirit too: PERK_ALLY)
+    const kin = PERK_AT[id]?.includes('bolt') ? PERK_ALLY[id] : undefined;
+    const ally = ALLY_PERK.has(id) ? this.party.allyPos(id as AllyKind) : kin ? this.party.allyPos(kin) : null;
+    const col = relic ? TAG_FACE[relic.tags[0]][1] : ally && ALLY_PERK.has(id) ? ALLY_COL[id as AllyKind] : perkSource(id) === 'skill' ? 0x9ad8ff : 0xc8a0ff;
     const v = enemyId ? this.enemies.get(enemyId) : undefined;
     // a companion's perk: it flares; a blocker took a red at the bar's left end: its slab there
     const pet = PERK_PET[id];
