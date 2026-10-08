@@ -98,8 +98,12 @@ describe('Test lab scenarios (data)', () => {
     for (const g of LAB_GROUPS) for (const w of SECRET_WORDS) expect(g.name.toLowerCase()).not.toContain(w.toLowerCase());
   });
 
-  it("covers this round's new content in the New section (round 6: reworked items ask again, the menus, the chests)", () => {
-    const fresh = LAB_NEW;
+  it("keeps the New section short (round 7): under about twenty minutes without the spoilers", () => {
+    expect(labMinutes()).toBeLessThanOrEqual(24);
+  });
+
+  it("still holds round 6's content (Earlier now): reworked items, the menus, the chests", () => {
+    const fresh = LAB_SCENARIOS;
     const r1 = new Set(GREENMARCH.acts.flatMap((a) => [...a.fights.early.flat(), ...a.fights.late.flat(), ...a.elites.flat()]));
     // each hero but the starter, reworked again (rev 2 asks for a new rating): a real fight long enough to feel the kit
     // (six waves of Region 1 foes at Act 2's numbers, the last with an elite), the finisher banked, the how-to first
@@ -160,10 +164,6 @@ describe('Test lab scenarios (data)', () => {
     const all = fresh.find((x) => x.id === 'chestOpenAll')!;
     const ch = labProfile(t, all).chests;
     expect(ch.hero + ch.rare + ch.region).toBeGreaterThan(1);
-    // round 6 reworks most of what was rated last round (and every menu): about twenty minutes without the spoilers
-    const m = labMinutes();
-    expect(m).toBeGreaterThanOrEqual(8);
-    expect(m).toBeLessThanOrEqual(24);
     expect(LAB_EARLIER.every((s) => !LAB_NEW.includes(s))).toBe(true);
   });
 
@@ -324,7 +324,7 @@ describe('Test lab scenarios play', () => {
 
 describe("Test lab hero fights are long enough to feel the kit (playtest round 5: the old ones were over too fast)", () => {
   // the 85% bot plays each hero's lab fight: it lasts a good while and is nearly always won (a practice, not a test)
-  for (const s of LAB_NEW.filter((x) => x.group === 'heroes' && x.setup.kind === 'fight')) {
+  for (const s of LAB_SCENARIOS.filter((x) => x.group === 'heroes' && x.setup.kind === 'fight')) {
     it(s.id, () => {
       let won = 0;
       let sec = 0;

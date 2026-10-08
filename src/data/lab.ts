@@ -133,10 +133,15 @@ const barRule = (id: string, label: string, tryLine: string, bar: BarRules, tips
   profile: { tips },
 });
 
-/** This session's new content (playtest round 6: the menus redesigned, chests that build up to their reveal, every
- *  effect shown on what it touched, the heroes and companions tuned). Reworked items carry a new rev: a rating given
- *  to their earlier version shows as "Reworked" with the old rating. */
-export const LAB_NEW: LabScenario[] = [
+/** This session's new content (playtest round 7: numbers, tips, map sprites and the completion tracker that stay
+ *  fixed; the anti-spam balance; a unique finisher per hero; the sharper chest reveal; the companions screen).
+ *  Reworked items carry a new rev: a rating given to their earlier version shows as "Reworked" with the old rating. */
+export const LAB_NEW: LabScenario[] = [];
+
+/** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,
+ *  the first region's Act 1 fight and the later regions (spoilers). */
+export const LAB_EARLIER: LabScenario[] = [
+  // ======== playtest round 6 (the overnight polish run): rated last round
   // ---- heroes: each kit reworked or made easier to see (rev 2), the how-to card first
   heroFight('sable', 'sable', 'Sable', 'Perfect: you dash, then slow. Tap the next one.', [['shaman', 'archer'], ['wolf', 'wolf'], ['shaman', 'boar'], ['bandit', 'crow'], ['archer', 'shaman'], ['knight', 'shaman']]),
   heroFight('neve', 'neve', 'Neve', 'Block reds to freeze them. Swipe: freeze all.', [['wolf', 'wolf'], ['boar', 'crow'], ['beetle', 'archer'], ['wolf', 'wolf', 'shaman'], ['boar', 'bandit'], ['knight', 'wolf']]),
@@ -221,11 +226,8 @@ export const LAB_NEW: LabScenario[] = [
     },
     ['ice', 'snow'],
   ),
-];
 
-/** Earlier sessions' items (still playable; rated before): the first region's Act 1 fight and the later regions
- *  (spoilers). */
-export const LAB_EARLIER: LabScenario[] = [
+  // ======== earlier rounds
   // the single chests (Open all in New plays both kinds; these were rated last round, so they ask again too)
   { id: 'chestHero', group: 'chests', label: 'Hero chest', secs: 30, rev: 1, try: 'Open the hero chest.', setup: { kind: 'camp', screen: 'chest' }, profile: { actsCleared: 1, chests: { hero: 1 } } },
   { id: 'chestRare', group: 'chests', label: 'Rare chest', secs: 30, rev: 1, try: 'Open the Rare chest.', setup: { kind: 'camp', screen: 'chest' }, profile: { actsCleared: 1, chests: { rare: 1 } } },
