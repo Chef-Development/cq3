@@ -21,6 +21,7 @@ const TYPE_CPS = 55;
 const LEFT: Speaker[] = [
   'narrator', 'rowan', 'pip', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva',
   // part6:A
+  'solenne', 'wren',
   // part6:B
   // part6:C
   // part6:D

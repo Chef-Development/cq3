@@ -100,7 +100,10 @@ export type TipId =
   | 'kitTam'
   | 'kitHollis'
   | 'kitVesper'
-  | 'kitTorva';
+  | 'kitTorva'
+  // round 7 (Part 6): the second hero of each style
+  | 'kitSolenne'
+  | 'kitWren';
 
 export interface TipDef {
   id: TipId;
@@ -166,6 +169,8 @@ export const TIPS: readonly TipDef[] = [
   { id: 'kitVesper', hero: 'vesper', lines: ['Vesper: hits store Focus.', 'Hit a green to fire it all!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   { id: 'kitTorva', hero: 'torva', lines: ['Torva: a green winds up a smash.', 'It grows with your combo!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // part6:A
+  { id: 'kitSolenne', hero: 'solenne', lines: ['Solenne: 25 combo? Blade on fire!', 'A green gilds a yellow: hit it!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'kitWren', hero: 'wren', lines: ['Wren: 3 Perfects ready a dodge.', 'Greens pop smoke: reds hit soft.'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // part6:B
   // part6:C
   // part6:D

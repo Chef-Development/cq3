@@ -105,6 +105,7 @@ const PERCH: CampUpgradeId[] = ['perch'];
 const KIT_TIP: Partial<Record<HeroId, TipId>> = {
   sable: 'kitSable', neve: 'kitNeve', moss: 'kitMoss', tam: 'kitTam', hollis: 'kitHollis', vesper: 'kitVesper', torva: 'kitTorva',
   // part6:A
+  solenne: 'kitSolenne', wren: 'kitWren',
   // part6:B
   // part6:C
   // part6:D
@@ -208,6 +209,9 @@ export const LAB_NEW: LabScenario[] = [
     profile: { pets: ['mote'], petsOn: ['mote'] },
   },
   // part6:A
+  // ---- round 7's heroes: Solenne (Blade, Mythic) and Wren (Shadow, Rare)
+  heroFight('solenne', 'solenne', 'Solenne', 'Combo up: at 25 her blade burns. Hit gold yellows.', [['bandit', 'slime'], ['wolf', 'archer'], ['shaman', 'bandit'], ['boar', 'crow'], ['archer', 'wolf', 'slime'], ['knight', 'bandit']], { rev: 0 }),
+  heroFight('wren', 'wren', 'Wren', '3 Perfects in a row: a dodge. Greens pop smoke.', [['crow', 'crow'], ['bandit', 'archer'], ['wolf', 'wolf'], ['crow', 'shaman'], ['boar', 'crow'], ['knight', 'crow']], { rev: 0 }),
   // part6:B
   // part6:C
   // part6:D

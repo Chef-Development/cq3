@@ -180,6 +180,8 @@ export type Speaker =
   | 'vesper'
   | 'torva'
   // part6:A
+  | 'solenne'
+  | 'wren'
   // part6:B
   // part6:C
   // part6:D
