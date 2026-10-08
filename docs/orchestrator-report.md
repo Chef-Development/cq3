@@ -7,8 +7,8 @@ No new regions. Every part of the brief finished (1-8, including the optional Pa
 `docs/balance-heroes.md`.
 
 - **Live build:** https://chef-development.github.io/cq3/ (every push deploys).
-- **Branch:** `claude/bold-hypatia-88tmo3`, built on PR #6's branch (still open; `main` has only the initial commit):
-  its PR includes #6 and supersedes it. Merge the new PR; #1-#6 can be closed.
+- **Branch:** `claude/bold-hypatia-88tmo3`, PR Chef-Development/cq3#7, built on PR #6's branch (still open; `main` has
+  only the initial commit): #7 includes #6 and supersedes it. Merge #7; #1-#6 can be closed.
 - **How to check it:** open the **Test lab** (title screen, top left). "New" is about 18 minutes without spoilers (22
   with): the eight new heroes, the Finisher gallery, two companion pairs, the late-game stress test, tips in a first
   fight, heals and upgrades, the sharper chest reveal (old and new side by side), the reworked companions screen and
