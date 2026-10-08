@@ -115,7 +115,7 @@ export const FROST_RELIC_HOOKS: Partial<Record<RelicId, FightHooks>> = {
   // Crampons: once a fight, a slipped hold doesn't break the combo
   crampons: {
     miss: (c, x) => {
-      if (!x.slip || c.perk.crampons) return;
+      if (!x.slip || c.perk.crampons || !c.canForgive()) return;
       c.perk.crampons = 1;
       x.breaks = false;
       x.damage = 0;

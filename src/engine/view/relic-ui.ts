@@ -309,6 +309,9 @@ const perkOf = (pet: keyof typeof COMPANIONS, i: number): string => COMPANIONS[p
  * (core/companion-fx.ts) and the gear's set bonuses and auras that heal.
  */
 const KIT_NAME: Record<string, string> = {
+  // the anti-spam rules: this fight's heals are used up; no more misses forgiven this fight
+  healCap: 'No more heals',
+  missCap: 'No more saves',
   // Rowan
   battleFocus: HEROES.rowan.ability.name,
   whirlwind: HEROES.rowan.finisher.name,

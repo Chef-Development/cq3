@@ -164,7 +164,7 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
     },
     // Smoke Veil: while the green ability is on, a miss doesn't break the combo (or the chain)
     step: (c) => {
-      c.perk.veil = ability(c) ? 1 : 0;
+      c.perk.veil = ability(c) && c.forgiveLeft() > 0 ? 1 : 0;
       // a dash's landing slow-down is over once the cursor is through it (or has turned)
       for (const z of c.zones)
         if (z.kind === 'land') {
@@ -175,7 +175,7 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
         }
     },
     miss: (c, x) => {
-      if (!ability(c)) return;
+      if (!ability(c) || !c.canForgive()) return; // (every effect together forgives only so many misses a fight)
       x.breaks = false;
       x.damage = 0;
       c.perkFx('smokeVeil');
