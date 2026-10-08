@@ -126,6 +126,29 @@ describe('Yara: spirits, Kinship, Spirit Stampede, the Great Spirit', () => {
     }
   });
 
+  it("a Tortoise called after one rested off keeps its rest (a new call doesn't skip it); with no rest left, shellFirst s", () => {
+    const { c, t } = fight('yara', [], { tune: (t) => ((t.kits.yara.allySec = 6), (t.blocks.redTravelSec = 1)) });
+    callAlly(c);
+    callAlly(c);
+    go(c, c.time + t.kits.yara.shellFirst + 0.02);
+    letRedThrough(c);
+    const blockedAt = c.time;
+    go(c, c.time + 8); // the spirits leave (6 s)
+    expect(c.allies).toHaveLength(0);
+    callAlly(c);
+    callAlly(c);
+    const again = c.allies.find((a) => a.kind === 'spiritTortoise')!;
+    const since = c.time - blockedAt; // (the red reached her within the last 0.5 s before blockedAt)
+    expect(again.timer).toBeGreaterThan(t.kits.yara.shellRest - since - 0.5);
+    expect(again.timer).toBeLessThanOrEqual(t.kits.yara.shellRest - since);
+    // ...and once the rest is over, a new one comes up shellFirst s after it's called
+    go(c, blockedAt + t.kits.yara.shellRest + 1);
+    c.allies.length = 0;
+    callAlly(c);
+    callAlly(c);
+    expect(c.allies.find((a) => a.kind === 'spiritTortoise')!.timer).toBe(t.kits.yara.shellFirst);
+  });
+
   it('the Wisps fill the meter a little every wispEvery s, and never heal', () => {
     const { c, t } = fight('yara', [], { tune: (t) => (t.kits.yara.allySec = 30) });
     for (let i = 0; i < 3; i++) callAlly(c);

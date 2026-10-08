@@ -256,7 +256,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     passive: part('Kinship', 'Each spirit out adds {n}% crit chance.', 'Luckier with spirits out.'),
     finisher: { name: 'Spirit Stampede', text: 'The spirits charge every foe, more per spirit out; reds and traps go.', short: 'Spirits trample all.', bar: 'Clears reds and traps' },
     gift: part('Great Spirit', 'A Rally calls the great spirit stag for a few seconds: it strikes every foe.', 'A Rally calls the stag.'),
-    strengths: [{ tag: 'beast', kind: 'guard', n: 0.2 }],
+    strengths: [{ tag: 'caster', kind: 'guard', n: 0.2 }],
     joins: 'chest',
     meetScene: 'meetYara',
     stars: [

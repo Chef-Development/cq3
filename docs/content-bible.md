@@ -162,7 +162,7 @@ the region rules.
   stag of starlight leaps down through them.
 - Mythic gift **Great Spirit**: a Rally calls the great spirit stag for 4 s; it strikes every foe for 30% of her
   attack each second.
-- Strength: takes 20% less from Beasts.
+- Strength: takes 20% less from Casters (shamans, imps, wraiths). (Not Beasts: all three region bosses are Beasts.)
 
 ### Dell, Slinger (Marksman, Rare) — round 7
 - Look: a freckled farm kid (a head shorter than the grown-ups) with ginger hair under a wide straw hat with a red

@@ -126,8 +126,12 @@ export function allyEvery(c: Combat, kind: AllyKind): number {
   return kind === 'thornling' ? k.thornEvery : kind === 'barkback' ? k.barkEvery : kind === 'glowmoth' ? k.mothEvery : k.seedEvery;
 }
 
-/** When a newly called ally acts first: half its time (a Tortoise raises its shell after kits.yara.shellFirst). */
-const allyFirst = (c: Combat, kind: AllyKind): number => (kind === 'spiritTortoise' ? c.tuning.kits.yara.shellFirst : allyEvery(c, kind) * 0.5);
+/**
+ * When a newly called ally acts first: half its time. A Tortoise raises its shell after kits.yara.shellFirst, or when
+ * the last one's rest is over (c.perk.shellUp: a new call doesn't skip the rest after a block).
+ */
+const allyFirst = (c: Combat, kind: AllyKind): number =>
+  kind === 'spiritTortoise' ? Math.max(c.tuning.kits.yara.shellFirst, (c.perk.shellUp ?? 0) - c.time) : allyEvery(c, kind) * 0.5;
 
 /**
  * A green hit calls the next ally in order (up to the cap). With every kind out already, it's a Rally: every ally's
@@ -195,6 +199,7 @@ function stepAllies(c: Combat, dt: number): void {
   for (const a of c.allies.slice()) {
     a.left -= dt;
     if (a.left <= 0) {
+      if (a.kind === 'spiritTortoise' && !a.braced) c.perk.shellUp = c.time + a.timer; // (its rest carries on)
       c.allies.splice(c.allies.indexOf(a), 1);
       c.events.push({ type: 'ally', kind: a.kind, action: 'leave', id: a.id });
       continue;
