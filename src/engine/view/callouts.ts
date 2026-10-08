@@ -98,6 +98,10 @@ export const CALLOUT_WORDS: Record<string, string> = {
   windUp: 'xN',
   secondSwing: '+Stack',
   'ability:torva': 'Wind-Up',
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
   // the companions ("+N": the coins found)
   luckyFoot: '+N',
   owlWatch: 'Peck!',

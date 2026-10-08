@@ -165,6 +165,10 @@ export const TIPS: readonly TipDef[] = [
   { id: 'kitHollis', hero: 'hollis', lines: ['Hollis: every block hits back.', 'Full Guard? Next tap hits all foes!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   { id: 'kitVesper', hero: 'vesper', lines: ['Vesper: hits store Focus.', 'Hit a green to fire it all!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   { id: 'kitTorva', hero: 'torva', lines: ['Torva: a green winds up a smash.', 'It grows with your combo!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
   { id: 'relicBelt', lines: ['Your relics sit here.', 'Tap one to read what it does.'], anchor: 'relicBelt', fight: 'pre', after: ['tapYellow'] },
   { id: 'rush', lines: ['Coin Rush! Hits knock out coins.', 'Keep your combo going for more!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // ---- in a fight, once the basics are in (the fight waits while the tip is up; a couple per fight at most)

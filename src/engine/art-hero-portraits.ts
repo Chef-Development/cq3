@@ -16,6 +16,10 @@ export const PORTRAIT_FACE_AT: Record<string, [number, number]> = {
   hollis: [14, 9],
   vesper: [15, 9],
   torva: [14, 8],
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
 };
 
 const SKIN_FAIR = ['#8a4a3a', '#c87a5e', '#eeaa86', '#fcd0b0', '#fff0e0'];
@@ -545,4 +549,8 @@ export function buildHeroPortraits(add: (key: string, c: HTMLCanvasElement) => v
   add('portrait_hollis', hollis());
   add('portrait_vesper', vesper());
   add('portrait_torva', torva());
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
 }

@@ -36,7 +36,13 @@ export const BANTER: BanterLine[] = [
 ];
 
 /** Everyone who can talk by the fire once the new heroes are in: the heroes, Pip, and Mags at her forge. */
-export type CampSpeaker = BanterSpeaker | 'smith' | 'neve' | 'moss' | 'tam' | 'hollis' | 'vesper' | 'torva';
+export type CampSpeaker =
+  | BanterSpeaker | 'smith' | 'neve' | 'moss' | 'tam' | 'hollis' | 'vesper' | 'torva'
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
+  ;
 
 /**
  * The new heroes' lines, and lines to or about them (content bible section 3). Like BANTER, but a line plays only

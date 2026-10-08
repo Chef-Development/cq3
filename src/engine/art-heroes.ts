@@ -22,6 +22,10 @@ import { NEVE_CAMP, NEVE_CARD, NEVE_POSES, NEVE_RIG } from './art-hero-neve';
 import { buildHeroPortraits } from './art-hero-portraits';
 import { TAM_CAMP, TAM_CARD, TAM_POSES, TAM_RIG, kegIcon } from './art-hero-tam';
 import { TORVA_CAMP, TORVA_CARD, TORVA_POSES, TORVA_RIG } from './art-hero-torva';
+// part6:A
+// part6:B
+// part6:C
+// part6:D
 import { VESPER_CAMP, VESPER_CARD, VESPER_POSES, VESPER_RIG } from './art-hero-vesper';
 import { fireRim, paintRig, rigFrame, type Add, type HeroCardSpec, type Rig, type RigPose } from './art-rig';
 import { heroCard } from './art-sable';
@@ -48,6 +52,10 @@ const HEROES: Record<(typeof M5_HEROES)[number], HeroArt> = {
   hollis: { rig: HOLLIS_RIG, poses: HOLLIS_POSES, card: HOLLIS_CARD, camp: HOLLIS_CAMP },
   vesper: { rig: VESPER_RIG, poses: VESPER_POSES, card: VESPER_CARD, camp: VESPER_CAMP },
   torva: { rig: TORVA_RIG, poses: TORVA_POSES, card: TORVA_CARD, camp: TORVA_CAMP },
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
 };
 
 /**

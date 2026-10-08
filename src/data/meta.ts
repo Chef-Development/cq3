@@ -82,6 +82,10 @@ export const MASTERY: MasteryDef[] = [
   acts('torva', 3, { kind: 'gems', n: 30 }, '30 gems'),
   lv('torva', 10, { kind: 'gems', n: 40 }, '40 gems'),
   boss('torva', { kind: 'cosmetic', id: 'bannerTorva', name: "Torva's banner" }, 'A banner for the camp'),
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
 ];
 
 export type AchievementId =

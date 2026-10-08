@@ -7,8 +7,21 @@
 import type { Tier } from './rarity';
 import type { FoeTag } from './types';
 
-export type HeroId = 'rowan' | 'sable' | 'neve' | 'moss' | 'tam' | 'hollis' | 'vesper' | 'torva';
-export const HERO_IDS: HeroId[] = ['rowan', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva'];
+export type HeroId =
+  | 'rowan' | 'sable' | 'neve' | 'moss' | 'tam' | 'hollis' | 'vesper' | 'torva'
+  // round 7 (Part 6): a second hero per style; each agent adds its ids after its own marker
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
+  ;
+export const HERO_IDS: HeroId[] = [
+  'rowan', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva',
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
+];
 
 /** Broad archetypes, defined by what they reward (each can hold many heroes later). */
 export type StyleId = 'blade' | 'shadow' | 'guardian' | 'marksman' | 'brute' | 'controller' | 'summoner' | 'bomber';
@@ -220,6 +233,10 @@ export const HEROES: Record<HeroId, HeroDef> = {
     ],
     art: 'torva',
   },
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
 };
 
 export const heroDef = (id: HeroId): HeroDef => HEROES[id] ?? HEROES.rowan;

@@ -291,4 +291,8 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
       ],
     },
   ],
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
 };

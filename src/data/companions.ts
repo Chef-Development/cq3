@@ -5,8 +5,14 @@
 
 import type { Tier } from './rarity';
 
-export type CompanionId = 'bun' | 'pip' | 'newt' | 'sprocket' | 'brick' | 'flurry' | 'mote' | 'sunny';
-export const COMPANION_IDS: CompanionId[] = ['bun', 'pip', 'newt', 'sprocket', 'brick', 'flurry', 'mote', 'sunny'];
+export type CompanionId =
+  | 'bun' | 'pip' | 'newt' | 'sprocket' | 'brick' | 'flurry' | 'mote' | 'sunny'
+  // part6:E (round 7: four more companions)
+  ;
+export const COMPANION_IDS: CompanionId[] = [
+  'bun', 'pip', 'newt', 'sprocket', 'brick', 'flurry', 'mote', 'sunny',
+  // part6:E
+];
 
 export interface CompanionPerk {
   name: string;

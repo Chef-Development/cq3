@@ -265,6 +265,10 @@ export function kitN(t: Tuning, id: HeroId, which: KitWhich): number {
       return k.torva.unstoppable * 100;
     case 'torva.ability':
       return k.torva.windUpBase;
+    // part6:A
+    // part6:B
+    // part6:C
+    // part6:D
     default:
       return 0;
   }

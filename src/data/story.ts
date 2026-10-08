@@ -20,6 +20,10 @@ export const SPEAKER_NAME: Record<Speaker, string> = {
   hollis: 'Hollis',
   vesper: 'Vesper',
   torva: 'Torva',
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
   rimehorn: 'Rimehorn',
   matron: 'Loom Matron',
   glacia: 'Glacia',

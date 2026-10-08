@@ -102,7 +102,13 @@ export interface LabScenario {
 const PERCH: CampUpgradeId[] = ['perch'];
 
 /** Each hero's how-to card (src/data/tips.ts), shown before their lab fight. */
-const KIT_TIP: Partial<Record<HeroId, TipId>> = { sable: 'kitSable', neve: 'kitNeve', moss: 'kitMoss', tam: 'kitTam', hollis: 'kitHollis', vesper: 'kitVesper', torva: 'kitTorva' };
+const KIT_TIP: Partial<Record<HeroId, TipId>> = {
+  sable: 'kitSable', neve: 'kitNeve', moss: 'kitMoss', tam: 'kitTam', hollis: 'kitHollis', vesper: 'kitVesper', torva: 'kitTorva',
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
+};
 
 /** A hero's fight, long enough to feel the kit (playtest round 5: the old two-wave ones ended before it showed): six
  *  waves of Region 1 foes at Act 2's numbers, the last with an elite, real damage, the finisher banked once, the
@@ -201,6 +207,11 @@ export const LAB_NEW: LabScenario[] = [
     setup: { kind: 'fight', hero: 'rowan', stars: 2, pets: ['mote'], act: 1, waves: [['bandit', 'slime'], ['archer', 'boar'], ['shaman', 'crow'], ['beetle', 'bandit']], stacks: 1, relics: ['photosynthesis', 'vampiricFang'], pick: true },
     profile: { pets: ['mote'], petsOn: ['mote'] },
   },
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
+  // part6:E
 ];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,

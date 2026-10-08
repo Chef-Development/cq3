@@ -403,6 +403,10 @@ export const DEFAULT_TUNING = {
     vesper: { hp: 115, atk: 1.13, abilitySec: 3, pierce: 0.5, volleyFocus: 1.7, pinSec: 2, cap3: 1.5 },
     // torva: a Wind-Up smash deals x(windUpBase + windUpStep per combo), up to windUpMax
     torva: { hp: 108, atk: 0.86, abilitySec: 3, quake: 0.08, windUpBase: 1.8, windUpStep: 0.04, windUpMax: 4, stunSec: 1, unstoppable: 0.08, unstoppableMax: 5, calmSec: 1.2 },
+    // part6:A
+    // part6:B
+    // part6:C
+    // part6:D
   },
   chests: {
     // Hero chests (core/chests.ts): a hero or a companion, weighted toward the low tiers, or shards for one you own.

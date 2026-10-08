@@ -356,6 +356,10 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       if (c.stars >= 5) c.bankStacks(1, 'secondSwing');
     },
   },
+  // part6:A
+  // part6:B
+  // part6:C
+  // part6:D
 };
 
 function quake(c: Combat): void {
