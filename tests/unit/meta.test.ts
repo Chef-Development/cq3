@@ -498,6 +498,32 @@ describe("every companion's perk (with and without it)", () => {
     expect(c.blocks.some((b) => b.kind === 'purple')).toBe(false);
   });
 
+  it("the new perks keep the anti-spam rules: nothing added to the bar's cover, no heals, no forgiven misses", () => {
+    // Gloam's swat replaces the trap (same block, same width); Lark's song marks a yellow; the Tide moves reds
+    const { c } = fight('gloam', (x) => ((x.pets.nightEvery = 0.2), (x.pets.tideEvery = 0.2), (x.pets.songEvery = 1), (x.companion.everyHits = 0)));
+    (c.hooks as unknown as unknown[]).push(...companionHooks(['lark', 'nimbus', 'burr'].map((id) => ({ id: id as Pet, level: 1, stars: 5 }))));
+    c.spawnBlock('purple', 0.7);
+    c.spawnBlock('yellow', 0.85);
+    c.spawnBlock('red', 0.45);
+    const cover = c.covered();
+    const n = c.blocks.length;
+    c.hero.hp = Math.round(c.maxHp() / 2);
+    const hp = c.hero.hp;
+    c.advanceTo(0.5);
+    hitAt(c, 0.3);
+    expect(c.blocks.some((b) => b.kind === 'purple')).toBe(false); // swatted
+    expect(c.blocks.length).toBe(n); // (the hit's own block came and went)
+    expect(c.covered()).toBeCloseTo(cover, 6);
+    expect(c.hero.hp).toBe(hp); // nothing healed
+    const ev = c.drainEvents();
+    expect(ev.some((x) => x.type === 'heal')).toBe(false);
+    expect(ev.some((x) => x.type === 'perk' && x.id === 'tide')).toBe(true);
+    // a miss still breaks the combo with Burr, Lark and Nimbus along
+    c.combo = 12;
+    c.tap(c.time);
+    expect(c.combo).toBe(0);
+  });
+
   it('Nimbus: every few seconds a wave crosses the bar and pushes every red back (once a red is in the near half)', () => {
     for (const pet of ['nimbus', null] as const) {
       const { c } = fight(pet, (x) => ((x.pets.tideEvery = 0.2), (x.companion.everyHits = 0), (x.blocks.redTravelSec = 4)));
