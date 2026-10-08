@@ -1863,3 +1863,15 @@ test('hero select: Solenne (a Mythic: five kit cards, the fifth her Gift) and Wr
   await frames(page, 40);
   await expect(page).toHaveScreenshot('hero-select-wren.png', shot);
 });
+
+test("unique finishers, Blade (Solenne, Mythic): a sun kindles on her raised blade, sunbeams spear the foes, then the sun falls on them", async ({ page }) => {
+  await finisherShow(page, 'solenne', { at: 44 });
+  await expect(page).toHaveScreenshot('finisher-solenne.png', shot);
+  await frames(page, 14); // the sun has fallen
+  await expect(page).toHaveScreenshot('finisher-solenne-fall.png', shot);
+});
+
+test("unique finishers, Shadow (Wren): hooked up out of sight, racing over the foes throwing knives, then dropping onto the target", async ({ page }) => {
+  await finisherShow(page, 'wren', { at: 36 });
+  await expect(page).toHaveScreenshot('finisher-wren.png', shot);
+});

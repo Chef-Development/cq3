@@ -40,6 +40,7 @@ import {
   type ShowCtx,
 } from './finisher-fx';
 import { arrow, heaterShield, rockSpike, vine } from './finisher-kits';
+import { DAWN_ROOF_MARKS, ROOFTOP_DROP, SUNFALL } from './finisher-dawn-roof';
 
 /** Where the hero is and how they look at a moment of the show. */
 export interface HeroMotion {
@@ -926,6 +927,8 @@ export const SIGNATURE_DRAW: Record<SignatureId, SignatureDraw> = {
   arrowSky: ARROW_SKY,
   earthSplit: EARTH_SPLIT,
   // part6:A
+  sunfall: SUNFALL,
+  rooftopDrop: ROOFTOP_DROP,
   // part6:B
   // part6:C
   // part6:D
@@ -1081,3 +1084,6 @@ export const SIG_MARKS: Record<string, MarkDraw> = {
   },
 };
 
+
+// ---- Solenne and Wren (Part 6): their moments' own marks (view/finisher-dawn-roof.ts)
+Object.assign(SIG_MARKS, DAWN_ROOF_MARKS);
