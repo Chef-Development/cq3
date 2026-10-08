@@ -382,7 +382,7 @@ export class ChestOpening {
     }
     const t = tierIndex(item.prize.tier);
     this.cur = { item, t, tl: timeline(t), at: now, skip: 0, fired: 0, shakes: [], spin: this.opened.length % 2 ? -1 : 1, starPopped: false, outAt: 0 };
-    if (this.view !== 'old') this.hd.prepare(item.kind, item.prize.tier);
+    if (this.view !== 'old' || this.extra) this.hd.prepare(item.kind, item.prize.tier);
     this.opened.push(item);
     this.kit.app.audio.whoosh();
   }
@@ -541,8 +541,9 @@ export class ChestOpening {
     const g = kit.gTop;
     const k = easeOut3((now - this.since) / 220);
     const out = this.summary?.outAt ? clamp01((now - this.summary.outAt) / 200) : 0;
-    // the game's own reveal (and always the summary) on the game canvas; the new one on its finer layer over it
-    const old = this.view !== 'hd' || !this.cur;
+    // the game's own reveal on the game canvas, the new one on its finer layer over it (side by side: both; the
+    // summary then is the game's own, full width)
+    const old = this.view !== 'hd';
     if (old) {
       g.fillStyle(0x05030a, 0.93 * k * (1 - out));
       g.fillRect(-20, -10, s.R + s.L + 400, s.B + 200);
@@ -550,9 +551,15 @@ export class ChestOpening {
     if (this.cur) {
       if (this.view !== 'hd') this.drawRun(now, this.cur);
       else this.fireOnly(now, this.cur);
-    } else if (this.summary) this.drawSummary(now, this.summary);
+    } else if (this.summary && old) this.drawSummary(now, this.summary);
     if (old) vignette(g, s, k * (1 - out));
-    this.hd.frame(this.cur && this.view !== 'old' ? this.hdScene(now, this.cur, k) : null, this.extraDraw(now));
+    let sc: HdScene | null = null;
+    if (this.cur && this.view !== 'old') sc = this.hdScene(now, this.cur, k);
+    else if (this.summary && this.view === 'hd') {
+      const sm = this.summary;
+      sc = { now, veil: k * (1 - out), run: null, cx: this.hdCentre(), clip: null, opaque: false, summary: { items: sm.items, at: sm.at, outAt: sm.outAt, title: this.demoMode ? 'Demo' : 'Opened' } };
+    }
+    this.hd.frame(sc, this.extraDraw(now));
     this.imgs.end();
   }
 

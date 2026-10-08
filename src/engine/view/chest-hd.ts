@@ -25,7 +25,7 @@ import { BURST_RADII, hdBurst, hdChevron, hdRay, hdRibbon, hdShard, hdStar, hdTa
 import { hdText, hdTextW, type HdTextStyle } from '../font-hd';
 import { HD_K, hdLayerRect, sameLayer, type HdLayerRect } from '../hd-layer';
 import type { ScreenLayout } from '../layout';
-import { STYLE_LOOK, type CampKit } from './camp-kit';
+import { FACE_AT, STYLE_LOOK, type CampKit } from './camp-kit';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -391,6 +391,16 @@ export interface HdScene {
   opaque: boolean;
   /** Where "Tap" / "Next (n)" goes (game px; default the bottom right corner). */
   hint?: { x: number; y: number; ox: number };
+  /** What "Open all" gave, once its chests are done (instead of a run). */
+  summary?: HdSummary | null;
+}
+
+/** The summary after several chests: a tile per chest, in the order they opened. */
+export interface HdSummary {
+  items: ReadonlyArray<{ kind: HeroChestKind; prize: HdRun['prize'] }>;
+  at: number;
+  outAt: number;
+  title: string;
 }
 
 /** The tier's colours at step i (Divine's cycle through the prism), as the old reveal's. */
@@ -467,6 +477,7 @@ export class ChestHd {
     if (sc.opaque) rect(ctx, 0, 0, r.w, r.h, 0x07050d, 1);
     else rect(ctx, 0, 0, r.w, r.h, 0x05030a, 0.93 * sc.veil);
     if (sc.run) this.drawRun(ctx, r, sc, sc.run);
+    else if (sc.summary) this.drawSummary(ctx, r, sc, sc.summary);
     this.vignette(ctx, r, sc.veil);
     ctx.restore();
     ctx.globalAlpha = 1;
@@ -896,6 +907,100 @@ export class ChestHd {
     }
   }
 
+  /** What "Open all" gave: a tile per chest on a glass plate (rarity frames, faces, New or +shards), the chests'
+   *  badges and counts, the best prize's rays behind. */
+  private drawSummary(ctx: Ctx, r: HdLayerRect, sc: HdScene, sm: HdSummary): void {
+    const F = r.k;
+    const kit = this.kit;
+    const s = kit.s;
+    const now = sc.now;
+    const out = sm.outAt ? clamp01((now - sm.outAt) / 200) : 0;
+    const k = easeBack((now - sm.at) / 280, 1.5);
+    const A = clamp01((now - sm.at) / 160) * (1 - out);
+    const n = Math.min(16, sm.items.length);
+    const perRow = Math.min(8, n);
+    const rowsN = Math.ceil(n / perRow);
+    const TW = 26;
+    const TH = 34;
+    const w = Math.min(s.R - s.L - 12, perRow * (TW + 6) + 18);
+    const h = rowsN * (TH + 6) + 30;
+    const cx = sc.cx;
+    const rx = Math.round(cx - w / 2);
+    const ry = Math.round((s.B - h) / 2 + 4 + (1 - Math.min(1, k)) * 14);
+    const best = sm.items.reduce((b, it) => Math.max(b, TIERS.indexOf(it.prize.tier)), 0);
+    const bestFace = TIER_INFO[TIERS[best]].face as Face4;
+    this.rays(ctx, Math.round(cx * F), Math.round((ry + h / 2) * F), now, best, 0.6 * A, F);
+    // the glass plate: a shadow, a rim in the best prize's colour, the see-through body, a lit top edge
+    const X = rx * F;
+    const Y = ry * F;
+    const PW = w * F;
+    const PH = h * F;
+    plate(ctx, X - 2, Y + 4, PW + 4, PH + 2, INK, 0.35 * A, 3);
+    plate(ctx, X - 2, Y - 2, PW + 4, PH + 4, bestFace[2], 0.9 * A, 3);
+    plate(ctx, X, Y, PW, PH, 0x120c22, 0.78 * A, 2);
+    rect(ctx, X, Y + 2, PW, Math.round(PH * 0.35), mixRgb(0x120c22, 0x8a7cc0, 0.18), 0.35 * A);
+    rect(ctx, X + 3, Y, PW - 6, 1, mixRgb(0x120c22, WHITE, 0.4), 0.85 * A);
+    rect(ctx, X + PW - 16, Y + 3, 7, 1, WHITE, 0.5 * A);
+    // the ribbon: "Opened" (or "Demo")
+    const tw = hdTextW(sm.title, 1, true);
+    img(ctx, hdRibbon(tw + 36, 26, bestFace), Math.round(cx * F), Y - 12 - 1, { ox: 0.5, oy: 0, alpha: A });
+    text(ctx, sm.title, Math.round(cx * F), Y - 12 + 13, { color: WHITE, deep: bestFace[3] }, { ox: 0.5, oy: 0.5, alpha: A });
+    // which chests: each kind's badge (the game's icon) and how many
+    const kinds = (['hero', 'rare', 'region'] as const).map((kind) => ({ kind, n: sm.items.filter((it) => it.kind === kind).length })).filter((q) => q.n > 0);
+    const kw = kinds.map((q) => 17 * F + 4 + hdTextW(`x${q.n}`, 1, true));
+    let kx = Math.round(cx * F - (kw.reduce((a, b) => a + b, 0) + (kinds.length - 1) * 16) / 2);
+    kinds.forEach((q, i) => {
+      const key = `hchest_${q.kind}_icon`;
+      if (kit.has(key)) img(ctx, kit.s.textures.get(key).getSourceImage() as HTMLCanvasElement, kx, Y + 7 * F, { ox: 0, oy: 0, sx: F, alpha: A });
+      text(ctx, `x${q.n}`, kx + 17 * F + 4, Y + 15 * F, { color: 0xe8e0ff }, { oy: 0.5, alpha: A });
+      kx += kw[i] + 16;
+    });
+    sm.items.slice(0, n).forEach((it, i) => {
+      const row = Math.floor(i / perRow);
+      const inRow = Math.min(perRow, n - row * perRow);
+      const x = Math.round(cx - (inRow * (TW + 6) - 6) / 2 + (i % perRow) * (TW + 6));
+      const y = ry + 28 + row * (TH + 6);
+      const ik = easeBack((now - sm.at - 120 - i * 60) / 240, 2);
+      if (ik <= 0) return;
+      const ty = Math.round((y + (1 - Math.min(1, ik)) * 6) * F);
+      const tx = x * F;
+      const T = TW * F;
+      const pz = it.prize;
+      const face = TIER_INFO[pz.tier].face as Face4;
+      if (TIERS.indexOf(pz.tier) >= TIERS.indexOf('epic')) ellipse(ctx, tx + T / 2, ty + T / 2, T / 2 + 8, T / 2 + 8, face[1], (0.18 + 0.14 * pulse(now, 900, i * 120)) * A);
+      // the rarity frame: ink, a band lit top-left and shaded bottom-right, a dark well
+      plate(ctx, tx - 1, ty - 1, T + 2, T + 2, INK, A, 2);
+      plate(ctx, tx, ty, T, T, face[1], A, 2);
+      rect(ctx, tx + 2, ty, T - 4, 2, face[0], A);
+      rect(ctx, tx, ty + 2, 2, T - 4, face[0], A);
+      rect(ctx, tx + 2, ty + T - 2, T - 4, 2, face[3], A);
+      rect(ctx, tx + T - 2, ty + 2, 2, T - 4, face[2], A);
+      rect(ctx, tx + 3, ty + 3, T - 6, T - 6, face[3], A);
+      rect(ctx, tx + 4, ty + 4, T - 8, T - 8, 0x140e22, A);
+      // who: a hero's face from their portrait, a companion's from its sprite (the game's own pixels, scaled whole)
+      if (heroPrize(pz)) {
+        const own = kit.has(`portrait_${pz.id}`);
+        const key = own ? `portrait_${pz.id}` : 'portrait_rowan';
+        const [fx, fy] = FACE_AT[own ? pz.id : 'rowan'] ?? FACE_AT.rowan;
+        if (kit.has(key)) {
+          ctx.globalAlpha = A;
+          ctx.drawImage(kit.s.textures.get(key).getSourceImage() as HTMLCanvasElement, fx, fy, 18, 18, tx + 4 * F, ty + 4 * F, 18 * F, 18 * F);
+        }
+      } else {
+        const key = pz.id === 'pip' ? 'pip_idle0' : `comp_${pz.id}_idle0`;
+        if (kit.has(key)) {
+          ctx.globalAlpha = A;
+          ctx.drawImage(kit.s.textures.get(key).getSourceImage() as HTMLCanvasElement, 7, 2, 20, 20, tx + 3 * F, ty + 3 * F, 20 * F, 20 * F);
+        }
+      }
+      const fresh = freshPrize(pz);
+      text(ctx, fresh ? 'New' : `+${pz.shards}`, tx + T / 2, ty + T + 10, { color: fresh ? 0xffe680 : 0xe8d0ff }, { ox: 0.5, oy: 0.5, alpha: A });
+      if (fresh && pulse(now, 1000, i * 200) > 0.85) img(ctx, hdTwinkle(2, WHITE), tx + T - 3, ty + 2, { alpha: A });
+    });
+    if (sm.items.length > n) text(ctx, `+${sm.items.length - n} more`, Math.round(cx * F), Y + PH - 10, { color: 0xd8d0f0, bold: false }, { ox: 0.5, oy: 0.5, alpha: A });
+    if (now - sm.at > 600 && !sm.outAt) text(ctx, 'Tap', Math.round((s.R - 4) * F), Math.round((s.B - 7) * F), { color: 0xfff0c0 }, { ox: 1, oy: 0.5, alpha: 0.6 + 0.4 * pulse(now, 900) });
+  }
+
   /** A chunky bar on the fine grid: ink rim, a dark well, the fill's ramp (lit top), a shine on its top row. */
   private gauge(ctx: Ctx, x: number, y: number, w: number, h: number, frac: number, a: number): void {
     rect(ctx, x - 1, y - 1, w + 2, h + 2, INK, a);
@@ -911,6 +1016,18 @@ export class ChestHd {
     }
     for (let i = 1; i < 4; i++) rect(ctx, x + Math.round((w * i) / 4), y + 1, 1, h - 2, INK, a * 0.35);
   }
+}
+
+/** A plate with its corners cut (`cut` px), in rows: hard edges. */
+function plate(ctx: Ctx, x: number, y: number, w: number, h: number, col: number, a: number, cut = 2): void {
+  if (a <= 0) return;
+  ctx.globalAlpha = Math.min(1, a);
+  ctx.fillStyle = css(col);
+  for (let i = 0; i < cut; i++) {
+    ctx.fillRect(x + cut - i, y + i, w - (cut - i) * 2, 1);
+    ctx.fillRect(x + cut - i, y + h - 1 - i, w - (cut - i) * 2, 1);
+  }
+  ctx.fillRect(x, y + cut, w, h - cut * 2);
 }
 
 /** A prize's name. */
