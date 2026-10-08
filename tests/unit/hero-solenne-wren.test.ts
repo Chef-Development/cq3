@@ -12,6 +12,13 @@ import { newProfile } from '../../src/core/profile';
 import { Rng } from '../../src/core/rng';
 import { tierIndex } from '../../src/data/rarity';
 import { cloneTuning, type Tuning } from '../../src/core/tuning';
+import { LAB_NEW } from '../../src/data/lab';
+import { GREENMARCH } from '../../src/data/greenmarch';
+import { TIPS } from '../../src/data/tips';
+import { labFight } from '../../src/core/lab';
+import { MASTERY } from '../../src/data/meta';
+import { relicById } from '../../src/data/relics';
+import { STORY } from '../../src/data/story';
 import { setup } from './helpers';
 
 // ---------------------------------------------------------------- helpers (as tests/unit/hero-skills.test.ts)
@@ -115,6 +122,38 @@ describe('Solenne and Wren as data', () => {
     expect(roll('hero', 20000)).toBeLessThan(0.005);
     // the shrine's pity forces a Legendary or better: a Mythic hero is then far likelier
     expect(roll('rare', 4000, Math.round(t.chests.pity) - 1)).toBeGreaterThan(0.03);
+  });
+});
+
+describe('Solenne and Wren in the Test lab, the story and mastery', () => {
+  it("each has a hero fight in New: six waves of Region 1 foes at Act 2's numbers, an elite last, the finisher banked, the how-to first", () => {
+    const r1 = new Set(GREENMARCH.acts.flatMap((a) => [...a.fights.early.flat(), ...a.fights.late.flat(), ...a.elites.flat()]));
+    const elites = new Set(GREENMARCH.acts.flatMap((a) => a.elites.flat()));
+    for (const id of ['solenne', 'wren'] as const) {
+      const s = LAB_NEW.find((x) => x.id === id && x.group === 'heroes')!;
+      expect(s, id).toBeDefined();
+      expect(s.label).toBe(HEROES[id].name);
+      const f = labFight(s)!;
+      expect(f.act, id).toBe(1);
+      expect(f.waves.length, id).toBeGreaterThanOrEqual(6);
+      expect(f.waves.at(-1)!.some((e) => elites.has(e)), id).toBe(true);
+      for (const k of f.waves.flat()) expect(r1.has(k), `${id}: ${k}`).toBe(true);
+      expect(f.stacks, id).toBeGreaterThanOrEqual(1);
+      const tip = TIPS.find((d) => d.hero === id)!;
+      expect(tip.after).toEqual(['tapYellow']);
+      expect(s.profile?.tips, id).toEqual([tip.id]);
+    }
+  });
+
+  it('each has a meet scene in their own voice, four mastery milestones (lv 5, 3 acts, lv 10, a boss) with real rewards', () => {
+    for (const id of ['solenne', 'wren'] as const) {
+      const scene = STORY[HEROES[id].meetScene!];
+      expect(scene.some((b) => b.who === id), id).toBe(true);
+      const m = MASTERY.filter((x) => x.hero === id);
+      expect(m.map((x) => x.goal)).toEqual([{ level: 5 }, { acts: 3 }, { level: 10 }, { boss: true }]);
+      for (const x of m) if (x.reward.kind === 'relic') expect(relicById(x.reward.relic), x.id).toBeDefined();
+      expect(m.at(-1)!.reward).toMatchObject({ kind: 'cosmetic' });
+    }
   });
 });
 
