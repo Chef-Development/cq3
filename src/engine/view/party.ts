@@ -393,7 +393,6 @@ export class Party {
         s.fx.ring(x, s.ground - 20, 26, col, true);
         s.fx.burst(x, s.ground - 30, WHITE_SPARK, 16, true, 1.2, true);
         s.fx.dust(x, s.ground + 4, 8, 0, 1.2);
-        s.fx.addFloater(x, s.ground - 50, 'Great Spirit!', col, 1, true, 0, -14, 0, 900, true);
         return;
       }
       s.later(delay, () => {

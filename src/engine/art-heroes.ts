@@ -24,6 +24,9 @@ import { TAM_CAMP, TAM_CARD, TAM_POSES, TAM_RIG, kegIcon } from './art-hero-tam'
 import { TORVA_CAMP, TORVA_CARD, TORVA_POSES, TORVA_RIG } from './art-hero-torva';
 // part6:A
 // part6:B
+import { buildSpiritArt } from './art-hero-spirits';
+import { YARA_CAMP, YARA_CARD, YARA_POSES, YARA_RIG } from './art-hero-yara';
+import { DELL_CAMP, DELL_CARD, DELL_POSES, DELL_RIG } from './art-hero-dell';
 // part6:C
 // part6:D
 import { VESPER_CAMP, VESPER_CARD, VESPER_POSES, VESPER_RIG } from './art-hero-vesper';
@@ -45,7 +48,7 @@ interface HeroArt {
   card: HeroCardSpec;
   camp: [RigPose, RigPose];
 }
-const HEROES: Record<(typeof M5_HEROES)[number], HeroArt> = {
+const HEROES: Record<string, HeroArt> = {
   neve: { rig: NEVE_RIG, poses: NEVE_POSES, card: NEVE_CARD, camp: NEVE_CAMP },
   moss: { rig: MOSS_RIG, poses: MOSS_POSES, card: MOSS_CARD, camp: MOSS_CAMP },
   tam: { rig: TAM_RIG, poses: TAM_POSES, card: TAM_CARD, camp: TAM_CAMP },
@@ -54,6 +57,8 @@ const HEROES: Record<(typeof M5_HEROES)[number], HeroArt> = {
   torva: { rig: TORVA_RIG, poses: TORVA_POSES, card: TORVA_CARD, camp: TORVA_CAMP },
   // part6:A
   // part6:B
+  yara: { rig: YARA_RIG, poses: YARA_POSES, card: YARA_CARD, camp: YARA_CAMP },
+  dell: { rig: DELL_RIG, poses: DELL_POSES, card: DELL_CARD, camp: DELL_CAMP },
   // part6:C
   // part6:D
 };
@@ -75,8 +80,8 @@ function campFrame(rig: Rig, p: RigPose): HTMLCanvasElement {
 }
 
 export function buildHeroArt(add: Add): void {
-  for (const id of M5_HEROES) {
-    const h = HEROES[id];
+  // (every hero in the registry: the M5 six and round 7's, Part 6)
+  for (const [id, h] of Object.entries(HEROES)) {
     for (const k of HERO_POSE_KEYS) add(`${id}_${k}`, rigFrame(h.rig, h.poses[k]));
     add(`hero_card_${id}`, heroCard(h.card.glow, h.card.motes, rigFrame(h.rig, h.card.pose)));
     h.camp.forEach((p, i) => add(`camp_${id}${i}`, campFrame(h.rig, p)));
@@ -84,5 +89,6 @@ export function buildHeroArt(add: Add): void {
   buildHeroPortraits(add);
   buildHeroWalkers(add);
   buildAllyArt(add);
+  buildSpiritArt(add); // Yara's spirits (Part 6)
   add('keg_icon', kegIcon());
 }

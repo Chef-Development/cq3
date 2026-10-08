@@ -174,6 +174,62 @@ const WALKERS: Record<string, Walker> = {
       b: ['..pp...pp..', '.bBB...bBB.'],
     },
   },
+  // ---- Yara (Part 6): dark hair with beads, the starry indigo shawl, the white tunic and beaded sash, bare feet, the
+  // carved staff with its spirit stone
+  yara: {
+    pal: {
+      h: '#2c2036', H: '#5e4a6c', O: '#f08a30', R: '#d84a3a', S: '#cc8a58', s: '#a8643c', k: '#140c1c', F: '#cc8a58',
+      c: '#2c2c8c', C: '#1e1a5a', '*': '#fff6d8', w: '#eeeef8', W: '#cacae0', o: '#f08a30', y: '#f2c230', q: '#3ac8b8',
+      r: '#d84a3a', t: '#9a6a3e', T: '#74482a', e: '#7ae4f8', E: '#ffffff', f: '#a8643c',
+    },
+    top: [
+      '...hhhh..Ee',
+      '..hHhhhh.et',
+      '.hhhhhSSS.t',
+      '.hOhSkSSk.T',
+      '.hRhSSSSs.t',
+      '.cc*ccccSFt',
+      'cC*wwwwcc.T',
+      '.c.wwwwWw.t',
+      '...oryqow.t',
+      '...wwwwWw.t',
+    ],
+    legs: {
+      stand: ['...ss.ss..T', '...ff.ff...'],
+      a: ['..ss...ss.T', '.ff.....ff.'],
+      pass: ['....sss...T', '....fff....'],
+      b: ['..ss...ss.T', '.ff.....ff.'],
+    },
+    flap: [['c.', 'C*'], -1, 6],
+  },
+  // ---- Dell (Part 6): the straw hat and its red band, ginger hair, the red neckerchief, patched overalls, the
+  // slingshot in hand
+  dell: {
+    pal: {
+      Y: '#fff0a0', y: '#f2cc5a', u: '#d0a030', r: '#d03030', h: '#c0602e', S: '#fcd0b0', s: '#eeaa86', k: '#140c1c',
+      f: '#c8704a', n: '#d03030', N: '#f05a48', d: '#345496', D: '#22366a', B: '#f2c230', P: '#f05a48', e: '#e4d6b4',
+      w: '#9a6438', W: '#c8945a', b: '#4e2c1c', c: '#4c76bc',
+    },
+    top: [
+      '...........',
+      '...yYYy....',
+      '..yYYYYy...',
+      '.urrrrrru..',
+      'uyyyyyyyyyu',
+      '..hSSSSSS..',
+      '..hSkSSkS..',
+      '..eNnnnNe.W',
+      '.eddBddBdeW',
+      '..ddddPPd..',
+    ],
+    legs: {
+      stand: ['...dd.dd...', '...bb.bb...'],
+      a: ['..dd...dd..', '.bb.....bb.'],
+      pass: ['....ddd....', '....bbb....'],
+      b: ['..dd...dd..', '.bb.....bb.'],
+    },
+    flap: [['n.', 'N.'], 0, 7],
+  },
 };
 
 function walkerFrame(w: Walker, legs: keyof Walker['legs'], bob: number, flap: boolean): HTMLCanvasElement {

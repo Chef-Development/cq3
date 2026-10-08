@@ -1729,3 +1729,56 @@ test('world map: the third region unveiled (its three landmarks round the volcan
   await frames(page, 30);
   await expect(page).toHaveScreenshot('ash-world-cave.png', shot);
 });
+
+// ------------------------------------------------------------------ Yara and Dell (Part 6)
+
+test('Part 6: Yara calls her spirits (Wolf, Tortoise braced at the left end, Wisps), then a Rally brings the Great Spirit', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'yara' });
+  for (let i = 0; i < 3; i++) {
+    await bar(page, `const p = c.cursorPos(); c.spawnBlock('green', p); app.barTap(performance.now());`);
+    await frames(page, 30);
+  }
+  await frames(page, 40); // the Tortoise's shell is up
+  await expect(page).toHaveScreenshot('yara-spirits.png', shot);
+  // a fourth call with all three out: a Rally, and the stag comes down
+  await bar(page, `const p = c.cursorPos(); c.spawnBlock('green', p); app.barTap(performance.now());`);
+  await frames(page, 24);
+  await expect(page).toHaveScreenshot('yara-stag.png', shot);
+});
+
+test('Part 6: Dell fires a Lucky Shot (a Perfect green: a crit) and it bounces to the weaker foe (Ricochet)', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'dell' });
+  await bar(page, `const e = c.addEnemy('crow', { hp: 30 }); c.events.push({ type: 'summon', enemyId: foe.id, ids: [e.id] }); c.perk.focus = 9999;`);
+  await frames(page, 40);
+  await bar(page, `const p = c.cursorPos(); c.spawnBlock('green', p); app.barTap(performance.now());`);
+  await frames(page, 7);
+  await expect(page).toHaveScreenshot('dell-lucky-shot.png', shot);
+});
+
+test('Part 6: the hero select shows Yara (Mythic, a Summoner) and Dell (a Marksman)', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stockProfile(page);
+  await heroProfile(page);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    app.profile.heroes.yara.unlocked = true;
+    app.profile.heroes.dell.unlocked = true;
+    app.newRun();
+    app.openCamp();
+  });
+  await frames(page, 30);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const camp = (fn: (c: any, now: number) => void) => page.evaluate(`(${fn.toString()})(window.__cq3.app.view.camp, performance.now())`);
+  await camp((c, now) => c.go('heroes', now, 'yara'));
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('hero-select-yara.png', shot);
+  await camp((c, now) => c.heroes.show('dell', now));
+  await frames(page, 30);
+  await expect(page).toHaveScreenshot('hero-select-dell.png', shot);
+});

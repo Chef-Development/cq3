@@ -167,6 +167,7 @@ const COIN_PERKS = new Set(['luckyFoot', 'goldHoard']);
 // ---- Yara and Dell (Part 6): the Tortoise's shell takes reds at the left end; the spirits' own doings share the
 // allies' bucket (the stag strikes every second); a crit with spirits out shows now and then
 AT_LEFT.add('spiritTortoise');
+NO_WORD.add('spiritStag'); // (the stag's strikes show on every foe; 'Spirit!' names its coming)
 for (const id of ['spiritWolf', 'wispSwarm', 'spiritStag']) ALLY_DOINGS.add(id);
 Object.assign(SLOW_GAP, { kinship: 1800, pocketful: 1500 });
 
