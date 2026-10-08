@@ -8,10 +8,12 @@ import type { Tier } from './rarity';
 export type CompanionId =
   | 'bun' | 'pip' | 'newt' | 'sprocket' | 'brick' | 'flurry' | 'mote' | 'sunny'
   // part6:E (round 7: four more companions)
+  | 'burr' | 'lark' | 'gloam' | 'nimbus'
   ;
 export const COMPANION_IDS: CompanionId[] = [
   'bun', 'pip', 'newt', 'sprocket', 'brick', 'flurry', 'mote', 'sunny',
   // part6:E
+  'burr', 'lark', 'gloam', 'nimbus',
 ];
 
 export interface CompanionPerk {
@@ -151,6 +153,63 @@ export const COMPANIONS: Record<CompanionId, CompanionDef> = {
       { name: 'Gold Hoard', text: 'Kills drop 15% more coins.' },
       { name: 'Fire Breath', text: 'At 25+ combo, its breath burns away traps.' },
       { name: 'Warm Glow', text: 'Ice patches under you melt twice as fast.' },
+    ],
+    flies: true,
+  },
+  // ---- Part 6 companions (round 7): one per rarity from Common to Mythic, each with an effect you can see
+  burr: {
+    id: 'burr',
+    name: 'Burr',
+    rarity: 'common',
+    kind: 'Hedgehog',
+    bio: 'Loves hugs. Nobody is brave enough.',
+    role: 'Thorns',
+    every: 6,
+    dmg: 0.9,
+    attack: 'Roll',
+    perks: [{ name: 'Prickly', text: 'When a red hits you, spines fly back at its foe.' }],
+    flies: false,
+  },
+  lark: {
+    id: 'lark',
+    name: 'Lark',
+    rarity: 'rare',
+    kind: 'Songbird',
+    bio: 'Sings at dawn. Every dawn. Loudly.',
+    role: 'Combo',
+    every: 4,
+    dmg: 1.1,
+    attack: 'Peck',
+    perks: [{ name: 'Wake-up Song', text: 'Every 10 combo, a yellow sings: hit it for 3 more combo.' }],
+    flies: true,
+  },
+  gloam: {
+    id: 'gloam',
+    name: 'Gloam',
+    rarity: 'epic',
+    kind: 'Night cat',
+    bio: 'Knocks things off tables. Traps included.',
+    role: 'Traps',
+    every: 5,
+    dmg: 1.4,
+    attack: 'Swipe',
+    perks: [{ name: 'Night Eyes', text: 'Every 12 s, the next trap is swatted into a yellow.' }],
+    flies: false,
+  },
+  nimbus: {
+    id: 'nimbus',
+    name: 'Nimbus',
+    rarity: 'mythic',
+    kind: 'Sky whale',
+    bio: 'Too small for the sea. Just right for the sky.',
+    role: 'Tides',
+    every: 7,
+    dmg: 1.7,
+    allFoes: true,
+    attack: 'Spray',
+    perks: [
+      { name: 'Tide', text: 'Every 20 s, a wave pushes every red back.' },
+      { name: 'Calm Seas', text: 'At 30+ combo, your hits deal 15% more.' },
     ],
     flies: true,
   },

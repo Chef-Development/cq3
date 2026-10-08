@@ -130,6 +130,13 @@ export const CALLOUT_WORDS: Record<string, string> = {
   fireBreath: 'Fire!',
   chillBite: 'Frost',
   snowDash: 'Frost',
+  // ---- Part 6 companions
+  prickly: 'Spines!',
+  wakeSong: 'Song!',
+  wakeNote: 'Encore!',
+  nightEyes: 'Swat!',
+  tide: 'Tide!',
+  calmSeas: 'Calm!',
 };
 
 /** Perks that happen where reds land (a blocker took one, a hit taken): their word shows at the bar's left end. */
@@ -159,6 +166,9 @@ const SLOW_GAP: Record<string, number> = {
 };
 /** Skill nodes that change what a hero's own move does on the bar get a word too (the rest keep the lane). */
 const SKILL_WORDS = new Set(['bigFreeze', 'turnabout', 'avalanche']);
+/** Companions' perks that always get their word, however busy the companions' bucket (round 7: the singing yellow hit
+ *  comes right after its note; spines answer a hit taken). */
+const PET_ALWAYS = new Set(['wakeNote', 'prickly']);
 /** Perks with no word: a Bulwark's blow on each foe (the Bulwark's own word covers them). */
 const NO_WORD = new Set(['bulwarkBlow']);
 /** The perks that are coins found (gold words). */
@@ -285,7 +295,7 @@ export class Callouts {
     const pet = PERK_PET[id];
     if (pet) {
       const col = PET_COL[pet as CompanionId];
-      return { word, col: COIN_PERKS.has(id) ? 0xffe680 : col, mark: { kind: 'paw', col }, bucket: 'pet', always: id === 'rockWall' };
+      return { word, col: COIN_PERKS.has(id) ? 0xffe680 : col, mark: { kind: 'paw', col }, bucket: 'pet', always: id === 'rockWall' || PET_ALWAYS.has(id) };
     }
     if (id === 'rally') return { word, col: 0xffe680, mark: { kind: 'leaf', col: 0x9af06a }, always: true };
     if (id in ALLY_COL) {

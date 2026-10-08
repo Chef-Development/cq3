@@ -650,10 +650,11 @@ export class Fighters {
     const [, hi] = stackCol(n);
     const name = heroDef(id as HeroId).finisher.name;
     const title = n > 1 ? `${name} x${n}!` : `${name}!`;
+    // (over the HUD, not in the world: the act's name and the foe pips sat on top of it; it doesn't shake either)
     // (a long name steps down a size so the title stays on screen: Part 6's "Spirit Stampede x3!" ran off it)
     const big = n >= 2 ? 3 : 2;
     const fit = Math.max(1, Math.min(big, Math.floor((GAME_W - 12) / Math.max(1, textWidth(title, 1, true)))));
-    fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, fit, true, 0, -6, 0, ms * 0.95, true);
+    fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, fit, true, 0, -6, 0, ms * 0.95, false);
     // the last blow (three or more foes side by side: smaller numbers, so they read)
     const crowd = views.length > 2;
     let row = 0;
@@ -750,6 +751,11 @@ export class Fighters {
     if (o.strike && v && amount > 0 && !v.dieAt && (id === 'shieldSlam' || id === 'wideSlam')) {
       // Hollis's Shield Slam (every block): a shield flies into the red's owner (view/onsite.ts)
       s.onsite.shieldSlam(v, amount, id === 'wideSlam');
+      this.perkLabel(id);
+      return true;
+    }
+    if (o.strike && v && amount > 0 && !v.dieAt && s.onsite.p6.ownBlow(id, v, amount)) {
+      // a blow with a look of its own (Burr's spines: view/onsite-pets.ts)
       this.perkLabel(id);
       return true;
     }
@@ -922,17 +928,20 @@ export class Fighters {
     if (!v) return;
     const def = COMPANIONS[pet as CompanionId];
     const all = !!def?.allFoes;
+    // (Nimbus sprays water, not fire)
+    const wet = def?.id === 'nimbus';
     const strikeOne = (u: EnemyView, fire: boolean) => {
       const cy = u.y - u.img.displayHeight / 2;
       u.flashUntil = s.anim + 50;
       u.knockUntil = s.anim + 60;
-      s.fx.floatNum(u.x + rand(-4, 4), u.y - u.img.displayHeight - 8, whole(damage), crit ? 0xffb020 : fire ? 0xffc060 : 0x6aff5a, crit ? 2 : 1);
-      s.fx.burst(u.x - 6, cy, fire ? 0xff8a2a : crit ? 0xffe070 : 0xb8e4ff, crit ? 14 : 8, true, 1, true);
+      s.fx.floatNum(u.x + rand(-4, 4), u.y - u.img.displayHeight - 8, whole(damage), crit ? 0xffb020 : wet ? 0x9af0ff : fire ? 0xffc060 : 0x6aff5a, crit ? 2 : 1);
+      s.fx.burst(u.x - 6, cy, wet ? 0x6ae8e8 : fire ? 0xff8a2a : crit ? 0xffe070 : 0xb8e4ff, crit ? 14 : 8, true, 1, true);
       if (crit) s.fx.stars.push({ x: u.x - 4, y: cy, at: s.anim, r: 16, color: 0xfff07a });
     };
     const views = all ? [...this.enemies.values()].filter((u) => !u.dieAt) : [];
     const foes = all ? views.map((u) => ({ x: u.x, y: u.y - u.img.displayHeight / 2 })) : null;
-    if (all) s.onsite.fireSweep(views, (u) => strikeOne(u, true));
+    if (all && wet) s.onsite.p6.spraySweep(views, (u) => strikeOne(u, true));
+    else if (all) s.onsite.fireSweep(views, (u) => strikeOne(u, true));
     this.party.attack((def?.id ?? 'pip') as CompanionId, { x: v.homeX, y: v.y, w: v.img.displayWidth, h: v.img.displayHeight, fly: v.fly }, foes, () => {
       if (!all) strikeOne(v, false);
       s.app.audio.pet();
