@@ -168,3 +168,16 @@ export const writeLabState = (v: unknown): void => write(LAB_STATE_KEY, v);
 /** The lab fights' accuracy log (raw; core/accuracy.ts readAccuracyLog checks it). */
 export const loadLabAcc = (): unknown => read(LAB_ACC_KEY);
 export const writeLabAcc = (v: unknown): void => write(LAB_ACC_KEY, v);
+
+// ------------------------------------------------------------------ the chest reveal (a test, not shown to players)
+
+/**
+ * Which chest reveal the game plays: its own ('old', the default) or the sharper test drawn on a finer grid ('hd',
+ * view/chest-hd.ts). Not in the gear panel: the Test lab compares them side by side; the rollout flips the default.
+ */
+export type ChestRevealMode = 'old' | 'hd';
+const CHEST_REVEAL_KEY = 'cq3.chestReveal';
+/** A stored value as a mode: anything but 'hd' is the old reveal. */
+export const readChestReveal = (v: unknown): ChestRevealMode => (v === 'hd' ? 'hd' : 'old');
+export const loadChestReveal = (): ChestRevealMode => readChestReveal(read(CHEST_REVEAL_KEY));
+export const saveChestReveal = (m: ChestRevealMode): void => write(CHEST_REVEAL_KEY, m);
