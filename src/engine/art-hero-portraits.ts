@@ -4,6 +4,8 @@
 // 18x18 badge window can find both eyes (PORTRAIT_FACE_AT).
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 import { and, bez, ell, fill, not, or, rimShade, sphere, stroke, tone } from './art-paint';
+import { fizzPortrait } from './art-hero-fizz';
+import { brannPortrait } from './art-hero-brann';
 
 const P = 40;
 const INK = '#140c1c';
@@ -20,6 +22,8 @@ export const PORTRAIT_FACE_AT: Record<string, [number, number]> = {
   // part6:B
   // part6:C
   // part6:D
+  fizz: [15, 10],
+  brann: [15, 11],
 };
 
 const SKIN_FAIR = ['#8a4a3a', '#c87a5e', '#eeaa86', '#fcd0b0', '#fff0e0'];
@@ -553,4 +557,6 @@ export function buildHeroPortraits(add: (key: string, c: HTMLCanvasElement) => v
   // part6:B
   // part6:C
   // part6:D
+  add('portrait_fizz', fizzPortrait());
+  add('portrait_brann', brannPortrait());
 }

@@ -26,6 +26,8 @@ import { TORVA_CAMP, TORVA_CARD, TORVA_POSES, TORVA_RIG } from './art-hero-torva
 // part6:B
 // part6:C
 // part6:D
+import { FIZZ_CAMP, FIZZ_CARD, FIZZ_POSES, FIZZ_RIG } from './art-hero-fizz';
+import { BRANN_CAMP, BRANN_CARD, BRANN_POSES, BRANN_RIG } from './art-hero-brann';
 import { VESPER_CAMP, VESPER_CARD, VESPER_POSES, VESPER_RIG } from './art-hero-vesper';
 import { fireRim, paintRig, rigFrame, type Add, type HeroCardSpec, type Rig, type RigPose } from './art-rig';
 import { heroCard } from './art-sable';
@@ -33,7 +35,7 @@ import { heroCard } from './art-sable';
 /** The poses every M5 hero has a fight frame for. */
 export const HERO_POSE_KEYS = ['idle0', 'idle1', 'dash', 'slashA', 'slashB', 'windup', 'parry', 'hurt', 'leap', 'down', 'fin', 'cast'] as const;
 /** The M5 heroes with art. */
-export const M5_HEROES = ['neve', 'moss', 'tam', 'hollis', 'vesper', 'torva'] as const;
+export const M5_HEROES = ['neve', 'moss', 'tam', 'hollis', 'vesper', 'torva', 'fizz', 'brann'] as const;
 
 /** The camp sprites' box (drawn bottom-centre at a spot, like camp_sable0/1): the feet centred, one row under them. */
 export const HERO_CAMP_W = 32;
@@ -56,6 +58,8 @@ const HEROES: Record<(typeof M5_HEROES)[number], HeroArt> = {
   // part6:B
   // part6:C
   // part6:D
+  fizz: { rig: FIZZ_RIG, poses: FIZZ_POSES, card: FIZZ_CARD, camp: FIZZ_CAMP },
+  brann: { rig: BRANN_RIG, poses: BRANN_POSES, card: BRANN_CARD, camp: BRANN_CAMP },
 };
 
 /**
