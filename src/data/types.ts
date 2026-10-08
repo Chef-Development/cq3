@@ -182,6 +182,8 @@ export type Speaker =
   // part6:A
   // part6:B
   // part6:C
+  | 'gorm'
+  | 'tess'
   // part6:D
   | 'rimehorn'
   | 'matron'

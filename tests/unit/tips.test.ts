@@ -12,6 +12,7 @@ import { Rng } from '../../src/core/rng';
 import { Run } from '../../src/core/run';
 import { COACH_DEFAULTS, markWelcomed, TipCoach, welcomeScene, type TipMoment } from '../../src/core/tips';
 import { REGIONS } from '../../src/data/regions';
+import { HERO_IDS } from '../../src/data/heroes';
 import { cloneTuning, DEFAULT_SETTINGS } from '../../src/core/tuning';
 import { textWidth } from '../../src/engine/font';
 
@@ -533,7 +534,7 @@ describe('the coach', () => {
     expect(take({ preFight: true })).toBe('kitMoss');
     // every hero but Rowan has one, each fits the card, and none shows mid-fight
     for (const d of TIPS.filter((x) => x.hero)) expect(d.fight).toBe('pre');
-    expect(new Set(TIPS.filter((x) => x.hero).map((x) => x.hero)).size).toBe(7);
+    expect(new Set(TIPS.filter((x) => x.hero).map((x) => x.hero)).size).toBe(HERO_IDS.length - 1);
     expect(TIPS.some((x) => x.hero === 'rowan')).toBe(false);
   });
 });

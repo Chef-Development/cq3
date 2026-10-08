@@ -107,6 +107,7 @@ const KIT_TIP: Partial<Record<HeroId, TipId>> = {
   // part6:A
   // part6:B
   // part6:C
+  gorm: 'kitGorm', tess: 'kitTess',
   // part6:D
 };
 
@@ -210,6 +211,9 @@ export const LAB_NEW: LabScenario[] = [
   // part6:A
   // part6:B
   // part6:C
+  // ---- Gorm and Tess (Part 6): the second Brute and the second Controller, the how-to card first
+  heroFight('gorm', 'gorm', 'Gorm', 'Every 4th hit lands heavy. Greens: Roar. Swipe!', [['beetle', 'bandit'], ['wolf', 'wolf'], ['boar', 'archer'], ['beetle', 'crow'], ['bandit', 'boar'], ['knight', 'beetle']]),
+  heroFight('tess', 'tess', 'Tess', 'Hits wind the Stopwatch. Greens slow reds. Swipe!', [['bandit', 'archer'], ['wolf', 'crow'], ['shaman', 'boar'], ['archer', 'archer'], ['beetle', 'bandit'], ['knight', 'shaman']]),
   // part6:D
   // part6:E
 ];

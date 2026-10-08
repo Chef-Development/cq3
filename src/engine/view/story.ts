@@ -23,6 +23,7 @@ const LEFT: Speaker[] = [
   // part6:A
   // part6:B
   // part6:C
+  'gorm', 'tess',
   // part6:D
 ];
 /** Friends who aren't heroes (Mags the smith): on the right like a villain, but in warm forge colors. */

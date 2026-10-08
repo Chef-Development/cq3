@@ -100,7 +100,10 @@ export type TipId =
   | 'kitTam'
   | 'kitHollis'
   | 'kitVesper'
-  | 'kitTorva';
+  | 'kitTorva'
+  // ---- Gorm and Tess (Part 6)
+  | 'kitGorm'
+  | 'kitTess';
 
 export interface TipDef {
   id: TipId;
@@ -168,6 +171,8 @@ export const TIPS: readonly TipDef[] = [
   // part6:A
   // part6:B
   // part6:C
+  { id: 'kitGorm', hero: 'gorm', lines: ['Gorm: every few hits lands heavy', 'and shoves the nearest red back!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'kitTess', hero: 'tess', lines: ['Tess: hits wind her Stopwatch.', 'When it rings, the reds stand still!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // part6:D
   { id: 'relicBelt', lines: ['Your relics sit here.', 'Tap one to read what it does.'], anchor: 'relicBelt', fight: 'pre', after: ['tapYellow'] },
   { id: 'rush', lines: ['Coin Rush! Hits knock out coins.', 'Keep your combo going for more!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },

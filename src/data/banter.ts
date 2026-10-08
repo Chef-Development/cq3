@@ -41,6 +41,7 @@ export type CampSpeaker =
   // part6:A
   // part6:B
   // part6:C
+  | 'gorm' | 'tess'
   // part6:D
   ;
 
@@ -126,3 +127,22 @@ export const HERO_BANTER: HeroBanterLine[] = [
   { who: 'sable', text: 'Torva, carry the loot? All of it?', with: ['torva'] },
   { who: 'smith', text: "Torva's hammer? Second best here.", with: ['torva'] },
 ];
+
+// ---- Gorm and Tess (Part 6): a gentle half-giant who apologises to logs; a sharp old clockmaker who times everything
+HERO_BANTER.push(
+  { who: 'gorm', text: 'Fire is nice. Rocks like fire too.' },
+  { who: 'gorm', text: 'I named this rock Pebble. Say hello.' },
+  { who: 'gorm', text: 'Sorry, log. I sat on you. My fault.' },
+  { who: 'gorm', text: 'Big hands. Soft hugs. Ask anyone.' },
+  { who: 'gorm', text: 'Pip sits on my head. I let him.', with: ['pip'] },
+  { who: 'torva', text: 'Gorm! Arm wrestle! ...Ow. AGAIN!', with: ['gorm'] },
+  { who: 'rowan', text: 'Gorm carried the cart. With us in it.', with: ['gorm'] },
+  { who: 'tess', text: 'Your fire is three seconds slow.' },
+  { who: 'tess', text: 'In my day, time only went forward.' },
+  { who: 'tess', text: 'Everything needs winding. Boots too.' },
+  { who: 'tess', text: 'I fixed the moon once. It wobbled.' },
+  { who: 'tess', text: 'Rowan, sit up. Posture is punctual.', with: ['rowan'] },
+  { who: 'pip', text: 'Hoo. Tess oiled my wings. Unasked.', with: ['tess'] },
+  { who: 'tess', text: 'Gorm, dear. You sat on my tools.', with: ['gorm'] },
+  { who: 'smith', text: 'Tess graded my forge. A C-minus!', with: ['tess'] },
+);
