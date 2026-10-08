@@ -303,7 +303,9 @@ export const BRANN_KIT: FightHooks = {
     if (c.stars >= 5 && x.damage > 0) for (const e of c.aliveFoes()) if (!x.targets.includes(e)) c.strike(e, x.damage * B(c).echo5, 'echoingBell');
     let n = 0;
     for (const e of c.aliveFoes()) {
-      c.stun(e, B(c).bellStun);
+      // (a boss shrugs the stun off, its special still coming: only its reds wait)
+      if (c.tuning.enemies[e.key]?.boss) e.spawnTimer = Math.max(e.spawnTimer, B(c).bellStun);
+      else c.stun(e, B(c).bellStun);
       n++;
     }
     c.perkFx('greatBell', n, x.targets[0]?.id ?? 0);

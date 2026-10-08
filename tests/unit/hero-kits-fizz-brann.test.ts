@@ -113,7 +113,7 @@ describe("Fizz's kit", () => {
       const { c, t } = fight('fizz', { enemies: ['slime', 'slime'], tune: (t) => (t.enemies.slime.hp = 900) });
       c.perk.brew = BREWS.indexOf(brew);
       const at = c.cursorPosAt(c.time);
-      const red = c.spawnBlock('red', at + t.styles.kegRadius * 1.3);
+      const red = c.spawnBlock('red', at + (t.styles.kegRadius * (1 + t.kits.fizz.sparkRadius)) / 2); // past a plain blast, inside a spark's
       tapNew(c, 'keg');
       return { gone: !c.blocks.includes(red), dmg: 900 - c.enemies[1].hp, t };
     };
@@ -229,7 +229,7 @@ describe("Brann's kit", () => {
     expect(perks(c.drainEvents(), 'stillMind')).toHaveLength(1);
   });
 
-  it('Great Bell: the target alone, with all the Guard (x(1 + Guard x guardPer x bellGuard)); every foe is stunned', () => {
+  it('Great Bell: the target alone, with all the Guard (x(1 + Guard x guardPer x bellGuard)); every foe is stunned (a boss: its reds wait)', () => {
     const { c, t } = fight('brann', { enemies: ['slime', 'slime'], tune: (t) => (t.enemies.slime.hp = 5000) });
     c.perk.guard = 3;
     c.stacks = 1;
@@ -242,6 +242,12 @@ describe("Brann's kit", () => {
     for (const e of c.enemies) expect(e.stun).toBeCloseTo(k.bellStun, 1);
     // stunned foes send nothing (their spawn clocks wait)
     expect(perks(c.drainEvents(), 'greatBell')).toHaveLength(1);
+    // a boss shrugs the stun off (its special still comes), but its reds wait
+    const boss = fight('brann', { enemies: ['boarKing'] });
+    boss.c.stacks = 1;
+    boss.c.finisher();
+    expect(boss.c.enemies[0].stun).toBe(0);
+    expect(boss.c.enemies[0].spawnTimer).toBeGreaterThanOrEqual(boss.t.kits.brann.bellStun - 1e-9);
     // 5 stars: the others take half the blow
     const five = fight('brann', { stars: 5, enemies: ['slime', 'slime'], tune: (t) => (t.enemies.slime.hp = 5000) });
     five.c.stacks = 1;
