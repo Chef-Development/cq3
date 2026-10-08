@@ -138,7 +138,7 @@ test('the Test lab: open from the title, play and rate two scenarios, copy the r
 });
 
 test('every Test lab scenario starts and ends without errors (spoilers included)', async ({ page }) => {
-  test.setTimeout(300_000); // (every session adds items, and the machine is shared: room for a longer list)
+  test.setTimeout(420_000); // (about 5 s a scenario; every session adds items, and the machine is shared)
   const errors: string[] = [];
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());
