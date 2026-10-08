@@ -604,3 +604,47 @@ F6. **Sound:** a style layer rides on the shared finisher sounds (blade ring, sh
 F7. **The Finisher gallery** (Test lab, Heroes): a calm practice stage (no blocks, no specials, nothing hurts or dies,
     nothing saved, the clock held between shows) with a plate to pick the hero (every hero in HEROES), stacks and
     rarity, and Play: two reds and a yellow go on the bar so what the finisher does to the bar shows too.
+
+### Part 2: anti-spam balance (the combat core's one owner; details and tables in docs/balance-spam.md)
+A1. **Crowding limit** (`tuning.spam.cover` 0.45): the widths of every block on the bar are summed; a foe's static
+    block that doesn't fit isn't sent and its pattern keeps its pace (reds don't come faster). Reds, specials'
+    formations and the hero's own blocks always come; a bar with no yellow or green always gets one from the refill.
+    It applies in Coin Rush too (it pays a little less).
+A2. **Each stack costs more** (`spam.stackStep` 0.32): 6 / 8 / 10 / 12 / 14 plain hits; `c.meter` still runs 0..1
+    toward the next stack, so the HUD meter just fills slower (it doesn't show the cost yet).
+A3. **Meter Gain** from gear and skills counts in full to +25%, then less and less, never above +75%; **meter relics
+    stack with diminishing returns** (`meterStack` 0.33: the n-th relic to add meter in a fight counts
+    1/(1+0.33(n-1))). Kit and skill meter is never cut.
+A4. **Heal cap** (`healCap` 0.35): every in-fight heal goes through `gainHp` and stops at 35% of max HP per fight
+    (kills, relics, gear, sets, auras, companions, allies, Second Wind); rests, potions, Full Heal cards, events and
+    Field Rations are between fights; a revive isn't a heal. "No more heals" shows once (`healCap`). **Heal stacking:**
+    the n-th heal source in a fight heals 1/(1+0.33(n-1)) (the kill heal isn't a source).
+A5. **Forgiveness cap** (`forgiveMax` 3): Footpad, Clutch, Smoke Veil, Crampons and Spare Link together forgive at
+    most 3 misses a fight (each asks `c.canForgive()`), then "No more saves" shows once; a forgiven miss still empties
+    the meter's partial fill. Hoarder and Unbroken already cost stacks.
+A6. **Misses cost HP that matters** (classic mode): 0.6% of max HP (at least 1), up to x4 for a miss within 0.5 s of
+    the last. Without it the masher still won (ten taps a second blocks every red; 1 HP a miss was nothing). Relaxed
+    mode is unchanged.
+A7. **The masher bot** taps every ~100 ms with no aim (it holds any hold it catches and swipes finishers);
+    `tests/unit/bot-masher.test.ts`: Act 3 never cleared first try, the boss's first fight never won, retries win at
+    most 1 in 10. Result: Act 3 first try 0 / 0 / 0% in the three regions (was 40-69%); a boss mashed alone won 3 first
+    fights in 120 (each with a stack-banking relic build).
+A8. **Retargeted at 75%** (the lab measured 70% where the playtester guessed 80-90%): `TYPICAL_ACCURACY` 0.75; act
+    HP/attack multipliers re-aimed (Act 2 1.2/6 ... Act 9 7/15), the Ruin Golem 2300 HP, the third region's mini-bosses
+    3200 and 2800, its boss 7600. Late difficulty comes from speed: reds x1.2 in Act 6, x1.25 in Act 9.
+A9. **Max-stack finishers per fight** (each region's Act 3, normal / boss) at 75%: before 0.02 / 0.28, 0.01 / 0.14,
+    0.01 / 0.29; after 0.00 / 0.01, 0.00 / 0.01, 0.00 / 0.02 (85%: 2.3 / 1.9 / 2.0 at the bosses before, 0.16 / 0.07 /
+    0.18 after). Bar covered at 75%: mean 34-39% -> 28-33%, peaks 69-78% -> 54-62%; boss-fight healing 26-36% -> 15-19%
+    of max HP.
+A10. **Clear rates after** (first try per act; Acts 1-9): 70%: 99 77 65 | 75 65 52 | 78 62 51; 75%: 100 85 63 | 85 68
+    59 | 90 69 52; 85%: 100 95 75 | 95 83 53 | 96 86 64 (boss first fights in docs/balance-spam.md).
+A11. **Two risk relics got cheaper** (Clutch 2%, Blood Price 6% of max HP): under the new rules they sank the 85%
+    player below the 75% one in Act 6.
+A12. **Hero nerfs for parity:** Moss (Barkback rests 32 s, HP 85), Hollis (Iron Hide 10%, Rampart wall 2 s), Tam (keg
+    radius 0.09, HP 95), Torva (Heavy x1.5, Wind-Up from x1.7). Parity at 75% was not met yet (18 of 56 hero-acts
+    outside +/-10, most of it from the 75% target itself: round 6's build at 75% had 30 outside): a parity pass
+    follows.
+A13. **Test lab "Late-game stress"** (Fights): Rowan at level 20, 3 stars, Epic gear, nine synergy relics with the heal
+    relics, Pip + Mote, stacks banked, six waves of the first region's Act 3 foes at Act 9's numbers on Act 3's stage
+    (no spoilers). Mash: you lose; aim: you win (guarded). Lab fights can carry `relics`, show another act's `stage` and
+    wear a better kit (`profile.gear`). The lab hero-fight guard runs at 75%.
