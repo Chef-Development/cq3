@@ -151,8 +151,8 @@ the region rules.
 - Spirits (called by green hits in order, like Moss's allies; they grow with the Companion stat; each stays 7 s; a
   call with all three out is a Rally):
   - **Spirit Wolf** (attack): bites the target for 40% of her attack every 2 s.
-  - **Spirit Tortoise** (block): its shell comes up 1 s after it's called and stops the next red that reaches her;
-    then it rests 16 s.
+  - **Spirit Tortoise** (block): its shell comes up 3 s after it's called and stops the next red that reaches her;
+    then it rests 30 s (a Tortoise called while the last one's rest runs waits it out).
   - **Wisp Swarm** (meter): fills half a hit's meter every 2 s (never heals).
 - Signature **Spirit Bond**: spirits come in order; a call with all three out is a Rally.
 - Ability (green) **Call**: call the next spirit.
@@ -172,8 +172,10 @@ the region rules.
 - Ability (green, the style's Power Shot) **Lucky Shot**: a Perfect green crits, and so does the Power Shot it fires.
 - Passive **Pocketful**: a miss doesn't empty the meter's fill toward the next stack (the combo and the banked
   stacks still go). (Designed as "a miss doesn't lose Focus", but a Marksman's Focus never falls on a miss.)
-- Finisher **Pebble Storm**: hits all foes; every red on the bar is knocked back (an icicle, which can't move, is
-  knocked off). Its show: pebbles ping from foe to foe, his lucky golden pebble hops through them all.
+- Finisher **Pebble Storm**: hits all foes, x1.15; every red on the bar is knocked back 0.4 of the bar, and one
+  knocked past the far end flies off it (an icicle, which can't move, is knocked off). (Knocked back only, they all
+  came again: at 75% he took twice Rowan's hits a second at the second and third regions' bosses.) Its show: pebbles
+  ping from foe to foe, his lucky golden pebble hops through them all.
 - Strength: +20% damage to Flyers.
 
 ### Stars (1-5, from shards of duplicates)

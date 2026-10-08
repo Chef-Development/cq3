@@ -296,7 +296,7 @@ shows on its target.
 | `luckyShot` | Dell: Lucky Shot | a box flashes out of the green; brackets close in on its foe |
 | `ricochetShot` | Dell: Ricochet | a bolt from the foe just hit on to the one it bounced to |
 | `pocketful` | Dell: Pocketful | sparks off the meter (the fill it kept) |
-| `pebbleStorm` | Dell: Pebble Storm | every red on the bar flashes (each knocked back) |
+| `pebbleStorm` | Dell: Pebble Storm | every red on the bar flashes (each knocked back; one past the far end goes off it) |
 | `hardBounce` / `luckyBounce` / `fourLeaf` / `fullPouch` / `luckyStreak` / `pinball` | skills: Dell's | a box on the green (Four Leaf, Full Pouch: a mote into the style tab; Lucky Streak and Pinball: their foes too) |
 | `hailstones` / `bigKnock` / `pelt` | skills: Hailstones, Big Knock, Pelt | the finisher's own show / every red flashes / its foe's reds flash |
 

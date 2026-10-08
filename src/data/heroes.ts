@@ -276,7 +276,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     signature: part('Ricochet', "The Power Shot bounces to the weakest other foe for {n}%.", 'Shots bounce on.'),
     ability: part('Lucky Shot', 'A Perfect green crits, and so does its Power Shot.', 'Perfect greens crit.'),
     passive: part('Pocketful', "A miss doesn't empty your meter (it still breaks the combo).", 'Misses cost less.'),
-    finisher: { name: 'Pebble Storm', text: 'Pebbles hail on every foe and knock every red back.', short: 'Hits all, knocks reds back.', bar: 'Knocks reds back' },
+    finisher: { name: 'Pebble Storm', text: 'Pebbles hail on every foe and knock every red back; far ones fly off.', short: 'Hits all, knocks reds back.', bar: 'Knocks reds back' },
     strengths: [{ tag: 'flyer', kind: 'dmg', n: 0.2 }],
     joins: 'chest',
     meetScene: 'meetDell',

@@ -403,7 +403,8 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       x.keepMeter = Math.max(x.keepMeter, Math.min(x.meter, 0.999));
       c.perkFx('pocketful');
     },
-    // Pebble Storm: every foe; the reds stay on the bar to be knocked back (an icicle, which can't move, shatters)
+    // Pebble Storm: every foe; the reds stay on the bar to be knocked back, and one knocked past the far end goes
+    // off it (as does an icicle, which can't move: it shatters)
     finisher: (c, x, v) => {
       x.reds = 'keep';
       return v * K(c).dell.stormMult;
@@ -412,7 +413,7 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       const d = K(c).dell.stormKnock * (c.perk.stormKnock ?? 1);
       let n = 0;
       for (const b of c.blocks.filter((r) => isRed(r.kind)).sort((a, b) => b.pos - a.pos)) {
-        if (b.still) c.removeBlock(b, 'perk');
+        if (b.still || b.pos + b.push + d > 1 - b.width / 2) c.removeBlock(b, 'perk');
         else c.pushBack(b, d);
         n++;
       }

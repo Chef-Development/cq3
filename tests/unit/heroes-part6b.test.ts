@@ -305,10 +305,11 @@ describe('Dell: Lucky Shot, Ricochet, Pocketful, Pebble Storm', () => {
     expect(c.meter).toBe(0);
   });
 
-  it('Pebble Storm: hits every foe; every red stays on the bar and is knocked back (an icicle shatters)', () => {
-    const { c, t } = fight('dell', [], { enemies: ['bandit', 'bandit'], tune: (t) => (t.enemies.bandit.hp = 5000) });
+  it('Pebble Storm: hits every foe; the reds stay on the bar and are knocked back, one knocked past the far end goes off it (an icicle shatters)', () => {
+    const { c, t } = fight('dell', [], { enemies: ['bandit', 'bandit'], tune: (t) => ((t.enemies.bandit.hp = 5000), (t.kits.dell.stormKnock = 0.3)) });
     const a = c.spawnBlock('red', 0.3);
     const b = c.spawnBlock('red', 0.5);
+    const far = c.spawnBlock('red', 0.8);
     const ice = c.spawnBlock('red', 0.2);
     ice.still = true;
     c.stacks = 1;
@@ -316,10 +317,11 @@ describe('Dell: Lucky Shot, Ricochet, Pocketful, Pebble Storm', () => {
     const ev = c.drainEvents();
     expect(evs(ev, 'finisher')[0].targets).toHaveLength(2);
     expect(c.blocks.includes(a) && c.blocks.includes(b)).toBe(true);
+    expect(c.blocks.includes(far)).toBe(false);
     expect(c.blocks.includes(ice)).toBe(false);
     expect(a.push).toBeCloseTo(t.kits.dell.stormKnock);
     expect(b.push).toBeCloseTo(t.kits.dell.stormKnock);
-    expect(perks(ev, 'pebbleStorm')).toEqual([expect.objectContaining({ amount: 3 })]);
+    expect(perks(ev, 'pebbleStorm')).toEqual([expect.objectContaining({ amount: 4 })]);
   });
 
   it('5 stars: a Lucky Shot stuns its foe (a plain green, or fewer stars: no)', () => {
@@ -563,7 +565,7 @@ describe("Dell's tree", () => {
   });
 
   it('Big Knock: Pebble Storm knocks the reds n% further', () => {
-    const { on, off } = both('dell', ['bigKnock'], { enemies: ['bandit'], tune: tough });
+    const { on, off } = both('dell', ['bigKnock'], { enemies: ['bandit'], tune: (t) => (tough(t), (t.kits.dell.stormKnock = 0.3)) });
     const reds = [on, off].map(({ c }) => {
       const r = c.spawnBlock('red', 0.2);
       c.stacks = 1;
