@@ -294,22 +294,29 @@ export class FightScene extends Phaser.Scene implements View {
     this.camp.tap(x, y);
   }
 
-  /** A press on the hero select's stage, which swipes: true takes it (judged on release; a tap if it stays put). */
+  /** A press on the hero select's or the companions' stage, which swipes: true takes it (judged on release; a tap if
+   *  it stays put). */
   campPressAt(x: number, y: number, now: number): boolean {
-    return this.camp.mode === 'heroes' && this.camp.heroes.pressAt(x, y, now);
+    const c = this.camp;
+    if (c.mode === 'heroes') return c.heroes.pressAt(x, y, now);
+    return c.mode === 'pets' && c.pets.pressAt(x, y, now);
   }
 
   campDragTo(x: number, y: number, now: number): void {
     if (this.camp.mode === 'heroes') this.camp.heroes.dragTo(x, y, now);
+    else if (this.camp.mode === 'pets') this.camp.pets.dragTo(x, y, now);
   }
 
   /** Let go: a press that stayed put is a tap, through the camp's usual route. */
   campReleaseAt(x: number, y: number, now: number): void {
-    if (this.camp.mode === 'heroes' && this.camp.heroes.releaseAt(x, y, now)) this.camp.tap(x, y);
+    const c = this.camp;
+    const tap = c.mode === 'heroes' ? c.heroes.releaseAt(x, y, now) : c.mode === 'pets' ? c.pets.releaseAt(x, y, now) : false;
+    if (tap) c.tap(x, y);
   }
 
   campCancelPress(): void {
     this.camp.heroes.cancelPress();
+    this.camp.pets.cancelPress();
   }
 
   /** The loot screen after a fight or a chest. */
