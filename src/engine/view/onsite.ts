@@ -1713,6 +1713,16 @@ export class OnSite {
         }
         break;
       }
+      case 'earRinger': {
+        // its ears ring: two rings of sound round the foe's head
+        const v = this.foe(e.enemyId);
+        if (v && !v.dieAt) {
+          const y = v.y - v.img.displayHeight * 0.7;
+          s.later(120, () => s.fx.ring(v.x, y, 7, ROAR, false));
+          s.later(220, () => s.fx.ring(v.x, y, 11, ROAR, false));
+        }
+        break;
+      }
       case 'stoneSkin':
       case 'secondSkin': {
         // the blow glances off stone: chips fly off the hero

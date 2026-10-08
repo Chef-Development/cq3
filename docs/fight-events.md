@@ -298,7 +298,7 @@ shows on its target.
 | `splitRock` | skill: Split Rock | a bolt to each other foe, then the hit |
 | `stoneRain` | skill: Stone Rain | every red flashes |
 | `longRoar` | skill: Long Roar | every red flashes |
-| `earRinger` | skill: Ear Ringer | brackets on each foe (and its stun stars) |
+| `earRinger` | skill: Ear Ringer | brackets on each foe and two rings of sound round its head |
 | `warCry` | skill: War Cry | a box on the block that set it off; every red flashes |
 | `secondSkin` | skill: Second Skin | a ring on the hero (stone chips) |
 | `shrugOff` | skill: Shrug It Off | the combo counter swells; a ring on the hero |

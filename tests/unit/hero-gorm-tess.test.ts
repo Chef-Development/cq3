@@ -370,11 +370,15 @@ describe("Gorm's tree", () => {
     expect(perks(on.c.drainEvents(), 'longRoar')).toHaveLength(1);
   });
 
-  it('Ear Ringer: a Roar stuns every foe for n s', () => {
+  it("Ear Ringer: a Roar puts every foe's next attack n s off (not a stun: a special being told isn't cancelled)", () => {
     const { on, off } = both('gorm', ['earRinger'], { enemies: ['slime', 'slime'] });
+    const before = on.c.enemies.map((e) => e.spawnTimer);
+    const offBefore = off.c.enemies.map((e) => e.spawnTimer);
     for (const { c } of [on, off]) tapNew(c, 'green');
-    for (const e of on.c.enemies) expect(e.stun).toBeCloseTo(skillN(on.t, 'earRinger'));
-    for (const e of off.c.enemies) expect(e.stun).toBe(0);
+    on.c.enemies.forEach((e, i) => expect(e.spawnTimer).toBeCloseTo(before[i] + skillN(on.t, 'earRinger'), 5));
+    off.c.enemies.forEach((e, i) => expect(e.spawnTimer).toBeCloseTo(offBefore[i], 5));
+    for (const e of on.c.enemies) expect(e.stun).toBe(0);
+    expect(perks(on.c.drainEvents(), 'earRinger')).toHaveLength(2);
   });
 
   it('War Cry: every n-th red blocked lets out a Roar (the reds on the bar slow)', () => {

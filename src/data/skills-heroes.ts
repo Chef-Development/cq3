@@ -316,7 +316,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
         meter('deepLungs', 'Deep Lungs', 12),
         combo('bigVoice', 'Big Voice', 1),
         rule('longRoar', 'Long Roar', 'Roar slows reds {n} s longer.', 'A Roar slows reds briefly.', 'It lasts {n} s longer.', 1),
-        rule('earRinger', 'Ear Ringer', 'Roar stuns every foe for {n} s.', 'A Roar only slows reds.', 'It stuns foes for {n} s.', 1),
+        rule('earRinger', 'Ear Ringer', "A Roar puts every foe's next attack {n} s off.", 'A Roar only slows reds.', 'Foes attack {n} s later.', 0.6),
         cap('warCry', 'War Cry', 'Every {n}th red you block lets out a Roar.', 'Only green hits Roar.', 'Every {n}th block Roars.', 5),
       ],
     },

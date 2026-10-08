@@ -72,13 +72,15 @@ const GORM: Record<string, FightHooks> = {
       if (n) c.perkFx('longRoar', n);
     },
   },
-  // Ear Ringer: a Roar stuns every foe for n s
+  // Ear Ringer: a Roar rattles every foe: its next attack comes n s later. (Not a stun: Combat.stun cancels the
+  // special a foe is telling, which made every green hit at a boss take a Charge off the bar: decisions, round 8.)
   earRinger: {
     afterHit: (c, x) => {
       if (!x.green || x.echo || c.result) return;
+      const n = Math.max(0, N(c, 'earRinger'));
       for (const e of c.aliveFoes()) {
-        c.stun(e, N(c, 'earRinger'));
-        c.perkFx('earRinger', 0, e.id);
+        e.spawnTimer += n;
+        c.perkFx('earRinger', n, e.id);
       }
     },
   },

@@ -259,7 +259,7 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   splitRock: ['bolt'],
   stoneRain: ['reds'],
   longRoar: ['reds'],
-  earRinger: ['foe'], // (its stun event: stars over the foe)
+  earRinger: ['foe'], // (rings of sound round each foe's head: onsite.ts gormTess)
   warCry: ['bar', 'reds'],
   secondSkin: ['hero'],
   shrugOff: ['combo', 'hero'],
