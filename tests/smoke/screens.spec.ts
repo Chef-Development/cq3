@@ -220,6 +220,29 @@ test('Act 3 map', async ({ page }) => {
   await expect(page).toHaveScreenshot('map-act3.png', shot);
 });
 
+// the later regions' act maps: each foe stands on its node as its own mini (they showed crossed swords: round 7)
+for (const [act, name] of [
+  [3, 'map-act4.png'],
+  [6, 'map-act7.png'],
+] as const)
+  test(`Act ${act + 1} map (a later region's foes on their nodes, a pack roaming, the boss before its lair)`, async ({ page }) => {
+    await boot(page);
+    await frames(page, 10);
+    await page.evaluate((act) => {
+      const app = (window as Cq3Window).__cq3!.app;
+      app.setPhase(() => {
+        app.run.newRun();
+        app.run.skipScenes();
+        app.run.enterAct(act);
+        app.run.skipScenes();
+        app.run.coins = 87;
+      });
+    }, act);
+    await frames(page, 30);
+    expect(await page.evaluate(() => (window as unknown as { __cq3: { miniMisses: string[] } }).__cq3.miniMisses)).toEqual([]);
+    await expect(page).toHaveScreenshot(name, shot);
+  });
+
 test('living maps: critters and a sparkle on the act map, its pop; gulls and a sparkle at sea', async ({ page }) => {
   await boot(page);
   await frames(page, 10);
@@ -1360,6 +1383,37 @@ test('world map: a wandering foe on the road, and its skirmish card', async ({ p
   await expect(page).toHaveScreenshot('world-skirmish.png', shot);
 });
 
+test("world map: a wandering foe from the third region, its skirmish card wider for its wide foes", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).__cq3.app;
+    Object.assign(app.profile, { actsCleared: 9, weights: 2, sableMet: true });
+    app.profile.seen.push('unveil:frostpeaks', 'unveil:ashfell'); // (their reveals already played)
+    app.profile.wander = { fights: 99, n: 0, up: true }; // (the first one out: two of the cinder flats' foes, then its elite)
+    app.newRun();
+  });
+  await frames(page, 20);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = (window as any).__cq3.app.view.worldMap;
+    const r = w.roam.foeRect();
+    const c = w.camera();
+    w.lookAt(c.x + r.x + r.w / 2, c.y + r.y + r.h / 2);
+  });
+  await frames(page, 10);
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = (window as any).__cq3.app.view.worldMap;
+    const r = w.roam.foeRect();
+    w.tap(r.x + r.w / 2, r.y + r.h / 2);
+  });
+  await frames(page, 30);
+  expect(await page.evaluate(() => (window as unknown as { __cq3: { miniMisses: string[] } }).__cq3.miniMisses)).toEqual([]);
+  await expect(page).toHaveScreenshot('world-skirmish-wide.png', shot);
+});
+
 test('world map: everything on it moves with the map when it pans (nothing follows the camera)', async ({ page }) => {
   test.setTimeout(120_000);
   await boot(page);
@@ -1461,6 +1515,16 @@ async function artSheet(page: Page, rows: string[][], scale: number, bg: string)
     { rows, scale, bg },
   );
 }
+
+test("map minis: every foe's, both frames, at the phone's 8x (each region's in turn)", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  // the textures art-map.ts painted from art-minis.ts, in its order (the first region's, the second's, the third's)
+  const keys = (await page.evaluate(() => Object.keys((window as unknown as { __cq3: { app: { view: { textures: { list: object } } } } }).__cq3.app.view.textures.list).filter((k) => k.startsWith('mfoe_')))) as string[];
+  expect(keys.length).toBeGreaterThanOrEqual(70);
+  await artSheet(page, [keys], 8, '#5a6a50');
+  await expect(page).toHaveScreenshot('map-minis.png', shot);
+});
 
 const ASH_FOES = ['cinderling', 'cinderkite', 'cragcrab', 'obsidianox', 'rumbleback', 'glassblower', 'prismbat', 'glassmantis', 'kilnwarden', 'hobnob', 'stokerimp', 'magmaeel', 'forgehand', 'chainsentinel', 'bellows'];
 

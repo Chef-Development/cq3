@@ -7,6 +7,7 @@ import { installLab } from './engine/lab';
 import { hudButtonImages } from './engine/chrome';
 import { applyCanvasLayout, GAME_H, GAME_W } from './engine/layout';
 import { FightScene } from './engine/scene';
+import { MINI_MISSES } from './engine/art-minis';
 import { loadSettings, loadTuning } from './engine/storage';
 
 const app = new App(loadTuning(), loadSettings());
@@ -45,6 +46,8 @@ game.events.once(Phaser.Core.Events.READY, () => relayout(true));
   get ready() {
     return app.sceneReady;
   },
+  /** Foe sprites a map asked for that have no mini (drawn as the crossed swords): the tests expect none. */
+  miniMisses: MINI_MISSES,
 };
 // iOS opens a home-screen app upright and turns it sideways as it launches. Its resize events can come before
 // the new size is readable, or not at all, and the safe-area insets settle late too. So any hint of a change is

@@ -41,7 +41,10 @@ export type LabSetup =
    *  `tiers` one after another (a demo: nothing is granted), from a chest of kind `chest`. */
   | { kind: 'camp'; screen: LabScreen; hero?: HeroId; tiers?: Tier[]; chest?: 'hero' | 'rare' | 'region' }
   /** Story scenes in a row, over act `act`'s stage. */
-  | { kind: 'story'; act: number; scenes: string[] };
+  | { kind: 'story'; act: number; scenes: string[] }
+  /** Act `act`'s map (its scenes skipped), with its foes, roaming packs and stops, to look at; over once the run
+   *  leaves it (a node tapped, the camp). */
+  | { kind: 'map'; act: number };
 
 /** What the lab's profile holds for a scenario (core/lab.ts builds it on a fresh profile). */
 export interface LabProfileSpec {
@@ -158,6 +161,11 @@ export const LAB_NEW: LabScenario[] = [
       petStars: { pip: 3, bun: 5, newt: 1, sprocket: 2, brick: 1, flurry: 4, sunny: 2 },
     },
   },
+
+  // ---- map sprites: every foe of the later regions has its own sprite on the act map (it showed crossed swords)
+  ...[3, 4, 5, 6, 7, 8].map(
+    (act): LabScenario => ({ id: `spMap${act + 1}`, group: 'spoiler', spoiler: true, label: `Act ${act + 1} map`, secs: 30, try: 'Each foe on the map has its own sprite now.', setup: { kind: 'map', act } }),
+  ),
 ];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,

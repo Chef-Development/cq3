@@ -65,6 +65,9 @@ describe('Test lab scenarios (data)', () => {
       } else if (st.kind === 'story') {
         expect(st.scenes.length, s.id).toBeGreaterThan(0);
         for (const id of st.scenes) expect(STORY[id], `${s.id}: ${id}`).toBeDefined();
+      } else if (st.kind === 'map') {
+        expect(st.act, s.id).toBeGreaterThanOrEqual(0);
+        expect(st.act, s.id).toBeLessThan(ALL_ACTS.length);
       } else {
         if (st.hero) expect(HERO_IDS).toContain(st.hero);
       }
@@ -78,7 +81,8 @@ describe('Test lab scenarios (data)', () => {
   it('region foes, bosses and story are spoilers: flagged, in the spoiler group, hidden by default', () => {
     const frost = new Set(Object.keys(FROST_ENEMIES));
     for (const s of LAB_SCENARIOS) {
-      const secret = enemiesOf(s).some((k) => frost.has(k)) || s.setup.kind === 'story';
+      // (a later region's act map shows its foes)
+      const secret = enemiesOf(s).some((k) => frost.has(k)) || s.setup.kind === 'story' || (s.setup.kind === 'map' && s.setup.act >= REGIONS[0].acts.length);
       if (secret) expect(s.spoiler, s.id).toBe(true);
       expect(!!s.spoiler, s.id).toBe(s.group === 'spoiler');
     }
@@ -307,7 +311,7 @@ describe('Test lab scenarios play', () => {
     }
   });
 
-  it('story scenarios play their scenes in order; camp scenarios stand at the camp', () => {
+  it('story scenarios play their scenes in order; map scenarios stand on their act\'s map; camp scenarios at the camp', () => {
     for (const s of LAB_SCENARIOS) {
       if (s.setup.kind === 'fight') continue;
       const r = new Run(t, { ...DEFAULT_SETTINGS }, 5, labProfile(t, s));
@@ -316,6 +320,11 @@ describe('Test lab scenarios play', () => {
         expect(r.phase, s.id).toBe('scene');
         expect(r.sceneQueue, s.id).toEqual(s.setup.scenes);
         expect(r.actIndex).toBe(s.setup.act);
+      } else if (s.setup.kind === 'map') {
+        expect(r.phase, s.id).toBe('map');
+        expect(r.actIndex, s.id).toBe(s.setup.act);
+        expect(r.path, s.id).toEqual([]);
+        expect(r.map.nodes.some((n) => n.type === 'fight'), s.id).toBe(true);
       } else expect(r.phase, s.id).toBe('camp');
       expect(labHomePhase(s)).toBe(r.phase);
     }

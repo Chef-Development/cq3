@@ -20,7 +20,8 @@ import type { MapNode } from '../../core/map';
 import { RARITY_INFO } from '../../data/gear';
 import type { FightScene } from '../scene';
 import type { Theme } from '../backdrop';
-import { LAIR_SPOTS, LAND_FRAMES, MINI_FOES, ROWAN_FEET, paintLand, trail, type Land, type Pt } from '../art-map';
+import { LAIR_SPOTS, LAND_FRAMES, ROWAN_FEET, paintLand, trail, type Land, type Pt } from '../art-map';
+import { miniKey } from '../art-minis';
 import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
 import { heroMaxHp } from '../../core/combat';
@@ -664,11 +665,9 @@ export class MapView implements MapHost {
     }
   }
 
-  /** An enemy's mini sprite key (frame by time), or the crossed swords when it has none. */
+  /** An enemy's mini sprite key (frame by time; art-minis.ts records a sprite that has none). */
   private mini(sprite: string, t: number): string {
-    if (!MINI_FOES.includes(sprite)) return 'mapicon_fight';
-    const f = `mfoe_${sprite}_1`;
-    return this.s.textures.exists(f) && Math.floor(t / 420) % 2 ? f : `mfoe_${sprite}_0`;
+    return miniKey(sprite, t);
   }
 
   /** The boss's lair at the far right: the lair, a pulsing red aura, the boss waiting in front. */

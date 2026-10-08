@@ -9,7 +9,7 @@ import { questById } from '../../data/quests';
 import type { MapNode } from '../../core/map';
 import type { RoamerNow, RoamState } from '../../core/roam';
 import type { Pt } from '../art-map';
-import { MINI_FOES } from '../art-map';
+import { miniKey } from '../art-minis';
 import { textWidth } from '../font';
 import type { FightScene } from '../scene';
 import { glyph, glyphSize } from './overlays';
@@ -435,11 +435,9 @@ export class MapRoam {
 
   // ------------------------------------------------------------------ helpers
 
-  /** An enemy's mini sprite key (frame by time), or the crossed swords when it has none. */
+  /** An enemy's mini sprite key (frame by time; art-minis.ts records a sprite that has none). */
   private mini(sprite: string, t: number): string {
-    if (!MINI_FOES.includes(sprite)) return 'mapicon_fight';
-    const f = `mfoe_${sprite}_1`;
-    return this.s.textures.exists(f) && Math.floor(t / 420) % 2 ? f : `mfoe_${sprite}_0`;
+    return miniKey(sprite, t);
   }
 
   /** A filled pixel ellipse in the current fill. */

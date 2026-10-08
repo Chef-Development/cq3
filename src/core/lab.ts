@@ -25,7 +25,7 @@ export const labLevel = (act: number): number => Math.max(1, Math.min(30, 3 + 2 
 
 /** The act a scenario plays at (a camp screen: the last act its profile has cleared). */
 export function labAct(s: LabScenario): number {
-  if (s.setup.kind === 'fight' || s.setup.kind === 'story') return s.setup.act;
+  if (s.setup.kind === 'fight' || s.setup.kind === 'story' || s.setup.kind === 'map') return s.setup.act;
   return Math.max(0, (s.profile?.actsCleared ?? 0) - 1);
 }
 
@@ -157,12 +157,13 @@ export function labFight(s: LabScenario): LabFightPlan | null {
   return { hero: f.hero, stars: f.stars, waves: f.waves.map((w) => w.slice()), act: f.act, bar, row: f.row ?? 9, safe: !!f.safe, stacks: Math.max(0, f.stacks ?? 0) };
 }
 
-/** The phase a scenario plays in: its fight, its scenes, or the camp (the engine opens the camp screen). Once the
- *  run leaves it the scenario is over (the rating card comes up). */
-export const labHomePhase = (s: LabScenario): 'fight' | 'scene' | 'camp' => (s.setup.kind === 'fight' ? 'fight' : s.setup.kind === 'story' ? 'scene' : 'camp');
+/** The phase a scenario plays in: its fight, its scenes, an act's map, or the camp (the engine opens the camp
+ *  screen). Once the run leaves it the scenario is over (the rating card comes up). */
+export const labHomePhase = (s: LabScenario): 'fight' | 'scene' | 'map' | 'camp' =>
+  s.setup.kind === 'fight' ? 'fight' : s.setup.kind === 'story' ? 'scene' : s.setup.kind === 'map' ? 'map' : 'camp';
 
-/** Where a scenario plays on the lab's run: its practice fight (then back to the lab's camp), its story scenes, or
- *  the lab's camp (the engine opens the camp screen). The run must be the lab's, built on labProfile. */
+/** Where a scenario plays on the lab's run: its practice fight (then back to the lab's camp), its story scenes, an
+ *  act's map, or the lab's camp (the engine opens the camp screen). The run must be the lab's, built on labProfile. */
 export function startLabScenario(run: Run, s: LabScenario, seed: number): void {
   run.campFrom = 'world';
   run.phase = 'camp';
@@ -173,6 +174,7 @@ export function startLabScenario(run: Run, s: LabScenario, seed: number): void {
     // the finisher is ready to try at once
     if (f.stacks && run.combat) run.combat.bankStacks(f.stacks, 'testLab');
   } else if (s.setup.kind === 'story') run.enterAct(s.setup.act, s.setup.scenes);
+  else if (s.setup.kind === 'map') run.enterAct(s.setup.act);
 }
 
 
