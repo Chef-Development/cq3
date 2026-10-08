@@ -300,7 +300,7 @@ function drawTree(g: G, c: ShowCtx, grow: number, shake: number, now: number, a 
   if (grow <= 0) return;
   const ground = c.s.ground;
   const x = treeX(c);
-  const H = 78 * grow;
+  const H = 64 * grow; // (its crown clear of the foe plate at the top right)
   const w = Math.max(3, 14 * Math.min(1, grow * 1.4));
   // roots spreading toward the foes
   const reach = 70 * grow;
