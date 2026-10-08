@@ -1,4 +1,5 @@
 // Constants, small helpers and view-state types shared by the scene's modules.
+import { hpOf } from '../../core/format';
 import Phaser from 'phaser';
 import { isRed, type BlockKind, type RemoveReason } from '../../core/combat';
 import type { BoostId } from '../../core/run';
@@ -238,8 +239,5 @@ export const mix = (a: number, b: number, k: number) => {
 export const inRect = (r: Rect, x: number, y: number, pad = 0) => x >= r.x - pad && x <= r.x + r.w + pad && y >= r.y - pad && y <= r.y + r.h + pad;
 
 /** "96/101": HP as whole numbers. HP is fractional inside (Defense cuts, heals and kill gains in shares), so it's
- *  rounded up (a sliver left reads as 1, never 0) and never shown above the max. */
-export const hpLabel = (hp: number, max: number): string => {
-  const m = Math.round(max);
-  return `${Math.max(0, Math.min(m, Math.ceil(hp - 1e-6)))}/${m}`;
-};
+ *  rounded up (a sliver left reads as 1, never 0) and never shown above the max (core/format.ts hpOf). */
+export const hpLabel = (hp: number, max: number): string => hpOf(hp, max);
