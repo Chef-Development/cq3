@@ -117,6 +117,7 @@ const KIT_TIP: Partial<Record<HeroId, TipId>> = {
   yara: 'kitYara',
   dell: 'kitDell',
   // part6:C
+  gorm: 'kitGorm', tess: 'kitTess',
   // part6:D
   fizz: 'kitFizz',
   brann: 'kitBrann',
@@ -228,6 +229,9 @@ export const LAB_NEW: LabScenario[] = [
   heroFight('yara', 'yara', 'Yara', 'Greens call spirits. All 3 out: the stag!', [['wolf', 'slime'], ['slime', 'crow'], ['boar', 'shaman'], ['wolf', 'archer'], ['bandit', 'shaman'], ['knight', 'slime']], { rev: 0 }),
   heroFight('dell', 'dell', 'Dell', 'Perfect green: a crit shot that bounces.', [['crow', 'crow'], ['archer', 'slime'], ['bandit', 'crow'], ['boar', 'crow', 'slime'], ['shaman', 'archer'], ['knight', 'crow']], { rev: 0 }),
   // part6:C
+  // ---- Gorm and Tess (Part 6): the second Brute and the second Controller, the how-to card first
+  heroFight('gorm', 'gorm', 'Gorm', 'Every 4th hit lands heavy. Greens: Roar. Swipe!', [['beetle', 'bandit'], ['wolf', 'wolf'], ['boar', 'archer'], ['beetle', 'crow'], ['bandit', 'boar'], ['knight', 'beetle']]),
+  heroFight('tess', 'tess', 'Tess', 'Hits wind the Stopwatch. Greens slow reds. Swipe!', [['boar', 'bandit'], ['wolf', 'crow'], ['beetle', 'boar'], ['bandit', 'archer'], ['crow', 'boar'], ['knight', 'wolf']]),
   // part6:D
   // ---- Part 6: Fizz (Bomber) and Brann (Guardian), the how-to card first
   heroFight('fizz', 'fizz', 'Fizz', 'Hit flasks: fire, frost, spark. Greens throw one.', [['beetle', 'archer'], ['wolf', 'wolf', 'archer'], ['shaman', 'boar'], ['bandit', 'crow', 'crow'], ['slime', 'slime', 'shaman'], ['knight', 'beetle']], { rev: 0 }),

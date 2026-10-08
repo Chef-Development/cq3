@@ -515,6 +515,9 @@ export class OnSite {
         }
         break;
       }
+      // ---- Gorm and Tess (Part 6)
+      default:
+        this.gormTess(e);
     }
   }
 
@@ -1684,7 +1687,97 @@ export class OnSite {
       }
     }
   }
+
+  // ------------------------------------------------------------------ Gorm and Tess (Part 6)
+
+  /**
+   * Gorm's Rockfall (a boulder from the blow onto the red it shoves, dust where it lands, the foe rocked by the heavy
+   * blow), Roar (rings of sound off the hero, every foe flinches back) and Thick Skin (stone chips off the hero, a grey
+   * ring); Tess's Stopwatch (a brass ring round the cursor and every red it holds) and Rewind (each red it winds back
+   * flashes teal as it goes). The rubble, the held reds' clock hands and the rewinding reds' trails are the bar's
+   * (view/bar-gorm-tess.ts).
+   */
+  private gormTess(e: PerkEvent): void {
+    const s = this.s;
+    const c = this.c;
+    if (!c) return;
+    switch (e.id) {
+      case 'rockfall': {
+        const from = this.barPt(e.pos ?? c.cursorPos());
+        s.fx.chips(from.x, s.bar.y - 4, 10, STONE, 10, -1);
+        const red = c.perk.rockRed ? c.blocks.find((b) => b.id === c.perk.rockRed) : undefined;
+        if (red) {
+          const id = red.id;
+          const to = this.barPt(red.pos);
+          this.fly(from.x, s.bar.y - 6, to.x, s.bar.y - 2, 150, STONE[1], 'rock', 16, () => {
+            const now = c.blocks.find((b) => b.id === id);
+            const p = this.barPt(now ? now.pos : red.pos);
+            s.fx.chips(p.x, s.bar.y - 3, 8, [STONE[0], STONE[1], 0xc8b494], 10, -1);
+            s.fx.ring(p.x, p.y, 12, STONE[0], false);
+            if (now) this.box(now.pos, STONE[1], this.widthAt(now.pos, now.width), true);
+          });
+        }
+        const v = this.foe(e.enemyId);
+        if (v) {
+          v.kickAt = s.anim;
+          v.kickDist = Math.max(v.kickDist, 6);
+          if (!v.fly) s.fx.rubble(v.x, s.ground, 5, 0.8);
+          s.fx.chips(v.x, v.y - v.img.displayHeight / 2, 10, STONE, 8, 0);
+        }
+        break;
+      }
+      case 'roar': {
+        // rings of sound rolling out of Gorm's mouth; every foe flinches back from it
+        const h = s.fighters.h;
+        const y = s.ground - 30;
+        for (let i = 0; i < 3; i++) s.later(i * 70, () => s.fx.ring(h.x + 10 + i * 8, y, 10 + i * 6, ROAR, true));
+        for (const v of s.fighters.enemies.values()) {
+          if (v.dieAt) continue;
+          s.later(120, () => {
+            v.kickAt = s.anim;
+            v.kickDist = Math.max(v.kickDist, 4);
+            if (!v.dieAt) s.fighters.setEnemyPose(v, 'hurt', 180);
+          });
+        }
+        break;
+      }
+      case 'earRinger': {
+        // its ears ring: two rings of sound round the foe's head
+        const v = this.foe(e.enemyId);
+        if (v && !v.dieAt) {
+          const y = v.y - v.img.displayHeight * 0.7;
+          s.later(120, () => s.fx.ring(v.x, y, 7, ROAR, false));
+          s.later(220, () => s.fx.ring(v.x, y, 11, ROAR, false));
+        }
+        break;
+      }
+      case 'stoneSkin':
+      case 'secondSkin': {
+        // the blow glances off stone: chips fly off the hero
+        const h = s.fighters.h;
+        s.fx.burst(h.x + 4, s.ground - 20, STONE[1], 10, true, 1.1, true);
+        s.fx.ring(h.x + 1, s.ground - 18, 16, STONE[2], true);
+        break;
+      }
+      case 'stopwatch':
+      case 'secondHand':
+      case 'standstill':
+        // a tick of brass light round every red it holds (the clock over the bar is the bar's)
+        for (const b of c.blocks) if (isRed(b.kind)) s.fx.ring(this.barPt(b.pos).x, s.bar.y + s.bar.h / 2, 9, BRASS[0], false);
+        break;
+      case 'rewind':
+      case 'timeLoop':
+        for (const b of c.blocks) if (isRed(b.kind)) this.box(b.pos, TEAL, this.widthAt(b.pos, b.width), true);
+        break;
+    }
+  }
 }
+
+/** Gorm's stone [light, mid, dark], the sound of his Roar; Tess's brass and teal. */
+const STONE = [0xc4bcae, 0x96908e, 0x6e6a74] as const;
+const ROAR = 0xe8e0c8;
+const BRASS = [0xffe08a, 0xd8a83a] as const;
+const TEAL = 0x5ad8c8;
 
 /**
  * A tongue of fire `h` px tall standing on (x, baseY): a 3-px body tapering to a swaying 1-px tip, a deep red rim, an

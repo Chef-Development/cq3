@@ -30,6 +30,8 @@ import { buildSpiritArt } from './art-hero-spirits';
 import { YARA_CAMP, YARA_CARD, YARA_POSES, YARA_RIG } from './art-hero-yara';
 import { DELL_CAMP, DELL_CARD, DELL_POSES, DELL_RIG } from './art-hero-dell';
 // part6:C
+import { GORM_CAMP, GORM_CARD, GORM_POSES, GORM_RIG } from './art-hero-gorm';
+import { TESS_CAMP, TESS_CARD, TESS_POSES, TESS_RIG } from './art-hero-tess';
 // part6:D
 import { FIZZ_CAMP, FIZZ_CARD, FIZZ_POSES, FIZZ_RIG } from './art-hero-fizz';
 import { BRANN_CAMP, BRANN_CARD, BRANN_POSES, BRANN_RIG } from './art-hero-brann';
@@ -66,6 +68,8 @@ const HEROES: Record<string, HeroArt> = {
   yara: { rig: YARA_RIG, poses: YARA_POSES, card: YARA_CARD, camp: YARA_CAMP },
   dell: { rig: DELL_RIG, poses: DELL_POSES, card: DELL_CARD, camp: DELL_CAMP },
   // part6:C
+  gorm: { rig: GORM_RIG, poses: GORM_POSES, card: GORM_CARD, camp: GORM_CAMP },
+  tess: { rig: TESS_RIG, poses: TESS_POSES, card: TESS_CARD, camp: TESS_CAMP },
   // part6:D
   fizz: { rig: FIZZ_RIG, poses: FIZZ_POSES, card: FIZZ_CARD, camp: FIZZ_CAMP },
   brann: { rig: BRANN_RIG, poses: BRANN_POSES, card: BRANN_CARD, camp: BRANN_CAMP },

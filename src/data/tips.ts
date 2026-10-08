@@ -109,7 +109,10 @@ export type TipId =
   | 'kitDell'
   // ---- Part 6: Fizz and Brann
   | 'kitFizz'
-  | 'kitBrann';
+  | 'kitBrann'
+  // ---- Gorm and Tess (Part 6)
+  | 'kitGorm'
+  | 'kitTess';
 
 export interface TipDef {
   id: TipId;
@@ -181,6 +184,8 @@ export const TIPS: readonly TipDef[] = [
   { id: 'kitYara', hero: 'yara', lines: ['Yara: greens call spirits, in turn.', 'All 3 out? A Rally calls the stag!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   { id: 'kitDell', hero: 'dell', lines: ['Dell: greens fire your Focus.', 'A Perfect one crits and bounces!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // part6:C
+  { id: 'kitGorm', hero: 'gorm', lines: ['Gorm: every few hits lands heavy', 'and shoves the nearest red back!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'kitTess', hero: 'tess', lines: ['Tess: hits wind her Stopwatch.', 'When it rings, the reds stand still!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // part6:D
   { id: 'kitFizz', hero: 'fizz', lines: ['Fizz: kegs are flasks: fire, frost,', 'spark. A green throws one!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   { id: 'kitBrann', hero: 'brann', lines: ['Brann: every block rings his bell.', 'Rings power up his next hit!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },

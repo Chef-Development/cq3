@@ -8,6 +8,7 @@ import { solennePortrait } from './art-hero-solenne';
 import { wrenPortrait } from './art-hero-wren';
 import { fizzPortrait } from './art-hero-fizz';
 import { brannPortrait } from './art-hero-brann';
+import { gormPortrait, tessPortrait } from './art-hero-portraits-gorm-tess';
 
 const P = 40;
 const INK = '#140c1c';
@@ -27,6 +28,8 @@ export const PORTRAIT_FACE_AT: Record<string, [number, number]> = {
   yara: [15, 9],
   dell: [15, 10],
   // part6:C
+  gorm: [21, 11],
+  tess: [20, 12],
   // part6:D
   fizz: [15, 10],
   brann: [15, 11],
@@ -734,6 +737,8 @@ export function buildHeroPortraits(add: (key: string, c: HTMLCanvasElement) => v
   add('portrait_yara', yara());
   add('portrait_dell', dell());
   // part6:C
+  add('portrait_gorm', gormPortrait());
+  add('portrait_tess', tessPortrait());
   // part6:D
   add('portrait_fizz', fizzPortrait());
   add('portrait_brann', brannPortrait());

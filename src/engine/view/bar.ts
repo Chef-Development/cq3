@@ -22,6 +22,7 @@ import { isGilded } from '../../core/kit-fx';
 import { drawGilded } from './dawn-roof';
 import { brewOf } from '../../core/kit-fizz-brann';
 import { paintBarFlask } from './fizz-brann-paint';
+import { drawKitBar, drawKitChill } from './bar-gorm-tess';
 import { BLOCKER_FACE, cursorGhost, drawBlocker, drawChill, drawFrozen, drawFuse, drawGrow, drawHold, drawIceCoat, drawKeg, drawPatch, drawVines, drawWall, sparkle, type PatchLook } from './bar-kinds';
 import { BOMB_COL, clamp01, deepOf, DYING_MS, dyingStyle, ease, INK, kindCol, mix, pulse, rand, stackCol, WHITE, type Dying } from './shared';
 import { focusCap, focusOf } from '../../core/styles';
@@ -453,6 +454,7 @@ export class BarView {
 
     this.drawDying(g, bx);
     this.drawLeftEnd(g, c, bx, now);
+    drawKitBar(g, c, B, bx, (p) => B.x + p * B.w, now); // Gorm's rubble, Tess's stopped clock and rewinds (Part 6)
 
     if (this.explodeFx && now < this.explodeFx.until) {
       const k = 1 - (this.explodeFx.until - now) / 260;
@@ -674,7 +676,7 @@ export class BarView {
         // (frozen solid: how much of its freeze is left, so it cracks as it thaws)
         let c0 = this.chill0.get(b.id) ?? 0;
         if (b.chill > c0) this.chill0.set(b.id, (c0 = b.chill));
-        drawChill(g, X, Y, W, H, this.chillStyle(c, b), now, b.chill / Math.max(0.1, c0), b.chill, b.id);
+        if (!drawKitChill(g, c, b, X, Y, W, H, now, b.chill / Math.max(0.1, c0))) drawChill(g, X, Y, W, H, this.chillStyle(c, b), now, b.chill / Math.max(0.1, c0), b.chill, b.id);
       } else this.chill0.delete(b.id);
       if (b.still) {
         // an icicle (or an ice wall): it strikes when its fuse runs out

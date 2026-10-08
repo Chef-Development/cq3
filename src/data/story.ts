@@ -27,6 +27,8 @@ export const SPEAKER_NAME: Record<Speaker, string> = {
   yara: 'Yara',
   dell: 'Dell',
   // part6:C
+  gorm: 'Gorm',
+  tess: 'Tess',
   // part6:D
   fizz: 'Fizz',
   brann: 'Brann',
@@ -298,3 +300,19 @@ export const STORY: Record<string, StoryBox[]> = {
 
 // the third region's scenes (src/data/story-ash.ts)
 Object.assign(STORY, ASH_STORY);
+
+// ---- Gorm and Tess (Part 6): their first chest reveals
+Object.assign(STORY, {
+  meetGorm: [
+    { who: 'narrator', text: 'The chest creaks open. Two stone fists\nlift the lid off, very, very gently.' },
+    { who: 'gorm', text: "Oh. Hello. Sorry, I was napping.\nI'm Gorm. I punch rocks. Nicely." },
+    { who: 'rowan', text: 'You were napping in a CHEST?\nHow did you even fit in there?' },
+    { who: 'gorm', text: 'I folded up small. Like a nice rock.\nWho needs squashing? Gently, I mean.' },
+  ],
+  meetTess: [
+    { who: 'narrator', text: 'The chest ticks. Then it chimes.\nA tiny old lady climbs out, scowling.' },
+    { who: 'tess', text: "You're four minutes late. I'm Tess.\nI fix clocks. And now and then, time." },
+    { who: 'rowan', text: "Late? We didn't even know\nyou were in there." },
+    { who: 'tess', text: "Excuses. Chin up, knight. The foes\nwon't wait. Unless I tell them to." },
+  ],
+} satisfies Record<string, StoryBox[]>);

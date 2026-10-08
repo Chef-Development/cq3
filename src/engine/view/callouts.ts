@@ -134,6 +134,17 @@ export const CALLOUT_WORDS: Record<string, string> = {
   pocketful: 'Kept!',
   pebbleStorm: 'Knock!',
   // part6:C
+  // Gorm ("Heavy!": a Rockfall; a green's Roar names itself)
+  rockfall: 'Heavy!',
+  roar: 'Roar!',
+  stoneSkin: 'Tough!',
+  rubble: 'Rubble!',
+  rubbleSlow: 'Slow',
+  // Tess (a green's Slow Time names itself)
+  stopwatch: 'Stop!',
+  secondHand: 'Stop!',
+  slowTime: 'Slow!',
+  rewind: 'Rewind!',
   // part6:D
   fireBrew: 'Fire!',
   frostBrew: 'Frost!',
@@ -193,6 +204,8 @@ const SLOW_GAP: Record<string, number> = {
   'ability:neve': 2000,
   'ability:hollis': 2000,
   'ability:torva': 2000,
+  // ---- Gorm (Part 6): each red crossing the rubble
+  rubbleSlow: 1500,
 };
 /** Skill nodes that change what a hero's own move does on the bar get a word too (the rest keep the lane). */
 const SKILL_WORDS = new Set(['bigFreeze', 'turnabout', 'avalanche']);

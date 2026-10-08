@@ -55,6 +55,8 @@ export type SignatureId =
   | 'spiritStampede'
   | 'pebbleStorm'
   // part6:C
+  | 'boulderRoll'
+  | 'clockRewind'
   // part6:D
   | 'grandReaction'
   | 'greatBell'
@@ -93,6 +95,8 @@ export const SIGNATURES: Record<SignatureId, SignatureSpec> = {
   spiritStampede: { name: 'stars join into a stag; her spirits stampede through every foe, then the great stag leaps down' },
   pebbleStorm: { name: 'pebbles ping from foe to foe; his lucky golden pebble hops through them all' },
   // part6:C
+  boulderRoll: { name: 'a slam sets boulders rolling through the foes; a great one drops on them', move: 'leap' },
+  clockRewind: { name: 'a great clock behind the foes spins backwards, then chimes' },
   // part6:D
   grandReaction: { name: 'three flasks hang over the foes, pour fire, frost and spark, then smash into one great bubble' },
   greatBell: { name: 'a giant temple bell rings over the target, then drops on it; sound rolls across the stage' },
@@ -123,6 +127,8 @@ export const HERO_SIGNATURE: Readonly<Record<string, SignatureId>> = {
   yara: 'spiritStampede',
   dell: 'pebbleStorm',
   // part6:C
+  gorm: 'boulderRoll',
+  tess: 'clockRewind',
   // part6:D
   fizz: 'grandReaction',
   brann: 'greatBell',

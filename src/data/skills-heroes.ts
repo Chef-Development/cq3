@@ -450,6 +450,84 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
     },
   ],
   // part6:C
+  // ---------------------------------------------------------------- Gorm (Brute): Rockfall, Roar, Thick Skin
+  gorm: [
+    {
+      id: 'gormStone',
+      name: 'Stone',
+      theme: 'Rockfall',
+      nodes: [
+        atk('graniteFists', 'Granite Fists', 10),
+        crit('bigKnuckles', 'Big Knuckles', 6),
+        rule('bigShove', 'Big Shove', 'Rockfall shoves its red {n}% further.', 'Rockfall nudges a red back.', 'It shoves it {n}% further.', 60),
+        rule('splitRock', 'Split Rock', 'Rockfall also hits every other foe for {n}%.', 'Rockfall hits one foe.', 'Other foes take {n}% of it.', 40),
+        cap('stoneRain', 'Stone Rain', 'Rockfall shoves every red on the bar back.', 'Rockfall shoves one red.', 'It shoves every red.'),
+      ],
+    },
+    {
+      id: 'gormRoar',
+      name: 'Roar',
+      theme: 'Slowing reds',
+      nodes: [
+        meter('deepLungs', 'Deep Lungs', 12),
+        combo('bigVoice', 'Big Voice', 1),
+        rule('longRoar', 'Long Roar', 'Roar slows reds {n} s longer.', 'A Roar slows reds briefly.', 'It lasts {n} s longer.', 1),
+        rule('earRinger', 'Ear Ringer', "A Roar puts every foe's next attack {n} s off.", 'A Roar only slows reds.', 'Foes attack {n} s later.', 0.6),
+        cap('warCry', 'War Cry', 'Every {n}th red you block lets out a Roar.', 'Only green hits Roar.', 'Every {n}th block Roars.', 5),
+      ],
+    },
+    {
+      id: 'gormHide',
+      name: 'Hide',
+      theme: 'Thick Skin',
+      nodes: [
+        hp('giantHeart', 'Giant Heart', 10),
+        def('pebbleSkin', 'Pebble Skin', 6),
+        rule('secondSkin', 'Second Skin', 'Thick Skin covers the first {n} hits each wave.', 'Thick Skin covers one hit.', 'It covers {n} hits a wave.', 2),
+        rule('shrugOff', 'Shrug It Off', "A hit Thick Skin covers doesn't break your combo.", 'That hit still breaks it.', 'Your combo holds.'),
+        cap('bedrock', 'Bedrock', 'While Thick Skin is unused, your hits deal {n}% more.', 'Thick Skin waits for a hit.', 'Until then, hits deal +{n}%.', 25),
+      ],
+    },
+  ],
+  // ---------------------------------------------------------------- Tess (Controller): the Stopwatch, Slow Time, Rewind
+  tess: [
+    {
+      id: 'tessGears',
+      name: 'Gears',
+      theme: 'Stopwatch',
+      nodes: [
+        atk('fineTools', 'Fine Tools', 10),
+        crit('loupe', 'Loupe', 6),
+        rule('longPause', 'Long Pause', 'The Stopwatch holds reds {n} s longer.', 'Time stops for a blink.', 'It stops {n} s longer.', 0.3),
+        rule('quickTick', 'Quick Tick', 'While time is stopped, hits deal {n}% more.', 'Stopped time only holds reds.', 'Hits then deal +{n}%.', 40),
+        cap('perfectTime', 'Perfect Time', 'Perfect hits count twice toward the Stopwatch.', 'Every hit counts once.', 'Perfects count twice.'),
+      ],
+    },
+    {
+      id: 'tessSlow',
+      name: 'Slow',
+      theme: 'Slow Time',
+      nodes: [
+        hp('woolShawl', 'Wool Shawl', 8),
+        def('brassBuckle', 'Brass Buckle', 6),
+        rule('lingering', 'Lingering', 'Slow Time lasts {n} s longer.', 'Slow Time lasts a few s.', 'It lasts {n} s longer.', 1.5),
+        rule('borrowedTime', 'Spare Time', 'Blocking a slowed red refills Slow Time by {n} s.', 'Slow Time just runs out.', 'Blocks refill it {n} s.', 0.5),
+        cap('standstill', 'Standstill', 'Slow Time starts with the Stopwatch.', 'Greens only slow reds.', 'Greens stop time too.'),
+      ],
+    },
+    {
+      id: 'tessRewind',
+      name: 'Rewind',
+      theme: 'Winding back',
+      nodes: [
+        meter('mainspring', 'Mainspring', 12),
+        combo('escapement', 'Escapement', 1),
+        rule('windBack', 'Wind Back', 'Rewind deals {n}% more per red it winds back.', 'Rewind hits as usual.', '+{n}% per red wound back.', 10),
+        rule('backspin', 'Backspin', 'A Perfect block winds the nearest red back.', 'A block takes one red.', 'It winds another back.'),
+        cap('timeLoop', 'Time Loop', 'Every {n}rd Stopwatch also rewinds every red.', 'The Stopwatch holds reds.', 'Every {n}rd one rewinds.', 3),
+      ],
+    },
+  ],
   // part6:D
   // ---------------------------------------------------------------- Fizz (Bomber): brews, tosses, the lab
   fizz: [

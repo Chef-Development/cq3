@@ -289,6 +289,18 @@ export function kitN(t: Tuning, id: HeroId, which: KitWhich): number {
     case 'dell.signature':
       return k.dell.ricochet * 100;
     // part6:C
+    case 'gorm.signature':
+      return k.gorm.rockEvery;
+    case 'gorm.ability':
+      return k.gorm.abilitySec;
+    case 'gorm.passive':
+      return k.gorm.skin * 100;
+    case 'tess.signature':
+      return k.tess.stopEvery;
+    case 'tess.ability':
+      return k.tess.abilitySec;
+    case 'tess.passive':
+      return Math.round((1 - k.tess.steady) * 100); // steady: the share of a patch's pull she still feels
     // part6:D
     case 'fizz.ability':
       return k.fizz.tossMult;

@@ -397,6 +397,17 @@ const KIT_NAME: Record<string, string> = {
   ricochetShot: HEROES.dell.signature.name,
   pocketful: HEROES.dell.passive.name,
   pebbleStorm: HEROES.dell.finisher.name,
+  // ---- Gorm (Part 6)
+  rockfall: HEROES.gorm.signature.name,
+  roar: HEROES.gorm.ability.name,
+  stoneSkin: HEROES.gorm.passive.name,
+  rubble: HEROES.gorm.finisher.name,
+  rubbleSlow: HEROES.gorm.finisher.name,
+  // ---- Tess (Part 6)
+  stopwatch: HEROES.tess.signature.name,
+  slowTime: HEROES.tess.ability.name,
+  rewind: HEROES.tess.finisher.name,
+  secondHand: HEROES.tess.stars[1].name,
 };
 
 // ---- Solenne and Wren (Part 6)

@@ -1,10 +1,12 @@
 // The style readout chip: what the fighting hero's style has stored right now. Shadow: the Chain (x2..x5, glowing at
 // its longest); Guardian: Guard charges as pips; Marksman: Focus as a small bar (glowing gold when full: the next green
-// crits); Torva: Unstoppable stacks; a Summoner: a pip per ally out, in its colour (all out: the next call is a Rally).
+// crits); Torva: Unstoppable stacks; a Summoner: a pip per ally out, in its colour (all out: the next call is a Rally);
+// Gorm: hits toward the next Rockfall; Tess: hits toward the next Stopwatch.
 // Drawn twice: beside the potion on the hero plate (view/hud.ts) and as a tab on the bar's left end (view/callouts.ts),
 // where the player's eyes are. Values come from the fight (core/styles.ts helpers, c.perk), never stored here.
 import type Phaser from 'phaser';
 import type { Combat } from '../../core/combat';
+import { rockEvery, stopEvery } from '../../core/kit-fx';
 import { allyKinds, chainOf, focusCap, focusOf, guardMax, guardOf } from '../../core/styles';
 import { sunEvery } from '../../core/kit-fx';
 import { BREWS, nextBrew, tollMax, tollOf } from '../../core/kit-fizz-brann';
@@ -42,6 +44,15 @@ export function styleState(s: FightScene, c: Combat): { key: string; empty: bool
   if (c.heroId === 'torva') {
     const n = c.perk.unstoppable ?? 0;
     return { key: `unstoppable${n}`, empty: n <= 0 };
+  }
+  // ---- Gorm and Tess (Part 6): hits toward the next Rockfall; toward the next Stopwatch (or time stopped)
+  if (c.heroId === 'gorm') {
+    const n = c.perk.rockfall ?? 0;
+    return { key: `rockfall${n}`, empty: n <= 0 };
+  }
+  if (c.heroId === 'tess') {
+    const n = c.perk.stop > 0 ? -1 : (c.perk.tick ?? 0);
+    return { key: `stopwatch${n}`, empty: n === 0 };
   }
   if (style === 'summoner') {
     const out = allyKinds(c).filter((k) => c.allies.some((a) => a.kind === k));
@@ -147,6 +158,73 @@ export function drawStyleChip(s: FightScene, g: G, texts: TextPool, c: Combat, x
     g.fillStyle(0xffe070, A);
     g.fillRect(r.x + 4, r.y + 5, 1, 2);
     texts.text(txt, r.x + 10, r.y + 5, n >= max ? WHITE : 0xffb090, { bold: true, oy: 0.5, alpha: A });
+    return r;
+  }
+  // ---- Gorm and Tess (Part 6)
+  if (c.heroId === 'gorm') {
+    // a boulder and a pip per hit toward the next Rockfall (the last one lit: the next hit lands heavy)
+    const every = rockEvery(c);
+    const n = Math.min(every - 1, c.perk.rockfall ?? 0);
+    if (n <= 0 && !o.empty) return null;
+    const ready = n >= every - 1;
+    const r = chip(11 + (every - 1) * 4, ready ? 0xe0d0b0 : null);
+    // a round boulder, lit from the top left, a tuft of moss
+    g.fillStyle(INK, A);
+    g.fillRect(r.x + 2, r.y + 2, 7, 7);
+    g.fillStyle(0x5c5864, A);
+    g.fillRect(r.x + 3, r.y + 2, 5, 7);
+    g.fillRect(r.x + 2, r.y + 3, 7, 5);
+    g.fillStyle(0x96908e, A);
+    g.fillRect(r.x + 3, r.y + 3, 4, 4);
+    g.fillStyle(0xd6cdb8, A);
+    g.fillRect(r.x + 3, r.y + 3, 2, 1);
+    g.fillRect(r.x + 3, r.y + 4, 1, 1);
+    g.fillStyle(0xa2c84e, A);
+    g.fillRect(r.x + 6, r.y + 2, 2, 1);
+    for (let i = 0; i < every - 1; i++) {
+      const on = i < n;
+      g.fillStyle(on ? (ready ? 0xfff0c8 : 0xc4bcae) : 0x4a4858, A);
+      g.fillRect(r.x + 11 + i * 4, r.y + 3, 3, 4);
+      if (on) {
+        g.fillStyle(WHITE, 0.8 * A);
+        g.fillRect(r.x + 11 + i * 4, r.y + 3, 3, 1);
+      }
+    }
+    return r;
+  }
+  if (c.heroId === 'tess') {
+    // a pocket watch, and a brass gauge filling hit by hit toward the next Stopwatch (full and glowing while time is
+    // stopped)
+    const stopped = c.perk.stop > 0;
+    const k = stopped ? 1 : clamp01((c.perk.tick ?? 0) / Math.max(1, stopEvery(c)));
+    if (k <= 0 && !o.empty) return null;
+    const r = chip(28, stopped ? 0xffe08a : null);
+    g.fillStyle(0xd8a83a, A);
+    g.fillRect(r.x + 2, r.y + 2, 6, 6);
+    g.fillRect(r.x + 4, r.y + 1, 2, 1);
+    g.fillStyle(0xfff8e8, A);
+    g.fillRect(r.x + 3, r.y + 3, 4, 4);
+    g.fillStyle(INK, A);
+    const a = k * Math.PI * 2 - Math.PI / 2;
+    g.fillRect(r.x + 5, r.y + 5, 1, 1);
+    g.fillRect(r.x + 5 + Math.round(Math.cos(a) * 1.5), r.y + 5 + Math.round(Math.sin(a) * 1.5), 1, 1);
+    const bx = r.x + 10;
+    const bw = 16;
+    g.fillStyle(INK, A);
+    g.fillRect(bx - 1, r.y + 2, bw + 2, 6);
+    g.fillStyle(NAVY[1], A);
+    g.fillRect(bx, r.y + 3, bw, 4);
+    const fw = Math.round(bw * k);
+    if (fw > 0) {
+      g.fillStyle(stopped ? 0xffe08a : 0xd8a83a, A);
+      g.fillRect(bx, r.y + 3, fw, 4);
+      g.fillStyle(0xfff0c0, A);
+      g.fillRect(bx, r.y + 3, fw, 1);
+      if (stopped && Math.floor(now / 140) % 2) {
+        g.fillStyle(WHITE, 0.8 * A);
+        g.fillRect(bx + ((Math.floor(now / 40) % bw) | 0), r.y + 3, 2, 4);
+      }
+    }
     return r;
   }
   if (style === 'summoner') {

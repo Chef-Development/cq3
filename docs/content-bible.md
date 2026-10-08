@@ -59,6 +59,8 @@ reuse it. One number each in `tuning.styles`.
 | Dell | Marksman | Rare | hero chests (round 7) |
 | Fizz | Bomber | Legendary | hero chests (Part 6) |
 | Brann | Guardian | Epic | hero chests (Part 6) |
+| Gorm | Brute | Legendary | hero chests (round 7) |
+| Tess | Controller | Epic | hero chests (round 7) |
 
 Higher rarity = a richer kit: Legendary heroes' finishers do two things to the bar, and their passives interact with
 the region rules.
@@ -244,6 +246,36 @@ the region rules.
   reds wait). Signature moment: a giant temple bell comes down over the target, rings with each strike, drops on it;
   sound rolls across the stage.
 - Strength: takes 20% less from Casters.
+### Gorm, Stonefist (Brute, Legendary) — round 7
+- Look: a huge, gentle half-giant with grey-green skin, a big jaw with two little lower teeth, a tuft of moss-green
+  hair, a leather harness studded with stones, and two enormous stone gauntlets (moss on top). Palette: stone greys,
+  moss green, leather browns. The broadest hero in the box: a small head on great shoulders.
+- Signature **Rockfall**: every 4th hit lands heavy (x1.6 on top of Heavy) and nudges the nearest red on its way back
+  (a red already striking is left alone).
+- Ability (green) **Roar**: the foes flinch; every red on the bar slows a little (x0.92) for 1 s.
+- Passive **Thick Skin**: the first hit you take each wave deals 10% less.
+- Finisher **Landslide**: boulders hit every foe and smash every red; then rubble lies over the bar's right quarter
+  for 2 s and every red crossing it slows (x0.9). (Two things to the bar.)
+- Numbers: HP 85, attack 0.75 of Rowan's. Every bit of red control compounds at the 75% player (a red slowed or
+  pushed back also keeps the next one off the bar), so his red numbers are small: tuned with the bot against Rowan.
+- Its show: a slam sets boulders rolling through the foes; last, a great boulder drops on them; a heap of rubble.
+- Strength: +20% damage to Armored foes (shells, knights).
+- Meets the party out of a hero chest (`meetGorm`): napping in it, folded up "like a nice rock".
+
+### Tess, Timekeeper (Controller, Epic) — round 7
+- Look: a small, sharp old clockmaker: a grey bun pinned with a brass gear, round brass spectacles, a teal waistcoat
+  over a cream blouse, a tool belt, a staff topped with a big brass pocket watch. Palette: brass, teal, cream.
+- Signature **Stopwatch**: every 16 hits, time stops for the reds: they hold still for 0.3 s while the cursor moves
+  (an icicle's fuse waits too).
+- Ability (green) **Slow Time**: for 1.5 s, every red moves at 90% speed (the ones that come in too).
+- Passive **Steady Hands**: ice and snow patches change her cursor's speed 75% less.
+- Finisher **Rewind**: hits all foes and winds every red on the bar back to where it came on (an icicle's fuse to
+  full).
+- Its show: a great brass clock rises behind the foes, its hands spin backwards, faster and faster, and it chimes.
+- Strengths: +25% damage to Constructs and to Fire foes (Rewind keeps the reds, so the third region's hard reds come
+  back: the Fire edge is what keeps her level with Rowan there).
+- Numbers: HP 100, attack Rowan's. Red numbers small for the same reason as Gorm's.
+- Meets the party out of a hero chest (`meetTess`): "You're four minutes late."
 
 ### Stars (1-5, from shards of duplicates)
 Every hero: 2★ +6% attack, 4★ +8% max HP. 3★ and 5★ unlock a move (data: `HERO_STARS`):
@@ -264,6 +296,8 @@ Every hero: 2★ +6% attack, 4★ +8% max HP. 3★ and 5★ unlock a move (data:
 | Dell | Ricochet bounces on to one more foe | a Lucky Shot stuns its foe (1 s) |
 | Fizz | brews 50% stronger (burn, chill, blast) | Grand Reaction lands a flask of every brew |
 | Brann | the bell holds 5 tolls | Great Bell's boom hits the other foes for 130% (from 90%) |
+| Gorm | Rockfall every 3rd hit | Landslide's rubble stays twice as long |
+| Tess | the Stopwatch every 13 hits | Rewind stops time too |
 
 ---
 

@@ -25,6 +25,7 @@ const LEFT: Speaker[] = [
   // part6:B
   'yara', 'dell',
   // part6:C
+  'gorm', 'tess',
   // part6:D
   'fizz', 'brann',
 ];

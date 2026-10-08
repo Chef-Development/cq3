@@ -50,6 +50,9 @@ describe('the heroes as data', () => {
     for (const id of HERO_IDS) expect(['rare', 'epic', 'legendary', 'mythic'], id).toContain(HEROES[id].rarity);
     // a Mythic hero has a fifth kit part (its gift); no one else does
     for (const id of HERO_IDS) expect(!!HEROES[id].gift, id).toBe(HEROES[id].rarity === 'mythic');
+    const tiers = new Set(HERO_IDS.map((id) => HEROES[id].rarity));
+    for (const tier of ['rare', 'epic', 'legendary']) expect(tiers.has(tier as never), tier).toBe(true);
+    for (const tier of tiers) expect(['rare', 'epic', 'legendary', 'mythic'], tier).toContain(tier);
     for (const id of HERO_IDS) {
       const h = HEROES[id];
       // a Mythic hero has a fifth kit part, the gift; no one below Mythic does

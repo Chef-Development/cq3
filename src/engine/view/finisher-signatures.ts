@@ -43,6 +43,7 @@ import { arrow, heaterShield, rockSpike, vine } from './finisher-kits';
 import { DAWN_ROOF_MARKS, ROOFTOP_DROP, SUNFALL } from './finisher-dawn-roof';
 import { PART6B_SIGNATURES } from './finisher-signatures-b';
 import { FIZZ_BRANN_MARKS, GRAND_REACTION, GREAT_BELL } from './finisher-sig-fizz-brann';
+import { GORM_TESS_SIGNATURES } from './finisher-signatures-gorm-tess';
 
 /** Where the hero is and how they look at a moment of the show. */
 export interface HeroMotion {
@@ -935,6 +936,7 @@ export const SIGNATURE_DRAW: Record<SignatureId, SignatureDraw> = {
   spiritStampede: PART6B_SIGNATURES.spiritStampede,
   pebbleStorm: PART6B_SIGNATURES.pebbleStorm,
   // part6:C
+  ...GORM_TESS_SIGNATURES,
   // part6:D
   grandReaction: GRAND_REACTION,
   greatBell: GREAT_BELL,

@@ -101,6 +101,14 @@ export const MASTERY: MasteryDef[] = [
   lv('dell', 10, { kind: 'gems', n: 40 }, '40 gems'),
   boss('dell', { kind: 'cosmetic', id: 'bannerDell', name: "Dell's banner" }, 'A banner for the camp'),
   // part6:C
+  lv('gorm', 5, { kind: 'relic', relic: 'echoStrike' }, 'Relic: Echo Strike'),
+  acts('gorm', 3, { kind: 'gems', n: 30 }, '30 gems'),
+  lv('gorm', 10, { kind: 'gems', n: 40 }, '40 gems'),
+  boss('gorm', { kind: 'cosmetic', id: 'bannerGorm', name: "Gorm's banner" }, 'A banner for the camp'),
+  lv('tess', 5, { kind: 'relic', relic: 'crampons' }, 'Relic: Crampons'),
+  acts('tess', 3, { kind: 'gems', n: 30 }, '30 gems'),
+  lv('tess', 10, { kind: 'gems', n: 40 }, '40 gems'),
+  boss('tess', { kind: 'cosmetic', id: 'bannerTess', name: "Tess's banner" }, 'A banner for the camp'),
   // part6:D
   lv('fizz', 5, { kind: 'relic', relic: 'frostRune' }, 'Relic: Frost Rune'),
   acts('fizz', 3, { kind: 'gems', n: 30 }, '30 gems'),

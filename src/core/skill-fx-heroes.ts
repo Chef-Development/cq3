@@ -22,6 +22,7 @@ import type { Ally, Block, Combat, CombatEvent, Enemy } from './combat';
 import { skillN } from './heroes';
 import type { FightHooks, HitCtx } from './hooks';
 import { gildNext, ignite, isGilded, oathAt, shadowDash, slamShare, sunEvery } from './kit-fx';
+import { GORM_TESS_SKILL_HOOKS } from './skill-fx-gorm-tess';
 import { addFocus, addGuard, allyAct, allyEvery, allyPower, allySec, callAlly, chainOf, dropKeg, focusCap, focusOf, guardOf, powerShot } from './styles';
 
 const DT = 1 / 120;
@@ -1240,3 +1241,5 @@ const DELL: Record<string, FightHooks> = {
 };
 
 Object.assign(HERO_SKILL_HOOKS, YARA, DELL);
+// ---- Gorm and Tess (Part 6): their nodes live in skill-fx-gorm-tess.ts
+Object.assign(HERO_SKILL_HOOKS, GORM_TESS_SKILL_HOOKS);
