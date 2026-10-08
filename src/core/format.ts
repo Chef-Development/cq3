@@ -63,11 +63,12 @@ export const pct = (share: number): string => `${whole(fin(share) * 100)}%`;
 /** A percentage from a percent: 15.3 -> "15%". */
 export const pctOf = (percent: number): string => `${whole(percent)}%`;
 
-/** Odds from a share, where a decimal matters: at most one ("2.5%", "0.4%"); under 0.1% reads "<0.1%" (never "0%"). */
+/** Odds from a share, where a decimal matters: at most one ("2.5%", "0.3%"); under 0.1% reads "<0.1%" (never "0%",
+ *  never "0.05%"). */
 export function odds(share: number): string {
   const p = fin(share) * 100;
   if (p <= 0) return '0%';
-  if (p < 0.05) return '<0.1%';
+  if (p < 0.1 - 1e-9) return '<0.1%';
   return p >= 10 ? `${whole(p)}%` : `${one(p)}%`;
 }
 

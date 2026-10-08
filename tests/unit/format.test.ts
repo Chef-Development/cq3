@@ -87,6 +87,9 @@ describe('the shared number formatter', () => {
     expect(odds(0.025)).toBe('2.5%');
     expect(odds(0.0042)).toBe('0.4%');
     expect(odds(0.0001)).toBe('<0.1%');
+    expect(odds(0.0005)).toBe('<0.1%'); // the shrine's Divine odds printed "0.05%"
+    expect(odds(0.0025)).toBe('0.3%'); // ...and its Celestial "0.25%"
+    expect(odds(0.001)).toBe('0.1%');
     expect(odds(0)).toBe('0%');
   });
 
