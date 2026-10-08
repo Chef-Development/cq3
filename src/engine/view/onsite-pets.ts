@@ -564,7 +564,7 @@ export class PetSite {
       }
       if (t < 0) continue;
       const front = r.x0 + (r.x1 - r.x0) * ease(clamp01(t / r.ms));
-      for (let x = Math.floor(r.x0); x <= front; x += 3) {
+      for (let x = Math.floor(r.x0); x <= front; x += 2) {
         const passed = t - r.ms * clamp01((x - r.x0) / Math.max(1, r.x1 - r.x0));
         const life = 1 - clamp01(passed / LINGER);
         if (life <= 0) continue;
@@ -572,9 +572,9 @@ export class PetSite {
         for (let j = 0; j < 2; j++) {
           const ph = ((now / 7 + x * 13 + j * 23) % 48) / 48;
           const y = Math.round(ground - 52 + ph * 52);
-          g.fillStyle(WATER[3], 0.7 * life);
-          g.fillRect(x, y - 4, 1, 4);
-          g.fillStyle(WATER[1], 0.9 * life);
+          g.fillStyle(WATER[3], 0.75 * life);
+          g.fillRect(x, y - 5, 1, 5);
+          g.fillStyle(j ? WATER[0] : WATER[1], 0.95 * life);
           g.fillRect(x, y, 1, 2);
           if (ph > 0.9) {
             g.fillStyle(WATER[0], 0.8 * life);

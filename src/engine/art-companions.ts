@@ -990,10 +990,10 @@ function lark(g: Grid, pose: Pose): Glow {
   put(g, hx - 4, hy - 1, CAP[1]); // the cap's tuft at the back
   if (act) {
     // beak open: a peck (or a song)
-    stamp(g, ['ab.', 'aab', '...', 'cc.'], { a: BEAK[2], b: BEAK[1], c: BEAK[0] }, hx + 3, hy - 1);
+    stamp(g, ['aab.', 'aabb', '....', 'ccc.'], { a: BEAK[2], b: BEAK[1], c: BEAK[0] }, hx + 3, hy - 1);
     stamp(g, ['k.k', '.k.'], { k: '#2a1018' }, hx - 1, hy - 1);
   } else {
-    stamp(g, ['ab', 'aab', 'c'], { a: BEAK[2], b: BEAK[1], c: BEAK[0] }, hx + 3, hy);
+    stamp(g, ['aab.', 'aabb', 'cc..'], { a: BEAK[2], b: BEAK[1], c: BEAK[0] }, hx + 3, hy - 0.5);
     eye(g, hx - 0.5, hy - 1.5, { big: true, iris: '#5a2a10' });
     put(g, hx + 1, hy + 2, '#ff9a80'); // cheek
   }
