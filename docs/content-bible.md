@@ -53,6 +53,8 @@ reuse it. One number each in `tuning.styles`.
 | Hollis | Guardian | Rare | hero chests |
 | Vesper | Marksman | Legendary | hero chests |
 | Torva | Brute | Epic | hero chests |
+| Solenne | Blade | Mythic | hero chests (round 7) |
+| Wren | Shadow | Rare | hero chests (round 7) |
 | Yara | Summoner | Mythic | hero chests (round 7) |
 | Dell | Marksman | Rare | hero chests (round 7) |
 | Fizz | Bomber | Legendary | hero chests (Part 6) |
@@ -145,6 +147,35 @@ the region rules.
 - Finisher **Earthsplitter**: hits all foes and clears the whole bar (every block), and no reds come for 2 s.
 - Strength: +20% damage to Constructs (golems, ice knights).
 
+### Solenne, Dawnblade (Blade, Mythic) — round 7
+- Look: a tall sun-knight in white enamel plate trimmed with gold, a short crimson half-cape, warm brown skin, a
+  cropped crop of silver-white hair under a gold circlet with a sun-stone, a long sword whose blade glows like morning
+  light. Palette: ivory/white plate, gold, crimson, a warm sunrise glow.
+- Signature **Sunrise**: every 15 combo her blade burns for 3 s: her hits also cut every other foe for half their damage.
+- Ability (green) **Gleam**: a green hit gilds the next yellow ahead (a gold block with a sun mark; with none on the
+  bar, the next to come): hitting it adds +1 combo and 0.12 of a meter.
+- Passive **Dawn Oath**: at 30+ combo, a miss keeps half the combo (its stacks and meter still go).
+- Finisher **Sunfall**: hits every foe, +1% per combo (up to +50%); clears the reds; gilds the two yellows nearest the
+  left end (where the cursor starts again).
+- Mythic gift **Radiance**: while Sunrise burns, the reds on the bar (and those that come) move at x0.85.
+- Strength: +20% damage to Frost foes.
+- Finisher show: a sun kindles on her raised blade, shoots up, sunbeams spear the foes, then the sun falls on them.
+
+### Wren, Rooftop Runner (Shadow, Rare) — round 7
+- Look: a small, quick street runner: a charcoal hood, a long mustard scarf, bandaged hands, soft boots, a grappling
+  hook on a coil of rope at her hip, a single curved knife. Palette: charcoal greys, mustard yellow, brick red.
+- Signature **Slip**: 4 Perfect hits in a row ready a dodge (one at a time; a mustard slab at the bar's left end):
+  the next red that reaches her misses (smoke puffs off her).
+- Ability (green) **Smoke Pop**: a green hit pops smoke over the bar for 3 s: the reds fade, and one that reaches her
+  in the smoke deals 25% less. (Built as "hit softer" rather than "fade from view": hiding the reds would only hurt the
+  player.)
+- Passive **Light Feet**: her Chain (and Slip's run) survives one Good hit between Perfects.
+- Finisher **Rooftop Drop**: the target alone, x1.25; then each Chain link throws a knife at every foe (12% of the
+  drop's base damage per link, the target too); clears the reds.
+- Strength: +20% damage to Flyers.
+- Finisher show: her hook flies up and yanks her out of sight, she races over the foes throwing knives (one per
+  strike), then drops onto the target: a white cut, smoke and roof tiles.
+
 ### Yara, Spirit Caller (Summoner, Mythic) — round 7
 - Look: a young spirit caller with warm brown skin, dark braided hair threaded with beads, a deep-blue (indigo) shawl
   patterned with stars over a white tunic with a beaded sash, bare feet (a bead anklet), a carved staff whose ring
@@ -227,6 +258,8 @@ Every hero: 2★ +6% attack, 4★ +8% max HP. 3★ and 5★ unlock a move (data:
 | Hollis | Guard holds 7 charges | Shield Slam on every block |
 | Vesper | Focus cap +50% | Volley pins reds 4 s |
 | Torva | Quake also on blocks | Earthsplitter keeps 1 stack |
+| Solenne | Sunrise burns 5 s (Long Dawn) | Sunfall gilds every yellow on the bar (High Noon) |
+| Wren | after a dodge, her next hit crits (Grapple) | Rooftop Drop readies a dodge (Roof Hop) |
 | Yara | the Tortoise's shell takes two reds | the Great Spirit stays twice as long |
 | Dell | Ricochet bounces on to one more foe | a Lucky Shot stuns its foe (1 s) |
 | Fizz | brews 50% stronger (burn, chill, blast) | Grand Reaction lands a flask of every brew |

@@ -23,6 +23,8 @@ import { buildHeroPortraits } from './art-hero-portraits';
 import { TAM_CAMP, TAM_CARD, TAM_POSES, TAM_RIG, kegIcon } from './art-hero-tam';
 import { TORVA_CAMP, TORVA_CARD, TORVA_POSES, TORVA_RIG } from './art-hero-torva';
 // part6:A
+import { SOLENNE_CAMP, SOLENNE_CARD, SOLENNE_POSES, SOLENNE_RIG } from './art-hero-solenne';
+import { WREN_CAMP, WREN_CARD, WREN_POSES, WREN_RIG } from './art-hero-wren';
 // part6:B
 import { buildSpiritArt } from './art-hero-spirits';
 import { YARA_CAMP, YARA_CARD, YARA_POSES, YARA_RIG } from './art-hero-yara';
@@ -58,6 +60,8 @@ const HEROES: Record<string, HeroArt> = {
   vesper: { rig: VESPER_RIG, poses: VESPER_POSES, card: VESPER_CARD, camp: VESPER_CAMP },
   torva: { rig: TORVA_RIG, poses: TORVA_POSES, card: TORVA_CARD, camp: TORVA_CAMP },
   // part6:A
+  solenne: { rig: SOLENNE_RIG, poses: SOLENNE_POSES, card: SOLENNE_CARD, camp: SOLENNE_CAMP },
+  wren: { rig: WREN_RIG, poses: WREN_POSES, card: WREN_CARD, camp: WREN_CAMP },
   // part6:B
   yara: { rig: YARA_RIG, poses: YARA_POSES, card: YARA_CARD, camp: YARA_CAMP },
   dell: { rig: DELL_RIG, poses: DELL_POSES, card: DELL_CARD, camp: DELL_CAMP },

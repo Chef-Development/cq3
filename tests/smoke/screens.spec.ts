@@ -1864,6 +1864,88 @@ test('world map: the third region unveiled (its three landmarks round the volcan
   await expect(page).toHaveScreenshot('ash-world-cave.png', shot);
 });
 
+// ---- Solenne and Wren (Part 6)
+
+test("Solenne: a green gilds the next yellow (gold, a sun mark); on a Sunrise step (every 15 combo) her blade lights (the cursor burns, the slowed reds shimmer); her sun gauge on the tab", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'solenne' });
+  // a green under the cursor, yellows ahead: the green gilds the nearest one ahead
+  // (blocks placed from where the cursor is: no teleport, so everything drawn at the cursor sits on it)
+  await bar(page, `c.setCursor(0.3, 1);`);
+  await frames(page, 4);
+  await bar(page, `const p = c.cursorPos(); c.spawnBlock('yellow', p + 0.3); c.spawnBlock('yellow', p + 0.52); c.spawnBlock('red', 0.95, foe.id); c.combo = c.tuning.kits.solenne.sunEvery + 3; c.spawnBlock('green', p); app.barTap(performance.now());`);
+  await frames(page, 14);
+  await expect(page).toHaveScreenshot('solenne-gleam.png', shot);
+  // the next Sunrise step (the 30th): Sunrise
+  await bar(page, `foe.hp = foe.maxHp; c.combo = 2 * c.tuning.kits.solenne.sunEvery - 1; c.spawnBlock('yellow', c.cursorPos()); app.barTap(performance.now());`);
+  await frames(page, 16);
+  await expect(page).toHaveScreenshot('solenne-sunrise.png', shot);
+});
+
+test("Wren: Perfects in a row ready a dodge (a mustard slab at the left end, a pip on her Chain tab); a green pops smoke over the bar and the reds in it fade", async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await stagedFight(page, { hero: 'wren' });
+  // (from near the left end: after the run the cursor is still short of the reds the smoke shot puts at the right)
+  await bar(page, `c.setCursor(0.05, 1);`);
+  await frames(page, 4);
+  // Slip's run (tuning.kits.wren.slipEvery Perfects)
+  const runOf = Number(await bar(page, `return c.tuning.kits.wren.slipEvery;`));
+  for (let i = 0; i < runOf; i++) {
+    await bar(page, `foe.hp = foe.maxHp; c.spawnBlock('yellow', c.cursorPos()); app.barTap(performance.now());`);
+    await frames(page, 6);
+  }
+  await bar(page, `c.spawnBlock('yellow', Math.min(0.9, c.cursorPos() + 0.25));`);
+  await frames(page, 16);
+  await expect(page).toHaveScreenshot('wren-slip-ready.png', shot);
+  await bar(page, `c.spawnBlock('red', 0.8, foe.id); c.spawnBlock('red', 0.95, foe.id); foe.hp = foe.maxHp; c.spawnBlock('green', c.cursorPos()); app.barTap(performance.now());`);
+  await frames(page, 16);
+  await expect(page).toHaveScreenshot('wren-smoke.png', shot);
+});
+
+test('hero select: Solenne (a Mythic: five kit cards, the fifth her Gift) and Wren', async ({ page }) => {
+  await boot(page);
+  await frames(page, 10);
+  await page.evaluate(() => {
+    const app = (window as Cq3Window).__cq3!.app as unknown as { newRun(): void; openCamp(): void; profile: { allUnlocked: boolean } };
+    app.profile.allUnlocked = true;
+    app.newRun();
+    app.openCamp();
+  });
+  await frames(page, 30);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const camp = (fn: (c: any, now: number) => void) => page.evaluate(`(${fn.toString()})(window.__cq3.app.view.camp, performance.now())`);
+  await camp((c, now) => c.go('heroes', now, 'solenne'));
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('hero-select-solenne.png', shot);
+  // her Gift card tapped: its sheet
+  await camp((c, now) => {
+    const r = c.heroes.kitCards()[4].r;
+    c.heroes.tap(r.x + r.w / 2, r.y + r.h / 2, now);
+  });
+  await frames(page, 20);
+  await expect(page).toHaveScreenshot('hero-select-solenne-gift.png', shot);
+  await camp((c, now) => {
+    c.heroes.sheet.close(now);
+    c.heroes.show('wren', now);
+  });
+  await frames(page, 40);
+  await expect(page).toHaveScreenshot('hero-select-wren.png', shot);
+});
+
+test("unique finishers, Blade (Solenne, Mythic): a sun kindles on her raised blade, sunbeams spear the foes, then the sun falls on them", async ({ page }) => {
+  await finisherShow(page, 'solenne', { at: 44 });
+  await expect(page).toHaveScreenshot('finisher-solenne.png', shot);
+  await frames(page, 14); // the sun has fallen
+  await expect(page).toHaveScreenshot('finisher-solenne-fall.png', shot);
+});
+
+test("unique finishers, Shadow (Wren): hooked up out of sight, racing over the foes throwing knives, then dropping onto the target", async ({ page }) => {
+  await finisherShow(page, 'wren', { at: 36 });
+  await expect(page).toHaveScreenshot('finisher-wren.png', shot);
+});
+
 // ------------------------------------------------------------------ Yara and Dell (Part 6)
 
 test('Part 6: Yara calls her spirits (Wolf, Tortoise braced at the left end, Wisps), then a Rally brings the Great Spirit', async ({ page }) => {

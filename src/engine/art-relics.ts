@@ -1105,3 +1105,44 @@ export function buildRelicArt(add: Add): void {
   }
   for (const node of SKILL_NODES) add(`skill_${node.id}`, icon(skillIcon(node), n, `skill_${node.id}`));
 }
+
+// ---- Solenne and Wren (Part 6): their rule nodes and capstones (Solenne's in sunrise gold and fire, Wren's in
+// mustard, smoke and knife steel; capstones gold-rimmed like Rowan's)
+Object.assign(SKILL_ICONS, {
+  // a sun coming up over the horizon, early
+  earlyLight: ['....P.....', '.P..F..P..', '..P.F.P...', '....I.....', 'P..FIIF..P', '..FIIIIF..', '.FIIIIIIF.', 'PFIIIIIIFP', 'zYYYYYYYYz', '.zzzzzzzz.'],
+  // an hourglass running with sunlight
+  longMorning: ['yyyyyyyyyy', '.g......g.', '.gFIIIIFg.', '..gFIIFg..', '...gFFg...', '...gPPg...', '..g.PP.g..', '.g..FF..g.', '.gPFIIFPg.', 'yyyyyyyyyy'],
+  // capstone: a sun flaring
+  solarFlare: ['G.gggggg.G', '.gP.FF.Pg.', 'gP.FIIF.Pg', 'g.FIIIIF.g', 'gFIIWWIIFg', 'gFIIWWIIFg', 'g.FIIIIF.g', 'gP.FIIF.Pg', '.yP.FF.Py.', 'G.yyyyyy.G'],
+  // two gilded blocks, sparkling
+  twinGleam: ['..+.......', '.+*+..+...', '..+..+*+..', 'yyyy..+...', 'gGGy.yyyy.', 'gGWy.gGGy.', 'gggY.gGWy.', 'YYYY.gggY.', '.....YYYY.', '..........'],
+  // a sword striking a gilded block
+  giltStrike: ['.......5W.', '......543.', '.....543..', '....543...', '.+.543....', '+*+43.....', '.+gGGGy...', '..gGWGy...', '..ggggY...', '..YYYY....'],
+  // capstone: a gilded block passing its gold on to the next
+  midasTouch: ['G.gggggg.G', '.g......g.', 'gyyyy...+g', 'ggGGy..+*g', 'ggWGy...+g', 'ggggYGGyyg', 'gYYYY.gGGg', 'g.....gWGg', '.y....gggy', 'G.yyyyyyyG'],
+  // a gold-trimmed shield with a sun on it: the oath holds
+  firmOath: ['yyyyyyyyyy', 'y45555554y', 'y455FF554y', 'y45FIIF54y', 'y45FIIF54y', '.y455F54y.', '.y455554y.', '..y4554y..', '...y44y...', '....yy....'],
+  // a steel shield in a sun's rays
+  sunWard: ['.P..F..P..', '..P.F.P...', 'P..lmmB..P', '.P.lmLB.P.', 'FF.lLLB.FF', '.P.lLlB.P.', 'P...lB...P', '..P.F.P...', '.P..F..P..', '..........'],
+  // capstone: a flame kindled again from its embers
+  rekindle: ['G.gggggg.G', '.g..P...g.', 'g...PF...g', 'g..PFFP..g', 'g.PFIFP..g', 'g.PFIIFP.g', 'g.pPIIPp.g', 'g.ooppoo.g', '.yo.oo.oy.', 'G.yyyyyy.G'],
+  // a mustard feather: light feet
+  nimble: ['........gG', '.......gGy', '......gGy.', '.....gGy..', '....gGy...', '...gGy....', '..gGy.....', '.gGy......', '.yy.......', 'y.........'],
+  // a curved knife from behind, a red mark
+  backstab: ['.......45W', '......454.', '.....454..', '....454...', '...454.r..', '..g4..rq..', '.gYg.rq...', '.Hg..q....', 'H.........', 'h.........'],
+  // capstone: knives flying out every way
+  knifeStorm: ['G.gggggg.G', '.g.5..5.g.', 'g5.4..4.5g', 'g.4.WW.4.g', 'g..W33W..g', 'g..W33W..g', 'g.4.WW.4.g', 'g5.4..4.5g', '.y.5..5.y.', 'G.yyyyyy.G'],
+  // a quick sidestep: an afterimage of smoke beside a mustard slab
+  quickSlip: ['..........', '.{}~..gg..', '{}~..gGGy.', '.{}~.gGGy.', '..{}~gGGy.', '.{}~.gGGy.', '..{}~ggYy.', '.{}~.YYYY.', '{}~.......', '..........'],
+  // a dodge that hits back: a curling arrow round into a knife
+  tumble: ['...ggg....', '..g...g...', '.g.....g..', '.g.....gg.', '.g....gGg.', '..g....g..', '...5......', '..545.....', '.545......', 'Hg........'],
+  // capstone: two dodges standing ready
+  untouchable: ['G.gggggg.G', '.g......g.', 'g.gg..gg.g', 'g.Gy..Gy.g', 'g.Gy..Gy.g', 'g.Gy..Gy.g', 'g.yY..yY.g', 'g.YY..YY.g', '.y......y.', 'G.yyyyyy.G'],
+  // a cloud of smoke that lingers
+  longHaze: ['..........', '...{{}....', '..{}}~}...', '.{}~~~~}..', '{}~~~~~~}.', '{}~~~~~~~}', '.{}}}}}}}.', '..........', '..{}~~}...', '...{}}....'],
+  // a red slowed in the smoke
+  chokingSmoke: ['..{}~.....', '.{}~~}....', '{}~~~~}...', '.{}}}}.qq.', '......rqqr', '..{}..rqqR', '.{}~}.RrrR', '..{}...RR.', '..........', '..........'],
+  // capstone: an eye clouded with smoke
+  blindingSmoke: ['G.gggggg.G', '.g{}~~}.g.', 'g{}~~~~}.g', 'g.555554.g', 'g54WkkW45g', 'g54WkkW45g', 'g.455544.g', 'g.{}~~}..g', '.y.{}}..y.', 'G.yyyyyy.G'],
+});

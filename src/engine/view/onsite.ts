@@ -22,6 +22,7 @@ import { heroDef, type AllyKind, type HeroId } from '../../data/heroes';
 import { relicById } from '../../data/relics';
 import type { FightScene } from '../scene';
 import { STYLE_LOOK } from './camp-kit';
+import { dawnRoofPerk, drawDawnRoof } from './dawn-roof';
 import { BLOCKER_FACE, sparkle } from './bar-kinds';
 import { ALLY_COL, isSpirit, PERK_PET, PET_COL } from './party';
 import { PetSite } from './onsite-pets';
@@ -457,6 +458,7 @@ export class OnSite {
     const s = this.s;
     const c = this.c;
     if (!c) return;
+    dawnRoofPerk(s, e, c); // (Solenne's and Wren's moments: view/dawn-roof.ts)
     this.p6d.perk(e, c); // ---- Part 6: Fizz's and Brann's (view/kit-fizz-brann.ts)
     switch (e.id) {
       case 'bulwark':
@@ -1045,6 +1047,7 @@ export class OnSite {
     this.drawKicks(g, c);
     this.drawTwinkles(g);
     this.drawWindUp(g, c, now);
+    drawDawnRoof(s, g, c, now); // (Solenne's Sunrise, Wren's smoke: view/dawn-roof.ts)
     this.p6.drawBar(g, gf, c, now);
     this.p6d.drawBar(g);
     this.drawFlights(gf, now);

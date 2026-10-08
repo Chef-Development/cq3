@@ -18,6 +18,8 @@ import { isAsh } from '../backdrop-ash';
 import { buildBarFrame } from '../chrome';
 import { brick, ellipse, icon, rows, slab } from './pixels';
 import { BLOCK_ICONS, FOE_ICONS } from './icons';
+import { isGilded } from '../../core/kit-fx';
+import { drawGilded } from './dawn-roof';
 import { brewOf } from '../../core/kit-fizz-brann';
 import { paintBarFlask } from './fizz-brann-paint';
 import { BLOCKER_FACE, cursorGhost, drawBlocker, drawChill, drawFrozen, drawFuse, drawGrow, drawHold, drawIceCoat, drawKeg, drawPatch, drawVines, drawWall, sparkle, type PatchLook } from './bar-kinds';
@@ -640,6 +642,7 @@ export class BarView {
       const held = c.holding?.id === b.id;
       drawHold(g, X, Y, W, H, this.holdEntry(c, b, t), held ? Math.round(B.x + c.cursorPosAt(t) * B.w) + bx : null, held && c.holding!.perfect, now);
     } else brick(g, X, Y, W, H, impacting ? [WHITE, WHITE, light, base] : [light, base, dark, deepOf(b.kind)]);
+    if (b.kind === 'yellow' && isGilded(b)) drawGilded(g, X, Y, W, H, now, b.id); // (Solenne's gold: view/dawn-roof.ts)
     // it just changed kind: a white flash fading off it
     const mk = (s.anim - (this.morphs.get(b.id) ?? -1e9)) / 280;
     if (mk >= 0 && mk < 1) rows(g, X, Y, W, H, 2, WHITE, 0.85 * (1 - mk));
@@ -909,6 +912,7 @@ export class BarView {
     if (c.allies.some((a) => a.kind === 'barkback' && a.braced)) ready.push('barkback');
     if (c.allies.some((a) => a.kind === 'spiritTortoise' && a.braced)) ready.push('spiritTortoise'); // (Yara's, Part 6)
     if (c.perk.afterimage) ready.push('afterimage');
+    if ((c.perk.slip ?? 0) > 0 && c.heroId === 'wren') ready.push('slip'); // (Wren's ready dodge)
     if (c.perk.rockReady) ready.push('rockWall');
     for (const id of [...this.readyAt.keys()]) if (!ready.includes(id)) this.readyAt.delete(id);
     ready.forEach((id, i) => {

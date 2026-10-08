@@ -1104,7 +1104,8 @@ export class CampKit {
     const x0 = b.x + b.w + 4;
     let rs = ids.length <= 4 ? this.topRow(named, x0, right) : null;
     const face = !rs;
-    if (!rs) rs = this.topRow(ids.map(() => 15), x0, right, 2) ?? this.topRow(ids.map(() => 15), x0, 1e9, 2)!;
+    // (more heroes than 15 px faces fit: a little smaller before they run past `right`; round 7's second hero per style)
+    if (!rs) rs = this.topRow(ids.map(() => 15), x0, right, 2) ?? this.topRow(ids.map(() => 13), x0, right, 1) ?? this.topRow(ids.map(() => 15), x0, 1e9, 2)!;
     return ids.map((id, i) => ({ id, r: rs![i], locked: locked(id), face }));
   }
 

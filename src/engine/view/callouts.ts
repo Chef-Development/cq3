@@ -99,6 +99,23 @@ export const CALLOUT_WORDS: Record<string, string> = {
   secondSwing: '+Stack',
   'ability:torva': 'Wind-Up',
   // part6:A
+  // Solenne ("Gleam" on the green, "+1" on a gilded hit: the combo it added)
+  sunrise: 'Sunrise',
+  radiance: 'Slow!',
+  sunCut: 'Cut!',
+  gleam: 'Gleam!',
+  gilded: '+N',
+  dawnOath: 'Oath!',
+  sunfall: 'Gilded',
+  // Wren
+  slipReady: 'Ready!',
+  slip: 'Slip!',
+  smokePop: 'Smoke!',
+  smokeFade: 'Faded',
+  lightFeet: 'Light!',
+  grapple: 'Crit!',
+  roofHop: 'Ready!',
+  dropHit: 'Knives',
   // part6:B
   // Yara (her spirits; 'Stag!' is each of the Great Spirit's strikes)
   spiritWolf: 'Bite!',
@@ -199,6 +216,11 @@ Object.assign(SLOW_GAP, { kinship: 1800, pocketful: 1500 });
 
 /** The style readout's tab shows its empty state (dim pips or gauge waiting to fill) for these styles. */
 const EMPTY_TAB = new Set(['guardian', 'marksman', 'summoner']);
+
+// ---- Solenne and Wren (Part 6): a dodge and a softened red happen where reds land; Sunrise's cuts come with every hit
+// while it burns (its bolts show each one), a gilded hit and a dodge readied now and then
+for (const id of ['slip', 'smokeFade']) AT_LEFT.add(id);
+Object.assign(SLOW_GAP, { sunCut: 1500, radiance: 1500, smokeFade: 900, dropHit: 1500 });
 
 /** A paw print (a companion's mark), drawn in the companion's colour with an ink rim. */
 const PAW = ['p.p.p', '.....', '.ppp.', 'ppppp', '.ppp.'];
@@ -352,6 +374,7 @@ export class Callouts {
         if (e.id === 'guardUp') word = `Guard ${whole(Math.max(1, guardOf(c), e.amount))}`;
         else if (e.id === 'windUp') word = e.amount > 0 ? mult(e.amount / 100) : 'Smash!';
         else if (e.id === 'chain') word = `Chain ${whole(Math.max(2, e.amount))}`;
+        else if (e.id === 'gilded') word = signed(Math.max(1, e.amount)); // (Solenne: the combo a gilded hit added)
         else if (e.id === 'tollHit') word = `Dong x${whole(Math.max(1, e.amount))}`; // (Brann: the tolls spent)
         else if (COIN_PERKS.has(e.id)) word = signed(Math.max(1, e.amount));
         let pos: Pending['pos'] = e.pos ?? (AT_LEFT.has(e.id) ? 'left' : null);

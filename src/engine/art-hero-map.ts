@@ -3,6 +3,8 @@
 // right. A top map (head to hem, 11 wide) over two rows of legs; idle1 sits a pixel lower, the passing steps
 // (walk1, walk3) bob a pixel up, and the back edge of a cape, braid or cloak flaps on the long steps.
 import { grid, stamp, toCanvas, type Pal } from './art';
+import { SOLENNE_WALKER } from './art-hero-solenne';
+import { WREN_WALKER } from './art-hero-wren';
 
 type Add = (key: string, c: HTMLCanvasElement) => void;
 
@@ -283,6 +285,9 @@ const WALKERS: Record<string, Walker> = {
     },
   },
 };
+
+// ---- Solenne and Wren (Part 6): drawn in their own art files
+Object.assign(WALKERS, { solenne: SOLENNE_WALKER, wren: WREN_WALKER });
 
 function walkerFrame(w: Walker, legs: keyof Walker['legs'], bob: number, flap: boolean): HTMLCanvasElement {
   const g = grid(W, H);

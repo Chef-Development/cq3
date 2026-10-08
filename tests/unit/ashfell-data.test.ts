@@ -248,7 +248,7 @@ describe('Region 3: story and banter', () => {
       return [...out, cur];
     };
     const old = new Set([...BANTER, ...HERO_BANTER].map((l) => l.text));
-    const everyone: CampSpeaker[] = ['rowan', 'pip', 'sable', 'smith', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva'];
+    const everyone: CampSpeaker[] = ['rowan', 'pip', 'sable', 'smith', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva', 'solenne', 'wren'];
     expect(new Set(ASH_BANTER.map((l) => l.text)).size).toBe(ASH_BANTER.length);
     for (const l of ASH_BANTER) {
       expect(old.has(l.text), l.text).toBe(false);

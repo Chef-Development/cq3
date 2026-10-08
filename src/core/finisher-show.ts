@@ -49,6 +49,8 @@ export type SignatureId =
   | 'earthSplit'
   // round 7 (Part 6): the second hero of each style
   // part6:A
+  | 'sunfall'
+  | 'rooftopDrop'
   // part6:B
   | 'spiritStampede'
   | 'pebbleStorm'
@@ -85,6 +87,8 @@ export const SIGNATURES: Record<SignatureId, SignatureSpec> = {
   arrowSky: { name: 'one arrow up becomes a sky of arrows; a giant golden arrow last' },
   earthSplit: { name: 'a towering leap, the earth splits to the foes and erupts in rock and fire', move: 'leap' },
   // part6:A
+  sunfall: { name: 'a sun kindles on her raised blade, rises, spears the foes with sunbeams, then falls on them', move: 'stand' },
+  rooftopDrop: { name: 'hooked up out of sight, knives rain on the target, then she drops on it from the sky', move: 'blink' },
   // part6:B
   spiritStampede: { name: 'stars join into a stag; her spirits stampede through every foe, then the great stag leaps down' },
   pebbleStorm: { name: 'pebbles ping from foe to foe; his lucky golden pebble hops through them all' },
@@ -113,6 +117,8 @@ export const HERO_SIGNATURE: Readonly<Record<string, SignatureId>> = {
   vesper: 'arrowSky',
   torva: 'earthSplit',
   // part6:A
+  solenne: 'sunfall',
+  wren: 'rooftopDrop',
   // part6:B
   yara: 'spiritStampede',
   dell: 'pebbleStorm',

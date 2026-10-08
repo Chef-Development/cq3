@@ -426,6 +426,15 @@ export const DEFAULT_TUNING = {
     // ...and stuns for stunSec (0: a stun cancels the special a foe is telling, a red-stopper at every boss: round 8)
     torva: { hp: 100, atk: 0.8, abilitySec: 3, quake: 0.03, windUpBase: 1.5, windUpStep: 0.04, windUpMax: 4, stunSec: 0, unstoppable: 0.04, unstoppableMax: 5, calmSec: 0.4 },
     // part6:A
+    // solenne: every sunEvery combo Sunrise burns for sunSec (3 stars: sunSec3): hits cut every other foe for sunCut of
+    // their damage, and (Radiance) reds move at radiance x their speed; a gilded yellow (Gleam) adds gleamCombo combo and
+    // gleamMeter of a meter; at oathAt+ combo a miss keeps oathKeep of the combo (Dawn Oath); Sunfall deals +sunfallStep
+    // per combo (up to +sunfallMax) and gilds sunfallGild yellows
+    solenne: { hp: 105, atk: 1, abilitySec: 3, sunEvery: 15, sunSec: 3, sunSec3: 5, sunCut: 0.5, gleamCombo: 1, gleamMeter: 0.12, oathAt: 30, oathKeep: 0.5, sunfallStep: 0.01, sunfallMax: 0.5, sunfallGild: 2, radiance: 0.85, rekindleAt: 6 },
+    // wren: slipEvery Perfect hits in a row ready a dodge (Slip); for abilitySec after a green, reds that reach her deal
+    // smokeCut less (Smoke Pop); feet: Good hits the Chain survives between Perfects (Light Feet); Rooftop Drop hits the
+    // target for dropMult; then every foe takes dropLink of the finisher per Chain link
+    wren: { hp: 100, atk: 0.95, abilitySec: 3, slipEvery: 4, smokeCut: 0.25, feet: 1, dropMult: 1.25, dropLink: 0.12 },
     // part6:B
     // yara (Part 6): her spirits stay allySec (spirits); the Wolf bites wolfDmg x attack every wolfEvery s; the Tortoise's
     // shell comes up shellFirst s after it's called and takes shellSoak of the next red that reaches her (1: all of it;

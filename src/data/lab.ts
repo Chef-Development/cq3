@@ -112,6 +112,7 @@ const PERCH: CampUpgradeId[] = ['perch'];
 const KIT_TIP: Partial<Record<HeroId, TipId>> = {
   sable: 'kitSable', neve: 'kitNeve', moss: 'kitMoss', tam: 'kitTam', hollis: 'kitHollis', vesper: 'kitVesper', torva: 'kitTorva',
   // part6:A
+  solenne: 'kitSolenne', wren: 'kitWren',
   // part6:B
   yara: 'kitYara',
   dell: 'kitDell',
@@ -219,6 +220,9 @@ export const LAB_NEW: LabScenario[] = [
     profile: { pets: ['mote'], petsOn: ['mote'] },
   },
   // part6:A
+  // ---- round 7's heroes: Solenne (Blade, Mythic) and Wren (Shadow, Rare)
+  heroFight('solenne', 'solenne', 'Solenne', 'Combo up: at 15 her blade burns. Hit gold yellows.', [['bandit', 'slime'], ['wolf', 'archer'], ['shaman', 'slime'], ['boar', 'crow'], ['archer', 'wolf'], ['knight', 'slime']], { rev: 0 }),
+  heroFight('wren', 'wren', 'Wren', '4 Perfects in a row: a dodge. Greens pop smoke.', [['crow', 'crow'], ['bandit', 'archer'], ['wolf', 'wolf'], ['crow', 'shaman'], ['boar', 'crow'], ['knight', 'crow']], { rev: 0 }),
   // part6:B
   // ---- Yara and Dell: a second Summoner (Mythic) and a second Marksman (Rare), their how-to card first
   heroFight('yara', 'yara', 'Yara', 'Greens call spirits. All 3 out: the stag!', [['wolf', 'slime'], ['slime', 'crow'], ['boar', 'shaman'], ['wolf', 'archer'], ['bandit', 'shaman'], ['knight', 'slime']], { rev: 0 }),

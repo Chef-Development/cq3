@@ -292,6 +292,84 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
     },
   ],
   // part6:A
+  // ---------------------------------------------------------------- Solenne (Blade): sunrise, gold, the oath
+  solenne: [
+    {
+      id: 'solenneDawn',
+      name: 'Dawn',
+      theme: 'Sunrise',
+      nodes: [
+        atk('sunForged', 'Sun-Forged', 10),
+        crit('brightEdge', 'Bright Edge', 6),
+        rule('earlyLight', 'Early Light', 'Sunrise comes every {n} combo.', 'Sunrise comes every 15 combo.', 'It comes every {n} combo.', 12),
+        rule('longMorning', 'Long Morning', 'Sunrise burns {n} s longer.', 'Sunrise burns a few seconds.', 'It burns {n} s longer.', 1),
+        cap('solarFlare', 'Solar Flare', 'As Sunrise lights, a flare hits every foe for {n}%.', 'Sunrise only lights the blade.', 'It flares on all foes: {n}%.', 120),
+      ],
+    },
+    {
+      id: 'solenneGold',
+      name: 'Gold',
+      theme: 'Gilded yellows',
+      nodes: [
+        meter('polish', 'Polish', 12),
+        combo('goldLeaf', 'Gold Leaf', 1),
+        rule('twinGleam', 'Twin Gleam', 'Green hits gild {n} yellows.', 'A green gilds one yellow.', 'A green gilds {n} yellows.', 2),
+        rule('giltStrike', 'Gilt Strike', 'Gilded hits deal {n}% more.', 'A gilded hit deals as usual.', 'Gilded hits deal +{n}%.', 50),
+        cap('midasTouch', 'Midas Touch', 'A Perfect on a gilded yellow gilds the next one.', 'Only greens gild yellows.', 'Gilded Perfects gild the next.'),
+      ],
+    },
+    {
+      id: 'solenneOath',
+      name: 'Oath',
+      theme: 'Holding on',
+      nodes: [
+        hp('dawnplate', 'Dawnplate', 10),
+        def('enamel', 'Enamel', 6),
+        rule('firmOath', 'Firm Oath', 'Dawn Oath holds from {n} combo.', 'Dawn Oath holds from 30 combo.', 'It holds from {n} combo.', 20),
+        rule('sunWard', 'Sun Ward', 'While Sunrise burns, reds deal {n}% less.', 'Sunrise only attacks.', 'Reds deal {n}% less in it.', 15),
+        cap('rekindle', 'Rekindle', 'Losing 6+ combo lights Sunrise for {n} s.', 'A break puts the fire out.', 'Losing 6+ lights it for {n} s.', 2),
+      ],
+    },
+  ],
+  // ---------------------------------------------------------------- Wren (Shadow): the knife, rooftops, smoke
+  wren: [
+    {
+      id: 'wrenKnife',
+      name: 'Knife',
+      theme: 'Perfect chains',
+      nodes: [
+        atk('whetted', 'Whetted', 10),
+        crit('quickWrist', 'Quick Wrist', 6),
+        rule('nimble', 'Nimble', 'The Chain survives {n} Good hits.', 'The Chain survives one Good hit.', 'It survives {n} Good hits.', 2),
+        rule('backstab', 'Backstab', 'At full Chain, your hits deal {n}% more.', 'A full Chain adds its links.', 'Hits at full Chain: +{n}%.', 25),
+        cap('knifeStorm', 'Knife Storm', 'Perfects at full Chain hit every foe for {n}%.', 'Your knife finds one foe.', 'Full Chain Perfects hit all.', 50),
+      ],
+    },
+    {
+      id: 'wrenRoof',
+      name: 'Rooftops',
+      theme: 'Dodging reds',
+      nodes: [
+        meter('fleetfoot', 'Fleetfoot', 12),
+        combo('rooftopRun', 'Rooftop Run', 1),
+        rule('quickSlip', 'Quick Slip', 'Slip readies after {n} Perfects in a row.', 'Slip needs 4 Perfects.', 'It needs only {n}.', 3),
+        rule('tumble', 'Tumble', "A dodge hits the red's owner for {n}% attack.", 'A dodge only saves you.', 'It hits back for {n}%.', 100),
+        cap('untouchable', 'Untouchable', 'Slip holds up to {n} dodges.', 'Slip holds one dodge.', 'It holds {n} dodges.', 2),
+      ],
+    },
+    {
+      id: 'wrenSmoke',
+      name: 'Smoke',
+      theme: 'Smoke Pop',
+      nodes: [
+        hp('scarfWrap', 'Scarf Wrap', 10),
+        def('paddedHood', 'Padded Hood', 6),
+        rule('longHaze', 'Long Haze', 'Smoke Pop lasts {n} s longer.', 'The smoke clears fast.', 'It lasts {n} s longer.', 1),
+        rule('chokingSmoke', 'Choking Smoke', 'Reds in the smoke move {n}% slower.', 'Smoke only softens reds.', 'Reds slow {n}% in it.', 15),
+        cap('blindingSmoke', 'Blinding Smoke', 'Green hits blind every foe: no reds for {n} s.', 'Foes see through the smoke.', 'Greens blind all for {n} s.', 0.6),
+      ],
+    },
+  ],
   // part6:B
   // ---------------------------------------------------------------- Yara (Summoner): one branch per spirit (Part 6)
   yara: [

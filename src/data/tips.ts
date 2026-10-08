@@ -101,6 +101,9 @@ export type TipId =
   | 'kitHollis'
   | 'kitVesper'
   | 'kitTorva'
+  // round 7 (Part 6): the second hero of each style
+  | 'kitSolenne'
+  | 'kitWren'
   // round 7 (Part 6): the new heroes' how-to cards
   | 'kitYara'
   | 'kitDell'
@@ -172,6 +175,8 @@ export const TIPS: readonly TipDef[] = [
   { id: 'kitVesper', hero: 'vesper', lines: ['Vesper: hits store Focus.', 'Hit a green to fire it all!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   { id: 'kitTorva', hero: 'torva', lines: ['Torva: a green winds up a smash.', 'It grows with your combo!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // part6:A
+  { id: 'kitSolenne', hero: 'solenne', lines: ['Solenne: 15 combo? Blade on fire!', 'A green gilds a yellow: hit it!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
+  { id: 'kitWren', hero: 'wren', lines: ['Wren: 4 Perfects ready a dodge.', 'Greens pop smoke: reds hit soft.'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // part6:B
   { id: 'kitYara', hero: 'yara', lines: ['Yara: greens call spirits, in turn.', 'All 3 out? A Rally calls the stag!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   { id: 'kitDell', hero: 'dell', lines: ['Dell: greens fire your Focus.', 'A Perfect one crits and bounces!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },

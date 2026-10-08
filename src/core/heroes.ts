@@ -239,7 +239,8 @@ export function skillPreview(t: Tuning, node: SkillNode): { stat: string; delta:
 
 // ---------------------------------------------------------------- kit texts
 
-export type KitWhich = 'signature' | 'ability' | 'passive' | 'finisher';
+/** A kit part (a Mythic hero's fifth, the gift, too). */
+export type KitWhich = 'signature' | 'ability' | 'passive' | 'finisher' | 'gift';
 
 /** The live number a kit part's text shows as '{n}' (tuning.hero for Rowan, tuning.kits.<id> for the rest). */
 export function kitN(t: Tuning, id: HeroId, which: KitWhich): number {
@@ -270,6 +271,18 @@ export function kitN(t: Tuning, id: HeroId, which: KitWhich): number {
     case 'torva.ability':
       return k.torva.windUpBase;
     // part6:A
+    case 'solenne.signature':
+      return k.solenne.sunEvery;
+    case 'solenne.ability':
+      return k.solenne.gleamCombo;
+    case 'solenne.passive':
+      return k.solenne.oathAt;
+    case 'solenne.gift':
+      return Math.round((1 - k.solenne.radiance) * 100);
+    case 'wren.signature':
+      return k.wren.slipEvery;
+    case 'wren.ability':
+      return k.wren.smokeCut * 100;
     // part6:B
     case 'yara.passive':
       return k.yara.kinship * 100;

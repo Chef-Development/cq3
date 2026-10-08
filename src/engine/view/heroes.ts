@@ -45,7 +45,7 @@ export const heroColW = (L: number, R: number): number => R - 3 - (L + heroStage
 export const KIT_LABELS = ['Special', 'Green', 'Trait', 'Swipe'];
 export const KIT_CARD_W = 32;
 
-type KitWhich = 'signature' | 'ability' | 'passive' | 'finisher';
+type KitWhich = 'signature' | 'ability' | 'passive' | 'finisher' | 'gift';
 /** The kit's four cards: a frame, an emblem, the one-word label, the long name the sheet gives it. */
 const KIT: Array<{ which: KitWhich; face: Face; name: number; label: string; long: string; map: string[]; pal: Record<string, number> }> = [
   {
@@ -83,6 +83,16 @@ const KIT: Array<{ which: KitWhich; face: Face; name: number; label: string; lon
     long: 'Finisher (swipe)',
     map: ['...yW', '..yy.', '.yy..', 'yyyyy', '..yy.', '.yy..', 'yy...'],
     pal: { y: 0xffd23a, W: 0xfff0a0 },
+  },
+  // ---- round 7: a Mythic hero's fifth kit part (HeroDef.gift), a present tied with a ribbon, in Mythic red and gold
+  {
+    which: 'gift',
+    face: [0xffb0a0, 0xf03c3c, 0xb81e2a, 0x6a0a18],
+    name: 0xffb8a8,
+    label: 'Gift',
+    long: 'Mythic gift',
+    map: ['.r...r.', '..rWr..', 'yyyryyy', 'YYYrYYY', 'yyyryyy', 'yyyryyy', 'ddddddd'],
+    pal: { r: 0xff5a4a, W: WHITE, y: 0xd8901c, Y: 0xffd23a, d: 0x9a5a14 },
   },
 ];
 
@@ -237,11 +247,12 @@ export class HeroesScreen {
   private rowY(): { name: number; chips: number; meters: number; level: number; cards: number; act: number } {
     const s = this.kit.s;
     const act = s.B - 3 - 18;
-    const cards = act - 4 - 11 - 22;
+    // (a hero with five kit cards whose labels need two lines: the rows above give up a few px of their gaps)
+    const cards = act - 4 - 11 - 22 - (this.kitLayout().tight ? 6 : 0);
     const chips = 45;
     // the stars and the level share what's left between the chips and the cards
     const free = cards - 50 - 14 - 10;
-    const gap = Math.max(3, Math.floor(free / 3));
+    const gap = Math.max(this.kitLayout().tight ? 1 : 3, Math.floor(free / 3));
     const meters = 50 + gap;
     return { name: 27, chips, meters, level: meters + 14 + gap, cards, act };
   }
@@ -258,13 +269,47 @@ export class HeroesScreen {
     return { pick: { x: px, y, w: c.x + c.w - px, h: 18 }, skills, stats };
   }
 
-  /** The four kit cards. */
-  kitCards(): Array<{ which: KitWhich; r: Rect }> {
+  /**
+   * The kit cards: four (signature, green, trait, swipe), or five for a hero with a gift (a Mythic's fifth part,
+   * HeroDef.gift). Five come narrower, spaced so their labels never touch; where even that can't fit them on one line
+   * (a phone's width), the cards are shorter, the rows above give up a few px (rowY) and every other label drops a
+   * line. `labelDy`: that drop.
+   */
+  kitCards(): Array<{ which: KitWhich; r: Rect; labelDy: number }> {
     const c = this.col();
+    const L = this.kitLayout();
     const y = this.rowY().cards;
-    const w = KIT_CARD_W;
-    const gap = Math.floor((c.w - 4 * w) / 3);
-    return KIT.map((q, i) => ({ which: q.which, r: { x: c.x + i * (w + gap), y, w, h: 22 } }));
+    return L.parts.map((q, i) => ({ which: q.which, r: { x: Math.round(c.x + L.xs[i]), y, w: L.w, h: L.h }, labelDy: L.tight && i % 2 ? 10 : 0 }));
+  }
+
+  /** Where the kit cards go along the column (left edges from its start), how big they are, and whether their labels
+   *  need two lines (rowY reads it, so it never reads rowY). */
+  private kitLayout(): { parts: typeof KIT; xs: number[]; w: number; h: number; tight: boolean } {
+    const c = this.col();
+    const parts = KIT.filter((q) => q.which !== 'gift' || !!HEROES[this.view].gift);
+    if (parts.length <= 4) {
+      const w = KIT_CARD_W;
+      const gap = Math.floor((c.w - 4 * w) / 3);
+      return { parts, xs: parts.map((_, i) => i * (w + gap)), w, h: 22, tight: false };
+    }
+    const n = parts.length;
+    const w = Math.min(28, Math.floor((c.w - (n - 1) * 3) / n));
+    const lw = parts.map((q) => Math.max(w, textWidth(q.label, 1, true)));
+    // the least distance between neighbouring cards' centres: their labels 2 px apart, their frames 3 px apart
+    const need = parts.slice(1).map((_, i) => Math.max(w + 3, (lw[i] + lw[i + 1]) / 2 + 2));
+    const span = need.reduce((a, b) => a + b, 0) + (lw[0] + lw[n - 1]) / 2;
+    if (span <= c.w) {
+      const extra = (c.w - span) / (n - 1);
+      const xs: number[] = [];
+      let cx = lw[0] / 2;
+      for (let i = 0; i < n; i++) {
+        xs.push(cx - w / 2);
+        if (i < n - 1) cx += need[i] + extra;
+      }
+      return { parts, xs, w, h: 22, tight: false };
+    }
+    const gap = Math.floor((c.w - n * w) / (n - 1));
+    return { parts, xs: parts.map((_, i) => i * (w + gap)), w, h: 18, tight: true };
   }
 
   /** The stars (and their shard meter), and the mastery seals, on one row. */
@@ -436,7 +481,7 @@ export class HeroesScreen {
       return this.pick(now);
     }
     for (const c of this.kitCards())
-      if (inRect(c.r, x, y, 2) || inRect({ ...c.r, y: c.r.y + c.r.h, h: 11 }, x, y)) {
+      if (inRect(c.r, x, y, 2) || inRect({ ...c.r, y: c.r.y + c.r.h, h: 11 + c.labelDy }, x, y)) {
         notePress(c.r);
         return this.openSheet(c.which, now);
       }
@@ -540,7 +585,7 @@ export class HeroesScreen {
     const q = KIT.find((k) => k.which === kind);
     if (q) {
       const part = def[q.which];
-      title = part.name;
+      title = part?.name ?? q.long;
       face = q.face;
       lines = [{ text: q.long, col: q.name, bold: true }, { text: kitText(t, id, q.which) }];
       if (q.which === 'finisher') lines.push({ text: `Bar: ${def.finisher.bar}`, col: GOLD_TXT, bold: true });
@@ -797,14 +842,15 @@ export class HeroesScreen {
       padlock(kit.gOver, r.x + 3, r.y + 2, k, 0xfff0a0);
       texts.text(msg, r.x + 12, r.y + 6, 0x5a2a08, { bold: true, oy: 0.5, alpha: k });
     }
-    // the kit: four cards
+    // the kit: four cards (five with a Mythic's gift; their labels drawn here when every other one drops a line)
     const l = kit.layer();
     this.kitCards().forEach((card, i) => {
-      const q = KIT[i];
+      const q = KIT.find((k) => k.which === card.which)!;
       const ck = popK(now, this.openAt, 4 + i, 35, 240);
       if (ck <= 0) return;
       const on = this.sheet.open && this.sheetKind === q.which;
-      iconCard(kit, l, { ...card.r, y: card.r.y + Math.round((1 - ck) * 6) }, { face: q.face, emblem: (gg, cx, cy, a) => pixMap(gg, q.map, q.pal, cx, cy, 2, a), label: q.label, labelCol: q.name, selected: on, alpha: clamp01(ck) }, now);
+      const rr = iconCard(kit, l, { ...card.r, y: card.r.y + Math.round((1 - ck) * 6) }, { face: q.face, emblem: (gg, cx, cy, a) => pixMap(gg, q.map, q.pal, cx, cy, 2, a), label: card.labelDy ? undefined : q.label, labelCol: q.name, selected: on, alpha: clamp01(ck) }, now);
+      if (card.labelDy) l.texts.text(q.label, rr.x + rr.w / 2, rr.y + rr.h + 6 + card.labelDy, q.name, { bold: true, ox: 0.5, oy: 0.5, alpha: clamp01(ck) });
     });
     // Stats, Skills and Pick
     k = enterK(now, this.openAt, 8, 35, 200);

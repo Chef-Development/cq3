@@ -39,6 +39,7 @@ export const BANTER: BanterLine[] = [
 export type CampSpeaker =
   | BanterSpeaker | 'smith' | 'neve' | 'moss' | 'tam' | 'hollis' | 'vesper' | 'torva'
   // part6:A
+  | 'solenne' | 'wren'
   // part6:B
   | 'yara' | 'dell'
   // part6:C
@@ -127,6 +128,20 @@ export const HERO_BANTER: HeroBanterLine[] = [
   { who: 'rowan', text: 'Torva hugged me. My armor folded.', with: ['torva'] },
   { who: 'sable', text: 'Torva, carry the loot? All of it?', with: ['torva'] },
   { who: 'smith', text: "Torva's hammer? Second best here.", with: ['torva'] },
+  // ---- Solenne and Wren (Part 6). Solenne: sunny, loud, always early. Wren: quick, light-fingered, never on the ground
+  { who: 'solenne', text: "Good morning! It's night. Still counts." },
+  { who: 'solenne', text: 'I polish my armor at dawn. And dusk.' },
+  { who: 'solenne', text: 'The sun and I go way back.' },
+  { who: 'solenne', text: 'Is it dawn yet? How about now?' },
+  { who: 'solenne', text: 'Rowan! Stand up straight. SHINE!', with: ['rowan'] },
+  { who: 'rowan', text: 'Solenne glows in her sleep.', with: ['solenne'] },
+  { who: 'wren', text: 'Roofs are faster. Also funnier.' },
+  { who: 'wren', text: 'Found a spoon. Whose? Mine now.' },
+  { who: 'wren', text: 'Doors are just walls with manners.' },
+  { who: 'wren', text: 'This fire needs a roof. I volunteer.' },
+  { who: 'wren', text: 'Pip! Race you up that tree.', with: ['pip'] },
+  { who: 'sable', text: 'Wren, that was MY dagger.', with: ['wren'] },
+  { who: 'solenne', text: "Wren, it's dawn somewhere! Up!", with: ['wren'] },
 
   // ---- Yara (Part 6): a calm young spirit caller, a little otherworldly, very fond of her spirits
   { who: 'yara', text: 'The stars say hello. They say it slowly.' },

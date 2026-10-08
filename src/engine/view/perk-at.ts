@@ -320,6 +320,48 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   innerBell: ['tab'], // (the Bulwark it set off shows itself)
 };
 
+// ---- Solenne and Wren (Part 6)
+Object.assign(PERK_AT, {
+  // Solenne: Sunrise lights her blade (the cursor burns, the hero glows: view/onsite.ts drawSunrise) and its cuts bounce
+  // off the foe the tap hit onto every other; Radiance slows the reds; a green gilds a yellow (gold on the bar while it
+  // waits), a gilded hit adds combo and meter; Dawn Oath keeps half the combo
+  sunrise: ['hero', 'cursor'],
+  radiance: ['reds'],
+  sunCut: ['bounce'],
+  gleam: ['bar'],
+  gilded: ['bar', 'combo', 'meter'],
+  dawnOath: ['combo', 'hero'],
+  sunfall: ['show'],
+  earlyLight: ['combo', 'cursor'],
+  longMorning: ['cursor'],
+  solarFlare: ['foe'],
+  twinGleam: ['bar'],
+  giltStrike: ['bar', 'foe'],
+  midasTouch: ['bar'],
+  firmOath: ['combo'],
+  sunWard: ['hero'],
+  rekindle: ['cursor', 'hero'],
+  // Wren: Slip readies a dodge (a slab rises at the left end: bar.ts drawReady), the dodge takes a red there and she
+  // sidesteps (onsite: a smoky afterimage on her); Smoke Pop spreads smoke along the bar; Light Feet keeps the Chain
+  slipReady: ['bar'],
+  slip: ['left', 'hero'],
+  smokePop: ['reds'],
+  smokeFade: ['left', 'hero'],
+  lightFeet: ['bar', 'tab'],
+  grapple: ['bar', 'foe'],
+  roofHop: ['hero'],
+  nimble: ['bar', 'tab'],
+  backstab: ['bar', 'foe'],
+  knifeStorm: ['foe'],
+  quickSlip: ['bar'],
+  tumble: ['bolt'],
+  untouchable: ['left'],
+  longHaze: ['cursor'],
+  chokingSmoke: ['reds'],
+  blindingSmoke: ['foes'],
+  dropHit: ['bolt'], // Rooftop Drop's knives at every foe, one per Chain link
+} satisfies Record<string, readonly PerkTarget[]>);
+
 /** The block a 'spawn' perk puts on the bar. */
 export const PERK_SPAWN: Record<string, BlockKind> = {
   seedling: 'green',

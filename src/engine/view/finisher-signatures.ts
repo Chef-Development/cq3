@@ -40,6 +40,7 @@ import {
   type ShowCtx,
 } from './finisher-fx';
 import { arrow, heaterShield, rockSpike, vine } from './finisher-kits';
+import { DAWN_ROOF_MARKS, ROOFTOP_DROP, SUNFALL } from './finisher-dawn-roof';
 import { PART6B_SIGNATURES } from './finisher-signatures-b';
 import { FIZZ_BRANN_MARKS, GRAND_REACTION, GREAT_BELL } from './finisher-sig-fizz-brann';
 
@@ -928,6 +929,8 @@ export const SIGNATURE_DRAW: Record<SignatureId, SignatureDraw> = {
   arrowSky: ARROW_SKY,
   earthSplit: EARTH_SPLIT,
   // part6:A
+  sunfall: SUNFALL,
+  rooftopDrop: ROOFTOP_DROP,
   // part6:B
   spiritStampede: PART6B_SIGNATURES.spiritStampede,
   pebbleStorm: PART6B_SIGNATURES.pebbleStorm,
@@ -1089,3 +1092,6 @@ export const SIG_MARKS: Record<string, MarkDraw> = {
   ...FIZZ_BRANN_MARKS,
 };
 
+
+// ---- Solenne and Wren (Part 6): their moments' own marks (view/finisher-dawn-roof.ts)
+Object.assign(SIG_MARKS, DAWN_ROOF_MARKS);

@@ -399,6 +399,25 @@ const KIT_NAME: Record<string, string> = {
   pebbleStorm: HEROES.dell.finisher.name,
 };
 
+// ---- Solenne and Wren (Part 6)
+Object.assign(KIT_NAME, {
+  sunrise: HEROES.solenne.signature.name,
+  sunCut: HEROES.solenne.signature.name,
+  gleam: HEROES.solenne.ability.name,
+  gilded: HEROES.solenne.ability.name,
+  dawnOath: HEROES.solenne.passive.name,
+  sunfall: HEROES.solenne.finisher.name,
+  radiance: HEROES.solenne.gift?.name ?? 'Radiance',
+  slipReady: HEROES.wren.signature.name,
+  slip: HEROES.wren.signature.name,
+  smokePop: HEROES.wren.ability.name,
+  smokeFade: HEROES.wren.ability.name,
+  lightFeet: HEROES.wren.passive.name,
+  grapple: HEROES.wren.stars[0].name,
+  roofHop: HEROES.wren.stars[1].name,
+  dropHit: HEROES.wren.finisher.name,
+});
+
 export type PerkSource = 'relic' | 'skill' | 'kit';
 
 export function perkSource(id: string): PerkSource {

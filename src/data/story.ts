@@ -21,6 +21,8 @@ export const SPEAKER_NAME: Record<Speaker, string> = {
   vesper: 'Vesper',
   torva: 'Torva',
   // part6:A
+  solenne: 'Solenne',
+  wren: 'Wren',
   // part6:B
   yara: 'Yara',
   dell: 'Dell',
@@ -252,6 +254,19 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'torva', text: 'HA! TORVA! Hammer brute! What needs\nsmashing? Point me at it, friend!' },
     { who: 'rowan', text: 'Nothing needs smashing. Well. Not anymore.\nThat was a really nice chest.' },
     { who: 'torva', text: 'Problem? HAMMER. Locked door? HAMMER.\nFeeling sad? HAMMER HUG! Come here!' },
+  ],
+  // ---- Solenne and Wren (Part 6): round 7's chest heroes
+  meetSolenne: [
+    { who: 'narrator', text: 'The chest glows gold, then hotter.\nSomehow, the sun comes up. Indoors.' },
+    { who: 'solenne', text: 'Good MORNING! Solenne, Dawnblade!\nSworn to the sunrise. Every single one.' },
+    { who: 'rowan', text: "It's the middle of the night.\nAlso, you're very... bright." },
+    { who: 'solenne', text: "Then I'm early! I'm ALWAYS early.\nStand behind me. It gets warm." },
+  ],
+  meetWren: [
+    { who: 'narrator', text: 'The chest creaks open. Empty?\nA rope drops from the branch above.' },
+    { who: 'wren', text: "Wren. I run roofs. Doors are slow.\nNice chest. Was it locked? It isn't now." },
+    { who: 'pip', text: 'Hoo! She took my snack.\nMid-sentence! While I was LOOKING!' },
+    { who: 'wren', text: 'Borrowed. Quick hands, quick feet.\nYou need both. Point me at a fight.' },
   ],
   // ---- Yara and Dell (Part 6): their first chest reveal
   meetYara: [
