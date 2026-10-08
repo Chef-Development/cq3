@@ -285,6 +285,7 @@ Object.assign(PERK_AT, {
   longHaze: ['cursor'],
   chokingSmoke: ['reds'],
   blindingSmoke: ['foes'],
+  dropHit: ['bolt'], // Rooftop Drop's knives at every foe, one per Chain link
 } satisfies Record<string, readonly PerkTarget[]>);
 
 /** The block a 'spawn' perk puts on the bar. */

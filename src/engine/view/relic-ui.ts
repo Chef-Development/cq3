@@ -378,6 +378,7 @@ Object.assign(KIT_NAME, {
   lightFeet: HEROES.wren.passive.name,
   grapple: HEROES.wren.stars[0].name,
   roofHop: HEROES.wren.stars[1].name,
+  dropHit: HEROES.wren.finisher.name,
 });
 
 export type PerkSource = 'relic' | 'skill' | 'kit';

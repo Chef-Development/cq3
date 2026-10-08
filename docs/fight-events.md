@@ -454,3 +454,4 @@ eight style kits) and `view/finisher-signatures.ts` (each hero's moment, and eac
 | Wren | Smoke Pop hanging (her green ability's window) | soft clouds drift along the bar's track; every red on it is veiled grey (still drawn, still blocked) |
 | Wren | `smokePop`, `smokeFade` | smoke chips burst over the bar; a red softened by the smoke: the left end, a ring on her ("Faded") |
 | Wren | `lightFeet` | a box on the Good hit it forgave, a mote into the Chain tab ("Light!") |
+| Wren | `dropHit` | Rooftop Drop's knives: a bolt to each foe, one damage number each ("Knives" once) |

@@ -89,7 +89,7 @@ describe('Solenne and Wren as data', () => {
     const t = cloneTuning();
     expect(kitText(t, 'solenne', 'signature')).toContain(String(t.kits.solenne.sunEvery));
     expect(kitText(t, 'solenne', 'gift')).toContain('30%');
-    expect(kitText(t, 'wren', 'ability')).toContain('50%');
+    expect(kitText(t, 'wren', 'ability')).toContain(`${Math.round(t.kits.wren.smokeCut * 100)}%`);
     expect(kitText(t, 'wren', 'gift')).toBe('');
     // the hero select's short lines carry no numbers
     for (const id of ['solenne', 'wren'] as const) {
@@ -160,7 +160,7 @@ describe('Solenne and Wren in the Test lab, the story and mastery', () => {
 // ---------------------------------------------------------------- Solenne's kit
 
 describe("Solenne's kit", () => {
-  it('Sunrise: every 25 combo her blade burns for a few seconds; while it does, hits cut every other foe', () => {
+  it('Sunrise: every 15 combo her blade burns for a few seconds; while it does, hits cut every other foe', () => {
     const { c, t } = fight('solenne', [], { enemies: ['bandit', 'slime'], tune: (t) => (t.enemies.bandit.hp = 900) });
     comboTo(c, sunEvery(c) - 2);
     tapNew(c, 'yellow', false);
@@ -225,7 +225,7 @@ describe("Solenne's kit", () => {
     expect(isGilded(c.spawnBlock('yellow', 0.3))).toBe(false);
   });
 
-  it('Dawn Oath: at 50+ combo a miss keeps half the combo (the stacks still go); below it, or a hit taken, all goes', () => {
+  it('Dawn Oath: at 30+ combo a miss keeps half the combo (the stacks still go); below it, or a hit taken, all goes', () => {
     const { c, t } = fight('solenne', [], { tune: (t) => (t.kits.solenne.hp = 400) });
     c.combo = 60;
     c.stacks = 2;
@@ -233,6 +233,9 @@ describe("Solenne's kit", () => {
     expect(c.combo).toBe(30);
     expect(c.stacks).toBe(0);
     expect(perks(c.drainEvents(), 'dawnOath')).toEqual([expect.objectContaining({ amount: 30 })]);
+    c.combo = t.kits.solenne.oathAt;
+    missNow(c);
+    expect(c.combo).toBe(Math.floor(t.kits.solenne.oathAt / 2));
     c.combo = t.kits.solenne.oathAt - 1;
     missNow(c);
     expect(c.combo).toBe(0);
@@ -335,9 +338,11 @@ describe("Wren's kit", () => {
     expect(chainOf(s.c)).toBe(0);
   });
 
-  it('Smoke Pop: for a moment after a green, reds that reach her deal half', () => {
+  it('Smoke Pop: for a moment after a green, reds that reach her deal smokeCut less', () => {
+    let cut = 0;
     const hurt = (green: boolean) => {
-      const { c } = fight('wren', [], { tune: (t) => ((t.blocks.redTravelSec = 1), (t.kits.wren.hp = 400)) });
+      const { c, t } = fight('wren', [], { tune: (t) => ((t.blocks.redTravelSec = 1), (t.kits.wren.hp = 400)) });
+      cut = t.kits.wren.smokeCut;
       if (green) tapNew(c, 'green', false);
       const ev = c.drainEvents();
       if (green) expect(perks(ev, 'smokePop')).toHaveLength(1);
@@ -346,19 +351,20 @@ describe("Wren's kit", () => {
     };
     const plain = hurt(false);
     const smoke = hurt(true);
-    expect(smoke.lost).toBe(Math.round(plain.lost * 0.5));
+    expect(cut).toBeGreaterThan(0);
+    expect(smoke.lost).toBe(Math.round(plain.lost * (1 - cut)));
     expect(perks(smoke.ev, 'smokeFade')).toHaveLength(1);
   });
 
-  it('Rooftop Drop: the target alone, harder, plus a hit per Chain link; clears the reds', () => {
+  it('Rooftop Drop: the target alone, harder; then a knife per Chain link at every foe; clears the reds', () => {
     const drop = (chain: number) => {
       const { c } = fight('wren', [], { enemies: ['bandit', 'bandit'], tune: (t) => (t.enemies.bandit.hp = 5000) });
       c.spawnBlock('red', 0.95);
       c.perk.chain = chain;
       c.stacks = 2;
       c.finisher();
-      const f = evs(c.drainEvents(), 'finisher')[0];
-      return { f, c };
+      const ev = c.drainEvents();
+      return { f: evs(ev, 'finisher')[0], c, ev };
     };
     const t = cloneTuning();
     const a = drop(0);
@@ -369,7 +375,12 @@ describe("Wren's kit", () => {
     r.c.stacks = 2;
     const plain = r.c.finisherDamage() * t.kits.wren.atk;
     expect(Math.abs(a.f.damage - plain * t.kits.wren.dropMult)).toBeLessThanOrEqual(2);
-    expect(Math.abs(drop(5).f.damage - a.f.damage * (1 + 5 * t.kits.wren.dropLink))).toBeLessThanOrEqual(1);
+    // five links: the target takes the drop and five knives' worth, the other foe the knives alone
+    const five = drop(5);
+    const knives = Math.round((five.f.damage / t.kits.wren.dropMult) * t.kits.wren.dropLink * 5);
+    expect(Math.abs(5000 - five.c.enemies[0].hp - (five.f.damage + knives))).toBeLessThanOrEqual(1);
+    expect(Math.abs(5000 - five.c.enemies[1].hp - knives)).toBeLessThanOrEqual(1);
+    expect(perks(five.ev, 'dropHit')).toHaveLength(2);
   });
 
   it('3 stars (Grapple): after a dodge her next hit crits; 5 stars (Roof Hop): the drop readies a dodge', () => {
@@ -475,10 +486,11 @@ describe("Solenne's tree", () => {
     const { on, off } = both('solenne', ['firmOath'], { tune: (t) => (t.kits.solenne.hp = 400) });
     const n = skillN(on.t, 'firmOath');
     for (const { c } of [on, off]) {
-      c.combo = n + 10;
+      c.combo = n + 5;
       missNow(c);
     }
-    expect(on.c.combo).toBe(Math.floor((n + 10) / 2));
+    expect(n + 5).toBeLessThan(on.t.kits.solenne.oathAt);
+    expect(on.c.combo).toBe(Math.floor((n + 5) / 2));
     expect(off.c.combo).toBe(0);
     expect(perks(on.c.drainEvents(), 'firmOath')).toHaveLength(1);
   });

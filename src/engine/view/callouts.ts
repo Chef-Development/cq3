@@ -115,6 +115,7 @@ export const CALLOUT_WORDS: Record<string, string> = {
   lightFeet: 'Light!',
   grapple: 'Crit!',
   roofHop: 'Ready!',
+  dropHit: 'Knives',
   // part6:B
   // part6:C
   // part6:D
@@ -169,7 +170,7 @@ const EMPTY_TAB = new Set(['guardian', 'marksman', 'summoner']);
 // ---- Solenne and Wren (Part 6): a dodge and a softened red happen where reds land; Sunrise's cuts come with every hit
 // while it burns (its bolts show each one), a gilded hit and a dodge readied now and then
 for (const id of ['slip', 'smokeFade']) AT_LEFT.add(id);
-Object.assign(SLOW_GAP, { sunCut: 1500, radiance: 1500, smokeFade: 900 });
+Object.assign(SLOW_GAP, { sunCut: 1500, radiance: 1500, smokeFade: 900, dropHit: 1500 });
 
 /** A paw print (a companion's mark), drawn in the companion's colour with an ink rim. */
 const PAW = ['p.p.p', '.....', '.ppp.', 'ppppp', '.ppp.'];

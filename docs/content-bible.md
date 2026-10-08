@@ -147,10 +147,10 @@ the region rules.
 - Look: a tall sun-knight in white enamel plate trimmed with gold, a short crimson half-cape, warm brown skin, a
   cropped crop of silver-white hair under a gold circlet with a sun-stone, a long sword whose blade glows like morning
   light. Palette: ivory/white plate, gold, crimson, a warm sunrise glow.
-- Signature **Sunrise**: every 25 combo her blade burns for 4 s: her hits also cut every other foe for half their damage.
+- Signature **Sunrise**: every 15 combo her blade burns for 4 s: her hits also cut every other foe for half their damage.
 - Ability (green) **Gleam**: a green hit gilds the next yellow ahead (a gold block with a sun mark; with none on the
   bar, the next to come): hitting it adds +3 combo and 0.12 of a meter.
-- Passive **Dawn Oath**: at 50+ combo, a miss keeps half the combo (its stacks and meter still go).
+- Passive **Dawn Oath**: at 30+ combo, a miss keeps half the combo (its stacks and meter still go).
 - Finisher **Sunfall**: hits every foe, +1% per combo (up to +50%); clears the reds; gilds the two yellows nearest the
   left end (where the cursor starts again).
 - Mythic gift **Radiance**: while Sunrise burns, the reds on the bar (and those that come) move at x0.7.
@@ -163,10 +163,11 @@ the region rules.
 - Signature **Slip**: 3 Perfect hits in a row ready a dodge (one at a time; a mustard slab at the bar's left end):
   the next red that reaches her misses (smoke puffs off her).
 - Ability (green) **Smoke Pop**: a green hit pops smoke over the bar for 3 s: the reds fade, and one that reaches her
-  in the smoke deals half. (Built as "hit softer" rather than "fade from view": hiding the reds would only hurt the
+  in the smoke deals 40% less. (Built as "hit softer" rather than "fade from view": hiding the reds would only hurt the
   player.)
 - Passive **Light Feet**: her Chain (and Slip's run) survives one Good hit between Perfects.
-- Finisher **Rooftop Drop**: the target alone, x1.25, +12% per Chain link; clears the reds.
+- Finisher **Rooftop Drop**: the target alone, x1.25; then each Chain link throws a knife at every foe (12% of the
+  drop's base damage per link, the target too); clears the reds.
 - Strength: +20% damage to Flyers.
 - Finisher show: her hook flies up and yanks her out of sight, she races over the foes throwing knives (one per
   strike), then drops onto the target: a white cut, smoke and roof tiles.

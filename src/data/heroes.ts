@@ -270,7 +270,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     signature: part('Slip', '{n} Perfects in a row ready a dodge: the next red to reach her misses.', 'Perfects ready a dodge.'),
     ability: part('Smoke Pop', 'Green hits pop smoke: for a moment, reds that reach her deal {n}% less.', 'Greens fade the reds.'),
     passive: part('Light Feet', "Your Chain survives one hit that isn't Perfect.", 'Chains last longer.'),
-    finisher: { name: 'Rooftop Drop', text: 'Drops on the target, plus a hit per Chain link; clears reds.', short: 'Drops on one foe.', bar: 'Clears reds' },
+    finisher: { name: 'Rooftop Drop', text: 'Drops on the target; each Chain link throws a knife at every foe. Clears reds.', short: 'Drops on one foe.', bar: 'Clears reds' },
     strengths: [{ tag: 'flyer', kind: 'dmg', n: 0.2 }],
     joins: 'chest',
     meetScene: 'meetWren',

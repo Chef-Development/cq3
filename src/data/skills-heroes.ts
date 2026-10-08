@@ -301,7 +301,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
       nodes: [
         atk('sunForged', 'Sun-Forged', 10),
         crit('brightEdge', 'Bright Edge', 6),
-        rule('earlyLight', 'Early Light', 'Sunrise comes every {n} combo.', 'Sunrise comes every 25 combo.', 'It comes every {n} combo.', 20),
+        rule('earlyLight', 'Early Light', 'Sunrise comes every {n} combo.', 'Sunrise comes every 15 combo.', 'It comes every {n} combo.', 10),
         rule('longMorning', 'Long Morning', 'Sunrise burns {n} s longer.', 'Sunrise burns a few seconds.', 'It burns {n} s longer.', 2),
         cap('solarFlare', 'Solar Flare', 'As Sunrise lights, a flare hits every foe for {n}%.', 'Sunrise only lights the blade.', 'It flares on all foes: {n}%.', 120),
       ],
@@ -325,7 +325,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
       nodes: [
         hp('dawnplate', 'Dawnplate', 10),
         def('enamel', 'Enamel', 6),
-        rule('firmOath', 'Firm Oath', 'Dawn Oath holds from {n} combo.', 'Dawn Oath holds from 50 combo.', 'It holds from {n} combo.', 30),
+        rule('firmOath', 'Firm Oath', 'Dawn Oath holds from {n} combo.', 'Dawn Oath holds from 30 combo.', 'It holds from {n} combo.', 20),
         rule('sunWard', 'Sun Ward', 'While Sunrise burns, reds deal {n}% less.', 'Sunrise only attacks.', 'Reds deal {n}% less in it.', 30),
         cap('rekindle', 'Rekindle', 'A combo break lights Sunrise for {n} s.', 'A break puts the fire out.', 'A break lights it for {n} s.', 3),
       ],

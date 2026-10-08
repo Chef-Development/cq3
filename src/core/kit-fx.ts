@@ -482,13 +482,17 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       c.perkFx('smokeFade', cut, enemyId, 0);
       return amount - cut;
     },
-    // Rooftop Drop: the target alone, harder, plus a hit's worth per Chain link
+    // Rooftop Drop: the target alone, harder; then every Chain link throws a knife at every foe (dropLink of the
+    // finisher each, one strike per foe)
     finisher: (c, x, v) => {
       const target = c.currentTarget();
       if (target) x.targets = [target];
-      return v * K(c).wren.dropMult * (1 + K(c).wren.dropLink * chainOf(c));
+      return v * K(c).wren.dropMult;
     },
-    afterFinisher: (c) => {
+    afterFinisher: (c, x) => {
+      const links = chainOf(c);
+      const base = x.damage / Math.max(0.01, K(c).wren.dropMult);
+      if (links > 0 && base > 0 && !c.result) for (const e of c.aliveFoes()) c.strike(e, base * K(c).wren.dropLink * links, 'dropHit');
       // 5 stars: the drop readies a dodge
       if (c.stars >= 5 && (c.perk.slip ?? 0) < slipMax(c)) {
         c.perk.slip = (c.perk.slip ?? 0) + 1;
