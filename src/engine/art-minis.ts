@@ -130,7 +130,7 @@ const FROST_MINIS: Record<string, Mini> = {
       '..3...2...',
       '.21..21...',
     ];
-    return { pal: { 1: '#24266c', 2: '#34449e', 3: '#4a6aca', 4: '#7a9ce8', 5: '#b4d0ff', ...ICE, O: AMBER, m: '#2a0c24', t: '#f4f0e8', q: '#c42a2e', Q: '#ee5440', R: '#7a1622', y: '#f4e8d0' }, frames: [f0, bob(f0, 7)] };
+    return { pal: { 1: '#24266c', 2: '#34449e', 3: '#4a6aca', 4: '#7a9ce8', 5: '#b4d0ff', ...ICE, O: AMBER, m: '#2a0c24', t: '#f4f0e8', q: '#c42a2e', Q: '#ee5440', R: '#7a1622', y: '#f4e8d0' }, frames: [f0, bob(f0, 8)] };
   })(),
   // a pale bat on wide ice-blue wings, icicles hanging off them
   iciclebat: {
@@ -211,22 +211,22 @@ const FROST_MINIS: Record<string, Mini> = {
       '.sWWWWWw.',
       '.s.11.11.',
     ];
-    return { pal: { 1: '#5a2418', 2: '#8e3c1e', 3: '#c0602a', 4: '#e08a44', 5: '#f0b070', g: '#2e6e48', G: '#86c45e', O: AMBER, w: '#b2bcd8', W: '#ffffff', s: '#6e4020', ...ICE }, frames: [f0, bob(f0, 7)] };
+    return { pal: { 1: '#2a1210', 2: '#5a2418', 3: '#8e3c1e', 4: '#c0602a', 5: '#e08a44', g: '#2e6e48', G: '#86c45e', O: AMBER, w: '#b2bcd8', W: '#ffffff', s: '#6e4020', ...ICE }, frames: [f0, bob(f0, 7)] };
   })(),
   // elite: a tortoise whose shell is a glacier: an ice dome with crystal spikes, a sprout on top
   glaciertortoise: (() => {
     const f0 = [
-      '.......G...d...',
-      '....d.cg.cdI...',
-      '...cdcccccdd.d.',
-      '..cdIdddcccbcI.',
-      '.cdddccccccbbb.',
-      '43cddcccccbbbba',
-      '4O3aaaaaaaaaaa.',
+      '.......G...I...',
+      '....I.cg..Id...',
+      '...dccbbbbcb.I.',
+      '..dcIcbbbbbbbd.',
+      '.dccbbbbbbbbaa.',
+      '43ccbbbbbbbaaaa',
+      '4O3AAAAAAAAAAA.',
       '.32.h4h4..h4h4.',
       '....hhh...hhh..',
     ];
-    return { pal: { 1: '#503026', 2: '#7a5032', 3: '#a67a46', 4: '#cca868', h: '#7a5032', ...ICE, I: '#e8fbff', O: INK, g: '#3a7a3a', G: '#7ac850' }, frames: [f0, bob(f0, 6)] };
+    return { pal: { 2: '#7a5032', 3: '#a67a46', 4: '#cca868', h: '#7a5032', ...ICE, A: '#1c2a5a', O: INK, g: '#3a7a3a', G: '#7ac850' }, frames: [f0, bob(f0, 6)] };
   })(),
   // a shaggy white snow troll with a big pink nose, a shovel in hand
   drifttroll: (() => {
@@ -399,8 +399,8 @@ const ASH_MINIS: Record<string, Mini> = {
   // a goblin glassblower: goggles pushed up, cheeks puffed, a blowpipe with a glowing glass bubble
   glassblower: (() => {
     const f0 = [
-      '......45.5',
-      '....45544.',
+      '......45..',
+      '....455445',
       '...4LlgL43',
       '...544443.',
       '..554443..',
