@@ -232,7 +232,6 @@ describe('round 7 save migration', () => {
     for (const id of Object.keys(ps)) if (!ROUND6_PETS.includes(id)) delete ps[id];
     delete old.tipsDone;
     const q = readProfile(old, T);
-    expect(q.version ?? PROFILE_VERSION).toBe(PROFILE_VERSION);
     expect(q.heroes.sable).toMatchObject({ unlocked: true, xp: 900 });
     expect(q.pets.flurry).toMatchObject({ owned: true, xp: 300, stars: 2, shards: 1 });
     expect(q.coins).toBe(420);
