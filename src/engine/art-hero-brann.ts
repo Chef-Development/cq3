@@ -258,7 +258,7 @@ export function bellSprite(g: Grid, cx: number, top: number, w = 13, h = 16, ang
 const bellOnBack =
   (dx = 0, dy = 0, ang = -0.12): Layer =>
   (g, a) => {
-    bellSprite(g, a.tx - 1 + dx, a.ty - 6 + dy, 13, 16, ang);
+    bellSprite(g, a.tx - 2 + dx, a.ty - 10 + dy, 13, 17, ang);
     // the rope over his shoulder
     for (let i = 0; i < 4; i++) put(g, a.tx + 3 + dx + i, a.ty - 3 + dy + i, i % 2 ? BRANN_SAFFRON[1] : BRANN_SAFFRON[3]);
   };
