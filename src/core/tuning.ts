@@ -428,14 +428,16 @@ export const DEFAULT_TUNING = {
     // part6:A
     // part6:B
     // part6:C
+    // (Gorm and Tess, tuned with the bot against Rowan at 75%: red control compounds there, since a red slowed, held or
+    // pushed back also keeps the next one off the bar (blocks.maxRed, the spawn gap), so their red numbers are small)
     // gorm: every rockEvery-th hit (3 stars: rockEvery3) deals rockMult and shoves the nearest red back `shove`; a green
     // Roar slows the reds on the bar to roarMult for abilitySec; Thick Skin: the wave's first hit deals `skin` less;
     // Landslide's rubble covers rubbleWidth of the bar's right end for rubbleSec (5 stars: x2), reds in it at rubbleMult
-    gorm: { hp: 112, atk: 0.8, abilitySec: 1.5, rockEvery: 4, rockEvery3: 3, rockMult: 1.6, shove: 0.25, roarMult: 0.5, skin: 0.5, rubbleSec: 4, rubbleWidth: 0.25, rubbleMult: 0.5 },
+    gorm: { hp: 85, atk: 0.75, abilitySec: 1, rockEvery: 4, rockEvery3: 3, rockMult: 1.6, shove: 0.02, roarMult: 0.92, skin: 0.1, rubbleSec: 2, rubbleWidth: 0.25, rubbleMult: 0.9 },
     // tess: every stopEvery hits (3 stars: stopEvery3) the reds hold still for stopSec; a green's Slow Time runs reds
     // at slowMult for abilitySec; on ice and snow her cursor keeps `steady` of the patch's pull; Rewind winds reds back over
     // rewindSec (5 stars: then a Stopwatch)
-    tess: { hp: 100, atk: 0.95, abilitySec: 3, stopEvery: 12, stopEvery3: 9, stopSec: 1.2, slowMult: 0.6, steady: 0.5, rewindSec: 0.6 },
+    tess: { hp: 100, atk: 1, abilitySec: 1.5, stopEvery: 16, stopEvery3: 13, stopSec: 0.3, slowMult: 0.9, steady: 0.25, rewindSec: 0.15 },
     // part6:D
   },
   chests: {

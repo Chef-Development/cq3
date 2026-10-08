@@ -342,7 +342,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
       nodes: [
         atk('fineTools', 'Fine Tools', 10),
         crit('loupe', 'Loupe', 6),
-        rule('longPause', 'Long Pause', 'The Stopwatch holds reds {n} s longer.', 'Time stops for a blink.', 'It stops {n} s longer.', 0.8),
+        rule('longPause', 'Long Pause', 'The Stopwatch holds reds {n} s longer.', 'Time stops for a blink.', 'It stops {n} s longer.', 0.3),
         rule('quickTick', 'Quick Tick', 'While time is stopped, hits deal {n}% more.', 'Stopped time only holds reds.', 'Hits then deal +{n}%.', 40),
         cap('perfectTime', 'Perfect Time', 'Perfect hits count twice toward the Stopwatch.', 'Every hit counts once.', 'Perfects count twice.'),
       ],

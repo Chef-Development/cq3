@@ -304,10 +304,12 @@ describe("Tess's kit", () => {
     expect(s5.c.perk.stop).toBeGreaterThan(0);
   });
 
-  it('her soft strength: +20% damage to Constructs (the Ruin Golem)', () => {
-    const g = fight('tess', [], { enemies: ['golem'], tune: (t) => ((t.hero.strengthScale = 1), (t.enemies.golem.hp = 900)) });
-    tapNew(g.c, 'yellow');
-    expect(900 - g.c.enemies[0].hp).toBe(Math.round(Math.round(g.c.stats().atk) * 1.2));
+  it('her soft strengths: +25% damage to Constructs (the Ruin Golem) and to Fire foes (a Cinderling)', () => {
+    for (const key of ['golem', 'cinderling']) {
+      const g = fight('tess', [], { enemies: [key], tune: (t) => ((t.hero.strengthScale = 1), (t.enemies[key].hp = 900)) });
+      tapNew(g.c, 'yellow');
+      expect(900 - g.c.enemies[0].hp, key).toBe(Math.round(Math.round(g.c.stats().atk) * 1.25));
+    }
   });
 });
 
@@ -355,8 +357,10 @@ describe("Gorm's tree", () => {
       go(c, c.time + 0.5);
       return f.pos - p0;
     };
-    expect(far(on.c)).toBeGreaterThan(0.05);
-    expect(far(off.c)).toBeLessThan(0.01);
+    const a = far(on.c);
+    const b = far(off.c);
+    expect(a - b).toBeGreaterThan(on.t.kits.gorm.shove * 0.5);
+    expect(b).toBeLessThan(0.005);
   });
 
   it('Long Roar: a Roar slows the reds n s longer', () => {
