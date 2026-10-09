@@ -694,8 +694,8 @@ speed in a slow patch.
 
 ## 7. Region 4: DUSKMIRE (secret; working id `duskmire`; being built, not in play yet)
 
-*Names are working names until docs/story-bible.md (the story team) fixes them; the region's data is written so a
-rename touches names and scene text only.*
+*The names here are final (decisions L3); the scenes are the story team's (`src/data/story-dusk.ts`, written to
+docs/story-bible.md section 8). Bellybog and the Sluice Keeper speak in them: both need portraits.*
 
 A marsh at dusk that never gets darker and never gets lighter: reed beds, black water, boardwalks on stilts, lanterns
 on poles, a tide that comes and goes on a clock. The exiled mapmaker redrew it his way: he thought the old marsh was
@@ -814,11 +814,12 @@ redraws the fight as it goes (each phase change: his scene, then the bar changes
   for 3 s, every 8 s). Beaten: the lamp cracks, the sun rolls out and up, and the marsh finally gets its night (and then its
   morning).
 
-### Story (scene ids the region's data needs; the story team writes them: placeholders in `story-dusk.ts` until then)
+### Story (scene ids; written by the story team in `src/data/story-dusk.ts`)
 - `dusk1` (Act 1 start), `bellybog` (mini-boss intro), `duskCamp` (a camp scene after Act 1, like `magsTale`),
   `dusk2` (Act 2 start), `sluiceKeeper` (mini-boss intro), `dusk3` (Act 3 start), `lighthouse` (boss intro),
   `lighthouse2`, `lighthouse3` (the mapmaker's two edits, mid-fight), `duskVictory` (the sun comes out; next region).
-- New speakers: `bellybog`, `sluiceKeeper`, `lighthouse`, and the mapmaker (`mapmaker`: the story team's id).
+- Speakers: `bellybog`, `sluiceKeeper` (portraits needed), the Mapmaker (`mapmaker`); the lighthouse doesn't speak (he
+  speaks from its gallery).
 
 ### Relics (Light and Tide tags; offered from the region's first act on: `from: 9`)
 As built (`src/data/relics-dusk.ts`, hooks `core/relic-fx-dusk.ts`, with/without tests `tests/unit/relics-dusk.test.ts`;
@@ -894,3 +895,101 @@ rules: the lantern's reach never under 0.32 s, the tide never over half the bar,
 - **Region 4's data is written but not wired in** (`duskmire.ts`, `enemies-dusk.ts`, `story-dusk.ts`, checked by
   `duskmire-data.test.ts`): it joins REGIONS once its art (sprites, minis, backdrops, themes) and telegraph sounds
   exist; until then its acts borrow earlier looks (`DUSK_STAND_IN`) and its scenes are one-line placeholders.
+
+---
+
+## 8. Region 5: NOONSPIRE (secret; id `noonspire`; being built, not in play yet)
+
+*The story is docs/story-bible.md's (section 8, "Noonspire"; the midpoint twist is there); the scenes are the story
+team's (`src/data/story-noon.ts`: `noon1`-`noon3`, `noonBoss`, `noonBoss2`, `noonBoss3`, `noonVictory`); the foes,
+mini-bosses and the bar are Team 3's. Its "rule hook" in the story bible (glare and mirages, blocks that blaze or lie)
+is what the two rules below build.*
+
+A high desert plateau of white towers and great sundials. The Mapmaker drove a nail through the sun and pinned it at
+noon: no night, no cold, no shadows, and nobody can tell the time or the way. On the bar: **mirages** (the haze lies
+about where things are) and **heat** (the glare that hits hard and burns).
+
+### Bar rules (typed in `BarRules`; the core implements them: `bar.mirage`, `bar.heat`)
+- **Mirages** (`bar.mirage: { share, fromRow, every }`; numbers in `tuning.mirage`). A yellow that rolls the share is
+  a mirage: a heat shimmer rises off it, and every `every` s or so it **hops** to another spot. Its landing spot is
+  chosen first and shown as a blinking ghost outline (with a dotted line of shimmer from the block) at least
+  `warnSec` (0.55 s) before the hop; it never hops while the cursor is within `safeSec` (0.45 s) of travel of either
+  spot (it waits), so a tap aimed at it as the cursor arrives is never stolen; it hops at least `minHop` (0.15) and
+  lands on dry, free ground. Specials: `hop { count }` (yellows become mirages and hop soon, farthest first), formation
+  `mirage`.
+- **Heat** (`bar.heat: { share, fromRow }`; numbers in `tuning.heat`). A yellow that rolls the share **blazes** (a
+  white-hot rim, rays of sun flickering over it): a hit on it lands x`mult` (1.4) and gives the hero a stack of
+  **Heat** (up to `max` 3): each stack burns `dps` (0.5% of max HP a second) in ticks for `sec` (4 s; a new stack starts
+  it over), never breaking the combo; a **green hit cools** every stack. On the hero: an orange glow at his feet, heat
+  shimmer rising, a flame pip per stack over his head. Specials: `blaze { count }`, formation `blaze`, `barRule
+  blazeEvery`. The choice it asks: take the big hit and the burn, or leave it (a green is the way out).
+- *Fair to a 75% thumb:* nothing moves under the cursor at the last moment (the ghost shows first, the hop waits), and
+  Heat is a slow burn (at most 6% of max HP from one full cycle) with a visible cure.
+- *The bot:* leaves a mirage whose ghost shows unless it is about to reach it (closer than `safeSec`); leaves blazing
+  yellows while its Heat is full and its HP under half.
+
+*Probe* (as Region 4's: Ashfell foes at its Act 2 numbers, a lab-strength hero, 30 fights, the 75% bot): no rules
+100% won / 62% HP lost; mirages (0.2, 2.5 s) 100% / 54% (the bot waits a hop out; a person reading a ghost late is
+the real cost); heat (0.2) 100% / 66%; both 100% / 74%; the masher loses every one.
+
+How they ramp: **Act 1** mirages from row 2 (0.25, every 2.8 s); **Act 2** heat from row 1 (0.2) plus a few mirages
+from row 3 (0.1); **Act 3** both from row 0 (mirages 0.2 every 2.5 s, heat 0.2).
+
+### Acts
+| Act | Name | Theme (stand-in) | Map look | Rules |
+|---|---|---|---|---|
+| 1 | The White Road | `whiteRoad` (`pass`) | a white road across the plateau, salt pans, standing stones with no shadows, mirages of lakes | mirages (row 2) |
+| 2 | The Spire Steps | `spireSteps` (`ruins`) | stairs between white towers, brass gates, sun-hot plazas, the Dawn Order's spire | heat (row 1) + a few mirages |
+| 3 | The Great Sundial | `sundial` (`cinder`) | the great dial at the plateau's heart, its needle walking, the Nail through the sun above | both; the boss's phases are his edits |
+
+Act scaling (first guesses, a step above Lanternfen's): hpMult 8.2 / 8.8 / 9.6, atkMult 17 / 18 / 19.5, pace 0.78 /
+0.74 / 0.7, redSpeed 1.24 / 1.26 / 1.32.
+
+### Enemies (`src/data/enemies-noon.ts`)
+| Enemy (key) | Act | Tags | Look | Special |
+|---|---|---|---|---|
+| Dune Skink (`duneSkink`) | 1 | beast, swarm | a sand skink with a blue stripe, a flicking tongue | **Skitter!** 2 yellows turn to mirages |
+| Glare Hawk (`glareHawk`) | 1 | flyer, beast | a pale gold hawk whose wings flash white | **Sun Dive!** two fast reds |
+| Dune Bandit (`duneBandit`) | 1 | folk, caster | a veiled bandit, a curved blade, a mirror on his back | **Mirror Trick!** 2 mirage yellows land |
+| Dune Colossus (`duneColossus`, elite) | 1 | construct, brute | a sandstone giant, sand pouring from its joints | **Sandslide!** a slow wide red; **Haze!** every yellow a mirage |
+| Ember Scarab (`emberScarab`) | 2 | swarm, beast | a brass scarab rolling a sun-hot ball | **Scorch!** 2 yellows blaze |
+| Brass Sentry (`brassSentry`) | 2 | construct, armored | a brass automaton with a sun disc for a chest | **Sunflash!** 3 yellows blaze, a red behind the glare |
+| Sand Salamander (`sandSalamander`) | 2 | beast, fire | an orange salamander with flame spots | **Bask!** every 3rd yellow it sends blazes |
+| Sunforged Golem (`sunforgedGolem`, elite) | 2 | construct, brute | a white-hot golem, a kiln door for a heart | **Searing Slam!** a fast wide red; **Kiln Heart!** every yellow blazes |
+| Dial Warden (`dialWarden`) | 3 | folk, armored | a sun-white robed guard with a hand mirror | **Hand Mirror!** 2 yellows blaze, 2 turn to mirages |
+| Heat Djinn (`heatDjinn`) | 3 | caster, flyer | a wavering column of orange air with a sly face | **Haze!** every yellow a mirage |
+| Sun Vulture (`sunVulture`) | 3 | flyer, swarm | a vulture, wings bleached white, a bald red head | **Circle!** two reds |
+| Noon Knight (`noonKnight`, elite) | 3 | construct, armored | white-gold armour behind a mirror shield | **Noon Blade!** two reds; **Mirror Shield!** every yellow blazes, 2 mirages |
+
+### Mini-bosses
+- **The Noon Sphinx** (`sphinx`, Act 1, beast, caster): guards the road with riddles of light. **Riddle!** (phase 1)
+  every yellow a mirage; **Pounce!** a fast red; **Sun Eyes!** (below 50%, gate) every 2nd yellow she sends blazes;
+  **Last Riddle!** (phase 2) a blazing mirage and a mirage land.
+- **The Brass Lion** (`brassLion`, Act 2, construct, beast): the spire stairs' guardian, its mane too hot to touch.
+  **Roar!** (phase 1) 3 yellows blaze; **Maul!** a fast red; **Overheat!** (below 50%, gate) every 2nd yellow it
+  sends blazes; **Shimmer!** (phase 2) 3 yellows turn to mirages.
+
+### Boss: the Gnomon (`gnomon`, Act 3, construct, armored) — each phase is one of the Mapmaker's edits
+The great sundial's needle stood up as a brass sentinel; the Nail through the sun above it is the keystone. It does
+not speak.
+- Phase 1, the needle: **Noon Strike!** its point comes down where the cursor is heading (a still shield, 3 taps);
+  **Brass Face!** 3 yellows turn to mirages.
+- Phase 2 (66%, gate, scene `noonBoss2`), edit one, "Too bright to see?" (**Glare!**): every yellow blazes, and every
+  2nd one it sends; **Noon Strike!** and **Sun Lance!** (two reds).
+- Phase 3 (33%, gate, scene `noonBoss3`), edit two, "Closer, then." (**Sun Drawn Down!**): every yellow a mirage, the
+  blaze rule stays, the cursor never drops below 1.3x; **Sun Lance!** and **Heatwave!** (every yellow a mirage, 3
+  blaze).
+
+### Story
+The story team's ids above; still to write (one-line placeholders in `src/data/story-noon-minis.ts`): `sphinx`,
+`brassLion` (the mini-bosses' intros). The phase scenes' hints ("everything blazes white", "the stones shimmer") match
+the rules as built.
+
+### Still to design and build (next chunks)
+Relics (Mirage and Heat tags; ideas: hits on a mirage just after it hops crit; a ghost spot struck before the hop
+counts; Heat cools faster; blazing hits fill more meter; a green cools and heals; epic: Heat never burns, but blazing
+hits deal x1.2 only), gear (a set: 2-piece +20% on blazing yellows; signatures from the Gnomon), music (six pieces,
+unlike Regions 1-4: e.g. a desert 7/8 in D Hijaz, a brass fanfare 6/8 for the spire steps, a ticking clock-work
+ostinato for the dial), art (sprites, portraits, backdrops: `art-noon.ts`, `backdrop-noon.ts`), telegraph sounds
+(`NOON_NEW_SOUNDS`), and balance (a little harder than Lanternfen: Act 1 ~80%, Act 2 ~65%, Act 3 ~50%, the Gnomon's
+first fight ~45-55%).

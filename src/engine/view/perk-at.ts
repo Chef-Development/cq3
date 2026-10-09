@@ -177,6 +177,8 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   driftwood: ['bar', 'foe'],
   tidepool: ['coins'],
   moonpull: ['bar'],
+  // ---- the fifth region's Heat (its burn on the hero: view/bar-noon.ts drawHeat)
+  heat: ['hurt'],
   // ---- skill nodes: Rowan
   followThrough: ['bounce'],
   whetstone: ['bar', 'foe'],

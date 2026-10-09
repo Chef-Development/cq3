@@ -640,3 +640,22 @@ describe('every hero plays one cursor, in the dark and in the tide', () => {
     }
   });
 });
+
+describe('every hero plays one cursor, with mirages and heat', () => {
+  it('every hero hits a blazing yellow (and takes its Heat) and a mirage where it stands', () => {
+    for (const id of HERO_IDS) {
+      const { c } = fight(id);
+      const b = c.spawnBlock('yellow', 0.5, c.enemies[0].id, undefined, { blaze: true });
+      const at = nextCross(c, 0.5);
+      go(c, at);
+      expect(c.tap(at).outcome, id).toBe('hit');
+      expect(c.heat, id).toBe(1);
+      expect(c.blocks.includes(b), id).toBe(false);
+      const m = c.spawnBlock('yellow', 0.3, c.enemies[0].id, undefined, { mirage: true });
+      m.hopAt = c.motionTime + 30; // (it won't hop before the cursor gets there)
+      const at2 = nextCross(c, 0.3);
+      go(c, at2);
+      expect(c.tap(at2).outcome, id).toBe('hit');
+    }
+  });
+});
