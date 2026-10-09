@@ -29,7 +29,7 @@ commit titles, PR titles, the Test lab's labels and anything the playtester read
 | Narrator | plain, concrete, present tense in scenes; one image per box | jokes, UI words ("bar", "tap") |
 | Rowan | plain and warm; short sentences; asks real questions; says "we"; steady under pressure | sarcasm about the quest, speeches |
 | Pip (plot) | dry, warm, brief; knows too much and lets it show a little; contractions; "Hoo." at most once a scene | bits, billing jokes (those are banter) |
-| The Mapmaker | gentle, courteous, precise; **no contractions**; craftsman's words (line, draft, smudge); compliments; "There. Better." rarely | shouting (until Region 11), threats, lies |
+| The Mapmaker | gentle, courteous, precise; **no contractions** (until Region 11, when his composure breaks); craftsman's words (line, draft, smudge); compliments; "There. Better." rarely | shouting (until Region 11), threats, lies |
 | Hesper | terse, formal, few kind words; no contractions | explaining herself (until the end) |
 | Sable | quick, light-fingered, practical; one quip per scene | cruelty |
 | Neve | prickly, proud, CAPITALS for emphasis, secretly glad of company | admitting it |
@@ -42,7 +42,7 @@ commit titles, PR titles, the Test lab's labels and anything the playtester read
 
 The kingdom is a living map. Every road, river, hill and season in it is drawn on the **Great Atlas**, a vast sheet of
 vellum in the Atlas Hall at the capital, **Meridian**, and whatever is drawn there is real. For centuries its keepers
-have sworn only to keep its lines, never to make new ones. Twenty years ago one of them broke that oath and was exiled
+have sworn only to keep its lines, never to make new ones. Fifteen years ago one of them broke that oath and was exiled
 to the edge of the map. Now he is back, with a pen of his own, and he is redrawing the kingdom his way: one region at a
 time, each one "fixed". He is **Ambrose Fairhand, the Mapmaker**: courteous, brilliant, kind to everyone he meets, and
 certain he is mending a careless, unfair world. Where he draws, the rules of the land change, which is why every region
@@ -119,7 +119,7 @@ one at a time.
 - **History:** born in Wend, a river village in the valley outside Meridian. A gifted draughtsman, taken into the Atlas
   Hall young, the finest hand in a century and the youngest keeper ever sworn. He married, had a son (also named
   **Rowan**; the name is only revealed late), and kept the lines faithfully for ten years.
-- **The flood (twenty years ago):** a spring flood was coming down the valley. Ambrose begged the High Keeper, Hesper,
+- **The flood (fifteen years ago):** a spring flood was coming down the valley. Ambrose begged the High Keeper, Hesper,
   to let him draw a levee above Wend. She refused: *keep the line, never make it.* Wend drowned. The valley became the
   lake. His wife survived; his son did not. (His wife died some years later, in his exile. He mentions her once.)
 - **Why he was exiled:** the public story is that he "tried to redraw the kingdom". The truth: on the night after the
@@ -128,17 +128,17 @@ one at a time.
 - **Motive:** he believes the world is a draft drawn by careless hands, and that every grief in it is a line in the
   wrong place: a road that gets travellers lost, a snow that buries a village, a tide that drowns a child. He is not
   conquering. He is *fixing*. His goal is the **Fair Copy**: the whole kingdom redrawn clean on a fresh sheet, where no
-  flood ever comes, and then the old Atlas burned. He does not think of erased land as harmed: "They're only
-  sleeping. They'll wake somewhere better."
+  flood ever comes, and then the old Atlas burned. He does not think of erased land as harmed: "They are only
+  sleeping. They will wake somewhere better."
 - **His flaw:** every fix removes a danger by removing a living rhythm (falling snow, turning seasons, night, tides,
   change itself). His world is safe because nothing in it moves. He can't see it, because the one thing he wants is
-  for one moment, twenty years ago, to have never moved on.
+  for one moment, fifteen years ago, to have never moved on.
 - **Voice:** gentle, precise, unhurried; a teacher's patience. Mapmaker's words: line, draft, smudge, margin, a
   steady hand, a fair copy. He compliments his enemies and means it. Never shouts (until Region 11). Polite to a fault:
-  "Forgive me." "If you'd step aside." "There. Better."
-  - "A crooked road gets people lost. I've straightened it. You're welcome."
+  "Forgive me." "If you would step aside." "There. Better."
+  - "A crooked road gets people lost. I have straightened it. You are welcome."
   - "Forgive the interruption. Your fight was drawn badly. Let me fix it."
-  - "Nobody is hurt. They're sleeping. When they wake, the world will be kind."
+  - "Nobody is hurt. They are sleeping. When they wake, the world will be kind."
   - "I have erased mountains, knight. Why will you not come off the page?"
 
 ### High Keeper Hesper (speaker `keeper`, plate "Hesper")
@@ -155,7 +155,7 @@ one at a time.
   Atlas, the only new line in the whole story that everyone agrees to: Wend's name, on the lake.
 
 ### Rowan, Junior Knight (the starter)
-- A junior knight of the Meridian guard, about twenty. A foundling: found at six on the Atlas Hall steps, soaked
+- A junior knight of the Meridian guard, twenty-one. A foundling: found at six, fifteen years ago, on the Atlas Hall steps, soaked
   through, with no memory before that night except his own name. (Mapmakers label what they draw: Ambrose wrote the
   name beside the drawing. It's the one thing the boy knew.) Raised in the knights' hall. Kind, earnest, a little unsure of himself,
   brave when it counts. Hates deep water and doesn't know why. (In banter he still naps anywhere: that's his comedy.)
@@ -225,14 +225,16 @@ can deepen in the banter once their region is reached: a banter line with `after
 Three movements across twelve regions. Stakes rise each region; the Mapmaker's attitude shifts with them.
 
 ### Movement I: the drafts (Regions 1-5, the continent)
-He is courteous, curious, sure of himself. Each region is a "fix" of a natural danger. In each, he tries once to
-erase Rowan, fails, and asks "Who drew you?" Each restored region sends him back to his table to try again. He erases
-the far isles' last scraps for ink; in Region 4 he starts scraping the continent's coasts (a fen village goes blank):
-the first time Rowan sees people he knows fall asleep.
+He is courteous, curious, sure of himself. Each region is a "fix" of a natural danger, made in the weeks before the
+story; each restored region sends him on to the next, where he waits to defend it. At the end of Region 1 he tries to
+erase Rowan, fails, and asks "Who drew you?"; after that he watches Rowan more than the fights. In Region 4 he starts
+scraping the continent itself for ink (a fen village goes blank in front of them): the first time Rowan sees people
+fall asleep because of a choice made in front of him.
 - **End of Region 5 (midpoint): twist 1.** Before the boss fight on the plateau, Ambrose greets the owl by name:
-  "Hello, Pip. You have grown." "Hello, Ambrose." The fight plays with that hanging. Pip was his. Ambrose shows the feather pen. Pip tells Rowan the half he can: he knew Ambrose, he sat on his
-  shoulder in the Atlas Hall, he stayed behind "for someone". Ambrose crosses the sea to the blank: "I was gentle with
-  your continent. Out there, there's nobody to be gentle for."
+  "Hello, Pip. You have grown." "Hello, Ambrose." The fight plays with that hanging. Pip was his. After it, Ambrose
+  shows the feather pen; Pip tells Rowan the half he can: he sat on Ambrose's shoulder in the Atlas Hall for ten
+  years, and when Ambrose left he stayed, "for a reason". Ambrose walks out over the sea to the blank: "I was gentle
+  with your continent. Across the sea, there is no one left to be gentle for."
 
 ### Movement II: the erasures (Regions 6-9, beyond the sea)
 The isles are blank, and he is drawing his own world on them: not fixes of nature now, fixes of *people* (no one
@@ -257,9 +259,9 @@ isles find their families asleep. He is no longer gentle; he still never lies.
 ### The twists (where each is seeded and paid)
 | # | Twist | Seeded | Revealed |
 |---|---|---|---|
-| 1 | Pip was the Mapmaker's owl; the pen is Pip's feather | R1: Pip knows the Atlas Hall too well; R2: Pip flinches at his voice; R3: the pen is plainly an owl feather | end of R5 |
-| 2 | The keepers moved the river themselves; Wend drowned because of the capital | R1 victory: Hesper won't look at the lake; R4: the fen-folk say "the river came from the north once"; R6: an erased isle's oldest lines are newer than they should be | R8 |
-| 3 | Rowan is the son Ambrose drew back: a cut through the page | intro (awake in the blank); every region ("Who drew you?"); R1: Rowan was found on the Atlas Hall steps, soaked; R4: Rowan can't swim; R8: Ambrose tells of "my boy" and never says his name | R11 |
+| 1 | Pip was the Mapmaker's owl; the pen is Pip's feather | written: R1 Pip knows Rowan's name before they meet (`act1`, `road`) and warns "be careful of him" (`act3`); R2 he knows how Ambrose chooses ("He finds whoever will love his fix the most", `frost2`); R5 he goes quiet (`noon2`). To add: the pen drawn plainly as an owl feather (art) | R5 (`noonBoss`, `noonVictory`) |
+| 2 | The keepers moved the river themselves; Wend drowned because of the capital | written: R4 the fen-woman, "The river ran down from the north, once" (`fenVictory`). To add: Hesper never looks at the lake (her portrait, the R1 camp); R6 an erased isle's oldest lines are newer than they should be | R8 |
+| 3 | Rowan is the son Ambrose drew back: a cut through the page | written: the intro (the only one who woke); "Who drew you?" (`victory`); R4 Rowan can't swim, "since before I remember" (`fen3`), and walks on the blank water (`fen2`). To add: R1/R2, Rowan was found on the Atlas Hall steps, soaked (a camp line); R8, Ambrose tells of "my boy" and never says his name | R11 |
 
 (Never let Ambrose say his son's name before Region 11. When he finally does, it is the end of the scene.)
 
@@ -294,9 +296,9 @@ Then the beat, in as few words as it takes:
 ## 7. The finale and the ending (Region 12: the Margin)
 
 The Margin is the isle at the very edge of the vellum, where the First Hand signed the Atlas with a compass rose. It was
-Ambrose's prison for twenty years; his drawing table stands where the rose was, the **Fair Copy** spread on it, almost
+Ambrose's prison for fifteen years; his drawing table stands where the rose was, the **Fair Copy** spread on it, almost
 done: the whole kingdom, clean, without a lake. He has drawn a champion to stand guard: the **Fair Knight**, his son as
-he imagines him grown, flawless, drawn from twenty years of wishing. It is the final boss, and it is fading as it
+he imagines him grown, flawless, drawn from fifteen years of wishing. It is the final boss, and it is fading as it
 fights (a living thing can't be drawn twice). Ambrose's edits in the last fight bring back every region's rule, one
 phase at a time, faster and faster: everything he ever "fixed", turned on the one person he wanted to save.
 
@@ -330,16 +332,18 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
 - **Bar rules: the basics.** In Greenmarch he changed *things*, never the rules: he couldn't bring himself to change
   more of the land he grew up in. Greenmarch fights the way the First Hand drew the world, which is why it teaches the
   basics. ("I was too gentle with Greenmarch. I always was.")
-- **Mini-bosses:** the Bandit Captain (robbing the sleeping farms: "A whole road asleep. Somebody has to collect.");
-  the Ruin Golem (woken by the redraw, still obeying a king three hundred years dead: "THEN WHO WOKE ME?").
+- **Mini-bosses:** the Bandit Captain (robbing the sleeping farms: "That's what makes it fair. Somebody redrew the
+  world last night. I'm just keeping up."); the Ruin Golem (asleep in the rubble for three hundred years, woken when
+  the redraw put the walls back, still obeying a dead king: "THE GATE IS WHOLE. SO I GUARD IT.").
 - **Boss: the Boar King.** Keystone: the drawn crown (when he drew it, the boar learned to speak: crowns do that).
   - Phase 2 edit: "A king needs subjects." He draws piglets into the fight.
-  - Phase 3 edit: "Quicker, then." He redraws the king's pace: everything faster.
+  - Phase 3 edit: "Too slow. Let me quicken the line." He redraws the pace of the wood: everything faster.
 - **Restoring:** the crown cracks; the Hollow is a wild wood again; the road crooks; the farms wake. Ambrose, unhurt,
   tries to erase Rowan for the first time at close range; the ink slides off. "Who drew you?" He goes.
-- **Beat:** Rowan goes home to Meridian. Hesper, in the Atlas Hall, shows him Greenmarch's lines coming back on the
-  Atlas, names the Mapmaker, and sends him on: "Everything he erases sleeps. You don't. So it's you." (She never
-  looks at the lake.) Sable joins after Act 1.
+- **Beat:** Rowan goes home to Meridian, where Hesper waits in the Atlas Hall: "Ambrose Fairhand. He kept this Atlas
+  once. He cannot erase you. So it falls to you." (She never looks at the lake: a stage direction for her portrait and
+  a later camp scene.) Sable joins after Act 1. Scenes: `intro`, `act1`, `road`, `captain`, `sableJoin`, `act2`,
+  `golem`, `act3`, `boarKing`-`boarKing3`, `victory`.
 
 ### Region 2: the Frostpeaks (Frostbite Pass, Glimmer Caves, Wyrm's Glacier)
 - **Original:** high mountains with real winters: snow that fell, springs that came, and avalanches that buried a
@@ -349,15 +353,17 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
   one trips on a rock, and the caves' ice to hold fast whatever it touches so nothing ever slides.
 - **Bar rules:** **ice patches** are his glass roads (the cursor speeds up on them); **hold blocks** are his ice that
   holds on (so you must hold); **snowdrifts** (Act 3) are where his still snow has piled (the cursor slows).
-- **Mini-bosses:** Rimehorn (a ram who guards the only pass and takes a toll in headbutts; comic, a little); the Loom
-  Matron (weaves the hoard into tapestries; vain about it).
+- **Mini-bosses:** Rimehorn (a colossal ram who keeps travellers off the glass road: "I caught two. I could not catch
+  the third." He fights to see if they can stand); the Loom Matron (weaves the one afternoon into tapestries and
+  likes it that way: "Nothing changes now, so at last I can weave it exactly.").
 - **Boss: Glacia, the Rime Wyrm.** Keystone: the **Winter Mirror**, the centrepiece of her hoard, which holds the one
   afternoon; he gave it to her, and her scales copy it.
   - Phase 2 edit: "Hold still." He draws every third block into holding ice, and lends her scales the mirror.
   - Phase 3 edit: losing, he does the one thing he came here to stop: he draws an **avalanche**, stripes of ice and
     drift sliding down the bar. The first time we see him break his own rule to win.
 - **Restoring:** the mirror cracks; the snow falls down at last; the clocks move on; spring will come, and with it the
-  avalanches. Neve: "They'll build the walls again. Like before. That's what people do."
+  avalanches. Ambrose: "Spring will bring its avalanche, knight. Remember who let it in." Neve: "They'll build the
+  snow walls again. Like before. That's what people do."
 - **Beat:** Neve joins (Act 1). Ambrose is more interested in Rowan than in the mountain: he watches the fight from the
   ridge before he edits it.
 
@@ -370,14 +376,15 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
   forged the chain for all of Ashfell ever since: every blow shakes the land.
 - **Bar rules:** **drifting blocks** (the unpinned land that won't hold still); **linked pairs** (his chains: hit one,
   then the other).
-- **Mini-bosses:** Rumbleback (paves the drifting flats with basalt; it never sets); Hob & Nob (the forge's two-headed
-  hound; one guards, one wants to play).
+- **Mini-bosses:** Rumbleback (paves the drifting flats every day, and every night they drift away); Hob & Nob (the
+  forge's two-headed hound: one guards, one wants to play, and their master hasn't patted them in ages).
 - **Boss: Bellows, the Forge Titan.** Keystone: the anvil that never cools. Bellows was Mags's master.
   - Phase 2 edit: "Together. Always together." He pins the land still and doubles the chains.
   - Phase 3 edit: the volcano erupts *through* his drawing, the old land pushing back, and he redraws as fast as it
     breaks: everything drifts, the pairs too.
 - **Restoring:** the anvil cools; the chains fall; the land holds still; the volcano sleeps. Bellows sits down for the
-  first time in years, and Rowan sits with him until he sleeps. (Tender, not a gag.)
+  first time in years ("Put the hammer down. The chain is long enough."). Ambrose: "The next lava flow will part their
+  families." Rowan: "Then they'll choose where to go. You don't get to choose for them."
 - **Beat:** Rowan sees, for the first time, that Ambrose was *right about the problem*: the forge-folk did lose people
   to the lava. Torva's crew was chained in pairs. The question changes from "is he wrong" to "what does a fix cost".
 
@@ -398,8 +405,9 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
 - **Restoring:** true night comes back, with stars, and the fen-folk light their lanterns one by one: the victory
   image is a thousand lanterns. The tide turns twice a day again; they'll read their tables again.
 - **Beat:** he begins to scrape the continent itself for ink: a fen village on the coast goes blank in front of Rowan.
-  Vesper's home. An old fen-woman says the river "came down from the north once, before my gran's day" (twist 2 seed).
-  Rowan admits he can't swim.
+  Vesper's home. Rowan walks into the blank to the sleepers and admits he can't swim. Ambrose at the boss: "One
+  village, sleeping, to save a thousand houses from fire. You would do the same sum." An old fen-woman at the end:
+  "The river ran down from the north, once" (twist 2 seed). Drafted in `src/data/story-fen.ts`.
 
 ### Region 5: Noonspire (working id `noonspire`)
 - **Original:** a high desert plateau of white stone towers and great sundials; the people kept time and direction by
