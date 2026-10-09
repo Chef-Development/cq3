@@ -280,7 +280,10 @@ const ROUND7: LabScenario[] = [
  *  platforms, the first 10 minutes). Each team appends to its own block. Region and story items are spoilers.
  *  Reworked items carry a new rev: a rating given to their earlier version shows as "Reworked" with the old rating. */
 export const LAB_NEW: LabScenario[] = [
-  // ---- story (team 1)
+  // ---- story (team 1): the new story's first region, by act number only (spoilers)
+  { id: 'r8Story1', group: 'spoiler', spoiler: true, label: 'Act 1 story (new)', secs: 60, try: 'Read the scenes. A quick, clear start?', setup: { kind: 'story', act: 0, scenes: ['intro', 'act1', 'road', 'captain', 'sableJoin'] } },
+  { id: 'r8Story2', group: 'spoiler', spoiler: true, label: 'Act 2 story (new)', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 1, scenes: ['act2', 'golem'] } },
+  { id: 'r8Story3', group: 'spoiler', spoiler: true, label: 'Act 3 story (new)', secs: 90, try: 'Read the scenes. Does the ending pull you on?', setup: { kind: 'story', act: 2, scenes: ['act3', 'boarKing', 'boarKing2', 'boarKing3', 'victory'] } },
   // ---- art (team 2)
   // ---- content: the new regions (team 3; spoilers)
   // ---- QA and platforms (team 4)
