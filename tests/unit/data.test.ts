@@ -148,15 +148,14 @@ describe('story', () => {
 
   it('keeps the old story out: no pendulum, no weights to bring home', () => {
     for (const [id, boxes] of Object.entries(STORY)) {
-      if (!['intro', 'act1', 'road', 'captain', 'sableJoin', 'act2', 'golem', 'act3', 'boarKing', 'boarKing2', 'boarKing3', 'victory'].includes(id)) continue;
-      for (const b of boxes) expect(b.text, id).not.toMatch(/pendulum|weight/i);
+      for (const b of boxes) expect(b.text, id).not.toMatch(/pendulum|(first|second|third|next|\d+) weights?\b|weights? home/i);
     }
   });
 
   it("has the second region's beats, and an arrival for every chest hero (2-4 boxes, in their own voice)", () => {
     for (const id of ['frost1', 'rimehorn', 'neveJoin', 'frost2', 'matron', 'frost3', 'glacia', 'glacia2', 'glacia3', 'frostVictory']) expect(STORY[id], id).toBeDefined();
     expect(STORY.neveJoin.some((b) => b.who === 'neve')).toBe(true);
-    expect(STORY.frostVictory.map((b) => b.text).join(' ')).toMatch(/TWICE/);
+    for (const id of ['glacia2', 'glacia3', 'frostVictory']) expect(STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
     expect(STORY.frostVictory.map((b) => b.text).join(' ')).toMatch(/Ashfell/);
     const met = Object.values(HEROES)
       .filter((h) => h.joins === 'chest')

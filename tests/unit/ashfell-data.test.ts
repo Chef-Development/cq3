@@ -219,8 +219,8 @@ describe('Region 3: the foes', () => {
 describe('Region 3: story and banter', () => {
   it('every beat is there; at most 6 boxes per scene and 2 lines per box, every line fits the text box', () => {
     for (const id of ['ash1', 'rumbleback', 'magsTale', 'ash2', 'hobnob', 'ash3', 'bellows', 'bellows2', 'bellows3', 'ashVictory']) expect(ASH_STORY[id], id).toBeDefined();
-    expect(ASH_STORY.ashVictory.map((b) => b.text).join(' ')).toMatch(/THREE/);
-    expect(ASH_STORY.ashVictory.map((b) => b.text).join(' ')).toMatch(/Duskmire/);
+    for (const id of ['bellows2', 'bellows3', 'ashVictory']) expect(ASH_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
+    expect(ASH_STORY.ashVictory.map((b) => b.text).join(' ')).toMatch(/Lanternfen/);
     for (const [id, boxes] of Object.entries(ASH_STORY)) {
       expect(boxes.length, id).toBeGreaterThan(0);
       expect(boxes.length, id).toBeLessThanOrEqual(6);

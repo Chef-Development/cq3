@@ -384,9 +384,9 @@ export const LAB_EARLIER: LabScenario[] = [
   { id: 'spMini5', group: 'spoiler', spoiler: true, label: 'Act 5 mini-boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 4, waves: [['matron']], bar: 'act', row: 6, safe: true } },
   { id: 'spAct6', group: 'spoiler', spoiler: true, label: 'Act 6 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 5, waves: [['driftTroll', 'auroraWisp'], ['frostWeaver', 'hailcaller'], ['frostKnight']], bar: 'act', row: 3 } },
   { id: 'spBoss6', group: 'spoiler', spoiler: true, label: 'Act 6 boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 5, waves: [['glacia']], bar: 'act', row: 6, safe: true } },
-  { id: 'spStory4', group: 'spoiler', spoiler: true, label: 'Act 4 story', secs: 60, try: 'Read the scenes.', setup: { kind: 'story', act: 3, scenes: ['frost1', 'rimehorn', 'neveJoin'] } },
-  { id: 'spStory5', group: 'spoiler', spoiler: true, label: 'Act 5 story', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 4, scenes: ['frost2', 'matron'] } },
-  { id: 'spStory6', group: 'spoiler', spoiler: true, label: 'Act 6 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 5, scenes: ['frost3', 'glacia', 'glacia2', 'glacia3', 'frostVictory'] } },
+  { id: 'spStory4', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 4 story', secs: 60, try: 'Read the scenes.', setup: { kind: 'story', act: 3, scenes: ['frost1', 'rimehorn', 'neveJoin'] } },
+  { id: 'spStory5', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 5 story', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 4, scenes: ['frost2', 'matron'] } },
+  { id: 'spStory6', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 6 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 5, scenes: ['frost3', 'glacia', 'glacia2', 'glacia3', 'frostVictory'] } },
   { id: 'spArrivals', group: 'spoiler', spoiler: true, label: 'Hero arrivals', secs: 60, try: 'Read how each chest hero arrives.', setup: { kind: 'story', act: 1, scenes: ['meetMoss', 'meetTam', 'meetHollis', 'meetVesper', 'meetTorva'] } },
   // ---- spoilers: the third region (acts 7-9): its two bar rules, foes, mini-bosses, boss and story
   { id: 'spBar7', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 7 bar rule', secs: 45, try: 'Watch the blocks move. Nothing hurts.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, waves: [['dummy']], bar: { drift: { share: 0.6, fromRow: 0, speed: 0.07 } }, safe: true }, profile: { tips: ['drift'] } },
@@ -397,9 +397,9 @@ export const LAB_EARLIER: LabScenario[] = [
   { id: 'spMini8', group: 'spoiler', spoiler: true, label: 'Act 8 mini-boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 7, waves: [['hobnob']], bar: 'act', row: 6, safe: true } },
   { id: 'spAct9', group: 'spoiler', spoiler: true, label: 'Act 9 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 8, waves: [['stokerImp', 'forgeHand'], ['magmaEel', 'glassblower'], ['chainSentinel']], bar: 'act', row: 3 } },
   { id: 'spBoss9', group: 'spoiler', spoiler: true, label: 'Act 9 boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 8, waves: [['bellows']], bar: 'act', row: 6, safe: true } },
-  { id: 'spStory7', group: 'spoiler', spoiler: true, label: 'Act 7 story', secs: 60, try: 'Read the scenes.', setup: { kind: 'story', act: 6, scenes: ['ash1', 'rumbleback', 'magsTale'] } },
-  { id: 'spStory8', group: 'spoiler', spoiler: true, label: 'Act 8 story', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 7, scenes: ['ash2', 'hobnob'] } },
-  { id: 'spStory9', group: 'spoiler', spoiler: true, label: 'Act 9 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 8, scenes: ['ash3', 'bellows', 'bellows2', 'bellows3', 'ashVictory'] } },
+  { id: 'spStory7', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 7 story', secs: 60, try: 'Read the scenes.', setup: { kind: 'story', act: 6, scenes: ['ash1', 'rumbleback', 'magsTale'] } },
+  { id: 'spStory8', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 8 story', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 7, scenes: ['ash2', 'hobnob'] } },
+  { id: 'spStory9', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 9 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 8, scenes: ['ash3', 'bellows', 'bellows2', 'bellows3', 'ashVictory'] } },
 ];
 
 

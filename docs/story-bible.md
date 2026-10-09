@@ -66,11 +66,15 @@ one at a time.
    fortress and the crown; the farmers sleep in blank fields until the crown breaks.)
 8. **Edits mid-fight.** When a keystone is threatened, Ambrose arrives in person and redraws the fight around it.
    Every boss phase is one of his edits (one per phase). He is not the boss; he is the hand behind it.
-9. **The fog beyond the sea.** Before the game begins he scraped the seven isles beyond the sea bare for ink: that is
+9. **One step ahead.** He redraws the next region the night the last one is restored, so Rowan always arrives a
+   few days after a land changed: its people still remember how it was (the clocks stopped "days ago", the lanterns
+   "went out last night"). Greenmarch, on the night of the intro, is his first redraw on the continent; the far isles
+   were scraped bare before that, out of sight.
+10. **The fog beyond the sea.** Before the game begins he scraped the seven isles beyond the sea bare for ink: that is
    the blank in the far sea. As Rowan restores the continent, Ambrose falls back to the isles and begins drawing his
    new world on the blank. A far isle's fog **thins** when he starts drawing there and **lifts** when his draft is
    done (the world plan's `thin` / `lift`). Restoring an isle wakes the sleepers under it.
-10. **Rowan.** The blank does not put Rowan to sleep, and ink slides off him. Why: section 6.
+11. **Rowan.** The blank does not put Rowan to sleep, and ink slides off him. Why: section 6.
 
 **Words to use:** draw, line, redraw, erase, the blank, ink, the Atlas, the impression, a keystone, restore.
 **Words to avoid in story text:** magic, spell (for the Atlas; Neve's spells are her own), reality, simulation.

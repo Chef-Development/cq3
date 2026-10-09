@@ -161,90 +161,86 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'keeper', text: 'Ambrose Fairhand. He kept this Atlas once.\nHe cannot erase you. So it falls to you.' },
   ],
 
-  // ---- Region 2 (docs/content-bible.md section 5): the second weight froze time on the peaks; a vain wyrm hoards it
-  // Act 1 start: endless snow that hangs in the air, and every clock stuck at the same afternoon
+  // ---- Region 2 (story bible section 8): he drew the snow still and held the season, so no avalanche can come.
+  // Keystone: the Winter Mirror, Glacia's centrepiece. Act 1 start: snow that hangs in the air.
   frost1: [
-    { who: 'narrator', text: 'The Frostpeaks. Snow on the pines, snow on\nthe rocks... and snow just hanging in the air.' },
-    { who: 'rowan', text: "Pip, the snow isn't falling. It's just\nfloating there. Is that a mountain thing?" },
-    { who: 'pip', text: "Hoo. The second weight fell here and froze\ntime. It's been the same afternoon for weeks." },
-    { who: 'sable', text: 'Every clock in the village says ten past\nthree. I checked. While borrowing them.' },
-    { who: 'rowan', text: 'The same afternoon, forever? Like a nap\nthat never ends. Honestly? Jealous.' },
-    { who: 'pip', text: 'Up the pass, then. Find the weight before\nyour nose freezes off. Scarf on, knight.' },
+    { who: 'narrator', text: 'The Frostpeaks. Snow on the pines, snow on\nthe rocks, and snow hanging in the air.' },
+    { who: 'rowan', text: "It isn't falling. It just stopped, mid-air.\nPip, is this him?" },
+    { who: 'pip', text: "It is. Snow that never falls can never bury\nanyone. That's how he'd put it." },
+    { who: 'sable', text: 'Every clock in the village says ten past\nthree. They have for days. I checked.' },
+    { who: 'pip', text: 'He held the season too. No spring, so no\navalanches. No thaw, and no planting.' },
+    { who: 'rowan', text: 'Like the crown in the Hollow. Something here\nholds it all. We find it, and we break it.' },
   ],
-  // Act 1 mini-boss: a colossal ram who collects the toll (the toll is one headbutt)
+  // Act 1 mini-boss: a colossal ram who keeps travellers off the glass road for their own good
   rimehorn: [
-    { who: 'rimehorn', text: 'HALT! This is Frostbite Pass. Nobody\ncrosses without paying the TOLL.' },
-    { who: 'rowan', text: "Fair enough. How much? Sable's got the\ncoins. Sable? ...Sable?" },
-    { who: 'sable', text: "Coins? What coins? I've never seen a coin.\nStop looking at my pockets." },
-    { who: 'rimehorn', text: 'COINS? Bah! The toll is ONE HEADBUTT.\nPer traveler. Owls fly free.' },
-    { who: 'pip', text: "Finally, a discount. Good luck, knight.\nI'll be up here. Being free." },
-    { who: 'rimehorn', text: "Hold still, little knight. It hurts less\nif you're already asleep." },
+    { who: 'rimehorn', text: 'STOP. Nobody crosses Frostbite Pass.\nThe road is glass now. Turn back.' },
+    { who: 'rowan', text: 'We have to cross. Something up there holds\nthis whole mountain still.' },
+    { who: 'rimehorn', text: 'The last ones who tried slid off the edge.\nI caught two. I could not catch the third.' },
+    { who: 'pip', text: "He's guarding the pass from the road itself,\nRowan. Not from us." },
+    { who: 'rimehorn', text: 'Then show me you can stand on it. Stand\nagainst me. If you fall, you go home.' },
   ],
   // after the Act 1 mini-boss: the fight's shockwave cracks Neve out of her own frost spell, and she joins
   neveJoin: [
-    { who: 'narrator', text: "Rimehorn's last stomp shook the whole pass.\nA big block of ice nearby went... crack." },
-    { who: 'neve', text: 'Pfft! Snow up my nose. FINALLY! Who broke\nme out? ...You? The sleepy one? Ugh.' },
-    { who: 'rowan', text: 'You were inside a block of ice. Is that\na mage thing? Or just a really bad day?' },
-    { who: 'neve', text: 'Neve. Frost mage. I went to freeze the wyrm\nwho stole the weight. Her scales? MIRRORS.' },
-    { who: 'pip', text: "Hoo. So it bounced, and froze you solid.\nThat's going in my memoirs. Chapter one." },
-    { who: 'neve', text: "Fine, I'll come. You clearly need a real\nmage. Not for company. ...Do you play cards?" },
+    { who: 'narrator', text: "Rimehorn's last stomp shakes the whole pass.\nA block of ice beside the road cracks open." },
+    { who: 'neve', text: "FINALLY. How long was I in there? Don't say.\nIt's always ten past three up here." },
+    { who: 'rowan', text: 'You were frozen inside that ice.\nAre you all right?' },
+    { who: 'neve', text: "Neve. Frost mage. I climbed up to break the\nwyrm's mirror. It threw my spell right back." },
+    { who: 'pip', text: "Glacia's mirror. That's his line, Rowan.\nThat's what holds the mountain." },
+    { who: 'neve', text: "Then I'm coming. You need a real mage.\nNot for the company. ...Do you play cards?" },
   ],
-  // Act 2 start: into the caves; why the wyrm wants the weight
+  // Act 2 start: into the caves; why the wyrm keeps the mirror
   frost2: [
-    { who: 'neve', text: "The Glimmer Caves. Don't lick the icicles.\nI'm looking at you, knight." },
-    { who: 'rowan', text: "So why does a wyrm want a pendulum weight?\nShe can't even tell the time with it." },
-    { who: 'neve', text: "She STOPS time with it. No time, no spring.\nNo spring? Winter lasts forever." },
-    { who: 'neve', text: 'And winter keeps her hoard cold and shiny.\nMelting is NOT glamorous, apparently.' },
-    { who: 'sable', text: "Hold on. A whole hoard? Of shiny things?\nWhy is nobody running? Let's GO." },
-    { who: 'pip', text: "Hoo. Time's frozen, so I've billed you for\nthe same hour for weeks. Lovely." },
+    { who: 'neve', text: 'The Glimmer Caves. Mind the ice: he drew it\nto hold whatever touches it. Fingers too.' },
+    { who: 'rowan', text: 'Why give the mirror to a wyrm?\nWhat does she get out of it?' },
+    { who: 'neve', text: 'A winter that never ends. Cold keeps her\nhoard bright, and her scales. She adores it.' },
+    { who: 'sable', text: "A hoard? Of shiny things?\nWhy is nobody running? Let's GO." },
+    { who: 'pip', text: 'He finds whoever will love his fix the most,\nand gives them the line to keep.' },
+    { who: 'rowan', text: "Then she won't give it up for asking." },
   ],
-  // Act 2 mini-boss: a giant frost spider who weaves tapestries of the hoard, offended you walked on one
+  // Act 2 mini-boss: a giant frost spider who weaves the frozen afternoon, and likes it that way
   matron: [
-    { who: 'matron', text: 'STOP. Little knight. Look down.\nWhat are you standing on?' },
-    { who: 'rowan', text: "A rug? It's a nice rug. Very... sparkly." },
-    { who: 'matron', text: "A TAPESTRY. 'The Hoard, Panel Ninety.'\nWoven in ice silk. And you wore BOOTS." },
-    { who: 'neve', text: "The Loom Matron. She weaves pictures of the\nwyrm's treasure. The wyrm adores them." },
-    { who: 'sable', text: 'Pictures of treasure? Why not weave a map\nto it? Asking for a friend. Me.' },
-    { who: 'matron', text: "Philistines! I'll weave you into the next\npanel. Now hold very, very still..." },
+    { who: 'matron', text: 'Quiet, knight. Look down. You are standing\non my finest work.' },
+    { who: 'rowan', text: 'A tapestry of one afternoon, over and over.\nThe same snow, the same clouds.' },
+    { who: 'matron', text: 'Panel ninety. Nothing changes now, so at\nlast I can weave it exactly. Every flake.' },
+    { who: 'neve', text: 'The Loom Matron. She weaves the hoard for\nGlacia. She LIKES it like this.' },
+    { who: 'matron', text: 'Break that mirror and everything moves again.\nNo. Hold still. I will weave you in.' },
   ],
-  // Act 3 start: the glacier under the aurora, the hoard in sight
+  // Act 3 start: the glacier under the aurora, the mirror in sight
   frost3: [
-    { who: 'narrator', text: "Wyrm's Glacier. Above, the aurora ripples\ngreen and pink. Below: one enormous hoard." },
-    { who: 'rowan', text: 'Pretty sky. Does it do that every night?' },
-    { who: 'neve', text: "It's done it all afternoon. For a month.\nTime's frozen, remember? Keep up, knight." },
-    { who: 'sable', text: "Is that... a mountain of gold? Hold me.\nNo, don't. I need my hands free." },
-    { who: 'pip', text: "Hoo. The weight's in there. So are the\nteeth. Big ones. Mind your fingers, Sable." },
-    { who: 'neve', text: "She froze me once. Not again. This time\nI have a team. ...Don't make it weird." },
+    { who: 'narrator', text: "Wyrm's Glacier, under the aurora. At its heart,\na great mirror and a great deal of gold." },
+    { who: 'rowan', text: 'There. The whole mountain is in that mirror,\nstopped at ten past three.' },
+    { who: 'neve', text: "She froze me once. Not again. This time\nI've got a team. ...Don't make it weird." },
+    { who: 'sable', text: "Mirror first. Then that gold isn't going\nto carry itself." },
+    { who: 'pip', text: "He'll be close. He always watches the\nbig ones. Stay together." },
   ],
   // Act 3 boss
   glacia: [
-    { who: 'glacia', text: 'Visitors! In MY glacier! Did you bring me\ngifts? Shiny ones? Kneel. Dazzle me.' },
-    { who: 'rowan', text: "We came for the pendulum weight. The big\nround thing you're lying on." },
-    { who: 'glacia', text: 'My centerpiece? It keeps the winter, darling.\nAnd winter keeps my hoard sparkling.' },
-    { who: 'neve', text: "Remember me, Glacia? The mage you bounced\noff your scales? I'm BACK. And unfrozen." },
-    { who: 'glacia', text: "The ice cube! You made such a cute ornament.\nI'll freeze you all into a matching set." },
-    { who: 'pip', text: 'Hoo. Vain, rich and enormous. My three\nleast favorite things in a lizard.' },
+    { who: 'glacia', text: 'Visitors, in MY glacier. Come to admire me?\nEveryone does. The light is perfect.' },
+    { who: 'rowan', text: 'We came for the mirror. The whole mountain\nis stuck in it.' },
+    { who: 'glacia', text: "Stuck? Kept. It's always afternoon now,\ndarling. The light never fades. Nor do I." },
+    { who: 'neve', text: "Remember me? The mage you bounced off\nyour scales? I'm back. And unfrozen." },
+    { who: 'glacia', text: "The little ice cube! Such a pretty ornament.\nI'll freeze you all into a matching set." },
   ],
-  // phase 2: holds every 3rd yellow, a mirror in the middle of the bar
+  // phase 2 (his edit): holds every 3rd yellow, a mirror in the middle of the bar
   glacia2: [
-    { who: 'glacia', text: 'My SCALES! Scratched! I polish those every\nafternoon! And it is ALWAYS afternoon!' },
-    { who: 'neve', text: "Her mirror's up! It bounces your cursor\nback. That's exactly how she got me." },
-    { who: 'pip', text: "And she's hoarding blocks: hold the long\nones right to the end. Don't let go!" },
+    { who: 'mapmaker', text: 'Forgive me, Glacia. Allow me to steady\nthings. Hold still, all of you.' },
+    { who: 'narrator', text: 'His pen moves. Every third block sets into\nholding ice, and her scales turn to mirror.' },
+    { who: 'neve', text: "Her mirror bounces your cursor back. And\nhold the long ones right to the end!" },
   ],
-  // phase 3: the bar turns to sliding stripes of ice and snowdrift
+  // phase 3 (his edit): he draws the one thing he came to stop, an avalanche of ice and snowdrift
   glacia3: [
-    { who: 'glacia', text: "ENOUGH! If I can't have my winter, nobody\ngets ANYTHING! AVALANCHE!" },
-    { who: 'pip', text: 'Ice speeds you up, snow slows you down,\nand it all slides. Re-time every block!' },
-    { who: 'rowan', text: 'Fast, slow, fast. Like waking up from\na nap. I can do this. Probably.' },
+    { who: 'mapmaker', text: 'Enough. Just this once.' },
+    { who: 'narrator', text: 'He draws the one thing he came here to stop.\nAn avalanche. Ice and snow pour down.' },
+    { who: 'pip', text: 'Ice speeds you up, snow slows you down, and\nit all slides. Re-time every block, Rowan!' },
   ],
-  // victory: the weight home, two ticks, the snow falls down again; the next weight is in Ashfell
+  // victory: the mirror cracks; the snow falls and the season turns; he names the cost; next, Ashfell
   frostVictory: [
-    { who: 'glacia', text: 'My winter! My sparkle! Fine, take your ugly\nweight. It clashed with my gold anyway.' },
-    { who: 'narrator', text: 'Rowan carried the second weight home and\nhung it on the Great Pendulum. It ticked...' },
-    { who: 'narrator', text: '...TWICE. Up in the peaks, the snow fell DOWN\nat last. Every clock said eleven past three.' },
-    { who: 'neve', text: "Falling snow! Ticking clocks! I'm coming\nwith you. For science. Not for you lot." },
-    { who: 'rowan', text: 'Two down. Ten to go. NOW can I nap?' },
-    { who: 'pip', text: "No. The next weight's down in Ashfell.\nSounds toasty. Swap the scarf for sunscreen." },
+    { who: 'narrator', text: 'The mirror cracks from edge to edge. The snow\nbegins to fall, the way snow should.' },
+    { who: 'glacia', text: "My afternoon. My light. It's going.\nI will look so ordinary in the spring." },
+    { who: 'mapmaker', text: 'Spring will bring its avalanche, knight.\nRemember who let it in.' },
+    { who: 'neve', text: "They'll build the snow walls again. Like\nbefore. That's what people do." },
+    { who: 'rowan', text: "And they'll have a spring to build them in.\nWhere did he go?" },
+    { who: 'pip', text: 'East. Look at the smoke over Ashfell:\nit moves sideways. All of it, all at once.' },
   ],
 
   // ---- hero arrivals: the first time each chest hero is revealed from a hero chest (content bible section 3)
