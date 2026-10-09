@@ -100,6 +100,10 @@ function onBar(id: TipId, c: Combat): TipCue | null {
       return first((b) => b.dark && b.litAt === Infinity);
     case 'tide':
       return c.waterL > 0 || c.waterR > 0 ? { id } : null;
+    case 'mirage':
+      return first((b) => b.hopAt !== Infinity);
+    case 'heat':
+      return first((b) => b.blaze);
     case 'ice':
     case 'snow':
       return c.zones.some((z) => z.kind === id) ? { id } : null;

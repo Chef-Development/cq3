@@ -29,6 +29,7 @@ import { focusCap, focusOf } from '../../core/styles';
 import { ImagePool } from './ui';
 import { drawBarRules } from './bar-links';
 import { drawDarkShape, drawLantern, drawWater, glisten } from './bar-dusk';
+import { drawBlaze, drawHeat, drawMirages } from './bar-noon';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -451,6 +452,8 @@ export class BarView {
     for (const b of c.blocks) if (!isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
     drawBarRules(g, c, t, now, s.bar, bx); // linked pairs' chains, drifting blocks' chevrons
     drawWater(g, c, t, now, s.bar, bx); // the tide: over the still blocks (they lie under it), under the reds
+    drawMirages(g, c, t, now, s.bar, bx); // the fifth region's mirages: their shimmer and landing ghosts
+    drawHeat(g, c, s.fighters.h.x, s.ground, now); // ...and the hero's Heat
     this.drawGuard(g, c, t, now, bx);
     for (const b of c.blocks) if (isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
     this.drawLandTarget(g, c, t, now, bx);
@@ -650,6 +653,7 @@ export class BarView {
       drawHold(g, X, Y, W, H, this.holdEntry(c, b, t), held ? Math.round(B.x + c.cursorPosAt(t) * B.w) + bx : null, held && c.holding!.perfect, now);
     } else brick(g, X, Y, W, H, impacting ? [WHITE, WHITE, light, base] : [light, base, dark, deepOf(b.kind)]);
     if (b.kind === 'yellow' && isGilded(b)) drawGilded(g, X, Y, W, H, now, b.id); // (Solenne's gold: view/dawn-roof.ts)
+    if (b.blaze) drawBlaze(g, b, X, Y, W, H, now); // (the fifth region's blazing yellows: view/bar-noon.ts)
     // it just changed kind: a white flash fading off it
     const mk = (s.anim - (this.morphs.get(b.id) ?? -1e9)) / 280;
     if (mk >= 0 && mk < 1) rows(g, X, Y, W, H, 2, WHITE, 0.85 * (1 - mk));
