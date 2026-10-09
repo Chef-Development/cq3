@@ -1,19 +1,18 @@
-// Region 4, Lanternfen (id `duskmire`; SPOILERS: docs/content-bible.md section 7, docs/story-bible.md). NOT IN PLAY YET: not in REGIONS (src/data/regions.ts) until
-// it plays end to end with its art (foe sprites, map minis, backdrops, the act themes) and its sounds. Three acts like
-// Ashfell's, each a branching node map ending in a mini-boss (acts 1 and 2) or the boss (act 3), with the bar rules
-// brought in gradually: dark blocks from Act 1's third row, the tide from Act 2's second row (and a little dark late
-// in it), both from the start of Act 3, where the boss's phases are the Mapmaker's edits to the bar. Once wired in,
-// these are global acts 9-11. The scenes are the story team's (`src/data/story-fen.ts`: fen1-3, fenBoss, fenBoss2-3,
-// fenVictory) but for the two mini-bosses' (placeholders in story-dusk.ts until written).
+// Region 4, Lanternfen (id `duskmire`; SPOILERS: docs/content-bible.md section 7, docs/story-bible.md). NOT IN PLAY
+// YET: not in REGIONS (src/data/regions.ts) until it plays end to end with its art (foe sprites, backdrops, the act
+// themes) and its sounds. Three acts like Ashfell's, each a branching node map ending in a mini-boss (acts 1 and 2) or
+// the boss (act 3), with the bar rules brought in gradually: dark blocks from Act 1's third row, the tide from Act 2's
+// second row (and a little dark late in it), both from the start of Act 3, where the boss's phases are the Mapmaker's
+// edits to the bar. Once wired in, these are global acts 9-11. The scenes are the story team's (`story-fen.ts`: fen1-3,
+// fenBoss, fenBoss2-3, fenVictory) but for the two mini-bosses' (placeholders in story-dusk.ts until written).
 // The act scaling is a first guess for the balance bot: each act a step above the matching Ashfell act (Act 1 dips
 // below Ashfell's last act, as each region's first did: a region starts a fresh run).
 
 import type { RegionDef, Theme } from './types';
 
-/** Region 4's act looks (reed channels under an endless dusk, stilt rows over a breathing tide, the deep channels and
- *  the Mirelight). They aren't in
- *  the `Theme` union yet (the engine's backdrops, stage lights, map kits, lairs and critters are records over every
- *  theme): until their art exists each act stands in an earlier look (`DUSK_STAND_IN`). */
+/** Region 4's act looks (reed channels under an endless dusk, a stilt village over a breathing tide, the deep channels
+ *  and the Mirelight). They aren't in the `Theme` union yet (the engine's backdrops, stage lights, map kits, lairs and
+ *  critters are records over every theme): until their art exists each act stands in an earlier look. */
 export type DuskTheme = 'reeds' | 'stilts' | 'channels';
 export const DUSK_THEMES: DuskTheme[] = ['reeds', 'stilts', 'channels'];
 /** The earlier look each act borrows until its own is painted. */
