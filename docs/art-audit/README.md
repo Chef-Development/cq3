@@ -64,7 +64,7 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 5. The dark Ashfell foes (3): done, an ember rim from below.
 6. The glass backdrop (3): done (light spill, sockets, no checkerboard). The forge re-scored 4.
 7. The vault's empty state (3): dim, no focal light (with chests waiting it is a 4).
-8. The spirit stag (3) and the cinder lair (3).
+8. The spirit stag (3; its 1 px legs and antlers thin out at 1x) and the cinder lair (3: done, it glows).
 9. The world map's style (4 in craft): becomes the inked Atlas.
 
 ## Redone
@@ -77,4 +77,5 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Backdrop: glass | 3 | 4 | `after/fight-act8-glass-before-after.png` (top before, bottom after). The wall lifted a little, the lake's light spilling out of the opening across it (Ashfell's key from below), the glass windows set in rock sockets so they no longer float, and moved clear of the dithered edge shade (it had turned the amber one into a checkerboard). |
 | Rowan's fight frames | 3 | 3+ | `after/sheet-heroes-a.png`: the three missing poses drawn on his own pose system (fin: the sword raised high, cape flying; cast: the blade raised forward; down: on one knee over the planted sword), so his finisher, kit moments and defeat no longer borrow other frames. His bigger helmeted head stays (the starter's look). |
 | Heroes' idles (the 14 rig heroes) | 4 | 4+ | A four-step breath instead of two: `idle2`/`idle3`, the head following the body a beat late (secondary motion, bible section 7). |
+| Cinder lair | 3 | 4 | `after/lairs-ashfell.png` (left): the paver heap glows in its seams, the left faces catch the cauldron's light, the pitch glows at the brim. |
 | Title screen, logo, key art | 3 | 4 | `before/title-phone.png`; `after/title-phone.png`, `after/title-desktop.png`, `after/title-continue.png`. The Atlas spread open: an inked parchment map, colour come back round the hero, fog over the erased east, a quill drawing the route; the logo built from `GAME_NAME` (Scale3x lettering, gold face, rim light, extrusion, ink outline). |
