@@ -261,7 +261,7 @@ isles find their families asleep. He is no longer gentle; he still never lies.
 |---|---|---|---|
 | 1 | Pip was the Mapmaker's owl; the pen is Pip's feather | written: R1 Pip knows Rowan's name before they meet (`act1`, `road`) and warns "be careful of him" (`act3`); R2 he knows how Ambrose chooses ("He finds whoever will love his fix the most", `frost2`); R5 he goes quiet (`noon2`). To add: the pen drawn plainly as an owl feather (art) | R5 (`noonBoss`, `noonVictory`) |
 | 2 | The keepers moved the river themselves; Wend drowned because of the capital | written: R4 the fen-woman, "The river ran down from the north, once" (`fenVictory`). To add: Hesper never looks at the lake (her portrait, the R1 camp); R6 an erased isle's oldest lines are newer than they should be | R8 |
-| 3 | Rowan is the son Ambrose drew back: a cut through the page | written: the intro (the only one who woke); "Who drew you?" (`victory`); R4 Rowan can't swim, "since before I remember" (`fen3`), and walks on the blank water (`fen2`). To add: R1/R2, Rowan was found on the Atlas Hall steps, soaked (a camp line); R8, Ambrose tells of "my boy" and never says his name | R11 |
+| 3 | Rowan is the son Ambrose drew back: a cut through the page | written: the intro (the only one who woke); "Who drew you?" (`victory`); R4 Rowan can't swim, "since before I remember" (`fen3`), and walks on the blank water (`fen2`). and in camp banter, "They found me on some steps. Soaked." and Pip's "I've known you a long time." To add: R8, Ambrose tells of "my boy" and never says his name | R11 |
 
 (Never let Ambrose say his son's name before Region 11. When he finally does, it is the end of the scene.)
 

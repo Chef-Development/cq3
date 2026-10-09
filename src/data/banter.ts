@@ -42,6 +42,7 @@ export const BANTER: BanterLine[] = [
   { who: 'sable', text: 'Draw my pockets shut? I riot.' },
   { who: 'pip', text: 'Sable took the map. Again.', sable: true },
   { who: 'rowan', text: 'Knights raised me. It shows.' },
+  { who: 'rowan', text: 'They found me on some steps. Soaked.' },
   { who: 'pip', text: "I've known you a long time." },
 ];
 
