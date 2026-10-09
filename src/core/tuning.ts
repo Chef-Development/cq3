@@ -574,10 +574,11 @@ export const DEFAULT_TUNING = {
     lightSec: 0.45, // the lantern reaches this many seconds of the cursor's travel ahead (and behind)
     lightMin: 0.1, // ...never less than this share of the bar (a stopped cursor still lights its neighbours)
     floorSec: 0.32, // a dimmed lantern (a snuff) never reaches less than this many seconds
+    trapMult: 0.6, // a trap that came dark bites for this share of a trap's damage (it was hard to read)
   },
   tide: {
     // Tides (Region 4's bar rule, core/combat.ts updateTide): water covers one end of the bar, rising and falling.
-    drag: 0.6, // a red whose centre is in the water moves this much slower
+    drag: 0.8, // a red whose centre is in the water moves this much slower
     surgeSpeed: 0.25, // a surge (a foe's special) moves the waterline this fast (bar widths a second)
     swellSpeed: 0.1, // the waterline never moves faster than this on the act's own swell
   },
@@ -1214,6 +1215,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('dark.lightSec', 'Dark: lantern reach (s)', 0.2, 1.5, 0.02),
         s('dark.lightMin', 'Dark: lantern reach min', 0, 0.4, 0.01),
         s('dark.floorSec', 'Dark: dimmed lantern min (s)', 0.1, 1, 0.02),
+        s('dark.trapMult', 'Dark: a dark trap bites x', 0, 1, 0.05),
         s('tide.drag', 'Tide: red speed in water x', 0.2, 1, 0.05),
         s('tide.surgeSpeed', 'Tide: surge speed (bar/s)', 0.05, 1, 0.01),
         s('tide.swellSpeed', 'Tide: swell max speed (bar/s)', 0.02, 0.5, 0.01),

@@ -841,6 +841,19 @@ export interface Aim {
   misread?: number;
 }
 
+/** Sunk blocks the bot taps anyway (a person's slip: the block under the water still looks like a target). Decided
+ *  once per block, a quarter as often as a dark trap is misread. */
+const sunkTaps = new WeakMap<Block, boolean>();
+function tapsSunk(b: Block, rng: Rng, aim: Aim): boolean {
+  if (!aim.misread || b.kind === 'purple') return false;
+  let m = sunkTaps.get(b);
+  if (m === undefined) {
+    m = rng.next() < aim.misread / 2;
+    sunkTaps.set(b, m);
+  }
+  return m;
+}
+
 /** Dark traps the bot took for yellows (decided once per trap, the first time it looks at it lit). */
 const misreads = new WeakMap<Block, boolean>();
 
@@ -879,7 +892,7 @@ function plan(c: Combat, rng: Rng, aim: Aim, gauss: () => number, avoidYellow: b
     // is left alone
     if (b.dark && b.litAt === Infinity) continue;
     if (!wantsBlock(c, b, guarded) && !misreads_(c, b, rng, aim)) continue;
-    if (water && !isRed(b.kind) && (c.sunk(b) || b.pos < c.waterL + 0.03 || b.pos > 1 - c.waterR - 0.03)) continue;
+    if (water && !isRed(b.kind) && (c.sunk(b) || b.pos < c.waterL + 0.03 || b.pos > 1 - c.waterR - 0.03) && !tapsSunk(b, rng, aim)) continue;
     // a still block: the time the cursor takes to get there, through any patch on the way (a hold: to its near
     // edge); a moving red: the closing speed
     const aimAt = b.kind === 'hold' ? b.pos - (dir * b.width) / 2 : b.pos;

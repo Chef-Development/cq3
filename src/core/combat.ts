@@ -2530,7 +2530,8 @@ export class Combat {
     this.removeBlock(b, 'hit');
     if (this.claim((h) => h.trap?.(this, b))) return 'trap';
     const owner = this.enemyById(b.ownerId);
-    const damage = owner ? owner.special : 0;
+    // (a trap that came dark bites less: Region 4's tuning.dark.trapMult)
+    const damage = owner ? Math.round(owner.special * (b.dark ? this.tuning.dark.trapMult : 1)) : 0;
     this.events.push({ type: 'trap', pos: b.pos, damage, enemyId: b.ownerId });
     this.heroDamage(damage, 'trap', b.ownerId);
     return 'trap';

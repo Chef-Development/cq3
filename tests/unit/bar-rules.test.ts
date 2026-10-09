@@ -366,6 +366,16 @@ describe('the fourth region: dark blocks (the lantern) and the tide', () => {
     expect(c.tap(arrive).outcome).toBe('hit');
   });
 
+  it('a trap that came dark bites for dark.trapMult of a trap (it was hard to read)', () => {
+    const { c, t } = setup({ enemies: ['bandit'] });
+    const hp = c.hero.hp;
+    const p = c.spawnBlock('purple', 0.3, c.enemies[0].id, undefined, { dark: true });
+    go(c, timeAt(t, 0.3));
+    expect(unlit(p)).toBe(false);
+    expect(c.tap(timeAt(t, 0.3)).outcome).toBe('trap');
+    expect(hp - c.hero.hp).toBe(Math.round(c.enemies[0].special * t.dark.trapMult));
+  });
+
   it("the lantern's reach is a time: it widens as the cursor speeds up, and never drops below its minimum", () => {
     const { c, t } = setup();
     const slow = c.lightReach();
