@@ -82,7 +82,7 @@ describe('signature effects', () => {
     expect(c.tuskCrit).toBe(0);
   });
 
-  it('Pendulum Shard: every 10th combo hit spawns a green block', () => {
+  it('Keystone Shard: every 10th combo hit spawns a green block', () => {
     const { c, t } = setup();
     c.hero.gear = gear(['pendulum']);
     c.combo = 9;

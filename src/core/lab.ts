@@ -99,7 +99,7 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
       for (const prev of at.branch.nodes.slice(0, at.index + 1)) if (!h.skills.includes(prev.id)) h.skills.push(prev.id);
     }
   }
-  const pick = spec.hero ?? (s.setup.kind === 'fight' ? s.setup.hero : s.setup.kind === 'camp' || s.setup.kind === 'gallery' ? s.setup.hero : undefined);
+  const pick = spec.hero ?? (s.setup.kind === 'fight' ? s.setup.hero : s.setup.kind === 'camp' || s.setup.kind === 'gallery' || s.setup.kind === 'title' ? s.setup.hero : undefined);
   if (pick && p.heroes[pick].unlocked) p.hero = pick;
   // companions: Pip always, the listed ones, all at a level that fits
   for (const id of spec.pets ?? []) p.pets[id].owned = true;
@@ -183,8 +183,8 @@ export function labFight(s: LabScenario): LabFightPlan | null {
 
 /** The phase a scenario plays in: its fight (the Finisher gallery's too), its scenes, an act's map, or the camp (the
  *  engine opens the camp screen). Once the run leaves it the scenario is over (the rating card comes up). */
-export const labHomePhase = (s: LabScenario): 'fight' | 'scene' | 'map' | 'camp' =>
-  s.setup.kind === 'fight' || s.setup.kind === 'gallery' ? 'fight' : s.setup.kind === 'story' ? 'scene' : s.setup.kind === 'map' ? 'map' : 'camp';
+export const labHomePhase = (s: LabScenario): 'fight' | 'scene' | 'map' | 'camp' | 'title' =>
+  s.setup.kind === 'fight' || s.setup.kind === 'gallery' ? 'fight' : s.setup.kind === 'story' ? 'scene' : s.setup.kind === 'map' ? 'map' : s.setup.kind === 'title' ? 'title' : 'camp';
 
 /** Where a scenario plays on the lab's run: its practice fight (then back to the lab's camp), its story scenes, an
  *  act's map, or the lab's camp (the engine opens the camp screen). The run must be the lab's, built on labProfile. */
@@ -200,6 +200,7 @@ export function startLabScenario(run: Run, s: LabScenario, seed: number): void {
   } else if (s.setup.kind === 'gallery') galleryFight(run, s, s.setup.hero ?? galleryHeroes()[0], seed);
   else if (s.setup.kind === 'story') run.enterAct(s.setup.act, s.setup.scenes);
   else if (s.setup.kind === 'map') run.enterAct(s.setup.act);
+  else if (s.setup.kind === 'title') run.phase = 'title';
 }
 
 // ---------------------------------------------------------------- the Finisher gallery

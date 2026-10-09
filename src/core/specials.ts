@@ -2,7 +2,7 @@
 // of actions; each action is reusable by any enemy: spawn a block formation, heal, shell (self or an ally),
 // summon, split, change the cursor, guard, enter a boss phase, protection while summons live; and the bar rules:
 // lay patches (ice, snowdrifts), slide them, turn yellows into holds, set a mirror shard, coat yellows in ice, make
-// every Nth yellow a hold, stripe the whole bar.
+// every Nth yellow a hold, stripe the whole bar; Region 4's: put yellows in the dark, dim the lantern, a surge of water.
 // Combat schedules the telegraphs (combat.ts updateSpecials); this file carries the actions out.
 
 import type { ActionDef, FormationEntry, SpecialDef } from '../data/types';
@@ -59,6 +59,7 @@ export function runAction(c: Combat, e: Enemy, a: ActionDef): void {
       e.holdEvery = Math.max(0, Math.round(a.holdEvery));
       e.driftEvery = Math.max(0, Math.round(a.driftEvery ?? 0));
       e.linkEvery = Math.max(0, Math.round(a.linkEvery ?? 0));
+      e.darkEvery = Math.max(0, Math.round(a.darkEvery ?? 0));
       return;
     case 'toDrift':
       return toDrift(c, a.count, a.speed, a.sec);
@@ -68,6 +69,16 @@ export function runAction(c: Combat, e: Enemy, a: ActionDef): void {
       return driftShift(c, a.mult, a.flip, a.sec);
     case 'stripes':
       return stripes(c, e, a.count, a.life, a.speed ?? 0);
+    // Region 4: the lantern and the tide (core/combat.ts)
+    case 'darken':
+      c.darken(Math.max(0, Math.round(a.count)));
+      return;
+    case 'snuff':
+      c.snuff(a.mult, Math.max(0, a.sec));
+      return;
+    case 'tide':
+      c.surgeTide(a.level, Math.max(0, a.sec), a.from);
+      return;
     case 'protect':
       if (!e.alive) return;
       e.protect = a.mult;
@@ -137,7 +148,7 @@ export function placeEntry(c: Combat, owner: Enemy, entry: FormationEntry, prev:
   if (pos === null) pos = c.freeSpot(w, 24);
   if (pos === null) return null;
   const drift = kind === 'yellow' && entry.drift && !entry.link ? entry.drift * (c.rand() < 0.5 ? -1 : 1) : 0;
-  return c.spawnBlock(kind, pos, owner.id, w, { life: entry.life, heal: entry.heal, special: true, drift });
+  return c.spawnBlock(kind, pos, owner.id, w, { life: entry.life, heal: entry.heal, special: true, drift, dark: !!entry.dark });
 }
 
 /** Where a spotted entry lands: where the cursor is heading, or a random spot clear of the other still blocks. */

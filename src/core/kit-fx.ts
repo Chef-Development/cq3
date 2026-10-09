@@ -24,7 +24,7 @@ export function nextBlockAhead(c: Combat, skip?: Block): Block | null {
   let best: Block | null = null;
   let bestD = Infinity;
   for (const b of c.blocks) {
-    if (b === skip || b.kind === 'purple' || b.kind === 'mirror') continue;
+    if (b === skip || b.kind === 'purple' || b.kind === 'mirror' || c.sunk(b)) continue; // (a block under water is out of reach)
     const near = b.pos - (dir * b.width) / 2;
     const d = (near - p) * dir;
     if (d > 0 && d < bestD) (best = b), (bestD = d);

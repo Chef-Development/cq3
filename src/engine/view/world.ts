@@ -691,6 +691,31 @@ export class WorldView {
     return !!this.picker;
   }
 
+  /** The keyboard's Escape: close the act picker, or put away the act's card or a land's note. False: nothing was up. */
+  escape(): boolean {
+    if (this.chosenAt) return false;
+    if (!this.picker && !this.sel && !this.info) return false;
+    this.picker = null;
+    this.sel = null;
+    this.info = null;
+    this.s.app.audio.uiClick();
+    return true;
+  }
+
+  /** The keyboard's focus ring: the open acts' landmarks on screen and Rowan's plate (drawn without a button). */
+  focusTargets(): Rect[] {
+    if (this.picker || this.chosenAt) return [];
+    const out: Rect[] = [];
+    for (let i = 0; i < WORLD_ACTS.length; i++) {
+      if (!this.actOpen(i) || i >= this.s.app.run.playableActs) continue;
+      const b = WORLD_ACTS[i].box;
+      out.push({ x: b.x - this.ox, y: b.y - this.oy, w: b.w, h: b.h });
+    }
+    const p = this.plate;
+    if (p.w) out.push({ x: p.x, y: p.y, w: p.w, h: p.h });
+    return out;
+  }
+
   /** The region (index into REGIONS) whose acts the open picker lists, or null (tests). */
   get pickerRegion(): number | null {
     return this.picker?.region ?? null;

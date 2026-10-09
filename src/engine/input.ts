@@ -7,13 +7,18 @@
 // a tap only dismisses it: never a bar tap, a finisher, or a press of whatever is under it.
 import { isSwipe, swipeAllowed } from '../core/swipe';
 import type { App } from './app';
-import { clientToGame } from './layout';
+import { installFocus } from './focus';
+import { fightLive, isTapKey, keyAction, noteKeyboardPlay } from './keys';
+import { clientToGame, GAME_H, GAME_W } from './layout';
 import type { FightScene } from './scene';
 import { inRect } from './view/shared';
 
+/** How long a press on the top middle takes to bring the hidden buttons back (the clean capture). */
+export const CAPTURE_HOLD_MS = 800;
+
 const inUi = (t: EventTarget | null): boolean => t instanceof Element && !!t.closest('[data-ui]');
 
-export function installInput(app: App, getScene: () => FightScene | null, ui: { togglePanel(): void; refreshHud(): void }): void {
+export function installInput(app: App, getScene: () => FightScene | null, ui: { togglePanel(): void; refreshHud(): void; toggleCapture(): void }): void {
   // A touch that might become a finisher swipe. Taps that land on a block are judged immediately; only a tap
   // that would miss is held back (until it's clearly not a swipe), so a swipe never costs you your stacks.
   let swipe: { id: number; x: number; y: number; ts: number; timer: number; held: boolean } | null = null;
@@ -85,7 +90,7 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
           else if (!scene.storyReveal()) app.storyNext();
           return;
         }
-        if (!app.canContinue) return app.newRun(); // nothing earned yet: a tap starts
+        if (!app.canContinue || app.inLab) return app.newRun(); // nothing earned yet (or the Test lab's look): a tap starts
         // Continue (keeps everything) or New game (tapped twice: erases everything); keyboard: Space/Enter continues
         const pick = clientX < 0 ? 'continue' : scene.titleTap(g.x, g.y);
         if (pick === 'continue') app.continueRun();
@@ -253,12 +258,28 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
     app.barRelease(ts);
   };
 
+  // The clean capture's way back: a long press where the gear button sits (the top middle) shows the buttons again.
+  let capHold: { id: number; x: number; y: number; timer: number } | null = null;
+  const capRelease = (e: PointerEvent, moved = false) => {
+    if (!capHold || e.pointerId !== capHold.id) return;
+    if (moved && Math.hypot(e.clientX - capHold.x, e.clientY - capHold.y) < 12) return;
+    window.clearTimeout(capHold.timer);
+    capHold = null;
+  };
+
   window.addEventListener(
     'pointerdown',
     (e) => {
       if (inUi(e.target)) return;
       e.preventDefault();
       app.audio.unlock();
+      if (document.documentElement.classList.contains('clean-capture')) {
+        const g = clientToGame(app.layout, e.clientX, e.clientY);
+        if (Math.abs(g.x - GAME_W / 2) < 32 && g.y < 22) {
+          if (capHold) window.clearTimeout(capHold.timer);
+          capHold = { id: e.pointerId, x: e.clientX, y: e.clientY, timer: window.setTimeout(() => ((capHold = null), ui.toggleCapture()), CAPTURE_HOLD_MS) };
+        }
+      }
       down(e.clientX, e.clientY, e.timeStamp, e.pointerId);
     },
     { passive: false },
@@ -271,11 +292,13 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
   };
 
   window.addEventListener('pointermove', (e) => {
+    capRelease(e, true);
     if (worldPointer(e, 'move') || campPointer(e, 'move')) return;
     if (swipeCheck(e)) fireSwipe();
   });
 
   window.addEventListener('pointerup', (e) => {
+    capRelease(e);
     app.audio.unlock();
     if (worldPointer(e, 'up') || campPointer(e, 'up')) return;
     lift(e.pointerId, e.timeStamp);
@@ -284,6 +307,7 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
     else resolveSwipeAsTap();
   });
   window.addEventListener('pointercancel', (e) => {
+    capRelease(e);
     if (worldPointer(e, 'cancel') || campPointer(e, 'cancel')) return;
     lift(e.pointerId, e.timeStamp);
     if (swipe && e.pointerId === swipe.id) resolveSwipeAsTap();
@@ -308,24 +332,116 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
   document.addEventListener('contextmenu', block);
   document.addEventListener('selectstart', block);
 
-  // Desktop testing: Space/J/K = tap (held down on a hold block: released on key up), F/Up = finisher, P/Esc = pause,
-  // ` = tuning panel.
+  // ---- desktop: the keyboard (engine/keys.ts says which key does what) and the focus ring (engine/focus.ts)
+  const ring = installFocus(() => focusExtras(app, getScene()), () => app.layout);
+  const KEY_ID = -2; // the keyboard's "pointer"
+  /** A tap at a game point from the keyboard (the focused button's centre): the same route as a finger, pressed and
+   *  let go in place (the world map and the hero select judge a press when it's let go). */
+  const tapAt = (gx: number, gy: number, ts: number) => {
+    const l = app.layout;
+    const cx = l.left + (gx * l.cssW) / GAME_W;
+    const cy = l.top + (gy * l.cssH) / GAME_H;
+    down(cx, cy, ts, KEY_ID);
+    const scene = getScene();
+    const now = performance.now();
+    if (worldPress === KEY_ID) {
+      worldPress = null;
+      if (scene && app.run.phase === 'world') scene.worldMap.releaseAt(gx, gy, now);
+    }
+    if (campPress === KEY_ID) {
+      campPress = null;
+      if (scene && app.run.phase === 'camp') scene.campReleaseAt(gx, gy, now);
+    }
+  };
+  const togglePause = () => {
+    if (app.run.phase !== 'fight') return;
+    app.userPaused = !app.userPaused;
+    app.syncClock(performance.now());
+    ui.refreshHud();
+  };
+  /** Escape: back out of what's up (a scene is skipped, a sheet or a camp screen closes, the picker or card goes). */
+  const back = (ts: number) => {
+    const scene = getScene();
+    if (!scene) return;
+    if (app.tipUp) return scene.tips.tap(performance.now());
+    if (app.storyOverlay || app.run.phase === 'scene') return app.storySkip();
+    const ph = app.run.phase;
+    if (ph === 'fight') return togglePause();
+    if (ph === 'world') {
+      scene.worldMap.escape();
+      return;
+    }
+    if (ph === 'camp') {
+      const c = scene.camp;
+      // a sub-screen's Back (a sheet open on it closes first: a tap anywhere closes a sheet); the home's way out
+      const r = c.mode === 'home' ? c.band().find((b) => b.id === 'leave')?.r : c.kit.backRect();
+      if (r) tapAt(r.x + r.w / 2, r.y + r.h / 2, ts);
+    }
+  };
+
   window.addEventListener('keydown', (e) => {
-    if (e.repeat || inUi(e.target)) return;
+    // a HUD button clicked with the mouse keeps the focus: the keys are the game's again (Space must not re-click it)
+    if (e.target instanceof HTMLElement && e.target.closest('#hud')) e.target.blur();
+    else if (inUi(e.target)) return;
+    const scene = getScene();
+    const live = fightLive({
+      phase: app.run.phase,
+      paused: app.userPaused || (app.panelOpen && !app.playWhilePanelOpen),
+      awaitingBegin: app.awaitingBegin,
+      tipUp: app.tipUp,
+      story: !!app.storyOverlay,
+      intro: performance.now() < app.introUntil,
+      gallery: !!scene?.gallery.active,
+    });
+    const act = keyAction(e.key, live ? 'fight' : 'menu', { shift: e.shiftKey, ctrl: e.ctrlKey, alt: e.altKey, meta: e.metaKey });
+    if (!act) return;
+    e.preventDefault();
+    // (a key held down repeats: only the arrows and Tab move on while held)
+    if (e.repeat && !['left', 'right', 'up', 'down', 'next', 'prev'].includes(act)) return;
     app.audio.unlock();
-    const k = e.key;
-    if (k === ' ' || k === 'j' || k === 'k' || k === 'Enter') {
-      e.preventDefault();
-      if (app.run.phase === 'fight' && !app.userPaused && !app.awaitingBegin && !app.tipUp && !getScene()?.gallery.active) pressed(-2, app.barTap(e.timeStamp));
-      else down(-1, -1, e.timeStamp, -1);
-    } else if (k === 'f' || k === 'ArrowUp') app.finisher();
-    else if (k === 'p' || k === 'Escape') {
-      app.userPaused = !app.userPaused;
-      app.syncClock(performance.now());
-      ui.refreshHud();
-    } else if (k === '`') ui.togglePanel();
+    switch (act) {
+      case 'tap':
+        ring.hide();
+        noteKeyboardPlay();
+        pressed(KEY_ID, app.barTap(e.timeStamp));
+        return;
+      case 'finisher':
+        app.finisher();
+        return;
+      case 'pause':
+        return togglePause();
+      case 'panel':
+        return ui.togglePanel();
+      case 'capture':
+        return ui.toggleCapture();
+      case 'back':
+        ring.hide();
+        return back(e.timeStamp);
+      case 'press': {
+        const at = ring.current();
+        if (at) return tapAt(at.x, at.y, e.timeStamp);
+        down(-1, -1, e.timeStamp, -1); // no ring: the screen's default (Continue, the first choice, begin...)
+        return;
+      }
+      default:
+        ring.move(act);
+    }
   });
   window.addEventListener('keyup', (e) => {
-    if (e.key === ' ' || e.key === 'j' || e.key === 'k' || e.key === 'Enter') lift(-2, e.timeStamp);
+    if (isTapKey(e.key)) lift(KEY_ID, e.timeStamp);
   });
+  // a mouse or a finger takes over: the ring goes
+  window.addEventListener('pointerdown', () => ring.hide(), { capture: true });
+}
+
+/** The targets a screen draws without a button: the act map's reachable nodes, the world map's landmarks, the boost
+ *  pick's cards. */
+function focusExtras(app: App, scene: FightScene | null): Array<{ x: number; y: number; w: number; h: number }> {
+  if (!scene) return [];
+  const run = app.run;
+  if (run.phase === 'map' && !app.storyOverlay) return run.choices().map((id) => scene.mapView.nodeBox(run.map.nodes[id]));
+  if (run.phase === 'world') return scene.worldMap.focusTargets();
+  // the boost pick's cards (drawn as cards, not buttons)
+  if (run.phase === 'boost' && !scene.overlays.unlockActive()) return run.boostChoices.map((_, i) => scene.overlays.cardRect(i));
+  return [];
 }

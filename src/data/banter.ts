@@ -1,6 +1,6 @@
 // Camp banter (plain data, no logic): one-line quips Rowan, Pip and Sable trade by the fire. The camp home shows one
 // now and then while it sits idle (src/engine/view/camp.ts), in a small speech bubble over whoever says it.
-// Tone: cheeky and light, like the story scenes. `sable`: only once Sable has joined (their own lines always are).
+// Tone: cheeky and light (the comedy lives here and in the heroes' arrivals; the plot scenes are earnest). `sable`: only once Sable has joined (their own lines always are).
 // tests/unit/data.test.ts checks every line fits its bubble (two short lines at most).
 
 export type BanterSpeaker = 'rowan' | 'pip' | 'sable';
@@ -13,7 +13,7 @@ export interface BanterLine {
 }
 
 export const BANTER: BanterLine[] = [
-  { who: 'rowan', text: 'Still tired from the end of time.' },
+  { who: 'rowan', text: 'Still tired. Saving a kingdom is work.' },
   { who: 'rowan', text: "My armor squeaks. It's called charm." },
   { who: 'rowan', text: 'Pip, stop eating the trail rations.' },
   { who: 'rowan', text: 'One more act. Then a very long nap.' },
@@ -33,6 +33,17 @@ export const BANTER: BanterLine[] = [
   { who: 'sable', text: 'I only stole one spoon. Today.' },
   { who: 'pip', text: 'Hoo. Rowan, count the coins.', sable: true },
   { who: 'rowan', text: "Sable, that's my sword. Again.", sable: true },
+  // round 8: the living map (no spoilers: only what the first act tells)
+  { who: 'rowan', text: "Can't be erased. Can be hungry." },
+  { who: 'rowan', text: "If he redraws dinner, I'm upset." },
+  { who: 'pip', text: "Owls can't draw maps. No thumbs." },
+  { who: 'pip', text: 'Maps never sleep. Neither do owls.' },
+  { who: 'sable', text: 'I miss my crooked alleys.' },
+  { who: 'sable', text: 'Draw my pockets shut? I riot.' },
+  { who: 'pip', text: 'Sable took the map. Again.', sable: true },
+  { who: 'rowan', text: 'Knights raised me. It shows.' },
+  { who: 'rowan', text: 'They found me on some steps. Soaked.' },
+  { who: 'pip', text: "I've known you a long time." },
 ];
 
 /** Everyone who can talk by the fire once the new heroes are in: the heroes, Pip, and Mags at her forge. */
@@ -202,4 +213,22 @@ HERO_BANTER.push(
   { who: 'pip', text: 'Hoo. Tess oiled my wings. Unasked.', with: ['tess'] },
   { who: 'tess', text: 'Gorm, dear. You sat on my tools.', with: ['gorm'] },
   { who: 'smith', text: 'Tess graded my forge. A C-minus!', with: ['tess'] },
+);
+
+// ---- round 8: each hero's home, which the Mapmaker redrew (docs/story-bible.md section 4; never a region's name)
+HERO_BANTER.push(
+  { who: 'neve', text: 'My observatory needs a dusting.' },
+  { who: 'moss', text: 'My trees miss their old neighbors.' },
+  { who: 'tam', text: 'I miss snow. And the BOOM.' },
+  { who: 'hollis', text: 'My sea wall is out there. Waiting.' },
+  { who: 'vesper', text: 'I miss real night. Stars. Quiet.' },
+  { who: 'torva', text: 'Rocks should STAY PUT! HA!' },
+  { who: 'solenne', text: "Our sun is stuck at noon. RUDE." },
+  { who: 'wren', text: 'My rooftops are in the fog. For now.' },
+  { who: 'yara', text: 'The spirits say my village dreams.' },
+  { who: 'dell', text: 'Square fields. Corn hates it.' },
+  { who: 'fizz', text: 'My lighthouse misses me. I know.' },
+  { who: 'brann', text: 'The abbey bell will ring. I wait.' },
+  { who: 'gorm', text: 'My stones sleep. I will wake them.' },
+  { who: 'tess', text: 'All my clocks stopped. Rude.' },
 );

@@ -114,7 +114,7 @@ export function boostLabel(t: Tuning, o: BoostOffer): [string, string] {
     case 'critDmg':
       return ['Crit Damage', `${signed(b.critDmg * m, one)}x`];
     case 'comboPower':
-      return ['Combo Power', signed(b.comboPower * m, one)];
+      return ['Finisher Might', signed(b.comboPower * m, one)];
     case 'pet':
       return ['Companion Power', signed(b.pet * m)];
     case 'heal':
@@ -199,7 +199,7 @@ export function boostPreview(t: Tuning, hero: Hero, offer: BoostOffer): BoostPre
     case 'critDmg':
       return { stat: 'Crit dmg', before: mult(s0.critDmg), after: mult(s1.critDmg) };
     case 'comboPower':
-      return { stat: 'Combo', before: one(s0.comboPower), after: one(s1.comboPower) };
+      return { stat: 'Might', before: one(s0.comboPower), after: one(s1.comboPower) };
     case 'pet': {
       const [a, b] = pair(s0.companion, s1.companion);
       return { stat: 'Companion', before: a, after: b };
@@ -245,7 +245,7 @@ export function skillStatPreview(t: Tuning, hero: Hero, nodeId: string): BoostPr
       return { stat: 'Meter', before: a, after: b };
     }
     case 'comboPower':
-      return { stat: 'Combo', before: one(s0.comboPower), after: one(s1.comboPower) };
+      return { stat: 'Might', before: one(s0.comboPower), after: one(s1.comboPower) };
   }
 }
 
