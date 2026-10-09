@@ -9,11 +9,13 @@
 //   skill_${id}   12x12 for every skill node; each branch has a look (Rowan: Blade steel and gold, Bulwark steel blue,
 //                 Momentum a cyan and violet swirl; Sable's old two-cursor tree: crossed daggers and red, smoky
 //                 purple, silver and teal, which her new tree borrows) and the capstones get a gold rim and glints.
-//                 The other heroes' nodes have stand-ins for now (skillIcon: their stat's icon, a rune, a star)
+//                 The other heroes' nodes without a map of their own: their stat's icon, else the emblem their name is
+//                 about (art-skill-emblems.ts), else a rune or a star
 import { RELIC_IDS, RELIC_TAGS, relicById } from '../data/relics';
 import { SKILL_NODES, type SkillNode, type SkillStat } from '../data/skills';
 import { grid, stamp, toCanvas, type Pal } from './art';
 import { ITEM_ICON_SIZE } from './art-gear';
+import { capstoneOf, emblemFor, SKILL_EMBLEMS } from './art-skill-emblems';
 
 type Add = (key: string, canvas: HTMLCanvasElement) => void;
 
@@ -1053,6 +1055,9 @@ function skillIcon(node: SkillNode): string[] {
   const own = SKILL_ICONS[node.id] ?? SKILL_ICONS[SKILL_ICON_ALIAS[node.id] ?? ''];
   if (own) return own;
   if (node.kind === 'stat' && node.stat) return SKILL_ICONS[STAT_ICON[node.stat]];
+  // the emblem its name is about (art-skill-emblems.ts); a capstone's gets gold corners
+  const em = emblemFor(node.id, node.name);
+  if (em) return node.kind === 'capstone' ? capstoneOf(SKILL_EMBLEMS[em]) : SKILL_EMBLEMS[em];
   return KIND_ICON[node.kind === 'capstone' ? 'capstone' : 'rule'];
 }
 
@@ -1145,4 +1150,204 @@ Object.assign(SKILL_ICONS, {
   chokingSmoke: ['..{}~.....', '.{}~~}....', '{}~~~~}...', '.{}}}}.qq.', '......rqqr', '..{}..rqqR', '.{}~}.RrrR', '..{}...RR.', '..........', '..........'],
   // capstone: an eye clouded with smoke
   blindingSmoke: ['G.gggggg.G', '.g{}~~}.g.', 'g{}~~~~}.g', 'g.555554.g', 'g54WkkW45g', 'g54WkkW45g', 'g.455544.g', 'g.{}~~}..g', '.y.{}}..y.', 'G.yyyyyy.G'],
+});
+
+// ---- the Frostpeaks' relics (playtest round 8, the art audit: they showed a stand-in snowflake or rail): each its own
+// picture, in the ice (cyan), hold (steel and leather) and second tag's colours
+Object.assign(RELIC_ICONS, {
+  // an ice skate: a leather boot on a steel blade
+  skateBlades: [
+    '.hhH......',
+    '.hHJh.....',
+    '.hHJh.....',
+    '.hHJhh....',
+    '.hHHJJhh..',
+    '.hhHHHHhh.',
+    '..dddddd..',
+    '..4..3.3..',
+    '5444444432',
+    '..........',
+  ],
+  // a stone tablet with a frost rune cut in it, glowing cyan
+  frostRune: [
+    '.44444433.',
+    '4433333332',
+    '43T3T3T332',
+    '433TTT3332',
+    '43TTWTT332',
+    '433TTT3332',
+    '43T3T3T332',
+    '4333333322',
+    '.33222222.',
+    '..........',
+  ],
+  // a red mug of cocoa, steam curling up
+  hotCocoa: [
+    '..;...;...',
+    '...;...;..',
+    '..;...;...',
+    '.qqqqqq...',
+    '.qhhhhqRR.',
+    '.qrrrrrR.R',
+    '.qrrrrrR.R',
+    '.qrrrrrRRR',
+    '.rrrrrRR..',
+    '..RRRRR...',
+  ],
+  // a hammer coming down on a block of ice
+  icebreaker: [
+    '...45533..',
+    '...45532..',
+    '....hH....',
+    '....hH....',
+    '...hH.....',
+    '..hH......',
+    '.TT.TT.T..',
+    'TWTTWTCTC.',
+    'TWTCTCCCC.',
+    '.CCCCCcc..',
+  ],
+  // a plough's blade pushing a drift of snow
+  snowplow: [
+    '..........',
+    '....]]]...',
+    '..]]]]]]..',
+    '.]]]]]]]]4',
+    ']]]]]]]]45',
+    ']]]]]]]453',
+    '.)))))4532',
+    '..)))4532.',
+    '....4532..',
+    '...1111...',
+  ],
+  // a heart of blue ice, a white glint
+  glacierHeart: [
+    '.TT...TT..',
+    'TWWT.TTtC.',
+    'TWTTTTttC.',
+    'TTTTTttCC.',
+    'TTTTttCCC.',
+    '.TTttCCCC.',
+    '..TtCCCc..',
+    '...tCCc...',
+    '....Cc....',
+    '..........',
+  ],
+  // a fang, frost on its tip
+  frostbite: [
+    '.;;;;;;;:.',
+    '.;;;;;;:=.',
+    '..;;;;:=..',
+    '..;;;;:=..',
+    '...;;:=...',
+    '...;T:=...',
+    '...TTt....',
+    '....Tt....',
+    '....t.....',
+    '..........',
+  ],
+  // an ice cube melting into a green drop
+  melt: [
+    '.TTTTT....',
+    'TWWTTtC...',
+    'TWTTttC...',
+    'TTTttCC...',
+    'TTttCCC.f.',
+    '.tttCCc.E.',
+    '..CCcc.fEe',
+    '.......Eee',
+    '.......Nee',
+    '........N.',
+  ],
+  // a gloved hand gripping a steel bar
+  steadyGrip: [
+    '..........',
+    '....hhh...',
+    '...hHHHh..',
+    '..hHJJHh..',
+    '5444444443',
+    '4hHJJJHh32',
+    '..hHHHHh..',
+    '..hhhhhh..',
+    '...dddd...',
+    '..........',
+  ],
+  // a held music note: a long gold tail
+  longNote: [
+    '.....GGGGg',
+    '.....Gyyyg',
+    '.....g...g',
+    '.....g...g',
+    '.....g...g',
+    '..GGgg..gg',
+    '.GGggg.ggy',
+    '.Ggggy.gyy',
+    '..yyy..yy.',
+    '..........',
+  ],
+  // a knot of rope, pulled tight
+  holdFast: [
+    '..JJJJ....',
+    '.JjHHjJ...',
+    'JjH..HjJ..',
+    'jH....Hj..',
+    'jH...JJjJJ',
+    'jHJJJjjHHh',
+    '.jjjHHh...',
+    '..hHHh....',
+    '.hHh......',
+    'hHh.......',
+  ],
+  // a valve wheel on a pipe, red
+  releaseValve: [
+    '...qqqq...',
+    '..q.rr.R..',
+    '.q..rr..R.',
+    '.qrrrrrrR.',
+    '.q..rr..R.',
+    '..R.rr.R..',
+    '...RRRR...',
+    '....43....',
+    '.44444333.',
+    '.32222221.',
+  ],
+  // a tether: a rope from a ring to a hook
+  tether: [
+    '.3443.....',
+    '4....3....',
+    '4....3....',
+    '.3HJ2.....',
+    '...JH.....',
+    '....JH....',
+    '.....JH...',
+    '......JH4.',
+    '.......453',
+    '......32.3',
+  ],
+  // a red mitten with a clover on its back
+  luckyMitten: [
+    '..qqqq....',
+    '.qqrrrR...',
+    '.qrrrrR.R.',
+    '.qrEfrRrR.',
+    '.qrfEerrR.',
+    '.qrreerRR.',
+    '.qrrrrRR..',
+    '.QQQQQQ...',
+    '.:::::=...',
+    '..........',
+  ],
+  // a boot's crampon: a steel frame of spikes
+  crampons: [
+    '..........',
+    '.hhHHHh...',
+    '.hHJJJHhh.',
+    '.hHHHHHHh.',
+    '.dddddddd.',
+    '.44444443.',
+    '.4.4.4.43.',
+    '.3.3.3.32.',
+    '.2.2.2.2..',
+    '..........',
+  ],
 });
