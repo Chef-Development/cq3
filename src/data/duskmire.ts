@@ -48,7 +48,7 @@ export const DUSKMIRE: RegionDef = {
         [['reedling'], ['bogWisp', 'mireToad']],
         [['mireToad', 'mireToad'], ['reedling', 'bogWisp']],
       ],
-      bar: { dark: { share: 0.3, fromRow: 2, traps: 0.2 } },
+      bar: { dark: { share: 0.3, fromRow: 2, traps: 0.12 } },
       weights: { fight: 0.46, elite: 0.1, treasure: 0.1, rest: 0.1, shop: 0.1, event: 0.14 },
     },
     {
@@ -72,7 +72,7 @@ export const DUSKMIRE: RegionDef = {
         [['lamplighter'], ['mudskipper', 'stiltHeron']],
         [['stiltHeron', 'bogWisp'], ['lamplighter', 'reedling']],
       ],
-      bar: { tide: { fromRow: 1, low: 0.06, high: 0.36, period: 10, from: 'right' }, dark: { share: 0.15, fromRow: 3, traps: 0.2 } },
+      bar: { tide: { fromRow: 1, low: 0.06, high: 0.36, period: 10, from: 'right' }, dark: { share: 0.15, fromRow: 3, traps: 0.12 } },
       weights: { fight: 0.46, elite: 0.12, treasure: 0.09, rest: 0.1, shop: 0.09, event: 0.14 },
     },
     {
@@ -96,7 +96,7 @@ export const DUSKMIRE: RegionDef = {
         [['bogHag'], ['inkEel', 'mudskipper']],
         [['duskMoths', 'stiltHeron'], ['bogHag', 'inkEel']],
       ],
-      bar: { dark: { share: 0.3, fromRow: 0, traps: 0.25 }, tide: { fromRow: 0, low: 0.08, high: 0.4, period: 10.5, from: 'right' } },
+      bar: { dark: { share: 0.3, fromRow: 0, traps: 0.15 }, tide: { fromRow: 0, low: 0.08, high: 0.4, period: 10.5, from: 'right' } },
       weights: { fight: 0.46, elite: 0.12, treasure: 0.09, rest: 0.1, shop: 0.09, event: 0.14 },
     },
   ],
