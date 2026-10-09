@@ -38,7 +38,7 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | **Cinder lair** (`maplair_cinder`) | 3 | A flat stepped block with stripes: no volume or light, unlike the other lairs. |
 | Critters, map icons | 4 | |
 | Item icons | 5 | |
-| **Relic icons** | 3 | About 15 relics share generic glyphs (a rail, a snowflake), so the icon doesn't say what the relic does. |
+| **Relic icons** | 3 | The Frostpeaks' 15 relics share stand-in glyphs (a rail, a snowflake), so the icon doesn't say what the relic does. |
 | **Skill icons** | 2 | About half of the 240 skill nodes reuse a generic purple up-arrow or a gold frame. |
 | Tag icons | 4 | |
 | Backdrops: forest, hollow | 5 | Layers, light shafts, calm ground. |
@@ -58,7 +58,7 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 
 1. Skill icons (2, now 3): about half were generic; now themed emblems, still repeated within a tree.
 2. World map veils (2): placeholder fog. Part of the Great Atlas rework of the world map.
-3. Relic icons sharing generic glyphs (3).
+3. Relic icons sharing generic glyphs (3): done, the Frostpeaks' 15 painted.
 4. Rowan's fight frames (3): off the rig, missing poses; the starter hero.
 5. The dark Ashfell foes (3): value contrast against their backdrops.
 6. The glass and forge backdrops (3): flat; part of the lighting pass per region.
@@ -71,4 +71,5 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Item | Before | After | Notes |
 | --- | --- | --- | --- |
 | Skill icons | 2 | 3 | `after/sheet-icons-skills.png`. The 127 rule nodes and capstones without a painted icon now show the emblem their name is about (15 emblems: smoke, ice, thorns, bomb, flame, shield, arrow, rock, fist, hourglass, bell, sun, clover, dagger, moon; gold corners on capstones; `art-skill-emblems.ts`, unit-tested). Two keep the rune. Still to do: painted icons per node (a hero's tree repeats its theme's emblem). |
+| Relic icons (the Frostpeaks' 15) | 3 | 4 | `after/sheet-icons-relics-items.png`. Each its own picture (a skate, a frost rune, cocoa, a hammer on ice, a plough in snow, an ice heart, a frosted fang, a melting cube, a grip, a held note, a knot, a valve, a tether, a lucky mitten, crampons) instead of a stand-in snowflake or rail. |
 | Title screen, logo, key art | 3 | 4 | `before/title-phone.png`; `after/title-phone.png`, `after/title-desktop.png`, `after/title-continue.png`. The Atlas spread open: an inked parchment map, colour come back round the hero, fog over the erased east, a quill drawing the route; the logo built from `GAME_NAME` (Scale3x lettering, gold face, rim light, extrusion, ink outline). |
