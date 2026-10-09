@@ -434,11 +434,14 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
   window.addEventListener('pointerdown', () => ring.hide(), { capture: true });
 }
 
-/** The targets a screen draws without a button: the act map's reachable nodes, the world map's landmarks. */
+/** The targets a screen draws without a button: the act map's reachable nodes, the world map's landmarks, the boost
+ *  pick's cards. */
 function focusExtras(app: App, scene: FightScene | null): Array<{ x: number; y: number; w: number; h: number }> {
   if (!scene) return [];
   const run = app.run;
   if (run.phase === 'map' && !app.storyOverlay) return run.choices().map((id) => scene.mapView.nodeBox(run.map.nodes[id]));
   if (run.phase === 'world') return scene.worldMap.focusTargets();
+  // the boost pick's cards (drawn as cards, not buttons)
+  if (run.phase === 'boost' && !scene.overlays.unlockActive()) return run.boostChoices.map((_, i) => scene.overlays.cardRect(i));
   return [];
 }
