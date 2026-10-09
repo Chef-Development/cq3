@@ -81,10 +81,11 @@ one at a time.
    fortress and the crown; the farmers sleep in blank fields until the crown breaks.)
 8. **Edits mid-fight.** When a keystone is threatened, Ambrose arrives in person and redraws the fight around it.
    Every boss phase is one of his edits (one per phase). He is not the boss; he is the hand behind it.
-9. **One step ahead.** He redraws the next region the night the last one is restored, so Rowan always arrives a
-   few days after a land changed: its people still remember how it was (the clocks stopped "days ago", the lanterns
-   "went out last night"). Greenmarch, on the night of the intro, is his first redraw on the continent; the far isles
-   were scraped bare before that, out of sight.
+9. **He works inward.** First the far isles, scraped bare out of sight; then, over the weeks before the story, the
+   continent's outer lands (the plateau, the fen, the volcano, the mountains); Greenmarch last, on the night of the
+   intro, and lightly, because it was his home (a seed for section 6). So every land Rowan reaches has been redrawn
+   for a while (the clocks stopped "weeks ago"), and a hero from any land can turn up at camp from the start. Each
+   restoration sends Ambrose to the next land to defend it, and he is waiting there.
 10. **The fog beyond the sea.** Before the game begins he scraped the seven isles beyond the sea bare for ink: that is
    the blank in the far sea. As Rowan restores the continent, Ambrose falls back to the isles and begins drawing his
    new world on the blank. A far isle's fog **thins** when he starts drawing there and **lifts** when his draft is
@@ -322,12 +323,13 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
 ### Region 1: Greenmarch (acts: Meadow Road, Old Ruins, Boar King's Hollow)
 - **Original:** the kingdom's green heart round Meridian: crooked lanes, hedgerows, wild woods, a ruined fortress, a
   great hollow tree in the deep wood. Untidy and lovely.
-- **His redraw (his first draft):** he straightened the Meadow Road ("a crooked road gets people lost"), drew the Old
+- **His redraw (his lightest, done last: it was home):** he straightened the Meadow Road ("a crooked road gets people lost"), drew the Old
   Ruins back into the fortress they were three hundred years ago (and woke its guardian), and gave the wild Hollow a
-  ruler: he drew a crown on the biggest boar in the wood ("a wild wood without a king is only chaos"). The night it
-  started, a sweep of blank came ashore from the far sea and the Meadow Road's farms fell asleep.
-- **Bar rules: the basics.** His first draft changes *things*, not rules: he's still learning what his ink can do.
-  Greenmarch fights the way the First Hand drew the world, which is why it teaches the basics.
+  ruler: he drew a crown on the biggest boar in the wood ("a wild wood without a king is only chaos"). The night he
+  came, he scraped the Meadow Road's farms for the ink, and the farmers fell asleep where they stood.
+- **Bar rules: the basics.** In Greenmarch he changed *things*, never the rules: he couldn't bring himself to change
+  more of the land he grew up in. Greenmarch fights the way the First Hand drew the world, which is why it teaches the
+  basics. ("I was too gentle with Greenmarch. I always was.")
 - **Mini-bosses:** the Bandit Captain (robbing the sleeping farms: "A whole road asleep. Somebody has to collect.");
   the Ruin Golem (woken by the redraw, still obeying a king three hundred years dead: "THEN WHO WOKE ME?").
 - **Boss: the Boar King.** Keystone: the drawn crown (when he drew it, the boar learned to speak: crowns do that).

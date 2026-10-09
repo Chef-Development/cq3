@@ -56,7 +56,7 @@ export const ASH_STORY: Record<string, StoryBox[]> = {
   // Act 3 start: the forge on the volcano's rim, shaking with every blow
   ash3: [
     { who: 'narrator', text: "The Black Forge, on the volcano's rim.\nBANG. The whole mountain jumps. BANG." },
-    { who: 'rowan', text: 'Every blow, the ground slides. Nobody here\nhas slept in days.' },
+    { who: 'rowan', text: 'Every blow, the ground slides. Nobody here\nhas slept in weeks.' },
     { who: 'sable', text: 'Chains as thick as trees, glowing hot.\nWorth a fortune. Too heavy to steal.' },
     { who: 'pip', text: "The anvil's in there, and Bellows with it.\nAnd the volcano is getting restless." },
     { who: 'rowan', text: "Then we put the hammer down for him.\nGently, if he'll let us." },
@@ -88,6 +88,6 @@ export const ASH_STORY: Record<string, StoryBox[]> = {
     { who: 'rowan', text: 'Like this. Put the hammer down.\nThe chain is long enough.' },
     { who: 'mapmaker', text: 'The next lava flow will part their families.\nYou know that, knight.' },
     { who: 'rowan', text: "Then they'll choose where to go.\nYou don't get to choose for them." },
-    { who: 'pip', text: "He's gone south, to Lanternfen. Every lantern\nthere went out last night." },
+    { who: 'pip', text: "He's gone south, to Lanternfen. Nobody has\nlit a lantern there in a month." },
   ],
 };
