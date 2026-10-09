@@ -93,6 +93,9 @@ The same three seeds, same bot, after F1-F3 (the first finisher's reveal adds 1.
 | Taps to the chest | 73 (was 127) | 69 (was 65) | 76 (was 344) |
 | Tips before the chest | 7 (was 12) | 6 (was 7) | 6 (was 18) |
 
+A struggling newcomer (`F10_ACC=0.55`, seed 7) wins the first fight too: first finisher 1:03, first win 1:21, first
+chest 1:34, 86 taps.
+
 Over 2,000 Act 1 maps the first chest is now offered right after the first fight on every map (it was 22%; 24% had
 none in Act 1). A newcomer who takes it opens it at about 1:25-1:30, after one fight; the first five minutes now hold
 the story, the first fight with its five lessons and the named first finisher, the first chest, and a second fight.
