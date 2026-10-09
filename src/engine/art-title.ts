@@ -1,7 +1,8 @@
 // The title's key art (docs/art-style.md, "The Atlas"): the Great Atlas spread open under lamplight. A parchment map
 // drawn in ink (a coast with ripple lines, a river, forests, mountains, villages, a castle, a compass rose, a double
 // neatline), with colour bleeding out like watercolour round the spot where the hero stands (the drawing come alive)
-// and fog at the right and top edges where the land was erased (the lines fade, break and vanish into it).
+// and fog at the right and top edges where the land was erased (the lines fade and break into it; in the blank only
+// their impression is left, pale dents in the vellum).
 // Also the logo, generated from GAME_NAME (src/data/brand.ts) so a rename just works: the bold font's letters scaled
 // 3x with Scale3x rounding, a gold face with a horizon band, a cream rim light on the top-left edges, a deep extrusion
 // toward the bottom right, a 2 px ink outline; a leading article ("The") set small above, flanked by ink flourishes.
@@ -174,8 +175,15 @@ function paintAtlas(): HTMLCanvasElement {
     x = Math.round(x);
     y = Math.round(y);
     const f = fogness(x, y);
-    if (f > 0.72) return;
-    if (f > 0.42 && hash(x, y, 9) < (f - 0.42) * 2.6) return;
+    // erased land keeps the impression: the dent of every line once pressed into the vellum, pale, lit from the
+    // top left (story-bible section 2, rule 5)
+    if (f > 0.72 || (f > 0.42 && hash(x, y, 9) < (f - 0.42) * 2.6)) {
+      if (f > 0.5) {
+        p.set(x, y, FOG[2]);
+        if (p.get(x - 1, y - 1) === FOG[3] || p.get(x - 1, y - 1) === FOG[2]) p.set(x - 1, y - 1, 0xf8f6fa);
+      }
+      return;
+    }
     p.set(x, y, f > 0.3 ? AINK[2] : col);
   };
   const line = (x0: number, y0: number, x1: number, y1: number, col = AINK[1], dash = 0) => {
@@ -517,7 +525,8 @@ function paintFog(w: number, h: number, f: (x: number, y: number) => number, see
       const slope = at(x - 2, y - 2) - at(x + 2, y + 2);
       let col = v > 0.9 ? FOG[3] : FOG[2];
       if (slope > 0.12) col = FOG[3];
-      else if (slope < -0.16) col = v > 0.8 ? FOG[2] : FOG[1];
+      else if (slope < -0.3 && v < 0.8) col = FOG[1];
+      else if (slope < -0.12) col = FOG[2];
       p.set(x, y, col);
     }
   return p.canvas((x, y, col) => (col === FOG[1] ? 0.75 : clamp01(0.55 + at(x, y) * 0.5)));
