@@ -773,6 +773,11 @@ S3. **Keystones replace weights.** Each region's boss keeps the keystone of his 
 S4. **Region 4 is named Lanternfen** (id stays `duskmire`): a lantern-lit fen he turned to endless, unlit dusk with a
     leashed tide (dark blocks, tides). Boss suggestion for Team 3: Mirewick, the Fen Angler.
 
+S5. **The game is called The Unerased** (short form "Unerased"): it names Rowan's mystery without its answer, and no game
+    or app by that name turned up. Runner-up: The Living Map (clear, but descriptive and close to a mapping-software
+    brand). Shortlist, searches and sources: `docs/names.md`. `src/data/brand.ts`, the page title and the install name
+    follow it.
+
 (story: end of section)
 
 
