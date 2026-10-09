@@ -218,6 +218,14 @@ shows on its target.
 | `goldRivets` | relic: Gold Rivets | coins pop out of what dropped them into the coin counter (from: pos) |
 | `snapBack` | relic: Snap Back | a box flashes out of the block it touched |
 | `hairTrigger` | relic: Hair Trigger | its HP cost on the hero (violet) |
+| `wickTrimmer` | relic: Wick Trimmer (Region 4, not offered yet) | a box flashes out of the block it touched; brackets close in on its foe |
+| `lanternOil` | relic: Lantern Oil (Region 4) | a box flashes out of the dark block the light reached; sparks off the meter |
+| `glowWorms` | relic: Glow Worms (Region 4) | coins pop out of what dropped them into the coin counter (from: pos) |
+| `emberJar` | relic: Ember Jar (Region 4) | a box flashes where the dark trap burned away |
+| `wadingBoots` | relic: Wading Boots (Region 4) | heal stars twinkle up round the hero, +N there |
+| `driftwood` | relic: Driftwood (Region 4) | a box flashes out of the block it touched; brackets close in on its foe |
+| `tidepool` | relic: Tidepool (Region 4) | coins pop out of what dropped them into the coin counter (from: pos) |
+| `moonpull` | relic: Moonpull (Region 4) | a box flashes on the red it knocked back |
 | `followThrough` | skill: Follow-Through | a bolt from the foe just hit on to the next |
 | `whetstone` | skill: Whetstone | a box flashes out of the block it touched; brackets close in on its foe |
 | `executioner` | skill: Executioner | a box flashes out of the block it touched; brackets close in on its foe |
