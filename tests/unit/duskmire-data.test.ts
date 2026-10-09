@@ -6,6 +6,10 @@ import { describe, expect, it } from 'vitest';
 import { DUSKMIRE, DUSK_FIRST_ACT, DUSK_STAND_IN, DUSK_THEMES } from '../../src/data/duskmire';
 import { DUSK_ENEMIES, DUSK_NEW_SOUNDS } from '../../src/data/enemies-dusk';
 import { DUSK_STORY } from '../../src/data/story-dusk';
+import { DUSK_BANTER, DUSK_SCENE_ACT } from '../../src/data/banter-dusk';
+import { DUSK_BASE_ITEMS, DUSK_EFFECTS, DUSK_SETS, DUSK_SIGNATURES } from '../../src/data/gear-dusk';
+import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
+import { BASE_ITEMS, EFFECTS, SETS, SLOTS } from '../../src/data/gear';
 import { ASHFELL } from '../../src/data/ashfell';
 import { ENEMIES } from '../../src/data/enemies';
 import { ALL_ACTS } from '../../src/data/regions';
@@ -191,5 +195,74 @@ describe('Region 4: the foes', () => {
               expect(gap / Math.max(at(p).closing, at(q).closing), `${name}: reds ${i} and ${j} too close`).toBeGreaterThanOrEqual(0.16);
             }
         }
+  });
+});
+
+describe('Region 4: gear and banter', () => {
+  it("gear: unique ids and names new to the game, every slot covered, a set and the boss's two signature Legendaries", () => {
+    const ids = DUSK_BASE_ITEMS.map((b) => b.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const oldIds = new Set(BASE_ITEMS.map((b) => b.id));
+    const oldNames = new Set(BASE_ITEMS.map((b) => b.name));
+    const widestName = Math.max(...BASE_ITEMS.map((b) => textWidth(b.name, 1, true)));
+    for (const b of DUSK_BASE_ITEMS) {
+      expect(oldIds.has(b.id), b.id).toBe(false);
+      expect(oldNames.has(b.name), b.name).toBe(false);
+      expect([9, 10, 11], b.id).toContain(b.act);
+      expect(textWidth(b.name, 1, true), b.name).toBeLessThanOrEqual(widestName);
+    }
+    const plain = DUSK_BASE_ITEMS.filter((b) => !b.set && !b.signature);
+    expect(plain.length).toBeGreaterThanOrEqual(10);
+    for (const slot of SLOTS) expect(plain.some((b) => b.slot === slot), slot).toBe(true);
+    for (const [id, set] of Object.entries(DUSK_SETS)) {
+      expect(id in SETS, id).toBe(false);
+      const pieces = set.pieces.map((p) => DUSK_BASE_ITEMS.find((b) => b.id === p));
+      for (const [i, p] of pieces.entries()) expect(p?.set, set.pieces[i]).toBe(id);
+      expect(new Set(pieces.map((p) => p?.slot)).size).toBe(pieces.length);
+    }
+    const widestEffect = Math.max(...Object.values(EFFECTS).map((e) => textWidth(e.text, 1, false)));
+    for (const [id, e] of Object.entries(DUSK_EFFECTS)) {
+      expect(id in EFFECTS, id).toBe(false);
+      expect(textWidth(e.text, 1, false), e.text).toBeLessThanOrEqual(widestEffect);
+    }
+    for (const [boss, items] of Object.entries(DUSK_SIGNATURES)) {
+      expect(DUSK_ENEMIES[boss]?.boss, boss).toBe(true);
+      expect(items).toHaveLength(2);
+      for (const it of items) {
+        const b = DUSK_BASE_ITEMS.find((x) => x.id === it);
+        expect(b?.signature?.boss, it).toBe(boss);
+        expect(DUSK_EFFECTS[b!.signature!.effect]).toBeDefined();
+      }
+    }
+  });
+
+  it('banter lines fit the bubble, are new, wait for a Region 4 scene, and need whoever they name', () => {
+    const BUBBLE_W = 104;
+    const wrap = (s: string): string[] => {
+      const out: string[] = [];
+      let cur = '';
+      for (const w of s.split(' ')) {
+        const t = cur ? `${cur} ${w}` : w;
+        if (!cur || textWidth(t, 1, false) <= BUBBLE_W) cur = t;
+        else {
+          out.push(cur);
+          cur = w;
+        }
+      }
+      return [...out, cur];
+    };
+    const old = new Set([...BANTER, ...HERO_BANTER].map((l) => l.text));
+    const everyone: CampSpeaker[] = ['rowan', 'pip', 'sable', 'smith', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva', 'solenne', 'wren'];
+    for (const l of DUSK_BANTER) {
+      expect(old.has(l.text), l.text).toBe(false);
+      expect(DUSK_STORY[l.after], `${l.text}: after ${l.after}`).toBeDefined();
+      expect(DUSK_SCENE_ACT[l.after], l.after).toBeDefined();
+      const lines = wrap(l.text);
+      expect(lines.length, l.text).toBeLessThanOrEqual(2);
+      for (const x of lines) expect(textWidth(x, 1, false), l.text).toBeLessThanOrEqual(BUBBLE_W);
+      const needs = [l.who, ...(l.with ?? [])];
+      for (const k of everyone) if (new RegExp(`\\b${SPEAKER_NAME[k]}\\b`).test(l.text)) expect(needs, l.text).toContain(k);
+    }
+    for (const id of Object.keys(DUSK_STORY)) expect(DUSK_SCENE_ACT[id], id).toBeDefined();
   });
 });

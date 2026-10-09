@@ -833,13 +833,16 @@ Block). Hook points (core/hooks.ts, built): `lit`, `lightReach`, `surfaced` (wit
 (relic-ui.ts, relic-log.ts), an icon each, numbers into `tuning.relics.n`, an entry each in view/perk-at.ts, and
 `DUSK_RELIC_HOOKS` into RELIC_HOOKS; the cautious bot's `avoid` list should take Blindfold and Moonpull.
 
-### Gear
-Bases: Reed Spear, Lantern Mace, Peat Maul (weapons); Wick Hood, Snapper Helm (helms); Oilskin Coat, Shellplate
-(armor); Waders, Stilt Boots (boots); Firefly Jar, Tide Pearl (trinkets).
+### Gear (`src/data/gear-dusk.ts`, not merged yet)
+Bases: Reed Spear, Lantern Mace, Peat Maul (weapons); Moss Cowl, Snapper Helm (helms); Reed Mail, Shellplate (armor);
+Stilt Boots, Mud Treads (boots); Wisp Charm, Tide Pearl (trinkets).
 Set: **Lamplighter's** (Wick Hood, Oilskin Coat, Waders, Firefly Jar): 2-piece +20% damage on dark blocks; 4-piece
-blocking a red in the water heals 2% HP.
-Signature Legendaries (the Lighthouse): **Sunlamp** (trinket, *Daybreak*: the lantern reaches 50% further and lit
-blocks crit their first hit), **Breaker's Edge** (weapon, *Riptide*: hits on blocks that just surfaced deal x3).
+blocking a red in the water heals 2% HP (needs core at wiring, beside the Emberwright set's).
+Signature Legendaries (the Lighthouse): **Sunlamp** (trinket, *Daybreak*: your light reaches 50% further: a
+`lightReach` hook), **Breaker's Edge** (weapon, *Riptide*: blocks just out of the water take x3: `surfacedAt`).
+
+### Camp banter (`src/data/banter-dusk.ts`, not merged yet)
+10 lines, each waiting for a Region 4 scene (`after`), none naming the mapmaker until the story team names him.
 
 ### Music (each piece: a distinct key, tempo and instruments, unlike Regions 1-3 and each other)
 | Piece | Key | Tempo | Instruments / feel |
