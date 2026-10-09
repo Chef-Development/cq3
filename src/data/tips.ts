@@ -243,6 +243,10 @@ export const TIPS: readonly TipDef[] = [
 
 export const TIP_IDS: readonly TipId[] = TIPS.map((t) => t.id);
 
+/** The first finisher in the game is revealed by name before its show (view/finisher-reveal.ts): its one-time mark in
+ *  profile.seen. The Test lab's profiles have it seen unless a scenario teaches the finisher (its tips list it). */
+export const FINISHER_REVEAL = 'finisherReveal';
+
 export const isTipId = (v: unknown): v is TipId => typeof v === 'string' && (TIP_IDS as readonly string[]).includes(v);
 
 export const tipById = (id: string): TipDef | undefined => TIPS.find((t) => t.id === id);
