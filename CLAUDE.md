@@ -301,7 +301,18 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   big and chunky like the reference; pixel art, no smoothing. Safe areas (Dynamic Island left/right, home indicator) come from `env(safe-area-inset-*)`
   (see `src/engine/layout.ts`). iOS launches a home-screen app upright and turns it, with resize events that can be
   early or missing, so `main.ts` re-measures after any hint and on a 500 ms watch (`app.relayout()` is a no-op unless
-  the layout changed).
+  the layout changed; it rebuilds the scene only when the safe areas change, `sameGameLayout`: repainting every
+  texture costs a second or more, docs/perf.md).
+- **Desktop and keyboard** (round 8): mouse click = tap, mouse drag = the swipe. `engine/keys.ts` maps keys (pure,
+  `tests/unit/keys.test.ts`): in a live fight Space/J/K tap (judged at the key event's `timeStamp`, held = a hold),
+  F/Enter/Up the finisher, P/Esc pause; elsewhere arrows/Tab move a focus ring, Enter/Space press, Esc backs out;
+  ` the gear panel, C the clean capture. The ring (`engine/focus.ts`, order in `focus-nav.ts`) finds a screen's
+  buttons by itself: every button drawn asks `isPressed(rect)` (view/ui.ts), which notes the rect once a key has been
+  pressed; targets drawn without a button are added in `input.ts focusExtras` (map nodes, world landmarks, boost
+  cards): a new screen whose tap targets aren't buttons adds them there. A window with room gets a quiet frame round
+  the canvas (`layout.ts framed`/`applyFrame`). `tests/smoke/desktop.spec.ts` plays at 1440x900 with no touch.
+- **Clean capture** (`cq3.cleanCapture`, storage.ts): the gear panel's Modes or C hides the HUD buttons and the Test
+  lab's for recording clips; a long press on the top middle (or C) brings them back.
 - **Test lab** (`src/data/lab.ts` scenarios, `core/lab.ts` profiles/fights/ratings/report, `engine/lab.ts` the list):
   short scenarios that drop the playtester straight into what's new, rated Good / Needs work / Broken with a note,
   copied as one report. It plays on its own save (`storage.ts` slot 'lab': `cq3.lab.profile` / `cq3.lab.run`; ratings
@@ -412,7 +423,9 @@ tests/smoke/   Playwright smoke tests (874x402 @3x, landscape: intro, map, fight
                imports `test` from fixtures.ts, the numbers guard; numbers.spec.ts walks every screen; minis.spec.ts the
                map sprites; chest-hd.spec.ts the sharper reveal at device scale)
                and screenshot regression tests (screens.spec.ts: fake clock + seeded Math.random, pixel-exact)
-scripts/       make-icons.mjs, sw-template.js (service worker, precache list injected at build)
+scripts/       make-icons.mjs, sw-template.js (service worker, precache list injected at build), ui-bot.mjs (a bot that
+               plays the built game through its screens and reports errors and stuck screens; run by hand)
+tests/perf/    perf.mjs: load and frame times at CPU 4x + Fast 4G over CDP, run by hand (docs/perf.md)
 ```
 
 ## Commands
@@ -448,7 +461,9 @@ Meta-game features still to come (the gacha shrine, chest rolls, loadout, kingdo
 
 - `.github/workflows/deploy.yml`: on push to **any** branch, run tests, build, publish `dist/` to the
   `gh-pages` branch (last push wins).
-- Vite `base` is `/cq3/` (the repo name). If the repo is renamed, change `BASE` in `vite.config.ts`.
+- Vite `base` is `/cq3/` (the repo name). If the repo is renamed, change `BASE` in `vite.config.ts`. The page title and
+  the install name come from `src/data/brand.ts` at build; Phaser is a chunk of its own (it keeps its hash across
+  deploys).
 - One-time GitHub setup: repo Settings > Pages > Source: "Deploy from a branch" > `gh-pages`, `/ (root)` > Save.
 - Live URL: https://chef-development.github.io/cq3/
 - The service worker is network-first for the page, so a new deploy shows up on the next launch. A home-screen app
