@@ -713,7 +713,8 @@ sound, and both only draw from the fight's random stream in an act that has them
   the cursor's speed, a dark block always shows what it is at least ~0.45 s before the cursor gets there (the bot's
   reaction is 0.25 s), so nothing is a coin flip; the faster the combo, the wider the glow (it reads as "the lantern
   burns brighter"). The judge doesn't care about light: a tap is judged like any other. What darkness costs is the
-  read: you can't plan a sweep you can't see, and a dark shape can be a trap.
+  read: you can't plan a sweep you can't see, and a dark shape can be a trap (a trap that came dark bites for
+  `dark.trapMult`, x0.6, of a trap's damage: it was hard to read).
   - Specials: **dim** the lantern (`snuff { mult, sec }`: the reach times `mult`, never below `dark.floorSec`, 0.32 s,
     and every lit dark block outside the glow goes dark again); **darken** yellows already on the bar (`darken
     { count }`: the ones farthest from the glow; they keep their kind, so nothing you saw as a yellow turns into a
@@ -723,7 +724,7 @@ sound, and both only draw from the fight's random stream in an act that has them
   (a smooth swell; every fight starts at low water, so the first one teaches itself). **Under water:** a yellow,
   green, trap or any other still block whose centre is covered is **sunk**: out of reach (a tap there is a tap on
   water: a miss) until the tide falls and it surfaces again, glistening; new blocks only come on dry ground. **Reds
-  wade:** a red whose centre is in the water moves at `tide.drag` (x0.6), so the flood is safe ground for blocking.
+  wade:** a red whose centre is in the water moves at `tide.drag` (x0.8), so the shallows give a little time to block.
   So the tide trades your targets for time: hit on the dry side, block in the shallows, wait for the ebb. *Look:* a
   band of dark water at that end, its surface a moving ripple line with foam; a small high-water mark on the frame
   shows how far this tide will come; sunk blocks sit dim and wavering under the surface; wading reds leave a wake.
@@ -733,9 +734,9 @@ sound, and both only draw from the fight's random stream in an act that has them
     'both'` floods both ends at once (each end `level` wide).
 - **Both** (Act 3): dark blocks on dry ground, the tide coming in under them; a dark block that sinks stays unlit.
 
-How they ramp: **Act 1** dark from row 2 (share 0.3, traps 0.2; foes' specials show it earlier); **Act 2** tides from
+How they ramp: **Act 1** dark from row 2 (share 0.3, traps 0.12; foes' specials show it earlier); **Act 2** tides from
 row 1 (low 0.06, high 0.36, period 10 s, from the right: the reds come in through the water) plus a little dark from row
-3 (0.15); **Act 3** both from row 0 (dark 0.3 / traps 0.25; tide 0.08 to 0.4 over 10.5 s), and the boss's phases are the
+3 (0.15); **Act 3** both from row 0 (dark 0.3 / traps 0.15; tide 0.08 to 0.4 over 10.5 s), and the boss's phases are the
 mapmaker's edits to the bar.
 
 **Every hero** (one cursor each; `hero-kits.test.ts`, `bar-rules.test.ts`): the lantern is the cursor's, so every hero
@@ -746,7 +747,13 @@ targets glow (they light themselves).
 
 **The bot:** sees a dark block only once it is lit (reaction from that moment, like a block that just spawned), and
 misreads a dark trap now and then like a person (`(1 - accuracy) / 2` of the time it was lit less than 0.4 s ago);
-never aims at a sunk block, and leaves one alone whose centre the water will cover by the time it gets there.
+leaves sunk blocks alone (and one at the waterline), except that it taps one now and then like a person who took it
+for a target (`(1 - accuracy) / 4` of them).
+
+**Probe (decisions C4):** Ashfell foes at its Act 2 numbers, a lab-strength hero, 30 fights, the 75% bot: no rules 100%
+won / 62% HP lost; dark (0.3, traps 0.15) 100% / 68%; tide (0.08-0.4) 100% / 61% at drag 0.85 (48% at 0.6: wading
+was a gift; 74% at 1); both 97% / 69%; the masher loses every one. Dark traps at full damage and a 0.25 share cost
++34% HP a fight (93% won): too swingy, hence trapMult and the lower shares.
 
 ### Acts
 | Act | Name (working) | Theme | Map look | Rules |
