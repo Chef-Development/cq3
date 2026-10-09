@@ -707,10 +707,10 @@ sound, and both only draw from the fight's random stream in an act that has them
 - **Dark blocks** (`bar.dark: { share, fromRow, traps }`; numbers in `tuning.dark`). A yellow, green or trap that rolls
   the act's `share` comes **dark**: an unlit shape on the track (the block's size, a dim outline, two faint glints)
   that doesn't show what it is. Of the dark yellows, `traps` are traps in disguise. The cursor carries a **lantern**:
-  a warm glow around it whose reach is a time, not a distance, `dark.lightSec` (0.5 s) of the cursor's travel at its
+  a warm glow around it whose reach is a time, not a distance, `dark.lightSec` (0.45 s) of the cursor's travel at its
   speed right now (never less than `dark.lightMin`, 0.1 of the bar). A dark block the glow touches is **lit** (its
   colour floods in with a small spark, `lit` event) and stays lit. *Fair to a 75% thumb:* because the reach grows with
-  the cursor's speed, a dark block always shows what it is at least ~0.5 s before the cursor gets there (the bot's
+  the cursor's speed, a dark block always shows what it is at least ~0.45 s before the cursor gets there (the bot's
   reaction is 0.25 s), so nothing is a coin flip; the faster the combo, the wider the glow (it reads as "the lantern
   burns brighter"). The judge doesn't care about light: a tap is judged like any other. What darkness costs is the
   read: you can't plan a sweep you can't see, and a dark shape can be a trap.

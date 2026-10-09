@@ -283,6 +283,11 @@ export const LAB_NEW: LabScenario[] = [
   // ---- story (team 1)
   // ---- art (team 2)
   // ---- content: the new regions (team 3; spoilers)
+  // the fourth region's two bar rules, each alone against the Training Dummy (nothing hurts, the rule's tip on), then
+  // both at once against real foes
+  { id: 'spBarDark', group: 'spoiler', spoiler: true, label: 'Act 10 bar rule', secs: 40, try: 'Your light shows what dark shapes are. Skip traps!', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, stage: 2, waves: [['dummy']], bar: { dark: { share: 0.6, fromRow: 0, traps: 0.25 } }, safe: true }, profile: { tips: ['dark'] } },
+  { id: 'spBarTide', group: 'spoiler', spoiler: true, label: 'Act 11 bar rule', secs: 40, try: 'The water comes and goes. Hit on dry ground.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, stage: 2, waves: [['dummy']], bar: { tide: { fromRow: 0, low: 0.06, high: 0.36, period: 9, from: 'right' } }, safe: true }, profile: { tips: ['tide'] } },
+  { id: 'spBarDusk', group: 'spoiler', spoiler: true, label: 'Act 12 bar rules', secs: 75, try: 'Both at once, real foes. Fair? Easy to read?', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 7, stage: 2, waves: [['cinderKite', 'cragCrab'], ['glassMantis'], ['cinderling', 'prismBat']], bar: { dark: { share: 0.3, fromRow: 0, traps: 0.25 }, tide: { fromRow: 0, low: 0.08, high: 0.4, period: 8, from: 'right' } } } },
   // ---- QA and platforms (team 4)
   // ---- the first 10 minutes (team 5)
 ];
