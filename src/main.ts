@@ -6,7 +6,7 @@ import { installInput } from './engine/input';
 import { installLab } from './engine/lab';
 import { installNumberGuard } from './engine/number-guard';
 import { hudButtonImages } from './engine/chrome';
-import { applyCanvasLayout, GAME_H, GAME_W } from './engine/layout';
+import { applyCanvasLayout, applyFrame, GAME_H, GAME_W } from './engine/layout';
 import { FightScene } from './engine/scene';
 import { MINI_MISSES } from './engine/art-minis';
 import { loadSettings, loadTuning } from './engine/storage';
@@ -31,10 +31,16 @@ game.scene.add('fight', FightScene, true, { app });
 const getScene = () => game.scene.getScene('fight') as FightScene | null;
 
 const rootStyle = document.documentElement.style;
+// the quiet frame around the canvas when the window has room (desktop): layout.ts applyFrame, style.css #frame
+const frame = document.createElement('div');
+frame.id = 'frame';
+frame.hidden = true;
+document.body.insertBefore(frame, document.body.firstChild);
 for (const [k, v] of Object.entries(hudButtonImages())) rootStyle.setProperty(`--img-${k}`, `url(${v})`);
 const relayout = (force = false) => {
   if (!app.relayout(force)) return;
   if (game.canvas) applyCanvasLayout(game.canvas, app.layout);
+  applyFrame(frame, app.layout);
   // DOM HUD buttons are pixel art too: size them in game pixels.
   rootStyle.setProperty('--gpx', `${app.layout.scale / app.layout.dpr}px`);
   rootStyle.setProperty('--game-top', `${app.layout.top}px`);

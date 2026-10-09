@@ -11,7 +11,7 @@ import type { App } from './app';
 import { MUSIC_PIECES, SFX, type MusicPiece } from './audio';
 import { runCalibration } from './calibrate';
 import { copyText, toast } from './clipboard';
-import { saveNow } from './storage';
+import { loadCleanCapture, saveCleanCapture, saveNow } from './storage';
 import { setAllUnlocked } from '../core/roster';
 
 type Opt<T> = [T, string];
@@ -19,12 +19,28 @@ type Opt<T> = [T, string];
 export interface DebugUi {
   togglePanel(): void;
   refreshHud(): void;
+  /** The clean capture on or off (C on a keyboard; a long press where the gear button sits brings it back). */
+  toggleCapture(): void;
 }
 
 export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
   const root = document.getElementById('debug')!;
   const pauseBtn = document.getElementById('btn-pause')!;
   const gearBtn = document.getElementById('btn-gear')!;
+
+  // the clean capture: the gear and Test lab buttons hidden for recording clips (style.css html.clean-capture)
+  let capture = loadCleanCapture();
+  const applyCapture = () => document.documentElement.classList.toggle('clean-capture', capture);
+  applyCapture();
+  const setCapture = (on: boolean) => {
+    capture = on;
+    saveCleanCapture(on);
+    applyCapture();
+    if (on) {
+      setOpen(false);
+      toast('Clean capture: hold the top middle to undo');
+    }
+  };
 
   const refreshHud = () => {
     pauseBtn.classList.toggle('on', app.userPaused);
@@ -156,6 +172,24 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
       ],
       () => app.applyAudioSettings(),
     );
+
+    // the clean capture (not a setting of the game: kept on its own, storage.ts)
+    {
+      const row = el('div', 'dbg-row');
+      row.appendChild(el('span', 'dbg-label', 'Clean capture'));
+      const g = el('div', 'dbg-seg');
+      const off = el('button', 'dbg-segbtn', 'Off');
+      const on = el('button', 'dbg-segbtn', 'On');
+      off.classList.toggle('on', !capture);
+      on.classList.toggle('on', capture);
+      off.onclick = () => setCapture(false);
+      on.id = 'capture-on';
+      on.onclick = () => setCapture(true);
+      g.append(off, on);
+      row.appendChild(g);
+      modes.appendChild(row);
+      modes.appendChild(el('div', 'dbg-note', 'Hides this gear button and the Test lab for recording clips. Hold the top middle of the screen (or press C) to bring them back.'));
+    }
 
     // Sound lab: play every sound effect and tune the impact layers by ear, on the phone
     const lab = section('Sound lab');
@@ -502,5 +536,5 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
     refreshHud();
   });
 
-  return { togglePanel: () => setOpen(!app.panelOpen), refreshHud };
+  return { togglePanel: () => setOpen(!app.panelOpen), refreshHud, toggleCapture: () => setCapture(!capture) };
 }

@@ -776,6 +776,30 @@ L2. **One branch, one PR.** The run continues PR #7's branch on `claude/exciting
 
 ### Team 4: QA, polish and platforms
 
+- **Q1 Desktop keys: one key map, two modes** (`src/engine/keys.ts`, unit-tested). In a live fight Space (or J/K)
+  taps the bar, judged by the key event's `timeStamp` through the same `barTap` as a pointer (held down on a hold
+  block, the key's release lets go); F (or Enter, or Up) fires the finisher; P or Escape pauses. Everywhere else (a
+  paused fight too) the arrows and Tab move a focus ring, Enter/Space press, Escape goes back. Enter is the finisher
+  in a fight because it is the "big confirm" key; Space stays the tap so a thumb-like rhythm is one key. A mouse click
+  is a tap and a mouse drag is the swipe (pointer events already covered both: tested). Ctrl/Alt/Cmd shortcuts are
+  left to the browser. Once a tap key has been used, the meter's prompt reads "PRESS F!" instead of "SWIPE!" (a phone
+  never sees it).
+- **Q2 The focus ring finds a screen's buttons by itself.** Every button the menus draw already asks
+  `isPressed(rect)` each frame (to show sunk); once a key has been pressed that also notes the rect
+  (`engine/focus.ts`), so every screen (title, world map, act map, pause, camp home and its screens, shops, events,
+  the act clear, defeat...) gets keyboard navigation with no per-screen list to keep up. The act map's reachable nodes
+  and the world map's landmarks and Rowan's plate are added (drawn without a button). Pressing taps the target's
+  centre through the normal tap route. Escape: skips a scene, closes the world map's picker or card, presses a camp
+  screen's Back (a sheet open closes first), leaves the camp home, pauses a fight. With no ring up, Enter/Space keep
+  their old default (Continue, the first node, begin...). Left for later: Escape on the act map, boost cards and
+  shops (they have no "back"), and the hero select's paging by arrows (Tab reaches its arrows).
+- **Q3 A quiet desktop frame**: when every margin round the canvas is at least 6 game px (`layout.ts framed`), the
+  page gets a dim radial night in the game's own ink/navy and the canvas an ink, navy and dark bevel with a soft
+  shadow, sized in game px; never on a phone (the canvas fills it). Integer scaling stays; every resize relayouts
+  (already: resize events, a ResizeObserver and the 500 ms watch); the spec resizes 1440x900 -> 1100x700 -> back.
+- **Q4 Clean capture** (`cq3.cleanCapture` in `storage.ts`): the gear panel's Modes row or C hides the whole HUD
+  (pause, gear, the lab's Done) and the title's Test lab button. The way back is a long press (0.8 s) where the gear
+  sits (top middle), or C. Kept across launches; a toast says how to undo it.
 (qa: end of section)
 
 
