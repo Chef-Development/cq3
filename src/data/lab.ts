@@ -162,10 +162,9 @@ const barRule = (id: string, label: string, tryLine: string, bar: BarRules, tips
   profile: { tips },
 });
 
-/** This session's new content (playtest round 7: numbers, tips, map sprites and the completion tracker that stay
- *  fixed; the anti-spam balance; a unique finisher per hero; the sharper chest reveal; the companions screen).
- *  Reworked items carry a new rev: a rating given to their earlier version shows as "Reworked" with the old rating. */
-export const LAB_NEW: LabScenario[] = [
+/** Playtest round 7's items (numbers, tips, map sprites and the completion tracker that stay fixed; the anti-spam
+ *  balance; a unique finisher per hero; the sharper chest reveal; the companions screen): rated last round. */
+const ROUND7: LabScenario[] = [
   // ---- companions screen
   {
     id: 'companions',
@@ -277,9 +276,22 @@ export const LAB_NEW: LabScenario[] = [
   },
 ];
 
+/** This session's new content (playtest round 8: the living map's story, the art direction, the next regions, the
+ *  platforms, the first 10 minutes). Each team appends to its own block. Region and story items are spoilers.
+ *  Reworked items carry a new rev: a rating given to their earlier version shows as "Reworked" with the old rating. */
+export const LAB_NEW: LabScenario[] = [
+  // ---- story (team 1)
+  // ---- art (team 2)
+  // ---- content: the new regions (team 3; spoilers)
+  // ---- QA and platforms (team 4)
+  // ---- the first 10 minutes (team 5)
+];
+
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,
  *  the first region's Act 1 fight and the later regions (spoilers). */
 export const LAB_EARLIER: LabScenario[] = [
+  // ======== playtest round 7 (the overnight run): rated last round
+  ...ROUND7,
   // ======== playtest round 6 (the overnight polish run): rated last round
   // ---- heroes: each kit reworked or made easier to see (rev 2), the how-to card first
   heroFight('sable', 'sable', 'Sable', 'Perfect: you dash, then slow. Tap the next one.', [['shaman', 'archer'], ['wolf', 'wolf'], ['shaman', 'boar'], ['bandit', 'crow'], ['archer', 'shaman'], ['knight', 'shaman']]),

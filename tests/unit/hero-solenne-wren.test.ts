@@ -12,7 +12,7 @@ import { newProfile } from '../../src/core/profile';
 import { Rng } from '../../src/core/rng';
 import { tierIndex } from '../../src/data/rarity';
 import { cloneTuning, type Tuning } from '../../src/core/tuning';
-import { LAB_NEW } from '../../src/data/lab';
+import { LAB_SCENARIOS as LAB_NEW } from '../../src/data/lab';
 import { GREENMARCH } from '../../src/data/greenmarch';
 import { TIPS } from '../../src/data/tips';
 import { labFight } from '../../src/core/lab';

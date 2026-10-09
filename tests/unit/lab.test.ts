@@ -363,8 +363,8 @@ describe('the late-game stress test (playtest round 7: "spam, spam, finisher x5,
     return fight(run, run.combat!, new Rng(5000 + r), { ...o, seed: 5000 + r });
   };
 
-  it('is a New fights item, no spoiler: Region 1 foes at the last act\'s numbers, on an earlier stage', () => {
-    expect(LAB_NEW).toContain(s);
+  it('is a fights item, no spoiler: Region 1 foes at the last act\'s numbers, on an earlier stage', () => {
+    expect(LAB_SCENARIOS).toContain(s);
     expect(s.group).toBe('fights');
     expect(s.spoiler).toBeFalsy();
     const f = labFight(s)!;

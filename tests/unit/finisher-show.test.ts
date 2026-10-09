@@ -24,7 +24,7 @@ import { Run } from '../../src/core/run';
 import { cloneTuning, DEFAULT_SETTINGS } from '../../src/core/tuning';
 import { ENEMIES } from '../../src/data/enemies';
 import { HERO_IDS, HEROES, STYLE_IDS } from '../../src/data/heroes';
-import { LAB_NEW, type LabScenario } from '../../src/data/lab';
+import { LAB_SCENARIOS as LAB_NEW, type LabScenario } from '../../src/data/lab';
 import { TIERS, type Tier } from '../../src/data/rarity';
 
 const MOVES: ShowMove[] = ['dash', 'leap', 'blink', 'guard', 'stand'];

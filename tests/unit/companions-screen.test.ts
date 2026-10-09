@@ -3,7 +3,7 @@
 // profile shows the screen's range (most companions met, at different levels and stars, one still to find).
 import { describe, expect, it } from 'vitest';
 import { COMPANIONS, COMPANION_IDS } from '../../src/data/companions';
-import { LAB_NEW } from '../../src/data/lab';
+import { LAB_SCENARIOS as LAB_NEW } from '../../src/data/lab';
 import { labProfile } from '../../src/core/lab';
 import { petLevel } from '../../src/core/roster';
 import { DEFAULT_TUNING } from '../../src/core/tuning';
