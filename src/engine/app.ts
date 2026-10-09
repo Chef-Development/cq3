@@ -10,7 +10,7 @@ import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import { markWelcomed, TipCoach, welcomeScene } from '../core/tips';
 import type { Settings, Tuning } from '../core/tuning';
 import { AMBIENCES, Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
-import { computeLayout, sameLayout, type ScreenLayout } from './layout';
+import { computeLayout, sameGameLayout, sameLayout, type ScreenLayout } from './layout';
 import { clearRunSave, eraseProgress, loadLabAcc, loadProfile, loadRunSave, saveSoon, setStorageSlot, writeLabAcc, writeProfile, writeRunSave } from './storage';
 
 export interface View {
@@ -89,6 +89,9 @@ export class App {
   tipUp = false;
   /** The Test lab's Finisher gallery holds its fight's clock between shows (view/finisher-gallery.ts). */
   galleryHold = false;
+  /** A moment the view holds the fight's clock for until then (performance.now ms; taps do nothing meanwhile): the
+   *  first finisher's reveal (view/finisher-reveal.ts). */
+  holdUntil = 0;
   private begunCombat: unknown = null;
   private syncHoldUntil = 0; // performance.now() until which phase changes wait (kill animations)
   phaseSince = 0;
@@ -200,6 +203,7 @@ export class App {
       !this.tipUp &&
       !this.galleryHold &&
       performance.now() >= this.introUntil &&
+      performance.now() >= this.holdUntil &&
       (!this.panelOpen || this.playWhilePanelOpen)
     );
   }
@@ -660,8 +664,10 @@ export class App {
   relayout(force = false): boolean {
     const l = computeLayout();
     if (!force && sameLayout(l, this.layout)) return false;
+    // (only the canvas's place or scale changed, e.g. a desktop window resized: no scene rebuild, main.ts moves it)
+    const rebuild = force || !sameGameLayout(l, this.layout);
     this.layout = l;
-    if (this.sceneReady) this.view?.onLayout(); // before that, the scene's create() lays out with this.layout
+    if (this.sceneReady && rebuild) this.view?.onLayout(); // before that, the scene's create() lays out with this.layout
     return true;
   }
 }

@@ -43,3 +43,6 @@ One PR at the end supersedes #1-#7.
 ## Log
 
 - 18:16 EDT: started. Reset the run branch to PR #7's head. `npm ci`; typecheck clean; 1,076 unit tests green (2m40s on 4 cores).
+- 18:28 EDT: five teams launched in parallel (chunk 1 ends 21:00-21:30). Run branch pushed.
+- 18:46 EDT: Playwright baseline on PR #7's head: 144 passed (25 min with the teams starting up). Full Playwright runs
+  are ~25-30 min here: the lead runs them every ~2 h; unit tests + typecheck + build at every merge.

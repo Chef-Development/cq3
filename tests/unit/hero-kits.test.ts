@@ -620,3 +620,23 @@ describe('every hero plays one cursor, with ice and holds', () => {
     expect(c.cursorPos()).toBeCloseTo(0.25, 2);
   });
 });
+
+describe('every hero plays one cursor, in the dark and in the tide', () => {
+  it('every hero lights a dark yellow on the way (it shows before the cursor gets there) and hits it; a block under water is out of reach for everyone', () => {
+    for (const id of HERO_IDS) {
+      const { c, t } = fight(id, { bar: { tide: { fromRow: 0, low: 0.25, high: 0.25, period: 10, from: 'left' } } });
+      const d = c.spawnBlock('yellow', 0.7, c.enemies[0].id, undefined, { dark: true });
+      const wet = c.spawnBlock('yellow', 0.15);
+      const at = nextCross(c, 0.7);
+      go(c, at - 0.3);
+      expect(d.litAt === Infinity, id).toBe(false);
+      go(c, at);
+      expect(c.tap(at).outcome, id).toBe('hit');
+      const back = nextCross(c, 0.15);
+      go(c, back);
+      expect(c.tap(back).outcome, id).toBe('miss');
+      expect(c.blocks.includes(wet), id).toBe(true);
+      void t;
+    }
+  });
+});

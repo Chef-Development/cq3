@@ -679,3 +679,54 @@ body {
     font-size: 18px;
   }
 }
+
+/* ---- the clean capture (debug.ts): no gear, pause or Test lab buttons on screen while recording a clip */
+html.clean-capture #hud,
+html.clean-capture .lab-title-btn {
+  display: none !important;
+}
+
+/* ---- the keyboard's focus ring (engine/focus.ts): a gold line with an ink edge, in game pixels, over the canvas */
+#focus-ring {
+  position: fixed;
+  z-index: 28;
+  pointer-events: none;
+  box-sizing: border-box;
+  border: var(--gpx, 2.667px) solid #fff0a0;
+  box-shadow:
+    0 0 0 var(--gpx, 2.667px) #0a0812,
+    inset 0 0 0 var(--gpx, 2.667px) #0a0812;
+  animation: focus-pulse 1.1s steps(2, jump-none) infinite alternate;
+}
+#focus-ring[hidden] {
+  display: none;
+}
+@keyframes focus-pulse {
+  from {
+    border-color: #fff0a0;
+  }
+  to {
+    border-color: #f2c230;
+  }
+}
+
+/* ---- desktop: a quiet frame round the canvas when the window has room (layout.ts applyFrame), never on a phone.
+   The night of the game's own palette fading to black, and the canvas set in an ink and navy bevel like its panels. */
+html.framed body {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 50%, rgba(58, 48, 80, 0.32), rgba(22, 18, 42, 0.18) 55%, rgba(0, 0, 0, 0) 100%),
+    #07060c;
+}
+#frame {
+  position: fixed;
+  z-index: 0;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 var(--gpx, 4px) #0a0812,
+    0 0 0 calc(var(--gpx, 4px) * 2) #3a3050,
+    0 0 0 calc(var(--gpx, 4px) * 3) #16122a,
+    0 calc(var(--gpx, 4px) * 4) calc(var(--gpx, 4px) * 12) rgba(0, 0, 0, 0.7);
+}
+#frame[hidden] {
+  display: none;
+}
