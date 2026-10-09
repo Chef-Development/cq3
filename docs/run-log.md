@@ -27,11 +27,11 @@ One PR at the end supersedes #1-#7.
 | # | Item | Team | Status |
 | --- | --- | --- | --- |
 | 0 | Branch from PR #7, worktrees, baseline (1,076 unit tests green; Playwright baseline running) | Lead | done |
-| 1 | Story bible outline + names shortlist + name constant | 1 | in progress |
-| 2 | Art bible, audit contact sheets, title/logo/key art | 2 | in progress |
+| 1 | Story bible outline + names shortlist + name constant | 1 | done (outline, names: pick "The Unerased"); rewrite of regions 1-3 in progress |
+| 2 | Art bible, audit contact sheets, title/logo/key art | 2 | bible, audit, new title + logo merged; outlier redos in progress |
 | 3 | Region 4 bar rules + region design | 3 | in progress |
-| 4 | Desktop input, clean capture, perf baseline, originality audit | 4 | in progress |
-| 5 | First 10 minutes: new-player bot path, measure, fix | 5 | in progress |
+| 4 | Desktop input, clean capture, perf baseline, originality audit | 4 | merged (title ready 12.1 -> 7.8 s at CPU 4x); continuing |
+| 5 | First 10 minutes: new-player bot path, measure, fix | 5 | merged (first chest 1:22-4:36 -> ~1:30; the first finisher a moment); continuing |
 | 6 | Story rewrite: intro, regions 1-3 scenes, heroes, companions, banter, lore, UI words | 1 | next |
 | 7 | The Great Atlas world map; animation upgrade; lighting pass; 2x rollout | 2 | next |
 | 8 | Region 4 complete (content, art, music, balance, lab) | 3 | next |
@@ -46,3 +46,6 @@ One PR at the end supersedes #1-#7.
 - 18:28 EDT: five teams launched in parallel (chunk 1 ends 21:00-21:30). Run branch pushed.
 - 18:46 EDT: Playwright baseline on PR #7's head: 144 passed (25 min with the teams starting up). Full Playwright runs
   are ~25-30 min here: the lead runs them every ~2 h; unit tests + typecheck + build at every merge.
+- 19:11 EDT: the container restarted; all five teams resumed from their transcripts (no work lost: everything was committed or on disk).
+- 19:25 EDT: merge 1: story, first10, qa and art into the run branch (clean). Content held back: perk-at.test fails on
+  Region 4's relics (they need view entries); the content team is fixing it.
