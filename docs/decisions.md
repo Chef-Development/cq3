@@ -772,6 +772,23 @@ A1. **The art bible is strict.** `docs/art-style.md` is now rules, not advice: t
     animation frames, backdrop layers, a light recipe per region, the UI rules, the 2x layer, the name and logo, and a
     1-5 score used by the audit. Where it and `ui-style.md` disagree, it wins for pixels, that one for layout.
 
+A2. **The audit is a script, not a test.** `scripts/art-audit.mjs` (run by hand against a dev server) paints every
+    texture group onto contact sheets and screenshots the main screens; `docs/art-audit/README.md` scores each against
+    the bible and keeps the redo list (worst first: the skill icons, half of them a generic arrow; the world map's
+    veils; relic icons that share glyphs; Rowan off the shared rig; the dark Ashfell foes; the flat glass and forge
+    backdrops; the dim vault). Sheets are saved as 256-colour PNGs (about 1 MB in all).
+A3. **The title is the Great Atlas.** A parchment map in ink (coast, river, forests, mountains, villages, compass,
+    neatline) with colour bled back round the hero (the picked hero's map walker at 2x, Pip above), fog drifting over
+    the erased east where the lines fade and break, a red route drawn east by a quill. The fight stage no longer shows
+    under the title. Its own file (`view/title.ts`, art in `art-title.ts`) so the overlays only place the buttons;
+    Continue and New game keep their exact rects (the smoke tests tap them).
+A4. **The logo is built from `GAME_NAME`.** The bold font's masks, Scale3x (or Scale2x) rounded, a gold face with a
+    horizon band, a cream rim top-left, a red-brown extrusion and an ink outline. Layout rules (`logoRows`, unit-tested
+    with long names): a leading article small above; the main words at 3x, else 2x, else two even rows; what follows a
+    colon or dash as a subtitle with ink flourishes. The old "Combo Quest" logo and crest are gone from `chrome.ts`.
+A5. **A Test lab look at the title** (`titleAtlas`, a new setup kind 'title'): it never offers New game in the lab
+    (New game erases the real save, even from the lab), and a tap starts a run on the lab's save, which ends it.
+
 (art: end of section)
 
 

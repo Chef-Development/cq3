@@ -52,7 +52,10 @@ export type LabSetup =
   /** The Finisher gallery: any hero's finisher on demand (every hero in HEROES, at 1 to max stacks, at any rarity)
    *  against these foes at act `act`'s stage, as often as wanted; `hero` comes first. Nothing hurts, nothing dies,
    *  nothing is saved. */
-  | { kind: 'gallery'; act: number; foes: string[]; hero?: HeroId };
+  | { kind: 'gallery'; act: number; foes: string[]; hero?: HeroId }
+  /** The title screen, as a new player sees it, `hero` standing on its map (a tap starts a run on the lab's save, which
+   *  ends the scenario). */
+  | { kind: 'title'; hero?: HeroId };
 
 /** What the lab's profile holds for a scenario (core/lab.ts builds it on a fresh profile). */
 export interface LabProfileSpec {
@@ -282,6 +285,7 @@ const ROUND7: LabScenario[] = [
 export const LAB_NEW: LabScenario[] = [
   // ---- story (team 1)
   // ---- art (team 2)
+  { id: 'titleAtlas', group: 'camp', label: 'New title screen', secs: 30, try: 'Watch it settle (logo, map, fog), then tap to start.', setup: { kind: 'title' }, profile: { actsCleared: 0 } },
   // ---- content: the new regions (team 3; spoilers)
   // ---- QA and platforms (team 4)
   // ---- the first 10 minutes (team 5)
