@@ -111,7 +111,7 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'captain', text: 'Lads! Up you get. This knight wants\nto be a hero.' },
   ],
   act2: [
-    { who: 'narrator', text: 'The Old Ruins lay broken for three hundred\nyears. This morning they have walls again.' },
+    { who: 'narrator', text: 'The Old Ruins lay broken for three hundred\nyears. Now they have walls again.' },
     { who: 'sable', text: 'Fresh stone. Fresh mortar. Not a crack.\nWho builds a fortress overnight?' },
     { who: 'pip', text: 'Nobody built it. He drew it back the way it\nwas. Walls, towers, gate. And the guard.' },
     { who: 'rowan', text: 'Then his trail runs through here.\nStay close, both of you.' },
@@ -125,7 +125,7 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'pip', text: "He doesn't know how to stop. Be gentle,\nRowan. He's doing what he was made for." },
   ],
   act3: [
-    { who: 'narrator', text: 'The deep wood. Yesterday it was wild and\nbelonged to no one. Today it has a king.' },
+    { who: 'narrator', text: 'The deep wood. It was wild, and it belonged\nto no one. Now it has a king.' },
     { who: 'pip', text: "Look at the trees. Cut back, set in rows,\na road to a throne. He's been tidying." },
     { who: 'sable', text: 'Boar tracks everywhere. Big ones. And they\nall head the same way.' },
     { who: 'rowan', text: 'To the hollow tree. Whatever he drew last\nis in there. Maybe he is, too.' },
