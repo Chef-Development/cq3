@@ -466,7 +466,9 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
 - **Original:** a beacon isle whose lighthouse guided ships home; Fizz's flame-brews fed its light.
 - **His draft:** a light that never goes out, turned inward: the lamp over his drawing table on the Margin, burning
   the isle's own ink to keep it lit.
-- **Boss (working): Lumen**, the lighthouse made to walk. Keystone: **the Flame**.
+- **Boss (working): the Wreckwarden**, a giant pieced together from the hulls of every ship the dark sea wrecked
+  after he turned the light inward; it guards the beacon stair. Keystone: **the Flame**. (Not a lighthouse: the
+  Duskmire already has one.)
 - **Restoring:** the beacon points out to sea again; and Meridian is restored (Rowan walks into the blank Atlas Hall
   and wakes Hesper). **Beat:** the oldest law; Hesper's silence; Pip's anger at her.
 
