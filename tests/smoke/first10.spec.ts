@@ -11,13 +11,16 @@ import { expect, test } from './fixtures';
 //
 //   PORT=4178 F10_OUT=/some/dir F10_SEED=7 npx playwright test tests/smoke/first10.spec.ts
 //
-// F10_SEED fixes the run (the act map, the fights' and loot's rolls); F10_ACC is the newcomer's accuracy (0.7).
+// F10_SEED fixes the run (the act map, the fights' and loot's rolls); F10_ACC is the newcomer's accuracy (0.7);
+// F10_UNTIL=act plays on through Act 1 to its clear (the boss, the first hero chest: ~10 minutes) instead of stopping
+// at the map after the first chest.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
 const OUT = process.env.F10_OUT ?? 'test-results/first10';
 const SEED = Number(process.env.F10_SEED ?? 7);
 const ACC = Number(process.env.F10_ACC ?? 0.7);
+const UNTIL = process.env.F10_UNTIL === 'act' ? 'act' : 'chest';
 /** Stop once these beats are in (or at the time limit). */
 const LAST_BEAT = 'chestOpened';
 
@@ -30,7 +33,7 @@ interface Beat {
 }
 
 test('the first 10 minutes: a newcomer from New game to the first chest (beats timed, a screenshot each)', async ({ page }) => {
-  test.setTimeout(20 * 60_000);
+  test.setTimeout((UNTIL === 'act' ? 30 : 20) * 60_000);
   mkdirSync(OUT, { recursive: true });
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -68,7 +71,7 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
 
   // ---- the newcomer, in the page
   await page.evaluate(
-    ([acc]) => {
+    ([acc, until]) => {
       const w = window as Any;
       const x = w.__cq3.app;
       const view = x.view;
@@ -125,8 +128,16 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
         if (prev === 'treasure' && next !== 'treasure') beat('chestOpened', `${x.run.treasure?.coins ?? 0} coins`);
         if (next === 'map' && S.beats.some((b: Any) => b.id === 'chestOpened')) {
           beat('mapAfterChest');
-          S.done = true;
+          if (until === 'chest') S.done = true;
         }
+        // (on through the act: each fight won, the elite, the boss, the first hero chest)
+        if (prev === 'fight' && x.run.combat?.result === 'won') {
+          S.wins = (S.wins ?? 0) + 1;
+          if (S.wins > 1) beat(`win${S.wins}`, x.run.node?.type ?? '');
+        }
+        if (next === 'fight' && x.run.node?.type === 'elite') beat('firstElite');
+        if (next === 'fight' && x.run.node?.type === 'boss') beat('bossFight');
+        if (x.profile.chests.hero > 0) beat('heroChest');
       });
       const onEvents = view.onEvents.bind(view);
       let finAt = 0;
@@ -281,7 +292,13 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
             const choices: number[] = x.run.choices();
             if (!choices.length) return;
             const nodes = choices.map((id) => x.run.map.nodes[id]);
-            const pick = nodes.find((n: Any) => n.type === 'treasure') ?? nodes.find((n: Any) => n.type === 'fight') ?? nodes.find((n: Any) => n.type !== 'elite') ?? nodes[0];
+            const low = x.run.hero.hp < 0.5 * (x.run.combat?.maxHp?.() ?? 200);
+            const pick =
+              nodes.find((n: Any) => n.type === 'treasure') ??
+              (low ? nodes.find((n: Any) => n.type === 'rest') : undefined) ??
+              nodes.find((n: Any) => n.type === 'fight') ??
+              nodes.find((n: Any) => n.type !== 'elite') ??
+              nodes[0];
             const [nx, ny] = view.mapView.pos(pick);
             if (!S.beats.some((b: Any) => b.id === 'firstChoice')) beat('firstChoice', `${pick.type} (of ${nodes.map((n: Any) => n.type).join(', ')})`);
             else if (pick.type === 'treasure') beat('chestChoice', `row ${pick.row} (of ${nodes.map((n: Any) => n.type).join(', ')})`);
@@ -294,6 +311,14 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
           case 'fight': {
             const c = x.run.combat;
             if (!c) return;
+            if (x.storyOverlay) {
+              // a boss's scene mid-fight: read it like the story
+              if (now - storyAt > rnd(1900, 2300)) {
+                tap(160, 128);
+                storyAt = now;
+              }
+              return;
+            }
             if (x.awaitingBegin) {
               if (now - screenAt < 900) return;
               tap(163, 75);
@@ -358,6 +383,14 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
             return;
           case 'actClear':
             beat('actClear');
+            if (until === 'act' && now - screenAt < 2500) {
+              // the act clear's chest: a tap bursts it (a look first)
+              if (now - screenAt > 1500 && !S.actChest) {
+                S.actChest = true;
+                tap(163, 90);
+              }
+              return;
+            }
             S.done = true;
             return;
         }
@@ -379,7 +412,7 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
         }
       }, 40);
     },
-    [ACC],
+    [ACC, UNTIL] as const,
   );
 
   // ---- New game: the title's tap (a new player's only choice)
@@ -402,7 +435,7 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
   for (;;) {
     while (queue.length) await shot(queue.shift()!);
     const s = (await page.evaluate(() => ({ done: (window as Any).__f10.done }))) as { done: boolean };
-    if (s.done || Date.now() - start > 17 * 60_000) break;
+    if (s.done || Date.now() - start > (UNTIL === 'act' ? 27 : 17) * 60_000) break;
     if (Date.now() - dumped > 5000) {
       dumped = Date.now();
       await dump();
@@ -420,6 +453,7 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
   // the story included), the first finisher revealed by name, and before the chest only the basics' tips (the quiet
   // start: no packs, relic belt, Synergy! or skill point yet)
   const at = (id: string) => res.beats.find((b) => b.id === id);
+  if (UNTIL === 'act') expect(ids, 'the act cleared').toContain('actClear');
   expect(at('firstChest')!.wall, 'the first chest, s after New game').toBeLessThan(180);
   expect(await page.evaluate(() => (window as Any).__f10.reveal)).toEqual({ active: true, held: true });
   const early = (res.tips as Array<{ id: string; wall: number }>).filter((t) => t.wall < at('firstChest')!.wall).map((t) => t.id);
