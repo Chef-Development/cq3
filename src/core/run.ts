@@ -1180,10 +1180,17 @@ export class Run {
     this.goOn(this.boostThen);
   }
 
-  /** After the loot and the pick: the map, the act clear, the node's own stop (an ambush fought first), the world map. */
+  /** After the loot and the pick: the map, the act clear, the node's own stop (an ambush fought first), the world map.
+   *  The act's first fight won on its first playthrough brings its scene first, once per profile (`winScene`: Act 1's
+   *  road scene; a replay of a cleared act never does). */
   private goOn(then: PickThen): void {
     if (then === 'world') return this.endSkirmish();
     if (then === 'node') return this.enterStop();
+    const win = this.act.winScene;
+    if (then === 'map' && win && this.node?.type === 'fight' && this.profile.actsCleared <= this.actIndex && !this.profile.seen.includes(`scene:${win}`)) {
+      this.profile.seen.push(`scene:${win}`);
+      return this.playScenes([win], 'map');
+    }
     this.phase = then;
     if (then === 'actClear') this.clearAct();
   }

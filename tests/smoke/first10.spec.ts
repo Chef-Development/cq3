@@ -120,6 +120,7 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
         log(`phase ${prev} -> ${next}`);
         if (next === 'world') beat('worldMap');
         if (next === 'scene') beat('intro', x.storyId ?? '');
+        if (next === 'scene' && x.storyId === 'road') beat('roadScene'); // Pip's road scene after the first win
         if (next === 'map') beat('firstMap');
         if (next === 'fight' && x.run.combat !== combatSeen) beat('firstFight', (x.run.combat?.enemies ?? []).map((e: Any) => e.key).join('+'));
         if (next === 'loot') beat('firstLoot');
@@ -370,7 +371,11 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
               x.setPhase(() => {
                 if (ph === 'rest') x.run.rest();
                 else if (ph === 'shop') x.run.leaveShop();
-                else if (ph === 'event') x.run.endEvent();
+                else if (ph === 'event') {
+                  // the first choice it can afford (else the last, usually "walk on"), then on
+                  if (x.run.event.outcome < 0 && !x.run.chooseEvent(0)) for (let i = 4; i >= 0 && !x.run.chooseEvent(i); i--);
+                  x.run.endEvent();
+                }
                 else x.run.passQuest();
               });
               log(`left the ${ph} by a call`);
