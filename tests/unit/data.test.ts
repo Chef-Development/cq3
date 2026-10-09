@@ -135,10 +135,22 @@ describe('region data', () => {
 describe('story', () => {
   it('has every beat: intro, Pip joins, the three bosses, the boss phases, victory', () => {
     for (const id of ['intro', 'act1', 'captain', 'golem', 'boarKing', 'boarKing2', 'boarKing3', 'victory']) expect(STORY[id], id).toBeDefined();
-    expect(STORY.act1.some((b) => b.who === 'pip' && b.text.includes("I'm not a pet. I'm a consultant."))).toBe(true);
-    expect(STORY.intro.map((b) => b.text).join(' ')).toMatch(/Great Pendulum/);
-    expect(STORY.intro.map((b) => b.text).join(' ')).toMatch(/12 weights/);
-    expect(STORY.victory.map((b) => b.text).join(' ')).toMatch(/ticked/);
+    expect(STORY.act1.some((b) => b.who === 'pip')).toBe(true);
+    expect(STORY.intro.map((b) => b.text).join(' ')).toMatch(/Great Atlas/);
+    // the boss's phases are the Mapmaker's edits, and the region ends with him failing to erase Rowan
+    for (const id of ['boarKing', 'boarKing2', 'boarKing3', 'victory']) expect(STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
+    expect(STORY.victory.map((b) => b.text).join(' ')).toMatch(/Who drew you/);
+  });
+
+  it('gets a new player to the first fight fast: at most 4 boxes before it (the intro and Act 1\'s opening)', () => {
+    expect(STORY[GREENMARCH.introScene].length + STORY[GREENMARCH.acts[0].startScene ?? ''].length).toBeLessThanOrEqual(4);
+  });
+
+  it('keeps the old story out: no pendulum, no weights to bring home', () => {
+    for (const [id, boxes] of Object.entries(STORY)) {
+      if (!['intro', 'act1', 'road', 'captain', 'sableJoin', 'act2', 'golem', 'act3', 'boarKing', 'boarKing2', 'boarKing3', 'victory'].includes(id)) continue;
+      for (const b of boxes) expect(b.text, id).not.toMatch(/pendulum|weight/i);
+    }
   });
 
   it("has the second region's beats, and an arrival for every chest hero (2-4 boxes, in their own voice)", () => {

@@ -98,7 +98,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     style: 'blade',
     rarity: 'rare',
     title: 'Junior Knight',
-    bio: 'Slept through the end of time. Oops.',
+    bio: "Can't be erased. Can nap anywhere.",
     signature: part('Whirlwind Sweep', 'His finisher hits every foe at once.', 'Finisher hits every foe.'),
     ability: part('Battle Focus', 'Green hits: +{n}% crit for a few seconds.', 'Green hits raise your crit.'),
     passive: part('Resolve', "The first hit you take each fight doesn't break your combo.", 'Shrugs off a hit.'),

@@ -13,7 +13,7 @@ export interface BanterLine {
 }
 
 export const BANTER: BanterLine[] = [
-  { who: 'rowan', text: 'Still tired from the end of time.' },
+  { who: 'rowan', text: 'Still tired. Saving a kingdom is work.' },
   { who: 'rowan', text: "My armor squeaks. It's called charm." },
   { who: 'rowan', text: 'Pip, stop eating the trail rations.' },
   { who: 'rowan', text: 'One more act. Then a very long nap.' },

@@ -1,6 +1,8 @@
 // Story scenes: a portrait and a text box, tap to advance, a Skip button. At most 6 boxes per scene and
-// 2 lines per box (tests/unit/story.test.ts checks both, and that every line fits the box).
-// Tone: cheeky and light.
+// 2 lines per box (tests/unit/data.test.ts checks both, and that every line fits the box).
+// The story (SPOILERS: docs/story-bible.md): the kingdom is a living map; whatever is drawn on the Great Atlas is real,
+// and its exiled Mapmaker is redrawing it region by region. Tone: the plot is earnest (no gags, puns or winks); the
+// comedy lives in the heroes' arrivals, the camp banter, Mags and the companions.
 
 import type { Speaker, StoryBox } from './types';
 import { ASH_STORY } from './story-ash';
@@ -9,6 +11,8 @@ export const SPEAKER_NAME: Record<Speaker, string> = {
   narrator: '',
   rowan: 'Rowan',
   pip: 'Pip',
+  mapmaker: 'The Mapmaker',
+  keeper: 'Hesper',
   captain: 'Bandit Captain',
   golem: 'Ruin Golem',
   boarking: 'Boar King',
@@ -51,14 +55,15 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'pip', text: 'She once forged a spoon so sharp\nit got banned. Twice.' },
     { who: 'smith', text: "Hand over that sword. It's bent.\nYou slept on it, didn't you?" },
   ],
-  // after Act 1, at the camp: Sable tries to rob it, Pip catches them, and they join (unlocks Sable)
+  // after Act 1, at the camp: Sable tries to rob it, Pip catches them, and they join (unlocks Sable). Sable's town
+  // was one of his redraws: every alley drawn straight.
   sableJoin: [
-    { who: 'narrator', text: 'Night at camp. Rowan snores by the fire.\nSomething creeps toward the bag tent.' },
-    { who: 'sable', text: "Coins, coins... ooh, a shiny sword.\nDon't mind if I do." },
-    { who: 'pip', text: "Hoo. Evening. That's Rowan's bag. Also,\nowls never sleep. It's a whole thing." },
-    { who: 'sable', text: 'Caught by a bird. Embarrassing. Fine:\nSable. Thief. Ninja. Fast runner.' },
-    { who: 'rowan', text: 'You nearly robbed a knight. Bold. We need\nbold. Want a job? Pay is... coins? Later?' },
-    { who: 'sable', text: 'Two daggers, two hands, no questions.\nI keep half of anything shiny. Deal.' },
+    { who: 'narrator', text: 'Night at camp. Rowan sleeps at last.\nSomeone creeps toward the bags.' },
+    { who: 'sable', text: "Coins, a map, a good sword. A lot of nice\nthings for one knight. He won't miss a few." },
+    { who: 'pip', text: 'He will. Put it down. Owls see very well\nin the dark, and I bite.' },
+    { who: 'sable', text: 'Fine. Sable, thief, of Crookwell. Last night\nsomeone drew all my alleys straight.' },
+    { who: 'rowan', text: "We're after the man who did it. Help us put\nit back. We could use quick hands." },
+    { who: 'sable', text: 'Give me my alleys back, and you get two\ndaggers. I keep anything shiny. Deal?' },
   ],
   // welcome back: a returning player opens this version for the first time (over the title, once; core/tips.ts
   // welcomeScene picks one): what's new since they last played. The last box depends on whether Sable has joined.
@@ -77,67 +82,83 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'pip', text: 'Relics now bend the rules of a fight.\nPick one after a battle. Mix, match, cheat.' },
     { who: 'pip', text: 'And you level up now: skills at the camp.\nClear Act 1 and we get a visitor. Shifty one.' },
   ],
+  // New game: at most 4 boxes before the first fight (this and act1). Who he is, and the Atlas, come later.
   intro: [
-    { who: 'narrator', text: 'The kingdom keeps time by the Great Pendulum.\nTick, tock. Very reliable.' },
-    { who: 'narrator', text: 'Until one night it stopped. The Clockless King\nshattered it, and its 12 weights scattered.' },
-    { who: 'narrator', text: 'The knight on watch that night was Rowan.\nRowan was asleep. Loudly.' },
-    { who: 'rowan', text: 'In my defense, the Pendulum is VERY soothing.\nTick, tock. Tick... zzz.' },
-    { who: 'narrator', text: 'So, as punishment, Rowan is sent to bring\nall twelve weights back.' },
-    { who: 'rowan', text: 'Twelve weights. One junior knight. Fine.\nHow hard can it be?' },
+    { who: 'narrator', text: 'Whatever is drawn on the Great Atlas is real:\nevery road, river and hill in the kingdom.' },
+    { who: 'narrator', text: 'Tonight, someone is redrawing it. Where he\nrubs a line out, the land goes blank, and sleeps.' },
+    { who: 'narrator', text: 'On the Meadow Road, one knight stays awake.\nA calm voice in the blank: "Now that is odd."' },
   ],
+  // Act 1 starts: Pip arrives (and already knows Rowan's name)
   act1: [
-    { who: 'pip', text: "Hoo! You're the knight who slept through\nthe end of time? Big fan." },
-    { who: 'rowan', text: "An owl. Great. Shoo, I'm on a quest.\nNo pets allowed." },
-    { who: 'pip', text: "I'm not a pet. I'm a consultant.\nMy first advice: duck." },
-    { who: 'rowan', text: "Duck? Why would I duck? ...oh.\nThat's a slime, isn't it." },
-    { who: 'pip', text: "First weight's out in Greenmarch. Follow the\nroad, hit what hits back. I'll bill you." },
+    { who: 'pip', text: "Hoo. You're awake, Rowan. Good. On your feet:\nthe road is waking up, and waking up wrong." },
   ],
+  // after the first fight is won (needs a hook: the first fight node's win, before the map): what the blank is
+  road: [
+    { who: 'rowan', text: 'Thanks for the warning. Who are you?\nAnd how do you know my name?' },
+    { who: 'pip', text: 'Pip. I know a lot of names. Look at the farms.\nThe farmers are asleep where they stood.' },
+    { who: 'rowan', text: "Then let's wake them. Come on." },
+    { who: 'pip', text: "We can't. Someone rubbed this land off the\nGreat Atlas. What's erased, sleeps." },
+    { who: 'pip', text: 'And what he redraws wakes up wrong. This road\nwas crooked yesterday. Follow it.' },
+    { who: 'rowan', text: 'Then we follow it. Someone has to stay\nawake for them.' },
+  ],
+  // Act 1 mini-boss: a bandit robbing the sleeping farms
   captain: [
-    { who: 'captain', text: 'Step right up! Genuine pendulum pieces!\nCertified by me, a very honest man!' },
-    { who: 'rowan', text: "That's a doorknob. Painted gold." },
-    { who: 'captain', text: "It's a RARE doorknob. Pendulum grade.\nTwo hundred coins, or your boots." },
-    { who: 'pip', text: "He sold me a 'magic' worm earlier.\nIt was just a worm." },
-    { who: 'captain', text: "No refunds! Lads, let's show this tin can\nour returns policy!" },
+    { who: 'captain', text: 'Well, well. A whole road asleep, and one\nknight left to guard it. Bad luck.' },
+    { who: 'rowan', text: "Put it back. All of it. Those people can't\neven wake up to stop you." },
+    { who: 'captain', text: "That's what makes it fair. Somebody redrew\nthe world last night. I'm just keeping up." },
+    { who: 'pip', text: "The sleepers' things are in his cart, Rowan.\nDon't let him reach the crossroads." },
+    { who: 'captain', text: 'Lads! Up you get. This knight wants\nto be a hero.' },
   ],
   act2: [
-    { who: 'pip', text: 'The Old Ruins. Watch your step, the floors\nhere are older than my jokes.' },
-    { who: 'rowan', text: "Your jokes aren't that old." },
-    { who: 'pip', text: "Correct. These floors are ancient.\nAnd the weight's trail leads inside." },
+    { who: 'narrator', text: 'The Old Ruins lay broken for three hundred\nyears. This morning they have walls again.' },
+    { who: 'sable', text: 'Fresh stone. Fresh mortar. Not a crack.\nWho builds a fortress overnight?' },
+    { who: 'pip', text: 'Nobody built it. He drew it back the way it\nwas. Walls, towers, gate. And the guard.' },
+    { who: 'rowan', text: 'Then his trail runs through here.\nStay close, both of you.' },
   ],
+  // Act 2 mini-boss: the fortress's guardian, woken when its walls came back
   golem: [
     { who: 'golem', text: 'HALT. NONE MAY PASS. BY ORDER\nOF KING ALDRIC THE THIRD.' },
-    { who: 'rowan', text: 'King Aldric? He died 300 years ago.' },
-    { who: 'golem', text: '...NOBODY TOLD ME. I HAVE BEEN STANDING\nHERE FOR A VERY LONG TIME.' },
-    { who: 'pip', text: 'Awkward. Maybe let us through, and you can\nfinally take a break?' },
-    { who: 'golem', text: 'A GOOD GUARD NEVER BREAKS. ALSO, MY KNEES\nARE STONE. PREPARE YOURSELF.' },
+    { who: 'rowan', text: 'King Aldric died three hundred years ago.\nThere is no one left to guard.' },
+    { who: 'golem', text: '...THREE HUNDRED. I SLEPT IN THE RUBBLE.\nTHEN THE WALLS CAME BACK, AND I WOKE.' },
+    { who: 'golem', text: 'THE GATE IS WHOLE. SO I GUARD IT.\nMY LAST ORDER STANDS. NONE MAY PASS.' },
+    { who: 'pip', text: "He doesn't know how to stop. Be gentle,\nRowan. He's doing what he was made for." },
   ],
   act3: [
-    { who: 'pip', text: "Smell that? Wet fur and ego. We're close\nto the Boar King's hollow." },
-    { who: 'rowan', text: 'The first weight is in there.\nI can feel it ticking.' },
-    { who: 'pip', text: "That's your knees knocking. Chin up, knight." },
+    { who: 'narrator', text: 'The deep wood. Yesterday it was wild and\nbelonged to no one. Today it has a king.' },
+    { who: 'pip', text: "Look at the trees. Cut back, set in rows,\na road to a throne. He's been tidying." },
+    { who: 'sable', text: 'Boar tracks everywhere. Big ones. And they\nall head the same way.' },
+    { who: 'rowan', text: 'To the hollow tree. Whatever he drew last\nis in there. Maybe he is, too.' },
+    { who: 'pip', text: 'He will be. He never leaves a drawing\nunfinished. Rowan... be careful of him.' },
   ],
+  // Act 3 boss: a boar the Mapmaker crowned; the crown is his redraw's keystone. He stays to watch (and edits).
   boarKing: [
-    { who: 'boarking', text: 'WHO DARES ENTER THE HOLLOW\nOF THE BOAR KING? SNORT!' },
-    { who: 'rowan', text: 'Hi. That thing on your head is a pendulum\nweight. I need it back.' },
-    { who: 'boarking', text: 'It is a CROWN. It fell from the sky. A sign\nthat I am meant to rule. Everything.' },
-    { who: 'pip', text: "It fell on your head, didn't it." },
-    { who: 'boarking', text: '...IT WAS A GLORIOUS CORONATION.\nYOU WILL NOT HAVE IT!' },
+    { who: 'boarking', text: 'KNEEL. I WAS A BOAR. NOW I AM A KING.\nTHE CROWN TOLD ME SO.' },
+    { who: 'mapmaker', text: 'Forgive him. He is new to words. When I drew\nthat crown, he learned to speak.' },
+    { who: 'rowan', text: "You're the one. You rubbed out the farms.\nThose people are asleep in the fields." },
+    { who: 'mapmaker', text: 'Sleeping, not harmed. A wild wood needs a\nruler. I am only putting things in order.' },
+    { who: 'mapmaker', text: 'You should be asleep with them. Odd.\nAnother time. Majesty? He is yours.' },
+    { who: 'boarking', text: 'MINE! THE WOOD IS MINE! CHARGE!' },
   ],
+  // phase 2 (his first edit): piglets join the fight
   boarKing2: [
-    { who: 'boarking', text: 'Grr! Not bad for a sleepy tin can.\nPIGLETS! Defend your king!' },
-    { who: 'pip', text: 'Hit the piglets first. He hides behind them.\nClassic boss move.' },
+    { who: 'mapmaker', text: 'Struggling, Majesty? A king needs\nsubjects. Allow me.' },
+    { who: 'narrator', text: 'Gold lines run from his pen. He draws a door\nin the roots, and piglets pour out of it.' },
+    { who: 'pip', text: 'The piglets first, Rowan.\nThe king hides behind them.' },
   ],
+  // phase 3 (his second edit): everything faster
   boarKing3: [
-    { who: 'boarking', text: 'ENOUGH! THE CROWN STAYS ON MY HEAD!\nRAAAGH!' },
-    { who: 'pip', text: "Uh oh. He's enraged: everything's faster.\nKeep your rhythm!" },
+    { who: 'mapmaker', text: 'Too slow. Let me quicken the line.' },
+    { who: 'narrator', text: 'He redraws the pace of the wood. The king,\nthe wind, the light: everything runs faster.' },
+    { who: 'pip', text: "Keep your own rhythm, Rowan.\nDon't chase his." },
   ],
+  // victory: the keystone breaks and Greenmarch is restored; he tries to erase Rowan and can't; the High Keeper
   victory: [
-    { who: 'boarking', text: 'Fine! Take your shiny hat. It was giving me\nheadaches anyway.' },
-    { who: 'narrator', text: 'Rowan carried the first weight home and set it\nback on the Great Pendulum...' },
-    { who: 'narrator', text: '...and for the first time in weeks,\nthe Pendulum ticked. Once.' },
-    { who: 'rowan', text: 'One down. Eleven to go. Can I nap first?' },
-    { who: 'pip', text: 'No. Word is the next weight is up in the\nFrostpeaks. Pack a scarf, knight.' },
-    { who: 'narrator', text: 'To be continued...' },
+    { who: 'narrator', text: 'The crown cracks in two. The gold lines fade\nfrom the wood, and the farms begin to wake.' },
+    { who: 'mapmaker', text: 'My first draft. One always throws the first\naway. You, though. Hold still a moment.' },
+    { who: 'narrator', text: 'He draws a line through Rowan to rub him\nout. The ink runs off him like rain.' },
+    { who: 'mapmaker', text: 'Everything I erase sleeps. You will not even\nsmudge. Who drew you, knight?' },
+    { who: 'narrator', text: 'And he is gone. At Meridian, in the Atlas\nHall, the High Keeper is waiting.' },
+    { who: 'keeper', text: 'Ambrose Fairhand. He kept this Atlas once.\nHe cannot erase you. So it falls to you.' },
   ],
 
   // ---- Region 2 (docs/content-bible.md section 5): the second weight froze time on the peaks; a vain wyrm hoards it

@@ -60,8 +60,10 @@ one at a time.
    undo it.
 7. **Keystones.** A redraw holds on one strong line, drawn hardest, and Ambrose always puts it in the keeping of the
    strongest creature in the region, as a gift: the Boar King's crown, Glacia's mirror, Bellows's anvil. That
-   creature is the region's boss. Break the keystone and the new ink lets go; the impression pulls the land back to
-   its old lines. That is what **restoring a region** means.
+   creature is the region's boss. Break the keystone and the new ink lets go: it runs back to the lines it was scraped
+   from (the land it came from wakes), and the impression pulls the redrawn land back to its old lines. That is what
+   **restoring a region** means. (Greenmarch: he scraped the Meadow Road's farms to draw the straight road, the
+   fortress and the crown; the farmers sleep in blank fields until the crown breaks.)
 8. **Edits mid-fight.** When a keystone is threatened, Ambrose arrives in person and redraws the fight around it.
    Every boss phase is one of his edits (one per phase). He is not the boss; he is the hand behind it.
 9. **The fog beyond the sea.** Before the game begins he scraped the seven isles beyond the sea bare for ink: that is

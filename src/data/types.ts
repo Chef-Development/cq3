@@ -167,6 +167,9 @@ export type Speaker =
   | 'narrator'
   | 'rowan'
   | 'pip'
+  // the living-map story (docs/story-bible.md): the Mapmaker and the High Keeper (portraits: art team)
+  | 'mapmaker'
+  | 'keeper'
   | 'captain'
   | 'golem'
   | 'boarking'
