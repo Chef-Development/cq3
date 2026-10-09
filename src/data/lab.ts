@@ -52,7 +52,10 @@ export type LabSetup =
   /** The Finisher gallery: any hero's finisher on demand (every hero in HEROES, at 1 to max stacks, at any rarity)
    *  against these foes at act `act`'s stage, as often as wanted; `hero` comes first. Nothing hurts, nothing dies,
    *  nothing is saved. */
-  | { kind: 'gallery'; act: number; foes: string[]; hero?: HeroId };
+  | { kind: 'gallery'; act: number; foes: string[]; hero?: HeroId }
+  /** The title screen, as a new player sees it, `hero` standing on its map (a tap starts a run on the lab's save, which
+   *  ends the scenario). */
+  | { kind: 'title'; hero?: HeroId };
 
 /** What the lab's profile holds for a scenario (core/lab.ts builds it on a fresh profile). */
 export interface LabProfileSpec {
@@ -280,8 +283,12 @@ const ROUND7: LabScenario[] = [
  *  platforms, the first 10 minutes). Each team appends to its own block. Region and story items are spoilers.
  *  Reworked items carry a new rev: a rating given to their earlier version shows as "Reworked" with the old rating. */
 export const LAB_NEW: LabScenario[] = [
-  // ---- story (team 1)
+  // ---- story (team 1): the new story's first region, by act number only (spoilers)
+  { id: 'r8Story1', group: 'spoiler', spoiler: true, label: 'Act 1 story (new)', secs: 60, try: 'Read the scenes. A quick, clear start?', setup: { kind: 'story', act: 0, scenes: ['intro', 'act1', 'road', 'captain', 'sableJoin'] } },
+  { id: 'r8Story2', group: 'spoiler', spoiler: true, label: 'Act 2 story (new)', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 1, scenes: ['act2', 'golem'] } },
+  { id: 'r8Story3', group: 'spoiler', spoiler: true, label: 'Act 3 story (new)', secs: 90, try: 'Read the scenes. Does the ending pull you on?', setup: { kind: 'story', act: 2, scenes: ['act3', 'boarKing', 'boarKing2', 'boarKing3', 'victory'] } },
   // ---- art (team 2)
+  { id: 'titleAtlas', group: 'camp', label: 'New title screen', secs: 30, try: 'Watch it settle (logo, map, fog), then tap to start.', setup: { kind: 'title' }, profile: { actsCleared: 0 } },
   // ---- content: the new regions (team 3; spoilers)
   // the fourth region's two bar rules, each alone against the Training Dummy (nothing hurts, the rule's tip on), then
   // both at once against real foes
@@ -291,7 +298,24 @@ export const LAB_NEW: LabScenario[] = [
   { id: 'spBarHeat', group: 'spoiler', spoiler: true, label: 'Act 14 bar rule', secs: 40, try: 'Blazing blocks hit hard but burn. Greens cool.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, waves: [['dummy']], bar: { heat: { share: 0.35, fromRow: 0 } }, safe: true }, profile: { tips: ['heat'] } },
   { id: 'spBarDusk', group: 'spoiler', spoiler: true, label: 'Act 12 bar rules', secs: 75, try: 'Both at once, real foes. Fair? Easy to read?', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 7, stage: 2, waves: [['cinderKite', 'cragCrab'], ['glassMantis'], ['cinderling', 'prismBat']], bar: { dark: { share: 0.3, fromRow: 0, traps: 0.25 }, tide: { fromRow: 0, low: 0.08, high: 0.4, period: 8, from: 'right' } } } },
   // ---- QA and platforms (team 4)
+  {
+    id: 'cleanCapture',
+    group: 'fights',
+    label: 'Clean capture',
+    secs: 40,
+    try: 'Gear: Clean capture On. Hold the top middle to undo.',
+    setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['dummy'], ['dummy'], ['dummy']], safe: true },
+  },
   // ---- the first 10 minutes (team 5)
+  {
+    id: 'firstFight',
+    group: 'fights',
+    label: 'The first fight',
+    secs: 60,
+    try: 'Your first fight again: tips, then a finisher.',
+    setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['crow'], ['boar'], ['slime']] },
+    profile: { tips: ['tapYellow', 'blockRed', 'green', 'purple', 'finisher'] },
+  },
 ];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,
@@ -388,9 +412,9 @@ export const LAB_EARLIER: LabScenario[] = [
   { id: 'spMini5', group: 'spoiler', spoiler: true, label: 'Act 5 mini-boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 4, waves: [['matron']], bar: 'act', row: 6, safe: true } },
   { id: 'spAct6', group: 'spoiler', spoiler: true, label: 'Act 6 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 5, waves: [['driftTroll', 'auroraWisp'], ['frostWeaver', 'hailcaller'], ['frostKnight']], bar: 'act', row: 3 } },
   { id: 'spBoss6', group: 'spoiler', spoiler: true, label: 'Act 6 boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 5, waves: [['glacia']], bar: 'act', row: 6, safe: true } },
-  { id: 'spStory4', group: 'spoiler', spoiler: true, label: 'Act 4 story', secs: 60, try: 'Read the scenes.', setup: { kind: 'story', act: 3, scenes: ['frost1', 'rimehorn', 'neveJoin'] } },
-  { id: 'spStory5', group: 'spoiler', spoiler: true, label: 'Act 5 story', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 4, scenes: ['frost2', 'matron'] } },
-  { id: 'spStory6', group: 'spoiler', spoiler: true, label: 'Act 6 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 5, scenes: ['frost3', 'glacia', 'glacia2', 'glacia3', 'frostVictory'] } },
+  { id: 'spStory4', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 4 story', secs: 60, try: 'Read the scenes.', setup: { kind: 'story', act: 3, scenes: ['frost1', 'rimehorn', 'neveJoin'] } },
+  { id: 'spStory5', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 5 story', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 4, scenes: ['frost2', 'matron'] } },
+  { id: 'spStory6', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 6 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 5, scenes: ['frost3', 'glacia', 'glacia2', 'glacia3', 'frostVictory'] } },
   { id: 'spArrivals', group: 'spoiler', spoiler: true, label: 'Hero arrivals', secs: 60, try: 'Read how each chest hero arrives.', setup: { kind: 'story', act: 1, scenes: ['meetMoss', 'meetTam', 'meetHollis', 'meetVesper', 'meetTorva'] } },
   // ---- spoilers: the third region (acts 7-9): its two bar rules, foes, mini-bosses, boss and story
   { id: 'spBar7', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 7 bar rule', secs: 45, try: 'Watch the blocks move. Nothing hurts.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, waves: [['dummy']], bar: { drift: { share: 0.6, fromRow: 0, speed: 0.07 } }, safe: true }, profile: { tips: ['drift'] } },
@@ -401,9 +425,9 @@ export const LAB_EARLIER: LabScenario[] = [
   { id: 'spMini8', group: 'spoiler', spoiler: true, label: 'Act 8 mini-boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 7, waves: [['hobnob']], bar: 'act', row: 6, safe: true } },
   { id: 'spAct9', group: 'spoiler', spoiler: true, label: 'Act 9 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 8, waves: [['stokerImp', 'forgeHand'], ['magmaEel', 'glassblower'], ['chainSentinel']], bar: 'act', row: 3 } },
   { id: 'spBoss9', group: 'spoiler', spoiler: true, label: 'Act 9 boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 8, waves: [['bellows']], bar: 'act', row: 6, safe: true } },
-  { id: 'spStory7', group: 'spoiler', spoiler: true, label: 'Act 7 story', secs: 60, try: 'Read the scenes.', setup: { kind: 'story', act: 6, scenes: ['ash1', 'rumbleback', 'magsTale'] } },
-  { id: 'spStory8', group: 'spoiler', spoiler: true, label: 'Act 8 story', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 7, scenes: ['ash2', 'hobnob'] } },
-  { id: 'spStory9', group: 'spoiler', spoiler: true, label: 'Act 9 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 8, scenes: ['ash3', 'bellows', 'bellows2', 'bellows3', 'ashVictory'] } },
+  { id: 'spStory7', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 7 story', secs: 60, try: 'Read the scenes.', setup: { kind: 'story', act: 6, scenes: ['ash1', 'rumbleback', 'magsTale'] } },
+  { id: 'spStory8', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 8 story', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 7, scenes: ['ash2', 'hobnob'] } },
+  { id: 'spStory9', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 9 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 8, scenes: ['ash3', 'bellows', 'bellows2', 'bellows3', 'ashVictory'] } },
 ];
 
 

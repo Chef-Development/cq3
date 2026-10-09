@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { STORY } from '../../src/data/story';
 import { HERO_IDS } from '../../src/data/heroes';
-import { BASIC_TIPS, FIRST_FIGHT, TIP_IDS, TIP_TEXT_W, TIPS, WELCOME_ID, tipById, type TipId } from '../../src/data/tips';
+import { BASIC_TIPS, FIRST_FIGHT, QUIET_WINS, TIP_IDS, TIP_TEXT_W, TIPS, WELCOME_ID, tipById, type TipId } from '../../src/data/tips';
 import { DT, isRed, type Combat, type CombatEvent } from '../../src/core/combat';
 import { newProfile, readProfile, type Profile } from '../../src/core/profile';
 import { Rng } from '../../src/core/rng';
@@ -18,6 +18,13 @@ import { textWidth } from '../../src/engine/font';
 
 const T = cloneTuning();
 const viaJson = <X>(x: X): X => JSON.parse(JSON.stringify(x)) as X;
+
+/** A new profile past the quiet start (it has won the fights the map's extras' tips wait for). */
+const settled = (): Profile => {
+  const p = newProfile();
+  p.counts.wins = QUIET_WINS;
+  return p;
+};
 
 /** A run on Act 1's map (scenes skipped), with a coach on its profile. */
 function setup(p: Profile = newProfile(), seed = 7) {
@@ -427,7 +434,7 @@ describe('the coach', () => {
   });
 
   it('the run: loot, a relic pick then Synergy!, shop, rest, an event, a defeat, an act clear, an elite, a level up', () => {
-    const { run, p, take } = setup();
+    const { run, p, take } = setup(settled());
     expect(take()).toBe('map');
     goTo(run, 'fight');
     run.loot = [{} as never];
@@ -475,7 +482,7 @@ describe('the coach', () => {
   });
 
   it('the first sparkle on the act map: once, only on the map, only while one is glinting', () => {
-    const { run, p, take } = setup();
+    const { run, p, take } = setup(settled());
     expect(take({ sparkle: true })).toBe('map'); // the map's own tip comes first (one per screen)
     expect(take({ sparkle: true })).toBeNull();
     // (every other tip seen: only the sparkle's is left to show)
@@ -504,8 +511,36 @@ describe('the coach', () => {
     expect(take({ campMode: 'bag' })).toBeNull();
   });
 
+  it('the quiet start: a new player meets the packs, the relic belt, Synergy!, a skill point and a sparkle only after winning a few fights (the first chest comes first); a returning player at once', () => {
+    const { run, p, coach, take } = setup();
+    expect(TIPS.filter((d) => d.wins).map((d) => d.id).sort()).toEqual(['levelUp', 'relicBelt', 'roamer', 'sparkle', 'synergy']);
+    expect(take()).toBe('map');
+    expect(run.roamFor().roamers.some((r) => r.kind === 'pack')).toBe(true);
+    const back = () => {
+      run.phase = 'rest';
+      take();
+      run.phase = 'map';
+    };
+    back();
+    expect(take({ sparkle: true })).toBeNull(); // no wins yet: neither the packs' tip nor the sparkle's
+    // the fights won are counted from their events (tips on or off)
+    goTo(run, 'fight');
+    for (let i = 0; i < QUIET_WINS - 1; i++) coach.feed([{ type: 'won' }], run.combat!);
+    expect(p.counts.wins).toBe(QUIET_WINS - 1);
+    run.phase = 'map';
+    expect(take()).toBeNull();
+    coach.feed([{ type: 'won' }], run.combat!);
+    back();
+    expect(take()).toBe('roamer');
+    // a player who has cleared an act is past it, whatever the count
+    const old = newProfile();
+    old.actsCleared = 1;
+    old.tips = [...BASIC_TIPS];
+    expect(setup(old).take()).toBe('roamer');
+  });
+
   it('the relic belt: before the first fight that carries a relic', () => {
-    const { run, take } = setup();
+    const { run, take } = setup(settled());
     goTo(run, 'fight');
     expect(take({ preFight: true })).toBe('tapYellow');
     run.startFight();
@@ -604,7 +639,7 @@ describe('the welcome back', () => {
 describe('the map extras each teach once, the moment they matter', () => {
   /** A profile that knows everything but the map extras. */
   const knows = (): Profile => {
-    const p = newProfile();
+    const p = settled();
     p.tips = TIP_IDS.filter((id) => !['roamer', 'secret', 'bounty', 'merchant', 'skirmish', 'rush'].includes(id));
     return p;
   };

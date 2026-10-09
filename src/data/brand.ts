@@ -2,7 +2,7 @@
 // title, the install name and every line that names the game read it from here. Shortlist and reasons: docs/names.md.
 
 /** The game's name as the player sees it. */
-export const GAME_NAME = 'The Living Map';
+export const GAME_NAME = 'The Unerased';
 
 /** A short form for a home-screen icon's label (at most 12 letters). */
-export const GAME_SHORT = 'Living Map';
+export const GAME_SHORT = 'Unerased';

@@ -6,6 +6,9 @@ not secret; they are listed here too because the art, story and code all read fr
 
 Tone everywhere: cheeky and light (see `src/data/story.ts`). Original names and art only.
 
+**Round 8: the story is new.** `docs/story-bible.md` replaces the Pendulum / weights plot; where the story notes in
+sections 5-6 below disagree with it (weights, ticks), the story bible wins. The mechanics here stand.
+
 ---
 
 ## 1. Rarity tiers (shared by gear, heroes and companions)

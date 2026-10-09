@@ -181,3 +181,15 @@ const CHEST_REVEAL_KEY = 'cq3.chestReveal';
 export const readChestReveal = (v: unknown): ChestRevealMode => (v === 'hd' ? 'hd' : 'old');
 export const loadChestReveal = (): ChestRevealMode => readChestReveal(read(CHEST_REVEAL_KEY));
 export const saveChestReveal = (m: ChestRevealMode): void => write(CHEST_REVEAL_KEY, m);
+
+// ------------------------------------------------------------------ the clean capture (for recording clips)
+
+/**
+ * The clean capture: the gear button, the Test lab's buttons and any dev-only overlay are hidden so a screen recording
+ * shows only the game. Switched in the gear panel or with C on a keyboard; a long press where the gear button sits
+ * (or C again) brings everything back. Kept across launches.
+ */
+const CLEAN_CAPTURE_KEY = 'cq3.cleanCapture';
+export const readCleanCapture = (v: unknown): boolean => v === true;
+export const loadCleanCapture = (): boolean => readCleanCapture(read(CLEAN_CAPTURE_KEY));
+export const saveCleanCapture = (on: boolean): void => write(CLEAN_CAPTURE_KEY, on);

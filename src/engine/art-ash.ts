@@ -2345,6 +2345,43 @@ function glassPane(): HTMLCanvasElement {
 
 // ------------------------------------------------------------------ build
 
+/** Foes dark enough to sink into Ashfell's backdrops: they get an ember rim along their lower edges. */
+const UPLIT = ['cinderkite', 'obsidianox', 'forgehand', 'chainsentinel'];
+
+/**
+ * Ashfell's light from below on a finished frame: every pixel of the form whose pixel below is outline or empty takes
+ * an ember tint (strong on the bottom edge, softer up the right-hand edges of the lower half); the top edges get a
+ * faint cool lift from the dim key. Ink (the outline, dark interior lines) is left alone.
+ */
+function emberRim(c: HTMLCanvasElement): void {
+  const ctx = c.getContext('2d')!;
+  const img = ctx.getImageData(0, 0, c.width, c.height);
+  const d = img.data;
+  const W = c.width;
+  const H = c.height;
+  const at = (x: number, y: number) => (x < 0 || y < 0 || x >= W || y >= H ? -1 : (y * W + x) * 4);
+  const dark = (i: number) => i < 0 || d[i + 3] < 128 || d[i] + d[i + 1] + d[i + 2] < 100;
+  const src = new Uint8ClampedArray(d);
+  const isDark = (x: number, y: number) => {
+    const i = at(x, y);
+    return i < 0 || src[i + 3] < 128 || src[i] + src[i + 1] + src[i + 2] < 100;
+  };
+  const tint = (i: number, col: [number, number, number], k: number) => {
+    d[i] = Math.round(d[i] + (col[0] - d[i]) * k);
+    d[i + 1] = Math.round(d[i + 1] + (col[1] - d[i + 1]) * k);
+    d[i + 2] = Math.round(d[i + 2] + (col[2] - d[i + 2]) * k);
+  };
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const i = at(x, y);
+      if (dark(i)) continue;
+      if (isDark(x, y + 1)) tint(i, [240, 138, 42], 0.62);
+      else if (y > H * 0.5 && isDark(x + 1, y)) tint(i, [240, 138, 42], 0.35);
+      else if (isDark(x, y - 1) || isDark(x - 1, y)) tint(i, [184, 194, 216], 0.22);
+    }
+  ctx.putImageData(img, 0, 0);
+}
+
 /** The jobs that draw every texture this file makes: one sprite (with its phase looks) per job, then the rest. */
 function jobs(): Array<() => Array<[string, HTMLCanvasElement]>> {
   const defs: Partial<Record<string, SpriteDef>> = {
@@ -2370,7 +2407,11 @@ function jobs(): Array<() => Array<[string, HTMLCanvasElement]>> {
   const out: Array<() => Array<[string, HTMLCanvasElement]>> = ASH_SPRITES.map((name) => () => {
     // a boss's phase looks share its frame size, so swapping between them never jumps
     const group: string[] = name === 'bellows' ? [name, ...BELLOWS_PHASES] : name === 'rumbleback' ? [name, 'rumbleback2'] : [name];
-    return fitFrames(group.flatMap((n) => [...ASH_POSES, ...(defs[n]!.extras ?? [])].map((pose): [string, SpriteDef, string] => [n, defs[n]!, pose])));
+    const frames = fitFrames(group.flatMap((n) => [...ASH_POSES, ...(defs[n]!.extras ?? [])].map((pose): [string, SpriteDef, string] => [n, defs[n]!, pose])));
+    // the darkest foes get Ashfell's rim light (docs/art-style.md section 9): ember from below, so they pop off the
+    // region's dark backdrops (the art audit: dark on dark)
+    if (UPLIT.includes(name)) for (const [key, c] of frames) if (!key.endsWith('_flash')) emberRim(c);
+    return frames;
   });
   out.push(() => [
     ['portrait_rumbleback', rumblebackPortrait()],

@@ -1,5 +1,5 @@
-// Overlays and menus: the title screen (chrome logo, Rowan and Pip showcased, a pulsing start prompt, how-to
-// tips), the boost pick (with a reroll; each card shows its stat before and after), the treasure / act-clear chest
+// Overlays and menus: the title screen (the Atlas key art and the logo in view/title.ts; Continue / New game or a
+// pulsing start prompt, the legend of blocks), the boost pick (with a reroll; each card shows its stat before and after), the treasure / act-clear chest
 // (then the act's accuracy, and Camp / Next buttons), defeat (Camp / Retry), the victory, pause, "TAP TO BEGIN!",
 // the fight banner, and the screen flash. Panels pop in with a little overshoot; cards and buttons stagger in.
 // Also the small UI glyphs the menus share (bag, heart, coin, warning, tent, tick, padlock, target, arrow).
@@ -14,12 +14,11 @@ import { levelProgress } from '../../core/heroes';
 import { boostLabel, boostPreview, isRelicOffer, type BoostOffer, type BoostPreview, type Phase, type Rarity } from '../../core/run';
 import { saveLabel } from '../../core/save';
 import type { FightScene } from '../scene';
-import { HERO_FEET_X, HERO_W } from '../art';
-import { buildCrest, buildLogo } from '../chrome';
+import { TitleScreen } from './title';
 import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
-import { band, brick, button3d, chevron, gauge, glow, GOLD, hudIcon, iconSize, NAVY, panel, RAMP, rows } from './pixels';
-import { BOOST_ICON, clamp01, COL, easeBack, easeInOut, easeOut3, hpLabel, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
+import { band, button3d, chevron, gauge, glow, GOLD, hudIcon, iconSize, NAVY, panel, RAMP, rows } from './pixels';
+import { BOOST_ICON, clamp01, easeBack, easeInOut, easeOut3, hpLabel, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
 import { FACE, ImagePool, isPressed, notePress, ribbon, RIBBON, strip, tag, TextPool } from './ui';
 import { cardFrame, cardShine, cardTile, mainTag, relicCard, relicIcon, tagChip, TAG_FACE, type CardCtx } from './relic-ui';
 import { wrapText } from './items';
@@ -142,8 +141,9 @@ type G = Phaser.GameObjects.Graphics;
 /** A relic's card colours by its rarity (the boost cards' common / rare / epic). */
 const RARITY_FACE_OF = (r: Rarity) => CARD[r].face;
 
-/** Title entrance: when each piece has arrived (ms after the title appears). */
-const TITLE_IN = { heroes: 340, logo: 420, ribbon: 460, prompt: 420 };
+/** The title's band (the buttons, the prompt, the legend) comes in this long after the title appears. */
+const TITLE_PROMPT_MS = 700;
+
 
 export class Overlays {
   gCards!: G;
@@ -151,13 +151,8 @@ export class Overlays {
   /** The picked boost card flies off above everything (even the screen transition). */
   private gFly: G | null = null;
   private flyTexts: TextPool;
-  private logo: Phaser.GameObjects.Image | null = null;
-  private shine: Phaser.GameObjects.Image | null = null;
-  private shineFrames = 0;
-  private heroBig: Phaser.GameObjects.Image | null = null;
-  private pipBig: Phaser.GameObjects.Image | null = null;
-  /** Sable on the title, beside Rowan and Pip, once they've joined. */
-  private sableBig: Phaser.GameObjects.Image | null = null;
+  /** The title's key art, hero and logo (view/title.ts). */
+  readonly title: TitleScreen;
   private chest: Phaser.GameObjects.Image | null = null;
   private chestAt = 0;
   private chestOpenAt = 0;
@@ -201,6 +196,7 @@ export class Overlays {
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, 32);
+    this.title = new TitleScreen(s);
     this.flyTexts = new TextPool(s, 41.5);
     this.pool = new ImagePool(s);
     this.flyPool = new ImagePool(s);
@@ -210,17 +206,10 @@ export class Overlays {
     // texts come from the pools on demand
   }
 
-  /** Regenerate the logo and the title's showcase sprites for a new layout. */
+  /** Regenerate the title's key art and logo for a new layout. */
   build(): void {
     const s = this.s;
-    buildCrest(s);
-    this.shineFrames = buildLogo(s);
-    for (const o of [this.logo, this.shine, this.heroBig, this.pipBig, this.sableBig]) o?.destroy();
-    this.heroBig = s.add.image(0, 0, 'hero_idle0').setOrigin(HERO_FEET_X / HERO_W, 1).setScale(2).setDepth(31.3).setVisible(false);
-    this.sableBig = s.add.image(0, 0, s.textures.exists('sable_idle0') ? 'sable_idle0' : 'hero_idle0').setOrigin(HERO_FEET_X / HERO_W, 1).setScale(2).setDepth(31.29).setVisible(false);
-    this.pipBig = s.add.image(0, 0, 'pip_idle0').setOrigin(0.5, 0.5).setScale(2).setDepth(31.3).setVisible(false);
-    this.logo = s.add.image(0, 0, 'logo').setOrigin(0, 0).setDepth(31.6).setVisible(false);
-    this.shine = s.add.image(0, 0, 'logo_shine_0').setOrigin(0, 0).setDepth(31.7).setVisible(false);
+    this.title.build();
     this.gFly?.destroy();
     this.gFly = s.add.graphics().setDepth(41);
     this.pool.destroy();
@@ -627,12 +616,7 @@ export class Overlays {
     }
     // the old named texts are no longer used by the overlays
     for (const k of ['ovTitle', 'ovSub', 'ovLine1', 'ovLine2', 'ovLine3', 'begin', 'banner', 'tCont', 'tContSub', 'tNew']) txt[k]?.setVisible(false);
-    const titleOn = ph === 'title';
-    this.logo?.setVisible(titleOn);
-    this.shine?.setVisible(false);
-    this.heroBig?.setVisible(titleOn);
-    this.pipBig?.setVisible(titleOn);
-    this.sableBig?.setVisible(titleOn && this.sableOnTitle());
+    if (ph !== 'title') this.title.hide();
     const since = now - this.phaseAt;
     if (ph === 'fight') this.drawBanner(g, now);
     if (ph === 'title') this.drawTitle(g, gc, now, since);
@@ -676,129 +660,20 @@ export class Overlays {
 
   // ------------------------------------------------------------------ title
 
-  /** Sable stands on the title once they've joined (and their frames are drawn). */
-  private sableOnTitle(): boolean {
-    return !!this.s.app.profile.sableMet && this.s.textures.exists('sable_idle0');
-  }
-
   /**
-   * A few leaves drifting down across the title, swaying (closed-form in time: no state, the same every run): a
-   * little life that never crowds the logo.
+   * The title: the Atlas key art, the hero and the logo (view/title.ts); under them Continue / New game (with anything
+   * earned) or the start prompt, and the legend of blocks at the foot, on glass plates over the map.
    */
-  private drawLeaves(g: G, now: number): void {
-    const s = this.s;
-    const cols = [
-      [0x78a83c, 0xb4d058],
-      [0xd8901c, 0xf2c230],
-      [0x4a7e36, 0x78a83c],
-    ] as const;
-    for (let i = 0; i < 6; i++) {
-      const period = 7000 + i * 1300;
-      const q = (((now + i * 2900) % period) + period) % period / period;
-      const x = Math.round(s.L + ((i * 89 + 23) % Math.max(1, s.R - s.L)) + Math.sin(q * Math.PI * 4 + i) * 10 - q * 30);
-      const y = Math.round(-6 + q * (s.splitY + 4));
-      if (y > s.splitY - 2) continue;
-      const a = q < 0.08 ? q / 0.08 : q > 0.9 ? (1 - q) / 0.1 : 1;
-      const [lo, hi] = cols[i % 3];
-      const flip = Math.sin(q * Math.PI * 6 + i) > 0;
-      g.fillStyle(lo, 0.9 * a);
-      g.fillRect(x, y + 1, 3, 1);
-      g.fillRect(flip ? x + 1 : x - 1, y, 2, 1);
-      g.fillStyle(hi, 0.9 * a);
-      g.fillRect(flip ? x : x + 1, y, 1, 1);
-      g.fillRect(flip ? x + 2 : x, y + 2, 1, 1);
-    }
-  }
-
   private drawTitle(g: G, gc: G, now: number, since: number): void {
     const s = this.s;
-    const L = s.L;
-    const R = s.R;
-    const cx = Math.round(GAME_W / 2);
-    // the sky darkens toward the top behind the logo; the stage dims a touch
-    g.fillStyle(0x05040a, 0.14);
-    g.fillRect(0, 0, GAME_W, s.splitY);
-    for (let y = 0; y < 72; y += 4) {
-      g.fillStyle(0x0a0618, 0.42 * (1 - y / 72) ** 1.6);
-      g.fillRect(0, y, GAME_W, 4);
-    }
-    // (the stage's own hero and owl stay hidden on the title: fighters.ts makes way for these big showcase versions)
-
-    // Rowan and Pip (and Sable, once they've joined), 2x, slide in from the left; Rowan flourishes his sword now and
-    // then, Sable flips a dagger
-    const sable = this.sableOnTitle();
-    const hk = easeBack(since / TITLE_IN.heroes, 1.2);
-    const slide = Math.round((1 - hk) * -140);
-    const hx = L + (sable ? 100 : 82) + slide;
-    const cyc = now % 3600;
-    const pose = cyc < 140 ? 'windup' : cyc < 340 ? 'slashA' : Math.floor(now / 420) % 2 ? 'idle1' : 'idle0';
-    // a soft spotlight on the ground under them
-    for (let i = 0; i < 4; i++) {
-      g.fillStyle(0xfff0c0, 0.06);
-      const w = 70 - i * 14;
-      g.fillRect(hx - w / 2 - 8, s.ground - 3 + Math.floor(i / 2), w + 16, 3);
-    }
-    rows(g, hx - 22, s.ground - 2, 44, 5, 2, INK, 0.35);
-    this.heroBig?.setTexture(`hero_${pose}`).setPosition(hx, s.ground);
-    if (sable) {
-      // Sable a step behind, to his left: idle, and a quick dagger flourish out of step with his
-      const sx = hx - 56;
-      const sc = (now + 1800) % 4400;
-      const sp = sc < 120 ? 'windup' : sc < 300 ? 'slashX' : Math.floor((now + 210) / 450) % 2 ? 'idle1' : 'idle0';
-      rows(g, sx - 20, s.ground - 2, 40, 5, 2, INK, 0.3);
-      this.sableBig?.setTexture(s.textures.exists(`sable_${sp}`) ? `sable_${sp}` : 'sable_idle0').setPosition(sx, s.ground);
-      if (sc >= 120 && sc < 360) this.star(gc, sx + 30, s.ground - 30 - Math.round(((sc - 120) / 240) * 6), sc < 240 ? 2 : 1, 0xd8b0ff, 1 - (sc - 120) / 240);
-    }
-    const px = L + (sable ? 70 : 38) + slide;
-    const py = Math.round(s.ground - (sable ? 64 : 46) + Math.sin(now / 300) * 3);
-    this.pipBig?.setTexture(Math.floor(now / 110) % 2 ? 'pip_idle1' : 'pip_idle0').setPosition(px, py);
-    if (cyc >= 140 && cyc < 420) {
-      const k = (cyc - 140) / 280;
-      this.star(gc, hx + 44, s.ground - 52 + Math.round(k * 10), k < 0.5 ? 3 : 2, 0xfff0a0, 1 - k);
-    }
-
-    // the logo drops in with a bounce, bobs gently, and a gleam sweeps across it every few seconds
-    const lw = this.logo?.width ?? 150;
-    const lk = easeBack((since - 60) / (TITLE_IN.logo - 60), 1.4);
-    const lx = Math.round(Math.min(R - 6 - lw, Math.max(cx - lw / 2, hx + 52)));
-    const ly = Math.round(Math.max(18, s.ground - 78) - (1 - lk) * 90 + Math.sin(now / 650) * 1.5);
-    this.logo?.setPosition(lx, ly);
-    // the gleam sweeps across the letters every 3.6 s (gently: about two thirds of a second), ending in a twinkle
-    const gleam = (now - this.phaseAt) % 3600;
-    const sf = Math.floor(gleam / 55);
-    if (since > TITLE_IN.logo && sf < this.shineFrames) this.shine?.setTexture(`logo_shine_${sf}`).setPosition(lx, ly).setVisible(true);
-    const tw0 = this.shineFrames * 55;
-    if (since > TITLE_IN.logo && gleam >= tw0 && gleam < tw0 + 360) {
-      const q = (gleam - tw0) / 360;
-      this.star(gc, lx + lw - 50, ly + 6, q < 0.4 ? 3 : q < 0.7 ? 2 : 1, 0xfff6c0, 1 - q);
-    }
-    // twinkles around the crest
-    for (let i = 0; i < 3; i++) {
-      const q = ((now / 900 + i * 0.33) % 1 + 1) % 1;
-      const sx = lx + lw - 46 + ((i * 31) % 44);
-      const sy = ly + 12 + ((i * 17) % 40);
-      if (q < 0.5 && lk >= 1) this.star(gc, sx, sy, q < 0.25 ? 2 : 1, 0xfff0a0, 1 - q * 2);
-    }
-    // region ribbon unfurls under the logo
-    const rk = easeOut3((since - 220) / (TITLE_IN.ribbon - 220));
-    const label = 'Region 1: Greenmarch';
-    const rw = Math.round((textWidth(label, 1, true) + 16) * rk);
-    if (rw > 6) {
-      ribbon(gc, lx + 70, ly + 58, rw, 11, RIBBON.red, 1, rk > 0.8);
-      if (rk >= 1) this.texts.text(label, lx + 70, ly + 63.5, 0xfff0a0, { bold: true, ox: 0.5, oy: 0.5 });
-    }
-    this.drawLeaves(gc, now);
-    // drifting golden motes
-    if (Math.random() < 0.2)
-      s.fx.particles.push({ x: rand(L, R), y: s.ground - rand(0, 30), vx: rand(-4, 4), vy: rand(-14, -6), g: 0, born: now, life: rand(1400, 2400), color: Math.random() < 0.5 ? 0xfff0a0 : 0xffd23a, size: 1, world: true, streak: false });
-
-    // the band: Continue / New game (with anything earned), or the start prompt; how-to tips in the tray under it
+    this.title.draw(g, gc, now, since);
     const save = s.app.savedRun;
-    const pa = clamp01((since - 260) / (TITLE_IN.prompt - 260));
-    if (s.app.canContinue) {
+    const pa = clamp01((since - TITLE_PROMPT_MS + 160) / 160);
+    // (the Test lab's look at the title never offers New game: it would erase the real save)
+    if (s.app.canContinue && !s.app.inLab) {
       const { cont, fresh } = this.titleButtons();
       const armed = now < this.newRunArmedUntil;
-      const ck = easeBack((since - 200) / 260, 1.6);
+      const ck = easeBack((since - TITLE_PROMPT_MS + 260) / 260, 1.6);
       const dy = Math.round((1 - ck) * 30);
       if (ck > 0) {
         glow(gc, { ...cont, y: cont.y + dy }, 0x8af06a, 0.35 + 0.3 * pulse(now, 900), 3);
@@ -813,28 +688,8 @@ export class Overlays {
         this.texts.text(armed ? 'Tap again' : 'New game', fresh.x + fresh.w / 2, fresh.y + dy + 7 + pf, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
         this.texts.text('Erases all', fresh.x + fresh.w / 2, fresh.y + dy + 16 + pf, armed ? 0xffe0a0 : 0xc8c0e8, { ox: 0.5, oy: 0.5 });
       }
-    } else if (pa > 0) this.prompt(g, 'Tap to start!', s.splitY + 16, now, WHITE, pa);
-    if (pa > 0) {
-      const ty = s.splitY + 32 + Math.round((GAME_H - s.splitY - 32 - (GAME_H - s.B)) / 2);
-      const tips: Array<[readonly number[], string]> = [
-        [COL.yellow, 'Tap yellow'],
-        [COL.red, 'Tap red to block'],
-        [COL.purple, 'Avoid purple'],
-      ];
-      const widths = tips.map(([, t]) => textWidth(t, 1, false) + 10);
-      const total = widths.reduce((a, b) => a + b, 0) + (tips.length - 1) * 12;
-      let x = Math.round(cx - total / 2);
-      tips.forEach(([col, t], i) => {
-        const [base, light, dark] = col;
-        brick(gc, x, ty - 4, 6, 9, [light, base, dark, mix(dark, INK, 0.4)], pa);
-        this.texts.text(t, x + 9, ty + 1, i === 0 ? 0xfff0c0 : i === 1 ? 0xffb0a0 : 0xdab0ff, { oy: 0.5, alpha: pa });
-        x += widths[i] + 12;
-        if (i < tips.length - 1) {
-          gc.fillStyle(NAVY[5], pa);
-          gc.fillRect(x - 7, ty - 1, 2, 2);
-        }
-      });
-    }
+    } else if (pa > 0) this.title.drawPrompt(gc, this.texts, 'Tap to start!', s.splitY + 16, now, pa);
+    if (pa > 0) this.title.drawLegend(gc, this.texts, Math.min(s.B - 9, s.splitY + 32 + Math.round((GAME_H - s.splitY - 32 - (GAME_H - s.B)) / 2)), pa);
   }
 
   // ------------------------------------------------------------------ boost pick

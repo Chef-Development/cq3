@@ -8,6 +8,7 @@
 // since the last fight (a boost, new gear) gets one line under the plate as the fight starts: the biggest gain.
 // Panels are dark navy with a light bevel and an ink outline (see pixels.ts panel); everything slides in with a
 // little overshoot when a fight starts.
+import { keyboardUsed } from '../keys';
 import Phaser from 'phaser';
 import { heroStats, type Combat } from '../../core/combat';
 import { compact, hpNow as fmtHp, mult, one, whole } from '../../core/format';
@@ -1174,7 +1175,7 @@ export class Hud {
       chevron(g, vx + i * 5, Math.round(cy - 3), 7, on ? col : NAVY[5], 1, 1, true);
     }
     if (ready && s.app.run.phase === 'fight') {
-      const label = s.app.settings.finisherInput === 'swipe' ? 'SWIPE!' : 'FINISHER!';
+      const label = keyboardUsed() ? 'PRESS F!' : s.app.settings.finisherInput === 'swipe' ? 'SWIPE!' : 'FINISHER!';
       this.texts.text(label, m.x + m.w / 2, cy, Math.floor(now / 150) % 2 ? WHITE : stackCol(stacks)[1], { bold: true, ox: 0.5, oy: 0.5 });
       if (stacks > 1) this.texts.text(`x${stacks}`, m.x + m.w / 2 + textWidth(label, 1, true) / 2 + 3, cy, sc, { bold: true, oy: 0.5 });
     }

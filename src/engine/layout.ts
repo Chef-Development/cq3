@@ -67,6 +67,12 @@ export function sameLayout(a: ScreenLayout, b: ScreenLayout): boolean {
   return (Object.keys(a) as Array<keyof ScreenLayout>).every((k) => a[k] === b[k]);
 }
 
+/** The same game-px layout (the safe areas): the scene has nothing to rebuild, only the canvas moves or scales. A
+ *  desktop window being resized changes the placement on every step; rebuilding the art each time froze it. */
+export function sameGameLayout(a: ScreenLayout, b: ScreenLayout): boolean {
+  return a.safeTop === b.safeTop && a.safeBottom === b.safeBottom && a.safeLeft === b.safeLeft && a.safeRight === b.safeRight;
+}
+
 export function applyCanvasLayout(canvas: HTMLCanvasElement, l: ScreenLayout): void {
   const st = canvas.style;
   st.setProperty('position', 'absolute', 'important');
@@ -80,4 +86,28 @@ export function applyCanvasLayout(canvas: HTMLCanvasElement, l: ScreenLayout): v
 /** Client (CSS px) -> game px. */
 export function clientToGame(l: ScreenLayout, x: number, y: number): { x: number; y: number } {
   return { x: ((x - l.left) * GAME_W) / l.cssW, y: ((y - l.top) * GAME_H) / l.cssH };
+}
+
+/**
+ * Desktop (or any screen with room around the canvas): a quiet frame instead of plain black. Shown when every margin
+ * is at least FRAME_MIN_GPX game px wide; on a phone the canvas fills the screen and there is none.
+ */
+export const FRAME_MIN_GPX = 6;
+export function framed(l: ScreenLayout, vw: number, vh: number): boolean {
+  const gpx = l.cssW / GAME_W;
+  const m = Math.min(l.left, l.top, vw - l.left - l.cssW, vh - l.top - l.cssH);
+  return l.scale >= 1 && m >= FRAME_MIN_GPX * gpx;
+}
+
+/** Place the frame around the canvas (or hide it) and mark the page as framed (style.css paints the backdrop). */
+export function applyFrame(frame: HTMLElement, l: ScreenLayout): void {
+  const on = framed(l, window.innerWidth, window.innerHeight);
+  document.documentElement.classList.toggle('framed', on);
+  frame.hidden = !on;
+  if (!on) return;
+  const st = frame.style;
+  st.left = `${l.left}px`;
+  st.top = `${l.top}px`;
+  st.width = `${l.cssW}px`;
+  st.height = `${l.cssH}px`;
 }
