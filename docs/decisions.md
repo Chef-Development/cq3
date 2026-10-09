@@ -766,6 +766,12 @@ L2. **One branch, one PR.** The run continues PR #7's branch on `claude/exciting
 
 ### Team 2: art direction
 
+A1. **The art bible is strict.** `docs/art-style.md` is now rules, not advice: the grid (hard pixels, one grid per
+    piece), the palette as ramps (new: parchment, atlas ink, fog, frost, ash), light from the top left with contact
+    shadows, shading and outline rules, proportions per character type (from the textures as they are), minimum
+    animation frames, backdrop layers, a light recipe per region, the UI rules, the 2x layer, the name and logo, and a
+    1-5 score used by the audit. Where it and `ui-style.md` disagree, it wins for pixels, that one for layout.
+
 (art: end of section)
 
 
