@@ -168,6 +168,17 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   goldRivets: ['coins'],
   snapBack: ['bar'],
   hairTrigger: ['hurt'],
+  // ---- the lantern and the tide (the fourth region; its relics aren't offered yet)
+  wickTrimmer: ['bar', 'foe'],
+  lanternOil: ['bar', 'meter'],
+  glowWorms: ['coins'],
+  emberJar: ['bar'],
+  wadingBoots: ['heal'],
+  driftwood: ['bar', 'foe'],
+  tidepool: ['coins'],
+  moonpull: ['bar'],
+  // ---- the fifth region's Heat (its burn on the hero: view/bar-noon.ts drawHeat)
+  heat: ['hurt'],
   // ---- skill nodes: Rowan
   followThrough: ['bounce'],
   whetstone: ['bar', 'foe'],
@@ -433,6 +444,8 @@ export const COIN_FROM: Record<string, CoinFrom> = {
   luckyMitten: 'pos',
   flotsam: 'pos',
   goldRivets: 'pos',
+  glowWorms: 'pos',
+  tidepool: 'pos',
   rush: 'sack',
 };
 

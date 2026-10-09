@@ -582,6 +582,21 @@ export const DEFAULT_TUNING = {
     surgeSpeed: 0.25, // a surge (a foe's special) moves the waterline this fast (bar widths a second)
     swellSpeed: 0.1, // the waterline never moves faster than this on the act's own swell
   },
+  mirage: {
+    // Mirages (Region 5's bar rule, core/combat.ts updateMirage): a yellow that hops to another spot now and then.
+    warnSec: 0.55, // its landing spot shows this long before it hops (at least)
+    safeSec: 0.45, // it never hops while the cursor is within this long of either spot (it waits)
+    minHop: 0.15, // it hops at least this far (share of the bar)
+    every: 2.6, // a mirage from a special hops about this often (s)
+  },
+  heat: {
+    // Heat (Region 5's bar rule): a blazing yellow hits harder but gives the hero a stack of Heat
+    mult: 1.4, // a hit on a blazing yellow lands this much harder
+    dps: 0.005, // each stack burns this share of max HP a second...
+    sec: 4, // ...for this long (a new stack starts it over)
+    max: 3, // stacks at most
+    tick: 0.5, // the burn comes in ticks this far apart (s)
+  },
   levels: {
     // Heroes level up from kills and act clears (core/heroes.ts): small base-stat gains, a skill point every 2 levels.
     // Paced with the bot (a typical 70% player): a first playthrough of Greenmarch ends around level 9 (Acts 1-3:
@@ -1219,6 +1234,15 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('tide.drag', 'Tide: red speed in water x', 0.2, 1, 0.05),
         s('tide.surgeSpeed', 'Tide: surge speed (bar/s)', 0.05, 1, 0.01),
         s('tide.swellSpeed', 'Tide: swell max speed (bar/s)', 0.02, 0.5, 0.01),
+        s('mirage.warnSec', 'Mirage: landing shown (s)', 0.2, 1.5, 0.05),
+        s('mirage.safeSec', 'Mirage: no hop near the cursor (s)', 0.2, 1, 0.05),
+        s('mirage.minHop', 'Mirage: hop at least', 0.05, 0.5, 0.01),
+        s('mirage.every', 'Mirage: hops every (s, specials)', 1, 6, 0.1),
+        s('heat.mult', 'Heat: blazing hit x', 1, 3, 0.05),
+        s('heat.dps', 'Heat: burn a stack (max HP/s)', 0, 0.03, 0.001),
+        s('heat.sec', 'Heat: burns for (s)', 1, 10, 0.5),
+        s('heat.max', 'Heat: max stacks', 1, 6, 1),
+        s('heat.tick', 'Heat: tick (s)', 0.1, 2, 0.1),
         s('hold.width', 'Hold length', 0.06, 0.4, 0.01),
         s('hold.mult', 'Hold damage x', 0.5, 4, 0.05),
         s('hold.lateMs', 'Hold: late press (ms)', 0, 200, 5),
