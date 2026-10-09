@@ -41,6 +41,8 @@ export const BANTER: BanterLine[] = [
   { who: 'sable', text: 'I miss my crooked alleys.' },
   { who: 'sable', text: 'Draw my pockets shut? I riot.' },
   { who: 'pip', text: 'Sable took the map. Again.', sable: true },
+  { who: 'rowan', text: 'Knights raised me. It shows.' },
+  { who: 'pip', text: "I've known you a long time." },
 ];
 
 /** Everyone who can talk by the fire once the new heroes are in: the heroes, Pip, and Mags at her forge. */
