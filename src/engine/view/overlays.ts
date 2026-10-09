@@ -27,8 +27,7 @@ import { pix } from './camp-kit';
 // ------------------------------------------------------------------ small UI glyphs (shared by the menus)
 
 const K = 0x140c1c;
-/** The region victory's line: which weight came home, and how many are left (in words). */
-const ORDINAL = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth'];
+/** The region victory's line: how many regions are left to restore (in words). */
 const COUNT = ['None', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven'];
 
 /** Add a 1 px ink outline ('k') around the filled pixels of a glyph map. */
@@ -1186,14 +1185,16 @@ export class Overlays {
     g.fillRect(0, s.splitY, GAME_W, GAME_H - s.splitY);
     const k = easeBack(since / 420, 1.5);
     const run = s.app.run;
-    const title = `${run.regionDef.name} is saved!`;
+    const title = `${run.regionDef.name} is restored!`;
     const tw = textWidth(title, 2, true);
     const y = Math.round(20 - (1 - k) * 50);
     ribbon(gc, cx, y, Math.round((tw + 24) * Math.min(1, k)), 22, RIBBON.gold, 1, k > 0.9);
     if (k > 0.5) this.texts.text(title, cx, y + 11, 0xfff6c0, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a });
-    const home = `The ${ORDINAL[run.regionIndex] ?? 'next'} weight is home.`;
+    // (profile.weights counts the regions restored)
+    const home = 'Its old lines are back.';
     const left = WEIGHTS_TOTAL - run.profile.weights;
-    if (since > 400) this.subLine(gc, left > 0 ? `${home} ${COUNT[left] ?? left} to go.` : `${home} That's all of them!`, cx, 49, clamp01((since - 400) / 250));
+    const togo = left === 1 ? 'One region to go.' : `${COUNT[left] ?? whole(left)} regions to go.`;
+    if (since > 400) this.subLine(gc, left > 0 ? `${home} ${togo}` : 'The whole Atlas is restored!', cx, 49, clamp01((since - 400) / 250));
     if (since > 1500) {
       this.prompt(g, 'Tap to continue', s.splitY + 16, now, 0xfff07a);
       // where the road goes next (the victory scene has just named it), or more to come
