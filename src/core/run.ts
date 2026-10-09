@@ -114,7 +114,7 @@ export function boostLabel(t: Tuning, o: BoostOffer): [string, string] {
     case 'critDmg':
       return ['Crit Damage', `${signed(b.critDmg * m, one)}x`];
     case 'comboPower':
-      return ['Combo Power', signed(b.comboPower * m, one)];
+      return ['Finisher Might', signed(b.comboPower * m, one)];
     case 'pet':
       return ['Companion Power', signed(b.pet * m)];
     case 'heal':

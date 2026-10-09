@@ -808,6 +808,13 @@ L2. **One branch, one PR.** The run continues PR #7's branch on `claude/exciting
   ready 12.1 s -> 7.8 s, first fight 18.6 s -> 14.3 s, a resize settles in 28 ms instead of 1.3 s. Phaser is its own
   chunk (unchanged between deploys: a new build re-downloads only the game's 753 KB gzip, not 1.1 MB). Lazy boot
   painting and atlases are the next big wins but sit in the art files: proposed in docs/perf.md, not done.
+- **Q6 Originality audit** (docs/originality.md): every name checked by search (no name list of the reference is
+  reachable; its store listing and the backlog's notes are). Changed the strings that matched it word for word: the
+  stat "Combo Power" is now "Finisher Might", the companions' "Damage" role is "Lookout" (Pip) and "Fire" (Sunny),
+  Sable's title "Shadow Ninja" is "Shadow Thief", and the page title and home-screen name come from `brand.ts` at
+  build instead of "Combo Quest 3"/"CQ3". Listed for their owners, not changed: the world map's flags and padlocks
+  (the reference's kingdom map), Sunny's gold colouring (its "golden dragon"), the roster cards' bio + role tag +
+  "Locked", and the word "bounties" ("Dares" proposed).
 (qa: end of section)
 
 

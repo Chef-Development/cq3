@@ -31,7 +31,7 @@ export const STAT_INFO: Record<StatId, StatInfo> = {
   def: { name: 'Defense', short: 'DEF', icon: 'shield', unit: 'flat', desc: 'Cuts damage from reds you miss.' },
   critChance: { name: 'Crit Chance', short: 'Crit', icon: 'crit', unit: 'pct', desc: 'Chance a hit crits.' },
   critDmg: { name: 'Crit Damage', short: 'Crit Dmg', icon: 'critx', unit: 'mult', desc: 'How hard a crit hits.' },
-  comboPower: { name: 'Combo Power', short: 'Combo', icon: 'bolt', unit: 'flat', desc: 'Finisher damage per attack point.' },
+  comboPower: { name: 'Finisher Might', short: 'Might', icon: 'bolt', unit: 'flat', desc: 'Finisher damage per attack point.' },
   meterGain: { name: 'Meter Gain', short: 'Meter fill', icon: 'meter', unit: 'pct', desc: 'Fills the finisher meter faster.' },
   steady: { name: 'Steady Cursor', short: 'Slower cursor', icon: 'clock', unit: 'pct', desc: 'Combo speeds the cursor up less.' },
   luck: { name: 'Luck', short: 'Luck', icon: 'clover', unit: 'pct', desc: 'Rarer drops and more coins.' },
