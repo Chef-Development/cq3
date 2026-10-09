@@ -282,6 +282,7 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
             const pick = nodes.find((n: Any) => n.type === 'treasure') ?? nodes.find((n: Any) => n.type === 'fight') ?? nodes.find((n: Any) => n.type !== 'elite') ?? nodes[0];
             const [nx, ny] = view.mapView.pos(pick);
             if (!S.beats.some((b: Any) => b.id === 'firstChoice')) beat('firstChoice', `${pick.type} (of ${nodes.map((n: Any) => n.type).join(', ')})`);
+            else if (pick.type === 'treasure') beat('chestChoice', `row ${pick.row} (of ${nodes.map((n: Any) => n.type).join(', ')})`);
             log(`map: choose ${pick.type} (${nodes.map((n: Any) => n.type).join(', ')})`);
             tap(nx, ny);
             busyUntil = now + 1200;
