@@ -806,4 +806,32 @@ S7. **Region 4's scenes are drafted ahead of its data** (`src/data/story-fen.ts`
 
 ### Team 5: the first 10 minutes
 
+F1. **The first chest comes right after the first fight.** Measured over 2,000 Act 1 maps, a newcomer who takes every
+    chest offered met the first one right after the first fight only 22% of the time, and never in Act 1 24% of the
+    time (each row costs 40-60 s: the first chest came anywhere from 1:20 to 6:00, or after the boss). Act 1's map now
+    promises one (`ActDef.chestRow`: every first-row fight links to a chest in row 1, as few chests as that takes,
+    never a chest straight after it); a map-level rule rather than a run rule, so the save, replays and the bot see an
+    ordinary treasure node, and the newcomer learns the map's icons by picking the chest. Chests per Act 1 map: ~2.5.
+    Its cost: one fight fewer on the way through Act 1 (the act was ~100% first try already). `CORE:` commit (map.ts).
+F2. **The quiet start.** Before the first chest a newcomer met 13 tips, four of them about systems they can't use yet
+    (the packs' red prints, the relic belt, Synergy!, a skill point to spend at camp). Those four and the first
+    sparkle now wait until a new player has won 3 fights (`TipDef.wins`, `QUIET_WINS`; counted from the fights' `won`
+    events into `profile.counts.wins`, no profile format change); a player who has cleared an act gets them as before.
+F3. **The first finisher is a moment.** It was a one-stack show over in half a second, its name a small floater. The
+    first finisher in the game (once per profile: `finisherReveal` in `profile.seen`) now holds the fight's clock for
+    1.5 s (`App.holdUntil`; taps do nothing meanwhile): letterbox bars, the stage darkens, light gathers on the hero,
+    "FINISHER" then the name stamps in big with its short line ("Hits all, clears reds."), then the usual show plays.
+    The HP bars and kills wait for its last blow as before. Part of the teaching: only with tips on (the tests run
+    with tips off, so no spec meets it unasked); not at the Training Dummy, not in the Finisher gallery.
+F4. **Test lab: "The first fight"** (Fights): Rowan against Act 1's first foes with the five lessons and the reveal
+    still to come; lab profiles otherwise have the reveal seen (no reveal over every hero's lab fight).
+F5. **The newcomer bot** (`tests/smoke/first10.spec.ts`) plays inside the page with real timers (a Playwright click
+    from outside lands tens of ms late), through the game's own pointer events, and only swipes once taught: a bot
+    that swipes as soon as the meter fills skipped the finisher's tip and measured the first finisher 11 s early.
+F6. **The masher guard's boss-alone check allows one win in five.** Act 1's chest reshuffles every later random draw,
+    and one of the masher test's five seeds now wins the Boar King's first fight while mashing only the boss. Over 30
+    seeds the rate is the same before and after (2 of 30 first fights, 6-7 of ~158 tries), so "0 of 5" held by luck;
+    the check is now "at most 1 of 5" (the whole-act masher and the every-try rate are unchanged). For the lead and QA
+    to review.
+
 (first10: end of section)

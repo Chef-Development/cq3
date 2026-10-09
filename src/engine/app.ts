@@ -89,6 +89,9 @@ export class App {
   tipUp = false;
   /** The Test lab's Finisher gallery holds its fight's clock between shows (view/finisher-gallery.ts). */
   galleryHold = false;
+  /** A moment the view holds the fight's clock for until then (performance.now ms; taps do nothing meanwhile): the
+   *  first finisher's reveal (view/finisher-reveal.ts). */
+  holdUntil = 0;
   private begunCombat: unknown = null;
   private syncHoldUntil = 0; // performance.now() until which phase changes wait (kill animations)
   phaseSince = 0;
@@ -200,6 +203,7 @@ export class App {
       !this.tipUp &&
       !this.galleryHold &&
       performance.now() >= this.introUntil &&
+      performance.now() >= this.holdUntil &&
       (!this.panelOpen || this.playWhilePanelOpen)
     );
   }

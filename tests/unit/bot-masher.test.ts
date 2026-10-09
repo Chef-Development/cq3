@@ -42,7 +42,9 @@ describe('the masher loses every Act 3 and boss', () => {
       // the boss alone (the act's other fights aimed): its first fight in every run is lost...
       const first = x.boss.map((a) => a?.attempts.flatMap((t) => t.fights).find((f) => f.type === 'boss' && f.mashed)).filter((f) => !!f);
       expect(first.length, 'boss fights mashed').toBeGreaterThanOrEqual(Math.ceil(N / 2));
-      expect(first.filter((f) => f!.won).length, 'its boss alone, first fight').toBe(0);
+      // (at most one of the five: over 30 seeds the boss-alone masher won its first boss fight 2 times, about 7%, both
+      // before and after round 8's Act 1 chest; five seeds with none was the luck of the draw, docs/decisions.md F6)
+      expect(first.filter((f) => f!.won).length, 'its boss alone, first fight').toBeLessThanOrEqual(1);
       // ...and retrying it (up to 6 tries) hardly ever pays (a lucky stack-banking relic build can, once in a while)
       const all = x.boss.flatMap((a) => x.mashed(a)).filter((f) => f.type === 'boss');
       expect(all.filter((f) => f.won).length / all.length, 'its boss alone, every try').toBeLessThanOrEqual(0.1);

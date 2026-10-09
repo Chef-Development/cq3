@@ -138,7 +138,14 @@ export interface TipDef {
   lesson?: FormationEntry | 'stack';
   /** A bar rule's (or a hero's block's) first meeting: shown when it first comes, never held back by the per-fight cap. */
   rule?: boolean;
+  /** The quiet start: a new player (no act cleared) gets it only once they've won this many fights (profile.counts.wins,
+   *  core/tips.ts), so the first fights teach the basics and the first chest without the map's extras in between. */
+  wins?: number;
 }
+
+/** Fights a new player wins before the quiet start's tips (the roaming packs, the relic belt, Synergy!, a level's
+ *  skill point, the first sparkle) may come: the first two fights and the first chest teach the basics alone. */
+export const QUIET_WINS = 3;
 
 /** The widest a tip's line may be (game px, the small font): the card is this plus its margins. */
 export const TIP_TEXT_W = 180;
@@ -189,7 +196,7 @@ export const TIPS: readonly TipDef[] = [
   // part6:D
   { id: 'kitFizz', hero: 'fizz', lines: ['Fizz: kegs are flasks: fire, frost,', 'spark. A green throws one!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   { id: 'kitBrann', hero: 'brann', lines: ['Brann: every block rings his bell.', 'Rings power up his next hit!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
-  { id: 'relicBelt', lines: ['Your relics sit here.', 'Tap one to read what it does.'], anchor: 'relicBelt', fight: 'pre', after: ['tapYellow'] },
+  { id: 'relicBelt', lines: ['Your relics sit here.', 'Tap one to read what it does.'], anchor: 'relicBelt', fight: 'pre', after: ['tapYellow'], wins: QUIET_WINS },
   { id: 'rush', lines: ['Coin Rush! Hits knock out coins.', 'Keep your combo going for more!'], anchor: 'bar', fight: 'pre', after: ['tapYellow'] },
   // ---- in a fight, once the basics are in (the fight waits while the tip is up; a couple per fight at most)
   { id: 'special', lines: ['A special move is coming!', 'Watch the foe!'], anchor: 'enemy', fight: 'pause', basic: true, after: BASICS },
@@ -210,18 +217,18 @@ export const TIPS: readonly TipDef[] = [
   { id: 'actClear', lines: ['Act cleared! Gear up at camp,', 'or go on to the next act.'], anchor: 'campButton', basic: true },
   { id: 'loot', lines: ['New gear goes in your bag.', 'Wear it at camp.'], anchor: 'none', basic: true },
   { id: 'relicPick', lines: ['Relics change the rules of a fight.', 'Pick ones that fit your style.'], anchor: 'relicCard' },
-  { id: 'synergy', lines: ['Synergy! It shares a tag with', 'a relic you own: a build forms!'], anchor: 'synergyCard' },
+  { id: 'synergy', lines: ['Synergy! It shares a tag with', 'a relic you own: a build forms!'], anchor: 'synergyCard', wins: QUIET_WINS },
   { id: 'map', lines: ['Pick a path to the boss.', "Icons show what's there."], anchor: 'mapNodes', basic: true },
   { id: 'elite', lines: ['Elites are tougher foes,', 'but they always drop gear.'], anchor: 'eliteNode', basic: true },
-  { id: 'roamer', lines: ["Red prints: a pack's next step.", 'Meet it: an ambush, more loot!'], anchor: 'roamer' },
+  { id: 'roamer', lines: ["Red prints: a pack's next step.", 'Meet it: an ambush, more loot!'], anchor: 'roamer', wins: QUIET_WINS },
   { id: 'secret', lines: ['Something glints in that rock!', 'Tap it: hidden treasure!'], anchor: 'secretSpot' },
-  { id: 'sparkle', lines: ['A stray coin is glinting!', 'Tap it to pick it up.'], anchor: 'sparkle' },
+  { id: 'sparkle', lines: ['A stray coin is glinting!', 'Tap it to pick it up.'], anchor: 'sparkle', wins: QUIET_WINS },
   { id: 'shop', lines: ['Spend coins on relics and potions.', 'Unspent coins are kept.'], anchor: 'none', basic: true },
   { id: 'rest', lines: ['The campfire heals you.', 'Rest before the fights ahead.'], anchor: 'none', basic: true },
   { id: 'event', lines: ['Pick one! Some cost coins,', 'some are a gamble.'], anchor: 'none', basic: true },
   { id: 'bounty', lines: ['Finish this bounty for its reward.', 'The map keeps count, top right.'], anchor: 'none' },
   { id: 'merchant', lines: ['A traveling trader: rare relics,', 'a bit cheaper than a shop.'], anchor: 'none' },
-  { id: 'levelUp', lines: ['Level up! You got a skill point.', 'Spend it in Skills at camp.'], anchor: 'skillsButton' },
+  { id: 'levelUp', lines: ['Level up! You got a skill point.', 'Spend it in Skills at camp.'], anchor: 'skillsButton', wins: QUIET_WINS },
   // ---- the camp
   { id: 'camp', lines: ['Bag: wear gear. Forge: upgrade it.', 'Skills: learn new tricks.'], anchor: 'campBand', basic: true },
   { id: 'heroes', lines: ['Heroes share gear, but each', 'levels up on their own.'], anchor: 'heroTabs' },
@@ -235,6 +242,10 @@ export const TIPS: readonly TipDef[] = [
 ];
 
 export const TIP_IDS: readonly TipId[] = TIPS.map((t) => t.id);
+
+/** The first finisher in the game is revealed by name before its show (view/finisher-reveal.ts): its one-time mark in
+ *  profile.seen. The Test lab's profiles have it seen unless a scenario teaches the finisher (its tips list it). */
+export const FINISHER_REVEAL = 'finisherReveal';
 
 export const isTipId = (v: unknown): v is TipId => typeof v === 'string' && (TIP_IDS as readonly string[]).includes(v);
 
