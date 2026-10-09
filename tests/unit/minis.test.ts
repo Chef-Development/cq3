@@ -11,6 +11,8 @@ import { cloneTuning } from '../../src/core/tuning';
 import { MINIS, MINI_FALLBACK, MINI_MISSES, miniKey } from '../../src/engine/art-minis';
 import { DUSK_ENEMIES } from '../../src/data/enemies-dusk';
 import { DUSKMIRE } from '../../src/data/duskmire';
+import { NOON_ENEMIES } from '../../src/data/enemies-noon';
+import { NOONSPIRE } from '../../src/data/noonspire';
 
 const t = cloneTuning();
 /** Foes that never stand on a map: the Coin Rush sack (its stop draws the sack prop) and the camp's Training Dummy. */
@@ -64,8 +66,9 @@ describe('map minis: every foe that can stand on a map has its own', () => {
 
 describe('map minis: drawn to the style guide', () => {
   // (with the regions written but not wired in yet: their bosses are ranked like the others')
-  const bosses = new Set([...Object.values(ENEMIES), ...Object.values(DUSK_ENEMIES)].filter((e) => e.boss).map((e) => e.sprite));
-  const finals = new Set([...REGIONS, DUSKMIRE].map((r) => (ENEMIES[r.acts[r.acts.length - 1].boss[0]] ?? DUSK_ENEMIES[r.acts[r.acts.length - 1].boss[0]])?.sprite));
+  const later = { ...DUSK_ENEMIES, ...NOON_ENEMIES };
+  const bosses = new Set([...Object.values(ENEMIES), ...Object.values(later)].filter((e) => e.boss).map((e) => e.sprite));
+  const finals = new Set([...REGIONS, DUSKMIRE, NOONSPIRE].map((r) => (ENEMIES[r.acts[r.acts.length - 1].boss[0]] ?? later[r.acts[r.acts.length - 1].boss[0]])?.sprite));
 
   it('1-2 frames of the same size, every pixel from its palette, at least 3 tones, sized to its rank', () => {
     for (const [name, m] of Object.entries(MINIS)) {

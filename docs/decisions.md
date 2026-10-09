@@ -756,6 +756,12 @@ L1. **Shared files through the lead.** The combat core (`src/core/combat.ts`), t
 L2. **One branch, one PR.** The run continues PR #7's branch on `claude/exciting-fermat-9rxtbl`; the final PR
     supersedes #1-#7.
 
+L3. **Region 4's names follow the story team's final version** (Duskmire; Lanternfen, the Drowned Causeway, the
+    Gloaming Mere; its scene ids `dusk1`...`duskVictory`): the two teams crossed (each adopted the other's first
+    draft); the written and edited scenes decide, the data follows them.
+L4. **An independent editor** reviews every story line (the story team had no way to spawn one): its notes go to the
+    story team, which applies them or logs why not.
+
 (lead: end of section)
 
 
@@ -838,7 +844,14 @@ C2. **Two new bar rules in the core** (`CORE:` commits), deterministic, drawing 
     tip, a picture on the bar (nothing depends on sound), a lab item, and tests for every hero.
 C3. **Region 4's data is written but not wired in** (`duskmire.ts`, `enemies-dusk.ts`, `story-dusk.ts`, checked by
     `duskmire-data.test.ts`): it joins REGIONS once its art (sprites, minis, backdrops, themes) and telegraph sounds
-    exist; until then its acts borrow earlier looks and its scenes are one-line placeholders.
+    exist; until then its acts borrow earlier looks.
+C4. **Region 4's names are the first version's** (lead's L3): Duskmire; Lanternfen, the Drowned Causeway, the
+    Gloaming Mere; Old Bellybog, the Sluice Keeper, the Gloaming Lighthouse; scene ids `dusk1` ... `duskVictory`, written
+    by Team 1 in `story-dusk.ts`. (A rename to the bible's earlier Lanternfen draft crossed with Team 1 adopting this
+    version; it was undone.) C3's placeholders are gone: the scenes are Team 1's.
+C5. **Region 5's two rules are built ahead of its art** (core, tests, bar pictures, tips, lab items, data and map
+    minis), on the story bible's hook for the region; their design and a bot probe are in the content bible
+    (section 8). Neither rule moves anything under the cursor at the last moment.
 
 (content: end of section)
 

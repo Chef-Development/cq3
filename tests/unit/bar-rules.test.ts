@@ -530,3 +530,103 @@ describe('the fourth region: dark blocks (the lantern) and the tide', () => {
     }
   });
 });
+
+describe('the fifth region: mirages and heat', () => {
+  it('a mirage shows where it will land (at least warnSec before), then hops there; the tap is judged where it is now', () => {
+    const { c, t } = setup();
+    // the cursor starts at the left end heading right: a mirage far to the right, due to hop soon
+    const b = c.spawnBlock('yellow', 0.85, c.enemies[0].id, undefined, { mirage: true });
+    b.hopAt = c.motionTime + t.mirage.warnSec;
+    go(c, 0.05);
+    const warn = c.drainEvents().find((e) => e.type === 'hopWarn');
+    expect(warn).toBeDefined();
+    const to = b.hopTo;
+    expect(Math.abs(to - 0.85)).toBeGreaterThanOrEqual(t.mirage.minHop);
+    const shownAt = c.time;
+    // it waits while the cursor is near either spot; once it hops, it's at the spot it showed
+    for (let k = 0; k < 600 && b.pos === 0.85; k++) c.step();
+    expect(b.pos).toBe(to);
+    expect(c.time - shownAt).toBeGreaterThanOrEqual(t.mirage.warnSec - 0.06);
+    expect(c.drainEvents().some((e) => e.type === 'hop' && e.id === b.id)).toBe(true);
+  });
+
+  it('a mirage never hops while the cursor is close to it or to where it would land', () => {
+    const { c, t } = setup();
+    for (let k = 0; k < 6000; k++) {
+      if (!c.blocks.some((x) => x.hopAt !== Infinity)) c.spawnBlock('yellow', 0.2 + (k % 7) * 0.1, c.enemies[0].id, undefined, { mirage: true });
+      const before = c.blocks.map((x) => [x.id, x.pos] as const);
+      c.step();
+      for (const e of c.drainEvents())
+        if (e.type === 'hop') {
+          const reach = t.mirage.safeSec * c.cursorSpeed();
+          expect(Math.abs(e.from - c.cursorPos())).toBeGreaterThan(reach - 0.02);
+          expect(Math.abs(e.to - c.cursorPos())).toBeGreaterThan(reach - 0.02);
+          expect(before.some(([id]) => id === e.id)).toBe(true);
+        }
+    }
+  });
+
+  it("an act's mirage and heat shares make spawned yellows mirages and blazing (and none in an act without them)", () => {
+    const { c } = setup({ bar: { mirage: { share: 1, fromRow: 0, every: 2.5 }, heat: { share: 1, fromRow: 0 } } });
+    c.trySpawn('yellow', c.enemies[0].id);
+    expect(c.blocks[0].hopAt).toBeLessThan(Infinity);
+    expect(c.blocks[0].blaze).toBe(true);
+    const { c: plain } = setup();
+    plain.trySpawn('yellow', plain.enemies[0].id);
+    expect(plain.blocks[0]).toMatchObject({ hopAt: Infinity, blaze: false });
+  });
+
+  it('a blazing yellow hits harder and gives Heat: it burns HP a little at a time (the combo holds), stacks to a max, and a green cools it', () => {
+    const { c, t } = setup({ enemies: ['bandit'] });
+    const plain = setup({ enemies: ['bandit'] }).c;
+    for (const x of [c, plain]) x.spawnBlock('yellow', 0.3, x.enemies[0].id, undefined, { blaze: x === c });
+    const at = timeAt(t, 0.3);
+    for (const x of [c, plain]) {
+      x.advanceTo(at);
+      x.tap(at);
+    }
+    expect(140 - c.enemies[0].hp).toBe(Math.round((140 - plain.enemies[0].hp) * t.heat.mult));
+    expect(c.heat).toBe(1);
+    const hp = c.hero.hp;
+    c.advanceTo(at + 2);
+    expect(c.hero.hp).toBeLessThan(hp);
+    expect(c.combo).toBe(1);
+    // more stacks, never past the max
+    for (let k = 0; k < 5; k++) (c as unknown as { addHeat(): void }).addHeat();
+    expect(c.heat).toBe(t.heat.max);
+    // a green cools it all
+    c.spawnBlock('green', 0.7);
+    const g = 2 * t.cursor.basePassSec - timeAt(t, 0.7) + 2 * t.cursor.basePassSec;
+    c.advanceTo(g);
+    c.tap(g);
+    expect(c.heat).toBe(0);
+    expect(c.drainEvents().some((e) => e.type === 'cool')).toBe(true);
+    // ...and with no green it burns out after heat.sec
+    const { c: d } = setup({ enemies: ['bandit'] });
+    (d as unknown as { addHeat(): void }).addHeat();
+    d.advanceTo(t.heat.sec + 0.05);
+    expect(d.heat).toBe(0);
+  });
+
+  it('every hero can hit a mirage after it hops and a blazing yellow (one cursor each)', () => {
+    for (const hero of HERO_IDS) {
+      const { c, t } = setup({ enemies: ['bandit'], hero });
+      const m = c.spawnBlock('yellow', 0.8, c.enemies[0].id, undefined, { mirage: true });
+      m.hopAt = 0;
+      for (let k = 0; k < 400 && m.pos === 0.8; k++) c.step();
+      expect(m.pos, hero).not.toBe(0.8);
+      m.hopAt = Infinity; // (no second hop in this test)
+      // the next time the cursor crosses it
+      const ph = c.cursorPhase;
+      const base = Math.floor(ph / 2) * 2;
+      const at = [base + m.pos, base + 2 - m.pos, base + 2 + m.pos].filter((x) => x > ph + 1e-6).map((x) => c.time + (x - ph) / c.cursorSpeed())[0];
+      c.advanceTo(at);
+      expect(['hit'], hero).toContain(c.tap(at).outcome);
+      const { c: b } = setup({ enemies: ['bandit'], hero });
+      b.spawnBlock('yellow', 0.4, b.enemies[0].id, undefined, { blaze: true });
+      b.advanceTo(timeAt(t, 0.4));
+      expect(b.tap(timeAt(t, 0.4)).outcome, hero).toBe('hit');
+      expect(b.heat, hero).toBe(1);
+    }
+  });
+});
