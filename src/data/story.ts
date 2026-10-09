@@ -85,12 +85,12 @@ export const STORY: Record<string, StoryBox[]> = {
   // New game: at most 4 boxes before the first fight (this and act1). Who he is, and the Atlas, come later.
   intro: [
     { who: 'narrator', text: 'Whatever is drawn on the Great Atlas is real:\nevery road, river and hill in the kingdom.' },
-    { who: 'narrator', text: 'Tonight, someone is redrawing it. Where he\nrubs a line out, the land goes blank, and sleeps.' },
-    { who: 'narrator', text: 'On the Meadow Road, one knight stays awake.\nA calm voice in the blank: "Now that is odd."' },
+    { who: 'narrator', text: 'Last night, someone began to redraw it.\nWhere he rubs out a line, the land goes blank.' },
+    { who: 'narrator', text: 'On the Meadow Road, only one knight woke up.\nA calm voice in the blank: "Now that is odd."' },
   ],
   // Act 1 starts: Pip arrives (and already knows Rowan's name)
   act1: [
-    { who: 'pip', text: "Hoo. You're awake, Rowan. Good. On your feet:\nthe road is waking up, and waking up wrong." },
+    { who: 'pip', text: "Hoo. You're awake, Rowan. Good. On your feet:\nwhat he redrew is waking up, and it's angry." },
   ],
   // after the first fight is won (needs a hook: the first fight node's win, before the map): what the blank is
   road: [
