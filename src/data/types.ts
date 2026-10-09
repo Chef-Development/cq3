@@ -39,6 +39,9 @@ export interface FormationEntry {
   link?: boolean; // yellows: this entry and the next `link` entry come as a linked pair
   // Region 4 (docs/content-bible.md section 7)
   dark?: boolean; // yellows, greens, traps: placed dark (unlit until the cursor's lantern reaches it)
+  // Region 5 (docs/content-bible.md section 8)
+  mirage?: boolean; // yellows: placed as a mirage (it hops to another spot now and then, its landing spot shown first)
+  blaze?: boolean; // yellows: placed blazing (a hit on it lands harder, but gives the hero Heat)
 }
 
 /** What a special does once its telegraph is over. Every action is reusable by any enemy. */
@@ -57,7 +60,7 @@ export type ActionDef =
   | { type: 'toHold'; count: number; width?: number } // yellows on the bar become holds
   | { type: 'mirror'; at?: number | 'ahead'; life: number; every?: number } // a mirror shard: the cursor bounces back when it reaches it
   | { type: 'armor'; count: number; taps: number } // yellows on the bar get an ice coat: they take `taps` taps
-  | { type: 'barRule'; holdEvery: number; driftEvery?: number; linkEvery?: number; darkEvery?: number } // from now on every Nth yellow this foe sends is a hold (0 = none); Region 3: ...drifts, ...comes as a linked pair; Region 4: ...comes dark
+  | { type: 'barRule'; holdEvery: number; driftEvery?: number; linkEvery?: number; darkEvery?: number; blazeEvery?: number } // from now on every Nth yellow this foe sends is a hold (0 = none); Region 3: ...drifts, ...comes as a linked pair; Region 4: ...comes dark; Region 5: ...blazes
   | { type: 'stripes'; count: number; life: number; speed?: number } // the bar becomes alternating stripes of ice and snowdrift
   // Region 3 (not in play yet: needs core; docs/content-bible.md section 6)
   | { type: 'toDrift'; count: number; speed: number; sec?: number } // up to `count` yellows on the bar (0 = every one) drift at `speed` for `sec` s (none = for good)
@@ -66,7 +69,10 @@ export type ActionDef =
   // Region 4 (docs/content-bible.md section 7)
   | { type: 'darken'; count: number } // up to `count` yellows on the bar outside the lantern's light go dark (they keep their kind)
   | { type: 'snuff'; mult: number; sec: number } // the lantern dims (its reach x `mult`, never below dark.floorSec) for `sec` s (0 = for good); lit dark blocks outside it go dark again
-  | { type: 'tide'; level: number; sec: number; from?: TideFrom }; // a surge: the water rises to `level` (share of the bar, at most 0.5) from `from` (default: the act's end, else the right) and holds `sec` s (0 = for good, a flood)
+  | { type: 'tide'; level: number; sec: number; from?: TideFrom } // a surge: the water rises to `level` (share of the bar, at most 0.5) from `from` (default: the act's end, else the right) and holds `sec` s (0 = for good, a flood)
+  // Region 5 (docs/content-bible.md section 8)
+  | { type: 'hop'; count: number } // up to `count` yellows on the bar (0 = every one) become mirages and hop soon (their landing spots shown first)
+  | { type: 'blaze'; count: number }; // up to `count` yellows on the bar (0 = every one) start blazing
 
 export interface SpecialDef {
   id: string;
@@ -160,6 +166,12 @@ export interface BarRules {
   /** Region 4: water covers one end of the bar, swelling from `low` to `high` (shares of the bar) and back over
    *  `period` s, starting at low water. Still blocks under it are sunk (out of reach); reds wade (tide.drag). */
   tide?: { fromRow: number; low: number; high: number; period: number; from: TideFrom };
+  /** Region 5: a share of yellows are mirages: every `every` s (or so) one hops to another spot on the bar, its
+   *  landing spot shown `mirage.warnSec` first, never while the cursor is close to either spot. */
+  mirage?: { share: number; fromRow: number; every: number };
+  /** Region 5: a share of yellows blaze: a hit on one lands harder but gives the hero a stack of Heat (it burns a
+   *  little HP a second for a while; a green cools it). */
+  heat?: { share: number; fromRow: number };
 }
 
 /** Which end of the bar the water comes from ('both': each end). */

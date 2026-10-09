@@ -607,3 +607,25 @@ describe("the fourth region's bar actions: the lantern and the tide", () => {
     expect(e.darkEvery).toBe(3);
   });
 });
+
+describe("the fifth region's bar actions: mirages and heat", () => {
+  it('hop turns yellows into mirages that hop soon (farthest first); blaze sets yellows blazing; barRule blazeEvery; formation mirage/blaze', () => {
+    const { c } = setup();
+    const e = c.enemies[0];
+    const near = c.spawnBlock('yellow', 0.1);
+    const far = c.spawnBlock('yellow', 0.9);
+    runAction(c, e, { type: 'hop', count: 1 });
+    expect(far.hopAt).toBeLessThan(Infinity);
+    expect(near.hopAt).toBe(Infinity);
+    runAction(c, e, { type: 'blaze', count: 0 });
+    expect(near.blaze && far.blaze).toBe(true);
+    runAction(c, e, { type: 'barRule', holdEvery: 0, blazeEvery: 2 });
+    expect(e.blazeEvery).toBe(2);
+    const { c: f } = setup();
+    runAction(f, f.enemies[0], { type: 'formation', blocks: [{ kind: 'yellow', at: 0.5, mirage: true }, { kind: 'yellow', at: 0.8, blaze: true }] });
+    expect(f.blocks.map((b) => [b.hopAt < Infinity, b.blaze])).toEqual([
+      [true, false],
+      [false, true],
+    ]);
+  });
+});
