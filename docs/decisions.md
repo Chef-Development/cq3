@@ -761,6 +761,18 @@ L2. **One branch, one PR.** The run continues PR #7's branch on `claude/exciting
 
 ### Team 1: story
 
+S1. **A new story replaces the Pendulum plot** (the approved "living map" premise). The whole arc, the twists and the
+    ending are in `docs/story-bible.md` (spoilers); commit titles stay vague. The main plot is earnest; the comedy moves
+    to the heroes' banter, their arrivals and the companions.
+S2. **The villain is Ambrose Fairhand, the Mapmaker** (speaker `mapmaker`, plate "The Mapmaker"; it becomes "Ambrose"
+    late in the story). Other new names: the capital **Meridian** and its **Atlas Hall**; **High Keeper Hesper**
+    (speaker `keeper`). Both new speakers need portraits (art team).
+S3. **Keystones replace weights.** Each region's boss keeps the keystone of his redraw (a crown, a mirror, an anvil...);
+    breaking it restores the region. Player-facing words: "Regions restored: N/12", "the Great Atlas", the fog is
+    "Erased land" (story bible section 9 lists every replacement for the art team).
+S4. **Region 4 is named Lanternfen** (id stays `duskmire`): a lantern-lit fen he turned to endless, unlit dusk with a
+    leashed tide (dark blocks, tides). Boss suggestion for Team 3: Mirewick, the Fen Angler.
+
 (story: end of section)
 
 
