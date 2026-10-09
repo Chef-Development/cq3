@@ -1,0 +1,73 @@
+# Art audit (playtest round 8, team 2)
+
+Every texture group and the main screens, scored against the art bible (`docs/art-style.md`, section 14: 5 follows
+every rule, 4 a small slip, 3 one rule broken that a player would notice, 2 several or from another game, 1 a
+placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand against a dev server: see its header);
+`before/` is the game as this round found it, `after/` the pieces redone since.
+
+| Sheet | What's on it |
+| --- | --- |
+| `before/screens.png` | the main screens at phone size: title, world map, three act maps, a fight in every act, camp, hero select, companions, shrine, vault, completion card, a story scene |
+| `before/sheet-heroes-a.png`, `-b.png` | the sixteen heroes' fight frames and hero cards (x2) |
+| `before/sheet-foes-*.png` | every foe's frames per region (Greenmarch x2, Frostpeaks and Ashfell x1) |
+| `before/sheet-companions-allies.png` | companions, their cards, the Summoners' allies (x2) |
+| `before/sheet-portraits.png` | portraits, the camp's people and backdrop (x2) |
+| `before/sheet-map-sprites.png` | map walkers, foe minis, lairs, map icons, critters (x3) |
+| `before/sheet-icons-*.png` | skill, relic, item and tag icons (x3) |
+| `before/sheet-backdrops.png`, `sheet-stage-light.png` | the nine fight backdrops and their frames; colour grades, rays, foregrounds |
+| `before/sheet-world-map.png`, `sheet-world-pieces.png` | the world map and its moving parts (veils, fog, sea, wind) |
+| `before/sheet-ui-chrome.png` | the bar's frame, the band, chests, the shrine's parts, the old logo |
+
+## Scores
+
+| Item | Score | What's off |
+| --- | --- | --- |
+| Heroes' fight frames (15 on the shared rig) | 4 | Consistent rig, ramps and outlines. Idles are 2 frames (the bible's target is 4 with secondary motion). |
+| **Rowan's fight frames** (`hero_*`) | 3 | Off the shared rig: a bigger helmeted head than the other fifteen; 9 poses (no cast, down, fin). He is the first hero anyone sees. |
+| Hero cards | 4 | Same glow and framing for all sixteen. |
+| Greenmarch foes | 4 | Cohesive; good tells. |
+| Frostpeaks foes | 4 | The wisp and the hailcaller are small inside their frames. |
+| **Ashfell foes: chain sentinel, forgehand, obsidian ox, cinder kite** | 3 | Dark on dark: their values sit inside the Ashfell backdrops' range, so they don't pop (section 8). Needs a lighter rim on the ember side. |
+| Other Ashfell foes, the three region bosses | 4-5 | Strong silhouettes, phase looks. |
+| Companions, their cards | 4 | Soft, readable, consistent. |
+| **Spirit stag (Summoner ally)** | 3 | No ink outline, stick legs, flat fill: reads as an effect, not a creature. |
+| Other allies | 4 | |
+| Portraits | 4 | Same bust framing; lit from the top left. |
+| Map walkers, foe minis | 4 | Every foe has one; readable at 1x. |
+| Map lairs | 4 | |
+| **Cinder lair** (`maplair_cinder`) | 3 | A flat stepped block with stripes: no volume or light, unlike the other lairs. |
+| Critters, map icons | 4 | |
+| Item icons | 5 | |
+| **Relic icons** | 3 | About 15 relics share generic glyphs (a rail, a snowflake), so the icon doesn't say what the relic does. |
+| **Skill icons** | 2 | About half of the 240 skill nodes reuse a generic purple up-arrow or a gold frame. |
+| Tag icons | 4 | |
+| Backdrops: forest, hollow | 5 | Layers, light shafts, calm ground. |
+| Backdrops: ruins, pass, caves, glacier, cinder | 4 | |
+| **Backdrops: glass, forge** | 3 | Flat: one dark wall plane, little depth or atmosphere; no light shafts or air (section 9's Ashfell recipe: embers rising, ash falling, ember light from below). |
+| World map (craft) | 4 | Lush and well made, but a painted continent, not the inked Atlas the new story needs (the planned rework). |
+| **World map veils** (`wm_veil_*`) | 2 | Flat grey with rectangular holes: reads as a placeholder, not erased land. To become Atlas fog (blank paper, faded lines). |
+| Act maps | 4 | Busy but cohesive. |
+| Completion card (parchment map) | 4 | Already close to the Atlas look. |
+| **Title (before)** | 3 | The old "Combo Quest 3" chrome logo and crest over a reused fight stage; nothing of the new premise. Redone this round (below). |
+| Fight HUD, bar, band | 4 | |
+| Camp, hero select, companions, shrine, completion, story | 4 | Follow ui-style.md. |
+| **Vault** | 3 | Dim: the chests barely lit, a big empty floor, no focal light. |
+| Chest reveal (old and sharper) | 5 | |
+
+## Outliers (the redo list, worst first)
+
+1. Skill icons (2): about half generic.
+2. World map veils (2): placeholder fog. Part of the Great Atlas rework of the world map.
+3. Relic icons sharing generic glyphs (3).
+4. Rowan's fight frames (3): off the rig, missing poses; the starter hero.
+5. The dark Ashfell foes (3): value contrast against their backdrops.
+6. The glass and forge backdrops (3): flat; part of the lighting pass per region.
+7. The vault (3): dim, no focal light.
+8. The spirit stag (3) and the cinder lair (3).
+9. The world map's style (4 in craft): becomes the inked Atlas.
+
+## Redone
+
+| Item | Before | After | Notes |
+| --- | --- | --- | --- |
+| Title screen, logo, key art | 3 | 4 | `before/title-phone.png`; `after/title-phone.png`, `after/title-desktop.png`, `after/title-continue.png`. The Atlas spread open: an inked parchment map, colour come back round the hero, fog over the erased east, a quill drawing the route; the logo built from `GAME_NAME` (Scale3x lettering, gold face, rim light, extrusion, ink outline). |
