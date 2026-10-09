@@ -7,6 +7,7 @@ import { EVENTS } from '../../src/data/events';
 import { GREENMARCH } from '../../src/data/greenmarch';
 import { SPEAKER_NAME, STORY } from '../../src/data/story';
 import { FEN_STORY } from '../../src/data/story-fen';
+import { NOON_STORY } from '../../src/data/story-noon';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
 import { HEROES } from '../../src/data/heroes';
 import { TIER_INFO } from '../../src/data/rarity';
@@ -147,10 +148,14 @@ describe('story', () => {
     expect(STORY[GREENMARCH.introScene].length + STORY[GREENMARCH.acts[0].startScene ?? ''].length).toBeLessThanOrEqual(4);
   });
 
-  it("drafts the fourth region's scenes to the same rules (not in play yet: src/data/story-fen.ts)", () => {
+  it("drafts the fourth and fifth regions' scenes to the same rules (not in play yet: story-fen.ts, story-noon.ts)", () => {
     for (const id of ['fen1', 'fen2', 'fen3', 'fenBoss', 'fenBoss2', 'fenBoss3', 'fenVictory']) expect(FEN_STORY[id], id).toBeDefined();
+    for (const id of ['noon1', 'noon2', 'noon3', 'noonBoss', 'noonBoss2', 'noonBoss3', 'noonVictory']) expect(NOON_STORY[id], id).toBeDefined();
     for (const id of ['fenBoss2', 'fenBoss3']) expect(FEN_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
-    for (const [id, boxes] of Object.entries(FEN_STORY)) {
+    for (const id of ['noonBoss2', 'noonBoss3']) expect(NOON_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
+    // once a region is wired in, STORY takes these very scenes (Object.assign), never a second copy
+    for (const [id, boxes] of Object.entries({ ...FEN_STORY, ...NOON_STORY })) expect(!(id in STORY) || STORY[id] === boxes, id).toBe(true);
+    for (const [id, boxes] of Object.entries({ ...FEN_STORY, ...NOON_STORY })) {
       expect(boxes.length, id).toBeLessThanOrEqual(6);
       for (const b of boxes) {
         const lines = b.text.split('\n');

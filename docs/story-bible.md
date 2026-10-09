@@ -229,8 +229,8 @@ He is courteous, curious, sure of himself. Each region is a "fix" of a natural d
 erase Rowan, fails, and asks "Who drew you?" Each restored region sends him back to his table to try again. He erases
 the far isles' last scraps for ink; in Region 4 he starts scraping the continent's coasts (a fen village goes blank):
 the first time Rowan sees people he knows fall asleep.
-- **End of Region 5 (midpoint): twist 1.** On the plateau, Ambrose greets the owl by name: "Hello, Pip. You've
-  grown." Pip was his. Ambrose shows the feather pen. Pip tells Rowan the half he can: he knew Ambrose, he sat on his
+- **End of Region 5 (midpoint): twist 1.** Before the boss fight on the plateau, Ambrose greets the owl by name:
+  "Hello, Pip. You have grown." "Hello, Ambrose." The fight plays with that hanging. Pip was his. Ambrose shows the feather pen. Pip tells Rowan the half he can: he knew Ambrose, he sat on his
   shoulder in the Atlas Hall, he stayed behind "for someone". Ambrose crosses the sea to the blank: "I was gentle with
   your continent. Out there, there's nobody to be gentle for."
 
@@ -411,7 +411,10 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
 - **Boss (working): the Gnomon**, the great sundial's needle, stood up as a brass sentinel. Keystone: **the Nail**.
   Edits: he turns the sun's glare on the bar; then he pulls the sun lower and hotter.
 - **Restoring:** the sun sets for the first time in months; the first dawn; Solenne's order greets it.
-- **Beat: twist 1 (Pip).** Ambrose crosses the sea. The first far isle's fog lifts.
+- **Beat: twist 1 (Pip).** Pip goes quiet all region; Rowan asks him straight at the sundial ("After this one. I
+  promise."); Ambrose greets him by name before the fight; after it, the feather pen and Pip's half of the truth.
+  Ambrose walks out over the sea, drawing a road as he goes, and the first far isle's fog lifts. Drafted in
+  `src/data/story-noon.ts`.
 
 ### Region 6: Hushwood (far isle)
 - **Original:** a forest isle of giant trees and great storms; the storms toppled trees on villages; Yara's people
@@ -500,6 +503,8 @@ bible. New speakers: `mapmaker` ("The Mapmaker"), `keeper` ("Hesper"); both need
 Status (round 8, chunk 1): Regions 1-3 rewritten (`story.ts`, `story-ash.ts`), editor-passed, tests updated; the
 chest heroes' arrivals say whose home was redrawn; the welcome back catches a returning player up; Region 4's scenes
 are drafted in `src/data/story-fen.ts` (ids `fen1`-`fen3`, `fenBoss`, `fenBoss2`, `fenBoss3`, `fenVictory`; not in play
-until Team 3 wires the region; its mini-bosses' scenes wait for their foes). Still to do: the `road` hook; banter that
-follows the story (lines gated on scenes, like `banter-ash.ts`, which is itself not wired yet); Region 5; the bosses' portraits and the two new speakers' (`portrait_mapmaker`, `portrait_keeper`: until they exist the
+until Team 3 wires the region; its mini-bosses' scenes wait for their foes), and Region 5's in `src/data/story-noon.ts`
+(`noon1`-`noon3`, `noonBoss`-`noonBoss3`, `noonVictory`; its phase hints are placeholders until its rules exist). Still to do: the `road` hook; banter that
+follows the story (lines gated on scenes, like `banter-ash.ts`, which is itself not wired yet); the mini-bosses'
+scenes for Regions 4-5; the bosses' portraits and the two new speakers' (`portrait_mapmaker`, `portrait_keeper`: until they exist the
 story view shows Phaser's missing-texture box); `keeper` belongs with the allies' warm look in `view/story.ts`.
