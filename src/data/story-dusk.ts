@@ -1,21 +1,17 @@
-// Region 4's story scenes (SPOILERS: docs/content-bible.md section 7). PLACEHOLDERS: the story team writes these
-// (docs/story-bible.md: the exiled mapmaker, the Great Atlas); each id here is one the region's data needs, with a
-// one-line stand-in so the region can be played end to end before then. Not merged into STORY yet.
+// Region 4's story scenes that aren't written yet (SPOILERS: docs/content-bible.md section 7). The story team's
+// scenes for the region are in src/data/story-fen.ts (on their branch: fen1-3, fenBoss, fenBoss2-3, fenVictory);
+// these are one-line PLACEHOLDERS for the two mini-bosses' intros, which wait for their foes (the ids the region's
+// data uses), so the region can be played end to end before then. Not merged into STORY yet.
 
 import type { StoryBox } from './types';
 
 /** A scene still to be written: one narrator box saying what happens there. */
 const todo = (what: string): StoryBox[] => [{ who: 'narrator', text: what }];
 
+/** The story team's scene ids for the region (src/data/story-fen.ts on their branch). */
+export const FEN_SCENE_IDS = ['fen1', 'fen2', 'fen3', 'fenBoss', 'fenBoss2', 'fenBoss3', 'fenVictory'] as const;
+
 export const DUSK_STORY: Record<string, StoryBox[]> = {
-  dusk1: todo('(Scene to come) A marsh stuck at dusk.\nOnly what your light reaches is drawn in.'),
-  bellybog: todo('(Scene to come) A toad the size of a hut,\nglowing with every lantern he swallowed.'),
-  duskCamp: todo('(Scene to come) At the camp: who redrew\nthe marsh, and why it never gets dark.'),
-  dusk2: todo('(Scene to come) The drowned causeway.\nThe tide keeps to a timetable here.'),
-  sluiceKeeper: todo('(Scene to come) The Sluice Keeper opens\nthe floodgates, right on schedule.'),
-  dusk3: todo('(Scene to come) The black mere. A lighthouse\nwades in it, the sun shut in its lamp.'),
-  lighthouse: todo('(Scene to come) The lighthouse turns its beam.\nThe mapmaker watches from its gallery.'),
-  lighthouse2: todo('(Scene to come) The mapmaker redraws\nthe shoreline, mid-fight.'),
-  lighthouse3: todo('(Scene to come) The mapmaker rubs out\nthe sky. Only your light is left.'),
-  duskVictory: todo('(Scene to come) The lamp cracks; the sun\nrolls out and up. Night, then morning.'),
+  motherMoth: todo('(Scene to come) A moth the size of a sail,\nstarving since the lanterns went out.'),
+  sluiceKeeper: todo('(Scene to come) The Sluice Keeper keeps the\ntide on its leash, right on schedule.'),
 };

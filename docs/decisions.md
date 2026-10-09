@@ -781,6 +781,10 @@ C2. **Two new bar rules in the core** (`CORE:` commits), deterministic, drawing 
 C3. **Region 4's data is written but not wired in** (`duskmire.ts`, `enemies-dusk.ts`, `story-dusk.ts`, checked by
     `duskmire-data.test.ts`): it joins REGIONS once its art (sprites, minis, backdrops, themes) and telegraph sounds
     exist; until then its acts borrow earlier looks and its scenes are one-line placeholders.
+C4. **Region 4 follows the story bible** (Team 1's, committed at 19:08): its name, acts, boss and keystone, and the
+    story team's scene ids (`fen1`-`fen3`, `fenBoss`, `fenBoss2`, `fenBoss3`, `fenVictory`) replace Team 3's working
+    ones; the first mini-boss changed so it doesn't echo the boss. Only the two mini-bosses' intros are still
+    placeholders (asked of Team 1).
 
 (content: end of section)
 

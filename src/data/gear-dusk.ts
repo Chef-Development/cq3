@@ -2,17 +2,16 @@
 // SETS or SIGNATURES (src/data/gear.ts) until the region is wired in. Same shapes as gear.ts entries; merging means
 // adding the effect and set ids to the unions there, and the effects to the core (combat.ts, beside the Emberwright
 // set's): the Lamplighter's set (2 pieces: hits on dark blocks; 4: blocking a red in the water heals) and the boss's
-// signatures (Sunlamp: the light reaches further and a block's first hit after it's lit crits; Breaker's Edge: hits
-// on blocks that just came up out of the water). Icons fall back to a slot's look until painted ones exist.
+// signatures (Lure Lamp: the light reaches further; Angler's Fang: hits on blocks that just came up out of the water). Icons fall back to a slot's look until painted ones exist.
 
 import type { BaseItem, EffectDef, GearRarity, SetDef } from './gear';
 
 /** The boss's two signature Legendaries' unique effects. */
-export type DuskEffectId = 'sunlamp' | 'breakersEdge';
+export type DuskEffectId = 'lureLamp' | 'anglerFang';
 
 export const DUSK_EFFECTS: Record<DuskEffectId, EffectDef> = {
-  sunlamp: { name: 'Daybreak', text: 'Your light reaches 50% further.', signature: true },
-  breakersEdge: { name: 'Riptide', text: 'Blocks just out of the water take x3.', signature: true },
+  lureLamp: { name: 'Mirelight', text: 'Your light reaches 50% further.', signature: true },
+  anglerFang: { name: 'Riptide', text: 'Blocks just out of the water take x3.', signature: true },
 };
 
 export type DuskSetId = 'lamplighter';
@@ -58,11 +57,11 @@ export const DUSK_BASE_ITEMS: DuskBaseItem[] = [
   { id: 'lampWaders', name: 'Waders', slot: 'boots', icon: 'waders', base: [{ stat: 'def', mult: 0.5 }, { stat: 'steady', mult: 1.1 }], act: 9, set: 'lamplighter' },
   { id: 'fireflyJar', name: 'Firefly Jar', slot: 'trinket', icon: 'fireflyjar', base: [{ stat: 'hp', mult: 0.6 }], act: 9, set: 'lamplighter' },
   // the boss's signature Legendaries
-  { id: 'sunlamp', name: 'Sunlamp', slot: 'trinket', icon: 'sunlamp', base: [{ stat: 'critChance', mult: 1.2 }], act: 11, signature: { boss: 'lighthouse', rarity: 'legendary', effect: 'sunlamp' } },
-  { id: 'breakersEdge', name: "Breaker's Edge", slot: 'weapon', icon: 'breakersedge', base: [{ stat: 'atk', mult: 1.4 }], act: 11, signature: { boss: 'lighthouse', rarity: 'legendary', effect: 'breakersEdge' } },
+  { id: 'lureLamp', name: 'Lure Lamp', slot: 'trinket', icon: 'lurelamp', base: [{ stat: 'critChance', mult: 1.2 }], act: 11, signature: { boss: 'mirewick', rarity: 'legendary', effect: 'lureLamp' } },
+  { id: 'anglerFang', name: "Angler's Fang", slot: 'weapon', icon: 'anglerfang', base: [{ stat: 'atk', mult: 1.4 }], act: 11, signature: { boss: 'mirewick', rarity: 'legendary', effect: 'anglerFang' } },
 ];
 
 /** The boss's signature drops (merged into SIGNATURES; bad-luck protection as for the others). */
 export const DUSK_SIGNATURES: Record<string, string[]> = {
-  lighthouse: ['sunlamp', 'breakersEdge'],
+  mirewick: ['lureLamp', 'anglerFang'],
 };
