@@ -578,3 +578,32 @@ describe("a later region's bar actions: drift and pairs", () => {
     expect(p.vel).toBe(0);
   });
 });
+
+describe("the fourth region's bar actions: the lantern and the tide", () => {
+  it('darken puts yellows outside the light in the dark (farthest first), snuff dims the lantern, tide sends a surge', () => {
+    const { c } = setup();
+    const e = c.enemies[0];
+    const far = c.spawnBlock('yellow', 0.9);
+    runAction(c, e, { type: 'darken', count: 2 });
+    expect(far.dark && far.litAt === Infinity).toBe(true);
+    expect(of(c.drainEvents(), 'darkOn')).toHaveLength(1);
+    const reach = c.lightReach();
+    runAction(c, e, { type: 'snuff', mult: 0.7, sec: 3 });
+    expect(c.lightReach()).toBeLessThan(reach);
+    expect(of(c.drainEvents(), 'snuff')).toHaveLength(1);
+    runAction(c, e, { type: 'tide', level: 0.3, sec: 2, from: 'left' });
+    expect(c.surge).toMatchObject({ level: 0.3, from: 'left' });
+    c.advanceTo(1.5);
+    expect(c.waterL).toBeCloseTo(0.3, 5);
+    expect(of(c.drainEvents(), 'surge')).toHaveLength(1);
+  });
+
+  it('a formation entry with dark comes unlit; barRule darkEvery makes every Nth yellow the foe sends dark', () => {
+    const { c } = setup();
+    const e = c.enemies[0];
+    runAction(c, e, { type: 'formation', blocks: [{ kind: 'yellow', at: 0.8, dark: true }, { kind: 'purple', at: 0.5, dark: true }] });
+    expect(c.blocks.filter((b) => b.dark && b.litAt === Infinity).map((b) => b.kind).sort()).toEqual(['purple', 'yellow']);
+    runAction(c, e, { type: 'barRule', holdEvery: 0, darkEvery: 3 });
+    expect(e.darkEvery).toBe(3);
+  });
+});

@@ -37,6 +37,8 @@ export interface FormationEntry {
   // Region 3 (not in play yet: needs core; docs/content-bible.md section 6)
   drift?: number; // yellows: placed drifting along the bar at this speed (bar widths a second)
   link?: boolean; // yellows: this entry and the next `link` entry come as a linked pair
+  // Region 4 (docs/content-bible.md section 7)
+  dark?: boolean; // yellows, greens, traps: placed dark (unlit until the cursor's lantern reaches it)
 }
 
 /** What a special does once its telegraph is over. Every action is reusable by any enemy. */
@@ -55,12 +57,16 @@ export type ActionDef =
   | { type: 'toHold'; count: number; width?: number } // yellows on the bar become holds
   | { type: 'mirror'; at?: number | 'ahead'; life: number; every?: number } // a mirror shard: the cursor bounces back when it reaches it
   | { type: 'armor'; count: number; taps: number } // yellows on the bar get an ice coat: they take `taps` taps
-  | { type: 'barRule'; holdEvery: number; driftEvery?: number; linkEvery?: number } // from now on every Nth yellow this foe sends is a hold (0 = none); Region 3 (needs core): ...drifts, ...comes as a linked pair
+  | { type: 'barRule'; holdEvery: number; driftEvery?: number; linkEvery?: number; darkEvery?: number } // from now on every Nth yellow this foe sends is a hold (0 = none); Region 3: ...drifts, ...comes as a linked pair; Region 4: ...comes dark
   | { type: 'stripes'; count: number; life: number; speed?: number } // the bar becomes alternating stripes of ice and snowdrift
   // Region 3 (not in play yet: needs core; docs/content-bible.md section 6)
   | { type: 'toDrift'; count: number; speed: number; sec?: number } // up to `count` yellows on the bar (0 = every one) drift at `speed` for `sec` s (none = for good)
   | { type: 'toLink'; count: number; drift?: number } // up to `count` pairs of yellows on the bar are chained into linked pairs (drifting together at `drift`, if set)
-  | { type: 'driftShift'; mult?: number; flip?: boolean; sec?: number }; // every drifting block turns around (`flip`) and/or moves `mult` x as fast for `sec` s (none = for good; mult 0 = they settle)
+  | { type: 'driftShift'; mult?: number; flip?: boolean; sec?: number } // every drifting block turns around (`flip`) and/or moves `mult` x as fast for `sec` s (none = for good; mult 0 = they settle)
+  // Region 4 (docs/content-bible.md section 7)
+  | { type: 'darken'; count: number } // up to `count` yellows on the bar outside the lantern's light go dark (they keep their kind)
+  | { type: 'snuff'; mult: number; sec: number } // the lantern dims (its reach x `mult`, never below dark.floorSec) for `sec` s (0 = for good); lit dark blocks outside it go dark again
+  | { type: 'tide'; level: number; sec: number; from?: TideFrom }; // a surge: the water rises to `level` (share of the bar, at most 0.5) from `from` (default: the act's end, else the right) and holds `sec` s (0 = for good, a flood)
 
 export interface SpecialDef {
   id: string;
@@ -148,7 +154,16 @@ export interface BarRules {
   /** Region 3 (not in play yet): a share of yellows come as linked pairs: hit one, then the other within a beat,
    *  or both count as misses. */
   links?: { share: number; fromRow: number };
+  /** Region 4: a share of yellows, greens and traps come dark (unlit until the cursor's lantern reaches them); of the
+   *  dark yellows, `traps` are traps in disguise. */
+  dark?: { share: number; fromRow: number; traps: number };
+  /** Region 4: water covers one end of the bar, swelling from `low` to `high` (shares of the bar) and back over
+   *  `period` s, starting at low water. Still blocks under it are sunk (out of reach); reds wade (tide.drag). */
+  tide?: { fromRow: number; low: number; high: number; period: number; from: TideFrom };
 }
+
+/** Which end of the bar the water comes from ('both': each end). */
+export type TideFrom = 'left' | 'right' | 'both';
 
 export interface PatchRule {
   every: number; // a new patch every this many seconds...
