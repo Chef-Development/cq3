@@ -60,6 +60,7 @@ export function runAction(c: Combat, e: Enemy, a: ActionDef): void {
       e.driftEvery = Math.max(0, Math.round(a.driftEvery ?? 0));
       e.linkEvery = Math.max(0, Math.round(a.linkEvery ?? 0));
       e.darkEvery = Math.max(0, Math.round(a.darkEvery ?? 0));
+      e.blazeEvery = Math.max(0, Math.round(a.blazeEvery ?? 0));
       return;
     case 'toDrift':
       return toDrift(c, a.count, a.speed, a.sec);
@@ -79,6 +80,11 @@ export function runAction(c: Combat, e: Enemy, a: ActionDef): void {
     case 'tide':
       c.surgeTide(a.level, Math.max(0, a.sec), a.from);
       return;
+    // Region 5: mirages and heat (core/combat.ts)
+    case 'hop':
+      return yellowsDo(c, a.count, (b) => b.hopAt === Infinity, (b) => c.setMirage(b));
+    case 'blaze':
+      return yellowsDo(c, a.count, (b) => !b.blaze, (b) => (b.blaze = true));
     case 'protect':
       if (!e.alive) return;
       e.protect = a.mult;
@@ -148,7 +154,7 @@ export function placeEntry(c: Combat, owner: Enemy, entry: FormationEntry, prev:
   if (pos === null) pos = c.freeSpot(w, 24);
   if (pos === null) return null;
   const drift = kind === 'yellow' && entry.drift && !entry.link ? entry.drift * (c.rand() < 0.5 ? -1 : 1) : 0;
-  return c.spawnBlock(kind, pos, owner.id, w, { life: entry.life, heal: entry.heal, special: true, drift, dark: !!entry.dark });
+  return c.spawnBlock(kind, pos, owner.id, w, { life: entry.life, heal: entry.heal, special: true, drift, dark: !!entry.dark, mirage: !!entry.mirage, blaze: !!entry.blaze });
 }
 
 /** Where a spotted entry lands: where the cursor is heading, or a random spot clear of the other still blocks. */
@@ -207,6 +213,15 @@ function besideYellow(c: Combat, w: number, owner: Enemy): number | null {
 }
 
 // ---------------------------------------------------------------- the other actions
+
+/** Up to `count` plain yellows on the bar that `want` (0 = every one; never one of a pair), the farthest from the
+ *  cursor first, get `act`. */
+function yellowsDo(c: Combat, count: number, want: (b: Block) => boolean, act: (b: Block) => void): void {
+  const cp = c.cursorPos();
+  const ys = c.blocks.filter((b) => b.kind === 'yellow' && !b.link && want(b)).sort((a, b) => Math.abs(b.pos - cp) - Math.abs(a.pos - cp));
+  const n = count > 0 ? Math.min(count, ys.length) : ys.length;
+  for (let i = 0; i < n; i++) act(ys[i]);
+}
 
 function heal(c: Combat, e: Enemy, target: 'self' | 'allies' | 'all', frac: number): void {
   const who = c.enemies.filter((x) => x.alive && (target === 'all' || (target === 'self' ? x === e : x !== e)));

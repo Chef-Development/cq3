@@ -893,6 +893,9 @@ function plan(c: Combat, rng: Rng, aim: Aim, gauss: () => number, avoidYellow: b
     if (b.dark && b.litAt === Infinity) continue;
     if (!wantsBlock(c, b, guarded) && !misreads_(c, b, rng, aim)) continue;
     if (water && !isRed(b.kind) && (c.sunk(b) || b.pos < c.waterL + 0.03 || b.pos > 1 - c.waterR - 0.03) && !tapsSunk(b, rng, aim)) continue;
+    // Region 5: a blazing yellow is left alone while the Heat is at its most and HP is low (a person would); a mirage
+    // whose landing spot shows is left until it has hopped (it may hop before the cursor gets there)
+    if (b.blaze && c.heat >= c.tuning.heat.max && c.hero.hp < c.maxHp() * 0.5) continue;
     // a still block: the time the cursor takes to get there, through any patch on the way (a hold: to its near
     // edge); a moving red: the closing speed
     const aimAt = b.kind === 'hold' ? b.pos - (dir * b.width) / 2 : b.pos;
@@ -908,6 +911,8 @@ function plan(c: Combat, rng: Rng, aim: Aim, gauss: () => number, avoidYellow: b
       else if (rest >= 0) tau = b.chill + rest;
     }
     if (!(tau >= 0) || tau > Math.min(toWall, 0.6)) continue;
+    // (a mirage can't hop while the cursor is this close to it: closer, the tap is safe)
+    if (b.hopTo >= 0 && tau > c.tuning.mirage.safeSec * 0.9) continue;
     // it popped up right in front of the cursor: no time to react (reds always come in from the right end, where
     // a player is watching for them, so they are noticed a little sooner)
     if (Math.max(b.bornAt, b.dark ? b.litAt : 0) > t + tau - (isRed(b.kind) ? aim.reactRed : aim.react)) continue;

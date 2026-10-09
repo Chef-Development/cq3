@@ -64,6 +64,11 @@ export interface Block {
   /** Under water right now (Region 4's tide; kept up to date while there is water) and when it last came up. */
   wet: boolean;
   surfacedAt: number;
+  /** A mirage (Region 5): when it hops next (motion time; Infinity: not a mirage) and where to (-1: no spot shown yet). */
+  hopAt: number;
+  hopTo: number;
+  /** A blazing yellow (Region 5): a hit lands harder but gives the hero Heat. */
+  blaze: boolean;
 }
 
 /** A dark block the lantern hasn't reached yet (it doesn't show what it is). */
@@ -130,6 +135,7 @@ export interface Enemy {
   driftEvery: number; // every Nth yellow it sends drifts (0 = none; a bar rule from a special)
   linkEvery: number; // every Nth yellow it sends comes as a linked pair (0 = none)
   darkEvery: number; // every Nth yellow it sends comes dark (0 = none; Region 4)
+  blazeEvery: number; // every Nth yellow it sends blazes (0 = none; Region 5)
   sent: number; // yellows it has sent (for driftEvery / linkEvery / darkEvery)
   /** Burning (a companion's Ember Bite): seconds left, damage a second, and seconds to the next tick (0 = none). */
   burn: number;
@@ -335,6 +341,11 @@ export type CombatEvent =
   | { type: 'surge'; level: number; from: TideFrom; sec: number } // a special sent the water rushing up
   | { type: 'ebb' } // a surge is over: the water goes back to the act's swell (or away)
   | { type: 'surface'; id: number; pos: number } // a sunk block came up out of the water
+  // Region 5: mirages and heat
+  | { type: 'hopWarn'; id: number; to: number } // a mirage's landing spot shows: it will hop there
+  | { type: 'hop'; id: number; from: number; to: number } // ...and now it has
+  | { type: 'heat'; stacks: number } // a blazing hit: the hero's Heat (stacks)
+  | { type: 'cool' } // the Heat is gone (a green cooled it, or it burned out)
   | { type: 'chip'; id: number; pos: number; left: number } // an iced yellow took a tap (it needs more)
   | { type: 'iceBlock'; id: number; pos: number } // a red froze in place (Flash Freeze, Glacier)
   // amount: what an 'act' did (a Thornling's damage, a Glowmoth's heal; 0 for a brace or a seed); power: the allies'
@@ -539,6 +550,10 @@ export class Combat {
   surge: { level: number; from: TideFrom; left: number } | null = null;
   /** A flood for good (a boss phase's surge with no end): the water stays at least this high at its end(s). */
   flood: { level: number; from: TideFrom } | null = null;
+  /** The hero's Heat (Region 5): stacks, seconds left burning, and seconds to the next tick. */
+  heat = 0;
+  heatLeft = 0;
+  heatTick = 0;
   /** A Summoner's allies on the field. */
   allies: Ally[] = [];
   /** A practice fight (the camp's Training Dummy): nothing hurts the hero. */
@@ -900,6 +915,7 @@ export class Combat {
       driftEvery: 0,
       linkEvery: 0,
       darkEvery: 0,
+      blazeEvery: 0,
       sent: 0,
       burn: 0,
       burnDps: 0,
@@ -1153,6 +1169,94 @@ export class Combat {
     return p < w.l || p > 1 - w.r;
   }
 
+  // ---------------------------------------------------------------- Region 5: mirages, heat
+
+  /** How often a mirage hops (s): the act's rule, else tuning.mirage.every (a special's mirage). */
+  mirageEvery(): number {
+    const M = this.bar?.mirage;
+    return Math.max(0.5, M && this.row >= M.fromRow ? M.every : this.tuning.mirage.every);
+  }
+
+  /** Whether the cursor is close to bar position p (within `sec` of its travel either way, at its speed now). */
+  private nearCursor(p: number, sec: number): boolean {
+    return Math.abs(p - this.cursorPos()) <= sec * this.cursorSpeed() * Math.max(1, this.zoneMultAt(this.cursorPos()));
+  }
+
+  /** A mirage: `warnSec` before its hop its landing spot shows (a free spot at least minHop away, far from the
+   *  cursor); it hops once its time has come and the cursor is close to neither spot (it waits while it is), and its
+   *  next hop comes about `every` s later. A spot that has filled up meanwhile is chosen again (and shown again). */
+  private updateMirage(b: Block): void {
+    const M = this.tuning.mirage;
+    if (this.motionTime + 1e-9 < b.hopAt - M.warnSec) return;
+    const fits = (q: number) => {
+      const half = b.width / 2;
+      if (q - half < this.tuning.blocks.edgeMargin || q + half > 1 - this.tuning.blocks.edgeMargin) return false;
+      if (this.wet(q)) return false;
+      return this.blocks.every((s) => s === b || (isRed(s.kind) && !s.still) || Math.abs(s.pos - q) >= (s.width + b.width) / 2 + this.tuning.blocks.minGap);
+    };
+    if (b.hopTo < 0 || !fits(b.hopTo)) {
+      // choose where it will land, and show it
+      let to = -1;
+      for (let k = 0; k < 12 && to < 0; k++) {
+        const q = this.spawnRng.range(0.06, 0.94);
+        if (Math.abs(q - b.pos) >= M.minHop && fits(q) && !this.nearCursor(q, M.safeSec)) to = q;
+      }
+      if (to < 0) {
+        b.hopAt = this.motionTime + M.warnSec + 0.4; // nowhere to go: try again a little later
+        b.hopTo = -1;
+        return;
+      }
+      b.hopTo = to;
+      b.hopAt = Math.max(b.hopAt, this.motionTime + M.warnSec);
+      this.events.push({ type: 'hopWarn', id: b.id, to });
+      return;
+    }
+    if (this.motionTime + 1e-9 < b.hopAt) return;
+    // never while the cursor is close to where it is or where it goes (a tap aimed at it stays good)
+    if (this.nearCursor(b.pos, M.safeSec) || this.nearCursor(b.hopTo, M.safeSec)) return;
+    const from = b.pos;
+    b.pos = b.hopTo;
+    b.from = b.pos;
+    b.hopTo = -1;
+    b.hopAt = this.motionTime + this.mirageEvery() * (0.85 + 0.3 * this.spawnRng.next());
+    this.events.push({ type: 'hop', id: b.id, from, to: b.pos });
+  }
+
+  /** Make a yellow a mirage (it hops soon, its landing spot shown first). */
+  setMirage(b: Block, soon = true): void {
+    if (b.kind !== 'yellow' || !this.blocks.includes(b) || b.link) return;
+    b.hopAt = this.motionTime + (soon ? this.tuning.mirage.warnSec : this.mirageEvery());
+  }
+
+  /** A blazing hit: a stack of Heat (up to heat.max); the burn starts over. */
+  private addHeat(): void {
+    const X = this.tuning.heat;
+    if (this.heat <= 0) this.heatTick = X.tick;
+    this.heat = Math.min(Math.max(1, Math.round(X.max)), this.heat + 1);
+    this.heatLeft = X.sec;
+    this.events.push({ type: 'heat', stacks: this.heat });
+  }
+
+  /** The Heat is gone (a green cooled it, or it burned out). */
+  coolHeat(): void {
+    if (this.heat <= 0) return;
+    this.heat = 0;
+    this.heatLeft = 0;
+    this.events.push({ type: 'cool' });
+  }
+
+  /** The Heat burns: every heat.tick s, stacks x heat.dps x max HP a second (it never breaks the combo). */
+  private updateHeat(): void {
+    const X = this.tuning.heat;
+    this.heatLeft -= DT;
+    if ((this.heatTick -= DT) <= 1e-9) {
+      this.heatTick += X.tick;
+      const dmg = this.heat * X.dps * this.maxHp() * X.tick;
+      if (dmg > 0) this.hurtHero(Math.max(1, Math.round(dmg)), 'heat', true);
+    }
+    if (this.heatLeft <= 1e-9) this.coolHeat();
+  }
+
   /** The act's tide, if it runs on this row. */
   private tideRule(): BarRules['tide'] | null {
     const T = this.bar?.tide;
@@ -1264,6 +1368,7 @@ export class Combat {
     if (this.bar && !this.rush) this.updateBarRules();
     if (!this.rush) this.updateTide();
     this.updateLight();
+    if (this.heat > 0) this.updateHeat();
     if (hasAura(this.hero.gear, 'sanctuary') && this.tick % Math.max(1, Math.round(this.tuning.effects.sanctuarySec * SIM_HZ)) === 0)
       this.healPerk(this.maxHp() * this.tuning.effects.sanctuaryHeal, 'sanctuary');
     if (this.tuskTimer > 0 && (this.tuskTimer -= DT) <= 1e-9) {
@@ -1731,6 +1836,7 @@ export class Combat {
         }
       } else {
         if (b.vel !== 0) this.driftBlock(b);
+        if (b.hopAt !== Infinity) this.updateMirage(b);
         if (b.life !== Infinity) {
           b.life -= DT;
           if (b.life <= 0) {
@@ -1861,11 +1967,13 @@ export class Combat {
     let callLink = false;
     let callDrift = false;
     let callDark = false;
-    if (kind === 'yellow' && owner && (owner.driftEvery || owner.linkEvery || owner.darkEvery)) {
+    let callBlaze = false;
+    if (kind === 'yellow' && owner && (owner.driftEvery || owner.linkEvery || owner.darkEvery || owner.blazeEvery)) {
       owner.sent++;
       if (owner.linkEvery && owner.sent % owner.linkEvery === 0) callLink = true;
       else if (owner.driftEvery && owner.sent % owner.driftEvery === 0) callDrift = true;
       else if (owner.darkEvery && owner.sent % owner.darkEvery === 0) callDark = true;
+      if (owner.blazeEvery && owner.sent % owner.blazeEvery === 0) callBlaze = true;
     }
     if (kind === 'yellow' && (callLink || (R?.links && this.row >= R.links.fromRow && this.spawnRng.next() < R.links.share)) && statics.length + 2 <= B.maxStatic && !(capped && this.wouldCrowd(2 * w))) {
       if (this.spawnPair(w, ownerId)) return true;
@@ -1881,9 +1989,14 @@ export class Combat {
       dark = true;
       if (kind === 'yellow' && this.spawnRng.next() < D.traps) kind = 'purple';
     }
+    // Region 5: a yellow may be a mirage, or blaze (the draws only happen in an act with these rules)
+    const Mi = R?.mirage && this.row >= R.mirage.fromRow ? R.mirage : null;
+    const Ht = R?.heat && this.row >= R.heat.fromRow ? R.heat : null;
+    const mirage = kind === 'yellow' && !!Mi && this.spawnRng.next() < Mi.share;
+    const blaze = kind === 'yellow' && (callBlaze || (!!Ht && this.spawnRng.next() < Ht.share));
     const p = this.freeSpot(w);
     if (p === null) return false;
-    this.spawnBlock(kind, p, ownerId, w, drift || dark ? { drift, dark } : {});
+    this.spawnBlock(kind, p, ownerId, w, drift || dark || mirage || blaze ? { drift, dark, mirage, blaze } : {});
     return true;
   }
 
@@ -1991,7 +2104,7 @@ export class Combat {
     pos: number,
     ownerId: number = this.enemies[0]?.id ?? 0,
     width = this.widthFor(kind),
-    o: { speed?: number; taps?: number; life?: number; heal?: number; special?: boolean; still?: boolean; fuse?: number; grow?: number; trail?: ZoneKind; drift?: number; dark?: boolean } = {},
+    o: { speed?: number; taps?: number; life?: number; heal?: number; special?: boolean; still?: boolean; fuse?: number; grow?: number; trail?: ZoneKind; drift?: number; dark?: boolean; mirage?: boolean; blaze?: boolean } = {},
   ): Block {
     const B = this.tuning.blocks;
     const speed = o.speed ?? 1;
@@ -2025,7 +2138,11 @@ export class Combat {
       litAt: o.dark && !isRed(kind) ? Infinity : 0,
       wet: false,
       surfacedAt: -Infinity,
+      hopAt: Infinity,
+      hopTo: -1,
+      blaze: !!o.blaze && kind === 'yellow',
     };
+    if (o.mirage && kind === 'yellow') b.hopAt = this.motionTime + this.mirageEvery() * (0.6 + 0.4 * this.spawnRng.next());
     if (o.drift && !isRed(kind)) b.vel = o.drift;
     for (const h of this.hooks) h.spawned?.(this, b);
     this.blocks.push(b);
@@ -2353,6 +2470,8 @@ export class Combat {
     if (setPieces(this.hero.gear, 'rimewalker') >= 2 && this.iceAt(b.pos)) mult *= 1 + T.effects.rimeIce;
     // the third region's: the Emberwright set's 2 pieces (hits on drifting blocks)
     if (b.vel !== 0 && setPieces(this.hero.gear, 'emberwright') >= 2) mult *= 1 + T.effects.emberDrift;
+    // the fifth region's: a blazing yellow lands harder (and gives Heat, below)
+    if (b.blaze && !echo) mult *= T.heat.mult;
     const damage = Math.max(1, Math.round(st.atk * mult));
     x.damage = damage;
     this.events.push({ type: 'hit', kind: b.kind, pos: b.pos, perfect, crit, damage, enemyId: target?.id ?? 0, combo: this.combo, echo });
@@ -2361,7 +2480,9 @@ export class Combat {
     if (green) {
       H.abilityTimer = this.abilitySec();
       this.events.push({ type: 'ability' });
+      if (this.heat > 0) this.coolHeat(); // a green cools the Heat
     }
+    if (b.blaze && !echo) this.addHeat();
     if (crit) this.startHitStop();
     if (target) this.damageEnemy(target, damage, crit, 'hit');
     if (b.kind === 'keg') this.kegBlast(b);
