@@ -734,8 +734,8 @@ sound, and both only draw from the fight's random stream in an act that has them
 - **Both** (Act 3): dark blocks on dry ground, the tide coming in under them; a dark block that sinks stays unlit.
 
 How they ramp: **Act 1** dark from row 2 (share 0.3, traps 0.2; foes' specials show it earlier); **Act 2** tides from
-row 1 (low 0.06, high 0.36, period 9 s, from the right: the reds come in through the water) plus a little dark from row
-3 (0.15); **Act 3** both from row 0 (dark 0.3 / traps 0.25; tide 0.08 to 0.4 over 8 s), and the boss's phases are the
+row 1 (low 0.06, high 0.36, period 10 s, from the right: the reds come in through the water) plus a little dark from row
+3 (0.15); **Act 3** both from row 0 (dark 0.3 / traps 0.25; tide 0.08 to 0.4 over 10.5 s), and the boss's phases are the
 mapmaker's edits to the bar.
 
 **Every hero** (one cursor each; `hero-kits.test.ts`, `bar-rules.test.ts`): the lantern is the cursor's, so every hero
@@ -786,22 +786,22 @@ first mini-boss). New foe tag: none (`water` was considered; no hero leans on it
 - **The Sluice Keeper** (`sluiceKeeper`, Act 2, construct, folk): a beaver engineer in a brass diving helmet who runs
   the floodgates for the mapmaker on a strict timetable (a pocket watch, a clipboard). **Open the Gates!** a surge
   (0.5 for 4 s); **Dam Up!** a still shield (3 taps) where the cursor is heading; **Spillway!** (below 50%, gate) the
-  water comes from both ends (0.3 each, for good in phase 2: `tide` sec 0 = until the phase ends); **Overtime!** (phase
+  water comes from both ends (0.25 each, for good: `tide` sec 0); **Overtime!** (phase
   2) two reds, one after the other.
 
 ### Boss: the Gloaming Lighthouse (`lighthouse`, Act 3, construct) — each phase is one of the mapmaker's edits
 A lighthouse the mapmaker drew wading in the mere on stone legs, the sun shut in its lamp (that is why the marsh is
 stuck at dusk); its beam sweeps the water, its door a mouth. The mapmaker stands on its gallery with his pen and
 redraws the fight as it goes (each phase change: his scene, then the bar changes, `phaseScenes`).
-- Phase 1, as drawn: **Beam Sweep!** the lighthouse's own beam crosses the bar: every dark block it passes is lit, and
-  the lantern dims behind it (x0.7, 4 s); **Fog Horn!** every block outside the light goes dark, 2 dark traps;
-  **Breakers!** two reds.
-- Phase 2 (66%, gate, scene `lighthouse2`), edit one, "the shoreline was in the wrong place": the tide comes from both
-  ends (0.3 each, for the phase) on top of the act's swell; **Breakers!** and **Fog Horn!**; every 3rd yellow it sends
-  is dark.
-- Phase 3 (33%, gate, scene `lighthouse3`), edit two, "nobody needs a sky": blackout: the lantern dims for good
-  (x0.7), every 2nd yellow dark, a surge every 8 s (0.45), the cursor never drops below 1.3x; **Breakers!** and
-  **Blackwater!**. Beaten: the lamp cracks, the sun rolls out and up, and the marsh finally gets its night (and then its
+- Phase 1, as drawn: **Fog Horn!** every yellow outside the light goes dark, 2 dark traps; **Breakers!** two reds.
+  (Later, with a `lightSweep` action: **Beam Sweep!** the lighthouse's own beam crosses the bar, lighting every dark
+  block it passes, while the lantern dims behind it.)
+- Phase 2 (66%, gate, scene `lighthouse2`), edit one, "the shoreline was in the wrong place" (**Shore Redrawn!**): the
+  tide comes from both ends (0.22 each, for good) on top of the act's swell; **Breakers!** and **Fog Horn!**; every
+  3rd yellow it sends is dark.
+- Phase 3 (33%, gate, scene `lighthouse3`), edit two, "nobody needs a sky" (**Sky Erased!**): blackout: the lantern
+  dims for good (x0.7), every 2nd yellow dark, the cursor never drops below 1.3x; **Breakers!** and **Surge!** (0.45
+  for 3 s, every 8 s). Beaten: the lamp cracks, the sun rolls out and up, and the marsh finally gets its night (and then its
   morning).
 
 ### Story (scene ids the region's data needs; the story team writes them: placeholders in `story-dusk.ts` until then)
