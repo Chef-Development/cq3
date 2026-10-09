@@ -285,6 +285,15 @@ export const LAB_NEW: LabScenario[] = [
   // ---- content: the new regions (team 3; spoilers)
   // ---- QA and platforms (team 4)
   // ---- the first 10 minutes (team 5)
+  {
+    id: 'firstFight',
+    group: 'fights',
+    label: 'The first fight',
+    secs: 60,
+    try: 'Your first fight again: tips, then a finisher.',
+    setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['crow'], ['boar'], ['slime']] },
+    profile: { tips: ['tapYellow', 'blockRed', 'green', 'purple', 'finisher'] },
+  },
 ];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,
