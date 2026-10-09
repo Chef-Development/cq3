@@ -818,6 +818,14 @@ A6. **Skill nodes without a painted icon get an emblem from their name** (`art-s
     relic families' colours, picked by keyword rules in order; a capstone adds gold corners. 125 of the 127 stand-ins
     now say what the node is about (a unit test keeps new nodes covered). Painted icons per node stay the goal.
 
+A7. **Rowan gets fin, cast and down** on his own pose system (he isn't on the shared rig). With a `cast` frame he
+    now also shows the green ability's ring and pose like every other hero (fighters.ts `cast()` skipped him).
+A8. **A four-step idle breath** for the fourteen rig heroes: `idle2`/`idle3` derived from their idle0/idle1 with the
+    head a pixel lower (the head follows the body a beat late), cycled every 300 ms (a 1.2 s loop) where a hero has
+    them; Rowan and Sable keep their two frames. The menus' 3x heroes still use two.
+A9. **Ashfell's darkest foes get an ember rim** (light from below, section 9 of the bible) and the glass warren a light
+    spill from its lake; the forge was re-scored from a fight screen (the sheet had made it look flat).
+
 (art: end of section)
 
 

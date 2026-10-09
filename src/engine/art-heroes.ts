@@ -95,6 +95,10 @@ export function buildHeroArt(add: Add): void {
   // (every hero in the registry: the M5 six and round 7's, Part 6)
   for (const [id, h] of Object.entries(HEROES)) {
     for (const k of HERO_POSE_KEYS) add(`${id}_${k}`, rigFrame(h.rig, h.poses[k]));
+    // a four-step breath (docs/art-style.md section 7: secondary motion): the head follows the body a beat late.
+    // idle0 up, idle1 down, idle2 down with the head settling a pixel lower, idle3 up with the head still low
+    add(`${id}_idle2`, rigFrame(h.rig, { ...h.poses.idle1, bow: (h.poses.idle1.bow ?? 0) + 1 }));
+    add(`${id}_idle3`, rigFrame(h.rig, { ...h.poses.idle0, bow: (h.poses.idle0.bow ?? 0) + 1 }));
     add(`hero_card_${id}`, heroCard(h.card.glow, h.card.motes, rigFrame(h.rig, h.card.pose)));
     h.camp.forEach((p, i) => add(`camp_${id}${i}`, campFrame(h.rig, p)));
   }

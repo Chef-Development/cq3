@@ -76,6 +76,8 @@ const SWORD_TIP: Record<string, [number, number]> = {
   parry: [9, -31],
 };
 /** The frame to use for a pose a hero doesn't have (their own first, then Rowan's). */
+/** The four-step idle breath (art-heroes.ts idle2/idle3). */
+const IDLE4 = ['idle0', 'idle1', 'idle2', 'idle3'] as const;
 const HERO_ALT: Record<string, string> = { slashX: 'slashB', fang: 'slashA', down: 'hurt', fin: 'slashB', cast: 'windup' };
 /** Perks that never name themselves in the lane (the allies' own doings, shown on them). */
 const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally', 'spiritWolf', 'wispSwarm', 'spiritStag']);
@@ -1095,7 +1097,8 @@ export class Fighters {
       pose = 'dash';
       flip = true;
     } else if (h.state === 'engaged') pose = 'windup';
-    else pose = Math.floor(a / 420) % 2 ? 'idle1' : 'idle0';
+    // the idle breath: four steps where the hero has them (the head following the body a beat late), else two
+    else pose = this.hasPose('idle3') ? IDLE4[Math.floor(a / 300) % 4] : Math.floor(a / 420) % 2 ? 'idle1' : 'idle0';
     const knock = a < h.hurtUntil ? -4 : 0;
     if (knock && h.hurtUntil !== this.hurtSeen) {
       // knocked back a step: his heels scuff the dust
