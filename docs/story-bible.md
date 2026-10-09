@@ -20,6 +20,21 @@ commit titles, PR titles, the Test lab's labels and anything the playtester read
 - **His refrain.** After an edit the Mapmaker says some form of "There. Better." Players should learn to dread it.
   Use it sparingly (once per region at most) so it stays sharp.
 - **Never name a later region** in a scene, bio or banter line that can play before that region is reached.
+- **Directions on the world map:** Greenmarch south-west, the Frostpeaks north, Ashfell's volcano north-east, the fen
+  south-east below the heartland, the sun plateau east; the far isles lie past the east coast.
+
+### Voices (for writers and the editor pass)
+| Who | Voice | Never |
+|---|---|---|
+| Narrator | plain, concrete, present tense in scenes; one image per box | jokes, UI words ("bar", "tap") |
+| Rowan | plain and warm; short sentences; asks real questions; says "we"; steady under pressure | sarcasm about the quest, speeches |
+| Pip (plot) | dry, warm, brief; knows too much and lets it show a little; contractions; "Hoo." at most once a scene | bits, billing jokes (those are banter) |
+| The Mapmaker | gentle, courteous, precise; **no contractions**; craftsman's words (line, draft, smudge); compliments; "There. Better." rarely | shouting (until Region 11), threats, lies |
+| Hesper | terse, formal, few kind words; no contractions | explaining herself (until the end) |
+| Sable | quick, light-fingered, practical; one quip per scene | cruelty |
+| Neve | prickly, proud, CAPITALS for emphasis, secretly glad of company | admitting it |
+| Mags | gruff, warm underneath, forge talk | (she can joke: she's camp) |
+| Bosses | each their own: the Boar King and the golem shout in capitals; Rimehorn and the golem speak without contractions; Glacia says "darling" | winking at the player |
 
 ---
 
@@ -123,7 +138,7 @@ one at a time.
   - "A crooked road gets people lost. I've straightened it. You're welcome."
   - "Forgive the interruption. Your fight was drawn badly. Let me fix it."
   - "Nobody is hurt. They're sleeping. When they wake, the world will be kind."
-  - "I've erased mountains, knight. Why won't you come off the page?"
+  - "I have erased mountains, knight. Why will you not come off the page?"
 
 ### High Keeper Hesper (speaker `keeper`, plate "Hesper")
 - The keeper of the Great Atlas for thirty years; Ambrose's teacher. Silver-haired, upright, grey keeper's blue, a
@@ -144,7 +159,8 @@ one at a time.
   name beside the drawing. It's the one thing the boy knew.) Raised in the knights' hall. Kind, earnest, a little unsure of himself,
   brave when it counts. Hates deep water and doesn't know why. (In banter he still naps anywhere: that's his comedy.)
 - **The mystery:** in the intro the blank rolls over him and he stays awake; Ambrose tries to erase him and the ink
-  slides off. Ambrose asks the question every region: "Who drew you?" Rowan has no answer.
+  slides off. Ambrose asks "Who drew you?" at the end of Region 1, and again now and then (never every region: it
+  should stay sharp). Rowan has no answer.
 - **The payoff (twist 3):** Rowan is the boy Ambrose drew back. The night after the funeral Ambrose drew his son with a
   shaking hand, pressing so hard the nib went through the vellum. Rowan is not a line on the Atlas: he is a **cut** in
   it. You can scrape ink off a page. You can't scrape off a hole. And a living thing can't be drawn twice, which is
@@ -373,7 +389,8 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
 - **Bar rules:** **dark blocks** (nothing is lit any more; you see only what your own light reaches); **tides** (the
   water never rests: the level on the bar rises and falls).
 - **Boss (suggestion): Mirewick, the Fen Angler**, a vast old angler-toad from the deep channels. Keystone: **the last
-  lantern**, which Ambrose hung on its lure: the only light in the fen.
+  lantern**, which Ambrose hung on its lure: the only light in the fen. (The world map already paints a lamp in the
+  fen, "the Mirelight": that is the last lantern, seen from afar.)
   - Phase 2 edit: "The tide comes in." He draws the tide higher and quicker.
   - Phase 3 edit: "Lights out." He snuffs the lure: dark everywhere but the cursor's own light.
 - **Restoring:** true night comes back, with stars, and the fen-folk light their lanterns one by one: the victory
@@ -458,6 +475,8 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
 | the pendulum emblem (shrine gable, camp, gear) | the Atlas's **compass rose** |
 | the narrator's portrait (the Pendulum's bob) | the Atlas: a corner of a living map, with a compass rose |
 | the Boar King's "pendulum bob" crown | the crown he drew: gold, with faint glowing ink lines |
+| the fen's map label "Duskmire" | **Lanternfen** (the id `duskmire` stays) |
+| the act clear / world map's "weight" pips (12 dots) | 12 small compass roses, lit as regions are restored |
 | item: Pendulum Shard (effect "Tick, Tock") | **Keystone Shard** (effect "Fresh Ink": every 10th combo hit draws a green block) |
 | Bellows's anvil "with the brass pendulum weight" | the anvil that never cools, glowing gold ink along its edge |
 
@@ -468,10 +487,16 @@ gold lines while he's drawing there.
 
 ---
 
-## 10. Scene plan, Regions 1-3 (ids stay stable)
+## 10. Scene plan and status, Regions 1-3 (ids stay stable)
 
 Region 1: `intro` (3 boxes), `act1` (1 box: Pip): together the 4 boxes before the first fight. Proposed new scene
 `road` (after the first fight is won: Pip explains the blank and the Atlas; needs a hook, see the report). `captain`,
 `sableJoin` (camp), `act2`, `golem`, `act3`, `boarKing`, `boarKing2`, `boarKing3`, `victory` (ends in Meridian with
 Hesper). Region 2 and 3: the same ids as now (`frost1` ... `frostVictory`, `ash1` ... `ashVictory`), rewritten to this
 bible. New speakers: `mapmaker` ("The Mapmaker"), `keeper` ("Hesper"); both need portraits (art team).
+
+Status (round 8, chunk 1): Regions 1-3 rewritten (`story.ts`, `story-ash.ts`), editor-passed, tests updated. Still to
+do: the `road` hook; the hero arrivals' home lines (`meet*`); banter that follows the story (lines gated on scenes, like
+`banter-ash.ts`); a welcome for returning players (their save never replays the new intro); Region 4's scenes with
+Team 3; the bosses' portraits and the two new speakers' (`portrait_mapmaker`, `portrait_keeper`: until they exist the
+story view shows Phaser's missing-texture box); `keeper` belongs with the allies' warm look in `view/story.ts`.
