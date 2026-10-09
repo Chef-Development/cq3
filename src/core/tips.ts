@@ -153,9 +153,15 @@ export class TipCoach {
     return this.seen(id) || this.known(id);
   }
 
-  /** Its turn may come: not learned yet, and every tip it waits for is. */
+  /** Its turn may come: not learned yet, every tip it waits for is, and (the quiet start) a new player has won the
+   *  fights it waits for. */
   ready(def: TipDef): boolean {
-    return !this.learned(def.id) && (def.after ?? []).every((a) => this.learned(a));
+    return !this.learned(def.id) && (def.after ?? []).every((a) => this.learned(a)) && this.quietOver(def);
+  }
+
+  /** The quiet start is over for `def`: it waits for no wins, an act has been cleared, or enough fights were won. */
+  quietOver(def: TipDef): boolean {
+    return !def.wins || this.profile.actsCleared > 0 || (this.profile.counts.wins ?? 0) >= def.wins;
   }
 
   /** A fight's events (each flush): what the player did (tipsDone, counted even while tips are off), the passing
@@ -227,13 +233,17 @@ export class TipCoach {
   /** What the player did, for the tips' `known` counts (each kept up to its tip's count). */
   private count(events: readonly CombatEvent[]): void {
     const done = this.profile.tipsDone;
-    for (const e of events)
+    const counts = this.profile.counts;
+    for (const e of events) {
+      // fights won (the quiet start: QUIET_WINS)
+      if (e.type === 'won') counts.wins = Math.min(1e6, (counts.wins ?? 0) + 1);
       for (const id of Object.keys(DOES) as TipId[]) {
         if (!DOES[id]!(e)) continue;
         const def = TIPS.find((d) => d.id === id);
         const cap = def?.known ?? 0;
         if ((done[id] ?? 0) < cap) done[id] = (done[id] ?? 0) + 1;
       }
+    }
   }
 
   /**
