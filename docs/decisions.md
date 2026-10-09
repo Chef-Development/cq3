@@ -771,29 +771,16 @@ L2. **One branch, one PR.** The run continues PR #7's branch on `claude/exciting
 
 ### Team 3: content
 
-C1. **Region 4's design lives in the content bible (section 7, spoilers)**: its rules, acts, foes, bosses, relics,
-    gear, music and balance targets, with working names the story team can replace (the data is written so a rename
-    touches names and scene text only). The boss's phases are the mapmaker's edits; each is a gate with a scene.
-C2. **Dark blocks: the light is a time, not a distance.** The cursor's lantern reaches `dark.lightSec` (0.45 s) of
-    its travel at its current speed, so it widens as the combo speeds the cursor up and a dark block always shows
-    what it is well before the cursor gets there (fair to a 75% thumb); a dimmed lantern never reaches under
-    `floorSec` (0.32 s). Lit blocks stay lit. Dark hides a block's kind, never its place (a shape with a rim), and
-    nothing the player saw as a yellow becomes a trap (`darken` keeps kinds; traps are only ever dark from the start).
-    Reds are never dark.
-C3. **Tides: water takes targets and slows reds.** Water covers one end (or both), swelling slowly from low water at a
-    fight's start; a still block whose centre is under it is out of reach (a tap there is a miss), reds wade, new blocks
-    come on dry ground. The swell never moves faster than `tide.swellSpeed` (0.1 of the bar a second; the data test
-    checks every act), surges at 0.25; water never covers more than 0.6 of the bar. The tide draws no random numbers
-    (fights start at low water), so acts without it play exactly as before. Player word: "the tide" / "water"
-    (Nimbus's companion perk is also called Tide: a wave that pushes reds; if playtests confuse them, rename Nimbus's).
-C4. **Tuned by a bot probe** (30 fights a rule, 75%): dark traps at full damage cost +34% HP a fight, so a trap that
-    came dark bites for 0.6 (`dark.trapMult`) and the trap shares are 0.12-0.15 of dark yellows; wading at 0.6 made
-    the tide a gift (HP lost 48% vs 62% without), so reds wade at 0.8. The bot waits for the light, misreads a dark
-    trap (1 - accuracy) / 2 of the time, and slips onto a sunk block (1 - accuracy) / 4 of the time. Numbers in the
-    content bible.
-C5. **Region 4's data is written but not wired in** (`duskmire.ts`, `enemies-dusk.ts`, `story-dusk.ts`, checked by
+C1. **Region 4's design and its build calls are in docs/content-bible.md section 7** (spoilers: its two bar rules,
+    how they were made fair to a 75% thumb and tuned with a bot probe, the acts, foes and bosses), as Region 3's were
+    (Part 9). Working names until the story team's bible fixes them; the data is written so a rename touches names
+    and scene text only.
+C2. **Two new bar rules in the core** (`CORE:` commits), deterministic, drawing nothing from the random stream in an
+    act without them (a test plays a fight with and without and compares), each with a slider group, a first-meeting
+    tip, a picture on the bar (nothing depends on sound), a lab item, and tests for every hero.
+C3. **Region 4's data is written but not wired in** (`duskmire.ts`, `enemies-dusk.ts`, `story-dusk.ts`, checked by
     `duskmire-data.test.ts`): it joins REGIONS once its art (sprites, minis, backdrops, themes) and telegraph sounds
-    exist; until then its acts borrow earlier looks (`DUSK_STAND_IN`) and its scenes are one-line placeholders.
+    exist; until then its acts borrow earlier looks and its scenes are one-line placeholders.
 
 (content: end of section)
 
