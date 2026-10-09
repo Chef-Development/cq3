@@ -560,8 +560,192 @@ const ASH_MINIS: Record<string, Mini> = {
   })(),
 };
 
+// ------------------------------------------------------------------ the fourth region's foes (their fight sprites: art-dusk.ts, to come)
+
+// a marsh at dusk: every mini keeps something lit (a lantern's amber, a wisp's green, the moon on water) to read
+// against the violet dusk of its act maps
+const LAMP = { L: '#ffe6a8', l: '#ffc870', o: '#e08a2a', O: '#a8501c' };
+const MOSS = { 1: '#16201c', 2: '#22362a', 3: '#33503a', 4: '#4c6e48', 5: '#6e8e58', 6: '#9cb46e' };
+const VIOL = { 1: '#1a1424', 2: '#2a2038', 3: '#3e3052', 4: '#5a4870', 5: '#7e6a94', 6: '#a894b8' };
+const WAVE = { b: '#1b4f6e', B: '#3a86a8', c: '#9fe0f0' };
+
+const DUSK_MINIS: Record<string, Mini> = {
+  // a will-o'-wisp: a blue-green flame with a sly face and a tail of sparks
+  bogwisp: {
+    pal: { W: '#e0fff0', w: '#6ae8b0', g: '#2a9a76', G: '#16604e', k: INK },
+    frames: [
+      ['....W....', '...WwW...', '..WwwwWg.', '.WwkwkwgG', '.WwwwwwgG', '.wwkkkwgG', '..wwwwgG.', '...wggG..', '....g..w.'],
+      ['.....W...', '...WwW...', '..WwwwWg.', '.WwkwkwgG', '.WwwwwwgG', '.wwkkkwgG', '..wwwwgG.', '...wggG.w', '....g....'],
+    ],
+  },
+  // a fat olive toad with a lantern-orange throat sac and lazy, half-shut eyes
+  miretoad: (() => {
+    const f0 = ['...55...55..', '..5kE5.5kE5.', '.55555555544', 'lo5555555443', 'loo555554433', '.oo444444332', '..3...33..2.'];
+    return { pal: { ...MOSS, ...LAMP, E: '#ffe680', k: INK }, frames: [f0, bob(f0, 3)] };
+  })(),
+  // a little reed-man: a cattail for a hat, a reed pipe
+  reedling: (() => {
+    const f0 = ['....O....', '...OOo...', '...OOo...', '....4....', '..4555...', '..5k5k4..', '..45554..', 'yy44443..', '..4.4.3..', '..3.3.2..'];
+    return { pal: { ...MOSS, O: '#7a4a2a', o: '#4e2c1c', y: '#d8b070', k: INK }, frames: [f0, bob(f0, 7)] };
+  })(),
+  // elite: a hulking golem of peat and roots with a caged lantern for a heart
+  peatgolem: (() => {
+    const f0 = [
+      '....33333.....',
+      '...3444443....',
+      '..34E44E4432..',
+      '..3444444432..',
+      '.233MMMMM3322.',
+      '2333MlLlM33322',
+      '233.MLlLM.3322',
+      '23..MMMMM..322',
+      '....33333.....',
+      '...333.333....',
+      '...22...22....',
+    ];
+    return { pal: { 1: '#1a120e', 2: '#2e2018', 3: '#4a3424', 4: '#6a4c34', 5: '#8e6a48', M: '#5a5866', E: '#ffc870', ...LAMP }, frames: [f0, bob(f0, 8)] };
+  })(),
+  // mini-boss: a toad the size of a hut, glowing from inside with every lantern he swallowed
+  bellybog: (() => {
+    const f0 = [
+      '....55.....55.....',
+      '...5kE5...5kE5....',
+      '..555555555555544.',
+      '.5555555555555444.',
+      'oo55lLl555lLl54443',
+      'ooo5LLL555LLL54443',
+      '.oo55l55l55l554433',
+      '.o555555555555443.',
+      '..4444444444444332',
+      '..33.33.....33.32.',
+      '.333.333...333.33.',
+    ];
+    return { pal: { ...MOSS, ...LAMP, E: '#ffe680', k: INK }, frames: [f0, bob(f0, 8)] };
+  })(),
+  // a goggle-eyed mudskipper standing on its fins, a cheeky grin
+  mudskipper: (() => {
+    const f0 = ['.EE.........', 'EkkE........', '.55555544...', 'k5555555443.', '.R5555544433', '..554444332.', '..5.4..3.32.', 'bBbBbBbBbBbB'];
+    return { pal: { 2: '#2c3a4a', 3: '#40566a', 4: '#5a7a8e', 5: '#84a4b2', E: '#ffe680', R: '#d04a3a', k: INK, ...WAVE }, frames: [f0, bob(f0, 6)] };
+  })(),
+  // a tall heron in a ferryman's coat, on long legs, a punt-pole spear
+  stiltheron: (() => {
+    const f0 = ['...444....', '..4E44....', 'yy4444....', '...44.....', '...cc....s', '..cCCc..s.', '..CCCCcs..', '..CCCCc...', '...cCc....', '...y.y....', '...y.y....', '..yy.yy...'];
+    return { pal: { 4: '#c8d0dc', E: '#ffe680', y: '#e0a040', c: '#2e3a5a', C: '#46587e', s: '#9a7a4a', k: INK }, frames: [f0, bob(f0, 8)] };
+  })(),
+  // a hunched little lamplighter: a hood like a candle snuffer, a long wick-pole alight
+  lamplighter: (() => {
+    const f0 = ['L.........', 'ls...5....', '.s..555...', '.s.55555..', '.s5kE554..', '.s.55554..', '.sh44444..', '..h44443..', '...4443...', '...3.3....'];
+    return { pal: { ...VIOL, ...LAMP, E: '#ffe680', h: '#d8b090', s: '#7a5a3a', k: INK }, frames: [f0, ['l.........', 'Ls...4....', ...f0.slice(2)]] };
+  })(),
+  // elite: a mossy snapping turtle the size of a cart, its shell a sunken island
+  oldsnapper: (() => {
+    const f0 = ['......66655....', '....665555544..', '...55545554443.', '..5455455444433', 'kE.44444444433.', 'yyy44333333332.', '.y.443.33..332.', '...33..22..22..'];
+    return { pal: { ...MOSS, E: '#ffe680', y: '#c8a050', k: INK }, frames: [f0, bob(f0, 5)] };
+  })(),
+  // mini-boss: a beaver engineer in a brass diving helmet, a clipboard, a flat tail
+  sluicekeeper: (() => {
+    const f0 = [
+      '.....gggg.......',
+      '....gMMMMg......',
+      '...gMcccMg......',
+      '...gMcEcMg......',
+      '...gMMMMMg......',
+      '....gggg333.....',
+      '..pp.3333333....',
+      '..pP33333333.TT.',
+      '..pp33333333TTTT',
+      '....3333333.TTT.',
+      '....33...33.....',
+      '...222..222.....',
+    ];
+    return { pal: { g: '#d8a040', M: '#a87028', c: '#9fe0f0', E: '#ffe680', 3: '#7a4a2a', 2: '#4e2c1c', p: '#e8e0c8', P: '#a89a7a', T: '#3e2a20' }, frames: [f0, bob(f0, 9)] };
+  })(),
+  // a long black eel with glowing violet spots, rising out of the water
+  inkeel: {
+    pal: { 2: '#2e2640', 3: '#4e4068', v: '#c090ff', E: '#ffe680', ...WAVE },
+    frames: [
+      ['.22...........', '2E32..........', '.2v32.....232.', '..2332...32v2.', '...2v32223322.', '....2332v32...', 'bBbBbBbBbBbBbB'],
+      ['..............', '.22...........', '2E32......232.', '.2v32....32v2.', '..2332.233322.', '...2v32v332...', 'bBbBbBbBbBbBbB'],
+    ],
+  },
+  // a cloud of grey-violet moths round a stolen lantern
+  duskmoths: {
+    pal: { m: '#7e6a94', M: '#d0c0e8', ...LAMP },
+    frames: [
+      ['..m.....m...', '.mMm...mMm..', '..m..L...m..', '....lLl.....', '.m..LLL..mM.', 'mMm.lol.mMm.', '.m...o....m.', '...mMm......', '....m.......'],
+      ['.m.....m....', 'mMm...mMm...', '.m...L..m...', '....lLl...m.', '..m.LLL..mMm', '.mMmlol...m.', '..m..o..m...', '.......mMm..', '........m...'],
+    ],
+  },
+  // a mossy marsh hag stirring a kettle on a stick, a lantern-jaw grin
+  boghag: (() => {
+    const f0 = ['....444....', '...44544...', '..4kE5544..', '..45WW544..', '...44444...', 's.3333333..', 's33333333..', 'sK3333333..', 'KKK3333332.', 'KKK.333332.', '...2...2...'];
+    return { pal: { ...MOSS, E: '#ffe680', W: '#f0f0d0', s: '#7a5a3a', K: '#3a3a44', k: INK }, frames: [f0, bob(f0, 6)] };
+  })(),
+  // elite: a knight's armour full of marsh water, weed for a plume, a drowned lantern
+  sunkensentinel: (() => {
+    const f0 = [
+      '...ww........',
+      '..ww.........',
+      '..AAAA.......',
+      '.AAbbAA......',
+      '.AAbcAA......',
+      '..AAAA.......',
+      '.AAAAAAA.....',
+      'AAbAAAbAA.l..',
+      'AbbbAbbbAAlL.',
+      'AAAAAAAAA.l..',
+      '.aA...aA.....',
+      '.aA...aA.....',
+      'bBbBbBbBbBbBb',
+    ];
+    return { pal: { A: '#6a7484', a: '#3e4654', w: '#4c8e48', ...WAVE, ...LAMP }, frames: [f0, bob(f0, 10)] };
+  })(),
+  // the boss: a lighthouse wading on stone legs, the sun shut in its lamp, its door a mouth
+  lighthouse: {
+    pal: { k: INK, L: '#ffe6a8', Z: '#fffbe0', R: '#c03a30', S: '#c8c0b8', s: '#8a8078', ...WAVE },
+    frames: [
+      [
+        '.....kkkk.......',
+        '....kLLLLk......',
+        '...kLLZZLLk.....',
+        '....kLLLLk......',
+        '....RRRRRR......',
+        '.....SSSs.......',
+        '.....SSss.......',
+        '....RRRRRR......',
+        '....SSSSss......',
+        '....SkkSss......',
+        '...SSkkSsss.....',
+        '...RRRRRRRR.....',
+        '...SSSSSSss.....',
+        '...SS....ss.....',
+        '..SS......ss....',
+        'bBbBbBbBbBbBbBbB',
+      ],
+      [
+        '.....kkkk.......',
+        'LL..kLLLLk......',
+        'ZLLkLLZZLLk.....',
+        'LL..kLLLLk......',
+        '....RRRRRR......',
+        '.....SSSs.......',
+        '.....SSss.......',
+        '....RRRRRR......',
+        '....SSSSss......',
+        '....SkkSss......',
+        '...SSkkSsss.....',
+        '...RRRRRRRR.....',
+        '...SSSSSSss.....',
+        '...SS....ss.....',
+        '..SS......ss....',
+        'BbBbBbBbBbBbBbBb',
+      ],
+    ],
+  },
+};
+
 /** Every foe sprite's map-scale stand-in: `mfoe_${sprite}_${frame}`. */
-export const MINIS: Record<string, Mini> = { ...GREENMARCH_MINIS, ...FROST_MINIS, ...ASH_MINIS };
+export const MINIS: Record<string, Mini> = { ...GREENMARCH_MINIS, ...FROST_MINIS, ...ASH_MINIS, ...DUSK_MINIS };
 
 /** What's drawn for a sprite with no mini (and recorded in MINI_MISSES): the crossed swords. */
 export const MINI_FALLBACK = 'mapicon_fight';
