@@ -141,6 +141,8 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
             finAt = P.now();
             beat('firstFinisher', `${e.stacks} stack(s)`);
             for (const ms of [250, 700, 1150, 1700, 2300, 3000]) setTimeout(() => w.__f10Shot(`finisher-${ms}ms`), ms);
+            // the first finisher's reveal (view/finisher-reveal.ts): the clock held, its name on screen
+            setTimeout(() => (S.reveal = { active: !!view.reveal?.active, held: x.holdUntil > P.now() }), 300);
           }
           if (e.type === 'kill') beat('firstKill');
         }
@@ -414,6 +416,14 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
   const res = await dump();
   console.log(res.beats.map((b) => `${b.id.padEnd(14)} ${String(b.wall).padStart(6)}s wall  ${String(b.fight).padStart(6)}s fight  ${String(b.taps).padStart(4)} taps  ${b.note}`).join('\n'));
   const ids = res.beats.map((b) => b.id);
+  // what the first minutes promise (docs/first-10.md): the first chest within 3 minutes of New game (about 1:30 now,
+  // the story included), the first finisher revealed by name, and before the chest only the basics' tips (the quiet
+  // start: no packs, relic belt, Synergy! or skill point yet)
+  const at = (id: string) => res.beats.find((b) => b.id === id);
+  expect(at('firstChest')!.wall, 'the first chest, s after New game').toBeLessThan(180);
+  expect(await page.evaluate(() => (window as Any).__f10.reveal)).toEqual({ active: true, held: true });
+  const early = (res.tips as Array<{ id: string; wall: number }>).filter((t) => t.wall < at('firstChest')!.wall).map((t) => t.id);
+  for (const id of ['roamer', 'relicBelt', 'synergy', 'levelUp', 'sparkle']) expect(early, id).not.toContain(id);
   for (const id of ['worldMap', 'intro', 'firstMap', 'firstFight', 'firstHit', 'firstFinisher', 'firstWin', 'firstChest', LAST_BEAT]) expect(ids, id).toContain(id);
   expect(errors).toEqual([]);
 });
