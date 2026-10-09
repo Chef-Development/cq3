@@ -29,7 +29,7 @@ One PR at the end supersedes #1-#7.
 | 0 | Branch from PR #7, worktrees, baseline (1,076 unit tests green; Playwright baseline running) | Lead | done |
 | 1 | Story bible outline + names shortlist + name constant | 1 | done (outline, names: pick "The Unerased"); rewrite of regions 1-3 in progress |
 | 2 | Art bible, audit contact sheets, title/logo/key art | 2 | bible, audit, new title + logo merged; outlier redos in progress |
-| 3 | Region 4 bar rules + region design | 3 | in progress |
+| 3 | Region 4 bar rules + region design | 3 | bar rules in core (dark blocks, tides), data, relics, gear; names reconciled with the story (L3) |
 | 4 | Desktop input, clean capture, perf baseline, originality audit | 4 | merged (title ready 12.1 -> 7.8 s at CPU 4x); continuing |
 | 5 | First 10 minutes: new-player bot path, measure, fix | 5 | merged (first chest 1:22-4:36 -> ~1:30; the first finisher a moment); continuing |
 | 6 | Story rewrite: intro, regions 1-3 scenes, heroes, companions, banter, lore, UI words | 1 | next |
@@ -49,3 +49,7 @@ One PR at the end supersedes #1-#7.
 - 19:11 EDT: the container restarted; all five teams resumed from their transcripts (no work lost: everything was committed or on disk).
 - 19:25 EDT: merge 1: story, first10, qa and art into the run branch (clean). Content held back: perk-at.test fails on
   Region 4's relics (they need view entries); the content team is fixing it.
+- 19:35 EDT: story chunk 1 done (bible, names: "The Unerased", intro 3+1 boxes, regions 1-3 rewritten, Region 4 and 5
+  scenes drafted). Story merged. Region 4 names crossed between story and content: L3 picks the story's current
+  version; the content team adapts. Story chunk 2 launched (text sweep, companions, gated banter, apply editor notes);
+  a separate editor agent reviews every line (notes in the lead's scratchpad).

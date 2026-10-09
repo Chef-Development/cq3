@@ -756,6 +756,12 @@ L1. **Shared files through the lead.** The combat core (`src/core/combat.ts`), t
 L2. **One branch, one PR.** The run continues PR #7's branch on `claude/exciting-fermat-9rxtbl`; the final PR
     supersedes #1-#7.
 
+L3. **Region 4's names follow the story team's final version** (Duskmire; Lanternfen, the Drowned Causeway, the
+    Gloaming Mere; its scene ids `dusk1`...`duskVictory`): the two teams crossed (each adopted the other's first
+    draft); the written and edited scenes decide, the data follows them.
+L4. **An independent editor** reviews every story line (the story team had no way to spawn one): its notes go to the
+    story team, which applies them or logs why not.
+
 (lead: end of section)
 
 
