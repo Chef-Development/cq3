@@ -5,7 +5,8 @@
 import Phaser from 'phaser';
 import { signed, whole } from '../core/format';
 import type { Combat, CombatEvent } from '../core/combat';
-import { heroDef } from '../data/heroes';
+import { heroDef, type HeroId } from '../data/heroes';
+import { FINISHER_BLOW_AT, finisherShowMs } from '../core/impact';
 import type { Phase } from '../core/run';
 import type { App, View } from './app';
 import { buildArt } from './art';
@@ -35,6 +36,7 @@ import { BAND_H, COL, DASH_MS, DEATH_CHARGE_MS, inRect, kindCol, stackCol, tintG
 import { Stage } from './view/stage';
 import { TipsView } from './view/tips';
 import { FinisherGallery } from './view/finisher-gallery';
+import { FinisherReveal, REVEAL_MS } from './view/finisher-reveal';
 import { Transition } from './view/transition';
 
 export class FightScene extends Phaser.Scene implements View {
@@ -98,6 +100,8 @@ export class FightScene extends Phaser.Scene implements View {
   readonly tips = new TipsView(this);
   /** The Test lab's Finisher gallery (its controls over the bar's band). */
   readonly gallery = new FinisherGallery(this);
+  /** The first finisher in the game: a held beat that names it before the show (view/finisher-reveal.ts). */
+  readonly reveal = new FinisherReveal(this);
 
   constructor() {
     super('fight');
@@ -229,6 +233,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.gains.build();
     this.tips.build();
     this.gallery.build();
+    this.reveal.build();
     this.stage.build();
     this.fighters.build();
     this.hud.reset();
@@ -545,10 +550,24 @@ export class FightScene extends Phaser.Scene implements View {
           fx.impact(fx.weight('bomb'));
           fx.floatNum(GAME_W / 2, 44, 'BOOM!', 0xff8a3a, 2);
           break;
-        case 'finisher':
-          f.heroFinisher(e.damage, e.stacks, e.targets);
-          hold = Math.max(hold, f.superMs);
+        case 'finisher': {
+          if (!this.reveal.wanted()) {
+            f.heroFinisher(e.damage, e.stacks, e.targets);
+            hold = Math.max(hold, f.superMs);
+            break;
+          }
+          // the first finisher in the game: the clock holds while its name is revealed, then the show plays (the HP
+          // bars and the kills wait for its last blow, as ever)
+          const def = heroDef((this.app.run.hero.build?.id ?? 'rowan') as HeroId);
+          this.reveal.start(def.finisher.name, def.finisher.short, f.h.x + 2, this.ground - 20);
+          const show = finisherShowMs(Math.max(1, Math.min(5, Math.round(e.stacks) || 1)));
+          f.superFinalAt = this.anim + REVEAL_MS + show * FINISHER_BLOW_AT;
+          f.setHeroPose('windup', REVEAL_MS);
+          const { damage, stacks, targets } = e;
+          this.later(REVEAL_MS, () => f.heroFinisher(damage, stacks, targets));
+          hold = Math.max(hold, REVEAL_MS + show);
           break;
+        }
         case 'pet':
           f.petAttack(e.pet, e.enemyId, e.damage, e.crit);
           this.onsite.pet(e);
@@ -818,6 +837,7 @@ export class FightScene extends Phaser.Scene implements View {
     this.story.draw(now);
     this.hud.drawCoins(this.gTop, now);
     this.fx.updateFloaters(now);
+    this.reveal.draw(now);
     this.transition.draw(now);
     this.tips.draw(now);
     this.gallery.draw(now);

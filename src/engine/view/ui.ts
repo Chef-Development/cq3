@@ -1,5 +1,6 @@
 // Small UI helpers for the menu screens (map, story, shop, events): a pool of bitmap texts reused every frame,
 // and a few drawing shortcuts in the game's chrome style (ink outline, rounded corners, bevelled rims).
+import { noteTarget } from '../focus';
 import type Phaser from 'phaser';
 import type { FightScene } from '../scene';
 import { FONT_BOLD, fontFor, fontText, isDarkInk, readable } from '../font';
@@ -290,6 +291,7 @@ export function notePress(r: Rect): void {
   press.at = performance.now();
 }
 export function isPressed(r: Rect, now: number, ms = 140): boolean {
+  noteTarget(r); // (every button drawn asks this each frame: the keyboard's focus ring finds the screen's buttons here)
   return now - press.at < ms && press.key === rectKey(r);
 }
 

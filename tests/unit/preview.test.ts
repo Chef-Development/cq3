@@ -19,7 +19,7 @@ describe('boost preview (what a card shows)', () => {
     expect(boostPreview(t, h, { id: 'crit', rarity: 'epic' }).after).toBe('20%');
     expect(boostPreview(t, h, { id: 'maxHp', rarity: 'rare' })).toEqual({ stat: 'Max HP', before: `${base.hp}`, after: `${base.hp + t.boosts.maxHp * 2}` });
     expect(boostPreview(t, h, { id: 'critDmg', rarity: 'common' })).toEqual({ stat: 'Crit dmg', before: 'x2', after: 'x2.5' }); // (a trailing .0 dropped)
-    expect(boostPreview(t, h, { id: 'comboPower', rarity: 'common' })).toEqual({ stat: 'Combo', before: '5', after: '5.5' });
+    expect(boostPreview(t, h, { id: 'comboPower', rarity: 'common' })).toEqual({ stat: 'Might', before: '5', after: '5.5' });
     expect(boostPreview(t, h, { id: 'pet', rarity: 'common' })).toEqual({ stat: 'Companion', before: '6', after: '10' });
   });
 

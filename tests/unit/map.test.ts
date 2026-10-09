@@ -12,6 +12,22 @@ describe('act maps', () => {
     expect(buildActMap(GREENMARCH.acts[0], 42)).not.toEqual(buildActMap(GREENMARCH.acts[0], 43));
   });
 
+  it("Act 1 offers a chest right after the first fight, whichever way the hero goes (chestRow: the newcomer's first chest); never a chest straight after it", () => {
+    expect(GREENMARCH.acts[0].chestRow).toBe(1);
+    let chests = 0;
+    for (let i = 0; i < 300; i++) {
+      const m = buildActMap(GREENMARCH.acts[0], i * 7919 + 3);
+      for (const id of m.rows[0]) expect(m.nodes[id].next.some((c) => m.nodes[c].type === 'treasure')).toBe(true);
+      for (const id of m.rows[1]) {
+        const n = m.nodes[id];
+        if (n.type === 'treasure') expect(n.next.every((c) => m.nodes[c].type !== 'treasure')).toBe(true);
+      }
+      chests += m.nodes.filter((n) => n.type === 'treasure').length;
+    }
+    // as few chests as that takes (about 2.5 a map, row 1's included)
+    expect(chests / 300).toBeLessThan(2.8);
+  });
+
   it('about 8 rows deep, 2-3 nodes a row, ending in the boss', () => {
     for (const [a, m] of maps(40)) {
       const act = GREENMARCH.acts[a];

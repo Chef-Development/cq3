@@ -11,7 +11,7 @@
 // green sheen on the cursor. A trap a companion's fire burns away chars and smokes off the bar. (The words that pop over
 // the bar are view/callouts.ts; what perks, allies and companions do to the blocks is view/onsite.ts.)
 import Phaser from 'phaser';
-import { isAttack, isRed, type Block, type BlockKind, type Combat, type RemoveReason } from '../../core/combat';
+import { isAttack, isRed, unlit, type Block, type BlockKind, type Combat, type RemoveReason } from '../../core/combat';
 import type { FightScene } from '../scene';
 import { ICONS } from '../art';
 import { isAsh } from '../backdrop-ash';
@@ -28,6 +28,7 @@ import { BOMB_COL, clamp01, deepOf, DYING_MS, dyingStyle, ease, INK, kindCol, mi
 import { focusCap, focusOf } from '../../core/styles';
 import { ImagePool } from './ui';
 import { drawBarRules } from './bar-links';
+import { drawDarkShape, drawLantern, drawWater, glisten } from './bar-dusk';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -442,12 +443,14 @@ export class BarView {
     }
 
     this.drawZones(g, c, bx);
+    drawLantern(g, c, t, now, s.bar, bx); // the fourth region's lantern: dusk on the track, a glow round the cursor
     this.drawTrails(g, c, t, bx);
     this.drawMarks(g, gt, now, bx);
     const group = c.enemies.length > 1;
     this.drawGhosts(g, c, now, bx);
     for (const b of c.blocks) if (!isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
     drawBarRules(g, c, t, now, s.bar, bx); // linked pairs' chains, drifting blocks' chevrons
+    drawWater(g, c, t, now, s.bar, bx); // the tide: over the still blocks (they lie under it), under the reds
     this.drawGuard(g, c, t, now, bx);
     for (const b of c.blocks) if (isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
     this.drawLandTarget(g, c, t, now, bx);
@@ -612,6 +615,8 @@ export class BarView {
     const x = Math.round(B.x + pos * B.w - w / 2) + bx;
     const h = B.h + 10;
     const y = B.y - 5;
+    // a dark block the lantern hasn't reached: a shape that doesn't show what it is
+    if (unlit(b)) return drawDarkShape(g, x, y, w, h, now, b.id);
     if ((b.kind === 'purple' || b.kind === 'spore') && b.life < 1 && Math.floor(now / 90) % 2 === 0) return;
     if (b.kind === 'mirror') return this.drawMirror(g, b, c, x + (w >> 1), y, h, now);
     const [base, light, dark] = kindCol(b.kind);
@@ -648,6 +653,14 @@ export class BarView {
     // it just changed kind: a white flash fading off it
     const mk = (s.anim - (this.morphs.get(b.id) ?? -1e9)) / 280;
     if (mk >= 0 && mk < 1) rows(g, X, Y, W, H, 2, WHITE, 0.85 * (1 - mk));
+    // a dark block the lantern just reached: its colour floods in behind a warm flash
+    if (b.dark) {
+      const lk = (c.time - b.litAt) / 0.3;
+      if (lk >= 0 && lk < 1) rows(g, X, Y, W, H, 2, 0xffe6a8, 0.85 * (1 - lk));
+    }
+    // a block just come up out of the water glistens: drips running off it, a glint on its top
+    const sk = (c.time - b.surfacedAt) / 0.6;
+    if (sk >= 0 && sk < 1) glisten(g, X, Y, W, H, sk);
     // Oil Can ready (Sprocket): every block's Perfect zone shows, wider, in gold, until the next hit
     if (c.perk.oil === 1 && !b.still && (isRed(b.kind) || (isAttack(b.kind) && b.kind !== 'hold'))) this.drawOil(g, c, b, X, Y, W, H, now);
     if (b.kind === 'shield') {

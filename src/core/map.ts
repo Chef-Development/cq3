@@ -116,6 +116,23 @@ export function buildActMap(act: ActDef, seed: number): ActMap {
   // the row before the boss always offers a rest
   const last = rows[R - 1].map((id) => nodes[id]);
   if (!last.some((n) => n.type === 'rest')) last[rng.int(last.length)].type = 'rest';
+  // an act's early chest (chestRow: Act 1's row 1, the newcomer's first chest right after their first fight): every
+  // node of the row before gets a chest among its next steps, as few chests as that takes (a fight turned over before
+  // an event or a shop); then no chest straight after one (a chest after it turns back into a fight)
+  const cr = Math.round(act.chestRow ?? 0);
+  if (cr >= 1 && cr < R - 1) {
+    const rank = (n: MapNode) => (n.type === 'fight' ? 0 : n.type === 'event' ? 1 : n.type === 'treasure' ? -1 : 2);
+    for (;;) {
+      const open = rows[cr - 1].map((id) => nodes[id]).filter((p) => !p.next.some((c) => nodes[c].type === 'treasure'));
+      if (!open.length) break;
+      const cands = rows[cr].map((id) => nodes[id]).filter((n) => n.type !== 'rest' && open.some((p) => p.next.includes(n.id)));
+      const score = (n: MapNode) => open.filter((p) => p.next.includes(n.id)).length * 10 - rank(n);
+      const best = cands.sort((a, b) => score(b) - score(a) || a.col - b.col)[0];
+      if (!best) break;
+      best.type = 'treasure';
+    }
+    for (const id of rows[cr + 1]) if (nodes[id].type === 'treasure' && parents(nodes[id]).some((p) => p.type === 'treasure')) nodes[id].type = 'fight';
+  }
   // every type at least once per act
   for (const t of ['elite', 'treasure', 'rest', 'shop', 'event'] as Pick[]) {
     if (nodes.some((n) => n.type === t)) continue;

@@ -52,7 +52,10 @@ export type LabSetup =
   /** The Finisher gallery: any hero's finisher on demand (every hero in HEROES, at 1 to max stacks, at any rarity)
    *  against these foes at act `act`'s stage, as often as wanted; `hero` comes first. Nothing hurts, nothing dies,
    *  nothing is saved. */
-  | { kind: 'gallery'; act: number; foes: string[]; hero?: HeroId };
+  | { kind: 'gallery'; act: number; foes: string[]; hero?: HeroId }
+  /** The title screen, as a new player sees it, `hero` standing on its map (a tap starts a run on the lab's save, which
+   *  ends the scenario). */
+  | { kind: 'title'; hero?: HeroId };
 
 /** What the lab's profile holds for a scenario (core/lab.ts builds it on a fresh profile). */
 export interface LabProfileSpec {
@@ -285,9 +288,32 @@ export const LAB_NEW: LabScenario[] = [
   { id: 'r8Story2', group: 'spoiler', spoiler: true, label: 'Act 2 story (new)', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 1, scenes: ['act2', 'golem'] } },
   { id: 'r8Story3', group: 'spoiler', spoiler: true, label: 'Act 3 story (new)', secs: 90, try: 'Read the scenes. Does the ending pull you on?', setup: { kind: 'story', act: 2, scenes: ['act3', 'boarKing', 'boarKing2', 'boarKing3', 'victory'] } },
   // ---- art (team 2)
+  { id: 'titleAtlas', group: 'camp', label: 'New title screen', secs: 30, try: 'Watch it settle (logo, map, fog), then tap to start.', setup: { kind: 'title' }, profile: { actsCleared: 0 } },
   // ---- content: the new regions (team 3; spoilers)
+  // the fourth region's two bar rules, each alone against the Training Dummy (nothing hurts, the rule's tip on), then
+  // both at once against real foes
+  { id: 'spBarDark', group: 'spoiler', spoiler: true, label: 'Act 10 bar rule', secs: 40, try: 'Your light shows what dark shapes are. Skip traps!', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, stage: 2, waves: [['dummy']], bar: { dark: { share: 0.6, fromRow: 0, traps: 0.25 } }, safe: true }, profile: { tips: ['dark'] } },
+  { id: 'spBarTide', group: 'spoiler', spoiler: true, label: 'Act 11 bar rule', secs: 40, try: 'The water comes and goes. Hit on dry ground.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, stage: 2, waves: [['dummy']], bar: { tide: { fromRow: 0, low: 0.06, high: 0.36, period: 9, from: 'right' } }, safe: true }, profile: { tips: ['tide'] } },
+  { id: 'spBarDusk', group: 'spoiler', spoiler: true, label: 'Act 12 bar rules', secs: 75, try: 'Both at once, real foes. Fair? Easy to read?', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 7, stage: 2, waves: [['cinderKite', 'cragCrab'], ['glassMantis'], ['cinderling', 'prismBat']], bar: { dark: { share: 0.3, fromRow: 0, traps: 0.25 }, tide: { fromRow: 0, low: 0.08, high: 0.4, period: 8, from: 'right' } } } },
   // ---- QA and platforms (team 4)
+  {
+    id: 'cleanCapture',
+    group: 'fights',
+    label: 'Clean capture',
+    secs: 40,
+    try: 'Gear: Clean capture On. Hold the top middle to undo.',
+    setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['dummy'], ['dummy'], ['dummy']], safe: true },
+  },
   // ---- the first 10 minutes (team 5)
+  {
+    id: 'firstFight',
+    group: 'fights',
+    label: 'The first fight',
+    secs: 60,
+    try: 'Your first fight again: tips, then a finisher.',
+    setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['crow'], ['boar'], ['slime']] },
+    profile: { tips: ['tapYellow', 'blockRed', 'green', 'purple', 'finisher'] },
+  },
 ];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,

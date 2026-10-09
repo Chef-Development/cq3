@@ -116,7 +116,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     name: 'Sable',
     style: 'shadow',
     rarity: 'epic',
-    title: 'Shadow Ninja',
+    title: 'Shadow Thief',
     bio: 'Tried to rob us. Got caught by an owl.',
     signature: part('Shadow Dash', 'A Perfect hit dashes the cursor to the next block, where it slows: tap that block!', 'Perfects dash you ahead.'),
     ability: part('Smoke Veil', "Green hits: for {n} s, a miss doesn't break your combo or Chain.", 'Green hits forgive misses.'),
