@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
+import { GAME_NAME, GAME_SHORT } from './src/data/brand';
 
 // GitHub Pages serves the repo at /<repo-name>/.
 const BASE = '/cq3/';
@@ -44,6 +45,14 @@ function serviceWorker(): Plugin {
           else if (name !== 'sw.js' && name !== 'version.txt') files.push(relative(outDir, p).split('\\').join('/'));
         }
       };
+      // the install name from src/data/brand.ts (public/ is copied as is: the built manifest gets the game's name)
+      const mf = join(outDir, 'manifest.webmanifest');
+      try {
+        const m = JSON.parse(readFileSync(mf, 'utf8')) as Record<string, unknown>;
+        writeFileSync(mf, `${JSON.stringify({ ...m, name: GAME_NAME, short_name: GAME_SHORT }, null, 2)}\n`);
+      } catch {
+        /* no manifest */
+      }
       walk(outDir);
       files.sort();
       const hash = createHash('sha256');
@@ -57,10 +66,28 @@ function serviceWorker(): Plugin {
   };
 }
 
+/** The page's title and the home-screen label from src/data/brand.ts (one place names the game). */
+function brand(): Plugin {
+  const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  return {
+    name: 'cq3-brand',
+    transformIndexHtml: (html) =>
+      html
+        .replace(/<title>[^<]*<\/title>/, `<title>${esc(GAME_NAME)}</title>`)
+        .replace(/(<meta name="apple-mobile-web-app-title" content=")[^"]*(")/, `$1${esc(GAME_SHORT)}$2`),
+  };
+}
+
 export default defineConfig({
   base: BASE,
-  build: { target: 'es2022', chunkSizeWarningLimit: 2500 },
-  plugins: [serviceWorker()],
+  build: {
+    target: 'es2022',
+    chunkSizeWarningLimit: 2500,
+    // Phaser in a chunk of its own (docs/perf.md): it never changes between deploys, so a phone that has it keeps it
+    // and a new build downloads only the game's own code; the two download side by side on a first visit.
+    rolldownOptions: { output: { codeSplitting: { groups: [{ name: 'phaser', test: /node_modules[\\/]phaser[\\/]/ }] } } },
+  },
+  plugins: [brand(), serviceWorker()],
   define: { __BUILD__: JSON.stringify(BUILD) },
   server: { host: true },
 });

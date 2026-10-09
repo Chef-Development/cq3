@@ -287,6 +287,14 @@ export const LAB_NEW: LabScenario[] = [
   // ---- art (team 2)
   // ---- content: the new regions (team 3; spoilers)
   // ---- QA and platforms (team 4)
+  {
+    id: 'cleanCapture',
+    group: 'fights',
+    label: 'Clean capture',
+    secs: 40,
+    try: 'Gear: Clean capture On. Hold the top middle to undo.',
+    setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['dummy'], ['dummy'], ['dummy']], safe: true },
+  },
   // ---- the first 10 minutes (team 5)
   {
     id: 'firstFight',

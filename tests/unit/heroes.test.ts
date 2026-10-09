@@ -278,14 +278,14 @@ describe('skill previews', () => {
     stout: 'Max HP 100 -> 112',
     plateTraining: 'DEF 0 -> 10',
     rhythm: 'Meter +0% -> +10%',
-    powerStance: 'Combo 5 -> 6.5',
+    powerStance: 'Might 5 -> 6.5',
   };
   const show = (p: { stat: string; before: string; after: string } | null) => (p ? `${p.stat} ${p.before} -> ${p.after}` : null);
 
   it("every stat node shows the stat it changes, before -> after, from the real stats (Rowan's exactly)", () => {
     const stats = SKILL_NODES.filter((n) => n.kind === 'stat');
     expect(stats.filter((n) => skillHero(n.id) === 'rowan').map((n) => n.id).sort()).toEqual(Object.keys(want).sort());
-    const label: Record<string, string> = { atkPct: 'ATK', critChance: 'Crit', hpPct: 'Max HP', def: 'DEF', meterGain: 'Meter', comboPower: 'Combo' };
+    const label: Record<string, string> = { atkPct: 'ATK', critChance: 'Crit', hpPct: 'Max HP', def: 'DEF', meterGain: 'Meter', comboPower: 'Might' };
     for (const node of stats) {
       const hero = newHero(t, emptyLoadout(), { id: skillHero(node.id)!, level: 1, skills: [] });
       const p = skillStatPreview(t, hero, node.id)!;

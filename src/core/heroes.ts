@@ -230,7 +230,7 @@ export const isHeroId = (v: unknown): v is HeroId => typeof v === 'string' && HE
 export function skillPreview(t: Tuning, node: SkillNode): { stat: string; delta: string } | { before: string; after: string } {
   if (node.kind === 'stat' && node.stat) {
     const n = skillN(t, node.id);
-    const name: Record<SkillStat, string> = { atkPct: 'ATK', critChance: 'Crit', hpPct: 'Max HP', def: 'DEF', meterGain: 'Meter', comboPower: 'Combo' };
+    const name: Record<SkillStat, string> = { atkPct: 'ATK', critChance: 'Crit', hpPct: 'Max HP', def: 'DEF', meterGain: 'Meter', comboPower: 'Might' };
     const flat = node.stat === 'def' || node.stat === 'comboPower';
     return { stat: name[node.stat], delta: flat ? signed(n, one) : signed(n, pctOf) };
   }

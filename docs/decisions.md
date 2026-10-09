@@ -801,6 +801,45 @@ S7. **Region 4's scenes are drafted ahead of its data** (`src/data/story-fen.ts`
 
 ### Team 4: QA, polish and platforms
 
+- **Q1 Desktop keys: one key map, two modes** (`src/engine/keys.ts`, unit-tested). In a live fight Space (or J/K)
+  taps the bar, judged by the key event's `timeStamp` through the same `barTap` as a pointer (held down on a hold
+  block, the key's release lets go); F (or Enter, or Up) fires the finisher; P or Escape pauses. Everywhere else (a
+  paused fight too) the arrows and Tab move a focus ring, Enter/Space press, Escape goes back. Enter is the finisher
+  in a fight because it is the "big confirm" key; Space stays the tap so a thumb-like rhythm is one key. A mouse click
+  is a tap and a mouse drag is the swipe (pointer events already covered both: tested). Ctrl/Alt/Cmd shortcuts are
+  left to the browser. Once a tap key has been used, the meter's prompt reads "PRESS F!" instead of "SWIPE!" (a phone
+  never sees it).
+- **Q2 The focus ring finds a screen's buttons by itself.** Every button the menus draw already asks
+  `isPressed(rect)` each frame (to show sunk); once a key has been pressed that also notes the rect
+  (`engine/focus.ts`), so every screen (title, world map, act map, pause, camp home and its screens, shops, events,
+  the act clear, defeat...) gets keyboard navigation with no per-screen list to keep up. The act map's reachable nodes
+  and the world map's landmarks and Rowan's plate are added (drawn without a button). Pressing taps the target's
+  centre through the normal tap route. Escape: skips a scene, closes the world map's picker or card, presses a camp
+  screen's Back (a sheet open closes first), leaves the camp home, pauses a fight. With no ring up, Enter/Space keep
+  their old default (Continue, the first node, begin...). Left for later: Escape on the act map, boost cards and
+  shops (they have no "back"), and the hero select's paging by arrows (Tab reaches its arrows).
+- **Q3 A quiet desktop frame**: when every margin round the canvas is at least 6 game px (`layout.ts framed`), the
+  page gets a dim radial night in the game's own ink/navy and the canvas an ink, navy and dark bevel with a soft
+  shadow, sized in game px; never on a phone (the canvas fills it). Integer scaling stays; every resize relayouts
+  (already: resize events, a ResizeObserver and the 500 ms watch); the spec resizes 1440x900 -> 1100x700 -> back.
+- **Q4 Clean capture** (`cq3.cleanCapture` in `storage.ts`): the gear panel's Modes row or C hides the whole HUD
+  (pause, gear, the lab's Done) and the title's Test lab button. The way back is a long press (0.8 s) where the gear
+  sits (top middle), or C. Kept across launches; a toast says how to undo it.
+- **Q5 Performance first: stop painting twice** (docs/perf.md, `tests/perf/perf.mjs` run by hand: CPU 4x, Fast 4G).
+  The load is CPU (painting every texture at boot), not download. `main.ts` forced a second full repaint when
+  Phaser said READY, after the scene had laid itself out (the title froze ~2 s before answering); and any change of
+  the canvas's place (each step of a desktop window resize) repainted everything (1.2-1.4 s a step). Now READY only
+  places the canvas, and `app.relayout` rebuilds the scene only when the safe areas change (`sameGameLayout`). Title
+  ready 12.1 s -> 7.8 s, first fight 18.6 s -> 14.3 s, a resize settles in 28 ms instead of 1.3 s. Phaser is its own
+  chunk (unchanged between deploys: a new build re-downloads only the game's 753 KB gzip, not 1.1 MB). Lazy boot
+  painting and atlases are the next big wins but sit in the art files: proposed in docs/perf.md, not done.
+- **Q6 Originality audit** (docs/originality.md): every name checked by search (no name list of the reference is
+  reachable; its store listing and the backlog's notes are). Changed the strings that matched it word for word: the
+  stat "Combo Power" is now "Finisher Might", the companions' "Damage" role is "Lookout" (Pip) and "Fire" (Sunny),
+  Sable's title "Shadow Ninja" is "Shadow Thief", and the page title and home-screen name come from `brand.ts` at
+  build instead of "Combo Quest 3"/"CQ3". Listed for their owners, not changed: the world map's flags and padlocks
+  (the reference's kingdom map), Sunny's gold colouring (its "golden dragon"), the roster cards' bio + role tag +
+  "Locked", and the word "bounties" ("Dares" proposed).
 (qa: end of section)
 
 

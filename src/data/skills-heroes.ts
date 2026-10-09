@@ -15,7 +15,7 @@ const crit = (id: string, name: string, n: number) => stat(id, name, 'critChance
 const hp = (id: string, name: string, n: number) => stat(id, name, 'hpPct', n, '+{n}% max HP.');
 const def = (id: string, name: string, n: number) => stat(id, name, 'def', n, '+{n} Defense.');
 const meter = (id: string, name: string, n: number) => stat(id, name, 'meterGain', n, '+{n}% meter gain.');
-const combo = (id: string, name: string, n: number) => stat(id, name, 'comboPower', n, '+{n} combo power.');
+const combo = (id: string, name: string, n: number) => stat(id, name, 'comboPower', n, '+{n} finisher might.');
 
 export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
   // ---------------------------------------------------------------- Sable (Shadow): chains, dashes, smoke

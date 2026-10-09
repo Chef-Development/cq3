@@ -64,7 +64,7 @@ export const SKILL_TREES: Record<HeroId, SkillBranch[]> = {
       theme: 'Combo and finisher',
       nodes: [
         stat('rhythm', 'Rhythm', 'meterGain', 10, '+{n}% meter gain.'),
-        stat('powerStance', 'Power Stance', 'comboPower', 1.5, '+{n} combo power.'),
+        stat('powerStance', 'Power Stance', 'comboPower', 1.5, '+{n} finisher might.'),
         rule('doubleTime', 'Double Time', 'Perfect hits count as 2 combo.', 'Every hit is 1 combo.', 'A Perfect hit is 2 combo.'),
         rule('chargedUp', 'Charged Up', 'Every fight starts with {n} finisher stack.', 'Fights start with an empty meter.', 'Fights start with {n} stack banked.', 1),
         cap('unbroken', 'Unbroken', 'A combo break halves your combo and stacks.', 'A break zeroes combo and stacks.', 'A break only halves them.'),
