@@ -121,24 +121,24 @@ export class FinisherReveal {
     g.fillStyle(GOLD, open);
     g.fillRect(0, bar, GAME_W, 1);
     g.fillRect(0, GAME_H - bar - 1, GAME_W, 1);
-    const cx = Math.round(GAME_W / 2 + 40);
+    const cx = Math.round(GAME_W / 2 + 34); // (over the foes' side, clear of the hero)
     // "FINISHER" first, then the name stamps in (big, over-shooting back to size) with a white flash, then the line
     if (t > 150) {
       const a = clamp01((t - 150) / 120) * open;
-      T.text('FINISHER', cx, 34, GOLD, { bold: true, ox: 0.5, oy: 0.5, alpha: a, scale: 1 });
+      T.text('FINISHER', cx, 31, GOLD, { bold: true, ox: 0.5, oy: 0.5, alpha: a, scale: 1 });
     }
     const stamp = 380;
     if (t > stamp) {
       const q = clamp01((t - stamp) / 260);
       const fit = Math.max(1, Math.min(3, Math.floor((GAME_W - 150) / Math.max(1, textWidth(this.name, 1, true)))));
       const sc = Math.max(1, Math.round(fit * (1 + 0.8 * (1 - easeBack(q)))));
-      T.text(this.name, cx, 56, 0xfff07a, { bold: true, ox: 0.5, oy: 0.5, alpha: open, scale: sc, extrude: 2, extrudeCol: 0x8a4a10 });
+      T.text(this.name, cx, 50, 0xfff07a, { bold: true, ox: 0.5, oy: 0.5, alpha: open, scale: sc, extrude: 2, extrudeCol: 0x8a4a10 });
       if (t - stamp < 90) {
         g.fillStyle(WHITE, 0.5 * (1 - (t - stamp) / 90));
         g.fillRect(0, 0, GAME_W, GAME_H);
       }
     }
-    if (t > 760 && this.line) T.text(this.line, cx, 78, WHITE, { ox: 0.5, oy: 0.5, alpha: clamp01((t - 760) / 160) * open });
+    if (t > 760 && this.line) T.text(this.line, cx, 69, WHITE, { ox: 0.5, oy: 0.5, alpha: clamp01((t - 760) / 160) * open });
     T.end();
   }
 }
