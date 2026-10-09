@@ -796,7 +796,8 @@ F3. **The first finisher is a moment.** It was a one-stack show over in half a s
     first finisher in the game (once per profile: `finisherReveal` in `profile.seen`) now holds the fight's clock for
     1.5 s (`App.holdUntil`; taps do nothing meanwhile): letterbox bars, the stage darkens, light gathers on the hero,
     "FINISHER" then the name stamps in big with its short line ("Hits all, clears reds."), then the usual show plays.
-    The HP bars and kills wait for its last blow as before. Not at the Training Dummy, not in the Finisher gallery.
+    The HP bars and kills wait for its last blow as before. Part of the teaching: only with tips on (the tests run
+    with tips off, so no spec meets it unasked); not at the Training Dummy, not in the Finisher gallery.
 F4. **Test lab: "The first fight"** (Fights): Rowan against Act 1's first foes with the five lessons and the reveal
     still to come; lab profiles otherwise have the reveal seen (no reveal over every hero's lab fight).
 F5. **The newcomer bot** (`tests/smoke/first10.spec.ts`) plays inside the page with real timers (a Playwright click

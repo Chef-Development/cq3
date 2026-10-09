@@ -39,11 +39,12 @@ export class FinisherReveal {
     this.at = -1e9;
   }
 
-  /** Whether this finisher is the player's first in the game (not at the Training Dummy, nor in the Test lab's
-   *  gallery; a Test lab fight whose profile hasn't seen it: its first-fight scenario). */
+  /** Whether this finisher is the player's first in the game, with tips on (it's part of the teaching: a player who
+   *  turned tips off, and the tests, which run with tips off unless they ask, never get it); not at the Training
+   *  Dummy, nor in the Test lab's gallery (a Test lab fight whose profile hasn't seen it: its first-fight scenario). */
   wanted(): boolean {
     const app = this.s.app;
-    if ((app.run.practice && !app.inLab) || this.s.gallery.active) return false;
+    if (app.profile.tipsOff || (app.run.practice && !app.inLab) || this.s.gallery.active) return false;
     return !app.profile.seen.includes(FINISHER_REVEAL);
   }
 
