@@ -9,11 +9,13 @@
 //   skill_${id}   12x12 for every skill node; each branch has a look (Rowan: Blade steel and gold, Bulwark steel blue,
 //                 Momentum a cyan and violet swirl; Sable's old two-cursor tree: crossed daggers and red, smoky
 //                 purple, silver and teal, which her new tree borrows) and the capstones get a gold rim and glints.
-//                 The other heroes' nodes have stand-ins for now (skillIcon: their stat's icon, a rune, a star)
+//                 The other heroes' nodes without a map of their own: their stat's icon, else the emblem their name is
+//                 about (art-skill-emblems.ts), else a rune or a star
 import { RELIC_IDS, RELIC_TAGS, relicById } from '../data/relics';
 import { SKILL_NODES, type SkillNode, type SkillStat } from '../data/skills';
 import { grid, stamp, toCanvas, type Pal } from './art';
 import { ITEM_ICON_SIZE } from './art-gear';
+import { capstoneOf, emblemFor, SKILL_EMBLEMS } from './art-skill-emblems';
 
 type Add = (key: string, canvas: HTMLCanvasElement) => void;
 
@@ -1053,6 +1055,9 @@ function skillIcon(node: SkillNode): string[] {
   const own = SKILL_ICONS[node.id] ?? SKILL_ICONS[SKILL_ICON_ALIAS[node.id] ?? ''];
   if (own) return own;
   if (node.kind === 'stat' && node.stat) return SKILL_ICONS[STAT_ICON[node.stat]];
+  // the emblem its name is about (art-skill-emblems.ts); a capstone's gets gold corners
+  const em = emblemFor(node.id, node.name);
+  if (em) return node.kind === 'capstone' ? capstoneOf(SKILL_EMBLEMS[em]) : SKILL_EMBLEMS[em];
   return KIND_ICON[node.kind === 'capstone' ? 'capstone' : 'rule'];
 }
 

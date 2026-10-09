@@ -789,6 +789,10 @@ A4. **The logo is built from `GAME_NAME`.** The bold font's masks, Scale3x (or S
 A5. **A Test lab look at the title** (`titleAtlas`, a new setup kind 'title'): it never offers New game in the lab
     (New game erases the real save, even from the lab), and a tap starts a run on the lab's save, which ends it.
 
+A6. **Skill nodes without a painted icon get an emblem from their name** (`art-skill-emblems.ts`): 15 emblems in the
+    relic families' colours, picked by keyword rules in order; a capstone adds gold corners. 125 of the 127 stand-ins
+    now say what the node is about (a unit test keeps new nodes covered). Painted icons per node stay the goal.
+
 (art: end of section)
 
 
