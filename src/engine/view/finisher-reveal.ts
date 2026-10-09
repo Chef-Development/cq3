@@ -114,6 +114,9 @@ export class FinisherReveal {
       this.dim?.fillStyle(GOLD, 0.22 * open).fillEllipse(hx, hy, swell * 2.4, swell * 3.2);
       this.dim?.fillStyle(WHITE, 0.18 * open).fillEllipse(hx, hy + 2, swell * 1.2, swell * 1.8);
     }
+    // the HUD's plates poking out under the top bar fade further back
+    g.fillStyle(INK, 0.5 * open);
+    g.fillRect(0, bar, GAME_W, Math.max(0, 38 - bar));
     // the letterbox
     g.fillStyle(0x000000, 1);
     g.fillRect(0, 0, GAME_W, bar);
