@@ -619,7 +619,7 @@ export function fight(run: Run, c: Combat, rng: Rng, o: BotOptions): FightStats 
   const gap = (o.gapMs ?? 140) / 1000;
   const maxSec = o.maxStageSec ?? 600;
   const react = (o.reactMs ?? 250) / 1000;
-  const aim: Aim = { sigma: timingSpread(T, o.accuracy, o.lapse ?? DEFAULT_LAPSE), react, reactRed: react * 0.7, gap, lapse: o.lapse ?? DEFAULT_LAPSE };
+  const aim: Aim = { sigma: timingSpread(T, o.accuracy, o.lapse ?? DEFAULT_LAPSE), react, reactRed: react * 0.7, gap, lapse: o.lapse ?? DEFAULT_LAPSE, misread: Math.max(0, 1 - o.accuracy) / 2 };
   const hpLeft = new Map(c.enemies.map((e) => [e.id, e.hp]));
   let pending: Pending | null = null;
   // a hold being held: the timing error its release is aimed with (s, + = late), fixed when it is pressed
@@ -837,6 +837,24 @@ export interface Aim {
   reactRed: number; // the same for reds
   gap: number; // s between taps
   lapse: number;
+  /** Region 4: how often a dark trap lit only a moment ago is taken for a yellow (a person's misread). */
+  misread?: number;
+}
+
+/** Dark traps the bot took for yellows (decided once per trap, the first time it looks at it lit). */
+const misreads = new WeakMap<Block, boolean>();
+
+/** Whether the bot takes a dark trap for a yellow: decided once, the first time it sees it lit, and only when it was
+ *  lit less than DARK_READ s ago (later, a person has had time to see what it is). */
+const DARK_READ = 0.4;
+function misreads_(c: Combat, b: Block, rng: Rng, aim: Aim): boolean {
+  if (b.kind !== 'purple' || !b.dark || b.litAt === Infinity || !aim.misread) return false;
+  let m = misreads.get(b);
+  if (m === undefined) {
+    m = c.time - b.litAt < DARK_READ && rng.next() < aim.misread;
+    misreads.set(b, m);
+  }
+  return m;
 }
 
 /**
@@ -854,8 +872,14 @@ function plan(c: Combat, rng: Rng, aim: Aim, gauss: () => number, avoidYellow: b
   const guarded = avoidYellow && !!c.guarder();
   let best: { tau: number; id: number } | null = null;
   let red: { tau: number; id: number } | null = null;
+  const water = c.waterL > 0 || c.waterR > 0;
   for (const b of c.blocks) {
-    if (!wantsBlock(c, b, guarded)) continue;
+    // Region 4: a dark block shows what it is only once the lantern reaches it (a person waits for the light), and a
+    // dark trap lit a moment ago is sometimes taken for a yellow; a sunk block (or one the water is about to cover)
+    // is left alone
+    if (b.dark && b.litAt === Infinity) continue;
+    if (!wantsBlock(c, b, guarded) && !misreads_(c, b, rng, aim)) continue;
+    if (water && !isRed(b.kind) && (c.sunk(b) || b.pos < c.waterL + 0.03 || b.pos > 1 - c.waterR - 0.03)) continue;
     // a still block: the time the cursor takes to get there, through any patch on the way (a hold: to its near
     // edge); a moving red: the closing speed
     const aimAt = b.kind === 'hold' ? b.pos - (dir * b.width) / 2 : b.pos;
@@ -873,7 +897,7 @@ function plan(c: Combat, rng: Rng, aim: Aim, gauss: () => number, avoidYellow: b
     if (!(tau >= 0) || tau > Math.min(toWall, 0.6)) continue;
     // it popped up right in front of the cursor: no time to react (reds always come in from the right end, where
     // a player is watching for them, so they are noticed a little sooner)
-    if (b.bornAt > t + tau - (isRed(b.kind) ? aim.reactRed : aim.react)) continue;
+    if (Math.max(b.bornAt, b.dark ? b.litAt : 0) > t + tau - (isRed(b.kind) ? aim.reactRed : aim.react)) continue;
     if (!best || tau < best.tau) best = { tau, id: b.id };
     if (isRed(b.kind) && (!red || tau < red.tau)) red = { tau, id: b.id };
   }

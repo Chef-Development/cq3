@@ -567,6 +567,20 @@ export const DEFAULT_TUNING = {
     gapMin: 0.05, // the space between the two (on top of a block's width), share of the bar
     gapMax: 0.12,
   },
+  dark: {
+    // Dark blocks (Region 4's bar rule, core/combat.ts updateLight): a dark block shows what it is once the cursor's
+    // lantern reaches it. The reach is a time (the cursor's travel at its speed right now), so it widens as the
+    // cursor speeds up and a dark block always shows itself well before the cursor gets there.
+    lightSec: 0.5, // the lantern reaches this many seconds of the cursor's travel ahead (and behind)
+    lightMin: 0.1, // ...never less than this share of the bar (a stopped cursor still lights its neighbours)
+    floorSec: 0.32, // a dimmed lantern (a snuff) never reaches less than this many seconds
+  },
+  tide: {
+    // Tides (Region 4's bar rule, core/combat.ts updateTide): water covers one end of the bar, rising and falling.
+    drag: 0.6, // a red whose centre is in the water moves this much slower
+    surgeSpeed: 0.25, // a surge (a foe's special) moves the waterline this fast (bar widths a second)
+    swellSpeed: 0.1, // the waterline never moves faster than this on the act's own swell
+  },
   levels: {
     // Heroes level up from kills and act clears (core/heroes.ts): small base-stat gains, a skill point every 2 levels.
     // Paced with the bot (a typical 70% player): a first playthrough of Greenmarch ends around level 9 (Acts 1-3:
@@ -1197,6 +1211,12 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('links.bonus', 'Pair: damage x', 1, 3, 0.05),
         s('links.gapMin', 'Pair: gap min', 0, 0.3, 0.01),
         s('links.gapMax', 'Pair: gap max', 0, 0.3, 0.01),
+        s('dark.lightSec', 'Dark: lantern reach (s)', 0.2, 1.5, 0.02),
+        s('dark.lightMin', 'Dark: lantern reach min', 0, 0.4, 0.01),
+        s('dark.floorSec', 'Dark: dimmed lantern min (s)', 0.1, 1, 0.02),
+        s('tide.drag', 'Tide: red speed in water x', 0.2, 1, 0.05),
+        s('tide.surgeSpeed', 'Tide: surge speed (bar/s)', 0.05, 1, 0.01),
+        s('tide.swellSpeed', 'Tide: swell max speed (bar/s)', 0.02, 0.5, 0.01),
         s('hold.width', 'Hold length', 0.06, 0.4, 0.01),
         s('hold.mult', 'Hold damage x', 0.5, 4, 0.05),
         s('hold.lateMs', 'Hold: late press (ms)', 0, 200, 5),

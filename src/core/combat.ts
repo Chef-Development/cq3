@@ -4,7 +4,7 @@
 import type { EffectId } from '../data/gear';
 import { isRelicId, type RelicId } from '../data/relics';
 import type { AllyKind } from '../data/heroes';
-import type { BarRules, FormationEntry, SpecialDef, ZoneKind } from '../data/types';
+import type { BarRules, FormationEntry, SpecialDef, TideFrom, ZoneKind } from '../data/types';
 import { CODE_KIND, isAttack, isRed, untappable, type BlockKind } from './blocks';
 import { AIM_WINDOW_MS, ISOLATION_MS } from './accuracy';
 import { emptyLoadout, hasAura, hasEffect, setPieces, type Loadout, type StatBlock } from './gear';
@@ -57,7 +57,14 @@ export interface Block {
   driftSec: number;
   /** A Marksman's crit target: a green that fires the stored Focus (it comes wider; the view draws it as a target). */
   target: boolean;
+  /** A dark block (Region 4): it doesn't show what it is until the cursor's lantern reaches it... */
+  dark: boolean;
+  /** ...at this sim time (Infinity: still unlit). */
+  litAt: number;
 }
+
+/** A dark block the lantern hasn't reached yet (it doesn't show what it is). */
+export const unlit = (b: Block): boolean => b.dark && b.litAt === Infinity;
 
 /** A patch on the bar that changes the cursor's speed inside it: ice speeds it up, snowdrifts and slow patches
  *  slow it. Patches can overlap (their speeds multiply) and slide (an Aurora's Shimmer). */
@@ -119,7 +126,8 @@ export interface Enemy {
   yellows: number; // yellows it has sent (for holdEvery)
   driftEvery: number; // every Nth yellow it sends drifts (0 = none; a bar rule from a special)
   linkEvery: number; // every Nth yellow it sends comes as a linked pair (0 = none)
-  sent: number; // yellows it has sent (for driftEvery / linkEvery)
+  darkEvery: number; // every Nth yellow it sends comes dark (0 = none; Region 4)
+  sent: number; // yellows it has sent (for driftEvery / linkEvery / darkEvery)
   /** Burning (a companion's Ember Bite): seconds left, damage a second, and seconds to the next tick (0 = none). */
   burn: number;
   burnDps: number;
@@ -268,7 +276,7 @@ export type CombatEvent =
   | { type: 'wardBreak'; pos: number; enemyId: number; left: number; perfect: boolean; combo: number }
   | { type: 'miss'; pos: number; selfDamage: boolean }
   | { type: 'remove'; id: number; kind: BlockKind; pos: number; width: number; ownerId: number; reason: RemoveReason }
-  | { type: 'spawn'; id: number; kind: BlockKind; ownerId: number; special: boolean; drift?: boolean }
+  | { type: 'spawn'; id: number; kind: BlockKind; ownerId: number; special: boolean; drift?: boolean; dark?: boolean }
   | { type: 'windup'; enemyId: number }
   | { type: 'telegraph'; enemyId: number; special: string; name: string; sound: string; sec: number }
   | { type: 'tellCancel'; enemyId: number }
@@ -316,6 +324,13 @@ export type CombatEvent =
   | { type: 'linkOn'; count: number } // a special chained pairs
   | { type: 'pairOn'; id: number; partner: number } // a linked pair came onto the bar (or was chained)
   | { type: 'driftShift'; flip: boolean; mult: number } // a special turned or sped up every drifting block
+  // Region 4: dark blocks and tides
+  | { type: 'lit'; id: number; pos: number; kind: BlockKind } // the lantern reached a dark block: it shows what it is
+  | { type: 'darkOn'; count: number } // a special put blocks in the dark
+  | { type: 'snuff'; mult: number; sec: number; darkened: number } // a special dimmed the lantern (and blocks went dark again)
+  | { type: 'lightBack' } // the lantern burns as bright as before
+  | { type: 'surge'; level: number; from: TideFrom; sec: number } // a special sent the water rushing up
+  | { type: 'ebb' } // a surge is over: the water goes back to the act's swell (or away)
   | { type: 'chip'; id: number; pos: number; left: number } // an iced yellow took a tap (it needs more)
   | { type: 'iceBlock'; id: number; pos: number } // a red froze in place (Flash Freeze, Glacier)
   // amount: what an 'act' did (a Thornling's damage, a Glowmoth's heal; 0 for a brace or a seed); power: the allies'
@@ -510,6 +525,16 @@ export class Combat {
   driftPause = 0;
   /** Which half of a linked pair the hit landing now is (1 = the first, 2 = the second; 0 = not a pair). */
   pairHit = 0;
+  /** The lantern (Region 4's dark blocks): its reach times this (a snuff dims it) for `lightMultSec` more seconds. */
+  lightMult = 1;
+  lightMultSec = 0;
+  /** The water (Region 4's tides): how far it covers the bar from the left end and from the right end right now. */
+  waterL = 0;
+  waterR = 0;
+  /** A surge (a foe's special): the water rises to `level` from `from` and holds for `left` s (Infinity: for good). */
+  surge: { level: number; from: TideFrom; left: number } | null = null;
+  /** A flood for good (a boss phase's surge with no end): the water stays at least this high at its end(s). */
+  flood: { level: number; from: TideFrom } | null = null;
   /** A Summoner's allies on the field. */
   allies: Ally[] = [];
   /** A practice fight (the camp's Training Dummy): nothing hurts the hero. */
@@ -528,6 +553,8 @@ export class Combat {
   private hPhaseVel = new Float64Array(HIST);
   private hMotion = new Float64Array(HIST);
   private hMotionVel = new Float64Array(HIST);
+  private hWaterL = new Float64Array(HIST);
+  private hWaterR = new Float64Array(HIST);
   private hHead = 0;
   private hCount = 0;
 
@@ -549,6 +576,11 @@ export class Combat {
     this.hookIds = all.map((x) => x[0]);
     this.bar = o.bar ?? null;
     this.row = Math.max(0, o.row ?? 0);
+    {
+      // the act's tide starts at low water
+      const T = this.tideRule();
+      if (T) [this.waterL, this.waterR] = [T.from !== 'right' ? T.low : 0, T.from !== 'left' ? T.low : 0];
+    }
     this.practice = !!o.practice;
     this.spawning = o.spawning ?? true;
     this.specialsOn = o.specials ?? this.spawning;
@@ -863,6 +895,7 @@ export class Combat {
       yellows: 0,
       driftEvery: 0,
       linkEvery: 0,
+      darkEvery: 0,
       sent: 0,
       burn: 0,
       burnDps: 0,
@@ -973,6 +1006,8 @@ export class Combat {
     this.hPhaseVel[i] = this.phaseVelNow();
     this.hMotion[i] = this.motionTime;
     this.hMotionVel[i] = this.motionVelNow();
+    this.hWaterL[i] = this.waterL;
+    this.hWaterR[i] = this.waterR;
     this.hHead = (i + 1) % HIST;
     this.hCount = Math.min(HIST, this.hCount + 1);
   }
@@ -1025,6 +1060,147 @@ export class Combat {
     this.driftPause = Math.max(this.driftPause, sec);
   }
 
+  // ---------------------------------------------------------------- Region 4: the lantern (dark blocks), the tide
+
+  /** How far the lantern reaches from the cursor (bar units, either way): `dark.lightSec` of the cursor's travel at
+   *  its speed right now (a snuff dims it, never below `dark.floorSec`), and never less than `dark.lightMin`. So it
+   *  widens as the cursor speeds up, and a dark block always shows itself well before the cursor gets there. */
+  lightReach(): number {
+    const D = this.tuning.dark;
+    const sec = Math.max(D.floorSec, D.lightSec * this.lightMult);
+    return Math.max(D.lightMin, sec * this.cursorSpeed() * this.zoneMultAt(this.cursorPos()));
+  }
+
+  /** Whether the lantern reaches block `b` now (its near edge within the reach). */
+  inLight(b: Block, reach = this.lightReach()): boolean {
+    return Math.abs(b.pos - this.cursorPos()) - b.width / 2 <= reach;
+  }
+
+  /** Dark blocks the lantern reaches are lit (and stay lit; not under water); a dimmed lantern burns bright again when
+   *  its time is up. */
+  private updateLight(): void {
+    if (this.lightMultSec > 0 && this.lightMultSec !== Infinity && (this.lightMultSec -= DT) <= 1e-9) {
+      this.lightMultSec = 0;
+      this.lightMult = 1;
+      this.events.push({ type: 'lightBack' });
+    }
+    let reach = -1;
+    for (const b of this.blocks) {
+      if (!unlit(b) || this.sunk(b)) continue;
+      if (reach < 0) reach = this.lightReach();
+      if (!this.inLight(b, reach)) continue;
+      b.litAt = this.time;
+      this.events.push({ type: 'lit', id: b.id, pos: b.pos, kind: b.kind });
+    }
+  }
+
+  /** A foe dims the lantern: its reach x `mult` for `sec` s (0: for good). Lit dark blocks outside it go dark again. */
+  snuff(mult: number, sec: number): void {
+    this.lightMult = Math.min(this.lightMultSec > 0 ? this.lightMult : 1, Math.max(0, mult));
+    this.lightMultSec = Math.max(this.lightMultSec, sec > 0 ? sec : Infinity);
+    const reach = this.lightReach();
+    let n = 0;
+    for (const b of this.blocks)
+      if (b.dark && b.litAt !== Infinity && !this.inLight(b, reach)) {
+        b.litAt = Infinity;
+        n++;
+      }
+    this.events.push({ type: 'snuff', mult: this.lightMult, sec, darkened: n });
+  }
+
+  /** Up to `count` yellows and greens outside the lantern's light go dark (0: every one), the farthest first. They
+   *  keep their kind: nothing seen as a yellow turns into a trap. Returns how many. */
+  darken(count: number): number {
+    const reach = this.lightReach();
+    const cpos = this.cursorPos();
+    const far = this.blocks
+      .filter((b) => (b.kind === 'yellow' || b.kind === 'green') && !b.link && !unlit(b) && !this.inLight(b, reach) && !this.sunk(b))
+      .sort((a, b) => Math.abs(b.pos - cpos) - Math.abs(a.pos - cpos));
+    const n = count > 0 ? Math.min(count, far.length) : far.length;
+    for (let i = 0; i < n; i++) {
+      far[i].dark = true;
+      far[i].litAt = Infinity;
+    }
+    if (n) this.events.push({ type: 'darkOn', count: n });
+    return n;
+  }
+
+  /** The water's reach from the left and the right end at sim time t (rewound like the cursor). */
+  waterAt(t = this.time): { l: number; r: number } {
+    if (t >= this.time - 1e-9) return { l: this.waterL, r: this.waterR };
+    const i = this.histIndex(t);
+    return { l: this.hWaterL[i], r: this.hWaterR[i] };
+  }
+
+  /** Whether bar position `pos` is under water at sim time t. */
+  wet(pos: number, t = this.time): boolean {
+    const w = this.waterAt(t);
+    return pos < w.l || pos > 1 - w.r;
+  }
+
+  /** A still block (anything but a red) whose centre is under water at sim time t: sunk, out of reach. */
+  sunk(b: Block, t = this.time): boolean {
+    if (isRed(b.kind)) return false;
+    const w = this.waterAt(t);
+    if (w.l <= 0 && w.r <= 0) return false;
+    const p = this.blockPosAt(b, t);
+    return p < w.l || p > 1 - w.r;
+  }
+
+  /** The act's tide, if it runs on this row. */
+  private tideRule(): BarRules['tide'] | null {
+    const T = this.bar?.tide;
+    return T && this.row >= T.fromRow && T.period > 0 && !this.rush ? T : null;
+  }
+
+  /** The act's swell: how far the water covers from its end at motion time m (low water at the fight's start). */
+  swellAt(m: number): number {
+    const T = this.tideRule();
+    return T ? T.low + (T.high - T.low) * (0.5 - 0.5 * Math.cos((2 * Math.PI * m) / T.period)) : 0;
+  }
+
+  /** A surge (a foe's special): the water rushes up to `level` from `from` (default: the act's end, else the right)
+   *  and holds for `sec` s (0: for good, a flood), then goes back to the act's swell (or drains away). */
+  surgeTide(level: number, sec: number, from?: TideFrom): void {
+    const f = from ?? this.tideRule()?.from ?? 'right';
+    const lv = Math.max(0, Math.min(0.5, level));
+    if (sec > 0) this.surge = { level: lv, from: f, left: sec };
+    else this.flood = { level: lv, from: f };
+    this.events.push({ type: 'surge', level: lv, from: f, sec });
+  }
+
+  /** The water follows the act's swell, with a surge or a flood on top; it never covers more than 0.6 of the bar. */
+  private updateTide(): void {
+    const T = this.tideRule();
+    if (!T && !this.surge && !this.flood && this.waterL <= 0 && this.waterR <= 0) return;
+    if (this.surge && (this.surge.left -= DT) <= 1e-9) {
+      this.surge = null;
+      this.events.push({ type: 'ebb' });
+    }
+    const swell = this.swellAt(this.motionTime);
+    const from = T?.from ?? 'right';
+    const ends = (f: TideFrom, lv: number): [number, number] => [f !== 'right' ? lv : 0, f !== 'left' ? lv : 0];
+    const [sl, sr] = T ? ends(from, swell) : [0, 0];
+    let [wl, wr] = [sl, sr];
+    for (const x of [this.surge, this.flood]) {
+      if (!x) continue;
+      const [l, r] = ends(x.from, x.level);
+      wl = Math.max(wl, l);
+      wr = Math.max(wr, r);
+    }
+    if (wl + wr > 0.6) {
+      const k = 0.6 / (wl + wr);
+      wl *= k;
+      wr *= k;
+    }
+    const X = this.tuning.tide;
+    // the swell moves at most swellSpeed; a surge (or the water going back down after one) at surgeSpeed
+    const rate = (want: number, swelled: number, now: number) => (want > swelled + 1e-6 || now > swelled + 1e-6 ? X.surgeSpeed : X.swellSpeed) * DT;
+    const toward = (now: number, want: number, step: number) => (now < want ? Math.min(want, now + step) : Math.max(want, now - step));
+    this.waterL = toward(this.waterL, wl, rate(wl, sl, this.waterL));
+    this.waterR = toward(this.waterR, wr, rate(wr, sr, this.waterR));
+  }
+
   // ---------------------------------------------------------------- stepping
 
   advanceTo(t: number): void {
@@ -1066,6 +1242,8 @@ export class Combat {
     if (this.hero.abilityTimer > 0) this.hero.abilityTimer = Math.max(0, this.hero.abilityTimer - DT);
     this.updateZones();
     if (this.bar && !this.rush) this.updateBarRules();
+    if (!this.rush) this.updateTide();
+    this.updateLight();
     if (hasAura(this.hero.gear, 'sanctuary') && this.tick % Math.max(1, Math.round(this.tuning.effects.sanctuarySec * SIM_HZ)) === 0)
       this.healPerk(this.maxHp() * this.tuning.effects.sanctuaryHeal, 'sanctuary');
     if (this.tuskTimer > 0 && (this.tuskTimer -= DT) <= 1e-9) {
@@ -1513,7 +1691,9 @@ export class Combat {
           b.pos = Math.min(1 - half, b.pos + d);
           b.vel = b.push > 0 ? b.pushSpeed : this.redVel(b.width, b.speed);
         } else if (b.impactTimer < 0) {
-          b.vel = this.redVel(b.width, b.speed) * (b.chill > 0 ? b.chillMult : 1);
+          // (in the water it wades: Region 4's tides)
+          const wade = (this.waterL > 0 || this.waterR > 0) && this.wet(b.pos) ? this.tuning.tide.drag : 1;
+          b.vel = this.redVel(b.width, b.speed) * (b.chill > 0 ? b.chillMult : 1) * wade;
           b.pos += b.vel * DT;
           if (b.pos <= half) {
             b.pos = half;
@@ -1660,10 +1840,12 @@ export class Combat {
     const owner = this.enemyById(ownerId);
     let callLink = false;
     let callDrift = false;
-    if (kind === 'yellow' && owner && (owner.driftEvery || owner.linkEvery)) {
+    let callDark = false;
+    if (kind === 'yellow' && owner && (owner.driftEvery || owner.linkEvery || owner.darkEvery)) {
       owner.sent++;
       if (owner.linkEvery && owner.sent % owner.linkEvery === 0) callLink = true;
       else if (owner.driftEvery && owner.sent % owner.driftEvery === 0) callDrift = true;
+      else if (owner.darkEvery && owner.sent % owner.darkEvery === 0) callDark = true;
     }
     if (kind === 'yellow' && (callLink || (R?.links && this.row >= R.links.fromRow && this.spawnRng.next() < R.links.share)) && statics.length + 2 <= B.maxStatic && !(capped && this.wouldCrowd(2 * w))) {
       if (this.spawnPair(w, ownerId)) return true;
@@ -1671,9 +1853,17 @@ export class Combat {
     let drift = 0;
     const speed = R?.drift?.speed ?? this.tuning.drift.speed;
     if (kind === 'yellow' && (callDrift || (R?.drift && this.row >= R.drift.fromRow && this.spawnRng.next() < R.drift.share))) drift = speed * (this.spawnRng.next() < 0.5 ? -1 : 1);
+    // Region 4: a yellow, green or trap may come dark, and a dark yellow may be a trap in disguise (it keeps the
+    // yellow's width); the draws only happen in an act with dark blocks
+    let dark = callDark;
+    const D = R?.dark && this.row >= R.dark.fromRow ? R.dark : null;
+    if (!dark && D && (kind === 'yellow' || kind === 'green' || kind === 'purple') && this.spawnRng.next() < D.share) {
+      dark = true;
+      if (kind === 'yellow' && this.spawnRng.next() < D.traps) kind = 'purple';
+    }
     const p = this.freeSpot(w);
     if (p === null) return false;
-    this.spawnBlock(kind, p, ownerId, w, drift ? { drift } : {});
+    this.spawnBlock(kind, p, ownerId, w, drift || dark ? { drift, dark } : {});
     return true;
   }
 
@@ -1751,8 +1941,12 @@ export class Combat {
     const lo = B.edgeMargin + w / 2;
     const hi = 1 - B.edgeMargin - w / 2;
     if (hi < lo) return null;
+    // (Region 4's tide: new blocks come on dry ground, a little way from the waterline)
+    const wl = this.waterL > 0 ? this.waterL + 0.04 : 0;
+    const wr = this.waterR > 0 ? this.waterR + 0.04 : 0;
     for (let k = 0; k < tries; k++) {
       const p = this.spawnRng.range(lo, hi);
+      if ((wl || wr) && (p - w / 2 < wl || p + w / 2 > 1 - wr)) continue;
       if (statics.every((s) => Math.abs(s.pos - p) >= (s.width + w) / 2 + B.minGap)) return p;
     }
     return null;
@@ -1777,7 +1971,7 @@ export class Combat {
     pos: number,
     ownerId: number = this.enemies[0]?.id ?? 0,
     width = this.widthFor(kind),
-    o: { speed?: number; taps?: number; life?: number; heal?: number; special?: boolean; still?: boolean; fuse?: number; grow?: number; trail?: ZoneKind; drift?: number } = {},
+    o: { speed?: number; taps?: number; life?: number; heal?: number; special?: boolean; still?: boolean; fuse?: number; grow?: number; trail?: ZoneKind; drift?: number; dark?: boolean } = {},
   ): Block {
     const B = this.tuning.blocks;
     const speed = o.speed ?? 1;
@@ -1807,11 +2001,13 @@ export class Combat {
       link: 0,
       driftSec: Infinity,
       target: false,
+      dark: !!o.dark && !isRed(kind),
+      litAt: o.dark && !isRed(kind) ? Infinity : 0,
     };
     if (o.drift && !isRed(kind)) b.vel = o.drift;
     for (const h of this.hooks) h.spawned?.(this, b);
     this.blocks.push(b);
-    this.events.push({ type: 'spawn', id: b.id, kind: b.kind, ownerId, special: !!o.special, drift: b.vel !== 0 && !isRed(kind) });
+    this.events.push({ type: 'spawn', id: b.id, kind: b.kind, ownerId, special: !!o.special, drift: b.vel !== 0 && !isRed(kind), dark: b.dark || undefined });
     if (isRed(kind) && !o.special) this.events.push({ type: 'windup', enemyId: ownerId });
     return b;
   }
@@ -2016,8 +2212,15 @@ export class Combat {
     let attackD = Infinity;
     let trap: Block | null = null;
     let trapD = Infinity;
+    // (Region 4's tide: a still block whose centre is under water is out of reach)
+    const water = this.waterAt(t);
+    const wetAny = water.l > 0 || water.r > 0;
     for (const b of this.blocks) {
       if (b.bornAt > t + 1e-9 || untappable(b.kind) || b.id === this.holding?.id) continue;
+      if (wetAny && !isRed(b.kind)) {
+        const bp = this.blockPosAt(b, t);
+        if (bp < water.l || bp > 1 - water.r) continue;
+      }
       const d = Math.abs(cpos - this.blockPosAt(b, t));
       const graceDist = Math.max(v, Math.abs(vSigned - b.vel)) * ((isRed(b.kind) ? J.redGraceMs : J.graceMs) / 1000);
       // a hold is pressed at its near edge: it's in reach from just before that edge, and a little way in
@@ -2064,7 +2267,7 @@ export class Combat {
     if (!target) {
       let best = Infinity;
       for (const b of this.blocks) {
-        if (b.bornAt > t + 1e-9) continue;
+        if (b.bornAt > t + 1e-9 || this.sunk(b, t)) continue;
         const dd = Math.abs(cpos - this.blockPosAt(b, t));
         if (dd < best) (best = dd), (target = b);
       }
