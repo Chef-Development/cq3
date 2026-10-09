@@ -146,6 +146,17 @@ export interface FightHooks {
   linkBroken?(c: Combat, x: LinkCtx): void;
   /** The beat a pair gives you for its second half, in seconds (Long Fuse). */
   linkBeat?(c: Combat, sec: number): number;
+  // ---- Region 4: the lantern (dark blocks) and the tide
+  /** A dark block the lantern just reached (it shows what it is now). */
+  lit?(c: Combat, b: Block): void;
+  /** How far the lantern reaches (bar units). */
+  lightReach?(c: Combat, reach: number): number;
+  /** A sunk block came up out of the water. */
+  surfaced?(c: Combat, b: Block): void;
+  /** How slowly reds wade in the water (x their speed; tuning.tide.drag before the hooks). */
+  wadeMult?(c: Combat, mult: number): number;
+  /** How far the water comes (x its reach from each end). */
+  tideMult?(c: Combat, mult: number): number;
 }
 
 /** A linked pair as its hooks see it: where it was, and (when it breaks) whether the combo is spared. */

@@ -81,7 +81,7 @@ export const EFFECTS: Record<EffectId, EffectDef> = {
   cutlass: { name: 'Powder Monkey', text: 'Bombs you tap always crit.', signature: true },
   golemheart: { name: 'Stoneblood', text: 'Blocking a red heals 1 HP.', signature: true },
   tuskCrown: { name: 'Royal Charge', text: 'Each finisher stack spent: +5% crit for 5 s.', signature: true },
-  pendulum: { name: 'Tick, Tock', text: 'Every 10th combo hit adds a green block.', signature: true },
+  pendulum: { name: 'Fresh Ink', text: 'Every 10th combo hit draws a green block.', signature: true },
   opener: { name: 'Opening Blow', text: 'The first hit on each new foe always crits.' },
   leech: { name: 'Leech', text: 'Crits heal 2 HP.' },
   riposte: { name: 'Riposte', text: 'Blocking a red hits back for half your attack.' },
@@ -219,7 +219,7 @@ export const BASE_ITEMS: BaseItem[] = [
   { id: 'footpadDie', name: "Footpad's Loaded Die", slot: 'trinket', icon: 'die', base: [{ stat: 'luck', mult: 0.8 }], act: 0, set: 'footpad' },
   {
     id: 'pendulumShard',
-    name: 'Pendulum Shard',
+    name: 'Keystone Shard',
     slot: 'trinket',
     icon: 'shard',
     base: [{ stat: 'comboPower', mult: 1.5 }],

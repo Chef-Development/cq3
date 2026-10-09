@@ -1,6 +1,6 @@
 // The kingdom's regions in play order (plain data). Acts are numbered globally across regions: Greenmarch's are acts
 // 0-2, the next region's 3-5, and so on, so everything that grows with the act (item levels, XP, the replay kit, coins)
-// keeps growing region after region. The world map plans 12 regions (one per Pendulum weight); the rest come later.
+// keeps growing region after region. The world map plans 12 regions (docs/story-bible.md); the rest come later.
 
 import { ASHFELL } from './ashfell';
 import { FROSTPEAKS } from './frostpeaks';

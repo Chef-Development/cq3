@@ -311,7 +311,7 @@ describe('Test lab scenarios play', () => {
     }
   });
 
-  it('story scenarios play their scenes in order; map scenarios stand on their act\'s map; camp scenarios at the camp', () => {
+  it('story scenarios play their scenes in order; map scenarios stand on their act\'s map; camp scenarios at the camp; the title on the title', () => {
     for (const s of LAB_SCENARIOS) {
       if (s.setup.kind === 'fight' || s.setup.kind === 'gallery') continue; // (the gallery's own tests: finisher-show.test.ts)
       const r = new Run(t, { ...DEFAULT_SETTINGS }, 5, labProfile(t, s));
@@ -325,7 +325,8 @@ describe('Test lab scenarios play', () => {
         expect(r.actIndex, s.id).toBe(s.setup.act);
         expect(r.path, s.id).toEqual([]);
         expect(r.map.nodes.some((n) => n.type === 'fight'), s.id).toBe(true);
-      } else expect(r.phase, s.id).toBe('camp');
+      } else if (s.setup.kind === 'title') expect(r.phase, s.id).toBe('title');
+      else expect(r.phase, s.id).toBe('camp');
       expect(labHomePhase(s)).toBe(r.phase);
     }
   });

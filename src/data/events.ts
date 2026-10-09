@@ -70,11 +70,11 @@ export const EVENTS: EventDef[] = [
   },
   {
     id: 'shrine',
-    title: 'Pendulum Shrine',
-    text: 'A tiny shrine with a stopped clock. A sign\nsays "Offerings keep time moving."',
+    title: 'Waymark Shrine',
+    text: 'A roadside stone carved with an old map.\nA sign says "Offerings keep the lines bright."',
     choices: [
-      { label: 'Offer 20 coins', cost: 20, outcomes: [{ text: 'The clock ticks once. You feel lucky.', boost: 'rare' }] },
-      { label: 'Wind the clock', outcomes: [{ text: 'It pinches your finger. Worth it?', hp: -6, coins: 10 }] },
+      { label: 'Offer 20 coins', cost: 20, outcomes: [{ text: 'The carved lines glow gold. You feel lucky.', boost: 'rare' }] },
+      { label: 'Trace the map', outcomes: [{ text: 'A coin was stuck in the carving. Ouch.', hp: -6, coins: 10 }] },
     ],
   },
 ];

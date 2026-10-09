@@ -164,6 +164,6 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'bounties5', name: 'Bounty Hunter', text: 'Finish 5 bounties.', gems: 15 },
   { id: 'treasures3', name: 'Treasure Nose', text: 'Find 3 hidden treasures.', gems: 15 },
   { id: 'holds50', name: 'Steady Hands', text: 'Finish 50 holds.', gems: 15 },
-  { id: 'region1', name: 'One Down', text: 'Bring the first weight home.', gems: 30 },
-  { id: 'region2', name: 'Two Ticks', text: 'Bring the second weight home.', gems: 40 },
+  { id: 'region1', name: 'One Down', text: 'Restore Greenmarch.', gems: 30 },
+  { id: 'region2', name: 'Two Down', text: 'Restore the second region.', gems: 40 },
 ];

@@ -6,6 +6,9 @@ not secret; they are listed here too because the art, story and code all read fr
 
 Tone everywhere: cheeky and light (see `src/data/story.ts`). Original names and art only.
 
+**Round 8: the story is new.** `docs/story-bible.md` replaces the Pendulum / weights plot; where the story notes in
+sections 5-6 below disagree with it (weights, ticks), the story bible wins. The mechanics here stand.
+
 ---
 
 ## 1. Rarity tiers (shared by gear, heroes and companions)
@@ -686,3 +689,208 @@ speed in a slow patch.
 - **Long Fuse became Slow Match** (a hero skill already had the first name).
 - **Story:** the boss is Mags's old master (a camp scene after the region's first act tells it), and the victory
   points on to the next land.
+
+---
+
+## 7. Region 4: DUSKMIRE (secret; working id `duskmire`; being built, not in play yet)
+
+*Names are working names until docs/story-bible.md (the story team) fixes them; the region's data is written so a
+rename touches names and scene text only.*
+
+A marsh at dusk that never gets darker and never gets lighter: reed beds, black water, boardwalks on stilts, lanterns
+on poles, a tide that comes and goes on a clock. The exiled mapmaker redrew it his way: he thought the old marsh was
+"badly lit and badly drained", so he inked the sun into one lighthouse lamp (light only where *he* points it) and
+penciled the shoreline in so it can be rubbed out and redrawn on a timetable (the tide). What he hasn't inked yet
+stays dark: you only see what your own light reaches. That is why the bar here has **dark blocks** and **tides**.
+
+### Bar rules (typed in `BarRules`; the core implements them: `bar.dark`, `bar.tide`)
+Neither rule touches reds' readability: a red is always drawn in full, lit or not, wet or dry. Both read without
+sound, and both only draw from the fight's random stream in an act that has them (the tide draws nothing at all).
+
+- **Dark blocks** (`bar.dark: { share, fromRow, traps }`; numbers in `tuning.dark`). A yellow, green or trap that rolls
+  the act's `share` comes **dark**: an unlit shape on the track (the block's size, a dim outline, two faint glints)
+  that doesn't show what it is. Of the dark yellows, `traps` are traps in disguise. The cursor carries a **lantern**:
+  a warm glow around it whose reach is a time, not a distance, `dark.lightSec` (0.45 s) of the cursor's travel at its
+  speed right now (never less than `dark.lightMin`, 0.1 of the bar). A dark block the glow touches is **lit** (its
+  colour floods in with a small spark, `lit` event) and stays lit. *Fair to a 75% thumb:* because the reach grows with
+  the cursor's speed, a dark block always shows what it is at least ~0.45 s before the cursor gets there (the bot's
+  reaction is 0.25 s), so nothing is a coin flip; the faster the combo, the wider the glow (it reads as "the lantern
+  burns brighter"). The judge doesn't care about light: a tap is judged like any other. What darkness costs is the
+  read: you can't plan a sweep you can't see, and a dark shape can be a trap (a trap that came dark bites for
+  `dark.trapMult`, x0.6, of a trap's damage: it was hard to read).
+  - Specials: **dim** the lantern (`snuff { mult, sec }`: the reach times `mult`, never below `dark.floorSec`, 0.32 s,
+    and every lit dark block outside the glow goes dark again); **darken** yellows already on the bar (`darken
+    { count }`: the ones farthest from the glow; they keep their kind, so nothing you saw as a yellow turns into a
+    trap); formation entries `dark: true` (a dark yellow or a dark trap placed on purpose); `barRule darkEvery`.
+- **Tides** (`bar.tide: { fromRow, low, high, period, from }`; numbers in `tuning.tide`). Water covers one end of the
+  bar and rises and falls on a slow clock: from `low` (share of the bar) up to `high` and back over `period` seconds
+  (a smooth swell; every fight starts at low water, so the first one teaches itself). **Under water:** a yellow,
+  green, trap or any other still block whose centre is covered is **sunk**: out of reach (a tap there is a tap on
+  water: a miss) until the tide falls and it surfaces again, glistening; new blocks only come on dry ground. **Reds
+  wade:** a red whose centre is in the water moves at `tide.drag` (x0.8), so the shallows give a little time to block.
+  So the tide trades your targets for time: hit on the dry side, block in the shallows, wait for the ebb. *Look:* a
+  band of dark water at that end, its surface a moving ripple line with foam; a small high-water mark on the frame
+  shows how far this tide will come; sunk blocks sit dim and wavering under the surface; wading reds leave a wake.
+  The water moves at most ~0.1 of the bar a second (surges 0.25), so a block about to sink is plain to see.
+  - Specials: **surge** (`tide { level, sec, from? }`: the water rushes up to `level` and holds for `sec`, then goes
+    back to the act's swell; in an act with no tide it brings a flood from `from` and drains it after); `from:
+    'both'` floods both ends at once (each end `level` wide).
+- **Both** (Act 3): dark blocks on dry ground, the tide coming in under them; a dark block that sinks stays unlit.
+
+How they ramp: **Act 1** dark from row 2 (share 0.3, traps 0.12; foes' specials show it earlier); **Act 2** tides from
+row 1 (low 0.06, high 0.36, period 10 s, from the right: the reds come in through the water) plus a little dark from row
+3 (0.15); **Act 3** both from row 0 (dark 0.3 / traps 0.15; tide 0.08 to 0.4 over 10.5 s), and the boss's phases are the
+mapmaker's edits to the bar.
+
+**Every hero** (one cursor each; `hero-kits.test.ts`, `bar-rules.test.ts`): the lantern is the cursor's, so every hero
+carries it (Sable's dash carries it with her: a dash lights what it lands by). Kegs, seedlings and frozen blocks sink
+like any still block; a sunk block can still be cleared by perks that clear the bar (finishers, Earthsplitter, a
+keg's blast), never tapped. Suggested later (needs hooks): Neve's Glacier freezes the tide for its 4 s; Vesper's
+targets glow (they light themselves).
+
+**The bot:** sees a dark block only once it is lit (reaction from that moment, like a block that just spawned), and
+misreads a dark trap now and then like a person (`(1 - accuracy) / 2` of the time it was lit less than 0.4 s ago);
+leaves sunk blocks alone (and one at the waterline), except that it taps one now and then like a person who took it
+for a target (`(1 - accuracy) / 4` of them).
+
+**Probe (decisions C4):** Ashfell foes at its Act 2 numbers, a lab-strength hero, 30 fights, the 75% bot: no rules 100%
+won / 62% HP lost; dark (0.3, traps 0.15) 100% / 68%; tide (0.08-0.4) 100% / 61% at drag 0.85 (48% at 0.6: wading
+was a gift; 74% at 1); both 97% / 69%; the masher loses every one. Dark traps at full damage and a 0.25 share cost
++34% HP a fight (93% won): too swingy, hence trapMult and the lower shares.
+
+### Acts
+| Act | Name (working) | Theme | Map look | Rules |
+|---|---|---|---|---|
+| 1 | Lanternfen | `fen` | reed beds and boardwalks under a violet dusk, lantern poles, fireflies, will-o'-wisps over black pools, a sunken boat | dark (from row 2) |
+| 2 | The Drowned Causeway | `causeway` | tidal flats, a half-sunk stone road, stilt houses, a tide clock tower with a painted hand, sluice gates | tides (row 1) + a little dark |
+| 3 | The Gloaming Mere | `mere` | a wide black lake under a sky stuck at sunset, a lighthouse wading in the middle of it, the mapmaker's drafting stilts | dark + tides; the boss's phases are edits |
+
+Act scaling (first guesses, each a step above the matching Ashfell act; Act 1 dips below Ashfell's Act 3 as a
+region starts a fresh run): hpMult 7.2 / 7.6 / 8.4, atkMult 15.5 / 16 / 17.5, pace 0.8 / 0.76 / 0.72, redSpeed 1.2 /
+1.22 / 1.28; waves 2-5 / 3-5 / 3-6; foes' base stats ~10% above Ashfell's.
+
+### Enemies (each has a telegraphed special that changes how the bar plays)
+| Enemy (key) | Act | Tags | Look | Special |
+|---|---|---|---|---|
+| Bog Wisp (`bogWisp`) | 1 | flyer, caster | a will-o'-wisp: a blue-green flame with a sly face and a trailing tail of sparks | **Lure!** two dark shapes land: one yellow, one trap (formation `dark`) |
+| Mire Toad (`mireToad`) | 1 | beast, swarm | a fat olive toad with a lantern-orange throat sac and lazy eyes | **Gulp!** swallows the light: the lantern dims (x0.65, 4 s) and lit blocks outside it go dark |
+| Reedling (`reedling`) | 1 | folk, swarm | a little reed-man, a cattail for a hat, a reed pipe | **Rustle!** 3 yellows on the bar go dark (`darken`) |
+| Peat Golem (`peatGolem`, elite) | 1 | construct, armored | a hulking golem of peat and roots with a caged lantern for a heart | **Peat Slam!** a slow, wide red; **Smother!** the lantern dims (x0.6, 5 s), and 2 dark traps |
+| Mudskipper (`mudskipper`) | 2 | beast, swarm | a goggle-eyed mudskipper standing on its fins, cheeky grin | **Splash!** a surge: the water rushes up to 0.45 of the bar for 3 s |
+| Stilt Heron (`stiltHeron`) | 2 | flyer, folk | a tall heron in a ferryman's coat on long stilts, a punt-pole spear | **Spear Dive!** two fast reds, one behind the other (the second wades in the water) |
+| Lamplighter (`lamplighter`) | 2 | folk, caster | a hunched little lamplighter with a long wick-pole and a hood like a candle snuffer | **Snuff Out!** every block outside the light goes dark, and 2 dark yellows |
+| Old Snapper (`oldSnapper`, elite) | 2 | armored, beast | a mossy snapping turtle the size of a cart, a shell like a sunken island | **High Tide!** water from both ends (0.25 each) for 4 s; **Snap!** a fast, wide red |
+| Ink Eel (`inkEel`) | 3 | beast, caster | a long black eel that leaves ink in the water, glowing violet spots | **Undertow!** the water floods from the other end (0.4, 4 s) |
+| Dusk Moths (`duskMoths`) | 3 | swarm, flyer | a cloud of grey-violet moths around a stolen lantern | **Flutter!** the lantern dims (x0.6, 4 s) and 2 dark traps |
+| Bog Hag (`bogHag`) | 3 | caster, folk | a mossy marsh hag stirring a kettle on a stick, a lantern-jaw grin | **Fog Bank!** 3 dark shapes (one a trap) and the lantern dims (x0.7, 3 s) |
+| Sunken Sentinel (`sunkenSentinel`, elite) | 3 | construct, armored | a knight's armour full of marsh water, weed for a plume, a drowned lantern | **Floodgate!** a surge (0.5, 4 s); **Blackwater!** 2 dark traps and a still red |
+
+Every hero's soft strength has foes here (folk, caster, beast, swarm, armored, flyer, construct; brute only in the
+first mini-boss). New foe tag: none (`water` was considered; no hero leans on it, so it would only be a label).
+
+### Mini-bosses
+- **Old Bellybog** (`bellybog`, Act 1, beast, brute): a toad the size of a hut who swallows lanterns ("free light, just
+  lying around") and glows from inside like a paper lamp. **Gulp!** (the lantern dims x0.6, 4 s, lit blocks outside go
+  dark); **Tongue Lash!** a fast red; **Belly Glow!** (below 50%, gate) he burps the lanterns back up, and from then
+  on every 2nd yellow he sends comes dark (`barRule darkEvery 2`); **Burp!** (phase 2) 3 dark shapes, one a trap.
+- **The Sluice Keeper** (`sluiceKeeper`, Act 2, construct, folk): a beaver engineer in a brass diving helmet who runs
+  the floodgates for the mapmaker on a strict timetable (a pocket watch, a clipboard). **Open the Gates!** a surge
+  (0.5 for 4 s); **Dam Up!** a still shield (3 taps) where the cursor is heading; **Spillway!** (below 50%, gate) the
+  water comes from both ends (0.25 each, for good: `tide` sec 0); **Overtime!** (phase
+  2) two reds, one after the other.
+
+### Boss: the Gloaming Lighthouse (`lighthouse`, Act 3, construct) — each phase is one of the mapmaker's edits
+A lighthouse the mapmaker drew wading in the mere on stone legs, the sun shut in its lamp (that is why the marsh is
+stuck at dusk); its beam sweeps the water, its door a mouth. The mapmaker stands on its gallery with his pen and
+redraws the fight as it goes (each phase change: his scene, then the bar changes, `phaseScenes`).
+- Phase 1, as drawn: **Fog Horn!** every yellow outside the light goes dark, 2 dark traps; **Breakers!** two reds.
+  (Later, with a `lightSweep` action: **Beam Sweep!** the lighthouse's own beam crosses the bar, lighting every dark
+  block it passes, while the lantern dims behind it.)
+- Phase 2 (66%, gate, scene `lighthouse2`), edit one, "the shoreline was in the wrong place" (**Shore Redrawn!**): the
+  tide comes from both ends (0.22 each, for good) on top of the act's swell; **Breakers!** and **Fog Horn!**; every
+  3rd yellow it sends is dark.
+- Phase 3 (33%, gate, scene `lighthouse3`), edit two, "nobody needs a sky" (**Sky Erased!**): blackout: the lantern
+  dims for good (x0.7), every 2nd yellow dark, the cursor never drops below 1.3x; **Breakers!** and **Surge!** (0.45
+  for 3 s, every 8 s). Beaten: the lamp cracks, the sun rolls out and up, and the marsh finally gets its night (and then its
+  morning).
+
+### Story (scene ids the region's data needs; the story team writes them: placeholders in `story-dusk.ts` until then)
+- `dusk1` (Act 1 start), `bellybog` (mini-boss intro), `duskCamp` (a camp scene after Act 1, like `magsTale`),
+  `dusk2` (Act 2 start), `sluiceKeeper` (mini-boss intro), `dusk3` (Act 3 start), `lighthouse` (boss intro),
+  `lighthouse2`, `lighthouse3` (the mapmaker's two edits, mid-fight), `duskVictory` (the sun comes out; next region).
+- New speakers: `bellybog`, `sluiceKeeper`, `lighthouse`, and the mapmaker (`mapmaker`: the story team's id).
+
+### Relics (Light and Tide tags; offered from the region's first act on: `from: 9`)
+As built (`src/data/relics-dusk.ts`, hooks `core/relic-fx-dusk.ts`, with/without tests `tests/unit/relics-dusk.test.ts`;
+not merged into RELICS yet). Light: **Moth Wing** (hits on dark blocks +40%), **Wick Trimmer** (rare: Perfects on dark
+blocks crit), **Night Owl** (the light reaches 30% further), **Lantern Oil** (rare: lighting a dark block fills 50% of a
+hit's meter), **Glow Worms** (each dark block hit drops a coin), **Ember Jar** (rare: the light burns dark traps away
+before they can bite), **Blindfold** (epic: the light reaches 40% less; hits on dark blocks x3). Tide: **Wading Boots**
+(blocking a red in the water heals 2 HP), **Driftwood** (rare: a block that came up out of the water in the last 1.5 s
+crits), **Undertow Charm** (reds wade 25% slower), **Low Water** (rare: the water comes 25% less far), **Tidepool**
+(each block that comes up drops a coin), **Spring Tide** (rare: hits within 0.08 of the waterline +50%), **Moonpull**
+(epic: blocking a red in the water knocks the next red back 0.15; the tide comes 25% further).
+Builds: Lamplighter (Light), Tidewalker (Tide), Marshlord (Light + Tide), Moonlit (Light + Crit), Breakwater (Tide +
+Block). Hook points (core/hooks.ts, built): `lit`, `lightReach`, `surfaced` (with `Block.wet`, `Block.surfacedAt` and a
+`surface` event), `wadeMult`, `tideMult`. Merging: the tags and ids into the unions in relics.ts, tag chips and glyphs
+(relic-ui.ts, relic-log.ts), an icon each, numbers into `tuning.relics.n`, an entry each in view/perk-at.ts, and
+`DUSK_RELIC_HOOKS` into RELIC_HOOKS; the cautious bot's `avoid` list should take Blindfold and Moonpull.
+
+### Gear (`src/data/gear-dusk.ts`, not merged yet)
+Bases: Reed Spear, Lantern Mace, Peat Maul (weapons); Moss Cowl, Snapper Helm (helms); Reed Mail, Shellplate (armor);
+Stilt Boots, Mud Treads (boots); Wisp Charm, Tide Pearl (trinkets).
+Set: **Lamplighter's** (Wick Hood, Oilskin Coat, Waders, Firefly Jar): 2-piece +20% damage on dark blocks; 4-piece
+blocking a red in the water heals 2% HP (needs core at wiring, beside the Emberwright set's).
+Signature Legendaries (the Lighthouse): **Sunlamp** (trinket, *Daybreak*: your light reaches 50% further: a
+`lightReach` hook), **Breaker's Edge** (weapon, *Riptide*: blocks just out of the water take x3: `surfacedAt`).
+
+### Camp banter (`src/data/banter-dusk.ts`, not merged yet)
+10 lines, each waiting for a Region 4 scene (`after`), none naming the mapmaker until the story team names him.
+
+### Music (each piece: a distinct key, tempo and instruments, unlike Regions 1-3 and each other)
+| Piece | Key | Tempo | Instruments / feel |
+|---|---|---|---|
+| Lanternfen (calm / intense) | Eb Mixolydian | 84, 12/8 shuffle | calm: a slide dobro, soft banjo rolls, a harmonica on the tune, a frog-croak guiro, a cricket shaker, an upright bass walking slow; fight: a washboard groove, the bass in 8ths, the dobro on the tune; lead: a harmonica wail |
+| The Drowned Causeway | G Aeolian | 100, 6/4 (3+3 against 2+2+2: a tide-like hemiola) | calm: a vibraphone with slow tremolo, a low accordion drone, a bowed saw on the tune, water lapping (filtered noise swells every bar); fight: hand claps and a talking drum on the hemiola; lead: a reedy accordion |
+| The Gloaming Mere | A Phrygian | 120 | calm: a low pipe organ, a choir "oo", a tolling bell every 2 bars, a theremin-like sine with wide vibrato on the tune; fight: a driving 16th bass, taiko, the organ in stabs; lead: the theremin an octave up |
+| Old Bellybog (mini-boss) | E Mixolydian | 176, a zydeco two-step | (fight only) an accordion on the tune, a washboard (frottoir) in 16ths, a fiddle, a tuba burp on each phrase end |
+| The Sluice Keeper (mini-boss) | D Dorian | 112, 7/4 (4+3) | (fight only) a work song: a mallet on a pipe on every beat, a bari sax riff, a ratchet like a turning wheel, a whistle blast every 4 bars |
+| The Gloaming Lighthouse (boss, by phase) | C# Phrygian; phase 3 a whole tone down to B | 152 | phase 1: a foghorn drone, a bell tower, strings in tremolo, war drums; phase 2 adds a choir and a harpsichord scratching like a pen; phase 3 drops a whole tone (the "redraw"), double-time drums, distorted bass, everything in |
+
+Ambience beds: `fen` (frogs and crickets, reeds in a breeze, a far owl), `causeway` (water lapping on stone, the tide
+clock ticking, gulls far off), `mere` (a deep still-water hum, a slow foghorn, the lighthouse's lamp humming).
+
+### Balance targets (a 75% player, a fresh first playthrough of the region, from a typical end-of-Ashfell hero)
+Act 1 ~85% first try, Act 2 ~68%, Act 3 ~55%, the Lighthouse's first fight won ~50-60%; Region 5 a little harder. The
+masher bot loses every Act 3 and the boss's first fight (`bot-masher.test.ts`); every hero within +/-10 of Rowan. Thumb
+rules: the lantern's reach never under 0.32 s, the tide never over half the bar, reds as in `tests/unit/data.test.ts`.
+
+### Wiring it in (the core owner's checklist, as for Ashfell)
+1. The two rules in combat (done: `bar.dark`, `bar.tide`, the actions `darken`, `snuff`, `tide`, formation `dark`,
+   `barRule darkEvery`; `tuning.dark`, `tuning.tide` with sliders), the relic hook points, the bot.
+2. Data: `DUSKMIRE` into `REGIONS` (acts 9-11), `DUSK_ENEMIES` into `ENEMIES`, story, relics, gear, banter, tips.
+3. Art and sound: the three themes in `Theme`; backdrops (`backdrop-dusk.ts`), stage lights, map kits, lairs and
+   critters (fireflies, a heron, frogs; crabs, gulls; moths, a catfish); foe sprites and telegraph poses (`art-dusk.ts`);
+   every foe's map mini (`art-minis.ts`); portraits; the three landmarks and `landOpen`; telegraph sounds; the six
+   pieces and three beds (Sound lab labels by act number only).
+
+### Build calls (decisions.md round 8, team content C1-C3; kept here: spoilers)
+- **Dark blocks: the light is a time, not a distance.** The cursor's lantern reaches `dark.lightSec` (0.45 s) of
+  its travel at its current speed, so it widens as the combo speeds the cursor up and a dark block always shows
+  what it is well before the cursor gets there (fair to a 75% thumb); a dimmed lantern never reaches under
+  `floorSec` (0.32 s). Lit blocks stay lit. Dark hides a block's kind, never its place (a shape with a rim), and
+  nothing the player saw as a yellow becomes a trap (`darken` keeps kinds; traps are only ever dark from the start).
+  Reds are never dark.
+- **Tides: water takes targets and slows reds.** Water covers one end (or both), swelling slowly from low water at a
+  fight's start; a still block whose centre is under it is out of reach (a tap there is a miss), reds wade, new blocks
+  come on dry ground. The swell never moves faster than `tide.swellSpeed` (0.1 of the bar a second; the data test
+  checks every act), surges at 0.25; water never covers more than 0.6 of the bar. The tide draws no random numbers
+  (fights start at low water), so acts without it play exactly as before. Player word: "the tide" / "water"
+  (Nimbus's companion perk is also called Tide: a wave that pushes reds; if playtests confuse them, rename Nimbus's).
+- **Tuned by a bot probe** (30 fights a rule, 75%): dark traps at full damage cost +34% HP a fight, so a trap that
+  came dark bites for 0.6 (`dark.trapMult`) and the trap shares are 0.12-0.15 of dark yellows; wading at 0.6 made
+  the tide a gift (HP lost 48% vs 62% without), so reds wade at 0.8. The bot waits for the light, misreads a dark
+  trap (1 - accuracy) / 2 of the time, and slips onto a sunk block (1 - accuracy) / 4 of the time.
+- **Region 4's data is written but not wired in** (`duskmire.ts`, `enemies-dusk.ts`, `story-dusk.ts`, checked by
+  `duskmire-data.test.ts`): it joins REGIONS once its art (sprites, minis, backdrops, themes) and telegraph sounds
+  exist; until then its acts borrow earlier looks (`DUSK_STAND_IN`) and its scenes are one-line placeholders.

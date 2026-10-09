@@ -761,15 +761,84 @@ L2. **One branch, one PR.** The run continues PR #7's branch on `claude/exciting
 
 ### Team 1: story
 
+S1. **A new story replaces the Pendulum plot** (the approved "living map" premise). The whole arc, the twists and the
+    ending are in `docs/story-bible.md` (spoilers); commit titles stay vague. The main plot is earnest; the comedy moves
+    to the heroes' banter, their arrivals and the companions.
+S2. **The villain is Ambrose Fairhand, the Mapmaker** (speaker `mapmaker`, plate "The Mapmaker"; it becomes "Ambrose"
+    late in the story). Other new names: the capital **Meridian** and its **Atlas Hall**; **High Keeper Hesper**
+    (speaker `keeper`). Both new speakers need portraits (art team).
+S3. **Keystones replace weights.** Each region's boss keeps the keystone of his redraw (a crown, a mirror, an anvil...);
+    breaking it restores the region. Player-facing words: "Regions restored: N/12", "the Great Atlas", the fog is
+    "Erased land" (story bible section 9 lists every replacement for the art team).
+S4. **Region 4 is named Lanternfen** (id stays `duskmire`): a lantern-lit fen he turned to endless, unlit dusk with a
+    leashed tide (dark blocks, tides). Boss suggestion for Team 3: Mirewick, the Fen Angler.
+
+S5. **The game is called The Unerased** (short form "Unerased"): it names Rowan's mystery without its answer, and no game
+    or app by that name turned up. Runner-up: The Living Map (clear, but descriptive and close to a mapping-software
+    brand). Shortlist, searches and sources: `docs/names.md`. `src/data/brand.ts`, the page title and the install name
+    follow it.
+
+S6. **He works inward; Greenmarch is last and lightest.** A chest hero from any land can join from the start, so every
+    land must already be redrawn when the story opens: the far isles first, the continent's outer lands over the weeks
+    before, Greenmarch on the night of the intro, gently, because it was his home (which is also why its fights keep
+    the basic rules). The opening: three narration boxes and Pip's one line (4 before the first fight); the rest of the
+    setup comes between fights (a `road` scene after the first win is written and needs a hook).
+S7. **Region 4's scenes are drafted ahead of its data** (`src/data/story-fen.ts`, not in play): Team 3 points its acts
+    at the ids when the region is wired. Its boss doesn't speak; the Mapmaker speaks for it.
+
+S8. **Region 4 keeps Team 3's names** (the Duskmire, its acts Lanternfen, the Drowned Causeway and the Gloaming Mere;
+    Old Bellybog, the Sluice Keeper, the Gloaming Lighthouse), replacing S4's "Lanternfen" for the region and its
+    Mirewick suggestion: their design came in fitting the story (he shut the sun in a lighthouse lamp and penciled the
+    shore onto a timetable), so the story follows it. Its scenes are written into their ids (`story-dusk.ts`); S7's
+    separate draft is gone.
+
 (story: end of section)
 
 
 ### Team 2: art direction
 
+A1. **The art bible is strict.** `docs/art-style.md` is now rules, not advice: the grid (hard pixels, one grid per
+    piece), the palette as ramps (new: parchment, atlas ink, fog, frost, ash), light from the top left with contact
+    shadows, shading and outline rules, proportions per character type (from the textures as they are), minimum
+    animation frames, backdrop layers, a light recipe per region, the UI rules, the 2x layer, the name and logo, and a
+    1-5 score used by the audit. Where it and `ui-style.md` disagree, it wins for pixels, that one for layout.
+
+A2. **The audit is a script, not a test.** `scripts/art-audit.mjs` (run by hand against a dev server) paints every
+    texture group onto contact sheets and screenshots the main screens; `docs/art-audit/README.md` scores each against
+    the bible and keeps the redo list (worst first: the skill icons, half of them a generic arrow; the world map's
+    veils; relic icons that share glyphs; Rowan off the shared rig; the dark Ashfell foes; the flat glass and forge
+    backdrops; the dim vault). Sheets are saved as 256-colour PNGs (about 1 MB in all).
+A3. **The title is the Great Atlas.** A parchment map in ink (coast, river, forests, mountains, villages, compass,
+    neatline) with colour bled back round the hero (the picked hero's map walker at 2x, Pip above), fog drifting over
+    the erased east where the lines fade and break, a red route drawn east by a quill. The fight stage no longer shows
+    under the title. Its own file (`view/title.ts`, art in `art-title.ts`) so the overlays only place the buttons;
+    Continue and New game keep their exact rects (the smoke tests tap them).
+A4. **The logo is built from `GAME_NAME`.** The bold font's masks, Scale3x (or Scale2x) rounded, a gold face with a
+    horizon band, a cream rim top-left, a red-brown extrusion and an ink outline. Layout rules (`logoRows`, unit-tested
+    with long names): a leading article small above; the main words at 3x, else 2x, else two even rows; what follows a
+    colon or dash as a subtitle with ink flourishes. The old "Combo Quest" logo and crest are gone from `chrome.ts`.
+A5. **A Test lab look at the title** (`titleAtlas`, a new setup kind 'title'): it never offers New game in the lab
+    (New game erases the real save, even from the lab), and a tap starts a run on the lab's save, which ends it.
+
+A6. **Skill nodes without a painted icon get an emblem from their name** (`art-skill-emblems.ts`): 15 emblems in the
+    relic families' colours, picked by keyword rules in order; a capstone adds gold corners. 125 of the 127 stand-ins
+    now say what the node is about (a unit test keeps new nodes covered). Painted icons per node stay the goal.
+
 (art: end of section)
 
 
 ### Team 3: content
+
+C1. **Region 4's design and its build calls are in docs/content-bible.md section 7** (spoilers: its two bar rules,
+    how they were made fair to a 75% thumb and tuned with a bot probe, the acts, foes and bosses), as Region 3's were
+    (Part 9). Working names until the story team's bible fixes them; the data is written so a rename touches names
+    and scene text only.
+C2. **Two new bar rules in the core** (`CORE:` commits), deterministic, drawing nothing from the random stream in an
+    act without them (a test plays a fight with and without and compares), each with a slider group, a first-meeting
+    tip, a picture on the bar (nothing depends on sound), a lab item, and tests for every hero.
+C3. **Region 4's data is written but not wired in** (`duskmire.ts`, `enemies-dusk.ts`, `story-dusk.ts`, checked by
+    `duskmire-data.test.ts`): it joins REGIONS once its art (sprites, minis, backdrops, themes) and telegraph sounds
+    exist; until then its acts borrow earlier looks and its scenes are one-line placeholders.
 
 (content: end of section)
 
@@ -819,5 +888,33 @@ L2. **One branch, one PR.** The run continues PR #7's branch on `claude/exciting
 
 
 ### Team 5: the first 10 minutes
+
+F1. **The first chest comes right after the first fight.** Measured over 2,000 Act 1 maps, a newcomer who takes every
+    chest offered met the first one right after the first fight only 22% of the time, and never in Act 1 24% of the
+    time (each row costs 40-60 s: the first chest came anywhere from 1:20 to 6:00, or after the boss). Act 1's map now
+    promises one (`ActDef.chestRow`: every first-row fight links to a chest in row 1, as few chests as that takes,
+    never a chest straight after it); a map-level rule rather than a run rule, so the save, replays and the bot see an
+    ordinary treasure node, and the newcomer learns the map's icons by picking the chest. Chests per Act 1 map: ~2.5.
+    Its cost: one fight fewer on the way through Act 1 (the act was ~100% first try already). `CORE:` commit (map.ts).
+F2. **The quiet start.** Before the first chest a newcomer met 13 tips, four of them about systems they can't use yet
+    (the packs' red prints, the relic belt, Synergy!, a skill point to spend at camp). Those four and the first
+    sparkle now wait until a new player has won 3 fights (`TipDef.wins`, `QUIET_WINS`; counted from the fights' `won`
+    events into `profile.counts.wins`, no profile format change); a player who has cleared an act gets them as before.
+F3. **The first finisher is a moment.** It was a one-stack show over in half a second, its name a small floater. The
+    first finisher in the game (once per profile: `finisherReveal` in `profile.seen`) now holds the fight's clock for
+    1.5 s (`App.holdUntil`; taps do nothing meanwhile): letterbox bars, the stage darkens, light gathers on the hero,
+    "FINISHER" then the name stamps in big with its short line ("Hits all, clears reds."), then the usual show plays.
+    The HP bars and kills wait for its last blow as before. Part of the teaching: only with tips on (the tests run
+    with tips off, so no spec meets it unasked); not at the Training Dummy, not in the Finisher gallery.
+F4. **Test lab: "The first fight"** (Fights): Rowan against Act 1's first foes with the five lessons and the reveal
+    still to come; lab profiles otherwise have the reveal seen (no reveal over every hero's lab fight).
+F5. **The newcomer bot** (`tests/smoke/first10.spec.ts`) plays inside the page with real timers (a Playwright click
+    from outside lands tens of ms late), through the game's own pointer events, and only swipes once taught: a bot
+    that swipes as soon as the meter fills skipped the finisher's tip and measured the first finisher 11 s early.
+F6. **The masher guard's boss-alone check allows one win in five.** Act 1's chest reshuffles every later random draw,
+    and one of the masher test's five seeds now wins the Boar King's first fight while mashing only the boss. Over 30
+    seeds the rate is the same before and after (2 of 30 first fights, 6-7 of ~158 tries), so "0 of 5" held by luck;
+    the check is now "at most 1 of 5" (the whole-act masher and the every-try rate are unchanged). For the lead and QA
+    to review.
 
 (first10: end of section)
