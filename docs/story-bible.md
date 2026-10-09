@@ -516,3 +516,24 @@ until Team 3 wires the region; its mini-bosses' scenes wait for their foes), and
 follows the story (lines gated on scenes, like `banter-ash.ts`, which is itself not wired yet); the mini-bosses'
 scenes for Regions 4-5; the bosses' portraits and the two new speakers' (`portrait_mapmaker`, `portrait_keeper`: until they exist the
 story view shows Phaser's missing-texture box); `keeper` belongs with the allies' warm look in `view/story.ts`.
+
+---
+
+## 11. What the story needs from other teams (round 8)
+
+- **Art (Team 2):** portraits `portrait_mapmaker` (section 4's look: tall, spare, near fifty, kind tired eyes,
+  ink-stained fingers, faded keeper's-blue coat with the badge torn off, an owl-feather pen with a silver tip) and
+  `portrait_keeper` (Hesper: silver-haired, upright, grey-blue keeper's robes, a heavy key on a chain). Until they
+  exist, the story view shows Phaser's missing-texture box in `boarKing*`, `victory`, `glacia2/3`, `frostVictory`,
+  `bellows2/3`, `ashVictory`. `keeper` belongs in `ALLY` in `view/story.ts` (warm look, not a foe's). The narrator's
+  portrait (now the Pendulum's bob) becomes a corner of the Atlas with a compass rose. The Mapmaker's edits, when
+  shown, are gold ink strokes hanging in the air. Every UI word in section 9.
+- **First 10 minutes (Team 5):** the `road` scene (6 boxes: who Pip is, what the blank is) is written for right after
+  the first fight is won, once (e.g. `profile.seen` 'road'); it needs a hook in the post-fight flow, which is yours.
+  If it costs the first minutes too much, cut it to 3 boxes or move it to the first rest: tell the story team.
+- **Lead:** `WELCOME_ID` in `src/data/tips.ts` is still `welcomeM4a`, so a returning player who saw the old welcome
+  won't see the new one (which now catches them up on the story); bumping it (e.g. `welcomeR8`) replays it once
+  (`tests/smoke/smoke.spec.ts` checks the id by name). The screenshot baseline `story.png` changes (the new intro).
+- **Content (Team 3):** Region 4 is **Lanternfen** (id `duskmire`); its scenes are drafted in `src/data/story-fen.ts`
+  (section 8 for the why of dark blocks and tides, and the boss). Region 5's in `src/data/story-noon.ts`. Rename
+  anything you like; tell the story team so the scenes follow.
