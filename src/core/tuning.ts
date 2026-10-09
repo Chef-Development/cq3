@@ -571,7 +571,7 @@ export const DEFAULT_TUNING = {
     // Dark blocks (Region 4's bar rule, core/combat.ts updateLight): a dark block shows what it is once the cursor's
     // lantern reaches it. The reach is a time (the cursor's travel at its speed right now), so it widens as the
     // cursor speeds up and a dark block always shows itself well before the cursor gets there.
-    lightSec: 0.5, // the lantern reaches this many seconds of the cursor's travel ahead (and behind)
+    lightSec: 0.45, // the lantern reaches this many seconds of the cursor's travel ahead (and behind)
     lightMin: 0.1, // ...never less than this share of the bar (a stopped cursor still lights its neighbours)
     floorSec: 0.32, // a dimmed lantern (a snuff) never reaches less than this many seconds
   },
