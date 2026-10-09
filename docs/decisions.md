@@ -803,5 +803,10 @@ F4. **Test lab: "The first fight"** (Fights): Rowan against Act 1's first foes w
 F5. **The newcomer bot** (`tests/smoke/first10.spec.ts`) plays inside the page with real timers (a Playwright click
     from outside lands tens of ms late), through the game's own pointer events, and only swipes once taught: a bot
     that swipes as soon as the meter fills skipped the finisher's tip and measured the first finisher 11 s early.
+F6. **The masher guard's boss-alone check allows one win in five.** Act 1's chest reshuffles every later random draw,
+    and one of the masher test's five seeds now wins the Boar King's first fight while mashing only the boss. Over 30
+    seeds the rate is the same before and after (2 of 30 first fights, 6-7 of ~158 tries), so "0 of 5" held by luck;
+    the check is now "at most 1 of 5" (the whole-act masher and the every-try rate are unchanged). For the lead and QA
+    to review.
 
 (first10: end of section)
