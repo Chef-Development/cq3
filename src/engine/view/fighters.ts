@@ -696,7 +696,7 @@ export class Fighters {
     });
   }
 
-  /** The hero is knocked out (the defeat): the KO pose (Sable's; Rowan just stays hurt) until the next fight. */
+  /** The hero is knocked out (the defeat): their KO pose (down on one knee) until the next fight. */
   heroDown(): void {
     this.h.down = true;
   }

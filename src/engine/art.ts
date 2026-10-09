@@ -228,6 +228,11 @@ export const HERO_POSES: Record<string, Pose> = {
   parry: { dir: 'u', hand: [9, 12], len: 14 },
   hurt: { dir: 'dl', hand: [-5, 13], dx: -1, dy: 1, len: 12, behind: true, squint: true },
   leap: { dir: 'u', hand: [10, 19], legs: 'tuck', len: 15, cape: 'flow' },
+  // the three poses every other hero has (the art audit): his finisher's blow, the sword raised high, cape flying;
+  // a kit moment, the blade raised forward to rally; knocked out, down on one knee over the planted sword
+  fin: { dir: 'u', hand: [11, 22], legs: 'stride', len: 17, cape: 'flow' },
+  cast: { dir: 'ur', hand: [11, 17], legs: 'stride', len: 15, cape: 'flow' },
+  down: { dir: 'd', hand: [10, 12], legs: 'tuck', dy: 3, dx: 1, len: 9, squint: true },
 };
 
 // Sword maps: A lit edge, L core, C shaded edge, T tip, P pommel, d/h grip, G g r y Y guard.
