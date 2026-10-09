@@ -930,6 +930,10 @@ about where things are) and **heat** (the glare that hits hard and burns).
 - *The bot:* leaves a mirage whose ghost shows unless it is about to reach it (closer than `safeSec`); leaves blazing
   yellows while its Heat is full and its HP under half.
 
+*Probe* (as Region 4's: Ashfell foes at its Act 2 numbers, a lab-strength hero, 30 fights, the 75% bot): no rules
+100% won / 62% HP lost; mirages (0.2, 2.5 s) 100% / 54% (the bot waits a hop out; a person reading a ghost late is
+the real cost); heat (0.2) 100% / 66%; both 100% / 74%; the masher loses every one.
+
 How they ramp: **Act 1** mirages from row 2 (0.25, every 2.8 s); **Act 2** heat from row 1 (0.2) plus a few mirages
 from row 3 (0.1); **Act 3** both from row 0 (mirages 0.2 every 2.5 s, heat 0.2).
 

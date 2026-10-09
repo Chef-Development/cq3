@@ -837,6 +837,9 @@ C4. **Region 4 follows the story bible** (Team 1's, committed at 19:08): its nam
     story team's scene ids (`fen1`-`fen3`, `fenBoss`, `fenBoss2`, `fenBoss3`, `fenVictory`) replace Team 3's working
     ones; the first mini-boss changed so it doesn't echo the boss. Only the two mini-bosses' intros are still
     placeholders (asked of Team 1).
+C5. **Region 5's two rules are built ahead of its art** (core, tests, bar pictures, tips, lab items, data and map
+    minis), on the story bible's hook for the region; their design and a bot probe are in the content bible
+    (section 8). Neither rule moves anything under the cursor at the last moment.
 
 (content: end of section)
 
