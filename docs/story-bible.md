@@ -34,7 +34,7 @@ commit titles, PR titles, the Test lab's labels and anything the playtester read
 | Sable | quick, light-fingered, practical; one quip per scene | cruelty |
 | Neve | prickly, proud, CAPITALS for emphasis, secretly glad of company | admitting it |
 | Mags | gruff, warm underneath, forge talk | (she can joke: she's camp) |
-| Bosses | each their own: the Boar King and the golem shout in capitals; Rimehorn and the golem speak without contractions; Glacia says "darling" | winking at the player |
+| Bosses | each their own: the Boar King and the golem shout in capitals; Rimehorn and the golem speak without contractions; Glacia says "darling"; Bellybog is slow and greedy ("Mmf."); the Sluice Keeper talks in timetables | winking at the player |
 
 ---
 
@@ -260,8 +260,8 @@ isles find their families asleep. He is no longer gentle; he still never lies.
 | # | Twist | Seeded | Revealed |
 |---|---|---|---|
 | 1 | Pip was the Mapmaker's owl; the pen is Pip's feather | written: R1 Pip knows Rowan's name before they meet (`act1`, `road`) and warns "be careful of him" (`act3`); R2 he knows how Ambrose chooses ("He finds whoever will love his fix the most", `frost2`); R5 he goes quiet (`noon2`). To add: the pen drawn plainly as an owl feather (art) | R5 (`noonBoss`, `noonVictory`) |
-| 2 | The keepers moved the river themselves; Wend drowned because of the capital | written: R4 the fen-woman, "The river ran down from the north, once" (`fenVictory`). To add: Hesper never looks at the lake (her portrait, the R1 camp); R6 an erased isle's oldest lines are newer than they should be | R8 |
-| 3 | Rowan is the son Ambrose drew back: a cut through the page | written: the intro (the only one who woke); "Who drew you?" (`victory`); R4 Rowan can't swim, "since before I remember" (`fen3`), and walks on the blank water (`fen2`). and in camp banter, "They found me on some steps. Soaked." and Pip's "I've known you a long time." To add: R8, Ambrose tells of "my boy" and never says his name | R11 |
+| 2 | The keepers moved the river themselves; Wend drowned because of the capital | written: R4 the fen-woman, "The river ran down from the north, once" (`duskVictory`). To add: Hesper never looks at the lake (her portrait, the R1 camp); R6 an erased isle's oldest lines are newer than they should be | R8 |
+| 3 | Rowan is the son Ambrose drew back: a cut through the page | written: the intro (the only one who woke); "Who drew you?" (`victory`); R4 Rowan can't swim, "since before I remember" (`dusk3`), and walks on the blank water (`dusk2`); at camp, "Why can't he erase me?" (`duskCamp`); and in camp banter, "They found me on some steps. Soaked." and Pip's "I've known you a long time." To add: R8, Ambrose tells of "my boy" and never says his name | R11 |
 
 (Never let Ambrose say his son's name before Region 11. When he finally does, it is the end of the scene.)
 
@@ -388,26 +388,33 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
 - **Beat:** Rowan sees, for the first time, that Ambrose was *right about the problem*: the forge-folk did lose people
   to the lava. Torva's crew was chained in pairs. The question changes from "is he wrong" to "what does a fix cost".
 
-### Region 4: Lanternfen (working id `duskmire`; Team 3 builds it)
-- **Original:** a wide coastal fen at the river's mouth: reed channels, stilt villages, and at night a thousand
-  lanterns. The sea's tide ran in and out twice a day through the reeds; the fen-folk lived by their tide tables. A
-  spring tide at night could drown the careless; a tipped lantern could burn a whole stilt row.
-- **His redraw:** "No more fires, and no more night to drown in." He drew the lanterns out and held the sun just under
-  the horizon: an endless dusk, never black night, never day. He put the tide on a short leash: in and out every few
-  minutes, never higher than a knee.
-- **Bar rules:** **dark blocks** (nothing is lit any more; you see only what your own light reaches); **tides** (the
-  water never rests: the level on the bar rises and falls).
-- **Boss (suggestion): Mirewick, the Fen Angler**, a vast old angler-toad from the deep channels. Keystone: **the last
-  lantern**, which Ambrose hung on its lure: the only light in the fen. (The world map already paints a lamp in the
-  fen, "the Mirelight": that is the last lantern, seen from afar.)
-  - Phase 2 edit: "The tide comes in." He draws the tide higher and quicker.
-  - Phase 3 edit: "Lights out." He snuffs the lure: dark everywhere but the cursor's own light.
-- **Restoring:** true night comes back, with stars, and the fen-folk light their lanterns one by one: the victory
-  image is a thousand lanterns. The tide turns twice a day again; they'll read their tables again.
-- **Beat:** he begins to scrape the continent itself for ink: a fen village on the coast goes blank in front of Rowan.
-  Vesper's home. Rowan walks into the blank to the sleepers and admits he can't swim. Ambrose at the boss: "One
-  village, sleeping, to save a thousand houses from fire. You would do the same sum." An old fen-woman at the end:
-  "The river ran down from the north, once" (twist 2 seed). Drafted in `src/data/story-fen.ts`.
+### Region 4: the Duskmire (Lanternfen, The Drowned Causeway, The Gloaming Mere; Team 3 built its data)
+- **Original:** Lanternfen, a wide fen of reed beds, black water and stilt houses, lit at night by lanterns on poles;
+  the sea's tide ran in and out through the reeds and the fen-folk lived by their tide tables. A tipped lantern could
+  burn a whole stilt row; a night tide could drown the careless.
+- **His redraw:** he thought it "badly lit and badly drained". He inked the sun into one lighthouse lamp, so light
+  goes only where he points it and nobody needs a flame; and he penciled the shore in, so the tide comes and goes on
+  his timetable and never surprises anyone. The sky is stuck at sunset, and whatever he hasn't inked yet stays dark.
+- **Bar rules:** **dark blocks** (what he hasn't inked: you see only what your own lantern reaches); **tides** (his
+  penciled shoreline, rubbed out and redrawn on a timetable: the water rises and falls on the bar).
+- **Mini-bosses:** Old Bellybog (a toad the size of a hut who swallows the fen's lanterns, "free light, just lying
+  around", and glows from inside: "Nobody's been warm out there for a month."); the Sluice Keeper (a beaver engineer
+  who runs the floodgates on the Mapmaker's timetable and believes in it: "Before the timetable, the tide came when it
+  liked. It took my brother.").
+- **Boss: the Gloaming Lighthouse**, a lighthouse he drew wading in the mere on stone legs; he speaks from its gallery
+  (it doesn't speak). Keystone: **the lamp, with the sun shut in it** (the world map's glow in the fen, "the
+  Mirelight", is that lamp seen from afar).
+  - Phase 2 edit: "The shoreline was in the wrong place." The water comes in from both sides.
+  - Phase 3 edit: "And nobody needs a sky." He rubs the sky out: dark but for the light Rowan carries.
+- **Restoring:** the lamp cracks; the sun rolls out and sets at last; true night, the fen-folk's lanterns one by one;
+  then morning. The tide keeps its own time again; they'll read their tables again.
+- **Beat:** he begins to scrape the continent itself for ink: a causeway village goes blank in front of Rowan, who
+  walks into the blank to the sleepers (and on the white water). At camp Rowan asks Pip why he can't be erased ("I
+  don't know everything, Rowan."). On the mere Rowan admits he can't swim. Ambrose at the boss: "One village,
+  sleeping, to save a thousand houses from fire. You would do the same sum." An old fen-woman at the end: "The river
+  ran down from the north, once" (twist 2 seed). Vesper's home. Scenes: `src/data/story-dusk.ts` (Team 3's ids:
+  `dusk1`, `bellybog`, `duskCamp`, `dusk2`, `sluiceKeeper`, `dusk3`, `lighthouse`, `lighthouse2`, `lighthouse3`,
+  `duskVictory`).
 
 ### Region 5: Noonspire (working id `noonspire`)
 - **Original:** a high desert plateau of white stone towers and great sundials; the people kept time and direction by
@@ -488,7 +495,6 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
 | the pendulum emblem (shrine gable, camp, gear) | the Atlas's **compass rose** |
 | the narrator's portrait (the Pendulum's bob) | the Atlas: a corner of a living map, with a compass rose |
 | the Boar King's "pendulum bob" crown | the crown he drew: gold, with faint glowing ink lines |
-| the fen's map label "Duskmire" | **Lanternfen** (the id `duskmire` stays) |
 | the act clear / world map's "weight" pips (12 dots) | 12 small compass roses, lit as regions are restored |
 | item: Pendulum Shard (effect "Tick, Tock") | **Keystone Shard** (effect "Fresh Ink": every 10th combo hit draws a green block) |
 | Bellows's anvil "with the brass pendulum weight" | the anvil that never cools, glowing gold ink along its edge |
@@ -510,11 +516,11 @@ bible. New speakers: `mapmaker` ("The Mapmaker"), `keeper` ("Hesper"); both need
 
 Status (round 8, chunk 1): Regions 1-3 rewritten (`story.ts`, `story-ash.ts`), editor-passed, tests updated; the
 chest heroes' arrivals say whose home was redrawn; the welcome back catches a returning player up; Region 4's scenes
-are drafted in `src/data/story-fen.ts` (ids `fen1`-`fen3`, `fenBoss`, `fenBoss2`, `fenBoss3`, `fenVictory`; not in play
-until Team 3 wires the region; its mini-bosses' scenes wait for their foes), and Region 5's in `src/data/story-noon.ts`
+are written into Team 3's ids in `src/data/story-dusk.ts` (not in play until the region is wired in; new speakers
+`bellybog` and `sluiceKeeper` need portraits), and Region 5's are drafted in `src/data/story-noon.ts`
 (`noon1`-`noon3`, `noonBoss`-`noonBoss3`, `noonVictory`; its phase hints are placeholders until its rules exist). Still to do: the `road` hook; banter that
-follows the story (lines gated on scenes, like `banter-ash.ts`, which is itself not wired yet); the mini-bosses'
-scenes for Regions 4-5; the bosses' portraits and the two new speakers' (`portrait_mapmaker`, `portrait_keeper`: until they exist the
+follows the story (lines gated on scenes, like `banter-ash.ts`, which is itself not wired yet); Region 5's
+mini-bosses' scenes (once its foes exist); the bosses' portraits and the two new speakers' (`portrait_mapmaker`, `portrait_keeper`: until they exist the
 story view shows Phaser's missing-texture box); `keeper` belongs with the allies' warm look in `view/story.ts`.
 
 ---
@@ -534,6 +540,9 @@ story view shows Phaser's missing-texture box); `keeper` belongs with the allies
 - **Lead:** `WELCOME_ID` in `src/data/tips.ts` is still `welcomeM4a`, so a returning player who saw the old welcome
   won't see the new one (which now catches them up on the story); bumping it (e.g. `welcomeR8`) replays it once
   (`tests/smoke/smoke.spec.ts` checks the id by name). The screenshot baseline `story.png` changes (the new intro).
-- **Content (Team 3):** Region 4 is **Lanternfen** (id `duskmire`); its scenes are drafted in `src/data/story-fen.ts`
-  (section 8 for the why of dark blocks and tides, and the boss). Region 5's in `src/data/story-noon.ts`. Rename
-  anything you like; tell the story team so the scenes follow.
+- **Content (Team 3):** Region 4 keeps your names (the Duskmire; Lanternfen, the Drowned Causeway, the Gloaming
+  Mere; Old Bellybog, the Sluice Keeper, the Gloaming Lighthouse). Its ten scenes are written in your
+  `src/data/story-dusk.ts` (same ids; your placeholders replaced); speakers `bellybog` ("Old Bellybog") and
+  `sluiceKeeper` ("Sluice Keeper") are in the `Speaker` union and need portraits; the lighthouse doesn't speak.
+  `banter-dusk.ts` can now name the Mapmaker. Region 5's scenes are drafted in `src/data/story-noon.ts` (ids for your
+  data to point at). Rename anything; tell the story team so the scenes follow.

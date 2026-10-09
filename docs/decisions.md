@@ -786,6 +786,12 @@ S6. **He works inward; Greenmarch is last and lightest.** A chest hero from any 
 S7. **Region 4's scenes are drafted ahead of its data** (`src/data/story-fen.ts`, not in play): Team 3 points its acts
     at the ids when the region is wired. Its boss doesn't speak; the Mapmaker speaks for it.
 
+S8. **Region 4 keeps Team 3's names** (the Duskmire, its acts Lanternfen, the Drowned Causeway and the Gloaming Mere;
+    Old Bellybog, the Sluice Keeper, the Gloaming Lighthouse), replacing S4's "Lanternfen" for the region and its
+    Mirewick suggestion: their design came in fitting the story (he shut the sun in a lighthouse lamp and penciled the
+    shore onto a timetable), so the story follows it. Its scenes are written into their ids (`story-dusk.ts`); S7's
+    separate draft is gone.
+
 (story: end of section)
 
 
