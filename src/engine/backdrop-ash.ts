@@ -549,12 +549,12 @@ function glass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     }
   // windows of coloured glass grown into the wall, faceted, the lava behind them lighting them up
   const geodes: Array<[number, number, number, number, number]> = [
-    [0.07, G - 44, 8, 13, 0],
+    [0.13, G - 44, 8, 13, 0], // (clear of the dithered edge shade, which turned it into a checkerboard)
     [0.18, G - 56, 6, 10, 3],
     [0.3, G - 50, 5, 8, 1],
     [0.7, G - 54, 6, 9, 2],
     [0.83, G - 46, 8, 13, 1],
-    [0.94, G - 58, 7, 11, 3],
+    [0.765, G - 60, 5, 8, 3],
   ];
   for (const [fx, cy, rx, ry, gi] of geodes) {
     const cx = Math.round(fx * w);

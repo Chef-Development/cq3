@@ -62,7 +62,7 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 3. Relic icons sharing generic glyphs (3): done, the Frostpeaks' 15 painted.
 4. Rowan's fight frames (3): the missing poses are drawn; still off the shared rig (a deliberate look?) and a 2-frame idle.
 5. The dark Ashfell foes (3): done, an ember rim from below.
-6. The glass backdrop (3): partly done (light spill, sockets); the kiln still reads as a blob. The forge re-scored 4.
+6. The glass backdrop (3): done (light spill, sockets, no checkerboard). The forge re-scored 4.
 7. The vault's empty state (3): dim, no focal light (with chests waiting it is a 4).
 8. The spirit stag (3) and the cinder lair (3).
 9. The world map's style (4 in craft): becomes the inked Atlas.
@@ -74,7 +74,7 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Skill icons | 2 | 3 | `after/sheet-icons-skills.png`. The 127 rule nodes and capstones without a painted icon now show the emblem their name is about (15 emblems: smoke, ice, thorns, bomb, flame, shield, arrow, rock, fist, hourglass, bell, sun, clover, dagger, moon; gold corners on capstones; `art-skill-emblems.ts`, unit-tested). Two keep the rune. Still to do: painted icons per node (a hero's tree repeats its theme's emblem). |
 | Relic icons (the Frostpeaks' 15) | 3 | 4 | `after/sheet-icons-relics-items.png`. Each its own picture (a skate, a frost rune, cocoa, a hammer on ice, a plough in snow, an ice heart, a frosted fang, a melting cube, a grip, a held note, a knot, a valve, a tether, a lucky mitten, crampons) instead of a stand-in snowflake or rail. |
 | Dark Ashfell foes (ox, sentinel, forgehand, kite) | 3 | 4 | `after/sheet-foes-ashfell.png`, `after/fight-act8-uplit.png`. Ashfell's light recipe applied: an ember rim along their lower edges (light from below), a faint cool lift on the top edges (`art-ash.ts` emberRim). |
-| Backdrop: glass (partly) | 3 | 3+ | `after/fight-act8-glass-before-after.png` (top before, bottom after). The wall lifted a little, the lake's light spilling out of the opening across it (Ashfell's key from below), the glass windows set in rock sockets so they no longer float. The kiln is still to redo. |
+| Backdrop: glass | 3 | 4 | `after/fight-act8-glass-before-after.png` (top before, bottom after). The wall lifted a little, the lake's light spilling out of the opening across it (Ashfell's key from below), the glass windows set in rock sockets so they no longer float, and moved clear of the dithered edge shade (it had turned the amber one into a checkerboard). |
 | Rowan's fight frames | 3 | 3+ | `after/sheet-heroes-a.png`: the three missing poses drawn on his own pose system (fin: the sword raised high, cape flying; cast: the blade raised forward; down: on one knee over the planted sword), so his finisher, kit moments and defeat no longer borrow other frames. His bigger helmeted head stays (the starter's look). |
 | Heroes' idles (the 14 rig heroes) | 4 | 4+ | A four-step breath instead of two: `idle2`/`idle3`, the head following the body a beat late (secondary motion, bible section 7). |
 | Title screen, logo, key art | 3 | 4 | `before/title-phone.png`; `after/title-phone.png`, `after/title-desktop.png`, `after/title-continue.png`. The Atlas spread open: an inked parchment map, colour come back round the hero, fog over the erased east, a quill drawing the route; the logo built from `GAME_NAME` (Scale3x lettering, gold face, rim light, extrusion, ink outline). |
