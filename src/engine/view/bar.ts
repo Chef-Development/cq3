@@ -28,7 +28,7 @@ import { BOMB_COL, clamp01, deepOf, DYING_MS, dyingStyle, ease, INK, kindCol, mi
 import { focusCap, focusOf } from '../../core/styles';
 import { ImagePool } from './ui';
 import { drawBarRules } from './bar-links';
-import { drawDarkShape, drawLantern, drawWater } from './bar-dusk';
+import { drawDarkShape, drawLantern, drawWater, glisten } from './bar-dusk';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -658,6 +658,9 @@ export class BarView {
       const lk = (c.time - b.litAt) / 0.3;
       if (lk >= 0 && lk < 1) rows(g, X, Y, W, H, 2, 0xffe6a8, 0.85 * (1 - lk));
     }
+    // a block just come up out of the water glistens: drips running off it, a glint on its top
+    const sk = (c.time - b.surfacedAt) / 0.6;
+    if (sk >= 0 && sk < 1) glisten(g, X, Y, W, H, sk);
     // Oil Can ready (Sprocket): every block's Perfect zone shows, wider, in gold, until the next hit
     if (c.perk.oil === 1 && !b.still && (isRed(b.kind) || (isAttack(b.kind) && b.kind !== 'hold'))) this.drawOil(g, c, b, X, Y, W, H, now);
     if (b.kind === 'shield') {

@@ -146,3 +146,13 @@ export function drawWater(g: G, c: Combat, t: number, now: number, B: BarBox, bx
     g.fillRect(x + 5 + k, B.y + 3, 2, 1);
   }
 }
+
+/** A block just come up out of the water (k: 0..1 of its moment): drips running off its foot, a glint on its top. */
+export function glisten(g: G, x: number, y: number, w: number, h: number, k: number): void {
+  const a = 1 - k;
+  g.fillStyle(FOAM, 0.9 * a);
+  g.fillRect(x + 1, y + 1, Math.max(1, w - 2), 1);
+  g.fillStyle(SURF, 0.85 * a);
+  const drop = Math.round(k * 4);
+  for (const dx of [1, Math.round(w / 2), w - 2]) g.fillRect(x + dx, y + h + drop - 1, 1, 1);
+}
