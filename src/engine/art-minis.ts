@@ -737,8 +737,179 @@ const DUSK_MINIS: Record<string, Mini> = {
   })(),
 };
 
+// ------------------------------------------------------------------ the fifth region's foes (their fight sprites: art-noon.ts, to come)
+
+// a white plateau under a nailed noon sun: sun-bleached sand and stone, brass, and something white-hot on each
+const SAND = { 1: '#5a3a22', 2: '#8a5a32', 3: '#b8844a', 4: '#dcb06a', 5: '#f2d494', 6: '#fff0c8' };
+const BRASS = { b: '#6a4214', B: '#a8701c', g: '#e0a82e', G: '#ffe07a' };
+const SUNHOT = { h: '#ff8a24', H: '#ffc84a', Z: '#fffbe0' };
+
+const NOON_MINIS: Record<string, Mini> = {
+  // a sand skink, a blue stripe down its back, a flicking tongue
+  duneskink: (() => {
+    const f0 = ['............', '..4444......', 'r4E44c444...', '.4444c44443.', '..3.3cc44333', '..2..2...322'];
+    return { pal: { ...SAND, E: '#140c1c', c: '#3a86c8', r: '#e0463c' }, frames: [f0, ['............', '..4444......', '.4E44c444...', 'r4444c44443.', '..3.3cc44333', '..2..2...322']] };
+  })(),
+  // a pale gold hawk, wings flashing white in the glare
+  glarehawk: {
+    pal: { ...SAND, W: '#ffffff', E: '#140c1c', y: '#e0a040' },
+    frames: [
+      ['......W......', '....WW5W.....', '...W5554W....', 'yy4E5544333..', '..44444433322', '....333..22..', '.....y..y....'],
+      ['.............', 'W...........W', '.WW5.....5WW.', 'yy4E5544333..', '..44444433322', '....333..22..', '.....y..y....'],
+    ],
+  },
+  // a veiled dune bandit: a sand scarf, a curved blade, a mirror on his back
+  dunebandit: (() => {
+    const f0 = ['...555...', '..5kEk5..', '..55555M.', 's.4444MM.', '.s44444M.', '..s4444..', '...4444..', '...3..3..', '..33..33.', '.........'];
+    return { pal: { ...SAND, k: '#3a2a2a', E: '#ffe680', M: '#d8f0ff', s: '#c8d0dc' }, frames: [f0, bob(f0, 7)] };
+  })(),
+  // elite: a sandstone colossus, sand pouring from its joints
+  dunecolossus: (() => {
+    const f0 = [
+      '....44444.....',
+      '...4555554....',
+      '..45E55E5543..',
+      '..4555555543..',
+      '.344455544433.',
+      '3444455544443.',
+      '344.44544.443.',
+      '33..44444..33.',
+      '5...44.44...5.',
+      '...444.444....',
+      '...33...33....',
+    ];
+    return { pal: { ...SAND, E: '#ff8a24' }, frames: [f0, bob(f0, 8)] };
+  })(),
+  // mini-boss: a sphinx, a lion's body, a striped headdress of lapis and gold
+  sphinx: (() => {
+    const f0 = [
+      '..gLgLg..........',
+      '.gLgLgLg.........',
+      '.L5E55Lg.........',
+      '.g5555gL.........',
+      '.L.55.gLg444444..',
+      '...4544444444443.',
+      '...44444444444433',
+      '...4444444444433.',
+      '...444.33..444.3.',
+      '...33..33..33....',
+      '..33..33..33.....',
+    ];
+    return { pal: { ...SAND, g: '#e0a82e', L: '#2a4a9a', E: '#140c1c' }, frames: [f0, bob(f0, 8)] };
+  })(),
+  // a scarab rolling a sun-hot ball
+  emberscarab: (() => {
+    const f0 = ['.HZ.......', 'hHHh..bbb.', 'hHHhbBgBb.', '.hhbBBBBbb', '..bbbBBbb.', '..b.b.b.b.', '..........'];
+    return { pal: { ...BRASS, ...SUNHOT }, frames: [f0, ['.ZH.......', 'hHHh..bbb.', 'hHHhbBgBb.', '.hhbBBBBbb', '..bbbBBbb.', '...b.b.b.b', '..........']] };
+  })(),
+  // a brass automaton with a sun disc for a chest
+  brasssentry: (() => {
+    const f0 = ['...ggg...', '..gEgEg..', '..ggggg..', '...bBb...', '.bBHZHBb.', 'bB.HHH.Bb', 'b..bBb..b', '...bBb...', '...b.b...', '..bb.bb..', '.........'];
+    return { pal: { ...BRASS, ...SUNHOT, E: '#140c1c' }, frames: [f0, bob(f0, 8)] };
+  })(),
+  // an orange salamander with flame spots
+  sandsalamander: (() => {
+    const f0 = ['............', '.hhh........', 'hEhhhHhhh...', '.hhHhhhhHhh.', '..h.h..hhhhh', '..q..q...qqq'];
+    return { pal: { ...SUNHOT, E: '#140c1c', q: '#a0441a' }, frames: [f0, ['............', '.hhh........', 'hEhhhHhhh...', '.hhHhhhhHhh.', '...h.h.hhhhh', '...q..q..qqq']] };
+  })(),
+  // elite: a golem forged white-hot, a kiln door for a heart
+  sunforgedgolem: (() => {
+    const f0 = [
+      '....66666.....',
+      '...6555556....',
+      '..65H55H5543..',
+      '..6555555543..',
+      '.355bHZHb5433.',
+      '3555bZZZb54443',
+      '355.bHHHb.4443',
+      '33..55555..33.',
+      '....55.55.....',
+      '...555.555....',
+      '...44...44....',
+    ];
+    return { pal: { ...SAND, ...SUNHOT, b: '#6a4214' }, frames: [f0, bob(f0, 7)] };
+  })(),
+  // mini-boss: a brass lion, its mane too hot to touch
+  brasslion: (() => {
+    const f0 = [
+      '.hHh.............',
+      'hHgHh............',
+      'HgEgHh...........',
+      'hggggHh..........',
+      '.hgggHhBBBBBBB...',
+      '..hHhBBgggggBBb..',
+      '...BBggggggggBbb.',
+      '...BBgggggggBBb.g',
+      '...BBB.bb..BBB..g',
+      '...bb..bb..bb....',
+      '..bb..bb..bb.....',
+    ];
+    return { pal: { ...BRASS, ...SUNHOT, E: '#140c1c' }, frames: [f0, bob(f0, 8)] };
+  })(),
+  // a dial warden in sun-white robes, a hand mirror raised
+  dialwarden: (() => {
+    const f0 = ['...666...', '..6kEk6..', '..66666..', 'M.65556..', 'Mh655556.', '.h655556.', '..65556..', '..65556..', '..55555..', '..4...4..', '.44...44.'];
+    return { pal: { ...SAND, k: '#3a2a2a', E: '#ffe680', M: '#d8f0ff', h: '#c08a5a' }, frames: [f0, bob(f0, 8)] };
+  })(),
+  // a heat djinn: a wavering column of orange air with a sly face
+  heatdjinn: {
+    pal: { ...SUNHOT, q: '#e0501c', k: '#140c1c' },
+    frames: [
+      ['...HH.....', '..HZZH....', '.HZkZkH...', '.HZZZZH...', '..hHHh....', '...hHh....', '....hh....', '...hh.....', '..qh......', '..q.......', '..........'],
+      ['....HH....', '...HZZH...', '..HZkZkH..', '..HZZZZH..', '...hHHh...', '...hHh....', '...hh.....', '....hh....', '.....hq...', '......q...', '..........'],
+    ],
+  },
+  // a sun vulture, wings bleached white, a bald red head
+  sunvulture: {
+    pal: { ...SAND, W: '#f8f4ec', r: '#d04a3a', E: '#140c1c' },
+    frames: [
+      ['.............W', '..rr......WWW.', '.rEr....WWW5..', '.r33WWWWW55...', '..3333WW5.....', '...333........', '....3.3.......', '..............'],
+      ['..............', '..rr..........', '.rEr..........', '.r33WWWWWWWWW.', '..3333WWW55WWW', '...333....5W..', '....3.3.......', '..............'],
+    ],
+  },
+  // elite: a noon knight in white-gold armour behind a polished mirror shield
+  noonknight: (() => {
+    const f0 = [
+      '....GGG.....',
+      '...GggGg....',
+      '...gkkkg....',
+      '...ggggg....',
+      '.MM.gGGgg...',
+      'MZMMgGGGgg..',
+      'MMMMgGGGg.s.',
+      'MZMMggggg.s.',
+      '.MM.ggggg.s.',
+      '....gg.gg...',
+      '....gg.gg...',
+      '...bb..bb...',
+      '............',
+    ];
+    return { pal: { ...BRASS, M: '#d8f0ff', Z: '#ffffff', k: '#140c1c', s: '#c8d0dc' }, frames: [f0, bob(f0, 9)] };
+  })(),
+  // the boss: the Gnomon, the great sundial's needle stood up on brass legs, the Nail through the sun above it
+  gnomon: (() => {
+    const f0 = [
+      '......HZH.......',
+      '.....HZZZH......',
+      '......HnH.......',
+      '.......n........',
+      '.......Gg.......',
+      '......GGgg......',
+      '.....GGEggg.....',
+      '....GGGgggg.....',
+      '...GGGGggggg....',
+      '..GGGGggggggb...',
+      '.bbbbbbbbbbbbb..',
+      '...bb.....bb....',
+      '..bb.......bb...',
+      '.66666666666666.',
+    ];
+    return { pal: { ...BRASS, ...SUNHOT, n: '#8a8a96', E: '#140c1c', 6: '#fff0c8' }, frames: [f0, ['.....HZZH.......', '....HZZZZH......', ...f0.slice(2)]] };
+  })(),
+};
+
 /** Every foe sprite's map-scale stand-in: `mfoe_${sprite}_${frame}`. */
-export const MINIS: Record<string, Mini> = { ...GREENMARCH_MINIS, ...FROST_MINIS, ...ASH_MINIS, ...DUSK_MINIS };
+export const MINIS: Record<string, Mini> = { ...GREENMARCH_MINIS, ...FROST_MINIS, ...ASH_MINIS, ...DUSK_MINIS, ...NOON_MINIS };
 
 /** What's drawn for a sprite with no mini (and recorded in MINI_MISSES): the crossed swords. */
 export const MINI_FALLBACK = 'mapicon_fight';
