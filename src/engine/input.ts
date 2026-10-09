@@ -380,6 +380,12 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
   };
 
   window.addEventListener('keydown', (e) => {
+    // Escape closes the gear panel, wherever the focus is in it
+    if (e.key === 'Escape' && app.panelOpen) {
+      e.preventDefault();
+      ui.togglePanel();
+      return;
+    }
     // a HUD button clicked with the mouse keeps the focus: the keys are the game's again (Space must not re-click it)
     if (e.target instanceof HTMLElement && e.target.closest('#hud')) e.target.blur();
     else if (inUi(e.target)) return;
