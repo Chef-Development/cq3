@@ -170,11 +170,22 @@ function paintAtlas(): HTMLCanvasElement {
   const p = new Px(TITLE_W, TITLE_H);
   const W = TITLE_W;
   const H = TITLE_H;
+  // the two fields every pass asks about, computed once per pixel (the paint runs at boot)
+  const FOGF = new Float32Array(W * H);
+  const LIVE = new Float32Array(W * H);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      FOGF[y * W + x] = fogness(x, y);
+      LIVE[y * W + x] = aliveness(x, y);
+    }
+  const cl = (v: number, n: number) => Math.max(0, Math.min(n - 1, Math.round(v)));
+  const fogAt = (x: number, y: number) => FOGF[cl(y, H) * W + cl(x, W)];
+  const aliveAt = (x: number, y: number) => LIVE[cl(y, H) * W + cl(x, W)];
   // ink goes through here: lines fade, then break, then vanish as the fog thickens (erased land)
   const ink = (x: number, y: number, col = AINK[1]) => {
     x = Math.round(x);
     y = Math.round(y);
-    const f = fogness(x, y);
+    const f = fogAt(x, y);
     // erased land keeps the impression: the dent of every line once pressed into the vellum, pale, lit from the
     // top left (story-bible section 2, rule 5)
     if (f > 0.72 || (f > 0.42 && hash(x, y, 9) < (f - 0.42) * 2.6)) {
@@ -211,7 +222,7 @@ function paintAtlas(): HTMLCanvasElement {
       else if (e < 3) col = PARCH[2];
       else if (e < 5 && dither(x, y, 0.5)) col = PARCH[3];
       // the erased land: the paper bleaches toward the fog's grey
-      const f = fogness(x, y);
+      const f = fogAt(x, y);
       if (f > 0.55) col = dither(x, y, smooth(0.55, 0.9, f)) ? FOG[3] : FOG[2];
       else if (f > 0.35 && dither(x, y, smooth(0.35, 0.55, f))) col = FOG[3];
       p.set(x, y, col);
@@ -221,14 +232,14 @@ function paintAtlas(): HTMLCanvasElement {
     const x = Math.floor(hash(i, 1, 21) * W);
     const y = Math.floor(hash(i, 2, 21) * H);
     const len = 4 + Math.floor(hash(i, 3, 21) * 6);
-    for (let k = 0; k < len; k++) if (fogness(x + k, y) < 0.4 && p.get(x + k, y) !== PARCH[1]) p.set(x + k, y, PARCH[3]);
+    for (let k = 0; k < len; k++) if (fogAt(x + k, y) < 0.4 && p.get(x + k, y) !== PARCH[1]) p.set(x + k, y, PARCH[3]);
   }
 
   // 2. the sea (west): watercolour where it is alive, ripple lines parallel to the coast
   for (let y = 4; y < H - 4; y++) {
     const cx = coastX(y);
     for (let x = 4; x < Math.ceil(cx); x++) {
-      const a = aliveness(x, y);
+      const a = aliveAt(x, y);
       const d = cx - x;
       if (a > 0.5) {
         const depth = d + (fbm(x, y, 6, 2) - 0.5) * 4;
@@ -238,7 +249,7 @@ function paintAtlas(): HTMLCanvasElement {
   }
   for (let y = 4; y < H - 4; y++) {
     const cx = coastX(y);
-    const alive = aliveness(cx - 3, y) > 0.5;
+    const alive = aliveAt(cx - 3, y) > 0.5;
     for (const off of [3, 6, 10]) {
       const x = Math.round(cx - off);
       if (x < 5) continue;
@@ -257,7 +268,7 @@ function paintAtlas(): HTMLCanvasElement {
   for (let y = 4; y < H - 4; y++)
     for (let x = 4; x < W - 4; x++) {
       if (isSea(x, y) || Math.abs(x - coastX(y)) < 1) continue;
-      const a = aliveness(x, y);
+      const a = aliveAt(x, y);
       if (a <= 0.3) continue;
       const n = fbm(x, y, 7, 31);
       const light = n + (1 - Math.hypot(x - 30, y - 50) / 120) * 0.25;
@@ -311,7 +322,7 @@ function paintAtlas(): HTMLCanvasElement {
     if (isSea(x, y)) continue;
     const edge = !wet.has(k - 1) || !wet.has(k + 1) || !wet.has(k - W) || !wet.has(k + W);
     if (edge) ink(x, y);
-    else if (aliveness(x, y) > 0.5) p.set(x, y, wet.has(k - W - 1) && wet.has(k - 2 * W) ? SEA[3] : SEA[4]);
+    else if (aliveAt(x, y) > 0.5) p.set(x, y, wet.has(k - W - 1) && wet.has(k - 2 * W) ? SEA[3] : SEA[4]);
   }
 
   // 5. mountains: a range in ink (lit left slope, hatched right slope), rising toward the north east
@@ -322,7 +333,7 @@ function paintAtlas(): HTMLCanvasElement {
       const hw = Math.round((y - top) * 0.95);
       for (let x = cx - hw; x <= cx + hw; x++) {
         const east = x > cx;
-        const f = fogness(x, y);
+        const f = fogAt(x, y);
         if (f > 0.72) continue;
         const snow = alive && y < top + 3;
         let col = east ? (alive ? EARTH[1] : PARCH[3]) : alive ? EARTH[3] : PARCH[5];
@@ -336,7 +347,7 @@ function paintAtlas(): HTMLCanvasElement {
     }
     // the crest runs down from the peak, a little east of the middle
     for (let k = 1; k < Math.round(h * 0.6); k++) ink(cx + Math.floor(k / 3), top + k, alive ? EARTH[0] : PARCH[2]);
-    for (let x = cx - h; x <= cx + h; x++) if (p.get(x, by + 1) !== -1 && fogness(x, by + 1) < 0.5) ink(x, by + 1, AINK[2]);
+    for (let x = cx - h; x <= cx + h; x++) if (p.get(x, by + 1) !== -1 && fogAt(x, by + 1) < 0.5) ink(x, by + 1, AINK[2]);
     ink(cx, top);
   };
   const peaks: Array<[number, number, number]> = [
@@ -359,11 +370,11 @@ function paintAtlas(): HTMLCanvasElement {
     [172, 36, 9],
   ];
   peaks.sort((a, b) => a[1] - b[1]);
-  for (const [x, y, h] of peaks) peak(x, y, h, aliveness(x, y) > 0.5);
+  for (const [x, y, h] of peaks) peak(x, y, h, aliveAt(x, y) > 0.5);
 
   // 6. forests: little round trees; green and lit where alive, ink loops with a hatched side elsewhere
   const tree = (x: number, y: number) => {
-    const alive = aliveness(x, y) > 0.55;
+    const alive = aliveAt(x, y) > 0.55;
     if (isSea(x, y) || isSea(x + 4, y + 4)) return;
     const shape = ['.###.', '#####', '#####', '.###.'];
     shape.forEach((r, yy) =>
@@ -417,7 +428,7 @@ function paintAtlas(): HTMLCanvasElement {
 
   // 7. villages and a castle; roads between them in dotted ink
   const house = (x: number, y: number) => {
-    const alive = aliveness(x, y) > 0.55;
+    const alive = aliveAt(x, y) > 0.55;
     const rows = ['..k..', '.krk.', 'krrrk', '.wwwk', '.wdwk', '.kkkk'];
     rows.forEach((r, yy) =>
       [...r].forEach((c, xx) => {
@@ -447,7 +458,7 @@ function paintAtlas(): HTMLCanvasElement {
   // 8. a little ship on the bay, and a sea serpent's coils further out (ink doodles)
   const ship = ['...k...', '..kkk..', '.kkkkk.', '...k...', 'kkkkkkk', '.kkkkk.'];
   ship.forEach((r, yy) => [...r].forEach((c, xx) => c === 'k' && ink(14 + xx, 112 + yy, xx === 3 || yy >= 4 ? AINK[0] : AINK[1])));
-  if (aliveness(16, 114) > 0.5) {
+  if (aliveAt(16, 114) > 0.5) {
     p.set(15, 114, PARCH[5]);
     p.set(16, 114, PARCH[5]);
     p.set(17, 114, PARCH[5]);
