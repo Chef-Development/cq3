@@ -67,6 +67,12 @@ export function sameLayout(a: ScreenLayout, b: ScreenLayout): boolean {
   return (Object.keys(a) as Array<keyof ScreenLayout>).every((k) => a[k] === b[k]);
 }
 
+/** The same game-px layout (the safe areas): the scene has nothing to rebuild, only the canvas moves or scales. A
+ *  desktop window being resized changes the placement on every step; rebuilding the art each time froze it. */
+export function sameGameLayout(a: ScreenLayout, b: ScreenLayout): boolean {
+  return a.safeTop === b.safeTop && a.safeBottom === b.safeBottom && a.safeLeft === b.safeLeft && a.safeRight === b.safeRight;
+}
+
 export function applyCanvasLayout(canvas: HTMLCanvasElement, l: ScreenLayout): void {
   const st = canvas.style;
   st.setProperty('position', 'absolute', 'important');

@@ -59,7 +59,13 @@ function serviceWorker(): Plugin {
 
 export default defineConfig({
   base: BASE,
-  build: { target: 'es2022', chunkSizeWarningLimit: 2500 },
+  build: {
+    target: 'es2022',
+    chunkSizeWarningLimit: 2500,
+    // Phaser in a chunk of its own (docs/perf.md): it never changes between deploys, so a phone that has it keeps it
+    // and a new build downloads only the game's own code; the two download side by side on a first visit.
+    rolldownOptions: { output: { codeSplitting: { groups: [{ name: 'phaser', test: /node_modules[\\/]phaser[\\/]/ }] } } },
+  },
   plugins: [serviceWorker()],
   define: { __BUILD__: JSON.stringify(BUILD) },
   server: { host: true },

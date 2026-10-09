@@ -37,15 +37,23 @@ frame.id = 'frame';
 frame.hidden = true;
 document.body.insertBefore(frame, document.body.firstChild);
 for (const [k, v] of Object.entries(hudButtonImages())) rootStyle.setProperty(`--img-${k}`, `url(${v})`);
-const relayout = (force = false) => {
-  if (!app.relayout(force)) return;
+/** Put the canvas (and the frame round it, and the DOM buttons' pixel size) where the current layout says. */
+const place = () => {
   if (game.canvas) applyCanvasLayout(game.canvas, app.layout);
   applyFrame(frame, app.layout);
   // DOM HUD buttons are pixel art too: size them in game pixels.
   rootStyle.setProperty('--gpx', `${app.layout.scale / app.layout.dpr}px`);
   rootStyle.setProperty('--game-top', `${app.layout.top}px`);
 };
-game.events.once(Phaser.Core.Events.READY, () => relayout(true));
+const relayout = (force = false) => {
+  if (app.relayout(force)) place();
+};
+// the canvas exists now: place it (the scene laid itself out in create(); repainting every texture again here cost a
+// second of the title's first moments: docs/perf.md)
+game.events.once(Phaser.Core.Events.READY, () => {
+  app.relayout();
+  place();
+});
 // Debug/test handle (used by the Playwright smoke test).
 const handle: Record<string, unknown> = {
   app,

@@ -10,7 +10,7 @@ import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import { markWelcomed, TipCoach, welcomeScene } from '../core/tips';
 import type { Settings, Tuning } from '../core/tuning';
 import { AMBIENCES, Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
-import { computeLayout, sameLayout, type ScreenLayout } from './layout';
+import { computeLayout, sameGameLayout, sameLayout, type ScreenLayout } from './layout';
 import { clearRunSave, eraseProgress, loadLabAcc, loadProfile, loadRunSave, saveSoon, setStorageSlot, writeLabAcc, writeProfile, writeRunSave } from './storage';
 
 export interface View {
@@ -660,8 +660,10 @@ export class App {
   relayout(force = false): boolean {
     const l = computeLayout();
     if (!force && sameLayout(l, this.layout)) return false;
+    // (only the canvas's place or scale changed, e.g. a desktop window resized: no scene rebuild, main.ts moves it)
+    const rebuild = force || !sameGameLayout(l, this.layout);
     this.layout = l;
-    if (this.sceneReady) this.view?.onLayout(); // before that, the scene's create() lays out with this.layout
+    if (this.sceneReady && rebuild) this.view?.onLayout(); // before that, the scene's create() lays out with this.layout
     return true;
   }
 }

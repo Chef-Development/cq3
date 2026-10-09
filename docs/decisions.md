@@ -800,6 +800,14 @@ L2. **One branch, one PR.** The run continues PR #7's branch on `claude/exciting
 - **Q4 Clean capture** (`cq3.cleanCapture` in `storage.ts`): the gear panel's Modes row or C hides the whole HUD
   (pause, gear, the lab's Done) and the title's Test lab button. The way back is a long press (0.8 s) where the gear
   sits (top middle), or C. Kept across launches; a toast says how to undo it.
+- **Q5 Performance first: stop painting twice** (docs/perf.md, `tests/perf/perf.mjs` run by hand: CPU 4x, Fast 4G).
+  The load is CPU (painting every texture at boot), not download. `main.ts` forced a second full repaint when
+  Phaser said READY, after the scene had laid itself out (the title froze ~2 s before answering); and any change of
+  the canvas's place (each step of a desktop window resize) repainted everything (1.2-1.4 s a step). Now READY only
+  places the canvas, and `app.relayout` rebuilds the scene only when the safe areas change (`sameGameLayout`). Title
+  ready 12.1 s -> 7.8 s, first fight 18.6 s -> 14.3 s, a resize settles in 28 ms instead of 1.3 s. Phaser is its own
+  chunk (unchanged between deploys: a new build re-downloads only the game's 753 KB gzip, not 1.1 MB). Lazy boot
+  painting and atlases are the next big wins but sit in the art files: proposed in docs/perf.md, not done.
 (qa: end of section)
 
 
