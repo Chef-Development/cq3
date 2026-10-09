@@ -79,3 +79,12 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Heroes' idles (the 14 rig heroes) | 4 | 4+ | A four-step breath instead of two: `idle2`/`idle3`, the head following the body a beat late (secondary motion, bible section 7). |
 | Cinder lair | 3 | 4 | `after/lairs-ashfell.png` (left): the paver heap glows in its seams, the left faces catch the cauldron's light, the pitch glows at the brim. |
 | Title screen, logo, key art | 3 | 4 | `before/title-phone.png`; `after/title-phone.png`, `after/title-desktop.png`, `after/title-continue.png`. The Atlas spread open: an inked parchment map, colour come back round the hero, fog over the erased east, a quill drawing the route; the logo built from `GAME_NAME` (Scale3x lettering, gold face, rim light, extrusion, ink outline). |
+
+## Next: the world map as the Great Atlas (a prototype)
+
+`after/world-atlas-prototype.png` (top: the painted world now; bottom: `art-world-atlas.ts`, not wired into the game):
+the open sea as a pale watercolour wash on parchment with ink ripple lines along the coast, the land printed on the
+paper, every coast inked, a double neatline. Lakes and rivers keep their painted water. Still to do: erased land (the
+veils) as blank vellum keeping the impression of its lines (as on the title), the restoring animation (colour blooming
+out from the keystone, lines re-inking), and judging it at phone size before it replaces the painted look (or ships
+behind a Test lab switch first, like the sharper chest reveal).
