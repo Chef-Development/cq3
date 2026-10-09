@@ -5,8 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { DUSKMIRE, DUSK_FIRST_ACT, DUSK_STAND_IN, DUSK_THEMES } from '../../src/data/duskmire';
 import { DUSK_ENEMIES, DUSK_NEW_SOUNDS } from '../../src/data/enemies-dusk';
-import { DUSK_STORY, FEN_SCENE_IDS } from '../../src/data/story-dusk';
-import { FEN_STORY } from '../../src/data/story-fen';
+import { DUSK_STORY } from '../../src/data/story-dusk';
 import { DUSK_BANTER, DUSK_SCENE_ACT } from '../../src/data/banter-dusk';
 import { DUSK_BASE_ITEMS, DUSK_EFFECTS, DUSK_SETS, DUSK_SIGNATURES } from '../../src/data/gear-dusk';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
@@ -15,7 +14,7 @@ import { ASHFELL } from '../../src/data/ashfell';
 import { ENEMIES } from '../../src/data/enemies';
 import { ALL_ACTS } from '../../src/data/regions';
 import { SPEAKER_NAME, STORY } from '../../src/data/story';
-import type { ActionDef, EnemyDef } from '../../src/data/types';
+import type { EnemyDef } from '../../src/data/types';
 import { DEFAULT_TUNING } from '../../src/core/tuning';
 import { TELL_SOUNDS } from '../../src/engine/audio';
 import { textWidth } from '../../src/engine/font';
@@ -29,8 +28,7 @@ describe('Region 4: the region', () => {
   it('three acts of about 8 rows, after the last region (global acts 9-11): mini-boss, mini-boss, boss', () => {
     expect(DUSKMIRE.id).toBe('duskmire');
     expect(DUSK_FIRST_ACT).toBeGreaterThanOrEqual(ALL_ACTS.length);
-    expect(DUSKMIRE.name).toBe('Lanternfen');
-    expect(acts.map((a) => a.boss)).toEqual([['motherMoth'], ['sluiceKeeper'], ['mirewick']]);
+    expect(acts.map((a) => a.boss)).toEqual([['bellybog'], ['sluiceKeeper'], ['lighthouse']]);
     expect(acts.map((a) => a.theme)).toEqual(DUSK_THEMES.map((t) => DUSK_STAND_IN[t]));
     for (const a of acts) {
       expect(a.rows + 1, a.name).toBeGreaterThanOrEqual(7);
@@ -88,13 +86,10 @@ describe('Region 4: the region', () => {
     }
   });
 
-  it("every scene the region names is the story team's (story-fen.ts) or a placeholder here, and none clashes", () => {
-    const known = new Set<string>([...FEN_SCENE_IDS, ...Object.keys(DUSK_STORY)]);
-    const ids = [DUSKMIRE.victoryScene, ...acts.flatMap((a) => [a.startScene, a.bossScene])];
-    for (const id of ids) expect(known.has(id ?? ''), id).toBe(true);
-    for (const e of Object.values(DUSK_ENEMIES)) for (const id of Object.values(e.phaseScenes ?? {})) expect(known.has(id), id).toBe(true);
-    for (const id of FEN_SCENE_IDS) expect(DUSK_STORY[id], `${id} is the story team's`).toBeUndefined();
-    for (const id of FEN_SCENE_IDS) expect(FEN_STORY[id], `${id}: in story-fen.ts`).toBeDefined();
+  it('every scene the region names exists (placeholders until the story team writes them), and none clashes', () => {
+    const ids = [DUSKMIRE.victoryScene, 'duskCamp', ...acts.flatMap((a) => [a.startScene, a.bossScene])];
+    for (const id of ids) expect(DUSK_STORY[id ?? ''], id).toBeDefined();
+    for (const e of Object.values(DUSK_ENEMIES)) for (const id of Object.values(e.phaseScenes ?? {})) expect(DUSK_STORY[id], id).toBeDefined();
     for (const id of Object.keys(DUSK_STORY)) expect(!(id in STORY) || STORY[id] === DUSK_STORY[id], id).toBe(true);
     for (const [id, boxes] of Object.entries(DUSK_STORY)) {
       expect(boxes.length, id).toBeLessThanOrEqual(6);
@@ -160,14 +155,13 @@ describe('Region 4: the foes', () => {
     expect(tides).toBeGreaterThanOrEqual(5);
   });
 
-  it('the boss changes the bar in each phase (the Mapmaker\'s edits); the mini-bosses and the boss have gates', () => {
+  it('the boss changes the bar in each phase (the mapmaker\'s edits); the mini-bosses and the boss have gates', () => {
     const opens = (e: EnemyDef, ph: number) =>
       e.specials.filter((s) => (s.gate ? s.actions.some((a) => a.type === 'phase' && a.phase === ph) : ph === 1 && !!s.phases?.includes(1))).flatMap((s) => s.actions);
-    const boss = DUSK_ENEMIES.mirewick;
-    expect(boss.phaseScenes).toEqual({ 2: 'fenBoss2', 3: 'fenBoss3' });
-    const changesBar = (a: ActionDef) => ['darken', 'snuff', 'tide', 'barRule'].includes(a.type) || (a.type === 'formation' && a.blocks.some((b) => b.dark));
-    for (const ph of [1, 2, 3]) expect(opens(boss, ph).some(changesBar), `phase ${ph}`).toBe(true);
-    for (const k of ['motherMoth', 'sluiceKeeper', 'mirewick']) expect(DUSK_ENEMIES[k].specials.some((s) => s.gate && s.hpBelow), k).toBe(true);
+    const boss = DUSK_ENEMIES.lighthouse;
+    expect(boss.phaseScenes).toEqual({ 2: 'lighthouse2', 3: 'lighthouse3' });
+    for (const ph of [1, 2, 3]) expect(opens(boss, ph).some((a) => ['darken', 'snuff', 'tide', 'barRule'].includes(a.type)), `phase ${ph}`).toBe(true);
+    for (const k of ['bellybog', 'sluiceKeeper', 'lighthouse']) expect(DUSK_ENEMIES[k].specials.some((s) => s.gate && s.hpBelow), k).toBe(true);
   });
 
   it('every red attack is fair to a thumb (the same rules as tests/unit/data.test.ts, at Region 4 red speeds)', () => {
@@ -261,7 +255,7 @@ describe('Region 4: gear and banter', () => {
     const everyone: CampSpeaker[] = ['rowan', 'pip', 'sable', 'smith', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva', 'solenne', 'wren'];
     for (const l of DUSK_BANTER) {
       expect(old.has(l.text), l.text).toBe(false);
-      expect(DUSK_STORY[l.after] ?? (FEN_SCENE_IDS as readonly string[]).includes(l.after), `${l.text}: after ${l.after}`).toBeTruthy();
+      expect(DUSK_STORY[l.after], `${l.text}: after ${l.after}`).toBeDefined();
       expect(DUSK_SCENE_ACT[l.after], l.after).toBeDefined();
       const lines = wrap(l.text);
       expect(lines.length, l.text).toBeLessThanOrEqual(2);
@@ -269,6 +263,6 @@ describe('Region 4: gear and banter', () => {
       const needs = [l.who, ...(l.with ?? [])];
       for (const k of everyone) if (new RegExp(`\\b${SPEAKER_NAME[k]}\\b`).test(l.text)) expect(needs, l.text).toContain(k);
     }
-    for (const id of [...Object.keys(DUSK_STORY), ...FEN_SCENE_IDS]) expect(DUSK_SCENE_ACT[id], id).toBeDefined();
+    for (const id of Object.keys(DUSK_STORY)) expect(DUSK_SCENE_ACT[id], id).toBeDefined();
   });
 });

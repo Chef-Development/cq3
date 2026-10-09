@@ -692,18 +692,16 @@ speed in a slow patch.
 
 ---
 
-## 7. Region 4: LANTERNFEN (secret; id `duskmire`; being built, not in play yet)
+## 7. Region 4: DUSKMIRE (secret; working id `duskmire`; being built, not in play yet)
 
-*The story is docs/story-bible.md's (section 8, "Lanternfen"); the scenes are the story team's (`src/data/story-fen.ts`
-on their branch: `fen1`-`fen3`, `fenBoss`, `fenBoss2`, `fenBoss3`, `fenVictory`); the foes, mini-bosses and the bar
-are Team 3's.*
+*The names here are final (decisions L3); the scenes are the story team's (`src/data/story-dusk.ts`, written to
+docs/story-bible.md section 8). Bellybog and the Sluice Keeper speak in them: both need portraits.*
 
-A wide coastal fen at the river's mouth: reed channels, stilt villages, a thousand lanterns, and the sea's tide running
-in and out through the reeds. The Mapmaker's fix: "No more fires, and no more night to drown in." He drew the flames
-out of the lanterns, held the sun just under the horizon (an endless dusk) and put the tide on a short leash (in and
-out every few minutes, never higher than a knee). Nothing is lit any more but the light you carry, and the water never
-rests. That is why the bar here has **dark blocks** and **tides**. Keystone: the last lantern, **the Mirelight**, which
-he hung on the lure of **Mirewick**, a vast old angler-toad of the deep channels.
+A marsh at dusk that never gets darker and never gets lighter: reed beds, black water, boardwalks on stilts, lanterns
+on poles, a tide that comes and goes on a clock. The exiled mapmaker redrew it his way: he thought the old marsh was
+"badly lit and badly drained", so he inked the sun into one lighthouse lamp (light only where *he* points it) and
+penciled the shoreline in so it can be rubbed out and redrawn on a timetable (the tide). What he hasn't inked yet
+stays dark: you only see what your own light reaches. That is why the bar here has **dark blocks** and **tides**.
 
 ### Bar rules (typed in `BarRules`; the core implements them: `bar.dark`, `bar.tide`)
 Neither rule touches reds' readability: a red is always drawn in full, lit or not, wet or dry. Both read without
@@ -761,11 +759,11 @@ was a gift; 74% at 1); both 97% / 69%; the masher loses every one. Dark traps at
 +34% HP a fight (93% won): too swingy, hence trapMult and the lower shares.
 
 ### Acts
-| Act | Name | Theme (stand-in until painted) | Map look | Rules |
+| Act | Name (working) | Theme | Map look | Rules |
 |---|---|---|---|---|
-| 1 | The Reed Channels | `reeds` (`hollow`) | reed beds and boardwalks under a violet dusk, unlit lanterns on every post, fireflies, will-o'-wisps over black pools, a sunken boat | dark (from row 2) |
-| 2 | Stilt Row | `stilts` (`caves`) | tidal flats, a stilt village over a breathing tide, sluice gates on a timetable, the village going white (the blank) | tides (row 1) + a little dark |
-| 3 | The Deep Channels | `channels` (`glass`) | wide black water, far out the one light (the Mirelight) swaying over something huge | dark + tides; the boss's phases are his edits |
+| 1 | Lanternfen | `fen` | reed beds and boardwalks under a violet dusk, lantern poles, fireflies, will-o'-wisps over black pools, a sunken boat | dark (from row 2) |
+| 2 | The Drowned Causeway | `causeway` | tidal flats, a half-sunk stone road, stilt houses, a tide clock tower with a painted hand, sluice gates | tides (row 1) + a little dark |
+| 3 | The Gloaming Mere | `mere` | a wide black lake under a sky stuck at sunset, a lighthouse wading in the middle of it, the mapmaker's drafting stilts | dark + tides; the boss's phases are edits |
 
 Act scaling (first guesses, each a step above the matching Ashfell act; Act 1 dips below Ashfell's Act 3 as a
 region starts a fresh run): hpMult 7.2 / 7.6 / 8.4, atkMult 15.5 / 16 / 17.5, pace 0.8 / 0.76 / 0.72, redSpeed 1.2 /
@@ -777,7 +775,7 @@ region starts a fresh run): hpMult 7.2 / 7.6 / 8.4, atkMult 15.5 / 16 / 17.5, pa
 | Bog Wisp (`bogWisp`) | 1 | flyer, caster | a will-o'-wisp: a blue-green flame with a sly face and a trailing tail of sparks | **Lure!** two dark shapes land: one yellow, one trap (formation `dark`) |
 | Mire Toad (`mireToad`) | 1 | beast, swarm | a fat olive toad with a lantern-orange throat sac and lazy eyes | **Gulp!** swallows the light: the lantern dims (x0.65, 4 s) and lit blocks outside it go dark |
 | Reedling (`reedling`) | 1 | folk, swarm | a little reed-man, a cattail for a hat, a reed pipe | **Rustle!** 3 yellows on the bar go dark (`darken`) |
-| Peat Golem (`peatGolem`, elite) | 1 | construct, brute | a hulking golem of peat and roots with a caged lantern for a heart | **Peat Slam!** a slow, wide red; **Smother!** the lantern dims (x0.6, 5 s), and 2 dark traps |
+| Peat Golem (`peatGolem`, elite) | 1 | construct, armored | a hulking golem of peat and roots with a caged lantern for a heart | **Peat Slam!** a slow, wide red; **Smother!** the lantern dims (x0.6, 5 s), and 2 dark traps |
 | Mudskipper (`mudskipper`) | 2 | beast, swarm | a goggle-eyed mudskipper standing on its fins, cheeky grin | **Splash!** a surge: the water rushes up to 0.45 of the bar for 3 s |
 | Stilt Heron (`stiltHeron`) | 2 | flyer, folk | a tall heron in a ferryman's coat on long stilts, a punt-pole spear | **Spear Dive!** two fast reds, one behind the other (the second wades in the water) |
 | Lamplighter (`lamplighter`) | 2 | folk, caster | a hunched little lamplighter with a long wick-pole and a hood like a candle snuffer | **Snuff Out!** every block outside the light goes dark, and 2 dark yellows |
@@ -787,40 +785,41 @@ region starts a fresh run): hpMult 7.2 / 7.6 / 8.4, atkMult 15.5 / 16 / 17.5, pa
 | Bog Hag (`bogHag`) | 3 | caster, folk | a mossy marsh hag stirring a kettle on a stick, a lantern-jaw grin | **Fog Bank!** 3 dark shapes (one a trap) and the lantern dims (x0.7, 3 s) |
 | Sunken Sentinel (`sunkenSentinel`, elite) | 3 | construct, armored | a knight's armour full of marsh water, weed for a plume, a drowned lantern | **Floodgate!** a surge (0.5, 4 s); **Blackwater!** 2 dark traps and a still red |
 
-Every hero's soft strength has foes here (folk, caster, beast, swarm, armored, flyer, construct, brute). New foe tag: none (`water` was considered; no hero leans on it, so it would only be a label).
+Every hero's soft strength has foes here (folk, caster, beast, swarm, armored, flyer, construct; brute only in the
+first mini-boss). New foe tag: none (`water` was considered; no hero leans on it, so it would only be a label).
 
 ### Mini-bosses
-- **Mother Moth** (`motherMoth`, Act 1, beast, flyer): a moth the size of a sail, grey-violet with pale eye-spots,
-  starving since the lanterns went out: she goes for your light. **Wingbeat!** (phase 1: the lantern dims x0.6, 4 s,
-  lit blocks outside go dark); **Moth Dive!** a fast red; **Brood!** (below 50%, gate) her brood comes (a Dusk Moths,
-  linked: they flee if she falls) and from then on every 2nd yellow she sends comes dark (`barRule darkEvery 2`);
-  **Wing Dust!** (phase 2) 3 dark shapes, one a trap.
+- **Old Bellybog** (`bellybog`, Act 1, beast, brute): a toad the size of a hut who swallows lanterns ("free light, just
+  lying around") and glows from inside like a paper lamp. **Gulp!** (the lantern dims x0.6, 4 s, lit blocks outside go
+  dark); **Tongue Lash!** a fast red; **Belly Glow!** (below 50%, gate) he burps the lanterns back up, and from then
+  on every 2nd yellow he sends comes dark (`barRule darkEvery 2`); **Burp!** (phase 2) 3 dark shapes, one a trap.
 - **The Sluice Keeper** (`sluiceKeeper`, Act 2, construct, folk): a beaver engineer in a brass diving helmet who runs
-  the floodgates on the Mapmaker's timetable: he keeps the tide on its leash (a pocket watch, a clipboard). **Open the Gates!** a surge
+  the floodgates for the mapmaker on a strict timetable (a pocket watch, a clipboard). **Open the Gates!** a surge
   (0.5 for 4 s); **Dam Up!** a still shield (3 taps) where the cursor is heading; **Spillway!** (below 50%, gate) the
   water comes from both ends (0.25 each, for good: `tide` sec 0); **Overtime!** (phase
   2) two reds, one after the other.
 
-### Boss: Mirewick, the Fen Angler (`mirewick`, Act 3, beast, armored) — each phase is one of the Mapmaker's edits
-A vast old angler-toad of the deep channels, a mouth as wide as a boat; the Mirelight (the last lantern in the fen)
-glows on its lure. It does not speak. The Mapmaker stands by and redraws the fight around his keystone (each phase
-change: his scene, then the bar changes, `phaseScenes`).
-- Phase 1, as drawn: **Lure!** the Mirelight sways: three shapes in the dark below it, two of them traps; **Snap
-  Jaws!** two reds, one after the other.
-- Phase 2 (66%, gate, scene `fenBoss2`), edit one, "The tide comes in." (**Tide Comes In!**): water from both ends for
-  good (0.22 each) on top of the act's swell; **Snap Jaws!** and **Surge!** (0.45 for 3 s, every 7 s).
-- Phase 3 (33%, gate, scene `fenBoss3`), edit two, "Lights out." (**Lights Out!**): he snuffs the lure: every yellow
-  beyond your light goes dark, the lantern burns low for good (x0.7), every yellow it sends comes dark, the cursor
-  never drops below 1.3x; **Snap Jaws!** and **Blackwater!** (2 dark traps and a still red).
-- Beaten (`fenVictory`): the Mirelight goes out, true night falls, and the fen-folk light a thousand lanterns.
+### Boss: the Gloaming Lighthouse (`lighthouse`, Act 3, construct) — each phase is one of the mapmaker's edits
+A lighthouse the mapmaker drew wading in the mere on stone legs, the sun shut in its lamp (that is why the marsh is
+stuck at dusk); its beam sweeps the water, its door a mouth. The mapmaker stands on its gallery with his pen and
+redraws the fight as it goes (each phase change: his scene, then the bar changes, `phaseScenes`).
+- Phase 1, as drawn: **Fog Horn!** every yellow outside the light goes dark, 2 dark traps; **Breakers!** two reds.
+  (Later, with a `lightSweep` action: **Beam Sweep!** the lighthouse's own beam crosses the bar, lighting every dark
+  block it passes, while the lantern dims behind it.)
+- Phase 2 (66%, gate, scene `lighthouse2`), edit one, "the shoreline was in the wrong place" (**Shore Redrawn!**): the
+  tide comes from both ends (0.22 each, for good) on top of the act's swell; **Breakers!** and **Fog Horn!**; every
+  3rd yellow it sends is dark.
+- Phase 3 (33%, gate, scene `lighthouse3`), edit two, "nobody needs a sky" (**Sky Erased!**): blackout: the lantern
+  dims for good (x0.7), every 2nd yellow dark, the cursor never drops below 1.3x; **Breakers!** and **Surge!** (0.45
+  for 3 s, every 8 s). Beaten: the lamp cracks, the sun rolls out and up, and the marsh finally gets its night (and then its
+  morning).
 
-### Story (scene ids)
-- The story team's (`src/data/story-fen.ts`, `FEN_STORY`, not merged): `fen1` (Act 1 start), `fen2` (Act 2 start: a
-  stilt village goes blank in front of them), `fen3` (Act 3 start: the deep channels, the Mirelight), `fenBoss`,
-  `fenBoss2`, `fenBoss3` (his two edits), `fenVictory`.
-- Still to write (asked of the story team; one-line placeholders in `src/data/story-dusk.ts` until then): `motherMoth`
-  and `sluiceKeeper` (the mini-bosses' intros). New speakers if they talk: `sluiceKeeper` (Mother Moth probably
-  doesn't). Mirewick doesn't speak; the Mapmaker is `mapmaker`.
+### Story (scene ids; written by the story team in `src/data/story-dusk.ts`)
+- `dusk1` (Act 1 start), `bellybog` (mini-boss intro), `duskCamp` (a camp scene after Act 1, like `magsTale`),
+  `dusk2` (Act 2 start), `sluiceKeeper` (mini-boss intro), `dusk3` (Act 3 start), `lighthouse` (boss intro),
+  `lighthouse2`, `lighthouse3` (the mapmaker's two edits, mid-fight), `duskVictory` (the sun comes out; next region).
+- Speakers: `bellybog`, `sluiceKeeper` (portraits needed), the Mapmaker (`mapmaker`); the lighthouse doesn't speak (he
+  speaks from its gallery).
 
 ### Relics (Light and Tide tags; offered from the region's first act on: `from: 9`)
 As built (`src/data/relics-dusk.ts`, hooks `core/relic-fx-dusk.ts`, with/without tests `tests/unit/relics-dusk.test.ts`;
@@ -843,28 +842,27 @@ Bases: Reed Spear, Lantern Mace, Peat Maul (weapons); Moss Cowl, Snapper Helm (h
 Stilt Boots, Mud Treads (boots); Wisp Charm, Tide Pearl (trinkets).
 Set: **Lamplighter's** (Wick Hood, Oilskin Coat, Waders, Firefly Jar): 2-piece +20% damage on dark blocks; 4-piece
 blocking a red in the water heals 2% HP (needs core at wiring, beside the Emberwright set's).
-Signature Legendaries (Mirewick): **Lure Lamp** (trinket, *Mirelight*: your light reaches 50% further: a `lightReach`
-hook), **Angler's Fang** (weapon, *Riptide*: blocks just out of the water take x3: `surfacedAt`).
+Signature Legendaries (the Lighthouse): **Sunlamp** (trinket, *Daybreak*: your light reaches 50% further: a
+`lightReach` hook), **Breaker's Edge** (weapon, *Riptide*: blocks just out of the water take x3: `surfacedAt`).
 
 ### Camp banter (`src/data/banter-dusk.ts`, not merged yet)
-10 lines, each waiting for a Region 4 scene (`after`); none names the Mapmaker (the story team's voice for him).
+10 lines, each waiting for a Region 4 scene (`after`), none naming the mapmaker until the story team names him.
 
 ### Music (each piece: a distinct key, tempo and instruments, unlike Regions 1-3 and each other)
 | Piece | Key | Tempo | Instruments / feel |
 |---|---|---|---|
-| The Reed Channels (calm / intense) | Eb Mixolydian | 84, 12/8 shuffle | calm: a slide dobro, soft banjo rolls, a harmonica on the tune, a frog-croak guiro, a cricket shaker, an upright bass walking slow; fight: a washboard groove, the bass in 8ths, the dobro on the tune; lead: a harmonica wail |
-| Stilt Row | G Aeolian | 100, 6/4 (3+3 against 2+2+2: a tide-like hemiola) | calm: a vibraphone with slow tremolo, a low accordion drone, a bowed saw on the tune, water lapping (filtered noise swells every bar); fight: hand claps and a talking drum on the hemiola; lead: a reedy accordion |
-| The Deep Channels | A Phrygian | 120 | calm: a low pipe organ, a choir "oo", a tolling bell every 2 bars, a theremin-like sine with wide vibrato on the tune; fight: a driving 16th bass, taiko, the organ in stabs; lead: the theremin an octave up |
-| Mother Moth (mini-boss) | E Mixolydian | 176, a zydeco two-step | (fight only) an accordion on the tune, a washboard (frottoir) in 16ths, a fiddle, fluttering tremolo strings at each phrase end |
+| Lanternfen (calm / intense) | Eb Mixolydian | 84, 12/8 shuffle | calm: a slide dobro, soft banjo rolls, a harmonica on the tune, a frog-croak guiro, a cricket shaker, an upright bass walking slow; fight: a washboard groove, the bass in 8ths, the dobro on the tune; lead: a harmonica wail |
+| The Drowned Causeway | G Aeolian | 100, 6/4 (3+3 against 2+2+2: a tide-like hemiola) | calm: a vibraphone with slow tremolo, a low accordion drone, a bowed saw on the tune, water lapping (filtered noise swells every bar); fight: hand claps and a talking drum on the hemiola; lead: a reedy accordion |
+| The Gloaming Mere | A Phrygian | 120 | calm: a low pipe organ, a choir "oo", a tolling bell every 2 bars, a theremin-like sine with wide vibrato on the tune; fight: a driving 16th bass, taiko, the organ in stabs; lead: the theremin an octave up |
+| Old Bellybog (mini-boss) | E Mixolydian | 176, a zydeco two-step | (fight only) an accordion on the tune, a washboard (frottoir) in 16ths, a fiddle, a tuba burp on each phrase end |
 | The Sluice Keeper (mini-boss) | D Dorian | 112, 7/4 (4+3) | (fight only) a work song: a mallet on a pipe on every beat, a bari sax riff, a ratchet like a turning wheel, a whistle blast every 4 bars |
-| Mirewick (boss, by phase) | C# Phrygian; phase 3 a whole tone down to B | 152 | phase 1: a deep foghorn-like drone, slow bells, strings in tremolo, war drums, a bubbling low synth (the angler under the water); phase 2 adds a choir and a harpsichord scratching like a pen (his edit); phase 3 drops a whole tone ("lights out"), double-time drums, distorted bass, everything in |
+| The Gloaming Lighthouse (boss, by phase) | C# Phrygian; phase 3 a whole tone down to B | 152 | phase 1: a foghorn drone, a bell tower, strings in tremolo, war drums; phase 2 adds a choir and a harpsichord scratching like a pen; phase 3 drops a whole tone (the "redraw"), double-time drums, distorted bass, everything in |
 
-Ambience beds: `reeds` (frogs and crickets, reeds in a breeze, a far owl), `stilts` (water lapping on the stilts, the
-tide breathing in and out, a sluice gate creaking), `channels` (a deep still-water hum, slow bubbles from below, the
-Mirelight's faint hum).
+Ambience beds: `fen` (frogs and crickets, reeds in a breeze, a far owl), `causeway` (water lapping on stone, the tide
+clock ticking, gulls far off), `mere` (a deep still-water hum, a slow foghorn, the lighthouse's lamp humming).
 
 ### Balance targets (a 75% player, a fresh first playthrough of the region, from a typical end-of-Ashfell hero)
-Act 1 ~85% first try, Act 2 ~68%, Act 3 ~55%, Mirewick's first fight won ~50-60%; Region 5 a little harder. The
+Act 1 ~85% first try, Act 2 ~68%, Act 3 ~55%, the Lighthouse's first fight won ~50-60%; Region 5 a little harder. The
 masher bot loses every Act 3 and the boss's first fight (`bot-masher.test.ts`); every hero within +/-10 of Rowan. Thumb
 rules: the lantern's reach never under 0.32 s, the tide never over half the bar, reds as in `tests/unit/data.test.ts`.
 
@@ -873,7 +871,7 @@ rules: the lantern's reach never under 0.32 s, the tide never over half the bar,
    `barRule darkEvery`; `tuning.dark`, `tuning.tide` with sliders), the relic hook points, the bot.
 2. Data: `DUSKMIRE` into `REGIONS` (acts 9-11), `DUSK_ENEMIES` into `ENEMIES`, story, relics, gear, banter, tips.
 3. Art and sound: the three themes in `Theme`; backdrops (`backdrop-dusk.ts`), stage lights, map kits, lairs and
-   critters (fireflies, a heron, frogs; crabs, gulls; moths, glowing fish); foe sprites and telegraph poses (`art-dusk.ts`);
+   critters (fireflies, a heron, frogs; crabs, gulls; moths, a catfish); foe sprites and telegraph poses (`art-dusk.ts`);
    every foe's map mini (`art-minis.ts`); portraits; the three landmarks and `landOpen`; telegraph sounds; the six
    pieces and three beds (Sound lab labels by act number only).
 

@@ -756,6 +756,12 @@ L1. **Shared files through the lead.** The combat core (`src/core/combat.ts`), t
 L2. **One branch, one PR.** The run continues PR #7's branch on `claude/exciting-fermat-9rxtbl`; the final PR
     supersedes #1-#7.
 
+L3. **Region 4's names follow the story team's final version** (Duskmire; Lanternfen, the Drowned Causeway, the
+    Gloaming Mere; its scene ids `dusk1`...`duskVictory`): the two teams crossed (each adopted the other's first
+    draft); the written and edited scenes decide, the data follows them.
+L4. **An independent editor** reviews every story line (the story team had no way to spawn one): its notes go to the
+    story team, which applies them or logs why not.
+
 (lead: end of section)
 
 
@@ -785,6 +791,12 @@ S6. **He works inward; Greenmarch is last and lightest.** A chest hero from any 
     setup comes between fights (a `road` scene after the first win is written and needs a hook).
 S7. **Region 4's scenes are drafted ahead of its data** (`src/data/story-fen.ts`, not in play): Team 3 points its acts
     at the ids when the region is wired. Its boss doesn't speak; the Mapmaker speaks for it.
+
+S8. **Region 4 keeps Team 3's names** (the Duskmire, its acts Lanternfen, the Drowned Causeway and the Gloaming Mere;
+    Old Bellybog, the Sluice Keeper, the Gloaming Lighthouse), replacing S4's "Lanternfen" for the region and its
+    Mirewick suggestion: their design came in fitting the story (he shut the sun in a lighthouse lamp and penciled the
+    shore onto a timetable), so the story follows it. Its scenes are written into their ids (`story-dusk.ts`); S7's
+    separate draft is gone.
 
 (story: end of section)
 
@@ -832,11 +844,11 @@ C2. **Two new bar rules in the core** (`CORE:` commits), deterministic, drawing 
     tip, a picture on the bar (nothing depends on sound), a lab item, and tests for every hero.
 C3. **Region 4's data is written but not wired in** (`duskmire.ts`, `enemies-dusk.ts`, `story-dusk.ts`, checked by
     `duskmire-data.test.ts`): it joins REGIONS once its art (sprites, minis, backdrops, themes) and telegraph sounds
-    exist; until then its acts borrow earlier looks and its scenes are one-line placeholders.
-C4. **Region 4 follows the story bible** (Team 1's, committed at 19:08): its name, acts, boss and keystone, and the
-    story team's scene ids (`fen1`-`fen3`, `fenBoss`, `fenBoss2`, `fenBoss3`, `fenVictory`) replace Team 3's working
-    ones; the first mini-boss changed so it doesn't echo the boss. Only the two mini-bosses' intros are still
-    placeholders (asked of Team 1).
+    exist; until then its acts borrow earlier looks.
+C4. **Region 4's names are the first version's** (lead's L3): Duskmire; Lanternfen, the Drowned Causeway, the
+    Gloaming Mere; Old Bellybog, the Sluice Keeper, the Gloaming Lighthouse; scene ids `dusk1` ... `duskVictory`, written
+    by Team 1 in `story-dusk.ts`. (A rename to the bible's earlier Lanternfen draft crossed with Team 1 adopting this
+    version; it was undone.) C3's placeholders are gone: the scenes are Team 1's.
 C5. **Region 5's two rules are built ahead of its art** (core, tests, bar pictures, tips, lab items, data and map
     minis), on the story bible's hook for the region; their design and a bot probe are in the content bible
     (section 8). Neither rule moves anything under the cursor at the last moment.

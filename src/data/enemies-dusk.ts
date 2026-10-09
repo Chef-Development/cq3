@@ -2,9 +2,8 @@
 // ENEMIES (src/data/enemies.ts) until the region has its art (sprites, telegraph poses, map minis) and its telegraph
 // sounds. Each foe's special changes how the bar plays with them: dark shapes that land (some of them traps), yellows
 // put in the dark, the lantern dimmed, the water sent rushing up (or in from the other end, or from both).
-// The boss and the scene ids follow docs/story-bible.md (Lanternfen; the keystone is the last lantern, the Mirelight,
-// on Mirewick's lure); the other foes' names are Team 3's. Numbers are first guesses for the balance bot, about a
-// tenth above Ashfell's foes.
+// Names are working names until the story team fixes them (docs/story-bible.md). Numbers are first guesses for the
+// balance bot, about a tenth above Ashfell's foes.
 
 import type { EnemyDef, FormationEntry } from './types';
 
@@ -25,7 +24,7 @@ const shapes = (yellows: number, traps: number): FormationEntry[] => [
 const dam = (width: number): FormationEntry[] => [{ kind: 'shield', still: true, fuse: 3.2, taps: 3, width, spot: 'ahead' }];
 
 /** The telegraph sounds Region 4 adds (engine/audio.ts TellSound doesn't have them yet; each needs its own wind-up). */
-export const DUSK_NEW_SOUNDS = ['lure', 'gulp', 'rustle', 'splash', 'snuff', 'undertow', 'flutter', 'fog', 'floodgate', 'sluice', 'redraw'] as const;
+export const DUSK_NEW_SOUNDS = ['lure', 'gulp', 'rustle', 'splash', 'snuff', 'undertow', 'flutter', 'fog', 'floodgate', 'burp', 'sluice', 'foghorn', 'redraw'] as const;
 
 export const DUSK_ENEMIES: Record<string, EnemyDef> = {
   // ---------------------------------------------------------------- Act 1, Lanternfen: dark blocks
@@ -80,7 +79,7 @@ export const DUSK_ENEMIES: Record<string, EnemyDef> = {
   },
   peatGolem: {
     name: 'Peat Golem',
-    tags: ['construct', 'brute'],
+    tags: ['construct', 'armored'],
     hp: 660,
     atk: 15,
     special: 16,
@@ -107,39 +106,37 @@ export const DUSK_ENEMIES: Record<string, EnemyDef> = {
       },
     ],
   },
-  motherMoth: {
-    name: 'Mother Moth',
-    tags: ['beast', 'flyer'],
+  bellybog: {
+    name: 'Old Bellybog',
+    tags: ['beast', 'brute'],
     hp: 3500,
     atk: 20,
     special: 17,
     interval: 0.6,
     pattern: 'YRYSGYRYYR',
-    icon: 'wing',
-    sprite: 'mothermoth',
+    icon: 'drop',
+    sprite: 'bellybog',
     coins: 70,
     boss: true,
-    fly: 10,
     specials: [
-      // a moth the size of a sail, starving since the lanterns went out: she beats her wings at your light
-      { id: 'wingbeat', name: 'Wingbeat!', tell: 0.9, sound: 'flutter', first: 4, every: 9, phases: [1], actions: [{ type: 'snuff', mult: 0.6, sec: 4 }] },
-      { id: 'dive', name: 'Moth Dive!', tell: 0.8, sound: 'dive', first: 6, every: 7, actions: [{ type: 'formation', blocks: [{ kind: 'red', speed: 1.5, width: 1.2 }] }] },
-      // at half HP (gate): her brood comes for the light, and from now on every 2nd yellow she sends is dark
+      // he swallows lanterns: yours burns low for a while
+      { id: 'gulp', name: 'Gulp!', tell: 0.9, sound: 'gulp', first: 4, every: 9, phases: [1], actions: [{ type: 'snuff', mult: 0.6, sec: 4 }] },
+      { id: 'tongueLash', name: 'Tongue Lash!', tell: 0.8, sound: 'charge', first: 6, every: 7, actions: [{ type: 'formation', blocks: [{ kind: 'red', speed: 1.5, width: 1.2 }] }] },
+      // at half HP (gate): he glows from inside like a paper lamp, and from now on every 2nd yellow he sends is dark
       {
-        id: 'brood',
-        name: 'Brood!',
+        id: 'bellyGlow',
+        name: 'Belly Glow!',
         tell: 1,
-        sound: 'flutter',
+        sound: 'burp',
         hpBelow: 0.5,
         gate: true,
         actions: [
           { type: 'phase', phase: 2 },
           { type: 'barRule', holdEvery: 0, darkEvery: 2 },
-          { type: 'summon', enemies: ['duskMoths'], link: true },
         ],
       },
-      // phase 2: wing dust: three dark shapes, one a trap
-      { id: 'wingDust', name: 'Wing Dust!', tell: 0.9, sound: 'fog', first: 4, every: 9, phases: [2], actions: [{ type: 'formation', blocks: shapes(2, 1) }] },
+      // phase 2: he burps up what he swallowed: three dark shapes, one a trap
+      { id: 'burp', name: 'Burp!', tell: 0.9, sound: 'burp', first: 4, every: 9, phases: [2], actions: [{ type: 'formation', blocks: shapes(2, 1) }] },
     ],
   },
 
@@ -354,28 +351,40 @@ export const DUSK_ENEMIES: Record<string, EnemyDef> = {
       },
     ],
   },
-  mirewick: {
-    name: 'Mirewick',
-    tags: ['beast', 'armored'],
+  lighthouse: {
+    name: 'The Gloaming Lighthouse',
+    tags: ['construct', 'armored'],
     hp: 8400,
     atk: 20,
     special: 18,
     interval: 0.55,
     pattern: 'YRYSRYGYRYY',
     icon: 'crown',
-    sprite: 'mirewick',
+    sprite: 'lighthouse',
     coins: 185,
     boss: true,
-    phaseScenes: { 2: 'fenBoss2', 3: 'fenBoss3' },
+    phaseScenes: { 2: 'lighthouse2', 3: 'lighthouse3' },
     specials: [
-      // phase 1: the Mirelight sways on its lure: shapes in the dark below it, one a trap
-      { id: 'lure', name: 'Lure!', tell: 0.9, sound: 'lure', first: 3, every: 9, phases: [1], actions: [{ type: 'formation', blocks: shapes(1, 2) }] },
-      { id: 'snapJaws', name: 'Snap Jaws!', tell: 0.8, sound: 'charge', first: 6, every: 7, actions: [{ type: 'formation', blocks: lash(1.2, 1.1, 0.85) }] },
-      // phase 2 (66%, gate), the Mapmaker's first edit, "The tide comes in.": water from both ends for good, and the
-      // tide surging on top of it
+      // phase 1, as drawn: its foghorn: every yellow beyond your light goes dark, and two traps land in the dark
       {
-        id: 'tideIn',
-        name: 'Tide Comes In!',
+        id: 'fogHorn',
+        name: 'Fog Horn!',
+        tell: 0.9,
+        sound: 'foghorn',
+        first: 3,
+        every: 9,
+        phases: [1, 2],
+        actions: [
+          { type: 'darken', count: 0 },
+          { type: 'formation', blocks: shapes(0, 2) },
+        ],
+      },
+      { id: 'breakers', name: 'Breakers!', tell: 0.8, sound: 'charge', first: 6, every: 7, actions: [{ type: 'formation', blocks: lash(1.2, 1.1, 0.85) }] },
+      // phase 2 (66%, gate): the mapmaker's first edit, the shoreline moved: water from both ends for good, and every
+      // 3rd yellow it sends comes dark
+      {
+        id: 'newShore',
+        name: 'Shore Redrawn!',
         tell: 1,
         sound: 'redraw',
         hpBelow: 0.66,
@@ -383,27 +392,26 @@ export const DUSK_ENEMIES: Record<string, EnemyDef> = {
         actions: [
           { type: 'phase', phase: 2 },
           { type: 'tide', level: 0.22, sec: 0, from: 'both' },
+          { type: 'barRule', holdEvery: 0, darkEvery: 3 },
         ],
       },
-      { id: 'surge', name: 'Surge!', tell: 0.9, sound: 'splash', first: 4, every: 7, phases: [2], actions: [{ type: 'tide', level: 0.45, sec: 3 }] },
-      // phase 3 (33%, gate), the second edit, "Lights out.": he snuffs the lure: every yellow beyond your light goes
-      // dark, the lantern burns low for good, every yellow it sends comes dark, and the cursor never slows below 1.3x
+      // phase 3 (33%, gate): the second edit, no sky: the lantern burns low for good, every 2nd yellow comes dark,
+      // and the cursor never slows below 1.3x
       {
         id: 'lightsOut',
-        name: 'Lights Out!',
+        name: 'Sky Erased!',
         tell: 1,
         sound: 'redraw',
         hpBelow: 0.33,
         gate: true,
         actions: [
           { type: 'phase', phase: 3 },
-          { type: 'darken', count: 0 },
           { type: 'snuff', mult: 0.7, sec: 0 },
-          { type: 'barRule', holdEvery: 0, darkEvery: 1 },
+          { type: 'barRule', holdEvery: 0, darkEvery: 2 },
           { type: 'cursor', minSpeed: 1.3 },
         ],
       },
-      { id: 'blackwater', name: 'Blackwater!', tell: 0.9, sound: 'fog', first: 4, every: 9, phases: [3], actions: [{ type: 'formation', blocks: [...shapes(0, 2), { kind: 'red', still: true, fuse: 1.8, spot: 'random', delay: 0.9 }] }] },
+      { id: 'surge', name: 'Surge!', tell: 0.9, sound: 'splash', first: 4, every: 8, phases: [3], actions: [{ type: 'tide', level: 0.45, sec: 3 }] },
     ],
   },
 };

@@ -605,38 +605,23 @@ const DUSK_MINIS: Record<string, Mini> = {
     ];
     return { pal: { 1: '#1a120e', 2: '#2e2018', 3: '#4a3424', 4: '#6a4c34', 5: '#8e6a48', M: '#5a5866', E: '#ffc870', ...LAMP }, frames: [f0, bob(f0, 8)] };
   })(),
-  // mini-boss: a moth the size of a sail, grey-violet wings with pale eye-spots, feathery antennae, starving for light
-  mothermoth: {
-    pal: { ...VIOL, M: '#d0c0e8', e: '#ffe680', E: '#fff6c8', k: INK },
-    frames: [
-      [
-        '..M.......M.......',
-        '...M.....M........',
-        '.5554..k.4555.....',
-        '556654.kk456655...',
-        '56eE654k45eE6654..',
-        '566e6544456e66544.',
-        '.5666543456666543.',
-        '..55554334555543..',
-        '...4443.3.44443...',
-        '....33..3..333....',
-        '........2.........',
-      ],
-      [
-        '..M.......M.......',
-        '...M.....M........',
-        '.........k........',
-        '.5554..kk.4555....',
-        '55665544k4466554..',
-        '56eE6554456eE6654.',
-        '566e65434566e6654.',
-        '.555543434555543..',
-        '..44443.3.44443...',
-        '....33..3..333....',
-        '........2.........',
-      ],
-    ],
-  },
+  // mini-boss: a toad the size of a hut, glowing from inside with every lantern he swallowed
+  bellybog: (() => {
+    const f0 = [
+      '....55.....55.....',
+      '...5kE5...5kE5....',
+      '..555555555555544.',
+      '.5555555555555444.',
+      'oo55lLl555lLl54443',
+      'ooo5LLL555LLL54443',
+      '.oo55l55l55l554433',
+      '.o555555555555443.',
+      '..4444444444444332',
+      '..33.33.....33.32.',
+      '.333.333...333.33.',
+    ];
+    return { pal: { ...MOSS, ...LAMP, E: '#ffe680', k: INK }, frames: [f0, bob(f0, 8)] };
+  })(),
   // a goggle-eyed mudskipper standing on its fins, a cheeky grin
   mudskipper: (() => {
     const f0 = ['.EE.........', 'EkkE........', '.55555544...', 'k5555555443.', '.R5555544433', '..554444332.', '..5.4..3.32.', 'bBbBbBbBbBbB'];
@@ -715,26 +700,44 @@ const DUSK_MINIS: Record<string, Mini> = {
     ];
     return { pal: { A: '#6a7484', a: '#3e4654', w: '#4c8e48', ...WAVE, ...LAMP }, frames: [f0, bob(f0, 10)] };
   })(),
-  // the boss: a vast old angler-toad rising from the deep channels, a mouth as wide as a boat, the last lantern (the
-  // Mirelight) glowing on its lure
-  mirewick: (() => {
-    const f0 = [
-      '..L...............',
-      '.LZL..............',
-      '..L.r.............',
-      '.....r....555.....',
-      '......r.55665554..',
-      '...55555666555544.',
-      '..5kE5555555554444',
-      '.55555555555554443',
-      'TTTTTTTT5555444333',
-      '.tTtTtTt4444443332',
-      '..4444444444333332',
-      '...3333..33..222..',
-      'bBbBbBbBbBbBbBbBbB',
-    ];
-    return { pal: { ...MOSS, L: '#ffe6a8', Z: '#fffbe0', r: '#7a6a4a', E: '#ffe680', T: '#f0ecd8', t: '#2a1a14', k: INK, ...WAVE }, frames: [f0, ['.L................', 'LZL...............', '.L..r.............', ...f0.slice(3)]] };
-  })(),
+  // the boss: a lighthouse wading on stone legs, the sun shut in its lamp, its door a mouth
+  lighthouse: {
+    pal: { k: INK, L: '#ffe6a8', Z: '#fffbe0', R: '#c03a30', S: '#c8c0b8', s: '#8a8078', ...WAVE },
+    frames: [
+      [
+        '.....kkkk.......',
+        '....kLLLLk......',
+        '...kLLZZLLk.....',
+        '....kLLLLk......',
+        '....RRRRRR......',
+        '.....SSss.......',
+        '....RRRRRR......',
+        '....SSSSss......',
+        '....SkkSss......',
+        '...SSkkSsss.....',
+        '...RRRRRRRR.....',
+        '...SS....ss.....',
+        '..SS......ss....',
+        'bBbBbBbBbBbBbBbB',
+      ],
+      [
+        '.....kkkk.......',
+        'LL..kLLLLk......',
+        'ZLLkLLZZLLk.....',
+        'LL..kLLLLk......',
+        '....RRRRRR......',
+        '.....SSss.......',
+        '....RRRRRR......',
+        '....SSSSss......',
+        '....SkkSss......',
+        '...SSkkSsss.....',
+        '...RRRRRRRR.....',
+        '...SS....ss.....',
+        '..SS......ss....',
+        'BbBbBbBbBbBbBbBb',
+      ],
+    ],
+  },
 };
 
 // ------------------------------------------------------------------ the fifth region's foes (their fight sprites: art-noon.ts, to come)

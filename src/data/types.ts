@@ -200,6 +200,9 @@ export type Speaker =
   // the living-map story (docs/story-bible.md): the Mapmaker and the High Keeper (portraits: art team)
   | 'mapmaker'
   | 'keeper'
+  // Region 4's speakers (src/data/story-dusk.ts; portraits: Team 3)
+  | 'bellybog'
+  | 'sluiceKeeper'
   | 'captain'
   | 'golem'
   | 'boarking'

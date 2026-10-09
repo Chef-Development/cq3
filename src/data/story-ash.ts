@@ -81,13 +81,13 @@ export const ASH_STORY: Record<string, StoryBox[]> = {
     { who: 'mapmaker', text: 'Steady. I can draw faster than\nyou can break.' },
     { who: 'pip', text: "Everything slides now, the pairs too.\nWatch which way they're heading!" },
   ],
-  // victory: the anvil cools; Bellows sits down at last; he names the cost; next, the fen
+  // victory: the anvil cools; Bellows sits down at last; he names the cost; next, the Duskmire
   ashVictory: [
     { who: 'narrator', text: 'The anvil cools, dull and gray. The chains\nfall slack. Across Ashfell, the land stops.' },
     { who: 'bellows', text: 'My arms... When did I last sit down?\nI have forgotten how.' },
     { who: 'rowan', text: 'Like this. Put the hammer down.\nThe chain is long enough.' },
     { who: 'mapmaker', text: 'The next lava flow will part their families.\nYou know that, knight.' },
     { who: 'rowan', text: "Then they'll choose where to go.\nYou don't get to choose for them." },
-    { who: 'pip', text: "He's gone south, to Lanternfen. Nobody has\nlit a lantern there in a month." },
+    { who: 'pip', text: "He's gone south, to the Duskmire. It has\nbeen sunset there for a month." },
   ],
 };

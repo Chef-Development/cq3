@@ -42,6 +42,7 @@ export const BANTER: BanterLine[] = [
   { who: 'sable', text: 'Draw my pockets shut? I riot.' },
   { who: 'pip', text: 'Sable took the map. Again.', sable: true },
   { who: 'rowan', text: 'Knights raised me. It shows.' },
+  { who: 'rowan', text: 'They found me on some steps. Soaked.' },
   { who: 'pip', text: "I've known you a long time." },
 ];
 
@@ -212,4 +213,22 @@ HERO_BANTER.push(
   { who: 'pip', text: 'Hoo. Tess oiled my wings. Unasked.', with: ['tess'] },
   { who: 'tess', text: 'Gorm, dear. You sat on my tools.', with: ['gorm'] },
   { who: 'smith', text: 'Tess graded my forge. A C-minus!', with: ['tess'] },
+);
+
+// ---- round 8: each hero's home, which the Mapmaker redrew (docs/story-bible.md section 4; never a region's name)
+HERO_BANTER.push(
+  { who: 'neve', text: 'My observatory needs a dusting.' },
+  { who: 'moss', text: 'My trees miss their old neighbors.' },
+  { who: 'tam', text: 'I miss snow. And the BOOM.' },
+  { who: 'hollis', text: 'My sea wall is out there. Waiting.' },
+  { who: 'vesper', text: 'I miss real night. Stars. Quiet.' },
+  { who: 'torva', text: 'Rocks should STAY PUT! HA!' },
+  { who: 'solenne', text: "Our sun is stuck at noon. RUDE." },
+  { who: 'wren', text: 'My rooftops are in the fog. For now.' },
+  { who: 'yara', text: 'The spirits say my village dreams.' },
+  { who: 'dell', text: 'Square fields. Corn hates it.' },
+  { who: 'fizz', text: 'My lighthouse misses me. I know.' },
+  { who: 'brann', text: 'The abbey bell will ring. I wait.' },
+  { who: 'gorm', text: 'My stones sleep. I will wake them.' },
+  { who: 'tess', text: 'All my clocks stopped. Rude.' },
 );
