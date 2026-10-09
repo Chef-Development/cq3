@@ -518,8 +518,9 @@ Status (round 8, chunk 1): Regions 1-3 rewritten (`story.ts`, `story-ash.ts`), e
 chest heroes' arrivals say whose home was redrawn; the welcome back catches a returning player up; Region 4's scenes
 are written into Team 3's ids in `src/data/story-dusk.ts` (not in play until the region is wired in; new speakers
 `bellybog` and `sluiceKeeper` need portraits), and Region 5's are drafted in `src/data/story-noon.ts`
-(`noon1`-`noon3`, `noonBoss`-`noonBoss3`, `noonVictory`; its phase hints are placeholders until its rules exist). Still to do: the `road` hook; banter that
-follows the story (lines gated on scenes, like `banter-ash.ts`, which is itself not wired yet); Region 5's
+(`noon1`-`noon3`, `noonBoss`-`noonBoss3`, `noonVictory`; its phase hints are placeholders until its rules exist). Banter that follows the story is written in
+`src/data/banter-story.ts` (lines gated on scenes, like `banter-ash.ts` and `banter-dusk.ts`; none of the three is
+wired yet: the camp needs to know which scenes have played). Still to do: the `road` hook; wiring the gated banter; Region 5's
 mini-bosses' scenes (once its foes exist); the bosses' portraits and the two new speakers' (`portrait_mapmaker`, `portrait_keeper`: until they exist the
 story view shows Phaser's missing-texture box); `keeper` belongs with the allies' warm look in `view/story.ts`.
 

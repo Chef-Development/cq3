@@ -7,6 +7,7 @@ import { EVENTS } from '../../src/data/events';
 import { GREENMARCH } from '../../src/data/greenmarch';
 import { SPEAKER_NAME, STORY } from '../../src/data/story';
 import { DUSK_STORY } from '../../src/data/story-dusk';
+import { STORY_BANTER, STORY_SCENE_ACT } from '../../src/data/banter-story';
 import { NOON_STORY } from '../../src/data/story-noon';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
 import { HEROES } from '../../src/data/heroes';
@@ -230,6 +231,18 @@ describe('camp banter', () => {
       expect(lines.length, l.text).toBeLessThanOrEqual(2);
       for (const x of lines) expect(textWidth(x, 1, false), l.text).toBeLessThanOrEqual(BUBBLE_W);
     }
+  });
+
+  it("the story's banter waits for a scene that exists, and fits the bubble like the rest", () => {
+    for (const l of STORY_BANTER) {
+      expect(STORY[l.after], `${l.text}: after ${l.after}`).toBeDefined();
+      const lines = wrap(l.text);
+      expect(lines.length, l.text).toBeLessThanOrEqual(2);
+      for (const x of lines) expect(textWidth(x, 1, false), l.text).toBeLessThanOrEqual(BUBBLE_W);
+    }
+    for (const id of Object.keys(STORY_SCENE_ACT)) expect(STORY[id], id).toBeDefined();
+    const all = [...BANTER, ...HERO_BANTER, ...STORY_BANTER];
+    expect(new Set(all.map((l) => l.text)).size).toBe(all.length);
   });
 
   it('lines that need Sable say so; Rowan and Pip have plenty without them', () => {
