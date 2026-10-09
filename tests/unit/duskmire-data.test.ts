@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { DUSKMIRE, DUSK_FIRST_ACT, DUSK_STAND_IN, DUSK_THEMES } from '../../src/data/duskmire';
 import { DUSK_ENEMIES, DUSK_NEW_SOUNDS } from '../../src/data/enemies-dusk';
 import { DUSK_STORY, FEN_SCENE_IDS } from '../../src/data/story-dusk';
+import { FEN_STORY } from '../../src/data/story-fen';
 import { DUSK_BANTER, DUSK_SCENE_ACT } from '../../src/data/banter-dusk';
 import { DUSK_BASE_ITEMS, DUSK_EFFECTS, DUSK_SETS, DUSK_SIGNATURES } from '../../src/data/gear-dusk';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
@@ -93,6 +94,7 @@ describe('Region 4: the region', () => {
     for (const id of ids) expect(known.has(id ?? ''), id).toBe(true);
     for (const e of Object.values(DUSK_ENEMIES)) for (const id of Object.values(e.phaseScenes ?? {})) expect(known.has(id), id).toBe(true);
     for (const id of FEN_SCENE_IDS) expect(DUSK_STORY[id], `${id} is the story team's`).toBeUndefined();
+    for (const id of FEN_SCENE_IDS) expect(FEN_STORY[id], `${id}: in story-fen.ts`).toBeDefined();
     for (const id of Object.keys(DUSK_STORY)) expect(!(id in STORY) || STORY[id] === DUSK_STORY[id], id).toBe(true);
     for (const [id, boxes] of Object.entries(DUSK_STORY)) {
       expect(boxes.length, id).toBeLessThanOrEqual(6);
