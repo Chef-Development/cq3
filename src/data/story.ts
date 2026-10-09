@@ -66,21 +66,22 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'sable', text: 'Give me my alleys back, and you get two\ndaggers. I keep anything shiny. Deal?' },
   ],
   // welcome back: a returning player opens this version for the first time (over the title, once; core/tips.ts
-  // welcomeScene picks one): what's new since they last played. The last box depends on whether Sable has joined.
+  // welcomeScene picks one): the new story in two boxes (their save never replays the intro). The last box depends
+  // on whether Sable has joined. (It replays only if data/tips.ts WELCOME_ID changes: see the story team's report.)
   welcomeBack: [
-    { who: 'pip', text: "Hoo! Look who's back. While you napped,\nthings changed. I've been VERY busy." },
-    { who: 'pip', text: 'Relics now bend the rules of a fight.\nPick one after a battle. Mix, match, cheat.' },
-    { who: 'pip', text: "And you level up now! Spend skill points\nat the camp. Sable's there too. Hide the coins." },
+    { who: 'pip', text: "Hoo! You're back. A lot has changed while you\nwere away. Sit down, I'll catch you up." },
+    { who: 'pip', text: "The kingdom is a living map. The man redrawing\nit is the Mapmaker, and he can't erase you." },
+    { who: 'pip', text: "Restore a region and his redraw breaks.\nSable's at camp. Counting our coins. Again." },
   ],
   welcomeBackVisitor: [
-    { who: 'pip', text: "Hoo! Look who's back. While you napped,\nthings changed. I've been VERY busy." },
-    { who: 'pip', text: 'Relics now bend the rules of a fight.\nPick one after a battle. Mix, match, cheat.' },
-    { who: 'pip', text: "And you level up now: skills at the camp.\nSomeone's been sneaking round it, too..." },
+    { who: 'pip', text: "Hoo! You're back. A lot has changed while you\nwere away. Sit down, I'll catch you up." },
+    { who: 'pip', text: "The kingdom is a living map. The man redrawing\nit is the Mapmaker, and he can't erase you." },
+    { who: 'pip', text: "Restore a region and his redraw breaks.\nAnd someone's been creeping round the camp..." },
   ],
   welcomeBackSoon: [
-    { who: 'pip', text: "Hoo! Look who's back. While you napped,\nthings changed. I've been VERY busy." },
-    { who: 'pip', text: 'Relics now bend the rules of a fight.\nPick one after a battle. Mix, match, cheat.' },
-    { who: 'pip', text: 'And you level up now: skills at the camp.\nClear Act 1 and we get a visitor. Shifty one.' },
+    { who: 'pip', text: "Hoo! You're back. A lot has changed while you\nwere away. Sit down, I'll catch you up." },
+    { who: 'pip', text: "The kingdom is a living map. The man redrawing\nit is the Mapmaker, and he can't erase you." },
+    { who: 'pip', text: 'Restore a region and his redraw breaks.\nClear Act 1 and we get a visitor. Shifty one.' },
   ],
   // New game: at most 4 boxes before the first fight (this and act1). Who he is, and the Atlas, come later.
   intro: [
