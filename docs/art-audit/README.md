@@ -43,7 +43,8 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Tag icons | 4 | |
 | Backdrops: forest, hollow | 5 | Layers, light shafts, calm ground. |
 | Backdrops: ruins, pass, caves, glacier, cinder | 4 | |
-| **Backdrops: glass, forge** | 3 | Flat: one dark wall plane, little depth or atmosphere; no light shafts or air (section 9's Ashfell recipe: embers rising, ash falling, ember light from below). |
+| **Backdrop: glass** | 3 | Flat: one near-black wall plane; the coloured glass windows read as gems floating in the dark; the kiln on the left reads as a dithered blob. |
+| Backdrop: forge | 4 | The sheet made it look flat; in a fight the furnace light and the lava carry it (re-scored from the screen). |
 | World map (craft) | 4 | Lush and well made, but a painted continent, not the inked Atlas the new story needs (the planned rework). |
 | **World map veils** (`wm_veil_*`) | 2 | Flat grey with rectangular holes: reads as a placeholder, not erased land. To become Atlas fog (blank paper, faded lines). |
 | Act maps | 4 | Busy but cohesive. |
@@ -51,7 +52,7 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | **Title (before)** | 3 | The old "Combo Quest 3" chrome logo and crest over a reused fight stage; nothing of the new premise. Redone this round (below). |
 | Fight HUD, bar, band | 4 | |
 | Camp, hero select, companions, shrine, completion, story | 4 | Follow ui-style.md. |
-| **Vault** | 3 | Dim: the chests barely lit, a big empty floor, no focal light. |
+| **Vault** | 3 | Empty (no chests yet): dim, a big empty floor, no focal light. With chests waiting: 4 (spotlit chests, counts, Open all). |
 | Chest reveal (old and sharper) | 5 | |
 
 ## Outliers (the redo list, worst first)
@@ -61,8 +62,8 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 3. Relic icons sharing generic glyphs (3): done, the Frostpeaks' 15 painted.
 4. Rowan's fight frames (3): off the rig, missing poses; the starter hero.
 5. The dark Ashfell foes (3): done, an ember rim from below.
-6. The glass and forge backdrops (3): flat; part of the lighting pass per region.
-7. The vault (3): dim, no focal light.
+6. The glass backdrop (3): partly done (light spill, sockets); the kiln still reads as a blob. The forge re-scored 4.
+7. The vault's empty state (3): dim, no focal light (with chests waiting it is a 4).
 8. The spirit stag (3) and the cinder lair (3).
 9. The world map's style (4 in craft): becomes the inked Atlas.
 
@@ -73,4 +74,5 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Skill icons | 2 | 3 | `after/sheet-icons-skills.png`. The 127 rule nodes and capstones without a painted icon now show the emblem their name is about (15 emblems: smoke, ice, thorns, bomb, flame, shield, arrow, rock, fist, hourglass, bell, sun, clover, dagger, moon; gold corners on capstones; `art-skill-emblems.ts`, unit-tested). Two keep the rune. Still to do: painted icons per node (a hero's tree repeats its theme's emblem). |
 | Relic icons (the Frostpeaks' 15) | 3 | 4 | `after/sheet-icons-relics-items.png`. Each its own picture (a skate, a frost rune, cocoa, a hammer on ice, a plough in snow, an ice heart, a frosted fang, a melting cube, a grip, a held note, a knot, a valve, a tether, a lucky mitten, crampons) instead of a stand-in snowflake or rail. |
 | Dark Ashfell foes (ox, sentinel, forgehand, kite) | 3 | 4 | `after/sheet-foes-ashfell.png`, `after/fight-act8-uplit.png`. Ashfell's light recipe applied: an ember rim along their lower edges (light from below), a faint cool lift on the top edges (`art-ash.ts` emberRim). |
+| Backdrop: glass (partly) | 3 | 3+ | `after/fight-act8-glass-before-after.png` (top before, bottom after). The wall lifted a little, the lake's light spilling out of the opening across it (Ashfell's key from below), the glass windows set in rock sockets so they no longer float. The kiln is still to redo. |
 | Title screen, logo, key art | 3 | 4 | `before/title-phone.png`; `after/title-phone.png`, `after/title-desktop.png`, `after/title-continue.png`. The Atlas spread open: an inked parchment map, colour come back round the hero, fog over the erased east, a quill drawing the route; the logo built from `GAME_NAME` (Scale3x lettering, gold face, rim light, extrusion, ink outline). |
