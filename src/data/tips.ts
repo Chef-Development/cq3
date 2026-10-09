@@ -88,6 +88,9 @@ export type TipId =
   | 'frozen'
   | 'drift'
   | 'pair'
+  // playtest round 8: the fourth region's bar rules
+  | 'dark'
+  | 'tide'
   // playtest round 6: an icicle's mark (where it will drop)
   | 'icicle'
   | 'chest'
@@ -211,6 +214,8 @@ export const TIPS: readonly TipDef[] = [
   { id: 'frozen', lines: ['A frozen red: hit it like a yellow', 'to shatter it for a big hit!'], anchor: 'frozenBlock', fight: 'pause', rule: true, after: BASICS },
   { id: 'drift', lines: ['Some blocks drift along the bar.', "Watch which way they're heading!"], anchor: 'bar', fight: 'pause', rule: true, after: BASICS },
   { id: 'pair', lines: ['A pair: hit one, then the other.', 'Too slow? Both count as misses.'], anchor: 'bar', fight: 'pause', rule: true, after: BASICS },
+  { id: 'dark', lines: ['A dark shape! Your light shows', 'what it is. Some are traps!'], anchor: 'bar', fight: 'pause', rule: true, after: BASICS },
+  { id: 'tide', lines: ["The tide! Blocks under water", "can't be hit. Reds wade slowly."], anchor: 'bar', fight: 'pause', rule: true, after: BASICS },
   { id: 'icicle', lines: ['An icicle will drop on the mark.', 'Block it like a red when it lands.'], anchor: 'bar', fight: 'pause', rule: true, after: BASICS },
   // ---- the run
   { id: 'defeat', lines: ['Back to the start of the act.', 'Found gear and coins are kept.'], anchor: 'retryButton', basic: true },

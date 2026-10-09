@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { swipeAllowed } from '../../src/core/swipe';
 import { setup, timeAt } from './helpers';
 import { HERO_IDS } from '../../src/data/heroes';
-import type { Combat } from '../../src/core/combat';
+import { isRed, unlit, type Combat } from '../../src/core/combat';
+import { runAction } from '../../src/core/specials';
+import type { BarRules } from '../../src/data/types';
 
 /** Step the fight until time t. */
 const go = (c: Combat, t: number) => c.advanceTo(t);
@@ -343,6 +345,188 @@ describe('the third region: drifting blocks and linked pairs', () => {
       go(c, timeAt(t, 0.6));
       expect(['hit'], hero).toContain(c.tap(timeAt(t, 0.6)).outcome);
       expect(c.linkLit, hero).toBeNull();
+    }
+  });
+});
+
+describe('the fourth region: dark blocks (the lantern) and the tide', () => {
+  it("a dark yellow far from the cursor stays unlit; the lantern lights it well before the cursor gets there, and it's hit like any yellow", () => {
+    const { c, t } = setup();
+    const b = c.spawnBlock('yellow', 0.8, c.enemies[0].id, undefined, { dark: true });
+    expect(b.dark).toBe(true);
+    expect(unlit(b)).toBe(true);
+    go(c, 0.2);
+    expect(unlit(b)).toBe(true);
+    const arrive = timeAt(t, 0.8);
+    go(c, arrive);
+    expect(unlit(b)).toBe(false);
+    // lit at least the lantern's reach (in time) before the cursor reached its centre, less a tick and its half-width
+    expect(arrive - b.litAt).toBeGreaterThanOrEqual(t.dark.lightSec - 0.02);
+    expect(c.drainEvents().some((e) => e.type === 'lit' && e.id === b.id && e.kind === 'yellow')).toBe(true);
+    expect(c.tap(arrive).outcome).toBe('hit');
+  });
+
+  it('a trap that came dark bites for dark.trapMult of a trap (it was hard to read)', () => {
+    const { c, t } = setup({ enemies: ['bandit'] });
+    const hp = c.hero.hp;
+    const p = c.spawnBlock('purple', 0.3, c.enemies[0].id, undefined, { dark: true });
+    go(c, timeAt(t, 0.3));
+    expect(unlit(p)).toBe(false);
+    expect(c.tap(timeAt(t, 0.3)).outcome).toBe('trap');
+    expect(hp - c.hero.hp).toBe(Math.round(c.enemies[0].special * t.dark.trapMult));
+  });
+
+  it("the lantern's reach is a time: it widens as the cursor speeds up, and never drops below its minimum", () => {
+    const { c, t } = setup();
+    const slow = c.lightReach();
+    expect(slow).toBeCloseTo(t.dark.lightSec / t.cursor.basePassSec, 5);
+    c.combo = 40;
+    expect(c.lightReach()).toBeGreaterThan(slow * 1.5);
+    c.combo = 0;
+    t.dark.lightSec = 0.01;
+    t.dark.floorSec = 0.01;
+    expect(c.lightReach()).toBeCloseTo(t.dark.lightMin, 5);
+  });
+
+  it("an act's dark share makes spawned yellows, greens and traps dark, and some dark yellows are traps in disguise (a yellow's width); none in an act without it", () => {
+    const { c, t } = setup({ bar: { dark: { share: 1, fromRow: 0, traps: 0 } } });
+    expect(c.trySpawn('yellow', c.enemies[0].id)).toBe(true);
+    expect(c.blocks[0]).toMatchObject({ kind: 'yellow', dark: true, litAt: Infinity });
+    const { c: tr } = setup({ bar: { dark: { share: 1, fromRow: 0, traps: 1 } } });
+    tr.trySpawn('yellow', tr.enemies[0].id);
+    expect(tr.blocks[0]).toMatchObject({ kind: 'purple', dark: true });
+    expect(tr.blocks[0].width).toBeCloseTo(t.blocks.attackWidth, 5);
+    const { c: plain } = setup();
+    plain.trySpawn('yellow', plain.enemies[0].id);
+    expect(plain.blocks[0].dark).toBe(false);
+    const { c: early } = setup({ bar: { dark: { share: 1, fromRow: 3, traps: 0 } }, row: 1 });
+    early.trySpawn('yellow', early.enemies[0].id);
+    expect(early.blocks[0].dark).toBe(false);
+  });
+
+  it('an act without the new rules plays exactly as before (no extra random draws)', () => {
+    const run = (bar?: BarRules) => {
+      const { c } = setup({ spawning: true, specials: true, enemies: ['bandit'], bar });
+      go(c, 6);
+      return c.blocks.map((b) => `${b.kind}@${b.pos.toFixed(4)}`).join(',');
+    };
+    expect(run({})).toBe(run(undefined));
+    expect(run({ dark: { share: 0.5, fromRow: 0, traps: 0.5 } })).not.toBe(run(undefined));
+  });
+
+  it('a snuff dims the lantern (never below its floor), lit blocks outside it go dark again, and it burns bright again after', () => {
+    const { c, t } = setup();
+    const near = c.spawnBlock('yellow', 0.05, c.enemies[0].id, undefined, { dark: true });
+    const far = c.spawnBlock('yellow', 0.6, c.enemies[0].id, undefined, { dark: true });
+    far.litAt = 0; // lit earlier
+    go(c, 0.05);
+    expect(unlit(near)).toBe(false);
+    const full = c.lightReach();
+    runAction(c, c.enemies[0], { type: 'snuff', mult: 0.5, sec: 2 });
+    expect(c.lightReach()).toBeCloseTo((full * Math.max(t.dark.floorSec, 0.5 * t.dark.lightSec)) / t.dark.lightSec, 5);
+    expect(unlit(far)).toBe(true);
+    expect(unlit(near)).toBe(false);
+    go(c, 2.2);
+    expect(c.lightMult).toBe(1);
+    expect(c.drainEvents().some((e) => e.type === 'lightBack')).toBe(true);
+    // a snuff with no time is for good
+    runAction(c, c.enemies[0], { type: 'snuff', mult: 0.7, sec: 0 });
+    go(c, 10);
+    expect(c.lightMult).toBe(0.7);
+  });
+
+  it('darken: yellows outside the light go dark, the farthest first (they keep their kind); a formation can place dark blocks; barRule darkEvery', () => {
+    const { c } = setup();
+    const a = c.spawnBlock('yellow', 0.5);
+    const b = c.spawnBlock('yellow', 0.9);
+    const n = c.spawnBlock('yellow', 0.04);
+    runAction(c, c.enemies[0], { type: 'darken', count: 1 });
+    expect([unlit(a), unlit(b), unlit(n)]).toEqual([false, true, false]);
+    expect(b.kind).toBe('yellow');
+    runAction(c, c.enemies[0], { type: 'darken', count: 0 });
+    expect([unlit(a), unlit(n)]).toEqual([true, false]);
+    runAction(c, c.enemies[0], { type: 'formation', blocks: [{ kind: 'purple', at: 0.7, dark: true }] });
+    expect(c.blocks.find((x) => x.kind === 'purple')).toMatchObject({ dark: true, litAt: Infinity });
+    const { c: r } = setup();
+    runAction(r, r.enemies[0], { type: 'barRule', holdEvery: 0, darkEvery: 2 });
+    r.trySpawn('yellow', r.enemies[0].id);
+    r.trySpawn('yellow', r.enemies[0].id);
+    expect(r.blocks.map((x) => x.dark)).toEqual([false, true]);
+  });
+
+  const tide = { fromRow: 0, low: 0.1, high: 0.4, period: 8, from: 'right' as const };
+
+  it('the tide starts at low water at its end, swells to its high mark at half its period and falls back', () => {
+    const { c } = setup({ bar: { tide } });
+    expect(c.waterR).toBeCloseTo(0.1, 5);
+    expect(c.waterL).toBe(0);
+    go(c, 4);
+    expect(c.waterR).toBeCloseTo(0.4, 2);
+    go(c, 8);
+    expect(c.waterR).toBeCloseTo(0.1, 2);
+    // not before its row
+    const { c: early } = setup({ bar: { tide: { ...tide, fromRow: 2 } }, row: 1 });
+    go(early, 4);
+    expect(early.waterR).toBe(0);
+  });
+
+  it('a block whose centre is under water is sunk: a tap there is a miss; it surfaces as the water falls and is hit again', () => {
+    const { c, t } = setup({ bar: { tide: { ...tide, period: 6 } } });
+    const y = c.spawnBlock('yellow', 0.75);
+    go(c, 2.9); // high water (0.4 from the right): 0.75 is under
+    expect(c.sunk(y)).toBe(true);
+    // the cursor's next pass over 0.75
+    const at = timeAt(t, 2) + timeAt(t, 1 - 0.75); // left->right, then back to 0.75
+    go(c, at);
+    expect(c.sunk(y)).toBe(true);
+    expect(c.tap(at).outcome).toBe('miss');
+    expect(c.blocks.includes(y)).toBe(true);
+    go(c, 5.8); // low water again
+    expect(c.sunk(y)).toBe(false);
+    const back = 4 * t.cursor.basePassSec + timeAt(t, 0.75); // two round trips on, near low water
+    go(c, back);
+    expect(c.tap(back).outcome).toBe('hit');
+  });
+
+  it('reds wade through the water (slower), and new blocks only come on dry ground', () => {
+    const wet = setup({ bar: { tide: { ...tide, low: 0.4 } } }).c;
+    const dry = setup().c;
+    const rw = wet.spawnBlock('red', 0.9);
+    const rd = dry.spawnBlock('red', 0.9);
+    go(wet, 0.5);
+    go(dry, 0.5);
+    expect(0.9 - rw.pos).toBeCloseTo((0.9 - rd.pos) * wet.tuning.tide.drag, 2);
+    for (let k = 0; k < 6; k++) wet.trySpawn('yellow', wet.enemies[0].id);
+    for (const b of wet.blocks) if (!isRed(b.kind)) expect(b.pos + b.width / 2).toBeLessThanOrEqual(1 - wet.waterR);
+  });
+
+  it('a surge: the water rushes up to its level and holds, then ebbs; with no time it floods for good; both ends; never over 0.6 of the bar', () => {
+    const { c, t } = setup();
+    runAction(c, c.enemies[0], { type: 'tide', level: 0.4, sec: 2 });
+    go(c, 0.4 / t.tide.surgeSpeed + 0.05);
+    expect(c.waterR).toBeCloseTo(0.4, 5);
+    expect(c.waterL).toBe(0);
+    go(c, 2.05);
+    expect(c.drainEvents().some((e) => e.type === 'ebb')).toBe(true);
+    go(c, 4.5);
+    expect(c.waterR).toBe(0);
+    runAction(c, c.enemies[0], { type: 'tide', level: 0.5, sec: 0, from: 'both' });
+    go(c, 20);
+    expect(c.waterL + c.waterR).toBeCloseTo(0.6, 5);
+    expect(c.waterL).toBeCloseTo(c.waterR, 5);
+  });
+
+  it('every hero can hit a dark yellow once lit, and is stopped by the water like anyone (one cursor each)', () => {
+    for (const hero of HERO_IDS) {
+      const { c, t } = setup({ enemies: ['bandit'], hero, bar: { tide: { ...tide, low: 0.3, high: 0.3 } } });
+      const d = c.spawnBlock('yellow', 0.4, c.enemies[0].id, undefined, { dark: true });
+      const s = c.spawnBlock('yellow', 0.85);
+      go(c, timeAt(t, 0.4));
+      expect(unlit(d), hero).toBe(false);
+      expect(c.tap(timeAt(t, 0.4)).outcome, hero).toBe('hit');
+      go(c, timeAt(t, 0.85));
+      expect(c.tap(timeAt(t, 0.85)).outcome, hero).toBe('miss');
+      expect(c.blocks.includes(s), hero).toBe(true);
     }
   });
 });

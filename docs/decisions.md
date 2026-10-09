@@ -786,6 +786,12 @@ S6. **He works inward; Greenmarch is last and lightest.** A chest hero from any 
 S7. **Region 4's scenes are drafted ahead of its data** (`src/data/story-fen.ts`, not in play): Team 3 points its acts
     at the ids when the region is wired. Its boss doesn't speak; the Mapmaker speaks for it.
 
+S8. **Region 4 keeps Team 3's names** (the Duskmire, its acts Lanternfen, the Drowned Causeway and the Gloaming Mere;
+    Old Bellybog, the Sluice Keeper, the Gloaming Lighthouse), replacing S4's "Lanternfen" for the region and its
+    Mirewick suggestion: their design came in fitting the story (he shut the sun in a lighthouse lamp and penciled the
+    shore onto a timetable), so the story follows it. Its scenes are written into their ids (`story-dusk.ts`); S7's
+    separate draft is gone.
+
 (story: end of section)
 
 
@@ -822,6 +828,17 @@ A6. **Skill nodes without a painted icon get an emblem from their name** (`art-s
 
 
 ### Team 3: content
+
+C1. **Region 4's design and its build calls are in docs/content-bible.md section 7** (spoilers: its two bar rules,
+    how they were made fair to a 75% thumb and tuned with a bot probe, the acts, foes and bosses), as Region 3's were
+    (Part 9). Working names until the story team's bible fixes them; the data is written so a rename touches names
+    and scene text only.
+C2. **Two new bar rules in the core** (`CORE:` commits), deterministic, drawing nothing from the random stream in an
+    act without them (a test plays a fight with and without and compares), each with a slider group, a first-meeting
+    tip, a picture on the bar (nothing depends on sound), a lab item, and tests for every hero.
+C3. **Region 4's data is written but not wired in** (`duskmire.ts`, `enemies-dusk.ts`, `story-dusk.ts`, checked by
+    `duskmire-data.test.ts`): it joins REGIONS once its art (sprites, minis, backdrops, themes) and telegraph sounds
+    exist; until then its acts borrow earlier looks and its scenes are one-line placeholders.
 
 (content: end of section)
 
