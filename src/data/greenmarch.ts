@@ -33,6 +33,8 @@ export const GREENMARCH: RegionDef = {
         [['slime', 'crow'], ['boar']],
       ],
       weights: { fight: 0.46, elite: 0.1, treasure: 0.1, rest: 0.1, shop: 0.1, event: 0.14 },
+      // the newcomer's first chest: offered right after the first fight, whichever way they went (docs/first-10.md)
+      chestRow: 1,
     },
     {
       name: 'Old Ruins',

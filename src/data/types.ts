@@ -125,6 +125,9 @@ export interface ActDef {
   bossScene?: string;
   /** How likely each node type is on the map (the generator then makes sure each appears at least once). */
   weights: Record<RolledNode, number>;
+  /** A chest offered on this map row whichever way the hero comes (every node of the row before links to one): Act
+   *  1's is row 1, so a newcomer's first chest comes right after their first fight (docs/first-10.md). */
+  chestRow?: number;
   /**
    * Wandering packs on the act map (core/roam.ts): each pack is one of these, its foes coming as extra waves of an
    * ambush (later acts: tougher packs). How many packs roam an act is tuning (roam.packsFirst / packsLast).
