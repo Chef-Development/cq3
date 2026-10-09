@@ -818,16 +818,20 @@ redraws the fight as it goes (each phase change: his scene, then the bar changes
 - New speakers: `bellybog`, `sluiceKeeper`, `lighthouse`, and the mapmaker (`mapmaker`: the story team's id).
 
 ### Relics (Light and Tide tags; offered from the region's first act on: `from: 9`)
-Light: **Moth Wing** (hits on dark blocks +40%), **Wick Trimmer** (Perfects on dark blocks crit), **Night Owl** (the
-lantern reaches 30% further), **Lantern Oil** (a dark block lit fills a little meter), **Glow Worms** (each dark block
-hit drops a coin), **Ember Jar** (lighting a dark trap breaks it: it never fires), **Second Sight** (epic: dark blocks
-show what they are as a faint tint before they're lit). Tide: **Wading Boots** (blocking a red in the water heals 1
-HP), **Driftwood** (a block that just surfaced crits), **Undertow Charm** (reds in the water wade 25% slower),
-**Low Water** (the tide's high mark is 25% lower), **Tidepool** (each block that surfaces drops a coin), **Breakwater**
-(once a fight, a tap on a sunk block isn't a miss), **Moonpull** (epic: surges also slow the reds on dry ground).
-Builds: Lamplighter (Light), Tidewalker (Tide), Marshlord (Light + Tide).
-New hook points they need (needs core): `lit` (a dark block lit), `surfaced` (a sunk block came up), `lightMult`,
-`tideMult`, `wadeMult`, and a sunk tap's forgiveness through `canForgive()`.
+As built (`src/data/relics-dusk.ts`, hooks `core/relic-fx-dusk.ts`, with/without tests `tests/unit/relics-dusk.test.ts`;
+not merged into RELICS yet). Light: **Moth Wing** (hits on dark blocks +40%), **Wick Trimmer** (rare: Perfects on dark
+blocks crit), **Night Owl** (the light reaches 30% further), **Lantern Oil** (rare: lighting a dark block fills 50% of a
+hit's meter), **Glow Worms** (each dark block hit drops a coin), **Ember Jar** (rare: the light burns dark traps away
+before they can bite), **Blindfold** (epic: the light reaches 40% less; hits on dark blocks x3). Tide: **Wading Boots**
+(blocking a red in the water heals 2 HP), **Driftwood** (rare: a block that came up out of the water in the last 1.5 s
+crits), **Undertow Charm** (reds wade 25% slower), **Low Water** (rare: the water comes 25% less far), **Tidepool**
+(each block that comes up drops a coin), **Spring Tide** (rare: hits within 0.08 of the waterline +50%), **Moonpull**
+(epic: blocking a red in the water knocks the next red back 0.15; the tide comes 25% further).
+Builds: Lamplighter (Light), Tidewalker (Tide), Marshlord (Light + Tide), Moonlit (Light + Crit), Breakwater (Tide +
+Block). Hook points (core/hooks.ts, built): `lit`, `lightReach`, `surfaced` (with `Block.wet`, `Block.surfacedAt` and a
+`surface` event), `wadeMult`, `tideMult`. Merging: the tags and ids into the unions in relics.ts, tag chips and glyphs
+(relic-ui.ts, relic-log.ts), an icon each, numbers into `tuning.relics.n`, an entry each in view/perk-at.ts, and
+`DUSK_RELIC_HOOKS` into RELIC_HOOKS; the cautious bot's `avoid` list should take Blindfold and Moonpull.
 
 ### Gear
 Bases: Reed Spear, Lantern Mace, Peat Maul (weapons); Wick Hood, Snapper Helm (helms); Oilskin Coat, Shellplate
