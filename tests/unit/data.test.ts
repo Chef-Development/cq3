@@ -6,6 +6,7 @@ import { ENEMIES } from '../../src/data/enemies';
 import { EVENTS } from '../../src/data/events';
 import { GREENMARCH } from '../../src/data/greenmarch';
 import { SPEAKER_NAME, STORY } from '../../src/data/story';
+import { FEN_STORY } from '../../src/data/story-fen';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
 import { HEROES } from '../../src/data/heroes';
 import { TIER_INFO } from '../../src/data/rarity';
@@ -144,6 +145,20 @@ describe('story', () => {
 
   it('gets a new player to the first fight fast: at most 4 boxes before it (the intro and Act 1\'s opening)', () => {
     expect(STORY[GREENMARCH.introScene].length + STORY[GREENMARCH.acts[0].startScene ?? ''].length).toBeLessThanOrEqual(4);
+  });
+
+  it("drafts the fourth region's scenes to the same rules (not in play yet: src/data/story-fen.ts)", () => {
+    for (const id of ['fen1', 'fen2', 'fen3', 'fenBoss', 'fenBoss2', 'fenBoss3', 'fenVictory']) expect(FEN_STORY[id], id).toBeDefined();
+    for (const id of ['fenBoss2', 'fenBoss3']) expect(FEN_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
+    for (const [id, boxes] of Object.entries(FEN_STORY)) {
+      expect(boxes.length, id).toBeLessThanOrEqual(6);
+      for (const b of boxes) {
+        const lines = b.text.split('\n');
+        expect(lines.length, `${id}: ${b.text}`).toBeLessThanOrEqual(2);
+        for (const l of lines) expect(textWidth(l, 1, false), `${id}: "${l}"`).toBeLessThanOrEqual(STORY_TEXT_W);
+        expect(SPEAKER_NAME[b.who]).toBeDefined();
+      }
+    }
   });
 
   it('keeps the old story out: no pendulum, no weights to bring home', () => {

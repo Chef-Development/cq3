@@ -778,6 +778,14 @@ S5. **The game is called The Unerased** (short form "Unerased"): it names Rowan'
     brand). Shortlist, searches and sources: `docs/names.md`. `src/data/brand.ts`, the page title and the install name
     follow it.
 
+S6. **He works inward; Greenmarch is last and lightest.** A chest hero from any land can join from the start, so every
+    land must already be redrawn when the story opens: the far isles first, the continent's outer lands over the weeks
+    before, Greenmarch on the night of the intro, gently, because it was his home (which is also why its fights keep
+    the basic rules). The opening: three narration boxes and Pip's one line (4 before the first fight); the rest of the
+    setup comes between fights (a `road` scene after the first win is written and needs a hook).
+S7. **Region 4's scenes are drafted ahead of its data** (`src/data/story-fen.ts`, not in play): Team 3 points its acts
+    at the ids when the region is wired. Its boss doesn't speak; the Mapmaker speaks for it.
+
 (story: end of section)
 
 

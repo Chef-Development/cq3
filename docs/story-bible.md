@@ -497,8 +497,9 @@ Region 1: `intro` (3 boxes), `act1` (1 box: Pip): together the 4 boxes before th
 Hesper). Region 2 and 3: the same ids as now (`frost1` ... `frostVictory`, `ash1` ... `ashVictory`), rewritten to this
 bible. New speakers: `mapmaker` ("The Mapmaker"), `keeper` ("Hesper"); both need portraits (art team).
 
-Status (round 8, chunk 1): Regions 1-3 rewritten (`story.ts`, `story-ash.ts`), editor-passed, tests updated. Still to
-do: the `road` hook; the hero arrivals' home lines (`meet*`); banter that follows the story (lines gated on scenes, like
-`banter-ash.ts`); a welcome for returning players (their save never replays the new intro); Region 4's scenes with
-Team 3; the bosses' portraits and the two new speakers' (`portrait_mapmaker`, `portrait_keeper`: until they exist the
+Status (round 8, chunk 1): Regions 1-3 rewritten (`story.ts`, `story-ash.ts`), editor-passed, tests updated; the
+chest heroes' arrivals say whose home was redrawn; the welcome back catches a returning player up; Region 4's scenes
+are drafted in `src/data/story-fen.ts` (ids `fen1`-`fen3`, `fenBoss`, `fenBoss2`, `fenBoss3`, `fenVictory`; not in play
+until Team 3 wires the region; its mini-bosses' scenes wait for their foes). Still to do: the `road` hook; banter that
+follows the story (lines gated on scenes, like `banter-ash.ts`, which is itself not wired yet); Region 5; the bosses' portraits and the two new speakers' (`portrait_mapmaker`, `portrait_keeper`: until they exist the
 story view shows Phaser's missing-texture box); `keeper` belongs with the allies' warm look in `view/story.ts`.
