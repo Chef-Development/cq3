@@ -14,8 +14,10 @@ import { swordMap, SWORD_PAL } from './art-sword';
 // dented, the tabard a deep navy, the trim old bronze, the plume and cape a dark wine.
 export const ROWAN_STEEL = ['#1c1f2e', '#343a52', '#565e7c', '#8a92ae', '#d4d8e4'];
 export const ROWAN_BLUE = ['#0a1228', '#13234c', '#1e3772', '#2f5096', '#4a6cb2'];
-const BRONZE = ['#2e1c0c', '#5a3814', '#8a5a1e', '#b8862e', '#dcb45a'];
-const PLUME = ['#2a0810', '#52121c', '#7e1c24', '#b03430', '#e0705e'];
+export const ROWAN_BRONZE = ['#2e1c0c', '#5a3814', '#8a5a1e', '#b8862e', '#dcb45a'];
+const BRONZE = ROWAN_BRONZE;
+export const ROWAN_PLUME = ['#2a0810', '#52121c', '#7e1c24', '#b03430', '#e0705e'];
+const PLUME = ROWAN_PLUME;
 /** The cape: darker than the plume so the two read apart. */
 const CAPE = ['#1e0610', '#3a0c18', '#561622', '#70222a', '#8c3434'];
 const LEATHER = ['#1a100a', '#2e1e14', '#4a3020', '#6a4630'];

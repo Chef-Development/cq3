@@ -843,14 +843,15 @@ function flameFrame(f: number): HTMLCanvasElement {
 
 // ------------------------------------------------------------------ Rowan by the fire (sitting on the log, facing right)
 
+// (playtest round 8, L7/L8: the darker, worn colours of his fight frames)
 const ROWAN_PAL: Record<string, string> = {
-  x: '#4a0f1a', R: '#8a1a22', r: '#d03030', q: '#f05a48', Q: '#ff9a80',
-  K: '#2a2f45', M: '#4a5272', m: '#7c86a6', s: '#b8c2d8', S: '#eef3fa', W: '#ffffff',
-  z: '#5a3410', Y: '#9a5a14', y: '#d8901c', g: '#f2c230', G: '#fff0a0',
-  n: '#10204a', B: '#1a3c8a', b: '#2a6ad8', l: '#4aa0f0', L: '#9ad8ff',
-  k: '#1c1430', e: '#4ad8ff', E: '#e0fcff',
-  D: '#2a1810', d: '#4a2c18', h: '#6e4426', H: '#98663a',
-  u: '#3e0c1c', c: '#6a1424', C: '#8e1e2a', v: '#b42c34', V: '#d24840',
+  x: '#2a0810', R: '#52121c', r: '#7e1c24', q: '#b03430', Q: '#e0705e',
+  K: '#1c1f2e', M: '#343a52', m: '#565e7c', s: '#8a92ae', S: '#d4d8e4', W: '#e8ecf4',
+  z: '#2e1c0c', Y: '#5a3814', y: '#8a5a1e', g: '#b8862e', G: '#dcb45a',
+  n: '#0a1228', B: '#13234c', b: '#1e3772', l: '#2f5096', L: '#4a6cb2',
+  k: '#0e0a16', e: '#4ad8ff', E: '#e6fcff',
+  D: '#1a100a', d: '#2e1e14', h: '#4a3020', H: '#6a4630',
+  u: '#1e0610', c: '#3a0c18', C: '#561622', v: '#70222a', V: '#8c3434',
   // firelight on the side facing the flames
   F: '#ffc890', f: '#e8a070',
 };
