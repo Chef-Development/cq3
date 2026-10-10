@@ -1500,7 +1500,7 @@ function golemParts(pose: string): Part[] {
 // ------------------------------------------------------------------ boarking (Boar King: the final boss)
 
 // dark fur, hue-shifted: shadows lean purple, highlights lean orange; the mane is near black
-const KFUR = ['#140a14', '#2a1420', '#46222c', '#643434', '#844c40', '#a26a50']; // darker, cooler (decision L8)
+const KFUR = ['#180c16', '#321822', '#522a30', '#723e38', '#925a46', '#b27a58']; // darker, cooler (decision L8)
 const KMANE = ['#0e0812', '#1e1018', '#2e1622', '#46222e', '#66323a', '#8a4a48'];
 const VELVET = ['#3a0c1c', '#6a1424', '#a02430', '#d03c3c', '#f06a5a'];
 const IVORY = ['#6a5a4a', '#a8967a', '#d8c8a8', '#f4ead4', '#fffcf0'];

@@ -640,33 +640,34 @@ function batParts(pose: string): Part[] {
 // ------------------------------------------------------------------ yeti cub (a round white yeti kid with a snowball)
 
 const SNOWBALL = ['#3a4a7a', '#6a84b4', '#a0bce0', '#d0e4f6', '#ffffff'];
-const PEACH = ['#5e2e34', '#a0584e', '#d48a6c', '#f0b890', '#ffdcbc'];
+// (decision L8) a dark leathery face instead of a peach one, eyes glowing ice-blue under a scowl, fangs, no rosy cheeks
+const PEACH = ['#221a30', '#3e3048', '#5a4860', '#786274', '#94808c'];
 const YETI_PAL: Pal = {
   k: INK, W: '#ffffff',
   m: '#3a1020', t: '#fff8f0', r: '#e05a6a', // mouth, teeth, tongue
-  c: '#f08a8a', // rosy cheek
+  c: '#f08a8a', G: '#9af0ff', // (unused cheek), glowing eye
   F: '#4a4a78', // soles
 };
 const YETI_SHADES: Record<string, Shade> = {
-  s: { ramp: SNOWFUR, same: 'pkWmtrc', top: [5, 5], left: [5], right: [2, 3], bottom: [1, 2], mid: 4 },
+  s: { ramp: SNOWFUR, same: 'pkWmtrcG', top: [5, 5], left: [5], right: [2, 3], bottom: [1, 2], mid: 4 },
   a: { ramp: SNOWFUR, top: [5], left: [5], right: [2], bottom: [2], mid: 4 }, // arms
-  p: { ramp: PEACH, same: 'kWmtrc', top: [4], left: [4], right: [2], bottom: [2], mid: 3 },
+  p: { ramp: PEACH, same: 'kWmtrcG', top: [4], left: [4], right: [2], bottom: [2], mid: 3 },
   b: { ramp: SNOWBALL, top: [4, 4], left: [4], right: [1, 2], bottom: [1, 2], mid: 3 },
   h: { ramp: PEACH, top: [3], left: [3], right: [1], bottom: [1], mid: 2 }, // paws
 };
-// one round ball of shaggy fur, facing left: a warm face, big glinting eyes, a gappy grin
+// one round ball of shaggy fur, facing left: a dark face, glowing eyes under a scowl, fangs
 const YETI_BODY = [
   '.....s.s.s........',
   '....sssssssss.....',
   '..ssssssssssss....',
   '..sssssssssssss.s.',
   '.ssspppppppsssss..',
-  '.sspppppppppsssss.',
-  'sspWkppWkpppsssss.',
+  '.sspkkpkkkppsssss.',
+  'sspGkppGkpppsssss.',
   'sspkkppkkpppssssss',
-  'sscpppppppcpssssss',
+  'ssppppppppppssssss',
   'ssspmmmmmmppssssss',
-  'ssspmtrrtpppsssss.',
+  'ssspmtmmtpppsssss.',
   '.ssspppppsssssssss',
   '.sssssssssssssssss',
   's.ssssssssssssss.s',
@@ -708,11 +709,11 @@ function yetiParts(pose: string): Part[] {
       y = 7;
       hand = [-4, 14];
       ball = null;
-      body = swap(YETI_BODY, [['ssspmtrrtpppsssss.', 'ssspmmrrmpppsssss.']]);
+      body = swap(YETI_BODY, [['ssspmtmmtpppsssss.', 'ssspmrrrrpppsssss.']]);
       break;
     case 'hurt':
       x = 5;
-      body = swap(YETI_BODY, [['sspWkppWkpppsssss.', 'sspkpppkppppsssss.'], ['sspkkppkkpppssssss', 'ssppkppppkppssssss']]);
+      body = swap(YETI_BODY, [['sspGkppGkpppsssss.', 'sspkpppkppppsssss.'], ['sspkkppkkpppssssss', 'ssppkppppkppssssss']]);
       hand = [2, 20];
       ball = [0, 18];
       break;
@@ -721,7 +722,7 @@ function yetiParts(pose: string): Part[] {
       y = 7;
       hand = null;
       ball = null;
-      body = swap(YETI_BODY, [['ssspmtrrtpppsssss.', 'ssspmttttpppsssss.']]);
+      body = swap(YETI_BODY, [['ssspmtmmtpppsssss.', 'ssspmttttpppsssss.']]);
       extra.push(
         limb(x + 3, y + 7, x + 4, y - 4, 'a', { edge: SNOWFUR[1] }),
         limb(x + 13, y + 6, x + 12, y - 4, 'a', { edge: SNOWFUR[1] }),
@@ -2081,8 +2082,9 @@ function matronParts(pose: string): Part[] {
 // ------------------------------------------------------------------ glacia (the boss: a vain ice wyrm coiled on her hoard)
 
 // sapphire scales: shadows lean indigo, highlights lean cyan-white
-const WYRM = ['#0c1434', '#162a5a', '#22468a', '#306eb4', '#4e9ad4', '#8acaec', '#d8f4ff'];
-const BELLY = ['#4a4a6a', '#8a8aa6', '#c4c8da', '#e8ecf4', '#ffffff'];
+// (decision L8: a step darker, so she looms over her gold instead of glittering like a toy)
+const WYRM = ['#080c26', '#101e48', '#1a3474', '#26549c', '#3a78bc', '#6aa8d8', '#c0e4f8'];
+const BELLY = ['#3a3a58', '#6a6a8a', '#a4a8c4', '#ccd2e4', '#eef2fa'];
 const COIN = ['#5a3410', '#9a5a14', '#d8901c', '#f2c230', '#fff0a0', '#fffbe0'];
 const GLACIA_PAL: Pal = {
   k: INK, O: '#ffc040', o: '#e07a1a', L: '#140c1c', // eye, lashes
@@ -2288,6 +2290,7 @@ function glaciaParts(pose: string, phase: number): Part[] {
   const head = geo('head', () => vol(skull, [hx, hy, hx + 25, hy + 15], [hx + 10, hy + 5, 15, 11], ramp), { pal: headPal, edge: ramp[0] });
   parts.push([scaled(head[0], hx, hy, glint * 0.5), head[1], head[2], head[3]]);
   if (open) parts.push(dots([['t', [H(4, 12), H(7, 12), H(10, 12), H(5, 14 + open - 1)]]]));
+  else parts.push(dots([['t', [H(4, 12), H(5, 13), H(9, 12), H(9, 13)]]])); // fangs over the lip
   // cheek frill and the near horn, swept back
   parts.push(crystal(...H(20, 9), (15 * Math.PI) / 180, 7, 4));
   parts.push(crystal(...H(19, 2), (-25 * Math.PI) / 180, 17, 6));
@@ -2298,8 +2301,8 @@ function glaciaParts(pose: string, phase: number): Part[] {
     : phase >= 3
       ? ['.......LL', '..LLLLLL.', '.LRRWRL..', '..LqqqL..']
       : phase === 2
-        ? ['.......LL', '..vvvvLL.', '.LLLLLL..', '..LOWOL..']
-        : ['.......LL', '..vvvvLL.', '.LLLLLL..', '.LOOWOL..', '..LooL...'];
+        ? ['.......LL', '..vvvvLL.', '.LLLLLL..', '..LOkWL..']
+        : ['.......LL', '..vvvvLL.', '.LLLLLL..', '.LOkWOL..', '..LkoL...']; // a reptile's slit pupil
   parts.push([eyeRows, hx + 9, hy + 2]);
   parts.push(dots([['n', [H(2, 8), H(3, 8)]]]));
   // a gold circlet set with an emerald, worn just so
