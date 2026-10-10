@@ -15,6 +15,8 @@ import { clamp01, easeBack, easeOut3, INK, WHITE } from './shared';
 
 /** The reveal's length (ms of wall time; the fight's clock is held for it). */
 export const REVEAL_MS = 1500;
+/** The calm beat after the show (fight seconds): no special and no red, so the bar the finisher cleared stays clear. */
+export const REVEAL_CALM_SEC = 2.5;
 
 const GOLD = 0xffd23a;
 const DEPTH = 30; // over the HUD and the floaters, under the screen wipes and the tip card

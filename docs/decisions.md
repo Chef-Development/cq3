@@ -1605,4 +1605,33 @@ F17. **The newcomer bot spends skill points** (`tests/smoke/first10.spec.ts`): f
     point is waiting on the map it taps Camp, opens Skills, learns down one branch and goes back (`F10_SKILLS=0` never
     does), so its boss result compares with the balance bot, which spends them after every loot.
 
+F18. **The Mapmaker's Edits** (the lead's request; `CORE:` b092f75): five opt-in hardships a player draws into the
+    next act once Region 1 is restored (off by default; never in the first ten minutes): Swift Reds, Iron Hides, Thin
+    Mercy, Sharp Edges, Last Life. They pay +15% XP per point of weight and gems the first time each act is cleared
+    under each (no timers, energy or money). Chosen at camp (an oxblood Edits key right of the top bar's middle; its
+    glyph alone when the purse leaves no room) or from the act picker's key (top left of the panel, with the count),
+    on the Atlas study's stage: one iron plate per Edit (a socket round its glyph, an oxblood wax seal once drawn in),
+    the ledger on the right (a big seal with the count, the XP and gems the next act pays, the seals won). In a fight
+    the act plate carries an oxblood "2 Edits" tag beside it; the plate no longer shows the map row ("1/8", a riddle
+    to the reviewers: the skulls under it count the foes). Unit tests: each with/without, the rewards, the save, each
+    line fits its row, and the bot at 75% (each costs more; Last Life: Act 2 lost 10 of 16 times, 5 without).
+    Test lab: "The Mapmaker's Edits" (camp) and "All Edits, one fight".
+
+F19. **The first finisher's reveal keeps its promise** (review 2, high; `CORE:` combat.ts `Combat.calm`). It stamped
+    "Hits all, clears reds." while the boar's Charge! was already winding up under the letterbox, and two reds were back
+    within 2 s of the show. The reveal now calls a calm beat: the wind-up is called off, and no special or pattern red
+    comes through the show and 2.5 s after it (`REVEAL_CALM_SEC`; yellows keep coming); the show doesn't stamp its
+    name a second time over the fading reveal, and the act plate and skulls hide under the letterbox. View-called only
+    (the sim and the bot never call it). Measured (newcomer bot, seeds 7 and 9): no shout under the reveal, an empty
+    bar of reds 3 s after the blow.
+F20. **The first tips out of the fighters' way** (review 1). Fight tip cards sit at the very top of the stage (over the
+    act plate while the fight waits), their "Tap to continue" on the top edge beside TIP, so the card ends above
+    Rowan's and Pip's heads; an arrow that would run down through them is only its head, just over the block (the gold
+    window still rings it). The meter's "SWIPE!" waits for the finisher's lesson (a full meter before it is quiet,
+    its gems lit). The bounty tip sits at the top (`TipDef.top`): the goal, the reward and Take it stay in view. The
+    travelling trader's stall gets her own tip; the shop's waits for a real shop (it was spent on her stall, and hers
+    never showed; unit test). The map tip's window takes Rowan in.
+F21. **The first map says "tap here"** (review 1): until the first step, a bright chevron bobs over each spot Rowan
+    can go to, and "Tap a glowing spot" is drawn at full strength (it was the faintest words on the screen).
+
 (first10: end of section)

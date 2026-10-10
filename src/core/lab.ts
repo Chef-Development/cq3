@@ -8,6 +8,7 @@ import { HERO_IDS, type HeroId } from '../data/heroes';
 import { COMPANION_IDS, type CompanionId } from '../data/companions';
 import { EVENTS } from '../data/events';
 import { revealKey, TIPS } from '../data/tips';
+import type { EditId } from '../data/edits';
 import { LAB_EARLIER, LAB_GROUPS, LAB_NEW, type LabScenario } from '../data/lab';
 import { ALL_ACTS, REGIONS, regionStart } from '../data/regions';
 import type { RelicId } from '../data/relics';
@@ -77,6 +78,7 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
   const act = labAct(s);
   p.actsCleared = Math.max(0, Math.min(ALL_ACTS.length, spec.actsCleared ?? (s.setup.kind === 'camp' ? 1 : act)));
   if (p.actsCleared >= 3) p.weights = Math.max(p.weights, 1);
+  if (spec.weights !== undefined) p.weights = Math.max(0, Math.round(spec.weights));
   if (p.actsCleared >= 4) {
     // the frost mage has joined by then (her scene never plays over the lab's camp)
     p.neveMet = true;
@@ -177,13 +179,15 @@ export interface LabFightPlan {
   /** Relics carried into the fight, and whether a won fight ends in a stat card pick. */
   relics: RelicId[];
   pick?: boolean;
+  /** The Mapmaker's Edits it's fought under. */
+  edits?: EditId[];
 }
 
 export function labFight(s: LabScenario): LabFightPlan | null {
   if (s.setup.kind !== 'fight') return null;
   const f = s.setup;
   const bar = f.bar === 'act' ? ALL_ACTS[f.act]?.bar : f.bar;
-  return { hero: f.hero, stars: f.stars, waves: f.waves.map((w) => w.slice()), act: f.act, stage: f.stage ?? f.act, bar, row: f.row ?? 9, safe: !!f.safe, stacks: Math.max(0, f.stacks ?? 0), relics: (f.relics ?? []).slice(), pick: !!f.pick };
+  return { hero: f.hero, stars: f.stars, waves: f.waves.map((w) => w.slice()), act: f.act, stage: f.stage ?? f.act, bar, row: f.row ?? 9, safe: !!f.safe, stacks: Math.max(0, f.stacks ?? 0), relics: (f.relics ?? []).slice(), pick: !!f.pick, edits: f.edits?.slice() };
 }
 
 /** The phase a scenario plays in: its fight (the Finisher gallery's too), its scenes, an act's map, or the camp (the
@@ -198,7 +202,7 @@ export function startLabScenario(run: Run, s: LabScenario, seed: number): void {
   run.phase = 'camp';
   const f = labFight(s);
   if (f) {
-    run.startPractice({ hero: f.hero, stars: f.stars, waves: f.waves, act: f.act, bar: f.bar, row: f.row, safe: f.safe, then: 'camp', seed, relics: f.relics.length ? f.relics : undefined, pick: f.pick });
+    run.startPractice({ hero: f.hero, stars: f.stars, waves: f.waves, act: f.act, bar: f.bar, row: f.row, safe: f.safe, then: 'camp', seed, relics: f.relics.length ? f.relics : undefined, pick: f.pick, edits: f.edits });
     run.actIndex = f.stage; // the act's stage, music and name around the fight
     // the finisher is ready to try at once
     if (f.stacks && run.combat) run.combat.bankStacks(f.stacks, 'testLab');

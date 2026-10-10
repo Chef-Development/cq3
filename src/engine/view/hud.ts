@@ -559,7 +559,7 @@ export class Hud {
     const c = s.app.run.combat;
     if (c) {
       this.drawEnemy(g, now, dt, c, sl.r);
-      this.drawTop(g, now, c);
+      if (!s.reveal.active) this.drawTop(g, now, c); // (the first finisher's reveal: its letters over a clear top)
       this.drawCombo(g, now, c, sl.l);
       this.drawStrip(g, now, c, sl.d);
     }
@@ -895,20 +895,22 @@ export class Hud {
   // ------------------------------------------------------------------ act and foe counters (top center)
 
   private drawTop(g: G, now: number, c: Combat): void {
-    const s = this.s;
-    const run = s.app.run;
+    const run = this.s.app.run;
     const cx = Math.round(GAME_W / 2);
-    const node = run.node;
+    // the act (the map's row count is left to the map: the skulls under it count the fight's foes), and beside it the
+    // Mapmaker's Edits it's fought under, in oxblood
     const act = `Act ${run.actIndex + 1}`;
-    const where = node ? `${node.row + 1}/${run.map.rows.length}` : '';
-    const w = textWidth(act, 1, false) + (where ? textWidth(where, 1, false) + 5 : 0) + 8;
-    const r: Rect = { x: Math.round(cx - w / 2), y: 20, w, h: 9 };
+    const edits = c.rush ? 0 : run.fightEdits.length;
+    const label = edits ? `${whole(edits)} ${edits > 1 ? 'Edits' : 'Edit'}` : '';
+    const w = textWidth(act, 1, false) + 8;
+    const ew = label ? textWidth(label, 1, false) + 8 : 0;
+    const r: Rect = { x: Math.round(cx - (w + (ew ? ew + 2 : 0)) / 2), y: 20, w, h: 9 };
     tag(g, r, [NAVY[5], NAVY[3], NAVY[2], NAVY[1]], 0.92);
     this.texts.text(act, r.x + 4, r.y + 4.5, 0xffd23a, { oy: 0.5 });
-    if (where) {
-      g.fillStyle(NAVY[6], 1);
-      g.fillRect(r.x + 4 + textWidth(act, 1, false) + 1, r.y + 3, 1, 3);
-      this.texts.text(where, r.x + r.w - 4, r.y + 4.5, 0xdcd8f0, { ox: 1, oy: 0.5 });
+    if (label) {
+      const er: Rect = { x: r.x + w + 2, y: 20, w: ew, h: 9 };
+      tag(g, er, [0xc88070, 0x8a3430, 0x642428, 0x3a1218], 0.92);
+      this.texts.text(label, er.x + 4, er.y + 4.5, 0xffe0d8, { oy: 0.5 });
     }
     if (run.phase !== 'fight') return;
     const { beaten, total } = foeCount(c);
@@ -1214,7 +1216,9 @@ export class Hud {
       const col = hot ? (Math.floor(now / 120) % 2 ? 0xff5a2a : 0xffd080) : [0x9ad8ff, 0xffe680, 0xff9a3a][i];
       chevron(g, vx + i * 5, Math.round(cy - 3), 7, on ? col : NAVY[5], 1, 1, true);
     }
-    if (ready && s.app.run.phase === 'fight') {
+    // ("SWIPE!" waits for the finisher's lesson: before it, a full meter is quiet, its gems lit)
+    const taught = s.app.profile.tipsOff || s.app.tips.learned('finisher');
+    if (ready && s.app.run.phase === 'fight' && taught) {
       const label = keyboardUsed() ? 'PRESS F!' : s.app.settings.finisherInput === 'swipe' ? 'SWIPE!' : 'FINISHER!';
       this.texts.text(label, m.x + m.w / 2, cy, Math.floor(now / 150) % 2 ? WHITE : stackCol(stacks)[1], { bold: true, ox: 0.5, oy: 0.5 });
       if (stacks > 1) this.texts.text(`x${stacks}`, m.x + m.w / 2 + textWidth(label, 1, true) / 2 + 3, cy, sc, { bold: true, oy: 0.5 });

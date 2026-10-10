@@ -264,6 +264,18 @@ What reads worse, for the art teams (the run branch at 49cd26a, phone 874x402 an
 - Fine as they are: the bar's blocks (yellow, red, green, purple) keep their contrast on the darker stage; the title's
   key art and the world map ("The Great Atlas", "Regions restored") read in one look; the story box; the camp.
 
+## Round 8, part 4: the reviews' first-ten findings, and the Mapmaker's Edits (F18-F21)
+
+- **The first finisher's reveal** no longer plays over the boar's wind-up: it calls a calm beat (no special, no red
+  through the show and 2.5 s after it), the show doesn't shout its name again, the act plate hides under the bars
+  (screenshots `team-first10/r5/` seed 7, `r5s9/` seed 9: `21`-`27`).
+- **Tips** at the top of the stage, clear of Rowan and Pip (`09-tip-tapYellow.png`, `16-tip-green.png`); "SWIPE!"
+  waits for the lesson; the bounty tip at the top; the trader's own tip; the map tip's window takes Rowan in
+  (`06-tip-map.png`); a chevron over each first-step spot.
+- The newcomer bot's beats are unchanged within noise: first fight on screen 0:17-0:19, first finisher 0:52-0:57, the
+  first chest 1:16-1:19 (seeds 7, 9).
+- **The Mapmaker's Edits** (after Region 1 only, so never in the first ten minutes): F18.
+
 ## Still to do (not ours, or next)
 
 - The road scene is six boxes (~14 s) between the first win and the first chest; the captain's five and Sable's six

@@ -276,7 +276,9 @@ export class TipsView {
         if (ph !== 'map') return null;
         // the spots and their tags (what's there)
         const ids = run.choices().filter((id) => anchor === 'mapNodes' || run.map.nodes[id]?.type === 'elite');
-        return union(s.mapView.nodeRects(ids.slice(0, anchor === 'eliteNode' ? 1 : ids.length)));
+        // (the map tip's window takes Rowan in too: it cut him in half)
+        const rects = s.mapView.nodeRects(ids.slice(0, anchor === 'eliteNode' ? 1 : ids.length));
+        return union(anchor === 'mapNodes' ? [...rects, s.mapView.heroBox()] : rects);
       }
       case 'sparkle':
         return ph === 'map' ? s.mapView.life.sparkleRect() : null;
@@ -316,7 +318,8 @@ export class TipsView {
     if (ph === 'fight') {
       // an elite's or a boss's banner holds across the stage until the fight begins: the card stays under it
       const type = s.app.run.node?.type;
-      const top = s.app.awaitingBegin && (type === 'elite' || type === 'boss') ? 45 : 29;
+      // (else at the very top of the stage, over the act plate while the fight waits: clear of the fighters' heads)
+      const top = s.app.awaitingBegin && (type === 'elite' || type === 'boss') ? 45 : 17;
       return { x, y: top, w, h: s.splitY - 2 - top };
     }
     if (ph === 'map') return { x, y: 30, w, h: s.B - 23 - 30 };
@@ -399,10 +402,14 @@ export class TipsView {
     // (larger text: the bold letters on an 11 px pitch; the card grows to hold them)
     const big = A11Y.big;
     const pitch = big ? 11 : 10;
-    const w = Math.max(...lines.map((l) => textWidth(l, 1, big)), tipW + hintW - 4) + 16;
+    // (in a fight "Tap to continue" sits on the top edge beside TIP: the card's foot stays clear of the fighters' heads;
+    // a `top` tip keeps it under its foot, clear of the gear button in the top bar's middle)
+    const fight = s.app.run.phase === 'fight';
+    const hintUp = fight;
+    const w = Math.max(...lines.map((l) => textWidth(l, 1, big)), tipW + hintW + (hintUp ? 6 : -4)) + 16;
     const h = 12 + lines.length * pitch;
     const a = this.anchorRect(cue, def.anchor);
-    const box = this.place(w, h + 12, a);
+    const box = def.top ? { r: { x: Math.round((s.L + s.R - w) / 2), y: 2, w, h: h + 12 }, dir: null } : this.place(w, h + (hintUp ? 6 : 12), a);
     const r: Rect = { x: box.r.x, y: box.r.y + 6, w, h };
     // the dim, with a window over what the tip is about
     const hole = a ? { x: a.x - 3, y: a.y - 3, w: a.w + 6, h: a.h + 6 } : null;
@@ -418,7 +425,10 @@ export class TipsView {
     const k = easeBack(since / 220, 1.6);
     const sc = 0.82 + 0.18 * Math.min(1, k);
     const cr: Rect = { x: Math.round(r.x + (w * (1 - sc)) / 2), y: Math.round(r.y + (h * (1 - sc)) / 2), w: Math.round(w * sc), h: Math.round(h * sc) };
-    if (box.dir && hole && k > 0.6) this.arrow(g, box.r, hole, box.dir, now, fade);
+    // (an arrow that would run down through the hero and Pip is only its head, just over what it points at)
+    const hx = s.fighters.h.x;
+    const short = fight && box.dir === 'down' && !!hole && hole.x + hole.w / 2 > hx - 36 && hole.x + hole.w / 2 < hx + 20;
+    if (box.dir && hole && k > 0.6) this.arrow(g, box.r, hole, box.dir, now, fade, short ? 5 : undefined);
     panel(g, cr, { trim: 'full', alpha: fade, tones: [NAVY[5], NAVY[3], NAVY[2]] });
     if (k < 0.92) return;
     // the gold TIP tab on the top edge, the lines, and "Tap to continue" on a tab under the bottom edge
@@ -426,7 +436,7 @@ export class TipsView {
     tag(g, tr, [GOLD[4], GOLD[3], GOLD[2], GOLD[1]]);
     this.texts.text('TIP', tr.x + tipW / 2, tr.y + 5.5, 0x3a1e08, { bold: true, ox: 0.5, oy: 0.5 });
     lines.forEach((line, i) => this.line(line, r.x + 8, r.y + 11 + i * pitch, big));
-    const hr: Rect = { x: r.x + w - 7 - hintW, y: r.y + h - 5, w: hintW, h: 11 };
+    const hr: Rect = { x: r.x + w - 7 - hintW, y: hintUp ? r.y - 6 : r.y + h - 5, w: hintW, h: 11 };
     tag(g, hr, [NAVY[6], NAVY[4], NAVY[3], NAVY[1]]);
     const live = since > DISMISS_MS;
     this.texts.text(HINT, hr.x + hintW / 2, hr.y + 5.5, 0xffd23a, { ox: 0.5, oy: 0.5, alpha: live ? 0.7 + 0.3 * pulse(now, 900) : 0.4 });
@@ -459,7 +469,7 @@ export class TipsView {
   }
 
   /** A gold arrow from the card to the anchor, nudging toward it. */
-  private arrow(g: G, card: Rect, hole: Rect, dir: Dir, now: number, alpha: number): void {
+  private arrow(g: G, card: Rect, hole: Rect, dir: Dir, now: number, alpha: number, maxLen = Infinity): void {
     const bob = Math.round(Math.sin(now / 170) * 1.5 + 1.5);
     let tipX: number;
     let tipY: number;
@@ -483,7 +493,7 @@ export class TipsView {
         len = card.x - (tipX + 4);
       }
     }
-    len = Math.max(0, len);
+    len = Math.max(0, Math.min(maxLen, len));
     // the shape pointing down, its tip at (0, 0): the head (4 rows) and the stem behind it
     const shape: Array<[number, number, number, number]> = [];
     for (let i = 0; i < 4; i++) shape.push([-i, -i, i * 2 + 1, 1]);

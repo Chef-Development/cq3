@@ -548,6 +548,11 @@ export class Run {
     return this.profile.weights >= Math.max(0, this.tuning.edits.unlockWeights);
   }
 
+  /** The Edits the fight on screen is fought under (a practice fight's own: the Test lab's). */
+  get fightEdits(): readonly EditId[] {
+    return this.practice ? (this.practice.edits ?? []) : this.edits;
+  }
+
   /** The act's Edits' weight (data/edits.ts): what their reward scales with. */
   get editWeight(): number {
     return this.edits.reduce((n, id) => n + editById(id).weight, 0);
@@ -1157,7 +1162,7 @@ export class Run {
   // and the Test lab's scenarios)
 
   /** A practice fight on screen: the run as it was (put back after), where it goes back to, and when it ended. */
-  practice: { hero: Hero; combat: Combat | null; actIndex: number; phase: Phase; then: Phase; pick?: boolean } | null = null;
+  practice: { hero: Hero; combat: Combat | null; actIndex: number; phase: Phase; then: Phase; pick?: boolean; edits?: EditId[] } | null = null;
   /** The last practice fight just ended (won or not): the view shows what comes next and empties it. */
   practiceEnded: { won: boolean } | null = null;
 
@@ -1169,6 +1174,7 @@ export class Run {
     if (!this.practice) this.practice = { hero: this.hero, combat: this.combat, actIndex: this.actIndex, phase: this.phase === 'fight' ? 'camp' : this.phase, then: o.then ?? (this.phase === 'fight' ? 'camp' : this.phase) };
     else this.practice.then = o.then ?? this.practice.then;
     this.practice.pick = !!o.pick;
+    this.practice.edits = (o.edits ?? []).slice();
     const act = Math.max(0, Math.min(this.region.acts.length - 1, o.act ?? 0));
     const id = o.hero ?? this.profile.hero;
     const base = profileBuild(this.profile, this.tuning, id);

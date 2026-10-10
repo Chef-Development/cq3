@@ -693,7 +693,7 @@ export class Fighters {
    * (more strikes, rings and sky). It always fits the envelope the core holds the cursor for (finisherShowMs). The last
    * blow lands here: the hit on every target and its number counting up. Kills and the HP bars wait for it.
    */
-  heroFinisher(damage: number, stacks: number, targets: number[] = [], dealt?: Map<number, number>): void {
+  heroFinisher(damage: number, stacks: number, targets: number[] = [], dealt?: Map<number, number>, named = true): void {
     const s = this.s;
     const fx = s.fx;
     const h = this.h;
@@ -728,7 +728,8 @@ export class Fighters {
     // tag after it; clear of the hero's own moment and of the plates (review round 8: "Whirlwind x2!" ran 280 px over
     // the HUD and hid the show). The name lane holds its perk names while it's up (they'd say the same).
     const foesX = views.length ? views.reduce((a, v) => a + v.x, 0) / views.length : GAME_W * 0.65;
-    fx.title(Math.max(foesX, h.x + 60), 50, `${name}!`, 0xffe680, n > 1 ? `x${n}` : '', hi, ms * 0.95);
+    // (not after the first finisher's reveal: its name was just stamped in big)
+    if (named) fx.title(Math.max(foesX, h.x + 60), 50, `${name}!`, 0xffe680, n > 1 ? `x${n}` : '', hi, ms * 0.95);
     s.hud.quiet(ms);
     s.later(ms * finalK, () => {
       s.app.audio.finisherBoom(n);

@@ -754,6 +754,14 @@ export class WorldView {
     return { x: p.x + p.w - 12, y: p.y - 6, w: 15, h: 15 };
   }
 
+  /** The Mapmaker's Edits' key on the picker (once a region is restored): the panel's top left; null before. */
+  private editsButton(): Rect | null {
+    if (!this.s.app.run.editsOpen) return null;
+    const p = this.pickPanel();
+    const n = this.s.app.profile.edits.on.length;
+    return { x: p.x - 3, y: p.y - 6, w: textWidth('Edits', 1, true) + (n ? textWidth(whole(n), 1, true) + 4 : 0) + 10, h: 15 };
+  }
+
   /** The picker's ribbon (the region's name and completion): a tap opens the region's progress at the camp. */
   private ribbonRect(): Rect {
     const p = this.pickPanel();
@@ -815,6 +823,15 @@ export class WorldView {
     if (inRect(this.closeButton(), x, y, 3)) {
       notePress(this.closeButton());
       return close();
+    }
+    const eb = this.editsButton();
+    if (eb && inRect(eb, x, y, 2)) {
+      // the Mapmaker's Edits at the camp; Back comes back here
+      notePress(eb);
+      this.picker = null;
+      app.audio.uiClick();
+      s.camp.openEdits();
+      return;
     }
     if (app.profile.actsCleared >= 1 && inRect(this.ribbonRect(), x, y, 1)) {
       // the region's progress (every part of it, and its 100% reward) at the camp; Back comes back here
@@ -2209,6 +2226,18 @@ export class WorldView {
       g.fillStyle(WHITE, 1);
       g.fillRect(cb.x + 5 + i, xy + 4 + i, 1, 1);
       g.fillRect(cb.x + 9 - i, xy + 4 + i, 1, 1);
+    }
+    // the Mapmaker's Edits (a region restored): an oxblood key at the panel's top left, with how many are drawn in
+    // (they go with whichever act is played); it opens them at the camp
+    const eb = this.editsButton();
+    if (eb) {
+      const n = app.profile.edits.on.length;
+      const epr = isPressed(eb, now);
+      if (n) glow(g, eb, 0xc8402e, 0.2 + 0.2 * pulse(now, 1100), 2);
+      button3d(g, eb, FACE.red, epr);
+      const ey = eb.y + eb.h / 2 + (epr ? 2 : 0);
+      T.text('Edits', eb.x + 5, ey, WHITE, { bold: true, oy: 0.5 });
+      if (n) T.text(whole(n), eb.x + eb.w - 5, ey, 0xffd0b8, { bold: true, ox: 1, oy: 0.5 });
     }
     const owned = new Set(app.profile.items.map((it) => it.base));
     REGIONS[region].acts.forEach((act, i) => {

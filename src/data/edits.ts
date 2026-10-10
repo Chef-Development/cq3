@@ -9,7 +9,7 @@ export type EditId = 'swiftReds' | 'ironHides' | 'thinMercy' | 'sharpEdges' | 'l
 export interface EditDef {
   id: EditId;
   name: string;
-  /** What it does, in one short line (the chooser and the HUD's sheet). */
+  /** What it does, in one short line (the chooser; at most EDIT_LINE_W wide). */
   line: string;
   /** How hard it makes an act (1-2): the reward scales with it (tuning.edits.xpPer, gemsPer). */
   weight: number;
@@ -18,12 +18,15 @@ export interface EditDef {
 }
 
 export const EDITS: readonly EditDef[] = [
-  { id: 'swiftReds', name: 'Swift Reds', line: 'Red attacks cross the bar faster.', weight: 2, icon: 'bolt' },
-  { id: 'ironHides', name: 'Iron Hides', line: 'Foes have more HP.', weight: 2, icon: 'shield' },
-  { id: 'thinMercy', name: 'Thin Mercy', line: 'Heals in a fight stop sooner.', weight: 1, icon: 'heart' },
-  { id: 'sharpEdges', name: 'Sharp Edges', line: 'A miss costs three times the HP.', weight: 1, icon: 'warn' },
-  { id: 'lastLife', name: 'Last Life', line: 'No revives, and no miss forgiven.', weight: 1, icon: 'skull' },
+  { id: 'swiftReds', name: 'Swift Reds', line: 'Red attacks come faster.', weight: 2, icon: 'flame' },
+  { id: 'ironHides', name: 'Iron Hides', line: 'Foes have more HP.', weight: 2, icon: 'guard' },
+  { id: 'thinMercy', name: 'Thin Mercy', line: 'Fight heals stop sooner.', weight: 1, icon: 'heartS' },
+  { id: 'sharpEdges', name: 'Sharp Edges', line: 'Misses cost triple HP.', weight: 1, icon: 'blade' },
+  { id: 'lastLife', name: 'Last Life', line: 'No revives, no forgiveness.', weight: 1, icon: 'moon' },
 ];
+
+/** How wide an Edit's line may be (game px, the small letters): one row of the chooser (view/edits.ts). */
+export const EDIT_LINE_W = 146;
 
 export const EDIT_IDS: readonly EditId[] = EDITS.map((e) => e.id);
 export const isEditId = (v: unknown): v is EditId => typeof v === 'string' && (EDIT_IDS as readonly string[]).includes(v);

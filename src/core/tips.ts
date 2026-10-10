@@ -383,9 +383,11 @@ export class TipCoach {
       case 'defeat':
       case 'actClear':
       case 'map':
-      case 'shop':
       case 'rest':
         return ph === id ? { id } : null;
+      case 'shop':
+        // (the travelling trader's stall is a shop too: it gets her own tip, and the shop's waits for a shop)
+        return ph === 'shop' && !run.merchant ? { id } : null;
       case 'loot':
         return ph === 'loot' && run.loot.length > 0 ? { id } : null;
       case 'event':

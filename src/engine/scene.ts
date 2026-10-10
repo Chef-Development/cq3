@@ -36,7 +36,7 @@ import { BAND_H, COL, DASH_MS, DEATH_CHARGE_MS, inRect, kindCol, stackCol, tintG
 import { Stage } from './view/stage';
 import { TipsView } from './view/tips';
 import { FinisherGallery } from './view/finisher-gallery';
-import { FinisherReveal, REVEAL_MS } from './view/finisher-reveal';
+import { FinisherReveal, REVEAL_CALM_SEC, REVEAL_MS } from './view/finisher-reveal';
 import { Transition } from './view/transition';
 
 export class FightScene extends Phaser.Scene implements View {
@@ -611,10 +611,15 @@ export class FightScene extends Phaser.Scene implements View {
           const def = heroDef((this.app.run.hero.build?.id ?? 'rowan') as HeroId);
           this.reveal.start(def.finisher.name, def.finisher.short, f.h.x + 2, this.ground - 20);
           const show = finisherShowMs(Math.max(1, Math.min(5, Math.round(e.stacks) || 1)));
+          // it promises "clears reds": the special a foe was winding up is called off, and no special or red comes
+          // through the show and a beat after it, so the cleared bar is there to see (Combat.calm, fight time: the
+          // clock holds through the reveal itself)
+          this.app.run.combat?.calm(show / 1000 + REVEAL_CALM_SEC);
           f.superFinalAt = this.anim + REVEAL_MS + show * FINISHER_BLOW_AT;
           f.setHeroPose('windup', REVEAL_MS);
           const { damage, stacks, targets } = e;
-          this.later(REVEAL_MS, () => f.heroFinisher(damage, stacks, targets, dealt));
+          // (the name was just stamped in big: the show doesn't shout it again over the fading reveal)
+          this.later(REVEAL_MS, () => f.heroFinisher(damage, stacks, targets, dealt, false));
           hold = Math.max(hold, REVEAL_MS + show);
           break;
         }
