@@ -39,5 +39,30 @@ export function bigFits(lines: readonly string[], width: number, widthOf: (line:
   return lines.every((l) => widthOf(l, true) <= width);
 }
 
+/** Words wrapped greedily into lines of at most `width` (bold letters); the lines joined by single spaces give back
+ *  the text with its line breaks as spaces (the same length: a box's typing counts its characters). */
+export function wrapWords(text: string, width: number, widthOf: (line: string, bold: boolean) => number): string[] {
+  const out: string[] = [];
+  let cur = '';
+  for (const w of text.replace(/\n/g, ' ').split(' ')) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (cur && widthOf(next, true) > width) {
+      out.push(cur);
+      cur = w;
+    } else cur = next;
+  }
+  if (cur || !out.length) out.push(cur);
+  return out;
+}
+
+/** A story box's text under Larger text: its own lines when they fit in the bold letters; else its words re-wrapped
+ *  into up to `maxLines` bold lines (the box grows a line); else null (the small letters, as written). */
+export function bigLines(text: string, width: number, widthOf: (line: string, bold: boolean) => number, maxLines = 3): string[] | null {
+  const own = text.split('\n');
+  if (bigFits(own, width, widthOf)) return own;
+  const wrapped = wrapWords(text, width, widthOf);
+  return wrapped.length <= maxLines && bigFits(wrapped, width, widthOf) ? wrapped : null;
+}
+
 /** How much of a screen flash plays (its length; the overlay's fade follows from it). */
 export const flashShare = (less: boolean): number => (less ? 0.3 : 1);

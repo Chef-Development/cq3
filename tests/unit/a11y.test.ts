@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bigFits, DEFAULT_A11Y, flashShare, lessMotion, parseA11y } from '../../src/core/a11y';
+import { bigFits, bigLines, DEFAULT_A11Y, flashShare, lessMotion, parseA11y, wrapWords } from '../../src/core/a11y';
 import { textWidth } from '../../src/engine/font';
 import { STORY } from '../../src/data/story';
 
@@ -37,5 +37,20 @@ describe('accessibility settings', () => {
     const boxes = Object.values(STORY).flat() as Array<{ text: string }>;
     const big = boxes.filter((b) => bigFits(b.text.split('\n'), 256, w)).length;
     expect(big / boxes.length).toBeGreaterThan(0.8);
+  });
+
+  it('larger text: every story box fits, in its own two lines or re-wrapped into three; typing counts the same letters', () => {
+    const w = (l: string, bold: boolean) => textWidth(l, 1, bold);
+    expect(wrapWords('one two three', 1000, w)).toEqual(['one two three']);
+    expect(wrapWords('aaaa bbbb', w('aaaa', true) + 1, w)).toEqual(['aaaa', 'bbbb']);
+    let grown = 0;
+    for (const [id, boxes] of Object.entries(STORY))
+      for (const b of boxes as Array<{ text: string }>) {
+        const lines = bigLines(b.text, 256, w);
+        expect(lines, `${id}: "${b.text}"`).not.toBeNull();
+        expect(lines!.join(' ').length, id).toBe(b.text.length);
+        if (lines!.length > 2) grown++;
+      }
+    expect(grown).toBeLessThan(40);
   });
 });

@@ -1282,8 +1282,8 @@ C14. **The fifth region is wired behind a switch** (`src/data/flags.ts` `NOON_ON
   frames, shorter flashes; Auto follows the device). Their own storage key, kept through a New game. **Larger text**
   (off by default): the pixel fonts scale only in whole steps (2x would need four lines in a two-line box), so it uses
   the bold display letters (caps 7 px, not 5), which the story's 11 px pitch holds: a story box takes them when all its
-  lines fit the 256 px text area in them (258 of 274 boxes; the other 16 keep the small letters), and the tip card
-  grows to hold them. A third line or paging for the rest is the story view's owners' call.
+  lines fit the 256 px text area in them (258 of 274 boxes); the other 16 are re-wrapped into three bold lines and
+  that box grows by a line (chunk 4; a unit test walks every box), and the tip card grows to hold them.
 - **Q14 The boot check in the repo** (`scripts/boot-check.mjs`, `npm run boot-check -- <port>`): proposed as a CI
   step after the build (the deploy workflow: install Chromium, preview, run it; about a minute) so a boot crash never
   reaches the live build; a jsdom version in `npm test` can't paint (no canvas or WebGL).
