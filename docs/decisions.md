@@ -1043,12 +1043,18 @@ A2C-3. **Foes get menace without losing their read** (L8). Bosses: the Boar King
     scowling glowing eyes and teeth (no blush, no smile) and a bone sunk in the core (a skull in the big one); the boar
     darker with a glowing eye, a longer tusk and a scar; the crow's beak dark horn instead of candy yellow; the bandit's
     face lost in the hood's shadow with two eyes catching the light; the captain weathered, scarred, a grubby plume.
-    Also: the yeti cub's dark face and glowing eyes, the shaman's crimson toadstool, the wolf's fang. Their read is
-    kept (same silhouettes and sizes; the stage rim still lifts them off the darker stages at phone size).
+    Also: the yeti cub's dark face and glowing eyes, the shaman's crimson toadstool, the wolf's fang, the icicle bat's
+    scowl, the drift troll's frostbitten nose, the piglets in the King's darker fur, the bandits in a deep plum. Their
+    read is kept (same silhouettes and sizes; the stage rim still lifts them off the darker stages at phone size).
 A2C-4. **The old premise's pendulum is gone from the foes' art** (story bible section 11; the portraits are 2A's, A19):
     the Boar King's crown has a blood-red stone instead of the brass bob (fight sprite and portrait), the flower on the
     golem's crown is a glowing compass-star rune (fight sprite), and Bellows forges a white-hot blade on his anvil
     instead of guarding the weight.
+
+A2C-5. **The actors keep their step from the darker stages by light, not by brightening the stages**: the rim light on
+    the fighters is stronger where the stage got darkest (forest 0.86, ruins 0.8, pass 0.76, hollow 0.9) and warmer in
+    the forest (the late sun's gold; its pooled light too). The forest's air follows the hour: the first fireflies low
+    over the meadow, warm motes and pollen in the gold shafts, dusty moths instead of bright butterflies.
 
 (art: end of section)
 
