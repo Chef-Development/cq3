@@ -1415,6 +1415,25 @@ C16. **Tess's and Vesper's gaps in the fourth region aren't a rule meeting their
   region packs (`loadChestHd`); `ChestOpening.view` reads 'old' in the moment before it's in and `__cq3.ready` waits
   for it, so the reveal and the tests behave as before. The chest-hd spec's side-by-side screenshot fails on the run
   branch's own code too (the old reveal's sparkles land elsewhere: a stale baseline for the lead to regenerate).
+- **Q2-1 A top-bar strip too long for the bar pages** (`CampKit.stripRow`, the hero select's faces and the skill
+  tree's): 15 px faces, then 13 px, and when even those don't fit (sixteen heroes beside a Dynamic Island), a window of
+  13 px faces between two small arrows that page it; the window follows the hero on view. Chosen over two rows (9 px
+  faces don't read or take a thumb) and over smaller faces (the skill tree's points and Reset need the bar's right
+  end). Nothing is drawn past the safe area any more (review 3, F2/F4).
+- **Q2-2 The keyboard reaches the camp's plates** (Shrine, Chests, Practice, the companion: `camp.focusTargets()` in
+  `input.ts focusExtras`); Bag and Forge stay on their band buttons only. The desktop spec Tabs to the Shrine and opens it.
+- **Q2-3 The Options panel: the player's settings first, the tester's tools folded.** Settings (open): sound, music,
+  silent switch ("Play anyway / Go quiet"), finisher, block marks, motion, larger text, full screen, tips, start over;
+  then the accuracy; then "Tester tools" (closed, remembered while the page lives): test modes (empty tap, combo
+  tiers, targeting, god mode, clean capture, unlock all), Sound lab, Jump to, Calibration, the sliders, Export. The
+  body keeps to a 640 px column so a switch sits near its label on a desktop. While the panel is open the HUD (gear,
+  pause) moves into its header row at phone size: on a framed desktop window it sat on the panel's text (F27, F28).
+  Not done: the panel's look (pixel lettering, toned segments: 2A) and making the game under it inert (Play keeps the
+  game running under the panel for tuning).
+- **Q2-4 Small overlaps.** A camp scene hides the camp's purse and gems (the Skip button sat on them: "123" for 1234);
+  the region card opened from the world map no longer starts a pending camp arrival scene over itself (it plays on the
+  next real visit); the relic log's grid pages (5 rows a page; 34 of 85 relics were below the screen); the act map's
+  tags keep off the foes standing at a node and weigh covering a reachable node double.
 (qa: end of section)
 
 
