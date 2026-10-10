@@ -843,7 +843,7 @@ export class MapView implements MapHost {
         [box.x - w - 1, y - h / 2 - 2, 40],
       ];
       const cands = spots.map(([cx, cy, pref]) => {
-        const bx = Math.round(Math.max(s.L + 2, Math.min(s.R - 2 - w, cx)));
+        const bx = Math.round(Math.max(s.L + 4, Math.min(s.R - 4 - w, cx)));
         const by = Math.round(cy);
         const r: Rect = { x: bx, y: by, w, h };
         let cost = pref + Math.abs(bx - cx) * 2;
