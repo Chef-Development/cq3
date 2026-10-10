@@ -24,6 +24,8 @@ commit titles, PR titles, the Test lab's labels and anything the playtester read
   south-east below the heartland, the sun plateau east; the far isles lie past the east coast.
 
 ### Voices (for writers and the editor pass)
+Round 8 (L8, the playtester): grown-up wit, not chirp. Jokes are dry, wry and character-driven; no baby talk, toy-like
+names, slapstick panic or exclamation-heavy cheer; at most one "!" a box (the Boar King may roar), and none in the narrator's (a data test).
 | Who | Voice | Never |
 |---|---|---|
 | Narrator | plain, concrete, present tense in scenes; one image per box | jokes, UI words ("bar", "tap") |
@@ -31,7 +33,7 @@ commit titles, PR titles, the Test lab's labels and anything the playtester read
 | Pip (plot) | dry, warm, brief; knows too much and lets it show a little; contractions; "Hoo." at most once a scene | bits, billing jokes (those are banter) |
 | The Mapmaker | gentle, courteous, precise; **no contractions** (until Region 11, when his composure breaks); craftsman's words (line, draft, smudge); compliments; "There. Better." rarely | shouting (until Region 11), threats, lies |
 | Hesper | terse, formal, few kind words; no contractions | explaining herself (until the end) |
-| Sable | quick, light-fingered, practical; one quip per scene | cruelty |
+| Sable | quick, light-fingered, practical; one dry quip per scene | cruelty; CAPITALS (Neve's); slapstick |
 | Brann | (vow of silence until his abbey's bell rings, Region 9) writes on a slate: `(writes on a slate)` in his arrival, `(writes)` in banter; calm, kind, few words | speaking aloud before Region 9 |
 | Neve | prickly, proud, CAPITALS for emphasis, secretly glad of company | admitting it |
 | Mags | gruff, warm underneath, forge talk | (she can joke: she's camp) |
@@ -289,25 +291,23 @@ Then the beat, in as few words as it takes:
 - And the turn: his son is alive, which means the Fair Copy can never hold him (a cut can't be copied onto a fresh
   sheet). If he finishes it, the son he got back is the one thing his perfect world leaves out. He doesn't stop. He
   can't, yet: "Then I'll draw you in by hand. I'll get it right this time." He leaves for the Margin.
-- Rowan's answer (the line the whole game has been walking toward): "You did get it right. You just didn't stay to
-  see it."
+- Rowan's answer (the line the whole game has been walking toward), said so Ambrose hears it as he goes: "You did get
+  it right. You just weren't there to see it." (Hesper sent him away; it was never his choice.) He stops on the road as
+  if to answer, and can't, yet.
 
 ---
 
-### Draft script: the beat (for review; in code as `src/data/story-end.ts`, which wins if the two differ; `/` = the line break)
+### Draft script: the beat (in code: `src/data/story-end.ts`, the single copy; editor-passed twice)
 Three short scenes after the Flood's last phase, played back to back. From the second, his plate reads "Ambrose"
-(a new speaker `ambrose`, the Mapmaker's portrait) and his composure breaks: contractions allowed from here on.
-- `floodEnd`: narrator "The levee gives. The river goes down to its / bed, and is only a river again." · narrator "He
-  cannot draw fast enough. He turns his nib / on Rowan, close, and stops." · mapmaker "This is not a line. It is a cut,
-  / through the page. ...It is my hand." · mapmaker "I pressed too hard. I could not see. / I was crying." · mapmaker
-  "You were six. You were soaked through." · rowan "Pip. Tell me. All of it."
-- `lowTruth`: pip "The night after the funeral, he drew his boy / back. I was on his shoulder. I saw you come." · pip
-  "Hesper broke his nib and sent him away. She / told him the drawing faded. It didn't." · pip "She took you to the
-  knights' hall. I stayed / to watch over you. That was the reason." · rowan "The blank can't hold me. Deep water. The
-  / way he's looked at me, since the first night." · ambrose "...Rowan." (the first time; the scene ends on it)
-- `lowGoes`: ambrose "You're alive. So the Fair Copy can never / hold you. A cut can't be copied." · ambrose "Then I'll
-  draw you in by hand. I'll get it / right this time." · narrator "He goes, along his road, toward the very / edge of
-  the map." · rowan "You did get it right. You just didn't stay / to see it."
+(speaker `ambrose`, the Mapmaker's portrait) and his composure breaks: contractions allowed from here on.
+- `floodEnd`: the levee gives; he turns his nib on Rowan to rub him out, close this time, and stops: "This is not a
+  line. It is a cut, through the page. ...I know this hand. It is mine." / "I pressed too hard..." / "You were six."
+  / Rowan: "Pip. Tell me. All of it."
+- `lowTruth`: Pip tells it (the night after the funeral; Hesper's lie; "That was the reason"); Rowan puts it together;
+  the scene ends on the name: "...Rowan."
+- `lowGoes`: "That's why the window is empty every morning. You were already here." (pays `flood`'s fading
+  portrait) / the Fair Copy can't hold a cut / "Then I'll draw you in by hand." / Rowan, so he hears it: "You did get
+  it right. You just weren't there to see it." / he stops on the road as if to answer, then goes on.
 
 ## 7. The finale and the ending (Region 12: the Margin)
 
@@ -327,23 +327,21 @@ Hesper tells the kingdom the truth about the river. The keepers will draw no new
 drawn by Hesper, that everyone agrees to: the word **Wend**, written on the lake. Ambrose is not exiled again. He
 lives by the lake and mends fences in Greenmarch the slow way, by hand. Pip splits his time. The last image: Rowan and
 Ambrose at the water's edge; Rowan takes his boots off and puts his feet in the lake for the first time; Pip on a
-branch above them. The Atlas keeps its one hole, and nobody patches it.
+branch above them. The Atlas keeps its one cut, and nobody patches it.
 
 ---
 
-### Draft script: the ending (for review; in code as `src/data/story-end.ts`, with the Margin's `fairKnight`)
-- `marginEnd` (after the Fair Knight fades): narrator "The Fair Knight fades mid-stroke, like breath / on glass.
-  Ambrose stands at his table." · narrator "One line would finish the Fair Copy. / The ink is on his nib." · narrator
-  "Rowan doesn't fight him for the pen. He sits / down beside the table, and waits." · ambrose "...There's no lake in
-  it. No flood. / No you." · narrator "He puts the nib down. He holds the Fair / Copy to the lamp, and lets it burn."
-- `epilogue` (Meridian): narrator "Every region's old lines come home. The / isles wake. The blank is gone from the
-  map." · keeper "A hundred years ago, the keepers moved the / river into Wend. I knew. I kept the line." · keeper "And
-  I let a man believe his son was gone. / I am sorry. To you both." · narrator "She draws one new line on the Atlas,
-  the / only one everyone agrees to: a name." · narrator "On the lake, in small, careful letters: / Wend."
-- `lastImage`: narrator "Ambrose lives by the lake now. He mends / fences in Greenmarch, the slow way." · smith "A
-  mend should show, Ambrose. / That's the whole point of it." · narrator "At the water's edge, Rowan takes off his /
-  boots, and puts his feet in the lake." · ambrose "Cold?" · rowan "Yes. ...It's all right, though." · narrator "Pip,
-  on a branch above them, says nothing / at all. The Atlas keeps its one hole."
+### Draft script: the ending (in code: `src/data/story-end.ts`, with the Margin's `fairKnight`)
+- The Fair Copy is set up before the end: `yew` (they will wake in the Fair Copy, the kingdom drawn again, clean),
+  `wickVictory` (the isles don't hold ink enough for it), `farVictory` (when it's done, the old Atlas burns, "and every
+  grief in it"). So at the Margin one line would finish it, and burn the Atlas Rowan is cut into.
+- `marginEnd`: the Fair Knight fades; one line would finish the copy; Rowan does not fight him for the pen, he sits
+  down and waits; "...There's no lake in it. No flood. No you."; he burns the copy at the candle (his lamp was
+  Farlight's beacon, put out in Region 10).
+- `epilogue`: every land's lines come home; in the Atlas Hall, before all Meridian, Hesper confesses the river and the
+  lie; she writes one new line: Wend, on the lake.
+- `lastImage`: Ambrose mends fences by hand; Mags: "A mend should show, Ambrose. That's how you know someone cared." /
+  Rowan's feet in the lake: "Cold?" / "Yes. ...It's all right, though." / Pip says nothing. The Atlas keeps its one cut.
 
 ## 8. The regions
 
@@ -406,8 +404,7 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
   forged the chain for all of Ashfell ever since: every blow shakes the land.
 - **Bar rules:** **drifting blocks** (the unpinned land that won't hold still); **linked pairs** (his chains: hit one,
   then the other).
-- **Mini-bosses:** Rumbleback (paves the drifting flats every day, and every night they drift away); Hob & Nob (the
-  forge's two-headed hound: one guards, one wants to play, and their master hasn't patted them in ages).
+- **Mini-bosses:** Rumbleback (paves the drifting flats every day, and every night they drift away); Hob & Nob (the forge's two-headed hound: one guards, one only wants feeding; their master hasn't stopped long enough to feed them in years).
 - **Boss: Bellows, the Forge Titan.** Keystone: the anvil that never cools. Bellows was Mags's master.
   - Phase 2 edit: "Together. Always together." He pins the land still and doubles the chains.
   - Phase 3 edit: the volcano erupts *through* his drawing, the old land pushing back, and he redraws as fast as it
@@ -688,8 +685,8 @@ gold lines while he's drawing there.
 
 ## 10. Scene plan and status, Regions 1-3 (ids stay stable)
 
-Region 1: `intro` (3 boxes), `act1` (1 box: Pip): together the 4 boxes before the first fight. Proposed new scene
-`road` (after the first fight is won: Pip explains the blank and the Atlas; needs a hook, see the report). `captain`,
+Region 1: `intro` (3 boxes), `act1` (1 box: Pip): together the 4 boxes before the first fight. The first minutes' other reads are 4 boxes each (the first 10 minutes team's measurements): `road`, `captain`, `sableJoin`. Proposed new scene
+`road` (after a new player's first win: Pip explains the blank and the Atlas; hooked by `winScene`). `captain`,
 `sableJoin` (camp), `act2`, `golem`, `act3`, `boarKing`, `boarKing2`, `boarKing3`, `victory` (ends in Meridian with
 Hesper). Region 2 and 3: the same ids as now (`frost1` ... `frostVictory`, `ash1` ... `ashVictory`), rewritten to this
 bible. New speakers: `mapmaker` ("The Mapmaker"), `keeper` ("Hesper"); both need portraits (art team).
@@ -701,7 +698,7 @@ need portraits); Region 5's nine scenes fit its data as built (`story-noon.ts`, 
 `brassLion`; speaker `sphinx` needs a portrait). Hesper speaks in the allies' warm look. Camp banter follows the story (`core/banter.ts` gates each region's
 lines on their scenes). Every player-facing data text was swept for the old premise (gear, meta, relics, events,
 quests, companions' bios, heroes' bios, act names, tips); the far isles' names are in `core/world-plan.ts` (shown
-once revealed). Still to do: the `road` hook (first 10 minutes team); the Region 4-5 speakers' portraits (until they
+once revealed). Still to do: the Region 4-5 speakers' portraits (until they
 exist the story view shows Phaser's missing-texture box) and the old-premise pictures (section 11). Region 4 is in play now (its scenes and banter with it);
 Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
 ---
@@ -717,12 +714,10 @@ Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
   camp's pendulum emblem (`art-shrine.ts`, `art-camp.ts`), Bellows's anvil weight (`art-ash.ts`), the Keystone Shard's
   icon (`art-gear.ts`) and the capital's clock tower (`art-world-sites.ts`). The Mapmaker's edits, when shown, are
   gold ink strokes hanging in the air.
-- **First 10 minutes (Team 5):** the `road` scene (6 boxes: who Pip is, what the blank is) is written for right after
-  the first fight is won, once (e.g. `profile.seen` 'road'); it needs a hook in the post-fight flow, which is yours.
-  If it costs the first minutes too much, cut it to 3 boxes or move it to the first rest: tell the story team.
-- **Lead:** `WELCOME_ID` in `src/data/tips.ts` is still `welcomeM4a`, so a returning player who saw the old welcome
-  won't see the new one (which now catches them up on the story); bumping it (e.g. `welcomeR8`) replays it once
-  (`tests/smoke/smoke.spec.ts` checks the id by name). The screenshot baseline `story.png` changes (the new intro).
+- **First 10 minutes (Team 5):** done: the `road` scene plays after a new player's first win (greenmarch.ts Act 1
+  `winScene`, once per profile).
+- **Lead:** done: `WELCOME_ID` is `welcomeR8` (first 10 minutes team), so a returning player sees the new welcome
+  once.
 - **Content (Team 3):** Region 5's nine scenes fit its data as built (`story-noon.ts`: the mini-bosses' `sphinx` and
   `brassLion` are written, `story-noon-minis.ts` is empty); new: `noonCamp`, the camp's scene after Act 1 (wire it like
   `duskCamp`: `run.ts` `campScene`/`sableJoined` at `actsCleared >= 13`, and `core/lab.ts` marks it seen), speaker

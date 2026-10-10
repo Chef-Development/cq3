@@ -869,6 +869,16 @@ S13. **The rest of the story is drafted in data, not in play.** Region 9 in full
     voices; he is named only at the end of `lowTruth`, speaker `ambrose`). Camp banter can now stop being true
     (`until`): Brann's slate lines stop once his bell rings (`saltVictory`).
 
+S14. **The second editor's pass on Regions 5-12 and the ending is applied, with every optional note taken.** That
+    includes the stronger `lowGoes` order: Rowan's line comes before Ambrose goes, so he hears it, and the region ends
+    on him stopping on the road. One note is rejected: "Travelers" stays (the player-facing text is American; only a
+    code comment says "travellers"). Added from the editor's "smaller gaps": Ambrose mentions his wife once
+    (`kestrel`: "My wife asked me that, once.").
+S15. **L8 for the words: grown-up wit, not chirp.** Hero arrivals, banter, events, achievements and a few names (three
+    relics, two capstones, a companion's kind) lose the toy-like and exclamation-heavy phrasing; the jokes stay, drier.
+    Companion names (Bun, Sunny...) stay: L8 lets companions keep some charm, and the names run through tests and art
+    notes. Tips are left to the first 10 minutes team (their wording is the onboarding).
+
 (story: end of section)
 
 

@@ -15,13 +15,13 @@ export const ASH_STORY: Record<string, StoryBox[]> = {
     { who: 'narrator', text: 'Ashfell. Black rock, gray ash, rivers of\nlava. And none of it will hold still.' },
     { who: 'rowan', text: 'That boulder just slid past me. On its own.\nThe whole land is drifting.' },
     { who: 'pip', text: "He unpinned it. Every stone floats out of\nthe lava's way, so no home burns again." },
-    { who: 'neve', text: 'Too hot AND too wobbly. My two least\nfavorite things. Someone fan me.' },
+    { who: 'neve', text: "Too hot, AND it won't hold still. My two\nleast favorite things." },
     { who: 'sable', text: "And chains. On the carts, the doors, the\npeople. Everyone's chained in pairs." },
     { who: 'pip', text: "So no new river of fire can part a family.\nTogether, always. That's his fix." },
   ],
   // Act 1 mini-boss: a road-roller armadillo who paves the drifting flats, and they never stay paved
   rumbleback: [
-    { who: 'rumbleback', text: "OFF THE ROAD! I just laid that slab. It's the\nonly one that hasn't drifted off!" },
+    { who: 'rumbleback', text: "OFF THE ROAD! I just laid that slab. It's the\nonly one that hasn't drifted off." },
     { who: 'rowan', text: "We're here to stop the drifting. Let us\nthrough, and you can finish your road." },
     { who: 'rumbleback', text: 'Finish it? Every slab drifts off by morning.\nI have paved these flats every single day.' },
     { who: 'pip', text: "Rumbleback. He paves a road nobody can keep.\nHe hasn't stopped since the redraw." },
@@ -39,19 +39,19 @@ export const ASH_STORY: Record<string, StoryBox[]> = {
   // Act 2 start: tunnels of black glass, and everything chained in twos
   ash2: [
     { who: 'narrator', text: 'The Glass Warrens. Tunnels of black glass,\nlit red by lava glowing behind the walls.' },
-    { who: 'sable', text: 'Glass walls! Can I take one? A small one.\nA pocket-sized wall.' },
+    { who: 'sable', text: "Glass walls. A piece of this would pay a\nyear's rent. A small piece." },
     { who: 'rowan', text: "Everything's chained in twos down here.\nThe lamps, the buckets, the doors." },
     { who: 'pip', text: 'Hit both ends of a pair, and quick.\nOne, then the other.' },
     { who: 'neve', text: "Glass bounces things back. That's how I got\nfrozen. I'm watching every wall." },
   ],
   // Act 2 mini-boss: the forge's two-headed hound; one guards, one wants to play; nobody has patted them in years
   hobnob: [
-    { who: 'hobnob', text: 'HOB: Who goes there? Turn back.\nNOB: Visitors! Hi! Did you bring a stick?' },
+    { who: 'hobnob', text: "HOB: Who goes there? Turn back.\nNOB: ...Do you have food? We're hungry." },
     { who: 'rowan', text: 'Two heads, one hound. Which of you\nguards the forge?' },
-    { who: 'hobnob', text: "HOB: Me. Nobody passes the master's gate.\nNOB: He hasn't patted us in ages." },
-    { who: 'pip', text: "The forge hound. Bellows hasn't stopped long\nenough to feed them, by the look of it." },
-    { who: 'sable', text: "Nob, buddy. Fetch the stick! It's past the\ngate. Far, far past the gate." },
-    { who: 'hobnob', text: 'NOB: STICK! HOB: No! Bad Nob! ...Fine.\nBOTH: We bite you first. THEN fetch!' },
+    { who: 'hobnob', text: "HOB: Me. Nobody passes the master's gate.\nNOB: He hasn't fed us in a long time." },
+    { who: 'pip', text: "Bellows hasn't stopped working long enough\nto feed his own hound." },
+    { who: 'sable', text: "Easy, both of you. We're not here for\nyour master's gate. ...Well. We are." },
+    { who: 'hobnob', text: 'HOB: Then you go through us.\nNOB: ...Sorry.' },
   ],
   // Act 3 start: the forge on the volcano's rim, shaking with every blow
   ash3: [
