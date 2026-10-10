@@ -6,6 +6,7 @@
 // 18x18 face window sits at (12, 6) for Rowan and at (14, 8) for Sable (both eyes and the top of the mask).
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 import { buildAtlasPortraits } from './art-portraits-atlas';
+import { ROWAN_BLUE, ROWAN_BRONZE, ROWAN_GLOW, ROWAN_PLUME, ROWAN_STEEL } from './art-hero-rowan';
 
 type Add = (key: string, canvas: HTMLCanvasElement) => void;
 
@@ -31,7 +32,6 @@ const INK = '#140c1c';
 const STEEL = ['#2a2f45', '#4a5272', '#7c86a6', '#b8c2d8', '#eef3fa'];
 const GOLD = ['#5a3410', '#9a5a14', '#d8901c', '#f2c230', '#fff0a0'];
 const RED = ['#4a0f1a', '#8a1a22', '#d03030', '#f05a48', '#ff9a80'];
-const BLUE = ['#10204a', '#1a3c8a', '#2a6ad8', '#4aa0f0', '#9ad8ff'];
 const SKIN = ['#5a2e22', '#a0583a', '#d88a5a', '#f2b888', '#ffd8b0'];
 const PURPLE = ['#1e1430', '#36244e', '#523a72', '#7a5a9a', '#a888c8'];
 const FUR = ['#2e1622', '#5a2e26', '#8a4a2c', '#b06a36', '#d8964e'];
@@ -147,70 +147,78 @@ const P = PORTRAIT_SIZE;
 // ------------------------------------------------------------------ Rowan (faces right)
 
 function rowan(): HTMLCanvasElement {
+  // (playtest round 8, L8: the mature look of his fight frames: a smaller helm on broad shoulders, dulled and dented
+  // steel, navy and old bronze, a narrow slit with two small points of light)
+  const STEEL = ROWAN_STEEL;
+  const BLUE = ROWAN_BLUE;
+  const GOLD = ROWAN_BRONZE;
+  const RED = ROWAN_PLUME;
   const g = grid(P, P);
   // plume: scalloped tufts streaming back from the crest (tail first, so the crest overlaps)
-  const plume = bez([21, 6], [15, -4], [2, 2], [3, 19], 14);
+  const plume = bez([21, 8], [15, -2], [3, 4], [4, 20], 14);
   for (let i = plume.length - 1; i >= 0; i--) {
     const [x, y] = plume[i];
-    const r = 4.8 - (i / plume.length) * 2.8;
+    const r = 3.8 - (i / plume.length) * 1.8;
     fill(g, ell(x, y, r, r * 0.9), sphere(RED, x - 0.5, y - 0.8, r * 1.15, r * 1.1, -0.04));
   }
-  // torso: tabard, gorget, pauldrons
-  const tabard = ell(20.5, 41, 15.5, 10);
+  // torso: broad pauldrons, the gorget, the navy tabard with its bronze trim and emblem
+  const tabard = ell(20.5, 42, 16, 10.5);
   fill(g, tabard, sphere(BLUE, 16, 35, 20, 13, 0.05));
   fill(g, and(tabard, (x) => x === 13 || x === 14), (x) => (x === 13 ? GOLD[3] : GOLD[2]));
   fill(g, and(tabard, (x) => x === 27 || x === 28), (x) => (x === 27 ? GOLD[2] : GOLD[1]));
-  stamp(g, ['..G..', '..y..', '.gGg.', '.gyY.', '..Y..'], { G: GOLD[4], g: GOLD[3], y: GOLD[2], Y: GOLD[1] }, 18, 33);
-  const gorget = and(ell(21, 29.5, 8, 3.5), (_x, y) => y >= 27);
-  fill(g, gorget, (x, y) => (y === 29 ? STEEL[1] : sphere(STEEL, 18, 28, 9, 4)(x, y)));
+  stamp(g, ['..G..', '.gGg.', '..y..', '..Y..'], { G: GOLD[4], g: GOLD[3], y: GOLD[2], Y: GOLD[1] }, 18, 35);
+  const gorget = and(ell(21, 30.5, 8.5, 3.8), (_x, y) => y >= 28);
+  fill(g, gorget, (x, y) => (y === 30 ? STEEL[1] : sphere(STEEL, 18, 29, 9, 4)(x, y)));
   for (const [cx, rx] of [
-    [7, 7.5],
-    [34, 6.5],
+    [6, 8.5],
+    [35, 7.5],
   ]) {
-    const pad = ell(cx, 35, rx, 5.5);
-    fill(g, pad, sphere(STEEL, cx - 2, 33, rx + 1, 6.5, 0.04));
-    fill(g, and(pad, not(ell(cx, 34.2, rx, 5.5))), (x) => (x < cx ? GOLD[3] : GOLD[2]));
+    const pad = ell(cx, 35, rx, 6);
+    fill(g, pad, sphere(STEEL, cx - 2, 32.5, rx + 1, 7, 0.04));
+    fill(g, and(pad, not(ell(cx, 34.2, rx, 6))), (x) => (x < cx ? GOLD[3] : GOLD[2]));
   }
-  // helmet: one rounded volume with a slightly jutting face plate
-  const helm = or(ell(20.5, 17, 11.5, 12.5), ell(25, 21.5, 8.5, 7.5));
-  fill(g, helm, sphere(STEEL, 19, 15, 13, 14.5, 0.02));
+  // a scratch across the near pauldron
+  for (let k = 0; k < 3; k++) put(g, 31 + k, 33 + k, STEEL[3]);
+  // helmet: one rounded volume with a squared bevor (the jaw), smaller on the shoulders than before
+  const helm = or(ell(20.5, 17.5, 10, 11), ell(24.5, 21.5, 7.5, 6.5));
+  fill(g, helm, sphere(STEEL, 17, 13, 12, 13.5, 0.16));
   rimShade(g, helm, STEEL[0]);
-  stamp(g, ['.WW', 'WWS', 'WS.'], { W: '#ffffff', S: STEEL[4] }, 13, 7);
-  // gold brow band wrapping round the dome
-  for (let x = 9; x < 34; x++) {
-    const yb = Math.round(11.5 + ((x - 23) / 12) ** 2 * 2.2);
+  // a bright steel edge along the top and left of the dome, a warm specular dash, a dent
+  for (let x = 10; x < 30; x++)
+    for (let y = 5; y < 20; y++) if (helm(x, y) && (!helm(x, y - 1) || !helm(x - 1, y)) && x + y < 33) put(g, x, y, STEEL[4]);
+  stamp(g, ['WW', 'W.'], { W: '#e8e2d4' }, 14, 9);
+  put(g, 24, 10, STEEL[1]);
+  put(g, 25, 10, STEEL[1]);
+  put(g, 24, 11, STEEL[2]);
+  // bronze brow band wrapping round the dome
+  for (let x = 10; x < 32; x++) {
+    const yb = Math.round(13 + ((x - 23) / 11) ** 2 * 2);
     if (!helm(x, yb)) continue;
-    const v = 0.95 - ((x - 9) / 25) * 0.65;
+    const v = 0.95 - ((x - 10) / 22) * 0.65;
     put(g, x, yb, tone(GOLD, v));
-    put(g, x, yb + 1, tone(GOLD, v - 0.3));
-    if (helm(x, yb + 2)) put(g, x, yb + 2, STEEL[1]);
+    if (helm(x, yb + 1)) put(g, x, yb + 1, STEEL[1]);
   }
-  put(g, 21, 6, GOLD[3]);
-  put(g, 20, 6, GOLD[4]);
-  put(g, 22, 6, GOLD[2]);
-  // visor slit with glowing eyes (the near eye larger), and breathing holes set in a grin
-  for (let x = 17; x < 34; x++) {
-    const yb = Math.round(11.5 + ((x - 23) / 12) ** 2 * 2.2) + 4;
-    if (!helm(x, yb + 2)) continue;
-    if (x === 17) {
-      put(g, x, yb + 1, '#1c1430');
-      continue;
-    }
-    for (let k = 0; k < 3; k++) put(g, x, yb + k, '#1c1430');
-    put(g, x, yb - 1, STEEL[1]);
-    if (helm(x, yb + 3)) put(g, x, yb + 3, STEEL[3]);
+  put(g, 21, 7, GOLD[3]);
+  put(g, 20, 7, GOLD[4]);
+  // the visor: a narrow slit, two small points of light (the near one a little larger)
+  for (let x = 18; x < 32; x++) {
+    const yb = Math.round(13 + ((x - 23) / 11) ** 2 * 2) + 3;
+    if (!helm(x, yb + 1)) continue;
+    put(g, x, yb, '#0e0a16');
+    put(g, x, yb + 1, '#0e0a16');
+    if (helm(x, yb + 2)) put(g, x, yb + 2, STEEL[3]);
   }
-  const eye: Pal = { e: '#4ad8ff', E: '#e0fcff', c: '#1e6a8a', W: '#ffffff' };
-  stamp(g, ['cEEc', 'eEEe', 'ceec'], eye, 20, 15);
-  stamp(g, ['cEc', 'eEe', 'cec'], eye, 27, 15);
+  put(g, 22, 17, ROWAN_GLOW[2]);
+  put(g, 23, 17, ROWAN_GLOW[1]);
+  put(g, 28, 17, ROWAN_GLOW[2]);
+  // breathing holes in the bevor
   for (const [x, y] of [
-    [22, 22],
     [24, 23],
     [26, 23],
     [28, 22],
   ]) {
     put(g, x, y, STEEL[0]);
-    put(g, x, y + 1, STEEL[3]);
+    put(g, x, y + 1, STEEL[2]);
   }
   return toCanvas(g);
 }
@@ -262,10 +270,11 @@ function sable(): HTMLCanvasElement {
   fill(g, and(hood, open), () => PLUM[0]);
   const face = and(ell(28, 20.5, 6.6, 5.6), (_x, y) => y >= 15);
   fill(g, face, (x, y) => (y <= 15 ? SKIN[1] : sphere(SKIN, 25, 17, 9, 8, 0.14)(x, y)));
-  // eyes: amber irises under heavy lids, glints toward the light (the near eye larger)
+  // eyes: amber irises under heavy lids (the near eye larger)
   const eye: Pal = { k: INK, W: '#ffffff', w: '#e8dcd0', a: '#f0a838', A: '#b0601a', s: SKIN[1] };
-  stamp(g, ['kkkkk', 'WwaAk', 'wwAkk', '.kkk.'], eye, 21, 16);
-  stamp(g, ['kkkk', 'WaAk', 'wAkk'], eye, 28, 16);
+  // (playtest round 8, L8: narrowed under the lids, no white glints: a hard, watchful look)
+  stamp(g, ['kkkkk', 'swaAk', '.kkkk'], eye, 21, 16);
+  stamp(g, ['kkkk', 'saAk', '.kkk'], eye, 28, 16);
   // the mask: the scarf wrapped over the nose and mouth and round the neck
   const mask = and(or(ell(26, 26, 10, 5.6), ell(18, 29, 8, 3.4), ell(33, 22.5, 2, 1.6)), (_x, y) => y >= 21);
   fill(g, mask, sphere(SCARF_T.slice(1), 21, 21, 15, 8, 0.06));
