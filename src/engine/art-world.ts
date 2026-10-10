@@ -1613,6 +1613,7 @@ function* paintWorld(): Generator<void, WorldLayers> {
   WORLD_LIFE.windows = c.windows;
   WORLD_LIFE.chimneys = c.chimneys;
   atmosphere(p);
+  duskGrade(p, L.plateMask);
   // printed on the Atlas: parchment sea, inked coasts and borders (art-world-atlas.ts), then his drafts of each land
   const greenish = (r: number) => (r === R_HEART ? R_GREEN : r);
   yield* atlasPrint({ W, H, buf: p.buf, land: L.plateMask, reg: L.reg, water: c.water, dist: S.dist, sheetW: MAP_W }, (a, b) => greenish(a) === greenish(b));
@@ -1633,6 +1634,32 @@ function* paintWorld(): Generator<void, WorldLayers> {
   yield;
   const rim = paintRim();
   return { base: p.canvas(), sea, wind, lava: glows.lava, lamp: glows.lamp, isle: isle.p, veils, drafts, isleVeil: isle.veil, rim };
+}
+
+/** The land in the mood (L7; review-4 R4-14: it read as a bright midday green beside the dusk fights): every land
+ *  colour a little less saturated and pulled toward a cool dusk indigo, less so the brighter it is (lit windows,
+ *  fires and the roads' pale dust keep their step above the fields, so roads and landmarks still read). */
+function duskGrade(p: Pix, land: Uint8Array): void {
+  const buf = p.buf;
+  const [dr, dg, db] = [0x1a, 0x1e, 0x36];
+  for (let i = 0; i < buf.length; i++) {
+    const c = buf[i];
+    if (land[i] !== 1 || c < 0) continue;
+    let r = (c >> 16) & 255;
+    let g = (c >> 8) & 255;
+    let b = c & 255;
+    const l = (r * 0.3 + g * 0.55 + b * 0.15) / 255;
+    // a step less saturated
+    const y = l * 255;
+    r += (y - r) * 0.18;
+    g += (y - g) * 0.18;
+    b += (y - b) * 0.18;
+    const k = Math.max(0, 0.26 - Math.max(0, l - 0.58) * 0.9);
+    r += (dr - r) * k;
+    g += (dg - g) * k;
+    b += (db - b) * k;
+    buf[i] = (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b);
+  }
 }
 
 /** The light over everything: distance hazes the far north toward the sky's colour (in dithered steps), and the

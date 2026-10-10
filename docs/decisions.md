@@ -1496,6 +1496,13 @@ C21. **Vesper's gap is in the skill trees, not her style; left as she is.** Prob
     - her tree's matching tier at Rowan's sizes (Ranger Cloak +12%, Leathers +10): +3 / -19 / -14 and -5 / -16 / -17;
     - a 2 s Pinning Shot: +1 / -21 / -17 and +2 / -23 / -25.
     Next: Parry against her red control at the bosses, and how the bot picks her branch.
+C-ART-17. **Review 4's art findings** (R4-3, R4-5, R4-10, R4-14, R4-16): the camp's band in one dark metal face (the
+    colour in the icons, the way out in brass) and its top button says Build; a new player's two relic cards fill
+    (the icon at 3x, the block centred), a vignette behind the pick, the tray labelled; the world map's land graded
+    toward the dusk (the land only, before the Atlas's print, so the parchment, ink and drafts are as drawn) and its
+    twelve roses only once a land is restored; the treasure's banner ink and brass; the title's curled corner gone and
+    its foot in shadow. Left: the treasure screen's empty band and the HUD's bright HP green (shared with every fight),
+    and "Tap to start!" on a desktop (words, not art).
 
 (content: end of section)
 

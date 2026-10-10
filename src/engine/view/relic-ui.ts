@@ -329,16 +329,16 @@ export function relicCard(
 
 /** An upright card's icon well: a rounded square at the top middle in the rarity's colours (a soft glow round it for
  *  rare and epic), the icon's 24 x 24 place in it. Returns where the icon goes. */
-export function uprightWell(g: G, r: Rect, face: Face, rarity: RelicRarity, now: number, alpha = 1): Rect {
+export function uprightWell(g: G, r: Rect, face: Face, rarity: RelicRarity, now: number, alpha = 1, size = 26, top = r.y + 3): Rect {
   const [hi, base, lo, deep] = face;
-  const w: Rect = { x: Math.round(r.x + r.w / 2 - 13), y: r.y + 3, w: 26, h: 26 };
+  const w: Rect = { x: Math.round(r.x + r.w / 2 - size / 2), y: top, w: size, h: size };
   if (rarity !== 'common') glow(g, w, base, (0.25 + 0.15 * pulse(now, 1100)) * alpha, 3);
   rows(g, w.x - 1, w.y - 1, w.w + 2, w.h + 2, 3, INK, alpha);
   rows(g, w.x, w.y, w.w, w.h, 2, mix(lo, deep, 0.35), alpha);
   band(g, w.x, w.y, w.w, w.h, 2, 0, Math.round(w.h * 0.5), mix(base, lo, 0.55), alpha);
   band(g, w.x, w.y, w.w, w.h, 2, 0, 1, mix(hi, base, 0.4), alpha);
   band(g, w.x, w.y, w.w, w.h, 2, w.h - 1, w.h, deep, alpha);
-  return { x: w.x + 1, y: w.y + 1, w: 24, h: 24 };
+  return { x: w.x + 1, y: w.y + 1, w: size - 2, h: size - 2 };
 }
 
 /** The lines an upright card's words take: its name (bold, at most two lines) and what it does, wrapped to the card,
@@ -370,8 +370,15 @@ function relicCardUpright(
   const look = RARITY_FACE[def.rarity];
   const face = look.face;
   cardFrame(g, r, face, def.rarity, o.now, a);
-  const icon = uprightWell(g, r, face, def.rarity, o.now, a);
-  relicIcon(s, pool, g, id, icon.x, icon.y, c.depth, a, 2);
+  // a new player's first pick has two wide cards: the icon at 3x in a bigger well and the words under it, the whole
+  // block centred in the card (it sat at the top of a half-empty card: review-4 R4-3)
+  const L = uprightLines(def.name, relicText(o.tuning, id), r.w, r.h);
+  const big = !!o.plain && r.w >= 100 && 38 + 9 + L.name.length * 9 + 3 + L.text.length * L.lh <= r.h - 6;
+  const wellH = big ? 38 : 26;
+  const blockH = wellH + 9 + L.name.length * 9 + 3 + L.text.length * L.lh;
+  const top = big ? r.y + Math.max(3, Math.round((r.h - blockH) / 2)) : r.y + 3;
+  const icon = uprightWell(g, r, face, def.rarity, o.now, a, wellH, top);
+  relicIcon(s, pool, g, id, icon.x, icon.y, c.depth, a, big ? 3 : 2);
   const shared = o.plain ? [] : sharedTags(id, o.owned);
   if (!o.plain) {
     def.tags.forEach((t, i) => {
@@ -389,9 +396,9 @@ function relicCardUpright(
     }
   }
   const cx = r.x + r.w / 2;
-  const L = uprightLines(def.name, relicText(o.tuning, id), r.w, r.h);
-  L.name.forEach((line, i) => texts.text(line, cx, r.y + UPRIGHT_NAME_Y + i * 9, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a }));
-  const ty = r.y + UPRIGHT_NAME_Y + L.name.length * 9 + 3;
+  const nameY = big ? top + wellH + 9 : r.y + UPRIGHT_NAME_Y;
+  L.name.forEach((line, i) => texts.text(line, cx, nameY + i * 9, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a }));
+  const ty = nameY + L.name.length * 9 + 3;
   L.text.forEach((line, i) => texts.text(line, cx, ty + i * L.lh, 0xe8e2ff, { ox: 0.5, oy: 0.5, alpha: a }));
   cardShine(g, r, def.rarity, o.now, a);
   if (shared.length) synergyBadge(g, texts, cx - (textWidth('Synergy!', 1, false) + 8) / 2, r.y - 7, o.now, a);
