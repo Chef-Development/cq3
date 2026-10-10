@@ -71,7 +71,14 @@ export class StoryView {
     this.portrait = this.s.add.image(0, 0, 'portrait_rowan').setOrigin(0.5, 1).setDepth(32.3).setVisible(false);
   }
 
+  /** The box's top edge and which end its portrait stands at (set as it draws; the Skip button sits by them). */
+  private edge: { x: number; y: number; w: number; portraitLeft: boolean } | null = null;
+
   private skipRect(): Rect {
+    // a scene in the middle of a fight (a boss's phase line): Skip rests on the box's top edge, at the end away from
+    // the portrait, never on the foe's plate (review round 8: it covered the boss's HP the moment it mattered)
+    const e = this.edge;
+    if (this.s.app.storyOverlay && e) return { x: e.portraitLeft ? e.x + e.w - 44 : e.x + 6, y: e.y - 11, w: 38, h: 14 };
     return { x: this.s.R - 44, y: 4, w: 38, h: 14 };
   }
 
@@ -149,6 +156,7 @@ export class StoryView {
     const bh = 38 + 11 * Math.max(0, lines.length - 2);
     const by = s.B - bh - 3 + lift;
     panel(g, { x: bx, y: by, w: bw, h: bh }, { trim: 'full' });
+    this.edge = { x: bx, y: by, w: bw, portraitLeft: LEFT.includes(box.who) };
 
     // portrait in a gold frame standing on the box; a new speaker slides in from their side
     const left = LEFT.includes(box.who);
