@@ -1,4 +1,4 @@
-# Combo Quest 3 (working title)
+# The Unerased (repo cq3; working title Combo Quest 3)
 
 Personal mobile timing-RPG inspired by Combo Quest 2 (2016, iOS). M5 (this session) added **eight heroes, one per
 style**, **companions**, **hero chests, gems and the shrine**, **region completion**, shared progression (mastery,
@@ -20,6 +20,13 @@ net, tips in a teaching order, a map sprite for every foe, a completion tracker 
 an **anti-spam balance** (a crowding limit, escalating stack costs, heal and forgiveness caps, a masher bot that must
 lose; retargeted at a **75%** player), a **unique finisher per hero**, a sharper chest reveal (a test), a redesigned
 companions screen, **eight more heroes** (a second per style, the first Mythics) and **four more companions**.
+Playtest round 8 (an overnight run of parallel teams, docs/run-log.md) gave the game its **story and name**: the
+living map (docs/story-bible.md, spoilers; the name in `src/data/brand.ts` `GAME_NAME`, docs/names.md), a **darker,
+more grown-up look** (art bible sections Mood and Maturity: heroes about three heads tall on a mature rig, darker stages,
+no candy gloss; the title as key art; the world map as the Great Atlas), **two more regions** (acts 9-14, each with
+two bar rules; docs/content-bible.md), New Game+'s first remix, the Mapmaker's Edits (opt-in modifiers),
+**desktop, keyboard and Android** play, **accessibility** modes, a faster load (region art packs), the first 10
+minutes measured and smoothed (docs/first-10.md), and fixes from three fresh-eyes screen reviews.
 The user playtests on an iPhone 16 Pro and does not read long output; a separate planning chat orchestrates.
 
 ## Rules
