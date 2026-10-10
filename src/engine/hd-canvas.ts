@@ -2,7 +2,12 @@
 // sized with the layout, cleared each frame it's drawn on, hidden on frames it isn't. Its own small file so the sharper
 // text (view/hd-text.ts) can use it without pulling the chest reveal's chunk (view/chest-hd.ts, loaded on its own)
 // back into the main chunk, or into an import cycle with the camp's kit.
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
+
+// Phaser's scene event names as strings (PRE_UPDATE / POST_UPDATE): a value import of Phaser here
+// would pull the engine into the unit tests that measure text through view/heroes.ts -> hd-text.ts.
+const PRE_UPDATE = 'preupdate';
+const POST_UPDATE = 'postupdate';
 import { HD_K, hdLayerRect, sameLayer, type HdLayerRect } from './hd-layer';
 import type { ScreenLayout } from './layout';
 
@@ -37,8 +42,8 @@ export class HdLayer {
   private hook(): void {
     if (this.hooked) return;
     this.hooked = true;
-    this.s.events.on(Phaser.Scenes.Events.PRE_UPDATE, this.preUpdate, this);
-    this.s.events.on(Phaser.Scenes.Events.POST_UPDATE, this.postUpdate, this);
+    this.s.events.on(PRE_UPDATE, this.preUpdate, this);
+    this.s.events.on(POST_UPDATE, this.postUpdate, this);
   }
 
   private preUpdate(): void {
@@ -99,8 +104,8 @@ export class HdLayer {
 
   destroy(): void {
     if (this.hooked) {
-      this.s.events.off(Phaser.Scenes.Events.PRE_UPDATE, this.preUpdate, this);
-      this.s.events.off(Phaser.Scenes.Events.POST_UPDATE, this.postUpdate, this);
+      this.s.events.off(PRE_UPDATE, this.preUpdate, this);
+      this.s.events.off(POST_UPDATE, this.postUpdate, this);
     }
     this.hooked = false;
     this.cv?.remove();

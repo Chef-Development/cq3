@@ -10,7 +10,6 @@
 // setting ('off', 'on', or per surface: storage.ts). A surface turns it off for any frame something covers it (a
 // wipe, a tip card, a sheet over a screen), since the fine layer sits above the whole game canvas. The layer only
 // shows on frames that draw on it (HdLayer), so leaving a screen leaves nothing.
-import Phaser from 'phaser';
 import { FONT_BOLD_H, FONT_H, isDarkInk, readable, textWidth } from '../font';
 import { hdText, hdTextW } from '../font-hd';
 import { HD_K } from '../hd-layer';
@@ -51,7 +50,7 @@ export class HdText {
 
   constructor(s: FightScene) {
     this.layer = new HdLayer(s, () => s.app.layout, 'hd-text');
-    s.events.on(Phaser.Scenes.Events.PRE_UPDATE, () => {
+    s.events.on('preupdate' /* Phaser.Scenes.Events.PRE_UPDATE: no value import of Phaser here (the unit tests measure text through this file) */, () => {
       this.fresh = true;
       this.count = 0;
     });
