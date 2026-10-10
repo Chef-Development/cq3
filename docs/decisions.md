@@ -1379,8 +1379,9 @@ C-ART-9. **Region 5's telegraph sounds are in** (`skitter`, `shimmer2`, `sunflas
     door-mouth.
 C-ART-10. **Region 4's bar, readable at phone size** (review 2's DUSK-ART findings): the lantern is a pool of saturated
     amber in four steps with the track's rails catching it and a dithered edge (a pale amber over the violet track read
-    as brown dirt); blocks in its light catch it on their top edge; an unlit dark block is ink-grey with a faint "?"
-    (violet is the trap's colour, and some dark blocks are traps); the tide has a moving crest along its top, rings
+    as brown dirt); blocks in its light catch it on their top edge; an unlit dark block is ink-grey, not violet
+    (violet is the trap's colour, and some dark blocks are traps; at the merge, QA's Q20 dashed slate with no glyph
+    replaced the faint "?" drawn here, per the block-marks rule); the tide has a moving crest along its top, rings
     where the cursor wades, and sunk blocks keep their own colour under a thin veil with ripples (not olive). The
     Duskmire skies' long 1 px cloud streaks are short clumps at least 3 px tall.
 C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics-noon.ts`, painted at boot after the
