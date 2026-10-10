@@ -36,30 +36,31 @@ export const YARA_SHADES: Record<string, Shade> = {
 
 // ------------------------------------------------------------------ body
 
-// Dark hair with soft bangs, a bead at the temple, warm brown eyes, a small smile; 16 wide.
+// Dark hair with soft bangs, a bead at the temple, warm brown eyes, a small smile.
 // (playtest round 8, L8, by hand: dark hair with beads, a calm brow over one dark iris each, high cheekbones, a
-// small mouth and a narrow chin) 16 x 12.
+// small mouth and a narrow chin)
 const HEAD = [
-  '.....hhhhhh.....',
-  '...hhhhLLhhhh...',
-  '.hhhLhhhhhhhhhh.',
-  'hhhhhhhhhhhhhhhh',
-  'hhhhhhhhhhSShhhh',
-  'hhhhhhhSSHHSSHHS',
-  'hhOhhhzSSSkSSSkS',
-  'hhRhhzEzSSSSSSSS',
-  '.hYhhzzSSSSSSSST',
-  '..hhhhzSSSSSSzz.',
-  '...hh.zzSSSxSz..',
-  '.......zzSSz....',
+  '...hhhhhhh....',
+  '.hhhhhLLhhhh..',
+  'hhLhhhhhhhhhhh',
+  'hhhhhhzSSSShhh',
+  'hhhhhzSHHSSHHS',
+  'hOhhzESEkSSEkS',
+  'hRhzEESSTSSSSS',
+  '.hYhzESSSSSSzT',
+  '..hhzEESSSSSE.',
+  '...hhzEESSxSz.',
+  '......zzESz...',
 ];
-const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 16 - swap[y].length) + swap[y] : r));
+// (second pass, after the fresh-eyes review: 14 x 11, not 16 x 12, so the head is no wider than her shawl; the side
+// of the face in shadow, sockets under the brows, a cheekbone and the nose's tip catching the light, a shaded jaw)
+const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, r.length - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
-  squint: face(HEAD, { 5: 'SSHHSSHHS', 6: 'SSSzzSSzzS', 10: 'SxxxSz..' }),
-  ko: face(HEAD, { 5: 'SSSSSSSSS', 6: 'SSSzzSSzzS', 10: 'SSSxSz..' }),
+  squint: face(HEAD, { 5: 'zzSSzzS', 9: 'SxxxSz.' }),
+  ko: face(HEAD, { 4: 'SSSSSSS', 5: 'zzSSzzS', 9: 'SSxSz.' }),
   // calling the spirits: eyes shut, a calm smile
-  call: face(HEAD, { 6: 'SSSzzSSzzS', 10: 'SxxSSz..' }),
+  call: face(HEAD, { 5: 'zzSSzzS', 9: 'SxxSz.' }),
 };
 
 // The star-patterned shawl over the shoulders and draped down either side, the white tunic, a beaded sash.
@@ -101,7 +102,7 @@ export const YARA_RIG: Rig = {
   legsFeetX: LEG_FEET_X,
   torsoX: -7,
   torsoOverlap: 1,
-  headX: -1,
+  headX: 1,
   headOverlap: 2,
   shoulderNear: [4, 2],
   shoulderFar: [10, 2],
@@ -145,7 +146,7 @@ const drape =
 function braid(a0: number, curl: number, wave: number, n = 13): Layer {
   const beads = [BEAD.o, BEAD.q, BEAD.y, BEAD.r];
   return (g, a) =>
-    ribbon(g, a.hx + 2, a.hy + 6, n, (t) => Math.PI * (a0 + curl * t + wave * Math.sin(t * Math.PI * 2)), (t, i) => {
+    ribbon(g, a.hx, a.hy + 5, n, (t) => Math.PI * (a0 + curl * t + wave * Math.sin(t * Math.PI * 2)), (t, i) => {
       if (t > 0.86) return [HAIR[3], HAIR[1]];
       if (i % 4 === 2) return [beads[(i >> 2) % 4], HAIR[1]];
       return i % 2 ? [HAIR[3], HAIR[2], HAIR[0]] : [HAIR[4], HAIR[2], HAIR[1]];
