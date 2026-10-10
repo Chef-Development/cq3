@@ -333,10 +333,70 @@ function narrator(): HTMLCanvasElement {
   return toCanvas(g);
 }
 
+// ------------------------------------------------------------------ the Noon Sphinx (Region 5's first mini-boss)
+
+const S_FUR = ['#4a2e16', '#7a5226', '#a87a3e', '#cca062', '#e6c48a'];
+const S_SKIN = ['#3e2216', '#6a3e24', '#965e34', '#ba824c', '#d8a46a'];
+const S_LAPIS = ['#0e1640', '#1c2c78', '#2e4aa8', '#4a6cc8'];
+const S_GOLD = ['#5a3410', '#9a6a1c', '#cc9a34', '#ecc85a', '#fff0a8'];
+
+/** The Noon Sphinx (content bible: she keeps the White Road with a riddle; formal and sad): a lion's tawny shoulders,
+ *  a striped headdress of lapis and gold falling past her face, a gold circlet with the sun pinned at its brow, kohl
+ *  round tired gold eyes, the light straight down from a noon that never ends. Faces left. */
+function sphinx(): HTMLCanvasElement {
+  const g = grid(P, P);
+  // the lion's shoulders and chest under the headdress
+  const body = ell(21, 43, 19, 11);
+  fill(g, body, sphere(S_FUR, 14, 34, 22, 13, 0.02));
+  rimShade(g, body, S_FUR[0]);
+  for (const [x, y] of bez([8, 35], [14, 33], [24, 34], [34, 38], 14)) put(g, Math.round(x), Math.round(y), S_FUR[1]);
+  // the headdress: a hood over the crown, widening into two striped lappets down past the jaw
+  const hood = or(ell(17.5, 14, 11, 10), (x, y) => y >= 14 && y <= 38 && x >= 15 - (y - 14) * 0.15 && x <= 29 + (y - 14) * 0.25);
+  fill(g, hood, (x, y) => {
+    const stripe = Math.floor((y + (x > 22 ? 1 : 0)) / 2) % 2 === 0;
+    const lit = x < 18 && y < 14;
+    return stripe ? (lit ? S_GOLD[4] : x > 24 ? S_GOLD[2] : S_GOLD[3]) : lit ? S_LAPIS[3] : x > 24 ? S_LAPIS[1] : S_LAPIS[2];
+  });
+  rimShade(g, hood, S_LAPIS[0], 2);
+  // the face in the hood's opening (bronze), long and still; the jaw; the nose
+  const face = and(or(ell(12.5, 20, 6.2, 7.6), ell(12.5, 25, 4.6, 4.6), ell(5.8, 21.8, 1.3, 1.6)), (_x, y) => y >= 12);
+  fill(g, face, sphere(S_SKIN, 10, 15, 9, 11, 0.36));
+  rimShade(g, face, S_SKIN[1]);
+  // the gold circlet across the brow, the sun pinned at its front
+  for (let x = 5; x <= 19; x++) {
+    put(g, x, 13, x < 12 ? S_GOLD[4] : S_GOLD[3]);
+    put(g, x, 14, S_GOLD[1]);
+  }
+  stamp(g, ['.gGg.', 'gGWGg', 'gGGGg', '.ggg.'], { g: S_GOLD[2], G: S_GOLD[4], W: '#ffffff' }, 6, 9);
+  put(g, 8, 12, INK);
+  // brows level, kohl round tired gold eyes (lids low: she has asked her riddle a month with no answer)
+  for (let x = 12; x <= 15; x++) put(g, x, 15, S_SKIN[0]);
+  for (let x = 7; x <= 9; x++) put(g, x, 15, S_SKIN[0]);
+  const eye: Pal = { k: INK, K: '#1a0e14', I: '#e0a830', i: '#8a5a14', w: '#d8c0a0' };
+  stamp(g, ['KKKKK', 'kIiwk', '.kkk.'], eye, 11, 17);
+  stamp(g, ['KKKK', 'kIik', '.kk.'], eye, 6, 17);
+  put(g, 16, 18, INK); // the kohl's wing
+  // the nose's lit bridge and its shade, closed lips, a line of sorrow at the mouth's corner
+  for (let y = 18; y <= 21; y++) put(g, 6, y, S_SKIN[4]);
+  put(g, 5, 23, S_SKIN[1]);
+  put(g, 6, 23, S_SKIN[1]);
+  stamp(g, ['ddd', '.m.'], { d: '#5a2a1e', m: S_SKIN[1] }, 7, 26);
+  put(g, 10, 27, S_SKIN[1]);
+  // a broad gold collar over the fur at the throat
+  for (let x = 6; x <= 24; x++) {
+    const y = Math.round(31 + Math.abs(x - 14) * 0.12);
+    put(g, x, y, x < 14 ? S_GOLD[4] : S_GOLD[2]);
+    put(g, x, y + 1, (x % 3 === 0 ? S_LAPIS[2] : S_GOLD[1]));
+    put(g, x, y + 2, S_GOLD[0]);
+  }
+  return toCanvas(g);
+}
+
 /** Paint the Atlas's people and the narrator (called from art-story.ts buildStoryArt). */
 export function buildAtlasPortraits(add: (key: string, c: HTMLCanvasElement) => void): void {
   // (L7/L8: moodier light, the far side in deep cool shadow)
   add('portrait_mapmaker', portraitMood(mapmaker()));
   add('portrait_keeper', portraitMood(keeper()));
   add('portrait_narrator', portraitMood(narrator(), 0.28));
+  add('portrait_sphinx', portraitMood(sphinx(), 0.22));
 }
