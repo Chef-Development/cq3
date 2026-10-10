@@ -46,19 +46,18 @@ describe('hero frames', () => {
     expect(sable[3]).not.toBe(sable[0]);
   });
 
-  test("Rowan stands on the shared rig: his head is no taller than his peers' and his feet are on the same row", () => {
-    const top = (rig: Rig) => {
+  test('Rowan (the reference for the mature look, decision L8) stands on the shared feet line, about three heads tall', () => {
+    const extent = (rig: Rig) => {
       const g = grid(HERO_W, HERO_H);
-      paintRig(g, rig, { near: { at: [8, 9] }, far: { at: [11, 9] } });
+      // (no hands: the figure alone)
+      paintRig(g, rig, { near: { at: [0, 12], hidden: true }, far: { at: [0, 12], hidden: true } });
       const rows = g.map((r) => r.some((c) => c !== null));
       return { top: rows.indexOf(true), feet: rows.lastIndexOf(true) };
     };
-    const rowan = top(ROWAN_RIG);
-    for (const peer of [NEVE_RIG, SOLENNE_RIG, HOLLIS_RIG]) {
-      const p = top(peer);
-      expect(rowan.feet).toBe(p.feet);
-      expect(Math.abs(rowan.top - p.top)).toBeLessThanOrEqual(3);
-    }
-    expect(ROWAN_RIG.heads.base.length).toBeLessThanOrEqual(13);
+    const rowan = extent(ROWAN_RIG);
+    for (const peer of [NEVE_RIG, SOLENNE_RIG, HOLLIS_RIG]) expect(rowan.feet).toBe(extent(peer).feet);
+    const head = ROWAN_RIG.heads.base.length;
+    expect(head).toBeLessThanOrEqual(11);
+    expect((rowan.feet - rowan.top + 1) / head).toBeGreaterThanOrEqual(3);
   });
 });
