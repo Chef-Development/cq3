@@ -126,11 +126,13 @@ const SABLE_LEGS: Record<string, string[]> = {
 
 function sableFrame(legs: string, bob: number, flap: boolean): HTMLCanvasElement {
   const g = grid(ROWAN_W, ROWAN_H);
-  const top = ROWAN_H - 2 - SABLE_LEGS.stand.length - SABLE_TOP.length + bob;
+  // (a row longer in the leg, like her fight frames: playtest round 8, L8)
+  const leg = [SABLE_LEGS[legs][0], ...SABLE_LEGS[legs]];
+  const top = ROWAN_H - 2 - leg.length - SABLE_TOP.length + bob;
   const [tail, tx, ty] = SABLE_TAIL[flap ? 'flap' : 'rest'];
   stamp(g, tail, SABLE_PAL, 1 + tx, top + ty);
   stamp(g, SABLE_TOP, SABLE_PAL, 1, top);
-  stamp(g, SABLE_LEGS[legs], SABLE_PAL, 1, ROWAN_H - 2 - 2);
+  stamp(g, leg, SABLE_PAL, 1, ROWAN_H - 2 - leg.length);
   return toCanvas(g);
 }
 

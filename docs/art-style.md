@@ -8,6 +8,39 @@ Goal: a cohesive, hand-crafted look at the polish of modern pixel-art RPGs (Sea 
 Knight), 100% original, drawn from code. The world is **the Great Atlas**, a living map where whatever is drawn becomes
 real: ink, paper and colour are the game's visual motifs (the title, the world map, region restoration, transitions).
 
+## 0. Mood and maturity (playtest round 8: L7, L8: these override anything brighter or cuter below)
+
+The playtester: "the atmosphere needs to be slightly more dark and not all bright and peachy" and "everything looks a
+little childish and chibi; a little more mature and moodier". Every screen and sprite follows these two lists.
+
+**Mood (L7)**
+1. **Values drop** about 20-30% from the old look: skies are dusk, overcast, storm or night, never a flat bright noon.
+   The brightest values belong to light sources (sun, lanterns, magic, fire) and the actors' highlights.
+2. **Midtones lean cool** (blue, teal, violet) and a step less saturated; saturated colour lives in light pools and
+   accents.
+3. **Shadows are deep and cool** (indigo, teal) and take more of the frame; vignettes are stronger (the menus' and the
+   world map's about half again as dark at the corners).
+4. **Warm light is an accent, not a wash**: no large peach, beige or cream fills. Parchment is aged and darker with
+   burnt edges (the Atlas: `AGED` in `art-world-atlas.ts`); the blank (erased land) is a dim warm-grey vellum; UI
+   plates are deep ink.
+5. **Actors stay readable**: a rim light from the scene's light and a clear value step from the backdrop; the ground
+   strip under them is calm and darker.
+6. **Darker never means muddy**: every material keeps 3+ hue-shifted tones and the scene keeps strong contrast; check
+   at phone size that landmarks and silhouettes still read at a glance.
+
+**Maturity (L8)**
+1. **Heroes** about 3-3.5 heads tall (longer torsos and legs, smaller heads), smaller eyes (no big glossy eyes, no
+   rosy cheeks), a defined brow and jaw, weathered materials (worn leather, dented steel, cloth with folds):
+   silhouettes that read as people, not toys. Weapons keep their heft.
+2. **Foes** carry menace: sharper silhouettes, glowing eyes, teeth, scars, darker palettes; round cute shapes get an
+   edge.
+3. **Portraits** match: defined features (brow, cheekbone, jaw), moodier light (a strong key from one side, deep
+   shadow on the other, a rim), no pastel backgrounds.
+4. **UI loses its candy gloss**: plates and buttons read as engraved metal, ink and leather, not shiny plastic: one
+   small specular at most, no bright bubbly fills, bevels in the material's own dark and light; the action colours
+   (the green "go", the gold "reward") are toned to the mood's accents, deep and a little desaturated.
+5. **Companions** may keep some charm, inside the mood's palette.
+
 ## 1. The grid
 
 - The canvas is **327 x 150 game px**, integer-scaled (8x on an iPhone 16 Pro held sideways: 1 game px = 2.67 CSS px).
@@ -40,7 +73,10 @@ rule (section 4) and added to this table; never a one-off hex picked by eye.
 | day sky | `#3a8ad8 #5aaae8 #86c8f2 #b8e2f6 #e6f6fb` |
 | **parchment** (the Atlas) | `#3a2416 #6e4a2a #a8804e #d2b07a #ead2a0 #f8ecc8` |
 | **atlas ink** (map lines) | `#1a1026 #2e2240 #4a3a5e` (line, wash, faded line) |
-| **fog** (erased land) | `#6a6478 #9a94a8 #c8c2d2 #ece8f0` |
+| **fog** (erased land) | `#4e4644 #6e645e #8c8078 #a09488 #ac9f92` (a dim warm-grey vellum since L7; the bible's first cool fog read as cream) |
+| **aged parchment** (the Atlas's sheet, L7) | `#4a3020 #6a4a2c #86623a #9c7848 #ae8a56` |
+| **UI accents** (buttons, L8: `FACE` in view/ui.ts) | moss `#1e3e24 #356638 #4c8646 #8cb87a`, brass `#553812 #8c6224 #be8e3a #e6c886`, oxblood `#481418 #782828 #a4403a #d8907e`, ink `#16122a #262040 #342c54 #5a5280` |
+| **mood shadow** (grades, L7) | `#141a30` (`moodGrade`, the Atlas's land), `#14142a` (`portraitMood`) |
 | frost | `#16243a #2a4a6e #4a7aa6 #86b4d8 #c4e2f4 #f0faff` |
 | ash / ember | `#1a1014 #3a1c18 #6e2a18 #c24a1c #f08a2a #ffd070` |
 

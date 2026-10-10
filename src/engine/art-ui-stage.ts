@@ -6,6 +6,7 @@
 // if it needs a new silhouette, a motif painter below).
 import type Phaser from 'phaser';
 import { STYLE_PAINTERS } from './art-ui-styles';
+import { moodGrade } from './art-paint';
 
 export type StageMotif = 'castle' | 'roofs' | 'gate' | 'pines' | 'cliffs' | 'crystals' | 'grove' | 'workshop' | 'arch' | 'vault' | 'none' | (string & {});
 
@@ -473,6 +474,7 @@ export function ensureStage(scene: Phaser.Scene, theme: string): string {
   const key = `uistage_${theme}`;
   if (scene.textures.exists(key)) return key;
   const sp = STAGE_THEMES[theme] ?? STAGE_THEMES.night;
-  scene.textures.addCanvas(key, paintStage(sp));
+  // (L7: every menu stage in the mood's darker, cooler light; its lamps and crystals keep their glow)
+  scene.textures.addCanvas(key, moodGrade(paintStage(sp), 0.22));
   return key;
 }

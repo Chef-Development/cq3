@@ -1,7 +1,7 @@
 // The camp's shrine, unlocked (see docs/art-style.md; the locked one is painted into camp_bg by art-camp.ts and stays
 // as it is). The same mossy little stone house, same box and silhouette, so it covers the locked shrine exactly: the
 // planks, chain and padlock are gone, the niche between the pillars glows violet with a crystal floating in it, the
-// pendulum emblem on the gable and the runes on the pillars are lit, light spills down the steps, and two candles
+// compass rose on the gable and the runes on the pillars are lit, light spills down the steps, and two candles
 // burn either side of the door.
 //
 // Textures:
@@ -94,14 +94,20 @@ function shrineOpen(): HTMLCanvasElement {
   const roof: Inside = (x, y) => y >= 5 && y < 16 && Math.abs(x + 0.5 - 18.5) <= (y - 4) * 1.6;
   fill(g, roof, (x, y) => tone(FSTONE, (x < 18 ? 0.7 : 0.38) - (y - 5) / 40 + ((x + y * 2) % 7 === 0 ? -0.12 : 0)));
   fill(g, ell(18.5, 3, 2.2, 2.2), (x, y) => (x + y < 20 ? SPIRIT[5] : x + y < 22 ? SPIRIT[4] : SPIRIT[2]));
-  // the carved pendulum emblem on the gable, its rune awake
+  // the carved compass rose of the Atlas on the gable (story bible section 9), its points awake
   fill(g, and(ell(18.5, 11, 3.4, 3.4), not(ell(18.5, 11, 2.3, 2.3))), (x, y) => (x + y < 29 ? SPIRIT[3] : SPIRIT[2]));
-  put(g, 18, 9, SPIRIT[4]);
-  put(g, 18, 10, SPIRIT[5]);
-  put(g, 18, 11, SPIRIT[5]);
-  put(g, 18, 12, SPIRIT[4]);
-  put(g, 17, 12, SPIRIT[3]);
-  put(g, 19, 12, SPIRIT[3]);
+  for (const [x, y, c] of [
+    [18, 8, 5],
+    [18, 9, 4],
+    [18, 13, 3],
+    [18, 14, 2],
+    [15, 11, 4],
+    [16, 11, 4],
+    [20, 11, 3],
+    [21, 11, 2],
+    [18, 11, 5],
+  ] as const)
+    put(g, x, y, SPIRIT[c]);
   // moss over the roof and ivy down the left pillar
   fill(g, and(roof, (x, y) => y <= 6 + noise(x * 0.5, 1, 4) * 6 - Math.abs(x - 18) * 0.15), (x, y) => tone(MOSS_R, 0.95 - (y - 5) * 0.12 - (x > 18 ? 0.25 : 0)));
   for (const [x, len] of [

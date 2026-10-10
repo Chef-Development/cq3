@@ -23,12 +23,17 @@ describe('hero frames', () => {
   });
 
   test("the idle's last two frames are their own (the secondary motion), and every frame paints the figure", () => {
-    for (const [art, { rig, poses }] of Object.entries(RIG_HEROES)) {
+    for (const [art, { rig, poses, extra }] of Object.entries(RIG_HEROES)) {
       const frames = HERO_POSE_KEYS.map((k) => {
         const g = grid(HERO_W, HERO_H);
         paintRig(g, rig, poses[k]);
         return g;
       });
+      // the card's and the camp's poses paint too (a stance missing from the rig once broke the boot)
+      for (const p of extra) {
+        expect(!p.legs || rig.legs[p.legs], `${art}: stance ${p.legs}`).toBeTruthy();
+        expect(() => paintRig(grid(HERO_W, HERO_H), rig, p)).not.toThrow();
+      }
       const idle = frames.slice(0, 4).map(key);
       expect(idle[2], `${art}_idle2`).not.toBe(idle[1]);
       expect(idle[3], `${art}_idle3`).not.toBe(idle[0]);

@@ -99,27 +99,28 @@ export function buildPanel(scene: Phaser.Scene, w: number, h: number, bandH: num
   const [c, p] = canvas(w, h, 41);
   // top lip: ink, gold trim, its shadow, ink
   p.rect(0, 0, w, 1, INK);
-  p.rect(0, 1, w, 1, '#f2c230');
-  p.rect(0, 2, w, 1, '#a8661a');
+  // (L8: an antique brass trim, not candy gold; the console a deeper ink)
+  p.rect(0, 1, w, 1, '#c89a42');
+  p.rect(0, 2, w, 1, '#8a5a1e');
   p.rect(0, 3, w, 1, '#5a3410');
   p.rect(0, 4, w, 1, INK);
-  gradient(p, 0, 5, w, bandH - 1, ['#342b58', '#2a2248', '#221b3c', '#1a1430']);
-  p.rect(0, 5, w, 1, '#4a3f78');
+  gradient(p, 0, 5, w, bandH - 1, ['#262038', '#201a30', '#1a1528', '#141020']);
+  p.rect(0, 5, w, 1, '#3a3452');
   // brushed metal: faint horizontal streaks
   for (let i = 0; i < Math.round((w * bandH) / 70); i++) {
     const y = 7 + Math.floor(p.rnd() * (bandH - 10));
     const x = Math.floor(p.rnd() * w);
     const len = 3 + Math.floor(p.rnd() * 9);
-    p.rect(x, y, len, 1, y < bandH / 2 ? '#3a3062' : '#2a2248');
+    p.rect(x, y, len, 1, y < bandH / 2 ? '#2c2642' : '#201a30');
   }
   // plate seams with rivets
   for (let x = 36; x < w; x += 72) {
     p.rect(x, 5, 1, bandH - 6, '#100c1e');
-    p.rect(x + 1, 5, 1, bandH - 6, '#3d3364');
+    p.rect(x + 1, 5, 1, bandH - 6, '#2e2846');
     for (const ry of [8, bandH - 7])
       for (const rx of [x - 4, x + 4]) {
-        p.rect(rx, ry, 2, 2, '#413668');
-        p.px(rx, ry, '#8a7cc0');
+        p.rect(rx, ry, 2, 2, '#3a3448');
+        p.px(rx, ry, '#7a7488');
         p.px(rx + 2, ry + 1, '#0b0814');
         p.px(rx + 1, ry + 2, '#0b0814');
       }
@@ -150,15 +151,16 @@ export function buildBarFrame(scene: Phaser.Scene, w: number, h: number): void {
   rrect(p, 1, 2, W, H, 8, 'rgba(6,3,14,0.7)');
   // ink outline + metal body
   rrect(p, 0, 0, W, H, 8, INK);
-  rrect(p, 1, 1, W - 2, H - 2, 7, '#9aa4be');
+  // (L8: forged iron with a worn lit edge, not polished chrome)
+  rrect(p, 1, 1, W - 2, H - 2, 7, '#6e6e80');
   // vertical shading of the metal: bright top rows, darker bottom rows
   const rows: Array<[number, string]> = [
-    [1, '#f4f8ff'],
-    [2, '#d6deee'],
-    [3, '#b8c2d8'],
-    [H - 4, '#7c86a6'],
-    [H - 3, '#5e6888'],
-    [H - 2, '#4a5272'],
+    [1, '#c4c2cc'],
+    [2, '#a2a0ae'],
+    [3, '#8a8898'],
+    [H - 4, '#55546a'],
+    [H - 3, '#42425a'],
+    [H - 2, '#34344a'],
   ];
   for (const [y, col] of rows) {
     const k = cornerInset(y - 1, H - 2, 7);
@@ -169,11 +171,11 @@ export function buildBarFrame(scene: Phaser.Scene, w: number, h: number): void {
     const cy = Math.floor(H / 2);
     p.rect(cx - 2, cy - 1, 4, 3, '#4a5272');
     p.rect(cx - 1, cy - 2, 2, 5, '#4a5272');
-    p.rect(cx - 1, cy - 1, 2, 2, '#f2c230');
-    p.px(cx - 1, cy - 1, '#fff0a0');
+    p.rect(cx - 1, cy - 1, 2, 2, '#c89a42');
+    p.px(cx - 1, cy - 1, '#ecd08e');
     p.px(cx, cy, '#9a5a14');
   }
-  for (let y = 4; y < H - 6; y++) p.px(2, y, '#d6deee');
+  for (let y = 4; y < H - 6; y++) p.px(2, y, '#a2a0ae');
   // track channel: ink lip, ribbed deep-navy interior, shadowed top rows, a faint lit bottom edge
   p.rect(ew - 1, eh - 1, w + 2, h + 2, INK);
   p.rect(ew, eh, w, h, '#1e1932');
