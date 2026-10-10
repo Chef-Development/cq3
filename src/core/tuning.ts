@@ -284,6 +284,7 @@ export const DEFAULT_TUNING = {
     wCelestial: 0.01, // Celestial and Divine: a post-story chase (about 1 in 10,000 and 1 in 50,000 drops here)
     wDivine: 0.002,
     luckShift: 1,
+    autoWear: 1, // 1: an item found for an empty slot is worn at once (a newcomer never visits camp in Act 1); 0: all to the bag
     fightChance: 0.5, // a fight node drops an item this often...
     eliteItems: 1, // ...an elite always drops this many (Uncommon or better)...
     treasureMin: 1, // ...a treasure chest holds 1-2...
@@ -1060,6 +1061,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
     {
       title: 'Gear drops',
       sliders: [
+        s('gear.autoWear', 'Wear finds in empty slots', 0, 1, 1),
         s('gear.wCommon', 'Weight: Common', 0, 100, 1),
         s('gear.wUncommon', 'Weight: Uncommon', 0, 100, 1),
         s('gear.wRare', 'Weight: Rare', 0, 100, 0.5),

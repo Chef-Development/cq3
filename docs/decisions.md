@@ -1172,4 +1172,19 @@ F13. **The newcomer bot goes on to the first hero chest** (`F10_UNTIL=act`): the
     scene, the vault, the reveal. It also times the first red's spawn and the first boss's arc (its first special,
     half and a fifth of its HP).
 
+F14. **Found gear for an empty slot goes on at once** (`CORE:` run.ts, tuning.ts `gear.autoWear` with a slider). A
+    newcomer plays Act 1 without opening the camp, so every item found waited in the bag and Rowan met the Bandit
+    Captain in nothing (the newcomer bot lost him on one seed); the balance bot wears the best it finds after every
+    loot, so the balance was set for a player who does. An item whose slot is empty now goes on as it drops (it never
+    replaces anything: choices stay at camp), the loot screen tags it "Worn" in green instead of NEW, and the loot tip
+    says "Gear for a free slot goes on. / Spares wait in your bag at camp." The bot is unchanged (it wore them anyway);
+    its "without gear" ablation turns this off (`Run.autoWear`). What it's worth to a newcomer who never opens the
+    camp (balance bot, 200 runs, a newcomer's 0.38 s reaction): Act 1 first try 84.5% -> 94.5% at 55% accuracy,
+    91.5% -> 98% at 60%.
+
+F15. **Each hero's first finisher gets the reveal** (the letterbox, the light, its name stamped in big): Rowan's first
+    (as F3), then Sable's (who joins a minute after the first boss) and a chest hero's (the first hero chest now
+    always brings someone new). One mark per hero in `profile.seen` (`revealKey`: Rowan keeps `finisherReveal`); only
+    with tips on; the Test lab's profiles have every hero's seen.
+
 (first10: end of section)

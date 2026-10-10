@@ -370,6 +370,7 @@ export function forgeUp(t: Tuning, p: Profile): void {
 export function playAct(run: Run, rng: Rng, o: BotOptions): ActAttempt {
   const out: ActAttempt = { act: run.actIndex, won: false, fights: [], nodes: [], revivesUsed: 0, reachedBoss: false, lostAt: null, extras: { ambushes: 0, merchants: 0, rushCoins: 0, bounty: false, secrets: 0 } };
   const startRevives = run.hero.revives;
+  if (o.noGear) run.autoWear = false; // (the ablation: nothing found is ever worn)
   for (let guard = 0; guard < 200; guard++) {
     const ph = run.phase;
     if (ph === 'scene') run.skipScenes();
