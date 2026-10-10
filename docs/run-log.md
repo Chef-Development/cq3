@@ -38,10 +38,10 @@ One PR at the end supersedes #1-#7.
 | 9 | Resizable window, Android, code split, bot crawl part 1; then reviewers | 4 | done (10 window sizes, Pixel 7 + small Android, later regions' art in their own chunks: -9% main chunk, core crawl 16 heroes x 4 seeds clean, UI crawl through Act 1 clean); next: smoke timeouts, accessibility, crawl Acts 2-3 |
 | 10 | Region 5 (bar rules + data done, not in play; art and wiring later) | 3 | later |
 | 11 | Backlog cycle (QA, Region 6, polish, NG+, more content, music, accessibility) | all | later |
-| 11a | Fresh-eyes screen reviewers (lead spawns; owners fix) | Lead + all | ~00:45 |
+| 11a | Fresh-eyes screen reviewers (lead spawns; owners fix) | Lead + all | 3 reviewers running since 23:55 (title/maps/story, fights, camp/menus/desktop) |
 | 11b | Region 5 art + music (a dusk-art-style helper), Region 5 into play | 3 + helper | after 23:00 |
 | 11c | The sharper 2x layer rolled out to menus/cards/text where it reads better | 2A | after the menus |
-| 11d | Accessibility (colourblind blocks, reduced motion, text size) | 4 | in progress |
+| 11d | Accessibility (colourblind blocks, reduced motion, text size) | 4 | done (block marks, Motion Auto/Less/Full, Larger text) |
 | 12 | Freeze visuals ~05:00; regenerate screenshot baselines; full unit + Playwright suites on a quiet machine; the PR | Lead | 05:00-06:45 |
 | 13 | Final: everything committed, tests green, one PR | Lead | 06:45 |
 
@@ -136,3 +136,10 @@ One PR at the end supersedes #1-#7.
 - 23:42 EDT: art 2B chunk merged (all sixteen portraits and walkers in the mature look, Moss on the taller build, a
   finisher wind-up and follow-through). The lead's boot check now builds to its own folder and port, so it never
   disturbs a Playwright run on the main build. 2B chunk 3: hand-redrawn faces, walker heads, CLAUDE.md hero notes.
+- 23:55 EDT: merged story chunk 4 (8 new events, 4 story bounties, Atlas lore pages: CORE profile.pages), QA chunk 3
+  (smoke timeouts fixed without losing coverage; accessibility: block marks, Motion, Larger text; the sharper reveal
+  in its own chunk; the UI crawl through Act 3 + every lab scenario, clean), first10 chunk 3 (a two-card first relic
+  pick (CORE), the spec bot spends skill points; first chest 1:16-1:26). Boot-checked, pushed. Three fresh-eyes
+  reviewers started on a frozen review build; a third editor on tonight's new text. Next chunks to 02:30: first10 =
+  opt-in difficulty modifiers (backlog 4); QA = long story boxes, crawl regions 2-4, music packs; story = Region 5's
+  events/bounty/pages, 6 companion designs (backlog 6). L10: no CI boot guard tonight (a recommendation for later).

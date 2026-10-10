@@ -805,6 +805,10 @@ L9. **A boot check before every push** (a boot crash from a hero-rig change reac
     touch boot-painted art run `boot-check.mjs` (the built game at phone and desktop size: no page errors, title ->
     world map -> the first story box); hero-frames.test.ts now paints every card and camp pose.
 
+L10. **No boot guard in CI tonight**: the QA team's proposal (install Chromium in the deploy job, boot the built game
+    before publishing) is sound, but a new dependency install in the deploy job late at night could block every
+    deploy the playtester is waiting on; the lead's pre-push boot check covers tonight. Recommended for the next round.
+
 (lead: end of section)
 
 
