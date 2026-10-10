@@ -4,7 +4,7 @@
 // far arm, so most poses draw the far hand in front of the body.
 import { put, stamp, type Pal, type Shade } from './art';
 import { swordMap } from './art-sword';
-import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Rig, type RigPose, sparkle, stampAt } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, type Rig, type RigPose, sparkle, stampAt } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -22,7 +22,7 @@ export const HOLLIS_PAL: Pal = {
   V: '#ffffff', v: '#c8d4e8', o: HOLLIS_BLUE[0], O: HOLLIS_STEEL[4],
   // sword: steel (A lit edge, L body, C shaded edge, T tip), brass guard, leather grip
   A: '#eef3fa', L: '#b8c2d8', C: '#6a7496', t: '#ffffff', G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14', P: '#f2c230', h: '#4e2c1c', H: '#8a5a30',
-  M: HOLLIS_STEEL[1], N: HOLLIS_BLUE[1], K: LEATHER[0], X: '#f2c230',
+  M: HOLLIS_STEEL[1], N: HOLLIS_BLUE[1], K: LEATHER[0], X: '#f2c230', Q: BLACK[1],
 };
 export const HOLLIS_SHADES: Record<string, Shade> = {
   a: { ramp: BLACK, top: [4, 3], left: [3], right: [1], bottom: [1], mid: 2 }, // hair
@@ -34,28 +34,28 @@ export const HOLLIS_SHADES: Record<string, Shade> = {
 
 // ------------------------------------------------------------------ body
 
+// (playtest round 8, L8, by hand: a stern older guardian: cropped black hair, a heavy brow over one dark iris each, a
+// short beard along the jaw) 16 x 11.
 const HEAD = [
   '.....aaaaaa.....',
-  '...aaaaaaaaaa...',
   '..aaaaaaaaaaaa..',
-  '.aaaaaaaaaaaaaS.',
-  '.aaaaaaaaaaSSSS.',
-  'aaaaaaaSSSSSSSSS',
-  'aaaaazSSSSkkSSkk',
-  'aaaazEzSSSWkSSWk',
-  '.sssEEzSSSSSSSST',
-  '.zsszzSSSSSSSSzS',
-  '..zddddddsxxxdd.',
+  '.aaaaaaaaaaaaaa.',
+  'aaaaaaazSSSSSTS.',
+  'aaaaazSSSQQSSQQS',
+  'aaaazEzSSSkSSSkS',
+  '.ddsEEzSSSSSSSST',
+  '.dddzzsSSSSSSzzS',
+  '..ddddddsdxxdd..',
   '...ddddddddddd..',
   '.....ddddddd....',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 16 - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
-  squint: face(HEAD, { 6: 'SSSSSSSSSS', 7: 'SSSkkSSkk', 10: 'dsxWxdd.' }),
-  ko: face(HEAD, { 6: 'SSSSSSSSSS', 7: 'SSSSSSSSS', 8: 'SSSkkSSkT', 10: 'ddsxxdd.' }),
+  squint: face(HEAD, { 4: 'SSSQQSSQQS', 5: 'SSSzzSSzzS', 8: 'dsxWxd..' }),
+  ko: face(HEAD, { 4: 'SSSSSSSSSS', 5: 'SSSzzSSzzS', 8: 'ddsxxd..' }),
   // a shout behind the shield
-  shout: face(HEAD, { 6: 'SSSSSkSSSk', 7: 'SSSkWSSkW', 10: 'dsxxxxd.', 11: 'ddddxxdd..' }),
+  shout: face(HEAD, { 4: 'SSQQQSQQQ', 5: 'SSSSkSSSkS', 8: 'dsxxxxd.', 9: 'ddddxxdd..' }),
 };
 
 // Steel pauldrons and gorget over a royal-blue surcoat, a white band down its front, a leather belt.
@@ -88,7 +88,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [[1, HOLLIS_STEEL[3], HOLLIS_STEEL
 export const HOLLIS_RIG: Rig = {
   pal: { ...HOLLIS_PAL, '8': HOLLIS_STEEL[1] },
   shades: HOLLIS_SHADES,
-  heads: matureHeads(HEADS, {drop: [1, 3]}),
+  heads: HEADS,
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

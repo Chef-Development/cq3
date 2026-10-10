@@ -3,7 +3,7 @@
 // white-fletched arrows and dark green leathers. Fight frames `vesper_${pose}` on the shared rig (art-rig.ts). The
 // bow rides the far hand (in front of the body); the near hand draws the string.
 import { put, stamp, type Grid, type Pal, type Shade } from './art';
-import { type HeroCardSpec, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Pt, ribbon, type Rig, type RigPose, sparkle } from './art-rig';
+import { type HeroCardSpec, type Layer, LEG_FEET_X, matureLegs, type Pt, ribbon, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -33,29 +33,29 @@ export const VESPER_SHADES: Record<string, Shade> = {
 // ------------------------------------------------------------------ body
 
 // Dark hair swept back into a tail, a long pointed ear, narrow amber eyes.
+// (playtest round 8, L8, by hand: a lean elf ranger: dark hair swept back past the pointed ear, fine dark brows over
+// one amber iris each, a narrow jaw and chin) 16 x 12.
 const HEAD = [
   '.....hhhhhh.....',
   '...hhhLLhhhhh...',
-  '..hhLLhhhhhhhh..',
   '.hhLhhhhhhHhhhh.',
-  '.hhhhhhhhHhhhhhh',
   'hhhhhhhhHhhhhhhh',
   'hhEehhhHhhhSSShh',
-  'hhhEehhhSSSSSSSS',
-  'hhhzEEhzSSkkSSkk',
-  'hhhhzEEzSSWiSSWi',
+  'hhhEehhhSSHHSSHH',
+  'hhhzEEhzSSSISSSI',
+  'hhhhzEEzSSSSSSSS',
   '.hhhhzzSSSSSSSST',
-  '..hhhhzzSSSSSSz.',
-  '...hhh.zzSSSxS..',
-  '........zzSSS...',
+  '..hhhhzzSSSSSzzS',
+  '...hhh.zzSSSxz..',
+  '........zzSSz...',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 16 - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
-  squint: face(HEAD, { 8: 'SSSSSSSS', 9: 'SSkkSSkk', 12: 'SSxxS..' }),
-  ko: face(HEAD, { 8: 'SSSSSSSS', 9: 'SSSSSSSS', 10: 'SSkkSSkT', 12: 'SSSxS..' }),
+  squint: face(HEAD, { 5: 'SSHHSSHH', 6: 'SSzzSSzz', 10: 'SSxxz..' }),
+  ko: face(HEAD, { 5: 'SSSSSSSS', 6: 'SSzzSSzz', 10: 'SSSxz..' }),
   // one eye shut, aiming
-  aim: face(HEAD, { 8: 'SSkSSSkk', 9: 'SSkkSSWi' }),
+  aim: face(HEAD, { 5: 'SSHHSHHH', 6: 'SSzzSSSI' }),
 };
 
 // The hood down round the shoulders (purple, gold-edged), a green leather tunic, a quiver strap, a belt.
@@ -91,7 +91,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const VESPER_RIG: Rig = {
   pal: { ...VESPER_PAL, '8': GREEN[1], '9': LEATHER[0] },
   shades: VESPER_SHADES,
-  heads: matureHeads(HEADS, {drop: [2, 4]}),
+  heads: HEADS,
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

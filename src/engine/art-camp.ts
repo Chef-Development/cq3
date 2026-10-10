@@ -8,7 +8,6 @@
 //   smith_idle0/1    40x40 Mags at her anvil, hammer on her shoulder (2-frame breathing idle)
 //   smith_hammer0..2 40x40 raise, strike, rebound: all frames share the 40x40 box and the feet point, so the
 //                    strike lands on the anvil painted in camp_bg (CAMP_SPOTS.smith)
-//   camp_rowan0/1    32x33 Rowan sitting on the log, warming his hands at the fire (frame 1 breathes out)
 //   camp_pip0/1      16x17 Pip perched on the log (frame 1: eyes drowsy, settled 1px lower)
 //   camp_sable0/1    22x31 Sable perched on the firewood right of the fire, facing it, drawing a whetstone along a
 //                    dagger (frame 1: the stone at the tip, a spark, the shoulders 1px lower; CAMP_SPOTS.sable)
@@ -21,6 +20,7 @@
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 import { and, ell, fill, lambert, moodGrade, not, or, portraitMood, rect, rimShade, sphere, stroke, tone, type Inside } from './art-paint';
 import { SABLE_FIST, SABLE_HEAD, SABLE_PAL, SABLE_TORSO, sableArm, sableDagger, scarfTail } from './art-sable';
+import { swordMap, SWORD_PAL } from './art-sword';
 import { PORTRAIT_SIZE } from './art-story';
 import { bay, clamp01, col, conifer, fbm, hash, level, mass, mix, noise, pick, Pix, ramp, rng, tree, type Blob, type Col, type Ramp } from './backdrop';
 
@@ -689,7 +689,9 @@ function logSprite(): HTMLCanvasElement {
 
 /** Rowan's sword, planted in the ground by the log. */
 function swordSprite(): HTMLCanvasElement {
-  return sprite(5, 16, (g) => stamp(g, ROWAN_SWORD, { ...ROWAN_PAL, C: '#8a94b4', T: '#b8c2d8' }, 1, 1));
+  // (his fight sword's build: a 4 px blade, the bronze guard and its stone, point down in the earth)
+  const m = swordMap('d', 11);
+  return sprite(m.rows[0].length + 2, m.rows.length + 1, (g) => stamp(g, m.rows, SWORD_PAL, 1, 1));
 }
 
 /** Firewood stacked by a stump with the woodcutter's axe in it. Foot = canvas bottom. */
@@ -841,90 +843,7 @@ function flameFrame(f: number): HTMLCanvasElement {
   return c;
 }
 
-// ------------------------------------------------------------------ Rowan by the fire (sitting on the log, facing right)
-
-// (playtest round 8, L7/L8: the darker, worn colours of his fight frames)
-const ROWAN_PAL: Record<string, string> = {
-  x: '#2a0810', R: '#52121c', r: '#7e1c24', q: '#b03430', Q: '#e0705e',
-  K: '#1c1f2e', M: '#343a52', m: '#565e7c', s: '#8a92ae', S: '#d4d8e4', W: '#e8ecf4',
-  z: '#2e1c0c', Y: '#5a3814', y: '#8a5a1e', g: '#b8862e', G: '#dcb45a',
-  n: '#0a1228', B: '#13234c', b: '#1e3772', l: '#2f5096', L: '#4a6cb2',
-  k: '#0e0a16', e: '#4ad8ff', E: '#e6fcff',
-  D: '#1a100a', d: '#2e1e14', h: '#4a3020', H: '#6a4630',
-  u: '#1e0610', c: '#3a0c18', C: '#561622', v: '#70222a', V: '#8c3434',
-  // firelight on the side facing the flames
-  F: '#ffc890', f: '#e8a070',
-};
-// the knight's upper body as in the fight sprite (facing right), without the arms in front
-const ROWAN_TOP = [
-  '.........rqQQq.........',
-  '......RrrqqQQqq........',
-  '....RRrrqqqrqqqR.......',
-  '...RrrqrrRrRgSsm.......',
-  '..RrqrRRsSSSSSssm......',
-  '..RrrR.sSWWSSssssm.....',
-  '..RrR.sSSWSSssssmmF....',
-  '..RR..sSSSSsssssmmF....',
-  '..xR..yGggggggggyyG....',
-  '...x..sssssKkkkkkkk....',
-  '......msssskEEkkEEk....',
-  '......msssskeekkeek....',
-  '......mmssssMMMMMMM....',
-  '.......MmmmmmmmKmK.....',
-  '...sSSs.KMmsmMK.sSSs...',
-  '..sSWSsmyGgggGYsSWSsF..',
-  '..msSsmMylbGbBYmsSsmf..',
-  '..yGggyYylgGyBYyGggyY..',
-  '...mM..yllbybBBY.......',
-  '.......yllbbbBBY.......',
-  '.......yllbbbBBY.......',
-];
-// sitting: the belt, the skirt over the log, a thigh reaching to the knee, the shin down to the boot
-const ROWAN_SIT = [
-  '.......dhhgGgddD.......',
-  '......llbbnbbBBsSSSSF..',
-  '......yggYyggYmmsssMf..',
-  '..............KMmsSM...',
-  '................msM....',
-  '................msM....',
-  '...............HhhdF...',
-  '...............dddDD...',
-];
-const ROWAN_CAPE = ['....cu', '...vcu', '..Vvcu', '..VvCc', '.VvvCc', '.VvvCc', 'VvvvCc', 'VvvCcc', 'cVvCcu', 'cVvCcu', '.cvCcu', '.cc.cu'];
-// the sword planted in the ground beside him
-const ROWAN_SWORD = ['.g.', 'GgY', '.d.', '.h.', 'yry', '.SC', '.SC', '.SC', '.SC', '.SC', '.SC', '.SC', '.Sc', '.T.'];
-
-function rowanFrame(f: number): HTMLCanvasElement {
-  const W = 32;
-  const H = 33;
-  const g = grid(W, H);
-  const ox = 5;
-  const feet = H - 2;
-  const sitTop = feet - ROWAN_SIT.length + 1;
-  const by = sitTop - ROWAN_TOP.length + f; // breathing: the upper body settles 1px
-  stamp(g, ROWAN_CAPE, ROWAN_PAL, ox, by + 15);
-  stamp(g, ROWAN_SIT, ROWAN_PAL, ox, sitTop);
-  stamp(g, ROWAN_TOP, ROWAN_PAL, ox, by);
-  // both arms reaching out to the fire, gauntlets open to the warmth
-  const hx = ox + 22;
-  const hy = by + 19 + (f ? 0 : -1);
-  for (const [sx, sy, c1, c2] of [
-    [ox + 4, by + 16, 'M', 'K'],
-    [ox + 17, by + 16, 'm', 'M'],
-  ] as Array<[number, number, string, string]>) {
-    const n = Math.max(Math.abs(hx - sx), Math.abs(hy - sy));
-    for (let i = 0; i <= n; i++) {
-      const x = Math.round(sx + ((hx - sx) * i) / n);
-      const y = Math.round(sy + ((hy - sy) * i) / n);
-      if (c1 === 'M' && x > ox + 14) continue; // the far arm hides behind the body
-      put(g, x, y, ROWAN_PAL[c1]);
-      put(g, x, y + 1, ROWAN_PAL[c2]);
-    }
-  }
-  stamp(g, ['sSF', 'msf', 'MmM'], ROWAN_PAL, hx - 1, hy - 1);
-  stamp(g, ['.F', 'Ff'], ROWAN_PAL, hx + 1, hy - 2 + f);
-  return toCanvas(g);
-}
+// (Rowan by the fire: camp_rowan0/1 are painted from his fight rig like every hero's, art-heroes.ts ROWAN_CAMP)
 
 // ------------------------------------------------------------------ Pip by the fire (perched on the log, facing right)
 
@@ -1330,8 +1249,6 @@ export function buildCampArt(add: Add, w: number, h: number): void {
   add('camp_bg', moodGrade(backdrop(w, h), 0.16));
   for (let i = 0; i < 4; i++) add(`camp_fire${i}`, flameFrame(i));
   for (const [k, pose] of Object.entries(MAGS_POSES)) add(`smith_${k}`, magsFrame(pose));
-  add('camp_rowan0', rowanFrame(0));
-  add('camp_rowan1', rowanFrame(1));
   add('camp_pip0', pipFrame(0));
   add('camp_pip1', pipFrame(1));
   add('camp_sable0', sableCampFrame(0));

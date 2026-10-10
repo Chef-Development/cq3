@@ -36,7 +36,7 @@ import { TESS_CAMP, TESS_CARD, TESS_POSES, TESS_RIG } from './art-hero-tess';
 import { FIZZ_CAMP, FIZZ_CARD, FIZZ_POSES, FIZZ_RIG } from './art-hero-fizz';
 import { BRANN_CAMP, BRANN_CARD, BRANN_POSES, BRANN_RIG } from './art-hero-brann';
 import { VESPER_CAMP, VESPER_CARD, VESPER_POSES, VESPER_RIG } from './art-hero-vesper';
-import { ROWAN_POSES, ROWAN_RIG, rowanTip } from './art-hero-rowan';
+import { ROWAN_CAMP, ROWAN_POSES, ROWAN_RIG, rowanTip } from './art-hero-rowan';
 import { fireRim, paintRig, rigFrame, type Add, type HeroCardSpec, type Rig, type RigPose } from './art-rig';
 import { heroCard } from './art-sable';
 
@@ -95,7 +95,7 @@ function campFrame(rig: Rig, p: RigPose): HTMLCanvasElement {
 
 /** Every rig hero's rig and poses by art key (the unit tests check each has all of HERO_POSE_KEYS). */
 export const RIG_HEROES: Record<string, { rig: Rig; poses: Record<string, RigPose>; extra: RigPose[] }> = {
-  hero: { rig: ROWAN_RIG, poses: ROWAN_POSES, extra: [] },
+  hero: { rig: ROWAN_RIG, poses: ROWAN_POSES, extra: [...ROWAN_CAMP] },
   // (extra: the card's and the camp's poses, painted at boot too)
   ...Object.fromEntries(Object.entries(HEROES).map(([id, h]) => [id, { rig: h.rig, poses: h.poses, extra: [h.card.pose, ...h.camp] }])),
 };
@@ -112,6 +112,8 @@ function buildRowanArt(add: Add): void {
     if (tip && k !== 'down') ROWAN_SWORD_TIP[k] = [tip[0] - HERO_FEET_X, tip[1] - HERO_H];
     add(`hero_${k}`, toCanvas(g));
   }
+  // by the campfire, like every hero (playtest round 8: the mature knight there too)
+  ROWAN_CAMP.forEach((p, i) => add(`camp_rowan${i}`, campFrame(ROWAN_RIG, p)));
 }
 
 export function buildHeroArt(add: Add): void {

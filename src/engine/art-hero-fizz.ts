@@ -6,7 +6,7 @@ import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './a
 import { and, ell, fill, not, or, rimShade, sphere } from './art-paint';
 
 const INK_C = '#140c1c';
-import { along, type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, pole, type Rig, type RigPose, sparkle } from './art-rig';
+import { along, type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, pole, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -51,29 +51,29 @@ export const FIZZ_SHADES: Record<string, Shade> = {
 // ------------------------------------------------------------------ body
 
 // The scorched cap with its lens up front, wild teal hair bursting out round the back, a sooty cheek and a grin.
+// (playtest round 8, L8, by hand: the cap and its lens over wild teal hair, teal brows over one dark iris each, soot
+// on the cheek, a crooked grin) 16 x 11.
 const HEAD = [
-  '.hh..hcccccc....',
-  'hhhhhcccccccc...',
   '.hhhccCcccccLLl.',
   'hhhhcccccccLRGl.',
   '.hhhhcccCccLRrl.',
   'hhhhhcccccccllll',
-  '.hhhhhhhhhSSSSS.',
-  'hhhhhhzSShkkSSkk',
-  '.hhhhzEzSSWiSSWi',
+  '.hhhhhhhhhShhShh',
+  'hhhhhhzSSSSkSSSk',
+  '.hhhhzEzSSSSSSSS',
   'hhhhhhzSSmSSSSST',
-  '.hhhhhzzSxWWWxz.',
+  '.hhhhhzzSSSSxxz.',
   'hh.hh..zzSSSSz..',
   '........zzzz....',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 16 - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
-  squint: face(HEAD, { 7: 'SShSSSSS', 8: 'SSkkSSkk', 10: 'SSxWxz.' }),
+  squint: face(HEAD, { 5: 'SSSzzSSSzz', 8: 'SSSxWxz.' }),
   // knocked out: sooty all over, eyes crossed out, the cap's lens cracked
-  ko: face(HEAD, { 3: 'LRkl.', 4: 'LkRl.', 7: 'mSSSSSSS', 8: 'SkSkSkSk', 9: 'mSkSSkST', 10: 'SSSxSz.' }),
+  ko: face(HEAD, { 1: 'LRkl.', 2: 'LkRl.', 5: 'mSSSSkSkSk', 6: 'SkSkSSSSS', 7: 'mSSSSSST', 8: 'SSSxSz.' }),
   // a wild grin: eyes wide, mouth open
-  grin: face(HEAD, { 7: 'hkkkSkkk', 8: 'SWikSWik', 10: 'SxWWWWx.', 11: 'zSxxxSz.' }),
+  grin: face(HEAD, { 4: 'hShhhShhh', 5: 'SSSSkSSSk', 8: 'SxWWWWx.', 9: 'zSxxxSz.' }),
 };
 
 // The lab coat (stained), the bandolier from her far shoulder to her near hip, a vial in each loop.
@@ -110,7 +110,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const FIZZ_RIG: Rig = {
   pal: { ...FIZZ_PAL, '8': TROUSER[1], '9': BOOT[0] },
   shades: FIZZ_SHADES,
-  heads: matureHeads(HEADS, {drop: [0, 1]}),
+  heads: HEADS,
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

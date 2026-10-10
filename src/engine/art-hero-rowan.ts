@@ -12,8 +12,9 @@ import { swordMap, SWORD_PAL } from './art-sword';
 
 // Playtest round 8 (decisions L7, L8: "more mature and moodier"): darker, worn materials. Steel is dulled and
 // dented, the tabard a deep navy, the trim old bronze, the plume and cape a dark wine.
-export const ROWAN_STEEL = ['#1c1f2e', '#343a52', '#565e7c', '#8a92ae', '#d4d8e4'];
-export const ROWAN_BLUE = ['#0a1228', '#13234c', '#1e3772', '#2f5096', '#4a6cb2'];
+// (lifted a step after the first dark-stage review: his steel sat too close to the backdrop)
+export const ROWAN_STEEL = ['#20243a', '#3e4664', '#68729a', '#a4aecc', '#eaeef8'];
+export const ROWAN_BLUE = ['#0c1430', '#162a58', '#22407e', '#3458a2', '#5276c0'];
 export const ROWAN_BRONZE = ['#2e1c0c', '#5a3814', '#8a5a1e', '#b8862e', '#dcb45a'];
 const BRONZE = ROWAN_BRONZE;
 export const ROWAN_PLUME = ['#2a0810', '#52121c', '#7e1c24', '#b03430', '#e0705e'];
@@ -48,21 +49,21 @@ const SHADES: Record<string, Shade> = {
 
 // ------------------------------------------------------------------ body
 
-// A close helm (13 x 11: about a third of his height), a bronze band over the brow, a narrow visor slit with two
-// small points of light, the bevor closing under it in a squared jaw; a dent on the crown. The plume is a layer (it
+// A flat-topped great helm (13 x 11: about a third of his height; no round dome), a raised ridge down its face, a
+// bronze band over the brow, a narrow visor slit with two small points of light, a breathing hole; a dent on the crown. The plume is a layer (it
 // lags the head).
 const HEAD = [
-  '....hhhhh....',
-  '..hhhhhhhhh..',
+  '..hhhhhhhh...',
   '.hKKhhhhhhhh.',
-  '.hhhhhhhhhhhh',
-  'hhhhhhhhdhhhh',
+  '.hKhhhhhhhhhh',
+  'hhhhhhhhhshhh',
+  'hhhhhhhdhshhh',
   'hhhhhgGGGGGGg',
   'hhhhhvvvvvvvv',
   'hhhhhvEvvvvEv',
-  'hhhhhhhhhhhhh',
-  '.hhhhhhhhhhhh',
-  '...hhhhhhhh..',
+  'hhhhhhhhhshhh',
+  'hhhhhhhhhshdh',
+  '.hhhhhhhhhhh.',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 13 - swap[y].length) + swap[y] : r));
 const HEADS = {
@@ -308,6 +309,13 @@ export const ROWAN_CARD: HeroCardSpec = {
   glow: ['#e6c370', '#2f5096'],
   motes: [[6, 14], [33, 9], [35, 27]],
 };
+
+/** By the campfire (two breaths): his sword planted in the earth beside the log (art-camp.ts), both gauntlets held out
+ *  to the warmth, the plume and cape stirring a beat behind. */
+export const ROWAN_CAMP: [RigPose, RigPose] = [
+  P({ near: { at: [14, 19] }, far: { at: [12, 21] }, back: [cape('hang'), plume('hang')] }),
+  P({ near: { at: [14, 18] }, far: { at: [12, 20] }, dy: 1, back: [cape('sway'), plume('lag')] }),
+];
 
 /** Where the point of the sword is in a frame (frame px), read while painting it (null: no sword in hand). */
 export function rowanTip(paint: (g: Grid) => void, g: Grid): [number, number] | null {

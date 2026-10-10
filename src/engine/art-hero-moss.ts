@@ -2,7 +2,7 @@
 // frame box as the others), a cloak of overlapping leaves, a twig crown with two buds, a big soft nose and a crooked
 // wooden staff topped by a glowing seed. Fight frames `moss_${pose}` on the shared rig (art-rig.ts).
 import { put, stamp, type Grid, type Pal, type Shade } from './art';
-import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Pt, ribbon, type Rig, type RigPose, sparkle, STEP } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, type Pt, ribbon, type Rig, type RigPose, sparkle, STEP } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -14,7 +14,7 @@ const SKIN = ['#8a4a34', '#c47a54', '#eaa878', '#ffd0a4'];
 
 export const MOSS_PAL: Pal = {
   // face (by hand): skin, the big soft nose, eyes, cheeks
-  z: SKIN[1], s: SKIN[2], S: SKIN[3], O: '#ffd8c0', N: '#f49a80', n: '#d0705c', o: '#a04a44', k: '#140c1c', W: '#ffffff', p: '#f49a90', x: '#7a3030',
+  z: SKIN[1], s: SKIN[2], S: SKIN[3], O: '#f0c0a0', N: '#d07a60', n: '#9a5040', o: '#6a3430', k: '#140c1c', W: '#ffffff', p: '#f49a90', x: '#7a3030',
   // twig crown and its buds
   t: MOSS_BARK[3], T: MOSS_BARK[1], u: '#c8f070', U: '#f8a0c0',
   G: MOSSHAIR[4],
@@ -32,30 +32,31 @@ export const MOSS_SHADES: Record<string, Shade> = {
 
 // Mossy hair under a twig crown with two buds (one green, one pink), small bright eyes, rosy cheeks and a big soft
 // nose; 14 wide.
+// (playtest round 8, L8, by hand: an old druid: bushy white brows overhanging small dark eyes, a weathered ruddy nose,
+// the moustache and beard falling over the cloak) 14 x 13.
 const HEAD = [
   '...t...t.t....',
   '..tut.tUtt....',
   '..ttTttTttt...',
   '.gGggggggggg..',
-  'gGgggggggggggg',
   'gggggggggggggg',
-  'ggggggSSgggSg.',
-  'ggggzSkWSSkWS.',
-  'ggggzSkkSSkkS.',
-  '.gggzSpSSONNn.',
-  '..ggzzSSONNNno',
-  '...gggggNNnnoo',
-  '....gggggnoog.',
+  'ggggggGGGggGG.',
+  'ggggzSkzSSkzS.',
+  'ggggzSSSSSSNn.',
+  '.gggzSSSSSNNn.',
+  '..ggzzSgggGno.',
+  '...ggggGggggo.',
+  '....gggggggg..',
   '.....ggggggg..',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 14 - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
-  squint: face(HEAD, { 7: 'zSSSSSSSS.', 8: 'zSkkSSkkS.' }),
+  squint: face(HEAD, { 6: 'zSzzSSzzS.' }),
   // dazed: little crossed eyes
-  ko: face(HEAD, { 7: 'zSkSSSkSS.', 8: 'zSSkSSSkS.' }),
+  ko: face(HEAD, { 5: 'ggGGgggGG.', 6: 'zSkSSSkSS.' }),
   // calling the grove: eyes shut, smiling
-  call: face(HEAD, { 7: 'zSSSSSSSS.', 8: 'zSkkSSkkS.' }),
+  call: face(HEAD, { 6: 'zSzzSSzzS.', 9: 'zzSgxxGno.' }),
 };
 
 /**
@@ -117,7 +118,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const MOSS_RIG: Rig = {
   pal: { ...MOSS_PAL, '8': MOSS_BARK[1] },
   shades: MOSS_SHADES,
-  heads: matureHeads(HEADS, {drop: [4], blush: 'p'}),
+  heads: HEADS,
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,
