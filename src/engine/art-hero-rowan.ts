@@ -12,15 +12,15 @@ import { swordMap, SWORD_PAL } from './art-sword';
 
 // Playtest round 8 (decisions L7, L8: "more mature and moodier"): darker, worn materials. Steel is dulled and
 // dented, the tabard a deep navy, the trim old bronze, the plume and cape a dark wine.
-export const ROWAN_STEEL = ['#1c1f2e', '#343a52', '#565e7c', '#8a92ae', '#c4c8d6'];
+export const ROWAN_STEEL = ['#1c1f2e', '#343a52', '#565e7c', '#8a92ae', '#d4d8e4'];
 export const ROWAN_BLUE = ['#0a1228', '#13234c', '#1e3772', '#2f5096', '#4a6cb2'];
 const BRONZE = ['#2e1c0c', '#5a3814', '#8a5a1e', '#b8862e', '#dcb45a'];
-const PLUME = ['#2a0810', '#52121c', '#7e1c24', '#a8302e', '#c85448'];
+const PLUME = ['#2a0810', '#52121c', '#7e1c24', '#b03430', '#e0705e'];
 /** The cape: darker than the plume so the two read apart. */
 const CAPE = ['#1e0610', '#3a0c18', '#561622', '#70222a', '#8c3434'];
 const LEATHER = ['#1a100a', '#2e1e14', '#4a3020', '#6a4630'];
 /** The visor's glow (the cursor's blue, his signature), now a narrow slit's light. */
-export const ROWAN_GLOW = ['#1a6ab0', '#4ad8ff', '#c8f4ff'];
+export const ROWAN_GLOW = ['#1a6ab0', '#4ad8ff', '#e6fcff'];
 
 const PAL: Pal = {
   // the visor slit and its eyes
@@ -33,8 +33,9 @@ const PAL: Pal = {
   M: ROWAN_STEEL[1], C: ROWAN_BLUE[0], Z: LEATHER[0],
 };
 const SHADES: Record<string, Shade> = {
-  h: { ramp: ROWAN_STEEL, same: 'gGvEewKd', top: [4, 3], left: [3], right: [1], bottom: [1], mid: 2 }, // the helm
-  m: { ramp: ROWAN_STEEL, same: 'MyYgds', top: [3], left: [3], right: [1], bottom: [0, 1], mid: 2 }, // plate
+  // (a bright steel edge on the top and left of the helm, the plate and the greaves: he reads on a dark stage)
+  h: { ramp: ROWAN_STEEL, same: 'gGvEewKd', top: [4, 3], left: [4], right: [1], bottom: [1], mid: 2 }, // the helm
+  m: { ramp: ROWAN_STEEL, same: 'MyYgds', top: [4], left: [4, 3], right: [1], bottom: [0, 1], mid: 2 }, // plate
   c: { ramp: ROWAN_BLUE, same: 'GOgyYC', top: [3], left: [3], right: [1], bottom: [0], mid: 2 }, // the tabard
   l: { ramp: LEATHER, same: 'X', top: [3], left: [2], right: [1], bottom: [0], mid: 2 }, // the belt
   o: { ramp: LEATHER, same: 'Z', top: [3], left: [3], right: [1], bottom: [0], mid: 2 }, // boots
