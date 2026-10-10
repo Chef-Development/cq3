@@ -1649,6 +1649,12 @@ C20. **Vesper is left as she is: neither more HP nor longer pins move her gaps**
   reds and the cursor. Every kind is still told apart without colour (the hold by its groove and notches).
 - **Q21 Impact white frames and screen flashes stay off the HUD**: they fill the stage around `hud.keepOut()` (the
   plates, the act plate and wave pips, the belt, the name lane, the combo counter), never the bar's band.
+- **Q22 The Training Dummy's HUD** (review 3, F24): the act plate reads "Practice", the purse and the potion are gone
+  (nothing is paid or spent there), and the dummy's plate counts what's been dealt to it ("51 dealt") over its gauge
+  instead of "2349/2400". The Test lab's practice fights (real foes) keep the normal HUD.
+- **Q23 A tap meant to skip the world map's first glide only skips**, even when it lands just after the glide ended on
+  its own (600 ms of grace: on a busy machine the smoke test's skip tap arrived as the glide finished and started the
+  story through Rowan's plate, which had just come up).
 (qa: end of section)
 
 

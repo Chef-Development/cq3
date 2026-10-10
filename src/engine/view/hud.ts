@@ -685,6 +685,13 @@ export class Hud {
     }
     const cr = this.coinChip(X, coins);
     this.coinRect = cr;
+    if (this.dummyFight()) {
+      // practice on the Training Dummy pays nothing and has no potion to spend: no purse, no potion (review 3, F24)
+      this.drawStyle(g, now, cr.x, cr.y);
+      this.drawBelt(g, now, dx);
+      this.drawLane(g, now, dx);
+      return;
+    }
     const ck = (now - this.coinPopAt) / 200;
     const cpop = ck >= 0 && ck < 1;
     tag(g, cr, [NAVY[5], NAVY[3], NAVY[2], NAVY[1]], 0.94);
@@ -835,7 +842,9 @@ export class Hud {
     const pk = (now - this.foeNumPopAt) / 140;
     // big numbers (late bosses) shorten to "17.1k" so the readout stays bold and inside the gauge; which one is decided
     // by the foe's max HP, so a plate keeps one format the whole fight (review round 8: "12.3k" turned "7619/12288")
-    const hpText = foeHpText(this.foeNum, target.maxHp);
+    // (the Training Dummy: what's been dealt to it, not its HP: review 3 found "2349/2400" reading as a fight that
+    // never ends)
+    const hpText = this.dummyFight() ? `${whole(Math.max(0, target.maxHp - this.foeNum))} dealt` : foeHpText(this.foeNum, target.maxHp);
     const ftw = textWidth(hpText, 1, true);
     gauge(g, gx, gy, 76, 8, shownHp / target.maxHp, ghost, {
       ramp: def.boss ? RAMP.boss : RAMP.foe,
@@ -894,12 +903,19 @@ export class Hud {
 
   // ------------------------------------------------------------------ act and foe counters (top center)
 
+  /** A practice fight on the camp's Training Dummy (not the Test lab's practice fights, which play real foes). */
+  private dummyFight(): boolean {
+    const run = this.s.app.run;
+    const c = run.combat;
+    return !!run.practice && !!c && c.enemies.length > 0 && c.enemies.every((e) => e.key === 'dummy');
+  }
+
   private drawTop(g: G, now: number, c: Combat): void {
     const run = this.s.app.run;
     const cx = Math.round(GAME_W / 2);
     // the act (the map's row count is left to the map: the skulls under it count the fight's foes), and beside it the
-    // Mapmaker's Edits it's fought under, in oxblood
-    const act = `Act ${run.actIndex + 1}`;
+    // Mapmaker's Edits it's fought under, in oxblood; on the Training Dummy, "Practice"
+    const act = this.dummyFight() ? 'Practice' : `Act ${run.actIndex + 1}`;
     const edits = c.rush ? 0 : run.fightEdits.length;
     const label = edits ? `${whole(edits)} ${edits > 1 ? 'Edits' : 'Edit'}` : '';
     const w = textWidth(act, 1, false) + 8;
