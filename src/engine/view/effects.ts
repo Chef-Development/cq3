@@ -337,7 +337,7 @@ export class Effects {
     const w = textWidth(text, scale, true) + 2;
     const h = FONT_BOLD_H * scale - 2;
     const want: Box = { x: Math.round(x - w / 2), y: Math.round(y - h / 2 - rise), w, h: h + rise };
-    const b = placeBox(want, [...this.heldBoxes(now), ...this.s.hud.keepOut()], { area: this.area(), up: 48, down: 24, side: 40, step: 2 });
+    const b = placeBox(want, [...this.heldBoxes(now), ...this.s.hud.keepOut()], { area: this.area(), up: 48, down: 24, side: 40, step: 2, gap: 3 });
     this.addFloater(b.x + w / 2, b.y + rise + h / 2, text, color, scale, true, 0, -rise / (life / 1000), 0, life, true);
     const f = this.floaters[this.floaters.length - 1];
     if (f) this.held.set(f, { w, h, shout: false });
