@@ -70,12 +70,17 @@ function pickAt<T extends string>(rng: Rng, tier: Tier, floor: Tier, pool: T[], 
   return null;
 }
 
-/** Roll what a chest holds (and give it: new heroes join, duplicates and shards go toward stars). */
-export function rollChest(rng: Rng, t: Tuning, p: Profile, kind: ChestKind): ChestPrize {
+/**
+ * Roll what a chest holds (and give it: new heroes join, duplicates and shards go toward stars). `first`: the game's
+ * first hero chest (a newcomer's, from Act 1's boss, minutes after Sable joins in the story): always someone new,
+ * never shards or a duplicate (it was shards for Sable, a let-down for the first chest reveal). The draws are the
+ * same either way.
+ */
+export function rollChest(rng: Rng, t: Tuning, p: Profile, kind: ChestKind, first = false): ChestPrize {
   const C = t.chests;
   // a plain hero chest sometimes holds shards for one you own instead
   const owned: Array<{ who: 'hero' | 'pet'; id: string }> = [...ownedHeroes(p).map((id) => ({ who: 'hero' as const, id })), ...ownedPets(p).map((id) => ({ who: 'pet' as const, id }))];
-  if (kind === 'hero' && owned.length && rng.next() < C.shardChance) {
+  if (kind === 'hero' && owned.length && rng.next() < C.shardChance && !first) {
     const o = owned[rng.int(owned.length)];
     const n = C.shardsMin + rng.int(Math.max(1, C.shardsMax - C.shardsMin + 1));
     if (o.who === 'hero') {
@@ -96,14 +101,16 @@ export function rollChest(rng: Rng, t: Tuning, p: Profile, kind: ChestKind): Che
   let prize: ChestPrize | null = null;
   if (hero) {
     // heroes come at Rare or better
-    const h = pickAt(rng, tierIndex(tier) < tierIndex('rare') ? 'rare' : tier, 'rare', CHEST_HEROES, (id) => HEROES[id].rarity);
+    const pool = first ? CHEST_HEROES.filter((id) => !heroOwned(p, id)) : CHEST_HEROES;
+    const h = pickAt(rng, tierIndex(tier) < tierIndex('rare') ? 'rare' : tier, 'rare', pool, (id) => HEROES[id].rarity);
     if (h) {
       const g = grantHero(p, t, h.id);
       prize = { kind: 'hero', id: h.id, tier: h.tier, ...g };
     }
   }
   if (!prize) {
-    const c = pickAt(rng, tier, 'common', COMPANION_IDS, (id) => COMPANIONS[id].rarity)!;
+    const fresh = first ? COMPANION_IDS.filter((id) => !petOwned(p, id)) : [];
+    const c = pickAt(rng, tier, 'common', fresh.length ? fresh : COMPANION_IDS, (id) => COMPANIONS[id].rarity)!;
     const g = grantPet(p, t, c.id);
     prize = { kind: 'pet', id: c.id, tier: c.tier, ...g };
   }
@@ -119,9 +126,10 @@ export function rollChest(rng: Rng, t: Tuning, p: Profile, kind: ChestKind): Che
 /** Open a waiting chest of `kind` (free). Null if there is none. */
 export function openChest(rng: Rng, t: Tuning, p: Profile, kind: ChestKind): ChestPrize | null {
   if (p.chests[kind] <= 0) return null;
+  const first = kind === 'hero' && !((p.counts.chests ?? 0) > 0);
   p.chests[kind]--;
   p.counts.chests = (p.counts.chests ?? 0) + 1;
-  return rollChest(rng, t, p, kind);
+  return rollChest(rng, t, p, kind, first);
 }
 
 /** The shrine: buy a Rare chest with gems (it waits to be opened). */

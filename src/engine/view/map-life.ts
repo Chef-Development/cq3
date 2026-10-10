@@ -53,6 +53,9 @@ const KINDS: Record<string, BurrowKind> = {
   firebeetle: { spec: { sprite: 'firebeetle', idle: [0, 1], move: [0, 1], flee: 0, gait: 'walk', moveSec: 2.2 }, period: [13, 18], room: [8, 5], reach: [3, 9] },
   snail: { spec: { sprite: 'snail', idle: [0, 1], move: [1], flee: 0, curl: 0, gait: 'walk', moveSec: 4.5 }, period: [18, 24], room: [9, 5], reach: [3, 7] },
   soot: { spec: { sprite: 'soot', idle: [0, 1], move: [2], flee: 2, gait: 'hop', moveSec: 0.55 }, period: [10, 14], room: [8, 7], reach: [3, 9] },
+  bogfrog: { spec: { sprite: 'bogfrog', idle: [0, 1], move: [2], flee: 2, gait: 'hop', moveSec: 0.6 }, period: [10, 14], room: [10, 6], reach: [3, 9] },
+  mudcrab: { spec: { sprite: 'mudcrab', idle: [0, 1], move: [2, 0], flee: 2, gait: 'walk', moveSec: 1.2 }, period: [12, 16], room: [9, 6], reach: [3, 9] },
+  duskmoth: { spec: { sprite: 'duskmoth', idle: [0, 1], move: [2], flee: 2, gait: 'hop', moveSec: 0.5 }, period: [11, 15], room: [8, 5], reach: [3, 8] },
 };
 
 /** What lives on each act's map, and how many of each show at once. */
@@ -66,10 +69,13 @@ const THEME_LIFE: Record<Theme, { burrows: Array<[string, number]>; flock: { spr
   cinder: { burrows: [['lizard', 2], ['firebeetle', 1]], flock: null },
   glass: { burrows: [['snail', 2]], flock: null },
   forge: { burrows: [['soot', 2]], flock: null },
+  fen: { burrows: [['bogfrog', 2]], flock: null },
+  causeway: { burrows: [['mudcrab', 2]], flock: null },
+  mere: { burrows: [['duskmoth', 2], ['bogfrog', 1]], flock: null },
 };
 
 /** The rustle in the cover a critter dove into: leaves, or snow (and frost) shaken loose. */
-const RUSTLE: Record<Theme, number> = { forest: 0xb4d058, ruins: 0xb4d058, hollow: 0xb4d058, pass: 0xeef2fa, caves: 0x9ad8f0, glacier: 0xeef2fa, cinder: 0x8a7874, glass: 0xc89aff, forge: 0xffb040 };
+const RUSTLE: Record<Theme, number> = { forest: 0xb4d058, ruins: 0xb4d058, hollow: 0xb4d058, pass: 0xeef2fa, caves: 0x9ad8f0, glacier: 0xeef2fa, cinder: 0x8a7874, glass: 0xc89aff, forge: 0xffb040, fen: 0x6a7a4a, causeway: 0x7aaab0, mere: 0xa08ab0 };
 
 interface Placed<T> {
   it: T;
@@ -269,12 +275,12 @@ export class MapLife {
 
     // a hawk circling high over the meadow, a white owl over the glacier (its faint shadow far below may cross a road),
     // glow bats flitting round in the Glass Warrens
-    if (theme === 'forest' || theme === 'glacier' || theme === 'glass')
+    if (theme === 'forest' || theme === 'glacier' || theme === 'glass' || theme === 'fen')
       for (const [x, y] of spots(4)) {
         if (this.hawks.length >= 3) break;
         const area: Rect = { x: x - 18, y: y - 8, w: 36, h: 16 };
         if (!clear(area) || this.hawks.some((h) => overlaps(area, h.area, 20))) continue;
-        this.hawks.push({ it: { c: [x, y], r: theme === 'glass' ? 8 : 12, sprite: theme === 'forest' ? 'hawk' : theme === 'glass' ? 'glowbat' : 'owl' }, kind: 'hawk', cap: theme === 'glass' ? 2 : 1, area, on: true });
+        this.hawks.push({ it: { c: [x, y], r: theme === 'glass' ? 8 : 12, sprite: theme === 'forest' ? 'hawk' : theme === 'glass' ? 'glowbat' : theme === 'fen' ? 'heron' : 'owl' }, kind: 'hawk', cap: theme === 'glass' ? 2 : 1, area, on: true });
       }
 
     // pale fish gliding under the ice of the caves' pools

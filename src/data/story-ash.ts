@@ -72,7 +72,7 @@ export const ASH_STORY: Record<string, StoryBox[]> = {
   // phase 2 (his edit): the drifting stops; the chains double
   bellows2: [
     { who: 'mapmaker', text: 'Together. Always together. Let me\nhelp you, old friend.' },
-    { who: 'narrator', text: 'His pen pins the land still and doubles the\nchains. The blocks come chained in pairs.' },
+    { who: 'narrator', text: 'His pen pins the land still and doubles the\nchains. Now everything comes in pairs.' },
     { who: 'pip', text: 'Pairs, Rowan! Hit one, then its partner,\nquick. Both or nothing.' },
   ],
   // phase 3: the volcano breaks through his drawing, and he redraws as fast as it breaks

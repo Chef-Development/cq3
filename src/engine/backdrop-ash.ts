@@ -543,18 +543,18 @@ function glass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   for (let y = 0; y < G - 14; y++)
     for (let x = 0; x < w; x++) {
       const flow = noise(x * 0.05 + y * 0.02, y * 0.12, 3) * 0.6 + noise(x * 0.2, y * 0.3, 5) * 0.4;
-      let v = 0.2 + (flow - 0.5) * 0.5 + (y / (G - 14)) * 0.12;
+      let v = 0.27 + (flow - 0.5) * 0.5 + (y / (G - 14)) * 0.12;
       if (Math.abs(flow - 0.55) < 0.03) v += 0.25; // a glossy ridge catching the light
       p.set(x, y, pick(wallR, v, x, y, 0.3));
     }
   // windows of coloured glass grown into the wall, faceted, the lava behind them lighting them up
   const geodes: Array<[number, number, number, number, number]> = [
-    [0.07, G - 44, 8, 13, 0],
+    [0.13, G - 44, 8, 13, 0], // (clear of the dithered edge shade, which turned it into a checkerboard)
     [0.18, G - 56, 6, 10, 3],
     [0.3, G - 50, 5, 8, 1],
     [0.7, G - 54, 6, 9, 2],
     [0.83, G - 46, 8, 13, 1],
-    [0.94, G - 58, 7, 11, 3],
+    [0.765, G - 60, 5, 8, 3],
   ];
   for (const [fx, cy, rx, ry, gi] of geodes) {
     const cx = Math.round(fx * w);
@@ -594,6 +594,15 @@ function glass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
         p.set(x, y, pick(r, v, x, y, 0.2));
       }
     glints.push({ x: Math.round(fpx), y: Math.round(fpy), c: GC[gi] });
+    // set in the rock, not floating: a ragged socket round it, its lip lit on the top left, shaded bottom right
+    for (let y = Math.floor(cy - ry - 3); y <= cy + ry + 3; y++)
+      for (let x = Math.floor(cx - rx - 3); x <= cx + rx + 3; x++) {
+        if (inPoly(x + 0.5, y + 0.5)) continue;
+        const d = Math.hypot((x + 0.5 - cx) / (rx + 2.5), (y + 0.5 - cy) / (ry + 2.5)) + (noise(x * 0.4, y * 0.4, cx) - 0.5) * 0.3;
+        if (d > 1) continue;
+        const lit = x + y < cx + cy - 2;
+        p.set(x, y, d > 0.86 ? OBSID[lit ? 6 : 1] : OBSID[lit ? 4 : 2]);
+      }
   }
 
   // through a wide low opening in the far wall: the far cavern red with the magma lake's glow, the lake itself, and a
@@ -656,6 +665,10 @@ function glass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
         p.set(x, y, pick(LAVA, v, x, y, 0.25));
       }
     }
+  // the lake's light spills out of the opening across the far wall (Ashfell's key: ember from below), so the warren
+  // has depth: lit round the opening, falling off into the dark
+  glowAt(p, ox, G - 18, w * 0.42, 34, col('#c0521e'), 0.2);
+  glowAt(p, ox, G - 16, w * 0.26, 18, col('#ff8a3a'), 0.14);
   // far stalagmites standing in the lake, black against its glow
   for (const [fx, hgt] of [
     [0.38, 9],

@@ -259,12 +259,15 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
   };
 
   // The clean capture's way back: a long press where the gear button sits (the top middle) shows the buttons again.
-  let capHold: { id: number; x: number; y: number; timer: number } | null = null;
+  let capHold: { id: number; x: number; y: number; at: number; timer: number } | null = null;
   const capRelease = (e: PointerEvent, moved = false) => {
     if (!capHold || e.pointerId !== capHold.id) return;
     if (moved && Math.hypot(e.clientX - capHold.x, e.clientY - capHold.y) < 12) return;
     window.clearTimeout(capHold.timer);
+    // (let go after the hold's time, but before its timer could run: a busy main thread runs input first)
+    const long = !moved && e.type === 'pointerup' && e.timeStamp - capHold.at >= CAPTURE_HOLD_MS;
     capHold = null;
+    if (long) ui.toggleCapture();
   };
 
   window.addEventListener(
@@ -277,7 +280,7 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
         const g = clientToGame(app.layout, e.clientX, e.clientY);
         if (Math.abs(g.x - GAME_W / 2) < 32 && g.y < 22) {
           if (capHold) window.clearTimeout(capHold.timer);
-          capHold = { id: e.pointerId, x: e.clientX, y: e.clientY, timer: window.setTimeout(() => ((capHold = null), ui.toggleCapture()), CAPTURE_HOLD_MS) };
+          capHold = { id: e.pointerId, x: e.clientX, y: e.clientY, at: e.timeStamp, timer: window.setTimeout(() => ((capHold = null), ui.toggleCapture()), CAPTURE_HOLD_MS) };
         }
       }
       down(e.clientX, e.clientY, e.timeStamp, e.pointerId);
@@ -380,6 +383,12 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
   };
 
   window.addEventListener('keydown', (e) => {
+    // Escape closes the gear panel, wherever the focus is in it
+    if (e.key === 'Escape' && app.panelOpen) {
+      e.preventDefault();
+      ui.togglePanel();
+      return;
+    }
     // a HUD button clicked with the mouse keeps the focus: the keys are the game's again (Space must not re-click it)
     if (e.target instanceof HTMLElement && e.target.closest('#hud')) e.target.blur();
     else if (inUi(e.target)) return;

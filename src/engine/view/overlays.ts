@@ -27,8 +27,7 @@ import { pix } from './camp-kit';
 // ------------------------------------------------------------------ small UI glyphs (shared by the menus)
 
 const K = 0x140c1c;
-/** The region victory's line: which weight came home, and how many are left (in words). */
-const ORDINAL = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth'];
+/** The region victory's line: how many regions are left to restore (in words). */
 const COUNT = ['None', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven'];
 
 /** Add a 1 px ink outline ('k') around the filled pixels of a glyph map. */
@@ -688,8 +687,9 @@ export class Overlays {
         this.texts.text(armed ? 'Tap again' : 'New game', fresh.x + fresh.w / 2, fresh.y + dy + 7 + pf, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
         this.texts.text('Erases all', fresh.x + fresh.w / 2, fresh.y + dy + 16 + pf, armed ? 0xffe0a0 : 0xc8c0e8, { ox: 0.5, oy: 0.5 });
       }
-    } else if (pa > 0) this.title.drawPrompt(gc, this.texts, 'Tap to start!', s.splitY + 16, now, pa);
-    if (pa > 0) this.title.drawLegend(gc, this.texts, Math.min(s.B - 9, s.splitY + 32 + Math.round((GAME_H - s.splitY - 32 - (GAME_H - s.B)) / 2)), pa);
+    } else if (pa > 0) this.title.drawPrompt(gc, this.texts, 'Tap to start!', s.splitY + 9, now, pa);
+    // the legend sits at the foot, clear of the prompt's plate (and its shadow) above it
+    if (pa > 0) this.title.drawLegend(gc, this.texts, Math.min(s.B - 8, GAME_H - 9), pa);
   }
 
   // ------------------------------------------------------------------ boost pick
@@ -1034,12 +1034,7 @@ export class Overlays {
     const cx = Math.round(GAME_W / 2);
     // ---- the line under the headline
     const lk = clamp01((since - 160) / 220);
-    if (lk > 0) {
-      // (a region's last act: its own name, never the next region's first act: that's the victory scene's news)
-      const next = lastActOfRegion(run.actIndex) ? undefined : run.region.acts[run.actIndex + 1];
-      const line = next ? `The road to ${next.name} is open` : `${run.regionDef.name} is safe again`;
-      this.subLine(gc, line, cx, 49 - Math.round((1 - lk) * 3), lk);
-    }
+    if (lk > 0) this.subLine(gc, this.clearLine(), cx, 49 - Math.round((1 - lk) * 3), lk);
     // ---- accuracy: a small, quiet chip in the top-left corner (the planning chat reads it off the act clear)
     const ak = clamp01((since - Overlays.CLEAR_ACC_MS) / 220);
     if (ak > 0) {
@@ -1061,23 +1056,44 @@ export class Overlays {
       }
       this.texts.text(label, x, r.y + 6, 0xb0a8cc, { oy: 0.5, alpha: ak });
     }
-    // ---- Camp and Next
+    // ---- Camp and Next (a chest waiting at camp, the boss's hero chest: Camp glows and counts it)
     const b = this.clearButtons();
     const last = run.actIndex + 1 >= run.region.acts.length;
+    const ch = s.app.profile.chests;
+    const waiting = ch.hero + ch.rare + ch.region;
     this.consoleButtons(gc, now, since - Overlays.CLEAR_BTN_MS + 140, [
-      { r: b.camp, face: FACE.navy, label: 'Camp', icon: 'tent', delay: 0 },
+      { r: b.camp, face: FACE.navy, label: 'Camp', icon: 'tent', delay: 0, badge: waiting > 0 ? whole(waiting) : undefined },
       { r: b.next, face: last ? FACE.gold : FACE.green, label: last ? 'Finish' : `Next: Act ${run.actIndex + 2}`, icon: '', delay: 90 },
     ]);
   }
 
+  /** The line under the act clear's headline: where the road goes next (a region's last act: its own name, never the
+   *  next region's first act: that's the victory scene's news). */
+  private clearLine(): string {
+    const run = this.s.app.run;
+    const next = lastActOfRegion(run.actIndex) ? undefined : run.region.acts[run.actIndex + 1];
+    return next ? `The road to ${next.name} is open` : `${run.regionDef.name} is safe again`;
+  }
+
+  /** The act clear's headline and the line under it start this far right (game px): what it gave (view/gains.ts, a
+   *  column down the left) keeps left of them. */
+  clearHeadLeft(): number {
+    const run = this.s.app.run;
+    const cx = Math.round(GAME_W / 2);
+    const ribbonW = textWidth(`Act ${run.actIndex + 1} Clear!`, 2, true) + 24;
+    return Math.min(cx - Math.round(ribbonW / 2), Math.round(cx - textWidth(this.clearLine(), 1, false) / 2 - 10));
+  }
+
   /** A pair of console buttons (Camp and the way on), popping in one after the other; the way on glows and nudges. */
-  private consoleButtons(gc: G, now: number, t: number, items: Array<{ r: Rect; face: readonly [number, number, number, number]; label: string; icon: string; delay: number }>, live = true): void {
+  private consoleButtons(gc: G, now: number, t: number, items: Array<{ r: Rect; face: readonly [number, number, number, number]; label: string; icon: string; delay: number; badge?: string }>, live = true): void {
     for (const it of items) {
       const k = easeBack((t - it.delay) / 260, 1.7);
       if (k <= 0) continue;
       const r = { ...it.r, y: it.r.y + Math.round((1 - k) * 14) };
       const pr = isPressed(it.r, now);
       if (it.icon === '' && k >= 1 && live) glow(gc, r, it.face[0], 0.3 + 0.35 * pulse(now, 900), 3);
+      // something waiting there (a chest at camp): a gold glow, and its count in a bubble on the corner (drawn last)
+      if (it.badge && k >= 1 && live) glow(gc, r, 0xffd23a, 0.3 + 0.35 * pulse(now, 900, 450), 3);
       button3d(gc, r, live ? it.face : FACE.grey, pr);
       const dy = pr ? 2 : 0;
       const tw = textWidth(it.label, 1, true);
@@ -1093,6 +1109,7 @@ export class Overlays {
         const nudge = Math.round(pulse(now, 700) * 2);
         chevron(gc, x0 + tw + 2 + nudge, r.y + 4 + dy, 7, WHITE, 1, 1, true);
       }
+      if (it.badge && k >= 1 && live) this.s.camp.kit.bubble(gc, this.texts, r.x + r.w - 2, r.y - 5 + dy, it.badge, now);
     }
   }
 
@@ -1186,14 +1203,16 @@ export class Overlays {
     g.fillRect(0, s.splitY, GAME_W, GAME_H - s.splitY);
     const k = easeBack(since / 420, 1.5);
     const run = s.app.run;
-    const title = `${run.regionDef.name} is saved!`;
+    const title = `${run.regionDef.name} restored!`;
     const tw = textWidth(title, 2, true);
     const y = Math.round(20 - (1 - k) * 50);
     ribbon(gc, cx, y, Math.round((tw + 24) * Math.min(1, k)), 22, RIBBON.gold, 1, k > 0.9);
     if (k > 0.5) this.texts.text(title, cx, y + 11, 0xfff6c0, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a });
-    const home = `The ${ORDINAL[run.regionIndex] ?? 'next'} weight is home.`;
+    // (profile.weights counts the regions restored)
+    const home = 'Its old lines are back.';
     const left = WEIGHTS_TOTAL - run.profile.weights;
-    if (since > 400) this.subLine(gc, left > 0 ? `${home} ${COUNT[left] ?? left} to go.` : `${home} That's all of them!`, cx, 49, clamp01((since - 400) / 250));
+    const togo = left === 1 ? 'One region to go.' : `${COUNT[left] ?? whole(left)} regions to go.`;
+    if (since > 400) this.subLine(gc, left > 0 ? `${home} ${togo}` : 'The Atlas is whole again!', cx, 49, clamp01((since - 400) / 250));
     if (since > 1500) {
       this.prompt(g, 'Tap to continue', s.splitY + 16, now, 0xfff07a);
       // where the road goes next (the victory scene has just named it), or more to come

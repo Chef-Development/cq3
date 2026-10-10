@@ -208,8 +208,10 @@ test('gear: loot after a win goes in the bag; act clear -> camp -> next act; def
   };
   const tapRect = async (r: { x: number; y: number; w: number; h: number }) => tapGame(page, r.x + r.w / 2, r.y + r.h / 2);
 
-  // a fight: win it, the loot screen shows what dropped (it's already in the bag), then the boost pick
+  // a fight: win it, the loot screen shows what dropped (it's already in the bag), then the boost pick (past a new
+  // player's first win, which has no pick of its own and brings Pip's road scene)
   await a((x) => {
+    x.profile.seen.push('scene:road');
     x.startRegion();
     x.storySkip();
     x.storySkip();
@@ -464,8 +466,9 @@ test('relics: pick one after a fight, its icon is on the HUD belt next fight, a 
   const phase = () => a((x) => x.run.phase);
   const tapRect = async (r: { x: number; y: number; w: number; h: number }) => tapGame(page, r.x + r.w / 2, r.y + r.h / 2);
 
-  // win the first fight
+  // win the first fight (past a new player's first win: it has no pick of its own)
   await a((x) => {
+    x.profile.seen.push('scene:road');
     x.startRegion();
     x.storySkip();
     x.storySkip();
@@ -629,7 +632,7 @@ test('New game (tapped twice on the title) wipes everything, keeping the setting
     if (sessionStorage.getItem('seeded')) return; // only before the first load (not after New game's reload)
     sessionStorage.setItem('seeded', '1');
     const hero = (unlocked: boolean, xp: number) => ({ unlocked, xp, skills: [] });
-    const p = { v: 3, actsCleared: 2, coins: 321, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 900), sable: hero(true, 0) }, tips: ['welcomeM4a'] };
+    const p = { v: 3, actsCleared: 2, coins: 321, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 900), sable: hero(true, 0) }, tips: ['welcomeR8'] };
     localStorage.setItem('cq3.profile.v2', JSON.stringify(p));
     localStorage.setItem('cq3.settings.v2', JSON.stringify({ calibrationMs: 37 }));
   });
@@ -904,7 +907,7 @@ test('camp (M5): open a hero chest (a new hero arrives), buy and open a Rare che
   // a profile with two acts cleared, gems for a Rare chest, coins for the dummy and a hero chest waiting
   await page.addInitScript(() => {
     const hero = (unlocked: boolean, xp: number) => ({ unlocked, xp, skills: [] });
-    const p = { v: 4, actsCleared: 2, coins: 900, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 400), sable: hero(true, 0) }, gems: 300, chests: { hero: 1, rare: 0, region: 0 }, tips: ['welcomeM4a'] };
+    const p = { v: 4, actsCleared: 2, coins: 900, smithMet: true, sableMet: true, hero: 'rowan', heroes: { rowan: hero(true, 400), sable: hero(true, 0) }, gems: 300, chests: { hero: 1, rare: 0, region: 0 }, tips: ['welcomeR8'] };
     localStorage.setItem('cq3.profile.v2', JSON.stringify(p));
   });
   await ready(page);
@@ -1147,7 +1150,7 @@ test("welcome back: a returning player's first launch plays Pip's scene over the
   expect(await a((x) => ({ phase: x.run.phase, story: x.storyId }))).toEqual({ phase: 'title', story: 'welcomeBack' });
   // played the moment it starts (saved); the basics' tips are marked seen, the new systems' are not
   const saved = JSON.parse(((await page.evaluate(() => localStorage.getItem('cq3.profile.v2'))) as string) ?? '{}');
-  expect(saved.tips).toEqual(expect.arrayContaining(['welcomeM4a', 'map', 'tapYellow', 'camp']));
+  expect(saved.tips).toEqual(expect.arrayContaining(['welcomeR8', 'map', 'tapYellow', 'camp']));
   expect(saved.tips).not.toContain('relicPick');
   await page.waitForTimeout(400);
   await page.screenshot({ path: 'test-results/welcome-back.png' });
@@ -1258,6 +1261,7 @@ test('map extras: an ambush, the merchant, Coin Rush, a bounty and its tracker, 
       await tapRect((await a((x) => x.view.overlays.cardRect(0))) as Any);
       await expect.poll(phase).not.toBe('boost');
     }
+    if ((await phase()) === 'scene') await a((x) => x.setPhase(() => x.run.skipScenes())); // (Act 1's first win: Pip's road scene)
   };
   await a((x) => {
     x.startRegion();

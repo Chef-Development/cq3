@@ -798,6 +798,25 @@ S8. **Region 4 keeps Team 3's names** (the Duskmire, its acts Lanternfen, the Dr
     shore onto a timetable), so the story follows it. Its scenes are written into their ids (`story-dusk.ts`); S7's
     separate draft is gone.
 
+S9. **One lighthouse boss; the far isles have names.** The Duskmire's Gloaming Lighthouse is the only lighthouse
+    boss; the beacon isle (Region 10) gets the Wreckwarden, a giant of wrecked hulls guarding the beacon stair. The
+    seven far isles' names (Hushwood, Kestrel Reach, Thimblewick, Saltmarrow, Farlight, Lowmoor, the Margin) are in
+    `core/world-plan.ts` and show only once a land is revealed (the map shows "?" until then).
+S10. **The editor's pass (45 notes) is applied, a few with changes; none rejected outright.** Changed: `noonVictory`'s
+    last line is "Far out, the blank takes a shape" (not "gold lines touch the blank"): the world plan lifts the first
+    far isle's fog right after this scene (it thinned from Region 4 on while he drew it), so the line says what the map
+    shows and rule 10 holds. `noonBoss2`'s hint goes to Neve, not Pip (after "Hello, Ambrose" Pip is silent until the
+    last phase: "Steady, Rowan. I'm still here."). Pip's "Maps never sleep" is replaced, not cut. Kept: Rowan's "Then
+    we'll give them one to greet." and "Then we go out to it." (the others are varied). Sprocket's kind was "Clockwork"
+    (the editor found it fine); it is "Wind-up toy" so the old premise's word is gone from player text. Brann writes on
+    a slate (`(writes on a slate)` in his arrival, `(writes)` in banter) until Region 9. The refrain "There. Better."
+    is used twice (the Boar King's first edit, the Lighthouse's first), never more than once a region.
+S11. **Region 5's scenes fit its data as built.** The Noon Sphinx speaks (speaker `sphinx`, a portrait needed): her
+    riddle's answer is a shadow, and a traveler with no shadow is a mirage to her, which is why she fights. The Brass
+    Lion doesn't speak (the Dawn Order's lion that roared the sun up). `story-noon-minis.ts` is empty; its
+    placeholders are written into `story-noon.ts`. Each phase hint names the rule it brings (the glare's blazing
+    yellows and the green that cools; the sun drawn down's outlines).
+
 (story: end of section)
 
 
@@ -857,6 +876,13 @@ A2B-6. **Ashfell's glass warren and forge (audit: 3) get depth and air**: the wa
 A2B-7. **Art can be reviewed without the browser**: rig frames and backdrops are pure pixel buffers, so a throwaway
     vitest file can paint them into grids and write PNGs (node's zlib) when the shared Playwright lock is busy. Not
     committed; the contact sheets in `docs/art-audit/after/` were made that way.
+A7. (Superseded by A2B-1: Rowan moved onto the rig.) **Rowan gets fin, cast and down** on his own pose system (he isn't on the shared rig). With a `cast` frame he
+    now also shows the green ability's ring and pose like every other hero (fighters.ts `cast()` skipped him).
+A8. (Superseded by A2B-2.) **A four-step idle breath** for the fourteen rig heroes: `idle2`/`idle3` derived from their idle0/idle1 with the
+    head a pixel lower (the head follows the body a beat late), cycled every 300 ms (a 1.2 s loop) where a hero has
+    them; Rowan and Sable keep their two frames. The menus' 3x heroes still use two.
+A9. **Ashfell's darkest foes get an ember rim** (light from below, section 9 of the bible) and the glass warren a light
+    spill from its lake; the forge was re-scored from a fight screen (the sheet had made it look flat).
 
 (art: end of section)
 
@@ -880,6 +906,16 @@ C4. **Region 4's names are the first version's** (lead's L3): Duskmire; Lanternf
 C5. **Region 5's two rules are built ahead of its art** (core, tests, bar pictures, tips, lab items, data and map
     minis), on the story bible's hook for the region; their design and a bot probe are in the content bible
     (section 8). Neither rule moves anything under the cursor at the last moment.
+C6. **The fourth region is in play** (global acts 9-11, after the third region's victory; its land opens on the
+    world map once the third is won, with the generic `landOpen`). Everything joined the game's tables (foes, scenes,
+    relics, gear, camp lines, a camp scene after its first act), its relic numbers moved into `tuning.relics.n`, and its
+    set and signature effects are in the core (`CORE:` commit, `tuning.effects` with sliders). Its world-map act spots
+    are placeholders on what the land already shows (`WORLD_ACTS_DUSK`, art-world-lands.ts) for the art team to move.
+C7. **Stand-ins until a region's art lands, never a missing texture or a silent crash**: a foe with no sprite fights
+    in an earlier foe's set (`SPRITE_STAND_IN`, view/fighters.ts; used only while its own `_idle0` doesn't exist), a
+    telegraph sound not built yet plays the generic wind-up, a speaker with no portrait speaks from an empty frame, the
+    acts wear earlier themes (`DUSK_STAND_IN`), and the music falls back to the last act theme it has. Each one switches
+    itself off as the art team's textures and tracks arrive (no flag to flip).
 
 (content: end of section)
 

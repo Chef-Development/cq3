@@ -27,7 +27,7 @@ and docs/backlog.md (the playtester's screenshots of the reference's meta layer)
 
 ## Our names (checked: none found in connection with Combo Quest)
 
-- **The game**: "The Living Map" (src/data/brand.ts; the shortlist is docs/names.md). The page title and the
+- **The game**: "The Unerased" (src/data/brand.ts; the shortlist is docs/names.md). The page title and the
   home-screen name still said "Combo Quest 3" / "CQ3": **changed** (below).
 - **Heroes (16)**: Rowan (Junior Knight), Sable, Neve (Frost Mage), Moss (Grove Caller), Tam (Sapper), Hollis
   (Shieldwarden), Vesper (Dusk Ranger), Torva (Hammer Brute), Solenne (Dawnblade), Wren (Rooftop Runner), Yara (Spirit
@@ -59,13 +59,13 @@ and docs/backlog.md (the playtester's screenshots of the reference's meta layer)
 | a stat's name (gear, skill nodes, stat cards) | Combo Power | **Finisher Might** (short: Might) | the reference's hero stat, word for word ("combo power") |
 | companion role tag (Pip, Sunny) | Damage | **Lookout** (Pip), **Fire** (Sunny) | the reference's companion card shows a role tag "Damage" |
 | Sable's title | Shadow Ninja | **Shadow Thief** | the reference sells "speedy ninjas"; Sable is a fast-running thief in our story |
-| the page title and the home-screen name | Combo Quest 3 / CQ3 | read from `src/data/brand.ts` at build ("The Living Map" / "Living Map") | the sequel's name on the phone's home screen |
+| the page title and the home-screen name | Combo Quest 3 / CQ3 | read from `src/data/brand.ts` at build (now "The Unerased" / "Unerased") | the sequel's name on the phone's home screen |
 
 ## Too close or worth a look: for the owning teams
 
 1. **World map: a flag per cleared act and padlocks on locked lands** (art-world.ts, view/world.ts; art team). This
    is exactly what the reference's kingdom map showed. Our veils already say "locked"; suggest dropping the padlock and
-   replacing the cleared-act flags with something that fits "The Living Map" (the act's landmark coming alive: its
+   replacing the cleared-act flags with something of the game's own (the act's landmark coming back to life: its
    colours filling in, a lantern lit, a small banner of our own shape), not a flag.
 2. **Sunny is "a golden drake whelp"** (art-companions.ts; art team): the reference's companions include "a dragon
    and a golden dragon". Recolour Sunny away from gold (ember-red, moss-green or a dusk violet), and keep the hoarding

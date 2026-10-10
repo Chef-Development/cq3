@@ -19,10 +19,10 @@ import { textWidth } from '../../src/engine/font';
 const T = cloneTuning();
 const viaJson = <X>(x: X): X => JSON.parse(JSON.stringify(x)) as X;
 
-/** A new profile past the quiet start (it has won the fights the map's extras' tips wait for). */
+/** A new profile past the quiet start (it has won the fights the map's extras' tips wait for, one per tip). */
 const settled = (): Profile => {
   const p = newProfile();
-  p.counts.wins = QUIET_WINS;
+  p.counts.wins = QUIET_WINS + TIPS.filter((d) => d.wins).length;
   return p;
 };
 
@@ -55,6 +55,8 @@ function goTo(run: Run, type: string): void {
 }
 
 const setTime = (run: Run, s: number) => (run.combat!.tick = Math.round(s / DT));
+/** The foe in front low enough for one finisher stack to finish it (the first finisher's moment: finisherMoment). */
+const lowFront = (c: Combat) => (c.frontEnemy()!.hp = Math.round(c.finisherDamage(1) * 0.6));
 /** The tips a profile has learned up to (and not including) `id` in the first fight's order. */
 const before = (id: TipId): TipId[] => FIRST_FIGHT.slice(0, FIRST_FIGHT.indexOf(id));
 
@@ -145,7 +147,11 @@ function firstFights(o: { seed: number; fights: number; beginMs: (n: number) => 
       const st = { decided: new Map<string, boolean>(), busy: 0 };
       for (let i = 0; i < 300 / DT && !c.result; i++) {
         c.step();
+        const front = c.frontEnemy();
+        const banked = c.stacks;
         playStep(c, rng, st, coach.learned('finisher'));
+        // (the game's first finisher: did it finish the foe in front?)
+        if (banked > 0 && c.stacks === 0 && front && !finishers.has(p)) finishers.set(p, !front.alive);
         coach.feed(c.drainEvents(), c);
         const m = { run, safe: true };
         show(m, coach.next(m), c.time);
@@ -167,6 +173,9 @@ function firstFights(o: { seed: number; fights: number; beginMs: (n: number) => 
   }
   return shown;
 }
+
+/** Each profile's first finisher in firstFights: whether it finished the foe in front. */
+const finishers = new Map<Profile, boolean>();
 
 /** The playtester: TAP TO BEGIN at once (0.3 s) in the first two fights, a moment's pause (1.5 s) in the third. */
 const QUICK = (n: number) => (n < 3 ? 300 : 1500);
@@ -282,6 +291,7 @@ describe('the coach', () => {
       purple: (c) => c.spawnBlock('purple', 0.3).id,
       finisher: (c) => {
         c.stacks = 1;
+        lowFront(c);
         return undefined;
       },
     };
@@ -382,6 +392,7 @@ describe('the coach', () => {
     expect(take()).toBe('purple');
     setTime(run, 1 + 3 * gap);
     c.stacks = 1;
+    lowFront(c);
     expect(take()).toBe('finisher');
     // the basics in: a special waits for the next fight (two tips per fight at most, four shown)
     c.stacks = 0;
@@ -532,6 +543,12 @@ describe('the coach', () => {
     coach.feed([{ type: 'won' }], run.combat!);
     back();
     expect(take()).toBe('roamer');
+    // then one per fight won, never a burst: the sparkle waits for the next win
+    back();
+    expect(take({ sparkle: true })).toBeNull();
+    coach.feed([{ type: 'won' }], run.combat!);
+    back();
+    expect(take({ sparkle: true })).toBe('sparkle');
     // a player who has cleared an act is past it, whatever the count
     const old = newProfile();
     old.actsCleared = 1;
@@ -772,6 +789,20 @@ describe("a new player's first fights (the playtester: \"'yellow blocks are atta
       expect(shown.filter((x) => x.fight === 1 && tipById(x.id)!.fight === 'pause' && !FIRST_FIGHT.includes(x.id)), `seed ${seed}`).toEqual([]);
     }
   });
+
+  it('the first finisher finishes the foe in front (the coach waits for the blow that does)', () => {
+    let kills = 0;
+    let fired = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      const p = newProfile();
+      firstFights({ seed, fights: 2, beginMs: QUICK, profile: p });
+      if (!finishers.has(p)) continue;
+      fired++;
+      if (finishers.get(p)) kills++;
+    }
+    expect(fired).toBe(30);
+    expect(kills, `${kills} of ${fired}`).toBeGreaterThanOrEqual(27);
+  });
 });
 
 describe('a tip the player already knows is skipped', () => {
@@ -901,13 +932,53 @@ describe("the first fight's lessons: what the fight doesn't bring is placed in t
       p.tips.push(...before(id));
       goTo(run, 'fight');
       const c = run.combat!;
-      // (none of its own on the bar at the start)
+      // (none of its own on the bar at the start; the foe in front low enough for the finisher to finish it)
       c.blocks = c.blocks.filter((b) => b.kind === 'yellow');
+      if (id === 'finisher') lowFront(c);
       const { cue, t } = stepToTip(run, coach);
       expect(cue?.id, id).toBe(id);
       expect(t, id).toBeLessThan(COACH_DEFAULTS.lessonSec + 2);
       if (id === 'finisher') expect(c.stacks).toBeGreaterThanOrEqual(1);
     }
+  });
+
+  it("the first finisher finishes: its stack and its tip wait for the foe in front to be low enough to fall to it (at most finWaitSec)", () => {
+    const { run, coach, p } = setup();
+    p.tips.push(...before('finisher'));
+    goTo(run, 'fight');
+    const c = run.combat!;
+    const front = c.frontEnemy()!;
+    const blow = c.finisherDamage(1);
+    expect(front.hp, 'a fresh foe outlasts one stack').toBeGreaterThan(blow);
+    for (const e of c.enemies) e.atk = 0; // (no taps here: nothing hurts meanwhile)
+    // a full-HP foe: no stack, no tip, for a while
+    const { cue: early, t } = stepToTip(run, coach, COACH_DEFAULTS.finWaitSec - 1);
+    expect(early, `nothing by ${t.toFixed(1)} s`).toBeNull();
+    expect(c.stacks).toBe(0);
+    // the foe in front brought low: the stack comes, then its tip, and one finisher finishes it
+    front.hp = Math.round(blow * 0.6);
+    const { cue } = stepToTip(run, coach, 3);
+    expect(cue?.id).toBe('finisher');
+    expect(c.stacks).toBeGreaterThanOrEqual(1);
+    c.finisher();
+    expect(front.alive).toBe(false);
+    // a meter filled by itself waits too (its tip), and a foe that never gets low still gets taught in time
+    const own = setup();
+    own.p.tips.push(...before('finisher'));
+    goTo(own.run, 'fight');
+    const oc = own.run.combat!;
+    oc.stacks = 1;
+    oc.specialsOn = false;
+    for (const e of oc.enemies) e.atk = 0;
+    const { cue: late, t: lateT } = stepToTip(own.run, own.coach, COACH_DEFAULTS.finWaitSec + 4);
+    expect(late?.id).toBe('finisher');
+    expect(lateT).toBeGreaterThanOrEqual(COACH_DEFAULTS.finWaitSec - 0.1);
+    // (a foe too far gone, a tap or two from falling anyway, doesn't count: the next foe's turn)
+    const { run: r3, coach: c3, p: p3 } = setup();
+    p3.tips.push(...before('finisher'));
+    goTo(r3, 'fight');
+    r3.combat!.frontEnemy()!.hp = Math.max(1, Math.round(blow * COACH_DEFAULTS.finFloor * 0.5));
+    expect(c3.finisherMoment(r3.combat!, 1)).toBe(false);
   });
 
   it('never with tips off, once learned, or in a Coin Rush', () => {
