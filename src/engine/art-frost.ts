@@ -639,7 +639,7 @@ function batParts(pose: string): Part[] {
   ];
 }
 
-// ------------------------------------------------------------------ yeti cub (a round white yeti kid with a snowball)
+// ------------------------------------------------------------------ yeti cub (a young yeti, hunched, with a snowball)
 
 const SNOWBALL = ['#3a4a7a', '#6a84b4', '#a0bce0', '#d0e4f6', '#ffffff'];
 // (decision L8) a dark leathery face instead of a peach one, eyes glowing ice-blue under a scowl, fangs, no rosy cheeks
@@ -650,102 +650,93 @@ const YETI_PAL: Pal = {
   c: '#f08a8a', G: '#9af0ff', // (unused cheek), glowing eye
   F: '#4a4a78', // soles
 };
+// (A2C-15) frost-grey in the body, the moonlight only on the hump and the lit edge: not a white puffball
 const YETI_SHADES: Record<string, Shade> = {
-  s: { ramp: SNOWFUR, same: 'pkWmtrcG', top: [5, 5], left: [5], right: [2, 3], bottom: [1, 2], mid: 4 },
-  a: { ramp: SNOWFUR, top: [5], left: [5], right: [2], bottom: [2], mid: 4 }, // arms
+  s: { ramp: SNOWFUR, same: 'pkWmtrcG', top: [5, 4], left: [3], right: [1, 1], bottom: [0, 1], mid: 2 },
+  a: { ramp: SNOWFUR, top: [5], left: [4], right: [1], bottom: [1], mid: 3 }, // arms: in front, a step lighter
   p: { ramp: PEACH, same: 'kWmtrcG', top: [4], left: [4], right: [2], bottom: [2], mid: 3 },
   b: { ramp: SNOWBALL, top: [4, 4], left: [4], right: [1, 2], bottom: [1, 2], mid: 3 },
   h: { ramp: PEACH, top: [3], left: [3], right: [1], bottom: [1], mid: 2 }, // paws
 };
-// one round ball of shaggy fur, facing left: a dark face, glowing eyes under a scowl, fangs
+// (A2C-15, the review: "a smiling snowball") hunched, facing left: a shaggy hump of shoulders, the head carried low
+// and forward under a heavy brow ridge, small eyes glinting in its shadow, a dark muzzle with two short tusks
 const YETI_BODY = [
-  '.....s.s.s........',
-  '....sssssssss.....',
-  '..ssssssssssss....',
-  '..sssssssssssss.s.',
-  '.ssspppppppsssss..',
-  '.sspkkpkkkppsssss.',
-  'sspGkppGkpppsssss.',
-  'sspkkppkkpppssssss',
-  'ssppppppppppssssss',
-  'ssspmmmmmmppssssss',
-  'ssspmtmmtpppsssss.',
-  '.ssspppppsssssssss',
-  '.sssssssssssssssss',
-  's.ssssssssssssss.s',
-  '..sssssssssssss...',
-  '...ss.ssss.sss....',
+  '.........s.s.s......',
+  '.......ssssssss.....',
+  '......ssssssssssss..',
+  '.....ssssssssssssss.',
+  '...ssssssssssssssss.',
+  '..sssssssssssssssss.',
+  '.ssssssssssssssssss.',
+  '..kGpkGkssssssssssss',
+  '..ppppppaassssssssss',
+  '.tpmmtpaaassssssssss',
+  '..tmmtaaaassssssssss',
+  '...pp.aaaasssssssss.',
+  '.....aaaa.sssssssss.',
+  '....aaaa..ssssssss..',
+  '...aaaa...ssssssss..',
+  '..hhhh....sss..sss..',
+  '..........sss..sss..',
 ];
-const YETI_EAR = ['.ss', 'ssp', 'ss.'];
-const YETI_FEET = ['FFF....FFF'];
+// the near arm drawn into the body (long, hanging to the knuckles); gone when that arm is raised or thrown
+const NO_ARM: [string, string][] = [['a', '.'], ['h', '.']];
+const YETI_FEET = ['FFF..FFF'];
 const BALL = ['.bbb.', 'bbbbb', 'bbbbb', 'bbbbb', '.bbb.'];
 const BIG_BALL = ['..bbbb..', '.bbbbbb.', 'bbbbbbbb', 'bbbbbbbb', 'bbbbbbbb', 'bbbbbbbb', '.bbbbbb.', '..bbbb..'];
 
 function yetiParts(pose: string): Part[] {
-  let x = 3; // body
-  let y = 6;
+  let x = 2; // body
+  let y = 5;
   let body = YETI_BODY;
-  let hand: [number, number] | null = [0, 19]; // near paw (holding the ball)
-  let ball: [number, number] | null = [-2, 16];
-  let back = false; // the throwing arm raised behind the body
-  let far: [number, number] = [18, 16]; // far paw
+  let ball: [number, number] | null = [x - 2, y + 11]; // held in front of the knuckles
+  let farArm: [number, number, number, number] | null = null; // shoulder -> paw
   const extra: Part[] = [];
   switch (pose) {
     case 'idle1':
-      y = 7;
-      hand = [0, 20];
-      ball = [-2, 17];
-      far = [18, 17];
+      y = 6;
+      ball = [x - 2, y + 11];
       break;
     case 'windup':
-      // the snowball cocked back over the shoulder
-      x = 4;
-      y = 7;
-      hand = [19, 3];
-      ball = [18, -1];
-      back = true;
+      // the far arm cocks a snowball back over the hump
+      x = 3;
+      y = 6;
+      ball = [x + 16, y - 6];
+      farArm = [x + 13, y + 5, x + 17, y - 2];
+      body = swap(YETI_BODY, [['.tpmmtp', '.tpmmmp']]);
       break;
     case 'attack':
-      // the throw: leaning in, paw flung forward
-      x = 2;
-      y = 7;
-      hand = [-4, 14];
+      // the throw: lunging in, the arm flung forward, roaring
+      x = 1;
+      y = 6;
       ball = null;
-      body = swap(YETI_BODY, [['ssspmtmmtpppsssss.', 'ssspmrrrrpppsssss.']]);
+      body = swap(YETI_BODY, [...NO_ARM, ['.tpmmtp', '.tmmmmt'], ['..tmmtaa', '..mrrm..']]);
+      farArm = [x + 9, y + 8, x - 1, y + 10];
       break;
     case 'hurt':
-      x = 5;
-      body = swap(YETI_BODY, [['sspGkppGkpppsssss.', 'sspkpppkppppsssss.'], ['sspkkppkkpppssssss', 'ssppkppppkppssssss']]);
-      hand = [2, 20];
-      ball = [0, 18];
+      x = 4;
+      body = swap(YETI_BODY, [['..kGpkGk', '..kkpkkk']]);
+      ball = [x - 1, y + 12];
       break;
     case 'tell':
-      // Snowball!: a huge snowball hoisted overhead in both paws, grinning
-      y = 7;
-      hand = null;
+      // Snowball!: a huge snowball hoisted overhead in both paws, roaring
+      y = 6;
       ball = null;
-      body = swap(YETI_BODY, [['ssspmtmmtpppsssss.', 'ssspmttttpppsssss.']]);
+      body = swap(YETI_BODY, [...NO_ARM, ['.tpmmtp', '.tmmmmt'], ['..tmmtaa', '..mrrm..']]);
       extra.push(
-        limb(x + 3, y + 7, x + 4, y - 4, 'a', { edge: SNOWFUR[1] }),
-        limb(x + 13, y + 6, x + 12, y - 4, 'a', { edge: SNOWFUR[1] }),
+        limb(x + 4, y + 8, x + 4, y - 4, 'a', { edge: SNOWFUR[1] }),
+        limb(x + 12, y + 4, x + 11, y - 4, 'a', { edge: SNOWFUR[1] }),
         [BIG_BALL, x + 4, y - 12],
         [['hh', 'hh'], x + 3, y - 5],
-        [['hh', 'hh'], x + 12, y - 5],
+        [['hh', 'hh'], x + 11, y - 5],
       );
       break;
   }
   const parts: Part[] = [];
-  const arm: Part[] = [];
-  if (hand) {
-    const sh: [number, number] = back ? [x + 14, y + 6] : [x + 1, y + 11];
-    arm.push(limb(sh[0], sh[1], hand[0] + 1, hand[1], 'a', { edge: SNOWFUR[1] }));
-    if (ball) arm.push([BALL, ball[0], ball[1]]);
-    arm.push([['hh', 'hh'], hand[0], hand[1]]);
-  }
-  parts.push([['aa', 'hh'], far[0], far[1]]);
-  if (back) parts.push(...arm);
-  parts.push([YETI_FEET, x + 3, 22], [YETI_EAR, x + 13, y + 1], [body, x, y]);
-  if (!back) parts.push(...arm);
+  if (farArm) parts.push(limb(farArm[0], farArm[1], farArm[2], farArm[3], 'a', { edge: SNOWFUR[1] }));
+  parts.push([YETI_FEET, x + 10, y + 16], [body, x, y]);
+  if (farArm) parts.push([['hh', 'hh'], farArm[2] - 1, farArm[3] - 1]);
+  if (ball) parts.push([BALL, ball[0], ball[1]]);
   return [...parts, ...extra];
 }
 

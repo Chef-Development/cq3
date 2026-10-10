@@ -321,9 +321,11 @@ export const LAB_NEW: LabScenario[] = [
   // team 2C: the stages darker and moodier (late day, a red evening, a moonlit night), the foes with an edge (nothing
   // hurts: look at them)
   { id: 'moodAct1', group: 'fights', label: 'Act 1 at dusk', secs: 45, try: 'Moodier now? Do you and the foes still pop?', setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['slime', 'crow'], ['boar', 'bandit'], ['bigSlime']], safe: true } },
-  { id: 'moodAct3', group: 'fights', label: 'Act 3, red evening', secs: 40, try: 'A blood-red sky. Too dark, or just right?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['wolf', 'shaman'], ['boar', 'crow']], safe: true } },
-  { id: 'spMoodBoss3', group: 'spoiler', spoiler: true, label: 'Act 3 boss look', secs: 30, try: 'More menace? Still clear what he is?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['boarKing']], safe: true } },
-  { id: 'spMood4', group: 'spoiler', spoiler: true, label: 'Act 4 at night', secs: 40, try: 'Moonlit now. Do the foes still read?', setup: { kind: 'fight', hero: 'rowan', act: 3, waves: [['rimeImp', 'icicleBat'], ['yetiCub', 'rimeImp']], safe: true } },
+  { id: 'moodAct3', group: 'fights', label: 'Act 3, red evening', secs: 40, try: 'A red sky over a cool dusk. Do foes and reds pop?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['wolf', 'shaman'], ['boar', 'crow']], safe: true } },
+  { id: 'spMoodBoss3', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 3 boss look', secs: 60, try: 'Push him: a new look at each phase. Menace?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['boarKing']], safe: true } },
+  { id: 'moodMap1', group: 'fights', label: 'Act 1 map at dusk', secs: 30, try: 'Dusk, lanterns, meaner foes. Still easy to read?', setup: { kind: 'map', act: 0 } },
+  { id: 'spMood4', group: 'spoiler', spoiler: true, label: 'Act 4 at night', secs: 40, try: 'Moonlit. The small white beast: menace now?', setup: { kind: 'fight', hero: 'rowan', act: 3, waves: [['yetiCub', 'rimeImp'], ['rimeImp', 'icicleBat']], safe: true } },
+  { id: 'spMoodBoss9', group: 'spoiler', spoiler: true, label: 'Act 9 boss look', secs: 40, try: 'Does he stand off the dark forge now?', setup: { kind: 'fight', hero: 'rowan', act: 8, waves: [['bellows']], safe: true } },
   // ---- content: the new regions (team 3; spoilers)
   // the fourth region's two bar rules, each alone against the Training Dummy (nothing hurts, the rule's tip on), then
   // both at once against real foes
