@@ -127,12 +127,18 @@ function crawlAct(t: Tuning, run: Run, rng: Rng, o: BotOptions, wild: boolean): 
       else if (!run.takeQuest()) flag('bounty: the board offers no quest it can take');
     } else if (ph === 'loot') {
       run.collectLoot();
+      checkRun(t, run);
+      where += ' (after the bag changed what is worn)';
       equipBest(run);
       spendSkills(run, rng);
     } else if (ph === 'boost') {
       if (!run.boostChoices.length) flag('pick: no cards to pick from');
+      const cards = run.boostChoices;
+      checkRun(t, run);
+      where += ' (after the pick)';
       run.pickBoost(wild ? rng.int(Math.max(1, run.boostChoices.length)) : botPick(run, rng, o.accuracy));
-      if (run.phase === 'boost' && sig(run) === s) flag('pick: taking a card did not move on');
+      // (a second pick can follow at once: a replay's starting relics, a bounty's; the same cards still up is stuck)
+      if (run.phase === 'boost' && run.boostChoices === cards) flag('pick: taking a card did not move on');
     } else if (ph === 'treasure') run.openTreasure();
     else if (ph === 'rest') run.rest();
     else if (ph === 'shop') {
