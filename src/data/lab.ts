@@ -332,6 +332,15 @@ export const LAB_NEW: LabScenario[] = [
     try: 'Gear: Clean capture On. Hold the top middle to undo.',
     setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['dummy'], ['dummy'], ['dummy']], safe: true },
   },
+  // a boss's shout keeps its own lane: the damage numbers pop under it (they piled up at the top centre)
+  {
+    id: 'shoutLane',
+    group: 'fights',
+    label: 'Boss shout',
+    secs: 45,
+    try: 'Hit him while he shouts: numbers clear of it?',
+    setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['captain']], safe: true },
+  },
   // later regions' art loads on its own now (region-art.ts): a fight there straight after launch must look whole
   {
     id: 'lateArtFirst',
