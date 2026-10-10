@@ -648,6 +648,28 @@ function icon(key: string): HTMLCanvasElement {
   return toCanvas(g);
 }
 
+/** Region 4's bases (reeds, marsh rubber, shell and lantern light; the Lighthouse's two signatures glowing),
+ *  replacing the slot icons they borrowed (its Waders share Region 1's). */
+const DUSK_ICONS: Record<string, string[]> = {
+  reedspear: ['.........5', '........45', '.......34.', '......E3..', '.....Ee...', '....fe....', '...Ee.....', '..Ee......', '.fe.......', 'Ee........'],
+  lanternmace: ['......2...', '.....2222.', '.....2FP2.', '.....2IF2.', '.....2222.', '....hH....', '...hH.....', '..hH......', '.hH.......', 'dh........'],
+  peatmaul: ['....adddda', '....dhHhhd', '....dhhhhd', '....addMda', '.....h....', '....hH....', '...hH.....', '..hH......', '.hH.......', 'hh........'],
+  snapperhelm: ['...nNNn...', '..nNeeNn..', '.nNeEEeNn.', '.NeEnnEeN.', '.NeeEEeeN.', '.kkkkkkkk.', '..N.kk.N..', '..NnkknN..', '...n..n...', '..........'],
+  mosscowl: ['...MMMM...', '..MmMMmM..', '.MmMMMMmM.', '.MMkkkkMM.', '.MkkkkkkM.', '.MkTkkTkM.', '.MMkkkkMM.', 'MmMMMMMMmM', 'mMmMmMmMmM', '.m.m..m.m.'],
+  reedmail: ['.EE....EE.', 'EeEeffeEeE', '.eEeEEeEe.', '.EeEeEeEe.', '.eEeEeEeE.', '.EeEeEeEe.', '.ZXZXZXZX.', '.eEeEeEeE.', '.EeEeEeEe.', '..eeeeee..'],
+  shellplate: ['.=+....+=.', '=++=&&=++=', '.+=D++D=+.', '.=++==++=.', '.+==++==+.', '.=++==++=.', '.+==++==+.', '..=++++=..', '..&====&..', '...&&&&...'],
+  stiltboots: ['..dhh.....', '..dhH.....', '..dhH.....', '..dhHhh...', '..ddhhhd..', '...h..h...', '...h..h...', '...H..H...', '...h..h...', '..dd.dd...'],
+  mudtreads: ['..&++.....', '..&+=.....', '..&+=.....', '..&+=.....', '..&++=....', '..&+++=...', '..&++++=..', '..adhhhda.', '.adhadhhda', '..aa.aa.a.'],
+  tidepearl: ['..........', '...cCCc...', '..cCDDCc..', '.cuuuuuuc.', '.uuDAAuuu.', '.uDAWADuu.', '.cuDAADuc.', 'cCcCcCcCcC', '.cCCCCCCc.', '..cccccc..'],
+  wispcharm: ['...h..h...', '....hh....', '...2332...', '..31tt13..', '..3tTTt3..', '..3TiiT3..', '..3tTTt3..', '..31tt13..', '...2332...', '..........'],
+  wickhood: ['....F.....', '....P.....', '....h.....', '...hHh....', '..hHHHh...', '.hHkkkHh..', '.hkkkkkh..', '.hkkkkkh..', 'hHHkkkHHh.', 'hhhhhhhhh.'],
+  oilskin: ['.YY....YY.', 'YygYaaYygY', 'Yyyyyyyyyz', '.YyyayyYz.', '.YyyayyYz.', '.YyyayyYz.', '.YgyayyYz.', '.YyyayyYz.', 'YYyyayyYzz', 'zzzzazzzzz'],
+  fireflyjar: ['...hhhh...', '..2hHHh2..', '..311113..', '.311F1113.', '.31F11P13.', '.311I1113.', '.31P11F13.', '.311F1113.', '..333333..', '..........'],
+  sunlamp: ['....66....', '...6776...', '..677776..', '..2F00F2..', '..2I00I2..', '..2F00F2..', '..677776..', '...6776...', '....66....', '.9..99..9.'],
+  breakersedge: ['.........i', '........Ti', '.......tT.', '......tT..', '.....tT=..', '..g.tT....', '...gy.....', '..hyg.....', '.hH.......', 'hH........'],
+};
+Object.assign(ICONS, DUSK_ICONS);
+
 /** Region 5's bases (sand-worn linen and brass under a pinned sun; the Gnomon's two signatures gold and glowing),
  *  painted whether or not the region is in play. */
 const NOON_ICONS: Record<string, string[]> = {
