@@ -365,8 +365,8 @@ export function solennePortrait(): HTMLCanvasElement {
   ])
     for (let x = x0; x <= x1; x++) put(g, x, 16, HAIR[1]);
   const eye: Pal = { k: '#140c1c', W: '#ffffff', e: '#d8801c', E: '#8a4a10', w: '#e8d8cc' };
-  stamp(g, ['kkkk', 'WeEk', 'wEkk', '.kk.'], eye, 23, 17);
-  stamp(g, ['kkk', 'WeE', 'wEk'], eye, 30, 17);
+  stamp(g, ['kkkk', 'keEk', '.kk.'], eye, 23, 17);
+  stamp(g, ['kkk', 'keE', '.kk'], eye, 30, 17);
   put(g, 34, 23, SKIN[2]);
   stamp(g, ['x...x', '.xxx.'], { x: '#5a1a1a' }, 28, 25);
   put(g, 30, 27, SKIN[4]);
