@@ -1149,7 +1149,9 @@ export class Fighters {
     // a small forward lunge on every slash
     const lk = (a - h.lungeAt) / 90;
     const lunge = lk >= 0 && lk < 1 ? Math.round(4 * Math.sin(lk * Math.PI)) : 0;
-    this.hero.setPosition(Math.round(h.x + knock + lunge), Math.round(s.ground + yOff));
+    // on guard between blows (the windup held): a 1 px ready bounce up onto the balls of the feet
+    const ready = h.state === 'engaged' && pose === 'windup' && a >= h.poseUntil && Math.floor((a - h.lastAction) / 240) % 2 ? 1 : 0;
+    this.hero.setPosition(Math.round(h.x + knock + lunge), Math.round(s.ground + yOff) - ready);
     const st = this.squash(a, !!sm);
     this.hero.setScale(SPRITE_SCALE * st, SPRITE_SCALE / st);
     // afterimages while dashing, returning or leaping
