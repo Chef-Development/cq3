@@ -18,7 +18,7 @@ export const END_STORY: Record<string, StoryBox[]> = {
   ],
   // the boss: the river itself, behind his levee
   flood: [
-    { who: 'narrator', text: 'Above the village, behind a high new levee,\nthe river rises like a grey serpent.' },
+    { who: 'narrator', text: 'Above the village, behind a high new levee,\nthe river rises like a gray serpent.' },
     { who: 'mapmaker', text: 'This is Wend, knight, the morning before.\nThis time, the levee holds.' },
     { who: 'rowan', text: 'You drew it all back. All of it.\nExcept the people.' },
     { who: 'mapmaker', text: 'I draw him in that window every night.\nBy morning, he is gone. I do not know why.' },

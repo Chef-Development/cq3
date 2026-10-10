@@ -40,10 +40,10 @@ const call = (id: QuestId, style: StyleId, title: string, name: string): QuestDe
 export const QUESTS: readonly QuestDef[] = [
   { id: 'blocks', title: 'Hold the Line', text: 'Block {n} reds', icon: 'shield', reward: 'gear', count: 'sum' },
   { id: 'combo', title: 'Keep the Beat', text: 'Reach a {n} combo', icon: 'bolt', reward: 'relic', count: 'best' },
-  { id: 'elite', title: 'Wanted!', text: 'Beat an elite', icon: 'skull', reward: 'gear', count: 'once' },
+  { id: 'elite', title: 'Wanted', text: 'Beat an elite', icon: 'skull', reward: 'gear', count: 'once' },
   { id: 'healthy', title: 'Not a Scratch', text: 'Win a fight above {n}% HP', icon: 'heart', reward: 'coins', count: 'once' },
   { id: 'flawless', title: 'Clean Sweep', text: 'Clear {n} waves, no misses', icon: 'star', reward: 'relic', count: 'sum' },
-  { id: 'kills', title: 'Pest Control', text: 'Beat {n} foes', icon: 'foe', reward: 'coins', count: 'sum' },
+  { id: 'kills', title: 'Clear the Road', text: 'Beat {n} foes', icon: 'foe', reward: 'coins', count: 'sum' },
   call('asBlade', 'blade', 'Edge Work', 'Blade'),
   call('asShadow', 'shadow', 'Shadow Work', 'Shadow'),
   call('asGuardian', 'guardian', 'Shield Oath', 'Guardian'),
@@ -71,10 +71,12 @@ export interface QuestStory {
 }
 
 export const QUEST_STORIES: readonly QuestStory[] = [
-  { region: 'greenmarch', quest: 'kills', frame: 'Pinned up by the miller, before he slept.', payoff: 'The road is clear for when the miller wakes.' },
+  { region: 'greenmarch', quest: 'kills', frame: "The miller's last notice: clear the mill road.", payoff: 'The mill road is clear for when he wakes.' },
   { region: 'frostpeaks', quest: 'blocks', frame: 'From the snow-wall crews: hold the pass.', payoff: 'The pass held. The crews will build again.' },
-  { region: 'ashfell', quest: 'healthy', frame: 'A forge-mother asks: come back whole.', payoff: 'She keeps her word: coin, and a hot meal.' },
-  { region: 'duskmire', quest: 'elite', frame: "Something big took the fen's night boat.", payoff: "The night boat's crew can sleep again." },
+  { region: 'ashfell', quest: 'healthy', frame: 'A forge-mother asks: come back whole.', payoff: 'She pays in coin, and a hot meal.' },
+  { region: 'duskmire', quest: 'elite', frame: "Something big took the fen's night boat.", payoff: 'The night boat is back on the water.' },
+  // ready for when Noonspire joins REGIONS
+  { region: 'noonspire', quest: 'combo', frame: "The Order's drummer: keep time for us.", payoff: 'For a moment, the spire has a rhythm again.' },
 ];
 
 /** The story a region's board gives this bounty, if any. */

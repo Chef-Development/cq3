@@ -17,24 +17,24 @@ export interface AtlasPage {
 export const ATLAS_PAGES: readonly AtlasPage[] = [
   // Greenmarch
   { act: 0, title: 'A farm ledger', lines: ["'Barley in the low field, beans by the oak.", "Rain due Thursday.' Below, in a child's hand:", "'The lane goes round the oak because the", "oak was here first.'"] },
-  { act: 1, title: "A keeper's note", lines: ["Three hundred years old: 'The fortress has", "fallen. Let it lie. Draw the ivy in.'", "In the margin, newer ink: 'Something", "sleeps in the rubble. Do not wake it.'"] },
+  { act: 1, title: "A keeper's note", lines: ["Three hundred years old: 'The fortress has", "fallen. Let it lie. Let the ivy have it.'", "In the margin, newer ink: 'Something", "sleeps in the rubble. Do not wake it.'"] },
   { act: 2, title: "A hunter's letter", lines: ["'The hollow wood has no king. Nothing in it", "owes anyone anything. That is why I love it.", "Come in the spring. Bring bread for the", "boars. They are not as fierce as they look.'"] },
   // the Frostpeaks
   { act: 3, title: "A crew's orders", lines: ["Pinned to a post, frozen stiff: 'Thaw in", "nine days. Small slides first, so the big", "ones never come.' The orders stop there.", 'The last date on them is three weeks old.'] },
-  { act: 4, title: "A child's map", lines: ["The caves in crayon, and a note: 'The ice", "sings when you touch it. Then it lets go.'", "Under it, in another hand, much later:", "'It does not let go now.'"] },
+  { act: 4, title: "A child's map", lines: ["The caves in charcoal, and a note: 'The ice", "sings when you touch it. Then it lets go.'", "Under it, in another hand, much later:", "'It does not let go now.'"] },
   { act: 5, title: 'An observatory log', lines: ["'Aurora at dusk. Forty days to spring.", "Good.' Then, a week later, the last entry:", "'The light has stopped moving. I am going", "up to the glacier to see why.'"] },
   // Ashfell
-  { act: 6, title: "A forge-family's letter", lines: ["'The river moved again. We move the forge", "on Sunday. Your sister's side is cut off", "till the spring. We will find a way across.", "We always do. That is what feet are for.'"] },
-  { act: 7, title: "A glassblower's note", lines: ["'Glass remembers the heat that made it.", "Be careful what shape you bend it into.'", 'The rest of the page has melted.'] },
-  { act: 8, title: 'A chalk tally', lines: ["On a forge wall, in a big square hand:", "'Hammers down at sunset. All of you.'", "And under it, smaller: 'Even me. B.'"] },
+  { act: 6, title: "A forge-family's letter", lines: ["'The lava moved again. We move the forge", "on Sunday. Your sister's side is cut off", "till the spring. We will find a way across.", "We always do. That is what feet are for.'"] },
+  { act: 7, title: "A glassblower's note", lines: ["'Glass remembers the heat that made it.", "Be careful what shape you bend it into.'", 'The rest of the page is scorched away.'] },
+  { act: 8, title: 'A forge slate', lines: ["Chalked on a slate, in a big square hand:", "'Hammers down at sunset. All of you.'", "And under it, smaller: 'Even me. B.'"] },
   // the Duskmire
   { act: 9, title: 'A tide table', lines: ["Water-stained: 'Night tide, half past two.", "Lanterns lit on every post by dusk.", "A light on the crossing has saved more", "than one fool. Keep it lit.'"] },
   { act: 10, title: "A keeper's survey", lines: ["Very old: 'Causeway village. Forty souls.", "The river comes down from the north.'", "Beside it, in newer ink, one word:", "'Amended.' Nothing says who amended it."] },
   { act: 11, title: "A ferryman's note", lines: ["'No light on the mere at night. Row by", "the stars. The stars move, and so do you.", "That is how you get home.'"] },
   // Noonspire (written ahead: its acts are 12-14 once the region is in play)
-  { act: 12, title: 'A waymark', lines: ["Carved in white stone: 'At dawn, follow", "your shadow to the well. At dusk, it points", "you home. At noon, sit down and wait.'"] },
-  { act: 13, title: "The Order's verse", lines: ["Painted on the spire stair: 'We greet the", "sun because it leaves us. A sun that never", "left would need no greeting.'"] },
-  { act: 14, title: "A dial-keeper's log", lines: ["'A cold night. Three lost on the road in", "the dark. Lamps on every tower from now on.'", "The next line is the same entry, again,", 'and again, down the whole page.'] },
+  { act: 12, title: 'A waymark rubbing', lines: ["A rubbing of a waymark: 'At dawn, follow", "your shadow to the well. At dusk, it points", "you home. At noon, sit down and wait.'"] },
+  { act: 13, title: "The Order's verse", lines: ["Copied from the spire stair: 'We greet the", "sun because it leaves us. A sun that never", "left would need no greeting.'"] },
+  { act: 14, title: "A dial-keeper's log", lines: ["'A cold night. Three lost on the road in", "the dark. Lamps on every tower from now on.'", 'Every entry after it says the same,', 'night after night, down the whole page.'] },
 ];
 
 /** The story scene that reads act `act`'s page (the narrator, two lines a box). */

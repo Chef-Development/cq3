@@ -325,6 +325,24 @@ duplicates (each star: +12% damage, perk numbers up a step; 3★ attacks one hit
 | Gloam | Epic | a slim black cat with glowing violet eyes and a moon mark | swipes every 5 hits | **Night Eyes:** every 12 s, the next trap on the bar is swatted into a yellow (where it stands: nothing is added) |
 | Nimbus | Mythic | a tiny sky whale wrapped in a cloud, star freckles (a flier) | sprays every foe every 7 hits | **Tide:** every 20 s (once a red is in the bar's near half), a wave crosses the bar and pushes every red back; **Calm Seas:** at 30+ combo, hits deal 15% more |
 
+### Toward 30: six more (DESIGNED, NOT BUILT; story team, round 8)
+Six concepts for a later art and code pass, written to the living map (each wandered in from a redrawn or erased land;
+docs/story-bible.md section 4) and the round's mature tone (L8: weathered, dry, no toy-like names). Each perk is in
+plain words and shows on what it touches. Numbers are placeholders for the bot, kept small after round 7's lessons:
+red control compounds, so nothing here stops a boss's red outright, and forgiveness counts toward the cap of 3. Per
+the table's pattern, a Common to Rare companion has its first perk, and the second comes at 3 stars. When built,
+each needs a look and a short line in `view/companion-cards.ts`, an entry in `view/perk-at.ts` and with/without
+tests, and a bio in `companions.ts` (these bios are written).
+
+| Companion | Rarity | Creature, look | Bio | Attack | Perks | Found |
+|---|---|---|---|---|---|---|
+| Thistle | Common | a wiry grey field mouse, a torn ear, a seed husk for a hat | "Slept through the blank in a grain sack. Woke up hungry, and unimpressed." | nips every 5 hits | **Stowaway:** once a fight, a miss that would break your combo doesn't (the mouse squeaks on the cursor; it counts toward the 3 forgiven misses). **Gleaning (3★):** a fight won without a miss pays a few coins (the mouse drags one to the purse). | hero chests, from Greenmarch on |
+| Rook | Uncommon | a one-eyed rook, a link of chain in his beak | "Pulled one link out of his chains. Kept it. Won't say why." | pecks every 4 hits | **Loose Link:** every 12 s, when you hit one block of a linked pair, Rook pecks its partner for you (he lands on it). **Carrion (3★):** when a foe falls, Rook pecks the next foe once (on that foe). | hero chests, from Ashfell on |
+| Wick | Rare | a fen moth with wings that glow like a lantern turned down low | "Lived in a fen lantern until a toad ate it. Holds a grudge against toads." | flutters at the target every 5 hits | **Lamplight:** dark blocks just ahead of the cursor are lit a moment sooner (her glow on them). **Moth's Way (3★):** after a block, the next yellow she glows over has a wider Perfect zone for that one tap. | hero chests, from the Duskmire on |
+| Hask | Epic | a lean desert hare whose long ears cast the only shade around | "Her ears are the only shade on the plateau. She knows it." | kicks every 4 hits | **Shade:** a blazing block you hit while she's beside the cursor burns you half as long (her ears' shadow on the hero). **True Ground:** a mirage's ghost outline shows a moment sooner while she's out (her ears turn toward it). Off the plateau: Shade halves any burn. | hero chests, from Noonspire on |
+| Bellwether | Legendary | an old ram with a cracked horn and a bell on a frayed cord | "Led a flock over the pass for twenty winters. Never once got lost. Mentions this." | butts every 6 hits | **Sure Hooves:** on ice, the cursor speeds up less while it crosses the patch he stands on (his hooves on it). **Steady Footing:** once a fight, a slipped hold keeps your combo. **Flock:** with a second companion out, both attack one hit sooner. | hero chests (rare), from the Frostpeaks on |
+| Vigil | Mythic | a tall grey heron, stiff-legged, salt on her feathers | "Fishes at the very edge of the map. Has seen what lies past it. Unimpressed." | spears the target every 7 hits | **Edge Watch:** once a fight, a red that reaches the near end is speared on the bar first and hits for half (a soak, not a block). **Old Patience:** every 25 combo she stands still on the bar for 3 s: the blocks under her don't drift, hop or sink while she stands (her legs in the water). | region chests, and the shrine's Mythic pool |
+
 ---
 
 ## 5. Region 2: THE FROSTPEAKS (secret)

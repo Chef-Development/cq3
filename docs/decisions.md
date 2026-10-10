@@ -901,6 +901,18 @@ S17. **Atlas pages: one per act, built on what exists.** Each act's hidden treas
     reads as none). The region card's treasure seal opens that act's page in a `Sheet`. No new art. The pages
     seed the river twist once (Act 11: "Amended."), and name nothing beyond their own region.
 
+S18. **The third editor's notes (round 8, 46 items): applied, with two calls of our own.** An event's outcome text
+    is the only place its gain or cost is named, so every outcome now says it ("Max HP up", the purse, the coins in the
+    dummy's straw, the hedge's scratch). The crossing's lamp is dry (you buy oil to light it, or take the lamp to sell);
+    the Duskmire's danger is the old tide breaking through his lines, never his timetable being wrong (his fixes work).
+    No event names a hero (any of sixteen can be walking). A keeper never draws a line, not even ivy (the oath twist 2
+    hangs on). Pages found in a chest are things you can carry (a slate, a rubbing, a copy). Sable never shouts in
+    capitals; "Rude." and most of Torva's "HA!" are gone. Our calls: the kills bounty's title is "Clear the Road" in
+    every region (it fits any board; the editor asked only for the miller's), and the clash between Sable's mastery
+    relic and Region 7's keystone (both "Tether") is settled by renaming the unbuilt keystone "the Mooring" (the relic
+    is already earned in saves). Not ours, passed to the lead: Tess and Brann both unlock Crampons at mastery 5.
+    US spelling throughout ("gray", "travelers").
+
 (story: end of section)
 
 

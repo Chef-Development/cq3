@@ -25,7 +25,7 @@ export const EVENTS: EventDef[] = [
   {
     id: 'mushroom',
     title: 'Suspicious Mushroom',
-    text: 'A mushroom the size of a helmet. It smells\nlike fresh bread. Rowan is very hungry.',
+    text: 'A mushroom the size of a helmet. It smells\nlike fresh bread, and you are very hungry.',
     choices: [
       {
         label: 'Eat it',
@@ -40,10 +40,10 @@ export const EVENTS: EventDef[] = [
   {
     id: 'dummy',
     title: 'Training Dummy',
-    text: 'An old straw dummy wearing a crown that says\n"KING". Somebody has issues.',
+    text: 'An old straw dummy in a crown marked "KING".\nSomeone round here dislikes kings.',
     choices: [
-      { label: 'Practice', outcomes: [{ text: 'Good swings. You hit a bit harder now.', atk: 1, hp: -8 }] },
-      { label: 'Salute it', outcomes: [{ text: "It doesn't salute back. Rude.", coins: 5 }] },
+      { label: 'Practice', outcomes: [{ text: 'Good swings, and a few splinters.\nYou hit a little harder now.', atk: 1, hp: -8 }] },
+      { label: 'Salute it', outcomes: [{ text: 'It does not salute back. Five coins are\ntucked in its straw.', coins: 5 }] },
     ],
   },
   {
@@ -51,12 +51,12 @@ export const EVENTS: EventDef[] = [
     title: 'Lost Merchant',
     text: 'A merchant hangs upside down in a hedge.\n"A little help? I can pay. Some."',
     choices: [
-      { label: 'Pull him out', outcomes: [{ text: 'He gives you a tonic. Max HP up!', maxHp: 10, hp: -5 }] },
+      { label: 'Pull him out', outcomes: [{ text: 'He gives you a tonic, and the hedge gives\nyou a scratch. Max HP up.', maxHp: 10, hp: -5 }] },
       {
         label: 'Ask for coins',
         outcomes: [
           { chance: 1, text: 'He pays 30 coins, grumbling.', coins: 30 },
-          { chance: 1, text: 'He bites you. Then pays 15.', coins: 15, hp: -10 },
+          { chance: 1, text: 'He pays 15, and a kick for your trouble.', coins: 15, hp: -10 },
         ],
       },
     ],
@@ -67,7 +67,7 @@ export const EVENTS: EventDef[] = [
     text: 'Pip lands with a shiny button. "Consulting\nfee," Pip says, and won\'t let go.',
     choices: [
       { label: 'Let Pip keep it', outcomes: [{ text: 'Pip is pleased. His pecks land harder.', pet: 3 }] },
-      { label: 'Sell it', outcomes: [{ text: 'It was a real gold button! +25 coins.', coins: 25 }] },
+      { label: 'Sell it', outcomes: [{ text: 'It was a real gold button. +25 coins.', coins: 25 }] },
     ],
   },
   {
@@ -75,8 +75,8 @@ export const EVENTS: EventDef[] = [
     title: 'Waymark Shrine',
     text: 'A roadside stone carved with an old map.\nA sign says "Offerings keep the lines bright."',
     choices: [
-      { label: 'Offer 20 coins', cost: 20, outcomes: [{ text: 'The carved lines glow gold. You feel lucky.', boost: 'rare' }] },
-      { label: 'Trace the map', outcomes: [{ text: 'A coin was stuck in the carving. Ouch.', hp: -6, coins: 10 }] },
+      { label: 'Offer 20 coins', cost: 20, outcomes: [{ text: 'The carved lines brighten. You feel lucky.', boost: 'rare' }] },
+      { label: 'Trace the map', outcomes: [{ text: "The groove's sharp edge cuts your thumb.\nTen coins were wedged in it.", hp: -6, coins: 10 }] },
     ],
   },
   // ---- Greenmarch: the farms asleep in the fields, the road drawn straight
@@ -84,9 +84,9 @@ export const EVENTS: EventDef[] = [
     id: 'sleepingFarmer',
     region: 'greenmarch',
     title: 'Asleep at the Plough',
-    text: 'A farmer asleep mid-furrow, as he left her.\nHer purse hangs open at her belt.',
+    text: 'A farmer asleep mid-furrow, where the blank\ncaught her. Her purse hangs open at her belt.',
     choices: [
-      { label: 'Tie it shut', outcomes: [{ text: 'You tie it shut and move her out of the sun.\nPip watches you, then pecks harder.', pet: 2 }] },
+      { label: 'Tie it shut', outcomes: [{ text: 'You tie it shut and move her into the shade.\nPip says nothing. His pecks land harder.', pet: 2 }] },
       { label: 'Take a few coins', outcomes: [{ text: 'Twenty-five coins. Nobody will ever know.\nPip looks away.', coins: 25 }] },
     ],
   },
@@ -94,7 +94,7 @@ export const EVENTS: EventDef[] = [
     id: 'straightRoad',
     region: 'greenmarch',
     title: 'The Straight Road',
-    text: 'His road runs dead straight through an\norchard. The old lane still winds beside it.',
+    text: "The Mapmaker's road cuts straight through\nan orchard. The old lane winds beside it.",
     choices: [
       { label: 'Take his road', outcomes: [{ text: 'Smooth, quick, easy going.\nYou arrive rested, and uneasy.', heal: 0.2 }] },
       {
@@ -111,10 +111,10 @@ export const EVENTS: EventDef[] = [
     id: 'heldFast',
     region: 'frostpeaks',
     title: 'Held Fast',
-    text: "A pedlar's boots are frozen to the glass\nroad. He has stood here for days.",
+    text: "A pedlar's boots are frozen into the ice.\nHe has stood here for days.",
     choices: [
       { label: 'Chip him free', outcomes: [{ text: 'Your hands go numb. He presses his\nwhetstone on you. You hit harder now.', hp: -10, atk: 1 }] },
-      { label: 'Take his purse', outcomes: [{ text: '"Fetch help," he says. There is no help\nto fetch, and you both know it.', coins: 20 }] },
+      { label: 'Take his purse', outcomes: [{ text: 'He gives you his purse to fetch help.\nThere is no help to fetch. You both know it.', coins: 20 }] },
     ],
   },
   {
@@ -134,8 +134,8 @@ export const EVENTS: EventDef[] = [
     title: 'Chained Pair',
     text: 'Two strangers, chained wrist to wrist by his\ndrawing. One of them is badly burned.',
     choices: [
-      { label: 'Break the chain', outcomes: [{ text: 'The links fight back. You break them. They\nthank you, and walk on together anyway.', hp: -12, maxHp: 8 }] },
-      { label: 'Pay for a healer', cost: 15, outcomes: [{ text: 'The healer works through the night. At dawn\nthey give you a forge-charm.', boost: 'rare' }] },
+      { label: 'Break the chain', outcomes: [{ text: 'The links burn your hands, but they break.\nThey walk on together anyway. Max HP up.', hp: -12, maxHp: 8 }] },
+      { label: 'Pay for a healer', cost: 15, outcomes: [{ text: 'The healer works through the night. At dawn\nthe pair give you a forge-charm.', boost: 'rare' }] },
     ],
   },
   {
@@ -147,7 +147,7 @@ export const EVENTS: EventDef[] = [
       {
         label: 'Jump across',
         outcomes: [
-          { chance: 2, text: 'You land hard, and help them onto safer\nground. They feed you before you go.', heal: 0.25 },
+          { chance: 2, text: 'You land hard, and help them onto solid\nground. They feed you before you go.', heal: 0.25 },
           { chance: 1, text: 'You land short. The lava is close enough\nto blister.', hp: -15 },
         ],
       },
@@ -159,26 +159,47 @@ export const EVENTS: EventDef[] = [
     id: 'lanternPost',
     region: 'duskmire',
     title: 'The Crossing Light',
-    text: 'An empty lantern post at a crossing. The\nfen-folk say this light once saved lives.',
+    text: 'A lamp hangs at a crossing, dry and dark.\nThe fen-folk say this light once saved lives.',
     choices: [
-      { label: 'Light it', cost: 15, outcomes: [{ text: 'It burns. On the far bank, someone waves.\nThey leave you dried fish and a blessing.', heal: 0.25 }] },
-      { label: 'Take the oil', outcomes: [{ text: 'The oil sells well. The crossing stays\ndark behind you.', coins: 25 }] },
+      { label: 'Buy oil, light it', cost: 15, outcomes: [{ text: 'It burns. On the far bank, someone waves.\nThey leave you dried fish and a blessing.', heal: 0.25 }] },
+      { label: 'Take the lamp', outcomes: [{ text: 'The brass sells well. The crossing stays\ndark behind you.', coins: 25 }] },
     ],
   },
   {
     id: 'tideReader',
     region: 'duskmire',
     title: 'The Tide-Reader',
-    text: 'An old tide-reader: "His timetable says\nit\'s safe to cross. My tables don\'t."',
+    text: 'An old tide-reader: "His timetable says\nit\'s safe. The old tide doesn\'t agree."',
     choices: [
-      { label: 'Wait with her', outcomes: [{ text: 'An hour later the water comes, early and\nfast. She was right. You rested, at least.', heal: 0.2 }] },
+      { label: 'Wait with her', outcomes: [{ text: 'An hour on, the old tide breaks through\nhis lines. She was right. You rested, at least.', heal: 0.2 }] },
       {
         label: 'Trust the timetable',
         outcomes: [
           { chance: 2, text: 'You cross on time, dry. Someone dropped a\npurse on the boards.', coins: 20 },
-          { chance: 1, text: 'The water comes early. You crawl out\nsoaked and bruised.', hp: -12 },
+          { chance: 1, text: 'The old tide breaks through his lines. You\ncrawl out soaked and bruised.', hp: -12 },
         ],
       },
+    ],
+  },
+  // ---- Noonspire (ready for when the region joins REGIONS: until then no act is in it, so neither turns up)
+  {
+    id: 'lostCaravan',
+    region: 'noonspire',
+    title: 'The Lost Caravan',
+    text: 'A caravan has walked in circles for days.\nWith no shadows, nobody can find north.',
+    choices: [
+      { label: 'Guide them', outcomes: [{ text: 'Hours in the glare leave you burned. At the\nroad they press a sun-charm into your hand.', hp: -12, boost: 'rare' }] },
+      { label: 'Sell them your map', outcomes: [{ text: 'They pay well. You hope a map is enough\nwhere nothing casts a shadow.', coins: 25 }] },
+    ],
+  },
+  {
+    id: 'coldSpring',
+    region: 'noonspire',
+    title: 'The Last Cold Spring',
+    text: 'A spring that still runs cold, kept by an\nold woman with a ladle and a tally.',
+    choices: [
+      { label: 'Pay for a drink', cost: 10, outcomes: [{ text: 'It is the best thing you have ever tasted.\nShe marks the tally. One more day.', heal: 0.3 }] },
+      { label: 'Ask about nights', outcomes: [{ text: '"We froze, some winters. We also slept."\nShe tells you where the sentries stand.', boost: 'common' }] },
     ],
   },
 ];

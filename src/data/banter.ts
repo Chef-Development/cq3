@@ -17,7 +17,7 @@ export const BANTER: BanterLine[] = [
   { who: 'rowan', text: "My armor squeaks. It's called charm." },
   { who: 'rowan', text: 'Pip, stop eating the trail rations.' },
   { who: 'rowan', text: 'One more road. Then a long nap.' },
-  { who: 'rowan', text: 'The boars know my name now. Rude.' },
+  { who: 'rowan', text: 'The boars know my name now.' },
   { who: 'rowan', text: 'Why does the fire hiss at me?' },
   { who: 'pip', text: "Hoo. I'm billing you for this fire." },
   { who: 'pip', text: "Owls don't sleep. We supervise." },
@@ -136,7 +136,7 @@ export const HERO_BANTER: HeroBanterLine[] = [
   { who: 'torva', text: 'HA! Lovely night. Anything to smash?' },
   { who: 'torva', text: "My hammer's name? Hammer. HA!" },
   { who: 'torva', text: 'Tired? Smash something. Works.' },
-  { who: 'torva', text: 'Bad day? Drink. Then hit things. HA!' },
+  { who: 'torva', text: 'Bad day? Drink. Then hit things.' },
   { who: 'torva', text: 'Rowan. Arm wrestle? HA!', with: ['rowan'] },
   { who: 'torva', text: "MAGS! I hit a mountain. It's fine.", with: ['smith'] },
   { who: 'rowan', text: 'Torva hugged me. My armor folded.', with: ['torva'] },
@@ -146,7 +146,7 @@ export const HERO_BANTER: HeroBanterLine[] = [
   { who: 'solenne', text: "Good morning! It's night. Still counts." },
   { who: 'solenne', text: 'I polish my armor at dawn. And dusk.' },
   { who: 'solenne', text: 'The sun and I go way back.' },
-  { who: 'solenne', text: 'Is it dawn yet? How about now?' },
+  { who: 'solenne', text: "Not dawn yet. I'll ask again shortly." },
   { who: 'solenne', text: 'Rowan. Sit up. Shine a little.', with: ['rowan'] },
   { who: 'rowan', text: 'Solenne glows in her sleep.', with: ['solenne'] },
   { who: 'wren', text: 'Roofs are faster. Also funnier.' },
@@ -154,7 +154,7 @@ export const HERO_BANTER: HeroBanterLine[] = [
   { who: 'wren', text: 'Doors are just walls with manners.' },
   { who: 'wren', text: 'This fire needs a roof. I volunteer.' },
   { who: 'wren', text: 'Pip! Race you up that tree.', with: ['pip'] },
-  { who: 'sable', text: 'Wren, that was MY dagger.', with: ['wren'] },
+  { who: 'sable', text: 'Wren, that dagger was mine. Once.', with: ['wren'] },
   { who: 'solenne', text: "Wren, it's dawn somewhere. Up.", with: ['wren'] },
 
   // ---- Yara (Part 6): a calm young spirit caller, a little otherworldly, very fond of her spirits
@@ -169,7 +169,7 @@ export const HERO_BANTER: HeroBanterLine[] = [
   // ---- Dell (Part 6): a cheerful farm kid, a little too keen with the slingshot
   { who: 'dell', text: 'Pebbles in my boots again. Ow.' },
   { who: 'dell', text: 'Miss the farm. Not the chores, though.' },
-  { who: 'dell', text: 'Can I roast corn on this? Asking for me.' },
+  { who: 'dell', text: "Can I roast corn on this? I'm asking." },
   { who: 'dell', text: 'Ma says aim small, miss small.' },
   { who: 'dell', text: 'Vesper. Teach me the bow? For corn?', with: ['vesper'] },
   { who: 'vesper', text: 'Dell. A slingshot. Adorable. Lower it.', with: ['dell'] },
@@ -178,7 +178,7 @@ export const HERO_BANTER: HeroBanterLine[] = [
   // ---- Part 6. Fizz: a wild, cheerful alchemist who brews by the fire (and blows things up, carefully-ish)
   { who: 'fizz', text: 'This fire is boring. One drop of red?' },
   { who: 'fizz', text: 'Do NOT drink the blue one. Trust me.' },
-  { who: 'fizz', text: 'My eyebrows grow back. Mostly.' },
+  { who: 'fizz', text: 'My notebook is fireproof. Now.' },
   { who: 'fizz', text: "It's not smoke. It's a breakthrough!" },
   { who: 'fizz', text: 'Mags! Can I borrow your hottest fire?', with: ['smith'] },
   { who: 'fizz', text: 'Tam. Your kegs, my flasks. Imagine it.', with: ['tam'] },
@@ -194,7 +194,7 @@ export const HERO_BANTER: HeroBanterLine[] = [
   { who: 'brann', text: '(writes) Rowan. You nap like a master.', with: ['rowan'], until: 'saltVictory' },
   { who: 'brann', text: '(writes) Hollis. We are both walls. Sit.', with: ['hollis'], until: 'saltVictory' },
   { who: 'pip', text: "Hoo. Brann's bell hums at me.", with: ['brann'] },
-  { who: 'sable', text: 'Tried to ring the bell. It rang ME.', with: ['brann'] },
+  { who: 'sable', text: 'Tried to ring the bell. It rang me.', with: ['brann'] },
   { who: 'fizz', text: 'Brann, can I put a fuse on the bell?', with: ['brann'] },
 ];
 
@@ -224,7 +224,7 @@ HERO_BANTER.push(
   { who: 'tam', text: 'I miss snow. And the BOOM.' },
   { who: 'hollis', text: 'My sea wall is out there. Waiting.' },
   { who: 'vesper', text: 'I miss real night. Stars. Quiet.' },
-  { who: 'torva', text: 'Rocks should STAY PUT. HA!' },
+  { who: 'torva', text: 'Rocks should STAY PUT. I insist.' },
   { who: 'solenne', text: 'Our sun is stuck at noon. Unforgivable.' },
   { who: 'wren', text: 'My rooftops went blank. For now.' },
   { who: 'yara', text: 'The spirits say my village dreams.' },
