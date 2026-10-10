@@ -50,7 +50,7 @@ export const NOON_STORY: Record<string, StoryBox[]> = {
     { who: 'rowan', text: "They're waiting for a sunrise. Every day.\nAnd it never comes." },
     { who: 'neve', text: "They swore to greet every dawn. He took the\ndawns away. They're STILL keeping the oath." },
     { who: 'rowan', text: "Then we'll give them one to greet." },
-    { who: 'narrator', text: 'Pip has been quiet all day. When Rowan\nlooks up, the owl looks away.' },
+    { who: 'narrator', text: 'Pip has said nothing since the camp. When\nRowan looks up, the owl looks away.' },
   ],
   // Act 2 mini-boss: the Dawn Order's brass lion, which roared the sun up, has had no sunrise for a month
   brassLion: [
