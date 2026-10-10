@@ -830,6 +830,34 @@ A6. **Skill nodes without a painted icon get an emblem from their name** (`art-s
     relic families' colours, picked by keyword rules in order; a capstone adds gold corners. 125 of the 127 stand-ins
     now say what the node is about (a unit test keeps new nodes covered). Painted icons per node stay the goal.
 
+A2B-1. **Rowan is on the shared rig** (`art-hero-rowan.ts`, his sword maps in `art-sword.ts`): the same head size, feet
+    line and stance as the other fifteen, all the bible's poses (cast, down and fin were missing) and a four-frame idle.
+    His look is kept (round helm, red plume, cyan visor, blue tabard, red cape) with his steel polished a tone brighter
+    than Hollis's so the starter pops. The plume is a curve from the crest, the cape a map per state (hang, sway, flow,
+    rise, limp): both lag the body. The blade's glint reads the sword's point from the frames as they are painted
+    (`ROWAN_SWORD_TIP`), so a redrawn pose never leaves the glint behind.
+A2B-2. **Four-frame idles for all sixteen heroes** (`idle2`, `idle3` in every hero's poses; `HERO_POSE_KEYS`): the
+    body breathes 0-1-1-0 and the secondary piece (plume, cape, braid, scarf, shawl, bell, a held keg or flask, or the
+    weapon's weight for the heroes without one) follows a frame behind. 300 ms a frame (a 1.2 s loop, inside the
+    bible's 900-1400 ms); a hero without the extra frames keeps the two-frame breath (fighters.ts `idlePose`).
+A2B-3. **Squash and stretch on the hero by transform** (fighters.ts `squash`, at most 100 ms, volume kept): a cut
+    stretches him forward (+8%), a blow taken squashes him (+10%), a landing squashes him wide (+14%; a finisher show's
+    leap is caught when its lift comes back to the ground). No held anticipation is added before the first blow: the
+    engaged pose between blows is already the windup, and the dash (70 ms) must not delay the hit the tap asked for.
+A2B-4. **Sable gets the bible's twelve**: a finisher pose (both blades thrown wide, the scarf rising) and the green
+    ability's crossed daggers, plus the scarf's two in-between states for her idle.
+A2B-5. **The spirit stag (audit: 3) is rebuilt** with a haunch and a shoulder, jointed legs (hocks, hooves), great
+    antlers that fit its frame and three flank stars instead of a scatter.
+A2B-6. **Ashfell's glass warren and forge (audit: 3) get depth and air**: the warren's opening is a tall arch onto a
+    far cavern whose haze brightens toward the lake, with obsidian pillars at two depths (the far ones barely darker
+    than the air), heat shafts and the lake's light spilling onto the wall, and embers rising off the lake; the forge
+    gets a hazy far ridge, a heat plume lit from below over the furnace, pilasters with a lit and a shaded face, and
+    no glowing seams in the strip the fighters stand on. The bible's light table now matches the as-built Greenmarch
+    stages (the ruins a rainy moonlit night, the hollow a sunset) rather than repainting stages that scored 4-5.
+A2B-7. **Art can be reviewed without the browser**: rig frames and backdrops are pure pixel buffers, so a throwaway
+    vitest file can paint them into grids and write PNGs (node's zlib) when the shared Playwright lock is busy. Not
+    committed; the contact sheets in `docs/art-audit/after/` were made that way.
+
 (art: end of section)
 
 

@@ -398,9 +398,12 @@ export class Stage {
       else glint();
       this.nextAmbient += 140;
     } else if (theme === 'glass') {
-      if (r < 0.55) {
+      if (r < 0.45) {
         const c = [0xffc070, 0xff8a5a, 0xc89aff, 0x9ae89a][Math.floor(Math.random() * 4)];
         this.bits.push({ kind: 'mote', x: rand(20, W - 20), y: rand(26, ground + 2), vx: rand(-2, 2), vy: rand(-5, -1.5), born: a, life: rand(3200, 5600), color: c, phase: rand(0, 6) });
+      } else if (r < 0.7) {
+        // embers rising off the magma lake through the far arch (backdrop-ash.ts glass: the lake spans about 0.3-0.75)
+        this.bits.push({ kind: 'ember', x: rand(W * 0.34, W * 0.7), y: ground - rand(20, 24), vx: rand(-3, 3), vy: rand(-12, -6), born: a, life: rand(1400, 2400), color: Math.random() < 0.6 ? 0xff8a3a : 0xffd070, phase: 0 });
       } else glint();
       this.nextAmbient += 210;
     } else {
