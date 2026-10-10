@@ -219,7 +219,9 @@ export const DUSK_ENEMIES: Record<string, EnemyDef> = {
   },
   sluiceKeeper: {
     name: 'The Sluice Keeper',
-    tags: ['construct', 'folk'],
+    // (not folk: the starting hero's soft strength would tilt this act's mini-boss toward him; a beaver in a brass
+    // diving helmet)
+    tags: ['beast', 'armored'],
     hp: 5800,
     atk: 24,
     special: 17,
