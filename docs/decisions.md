@@ -930,4 +930,31 @@ F6. **The masher guard's boss-alone check allows one win in five.** Act 1's ches
     the check is now "at most 1 of 5" (the whole-act masher and the every-try rate are unchanged). For the lead and QA
     to review.
 
+F7. **Pip's road scene plays after a new player's first win** (the lead's request): after its loot, before the map
+    (`ActDef.winScene`, Act 1: 'road'), on the act's first playthrough, once per profile (`scene:road` in
+    `profile.seen`); a replay of a cleared act never plays it. Its last line ("Follow it.") leads onto the map and the
+    chest it promises. Six boxes: about 13 s (the story team owns the words; four would keep the pace). The welcome
+    back's id is now `welcomeR8`, so every returning player meets the new story's welcome once.
+F8. **A new player's first win has no pick of its own** (`CORE:` run.ts, `Run.firstWin`): the first fight's relic pick
+    came half a minute before the promised chest's rare pick, two picks around one story scene in minute one. The
+    first win now goes loot, road scene, map; the chest's pick is the first relic a newcomer meets (with its tip).
+    Replays and returning players are unchanged. Act 1's bot guards and the masher's (region 1) still pass.
+F9. **The first finisher finishes.** Measured: the named reveal played, then the whirlwind left the boar standing
+    (51 of 150). The finisher's lesson (its tip, and the stack the coach places when the meter isn't full by itself)
+    now waits for the foe in front to be low enough for the blow to kill it, but more than a tap or two from falling
+    anyway (`TipCoach.finisherMoment`; floor 0.3 of one stack's blow; at most 15 s into its turn, `finWaitSec`). A
+    unit guard plays 30 first fights: the first finisher kills the foe in front in at least 27.
+F10. **The quiet start ends one tip at a time.** After 3 wins, its five tips (Synergy!, the packs, the skill point, the
+    relic belt, the sparkle) came in a burst: five tips over the four screens before the first boss. Now each one
+    seen moves the next a fight won later (`quietOver`).
+F11. **The act clear points at the hero chest.** The boss's hero chest waited unseen at camp while "Next: Act 2"
+    glowed. When a chest waits, Camp glows gold with the count in a bubble. The gains column (gems, a mastery reward)
+    ran under "Act 1 Clear!" and the line under it: it keeps left of them now and wraps its small line.
+F12. **The game's first hero chest always brings someone new** (`CORE:` chests.ts): measured, it came up as shards for
+    Sable, who had joined in the story a minute before. The first hero chest skips the shard roll and leaves out who
+    you own (same random draws: later chests and known-seed tests are unchanged).
+F13. **The newcomer bot goes on to the first hero chest** (`F10_UNTIL=act`): the act clear (a look, then Camp), Sable's
+    scene, the vault, the reveal. It also times the first red's spawn and the first boss's arc (its first special,
+    half and a fifth of its HP).
+
 (first10: end of section)
