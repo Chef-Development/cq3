@@ -266,3 +266,6 @@ One PR at the end supersedes #1-#7.
   and pause step aside). 105 screenshot diffs, all from tonight's intended art changes. Regenerating the baselines now.
 - 04:10 EDT: screenshot baselines regenerated at the freeze after a look (186 pictures, then the lab list): 111 of 111
   passing on the new set. The final full Playwright run started on the frozen code.
+- 04:11 EDT: with 2.5 h left, one more polish chunk (dusk-art, HARD STOP 05:30: Pip's size in fights, the HP green,
+  events' prose, the treasure's empty band); re-freeze 05:45 (baselines for what changed, the suites again), final
+  state by 06:30, the final message at 06:45.
