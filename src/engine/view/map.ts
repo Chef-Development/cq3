@@ -607,7 +607,8 @@ export class MapView implements MapHost {
         }
         const b = Math.floor((now + ph) / 420) % 2;
         const img = P.foot(this.mini(lead, now + ph), x + (second ? 2 : 0), y + 5 - b - bounce, D_ICON, alpha, tint);
-        if (n.type === 'elite') P.foot('mn_skull', x + (second ? 2 : 0) + 5, img.y - 1 + (Math.floor(now / 500) % 2), D_ICON + 0.01, alpha, tint);
+        // (A2C-13) the elite's skull sits on the foe's shoulder, not floating off beside it
+        if (n.type === 'elite') P.foot('mn_skull', x + (second ? 2 : 0) + 4, img.y + 2 + (Math.floor(now / 500) % 2), D_ICON + 0.01, alpha, tint);
         return;
       }
       case 'treasure': {
@@ -816,7 +817,7 @@ export class MapView implements MapHost {
       // the boss's name stays under its lair, as it always has
       const [x, y] = this.pos(bossNode);
       const w = textWidth(bossName, 1, false);
-      const t: Tag = { id: map.boss, label: bossName, labelCol: 0xff8a76, foes: 0, elite: false, chip: null, w, h: LABEL_H, x: Math.round(Math.max(s.L + 2, Math.min(s.R - 2 - w, x - w / 2))), y: y + 11 };
+      const t: Tag = { id: map.boss, label: bossName, labelCol: 0xff8a76, foes: 0, elite: false, chip: null, w, h: LABEL_H, x: Math.round(Math.max(s.L + 2, Math.min(s.R - 6 - w, x - w / 2))), y: y + 11 }; // (A2C-13) clear of a rounded corner
       tags.push(t);
       obstacles.push({ r: { x: t.x, y: t.y, w: t.w, h: t.h }, w: 6 });
     }

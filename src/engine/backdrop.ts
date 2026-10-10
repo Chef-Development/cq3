@@ -1464,8 +1464,10 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
 
   // far hills with a fringe of tiny trees, almost lost in the rose haze
   const skyDone = p.buf.slice(); // the sky, the sun and the wisps are painted for the mood: the grade leaves them
-  const hz = col('#8a2a2c');
-  const farR = haze(ramp('#2a0e20', '#3a1426', '#4c1a2c', '#602232'), hz, 0.5);
+  // (A2C-10) the far planes haze toward a cool dusky violet, not the sky's red: they sit back, dark and cool, against
+  // the red band, so the actors and the bar's reds have a cool ground to stand apart from
+  const hz = col('#3c2c56');
+  const farR = haze(ramp('#1a0e24', '#24142e', '#2e1a38', '#3a2242'), hz, 0.45);
   const far: Blob[] = [];
   for (let x = -10; x < w + 10; x += 14 + rnd() * 12) far.push({ x, y: G - 27 - Math.sin(x / 41 + 1) * 4, rx: 16 + rnd() * 10, ry: 6 + rnd() * 3 });
   for (let x = -10; x < w + 10; x += 20) far.push({ x, y: G - 16, rx: 16, ry: 6 }); // hide the horizon line
@@ -1473,7 +1475,7 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   mass(p, far, { ramp: farR, seed: 5, bump: 0.12, tex: 0.12, vgrad: 0.45, light: 0.06, shadow: 0.08, floor: G - 14 });
 
   // mist pooled in the valley
-  const mistC = col('#b0403a');
+  const mistC = col('#5a3c6a'); // a violet dusk haze in the valley (it was the sky's red)
   const mist = (yc: number, half: number, amt: number, seed: number) => {
     for (let y = Math.floor(yc - half); y <= yc + half; y++)
       for (let x = 0; x < w; x++) {
@@ -1511,14 +1513,14 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     }
   };
   const cx = Math.round(w * 0.5); // the den tree
-  grove(G - 22, 0.62, 0.7, 11, [[sunX - 16, sunX + 12]]);
+  grove(G - 22, 0.7, 0.7, 11, [[sunX - 16, sunX + 12]]);
   mist(G - 21, 6, 0.45, 37);
-  grove(G - 15, 0.34, 0.95, 17, [
+  grove(G - 15, 0.3, 0.95, 17, [
     [sunX - 14, sunX + 16],
     [cx - 30, cx + 30],
   ]);
   // undergrowth at the foot of the grove, gaps letting the low sun through
-  const brushR = haze(ramp('#2a1226', '#3e1a2c', '#5a2430', '#7a3232', '#9a4636'), hz, 0.3);
+  const brushR = haze(ramp('#22122a', '#301a32', '#442236', '#5a2c38', '#723a3c'), hz, 0.3);
   const brush: Blob[] = [];
   for (let x = -6; x < w + 6; x += 3 + rnd() * 4) {
     if (noise(x * 0.06, 2, 19) < 0.38) continue;
@@ -1528,7 +1530,7 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   mist(G - 16, 4, 0.35, 43);
 
   // the forest floor behind the road: leaf litter
-  const floorR = ramp('#24121e', '#321824', '#44202a', '#5a2a2e', '#723a32', '#8c4c36');
+  const floorR = ramp('#1c1220', '#261828', '#32202e', '#422834', '#563238', '#6c3e3a');
   const leafR = ramp('#5a1e24', '#8e3024', '#c0522a', '#e0822e', '#f4b040');
   const gTop = G - 14;
   for (let y = gTop; y < G - 7; y++)
@@ -1536,9 +1538,9 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
       if (y === gTop && hash(x, y, 4) > 0.5) continue;
       const t = (y - gTop) / (G - 7 - gTop);
       const n = fbm(x * 0.12, y * 0.35, 51);
-      let c = pick(floorR, 0.25 + t * 0.4 + (n - 0.5) * 0.6, x, y, 0.25);
+      let c = pick(floorR, 0.25 + t * 0.4 + (n - 0.5) * 0.4, x, y, 0.25);
       const l = noise(x * 0.3, y * 0.6, 53);
-      if (l > 0.75) c = pick(leafR, (l - 0.75) * 2.2 + (y - gTop) * 0.03, x, y);
+      if (l > 0.84) c = pick(leafR, (l - 0.84) * 2 + (y - gTop) * 0.02, x, y);
       p.set(x, y, c);
     }
   // ---- the Boar King's den: a colossal, twisted hollow tree rising out of the frame
@@ -1719,12 +1721,12 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   }
 
   // the road: packed dark earth, calm where the actors stand
-  const roadR = ramp('#26141e', '#341a24', '#44222a', '#562c2e', '#6a3832', '#7e4636');
+  const roadR = ramp('#1a1220', '#221828', '#2c1e30', '#382636', '#46303a', '#56393e');
   const roadTop = G - 8;
   for (let y = roadTop; y < h; y++)
     for (let x = 0; x < w; x++) {
       const t = (y - roadTop) / (h - roadTop);
-      let v = 0.62 - t * 0.12 + (fbm(x * 0.05, y * 0.3, 61) - 0.5) * 0.28;
+      let v = 0.62 - t * 0.12 + (fbm(x * 0.05, y * 0.3, 61) - 0.5) * 0.2;
       if ((y === G + 3 || y === G + 7) && noise(x * 0.12, y, 4) > 0.5) v -= 0.14;
       p.set(x, y, pick(roadR, v, x, y, 0.2));
     }
@@ -1739,7 +1741,9 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const leafCols = [leafR[1], leafR[2], leafR[3], leafR[4], capRed[2]];
   for (let i = 0; i < 46; i++) {
     const x = Math.floor(rnd() * w);
-    const y = rnd() < 0.35 ? G - 5 + Math.floor(rnd() * 3) : G + 3 + Math.floor(rnd() * Math.max(1, h - G - 4));
+    const near = rnd() < 0.35;
+    const y = near ? G - 5 + Math.floor(rnd() * 3) : G + 3 + Math.floor(rnd() * Math.max(1, h - G - 4));
+    if (near || i % 2) continue; // (A2C-10) the strip under the feet stays calm: half as many, none by the feet line
     const c = leafCols[Math.floor(rnd() * leafCols.length)];
     p.set(x, y, c);
     p.set(x + 1, y, rnd() < 0.5 ? c : mix(c, roadR[0], 0.5));

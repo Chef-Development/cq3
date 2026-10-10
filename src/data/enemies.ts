@@ -7,6 +7,7 @@ import { FROST_ENEMIES } from './enemies-frost';
 import { ASH_ENEMIES } from './enemies-ash';
 import { DUSK_ENEMIES } from './enemies-dusk';
 import { NOON_ENEMIES } from './enemies-noon';
+import { REMIX_ENEMIES } from './enemies-remix';
 import type { EnemyDef } from './types';
 
 // Fair to a thumb (tests/unit/data.test.ts checks every red formation): a red is never thinner than normal, a fast
@@ -356,4 +357,6 @@ export const ENEMIES: Record<string, EnemyDef> = {
   ...DUSK_ENEMIES,
   // Region 5 (src/data/enemies-noon.ts; its acts join REGIONS with its art, the lab can preview its foes now)
   ...NOON_ENEMIES,
+  // the Mapmaker's revisions of restored regions' bosses (src/data/enemies-remix.ts, src/data/remixes.ts)
+  ...REMIX_ENEMIES,
 };
