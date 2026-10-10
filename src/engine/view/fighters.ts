@@ -13,6 +13,7 @@
 // to its target (a mark on the foe, a box on the block, a burning foe's flames, Sunny's sweep) is view/onsite.ts.
 import Phaser from 'phaser';
 import { isAshArtKey } from '../art-ash';
+import { isDuskArtKey } from '../art-dusk';
 import { rimMask, STAGE_LIGHT } from '../art-stage';
 import { whole } from '../../core/format';
 import type { Combat } from '../../core/combat';
@@ -269,6 +270,7 @@ export class Fighters {
       const def = s.app.tuning.enemies[e.key];
       // the third region's foes are painted in idle time after boot: one that's needed sooner is finished now
       if (!s.textures.exists(`${def.sprite}_idle0`) && isAshArtKey(`${def.sprite}_idle0`)) s.ensureAshArt();
+      if (!s.textures.exists(`${def.sprite}_idle0`) && isDuskArtKey(`${def.sprite}_idle0`)) s.ensureDuskArt();
       const img = s.add.image(0, 0, `${def.sprite}_idle0`).setOrigin(0.5, 1).setScale(SPRITE_SCALE);
       const rim = this.makeRim();
       s.actors.add([img, rim]);
