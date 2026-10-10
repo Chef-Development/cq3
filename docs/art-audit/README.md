@@ -51,7 +51,7 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | **Title (before)** | 3 | The old "Combo Quest 3" chrome logo and crest over a reused fight stage; nothing of the new premise. Redone this round (below). |
 | Fight HUD, bar, band | 4 | |
 | Camp, hero select, companions, shrine, completion, story | 4 | Follow ui-style.md. |
-| **Vault** | 3 | Dim: the chests barely lit, a big empty floor, no focal light. |
+| **Vault** | 3 | Empty (no chests yet): dim, a big empty floor, no focal light. With chests waiting: 4 (spotlit chests, counts, Open all). |
 | Chest reveal (old and sharper) | 5 | |
 
 ## Outliers (the redo list, worst first)
@@ -73,8 +73,21 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Skill icons | 2 | 3 | `after/sheet-icons-skills.png`. The 127 rule nodes and capstones without a painted icon now show the emblem their name is about (15 emblems: smoke, ice, thorns, bomb, flame, shield, arrow, rock, fist, hourglass, bell, sun, clover, dagger, moon; gold corners on capstones; `art-skill-emblems.ts`, unit-tested). Two keep the rune. Still to do: painted icons per node (a hero's tree repeats its theme's emblem). |
 | Relic icons (the Frostpeaks' 15) | 3 | 4 | `after/sheet-icons-relics-items.png`. Each its own picture (a skate, a frost rune, cocoa, a hammer on ice, a plough in snow, an ice heart, a frosted fang, a melting cube, a grip, a held note, a knot, a valve, a tether, a lucky mitten, crampons) instead of a stand-in snowflake or rail. |
 | Dark Ashfell foes (ox, sentinel, forgehand, kite) | 3 | 4 | `after/sheet-foes-ashfell.png`, `after/fight-act8-uplit.png`. Ashfell's light recipe applied: an ember rim along their lower edges (light from below), a faint cool lift on the top edges (`art-ash.ts` emberRim). |
+| Backdrop: glass | 3 | 4 | `after/fight-act8-glass-before-after.png` (top before, bottom after). The wall lifted a little, the lake's light spilling out of the opening across it (Ashfell's key from below), the glass windows set in rock sockets so they no longer float, and moved clear of the dithered edge shade (it had turned the amber one into a checkerboard). |
+| Rowan's fight frames | 3 | 3+ | `after/sheet-heroes-a.png`: the three missing poses drawn on his own pose system (fin: the sword raised high, cape flying; cast: the blade raised forward; down: on one knee over the planted sword), so his finisher, kit moments and defeat no longer borrow other frames. His bigger helmeted head stays (the starter's look). |
+| Heroes' idles (the 14 rig heroes) | 4 | 4+ | A four-step breath instead of two: `idle2`/`idle3`, the head following the body a beat late (secondary motion, bible section 7). |
+| Cinder lair | 3 | 4 | `after/lairs-ashfell.png` (left): the paver heap glows in its seams, the left faces catch the cauldron's light, the pitch glows at the brim. |
 | Title screen, logo, key art | 3 | 4 | `before/title-phone.png`; `after/title-phone.png`, `after/title-desktop.png`, `after/title-continue.png`. The Atlas spread open: an inked parchment map, colour come back round the hero, fog over the erased east, a quill drawing the route; the logo built from `GAME_NAME` (Scale3x lettering, gold face, rim light, extrusion, ink outline). |
 | Rowan's fight frames | 3 | 4 | `after/rowan-before-after.png`, in a fight `after/fight-act1-rowan.png`. On the shared rig (`art-hero-rowan.ts`): the peers' head size and stance, 14 poses (idle0-3, windup, slashA, slashB, dash, leap, parry, hurt, cast, down, fin), a plume and a cape that lag his breath, polished steel. |
 | Heroes' idles | 4 | 4 | `after/heroes-idle4.png`. Every hero idles in four frames (the secondary piece a frame behind); Sable gains fin and cast. |
 | Spirit stag | 3 | 4 | `after/stag-before-after.png`. A haunch and a shoulder, jointed legs with hocks and hooves, great antlers, fewer specks. |
 | Backdrops: glass, forge | 3 | 4 | `after/backdrops-glass-forge.png`, in a fight at phone size `after/fight-act8-glass.png`, `after/fight-act9-forge.png`. The warren: a tall arch onto a hazy far cavern (pillars at two depths, heat shafts), the lake's light on the wall, embers rising. The forge: a far ridge, a heat plume lit from below, pilasters, a calm strip under the feet. |
+
+## Next: the world map as the Great Atlas (a prototype)
+
+`after/world-atlas-prototype.png` (top: the painted world now; bottom: `art-world-atlas.ts`, not wired into the game):
+the open sea as a pale watercolour wash on parchment with ink ripple lines along the coast, the land printed on the
+paper, every coast inked, a double neatline. Lakes and rivers keep their painted water. Still to do: erased land (the
+veils) as blank vellum keeping the impression of its lines (as on the title), the restoring animation (colour blooming
+out from the keystone, lines re-inking), and judging it at phone size before it replaces the painted look (or ships
+behind a Test lab switch first, like the sharper chest reveal).

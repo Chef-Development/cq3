@@ -687,8 +687,9 @@ export class Overlays {
         this.texts.text(armed ? 'Tap again' : 'New game', fresh.x + fresh.w / 2, fresh.y + dy + 7 + pf, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
         this.texts.text('Erases all', fresh.x + fresh.w / 2, fresh.y + dy + 16 + pf, armed ? 0xffe0a0 : 0xc8c0e8, { ox: 0.5, oy: 0.5 });
       }
-    } else if (pa > 0) this.title.drawPrompt(gc, this.texts, 'Tap to start!', s.splitY + 16, now, pa);
-    if (pa > 0) this.title.drawLegend(gc, this.texts, Math.min(s.B - 9, s.splitY + 32 + Math.round((GAME_H - s.splitY - 32 - (GAME_H - s.B)) / 2)), pa);
+    } else if (pa > 0) this.title.drawPrompt(gc, this.texts, 'Tap to start!', s.splitY + 9, now, pa);
+    // the legend sits at the foot, clear of the prompt's plate (and its shadow) above it
+    if (pa > 0) this.title.drawLegend(gc, this.texts, Math.min(s.B - 8, GAME_H - 9), pa);
   }
 
   // ------------------------------------------------------------------ boost pick
@@ -1202,7 +1203,7 @@ export class Overlays {
     g.fillRect(0, s.splitY, GAME_W, GAME_H - s.splitY);
     const k = easeBack(since / 420, 1.5);
     const run = s.app.run;
-    const title = `${run.regionDef.name} is restored!`;
+    const title = `${run.regionDef.name} restored!`;
     const tw = textWidth(title, 2, true);
     const y = Math.round(20 - (1 - k) * 50);
     ribbon(gc, cx, y, Math.round((tw + 24) * Math.min(1, k)), 22, RIBBON.gold, 1, k > 0.9);
@@ -1211,7 +1212,7 @@ export class Overlays {
     const home = 'Its old lines are back.';
     const left = WEIGHTS_TOTAL - run.profile.weights;
     const togo = left === 1 ? 'One region to go.' : `${COUNT[left] ?? whole(left)} regions to go.`;
-    if (since > 400) this.subLine(gc, left > 0 ? `${home} ${togo}` : 'The whole Atlas is restored!', cx, 49, clamp01((since - 400) / 250));
+    if (since > 400) this.subLine(gc, left > 0 ? `${home} ${togo}` : 'The Atlas is whole again!', cx, 49, clamp01((since - 400) / 250));
     if (since > 1500) {
       this.prompt(g, 'Tap to continue', s.splitY + 16, now, 0xfff07a);
       // where the road goes next (the victory scene has just named it), or more to come

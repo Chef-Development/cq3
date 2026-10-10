@@ -876,6 +876,13 @@ A2B-6. **Ashfell's glass warren and forge (audit: 3) get depth and air**: the wa
 A2B-7. **Art can be reviewed without the browser**: rig frames and backdrops are pure pixel buffers, so a throwaway
     vitest file can paint them into grids and write PNGs (node's zlib) when the shared Playwright lock is busy. Not
     committed; the contact sheets in `docs/art-audit/after/` were made that way.
+A7. (Superseded by A2B-1: Rowan moved onto the rig.) **Rowan gets fin, cast and down** on his own pose system (he isn't on the shared rig). With a `cast` frame he
+    now also shows the green ability's ring and pose like every other hero (fighters.ts `cast()` skipped him).
+A8. (Superseded by A2B-2.) **A four-step idle breath** for the fourteen rig heroes: `idle2`/`idle3` derived from their idle0/idle1 with the
+    head a pixel lower (the head follows the body a beat late), cycled every 300 ms (a 1.2 s loop) where a hero has
+    them; Rowan and Sable keep their two frames. The menus' 3x heroes still use two.
+A9. **Ashfell's darkest foes get an ember rim** (light from below, section 9 of the bible) and the glass warren a light
+    spill from its lake; the forge was re-scored from a fight screen (the sheet had made it look flat).
 
 (art: end of section)
 

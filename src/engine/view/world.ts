@@ -173,6 +173,24 @@ function rows(g: G, x: number, y: number, w: number, h: number, r: number, color
   if (h - n * 2 > 0) g.fillRect(x, y + n, w, h - n * 2);
 }
 
+/** A 5x5 compass rose (the header's count of regions restored): gold and lit once restored, dim ink before. */
+function roseIcon(g: G, x: number, y: number, lit: boolean): void {
+  const [o, f, c] = lit ? [0x5a3410, 0xf2c230, 0xfff0a0] : [INK, 0x3a3054, 0x5a5078];
+  g.fillStyle(o, 1);
+  g.fillRect(x + 1, y + 1, 3, 3);
+  g.fillRect(x + 2, y, 1, 5);
+  g.fillRect(x, y + 2, 5, 1);
+  g.fillStyle(f, 1);
+  g.fillRect(x + 2, y + 1, 1, 3);
+  g.fillRect(x + 1, y + 2, 3, 1);
+  g.fillStyle(c, 1);
+  g.fillRect(x + 2, y + 2, 1, 1);
+  if (lit) {
+    g.fillStyle(0xfff0a0, 1);
+    g.fillRect(x + 2, y, 1, 1);
+  }
+}
+
 /** Plate colours: crisp dark glass with a light inner edge. */
 const PLATE = { fill: 0x161226, top: 0x221c38, edge: 0x6a5c98, lo: 0x0c0a16 };
 
@@ -1747,26 +1765,15 @@ export class WorldView {
       this.texts.text('Play', b.x + b.w / 2, b.y + b.h / 2 + (pr ? 2 : 0), WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
     }
 
-    // header: the kingdom and the weights brought home (a pip per weight)
+    // header: the Great Atlas and the regions restored (a small compass rose per region, lit once restored;
+    // docs/story-bible.md section 9)
     const L = s.L + 4;
-    const hw = Math.max(textWidth('The Kingdom', 1, true), textWidth(`Weights home: ${P.weights}/${WEIGHTS_TOTAL}`, 1, false), WEIGHTS_TOTAL * 7 - 2) + 14;
+    const restored = `Regions restored: ${whole(P.weights)}/${whole(WEIGHTS_TOTAL)}`;
+    const hw = Math.max(textWidth('The Great Atlas', 1, true), textWidth(restored, 1, false), WEIGHTS_TOTAL * 7 - 2) + 14;
     this.panel(g, L, 4, hw, 29, 1);
-    this.texts.text('The Kingdom', L + 7, 10, WHITE, { bold: true, oy: 0.5 });
-    this.texts.text(`Weights home: ${P.weights}/${WEIGHTS_TOTAL}`, L + 7, 19, 0xf2c230, { oy: 0.5 });
-    for (let i = 0; i < WEIGHTS_TOTAL; i++) {
-      const wx = L + 7 + i * 7;
-      const home = i < P.weights;
-      g.fillStyle(INK, 1);
-      g.fillRect(wx, 24, 5, 5);
-      g.fillStyle(home ? 0xf2c230 : 0x3a3054, 1);
-      g.fillRect(wx + 1, 25, 3, 3);
-      g.fillStyle(home ? 0xfff0a0 : 0x4e4470, 1);
-      g.fillRect(wx + 1, 25, 1, 1);
-      if (home) {
-        g.fillStyle(0x9a5a14, 1);
-        g.fillRect(wx + 3, 27, 1, 1);
-      }
-    }
+    this.texts.text('The Great Atlas', L + 7, 10, WHITE, { bold: true, oy: 0.5 });
+    this.texts.text(restored, L + 7, 19, 0xf2c230, { oy: 0.5 });
+    for (let i = 0; i < WEIGHTS_TOTAL; i++) roseIcon(g, L + 7 + i * 7, 24, i < P.weights);
 
     // the region chip (top right): the region in view and how complete it is; a tap opens its act picker
     const chip = this.regionChip();
@@ -1851,8 +1858,8 @@ export class WorldView {
         let ay: number;
         let col = 0xff9a8a;
         if (inf.id === 'capital') {
-          title = 'The Great Pendulum';
-          line = P.weights === 0 ? 'Stopped. Its weights are lost.' : P.weights >= WEIGHTS_TOTAL ? 'Ticking again!' : `${P.weights} of ${WEIGHTS_TOTAL} weights home`;
+          title = 'The Great Atlas';
+          line = P.weights === 0 ? 'Its lines are fading.' : P.weights >= WEIGHTS_TOTAL ? 'Whole again.' : `${whole(P.weights)} of ${whole(WEIGHTS_TOTAL)} regions restored.`;
           ax = WORLD_CAPITAL.x;
           ay = WORLD_CAPITAL.y + 16;
           col = 0xffe680;
@@ -1869,15 +1876,19 @@ export class WorldView {
           const plan = planRegion(f.id);
           const fog = plan ? fogOf(P.weights, plan) : 1;
           const open = !!plan && revealed(P.weights, plan);
-          title = open && plan ? planName(P.weights, plan) : 'Beyond the sea';
-          line = open ? 'Beyond the sea' : fog < 1 ? 'The fog is thinning' : 'Lost in the fog';
+          // (erased land until its name is revealed: docs/story-bible.md section 9)
+          const name = open && plan ? planName(P.weights, plan) : '?';
+          title = name !== '?' ? name : 'Erased land';
+          line = open ? 'Beyond the sea' : fog < 1 ? 'Something is being drawn here.' : 'Restore more regions to bring it back.';
           ax = f.box.x + f.box.w / 2;
           ay = f.box.y + f.box.h + 14;
           col = 0xb8d0f0;
         } else {
           const r = WORLD_REGIONS.find((q) => q.id === inf.id)!;
+          // a land still blank: which land to restore first (the one before it), or just erased
+          const ri = playableIndex(r.id);
           title = r.name;
-          line = 'Locked';
+          line = ri > 0 ? `Restore ${REGIONS[ri - 1].name} first` : 'Erased land';
           ax = r.x;
           ay = r.y + 23;
         }
