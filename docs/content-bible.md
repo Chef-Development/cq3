@@ -1172,3 +1172,28 @@ lairs (the sphinx on her plinth by the road, the lion-headed gate, the gnomon on
 Telegraph sounds (`NOON_NEW_SOUNDS`), the music and ambience cues in app.ts (`ACT_AMBIENCE` 12-14: `dunes`, `spire`,
 `dial`), and balance (a little harder than Lanternfen: Act 1 ~80%, Act 2 ~65%, Act 3 ~50%, the Gnomon's
 first fight ~45-55%).
+
+---
+
+## 9. New Game+: the Mapmaker's revisions (secret; `src/data/remixes.ts`, `enemies-remix.ts`)
+
+Once a region is restored (its boss beaten, its weight home), its boss comes back redrawn: the Mapmaker's revision.
+The same fight you won, every move kept, and one more phase, his edit, which turns a later region's bar rule on the
+player. Offered at the foot of that region's act picker on the world map ("The Mapmaker's revision", a tick once
+beaten). Fought like a skirmish (core/run.ts `startRemix`: the run as it was comes back after, won or lost): in the
+boss's own lair (its act's theme and the boss's music), at the numbers of the furthest act reached times
+`tuning.remix` (so it stays a challenge however far you've gone), as a hero who has come that far (`heroFor`: a
+replay's kit, no run relics). The first win pays gems (`remix.gems`) and a hero chest (profile `seen`:
+`remix:<id>`); every win, XP and Rare-or-better gear at that act's level.
+
+- **The Boar King, Revised** (`boarKingRevised`, Greenmarch): phases 1-3 as before (the enrage at 40% instead of 33%),
+  then at 20% **Inked Out!**: the lantern burns low for good (x0.7), every yellow outside the light goes dark, every 2nd
+  yellow he sends comes dark, and **Charge from the Dark!** brings two Charges with a dark yellow and a dark trap
+  between them. (The fourth region's dark blocks; a player who hasn't reached it meets them here first, with the
+  rule's tip.) His look and theme are his own (phase 4 keeps phase 3's music).
+- Measured (a typical 75% player who has just restored Greenmarch, 20 runs; `tests/unit/remix.test.ts` guards it at
+  12): the Boar King's own first fight won 11 of 20; the revision at `remix` HP x1 / attack x1 3 of 20, x0.8 / 0.9 6, x0.65 /
+  0.8 7, x0.5 / 0.7 15; set at x0.6 / 0.75 (about 8-9 of 20); fights about a minute; the masher never wins it.
+- Next (same shape, data first): **Glacia, Revised** with the tide (the water rising at her last phase, ice floating on
+  it) and **Bellows, Revised** with dark pairs or the tide; each needs its enemy entry, a `REMIXES` row and a lab item;
+  the picker, the run and the rewards are shared.

@@ -275,6 +275,17 @@ export const DEFAULT_TUNING = {
     items: 1, // ...this many items (Rare or better)...
     pick: 2, // ...and a relic pick at least rare (1) or epic (2), from every relic (a locked one unlocks)
   },
+  remix: {
+    // The Mapmaker's revisions (New Game+, src/data/remixes.ts): a restored region's boss, redrawn, fought at the
+    // numbers of the furthest act reached times these (under 1: the hero comes as a replay does, without a run's
+    // relics; with the new phase a player who has just restored the region wins it about 40% of the time, the boss's
+    // own first fight about 55%)...
+    hpMult: 0.6,
+    atkMult: 0.75,
+    gems: 40, // ...the first win: these gems and a hero chest...
+    items: 2, // ...every win: this many Rare-or-better items at that act's level...
+    xp: 60, // ...and XP x (act + 1)
+  },
   wander: {
     // The world map's wandering foe (core/skirmish.ts): it shows up once this many fights have been won since the
     // last one (an act cleared at least once); beating it in a skirmish drops gear and gives XP
@@ -1078,6 +1089,11 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('secret.coinsMult', 'Secret: coins x treasure', 0, 6, 0.25),
         s('secret.items', 'Secret: items (Rare+)', 0, 3, 1),
         s('secret.pick', 'Secret pick: rare 1, epic 2', 0, 2, 1),
+        s('remix.hpMult', 'Revision: boss HP x', 0.5, 3, 0.05),
+        s('remix.atkMult', 'Revision: boss attack x', 0.5, 3, 0.05),
+        s('remix.gems', 'Revision: first-win gems', 0, 200, 5),
+        s('remix.items', 'Revision: items (Rare+)', 0, 4, 1),
+        s('remix.xp', 'Revision: XP x act', 0, 300, 5),
         s('wander.every', 'Skirmish after fights won', 1, 40, 1),
         s('wander.xp', 'Skirmish XP x act', 0, 300, 5),
         s('wander.items', 'Skirmish items', 0, 3, 1),

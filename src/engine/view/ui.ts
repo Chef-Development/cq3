@@ -265,7 +265,8 @@ export function ribbon(g: G, cx: number, y: number, w: number, h: number, col: r
   g.fillRect(x, y + h - 2, w, 1);
   g.fillStyle(deep, alpha);
   g.fillRect(x, y + h - 1, w, 1);
-  g.fillStyle(WHITE, 0.8 * alpha);
+  // one dull glint where the light catches the band (L8: no white plastic speck)
+  g.fillStyle(mix(hi, WHITE, 0.35), 0.55 * alpha);
   g.fillRect(x + w - 6, y + 1, 3, 1);
   return { x, y, w, h };
 }
