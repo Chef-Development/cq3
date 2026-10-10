@@ -12,7 +12,7 @@ const HAIR = ['#464a74', '#7a84ae', '#aeb8da', '#dce4f6', '#ffffff'];
 const SASH = ['#0c1030', '#18245a', '#2a3c88', '#4058b0'];
 const BOOT = ['#4a5a8a', '#94a6d0', '#d4e2f8', '#ffffff'];
 export const NEVE_ICE = ['#1866a8', '#28a4e4', '#6ad8fa', '#c4f6ff', '#ffffff'];
-const STAFF = ['#2a2444', '#4c4470', '#7a70a4'];
+const STAFF = ['#2e2850', '#5a5490', '#948ccc'];
 
 export const NEVE_PAL: Pal = {
   // skin (pale), eyes, blush
