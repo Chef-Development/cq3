@@ -1244,6 +1244,16 @@ C-ART-8. **Region 5's music** (six pieces, each its own key, tempo and meter; ne
     wind, sand hissing, cicadas), `spire` (wind whistling round the towers, chains, a far hammer), `dial` (the dial's
     hum, a clock ticking, far rumbles). Not cued yet: app.ts cues the music by act and boss and the beds in
     `ACT_AMBIENCE` (12-14) when the region joins.
+C15. **New Game+ starts with one revision, done whole** (backlog 4): once a region is restored its boss comes back
+    redrawn with one more phase that brings a later region's bar rule, from the foot of that region's act picker, fought
+    like a skirmish at the numbers of the furthest act reached (so it stays a challenge), for gems and a hero chest the
+    first time and Rare-or-better gear every time. The Boar King first (in the dark); Glacia and Bellows follow the
+    same data shape. A bot guard checks it is a step up from the boss's own first fight and the masher never wins it.
+    The design and numbers are in the content bible (§9, spoilers).
+C16. **Tess's and Vesper's gaps in the fourth region aren't a rule meeting their kit** (100-run diagnostics): without
+    Tess's Stopwatch her numbers barely move, without Slow Time they drop, and without Vesper's Volley pin they halve;
+    their kits work there, the region just gives them less (Tess's soft strengths are fire and construct; Vesper keeps
+    the reds a finisher would clear, in the region with the most reds in water). Left for a hero-numbers pass.
 
 (content: end of section)
 

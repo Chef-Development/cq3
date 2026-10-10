@@ -41,9 +41,11 @@ const BOSS_THEMES: Record<string, MusicTrack> = {
   bellybog: 'bellybog',
   sluiceKeeper: 'sluiceKeeper',
   lighthouse: 'lighthouse',
+  // the Mapmaker's revisions bring their boss's theme back (src/data/remixes.ts)
+  boarKingRevised: 'boarKing',
 };
 /** Bosses whose theme follows their phase (layers join, and a key change for the region bosses). */
-const PHASED_BOSSES = ['boarKing', 'glacia', 'hobnob', 'bellows', 'bellybog', 'sluiceKeeper', 'lighthouse'];
+const PHASED_BOSSES = ['boarKing', 'glacia', 'hobnob', 'bellows', 'bellybog', 'sluiceKeeper', 'lighthouse', 'boarKingRevised'];
 /** Each act's theme by its global index: Greenmarch is acts 0-2, the next region acts 3-5, the third 6-8, the fourth
  *  9-11 (until a region's acts are in play nothing asks for theirs). */
 const ACT_THEMES: MusicTrack[] = ['act1', 'act2', 'act3', 'frost1', 'frost2', 'frost3', 'ash1', 'ash2', 'ash3', 'dusk1', 'dusk2', 'dusk3'];
