@@ -1113,6 +1113,11 @@ C9. **The next region's gear is written as data** (not merged; a data test), so 
   the merged build (tips on): New game to Act 1 cleared in 231 s (215 taps, 17 finishers), then 15 camp screens and
   tabs: no error, no long decimal, no missing mini or texture, no stuck screen, no HTML text wider than its box (its
   first edge check flagged banners sliding in: it now counts only text that stays past the edge).
+- **Q11 Two UI fixes from the first-10 team's screens.** A boss's shout (its special's name) and the damage numbers
+  piled up at the top centre: while a foe's shout is up it keeps its lane over the foe's head, and that foe's
+  damage numbers pop just under it and settle (cascading down, not up) until the shout is gone (`view/fighters.ts`).
+  The vault said "No chests yet" after the first chest was opened: once any has been opened it says "No chests
+  waiting" (`view/chests.ts`).
 (qa: end of section)
 
 
