@@ -69,9 +69,10 @@ export function* atlasPrint(A: AtlasIn, sameRegion: (a: number, b: number) => bo
   const { W, H, buf, land, reg, water, dist } = A;
   const src = buf.slice();
   // the sea: bare parchment offshore, a watercolour wash along the coast in stepped bands, engraved water lines
-  for (let y0 = 0; y0 < H; y0 += 60) {
+  // (in slices of 30 rows: each a few ms on a phone)
+  for (let y0 = 0; y0 < H; y0 += 30) {
     yield;
-    for (let y = y0; y < Math.min(H, y0 + 60); y++)
+    for (let y = y0; y < Math.min(H, y0 + 30); y++)
       for (let x = 0; x < W; x++) {
         const i = y * W + x;
         if (land[i]) continue;
@@ -97,26 +98,29 @@ export function* atlasPrint(A: AtlasIn, sameRegion: (a: number, b: number) => bo
   // the land, printed on the paper: its colour warmed a touch toward the parchment, its lit tops a little paler
   for (let i = 0; i < W * H; i++) if (land[i]) buf[i] = mix(src[i], PARCH[4], 0.1);
   // the coast in ink (land touching the sea), the lakes' shores, and the regions' borders as dashed ink
-  for (let y = 1; y < H - 1; y++)
+  for (let y = 1; y < H - 1; y++) {
+    if (y % 100 === 0) yield;
     for (let x = 1; x < W - 1; x++) {
       const i = y * W + x;
       if (!land[i]) continue;
-      const nb = [i - 1, i + 1, i - W, i + W];
-      const sea = nb.filter((j) => !land[j]).length;
+      const sea = (land[i - 1] ? 0 : 1) + (land[i + 1] ? 0 : 1) + (land[i - W] ? 0 : 1) + (land[i + W] ? 0 : 1);
       if (sea > 0) {
         buf[i] = lineInk(x, y, sea);
         continue;
       }
-      if (!water[i]) {
-        const wet = nb.filter((j) => water[j] === 2).length;
-        if (wet > 0) {
-          buf[i] = mix(buf[i], ATLAS_INK[1], 0.7);
-          continue;
-        }
-        const border = nb.some((j) => land[j] && reg[j] && reg[i] && !sameRegion(reg[i], reg[j]) && j > i);
-        if (border && (x + y) % 5 < 3) buf[i] = mix(buf[i], ATLAS_INK[2], 0.85);
+      if (water[i]) continue;
+      if (water[i - 1] === 2 || water[i + 1] === 2 || water[i - W] === 2 || water[i + W] === 2) {
+        buf[i] = mix(buf[i], ATLAS_INK[1], 0.7);
+        continue;
       }
+      // a border between two regions (drawn on one side of it only), dashed
+      if ((x + y) % 5 >= 3 || !reg[i]) continue;
+      const r = reg[i];
+      const j1 = i + 1;
+      const j2 = i + W;
+      if ((land[j1] && reg[j1] && !sameRegion(r, reg[j1])) || (land[j2] && reg[j2] && !sameRegion(r, reg[j2]))) buf[i] = mix(buf[i], ATLAS_INK[2], 0.85);
     }
+  }
   yield;
   // the sheet's neatline: a double ink rule a few px in from the edge (over the sea only: the land stops short of it)
   neatline(buf, W, H, 0, A.sheetW);
