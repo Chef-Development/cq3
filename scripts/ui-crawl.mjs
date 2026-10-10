@@ -52,7 +52,10 @@ const INSTALL = () => {
         const x1 = x0 + b.width;
         const y0 = b.y + dy;
         const y1 = y0 + b.height;
-        if (x0 < -1 || y0 < -1 || x1 > 328 || y1 > 151) {
+        // (only text partly on screen and crossing an edge: a bar or a plate parked wholly off screen between its
+        // slide-ins is unseen; the world map's land names are cut by the edge on purpose as it pans)
+        const onScreen = x1 > 0 && x0 < 327 && y1 > 0 && y0 < 150;
+        if (onScreen && w.__cq3.app.run.phase !== 'world' && (x0 < -1 || y0 < -1 || x1 > 328 || y1 > 151)) {
           // (a text sliding in or out passes the edge for a moment: only one that stays put there counts)
           const k = `${o.text.slice(0, 30)} @ ${Math.round(x0)},${Math.round(y0)} w${Math.round(b.width)}`;
           const seen = (C.offSeen[k] = (C.offSeen[k] ?? 0) + 1);
