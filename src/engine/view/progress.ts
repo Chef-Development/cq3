@@ -20,7 +20,7 @@ import { textWidth } from '../font';
 import { CampKit, D, GEM_TXT, GOLD_TXT } from './camp-kit';
 import { padlock } from './items';
 import { button3d, glow, GOLD, hudIcon, iconSize } from './pixels';
-import { clamp01, easeOut3, inRect, INK, pulse, WHITE, type Rect } from './shared';
+import { clamp01, easeOut3, inRect, INK, mix, pulse, WHITE, type Rect } from './shared';
 import { FACE, isPressed, notePress } from './ui';
 import { bigButton, drawStage, enterK, fillEllipse, popK, ring, Sheet, spotlight, tooltip, waxSeal, type Face, type SheetLine } from './ui-modern';
 import { ATLAS_PAGES } from '../../data/atlas-pages';
@@ -422,8 +422,10 @@ export class ProgressScreen {
       }
       const rad = (SEAL_R - 0.4) * (sk < 1 ? 1 + (1 - sk) * 0.8 : 1);
       // the emblem pressed into the wax: its shadow in the wax's deepest tone, then the emblem (two tones: it reads)
-      waxSeal(ov, m.x, m.y, rad, sl.wax, Math.min(1, sk * 1.5) * m.vis, (gg, cx, cy, a) => {
-        stamp(gg, cx, cy + 1, sl.wax[3], a);
+      // (the wax in the mood: each colour a step deeper and duller, real sealing wax, not candy: review-4 R4-21)
+      const wax = sl.wax.map((c0) => mix(c0, 0x2a1418, 0.32)) as unknown as Face;
+      waxSeal(ov, m.x, m.y, rad, wax, Math.min(1, sk * 1.5) * m.vis, (gg, cx, cy, a) => {
+        stamp(gg, cx, cy + 1, wax[3], a);
         stamp(gg, cx, cy, sl.ink, a);
       });
     }

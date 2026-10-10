@@ -806,7 +806,7 @@ const ATLAS: StageSpec = {
   twinkle: '#ffb040',
 };
 
-/** A plank wall: a picture rail, a small rack of rolled maps at the left, a lantern at the right; a desk below. */
+/** A plank wall: a picture rail, a lantern at the right; a desk below. */
 function paintStudy(ctx: CanvasRenderingContext2D, w: number, sp: StageSpec, r: () => number): void {
   const fy = sp.floorY;
   const px = (x: number, y: number, c: string, ww = 1, hh = 1) => {
@@ -819,33 +819,8 @@ function paintStudy(ctx: CanvasRenderingContext2D, w: number, sp: StageSpec, r: 
     px(x + 1, 0, '#2e2016', 1, fy);
     for (let y = 4 + Math.floor(r() * 30); y < fy; y += 30 + Math.floor(r() * 30)) px(x + 4 + Math.floor(r() * 6), y, '#140c08', 2, 1);
   }
-  // a rack of rolled maps at the left: dark cubbyholes, each holding round scroll ends (a curl of aged paper with a dark
-  // core, lit from the top left), kept a step dimmer than the card so it stays the wall's (it read as a column of
-  // beige squares, a placeholder legend)
-  const rack = (x0: number, y0: number, cols: number, rowsN: number) => {
-    px(x0 - 2, y0 - 2, '#0e0806', cols * 10 + 3, rowsN * 9 + 3);
-    px(x0 - 2, y0 - 2, '#3a2616', cols * 10 + 3, 1);
-    for (let i = 0; i < cols; i++)
-      for (let j = 0; j < rowsN; j++) {
-        const x = x0 + i * 10;
-        const y = y0 + j * 9;
-        px(x, y, '#060403', 9, 8);
-        px(x, y + 7, '#2a1a10', 9, 1);
-        const n = r() < 0.75 ? 2 : r() < 0.6 ? 1 : 0;
-        for (let k = 0; k < n; k++) {
-          const sx = x + 1 + k * 4;
-          const sy = y + 2 + (k % 2);
-          // a 4 x 4 scroll end: the curl's rim, its lit top-left, the dark core
-          px(sx, sy + 1, '#5a3e24', 4, 2);
-          px(sx + 1, sy, '#5a3e24', 2, 4);
-          px(sx, sy + 1, '#7a5a36', 1, 1);
-          px(sx + 1, sy, '#86623a', 2, 1);
-          px(sx + 1, sy + 1, '#2a1a0e', 2, 2);
-          px(sx + 2, sy + 2, '#4a3020', 1, 1);
-        }
-      }
-  };
-  rack(2, 40, 2, 6);
+  // (no rack of rolled maps at the left any more: at phone size its scroll ends still read as a column of legend
+  // icons nobody could read, review-4 R4-21; the wall stays plain there)
   // a picture rail along the wall, and a lantern on a bracket at the right (its glow lights the pedestal)
   px(0, 15, '#120c08', w, 3);
   px(0, 15, '#5a3c22', w, 1);
