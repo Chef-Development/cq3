@@ -613,74 +613,6 @@ function boarKing(): HTMLCanvasElement {
   return toCanvas(g);
 }
 
-// ------------------------------------------------------------------ the Great Pendulum (narration)
-
-function narrator(): HTMLCanvasElement {
-  const g = grid(P, P);
-  const BR = GOLD;
-  const gem: Pal = { a: '#9ad8ff', b: '#2a6ad8', c: '#10204a', W: '#ffffff' };
-  // scrolled bracket arms either side of the pivot
-  const arm = ['.ggy.....', 'g...y....', 'g.y.yyyyy', '.yy..YYYY'];
-  stamp(g, arm, { g: BR[3], y: BR[2], Y: BR[1] }, 9, 3);
-  stamp(g, arm.map((r) => [...r].reverse().join('')), { g: BR[3], y: BR[2], Y: BR[1] }, 22, 3);
-  // the pivot: a little cog with a jewel
-  const cog = (x: number, y: number) => {
-    const a = Math.atan2(y + 0.5 - 4.5, x + 0.5 - 20);
-    const r = Math.hypot(x + 0.5 - 20, y + 0.5 - 4.5);
-    return r <= 3.2 || (r <= 4.3 && Math.cos(a * 8) > 0.2);
-  };
-  fill(g, cog, sphere(BR, 19, 3.5, 4.6, 4.6, 0.05));
-  stamp(g, ['ab', 'bc'], gem, 19, 4);
-  // rod, swung a little to the right, with two collars
-  const top: [number, number] = [20, 8];
-  const bc: [number, number] = [23.5, 29];
-  const rodAt = (y: number) => top[0] + ((bc[0] - top[0]) * (y - top[1])) / (bc[1] - top[1]);
-  for (let y = top[1]; y < bc[1] - 9; y++) {
-    const x = Math.round(rodAt(y) - 0.5);
-    put(g, x, y, BR[4]);
-    put(g, x + 1, y, BR[2]);
-  }
-  for (const y of [12, 17]) {
-    const x = Math.round(rodAt(y) - 0.5);
-    stamp(g, ['GggY', 'yyYz'], { G: BR[4], g: BR[3], y: BR[2], Y: BR[1], z: BR[0] }, x - 1, y);
-  }
-  // motion lines trailing the swing
-  for (const [r, a0, n] of [
-    [26, 1.98, 5],
-    [22, 2.02, 4],
-  ])
-    for (let i = 0; i < n; i++) {
-      const a = a0 + i * 0.07;
-      put(g, Math.round(20 + Math.cos(a) * r), Math.round(8 + Math.sin(a) * r), i === 0 ? '#fff0a0' : '#d8b060');
-    }
-  // the bob: a brass disc with a crest, 12 studs round the rim (the 12 weights) and a clock face
-  stamp(g, ['.G.', 'GgY', '.Y.'], { G: BR[4], g: BR[3], Y: BR[1] }, Math.round(bc[0] - 2), bc[1] - 11);
-  const rim = ell(bc[0], bc[1], 9.5, 9.5);
-  fill(g, rim, sphere(BR, bc[0] - 2.5, bc[1] - 2.5, 10.5, 10.5, 0.04));
-  const face = ell(bc[0], bc[1], 6.4, 6.4);
-  fill(g, and(rim, not(ell(bc[0], bc[1], 7.4, 7.4))), (x, y) => (x + y < bc[0] + bc[1] - 2 ? null : BR[1]));
-  fill(g, face, sphere(['#b49a74', '#dccca4', '#f4ead0', '#fffaec'], bc[0] - 1.5, bc[1] - 2, 8, 8, 0.12));
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
-    const sx = Math.round(bc[0] - 0.5 + Math.sin(a) * 8.3);
-    const sy = Math.round(bc[1] - 0.5 - Math.cos(a) * 8.3);
-    put(g, sx, sy, i % 3 === 0 ? '#ffffff' : BR[4]);
-    const tx = Math.round(bc[0] - 0.5 + Math.sin(a) * 5.2);
-    const ty = Math.round(bc[1] - 0.5 - Math.cos(a) * 5.2);
-    put(g, tx, ty, i % 3 === 0 ? '#3a2418' : '#a08060');
-  }
-  stroke(g, [
-    [bc[0] - 0.5, bc[1] - 0.5],
-    [bc[0] - 0.5, bc[1] - 4.2],
-  ], 0.5, () => '#2a1810');
-  stroke(g, [
-    [bc[0] - 0.5, bc[1] - 0.5],
-    [bc[0] + 2.5, bc[1] + 1.2],
-  ], 0.5, () => '#2a1810');
-  stamp(g, ['ab', 'bc'], gem, Math.round(bc[0] - 1), bc[1] - 1);
-  return toCanvas(g);
-}
-
 // ------------------------------------------------------------------ map icons (13x13 + outline)
 
 const ICON_PAL: Pal = {
@@ -814,7 +746,7 @@ export function buildStoryArt(add: Add): void {
   add('portrait_captain', captain());
   add('portrait_golem', golem());
   add('portrait_boarking', boarKing());
-  add('portrait_narrator', narrator());
+  // (the narrator, the Mapmaker and Hesper: art-portraits-atlas.ts)
   buildAtlasPortraits(add);
   for (const m of MAP_ICONS) {
     const g = grid(15, 15);

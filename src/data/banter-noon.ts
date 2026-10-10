@@ -13,7 +13,7 @@ export interface NoonBanterLine extends HeroBanterLine {
 
 /** The acts cleared by the time each of the region's scenes has played (global acts 12-14; a mini-boss's scene counts
  *  from its act's clear, as Region 4's do). */
-export const NOON_SCENE_ACT: Record<string, number> = { noon1: 12, sphinx: 13, noon2: 13, brassLion: 14, noon3: 14, noonBoss: 15, noonBoss2: 15, noonBoss3: 15, noonVictory: 15 };
+export const NOON_SCENE_ACT: Record<string, number> = { noon1: 12, sphinx: 13, noonCamp: 13, noon2: 13, brassLion: 14, noon3: 14, noonBoss: 15, noonBoss2: 15, noonBoss3: 15, noonVictory: 15 };
 
 export const NOON_BANTER: NoonBanterLine[] = [
   { who: 'rowan', text: 'Still no shadow. I keep checking.', after: 'noon1' },

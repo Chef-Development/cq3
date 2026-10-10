@@ -12,12 +12,15 @@ import type { Settings, Tuning } from '../core/tuning';
 import { AMBIENCES, Synth, TELL_SOUNDS, type Ambience, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, sameGameLayout, sameLayout, type ScreenLayout } from './layout';
 import { clearRunSave, eraseProgress, loadLabAcc, loadProfile, loadRunSave, saveSoon, setStorageSlot, writeLabAcc, writeProfile, writeRunSave } from './storage';
+import { regionOfAct } from '../data/regions';
 
 export interface View {
   /** Returns how long (ms) the next phase change should wait so a kill / finisher animation can play out. */
   onEvents(events: CombatEvent[]): number;
   onPhase(prev: Phase, next: Phase): void;
   onLayout(): void;
+  /** The later regions' art (region-art.ts), now: asked on every screen change past the title. */
+  ensureRegionArt(): void;
   /** The tip card (view/tips.ts): TAP TO BEGIN asks it first (a pre-fight tip still due comes up instead). */
   readonly tips: { beforeBegin(now: number): boolean };
 }
@@ -35,14 +38,17 @@ const BOSS_THEMES: Record<string, MusicTrack> = {
   rumbleback: 'rumbleback',
   hobnob: 'hobnob',
   bellows: 'bellows',
+  bellybog: 'bellybog',
+  sluiceKeeper: 'sluiceKeeper',
+  lighthouse: 'lighthouse',
 };
 /** Bosses whose theme follows their phase (layers join, and a key change for the region bosses). */
-const PHASED_BOSSES = ['boarKing', 'glacia', 'hobnob', 'bellows'];
-/** Each act's theme by its global index: Greenmarch is acts 0-2, the next region acts 3-5, the third 6-8 (not in
- *  play yet: until those acts exist nothing asks for theirs). */
-const ACT_THEMES: MusicTrack[] = ['act1', 'act2', 'act3', 'frost1', 'frost2', 'frost3', 'ash1', 'ash2', 'ash3'];
+const PHASED_BOSSES = ['boarKing', 'glacia', 'hobnob', 'bellows', 'bellybog', 'sluiceKeeper', 'lighthouse'];
+/** Each act's theme by its global index: Greenmarch is acts 0-2, the next region acts 3-5, the third 6-8, the fourth
+ *  9-11 (until a region's acts are in play nothing asks for theirs). */
+const ACT_THEMES: MusicTrack[] = ['act1', 'act2', 'act3', 'frost1', 'frost2', 'frost3', 'ash1', 'ash2', 'ash3', 'dusk1', 'dusk2', 'dusk3'];
 /** Acts with their own ambience bed (on their map too); Greenmarch's come from each act's theme. */
-const ACT_AMBIENCE: Partial<Record<number, Ambience>> = { 3: 'pass', 4: 'caves', 5: 'glacier', 6: 'cinder', 7: 'glass', 8: 'forge' };
+const ACT_AMBIENCE: Partial<Record<number, Ambience>> = { 3: 'pass', 4: 'caves', 5: 'glacier', 6: 'cinder', 7: 'glass', 8: 'forge', 9: 'fen', 10: 'causeway', 11: 'mere' };
 export const INTRO_MS = 800;
 
 /** The real game as the Test lab found it (put back exactly when the lab closes). */
@@ -407,6 +413,9 @@ export class App {
 
   private afterPhaseChange(prev: Phase): void {
     const now = performance.now();
+    // a fight, or anything in a later region: every later region's art is in at once (region-art.ts; it's painted
+    // in idle slices from the title on, so a Greenmarch player's world map, camp and story never wait for it)
+    if (this.run.phase === 'fight' || (this.run.phase !== 'title' && regionOfAct(this.run.actIndex) > 0)) this.view?.ensureRegionArt();
     if (this.run.phase === 'fight' && this.run.combat && this.run.combat !== this.begunCombat) {
       // every fight from the map waits for TAP TO BEGIN (resumed ones too)
       this.begunCombat = this.run.combat;

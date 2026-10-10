@@ -35,7 +35,7 @@ import {
   type Theme,
   THEMES,
 } from './backdrop';
-import { cluster, serac, shard } from './backdrop-frost';
+import { cluster, serac, shard } from './backdrop-ice';
 import { MINIS } from './art-minis';
 
 type Add = (key: string, c: HTMLCanvasElement) => void;
@@ -55,18 +55,19 @@ const ROWAN_PAL: Pal = {
   d: '#4a2c18', h: '#6e4426',
   c: '#6a1424', C: '#b42c34',
 };
-// head to tabard, 11 wide: the plume streams back, the visor glows, the sword is held up in front
+// head to tabard, 12 wide: the plume streams back (2 px thick), the visor glows, the sword is held up in front (a
+// 2 px blade, lit on its left, a gold guard: it reads at 8x)
 const ROWAN_TOP = [
-  '....rqQ....',
-  '..Rrrqq...W',
-  '.Rr.msSm..S',
-  '.R.msSWsM.S',
-  '.x.ygggyY.s',
-  '...mkekek.s',
-  '..cmsbbsmyg',
-  '.cCMbllbMs.',
-  '.cCygGgyY..',
-  '..cbllbB...',
+  '...rrqQ.....',
+  '.RRrrqq...W.',
+  'RRr.msSm..Ws',
+  'Rx.msSWsM.Ss',
+  'x..ygggyY.Ss',
+  '...mkekek.Sm',
+  '..cmsbbsmGgy',
+  '.cCMbllbMsm.',
+  '.cCygGgyY...',
+  '..cbllbB....',
 ];
 const ROWAN_CAPE_FLAP = ['..', 'C.', 'cC'];
 const ROWAN_LEGS: Record<string, string[]> = {
@@ -75,7 +76,7 @@ const ROWAN_LEGS: Record<string, string[]> = {
   pass: ['....smm....', '....hdd....'],
   b: ['..ms...ms..', '.dh.....dh.'],
 };
-export const ROWAN_W = 13;
+export const ROWAN_W = 14;
 export const ROWAN_H = 16;
 /** Rowan's feet inside his frame (the view's origin). */
 export const ROWAN_FEET: Pt = [6, 14];

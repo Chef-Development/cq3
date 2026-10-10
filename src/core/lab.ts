@@ -19,7 +19,7 @@ import { nodeAt, xpForLevel } from './heroes';
 import { addItem, equip, newProfile, newRegionLog, type Profile } from './profile';
 import { Rng } from './rng';
 import { shardsToNext } from './roster';
-import { unveilKey } from './world-plan';
+import { restoreKey, unveilKey } from './world-plan';
 import type { Run } from './run';
 import type { Tuning } from './tuning';
 
@@ -33,13 +33,14 @@ export function labAct(s: LabScenario): number {
 }
 
 /** What every lab profile starts from: the story heroes met, the smith met, tips off, the world map's reveals seen (its
- *  first glide, and every later region's unveiling: the lab never glides the view over a secret land). */
+ *  first glide, every later region's unveiling: the lab never glides the view over a secret land; and every region's
+ *  restoring, so a won region's colour is simply back). */
 export function labBaseProfile(): Profile {
   const p = newProfile();
   p.tipsOff = true;
   p.worldTour = true;
   // (and the later regions' camp tales: they'd play over any lab screen that opens the camp's view, fights too)
-  p.seen = [...REGIONS.slice(1).map((r) => unveilKey(r.id)), FINISHER_REVEAL, 'magsTale', 'duskCamp'];
+  p.seen = [...REGIONS.slice(1).map((r) => unveilKey(r.id)), ...REGIONS.map((r) => restoreKey(r.id)), FINISHER_REVEAL, 'magsTale', 'duskCamp'];
   p.smithMet = true;
   p.sableMet = true;
   p.heroes.sable.unlocked = true;
@@ -183,8 +184,8 @@ export function labFight(s: LabScenario): LabFightPlan | null {
 
 /** The phase a scenario plays in: its fight (the Finisher gallery's too), its scenes, an act's map, or the camp (the
  *  engine opens the camp screen). Once the run leaves it the scenario is over (the rating card comes up). */
-export const labHomePhase = (s: LabScenario): 'fight' | 'scene' | 'map' | 'camp' | 'title' =>
-  s.setup.kind === 'fight' || s.setup.kind === 'gallery' ? 'fight' : s.setup.kind === 'story' ? 'scene' : s.setup.kind === 'map' ? 'map' : s.setup.kind === 'title' ? 'title' : 'camp';
+export const labHomePhase = (s: LabScenario): 'fight' | 'scene' | 'map' | 'camp' | 'title' | 'world' =>
+  s.setup.kind === 'fight' || s.setup.kind === 'gallery' ? 'fight' : s.setup.kind === 'story' ? 'scene' : s.setup.kind === 'map' ? 'map' : s.setup.kind === 'title' ? 'title' : s.setup.kind === 'world' ? 'world' : 'camp';
 
 /** Where a scenario plays on the lab's run: its practice fight (then back to the lab's camp), its story scenes, an
  *  act's map, or the lab's camp (the engine opens the camp screen). The run must be the lab's, built on labProfile. */
@@ -201,6 +202,13 @@ export function startLabScenario(run: Run, s: LabScenario, seed: number): void {
   else if (s.setup.kind === 'story') run.enterAct(s.setup.act, s.setup.scenes);
   else if (s.setup.kind === 'map') run.enterAct(s.setup.act);
   else if (s.setup.kind === 'title') run.phase = 'title';
+  else if (s.setup.kind === 'world') {
+    // the world map, with these one-time moments to play again (a land's restoring, its unveiling)
+    const again = s.setup.replay ?? [];
+    run.profile.seen = run.profile.seen.filter((k) => !again.includes(k));
+    run.profile.weights = Math.max(run.profile.weights, s.setup.weights ?? 0);
+    run.phase = 'world';
+  }
 }
 
 // ---------------------------------------------------------------- the Finisher gallery

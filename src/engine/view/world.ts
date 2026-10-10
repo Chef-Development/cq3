@@ -25,12 +25,13 @@ import type Phaser from 'phaser';
 import { regionBadge, regionCompletion } from '../../core/completion';
 import { itemLevel, type Item } from '../../core/gear';
 import { WEIGHTS_TOTAL } from '../../core/profile';
-import { fogOf, landOpen, markUnveiled, planName, planRegion, playableIndex, regionOpen, revealed, unveilPending } from '../../core/world-plan';
+import { fogOf, landOpen, markRestored, markUnveiled, planName, planRegion, playableIndex, regionOpen, regionRestored, restorePending, revealed, unveilPending } from '../../core/world-plan';
 import { ALL_ACTS, REGIONS, regionOfAct, regionStart } from '../../data/regions';
 import { BASE_BY_ID, SIGNATURES } from '../../data/gear';
 import type { FightScene } from '../scene';
 import {
   CLOUD_KINDS,
+  DRAFT_BOXES,
   FLAG_FRAMES,
   FLAG_ORIGIN,
   NOON_BOX,
@@ -123,6 +124,24 @@ const GLIDE_MS = 480;
 const REVEAL_VEIL = [450, 1500];
 const REVEAL_CARD = [1300, 3000];
 const REVEAL_END = REVEAL_CARD[0] + REVEAL_CARD[1];
+/** A land restored (its region won): on the next visit its colour floods back over his draft, out from the keystone
+ *  (its boss's landmark), once (ms; a tap ends it). When the next land unveils on the same visit, the view holds on
+ *  the restored land this long before it glides on. */
+const RESTORE_MS = 2600;
+/** The Atlas's lettering: each open land's name across it (world px; the text's centre). */
+const LAND_NAMES: Record<string, [string, number, number]> = {
+  greenmarch: ['G R E E N M A R C H', 112, 158],
+  frostpeaks: ['T H E   F R O S T P E A K S', 380, 22],
+  ashfell: ['A S H F E L L', 836, 206],
+  duskmire: ['T H E   D U S K M I R E', 600, 204],
+};
+/** The compass rose drawn in the north-west sea (its texture's top-left, world px). */
+const COMPASS_AT: Pt = [170, 30];
+/** Colour already back round Rowan (wherever he stands: the blank and ink slide off him) and round each cleared act's
+ *  landmark, in a land still in his draft (radius, world px). */
+const HOLE_ROWAN = 26;
+const HOLE_ACT = 32;
+
 /** The act card's height, and the highest its top sits when it hangs over its landmark (clear of the header). */
 const CARD_H = 25;
 const CARD_TOP = 38;
@@ -246,6 +265,13 @@ export class WorldView {
   private picker: { at: number; region: number } | null = null;
   /** A land's first reveal, playing since `at`. */
   private reveal: { id: string; at: number } | null = null;
+  /** A land's restoring (its colour flooding back), playing since `at`. */
+  private restore: { id: string; at: number } | null = null;
+  /** The strips his drafts are drawn in (cropped round the colour already back), and the compass rose. */
+  private strips: Img[] = [];
+  private stripN = 0;
+  private compass!: Img;
+  private nameTexts: TextPool;
   private pickShake: { act: number; at: number } | null = null;
   private gPick!: G;
   private pickTexts: TextPool;
@@ -264,7 +290,7 @@ export class WorldView {
   private visit = -1;
   private last = 0;
   private press: { x: number; y: number; cx: number; cy: number; drag: boolean; skip: boolean; samples: Array<[number, number, number]> } | null = null;
-  private tour: { at: number; from: Pt; to: Pt } | null = null;
+  private tour: { at: number; from: Pt; to: Pt; hold: number } | null = null;
   private glideTo: { at: number; from: Pt; to: Pt } | null = null;
   /** The act landmark selected (its card is up), and the moment the screen settled after the tour. */
   private sel: { act: number; at: number } | null = null;
@@ -274,6 +300,7 @@ export class WorldView {
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, DEPTH.text);
+    this.nameTexts = new TextPool(s, DEPTH.land + 0.004);
     this.pickTexts = new TextPool(s, DEPTH.pickText);
     this.pickIcons = new ImagePool(s);
     this.pool = new ImagePool(s);
@@ -316,6 +343,9 @@ export class WorldView {
     this.pip = img('wm_pip0', DEPTH.pip, 0.5, 0.5);
     this.veils = Object.keys(VEIL_BOXES).map((id) => ({ id, img: img(`wm_veil_${id}`, DEPTH.veil) }));
     this.rim = img('wm_rim', DEPTH.rim);
+    this.compass = img('wm_compass', DEPTH.waves + 0.002);
+    for (const st of this.strips) st.destroy();
+    this.strips = [];
     img('wm_vignette', DEPTH.vignette);
     this.locks = WORLD_REGIONS.filter((r) => r.locked).map(() => img('wm_lock', DEPTH.lock, 0.5, 0.5));
     for (const g of [this.g, this.gSea, this.gLand, this.gAir, this.gPick]) g?.destroy();
@@ -359,10 +389,16 @@ export class WorldView {
     this.info = null;
     this.whale = null;
     const h = this.home();
-    // a land opened since the last visit: its first reveal (remembered at once, like the tour)
+    // a land restored since the last visit: its colour floods back (remembered at once); then a land opened since the
+    // last visit: its first reveal (remembered at once, like the tour), after the restoring when both are due
+    const rest = restorePending(app.profile);
+    this.restore = rest && DRAFT_BOXES[rest] ? { id: rest, at: now } : null;
+    if (rest) markRestored(app.profile, rest);
+    const hold = this.restore ? RESTORE_MS : TOUR_HOLD;
     const pend = unveilPending(app.profile);
-    this.reveal = pend ? { id: pend, at: now } : null;
+    this.reveal = pend ? { id: pend, at: now + hold - TOUR_HOLD } : null;
     if (pend) markUnveiled(app.profile, pend);
+    if (rest || pend) app.saveProfile();
     const firstVisit = !app.profile.worldTour;
     if (firstVisit || pend) {
       app.profile.worldTour = true;
@@ -372,9 +408,9 @@ export class WorldView {
       const r = pend ? playableIndex(pend) : -1;
       const prev = r > 0 ? WORLD_ACTS[regionStart(r) - 1]?.view : undefined;
       const from = prev && !firstVisit ? this.clampCam(Math.round(prev[0] - GAME_W / 2), Math.round(prev[1] - GAME_H / 2)) : this.clampCam(MAP_W, 0);
-      this.tour = { at: now, from, to: h };
+      this.tour = { at: now, from, to: h, hold };
       this.cam = { x: from[0], y: from[1] };
-      this.uiAt = now + TOUR_HOLD + TOUR_MS;
+      this.uiAt = now + hold + TOUR_MS;
     } else {
       this.tour = null;
       this.cam = { x: h[0], y: h[1] };
@@ -385,6 +421,11 @@ export class WorldView {
   /** Whether the first visit's reveal (or a land's first reveal) is playing. */
   get touring(): boolean {
     return !!this.tour;
+  }
+
+  /** The land whose colour is flooding back (tests), or null. */
+  get restoring(): string | null {
+    return this.restore?.id ?? null;
   }
 
   /** The land whose first reveal is playing (tests), or null. */
@@ -423,7 +464,7 @@ export class WorldView {
     const dt = Math.min(0.05, Math.max(0, (now - this.last) / 1000));
     this.last = now;
     if (this.tour) {
-      const k = (now - this.tour.at - TOUR_HOLD) / TOUR_MS;
+      const k = (now - this.tour.at - this.tour.hold) / TOUR_MS;
       const e = smooth(k);
       this.cam.x = this.tour.from[0] + (this.tour.to[0] - this.tour.from[0]) * e;
       this.cam.y = this.tour.from[1] + (this.tour.to[1] - this.tour.from[1]) * e;
@@ -455,6 +496,8 @@ export class WorldView {
   pressAt(x: number, y: number, now: number): void {
     const moving = Math.hypot(this.vel.x, this.vel.y) > CATCH_SPEED || !!this.glideTo;
     const skip = !!this.tour || moving;
+    // a tap ends a restoring at once (the colour all back)
+    this.restore = null;
     if (this.tour) {
       // any tap skips the reveal: straight to where it was going (a land's veil gone, its card still up a moment)
       this.cam = { x: this.tour.to[0], y: this.tour.to[1] };
@@ -898,12 +941,15 @@ export class WorldView {
     for (const i of this.imgs) i.setVisible(false);
     this.pool.hide();
     this.texts.hide();
+    this.nameTexts.hide();
+    for (const st of this.strips) st.setVisible(false);
     this.pickTexts.hide();
     this.pickIcons.hide();
     this.picker = null;
     this.sel = null;
     this.press = null;
     this.reveal = null;
+    this.restore = null;
     this.visit = -1;
     this.roam.hide();
     this.life.hide();
@@ -932,15 +978,18 @@ export class WorldView {
     }
     if (this.visit !== s.app.phaseSince) this.arrive(now);
     if (this.reveal && now - this.reveal.at > REVEAL_END) this.reveal = null;
+    if (this.restore && now - this.restore.at > RESTORE_MS) this.restore = null;
     this.moveCamera(now);
     for (const g of [this.g, this.gSea, this.gLand, this.gAir, this.gPick]) g.clear();
     for (const g of [this.gSea, this.gLand, this.gAir]) g.setPosition(-this.ox, -this.oy);
     this.texts.begin();
+    this.nameTexts.begin();
     this.pool.begin();
     for (const i of this.imgs) i.setVisible(true);
     const t = now / 1000;
 
     this.at(this.base, 0, 0);
+    this.drawAtlas(now, t);
     this.drawSea(now, t);
     this.drawSky(t);
     this.drawGreenmarch(now, t);
@@ -952,11 +1001,155 @@ export class WorldView {
     this.life.draw(now);
     this.pool.end();
     this.texts.end();
+    this.nameTexts.end();
     this.pickTexts.begin();
     this.pickIcons.begin();
     if (this.picker) this.drawPicker(now);
     this.pickIcons.end();
     this.pickTexts.end();
+  }
+
+  // ------------------------------------------------------------------ the Atlas: his drafts, the colour coming back
+
+  /** Whether a land is still in his draft (no colour: its region not restored yet), or its colour is flooding back. */
+  private drafted(id: string): boolean {
+    if (this.restore?.id === id) return true;
+    return !regionRestored(this.s.app.progress, playableIndex(id));
+  }
+
+  /** The next strip image for this frame (a pooled image of a draft, cropped by the caller). */
+  private strip(key: string): Img {
+    let im = this.strips[this.stripN];
+    if (!im) {
+      im = this.s.add.image(0, 0, key).setOrigin(0, 0).setDepth(DEPTH.map + 0.005);
+      this.strips.push(im);
+    }
+    this.stripN++;
+    if (im.texture.key !== key) im.setTexture(key);
+    return im.setVisible(true);
+  }
+
+  /**
+   * The Atlas over the printed map: the compass rose; each land still in his draft drawn over its colour (in rows of
+   * 2 px, cut round the colour already back: round Rowan and each cleared act, and the restoring's growing circle with
+   * a ragged edge and a front of gold ink); each open land's name lettered across it.
+   */
+  private drawAtlas(now: number, t: number): void {
+    const P = this.s.app.progress;
+    const g = this.gLand;
+    this.stripN = 0;
+    this.at(this.compass, COMPASS_AT[0], COMPASS_AT[1]);
+    const vx0 = this.ox;
+    const vy0 = this.oy;
+    const vx1 = this.ox + GAME_W;
+    const vy1 = this.oy + GAME_H;
+    const rs = this.restore;
+    const rk = rs ? clamp01((now - rs.at) / RESTORE_MS) : 0;
+    const [hx, hy] = WORLD_ACTS[this.actNow()].stand;
+    for (const [id, b] of Object.entries(DRAFT_BOXES)) {
+      if (!this.drafted(id)) continue;
+      const x0 = Math.max(b.x, vx0);
+      const x1 = Math.min(b.x + b.w, vx1);
+      const y0 = Math.max(b.y, vy0);
+      const y1 = Math.min(b.y + b.h, vy1);
+      if (x0 >= x1 || y0 >= y1) continue;
+      const holes: Array<[number, number, number]> = [[hx, hy - 6, HOLE_ROWAN]];
+      const r = playableIndex(id);
+      if (r >= 0) {
+        const start = regionStart(r);
+        REGIONS[r].acts.forEach((_, k) => {
+          const a = WORLD_ACTS[start + k];
+          if (a && start + k < P.actsCleared) holes.push([a.x, a.y, HOLE_ACT]);
+        });
+      }
+      let front: [number, number, number] | null = null;
+      if (rs && rs.id === id && r >= 0) {
+        const boss = WORLD_ACTS[regionStart(r) + REGIONS[r].acts.length - 1] ?? WORLD_ACTS[regionStart(r)];
+        const corners: Pt[] = [
+          [b.x, b.y],
+          [b.x + b.w, b.y],
+          [b.x, b.y + b.h],
+          [b.x + b.w, b.y + b.h],
+        ];
+        const far = Math.max(...corners.map(([cx, cy]) => Math.hypot(cx - boss.x, cy - boss.y)));
+        front = [boss.x, boss.y, smooth(clamp01((rk - 0.1) / 0.8)) * (far + 10)];
+        holes.push(front);
+      }
+      const key = `wm_draft_${id}`;
+      let blk: Rect | null = null;
+      const flush = () => {
+        if (blk) this.strip(key).setPosition(b.x - this.ox, b.y - this.oy).setCrop(blk.x - b.x, blk.y - b.y, blk.w, blk.h);
+        blk = null;
+      };
+      for (let y = y0 - ((y0 - b.y) % 2); y < y1; y += 2) {
+        const yy = Math.max(y, y0);
+        const hh = Math.min(y + 2, y1) - yy;
+        const cuts: Array<[number, number]> = [];
+        for (const [cx, cy, cr] of holes) {
+          const rr = cr * (1 + (rnd((y >> 1) * 7 + Math.round(cx), 91) - 0.5) * 0.14);
+          const dy = y + 1 - cy;
+          if (Math.abs(dy) >= rr) continue;
+          const half = Math.sqrt(rr * rr - dy * dy);
+          cuts.push([Math.round(cx - half), Math.round(cx + half)]);
+          // the front of the colour coming back: gold ink where it meets his draft
+          if (front && cr === front[2] && rk < 0.95) {
+            const a = Math.min(1, (0.95 - rk) * 6);
+            g.fillStyle(0xf2c230, a);
+            g.fillRect(Math.round(cx - half) - 1, y, 2, 2);
+            g.fillRect(Math.round(cx + half) - 1, y, 2, 2);
+            if (rnd(y, Math.floor(now / 90)) < 0.25) {
+              g.fillStyle(0xfff0a0, a);
+              g.fillRect(Math.round(cx - half) - 2, y, 1, 1);
+              g.fillRect(Math.round(cx + half) + 1, y + 1, 1, 1);
+            }
+          }
+        }
+        cuts.sort((p, q) => p[0] - q[0]);
+        let cur = x0;
+        const segs: Array<[number, number]> = [];
+        for (const [a, c] of cuts) {
+          if (a > cur) segs.push([cur, Math.min(a, x1)]);
+          cur = Math.max(cur, c);
+          if (cur >= x1) break;
+        }
+        if (cur < x1) segs.push([cur, x1]);
+        const whole = segs.length === 1 && segs[0][0] === x0 && segs[0][1] === x1;
+        const open = blk as Rect | null;
+        if (whole && open && open.y + open.h === yy) {
+          open.h += hh;
+          continue;
+        }
+        flush();
+        if (whole) {
+          blk = { x: x0, y: yy, w: x1 - x0, h: hh };
+          continue;
+        }
+        for (const [a, c] of segs) if (c > a) this.strip(key).setPosition(b.x - this.ox, b.y - this.oy).setCrop(a - b.x, yy - b.y, c - a, hh);
+      }
+      flush();
+      // motes of gold rising off the land as its colour comes back
+      if (front && rk < 1) {
+        const ga = this.gAir;
+        for (let m = 0; m < 40; m++) {
+          const ang = rnd(m, 92) * TAU;
+          const rad = front[2] * (0.35 + rnd(m, 93) * 0.65);
+          const per = 0.9 + rnd(m, 94) * 0.8;
+          const u = frac(t / per + rnd(m, 95));
+          const x = Math.round(front[0] + Math.cos(ang) * rad);
+          const y = Math.round(front[1] + Math.sin(ang) * rad * 0.8 - u * 10);
+          if (!this.seen(x, y, 0)) continue;
+          ga.fillStyle(m % 3 ? 0xfff0a0 : WHITE, Math.sin(u * Math.PI) * Math.min(1, (1 - rk) * 4));
+          ga.fillRect(x, y, 1, 1);
+        }
+      }
+    }
+    for (let i = this.stripN; i < this.strips.length; i++) this.strips[i].setVisible(false);
+    // the lettering: each land's name across it once it's drawn (ink on his draft, pale with an ink edge on colour)
+    for (const [id, [name, x, y]] of Object.entries(LAND_NAMES)) {
+      if (!(id === 'greenmarch' || this.veilOf(id, now) < 1) || !this.seen(x, y, 90)) continue;
+      const ink = this.drafted(id) && !(rs?.id === id && rk > 0.5);
+      this.nameTexts.text(name, x - this.ox, y - this.oy, ink ? 0x2e2240 : 0xf8ecc8, { bold: true, ox: 0.5, oy: 0.5, alpha: id === 'greenmarch' ? 1 : 1 - this.veilOf(id, now) });
+    }
   }
 
   // ------------------------------------------------------------------ the sea
@@ -990,15 +1183,14 @@ export class WorldView {
           // (the far sea past the continent is all open water)
           if (x < 1 || y < 1 || x >= MAP_W - 1 || y >= WORLD_H - 1 || (x < WORLD_W && !open[y * WORLD_W + x])) continue;
           if (farIn.length && farIn.some((b) => inRect(b, x, y, 2))) continue;
+          // (on the Atlas: a little ink ripple drawn and fading, not a glint of sun)
           const big = u > 0.08 && u < 0.22;
-          g.fillStyle(WHITE, big ? 1 : 0.7);
-          g.fillRect(x, y, 1, 1);
+          g.fillStyle(0x7a6a78, big ? 0.75 : 0.45);
+          g.fillRect(x - 1, y, big ? 3 : 2, 1);
           if (big) {
-            g.fillStyle(0xbfe4f8, 0.85);
-            g.fillRect(x - 1, y, 1, 1);
-            g.fillRect(x + 1, y, 1, 1);
-            g.fillRect(x, y - 1, 1, 1);
-            g.fillRect(x, y + 1, 1, 1);
+            g.fillStyle(0x7a6a78, 0.45);
+            g.fillRect(x - 2, y + 1, 1, 1);
+            g.fillRect(x + 2, y - 1, 1, 1);
           }
         }
     }
@@ -1022,10 +1214,10 @@ export class WorldView {
         for (let k = 1; k <= 4; k++) {
           const wx = x - dir * (6 + k * 3) + (k % 2 ? 0 : dir);
           const on = (Math.floor(t * 4) + k) % 2 === 0;
-          g.fillStyle(0xd4eeec, (1 - k / 5) * (on ? 0.9 : 0.6));
+          g.fillStyle(0xf8ecc8, (1 - k / 5) * (on ? 0.9 : 0.6));
           g.fillRect(wx, y - 1 + (k % 2), on ? 2 : 1, 1);
         }
-        g.fillStyle(0xd4eeec, 0.8);
+        g.fillStyle(0xf8ecc8, 0.8);
         g.fillRect(x + dir * 7, y - 1, 1, 1);
       }
     });
@@ -1104,8 +1296,8 @@ export class WorldView {
       this.at(this.pool.at(`wm_cloudsh${k % CLOUD_KINDS}`, 0, 0, DEPTH.shadow, 0.24), x + 6, sy + 13);
       this.at(this.pool.at(`wm_cloud${k % CLOUD_KINDS}`, 0, 0, DEPTH.cloud), x, sy);
     });
-    // the cloud band along the far north breathes
-    this.at(this.rim, Math.round(Math.sin(t * 0.25) * 2) - 2, -2);
+    // (the painted map's cloud band along the far north: not on the Atlas, whose sheet ends in its neatline)
+    this.rim.setVisible(false);
 
     // gulls: flocks of three crossing the whole map (in world space, so a drag never carries them along), staggered
     // so that one crosses the view every so often wherever you look
@@ -1198,7 +1390,7 @@ export class WorldView {
     // now and then a gust of wind rolls east over the meadows and the forest
     const gust = Math.floor(((t + 2) % 8) / 0.16);
     const wb = WORLD_BOXES.wind;
-    if (gust < WIND_FRAMES && this.seen(wb.x + wb.w / 2, wb.y + wb.h / 2, 260)) this.at(this.wind, wb.x, wb.y).setTexture(`wm_wind${gust}`);
+    if (gust < WIND_FRAMES && !this.drafted('greenmarch') && this.seen(wb.x + wb.w / 2, wb.y + wb.h / 2, 260)) this.at(this.wind, wb.x, wb.y).setTexture(`wm_wind${gust}`);
     else this.wind.setVisible(false);
     // the windmills turn
     WORLD_SPOTS.mills.forEach(([mx, my], i) => this.at(this.mills[i], mx, my).setTexture(`wm_mill${Math.floor(t * 4 + i) % 2}`).setVisible(this.seen(mx, my)));
@@ -1433,24 +1625,23 @@ export class WorldView {
     }
   }
 
-  // ------------------------------------------------------------------ the capital and the Great Pendulum
+  // ------------------------------------------------------------------ the capital and the Atlas Hall
 
   private drawCapital(t: number): void {
     const g = this.gLand;
     const P = this.s.app.progress;
     const pv = WORLD_SPOTS.pendulum;
     if (!this.seen(pv.x, pv.y, 60)) return;
-    // the pendulum: hangs still while its weights are missing; swings wider the more come home
-    const amp = P.weights / WEIGHTS_TOTAL;
-    const off = Math.round(Math.sin(t * TAU * 0.6) * 2.4 * amp);
-    g.fillStyle(0xd8901c, 1);
-    for (let k = 0; k < 3; k++) g.fillRect(pv.x + Math.round((off * k) / 4), pv.y + k, 1, 1);
-    g.fillStyle(0xf2c230, 1);
-    g.fillRect(pv.x + off - 1, pv.y + 3, 3, 2);
-    g.fillStyle(0xfff0a0, 1);
-    g.fillRect(pv.x + off - 1, pv.y + 3, 1, 1);
-    g.fillStyle(0x9a5a14, 1);
-    g.fillRect(pv.x + off + 1, pv.y + 4, 1, 1);
+    // the Atlas's light glowing in the Hall's three windows under the dome: faint while its lines fade, brighter the
+    // more regions are restored (docs/story-bible.md section 9)
+    const lit = 0.3 + 0.7 * (P.weights / WEIGHTS_TOTAL);
+    const breathe = 0.82 + 0.18 * Math.sin(t * 1.7);
+    for (const dx of [-3, 0, 3]) {
+      g.fillStyle(0xf2c230, lit * breathe);
+      g.fillRect(pv.x + dx, pv.y + 1, 1, 3);
+      g.fillStyle(0xfff0a0, lit * breathe);
+      g.fillRect(pv.x + dx, pv.y, 1, 1);
+    }
     // pennants on the turrets
     WORLD_SPOTS.turrets.forEach(([tx, ty], i) => {
       const fr = Math.floor(t * 5 + i) % 2;
@@ -1462,12 +1653,12 @@ export class WorldView {
       g.fillStyle(0x8a1a22, 1);
       g.fillRect(tx + 3, ty - (fr ? 4 : 3), 1, 1);
     });
-    // a glint runs up the spire's gold finial now and then
+    // a glint runs over the lantern's gold finial now and then
     const k = frac(t / 4.5);
     if (k < 0.12) {
       g.fillStyle(WHITE, 1 - k / 0.12);
-      g.fillRect(pv.x, pv.y - 21, 1, 1);
-      g.fillRect(pv.x - 1, pv.y - 20, 3, 1);
+      g.fillRect(pv.x, pv.y - 13, 1, 1);
+      g.fillRect(pv.x - 1, pv.y - 12, 3, 1);
     }
     // the town's smoke: a few columns drifting east over the roofs
     WORLD_SPOTS.capitalSmoke.forEach(([cx, cy], i) => {
@@ -1496,12 +1687,15 @@ export class WorldView {
         v.img.setVisible(false);
         continue;
       }
-      this.at(v.img, b.x + Math.round(Math.sin(t * 0.2 + b.x) * 2), b.y + Math.round(Math.sin(t * 0.27 + b.y) * 1)).setAlpha((1 - 0.55 * peek) * thick);
+      // (erased land is blank paper: it lies still; a peek thins it to show the impression's land beneath)
+      this.at(v.img, b.x, b.y).setAlpha((1 - 0.55 * peek) * thick);
     }
     if (this.reveal) this.revealMotes(now, t);
     // Frostpeaks: snow falling over the range (what's in view), a plume blown off the highest summit
     const fb = VEIL_BOXES.frostpeaks;
-    if (this.seen(fb.x + fb.w / 2, fb.y + fb.h / 2, 280))
+    // (nothing moves on erased land: each land's life only once it's drawn back)
+    const live = (id: string) => this.veilOf(id, now) < 1;
+    if (live('frostpeaks') && this.seen(fb.x + fb.w / 2, fb.y + fb.h / 2, 280))
       for (let k = 0; k < 60; k++) {
         const x0 = fb.x + rnd(k, 41) * fb.w;
         const vy = 5 + rnd(k, 42) * 5;
@@ -1512,7 +1706,7 @@ export class WorldView {
         ga.fillStyle(WHITE, k % 4 ? 0.85 : 0.6);
         ga.fillRect(x, y, 1, 1);
       }
-    for (let k = 0; k < 6; k++) {
+    for (let k = 0; k < 6 && live('frostpeaks'); k++) {
       const u = frac(t / 2.2 + k / 6);
       const x = Math.round(380 + u * 18 + Math.sin(u * 7 + k));
       const y = Math.round(8 - Math.sin(u * Math.PI) * 2 + u * 3);
@@ -1523,8 +1717,8 @@ export class WorldView {
     // Ashfell: the volcano breathes (the glow swells, smoke puffs roll off east, embers spit), steam off the coast
     const cr = WORLD_SPOTS.crater;
     const lb = WORLD_BOXES.lava;
-    this.at(this.lava, lb.x, lb.y).setAlpha(0.45 + 0.35 * Math.sin(t * 1.9) + 0.12 * Math.sin(t * 7.3));
-    if (this.seen(cr.x, cr.y, 80)) {
+    this.at(this.lava, lb.x, lb.y).setAlpha(0.45 + 0.35 * Math.sin(t * 1.9) + 0.12 * Math.sin(t * 7.3)).setVisible(live('ashfell'));
+    if (live('ashfell') && this.seen(cr.x, cr.y, 80)) {
       for (let j = 0; j < 7; j++) {
         const u = frac(t / 4.6 + j / 7);
         const x = cr.x + u * 34 + Math.sin(u * 6 + j) * 1.5;
@@ -1542,7 +1736,7 @@ export class WorldView {
       }
     }
     WORLD_SPOTS.steam.forEach(([sx, sy], i) => {
-      if (!this.seen(sx, sy, 20)) return;
+      if (!live('ashfell') || !this.seen(sx, sy, 20)) return;
       for (let j = 0; j < 3; j++) {
         const u = frac(t / 3 + j / 3 + i * 0.4);
         const img = this.pool.mid(`wm_steam${u < 0.3 ? 0 : 1}`, 0, 0, DEPTH.air, (1 - u) * 0.7);
@@ -1552,13 +1746,13 @@ export class WorldView {
     // Duskmire: mist banks drift to and fro, wisps wander, the Mirelight pulses
     WORLD_SPOTS.fog.forEach(([fx, fy], i) => {
       const x = fx + Math.sin(t * 0.18 + i * 2) * 8;
-      if (!this.seen(x, fy, 30)) return;
+      if (!live('duskmire') || !this.seen(x, fy, 30)) return;
       const img = this.pool.mid(`wm_fog${i % 2}`, 0, 0, DEPTH.fog, 0.32 + 0.1 * Math.sin(t * 0.4 + i));
       this.at(img, x - img.width / 2, fy + Math.sin(t * 0.3 + i) * 0.8 - img.height / 2);
     });
     WORLD_SPOTS.wisps.forEach(([wx, wy], i) => {
       const a = clamp01(0.5 + Math.sin(t * 0.8 + i * 2.1) * 0.9);
-      if (a <= 0 || !this.seen(wx, wy, 14)) return;
+      if (a <= 0 || !live('duskmire') || !this.seen(wx, wy, 14)) return;
       const x = Math.round(wx + Math.sin(t * 0.6 + i * 2) * 10);
       const y = Math.round(wy + Math.sin(t * 1.3 + i) * 3 - Math.abs(Math.sin(t * 2.2 + i)) * 2);
       const tx = Math.round(wx + Math.sin(t * 0.6 + i * 2 - 0.25) * 10);
@@ -1571,7 +1765,7 @@ export class WorldView {
       ga.fillRect(x, y, 1, 1);
     });
     const mb = WORLD_BOXES.lamp;
-    this.at(this.lamp, mb.x, mb.y).setAlpha(0.55 + 0.45 * Math.sin(t * 2.4));
+    this.at(this.lamp, mb.x, mb.y).setAlpha(0.55 + 0.45 * Math.sin(t * 2.4)).setVisible(live('duskmire'));
     // Noonspire: the island floats, its waterfall pours, the sun on its spire twinkles
     const dy = Math.round(Math.sin(t * 0.7) * 1.4);
     const io = WORLD_SPOTS.isle;
@@ -1810,6 +2004,27 @@ export class WorldView {
         glow(g, { x: ix, y: iy, w: iw, h: ih }, 0xffe680, (0.25 + 0.25 * pulse(now, 900)) * a, 2);
         this.texts.text(title, ix + iw / 2, iy + 7, 0xffe680, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
         this.texts.text(line, ix + iw / 2, iy + 16, WHITE, { ox: 0.5, oy: 0.5, alpha: a });
+      }
+    }
+
+    // a land restored: its card as the colour comes back
+    const rs = this.restore;
+    if (rs) {
+      const age = now - rs.at - RESTORE_MS * 0.4;
+      const span = RESTORE_MS * 0.6 + 500;
+      if (age > 0 && age < span) {
+        const a = Math.min(1, age / 160, (span - age) / 300);
+        const title = REGIONS[playableIndex(rs.id)]?.name ?? '';
+        const line = 'Restored!';
+        const iw = Math.max(textWidth(title, 1, true), textWidth(line, 1, false)) + 20;
+        const ih = 23;
+        const k = easeBack(age / 260, 1.6);
+        const ix = Math.round((s.L + s.R) / 2 - iw / 2);
+        const iy = s.B - ih - 16 + Math.round((1 - k) * 6);
+        this.panel(g, ix, iy, iw, ih, a);
+        glow(g, { x: ix, y: iy, w: iw, h: ih }, 0xffe680, (0.25 + 0.25 * pulse(now, 900)) * a, 2);
+        this.texts.text(title, ix + iw / 2, iy + 7, 0xffe680, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
+        this.texts.text(line, ix + iw / 2, iy + 16, 0x8af06a, { ox: 0.5, oy: 0.5, alpha: a });
       }
     }
 

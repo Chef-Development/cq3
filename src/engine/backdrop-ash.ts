@@ -41,7 +41,7 @@ import {
   type Ramp,
   type Theme,
 } from './backdrop';
-import { cluster } from './backdrop-frost';
+import { cluster } from './backdrop-ice';
 
 export type AshTheme = 'cinder' | 'glass' | 'forge';
 export const ASH_BACKDROP_THEMES: AshTheme[] = ['cinder', 'glass', 'forge'];
@@ -176,7 +176,7 @@ function lavaRiver(p: Pix, w: number, yMid: (x: number) => number, half: (x: num
 }
 
 /** Basalt paving stones: hexagons in staggered rows, their tops lit, dark seams between (the road-roller's road). */
-function hexPaving(p: Pix, x0: number, x1: number, y0: number, y1: number, r: Ramp, seed: number, edge: (y: number) => number): void {
+function hexPaving(p: Pix, x0: number, x1: number, y0: number, y1: number, r: Ramp, seed: number, edge: (y: number) => number, calm?: [number, number]): void {
   const cw = 7;
   const ch = 4;
   for (let y = y0; y < y1; y++)
@@ -190,6 +190,8 @@ function hexPaving(p: Pix, x0: number, x1: number, y0: number, y1: number, r: Ra
       const seam = fx === 0 || fy === 0 || (fy === 1 && (fx === 1 || fx === cw - 1));
       const shade = hash(cx, row, seed);
       let v = seam ? 0.08 : 0.42 + shade * 0.22 + (fy === 1 ? 0.14 : fy === ch - 1 ? -0.1 : 0) - (fx === cw - 1 ? 0.1 : 0);
+      // (where the fighters stand the seams soften: the ground under the feet stays calm, docs/art-style.md section 8)
+      if (calm && y >= calm[0] && y <= calm[1]) v = seam ? 0.3 : 0.4 + shade * 0.08;
       v += (noise(x * 0.4, y * 0.4, seed) - 0.5) * 0.1;
       p.set(x, y, pick(r, v, x, y, 0.15));
     }
@@ -384,7 +386,7 @@ function cinder(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   // the road-roller's road: basalt pavers laid from the right, ending ragged halfway, a stack waiting to be laid
   const roadEnd = Math.round(w * 0.5);
   const roadTop = G - 5;
-  hexPaving(p, 0, w, roadTop, h, BASALT, 97, (y) => roadEnd + Math.round(noise(y * 0.4, 1, 97) * 10) - (y - roadTop) * 0.6);
+  hexPaving(p, 0, w, roadTop, h, BASALT, 97, (y) => roadEnd + Math.round(noise(y * 0.4, 1, 97) * 10) - (y - roadTop) * 0.6, [G - 4, G + 3]);
   for (let i = 0; i < 4; i++) {
     const sx = roadEnd - 14 + (i % 2) * 2;
     const sy = roadTop - 2 - i * 2;

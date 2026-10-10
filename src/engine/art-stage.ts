@@ -24,14 +24,21 @@ export interface StageLight {
   /** Warm light pooled where the fighters stand. */
   pool: Col;
   poolAmt: number;
+  /**
+   * The act's mood (playtest round 8, decision L7: "more dark, not all bright and peachy"): a multiply tint on the
+   * painted backdrop, its clouds, mist and foreground, never on the actors, the rays, the glows or the bar. Values come
+   * down and cool; the warm light stays as accents (rays, torches, the pool) and the actors pop by a value step and
+   * their rim. Missing: no tint.
+   */
+  mood?: Col;
 }
 
 export const STAGE_LIGHT: Record<Theme, StageLight> = {
-  // late-morning sun through the canopy, from the top left
+  // late day through the canopy, from the top left: the forest in deep shade, shafts of gold
   forest: {
     shade: 0x2c3c5a,
-    vignette: 0.6,
-    floor: 0.5,
+    vignette: 0.68,
+    floor: 0.56,
     top: 0.4,
     rim: 0xfff0b8,
     rimAmt: 0.75,
@@ -43,12 +50,14 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0xc8a878, 0xa88a60, 0xe0c898],
     pool: 0xffe0a0,
     poolAmt: 0.2,
+    // late day in deep shade: the bright noon sky goes to a dusky blue, the gold shafts stay
+    mood: 0x8290b8,
   },
   // moonlight from the top left, braziers below
   ruins: {
     shade: 0x0a1024,
-    vignette: 0.66,
-    floor: 0.5,
+    vignette: 0.74,
+    floor: 0.56,
     top: 0.3,
     rim: 0x9ac0ff,
     rimAmt: 0.7,
@@ -60,12 +69,14 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0x6a7888, 0x8a96a4, 0x4e5a68],
     pool: 0xff9a50,
     poolAmt: 0.1,
+    // a rainy dusk: cooler and darker
+    mood: 0x9aa4c4,
   },
   // the low sunset sun on the left
   hollow: {
     shade: 0x2a0c2c,
-    vignette: 0.64,
-    floor: 0.5,
+    vignette: 0.72,
+    floor: 0.56,
     top: 0.34,
     rim: 0xffa050,
     rimAmt: 0.85,
@@ -77,12 +88,14 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0x9a6060, 0xb87a6a, 0x7a4450],
     pool: 0xffa060,
     poolAmt: 0.14,
+    // a red sky: the peach sunset deepens to red and plum
+    mood: 0xb07c88,
   },
   // an overcast afternoon: soft cool light from a veiled sun high on the left, blue shadows on the snow
   pass: {
     shade: 0x3a4270,
-    vignette: 0.46,
-    floor: 0.4,
+    vignette: 0.54,
+    floor: 0.46,
     top: 0.2,
     rim: 0xfff2e0,
     rimAmt: 0.6,
@@ -94,12 +107,14 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0xe8eef8, 0xc4cee6, 0xffffff],
     pool: 0xfff4e4,
     poolAmt: 0.1,
+    // blue night on the pass
+    mood: 0x7c88c4,
   },
   // the caves: cold light from the crystals and a crack in the roof, deep shade everywhere else
   caves: {
     shade: 0x0a0c2c,
-    vignette: 0.7,
-    floor: 0.52,
+    vignette: 0.78,
+    floor: 0.58,
     top: 0.42,
     rim: 0x9ae4ff,
     rimAmt: 0.72,
@@ -111,12 +126,14 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0x8ab4d8, 0x5a78a4, 0xbce4f4],
     pool: 0x8ad8ff,
     poolAmt: 0.13,
+    // the caves a step darker and colder
+    mood: 0xa8b2d8,
   },
   // the glacier at night: the aurora overhead lights everything from above in green, the ice glows back
   glacier: {
     shade: 0x0e1838,
-    vignette: 0.62,
-    floor: 0.48,
+    vignette: 0.7,
+    floor: 0.54,
     top: 0.16,
     rim: 0x9affd0,
     rimAmt: 0.74,
@@ -128,13 +145,15 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0xdcf0ff, 0xa8c6e6, 0xffffff],
     pool: 0x9cffd8,
     poolAmt: 0.1,
+    // night under the aurora
+    mood: 0xa4b2d8,
   },
   // the Cinder Flats: a smoky afternoon, the sky burning orange low down; the fighters rimmed warm by the volcano's
   // glow, plum shade, ash kicked up grey
   cinder: {
     shade: 0x3a1a26,
-    vignette: 0.58,
-    floor: 0.46,
+    vignette: 0.66,
+    floor: 0.52,
     top: 0.34,
     rim: 0xffb070,
     rimAmt: 0.78,
@@ -146,12 +165,14 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0x8a7874, 0x6e5e5c, 0xa8968e],
     pool: 0xff9a50,
     poolAmt: 0.12,
+    // dark with ember light: the orange plain under smoke
+    mood: 0x94808e,
   },
   // the Glass Warrens: dark tunnels lit by the magma lake behind and the coloured glass, deep violet shade
   glass: {
     shade: 0x160c26,
-    vignette: 0.68,
-    floor: 0.52,
+    vignette: 0.76,
+    floor: 0.58,
     top: 0.42,
     rim: 0xffa868,
     rimAmt: 0.72,
@@ -163,12 +184,14 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0x4a3a5a, 0x6a5a7a, 0x8a7a9a],
     pool: 0xff7a3a,
     poolAmt: 0.14,
+    // the warrens a step darker; the lake's glow stays
+    mood: 0xb0a4c4,
   },
   // the Black Forge: the furnace roaring behind the fighters, red-black smoke overhead, everything rimmed in fire
   forge: {
     shade: 0x2c0a12,
-    vignette: 0.66,
-    floor: 0.5,
+    vignette: 0.74,
+    floor: 0.56,
     top: 0.38,
     rim: 0xff8a48,
     rimAmt: 0.86,
@@ -180,6 +203,8 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0x5a3a30, 0x7a4a38, 0x3a2420],
     pool: 0xff6a2a,
     poolAmt: 0.18,
+    // the forge in smoke; the fires stay
+    mood: 0xa4949e,
   },
   // Lanternfen: a violet dusk that never ends, the low sky rose behind; the fighters rimmed rose from the top left,
   // lantern-warm light pooled where they stand

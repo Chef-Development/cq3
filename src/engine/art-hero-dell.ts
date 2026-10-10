@@ -213,20 +213,29 @@ function sling(g: Grid, x: number, y: number, ang: number, drawTo?: Pt, loaded =
   const fy = Math.sin(ang);
   const W = DELL_WOOD;
   const at = (along: number, side: number): Pt => [Math.round(x + ax * along + fx * side), Math.round(y + ay * along + fy * side)];
-  // the handle (down from the grip), the crotch, the two prongs spreading up
+  // the handle (down from the grip), the crotch, the two prongs spreading up: 3 px of wood in the handle and 2 in
+  // each prong, lit on the side toward the light, so the fork reads at 8x
   for (let k = -3; k <= 1; k++) {
+    const [lx, ly] = at(k, -1);
     const [px, py] = at(k, 0);
+    const [dx, dy] = at(k, 1);
+    put(g, lx, ly, W[3]);
     put(g, px, py, W[2]);
-    put(g, px + 1, py, W[1]);
+    put(g, dx, dy, W[1]);
   }
   const tips: Pt[] = [];
   for (const side of [-1, 1]) {
-    for (let k = 1; k <= 5; k++) {
-      const s = side * Math.min(2.5, k * 0.7);
+    for (let k = 1; k <= 6; k++) {
+      const s = side * Math.min(3, k * 0.75);
       const [px, py] = at(1 + k, s);
-      put(g, px, py, k === 5 ? W[3] : side < 0 ? W[3] : W[2]);
-      if (k < 5) put(g, px + 1, py, W[0]);
-      if (k === 5) tips.push([px, py]);
+      const [qx, qy] = at(1 + k, s + side);
+      // the outer edge of the left prong and the inner edge of the right one face the light
+      put(g, px, py, side < 0 ? W[2] : W[3]);
+      put(g, qx, qy, side < 0 ? W[3] : W[1]);
+      if (k === 6) {
+        put(g, px, py, W[3]);
+        tips.push([px, py]);
+      }
     }
   }
   // the band (and its leather cup at the near fist when drawn)

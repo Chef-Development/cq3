@@ -1,5 +1,5 @@
-// Region 4 (SPOILERS: docs/content-bible.md section 7). In play (REGIONS, global acts 9-11); until its own art lands
-// (foe sprites, backdrops, the act themes) its acts wear earlier looks (DUSK_STAND_IN). Three acts like
+// Region 4 (SPOILERS: docs/content-bible.md section 7). In play (REGIONS, global acts 9-11), in its own looks (the
+// act themes `fen`, `causeway`, `mere`: backdrop-dusk.ts, art-dusk.ts, the map's Duskmire painter). Three acts like
 // Ashfell's, each a branching node map ending in a mini-boss (acts 1 and 2) or the boss (act 3), with the bar rules
 // brought in gradually: dark blocks from Act 1's third row, the tide from Act 2's second row (and a little dark late
 // in it), both from the start of Act 3, where the boss's phases are the mapmaker's edits to the bar. The act scaling

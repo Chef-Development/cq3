@@ -766,6 +766,40 @@ L5. **The full unit suite runs on GitHub at every push** (about 3 minutes there;
     teams share its four cores): the lead pushes a merge after typecheck, the build and the tests nearest the merge,
     checks the run, and fixes forward at once if it goes red.
 
+L6. **The world map keeps its painted lands** (after the Atlas pass at phone size): the dense ink-draft rendering of
+    open lands read as noise at the map's real zoom; playable lands are painted (the Atlas frames them: parchment sea,
+    inked coasts, names, the neatline), erased lands are blank vellum, and restoring a region paints it back.
+
+L7. **Mood: darker, not bright and peachy** (playtester, round 8: "the atmosphere of everything needs to be slightly
+    more dark and not all bright and peachy"). Rules for every screen (the art bible's new "Mood" section, owned by
+    art 2A; backdrops and fight lighting by art 2B; Region 4+ by the content art helpers):
+    1. Values drop: a scene's average brightness about 20-30% lower; skies are dusk, overcast, storm or night, never a
+       flat bright noon; the brightest values are kept for light sources (sun, lanterns, magic, fire) and the actors'
+       highlights.
+    2. Midtones lean cool and a step less saturated (blue, teal, violet); saturated colour lives in light pools and
+       accents.
+    3. Shadows are deep and cool (indigo, teal) and take more of the frame; vignettes are stronger.
+    4. Warm light is an accent, not a wash: no large peach, beige or cream fills (parchment is aged and darker with
+       burnt edges; UI plates are deep ink).
+    5. Actors stay readable: a rim light and a clear value step from the backdrop; the ground strip under them is calm
+       and darker.
+    6. Darker never means muddy: every material keeps 3+ hue-shifted tones and the scene keeps strong contrast.
+
+L8. **More mature, less chibi** (playtester, round 8: "everything looks a little childish and chibi; a little more
+    mature and moodier"). On top of L7's mood:
+    1. Heroes: from about 2 heads tall to about 3-3.5: longer torsos and legs, heads a little smaller; smaller eyes
+       (no big glossy eyes, no rosy cheeks), a defined brow and jaw; weathered, grounded materials (worn leather,
+       dented steel, cloth with folds); silhouettes that read as people, not toys. Rowan first as the reference, then
+       every hero, the most seen first. Weapons keep the heft from the round's earlier note.
+    2. Foes: more menace (sharper silhouettes, eyes that glow, teeth, scars), darker palettes; cute shapes (round
+       slimes, wide eyes) get an edge.
+    3. Portraits: the same maturity (defined features, moodier light).
+    4. UI: less candy gloss: plates read as engraved metal, ink and leather rather than shiny plastic; bright saturated
+       buttons are toned down to the mood's accents.
+    5. Companions may keep some charm, inside the mood's palette.
+    Teams: art 2B the heroes (and portraits of heroes); a new art 2C the fight backdrops (L7) and the foes; art 2A the
+    UI, menus, world map and title; the region helpers their regions.
+
 (lead: end of section)
 
 
@@ -821,6 +855,20 @@ S11. **Region 5's scenes fit its data as built.** The Noon Sphinx speaks (speake
     placeholders are written into `story-noon.ts`. Each phase hint names the rule it brings (the glare's blazing
     yellows and the green that cools; the sun drawn down's outlines).
 
+S12. **Nothing says "can't be erased" before the end of the first region.** Rowan's hero bio ("Stays awake. Naps
+    anywhere."), his banter and the welcome back ("Only you stayed awake.") keep it for `victory`, where the Mapmaker
+    first tries. The fifth region gets a camp scene (`noonCamp`, to wire like `duskCamp`) and gated banter
+    (`banter-noon.ts`, read by `core/banter.ts`; it shows only once the region is in play). Regions 6-10 are outlined in
+    the story bible: on an erased isle everything sleeps, so its foes are things he drew to move, creatures that were
+    away, and creatures that crossed his sea road. Regions 6-8's scenes are drafted in full ahead of their data
+    (`story-hush.ts`, `story-reach.ts`, `story-wick.ts`), as Region 5's were: the content team builds on the ids.
+
+S13. **The rest of the story is drafted in data, not in play.** Region 9 in full (`story-salt.ts`), Region 10's two
+    key scenes (`story-far.ts`), and Regions 11-12's key scenes, the beat and the ending (`story-end.ts`), checked by
+    the same tests as the scenes in play (box counts, widths, speakers, the Mapmaker's and Hesper's no-contraction
+    voices; he is named only at the end of `lowTruth`, speaker `ambrose`). Camp banter can now stop being true
+    (`until`): Brann's slate lines stop once his bell rings (`saltVictory`).
+
 (story: end of section)
 
 
@@ -864,9 +912,10 @@ A2B-2. **Four-frame idles for all sixteen heroes** (`idle2`, `idle3` in every he
     weapon's weight for the heroes without one) follows a frame behind. 300 ms a frame (a 1.2 s loop, inside the
     bible's 900-1400 ms); a hero without the extra frames keeps the two-frame breath (fighters.ts `idlePose`).
 A2B-3. **Squash and stretch on the hero by transform** (fighters.ts `squash`, at most 100 ms, volume kept): a cut
-    stretches him forward (+8%), a blow taken squashes him (+10%), a landing squashes him wide (+14%; a finisher show's
-    leap is caught when its lift comes back to the ground). No held anticipation is added before the first blow: the
-    engaged pose between blows is already the windup, and the dash (70 ms) must not delay the hit the tap asked for.
+    stretches him forward (+8%; the dash's push-off +7%), a blow taken squashes him (+10%), a landing squashes him
+    wide (+14%; a finisher show's leap is caught when its lift comes back to the ground). No held anticipation is
+    added before the first blow: the engaged pose between blows is already the windup, and the dash (70 ms) must not
+    delay the hit the tap asked for.
 A2B-4. **Sable gets the bible's twelve**: a finisher pose (both blades thrown wide, the scarf rising) and the green
     ability's crossed daggers, plus the scarf's two in-between states for her idle.
 A2B-5. **The spirit stag (audit: 3) is rebuilt** with a haunch and a shoulder, jointed legs (hocks, hooves), great
@@ -887,6 +936,47 @@ A8. (Superseded by A2B-2.) **A four-step idle breath** for the fourteen rig hero
     them; Rowan and Sable keep their two frames. The menus' 3x heroes still use two.
 A9. **Ashfell's darkest foes get an ember rim** (light from below, section 9 of the bible) and the glass warren a light
     spill from its lake; the forge was re-scored from a fight screen (the sheet had made it look flat).
+
+A2B-8. **The four-frame idle shows on the hero select too** (heroes.ts, at 340 ms a frame): at 3x the plume, cape and
+    hair lagging the breath read best there. Foes landing from a wave's hops squash wide for 100 ms, and the cinderling
+    joins the foes with Ashfell's ember rim (it sank into the plain's dark ground at phone size).
+A10. **Playtester note: "title too simplistic and drained".** The parchment-map title (A3) is replaced by key art
+    (`art-title-key.ts`, `view/title.ts`): a dusk over the kingdom in saturated, stepped layers (indigo to molten gold
+    round a low sun in a mountain notch, two rim-lit ranges, backlit green hills, a river of reflected gold, the
+    capital's dome) with the premise as an image, spoiler-free: on the right the world is being erased (the colour
+    drains into an ink drawing in torn patches, then blank vellum keeping only the impression of its lines, an ink
+    front clawing into the colour) under a giant owl-feather quill whose gold nib draws down the front; the page's
+    corner curls up. Rowan stands on a dark cliff in the foreground, backlit, Pip by him. Motion: rays breathing from
+    the sun, cloud wisps, the front's ink crawling in a slow wave and shedding flecks of paper, the nib glowing and
+    drawing, motes. The logo sits on a dark halo with a warm glow, ink drips off its lettering. The tutorial strip is
+    gone (the first fight teaches); "Tap to start!" sits low, clear of the hero; Continue / New game keep their rects.
+A11. **Portraits for the Mapmaker and Hesper** (`art-portraits-atlas.ts`): both face left on the shared eye line.
+    Ambrose: faded keeper's-blue coat with an unfaded patch where the badge was torn off, salt-and-pepper hair tied
+    back, a short beard, spectacles pushed up, kind tired eyes, maps in his satchel, the owl-feather pen in an
+    ink-stained hand. Hesper: silver hair in a tight bun, grey keeper's robes with a silver-trimmed high collar, the
+    hall's heavy key on a chain (its bow a compass rose). Hesper joins `ALLY`; the Mapmaker's plate is the Atlas's ink
+    with a gold ribbon (his lines glow gold), not a foe's red.
+A12. **The world map is printed on the Great Atlas** (`art-world-atlas.ts`, a pass after the painting, still in idle
+    slices): the sea is parchment with a watercolour wash along the coasts and engraved water lines, coasts and lake
+    shores inked, regions' borders dashed, a burnt edge and a double neatline round the whole sheet (far sea too), a
+    compass rose in the north-west sea, each open land's name lettered across it. The painted cloud band along the
+    north is gone (the sheet ends in its neatline); the sea's wave marks and surf are strokes of faded ink and paper.
+A13. **Three states per land on the Atlas.** Locked (and the far isles): erased, blank white-grey vellum keeping the
+    impression of its lines, still (it no longer drifts) and nothing alive on it. Open but not restored: his draft,
+    an ink drawing on bare paper (`wm_draft_<id>`), with the colour already back in rings round Rowan (ink slides off
+    him) and round every act cleared there (drawn as 2 px rows cropped round the rings: no per-frame painting). Restored
+    (its region won): full colour. The first visit after a region is won plays its restoring once (`restore:<id>` in
+    `profile.seen`, `core/world-plan.ts` restorePending): the colour floods out from the boss's landmark in a ragged
+    ring with a front of gold ink and motes, 2.6 s, a card "Restored!"; a tap ends it. When the next land unveils on
+    the same visit, the view holds on the restored land through it, then glides on (the unveil's tour holds longer).
+    The lab profiles mark every restoring seen; the lab's "A land comes back" replays Greenmarch's (spoiler-free:
+    the next land stays blank).
+A14. **Section 9's words on every screen I own**: "The Great Atlas" and "Regions restored: N/12" with a compass rose
+    per region (the weights' pips) in the world map's header, the capital's card ("Its lines are fading." / "N of 12
+    regions restored." / "Whole again."), "Erased land" for the far isles ("Restore more regions to bring it back.",
+    "Something is being drawn here."), a locked land's card names the land to restore first, and the region victory
+    reads "Greenmarch restored!" / "N regions to go." Nothing about a Pendulum is left in the view text (the capital's
+    landmark sprite and the narrator's portrait still show the pendulum: next).
 
 (art: end of section)
 
@@ -920,6 +1010,22 @@ C7. **Stand-ins until a region's art lands, never a missing texture or a silent 
     telegraph sound not built yet plays the generic wind-up, a speaker with no portrait speaks from an empty frame, the
     acts wear earlier themes (`DUSK_STAND_IN`), and the music falls back to the last act theme it has. Each one switches
     itself off as the art team's textures and tracks arrive (no flag to flip).
+C-ART-1. **Region 4's art follows Ashfell's pattern** (helper team "dusk-art"): `art-dusk.ts` draws every foe's
+    fight frames, the two mini-bosses (the first with a second look past half HP), the boss with a look per phase, and
+    the two new speakers' portraits, painted in idle slices after Ashfell's or at once when a fight or scene needs them
+    (`scene.ensureDuskArt()`); `backdrop-dusk.ts` paints the three acts' backdrops the first time one is needed. The
+    region's look: dusk violet and rose from the top left, lantern amber where light pools, black water mirroring
+    both; dark foes get a rose rim on top and a lantern rim below (`duskRim`), as Ashfell's got its ember rim. The
+    region's third speaker's portrait stays with the art team (the speaker list says so).
+C-ART-2. **The three looks join the `Theme` unions** (`fen`, `causeway`, `mere`) with their stage light, rays, mist,
+    air, map landscape, kit, lairs and critters (a bog frog, a mud crab, a moth, a heron over the fen), and the
+    region's acts show them (`DUSK_STAND_IN` is now each act's own look). One shared map painter for the three
+    (`groundDusk` / `roadsDusk` / `decorDusk` / `duskLight` in art-map.ts) keeps the shared file's addition in one block.
+C-ART-3. **Region 4's music is built to the content bible** (six pieces, each its own key, tempo and instruments,
+    fifteen new Band instruments from a slide dobro to a foghorn), with two tempo moves: the Drowned Causeway at 102 and
+    the Sluice Keeper at 114, not 100 and 112 (the title and Act 7 already have those; the audio test wants every
+    tempo once). Both mini-bosses follow their phases (layers, no key change); the boss drops a whole tone in its last
+    phase (`keyUp: -2`). Cued by act and boss in app.ts, with the three ambience beds (`fen`, `causeway`, `mere`) by act.
 C8. **The fourth region balanced at 75% from a typical end-of-third-region hero** (`npm run region-tune` with
     REGION=3, then `tests/unit/bot-region4.test.ts` as the guard, 40 runs). Its first-guess numbers were far too easy:
     the mini-bosses decide each act (first try = the boss's first fight), so the levers were their HP and attack plus
@@ -979,6 +1085,38 @@ C11. **Ice floats on the tide** (`CORE:`): a frozen block in the water is never 
   build instead of "Combo Quest 3"/"CQ3". Listed for their owners, not changed: the world map's flags and padlocks
   (the reference's kingdom map), Sunny's gold colouring (its "golden dragon"), the roster cards' bio + role tag +
   "Locked", and the word "bounties" ("Dares" proposed).
+- **Q7 Desktop windows: integer scale kept, the rotate card only on touch screens.** Resized through ten sizes
+  (800x600 to 2560x1440, a tall 900x1200, a 500x700 sliver, a full-screen 1920x1080 after a 1920x969 window, a 30-step
+  drag): the canvas, the frame, the HUD buttons and the focus ring land right every time with no rebuild. A narrow
+  desktop window (portrait, under 600 px) showed "Turn your phone sideways": the card now needs a touch screen
+  (`pointer: coarse`). A small window (640x360 at 1x) shows the game at 1x with room to spare: kept (pixels at a
+  fractional scale come out uneven); real desktops have a DPR of 1.5-2 and get 7x or more.
+- **Q8 Android Chrome.** A Pixel 7 sideways (in a tab 863x360: 6x; installed 915x412: 7x), a small 360x800 Android at
+  DPR 2 and 3 (in a tab 800x304: 4x; installed: 4x and 7x), and a Pixel 7 with an emulated camera cutout (34 px on the
+  left: 5 game px of safe area, the HUD clears it): boot, title, touch taps in a fight (judged hits and blocks), a real
+  touch drag on the world map, the camp and its screens; no errors, no long decimals. The installed app now asks for
+  full screen (`display_override: ["fullscreen"]`; Safari ignores it): with the status bar gone a Pixel 7 gets 7x
+  pixels instead of 6x. Android's back gesture used to close the game, mid-fight too: it now does what Escape does (a
+  fight pauses, a screen or a sheet closes; on the title it leaves as before). A tab or a desktop gets Full screen in
+  the gear panel (Android also turns a phone held upright sideways once it's full screen; iPhone Safari has no element
+  full screen, so the row is hidden there).
+- **Q9 The later regions' art in packs** (region-art.ts, docs/perf.md "Region art packs"). The Frostpeaks' and
+  Ashfell's foes, portraits, bar pieces and backdrops are chunks loaded with `import()` as the game boots, painted in
+  idle slices from the title on, and finished at once when a fight starts or the run is in a later region
+  (`App.setPhase`), so no fight can meet a missing texture; the Frostpeaks' foes no longer paint at boot (they did,
+  ~0.4 s at 1x). Gated per screen change rather than at each use: the art is used from many places (bar pieces in any
+  fight, portraits, the stage), and one gate keeps every one of them synchronous. Region 4's art (landed tonight) is a
+  pack too (`pack-dusk.ts`). `__cq3.ready` waits for the packs.
+  The pattern is written for the content teams (CLAUDE.md, docs/perf.md). Not split tonight: the later regions' music
+  (music.ts is being extended for the new regions; moving 800 lines would collide), the sharper chest reveal, the lab.
+- **Q10 The crawls.** `npm run crawl` (tests/balance/crawl.run.ts, by hand through the balance lock): every hero
+  through the three playable regions on 4 seeds, odd seeds like the balance bot, even seeds at random (any pick, any
+  buy, bounties passed, a hero switched mid-act), the world map's skirmish between regions; invariants after every
+  step and every 16 fight ticks. 64 campaigns in 98 s: no exception, no stuck fight, map or pick, no NaN. One finding,
+  fixed (`CORE:`): a kill's max HP gain (0.6) went onto HP even at full HP while max HP is rounded, so a full hero
+  read "252/251". `scripts/ui-crawl.mjs` (by hand through the Playwright lock) plays the built game from New game
+  through Act 1 with fast taps, then every camp screen and the gear panel, recording errors, long decimals, missing
+  minis, missing textures (every key asked of Phaser that isn't there) and text past the canvas's edge.
 (qa: end of section)
 
 
@@ -1011,5 +1149,35 @@ F6. **The masher guard's boss-alone check allows one win in five.** Act 1's ches
     seeds the rate is the same before and after (2 of 30 first fights, 6-7 of ~158 tries), so "0 of 5" held by luck;
     the check is now "at most 1 of 5" (the whole-act masher and the every-try rate are unchanged). For the lead and QA
     to review.
+
+F7. **Pip's road scene plays after a new player's first win** (the lead's request): after its loot, before the map
+    (`ActDef.winScene`, Act 1: 'road'), on the act's first playthrough, once per profile (`scene:road` in
+    `profile.seen`); a replay of a cleared act never plays it. Its last line ("Follow it.") leads onto the map and the
+    chest it promises. Six boxes: about 13 s (the story team owns the words; four would keep the pace). The welcome
+    back's id is now `welcomeR8`, so every returning player meets the new story's welcome once.
+F8. **A new player's first win has no pick of its own** (`CORE:` run.ts, `Run.firstWin`): the first fight's relic pick
+    came half a minute before the promised chest's rare pick, two picks around one story scene in minute one. The
+    first win now goes loot, road scene, map; the chest's pick is the first relic a newcomer meets (with its tip).
+    Replays and returning players are unchanged. The balance bot sees no difference: Act 1 first try with and without
+    that pick, 300 runs each at a newcomer's reaction time, 97-98% at 62% accuracy, 99-100% at 70% and 75%; the
+    Act 1, region 2 and 3 bot guards and the masher's all pass.
+F9. **The first finisher finishes.** Measured: the named reveal played, then the whirlwind left the boar standing
+    (51 of 150). The finisher's lesson (its tip, and the stack the coach places when the meter isn't full by itself)
+    now waits for the foe in front to be low enough for the blow to kill it, but more than a tap or two from falling
+    anyway (`TipCoach.finisherMoment`; floor 0.3 of one stack's blow; at most 15 s into its turn, `finWaitSec`).
+    Measured: the newcomer bot's first finisher now kills on all three seeds; a unit guard plays 30 first fights and
+    wants at least 27 kills.
+F10. **The quiet start ends one tip at a time.** After 3 wins, its five tips (Synergy!, the packs, the skill point, the
+    relic belt, the sparkle) came in a burst: five tips over the four screens before the first boss. Now each one
+    seen moves the next a fight won later (`quietOver`).
+F11. **The act clear points at the hero chest.** The boss's hero chest waited unseen at camp while "Next: Act 2"
+    glowed. When a chest waits, Camp glows gold with the count in a bubble. The gains column (gems, a mastery reward)
+    ran under "Act 1 Clear!" and the line under it: it keeps left of them now and wraps its small line.
+F12. **The game's first hero chest always brings someone new** (`CORE:` chests.ts): measured, it came up as shards for
+    Sable, who had joined in the story a minute before. The first hero chest skips the shard roll and leaves out who
+    you own (same random draws: later chests and known-seed tests are unchanged).
+F13. **The newcomer bot goes on to the first hero chest** (`F10_UNTIL=act`): the act clear (a look, then Camp), Sable's
+    scene, the vault, the reveal. It also times the first red's spawn and the first boss's arc (its first special,
+    half and a fifth of its HP).
 
 (first10: end of section)

@@ -96,8 +96,8 @@ interface Graph {
 
 /** Places with their own sound bed under the music (Region 2's acts: 'pass', 'caves', 'glacier'; Region 3's, not in
  *  play yet: 'cinder', 'glass', 'forge'). */
-export type Ambience = 'forest' | 'ruins' | 'hollow' | 'map' | 'world' | 'camp' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge';
-export const AMBIENCES: Ambience[] = ['forest', 'ruins', 'hollow', 'map', 'world', 'camp', 'pass', 'caves', 'glacier', 'cinder', 'glass', 'forge'];
+export type Ambience = 'forest' | 'ruins' | 'hollow' | 'map' | 'world' | 'camp' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere';
+export const AMBIENCES: Ambience[] = ['forest', 'ruins', 'hollow', 'map', 'world', 'camp', 'pass', 'caves', 'glacier', 'cinder', 'glass', 'forge', 'fen', 'causeway', 'mere'];
 
 /** A looping filtered-noise layer of an ambience (wind, rain, fire, surf), nudged at random by gusts. */
 interface Bed {
@@ -152,7 +152,7 @@ const SPOTS: [number, number][] = [
 const ALL_SPOTS = [0, 1, 2, 3, 4] as const;
 const FAR_SPOTS = [0, 2, 4] as const;
 /** How much of each ambience goes to the reverb. */
-const AMB_WET: Record<Ambience, number> = { forest: 0.18, ruins: 0.55, hollow: 0.25, map: 0.12, world: 0.15, camp: 0.2, pass: 0.2, caves: 0.6, glacier: 0.25, cinder: 0.15, glass: 0.5, forge: 0.35 };
+const AMB_WET: Record<Ambience, number> = { forest: 0.18, ruins: 0.55, hollow: 0.25, map: 0.12, world: 0.15, camp: 0.2, pass: 0.2, caves: 0.6, glacier: 0.25, cinder: 0.15, glass: 0.5, forge: 0.35, fen: 0.22, causeway: 0.25, mere: 0.45 };
 
 // Hit melody: major pentatonic, wrapping up an octave every 5 combo steps.
 const PENTA = [0, 2, 4, 7, 9];
@@ -3444,6 +3444,21 @@ export class Synth {
         this.bed(r, t, { type: 'lowpass', f: 140, q: 0.5, g: 0.07, gust: [0.7, 1.3], tau: 2 }); // its low roar
         this.bed(r, t, { type: 'highpass', f: 3500, q: 0.5, g: 0.005, gust: [0.6, 1.5], tau: 1.5 }); // the hiss of the heat
         break;
+      case 'fen':
+        this.bed(r, t, { type: 'bandpass', f: 1100, q: 0.5, g: 0.03, gust: [0.3, 1.7], sway: [0.7, 1.4], tau: 1.1 }); // the reeds in a breeze
+        this.bed(r, t, { type: 'lowpass', f: 220, q: 0.5, g: 0.06, gust: [0.6, 1.4], tau: 2.2 }); // the fen's low hush
+        this.bed(r, t, { type: 'highpass', f: 4500, q: 0.5, g: 0.006, gust: [0.4, 1.7], tau: 0.9 }); // the reed tops whispering
+        break;
+      case 'causeway':
+        this.bed(r, t, { type: 'lowpass', f: 380, q: 0.5, g: 0.06, gust: [0.6, 1.4], tau: 2.5 }); // the tide's low hush on the flats
+        this.bed(r, t, { type: 'bandpass', f: 950, q: 0.45, g: 0.022, gust: [0.3, 1.7], sway: [0.7, 1.4], tau: 1.2 }); // a breeze off the water
+        break;
+      case 'mere':
+        this.bed(r, t, { type: 'lowpass', f: 140, q: 0.6, g: 0.045, gust: [0.7, 1.3], tau: 3 }); // the still water's depth
+        this.bed(r, t, { type: 'bandpass', f: 700, q: 0.5, g: 0.012, gust: [0.4, 1.6], sway: [0.8, 1.3], tau: 1.6 }); // air moving over the lake
+        this.hum(r, t, 41, 0.016); // a deep still-water hum
+        this.hum(r, t, 117, 0.0035); // the lamp humming far off
+        break;
     }
   }
 
@@ -3584,6 +3599,29 @@ export class Synth {
           drip: { every: [1.5, 4], play: (r, t) => this.moltenDrip(r, t) },
           crackle: { every: [5, 12], play: (r, t) => this.glassCrackle(r, t) },
         };
+      case 'fen':
+        return {
+          gust,
+          frogs: { every: [0.5, 2.2], play: (r, t) => this.frogCroak(r, t) },
+          cricket1: { every: [0.8, 3.2], play: (r, t) => this.cricket(r, t, 0) },
+          cricket2: { every: [1.5, 5], play: (r, t) => this.cricket(r, t, 2) },
+          rustle: { every: [6, 14], play: (r, t) => this.rustle(r, t, 0.4) },
+          owl: { every: [18, 36], play: (r, t) => this.owl(r, t) },
+        };
+      case 'causeway':
+        return {
+          gust: { every: [2, 5], play: (r, t) => this.gust(r, t) },
+          lap: { every: [1.6, 3.6], play: (r, t) => this.waterLap(r, t, 1) },
+          tick: { every: [0.98, 1.02], play: (r, t) => this.clockTick(r, t) },
+          gulls: { every: [12, 26], play: (r, t) => this.gulls(r, t) },
+        };
+      case 'mere':
+        return {
+          gust: { every: [3, 7], play: (r, t) => this.gust(r, t) },
+          lap: { every: [3.5, 8], play: (r, t) => this.waterLap(r, t, 0.6) },
+          foghorn: { every: [12, 24], play: (r, t) => this.farFoghorn(r, t) },
+          frogs: { every: [2.5, 7], play: (r, t) => this.frogCroak(r, t) },
+        };
       case 'forge':
         return {
           gust: { every: [1.5, 4], play: (r, t) => this.gust(r, t) },
@@ -3594,6 +3632,47 @@ export class Synth {
           chains: { every: [4, 10], play: (r, t) => this.chainClink(r, t) },
         };
     }
+  }
+
+  // Region 4's places: the lantern fen, the drowned causeway, the gloaming mere
+
+  /** A frog in the reeds: a low rasping croak (a run of clicks over a buzzy tone), now and then two. */
+  private frogCroak(r: AmbRig, t: number): number {
+    const out = this.spot(r);
+    const f = 380 + r.rand() * 260;
+    const n = r.rand() < 0.3 ? 2 : 1;
+    for (let i = 0; i < n; i++) {
+      const at = t + i * 0.32;
+      this.ticks([0, 0.018, 0.037, 0.058, 0.08, 0.104].map((d) => at + d), { gain: 0.05, f: f * 1.6, q: 3, ms: 9, out });
+      this.voice({ at, type: 'square', f: [[0, f * 0.5], [0.12, f * 0.42]], filter: 'bandpass', ff: [[0, f]], q: 2, amp: [[0.01, 0.025], [0.13, 0]], out });
+    }
+    return 0.15 + n * 0.32;
+  }
+
+  /** Water lapping on stone: a small wave against the causeway, a slap and its draw-back. */
+  private waterLap(r: AmbRig, t: number, k: number): number {
+    const out = this.spot(r);
+    const d = 0.9 + r.rand() * 0.8;
+    const pink = this.graph!.pink;
+    this.voice({ at: t, type: 'noise', buf: pink, filter: 'lowpass', ff: [[0, 300], [d * 0.3, 1100], [d, 260]], q: 0.6, amp: [[d * 0.25, 0.07 * k], [d, 0]], out });
+    this.voice({ at: t + d * 0.25, type: 'noise', buf: pink, filter: 'bandpass', ff: [[0, 1800]], q: 1.2, amp: [[0.02, 0.03 * k], [0.18, 0]], out });
+    return d;
+  }
+
+  /** The tide clock ticking somewhere over the flats: tick, tock (a dull wooden click, far off). */
+  private clockTick(r: AmbRig, t: number): number {
+    const tock = r.rand() < 0.5;
+    this.ticks([t], { gain: 0.03, f: tock ? 1500 : 2100, q: 5, ms: 8, out: r.spots[2] });
+    return 0.05;
+  }
+
+  /** A foghorn far out on the mere: a low reedy blare swelling and fading. */
+  private farFoghorn(r: AmbRig, t: number): number {
+    const out = this.spot(r, FAR_SPOTS);
+    const d = 2.2 + r.rand() * 1.2;
+    for (const det of [0.995, 1.005])
+      this.voice({ at: t, type: 'sawtooth', f: [[0, 66 * det], [0.3, 70 * det]], filter: 'lowpass', ff: [[0, 220], [d * 0.4, 520], [d, 240]], q: 1.2, amp: [[d * 0.3, 0.05], [d * 0.75, 0.04], [d, 0]], out });
+    return d;
   }
 
   // Region 3's places: the ash plains, the glass tunnels, the forge
@@ -4056,6 +4135,9 @@ const AMB_LABEL: Record<Ambience, string> = {
   cinder: 'act 7',
   glass: 'act 8',
   forge: 'act 9',
+  fen: 'act 10',
+  causeway: 'act 11',
+  mere: 'act 12',
 };
 
 /** Every sound effect, for the Sound lab and the loudness tests. `tier` marks the impacts (lightest first). */

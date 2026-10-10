@@ -436,6 +436,25 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
         ring.move(act);
     }
   });
+  // Android's back gesture (or button), in the installed app or a tab: what Escape does (a fight pauses, a scene is
+  // skipped, a sheet or a screen closes) instead of leaving the game mid-fight. On the title it leaves as it always
+  // did (the trap isn't set again until a tap past the title). iOS has no back gesture in the app.
+  if (/Android/i.test(navigator.userAgent)) {
+    const trapped = () => (history.state as { cq3Back?: boolean } | null)?.cq3Back === true;
+    const trap = () => {
+      if (!trapped()) history.pushState({ cq3Back: true }, '');
+    };
+    trap();
+    window.addEventListener('popstate', () => {
+      if (app.panelOpen) ui.togglePanel();
+      else if (app.run.phase === 'title' && !app.storyOverlay && !app.tipUp) return; // the next back leaves
+      else if (app.run.phase === 'fight' && !app.tipUp && !app.storyOverlay) {
+        if (!app.userPaused) togglePause();
+      } else back(performance.now());
+      trap();
+    });
+    window.addEventListener('pointerdown', () => app.run.phase !== 'title' && trap(), { capture: true });
+  }
   window.addEventListener('keyup', (e) => {
     if (isTapKey(e.key)) lift(KEY_ID, e.timeStamp);
   });
