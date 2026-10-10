@@ -30,11 +30,21 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `art-stage.ts` (per-act fight lighting), `art-sable.ts` (Sable's frames, map walker, hero cards), `art-relics.ts`
   (relic, tag and skill icons), `art-life.ts` (the maps' critters), `art-minis.ts` (every foe's map-scale sprite: pure
   data and the one lookup, no DOM; painted at boot by `art-map.ts`), `art-hero-<id>.ts` (each hero's sprite set on the
-  shared rig, `art-rig.ts`), `art-ash.ts` + `art-relics-ash.ts` (the third region's
-  foes, portraits and bar pieces, painted in idle slices after boot or at once when a fight or scene needs them,
-  `scene.ensureAshArt()`; its relic and tag icons), `backdrop.ts`, `backdrop-frost.ts` + `backdrop-ash.ts` (the later regions' fight backdrops: painted
-  the first time an act needs one, `Stage.ensure`, not at boot) and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
+  shared rig, `art-rig.ts`), `art-frost.ts` / `art-ash.ts` (the later regions' foes, portraits and bar pieces) +
+  `art-relics-ash.ts` (the third region's relic and tag icons), `backdrop.ts`, `backdrop-frost.ts` + `backdrop-ash.ts`
+  (the later regions' fight backdrops: painted the first time an act needs one, `Stage.ensure`; `backdrop-ice.ts` the
+  ice parts the act maps share) and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
   are synthesized in `src/engine/audio.ts` and the music in `src/engine/music.ts`, icons come from `scripts/make-icons.mjs` (art in `scripts/icon-art.mjs`).
+- **A later region's art is a pack in a chunk of its own** (`src/engine/region-art.ts`, docs/perf.md "Region art
+  packs"): its art files (foes, portraits, bar pieces, backdrops) are imported only by `pack-<region>.ts`, which exports
+  `PACK: RegionArtPack` (paint in slices, add the drawn art, name its keys, paint a backdrop, its foes' colours); its
+  loader and fight themes go in `region-art.ts` (`LOADERS`, `PACK_THEMES`). `main.ts` starts every pack's `import()`
+  at boot, the scene paints them in idle slices from the title on, and a fight or any screen of a later region finishes
+  them at once (`App.setPhase` -> `ensureRegionArt`; a missing foe or portrait asks too), so nothing ever draws a
+  texture that isn't there; `__cq3.ready` waits for the packs to arrive. A
+  static import of a pack's file from anywhere else pulls it back into the main chunk (check the build's chunk list):
+  a small thing the game needs before the pack arrives (a theme list, a helper the act maps share) gets a file of its
+  own. The service worker's precache lists every built file by itself.
 - **Content is data.** Enemies (stats, base pattern, 0-2 special moves; a boss's HP-gated phase changes come on top), the region's acts and encounters, events and
   story scenes live in `src/data/` (plain data, no logic). So does gear (`src/data/gear.ts`: the 10 stats, slots,
   rarities, ~28 base items, the two sets, Legendary/Mythic unique effects, each boss's signature drops); the numbers
@@ -316,6 +326,10 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   pressed; targets drawn without a button are added in `input.ts focusExtras` (map nodes, world landmarks, boost
   cards): a new screen whose tap targets aren't buttons adds them there. A window with room gets a quiet frame round
   the canvas (`layout.ts framed`/`applyFrame`). `tests/smoke/desktop.spec.ts` plays at 1440x900 with no touch.
+- **Android and browser tabs** (round 8): the back gesture does what Escape does (`input.ts`: a fight pauses, a screen
+  or sheet closes; on the title it leaves); the installed app opens full screen (`display_override`); in a tab or on a
+  desktop the gear panel has Full screen (and on a phone held upright it locks the game sideways). The "turn your
+  phone sideways" card shows on touch screens only.
 - **Clean capture** (`cq3.cleanCapture`, storage.ts): the gear panel's Modes or C hides the HUD buttons and the Test
   lab's for recording clips; a long press on the top middle (or C) brings them back.
 - **Test lab** (`src/data/lab.ts` scenarios, `core/lab.ts` profiles/fights/ratings/report, `engine/lab.ts` the list):
@@ -332,7 +346,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   (`profile.gear`); a scenario can set companions' levels and stars (`petLevels` / `petStars`). Setups: `fight`,
   `camp` (incl. `chestDemo` and `chestHd`, the old and sharper reveals side by side), `story`, `map` (act N's map to
   look at) and `gallery` (the Finisher gallery: any hero's finisher on demand; `App.galleryHold` holds its clock).
-  The lab smoke test that walks every scenario has 7 minutes (the list grows every round).
+  The lab smoke test that walks every scenario has 9 minutes (the list grows every round).
   Practice and lab fights count toward the accuracy readout: the lab's taps go to its own log (`cq3.lab.acc`) and the
   lab report counts them with the real game's (the real save is never written). `chestDemo` plays the chest opening
   at forced tiers without granting anything (`camp.chests.demo(tiers, kind, now)`).
@@ -370,7 +384,8 @@ src/engine/    app.ts (time + input glue, music cues, story state, the Test lab'
                art-map.ts / art-stage.ts (sprites, portraits, the world map, act map landscapes, fight lighting),
                art-world-sites.ts (the world map's trees, villages, landmarks, mountains: what stands on its land),
                art-world-lands.ts (the later regions' landmark markers, the far lands and their fog),
-               art-ash.ts (the third region's foes, portraits, bar pieces), art-relics-ash.ts (its relic and tag icons),
+               art-ash.ts (the third region's foes, portraits, bar pieces), region-art.ts + pack-frost.ts / pack-ash.ts (the
+               later regions' art packs: chunks loaded at boot, painted on the title), art-relics-ash.ts (its relic and tag icons),
                art-roam.ts (the coin sack, the board, the secret rock, the merchant),
                art-gear.ts (item icons), art-camp.ts (the camp, Mags the smith), art-camp-build.ts (the camp
                upgrades as objects in the clearing and their blueprint ghosts), art-grove.ts (the companions' moonlit
@@ -423,13 +438,15 @@ tests/unit/    Vitest tests for src/core and src/data (specials, waves, map, run
                quests and map-content for the map extras), plus
                audio.test.ts: renders every sound on an OfflineAudioContext (node-web-audio-api) and checks levels
                (no clipping, impacts >= music, tiers get heavier, telegraphs read over the music)
-tests/balance/ npm run balance: the bot plays 1,000 whole runs per accuracy and writes docs/balance.md
+tests/balance/ npm run balance: the bot plays 1,000 whole runs per accuracy and writes docs/balance.md; crawl.run.ts (npm run crawl) the bot crawl
 tests/smoke/   Playwright smoke tests (874x402 @3x, landscape: intro, map, fight, every enemy's specials, reload; every spec
                imports `test` from fixtures.ts, the numbers guard; numbers.spec.ts walks every screen; minis.spec.ts the
                map sprites; chest-hd.spec.ts the sharper reveal at device scale)
                and screenshot regression tests (screens.spec.ts: fake clock + seeded Math.random, pixel-exact)
 scripts/       make-icons.mjs, sw-template.js (service worker, precache list injected at build), ui-bot.mjs (a bot that
-               plays the built game through its screens and reports errors and stuck screens; run by hand)
+               plays the built game through its screens and reports errors and stuck screens; run by hand), ui-crawl.mjs
+               (New game through Act 1 with fast taps, then every camp screen: errors, long decimals, missing minis,
+               missing textures, text past the edge; by hand through the Playwright lock)
 tests/perf/    perf.mjs: load and frame times at CPU 4x + Fast 4G over CDP, run by hand (docs/perf.md)
 ```
 
@@ -448,6 +465,7 @@ npm run balance      # balance bot report -> docs/balance.md (a few min); re-run
 npm run calibrate    # accuracy readout calibration table (paste into core/accuracy.ts SD_CALIBRATION)
 ACC=0.62 npm run retarget  # re-aim the difficulty curve at a player of that accuracy -> docs/retarget.md
 npm run campaign     # every hero through every region at 75%, gaps to Rowan (HEROES, RUNS, ACC, SEED, REGIONS; writes docs/balance-campaign.md)
+npm run crawl        # the bot crawl: every hero through the campaign on several seeds, invariants after every step (HEROES, SEEDS, REGIONS, OUT; by hand, through the balance lock)
 npm run spam         # anti-spam report: max-stack finishers, bar covered, heals, forgiven misses, the masher, clear rates at 70/75/85% (RUNS, ACC, MASH, TUNE, OUT)
 npm run region-tune  # one later region from cached end-of-region heroes (TUNE, FOCUS, BRANCHES, HEROES, RUNS)
 npm run snowball     # what fights cost per act, stat sources, ablations, a veteran (RUNS, ACC, HERO, TUNE, AVOID env)

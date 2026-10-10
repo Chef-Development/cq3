@@ -42,6 +42,12 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
     }
   };
 
+  // full screen (a browser tab on Android or a desktop; an iPhone's Safari has none and an installed app already is):
+  // one listener keeps whichever panel is open in step
+  let fullscreenSync: (() => void) | null = null;
+  document.addEventListener('fullscreenchange', () => fullscreenSync?.());
+  const canFullscreen = (): boolean => !!document.fullscreenEnabled && !matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+
   const refreshHud = () => {
     pauseBtn.classList.toggle('on', app.userPaused);
     pauseBtn.setAttribute('aria-pressed', String(app.userPaused));
@@ -189,6 +195,23 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
       row.appendChild(g);
       modes.appendChild(row);
       modes.appendChild(el('div', 'dbg-note', 'Hides this gear button and the Test lab for recording clips. Hold the top middle of the screen (or press C) to bring them back.'));
+    }
+    if (canFullscreen()) {
+      const row = el('div', 'dbg-row');
+      row.appendChild(el('span', 'dbg-label', 'Full screen'));
+      const g = el('div', 'dbg-seg');
+      const off = el('button', 'dbg-segbtn', 'Off');
+      const on = el('button', 'dbg-segbtn', 'On');
+      fullscreenSync = () => {
+        off.classList.toggle('on', !document.fullscreenElement);
+        on.classList.toggle('on', !!document.fullscreenElement);
+      };
+      fullscreenSync();
+      on.onclick = () => void enterFullscreen();
+      off.onclick = () => void (document.fullscreenElement && document.exitFullscreen().catch(() => undefined));
+      g.append(off, on);
+      row.appendChild(g);
+      modes.appendChild(row);
     }
 
     // Sound lab: play every sound effect and tune the impact layers by ear, on the phone
@@ -537,4 +560,19 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
   });
 
   return { togglePanel: () => setOpen(!app.panelOpen), refreshHud, toggleCapture: () => setCapture(!capture) };
+}
+
+/** Full screen from a tap (the gear panel), and on a phone held upright, sideways (Android allows the lock in full
+ *  screen; elsewhere it's refused and nothing happens). The layout follows by itself (main.ts relayouts on resize). */
+async function enterFullscreen(): Promise<void> {
+  try {
+    await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+  } catch {
+    return;
+  }
+  try {
+    await (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.('landscape');
+  } catch {
+    /* a desktop, or a browser without the lock */
+  }
 }

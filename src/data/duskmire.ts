@@ -1,5 +1,5 @@
-// Region 4 (SPOILERS: docs/content-bible.md section 7). In play (REGIONS, global acts 9-11); until its own art lands
-// (foe sprites, backdrops, the act themes) its acts wear earlier looks (DUSK_STAND_IN). Three acts like
+// Region 4 (SPOILERS: docs/content-bible.md section 7). In play (REGIONS, global acts 9-11), in its own looks (the
+// act themes `fen`, `causeway`, `mere`: backdrop-dusk.ts, art-dusk.ts, the map's Duskmire painter). Three acts like
 // Ashfell's, each a branching node map ending in a mini-boss (acts 1 and 2) or the boss (act 3), with the bar rules
 // brought in gradually: dark blocks from Act 1's third row, the tide from Act 2's second row (and a little dark late
 // in it), both from the start of Act 3, where the boss's phases are the mapmaker's edits to the bar. The act scaling
@@ -27,10 +27,10 @@ export const DUSKMIRE: RegionDef = {
     {
       name: 'Lanternfen',
       theme: look('fen'),
-      hpMult: 7.2,
-      atkMult: 15.5,
+      hpMult: 7.4,
+      atkMult: 20,
       pace: 0.8,
-      redSpeed: 1.2,
+      redSpeed: 1.3,
       rows: 7,
       waves: { first: 2, last: 5, eliteEscort: 1 },
       fights: {
@@ -51,10 +51,10 @@ export const DUSKMIRE: RegionDef = {
     {
       name: 'The Drowned Causeway',
       theme: look('causeway'),
-      hpMult: 7.6,
-      atkMult: 16,
+      hpMult: 8,
+      atkMult: 24,
       pace: 0.76,
-      redSpeed: 1.22,
+      redSpeed: 1.42,
       rows: 7,
       waves: { first: 3, last: 5, eliteEscort: 2 },
       fights: {
@@ -75,10 +75,10 @@ export const DUSKMIRE: RegionDef = {
     {
       name: 'The Gloaming Mere',
       theme: look('mere'),
-      hpMult: 8.4,
-      atkMult: 17.5,
+      hpMult: 9.8,
+      atkMult: 25,
       pace: 0.72,
-      redSpeed: 1.28,
+      redSpeed: 1.42,
       rows: 7,
       waves: { first: 3, last: 6, eliteEscort: 2 },
       fights: {

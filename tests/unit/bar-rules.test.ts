@@ -488,6 +488,17 @@ describe('the fourth region: dark blocks (the lantern) and the tide', () => {
     expect(c.tap(back).outcome).toBe('hit');
   });
 
+  it('ice floats: a frozen block in the water is never sunk and can be hit (Neve shatters what she froze in the shallows)', () => {
+    const { c, t } = setup({ bar: { tide: { ...tide, low: 0.4, high: 0.4 } } });
+    const f = c.spawnBlock('frozen', 0.8);
+    const y = c.spawnBlock('yellow', 0.9);
+    go(c, timeAt(t, 0.8));
+    expect(c.wet(0.8)).toBe(true);
+    expect(c.sunk(f)).toBe(false);
+    expect(c.sunk(y)).toBe(true);
+    expect(c.tap(timeAt(t, 0.8)).outcome).toBe('hit');
+  });
+
   it('reds wade through the water (slower), and new blocks only come on dry ground', () => {
     const wet = setup({ bar: { tide: { ...tide, low: 0.4 } } }).c;
     const dry = setup().c;

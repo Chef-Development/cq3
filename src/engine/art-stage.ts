@@ -24,14 +24,24 @@ export interface StageLight {
   /** Warm light pooled where the fighters stand. */
   pool: Col;
   poolAmt: number;
+  /**
+   * The act's mood (playtest round 8, decision L7: "more dark, not all bright and peachy"): a multiply tint on the
+   * painted backdrop, its clouds, mist and foreground, never on the actors, the rays, the glows or the bar. Values come
+   * down and cool; the warm light stays as accents (rays, torches, the pool) and the actors pop by a value step and
+   * their rim. Missing: no tint. Greenmarch, the Frostpeaks and Ashfell bake their mood into the painted pixels instead
+   * (art-mood.ts: lights kept, skies repainted) and set only `air`.
+   */
+  mood?: Col;
+  /** The tint on the stage's moving air (drifting clouds, mist banks, cloud shadows) to sit in a baked mood. */
+  air?: Col;
 }
 
 export const STAGE_LIGHT: Record<Theme, StageLight> = {
-  // late-morning sun through the canopy, from the top left
+  // late day through the canopy, from the top left: the forest in deep shade, shafts of gold
   forest: {
     shade: 0x2c3c5a,
-    vignette: 0.6,
-    floor: 0.5,
+    vignette: 0.68,
+    floor: 0.56,
     top: 0.4,
     rim: 0xfff0b8,
     rimAmt: 0.75,
@@ -43,12 +53,13 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0xc8a878, 0xa88a60, 0xe0c898],
     pool: 0xffe0a0,
     poolAmt: 0.2,
+    air: 0x8290b8,
   },
   // moonlight from the top left, braziers below
   ruins: {
     shade: 0x0a1024,
-    vignette: 0.66,
-    floor: 0.5,
+    vignette: 0.74,
+    floor: 0.56,
     top: 0.3,
     rim: 0x9ac0ff,
     rimAmt: 0.7,
@@ -60,12 +71,13 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0x6a7888, 0x8a96a4, 0x4e5a68],
     pool: 0xff9a50,
     poolAmt: 0.1,
+    air: 0x9aa4c4,
   },
   // the low sunset sun on the left
   hollow: {
     shade: 0x2a0c2c,
-    vignette: 0.64,
-    floor: 0.5,
+    vignette: 0.72,
+    floor: 0.56,
     top: 0.34,
     rim: 0xffa050,
     rimAmt: 0.85,
@@ -77,29 +89,31 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0x9a6060, 0xb87a6a, 0x7a4450],
     pool: 0xffa060,
     poolAmt: 0.14,
+    air: 0xb07c88,
   },
-  // an overcast afternoon: soft cool light from a veiled sun high on the left, blue shadows on the snow
+  // a blue night (decision L7): cold moonlight high on the left, deep blue shadows on the snow
   pass: {
-    shade: 0x3a4270,
-    vignette: 0.46,
-    floor: 0.4,
-    top: 0.2,
-    rim: 0xfff2e0,
-    rimAmt: 0.6,
+    shade: 0x2a3262,
+    vignette: 0.6,
+    floor: 0.5,
+    top: 0.26,
+    rim: 0xc4d8ff,
+    rimAmt: 0.66,
     rimLeft: 0.6,
     rimTop: 1,
     shadow: 0x262e5a,
     shadowDx: 2,
     shadowLen: 1.1,
-    dust: [0xe8eef8, 0xc4cee6, 0xffffff],
-    pool: 0xfff4e4,
+    dust: [0xc8d4ec, 0x9aaccc, 0xe4ecf8],
+    pool: 0xa8c0f0,
     poolAmt: 0.1,
+    air: 0x7c88c4,
   },
   // the caves: cold light from the crystals and a crack in the roof, deep shade everywhere else
   caves: {
     shade: 0x0a0c2c,
-    vignette: 0.7,
-    floor: 0.52,
+    vignette: 0.78,
+    floor: 0.58,
     top: 0.42,
     rim: 0x9ae4ff,
     rimAmt: 0.72,
@@ -111,12 +125,13 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0x8ab4d8, 0x5a78a4, 0xbce4f4],
     pool: 0x8ad8ff,
     poolAmt: 0.13,
+    air: 0xa8b2d8,
   },
   // the glacier at night: the aurora overhead lights everything from above in green, the ice glows back
   glacier: {
     shade: 0x0e1838,
-    vignette: 0.62,
-    floor: 0.48,
+    vignette: 0.7,
+    floor: 0.54,
     top: 0.16,
     rim: 0x9affd0,
     rimAmt: 0.74,
@@ -128,13 +143,14 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0xdcf0ff, 0xa8c6e6, 0xffffff],
     pool: 0x9cffd8,
     poolAmt: 0.1,
+    air: 0xa4b2d8,
   },
   // the Cinder Flats: a smoky afternoon, the sky burning orange low down; the fighters rimmed warm by the volcano's
   // glow, plum shade, ash kicked up grey
   cinder: {
     shade: 0x3a1a26,
-    vignette: 0.58,
-    floor: 0.46,
+    vignette: 0.66,
+    floor: 0.52,
     top: 0.34,
     rim: 0xffb070,
     rimAmt: 0.78,
@@ -146,12 +162,13 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0x8a7874, 0x6e5e5c, 0xa8968e],
     pool: 0xff9a50,
     poolAmt: 0.12,
+    air: 0x94808e,
   },
   // the Glass Warrens: dark tunnels lit by the magma lake behind and the coloured glass, deep violet shade
   glass: {
     shade: 0x160c26,
-    vignette: 0.68,
-    floor: 0.52,
+    vignette: 0.76,
+    floor: 0.58,
     top: 0.42,
     rim: 0xffa868,
     rimAmt: 0.72,
@@ -163,12 +180,13 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0x4a3a5a, 0x6a5a7a, 0x8a7a9a],
     pool: 0xff7a3a,
     poolAmt: 0.14,
+    air: 0xb0a4c4,
   },
   // the Black Forge: the furnace roaring behind the fighters, red-black smoke overhead, everything rimmed in fire
   forge: {
     shade: 0x2c0a12,
-    vignette: 0.66,
-    floor: 0.5,
+    vignette: 0.74,
+    floor: 0.56,
     top: 0.38,
     rim: 0xff8a48,
     rimAmt: 0.86,
@@ -180,6 +198,7 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0x5a3a30, 0x7a4a38, 0x3a2420],
     pool: 0xff6a2a,
     poolAmt: 0.18,
+    air: 0xa4949e,
   },
   // Lanternfen: a violet dusk that never ends, the low sky rose behind; the fighters rimmed rose from the top left,
   // lantern-warm light pooled where they stand
@@ -355,8 +374,8 @@ function rays(w: number, h: number, G: number, theme: Theme): Rgba {
         [196, 14, 0.55],
       ];
   const slope = warm ? 0.55 : 0.42;
-  const col = warm ? 0xfff2c0 : 0x9ab8ff;
-  const amt = warm ? 0.17 : 0.1;
+  const col = warm ? 0xffc468 : 0x9ab8ff; // late-day gold (decision L7)
+  const amt = warm ? 0.19 : 0.1;
   for (let y = 0; y < h; y++) {
     const f = ss(0, 26, y) * (1 - ss(G - 30, G + 4, y) * 0.85);
     for (let x = 0; x < w; x++) {
@@ -411,8 +430,8 @@ function frostRays(out: Rgba, w: number, h: number, G: number, theme: 'pass' | '
         const along = ss(10, 36, d) * (1 - ss(70, 170, d));
         const bloom = Math.pow(clamp01(1 - d / 52), 2) * 0.5;
         const ground = 1 - ss(G - 20, G + 4, y) * 0.8;
-        const a = (v * along * 0.1 + bloom * 0.3) * ground;
-        if (a > 0.004) out.set(x, y, 0xfff2dc, a);
+        const a = (v * along * 0.07 + bloom * 0.26) * ground;
+        if (a > 0.004) out.set(x, y, 0x9ab8ff, a); // the moon's cold light
       }
     return out;
   }

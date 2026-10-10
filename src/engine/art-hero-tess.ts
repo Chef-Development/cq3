@@ -185,14 +185,19 @@ function staff(dir: Dir, len: number, back: number, o: { at?: number; glow?: boo
       const Y = y + sy * i;
       const c = i === -back || i === len ? TESS_BRASS[3] : WOOD[3];
       const d = i === -back || i === len ? TESS_BRASS[1] : WOOD[1];
+      // (3 px thick so it reads at 8x: a lit side, the wood, a shaded side)
+      const lit = i === -back || i === len ? TESS_BRASS[4] : '#b88a52';
       if (diag) {
+        put(g, X + (sx === sy ? 1 : -1), Y, lit);
         put(g, X, Y, c);
         put(g, X + (sx === sy ? -1 : 1), Y, i === len ? TESS_BRASS[2] : WOOD[2]);
         put(g, X, Y + 1, d);
       } else if (sx === 0) {
+        put(g, X - 1, Y, lit);
         put(g, X, Y, c);
         put(g, X + 1, Y, d);
       } else {
+        put(g, X, Y - 1, lit);
         put(g, X, Y, c);
         put(g, X, Y + 1, d);
       }

@@ -180,8 +180,9 @@ export function sparkle(g: Grid, x: number, y: number, arm: string, heart = '#ff
 }
 
 /**
- * A pole (staff, haft) from the grip (x, y) running `len` px along `dir` and `back` px the other way, 2 px thick,
- * lit on its upper/left side. `ramp` = [dark, mid, lit]. Diagonals step cleanly (1:1).
+ * A pole (staff, haft) from the grip (x, y) running `len` px along `dir` and `back` px the other way, 3 px thick so it
+ * reads at 8x (playtest round 8), lit on its upper/left side, a mid tone down its middle, shaded on the other side.
+ * `ramp` = [dark, mid, lit]. Diagonals step cleanly (1:1).
  */
 export function pole(g: Grid, x: number, y: number, dir: Dir, len: number, back: number, ramp: string[]): void {
   const [sx, sy] = STEP[dir];
@@ -190,15 +191,18 @@ export function pole(g: Grid, x: number, y: number, dir: Dir, len: number, back:
     const px = x + sx * i;
     const py = y + sy * i;
     if (diag) {
-      // two pixels per step along the diagonal: the upper one lit, the lower one shaded
-      put(g, px, py, ramp[2]);
-      put(g, px + (sx === sy ? -1 : 1), py, ramp[1]);
-      put(g, px, py + 1, ramp[0]);
+      // three pixels per row along the diagonal: the upper side lit, the middle mid, the lower side shaded
+      const up = sx === sy ? 1 : -1; // the side of the row that faces up
+      put(g, px + up, py, ramp[2]);
+      put(g, px, py, ramp[1]);
+      put(g, px - up, py, ramp[0]);
     } else if (sx === 0) {
-      put(g, px, py, ramp[2]);
+      put(g, px - 1, py, ramp[2]);
+      put(g, px, py, ramp[1]);
       put(g, px + 1, py, ramp[0]);
     } else {
-      put(g, px, py, ramp[2]);
+      put(g, px, py - 1, ramp[2]);
+      put(g, px, py, ramp[1]);
       put(g, px, py + 1, ramp[0]);
     }
   }

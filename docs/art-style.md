@@ -83,7 +83,8 @@ trap `COL.purple`, green ability `COL.green`; rarity colours are `TIER_INFO[tier
 
 **Per scene:** one region = one limited palette. A backdrop uses at most about 24 colours, pulled from the region's
 ramps plus the sky. Greenmarch: green leaf, earth, day sky (dusk and night variants tint toward teal night). Frostpeaks:
-frost, steel, teal night. Ashfell: ash/ember, purple, steel.
+frost, steel, teal night. Ashfell: ash/ember, purple, steel. Duskmire: dusk sky (violet to rose to peach), black water,
+peat, reed green, with lantern gold for every light.
 
 ## 3. Light
 
@@ -156,7 +157,7 @@ Everything animates from `now` and seeds (screenshots stay exact). Minimum frame
 
 | What | Minimum | Notes |
 | --- | --- | --- |
-| Hero (fight) | 12 poses: idle0, idle1, windup, slashA, slashB, dash, leap, parry, hurt, cast, down, fin | Idle breath 2 frames at 420-450 ms; the target is 4 (breath + secondary motion: cape, hair, plume). |
+| Hero (fight) | 14 poses: idle0-3, windup, slashA, slashB, dash, leap, parry, hurt, cast, down, fin | The idle is 4 frames at 300 ms: the body breathes 0-1-1-0 and the secondary piece (cape, hair, plume, scarf, a held thing) follows a frame behind. Squash and stretch by transform on a dash, a cut, a blow taken and a landing. |
 | Foe | idle0, idle1, windup (the tell), attack, hurt, flash (white silhouette, generated) | A special's telegraph holds its windup 0.6-1.0 s. Bosses: a look per phase. |
 | Companion | idle0, idle1, act | Fliers flap on idle; walkers breathe. |
 | Map walker | idle0, idle1, walk0, walk1 | |
@@ -192,6 +193,7 @@ Everything animates from `now` and seeds (screenshots stay exact). Minimum frame
 | Greenmarch, act 3 (hollow) | the low sunset sun, from the left | plum | orange | autumn leaves, fireflies, warm dust |
 | Frostpeaks | cold white, high | steel blue | ice cyan | snow streaks, spindrift |
 | Ashfell | ember orange from below the frame plus a dim top-left key | smoky purple | orange | embers rising, ash falling |
+| Duskmire | low rose-violet dusk from the top left (the sky stuck at sunset); lantern amber pooled where the fighters stand | deep violet (teal-violet over the flats) | rose on top, lantern amber below (`duskRim` on dark foes) | fireflies, wisps, dusk motes, mist on the water |
 | The world map (the Atlas) | lamplight, top left, warm | parchment | gold | ink ripples on the sea, gold motes where colour comes back |
 | The title (key art) | a low sun in a notch of the far range, behind the hero (he is lit on his right edge) | dusk purple | sunset orange | rays from the sun, cloud wisps, motes over the land; paper flecks peeling off the erasing front |
 

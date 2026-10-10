@@ -4,7 +4,8 @@
 // her hero card, camp sprite, portrait (`portrait_solenne`) and map walker (art-hero-map.ts reads SOLENNE_WALKER).
 import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './art';
 import { and, ell, fill, or, rimShade, sphere } from './art-paint';
-import { dir8, sparkle, stampAt, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose, type Sprite } from './art-rig';
+import { swordMap } from './art-sword';
+import { sparkle, stampAt, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -184,32 +185,12 @@ const BLADE_PAL: Pal = {
   P: SOLENNE_GOLD[3], h: SOLENNE_CRIMSON[2], H: SOLENNE_CRIMSON[3], G: SOLENNE_GOLD[4], g: SOLENNE_GOLD[3], y: SOLENNE_GOLD[2], Y: SOLENNE_GOLD[1],
   A: SOLENNE_LIGHT[4], L: SOLENNE_LIGHT[3], M: SOLENNE_LIGHT[2], C: SOLENNE_LIGHT[1], t: '#ffffff',
 };
-const BLADE_R: Sprite = {
-  rows: ['...G..............', '...gAAAAAAAAAAAA..', 'PhHgLLLLMLLLLLLLAt', '...yCCCCCCCCCCCC..', '...Y..............'],
-  grip: [1, 2],
-};
-const BLADE_UR: Sprite = {
-  rows: [
-    '............t',
-    '...........AA',
-    '..........ALC',
-    '.........ALC.',
-    '........AMC..',
-    '.......ALC...',
-    '......ALC....',
-    '.....ALC.....',
-    '...GALC......',
-    '....gY.......',
-    '...H..y......',
-    '..h..........',
-    '.P...........',
-  ],
-  grip: [3, 10],
-};
+/** Her blade at 8x: art-sword.ts's 4 px blade in morning light, a sun-stone in the gold guard. */
+const LONG_PAL: Pal = { ...BLADE_PAL, T: '#ffffff', p: SOLENNE_GOLD[1], R: SOLENNE_LIGHT[4], r: SOLENNE_LIGHT[1] };
 const blade =
   (dir: Dir): Item =>
   (g, x, y) =>
-    stampAt(g, dir8(BLADE_R, BLADE_UR, dir), BLADE_PAL, x, y);
+    stampAt(g, swordMap(dir, 14), LONG_PAL, x, y);
 
 // ------------------------------------------------------------------ the cape and the light
 
@@ -282,7 +263,7 @@ const sun =
   };
 
 /** The blade, dropped on the ground (knocked out). */
-const droppedBlade: Layer = (g, a) => stampAt(g, BLADE_R, BLADE_PAL, a.fx - 17, a.fy - 1);
+const droppedBlade: Layer = (g, a) => stampAt(g, swordMap('r', 14), LONG_PAL, a.fx - 17, a.fy - 1);
 
 // ------------------------------------------------------------------ poses
 

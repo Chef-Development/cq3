@@ -9,7 +9,14 @@ import { SPEAKER_NAME, STORY } from '../../src/data/story';
 import { DUSK_STORY } from '../../src/data/story-dusk';
 import { STORY_BANTER, STORY_SCENE_ACT } from '../../src/data/banter-story';
 import { NOON_BANTER, NOON_SCENE_ACT } from '../../src/data/banter-noon';
+import { ISLES_BANTER, ISLES_SCENE_ACT } from '../../src/data/banter-isles';
 import { NOON_STORY } from '../../src/data/story-noon';
+import { HUSH_STORY } from '../../src/data/story-hush';
+import { REACH_STORY } from '../../src/data/story-reach';
+import { WICK_STORY } from '../../src/data/story-wick';
+import { SALT_STORY } from '../../src/data/story-salt';
+import { FAR_STORY } from '../../src/data/story-far';
+import { END_STORY } from '../../src/data/story-end';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
 import { HEROES } from '../../src/data/heroes';
 import { TIER_INFO } from '../../src/data/rarity';
@@ -159,7 +166,24 @@ describe('story', () => {
     for (const id of ['lighthouse2', 'lighthouse3', 'duskVictory']) expect(DUSK_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
     // once a region is wired in, STORY takes these very scenes (Object.assign), never a second copy
     for (const [id, boxes] of Object.entries(NOON_STORY)) expect(!(id in STORY) || STORY[id] === boxes, id).toBe(true);
-    for (const [id, boxes] of Object.entries(NOON_STORY)) {
+    // the sixth region's, drafted ahead of its data: the same rules; its boss's phases are his edits
+    for (const id of ['hush1', 'shears', 'hushCamp', 'hush2', 'hollowfang', 'hush3', 'yew', 'yew2', 'yew3', 'hushVictory']) expect(HUSH_STORY[id], id).toBeDefined();
+    for (const id of ['yew2', 'yew3', 'hushVictory']) expect(HUSH_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
+    // the seventh's and eighth's too (the eighth's Act 2 opening is the river twist: he never names his son)
+    for (const id of ['reach1', 'ropewright', 'reachCamp', 'reach2', 'squall', 'reach3', 'kestrel', 'kestrel2', 'kestrel3', 'reachVictory']) expect(REACH_STORY[id], id).toBeDefined();
+    for (const id of ['wick1', 'polisher', 'wickCamp', 'wick2', 'press', 'wick3', 'mender', 'mender2', 'mender3', 'wickVictory']) expect(WICK_STORY[id], id).toBeDefined();
+    for (const id of ['kestrel2', 'kestrel3', 'mender2', 'mender3']) expect({ ...REACH_STORY, ...WICK_STORY }[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
+    for (const id of ['salt1', 'saltworks', 'saltCamp', 'salt2', 'gale', 'salt3', 'brine', 'brine2', 'brine3', 'saltVictory']) expect(SALT_STORY[id], id).toBeDefined();
+    for (const id of ['farVictory', 'hallWakes']) expect(FAR_STORY[id], id).toBeDefined();
+    // the end: he is named only once, at the end of lowTruth (the first 'ambrose' box), and never before it
+    const named = END_STORY.lowTruth;
+    expect(named[named.length - 1]).toEqual({ who: 'ambrose', text: '...Rowan.' });
+    for (const [id, boxes] of Object.entries({ ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY })) for (const b of boxes) expect(b.who, id).not.toBe('ambrose');
+    const drafts = [NOON_STORY, HUSH_STORY, REACH_STORY, WICK_STORY, SALT_STORY, FAR_STORY, END_STORY];
+    for (const [id, boxes] of Object.entries({ ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY, ...END_STORY })) {
+      expect(!(id in STORY) || STORY[id] === boxes, id).toBe(true);
+      expect(drafts.filter((d) => id in d).length, `${id}: one region's id`).toBe(1);
+      for (const b of boxes) if (b.who === 'mapmaker') expect(b.text, id).not.toMatch(/\bRowan\b/);
       expect(boxes.length, id).toBeLessThanOrEqual(6);
       for (const b of boxes) {
         const lines = b.text.split('\n');
@@ -167,6 +191,13 @@ describe('story', () => {
         for (const l of lines) expect(textWidth(l, 1, false), `${id}: "${l}"`).toBeLessThanOrEqual(STORY_TEXT_W);
         expect(SPEAKER_NAME[b.who]).toBeDefined();
       }
+    }
+  });
+
+  it("keeps the Mapmaker's and the High Keeper's voices: no contractions (docs/story-bible.md, Voices)", () => {
+    const all = { ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY, ...END_STORY };
+    for (const [id, boxes] of Object.entries(all)) {
+      for (const b of boxes) if (b.who === 'mapmaker' || b.who === 'keeper') expect(b.text, `${id}: ${b.text}`).not.toMatch(/\b(it|that|he|she|there|what|who|here|let)'s\b|n't\b|'(re|ll|ve|d|m)\b/i); // a possessive is fine
     }
   });
 
@@ -256,6 +287,19 @@ describe('camp banter', () => {
     }
     for (const id of Object.keys(NOON_STORY)) expect(NOON_SCENE_ACT[id], id).toBeDefined();
     const all = [...BANTER, ...HERO_BANTER, ...STORY_BANTER, ...NOON_BANTER];
+    expect(new Set(all.map((l) => l.text)).size).toBe(all.length);
+  });
+
+  it("the first isles' banter waits for their drafted scenes and fits the bubble", () => {
+    const drafts = { ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY };
+    for (const l of ISLES_BANTER) {
+      expect(drafts[l.after], `${l.text}: after ${l.after}`).toBeDefined();
+      const lines = wrap(l.text);
+      expect(lines.length, l.text).toBeLessThanOrEqual(2);
+      for (const x of lines) expect(textWidth(x, 1, false), l.text).toBeLessThanOrEqual(BUBBLE_W);
+    }
+    for (const id of Object.keys(drafts)) expect(ISLES_SCENE_ACT[id], id).toBeDefined();
+    const all = [...BANTER, ...HERO_BANTER, ...STORY_BANTER, ...NOON_BANTER, ...ISLES_BANTER];
     expect(new Set(all.map((l) => l.text)).size).toBe(all.length);
   });
 

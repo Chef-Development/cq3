@@ -265,19 +265,24 @@ function paintBow(g: Grid, x: number, y: number, ang: number, drawTo?: Pt, slack
     line(g, tips[0], mid, str);
     line(g, mid, tips[1], str);
   }
-  // the limbs: lit on the side facing the light, a darker back
-  for (const [px, py] of pts) {
+  // the limbs: 3 px through the middle tapering to 2 at the tips (they read at 8x), lit on the side facing the light,
+  // a darker back
+  pts.forEach(([px, py], i) => {
+    const s = Math.abs(i / (pts.length - 1) - 0.5) * 2;
+    if (s < 0.75) put(g, Math.floor(px - fwd[0] * 0.9), Math.floor(py - fwd[1] * 0.9), VESPER_SILVER[3]);
     put(g, Math.floor(px), Math.floor(py), VESPER_SILVER[2]);
     put(g, Math.floor(px + fwd[0] * 0.9 + 0.3), Math.floor(py + fwd[1] * 0.9), VESPER_SILVER[1]);
-  }
+  });
   for (let k = 0; k < pts.length; k += 6) {
     const [px, py] = pts[k];
     if (Math.abs(k - pts.length / 2) > 18) put(g, Math.floor(px - 0.3), Math.floor(py), VESPER_SILVER[3]);
   }
   // gold nocks at the tips, the leather grip
   for (const [tx, ty] of tips) put(g, Math.floor(tx), Math.floor(ty), VESPER_GOLD[2]);
-  put(g, x, y - 1, LEATHER[2]);
-  put(g, x, y + 2, LEATHER[2]);
+  for (const dy of [-1, 2]) {
+    put(g, x, y + dy, LEATHER[2]);
+    put(g, x + 1, y + dy, LEATHER[1]);
+  }
 }
 
 /** An arrow from the nock (a) toward b: white fletching, a wooden shaft, a silver head. */

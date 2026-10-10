@@ -5,6 +5,7 @@
 // horizon). Same contract as backdrop.ts (`bg_`, `frame_`, `fg_`/`fgo_` per sway frame), but painted the first time
 // an act needs one (Stage.ensure), not at boot: Greenmarch's players never pay for them.
 import type Phaser from 'phaser';
+import { gradeLayer } from './art-mood';
 import {
   backlight,
   bay,
@@ -40,6 +41,10 @@ import {
   torchLight,
   type Theme,
 } from './backdrop';
+import { cluster, serac, shard } from './backdrop-ice';
+
+// (the ice parts live in backdrop-ice.ts: the act maps and Ashfell's backdrops use them too, without this file)
+export { cluster, serac, shard };
 
 export type FrostTheme = 'pass' | 'caves' | 'glacier';
 export const FROST_THEMES: FrostTheme[] = ['pass', 'caves', 'glacier'];
@@ -271,29 +276,29 @@ function pass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const p = new Pix(w, h, 0);
   const rnd = rng(131);
   const ink = col('#140c1c');
-  const hz = col('#d4c6d8');
+  const hz = col('#4a5e86');
 
-  // a cold afternoon that never ends: slate blue overhead, lilac, a peach glow round the veiled sun
-  const skyR = ramp('#3a4888', '#465696', '#5664a4', '#6a74b0', '#8286bc', '#9c9ac6', '#b6aecc', '#ceC0d0', '#e2cccc', '#f0d4c6', '#f8dcc0', '#ffe8c8');
+  // a blue night on the pass (decision L7): near-black blue overhead, a cold glow round the moon, stars
+  const skyR = ramp('#05071a', '#080b22', '#0b112c', '#0f1836', '#132040', '#18284a', '#1d3254', '#243c5e', '#2c4868', '#365472', '#42627c', '#4e6e86');
   const sunX = Math.round(w * 0.4);
   const sunY = 26;
   const skyBot = G - 14;
   const glowAt = (x: number, y: number) => Math.max(0, 1 - Math.hypot((x - sunX) * 0.4, (y - sunY) * 1.0) / 70) ** 1.5;
   for (let y = 0; y < skyBot; y++) for (let x = 0; x < w; x++) p.set(x, y, pick(skyR, (y / (G - 30)) * 0.8 + glowAt(x, y) * 0.36, x, y, 0.3));
-  const sunHalo = col('#fff2dc');
+  const sunHalo = col('#7a98c8');
   for (let y = sunY - 24; y <= sunY + 24; y++)
     for (let x = sunX - 32; x <= sunX + 32; x++) {
       const d = Math.hypot(x + 0.5 - sunX, (y + 0.5 - sunY) * 1.2);
       if (d < 28) p.tint(x, y, (c) => fade(c, sunHalo, Math.pow(1 - d / 28, 2.2) * 0.75, x, y, 3, 0.7));
     }
-  const sunR = ramp('#f8e6cc', '#fff2de', '#fffcf4');
-  for (let y = -7; y <= 7; y++)
-    for (let x = -7; x <= 7; x++) {
+  const sunR = ramp('#9eb2cc', '#d0dcea', '#f2f6fc');
+  for (let y = -5; y <= 5; y++)
+    for (let x = -5; x <= 5; x++) {
       const d = Math.hypot(x, y);
-      if (d <= 7.2) p.set(sunX + x, sunY + y, sunR[d > 6 ? 0 : d > 4 && x + y > -2 ? 1 : 2]);
+      if (d <= 5.2) p.set(sunX + x, sunY + y, sunR[d > 4.2 ? 0 : (d > 2.5 && x + y > -1) || (x === 1 && y === 1) ? 1 : 2]);
     }
   // long bands of snow cloud, lit along their tops (warm near the sun); one veils the sun's lower half
-  const cloudR = ramp('#6e78a2', '#8690b4', '#9ea4c4', '#b8bad4', '#d0cede', '#e6dfe6', '#f8eeec', '#fff6ec');
+  const cloudR = ramp('#0a1028', '#0e1630', '#141e3a', '#1a2644', '#22304e', '#2c3a5a', '#3c4c6c', '#566a8c');
   for (const [fx, fy, len, th] of [
     [-0.08, 12, 92, 3.5],
     [0.1, 34, 66, 2.2],
@@ -303,6 +308,13 @@ function pass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     [0.84, 40, 56, 2],
   ])
     stratus(p, Math.round(fx * w), fy, len, th, cloudR, Math.round(fx * 100 + fy), glowAt);
+  // stars in the clear sky between the clouds
+  for (let i = 0; i < 70; i++) {
+    const x = Math.floor(hash(i, 1, 131) * w);
+    const y = Math.floor(hash(i, 2, 131) * (G - 52));
+    if (skyR.includes(p.get(x, y)) && Math.hypot(x - sunX, y - sunY) > 14) p.set(x, y, i % 5 === 0 ? col('#dce8fa') : i % 2 ? col('#8a9cc0') : col('#6a7ca4'));
+  }
+  const skyDone = p.buf.slice(); // the sky is painted for the mood: the grade leaves it
 
   // the far range in the haze: one great peak framed by the pass, its snowfields catching the light
   const farRock = haze(ramp('#3c4474', '#4a5480', '#5a648e', '#6c769c'), hz, 0.5);
@@ -537,58 +549,14 @@ function pass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   // the near rope of prayer flags across the top, from the spruce to the crag
   prayerFlags(p, 20, 7, w - 44, 3, 13, 4, 5, 3, hz, 0, 0, col('#2a1c20'));
   const frame = changed(p, before);
+  gradeLayer('pass', p, G, skyDone);
+  gradeLayer('pass', frame, G);
 
   const glints = fallGlints.map(([x, y]) => ({ x, y, c: 0xe8fbff }));
   return [p, frame, { torches: [], glints, drips }];
 }
 
 // ------------------------------------------------------------------ crystals and ice
-
-/**
- * A crystal (or ice) shard: a prism rising from (x, base) along a lean, its point at the top; a lit face on the left,
- * a bright ridge, a shaded face on the right, and an inner glow brightest low in its body.
- */
-export function shard(p: Pix, x: number, base: number, hgt: number, wid: number, lean: number, r: Ramp, glow = 0.1): void {
-  const tipAt = hgt - Math.max(2, wid * 0.9);
-  for (let t = 0; t <= hgt; t++) {
-    const y = base - t;
-    const cx = x + lean * t;
-    const half = t < tipAt ? wid / 2 : (wid / 2) * (1 - (t - tipAt) / (hgt - tipAt + 0.5));
-    if (half < 0.3) {
-      p.set(Math.round(cx), y, r[r.length - 2]);
-      continue;
-    }
-    for (let xx = Math.floor(cx - half); xx <= Math.ceil(cx + half); xx++) {
-      const u = (xx + 0.5 - cx) / half;
-      if (u < -1.05 || u > 1.05) continue;
-      let v = u < -0.3 ? 0.62 : u < 0.25 ? 0.46 : 0.24;
-      if (Math.abs(u + 0.3) < 0.2) v = 0.86; // the ridge catches the light
-      v += glow * (1 - t / hgt) + (t >= tipAt ? 0.08 : 0);
-      if (u > 0.82 || u < -0.9) v -= 0.12;
-      p.set(xx, y, pick(r, v, xx, y));
-    }
-  }
-}
-
-/** A cluster of shards fanning out from one foot (back ones first); returns the tips (for glints). */
-export function cluster(p: Pix, x: number, base: number, size: number, r: Ramp, seed: number): Array<[number, number]> {
-  const r2 = rng(seed);
-  const n = 3 + Math.floor(r2() * 3);
-  const list: Array<[number, number, number, number]> = [];
-  for (let i = 0; i < n; i++) {
-    const f = n === 1 ? 0 : i / (n - 1) - 0.5;
-    const hgt = size * (0.45 + (1 - Math.abs(f) * 1.6) * 0.55) * (0.8 + r2() * 0.35);
-    list.push([x + f * size * 0.55 + (r2() - 0.5) * 2, hgt, Math.max(2.5, size * (0.27 + r2() * 0.12)), f * 0.7 + (r2() - 0.5) * 0.2]);
-  }
-  // the tallest stands at the back
-  list.sort((a, b) => b[1] - a[1]);
-  const tips: Array<[number, number]> = [];
-  for (const [sx, hg, wd, ln] of list) {
-    shard(p, sx, base, Math.round(hg), wd, ln, r, 0.12);
-    tips.push([Math.round(sx + ln * hg), Math.round(base - hg)]);
-  }
-  return tips;
-}
 
 /** A column of ice or rock hanging from `y0` (dir 1) or rising from it (dir -1), fluted, tapering to a point. */
 function spike(p: Pix, x: number, y0: number, len: number, wid: number, dir: number, r: Ramp, seed: number): void {
@@ -871,39 +839,13 @@ function caves(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     x += icy ? 2 : 4;
   }
   const frame = changed(p, before);
+  gradeLayer('caves', p, G);
+  gradeLayer('caves', frame, G);
   return [p, frame, { torches: [], glints, drips }];
 }
 
 // ------------------------------------------------------------------ Wyrm's Glacier
 
-/**
- * A serac: a tower of glacier ice, narrowing a little as it rises, its top sheared off at a slant (`cut` px from
- * left to right); three flat faces (lit, front, shade), old layers banding it, snow on the cut. Returns its top.
- */
-export function serac(p: Pix, x: number, base: number, hgt: number, wid: number, cut: number, r: Ramp, snow: Ramp, seed: number): [number, number] {
-  let top0: [number, number] = [x, base - hgt];
-  for (let y = Math.round(base - hgt - Math.abs(cut) - 2); y <= base; y++) {
-    const t = clamp01((base - y) / hgt);
-    const half = (wid / 2) * (1 - t * 0.22) + (noise(y * 0.3, 1, seed) - 0.5) * 1.2;
-    for (let xx = Math.floor(x - half); xx <= Math.ceil(x + half); xx++) {
-      const u = (xx + 0.5 - (x - half)) / (half * 2);
-      if (u < 0 || u > 1) continue;
-      const top = base - hgt + cut * (u - 0.5) + (noise(xx * 0.6, 2, seed) - 0.5) * 2;
-      if (y < top) continue;
-      if (y < top + 1) {
-        p.set(xx, y, pick(snow, 0.8 - u * 0.4, xx, y));
-        if (top0[1] > y) top0 = [xx, y];
-        continue;
-      }
-      let v = u < 0.3 ? 0.68 : u < 0.64 ? 0.48 : 0.26;
-      if (Math.abs(u - 0.3) < 0.05) v = 0.88; // the edge between the faces catches the light
-      if ((y + Math.floor(hash(seed, 1, 7) * 5)) % 6 === 0) v -= 0.1; // the glacier's old layers
-      if (noise(xx * 0.9, y * 0.06, seed + 3) > 0.7) v -= 0.14; // cracks
-      p.set(xx, y, pick(r, v, xx, y, 0.15));
-    }
-  }
-  return top0;
-}
 
 function glacier(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const p = new Pix(w, h, 0);
@@ -1122,6 +1064,8 @@ function glacier(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     }
   }
   const frame = changed(p, before);
+  gradeLayer('glacier', p, G);
+  gradeLayer('glacier', frame, G);
   return [p, frame, { torches: [], glints }];
 }
 
@@ -1247,6 +1191,7 @@ export function buildFrostBackdrop(scene: Phaser.Scene, theme: FrostTheme, w: nu
   add(`frame_${theme}`, frame.canvas());
   for (let f = 0; f < FG_FRAMES; f++) {
     const fg = foregroundFrost(theme, w, h, f);
+    gradeLayer(theme, fg, 1e9);
     const top = new Pix(w, h, -1);
     top.buf.set(fg.buf.subarray(0, w * h));
     const over = new Pix(w, FG_OVERLAP, -1);
