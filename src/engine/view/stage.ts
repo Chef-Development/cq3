@@ -44,6 +44,10 @@ const BEAM_SLOPE = 0.55;
 const FG_MS = 620; // one foreground sway frame
 const MAX_BITS = 220;
 
+/** Two colours multiplied (a tint over a tint). */
+const mulCol = (a: number, b: number): number =>
+  (Math.round((((a >> 16) & 255) * ((b >> 16) & 255)) / 255) << 16) | (Math.round((((a >> 8) & 255) * ((b >> 8) & 255)) / 255) << 8) | Math.round(((a & 255) * (b & 255)) / 255);
+
 export class Stage {
   /** The backdrops painted for this layout (Greenmarch's at once, the Frostpeaks' when an act first needs one). */
   private backdrops: Partial<Record<Theme, Backdrop>> = {};
@@ -143,12 +147,16 @@ export class Stage {
     this.frameImg.setTexture(`frame_${theme}`);
     this.raysImg.setTexture(`st_rays_${theme}`);
     this.gradeImg.setTexture(`st_grade_${theme}`);
+    // the act's mood (decision L7): the painted stage darker and cooler, the actors and the warm accents untouched
+    const mood = STAGE_LIGHT[theme].mood ?? 0xffffff;
+    this.bgImg.setTint(mood);
+    this.frameImg.setTint(mood);
     for (const cl of this.clouds) {
       // the hollow's sunset sky has its own painted wisps, the caves a roof, the glacier the aurora: no cumulus there
       cl.setVisible(theme === 'forest' || theme === 'ruins' || theme === 'pass');
-      if (theme === 'ruins') cl.setTint(0x6a7090).setAlpha(0.45);
-      else if (theme === 'pass') cl.setTint(0xc4c0da).setAlpha(0.5);
-      else cl.clearTint().setAlpha(0.95);
+      if (theme === 'ruins') cl.setTint(mulCol(0x6a7090, mood)).setAlpha(0.45);
+      else if (theme === 'pass') cl.setTint(mulCol(0xc4c0da, mood)).setAlpha(0.5);
+      else cl.setTint(mood).setAlpha(0.95);
     }
     this.prefill = theme === 'pass' || theme === 'glacier' || theme === 'cinder' || theme === 'forge';
     // cloud shadows sweep the meadow; mist banks roll through the ruins and the hollow
@@ -156,7 +164,11 @@ export class Stage {
       im.setTexture(theme === 'forest' ? 'st_cloudshade' : `st_mist_${theme}`);
       im.setBlendMode(theme === 'forest' ? Phaser.BlendModes.MULTIPLY : Phaser.BlendModes.NORMAL);
     }
-    for (const im of this.mistImgs) im.setTexture(`st_mist_${theme === 'forest' ? 'ruins' : theme}_near`).setVisible(theme !== 'forest');
+    for (const im of this.mistImgs) im.setTexture(`st_mist_${theme === 'forest' ? 'ruins' : theme}_near`).setVisible(theme !== 'forest').setTint(mood);
+    for (const im of this.shadeImgs) if (theme !== 'forest') im.setTint(mood);
+    else im.clearTint();
+    this.fgImg.setTint(mood);
+    this.fgOver?.setTint(mood);
     const L = STAGE_LIGHT[theme];
     // warm light pooled on the ground where the fighters meet
     this.poolImg
