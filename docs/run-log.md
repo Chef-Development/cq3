@@ -36,7 +36,7 @@ One PR at the end supersedes #1-#7.
 | 7 | The Great Atlas world map (2A); animation upgrade + lighting pass (2B); 2x rollout | 2A/2B/2C | Atlas done (L6/L7), title key art, portraits, UI de-gloss (L8), heroes mature (2B), backdrops darker (2C); 2x rollout + overlays next (2A), portraits/walkers (2B), foes (2C) |
 | 8 | Region 4 complete: in play + balance (3), art + music (dusk-art) | 3 + dusk-art | in play, balanced (acts 10-12: 84-90 / 71-74 / 53-69%, masher 0/73); art + music landing; parity pass next |
 | 9 | Resizable window, Android, code split, bot crawl part 1; then reviewers | 4 | done (10 window sizes, Pixel 7 + small Android, later regions' art in their own chunks: -9% main chunk, core crawl 16 heroes x 4 seeds clean, UI crawl through Act 1 clean); next: smoke timeouts, accessibility, crawl Acts 2-3 |
-| 10 | Region 5 (bar rules + data done, not in play; art and wiring later) | 3 | later |
+| 10 | Region 5 (bar rules + data done, not in play; art and wiring later) | 3 + dusk-art | plays end to end behind NOON_ON (off); first balance pass; art + music in progress (dusk-art) |
 | 11 | Backlog cycle (QA, Region 6, polish, NG+, more content, music, accessibility) | all | later |
 | 11a | Fresh-eyes screen reviewers (lead spawns; owners fix) | Lead + all | 3 reviewers running since 23:55 (title/maps/story, fights, camp/menus/desktop) |
 | 11b | Region 5 art + music (a dusk-art-style helper), Region 5 into play | 3 + helper | after 23:00 |
@@ -143,3 +143,7 @@ One PR at the end supersedes #1-#7.
   reviewers started on a frozen review build; a third editor on tonight's new text. Next chunks to 02:30: first10 =
   opt-in difficulty modifiers (backlog 4); QA = long story boxes, crawl regions 2-4, music packs; story = Region 5's
   events/bounty/pages, 6 companion designs (backlog 6). L10: no CI boot guard tonight (a recommendation for later).
+- 00:10 EDT: content chunk 3 merged (Region 4 parity: Neve, Dell fixed at the cause (canSink: ice floats, Marksman
+  targets stand above the tide; the bot hits floating blocks); the Sluice Keeper retagged; Region 5 end to end behind
+  NOON_ON with 14 relic hooks, gear effects, a first balance pass). Content chunk 4: Tess/Vesper parity, New Game+
+  boss remixes (backlog 4), switch Region 5 on when its art lands.
