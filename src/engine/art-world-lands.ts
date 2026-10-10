@@ -226,6 +226,17 @@ export const WORLD_ACTS_DUSK: ActSpot[] = [
   { x: 708, y: 234, box: { x: 699, y: 222, w: 20, h: 28 }, stand: [694, 252], flag: [718, 222], view: [708, 240] },
 ];
 
+/**
+ * The fifth region's three acts, by global act index 12-14, on the floating island (NOON_BOX in art-world.ts): the white
+ * road at its foot, the spire's steps, the great sundial on top. Placeholders for its art; in WORLD_ACTS only while the
+ * region is in play (src/data/flags.ts).
+ */
+export const WORLD_ACTS_NOON: ActSpot[] = [
+  { x: 906, y: 128, box: { x: 896, y: 120, w: 22, h: 16 }, stand: [892, 134], flag: [916, 120], view: [900, 110] },
+  { x: 914, y: 100, box: { x: 904, y: 90, w: 22, h: 18 }, stand: [900, 106], flag: [924, 92], view: [904, 96] },
+  { x: 918, y: 70, box: { x: 906, y: 58, w: 24, h: 22 }, stand: [902, 78], flag: [928, 60], view: [906, 82] },
+];
+
 /** Where the third region's landmark sprites stand (world px, the textures' top-left), once its veil lifts. */
 export const ASH_SIGHTS = {
   /** the half-paved road, its barrier and the road-roller curled up on it (the region's first act) */

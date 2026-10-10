@@ -21,7 +21,8 @@
 // band along the far north (`wm_rim`) and small sprites. Everything else that moves the view draws as a handful of
 // rects a frame. The whole lot is painted once; later layouts reuse the canvases.
 import { grid, stamp, toCanvas, type Pal } from './art';
-import { paintLands, WORLD_ACTS_ASH, WORLD_ACTS_DUSK } from './art-world-lands';
+import { paintLands, WORLD_ACTS_ASH, WORLD_ACTS_DUSK, WORLD_ACTS_NOON } from './art-world-lands';
+import { NOON_ON } from '../data/flags';
 import { ATLAS_INK, atlasPrint, blankOf, compassRose, draftOf, neatline, PARCH, paperAt } from './art-world-atlas';
 import { bay, col, fbm, hash, level, lighten, mass, mix, noise, pick, Pix, ramp, rgba32, rng, tuft, wordCanvas, type Blob, type Col, type Ramp } from './backdrop';
 import {
@@ -104,6 +105,7 @@ export const WORLD_ACTS: Array<{ x: number; y: number; box: Box; stand: Pt; flag
   { x: 566, y: 60, box: { x: 546, y: 38, w: 42, h: 44 }, stand: [538, 94], flag: [592, 50], view: [560, 84] },
   ...WORLD_ACTS_ASH,
   ...WORLD_ACTS_DUSK,
+  ...(NOON_ON ? WORLD_ACTS_NOON : []),
 ];
 
 /** The capital's gate, right under the Great Pendulum's tower; and the walled town's tap box. */

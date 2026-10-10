@@ -1,3 +1,4 @@
+import { NOON_ON } from '../../src/data/flags';
 import { describe, expect, it } from 'vitest';
 import { newProfile, WEIGHTS_TOTAL } from '../../src/core/profile';
 import { FAR_PLAN, fogOf, FOG_THIN, landOpen, markRestored, markUnveiled, planName, planRegion, regionOpen, regionRestored, restoreKey, restorePending, revealed, unveilKey, unveilPending, WORLD_PLAN } from '../../src/core/world-plan';
@@ -48,7 +49,8 @@ describe('world plan', () => {
     // the fourth once the third is won
     expect(landOpen({ actsCleared: 8 }, 'duskmire')).toBe(false);
     expect(landOpen({ actsCleared: 9 }, 'duskmire')).toBe(true);
-    expect(landOpen({ actsCleared: 99 }, 'noonspire')).toBe(false);
+    // the fifth once it is in play (src/data/flags.ts) and the fourth is won
+    expect(landOpen({ actsCleared: 99 }, 'noonspire')).toBe(NOON_ON);
     expect(landOpen({ actsCleared: 99 }, 'far6')).toBe(false);
   });
 
