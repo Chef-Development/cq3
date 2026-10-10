@@ -184,8 +184,8 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
   // Lanternfen: a violet dusk that never ends, the low sky rose behind; the fighters rimmed rose from the top left,
   // lantern-warm light pooled where they stand
   fen: {
-    shade: 0x24163e,
-    vignette: 0.62,
+    shade: 0x1c1440,
+    vignette: 0.74,
     floor: 0.5,
     top: 0.36,
     rim: 0xf0a0c0,
@@ -201,8 +201,8 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
   },
   // the Drowned Causeway: a cooler teal-violet dusk over the flats, the rim pale lilac, wet stone underfoot
   causeway: {
-    shade: 0x1a1e3a,
-    vignette: 0.6,
+    shade: 0x141a3c,
+    vignette: 0.72,
     floor: 0.48,
     top: 0.34,
     rim: 0xd0b8f0,
@@ -219,8 +219,8 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
   // the Gloaming Mere: the sky stuck at sunset, the lighthouse's lamp far off on the right; red-rose rims, deep plum
   // shade, the black lake under it all
   mere: {
-    shade: 0x2a0e2a,
-    vignette: 0.66,
+    shade: 0x1c0e30,
+    vignette: 0.76,
     floor: 0.52,
     top: 0.38,
     rim: 0xff9a7a,
@@ -493,7 +493,7 @@ function ashRays(out: Rgba, w: number, h: number, G: number, theme: 'cinder' | '
  * water toward the fighters.
  */
 function duskRays(out: Rgba, w: number, h: number, G: number, theme: 'fen' | 'causeway' | 'mere'): Rgba {
-  const [hx, hy, hr, hc, amt] = theme === 'fen' ? [w * 0.3, G - 30, 120, 0xff9aa0, 0.2] : theme === 'causeway' ? [w * 0.7, G - 34, 120, 0xd8a0d0, 0.18] : [w * 0.5, G - 32, 140, 0xff8a6a, 0.26];
+  const [hx, hy, hr, hc, amt] = theme === 'fen' ? [w * 0.3, G - 30, 110, 0xc88aa8, 0.1] : theme === 'causeway' ? [w * 0.7, G - 34, 110, 0xa898d0, 0.09] : [w * 0.5, G - 32, 120, 0xd07a7a, 0.13];
   for (let y = 0; y < h; y++)
     for (let x = 0; x < w; x++) {
       const d = Math.hypot((x + 0.5 - hx) * 0.45, (y + 0.5 - hy) * 2.2);
@@ -502,9 +502,9 @@ function duskRays(out: Rgba, w: number, h: number, G: number, theme: 'fen' | 'ca
       if (theme === 'mere') {
         // the lamp's bloom and its beam across the lake (drawn in the backdrop: this is its glow on the air)
         const ld = Math.hypot(x + 0.5 - 214, (y + 0.5 - (G - 62)) * 1.2);
-        const la = Math.pow(clamp01(1 - ld / 34), 2) * 0.45;
+        const la = Math.pow(clamp01(1 - ld / 30), 2) * 0.4;
         const along = 214 - x;
-        const bm = along > 0 ? Math.pow(clamp01(1 - Math.abs(y - (G - 62 + along * 0.16)) / (2 + along * 0.05)), 2) * clamp01(1 - along / 170) * 0.22 : 0;
+        const bm = along > 0 ? Math.pow(clamp01(1 - Math.abs(y - (G - 62 + along * 0.16)) / (2 + along * 0.05)), 2) * clamp01(1 - along / 150) * 0.14 : 0;
         if (la + bm > a) c = 0xffd890;
         a = Math.max(a, la + bm);
       }
@@ -585,9 +585,9 @@ const ASH_MIST: Record<'cinder' | 'glass' | 'forge', (w: number, h: number, G: n
 /** The Duskmire's drifting banks (far, near): mist lying on the fen's black pools, a sea haze over the flats, the
  *  mere's low fog. */
 const DUSK_MIST: Record<'fen' | 'causeway' | 'mere', (w: number, h: number, G: number) => [Rgba, Rgba]> = {
-  fen: (w, h, G) => [patches(w, h, G - 26, G - 4, 0xb898c8, 0.24, 91, 0.45, 0.022, 0.14), patches(w, h, G - 5, h, 0x7a6090, 0.16, 93, 0.52, 0.014, 0.16)],
-  causeway: (w, h, G) => [patches(w, h, G - 30, G - 4, 0xa8b0d8, 0.22, 97, 0.46, 0.02, 0.12), patches(w, h, G - 5, h, 0x6a7898, 0.14, 99, 0.52, 0.014, 0.16)],
-  mere: (w, h, G) => [patches(w, h, G - 28, G - 4, 0xd08aa0, 0.2, 101, 0.46, 0.022, 0.12), patches(w, h, G - 6, h, 0x6a3a5a, 0.18, 103, 0.5, 0.016, 0.18)],
+  fen: (w, h, G) => [patches(w, h, G - 26, G - 4, 0x6e6a96, 0.22, 91, 0.45, 0.022, 0.14), patches(w, h, G - 5, h, 0x3e3a62, 0.18, 93, 0.52, 0.014, 0.16)],
+  causeway: (w, h, G) => [patches(w, h, G - 30, G - 4, 0x6a7898, 0.2, 97, 0.46, 0.02, 0.12), patches(w, h, G - 5, h, 0x3a4462, 0.16, 99, 0.52, 0.014, 0.16)],
+  mere: (w, h, G) => [patches(w, h, G - 28, G - 4, 0x7a5a7e, 0.18, 101, 0.46, 0.022, 0.12), patches(w, h, G - 6, h, 0x3a2442, 0.2, 103, 0.5, 0.016, 0.18)],
 };
 
 /** One Frostpeaks or Ashfell theme's stage textures for the current layout (painted the first time an act needs them). */

@@ -45,8 +45,9 @@ export const isDusk = (t: Theme): t is DuskTheme => t === 'fen' || t === 'causew
 
 // ------------------------------------------------------------------ shared ramps (dark -> light, hue-shifted)
 
-/** The dusk sky: ink-violet overhead, through plum and rose, to a peach glow on the horizon. */
-const SKY = ramp('#140e26', '#1c1232', '#26163e', '#32194a', '#421e56', '#56265e', '#6e3064', '#8a3e68', '#a8506a', '#c4666c', '#da8470', '#eca878', '#f6c88a');
+/** The dusk sky: ink-indigo overhead, through violet and plum, to a muted rose glow low on the horizon (L7: darker,
+ *  cooler; the warm light is the lanterns'). */
+const SKY = ramp('#0a0a1c', '#0e0e24', '#13112c', '#191434', '#20183e', '#2a1c46', '#36224e', '#442856', '#54305c', '#663860', '#784264', '#8a4c66');
 /** Black water: blue-black, a cold violet where it catches the sky. */
 const WATER = ramp('#0a0a18', '#100f22', '#16162c', '#1e1e38', '#282646', '#343056', '#463c66');
 /** Peat banks and mud: violet-black shadow, warm brown tops. */
@@ -86,7 +87,7 @@ function cloudBand(p: Pix, x0: number, y0: number, len: number, thick: number, s
     bl.push({ x: x0 + f * len + (r2() - 0.5) * 6, y: y0 - t * thick * 0.3, rx: 5 + t * len * 0.12, ry: 0.9 + t * thick * (0.5 + r2() * 0.3) });
   }
   const inside = (x: number, y: number) => bl.some((b) => ((x + 0.5 - b.x) / b.rx) ** 2 + ((y + 0.5 - b.y) / b.ry) ** 2 <= 1);
-  const cr = ramp('#2a1840', '#3e2052', '#5a2c5e', '#8a4466', '#c46a6e', '#ec9a7a');
+  const cr = ramp('#16122e', '#20163a', '#2e1c46', '#44264e', '#5e3256', '#7a4060');
   for (let y = Math.floor(y0 - thick * 2); y <= y0 + thick + 2; y++)
     for (let x = Math.floor(x0 - 10); x <= x0 + len + 10; x++) {
       if (!inside(x, y)) continue;
@@ -109,14 +110,14 @@ function water(p: Pix, w: number, y0: number, y1: number, seed: number, glints: 
       let c = pick(WATER, 0.62 - t * 0.5 + (noise(x * 0.04, y * 0.6, seed) - 0.5) * 0.2, x, y, 0.3);
       const stroke = noise(x * 0.09, y * 1.4, seed + 5);
       if (refl >= 0 && stroke > 0.42) c = mix(c, refl, (0.55 - t * 0.35) * clamp01((stroke - 0.42) * 4));
-      if (stroke > 0.84 && t < 0.7) c = mix(c, col('#c4889a'), 0.25);
+      if (stroke > 0.84 && t < 0.7) c = mix(c, col('#7a5a80'), 0.25);
       p.set(x, y, c);
     }
   }
   for (let i = 0; i < 6; i++) {
     const x = Math.floor(hash(i, 1, seed) * w);
     const y = y0 + 1 + Math.floor(hash(i, 2, seed) * Math.max(1, (y1 - y0) * 0.6));
-    glints.push({ x, y, c: 0xf0b0a0 });
+    glints.push({ x, y, c: 0xb8a0c8 });
   }
 }
 
@@ -219,7 +220,7 @@ function fen(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const glints: NonNullable<Backdrop['glints']> = [];
   const hz = col('#8a4a6c'); // the haze the dusk lays over everything far
   const horizon = G - 30;
-  sky(p, w, horizon + 2, w * 0.3, 0.32, 11);
+  sky(p, w, horizon + 2, w * 0.3, 0.22, 11);
   cloudBand(p, -20, 16, 140, 4, 13);
   cloudBand(p, 170, 26, 120, 3, 17);
   cloudBand(p, 90, 9, 70, 2.4, 19);
@@ -266,7 +267,7 @@ function fen(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   for (let y = bank; y < h; y++)
     for (let x = 0; x < w; x++) {
       const t = (y - bank) / (h - bank);
-      let v = 0.5 - t * 0.2 + (fbm(x * 0.05, y * 0.2, 41) - 0.5) * 0.2;
+      let v = 0.42 - t * 0.2 + (fbm(x * 0.05, y * 0.2, 41) - 0.5) * 0.2;
       if (y === bank) v += 0.22; // the bank's lip catching the dusk
       p.set(x, y, pick(PEAT, v, x, y, 0.25));
     }
@@ -276,7 +277,7 @@ function fen(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
       const board = Math.floor((x + (y % 2) * 13) / 26);
       const seam = (x + (y % 2) * 13) % 26 === 0;
       if (hash(board, y, 43) < 0.15) continue; // a missing board
-      p.set(x, y, seam ? PLANK[1] : pick(PLANK, y === bank + 1 ? 0.7 : 0.48 + (noise(x * 0.1, y, 47) - 0.5) * 0.12, x, y));
+      p.set(x, y, seam ? PLANK[1] : pick(PLANK, y === bank + 1 ? 0.6 : 0.4 + (noise(x * 0.1, y, 47) - 0.5) * 0.12, x, y));
     }
   // moss tufts and pebbles along the front, kept off the line the fighters stand on
   const rnd = rng(51);
@@ -318,7 +319,7 @@ function causeway(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const glints: NonNullable<Backdrop['glints']> = [];
   const hz = col('#5a5a80'); // a cooler haze over the flats
   const horizon = G - 34;
-  sky(p, w, horizon + 2, w * 0.7, 0.28, 71);
+  sky(p, w, horizon + 2, w * 0.7, 0.18, 71);
   cloudBand(p, 10, 12, 110, 3.4, 73);
   cloudBand(p, 200, 20, 140, 4, 77);
   // the far flats meet the sky: a thin dark line of land with the tide clock tower on it
@@ -420,7 +421,7 @@ function causeway(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
       const t = (y - road) / (h - road);
       const row = Math.floor((y - road) / 4);
       const joint = (y - road) % 4 === 0 || (x + row * 9) % 18 === 0;
-      let v = 0.52 - t * 0.2 + (fbm(x * 0.06, y * 0.3, 87) - 0.5) * 0.14;
+      let v = 0.44 - t * 0.2 + (fbm(x * 0.06, y * 0.3, 87) - 0.5) * 0.14;
       if (y === road) v += 0.2;
       if (joint && y < G - 1) v -= 0.16;
       p.set(x, y, pick(STONE, v, x, y, 0.2));
@@ -432,7 +433,7 @@ function causeway(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     [120, G + 8, 7],
   ] as const)
     for (let k = 0; k < wd; k++) {
-      p.set(x + k, y, mix(col('#5e3a6a'), col('#c4889a'), k / wd));
+      p.set(x + k, y, mix(col('#3a2a52'), col('#7a5a80'), k / wd));
       if (k > 1 && k < wd - 1) p.set(x + k, y + 1, col('#3a2a4c'));
     }
   vignette(p, w, h, col('#0a0a1a'));
@@ -472,7 +473,7 @@ function mere(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const hz = col('#a04a5a');
   const horizon = G - 32;
   // a sky stuck at sunset: deeper, redder at the horizon than the fen's, a long bar of cloud across it
-  sky(p, w, horizon + 2, w * 0.5, 0.45, 101);
+  sky(p, w, horizon + 2, w * 0.5, 0.3, 101);
   cloudBand(p, -10, 22, 160, 4.5, 103);
   cloudBand(p, 180, 12, 160, 3.4, 107);
   // the far rim of the mere: low hills, faint
@@ -505,13 +506,14 @@ function mere(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   // its beam: a long pale wedge swept off to the left across the water, broken up toward its end
   for (let i = 4; i < 150; i++) {
     const spread = 0.6 + i * 0.05;
-    for (let s = -spread; s <= spread; s++) {
+    for (let s = -spread * 0.7; s <= spread * 0.7; s++) {
       const x = lx - 4 - i;
       const y = Math.round(lb - 38 + i * 0.16 + s);
       if (y < 0 || y >= horizon + 2) continue;
       if (i > 90 && (x + y) % 2) continue;
       if (i > 120 && (x + y * 2) % 3) continue;
-      p.set(x, y, mix(p.get(x, y), col('#ffe0a0'), Math.max(0.18, 0.55 - i * 0.0028)));
+      if (Math.abs(s) > spread - 1 && i > 30) continue; // its edges fall away: a beam, not a wash
+      p.set(x, y, mix(p.get(x, y), col('#ffd890'), Math.max(0.1, 0.42 - i * 0.0026)));
     }
   }
   // the lamp's light laid on the water under it, a long column
@@ -546,12 +548,12 @@ function mere(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   for (let y = shore; y < h; y++)
     for (let x = 0; x < w; x++) {
       const t = (y - shore) / (h - shore);
-      let v = 0.46 - t * 0.2 + (fbm(x * 0.07, y * 0.3, 113) - 0.5) * 0.18;
+      let v = 0.38 - t * 0.2 + (fbm(x * 0.07, y * 0.3, 113) - 0.5) * 0.18;
       if (y === shore) v += 0.24;
       p.set(x, y, pick(STONE, v, x, y, 0.25));
     }
   // a line of foam where the lake laps the shingle
-  for (let x = 0; x < w; x++) if (noise(x * 0.2, 1, 117) > 0.45) p.set(x, shore, col('#b4c4cc'));
+  for (let x = 0; x < w; x++) if (noise(x * 0.2, 1, 117) > 0.45) p.set(x, shore, col('#7a8a98'));
   const rnd = rng(119);
   for (let i = 0; i < 22; i++) {
     const x = Math.floor(rnd() * w);
@@ -616,7 +618,8 @@ function vignette(p: Pix, w: number, h: number, to: Col): void {
   for (let y = 0; y < h; y++)
     for (let x = 0; x < w; x++) {
       const e = Math.min(x, w - 1 - x);
-      if (e < 40) p.tint(x, y, (c) => fade(c, to, ((40 - e) / 40) ** 1.6 * 0.6, x, y, 3, 0.5));
+      const k = Math.max(e < 56 ? ((56 - e) / 56) ** 1.5 * 0.72 : 0, y < 18 ? ((18 - y) / 18) * 0.35 : 0);
+      if (k > 0) p.tint(x, y, (c) => fade(c, to, k, x, y, 3, 0.5));
     }
 }
 
