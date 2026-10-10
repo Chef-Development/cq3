@@ -264,3 +264,5 @@ One PR at the end supersedes #1-#7.
   Playwright run (built 03:36): every functional spec green (smoke, numbers, minis, desktop, first10) except the lab
   walk, which hung because the "buttons step aside under a tip" rule also hid the lab's Done: fixed (only the gear
   and pause step aside). 105 screenshot diffs, all from tonight's intended art changes. Regenerating the baselines now.
+- 04:10 EDT: screenshot baselines regenerated at the freeze after a look (186 pictures, then the lab list): 111 of 111
+  passing on the new set. The final full Playwright run started on the frozen code.
