@@ -5,7 +5,7 @@
 import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './art';
 import { and, ell, fill, or, rimShade, sphere } from './art-paint';
 import { swordMap } from './art-sword';
-import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, type Rig, type RigPose, sparkle, stampAt } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Rig, type RigPose, sparkle, stampAt } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -101,7 +101,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const SOLENNE_RIG: Rig = {
   pal: { ...SOLENNE_PAL, '8': SOLENNE_PLATE[1], '9': SOLENNE_PLATE[0] },
   shades: SOLENNE_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [1, 3]}),
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

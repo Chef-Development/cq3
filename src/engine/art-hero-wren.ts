@@ -5,7 +5,7 @@
 // She is drawn a head shorter than the knights: short legs, a small torso, a big hood.
 import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './art';
 import { and, bez, ell, fill, or, rimShade, sphere } from './art-paint';
-import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, ribbon, type Rig, type RigPose, sparkle, type Sprite, stampAt } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, ribbon, type Rig, type RigPose, sparkle, type Sprite, stampAt } from './art-rig';
 import { daggerMap } from './art-sword';
 
 // ------------------------------------------------------------------ palette
@@ -98,7 +98,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const WREN_RIG: Rig = {
   pal: { ...WREN_PAL, '8': WREN_BRICK[1], '9': CHAR[0] },
   shades: WREN_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [1, 2], blush: 'f'}),
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

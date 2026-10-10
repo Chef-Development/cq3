@@ -2,7 +2,7 @@
 // and freckles, fur pauldrons over a leather harness, wrist wraps, tattoos on her arms and a giant stone-headed
 // warhammer. Fight frames `torva_${pose}` on the shared rig (art-rig.ts).
 import { put, type Pal, type Shade } from './art';
-import { along, block, type Dir, dirAngle, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, pole, ribbon, type Rig, type RigPose, sparkle } from './art-rig';
+import { along, block, type Dir, dirAngle, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, pole, ribbon, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -99,7 +99,7 @@ const ARM_PAL_FAR: Array<[number, ...string[]]> = [
 export const TORVA_RIG: Rig = {
   pal: { ...TORVA_PAL, '8': TROUSER[1], '9': LEATHER[0] },
   shades: TORVA_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [1, 3], blush: 'f'}),
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,
@@ -137,7 +137,7 @@ function hammer(dir: Dir, len: number, back: number): Item {
 /** The thick braid from the nape: a 4px plait in alternating links, a leather tie, a flared tuft. */
 function braid(a0: number, curl: number, wave: number, n = 15): Layer {
   return (g, a) =>
-    ribbon(g, a.hx + 1, a.hy + 9, n, (t) => Math.PI * (a0 + curl * t + wave * Math.sin(t * Math.PI * 2)), (t, i) => {
+    ribbon(g, a.hx + 1, a.hy + 7, n, (t) => Math.PI * (a0 + curl * t + wave * Math.sin(t * Math.PI * 2)), (t, i) => {
       if (t > 0.88) return [HAIR[4], HAIR[3], HAIR[2]];
       if (t > 0.78) return [LEATHER[3], LEATHER[1]];
       if (i % 2 === 0) return [HAIR[4], HAIR[3], HAIR[2], HAIR[1]];

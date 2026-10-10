@@ -4,7 +4,7 @@
 // far arm, so most poses draw the far hand in front of the body.
 import { put, stamp, type Pal, type Shade } from './art';
 import { swordMap } from './art-sword';
-import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, type Rig, type RigPose, sparkle, stampAt } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Rig, type RigPose, sparkle, stampAt } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -88,7 +88,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [[1, HOLLIS_STEEL[3], HOLLIS_STEEL
 export const HOLLIS_RIG: Rig = {
   pal: { ...HOLLIS_PAL, '8': HOLLIS_STEEL[1] },
   shades: HOLLIS_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [1, 3]}),
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

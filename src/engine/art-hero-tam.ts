@@ -3,7 +3,7 @@
 // with fizzing fuses. Fight frames `tam_${pose}` on the shared rig (art-rig.ts), and the UI's `keg_icon`.
 import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './art';
 import { ell, fill, sphere } from './art-paint';
-import { type HeroCardSpec, type Layer, LEG_FEET_X, matureLegs, type Rig, type RigPose, sparkle } from './art-rig';
+import { type HeroCardSpec, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -96,7 +96,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const TAM_RIG: Rig = {
   pal: { ...TAM_PAL, '8': TROUSER[1], '9': APRON[0] },
   shades: TAM_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [1, 2]}),
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

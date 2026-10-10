@@ -6,7 +6,7 @@ import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './a
 import { and, ell, fill, not, or, rimShade, sphere } from './art-paint';
 
 const INK_C = '#140c1c';
-import { along, type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, pole, type Rig, type RigPose, sparkle } from './art-rig';
+import { along, type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, pole, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -110,7 +110,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const FIZZ_RIG: Rig = {
   pal: { ...FIZZ_PAL, '8': TROUSER[1], '9': BOOT[0] },
   shades: FIZZ_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [0, 1]}),
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

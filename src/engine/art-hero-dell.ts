@@ -3,7 +3,7 @@
 // (art-rig.ts): a kid, a head shorter than the grown-ups. The slingshot rides the far hand (in front of the body);
 // the near hand pulls the band back.
 import { put, stamp, type Grid, type Pal, type Shade } from './art';
-import { type HeroCardSpec, type Layer, LEG_FEET_X, matureLegs, type Pt, type Rig, type RigPose, sparkle } from './art-rig';
+import { type HeroCardSpec, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Pt, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -97,7 +97,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const DELL_RIG: Rig = {
   pal: { ...DELL_PAL, '8': DELL_DENIM[1], '9': BOOT[0] },
   shades: DELL_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [1, 2], blush: 'f'}),
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

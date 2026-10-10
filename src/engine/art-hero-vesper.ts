@@ -3,7 +3,7 @@
 // white-fletched arrows and dark green leathers. Fight frames `vesper_${pose}` on the shared rig (art-rig.ts). The
 // bow rides the far hand (in front of the body); the near hand draws the string.
 import { put, stamp, type Grid, type Pal, type Shade } from './art';
-import { type HeroCardSpec, type Layer, LEG_FEET_X, matureLegs, type Pt, ribbon, type Rig, type RigPose, sparkle } from './art-rig';
+import { type HeroCardSpec, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Pt, ribbon, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -91,7 +91,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const VESPER_RIG: Rig = {
   pal: { ...VESPER_PAL, '8': GREEN[1], '9': LEATHER[0] },
   shades: VESPER_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [2, 4]}),
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,
@@ -160,7 +160,7 @@ const quiver: Layer = (g, a) => {
 const tail =
   (a0: number, curl: number, n = 8): Layer =>
   (g, a) =>
-    ribbon(g, a.hx + 2, a.hy + 6, n, (t) => Math.PI * (a0 + curl * t), (t) => (t > 0.7 ? [HAIR[3], HAIR[1]] : [HAIR[4], HAIR[2], HAIR[0]]));
+    ribbon(g, a.hx + 2, a.hy + 4, n, (t) => Math.PI * (a0 + curl * t), (t) => (t > 0.7 ? [HAIR[3], HAIR[1]] : [HAIR[4], HAIR[2], HAIR[0]]));
 
 // ------------------------------------------------------------------ the bow and arrows
 

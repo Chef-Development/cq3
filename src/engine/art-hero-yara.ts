@@ -3,7 +3,7 @@
 // hanging charms, and soft cyan spirit-light round her hands. Fight frames `yara_${pose}` on the shared rig
 // (art-rig.ts).
 import { put, stamp, type Pal, type Shade } from './art';
-import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, ribbon, type Rig, type RigPose, sparkle, STEP } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, ribbon, type Rig, type RigPose, sparkle, STEP } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -95,7 +95,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const YARA_RIG: Rig = {
   pal: { ...YARA_PAL, '8': SKIN[1], '9': SKIN[0] },
   shades: YARA_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [2, 4]}),
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,
@@ -145,7 +145,7 @@ const drape =
 function braid(a0: number, curl: number, wave: number, n = 13): Layer {
   const beads = [BEAD.o, BEAD.q, BEAD.y, BEAD.r];
   return (g, a) =>
-    ribbon(g, a.hx + 2, a.hy + 8, n, (t) => Math.PI * (a0 + curl * t + wave * Math.sin(t * Math.PI * 2)), (t, i) => {
+    ribbon(g, a.hx + 2, a.hy + 6, n, (t) => Math.PI * (a0 + curl * t + wave * Math.sin(t * Math.PI * 2)), (t, i) => {
       if (t > 0.86) return [HAIR[3], HAIR[1]];
       if (i % 4 === 2) return [beads[(i >> 2) % 4], HAIR[1]];
       return i % 2 ? [HAIR[3], HAIR[2], HAIR[0]] : [HAIR[4], HAIR[2], HAIR[1]];

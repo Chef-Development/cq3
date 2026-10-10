@@ -428,3 +428,19 @@ export const matureHands = (p: RigPose, lift = 4): RigPose => ({
   near: { ...p.near, at: [p.near.at[0], p.near.at[1] + lift] },
   far: { ...p.far, at: [p.far.at[0], p.far.at[1] + lift] },
 });
+
+/**
+ * A head made for the old proportions, matured (playtest round 8, L8): `drop` rows taken out of the hair or hat's dome
+ * (every face variant alike, so their swaps stay in step), the eyes' glossy whites gone (a white next to an iris turns to
+ * skin: one small dark eye under the brow) and the blush gone (`blush` letters turn to skin). `skin` is the face's mid
+ * skin letter.
+ */
+export function matureHeads<K extends string>(heads: Record<K, string[]>, o: { drop: number[]; blush?: string; skin?: string }): Record<K, string[]> {
+  const skin = o.skin ?? 'S';
+  const fix = (r: string) => {
+    let out = r.replace(/W(?=[iejkg])/g, skin).replace(/(?<=k)W/g, skin);
+    for (const b of o.blush ?? '') out = out.split(b).join(skin);
+    return out;
+  };
+  return Object.fromEntries(Object.entries(heads).map(([k, rows]) => [k, (rows as string[]).filter((_, i) => !o.drop.includes(i)).map(fix)])) as Record<K, string[]>;
+}
