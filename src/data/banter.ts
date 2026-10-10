@@ -69,6 +69,8 @@ export interface HeroBanterLine {
   text: string;
   /** Who else needs to be at the camp (the line is to them, or about them). */
   with?: CampSpeaker[];
+  /** A scene after which the line is no longer true (it stops once the story reaches it; core/banter.ts). */
+  until?: string;
 }
 
 export const HERO_BANTER: HeroBanterLine[] = [
@@ -186,11 +188,11 @@ export const HERO_BANTER: HeroBanterLine[] = [
 
   // Brann: a calm, near-silent bell monk (his bell talks for him)
   { who: 'brann', text: '...' },
-  { who: 'brann', text: '(writes) Silence is a bell that waits.' },
-  { who: 'brann', text: '(writes) Breathe in. Block. Breathe out.' },
-  { who: 'brann', text: '(writes) The fire is loud. I forgive it.' },
-  { who: 'brann', text: '(writes) Rowan. You nap like a master.', with: ['rowan'] },
-  { who: 'brann', text: '(writes) Hollis. We are both walls. Sit.', with: ['hollis'] },
+  { who: 'brann', text: '(writes) Silence is a bell that waits.', until: 'saltVictory' },
+  { who: 'brann', text: '(writes) Breathe in. Block. Breathe out.', until: 'saltVictory' },
+  { who: 'brann', text: '(writes) The fire is loud. I forgive it.', until: 'saltVictory' },
+  { who: 'brann', text: '(writes) Rowan. You nap like a master.', with: ['rowan'], until: 'saltVictory' },
+  { who: 'brann', text: '(writes) Hollis. We are both walls. Sit.', with: ['hollis'], until: 'saltVictory' },
   { who: 'pip', text: "Hoo. Brann's bell hums at me.", with: ['brann'] },
   { who: 'sable', text: 'Tried to ring the bell. It rang ME.', with: ['brann'] },
   { who: 'fizz', text: 'Brann, can I put a fuse on the bell?', with: ['brann'] },
@@ -228,7 +230,7 @@ HERO_BANTER.push(
   { who: 'yara', text: 'The spirits say my village dreams.' },
   { who: 'dell', text: 'Square fields. Corn hates it.' },
   { who: 'fizz', text: 'My lighthouse misses me. I know.' },
-  { who: 'brann', text: '(writes) My bell will ring again.' },
+  { who: 'brann', text: '(writes) My bell will ring again.', until: 'saltVictory' },
   { who: 'gorm', text: 'My stones sleep. I will wake them.' },
   { who: 'tess', text: 'All my clocks stopped. Shameful.' },
 );

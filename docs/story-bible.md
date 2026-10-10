@@ -294,7 +294,7 @@ Then the beat, in as few words as it takes:
 
 ---
 
-### Draft script: the beat (for review; boxes as the game shows them, `/` = the line break)
+### Draft script: the beat (for review; in code as `src/data/story-end.ts`, which wins if the two differ; `/` = the line break)
 Three short scenes after the Flood's last phase, played back to back. From the second, his plate reads "Ambrose"
 (a new speaker `ambrose`, the Mapmaker's portrait) and his composure breaks: contractions allowed from here on.
 - `floodEnd`: narrator "The levee gives. The river goes down to its / bed, and is only a river again." · narrator "He
@@ -331,7 +331,7 @@ branch above them. The Atlas keeps its one hole, and nobody patches it.
 
 ---
 
-### Draft script: the ending (for review)
+### Draft script: the ending (for review; in code as `src/data/story-end.ts`, with the Margin's `fairKnight`)
 - `marginEnd` (after the Fair Knight fades): narrator "The Fair Knight fades mid-stroke, like breath / on glass.
   Ambrose stands at his table." · narrator "One line would finish the Fair Copy. / The ink is on his nib." · narrator
   "Rowan doesn't fight him for the pen. He sits / down beside the table, and waits." · ambrose "...There's no lake in
@@ -493,15 +493,16 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   wider, then hardens into bark that takes two taps: hit it young) and *brambles* (a hit can drop a seed that grows
   into a yellow, or a bramble trap). His last edit lets a little wind out: *gusts* push every block one way.
 - **Mini-bosses:** **the Shears** (Act 1: great garden shears walking on their points, drawn to keep his rows tidy;
-  they snip whatever grows out of line; no speech). **Old Slowcoach** (Act 2: a giant snail who followed his sea road
-  from the continent for a month; the only living thing in the wood; slow, polite, very territorial: "...Mine.").
+  they snip whatever grows out of line; no speech). **Hollowfang** (Act 2: the isle's last wolf, out hunting on the far
+  shore when the isle went blank; a month in a wood with nothing living in it; starving, and grave: "A month. Not one
+  living thing in this wood. And now, four.").
 - **Boss: Mother Yew**, the isle's oldest yew, the first thing he drew back, drawn to walk so she can keep the wood as
   he likes it. Keystone: **the Stopper**, a stone jar with the isle's wind corked in it, held in her branches.
   - Phase 2 edit: "Hush." Everything grows twice as fast.
   - Phase 3 edit: losing, he pulls the cork a little to knock Rowan down: "Just a breath." Gusts.
 - **Restoring:** the Stopper cracks; the wind pours out; every leaf held for months falls at once; birds, wakened
   under the blank, start up all together; the blank pockets fill in and the villagers wake on their doorsteps.
-- **Scenes (drafted in full ahead of the data: `src/data/story-hush.ts`, speaker `slowcoach` "Old Slowcoach"; the
+- **Scenes (drafted in full ahead of the data: `src/data/story-hush.ts`, speaker `hollowfang` "Hollowfang"; the
   outline below is what they say):**
   - `hush1` (Act 1 start): off his sea road into a silent wood; no birds, no wind, leaves hanging. Rowan: "Listen.
     ...Nothing. Not one bird." Pip: "He can't draw birds. Nobody can. So he left them out." Sable: "A forest that
@@ -513,7 +514,7 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   - `hush2` (Act 2 start): the first blank pocket: a white village inside the green, people asleep mid-step. Rowan
     walks in. The scale: from the ridge, dozens of white pockets. Pip reads the impression under the white: "This
     river was moved once. Long before him." Rowan: "Who else draws?" Pip: "Nobody. Nobody should." (twist 2 seed)
-  - `slowcoach` (Act 2 mini-boss): the snail, a month from home, will not give up the only lettuce on the isle.
+  - `hollowfang` (Act 2 mini-boss): the starving wolf; it can't stop. Pip: "Beat it. Then wake the wood for it."
   - `hush3` (Act 3 start): the Yew Grove; the Stopper in her branches; the Mapmaker drawing new trees in a ring.
   - `yew` (boss intro): he is no longer gentle. "Storms dropped trees on these roofs every autumn. Count the graves,
     knight, then tell me about wind." Rowan: "And they called the spirits, and the spirits warned them. You took
@@ -600,7 +601,7 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   back nothing); 3 **The Glass** (out where the deep water was, under a pane laid over the sea).
 - **Rule hooks (ideas):** *salt crust* (blocks crusted over: the first tap cracks the salt, the second hits) and
   *glass calm* (a stretch of bar where nothing moves at all: blocks there wait until the cursor has passed once).
-- **Mini-bosses:** **the Saltworks** (Act 1: a rake-armed thing he drew to keep the flats smooth; no speech); **Gale**
+- **Mini-bosses:** **the Saltworks** (`saltworks`, Act 1: a rake-armed thing he drew to keep the flats smooth; no speech); **Gale**
   (Act 2: a storm petrel who was out at sea when the isle went blank and has flown ever since, looking for a storm to
   ride: "No wind. No wave. Nowhere to land." It speaks; tired, proud).
 - **Boss: Old Brine**, a sea serpent who was out in the deep when the isle went blank, came home, and was caught when
@@ -615,9 +616,10 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   itself stays (a page can't erase itself), alone in white. Ambrose, honest: "The isles did not hold enough. I took it
   from the one place that has plenty. They are sleeping, knight. Only sleeping." Rowan says nothing. Pip: "Rowan...
   that was home." The camp is the only awake place Rowan has left (the world map: the capital blank).
-- **Scenes:** `salt1`, the Act 1 mini-boss's, `salt2`, the Act 2 mini-boss's, `salt3`, `brine`, `brine2`, `brine3`,
-  `saltVictory`. Brann's first words go in banter (he may not be at the camp): after `saltVictory`, with Brann there,
-  `{ who: 'brann', text: '...The bell rang. So. Hello.' }` (no "(writes)").
+- **Scenes (drafted in full: `src/data/story-salt.ts`, speaker `gale`):** `salt1`, `saltworks`, `saltCamp`,
+  `salt2`, `gale`, `salt3`, `brine`, `brine2`, `brine3`, `saltVictory`. Brann's first words are banter (he may not be
+  at the camp; `banter-isles.ts`): "...The bell rang. So. Hello." (no "(writes)"). His `(writes)` lines in `banter.ts`
+  stop after `saltVictory` (`until`, read by `core/banter.ts`).
 
 ### Region 10: Farlight (far isle) — outline
 - **Original:** a beacon isle whose lighthouse guided ships home; Fizz's flame-brews fed its light.
@@ -625,6 +627,12 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   the Margin now, and its Flame burns the ink he scraped from Meridian to stay lit. Out at sea, ships wreck in the dark.
 - **Acts (suggested):** 1 **The Dark Harbor**; 2 **The Wreck Shore** (the hulls of every ship the dark sea wrecked);
   3 **The Beacon Stair**.
+- **Mini-bosses (suggested):** **Old Barnacle** (`barnacle`, Act 1: a giant hermit crab from the open sea, wearing a
+  wrecked rowboat for a shell; it lives off the wrecks the dark sea brings: "More every night. All MINE."); **the Lampless** (`lampless`, Act 2:
+  an empty lantern on long legs he drew to snuff every light but his own, so no one relights the harbor; no speech).
+- **Rule hooks (ideas):** *the turning light* (the beacon's beam sweeps the bar: a block hit while it's in the beam is worth
+  double; not Region 4's dark) and *wreckage* (a hit
+  red breaks into two small ones).
 - **Boss: the Wreckwarden**, a giant pieced together from those hulls, drawn to guard the beacon stair. Keystone:
   **the Flame**. (Not a lighthouse boss: the Duskmire has the one.)
 - **Restoring (and Meridian):** the Flame breaks; the beacon swings back out to sea; and the ink it was burning runs
@@ -634,7 +642,8 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   living) and that Ambrose broke it once, the night after the funeral, and no more. Pip begs her to tell the rest
   ("He has a right to know, Hesper."); she won't: "Not today." Pip's anger is the first
   time he raises his voice in the game. (Her secret, the river, waits for her confession at the end.)
-- **Scenes:** `far1`-`far3`, two mini-bosses', `warden`, `warden2`, `warden3`, `farVictory`, `hallWakes`. Fizz after
+- **Scenes:** `far1`-`far3`, `barnacle`, `lampless`, `warden`, `warden2`, `warden3`, `farVictory`,
+  `hallWakes` (the last two drafted: `src/data/story-far.ts`). Fizz after
   `farVictory`: "MY light! Pointing the RIGHT way!"
 
 ### Region 11: Lowmoor (far isle): section 6.
@@ -702,7 +711,7 @@ Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
 - **Art (Team 2):** done: `portrait_mapmaker`, `portrait_keeper` (art-portraits-atlas.ts), the world map's and the
   region victory's words. Still to do: Region 4-5's speakers' portraits (`portrait_bellybog`,
   `portrait_sluiceKeeper`, `portrait_sphinx`: a gold desert sphinx, eyes half shut against the glare); the drafted
-  regions' (`slowcoach`, `squall`, `press`) when they're built. The pictures that still draw the old premise (section
+  regions' (`hollowfang`, `squall`, `press`, `gale`) when they're built. The pictures that still draw the old premise (section
   9): the narrator's portrait (the Pendulum's bob, `art-story.ts`), the Boar King's crown bob (`art-story.ts`,
   `art-foes.ts`), the Bandit Captain's pendulum weight and the golem's pendulum rune (`art-story.ts`), the shrine's and
   camp's pendulum emblem (`art-shrine.ts`, `art-camp.ts`), Bellows's anvil weight (`art-ash.ts`), the Keystone Shard's
@@ -720,5 +729,6 @@ Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
   `sphinx` ("Noon Sphinx", needs a portrait), and `banter-noon.ts` (already read by `core/banter.ts`; it shows once the
   region is in play). Regions 6-10 are outlined in section 8 with scene ids, mini-bosses, bosses, his edits and rule
   ideas, and Regions 6-8's scenes are drafted in full (`story-hush.ts`, `story-reach.ts`, `story-wick.ts`; speakers
-  `slowcoach`, `squall`, `press`): the rule hooks are ideas; rename anything and tell the story team so the scenes
+  `hollowfang`, `squall`, `press`) with their camp banter (`banter-isles.ts`: correct `ISLES_SCENE_ACT` to the acts as
+  built): the rule hooks are ideas; rename anything and tell the story team so the scenes
   follow.

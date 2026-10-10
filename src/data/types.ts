@@ -209,10 +209,14 @@ export type Speaker =
   // Region 5's (src/data/story-noon.ts; portrait: the art for its mini-boss)
   | 'sphinx'
   // Region 6's, drafted ahead (src/data/story-hush.ts)
-  | 'slowcoach'
+  | 'hollowfang'
   // Regions 7-8's, drafted ahead (src/data/story-reach.ts, story-wick.ts)
   | 'squall'
   | 'press'
+  // Region 9's, drafted ahead (src/data/story-salt.ts)
+  | 'gale'
+  // the Mapmaker under his own name, from the late beat on (src/data/story-end.ts)
+  | 'ambrose'
   | 'captain'
   | 'golem'
   | 'boarking'
