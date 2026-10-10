@@ -630,12 +630,13 @@ Status (round 8, chunk 2): Regions 1-3 rewritten (`story.ts`, `story-ash.ts`) an
 twice; the chest heroes' arrivals say whose home was redrawn (Brann writes on a slate); the welcome back catches a
 returning player up; Region 4's ten scenes are in Team 3's ids (`story-dusk.ts`; speakers `bellybog`, `sluiceKeeper`
 need portraits); Region 5's nine scenes fit its data as built (`story-noon.ts`, incl. the mini-bosses' `sphinx` and
-`brassLion`; speaker `sphinx` needs a portrait). Camp banter follows the story (`core/banter.ts` gates each region's
+`brassLion`; speaker `sphinx` needs a portrait). Hesper speaks in the allies' warm look. Camp banter follows the story (`core/banter.ts` gates each region's
 lines on their scenes). Every player-facing data text was swept for the old premise (gear, meta, relics, events,
 quests, companions' bios, heroes' bios, act names, tips); the far isles' names are in `core/world-plan.ts` (shown
 once revealed). Still to do: the `road` hook (first 10 minutes team); the portraits (`portrait_mapmaker`,
 `portrait_keeper`, the Region 4-5 speakers'; until they exist the story view shows Phaser's missing-texture box);
-`keeper` belongs with the allies' warm look in `view/story.ts`; the world map's and title's words (art team, section 9).
+the world map's and title's words (art team, section 9). Region 4 is in play now (its scenes and banter with it);
+Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
 ---
 
 ## 11. What the story needs from other teams (round 8)
