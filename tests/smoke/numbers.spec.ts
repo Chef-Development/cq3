@@ -368,6 +368,9 @@ test('numbers: the camp: companions, chests and an opening, the shrine (odds, pi
     await run(page, `p.regions.greenmarch = { bounties: [0, 2], treasures: [1], events: ['herbalist'], chest: false }; camp().go('home', now()); camp().go('progress', now()); camp().progress.open(now(), ${r});`);
     await check(page, `completion: region ${r + 1}`, 900);
   }
+  // the region card's Atlas pages, read from a treasure seal
+  await run(page, `p.pages = [0, 1]; camp().go('home', now()); camp().go('progress', now()); camp().progress.open(now(), 0); camp().progress.showPages(now());`);
+  await check(page, 'completion: the Atlas pages found', 900);
 });
 
 test('numbers: the gear panel and the Test lab list', async ({ page }) => {

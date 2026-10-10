@@ -9,7 +9,7 @@ import { COMPANION_IDS, type CompanionId } from '../data/companions';
 import { EVENTS } from '../data/events';
 import { revealKey, TIPS } from '../data/tips';
 import { LAB_EARLIER, LAB_GROUPS, LAB_NEW, type LabScenario } from '../data/lab';
-import { ALL_ACTS, REGIONS } from '../data/regions';
+import { ALL_ACTS, REGIONS, regionStart } from '../data/regions';
 import type { RelicId } from '../data/relics';
 import type { BarRules } from '../data/types';
 import type { Combat } from './combat';
@@ -135,6 +135,9 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
       log.treasures = Array.from({ length: n }, (_, i) => i);
       log.events = EVENTS.slice(0, 3).map((e) => e.id);
       p.regions[def.id] = log;
+      // every treasure found: its act's Atlas page too (read from a treasure seal on the region card)
+      const first = regionStart(REGIONS.indexOf(def));
+      for (let a = first; a < first + n; a++) if (!p.pages.includes(a)) p.pages.push(a);
     }
     const n = REGIONS[0].acts.length;
     p.actsCleared = all ? ALL_ACTS.length : spec.completion === 'done' ? Math.max(p.actsCleared, n) : n - 1;

@@ -22,7 +22,9 @@ import { padlock } from './items';
 import { button3d, glow, GOLD, hudIcon, iconSize } from './pixels';
 import { clamp01, easeOut3, inRect, INK, pulse, WHITE, type Rect } from './shared';
 import { FACE, isPressed, notePress } from './ui';
-import { bigButton, drawStage, enterK, fillEllipse, popK, ring, spotlight, tooltip, waxSeal, type Face } from './ui-modern';
+import { bigButton, drawStage, enterK, fillEllipse, popK, ring, Sheet, spotlight, tooltip, waxSeal, type Face, type SheetLine } from './ui-modern';
+import { ATLAS_PAGES } from '../../data/atlas-pages';
+import { whole } from '../../core/format';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -58,6 +60,8 @@ export class ProgressScreen {
   private claimAt = -1e9;
   private shakeAt = -1e9;
   private tip: { text: string; x: number; y: number; at: number } | null = null;
+  /** The region's Atlas pages found, read from a treasure seal (src/data/atlas-pages.ts; profile.pages). */
+  private readonly sheet = new Sheet();
   /** The camera on the map (map px at the window's top-left), and a press on the map (it may become a drag). */
   private cam: { x: number; y: number } = { ...OPENING_CAMERA };
   private press: { x: number; y: number; cx: number; cy: number; drag: boolean } | null = null;
@@ -69,6 +73,7 @@ export class ProgressScreen {
     this.openAt = now;
     this.regionAt = now;
     this.tip = null;
+    this.sheet.close(now - 1000);
     this.press = null;
     this.cam = { ...OPENING_CAMERA };
     this.region = Math.max(0, Math.min(REGIONS.length - 1, region ?? this.current()));
@@ -226,6 +231,8 @@ export class ProgressScreen {
       notePress(kit.backRect());
       return 'back';
     }
+    // the Atlas pages open: a tap anywhere closes them
+    if (this.sheet.open) return void this.sheet.tap(now);
     for (const t of this.tabs())
       if (inRect(t.r, x, y, 2)) {
         notePress(t.r);
@@ -268,7 +275,21 @@ export class ProgressScreen {
       const name = SEALS[best.key].name;
       this.tip = { text: `${name} ${part.have}/${part.of}`, x: best.x, y: best.y - 5, at: now };
       kit.app.audio.uiClick();
+      // a treasure seal reads the Atlas pages found in this region's hidden treasures
+      if (best.key === 'treasures') this.showPages(now);
     }
+  }
+
+  /** The region's Atlas pages found, in act order, in a sheet (none found: nothing opens, the seal's tip says 0). */
+  private showPages(now: number): void {
+    const p = this.kit.profile;
+    const first = regionStart(this.region);
+    const acts = REGIONS[this.region]?.acts.length ?? 0;
+    const pages = ATLAS_PAGES.filter((pg) => pg.act >= first && pg.act < first + acts && p.pages.includes(pg.act));
+    if (!pages.length) return;
+    const lines: SheetLine[] = pages.map((pg, i) => ({ text: `${pg.title}. ${pg.lines.join(' ')}`, col: i % 2 ? 0xe8e0f4 : 0xffe8a0 }));
+    this.tip = null;
+    this.sheet.show(`Atlas pages ${whole(pages.length)}/${whole(acts)}`, lines, now);
   }
 
   /** The 100% reward: the chest bursts open, gems and a region chest. */
@@ -305,6 +326,8 @@ export class ProgressScreen {
       const s = kit.s;
       tooltip(kit.layer(true), this.tip.text, this.tip.x, this.tip.y, now, this.tip.at, s.L + 2, s.R - 2);
     }
+    const s = kit.s;
+    this.sheet.draw(kit, { x: s.L + 10, y: 20, w: s.R - s.L - 20, h: s.B - 23 }, now);
   }
 
   private drawTabs(g: G, now: number): void {
