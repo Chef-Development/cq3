@@ -232,3 +232,6 @@ One PR at the end supersedes #1-#7.
   green before the merge). Routed: dusk-art (camp buttons, the first relic pick, the world map's mood, the treasure
   node, the title's corner), QA-fight (fight lanes, the hurt flash, FINISHER label, loot HUD), first10 (the finisher
   tip, tip plates, the bounty tip, the first map), QA-menus (the settings cog). Hard stops 04:30; freeze 04:45-05:00.
+- 03:18 EDT: content's C21 merged (Vesper's boss-act gap comes from the skill trees: the bot often takes Rowan down
+  his defensive branch, Parry included; two tree changes for her didn't close it; numbers left for the next round).
+  Content done for the night.
