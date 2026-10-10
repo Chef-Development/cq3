@@ -1,12 +1,12 @@
 // The player's profile, kept across runs (pure; storage.ts saves it): how far Greenmarch has been cleared, the
-// Great Pendulum's weights home, and the gear chase: the bag, what Rowan wears, coins and scrap (both carry over
+// regions restored (`weights`, its old name), and the gear chase: the bag, what Rowan wears, coins and scrap (both carry over
 // between runs), each signature drop's bad-luck counter, and the accuracy log. M4a adds the heroes (who is picked,
 // each one's XP and skills; Sable is unlocked by a scene after Act 1) and the relics unlocked so far. The tips seen
 // so far ("teach it slowly", core/tips.ts), whether tips are off and what the player has done of what each teaches
 // (tipsDone: a tip they've shown they know is skipped) are kept too, and the map sparkles picked up
 // (core/sparkle.ts) and whether the world map's first-visit reveal has played (still v3: missing reads as none).
 //
-// v1 was "progress" (acts cleared and weights only), v2 the gear; readProfile migrates both.
+// v1 was "progress" (acts cleared and regions restored only), v2 the gear; readProfile migrates both.
 
 import { ALL_ACTS } from '../data/regions';
 import { heroOwned, petBuilds } from './roster';
@@ -43,7 +43,7 @@ export const WEIGHTS_TOTAL = 12;
 export interface Profile {
   v: 4;
   actsCleared: number; // acts cleared at least once, counted across regions (Greenmarch 0-3, then the next region's)
-  weights: number; // pendulum weights recovered (a region cleared brings one home)
+  weights: number; // regions restored (a region cleared counts once; the field keeps its old name)
   coins: number; // the purse: kept between runs, spent at shops and the forge
   scrap: number; // from salvaging, spent at the forge
   items: Item[]; // the bag (equipped items included)
@@ -387,7 +387,7 @@ export function recordAct(p: Profile, act: number): boolean {
   return true;
 }
 
-/** Region `r` (0 = Greenmarch) was cleared: its weight is home (once each). */
+/** Region `r` (0 = Greenmarch) was cleared: it is restored (once each). */
 export function recordRegion(p: Profile, r = 0): boolean {
   if (p.weights >= r + 1) return false;
   p.weights = Math.min(WEIGHTS_TOTAL, r + 1);

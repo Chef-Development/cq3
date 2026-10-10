@@ -2554,7 +2554,7 @@ export class Combat {
     if (heal > 0) this.events.push({ type: 'gearFx', fx, amount: heal, enemyId: 0 });
   }
 
-  /** Pendulum Shard: every Nth combo hit spawns a green block. */
+  /** Keystone Shard (effect id 'pendulum', Fresh Ink): every Nth combo hit spawns a green block. */
   private pendulumTick(): void {
     const n = Math.max(2, Math.round(this.tuning.effects.pendulumEvery));
     if (!this.has('pendulum') || this.combo <= 0 || this.combo % n !== 0) return;
