@@ -703,6 +703,19 @@ exist the story view shows Phaser's missing-texture box) and the old-premise pic
 Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
 ---
 
+## 10b. Side stories (round 8): events, story bounties, Atlas pages
+
+- **Events:** two per region for Regions 1-4 (`events.ts`, `region`), drawn only on that region's maps. Greenmarch:
+  the farmer asleep at her plough, the straight road and the old lane. The Frostpeaks: a pedlar held fast by the ice,
+  ten past three. Ashfell: a chained pair, a drifting house. The Duskmire: the crossing light, the tide-reader.
+  Grown-up choices, no gags; the generic six still turn up anywhere.
+- **Story bounties:** one per region on an existing bounty (`QUEST_STORIES` in `quests.ts`): the miller's road
+  (Greenmarch, kills), the snow-wall crews (Frostpeaks, blocks), a forge-mother (Ashfell, healthy), the fen's night
+  boat (Duskmire, elite). A frame line on the board, a payoff line when met.
+- **Atlas pages:** one per act (`atlas-pages.ts`), in its hidden treasure: what the land was before he redrew it. Read
+  when found; reread from the region card. Act 11's ("Amended.") quietly seeds twist 2. Region 5 and later get theirs
+  when built (one per act; 2-4 lines; nothing past their own region).
+
 ## 11. What the story needs from other teams (round 8)
 
 - **Art (Team 2):** done: `portrait_mapmaker`, `portrait_keeper` (art-portraits-atlas.ts), the world map's and the
