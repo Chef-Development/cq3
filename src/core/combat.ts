@@ -3017,7 +3017,8 @@ export class Combat {
     if (this.hero.hp > 0 && (K.atk || K.maxHp || K.comboPower)) {
       this.hero.bonusAtk += K.atk;
       this.hero.bonusMaxHp += K.maxHp;
-      this.hero.hp += K.maxHp;
+      // (max HP is rounded: a hero at full HP stays at it, never a fraction above: "252/251" on the plate)
+      this.hero.hp = Math.min(this.hero.hp + K.maxHp, heroMaxHp(this.tuning, this.hero));
       this.hero.bonusComboPower += K.comboPower;
       this.events.push({ type: 'statGain', enemyId: e.id, atk: K.atk, maxHp: K.maxHp, comboPower: K.comboPower });
     }
