@@ -137,9 +137,10 @@ function sableFrame(legs: string, bob: number, flap: boolean): HTMLCanvasElement
   return toCanvas(g);
 }
 
+// (playtest round 8, L8: the night-teal Pip of the fight frames, art.ts)
 const PIP_PAL: Pal = {
-  b: '#2a6ad8', B: '#1a3c8a', N: '#6aaef0', f: '#8ac4f6',
-  i: '#ffd84a', k: '#140c1c', g: '#ffe070', y: '#f2a020', c: '#efe2c4',
+  b: '#2c5a68', B: '#173040', N: '#4e8684', f: '#557a76',
+  i: '#d09a3a', k: '#140c1c', g: '#d0a85a', y: '#a8782a', c: '#b2a690',
 };
 const PIP_MINI = ['.N...N.', '.bNNNb.', 'bikbikb', 'bbbybbb', 'Bbcccbb', '.bcccb.', '..y.y..'];
 const PIP_WINGS = {
@@ -383,8 +384,9 @@ function lairCamp(): Lair {
   const cx = 16;
   const apex = 8;
   const base = H - 3;
-  const purple = ramp('#36244e', '#523a72', '#7a5a9a', '#a888c8');
-  const red = ramp('#4a0f1a', '#8a1a22', '#d03030', '#f05a48');
+  // (A2C-12) a weathered war tent: dark hide and oxblood stripes (it was candy red and lilac, a circus tent)
+  const purple = ramp('#241a22', '#3a2a2e', '#56403c', '#74584a');
+  const red = ramp('#2a0c12', '#521a1e', '#7c2a26', '#9c3c2e');
   const dark = ramp('#0e0a16', '#1c1430', '#2e2244');
   for (let y = apex; y <= base; y++) {
     const half = (y - apex) * 0.62 + 1;
@@ -403,7 +405,7 @@ function lairCamp(): Lair {
     }
   }
   // the flap folded back on the lit side
-  for (let y = apex + 9; y <= base; y++) p.set(Math.round(cx - (y - apex - 7) * 0.42) - 1, y, col('#f05a48'));
+  for (let y = apex + 9; y <= base; y++) p.set(Math.round(cx - (y - apex - 7) * 0.42) - 1, y, col('#a8483a'));
   // pole and skull banner
   for (let y = 0; y < apex + 1; y++) p.set(cx, y, col('#6e4020'));
   stampPix(p, ['kkkkk.', 'keekkk', 'kekekk', 'keeek.', 'kkkk..'], P({ k: '#1c1430', e: '#f4ead4' }), cx + 1, 0);
@@ -1275,7 +1277,9 @@ const PINE = ramp('#14352e', '#1c4a38', '#286240', '#367a48', '#4c9250', '#68aa5
 const BARK = ramp('#22170f', '#382616', '#52381f', '#6c4b2a');
 const BUSH = ramp('#1d4630', '#295c36', '#39763c', '#4f9046', '#6eac52', '#8cc45a');
 const TUFT_F = ramp('#2e6a32', '#3e8038', '#5a9c42', '#86c052');
-const PETALS = [col('#fff4e0'), col('#ffd860'), col('#ff9cc0'), col('#c8b4ff')];
+// (A2C-12) dusk wildflowers: dim cream, old gold, a muted rose and a violet, no candy pink (bright saturated colours
+// escape the map's grade as lights, so the petals themselves are toned down)
+const PETALS = [col('#cfc6ae'), col('#c8a850'), col('#a8788c'), col('#8e88b8')];
 const ROCK_R = ramp('#4a5462', '#66717e', '#87909c', '#acb3bb');
 const MOSS_R = ramp('#3a7434', '#55903e', '#78ae48');
 
@@ -1285,8 +1289,8 @@ function forestKit(): Kit {
   for (let i = 0; i < 3; i++) big.push(pineTree(200 + i, 12 + i * 2, 8 + i, PINE, BARK));
   const mid: Deco[] = [
     bush(301, 3.2, BUSH),
-    bush(302, 3.8, BUSH, [col('#ff6a7a'), col('#fff4e0')]),
-    bush(303, 2.8, BUSH, [col('#fff4e0')]),
+    bush(302, 3.8, BUSH, [col('#a8606c'), col('#cfc6ae')]),
+    bush(303, 2.8, BUSH, [col('#cfc6ae')]),
     bush(304, 4.2, BUSH),
     boulder(311, 3, 3, ROCK_R, MOSS_R, col('#2e4a2a')),
     boulder(312, 2.6, 2.4, ROCK_R, ROCK_R, col('#2e4a2a')),
@@ -3243,7 +3247,7 @@ function groundForest(p: Pix, c: Ctx): void {
   for (let y = 0; y < c.H - 1; y++)
     for (let x = 0; x < c.W; x++) {
       const f = fbm(x * 0.07 + 3, y * 0.09, c.seed + 11);
-      if (f < 0.62 || hash(x, y, c.seed + 12) > (f - 0.62) * 1.1) continue;
+      if (f < 0.66 || hash(x, y, c.seed + 12) > (f - 0.66) * 0.8) continue; // (A2C-12) fewer: less speckle
       p.set(x, y, PETALS[Math.floor(fbm(x * 0.03, y * 0.03, c.seed + 13) * 7) % PETALS.length]);
       p.set(x, y + 1, MEADOW[1]);
     }
@@ -3635,14 +3639,21 @@ function lightFrame(p: Pix, c: Ctx, theme: Theme): void {
   if (isDuskMap(theme)) return duskLight(p, c, theme);
   if (isNoonMap(theme)) return noonLight(p, c, theme);
   const { W, H } = c;
-  const edge = theme === 'forest' ? col('#14321e') : theme === 'ruins' ? col('#0a1020') : col('#1a0818');
+  const edge = theme === 'forest' ? col('#0a1a22') : theme === 'ruins' ? col('#0a1020') : col('#1a0818');
   const warm = col('#ffb060');
+  const reach = theme === 'forest' ? 22 : 16; // (A2C-12) the meadow's dusk vignette as deep as the ruins'
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
-      const e = clamp01(1 - Math.min(x / 16, (W - 1 - x) / 16, y / 12, (H - 1 - y) / 12));
+      const e = clamp01(1 - Math.min(x / reach, (W - 1 - x) / reach, y / (reach * 0.75), (H - 1 - y) / (reach * 0.75)));
       let k = p.get(x, y);
-      const amt = theme === 'forest' ? 0.35 : 0.5;
+      const amt = theme === 'forest' ? 0.55 : 0.5;
       if (e > 0 && e * e > bay(x, y) * 0.9) k = mix(k, edge, e * amt);
+      if (theme === 'forest') {
+        // late day: the low sun's last gold on the top left, the far corner already in blue dusk
+        const s = sun(c, x, y);
+        if (s > 0.7 && (s - 0.7) * 3 > bay(x, y)) k = lighten(k, warm, 0.06);
+        if (s < 0.45 && (0.45 - s) * 3 > bay(x, y)) k = mix(k, col('#141c3a'), 0.16);
+      }
       if (theme === 'hollow') {
         const s = sun(c, x, y);
         if (s > 0.62 && (s - 0.62) * 3 > bay(x, y)) k = lighten(k, warm, 0.08);
@@ -3995,7 +4006,8 @@ export function buildMapArt(add: Add, w: number, h: number): void {
   add('mn_q_0', prop(QMARK));
   add('mn_q_1', prop(QMARK_BIG));
   add('mn_flag', prop(FLAG));
-  add('mn_skull', prop(SKULL));
+  // (A2C-13) an elite's mark: the skull's sockets glow red, like the red skull on its pill and the red ring under it
+  add('mn_skull', prop(SKULL.map((r) => r.replace(/k/g, 'O'))));
   // the bosses' lairs
   for (const theme of THEMES) {
     const l = LAIRS[theme]();

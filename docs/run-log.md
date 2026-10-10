@@ -160,3 +160,12 @@ One PR at the end supersedes #1-#7.
   findings for their area): QA split in two (fight HUD; camp/menus/desktop), 2A, 2B, 2C, content (Region 5 on, NG+),
   first10 (the Mapmaker's Edits, the first finisher's reveal), dusk-art (Region 5's sounds, the Lighthouse's lamp).
   Chunks end 03:00; a last round 03:00-05:00; visual freeze 05:00.
+- 00:58 EDT: reviewer 1 done (69 findings: the Act 1 map still bright, map stops that look like forms, story scenes
+  as one still picture, a scene over the region card, tips in the way, the title's small Rowan). Routed to 2C, 2A,
+  QA-menus, first10; a story instance launched to stage scenes (heroes who speak stand on the stage; arrivals show the
+  chest and the hero) and fix the flagged words.
+- 00:55-01:31 EDT: the session hit its usage limit: every agent stopped mid-task (and the container restarted again).
+  01:31: the limit reset; all nine agents RESUMED with their context (not fresh), each with a narrowed scope and a
+  hard stop 02:45-03:45, told to be economical; after that only a few agents, and none past ~04:30, so the final
+  integration (baselines, full suites, the PR) can't be starved by a second limit. Merged their committed work (a
+  conflict in app.ts: Region 5's boss cues beside the first Mapmaker's revision).

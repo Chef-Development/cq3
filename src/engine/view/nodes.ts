@@ -7,7 +7,7 @@
 import type Phaser from 'phaser';
 import { eventById } from '../../data/events';
 import { relicById } from '../../data/relics';
-import { hpNow, pct, signed, signedPct, whole } from '../../core/format';
+import { hpNow, one, pct, signed, signedPct, whole } from '../../core/format';
 import { heroMaxHp } from '../../core/combat';
 import { relicText } from '../../core/relics';
 import { boostLabel, boostPreview, isRelicOffer, type BoostPreview, type ShopItem } from '../../core/run';
@@ -18,6 +18,14 @@ import { BOOST_ICON, clamp01, easeBack, hpLabel, inRect, INK, mix, pulse, rand, 
 import { CARD, previewLine, previewWidth } from './overlays';
 import { chipWidth, relicCard, relicIcon, tagChip } from './relic-ui';
 import { FACE, ImagePool, isPressed, notePress, parchment, ribbon, RIBBON, tag, TextPool } from './ui';
+
+/** One change an event's choice made: its icon, the floater's number, the chip's words and colour. */
+interface EventChip {
+  icon: string;
+  num: string;
+  text: string;
+  col: number;
+}
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -117,6 +125,9 @@ export class NodeScreens {
     }
   }
 
+  /** What an event's choice changed (the outcome screen's chips), from the moment it was chosen. */
+  private evGains: { at: number; chips: EventChip[] } | null = null;
+
   private eventBoard(): Rect {
     const s = this.s;
     const w = Math.min(276, s.R - s.L - 6);
@@ -205,8 +216,24 @@ export class NodeScreens {
         notePress(this.eventButton(i));
         const coins = run.coins;
         const hp = run.hero.hp;
+        const H = run.hero;
+        const before = { coins, hp, max: heroMaxHp(app.tuning, H), atk: H.bonusAtk, pet: H.bonusPet };
         if (run.chooseEvent(i)) {
           const o = def!.choices[i].outcomes[run.event!.outcome];
+          // what changed, shown where it lands on the outcome screen (every effect shows: a max HP gain fills HP too,
+          // so the HP chip shows the rest of the HP change)
+          const dMax = heroMaxHp(app.tuning, H) - before.max;
+          const dHp = H.hp - before.hp - (o.maxHp ?? 0);
+          const dCoins = run.coins - before.coins;
+          const dAtk = H.bonusAtk - before.atk;
+          const dPet = H.bonusPet - before.pet;
+          const chips: EventChip[] = [];
+          if (dMax) chips.push({ icon: 'heart', num: signed(dMax), text: `${signed(dMax)} Max HP`, col: 0x9af06a });
+          if (Math.round(dHp)) chips.push({ icon: 'heart', num: signed(dHp), text: `${signed(dHp)} HP`, col: dHp > 0 ? 0x9af06a : 0xff8a7a });
+          if (dCoins) chips.push({ icon: 'coin', num: signed(dCoins), text: signed(dCoins), col: dCoins > 0 ? 0xffe680 : 0xff8a7a });
+          if (dAtk) chips.push({ icon: 'sword', num: signed(dAtk, one), text: `${signed(dAtk, one)} Attack`, col: 0xffc89a });
+          if (dPet) chips.push({ icon: 'feather', num: signed(dPet, one), text: `${signed(dPet, one)} Companion Power`, col: 0x9ad8ff });
+          this.evGains = { at: performance.now(), chips };
           if (o.coins && run.coins > coins) app.audio.coin();
           else if (run.hero.hp > hp || o.maxHp) app.audio.heal();
           else if (run.hero.hp < hp) app.audio.hurt();
@@ -499,7 +526,7 @@ export class NodeScreens {
         const after = Math.min(max, H.hp + Math.round(max * run.tuning.map.potionHeal));
         if (item.sold) val = `${signedPct(run.tuning.map.potionHeal)} HP`;
         else if (after > H.hp) preview = { stat: 'HP', before: hpNow(H.hp, max), after: hpNow(after, max) };
-        else val = 'HP full';
+        else val = 'At full HP'; // ("HP full" read as "heals to full")
         // a half row too tight for "100 -> 130": the share it heals
         if (preview && r.x + 25 + textWidth(name, 1, true) + previewWidth(preview) > tx - 4) {
           preview = null;
@@ -558,12 +585,38 @@ export class NodeScreens {
     const body = done ? def.choices[ev.choice].outcomes[ev.outcome].text : def.text;
     body.split('\n').forEach((line, i) => this.texts.text(line, note.x + 7, note.y + 13 + i * 11, done ? 0x7a2a10 : 0x4a2a12, { oy: 0.5 }));
     const since = now - this.phaseAt;
+    if (!done) this.evGains = null;
+    const gains = done ? this.evGains : null;
+    if (gains?.chips.length) {
+      // what the choice changed, a chip each, popping in one after another with a floater rising off it
+      const row = this.eventButton(0);
+      const iw = gains.chips.map((c) => iconSize(c.icon)[0]);
+      const widths = gains.chips.map((c, i) => textWidth(c.text, 1, true) + iw[i] + 9);
+      let x = b.x + b.w / 2 - (widths.reduce((a, w) => a + w, 0) + 4 * (widths.length - 1)) / 2;
+      const y = row.y + (ev.boost ? -4 : 3);
+      gains.chips.forEach((c, i) => {
+        const w = widths[i];
+        const t0 = gains.at + 150 + i * 160;
+        const ck = easeBack((now - t0) / 260, 1.6);
+        if (ck > 0) {
+          // tall enough for the heart (15x13): the icon sits inside the chip, centred
+          const r: Rect = { x: Math.round(x), y, w, h: 14 };
+          rows(g, r.x, r.y, r.w, r.h, 2, NAVY[0], 0.85 * clamp01(ck));
+          hudIcon(g, c.icon, r.x + 2, r.y + Math.floor((r.h - iconSize(c.icon)[1]) / 2), 1, clamp01(ck));
+          this.texts.text(c.text, r.x + iw[i] + 5, r.y + r.h / 2, c.col, { bold: true, oy: 0.5, alpha: clamp01(ck) });
+          // its number rises off it and fades (drawn here: the event panel sits over the fight's floaters)
+          const ft = (now - t0) / 900;
+          if (ft < 1) this.texts.text(c.num, r.x + w / 2, r.y - 3 - Math.round(16 * Math.sqrt(ft)), c.col, { bold: true, ox: 0.5, oy: 0.5, alpha: 1 - ft * ft });
+        }
+        x += w + 4;
+      });
+    }
     if (done) {
       const r = this.eventButton(1);
       glow(g, r, 0x8af06a, 0.3 + 0.3 * pulse(now, 900), 3);
       button3d(g, r, FACE.green, isPressed(r, now));
       this.texts.text('Continue', r.x + r.w / 2, r.y + r.h / 2 + (isPressed(r, now) ? 2 : 0), WHITE, { bold: true, ox: 0.5, oy: 0.5 });
-      if (ev.boost) this.texts.text('A boost pick is next!', b.x + b.w / 2, this.eventButton(0).y + 8, 0x9ad8ff, { bold: true, ox: 0.5, oy: 0.5 });
+      if (ev.boost) this.texts.text('A boost pick is next!', b.x + b.w / 2, this.eventButton(0).y + (gains?.chips.length ? 16 : 8), 0x9ad8ff, { bold: true, ox: 0.5, oy: 0.5 });
       return;
     }
     def.choices.forEach((c, i) => {

@@ -11,7 +11,8 @@
 import { keyboardUsed } from '../keys';
 import Phaser from 'phaser';
 import { heroStats, type Combat } from '../../core/combat';
-import { compact, hpNow as fmtHp, mult, one, whole } from '../../core/format';
+import { hpNow as fmtHp, mult, one, whole } from '../../core/format';
+import { foeHpText } from './num-lanes';
 import { fmtStatShort, type StatBlock } from '../../core/gear';
 import { STAT_IDS, STAT_INFO, type StatId } from '../../data/gear';
 import type { RelicId } from '../../data/relics';
@@ -98,6 +99,9 @@ export class Hud {
   comboBreakUntil = 0;
   /** Where the combo counter is drawn this frame (null while it's hidden). */
   comboRect: Rect | null = null;
+  /** The name lane's pill while it shows (floating words keep off it). */
+  laneRect: Rect | null = null;
+  private quietUntil = 0;
   stackPopAt = -1e9;
   stackLostAt = -1e9;
   lastMilestone = 0;
@@ -288,8 +292,16 @@ export class Hud {
     this.hpPulseAt = now;
   }
 
+  /** The name lane holds still while a finisher's name is up (its perks' names would say the same): none show. */
+  quiet(ms: number): void {
+    this.quietUntil = performance.now() + ms;
+    this.lane = [];
+    this.laneNow = null;
+  }
+
   /** A name for the lane under the hero plate (one at a time; a few may wait their turn, the oldest give way). */
   announce(text: string, col: number, o: { relic?: RelicId; tex?: string; up?: boolean } = {}): void {
+    if (performance.now() < this.quietUntil) return;
     if (this.laneNow?.text === text || this.lane.some((q) => q.text === text)) return;
     this.lane.push({ text, col, ...o });
     if (this.lane.length > LANE_QUEUE) this.lane.shift();
@@ -355,6 +367,7 @@ export class Hud {
     }
     // a name waiting cuts the one showing short (it has been read for a while)
     if (cur && this.lane.length && now - cur.at < cur.ms - 200 && now - cur.at > LANE_BUSY_MS - 200) cur.ms = now - cur.at + 200;
+    this.laneRect = null;
     if (!cur) return;
     const age = now - cur.at;
     const ik = easeBack(age / 180, 1.4);
@@ -366,6 +379,7 @@ export class Hud {
     const y = (this.relicBelt() ? BELT_Y + 16 : CHIP_Y + 13) - Math.round(out * 3);
     const x = s.L + 3 + dx + Math.round((1 - ik) * -14);
     const r: Rect = { x, y, w, h: 12 };
+    this.laneRect = r;
     rows(g, r.x - 1, r.y + 1, r.w + 2, r.h + 1, 2, INK, 0.35 * a);
     tag(g, r, [NAVY[5], NAVY[2], NAVY[1], NAVY[0]], 0.94 * a);
     // a strip of the name's colour along the left edge
@@ -386,6 +400,23 @@ export class Hud {
       tx += 8;
     }
     this.texts.text(cur.text, tx, r.y + 6, cur.col, { bold: true, oy: 0.5, alpha: a });
+  }
+
+  /**
+   * What the stage's floating words keep off (game px): the hero's plate and chips, the relic belt, the name lane, the
+   * buttons with the act and wave counters in the middle, the foe's plate and its shield chip, the combo counter.
+   * (Review round 8: numbers flew up into the act plate, shouts started under the wave pips.)
+   */
+  keepOut(): Rect[] {
+    const s = this.s;
+    const out: Rect[] = [{ x: s.L, y: 0, w: 112, h: 31 }];
+    const belt = this.relicBelt();
+    if (belt) out.push(belt.r);
+    if (this.laneRect) out.push(this.laneRect);
+    out.push({ x: Math.round(GAME_W / 2) - 36, y: 0, w: 72, h: 43 });
+    out.push({ x: s.R - 112, y: 0, w: 112, h: 29 }, { x: s.R - 38, y: 28, w: 38, h: 12 });
+    if (this.comboRect) out.push(this.comboRect);
+    return out;
   }
 
   // ------------------------------------------------------------------ layout
@@ -596,15 +627,18 @@ export class Hud {
     const gx = X + 26;
     const gy = y0 + 4;
     const healK = (now - this.healAt) / 400;
+    const hpText = `${fmtHp(this.hpNum)}/${whole(maxHp)}`;
+    const htw = textWidth(hpText, 1, true);
     gauge(g, gx, gy, 76, 8, frac, this.heroHpShown / maxHp, {
       ramp: low ? RAMP.hpLow : RAMP.hp,
       seg: 76 / 10 >= 3 ? Math.round(76 / 10) : 0,
       glow: low ? beat * 0.6 : healK >= 0 && healK < 1 ? 1 - healK : 0,
+      label: { x: Math.round(gx + 38 - htw / 2) - 1, w: htw + 2 },
     });
     const hpK = (now - Math.max(this.hpPopAt, this.hpPulseAt)) / 160;
     const hpBump = hpK >= 0 && hpK < 1 ? -Math.round(2 * (1 - hpK)) : 0;
     const hpCol = this.hpPulseAt > now - 300 ? 0xc8ff9a : hpK >= 0 && hpK < 0.5 ? 0xfff6c0 : WHITE;
-    this.texts.text(`${fmtHp(this.hpNum)}/${whole(maxHp)}`, gx + 38, gy + 4 + hpBump, hpCol, { bold: true, ox: 0.5, oy: 0.5 });
+    this.texts.text(hpText, gx + 38, gy + 4 + hpBump, hpCol, { bold: true, ox: 0.5, oy: 0.5 });
     this.drawHeal(g, plate, now);
 
     // the Tusk Crown's crit buff: a gold timer along the plate's bottom edge
@@ -794,16 +828,22 @@ export class Hud {
       hudIcon(g, 'coin', b.x + 6, b.y + 6);
       return;
     }
-    gauge(g, gx, gy, 76, 8, shownHp / target.maxHp, ghost, { ramp: def.boss ? RAMP.boss : RAMP.foe, mirror: true, seg: 8 });
     const prevNum = Math.ceil(this.foeNum);
     this.foeNum += (shownHp - this.foeNum) * Math.min(1, dt * 16);
     if (Math.abs(this.foeNum - shownHp) < 0.5) this.foeNum = shownHp;
     if (Math.ceil(this.foeNum) !== prevNum) this.foeNumPopAt = now;
     const pk = (now - this.foeNumPopAt) / 140;
-    // big numbers (late bosses) shorten to "17.1k" so the readout stays bold and inside the gauge
-    const full = `${fmtHp(this.foeNum)}/${whole(target.maxHp)}`;
-    const hpText = textWidth(full, 1, true) <= 72 ? full : `${compact(this.foeNum)}/${compact(target.maxHp)}`;
-    this.texts.text(hpText, gx + 38, gy + 4 - (pk >= 0 && pk < 1 ? Math.round(1.5 * (1 - pk)) : 0), pk >= 0 && pk < 0.4 ? 0xfff0c0 : WHITE, { bold: textWidth(hpText, 1, true) <= 74, ox: 0.5, oy: 0.5 });
+    // big numbers (late bosses) shorten to "17.1k" so the readout stays bold and inside the gauge; which one is decided
+    // by the foe's max HP, so a plate keeps one format the whole fight (review round 8: "12.3k" turned "7619/12288")
+    const hpText = foeHpText(this.foeNum, target.maxHp);
+    const ftw = textWidth(hpText, 1, true);
+    gauge(g, gx, gy, 76, 8, shownHp / target.maxHp, ghost, {
+      ramp: def.boss ? RAMP.boss : RAMP.foe,
+      mirror: true,
+      seg: 8,
+      label: { x: Math.round(gx + 38 - ftw / 2) - 1, w: ftw + 2 },
+    });
+    this.texts.text(hpText, gx + 38, gy + 4 - (pk >= 0 && pk < 1 ? Math.round(1.5 * (1 - pk)) : 0), pk >= 0 && pk < 0.4 ? 0xfff0c0 : WHITE, { bold: true, ox: 0.5, oy: 0.5 });
 
     // row 2: the name (rank-colored), bold when it fits, the whole width of the plate
     const nameBold = textWidth(def.name, 1, true) <= 76;
@@ -993,7 +1033,7 @@ export class Hud {
       if (next) this.texts.text(whole(next), lx + bw + 2, by + 1, 0x9a94b0, { oy: 0.5 });
     }
     // the stamp lands just after the swell (one beat, then the other: never on top of each other)
-    if (live && fl.stamp && ft >= STAMP_DELAY) this.drawStamp(g, x + Math.round((nw + 34) / 2), y - 18, ft - STAMP_DELAY, fl.n);
+    if (live && fl.stamp && ft >= STAMP_DELAY) this.drawStamp(g, x + Math.round((nw + 34) / 2), y - 23, ft - STAMP_DELAY, fl.n);
     // combo tiers (a setting): the damage multiplier they give
     if (s.app.settings.comboTiers) {
       const tm = n >= T.tiers.t3 ? T.tiers.m3 : n >= T.tiers.t2 ? T.tiers.m2 : n >= T.tiers.t1 ? T.tiers.m1 : 1;

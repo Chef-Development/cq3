@@ -625,7 +625,8 @@ export class MapView implements MapHost {
         }
         const b = Math.floor((now + ph) / 420) % 2;
         const img = P.foot(this.mini(lead, now + ph), x + (second ? 2 : 0), y + 5 - b - bounce, D_ICON, alpha, tint);
-        if (n.type === 'elite') P.foot('mn_skull', x + (second ? 2 : 0) + 5, img.y - 1 + (Math.floor(now / 500) % 2), D_ICON + 0.01, alpha, tint);
+        // (A2C-13) the elite's skull sits on the foe's shoulder, not floating off beside it
+        if (n.type === 'elite') P.foot('mn_skull', x + (second ? 2 : 0) + 4, img.y + 2 + (Math.floor(now / 500) % 2), D_ICON + 0.01, alpha, tint);
         return;
       }
       case 'treasure': {
@@ -726,14 +727,15 @@ export class MapView implements MapHost {
 
   // ------------------------------------------------------------------ tags: what a node is, and what it pays out
 
-  /** What a node pays out, icon first: the loot bag in the drop's rarity colour, a heart, a coin, a warning. */
+  /** What a node is, icon first (the loot bag in the drop's rarity colour, a heart, a coin, a warning), in a plain
+   *  word: a fight, an elite (the bag says its loot is better), a Coin Rush (round 8's review: no "Gear" or "Rush"). */
   private chip(n: MapNode): Chip {
     const bag = (r: keyof typeof RARITY_INFO) => bagPal(RARITY_INFO[r].face);
     switch (n.type) {
       case 'fight':
-        return { icon: 'bag', pal: bag('common'), text: 'Gear', col: 0xd8dcec };
+        return { icon: 'bag', pal: bag('common'), text: 'Fight', col: 0xd8dcec };
       case 'elite':
-        return { icon: 'bag', pal: bag('uncommon'), text: 'Gear+', col: 0xb4f070 };
+        return { icon: 'bag', pal: bag('uncommon'), text: 'Elite', col: 0xb4f070 };
       case 'treasure':
         return { icon: 'bag', pal: { h: 0xfff0a0, b: 0xf2c230, d: 0x9a5a14 }, text: 'Loot', col: 0xffe680 };
       case 'rest':
@@ -745,7 +747,7 @@ export class MapView implements MapHost {
       case 'boss':
         return { icon: 'bag', pal: bag('legendary'), text: 'Boss', col: 0xffc070 };
       case 'rush':
-        return { icon: 'coin', text: 'Rush', col: 0xffe680 };
+        return { icon: 'coin', text: 'Coin Rush', col: 0xffe680 };
       case 'bounty':
         return { icon: 'warn', text: 'Bounty', col: 0xffd890 };
     }
@@ -825,7 +827,7 @@ export class MapView implements MapHost {
       // the boss's name stays under its lair, as it always has
       const [x, y] = this.pos(bossNode);
       const w = textWidth(bossName, 1, false);
-      const t: Tag = { id: map.boss, label: bossName, labelCol: 0xff8a76, foes: 0, elite: false, chip: null, w, h: LABEL_H, x: Math.round(Math.max(s.L + 2, Math.min(s.R - 2 - w, x - w / 2))), y: y + 11 };
+      const t: Tag = { id: map.boss, label: bossName, labelCol: 0xff8a76, foes: 0, elite: false, chip: null, w, h: LABEL_H, x: Math.round(Math.max(s.L + 2, Math.min(s.R - 6 - w, x - w / 2))), y: y + 11 }; // (A2C-13) clear of a rounded corner
       tags.push(t);
       obstacles.push({ r: { x: t.x, y: t.y, w: t.w, h: t.h }, w: 6 });
     }

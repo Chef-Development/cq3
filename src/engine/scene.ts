@@ -594,8 +594,14 @@ export class FightScene extends Phaser.Scene implements View {
           fx.floatNum(GAME_W / 2, 44, 'BOOM!', 0xff8a3a, 2);
           break;
         case 'finisher': {
+          // what each foe really took (a shell halves it): the show sums them into one number
+          const dealt = new Map<number, number>();
+          for (let j = i + 1; j < events.length; j++) {
+            const x = events[j];
+            if (x.type === 'enemyHurt' && x.source === 'finisher') dealt.set(x.enemyId, (dealt.get(x.enemyId) ?? 0) + x.damage);
+          }
           if (!this.reveal.wanted()) {
-            f.heroFinisher(e.damage, e.stacks, e.targets);
+            f.heroFinisher(e.damage, e.stacks, e.targets, dealt);
             hold = Math.max(hold, f.superMs);
             break;
           }
@@ -612,7 +618,7 @@ export class FightScene extends Phaser.Scene implements View {
           f.setHeroPose('windup', REVEAL_MS);
           const { damage, stacks, targets } = e;
           // (the name was just stamped in big: the show doesn't shout it again over the fading reveal)
-          this.later(REVEAL_MS, () => f.heroFinisher(damage, stacks, targets, false));
+          this.later(REVEAL_MS, () => f.heroFinisher(damage, stacks, targets, dealt, false));
           hold = Math.max(hold, REVEAL_MS + show);
           break;
         }

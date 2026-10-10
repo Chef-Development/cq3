@@ -27,13 +27,13 @@ import { heroOwned, shardsToNext } from '../../core/roster';
 import { HERO_FEET_X, HERO_H, HERO_W } from '../art';
 import { ensureStage, STAGE_THEMES } from '../art-ui-stage';
 import { textWidth } from '../font';
-import { CampKit, D, GOLD_TXT, GREEN, pix, pixSize, STYLE_LOOK } from './camp-kit';
+import { CampKit, D, GOLD_TXT, GREEN, pageStrip, pix, pixSize, STYLE_LOOK, type StripPage, type StripRow } from './camp-kit';
 import { padlock } from './items';
 import { gauge, glow, GOLD, NAVY } from './pixels';
 import { clamp01, easeBack, easeOut3, inRect, INK, mix, pulse, WHITE, type Rect } from './shared';
 import { FACE, isPressed, notePress, tag } from './ui';
 import { hdFor } from './hd-text';
-import { aura, bigButton, drawStage, enterK, fillEllipse, glass, iconCard, liftDim, pageArrow, pips, pixMap, popK, Sheet, type Face, type SheetLine } from './ui-modern';
+import { aura, bigButton, drawStage, enterK, fillEllipse, glass, iconCard, liftDim, pageArrow, pips, pixMap, popK, Sheet, stripArrows, type Face, type SheetLine } from './ui-modern';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -161,6 +161,7 @@ export class HeroesScreen {
   view: HeroId = 'rowan';
   private openAt = 0;
   private viewAt = 0;
+  private stripPage: StripPage = { first: 0, sel: -1 }; // the faces on view when they don't all fit
   /** The hero sliding out, the way the page turned, where the old one was when it let go (a swipe's offset). */
   private prev: HeroId | null = null;
   private dir = 0;
@@ -195,14 +196,17 @@ export class HeroesScreen {
     return heroOwned(this.kit.profile, id);
   }
 
-  /** The strip of faces in the top bar, after Back (one per hero, in order). */
+  /** The strip of faces in the top bar, after Back (one per hero, in order; a window of them between two arrows when
+   *  they don't all fit: `stripRow`). */
   private strip(): Array<{ id: HeroId; r: Rect; locked: boolean }> {
+    const row = this.stripRow();
+    return HERO_IDS.flatMap((id, i) => (row.cells[i] ? [{ id, r: row.cells[i]!, locked: !this.owned(id) }] : []));
+  }
+
+  private stripRow(): StripRow {
     const kit = this.kit;
     const b = kit.backRect();
-    const x0 = b.x + b.w + 4;
-    const ws = HERO_IDS.map(() => 15);
-    const rs = kit.topRow(ws, x0, kit.s.R - 3, 2) ?? kit.topRow(ws, x0, 1e9, 2)!;
-    return HERO_IDS.map((id, i) => ({ id, r: rs[i], locked: !this.owned(id) }));
+    return kit.stripRow(HERO_IDS.length, b.x + b.w + 4, kit.s.R - 3, HERO_IDS.indexOf(this.view), this.stripPage);
   }
 
   /** The faces in the top bar (the tips point at them). */
@@ -450,6 +454,16 @@ export class HeroesScreen {
     if (x < 0 || inRect(kit.backRect(), x, y, 3)) {
       notePress(kit.backRect());
       return 'back';
+    }
+    const row = this.stripRow();
+    for (const [r, d] of [
+      [row.prev, -1],
+      [row.next, 1],
+    ] as const) {
+      if (!r || !inRect(r, x, y, 1)) continue;
+      notePress(r);
+      pageStrip(this.stripPage, row, d);
+      return;
     }
     for (const { id, r } of this.strip()) {
       if (!inRect(r, x, y, 1)) continue;
@@ -783,6 +797,7 @@ export class HeroesScreen {
       if (t.id === this.view) glow(g, t.r, 0xffd23a, 0.3 + 0.2 * pulse(now, 1000), 2);
       kit.faceTab(g, { ...t.r, y: t.r.y - Math.round((1 - k) * 6) }, t.id, t.id === this.view, t.locked, now);
     });
+    stripArrows(g, this.stripRow(), now, enterK(now, this.openAt, 0, 25, 180));
   }
 
   /** The column: name, chips, stars and seals, level, the kit, the buttons (each slides in, in turn). */

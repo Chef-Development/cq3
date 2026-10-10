@@ -185,6 +185,8 @@ Everything animates from `now` and seeds (screenshots stay exact). Minimum frame
   grade when it is painted: midtones cooler and less saturated, darks toward the act's shadow hue, lights (fire, sun,
   lanterns, crystals) kept, the strip under the feet darker. Skies are painted at dusk, night, storm or a red evening
   and left out of the grade: never a flat bright noon. A new region's backdrop adds its act's grade to `MOOD`.
+  The act maps take the same kind of grade (`MAP_MOOD`), a little lighter and with the roads graded part way; their
+  light comes from lanterns, lit windows, braziers and glowing scenery, and the nodes and tags stay at full value.
 - **Actors pop**: the backdrop's value range sits inside the middle; actors own the darkest darks (ink) and the
   brightest lights and the most saturation.
 - **Painterly shapes**: organic clumps with scalloped edges, layered silhouettes, light shafts, long thin rain or snow

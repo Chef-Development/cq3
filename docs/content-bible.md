@@ -1168,7 +1168,53 @@ Art: the pack `pack-noon.ts` (`art-noon.ts`: every foe, `sphinx2`, `brasslion2`,
 `backdrop-noon.ts`: the white road, the spire steps, the great dial), the stage light and air, the act maps' land, kit,
 lairs (the sphinx on her plinth by the road, the lion-headed gate, the gnomon on its dial) and critters in the shared files (decisions C-ART-7).
 
+### In play (round 8, team content chunk 4)
+`NOON_ON` is on (art and music landed): acts 12-14 after the Duskmire's victory, its music and beds cued in app.ts
+(`noon1`-`noon3`, `dunes`/`spire`/`dial`; the sphinx, the brass lion and the Gnomon phased). Balance as set by the first
+pass, measured with the guard (`tests/unit/bot-region5.test.ts`: Rowan at 75% from a typical end-of-Duskmire hero, 30
+runs through five regions, seeds 7 / 8 / 9; first try = the act's mini-boss or boss's first fight):
+
+| Act | Target | Seed 7 | Seed 8 | Seed 9 | Pooled (75 reached) | Fight s |
+|---|---|---|---|---|---|---|
+| 13 The White Road | ~80% | 75% (24) | 86% (29) | 73% (22) | 79% | 10.5-11 |
+| 14 The Spire Steps | ~65% | 63% | 76% | 55% | 65% | 13-14 |
+| 15 The Great Sundial (the Gnomon's first fight) | ~50% / 45-55% | 42% | 38% | 68% | 48% | 16 |
+
+Clear within 6 tries 95-100%; no boss one-shot. The masher loses Act 15 first try and the Gnomon's first fight
+(`bot-masher.test.ts`). Fights are shorter than the Duskmire's (13 / 15 / 19 s): the hero arrives at level 22; a later
+pass could trade attack for HP. Hero parity, a first read (balanceCampaign through five regions, 30 runs a seed, seeds 7 and 8 averaged, 13-30 runs
+reaching each act, so about ±12 points of noise; first try, gap to Rowan's 80 / 70 / 40 in Acts 13 / 14 / 15): Sable
++18 / -2 / +8 (her caster strength meets the Sphinx, beast and caster), Neve -15 / +3 / +6, Dell -19 / -10 / +4, Tess
+-40 / -4 / -6 (her late-game gap, Act 12 -38 in the same runs, C16; the construct mini-boss and boss give her +25%),
+Vesper -16 / -25 / -14 (low in the fourth region too). Left for a hero-numbers pass: Tess's and Vesper's late game;
+Sable's Act 13 edge if a 100-run sample confirms it (retagging the Sphinx would cost her her look).
+
 ### Still to design and build (next chunks)
 Telegraph sounds (`NOON_NEW_SOUNDS`), the music and ambience cues in app.ts (`ACT_AMBIENCE` 12-14: `dunes`, `spire`,
 `dial`), and balance (a little harder than Lanternfen: Act 1 ~80%, Act 2 ~65%, Act 3 ~50%, the Gnomon's
 first fight ~45-55%).
+
+---
+
+## 9. New Game+: the Mapmaker's revisions (secret; `src/data/remixes.ts`, `enemies-remix.ts`)
+
+Once a region is restored (its boss beaten, its weight home), its boss comes back redrawn: the Mapmaker's revision.
+The same fight you won, every move kept, and one more phase, his edit, which turns a later region's bar rule on the
+player. Offered at the foot of that region's act picker on the world map ("The Mapmaker's revision", a tick once
+beaten). Fought like a skirmish (core/run.ts `startRemix`: the run as it was comes back after, won or lost): in the
+boss's own lair (its act's theme and the boss's music), at the numbers of the furthest act reached times
+`tuning.remix` (so it stays a challenge however far you've gone), as a hero who has come that far (`heroFor`: a
+replay's kit, no run relics). The first win pays gems (`remix.gems`) and a hero chest (profile `seen`:
+`remix:<id>`); every win, XP and Rare-or-better gear at that act's level.
+
+- **The Boar King, Revised** (`boarKingRevised`, Greenmarch): phases 1-3 as before (the enrage at 40% instead of 33%),
+  then at 20% **Inked Out!**: the lantern burns low for good (x0.7), every yellow outside the light goes dark, every 2nd
+  yellow he sends comes dark, and **Charge from the Dark!** brings two Charges with a dark yellow and a dark trap
+  between them. (The fourth region's dark blocks; a player who hasn't reached it meets them here first, with the
+  rule's tip.) His look and theme are his own (phase 4 keeps phase 3's music).
+- Measured (a typical 75% player who has just restored Greenmarch, 20 runs; `tests/unit/remix.test.ts` guards it at
+  12): the Boar King's own first fight won 11 of 20; the revision at `remix` HP x1 / attack x1 3 of 20, x0.8 / 0.9 6, x0.65 /
+  0.8 7, x0.5 / 0.7 15; set at x0.6 / 0.75 (about 8-9 of 20); fights about a minute; the masher never wins it.
+- Next (same shape, data first): **Glacia, Revised** with the tide (the water rising at her last phase, ice floating on
+  it) and **Bellows, Revised** with dark pairs or the tide; each needs its enemy entry, a `REMIXES` row and a lab item;
+  the picker, the run and the rewards are shared.

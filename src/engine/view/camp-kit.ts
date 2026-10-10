@@ -614,6 +614,31 @@ export interface Layer {
   texts: TextPool;
 }
 
+/** Which part of a top-bar strip too long to show whole is on view (`CampKit.stripRow`): it follows the one on view
+ *  (`sel`) and its arrows page it. Each screen keeps its own. */
+export interface StripPage {
+  first: number;
+  sel: number;
+}
+
+/** A top-bar strip laid out: tab i's rect (null when it's off the window), and the paging arrows (null when every tab
+ *  fits). */
+export interface StripRow {
+  cells: Array<Rect | null>;
+  prev: Rect | null;
+  next: Rect | null;
+  /** How many tabs the window holds. */
+  k: number;
+}
+
+/** A strip's paging arrow: as tall as a tab. */
+export const STRIP_ARROW_W = 9;
+
+/** Turn a strip's page by `dir` windows (clamped to the ends). */
+export function pageStrip(page: StripPage, row: StripRow, dir: number): void {
+  page.first = Math.max(0, Math.min(row.cells.length - row.k, page.first + dir * row.k));
+}
+
 export class CampKit {
   gBack!: G;
   gFront!: G;
@@ -1100,22 +1125,54 @@ export class CampKit {
   }
 
   /**
+   * A strip of `n` tabs in the top bar from x0, hopping over the HTML buttons in its middle (hudZone) and never past
+   * `right`: 15 px tabs 2 apart, else 13 px tabs 1 apart; when even those don't all fit (sixteen heroes beside a
+   * Dynamic Island), as many 13 px tabs as fit between two small arrows that page them, the window following `sel`
+   * (the one on view) whenever that changes.
+   */
+  stripRow(n: number, x0: number, right: number, sel: number, page: StripPage): StripRow {
+    for (const [w, gap] of [
+      [15, 2],
+      [13, 1],
+    ] as const) {
+      const rs = this.topRow(Array(n).fill(w), x0, right, gap);
+      if (rs) return { cells: rs, prev: null, next: null, k: n };
+    }
+    const A = STRIP_ARROW_W;
+    let k = n - 1;
+    let rs: Rect[] | null = null;
+    while (k > 1 && !(rs = this.topRow([A, ...Array(k).fill(13), A], x0, right, 1))) k--;
+    rs ??= this.topRow([A, 13, A], x0, 1e9, 1)!;
+    k = rs.length - 2;
+    if (page.sel !== sel) {
+      if (sel >= 0 && sel < page.first) page.first = sel;
+      else if (sel >= page.first + k) page.first = sel - k + 1;
+      page.sel = sel;
+    }
+    page.first = Math.max(0, Math.min(n - k, page.first));
+    const cells: Array<Rect | null> = Array(n).fill(null);
+    for (let i = 0; i < k; i++) cells[page.first + i] = rs[1 + i];
+    return { cells, prev: rs[0], next: rs[k + 1], k };
+  }
+
+  /**
    * The top bar's hero tabs, right after Back (they name the screen): `all` shows locked heroes too (dark faces, a
    * padlock). Named tabs while they fit before `right` (hopping over the HTML buttons in the bar's middle: hudZone);
-   * when there are too many heroes for names, each tab is the hero's face.
+   * when there are too many heroes for names, each tab is the hero's face, and when the faces don't all fit, a window
+   * of them pages between two arrows (`stripRow`: `view` is the hero on view, `page` the screen's window).
    */
-  heroTabs(all: boolean, right = this.s.R - 3): Array<{ id: HeroId; r: Rect; locked: boolean; face: boolean }> {
+  heroTabs(all: boolean, right: number, view: HeroId, page: StripPage): { tabs: Array<{ id: HeroId; r: Rect; locked: boolean; face: boolean }>; row: StripRow | null } {
     const p = this.profile;
     const b = this.backRect();
     const ids = HERO_IDS.filter((id) => all || heroOwned(p, id));
     const locked = (id: HeroId) => !heroOwned(p, id);
     const named = ids.map((id) => textWidth(locked(id) ? '???' : HEROES[id].name, 1, true) + 9 + (id === p.hero || locked(id) ? 9 : 0));
     const x0 = b.x + b.w + 4;
-    let rs = ids.length <= 4 ? this.topRow(named, x0, right) : null;
-    const face = !rs;
-    // (more heroes than 15 px faces fit: a little smaller before they run past `right`; round 7's second hero per style)
-    if (!rs) rs = this.topRow(ids.map(() => 15), x0, right, 2) ?? this.topRow(ids.map(() => 13), x0, right, 1) ?? this.topRow(ids.map(() => 15), x0, 1e9, 2)!;
-    return ids.map((id, i) => ({ id, r: rs![i], locked: locked(id), face }));
+    const rs = ids.length <= 4 ? this.topRow(named, x0, right) : null;
+    if (rs) return { tabs: ids.map((id, i) => ({ id, r: rs[i], locked: locked(id), face: false })), row: null };
+    const row = this.stripRow(ids.length, x0, right, ids.indexOf(view), page);
+    const tabs = ids.flatMap((id, i) => (row.cells[i] ? [{ id, r: row.cells[i]!, locked: locked(id), face: true }] : []));
+    return { tabs, row };
   }
 
   /** The hero tabs: the one on view gold and sunk, the picked one with a check, a locked one with a padlock (named

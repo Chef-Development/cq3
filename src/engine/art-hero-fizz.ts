@@ -67,14 +67,18 @@ const HEAD = [
   '........zzzz....',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 16 - swap[y].length) + swap[y] : r));
-const HEADS = {
+// (playtest round 8, L8, after the fresh-eyes review: two columns of hair out at the back, so the head is no wider than the shoulders and
+// the hero reads about three heads tall at 3x on the hero select; the face keeps its place)
+const narrowHeads = (heads: Record<string, string[]>): Record<string, string[]> =>
+  Object.fromEntries(Object.entries(heads).map(([k, rows]) => [k, rows.map((r) => r[0] + r.slice(3))]));
+const HEADS = narrowHeads({
   base: HEAD,
   squint: face(HEAD, { 5: 'SSSzzSSSzz', 8: 'SSSxWxz.' }),
   // knocked out: sooty all over, eyes crossed out, the cap's lens cracked
   ko: face(HEAD, { 1: 'LRkl.', 2: 'LkRl.', 5: 'mSSSSkSkSk', 6: 'SkSkSSSSS', 7: 'mSSSSSST', 8: 'SSSxSz.' }),
   // a wild grin: eyes wide, mouth open
   grin: face(HEAD, { 4: 'hShhhShhh', 5: 'SSSSkSSSk', 8: 'SxWWWWx.', 9: 'zSxxxSz.' }),
-};
+});
 
 // The lab coat (stained), the bandolier from her far shoulder to her near hip, a vial in each loop.
 const TORSO = [
@@ -116,7 +120,7 @@ export const FIZZ_RIG: Rig = {
   legsFeetX: LEG_FEET_X,
   torsoX: -7,
   torsoOverlap: 1,
-  headX: -2,
+  headX: 0,
   headOverlap: 1,
   shoulderNear: [4, 2],
   shoulderFar: [10, 2],
@@ -403,8 +407,8 @@ export function fizzPortrait(): HTMLCanvasElement {
   put(g, 29, 7, '#ffffff');
   // bright eyes (teal), a sooty smudge, a grin
   const eye: Pal = { k: INK_C, W: '#ffffff', i: '#1aa896', I: '#0e5a5a', w: '#e8dcd0' };
-  stamp(g, ['kkkk', 'kiIk', '.kk.'], eye, 23, 17);
-  stamp(g, ['kkk', 'kiI', '.kk'], eye, 30, 17);
+  stamp(g, ['kkkk', '.Ik.'], eye, 23, 17);
+  stamp(g, ['kkk', '.Ik'], eye, 30, 17);
   for (const [x, y] of [
     [24, 22],
     [25, 22],
@@ -412,6 +416,6 @@ export function fizzPortrait(): HTMLCanvasElement {
   ])
     put(g, x, y, '#a08070');
   put(g, 34, 23, P_SKIN[2]);
-  stamp(g, ['xxxxxx', 'xWWWWx', '.xxxx.'], { x: '#5a1a1a', W: '#fff4e8' }, 27, 25);
+  stamp(g, ['.....x', 'xxxxx.'], { x: '#5a1a1a' }, 27, 25);
   return toCanvas(g);
 }

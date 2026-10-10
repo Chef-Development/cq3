@@ -10,7 +10,7 @@ import { type HeroCardSpec, type Layer, LEG_FEET_X, matureLegs, type Rig, type R
 
 // ------------------------------------------------------------------ palette
 
-const SKIN = ['#6a4652', '#b48688', '#e0b8a8', '#f6d8c6', '#fff4ea'];
+const SKIN = ['#4a2e34', '#84564e', '#b07c66', '#d4a286', '#ecc6a6'];
 const BEARD = ['#2e2e3c', '#545466', '#80808e', '#aeaebc', '#dcdce6'];
 export const BRANN_SAFFRON = ['#6a2a0a', '#b45610', '#ea861c', '#ffb43c', '#ffe08a'];
 export const BRANN_MAROON = ['#240c16', '#481422', '#701e2c', '#943240', '#b85258'];
@@ -27,7 +27,7 @@ export const BRANN_PAL: Pal = {
   F: SKIN[3], f: SKIN[2], u: SKIN[1],
 };
 export const BRANN_SHADES: Record<string, Shade> = {
-  s: { ramp: SKIN, top: [4, 4], left: [4, 3], right: [1], bottom: [1], mid: 3 }, // the shaved head
+  s: { ramp: SKIN, top: [4, 3], left: [3], right: [1], bottom: [1], mid: 2 }, // the shaved head
   d: { ramp: BEARD, same: 'x', top: [3], left: [3], right: [1], bottom: [1], mid: 2 }, // the beard
   y: { ramp: BRANN_SAFFRON, same: 'qQ', top: [4, 3], left: [3], right: [1], bottom: [1], mid: 2 },
   m: { ramp: BRANN_MAROON, same: 'oO', top: [4], left: [3], right: [1], bottom: [0], mid: 2 },
@@ -40,28 +40,29 @@ export const BRANN_SHADES: Record<string, Shade> = {
 
 // The shaved head (lit from its own shape), bushy grey brows over calm, narrowed eyes, a grey beard.
 // (playtest round 8, L8, by hand: an old monk: a bald, lined crown, heavy white brows over one dark iris each, the
-// long white beard) 16 x 11.
+// long white beard. Second pass, after the fresh-eyes review: the head 12 x 10 (was 16 x 11, as wide as his
+// shoulders: a big pale ball at 3x), the skin weathered a step darker, the side of the face in shadow, an ear, a
+// cheekbone and the nose's tip catching the light.)
 const HEAD = [
-  '.....ssssss.....',
-  '...ssssssssss...',
-  '.sssssssEEEsEEs.',
-  '.ssssssSSbbbSbbb',
-  '.sssssSSSSkSSSkS',
-  '.sssssEzSSSSSSSS',
-  '..ssssEzSSSSSSST',
-  '..zssssSSdddSSdS',
-  '...zdddddddxdd..',
-  '....dddddddddd..',
-  '......dddddd....',
+  '...ssssss...',
+  '.ssssssssss.',
+  'sssssssssss.',
+  'sssssbbbSbbb',
+  'ssEzEEkSSEkS',
+  'ssEzESSTSSSS',
+  '.sszESSSSSzT',
+  '..zddSdddddd',
+  '...dddddxdd.',
+  '....ddddddd.',
 ];
-const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 16 - swap[y].length) + swap[y] : r));
+const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, r.length - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
   // eyes shut tight, teeth set
-  squint: face(HEAD, { 3: 'SbbbSSbbb', 4: 'SSSzzSSzz', 8: 'dddxWxdd.' }),
-  ko: face(HEAD, { 3: 'SSSSSSSSS', 4: 'SSSzzSSzz', 8: 'ddddxddd.' }),
+  squint: face(HEAD, { 3: 'bbbbSbbb', 4: 'EzzSSzzS', 8: 'ddxWxdd.' }),
+  ko: face(HEAD, { 3: 'SSSSSSS', 4: 'EzzSSzzS', 8: 'dddxdd.' }),
   // a shout: brows down, eyes wide open, mouth open in the beard
-  shout: face(HEAD, { 3: 'SSbbbSSbb', 4: 'SSSSkSSSkS', 8: 'dddxxxxd.', 9: 'ddxxddd..' }),
+  shout: face(HEAD, { 3: 'SbbbSbbb', 4: 'EEkSSEkS', 8: 'dxxxxd.', 9: 'dxxddd.' }),
 };
 
 // Broad shoulders: the saffron upper robe over the maroon, the prayer beads in a loop, a saffron sash.
@@ -103,7 +104,7 @@ export const BRANN_RIG: Rig = {
   legsFeetX: LEG_FEET_X,
   torsoX: -9,
   torsoOverlap: 1,
-  headX: 1,
+  headX: 5,
   headOverlap: 1,
   shoulderNear: [4, 3],
   shoulderFar: [13, 3],

@@ -112,7 +112,7 @@ function limb(x0: number, y0: number, x1: number, y1: number, ch: string, opts?:
 // ------------------------------------------------------------------ crow (glossy blue-black, hovering)
 
 // blue-black, hue-shifted: shadows lean purple, the gloss leans cyan
-const CROW = ['#100c20', '#1e1e3c', '#2e3460', '#42548a', '#6488bc', '#9ccce0'];
+const CROW = ['#100c20', '#22223e', '#343c66', '#4c5e92', '#7896c4', '#c8d8d0'];
 const CROW_PAL: Pal = {
   f: CROW[0], F: CROW[1], h: CROW[5], j: CROW[4],
   // a dark horn beak and feet (decision L8: no candy-yellow beak), a red eye that glows
@@ -123,9 +123,11 @@ const CROW_PAL: Pal = {
 };
 // a hooded crow (decision L8 / the first-10 review): an ash-grey mantle and belly so it holds its shape against the
 // dusk treeline, the head, wings and tail black-blue
-const CROW_GREY = ['#1a1828', '#363448', '#545266', '#76748a', '#9e9cb0', '#c8c6d4'];
+// (A2C-11, the brief: it still sank into the dusk treeline) the mantle and belly a step paler, and the wings' lit edge
+// catches the late sun, so the crow reads by value against the dark trees, not only by its rim
+const CROW_GREY = ['#262434', '#484658', '#6c6a7e', '#9492a6', '#bcbacb', '#e2e0ea'];
 const CROW_SHADES: Record<string, Shade> = {
-  b: { ramp: CROW_GREY, same: 'hjEekfF', top: [4, 4], left: [4], right: [2], bottom: [1, 2], mid: 3 },
+  b: { ramp: CROW_GREY, same: 'hjEekfF', top: [5, 4], left: [4], right: [2], bottom: [2, 3], mid: 4 },
   q: { ramp: CROW, same: 'hjEekfFb', top: [4, 3], left: [3], right: [1], bottom: [0, 1], mid: 2 }, // the black hood
   w: { ramp: CROW, same: 'fFhj', top: [4, 3], left: [3], right: [1], bottom: [1, 1], mid: 2 },
 };

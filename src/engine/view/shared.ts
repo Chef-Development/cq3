@@ -120,8 +120,6 @@ export interface EnemyView {
   knockUntil: number;
   kickAt: number; // anim time of the last hit (spring knockback + squash)
   kickDist: number;
-  numAt: number; // anim time of the last damage number (for cascading)
-  numLevel: number;
   lunge: { t0: number; dist: number; ms: number } | null;
   dieAt: number;
   phase: number;
@@ -167,7 +165,8 @@ export interface Floater {
   life: number;
   scale: number;
   pop: boolean;
-  count?: { to: number; dur: number; at?: number }; // a number that counts up from 0
+  count?: { to: number; dur: number; at?: number; steps?: number[] }; // a number that counts up from 0 (a step per blow)
+  plate?: { w: number; h: number }; // a dark plate behind it (a foe's shout)
   icon?: string; // HUD icon drawn in front of the text
   relic?: string; // or a relic's icon (a perk kicking in)
 }

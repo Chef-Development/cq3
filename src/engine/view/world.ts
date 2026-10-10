@@ -148,6 +148,8 @@ const CARD_TOP = 38;
 
 /** The act picker's rows: one per act, cleared ones to replay (farm), the next to go on with, later ones locked. */
 const PICK_ROW_H = 28;
+/** The revision's button at the picker's foot (a restored region's boss, redrawn). */
+const REVISION_H = 15;
 
 // clouds drifting east across the whole map (world space: they move with the map, like everything on it): most of
 // them along its north and south edges and over the sea, a few high over the north and the middle of the land, clear
@@ -707,7 +709,7 @@ export class WorldView {
     const app = this.s.app;
     const cleared = i < app.profile.actsCleared;
     const name = ALL_ACTS[i]?.name ?? '';
-    if (cleared) return { name, status: 'Replay (farm)', col: 0x9af06a };
+    if (cleared) return { name, status: 'Play again', col: 0x9af06a };
     return { name, status: app.profile.actsCleared > 0 ? 'Continue the story' : 'Begin the story', col: 0xffe680 };
   }
 
@@ -716,13 +718,25 @@ export class WorldView {
     return this.picker?.region ?? regionOfAct(this.actNow());
   }
 
-  /** The act picker's panel. */
+  /** The act picker's panel (with a strip at its foot for a restored region's revision). */
   private pickPanel(): Rect {
     const s = this.s;
     const w = Math.min(272, s.R - s.L - 8);
     const n = REGIONS[this.pickRegion()].acts.length;
-    const h = 14 + n * (PICK_ROW_H + 2) + 3;
-    return { x: Math.round((s.L + s.R) / 2 - w / 2), y: Math.max(24, Math.round((s.B - h) / 2) + 6), w, h };
+    const h = 14 + n * (PICK_ROW_H + 2) + 3 + (this.pickRemix() ? REVISION_H + 2 : 0);
+    return { x: Math.round((s.L + s.R) / 2 - w / 2), y: Math.max(22, Math.round((s.B - h) / 2) + 6), w, h };
+  }
+
+  /** The revision the picked region offers once it is restored (its boss redrawn, src/data/remixes.ts), or null. */
+  private pickRemix() {
+    return this.s.app.run.remixFor(this.pickRegion());
+  }
+
+  /** The revision's button, at the panel's foot under the acts. */
+  revisionButton(): Rect {
+    const p = this.pickPanel();
+    const n = REGIONS[this.pickRegion()].acts.length;
+    return { x: p.x + 6, y: p.y + 13 + n * (PICK_ROW_H + 2), w: p.w - 12, h: REVISION_H };
   }
 
   private pickRow(i: number): Rect {
@@ -824,6 +838,15 @@ export class WorldView {
       this.picker = null;
       app.audio.uiClick();
       s.camp.openProgress(r);
+      return;
+    }
+    if (this.pickRemix() && inRect(this.revisionButton(), x, y, 1)) {
+      // the Mapmaker's revision: the region's boss redrawn, fought from here like a skirmish
+      notePress(this.revisionButton());
+      app.audio.mapSelect();
+      this.picker = null;
+      this.sel = null;
+      app.setPhase(() => app.run.startRemix(r));
       return;
     }
     for (let i = 0; i < n; i++) {
@@ -2152,7 +2175,7 @@ export class WorldView {
 
   /**
    * The act picker: a navy panel popping in over the dimmed map, one row per act (staggered in): its number badge
-   * (a tick once cleared, a padlock while locked), its name and what playing it means ("Replay (farm)", "Continue the
+   * (a tick once cleared, a padlock while locked), its name and what playing it means ("Play again", "Continue the
    * story"), the gear level its drops have, its boss's signature drops in their rarity frames (a tick on the ones in
    * the bag), and Play.
    */
@@ -2264,9 +2287,9 @@ export class WorldView {
       // name, and what playing it means
       const tx = bx + 23;
       T.text(act.name, tx, r.y + 9, locked ? 0x8a84a0 : WHITE, { bold: true, oy: 0.5, alpha: a });
-      const status = cleared ? 'Replay (farm)' : next ? 'Continue the story' : `Clear Act ${gi} first`;
+      const status = cleared ? 'Play again' : next ? 'Continue the story' : `Clear Act ${gi} first`;
       T.text(status, tx, r.y + 20, cleared ? 0x9af06a : next ? 0xffe680 : 0x8a84a0, { oy: 0.5, alpha: a });
-      // the gear its drops have, and the boss's signature drops
+      // the gear its drops have, and the boss's own drops ("Boss drop": round 8's review found "signature" jargon)
       const mx = r.x + 134;
       const lo = itemLevel(run.tuning, gi, 0);
       const hi = itemLevel(run.tuning, gi, act.rows);
@@ -2292,7 +2315,7 @@ export class WorldView {
         }
       });
       if (sigs.length) {
-        T.text('signature', mx + sigs.length * 15 + 1, r.y + 19, locked ? 0x6a6480 : 0xffb060, { oy: 0.5, alpha: a });
+        T.text('Boss drop', mx + sigs.length * 15 + 1, r.y + 19, locked ? 0x6a6480 : 0xffb060, { oy: 0.5, alpha: a });
       }
       // Play
       if (!locked) {
@@ -2304,6 +2327,21 @@ export class WorldView {
         T.text('Play', b.x + b.w / 2, b.y + b.h / 2 + (pr ? 2 : 0), WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
       }
     });
+    // a restored region: its boss, redrawn (the Mapmaker's revision), at the foot; a tick once beaten
+    const rx = this.pickRemix();
+    if (rx) {
+      const ck = easeBack((since - 110 - REGIONS[region].acts.length * 70) / 240, 1.4);
+      if (ck > 0) {
+        const a = clamp01(ck * 1.5);
+        const b = this.revisionButton();
+        const pr = isPressed(b, now);
+        glow(g, b, 0xc04030, (0.18 + 0.18 * pulse(now, 1400)) * a, 2);
+        button3d(g, b, FACE.red, pr);
+        const y = b.y + b.h / 2 + (pr ? 2 : 0);
+        T.text(rx.name, b.x + b.w / 2, y, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
+        if (run.remixBeaten(rx.id)) glyph(g, 'check', b.x + b.w - 12, Math.round(y - 3), a);
+      }
+    }
   }
 
   /** A crisp dark plate: soft drop shadow, ink rim, a 1px light inner edge on top, a darker base. */

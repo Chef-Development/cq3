@@ -41,28 +41,30 @@ export const SOLENNE_SHADES: Record<string, Shade> = {
 // A cropped crop of silver-white hair swept back, a gold circlet over the brow with a sun-stone at the front, warm
 // brown skin, amber eyes under a level brow.
 // (playtest round 8, L8, by hand: white hair under the gold circlet, level brows over one dark iris each, a long
-// straight nose and a firm jaw: a knight, not a girl) 16 x 11.
+// straight nose and a firm jaw: a knight, not a girl)
 const HEAD = [
-  '....hh.hhhh.....',
-  '.hhhLLhhLhhhhh..',
-  'hhhhhHhhhHhhhhhh',
-  'hhhhhhgGGGGGoGGg',
-  'hhhHhzSSSHHSSSHH',
-  '.hhhzESSSSkSSSkS',
-  '.hhhzESSSSSSSSSS',
-  '..hzzzSSSSSSSSST',
-  '...zzSSSSSSSSzzS',
-  '...zzzSSSSSSxSz.',
-  '.....zzzSSSz....',
+  '..hh.hhhh.....',
+  'hhLLhhLhhhhh..',
+  'hhhHhhhHhhhhhh',
+  'hhhhgGGGGGoGGg',
+  'hHhzESSHHHSHHH',
+  '.hzESSSEkSSEkS',
+  '.hzEESSSTSSSSS',
+  '.zzEESSSSSSSzT',
+  '..zEESSSSSSSS.',
+  '..zzEESSSxxSz.',
+  '....zzEESSz...',
 ];
-const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 16 - swap[y].length) + swap[y] : r));
+// (second pass, after the fresh-eyes review: 14 wide, not 16; the side of the face in shadow, sockets under the
+// brows, a cheekbone and the nose's tip catching the light, the jaw shaded down to the chin)
+const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, r.length - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
   // a wince: eyes squeezed, teeth set
-  squint: face(HEAD, { 4: 'SSSSHHSSHH', 5: 'SSSSzSSSzS', 9: 'SSWWxSz.' }),
-  ko: face(HEAD, { 4: 'SSSSSSSSSS', 5: 'SSSSzSSSzS', 9: 'SSSxSSz.' }),
+  squint: face(HEAD, { 5: 'zzSSzzS', 9: 'SWWxSz.' }),
+  ko: face(HEAD, { 4: 'SSSSSSS', 5: 'zzSSzzS', 9: 'SSxSz.' }),
   // a battle cry: brows down, mouth open
-  cry: face(HEAD, { 4: 'SSHHHSHHH', 5: 'SSSSkSSSkS', 9: 'SSxxxSz.', 10: 'zSxxSSz...' }),
+  cry: face(HEAD, { 9: 'SxxxSz.', 10: 'zEExxz...' }),
 };
 
 // White enamel pauldrons with gold rims, a gold gorget, the breastplate with a gold sun on it, a gold belt, tassets.
@@ -107,7 +109,7 @@ export const SOLENNE_RIG: Rig = {
   legsFeetX: LEG_FEET_X,
   torsoX: -8,
   torsoOverlap: 1,
-  headX: 1,
+  headX: 3,
   headOverlap: 1,
   shoulderNear: [4, 3],
   shoulderFar: [12, 3],
@@ -365,10 +367,10 @@ export function solennePortrait(): HTMLCanvasElement {
   ])
     for (let x = x0; x <= x1; x++) put(g, x, 16, HAIR[1]);
   const eye: Pal = { k: '#140c1c', W: '#ffffff', e: '#d8801c', E: '#8a4a10', w: '#e8d8cc' };
-  stamp(g, ['kkkk', 'keEk', '.kk.'], eye, 23, 17);
-  stamp(g, ['kkk', 'keE', '.kk'], eye, 30, 17);
+  stamp(g, ['kkkk', '.Ek.'], eye, 23, 17);
+  stamp(g, ['kkk', '.Ek'], eye, 30, 17);
   put(g, 34, 23, SKIN[2]);
-  stamp(g, ['x...x', '.xxx.'], { x: '#5a1a1a' }, 28, 25);
+  stamp(g, ['xxxx'], { x: '#5a1a1a' }, 28, 26);
   put(g, 30, 27, SKIN[4]);
   // a glint of the blade's light on the cheek
   put(g, 32, 20, SKIN[4]);

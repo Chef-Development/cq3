@@ -14,6 +14,7 @@ import { hdFor, screenCovered } from './hd-text';
 import { FACE, isPressed, notePress, ribbon, RIBBON, TextPool } from './ui';
 import { bigLines } from '../../core/a11y';
 import { A11Y } from '../a11y';
+import { StoryStage } from './story-stage';
 
 /** The story text's width every box's lines fit (tests/unit/data.test.ts STORY_TEXT_W). */
 const STORY_TEXT_W = 256;
@@ -48,7 +49,11 @@ const LOOK = {
 } as const;
 
 export class StoryView {
+  /** The scene's dim behind everything (under the stage's cast), and the box, frame and pips over them. */
+  private gDim!: G;
   private g!: G;
+  /** Who speaks stands on the stage (view/story-stage.ts). */
+  private readonly stage: StoryStage;
   private portrait: Phaser.GameObjects.Image | null = null;
   private texts: TextPool;
   private key = '';
@@ -61,17 +66,28 @@ export class StoryView {
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, 32.5);
+    this.stage = new StoryStage(s);
   }
 
   /** New layout: the graphics and portrait image go with the old textures. */
   build(): void {
+    this.gDim?.destroy();
     this.g?.destroy();
     this.portrait?.destroy();
-    this.g = this.s.add.graphics().setDepth(32.2);
+    this.gDim = this.s.add.graphics().setDepth(32.2);
+    this.g = this.s.add.graphics().setDepth(32.25);
+    this.stage.build();
     this.portrait = this.s.add.image(0, 0, 'portrait_rowan').setOrigin(0.5, 1).setDepth(32.3).setVisible(false);
   }
 
+  /** The box's top edge and which end its portrait stands at (set as it draws; the Skip button sits by them). */
+  private edge: { x: number; y: number; w: number; portraitLeft: boolean } | null = null;
+
   private skipRect(): Rect {
+    // a scene in the middle of a fight (a boss's phase line): Skip rests on the box's top edge, at the end away from
+    // the portrait, never on the foe's plate (review round 8: it covered the boss's HP the moment it mattered)
+    const e = this.edge;
+    if (this.s.app.storyOverlay && e) return { x: e.portraitLeft ? e.x + e.w - 44 : e.x + 6, y: e.y - 11, w: 38, h: 14 };
     return { x: this.s.R - 44, y: 4, w: 38, h: 14 };
   }
 
@@ -102,11 +118,13 @@ export class StoryView {
     const s = this.s;
     const g = this.g;
     g.clear();
+    this.gDim.clear();
     this.texts.begin();
     const id = s.app.storyId;
     const box = this.box();
     if (!id || !box) {
       this.portrait?.setVisible(false);
+      this.stage.hide();
       this.sceneKey = '';
       this.texts.end();
       return;
@@ -133,11 +151,12 @@ export class StoryView {
     const lift = Math.round((1 - inK) * 60);
     // the world dims behind the scene (a mid-fight scene keeps the fight visible), darker toward the bottom
     const dimA = (s.app.storyOverlay ? 0.3 : 0.4) * clamp01((now - this.sceneAt) / 160);
-    g.fillStyle(INK, dimA);
-    g.fillRect(0, 0, s.R + s.L + 1000, s.B + 200);
+    const gd = this.gDim;
+    gd.fillStyle(INK, dimA);
+    gd.fillRect(0, 0, s.R + s.L + 1000, s.B + 200);
     for (let i = 0; i < 5; i++) {
-      g.fillStyle(INK, dimA * 0.35);
-      g.fillRect(0, s.B - 24 - i * 10, s.R + s.L + 1000, 24 + i * 10 + 200);
+      gd.fillStyle(INK, dimA * 0.35);
+      gd.fillRect(0, s.B - 24 - i * 10, s.R + s.L + 1000, 24 + i * 10 + 200);
     }
 
     // text box along the bottom (larger text: the bold letters; a box whose lines don't fit them is re-wrapped into
@@ -148,7 +167,10 @@ export class StoryView {
     const bw = W - 8;
     const bh = 38 + 11 * Math.max(0, lines.length - 2);
     const by = s.B - bh - 3 + lift;
+    // who speaks stands on the stage (over the dim, under the box)
+    this.stage.draw(now, id, s.app.storyBox, s.B - bh - 3);
     panel(g, { x: bx, y: by, w: bw, h: bh }, { trim: 'full' });
+    this.edge = { x: bx, y: by, w: bw, portraitLeft: LEFT.includes(box.who) };
 
     // portrait in a gold frame standing on the box; a new speaker slides in from their side
     const left = LEFT.includes(box.who);

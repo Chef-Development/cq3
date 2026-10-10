@@ -10,6 +10,22 @@ import { clamp01, INK, mix, WHITE, type Rect } from './shared';
 export const NAVY = [0x07060c, 0x0d0b16, 0x13101f, 0x191529, 0x211c34, 0x2e2746, 0x4a4166, 0x72698e] as const;
 /** Trim gold (L8: antique brass, not candy gold; reward text keeps its own 0xffe680). */
 export const GOLD = [0x4a2c10, 0x7e5018, 0xb47e2a, 0xd8aa4c, 0xf0d896] as const;
+
+/** L8 (docs/art-style.md section 0): a colour worn, as a material that has been used: `desat` of the way to its own
+ *  grey, then `k` of the way to the mood's deep cool ink. For the overlays' rarity faces, rays and blooms (candy
+ *  rarity colours read as plastic at full strength). */
+export function worn(c: number, k = 0.2, desat = 0.3): number {
+  const r = (c >> 16) & 255;
+  const gr = (c >> 8) & 255;
+  const b = c & 255;
+  const l = 0.299 * r + 0.587 * gr + 0.114 * b;
+  const ch = (v: number, ink: number) => Math.round((v + (l - v) * desat) * (1 - k) + ink * k);
+  return (ch(r, 0x16) << 16) | (ch(gr, 0x14) << 8) | ch(b, 0x26);
+}
+
+/** A face [hi, base, lo, deep] worn (worn()). */
+export const wornFace = <F extends readonly number[]>(f: F, k = 0.2, desat = 0.3): [number, number, number, number] =>
+  [worn(f[0], k, desat), worn(f[1], k, desat), worn(f[2], k, desat), worn(f[3], k, desat)];
 /** Gauge fills [hi, base, lo, deep]. */
 export const RAMP = {
   hp: [0xc8ff8a, 0x62d444, 0x2e9a34, 0x1a6a2a],
@@ -176,6 +192,9 @@ export interface GaugeOpts {
   glow?: number;
   ghostCol?: number;
   trough?: number;
+  /** A readout drawn over it, from x to x + w: no notch or end cap under it, and a dark inset behind it so its digits
+   *  read on any fill (review round 8: a notch through "92/102" read "92//102", the cap before "71/90" read "!71/90"). */
+  label?: { x: number; w: number };
 }
 
 /**
@@ -193,6 +212,8 @@ export function gauge(g: G, x: number, y: number, w: number, h: number, frac: nu
   const fw = Math.round(w * clamp01(frac));
   const gw = Math.round(w * clamp01(ghost));
   const at = (len: number) => (o.mirror ? x + w - len : x);
+  const lb = o.label;
+  const under = (px: number): boolean => !!lb && px >= lb.x - 1 && px <= lb.x + lb.w;
   if (gw > fw) {
     g.fillStyle(o.ghostCol ?? 0xfff2c8, 1);
     g.fillRect(o.mirror ? at(gw) : x + fw, y, gw - fw, h);
@@ -219,16 +240,25 @@ export function gauge(g: G, x: number, y: number, w: number, h: number, frac: nu
     g.fillStyle(deep, 0.6);
     for (let sx = o.seg; sx < w; sx += o.seg) {
       const px = o.mirror ? x + w - sx : x + sx;
-      if (px > fx && px < fx + fw - 1) g.fillRect(px, y + 2, 1, h - 3);
+      if (px > fx && px < fx + fw - 1 && !under(px)) g.fillRect(px, y + 2, 1, h - 3);
     }
   }
   // bright cap at the moving end
-  g.fillStyle(WHITE, 0.75);
-  g.fillRect(o.mirror ? fx : fx + fw - 1, y, 1, h - 1);
+  const capX = o.mirror ? fx : fx + fw - 1;
+  if (!under(capX)) {
+    g.fillStyle(WHITE, 0.75);
+    g.fillRect(capX, y, 1, h - 1);
+  }
   if (o.glow && o.glow > 0) {
     g.fillStyle(WHITE, 0.45 * clamp01(o.glow));
     g.fillRect(fx, y, fw, h);
   }
+  if (o.label) labelInset(g, o.label.x, y, o.label.w, h);
+}
+
+/** The dark inset behind a readout on a gauge (its digits read on any fill). */
+function labelInset(g: G, x: number, y: number, w: number, h: number): void {
+  rows(g, Math.round(x), y, Math.round(w), h, 1, INK, 0.72);
 }
 
 /** A soft rectangular glow (stacked translucent rounded rects) around r. */

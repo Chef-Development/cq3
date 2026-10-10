@@ -913,6 +913,23 @@ S18. **The third editor's notes (round 8, 46 items): applied, with two calls of 
     is already earned in saves). Not ours, passed to the lead: Tess and Brann both unlock Crampons at mastery 5.
     US spelling throughout ("gray", "travelers").
 
+S19. **Story scenes are staged from their speakers** (`view/story-stage.ts`; the fresh-eyes review's "one still
+    picture"). Every hero who has spoken so far stands on the stage in their fight idle frames (anchored at the feet
+    like the fight view), stepping in the first time they speak; the speaker is lit (full colour and a warm pool at the
+    feet), the others a step darker, everyone even while a voice off the stage speaks. The hero fighting already stands
+    there (fighters.ts): the stage lays a lit copy over them and over the companions (`Fighters.heroImage`). Others
+    face the party from the right; with a foe on stage (a boss's scene mid-fight, or a boss speaker shown in its fight
+    sprite on the right, found by its name in the enemies' data) they line up facing the foes. Companions and the other
+    voices (narrator, the Mapmaker, Hesper, Mags) keep their portraits only. A chest hero's arrival (`HEROES[id].meetScene`)
+    shows the open hero chest lit in their rarity colour, and they rise out of its light and hop to their spot; a story
+    hero's join (`JOINS`: sableJoin, neveJoin) steps them in. Over the camp, only a join or an arrival is staged, in a
+    pool of light on a deeper dim (the camp's own scenes already show their speakers). No staging data, no new art,
+    drawn from `now` and when the scene and boxes began. Props from the text (a sleeping farmer, the lamp) are not done.
+S20. **Map and menu words from the reviews.** Node tags name the node (Fight, Elite, Coin Rush; not Gear, Gear+, Rush);
+    the act picker says "Play again" and "Boss drop" (not "Replay (farm)", "signature"); the shrine's sheet is
+    "Guaranteed" (not "Pity"); a potion at full HP says "At full HP"; the skill tree's "Next point: Lv N"; a companion's
+    sheet opens on its kind alone ("Sky whale. Tides." read like a note).
+
 (story: end of section)
 
 
@@ -1111,6 +1128,20 @@ A2B-13. **Map walkers 18 px tall** (the chest heroes' walkers in `art-hero-map.t
     to two more leg rows, so they stand about three heads tall like the fight frames, with the mature grade. The act
     map and the title anchor a walker at its feet from its own height (two rows up from the bottom), so walkers of any
     height share the ground line.
+
+A2B-14. **Heads no wider than the shoulders** (fresh-eyes review, F10: Brann ~2 heads at 3x, flat faces): the hero
+    select magnifies the fight frames 3x, so a head as wide as its torso reads chibi there however tall the body is.
+    Brann's head redrawn 12 x 10 (was 16 x 11) in weathered skin with an ear and a shaded face; Solenne and Yara
+    14 wide with the side plane of the face in shadow, sockets under the brows, a lit cheekbone and nose tip and a
+    shaded jaw; Rowan's helm a row and a column smaller (12 x 10, the plume a px shorter: the title, the hero select
+    and the fight show the same mature Rowan); Tam, Wren, Fizz and Dell lose two columns at the back of the head
+    (`narrowHeads`, every face variant narrowed alike; Dell's brim a px in at each end). Rule of thumb for a new
+    hero: head width <= torso width, a face with at least two skin tones.
+A2B-15. **Companions never outshine the hero** (review: Pip the brightest thing on every stage): Pip's frames (fight,
+    camp, maps, title) in a night teal with small amber eyes and a grey-cream belly; the other companions' frames
+    take `moodGrade` (art-companions.ts: a step below the heroes' `gradeGrid`, value and saturation down; their glow
+    passes and the bar's perk effects untouched, they are feedback). Flying companions hover 3 px lower (party.ts
+    `FLY_Y`). Pip's story portrait is 2A's (not changed here).
 A20. **The sharper text: where the fine layer went and where it didn't** (the chest reveal's 2x layer rolled out to
     what the player reads most; judged from side-by-side phone shots, 874x402 @3x, each crop at device pixels).
     *How:* a `TextPool` a surface hands the fine layer (`pool.hd`, view/hd-text.ts) draws each text it can on one DOM
@@ -1135,6 +1166,58 @@ A20. **The sharper text: where the fine layer went and where it didn't** (the ch
     bits a channel so a pulsing colour reuses a few images); painting went to a pixel buffer (a fillRect a pixel
     cost ~10 ms a story line on the loaded test machine, now a few). The chest reveal's lettering is unchanged
     (its defaults; its summary snapshot passes).
+
+A2C-6. **The act maps under the mood** (L7; `art-mood.ts` `MAP_MOOD`, `gradeMap`): each landscape of regions 1-3 takes
+    its stage's kind of grade, a little lighter (a map is read, not watched), with the roads and clearings graded only
+    part way so the route stays a lit thread. The light is accents: lanterns on posts beside the roads of the meadow,
+    the hollow and the pass (placed along the trails, never near a node's clearing, a label, the HUD or another
+    lantern; `land.lamps`, flickering in the view), the meadow's farmhouse lit inside with its light pooled round it.
+    The nodes, tags, roamers and lairs are drawn over the land at full value, so they pop more than before.
+A2C-7. **The slimes, second pass** (the very first foe): no brows or scowl; a gaping maw low at the front (teeth top
+    and bottom, a strand of slime across it, the gullet's sickly glow, drool hanging off the lip), two lidded eyes
+    glowing yellow-green high on the dome, a murky jelly with a ragged sickly light deep inside round what it swallowed
+    (a bone, a skull in the big one, seen as a shadow in the glow). The slimelet keeps a small maw.
+A2C-8. **The Boar King rebuilt, with a look per phase**: a great hunched hump under a tall mane, the head carried low
+    on a long snout (worked out on a shifted canvas so it reaches past the old frame edge), both tusks. Phase 2
+    (`boarking2_*`): hackles fully up, the eye white-hot, fresh wounds on the shoulder, steam at the snout. Phase 3
+    (`boarking3_*`): darker fur, the mane's tips smouldering, the crown cracked and a point broken off, the old scars
+    glowing, foam at the jaw. The three looks share one crop (`fitGroup`), so the swap at a phase change never jumps.
+A2C-9. **Readable at dusk** (the first-10 team's review): the crow is a hooded crow (an ash-grey mantle and belly, the
+    head, wings and tail black-blue), so it holds against the dusk treeline; every Act 1 foe checked at phone size on
+    the new stage (the boar and bandit hold by the gold rim and the bandit's glowing eyes). Region 2's rime imp
+    (darker, cold glowing eyes, a wide fanged maw, its scarf a frozen crimson), aurora wisp (its core a little skull
+    of cold light) and frost knight (a crown of ice spikes, a dark frozen-crimson tabard) get the same edge.
+
+A2C-10. **Act 3's planes apart** (review 2: "one red wash"): the red sky band is kept; the far hills, the far grove
+    and the valley mist haze toward a cool dusky violet (`#3c2c56`, it was the sky's red), the near grove a step darker
+    with some of its autumn warmth, the ground and road a calm cool plum with half the leaf litter and none by the feet
+    line; the hollow's grade leans plum-indigo (`MOOD.hollow`), its mist banks and air are violet and its rays fade
+    before the ground strip. Planes now read far-cool / near-warm-dark / ground-calm, and the actors' orange rim and the
+    bar's reds stand apart.
+A2C-11. **The crow, second pass** (the brief: it still sank into the treeline): the hooded crow's ash-grey mantle and
+    belly a step paler and the wing ramp's lit edge brighter, so it reads by value against the dark trees, not only by
+    its rim. Every Act 1 foe checked on the stage at phone size: the slime (lit green, glowing eyes), the boar (gold rim
+    on the mane), the bandit (purple, glowing eyes) and the crow hold.
+A2C-12. **Act 1's map at dusk, finished** (review 1's top finding, on a build from before A2C-6): `MAP_MOOD.forest`
+    darker and cooler (the lime gone), the meadow's vignette as deep as the ruins' with the low sun's last gold top left
+    and blue dusk in the far corner, the wildflowers fewer and muted (bright saturated colours escape the grade as
+    lights, so the petals themselves were candy), the Bandit Captain's tent a weathered war tent in dark hide and
+    oxblood (it was red and lilac: a circus tent). Act 2's and Act 3's maps were already under the mood.
+A2C-13. **Map markers**: an elite's skull has red-glowing sockets (like the red skull on its tag and the red ring under
+    it) and sits on the foe's shoulder instead of floating beside it; the boss's name keeps 6 px from the right edge (a
+    rounded corner). Not done: the tags' words ("Gear") and when tags show (QA / STORY), the hint's contrast (FIRST10).
+A2C-14. **The map minis as they fight** (review 1): the slimes with two glowing eyes and one fanged maw, a hooded crow
+    (black hood, red eye, horn beak, ash-grey mantle, swept black wings), and every Greenmarch mini in its fight
+    sprite's darker palette (A2C-7..9).
+A2C-15. **The yeti cub rebuilt** (review 2: "a smiling snowball", the most chibi foe): hunched, a shaggy hump of
+    shoulders with the head carried low and forward under a heavy brow ridge, small eyes glinting in its shadow, a dark
+    muzzle with two short tusks, a long arm hanging to its knuckles; frost-grey in the body with the moonlight on the
+    hump. Still a cub (it is small), no longer a toy.
+A2C-16. **Bellows ember-rimmed** (review 2: grey plates on a dark forge): he joins the dark Ashfell foes that take the
+    region's light from below (`UPLIT`, `emberRim`: ember on the lower edges, a cool lift on the top edges), in all
+    three phase looks.
+A2C-17. **The glacier's far hoard sits back** (review 2: a gold shape at foe height read as an actor): hazed into the
+    blue, its glow and glints cut down; a dull far gold, not a lit shape.
 
 (art: end of section)
 
@@ -1244,6 +1327,24 @@ C-ART-8. **Region 5's music** (six pieces, each its own key, tempo and meter; ne
     wind, sand hissing, cicadas), `spire` (wind whistling round the towers, chains, a far hammer), `dial` (the dial's
     hum, a clock ticking, far rumbles). Not cued yet: app.ts cues the music by act and boss and the beds in
     `ACT_AMBIENCE` (12-14) when the region joins.
+C15. **New Game+ starts with one revision, done whole** (backlog 4): once a region is restored its boss comes back
+    redrawn with one more phase that brings a later region's bar rule, from the foot of that region's act picker, fought
+    like a skirmish at the numbers of the furthest act reached (so it stays a challenge), for gems and a hero chest the
+    first time and Rare-or-better gear every time. The Boar King first (in the dark); Glacia and Bellows follow the
+    same data shape. A bot guard checks it is a step up from the boss's own first fight and the masher never wins it.
+    The design and numbers are in the content bible (§9, spoilers).
+C16. **Tess's and Vesper's gaps in the fourth region aren't a rule meeting their kit** (100-run diagnostics): without
+    Tess's Stopwatch her numbers barely move, without Slow Time they drop, and without Vesper's Volley pin they halve;
+    their kits work there, the region just gives them less (Tess's soft strengths are fire and construct; Vesper keeps
+    the reds a finisher would clear, in the region with the most reds in water). Left for a hero-numbers pass.
+
+C17. **The fifth region joins the campaign** (its art and music landed): `NOON_ON` is on (`CQ3_REGION5=0` leaves it
+    out for a balance tool), its music and beds are cued (acts 12-14, the sphinx, the brass lion, the Gnomon phased),
+    the region card's tab is "Noon", and its Test lab items are the in-play set (each act's foes, mini-boss or boss with
+    nothing hurting, its maps, its story and an event; the early looks reworked, rev 1). Its numbers stay as the first
+    pass set them: a 75% Rowan from a typical end-of-Duskmire hero clears it on target (three 30-run samples pooled,
+    `tests/unit/bot-region5.test.ts`), and the masher loses its Act 3 and its boss (`bot-masher.test.ts`, its row came
+    free). Nothing else assumed four regions (the fast unit tests all passed with it on).
 
 (content: end of section)
 
@@ -1353,6 +1454,25 @@ C-ART-8. **Region 5's music** (six pieces, each its own key, tempo and meter; ne
   region packs (`loadChestHd`); `ChestOpening.view` reads 'old' in the moment before it's in and `__cq3.ready` waits
   for it, so the reveal and the tests behave as before. The chest-hd spec's side-by-side screenshot fails on the run
   branch's own code too (the old reveal's sparkles land elsewhere: a stale baseline for the lead to regenerate).
+- **Q17 An event's outcome shows each change where it lands**: a chip per change (HP, max HP, coins, Attack, Companion
+  Power) under the outcome's text, each with its number rising off it (`view/nodes.ts`; the chips are tall enough
+  for the heart icon).
+- **Q18 Fight text gets lanes** (review 2's top findings; `view/num-lanes.ts`, pure, unit-tested). Every damage number
+  and short word over the stage (`fx.num`, which `floatNum` now is) takes the free box nearest where it wants to be
+  (up first, then aside, then down) that no live number, shout or finisher name holds and the HUD keeps (`hud.keepOut()`:
+  the plates, the act plate and wave pips, the relic belt, the name lane, the combo counter; nothing floats above
+  y 30); numbers rise 10 px at a steady pace instead of the old arc, so the box they hold is known. A finisher's blows
+  are summed into one number above the foes' heads (what each foe really took, from the batch's enemyHurt events),
+  counting up a step per foe hit with a swell each (no more "36?367"). A foe's special name (`fx.shout`) gets its
+  own box on a dark plate, clear of the plates and pips and of other shouts (aside first), numbers already there fade
+  out and none enter it while it's up; a foe's new shout replaces its last. The finisher's name is bold 2 (1 when
+  over 200 px), pale gold, the stacks a small "x3" tag after it, over the foes and under the plates; the name lane
+  holds its perk names while it's up. The judgement word steps right of the combo counter; "Combo 25!" stamps above
+  the counter, not on it.
+- **Q19 HP readouts read**: the gauge skips its notches and end cap under the readout and puts a dark inset behind it
+  (`GaugeOpts.label`); a foe plate keeps one format the whole fight, chosen by its max HP (`foeHpText`: "71/90", or
+  both halves in thousands, "7.7k/12.3k"). In a scene during a fight (a boss's phase line) Skip rests on the dialogue
+  box's top edge at the end away from the portrait, never on the foe's plate.
 (qa: end of section)
 
 
