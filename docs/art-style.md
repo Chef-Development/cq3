@@ -123,7 +123,7 @@ Everything animates from `now` and seeds (screenshots stay exact). Minimum frame
 
 | What | Minimum | Notes |
 | --- | --- | --- |
-| Hero (fight) | 12 poses: idle0, idle1, windup, slashA, slashB, dash, leap, parry, hurt, cast, down, fin | Idle breath 2 frames at 420-450 ms; the target is 4 (breath + secondary motion: cape, hair, plume). |
+| Hero (fight) | 14 poses: idle0-3, windup, slashA, slashB, dash, leap, parry, hurt, cast, down, fin | The idle is 4 frames at 300 ms: the body breathes 0-1-1-0 and the secondary piece (cape, hair, plume, scarf, a held thing) follows a frame behind. Squash and stretch by transform on a dash, a cut, a blow taken and a landing. |
 | Foe | idle0, idle1, windup (the tell), attack, hurt, flash (white silhouette, generated) | A special's telegraph holds its windup 0.6-1.0 s. Bosses: a look per phase. |
 | Companion | idle0, idle1, act | Fliers flap on idle; walkers breathe. |
 | Map walker | idle0, idle1, walk0, walk1 | |
