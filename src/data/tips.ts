@@ -130,8 +130,8 @@ export interface TipDef {
   fight?: 'pre' | 'pause';
   /** A basic (it was in the game before relics, skills and heroes): a returning player has it marked seen. */
   basic?: boolean;
-  /** The card sits at the top of the screen, its hint tab up top too (a stop whose reward and buttons fill the
-   *  middle: the bounty board). */
+  /** The card sits at the top of the screen (a stop whose words and buttons fill the middle: the bounty board, an
+   *  event), over its title. */
   top?: boolean;
   /** A hero's how-to: shown before their first fight (pre-fight), only when they're the one fighting. */
   hero?: HeroId;
@@ -237,7 +237,7 @@ export const TIPS: readonly TipDef[] = [
   { id: 'sparkle', lines: ['A stray coin is glinting!', 'Tap it to pick it up.'], anchor: 'sparkle', wins: QUIET_WINS },
   { id: 'shop', lines: ['Spend coins on relics and potions.', 'Unspent coins are kept.'], anchor: 'none', basic: true },
   { id: 'rest', lines: ['The campfire heals you.', 'Rest before the fights ahead.'], anchor: 'none', basic: true },
-  { id: 'event', lines: ['Pick one! Some cost coins,', 'some are a gamble.'], anchor: 'none', basic: true },
+  { id: 'event', lines: ['Pick one! Some cost coins,', 'some are a gamble.'], anchor: 'none', basic: true, top: true },
   { id: 'bounty', lines: ['Finish this bounty for its reward.', 'The map keeps count, top right.'], anchor: 'none', top: true },
   { id: 'merchant', lines: ['A traveling trader: rare relics,', 'a bit cheaper than a shop.'], anchor: 'none' },
   { id: 'levelUp', lines: ['Level up! You got a skill point.', 'Spend it in Skills at camp.'], anchor: 'skillsButton', wins: QUIET_WINS },

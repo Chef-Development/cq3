@@ -391,9 +391,9 @@ export class CampView {
     const z = kit.hudZone();
     const coins = kit.purseRects(this.s.R - 3, 4, true).coins;
     const gemW = Math.max(28, textWidth(whole(kit.gemsShown), 1, true) + 18);
-    const right = coins.x - 3 - gemW - 4;
+    const right = coins.x - 3 - gemW - 3;
     const x = z.x + z.w + 3;
-    const w = textWidth('Edits', 1, true) + pixSize('rune')[0] + 14;
+    const w = textWidth('Edits', 1, true) + pixSize('rune')[0] + 11;
     return x + w <= right ? { x, y: 5, w, h: 15, label: true } : { x, y: 5, w: pixSize('rune')[0] + 8, h: 15, label: false };
   }
 

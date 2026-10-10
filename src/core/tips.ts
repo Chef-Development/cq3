@@ -393,7 +393,9 @@ export class TipCoach {
       case 'event':
         return ph === 'event' && !!run.event && run.event.outcome < 0 ? { id } : null;
       case 'relicPick': {
-        const i = ph === 'boost' ? run.boostChoices.findIndex(isRelicOffer) : -1;
+        // (not over a new player's first pick: its two plain cards say what they do, and the card would hide the
+        // second one; the tip comes with the next pick, where tags and rarity show)
+        const i = ph === 'boost' && !run.simplePick ? run.boostChoices.findIndex(isRelicOffer) : -1;
         return i >= 0 ? { id, card: i } : null;
       }
       case 'synergy': {

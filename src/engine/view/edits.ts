@@ -3,10 +3,10 @@
 // study's stage behind; down the left, one iron-and-ink plate per Edit (an empty socket round its glyph, or an
 // oxblood wax seal stamped with it once drawn in), its name and what it does; a tap draws it in or rubs it out. The
 // focal on the right is the ledger: a big seal with how many are drawn in, what the next act pays for them (more XP,
-// gems the first time an act is cleared under each) and the seals won so far. Off by default; they stay on (every
+// gems the first time an act is cleared under each) and how many acts have been cleared under Edits. Off by default; they stay on (every
 // act started) until rubbed out.
 import type Phaser from 'phaser';
-import { ALL_ACTS, REGIONS } from '../../data/regions';
+import { REGIONS } from '../../data/regions';
 import { EDITS, type EditDef, type EditId } from '../../data/edits';
 import { pct, whole } from '../../core/format';
 import { ATLAS_THEME, ensureRegionArt } from '../art-region-map';
@@ -22,6 +22,8 @@ type G = Phaser.GameObjects.Graphics;
 /** Oxblood wax and ink (L8: deep and a little dry, not candy red). */
 const OXBLOOD: Face = [0xc88070, 0x8a3430, 0x642428, 0x3a1218];
 const INK_RED = 0xb04634;
+/** An unbroken seal: plain iron (no Edit drawn in). */
+const IRON: Face = [0x9a94a6, 0x5e5868, 0x46404e, 0x2a2632];
 
 export class EditsScreen {
   /** It paints its own stage (no dim over the camp). */
@@ -106,7 +108,7 @@ export class EditsScreen {
     // the title, short enough to stay clear of the top bar's middle (the gear button)
     const z = kit.hudZone();
     const tx = kit.backRect().x + kit.backRect().w + 4;
-    const fits = (t: string) => tx + textWidth(t, 1, true) + 26 < z.x - 2;
+    const fits = (t: string) => tx + textWidth(t, 1, true) + 22 <= z.x - 2; // (the ribbon runs to tx + its text + 20)
     const title = ["The Mapmaker's Edits", "Mapmaker's Edits"].find(fits) ?? 'Edits';
     kit.title(g, title, tx, 4, OXBLOOD);
     EDITS.forEach((e, i) => this.drawRow(g, e, i, now));
@@ -159,7 +161,7 @@ export class EditsScreen {
     }
   }
 
-  /** The ledger: how many are drawn in (a big seal), what the next act pays, the seals won so far. */
+  /** The ledger: how many are drawn in (a big seal), what the next act pays, the acts cleared under Edits. */
   private drawPane(g: G, now: number): void {
     const kit = this.kit;
     const T = kit.texts;
@@ -182,7 +184,10 @@ export class EditsScreen {
       waxSeal(g, cx, sy, rad, OXBLOOD, a);
       T.text(whole(on.length), cx, sy, 0xffe8dc, { bold: true, ox: 0.5, oy: 0.5, alpha: a });
     } else {
-      socket(g, cx, sy, 12, now, a, 0x8a7a6a);
+      // nothing drawn in: the act's seal unbroken, in plain iron (not a missing picture)
+      waxSeal(g, cx, sy, 12, IRON, 0.85 * a);
+      const [rw, rh] = pixSize('rune');
+      pix(g, 'rune', Math.round(cx - rw / 2), Math.round(sy - rh / 2), 0.7 * a);
     }
     let y = sy + 20;
     const lines = (s: string) => {
@@ -207,15 +212,17 @@ export class EditsScreen {
     } else {
       lines('As drawn. Tap an Edit: harder acts pay more.');
     }
-    // the foot: the seals won (one per Edit an act was cleared under)
-    const seals = Object.values(p.edits.cleared).reduce((n, ids) => n + ids.length, 0);
+    // the foot, once there is one: how many acts have been cleared under Edits
+    const acts = Object.values(p.edits.cleared).filter((ids) => ids.length > 0).length;
+    if (!acts) return;
     const fy = r.y + r.h - 8;
     g.fillStyle(0x000000, 0.3 * a);
     g.fillRect(r.x + 4, fy - 6, r.w - 8, 1);
-    const txt = `${whole(seals)}/${whole(ALL_ACTS.length * EDITS.length)}`;
-    const lw = textWidth('Seals', 1, false);
-    const x0 = Math.round(cx - (lw + 4 + textWidth(txt, 1, true)) / 2);
-    T.text('Seals', x0, fy, DIM_TXT, { oy: 0.5, alpha: a });
-    T.text(txt, x0 + lw + 4, fy, seals ? GOLD_TXT : DIM_TXT, { bold: true, oy: 0.5, alpha: a });
+    const label = 'Edited clears';
+    const n = whole(acts);
+    const lw = textWidth(label, 1, false);
+    const x0 = Math.round(cx - (lw + 4 + textWidth(n, 1, true)) / 2);
+    T.text(label, x0, fy, DIM_TXT, { oy: 0.5, alpha: a });
+    T.text(n, x0 + lw + 4, fy, GOLD_TXT, { bold: true, oy: 0.5, alpha: a });
   }
 }
