@@ -1366,7 +1366,7 @@ const TROLL_PAL: Pal = {
   S: '#ffffff', s: '#dfeaf6', // snow on the shovel
 };
 const TROLL_SHADES: Record<string, Shade> = {
-  N: { ramp: ['#5a1e2a', '#a03a40', '#d8605a', '#f48a78', '#ffbca8'], top: [4], left: [4], right: [2], bottom: [1], mid: 3 }, // the big red nose
+  N: { ramp: ['#1e1428', '#3a2440', '#5a3a58', '#7a5470', '#9a7088'], top: [4], left: [4], right: [2], bottom: [1], mid: 3 }, // the big nose, frostbitten (decision L8: no clown-red)
   a: { ramp: SHAG, top: [5], left: [4], right: [2], bottom: [2], mid: 3 }, // arms
   A: { ramp: SHAG, top: [3], left: [3], right: [1], bottom: [1], mid: 2 }, // far arm
   l: { ramp: TSKIN, top: [4], left: [3], right: [1], bottom: [1], mid: 2 }, // legs and feet
