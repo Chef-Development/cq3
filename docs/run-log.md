@@ -59,3 +59,6 @@ One PR at the end supersedes #1-#7.
 - 19:55 EDT: relaunched as seven teams (art split into 2A world map/title/portraits and 2B animation/lighting; a
   dusk-art helper for Region 4's art and music), fresh instances told to recover their predecessor's uncommitted work.
   New rules against overload: one Playwright run at a time (flock), balance runs through a lock, vitest maxWorkers=2.
+- 20:01 EDT: playtester note on the new title: "too simplistic and drained. How am I supposed to be interested?" Sent
+  to art 2A as top priority (before the Atlas): key art with drama and depth (light, parallax, Rowan on a ledge, the
+  living land against the erased blank), motion, a logo with presence, no tutorial strip on the title.
