@@ -202,3 +202,8 @@ One PR at the end supersedes #1-#7.
   them; the first-visit glide shorter and on its own clock). Boot-checked, targeted tests green, pushed. Last chunks
   (03:45): dusk-art (the dummy's cross, every speaker's name tab, the late camp's crowding), 2A (the region-won
   victory, the empty loot screen).
+- 02:43 EDT: merged dusk-art's last chunk (the dummy's chest a bullseye, not a red cross; every speaker's name tab an
+  ink plate with brass; the late camp less crowded) and content's (C18: Tess's Rewind clears the reds on their way
+  like other finishers, Tess's and Vesper's finishers break a foe's wall; CORE `kits.tess.rewindClear` reviewed: Tess
+  now within +/-10 of Rowan in Regions 1-3 and up in Region 5; Act 11 still ~-30 for Tess and Vesper). Boot-checked,
+  kit tests green, pushed. Content's last chunk (03:45): Act 11 for those two kits. Dusk-art done for the night.
