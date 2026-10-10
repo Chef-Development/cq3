@@ -1006,10 +1006,18 @@ The story team's ids above; still to write (one-line placeholders in `src/data/s
 `brassLion` (the mini-bosses' intros). The phase scenes' hints ("everything blazes white", "the stones shimmer") match
 the rules as built.
 
+### Gear (`src/data/gear-noon.ts`, data only, not merged; checked by `noonspire-data.test.ts`)
+Bases: Dial Spear, Sunsteel Saber, Spire Hammer (weapons); Veil Hood, Brass Visor (helms); Dust Mail, Sunplate (armor);
+Dune Striders, Stair Treads (boots); Noon Pearl, Haze Glass (trinkets). Set: **Wayfarer's** (Sun Hat, Linen Robe,
+Sandals, Water Skin): 2-piece +20% damage on blazing blocks; 4-piece a green cools the Heat and heals 2% HP. Signature
+Legendaries (the Gnomon): **Sunstone** (trinket, *Cool Head*: the Heat burns half as fast), **Gnomon's Hand** (weapon,
+*True Hour*: a mirage hit right after its hop deals x3; needs a hop time on the block at wiring). Merging: as for
+Duskmire's (the ids into gear.ts's unions, the effects in combat.ts with `tuning.effects` sliders).
+
 ### Still to design and build (next chunks)
 Relics (Mirage and Heat tags; ideas: hits on a mirage just after it hops crit; a ghost spot struck before the hop
 counts; Heat cools faster; blazing hits fill more meter; a green cools and heals; epic: Heat never burns, but blazing
-hits deal x1.2 only), gear (a set: 2-piece +20% on blazing yellows; signatures from the Gnomon), music (six pieces,
+hits deal x1.2 only), music (six pieces,
 unlike Regions 1-4: e.g. a desert 7/8 in D Hijaz, a brass fanfare 6/8 for the spire steps, a ticking clock-work
 ostinato for the dial), art (sprites, portraits, backdrops: `art-noon.ts`, `backdrop-noon.ts`), telegraph sounds
 (`NOON_NEW_SOUNDS`), and balance (a little harder than Lanternfen: Act 1 ~80%, Act 2 ~65%, Act 3 ~50%, the Gnomon's
