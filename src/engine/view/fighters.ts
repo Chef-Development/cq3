@@ -80,7 +80,7 @@ const HERO_ALT: Record<string, string> = { slashX: 'slashB', fang: 'slashA', dow
 const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally', 'spiritWolf', 'wispSwarm', 'spiritStag']);
 /** Allies whose perk is a blow or a heal: the bolt starts at the ally (not the hero). */
 const ALLY_PERK = new Set(['thornling', 'glowmoth', 'seedling', 'spiritWolf', 'spiritStag']);
-/** Until the fourth region's foes are painted (art-dusk*.ts), each fights in an earlier foe's sprite set (its poses,
+/** Until a later region's foes are painted (art-dusk*.ts, art-noon*.ts), each fights in an earlier foe's sprite set (its poses,
  *  flash and phase looks), so a fight never shows a missing texture. Used only while `${key}_idle0` doesn't exist. */
 const SPRITE_STAND_IN: Record<string, string> = {
   bogwisp: 'aurorawisp',
@@ -98,9 +98,25 @@ const SPRITE_STAND_IN: Record<string, string> = {
   boghag: 'hailcaller',
   sunkensentinel: 'chainsentinel',
   lighthouse: 'bellows',
+  // the fifth region's, until its art (art-noon*.ts): only the Test lab's previews meet them before it's in play
+  duneskink: 'cinderling',
+  glarehawk: 'cinderkite',
+  dunebandit: 'bandit',
+  dunecolossus: 'golem',
+  sphinx: 'rimehorn',
+  emberscarab: 'beetle',
+  brasssentry: 'frostknight',
+  sandsalamander: 'magmaeel',
+  sunforgedgolem: 'kilnwarden',
+  brasslion: 'hobnob',
+  dialwarden: 'knight',
+  heatdjinn: 'icewraith',
+  sunvulture: 'crow',
+  noonknight: 'chainsentinel',
+  gnomon: 'glacia',
 };
 /** Perks that heal (their amount is HP; any relic tagged Sustain does too). */
-const HEAL_PERKS = new Set(['photosynthesis', 'vampiricFang', 'glowmoth', 'mend', 'rimewalker', 'emberwright', 'lamplighter', 'sanctuary', 'hotCocoa']);
+const HEAL_PERKS = new Set(['photosynthesis', 'vampiricFang', 'glowmoth', 'mend', 'rimewalker', 'emberwright', 'lamplighter', 'wayfarer', 'sanctuary', 'hotCocoa']);
 
 export class Fighters {
   h: HeroAnim;

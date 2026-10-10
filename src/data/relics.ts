@@ -5,9 +5,11 @@
 
 import { ASH_PAIR_NAME, ASH_RELICS, type AshRelicId } from './relics-ash';
 import { DUSK_PAIR_NAME, DUSK_RELICS, type DuskRelicId } from './relics-dusk';
+import { NOON_ON } from './flags';
+import { NOON_PAIR_NAME, NOON_RELICS, type NoonRelicId } from './relics-noon';
 
-export type RelicTag = 'bomb' | 'crit' | 'block' | 'combo' | 'finisher' | 'green' | 'pip' | 'sustain' | 'coins' | 'risk' | 'ice' | 'hold' | 'drift' | 'link' | 'light' | 'tide';
-export const RELIC_TAGS: RelicTag[] = ['bomb', 'crit', 'block', 'combo', 'finisher', 'green', 'pip', 'sustain', 'coins', 'risk', 'ice', 'hold', 'drift', 'link', 'light', 'tide'];
+export type RelicTag = 'bomb' | 'crit' | 'block' | 'combo' | 'finisher' | 'green' | 'pip' | 'sustain' | 'coins' | 'risk' | 'ice' | 'hold' | 'drift' | 'link' | 'light' | 'tide' | 'mirage' | 'heat';
+export const RELIC_TAGS: RelicTag[] = ['bomb', 'crit', 'block', 'combo', 'finisher', 'green', 'pip', 'sustain', 'coins', 'risk', 'ice', 'hold', 'drift', 'link', 'light', 'tide', ...(NOON_ON ? (['mirage', 'heat'] as const) : [])];
 export const TAG_NAME: Record<RelicTag, string> = {
   bomb: 'Bomb',
   crit: 'Crit',
@@ -25,6 +27,8 @@ export const TAG_NAME: Record<RelicTag, string> = {
   link: 'Link',
   light: 'Light',
   tide: 'Tide',
+  mirage: 'Mirage',
+  heat: 'Heat',
 };
 
 export type RelicRarity = 'common' | 'rare' | 'epic';
@@ -93,7 +97,9 @@ export type RelicId =
   // the third region's (src/data/relics-ash.ts)
   | AshRelicId
   // the fourth region's (src/data/relics-dusk.ts)
-  | DuskRelicId;
+  | DuskRelicId
+  // the fifth region's (src/data/relics-noon.ts; in RELICS once it is in play)
+  | NoonRelicId;
 
 export interface RelicDef {
   id: RelicId;
@@ -184,6 +190,8 @@ export const RELICS: RelicDef[] = [
 RELICS.push(...(ASH_RELICS as RelicDef[]));
 // the fourth region's relics (offered from its first act on)
 RELICS.push(...(DUSK_RELICS as RelicDef[]));
+// the fifth region's, once it is in play (src/data/flags.ts)
+if (NOON_ON) RELICS.push(...(NOON_RELICS as RelicDef[]));
 
 export const RELIC_IDS: RelicId[] = RELICS.map((r) => r.id);
 export const relicById = (id: string): RelicDef | undefined => RELICS.find((r) => r.id === id);
@@ -207,6 +215,8 @@ export const BUILD_NAME: Record<RelicTag, string> = {
   link: 'Chainsmith',
   light: 'Lamplighter',
   tide: 'Tidewalker',
+  mirage: 'Wayfinder',
+  heat: 'Sunborn',
 };
 
 /** Two-tag builds (either order). */
@@ -238,4 +248,5 @@ export const PAIR_NAME: Array<[RelicTag, RelicTag, string]> = [
   ['hold', 'finisher', 'Slow Burn'],
   ...(ASH_PAIR_NAME as Array<[RelicTag, RelicTag, string]>),
   ...(DUSK_PAIR_NAME as Array<[RelicTag, RelicTag, string]>),
+  ...(NOON_PAIR_NAME as Array<[RelicTag, RelicTag, string]>),
 ];

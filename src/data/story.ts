@@ -7,6 +7,9 @@
 import type { Speaker, StoryBox } from './types';
 import { ASH_STORY } from './story-ash';
 import { DUSK_STORY } from './story-dusk';
+import { NOON_ON } from './flags';
+import { NOON_STORY } from './story-noon';
+import { NOON_MINI_STORY } from './story-noon-minis';
 
 export const SPEAKER_NAME: Record<Speaker, string> = {
   narrator: '',
@@ -330,6 +333,8 @@ export const STORY: Record<string, StoryBox[]> = {
 Object.assign(STORY, ASH_STORY);
 // the fourth region's scenes (src/data/story-dusk.ts)
 Object.assign(STORY, DUSK_STORY);
+// the fifth region's, once it is in play (a scene in STORY lets the camp's lines that wait for it show)
+if (NOON_ON) Object.assign(STORY, NOON_STORY, NOON_MINI_STORY);
 
 // ---- Gorm and Tess (Part 6): their first chest reveals
 Object.assign(STORY, {

@@ -4,11 +4,14 @@
 
 import { ASHFELL } from './ashfell';
 import { DUSKMIRE } from './duskmire';
+import { NOON_ON } from './flags';
+import { NOONSPIRE } from './noonspire';
 import { FROSTPEAKS } from './frostpeaks';
 import { GREENMARCH } from './greenmarch';
 import type { ActDef, RegionDef } from './types';
 
-export const REGIONS: RegionDef[] = [GREENMARCH, FROSTPEAKS, ASHFELL, DUSKMIRE];
+/** (Region 5 joins once its art exists: src/data/flags.ts NOON_ON; the balance tools can switch it on.) */
+export const REGIONS: RegionDef[] = [GREENMARCH, FROSTPEAKS, ASHFELL, DUSKMIRE, ...(NOON_ON ? [NOONSPIRE] : [])];
 
 /** Every playable act, in order (index = the global act number). */
 export const ALL_ACTS: ActDef[] = REGIONS.flatMap((r) => r.acts);

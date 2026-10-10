@@ -86,7 +86,8 @@ describe('region data', () => {
           if (a.type === 'summon') for (const k of a.enemies) expect(ENEMIES[k], `${key}.${s.id} summons ${k}`).toBeDefined();
           if (a.type === 'split') expect(ENEMIES[a.into], `${key}.${s.id} splits into ${a.into}`).toBeDefined();
         }
-      for (const id of Object.values(e.phaseScenes ?? {})) expect(STORY[id], id).toBeDefined();
+      // (a region not in play yet keeps its scenes out of STORY: src/data/flags.ts)
+      for (const id of Object.values(e.phaseScenes ?? {})) expect(STORY[id] ?? NOON_STORY[id], id).toBeDefined();
     }
   });
 

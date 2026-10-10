@@ -7,6 +7,7 @@ import { HEROES } from '../../data/heroes';
 import { COMPANIONS } from '../../data/companions';
 import { STYLES } from '../../data/styles';
 import { AURAS, SETS } from '../../data/gear';
+import { NOON_SETS } from '../../data/gear-noon';
 import { relicById, TAG_NAME, type RelicId, type RelicRarity, type RelicTag } from '../../data/relics';
 import { skillById } from '../../data/skills';
 import { relicText, sharedTags } from '../../core/relics';
@@ -42,6 +43,8 @@ export const TAG_FACE: Record<RelicTag, Face> = {
   link: [0xe8e0f0, 0xa89ab8, 0x6a5e7a, 0x342c40],
   light: [0xfff4c0, 0xf6d860, 0xc89a2a, 0x5e4410],
   tide: [0xc0f0ec, 0x4ab8c0, 0x2a7a8a, 0x123c4a],
+  mirage: [0xf8ecd0, 0xd8c08a, 0xa08a5a, 0x4e4028],
+  heat: [0xffe0a0, 0xf8a838, 0xc8601a, 0x6a2a0a],
 };
 
 /** The rarity look of a card: face [hi, base, lo, deep] and its tag (common has none). */
@@ -69,6 +72,8 @@ const TAG_GLYPH: Record<RelicTag, string[]> = {
   link: ['##...', '#.#..', '.###.', '..#.#', '...##'],
   light: ['..#..', '.###.', '##.##', '.###.', '..#..'],
   tide: ['.....', '.#..#', '#.##.', '.....', '#####'],
+  mirage: ['.#.#.', '#.#.#', '.....', '.#.#.', '#.#.#'],
+  heat: ['..#..', '.#.#.', '.#.#.', '#.#.#', '.###.'],
 };
 
 const at = (rows5: string[], x: number, y: number) => rows5[y]?.[x] === '#';
@@ -389,6 +394,7 @@ const KIT_NAME: Record<string, string> = {
   rimewalker: SETS.rimewalker.name,
   emberwright: SETS.emberwright.name,
   lamplighter: SETS.lamplighter.name,
+  wayfarer: NOON_SETS.wayfarer.name,
   sanctuary: AURAS.sanctuary.name,
   // ---- Yara (Part 6) and her spirits
   spiritWolf: 'Spirit Wolf',

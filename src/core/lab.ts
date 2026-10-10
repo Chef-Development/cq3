@@ -40,7 +40,7 @@ export function labBaseProfile(): Profile {
   p.tipsOff = true;
   p.worldTour = true;
   // (and the later regions' camp tales: they'd play over any lab screen that opens the camp's view, fights too)
-  p.seen = [...REGIONS.slice(1).map((r) => unveilKey(r.id)), ...REGIONS.map((r) => restoreKey(r.id)), ...HERO_IDS.map(revealKey), 'magsTale', 'duskCamp'];
+  p.seen = [...REGIONS.slice(1).map((r) => unveilKey(r.id)), ...REGIONS.map((r) => restoreKey(r.id)), ...HERO_IDS.map(revealKey), 'magsTale', 'duskCamp', 'noonCamp'];
   p.smithMet = true;
   p.sableMet = true;
   p.heroes.sable.unlocked = true;

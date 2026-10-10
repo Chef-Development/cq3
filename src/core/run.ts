@@ -11,6 +11,7 @@
 
 import { eventById } from '../data/events';
 import { CAMPAIGN, REGIONS, actInRegion, lastActOfRegion, regionOfAct } from '../data/regions';
+import { STORY } from '../data/story';
 import { questById, type QuestId } from '../data/quests';
 import type { ActDef, BarRules, EventOutcome, RegionDef } from '../data/types';
 import { HEROES, type HeroId } from '../data/heroes';
@@ -526,6 +527,8 @@ export class Run {
     if (this.profile.actsCleared >= 4 && !this.profile.neveMet) return 'neveJoin';
     if (this.profile.actsCleared >= 7 && !this.profile.seen.includes('magsTale')) return 'magsTale';
     if (this.profile.actsCleared >= 10 && !this.profile.seen.includes('duskCamp')) return 'duskCamp';
+    // (the fifth region's, once it is in play: its scene is in STORY then)
+    if (this.profile.actsCleared >= 13 && STORY.noonCamp && !this.profile.seen.includes('noonCamp')) return 'noonCamp';
     return null;
   }
 
@@ -535,6 +538,7 @@ export class Run {
     else if (!this.profile.neveMet) meetNeve(this.profile);
     else if (!this.profile.seen.includes('magsTale')) this.profile.seen.push('magsTale');
     else if (!this.profile.seen.includes('duskCamp')) this.profile.seen.push('duskCamp');
+    else if (STORY.noonCamp && !this.profile.seen.includes('noonCamp')) this.profile.seen.push('noonCamp');
   }
 
   /** The act's live-tuned enemy scaling. */
