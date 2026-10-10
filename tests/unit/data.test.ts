@@ -184,6 +184,13 @@ describe('story', () => {
     }
   });
 
+  it("keeps the Mapmaker's and the High Keeper's voices: no contractions (docs/story-bible.md, Voices)", () => {
+    const all = { ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY };
+    for (const [id, boxes] of Object.entries(all)) {
+      for (const b of boxes) if (b.who === 'mapmaker' || b.who === 'keeper') expect(b.text, `${id}: ${b.text}`).not.toMatch(/\b(it|that|he|she|there|what|who|here|let)'s\b|n't\b|'(re|ll|ve|d|m)\b/i); // a possessive is fine
+    }
+  });
+
   it('keeps the old story out: no pendulum, no weights to bring home', () => {
     for (const [id, boxes] of Object.entries(STORY)) {
       for (const b of boxes) expect(b.text, id).not.toMatch(/pendulum|(first|second|third|next|\d+) weights?\b|weights? home/i);
