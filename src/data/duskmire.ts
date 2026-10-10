@@ -9,13 +9,12 @@
 
 import type { RegionDef, Theme } from './types';
 
-/** Region 4's act looks (a lantern-lit fen, a drowned causeway, a black mere under a stuck sunset). They aren't in
- *  the `Theme` union yet (the engine's backdrops, stage lights, map kits, lairs and critters are records over every
- *  theme): until their art exists each act stands in an earlier look (`DUSK_STAND_IN`). */
+/** Region 4's act looks (a lantern-lit fen, a drowned causeway, a black mere under a stuck sunset), in the `Theme`
+ *  union with their art (backdrop-dusk.ts, the stage lights, map kits, lairs and critters). */
 export type DuskTheme = 'fen' | 'causeway' | 'mere';
 export const DUSK_THEMES: DuskTheme[] = ['fen', 'causeway', 'mere'];
-/** The earlier look each act borrows until its own is painted. */
-export const DUSK_STAND_IN: Record<DuskTheme, Theme> = { fen: 'hollow', causeway: 'caves', mere: 'glass' };
+/** The look each act shows: its own, now that it's painted (it borrowed an earlier one until then). */
+export const DUSK_STAND_IN: Record<DuskTheme, Theme> = { fen: 'fen', causeway: 'causeway', mere: 'mere' };
 const look = (t: DuskTheme): Theme => DUSK_STAND_IN[t];
 
 /** The global number of Region 4's first act once it's wired in. */

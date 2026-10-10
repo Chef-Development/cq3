@@ -917,7 +917,7 @@ function lairForge(): Lair {
   };
 }
 
-const LAIRS: Record<Theme, () => Lair> = { forest: lairCamp, ruins: lairGate, hollow: lairDen, pass: lairToll, caves: lairWeb, glacier: lairHoard, cinder: lairRoadworks, glass: lairKennel, forge: lairForge };
+const LAIRS: Record<Theme, () => Lair> = { forest: lairCamp, ruins: lairGate, hollow: lairDen, pass: lairToll, caves: lairWeb, glacier: lairHoard, cinder: lairRoadworks, glass: lairKennel, forge: lairForge, fen: () => lairMudhole(), causeway: () => lairSluice(), mere: () => lairLighthouse() };
 /** Each theme's lair spots (filled when buildMapArt builds the `maplair_${theme}` textures). */
 export const LAIR_SPOTS: Partial<Record<Theme, { flames: Pt[]; glows: Pt[]; glow?: [number, number] }>> = {};
 
@@ -2692,7 +2692,288 @@ function decorForge(c: Ctx): void {
   });
 }
 
-const KITS: Record<Theme, () => Kit> = { forest: forestKit, ruins: ruinsKit, hollow: hollowKit, pass: passKit, caves: cavesKit, glacier: glacierKit, cinder: cinderKit, glass: glassKit, forge: forgeKit };
+// ------------------------------------------------------------------ the Duskmire (Region 4): the fen, the causeway, the mere
+// Lanternfen: mossy peat under a violet dusk, black pools between, boardwalks of old planks for roads, willows, reed
+// clumps, stilt huts and lantern poles (their light pools on the map). The Drowned Causeway: tidal flats, wide shallow
+// water with sandbars, the roads the causeway's stone flags. The Gloaming Mere: dark shingle round a black lake, dead
+// snags and rocks, a shingle path. Lairs: Old Bellybog's mudhole full of lanterns, the sluice gate, the lighthouse.
+
+type DuskMap = 'fen' | 'causeway' | 'mere';
+const isDuskMap = (t: Theme): t is DuskMap => t === 'fen' || t === 'causeway' || t === 'mere';
+const DGROUND: Record<DuskMap, Ramp> = {
+  fen: ramp('#1c2226', '#232c2c', '#2b362e', '#354232', '#424e36', '#525a3a', '#646a42'),
+  causeway: ramp('#26283a', '#2e3044', '#383a4e', '#44445a', '#525066', '#625e74', '#746e84'),
+  mere: ramp('#1a1622', '#221c2a', '#2a2232', '#342a3c', '#403446', '#4e4052', '#5e4e60'),
+};
+const DWATER = ramp('#0c0c1a', '#121424', '#1a1c30', '#24243e', '#30304e', '#423e62');
+const DPLANK = ramp('#1e1418', '#2c1e1e', '#3e2a24', '#523828', '#684830', '#7e5a3a');
+const DSTONE = ramp('#24202e', '#2e2a3a', '#3a3446', '#484054', '#585064', '#6a6076');
+const DLEAF = ramp('#0e1414', '#141e1a', '#1c2a20', '#263626', '#30422a', '#3e5030');
+const DREED = ramp('#1a2420', '#26342a', '#344430', '#465636', '#5c683e');
+const DLAMP = col('#ffcc52');
+
+/** The ground: the theme's land, black water where the fen pools, the flats flood or the mere spreads (it marks c.water). */
+function groundDusk(p: Pix, c: Ctx, theme: DuskMap): void {
+  const g = DGROUND[theme];
+  for (let y = 0; y < c.H; y++)
+    for (let x = 0; x < c.W; x++) {
+      const n = fbm(x * 0.03, y * 0.045, c.seed + 11);
+      // where the water lies: fen pools in the hollows, the flats' long shallows, the mere's open water on one side
+      const wet = theme === 'fen' ? n > 0.63 : theme === 'causeway' ? n + Math.sin(y * 0.09 + x * 0.01) * 0.06 > 0.56 : n * 0.6 + (x / c.W) * 0.55 + Math.sin(y * 0.05) * 0.05 > 0.78;
+      const i = y * c.W + x;
+      if (wet) {
+        c.water[i] = 1;
+        const depth = clamp01((n - 0.56) * 4);
+        let k = pick(DWATER, 0.55 - depth * 0.35 + (noise(x * 0.08, y * 0.5, c.seed) - 0.5) * 0.2, x, y, 0.3);
+        // the dusk sky caught in the water in broken strokes
+        if (noise(x * 0.12, y * 1.1, c.seed + 4) > 0.8) k = mix(k, col('#a85a7a'), 0.3);
+        p.set(x, y, k);
+        continue;
+      }
+      let v = 0.48 + (fbm(x * 0.05, y * 0.07, c.seed) - 0.5) * 0.7 + (sun(c, x, y) - 0.5) * 0.3;
+      // the banks rise dark round the water
+      if (n > (theme === 'fen' ? 0.6 : theme === 'causeway' ? 0.53 : 0.5) && theme !== 'mere') v -= 0.18;
+      if (theme === 'fen' && hash(x, y, c.seed + 2) > 0.995) p.set(x, y, col('#7a6a40')); // a dry reed stalk
+      else p.set(x, y, pick(g, v, x, y, 0.3));
+    }
+}
+
+/** The roads: boardwalk planks over the fen, the causeway's stone flags, a shingle path round the mere. */
+function roadsDusk(p: Pix, c: Ctx, theme: DuskMap): void {
+  const R = c.road;
+  const W = c.W;
+  paintRoads(
+    p,
+    c,
+    (x, y, clr) => {
+      const up = y > 0 && !R[(y - 1) * W + x];
+      const down = y < c.H - 1 && !R[(y + 1) * W + x];
+      const lit = (sun(c, x, y) - 0.5) * 0.2;
+      if (theme === 'fen') {
+        // planks across the walk, a dark seam every third row, a board missing here and there
+        if (y % 3 === 0) return up ? DPLANK[0] : DPLANK[1];
+        if (!clr && hash(Math.floor(x / 5), Math.floor(y / 3), 31) > 0.95) return DWATER[1];
+        return pick(DPLANK, 0.55 + hash(Math.floor(x / 6), Math.floor(y / 3), 33) * 0.25 + (y % 3 === 1 ? 0.12 : 0) - (up ? 0.3 : 0) + lit, x, y);
+      }
+      if (theme === 'causeway') {
+        const row = Math.floor(y / 3);
+        const off = (row % 2) * 3;
+        if ((x + off) % 6 === 0 || y % 3 === 0) return up ? DSTONE[0] : DSTONE[1];
+        return pick(DSTONE, 0.5 + hash(Math.floor((x + off) / 6), row, 37) * 0.3 + (y % 3 === 1 ? 0.12 : 0) - (up ? 0.25 : 0) + lit, x, y);
+      }
+      let v = (clr ? 0.6 : 0.54) + (noise(x * 0.5, y * 0.5, 39) - 0.5) * 0.3 + lit;
+      if (up) v -= 0.3;
+      else if (down) v += 0.14;
+      if (hash(x, y, 41) > 0.9) v += 0.2; // a pale pebble
+      return pick(DSTONE, v, x, y, 0.2);
+    },
+    (k) => mix(k, col('#140c1c'), 0.3),
+  );
+}
+
+/** A willow: a dark drooping crown, fronds hanging off it. */
+function willowDeco(seed: number, rx: number, ry: number): Deco {
+  const W = Math.ceil(rx * 2.4) + 4;
+  const H = Math.ceil(ry * 2.6) + 6;
+  const p = new Pix(W, H, -1);
+  const cx = W / 2;
+  const cy = ry + 2;
+  const foot = H - 2;
+  for (let y = Math.floor(cy); y <= foot; y++) {
+    p.set(Math.floor(cx) - 1, y, DPLANK[2]);
+    p.set(Math.floor(cx), y, DPLANK[1]);
+  }
+  mass(p, crown(rng(seed), cx, cy, rx, ry, Math.max(2, rx * 0.45)), { ramp: DLEAF, seed, bump: 0.2, tex: 0.25, vgrad: 0.3, shadow: 0.2 });
+  const r = rng(seed + 1);
+  for (let i = 0; i < rx * 1.6; i++) {
+    const x = Math.round(cx - rx + r() * rx * 2);
+    const len = 2 + Math.floor(r() * ry * 1.2);
+    for (let k = 0; k < len; k++) if (p.get(x, Math.round(cy + ry * 0.5 + k)) < 0) p.set(x, Math.round(cy + ry * 0.5 + k), DLEAF[k < len / 2 ? 3 : 2]);
+  }
+  return deco(p, Math.floor(cx), foot, rx * 0.9, foot - cy, { sway: true, split: 0.4, shadow: [rx * 0.8, 1.5] });
+}
+
+/** A clump of reeds with a cattail or two. */
+function reedsDeco(seed: number, hgt: number): Deco {
+  const p = new Pix(8, hgt + 2, -1);
+  const r = rng(seed);
+  for (let i = 0; i < 5; i++) {
+    const x = 1 + Math.floor(r() * 6);
+    const h = Math.round(hgt * (0.5 + r() * 0.5));
+    for (let k = 0; k < h; k++) p.set(x, hgt + 1 - k, DREED[Math.min(4, 1 + Math.floor((k / h) * 4))]);
+    if (r() < 0.4) {
+      p.set(x, hgt + 2 - h, col('#5a2c1c'));
+      p.set(x, hgt + 3 - h, col('#3a1a16'));
+    }
+  }
+  return deco(p, 4, hgt + 1, 2, 2, { sway: true, split: 0.5, line: false });
+}
+
+/** A lantern on a pole: its light pools round it on the map and pulses. */
+function lampPoleDeco(dir: number): Deco {
+  const p = new Pix(8, 15, -1);
+  for (let y = 2; y <= 13; y++) p.set(3, y, DPLANK[y < 4 ? 4 : 2]);
+  p.set(3 + dir, 2, DPLANK[3]);
+  const lx = 3 + dir * 2;
+  stampPix(p, ['.k.', 'XZX', 'xXx', '.k.'], { k: DPLANK[0], X: DLAMP, Z: col('#fff4c4'), x: col('#f09428') }, lx - 1, 2);
+  const d = deco(p, 3, 13, 2, 6, { shadow: [2, 1] });
+  d.glow = 0xffa850;
+  return d;
+}
+
+/** A stilt hut: a little thatched house on poles, a window lit. */
+function stiltHutDeco(seed: number, lit: boolean): Deco {
+  const p = new Pix(14, 16, -1);
+  const roof = ramp('#2a1c22', '#3e2a2c', '#5a3e36', '#76543e');
+  for (const x of [3, 7, 10]) for (let y = 10; y <= 14; y++) p.set(x, y, DPLANK[x === 3 ? 3 : 1]);
+  for (let y = 6; y <= 10; y++) for (let x = 2; x <= 11; x++) p.set(x, y, pick(DPLANK, x < 5 ? 0.75 : x < 11 ? 0.5 : 0.25, x, y));
+  for (let y = 1; y <= 5; y++) {
+    const hw = 1 + (y - 1) * 1.4;
+    for (let x = Math.round(6.5 - hw); x <= Math.round(6.5 + hw); x++) p.set(x, y, pick(roof, x < 7 ? 0.8 - y * 0.05 : 0.35, x, y));
+  }
+  p.set(5, 8, lit ? DLAMP : DPLANK[0]);
+  p.set(6, 8, lit ? col('#f09428') : DPLANK[0]);
+  const d = deco(p, 7, 14, 5, 7, { shadow: [5, 1.2] });
+  if (lit) d.glow = 0xff9a40;
+  void seed;
+  return d;
+}
+
+/** A dead snag standing out of the ground: a bare grey trunk, a broken limb. */
+function snagDeco(seed: number, hgt: number): Deco {
+  const p = new Pix(9, hgt + 3, -1);
+  const r = rng(seed);
+  const wood = ramp('#1e1a24', '#2e2834', '#443a48', '#5a4e5c', '#706274');
+  for (let k = 0; k < hgt; k++) {
+    const x = 4 + Math.round(Math.sin(k * 0.4 + seed) * 0.7);
+    p.set(x, hgt + 1 - k, wood[2]);
+    p.set(x - 1, hgt + 1 - k, wood[k > hgt * 0.7 ? 2 : 3]);
+  }
+  const by = Math.round(hgt * (0.4 + r() * 0.2));
+  for (let k = 1; k < 4; k++) p.set(4 + k, hgt + 1 - by - k, wood[3]);
+  return deco(p, 4, hgt + 1, 1.5, hgt * 0.4, { shadow: [2, 1] });
+}
+
+function duskKit(theme: DuskMap): Kit {
+  const stone = ramp('#2a2434', '#3a3244', '#4c4256', '#605468');
+  const moss = ramp('#2a3628', '#3a4a2e', '#4e5e36');
+  const big: Deco[] =
+    theme === 'fen'
+      ? [willowDeco(1301, 5, 4), willowDeco(1302, 6, 4.5), willowDeco(1303, 4, 3.4), stiltHutDeco(1304, true), stiltHutDeco(1305, false), lampPoleDeco(1)]
+      : theme === 'causeway'
+        ? [stiltHutDeco(1311, true), stiltHutDeco(1312, false), lampPoleDeco(-1), snagDeco(1313, 10), willowDeco(1314, 4, 3.2)]
+        : [snagDeco(1321, 12), snagDeco(1322, 9), snagDeco(1323, 14), lampPoleDeco(1)];
+  const mid: Deco[] = [
+    reedsDeco(1331, 7),
+    reedsDeco(1332, 9),
+    boulder(1333, 3, 2.4, stone, theme === 'mere' ? stone : moss, col('#000000')),
+    bush(1334, 2.8, DLEAF),
+    ...(theme === 'mere' ? [boulder(1335, 4, 3, stone, stone, col('#000000'))] : [reedsDeco(1336, 6)]),
+  ];
+  const small: Deco[] = [];
+  for (let i = 0; i < 4; i++) small.push(tuftDeco(1340 + i, 2 + (i % 2), DREED));
+  return { big, mid, small, extra: { sign: [signDeco()] } };
+}
+
+function decorDusk(c: Ctx, theme: DuskMap): void {
+  const k = kit(theme);
+  const clump = (x: number, y: number) => fbm(x * 0.04, y * 0.05, c.seed + 9) > 0.55;
+  scatter(c, k, {
+    big: (x, y) => Math.max(edgy(c, x, y) * 0.7, clump(x, y) ? (theme === 'mere' ? 0.3 : 0.55) : 0.08),
+    mid: (x, y) => (clump(x, y) ? 0.45 : 0.25),
+    small: () => 0.3,
+    step: 6,
+  });
+}
+
+/** The Duskmire's light: the dusk's rose on the top left, violet shade in the far corner, the edges sinking into it. */
+function duskLight(p: Pix, c: Ctx, theme: DuskMap): void {
+  const { W, H } = c;
+  const edge = theme === 'fen' ? col('#120a1e') : theme === 'causeway' ? col('#0c0c22') : col('#160818');
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const e = clamp01(1 - Math.min(x / 18, (W - 1 - x) / 18, y / 13, (H - 1 - y) / 13));
+      let k = p.get(x, y);
+      if (e > 0 && e * e > bay(x, y) * 0.9) k = mix(k, edge, e * 0.5);
+      const s = sun(c, x, y);
+      if (s > 0.62 && (s - 0.62) * 3 > bay(x, y)) k = lighten(k, col('#e890a8'), 0.06);
+      if (s < 0.4 && (0.4 - s) * 3 > bay(x, y)) k = mix(k, col('#2a1440'), 0.16);
+      k = mix(k, theme === 'mere' ? col('#3a1430') : col('#24164a'), 0.07);
+      p.set(x, y, k);
+    }
+}
+
+/** Act 10's lair: Old Bellybog's mudhole, a hump of mud stuck full of swallowed-and-spat lanterns, a lily pad on top. */
+function lairMudhole(): Lair {
+  const W = 46;
+  const H = 34;
+  const p = new Pix(W, H, -1);
+  const cx = 23;
+  const base = H - 3;
+  const mud = ramp('#16101a', '#221820', '#302226', '#3e2e2c', '#4e3c32', '#604a3a');
+  for (let y = 8; y <= base; y++)
+    for (let x = 2; x < W - 2; x++) {
+      const dx = (x + 0.5 - cx) / 20;
+      const dy = (y + 0.5 - base) / 22;
+      if (dx * dx + dy * dy > 1 + (noise(x * 0.4, y * 0.4, 7) - 0.5) * 0.2) continue;
+      p.set(x, y, pick(mud, 0.3 + 0.55 * lambert(dx, dy) + (noise(x * 0.5, y * 0.5, 9) - 0.5) * 0.15, x, y));
+    }
+  // a lily pad on top and the lanterns stuck in the mud, still glowing
+  for (let x = cx - 5; x <= cx + 5; x++) for (let y = 8; y <= 9; y++) p.set(x, y, y === 8 ? col('#5a683a') : col('#36442a'));
+  const lamps: Pt[] = [
+    [cx - 11, base - 8],
+    [cx + 8, base - 11],
+    [cx - 2, base - 16],
+    [cx + 13, base - 5],
+  ];
+  for (const [x, y] of lamps) stampPix(p, ['k', 'X', 'x'], { k: mud[0], X: DLAMP, x: col('#f09428') }, x, y);
+  outline(p);
+  return { canvas: p.canvas(), flames: [], glows: lamps.map(([x, y]): Pt => [x - W / 2, y + 1 - H]), glow: [0xffa040, 0xfff0c0] };
+}
+
+/** Act 11's lair: the Sluice Keeper's gate, two stone piers, a timber gate, the winding wheel, water spilling under. */
+function lairSluice(): Lair {
+  const W = 44;
+  const H = 38;
+  const p = new Pix(W, H, -1);
+  const base = H - 3;
+  for (const px of [6, 31])
+    for (let y = 6; y <= base; y++)
+      for (let x = px; x < px + 7; x++) p.set(x, y, (y - 6) % 5 === 0 ? DSTONE[1] : pick(DSTONE, x < px + 2 ? 0.8 : x < px + 6 ? 0.5 : 0.2, x, y));
+  for (let y = 12; y <= base - 6; y++) for (let x = 13; x < 31; x++) p.set(x, y, (x - 13) % 4 === 0 ? DPLANK[1] : pick(DPLANK, y === 12 ? 0.85 : 0.5, x, y));
+  // the winding wheel on the beam across the top
+  for (let x = 6; x < 38; x++) for (let y = 3; y <= 5; y++) p.set(x, y, y === 3 ? DPLANK[5] : DPLANK[2]);
+  for (let a = 0; a < 16; a++) p.set(Math.round(22 + Math.cos((a / 16) * 6.28) * 3), Math.round(1 + Math.sin((a / 16) * 6.28) * 3), DSTONE[5]);
+  // water spilling white under the gate
+  for (let x = 13; x < 31; x++) for (let y = base - 5; y <= base; y++) p.set(x, y, y === base - 5 || (x + y) % 3 === 0 ? col('#c4e0e4') : col('#4e7a84'));
+  outline(p);
+  return { canvas: p.canvas(), flames: [], glows: [[22 - W / 2, 1 - H]], glow: [0x9ad0e0, 0xe0f8ff] };
+}
+
+/** Act 12's lair: the Gloaming Lighthouse, wading on its stone legs, the sun shut in its lamp. */
+function lairLighthouse(): Lair {
+  const W = 30;
+  const H = 50;
+  const p = new Pix(W, H, -1);
+  const cx = 15;
+  const base = H - 2;
+  for (const dx of [-4, 3]) for (let y = base - 10; y <= base; y++) for (let x = cx + dx; x < cx + dx + 3; x++) p.set(x, y, pick(DSTONE, x === cx + dx ? 0.7 : 0.35, x, y));
+  for (let y = 14; y < base - 10; y++) {
+    const hw = 4 + ((y - 14) / (base - 24)) * 3;
+    const band = Math.floor((y - 14) / 5) % 2 === 1;
+    for (let x = Math.round(cx - hw); x <= Math.round(cx + hw); x++) {
+      const u = (x - (cx - hw)) / (hw * 2);
+      p.set(x, y, band ? pick(ramp('#521424', '#86202a', '#b43a34', '#dc6448'), u < 0.4 ? 0.9 : 0.4, x, y) : pick(ramp('#3c3448', '#5e5466', '#887c8a', '#b8a8aa', '#e8d6c8'), u < 0.4 ? 0.95 : u < 0.8 ? 0.6 : 0.3, x, y));
+    }
+  }
+  for (let x = cx - 7; x <= cx + 7; x++) p.set(x, 13, DSTONE[1]);
+  for (let y = 7; y < 13; y++) for (let x = cx - 3; x <= cx + 3; x++) p.set(x, y, Math.abs(x - cx) < 2 ? col('#fff4c4') : DLAMP);
+  for (let y = 3; y < 7; y++) for (let x = cx - (y - 3); x <= cx + (y - 3); x++) p.set(x, y, col('#86202a'));
+  outline(p);
+  return { canvas: p.canvas(), flames: [], glows: [[cx - W / 2, 10 - H]], glow: [0xffb050, 0xfff4c4] };
+}
+
+const KITS: Record<Theme, () => Kit> = { forest: forestKit, ruins: ruinsKit, hollow: hollowKit, pass: passKit, caves: cavesKit, glacier: glacierKit, cinder: cinderKit, glass: glassKit, forge: forgeKit, fen: () => duskKit('fen'), causeway: () => duskKit('causeway'), mere: () => duskKit('mere') };
 
 function kit(theme: Theme): Kit {
   return (kits[theme] ??= KITS[theme]());
@@ -3118,6 +3399,7 @@ const pickOf = <T,>(list: T[], r: () => number): T => list[Math.floor(r() * list
 function lightFrame(p: Pix, c: Ctx, theme: Theme): void {
   if (theme === 'pass' || theme === 'caves' || theme === 'glacier') return frostLight(p, c, theme);
   if (theme === 'cinder' || theme === 'glass' || theme === 'forge') return ashLight(p, c, theme);
+  if (isDuskMap(theme)) return duskLight(p, c, theme);
   const { W, H } = c;
   const edge = theme === 'forest' ? col('#14321e') : theme === 'ruins' ? col('#0a1020') : col('#1a0818');
   const warm = col('#ffb060');
@@ -3210,7 +3492,9 @@ function frameEdges(p: Pix, c: Ctx, theme: Theme): void {
                   ? ramp('#0a0608', '#140c0e', '#1e1416', '#2a1e1e', '#382a28')
                   : theme === 'glass'
                     ? ramp('#020104', '#06040a', '#0c0812', '#140e1c', '#1e1628')
-                    : ramp('#060203', '#0e0606', '#180c0a', '#24120e', '#321a14');
+                    : isDuskMap(theme)
+                      ? ramp('#04040a', '#080a10', '#0e1216', '#141a1c', '#1c2420')
+                      : ramp('#060203', '#0e0606', '#180c0a', '#24120e', '#321a14');
   const r = rng(c.seed + 41);
   const blobs: Blob[] = [];
   // along the bottom edge: low clumps poking up; along the top: hanging canopy; heavier in the corners
@@ -3285,6 +3569,7 @@ export function paintLand(spec: LandSpec): Land {
     groundCinder(base, c);
     stream(base, c, LAVA_STREAM);
   } else if (spec.theme === 'glass') groundGlass(base, c);
+  else if (isDuskMap(spec.theme)) groundDusk(base, c, spec.theme);
   else {
     groundForge(base, c);
     stream(base, c, LAVA_STREAM);
@@ -3305,6 +3590,7 @@ export function paintLand(spec: LandSpec): Land {
     roadsCinder(base, c);
     slabBridges(base, c, MBASALT);
   } else if (spec.theme === 'glass') roadsGlass(base, c);
+  else if (isDuskMap(spec.theme)) roadsDusk(base, c, spec.theme);
   else {
     roadsForge(base, c);
     slabBridges(base, c, MIRON);
@@ -3331,7 +3617,8 @@ export function paintLand(spec: LandSpec): Land {
   else if (spec.theme === 'glass') {
     magmaPools(base, c);
     decorGlass(c);
-  } else decorForge(c);
+  } else if (isDuskMap(spec.theme)) decorDusk(c, spec.theme);
+  else decorForge(c);
 
   // braziers light the stones around them
   for (const [x, y] of land.flames) torchLight(base, x, y + 3, 14, 9, col('#ff9040'), 0.35);
@@ -3343,7 +3630,7 @@ export function paintLand(spec: LandSpec): Land {
       land.glows.push([it.x, it.y - Math.round(it.d.cy), it.d.glow]);
     }
   // cast shadows, then the scenery in depth order
-  const SHADE: Record<Theme, string> = { forest: '#16301e', ruins: '#080c14', hollow: '#14060e', pass: '#3a4280', caves: '#02030a', glacier: '#0a1430', cinder: '#140a10', glass: '#05030a', forge: '#0a0204' };
+  const SHADE: Record<Theme, string> = { forest: '#16301e', ruins: '#080c14', hollow: '#14060e', pass: '#3a4280', caves: '#02030a', glacier: '#0a1430', cinder: '#140a10', glass: '#05030a', forge: '#0a0204', fen: '#0e0a1a', causeway: '#0a0c1e', mere: '#12061a' };
   const shade = col(SHADE[spec.theme]);
   const sx = spec.theme === 'hollow' ? 2 : 1;
   for (const it of c.items) if (it.d.shadow) shadowAt(base, it.x + sx, it.y, it.d.shadow[0], it.d.shadow[1], 0.35, shade);
