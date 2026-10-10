@@ -668,6 +668,54 @@ function owlFrame(wing: 'down' | 'up' | 'back', flash = false): HTMLCanvasElemen
   return toCanvas(g);
 }
 
+/** Pip in a fight (review-4 R4-12: at 22 px he was bigger than the first act's foes and the roundest, most childish
+ *  thing on the stage): a smaller owl, 16 px, a little leaner, a dark brow over each small amber eye. The camp, the
+ *  companions screen and the chest reveal keep the full-size owl. */
+export const PIP_FIGHT_W = 28;
+export const PIP_FIGHT_H = 20;
+const PIP_BODY_S = [
+  '..bb........bb..',
+  '..bbb......bbb..',
+  '...bbbbbbbbbb...',
+  '..bbbbbbbbbbbb..',
+  '.bbbbbbbbbbbbbb.',
+  '.bbbbbbbbbbbbbb.',
+  '.bbbbbbbbbbbbbb.',
+  'bbbbbbbbbbbbbbbb',
+  'bbbbbbbbbbbbbbbb',
+  'bbbbbbbbbbbbbbbb',
+  '.bbbbbbbbbbbbbb.',
+  '..bbbbbbbbbbbb..',
+  '....bbbbbbbb....',
+];
+const PIP_FACE_S = ['.ffff..ffff.', 'fkkkffffkkkf', 'ffiWffffWiff', '.fffffgffff.', '..ffffyfff..'];
+const PIP_BELLY_S = ['.cccc.', 'cvcvcc', 'ccvcvc', '.cccc.'];
+const PIP_WING_S: Record<'down' | 'up' | 'back', { rows: string[]; x: number; y: number }> = {
+  down: { rows: ['.B', 'BN', 'Bn', 'BN', 'Bn', '.B'], x: 0, y: 5 },
+  up: { rows: ['B....', 'BB...', 'BNB..', '.BNB.', '..BnB', '...BB'], x: -4, y: 0 },
+  back: { rows: ['BBB..', 'BNnB.', '.BBnB'], x: -5, y: 6 },
+};
+
+function owlFightFrame(wing: 'down' | 'up' | 'back'): HTMLCanvasElement {
+  const g = grid(PIP_FIGHT_W, PIP_FIGHT_H);
+  const ox = 6;
+  const oy = 3;
+  const W = PIP_WING_S[wing];
+  const bodyW = PIP_BODY_S[0].length;
+  const wings = () => {
+    stamp(g, W.rows, PIP_PAL, ox + W.x, oy + W.y);
+    if (wing !== 'back') stamp(g, flipRows(W.rows), PIP_PAL, ox + bodyW - W.rows[0].length - W.x, oy + W.y);
+  };
+  if (wing !== 'down') wings();
+  stampShaded(g, PIP_BODY_S, PIP_PAL, PIP_SHADES, ox, oy);
+  if (wing === 'down') wings();
+  stampShaded(g, PIP_BELLY_S, PIP_PAL, PIP_SHADES, ox + 5, oy + 7);
+  stamp(g, PIP_FACE_S, PIP_PAL, ox + 2, oy + 2);
+  stamp(g, ['yY..yY'], PIP_PAL, ox + 5, oy + PIP_BODY_S.length);
+  if (wing === 'back') stamp(g, ['BB', 'BnB', '.BB'], PIP_PAL, ox + bodyW - 3, oy + 6);
+  return toCanvas(g);
+}
+
 // ------------------------------------------------------------------ treasure chest (level clear, drawn at 2x)
 
 const CHEST_PAL: Pal = {
@@ -992,6 +1040,10 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   add('pip_idle0', owlFrame('down'));
   add('pip_idle1', owlFrame('up'));
   add('pip_dive', owlFrame('back'));
+  // (the fight's smaller Pip: view/party.ts)
+  add('pipf_idle0', owlFightFrame('down'));
+  add('pipf_idle1', owlFightFrame('up'));
+  add('pipf_dive', owlFightFrame('back'));
   add('chest_closed', mapFrame(CHEST_CLOSED, CHEST_PAL));
   add('chest_open', mapFrame(CHEST_OPEN, CHEST_PAL));
   add('clouds', drawClouds(w));

@@ -28,10 +28,12 @@ export const wornFace = <F extends readonly number[]>(f: F, k = 0.2, desat = 0.3
   [worn(f[0], k, desat), worn(f[1], k, desat), worn(f[2], k, desat), worn(f[3], k, desat)];
 /** Gauge fills [hi, base, lo, deep]. */
 export const RAMP = {
-  hp: [0xc8ff8a, 0x62d444, 0x2e9a34, 0x1a6a2a],
+  // (L7/L8, review-4: the HP green was the brightest, most saturated thing on screen: a step deeper and less candy,
+  // still plainly health; the foe's red and the boss's violet likewise)
+  hp: [0xb0e088, 0x56ae46, 0x2e8034, 0x1a5428],
   hpLow: [0xffd0a0, 0xff6a3a, 0xc02a2a, 0x7a1220],
-  foe: [0xffb0a0, 0xf0503c, 0xb0242c, 0x6a0f1e],
-  boss: [0xffd0ff, 0xc060f0, 0x7a2ab8, 0x4a1478],
+  foe: [0xf0a898, 0xd44a3c, 0x9a2430, 0x5c0f1e],
+  boss: [0xe8c4f0, 0xa85ad4, 0x6c2aa0, 0x421468],
   gold: [0xfff0a0, 0xf2c230, 0xd8901c, 0x9a5a14],
 } as const;
 

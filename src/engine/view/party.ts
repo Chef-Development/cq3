@@ -152,7 +152,7 @@ export class Party {
         return keep;
       }
       const flies = COMPANIONS[id].flies;
-      const img = s.add.image(0, 0, id === 'pip' ? 'pip_idle0' : `comp_${id}_idle0`).setOrigin(0.5, flies ? 0.5 : 1);
+      const img = s.add.image(0, 0, id === 'pip' ? 'pipf_idle0' : `comp_${id}_idle0`).setOrigin(0.5, flies ? 0.5 : 1);
       const rim = makeRim();
       // behind the hero (like Pip always was), each with its rim light right above it
       if (rim.parentContainer) rim.parentContainer.remove(rim);
@@ -168,7 +168,8 @@ export class Party {
 
   /** A texture for a companion's pose. */
   private tex(id: CompanionId, pose: 'idle0' | 'idle1' | 'act'): string {
-    if (id === 'pip') return pose === 'act' ? 'pip_dive' : `pip_${pose}`;
+    // (Pip fights in his smaller frames, art.ts owlFightFrame: review-4 R4-12)
+    if (id === 'pip') return pose === 'act' ? 'pipf_dive' : `pipf_${pose}`;
     return `comp_${id}_${pose}`;
   }
 

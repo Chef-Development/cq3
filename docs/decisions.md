@@ -1517,6 +1517,12 @@ C-ART-18. **Review 4, second pass**: the hero select spaces its kit cards by the
     the bag's empty cells are faint wells. Left: the treasure screen's empty band (the fight HUD's, hud.ts/bar.ts, out
     of bounds tonight), the region card's light parchment and "At 100%" button, the bag's full redesign.
 
+C-ART-19. **Review 4, third pass**: Pip fights in his own smaller frames (16 px, a little leaner, a brow over each
+    small eye; `pipf_*`, view/party.ts), the full owl stays for the camp, the companions screen and the chest reveal;
+    the HP gauges (hero green, foe red, boss violet: `RAMP` in pixels.ts) a step deeper and less candy, the low-HP
+    warning untouched; an event's words in the bold letters whenever the plate still fits the screen (else the small
+    ones, as before); the treasure screen's HP and purse on a glass plate in the band.
+
 (content: end of section)
 
 
