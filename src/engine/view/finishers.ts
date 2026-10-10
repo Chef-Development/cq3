@@ -73,6 +73,11 @@ function lastStrike(c: ShowCtx, k: number): number {
 }
 
 /** The style's way through the show (a signature can change it). */
+/** The beat the hero winds up before a finisher's big blow, and how long the blow's pose holds before the
+ *  follow-through. */
+const FIN_WINDUP_MS = 120;
+const FIN_HOLD_MS = 180;
+
 function defaultMotion(c: ShowCtx, k: number, home: number): HeroMotion {
   const tl = c.tl;
   const from = c.heroX;
@@ -82,6 +87,10 @@ function defaultMotion(c: ShowCtx, k: number, home: number): HeroMotion {
   const base: HeroMotion = { x: from, lift: 0, pose: 'idle0', flip: false, hidden: false, alpha: 1 };
   const appr = clamp01(k / Math.max(0.01, tl.build));
   const blowing = k >= tl.blow - 0.02;
+  // anticipation: the weapon drawn back for a beat before the big blow; follow-through: past the blow, the weapon low
+  // and the body leaning, while the cape and hair settle (docs/art-style.md section 7)
+  const windingUp = !blowing && k >= tl.blow - 0.02 - FIN_WINDUP_MS / Math.max(1, tl.ms);
+  const following = blowing && (k - tl.blow) * tl.ms > FIN_HOLD_MS;
   if (k >= tl.back) {
     if (c.move === 'blink') {
       // gone into the shadows, back out of them at home
@@ -96,7 +105,7 @@ function defaultMotion(c: ShowCtx, k: number, home: number): HeroMotion {
   switch (c.move) {
     case 'dash':
       if (k < tl.build) return { ...base, x: from + (to - from) * ease(appr), pose: appr < 0.2 ? 'windup' : 'dash' };
-      return { ...base, x: to, pose: blowing ? 'fin' : idx % 2 ? 'slashA' : 'slashB' };
+      return { ...base, x: to, pose: following ? 'slashA' : blowing ? 'fin' : windingUp ? 'windup' : idx % 2 ? 'slashA' : 'slashB' };
     case 'leap':
       if (k < tl.build) return { ...base, x: from + (to - from) * ease(appr), lift: Math.sin(appr * Math.PI) * 26, pose: 'leap' };
       return { ...base, x: to, pose: blowing || since < 60 ? 'fin' : 'windup' };
@@ -110,7 +119,7 @@ function defaultMotion(c: ShowCtx, k: number, home: number): HeroMotion {
     }
     case 'guard':
       if (k < tl.build) return { ...base, x: from + (to - from) * ease(appr), pose: 'dash' };
-      return { ...base, x: to, pose: blowing || since < 70 ? 'fin' : 'parry' };
+      return { ...base, x: to, pose: following ? 'slashA' : blowing || since < 70 ? 'fin' : windingUp ? 'windup' : 'parry' };
     default:
       return { ...base, x: from + (to - from) * ease(clamp01(k / 0.12)), pose: k < tl.build * 0.5 ? 'cast' : 'fin' };
   }
