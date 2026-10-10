@@ -193,6 +193,21 @@ test('desktop: the camp by keyboard, Escape backs out', async ({ page }) => {
   }
   expect(seen.size).toBeGreaterThanOrEqual(4);
   await page.screenshot({ path: 'test-results/desktop-camp.png' });
+  // the plates over the camp are on the ring too (they aren't buttons): Tab reaches the Shrine's, Enter opens it
+  const shrine = (await a((x) => x.view.camp.focusTargets()[0])) as { x: number; y: number; w: number; h: number };
+  let onShrine = false;
+  for (let i = 0; i < 16 && !onShrine; i++) {
+    await page.keyboard.press('Tab');
+    await page.waitForTimeout(60);
+    const r = await ringAt(page);
+    onShrine = !!r && Math.abs(r.x - (shrine.x + shrine.w / 2)) < 3 && Math.abs(r.y - (shrine.y + shrine.h / 2)) < 4;
+  }
+  expect(onShrine).toBe(true);
+  await page.keyboard.press('Enter');
+  await expect.poll(() => a((x) => x.view.camp.mode)).toBe('shrine');
+  await page.keyboard.press('Escape');
+  await expect.poll(() => a((x) => x.view.camp.mode)).toBe('home');
+  await page.waitForTimeout(400);
   // the band's first button (Bag): the ring goes there with Tab from the start of the band
   await a((x) => x.view.camp.go('bag', performance.now()));
   await expect.poll(() => a((x) => x.view.camp.mode)).toBe('bag');
