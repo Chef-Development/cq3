@@ -64,7 +64,8 @@ it('region tune', () => {
     const gemsAfter: number[] = [];
     c.profiles.slice(0, RUNS).forEach((p0, r) => {
       if (!p0) return;
-      const p = JSON.parse(JSON.stringify(p0)) as Profile;
+      // (a cached profile from before a newer profile field gets the field's fresh default)
+      const p = { ...newProfile(), ...(JSON.parse(JSON.stringify(p0)) as Profile) };
       results.push(playRegion(t, { accuracy: ACC, seed: seedOf(h, r), hero: h, focus: FOCUS }, p, REGION));
       resultBranch.push(c.branches[r]);
       gemsAfter.push(p.counts.gemsEarned ?? 0);
