@@ -692,23 +692,22 @@ need portraits); Region 5's nine scenes fit its data as built (`story-noon.ts`, 
 `brassLion`; speaker `sphinx` needs a portrait). Hesper speaks in the allies' warm look. Camp banter follows the story (`core/banter.ts` gates each region's
 lines on their scenes). Every player-facing data text was swept for the old premise (gear, meta, relics, events,
 quests, companions' bios, heroes' bios, act names, tips); the far isles' names are in `core/world-plan.ts` (shown
-once revealed). Still to do: the `road` hook (first 10 minutes team); the portraits (`portrait_mapmaker`,
-`portrait_keeper`, the Region 4-5 speakers'; until they exist the story view shows Phaser's missing-texture box);
-the world map's and title's words (art team, section 9). Region 4 is in play now (its scenes and banter with it);
+once revealed). Still to do: the `road` hook (first 10 minutes team); the Region 4-5 speakers' portraits (until they
+exist the story view shows Phaser's missing-texture box) and the old-premise pictures (section 11). Region 4 is in play now (its scenes and banter with it);
 Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
 ---
 
 ## 11. What the story needs from other teams (round 8)
 
-- **Art (Team 2):** portraits `portrait_mapmaker` (section 4's look: tall, spare, near fifty, kind tired eyes,
-  ink-stained fingers, faded keeper's-blue coat with the badge torn off, an owl-feather pen with a silver tip),
-  `portrait_keeper` (Hesper: silver-haired, upright, grey-blue keeper's robes, a heavy key on a chain), and Region 4-5's
-  speakers (`portrait_bellybog`, `portrait_sluiceKeeper`, `portrait_sphinx`: a gold desert sphinx, eyes half shut
-  against the glare). Until they exist, the story view shows Phaser's missing-texture box. (`keeper` now has the
-  allies' warm look in `view/story.ts`.) The narrator's portrait (now the Pendulum's bob) becomes a corner of the Atlas
-  with a compass rose. The Mapmaker's edits, when shown, are gold ink strokes hanging in the air. Every UI word in
-  section 9, including its last rows: the Bandit Captain's prize, the golem's rune, the Keystone Shard's icon, and
-  `view/world.ts`'s capital card, header and pips (still "Weights home" / "The Great Pendulum" on the run branch).
+- **Art (Team 2):** done: `portrait_mapmaker`, `portrait_keeper` (art-portraits-atlas.ts), the world map's and the
+  region victory's words. Still to do: Region 4-5's speakers' portraits (`portrait_bellybog`,
+  `portrait_sluiceKeeper`, `portrait_sphinx`: a gold desert sphinx, eyes half shut against the glare); the drafted
+  regions' (`slowcoach`, `squall`, `press`) when they're built. The pictures that still draw the old premise (section
+  9): the narrator's portrait (the Pendulum's bob, `art-story.ts`), the Boar King's crown bob (`art-story.ts`,
+  `art-foes.ts`), the Bandit Captain's pendulum weight and the golem's pendulum rune (`art-story.ts`), the shrine's and
+  camp's pendulum emblem (`art-shrine.ts`, `art-camp.ts`), Bellows's anvil weight (`art-ash.ts`), the Keystone Shard's
+  icon (`art-gear.ts`) and the capital's clock tower (`art-world-sites.ts`). The Mapmaker's edits, when shown, are
+  gold ink strokes hanging in the air.
 - **First 10 minutes (Team 5):** the `road` scene (6 boxes: who Pip is, what the blank is) is written for right after
   the first fight is won, once (e.g. `profile.seen` 'road'); it needs a hook in the post-fight flow, which is yours.
   If it costs the first minutes too much, cut it to 3 boxes or move it to the first rest: tell the story team.
