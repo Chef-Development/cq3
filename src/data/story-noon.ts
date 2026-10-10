@@ -23,8 +23,8 @@ export const NOON_STORY: Record<string, StoryBox[]> = {
     { who: 'narrator', text: 'Noonspire. White towers on a high plateau,\nand the sun nailed straight overhead.' },
     { who: 'rowan', text: 'Nobody has a shadow. Not the towers, not\nthe people. Not me.' },
     { who: 'pip', text: 'He pinned the sun at noon, so nobody freezes\nin the desert dark. No night. No cold.' },
-    { who: 'sable', text: "And no shade. I'm cooking. Neve has\nturned into a puddle." },
-    { who: 'neve', text: 'I am NOT a puddle. I am a mage with a\ndamp hat. There is a difference.' },
+    { who: 'sable', text: "And no shade. I'm cooking." },
+    { who: 'neve', text: 'Look at their eyes. Nobody here has\nslept in the dark for a MONTH.' },
     { who: 'pip', text: "With no shadows, they can't tell the time or\nthe way. And the heat paints lakes on the road." },
   ],
   // Act 1 mini-boss: the Noon Sphinx keeps the White Road with a riddle nobody can answer any more
@@ -38,8 +38,8 @@ export const NOON_STORY: Record<string, StoryBox[]> = {
   ],
   // camp, after Act 1 (like the fourth region's duskCamp: run.ts campScene, once): no night to sleep in; Pip apart
   noonCamp: [
-    { who: 'narrator', text: 'Camp, under a noon that will not end.\nNobody can sleep. Not even Rowan.' },
-    { who: 'sable', text: 'I put a blanket over my face. It glows.\nThe BLANKET glows.' },
+    { who: 'narrator', text: 'Camp, under a noon that will not end.\nNobody can sleep.' },
+    { who: 'sable', text: 'I put a blanket over my face.\nThe light comes straight through.' },
     { who: 'neve', text: "Pip's been on that rock for an hour,\nlooking west. He hasn't said a word." },
     { who: 'rowan', text: 'Pip? Are you all right?' },
     { who: 'pip', text: 'Fine. Just remembering someone.\nTry to sleep, Rowan.' },
@@ -70,7 +70,7 @@ export const NOON_STORY: Record<string, StoryBox[]> = {
   // Act 3 boss: he defends the long safe day; then he greets the owl
   noonBoss: [
     { who: 'narrator', text: 'The Gnomon turns its brass face to the sun,\nand the light comes off it like a blade.' },
-    { who: 'mapmaker', text: 'No one has frozen in this desert for a\nmonth. Not one. You may count them.' },
+    { who: 'mapmaker', text: 'No one has frozen in this desert for a\nmonth. Not one. I have counted.' },
     { who: 'rowan', text: "And nobody has seen a sunrise. They've\nstopped counting days." },
     { who: 'mapmaker', text: 'Days are how you count losses, knight.\n...Hello, Pip. You have grown.' },
     { who: 'pip', text: 'Hello, Ambrose.' },
@@ -80,7 +80,7 @@ export const NOON_STORY: Record<string, StoryBox[]> = {
   noonBoss2: [
     { who: 'mapmaker', text: 'Too bright to see? Then do not look.' },
     { who: 'narrator', text: "He turns the sun's glare onto the fight.\nEvery stone blazes white." },
-    { who: 'neve', text: 'The blazing ones hit hard, and they burn.\nA green cools you off. Pick your strikes!' },
+    { who: 'neve', text: 'The blazing ones hit hard, and they burn.\nChoose your strikes.' },
   ],
   // phase 3 (his second edit, Sun Drawn Down!): everything a mirage, the blaze stays; Pip finds his voice
   noonBoss3: [

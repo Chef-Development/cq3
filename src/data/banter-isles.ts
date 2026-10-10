@@ -27,7 +27,7 @@ export const ISLES_BANTER: IslesBanterLine[] = [
   { who: 'yara', text: 'My village. Asleep. I sang to them.', after: 'hush2' },
   { who: 'sable', text: 'I left that wolf my rations. Shush.', after: 'hollowfang' },
   { who: 'yara', text: 'They woke up arguing. Home!', after: 'hushVictory' },
-  { who: 'rowan', text: 'Birds! Loud ones! I missed loud.', after: 'hushVictory' },
+  { who: 'rowan', text: 'Birds again. Loud ones. I missed loud.', after: 'hushVictory' },
   // Kestrel Reach
   { who: 'wren', text: 'My cliffs, floating. Show-offs.', after: 'reach1' },
   { who: 'sable', text: 'Rowan walks on air now. Normal.', after: 'reach1' },
@@ -36,12 +36,13 @@ export const ISLES_BANTER: IslesBanterLine[] = [
   { who: 'wren', text: 'Ma climbed down. FURIOUS.', after: 'reachVictory' },
   // Thimblewick
   { who: 'tess', text: 'No clock wears out there. Disgusting.', after: 'wick1' },
-  { who: 'torva', text: 'It polished my HAMMER. Why?!', after: 'polisher' },
+  { who: 'torva', text: 'My HAMMER. Polished. My dents!', after: 'polisher' },
   { who: 'rowan', text: 'Did Hesper know? I keep asking.', after: 'wick2' },
   { who: 'tess', text: 'A squeaky hinge! Music.', after: 'wickVictory' },
   { who: 'smith', text: 'Squeaky hinges. Finally, work!', after: 'wickVictory' },
   // Saltmarrow (Brann's vow ends when his bell rings: his first spoken words, no slate)
   { who: 'hollis', text: 'My wall, holding back nothing.', after: 'salt2' },
+  { who: 'sable', text: "You don't have to be fine, Rowan.", after: 'saltVictory' },
   { who: 'brann', text: '...The bell rang. So. Hello.', after: 'saltVictory' },
   { who: 'hollis', text: 'Brann talks now. ...Say more.', after: 'saltVictory', with: ['brann'] },
 ];

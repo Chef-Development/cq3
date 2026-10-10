@@ -173,7 +173,7 @@ export class StoryView {
     const bob = typing && Math.floor(now / 140) % 2 === 0 ? 1 : 0;
     if (this.portrait) {
       // the third region's speakers are painted in idle time after boot: finish them now if this scene comes sooner
-      if (!this.s.textures.exists(`portrait_${box.who}`)) this.s.ensureRegionArt();
+      if (!this.s.textures.exists(`portrait_${box.who}`)) this.s.ensureRegionPacks(`portrait_${box.who}`);
       // (a speaker not painted yet, as the fourth region's until its art lands, speaks from an empty frame)
       const has = this.s.textures.exists(`portrait_${box.who}`);
       const p = this.portrait.setTexture(has ? `portrait_${box.who}` : 'portrait_rowan').setPosition(Math.round(fx + fw / 2), fy + fw - 3 - bob).setVisible(has);

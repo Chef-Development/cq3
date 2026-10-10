@@ -3,7 +3,7 @@
 // pocket watch. Fight frames `tess_${pose}` on the shared rig (art-rig.ts): small (Moss's size class, a little taller),
 // bright brass and teal against the cream, the watch the biggest shape she carries.
 import { put, stamp, type Grid, type Pal, type Shade } from './art';
-import { STEP, sparkle, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Rig, type RigPose, sparkle, STEP } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -77,6 +77,8 @@ const TORSO = [
   '.cccvvcvvccc.',
   '.ccvvvBvvvcc.',
   '..cvvvvvvvc..',
+  '..cvvvvvvvc..',
+  '..cvvvvvvvc..',
   '..cvvvBvvvc..',
   '..vvvvvvvvv..',
   '.lllliBblIll.',
@@ -84,14 +86,8 @@ const TORSO = [
 ];
 
 // A long dark skirt to the ankles, little buckled shoes; 13 wide, the feet centred on x = 6.
-const LEGS: Record<string, string[]> = {
-  stand: ['..qqqqqqqqq..', '..qqqqqqqqq..', '.qqqqqqqqqqq.', '.qqqqqqqqqqq.', 'qqqqqqqqqqqqq', '..KJ...KJJ...'],
-  run: ['..qqqqqqqqq..', '..qqqqqqqqqq.', '.qqqqqqqqqqqq', 'qqqqqqqqqqqq.', 'KJ.qqqqqqq...', '.........KJJ.'],
-  lunge: ['..qqqqqqqqq..', '..qqqqqqqqqq.', '.qqqqqqqqqqq.', 'qqqqqqqqqqqqq', 'KJ.......KJJ.'],
-  crouch: ['..qqqqqqqqq..', '.qqqqqqqqqqq.', 'qqqqqqqqqqqqq', '.KJ.....KJJ..'],
-  tuck: ['..qqqqqqqqq..', '.qqqqqqqqqqq.', '..qqqqqqqqq..', '....KJ.KJJ...'],
-  kneel: ['..qqqqqqqqq..', '.qqqqqqqqqqqq', 'qqqqqqqqqqqqq', 'KJ.......KJJ.'],
-};
+// the shared jointed legs (art-rig.ts STANCES, playtest round 8: L8, about three heads tall)
+const LEGS = matureLegs({ leg: 'J', legBack: 'K', boot: 'J', bootBack: 'K', sole: 'K', skirt: 'q', robe: 2 });
 
 const FIST = ['ws', 'zz'];
 const ARM_NEAR: Array<[number, ...string[]]> = [
@@ -104,12 +100,12 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 ];
 
 export const TESS_RIG: Rig = {
-  pal: { ...TESS_PAL, s: SKIN[2] },
+  pal: { ...{ ...TESS_PAL,  }, s: SKIN[2] },
   shades: TESS_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [4, 5], skin: 's'}),
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 6,
+  legsFeetX: LEG_FEET_X,
   torsoX: -6,
   torsoOverlap: 1,
   headX: 0,
@@ -247,27 +243,27 @@ const dizzy: Layer = (g, a) => {
 const P = (p: RigPose): RigPose => p;
 export const TESS_POSES: Record<string, RigPose> = {
   // the watch staff planted beside her, the other hand on her hip
-  idle0: P({ near: { at: [7, 8], item: staff('u', 12, 7) }, far: { at: [-3, 9] } }),
-  idle1: P({ near: { at: [7, 7], item: staff('u', 12, 6, { at: 0.2 }) }, far: { at: [-3, 8] }, dy: 1 }),
+  idle0: P({ near: { at: [7, 18], item: staff('u', 12, 17) }, far: { at: [-3, 19] } }),
+  idle1: P({ near: { at: [7, 17], item: staff('u', 12, 16, { at: 0.2 }) }, far: { at: [-3, 18] }, dy: 1 }),
   // the watch on her staff swings a frame behind the breath
-  idle2: P({ near: { at: [7, 6], item: staff('u', 12, 5, { at: 0.35 }) }, far: { at: [-3, 8] }, dy: 1 }),
-  idle3: P({ near: { at: [7, 7], item: staff('u', 12, 6, { at: 0.1 }) }, far: { at: [-3, 9] } }),
-  dash: P({ near: { at: [7, 8], item: staff('ur', 9, 5) }, far: { at: [-4, 9] }, legs: 'run', dx: 1, lean: 1 }),
+  idle2: P({ near: { at: [7, 16], item: staff('u', 12, 15, { at: 0.35 }) }, far: { at: [-3, 18] }, dy: 1 }),
+  idle3: P({ near: { at: [7, 17], item: staff('u', 12, 16, { at: 0.1 }) }, far: { at: [-3, 19] } }),
+  dash: P({ near: { at: [7, 18], item: staff('ur', 9, 5) }, far: { at: [-4, 19] }, legs: 'run', dx: 1, lean: 1 }),
   // a rap of the watch on the target, a tick of light
-  slashA: P({ near: { at: [9, 15], item: staff('dr', 3, 4, { at: 0.4 }) }, far: { at: [4, 9] }, legs: 'lunge', dx: 1, lean: 1, bow: 1, front: [tick(25, 2), gears([[21, 14]])] }),
+  slashA: P({ near: { at: [9, 25], item: staff('dr', 3, 4, { at: 0.4 }) }, far: { at: [4, 19] }, legs: 'lunge', dx: 1, lean: 1, bow: 1, front: [tick(25, 2), gears([[21, 14]])] }),
   // a jab with the staff, the watch end forward
-  slashB: P({ near: { at: [10, 11], item: staff('r', 7, 6, { at: 0.6 }) }, far: { at: [5, 9] }, legs: 'lunge', dx: 1, lean: 1, front: [tick(30, 11)] }),
-  windup: P({ near: { at: [-2, 17], item: staff('ul', 6, 4, { at: 0.8 }) }, far: { at: [7, 9] }, legs: 'crouch', armsUp: true }),
+  slashB: P({ near: { at: [10, 21], item: staff('r', 7, 6, { at: 0.6 }) }, far: { at: [5, 19] }, legs: 'lunge', dx: 1, lean: 1, front: [tick(30, 11)] }),
+  windup: P({ near: { at: [-2, 27], item: staff('ul', 6, 4, { at: 0.8 }) }, far: { at: [7, 19] }, legs: 'crouch', armsUp: true }),
   // the staff crosswise, the watch held up like a shield
-  parry: P({ near: { at: [4, 11], item: staff('r', 6, 3, { glow: true }) }, far: { at: [9, 11] }, legs: 'crouch', farFront: true }),
-  hurt: P({ near: { at: [-4, 9], item: staff('ul', 8, 5) }, far: { at: [7, 11] }, dx: -1, lean: -1, head: 'squint', front: [gears([[-8, 22], [14, 24]])] }),
-  leap: P({ near: { at: [5, 15], item: staff('u', 8, 5, { at: 0.5 }) }, far: { at: [9, 13] }, legs: 'tuck' }),
+  parry: P({ near: { at: [4, 21], item: staff('r', 6, 3, { glow: true }) }, far: { at: [9, 21] }, legs: 'crouch', farFront: true }),
+  hurt: P({ near: { at: [-4, 19], item: staff('ul', 8, 5) }, far: { at: [7, 21] }, dx: -1, lean: -1, head: 'squint', front: [gears([[-8, 22], [14, 24]])] }),
+  leap: P({ near: { at: [5, 25], item: staff('u', 8, 5, { at: 0.5 }) }, far: { at: [9, 23] }, legs: 'tuck' }),
   // knocked out: sat down in a heap, the spectacles askew, the staff fallen
   down: P({ near: { at: [7, 3] }, far: { at: [-3, 3] }, legs: 'kneel', bow: 1, head: 'ko', back: [droppedStaff], front: [dizzy] }),
   // the finisher: the watch raised high and blazing, arcs of time winding back round her
   fin: P({
-    near: { at: [5, 18], item: staff('u', 6, 6, { at: 0.95, glow: true }) },
-    far: { at: [10, 16] },
+    near: { at: [5, 28], item: staff('u', 6, 6, { at: 0.95, glow: true }) },
+    far: { at: [10, 26] },
     legs: 'lunge',
     head: 'call',
     back: [arcs(2, 16, [14, 17], 0.3, 2.8)],
@@ -275,8 +271,8 @@ export const TESS_POSES: Record<string, RigPose> = {
   }),
   // Slow Time: the watch held out ahead, glowing, a ripple of slowed time from it
   cast: P({
-    near: { at: [10, 12], item: staff('ur', 7, 5, { at: 0.5, glow: true }) },
-    far: { at: [-2, 14] },
+    near: { at: [10, 22], item: staff('ur', 7, 5, { at: 0.5, glow: true }) },
+    far: { at: [-2, 24] },
     head: 'call',
     front: [arcs(22, 24, [9, 12], -0.9, 0.9)],
   }),
@@ -285,13 +281,13 @@ export const TESS_POSES: Record<string, RigPose> = {
 /** Hero select card: the watch staff held up beside her, a finger raised ("tick, tock"), before a brass glow with a
  *  teal heart. */
 export const TESS_CARD: HeroCardSpec = {
-  pose: { near: { at: [7, 9], item: staff('u', 12, 7, { at: 0.1, glow: true }) }, far: { at: [-4, 15] }, head: 'smile' },
+  pose: { near: { at: [7, 19], item: staff('u', 12, 17, { at: 0.1, glow: true }) }, far: { at: [-4, 25] }, head: 'smile' },
   glow: ['#a8ecd0', '#c88a1c'],
   motes: [[5, 14], [33, 9], [34, 29]],
 };
 
 /** By the campfire (two breaths): leaning on the staff with both hands, a knowing smile. */
 export const TESS_CAMP: [RigPose, RigPose] = [
-  P({ near: { at: [6, 9], item: staff('u', 11, 8) }, far: { at: [7, 9] }, farFront: true, head: 'smile' }),
-  P({ near: { at: [6, 8], item: staff('u', 11, 7, { at: 0.2 }) }, far: { at: [7, 8] }, farFront: true, dy: 1, head: 'smile' }),
+  P({ near: { at: [6, 19], item: staff('u', 11, 8) }, far: { at: [7, 19] }, farFront: true, head: 'smile' }),
+  P({ near: { at: [6, 18], item: staff('u', 11, 7, { at: 0.2 }) }, far: { at: [7, 18] }, farFront: true, dy: 1, head: 'smile' }),
 ];

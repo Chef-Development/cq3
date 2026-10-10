@@ -194,6 +194,11 @@ describe('story', () => {
     }
   });
 
+  it('keeps the narrator calm: no exclamation marks (docs/story-bible.md, Voices)', () => {
+    const all = { ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY, ...END_STORY };
+    for (const [id, boxes] of Object.entries(all)) for (const b of boxes) if (b.who === 'narrator') expect(b.text, id).not.toContain('!');
+  });
+
   it("keeps the Mapmaker's and the High Keeper's voices: no contractions (docs/story-bible.md, Voices)", () => {
     const all = { ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY, ...END_STORY };
     for (const [id, boxes] of Object.entries(all)) {
@@ -288,6 +293,10 @@ describe('camp banter', () => {
     for (const id of Object.keys(NOON_STORY)) expect(NOON_SCENE_ACT[id], id).toBeDefined();
     const all = [...BANTER, ...HERO_BANTER, ...STORY_BANTER, ...NOON_BANTER];
     expect(new Set(all.map((l) => l.text)).size).toBe(all.length);
+  });
+
+  it('grown-up wit (L8): at most one exclamation mark a line', () => {
+    for (const l of [...BANTER, ...HERO_BANTER, ...STORY_BANTER, ...NOON_BANTER, ...ISLES_BANTER]) expect((l.text.match(/!/g) ?? []).length, l.text).toBeLessThanOrEqual(1);
   });
 
   it("the first isles' banter waits for their drafted scenes and fits the bubble", () => {

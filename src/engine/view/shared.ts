@@ -130,6 +130,8 @@ export interface EnemyView {
   fly: number; // hovers this many px above the ground
   tellAt: number; // anim time its special's telegraph started...
   tellUntil: number; // ...and ends (the 'tell' pose, the countdown ring)
+  shoutY?: number; // where its special's name sits while it's up (its damage numbers keep below it)...
+  shoutUntil?: number; // ...and until when (anim time; a stun ends the tell, not the shout)
   fleeAt: number; // anim time it started running off (0 = not fleeing)
   popAt: number; // anim time it split apart (0 = not splitting)
   enterFrom: number; // x it walks in from (the right edge, or the parent slime's spot for a split)

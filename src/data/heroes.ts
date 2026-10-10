@@ -176,7 +176,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     style: 'bomber',
     rarity: 'rare',
     title: 'Sapper',
-    bio: 'Loves loud noises. Lost her eyebrows.',
+    bio: 'Loves loud noises. Has the scars to prove it.',
     signature: part('Chain Fuse', "A keg's blast sets off every keg near it.", 'Kegs set each other off.'),
     ability: part('Fuse Up', 'Green hits drop a keg on the bar.', 'Green hits drop kegs.'),
     passive: part('Blast Shield', 'Bombs that reach you deal half damage.', 'Shrugs off bombs.'),

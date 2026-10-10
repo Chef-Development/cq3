@@ -25,6 +25,6 @@ export const STORY_BANTER: StoryBanterLine[] = [
   { who: 'sable', text: 'Crooked alleys again. Bliss.', after: 'victory' },
   { who: 'neve', text: 'A ram cracked me out. I owe a ram.', after: 'neveJoin' },
   { who: 'neve', text: 'Snow that FALLS. Finally.', after: 'frostVictory' },
-  { who: 'tam', text: "Avalanche season's back! So's my job!", after: 'frostVictory' },
-  { who: 'torva', text: 'My quarry stays put now! SMASH!', after: 'ashVictory' },
+  { who: 'tam', text: "Avalanche season's back. So's my job.", after: 'frostVictory' },
+  { who: 'torva', text: 'My quarry stays put now. SMASH!', after: 'ashVictory' },
 ];

@@ -24,5 +24,5 @@ export const DUSK_BANTER: DuskBanterLine[] = [
   { who: 'hollis', text: 'A toad ate my lamp. Whole.', after: 'bellybog' },
   { who: 'sable', text: 'A tide with a timetable? Fishy.', after: 'dusk2' },
   { who: 'torva', text: 'A beaver with a clipboard. Respect.', after: 'sluiceKeeper' },
-  { who: 'rowan', text: 'Morning! I missed you, morning.', after: 'duskVictory' },
+  { who: 'rowan', text: 'Morning. I missed you, morning.', after: 'duskVictory' },
 ];

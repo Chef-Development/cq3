@@ -2,7 +2,7 @@
 // frame box as the others), a cloak of overlapping leaves, a twig crown with two buds, a big soft nose and a crooked
 // wooden staff topped by a glowing seed. Fight frames `moss_${pose}` on the shared rig (art-rig.ts).
 import { put, stamp, type Grid, type Pal, type Shade } from './art';
-import { STEP, ribbon, sparkle, type Dir, type HeroCardSpec, type Item, type Layer, type Pt, type Rig, type RigPose } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, matureHeads, type Pt, ribbon, type Rig, type RigPose, sparkle, STEP } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -123,7 +123,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const MOSS_RIG: Rig = {
   pal: MOSS_PAL,
   shades: MOSS_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [4], blush: 'p'}),
   torso: TORSO,
   legs: LEGS,
   legsFeetX: 8,
