@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { newProfile, WEIGHTS_TOTAL } from '../../src/core/profile';
-import { FAR_PLAN, fogOf, FOG_THIN, landOpen, markUnveiled, planName, planRegion, regionOpen, revealed, unveilKey, unveilPending, WORLD_PLAN } from '../../src/core/world-plan';
+import { FAR_PLAN, fogOf, FOG_THIN, landOpen, markRestored, markUnveiled, planName, planRegion, regionOpen, regionRestored, restoreKey, restorePending, revealed, unveilKey, unveilPending, WORLD_PLAN } from '../../src/core/world-plan';
 import { REGIONS } from '../../src/data/regions';
 
 describe('world plan', () => {
@@ -61,5 +61,20 @@ describe('world plan', () => {
     markUnveiled(p, 'frostpeaks');
     expect(p.seen).toEqual([unveilKey('frostpeaks')]);
     expect(unveilPending(p)).toBe(null);
+  });
+
+  it("a land's restoring (its colour back on the Atlas) plays once per region won, in order, remembered in the profile", () => {
+    const p = newProfile();
+    expect(restorePending(p)).toBe(null);
+    expect(regionRestored(p, 0)).toBe(false);
+    p.weights = 2;
+    expect(regionRestored(p, 0) && regionRestored(p, 1) && !regionRestored(p, 2)).toBe(true);
+    expect(restorePending(p)).toBe(REGIONS[0].id);
+    markRestored(p, REGIONS[0].id);
+    markRestored(p, REGIONS[0].id);
+    expect(p.seen.filter((s) => s === restoreKey(REGIONS[0].id))).toHaveLength(1);
+    expect(restorePending(p)).toBe(REGIONS[1].id);
+    markRestored(p, REGIONS[1].id);
+    expect(restorePending(p)).toBe(null);
   });
 });

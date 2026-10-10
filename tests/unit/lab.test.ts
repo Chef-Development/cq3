@@ -68,6 +68,8 @@ describe('Test lab scenarios (data)', () => {
       } else if (st.kind === 'map') {
         expect(st.act, s.id).toBeGreaterThanOrEqual(0);
         expect(st.act, s.id).toBeLessThan(ALL_ACTS.length);
+      } else if (st.kind === 'world') {
+        for (const k of st.replay ?? []) expect(k, s.id).toMatch(/^(restore|unveil):/);
       } else {
         if (st.hero) expect(HERO_IDS).toContain(st.hero);
       }
@@ -326,7 +328,10 @@ describe('Test lab scenarios play', () => {
         expect(r.path, s.id).toEqual([]);
         expect(r.map.nodes.some((n) => n.type === 'fight'), s.id).toBe(true);
       } else if (s.setup.kind === 'title') expect(r.phase, s.id).toBe('title');
-      else expect(r.phase, s.id).toBe('camp');
+      else if (s.setup.kind === 'world') {
+        expect(r.phase, s.id).toBe('world');
+        for (const k of s.setup.replay ?? []) expect(r.profile.seen, s.id).not.toContain(k);
+      } else expect(r.phase, s.id).toBe('camp');
       expect(labHomePhase(s)).toBe(r.phase);
     }
   });
