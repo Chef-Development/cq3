@@ -96,8 +96,8 @@ interface Graph {
 
 /** Places with their own sound bed under the music (Region 2's acts: 'pass', 'caves', 'glacier'; Region 3's, not in
  *  play yet: 'cinder', 'glass', 'forge'). */
-export type Ambience = 'forest' | 'ruins' | 'hollow' | 'map' | 'world' | 'camp' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere';
-export const AMBIENCES: Ambience[] = ['forest', 'ruins', 'hollow', 'map', 'world', 'camp', 'pass', 'caves', 'glacier', 'cinder', 'glass', 'forge', 'fen', 'causeway', 'mere'];
+export type Ambience = 'forest' | 'ruins' | 'hollow' | 'map' | 'world' | 'camp' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere' | 'dunes' | 'spire' | 'dial';
+export const AMBIENCES: Ambience[] = ['forest', 'ruins', 'hollow', 'map', 'world', 'camp', 'pass', 'caves', 'glacier', 'cinder', 'glass', 'forge', 'fen', 'causeway', 'mere', 'dunes', 'spire', 'dial'];
 
 /** A looping filtered-noise layer of an ambience (wind, rain, fire, surf), nudged at random by gusts. */
 interface Bed {
@@ -152,7 +152,7 @@ const SPOTS: [number, number][] = [
 const ALL_SPOTS = [0, 1, 2, 3, 4] as const;
 const FAR_SPOTS = [0, 2, 4] as const;
 /** How much of each ambience goes to the reverb. */
-const AMB_WET: Record<Ambience, number> = { forest: 0.18, ruins: 0.55, hollow: 0.25, map: 0.12, world: 0.15, camp: 0.2, pass: 0.2, caves: 0.6, glacier: 0.25, cinder: 0.15, glass: 0.5, forge: 0.35, fen: 0.22, causeway: 0.25, mere: 0.45 };
+const AMB_WET: Record<Ambience, number> = { forest: 0.18, ruins: 0.55, hollow: 0.25, map: 0.12, world: 0.15, camp: 0.2, pass: 0.2, caves: 0.6, glacier: 0.25, cinder: 0.15, glass: 0.5, forge: 0.35, fen: 0.22, causeway: 0.25, mere: 0.45, dunes: 0.15, spire: 0.3, dial: 0.35 };
 
 // Hit melody: major pentatonic, wrapping up an octave every 5 combo steps.
 const PENTA = [0, 2, 4, 7, 9];
@@ -3675,6 +3675,22 @@ export class Synth {
         this.hum(r, t, 41, 0.016); // a deep still-water hum
         this.hum(r, t, 117, 0.0035); // the lamp humming far off
         break;
+      case 'dunes':
+        this.bed(r, t, { type: 'bandpass', f: 800, q: 0.6, g: 0.02, gust: [0.3, 1.7], sway: [0.7, 1.5], tau: 1.1 }); // a hot wind over the sand
+        this.bed(r, t, { type: 'lowpass', f: 200, q: 0.5, g: 0.035, gust: [0.6, 1.4], tau: 2 }); // its low body
+        this.bed(r, t, { type: 'highpass', f: 6000, q: 0.5, g: 0.004, gust: [0.4, 1.8], tau: 0.8 }); // sand hissing along the road
+        break;
+      case 'spire':
+        this.bed(r, t, { type: 'bandpass', f: 1500, q: 7, g: 0.021, gust: [0.1, 1.5], sway: [0.8, 1.3], tau: 0.9 }); // wind whistling round the towers
+        this.bed(r, t, { type: 'bandpass', f: 650, q: 0.7, g: 0.025, gust: [0.3, 1.7], sway: [0.7, 1.5], tau: 1 }); // the wind up the stair
+        this.bed(r, t, { type: 'lowpass', f: 220, q: 0.5, g: 0.05, gust: [0.6, 1.4], tau: 2 }); // its low body
+        break;
+      case 'dial':
+        this.bed(r, t, { type: 'lowpass', f: 120, q: 0.7, g: 0.03, gust: [0.8, 1.2], tau: 3 }); // the great stone breathing heat
+        this.bed(r, t, { type: 'bandpass', f: 700, q: 0.6, g: 0.016, gust: [0.4, 1.6], sway: [0.8, 1.3], tau: 1.6 }); // air moving over the dial
+        this.bed(r, t, { type: 'highpass', f: 4000, q: 0.5, g: 0.003, gust: [0.6, 1.4], tau: 2 }); // heat shimmer
+        this.hum(r, t, 55, 0.012); // the dial's deep hum
+        break;
     }
   }
 
@@ -3827,6 +3843,23 @@ export class Synth {
           lap: { every: [1.6, 3.6], play: (r, t) => this.waterLap(r, t, 0.6) },
           tick: { every: [0.98, 1.02], play: (r, t) => this.clockTick(r, t) },
           gulls: { every: [12, 26], play: (r, t) => this.gulls(r, t) },
+        };
+      case 'dunes':
+        return {
+          gust: { every: [2, 5], play: (r, t) => this.gust(r, t) },
+          cicada: { every: [1.5, 5], play: (r, t) => this.cricket(r, t, 0, 1.2) },
+        };
+      case 'spire':
+        return {
+          gust: { every: [1.5, 4], play: (r, t) => this.gust(r, t) },
+          chains: { every: [4, 10], play: (r, t) => this.chainClink(r, t) },
+          hammer: { every: [6, 14], play: (r, t) => this.farHammer(r, t) },
+        };
+      case 'dial':
+        return {
+          gust: { every: [3, 7], play: (r, t) => this.gust(r, t) },
+          tick: { every: [0.98, 1.02], play: (r, t) => this.clockTick(r, t) },
+          rumble: { every: [10, 20], play: (r, t) => this.farRumble(r, t) },
         };
       case 'mere':
         return {
@@ -4351,6 +4384,9 @@ const AMB_LABEL: Record<Ambience, string> = {
   fen: 'act 10',
   causeway: 'act 11',
   mere: 'act 12',
+  dunes: 'act 13',
+  spire: 'act 14',
+  dial: 'act 15',
 };
 
 /** Every sound effect, for the Sound lab and the loudness tests. `tier` marks the impacts (lightest first). */

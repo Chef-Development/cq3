@@ -937,10 +937,14 @@ describe('ambience', () => {
     ['fen', ['dusk1', 'dusk1-fight@0', 'dusk1-fight@full', 'bellybog1@0', 'bellybog1@full', 'bellybog2@0', 'bellybog2@full']],
     ['causeway', ['dusk2', 'dusk2-fight@0', 'dusk2-fight@full', 'sluice1@0', 'sluice1@full', 'sluice2@0', 'sluice2@full']],
     ['mere', ['dusk3', 'dusk3-fight@0', 'dusk3-fight@full', 'lighthouse1@0', 'lighthouse1@full', 'lighthouse2@0', 'lighthouse2@full', 'lighthouse3']],
+    // and Region 5's
+    ['dunes', ['noon1', 'noon1-fight@0', 'noon1-fight@full', 'sphinx1@0', 'sphinx1@full', 'sphinx2@0', 'sphinx2@full']],
+    ['spire', ['noon2', 'noon2-fight@0', 'noon2-fight@full', 'brassLion1@0', 'brassLion1@full', 'brassLion2@0', 'brassLion2@full']],
+    ['dial', ['noon3', 'noon3-fight@0', 'noon3-fight@full', 'gnomon1@0', 'gnomon1@full', 'gnomon2@0', 'gnomon2@full', 'gnomon3']],
   ];
 
   it('every place has an ambience in the Sound lab catalog (and none is an impact tier)', () => {
-    expect(AMBIENCES.length).toBe(15);
+    expect(AMBIENCES.length).toBe(18);
     expect(new Set(UNDER.map(([a]) => a))).toEqual(new Set(AMBIENCES));
     for (const a of AMBIENCES) {
       const e = SFX.find((x) => x.id === `amb-${a}`);
@@ -1022,6 +1026,15 @@ describe('ambience', () => {
       ['mere', 'dusk3'],
       ['mere', 'dusk3-fight@full'],
       ['mere', 'lighthouse3'],
+      ['dunes', 'noon1'],
+      ['dunes', 'noon1-fight@full'],
+      ['dunes', 'sphinx2@full'],
+      ['spire', 'noon2'],
+      ['spire', 'noon2-fight@full'],
+      ['spire', 'brassLion2@full'],
+      ['dial', 'noon3'],
+      ['dial', 'noon3-fight@full'],
+      ['dial', 'gnomon3'],
     ];
     for (const [a, id] of pairs) {
       const c = CUES.find((x) => x.id === id)!;
