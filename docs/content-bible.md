@@ -692,7 +692,7 @@ speed in a slow patch.
 
 ---
 
-## 7. Region 4: DUSKMIRE (secret; working id `duskmire`; being built, not in play yet)
+## 7. Region 4: DUSKMIRE (secret; id `duskmire`; in play as global acts 9-11, on stand-in art until its own lands)
 
 *The names here are final (decisions L3); the scenes are the story team's (`src/data/story-dusk.ts`, written to
 docs/story-bible.md section 8). Bellybog and the Sluice Keeper speak in them: both need portraits.*
@@ -837,15 +837,16 @@ Block). Hook points (core/hooks.ts, built): `lit`, `lightReach`, `surfaced` (wit
 (relic-ui.ts, relic-log.ts), an icon each, numbers into `tuning.relics.n`, an entry each in view/perk-at.ts, and
 `DUSK_RELIC_HOOKS` into RELIC_HOOKS; the cautious bot's `avoid` list should take Blindfold and Moonpull.
 
-### Gear (`src/data/gear-dusk.ts`, not merged yet)
+### Gear (`src/data/gear-dusk.ts`, merged into gear.ts)
 Bases: Reed Spear, Lantern Mace, Peat Maul (weapons); Moss Cowl, Snapper Helm (helms); Reed Mail, Shellplate (armor);
 Stilt Boots, Mud Treads (boots); Wisp Charm, Tide Pearl (trinkets).
 Set: **Lamplighter's** (Wick Hood, Oilskin Coat, Waders, Firefly Jar): 2-piece +20% damage on dark blocks; 4-piece
-blocking a red in the water heals 2% HP (needs core at wiring, beside the Emberwright set's).
+blocking a red in the water heals 2% HP (core: `tuning.effects.lampDark`, `lampHeal`).
 Signature Legendaries (the Lighthouse): **Sunlamp** (trinket, *Daybreak*: your light reaches 50% further: a
-`lightReach` hook), **Breaker's Edge** (weapon, *Riptide*: blocks just out of the water take x3: `surfacedAt`).
+`effects.sunlamp`), **Breaker's Edge** (weapon, *Riptide*: blocks up out of the water in the last 1.5 s take x3:
+`effects.riptide`, `riptideSec`).
 
-### Camp banter (`src/data/banter-dusk.ts`, not merged yet)
+### Camp banter (`src/data/banter-dusk.ts`, played by the camp)
 10 lines, each waiting for a Region 4 scene (`after`), none naming the mapmaker until the story team names him.
 
 ### Music (each piece: a distinct key, tempo and instruments, unlike Regions 1-3 and each other)
@@ -912,6 +913,28 @@ rules: the lantern's reach never under 0.32 s, the tide never over half the bar,
    every foe's map mini (`art-minis.ts`); portraits; the three landmarks and `landOpen`; telegraph sounds; the six
    pieces and three beds (Sound lab labels by act number only).
 
+### As wired (round 8, team content C6-C8)
+- **In play** as global acts 9-11 after Ashfell's victory (its land opens at `actsCleared >= 9`, the generic
+  `landOpen`); a fresh run like every region; `duskCamp` plays at the camp after its first act (like `magsTale`).
+- **Stand-ins until DUSK-ART's art lands** (each switches itself off when the real texture or track exists): foes fight
+  in an earlier foe's sprite set (`SPRITE_STAND_IN` in view/fighters.ts: wisp -> aurora wisp, toad -> slime, reedling ->
+  shaman, peat golem -> golem, Bellybog -> big slime, mudskipper -> slimelet, heron -> crow, lamplighter -> frost
+  weaver, snapper -> glacier tortoise, Sluice Keeper -> drift troll, ink eel -> magma eel, moths -> prism bat, hag ->
+  hailcaller, sentinel -> chain sentinel, the Lighthouse -> Bellows); unbuilt telegraph sounds play `charge`;
+  Bellybog and the Sluice Keeper speak from an empty frame; the acts wear `DUSK_STAND_IN` themes (hollow, caves,
+  glass), so backdrops, map kits and critters are those; the music clamps to `ash3` and the beds follow the stand-in
+  themes. World map: `WORLD_ACTS_DUSK` (art-world-lands.ts) puts Act 10 at the drowned arch (779, 254), Act 11 at the
+  stilt village (626, 254), Act 12 at the lighthouse's lamp (708, 234), placeholders for the land's art team. The region
+  card has its sites (`REGION_SITES.duskmire`) on a fogged sheet until its parchment map is drawn.
+- **Balance** (`npm run region-tune` REGION=3, Rowan, 54 end-of-Ashfell profiles at 75%; the guard is
+  `tests/unit/bot-region4.test.ts`). The first guesses were far too easy (96% / 100% / 76%): the hero arrives at level
+  18-20 and the tide's wading slows reds. Act attack and red speed alone moved little (the mini-bosses decide each act:
+  first try = boss first try); a longer, harder Sluice Keeper with faster reds did it. As tuned: hpMult 7.2 / 7.6 / 9.2,
+  atkMult 20 / 24 / 25, redSpeed 1.3 / 1.36 / 1.38; Old Bellybog 4000 HP; the Sluice Keeper 5300 HP, atk 24. Measured:
+  Act 10 85%, Act 11 69%, Act 12 ~55% (four samples 44-65%), the Lighthouse's first fight ~55-65%; fights 12-21 s, boss
+  fights 60 / 59 / 85 s. Region 5's first-guess numbers were raised to stay a step above (atkMult 21 / 25 / 26.5,
+  redSpeed 1.32 / 1.38 / 1.4).
+
 ### Build calls (decisions.md round 8, team content C1-C3; kept here: spoilers)
 - **Dark blocks: the light is a time, not a distance.** The cursor's lantern reaches `dark.lightSec` (0.45 s) of
   its travel at its current speed, so it widens as the combo speeds the cursor up and a dark block always shows
@@ -929,9 +952,7 @@ rules: the lantern's reach never under 0.32 s, the tide never over half the bar,
   came dark bites for 0.6 (`dark.trapMult`) and the trap shares are 0.12-0.15 of dark yellows; wading at 0.6 made
   the tide a gift (HP lost 48% vs 62% without), so reds wade at 0.8. The bot waits for the light, misreads a dark
   trap (1 - accuracy) / 2 of the time, and slips onto a sunk block (1 - accuracy) / 4 of the time.
-- **Region 4's data is written but not wired in** (`duskmire.ts`, `enemies-dusk.ts`, `story-dusk.ts`, checked by
-  `duskmire-data.test.ts`): it joins REGIONS once its art (sprites, minis, backdrops, themes) and telegraph sounds
-  exist; until then its acts borrow earlier looks (`DUSK_STAND_IN`) and its scenes are one-line placeholders.
+- **Region 4 joined REGIONS ahead of its art** (lead's brief, round 8): stand-ins until it lands (As wired, above).
 
 ---
 
@@ -1028,10 +1049,18 @@ every morning, a month without one (it doesn't speak). The hints follow the rule
 shimmer lands"; `noonBoss2` (the glare) "the blazing ones hit hard, and they burn; a green cools you off";
 `noonBoss3` (the sun drawn down) "watch the outlines: that's where they'll land".
 
+### Gear (`src/data/gear-noon.ts`, data only, not merged; checked by `noonspire-data.test.ts`)
+Bases: Dial Spear, Sunsteel Saber, Spire Hammer (weapons); Veil Hood, Brass Visor (helms); Dust Mail, Sunplate (armor);
+Dune Striders, Stair Treads (boots); Noon Pearl, Haze Glass (trinkets). Set: **Wayfarer's** (Sun Hat, Linen Robe,
+Sandals, Water Skin): 2-piece +20% damage on blazing blocks; 4-piece a green cools the Heat and heals 2% HP. Signature
+Legendaries (the Gnomon): **Sunstone** (trinket, *Cool Head*: the Heat burns half as fast), **Gnomon's Hand** (weapon,
+*True Hour*: a mirage hit right after its hop deals x3; needs a hop time on the block at wiring). Merging: as for
+Duskmire's (the ids into gear.ts's unions, the effects in combat.ts with `tuning.effects` sliders).
+
 ### Still to design and build (next chunks)
 Relics (Mirage and Heat tags; ideas: hits on a mirage just after it hops crit; a ghost spot struck before the hop
 counts; Heat cools faster; blazing hits fill more meter; a green cools and heals; epic: Heat never burns, but blazing
-hits deal x1.2 only), gear (a set: 2-piece +20% on blazing yellows; signatures from the Gnomon), music (six pieces,
+hits deal x1.2 only), music (six pieces,
 unlike Regions 1-4: e.g. a desert 7/8 in D Hijaz, a brass fanfare 6/8 for the spire steps, a ticking clock-work
 ostinato for the dial), art (sprites, portraits, backdrops: `art-noon.ts`, `backdrop-noon.ts`), telegraph sounds
 (`NOON_NEW_SOUNDS`), and balance (a little harder than Lanternfen: Act 1 ~80%, Act 2 ~65%, Act 3 ~50%, the Gnomon's

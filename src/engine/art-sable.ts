@@ -11,6 +11,7 @@
 import { HERO_FEET_X, HERO_H, HERO_W, grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 import { ROWAN_CARD, ROWAN_RIG } from './art-hero-rowan';
 import { rigFrame } from './art-rig';
+import { daggerMap } from './art-sword';
 import { EARTH, LEAF, STONE, ell, fill, or, rect, sphere, tone } from './art-paint';
 import { bay } from './backdrop';
 
@@ -227,46 +228,9 @@ interface Blade {
   grip: [number, number];
 }
 
-/** A short curved dagger pointing right: brass pommel and guard, the edge curving up into the tip. */
-const DAGGER_R: Blade = { rows: ['...G......', 'PhhgAAAAAT', '...yLCCC..'], grip: [1, 1] };
-/** The same dagger pointing up and to the right. */
-const DAGGER_UR: Blade = {
-  rows: ['.......T', '......AL', '.....AL.', '....AC..', '..GAC...', '...g....', '.h..y...', 'P.......'],
-  grip: [1, 6],
-};
-
-const flipX = (m: Blade): Blade => {
-  const w = m.rows[0].length;
-  return { rows: m.rows.map((r) => [...r].reverse().join('')), grip: [w - 1 - m.grip[0], m.grip[1]] };
-};
-const flipY = (m: Blade): Blade => ({ rows: [...m.rows].reverse(), grip: [m.grip[0], m.rows.length - 1 - m.grip[1]] });
-/** Rotate 90 degrees counter-clockwise: the top row becomes the left column. */
-const rotCCW = (m: Blade): Blade => {
-  const h = m.rows.length;
-  const w = m.rows[0].length;
-  const rows = Array.from({ length: w }, (_, y) => Array.from({ length: h }, (_, x) => m.rows[x][w - 1 - y]).join(''));
-  return { rows, grip: [m.grip[1], w - 1 - m.grip[0]] };
-};
-
+/** Her dagger along `dir`: 3 px of steel so it reads at 8x (art-sword.ts's dagger, in her brass and steel). */
 function dagger(dir: Dir): Blade {
-  switch (dir) {
-    case 'r':
-      return DAGGER_R;
-    case 'l':
-      return flipX(DAGGER_R);
-    case 'u':
-      return rotCCW(DAGGER_R);
-    case 'd':
-      return flipY(rotCCW(DAGGER_R));
-    case 'ur':
-      return DAGGER_UR;
-    case 'ul':
-      return flipX(DAGGER_UR);
-    case 'dr':
-      return flipY(DAGGER_UR);
-    case 'dl':
-      return flipX(flipY(DAGGER_UR));
-  }
+  return daggerMap(dir, 7);
 }
 
 // ------------------------------------------------------------------ poses

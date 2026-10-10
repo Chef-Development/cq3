@@ -33,12 +33,15 @@ describe('hero frames', () => {
       expect(idle[2], `${art}_idle2`).not.toBe(idle[1]);
       expect(idle[3], `${art}_idle3`).not.toBe(idle[0]);
       for (const g of frames) expect(g.some((r) => r.some((c) => c !== null))).toBe(true);
+      // (a letter missing from a palette paints magenta)
+      for (const [i, g] of frames.entries()) expect(key(g).includes('#ff00ff'), `${art}_${HERO_POSE_KEYS[i]}`).toBe(false);
     }
-    const sable = ['idle0', 'idle1', 'idle2', 'idle3'].map((k) => {
+    const sable = Object.keys(SABLE_POSES).map((k) => {
       const g = grid(HERO_W, HERO_H);
       paintSable(g, SABLE_POSES[k]);
       return key(g);
     });
+    for (const f of sable) expect(f.includes('#ff00ff')).toBe(false);
     expect(sable[2]).not.toBe(sable[1]);
     expect(sable[3]).not.toBe(sable[0]);
   });

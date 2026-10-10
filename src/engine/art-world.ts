@@ -22,6 +22,7 @@
 // rects a frame. The whole lot is painted once; later layouts reuse the canvases.
 import { grid, stamp, toCanvas, type Pal } from './art';
 import { paintLands, WORLD_ACTS_ASH, WORLD_ACTS_DUSK } from './art-world-lands';
+import { ATLAS_INK, atlasPrint, blankOf, compassRose, draftOf, neatline, PARCH, paperAt } from './art-world-atlas';
 import { bay, col, fbm, hash, level, lighten, mass, mix, noise, pick, Pix, ramp, rgba32, rng, tuft, wordCanvas, type Blob, type Col, type Ramp } from './backdrop';
 import {
   banditCamp,
@@ -133,6 +134,11 @@ export const VEIL_BOXES: Record<string, Box> = {
   duskmire: { x: 516, y: 178, w: 344, h: 122 },
 };
 
+/** His drafts of each land (the ink drawing shown until its region is restored, `wm_draft_<id>`): each one's box
+ *  (set when painted). Greenmarch's includes the heartland round the capital. */
+export const DRAFT_BOXES: Record<string, Box> = {};
+const DRAFT_REG: Record<string, number> = { greenmarch: R_GREEN, frostpeaks: R_FROST, ashfell: R_ASH, duskmire: R_DUSK };
+
 /** Where the view animates things (world px). */
 export const WORLD_SPOTS = {
   mills: [
@@ -237,7 +243,6 @@ export function worldRegionAt(x: number, y: number): string | null {
 const SEA = ramp('#10264e', '#13305c', '#173a68', '#1c4676', '#235486', '#2a6092');
 const SHALLOW = ramp('#2a6a9e', '#3180ae', '#3c96be', '#52aeca', '#74c6d4', '#a0dcdc');
 const FOAM = col('#d8f0ec');
-const WAVE_LIGHT = col('#9acce8');
 const GRASS = ramp('#24482e', '#2e5a32', '#3e7034', '#4f8a38', '#68a440', '#88bc48', '#a8d058', '#c8e070');
 const MEADOW = ramp('#3a5428', '#4c6a2c', '#628434', '#7c9e3c', '#98b846', '#b6cc58', '#d0de74');
 const SAND = ramp('#b09060', '#d4bc84', '#ecdcaa', '#f8ecc4');
@@ -633,6 +638,7 @@ interface WorldLayers {
   lamp: Pix;
   isle: Pix;
   veils: Record<string, HTMLCanvasElement>;
+  drafts: Record<string, HTMLCanvasElement>;
   isleVeil: HTMLCanvasElement;
   rim: HTMLCanvasElement;
 }
@@ -1391,13 +1397,14 @@ function* paintSea(S: Stage): Generator<void, HTMLCanvasElement[]> {
       coastK.push(coastN[i] * 0.6 + hash(x >> 1, y >> 1, 77) * 0.4);
     }
   const ripple = col('#a8e0f4');
-  const foam = rgba32(FOAM);
+  // on the Atlas: the wave marks are small strokes of faded ink, the surf a pale line of bare paper
+  const foam = rgba32(PARCH[5]);
   const frames: HTMLCanvasElement[] = [];
   for (let f = 0; f < SEA_FRAMES; f++) {
     yield;
     frames.push(
       wordCanvas(W, H, (u) => {
-        const tint = (x: number, y: number, k: number, to = WAVE_LIGHT) => {
+        const tint = (x: number, y: number, k: number, to = ATLAS_INK[3]) => {
           const i = y * W + x;
           u[i] = rgba32(mix(buf[i], to, k));
         };
@@ -1415,8 +1422,8 @@ function* paintSea(S: Stage): Generator<void, HTMLCanvasElement[]> {
           if (s === 4) u[(y - 1) * W + x + 2 + o] = foam;
           else tint(x + 2 + o, y - 1, 0.38);
           tint(x + 3 + o, y, 0.38);
-          tint(x + 1 + o, y, 0.4, SEA[0]);
-          tint(x + 2 + o, y, 0.4, SEA[0]);
+          tint(x + 1 + o, y, 0.3, PARCH[5]);
+          tint(x + 2 + o, y, 0.3, PARCH[5]);
         }
         // the surf: a line rolls in over three frames, then the beach foam lingers
         const at = 4.2 - f * 0.95;
@@ -1425,8 +1432,8 @@ function* paintSea(S: Stage): Generator<void, HTMLCanvasElement[]> {
           const d = dist[i];
           const n = coastK[k];
           if (f < 3) {
-            if (Math.abs(d - at) < 0.55 && n > 0.5 - f * 0.12) u[i] = f === 0 ? rgba32(mix(buf[i], FOAM, 0.4)) : f === 1 ? rgba32(mix(buf[i], FOAM, 0.7)) : foam;
-          } else if (d > 1.2 && d < 2.3 && n > 0.32 + (f - 3) * 0.08) u[i] = d < 1.8 ? foam : rgba32(mix(buf[i], FOAM, 0.6));
+            if (Math.abs(d - at) < 0.55 && n > 0.5 - f * 0.12) u[i] = f === 0 ? rgba32(mix(buf[i], PARCH[5], 0.4)) : f === 1 ? rgba32(mix(buf[i], PARCH[5], 0.7)) : foam;
+          } else if (d > 1.2 && d < 2.3 && n > 0.32 + (f - 3) * 0.08) u[i] = d < 1.8 ? foam : rgba32(mix(buf[i], PARCH[5], 0.6));
         }
         for (const i of riverPix) {
           if (c.water[i] !== 1) continue;
@@ -1575,16 +1582,26 @@ function* paintWorld(): Generator<void, WorldLayers> {
   WORLD_LIFE.windows = c.windows;
   WORLD_LIFE.chimneys = c.chimneys;
   atmosphere(p);
+  // printed on the Atlas: parchment sea, inked coasts and borders (art-world-atlas.ts), then his drafts of each land
+  const greenish = (r: number) => (r === R_HEART ? R_GREEN : r);
+  yield* atlasPrint({ W, H, buf: p.buf, land: L.plateMask, reg: L.reg, water: c.water, dist: S.dist, sheetW: MAP_W }, (a, b) => greenish(a) === greenish(b));
+  const drafts: Record<string, HTMLCanvasElement> = {};
+  for (const [id, R] of Object.entries(DRAFT_REG)) {
+    yield;
+    const d = draftOf(p.buf, W, H, (i) => L.plateMask[i] === 1 && greenish(L.reg[i]) === R);
+    DRAFT_BOXES[id] = d.box;
+    drafts[id] = d.canvas;
+  }
   const sea = yield* paintSea(S);
   yield;
   const wind = paintWind(S);
   yield;
   const glows = paintGlows(S);
   const isle = paintIsle(p);
-  const veils = yield* paintVeils(L.reg, L.plateMask, L.broad);
+  const veils = yield* paintVeils(L.reg, L.plateMask, L.broad, p.buf);
   yield;
   const rim = paintRim();
-  return { base: p.canvas(), sea, wind, lava: glows.lava, lamp: glows.lamp, isle: isle.p, veils, isleVeil: isle.veil, rim };
+  return { base: p.canvas(), sea, wind, lava: glows.lava, lamp: glows.lamp, isle: isle.p, veils, drafts, isleVeil: isle.veil, rim };
 }
 
 /** The light over everything: distance hazes the far north toward the sky's colour (in dithered steps), and the
@@ -1729,40 +1746,6 @@ class Veil {
   }
 }
 
-const VEIL_TINT: Record<string, { lo: Col; hi: Col; cloud: Ramp; edge: Col; keepOut: Box[] }> = {
-  frostpeaks: {
-    lo: col('#9aa8cc'),
-    hi: col('#eef4ff'),
-    cloud: ramp('#8c9cc4', '#b8c8e4', '#dce8f8', '#ffffff'),
-    edge: col('#7a88b0'),
-    keepOut: [
-      { x: 540, y: 32, w: 52, h: 52 },
-      { x: 628, y: 86, w: 56, h: 22 },
-      { x: 462, y: 54, w: 24, h: 24 },
-    ],
-  },
-  ashfell: {
-    lo: col('#7a6a72'),
-    hi: col('#e0d0cc'),
-    cloud: ramp('#6e5e66', '#9a8a8e', '#c8b8b6', '#eadcd6'),
-    edge: col('#58484e'),
-    keepOut: [
-      { x: 786, y: 18, w: 54, h: 40 },
-      { x: 752, y: 154, w: 36, h: 26 },
-      { x: 770, y: 140, w: 44, h: 26 },
-    ],
-  },
-  duskmire: {
-    lo: col('#6a8478'),
-    hi: col('#d8e8dc'),
-    cloud: ramp('#62786e', '#8aa094', '#b4c8bc', '#dce8e0'),
-    edge: col('#4a6056'),
-    keepOut: [
-      { x: 692, y: 218, w: 32, h: 36 },
-      { x: 596, y: 234, w: 56, h: 38 },
-    ],
-  },
-};
 const VEIL_REG: Record<string, number> = { frostpeaks: R_FROST, ashfell: R_ASH, duskmire: R_DUSK };
 
 /**
@@ -1770,7 +1753,7 @@ const VEIL_REG: Record<string, number> = { frostpeaks: R_FROST, ashfell: R_ASH, 
  * with the known lands, and a few banks drifting over its far parts; its landmarks keep clear patches so they show
  * through. The mist is quantised to a few alpha steps with ordered dither (pixel art, not a blur).
  */
-function* paintVeils(reg: Uint8Array, plate: Uint8Array, broad: Float32Array): Generator<void, Record<string, HTMLCanvasElement>> {
+function* paintVeils(reg: Uint8Array, plate: Uint8Array, _broad: Float32Array, printed: Int32Array): Generator<void, Record<string, HTMLCanvasElement>> {
   const W = WORLD_W;
   const H = WORLD_H;
   // where the known lands are not (the sea, the map's edge and the locked lands), blurred into a soft frontier
@@ -1795,82 +1778,16 @@ function* paintVeils(reg: Uint8Array, plate: Uint8Array, broad: Float32Array): G
     const s = sat[y1 * sw + x1] - sat[y0 * sw + x1] - sat[y1 * sw + x0] + sat[y0 * sw + x0];
     return (s + area - (x1 - x0) * (y1 - y0)) / area;
   };
+  // each locked land as erased: blank vellum keeping the impression of its lines (art-world-atlas.ts blankOf)
   const out: Record<string, HTMLCanvasElement> = {};
   for (const [id, b] of Object.entries(VEIL_BOXES)) {
     yield;
     const R = VEIL_REG[id];
-    const tint = VEIL_TINT[id];
-    const bw = b.w;
-    const bh = b.h;
-    const clear = new Uint8Array(bw * bh);
-    for (const k of tint.keepOut)
-      for (let y = Math.max(0, k.y - b.y); y < Math.min(bh, k.y + k.h - b.y); y++) for (let x = Math.max(0, k.x - b.x); x < Math.min(bw, k.x + k.w - b.x); x++) clear[y * bw + x] = 1;
-    const rgb = new Int32Array(bw * bh);
-    const al = new Float32Array(bw * bh);
-    // the mist over the land
-    for (let y = 0; y < bh; y++)
-      for (let x = 0; x < bw; x++) {
-        const gx = b.x + x;
-        const gy = b.y + y;
-        if (gx >= W || gy >= H) continue;
-        const i = gy * W + gx;
-        if (!plate[i] || reg[i] !== R) continue;
-        const m = soft(gx, gy);
-        const n = broad[i];
-        const frontier = clamp01(1 - Math.abs(m - 0.62) * 3.2);
-        const q = clear[y * bw + x] ? 0.12 : 0.24 + level(frontier, 2, gx, gy, 0.4) * 0.14;
-        rgb[y * bw + x] = mix(tint.lo, tint.hi, clamp01(0.5 + (n - 0.5) * 1.6 - (y / bh) * 0.15));
-        al[y * bw + x] = q;
-      }
-    // a wall of cloud along the frontier, and a few banks over the far parts
-    const blobs: Blob[] = [];
-    const isR = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && reg[y * W + x] === R && plate[y * W + x] === 1;
-    for (let gy = b.y; gy < b.y + bh; gy += 5)
-      for (let gx = b.x; gx < b.x + bw; gx += 6) {
-        const m = soft(gx, gy);
-        if (m < 0.3 || m > 0.78 || hash(gx, gy, 501) > 0.8) continue;
-        if (!isR(gx, gy) && !isR(gx + 7, gy) && !isR(gx - 7, gy) && !isR(gx, gy + 6) && !isR(gx, gy - 6)) continue;
-        const x = gx - b.x + (hash(gx, gy, 502) - 0.5) * 4;
-        const y = gy - b.y + (hash(gx, gy, 503) - 0.5) * 3;
-        const ci = Math.round(y) * bw + Math.round(x);
-        if (ci >= 0 && ci < bw * bh && clear[ci]) continue;
-        const r = 4 + hash(gx, gy, 504) * 3.5;
-        blobs.push({ x, y, rx: r, ry: r * 0.66 });
-      }
-    const rr = rng(520 + id.length);
-    let banks = 0;
-    for (let k = 0; k < 400 && banks < 5; k++) {
-      const x = Math.floor(rr() * bw);
-      const y = Math.floor(rr() * bh);
-      if (!isR(b.x + x, b.y + y) || soft(b.x + x, b.y + y) < 0.98 || clear[y * bw + x]) continue;
-      banks++;
-      for (let j = 0; j < 6; j++) {
-        const r = 3.5 + rr() * 3.5;
-        blobs.push({ x: x + (rr() - 0.5) * 22, y: y + (rr() - 0.5) * 6, rx: r, ry: r * 0.62 });
-      }
-    }
-    const cl = new Pix(bw, bh, -1);
-    const groups = new Map<number, Blob[]>();
-    for (const bl of blobs) {
-      const key = Math.floor(bl.x / 30) * 100 + Math.floor(bl.y / 20);
-      const g = groups.get(key) ?? [];
-      g.push(bl);
-      groups.set(key, g);
-    }
-    let seed = 0;
-    for (const g of groups.values()) mass(cl, g, { ramp: tint.cloud, seed: 600 + seed++, bump: 0.16, tex: 0.1, vgrad: 0.45, light: 0.14, shadow: 0.2, band: 0.5, outline: tint.edge });
-    out[id] = wordCanvas(bw, bh, (u) => {
-      for (let i = 0; i < bw * bh; i++) {
-        const v = cl.buf[i];
-        if (v >= 0) u[i] = rgba32(v, 235);
-        else if (al[i] > 0) u[i] = rgba32(rgb[i], Math.round(al[i] * 255));
-      }
-    });
+    out[id] = blankOf(printed, W, H, b, (i) => plate[i] === 1 && reg[i] === R, soft);
   }
   return out;
 }
 
-const FAR_MIST = col('#8a9cc4');
 
 /**
  * The far sea east of the continent (FAR_SEA_W x WORLD_H, at x = WORLD_W): the open sea of stageSea carried on
@@ -1886,16 +1803,15 @@ function* paintFarSea(): Generator<void, { base: HTMLCanvasElement; waves: HTMLC
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       const gx = X0 + x;
-      const vx = (gx - WORLD_W * 0.4) / WORLD_W;
-      let c = pick(SEA, 0.72 - vx * vx * 0.8 + (fbm(gx * 0.018, y * 0.03, 23) - 0.5) * 0.6 + (y > H * 0.6 ? 0.06 : 0), gx, y, 0.14);
-      if (y < 120) {
-        const q = level((((120 - y) / 120) ** 1.4 * 0.32) / 0.32, 4, gx, y, 0.25) / 4;
-        if (q > 0) c = mix(c, SKY_HAZE, q * 0.32);
-      }
+
+      // the Atlas's parchment carried on past the continent (the same paper and burnt edge), into the blank at the
+      // sheet's eastern edge
+      let c = paperAt(gx, y, MAP_W, H);
       const m = level(clamp01((gx - (MAP_W - 72)) / 72), 4, gx, y, 0.3) / 4;
-      if (m > 0) c = mix(c, FAR_MIST, m * 0.5);
+      if (m > 0) c = mix(c, col('#ece8f0'), m * 0.55);
       p.buf[y * W + x] = c;
     }
+  neatline(p.buf, W, H, X0, MAP_W);
   yield;
   const marks: Array<[number, number, number]> = [];
   for (let gy = 2; gy < H; gy += 7)
@@ -1906,10 +1822,10 @@ function* paintFarSea(): Generator<void, { base: HTMLCanvasElement; waves: HTMLC
       if (x < X0 || x > MAP_W - 30 || y < 2 || y >= H || hash(gx, gy, 33) < 0.25) continue;
       marks.push([x - X0, y, Math.floor(hash(gx, gy, 34) * SEA_FRAMES)]);
     }
-  const foam = rgba32(FOAM);
+  const foam = rgba32(PARCH[5]);
   const waves = Array.from({ length: SEA_FRAMES }, (_, f) =>
     wordCanvas(W, H, (u) => {
-      const tint = (x: number, y: number, k: number, to = WAVE_LIGHT) => {
+      const tint = (x: number, y: number, k: number, to = ATLAS_INK[3]) => {
         if (x < W) u[y * W + x] = rgba32(mix(p.buf[y * W + x], to, k));
       };
       for (const [x, y, ph] of marks) {
@@ -1926,8 +1842,8 @@ function* paintFarSea(): Generator<void, { base: HTMLCanvasElement; waves: HTMLC
         if (s === 4) u[(y - 1) * W + x + 2 + o] = foam;
         else tint(x + 2 + o, y - 1, 0.38);
         tint(x + 3 + o, y, 0.38);
-        tint(x + 1 + o, y, 0.4, SEA[0]);
-        tint(x + 2 + o, y, 0.4, SEA[0]);
+        tint(x + 1 + o, y, 0.3, PARCH[5]);
+        tint(x + 2 + o, y, 0.3, PARCH[5]);
       }
     }),
   );
@@ -2195,6 +2111,8 @@ function* buildSteps(): Generator<void, void> {
   put('wm_lava', L.lava.canvas());
   put('wm_lamp', L.lamp.canvas());
   for (const [id, cv] of Object.entries(L.veils)) put(`wm_veil_${id}`, cv);
+  for (const [id, cv] of Object.entries(L.drafts)) put(`wm_draft_${id}`, cv);
+  put('wm_compass', compassRose());
   put('wm_rim', L.rim);
   yield;
   const far = yield* paintFarSea();

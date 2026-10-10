@@ -12,13 +12,17 @@ import { REGIONS, regionStart } from '../../src/data/regions';
 // (npm run spam).
 describe('the masher loses every Act 3 and boss', () => {
   const N = 5;
+  // the boss alone needs a bigger sample: a lucky early win ends a run's tries, so with five runs one or two of them
+  // swung "every try" from about 4% to over 10% (merge 3 of round 8: 2 of 19); fifteen runs measure it (30 seeds:
+  // region 2's boss-alone masher wins 6 of 152 tries, 4%; its first fight 2 of 30)
+  const NB = 15;
   const t = cloneTuning();
   const seed = (k: number) => (7919 + k * 104729 + 750) >>> 0;
   const rows = REGIONS.map((_, r) => {
     const act = regionStart(r) + REGIONS[r].acts.length - 1;
     // the act mashed from its start (each try; up to 6), and its boss alone (the act's other fights aimed)
     const whole = Array.from({ length: N }, (_, k) => playCampaign(t, { accuracy: TYPICAL_ACCURACY, seed: seed(k), mashFrom: act }, r + 1).acts.find((a) => a.act === act));
-    const boss = Array.from({ length: N }, (_, k) => playCampaign(t, { accuracy: TYPICAL_ACCURACY, seed: seed(k), mashFrom: act, mashBoss: true }, r + 1).acts.find((a) => a.act === act));
+    const boss = Array.from({ length: NB }, (_, k) => playCampaign(t, { accuracy: TYPICAL_ACCURACY, seed: seed(k), mashFrom: act, mashBoss: true }, r + 1).acts.find((a) => a.act === act));
     const mashed = (a: (typeof whole)[number]): FightStats[] => a?.attempts.flatMap((x) => x.fights).filter((f) => f.mashed) ?? [];
     return { r, act, whole, boss, mashed };
   });
@@ -41,10 +45,10 @@ describe('the masher loses every Act 3 and boss', () => {
       expect(x.whole.flatMap((a) => x.mashed(a)).filter((f) => f.type === 'boss' && f.won).length, 'its boss, mashing the whole act').toBe(0);
       // the boss alone (the act's other fights aimed): its first fight in every run is lost...
       const first = x.boss.map((a) => a?.attempts.flatMap((t) => t.fights).find((f) => f.type === 'boss' && f.mashed)).filter((f) => !!f);
-      expect(first.length, 'boss fights mashed').toBeGreaterThanOrEqual(Math.ceil(N / 2));
-      // (at most one of the five: over 30 seeds the boss-alone masher won its first boss fight 2 times, about 7%, both
+      expect(first.length, 'boss fights mashed').toBeGreaterThanOrEqual(Math.ceil(NB / 2));
+      // (at most one in five: over 30 seeds the boss-alone masher won its first boss fight 2 times, about 7%, both
       // before and after round 8's Act 1 chest; five seeds with none was the luck of the draw, docs/decisions.md F6)
-      expect(first.filter((f) => f!.won).length, 'its boss alone, first fight').toBeLessThanOrEqual(1);
+      expect(first.filter((f) => f!.won).length, 'its boss alone, first fight').toBeLessThanOrEqual(Math.floor(NB / 5));
       // ...and retrying it (up to 6 tries) hardly ever pays (a lucky stack-banking relic build can, once in a while)
       const all = x.boss.flatMap((a) => x.mashed(a)).filter((f) => f.type === 'boss');
       expect(all.filter((f) => f.won).length / all.length, 'its boss alone, every try').toBeLessThanOrEqual(0.1);

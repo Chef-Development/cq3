@@ -798,6 +798,7 @@ export class FightScene extends Phaser.Scene implements View {
           this.later(260, () => f.heroDown());
           break;
         case 'won':
+          if (!c.rush) f.cheer(); // the hero's flourish (art team 2)
           // Coin Rush: time's up, the haul counted up over the sack
           if (c.rush) {
             hold = Math.max(hold, 1700);

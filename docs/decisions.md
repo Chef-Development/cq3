@@ -766,6 +766,40 @@ L5. **The full unit suite runs on GitHub at every push** (about 3 minutes there;
     teams share its four cores): the lead pushes a merge after typecheck, the build and the tests nearest the merge,
     checks the run, and fixes forward at once if it goes red.
 
+L6. **The world map keeps its painted lands** (after the Atlas pass at phone size): the dense ink-draft rendering of
+    open lands read as noise at the map's real zoom; playable lands are painted (the Atlas frames them: parchment sea,
+    inked coasts, names, the neatline), erased lands are blank vellum, and restoring a region paints it back.
+
+L7. **Mood: darker, not bright and peachy** (playtester, round 8: "the atmosphere of everything needs to be slightly
+    more dark and not all bright and peachy"). Rules for every screen (the art bible's new "Mood" section, owned by
+    art 2A; backdrops and fight lighting by art 2B; Region 4+ by the content art helpers):
+    1. Values drop: a scene's average brightness about 20-30% lower; skies are dusk, overcast, storm or night, never a
+       flat bright noon; the brightest values are kept for light sources (sun, lanterns, magic, fire) and the actors'
+       highlights.
+    2. Midtones lean cool and a step less saturated (blue, teal, violet); saturated colour lives in light pools and
+       accents.
+    3. Shadows are deep and cool (indigo, teal) and take more of the frame; vignettes are stronger.
+    4. Warm light is an accent, not a wash: no large peach, beige or cream fills (parchment is aged and darker with
+       burnt edges; UI plates are deep ink).
+    5. Actors stay readable: a rim light and a clear value step from the backdrop; the ground strip under them is calm
+       and darker.
+    6. Darker never means muddy: every material keeps 3+ hue-shifted tones and the scene keeps strong contrast.
+
+L8. **More mature, less chibi** (playtester, round 8: "everything looks a little childish and chibi; a little more
+    mature and moodier"). On top of L7's mood:
+    1. Heroes: from about 2 heads tall to about 3-3.5: longer torsos and legs, heads a little smaller; smaller eyes
+       (no big glossy eyes, no rosy cheeks), a defined brow and jaw; weathered, grounded materials (worn leather,
+       dented steel, cloth with folds); silhouettes that read as people, not toys. Rowan first as the reference, then
+       every hero, the most seen first. Weapons keep the heft from the round's earlier note.
+    2. Foes: more menace (sharper silhouettes, eyes that glow, teeth, scars), darker palettes; cute shapes (round
+       slimes, wide eyes) get an edge.
+    3. Portraits: the same maturity (defined features, moodier light).
+    4. UI: less candy gloss: plates read as engraved metal, ink and leather rather than shiny plastic; bright saturated
+       buttons are toned down to the mood's accents.
+    5. Companions may keep some charm, inside the mood's palette.
+    Teams: art 2B the heroes (and portraits of heroes); a new art 2C the fight backdrops (L7) and the foes; art 2A the
+    UI, menus, world map and title; the region helpers their regions.
+
 (lead: end of section)
 
 
@@ -906,6 +940,43 @@ A9. **Ashfell's darkest foes get an ember rim** (light from below, section 9 of 
 A2B-8. **The four-frame idle shows on the hero select too** (heroes.ts, at 340 ms a frame): at 3x the plume, cape and
     hair lagging the breath read best there. Foes landing from a wave's hops squash wide for 100 ms, and the cinderling
     joins the foes with Ashfell's ember rim (it sank into the plain's dark ground at phone size).
+A10. **Playtester note: "title too simplistic and drained".** The parchment-map title (A3) is replaced by key art
+    (`art-title-key.ts`, `view/title.ts`): a dusk over the kingdom in saturated, stepped layers (indigo to molten gold
+    round a low sun in a mountain notch, two rim-lit ranges, backlit green hills, a river of reflected gold, the
+    capital's dome) with the premise as an image, spoiler-free: on the right the world is being erased (the colour
+    drains into an ink drawing in torn patches, then blank vellum keeping only the impression of its lines, an ink
+    front clawing into the colour) under a giant owl-feather quill whose gold nib draws down the front; the page's
+    corner curls up. Rowan stands on a dark cliff in the foreground, backlit, Pip by him. Motion: rays breathing from
+    the sun, cloud wisps, the front's ink crawling in a slow wave and shedding flecks of paper, the nib glowing and
+    drawing, motes. The logo sits on a dark halo with a warm glow, ink drips off its lettering. The tutorial strip is
+    gone (the first fight teaches); "Tap to start!" sits low, clear of the hero; Continue / New game keep their rects.
+A11. **Portraits for the Mapmaker and Hesper** (`art-portraits-atlas.ts`): both face left on the shared eye line.
+    Ambrose: faded keeper's-blue coat with an unfaded patch where the badge was torn off, salt-and-pepper hair tied
+    back, a short beard, spectacles pushed up, kind tired eyes, maps in his satchel, the owl-feather pen in an
+    ink-stained hand. Hesper: silver hair in a tight bun, grey keeper's robes with a silver-trimmed high collar, the
+    hall's heavy key on a chain (its bow a compass rose). Hesper joins `ALLY`; the Mapmaker's plate is the Atlas's ink
+    with a gold ribbon (his lines glow gold), not a foe's red.
+A12. **The world map is printed on the Great Atlas** (`art-world-atlas.ts`, a pass after the painting, still in idle
+    slices): the sea is parchment with a watercolour wash along the coasts and engraved water lines, coasts and lake
+    shores inked, regions' borders dashed, a burnt edge and a double neatline round the whole sheet (far sea too), a
+    compass rose in the north-west sea, each open land's name lettered across it. The painted cloud band along the
+    north is gone (the sheet ends in its neatline); the sea's wave marks and surf are strokes of faded ink and paper.
+A13. **Three states per land on the Atlas.** Locked (and the far isles): erased, blank white-grey vellum keeping the
+    impression of its lines, still (it no longer drifts) and nothing alive on it. Open but not restored: his draft,
+    an ink drawing on bare paper (`wm_draft_<id>`), with the colour already back in rings round Rowan (ink slides off
+    him) and round every act cleared there (drawn as 2 px rows cropped round the rings: no per-frame painting). Restored
+    (its region won): full colour. The first visit after a region is won plays its restoring once (`restore:<id>` in
+    `profile.seen`, `core/world-plan.ts` restorePending): the colour floods out from the boss's landmark in a ragged
+    ring with a front of gold ink and motes, 2.6 s, a card "Restored!"; a tap ends it. When the next land unveils on
+    the same visit, the view holds on the restored land through it, then glides on (the unveil's tour holds longer).
+    The lab profiles mark every restoring seen; the lab's "A land comes back" replays Greenmarch's (spoiler-free:
+    the next land stays blank).
+A14. **Section 9's words on every screen I own**: "The Great Atlas" and "Regions restored: N/12" with a compass rose
+    per region (the weights' pips) in the world map's header, the capital's card ("Its lines are fading." / "N of 12
+    regions restored." / "Whole again."), "Erased land" for the far isles ("Restore more regions to bring it back.",
+    "Something is being drawn here."), a locked land's card names the land to restore first, and the region victory
+    reads "Greenmarch restored!" / "N regions to go." Nothing about a Pendulum is left in the view text (the capital's
+    landmark sprite and the narrator's portrait still show the pendulum: next).
 
 (art: end of section)
 
@@ -955,6 +1026,12 @@ C-ART-3. **Region 4's music is built to the content bible** (six pieces, each it
     the Sluice Keeper at 114, not 100 and 112 (the title and Act 7 already have those; the audio test wants every
     tempo once). Both mini-bosses follow their phases (layers, no key change); the boss drops a whole tone in its last
     phase (`keyUp: -2`). Cued by act and boss in app.ts, with the three ambience beds (`fen`, `causeway`, `mere`) by act.
+C8. **The fourth region balanced at 75% from a typical end-of-third-region hero** (`npm run region-tune` with
+    REGION=3, then `tests/unit/bot-region4.test.ts` as the guard, 40 runs). Its first-guess numbers were far too easy:
+    the mini-bosses decide each act (first try = the boss's first fight), so the levers were their HP and attack plus
+    each act's red speed; act attack alone moved little. The numbers and measurements are in the content bible (as
+    wired). The next region's first-guess numbers were lifted to stay a step above it (its data test asks that).
+C9. **The next region's gear is written as data** (not merged; a data test), so its wiring is one merge like this one.
 
 (content: end of section)
 

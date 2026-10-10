@@ -687,9 +687,7 @@ export class Overlays {
         this.texts.text(armed ? 'Tap again' : 'New game', fresh.x + fresh.w / 2, fresh.y + dy + 7 + pf, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
         this.texts.text('Erases all', fresh.x + fresh.w / 2, fresh.y + dy + 16 + pf, armed ? 0xffe0a0 : 0xc8c0e8, { ox: 0.5, oy: 0.5 });
       }
-    } else if (pa > 0) this.title.drawPrompt(gc, this.texts, 'Tap to start!', s.splitY + 9, now, pa);
-    // the legend sits at the foot, clear of the prompt's plate (and its shadow) above it
-    if (pa > 0) this.title.drawLegend(gc, this.texts, Math.min(s.B - 8, GAME_H - 9), pa);
+    } else if (pa > 0) this.title.drawPrompt(gc, this.texts, 'Tap to start!', Math.min(s.B, GAME_H) - 19, now, pa);
   }
 
   // ------------------------------------------------------------------ boost pick

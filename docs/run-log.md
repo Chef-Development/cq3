@@ -74,3 +74,21 @@ One PR at the end supersedes #1-#7.
 - 21:06 EDT: the title redone as key art (2A; preview docs/art-audit/after/title-key-art.png on team/art): approved
   with small notes. The single Playwright lock had ~16 waiters behind long QA crawls: split into a short lock and a
   long lock (TEAM-RULES.md).
+- 21:11 EDT: a third container restart; this time all seven teams resumed from their transcripts. Playtester note:
+  "Rowan needs a polish: the sword looks too thin etc.; apply that same standard to other heroes too": art 2B's top
+  priority now (a sword with heft, a polished Rowan at every size, then every hero's weapons and props readable at 8x).
+- 21:20 EDT: merge 4 (all seven): the title as key art, the Great Atlas world map (drafts, blank erased land, a
+  restore animation), the Mapmaker's and Hesper's portraits, Region 4 balanced (bot-region4 guard), Region 4's art and
+  music, the story's text sweep, Android/desktop fixes, the first 10 minutes through Act 1. The masher guard fix
+  (content: a 15-run boss-alone sample; region 2 measures 4% over 30 seeds; the 5-seed sample swung on one lucky run)
+  merged 21:24. Typecheck and build clean; pushed (GitHub runs the suite).
+- 21:36 EDT: looked at merge 4 at phone and desktop size: the title key art reads well; the Atlas's ink-draft lands
+  read as noise at the map's zoom: L6 (painted lands framed as an Atlas page, blank vellum for erased lands, restore
+  = paint spreading back), sent to art 2A.
+- 21:40 EDT: playtester note: "the atmosphere of everything needs to be slightly more dark and not all bright and
+  peachy": decision L7 (mood rules) sent to art 2A (bible, title, world map, menus, camp, UI), art 2B (every fight
+  backdrop and fight lighting, foes) and dusk-art (Region 4).
+- 21:50 EDT: playtester note: "everything looks a little childish and chibi; more mature and moodier": decision L8
+  (heroes ~3-3.5 heads tall, smaller eyes, weathered materials; foes with menace; portraits; less glossy UI). Art 2B
+  takes the heroes (Rowan prototype first); a new art 2C takes the fight backdrops' mood pass (L7) and the foes; art
+  2A the UI, menus, world map, title.

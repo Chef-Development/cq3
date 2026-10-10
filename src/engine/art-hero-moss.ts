@@ -183,14 +183,18 @@ function staff(dir: Dir, len: number, back: number, o: { bright?: boolean; dim?:
       const X = x + sx * i + (diag ? 0 : px * k);
       const Y = y + sy * i + (diag ? 0 : py * k);
       const knot = i % 6 === 3;
+      // (3 px thick so it reads at 8x: a lit side, the bark, a shaded side)
       if (diag) {
+        put(g, X + (sx === sy ? 1 : -1), Y, B[4]);
         put(g, X, Y, knot ? B[4] : B[3]);
         put(g, X + (sx === sy ? -1 : 1), Y, B[2]);
         put(g, X, Y + 1, B[1]);
       } else if (sx === 0) {
+        put(g, X - 1, Y, B[4]);
         put(g, X, Y, knot ? B[4] : B[3]);
         put(g, X + 1, Y, B[1]);
       } else {
+        put(g, X, Y - 1, B[4]);
         put(g, X, Y, knot ? B[4] : B[3]);
         put(g, X, Y + 1, B[1]);
       }

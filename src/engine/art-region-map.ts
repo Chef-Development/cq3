@@ -576,6 +576,54 @@ function ashfell(p: Paper): void {
   compass(p, 177, 96);
 }
 
+const LANTERN = ['.kkk.', '.kOk.', '.kkk.', '..k..', '..k..', '..k..', '.kkk.'];
+const STILTS = ['..kkkk..', '.kSSSSk.', 'kkkkkkkk', '.kSkkSk.', '.kkkkkk.', '.k.kk.k.', '.k.kk.k.'];
+const BEACON = ['..kOk..', '.kkkkk.', '..kSk..', '..kSk..', '.kSSSk.', '.kSkSk.', 'kkkkkkk'];
+
+function duskmire(p: Paper): void {
+  const S = REGION_SITES.duskmire.acts;
+  // a marsh at dusk: reed beds over everything, tidal flats in the west, black pools, the mere in the middle
+  wash(p, (x, y) => fbm(x * 0.05, y * 0.06, 81) > 0.42, 0x7a8456, 0.4, 82);
+  const flats = blob(40, 64, 34, 26, 83);
+  wash(p, flats, 0xc0ac7a, 0.35, 84);
+  const mere = blob(100, 30, 34, 16, 85);
+  wash(p, mere, 0x4a6670, 0.6, 86);
+  inkEdge(p, mere, 87, 0x2a3c44, 0.15);
+  const pools: Array<(x: number, y: number) => boolean> = [];
+  for (const [bx, by, brx, bry, seed] of [
+    [150, 84, 12, 6, 88],
+    [170, 40, 9, 5, 89],
+    [126, 96, 8, 4, 90],
+    [16, 18, 10, 5, 91],
+    // (the margins: more of the marsh's pools)
+    [-6, 110, 14, 7, 92],
+    [206, 100, 12, 8, 93],
+  ] as const) {
+    const b = blob(bx, by, brx, bry, seed);
+    pools.push(b);
+    wash(p, b, 0x3a5458, 0.55, seed + 10);
+    inkEdge(p, b, seed + 20, 0x2a3c44, 0.2);
+  }
+  const wet = (x: number, y: number) => mere(x, y) || pools.some((b) => b(x, y));
+  for (let i = 0; i < 9; i++) wave(p, 80 + Math.floor(hash(i, 1, 94) * 40), 22 + Math.floor(hash(i, 2, 94) * 14), 0x2a4a58);
+  // reeds on the banks
+  for (let i = 0; i < 60; i++) {
+    const x = Math.floor(hash(i, 1, 95) * 190);
+    const y = 6 + Math.floor(hash(i, 2, 95) * 100);
+    if (wet(x, y) || S.some(([sx, sy]) => Math.hypot(x - sx, y - sy) < 10)) continue;
+    const h = 2 + Math.floor(hash(i, 3, 95) * 2);
+    for (let k = 0; k < h; k++) p.set(x, y - k, 0x4a5a2c);
+    p.set(x + 1, y - h + 1, 0x4a5a2c);
+    if (hash(i, 4, 95) < 0.4) p.set(x, y - h, 0x8a5a2c);
+  }
+  // the causeway: in from the east by the fen, west along the flats to the stilt village, then out to the mere
+  road(p, [[214, 86], [188, 76], S[0], [110, 72], [70, 58], S[1], [70, 34], S[2]], S, 0x6a5a44);
+  mark(p, LANTERN, { k: INK, O: 0xf0c050 }, S[0][0], S[0][1] + 2);
+  mark(p, STILTS, { k: INK, S: 0x8a6a48 }, S[1][0], S[1][1] + 2);
+  mark(p, BEACON, { k: INK, S: 0xc8c0b0, O: 0xffd860 }, S[2][0], S[2][1] + 2);
+  compass(p, 177, 16);
+}
+
 /** A region not reached yet: blank parchment under drifting grey fog (its map would spoil it). */
 function fog(p: Paper): void {
   wash(p, (x, y) => fbm(x * 0.04, y * 0.05, 71) > 0.35, 0x8a8a96, 0.35, 72);
@@ -588,6 +636,7 @@ function regionMap(id: string): HTMLCanvasElement {
   if (id === 'greenmarch') greenmarch(p);
   else if (id === 'frostpeaks') frostpeaks(p);
   else if (id === 'ashfell') ashfell(p);
+  else if (id === 'duskmire') duskmire(p);
   else fog(p);
   return p.canvas();
 }

@@ -3,7 +3,8 @@
 // broad sword. Fight frames `hollis_${pose}` on the shared rig (art-rig.ts). The shield is held out in front on the
 // far arm, so most poses draw the far hand in front of the body.
 import { put, stamp, type Pal, type Shade } from './art';
-import { dir8, sparkle, stampAt, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose, type Sprite } from './art-rig';
+import { swordMap } from './art-sword';
+import { sparkle, stampAt, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -207,15 +208,16 @@ const shield =
   (g, x, y) =>
     shieldAt(g, x, y, glow);
 
-const SWORD_R: Sprite = { rows: ['...G........', '...gAAAAAAA.', 'PhHgLLLLLLLAt', '...yCCCCCCCA.', '...Y........'], grip: [1, 2] };
-const SWORD_UR: Sprite = {
-  rows: ['.........t', '........AA', '.......ALC', '......ALC.', '.....ALC..', '....ALC...', '..GALC....', '...gY.....', '..H..y....', '.h........', 'P.........'],
-  grip: [2, 8],
+/** His short broad sword at 8x: art-sword.ts's 4 px blade in his steel, a blue stone in the brass guard. */
+const SWORD_PAL: Pal = {
+  ...HOLLIS_PAL,
+  A: HOLLIS_STEEL[4], L: HOLLIS_STEEL[3], M: HOLLIS_STEEL[2], C: HOLLIS_STEEL[1], T: '#ffffff', p: '#9a5a14',
+  R: HOLLIS_BLUE[4], r: HOLLIS_BLUE[2],
 };
 const sword =
   (dir: Dir): Item =>
   (g, x, y) =>
-    stampAt(g, dir8(SWORD_R, SWORD_UR, dir), HOLLIS_PAL, x, y);
+    stampAt(g, swordMap(dir, 11), SWORD_PAL, x, y);
 
 // ------------------------------------------------------------------ effects
 
@@ -249,7 +251,7 @@ const glint =
     sparkle(g, a.fx + x, a.fy - y, HOLLIS_STEEL[3]);
 
 /** The sword lying on the ground (knocked out). */
-const droppedSword: Layer = (g, a) => stampAt(g, SWORD_R, HOLLIS_PAL, a.fx - 15, a.fy - 1);
+const droppedSword: Layer = (g, a) => stampAt(g, swordMap('r', 11), SWORD_PAL, a.fx - 15, a.fy - 1);
 
 // ------------------------------------------------------------------ poses
 

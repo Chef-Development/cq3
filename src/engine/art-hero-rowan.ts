@@ -22,13 +22,15 @@ export const ROWAN_GLOW = ['#1a6ab0', '#4ad8ff', '#e0fcff'];
 const PAL: Pal = {
   // the visor and its eyes
   v: '#1c1430', E: ROWAN_GLOW[2], e: ROWAN_GLOW[1], w: ROWAN_GLOW[0],
+  // a warm specular dash on the polished helm (top left)
+  K: '#fffaf0',
   // gold trim: the brow band, collar, hem, knee cops, the buckle, the chest's star
   G: GOLD[3], g: GOLD[2], Y: GOLD[3], y: GOLD[2], O: GOLD[4], X: GOLD[3],
   // the gorget (dark steel)
   M: ROWAN_STEEL[1],
 };
 const SHADES: Record<string, Shade> = {
-  h: { ramp: ROWAN_STEEL, same: 'gGvEew', top: [4, 4], left: [4], right: [2], bottom: [1, 2], mid: 3 }, // the helm (polished: brighter than Hollis's)
+  h: { ramp: ROWAN_STEEL, same: 'gGvEewK', top: [4, 4], left: [4], right: [2], bottom: [1, 2], mid: 3 }, // the helm (polished: brighter than Hollis's)
   m: { ramp: ROWAN_STEEL, same: 'MyY', top: [4, 3], left: [4], right: [1, 2], bottom: [0, 1], mid: 3 }, // plate
   c: { ramp: ROWAN_BLUE, same: 'GOgyY', top: [3], left: [3], right: [1], bottom: [0], mid: 2 }, // the tabard
   l: { ramp: LEATHER, same: 'X', top: [3], left: [2], right: [1], bottom: [0], mid: 2 }, // the belt
@@ -42,7 +44,7 @@ const SHADES: Record<string, Shade> = {
 const HEAD = [
   '.....hhhhhh.....',
   '...hhhhhhhhhh...',
-  '..hhhhhhhhhhhh..',
+  '..hKKhhhhhhhhh..',
   '.hhhhhhhhhhhhhh.',
   '.hhhhhhhhhhhhhhh',
   'hhhhhhhhhhhhhhhh',
@@ -216,7 +218,8 @@ const plume =
       const u = 1 - t;
       const px = rx + 2 * u * t * ctrl[0] + t * t * tail[0];
       const py = ry + 2 * u * t * ctrl[1] + t * t * tail[1];
-      const r = 2.3 - 1.75 * t;
+      // (thick to the end: no 1 px tail at 8x)
+      const r = 2.5 - 1.3 * t;
       for (let dy = -2; dy <= 2; dy++)
         for (let dx = -2; dx <= 2; dx++) if (Math.hypot(dx, dy) <= r) cells.set(`${Math.round(px + dx)},${Math.round(py + dy)}`, t);
     }
@@ -239,7 +242,7 @@ type CapeK = 'hang' | 'sway' | 'flow' | 'rise' | 'limp';
 const CAPES: Record<CapeK, [string[], number, number]> = {
   hang: [['...ccccc', '..cccccc', '.cCccccc', '.cCccccc', '.cCccccc', 'ccCccccc', 'ccCccccc', 'ccCccccc', 'ccCccccc', 'cCccCccc', 'cCcccccc', '.cc.cccc'], -3, 1],
   sway: [['...ccccc', '..cccccc', '.cCccccc', '.cCccccc', 'ccCccccc', 'ccCccccc', 'cccCcccc', 'cccCcccc', 'ccccCccc', 'cccccCcc', '.cccccCc', '..cc.ccc'], -4, 1],
-  flow: [['......ccccc', '....ccccccc', '..cccCccccc', 'ccccCcccccc', 'cccCcccccc.', '.ccCccc.cc.', '..cc.cc....', '.....c.....'], -9, 1],
+  flow: [['......ccccc', '....ccccccc', '..cccCccccc', 'ccccCcccccc', 'cccCcccccc.', '.ccCcccccc.', '..ccccc....'], -9, 1],
   rise: [['cc.........', 'cccc.......', '.cCccc.....', '..ccCccccc.', '...cccccccc', '.....cccccc'], -9, -2],
   limp: [['..ccccc', '.cccccc', '.cCcccc', '.cCcccc', '.cCcccc', '.cCcccc', '.cCcccc', '.cCcccc', '..Ccccc'], -2, 2],
 };
@@ -308,10 +311,11 @@ const P = (p: RigPose): RigPose => p;
 export const ROWAN_POSES: Record<string, RigPose> = {
   // a knight's guard: the sword up before him; the breath (0-1-2-3: up, down, down, up) with the plume and cape a
   // frame behind it (they drop as he rises again)
-  idle0: P({ near: { at: [8, 9], item: sword('ur') }, far: { at: [11, 9] }, back: [cape('hang'), plume('hang')] }),
-  idle1: P({ near: { at: [8, 8], item: sword('ur') }, far: { at: [11, 8] }, dy: 1, back: [cape('hang'), plume('lag')] }),
-  idle2: P({ near: { at: [8, 8], item: sword('ur') }, far: { at: [11, 8] }, dy: 1, back: [cape('sway'), plume('sway')] }),
-  idle3: P({ near: { at: [8, 9], item: sword('ur') }, far: { at: [11, 9] }, back: [cape('sway'), plume('lag')] }),
+  // (the sword in the forward hand, in front of him: no arm crosses his chest; the back hand rests at his hip)
+  idle0: P({ far: { at: [10, 10], item: sword('ur', 13) }, near: { at: [-4, 9] }, farFront: true, back: [cape('hang'), plume('hang')] }),
+  idle1: P({ far: { at: [10, 9], item: sword('ur', 13) }, near: { at: [-4, 8] }, farFront: true, dy: 1, back: [cape('hang'), plume('lag')] }),
+  idle2: P({ far: { at: [10, 9], item: sword('ur', 13) }, near: { at: [-4, 8] }, farFront: true, dy: 1, back: [cape('sway'), plume('sway')] }),
+  idle3: P({ far: { at: [10, 10], item: sword('ur', 13) }, near: { at: [-4, 9] }, farFront: true, back: [cape('sway'), plume('lag')] }),
   dash: P({ near: { at: [-6, 11], item: sword('l') }, far: { at: [7, 12] }, legs: 'run', dx: 1, lean: 1, back: [cape('flow'), plume('flow')] }),
   // a cut down and forward, the arc trailing it
   slashA: P({ near: { at: [12, 13], item: sword('dr', 13) }, far: { at: [8, 11] }, legs: 'lunge', dx: 2, lean: 1, back: [cape('flow'), plume('flow')], front: [sweep(9, 16, 15, 1.9, -0.6)] }),
@@ -320,7 +324,7 @@ export const ROWAN_POSES: Record<string, RigPose> = {
   // the sword drawn back over his shoulder in both hands, crouched to spring
   windup: P({ near: { at: [-2, 23], item: sword('ul', 15) }, far: { at: [0, 22], hidden: true }, legs: 'crouch', dy: 1, armsUp: true, back: [cape('hang'), plume('up')] }),
   // the blade upright before him, the free hand bracing behind it
-  parry: P({ near: { at: [9, 13], item: sword('u', 14) }, far: { at: [11, 15] }, farFront: true, legs: 'crouch', dy: 1, back: [cape('hang'), plume('hang')], front: [motes([[13, 30], [7, 26]])] }),
+  parry: P({ far: { at: [9, 13], item: sword('u', 14) }, near: { at: [-3, 10] }, farFront: true, legs: 'crouch', dy: 1, back: [cape('hang'), plume('hang')], front: [motes([[13, 30], [7, 26]])] }),
   // knocked back a step: the sword flung up and back, the free hand thrown out
   hurt: P({ near: { at: [-4, 13], item: sword('ul', 12) }, far: { at: [9, 16] }, dx: -1, lean: -1, dy: 1, head: 'squint', back: [cape('rise'), plume('rise')] }),
   leap: P({ near: { at: [6, 24], item: sword('ur') }, far: { at: [8, 23], hidden: true }, legs: 'tuck', armsUp: true, back: [cape('rise'), plume('flow')] }),
@@ -329,7 +333,7 @@ export const ROWAN_POSES: Record<string, RigPose> = {
   // Whirlwind: the blade swung out level at the end of a spin, a whirl of light round him, the visor blazing
   fin: P({ near: { at: [13, 15], item: sword('r', 16) }, far: { at: [9, 12] }, legs: 'lunge', dx: 1, head: 'cry', back: [cape('flow'), plume('flow')], front: [whirl, motes([[22, 30], [-8, 20]])] }),
   // the ability: the blade up before his visor, a glint running up it, the free hand open
-  cast: P({ near: { at: [8, 13], item: sword('u', 15) }, far: { at: [14, 18] }, farFront: true, back: [cape('sway'), plume('sway')], front: [motes([[12, 34], [5, 28], [16, 24], [3, 33]]), (g, a) => sparkle(g, a.fx + 9, a.fy - 27, ROWAN_GLOW[1], '#ffffff', true)] }),
+  cast: P({ far: { at: [10, 13], item: sword('u', 15) }, near: { at: [-4, 9] }, farFront: true, back: [cape('sway'), plume('sway')], front: [motes([[12, 34], [5, 28], [16, 24], [3, 33]]), (g, a) => sparkle(g, a.fx + 9, a.fy - 27, ROWAN_GLOW[1], '#ffffff', true)] }),
 };
 
 /** Hero select card: the sword raised, cape streaming, before a steel-blue glow with a gold heart. */
