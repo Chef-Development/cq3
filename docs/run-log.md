@@ -147,3 +147,8 @@ One PR at the end supersedes #1-#7.
   targets stand above the tide; the bot hits floating blocks); the Sluice Keeper retagged; Region 5 end to end behind
   NOON_ON with 14 relic hooks, gear effects, a first balance pass). Content chunk 4: Tess/Vesper parity, New Game+
   boss remixes (backlog 4), switch Region 5 on when its art lands.
+- 00:20 EDT: the functional Playwright run (smoke, numbers, minis, desktop, lab; on a build from ~23:30): 31 passed,
+  6 failed: 4 timeouts on the loaded machine (the lab walk at 9 min, the camp's every-hero walk, the intro's Sound lab
+  and every-enemy, the last two already split by QA since), the lab list's screenshot (stale baseline: expected),
+  and one real regression: the tap that skips the world map's first-visit glide also starts the story (sent to 2A).
+  Art 2B: one mature Rowan everywhere (HUD badge, camp, portraits), hand-drawn heads for 12 heroes; merged, pushed.
