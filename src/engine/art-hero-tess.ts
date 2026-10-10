@@ -244,6 +244,9 @@ export const TESS_POSES: Record<string, RigPose> = {
   // the watch staff planted beside her, the other hand on her hip
   idle0: P({ near: { at: [7, 8], item: staff('u', 12, 7) }, far: { at: [-3, 9] } }),
   idle1: P({ near: { at: [7, 7], item: staff('u', 12, 6, { at: 0.2 }) }, far: { at: [-3, 8] }, dy: 1 }),
+  // the watch on her staff swings a frame behind the breath
+  idle2: P({ near: { at: [7, 6], item: staff('u', 12, 5, { at: 0.35 }) }, far: { at: [-3, 8] }, dy: 1 }),
+  idle3: P({ near: { at: [7, 7], item: staff('u', 12, 6, { at: 0.1 }) }, far: { at: [-3, 9] } }),
   dash: P({ near: { at: [7, 8], item: staff('ur', 9, 5) }, far: { at: [-4, 9] }, legs: 'run', dx: 1, lean: 1 }),
   // a rap of the watch on the target, a tick of light
   slashA: P({ near: { at: [9, 15], item: staff('dr', 3, 4, { at: 0.4 }) }, far: { at: [4, 9] }, legs: 'lunge', dx: 1, lean: 1, bow: 1, front: [tick(25, 2), gears([[21, 14]])] }),

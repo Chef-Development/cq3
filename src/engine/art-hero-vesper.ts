@@ -345,6 +345,9 @@ const droppedBow: Layer = (g, a) => paintBow(g, a.fx - 6, a.fy - 2, Math.PI / 2 
 export const VESPER_POSES: Record<string, RigPose> = {
   idle0: { near: { at: [-1, 9] }, far: { at: [9, 12] }, farFront: true, back: [tail(0.7, 0.05), cloak('hang'), quiver], front: [bow()] },
   idle1: { near: { at: [-1, 8] }, far: { at: [9, 11] }, farFront: true, dy: 1, back: [tail(0.72, 0.08), cloak('sway'), quiver], front: [bow()] },
+  // the cloak and the hair swing a frame behind the breath
+  idle2: { near: { at: [-1, 8] }, far: { at: [9, 11] }, farFront: true, dy: 1, back: [tail(0.76, 0.1), cloak('sway'), quiver], front: [bow()] },
+  idle3: { near: { at: [-1, 9] }, far: { at: [9, 12] }, farFront: true, back: [tail(0.74, 0.08), cloak('hang'), quiver], front: [bow()] },
   dash: {
     near: { at: [-6, 12] },
     far: { at: [9, 12] },

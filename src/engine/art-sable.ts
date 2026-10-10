@@ -8,7 +8,9 @@
 // Rowan's: the scarf tails and the far arm with its dagger behind the body, the legs, the torso, the head, then the
 // near arm with its dagger in front. Daggers are pre-drawn at clean 8-way pixel slopes; a reverse grip is just the
 // blade pointing down out of the fist.
-import { HERO_FEET_X, HERO_H, HERO_W, grid, heroFrame, put, stamp, toCanvas, type Grid, type Pal } from './art';
+import { HERO_FEET_X, HERO_H, HERO_W, grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
+import { ROWAN_CARD, ROWAN_RIG } from './art-hero-rowan';
+import { rigFrame } from './art-rig';
 import { EARTH, LEAF, STONE, ell, fill, or, rect, sphere, tone } from './art-paint';
 import { bay } from './backdrop';
 
@@ -166,7 +168,7 @@ function tail(g: Grid, x: number, y: number, n: number, ang: (t: number) => numb
   }
 }
 
-type Scarf = 'breeze' | 'sway' | 'hang' | 'flow' | 'wave' | 'rise' | 'limp';
+type Scarf = 'breeze' | 'sway' | 'drift' | 'settle' | 'hang' | 'flow' | 'wave' | 'rise' | 'limp';
 /** The two tails (long, short) per scarf state: [steps, angle at the knot (x PI), curl along the tail, wave]. */
 const SCARF: Record<Scarf, Array<[number, number, number, number]>> = {
   // standing: drifting back on a breeze, two phases
@@ -177,6 +179,15 @@ const SCARF: Record<Scarf, Array<[number, number, number, number]>> = {
   sway: [
     [14, 0.88, -0.14, -0.07],
     [10, 0.8, -0.1, -0.06],
+  ],
+  // the four-frame idle's two in-betweens: the tails a frame behind the breath
+  drift: [
+    [14, 0.85, -0.16, -0.03],
+    [10, 0.77, -0.12, -0.03],
+  ],
+  settle: [
+    [14, 0.88, -0.13, 0.03],
+    [10, 0.8, -0.1, 0.03],
   ],
   // rising through the air: the tails drop below the knot
   hang: [
@@ -283,6 +294,8 @@ export interface SablePose {
 export const SABLE_POSES: Record<string, SablePose> = {
   idle0: { near: { hand: [7, 10], dir: 'dl' }, far: { hand: [11, 15], dir: 'd' }, glint: [[13, 9]] },
   idle1: { near: { hand: [7, 9], dir: 'dl' }, far: { hand: [11, 14], dir: 'd' }, dy: 1, scarf: 'sway' },
+  idle2: { near: { hand: [7, 9], dir: 'dl' }, far: { hand: [11, 14], dir: 'd' }, dy: 1, scarf: 'drift' },
+  idle3: { near: { hand: [7, 10], dir: 'dl' }, far: { hand: [11, 15], dir: 'd' }, scarf: 'settle', glint: [[12, 8]] },
   dash: { near: { hand: [-7, 12], dir: 'l' }, far: { hand: [10, 14], dir: 'dl' }, legs: 'run', dx: 2, lean: 1, scarf: 'flow' },
   slashA: { near: { hand: [15, 10], dir: 'r' }, far: { hand: [3, 16], dir: 'd' }, legs: 'lunge', dx: 2, lean: 1, scarf: 'flow', glint: [[25, 11]] },
   slashB: { near: { hand: [-2, 10], dir: 'dl' }, far: { hand: [14, 18], dir: 'ur' }, legs: 'lunge', dx: 2, lean: 1, scarf: 'wave', glint: [[21, 26]] },
@@ -470,8 +483,7 @@ export function heroCard(glow: [string, string], motes: Array<[number, number]>,
 }
 
 /** Rowan: sword raised, cape streaming, before a steel-blue glow with a gold heart. */
-const rowanCard = () =>
-  heroCard(['#fff0a0', '#4aa0f0'], [[6, 14], [33, 9], [35, 27]], heroFrame({ dir: 'u', hand: [9, 15], len: 16, cape: 'flow' }));
+const rowanCard = () => heroCard(ROWAN_CARD.glow, ROWAN_CARD.motes, rigFrame(ROWAN_RIG, ROWAN_CARD.pose));
 
 /** Sable: one dagger raised high, the other low and forward, scarf drifting, before a plum glow with a teal heart. */
 const sableCard = () => {

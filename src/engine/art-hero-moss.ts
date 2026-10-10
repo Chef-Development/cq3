@@ -297,6 +297,9 @@ const dizzy: Layer = (g, a) => {
 export const MOSS_POSES: Record<string, RigPose> = {
   idle0: { near: { at: [6, 7], item: staff('u', 12, 7) }, far: { at: [9, 6] } },
   idle1: { near: { at: [6, 6], item: staff('u', 12, 6) }, far: { at: [9, 5] }, dy: 1 },
+  // the staff's hand settles a frame behind the breath
+  idle2: { near: { at: [6, 5], item: staff('u', 12, 5) }, far: { at: [9, 4] }, dy: 1 },
+  idle3: { near: { at: [6, 6], item: staff('u', 12, 6) }, far: { at: [9, 6] } },
   dash: { near: { at: [6, 7], item: staff('ur', 9, 5) }, far: { at: [-3, 8] }, legs: 'run', dx: 1, lean: 1 },
   // a seed shot from the levelled staff
   slashA: { near: { at: [9, 9], item: staff('r', 10, 5, { bright: true }) }, far: { at: [5, 6] }, legs: 'lunge', dx: 1, lean: 1, front: [shot(33, 12)] },

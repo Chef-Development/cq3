@@ -268,6 +268,9 @@ export const WREN_POSES: Record<string, RigPose> = {
   // light on her feet: the knife low and forward, the free hand up, the scarf tail drifting
   idle0: P({ near: { at: [7, 8], item: knife('ur') }, far: { at: [10, 12] }, back: [scarf(0.74, 0.1, 0.04), hook] }),
   idle1: P({ near: { at: [7, 7], item: knife('ur') }, far: { at: [10, 11] }, dy: 1, back: [scarf(0.72, 0.12, -0.04), hook] }),
+  // the scarf's tails flutter a frame behind the breath
+  idle2: P({ near: { at: [7, 7], item: knife('ur') }, far: { at: [10, 11] }, dy: 1, back: [scarf(0.7, 0.14, -0.07), hook] }),
+  idle3: P({ near: { at: [7, 8], item: knife('ur') }, far: { at: [10, 12] }, back: [scarf(0.72, 0.12, 0), hook] }),
   dash: P({ near: { at: [-5, 9], item: knife('l') }, far: { at: [7, 10] }, legs: 'run', dx: 1, lean: 1, back: [scarf(0.98, -0.02, 0.04, 17), hook] }),
   // a rising cut
   slashA: P({ near: { at: [11, 13], item: knife('dr') }, far: { at: [4, 12] }, legs: 'lunge', dx: 2, lean: 1, back: [scarf(0.95, -0.03, 0.05, 16), hook], front: [swish(8, 13, 10, 1.6, -0.4)] }),

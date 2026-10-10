@@ -291,6 +291,9 @@ export const SOLENNE_POSES: Record<string, RigPose> = {
   // the blade held up before her, a knight's guard; the far hand at her belt
   idle0: P({ near: { at: [7, 11], item: blade('ur') }, far: { at: [10, 9] }, back: [cape('hang')] }),
   idle1: P({ near: { at: [7, 10], item: blade('ur') }, far: { at: [10, 8] }, dy: 1, back: [cape('sway')], front: [motes([[19, 26]])] }),
+  // the cape swings a frame behind the breath
+  idle2: P({ near: { at: [7, 10], item: blade('ur') }, far: { at: [10, 8] }, dy: 1, back: [cape('sway')], front: [motes([[20, 28]])] }),
+  idle3: P({ near: { at: [7, 11], item: blade('ur') }, far: { at: [10, 9] }, back: [cape('sway')] }),
   dash: P({ near: { at: [-6, 11], item: blade('l') }, far: { at: [7, 12] }, legs: 'run', dx: 1, lean: 1, back: [cape('flow')] }),
   // a cut down and forward
   slashA: P({ near: { at: [12, 14], item: blade('dr') }, far: { at: [8, 11] }, legs: 'lunge', dx: 2, lean: 1, back: [cape('flow')], front: [sweep(9, 16, 15, 1.9, -0.6)] }),
