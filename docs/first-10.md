@@ -192,6 +192,28 @@ gear or spends skill points, and aims at whatever comes next), so take its boss 
   glowing with its "1", the skill point's tip.
 - **The first hero chest** (`59`-`62`): the vault, "Tap the chest!", the build-up, **Tam, Rare**, new.
 
+### After the container restart: found gear goes on (F14), the merged build
+
+The runs above showed the newcomer bot dying in Act 1 more than the balance bot predicts. Two reasons:
+
+- **It never opens the camp, so it fought Act 1 in nothing** (every item found waited in the bag), while the balance
+  bot wears the best it finds after every loot. Now an item for an empty slot goes on as it drops (F14: "Worn" in
+  green on the loot screen; the loot tip says so). Worth, for a newcomer who never opens the camp (balance bot, 200
+  runs, 0.38 s reaction): Act 1 first try 84.5% -> 94.5% at 55% accuracy, 91.5% -> 98% at 60%.
+- **Tonight's machine is loaded** (seven teams), and the bot's in-page timers jitter: the game's own accuracy readout
+  on the act-clear screen measured the "70%" newcomer at 34-67%. Read its results as a struggling player's.
+
+| Run (build) | Readout | Act 1 | First hero chest |
+| --- | --- | --- | --- |
+| seed 9 (part 2) | 67% | cleared first try (boss won 5:34) | Tam, Rare, new (6:12) |
+| seed 7 (part 2) | | lost the boss (it was at 18% of its HP) | |
+| seed 7 (merged) | 51% | cleared first try (boss won 5:27) | Bun, Common, a new companion (6:04) |
+| seed 11 (merged) | | three defeats in normal fights (rows 2-5); stopped at its two retries | |
+| seed 7 (merged + F14) | 56% | a defeat in a row-2 fight and one at the boss; cleared on the third try (11:54) | Rare, new (12:25) |
+| seed 9 (merged + F14) | 34% | cleared first try (boss won 6:03) | Moss, Epic, a new hero (6:42) |
+The first five minutes hold in every run: first fight on screen at 0:19-0:22, the first finisher at 0:57-1:02 (the
+next foe walks in behind it), the first chest at 1:24-1:36, the first relic pick (the chest's) a few seconds later.
+
 ## Still to do (not ours, or next)
 
 - The road scene is six boxes (~14 s) between the first win and the first chest; the captain's five and Sable's six
