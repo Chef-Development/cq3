@@ -405,11 +405,18 @@ export class TipsView {
     // (in a fight "Tap to continue" sits on the top edge beside TIP: the card's foot stays clear of the fighters' heads;
     // a `top` tip keeps it under its foot, clear of the gear button in the top bar's middle)
     const fight = s.app.run.phase === 'fight';
-    const hintUp = fight;
+    // a tip about a pick's card sits along the screen's foot, over the cards' empty lower ends and the relics tray
+    // (beside the upright cards it hid the other two), the card it's about lit by its window
+    const foot = s.app.run.phase === 'boost' && (def.anchor === 'relicCard' || def.anchor === 'synergyCard');
+    const hintUp = fight || foot;
     const w = Math.max(...lines.map((l) => textWidth(l, 1, big)), tipW + hintW + (hintUp ? 6 : -4)) + 16;
     const h = 12 + lines.length * pitch;
     const a = this.anchorRect(cue, def.anchor);
-    const box = def.top ? { r: { x: Math.round((s.L + s.R - w) / 2), y: 2, w, h: h + 12 }, dir: null } : this.place(w, h + (hintUp ? 6 : 12), a);
+    const box = def.top
+      ? { r: { x: Math.round((s.L + s.R - w) / 2), y: 2, w, h: h + 12 }, dir: null }
+      : foot
+        ? { r: { x: Math.round((s.L + s.R - w) / 2), y: s.B - 2 - (h + 6), w, h: h + 6 }, dir: null }
+        : this.place(w, h + (hintUp ? 6 : 12), a);
     const r: Rect = { x: box.r.x, y: box.r.y + 6, w, h };
     // the dim, with a window over what the tip is about
     const hole = a ? { x: a.x - 3, y: a.y - 3, w: a.w + 6, h: a.h + 6 } : null;
