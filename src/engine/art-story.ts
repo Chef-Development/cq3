@@ -6,6 +6,7 @@
 // 18x18 face window sits at (12, 6) for Rowan and at (14, 8) for Sable (both eyes and the top of the mask).
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 import { buildAtlasPortraits } from './art-portraits-atlas';
+import { portraitMood } from './art-paint';
 
 type Add = (key: string, canvas: HTMLCanvasElement) => void;
 
@@ -403,12 +404,12 @@ function captain(): HTMLCanvasElement {
   const plume = bez([24, 8], [28, -1], [34, -2], [38, 5], 12);
   stroke(g, plume.map(([x, y]) => [x + 0.5, y + 1] as [number, number]), (t) => 2.2 - t * 1.5, () => '#a898c8');
   stroke(g, plume, (t) => 2.2 - t * 1.6, (_x, y) => (y < 3 ? '#ffffff' : '#ece6f8'));
-  // the "genuine" pendulum weight he is selling, held up in a gloved fist
-  fill(g, ell(5.5, 31, 4, 3.6), sphere(GOLD, 4.2, 29.6, 4.6, 4.4, 0.08));
-  fill(g, and(ell(5.5, 31, 4, 3.6), not(ell(5.5, 31, 3, 2.6))), (x, y) => (x + y < 34 ? null : GOLD[1]));
-  stamp(g, ['.y.', 'y.y'], { y: GOLD[2] }, 4, 26);
+  // a fat purse of loot from the sleeping road, held up in a gloved fist, a gold coin peeking from its neck
+  const purse = or(ell(5.5, 31.5, 4.2, 3.8), ell(5.5, 27.5, 1.8, 1.4));
+  fill(g, purse, sphere(['#2e1a10', '#4e2e1a', '#74482a', '#9a6a3e', '#b88a58'], 3.8, 29.5, 5, 5, 0.06));
+  stamp(g, ['ttt'], { t: '#2a1810' }, 4, 28);
+  stamp(g, ['gG', 'yg'], { G: GOLD[4], g: GOLD[3], y: GOLD[2] }, 5, 25);
   stamp(g, ['.LLL.', 'LllLL', 'LllLL', '.LLL.'], { L: '#2a1810', l: '#5a3a24' }, 3, 34);
-  stamp(g, ['.W.', 'WWW', '.W.'], { W: '#ffffff' }, 0, 27);
   return toCanvas(g);
 }
 
@@ -463,8 +464,8 @@ function golem(): HTMLCanvasElement {
   const eyeP: Pal = { s: '#3a6066', a: TEAL[0], b: TEAL[1], c: TEAL[2], d: TEAL[3] };
   stamp(g, ['sabbs', 'abcdb', 'sabas'], eyeP, 7, 16);
   stamp(g, ['sbbas', 'bdcba', 'sabas'], eyeP, 17, 16);
-  // forehead rune: a little pendulum
-  stamp(g, ['.a.', '.b.', 'bcb', '.b.'], eyeP, 13, 7);
+  // forehead rune: an old ward, a little star of the Atlas's compass
+  stamp(g, ['.b.', 'bcb', '.b.'], eyeP, 13, 8);
   // mouth: a carved slot with stubby teeth
   stamp(g, ['11111111', '13131311', '.2222222'], { 1: STONE[0], 2: STONE[2], 3: STONE[3] }, 9, 23);
   // cracks (a dark seam with a lit lip below)
@@ -742,7 +743,7 @@ const ICON_MAPS: Record<string, string[]> = {
 export function buildStoryArt(add: Add): void {
   add('portrait_rowan', rowan());
   add('portrait_sable', sable());
-  add('portrait_pip', pip());
+  add('portrait_pip', portraitMood(pip(), 0.26));
   add('portrait_captain', captain());
   add('portrait_golem', golem());
   add('portrait_boarking', boarKing());

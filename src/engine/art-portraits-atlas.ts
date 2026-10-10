@@ -4,7 +4,7 @@
 // adds the ink outline. Both stand on the right of a scene and face left (into it): the face on the left half, the
 // near eye at x 12-15 and the far one at x 7-9 on the shared eye line (y 17), the near ear at x 19.
 import { grid, put, stamp, toCanvas, type Pal } from './art';
-import { and, bez, ell, fill, INK, not, or, rimShade, sphere, stroke } from './art-paint';
+import { and, bez, ell, fill, INK, not, or, portraitMood, rimShade, sphere, stroke } from './art-paint';
 
 const P = 40;
 
@@ -261,8 +261,9 @@ function keeper(): HTMLCanvasElement {
 
 // ------------------------------------------------------------------ the narrator: a corner of the Atlas
 
-const N_PARCH = ['#6e4a2a', '#a8804e', '#d2b07a', '#ead2a0', '#f8ecc8'];
-const N_WASH = ['#5a8a9a', '#86b0b4', '#b4cab8'];
+/** (aged parchment, L7: no cream) */
+const N_PARCH = ['#4a3020', '#6a4a2c', '#86623a', '#a07a4a', '#b8925c'];
+const N_WASH = ['#2e5a6a', '#46707a', '#62847e'];
 
 /** The narrator (docs/story-bible.md section 9): a corner of the living map, lit from the top left: a sheet of
  *  parchment with a coast drawn on it (the sea washed blue, a patch of land in colour), the corner curling up, and a
@@ -334,7 +335,8 @@ function narrator(): HTMLCanvasElement {
 
 /** Paint the Atlas's people and the narrator (called from art-story.ts buildStoryArt). */
 export function buildAtlasPortraits(add: (key: string, c: HTMLCanvasElement) => void): void {
-  add('portrait_mapmaker', mapmaker());
-  add('portrait_keeper', keeper());
-  add('portrait_narrator', narrator());
+  // (L7/L8: moodier light, the far side in deep cool shadow)
+  add('portrait_mapmaker', portraitMood(mapmaker()));
+  add('portrait_keeper', portraitMood(keeper()));
+  add('portrait_narrator', portraitMood(narrator(), 0.28));
 }

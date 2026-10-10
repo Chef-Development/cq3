@@ -19,7 +19,7 @@
 // and last the buildings and props as outlined sprites (each carrying its own firelight), smoke and fireflies.
 // The top ~16 px and the bottom ~20 px stay calm for the UI; nothing important sits in the 23 px safe areas.
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
-import { and, ell, fill, lambert, moodGrade, not, or, rect, rimShade, sphere, stroke, tone, type Inside } from './art-paint';
+import { and, ell, fill, lambert, moodGrade, not, or, portraitMood, rect, rimShade, sphere, stroke, tone, type Inside } from './art-paint';
 import { SABLE_FIST, SABLE_HEAD, SABLE_PAL, SABLE_TORSO, sableArm, sableDagger, scarfTail } from './art-sable';
 import { PORTRAIT_SIZE } from './art-story';
 import { bay, clamp01, col, conifer, fbm, hash, level, mass, mix, noise, pick, Pix, ramp, rng, tree, type Blob, type Col, type Ramp } from './backdrop';
@@ -577,11 +577,20 @@ function shrineSprite(): HTMLCanvasElement {
     const roof: Inside = (x, y) => y >= 5 && y < 16 && Math.abs(x + 0.5 - 18.5) <= (y - 4) * 1.6;
     fill(g, roof, (x, y) => tone(FSTONE, (x < 18 ? 0.7 : 0.38) - (y - 5) / 40 + ((x + y * 2) % 7 === 0 ? -0.12 : 0)));
     fill(g, ell(18.5, 3, 2.2, 2.2), (x, y) => (x + y < 20 ? FSTONE[5] : x + y < 22 ? FSTONE[4] : FSTONE[2]));
-    // the carved pendulum emblem on the gable, its rune dark (the shrine sleeps)
+    // the carved compass rose of the Atlas on the gable, dark (the shrine sleeps)
     fill(g, and(ell(18.5, 11, 3.4, 3.4), not(ell(18.5, 11, 2.3, 2.3))), (x, y) => (x + y < 29 ? FSTONE[1] : FSTONE[2]));
-    put(g, 18, 10, '#4a3a6a');
-    put(g, 18, 11, '#4a3a6a');
-    put(g, 18, 12, '#5a4a7a');
+    for (const [x, y] of [
+      [18, 8],
+      [18, 9],
+      [18, 13],
+      [18, 14],
+      [15, 11],
+      [16, 11],
+      [20, 11],
+      [21, 11],
+      [18, 11],
+    ])
+      put(g, x, y, y === 11 && x === 18 ? '#5a4a7a' : '#4a3a6a');
     // moss over the roof and ivy down the left pillar
     fill(g, and(roof, (x, y) => y <= 6 + noise(x * 0.5, 1, 4) * 6 - Math.abs(x - 18) * 0.15), (x, y) => tone(MOSS_R, 0.95 - (y - 5) * 0.12 - (x > 18 ? 0.25 : 0)));
     for (const [x, len] of [
@@ -1326,6 +1335,6 @@ export function buildCampArt(add: Add, w: number, h: number): void {
   add('camp_pip1', pipFrame(1));
   add('camp_sable0', sableCampFrame(0));
   add('camp_sable1', sableCampFrame(1));
-  add('portrait_smith', magsPortrait());
+  add('portrait_smith', portraitMood(magsPortrait(), 0.3));
 }
 
