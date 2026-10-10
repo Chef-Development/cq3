@@ -36,7 +36,7 @@ type G = Phaser.GameObjects.Graphics;
 const foeCount = (c: Combat): { beaten: number; total: number } => ({ beaten: c.foesBeaten, total: c.foesTotal });
 
 /** Where the portrait's face sits inside its 40x40 texture (top-left of the 18x18 window shown in the badge). */
-const FACE_AT: Record<string, [number, number]> = { rowan: [12, 6], sable: [14, 8], ...PORTRAIT_FACE_AT };
+const FACE_AT: Record<string, [number, number]> = { rowan: [14, 7], sable: [14, 8], ...PORTRAIT_FACE_AT };
 /** The hero plate: the HP plate's height, and the coin row under it (beside the portrait). */
 const PLATE_H = 14;
 const CHIP_Y = 20;

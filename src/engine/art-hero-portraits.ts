@@ -18,7 +18,7 @@ export const PORTRAIT_FACE_AT: Record<string, [number, number]> = {
   neve: [15, 9],
   moss: [14, 10],
   tam: [15, 9],
-  hollis: [14, 9],
+  hollis: [19, 9],
   vesper: [15, 9],
   torva: [14, 8],
   // part6:A
