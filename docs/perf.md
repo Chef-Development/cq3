@@ -157,7 +157,23 @@ read 11.4 and 12.4 s to the title).
 | pack-frost.js (the Frostpeaks' backdrops) | | | 25 KB | 11 KB |
 | **total** | 3660 KB | 1155 KB | 3662 KB | 1161 KB |
 
-BEFORE_AFTER_TABLE
+| measure (CPU 4x, Fast 4G, no cache, median of 3) | before | after |
+|---|---|---|
+| load average while measuring (4 CPUs) | 20-22 | 20-21 |
+| DOMContentLoaded | 3384 | 3282 |
+| **title ready for a tap** | **12969** (runs 9635-13324) | **12074** (runs 10840-12998) |
+| later regions' art arrived (`__cq3.ready`) | 12969 (one chunk) | 12974 |
+| first fight on screen | 28645 | 27212 |
+
+What should change: the Frostpeaks' foes (~0.4 s at 1x, so ~1.6 s at 4x) no longer paint before the title, and the
+main chunk to download, parse and compile is 9% smaller. Measured: the title ~0.9 s sooner and the first fight ~1.4 s
+sooner, but the spread between runs of the same build (up to 3.7 s here) is larger than that: on this machine the
+direction is right and the size isn't proven. A phone-like measurement on a quiet machine (or a real device trace) is
+the next step. The packs arrive ~1 s after the title is up (their modules evaluate once the boot's long paint lets go
+of the main thread); nothing waits for them on the title, and the world map and Greenmarch never do.
+
+Frame rates at load 20 swung wildly between the two runs (the world map read 51 fps for the first build and 3.7 fps
+for the second; a busy fight 4.1 and 3.4 fps): not comparable, and not used.
 
 **Frame time** (a CPU profile of 6 s of a busy late fight, Act 9's forge hand, chain sentinel, stoker imp and magma eel
 with Space every 140 ms, and of the world map dragged; a non-minified build at CPU 1x): 75% of the fight's main thread
