@@ -111,7 +111,7 @@ export function armLine(g: Grid, sx: number, sy: number, hx: number, hy: number,
 export function anchors(rig: Rig, p: RigPose): Anchors {
   const fx = HERO_FEET_X;
   const fy = feetRow();
-  const legs = rig.legs[p.legs ?? 'stand'];
+  const legs = rig.legs[p.legs ?? 'stand'] ?? rig.legs.stand;
   const ly = fy - legs.length + 1;
   const tx = fx + rig.torsoX + (p.dx ?? 0);
   const ty = ly - rig.torso.length + rig.torsoOverlap + (p.dy ?? 0);
@@ -125,7 +125,7 @@ export function anchors(rig: Rig, p: RigPose): Anchors {
 export function paintRig(g: Grid, rig: Rig, p: RigPose): Anchors {
   const a = anchors(rig, p);
   const sh = rig.shades ?? {};
-  const legs = rig.legs[p.legs ?? 'stand'];
+  const legs = rig.legs[p.legs ?? 'stand'] ?? rig.legs.stand;
   const head = rig.heads[p.head ?? 'base'] ?? rig.heads.base;
   const hand = (h: Hand, at: Pt, shoulder: Pt, style: ArmStyle, fist: string[]) => {
     if (h.item && !h.over && !h.behind) h.item(g, at[0], at[1]);
@@ -399,6 +399,8 @@ export const STANCES: Record<string, Stance> = {
   crouch: { h: 11, skirt: 4, flare: 2, back: [[LF - 2, 2], [LF - 6, 6], [LF - 4, 10]], front: [[LF + 2, 2], [LF + 6, 5], [LF + 5, 10]] },
   tuck: { h: 10, skirt: 4, flare: 1, back: [[LF - 2, 2], [LF + 1, 5], [LF - 2, 9]], front: [[LF + 2, 2], [LF + 6, 4], [LF + 4, 9]] },
   kneel: { h: 10, skirt: 4, flare: 2, back: [[LF - 2, 2], [LF - 4, 8], [LF - 9, 9]], front: [[LF + 2, 2], [LF + 6, 4], [LF + 6, 9]] },
+  // sitting cross-legged (Brann at the campfire)
+  lotus: { h: 7, skirt: 3, flare: 3, back: [[LF - 2, 1], [LF - 7, 4], [LF + 2, 6]], front: [[LF + 2, 1], [LF + 7, 4], [LF - 2, 6]] },
 };
 
 /** A leg map for a stance in a hero's materials (LEG_W wide, the feet centred on LEG_FEET_X). */
