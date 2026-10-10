@@ -31,6 +31,10 @@ export const ATLAS_PAGES: readonly AtlasPage[] = [
   { act: 9, title: 'A tide table', lines: ["Water-stained: 'Night tide, half past two.", "Lanterns lit on every post by dusk.", "A light on the crossing has saved more", "than one fool. Keep it lit.'"] },
   { act: 10, title: "A keeper's survey", lines: ["Very old: 'Causeway village. Forty souls.", "The river comes down from the north.'", "Beside it, in newer ink, one word:", "'Amended.' Nothing says who amended it."] },
   { act: 11, title: "A ferryman's note", lines: ["'No light on the mere at night. Row by", "the stars. The stars move, and so do you.", "That is how you get home.'"] },
+  // Noonspire (written ahead: its acts are 12-14 once the region is in play)
+  { act: 12, title: 'A waymark', lines: ["Carved in white stone: 'At dawn, follow", "your shadow to the well. At dusk, it points", "you home. At noon, sit down and wait.'"] },
+  { act: 13, title: "The Order's verse", lines: ["Painted on the spire stair: 'We greet the", "sun because it leaves us. A sun that never", "left would need no greeting.'"] },
+  { act: 14, title: "A dial-keeper's log", lines: ["'A cold night. Three lost on the road in", "the dark. Lamps on every tower from now on.'", "The next line is the same entry, again,", 'and again, down the whole page.'] },
 ];
 
 /** The story scene that reads act `act`'s page (the narrator, two lines a box). */
