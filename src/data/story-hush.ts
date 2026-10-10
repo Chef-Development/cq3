@@ -21,7 +21,7 @@ export const HUSH_STORY: Record<string, StoryBox[]> = {
     { who: 'rowan', text: 'Listen. ...Nothing. Not one bird.' },
     { who: 'pip', text: "He can't draw birds. Nobody can.\nSo he left them out." },
     { who: 'sable', text: "A forest that doesn't creak.\nI hate it already." },
-    { who: 'neve', text: 'The leaves have turned, and not one of them\nfalls. Not ONE. It is deeply wrong.' },
+    { who: 'neve', text: "The leaves have turned, and not one of them\nfalls. Not ONE. It's deeply wrong." },
     { who: 'rowan', text: 'There were people here. Somewhere under all\nthis, there still are. Come on.' },
   ],
   // Act 1 mini-boss: great garden shears he drew to keep his rows tidy (no speech)
