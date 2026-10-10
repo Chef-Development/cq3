@@ -1101,6 +1101,8 @@ F14. **Found gear for an empty slot goes on at once** (`CORE:` run.ts, tuning.ts
     loot, so the balance was set for a player who does. An item whose slot is empty now goes on as it drops (it never
     replaces anything: choices stay at camp), the loot screen tags it "Worn" in green instead of NEW, and the loot tip
     says "Gear for a free slot goes on. / Spares wait in your bag at camp." The bot is unchanged (it wore them anyway);
-    its "without gear" ablation turns this off (`Run.autoWear`).
+    its "without gear" ablation turns this off (`Run.autoWear`). What it's worth to a newcomer who never opens the
+    camp (balance bot, 200 runs, a newcomer's 0.38 s reaction): Act 1 first try 84.5% -> 94.5% at 55% accuracy,
+    91.5% -> 98% at 60%.
 
 (first10: end of section)
