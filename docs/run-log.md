@@ -207,3 +207,7 @@ One PR at the end supersedes #1-#7.
   like other finishers, Tess's and Vesper's finishers break a foe's wall; CORE `kits.tess.rewindClear` reviewed: Tess
   now within +/-10 of Rowan in Regions 1-3 and up in Region 5; Act 11 still ~-30 for Tess and Vesper). Boot-checked,
   kit tests green, pushed. Content's last chunk (03:45): Act 11 for those two kits. Dusk-art done for the night.
+- 02:45 EDT: merged 2A's last chunk (the region-won screen: colour floods back from the hero; the loot row's cells
+  and glows; the world map's far isle drained until it opens, the header's roses until a region is restored). 2A
+  done for the night; boot-checked, pushed. Dusk-art takes the two screens still in the old style (the in-fight relic
+  panel, the boss intro band) until 03:45.
