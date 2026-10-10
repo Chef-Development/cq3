@@ -20,6 +20,7 @@ import { band, chevron, glow, GOLD, hudIcon, iconSize, rows } from './pixels';
 import { clamp01, easeBack, easeOut3, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
 import { hdFor, screenCovered } from './hd-text';
 import { ImagePool, ribbon, strip, tag, TextPool } from './ui';
+import { fillEllipse } from './ui-modern';
 
 type G = Phaser.GameObjects.Graphics;
 type Face = readonly [number, number, number, number];
@@ -284,10 +285,17 @@ export class LootView {
   // ------------------------------------------------------------------ layout
 
   private rowY(): number {
-    return Math.round(Math.min(56, this.s.ground - 34));
+    // (big cells sit a little lower, clear of the title's ribbon)
+    return Math.round(Math.min(56, this.s.ground - 34)) + (this.drops.length <= 2 ? 6 : 0);
   }
 
-  private cellRect(d: Drop, size = CELL): Rect {
+  /** A landed item's cell: twice the size when only one or two came (review round 8: a lone 20 px cell on a dim
+   *  stage read as empty). */
+  private cellSize(): number {
+    return this.drops.length <= 2 ? 36 : CELL;
+  }
+
+  private cellRect(d: Drop, size = this.cellSize()): Rect {
     const y = this.rowY();
     return { x: Math.round(d.x - size / 2), y: Math.round(y - size / 2), w: size, h: size };
   }
@@ -443,8 +451,8 @@ export class LootView {
     const da = 0.6 * easeOut3(since / 260);
     g.fillStyle(0x05040a, da);
     g.fillRect(0, 0, GAME_W, GAME_H);
-    // the bar's band sinks further back (nothing to do there now)
-    g.fillStyle(0x05040a, da * 0.6);
+    // the bar's band sinks further back (nothing to do there now: its blocks and the combo counter all but gone)
+    g.fillStyle(0x05040a, da * 0.9);
     g.fillRect(0, s.splitY, GAME_W, GAME_H - s.splitY);
     const mythic = this.drops.some((d) => d.r >= 5 && d.landed);
     for (let i = 0; i < 5; i++) {
@@ -631,9 +639,21 @@ export class LootView {
     const sq = age < 180 ? Math.sin((age / 180) * Math.PI) * 4 : 0;
     const base = this.cellRect(d);
     const r: Rect = { x: base.x - Math.round(sq / 2) + sh, y: base.y + Math.round(sq / 2), w: base.w + Math.round(sq), h: base.h - Math.round(sq) };
+    // a soft glow in its rarity behind it (stepped ellipses, breathing), every item, so even a Common lands on light
+    if (!d.salvaged) {
+      const ak = clamp01(age / 300) * (0.85 + 0.15 * pulse(now, 1400, d.slot * 300));
+      const cxx = r.x + r.w / 2;
+      const cyy = r.y + r.h / 2;
+      for (const [k, a] of [
+        [1.35, 0.1],
+        [1.05, 0.14],
+        [0.8, 0.18],
+      ] as const)
+        fillEllipse(gc, cxx, cyy, r.w * k, r.h * k * 0.8, d.face[1], a * ak * (0.6 + Math.min(4, d.r) * 0.1));
+    }
     if (d.r >= 1 && !d.salvaged) glow(gc, r, d.face[1], (0.35 + 0.25 * pulse(now, 1100, d.slot * 300)) * Math.min(1, 0.4 + d.r * 0.15), 2 + Math.min(2, d.r >> 1));
     itemCell(gc, r, d.item.rarity, { dim: d.salvaged });
-    cellIcon(this.pool, d.item, r, D.icons, 1, d.salvaged ? 0.5 : 1);
+    cellIcon(this.pool, d.item, r, D.icons, r.w >= 34 ? 2 : 1, d.salvaged ? 0.5 : 1);
     // Epic and up: a shimmer slanting across the face now and then
     if (d.r >= 3 && !d.salvaged) {
       const q = ((now + d.slot * 517) % 1800) / 1800;
@@ -683,7 +703,8 @@ export class LootView {
     // top-right corner that pops on
     const bk = easeBack((age - 120) / 220, 2.2);
     if (bk > 0) {
-      const label = d.salvaged ? 'Scrap' : d.worn ? 'Worn' : 'NEW';
+      // ("Equipped": "Worn" read as worn out, review round 8)
+      const label = d.salvaged ? 'Scrap' : d.worn ? 'Equipped' : 'NEW';
       const tw = textWidth(label, 1, false) + 4;
       const tr: Rect = { x: base.x + base.w - tw + 5 + sh, y: base.y - 5 - Math.round((1 - Math.min(1, bk)) * 4), w: tw, h: 8 };
       tag(gf, tr, d.salvaged ? [0xb8c2d8, 0x7c86a6, 0x4a5272, 0x2a2f45] : d.worn ? [0xb4f070, 0x4caf3c, 0x2c7a2a, 0x164a1a] : [0xff9a80, 0xe0463c, 0xa8202c, 0x6a0f1e]);

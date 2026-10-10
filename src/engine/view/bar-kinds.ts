@@ -12,7 +12,9 @@ type G = Phaser.GameObjects.Graphics;
 
 /** Ramps [hi, base, lo, deep]. */
 export const ICE_RAMP = [0xe0faff, 0x8ae0f6, 0x4aa4d0, 0x1e5a80] as const;
-export const HOLD_RAMP = [0xb8e8ff, 0x5ab4ec, 0x2a78c0, 0x14407a] as const;
+// a hold is copper, not blue: the ice patches, the frozen reds and the cursor are the bar's blues (review round 8: on
+// the Frostpeaks' bar a hold couldn't be told from an ice patch at a glance)
+export const HOLD_RAMP = [0xf6c486, 0xd2803a, 0x8e4a1e, 0x4a2410] as const;
 const SOOT = [0x6a6276, 0x3a3444, 0x26222e, 0x15111a] as const;
 const COPPER = [0xf0c070, 0xc08040, 0x7a4a20] as const;
 const LEAF = [0x1e3c2a, 0x2e5a32, 0x4a7e36, 0x78a83c, 0xb4d058] as const;
@@ -343,16 +345,16 @@ export function drawFrozen(g: G, X: number, Y: number, W: number, H: number, now
  */
 export function drawHold(g: G, X: number, Y: number, W: number, H: number, entry: number, fillX: number | null, perfect: boolean, now: number, alpha = 1): void {
   // held: a glow round the whole bar (behind it)
-  if (fillX !== null) rows(g, X - 3, Y, W + 6, H, 3, perfect ? 0xffe680 : 0x9ad8ff, (0.35 + 0.15 * pulse(now, 300)) * alpha);
+  if (fillX !== null) rows(g, X - 3, Y, W + 6, H, 3, perfect ? 0xffe680 : 0xffb060, (0.35 + 0.15 * pulse(now, 300)) * alpha);
   brick(g, X, Y + 2, W, H - 4, HOLD_RAMP, alpha);
-  // ice ridges across it
-  g.fillStyle(0x9ad8ff, 0.7 * alpha);
+  // grip ridges across it
+  g.fillStyle(0xffe0b0, 0.7 * alpha);
   for (let x = X + 4; x < X + W - 3; x += 5) g.fillRect(x, Y + 4, 1, 2);
   // the groove
   const gy = Y + Math.round(H / 2) - 2;
   g.fillStyle(INK, alpha);
   g.fillRect(X + 3, gy - 1, W - 6, 6);
-  g.fillStyle(0x0e2a52, alpha);
+  g.fillStyle(0x2a140a, alpha);
   g.fillRect(X + 3, gy, W - 6, 4);
   if (fillX !== null) {
     const a0 = entry > 0 ? X + 3 : Math.round(fillX);
@@ -360,7 +362,7 @@ export function drawHold(g: G, X: number, Y: number, W: number, H: number, entry
     const lo = Math.max(X + 3, Math.min(a0, a1));
     const hi = Math.min(X + W - 3, Math.max(a0, a1));
     if (hi > lo) {
-      const [c0, c1] = perfect ? [0xfff0a0, 0xf2c230] : [0xe0faff, 0x7ad8ff];
+      const [c0, c1] = perfect ? [WHITE, 0xfff0a0] : [0xfff2d8, 0xffc060];
       g.fillStyle(c1, alpha);
       g.fillRect(lo, gy, hi - lo, 4);
       g.fillStyle(c0, alpha);
@@ -373,7 +375,7 @@ export function drawHold(g: G, X: number, Y: number, W: number, H: number, entry
     // waiting: a shimmer runs along the groove toward the far end
     const k = ((now % 900) / 900) * (W - 8);
     const sx = entry > 0 ? X + 4 + k : X + W - 5 - k;
-    g.fillStyle(0x5ab4ec, 0.8 * alpha);
+    g.fillStyle(0xe09040, 0.85 * alpha);
     g.fillRect(Math.round(sx), gy + 1, 3, 2);
   }
   // the start notch (gold, an arrow into the bar) and the end notch (white)

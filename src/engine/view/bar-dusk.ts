@@ -3,8 +3,8 @@
 // - the lantern: outside its light the track lies in a cool dusk; round the cursor a pool of lamplight as wide as the
 //   light reaches, in steps that brighten toward the cursor and spill over the frame above and below (it widens as the
 //   cursor speeds up; a dimmed one burns low, cooler and flickering), with amber ticks where the light ends; blocks
-//   in the light catch it on their top edge. An unlit dark block is an ink-grey shape with a faint "?" (never violet:
-//   that's the trap's colour): what it is can't be seen. When the light reaches it, its colour floods in with a warm
+//   in the light catch it on their top edge. An unlit dark block is a neutral slate shape with a faint dashed outline
+//   and two breathing glints (never violet: that's the trap's colour): what it is can't be seen. When the light reaches it, its colour floods in with a warm
 //   flash (bar.ts).
 // - the tide: a band of dark water over that end of the bar, its top a moving crest of light, its front a bright
 //   wobbling line with foam; the blocks standing in it keep their own colour under a thin blue veil with ripples
@@ -21,17 +21,15 @@ const GLOW = 0xff9a3c; // a saturated amber (a pale one over the violet track re
 const GLOW_HOT = 0xffd27a;
 const RAIL = 0xffe8b0; // the track's rails catching the light
 const GLOW_LOW = 0xc8a0e0; // a dimmed lantern burns low and cool
-const SHAPE = 0x1c1c22; // an unlit shape: ink-grey, never the trap's violet
-const SHAPE_RIM = 0x4c4c56;
-const SHAPE_MARK = 0x9a9aa6;
+// (a neutral slate, never the trap's violet: review round 8 read the old violet shapes as traps)
+const SHAPE = 0x1c2026;
+const SHAPE_RIM = 0x76808c;
+const SHAPE_GLINT = 0xd0d8e0;
 const WATER = 0x1b4f6e;
 const WATER_DEEP = 0x0f2f48;
 const VEIL = 0x2a72a8; // the thin water over a sunk block (a blue that keeps the block's own colour)
 const SURF = 0x9fe0f0;
 const FOAM = 0xe8fbff;
-
-/** The "?" on an unlit shape (4 x 7). */
-const ASK = ['.##.', '#..#', '...#', '..#.', '..#.', '....', '..#.'];
 
 /** Whether the fight has anything to do with the lantern (an act with dark blocks, a dark block on the bar, a dimmed
  *  lantern). */
@@ -120,22 +118,27 @@ export function lanternRim(g: G, c: Combat, t: number, pos: number, x: number, y
   if (d < 0.5) g.fillRect(x + 1, y + 1, 1, 2);
 }
 
-/** An unlit dark block (bar.ts draws it here instead of its colours): an ink-grey shape with a faint "?", slowly
- *  breathing (no violet: that's the trap's colour, and some dark blocks are traps). */
+/** An unlit dark block (bar.ts draws it here instead of its colours): a slate shape with a faint dashed outline and
+ *  two breathing glints (no violet: that's the trap's colour, and some dark blocks are traps; no glyph: it shows
+ *  nothing of its kind). */
 export function drawDarkShape(g: G, x: number, y: number, w: number, h: number, now: number, id: number): void {
   g.fillStyle(SHAPE, 0.96);
   g.fillRect(x, y + 1, w, h - 2);
-  g.fillStyle(SHAPE_RIM, 1);
-  g.fillRect(x + 1, y, w - 2, 1);
-  g.fillRect(x + 1, y + h - 1, w - 2, 1);
-  g.fillRect(x, y + 1, 1, h - 2);
-  g.fillRect(x + w - 1, y + 1, 1, h - 2);
-  // the mark, each shape on its own beat
-  const k = 0.45 + 0.3 * Math.sin(now / 420 + id * 1.7);
-  g.fillStyle(SHAPE_MARK, k);
-  const ox = x + Math.round((w - 4) / 2);
-  const oy = y + Math.round((h - 7) / 2);
-  if (w >= 6) for (let r = 0; r < ASK.length; r++) for (let q = 0; q < 4; q++) if (ASK[r][q] === '#') g.fillRect(ox + q, oy + r, 1, 1);
+  // a faint dashed outline (no block has one: it reads as "something's there", not as any kind)
+  g.fillStyle(SHAPE_RIM, 0.9);
+  for (let i = x + 1; i < x + w - 1; i += 3) {
+    g.fillRect(i, y, Math.min(2, x + w - 1 - i), 1);
+    g.fillRect(i, y + h - 1, Math.min(2, x + w - 1 - i), 1);
+  }
+  for (let j = y + 1; j < y + h - 1; j += 3) {
+    g.fillRect(x, j, 1, Math.min(2, y + h - 1 - j));
+    g.fillRect(x + w - 1, j, 1, Math.min(2, y + h - 1 - j));
+  }
+  // two glints, slowly breathing (each shape on its own beat)
+  const k = 0.55 + 0.35 * Math.sin(now / 420 + id * 1.7);
+  g.fillStyle(SHAPE_GLINT, k);
+  g.fillRect(x + Math.max(1, Math.round(w * 0.3)), y + Math.round(h * 0.38), 1, 1);
+  g.fillRect(x + Math.max(2, Math.round(w * 0.65)), y + Math.round(h * 0.38), 1, 1);
 }
 
 /** Over the still blocks, under the reds: the water at either end, the high-water mark, wakes behind wading reds. */

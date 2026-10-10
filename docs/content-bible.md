@@ -1186,8 +1186,23 @@ pass could trade attack for HP. Hero parity, a first read (balanceCampaign throu
 reaching each act, so about ±12 points of noise; first try, gap to Rowan's 80 / 70 / 40 in Acts 13 / 14 / 15): Sable
 +18 / -2 / +8 (her caster strength meets the Sphinx, beast and caster), Neve -15 / +3 / +6, Dell -19 / -10 / +4, Tess
 -40 / -4 / -6 (her late-game gap, Act 12 -38 in the same runs, C16; the construct mini-boss and boss give her +25%),
-Vesper -16 / -25 / -14 (low in the fourth region too). Left for a hero-numbers pass: Tess's and Vesper's late game;
-Sable's Act 13 edge if a 100-run sample confirms it (retagging the Sphinx would cost her her look).
+Vesper -16 / -25 / -14 (low in the fourth region too). Sable's Act 13 edge is left until a 100-run sample confirms it
+(retagging the Sphinx would cost her her look).
+
+Tess and Vesper, chunk 4 (decision C18; region-tune from 40 cached end-of-region heroes a hero, so about ±15 a number;
+Regions 1-3 by `npm run campaign`, 60 runs, seeds 1 and 2 averaged). Gaps to Rowan:
+
+| | Acts 1-3 | Acts 4-6 | Acts 7-9 | Acts 10-12 | Acts 13-15 |
+|---|---|---|---|---|---|
+| Tess before | -1 / 0 / -1 | -5 / -7 / -4 | +1 / -4 / +6 | -11 / -30 / +5 | -18 / +5 / -14 |
+| Tess after | -1 / -1 / +5 | +3 / -5 / -10 | +6 / -8 / +10 | -6 / -33 / +12 | +11 / +2 / -14 |
+| Vesper before | 0 / +6 / -2 | +8 / -5 / -10 | 0 / -5 / +14 | -1 / -38 / -22 | -12 / -6 / -16 |
+| Vesper after | 0 / +6 / -2 | +7 / -5 / -13 | -3 / -5 / +7 | -1 / -38 / -12 | -12 / -6 / -6 |
+
+At 100 runs (after the change): Tess -7 / -7 / +3 and Vesper -5 / -22 / -9 in Acts 10-12 (Rowan 75 / 58 / 48%).
+What's left is Act 11 for Vesper: the Sluice Keeper (decision C19). Vesper takes about 60% more hits a second from it than Rowan with
+the tide on or off. HP +15 or attack +6% didn't move her gaps, so it isn't plain weakness. Next: the bot's choices
+with her wider target greens near reds, and her Volley pins.
 
 ### Still to design and build (next chunks)
 Telegraph sounds (`NOON_NEW_SOUNDS`), the music and ambience cues in app.ts (`ACT_AMBIENCE` 12-14: `dunes`, `spire`,

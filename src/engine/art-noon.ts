@@ -449,29 +449,30 @@ function sphinxParts(pose: string, phase: number): Part[] {
   const np = V(nemes, [X(9), Y(5), X(31), Y(31)], [X(17), Y(10), 12, 12], LAPIS);
   np[0] = np[0].map((r, y) => [...r].map((c) => (c !== '.' && Math.floor((y + Y(5)) / 2) % 2 === 0 ? (+c > 2 ? 'G' : 'g') : c)).join(''));
   out.push([np[0], np[1], np[2], { pal: { ...digits(LAPIS), G: BRASS[4], g: BRASS[2] }, edge: LAPIS[0] }]);
-  // the face, drawn by hand: a hard brow shelf over deep sockets, eyes red (her sun eyes white-gold past half HP), the
-  // nose ridge and cheekbones catching the overhead light, the jaw in shadow
+  // the face, drawn by hand and turned a little toward the hero (decision C-ART-12: the old one was a flat, square,
+  // front-lit block that read as a mask): the light from her left, so the brow shelf, the nose ridge and the
+  // cheekbone catch it and the far side falls into the headdress's shadow; deep sockets with eyes of gold (white-gold,
+  // her sun eyes, past half HP); the jaw tapering to a firm chin; a gold circlet across the brow. Speaking she shows a
+  // fang, attacking she bares them.
   const FACE = [
-    '..00000000..',
-    '.0445555440.',
-    '044555555440',
-    '033444444330',
-    '011111111110',
-    '01Rr1441rR10',
-    '034213312430',
-    '034325423430',
-    '023321112320',
-    '023332223320',
-    '0231nnnn1320',
-    '022322223220',
-    '.0223333220.',
-    '..01222210..',
-    '...000000...',
+    '...0000000..',
+    '..0xXXXXxx0.',
+    '.04444433210',
+    '045544433210',
+    '045443343221',
+    '0211Rr11r21.',
+    '032214322111',
+    '04431543321.',
+    '03332443321.',
+    '03321112211.',
+    '03221nnn211.',
+    '.0323443211.',
+    '.0223332110.',
+    '..02221100..',
+    '...00000....',
   ]
-    // kohl-rimmed eyes of gold (white-gold, her sun eyes, past half HP), a gold circlet across the brow
     .map((r) => (sun ? r.replace(/R/g, 'Z').replace(/r/g, 'W') : r.replace(/R/g, 'X').replace(/r/g, 'x')))
-    .map((r, y) => (y === 2 ? '0xXXXXXXXxx0' : r))
-    .map((r, y) => (y === 10 && mouth ? '0231ntnt1320' : y === 11 && mouth === 2 ? '021nnnnnn120' : y === 12 && mouth === 2 ? '.021tttt120.' : r));
+    .map((r, y) => (y === 10 && mouth === 1 ? '0322nntn211.' : y === 10 && mouth === 2 ? '0322tnnt211.' : y === 11 && mouth === 2 ? '.03nnnnnn11.' : y === 12 && mouth === 2 ? '.022tnnt110.' : r));
   out.push([FACE, X(8), Y(10), { pal: { ...GLOW, ...digits(SKIN) } }]);
   // the sun pinned at the circlet's front
   out.push([['.x.', 'xZx', 'XWX', '.x.'], X(13), Y(9), { pal: GLOW }]);

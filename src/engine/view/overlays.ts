@@ -21,9 +21,13 @@ import { band, button3d, chevron, gauge, glow, GOLD, hudIcon, iconSize, NAVY, pa
 import { BOOST_ICON, clamp01, easeBack, easeInOut, easeOut3, hpLabel, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
 import { hdFor, screenCovered } from './hd-text';
 import { FACE, ImagePool, isPressed, notePress, ribbon, RIBBON, strip, tag, TextPool } from './ui';
-import { cardFrame, cardShine, cardTile, mainTag, relicCard, relicIcon, tagChip, TAG_FACE, type CardCtx } from './relic-ui';
+import { cardFrame, cardShine, cardTile, mainTag, relicCard, relicIcon, tagChip, TAG_FACE, UPRIGHT_NAME_Y, uprightWell, type CardCtx } from './relic-ui';
+import { glass } from './ui-modern';
 import { wrapText } from './items';
 import { pix } from './camp-kit';
+
+/** An ink plate with a brass rim (the story's name tabs: one look for the panel tabs too). */
+const INK_TAB = [0xbe8e3a, 0x262040, 0x1c1830, 0x100c1c] as const;
 
 // ------------------------------------------------------------------ small UI glyphs (shared by the menus)
 
@@ -182,6 +186,8 @@ export class Overlays {
   /** The relic panel (a fight paused from the HUD's relic belt): the relic shown in detail (null = closed). */
   relicSel: number | null = null;
   private relicAt = 0;
+  /** The region-won screen's burst has played (once a visit to the screen). */
+  private victoryBurst = false;
   /** "New relic unlocked!": when the card on screen popped in (0 = not yet). */
   private unlockAt = 0;
   /** "Level up!" toast after a fight (the loot or the pick): the level reached, and when (performance.now). */
@@ -419,17 +425,23 @@ export class Overlays {
     return null;
   }
 
-  /** Boost choices: a navy panel with three stacked cards and, along its bottom, the relics the hero carries. */
+  /** Boost choices: a glass plate with the cards standing side by side and, along its bottom, the relics carried. */
   private boostPanel(): Rect {
+    const s = this.s;
     const h = 121;
-    return { x: Math.round(GAME_W / 2 - 128), y: Math.min(24, this.s.B + 1 - h), w: 256, h };
+    const w = Math.min(280, s.R - s.L - 4);
+    return { x: Math.round((s.L + s.R) / 2 - w / 2), y: Math.min(24, s.B + 1 - h), w, h };
   }
 
+  /** Card i: upright, side by side (round 8 review: three flat rows read as a settings list; two for a new player's
+   *  first pick, wider). */
   cardRect(i: number): Rect {
     const p = this.boostPanel();
-    // two cards (a new player's first pick): taller, with room for their words
-    if (this.s.app.run.boostChoices.length === 2) return { x: p.x + 8, y: p.y + 8 + i * 48, w: p.w - 16, h: 44 };
-    return { x: p.x + 8, y: p.y + 8 + i * 32, w: p.w - 16, h: 30 };
+    const n = Math.max(2, Math.min(3, this.s.app.run.boostChoices.length || 3));
+    const gap = 6;
+    const w = Math.floor((p.w - 14 - gap * (n - 1)) / n);
+    const x0 = Math.round(p.x + (p.w - (w * n + gap * (n - 1))) / 2);
+    return { x: x0 + i * (w + gap), y: p.y + 9, w, h: p.h - 9 - 22 };
   }
 
   /** The tray along the pick panel's bottom: an amulet, then the relics carried (the pick lands in the next slot). */
@@ -522,12 +534,13 @@ export class Overlays {
     const s = this.s;
     if (isRelicOffer(offer)) {
       // (a new player's first pick: plain cards, while it flies to the tray too)
-      relicCard(c, r, offer.relic, { owned: s.app.run.hero.relics, tuning: s.app.tuning, now, flash, alpha, plain: s.app.run.simplePick });
+      relicCard(c, r, offer.relic, { owned: s.app.run.hero.relics, tuning: s.app.tuning, now, flash, alpha, plain: s.app.run.simplePick, upright: r.h > 60 });
       return;
     }
     const { g, texts } = c;
     const look = CARD[offer.rarity];
     const [hi] = look.face;
+    if (r.h > 60) return this.statCardUpright(c, r, offer, preview, now, flash, alpha);
     cardFrame(g, r, look.face, offer.rarity, now, alpha);
     const tile: Rect = { x: r.x + 2, y: r.y + 2, w: 22, h: r.h - 4 };
     cardTile(g, tile, look.face, alpha);
@@ -547,6 +560,42 @@ export class Overlays {
       const tr: Rect = { x: r.x + r.w - tw - 3, y: r.y + 4, w: tw, h: 9 };
       tag(g, tr, look.face, alpha);
       texts.text(look.tag, tr.x + 3, tr.y + 4.5, WHITE, { oy: 0.5, alpha });
+    }
+    cardShine(g, r, offer.rarity, now, alpha);
+    if (flash > 0) {
+      g.fillStyle(WHITE, flash * alpha);
+      g.fillRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
+    }
+  }
+
+  /** A stat card standing upright (the pick): its icon at 2x in the well, its name, and what it does to the hero's
+   *  stat right now on a dark strip under it ("ATK 14 -> 16"); the rarity at the top right. */
+  private statCardUpright(c: CardCtx, r: Rect, offer: BoostOffer, preview: BoostPreview, now: number, flash: number, alpha: number): void {
+    const { g, texts } = c;
+    const look = CARD[offer.rarity];
+    const [hi] = look.face;
+    cardFrame(g, r, look.face, offer.rarity, now, alpha);
+    const well = uprightWell(g, r, look.face, offer.rarity, now, alpha);
+    const icon = BOOST_ICON[offer.id];
+    const [iw, ih] = iconSize(icon);
+    hudIcon(g, icon, Math.round(well.x + (well.w - iw * 2) / 2), Math.round(well.y + (well.h - ih * 2) / 2), 2, alpha);
+    const cx = r.x + r.w / 2;
+    const [name] = boostLabel(this.s.app.tuning, offer);
+    const nm = wrapText(name, r.w - 4, true).slice(0, 2);
+    nm.forEach((line, i) => texts.text(line, cx, r.y + UPRIGHT_NAME_Y + i * 9, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha }));
+    // the stat as it stands, and after this card (the stat's name dropped when the strip is too wide for the card)
+    const showStat = preview.stat !== name && previewWidth(preview, true) + 8 <= r.w - 4;
+    const pw = previewWidth(preview, showStat);
+    const sy = r.y + UPRIGHT_NAME_Y + nm.length * 9 + 4;
+    const sx = Math.round(cx - (pw + 6) / 2);
+    rows(g, sx, sy, pw + 6, 11, 2, NAVY[1], 0.85 * alpha);
+    band(g, sx, sy, pw + 6, 11, 2, 0, 1, INK, alpha);
+    previewLine(g, texts, preview, sx + 3, sy + 5.5, offer.rarity === 'common' ? 0xb4f070 : mix(hi, WHITE, 0.25), alpha, showStat);
+    if (look.tag) {
+      const tw = textWidth(look.tag, 1, false) + 4;
+      const tr: Rect = { x: r.x + r.w - tw - 2, y: r.y + 4, w: tw, h: 9 };
+      tag(g, tr, look.face, alpha);
+      texts.text(look.tag, tr.x + 2, tr.y + 4.5, WHITE, { oy: 0.5, alpha });
     }
     cardShine(g, r, offer.rarity, now, alpha);
     if (flash > 0) {
@@ -583,6 +632,28 @@ export class Overlays {
 
   // ------------------------------------------------------------------ the frame
 
+  /** Fill the stage (above the bar's band) in the current fill style, all but the HUD's plates (`hud.keepOut()`). */
+  private stageFill(g: G): void {
+    const s = this.s;
+    const holes = s.hud.keepOut().filter((h) => h.w > 0 && h.h > 0);
+    let y = 0;
+    while (y < s.splitY) {
+      let next = s.splitY;
+      for (const h of holes) {
+        if (h.y > y) next = Math.min(next, h.y);
+        if (h.y + h.h > y) next = Math.min(next, h.y + h.h);
+      }
+      const cut = holes.filter((h) => y >= h.y && y < h.y + h.h).sort((a, b) => a.x - b.x);
+      let x = 0;
+      for (const h of cut) {
+        if (h.x > x) g.fillRect(x, y, h.x - x, next - y);
+        x = Math.max(x, h.x + h.w);
+      }
+      if (x < GAME_W) g.fillRect(x, y, GAME_W - x, next - y);
+      y = next;
+    }
+  }
+
   draw(now: number): void {
     const s = this.s;
     const g = s.gTop;
@@ -608,15 +679,16 @@ export class Overlays {
       if (ph === 'boost') then();
     }
     if (now < s.fx.screenFlashUntil) {
-      // scene only: the bar must stay readable
+      // scene only: the bar and the HUD's plates must stay readable
       g.fillStyle(s.fx.screenFlashColor, Math.min(0.6, (s.fx.screenFlashUntil - now) / 260));
-      g.fillRect(0, 0, GAME_W, s.splitY);
+      this.stageFill(g);
     }
     if (now < s.fx.impactFlashUntil || s.fx.impactFlashPending) {
-      // heavy impact: the scene goes white for a frame or two
+      // heavy impact: the scene goes white for a frame or two (never the plates or the bar: review round 8 found the
+      // finishers' white frames washing over the whole HUD)
       s.fx.impactFlashPending = false;
       g.fillStyle(WHITE, 0.82);
-      g.fillRect(0, 0, GAME_W, s.splitY);
+      this.stageFill(g);
     }
     // the old named texts are no longer used by the overlays
     for (const k of ['ovTitle', 'ovSub', 'ovLine1', 'ovLine2', 'ovLine3', 'begin', 'banner', 'tCont', 'tContSub', 'tNew']) txt[k]?.setVisible(false);
@@ -713,7 +785,7 @@ export class Overlays {
     const sc = 0.75 + 0.25 * k;
     const p: Rect = { x: Math.round(p0.x + (p0.w * (1 - sc)) / 2), y: Math.round(p0.y + (p0.h * (1 - sc)) / 2), w: Math.round(p0.w * sc), h: Math.round(p0.h * sc) };
     if (since < 40) return;
-    panel(gc, p, { trim: 'full', alpha: clamp01(since / 100) });
+    glass(gc, p, { alpha: clamp01(since / 100), clear: 0.12, rim: GOLD[1] });
     if (k < 0.98) return;
     // a replay's opening draft counts its picks; a pick with a relic in it is a relic pick
     const title = run.startPick
@@ -767,7 +839,7 @@ export class Overlays {
       // face up: the whole card (a flash as it lands; a reroll flashes them all)
       const flash = Math.max(0, 0.6 * (1 - (dt - T.up) / 160));
       const chips: Array<{ tag: RelicTag; r: Rect; hot: boolean }> = [];
-      if (isRelicOffer(offer)) relicCard(ctx, slot, offer.relic, { owned, tuning: s.app.tuning, now: now + i * 300, flash, chips, plain: run.simplePick });
+      if (isRelicOffer(offer)) relicCard(ctx, slot, offer.relic, { owned, tuning: s.app.tuning, now: now + i * 300, flash, chips, plain: run.simplePick, upright: true });
       else this.card(ctx, slot, offer, boostPreview(run.tuning, run.hero, offer), now + i * 300, flash);
       for (const c of chips) if (c.hot) synergy.push({ chip: c.r, tag: c.tag, card: slot, at: deal.at + T.up });
     });
@@ -822,7 +894,8 @@ export class Overlays {
   private cardFace(g: G, r: Rect, offer: BoostOffer, now: number): void {
     const face = isRelicOffer(offer) ? RARITY_FACE_OF(relicById(offer.relic)?.rarity ?? offer.rarity) : CARD[offer.rarity].face;
     cardFrame(g, r, face, 'common', now);
-    if (r.h >= 6) cardTile(g, { x: r.x + 2, y: r.y + 2, w: 22, h: r.h - 4 }, face);
+    if (r.h > 34 && r.w < 160) uprightWell(g, r, face, 'common', now);
+    else if (r.h >= 6) cardTile(g, { x: r.x + 2, y: r.y + 2, w: 22, h: r.h - 4 }, face);
   }
 
   /**
@@ -952,8 +1025,10 @@ export class Overlays {
       g.fillRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
     }
     // the icon: pops out of the card's tile at 2x, then flies (shrinking to 1x) along an arc to its slot
-    const x0 = p.r.x + 1;
-    const y0 = p.r.y + p.r.h / 2 - 12;
+    // (an upright card's icon sits in the well at its top middle)
+    const up = p.r.h > 60;
+    const x0 = up ? Math.round(p.r.x + p.r.w / 2 - 12) : p.r.x + 1;
+    const y0 = up ? p.r.y + 4 : p.r.y + p.r.h / 2 - 12;
     if (age < landAt) {
       const k = clamp01((age - 60) / (landAt - 60));
       const e = k * k * (3 - 2 * k);
@@ -1186,50 +1261,116 @@ export class Overlays {
   }
 
   /**
-   * The region saved, in the same hierarchy: one headline on a gold ribbon over slow golden rays, one line under it,
-   * and the way on (the next region, or more to come) on the console under "Tap to continue".
+   * The region saved, as the Atlas shows it (docs/art-style.md 12b; review round 8: it was the act clear's ribbon on a
+   * dimmed stage): the stage opens drained, a pale ink wash over it; then the colour floods back out from the hero in
+   * a ragged ring with a front of gold ink and motes (about 2 s), the hero left standing in a warm light; then the
+   * headline scales in with a burst, one line under it, and "Tap to continue" small on the console with the way on.
    */
   private drawVictory(g: G, gc: G, now: number, since: number): void {
     const s = this.s;
     const cx = Math.round(GAME_W / 2);
-    this.dim(g, 0.45);
-    // slow golden rays behind the title
-    const ox = cx;
-    const oy = 31;
-    const rot = now / 4000;
-    for (let i = 0; i < 12; i++) {
-      const a0 = rot + (i / 12) * Math.PI * 2;
-      const a1 = a0 + Math.PI / 18;
-      g.fillStyle(i % 2 ? 0xffe680 : 0xfff6c0, 0.09);
-      g.fillTriangle(ox, oy, Math.round(ox + Math.cos(a0) * 260), Math.round(oy + Math.sin(a0) * 260), Math.round(ox + Math.cos(a1) * 260), Math.round(oy + Math.sin(a1) * 260));
+    const run = s.app.run;
+    // the flood: a ring from the hero, its radius easing out to past the stage's far corners
+    const hx = s.heroHome;
+    const hy = s.ground - 18;
+    const FLOOD_AT = 350;
+    const FLOOD_MS = 2100;
+    const fk = clamp01((since - FLOOD_AT) / FLOOD_MS);
+    const R = (1 - (1 - fk) ** 3) * 360;
+    const top = s.splitY;
+    // the drained land outside the ring: a pale ink wash (the draft's grey), row by row, the ring's edge ragged
+    const edge = (y: number) => R + Math.sin(y * 0.7 + now / 260) * 2 + Math.sin(y * 0.23 + 1.3) * 4;
+    for (let y = 0; y < top; y++) {
+      const dy = y - hy;
+      const rr = edge(y);
+      const half = rr > Math.abs(dy) ? Math.sqrt(rr * rr - dy * dy) : -1;
+      const x0 = half < 0 ? GAME_W + 1 : Math.round(hx - half);
+      const x1 = half < 0 ? GAME_W + 1 : Math.round(hx + half);
+      // (two washes: the vellum's warm grey drains the colour, a thin ink darkens it)
+      for (const [c, a] of [
+        [0x6a605a, 0.42],
+        [0x1a1622, 0.32],
+      ] as const) {
+        g.fillStyle(c, a);
+        if (half < 0) g.fillRect(0, y, GAME_W, 1);
+        else {
+          if (x0 > 0) g.fillRect(0, y, x0, 1);
+          if (x1 < GAME_W) g.fillRect(x1, y, GAME_W - x1, 1);
+        }
+      }
+      if (half >= 0) {
+        // the front: gold ink where the colour meets the blank (while it is still moving)
+        if (fk < 1) {
+          g.fillStyle(0xffd890, 0.85 * (1 - fk * 0.6));
+          g.fillRect(x0 - 1, y, 2, 1);
+          g.fillRect(x1 - 1, y, 2, 1);
+          g.fillStyle(0xb47e2a, 0.55 * (1 - fk * 0.6));
+          g.fillRect(x0 - 3, y, 2, 1);
+          g.fillRect(x1 + 1, y, 2, 1);
+        }
+      }
+    }
+    // motes thrown off the front
+    if (fk > 0 && fk < 1)
+      for (let i = 0; i < 3; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const x = hx + Math.cos(a) * R;
+        const y = hy + Math.sin(a) * R;
+        if (y < 0 || y > top || x < 0 || x > GAME_W) continue;
+        s.fx.particles.push({ x, y, vx: Math.cos(a) * rand(6, 16), vy: Math.sin(a) * rand(6, 16) - 8, g: -6, born: now, life: 900, color: Math.random() < 0.5 ? 0xffe680 : 0xfff6d8, size: 1, world: true, streak: false });
+      }
+    // the hero in a warm light once the land is back round him
+    const lk = clamp01((since - FLOOD_AT) / 500);
+    for (const [rx, ry, a] of [
+      [34, 7, 0.1],
+      [22, 5, 0.14],
+    ] as const) {
+      g.fillStyle(0xffc070, a * lk);
+      for (let j = -ry; j <= ry; j++) {
+        const w = Math.round(rx * Math.sqrt(1 - (j * j) / (ry * ry)));
+        g.fillRect(hx - w, s.ground + j, w * 2, 1);
+      }
     }
     // the console: a dark band
     g.fillStyle(0x07040c, 0.5 * clamp01(since / 300));
     g.fillRect(0, s.splitY, GAME_W, GAME_H - s.splitY);
-    const k = easeBack(since / 420, 1.5);
-    const run = s.app.run;
-    const title = `${run.regionDef.name} restored!`;
-    const tw = textWidth(title, 2, true);
-    const y = Math.round(20 - (1 - k) * 50);
-    ribbon(gc, cx, y, Math.round((tw + 24) * Math.min(1, k)), 22, RIBBON.gold, 1, k > 0.9);
-    if (k > 0.5) this.texts.text(title, cx, y + 11, 0xfff6c0, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a });
+    // the headline scales in once the colour is most of the way back, with a burst
+    const TITLE_AT = FLOOD_AT + FLOOD_MS * 0.6;
+    const tt = since - TITLE_AT;
+    if (tt > 0) {
+      const k = easeBack(tt / 420, 1.6);
+      if (!this.victoryBurst) {
+        this.victoryBurst = true;
+        s.fx.burst(cx, 31, 0xffe680, 26, false, 1.3, true);
+        s.fx.ring(cx, 31, 40, 0xfff0a0, false);
+      }
+      const title = `${run.regionDef.name} restored!`;
+      const tw = textWidth(title, 2, true);
+      const y = 20;
+      ribbon(gc, cx, y, Math.round((tw + 24) * Math.min(1, k)), 22, RIBBON.gold, clamp01(tt / 120), k > 0.9);
+      if (k > 0.5) this.texts.text(title, cx, y + 11, 0xfff6c0, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a, alpha: clamp01((k - 0.5) * 2) });
+    } else this.victoryBurst = false;
     // (profile.weights counts the regions restored)
     const home = 'Its old lines are back.';
     const left = WEIGHTS_TOTAL - run.profile.weights;
     const togo = left === 1 ? 'One region to go.' : `${COUNT[left] ?? whole(left)} regions to go.`;
-    if (since > 400) this.subLine(gc, left > 0 ? `${home} ${togo}` : 'The Atlas is whole again!', cx, 49, clamp01((since - 400) / 250));
-    if (since > 1500) {
-      this.prompt(g, 'Tap to continue', s.splitY + 16, now, 0xfff07a);
-      // where the road goes next (the victory scene has just named it), or more to come
+    const sub = TITLE_AT + 400;
+    if (since > sub) this.subLine(gc, left > 0 ? `${home} ${togo}` : 'The Atlas is whole again!', cx, 49, clamp01((since - sub) / 250));
+    const go = FLOOD_AT + FLOOD_MS + 500;
+    if (since > go) {
+      // "Tap to continue" in bold 1 (it was bigger than the headline), and where the road goes next
+      const ak = clamp01((since - go) / 300);
+      const p = pulse(now, 1100);
+      this.texts.text('Tap to continue', cx, s.splitY + 14, mix(0xfff07a, WHITE, 0.3 * p), { bold: true, ox: 0.5, oy: 0.5, alpha: ak * (0.75 + 0.25 * p) });
       const nextRegion = REGIONS[run.regionIndex + 1];
-      this.texts.text(nextRegion ? `Next: ${nextRegion.name}` : 'More lands soon', cx, s.splitY + 34, 0xa8c8e8, { ox: 0.5, oy: 0.5, alpha: clamp01((since - 1500) / 300) });
+      this.texts.text(nextRegion ? `Next: ${nextRegion.name}` : 'More lands soon', cx, s.splitY + 28, 0xa8c8e8, { ox: 0.5, oy: 0.5, alpha: ak });
     }
-    // a little shower of golden sparks
-    if (Math.random() < 0.5) s.fx.particles.push({ x: rand(20, GAME_W - 20), y: -2, vx: rand(-10, 10), vy: rand(20, 40), g: 30, born: now, life: 2200, color: Math.random() < 0.5 ? 0xffe680 : WHITE, size: 1, world: true, streak: false });
-    for (let i = 0; i < 5; i++) {
-      const q = ((now / 1100 + i * 0.21) % 1 + 1) % 1;
-      if (q < 0.4) this.star(gc, Math.round(cx - 110 + ((i * 53) % 220)), 14 + ((i * 23) % 36), q < 0.2 ? 2 : 1, 0xfff0a0, 1 - q / 0.4);
-    }
+    // a few gold twinkles over the title once it's in
+    if (tt > 0)
+      for (let i = 0; i < 5; i++) {
+        const q = ((now / 1100 + i * 0.21) % 1 + 1) % 1;
+        if (q < 0.4) this.star(gc, Math.round(cx - 110 + ((i * 53) % 220)), 14 + ((i * 23) % 36), q < 0.2 ? 2 : 1, 0xfff0a0, 1 - q / 0.4);
+      }
   }
 
   private drawPause(g: G, gc: G, now: number): void {
@@ -1263,28 +1404,37 @@ export class Overlays {
     const y = 30;
     const h = 24;
     const elite = this.banner === 'ELITE!';
-    const col = elite ? 0x8a1a22 : 0x4a2470;
+    // (L7/L8: a band of ink with brass rules, the name in pale brass; an elite's in oxblood. It was a saturated purple
+    // slab with bright gold lines and yellow letters)
+    const col = elite ? 0x3a0e14 : 0x141026;
     const wIn = Math.round(GAME_W * inK);
     const x0 = Math.round(GAME_W * outK);
     const x1 = Math.min(GAME_W, wIn);
     if (x1 <= x0) return;
-    g.fillStyle(INK, 0.5);
-    g.fillRect(x0, y - h / 2 - 2, x1 - x0, h + 4);
-    g.fillStyle(col, 0.85);
+    g.fillStyle(INK, 0.55);
+    g.fillRect(x0, y - h / 2 - 3, x1 - x0, h + 6);
+    g.fillStyle(col, 0.9);
     g.fillRect(x0, y - h / 2, x1 - x0, h);
-    g.fillStyle(mix(col, WHITE, 0.25), 0.9);
-    g.fillRect(x0, y - h / 2, x1 - x0, 2);
-    g.fillStyle(GOLD[3], 1);
+    // a dull sheen across the top, the bottom in shadow
+    g.fillStyle(mix(col, 0x8a7cc0, 0.2), 0.6);
+    g.fillRect(x0, y - h / 2, x1 - x0, 3);
+    g.fillStyle(INK, 0.35);
+    g.fillRect(x0, y + h / 2 - 4, x1 - x0, 4);
+    // brass rules, a hairline gap inside each
+    g.fillStyle(GOLD[1], 1);
+    g.fillRect(x0, y - h / 2 - 2, x1 - x0, 1);
+    g.fillRect(x0, y + h / 2 + 1, x1 - x0, 1);
+    g.fillStyle(GOLD[2], 0.8);
     g.fillRect(x0, y - h / 2 - 1, x1 - x0, 1);
     g.fillRect(x0, y + h / 2, x1 - x0, 1);
-    // speed streaks
-    g.fillStyle(WHITE, 0.25);
+    // speed streaks, faint
+    g.fillStyle(0xe8c878, 0.12);
     for (let i = 0; i < 6; i++) {
       const sx = Math.round(((now * 0.4 + i * 67) % (GAME_W + 60)) - 30);
       if (sx > x0 && sx < x1) g.fillRect(GAME_W - sx, y - 8 + ((i * 5) % 16), 18, 1);
     }
     const tx = Math.round(GAME_W / 2 + (1 - inK) * 120 - outK * 160);
-    this.texts.text(this.banner, tx, y + 1, elite ? 0xffd0c0 : 0xffe680, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 2, extrudeCol: elite ? 0x4a0a10 : 0x2a1040 });
+    this.texts.text(this.banner, tx, y + 1, elite ? 0xf0b8a8 : 0xe8c878, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 2, extrudeCol: elite ? 0x1e060a : 0x0c0814 });
   }
 
   // ------------------------------------------------------------------ levels and XP
@@ -1458,14 +1608,16 @@ export class Overlays {
 
   // ------------------------------------------------------------------ new relics unlocked
 
-  /** "New relic unlocked!" is up: an act's first clear, an elite's first win (after its loot), an event choice. */
+  /** "New relic unlocked!" is up: an act's first clear, an elite's first win (after its loot), an event choice, a
+   *  secret's pick. It waits for the screen it was earned on to be done (review round 8: it stacked over the relic
+   *  pick, its "Tap to continue" printed over the pick's cards, and over an event's outcome): it comes up on the act
+   *  map once the run is back there, or on the act clear once its chest is open. */
   unlockActive(): boolean {
     const run = this.s.app.run;
     if (!run.newRelics.length) return false;
     const ph = run.phase;
-    if (ph === 'boost' || ph === 'map') return performance.now() - this.phaseAt > 260;
+    if (ph === 'map') return performance.now() - this.phaseAt > 260;
     if (ph === 'actClear') return this.clearReady() && this.s.anim - this.chestOpenAt > Overlays.CLEAR_BTN_MS + 1700;
-    if (ph === 'event') return (run.event?.outcome ?? -1) >= 0;
     return false;
   }
 
@@ -1618,11 +1770,13 @@ export class Overlays {
     const k = easeBack(since / 240, 1.5);
     const sc = 0.8 + 0.2 * Math.min(1, k);
     const p: Rect = { x: Math.round(p0.x + (p0.w * (1 - sc)) / 2), y: Math.round(p0.y + (p0.h * (1 - sc)) / 2), w: Math.round(p0.w * sc), h: Math.round(p0.h * sc) };
-    panel(gc, p, { trim: 'full', alpha: clamp01(since / 100) });
+    // (L8: dark glass with a brass rim and an ink-and-brass tab, like the story's name tabs; it was a trimmed board
+    // under a purple ribbon)
+    glass(gc, p, { alpha: clamp01(since / 100), clear: 0.1, rim: GOLD[1] });
     if (k < 0.98) return;
-    const title = `Relics (${owned.length})`;
-    ribbon(gc, p.x + p.w / 2, p.y - 6, textWidth(title, 1, true) + 24, 13, RIBBON.purple);
-    this.texts.text(title, p.x + p.w / 2, p.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    const title = `Relics (${whole(owned.length)})`;
+    ribbon(gc, p.x + p.w / 2, p.y - 6, textWidth(title, 1, true) + 24, 13, INK_TAB);
+    this.texts.text(title, p.x + p.w / 2, p.y + 0.5, 0xe8c878, { bold: true, ox: 0.5, oy: 0.5 });
     // the grid: four rows of sockets at least (the empty ones dark wells), a relic in each one filled
     const cols = this.relicCols();
     const slots = Math.max(cols * 4, Math.ceil(owned.length / cols) * cols);
@@ -1679,11 +1833,11 @@ export class Overlays {
     const lines = wrapText(relicText(s.app.tuning, id), w);
     lines.slice(0, 4).forEach((line, i) => this.texts.text(line, x0, p.y + 45 + i * 9, 0xe8e2ff));
     const n = s.hud.perkCount(id);
-    if (n > 0) this.texts.text(n === 1 ? 'Kicked in once this fight' : `Kicked in ${n} times this fight`, x0, p.y + 46 + Math.min(4, lines.length) * 9, 0x9af0a0, { oy: 0 });
+    if (n > 0) this.texts.text(n === 1 ? 'Kicked in once this fight' : `Kicked in ${whole(n)} times this fight`, x0, p.y + 46 + Math.min(4, lines.length) * 9, 0x9af0a0, { oy: 0 });
     // Resume
     const rr = this.relicResume();
     const pr = isPressed(rr, now);
-    glow(gc, rr, 0x8af06a, 0.3 + 0.3 * pulse(now, 900), 3);
+    glow(gc, rr, 0x8af06a, 0.12 + 0.12 * pulse(now, 900), 2);
     button3d(gc, rr, FACE.green, pr);
     this.texts.text('Resume', rr.x + rr.w / 2, rr.y + rr.h / 2 + (pr ? 2 : 0), WHITE, { bold: true, ox: 0.5, oy: 0.5 });
   }

@@ -96,8 +96,10 @@ const FIRE_SEQ = [0, 1, 2, 1, 3, 2, 0, 3, 1, 2];
 /** Where the heroes met since stand round the fire (bottom-centre, in the order they fill; `flip` faces them left,
  *  toward the fire, from its right). The picked one takes the first. */
 export const HERO_SPOTS: Array<{ x: number; y: number; flip: boolean }> = [
-  { x: 199, y: 115, flip: true },
-  { x: 143, y: 105, flip: false },
+  // (review-3 F6: the first stood in the forge's mouth and the second in the fire, its flames on his robe: the first
+  // now by the forge's left wall, the second at the back of the clearing behind the fire, the flames below his feet)
+  { x: 187, y: 114, flip: true },
+  { x: 151, y: 91, flip: false },
   { x: 110, y: 104, flip: false },
 ];
 /** Companions along (beside Pip, who always perches on the log): where they sit (the second one on the Companion
@@ -342,8 +344,8 @@ export class CampView {
   private plateDefs(): Array<{ id: PlateId; label: string; icon: string; target: Rect; roof: boolean }> {
     const p = this.s.app.run.profile;
     const out: Array<{ id: PlateId; label: string; icon: string; target: Rect; roof: boolean }> = [];
-    out.push({ id: 'bag', label: 'Bag', icon: 'bag', target: CAMP_SPOTS.bag, roof: true });
-    out.push({ id: 'forge', label: 'Forge', icon: 'hammer', target: CAMP_SPOTS.forge, roof: true });
+    // (the Bag and the Forge have their buttons in the band: no plate says them twice, review round 8; the tent and
+    // the forge still open them when tapped)
     out.push({ id: 'shrine', label: 'Shrine', icon: 'shrine', target: CAMP_SPOTS.shrine, roof: true });
     if (bestWaiting(p)) out.push({ id: 'chests', label: 'Chests', icon: 'chest', target: this.propRect('chests'), roof: false });
     if (hasCamp(p, 'dummy')) out.push({ id: 'dummy', label: 'Practice', icon: 'target', target: this.propRect('dummy'), roof: false });
@@ -369,6 +371,9 @@ export class CampView {
       const b = d.target;
       const cx = b.x + b.w / 2;
       let r = { x: clampX(cx - w / 2, w), y: Math.max(24, b.y - h - (d.roof ? 6 : 4)), w, h };
+      // a prop's own plate straddles the prop's top (the chests' lid, the dummy's head) rather than floating over what
+      // stands behind it (it hid the tent and the perch, the shrine's crystal: review-3 F6)
+      if (d.id === 'chests' || d.id === 'dummy') r = { ...r, y: b.y - Math.round(h / 2) };
       if (d.roof) {
         if (hit(r)) r = { ...r, y: b.y + 4 };
       } else if (hit(r)) {
@@ -391,9 +396,9 @@ export class CampView {
     const z = kit.hudZone();
     const coins = kit.purseRects(this.s.R - 3, 4, true).coins;
     const gemW = Math.max(28, textWidth(whole(kit.gemsShown), 1, true) + 18);
-    const right = coins.x - 3 - gemW - 4;
+    const right = coins.x - 3 - gemW - 3;
     const x = z.x + z.w + 3;
-    const w = textWidth('Edits', 1, true) + pixSize('rune')[0] + 14;
+    const w = textWidth('Edits', 1, true) + pixSize('rune')[0] + 11;
     return x + w <= right ? { x, y: 5, w, h: 15, label: true } : { x, y: 5, w: pixSize('rune')[0] + 8, h: 15, label: false };
   }
 

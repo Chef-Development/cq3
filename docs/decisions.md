@@ -809,6 +809,13 @@ L10. **No boot guard in CI tonight**: the QA team's proposal (install Chromium i
     before publishing) is sound, but a new dependency install in the deploy job late at night could block every
     deploy the playtester is waiting on; the lead's pre-push boot check covers tonight. Recommended for the next round.
 
+L11. **The small font's "a" is a single-storey a with a full right stem** (`.####`, `##.##`, `##.##`, `.####`; fresh-eyes
+    review 4, R4-1: the old one read as a backwards c, "Tɔp", "drɔwn", in every tip, story and event line). Same
+    width, so no text moves; every screenshot with small lowercase text changes.
+L12. **The Test lab button stays on the title for now** (review 4, R4-2 asked to hide it: it reads as a debug build):
+    the playtester's loop runs through it tonight. Before a public debut, hide it behind `?lab` or a gear-panel switch
+    (next round's first item).
+
 (lead: end of section)
 
 
@@ -1245,6 +1252,31 @@ A21. **The fresh-eyes review's 2A findings, first pass** (review-1/2/3 at 00:00;
     and name tab; the Atlas page sheet; the victory's restore motif; the loot screen's emptiness; the Options panel's
     look; the camp's doubled labels.
 
+A22. **The review's 2A findings, second pass** (sheet: `docs/art-audit/after/relic-pick-erased-lands-before-after.png`).
+    *The unlock card waits:* "New relic unlocked!" no longer comes up over the relic pick (its "Tap to continue" was
+    printed over the cards) or over an event's outcome; it waits for the screen it was earned on to be done and comes
+    up on the act map, or on the act clear once its chest is open (overlays `unlockActive`; the tips wait for it only
+    there). *The relic pick as upright cards:* three cards side by side on a glass plate (two wider ones for a new
+    player's first pick): the relic's icon at 2x in a well that glows in its rarity, its tags as icon chips beside the
+    well (a shared tag lit gold, "Synergy!" on that card's top edge, so it is clear which card has it), the rarity in
+    the corner, the name (bold, up to two lines) and what it does centred under it; a stat card the same with its
+    before-and-after on a strip. Every relic fits (`tests/unit/relic-cards.test.ts`, 84 x 90 cards; the line height
+    drops to 7 only for the longest). The shop's detail card keeps the wide layout. *Erased lands:* where two locked
+    lands meet, the line between their blanks is torn (each pixel near it belongs to whichever locked land a jittered
+    point round it falls in, the same for every veil, so no gap), not a ruled region border; a tap on an erased land no
+    longer thins it to show the coloured land under it (Ashfell's lava rivers showed in full colour), it only breathes;
+    clouds fade out as they drift onto an erased land.
+
+A23. **The review's 2A findings, third pass.** *Region won:* the land comes back as the Atlas shows it (12b): the stage
+    opens drained under a vellum-grey ink wash, the colour floods out from the hero in a ragged ring with a gold ink
+    front and motes (about 2 s), the hero in a warm light; then the headline scales in with a burst and "Tap to
+    continue" is bold 1 on the console (it was bigger than the headline). *Loot:* one or two items land as 36 px cells
+    (icon at 2x) clear of the ribbon, every item on a soft glow in its rarity, the bar's band sunk further; "Equipped"
+    for an item that went straight on ("Worn" read as worn out). *World map:* the far isle (Noonspire) is drained and
+    still until its land opens; the header shows the name and the twelve roses until a region is restored, then
+    "Restored N/12"; the first visit's glide starts over the heartland and erased lands east of home on its own
+    capped clock; the camp's Bag and Forge plates are gone (the band's buttons say them).
+
 (art: end of section)
 
 
@@ -1379,14 +1411,91 @@ C-ART-9. **Region 5's telegraph sounds are in** (`skitter`, `shimmer2`, `sunflas
     door-mouth.
 C-ART-10. **Region 4's bar, readable at phone size** (review 2's DUSK-ART findings): the lantern is a pool of saturated
     amber in four steps with the track's rails catching it and a dithered edge (a pale amber over the violet track read
-    as brown dirt); blocks in its light catch it on their top edge; an unlit dark block is ink-grey with a faint "?"
-    (violet is the trap's colour, and some dark blocks are traps); the tide has a moving crest along its top, rings
+    as brown dirt); blocks in its light catch it on their top edge; an unlit dark block is ink-grey, not violet
+    (violet is the trap's colour, and some dark blocks are traps; at the merge, QA's Q20 dashed slate with no glyph
+    replaced the faint "?" drawn here, per the block-marks rule); the tide has a moving crest along its top, rings
     where the cursor wades, and sunk blocks keep their own colour under a thin veil with ripples (not olive). The
     Duskmire skies' long 1 px cloud streaks are short clumps at least 3 px tall.
 C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics-noon.ts`, painted at boot after the
     Ashfell ones whether or not the region is on; `noonspire()` in art-region-map.ts, a sand plateau with salt pans and
     a dotted mirage lake), and its seventeen gear icons (art-gear.ts `NOON_ICONS`; Region 4's still borrow the slot icons). Under L7 its first act
     map's sand is a cool neutral stone (it read as mud), the salt pans a step brighter and still under the road.
+C-ART-12. **Checked at phone size with Region 5 on: its relic pick and its region card read** (tags, synergy, the
+    belt, the card's sand map and seals). Two icons didn't at card size: the Dust Devil read as the Sand Glass's
+    hourglass (now a twisting funnel with no foot) and the Fata Morgana as a cart (now a castle standing in the air
+    over the haze). Region 4's gear has its own icons now (`DUSK_ICONS`; its Waders keep Region 1's, as the data
+    says). The sphinx's face was a flat, square, front-lit block that read as a mask: now turned a little toward the
+    hero, lit from her left with the far side in the headdress's shadow, the jaw tapering, fangs when she speaks or
+    strikes (her portrait is the Atlas's, unchanged).
+
+C-ART-13. **The shop is a place too** (backlog "art polish on the weakest screens", after 2A's stops): the act's stage
+    in view with its edges in shadow, the stall (the map's, at 3x) in a lantern's pool on the left, the wares on glass
+    as tall as their rows; the stage's hero and party step aside as at the trader. The shop's focal column (trader or
+    stall) sits 8 px further left than an event's so the plate keeps the width a relic's one line of text needs (at
+    the event's width most relics showed only "Tap to read"). The Sunshade icon is a parasol with a crook now.
+
+C-ART-14. **Reviews' leftovers in the mood**: the act maps' stall wears deep moss and aged linen (its own palette in
+    art-map.ts; the shared prop palette is untouched); Pip speaks from a dark teal ground with his blue graded a step
+    darker and cooler, his name on an ink plate with a brass rim (story.ts `LOOK.pet`; other speakers' tabs as they
+    were); the camp home drops the plates over the tent and the forge (the band's Bag and Forge buttons name them; the
+    shrine, chests, practice and companion plates stay). Not done from review-3 F6: the late camp's plates over props
+    and the heroes standing in the fire or the forge mouth.
+
+C-ART-15. **More review leftovers**: the Training Dummy's painted target is a bullseye in oxblood and linen (its red
+    plus on white read as a first-aid cross, a protected emblem); every story speaker's name tab is the ink plate with
+    a brass rim Pip got (one look for all; the grounds behind the portraits still tell the sides apart); in the late
+    camp the first standing hero waits by the forge's left wall and the second at the back of the clearing behind the
+    fire, and the chests' and the dummy's plates straddle their prop's top (the Practice plate still covers the
+    shrine's base a little: the dummy stands in front of it, and no free spot is near).
+
+C18. **Tess's and Vesper's late game: two finishers that keep the reds** (diagnostics: practice fights of each late
+    boss with and without the act's bar rule, and region replays from cached end-of-region heroes). The gaps aren't the
+    dark, the tide or the mirages: they're the same with the rule off. Both finishers keep the reds where every other
+    finisher knocks them off, and that costs most where reds hit hardest. Tess: with Rewind clearing like a normal
+    finisher she reaches Rowan in Regions 4-5. Now Rewind undoes the reds on their way (`kits.tess.rewindClear`
+    0.8, `CORE:`) and winds only the newest back. Both Rewind and Volley also break a foe's wall (a still shield:
+    three taps before it falls; the dams, slabs and the Gnomon's strike), as every finisher does (`clearWalls`).
+    Tess's fire strength is gone (construct stays): with walls broken the third region's fire boss tipped to her
+    (+21-26 at Act 9, CLAUDE.md's lesson). Vesper: HP or attack bumps didn't move her gaps; walls help her Acts 12
+    and 15. Left: both at Act 11 (Vesper takes about 60% more hits a second from that mini-boss than Rowan, with or
+    without the tide).
+
+C-ART-16. **The last two fight screens in the old style join the mood**: the relic panel (from the belt) is dark glass
+    with a brass rim under the same ink-and-brass tab as the story's names; the intro band (a boss's name, ELITE!,
+    AMBUSH!, COIN RUSH!, SKIRMISH!, TIME'S UP!) is ink with brass rules and pale brass letters, an elite's oxblood.
+    Same rects, same taps.
+
+C19. **Act 11's gap for Tess and Vesper isn't how their kits meet the mini-boss; numbers left as they are.** Probe:
+    the Sluice Keeper alone, 24 fights a hero from cached end-of-Ashfell heroes, the 75% bot, each piece switched off in
+    turn. The gap (Rowan 29% won, Tess 13%, Vesper 8%) is the same with the tide off, with the spillway dry, without
+    the dam, without Overtime, and with the boss at half attack. It's not the bot: block rates are 0.93 / 0.92 / 0.91,
+    and Vesper with normal-width greens plays the same. It's not Volley's pins: without them she wins 0%. A Volley that
+    clears the reds doesn't help either (4%). What separates them is Rowan's own kit in a long fight: his green
+    ability's crit bonus is worth 16 points there (29% -> 13% without it). Vesper loses about 60% more HP a minute
+    (more reds a minute: her finisher keeps them, and she reaches the boss's faster second phase sooner). A hero-numbers
+    question for the next pass (both heroes' sustain in long boss fights), not a kit-meets-rule bug. A 100-run read
+    after C18 (region-tune, end-of-Ashfell heroes; Rowan 75 / 58 / 48%) puts Tess inside the band (-7 / -7 / +3) and
+    Vesper at -5 / -22 / -9: the 40-run -33 for Tess was mostly noise. In the same runs, Regions 1-3 read Tess
+    0 / +3 / +9, -1 / -12 / -12, +2 / -5 / -4 and Vesper 0 / +10 / +6, +4 / -19 / -15, -1 / +3 / +2.
+
+C20. **Vesper is left as she is: neither more HP nor longer pins move her gaps** (100 runs on the cached heroes,
+    regions 2 and 4; Acts 4-6 / 10-12, gap to Rowan). As she is: +4 / -19 / -15 and -5 / -22 / -9. HP share 135:
+    +4 / -17 / -15 and -3 / -23 / -19. HP 155 (+35%): +3 / -12 / -15 and -1 / -18 / -15. Volley pins 3 s: +8 / -10 /
+    -22 and -5 / -19 / -20. Pins 4 s: +9 / -23 / -18 and -2 / -15 / -22. She doesn't lose these boss fights for lack of
+    HP (a third more barely helps), so a sustain number isn't the lever. Next: why she trails in long single-foe fights
+    while her damage a second is higher than Rowan's (her Focus economy against one foe, Patience's crit at full
+    Focus); a probe like C19's, with her style's parts switched off one at a time.
+
+C21. **Vesper's gap is in the skill trees, not her style; left as she is.** Probe: the fourth region's Act 11 mini-boss
+    alone, 30 fights, cached end-of-Ashfell heroes, the 75% bot, a part switched off each time. HP lost a minute with
+    every Marksman part on or off (yellows at full damage, no Focus at all, no Volley Focus, a smaller Focus cap): 1,120
+    to 1,250 for her, against Rowan's 730. With both heroes' skill trees emptied they are level: Rowan 1,340 a minute,
+    0% won; Vesper 1,270, 3% won. So the gap is Rowan's tree as the bot learns it. He goes down Bulwark half the time
+    (+12% HP, +10 Defense, Parry: a Perfect block knocks every other red back). Neither change below moved her gaps
+    (100 runs, Acts 4-6 / 10-12, from +4 / -19 / -15 and -5 / -22 / -9):
+    - her tree's matching tier at Rowan's sizes (Ranger Cloak +12%, Leathers +10): +3 / -19 / -14 and -5 / -16 / -17;
+    - a 2 s Pinning Shot: +1 / -21 / -17 and +2 / -23 / -25.
+    Next: Parry against her red control at the bosses, and how the bot picks her branch.
 
 (content: end of section)
 
@@ -1543,6 +1652,20 @@ C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics
   and the new items' count shows on the band only. An event, rest or shop opened straight from elsewhere (the lab's
   event scenarios) shows its own act's stage. Not reproduced: the world map's first-visit "whip-pan" (sampled every
   frame at 1440x900 the glide runs ~1.2 s, smoothly; the review's 150 ms screenshots stalled the page between frames).
+- **Q20 The bar rules read at phone size** (review 2): a drifting block has two bold chevrons ahead of it (7 rows,
+  2 px thick, ink-rimmed) and speed lines trailing it in its own colour; a linked pair's chain is 3x2 links with an
+  ink rim, each linked yellow wears an interlocked-links glyph on its face, and once one is hit its partner pulses with
+  a 2 px rim; an unlit dark block is a neutral slate with a dashed outline (no block has one), never the trap's violet;
+  a hold is copper (its ridges, fill, glow, ring and "Hold!" to match), so the bar's blues are only the ice, the frozen
+  reds and the cursor. Every kind is still told apart without colour (the hold by its groove and notches).
+- **Q21 Impact white frames and screen flashes stay off the HUD**: they fill the stage around `hud.keepOut()` (the
+  plates, the act plate and wave pips, the belt, the name lane, the combo counter), never the bar's band.
+- **Q22 The Training Dummy's HUD** (review 3, F24): the act plate reads "Practice", the purse and the potion are gone
+  (nothing is paid or spent there), and the dummy's plate counts what's been dealt to it ("51 dealt") over its gauge
+  instead of "2349/2400". The Test lab's practice fights (real foes) keep the normal HUD.
+- **Q23 A tap meant to skip the world map's first glide only skips**, even when it lands just after the glide ended on
+  its own (600 ms of grace: on a busy machine the smoke test's skip tap arrived as the glide finished and started the
+  story through Rowan's plate, which had just come up).
 - **Q2-7 Every camp screen by keyboard.** Beyond the buttons (which note themselves), `camp.focusTargets()` adds each
   screen's targets drawn as something else: the camp's plates, the bag's and the forge picker's cells, the relic
   log's cells, the vault's three chests (none while one opens), the region card's seals in view (none under an Atlas
@@ -1674,5 +1797,13 @@ F20. **The first tips out of the fighters' way** (review 1). Fight tip cards sit
     never showed; unit test). The map tip's window takes Rowan in.
 F21. **The first map says "tap here"** (review 1): until the first step, a bright chevron bobs over each spot Rowan
     can go to, and "Tap a glowing spot" is drawn at full strength (it was the faintest words on the screen).
+
+F22. **The first ten minutes on the merged build** (02:00-03:00; the newcomer bot through Act 1 to the first hero
+    chest, seeds 7 and 9 at phone size, seed 7 at 1440x900). What was rough, and fixed: the relic tip covered the
+    second of the first pick's two plain cards (it now waits for the next pick, where tags and rarity show); the
+    event, shop and trader tips sat over the first choice or the second ware (they sit at the top now, over the
+    stall's title: `TipDef.top`); the Edits ledger's empty circle read as a missing picture (an unbroken iron seal now)
+    and "Seals 0/60" as a riddle ("Edited clears N", only once there is one). Both seeds cleared Act 1 first try; the
+    first chest at 1:08-1:12, the first hero chest revealed at 5:35-5:36.
 
 (first10: end of section)

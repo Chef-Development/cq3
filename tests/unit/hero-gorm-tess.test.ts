@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { Combat, isRed, newHero, type Block, type BlockKind, type CombatEvent } from '../../src/core/combat';
 import { emptyLoadout } from '../../src/core/gear';
 import { kitText, skillN, treeOf } from '../../src/core/heroes';
-import { rockEvery, rubbleWidth, stopEvery } from '../../src/core/kit-fx';
-import type { Tuning } from '../../src/core/tuning';
+import { clearWalls, rockEvery, rubbleWidth, stopEvery } from '../../src/core/kit-fx';
+import { DEFAULT_TUNING, type Tuning } from '../../src/core/tuning';
 import type { HeroId } from '../../src/data/heroes';
 import { setup } from './helpers';
 
@@ -278,7 +278,8 @@ describe("Tess's kit", () => {
   });
 
   it('Rewind: hits every foe; every red winds back to where it came on (the far ones queue up), an icicle to a full fuse; 5 stars: then time stops', () => {
-    const { c, t } = fight('tess', [], { enemies: ['bandit', 'bandit'], tune: (t) => ((t.enemies.bandit.hp = 5000), (t.blocks.redTravelSec = 6)) });
+    // (with nothing undone: rewindClear 0; the next test has it)
+    const { c, t } = fight('tess', [], { enemies: ['bandit', 'bandit'], tune: (t) => ((t.enemies.bandit.hp = 5000), (t.blocks.redTravelSec = 6), (t.kits.tess.rewindClear = 0)) });
     const a = c.spawnBlock('red', 0.92);
     const b = c.spawnBlock('red', 0.95);
     const ice = c.spawnBlock('red', 0.5, undefined, undefined, { still: true, fuse: 3 });
@@ -304,11 +305,11 @@ describe("Tess's kit", () => {
     expect(s5.c.perk.stop).toBeGreaterThan(0);
   });
 
-  it('her soft strengths: +25% damage to Constructs (the Ruin Golem) and to Fire foes (a Cinderling)', () => {
-    for (const key of ['golem', 'cinderling']) {
+  it('her soft strength: +25% damage to Constructs (the Ruin Golem); none to Fire foes (a Cinderling) since her finisher breaks walls (the third region\'s fire boss tipped to her)', () => {
+    for (const [key, mult] of [['golem', 1.25], ['cinderling', 1]] as const) {
       const g = fight('tess', [], { enemies: [key], tune: (t) => ((t.hero.strengthScale = 1), (t.enemies[key].hp = 900)) });
       tapNew(g.c, 'yellow');
-      expect(900 - g.c.enemies[0].hp, key).toBe(Math.round(Math.round(g.c.stats().atk) * 1.25));
+      expect(900 - g.c.enemies[0].hp, key).toBe(Math.round(Math.round(g.c.stats().atk) * mult));
     }
   });
 });
@@ -539,6 +540,49 @@ describe("Tess's tree", () => {
     expect(on.c.perk.stop).toBeGreaterThan(0);
     expect(off.c.perk.stop ?? 0).toBe(0);
     expect(on.c.blocks.find((b) => isRed(b.kind))!.chillMult).toBe(0);
+  });
+
+  it('Rewind undoes the reds on their way (within rewindClear of the left end: cleared like a finisher clears them) and winds the newest back; with rewindClear 0 every red winds back', () => {
+    const play = (clear: number) => {
+      const { c, t } = fight('tess', [], { enemies: ['bandit'], tune: (t) => ((t.enemies.bandit.hp = 5000), (t.blocks.redTravelSec = 6), (t.kits.tess.rewindClear = clear)) });
+      const near = c.spawnBlock('red', 0.3);
+      const mid = c.spawnBlock('red', 0.6);
+      const fresh = c.spawnBlock('red', 0.9);
+      for (const b of [near, mid, fresh]) b.from = 0.95;
+      c.stacks = 1;
+      c.finisher();
+      const ev = c.drainEvents();
+      go(c, c.time + t.kits.tess.rewindSec + 0.02);
+      return { c, ev, near, mid, fresh };
+    };
+    const on = play(DEFAULT_TUNING.kits.tess.rewindClear);
+    expect(DEFAULT_TUNING.kits.tess.rewindClear).toBeGreaterThan(0.6);
+    expect(on.c.blocks.includes(on.near)).toBe(false);
+    expect(on.c.blocks.includes(on.mid)).toBe(false);
+    expect(evs(on.ev, 'remove').filter((e) => isRed(e.kind) && e.reason === 'finisher')).toHaveLength(2);
+    expect(on.c.blocks.includes(on.fresh)).toBe(true);
+    expect(on.fresh.pos).toBeGreaterThan(0.9);
+    expect(perks(on.ev, 'rewind')).toMatchObject([{ amount: 3 }]);
+    const off = play(0);
+    expect(off.c.blocks.filter((b) => isRed(b.kind))).toHaveLength(3);
+    expect(off.near.pos).toBeGreaterThan(0.6); // (wound back, queued behind the others)
+    expect(kitText(on.c.tuning, 'tess', 'finisher')).toContain('undoes');
+  });
+
+  it("the finishers that keep the reds (Tess's Rewind, Vesper's Volley) still break a foe's wall (a still shield: three taps before it falls), as every finisher does; Rowan's knocks both off; the reds stay", () => {
+    for (const hero of ['tess', 'vesper', 'rowan'] as HeroId[]) {
+      const { c } = fight(hero, [], { enemies: ['bandit'], tune: (t) => ((t.enemies.bandit.hp = 5000), (t.kits.tess.rewindClear = 0)) });
+      const wall = c.spawnBlock('shield', 0.5, undefined, undefined, { still: true, fuse: 3, taps: 3 });
+      const red = c.spawnBlock('red', 0.9);
+      c.stacks = 1;
+      c.finisher();
+      const removed = evs(c.drainEvents(), 'remove').filter((e) => e.reason === 'finisher');
+      expect(c.blocks.includes(wall), hero).toBe(false);
+      expect(removed.some((e) => e.id === wall.id), hero).toBe(true);
+      expect(c.blocks.includes(red), hero).toBe(hero !== 'rowan');
+    }
+    // (the walls Volley and Rewind break: only still shields; an icicle, a still red, keeps its own rule: Rewind's test)
+    expect(clearWalls).toBeTypeOf('function');
   });
 
   it('Wind Back: Rewind deals n% more for every red it winds back', () => {

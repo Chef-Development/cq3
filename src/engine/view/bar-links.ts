@@ -2,14 +2,18 @@
 // a linked pair's chain (links of iron between the two blocks, above the track), and when one of the pair has been
 // hit, it glows and the chain burns down toward its partner as the beat runs out (a visible clock: nothing depends on
 // sound). A drifting block wears small chevrons pointing the way it slides.
+// (Review round 8: the chain was a 1 px dashed line and the chevrons 2 px marks, invisible at phone size: the chain's
+// links are now 3x2 with an ink rim, each linked yellow wears a link glyph on its face, the partner of a hit block
+// pulses with a 2 px rim, and a drifting block has bold chevrons ahead of it and speed lines trailing it.)
 import type Phaser from 'phaser';
-import type { Combat } from '../../core/combat';
-import { INK, WHITE } from './shared';
+import { unlit, type Combat } from '../../core/combat';
+import { chevron } from './pixels';
+import { INK, kindCol, WHITE } from './shared';
 
 type G = Phaser.GameObjects.Graphics;
 
-const CHAIN = 0xb8b0c8;
-const CHAIN_DARK = 0x4a4258;
+const CHAIN = 0xe0d8f0;
+const CHAIN_DARK = 0x6a6278;
 const LIT = 0xffd060;
 const LIT_HOT = 0xfff2b0;
 
@@ -51,19 +55,24 @@ export function drawBarRules(g: G, c: Combat, t: number, now: number, B: BarBox,
         if (burnt) continue;
         const px = xa + i;
         const up = (i / 4) % 2 === 0;
-        g.fillStyle(INK, 0.9);
-        g.fillRect(px - 1, y - 1 + (up ? 0 : 1), 4, 3);
+        g.fillStyle(INK, 0.95);
+        g.fillRect(px - 1, y - 2 + (up ? 0 : 1), 5, 4);
         g.fillStyle(lit ? LIT : CHAIN, 1);
-        g.fillRect(px, y + (up ? 0 : 1), 2, 1);
+        g.fillRect(px, y - 1 + (up ? 0 : 1), 3, 2);
       }
+      // each of the pair wears a link on its face (a yellow: nothing else is drawn there)
+      for (const p of [a, z]) if (p.kind === 'yellow' && !unlit(p)) linkGlyph(g, Math.round(B.x + c.blockPosAt(p, t) * B.w) + bx, B.y + Math.round(B.h / 2) - 2, lit ? LIT_HOT : WHITE);
       if (lit) {
-        // the hit one glows (a pulsing rim), and a spark rides the burning end of the chain
-        const hb = lit.id === a.id ? a : z;
-        const hx = Math.round(B.x + c.blockPosAt(hb, t) * B.w) + bx;
-        const hw = Math.max(6, Math.round(hb.width * B.w));
+        // the hit one glows (a pulsing rim), its partner, the one to hit now, pulses brighter (2 px), and a spark rides
+        // the burning end of the chain
         const k = 0.5 + 0.5 * Math.sin(now / 60);
-        g.lineStyle(1, LIT_HOT, 0.6 + 0.4 * k);
-        g.strokeRect(hx - Math.round(hw / 2) - 1, B.y - 6, hw + 1, B.h + 12);
+        for (const p of [a, z]) {
+          const hx = Math.round(B.x + c.blockPosAt(p, t) * B.w) + bx;
+          const hw = Math.max(6, Math.round(p.width * B.w));
+          const partner = p.id !== lit.id;
+          g.lineStyle(partner ? 2 : 1, LIT_HOT, partner ? 0.55 + 0.45 * k : 0.4 + 0.3 * k);
+          g.strokeRect(hx - Math.round(hw / 2) - (partner ? 2 : 1), B.y - (partner ? 7 : 6), hw + (partner ? 3 : 1), B.h + (partner ? 14 : 12));
+        }
         const sx = Math.round(fromLeft ? xa + span * (1 - left) : xa + span * left);
         g.fillStyle(WHITE, 1);
         g.fillRect(sx - 1, y - 1, 3, 3);
@@ -71,20 +80,46 @@ export function drawBarRules(g: G, c: Combat, t: number, now: number, B: BarBox,
         g.fillRect(sx - 2, y - 2, 5, 5);
       }
     } else if (b.vel !== 0 && !b.link && (b.kind === 'yellow' || b.kind === 'green')) {
-      // drifting: two small chevrons on the side it's sliding toward
+      // drifting: two bold chevrons ahead of it (7 rows, 2 px thick, ink-rimmed) and speed lines trailing it in its
+      // own colour
       const x = Math.round(B.x + c.blockPosAt(b, t) * B.w) + bx;
       const half = Math.max(3, Math.round((b.width * B.w) / 2));
       const dir = b.vel > 0 ? 1 : -1;
       const step = Math.floor(now / 160) % 2;
+      const cy = B.y + Math.round(B.h / 2) - 3;
       for (let i = 0; i < 2; i++) {
-        const cx = x + dir * (half + 2 + i * 3 + step);
-        g.fillStyle(INK, 0.8);
-        g.fillRect(cx - 1, B.y + Math.round(B.h / 2) - 2, 3, 5);
-        g.fillStyle(WHITE, 0.9 - i * 0.35);
-        g.fillRect(cx, B.y + Math.round(B.h / 2) - 1, 1, 1);
-        g.fillRect(cx + dir, B.y + Math.round(B.h / 2), 1, 1);
-        g.fillRect(cx, B.y + Math.round(B.h / 2) + 1, 1, 1);
+        const cx = x + dir * (half + 3 + i * 4 + step) - (dir > 0 ? 0 : 1);
+        chevron(g, dir > 0 ? cx : cx + 1, cy, 7, i ? 0xfff0a0 : WHITE, 1 - i * 0.3, dir, true);
+      }
+      const [, light] = kindCol(b.kind);
+      for (let r = 0; r < 3; r++) {
+        const len = 6 - r * 2 + ((Math.floor(now / 120) + r) % 2);
+        const tx = x - dir * (half + 2);
+        const ly = B.y + 2 + r * 4;
+        g.fillStyle(INK, 0.6);
+        g.fillRect(dir > 0 ? tx - len - 1 : tx, ly - 1, len + 1, 3);
+        g.fillStyle(light, 0.85 - r * 0.15);
+        g.fillRect(dir > 0 ? tx - len : tx, ly, len, 1);
       }
     }
   }
+}
+
+/** Two interlocked links (9x6, ink-rimmed, the right one a row lower and through the left): a linked pair's mark on
+ *  each of its blocks. */
+function linkGlyph(g: G, cx: number, y: number, col: number): void {
+  g.fillStyle(INK, 0.95);
+  g.fillRect(cx - 5, y - 1, 11, 8);
+  const ring = (lx: number, ly: number) => {
+    g.fillRect(lx + 1, ly, 3, 1);
+    g.fillRect(lx + 1, ly + 4, 3, 1);
+    g.fillRect(lx, ly + 1, 1, 3);
+    g.fillRect(lx + 4, ly + 1, 1, 3);
+  };
+  g.fillStyle(col, 1);
+  ring(cx - 4, y);
+  ring(cx - 1, y + 1);
+  // the left link passes over the right one at the top: a gap cut in the right ring there
+  g.fillStyle(INK, 0.95);
+  g.fillRect(cx, y + 1, 1, 1);
 }

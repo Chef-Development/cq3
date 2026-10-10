@@ -175,3 +175,63 @@ One PR at the end supersedes #1-#7.
   wash, the Act 1 map, the yeti cub); content (Region 5 in play, balanced, guarded; the Boar King's revision as the
   first New Game+ remix). Unit suite 1,235 green; boot-checked; pushed. Lead's look at the title and intro: good.
   Next: QA-fight on the bar-rule markers, content on Tess/Vesper; 2A, QA-menus, first10, dusk-art finishing.
+- 02:04 EDT: merged dusk-art (the Lighthouse's lamp as an eye, Region 4's lantern pool and tide, Region 5's relic and
+  gear icons, its region card map, the sky streaks), 2A (the region card, the title's blank and gear button, de-glossed
+  buttons, map stops as places), first10 (the Mapmaker's Edits finished; CORE `Combat.calm` for the first finisher's
+  calm beat, reviewed: view-only; the tips moved off the things they teach; the first map's chevrons) and QA-menus
+  (the 16-face strip pages, Options reordered with the tester's tools folded, the relic log pages, keyboard reach).
+  Boot-checked, targeted tests green, pushed. Resumed four with a last chunk, HARD STOP 04:00: 2A (the unlock card's
+  queueing, relic pick cards), dusk-art (Region 5's pick and card at phone size, Region 4's gear icons), first10 (the
+  whole first 10 minutes on the merged build, phone and desktop), QA-menus (the UI crawl, keyboard reach). QA-fight
+  (03:30) and content (03:45) still on theirs. Then: freeze ~04:15, baselines, full suites, report, PR.
+- 02:20 EDT: merged QA-fight (bar-rule markers readable at phone size, holds copper, impact frames off the HUD; a
+  conflict with dusk-art on the unlit dark block: QA's no-glyph slate kept, per the block-marks rule); boot-checked,
+  pushed. QA-fight's last chunk (HARD STOP 04:00): the world map's skip-tap regression, then the functional specs one
+  by one. Lead's look on the merged build (Act 1 fight and map at dusk, an event as a place, the Edits screen, Act 10's
+  bar rule): good; two Edits-screen riddles sent to first10. CLAUDE.md: the name and round 8 in the intro. The round 8
+  status report drafted (filled in after the final suites).
+- 02:20 EDT: merged dusk-art's second chunk (Region 5's two unclear relic icons redrawn, Region 4's own gear icons, the
+  sphinx's face turned and lit); boot-checked, pushed. Dusk-art's last chunk (03:45): the regular shop as a place,
+  one relic icon.
+- 02:26 EDT: merged dusk-art's third chunk (the regular shop as a place, like the trader; the Sunshade icon);
+  boot-checked, pushed. Dusk-art on a last polish chunk (03:45): the map stall's awning, Pip's portrait, the camp's
+  doubled labels.
+- 02:34 EDT: merged dusk-art's fourth chunk (the map stall's awning to the mood, Pip's portrait and an ink-and-brass
+  name tab, the camp's doubled Bag/Forge plates gone) and 2A's second (the "New relic unlocked!" card waits for the
+  screen it was earned on; the relic pick as upright cards with a fit test; erased lands' torn edges, no colour under
+  them; the first-visit glide shorter and on its own clock). Boot-checked, targeted tests green, pushed. Last chunks
+  (03:45): dusk-art (the dummy's cross, every speaker's name tab, the late camp's crowding), 2A (the region-won
+  victory, the empty loot screen).
+- 02:43 EDT: merged dusk-art's last chunk (the dummy's chest a bullseye, not a red cross; every speaker's name tab an
+  ink plate with brass; the late camp less crowded) and content's (C18: Tess's Rewind clears the reds on their way
+  like other finishers, Tess's and Vesper's finishers break a foe's wall; CORE `kits.tess.rewindClear` reviewed: Tess
+  now within +/-10 of Rowan in Regions 1-3 and up in Region 5; Act 11 still ~-30 for Tess and Vesper). Boot-checked,
+  kit tests green, pushed. Content's last chunk (03:45): Act 11 for those two kits. Dusk-art done for the night.
+- 02:45 EDT: merged 2A's last chunk (the region-won screen: colour floods back from the hero; the loot row's cells
+  and glows; the world map's far isle drained until it opens, the header's roses until a region is restored). 2A
+  done for the night; boot-checked, pushed. Dusk-art takes the two screens still in the old style (the in-fight relic
+  panel, the boss intro band) until 03:45.
+- 02:50 EDT: merged dusk-art's relic panel and intro band (ink glass with brass; an elite's band oxblood); boot-checked,
+  pushed. Dusk-art rests. Plan: ~03:30 one short fresh-eyes review of the most-seen screens on the merged build; fixes
+  of its high findings until ~04:45; visual freeze 05:00 (baselines, full suites, the PR).
+- 02:56 EDT: content's C19 (Act 11's gap is staying power in long boss fights, not how the kits meet the rules;
+  numbers left; 100 runs put Tess inside +/-10, Vesper -5 / -22 / -9 in Region 4) merged; content tries a Vesper
+  staying-power pass until 03:50. A fourth fresh-eyes reviewer started on the merged build (the first 10 minutes as a
+  new player, tips on; a later region; desktop), findings by 03:35 for fixes until ~04:45.
+- 03:09 EDT: merged first10's last-but-one chunk (the first 10 minutes replayed on the merged build at phone and
+  desktop size: Act 1 cleared first try on both seeds, the first chest at 1:08-1:17, the first hero chest at ~5:40, the
+  first finisher's reveal clean; tips moved off the first pick's second card, the event's first choice and the trader's
+  wares; the Edits screen's riddles fixed). Boot-checked, pushed. First10's last chunk (04:00): the pick tip beside the
+  cards, the level-up ribbon off the HP plate.
+- 03:11 EDT: content's C20 merged (Vesper: more HP or longer pins don't close her boss-act gaps; her numbers left);
+  a last probe of her style's parts until 03:50.
+- 03:15 EDT: review 4 reported (23 findings on the most-seen screens; no page errors, long decimals or missing
+  sprites). The lead fixed the worst (R4-1: the small font's "a" read as a backwards c, L11) and kept the title's Test
+  lab button for the playtester (L12: hide it before a public debut). Merged QA-fight (the skip tap only skips: a tap
+  within 600 ms of the glide ending is a skip; the practice fight's HUD; smoke 24/25 + numbers 8 + minis + desktop 4
+  green before the merge). Routed: dusk-art (camp buttons, the first relic pick, the world map's mood, the treasure
+  node, the title's corner), QA-fight (fight lanes, the hurt flash, FINISHER label, loot HUD), first10 (the finisher
+  tip, tip plates, the bounty tip, the first map), QA-menus (the settings cog). Hard stops 04:30; freeze 04:45-05:00.
+- 03:18 EDT: content's C21 merged (Vesper's boss-act gap comes from the skill trees: the bot often takes Rowan down
+  his defensive branch, Parry included; two tree changes for her didn't close it; numbers left for the next round).
+  Content done for the night.

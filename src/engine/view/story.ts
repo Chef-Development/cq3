@@ -11,7 +11,7 @@ import { textWidth } from '../font';
 import { band, button3d, chevron, GOLD, NAVY, panel, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, WHITE, type Rect } from './shared';
 import { hdFor, screenCovered } from './hd-text';
-import { FACE, isPressed, notePress, ribbon, RIBBON, TextPool } from './ui';
+import { FACE, isPressed, notePress, ribbon, TextPool } from './ui';
 import { bigLines } from '../../core/a11y';
 import { A11Y } from '../a11y';
 import { StoryStage } from './story-stage';
@@ -37,15 +37,21 @@ const LEFT: Speaker[] = [
 ];
 /** Friends who aren't heroes (Mags the smith, Hesper the High Keeper): on the right like a villain, but in warm colors. */
 const ALLY: Speaker[] = ['smith', 'keeper'];
-/** Portrait backdrop [top, bottom] and name ribbon per side. */
+/** Every speaker's name tab: an ink plate with a brass rim and brass letters, one look for all (they were candy
+ *  pills in blue, red, green and purple: L8.4). */
+const TAB = [0xbe8e3a, 0x262040, 0x1c1830, 0x100c1c] as const;
+const TAB_NAME = 0xe8c878;
+/** Portrait backdrop [top, bottom] per side, and the name tab. */
 const LOOK = {
   // (L7: deep, moody grounds behind the portraits; the head lit by its own soft light)
-  narrator: { bg: [0x2c2448, 0x120e20], ribbon: RIBBON.purple, name: 0xf0e0ff },
-  hero: { bg: [0x26446e, 0x0e1a30], ribbon: RIBBON.blue, name: 0xfff07a },
-  foe: { bg: [0x5e1e2a, 0x220a12], ribbon: RIBBON.red, name: 0xffe0c0 },
-  ally: { bg: [0x6e4220, 0x26140c], ribbon: RIBBON.green, name: 0xfff6c0 },
-  /** The Mapmaker: the Atlas's ink behind him, a gold ribbon (his lines glow gold). */
-  mapmaker: { bg: [0x261c38, 0x0e0a16], ribbon: RIBBON.gold, name: 0x2e2240 },
+  narrator: { bg: [0x2c2448, 0x120e20], ribbon: TAB, name: TAB_NAME },
+  hero: { bg: [0x26446e, 0x0e1a30], ribbon: TAB, name: TAB_NAME },
+  foe: { bg: [0x5e1e2a, 0x220a12], ribbon: TAB, name: TAB_NAME },
+  ally: { bg: [0x6e4220, 0x26140c], ribbon: TAB, name: TAB_NAME },
+  /** The Mapmaker: the Atlas's ink behind him. */
+  mapmaker: { bg: [0x261c38, 0x0e0a16], ribbon: TAB, name: TAB_NAME },
+  /** Pip: a dark teal ground (his portrait was a bright blue ball on bright blue). */
+  pet: { bg: [0x1c4042, 0x08161a], ribbon: TAB, name: TAB_NAME },
 } as const;
 
 export class StoryView {
@@ -174,7 +180,7 @@ export class StoryView {
 
     // portrait in a gold frame standing on the box; a new speaker slides in from their side
     const left = LEFT.includes(box.who);
-    const look = box.who === 'narrator' ? LOOK.narrator : box.who === 'mapmaker' ? LOOK.mapmaker : left ? LOOK.hero : ALLY.includes(box.who) ? LOOK.ally : LOOK.foe;
+    const look = box.who === 'narrator' ? LOOK.narrator : box.who === 'mapmaker' ? LOOK.mapmaker : box.who === 'pip' ? LOOK.pet : left ? LOOK.hero : ALLY.includes(box.who) ? LOOK.ally : LOOK.foe;
     const fw = 46;
     const wk = easeBack((now - this.whoAt) / 240, 1.6);
     const slide = Math.round((1 - wk) * (left ? -26 : 26));

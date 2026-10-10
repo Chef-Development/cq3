@@ -461,6 +461,12 @@ describe('the coach', () => {
     const m: TipMoment = { run, safe: true };
     const cue = new TipCoach(p).next(m);
     expect(cue).toMatchObject({ id: 'relicPick', card: 1 }); // relic pick first, at the first relic card
+    // (a new player's first pick, two plain cards, has no tip over it: the next pick has it)
+    const first = new Run(T, { ...DEFAULT_SETTINGS }, 5, newProfile());
+    first.phase = 'boost';
+    first.boostChoices = run.boostChoices;
+    expect(first.simplePick).toBe(true);
+    expect(new TipCoach(first.profile).next({ run: first, safe: true })?.id).not.toBe('relicPick');
     expect(take()).toBe('relicPick');
     expect(take()).toBeNull(); // one per screen: Synergy! waits for the next pick
     run.phase = 'map';

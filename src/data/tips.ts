@@ -130,8 +130,8 @@ export interface TipDef {
   fight?: 'pre' | 'pause';
   /** A basic (it was in the game before relics, skills and heroes): a returning player has it marked seen. */
   basic?: boolean;
-  /** The card sits at the top of the screen, its hint tab up top too (a stop whose reward and buttons fill the
-   *  middle: the bounty board). */
+  /** The card sits at the top of the screen, over its title (a stop whose words, wares and buttons fill the middle:
+   *  the bounty board, an event, a shop, the trader). */
   top?: boolean;
   /** A hero's how-to: shown before their first fight (pre-fight), only when they're the one fighting. */
   hero?: HeroId;
@@ -235,11 +235,11 @@ export const TIPS: readonly TipDef[] = [
   { id: 'roamer', lines: ["Red prints: a pack's next step.", 'Meet it: an ambush, more loot!'], anchor: 'roamer', wins: QUIET_WINS },
   { id: 'secret', lines: ['Something glints in that rock!', 'Tap it: hidden treasure!'], anchor: 'secretSpot' },
   { id: 'sparkle', lines: ['A stray coin is glinting!', 'Tap it to pick it up.'], anchor: 'sparkle', wins: QUIET_WINS },
-  { id: 'shop', lines: ['Spend coins on relics and potions.', 'Unspent coins are kept.'], anchor: 'none', basic: true },
+  { id: 'shop', lines: ['Spend coins on relics and potions.', 'Unspent coins are kept.'], anchor: 'none', basic: true, top: true },
   { id: 'rest', lines: ['The campfire heals you.', 'Rest before the fights ahead.'], anchor: 'none', basic: true },
-  { id: 'event', lines: ['Pick one! Some cost coins,', 'some are a gamble.'], anchor: 'none', basic: true },
+  { id: 'event', lines: ['Pick one! Some cost coins,', 'some are a gamble.'], anchor: 'none', basic: true, top: true },
   { id: 'bounty', lines: ['Finish this bounty for its reward.', 'The map keeps count, top right.'], anchor: 'none', top: true },
-  { id: 'merchant', lines: ['A traveling trader: rare relics,', 'a bit cheaper than a shop.'], anchor: 'none' },
+  { id: 'merchant', lines: ['A traveling trader: rare relics,', 'a bit cheaper than a shop.'], anchor: 'none', top: true },
   { id: 'levelUp', lines: ['Level up! You got a skill point.', 'Spend it in Skills at camp.'], anchor: 'skillsButton', wins: QUIET_WINS },
   // ---- the camp
   { id: 'camp', lines: ['Bag: wear gear. Forge: upgrade it.', 'Skills: learn new tricks.'], anchor: 'campBand', basic: true },
