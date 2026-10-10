@@ -4,6 +4,7 @@
 // clean 8-way pixel slopes; the slimes are shaded from their shape; HUD icons are native-size maps.
 import type Phaser from 'phaser';
 import { buildAshFoeArt } from './art-ash';
+import { buildDuskFoeArt } from './art-dusk';
 import { buildCampArt } from './art-camp';
 import { buildChestArt } from './art-chests';
 import { buildCompanionArt } from './art-companions';
@@ -1211,6 +1212,7 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   buildFoeArt(add);
   buildFrostFoeArt(add);
   buildAshFoeArt(add);
+  buildDuskFoeArt(add);
   buildStoryArt(add);
   buildGearArt(add);
   buildSableArt(add);
