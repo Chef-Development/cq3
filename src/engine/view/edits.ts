@@ -108,7 +108,7 @@ export class EditsScreen {
     // the title, short enough to stay clear of the top bar's middle (the gear button)
     const z = kit.hudZone();
     const tx = kit.backRect().x + kit.backRect().w + 4;
-    const fits = (t: string) => tx + textWidth(t, 1, true) + 22 <= z.x - 2; // (the ribbon runs to tx + its text + 20)
+    const fits = (t: string) => tx + textWidth(t, 1, true) + 20 <= z.x - 2; // (the ribbon runs to tx + its text + 20)
     const title = ["The Mapmaker's Edits", "Mapmaker's Edits"].find(fits) ?? 'Edits';
     kit.title(g, title, tx, 4, OXBLOOD);
     EDITS.forEach((e, i) => this.drawRow(g, e, i, now));
