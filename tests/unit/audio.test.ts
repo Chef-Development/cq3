@@ -12,6 +12,7 @@ import { OfflineAudioContext } from 'node-web-audio-api';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { cloneTuning, type Tuning } from '../../src/core/tuning';
 import { ASH_NEW_SOUNDS } from '../../src/data/enemies-ash';
+import { DUSK_NEW_SOUNDS } from '../../src/data/enemies-dusk';
 import { STYLE_IDS } from '../../src/data/heroes';
 import { AMBIENCES, SFX, Synth, TELL_SOUNDS, type Ambience, type TellSound } from '../../src/engine/audio';
 import { Band, midi, MUSIC_PIECES, MUSIC_TRACKS, SONGS, stepSec, type MusicPiece, type MusicRender, type MusicTrack } from '../../src/engine/music';
@@ -252,11 +253,13 @@ describe('impact layers', () => {
 
 describe('telegraphs', () => {
   it('every TellSound is in the Sound lab catalog (and no tell is an impact tier)', () => {
-    expect(new Set(TELL_SOUNDS).size).toBe(40);
+    expect(new Set(TELL_SOUNDS).size).toBe(53);
     // Region 2's ten (cold, crystalline, heavy snow) go through every check below like Region 1's
     for (const k of ['frost', 'icicles', 'snowball', 'silk', 'mirror', 'hail', 'drift', 'shimmer', 'avalanche', 'wings']) expect(TELL_SOUNDS, k).toContain(k);
     // and so do the fourteen Region 3's foes ask for (fire and ash, volcanic glass, chains and iron)
     for (const k of ASH_NEW_SOUNDS) expect(TELL_SOUNDS, k).toContain(k);
+    // and the thirteen Region 4's (water, lanterns, reeds and frogs, floodgates, a lighthouse and a pen)
+    for (const k of DUSK_NEW_SOUNDS) expect(TELL_SOUNDS, k).toContain(k);
     for (const k of TELL_SOUNDS) {
       const e = SFX.find((x) => x.id === `tell-${k}`);
       expect(e, k).toBeDefined();
