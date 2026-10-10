@@ -21,6 +21,7 @@ import type { Tuning } from '../../core/tuning';
 import { HERO_FEET_X } from '../art';
 import type { HeroChestKind } from '../art-chests';
 import { HD_CHEST, hdChest } from '../art-chests-hd';
+import { REVEAL_STAR_AT } from './chest-opening';
 import { BURST_RADII, hdBurst, hdChevron, hdRay, hdRibbon, hdShard, hdStar, hdTag, hdTierGem, hdTwinkle, mixRgb, type Face4 } from '../art-reveal-hd';
 import { hdText, hdTextW, type HdTextStyle } from '../font-hd';
 import { HD_K, hdLayerRect, sameLayer, type HdLayerRect } from '../hd-layer';
@@ -33,8 +34,9 @@ const WHITE = 0xffffff;
 const INK = 0x140c1c;
 /** The prism's colours (Divine's light cycles through them), as the old reveal's. */
 const PRISM = [0xff8ab8, 0xffe070, 0x7af0b4, 0x8acbff, 0xc8a2ff];
-/** The shards' star pops this long after the reveal (as the old reveal's). */
-export const REVEAL_STAR_AT = 1000;
+// (the shards' star pops REVEAL_STAR_AT after the reveal, as the old reveal's: chest-opening.ts keeps the number, so
+// this file stays a chunk of its own)
+export { REVEAL_STAR_AT };
 
 const clamp01 = (k: number) => Math.max(0, Math.min(1, k));
 const easeOut3 = (k: number) => 1 - (1 - clamp01(k)) ** 3;

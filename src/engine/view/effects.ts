@@ -13,6 +13,8 @@ import { relicIcon, RELIC_ICON } from './relic-ui';
 import { clamp01, ease, INK, rand, shade as shadeCol, tintGrad, WHITE, type EnemyView, type Floater, type Particle } from './shared';
 import { ImagePool } from './ui';
 import type { RelicId } from '../../data/relics';
+import { flashShare } from '../../core/a11y';
+import { A11Y } from '../a11y';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -106,6 +108,7 @@ export class Effects {
 
   /** Camera kick: the world jolts by dx px and springs back. */
   kick(dx: number, ms: number): void {
+    if (A11Y.less) return; // (less motion: the camera doesn't kick)
     this.kickDx = dx;
     this.kickUntil = performance.now() + ms;
   }
@@ -116,14 +119,14 @@ export class Effects {
 
   shake(px: number, ms: number): void {
     const now = performance.now();
-    if (px <= 0 || ms <= 0) return;
+    if (px <= 0 || ms <= 0 || A11Y.less) return; // (less motion: no shake, engine/a11y.ts)
     this.shakeMag = now < this.shakeUntil ? Math.max(this.shakeMag, px) : px;
     this.shakeUntil = Math.max(this.shakeUntil, now + ms);
   }
 
   screenFlash(color: number, now: number, ms: number): void {
     this.screenFlashColor = color;
-    this.screenFlashUntil = now + ms;
+    this.screenFlashUntil = now + ms * flashShare(A11Y.less); // (less motion: shorter and fainter)
   }
 
   /** Weight of an impact tier (finisher: grows with stacks). */
@@ -144,7 +147,7 @@ export class Effects {
     const f = this.feel(w);
     this.freeze(f.hitStopMs);
     this.shake(f.shakePx, f.shakeMs);
-    if (f.frames > 0) {
+    if (f.frames > 0 && !A11Y.less) {
       // 1 or 2 frames at 60 fps (the frame it lands on counts): time-based, so 120 Hz screens show the same length
       this.impactFlashUntil = Math.max(this.impactFlashUntil, performance.now() + ((f.frames - 0.5) * 1000) / 60);
       this.impactFlashPending = true;

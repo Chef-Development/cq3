@@ -5,7 +5,7 @@
 // She is drawn a head shorter than the knights: short legs, a small torso, a big hood.
 import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './art';
 import { and, bez, ell, fill, or, rimShade, sphere } from './art-paint';
-import { ribbon, sparkle, stampAt, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose, type Sprite } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, ribbon, type Rig, type RigPose, sparkle, type Sprite, stampAt } from './art-rig';
 import { daggerMap } from './art-sword';
 
 // ------------------------------------------------------------------ palette
@@ -74,66 +74,16 @@ const TORSO = [
   '.jjjjjjjmmmj.',
   '.jjjjjjjjmmj.',
   '.jjjjjjjjjmj.',
+  '.jjjjjjjjjmj.',
+  '.jjjjjjjjjmj.',
   '..jjjjjjjjj..',
   '..nnnnNBnnn..',
   '..jjjj.jjjj..',
 ];
 
 // Brick-red trousers, soft charcoal boots; 15 wide, the feet centred on x = 7.
-const LEGS: Record<string, string[]> = {
-  stand: [
-    '...ttttttttt...',
-    '...tttt.tttt...',
-    '...ttt...ttt...',
-    '...ttt...ttt...',
-    '...bbb...bbb...',
-    '...bbb...bbb...',
-    '..bbbbb..bbbbb.',
-    '..bbbbbb.bbbbbb',
-  ],
-  run: [
-    '....ttttttttt..',
-    '...ttttt..tttt.',
-    '.ttt.......ttt.',
-    'ttt........ttt.',
-    'bb.........bbb.',
-    'b..........bbb.',
-    '...........bbbbb',
-    '...........bbbbbb',
-  ],
-  lunge: [
-    '....ttttttttt..',
-    '...tttt...tttt.',
-    '..ttt.......ttt',
-    '.ttt........ttt',
-    'bbb.........bbb',
-    'bbb.........bbb',
-    'bbbb.......bbbbb',
-    'bbbbb......bbbbbb',
-  ],
-  crouch: [
-    '..ttttttttt....',
-    '.tttttttttttt..',
-    '.ttt......ttt..',
-    'bbb.......bbb..',
-    'bbbb.....bbbbb.',
-    'bbbbb....bbbbbb',
-  ],
-  tuck: [
-    '..ttttttttt....',
-    '.tttttttttttt..',
-    '..tttttt.ttttt.',
-    '.....bbbbbbbbb.',
-    '.....bbbbb.bbbb',
-  ],
-  kneel: [
-    '..ttttttttt....',
-    '.ttttttt.tttt..',
-    '..ttttttt..ttt.',
-    'bbbtttttt..bbb.',
-    'bbbbbbbb..bbbbb',
-  ],
-};
+// the shared jointed legs (art-rig.ts STANCES, playtest round 8: L8, about three heads tall)
+const LEGS = matureLegs({ leg: 't', legBack: '8', boot: 'b', bootBack: '9', sole: '9' });
 
 const FIST = ['VV', 'vu'];
 const ARM_NEAR: Array<[number, ...string[]]> = [
@@ -146,12 +96,12 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 ];
 
 export const WREN_RIG: Rig = {
-  pal: WREN_PAL,
+  pal: { ...WREN_PAL, '8': WREN_BRICK[1], '9': CHAR[0] },
   shades: WREN_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [1, 2], blush: 'f'}),
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 7,
+  legsFeetX: LEG_FEET_X,
   torsoX: -6,
   torsoOverlap: 1,
   headX: -1,
@@ -270,39 +220,39 @@ const droppedKnife: Layer = (g, a) => stampAt(g, KNIFE_R, KNIFE_PAL, a.fx - 13, 
 const P = (p: RigPose): RigPose => p;
 export const WREN_POSES: Record<string, RigPose> = {
   // light on her feet: the knife low and forward, the free hand up, the scarf tail drifting
-  idle0: P({ near: { at: [7, 8], item: knife('ur') }, far: { at: [10, 12] }, back: [scarf(0.74, 0.1, 0.04), hook] }),
-  idle1: P({ near: { at: [7, 7], item: knife('ur') }, far: { at: [10, 11] }, dy: 1, back: [scarf(0.72, 0.12, -0.04), hook] }),
+  idle0: P({ near: { at: [7, 16], item: knife('ur') }, far: { at: [10, 20] }, back: [scarf(0.74, 0.1, 0.04), hook] }),
+  idle1: P({ near: { at: [7, 15], item: knife('ur') }, far: { at: [10, 19] }, dy: 1, back: [scarf(0.72, 0.12, -0.04), hook] }),
   // the scarf's tails flutter a frame behind the breath
-  idle2: P({ near: { at: [7, 7], item: knife('ur') }, far: { at: [10, 11] }, dy: 1, back: [scarf(0.7, 0.14, -0.07), hook] }),
-  idle3: P({ near: { at: [7, 8], item: knife('ur') }, far: { at: [10, 12] }, back: [scarf(0.72, 0.12, 0), hook] }),
-  dash: P({ near: { at: [-5, 9], item: knife('l') }, far: { at: [7, 10] }, legs: 'run', dx: 1, lean: 1, back: [scarf(0.98, -0.02, 0.04, 17), hook] }),
+  idle2: P({ near: { at: [7, 15], item: knife('ur') }, far: { at: [10, 19] }, dy: 1, back: [scarf(0.7, 0.14, -0.07), hook] }),
+  idle3: P({ near: { at: [7, 16], item: knife('ur') }, far: { at: [10, 20] }, back: [scarf(0.72, 0.12, 0), hook] }),
+  dash: P({ near: { at: [-5, 17], item: knife('l') }, far: { at: [7, 18] }, legs: 'run', dx: 1, lean: 1, back: [scarf(0.98, -0.02, 0.04, 17), hook] }),
   // a rising cut
-  slashA: P({ near: { at: [11, 13], item: knife('dr') }, far: { at: [4, 12] }, legs: 'lunge', dx: 2, lean: 1, back: [scarf(0.95, -0.03, 0.05, 16), hook], front: [swish(8, 13, 10, 1.6, -0.4)] }),
+  slashA: P({ near: { at: [11, 21], item: knife('dr') }, far: { at: [4, 20] }, legs: 'lunge', dx: 2, lean: 1, back: [scarf(0.95, -0.03, 0.05, 16), hook], front: [swish(8, 13, 10, 1.6, -0.4)] }),
   // a quick thrust
-  slashB: P({ near: { at: [12, 12], item: knife('r') }, far: { at: [4, 13] }, legs: 'lunge', dx: 2, lean: 1, head: 'sly', back: [scarf(0.97, -0.02, 0.06, 16), hook, swish(6, 12, 11, 2.5, 0.6)] }),
-  windup: P({ near: { at: [-3, 18], item: knife('ul') }, far: { at: [8, 11] }, legs: 'crouch', dy: 1, back: [scarf(0.84, 0.06, 0.03), hook] }),
+  slashB: P({ near: { at: [12, 20], item: knife('r') }, far: { at: [4, 21] }, legs: 'lunge', dx: 2, lean: 1, head: 'sly', back: [scarf(0.97, -0.02, 0.06, 16), hook, swish(6, 12, 11, 2.5, 0.6)] }),
+  windup: P({ near: { at: [-3, 26], item: knife('ul') }, far: { at: [8, 19] }, legs: 'crouch', dy: 1, back: [scarf(0.84, 0.06, 0.03), hook] }),
   // the knife up crosswise, ducking under
-  parry: P({ near: { at: [8, 11], item: knife('u') }, far: { at: [10, 13] }, farFront: true, legs: 'crouch', dy: 1, back: [scarf(0.8, 0.08, 0.02), hook] }),
-  hurt: P({ near: { at: [-4, 9], item: knife('dl') }, far: { at: [7, 13] }, dx: -1, lean: -1, dy: 1, head: 'squint', back: [scarf(0.6, -0.1, 0.05), hook] }),
-  leap: P({ near: { at: [11, 12], item: knife('ur') }, far: { at: [3, 17] }, legs: 'tuck', back: [scarf(0.72, -0.2, 0.04, 16), hook] }),
+  parry: P({ near: { at: [8, 19], item: knife('u') }, far: { at: [10, 21] }, farFront: true, legs: 'crouch', dy: 1, back: [scarf(0.8, 0.08, 0.02), hook] }),
+  hurt: P({ near: { at: [-4, 17], item: knife('dl') }, far: { at: [7, 21] }, dx: -1, lean: -1, dy: 1, head: 'squint', back: [scarf(0.6, -0.1, 0.05), hook] }),
+  leap: P({ near: { at: [11, 20], item: knife('ur') }, far: { at: [3, 25] }, legs: 'tuck', back: [scarf(0.72, -0.2, 0.04, 16), hook] }),
   down: P({ near: { at: [6, 9] }, far: { at: [9, 8] }, farFront: true, legs: 'kneel', dy: 2, lean: 2, bow: 2, head: 'ko', back: [scarf(0.52, -0.02, 0.01, 12), hook, droppedKnife] }),
   // Rooftop Drop: dropping onto the foe, knife point-down in both hands, the scarf streaming up behind
-  fin: P({ near: { at: [8, 12], item: knife('d') }, far: { at: [9, 13], hidden: true }, legs: 'tuck', dy: -2, head: 'sly', back: [scarf(1.25, 0.1, 0.05, 16), hook], front: [drop] }),
+  fin: P({ near: { at: [8, 20], item: knife('d') }, far: { at: [9, 21], hidden: true }, legs: 'tuck', dy: -2, head: 'sly', back: [scarf(1.25, 0.1, 0.05, 16), hook], front: [drop] }),
   // Smoke Pop: a smoke ball tossed from the free hand
-  cast: P({ near: { at: [5, 8], item: knife('r') }, far: { at: [11, 18] }, farFront: true, head: 'sly', back: [scarf(0.86, 0.06, 0.03), hook], front: [puff(15, 22, 3), (g, a) => sparkle(g, a.fx + 18, a.fy - 26, WREN_SMOKE[3])] }),
+  cast: P({ near: { at: [5, 16], item: knife('r') }, far: { at: [11, 26] }, farFront: true, head: 'sly', back: [scarf(0.86, 0.06, 0.03), hook], front: [puff(15, 22, 3), (g, a) => sparkle(g, a.fx + 18, a.fy - 26, WREN_SMOKE[3])] }),
 };
 
 /** Hero select card: the knife up, the scarf flying, before a moonlit-grey glow with a mustard heart. */
 export const WREN_CARD: HeroCardSpec = {
-  pose: { near: { at: [7, 9], item: knife('ur') }, far: { at: [10, 13] }, head: 'sly', back: [scarf(0.92, -0.04, 0.05, 17), hook] },
+  pose: { near: { at: [7, 17], item: knife('ur') }, far: { at: [10, 21] }, head: 'sly', back: [scarf(0.92, -0.04, 0.05, 17), hook] },
   glow: ['#fff08a', '#5a5470'],
   motes: [[5, 14], [34, 10], [34, 30]],
 };
 
 /** By the campfire (two breaths): tossing the knife from hand to hand. */
 export const WREN_CAMP: [RigPose, RigPose] = [
-  P({ near: { at: [6, 9], item: knife('u') }, far: { at: [9, 8] }, back: [scarf(0.6, 0.02, 0.02, 13), hook] }),
-  P({ near: { at: [6, 8] }, far: { at: [9, 9], item: knife('u') }, dy: 1, back: [scarf(0.62, 0.02, -0.02, 13), hook] }),
+  P({ near: { at: [6, 17], item: knife('u') }, far: { at: [9, 16] }, back: [scarf(0.6, 0.02, 0.02, 13), hook] }),
+  P({ near: { at: [6, 16] }, far: { at: [9, 17], item: knife('u') }, dy: 1, back: [scarf(0.62, 0.02, -0.02, 13), hook] }),
 ];
 
 // ------------------------------------------------------------------ the map walker (art-hero-map.ts draws it)
@@ -380,8 +330,8 @@ export function wrenPortrait(): HTMLCanvasElement {
   for (let x = 14; x <= 33; x++) if (scarfM(x, 34) && scarfM(x, 35)) put(g, x, 34, WREN_MUSTARD[1]);
   // eyes (hazel), a freckle or two, a cheeky grin
   const eye: Pal = { k: '#140c1c', W: '#ffffff', e: '#6a9a3a', E: '#2e5a22', w: '#e8dccc' };
-  stamp(g, ['kkkk', 'WeEk', 'wEkk', '.kk.'], eye, 24, 19);
-  stamp(g, ['kkk', 'WeE', 'wEk'], eye, 31, 19);
+  stamp(g, ['kkkk', 'keEk', '.kk.'], eye, 24, 19);
+  stamp(g, ['kkk', 'keE', '.kk'], eye, 31, 19);
   for (const [x, y] of [
     [25, 24],
     [27, 25],

@@ -3,7 +3,7 @@
 // `gorm_${pose}` on the shared rig (art-rig.ts): the broadest hero in the box, a small head on great shoulders, arms
 // as thick as Torva's legs, and the gauntlets drawn as their own blocks of stone (gauntlet()) at the fists.
 import { put, stamp, type Grid, type Pal, type Shade } from './art';
-import { sparkle, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose } from './art-rig';
+import { type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -76,6 +76,8 @@ const TORSO = [
   'ssssZssoOsssssssoOsZsss',
   '.sssssssllsssssllsssss.',
   '.ssssssssllsssllssssss.',
+  '.ssssssssllsssllssssss.',
+  '.ssssssssllsssllssssss.',
   '..sssssssslllllsssssss.',
   '..ssssssssloBolsssssss.',
   '..ssssssZsslllssZsssss.',
@@ -86,75 +88,8 @@ const TORSO = [
 ];
 
 // Wide cloth breeches, leather wraps on the shins, great bare feet; 19 wide, the feet centred on x = 9.
-const LEGS: Record<string, string[]> = {
-  stand: [
-    '..ppppppppppppppp..',
-    '..ppppppppppppppp..',
-    '..ppppppp.ppppppp..',
-    '..pppppp...pppppp..',
-    '..pppppp...pppppp..',
-    '...wwwww...wwwww...',
-    '...wwwww...wwwww...',
-    '...wwwww...wwwww...',
-    '...sssss...ssssss..',
-    '..sssssss..sssssss.',
-    '..sssssss..ssssssss',
-  ],
-  run: [
-    '...ppppppppppppppp.',
-    '..ppppppp..ppppppp.',
-    '.pppppp.....pppppp.',
-    'pppppp......pppppp.',
-    'pppppp.......ppppp.',
-    'wwwww........wwwww.',
-    'wwww.........wwwww.',
-    'sss..........wwwww.',
-    'sss.........ssssss.',
-    '............sssssss',
-    '............ssssssss',
-  ],
-  lunge: [
-    '...ppppppppppppppp.',
-    '..ppppppp..ppppppp.',
-    '.pppppp.....pppppp.',
-    '.pppppp.....pppppp.',
-    '.pppppp.....pppppp.',
-    '.wwwww......wwwww..',
-    'wwwww........wwwww.',
-    'wwwww........wwwww.',
-    'ssss.........sssss.',
-    'sssss.......sssssss',
-    'ssssss......ssssssss',
-  ],
-  crouch: [
-    '..ppppppppppppppp..',
-    '.ppppppp...pppppppp',
-    '.pppppp.....pppppp.',
-    '.pppppp.....pppppp.',
-    '.wwwww......wwwwww.',
-    'wwwww.......wwwwww.',
-    'sssss........sssss.',
-    'ssssss......sssssss',
-    'sssssss.....ssssssss',
-  ],
-  tuck: [
-    '..ppppppppppppppp..',
-    '.pppppppppppppppp..',
-    '..pppppppp.pppppp..',
-    '.....wwwwww.wwwww..',
-    '.....sssssssssssss.',
-    '......ssssss.sssss.',
-  ],
-  kneel: [
-    '..ppppppppppppppp..',
-    '.ppppppppppppppppp.',
-    '..pppppppp...pppppp',
-    'wwwwwwwwww...wwwww.',
-    'ssssssssss...wwwww.',
-    '.............sssss.',
-    '............sssssss',
-  ],
-};
+// the shared jointed legs (art-rig.ts STANCES, playtest round 8: L8, about three heads tall)
+const LEGS = matureLegs({ leg: 'p', legBack: '8', boot: 'w', bootBack: '9', sole: '9', thigh: 5, shin: 4 });
 
 /** The bare forearms: thick and grey-green, a leather bracer at the wrist where the gauntlet starts. */
 const ARM_NEAR: Array<[number, ...string[]]> = [
@@ -170,12 +105,12 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 const WRIST = ['l'];
 
 export const GORM_RIG: Rig = {
-  pal: { ...GORM_PAL, l: LEATHER[2] },
+  pal: { ...{ ...GORM_PAL, '8': CLOTH[1], '9': LEATHER[0] }, l: LEATHER[2] },
   shades: GORM_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [1, 3], skin: 's'}),
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 9,
+  legsFeetX: LEG_FEET_X,
   torsoX: -11,
   torsoOverlap: 1,
   headX: 6,
@@ -296,7 +231,7 @@ const swoosh =
 /** The Roar: rings of sound rolling out of his mouth. */
 const roarRings: Layer = (g, a) => {
   const cx = a.hx + 14;
-  const cy = a.hy + 10;
+  const cy = a.hy + 8;
   for (const [r, c] of [
     [4, '#f4f0e0'],
     [7, '#d8d4c4'],
@@ -328,47 +263,47 @@ const P = (p: RigPose): RigPose => p;
 const G = (face: Facing, o: { dim?: boolean; big?: boolean } = {}) => ({ item: gauntlet(face, o), over: true });
 export const GORM_POSES: Record<string, RigPose> = {
   // the gauntlets hanging heavy at his sides, a gentle slouch
-  idle0: P({ near: { at: [-8, 9], ...G('d') }, far: { at: [12, 10], ...G('d', { dim: true }) } }),
-  idle1: P({ near: { at: [-8, 8], ...G('d') }, far: { at: [12, 9], ...G('d', { dim: true }) }, dy: 1 }),
+  idle0: P({ near: { at: [-8, 14], ...G('d') }, far: { at: [12, 15], ...G('d', { dim: true }) } }),
+  idle1: P({ near: { at: [-8, 13], ...G('d') }, far: { at: [12, 14], ...G('d', { dim: true }) }, dy: 1 }),
   // the heavy gauntlets sway a frame behind the breath
-  idle2: P({ near: { at: [-8, 7], ...G('d') }, far: { at: [12, 8], ...G('d', { dim: true }) }, dy: 1 }),
-  idle3: P({ near: { at: [-8, 8], ...G('d') }, far: { at: [12, 9], ...G('d', { dim: true }) } }),
-  dash: P({ near: { at: [-6, 14], ...G('r') }, far: { at: [14, 15], ...G('r', { dim: true }) }, legs: 'run', dx: 1, lean: 1 }),
+  idle2: P({ near: { at: [-8, 12], ...G('d') }, far: { at: [12, 13], ...G('d', { dim: true }) }, dy: 1 }),
+  idle3: P({ near: { at: [-8, 13], ...G('d') }, far: { at: [12, 14], ...G('d', { dim: true }) } }),
+  dash: P({ near: { at: [-6, 19], ...G('r') }, far: { at: [14, 20], ...G('r', { dim: true }) }, legs: 'run', dx: 1, lean: 1 }),
   // a two-fisted hammer blow landing in front
-  slashA: P({ near: { at: [16, 8], ...G('d') }, far: { at: [19, 10], ...G('d', { dim: true }) }, legs: 'lunge', dx: 2, lean: 1, bow: 1, front: [impact(18)] }),
+  slashA: P({ near: { at: [16, 13], ...G('d') }, far: { at: [19, 15], ...G('d', { dim: true }) }, legs: 'lunge', dx: 2, lean: 1, bow: 1, front: [impact(18)] }),
   // a great hook punch, the near gauntlet thrown out level with his chest
-  slashB: P({ near: { at: [21, 20], ...G('r') }, far: { at: [8, 14], ...G('r', { dim: true }) }, legs: 'lunge', dx: 2, lean: 1, back: [swoosh(10, 20, 13, 2.4, 0.4)] }),
+  slashB: P({ near: { at: [21, 25], ...G('r') }, far: { at: [8, 19], ...G('r', { dim: true }) }, legs: 'lunge', dx: 2, lean: 1, back: [swoosh(10, 20, 13, 2.4, 0.4)] }),
   // a gauntlet drawn back high over his shoulder
-  windup: P({ near: { at: [-8, 30], ...G('u') }, far: { at: [12, 16], ...G('r', { dim: true }) }, legs: 'crouch', dy: 1, head: 'roar' }),
+  windup: P({ near: { at: [-8, 35], ...G('u') }, far: { at: [12, 21], ...G('r', { dim: true }) }, legs: 'crouch', dy: 1, head: 'roar' }),
   // the gauntlets crossed in front of him, a wall of stone
-  parry: P({ near: { at: [13, 18], ...G('r') }, far: { at: [14, 25], ...G('r', { dim: true }) }, legs: 'crouch', dy: 1, farFront: true }),
-  hurt: P({ near: { at: [-10, 14], ...G('l') }, far: { at: [10, 17], ...G('r', { dim: true }) }, dx: -1, lean: -1, dy: 1, head: 'squint' }),
-  leap: P({ near: { at: [2, 34], ...G('u') }, far: { at: [12, 33], ...G('u', { dim: true }) }, legs: 'tuck', armsUp: true }),
+  parry: P({ near: { at: [13, 23], ...G('r') }, far: { at: [14, 30], ...G('r', { dim: true }) }, legs: 'crouch', dy: 1, farFront: true }),
+  hurt: P({ near: { at: [-10, 19], ...G('l') }, far: { at: [10, 22], ...G('r', { dim: true }) }, dx: -1, lean: -1, dy: 1, head: 'squint' }),
+  leap: P({ near: { at: [2, 39], ...G('u') }, far: { at: [12, 38], ...G('u', { dim: true }) }, legs: 'tuck', armsUp: true }),
   // knocked out: down on one knee, the gauntlets resting on the ground
   down: P({ near: { at: [14, 4], ...G('d') }, far: { at: [-7, 4], ...G('d', { dim: true }) }, legs: 'kneel', dy: 1, lean: 1, bow: 2, head: 'ko', front: [dizzy] }),
   // the finisher: both gauntlets raised high overhead, roaring, pebbles shaking loose
   fin: P({
-    near: { at: [-13, 30], ...G('u', { big: true }) },
-    far: { at: [19, 31], ...G('u', { dim: true, big: true }) },
+    near: { at: [-13, 35], ...G('u', { big: true }) },
+    far: { at: [19, 36], ...G('u', { dim: true, big: true }) },
     legs: 'lunge',
     head: 'roar',
     front: [pebbles([[-20, 18], [25, 20], [-17, 8], [27, 9]])],
   }),
   // Roar: chest out, gauntlets spread wide, the jaw dropped
-  cast: P({ near: { at: [-12, 18], ...G('l') }, far: { at: [20, 18], ...G('r', { dim: true }) }, head: 'roar', front: [roarRings] }),
+  cast: P({ near: { at: [-12, 23], ...G('l') }, far: { at: [20, 23], ...G('r', { dim: true }) }, head: 'roar', front: [roarRings] }),
 };
 
 /** Hero select card: a friendly wave with one gauntlet, the other at his side, before a granite glow with a moss heart. */
 export const GORM_CARD: HeroCardSpec = {
-  pose: { near: { at: [-8, 9], ...G('d') }, far: { at: [14, 24], ...G('u', { dim: true }) }, head: 'smile' },
+  pose: { near: { at: [-8, 14], ...G('d') }, far: { at: [14, 29], ...G('u', { dim: true }) }, head: 'smile' },
   glow: ['#c8e070', '#6e6a74'],
   motes: [[5, 12], [34, 9], [35, 30]],
 };
 
 /** By the campfire (two breaths): the gauntlets folded in front of him, smiling at the fire. */
 export const GORM_CAMP: [RigPose, RigPose] = [
-  P({ near: { at: [6, 13], ...G('r') }, far: { at: [11, 12], ...G('r', { dim: true }) }, head: 'smile' }),
-  P({ near: { at: [6, 12], ...G('r') }, far: { at: [11, 11], ...G('r', { dim: true }) }, dy: 1, head: 'smile' }),
+  P({ near: { at: [6, 18], ...G('r') }, far: { at: [11, 17], ...G('r', { dim: true }) }, head: 'smile' }),
+  P({ near: { at: [6, 17], ...G('r') }, far: { at: [11, 16], ...G('r', { dim: true }) }, dy: 1, head: 'smile' }),
 ];
 
 /** Exported for the card and portrait code that wants a gauntlet on its own. */

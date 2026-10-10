@@ -3,13 +3,16 @@
 // right. A top map (head to hem, 11 wide) over two rows of legs; idle1 sits a pixel lower, the passing steps
 // (walk1, walk3) bob a pixel up, and the back edge of a cape, braid or cloak flaps on the long steps.
 import { grid, stamp, toCanvas, type Pal } from './art';
+import { gradeGrid } from './art-rig';
 import { SOLENNE_WALKER } from './art-hero-solenne';
 import { WREN_WALKER } from './art-hero-wren';
 
 type Add = (key: string, c: HTMLCanvasElement) => void;
 
 const W = 13;
-const H = 16;
+// (playtest round 8, L8: two rows taller than before, for longer legs: about three heads tall like the fight frames;
+// the views anchor them at the feet, two rows up from the bottom)
+const H = 18;
 
 interface Walker {
   pal: Pal;
@@ -343,10 +346,16 @@ Object.assign(WALKERS, { solenne: SOLENNE_WALKER, wren: WREN_WALKER });
 
 function walkerFrame(w: Walker, legs: keyof Walker['legs'], bob: number, flap: boolean): HTMLCanvasElement {
   const g = grid(W, H);
-  const top = H - 2 - 2 - w.top.length + bob;
+  // (playtest round 8, L8: up to two rows longer in the leg, like their fight frames, when the frame has the room)
+  const two = w.legs[legs];
+  const extra = Math.max(0, Math.min(2, H - 3 - w.top.length - two.length));
+  const leg = [...Array<string>(extra).fill(two[0]), ...two];
+  const top = H - 2 - leg.length - w.top.length + bob;
   if (flap && w.flap) stamp(g, w.flap[0], w.pal, 1 + w.flap[1], top + w.flap[2]);
   stamp(g, w.top, w.pal, 1, top);
-  stamp(g, w.legs[legs], w.pal, 1, H - 2 - 2);
+  stamp(g, leg, w.pal, 1, H - 2 - leg.length);
+  // (and the fight frames' mature grade: darker, weathered, a little less saturated)
+  gradeGrid(g);
   return toCanvas(g);
 }
 

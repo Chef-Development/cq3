@@ -123,9 +123,10 @@ boot. Each later region's art is a **pack**, a chunk of its own (`src/engine/reg
   (`PACK_THEMES`, so the stage knows which pack a theme needs before it arrives).
 - `main.ts` starts every pack's `import()` before Phaser boots, so the packs download beside the main chunk (on a
   return visit the service worker has them). The scene paints them in idle slices once the title is up (after the
-  world map's slices), and a fight or any screen of a later region finishes them at once (`App.setPhase` ->
-  `FightScene.ensureRegionArt`, a no-op once all are in): no fight and no later region ever asks for a texture that
-  isn't there, and a Greenmarch player's world map, camp and story never wait for them. A foe or portrait asked for
+  world map's slices), and any screen of a later region finishes them at once (`App.setPhase` ->
+  `FightScene.ensureRegionPacks`, a no-op once all are in): no later region ever asks for a texture that isn't there,
+  and a Greenmarch player never waits for them (a Greenmarch fight included: the bar's later-region pieces, icicles
+  and mirror shards, are drawn only once they exist). A foe or portrait asked for
   sooner finishes them too (fighters, story). `__cq3.ready` waits for the packs to arrive, so a test may jump anywhere.
 - **The one way to get it wrong**: a static `import` of a pack's file from anywhere else pulls it (and what it imports)
   back into the main chunk. Check the build's chunk list (`npm run build` prints `pack-<region>-*.js`). Something the
@@ -136,9 +137,12 @@ boot. Each later region's art is a **pack**, a chunk of its own (`src/engine/reg
 
 Not split yet (next, in order of payoff): the later regions' **music** (about 40% of `music.ts`, ~28 KB raw: a pack
 could register its songs into `SONGS`, the cue falling back to the act's calm theme until it's in; music.ts is being
-extended for the new regions tonight, so moving 800 lines would collide), the **sharper chest reveal** (`chest-hd.ts`,
-`art-chests-hd.ts`, `art-reveal-hd.ts`: ~50 KB raw, off by default, but drawn into from every frame of a chest
-opening: six call sites to guard), the **Test lab** list (~30 KB).
+extended for the new regions tonight, so moving 800 lines would collide), the **Test lab** list (~30 KB).
+
+**The sharper chest reveal** (round 8, chunk 3) is a chunk of its own now: `chest-hd.ts` and `art-chests-hd.ts`
+(38 KB, 16 KB gzip) download beside the boot like the region packs (`loadChestHd` in main.ts; `__cq3.ready` waits for
+them; `ChestOpening.view` reads 'old' in the moment before they're in; `REVEAL_STAR_AT` lives in chest-opening.ts so
+nothing in the main chunk imports chest-hd.ts). The main chunk: 2205 -> 2169 KB, 771 -> 756 KB gzip.
 
 ### Measured (CPU 4x, Fast 4G, median of 3; the machine at load 12-15 on 4 CPUs: expect 15-20% noise)
 
@@ -156,7 +160,23 @@ read 11.4 and 12.4 s to the title).
 | pack-frost.js (the Frostpeaks' backdrops) | | | 25 KB | 11 KB |
 | **total** | 3660 KB | 1155 KB | 3662 KB | 1161 KB |
 
-BEFORE_AFTER_TABLE
+| measure (CPU 4x, Fast 4G, no cache, median of 3) | before | after |
+|---|---|---|
+| load average while measuring (4 CPUs) | 20-22 | 20-21 |
+| DOMContentLoaded | 3384 | 3282 |
+| **title ready for a tap** | **12969** (runs 9635-13324) | **12074** (runs 10840-12998) |
+| later regions' art arrived (`__cq3.ready`) | 12969 (one chunk) | 12974 |
+| first fight on screen | 28645 | 27212 |
+
+What should change: the Frostpeaks' foes (~0.4 s at 1x, so ~1.6 s at 4x) no longer paint before the title, and the
+main chunk to download, parse and compile is 9% smaller. Measured: the title ~0.9 s sooner and the first fight ~1.4 s
+sooner, but the spread between runs of the same build (up to 3.7 s here) is larger than that: on this machine the
+direction is right and the size isn't proven. A phone-like measurement on a quiet machine (or a real device trace) is
+the next step. The packs arrive ~1 s after the title is up (their modules evaluate once the boot's long paint lets go
+of the main thread); nothing waits for them on the title, and the world map and Greenmarch never do.
+
+Frame rates at load 20 swung wildly between the two runs (the world map read 51 fps for the first build and 3.7 fps
+for the second; a busy fight 4.1 and 3.4 fps): not comparable, and not used.
 
 **Frame time** (a CPU profile of 6 s of a busy late fight, Act 9's forge hand, chain sentinel, stoker imp and magma eel
 with Space every 140 ms, and of the world map dragged; a non-minified build at CPU 1x): 75% of the fight's main thread

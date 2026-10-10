@@ -72,7 +72,15 @@ function lastStrike(c: ShowCtx, k: number): number {
   return idx;
 }
 
+/** The beat the hero winds up before a finisher's big blow. */
+const FIN_WINDUP_MS = 120;
+/** After the big blow (the last fifth of the show): the blow's pose held, then the follow-through (the weapon low,
+ *  the cape and hair settling), then the run home, as shares of that time. */
+const FIN_HOLD = 0.3;
+const FIN_FOLLOW = 0.3;
+
 /** The style's way through the show (a signature can change it). */
+
 function defaultMotion(c: ShowCtx, k: number, home: number): HeroMotion {
   const tl = c.tl;
   const from = c.heroX;
@@ -82,21 +90,28 @@ function defaultMotion(c: ShowCtx, k: number, home: number): HeroMotion {
   const base: HeroMotion = { x: from, lift: 0, pose: 'idle0', flip: false, hidden: false, alpha: 1 };
   const appr = clamp01(k / Math.max(0.01, tl.build));
   const blowing = k >= tl.blow - 0.02;
-  if (k >= tl.back) {
-    if (c.move === 'blink') {
-      // gone into the shadows, back out of them at home
-      const q = clamp01((k - tl.back) / (1 - tl.back));
-      return q < 0.4 ? { ...base, x: to, hidden: true, alpha: 0 } : { ...base, x: home, alpha: (q - 0.4) / 0.6 };
-    }
+  // anticipation: the weapon drawn back for a beat before the big blow; follow-through: past the blow, the weapon low
+  // and the body leaning, while the cape and hair settle (docs/art-style.md section 7)
+  const windingUp = !blowing && k >= tl.blow - 0.02 - FIN_WINDUP_MS / Math.max(1, tl.ms);
+  // after the blow: 0..1 over the rest of the show
+  const after = clamp01((k - tl.blow) / Math.max(0.01, 1 - tl.blow));
+  if (c.move === 'blink' && k >= tl.back) {
+    // gone into the shadows, back out of them at home
     const q = clamp01((k - tl.back) / (1 - tl.back));
+    return q < 0.4 ? { ...base, x: to, hidden: true, alpha: 0 } : { ...base, x: home, alpha: (q - 0.4) / 0.6 };
+  }
+  if (c.move !== 'blink' && after >= FIN_HOLD) {
+    // the follow-through where the blow landed, then home (the run eased, quick: the show is nearly over)
+    if (after < FIN_HOLD + FIN_FOLLOW) return { ...base, x: to, pose: c.move === 'stand' ? 'cast' : 'slashA' };
+    const q = clamp01((after - FIN_HOLD - FIN_FOLLOW) / (1 - FIN_HOLD - FIN_FOLLOW));
     const x = to + (home - to) * ease(q);
     const moving = Math.abs(x - home) > 3;
-    return { ...base, x, pose: moving ? 'dash' : 'idle0', flip: moving };
+    return { ...base, x, pose: moving ? 'dash' : 'idle2', flip: moving };
   }
   switch (c.move) {
     case 'dash':
       if (k < tl.build) return { ...base, x: from + (to - from) * ease(appr), pose: appr < 0.2 ? 'windup' : 'dash' };
-      return { ...base, x: to, pose: blowing ? 'fin' : idx % 2 ? 'slashA' : 'slashB' };
+      return { ...base, x: to, pose: blowing ? 'fin' : windingUp ? 'windup' : idx % 2 ? 'slashA' : 'slashB' };
     case 'leap':
       if (k < tl.build) return { ...base, x: from + (to - from) * ease(appr), lift: Math.sin(appr * Math.PI) * 26, pose: 'leap' };
       return { ...base, x: to, pose: blowing || since < 60 ? 'fin' : 'windup' };
@@ -110,9 +125,9 @@ function defaultMotion(c: ShowCtx, k: number, home: number): HeroMotion {
     }
     case 'guard':
       if (k < tl.build) return { ...base, x: from + (to - from) * ease(appr), pose: 'dash' };
-      return { ...base, x: to, pose: blowing || since < 70 ? 'fin' : 'parry' };
+      return { ...base, x: to, pose: blowing ? 'fin' : windingUp ? 'windup' : since < 70 ? 'fin' : 'parry' };
     default:
-      return { ...base, x: from + (to - from) * ease(clamp01(k / 0.12)), pose: k < tl.build * 0.5 ? 'cast' : 'fin' };
+      return { ...base, x: from + (to - from) * ease(clamp01(k / 0.12)), pose: k < tl.build * 0.5 ? 'cast' : windingUp ? 'windup' : 'fin' };
   }
 }
 

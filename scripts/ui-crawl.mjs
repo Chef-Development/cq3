@@ -1,16 +1,20 @@
 // The UI crawl (team 4, round 8; run by hand through the Playwright lock, never in CI):
 //   npm run build && npx vite preview --port 4177 --strictPort &
-//   flock /home/user/wt/.pw.lock node scripts/ui-crawl.mjs [minutes=10]      (URL=... SHOTS=dir HEADED=1 DESKTOP=1)
-// Plays the real game from a fresh save (New game) through Act 1 at the phone's size: the keyboard's defaults move
+//   flock /home/user/wt/.pwlong.lock nice -n 15 node scripts/ui-crawl.mjs [minutes=10]   (URL=... SHOTS=dir HEADED=1
+//   DESKTOP=1 ACTS=3 LAB=1)
+// Plays the real game from a fresh save (New game) through Act 1 (or ACTS acts) at the phone's size: the keyboard's defaults move
 // the menus on (Enter: Continue, the first node, the first card, Next...; ui-bot.mjs's way), an in-page player taps
 // the bar fast (a tap at most every 110 ms, when the cursor sits on a block worth tapping, about 85% of them), fires
 // the finisher when it's ready and holds holds. Once Act 1 is cleared (or the time is up) it opens the camp and visits
-// every camp screen and its tabs. All along it records:
+// every camp screen and its tabs, then the world map (each cleared act's card, the region chip and its picker, a
+// drag) and, with LAB=1, every Test lab scenario (spoilers included) for a moment each. All along it records:
 //   - page errors and console errors;
 //   - the numbers safety net's violations (window.__cq3.textViolations: a long decimal drawn);
 //   - foes a map drew without a mini (window.__cq3.miniMisses);
 //   - missing textures: every key the game asked Phaser for that doesn't exist (drawn as Phaser's missing-texture box);
-//   - text out of bounds: a bitmap text reaching past the canvas's edge, an HTML panel's text wider than its box;
+//   - text out of bounds: a bitmap text that stays past the canvas's edge (5 scans in the same spot: sliding in or
+//     out doesn't count; the world map's land names are cut by the screen's edge on purpose as it pans), an HTML
+//     panel's text wider than its box;
 //   - a screen that doesn't change for 40 s (a softlock).
 // Exits 1 when it found anything.
 import { mkdirSync } from 'node:fs';
@@ -19,6 +23,8 @@ import { chromium } from '@playwright/test';
 const URL = process.env.URL ?? 'http://localhost:4177/cq3/';
 const MINUTES = Number(process.argv[2] ?? 10);
 const SHOTS = process.env.SHOTS ?? '';
+const ACTS = Number(process.env.ACTS ?? 1);
+const LAB = !!process.env.LAB;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
 /** In the page: the fight player (as ui-bot.mjs's, faster) and the watchers. */
@@ -26,7 +32,7 @@ const INSTALL = () => {
   const w = window;
   if (w.__crawl) return;
   const sc = w.__cq3.game.scene.getScene('fight');
-  const C = (w.__crawl = { taps: 0, fins: 0, missingTex: {}, offText: {} });
+  const C = (w.__crawl = { taps: 0, fins: 0, missingTex: {}, offText: {}, offSeen: {} });
   // every texture asked for that isn't there (Phaser hands back its missing-texture box)
   const tm = sc.textures;
   const get = tm.get.bind(tm);
@@ -46,9 +52,14 @@ const INSTALL = () => {
         const x1 = x0 + b.width;
         const y0 = b.y + dy;
         const y1 = y0 + b.height;
-        if (x0 < -1 || y0 < -1 || x1 > 328 || y1 > 151) {
+        // (only text partly on screen and crossing an edge: a bar or a plate parked wholly off screen between its
+        // slide-ins is unseen; the world map's land names are cut by the edge on purpose as it pans)
+        const onScreen = x1 > 0 && x0 < 327 && y1 > 0 && y0 < 150;
+        if (onScreen && w.__cq3.app.run.phase !== 'world' && (x0 < -1 || y0 < -1 || x1 > 328 || y1 > 151)) {
+          // (a text sliding in or out passes the edge for a moment: only one that stays put there counts)
           const k = `${o.text.slice(0, 30)} @ ${Math.round(x0)},${Math.round(y0)} w${Math.round(b.width)}`;
-          C.offText[k] = w.__cq3.app.run.phase;
+          const seen = (C.offSeen[k] = (C.offSeen[k] ?? 0) + 1);
+          if (seen >= 5) C.offText[k] = w.__cq3.app.run.phase;
         }
       }
     };
@@ -120,10 +131,9 @@ page.on('console', (m) => {
 const t0 = Date.now();
 await page.goto(URL);
 await page.waitForFunction(() => window.__cq3?.ready === true, null, { timeout: 120_000 });
-// New game: a fresh save (as the title's New game leaves it)
-await page.evaluate(() => {
-  window.__cq3.app.newGame();
-});
+// New game: a fresh save (as the title's New game leaves it: it wipes the save and reloads the page)
+await Promise.all([page.waitForEvent('load'), page.evaluate(() => void window.__cq3.app.newGame()).catch(() => undefined)]);
+await page.waitForFunction(() => window.__cq3?.ready === true, null, { timeout: 120_000 });
 await page.evaluate(INSTALL);
 const ev = (s) => page.evaluate(`(() => { const x = window.__cq3.app; ${s} })()`);
 const until = Date.now() + MINUTES * 60_000;
@@ -135,7 +145,7 @@ while (Date.now() < until) {
   const st = await ev(
     `const c = x.run.combat; return { phase: x.run.phase, act: x.run.actIndex, cleared: x.profile.actsCleared, story: x.storyOverlay, tip: x.tipUp, camp: x.view?.camp?.mode, foes: c ? c.enemies.map((e) => Math.round(e.hp)).join(',') : '', begin: x.awaitingBegin, paused: x.userPaused, node: x.run.node?.id ?? -1 };`,
   );
-  if (st.cleared >= 1 && st.phase !== 'fight') break;
+  if (st.cleared >= ACTS && st.phase !== 'fight') break;
   const sig = `${st.phase}|${st.act}|${st.story}|${st.tip}|${st.camp}|${st.foes}|${st.begin}|${st.node}`;
   if (sig !== last) {
     last = sig;
@@ -153,8 +163,8 @@ while (Date.now() < until) {
   } else await page.keyboard.press('Enter');
   await page.waitForTimeout(300);
 }
-const played = await ev('return { acts: x.profile.actsCleared, phase: x.run.phase, level: x.run.hero.level, items: x.profile.items.length, coins: x.profile.coins }');
-console.log(`played ${((Date.now() - t0) / 1000).toFixed(0)} s: ${played.acts} act(s) cleared, now ${played.phase}; level ${played.level}, ${played.items} items`);
+const played = await ev('return { acts: x.profile.actsCleared, phase: x.run.phase, xp: x.profile.heroes[x.profile.hero]?.xp, items: x.profile.items.length, coins: x.profile.coins }');
+console.log(`played ${((Date.now() - t0) / 1000).toFixed(0)} s: ${played.acts} act(s) cleared, now ${played.phase}; ${played.xp} XP, ${played.items} items`);
 
 // every camp screen and its tabs
 const SCREENS = [
@@ -198,14 +208,87 @@ const dom = await page.evaluate(DOM_OVERFLOW);
 for (const d of dom) problems.push(`HTML text wider than its box: ${d}`);
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/gear-panel.png` });
 
-const end = await page.evaluate(() => ({
-  textViolations: [...(window.__cq3.textViolations ?? [])],
-  miniMisses: [...(window.__cq3.miniMisses ?? [])],
-  missingTex: window.__crawl.missingTex,
-  offText: window.__crawl.offText,
-  taps: window.__crawl.taps,
-  fins: window.__crawl.fins,
-}));
+/** The page's records so far, into the totals (a reload starts the page's afresh). */
+const totals = { textViolations: [], miniMisses: new Set(), missingTex: {}, offText: {}, taps: 0, fins: 0 };
+const gather = async () => {
+  const r = await page.evaluate(() => ({
+    textViolations: [...(window.__cq3.textViolations ?? [])],
+    miniMisses: [...(window.__cq3.miniMisses ?? [])],
+    missingTex: window.__crawl?.missingTex ?? {},
+    offText: window.__crawl?.offText ?? {},
+    taps: window.__crawl?.taps ?? 0,
+    fins: window.__crawl?.fins ?? 0,
+  }));
+  totals.textViolations.push(...r.textViolations);
+  for (const m of r.miniMisses) totals.miniMisses.add(m);
+  for (const [k, n] of Object.entries(r.missingTex)) totals.missingTex[k] = (totals.missingTex[k] ?? 0) + n;
+  Object.assign(totals.offText, r.offText);
+  totals.taps += r.taps;
+  totals.fins += r.fins;
+};
+
+// the world map: each cleared act's card, the region chip and its picker, a drag
+await page.evaluate(() => document.getElementById('btn-gear')?.click()); // (the panel closes)
+await page.waitForTimeout(300);
+try {
+  await ev('x.storyOverlay = null; x.toWorld();');
+  await page.waitForTimeout(1500);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/world.png` });
+  const cleared = await ev('return x.profile.actsCleared');
+  for (let i = 0; i < Math.max(1, cleared); i++) {
+    await ev(`const w = x.view.worldMap; const p = w.actSpot(${i}); if (p) w.tap(p.x, p.y);`);
+    await page.waitForTimeout(900);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/world-act${i + 1}.png` });
+    await ev('x.view.worldMap.escape();');
+    await page.waitForTimeout(300);
+  }
+  await ev('const w = x.view.worldMap; const c = w.regionChip && w.regionChip(); if (c) w.tap(c.r.x + c.r.w / 2, c.r.y + c.r.h / 2);');
+  await page.waitForTimeout(900);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/world-picker.png` });
+  await ev('x.view.worldMap.escape();');
+  const L = await ev('return x.layout');
+  await page.mouse.move(L.left + L.cssW / 2, L.top + L.cssH / 2);
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i++) await page.mouse.move(L.left + L.cssW / 2 - i * 25, L.top + L.cssH / 2 - i * 4);
+  await page.mouse.up();
+  await page.waitForTimeout(1200);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/world-dragged.png` });
+} catch (e) {
+  problems.push(`world map: ${e.message.split('\n')[0]}`);
+}
+await gather();
+
+// the Test lab: every scenario for a moment (from the title; the page's watchers again after the reload)
+if (LAB) {
+  await page.reload();
+  await page.waitForFunction(() => window.__cq3?.ready === true, null, { timeout: 120_000 });
+  await page.evaluate(INSTALL);
+  await page.click('#btn-lab');
+  await page.click('.lab-btn:has-text("Show spoilers")');
+  const ids = await page.locator('.lab-item').evaluateAll((els) => els.map((e) => e.dataset.id));
+  for (const id of ids) {
+    try {
+      await page.click(`.lab-item[data-id="${id}"]`);
+      await page.click('.lab-btn.go');
+      await page.locator('#btn-lab-done').waitFor({ state: 'visible', timeout: 15_000 });
+      const ph = await ev('return x.run.phase');
+      if (ph === 'fight') await ev('x.begin && x.begin();');
+      await page.waitForTimeout(1600);
+      if (SHOTS) await page.screenshot({ path: `${SHOTS}/lab-${id}.png` });
+      await page.click('#btn-lab-done');
+      await page.locator('#lab[data-view="rate"]').waitFor({ state: 'visible', timeout: 15_000 });
+      await page.click('.lab-btn:has-text("Skip")');
+      await page.locator('#lab[data-view="list"]').waitFor({ state: 'visible', timeout: 15_000 });
+    } catch (e) {
+      problems.push(`lab ${id}: ${e.message.split('\n')[0]}`);
+      break;
+    }
+  }
+  console.log(`lab: ${ids.length} scenarios walked`);
+  await gather();
+}
+
+const end = { ...totals, miniMisses: [...totals.miniMisses] };
 if (end.textViolations.length) problems.push(`long decimals on screen: ${end.textViolations.slice(0, 5).join(' | ')}`);
 if (end.miniMisses.length) problems.push(`foes with no map sprite: ${end.miniMisses.join(', ')}`);
 for (const [k, n] of Object.entries(end.missingTex)) problems.push(`missing texture: ${k} (asked ${n}x)`);

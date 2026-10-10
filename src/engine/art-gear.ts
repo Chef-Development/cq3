@@ -36,7 +36,7 @@ const PAL: Pal = {
   o: '#34344a', O: '#545264', c: '#78747c', C: '#a09a96', D: '#c8c0b2', m: '#2a5230', M: '#447436',
   // cream cloth / ivory
   K: '#6a5a4a', Z: '#a8967a', X: '#d8c8a8', A: '#f4ead4',
-  // pendulum brass (yellower than gold)
+  // brass and the Atlas's gold ink (yellower than gold)
   6: '#6e4a14', 7: '#b07c22', 8: '#e0b040', 9: '#f8dc70', 0: '#fffad0',
   // fire
   P: '#f27a1c', F: '#ffb02a', I: '#fff8d0',
@@ -377,17 +377,19 @@ const ICONS: Record<string, string[]> = {
     '.vvvvuuuU.',
     '...vvuU...',
   ],
+  // the Keystone Shard (story bible section 9): a broken wedge of the keystone's stone, the line he drew hardest still
+  // glowing gold along its crack and dripping from its point (not the old pendulum weight)
   shard: [
-    '...980..G.',
-    '..90087GWG',
-    '.9AX887.G.',
-    '.0XA887...',
-    '90AX8I76..',
-    '90XI087766',
-    '.9A8I876..',
-    '.9888776..',
-    '..97766...',
-    '...76.....',
+    '.oCCDDDCo.',
+    '.oCCD9CCo.',
+    '..oC09COo.',
+    '..oCC09Oo.',
+    '...oC0Oo..',
+    '...oC9Oo..',
+    '....o90o..',
+    '....oO0...',
+    '.....o0G..',
+    '......W...',
   ],
   // ---------------------------------------------------------------- Region 3 (data/gear-ash.ts)
   // a blade knapped from black glass, its edge chipped and gleaming violet; a leather-wrapped grip

@@ -6,7 +6,7 @@
 // "12/25", a tick once met). Everything animates from `now` (the walk from performance.now()), like the map.
 import { whole } from '../../core/format';
 import Phaser from 'phaser';
-import { questById } from '../../data/quests';
+import { questById, questStory } from '../../data/quests';
 import type { MapNode } from '../../core/map';
 import type { RoamerNow, RoamState } from '../../core/roam';
 import type { Pt } from '../art-map';
@@ -432,6 +432,15 @@ export class MapRoam {
     const tx = r.x + 4 + iw + 3;
     if (q.done) glyph(g, 'check', tx, r.y + Math.round((r.h - glyphSize('check')[1]) / 2));
     else this.texts.text(`${whole(q.n)}/${whole(q.goal)}`, tx, r.y + r.h / 2 + 0.5, q.n > 0 ? 0xffe680 : 0xe8e0f4, { bold: true, oy: 0.5 });
+    // a story bounty just met: what came of it, under the tracker for a few seconds
+    const story = q.done ? questStory(run.regionDef.id, q.id) : undefined;
+    const since = now - this.doneAt;
+    if (story && since < 6000) {
+      const a = clamp01(Math.min(since / 300, (6000 - since) / 600));
+      const w = textWidth(story.payoff, 1, false) + 10;
+      rows(g, r.x + r.w - w, r.y + r.h + 6, w, 11, 1, 0x1a1628, 0.85 * a);
+      this.texts.text(story.payoff, r.x + r.w - 5, r.y + r.h + 12, 0xfff0c0, { ox: 1, oy: 0.5, alpha: a });
+    }
   }
 
   // ------------------------------------------------------------------ helpers

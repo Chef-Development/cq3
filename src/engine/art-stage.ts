@@ -43,15 +43,15 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     vignette: 0.68,
     floor: 0.56,
     top: 0.4,
-    rim: 0xfff0b8,
-    rimAmt: 0.75,
+    rim: 0xffd890, // the late sun's gold
+    rimAmt: 0.86,
     rimLeft: 0.6,
     rimTop: 1,
     shadow: 0x0c1a14,
     shadowDx: 2,
     shadowLen: 1.1,
     dust: [0xc8a878, 0xa88a60, 0xe0c898],
-    pool: 0xffe0a0,
+    pool: 0xffc878,
     poolAmt: 0.2,
     air: 0x8290b8,
   },
@@ -62,7 +62,7 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     floor: 0.56,
     top: 0.3,
     rim: 0x9ac0ff,
-    rimAmt: 0.7,
+    rimAmt: 0.8,
     rimLeft: 0.7,
     rimTop: 1,
     shadow: 0x02040a,
@@ -80,7 +80,7 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     floor: 0.56,
     top: 0.34,
     rim: 0xffa050,
-    rimAmt: 0.85,
+    rimAmt: 0.9,
     rimLeft: 1,
     rimTop: 0.45,
     shadow: 0x10040c,
@@ -98,7 +98,7 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     floor: 0.5,
     top: 0.26,
     rim: 0xc4d8ff,
-    rimAmt: 0.66,
+    rimAmt: 0.76,
     rimLeft: 0.6,
     rimTop: 1,
     shadow: 0x262e5a,
@@ -395,7 +395,7 @@ function rays(w: number, h: number, G: number, theme: Theme): Rgba {
     for (let y = Math.max(0, my - 40); y < my + 40; y++)
       for (let x = mx - 50; x < mx + 50; x++) {
         const d = Math.hypot(x + 0.5 - mx, (y + 0.5 - my) * 1.2);
-        const b = Math.pow(clamp01(1 - d / 40), 2) * 0.35;
+        const b = Math.pow(clamp01(1 - d / 40), 2) * 0.22; // the moon veiled by the rain clouds
         if (b > 0) {
           const i = (y * w + x) * 4;
           const prev = x >= 0 && x < w ? out.d[i + 3] / 255 : 0;

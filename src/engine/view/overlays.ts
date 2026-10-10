@@ -425,6 +425,8 @@ export class Overlays {
 
   cardRect(i: number): Rect {
     const p = this.boostPanel();
+    // two cards (a new player's first pick): taller, with room for their words
+    if (this.s.app.run.boostChoices.length === 2) return { x: p.x + 8, y: p.y + 8 + i * 48, w: p.w - 16, h: 44 };
     return { x: p.x + 8, y: p.y + 8 + i * 32, w: p.w - 16, h: 30 };
   }
 
@@ -517,7 +519,8 @@ export class Overlays {
   private card(c: CardCtx, r: Rect, offer: BoostOffer, preview: BoostPreview, now: number, flash = 0, alpha = 1): void {
     const s = this.s;
     if (isRelicOffer(offer)) {
-      relicCard(c, r, offer.relic, { owned: s.app.run.hero.relics, tuning: s.app.tuning, now, flash, alpha });
+      // (a new player's first pick: plain cards, while it flies to the tray too)
+      relicCard(c, r, offer.relic, { owned: s.app.run.hero.relics, tuning: s.app.tuning, now, flash, alpha, plain: s.app.run.simplePick });
       return;
     }
     const { g, texts } = c;
@@ -760,7 +763,7 @@ export class Overlays {
       // face up: the whole card (a flash as it lands; a reroll flashes them all)
       const flash = Math.max(0, 0.6 * (1 - (dt - T.up) / 160));
       const chips: Array<{ tag: RelicTag; r: Rect; hot: boolean }> = [];
-      if (isRelicOffer(offer)) relicCard(ctx, slot, offer.relic, { owned, tuning: s.app.tuning, now: now + i * 300, flash, chips });
+      if (isRelicOffer(offer)) relicCard(ctx, slot, offer.relic, { owned, tuning: s.app.tuning, now: now + i * 300, flash, chips, plain: run.simplePick });
       else this.card(ctx, slot, offer, boostPreview(run.tuning, run.hero, offer), now + i * 300, flash);
       for (const c of chips) if (c.hot) synergy.push({ chip: c.r, tag: c.tag, card: slot, at: deal.at + T.up });
     });

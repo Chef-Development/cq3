@@ -11,6 +11,11 @@ import { textWidth } from '../font';
 import { band, button3d, chevron, GOLD, NAVY, panel, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, WHITE, type Rect } from './shared';
 import { FACE, isPressed, notePress, ribbon, RIBBON, TextPool } from './ui';
+import { bigFits } from '../../core/a11y';
+import { A11Y } from '../a11y';
+
+/** The story text's width every box's lines fit (tests/unit/data.test.ts STORY_TEXT_W). */
+const STORY_TEXT_W = 256;
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -32,12 +37,13 @@ const LEFT: Speaker[] = [
 const ALLY: Speaker[] = ['smith', 'keeper'];
 /** Portrait backdrop [top, bottom] and name ribbon per side. */
 const LOOK = {
-  narrator: { bg: [0x3a3060, 0x1e1836], ribbon: RIBBON.purple, name: 0xf0e0ff },
-  hero: { bg: [0x3a6aa8, 0x1a2c52], ribbon: RIBBON.blue, name: 0xfff07a },
-  foe: { bg: [0x8a2a3a, 0x3a1020], ribbon: RIBBON.red, name: 0xffe0c0 },
-  ally: { bg: [0xa8642a, 0x3e2014], ribbon: RIBBON.green, name: 0xfff6c0 },
+  // (L7: deep, moody grounds behind the portraits; the head lit by its own soft light)
+  narrator: { bg: [0x2c2448, 0x120e20], ribbon: RIBBON.purple, name: 0xf0e0ff },
+  hero: { bg: [0x26446e, 0x0e1a30], ribbon: RIBBON.blue, name: 0xfff07a },
+  foe: { bg: [0x5e1e2a, 0x220a12], ribbon: RIBBON.red, name: 0xffe0c0 },
+  ally: { bg: [0x6e4220, 0x26140c], ribbon: RIBBON.green, name: 0xfff6c0 },
   /** The Mapmaker: the Atlas's ink behind him, a gold ribbon (his lines glow gold). */
-  mapmaker: { bg: [0x2e2240, 0x1a1026], ribbon: RIBBON.gold, name: 0x2e2240 },
+  mapmaker: { bg: [0x261c38, 0x0e0a16], ribbon: RIBBON.gold, name: 0x2e2240 },
 } as const;
 
 export class StoryView {
@@ -172,7 +178,7 @@ export class StoryView {
     const bob = typing && Math.floor(now / 140) % 2 === 0 ? 1 : 0;
     if (this.portrait) {
       // the third region's speakers are painted in idle time after boot: finish them now if this scene comes sooner
-      if (!this.s.textures.exists(`portrait_${box.who}`)) this.s.ensureRegionArt();
+      if (!this.s.textures.exists(`portrait_${box.who}`)) this.s.ensureRegionPacks(`portrait_${box.who}`);
       // (a speaker not painted yet, as the fourth region's until its art lands, speaks from an empty frame)
       const has = this.s.textures.exists(`portrait_${box.who}`);
       const p = this.portrait.setTexture(has ? `portrait_${box.who}` : 'portrait_rowan').setPosition(Math.round(fx + fw / 2), fy + fw - 3 - bob).setVisible(has);
@@ -197,15 +203,16 @@ export class StoryView {
       this.texts.text(name, ncx, by - 0.5, look.name, { bold: true, ox: 0.5, oy: 0.5 });
     }
 
-    // the text types itself out, with a caret at the end
+    // the text types itself out, with a caret at the end (larger text: the bold letters, when the box's lines fit)
+    const big = A11Y.big && bigFits(box.text.split('\n'), STORY_TEXT_W, (l, b) => textWidth(l, 1, b));
     let left2 = this.typed(now);
     let caret: { x: number; y: number } | null = null;
     box.text.split('\n').forEach((line, i) => {
       const shown = line.slice(0, Math.max(0, left2));
       left2 -= line.length + 1;
       const ty = by + 15 + i * 11;
-      if (shown.length) this.texts.text(shown, bx + 9, ty, WHITE, { oy: 0.5 });
-      if (typing && shown.length < line.length && !caret) caret = { x: bx + 9 + (shown.length ? textWidth(shown, 1, false) : 1), y: ty };
+      if (shown.length) this.texts.text(shown, bx + 9, ty, WHITE, { oy: 0.5, bold: big });
+      if (typing && shown.length < line.length && !caret) caret = { x: bx + 9 + (shown.length ? textWidth(shown, 1, big) : 1), y: ty };
     });
     const cr = caret as { x: number; y: number } | null;
     if (cr && Math.floor(now / 200) % 2 === 0) {

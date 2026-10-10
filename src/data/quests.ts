@@ -58,5 +58,27 @@ export const QUESTS: readonly QuestDef[] = [
 export const STYLE_QUEST: Record<StyleId, QuestId> = Object.fromEntries(QUESTS.filter((q) => q.style).map((q) => [q.style, q.id])) as Record<StyleId, QuestId>;
 
 export const QUEST_IDS: readonly QuestId[] = QUESTS.map((q) => q.id);
+
+/**
+ * A region's story bounty: when a board in that region (a RegionDef id) posts `quest`, its notice carries who posted it
+ * and why (`frame`), and meeting it shows what came of it (`payoff`), one line each. The bounty itself is unchanged.
+ */
+export interface QuestStory {
+  region: string;
+  quest: QuestId;
+  frame: string;
+  payoff: string;
+}
+
+export const QUEST_STORIES: readonly QuestStory[] = [
+  { region: 'greenmarch', quest: 'kills', frame: 'Pinned up by the miller, before he slept.', payoff: 'The road is clear for when the miller wakes.' },
+  { region: 'frostpeaks', quest: 'blocks', frame: 'From the snow-wall crews: hold the pass.', payoff: 'The pass held. The crews will build again.' },
+  { region: 'ashfell', quest: 'healthy', frame: 'A forge-mother asks: come back whole.', payoff: 'She keeps her word: coin, and a hot meal.' },
+  { region: 'duskmire', quest: 'elite', frame: "Something big took the fen's night boat.", payoff: "The night boat's crew can sleep again." },
+];
+
+/** The story a region's board gives this bounty, if any. */
+export const questStory = (region: string, quest: string | null | undefined): QuestStory | undefined =>
+  QUEST_STORIES.find((s) => s.region === region && s.quest === quest);
 export const questById = (id: string): QuestDef | undefined => QUESTS.find((q) => q.id === id);
 export const isQuestId = (v: unknown): v is QuestId => typeof v === 'string' && (QUEST_IDS as readonly string[]).includes(v);

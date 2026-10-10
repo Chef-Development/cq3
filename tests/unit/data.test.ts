@@ -195,6 +195,11 @@ describe('story', () => {
     }
   });
 
+  it('keeps the narrator calm: no exclamation marks (docs/story-bible.md, Voices)', () => {
+    const all = { ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY, ...END_STORY };
+    for (const [id, boxes] of Object.entries(all)) for (const b of boxes) if (b.who === 'narrator') expect(b.text, id).not.toContain('!');
+  });
+
   it("keeps the Mapmaker's and the High Keeper's voices: no contractions (docs/story-bible.md, Voices)", () => {
     const all = { ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY, ...END_STORY };
     for (const [id, boxes] of Object.entries(all)) {
@@ -289,6 +294,10 @@ describe('camp banter', () => {
     for (const id of Object.keys(NOON_STORY)) expect(NOON_SCENE_ACT[id], id).toBeDefined();
     const all = [...BANTER, ...HERO_BANTER, ...STORY_BANTER, ...NOON_BANTER];
     expect(new Set(all.map((l) => l.text)).size).toBe(all.length);
+  });
+
+  it('grown-up wit (L8): at most one exclamation mark a line', () => {
+    for (const l of [...BANTER, ...HERO_BANTER, ...STORY_BANTER, ...NOON_BANTER, ...ISLES_BANTER]) expect((l.text.match(/!/g) ?? []).length, l.text).toBeLessThanOrEqual(1);
   });
 
   it("the first isles' banter waits for their drafted scenes and fits the bubble", () => {
@@ -391,5 +400,40 @@ describe('tuning sees the content', () => {
     expect(back.enemies.boar.specials[0].every).toBe(3.5);
     expect(back.acts[1].hpMult).toBe(2.2);
     expect(back.acts[0]).toEqual(DEFAULT_TUNING.acts[0]);
+  });
+});
+
+describe("the regions' own events", () => {
+  it('each region has two of its own, and an act map only ever holds its region’s and the ones for anywhere', async () => {
+    const { eventIdsFor } = await import('../../src/data/events');
+    const { REGIONS } = await import('../../src/data/regions');
+    for (const r of REGIONS) {
+      expect(EVENTS.filter((e) => e.region === r.id).length, r.id).toBeGreaterThanOrEqual(2);
+      for (const act of r.acts) {
+        const ids = eventIdsFor(act);
+        for (const id of ids) {
+          const e = EVENTS.find((x) => x.id === id)!;
+          expect(!e.region || e.region === r.id, `${act.name}: ${id}`).toBe(true);
+        }
+        expect(ids.length).toBeGreaterThan(EVENTS.filter((e) => !e.region).length);
+      }
+    }
+    for (const e of EVENTS) if (e.region) expect(REGIONS.some((r) => r.id === e.region), e.id).toBe(true);
+  });
+});
+
+describe("the regions' story bounties", () => {
+  it('one per region, on a real bounty, each line fitting the board and the tracker', async () => {
+    const { QUEST_STORIES, questById, questStory } = await import('../../src/data/quests');
+    const { REGIONS } = await import('../../src/data/regions');
+    for (const r of REGIONS) expect(QUEST_STORIES.filter((s) => s.region === r.id).length, r.id).toBe(1);
+    for (const s of QUEST_STORIES) {
+      expect(questById(s.quest), s.quest).toBeDefined();
+      expect(questById(s.quest)?.style, s.quest).toBeUndefined(); // a board posts it (style calls come another way)
+      expect(textWidth(s.frame, 1, false), s.frame).toBeLessThanOrEqual(230);
+      expect(textWidth(s.payoff, 1, false), s.payoff).toBeLessThanOrEqual(240);
+      expect(questStory(s.region, s.quest)).toBe(s);
+    }
+    expect(questStory('greenmarch', 'combo')).toBeUndefined();
   });
 });

@@ -2,7 +2,7 @@
 // frame box as the others), a cloak of overlapping leaves, a twig crown with two buds, a big soft nose and a crooked
 // wooden staff topped by a glowing seed. Fight frames `moss_${pose}` on the shared rig (art-rig.ts).
 import { put, stamp, type Grid, type Pal, type Shade } from './art';
-import { STEP, ribbon, sparkle, type Dir, type HeroCardSpec, type Item, type Layer, type Pt, type Rig, type RigPose } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Pt, ribbon, type Rig, type RigPose, sparkle, STEP } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -98,17 +98,11 @@ function leafCloak(w: number, h: number, w0: number, w1: number): string[] {
   return rows;
 }
 
-const TORSO = leafCloak(16, 10, 4.2, 7.9);
+// (playtest round 8, L8: a longer cloak over longer legs: an old druid about three heads tall, no longer a little gnome)
+const TORSO = leafCloak(16, 12, 4.2, 7.9);
 
-// Little bark-brown boots under the hem; 16 wide, the feet centred on x = 8.
-const LEGS: Record<string, string[]> = {
-  stand: ['....bbb..bbb....', '...bbbb..bbbbb..'],
-  run: ['.bbb......bbb...', '..........bbbbb.'],
-  lunge: ['..bbb.....bbb...', '.bbbb.....bbbbb.'],
-  crouch: ['..bbbb...bbbbb..'],
-  tuck: ['.....bbbbbbb....'],
-  kneel: ['..bbb.......bbb.'],
-};
+// bark-brown leggings and boots under the cloak (the shared jointed legs, art-rig.ts)
+const LEGS = matureLegs({ leg: 'b', legBack: '8', boot: 'b', bootBack: '8', sole: '8', thigh: 3, shin: 3 });
 
 const FIST = ['FF', 'fv'];
 const ARM_NEAR: Array<[number, ...string[]]> = [
@@ -121,12 +115,12 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 ];
 
 export const MOSS_RIG: Rig = {
-  pal: MOSS_PAL,
+  pal: { ...MOSS_PAL, '8': MOSS_BARK[1] },
   shades: MOSS_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [4], blush: 'p'}),
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 8,
+  legsFeetX: LEG_FEET_X,
   torsoX: -8,
   torsoOverlap: 1,
   headX: 1,
@@ -299,54 +293,54 @@ const dizzy: Layer = (g, a) => {
 // ------------------------------------------------------------------ poses
 
 export const MOSS_POSES: Record<string, RigPose> = {
-  idle0: { near: { at: [6, 7], item: staff('u', 12, 7) }, far: { at: [9, 6] } },
-  idle1: { near: { at: [6, 6], item: staff('u', 12, 6) }, far: { at: [9, 5] }, dy: 1 },
+  idle0: { near: { at: [6, 21], item: staff('u', 12, 21) }, far: { at: [9, 20] } },
+  idle1: { near: { at: [6, 20], item: staff('u', 12, 20) }, far: { at: [9, 19] }, dy: 1 },
   // the staff's hand settles a frame behind the breath
-  idle2: { near: { at: [6, 5], item: staff('u', 12, 5) }, far: { at: [9, 4] }, dy: 1 },
-  idle3: { near: { at: [6, 6], item: staff('u', 12, 6) }, far: { at: [9, 6] } },
-  dash: { near: { at: [6, 7], item: staff('ur', 9, 5) }, far: { at: [-3, 8] }, legs: 'run', dx: 1, lean: 1 },
+  idle2: { near: { at: [6, 19], item: staff('u', 12, 19) }, far: { at: [9, 18] }, dy: 1 },
+  idle3: { near: { at: [6, 20], item: staff('u', 12, 20) }, far: { at: [9, 20] } },
+  dash: { near: { at: [6, 21], item: staff('ur', 9, 5) }, far: { at: [-3, 22] }, legs: 'run', dx: 1, lean: 1 },
   // a seed shot from the levelled staff
-  slashA: { near: { at: [9, 9], item: staff('r', 10, 5, { bright: true }) }, far: { at: [5, 6] }, legs: 'lunge', dx: 1, lean: 1, front: [shot(33, 12)] },
+  slashA: { near: { at: [9, 23], item: staff('r', 10, 5, { bright: true }) }, far: { at: [5, 20] }, legs: 'lunge', dx: 1, lean: 1, front: [shot(33, 12)] },
   // a sweep that scatters a spray of leaves
   slashB: {
-    near: { at: [10, 6], item: staff('dr', 6, 2) },
-    far: { at: [-2, 9] },
+    near: { at: [10, 20], item: staff('dr', 6, 2) },
+    far: { at: [-2, 23] },
     legs: 'lunge',
     dx: 1,
     lean: 1,
     bow: 1,
     front: [leaves([[19, 8, 0], [22, 12, 1], [24, 6, 2], [27, 10, 3], [21, 15, 4]])],
   },
-  windup: { near: { at: [-3, 14], item: staff('ul', 8, 5, { bright: true }) }, far: { at: [8, 8] }, legs: 'crouch', armsUp: true },
+  windup: { near: { at: [-3, 28], item: staff('ul', 8, 5, { bright: true }) }, far: { at: [8, 22] }, legs: 'crouch', armsUp: true },
   // the staff crosswise, a wall of leaves swirling up in front
-  parry: { near: { at: [3, 9], item: staff('r', 9, 3) }, far: { at: [10, 9] }, legs: 'crouch', farFront: true, front: [leafWall(15)] },
-  hurt: { near: { at: [-4, 8], item: staff('ul', 9, 6) }, far: { at: [8, 10] }, dx: -1, lean: -1, head: 'squint', front: [leaves([[-6, 20, 0], [12, 22, 1], [-9, 14, 2]])] },
-  leap: { near: { at: [5, 12], item: staff('u', 9, 6, { bright: true }) }, far: { at: [9, 11] }, legs: 'tuck' },
+  parry: { near: { at: [3, 23], item: staff('r', 9, 3) }, far: { at: [10, 23] }, legs: 'crouch', farFront: true, front: [leafWall(15)] },
+  hurt: { near: { at: [-4, 22], item: staff('ul', 9, 6) }, far: { at: [8, 24] }, dx: -1, lean: -1, head: 'squint', front: [leaves([[-6, 20, 0], [12, 22, 1], [-9, 14, 2]])] },
+  leap: { near: { at: [5, 26], item: staff('u', 9, 20, { bright: true }) }, far: { at: [9, 25] }, legs: 'tuck' },
   // knocked out: sat down in a heap, dazed, the staff fallen in the grass
   down: { near: { at: [7, 2] }, far: { at: [-4, 2] }, legs: 'kneel', bow: 1, head: 'ko', back: [droppedStaff], front: [dizzy] },
   // the finisher: the staff raised high, vines spiralling up all round
   fin: {
-    near: { at: [5, 17], item: staff('u', 7, 6, { bright: true }) },
-    far: { at: [8, 16] },
+    near: { at: [5, 31], item: staff('u', 7, 20, { bright: true }) },
+    far: { at: [8, 30] },
     legs: 'lunge',
     head: 'call',
     back: [vines([[-11, 22, 0, 0.5], [-6, 15, 2, 0.6]])],
     front: [vines([[15, 20, 1, 0.5], [21, 14, 3, 0.6]])],
   },
   // Call: the staff planted, a hand raised to the grove, a sprout popping up ahead
-  cast: { near: { at: [6, 7], item: staff('u', 12, 7, { bright: true }) }, far: { at: [11, 15] }, farFront: true, head: 'call', front: [sprout(19)] },
+  cast: { near: { at: [6, 21], item: staff('u', 12, 21, { bright: true }) }, far: { at: [11, 29] }, farFront: true, head: 'call', front: [sprout(19)] },
 };
 
 /** Hero select card: the staff raised, its seed blazing, a sprout at his feet, before a leaf-green glow with a gold
  *  heart. */
 export const MOSS_CARD: HeroCardSpec = {
-  pose: { near: { at: [6, 10], item: staff('u', 10, 9, { bright: true }) }, far: { at: [10, 9] }, head: 'call', front: [sprout(13)] },
+  pose: { near: { at: [6, 24], item: staff('u', 10, 23, { bright: true }) }, far: { at: [10, 23] }, head: 'call', front: [sprout(13)] },
   glow: ['#fff0a0', '#4a7e36'],
   motes: [[6, 12], [33, 9], [34, 28]],
 };
 
 /** By the campfire (two breaths): leaning on the staff, the seed glowing softly, eyes shut and content. */
 export const MOSS_CAMP: [RigPose, RigPose] = [
-  { near: { at: [6, 8], item: staff('u', 11, 8) }, far: { at: [8, 7] }, head: 'call' },
-  { near: { at: [6, 7], item: staff('u', 11, 7) }, far: { at: [8, 6] }, dy: 1, head: 'call' },
+  { near: { at: [6, 22], item: staff('u', 11, 22) }, far: { at: [8, 21] }, head: 'call' },
+  { near: { at: [6, 21], item: staff('u', 11, 21) }, far: { at: [8, 20] }, dy: 1, head: 'call' },
 ];

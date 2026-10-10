@@ -147,6 +147,9 @@ export class Fighters {
   /** Anim times of the last blow taken and the last landing (squash and stretch), and the last frame's lift. */
   private hurtAt = -1e9;
   private landAt = -1e9;
+  /** The anim time a finisher's big blow began (its pose stretches forward for a moment) and the last show pose. */
+  private finAt = -1e9;
+  private lastShowPose = '';
   /** Foes landing from a wave's hops: id -> anim time (their squash). */
   private foeLandAt = new Map<number, number>();
   private lastLift = 0;
@@ -310,7 +313,7 @@ export class Fighters {
       if (this.enemies.has(e.id) || !e.alive) continue;
       const def = s.app.tuning.enemies[e.key];
       // the later regions' foes are painted in idle time after boot (region-art.ts): one needed sooner is finished now
-      if (!s.textures.exists(`${def.sprite}_idle0`)) s.ensureRegionArt();
+      if (!s.textures.exists(`${def.sprite}_idle0`)) s.ensureRegionPacks(`${def.sprite}_idle0`);
       // a foe whose art isn't painted yet (the fourth region's, until its art lands) wears a stand-in's sprite set
       let sprite = def.sprite;
       if (!s.textures.exists(`${sprite}_idle0`) && SPRITE_STAND_IN[sprite]) sprite = SPRITE_STAND_IN[sprite];
@@ -629,7 +632,16 @@ export class Fighters {
     v.numLevel = recent ? (v.numLevel + 1) % 3 : 0;
     v.numAt = s.anim;
     // (a Coin Rush counts coins, not damage: the coins float up instead, from onsite.coins)
-    if (damage > 0 && !s.app.run.combat?.rush) fx.floatNum(v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2), v.y - v.img.displayHeight - 10 - v.numLevel * 11, whole(damage), col, numScale);
+    if (damage > 0 && !s.app.run.combat?.rush) {
+      const nx = v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2);
+      // while its special's name is up over its head (a boss's shout), the shout keeps that lane: the numbers pop just
+      // under it and settle, cascading downward (the playtest: shouts and numbers piled up at the top centre)
+      if (v.shoutY !== undefined && s.anim < (v.shoutUntil ?? 0)) {
+        const w = textWidth(whole(damage), numScale, true);
+        const x = Math.max(w / 2 + 2, Math.min(GAME_W - w / 2 - 2, nx));
+        fx.addFloater(x, v.shoutY + 6 + 4 * numScale + v.numLevel * 11, whole(damage), col, numScale, true, rand(-6, 6), -8, 40, 760, true);
+      } else fx.floatNum(nx, v.y - v.img.displayHeight - 10 - v.numLevel * 11, whole(damage), col, numScale);
+    }
     const tier = combo >= 50 ? 3 : combo >= 25 ? 2 : combo >= 10 ? 1 : 0;
     const slashCol = crit ? 0xffd23a : comboSlashCol(combo);
     // a weapon better than Common slashes in its rarity's colours (the combo's heat still shows in the inner band)
@@ -1039,7 +1051,9 @@ export class Fighters {
     v.tellAt = s.anim;
     v.tellUntil = s.anim + sec * 1000;
     // (over a huge foe's head it would sit under the HUD's plates: it stays below them)
-    s.fx.addFloater(v.homeX, Math.max(38, v.y - v.img.displayHeight - 16), name, 0xff9a3a, 1, true, 0, -6, 0, sec * 1000 + 250, true);
+    v.shoutY = Math.max(38, v.y - v.img.displayHeight - 16);
+    v.shoutUntil = s.anim + sec * 1000 + 250;
+    s.fx.addFloater(v.homeX, v.shoutY, name, 0xff9a3a, 1, true, 0, -6, 0, sec * 1000 + 250, true);
   }
 
   tellOver(enemyId: number): void {
@@ -1155,6 +1169,8 @@ export class Fighters {
     else if (sm) {
       pose = sm.pose === 'cast' && !this.hasPose('cast') ? 'windup' : sm.pose;
       flip = sm.flip;
+      if (pose === 'fin' && this.lastShowPose !== 'fin') this.finAt = a;
+      this.lastShowPose = pose;
     } else if (h.state === 'leap') pose = a - h.t0 < LEAP_MS * 0.7 ? 'leap' : 'slashA';
     else if (a < h.poseUntil) pose = h.pose;
     else if (h.state === 'dash') pose = 'dash';
@@ -1233,7 +1249,8 @@ export class Fighters {
       return k >= 0 && k < 1 ? Math.sin(k * Math.PI) : 0;
     };
     const land = bump(this.landAt, SQUASH_MS);
-    if (inShow) return 1 + 0.14 * land;
+    // (in a show: the big blow stretches him forward, out of the windup's crouch)
+    if (inShow) return 1 + 0.14 * land + 0.09 * bump(this.finAt, SQUASH_MS);
     // (the dash's push-off stretches him forward too, for as long as the dash lasts)
     const push = this.h.state === 'dash' ? 0.07 * bump(this.h.t0, DASH_MS) : 0;
     return 1 + 0.14 * land + 0.08 * bump(this.h.lungeAt, 90) + 0.1 * bump(this.hurtAt, SQUASH_MS) + push;

@@ -47,7 +47,8 @@ export const M5_HEROES = ['neve', 'moss', 'tam', 'hollis', 'vesper', 'torva', 'f
 
 /** The camp sprites' box (drawn bottom-centre at a spot, like camp_sable0/1): the feet centred, one row under them. */
 export const HERO_CAMP_W = 32;
-export const HERO_CAMP_H = 38;
+// (44 since the mature figures of playtest round 8: the crop keeps their heads and raised hands)
+export const HERO_CAMP_H = 44;
 
 interface HeroArt {
   rig: Rig;
@@ -93,9 +94,10 @@ function campFrame(rig: Rig, p: RigPose): HTMLCanvasElement {
 }
 
 /** Every rig hero's rig and poses by art key (the unit tests check each has all of HERO_POSE_KEYS). */
-export const RIG_HEROES: Record<string, { rig: Rig; poses: Record<string, RigPose> }> = {
-  hero: { rig: ROWAN_RIG, poses: ROWAN_POSES },
-  ...Object.fromEntries(Object.entries(HEROES).map(([id, h]) => [id, { rig: h.rig, poses: h.poses }])),
+export const RIG_HEROES: Record<string, { rig: Rig; poses: Record<string, RigPose>; extra: RigPose[] }> = {
+  hero: { rig: ROWAN_RIG, poses: ROWAN_POSES, extra: [] },
+  // (extra: the card's and the camp's poses, painted at boot too)
+  ...Object.fromEntries(Object.entries(HEROES).map(([id, h]) => [id, { rig: h.rig, poses: h.poses, extra: [h.card.pose, ...h.camp] }])),
 };
 
 /** Where the point of Rowan's sword is in each of his fight frames, from the sprite's anchor (feet centre, bottom):

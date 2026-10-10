@@ -136,3 +136,50 @@ export function bez(p0: [number, number], p1: [number, number], p2: [number, num
 
 /** Mirror a set of character-map rows left to right. */
 export const mirror = (rows: string[]) => rows.map((r) => [...r].reverse().join(''));
+
+/**
+ * The mood's grade (docs/art-style.md section 0, L7) over a painted canvas, in place: every colour moves `k` of the
+ * way toward a deep cool indigo, less so the brighter it is (light sources and highlights keep their value), so
+ * midtones darken and cool while lamps, moons and crystals still glow. Alpha is kept.
+ */
+export function moodGrade(c: HTMLCanvasElement, k = 0.2): HTMLCanvasElement {
+  const ctx = c.getContext('2d')!;
+  const img = ctx.getImageData(0, 0, c.width, c.height);
+  const d = img.data;
+  const [mr, mg, mb] = [0x14, 0x1a, 0x30];
+  for (let i = 0; i < d.length; i += 4) {
+    if (!d[i + 3]) continue;
+    const l = (d[i] * 0.3 + d[i + 1] * 0.55 + d[i + 2] * 0.15) / 255;
+    const t = Math.max(0, k - Math.max(0, l - 0.62) * 0.9);
+    d[i] = Math.round(d[i] + (mr - d[i]) * t);
+    d[i + 1] = Math.round(d[i + 1] + (mg - d[i + 1]) * t);
+    d[i + 2] = Math.round(d[i + 2] + (mb - d[i + 2]) * t);
+  }
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
+
+/**
+ * A portrait in the mood's light (docs/art-style.md section 0, L7/L8), in place: the key from the top left, the far
+ * side falling into a deep cool shadow (stepped by distance from the light, never a blur), the ink outline kept.
+ */
+export function portraitMood(c: HTMLCanvasElement, k = 0.34): HTMLCanvasElement {
+  const ctx = c.getContext('2d')!;
+  const img = ctx.getImageData(0, 0, c.width, c.height);
+  const d = img.data;
+  const [mr, mg, mb] = [0x14, 0x14, 0x2a];
+  for (let y = 0; y < c.height; y++)
+    for (let x = 0; x < c.width; x++) {
+      const i = (y * c.width + x) * 4;
+      if (!d[i + 3]) continue;
+      if (d[i] === 0x14 && d[i + 1] === 0x0c && d[i + 2] === 0x1c) continue; // the outline
+      const s = (x + y * 0.7 - c.width * 0.45) / (c.width * 0.9);
+      const t = 0.06 + Math.max(0, Math.min(1, s)) * k;
+      const q = Math.round(t * 8) / 8; // stepped
+      d[i] = Math.round(d[i] + (mr - d[i]) * q);
+      d[i + 1] = Math.round(d[i + 1] + (mg - d[i + 1]) * q);
+      d[i + 2] = Math.round(d[i + 2] + (mb - d[i + 2]) * q);
+    }
+  ctx.putImageData(img, 0, 0);
+  return c;
+}

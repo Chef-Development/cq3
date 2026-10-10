@@ -33,12 +33,17 @@ One PR at the end supersedes #1-#7.
 | 4 | Desktop input, clean capture, perf baseline, originality audit | 4 | merged (title ready 12.1 -> 7.8 s at CPU 4x); continuing |
 | 5 | First 10 minutes: new-player bot path, measure, fix | 5 | title -> first fight 0:33 -> 0:20; first chest ~1:30; the first finisher finishes its foe; auto-wear; next: a simpler first relic pick |
 | 6 | Story rewrite: intro, regions 1-3 scenes, heroes, companions, banter, lore, UI words | 1 | done (sweep, companions, editor's 45 notes applied, Region 5 fit, Regions 6-12 drafted); L8 tone pass + 2nd editor next |
-| 7 | The Great Atlas world map (2A); animation upgrade + lighting pass (2B); 2x rollout | 2A/2B | in progress |
-| 8 | Region 4 complete: in play + balance (3), art + music (dusk-art) | 3 + dusk-art | in progress |
-| 9 | Resizable window, Android, code split, bot crawl part 1; then reviewers | 4 | in progress |
+| 7 | The Great Atlas world map (2A); animation upgrade + lighting pass (2B); 2x rollout | 2A/2B/2C | Atlas done (L6/L7), title key art, portraits, UI de-gloss (L8), heroes mature (2B), backdrops darker (2C); 2x rollout + overlays next (2A), portraits/walkers (2B), foes (2C) |
+| 8 | Region 4 complete: in play + balance (3), art + music (dusk-art) | 3 + dusk-art | in play, balanced (acts 10-12: 84-90 / 71-74 / 53-69%, masher 0/73); art + music landing; parity pass next |
+| 9 | Resizable window, Android, code split, bot crawl part 1; then reviewers | 4 | done (10 window sizes, Pixel 7 + small Android, later regions' art in their own chunks: -9% main chunk, core crawl 16 heroes x 4 seeds clean, UI crawl through Act 1 clean); next: smoke timeouts, accessibility, crawl Acts 2-3 |
 | 10 | Region 5 (bar rules + data done, not in play; art and wiring later) | 3 | later |
 | 11 | Backlog cycle (QA, Region 6, polish, NG+, more content, music, accessibility) | all | later |
-| 12 | Final: everything committed, tests green, one PR | Lead | 06:45 |
+| 11a | Fresh-eyes screen reviewers (lead spawns; owners fix) | Lead + all | 3 reviewers running since 23:55 (title/maps/story, fights, camp/menus/desktop) |
+| 11b | Region 5 art + music (a dusk-art-style helper), Region 5 into play | 3 + helper | after 23:00 |
+| 11c | The sharper 2x layer rolled out to menus/cards/text where it reads better | 2A | after the menus |
+| 11d | Accessibility (colourblind blocks, reduced motion, text size) | 4 | done (block marks, Motion Auto/Less/Full, Larger text) |
+| 12 | Freeze visuals ~05:00; regenerate screenshot baselines; full unit + Playwright suites on a quiet machine; the PR | Lead | 05:00-06:45 |
+| 13 | Final: everything committed, tests green, one PR | Lead | 06:45 |
 
 ## Log
 
@@ -103,3 +108,38 @@ One PR at the end supersedes #1-#7.
   first hero chest always someone new (CORE), each hero's first finisher revealed) and art 2C's darker Greenmarch,
   Frostpeaks and Ashfell (a grade baked per theme at paint time). Second editor's notes (59, the ending) to the story
   team. first10 chunk 3 launched (a simpler first relic pick, re-measure).
+- 22:20 EDT: content chunk 2 merged: Region 4 in play after Ashfell (acts 10-12; 14 relics, gear, the camp scene,
+  12 spoiler lab items), balanced at 75% (guard bot-region4), masher 0 of 73 at its boss; CORE: its set/signature
+  effects, ice floats on the tide. Content chunk 3 launched (Region 4 parity, Region 5 wiring with stand-ins).
+- 22:25 EDT: QA chunk 2 merged (resizable desktop window, Android full screen and back gesture, the later regions'
+  art split into packs, the core crawl and UI crawl, the HP-above-max fix (CORE), the boss-shout/number overlap and
+  the vault's words). QA chunk 3: smoke timeouts, accessibility (colourblind blocks, reduced motion, text size), the
+  crawl through Acts 2-3. Fresh-eyes screen reviewers: planned for ~00:45, after the art passes land.
+- 22:38 EDT: merged art 2B's L8 for all sixteen heroes (~3 heads, single dark irises, no blush, jointed legs, a mature
+  grade; Rowan hand-made) and story chunk 3 (the L8 tone pass on words, the second editor's 59 notes: the Fair Copy
+  set up, the fading portrait paid off; the first minutes' long reads cut to 4 boxes). Next: 2B portraits, walkers,
+  crops; story chunk 4: more events and side quests per region, Atlas lore pages.
+- 22:46 EDT: a boot crash (a camp pose's stance the new hero legs lacked) reached the live build with the 22:37 push;
+  fixed by art 2B (e32ea28), merged, boot-checked, pushed. L9: a boot check before every push (lead) and before team
+  commits that touch boot-painted art (TEAM-RULES.md). Dusk-art chunk done: Region 4's foes, bosses, portraits,
+  backdrops, critters, six music pieces, L7 pass; telegraph sounds still to do.
+- 23:05 EDT: art 2A chunk merged (the title as key art with the notes, the Atlas world map, portraits for the Mapmaker,
+  Hesper and the Sphinx, the old pendulum symbols replaced, the UI toned down (L8: iron rims, dull glints), every
+  stage graded (moodGrade), the bible's Mood and Maturity sections, Region 4's world landmark). 2A chunk 3: the
+  sharper 2x layer rollout, L8 on the overlays, CLAUDE.md's world-map paragraph.
+- 23:12 EDT: art 2B's portraits, walkers and finisher wind-ups merged (boot-checked). A functional Playwright run
+  (smoke, numbers, minis, desktop, lab; no pixel specs) started on the long lock to catch regressions before the
+  final baseline regeneration.
+- 23:33 EDT: art 2C merged (every region 1-3 stage graded at paint time, skies repainted: forest late day, ruins rainy
+  dusk, hollow blood-red, pass moonlit, cinder smoke-dark; foes with menace; the pendulum symbols gone from foes).
+  2C chunk 2: the act maps under L7, more menace (slimes, the Boar King's body and phases, Region 2's foes).
+- 23:42 EDT: art 2B chunk merged (all sixteen portraits and walkers in the mature look, Moss on the taller build, a
+  finisher wind-up and follow-through). The lead's boot check now builds to its own folder and port, so it never
+  disturbs a Playwright run on the main build. 2B chunk 3: hand-redrawn faces, walker heads, CLAUDE.md hero notes.
+- 23:55 EDT: merged story chunk 4 (8 new events, 4 story bounties, Atlas lore pages: CORE profile.pages), QA chunk 3
+  (smoke timeouts fixed without losing coverage; accessibility: block marks, Motion, Larger text; the sharper reveal
+  in its own chunk; the UI crawl through Act 3 + every lab scenario, clean), first10 chunk 3 (a two-card first relic
+  pick (CORE), the spec bot spends skill points; first chest 1:16-1:26). Boot-checked, pushed. Three fresh-eyes
+  reviewers started on a frozen review build; a third editor on tonight's new text. Next chunks to 02:30: first10 =
+  opt-in difficulty modifiers (backlog 4); QA = long story boxes, crawl regions 2-4, music packs; story = Region 5's
+  events/bounty/pages, 6 companion designs (backlog 6). L10: no CI boot guard tonight (a recommendation for later).

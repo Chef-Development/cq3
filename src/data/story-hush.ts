@@ -26,10 +26,10 @@ export const HUSH_STORY: Record<string, StoryBox[]> = {
   ],
   // Act 1 mini-boss: great garden shears he drew to keep his rows tidy (no speech)
   shears: [
-    { who: 'narrator', text: 'Down a perfectly straight row of trees come\na pair of shears as tall as a house.' },
+    { who: 'narrator', text: 'Down a perfectly straight row of trees comes\na pair of shears as tall as a house.' },
     { who: 'pip', text: 'He drew them to keep his rows tidy. They\nsnip whatever sticks out.' },
     { who: 'neve', text: "It's trimming the wood. And now it's\nmeasuring US." },
-    { who: 'sable', text: "I'm exactly the right height.\nI am EXACTLY the right height!" },
+    { who: 'sable', text: "Heads down, everyone. It's looking for\nsomething to trim." },
   ],
   // camp, after Act 1: Rowan asks what "for a reason" meant; Pip keeps his promise (a seed)
   hushCamp: [
@@ -44,8 +44,8 @@ export const HUSH_STORY: Record<string, StoryBox[]> = {
     { who: 'narrator', text: 'In the green, a patch of white: a village,\nblank, its people asleep mid-step.' },
     { who: 'rowan', text: 'A girl with a water jug. A man on a ladder.\nAll asleep. Pip, how many?' },
     { who: 'narrator', text: 'From the ridge they count the white patches.\nThey stop counting at forty.' },
-    { who: 'pip', text: 'Look under the white. The old lines still\nshow. This river was moved once. Long ago.' },
-    { who: 'rowan', text: 'Moved? By who? Who else draws?' },
+    { who: 'pip', text: 'Look under the white. The old lines still\nshow. This river was moved. Long before him.' },
+    { who: 'rowan', text: 'Moved? Who else draws?' },
     { who: 'pip', text: 'Nobody. Nobody should.' },
   ],
   // Act 2 mini-boss: the isle's last wolf, out hunting on the far shore when the isle went blank; a month in a wood
@@ -69,14 +69,15 @@ export const HUSH_STORY: Record<string, StoryBox[]> = {
   yew: [
     { who: 'mapmaker', text: 'Storms dropped trees on these roofs every\nautumn. Count the graves. Then speak of wind.' },
     { who: 'rowan', text: 'They called the spirits, and the spirits\nwarned them. You took that too.' },
-    { who: 'mapmaker', text: 'I took the danger. The warning goes with it.\nMother? Keep the wood still.' },
+    { who: 'mapmaker', text: 'I took the danger. The warning goes with it.' },
+    { who: 'mapmaker', text: 'When I am done, they will wake in the Fair\nCopy: the whole kingdom, drawn again, clean.' },
     { who: 'narrator', text: 'The old yew draws her roots out of the earth,\nslow as a tide, and comes.' },
   ],
   // phase 2 (his first edit): everything grows faster (hint: the outline's growth idea)
   yew2: [
     { who: 'mapmaker', text: 'Hush.' },
     { who: 'narrator', text: 'His pen moves through the grove. Every\ngreen thing grows twice as fast.' },
-    { who: 'neve', text: 'Hit them young! Once they turn to bark,\nthey take two.' },
+    { who: 'neve', text: 'Hit the new growth young! Once it turns\nto bark, it takes two.' },
   ],
   // phase 3 (his second edit): he lets a little wind out of the jar to knock Rowan down (hint: gusts)
   yew3: [
