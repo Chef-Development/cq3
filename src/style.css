@@ -666,7 +666,8 @@ body {
 #rotate {
   display: none;
 }
-@media (orientation: portrait) and (max-width: 600px) {
+/* a phone held upright (a touch screen only: a narrow desktop window is not a phone) */
+@media (orientation: portrait) and (max-width: 600px) and (pointer: coarse) {
   #rotate {
     display: flex;
     position: fixed;
