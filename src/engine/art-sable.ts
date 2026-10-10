@@ -306,6 +306,10 @@ export const SABLE_POSES: Record<string, SablePose> = {
   leap: { near: { hand: [7, 24], dir: 'ul' }, far: { hand: [13, 19], dir: 'ur' }, legs: 'tuck', scarf: 'hang', armsUp: true, glint: [[18, 25]] },
   // the finisher's blow: diving forward, both blades raking across in an X
   fang: { near: { hand: [14, 8], dir: 'ur' }, far: { hand: [14, 16], dir: 'dr' }, legs: 'run', dx: 3, lean: 3, bow: 1, scarf: 'rise', glint: [[18, 12]] },
+  // the finisher's pose (the bible's twelve): both blades thrown wide and high, the scarf streaming up off her shoulders
+  fin: { near: { hand: [13, 21], dir: 'ur' }, far: { hand: [-4, 22], dir: 'ul' }, legs: 'lunge', dx: 1, scarf: 'rise', armsUp: true, glint: [[21, 30], [-9, 30]] },
+  // the green ability: the daggers crossed before her mask, a glint where they cross
+  cast: { near: { hand: [9, 14], dir: 'ur' }, far: { hand: [13, 14], dir: 'ul' }, scarf: 'breeze', glint: [[11, 20]] },
   // knocked out: down on one knee, head bowed, leaning on a dagger stuck in the ground, the other one dropped
   down: {
     near: { hand: [9, 8], dir: 'd' },
@@ -349,7 +353,7 @@ function sparkle(g: Grid, x: number, y: number): void {
 }
 
 /** Paint a pose into `g` (the frame's box). */
-function paintSable(g: Grid, p: SablePose): void {
+export function paintSable(g: Grid, p: SablePose): void {
   const feetY = HERO_H - 2;
   const legs = LEGS[p.legs ?? 'ready'];
   const lx = HERO_FEET_X - 8;
