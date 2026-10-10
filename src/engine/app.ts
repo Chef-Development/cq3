@@ -20,7 +20,7 @@ export interface View {
   onPhase(prev: Phase, next: Phase): void;
   onLayout(): void;
   /** The later regions' art (region-art.ts), now: asked on every screen change past the title. */
-  ensureRegionArt(): void;
+  ensureRegionPacks(key?: string): void;
   /** The tip card (view/tips.ts): TAP TO BEGIN asks it first (a pre-fight tip still due comes up instead). */
   readonly tips: { beforeBegin(now: number): boolean };
 }
@@ -416,7 +416,7 @@ export class App {
     // anything in a later region: every later region's art is in at once (region-art.ts; it's painted in idle slices
     // from the title on, so a Greenmarch player never waits for it; a later foe or portrait met sooner, as in the Test
     // lab, asks for it itself: fighters, story; the bar's later-region pieces are drawn only once they exist)
-    if (this.run.phase !== 'title' && regionOfAct(this.run.actIndex) > 0) this.view?.ensureRegionArt();
+    if (this.run.phase !== 'title' && regionOfAct(this.run.actIndex) > 0) this.view?.ensureRegionPacks();
     if (this.run.phase === 'fight' && this.run.combat && this.run.combat !== this.begunCombat) {
       // every fight from the map waits for TAP TO BEGIN (resumed ones too)
       this.begunCombat = this.run.combat;

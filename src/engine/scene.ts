@@ -141,8 +141,8 @@ export class FightScene extends Phaser.Scene implements View {
     // a returning player's first launch of this version: Pip's welcome back, over the title
     this.app.welcome();
     // paint the world map in small slices while the title is up (the world map finishes it if it's needed sooner),
-    // then the later regions' art packs as they arrive (region-art.ts: the first screen after the title finishes them
-    // at once, ensureRegionArt)
+    // then the later regions' art packs as they arrive (region-art.ts: a later region's screen finishes them at once,
+    // ensureRegionPacks)
     const idle = () => {
       if (!this.worldArtIn && !paintWorldSlice(8)) return void window.setTimeout(idle, 0);
       this.ensureWorldArt();
@@ -180,8 +180,10 @@ export class FightScene extends Phaser.Scene implements View {
 
   /** The later regions' foes, portraits and bar pieces, now: every pack that has arrived is finished and added at once,
    *  and one still on its way is added the moment it arrives. App.setPhase asks when the run is in a later region
-   *  (nothing to do once all are in); a fight's foe or a scene's portrait that isn't there yet asks too. */
-  ensureRegionArt(): void {
+   *  (nothing to do once all are in); a fight's foe or a scene's portrait that isn't there yet asks too, with its
+   *  `key`: that only forces them when a pack draws it (a speaker no one has painted yet is no reason). */
+  ensureRegionPacks(key?: string): void {
+    if (key !== undefined && !regionPacks().some((p) => !this.packsIn.has(p.id) && p.isArtKey(key))) return;
     this.packsForced = true;
     for (const p of regionPacks()) this.addPack(p, true);
     // one that failed to download (a dropped connection) is asked for again
@@ -190,12 +192,12 @@ export class FightScene extends Phaser.Scene implements View {
 
   /** (The older name: Ashfell's art is one of the packs now.) */
   ensureAshArt(): void {
-    this.ensureRegionArt();
+    this.ensureRegionPacks();
   }
 
   /** (The fourth region's art is a pack too.) */
   ensureDuskArt(): void {
-    this.ensureRegionArt();
+    this.ensureRegionPacks();
   }
 
   /** The world map's textures, now: whatever is left of its painting is done at once (then the view is built). */

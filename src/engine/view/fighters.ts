@@ -292,7 +292,7 @@ export class Fighters {
       if (this.enemies.has(e.id) || !e.alive) continue;
       const def = s.app.tuning.enemies[e.key];
       // the later regions' foes are painted in idle time after boot (region-art.ts): one needed sooner is finished now
-      if (!s.textures.exists(`${def.sprite}_idle0`)) s.ensureRegionArt();
+      if (!s.textures.exists(`${def.sprite}_idle0`)) s.ensureRegionPacks(`${def.sprite}_idle0`);
       // a foe whose art isn't painted yet (the fourth region's, until its art lands) wears a stand-in's sprite set
       let sprite = def.sprite;
       if (!s.textures.exists(`${sprite}_idle0`) && SPRITE_STAND_IN[sprite]) sprite = SPRITE_STAND_IN[sprite];
