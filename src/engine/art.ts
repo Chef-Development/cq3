@@ -144,25 +144,25 @@ type Face = 'idle' | 'angry' | 'attack' | 'hurt';
 // on the dome and a gaping maw low at the front: k ink, W teeth, m the dark gullet, g its sickly glow deep in the
 // throat, s strands of slime between the jaws, d drool hanging off the lip (a glossy drop, D its glint).
 const SLIME_FACE: Record<Face, string[][]> = {
-  idle: [['Yy'], ['Yy'], ['..kkkk..', '.kWmWWk.', 'kWmmmmWk', 'kmsmggmk', 'kmsggmmk', '.kWmWmk.', '..kdkk..', '...d....', '...D....']],
-  angry: [['YY', 'yy'], ['YY', 'yy'], ['..kkkkk..', '.kWmWmWk.', 'kWmmmmmWk', 'kmsmmggmk', 'kmsmgggmk', 'kmmmgmmmk', '.kWmmWmk.', '..kdkdk..', '...d.D...', '...D.....']],
-  attack: [['YY', 'yy'], ['YY', 'yy'], ['..kkkkkk..', '.kWmWmmWk.', 'kWmmmmmmWk', 'kmsmmmmgmk', 'kmsmggggmk', 'kmmgggggmk', 'kmmmgggmmk', '.kWmmWmWk.', '..kdkkdk..', '...D...d..']],
+  idle: [['kk', 'Yy'], ['kk', 'Yy'], ['..kkkk..', '.kWmWWk.', 'kWmmmmWk', 'kmsmggmk', 'kmsggmmk', '.kWmWmk.', '..kdkk..', '...d....', '...D....']],
+  angry: [['kk', 'YY', 'yy'], ['kk', 'YY', 'yy'], ['..kkkkk..', '.kWmWmWk.', 'kWmmmmmWk', 'kmsmmggmk', 'kmsmgggmk', 'kmmmgmmmk', '.kWmmWmk.', '..kdkdk..', '...d.D...', '...D.....']],
+  attack: [['kk', 'YY', 'yy'], ['kk', 'YY', 'yy'], ['..kkkkkk..', '.kWmWmmWk.', 'kWmmmmmmWk', 'kmsmmmmgmk', 'kmsmggggmk', 'kmmgggggmk', 'kmmmgggmmk', '.kWmmWmWk.', '..kdkkdk..', '...D...d..']],
   hurt: [['k.k', '.k.'], ['k.k', '.k.'], ['.kkkkkk.', 'kWkWkWkk', '.kkkkkk.']],
 };
 const SLIME_FACE_BIG: Record<Face, string[][]> = {
   idle: [
-    ['YYy', 'yy.'],
-    ['YYy', 'yy.'],
+    ['kkk', 'YYy', 'yy.'],
+    ['kkk', 'YYy', 'yy.'],
     ['..kkkkkkkk..', '.kWWmWWmWWk.', 'kWmmmWmmmmWk', 'kmsmmmggmmmk', 'kmsmgggggmmk', 'kmsmggggmmmk', 'kWmmmmmWmmWk', '.kWWmkWWmWk.', '..kkdkkkkk..', '....d.......', '....D.......'],
   ],
   angry: [
-    ['YYY', 'yyy'],
-    ['YYY', 'yyy'],
+    ['kkk', 'YYY', 'yyy'],
+    ['kkk', 'YYY', 'yyy'],
     ['..kkkkkkkkk..', '.kWWmWWmWWWk.', 'kWmmmWmmmWmmk', 'kmsmmmmggmmmk', 'kmsmmgggggmmk', 'kmsmggggggmmk', 'kmmmmgggmmmmk', 'kWmmmmmmWmmWk', '.kWWmkWWmWWk.', '..kkdkkkkdk..', '....d....D...', '....D........'],
   ],
   attack: [
-    ['YYY', 'yyy'],
-    ['YYY', 'yyy'],
+    ['kkk', 'YYY', 'yyy'],
+    ['kkk', 'YYY', 'yyy'],
     ['..kkkkkkkkkk..', '.kWWmWWmWWmWk.', 'kWmmmWmmmWmmWk', 'kmsmmmmmmggmmk', 'kmsmmgggggggmk', 'kmsmgggggggmmk', 'kmmmggggggmmmk', 'kmmmmgggggmmmk', 'kWmmmmmWmmmWmk', '.kWWmkWWmWWmk.', '..kkdkkkkkdk..', '....D.....d...'],
   ],
   hurt: [
@@ -319,9 +319,9 @@ export function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElem
     const tiny = rx < 10;
     const e = F[o.face];
     // pinprick eyes high on the dome (the slimelet keeps only these and a small maw)
-    const ev = big ? 0.66 : 0.64;
-    at(-0.42, ev, e[0], 0, 0);
-    at(big ? -0.14 : -0.08, ev + 0.04, e[1], 0, 0);
+    const ev = big ? 0.66 : 0.66;
+    at(-0.36, ev, e[0], 0, 0);
+    at(big ? -0.1 : -0.02, ev + 0.04, e[1], 0, 0);
     // the maw, low at the front, its lower lip just above the ground
     const maw = tiny ? (o.face === 'hurt' ? ['kkkk'] : o.face === 'attack' ? ['.kkkk.', 'kWmmWk', 'kmggmk', '.kdkk.'] : ['.kkkk', 'kWmWk', '.kdk.']) : e[2];
     at(big ? -0.3 : -0.22, big ? 0.46 : 0.5, maw, Math.floor(maw[0].length / 2), 0);

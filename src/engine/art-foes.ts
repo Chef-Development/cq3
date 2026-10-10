@@ -121,17 +121,21 @@ const CROW_PAL: Pal = {
   r: '#7a1828', // open beak inside
   0: CROW[0], 1: CROW[1], 2: CROW[2], 3: CROW[3], 4: CROW[4], 5: CROW[5],
 };
+// a hooded crow (decision L8 / the first-10 review): an ash-grey mantle and belly so it holds its shape against the
+// dusk treeline, the head, wings and tail black-blue
+const CROW_GREY = ['#1a1828', '#363448', '#545266', '#76748a', '#9e9cb0', '#c8c6d4'];
 const CROW_SHADES: Record<string, Shade> = {
-  b: { ramp: CROW, same: 'hjEekfF', top: [4, 3], left: [3], right: [1], bottom: [0, 1], mid: 2 },
+  b: { ramp: CROW_GREY, same: 'hjEekfF', top: [4, 4], left: [4], right: [2], bottom: [1, 2], mid: 3 },
+  q: { ramp: CROW, same: 'hjEekfFb', top: [4, 3], left: [3], right: [1], bottom: [0, 1], mid: 2 }, // the black hood
   w: { ramp: CROW, same: 'fFhj', top: [4, 3], left: [3], right: [1], bottom: [1, 1], mid: 2 },
 };
 // 19 wide, facing left: thick beak, round head, plump body tilted down to a fan tail
 const CROW_BODY = [
-  '...b.hbb.b..........',
-  '...bhjjbbb..........',
-  '..bhjbbbbbb.........',
-  'ggbbkEbbbbbb........',
-  'GyYbbebbbbbbbb......',
+  '...q.hqb.b..........',
+  '...qhjjbbb..........',
+  '..qhjqqbbbb.........',
+  'ggqqkEqbbbbb........',
+  'GyYqqeqbbbbbbb......',
   '.YYYbbbbbbbbbbbb....',
   '...bbbbbbbbbbbbbb32.',
   '....bbbbbbbbbbb22221',
@@ -140,12 +144,12 @@ const CROW_BODY = [
 ];
 // the head with the beak open (caw / dive)
 const CROW_OPEN = [
-  '...bbbb....',
-  '..bhhjbb...',
-  'g.bhjbbbbb.',
-  'Gg.kEbbbbbb',
-  '.rrbebbbbbb',
-  'YYYbbbbbbbb',
+  '...qqqq....',
+  '..qhhjqb...',
+  'g.qhjqqbbb.',
+  'Gg.kEqqbbbb',
+  '.rrqeqqbbbb',
+  'YYYqqqqbbbb',
 ];
 const crowOpen = (rows: string[]) => [...CROW_OPEN.map((r, i) => r + rows[i].slice(11)), ...rows.slice(6)];
 // wings in explicit tones (0-5 = CROW ramp); the fringe of primaries ends in separate feather tips
@@ -228,7 +232,7 @@ function crowParts(pose: string): Part[] {
       bx = 3;
       by = 9;
       wing = W.down;
-      body = leanBack(CROW_BODY, 5, 2).map((r) => r.replace('kE', 'kk').replace('be', 'kb'));
+      body = leanBack(CROW_BODY, 5, 2).map((r) => r.replace('kE', 'kk').replace('qe', 'kq'));
       // loose feathers knocked off
       extra.push([['..3', '32.'], 20, 4], [['43', '2.'], 22, 9]);
       break;
@@ -239,7 +243,7 @@ function crowParts(pose: string): Part[] {
       wing = W.spread;
       farDx = 12;
       farDy = 0;
-      body = crowOpen(CROW_BODY).map((r) => r.replace('kE', 'EW').replace('be', 'EE'));
+      body = crowOpen(CROW_BODY).map((r) => r.replace('kE', 'EW').replace('qe', 'EE'));
       break;
   }
   const down = wing === W.down || wing === W.back;
@@ -1523,6 +1527,13 @@ const KING_PAL: Pal = {
   f: '#f4ece6', F: '#140c1c', // ermine
 };
 
+// berserk (phase 3): the fur a step darker, the mane's tips smouldering
+const KING_PAL3: Pal = {
+  ...KING_PAL,
+  0: '#100810', 1: '#28121c', 2: '#421e28', 3: '#5c3030', 4: '#7a4438', 5: '#985e48',
+  O: '#a83a24', Q: '#ff7a3a',
+};
+
 type Mask = (x: number, y: number) => boolean;
 const ell = (cx: number, cy: number, rx: number, ry: number): Mask => (x, y) => ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1;
 const anyOf = (...m: Mask[]): Mask => (x, y) => m.some((f) => f(x, y));
@@ -1568,11 +1579,13 @@ function roundTones(w: number, h: number, m: Mask, cx: number, cy: number, rx: n
 
 const KW = 56;
 const KH = 44;
-// the body (frame coordinates): high humped shoulders, the back sloping down to a round rump
-const KING_BODY_MASK = anyOf(ell(35, 26, 19, 10), ell(27, 18, 13, 10), ell(46, 25, 8.5, 9), ell(21, 27, 8, 8));
-// the head: a heavy wedge sloping down to the snout
-const KING_HEAD_MASK = poly([[1, 21], [6, 17], [14, 11], [22, 10], [25, 12], [27, 16], [27, 25], [24, 31], [20, 33], [9, 34], [3, 32], [1, 29]]);
-const KING_HEAD = roundTones(KW, KH, KING_HEAD_MASK, 9, 12, 18, 19);
+// the body (frame coordinates): a great hunched hump over the shoulders (decision L8), the back sloping down to the rump
+const KING_BODY_MASK = anyOf(ell(35, 26, 19, 10), ell(26, 16, 15, 11.5), ell(46, 25, 8.5, 9), ell(20, 27, 9, 8));
+// the head: a heavy wedge carried low, a long snout reaching out to the left (it may run past x 0: the head's tones are
+// worked out on a canvas shifted SX to the right, and placed SX back)
+const SX = 6;
+const KING_HEAD_MASK = poly([[-5, 22], [0, 18], [6, 15], [14, 11], [22, 10], [25, 12], [27, 16], [27, 25], [24, 31], [20, 33], [9, 34], [0, 33], [-5, 30]]);
+const KING_HEAD = roundTones(KW + SX, KH, (x, y) => KING_HEAD_MASK(x - SX, y), 9 + SX, 12, 20, 19);
 // the body a tone darker than the head, with fur strokes raked down and back
 const KING_BODY = roundTones(KW, KH, KING_BODY_MASK, 30, 13, 26, 19).map((r, y) =>
   [...r]
@@ -1662,16 +1675,34 @@ const KING_CROWN = [
 // the near tusk curling up past the snout
 const KING_TUSK = ['.J..', 'Jj..', 'Jj..', 'Jji.', 'Jji.', 'jjI.', 'jII.', '.IIz', '.IIiz', '..iiizz', '....zzz'];
 const KING_EAR = ['.....o', '....oO', '...o32', '..oP23', '.oPp23', 'o2223.'];
+const KING_TUSK_FAR = ['.z', 'zi', 'zi', 'zi', '.zi', '..zz'];
+// berserk: one point broken off, the stone cracked dark
+const KING_CROWN_CRACKED = [
+  '.......G.......',
+  '.G.....Gy......',
+  '.Gg.G..Gy..y...',
+  '.GgyGg.Ggy.yY.Y',
+  'GGgyGgyGgyyyYyY',
+  'GgggggqEqggyyyY',
+  'GggggqRkRqgyyyY',
+  'GgggggqkqggyyyY',
+  'GgggggggggggyyY',
+  'yyryyyyyyyyyrYZ',
+  'YYYYYYYYYYYYYZZ',
+];
 const KING_EYE = ['KKKKKK', '.KeEEe', '..Kee.', '...K..']; // an ember eye glaring under the brow
+const KING_EYE_BLAZE = ['KKKKKKK', '.KEWWEe', '..KEEe.', '...ee..']; // enraged: white-hot
 const KING_SNOUT = ['.pP', 'pPP', 'tPp', 'pPp', 'pPp', 'tPp', 'pPP', '.pp'];
 
-function kingParts(pose: string): Part[] {
+/** Phase looks (decision L8): 2 enraged (hackles fully up, the eye blazing, fresh wounds, steam), 3 berserk on top of it
+ *  (a cracked crown, the mane's tips smouldering, foam at the jaw, the wounds glowing). Shapes stay the same. */
+function kingParts(pose: string, phase = 1): Part[] {
   let bx = 0; // body offset
   let by = 0;
   let hx = 0; // head offset (with crown and tusk)
   let hy = 0;
-  let eye = KING_EYE;
-  let bristle = 1.3; // hackles always half up (decision L8)
+  let eye = phase >= 2 ? KING_EYE_BLAZE : KING_EYE;
+  let bristle = 1.3 + (phase - 1) * 0.25; // hackles always half up (decision L8), higher each phase
   // legs: [x, slant] for far front, far back, near front, near back
   let legs: [number, number][] = [[21, 0], [38, 0], [13, 0], [45, 0]];
   const extra: Part[] = [];
@@ -1712,7 +1743,7 @@ function kingParts(pose: string): Part[] {
       extra.push([['333.', '33332', '.3332', '..321', '..hHh'], 16, 34, { edge: KFUR[0] }], [['..D.', '.DdD', 'dDdd'], 21, 39]);
       break;
   }
-  const H = (rows: string[], x: number, y: number, o?: PartOpts): Part => [rows, x + hx, y + hy + 2, o];
+  const H = (rows: string[], x: number, y: number, o?: PartOpts): Part => [rows, x + hx, y + hy + 4, o];
   const legPart = ([x, sl]: [number, number], dark: boolean): Part[] => (x < -50 ? [] : [[kingLeg(5, 13, dark, sl), x + Math.min(0, sl), 30]]);
   const parts: Part[] = [
     ...legPart(legs[0], true),
@@ -1728,19 +1759,29 @@ function kingParts(pose: string): Part[] {
     [['..sS', '.sS.', 'sS..', 's...'], 40 + bx, 21 + by],
     [['..sS', '.sS.', 'sS..'], 44 + bx, 22 + by],
     H(KING_EAR, 19, 6),
-    H(KING_HEAD, 0, 0, { edge: KFUR[0] }),
+    H(KING_HEAD, -SX, 0, { edge: KFUR[0] }),
     H(KING_RUFF, 22, 9),
     H(['5555544', '.000001', '......0'], 8, 17), // heavy brow and its shadow
-    H(KING_SNOUT, 0, 21),
-    H(eye, 9, 18),
+    H(KING_SNOUT, -5, 22),
+    H(eye, 8, 18),
     H(['.....s', '....sS', '...sS.', '..sS..'], 13, 23), // a scar across the cheek
-    H(['.5554', '55443'], 3, 19), // lit ridge of the snout
-    H(['0000000', '......00'], 6, 30), // the mouth line
-    H(['.j..j.j', '.I..I.I'], 6, 31), // fangs under the lip
-    H(KING_TUSK, 3, 22),
-    H(KING_CROWN, 9, 2),
-    ...extra,
+    H(['..55554', '5554443'], -3, 19), // lit ridge of the long snout
+    H(['000000000', '........00'], 0, 30), // the mouth line
+    H(['.j..j..j', '.I..I..I'], 1, 31), // fangs under the lip
+    H(KING_TUSK, -2, 22),
+    H(KING_TUSK_FAR, 2, 24), // the far tusk, in shade behind the snout
+    H(phase >= 3 ? KING_CROWN_CRACKED : KING_CROWN, 9, 2),
   );
+  if (phase >= 2) {
+    // fresh wounds raked across the shoulder, steam snorting from the snout
+    parts.push([['..vV', '.vV.', 'vV..'], 24 + bx, 19 + by], [['.vV', 'vV.'], 30 + bx, 23 + by]);
+    if (pose !== 'tell' && pose !== 'windup') parts.push(H(['.w', 'wu'], -8, 18, { late: true }));
+  }
+  if (phase >= 3) {
+    // foam at the jaw, the old scars on the flank opened up and glowing
+    parts.push(H(['w.w', '.u.'], 2, 33, { late: true }), [['..eE', '.eE.', 'eE..', 'e...'], 40 + bx, 21 + by], [['..eE', '.eE.', 'eE..'], 44 + bx, 22 + by]);
+  }
+  parts.push(...extra);
   return parts;
 }
 
@@ -1801,7 +1842,7 @@ export function buildFoeArt(add: Add): void {
     piglet: { W: 18, H: 13, pal: PIG_PAL, shades: PIG_SHADES, parts: pigParts },
     shaman: { W: 28, H: 28, pal: SHAMAN_PAL, shades: SHAMAN_SHADES, parts: shamanParts },
     captain: { W: 34, H: 38, pal: CAPTAIN_PAL, shades: CAPTAIN_SHADES, parts: captainParts },
-    boarking: { W: KW, H: KH, pal: KING_PAL, shades: {}, parts: kingParts },
+    boarking: { W: KW, H: KH, pal: KING_PAL, shades: {}, parts: (p) => kingParts(p, 1) },
     golem: { W: 46, H: 50, pal: GOLEM_PAL, shades: {}, parts: golemParts },
     knight: { W: 30, H: 34, pal: KNIGHT_PAL, shades: KNIGHT_SHADES, parts: knightParts, extras: ['guard'] },
   };
@@ -1822,6 +1863,48 @@ export function buildFoeArt(add: Add): void {
       }
       continue;
     }
+    if (name === 'boarking') {
+      // his phase looks (boarking2_*, boarking3_*: fighters.ts swaps them in) share one crop, so a swap never jumps
+      const looks: Array<[string, SpriteDef]> = [
+        ['boarking', d],
+        ['boarking2', { ...d, parts: (p) => kingParts(p, 2) }],
+        ['boarking3', { ...d, pal: KING_PAL3, parts: (p) => kingParts(p, 3) }],
+      ];
+      fitGroup(looks, [...FOE_POSES]).forEach(([key, c]) => add(key, c));
+      continue;
+    }
     for (const [pose, c] of fitFrames(d, [...FOE_POSES, ...(d.extras ?? [])])) add(`${name}_${pose}`, c);
   }
+}
+
+/** Several sprites' poses cropped to one shared box (a boss's phase looks): `${name}_${pose}` keys. */
+function fitGroup(looks: Array<[string, SpriteDef]>, poses: string[]): [string, HTMLCanvasElement][] {
+  const full: [string, HTMLCanvasElement][] = [];
+  for (const [name, d] of looks)
+    for (const pose of poses) {
+      const parts = d.parts(pose === 'flash' ? 'hurt' : pose).map(([rows, x, y, o]): Part => [rows, x + PAD, y + PAD, o]);
+      full.push([`${name}_${pose}`, render(d.W + PAD * 2, d.H + PAD * 2, d.pal, d.shades, parts, pose === 'flash')]);
+    }
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -1;
+  let y1 = -1;
+  for (const [, c] of full) {
+    const px = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+    for (let y = 0; y < c.height; y++)
+      for (let x = 0; x < c.width; x++)
+        if (px[(y * c.width + x) * 4 + 3]) {
+          x0 = Math.min(x0, x);
+          y0 = Math.min(y0, y);
+          x1 = Math.max(x1, x);
+          y1 = Math.max(y1, y);
+        }
+  }
+  return full.map(([key, c]) => {
+    const out = document.createElement('canvas');
+    out.width = x1 - x0 + 1;
+    out.height = y1 - y0 + 1;
+    out.getContext('2d')!.drawImage(c, -x0, -y0);
+    return [key, out];
+  });
 }
