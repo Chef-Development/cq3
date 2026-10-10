@@ -1245,6 +1245,21 @@ A21. **The fresh-eyes review's 2A findings, first pass** (review-1/2/3 at 00:00;
     and name tab; the Atlas page sheet; the victory's restore motif; the loot screen's emptiness; the Options panel's
     look; the camp's doubled labels.
 
+A22. **The review's 2A findings, second pass** (sheet: `docs/art-audit/after/relic-pick-erased-lands-before-after.png`).
+    *The unlock card waits:* "New relic unlocked!" no longer comes up over the relic pick (its "Tap to continue" was
+    printed over the cards) or over an event's outcome; it waits for the screen it was earned on to be done and comes
+    up on the act map, or on the act clear once its chest is open (overlays `unlockActive`; the tips wait for it only
+    there). *The relic pick as upright cards:* three cards side by side on a glass plate (two wider ones for a new
+    player's first pick): the relic's icon at 2x in a well that glows in its rarity, its tags as icon chips beside the
+    well (a shared tag lit gold, "Synergy!" on that card's top edge, so it is clear which card has it), the rarity in
+    the corner, the name (bold, up to two lines) and what it does centred under it; a stat card the same with its
+    before-and-after on a strip. Every relic fits (`tests/unit/relic-cards.test.ts`, 84 x 90 cards; the line height
+    drops to 7 only for the longest). The shop's detail card keeps the wide layout. *Erased lands:* where two locked
+    lands meet, the line between their blanks is torn (each pixel near it belongs to whichever locked land a jittered
+    point round it falls in, the same for every veil, so no gap), not a ruled region border; a tap on an erased land no
+    longer thins it to show the coloured land under it (Ashfell's lava rivers showed in full colour), it only breathes;
+    clouds fade out as they drift onto an erased land.
+
 (art: end of section)
 
 
