@@ -112,9 +112,11 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
         const c = client(200, 115);
         S.taps++;
         ev('pointerdown', id, c);
-        setTimeout(() => ev('pointermove', id, { clientX: c.clientX + 30, clientY: c.clientY - 30 }), 30);
-        setTimeout(() => ev('pointermove', id, { clientX: c.clientX + 70, clientY: c.clientY - 60 }), 60);
-        setTimeout(() => ev('pointerup', id, { clientX: c.clientX + 70, clientY: c.clientY - 60 }), 90);
+        // (the flick's first move in the same task: a synthetic event's timeStamp is when it's made, and on a loaded
+        // machine a timer 30 ms on fired 300-1200 ms late, past the swipe's 350 ms; a finger's own timestamps don't drift)
+        ev('pointermove', id, { clientX: c.clientX + 40, clientY: c.clientY - 40 });
+        setTimeout(() => ev('pointermove', id, { clientX: c.clientX + 70, clientY: c.clientY - 60 }), 30);
+        setTimeout(() => ev('pointerup', id, { clientX: c.clientX + 70, clientY: c.clientY - 60 }), 60);
       };
 
       // phases and combat events

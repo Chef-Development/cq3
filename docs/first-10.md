@@ -214,6 +214,35 @@ The runs above showed the newcomer bot dying in Act 1 more than the balance bot 
 The first five minutes hold in every run: first fight on screen at 0:19-0:22, the first finisher at 0:57-1:02 (the
 next foe walks in behind it), the first chest at 1:24-1:36, the first relic pick (the chest's) a few seconds later.
 
+## Round 8, part 3: the first pick in one look, the newcomer bot at camp, the trimmed story, the new art
+
+1. **The first relic pick is two plain cards** (F16): two starter relics that share no tag (two ways to play; the
+   chest's rare one among them), each with its name and what it does in plain words; no tag chips, no RARE badge, no
+   stat card. Tags, rarity and Synergy! come from the second pick on. It was three dense cards in minute one (Blast
+   Wave, about bombs Act 1 hasn't shown, beside Greenhouse, a trade-off).
+2. **The newcomer bot spends skill points** (F17) from the first chest on, as the balance bot does after every loot.
+3. **The story team trimmed** the road, captain and Sable scenes to four boxes each (intro 3 + 1 before the fight).
+
+MEASURE3
+
+### The first ten minutes on the new art (screenshots: `team-first10/r3/` phone and desk, `c1-s7/`)
+
+What reads worse, for the art teams (the run branch at 49cd26a, phone 874x402 and desk 1440x900):
+
+- **The crow on the darker Greenmarch** (`r3/phone-fight.png`, `c1-s7/11-firstHit.png`): a dark navy bird against
+  the dark treeline at dusk; it's the first foe a newcomer meets (seed 7) and it nearly disappears. A rim light or a
+  lighter belly would bring it back. The boar and the Bandit Captain read fine.
+- **Two Rowans** (`r3/phone-camp.png`, `r3/phone-fight.png`): the fight shows the new, taller, darker Rowan, but the
+  HUD portrait (top left of every fight and of the camp) and the camp's Rowan by the fire are still the round white
+  chibi helmet.
+- **Rowan himself** reads by his red plume, sword and cape; his dark steel and visor sit close to the background's
+  values, so the bright blue owl beside him is now the first thing the eye finds. A touch more light on his helm
+  and shoulders would make him the focus again.
+- **The act map is still bright, saturated green** (`r3/phone-map.png`) between a dusky title, a dusky fight stage
+  and a night camp: the only screen of the first ten minutes without the mood.
+- Fine as they are: the bar's blocks (yellow, red, green, purple) keep their contrast on the darker stage; the title's
+  key art and the world map ("The Great Atlas", "Regions restored") read in one look; the story box; the camp.
+
 ## Still to do (not ours, or next)
 
 - The road scene is six boxes (~14 s) between the first win and the first chest; the captain's five and Sable's six
