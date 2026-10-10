@@ -361,6 +361,15 @@ export const LAB_NEW: LabScenario[] = [
     setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['crow'], ['boar'], ['slime']] },
     profile: { tips: ['tapYellow', 'blockRed', 'green', 'purple', 'finisher'] },
   },
+  {
+    id: 'heroReveal',
+    group: 'fights',
+    label: "Sable's 1st finisher",
+    secs: 45,
+    try: "Sable's first finisher: is the name moment there?",
+    setup: { kind: 'fight', hero: 'sable', act: 0, waves: [['crow'], ['boar'], ['slime']] },
+    profile: { tips: ['finisher'] },
+  },
 ];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,

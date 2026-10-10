@@ -7,7 +7,7 @@ import { BASE_BY_ID, SLOT_KEYS, type SlotKey } from '../data/gear';
 import { HERO_IDS, type HeroId } from '../data/heroes';
 import { COMPANION_IDS, type CompanionId } from '../data/companions';
 import { EVENTS } from '../data/events';
-import { FINISHER_REVEAL, TIPS } from '../data/tips';
+import { revealKey, TIPS } from '../data/tips';
 import { LAB_EARLIER, LAB_GROUPS, LAB_NEW, type LabScenario } from '../data/lab';
 import { ALL_ACTS, REGIONS } from '../data/regions';
 import type { RelicId } from '../data/relics';
@@ -40,7 +40,7 @@ export function labBaseProfile(): Profile {
   p.tipsOff = true;
   p.worldTour = true;
   // (and the later regions' camp tales: they'd play over any lab screen that opens the camp's view, fights too)
-  p.seen = [...REGIONS.slice(1).map((r) => unveilKey(r.id)), ...REGIONS.map((r) => restoreKey(r.id)), FINISHER_REVEAL, 'magsTale', 'duskCamp'];
+  p.seen = [...REGIONS.slice(1).map((r) => unveilKey(r.id)), ...REGIONS.map((r) => restoreKey(r.id)), ...HERO_IDS.map(revealKey), 'magsTale', 'duskCamp'];
   p.smithMet = true;
   p.sableMet = true;
   p.heroes.sable.unlocked = true;
@@ -149,8 +149,9 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
     // these tips still to show (a hero's how-to card), every other one seen: tips on
     p.tipsOff = false;
     p.tips = TIPS.map((d) => d.id).filter((id) => !spec.tips!.includes(id));
-    // a scenario that teaches the finisher plays the first finisher's reveal too
-    if (spec.tips.includes('finisher')) p.seen = p.seen.filter((k) => k !== FINISHER_REVEAL);
+    // a scenario that teaches the finisher plays its hero's first finisher reveal too (Rowan's: the first in the game)
+    const hero = s.setup.kind === 'fight' ? s.setup.hero : 'rowan';
+    if (spec.tips.includes('finisher')) p.seen = p.seen.filter((k) => k !== revealKey(hero));
   }
   giveKit(p, t, act, spec.gear);
   return p;

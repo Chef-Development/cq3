@@ -22,7 +22,7 @@ import { Combat, heroMaxHp, heroStats, killCoins, newHero, type Hero, type Saved
 import { itemLevel, rollDrops, rollItem, setPieces, type Item, type Loadout } from './gear';
 import { actXp, addXp, defaultBuild, killXp, type HeroBuild } from './heroes';
 import { actSeed, buildActMap, type ActMap, type MapNode } from './map';
-import { addItem, heroProgress, meetNeve, meetSable, newProfile, profileBuild, profileLoadout, recordAct, recordRegion, unlockedRelics, unlockRelic, type ChestKind, type Profile } from './profile';
+import { addItem, equip, heroProgress, itemByUid, replaces, meetNeve, meetSable, newProfile, profileBuild, profileLoadout, recordAct, recordRegion, unlockedRelics, unlockRelic, type ChestKind, type Profile } from './profile';
 import { claimRegionReward, logBounty, logEvent, logTreasure } from './completion';
 import { hpNow, mult, one, signed, signedPct, whole } from './format';
 import { awardGems, bump, checkAchievements, checkMastery, hasCamp, type FeatCtx } from './meta';
@@ -352,6 +352,10 @@ export class Run {
   /** Items just found (the loot screen shows them), scrap from any the full bag salvaged, and the boost pick after. */
   loot: Item[] = [];
   lootSalvaged = 0;
+  /** Items just found that went straight on (an empty slot: tuning.gear.autoWear); the loot screen marks them. */
+  lootWorn: number[] = [];
+  /** Found gear for an empty slot is worn at once (the bot's "without gear" ablation turns it off). */
+  autoWear = true;
   /** The profile (kept across runs): the purse, the bag, the gear worn, progress, the accuracy log. */
   profile: Profile;
   /** Where the camp goes back to. */
@@ -1115,11 +1119,19 @@ export class Run {
   private showLoot(items: Item[], min: boolean | Rarity, then: PickThen): void {
     this.loot = [];
     this.lootSalvaged = 0;
+    this.lootWorn = [];
     for (const it of items) {
       const r = addItem(this.profile, this.tuning, it);
       this.loot.push(r.item);
       this.lootSalvaged += r.salvaged;
+      // a slot with nothing in it: the find goes on at once (a newcomer plays Act 1 without opening the camp)
+      if (this.autoWear && this.tuning.gear.autoWear >= 1 && itemByUid(this.profile, r.item.uid)) {
+        const into = replaces(this.profile, this.tuning, r.item);
+        if (!into.item && equip(this.profile, r.item.uid, into.slot)) this.lootWorn.push(r.item.uid);
+      }
     }
+    // (the gear only: a level-up still waits for the next fight)
+    if (this.lootWorn.length) this.hero.gear = this.gear;
     this.boostMin = min;
     this.boostThen = then;
     if (this.loot.length) this.phase = 'loot';
