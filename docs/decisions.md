@@ -1543,6 +1543,12 @@ C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics
   and the new items' count shows on the band only. An event, rest or shop opened straight from elsewhere (the lab's
   event scenarios) shows its own act's stage. Not reproduced: the world map's first-visit "whip-pan" (sampled every
   frame at 1440x900 the glide runs ~1.2 s, smoothly; the review's 150 ms screenshots stalled the page between frames).
+- **Q2-7 Every camp screen by keyboard.** Beyond the buttons (which note themselves), `camp.focusTargets()` adds each
+  screen's targets drawn as something else: the camp's plates, the bag's and the forge picker's cells, the relic
+  log's cells, the vault's three chests (none while one opens), the region card's seals in view (none under an Atlas
+  page), build mode's hammer markers (a built upgrade: its object; none under the open card), the hero select's name
+  and level rows, the companions' Along sockets. Pressing one taps its centre, as a finger would. desktop.spec Tabs to
+  a chest, a seal and a spot and presses each.
 (qa: end of section)
 
 
