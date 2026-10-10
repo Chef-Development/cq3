@@ -156,7 +156,8 @@ describe('Test lab scenarios (data)', () => {
     for (const k of labFight(a2!)!.waves.flat()) expect(r1.has(k), k).toBe(true);
     // a walk through every redesigned menu, each asking for a new rating
     for (const screen of ['heroes', 'skills', 'companions', 'upgrades', 'completion', 'shrine', 'chest'] as const) {
-      const s = fresh.find((x) => x.setup.kind === 'camp' && x.setup.screen === screen);
+      // (round 8's sharper-text items open the hero select too: not these)
+      const s = fresh.find((x) => x.setup.kind === 'camp' && x.setup.screen === screen && !x.id.startsWith('hd'));
       expect(s, screen).toBeDefined();
       // (the chests' vault is walked by the new Open all; the others were rated last round and ask again)
       if (screen !== 'chest') expect(s!.rev ?? 0, screen).toBeGreaterThanOrEqual(1);

@@ -10,6 +10,7 @@ import type { FightScene } from '../scene';
 import { textWidth } from '../font';
 import { band, button3d, chevron, GOLD, NAVY, panel, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, WHITE, type Rect } from './shared';
+import { hdFor, screenCovered } from './hd-text';
 import { FACE, isPressed, notePress, ribbon, RIBBON, TextPool } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
@@ -105,6 +106,8 @@ export class StoryView {
       this.texts.end();
       return;
     }
+    // the sharper text (view/hd-text.ts) unless a wipe or a tip covers the box
+    this.texts.hd = hdFor(s, 'story', screenCovered(s, now));
     const key = `${id}:${s.app.storyBox}`;
     if (key !== this.key) {
       this.key = key;
@@ -205,7 +208,7 @@ export class StoryView {
       const shown = line.slice(0, Math.max(0, left2));
       left2 -= line.length + 1;
       const ty = by + 15 + i * 11;
-      if (shown.length) this.texts.text(shown, bx + 9, ty, WHITE, { oy: 0.5 });
+      if (shown.length) this.texts.text(shown, bx + 9, ty, WHITE, { oy: 0.5, full: line });
       if (typing && shown.length < line.length && !caret) caret = { x: bx + 9 + (shown.length ? textWidth(shown, 1, false) : 1), y: ty };
     });
     const cr = caret as { x: number; y: number } | null;

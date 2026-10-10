@@ -15,8 +15,15 @@ export interface Mask {
   on: (x: number, y: number) => boolean;
 }
 
-/** Scale2x (EPX): every pixel becomes 2x2; a corner takes the neighbours' value where the two beside it agree. */
-export function scale2x(m: Mask): Mask {
+/** How a doubling rounds: 'full' Scale2x (convex corners cut, concave ones filled: curves, but thin crosses and
+ *  diagonals blob, the chest reveal's), or 'round' (only a lit pixel's outer corners are cut: rounded stroke ends and
+ *  bends, never a fill, so a '+', an 'f' or an 'x' keeps its shape; the sharper text's, view/hd-text.ts). */
+export type Smooth = 'full' | 'round';
+
+/** Scale2x (EPX): every pixel becomes 2x2; a corner takes the neighbours' value where the two beside it agree
+ *  ('round': only where that cuts a lit pixel's corner). */
+export function scale2x(m: Mask, smooth: Smooth = 'full'): Mask {
+  const round = smooth === 'round';
   const w = m.w * 2;
   const h = m.h * 2;
   const out = new Uint8Array(w * h);
@@ -27,10 +34,16 @@ export function scale2x(m: Mask): Mask {
       const b = m.on(x + 1, y); // right
       const c = m.on(x - 1, y); // left
       const d = m.on(x, y + 1); // down
-      const e1 = c === a && c !== d && a !== b ? a : p;
-      const e2 = a === b && a !== c && b !== d ? b : p;
-      const e3 = d === c && d !== b && c !== a ? c : p;
-      const e4 = b === d && b !== a && d !== c ? d : p;
+      let e1 = c === a && c !== d && a !== b ? a : p;
+      let e2 = a === b && a !== c && b !== d ? b : p;
+      let e3 = d === c && d !== b && c !== a ? c : p;
+      let e4 = b === d && b !== a && d !== c ? d : p;
+      if (round) {
+        e1 = e1 && p;
+        e2 = e2 && p;
+        e3 = e3 && p;
+        e4 = e4 && p;
+      }
       const i = y * 2 * w + x * 2;
       out[i] = e1 ? 1 : 0;
       out[i + 1] = e2 ? 1 : 0;
@@ -44,9 +57,9 @@ export function scale2x(m: Mask): Mask {
 const CAP = { bold: 7, small: 5 };
 
 /** A line's fill on the fine grid: the game font's glyphs doubled `level` times (1: 2x, 2: 4x). */
-export function hdTextMask(s: string, level: 1 | 2 = 1, bold = true): Mask & { cap: number } {
+export function hdTextMask(s: string, level: 1 | 2 = 1, bold = true, smooth: Smooth = 'full'): Mask & { cap: number } {
   let m: Mask = glyphMask(s, bold);
-  for (let i = 0; i < level; i++) m = scale2x(m);
+  for (let i = 0; i < level; i++) m = scale2x(m, smooth);
   return { ...m, cap: (bold ? CAP.bold : CAP.small) << level };
 }
 
@@ -61,6 +74,11 @@ export interface HdTextStyle {
   plain?: boolean;
   /** Extrusion depth in fine px (the big name), in `deep`. */
   extrude?: number;
+  /** How the glyphs are doubled (Smooth; 'full' by default). */
+  smooth?: Smooth;
+  /** The ink outline's (and the drop shadow's) thickness in fine px: 1 (the chest reveal's), 2 (the game text's
+   *  weight: 1 game px, the sharper text's, view/hd-text.ts). */
+  outline?: number;
 }
 
 export interface HdTextImage {
@@ -72,8 +90,7 @@ export interface HdTextImage {
   cap: number;
 }
 
-const INK = '#140c1c';
-const css = (c: number) => `#${(c & 0xffffff).toString(16).padStart(6, '0')}`;
+const INK = 0x140c1c;
 const mixC = (a: number, b: number, k: number) => {
   const ch = (s: number) => Math.round(((a >> s) & 255) * (1 - k) + ((b >> s) & 255) * k);
   return (ch(16) << 16) | (ch(8) << 8) | ch(0);
@@ -98,52 +115,71 @@ export function hdText(s: string, st: HdTextStyle): HdTextImage {
   const bold = st.bold ?? true;
   const deep = st.deep ?? mixC(st.color, 0x140c1c, 0.6);
   const ext = st.plain ? 0 : (st.extrude ?? 0);
-  const key = `${s}|${level}|${bold ? 1 : 0}|${st.color}|${deep}|${st.plain ? 1 : 0}|${ext}`;
+  const ol = st.plain ? 0 : Math.max(1, st.outline ?? 1);
+  const smooth = st.smooth ?? 'full';
+  const key = `${s}|${level}|${bold ? 1 : 0}|${st.color}|${deep}|${st.plain ? 1 : 0}|${ext}|${ol}|${smooth}`;
   const hit = cache.get(key);
   if (hit) return hit;
-  const m = hdTextMask(s, level, bold);
-  const pad = st.plain ? 0 : 1;
-  const shadow = st.plain ? 0 : ext > 0 ? ext : 1;
+  const m = hdTextMask(s, level, bold, smooth);
+  const pad = ol;
+  const shadow = st.plain ? 0 : ext > 0 ? ext : ol;
   const w = Math.max(1, m.w + pad * 2);
   const h = m.h + pad * 2 + shadow;
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
   const ctx = c.getContext('2d')!;
-  const fill = (x: number, y: number) => m.on(x - pad, y - pad);
-  // the extrusion (or shadow) under the fill, then the ink round both
-  const body = (x: number, y: number) => {
-    if (fill(x, y)) return true;
-    for (let d = 1; d <= ext; d++) if (fill(x, y - d)) return true;
-    return false;
-  };
+  // painted into a pixel buffer and put once (a fillRect a pixel cost ~10 ms a line; this, well under 1)
+  const id = ctx.createImageData(w, h);
+  const px = new Uint32Array(id.data.buffer);
+  const abgr = (col: number) => (0xff000000 | ((col & 0xff) << 16) | (col & 0xff00) | ((col >> 16) & 0xff)) >>> 0;
+  const fillAt = new Uint8Array(w * h);
+  for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) if (m.on(x, y)) fillAt[(y + pad) * w + x + pad] = 1;
+  const fill = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && fillAt[y * w + x] === 1;
   if (!st.plain) {
-    ctx.fillStyle = INK;
+    // the body: the fill and, under it, the extrusion
+    const body = new Uint8Array(w * h);
     for (let y = 0; y < h; y++)
       for (let x = 0; x < w; x++) {
-        if (body(x, y)) continue;
-        const near = body(x - 1, y) || body(x + 1, y) || body(x, y - 1) || body(x, y + 1);
-        // the drop shadow: one row under the outlined shape
-        const under = ext === 0 && (body(x, y - 1) || body(x - 1, y - 1) || body(x + 1, y - 1) || body(x, y - 2));
-        if (near || under) ctx.fillRect(x, y, 1, 1);
+        let on = fill(x, y);
+        for (let d = 1; !on && d <= ext; d++) on = fill(x, y - d);
+        if (on) body[y * w + x] = 1;
+      }
+    const at = (g: Uint8Array, x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && g[y * w + x] === 1;
+    // the outlined shape: the body grown `ol` times by its 4 neighbours
+    let grown = body;
+    for (let i = 0; i < ol; i++) {
+      const next = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++)
+          if (at(grown, x, y) || at(grown, x - 1, y) || at(grown, x + 1, y) || at(grown, x, y - 1) || at(grown, x, y + 1)) next[y * w + x] = 1;
+      grown = next;
+    }
+    // the ink: the outlined shape and its drop shadow (the outlined shape again, `ol` rows lower) round the body
+    const ink = abgr(INK);
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        if (body[y * w + x]) continue;
+        if (grown[y * w + x] || (ext === 0 && at(grown, x, y - ol))) px[y * w + x] = ink;
       }
     if (ext > 0) {
-      ctx.fillStyle = css(deep);
-      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!fill(x, y) && body(x, y)) ctx.fillRect(x, y, 1, 1);
+      const dp = abgr(deep);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!fillAt[y * w + x] && body[y * w + x]) px[y * w + x] = dp;
     }
   }
   for (let y = 0; y < m.h; y++) {
-    ctx.fillStyle = css(st.plain ? st.color : rampRow(y, m.cap, st.color, deep));
-    for (let x = 0; x < m.w; x++) if (m.on(x, y)) ctx.fillRect(x + pad, y + pad, 1, 1);
+    const col = abgr(st.plain ? st.color : rampRow(y, m.cap, st.color, deep));
+    for (let x = 0; x < m.w; x++) if (fillAt[(y + pad) * w + x + pad]) px[(y + pad) * w + x + pad] = col;
   }
+  ctx.putImageData(id, 0, 0);
   const img = { canvas: c, w, h, capTop: pad, cap: m.cap };
-  if (cache.size > 300) cache.clear();
+  if (cache.size > 600) cache.clear();
   cache.set(key, img);
   return img;
 }
 
 /** A text's width on the fine grid (outline included), without painting it. */
-export function hdTextW(s: string, level: 1 | 2 = 1, bold = true, plain = false): number {
+export function hdTextW(s: string, level: 1 | 2 = 1, bold = true, plain = false, outline = 1): number {
   s = guardText(s);
-  return glyphMask(s, bold).w * (1 << level) + (plain ? 0 : 2);
+  return glyphMask(s, bold).w * (1 << level) + (plain ? 0 : 2 * outline);
 }

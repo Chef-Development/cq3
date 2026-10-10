@@ -3,6 +3,7 @@
 import { noteTarget } from '../focus';
 import type Phaser from 'phaser';
 import type { FightScene } from '../scene';
+import type { HdText } from './hd-text';
 import { FONT_BOLD, fontFor, fontText, isDarkInk, readable } from '../font';
 import { band, GOLD, NAVY, rows } from './pixels';
 import { INK, mix, shade, tintGrad, WHITE, type Rect } from './shared';
@@ -23,12 +24,17 @@ export interface TextOpts {
   extrudeCol?: number;
   /** No ink outline (dark text on a light surface). Default: chosen by the color (isDarkInk). */
   plain?: boolean;
+  /** The whole line a typed-out prefix belongs to (the sharper text crops its image instead of painting a new one). */
+  full?: string;
 }
 
 /** Bitmap texts handed out in draw order each frame; the ones not used this frame are hidden. */
 export class TextPool {
   private items: Phaser.GameObjects.BitmapText[] = [];
   private used = 0;
+  /** The sharper text (view/hd-text.ts): while a surface sets it, texts the fine layer can take are drawn there and
+   *  their bitmaps stay in place, transparent (measuring, focus, tests); null is the old path. */
+  hd: HdText | null = null;
 
   constructor(
     private readonly s: FightScene,
@@ -64,6 +70,7 @@ export class TextPool {
     // outlined text is never dimmer than readable() (an explicit gradient, like an extrusion layer's, is kept as given)
     if (o.grad) t.setTint(o.grad[0], o.grad[0], o.grad[1], o.grad[1]);
     else tintGrad(t, plain ? color : readable(color), !o.bold);
+    if (this.hd && !ex && this.hd.text(str, x, y, color, o)) t.setAlpha(0);
     return t;
   }
 

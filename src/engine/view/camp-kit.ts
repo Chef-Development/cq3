@@ -20,6 +20,7 @@ import { GAME_W } from '../layout';
 import { padlock } from './items';
 import { button3d, chevron, gauge, glow, GOLD, hudIcon, iconSize, NAVY, panel, rows } from './pixels';
 import { clamp01, easeBack, easeOut3, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
+import { screenCovered } from './hd-text';
 import { FACE, ImagePool, isPressed, ribbon, RIBBON, tag, TextPool } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
@@ -755,6 +756,8 @@ export class CampKit {
     this.texts.begin();
     this.topTexts.begin();
     this.fxTexts.begin();
+    // the sharper text is a screen's to turn on, frame by frame (view/hd-text.ts)
+    this.texts.hd = this.topTexts.hd = null;
     this.imgs.begin();
     this.sprites.begin();
     // counters roll toward the real values; a change pulses them (green up, red down)
@@ -939,6 +942,12 @@ export class CampKit {
     this.counter(g, texts, r.scrap, 'scrap', this.scrapShown, this.scrapPulse, SCRAP_TXT, now);
     this.counter(g, texts, r.coins, 'coin', this.coinsShown, this.coinPulse, GOLD_TXT, now);
     return r;
+  }
+
+  /** Something over the whole camp screen this frame (a wipe, a tip, a story box, the finisher reveal, a toast): no
+   *  sharper text under it (view/hd-text.ts). */
+  hdCovered(now: number): boolean {
+    return !!this.toastNow || screenCovered(this.s, now, true);
   }
 
   /** The layers a screen draws on: the screen itself, or a popup over it. */

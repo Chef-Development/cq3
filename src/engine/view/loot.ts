@@ -18,6 +18,7 @@ import { GAME_H, GAME_W } from '../layout';
 import { cellIcon, itemCell, itemKind, itemLines, itemName, rarityFace, rarityText, statSize } from './items';
 import { band, chevron, glow, GOLD, hudIcon, iconSize, rows } from './pixels';
 import { clamp01, easeBack, easeOut3, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
+import { hdFor, screenCovered } from './hd-text';
 import { ImagePool, ribbon, strip, tag, TextPool } from './ui';
 
 type G = Phaser.GameObjects.Graphics;
@@ -417,6 +418,10 @@ export class LootView {
     this.texts.begin();
     this.cardTexts.begin();
     this.pool.begin();
+    // the sharper text (view/hd-text.ts): the row's names under a reveal card go the old way, the card's stay sharp
+    const covered = screenCovered(s, now);
+    this.texts.hd = hdFor(s, 'cards', covered || !!this.card);
+    this.cardTexts.hd = hdFor(s, 'cards', covered);
     if (run.phase === 'loot' && this.drops.length) {
       this.update(now);
       this.drawScreen(now);
