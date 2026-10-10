@@ -60,6 +60,12 @@ export class BagScreen {
     return this.kit.s.L + 3;
   }
 
+  /** The keyboard's targets drawn as cells (the worn slots, the items on this page). */
+  focusTargets(): Rect[] {
+    this.layout();
+    return [...this.worn.rects(), ...this.grid.itemRects()];
+  }
+
   private layout(): void {
     const left = this.left;
     this.worn.layout(left + 3, 22);

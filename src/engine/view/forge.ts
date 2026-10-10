@@ -131,6 +131,13 @@ export class ForgeScreen {
     return { x: s.L + 3, y: 19, w: 161, h: s.B - 22 };
   }
 
+  /** The keyboard's targets drawn as cells (the worn slots, the items on this page of the picker, while it's open). */
+  focusTargets(): Rect[] {
+    if (!this.picking) return [];
+    this.layoutPicker();
+    return [...this.worn.rects(), ...this.grid.itemRects()];
+  }
+
   private layoutPicker(): void {
     const pr = this.picker();
     this.worn.layout(pr.x + 9, pr.y + 9);

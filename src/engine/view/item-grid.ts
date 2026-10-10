@@ -85,6 +85,12 @@ export class ItemGrid {
     return { x: this.x + (i % this.cols) * PITCH, y: this.y + Math.floor(i / this.cols) * PITCH, w: CELL, h: CELL };
   }
 
+  /** The cells holding items on this page: the keyboard's targets (drawn as cells, not buttons: input.ts focusExtras). */
+  itemRects(): Rect[] {
+    const n = Math.max(0, Math.min(this.perPage, this.order.length - this.page * this.perPage));
+    return Array.from({ length: n }, (_, i) => this.rect(i));
+  }
+
   /** The rect of an item's cell, if it's on the page. */
   rectOf(uid: number): Rect | null {
     const i = this.order.indexOf(uid) - this.page * this.perPage;
@@ -172,6 +178,11 @@ export class WornRow {
   rect(k: SlotKey): Rect {
     const i = SLOT_KEYS.indexOf(k);
     return { x: this.x + i * this.pitch + (i >= 4 ? 3 : 0), y: this.y, w: this.size, h: this.size };
+  }
+
+  /** Every slot's rect (the keyboard's targets). */
+  rects(): Rect[] {
+    return SLOT_KEYS.map((k) => this.rect(k));
   }
 
   at(x: number, y: number): SlotKey | null {

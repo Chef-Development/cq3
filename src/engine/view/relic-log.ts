@@ -97,6 +97,11 @@ export class RelicLogScreen {
     return { x: p.x + 6 + (j % COLS) * PX, y: p.y + 8 + Math.floor(j / COLS) * PY, w: CELL, h: CELL };
   }
 
+  /** The keyboard's targets: the cells on the page on view (drawn as cells, not buttons). */
+  focusTargets(): Rect[] {
+    return RELICS.flatMap((_, i) => (this.onPage(i) ? [this.cell(i)] : []));
+  }
+
   /** The tally's row at the pane's foot (its bar, and the page arrows either side of it when the grid pages). */
   private tallyY(): number {
     const gp = this.gridPane();
