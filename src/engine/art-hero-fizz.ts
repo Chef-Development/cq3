@@ -403,8 +403,8 @@ export function fizzPortrait(): HTMLCanvasElement {
   put(g, 29, 7, '#ffffff');
   // bright eyes (teal), a sooty smudge, a grin
   const eye: Pal = { k: INK_C, W: '#ffffff', i: '#1aa896', I: '#0e5a5a', w: '#e8dcd0' };
-  stamp(g, ['kkkk', 'WiIk', 'wIkk'], eye, 23, 17);
-  stamp(g, ['kkk', 'WiI', 'wIk'], eye, 30, 17);
+  stamp(g, ['kkkk', 'kiIk', '.kk.'], eye, 23, 17);
+  stamp(g, ['kkk', 'kiI', '.kk'], eye, 30, 17);
   for (const [x, y] of [
     [24, 22],
     [25, 22],

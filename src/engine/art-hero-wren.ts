@@ -330,8 +330,8 @@ export function wrenPortrait(): HTMLCanvasElement {
   for (let x = 14; x <= 33; x++) if (scarfM(x, 34) && scarfM(x, 35)) put(g, x, 34, WREN_MUSTARD[1]);
   // eyes (hazel), a freckle or two, a cheeky grin
   const eye: Pal = { k: '#140c1c', W: '#ffffff', e: '#6a9a3a', E: '#2e5a22', w: '#e8dccc' };
-  stamp(g, ['kkkk', 'WeEk', 'wEkk', '.kk.'], eye, 24, 19);
-  stamp(g, ['kkk', 'WeE', 'wEk'], eye, 31, 19);
+  stamp(g, ['kkkk', 'keEk', '.kk.'], eye, 24, 19);
+  stamp(g, ['kkk', 'keE', '.kk'], eye, 31, 19);
   for (const [x, y] of [
     [25, 24],
     [27, 25],
