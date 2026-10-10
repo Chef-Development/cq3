@@ -183,6 +183,8 @@ export class Overlays {
   /** The relic panel (a fight paused from the HUD's relic belt): the relic shown in detail (null = closed). */
   relicSel: number | null = null;
   private relicAt = 0;
+  /** The region-won screen's burst has played (once a visit to the screen). */
+  private victoryBurst = false;
   /** "New relic unlocked!": when the card on screen popped in (0 = not yet). */
   private unlockAt = 0;
   /** "Level up!" toast after a fight (the loot or the pick): the level reached, and when (performance.now). */
@@ -1256,50 +1258,116 @@ export class Overlays {
   }
 
   /**
-   * The region saved, in the same hierarchy: one headline on a gold ribbon over slow golden rays, one line under it,
-   * and the way on (the next region, or more to come) on the console under "Tap to continue".
+   * The region saved, as the Atlas shows it (docs/art-style.md 12b; review round 8: it was the act clear's ribbon on a
+   * dimmed stage): the stage opens drained, a pale ink wash over it; then the colour floods back out from the hero in
+   * a ragged ring with a front of gold ink and motes (about 2 s), the hero left standing in a warm light; then the
+   * headline scales in with a burst, one line under it, and "Tap to continue" small on the console with the way on.
    */
   private drawVictory(g: G, gc: G, now: number, since: number): void {
     const s = this.s;
     const cx = Math.round(GAME_W / 2);
-    this.dim(g, 0.45);
-    // slow golden rays behind the title
-    const ox = cx;
-    const oy = 31;
-    const rot = now / 4000;
-    for (let i = 0; i < 12; i++) {
-      const a0 = rot + (i / 12) * Math.PI * 2;
-      const a1 = a0 + Math.PI / 18;
-      g.fillStyle(i % 2 ? 0xffe680 : 0xfff6c0, 0.09);
-      g.fillTriangle(ox, oy, Math.round(ox + Math.cos(a0) * 260), Math.round(oy + Math.sin(a0) * 260), Math.round(ox + Math.cos(a1) * 260), Math.round(oy + Math.sin(a1) * 260));
+    const run = s.app.run;
+    // the flood: a ring from the hero, its radius easing out to past the stage's far corners
+    const hx = s.heroHome;
+    const hy = s.ground - 18;
+    const FLOOD_AT = 350;
+    const FLOOD_MS = 2100;
+    const fk = clamp01((since - FLOOD_AT) / FLOOD_MS);
+    const R = (1 - (1 - fk) ** 3) * 360;
+    const top = s.splitY;
+    // the drained land outside the ring: a pale ink wash (the draft's grey), row by row, the ring's edge ragged
+    const edge = (y: number) => R + Math.sin(y * 0.7 + now / 260) * 2 + Math.sin(y * 0.23 + 1.3) * 4;
+    for (let y = 0; y < top; y++) {
+      const dy = y - hy;
+      const rr = edge(y);
+      const half = rr > Math.abs(dy) ? Math.sqrt(rr * rr - dy * dy) : -1;
+      const x0 = half < 0 ? GAME_W + 1 : Math.round(hx - half);
+      const x1 = half < 0 ? GAME_W + 1 : Math.round(hx + half);
+      // (two washes: the vellum's warm grey drains the colour, a thin ink darkens it)
+      for (const [c, a] of [
+        [0x6a605a, 0.42],
+        [0x1a1622, 0.32],
+      ] as const) {
+        g.fillStyle(c, a);
+        if (half < 0) g.fillRect(0, y, GAME_W, 1);
+        else {
+          if (x0 > 0) g.fillRect(0, y, x0, 1);
+          if (x1 < GAME_W) g.fillRect(x1, y, GAME_W - x1, 1);
+        }
+      }
+      if (half >= 0) {
+        // the front: gold ink where the colour meets the blank (while it is still moving)
+        if (fk < 1) {
+          g.fillStyle(0xffd890, 0.85 * (1 - fk * 0.6));
+          g.fillRect(x0 - 1, y, 2, 1);
+          g.fillRect(x1 - 1, y, 2, 1);
+          g.fillStyle(0xb47e2a, 0.55 * (1 - fk * 0.6));
+          g.fillRect(x0 - 3, y, 2, 1);
+          g.fillRect(x1 + 1, y, 2, 1);
+        }
+      }
+    }
+    // motes thrown off the front
+    if (fk > 0 && fk < 1)
+      for (let i = 0; i < 3; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const x = hx + Math.cos(a) * R;
+        const y = hy + Math.sin(a) * R;
+        if (y < 0 || y > top || x < 0 || x > GAME_W) continue;
+        s.fx.particles.push({ x, y, vx: Math.cos(a) * rand(6, 16), vy: Math.sin(a) * rand(6, 16) - 8, g: -6, born: now, life: 900, color: Math.random() < 0.5 ? 0xffe680 : 0xfff6d8, size: 1, world: true, streak: false });
+      }
+    // the hero in a warm light once the land is back round him
+    const lk = clamp01((since - FLOOD_AT) / 500);
+    for (const [rx, ry, a] of [
+      [34, 7, 0.1],
+      [22, 5, 0.14],
+    ] as const) {
+      g.fillStyle(0xffc070, a * lk);
+      for (let j = -ry; j <= ry; j++) {
+        const w = Math.round(rx * Math.sqrt(1 - (j * j) / (ry * ry)));
+        g.fillRect(hx - w, s.ground + j, w * 2, 1);
+      }
     }
     // the console: a dark band
     g.fillStyle(0x07040c, 0.5 * clamp01(since / 300));
     g.fillRect(0, s.splitY, GAME_W, GAME_H - s.splitY);
-    const k = easeBack(since / 420, 1.5);
-    const run = s.app.run;
-    const title = `${run.regionDef.name} restored!`;
-    const tw = textWidth(title, 2, true);
-    const y = Math.round(20 - (1 - k) * 50);
-    ribbon(gc, cx, y, Math.round((tw + 24) * Math.min(1, k)), 22, RIBBON.gold, 1, k > 0.9);
-    if (k > 0.5) this.texts.text(title, cx, y + 11, 0xfff6c0, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a });
+    // the headline scales in once the colour is most of the way back, with a burst
+    const TITLE_AT = FLOOD_AT + FLOOD_MS * 0.6;
+    const tt = since - TITLE_AT;
+    if (tt > 0) {
+      const k = easeBack(tt / 420, 1.6);
+      if (!this.victoryBurst) {
+        this.victoryBurst = true;
+        s.fx.burst(cx, 31, 0xffe680, 26, false, 1.3, true);
+        s.fx.ring(cx, 31, 40, 0xfff0a0, false);
+      }
+      const title = `${run.regionDef.name} restored!`;
+      const tw = textWidth(title, 2, true);
+      const y = 20;
+      ribbon(gc, cx, y, Math.round((tw + 24) * Math.min(1, k)), 22, RIBBON.gold, clamp01(tt / 120), k > 0.9);
+      if (k > 0.5) this.texts.text(title, cx, y + 11, 0xfff6c0, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: 0x7a3a0a, alpha: clamp01((k - 0.5) * 2) });
+    } else this.victoryBurst = false;
     // (profile.weights counts the regions restored)
     const home = 'Its old lines are back.';
     const left = WEIGHTS_TOTAL - run.profile.weights;
     const togo = left === 1 ? 'One region to go.' : `${COUNT[left] ?? whole(left)} regions to go.`;
-    if (since > 400) this.subLine(gc, left > 0 ? `${home} ${togo}` : 'The Atlas is whole again!', cx, 49, clamp01((since - 400) / 250));
-    if (since > 1500) {
-      this.prompt(g, 'Tap to continue', s.splitY + 16, now, 0xfff07a);
-      // where the road goes next (the victory scene has just named it), or more to come
+    const sub = TITLE_AT + 400;
+    if (since > sub) this.subLine(gc, left > 0 ? `${home} ${togo}` : 'The Atlas is whole again!', cx, 49, clamp01((since - sub) / 250));
+    const go = FLOOD_AT + FLOOD_MS + 500;
+    if (since > go) {
+      // "Tap to continue" in bold 1 (it was bigger than the headline), and where the road goes next
+      const ak = clamp01((since - go) / 300);
+      const p = pulse(now, 1100);
+      this.texts.text('Tap to continue', cx, s.splitY + 14, mix(0xfff07a, WHITE, 0.3 * p), { bold: true, ox: 0.5, oy: 0.5, alpha: ak * (0.75 + 0.25 * p) });
       const nextRegion = REGIONS[run.regionIndex + 1];
-      this.texts.text(nextRegion ? `Next: ${nextRegion.name}` : 'More lands soon', cx, s.splitY + 34, 0xa8c8e8, { ox: 0.5, oy: 0.5, alpha: clamp01((since - 1500) / 300) });
+      this.texts.text(nextRegion ? `Next: ${nextRegion.name}` : 'More lands soon', cx, s.splitY + 28, 0xa8c8e8, { ox: 0.5, oy: 0.5, alpha: ak });
     }
-    // a little shower of golden sparks
-    if (Math.random() < 0.5) s.fx.particles.push({ x: rand(20, GAME_W - 20), y: -2, vx: rand(-10, 10), vy: rand(20, 40), g: 30, born: now, life: 2200, color: Math.random() < 0.5 ? 0xffe680 : WHITE, size: 1, world: true, streak: false });
-    for (let i = 0; i < 5; i++) {
-      const q = ((now / 1100 + i * 0.21) % 1 + 1) % 1;
-      if (q < 0.4) this.star(gc, Math.round(cx - 110 + ((i * 53) % 220)), 14 + ((i * 23) % 36), q < 0.2 ? 2 : 1, 0xfff0a0, 1 - q / 0.4);
-    }
+    // a few gold twinkles over the title once it's in
+    if (tt > 0)
+      for (let i = 0; i < 5; i++) {
+        const q = ((now / 1100 + i * 0.21) % 1 + 1) % 1;
+        if (q < 0.4) this.star(gc, Math.round(cx - 110 + ((i * 53) % 220)), 14 + ((i * 23) % 36), q < 0.2 ? 2 : 1, 0xfff0a0, 1 - q / 0.4);
+      }
   }
 
   private drawPause(g: G, gc: G, now: number): void {

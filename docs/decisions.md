@@ -1260,6 +1260,16 @@ A22. **The review's 2A findings, second pass** (sheet: `docs/art-audit/after/rel
     longer thins it to show the coloured land under it (Ashfell's lava rivers showed in full colour), it only breathes;
     clouds fade out as they drift onto an erased land.
 
+A23. **The review's 2A findings, third pass.** *Region won:* the land comes back as the Atlas shows it (12b): the stage
+    opens drained under a vellum-grey ink wash, the colour floods out from the hero in a ragged ring with a gold ink
+    front and motes (about 2 s), the hero in a warm light; then the headline scales in with a burst and "Tap to
+    continue" is bold 1 on the console (it was bigger than the headline). *Loot:* one or two items land as 36 px cells
+    (icon at 2x) clear of the ribbon, every item on a soft glow in its rarity, the bar's band sunk further; "Equipped"
+    for an item that went straight on ("Worn" read as worn out). *World map:* the far isle (Noonspire) is drained and
+    still until its land opens; the header shows the name and the twelve roses until a region is restored, then
+    "Restored N/12"; the first visit's glide starts over the heartland and erased lands east of home on its own
+    capped clock; the camp's Bag and Forge plates are gone (the band's buttons say them).
+
 (art: end of section)
 
 
