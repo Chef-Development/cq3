@@ -257,15 +257,15 @@ export const STORY: Record<string, StoryBox[]> = {
   // ---- hero arrivals: the first time each chest hero is revealed from a hero chest (content bible section 3)
   meetMoss: [
     { who: 'narrator', text: 'The chest creaks open. Out steps someone\nshort and weathered, in a cloak of leaves.' },
-    { who: 'moss', text: "Oh! Hello. I'm Moss. I keep a grove. Well,\nthe grove mostly keeps me. Have we met?" },
+    { who: 'moss', text: "Oh. Hello. I'm Moss. I keep a grove. Well,\nthe grove mostly keeps me. Have we met?" },
     { who: 'moss', text: "Someone redrew my wild wood in tidy rows.\nThe trees don't know their neighbors now." },
     { who: 'pip', text: 'Hoo. A grove keeper who talks to trees.\nStill better conversation than the knight.' },
   ],
   meetTam: [
     { who: 'narrator', text: 'The chest lid blows off with a BANG!\nA cloud of soot coughs out a grin.' },
     { who: 'tam', text: 'Tam. Sapper. I blow things up. Walls,\nmostly. Rocks. Once, a wedding. By accident.' },
-    { who: 'tam', text: 'I set off little avalanches so big ones never\ncome. Then the snow STOPPED. No snow, no job!' },
-    { who: 'rowan', text: "We'll get your snow back. Until then, no kegs\nin camp. ...Welcome to the team, Tam." },
+    { who: 'tam', text: 'I set off little avalanches so big ones never\ncome. Then the snow STOPPED. No snow, no job.' },
+    { who: 'rowan', text: "We'll get your snow back. Until then, no kegs\nin camp. ...Welcome, Tam." },
   ],
   meetHollis: [
     { who: 'narrator', text: 'A huge blue shield fills the chest. Behind it,\na very calm, very large man climbs out.' },
@@ -281,7 +281,7 @@ export const STORY: Record<string, StoryBox[]> = {
   ],
   meetTorva: [
     { who: 'narrator', text: 'The chest groans, bulges, and bursts.\nA giant stone hammer comes out first.' },
-    { who: 'torva', text: 'HA! TORVA! My quarry keeps floating off\nbefore I can smash it! What needs smashing?' },
+    { who: 'torva', text: 'HA! Torva. My quarry keeps floating off\nbefore I can break it. What needs smashing?' },
     { who: 'rowan', text: 'Nothing needs smashing. Well. Not anymore.\nThat was a really nice chest.' },
     { who: 'torva', text: 'Problem? HAMMER. Locked door? HAMMER.\nBad day? I buy the drinks. THEN hammer.' },
   ],
