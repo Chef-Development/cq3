@@ -1473,6 +1473,14 @@ C17. **The fifth region joins the campaign** (its art and music landed): `NOON_O
   (`GaugeOpts.label`); a foe plate keeps one format the whole fight, chosen by its max HP (`foeHpText`: "71/90", or
   both halves in thousands, "7.7k/12.3k"). In a scene during a fight (a boss's phase line) Skip rests on the dialogue
   box's top edge at the end away from the portrait, never on the foe's plate.
+- **Q20 The bar rules read at phone size** (review 2): a drifting block has two bold chevrons ahead of it (7 rows,
+  2 px thick, ink-rimmed) and speed lines trailing it in its own colour; a linked pair's chain is 3x2 links with an
+  ink rim, each linked yellow wears an interlocked-links glyph on its face, and once one is hit its partner pulses with
+  a 2 px rim; an unlit dark block is a neutral slate with a dashed outline (no block has one), never the trap's violet;
+  a hold is copper (its ridges, fill, glow, ring and "Hold!" to match), so the bar's blues are only the ice, the frozen
+  reds and the cursor. Every kind is still told apart without colour (the hold by its groove and notches).
+- **Q21 Impact white frames and screen flashes stay off the HUD**: they fill the stage around `hud.keepOut()` (the
+  plates, the act plate and wave pips, the belt, the name lane, the combo counter), never the bar's band.
 (qa: end of section)
 
 

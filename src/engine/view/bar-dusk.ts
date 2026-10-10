@@ -17,9 +17,10 @@ const DUSK = 0x07060d;
 const GLOW = 0xffc870;
 const GLOW_HOT = 0xffe6a8;
 const GLOW_LOW = 0xc8a0e0; // a dimmed lantern burns low and cool
-const SHAPE = 0x231c35;
-const SHAPE_RIM = 0x8070b0;
-const SHAPE_GLINT = 0xd8ccff;
+// (a neutral slate, never the trap's violet: review round 8 read the old violet shapes as traps)
+const SHAPE = 0x1c2026;
+const SHAPE_RIM = 0x76808c;
+const SHAPE_GLINT = 0xd0d8e0;
 const WATER = 0x1b4f6e;
 const WATER_DEEP = 0x0f2f48;
 const SURF = 0x9fe0f0;
@@ -73,11 +74,16 @@ export function drawLantern(g: G, c: Combat, t: number, now: number, B: BarBox, 
 export function drawDarkShape(g: G, x: number, y: number, w: number, h: number, now: number, id: number): void {
   g.fillStyle(SHAPE, 0.96);
   g.fillRect(x, y + 1, w, h - 2);
-  g.fillStyle(SHAPE_RIM, 1);
-  g.fillRect(x + 1, y, w - 2, 1);
-  g.fillRect(x + 1, y + h - 1, w - 2, 1);
-  g.fillRect(x, y + 1, 1, h - 2);
-  g.fillRect(x + w - 1, y + 1, 1, h - 2);
+  // a faint dashed outline (no block has one: it reads as "something's there", not as any kind)
+  g.fillStyle(SHAPE_RIM, 0.9);
+  for (let i = x + 1; i < x + w - 1; i += 3) {
+    g.fillRect(i, y, Math.min(2, x + w - 1 - i), 1);
+    g.fillRect(i, y + h - 1, Math.min(2, x + w - 1 - i), 1);
+  }
+  for (let j = y + 1; j < y + h - 1; j += 3) {
+    g.fillRect(x, j, 1, Math.min(2, y + h - 1 - j));
+    g.fillRect(x + w - 1, j, 1, Math.min(2, y + h - 1 - j));
+  }
   // two glints, slowly breathing (each shape on its own beat)
   const k = 0.55 + 0.35 * Math.sin(now / 420 + id * 1.7);
   g.fillStyle(SHAPE_GLINT, k);
