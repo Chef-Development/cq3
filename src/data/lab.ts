@@ -249,6 +249,8 @@ const ROUND7: LabScenario[] = [
     group: 'heroes',
     label: 'Finisher gallery',
     secs: 60,
+    // round 8 (art, team 2): Rowan redrawn on the shared rig, every hero's idle in four frames, squash and stretch
+    rev: 1,
     try: 'Pick a hero, stacks and rarity. Press Play.',
     setup: { kind: 'gallery', act: 1, foes: ['slime', 'wolf', 'crow'] },
   },
@@ -289,6 +291,12 @@ export const LAB_NEW: LabScenario[] = [
   { id: 'r8Story3', group: 'spoiler', spoiler: true, label: 'Act 3 story (new)', secs: 90, try: 'Read the scenes. Does the ending pull you on?', setup: { kind: 'story', act: 2, scenes: ['act3', 'boarKing', 'boarKing2', 'boarKing3', 'victory'] } },
   // ---- art (team 2)
   { id: 'titleAtlas', group: 'camp', label: 'New title screen', secs: 30, try: 'Watch it settle (logo, map, fog), then tap to start.', setup: { kind: 'title' }, profile: { actsCleared: 0 } },
+  // Rowan redrawn on the shared rig (plume and cape that lag his breath, every pose), the four-frame idles, squash and
+  // stretch on cuts, blows and landings
+  heroFight('rowanLook', 'rowan', 'Rowan: new look', 'Watch him breathe, cut, get hit. Finish!', [['slime', 'crow'], ['wolf', 'archer'], ['bandit', 'slime'], ['boar', 'crow'], ['archer', 'wolf'], ['knight', 'slime']], { rev: 0 }),
+  // the third region's last two stages with depth and air (the far cavern, heat shafts, the furnace's plume)
+  { id: 'spStage8', group: 'spoiler', spoiler: true, label: 'Act 8 stage', secs: 30, try: 'Look past the foe: depth? Does the hero pop?', setup: { kind: 'fight', hero: 'rowan', act: 7, waves: [['dummy']], safe: true } },
+  { id: 'spStage9', group: 'spoiler', spoiler: true, label: 'Act 9 stage', secs: 30, try: 'Look past the foe: depth? Does the hero pop?', setup: { kind: 'fight', hero: 'rowan', act: 8, waves: [['dummy']], safe: true } },
   // ---- content: the new regions (team 3; spoilers)
   // the fourth region's two bar rules, each alone against the Training Dummy (nothing hurts, the rule's tip on), then
   // both at once against real foes
