@@ -1189,6 +1189,9 @@ function stageDusk(S: Stage): void {
       buf[y * W + 627] = col('#2a1e14');
     }
     claimBox(c, 600, 236, 50, 36);
+    // small clearings where Rowan stands by the village and the lighthouse (WORLD_ACTS_DUSK stands)
+    claimBox(c, 588, 248, 14, 14);
+    claimBox(c, 684, 241, 14, 14);
     for (const [x, y] of STILT_HUTS) stiltHut(c, x, y);
     const b = WORLD_SPOTS.beacon;
     shade(p, b.x + 2, b.y + 15, 5, 1.5, 0.35);
