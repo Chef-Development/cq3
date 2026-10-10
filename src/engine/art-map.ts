@@ -37,6 +37,7 @@ import {
 } from './backdrop';
 import { cluster, serac, shard } from './backdrop-ice';
 import { MINIS } from './art-minis';
+import { gradeMap } from './art-mood';
 
 type Add = (key: string, c: HTMLCanvasElement) => void;
 export type Pt = [number, number];
@@ -1024,6 +1025,8 @@ export interface Land {
   glows: Array<[number, number, number]>;
   /** Pools of open water (the caves' ice pools): their centres. */
   pools: Pt[];
+  /** Lanterns beside the roads (dusk themes): the lamp's pixel, for a flicker on the map. */
+  lamps: Pt[];
   /** Open ground for the critters to hang around. */
   spots: Pt[];
   /** Per pixel (y * w + x), for the critters (view/map-life.ts): 0 road or kept clear, 1 open ground, 2 cover (a
@@ -1368,8 +1371,11 @@ function houseDeco(): Deco {
   // door and window
   for (let y = foot - 3; y <= foot; y++) for (let x = 10; x <= 11; x++) p.set(x, y, x === 10 ? wood[3] : wood[1]);
   for (let y = foot - 4; y <= foot - 3; y++)
-    for (let x = 4; x <= 6; x++) p.set(x, y, x === 5 ? wood[2] : col('#ffe680'));
-  return deco(p, 9, foot, 8, 7, { shadow: [9, 2] });
+    for (let x = 4; x <= 6; x++) p.set(x, y, x === 5 ? wood[2] : col('#ffc850'));
+  // a lamp lit inside at dusk: its light pools round the house (decision L7)
+  const d = deco(p, 9, foot, 8, 7, { shadow: [9, 2] });
+  d.glow = col('#ffa040');
+  return d;
 }
 
 /** A small fenced field of crops in rows. */
@@ -3761,7 +3767,7 @@ function frameEdges(p: Pix, c: Ctx, theme: Theme): void {
 export function paintLand(spec: LandSpec): Land {
   const W = spec.w;
   const H = spec.h;
-  const land: Land = { frames: [], flames: [], smoke: [], mills: [], water: [], glows: [], pools: [], spots: [], ground: new Uint8Array(W * H) };
+  const land: Land = { frames: [], flames: [], smoke: [], mills: [], water: [], glows: [], pools: [], lamps: [], spots: [], ground: new Uint8Array(W * H) };
   const road = new Uint8Array(W * H);
   const mark = (x: number, y: number, v: number) => {
     if (x >= 0 && y >= 0 && x < W && y < H && road[y * W + x] !== 2) road[y * W + x] = v;
@@ -3828,6 +3834,8 @@ export function paintLand(spec: LandSpec): Land {
 
   // from here on, the icons, their labels and the lair are off limits too
   for (const z of spec.zones) reserve(c, z.x, z.y, z.w, z.h);
+  // lanterns along the roads (decision L7: the dusk's light comes from them), clear of the nodes, labels and HUD
+  if (LANTERN_THEMES.includes(spec.theme)) roadLanterns(base, c);
   c.dist = distField(c.block, W, H);
   // a signpost at the start
   const start = spec.pads.find((q) => q.start);
@@ -3866,6 +3874,7 @@ export function paintLand(spec: LandSpec): Land {
   const sx = spec.theme === 'hollow' ? 2 : 1;
   for (const it of c.items) if (it.d.shadow) shadowAt(base, it.x + sx, it.y, it.d.shadow[0], it.d.shadow[1], 0.35, shade);
   c.items.sort((a, b) => a.y - b.y || a.x - b.x);
+  const moodCache = new Map<Col, Col>(); // the act's mood (art-mood.ts), one colour map for every frame
   for (let f = 0; f < LAND_FRAMES; f++) {
     const p = new Pix(W, H, 0);
     p.buf.set(base.buf);
@@ -3876,6 +3885,7 @@ export function paintLand(spec: LandSpec): Land {
     }
     frameEdges(p, c, spec.theme);
     lightFrame(p, c, spec.theme);
+    gradeMap(spec.theme, p, road, 0.55, moodCache);
     land.frames.push(p.canvas());
   }
   // what's underfoot, for the critters: open ground, or scenery to hide in
@@ -3898,6 +3908,55 @@ export function paintLand(spec: LandSpec): Land {
     if (c.dist[at(c, x, y)] > 3 && !c.water[at(c, x, y)]) land.spots.push([Math.round(x), Math.round(y)]);
   }
   return land;
+}
+
+/** The themes whose roads are lit by lanterns at dusk. */
+const LANTERN_THEMES: Theme[] = ['forest', 'hollow', 'pass'];
+
+/**
+ * Lantern posts beside the roads, every so often along each trail, never near a node's clearing, a label, the HUD or
+ * another lantern: a dark post, a warm lamp and the pool of light it throws on the ground (static; land.flames for
+ * the view's flicker).
+ */
+function roadLanterns(p: Pix, c: Ctx): void {
+  const { W, H, spec } = c;
+  const placed: Pt[] = [];
+  const post = ramp('#1a1010', '#2e1c14', '#4a2e1c');
+  const lamp = ramp('#c8642a', '#ffb84a', '#fff0b0');
+  const near = (x: number, y: number) =>
+    spec.pads.some((q) => Math.hypot(x - q.x, (y - q.y) * 1.3) < q.r + 7) ||
+    spec.zones.some((z) => x > z.x - 3 && x < z.x + z.w + 3 && y > z.y - 6 && y < z.y + z.h + 3) ||
+    kept(c, x - 2, y - 6, 5, 8) ||
+    placed.some(([px, py]) => Math.hypot(x - px, y - py) < 34);
+  let side = 1;
+  for (const t of spec.trails) {
+    let run = 14;
+    for (let i = 1; i < t.length - 1; i++) {
+      run += Math.hypot(t[i][0] - t[i - 1][0], t[i][1] - t[i - 1][1]);
+      if (run < 26) continue;
+      const [x0, y0] = t[i];
+      const dx = t[i + 1][0] - t[i - 1][0];
+      const dy = t[i + 1][1] - t[i - 1][1];
+      const len = Math.hypot(dx, dy) || 1;
+      const x = Math.round(x0 - (dy / len) * 4 * side);
+      const y = Math.round(y0 + (dx / len) * 4 * side);
+      if (x < 6 || y < 8 || x > W - 6 || y > H - 4 || near(x, y) || c.road[y * W + x] || c.water[y * W + x]) continue;
+      // the light pooled round its foot, then the post and the lamp
+      torchLight(p, x + 0.5, y - 1, 9, 5, col('#ff9a40'), 0.3);
+      for (let k = 0; k < 4; k++) p.set(x, y - k, post[k === 0 ? 0 : 1]);
+      p.set(x + 1, y - 1, post[0]);
+      p.set(x, y - 6, post[0]);
+      p.set(x - 1, y - 5, lamp[0]);
+      p.set(x, y - 5, lamp[2]);
+      p.set(x + 1, y - 5, lamp[1]);
+      p.set(x, y - 4, lamp[1]);
+      reserve(c, x - 2, y - 7, 5, 9);
+      placed.push([x, y]);
+      c.land.lamps.push([x, y - 5]);
+      run = 0;
+      side = -side;
+    }
+  }
 }
 
 // ------------------------------------------------------------------ textures

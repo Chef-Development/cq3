@@ -3,7 +3,7 @@
 // hanging charms, and soft cyan spirit-light round her hands. Fight frames `yara_${pose}` on the shared rig
 // (art-rig.ts).
 import { put, stamp, type Pal, type Shade } from './art';
-import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, ribbon, type Rig, type RigPose, sparkle, STEP } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, ribbon, type Rig, type RigPose, sparkle, STEP } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -37,29 +37,29 @@ export const YARA_SHADES: Record<string, Shade> = {
 // ------------------------------------------------------------------ body
 
 // Dark hair with soft bangs, a bead at the temple, warm brown eyes, a small smile; 16 wide.
+// (playtest round 8, L8, by hand: dark hair with beads, a calm brow over one dark iris each, high cheekbones, a
+// small mouth and a narrow chin) 16 x 12.
 const HEAD = [
   '.....hhhhhh.....',
   '...hhhhLLhhhh...',
-  '..hhhLLhhhhhhh..',
   '.hhhLhhhhhhhhhh.',
-  '.hhhhhhhhhhhhhhh',
   'hhhhhhhhhhhhhhhh',
   'hhhhhhhhhhSShhhh',
-  'hhhhhhhSSSSSSSSh',
-  'hhOhhhzSSkkSSkkS',
-  'hhRhhzEzSWiSSWiS',
+  'hhhhhhhSSHHSSHHS',
+  'hhOhhhzSSSkSSSkS',
+  'hhRhhzEzSSSSSSSS',
   '.hYhhzzSSSSSSSST',
-  '..hhhhzSSSSSSSz.',
-  '...hh.zzSxxSSz..',
-  '.......zzSSSS...',
+  '..hhhhzSSSSSSzz.',
+  '...hh.zzSSSxSz..',
+  '.......zzSSz....',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 16 - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
-  squint: face(HEAD, { 8: 'SSSSSSSS', 9: 'SSkkSSkk', 12: 'SxxxxSz..' }),
-  ko: face(HEAD, { 8: 'SSSSSSSS', 9: 'SSSSSSSS', 10: 'SSkkSSkT', 12: 'SSSxSSz..' }),
+  squint: face(HEAD, { 5: 'SSHHSSHHS', 6: 'SSSzzSSzzS', 10: 'SxxxSz..' }),
+  ko: face(HEAD, { 5: 'SSSSSSSSS', 6: 'SSSzzSSzzS', 10: 'SSSxSz..' }),
   // calling the spirits: eyes shut, a calm smile
-  call: face(HEAD, { 8: 'SSSSSSSS', 9: 'SSkkSSkk', 12: 'SxxxSSz..' }),
+  call: face(HEAD, { 6: 'SSSzzSSzzS', 10: 'SxxSSz..' }),
 };
 
 // The star-patterned shawl over the shoulders and draped down either side, the white tunic, a beaded sash.
@@ -95,7 +95,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const YARA_RIG: Rig = {
   pal: { ...YARA_PAL, '8': SKIN[1], '9': SKIN[0] },
   shades: YARA_SHADES,
-  heads: matureHeads(HEADS, {drop: [2, 4]}),
+  heads: HEADS,
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

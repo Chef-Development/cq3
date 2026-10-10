@@ -82,23 +82,23 @@ export const STORY: Record<string, StoryBox[]> = {
   welcomeBack: [
     { who: 'pip', text: "Hoo. You're back. A lot has changed while you\nwere away. Sit down, I'll catch you up." },
     { who: 'pip', text: 'The kingdom is a living map. The man redrawing\nit is the Mapmaker. Only you stayed awake.' },
-    { who: 'pip', text: "Restore a region and his redraw breaks.\nSable's at camp. Counting our coins. Again." },
+    { who: 'pip', text: "Restore a land and his redraw breaks.\nSable's at camp. Counting our coins. Again." },
   ],
   welcomeBackVisitor: [
     { who: 'pip', text: "Hoo. You're back. A lot has changed while you\nwere away. Sit down, I'll catch you up." },
     { who: 'pip', text: 'The kingdom is a living map. The man redrawing\nit is the Mapmaker. Only you stayed awake.' },
-    { who: 'pip', text: "Restore a region and his redraw breaks.\nAnd someone's been creeping round the camp..." },
+    { who: 'pip', text: "Restore a land and his redraw breaks.\nAnd someone's been creeping round the camp..." },
   ],
   welcomeBackSoon: [
     { who: 'pip', text: "Hoo. You're back. A lot has changed while you\nwere away. Sit down, I'll catch you up." },
     { who: 'pip', text: 'The kingdom is a living map. The man redrawing\nit is the Mapmaker. Only you stayed awake.' },
-    { who: 'pip', text: 'Restore a region and his redraw breaks.\nClear Act 1 and we get a visitor. Shifty one.' },
+    { who: 'pip', text: 'Restore a land and his redraw breaks.\nPast the Meadow Road, a visitor. Shifty one.' },
   ],
   // New game: at most 4 boxes before the first fight (this and act1). Who he is, and the Atlas, come later.
   intro: [
     { who: 'narrator', text: 'Whatever is drawn on the Great Atlas is real:\nevery road, river and hill in the kingdom.' },
     { who: 'narrator', text: 'Someone is redrawing it, land by land. Where\nhe rubs out a line, the land goes blank.' },
-    { who: 'narrator', text: 'Last night he came to the Meadow Road. Only\none knight woke up. A voice: "Now that is odd."' },
+    { who: 'narrator', text: 'Last night he came to the Meadow Road, and\nall there fell asleep. All but one knight.' },
   ],
   // Act 1 starts: Pip arrives (and already knows Rowan's name)
   act1: [
@@ -181,7 +181,7 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'pip', text: 'He held the season too. No spring, so no\navalanches. No thaw, and no planting.' },
     { who: 'rowan', text: 'Like the crown in the Hollow. Something here\nholds it all. We find it, and we break it.' },
   ],
-  // Act 1 mini-boss: a colossal ram who keeps travellers off the glass road for their own good
+  // Act 1 mini-boss: a colossal ram who keeps travelers off the glass road for their own good
   rimehorn: [
     { who: 'rimehorn', text: 'STOP. Nobody crosses Frostbite Pass.\nThe road is glass now. Turn back.' },
     { who: 'rowan', text: 'We have to cross. Something up there holds\nthis whole mountain still.' },
@@ -338,7 +338,7 @@ Object.assign(STORY, PAGE_STORY);
 Object.assign(STORY, {
   meetGorm: [
     { who: 'narrator', text: "Two stone fists lift the chest's lid off,\nvery, very gently." },
-    { who: 'gorm', text: "Oh. Hello. Sorry, I was napping.\nI'm Gorm. I punch rocks. Nicely." },
+    { who: 'gorm', text: "Mm. Sorry. I was napping. I'm Gorm.\nI punch rocks. Nicely." },
     { who: 'rowan', text: 'You were napping in a chest?\nHow did you even fit in there?' },
     { who: 'gorm', text: "I folded up small, like my stones back home.\nThey've gone blank. So. Who do I hit?" },
   ],

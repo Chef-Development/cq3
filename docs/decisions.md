@@ -901,6 +901,18 @@ S17. **Atlas pages: one per act, built on what exists.** Each act's hidden treas
     reads as none). The region card's treasure seal opens that act's page in a `Sheet`. No new art. The pages
     seed the river twist once (Act 11: "Amended."), and name nothing beyond their own region.
 
+S18. **The third editor's notes (round 8, 46 items): applied, with two calls of our own.** An event's outcome text
+    is the only place its gain or cost is named, so every outcome now says it ("Max HP up", the purse, the coins in the
+    dummy's straw, the hedge's scratch). The crossing's lamp is dry (you buy oil to light it, or take the lamp to sell);
+    the Duskmire's danger is the old tide breaking through his lines, never his timetable being wrong (his fixes work).
+    No event names a hero (any of sixteen can be walking). A keeper never draws a line, not even ivy (the oath twist 2
+    hangs on). Pages found in a chest are things you can carry (a slate, a rubbing, a copy). Sable never shouts in
+    capitals; "Rude." and most of Torva's "HA!" are gone. Our calls: the kills bounty's title is "Clear the Road" in
+    every region (it fits any board; the editor asked only for the miller's), and the clash between Sable's mastery
+    relic and Region 7's keystone (both "Tether") is settled by renaming the unbuilt keystone "the Mooring" (the relic
+    is already earned in saves). Not ours, passed to the lead: Tess and Brann both unlock Crampons at mastery 5.
+    US spelling throughout ("gray", "travelers").
+
 (story: end of section)
 
 
@@ -1099,6 +1111,30 @@ A2B-13. **Map walkers 18 px tall** (the chest heroes' walkers in `art-hero-map.t
     to two more leg rows, so they stand about three heads tall like the fight frames, with the mature grade. The act
     map and the title anchor a walker at its feet from its own height (two rows up from the bottom), so walkers of any
     height share the ground line.
+A20. **The sharper text: where the fine layer went and where it didn't** (the chest reveal's 2x layer rolled out to
+    what the player reads most; judged from side-by-side phone shots, 874x402 @3x, each crop at device pixels).
+    *How:* a `TextPool` a surface hands the fine layer (`pool.hd`, view/hd-text.ts) draws each text it can on one DOM
+    canvas over the game (`#hd-text`, cleared once a frame, hidden on frames that don't draw on it), in the bitmap's
+    exact place and width; the bitmap stays, transparent, for measuring, focus and tests. *The lettering:* plain
+    Scale2x was a loss on the small font (2 px strokes: '+' became a diamond, 'f' a blob, '%' and 'x' smeared), so
+    the text uses `smooth: 'round'` (font-hd.ts: a doubled glyph only loses its outer corners, never gains a pixel)
+    at the game text's weight (a 2 fine px outline and drop shadow; the reveal's 1 px read thin and grey on dark
+    boxes). The win is modest but everywhere: stroke ends and bends round off, 'e a o g s S G' read as letters
+    rather than blocks, same size, same weight. *The switch:* one flag a surface (hd-switch.ts: story, heroSelect,
+    tips, cards), all on; the 'cq3.hdText' setting ('off', 'on', or per surface) puts any back on the old path. A
+    surface turns it off for any frame something covers it (a wipe, a tip card, a story box over the camp, the
+    finisher reveal, a toast, a sheet over the hero select, a reveal card over the loot row), since the fine layer
+    sits above the whole game canvas. *Where it went:* the story boxes (lines, typed out by cropping the whole line's
+    image so typing paints nothing new; the speaker's ribbon; Skip), the tip card, the hero select (chips, the hero's title,
+    kit labels, buttons, Lv) and its sheets, the relic/boost pick's cards, the loot row's names and its Legendary/
+    Mythic card. *Where it didn't:* text at scale 3 (the hero select's big name: the fine path doubles twice at
+    most), extruded or explicitly graded text (titles, ribbons' gradients: they keep the old path inside the same
+    surface), several-line strings; the fight HUD, the bar's callouts and the act map (they move with the world, sit
+    under particles and flashes, and are read at a glance, not read: no gain worth the overlap risk); the world map
+    and the camp home (labels over a moving, panning picture). *Cost:* a new line paints once (cached; colours to 5
+    bits a channel so a pulsing colour reuses a few images); painting went to a pixel buffer (a fillRect a pixel
+    cost ~10 ms a story line on the loaded test machine, now a few). The chest reveal's lettering is unchanged
+    (its defaults; its summary snapshot passes).
 
 (art: end of section)
 
@@ -1302,8 +1338,8 @@ C-ART-8. **Region 5's music** (six pieces, each its own key, tempo and meter; ne
   frames, shorter flashes; Auto follows the device). Their own storage key, kept through a New game. **Larger text**
   (off by default): the pixel fonts scale only in whole steps (2x would need four lines in a two-line box), so it uses
   the bold display letters (caps 7 px, not 5), which the story's 11 px pitch holds: a story box takes them when all its
-  lines fit the 256 px text area in them (258 of 274 boxes; the other 16 keep the small letters), and the tip card
-  grows to hold them. A third line or paging for the rest is the story view's owners' call.
+  lines fit the 256 px text area in them (258 of 274 boxes); the other 16 are re-wrapped into three bold lines and
+  that box grows by a line (chunk 4; a unit test walks every box), and the tip card grows to hold them.
 - **Q14 The boot check in the repo** (`scripts/boot-check.mjs`, `npm run boot-check -- <port>`): proposed as a CI
   step after the build (the deploy workflow: install Chromium, preview, run it; about a minute) so a boot crash never
   reaches the live build; a jsdom version in `npm test` can't paint (no canvas or WebGL).

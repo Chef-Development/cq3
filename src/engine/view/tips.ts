@@ -15,6 +15,7 @@ import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
 import { GOLD, NAVY, panel } from './pixels';
 import { clamp01, COL, easeBack, INK, mix, pulse, WHITE, type Rect } from './shared';
+import { hdFor } from './hd-text';
 import { tag, TextPool } from './ui';
 import { A11Y } from '../a11y';
 
@@ -152,6 +153,8 @@ export class TipsView {
     const m = this.moment(ok && now - this.okSince >= settle);
     const cue = app.tips.next(m);
     if (cue && !this.cue) this.show(cue, m, now);
+    // the sharper text (view/hd-text.ts): the card sits over everything but a wipe
+    this.texts.hd = hdFor(s, 'tips', s.transition.active(now));
     if (this.cue) this.drawCard(g, now);
     this.texts.end();
   }

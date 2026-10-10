@@ -498,6 +498,11 @@ export class Sheet {
     return this.open && inRect(this.rect, x, y);
   }
 
+  /** On screen (open, or still sliding away). */
+  shown(now: number): boolean {
+    return this.open || now - this.closeAt < 160;
+  }
+
   /** Draw it in `area` (it takes the width, and the height its lines need, sitting at the area's bottom). */
   draw(kit: CampKit, area: Rect, now: number): void {
     const out = !this.open;

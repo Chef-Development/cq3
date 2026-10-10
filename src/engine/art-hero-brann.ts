@@ -6,7 +6,7 @@ import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './a
 import { and, ell, fill, or, rimShade, sphere } from './art-paint';
 
 const INK_B = '#140c1c';
-import { type HeroCardSpec, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Rig, type RigPose, sparkle } from './art-rig';
+import { type HeroCardSpec, type Layer, LEG_FEET_X, matureLegs, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -39,18 +39,18 @@ export const BRANN_SHADES: Record<string, Shade> = {
 // ------------------------------------------------------------------ body
 
 // The shaved head (lit from its own shape), bushy grey brows over calm, narrowed eyes, a grey beard.
+// (playtest round 8, L8, by hand: an old monk: a bald, lined crown, heavy white brows over one dark iris each, the
+// long white beard) 16 x 11.
 const HEAD = [
-  '................',
   '.....ssssss.....',
   '...ssssssssss...',
-  '..sssssssssssss.',
-  '.ssssssssssssss.',
+  '.sssssssEEEsEEs.',
   '.ssssssSSbbbSbbb',
-  '.sssssSSSkkSSSkk',
+  '.sssssSSSSkSSSkS',
   '.sssssEzSSSSSSSS',
   '..ssssEzSSSSSSST',
   '..zssssSSdddSSdS',
-  '...zdddddddxxdd.',
+  '...zdddddddxdd..',
   '....dddddddddd..',
   '......dddddd....',
 ];
@@ -58,10 +58,10 @@ const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) =
 const HEADS = {
   base: HEAD,
   // eyes shut tight, teeth set
-  squint: face(HEAD, { 5: 'SbbbSSbbb', 6: 'SSkkkSkkk', 10: 'dddxWxdd.' }),
-  ko: face(HEAD, { 5: 'SSSSSSSSS', 6: 'SSkSkSkSk', 7: 'SSSkSSSkS', 10: 'ddddxddd.' }),
+  squint: face(HEAD, { 3: 'SbbbSSbbb', 4: 'SSSzzSSzz', 8: 'dddxWxdd.' }),
+  ko: face(HEAD, { 3: 'SSSSSSSSS', 4: 'SSSzzSSzz', 8: 'ddddxddd.' }),
   // a shout: brows down, eyes wide open, mouth open in the beard
-  shout: face(HEAD, { 5: 'SSbbSSSbb', 6: 'SSSkWSSkW', 10: 'dddxxxxd.', 11: 'ddxxddd..' }),
+  shout: face(HEAD, { 3: 'SSbbbSSbb', 4: 'SSSSkSSSkS', 8: 'dddxxxxd.', 9: 'ddxxddd..' }),
 };
 
 // Broad shoulders: the saffron upper robe over the maroon, the prayer beads in a loop, a saffron sash.
@@ -97,7 +97,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const BRANN_RIG: Rig = {
   pal: { ...BRANN_PAL, '8': BRANN_MAROON[1], '9': SANDAL[0] },
   shades: BRANN_SHADES,
-  heads: matureHeads(HEADS, {drop: [0, 3]}),
+  heads: HEADS,
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

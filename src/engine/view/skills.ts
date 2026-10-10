@@ -652,7 +652,7 @@ export class SkillsScreen {
     }
     const prev = at.j > 0 ? br.nodes[at.j - 1] : null;
     const bw = b.w - 8;
-    const reason = why === 'order' && prev ? fit([`${prev.name} first`, `Needs ${prev.name}`, 'Learn the one below'], bw) : why === 'points' ? this.noPoints(bw) : '';
+    const reason = why === 'order' && prev ? fit([`${prev.name} first`, `Needs ${prev.name}`, 'Locked'], bw) : why === 'points' ? this.noPoints(bw) : '';
     if (reason) {
       const sk = clamp01(1 - (now - this.shakeAt) / 450);
       kit.button(g, texts, bb, reason, FACE.grey, now, { disabled: true, bold: textWidth(reason, 1, true) <= bw, shakeAt: this.shakeAt, labelCol: sk > 0 ? mix(0xff9a8a, WHITE, 1 - sk) : undefined });

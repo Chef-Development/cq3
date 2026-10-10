@@ -156,7 +156,7 @@ function rowan(): HTMLCanvasElement {
   const RED = ROWAN_PLUME;
   const g = grid(P, P);
   // plume: scalloped tufts streaming back from the crest (tail first, so the crest overlaps)
-  const plume = bez([21, 8], [15, -2], [3, 4], [4, 20], 14);
+  const plume = bez([20, 7], [14, -3], [3, 3], [4, 20], 14);
   for (let i = plume.length - 1; i >= 0; i--) {
     const [x, y] = plume[i];
     const r = 3.8 - (i / plume.length) * 1.8;
@@ -180,43 +180,55 @@ function rowan(): HTMLCanvasElement {
   }
   // a scratch across the near pauldron
   for (let k = 0; k < 3; k++) put(g, 31 + k, 33 + k, STEEL[3]);
-  // helmet: one rounded volume with a squared bevor (the jaw), smaller on the shoulders than before
-  const helm = or(ell(20.5, 17.5, 10, 11), ell(24.5, 21.5, 7.5, 6.5));
-  fill(g, helm, sphere(STEEL, 17, 13, 12, 13.5, 0.16));
+  // helmet (playtest round 8: no round dome): a flat-topped great helm in two planes, its side lit from the top
+  // left and its face turned toward the right a step darker, a raised ridge down the middle catching the light
+  const helmPts: Array<[number, number]> = [[14, 9], [18, 6], [25, 6], [29, 8], [31, 12], [31, 21], [28, 26], [22, 28], [17, 27], [14, 24], [13, 15]];
+  const helm: Inside = (x, y) => {
+    const px = x + 0.5;
+    const py = y + 0.5;
+    let c = false;
+    for (let i = 0, j = helmPts.length - 1; i < helmPts.length; j = i++) {
+      const [xi, yi] = helmPts[i];
+      const [xj, yj] = helmPts[j];
+      if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) c = !c;
+    }
+    return c;
+  };
+  const RIDGE = 25;
+  fill(g, helm, (x, y) => (x < RIDGE ? tone(STEEL, 0.78 - (x - 13) * 0.014 - (y - 6) * 0.016) : x === RIDGE ? STEEL[4] : tone(STEEL, 0.5 - (y - 6) * 0.012 - (x - 26) * 0.01)));
   rimShade(g, helm, STEEL[0]);
-  // a bright steel edge along the top and left of the dome, a warm specular dash, a dent
-  for (let x = 10; x < 30; x++)
-    for (let y = 5; y < 20; y++) if (helm(x, y) && (!helm(x, y - 1) || !helm(x - 1, y)) && x + y < 33) put(g, x, y, STEEL[4]);
-  stamp(g, ['WW', 'W.'], { W: '#e8e2d4' }, 14, 9);
-  put(g, 24, 10, STEEL[1]);
-  put(g, 25, 10, STEEL[1]);
-  put(g, 24, 11, STEEL[2]);
-  // bronze brow band wrapping round the dome
-  for (let x = 10; x < 32; x++) {
-    const yb = Math.round(13 + ((x - 23) / 11) ** 2 * 2);
+  // a bright steel edge along the top and the left side, the ridge's shadow side, a warm specular dash, a dent
+  for (let x = 12; x < 32; x++)
+    for (let y = 5; y < 26; y++) if (helm(x, y) && (!helm(x, y - 1) || (!helm(x - 1, y) && y < 20)) && x < RIDGE + 3) put(g, x, y, STEEL[4]);
+  for (let y = 7; y < 27; y++) if (helm(RIDGE + 1, y)) put(g, RIDGE + 1, y, STEEL[1]);
+  stamp(g, ['WW', 'W.'], { W: '#f0ece2' }, 16, 9);
+  put(g, 19, 21, STEEL[1]);
+  put(g, 20, 21, STEEL[1]);
+  put(g, 19, 22, STEEL[2]);
+  // the old bronze band across the brow, stepping round the ridge
+  for (let x = 13; x < 32; x++) {
+    const yb = x <= RIDGE ? 12 : 13;
     if (!helm(x, yb)) continue;
-    const v = 0.95 - ((x - 10) / 22) * 0.65;
-    put(g, x, yb, tone(GOLD, v));
-    if (helm(x, yb + 1)) put(g, x, yb + 1, STEEL[1]);
+    put(g, x, yb, x < RIDGE ? tone(GOLD, 0.95 - ((x - 13) / 12) * 0.35) : x === RIDGE ? GOLD[4] : GOLD[2]);
   }
-  put(g, 21, 7, GOLD[3]);
-  put(g, 20, 7, GOLD[4]);
-  // the visor: a narrow slit, two small points of light (the near one a little larger)
-  for (let x = 18; x < 32; x++) {
-    const yb = Math.round(13 + ((x - 23) / 11) ** 2 * 2) + 3;
+  // the visor: a narrow slit, two small points of light either side of the ridge, a lit lip under it
+  for (let x = 16; x < 32; x++) {
+    const yb = x <= RIDGE ? 14 : 15;
     if (!helm(x, yb + 1)) continue;
     put(g, x, yb, '#0e0a16');
     put(g, x, yb + 1, '#0e0a16');
-    if (helm(x, yb + 2)) put(g, x, yb + 2, STEEL[3]);
+    if (helm(x, yb + 2)) put(g, x, yb + 2, x < RIDGE ? STEEL[4] : STEEL[3]);
   }
-  put(g, 22, 17, ROWAN_GLOW[2]);
-  put(g, 23, 17, ROWAN_GLOW[1]);
-  put(g, 28, 17, ROWAN_GLOW[2]);
-  // breathing holes in the bevor
+  put(g, 21, 15, ROWAN_GLOW[2]);
+  put(g, 22, 15, ROWAN_GLOW[1]);
+  put(g, 28, 16, ROWAN_GLOW[2]);
+  // breathing holes in the face plate
   for (const [x, y] of [
-    [24, 23],
-    [26, 23],
-    [28, 22],
+    [27, 20],
+    [29, 20],
+    [27, 22],
+    [29, 22],
+    [28, 24],
   ]) {
     put(g, x, y, STEEL[0]);
     put(g, x, y + 1, STEEL[2]);

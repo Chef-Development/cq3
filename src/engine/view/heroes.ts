@@ -32,6 +32,7 @@ import { padlock } from './items';
 import { gauge, glow, GOLD, NAVY } from './pixels';
 import { clamp01, easeBack, easeOut3, inRect, INK, mix, pulse, WHITE, type Rect } from './shared';
 import { FACE, isPressed, notePress, tag } from './ui';
+import { hdFor } from './hd-text';
 import { aura, bigButton, drawStage, enterK, fillEllipse, glass, iconCard, liftDim, pageArrow, pips, pixMap, popK, Sheet, type Face, type SheetLine } from './ui-modern';
 
 type G = Phaser.GameObjects.Graphics;
@@ -642,6 +643,10 @@ export class HeroesScreen {
   draw(now: number): void {
     const kit = this.kit;
     const g = kit.gUi;
+    // the sharper text (view/hd-text.ts): the screen's under an open sheet goes the old way, the sheet's stays sharp
+    const covered = kit.hdCovered(now);
+    kit.texts.hd = hdFor(kit.s, 'heroSelect', covered || this.sheet.shown(now));
+    kit.topTexts.hd = hdFor(kit.s, 'heroSelect', covered);
     liftDim(kit, (now - this.openAt) / 160);
     this.drawBackdrop(now);
     this.drawHeroes(now);

@@ -3,7 +3,7 @@
 // with fizzing fuses. Fight frames `tam_${pose}` on the shared rig (art-rig.ts), and the UI's `keg_icon`.
 import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './art';
 import { ell, fill, sphere } from './art-paint';
-import { type HeroCardSpec, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Rig, type RigPose, sparkle } from './art-rig';
+import { type HeroCardSpec, type Layer, LEG_FEET_X, matureLegs, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -40,29 +40,29 @@ export const TAM_SHADES: Record<string, Shade> = {
 // ------------------------------------------------------------------ body
 
 // The bandana knotted at the back, the goggles up on the forehead, messy hair, a soot-smudged cheeky grin.
+// (playtest round 8, L8, by hand: the cap and goggles over a smaller face: dark brows over one dark iris each, a
+// soot smudge, a lopsided smirk instead of the open grin, the jaw in shadow) 16 x 11.
 const HEAD = [
   '.....oooooo.....',
-  '...oooooooooo...',
-  '..ooooooooooooo.',
-  'O.ooooooooqbbqbbq',
-  'OOoooooooqbGgbGgb',
-  '.Ooooooooqbgnbgnb',
-  '.hhhhhhhhhqbbmbbS',
-  'hhhhhhhzSSSmSSSSS',
-  'hhhhhzEzSSkkSSkkS',
-  '.hhhhzEzSSWiSSWiS',
-  '.hhhhhzSmSSSSSSST',
-  '..hhh.zzSSxxxxxz.',
-  '.......zzSSSSSz..',
-].map((r) => r.slice(0, 16));
+  'O.ooooooooqbbqbb',
+  'OOoooooooqbGgbGg',
+  '.Ooooooooqbgnbgn',
+  '.hhhhhhhhhqbbmbb',
+  'hhhhhhhzSSHHSHHS',
+  'hhhhhzEzSSSkSSkS',
+  '.hhhhzEzSSSSSSST',
+  '.hhhhhzSmSSSSSzS',
+  '..hhh.zzSSSSSxz.',
+  '.......zzzSSSz..',
+];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 16 - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
-  squint: face(HEAD, { 8: 'SSSSSSSS', 9: 'SSkkSSkk', 11: 'SSxWxz.' }),
+  squint: face(HEAD, { 5: 'SHHSSHH', 6: 'SSzzSzzS', 9: 'SSxWxz.' }),
   // knocked out: blackened with soot, eyes crossed out
-  ko: face(HEAD, { 7: 'MSSmMSMSS', 8: 'SmkSmSkSm', 9: 'SSmkSSmkS', 10: 'SmSSMSSST', 11: 'zSSxSz.' }),
+  ko: face(HEAD, { 5: 'MSSmMSMSS', 6: 'SmkSmSkSm', 7: 'SSmSSSmSS', 8: 'SmSSMSSzS', 9: 'zSSxSz.' }),
   // goggles pulled down over the eyes (bracing for a blast)
-  goggles: face(HEAD, { 3: 'oooooooooooooo', 4: 'ooooooooooooo', 5: 'ooooooooooo', 6: 'hhhhhhhSSSS', 7: 'zqbbqbbqb', 8: 'zqbGgbGgb', 9: 'zqbgnbgnb', 10: 'zSqbbqbbq', 11: 'zzSSxxxz.' }),
+  goggles: face(HEAD, { 1: 'oooooooooooooo', 2: 'ooooooooooooo', 3: 'ooooooooooo', 4: 'hhhhhhhSSSS', 5: 'zqbbqbbqb', 6: 'zqbGgbGgb', 7: 'zqbgnbgnb', 8: 'zSqbbqbbq', 9: 'zzSSxxz.' }),
 };
 
 // The shirt with the satchel's strap across it, the leather apron's bib with its pockets.
@@ -96,7 +96,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const TAM_RIG: Rig = {
   pal: { ...TAM_PAL, '8': TROUSER[1], '9': APRON[0] },
   shades: TAM_SHADES,
-  heads: matureHeads(HEADS, {drop: [1, 2]}),
+  heads: HEADS,
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

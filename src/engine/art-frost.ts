@@ -381,43 +381,44 @@ const ICE = ['#1c2a5a', '#2a4c8c', '#3c7cbc', '#68b2dc', '#a8e0f2', '#e8fbff'];
 // snow fur: shadows lean lavender, highlights pure white
 const SNOWFUR = ['#34345a', '#5a5e8a', '#878eb6', '#b2bcd8', '#dae2f2', '#ffffff'];
 // warm accents: knit red, wood
-const KNIT = ['#3e0c18', '#7a1622', '#c42a2e', '#ee5440', '#ff9a78'];
+const KNIT = ['#1e0812', '#3a0e1c', '#5a1626', '#7a2430', '#9a3a40']; // a dark, frozen crimson (decision L8)
 const WOOD = ['#2e1a0e', '#4e2c16', '#6e4020', '#8e5a2e', '#b07a44', '#d09a5e'];
 const EYE: Pal = { k: INK, O: '#ffb02a', o: '#d8661a', W: '#ffffff' };
 
 // ------------------------------------------------------------------ rime imp (a small blue imp with frosted horns)
 
 // cobalt skin: shadows lean violet, highlights lean cyan
-const IMP = ['#16123a', '#24266c', '#34449e', '#4a6aca', '#7a9ce8', '#b4d0ff'];
+const IMP = ['#100c2a', '#1c1c52', '#2a347c', '#3c52a4', '#5e7cc8', '#94b4ec']; // a step darker (decision L8)
 const IMP_PAL: Pal = {
   ...EYE,
   0: '#ffb02a', d: IMP[1],
   m: '#2a0c24', t: '#f4f0e8', r: '#e04a5a', // mouth, fangs, tongue
   a: ICE[1], b: ICE[3], c: ICE[4], H: ICE[5], // frosted horns
-  y: '#f4e8d0', // knit stripe
+  y: '#6a5870', // the scarf's faded stripe
   f: IMP[0], // claws
   C: '#ffffff', D: '#cfe8f6', E: '#8ab8dc', // breath
+  G: '#d8fcff', g: '#6ad8f0', // eyes glowing ice-blue
 };
 const IMP_SHADES: Record<string, Shade> = {
-  s: { ramp: IMP, same: 'kOoW0dmtr', top: [5, 4], left: [4], right: [2, 2], bottom: [1, 2], mid: 3 },
+  s: { ramp: IMP, same: 'kOoW0dmtrGg', top: [5, 4], left: [4], right: [2, 2], bottom: [1, 2], mid: 3 },
   b: { ramp: IMP, same: 'u', top: [4], left: [4], right: [2], bottom: [1, 2], mid: 3 },
   u: { ramp: ['#3a4a8a', '#5a7cc4', '#8ab4e6', '#bcdcf6', '#e8f6ff'], same: 'b', top: [3], left: [3], right: [1], bottom: [1], mid: 2 },
   w: { ramp: ['#100c2a', '#1c1a4a', '#2c2c6e', '#40449a', '#5c66be'], same: 'v', top: [3], left: [3], right: [1], bottom: [1], mid: 2 },
   v: { ramp: IMP, top: [3], left: [3], right: [2], bottom: [2], mid: 3 },
   q: { ramp: KNIT, same: 'y', top: [3], left: [3], right: [1], bottom: [1], mid: 2 },
 };
-// head, 12 wide, facing left: big amber eyes under cheeky brows (pupils toward the hero), a fanged grin
+// head, 12 wide, facing left: cold eyes glowing under a heavy brow, a wide fanged maw (decision L8)
 const IMP_HEAD = [
   '....ssss....',
   '..ssssssss..',
   '.ssssssssss.',
   'sddsdddsssss',
-  'sOOsWOOsssss',
-  'skosk0osssss',
+  'sGgssGgsssss',
+  'sdssdddsssss',
   'ssssssssssss',
-  'mmmmmmssssss',
-  'tmrrtmssssss',
-  '.mmmmsssssss',
+  'mmmmmmmsssss',
+  'tmtmmtmsssss',
+  '.mtmmmssssss',
   '..sssssssss.',
   '....sssss...',
 ];
@@ -1511,7 +1512,7 @@ const WISP_PAL: Pal = {
   // the ribbon: green near the core, through teal, to magenta at the tips; each with a lit and a shaded tone
   a: '#2a9a62', A: '#6ae890', b: '#1a8aa0', B: '#5ad8e8', c: '#8a2a9a', C: '#e070c8', d: '#5a1a6a', D: '#f8a8e0',
   W: '#ffffff', Y: '#fff0a0', y: '#f2c230', o: '#ff9a3a', O: '#d8661a', // the core
-  k: INK, h: '#fff8d0', // eyes, halo
+  k: INK, h: '#bce8f0', // sockets, the pale glow round the skull
 };
 
 /** One aurora ribbon: a path (t from 0 at the core to 1 at the tip) swept with a width, lit along its upper edge. */
@@ -1546,7 +1547,8 @@ function wispParts(pose: string): Part[] {
   let ph = 0; // wave phase
   let spread = 1; // how far the ribbons reach
   let lash = 0; // ribbons swept forward (to the left)
-  let core = ['.yYy.', 'yYWWy', 'YWWWo', 'yWWoO', '.ooO.'];
+  // (decision L8) the core a little skull of cold light: dark sockets, a jaw
+  let core = ['.hWh.', 'WkWkW', 'hWWWh', '.WkW.', '.h.h.'];
   let halo = true;
   switch (pose) {
     case 'idle1':
@@ -1568,14 +1570,14 @@ function wispParts(pose: string): Part[] {
       cx = 15;
       ph = 3.2;
       spread = 0.75;
-      core = ['.oOo.', 'oyYyO', 'OkyyO', 'oyykO', '.OOO.'];
+      core = ['.hWh.', 'WkhkW', 'hWkWh', '.WWW.', '.h.h.'];
       halo = false;
       break;
     case 'tell':
       // Shimmer!: the ribbons fling out into a wide ring, the core blazing
       ph = 0.4;
       spread = 1.35;
-      core = ['.YWY.', 'YWWWY', 'WWWWW', 'YWWWy', '.YWy.'];
+      core = ['.YWY.', 'WyWyW', 'WWWWW', 'YWyWY', '.Y.Y.'];
       break;
   }
   const sp = spread;
@@ -1622,6 +1624,8 @@ const FK_SHADES: Record<string, Shade> = {
 };
 // a rounded great helm: ember eyes behind the slit, breathing holes, a gold brow band
 const FK_HELM = [
+  '..i.I..i...',
+  '..i.I.ii.i.',
   '...aaaaa...',
   '..aaaaaaaa.',
   '.aaaaaaaaaa',
@@ -1739,7 +1743,7 @@ function fknightParts(pose: string): Part[] {
     [legs, lx, F - legs.length + 1],
     [FK_BODY, 8 + x, by],
     [FK_PAULDRON, 18 + x, by - 1],
-    [helm, 10 + x, 4 + y],
+    [helm, 10 + x, 2 + y],
     crystal(13 + x, 5 + y, (-100 * Math.PI) / 180, 6, 4),
     crystal(16 + x, 5 + y, (-70 * Math.PI) / 180, 8, 4),
     crystal(19 + x, 7 + y, (-35 * Math.PI) / 180, 6, 4),

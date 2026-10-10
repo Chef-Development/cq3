@@ -29,7 +29,7 @@ export interface StatInfo {
 }
 
 export const STAT_INFO: Record<StatId, StatInfo> = {
-  hp: { name: 'Max HP', short: 'HP', icon: 'heart', unit: 'flat', desc: 'How much damage Rowan can take.' },
+  hp: { name: 'Max HP', short: 'HP', icon: 'heart', unit: 'flat', desc: 'How much damage you can take.' },
   atk: { name: 'Attack', short: 'ATK', icon: 'sword', unit: 'flat', desc: 'Damage of every hit (and the finisher).' },
   def: { name: 'Defense', short: 'DEF', icon: 'shield', unit: 'flat', desc: 'Cuts damage from reds you miss.' },
   critChance: { name: 'Crit Chance', short: 'Crit', icon: 'crit', unit: 'pct', desc: 'Chance a hit crits.' },

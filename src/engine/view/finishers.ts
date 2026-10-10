@@ -90,7 +90,7 @@ function defaultMotion(c: ShowCtx, k: number, home: number): HeroMotion {
   const base: HeroMotion = { x: from, lift: 0, pose: 'idle0', flip: false, hidden: false, alpha: 1 };
   const appr = clamp01(k / Math.max(0.01, tl.build));
   const blowing = k >= tl.blow - 0.02;
-  // anticipation: the weapon drawn back for a beat before the big blow; follow-through: past the blow, the weapon low
+  // anticipation (every kit): the weapon drawn back for a beat before the big blow; follow-through: past the blow, the weapon low
   // and the body leaning, while the cape and hair settle (docs/art-style.md section 7)
   const windingUp = !blowing && k >= tl.blow - 0.02 - FIN_WINDUP_MS / Math.max(1, tl.ms);
   // after the blow: 0..1 over the rest of the show
@@ -120,7 +120,8 @@ function defaultMotion(c: ShowCtx, k: number, home: number): HeroMotion {
       if (k < out) return { ...base, pose: 'windup', alpha: 1 - k / out };
       if (k < tl.build * 0.8) return { ...base, x: to, hidden: true, alpha: 0 };
       if (k < tl.build) return { ...base, x: to, pose: 'leap', alpha: clamp01((k - tl.build * 0.8) / (tl.build * 0.2)) };
-      if (k < tl.blow + 0.03) return { ...base, x: to, pose: blowing ? 'fang' : idx % 2 ? 'slashA' : 'slashB' };
+      // (a beat drawn back into the windup before the fangs snap shut)
+      if (k < tl.blow + 0.03) return { ...base, x: to, pose: blowing ? 'fang' : windingUp ? 'windup' : idx % 2 ? 'slashA' : 'slashB' };
       return { ...base, x: to, hidden: true, alpha: 0 };
     }
     case 'guard':

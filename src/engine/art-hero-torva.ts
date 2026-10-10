@@ -2,7 +2,7 @@
 // and freckles, fur pauldrons over a leather harness, wrist wraps, tattoos on her arms and a giant stone-headed
 // warhammer. Fight frames `torva_${pose}` on the shared rig (art-rig.ts).
 import { put, type Pal, type Shade } from './art';
-import { along, block, type Dir, dirAngle, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, pole, ribbon, type Rig, type RigPose, sparkle } from './art-rig';
+import { along, block, type Dir, dirAngle, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, pole, ribbon, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -36,29 +36,29 @@ export const TORVA_SHADES: Record<string, Shade> = {
 
 // ------------------------------------------------------------------ body
 
+// (playtest round 8, L8, by hand: a fierce brute: red hair in braids, brows drawn down over one dark iris each, a
+// blue war-paint stripe under the eyes, a set mouth, a strong jaw) 16 x 11.
 const HEAD = [
   '...hhhhhhh......',
-  '..hhhhLHLhhh....',
   '.hhhhHLHhhhhh...',
-  '.hhhLHLhhhhhhh..',
   'hhhHLHhhhhhhhhh.',
   'hhLHLhhhhhhhSSSh',
-  'hHLHhhhSSSSSSSSS',
-  'hLHhhhzSSkkSSkkS',
-  'hHLhhzEzSWgSSWgS',
-  'hhHhhzEzSSfSfSST',
-  '.hhhhhzSSSSSSSSz',
-  '..hhh.zzSSWWWWz.',
-  '......zzzSSSSz..',
+  'hHLHhhhSSHHSSHHS',
+  'hLHhhhzSSSkSSSkS',
+  'hHLhhzEzSooSSooS',
+  'hhHhhzEzSSSSSSST',
+  '.hhhhhzSSSSSSzzS',
+  '..hhh.zzSSSxxxz.',
+  '......zzzzSSSz..',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 16 - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
   // a wince: eyes squeezed, teeth gritted
-  squint: face(HEAD, { 7: 'SSSSSSS', 8: 'SkkSSkkS', 11: 'zSxWWxz.' }),
-  ko: face(HEAD, { 7: 'SSSSSSS', 8: 'SSSSSSSS', 9: 'SkkfSkkT', 11: 'zSSSxSz.' }),
+  squint: face(HEAD, { 4: 'SSHHSSHHS', 5: 'SSzzSSzzS', 9: 'SSxWWxz.' }),
+  ko: face(HEAD, { 4: 'SSSSSSSSS', 5: 'SSzzSSzzS', 9: 'SSSxxSz.' }),
   // a battle roar: brows down hard, mouth wide open
-  roar: face(HEAD, { 7: 'SkSSSkSS', 8: 'SkWgSkWg', 10: 'SSSSSSSz', 11: 'zSxxxxz.', 12: 'zzSxxSz..' }),
+  roar: face(HEAD, { 4: 'SHHHSHHH', 5: 'SSSkSSSkS', 8: 'SSSSSSzzS', 9: 'SSxxxxz.', 10: 'zzSxxSz..' }),
 };
 
 // The fur mantle over both shoulders, the leather top under the harness straps, the bare midriff, the belt.
@@ -99,7 +99,7 @@ const ARM_PAL_FAR: Array<[number, ...string[]]> = [
 export const TORVA_RIG: Rig = {
   pal: { ...TORVA_PAL, '8': TROUSER[1], '9': LEATHER[0] },
   shades: TORVA_SHADES,
-  heads: matureHeads(HEADS, {drop: [1, 3], blush: 'f'}),
+  heads: HEADS,
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

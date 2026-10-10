@@ -128,3 +128,43 @@ export function gradeLayer(theme: Theme, p: Pix, G: number, skip?: Skip): void {
   const m = MOOD[theme];
   if (m) moodGrade(p, m, G, skip);
 }
+
+/**
+ * The act maps' mood (decision L7, A2C-6): the same kind of grade on the landscape the player looks at between fights,
+ * a little lighter than the stages (the map is read, not watched), with its roads and clearings graded only part way
+ * so the route stays a lit thread through the dusk. The nodes, tags and roamers are drawn over it at full value.
+ */
+export const MAP_MOOD: Partial<Record<Theme, Mood>> = {
+  forest: { tint: 0x7c8eb2, desat: 0.38, keep: 0.6, shadow: 0x0c1c2c, shadowAmt: 0.55, ground: 0xffffff, groundAmt: 0 },
+  ruins: { tint: 0xb4bcd6, desat: 0.2, keep: 0.85, shadow: 0x080e20, shadowAmt: 0.45, ground: 0xffffff, groundAmt: 0 },
+  hollow: { tint: 0xac8898, desat: 0.22, keep: 0.5, shadow: 0x1a0818, shadowAmt: 0.5, ground: 0xffffff, groundAmt: 0 },
+  pass: { tint: 0x6c80bc, desat: 0.46, keep: 0.4, shadow: 0x101838, shadowAmt: 0.5, ground: 0xffffff, groundAmt: 0 },
+  caves: { tint: 0xb0b8dc, desat: 0.16, keep: 0.95, shadow: 0x060a20, shadowAmt: 0.45, ground: 0xffffff, groundAmt: 0 },
+  glacier: { tint: 0x8c9ccc, desat: 0.24, keep: 0.9, shadow: 0x081028, shadowAmt: 0.5, ground: 0xffffff, groundAmt: 0 },
+  cinder: { tint: 0xa8949e, desat: 0.22, keep: 0.95, shadow: 0x140a14, shadowAmt: 0.45, ground: 0xffffff, groundAmt: 0 },
+  glass: { tint: 0xb8acc8, desat: 0.14, keep: 0.95, shadow: 0x0c0818, shadowAmt: 0.4, ground: 0xffffff, groundAmt: 0 },
+  forge: { tint: 0xb0a0a8, desat: 0.14, keep: 0.95, shadow: 0x140608, shadowAmt: 0.4, ground: 0xffffff, groundAmt: 0 },
+};
+
+/** Grade an act map's landscape frame; `road` marks the roads and clearings (non-zero), graded `roadAmt` of the way. */
+export function gradeMap(theme: Theme, p: Pix, road: Uint8Array, roadAmt = 0.55, cache = new Map<Col, Col>()): void {
+  const m = MAP_MOOD[theme];
+  if (!m) return;
+  for (let i = 0; i < p.buf.length; i++) {
+    const c = p.buf[i];
+    if (c < 0) continue;
+    let o = cache.get(c);
+    if (o === undefined) {
+      o = moodColour(c, m);
+      cache.set(c, o);
+    }
+    if (road[i]) {
+      const t = roadAmt;
+      o =
+        (Math.round(((c >> 16) & 255) + (((o >> 16) & 255) - ((c >> 16) & 255)) * t) << 16) |
+        (Math.round(((c >> 8) & 255) + (((o >> 8) & 255) - ((c >> 8) & 255)) * t) << 8) |
+        Math.round((c & 255) + ((o & 255) - (c & 255)) * t);
+    }
+    p.buf[i] = o;
+  }
+}

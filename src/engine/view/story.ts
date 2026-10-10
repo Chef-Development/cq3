@@ -10,8 +10,9 @@ import type { FightScene } from '../scene';
 import { textWidth } from '../font';
 import { band, button3d, chevron, GOLD, NAVY, panel, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, WHITE, type Rect } from './shared';
+import { hdFor, screenCovered } from './hd-text';
 import { FACE, isPressed, notePress, ribbon, RIBBON, TextPool } from './ui';
-import { bigFits } from '../../core/a11y';
+import { bigLines } from '../../core/a11y';
 import { A11Y } from '../a11y';
 
 /** The story text's width every box's lines fit (tests/unit/data.test.ts STORY_TEXT_W). */
@@ -110,6 +111,8 @@ export class StoryView {
       this.texts.end();
       return;
     }
+    // the sharper text (view/hd-text.ts) unless a wipe or a tip covers the box
+    this.texts.hd = hdFor(s, 'story', screenCovered(s, now));
     const key = `${id}:${s.app.storyBox}`;
     if (key !== this.key) {
       this.key = key;
@@ -137,10 +140,13 @@ export class StoryView {
       g.fillRect(0, s.B - 24 - i * 10, s.R + s.L + 1000, 24 + i * 10 + 200);
     }
 
-    // text box along the bottom
+    // text box along the bottom (larger text: the bold letters; a box whose lines don't fit them is re-wrapped into
+    // three and the box grows a line)
+    const big = A11Y.big ? bigLines(box.text, STORY_TEXT_W, (l, b) => textWidth(l, 1, b)) : null;
+    const lines = big ?? box.text.split('\n');
     const bx = s.L + 4;
     const bw = W - 8;
-    const bh = 38;
+    const bh = 38 + 11 * Math.max(0, lines.length - 2);
     const by = s.B - bh - 3 + lift;
     panel(g, { x: bx, y: by, w: bw, h: bh }, { trim: 'full' });
 
@@ -204,15 +210,14 @@ export class StoryView {
     }
 
     // the text types itself out, with a caret at the end (larger text: the bold letters, when the box's lines fit)
-    const big = A11Y.big && bigFits(box.text.split('\n'), STORY_TEXT_W, (l, b) => textWidth(l, 1, b));
     let left2 = this.typed(now);
     let caret: { x: number; y: number } | null = null;
-    box.text.split('\n').forEach((line, i) => {
+    lines.forEach((line, i) => {
       const shown = line.slice(0, Math.max(0, left2));
       left2 -= line.length + 1;
       const ty = by + 15 + i * 11;
-      if (shown.length) this.texts.text(shown, bx + 9, ty, WHITE, { oy: 0.5, bold: big });
-      if (typing && shown.length < line.length && !caret) caret = { x: bx + 9 + (shown.length ? textWidth(shown, 1, big) : 1), y: ty };
+      if (shown.length) this.texts.text(shown, bx + 9, ty, WHITE, { oy: 0.5, bold: !!big, full: line });
+      if (typing && shown.length < line.length && !caret) caret = { x: bx + 9 + (shown.length ? textWidth(shown, 1, !!big) : 1), y: ty };
     });
     const cr = caret as { x: number; y: number } | null;
     if (cr && Math.floor(now / 200) % 2 === 0) {

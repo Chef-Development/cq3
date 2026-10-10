@@ -11,7 +11,6 @@
 // tap's fast-forward lands mid-flight and the screenshot tests stay exact.
 //
 // The layer shows only on frames that draw on it (a frame that doesn't hides it), so leaving a screen leaves nothing.
-import Phaser from 'phaser';
 import { COMPANIONS, type CompanionId } from '../../data/companions';
 import { HEROES, type HeroId } from '../../data/heroes';
 import { TIERS, TIER_INFO, type Tier } from '../../data/rarity';
@@ -24,8 +23,8 @@ import { HD_CHEST, hdChest } from '../art-chests-hd';
 import { REVEAL_STAR_AT } from './chest-opening';
 import { BURST_RADII, hdBurst, hdChevron, hdRay, hdRibbon, hdShard, hdStar, hdTag, hdTierGem, hdTwinkle, mixRgb, type Face4 } from '../art-reveal-hd';
 import { hdText, hdTextW, type HdTextStyle } from '../font-hd';
-import { HD_K, hdLayerRect, sameLayer, type HdLayerRect } from '../hd-layer';
-import type { ScreenLayout } from '../layout';
+import { HdLayer } from '../hd-canvas';
+import type { HdLayerRect } from '../hd-layer';
 import { FACE_AT, STYLE_LOOK, type CampKit } from './camp-kit';
 
 type Ctx = CanvasRenderingContext2D;
@@ -55,106 +54,7 @@ function hash(a: number, b: number, s: number): number {
 
 // ------------------------------------------------------------------ the layer (a DOM canvas over the game canvas)
 
-/** The fine-grid canvas over the game: placed and sized with the layout, cleared each frame it's drawn on, hidden on
- *  frames it isn't. */
-export class HdLayer {
-  private cv: HTMLCanvasElement | null = null;
-  private ctx: Ctx | null = null;
-  private rect: HdLayerRect | null = null;
-  private drawn = false;
-  private shown = false;
-  private hooked = false;
-
-  constructor(
-    private readonly s: Phaser.Scene,
-    private readonly layout: () => ScreenLayout,
-  ) {}
-
-  /** The canvas (tests). */
-  get canvas(): HTMLCanvasElement | null {
-    return this.cv;
-  }
-
-  get visible(): boolean {
-    return this.shown;
-  }
-
-  private hook(): void {
-    if (this.hooked) return;
-    this.hooked = true;
-    this.s.events.on(Phaser.Scenes.Events.PRE_UPDATE, this.preUpdate, this);
-    this.s.events.on(Phaser.Scenes.Events.POST_UPDATE, this.postUpdate, this);
-  }
-
-  private preUpdate(): void {
-    this.drawn = false;
-  }
-
-  private postUpdate(): void {
-    if (!this.drawn && this.shown) this.hide();
-  }
-
-  /** A frame on the layer: placed over the game canvas, cleared. */
-  begin(): { ctx: Ctx; r: HdLayerRect } {
-    this.hook();
-    if (!this.cv) {
-      const cv = document.createElement('canvas');
-      cv.id = 'hd-layer';
-      cv.setAttribute('aria-hidden', 'true');
-      const st = cv.style;
-      st.position = 'absolute';
-      st.pointerEvents = 'none';
-      st.imageRendering = 'pixelated';
-      st.margin = '0';
-      st.display = 'none';
-      (document.getElementById('game') ?? document.body).appendChild(cv);
-      this.cv = cv;
-      this.ctx = cv.getContext('2d');
-    }
-    const cv = this.cv;
-    const ctx = this.ctx!;
-    const r = hdLayerRect(this.layout(), HD_K);
-    if (!sameLayer(this.rect, r)) {
-      const st = cv.style;
-      st.left = `${r.left}px`;
-      st.top = `${r.top}px`;
-      st.width = `${r.cssW}px`;
-      st.height = `${r.cssH}px`;
-      if (cv.width !== r.w) cv.width = r.w;
-      if (cv.height !== r.h) cv.height = r.h;
-      this.rect = r;
-    }
-    ctx.imageSmoothingEnabled = false;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.clearRect(0, 0, r.w, r.h);
-    if (!this.shown) {
-      cv.style.display = 'block';
-      this.shown = true;
-    }
-    this.drawn = true;
-    return { ctx, r };
-  }
-
-  hide(): void {
-    if (this.cv && this.shown) this.cv.style.display = 'none';
-    this.shown = false;
-  }
-
-  destroy(): void {
-    if (this.hooked) {
-      this.s.events.off(Phaser.Scenes.Events.PRE_UPDATE, this.preUpdate, this);
-      this.s.events.off(Phaser.Scenes.Events.POST_UPDATE, this.postUpdate, this);
-    }
-    this.hooked = false;
-    this.cv?.remove();
-    this.cv = null;
-    this.ctx = null;
-    this.rect = null;
-    this.shown = false;
-  }
-}
+export { HdLayer } from '../hd-canvas';
 
 // ------------------------------------------------------------------ drawing helpers (hard pixels only)
 

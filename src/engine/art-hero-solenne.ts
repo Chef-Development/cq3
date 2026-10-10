@@ -5,7 +5,7 @@
 import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './art';
 import { and, ell, fill, or, rimShade, sphere } from './art-paint';
 import { swordMap } from './art-sword';
-import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Rig, type RigPose, sparkle, stampAt } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, type Rig, type RigPose, sparkle, stampAt } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -40,29 +40,29 @@ export const SOLENNE_SHADES: Record<string, Shade> = {
 
 // A cropped crop of silver-white hair swept back, a gold circlet over the brow with a sun-stone at the front, warm
 // brown skin, amber eyes under a level brow.
+// (playtest round 8, L8, by hand: white hair under the gold circlet, level brows over one dark iris each, a long
+// straight nose and a firm jaw: a knight, not a girl) 16 x 11.
 const HEAD = [
   '....hh.hhhh.....',
-  '..hhhhLhhLhhh...',
   '.hhhLLhhLhhhhh..',
-  '.hhLhhHhhhhHhhh.',
   'hhhhhHhhhHhhhhhh',
   'hhhhhhgGGGGGoGGg',
-  'hhhHhzSSSSSSSSSS',
-  '.hhhzESSSkkSSkkS',
-  '.hhhzESSSWeSSWeS',
+  'hhhHhzSSSHHSSSHH',
+  '.hhhzESSSSkSSSkS',
+  '.hhhzESSSSSSSSSS',
   '..hzzzSSSSSSSSST',
-  '...zzSSSSSSSSSSz',
-  '...zzzSSSSSxxSz.',
-  '.....zzzSSSSz...',
+  '...zzSSSSSSSSzzS',
+  '...zzzSSSSSSxSz.',
+  '.....zzzSSSz....',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 16 - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
   // a wince: eyes squeezed, teeth set
-  squint: face(HEAD, { 7: 'SSSSSSSSSS', 8: 'SSSkkSSkkS', 11: 'SSWWxSz.' }),
-  ko: face(HEAD, { 7: 'SSSSSSSSSS', 8: 'SSSSSSSSSS', 9: 'SSSkkSSkkT', 11: 'SSSxSSz.' }),
+  squint: face(HEAD, { 4: 'SSSSHHSSHH', 5: 'SSSSzSSSzS', 9: 'SSWWxSz.' }),
+  ko: face(HEAD, { 4: 'SSSSSSSSSS', 5: 'SSSSzSSSzS', 9: 'SSSxSSz.' }),
   // a battle cry: brows down, mouth open
-  cry: face(HEAD, { 7: 'SSkkSSkkS', 8: 'SSSWeSSWeS', 11: 'SSxxxSz.', 12: 'zSxxSSz...' }),
+  cry: face(HEAD, { 4: 'SSHHHSHHH', 5: 'SSSSkSSSkS', 9: 'SSxxxSz.', 10: 'zSxxSSz...' }),
 };
 
 // White enamel pauldrons with gold rims, a gold gorget, the breastplate with a gold sun on it, a gold belt, tassets.
@@ -101,7 +101,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const SOLENNE_RIG: Rig = {
   pal: { ...SOLENNE_PAL, '8': SOLENNE_PLATE[1], '9': SOLENNE_PLATE[0] },
   shades: SOLENNE_SHADES,
-  heads: matureHeads(HEADS, {drop: [1, 3]}),
+  heads: HEADS,
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

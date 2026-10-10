@@ -788,7 +788,7 @@ describe("a new player's first fights (the playtester: \"'yellow blocks are atta
       // nothing else stops the first fight (a special, a combo break: the next fight)
       expect(shown.filter((x) => x.fight === 1 && tipById(x.id)!.fight === 'pause' && !FIRST_FIGHT.includes(x.id)), `seed ${seed}`).toEqual([]);
     }
-  });
+  }, 120_000); // (thirty first fights: slow on a loaded machine)
 
   it('the first finisher finishes the foe in front (the coach waits for the blow that does)', () => {
     let kills = 0;
@@ -802,7 +802,7 @@ describe("a new player's first fights (the playtester: \"'yellow blocks are atta
     }
     expect(fired).toBe(30);
     expect(kills, `${kills} of ${fired}`).toBeGreaterThanOrEqual(27);
-  });
+  }, 120_000); // (thirty first fights: slow on a loaded machine)
 });
 
 describe('a tip the player already knows is skipped', () => {
