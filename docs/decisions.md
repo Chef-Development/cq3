@@ -1069,7 +1069,10 @@ C9. **The next region's gear is written as data** (not merged; a data test), so 
   fixed (`CORE:`): a kill's max HP gain (0.6) went onto HP even at full HP while max HP is rounded, so a full hero
   read "252/251". `scripts/ui-crawl.mjs` (by hand through the Playwright lock) plays the built game from New game
   through Act 1 with fast taps, then every camp screen and the gear panel, recording errors, long decimals, missing
-  minis, missing textures (every key asked of Phaser that isn't there) and text past the canvas's edge.
+  minis, missing textures (every key asked of Phaser that isn't there) and text past the canvas's edge. Its run on
+  the merged build (tips on): New game to Act 1 cleared in 231 s (215 taps, 17 finishers), then 15 camp screens and
+  tabs: no error, no long decimal, no missing mini or texture, no stuck screen, no HTML text wider than its box (its
+  first edge check flagged banners sliding in: it now counts only text that stays past the edge).
 (qa: end of section)
 
 
