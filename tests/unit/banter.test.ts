@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { campBanter, GATED_BANTER, SCENE_ACT, storyReached } from '../../src/core/banter';
 import { newProfile } from '../../src/core/profile';
-import { BANTER } from '../../src/data/banter';
+import { BANTER, HERO_BANTER } from '../../src/data/banter';
 import { DUSK_BANTER } from '../../src/data/banter-dusk';
 import { STORY_BANTER } from '../../src/data/banter-story';
 import type { CampSpeaker } from '../../src/data/banter';
@@ -42,6 +42,18 @@ describe('camp banter', () => {
     const tam = STORY_BANTER.find((l) => l.who === 'tam')!;
     expect(campBanter(prof(9), camp()).some((l) => l.text === tam.text)).toBe(false);
     expect(campBanter(prof(9), camp('tam')).some((l) => l.text === tam.text)).toBe(true);
+  });
+
+  it("a line that stops being true stops once the story reaches its 'until' scene (Brann's slate, until his bell rings)", () => {
+    const slate = HERO_BANTER.filter((l) => l.until);
+    expect(slate.length).toBeGreaterThan(0);
+    for (const l of slate) expect(SCENE_ACT[l.until!], l.text).toBeDefined();
+    const here = camp('brann', 'hollis');
+    const shows = (p: ReturnType<typeof prof>) => campBanter(p, here).some((x) => x.text === slate[0].text);
+    expect(shows(prof(0))).toBe(true);
+    // the scene isn't in play yet, so the line keeps showing whatever the acts; once it is, it stops after the scene
+    if (!STORY[slate[0].until!]) expect(shows(prof(99, [slate[0].until!]))).toBe(true);
+    else expect(shows(prof(SCENE_ACT[slate[0].until!]))).toBe(false);
   });
 
   it("a fresh camp has the camp's own lines and none of the story's", () => {

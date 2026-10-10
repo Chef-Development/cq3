@@ -1195,8 +1195,34 @@ function stageDusk(S: Stage): void {
     spr(c, BEACON, BEACON_PAL, b.x - 3, b.y - 3);
     claimBox(c, b.x - 5, b.y - 5, 11, 22);
     glow(p, b.x + 0.5, b.y + 1, 10, col('#ffd860'), 0.18);
-    // a sunken shrine: a broken arch half drowned in a pool
-    spr(c, ['sSSSSm', 'sm..sm', 'sm..sm', 's....m'], P({ s: '#8a948a', S: '#6a746a', m: '#3e463e' }), 776, 252);
+    // the drowned arch (the fen's first act, WORLD_ACTS_DUSK[0]): a black pool, a broken stone arch half sunk in it,
+    // its reflection, two fen lanterns on poles glowing at its sides
+    {
+      const ax = 779;
+      const ay = 256;
+      for (let y = ay - 6; y <= ay + 6; y++)
+        for (let x = ax - 14; x <= ax + 14; x++) {
+          const e = ((x + 0.5 - ax) / 14) ** 2 + ((y + 0.5 - ay) / 5.6) ** 2 + (hash(x >> 1, y, 107) - 0.5) * 0.12;
+          const i = y * W + x;
+          if (e > 1 || !plateMask[i]) continue;
+          buf[i] = e > 0.82 ? col('#3a5440') : e > 0.62 ? col('#172a36') : col('#0e1a24');
+          if (e < 0.55 && (x * 2 + y * 5) % 13 === 0) buf[i] = col('#2a4a58');
+        }
+      spr(
+        c,
+        ['...sSSSm.....', '..sSSSSSm.m..', '.sSm...sSmSm.', '.sS.....Sm...', '.sS.....sm...', '.sm.....sm...', '.rr.....rr...', '..r.....r....'],
+        P({ s: '#a8b0a0', S: '#7a8478', m: '#4a5248', r: '#3a5a60' }),
+        ax - 6,
+        ay - 9,
+      );
+      for (const lx of [ax - 12, ax + 11]) {
+        for (let k = 1; k <= 5; k++) buf[(ay - k) * W + lx] = col('#4a3a2a');
+        buf[(ay - 7) * W + lx] = col('#fff0a0');
+        buf[(ay - 6) * W + lx] = col('#ffd860');
+        glow(p, lx + 0.5, ay - 6, 6, col('#ffd860'), 0.22);
+      }
+      claimBox(c, ax - 22, ay - 20, 44, 32);
+    }
     forest(
       c,
       536,
@@ -1808,7 +1834,7 @@ function* paintFarSea(): Generator<void, { base: HTMLCanvasElement; waves: HTMLC
       // sheet's eastern edge
       let c = paperAt(gx, y, MAP_W, H);
       const m = level(clamp01((gx - (MAP_W - 72)) / 72), 4, gx, y, 0.3) / 4;
-      if (m > 0) c = mix(c, col('#ece8f0'), m * 0.55);
+      if (m > 0) c = mix(c, col('#8c8078'), m * 0.5);
       p.buf[y * W + x] = c;
     }
   neatline(p.buf, W, H, X0, MAP_W);
@@ -2076,10 +2102,11 @@ function vignette(w: number, h: number): HTMLCanvasElement {
       const nx = (x + 0.5 - w / 2) / (w / 2);
       const ny = (y + 0.5 - h * 0.5) / (h / 2);
       const r = Math.sqrt(nx * nx * 0.8 + ny * ny * 0.9);
-      let a = Math.min(1, Math.max(0, (r - 0.66) / 0.55));
+      let a = Math.min(1, Math.max(0, (r - 0.5) / 0.6));
       a = a * a * (3 - 2 * a);
       // three tones, dithered only where one meets the next
-      const q = (level(a, 3, x, y, 0.3) / 3) * 0.36;
+      // (L7: a stronger vignette)
+      const q = (level(a, 3, x, y, 0.3) / 3) * 0.55;
       const i = (y * w + x) * 4;
       d[i] = 16;
       d[i + 1] = 8;

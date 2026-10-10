@@ -766,6 +766,40 @@ L5. **The full unit suite runs on GitHub at every push** (about 3 minutes there;
     teams share its four cores): the lead pushes a merge after typecheck, the build and the tests nearest the merge,
     checks the run, and fixes forward at once if it goes red.
 
+L6. **The world map keeps its painted lands** (after the Atlas pass at phone size): the dense ink-draft rendering of
+    open lands read as noise at the map's real zoom; playable lands are painted (the Atlas frames them: parchment sea,
+    inked coasts, names, the neatline), erased lands are blank vellum, and restoring a region paints it back.
+
+L7. **Mood: darker, not bright and peachy** (playtester, round 8: "the atmosphere of everything needs to be slightly
+    more dark and not all bright and peachy"). Rules for every screen (the art bible's new "Mood" section, owned by
+    art 2A; backdrops and fight lighting by art 2B; Region 4+ by the content art helpers):
+    1. Values drop: a scene's average brightness about 20-30% lower; skies are dusk, overcast, storm or night, never a
+       flat bright noon; the brightest values are kept for light sources (sun, lanterns, magic, fire) and the actors'
+       highlights.
+    2. Midtones lean cool and a step less saturated (blue, teal, violet); saturated colour lives in light pools and
+       accents.
+    3. Shadows are deep and cool (indigo, teal) and take more of the frame; vignettes are stronger.
+    4. Warm light is an accent, not a wash: no large peach, beige or cream fills (parchment is aged and darker with
+       burnt edges; UI plates are deep ink).
+    5. Actors stay readable: a rim light and a clear value step from the backdrop; the ground strip under them is calm
+       and darker.
+    6. Darker never means muddy: every material keeps 3+ hue-shifted tones and the scene keeps strong contrast.
+
+L8. **More mature, less chibi** (playtester, round 8: "everything looks a little childish and chibi; a little more
+    mature and moodier"). On top of L7's mood:
+    1. Heroes: from about 2 heads tall to about 3-3.5: longer torsos and legs, heads a little smaller; smaller eyes
+       (no big glossy eyes, no rosy cheeks), a defined brow and jaw; weathered, grounded materials (worn leather,
+       dented steel, cloth with folds); silhouettes that read as people, not toys. Rowan first as the reference, then
+       every hero, the most seen first. Weapons keep the heft from the round's earlier note.
+    2. Foes: more menace (sharper silhouettes, eyes that glow, teeth, scars), darker palettes; cute shapes (round
+       slimes, wide eyes) get an edge.
+    3. Portraits: the same maturity (defined features, moodier light).
+    4. UI: less candy gloss: plates read as engraved metal, ink and leather rather than shiny plastic; bright saturated
+       buttons are toned down to the mood's accents.
+    5. Companions may keep some charm, inside the mood's palette.
+    Teams: art 2B the heroes (and portraits of heroes); a new art 2C the fight backdrops (L7) and the foes; art 2A the
+    UI, menus, world map and title; the region helpers their regions.
+
 (lead: end of section)
 
 
@@ -828,6 +862,12 @@ S12. **Nothing says "can't be erased" before the end of the first region.** Rowa
     the story bible: on an erased isle everything sleeps, so its foes are things he drew to move, creatures that were
     away, and creatures that crossed his sea road. Regions 6-8's scenes are drafted in full ahead of their data
     (`story-hush.ts`, `story-reach.ts`, `story-wick.ts`), as Region 5's were: the content team builds on the ids.
+
+S13. **The rest of the story is drafted in data, not in play.** Region 9 in full (`story-salt.ts`), Region 10's two
+    key scenes (`story-far.ts`), and Regions 11-12's key scenes, the beat and the ending (`story-end.ts`), checked by
+    the same tests as the scenes in play (box counts, widths, speakers, the Mapmaker's and Hesper's no-contraction
+    voices; he is named only at the end of `lowTruth`, speaker `ambrose`). Camp banter can now stop being true
+    (`until`): Brann's slate lines stop once his bell rings (`saltVictory`).
 
 (story: end of section)
 

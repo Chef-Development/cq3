@@ -161,7 +161,8 @@ Everything animates from `now` and seeds (screenshots stay exact). Minimum frame
 | Frostpeaks | cold white, high | steel blue | ice cyan | snow streaks, spindrift |
 | Ashfell | ember orange from below the frame plus a dim top-left key | smoky purple | orange | embers rising, ash falling |
 | Duskmire | low rose-violet dusk from the top left (the sky stuck at sunset); lantern amber pooled where the fighters stand | deep violet (teal-violet over the flats) | rose on top, lantern amber below (`duskRim` on dark foes) | fireflies, wisps, dusk motes, mist on the water |
-| The Atlas (title, world map) | lamplight, top left, warm | parchment | gold | fog drifting at the edges, ink motes |
+| The world map (the Atlas) | lamplight, top left, warm | parchment | gold | ink ripples on the sea, gold motes where colour comes back |
+| The title (key art) | a low sun in a notch of the far range, behind the hero (he is lit on his right edge) | dusk purple | sunset orange | rays from the sun, cloud wisps, motes over the land; paper flecks peeling off the erasing front |
 
 A new region (another team's) brings its row here: key, ambient, rim, air.
 
@@ -197,6 +198,25 @@ detail reads clearly better: the chest reveal now, then menus, cards and long te
 - Sprites keep the game grid (scaled whole); only rims and effects around them may be fine. Never mix grids in a
   piece; a screen may mix layers (a 1x sprite on a 2x card).
 - Fine text must be at least the size of bold scale 1 (14 fine px caps) to be must-read.
+
+## 12b. The Atlas: drawn, drafted, erased
+
+The story's three states of land, everywhere the Atlas shows (the world map, the title, region restoration):
+
+- **Drawn (restored):** full colour, printed on the paper (warmed a touch toward parchment), its coast inked.
+- **His draft (open, not restored):** an ink drawing on bare paper: light washes of ink by brightness, the strong
+  edges as lines, the darks hatched; never a flat sepia filter. Colour already shows in rings round the hero and
+  round what he has won back.
+- **Erased (locked, far isles):** blank warm vellum (the fog ramp), still, with only the **impression** of its old
+  lines a shade darker than the paper; its edge rubbed ragged (stepped and dithered), never a cloud or a grey box.
+- **Restoring:** the colour floods out from the keystone (the boss's landmark) in a ragged ring with a front of gold
+  ink and motes, under 3 s.
+- The sea of the Atlas is parchment with a watercolour wash at the coast and engraved water lines; the sheet ends in a
+  burnt edge and a double neatline; names are lettered across the land in spaced capitals (ink on the draft, pale with
+  an ink edge on colour).
+- **The key art** (the title) pushes this into drama: the drawn world at dusk on the left, draining into ink and then
+  the blank on the right (kept dimmer than the logo), the Mapmaker's quill over it; the logo is the brightest thing
+  on screen, the hero the second focal point.
 
 ## 13. The name and the logo
 

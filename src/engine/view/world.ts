@@ -130,10 +130,10 @@ const REVEAL_END = REVEAL_CARD[0] + REVEAL_CARD[1];
 const RESTORE_MS = 2600;
 /** The Atlas's lettering: each open land's name across it (world px; the text's centre). */
 const LAND_NAMES: Record<string, [string, number, number]> = {
-  greenmarch: ['G R E E N M A R C H', 300, 124],
+  greenmarch: ['G R E E N M A R C H', 112, 158],
   frostpeaks: ['T H E   F R O S T P E A K S', 380, 22],
   ashfell: ['A S H F E L L', 836, 206],
-  duskmire: ['T H E   D U S K M I R E', 640, 222],
+  duskmire: ['T H E   D U S K M I R E', 600, 204],
 };
 /** The compass rose drawn in the north-west sea (its texture's top-left, world px). */
 const COMPASS_AT: Pt = [170, 30];
@@ -1183,15 +1183,14 @@ export class WorldView {
           // (the far sea past the continent is all open water)
           if (x < 1 || y < 1 || x >= MAP_W - 1 || y >= WORLD_H - 1 || (x < WORLD_W && !open[y * WORLD_W + x])) continue;
           if (farIn.length && farIn.some((b) => inRect(b, x, y, 2))) continue;
+          // (on the Atlas: a little ink ripple drawn and fading, not a glint of sun)
           const big = u > 0.08 && u < 0.22;
-          g.fillStyle(WHITE, big ? 1 : 0.7);
-          g.fillRect(x, y, 1, 1);
+          g.fillStyle(0x7a6a78, big ? 0.75 : 0.45);
+          g.fillRect(x - 1, y, big ? 3 : 2, 1);
           if (big) {
-            g.fillStyle(0xbfe4f8, 0.85);
-            g.fillRect(x - 1, y, 1, 1);
-            g.fillRect(x + 1, y, 1, 1);
-            g.fillRect(x, y - 1, 1, 1);
-            g.fillRect(x, y + 1, 1, 1);
+            g.fillStyle(0x7a6a78, 0.45);
+            g.fillRect(x - 2, y + 1, 1, 1);
+            g.fillRect(x + 2, y - 1, 1, 1);
           }
         }
     }
@@ -1215,10 +1214,10 @@ export class WorldView {
         for (let k = 1; k <= 4; k++) {
           const wx = x - dir * (6 + k * 3) + (k % 2 ? 0 : dir);
           const on = (Math.floor(t * 4) + k) % 2 === 0;
-          g.fillStyle(0xd4eeec, (1 - k / 5) * (on ? 0.9 : 0.6));
+          g.fillStyle(0xf8ecc8, (1 - k / 5) * (on ? 0.9 : 0.6));
           g.fillRect(wx, y - 1 + (k % 2), on ? 2 : 1, 1);
         }
-        g.fillStyle(0xd4eeec, 0.8);
+        g.fillStyle(0xf8ecc8, 0.8);
         g.fillRect(x + dir * 7, y - 1, 1, 1);
       }
     });

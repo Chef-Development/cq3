@@ -32,7 +32,7 @@ One PR at the end supersedes #1-#7.
 | 3 | Region 4 bar rules + region design | 3 | bar rules in core (dark blocks, tides), data, relics, gear; names reconciled with the story (L3) |
 | 4 | Desktop input, clean capture, perf baseline, originality audit | 4 | merged (title ready 12.1 -> 7.8 s at CPU 4x); continuing |
 | 5 | First 10 minutes: new-player bot path, measure, fix | 5 | merged (first chest 1:22-4:36 -> ~1:30; the first finisher a moment); continuing |
-| 6 | Story rewrite: intro, regions 1-3 scenes, heroes, companions, banter, lore, UI words | 1 | regions 1-3 + arrivals + gated banter done; text sweep, companions, editor notes in progress |
+| 6 | Story rewrite: intro, regions 1-3 scenes, heroes, companions, banter, lore, UI words | 1 | done (sweep, companions, editor's 45 notes applied, Region 5 fit, Regions 6-12 drafted); L8 tone pass + 2nd editor next |
 | 7 | The Great Atlas world map (2A); animation upgrade + lighting pass (2B); 2x rollout | 2A/2B | in progress |
 | 8 | Region 4 complete: in play + balance (3), art + music (dusk-art) | 3 + dusk-art | in progress |
 | 9 | Resizable window, Android, code split, bot crawl part 1; then reviewers | 4 | in progress |
@@ -82,3 +82,19 @@ One PR at the end supersedes #1-#7.
   music, the story's text sweep, Android/desktop fixes, the first 10 minutes through Act 1. The masher guard fix
   (content: a 15-run boss-alone sample; region 2 measures 4% over 30 seeds; the 5-seed sample swung on one lucky run)
   merged 21:24. Typecheck and build clean; pushed (GitHub runs the suite).
+- 21:36 EDT: looked at merge 4 at phone and desktop size: the title key art reads well; the Atlas's ink-draft lands
+  read as noise at the map's zoom: L6 (painted lands framed as an Atlas page, blank vellum for erased lands, restore
+  = paint spreading back), sent to art 2A.
+- 21:40 EDT: playtester note: "the atmosphere of everything needs to be slightly more dark and not all bright and
+  peachy": decision L7 (mood rules) sent to art 2A (bible, title, world map, menus, camp, UI), art 2B (every fight
+  backdrop and fight lighting, foes) and dusk-art (Region 4).
+- 21:50 EDT: playtester note: "everything looks a little childish and chibi; more mature and moodier": decision L8
+  (heroes ~3-3.5 heads tall, smaller eyes, weathered materials; foes with menace; portraits; less glossy UI). Art 2B
+  takes the heroes (Rowan prototype first); a new art 2C takes the fight backdrops' mood pass (L7) and the foes; art
+  2A the UI, menus, world map, title.
+- 21:55 EDT: art 2A's world map rework merged (painted lands on the Atlas page, moodier: L6 + L7). Story chunk 2
+  merged: the old premise gone from player text, companions' bios, the editor's notes applied, Region 5 fitted,
+  Regions 6-12 and the ending drafted (not in play). Story chunk 3 launched (an L8 tone pass, a second editor on the
+  drafts and the ending).
+- 22:02 EDT: Rowan's mature look (L8) reviewed (team/art2 docs/art-audit/after/rowan-mature-before-after.png): ~3 heads,
+  slit visor, pauldrons, jointed legs, darker steel: approved with a contrast note; 2B rolls it to all sixteen.

@@ -11,7 +11,7 @@
 import { col, hash, mix, noise, pick, Pix, ramp, rgba32, wordCanvas } from './backdrop';
 
 /** The blank's vellum (art-world-atlas.ts FOG): paper, its lighter mottle, the impression of a line. */
-const PAPER = ['#ece8f0', '#f6f4f8', '#c8c2d2'].map(col);
+const PAPER = ['#a09488', '#ac9f92', '#8c8078'].map(col);
 import { INK, P, spr } from './art-world-sites';
 
 type Add = (key: string, c: HTMLCanvasElement) => void;
