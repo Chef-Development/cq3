@@ -10,6 +10,7 @@ import { DUSK_STORY } from '../../src/data/story-dusk';
 import { STORY_BANTER, STORY_SCENE_ACT } from '../../src/data/banter-story';
 import { NOON_BANTER, NOON_SCENE_ACT } from '../../src/data/banter-noon';
 import { NOON_STORY } from '../../src/data/story-noon';
+import { HUSH_STORY } from '../../src/data/story-hush';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
 import { HEROES } from '../../src/data/heroes';
 import { TIER_INFO } from '../../src/data/rarity';
@@ -159,7 +160,12 @@ describe('story', () => {
     for (const id of ['lighthouse2', 'lighthouse3', 'duskVictory']) expect(DUSK_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
     // once a region is wired in, STORY takes these very scenes (Object.assign), never a second copy
     for (const [id, boxes] of Object.entries(NOON_STORY)) expect(!(id in STORY) || STORY[id] === boxes, id).toBe(true);
-    for (const [id, boxes] of Object.entries(NOON_STORY)) {
+    // the sixth region's, drafted ahead of its data: the same rules; its boss's phases are his edits
+    for (const id of ['hush1', 'shears', 'hushCamp', 'hush2', 'slowcoach', 'hush3', 'yew', 'yew2', 'yew3', 'hushVictory']) expect(HUSH_STORY[id], id).toBeDefined();
+    for (const id of ['yew2', 'yew3', 'hushVictory']) expect(HUSH_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
+    for (const [id, boxes] of Object.entries({ ...NOON_STORY, ...HUSH_STORY })) {
+      expect(!(id in STORY) || STORY[id] === boxes, id).toBe(true);
+      expect(!(id in NOON_STORY) || !(id in HUSH_STORY), id).toBe(true);
       expect(boxes.length, id).toBeLessThanOrEqual(6);
       for (const b of boxes) {
         const lines = b.text.split('\n');

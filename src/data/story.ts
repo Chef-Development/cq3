@@ -17,6 +17,7 @@ export const SPEAKER_NAME: Record<Speaker, string> = {
   bellybog: 'Old Bellybog',
   sluiceKeeper: 'Sluice Keeper',
   sphinx: 'Noon Sphinx',
+  slowcoach: 'Old Slowcoach',
   captain: 'Bandit Captain',
   golem: 'Ruin Golem',
   boarking: 'Boar King',

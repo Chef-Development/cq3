@@ -472,7 +472,8 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   - Phase 3 edit: losing, he pulls the cork a little to knock Rowan down: "Just a breath." Gusts.
 - **Restoring:** the Stopper cracks; the wind pours out; every leaf held for months falls at once; birds, wakened
   under the blank, start up all together; the blank pockets fill in and the villagers wake on their doorsteps.
-- **Scenes (ids; one line each of what happens, and lines to build on):**
+- **Scenes (drafted in full ahead of the data: `src/data/story-hush.ts`, speaker `slowcoach` "Old Slowcoach"; the
+  outline below is what they say):**
   - `hush1` (Act 1 start): off his sea road into a silent wood; no birds, no wind, leaves hanging. Rowan: "Listen.
     ...Nothing. Not one bird." Pip: "He can't draw birds. Nobody can. So he left them out." Sable: "A forest that
     doesn't creak. I hate it already."

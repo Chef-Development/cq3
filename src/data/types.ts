@@ -208,6 +208,8 @@ export type Speaker =
   | 'sluiceKeeper'
   // Region 5's (src/data/story-noon.ts; portrait: the art for its mini-boss)
   | 'sphinx'
+  // Region 6's, drafted ahead (src/data/story-hush.ts)
+  | 'slowcoach'
   | 'captain'
   | 'golem'
   | 'boarking'
