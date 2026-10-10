@@ -511,6 +511,10 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
 | the act clear / world map's "weight" pips (12 dots) | 12 small compass roses, lit as regions are restored |
 | item: Pendulum Shard (effect "Tick, Tock") | **Keystone Shard** (effect "Fresh Ink": every 10th combo hit draws a green block) |
 | Bellows's anvil "with the brass pendulum weight" | the anvil that never cools, glowing gold ink along its edge |
+| the Bandit Captain's portrait: the "genuine" pendulum weight he holds up (`art-story.ts`) | a fat coin purse lifted from a sleeping farmer (he robs the sleeping farms) |
+| the Ruin Golem's forehead rune: a little pendulum (`art-story.ts`) | the old king's crest: a crown over a gate (it guards a dead king's gate) |
+| the Keystone Shard's icon (`item_shard`, "pendulum brass" in `art-gear.ts`) | a shard of the Boar King's broken crown: gold, with faint glowing ink lines |
+| the world map's capital card, header and pips (`view/world.ts`) | as above: "The Great Atlas", "Regions restored: N/12", compass roses; far lands: their names (`core/world-plan.ts`) once revealed, else "Erased land" |
 
 The capital's landmark becomes the domed Atlas Hall; the pendulum that swung wider as weights came home can become the
 Atlas's light: a glow under the dome that brightens as regions are restored. Erased land should look **blank**, not
