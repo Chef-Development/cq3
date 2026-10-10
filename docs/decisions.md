@@ -1434,6 +1434,15 @@ C16. **Tess's and Vesper's gaps in the fourth region aren't a rule meeting their
   the region card opened from the world map no longer starts a pending camp arrival scene over itself (it plays on the
   next real visit); the relic log's grid pages (5 rows a page; 34 of 85 relics were below the screen); the act map's
   tags keep off the foes standing at a node and weigh covering a reachable node double.
+- **Q2-5 The keyboard reaches cells too**: the bag's worn slots and items, the forge picker's (while it's open) and the
+  relic log's cells join `focusExtras` (they're drawn as cells, not buttons). A tap outside the open Options panel
+  closes it and presses nothing (the title's New game sat live under it); with Play on, the game under it plays.
+- **Q2-6 Quieter chrome**: the gear button is dimmed (until the pointer is on it) over the title's key art and a story
+  scene; the clean capture's toast is small and dark at the top middle; the Options switches' chosen side is brass;
+  the lab's Done is ink and brass; the camp band's count badges sit inside their buttons (the Bag's sat over Forge)
+  and the new items' count shows on the band only. An event, rest or shop opened straight from elsewhere (the lab's
+  event scenarios) shows its own act's stage. Not reproduced: the world map's first-visit "whip-pan" (sampled every
+  frame at 1440x900 the glide runs ~1.2 s, smoothly; the review's 150 ms screenshots stalled the page between frames).
 (qa: end of section)
 
 
