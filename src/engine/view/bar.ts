@@ -320,16 +320,16 @@ export class BarView {
     const mid = this.mid();
     if (phase === 'start') {
       const x = this.x(pos - dir * half);
-      s.fx.ring(x, mid, 12, perfect ? 0xffe680 : 0x9ad8ff, false);
-      s.fx.judge(x, perfect ? 'Perfect hold!' : 'Hold!', perfect ? 0xfff07a : 0x9ad8ff, true);
-      this.cursorPulse(perfect ? 0xfff07a : 0x9ad8ff);
+      s.fx.ring(x, mid, 12, perfect ? 0xffe680 : 0xffb060, false);
+      s.fx.judge(x, perfect ? 'Perfect hold!' : 'Hold!', perfect ? 0xfff07a : 0xffc070, true);
+      this.cursorPulse(perfect ? 0xfff07a : 0xffb060);
     } else if (phase === 'done') {
       const x = this.x(pos + dir * half);
-      s.fx.ring(x, mid, 16, 0xe0faff, false);
+      s.fx.ring(x, mid, 16, 0xfff2d8, false);
       s.fx.sparkle(x, mid);
     } else {
-      s.fx.judge(this.x(pos), 'Slip!', 0x9ad8ff, true);
-      s.fx.chips(this.x(pos), mid, Math.max(8, half * 2 * s.bar.w), [WHITE, 0xb8e8ff, 0x5ab4ec], 16, 0);
+      s.fx.judge(this.x(pos), 'Slip!', 0xff9a5a, true);
+      s.fx.chips(this.x(pos), mid, Math.max(8, half * 2 * s.bar.w), [WHITE, 0xf6c486, 0xd2803a], 16, 0);
       this.shakeUntil = performance.now() + 140;
     }
   }
@@ -1274,7 +1274,7 @@ export class BarView {
     }
     // holding a hold: a glow round the blade
     if (c.holding) {
-      g.fillStyle(c.holding.perfect ? 0xffe680 : 0x9ad8ff, 0.35 + 0.15 * Math.sin(now / 60));
+      g.fillStyle(c.holding.perfect ? 0xffe680 : 0xffb060, 0.35 + 0.15 * Math.sin(now / 60));
       g.fillRect(cx - 4, B.y - 8, 9, B.h + 16);
     }
     // a green ability's window running (Battle Focus, Smoke Veil, Chill, Brace): a green sheen round the blade,
