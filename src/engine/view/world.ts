@@ -211,7 +211,7 @@ function roseIcon(g: G, x: number, y: number, lit: boolean): void {
 }
 
 /** Plate colours: crisp dark glass with a light inner edge. */
-const PLATE = { fill: 0x161226, top: 0x221c38, edge: 0x6a5c98, lo: 0x0c0a16 };
+const PLATE = { fill: 0x110e1c, top: 0x1a1628, edge: 0x4e4668, lo: 0x08070e };
 
 /** Where an act's card rests its foot when it hangs over the landmark (world y): above the landmark and its flag. */
 function cardFoot(i: number): number {
@@ -2291,19 +2291,20 @@ export class WorldView {
 
   /** The glossy green call-to-action button, a highlight sweeping across it every couple of seconds. */
   private button(g: G, x: number, y: number, w: number, h: number, t: number, a: number): void {
+    // (L8: the mood's moss, a narrow lit lip and a soft sheen, not a candy-green bubble)
     rows(g, x - 1, y - 1, w + 2, h + 2, 2, INK, a);
-    rows(g, x, y, w, h, 2, 0x2e9a34, a);
-    rows(g, x, y, w, h - 2, 2, 0x4cc840, a);
-    g.fillStyle(0x8af06a, a);
+    rows(g, x, y, w, h, 2, 0x2a5a30, a);
+    rows(g, x, y, w, h - 2, 2, 0x467e42, a);
+    g.fillStyle(0x8cb87a, a);
     g.fillRect(x + 2, y, w - 4, 1);
-    g.fillStyle(0x6ade52, a);
-    g.fillRect(x + 1, y + 1, w - 2, 3);
-    g.fillStyle(0x1e6a26, a);
+    g.fillStyle(0x5a9452, a);
+    g.fillRect(x + 1, y + 1, w - 2, 1);
+    g.fillStyle(0x1a3c22, a);
     g.fillRect(x + 2, y + h - 1, w - 4, 1);
     const k = frac(t / 2.2);
     if (k < 0.35) {
       const sx = Math.round(x - 4 + (k / 0.35) * (w + 8));
-      g.fillStyle(WHITE, 0.45 * a);
+      g.fillStyle(WHITE, 0.22 * a);
       for (let j = 0; j < h - 2; j++) {
         const xx = sx + Math.round((h - j) / 3);
         if (xx >= x + 1 && xx < x + w - 2) g.fillRect(xx, y + 1 + j, 2, 1);
