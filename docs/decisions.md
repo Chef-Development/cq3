@@ -1198,4 +1198,14 @@ F15. **Each hero's first finisher gets the reveal** (the letterbox, the light, i
     always brings someone new). One mark per hero in `profile.seen` (`revealKey`: Rowan keeps `finisherReveal`); only
     with tips on; the Test lab's profiles have every hero's seen.
 
+F16. **A new player's first relic pick is two plain cards** (`CORE:` run.ts, the lead's request). Minute one's first
+    pick (Act 1's promised chest) showed three dense cards: tag chips, a RARE badge, a stat card. The first pick a new
+    player makes (no act cleared, no relic carried, none picked before: `Run.simplePick`, `'pick:first'` in
+    `profile.seen`) now offers two relics that share no tag, so the choice is between two ways to play (the chest's
+    rare one still among them: `rollFirstPick`), drawn as two taller cards with the name and what it does (relic-ui
+    `relicCard` `plain`). Tags, rarity and the third card come from the second pick on, with Synergy!.
+F17. **The newcomer bot spends skill points** (`tests/smoke/first10.spec.ts`): from the first chest on, whenever a
+    point is waiting on the map it taps Camp, opens Skills, learns down one branch and goes back (`F10_SKILLS=0` never
+    does), so its boss result compares with the balance bot, which spends them after every loot.
+
 (first10: end of section)
