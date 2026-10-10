@@ -1227,7 +1227,9 @@ F16. **A new player's first relic pick is two plain cards** (`CORE:` run.ts, the
     player makes (no act cleared, no relic carried, none picked before: `Run.simplePick`, `'pick:first'` in
     `profile.seen`) now offers two relics that share no tag, so the choice is between two ways to play (the chest's
     rare one still among them: `rollFirstPick`), drawn as two taller cards with the name and what it does (relic-ui
-    `relicCard` `plain`). Tags, rarity and the third card come from the second pick on, with Synergy!.
+    `relicCard` `plain`). Tags, rarity and the third card come from the second pick on, with Synergy!. The two come
+    from plain starter relics (`STARTER_RELICS`: crits, blocks, greens, the finisher, healing) when those can make the
+    pick: the first measured one offered Blast Wave (bombs, which Act 1 hasn't shown) beside Greenhouse (a trade-off).
 F17. **The newcomer bot spends skill points** (`tests/smoke/first10.spec.ts`): from the first chest on, whenever a
     point is waiting on the map it taps Camp, opens Skills, learns down one branch and goes back (`F10_SKILLS=0` never
     does), so its boss result compares with the balance bot, which spends them after every loot.
