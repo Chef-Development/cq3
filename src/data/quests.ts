@@ -75,6 +75,8 @@ export const QUEST_STORIES: readonly QuestStory[] = [
   { region: 'frostpeaks', quest: 'blocks', frame: 'From the snow-wall crews: hold the pass.', payoff: 'The pass held. The crews will build again.' },
   { region: 'ashfell', quest: 'healthy', frame: 'A forge-mother asks: come back whole.', payoff: 'She keeps her word: coin, and a hot meal.' },
   { region: 'duskmire', quest: 'elite', frame: "Something big took the fen's night boat.", payoff: "The night boat's crew can sleep again." },
+  // ready for when Noonspire joins REGIONS
+  { region: 'noonspire', quest: 'combo', frame: "The Order's drummer: keep time for us.", payoff: 'For a moment, the spire has a rhythm again.' },
 ];
 
 /** The story a region's board gives this bounty, if any. */

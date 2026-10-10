@@ -417,7 +417,9 @@ describe("the regions' own events", () => {
         expect(ids.length).toBeGreaterThan(EVENTS.filter((e) => !e.region).length);
       }
     }
-    for (const e of EVENTS) if (e.region) expect(REGIONS.some((r) => r.id === e.region), e.id).toBe(true);
+    // a region's events may be written ahead of it (the world plan's next region), never for a land that isn't planned
+    const { WORLD_PLAN } = await import('../../src/core/world-plan');
+    for (const e of EVENTS) if (e.region) expect(WORLD_PLAN.some((r) => r.id === e.region), e.id).toBe(true);
   });
 });
 
@@ -426,6 +428,9 @@ describe("the regions' story bounties", () => {
     const { QUEST_STORIES, questById, questStory } = await import('../../src/data/quests');
     const { REGIONS } = await import('../../src/data/regions');
     for (const r of REGIONS) expect(QUEST_STORIES.filter((s) => s.region === r.id).length, r.id).toBe(1);
+    const { WORLD_PLAN } = await import('../../src/core/world-plan');
+    for (const s of QUEST_STORIES) expect(WORLD_PLAN.some((r) => r.id === s.region), s.region).toBe(true);
+    expect(new Set(QUEST_STORIES.map((s) => s.region)).size).toBe(QUEST_STORIES.length);
     for (const s of QUEST_STORIES) {
       expect(questById(s.quest), s.quest).toBeDefined();
       expect(questById(s.quest)?.style, s.quest).toBeUndefined(); // a board posts it (style calls come another way)

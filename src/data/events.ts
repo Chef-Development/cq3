@@ -181,6 +181,27 @@ export const EVENTS: EventDef[] = [
       },
     ],
   },
+  // ---- Noonspire (ready for when the region joins REGIONS: until then no act is in it, so neither turns up)
+  {
+    id: 'lostCaravan',
+    region: 'noonspire',
+    title: 'The Lost Caravan',
+    text: 'A caravan has walked in circles for days.\nWith no shadows, nobody can find north.',
+    choices: [
+      { label: 'Guide them', outcomes: [{ text: 'Hours in the glare. At the road they press\na sun-charm into your hand.', hp: -12, boost: 'rare' }] },
+      { label: 'Sell them your map', outcomes: [{ text: 'They pay well. You hope a map is enough\nwhere nothing casts a shadow.', coins: 25 }] },
+    ],
+  },
+  {
+    id: 'coldSpring',
+    region: 'noonspire',
+    title: 'The Last Cold Spring',
+    text: 'A spring that still runs cold, kept by an\nold woman with a ladle and a tally.',
+    choices: [
+      { label: 'Pay for a drink', cost: 10, outcomes: [{ text: 'It is the best thing you have ever tasted.\nShe marks the tally. One more day.', heal: 0.3 }] },
+      { label: 'Ask about nights', outcomes: [{ text: '"We froze, some winters. We also slept."\nShe tells you where the sentries stand.', boost: 'common' }] },
+    ],
+  },
 ];
 
 export const EVENT_IDS = EVENTS.map((e) => e.id);
