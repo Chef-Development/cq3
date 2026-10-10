@@ -1129,6 +1129,18 @@ C12. **The region card's tabs fall back to short names** (Green, Frost, Ash, Dus
   damage numbers pop just under it and settle (cascading down, not up) until the shout is gone (`view/fighters.ts`).
   The vault said "No chests yet" after the first chest was opened: once any has been opened it says "No chests
   waiting" (`view/chests.ts`).
+- **Q12 Smoke tests that grow with the content.** The intro test clicked ~110 Sound lab buttons one Playwright click at
+  a time and passed its 150 s; it now clicks three for real and plays every one in the page, a beat apart (57 s). The
+  every-enemy walk is one test per region (each about a minute; regions not in play skip; a region past six fails).
+- **Q13 Accessibility.** Block marks on by default (one small chevron on a plain red: the only kind told from a yellow
+  by colour alone; every other kind has a glyph or a shape) and Motion Auto/Less/Full (Less: no shake, kick or white
+  frames, shorter flashes; Auto follows the device). Their own storage key, kept through a New game. **Larger text not
+  done:** the pixel fonts scale only in whole steps, and the bold display font (caps 7 px, which the story's 11 px line
+  pitch would hold) is wider than the label font the story boxes are broken for, so a larger-text mode needs the
+  story and tip views to re-wrap and page a third line (their owners' layout): proposed for the next round.
+- **Q14 The boot check in the repo** (`scripts/boot-check.mjs`, `npm run boot-check -- <port>`): proposed as a CI
+  step after the build (the deploy workflow: install Chromium, preview, run it; about a minute) so a boot crash never
+  reaches the live build; a jsdom version in `npm test` can't paint (no canvas or WebGL).
 (qa: end of section)
 
 

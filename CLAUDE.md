@@ -330,6 +330,12 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   or sheet closes; on the title it leaves); the installed app opens full screen (`display_override`); in a tab or on a
   desktop the gear panel has Full screen (and on a phone held upright it locks the game sideways). The "turn your
   phone sideways" card shows on touch screens only.
+- **Accessibility** (round 8, `core/a11y.ts` rules, unit-tested; `engine/a11y.ts` the live values; `cq3.a11y` in
+  storage.ts; the gear panel's Modes): **Block marks** (on by default): a plain red carries a small chevron so no block
+  kind is told apart by colour alone (every other kind already has a glyph or a shape: keep it so for new kinds; an
+  unlit dark block shows nothing). **Motion** Auto/Less/Full (Auto follows `prefers-reduced-motion`): Less turns the
+  screen shake, the camera's kick and the white impact frames off and shortens screen flashes (`view/effects.ts`: new
+  screen motion goes through `fx.shake`/`fx.kick`/`fx.screenFlash` so it obeys).
 - **Clean capture** (`cq3.cleanCapture`, storage.ts): the gear panel's Modes or C hides the HUD buttons and the Test
   lab's for recording clips; a long press on the top middle (or C) brings them back.
 - **Test lab** (`src/data/lab.ts` scenarios, `core/lab.ts` profiles/fights/ratings/report, `engine/lab.ts` the list):
