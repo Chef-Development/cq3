@@ -7,7 +7,8 @@ import { heroAtk, heroMaxHp } from '../../src/core/combat';
 import { makeItem } from '../../src/core/gear';
 import { addItem, equip } from '../../src/core/profile';
 import { Rng } from '../../src/core/rng';
-import { Run, rarityMult } from '../../src/core/run';
+import { FIRST_PICK, Run, rarityMult } from '../../src/core/run';
+import { relicById } from '../../src/data/relics';
 import { restoreRun, snapshotRun } from '../../src/core/save';
 import { cloneTuning, DEFAULT_SETTINGS, type Tuning } from '../../src/core/tuning';
 
@@ -148,7 +149,7 @@ describe('the map', () => {
 
   it('winning a fight offers one pick (mostly relics, at most one stat card), then the map again; an elite guarantees a rare', () => {
     const r = onMap((t) => ((t.boosts.rareChance = 0), (t.boosts.epicChance = 0), (t.relics.rareW = 0), (t.relics.epicW = 0), (t.relics.statCard = 1)));
-    r.profile.seen.push('scene:road'); // (past a new player's first win: it has no pick)
+    r.profile.seen.push('scene:road', FIRST_PICK); // (past a new player's first win and first pick)
     r.chooseNode(r.map.rows[0][0]);
     win(r);
     expect(r.phase).toBe('boost');
@@ -162,6 +163,46 @@ describe('the map', () => {
     goTo(r, 'elite');
     win(r);
     expect(r.boostChoices.filter((o) => o.rarity !== 'common').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("a new player's first relic pick (the promised chest's): two relics, two ways to play; the next pick is the usual three", () => {
+    for (const seed of [3, 7, 11, 19, 23]) {
+      const r = onMap(undefined, seed);
+      r.chooseNode(r.map.rows[0][0]);
+      win(r); // (the first win: no pick, the road scene)
+      r.skipScenes();
+      const chest = r.choices().find((id) => r.map.nodes[id].type === 'treasure')!;
+      r.chooseNode(chest);
+      r.openTreasure();
+      if (r.phase === 'loot') r.collectLoot();
+      expect(r.phase).toBe('boost');
+      expect(r.simplePick).toBe(true);
+      const [a, b] = r.boostChoices;
+      expect(r.boostChoices).toHaveLength(2);
+      expect(r.boostChoices.every((o) => o.id === 'relic')).toBe(true);
+      // the chest's pick is rare or better: the first card that rare is there
+      expect(r.boostChoices.some((o) => o.rarity !== 'common'), `seed ${seed}`).toBe(true);
+      const ta = relicById((a as { relic: string }).relic as never)!.tags;
+      const tb = relicById((b as { relic: string }).relic as never)!.tags;
+      expect(ta.some((tg) => tb.includes(tg)), `seed ${seed}: ${ta} / ${tb}`).toBe(false);
+      r.pickBoost(0);
+      expect(r.profile.seen).toContain(FIRST_PICK);
+      expect(r.simplePick).toBe(false);
+      // the next pick: three cards as ever
+      expect(goTo(r, 'fight')).toBe(true);
+      win(r);
+      expect(r.phase).toBe('boost');
+      expect(r.boostChoices).toHaveLength(3);
+    }
+    // a player who has cleared an act never gets it
+    const old = fresh();
+    old.profile.actsCleared = 1;
+    old.newRun();
+    old.skipScenes();
+    old.chooseNode(old.map.rows[0][0]);
+    win(old);
+    expect(old.simplePick).toBe(false);
+    expect(old.boostChoices).toHaveLength(3);
   });
 
   it('found gear for an empty slot goes on at once (gear.autoWear); for a filled slot it waits in the bag', () => {
