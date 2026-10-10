@@ -112,9 +112,9 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
         const c = client(200, 115);
         S.taps++;
         ev('pointerdown', id, c);
-        setTimeout(() => ev('pointermove', id, { clientX: c.clientX + 30, clientY: c.clientY - 30 }), 50);
-        setTimeout(() => ev('pointermove', id, { clientX: c.clientX + 70, clientY: c.clientY - 60 }), 100);
-        setTimeout(() => ev('pointerup', id, { clientX: c.clientX + 70, clientY: c.clientY - 60 }), 130);
+        setTimeout(() => ev('pointermove', id, { clientX: c.clientX + 30, clientY: c.clientY - 30 }), 30);
+        setTimeout(() => ev('pointermove', id, { clientX: c.clientX + 70, clientY: c.clientY - 60 }), 60);
+        setTimeout(() => ev('pointerup', id, { clientX: c.clientX + 70, clientY: c.clientY - 60 }), 90);
       };
 
       // phases and combat events
@@ -355,7 +355,11 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
             // (a newcomer swipes once the game has shown them how: the finisher's tip, or a finisher already fired)
             if (c.finisherReady && (S.tips.some((t: Any) => t.id === 'finisher') || S.beats.some((b: Any) => b.id === 'firstFinisher'))) {
               if (!finReadyAt) finReadyAt = now;
-              if (now - finReadyAt > 550 && !pending) {
+              // (a swipe whose press lands a hit runs the hit's work first: on a loaded machine that alone can outlast
+              // the swipe's 350 ms, the synthetic move's timeStamp being when it was made; so it swipes between
+              // blocks, as a thumb mostly does, or after 3 s whatever is under the cursor)
+              const clear = x.wouldMiss(P.now()) || now - finReadyAt > 3000;
+              if (now - finReadyAt > 550 && !pending && clear) {
                 swipe();
                 busyUntil = now + 400;
                 finReadyAt = 0;
