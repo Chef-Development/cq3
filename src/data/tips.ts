@@ -174,8 +174,8 @@ export const TIPS: readonly TipDef[] = [
   { id: 'purple', lines: ['Purple is a trap: let it pass.', 'Tapping it hurts you.'], anchor: 'purpleBlock', fight: 'pause', basic: true, after: ['green'], known: 3, lesson: { kind: 'purple' } },
   {
     id: 'finisher',
-    lines: ['Meter full! Swipe for a finisher.', 'More stacks, bigger finisher.'],
-    buttonLines: ['Meter full! Tap for a finisher.', 'More stacks, bigger finisher.'],
+    lines: ['Meter full! Swipe for a finisher.', 'Or fill it again: a bigger one.'],
+    buttonLines: ['Meter full! Tap for a finisher.', 'Or fill it again: a bigger one.'],
     anchor: 'meter',
     fight: 'pause',
     basic: true,

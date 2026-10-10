@@ -338,6 +338,14 @@ export class TipsView {
       const belt = s.hud.relicBelt()?.r;
       if (belt && !(anchor && overlap(belt, anchor, 0))) out.push(belt);
     }
+    if (s.app.run.phase === 'map') {
+      // on the act map: the HUD's plates and the tags it isn't about (the boss's name: the card clipped "Captain")
+      out.push(...s.mapView.hudRects());
+      for (const t of s.mapView.layoutTags()) {
+        const r = { x: t.x, y: t.y, w: t.w, h: t.h };
+        if (!(anchor && overlap(r, anchor, 0))) out.push(r);
+      }
+    }
     return out;
   }
 
@@ -368,7 +376,9 @@ export class TipsView {
     const left = { r: { x: clampX(a.x - gap - w), y: clampY(cy - h / 2), w, h }, dir: 'right' as Dir };
     const right = { r: { x: clampX(a.x + a.w + gap), y: clampY(cy - h / 2), w, h }, dir: 'left' as Dir };
     const low = cy > z.y + z.h / 2;
-    const tries = [...(onBar && top ? [top] : []), ...(low ? [above, below] : [below, above]), ...(cx > z.x + z.w / 2 ? [left, right] : [right, left])];
+    // (beside it, also level with its top or its foot: room the centred one may lack)
+    const sides = (cx > z.x + z.w / 2 ? [left, right] : [right, left]).flatMap((t) => [t, { ...t, r: { ...t.r, y: clampY(a.y) } }, { ...t, r: { ...t.r, y: clampY(a.y + a.h - h) } }]);
+    const tries = [...(onBar && top ? [top] : []), ...(low ? [above, below] : [below, above]), ...sides];
     for (const t of tries) {
       if (overlap(t.r, a, 3) || keep.some((k) => overlap(t.r, k, 2))) continue;
       // the arrow needs room between the card and the anchor
@@ -443,7 +453,9 @@ export class TipsView {
     tag(g, tr, [GOLD[4], GOLD[3], GOLD[2], GOLD[1]]);
     this.texts.text('TIP', tr.x + tipW / 2, tr.y + 5.5, 0x3a1e08, { bold: true, ox: 0.5, oy: 0.5 });
     lines.forEach((line, i) => this.line(line, r.x + 8, r.y + 11 + i * pitch, big));
-    const hr: Rect = { x: r.x + w - 7 - hintW, y: hintUp ? r.y - 6 : r.y + h - 5, w: hintW, h: 11 };
+    // (in a fight the top-edge hint stays left of the foe's plate, whose name it hid: review round 8)
+    const hintX = fight ? Math.max(tr.x + tipW + 4, Math.min(r.x + w - 7 - hintW, s.R - 111 - hintW)) : r.x + w - 7 - hintW;
+    const hr: Rect = { x: hintX, y: hintUp ? r.y - 6 : r.y + h - 5, w: hintW, h: 11 };
     tag(g, hr, [NAVY[6], NAVY[4], NAVY[3], NAVY[1]]);
     const live = since > DISMISS_MS;
     this.texts.text(HINT, hr.x + hintW / 2, hr.y + 5.5, 0xffd23a, { ox: 0.5, oy: 0.5, alpha: live ? 0.7 + 0.3 * pulse(now, 900) : 0.4 });

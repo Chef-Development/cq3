@@ -745,6 +745,9 @@ export class Hud {
         }
         if (best) this.gain = { text: `${fmtStatShort(best.id, best.d)} ${best.id === 'hp' ? STAT_INFO.hp.name : STAT_INFO[best.id].short}`, hp: best.id === 'hp', at: Math.max(now, this.inAt + 450) };
       }
+    } else if (this.seen && st.hp > this.seen.hp + 1e-6) {
+      // a kill's small lasting gain mid-fight: said where it shows (review round 8: max HP rose with no cause shown)
+      this.showGain(`${fmtStatShort('hp', st.hp - this.seen.hp)} ${STAT_INFO.hp.name}`, true, now);
     }
     this.seen = st;
     if (this.gain && now >= this.gain.at) {
@@ -1100,7 +1103,10 @@ export class Hud {
     const stacks = c.stacks;
     const ready = c.finisherReady;
     const maxStacks = c.maxStacks();
-    const maxed = stacks >= maxStacks;
+    // until the finisher is taught, a banked stack shows the bar full and glowing (it fills on toward the next stack
+    // underneath: "Meter full!" over a nearly empty bar read as a lie, review round 8)
+    const taught = s.app.profile.tipsOff || s.app.tips.learned('finisher');
+    const maxed = stacks >= maxStacks || (ready && !taught);
     const frac = maxed ? 1 : clamp01(c.meter);
     const [fc, fh, fl] = stackCol(maxed ? stacks : stacks + 1);
     const [sc, sh] = stackCol(Math.max(1, stacks));
@@ -1217,7 +1223,6 @@ export class Hud {
       chevron(g, vx + i * 5, Math.round(cy - 3), 7, on ? col : NAVY[5], 1, 1, true);
     }
     // ("SWIPE!" waits for the finisher's lesson: before it, a full meter is quiet, its gems lit)
-    const taught = s.app.profile.tipsOff || s.app.tips.learned('finisher');
     if (ready && s.app.run.phase === 'fight' && taught) {
       const label = keyboardUsed() ? 'PRESS F!' : s.app.settings.finisherInput === 'swipe' ? 'SWIPE!' : 'FINISHER!';
       this.texts.text(label, m.x + m.w / 2, cy, Math.floor(now / 150) % 2 ? WHITE : stackCol(stacks)[1], { bold: true, ox: 0.5, oy: 0.5 });

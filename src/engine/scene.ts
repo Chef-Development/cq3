@@ -862,6 +862,8 @@ export class FightScene extends Phaser.Scene implements View {
 
   /** The HUD's gear button is quiet now (style.css html.hud-quiet). */
   private hudQuiet = false;
+  /** A tip card is up (style.css html.tip-up hides the HTML buttons). */
+  private hudTip = false;
 
   update(): void {
     const now = performance.now();
@@ -875,6 +877,12 @@ export class FightScene extends Phaser.Scene implements View {
     if (quiet !== this.hudQuiet) {
       this.hudQuiet = quiet;
       document.documentElement.classList.toggle('hud-quiet', quiet);
+    }
+    // a tip card is up (the next tap only puts it away): the HTML buttons step aside (they sat on its top edge)
+    const tipUp = !!this.app.tipUp && !!this.tips.current;
+    if (tipUp !== this.hudTip) {
+      this.hudTip = tipUp;
+      document.documentElement.classList.toggle('tip-up', tipUp);
     }
     for (let i = 0; i < this.pending.length; i++) {
       const p = this.pending[i];
