@@ -11,6 +11,8 @@ import { STORY_BANTER, STORY_SCENE_ACT } from '../../src/data/banter-story';
 import { NOON_BANTER, NOON_SCENE_ACT } from '../../src/data/banter-noon';
 import { NOON_STORY } from '../../src/data/story-noon';
 import { HUSH_STORY } from '../../src/data/story-hush';
+import { REACH_STORY } from '../../src/data/story-reach';
+import { WICK_STORY } from '../../src/data/story-wick';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
 import { HEROES } from '../../src/data/heroes';
 import { TIER_INFO } from '../../src/data/rarity';
@@ -163,9 +165,15 @@ describe('story', () => {
     // the sixth region's, drafted ahead of its data: the same rules; its boss's phases are his edits
     for (const id of ['hush1', 'shears', 'hushCamp', 'hush2', 'slowcoach', 'hush3', 'yew', 'yew2', 'yew3', 'hushVictory']) expect(HUSH_STORY[id], id).toBeDefined();
     for (const id of ['yew2', 'yew3', 'hushVictory']) expect(HUSH_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
-    for (const [id, boxes] of Object.entries({ ...NOON_STORY, ...HUSH_STORY })) {
+    // the seventh's and eighth's too (the eighth's Act 2 opening is the river twist: he never names his son)
+    for (const id of ['reach1', 'ropewright', 'reachCamp', 'reach2', 'squall', 'reach3', 'kestrel', 'kestrel2', 'kestrel3', 'reachVictory']) expect(REACH_STORY[id], id).toBeDefined();
+    for (const id of ['wick1', 'polisher', 'wickCamp', 'wick2', 'press', 'wick3', 'mender', 'mender2', 'mender3', 'wickVictory']) expect(WICK_STORY[id], id).toBeDefined();
+    for (const id of ['kestrel2', 'kestrel3', 'mender2', 'mender3']) expect({ ...REACH_STORY, ...WICK_STORY }[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
+    const drafts = [NOON_STORY, HUSH_STORY, REACH_STORY, WICK_STORY];
+    for (const [id, boxes] of Object.entries({ ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY })) {
       expect(!(id in STORY) || STORY[id] === boxes, id).toBe(true);
-      expect(!(id in NOON_STORY) || !(id in HUSH_STORY), id).toBe(true);
+      expect(drafts.filter((d) => id in d).length, `${id}: one region's id`).toBe(1);
+      for (const b of boxes) if (b.who === 'mapmaker') expect(b.text, id).not.toMatch(/\bRowan\b/);
       expect(boxes.length, id).toBeLessThanOrEqual(6);
       for (const b of boxes) {
         const lines = b.text.split('\n');

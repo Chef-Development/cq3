@@ -210,6 +210,9 @@ export type Speaker =
   | 'sphinx'
   // Region 6's, drafted ahead (src/data/story-hush.ts)
   | 'slowcoach'
+  // Regions 7-8's, drafted ahead (src/data/story-reach.ts, story-wick.ts)
+  | 'squall'
+  | 'press'
   | 'captain'
   | 'golem'
   | 'boarking'

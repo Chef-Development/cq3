@@ -261,8 +261,8 @@ isles find their families asleep. He is no longer gentle; he still never lies.
 | # | Twist | Seeded | Revealed |
 |---|---|---|---|
 | 1 | Pip was the Mapmaker's owl; the pen is Pip's feather | written: R1 Pip knows Rowan's name before they meet (`act1`, `road`) and warns "be careful of him" (`act3`); R2 he knows how Ambrose chooses ("He finds whoever will love his fix the most", `frost2`); R5 he sits apart at camp, "just remembering someone" (`noonCamp`), goes quiet (`noon2`), offers only "Don't touch the mane." (`brassLion`). To add: the pen drawn plainly as an owl feather (art) | R5 (`noonBoss`, `noonVictory`) |
-| 2 | The keepers moved the river themselves; Wend drowned because of the capital | written: R4 the fen-woman, "The river ran down from the north, once" (`duskVictory`). banter "Hesper never looks at that lake." (after `victory`). Outlined: R6 Pip reads a moved river in the impression, "Long before him." (`hush2`). To add: Hesper never looks at the lake (her portrait) | R8 (`archive`) |
-| 3 | Rowan is the son Ambrose drew back: a cut through the page | written: the intro (the only one who woke); "Who drew you?" (`victory`); R4 Rowan can't swim, "since before I remember" (`dusk3`), and walks on the blank water (`dusk2`); at camp, "Why can't he erase me?" (`duskCamp`); and in camp banter, "They found me on some steps. Soaked." and Pip's "I've known you a long time." Outlined: R6 Pip stayed "for someone who needed watching over" (`hushCamp`); R7 the blank holds Rowan up, "It feels like paper" (`reach1`); R8 Ambrose tells of "my boy" and never says his name (`archive`) | R11 |
+| 2 | The keepers moved the river themselves; Wend drowned because of the capital | written: R4 the fen-woman, "The river ran down from the north, once" (`duskVictory`). banter "Hesper never looks at that lake." (after `victory`). Outlined: R6 Pip reads a moved river in the impression, "Long before him." (`hush2`). To add: Hesper never looks at the lake (her portrait) | R8 (`wick2`) |
+| 3 | Rowan is the son Ambrose drew back: a cut through the page | written: the intro (the only one who woke); "Who drew you?" (`victory`); R4 Rowan can't swim, "since before I remember" (`dusk3`), and walks on the blank water (`dusk2`); at camp, "Why can't he erase me?" (`duskCamp`); and in camp banter, "They found me on some steps. Soaked." and Pip's "I've known you a long time." Outlined: R6 Pip stayed "for someone who needed watching over" (`hushCamp`); R7 the blank holds Rowan up, "It feels like paper" (`reach1`); R8 Ambrose tells of "my boy" and never says his name (`wick2`) | R11 |
 
 (Never let Ambrose say his son's name before Region 11. When he finally does, it is the end of the scene.)
 
@@ -516,7 +516,7 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   - Phase 3 edit: "Hold on to each other." Every block tied to the next.
 - **Restoring:** the Tether snaps; the pieces come down to the sea and stand as cliffs again; the bridges sway; the
   sleepers wake on their own doorsteps; a gull chick tumbles off a ledge, and flies.
-- **Scenes:** `reach1` (Act 1 start: the steps hanging over nothing; between the pieces, white blank; Rowan steps out
+- **Scenes (drafted in full: `src/data/story-reach.ts`, speaker `squall`):** `reach1` (Act 1 start: the steps hanging over nothing; between the pieces, white blank; Rowan steps out
   onto it and it holds him. Neve: "You are standing on NOTHING." Rowan: "It isn't nothing. It feels like paper.");
   `ropewright`; `reachCamp` (camp: Sable and Neve on Rowan walking on the blank; Rowan: "I don't know what I am." Neve:
   "You're the one who carries us across. That'll do."); `reach2` (Act 2 start: Ropetown; every house tied to every
@@ -544,22 +544,23 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   - Phase 2 edit: "Nothing breaks." Everything mends faster.
   - Phase 3 edit: "Let me mend this fight." He winds everything at once.
 - **Restoring:** the Key snaps; a hinge squeaks, the first sound of wear; the makers wake and go back to work.
-- **Scenes:** `wick1` (Act 1 start: a town where nothing is worn; Sable: "Not one scuff. Who LIVES like this?"
+- **Scenes (drafted in full: `src/data/story-wick.ts`, speaker `press`):** `wick1` (Act 1 start: a town where nothing is worn; Sable: "Not one scuff. Who LIVES like this?"
   Pip: "Nobody. That's the trouble."); `polisher`; `wickCamp` (camp: Mags at her forge, cross about a town that never
-  needs a smith; "A mend should SHOW. That's how you know someone cared."); `wick2` (Act 2 start: the Hall of Copies;
-  he is waiting there, and he asks Rowan in, alone); `archive` (twist 2, below); `press`; `wick3` (Act 3 start: the
+  needs a smith; "A mend should SHOW. That's how you know someone cared."); `wick2` (Act 2 start: twist 2, below);
+  `press`; `wick3` (Act 3 start: the
   Mender under the town, the Key turning); `mender` (boss intro: "Nothing will ever wear out again. Nothing will ever
   be lost." Rowan: "Things get lost. People find them. That's most of what people do."); `mender2`, `mender3`;
   `wickVictory` (the Key snaps; the hinge; he, honest as ever: "These isles do not hold ink enough for what I am drawing,
   knight. I will find more." (it sets up Region 9's end) Pip, after he goes: "Rowan. There's more. It isn't mine to tell." The next isle takes shape).
-- **`archive` (the twist, 6 boxes, the whole region turns on it):** two great copies of the Atlas side by side under
+- **`wick2` (the twist, 6 boxes, the whole region turns on it):** two great copies of the Atlas side by side under
   the lamps, made a hundred years apart. "Look at the river. Here, it runs through Meridian. Here, it does not." A
   keeper moved it, a century ago, into a valley with a village in it: his. Wend. A spring flood came down it; he
   asked the High Keeper for a levee; she said keep the line, never make it; Wend drowned, "and my boy with it". (Never
   his son's name; never his age.) Rowan, after a long box of silence: "The world was unfair to you. You're right about
-  that. You're wrong about the rest." He: "Ask your High Keeper what she knew." (sets up Region 10)
+  that. You're wrong about the rest." At the boss, Rowan asks "Did Hesper know?" He: "Ask her, knight. She will tell you less than I have." (sets up
+  Region 10)
 - **Banter seeds:** Tess after `wick1`: "No clock wears out here. Disgusting." / after `wickVictory`: "A squeaky
-  hinge! Music." Rowan after `archive`: "He had a son. I keep thinking about it." Sprocket is from here (its bio).
+  hinge! Music." Rowan after `wick2`: "He had a son. I keep thinking about it." Sprocket is from here (its bio).
 
 ### Region 9: Saltmarrow (far isle) — outline (the stakes peak)
 - **Original:** a fishing isle in a stormy sea, a storm wall (Hollis) and a storm-bell abbey (Brann) that rang when a
