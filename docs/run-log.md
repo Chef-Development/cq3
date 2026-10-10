@@ -249,3 +249,7 @@ One PR at the end supersedes #1-#7.
   reported; agents done. Boot-checked, pushed. Lead's look at the title, the Atlas and the intro: good.
   Next (the freeze): the full unit suite, then the screenshot baselines (looked at), then the full Playwright suite on
   a quiet machine, the report and the PR.
+- 03:31 EDT: with an hour in hand before the freeze, one last polish chunk (HARD STOP 04:30): dusk-art (the hero select
+  under iPhone insets, the region card's seals, the treasure's empty band, the bag), first10 (a quieter first Act 1
+  map for a newcomer). The full unit suite running on the merged code meanwhile. Freeze 04:30: baselines, the full
+  Playwright suite, the report, the PR.
