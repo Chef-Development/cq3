@@ -77,7 +77,7 @@ export class FightScene extends Phaser.Scene implements View {
    *  the title has been left (a pack that arrives after that is added at once). */
   private packsIn = new Set<string>();
   private packIdle = false;
-  private packsNow = false;
+  private packsForced = false;
   private lastNow = 0;
   private pending: Pending[] = [];
   private lastCombat: Combat | null = null;
@@ -146,7 +146,7 @@ export class FightScene extends Phaser.Scene implements View {
     const idle = () => {
       if (!this.worldArtIn && !paintWorldSlice(8)) return void window.setTimeout(idle, 0);
       this.ensureWorldArt();
-      onRegionPack((p) => (this.packsNow ? this.addPack(p, true) : this.paintPacks()));
+      onRegionPack((p) => (this.packsForced ? this.addPack(p, true) : this.paintPacks()));
     };
     window.setTimeout(idle, 30);
   }
@@ -162,7 +162,7 @@ export class FightScene extends Phaser.Scene implements View {
     p.addArt(this.addTex, now);
     this.packsIn.add(p.id);
     // a fight that began before its pack arrived (a very slow first visit) gets its backdrop now
-    if (this.packsNow && packOfTheme(this.app.run.theme) === p.id) this.stage.applyTheme();
+    if (this.packsForced && packOfTheme(this.app.run.theme) === p.id) this.stage.applyTheme();
   }
 
   /** Paint the packs that have arrived in idle slices, one after another, adding each when it's done. */
@@ -170,7 +170,7 @@ export class FightScene extends Phaser.Scene implements View {
     if (this.packIdle) return;
     const next = () => {
       const p = regionPacks().find((q) => !this.packsIn.has(q.id));
-      if (!p || this.packsNow) return void (this.packIdle = false);
+      if (!p || this.packsForced) return void (this.packIdle = false);
       if (p.paintSlice(8)) this.addPack(p, false);
       window.setTimeout(next, 0);
     };
@@ -179,10 +179,10 @@ export class FightScene extends Phaser.Scene implements View {
   }
 
   /** The later regions' foes, portraits and bar pieces, now: every pack that has arrived is finished and added at once,
-   *  and one still on its way is added the moment it arrives. App.setPhase asks on every screen change (nothing to do
-   *  once all are in); a fight's foe or a scene's portrait that isn't there yet asks too. */
+   *  and one still on its way is added the moment it arrives. App.setPhase asks when a fight starts or the run is in a
+   *  later region (nothing to do once all are in); a fight's foe or a scene's portrait that isn't there yet asks too. */
   ensureRegionArt(): void {
-    this.packsNow = true;
+    this.packsForced = true;
     for (const p of regionPacks()) this.addPack(p, true);
     // one that failed to download (a dropped connection) is asked for again
     if (!regionArtLoaded()) void loadRegionArt();

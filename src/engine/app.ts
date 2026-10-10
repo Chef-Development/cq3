@@ -12,6 +12,7 @@ import type { Settings, Tuning } from '../core/tuning';
 import { AMBIENCES, Synth, TELL_SOUNDS, type Ambience, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, sameGameLayout, sameLayout, type ScreenLayout } from './layout';
 import { clearRunSave, eraseProgress, loadLabAcc, loadProfile, loadRunSave, saveSoon, setStorageSlot, writeLabAcc, writeProfile, writeRunSave } from './storage';
+import { regionOfAct } from '../data/regions';
 
 export interface View {
   /** Returns how long (ms) the next phase change should wait so a kill / finisher animation can play out. */
@@ -409,8 +410,9 @@ export class App {
 
   private afterPhaseChange(prev: Phase): void {
     const now = performance.now();
-    // past the title, every later region's art is in (region-art.ts: painted in idle slices until now)
-    if (this.run.phase !== 'title') this.view?.ensureRegionArt();
+    // a fight, or anything in a later region: every later region's art is in at once (region-art.ts; it's painted
+    // in idle slices from the title on, so a Greenmarch player's world map, camp and story never wait for it)
+    if (this.run.phase === 'fight' || (this.run.phase !== 'title' && regionOfAct(this.run.actIndex) > 0)) this.view?.ensureRegionArt();
     if (this.run.phase === 'fight' && this.run.combat && this.run.combat !== this.begunCombat) {
       // every fight from the map waits for TAP TO BEGIN (resumed ones too)
       this.begunCombat = this.run.combat;
