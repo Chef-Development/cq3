@@ -3,7 +3,7 @@
 // (art-rig.ts): a kid, a head shorter than the grown-ups. The slingshot rides the far hand (in front of the body);
 // the near hand pulls the band back.
 import { put, stamp, type Grid, type Pal, type Shade } from './art';
-import { type HeroCardSpec, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Pt, type Rig, type RigPose, sparkle } from './art-rig';
+import { type HeroCardSpec, type Layer, LEG_FEET_X, matureLegs, type Pt, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -41,28 +41,28 @@ export const DELL_SHADES: Record<string, Shade> = {
 // ------------------------------------------------------------------ body
 
 // A wide-brimmed straw hat with a red band, ginger tufts, big green eyes, freckles, a gap-toothed grin; 17 wide.
+// (playtest round 8, L8, by hand: the straw hat over ginger hair, ginger brows over one dark iris each, a crooked
+// half-smile, the jaw in shadow) 17 x 11.
 const HEAD = [
   '......UuuuuU.....',
-  '.....UyYyYyyU....',
-  '....UyYyYyyyyU...',
   '....RrrrrrrrrrR..',
   'UuuyyYyYyYyYyyuuU',
   '.UuuuuuuuuuuuuuuU',
   '..hHhhSSSSSSSSh..',
-  '..hHhSSSkkSSSkk..',
-  '..hhzESSWiSSSWiS.',
-  '...hzESfSfSSfSST.',
-  '....zzSSSSSSSSz..',
-  '.....zSSxXXxSz...',
+  '..hHhSShhSSShhS..',
+  '..hhzESSSkSSSSkS.',
+  '...hzESSSSSSSSST.',
+  '....zzSSSSSSSzz..',
+  '.....zSSSSxxSz...',
   '......zzSSSSz....',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 17 - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
-  squint: face(HEAD, { 7: 'SSSSSSSh..', 8: 'SSkkSSSkkS.', 11: 'SSxxxxSz...' }),
-  ko: face(HEAD, { 7: 'SSSSSSSh..', 8: 'SSkSkSSkSkS.', 11: 'SSSxSSz...' }),
+  squint: face(HEAD, { 5: 'ShhSSShhS..', 6: 'SSzzSSSzzS.', 9: 'SSxxxxSz...' }),
+  ko: face(HEAD, { 5: 'SSSSSSSSS..', 6: 'SSkSkSSkSkS.', 9: 'SSSxSSz...' }),
   // one eye shut, tongue out, aiming
-  aim: face(HEAD, { 7: 'SSSkkSSSSS..', 8: 'SSWiSSSkkS.', 11: 'SSxxPSz...' }),
+  aim: face(HEAD, { 5: 'ShhSSShhS..', 6: 'SSzzSSSSkS.', 9: 'SSxxPSz...' }),
 };
 
 // The red neckerchief knotted at the throat, a cream shirt, the overalls' bib with brass buttons and a patch.
@@ -97,7 +97,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const DELL_RIG: Rig = {
   pal: { ...DELL_PAL, '8': DELL_DENIM[1], '9': BOOT[0] },
   shades: DELL_SHADES,
-  heads: matureHeads(HEADS, {drop: [1, 2], blush: 'f'}),
+  heads: HEADS,
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

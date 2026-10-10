@@ -5,7 +5,7 @@
 // She is drawn a head shorter than the knights: short legs, a small torso, a big hood.
 import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './art';
 import { and, bez, ell, fill, or, rimShade, sphere } from './art-paint';
-import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, ribbon, type Rig, type RigPose, sparkle, type Sprite, stampAt } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, ribbon, type Rig, type RigPose, sparkle, type Sprite, stampAt } from './art-rig';
 import { daggerMap } from './art-sword';
 
 // ------------------------------------------------------------------ palette
@@ -43,27 +43,27 @@ export const WREN_SHADES: Record<string, Shade> = {
 
 // The charcoal hood, its tip falling back behind her head, a lit lip over the brow; a brick-red fringe; a cheeky
 // face with bright eyes and a grin.
+// (playtest round 8, L8, by hand: the charcoal hood, a brick-red fringe falling over one brow, one dark iris each
+// under the lids, a sly half-smile, a pointed chin) 15 x 10.
 const HEAD = [
   '.....oooooo....',
-  '...oooooooooo..',
-  '..oooooooooooo.',
   '.ooooooooooooOO',
   'oooooooooRrRrrO',
-  'oooooooRrrSSSSS',
-  '.ooooozSSSkkSkk',
-  '.oooozESSSWeSWe',
+  'oooooooRrrSkkSk',
+  '.ooooozSSSSkSSk',
+  '.oooozESSSSSSSS',
   '..ooozESSSSSSST',
-  '..oooozfSSSSSfS',
-  '...oooozSSxxxS.',
-  '.....ooozzSSz..',
+  '..oooozSSSSSSzS',
+  '...oooozSSSxzS.',
+  '.....ooozzSz...',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 15 - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
-  squint: face(HEAD, { 6: 'SSSSSSS', 7: 'SSSkkSkk', 10: 'SSxWxS.' }),
-  ko: face(HEAD, { 6: 'SSSSSSS', 7: 'SSSSSSSS', 8: 'SSkkSkkT', 10: 'SSSxSS.' }),
+  squint: face(HEAD, { 3: 'SkkSk', 4: 'SSzzSzz', 8: 'SSxWxS.' }),
+  ko: face(HEAD, { 3: 'SSSSS', 4: 'SSzzSzz', 8: 'SSSxSS.' }),
   // a grin with the tongue out, eyes narrowed (her tricks)
-  sly: face(HEAD, { 6: 'SSSSkSSk', 7: 'SSSkeSke', 10: 'SxxxxS.' }),
+  sly: face(HEAD, { 3: 'SkkSk', 4: 'SSSzkSzk', 8: 'SxxxxS.' }),
 };
 
 // The mustard scarf wound thick round her neck (its knot at the front), a charcoal jacket, a belt with a brass
@@ -98,7 +98,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const WREN_RIG: Rig = {
   pal: { ...WREN_PAL, '8': WREN_BRICK[1], '9': CHAR[0] },
   shades: WREN_SHADES,
-  heads: matureHeads(HEADS, {drop: [1, 2], blush: 'f'}),
+  heads: HEADS,
   torso: TORSO,
   legs: LEGS,
   legsFeetX: LEG_FEET_X,

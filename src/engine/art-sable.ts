@@ -42,19 +42,19 @@ const PAL: Pal = {
 // heads tall). The face opening sits on the right under the brim's lit lip: a narrow band of skin with two small dark
 // eyes, then the mask.
 const HEAD = [
-  '....5566.....',
-  '..5677765....',
-  '.567766554...',
+  '..5566.......',
+  '.567776......',
+  '.5677765.....',
+  '4567766554...',
   '45676655443..',
-  '4566554433332',
-  '456554666652.',
-  '45554zSkSSk2.',
-  '4554zsSSSSs2.',
+  '4566554666632',
+  '45554z2zS2zS.',
+  '4554zSSkSSkS.',
   '.443ddeeeedc.',
   '..32deeedccb.',
   '...1cdddccb..',
 ];
-const SQUINT: Record<number, [string, string]> = { 6: ['zSkSSk', 'zSzSSz'] };
+const SQUINT: Record<number, [string, string]> = { 7: ['SSkSSk', 'SSzSSz'] };
 const squint = (rows: string[]) => rows.map((r, y) => (SQUINT[y] ? r.replace(SQUINT[y][0], SQUINT[y][1]) : r));
 
 // Shoulders to the sash and the gi's split hem, 15 wide (the mask covers the neck): a leather strap with a brass

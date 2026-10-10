@@ -16,7 +16,7 @@ const STAFF = ['#2e2850', '#5a5490', '#948ccc'];
 
 export const NEVE_PAL: Pal = {
   // skin (pale), eyes, blush
-  z: '#b86a5a', s: '#e8a888', S: '#fcd0b0', T: '#fff0e0', k: '#140c1c', i: '#3ab8f0', j: '#1a6ab0', W: '#ffffff', p: '#f49aa0',
+  z: '#b86a5a', s: '#e8a888', S: '#fcd0b0', T: '#fff0e0', k: '#140c1c', i: '#3ab8f0', j: '#123e78', W: '#ffffff', p: '#f49aa0', q: HAIR[0],
   H: HAIR[1], L: HAIR[4], R: ROBE[1], N: SASH[0], m: SASH[3],
   // ice
   C: NEVE_ICE[0], D: NEVE_ICE[1], E: NEVE_ICE[2], F: NEVE_ICE[3],
@@ -36,27 +36,27 @@ export const NEVE_SHADES: Record<string, Shade> = {
 // Silver hair swept back into the braid (a layer), a pale face in profile with a defined brow and two small dark eyes
 // (no glossy whites, no blush: playtest round 8, L8), 13 x 11 on a body about three heads tall.
 const HEAD = [
-  '...hhhhhhh...',
-  '.hhhhLLhhhhh.',
-  'hhhhLhhhhhHhh',
-  'hhhLhhhhhHhhh',
-  'hhhhhhhhHhhhh',
-  'hhhhhhhHHsHHh',
-  'hhhhhhhsjSSjS',
-  'hhhhhhhsSSSST',
-  'hhhhhhhzSSzzS',
-  '.hhhhhhhzSSS.',
-  '..hhh..hzz...',
+  '....hhhhh....',
+  '..hhhLLhhhh..',
+  '.hhhLhhhhhhh.',
+  '.hhLhhhhhhhhh',
+  'hhhhhhhaAAAEA',
+  'hhhhhhHHqSSqS',
+  'hhhhhhHsjSSjS',
+  '.hhhhhHsSSSST',
+  '.hhhhhhzsSzSs',
+  '..hhhhhhzsSz.',
+  '...hh..hHzz..',
 ];
 const swapRow = (rows: string[], y: number, row: string) => rows.map((r, i) => (i === y ? row : r));
 const HEADS = {
   base: HEAD,
   // eyes squeezed shut
-  squint: swapRow(swapRow(HEAD, 6, 'hhhhhhhszSSzS'), 8, 'hhhhhhhzSzkzS'),
+  squint: swapRow(swapRow(HEAD, 6, 'hhhhhhHszSSzS'), 8, 'hhhhhhhzszkzs'),
   // knocked out: eyes closed, head hung
-  ko: swapRow(HEAD, 6, 'hhhhhhhszSSzS'),
+  ko: swapRow(HEAD, 6, 'hhhhhhHszSSzS'),
   // casting: the brow drawn down in focus
-  focus: swapRow(HEAD, 5, 'hhhhhhhHHHHHh'),
+  focus: swapRow(HEAD, 5, 'hhhhhhHHqqSqq'),
 };
 
 const TORSO = [
