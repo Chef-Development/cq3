@@ -328,6 +328,9 @@ const droppedStaff: Layer = (g, a) => {
 export const NEVE_POSES: Record<string, RigPose> = {
   idle0: { near: { at: [9, 9], item: staff('u', 17, 9) }, far: { at: [11, 11] }, back: [braid(0.62, 0.02, 0.03)] },
   idle1: { near: { at: [9, 8], item: staff('u', 17, 8, { bob: 1 }) }, far: { at: [11, 10] }, dy: 1, back: [braid(0.63, 0.02, -0.03)] },
+  // the braid swings on a frame behind the breath, the crystal bobs a little higher
+  idle2: { near: { at: [9, 8], item: staff('u', 17, 8, { bob: 2 }) }, far: { at: [11, 10] }, dy: 1, back: [braid(0.66, 0.03, -0.06)] },
+  idle3: { near: { at: [9, 9], item: staff('u', 17, 9, { bob: 1 }) }, far: { at: [11, 11] }, back: [braid(0.65, 0.03, 0)] },
   dash: {
     near: { at: [6, 11], item: staff('ur', 12, 8) },
     far: { at: [-6, 11] },

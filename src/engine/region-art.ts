@@ -31,18 +31,20 @@ export interface RegionArtPack {
   col: Record<string, number>;
 }
 
-export type PackId = 'frost' | 'ash';
+export type PackId = 'frost' | 'ash' | 'dusk';
 
 /** Each pack's chunk. */
 const LOADERS: Record<PackId, () => Promise<{ PACK: RegionArtPack }>> = {
   frost: () => import('./pack-frost'),
   ash: () => import('./pack-ash'),
+  dusk: () => import('./pack-dusk'),
 };
 
 /** The fight themes each pack paints (known before it arrives: the stage asks which pack a theme needs). */
 const PACK_THEMES: Record<PackId, readonly string[]> = {
   frost: ['pass', 'caves', 'glacier'],
   ash: ['cinder', 'glass', 'forge'],
+  dusk: ['fen', 'causeway', 'mere'],
 };
 
 const loaded = new Map<PackId, RegionArtPack>();
@@ -93,3 +95,6 @@ export const regionPack = (id: PackId): RegionArtPack | null => loaded.get(id) ?
 
 /** Ashfell's themes (the bar uses its own marks there). */
 export const isAshTheme = (theme: string): boolean => PACK_THEMES.ash.includes(theme);
+
+/** The fourth region's themes (the stage's own weather there). */
+export const isDuskTheme = (theme: string): boolean => PACK_THEMES.dusk.includes(theme);

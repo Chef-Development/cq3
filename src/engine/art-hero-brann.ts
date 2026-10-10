@@ -310,6 +310,9 @@ export const BRANN_POSES: Record<string, RigPose> = {
   // palms pressed together at his chest, the bell on his back
   idle0: P({ near: { at: [5, 14] }, far: { at: [6, 14] }, farFront: true, back: [bellOnBack()] }),
   idle1: P({ near: { at: [5, 13] }, far: { at: [6, 13] }, farFront: true, dy: 1, back: [bellOnBack(0, 1)] }),
+  // the bell on his back swings a frame behind the breath
+  idle2: P({ near: { at: [5, 13] }, far: { at: [6, 13] }, farFront: true, dy: 1, back: [bellOnBack(-1, 1, -0.2)] }),
+  idle3: P({ near: { at: [5, 14] }, far: { at: [6, 14] }, farFront: true, back: [bellOnBack(0, 0, -0.04)] }),
   dash: P({ near: { at: [-6, 12] }, far: { at: [9, 13] }, legs: 'run', dx: 1, lean: 1, back: [bellOnBack(-1, 0, -0.3)] }),
   // the bell swung by its crown into the foe
   slashA: P({ near: { at: [12, 14], hidden: true }, far: { at: [17, 17], hidden: true }, legs: 'lunge', dx: 2, lean: 1, head: 'shout', front: [bellShield(15, 24, 1), rings(22, 15, [3, 5, 7])] }),

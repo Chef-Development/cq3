@@ -154,7 +154,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'noHitBoss', name: 'Untouched', text: 'Beat a boss without taking a hit.', gems: 30 },
   { id: 'heroes3', name: 'A Little Band', text: 'Have 3 heroes.', gems: 15 },
   { id: 'heroes6', name: 'A Proper Party', text: 'Have 6 heroes.', gems: 25 },
-  { id: 'heroes8', name: 'Everyone Came', text: 'Have all 8 heroes.', gems: 40 },
+  { id: 'heroes8', name: 'A Full Camp', text: 'Have 8 heroes.', gems: 40 },
   { id: 'pets3', name: 'Pet Friends', text: 'Have 3 companions.', gems: 15 },
   { id: 'pets6', name: 'A Small Zoo', text: 'Have 6 companions.', gems: 30 },
   { id: 'stars3', name: 'Rising Star', text: 'Raise a hero to 3 stars.', gems: 20 },

@@ -263,6 +263,9 @@ export const TAM_POSES: Record<string, RigPose> = {
   idle0: { near: { at: [8, 8] }, far: { at: [3, 7] }, back: [satchel], front: [kegHeld('near')] },
   // tossing the keg an inch and catching it
   idle1: { near: { at: [8, 8] }, far: { at: [3, 6] }, dy: 1, back: [satchel], front: [kegHeld('near', 2, -2)] },
+  // the keg drops back into the hand a frame behind the breath
+  idle2: { near: { at: [8, 7] }, far: { at: [3, 6] }, dy: 1, back: [satchel], front: [kegHeld('near', 2, 1)] },
+  idle3: { near: { at: [8, 8] }, far: { at: [3, 7] }, back: [satchel], front: [kegHeld('near', 2, 1)] },
   dash: { near: { at: [5, 9] }, far: { at: [-6, 10] }, legs: 'run', dx: 1, lean: 1, back: [satchel], front: [kegHeld('near', 1, 0)] },
   // a sidearm toss: the keg just leaving the hand
   slashA: { near: { at: [11, 11] }, far: { at: [-4, 9] }, legs: 'lunge', dx: 1, lean: 1, back: [satchel], front: [kegAt(17, 14), trail([[12, 12], [13, 14]])] },

@@ -1,21 +1,18 @@
-// Region 4 (SPOILERS: docs/content-bible.md section 7). NOT IN PLAY YET: not in REGIONS (src/data/regions.ts) until
-// it plays end to end with its art (foe sprites, map minis, backdrops, the act themes) and its sounds. Three acts like
+// Region 4 (SPOILERS: docs/content-bible.md section 7). In play (REGIONS, global acts 9-11); until its own art lands
+// (foe sprites, backdrops, the act themes) its acts wear earlier looks (DUSK_STAND_IN). Three acts like
 // Ashfell's, each a branching node map ending in a mini-boss (acts 1 and 2) or the boss (act 3), with the bar rules
 // brought in gradually: dark blocks from Act 1's third row, the tide from Act 2's second row (and a little dark late
-// in it), both from the start of Act 3, where the boss's phases are the mapmaker's edits to the bar. Once wired in,
-// these are global acts 9-11. Names are working names until the story team fixes them (docs/story-bible.md).
-// The act scaling is a first guess for the balance bot: each act a step above the matching Ashfell act (Act 1 dips
-// below Ashfell's last act, as each region's first did: a region starts a fresh run).
+// in it), both from the start of Act 3, where the boss's phases are the mapmaker's edits to the bar. The act scaling
+// is tuned with the bot from a typical end-of-Ashfell hero (tests/unit/bot-region4.test.ts).
 
 import type { RegionDef, Theme } from './types';
 
-/** Region 4's act looks (a lantern-lit fen, a drowned causeway, a black mere under a stuck sunset). They aren't in
- *  the `Theme` union yet (the engine's backdrops, stage lights, map kits, lairs and critters are records over every
- *  theme): until their art exists each act stands in an earlier look (`DUSK_STAND_IN`). */
+/** Region 4's act looks (a lantern-lit fen, a drowned causeway, a black mere under a stuck sunset), in the `Theme`
+ *  union with their art (backdrop-dusk.ts, the stage lights, map kits, lairs and critters). */
 export type DuskTheme = 'fen' | 'causeway' | 'mere';
 export const DUSK_THEMES: DuskTheme[] = ['fen', 'causeway', 'mere'];
-/** The earlier look each act borrows until its own is painted. */
-export const DUSK_STAND_IN: Record<DuskTheme, Theme> = { fen: 'hollow', causeway: 'caves', mere: 'glass' };
+/** The look each act shows: its own, now that it's painted (it borrowed an earlier one until then). */
+export const DUSK_STAND_IN: Record<DuskTheme, Theme> = { fen: 'fen', causeway: 'causeway', mere: 'mere' };
 const look = (t: DuskTheme): Theme => DUSK_STAND_IN[t];
 
 /** The global number of Region 4's first act once it's wired in. */

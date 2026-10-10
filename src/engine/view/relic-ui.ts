@@ -40,6 +40,8 @@ export const TAG_FACE: Record<RelicTag, Face> = {
   hold: [0xd0e4ff, 0x6a9af0, 0x3a62c0, 0x1a2e6a],
   drift: [0xffd0a0, 0xf08a3a, 0xb8541a, 0x5e260a],
   link: [0xe8e0f0, 0xa89ab8, 0x6a5e7a, 0x342c40],
+  light: [0xfff4c0, 0xf6d860, 0xc89a2a, 0x5e4410],
+  tide: [0xc0f0ec, 0x4ab8c0, 0x2a7a8a, 0x123c4a],
 };
 
 /** The rarity look of a card: face [hi, base, lo, deep] and its tag (common has none). */
@@ -65,6 +67,8 @@ const TAG_GLYPH: Record<RelicTag, string[]> = {
   hold: ['#...#', '#####', '#...#', '#####', '#...#'],
   drift: ['.#...', '..#..', '...#.', '..#..', '.#...'],
   link: ['##...', '#.#..', '.###.', '..#.#', '...##'],
+  light: ['..#..', '.###.', '##.##', '.###.', '..#..'],
+  tide: ['.....', '.#..#', '#.##.', '.....', '#####'],
 };
 
 const at = (rows5: string[], x: number, y: number) => rows5[y]?.[x] === '#';
@@ -383,6 +387,8 @@ const KIT_NAME: Record<string, string> = {
   calmSeas: perkOf('nimbus', 1),
   // gear that heals
   rimewalker: SETS.rimewalker.name,
+  emberwright: SETS.emberwright.name,
+  lamplighter: SETS.lamplighter.name,
   sanctuary: AURAS.sanctuary.name,
   // ---- Yara (Part 6) and her spirits
   spiritWolf: 'Spirit Wolf',

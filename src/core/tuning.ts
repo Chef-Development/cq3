@@ -206,7 +206,7 @@ export const DEFAULT_TUNING = {
   },
   specials: {
     tellGap: 0.5, // seconds after one telegraph's action before the next telegraph may start (one at a time)
-    jitter: 0.15, // +/- share of a timed special's interval, so they don't tick like clockwork
+    jitter: 0.15, // +/- share of a timed special's interval, so they don't come like a metronome
     maxEnemies: 4, // summons and splits stop at this many enemies on screen
   },
   waves: {
@@ -293,7 +293,7 @@ export const DEFAULT_TUNING = {
     setChance: 0.25, // a Rare or Epic drop is a set piece (of its slot) this often
     sigChance: 0.2, // a boss's signature Legendary drops this often on a kill...
     sigStep: 0.1, // ...plus this for every kill that didn't drop it (bad-luck protection)
-    mythicChance: 0.05, // the same for the Boar King's Mythic (the Pendulum Shard)
+    mythicChance: 0.05, // the same for the Boar King's Mythic (the Keystone Shard)
     mythicStep: 0.03,
     // Item level comes from the act (and creeps up along its map rows); stats grow x(1 + level x levelScale).
     ilvlAct1: 1,
@@ -626,7 +626,7 @@ export const DEFAULT_TUNING = {
     greenwardenKillHeal: 0.03, // ...and kills heal this much
     tuskCrit: 0.05, // Tusk Crown: +5% crit per finisher stack spent...
     tuskSec: 5, // ...for this long
-    pendulumEvery: 10, // Pendulum Shard: every Nth combo hit spawns a green block
+    pendulumEvery: 10, // Keystone Shard (Fresh Ink): every Nth combo hit spawns a green block
     golemHeal: 1, // Golemheart Plate: HP healed per red blocked
     leechHp: 2, // Leech: HP per crit
     riposte: 0.5, // Riposte: a blocked red hits its owner for this share of your attack
@@ -641,6 +641,11 @@ export const DEFAULT_TUNING = {
     emberDrift: 0.2, // Emberwright 2-piece: hits on drifting blocks deal this much more...
     emberHeal: 0.02, // ...4-piece: a finished pair heals this share of max HP
     bellowsMeter: 2, // Bellows Heart: drifting blocks you hit fill this much meter
+    lampDark: 0.2, // the Lamplighter's set, 2 pieces: hits on dark blocks deal this much more...
+    lampHeal: 0.02, // ...4 pieces: blocking a red in the water heals this share of max HP
+    sunlamp: 0.5, // Sunlamp: the light reaches this much further
+    riptide: 3, // Breaker's Edge: blocks just up out of the water take this many times the damage...
+    riptideSec: 1.5, // ...for this many seconds after they come up
     // Divine auras
     radiance: 0.1, // Radiance: foes take this much more damage
     sanctuarySec: 4, // Sanctuary: every this many seconds...
@@ -1283,7 +1288,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       s('effects.greenwardenKillHeal', 'Greenwarden 4: kill heals', 0, 0.2, 0.01),
       s('effects.tuskCrit', 'Tusk Crown: crit per stack', 0, 0.3, 0.01),
       s('effects.tuskSec', 'Tusk Crown: seconds', 0, 20, 0.5),
-      s('effects.pendulumEvery', 'Pendulum Shard: every N hits', 2, 30, 1),
+      s('effects.pendulumEvery', 'Keystone Shard: every N hits', 2, 30, 1),
       s('effects.golemHeal', 'Golemheart: HP per block', 0, 10, 1),
       s('effects.leechHp', 'Leech: HP per crit', 0, 20, 1),
       s('effects.riposte', 'Riposte: x attack', 0, 3, 0.05),
@@ -1298,6 +1303,11 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       s('effects.emberDrift', 'Emberwright 2: drift damage', 0, 1, 0.05),
       s('effects.emberHeal', 'Emberwright 4: pair heals', 0, 0.2, 0.005),
       s('effects.bellowsMeter', 'Bellows Heart: drift meter x', 1, 4, 0.1),
+      s('effects.lampDark', 'Lamplighter 2: dark damage +', 0, 1, 0.05),
+      s('effects.lampHeal', 'Lamplighter 4: water block heals', 0, 0.2, 0.005),
+      s('effects.sunlamp', 'Sunlamp: light reach +', 0, 2, 0.05),
+      s('effects.riptide', "Breaker's Edge: surfaced x", 1, 5, 0.1),
+      s('effects.riptideSec', "Breaker's Edge: window (s)", 0.2, 4, 0.1),
       s('effects.radiance', 'Aura Radiance: foes take +', 0, 1, 0.01),
       s('effects.sanctuarySec', 'Aura Sanctuary: every (s)', 1, 20, 0.5),
       s('effects.sanctuaryHeal', 'Aura Sanctuary: heals', 0, 0.1, 0.005),

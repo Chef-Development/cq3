@@ -165,15 +165,20 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   view, on a map bigger than its frame that pans (`DRAG_PX`, tap vs drag). Mastery milestones (4 per hero)
   unlock things for everyone (relics, set pieces, camp upgrades, cosmetics); camp upgrades are bought with coins and
   add options more than numbers. There is no catch-up XP.
-- **Regions.** Acts are numbered globally (`src/data/regions.ts`: Greenmarch 0-2, the Frostpeaks 3-5, Ashfell 6-8;
-  each region's data in its own files: `frostpeaks.ts` + `enemies-frost.ts`, `ashfell.ts` + `enemies-ash.ts`,
-  `story-ash.ts`, `relics-ash.ts`, `gear-ash.ts`, `banter-ash.ts`, merged into the game's tables); the run walks
+- **Regions.** Acts are numbered globally (`src/data/regions.ts`: Greenmarch 0-2, the Frostpeaks 3-5, Ashfell 6-8,
+  Duskmire 9-11; each region's data in its own files: `frostpeaks.ts` + `enemies-frost.ts`, `ashfell.ts` +
+  `enemies-ash.ts`, `story-ash.ts`, `relics-ash.ts`, `gear-ash.ts`, `banter-ash.ts`, and the `-dusk` set likewise
+  (`duskmire.ts`, `relic-fx-dusk.ts`...), merged into the game's tables; a region whose art hasn't landed yet fights in
+  stand-in sprites, `view/fighters.ts` `SPRITE_STAND_IN`, on earlier themes, `DUSK_STAND_IN`); the run walks
   `CAMPAIGN` and a region's last act ends in its own victory scene (`profile.weights` = regions won). A region starts a
   fresh run (relic picks only for acts behind within the region). An act's **bar rules** (`acts[i].bar`, introduced
   from a map row: ice and snow patches that change the cursor's speed, hold blocks; drifting blocks (`b.vel` on a
-  yellow, `velOf`, `driftBlock`) and linked pairs (`b.link`, `linkLit`, `tapLinked`, `tuning.links`) in Ashfell) are
+  yellow, `velOf`, `driftBlock`) and linked pairs (`b.link`, `linkLit`, `tapLinked`, `tuning.links`) in Ashfell; dark
+  blocks lit by the cursor's lantern (`b.dark`, `lightReach`, `tuning.dark`) and the tide (`waterL/R`, `wet`, `sunk`,
+  `tuning.tide`) in Duskmire) are
   applied in `core/combat.ts` and only draw from the random stream in an act that has them. Foes can set them too
-  (special actions `toDrift`, `toLink`, `driftShift`, `barRule` driftEvery/linkEvery; formation `drift`/`link`).
+  (special actions `toDrift`, `toLink`, `driftShift`, `darken`, `snuff`, `tide`, `barRule` driftEvery/linkEvery/
+  darkEvery; formation `drift`/`link`/`dark`).
   A hold is pressed at its near edge and held past its far edge; it is never a finisher swipe (`core/swipe.ts`,
   unit-tested). Every hero must work with every bar rule (tests in `hero-kits.test.ts`, `bar-rules.test.ts`).
 - **Core/engine split.** `src/core/` is plain TypeScript with **no Phaser (or DOM) imports**: deterministic,

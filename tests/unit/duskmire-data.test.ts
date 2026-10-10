@@ -12,7 +12,7 @@ import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
 import { BASE_ITEMS, EFFECTS, SETS, SLOTS } from '../../src/data/gear';
 import { ASHFELL } from '../../src/data/ashfell';
 import { ENEMIES } from '../../src/data/enemies';
-import { ALL_ACTS } from '../../src/data/regions';
+import { ALL_ACTS, REGIONS, regionStart } from '../../src/data/regions';
 import { SPEAKER_NAME, STORY } from '../../src/data/story';
 import type { EnemyDef } from '../../src/data/types';
 import { DEFAULT_TUNING } from '../../src/core/tuning';
@@ -27,7 +27,9 @@ const ownKey = (k: string) => !(k in ENEMIES) || ENEMIES[k] === DUSK_ENEMIES[k];
 describe('Region 4: the region', () => {
   it('three acts of about 8 rows, after the last region (global acts 9-11): mini-boss, mini-boss, boss', () => {
     expect(DUSKMIRE.id).toBe('duskmire');
-    expect(DUSK_FIRST_ACT).toBeGreaterThanOrEqual(ALL_ACTS.length);
+    expect(REGIONS[3]).toBe(DUSKMIRE);
+    expect(DUSK_FIRST_ACT).toBe(regionStart(3));
+    expect(ALL_ACTS[DUSK_FIRST_ACT]).toBe(acts[0]);
     expect(acts.map((a) => a.boss)).toEqual([['bellybog'], ['sluiceKeeper'], ['lighthouse']]);
     expect(acts.map((a) => a.theme)).toEqual(DUSK_THEMES.map((t) => DUSK_STAND_IN[t]));
     for (const a of acts) {
@@ -202,8 +204,9 @@ describe('Region 4: gear and banter', () => {
   it("gear: unique ids and names new to the game, every slot covered, a set and the boss's two signature Legendaries", () => {
     const ids = DUSK_BASE_ITEMS.map((b) => b.id);
     expect(new Set(ids).size).toBe(ids.length);
-    const oldIds = new Set(BASE_ITEMS.map((b) => b.id));
-    const oldNames = new Set(BASE_ITEMS.map((b) => b.name));
+    const old = BASE_ITEMS.filter((b) => b.act < DUSK_FIRST_ACT);
+    const oldIds = new Set(old.map((b) => b.id));
+    const oldNames = new Set(old.map((b) => b.name));
     const widestName = Math.max(...BASE_ITEMS.map((b) => textWidth(b.name, 1, true)));
     for (const b of DUSK_BASE_ITEMS) {
       expect(oldIds.has(b.id), b.id).toBe(false);
@@ -215,14 +218,14 @@ describe('Region 4: gear and banter', () => {
     expect(plain.length).toBeGreaterThanOrEqual(10);
     for (const slot of SLOTS) expect(plain.some((b) => b.slot === slot), slot).toBe(true);
     for (const [id, set] of Object.entries(DUSK_SETS)) {
-      expect(id in SETS, id).toBe(false);
+      expect(SETS[id as keyof typeof SETS], id).toBe(set);
       const pieces = set.pieces.map((p) => DUSK_BASE_ITEMS.find((b) => b.id === p));
       for (const [i, p] of pieces.entries()) expect(p?.set, set.pieces[i]).toBe(id);
       expect(new Set(pieces.map((p) => p?.slot)).size).toBe(pieces.length);
     }
     const widestEffect = Math.max(...Object.values(EFFECTS).map((e) => textWidth(e.text, 1, false)));
     for (const [id, e] of Object.entries(DUSK_EFFECTS)) {
-      expect(id in EFFECTS, id).toBe(false);
+      expect(EFFECTS[id as keyof typeof EFFECTS], id).toBe(e);
       expect(textWidth(e.text, 1, false), e.text).toBeLessThanOrEqual(widestEffect);
     }
     for (const [boss, items] of Object.entries(DUSK_SIGNATURES)) {

@@ -4,8 +4,8 @@
 // **mirages** (yellows that hop to a ghost spot shown first) and **heat** (blazing yellows hit harder but burn the
 // hero; a green cools). Mirages from Act 1's third row, heat from Act 2's second row (a few mirages late in it), both
 // from the start of Act 3, where the Gnomon's phases are the Mapmaker's edits (the glare; the sun drawn down). Once
-// wired in, global acts 12-14. The scenes are the story team's (`story-noon.ts`: noon1-3, noonBoss, noonBoss2-3,
-// noonVictory) but for the two mini-bosses' (placeholders in story-noon-minis.ts). Act scaling: a step above
+// wired in, global acts 12-14. The scenes are the story team's (`story-noon.ts`: noon1-3, the mini-bosses' sphinx and
+// brassLion, noonBoss, noonBoss2-3, noonVictory). Act scaling: a step above
 // Lanternfen's (its Act 1 dips below Lanternfen's last act: a region starts a fresh run).
 
 import type { RegionDef, Theme } from './types';

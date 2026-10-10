@@ -8,6 +8,7 @@ import { GREENMARCH } from '../../src/data/greenmarch';
 import { SPEAKER_NAME, STORY } from '../../src/data/story';
 import { DUSK_STORY } from '../../src/data/story-dusk';
 import { STORY_BANTER, STORY_SCENE_ACT } from '../../src/data/banter-story';
+import { NOON_BANTER, NOON_SCENE_ACT } from '../../src/data/banter-noon';
 import { NOON_STORY } from '../../src/data/story-noon';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
 import { HEROES } from '../../src/data/heroes';
@@ -130,7 +131,7 @@ describe('region data', () => {
   });
 
   it('every scene the region names exists', () => {
-    const ids = [GREENMARCH.introScene, GREENMARCH.victoryScene, ...GREENMARCH.acts.flatMap((a) => [a.startScene, a.bossScene])];
+    const ids = [GREENMARCH.introScene, GREENMARCH.victoryScene, ...GREENMARCH.acts.flatMap((a) => [a.startScene, a.bossScene, ...(a.winScene ? [a.winScene] : [])])];
     for (const id of ids) expect(STORY[id ?? ''], id).toBeDefined();
   });
 });
@@ -150,8 +151,9 @@ describe('story', () => {
   });
 
   it("drafts the fifth region's scenes to the same rules (not in play yet: story-noon.ts); the fourth's are written", () => {
-    for (const id of ['noon1', 'noon2', 'noon3', 'noonBoss', 'noonBoss2', 'noonBoss3', 'noonVictory']) expect(NOON_STORY[id], id).toBeDefined();
+    for (const id of ['noon1', 'sphinx', 'noon2', 'brassLion', 'noon3', 'noonBoss', 'noonBoss2', 'noonBoss3', 'noonVictory']) expect(NOON_STORY[id], id).toBeDefined();
     for (const id of ['noonBoss2', 'noonBoss3']) expect(NOON_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
+    for (const [id, boxes] of Object.entries(NOON_STORY)) expect(boxes.some((b) => b.text.includes('(Scene to come)')), id).toBe(false);
     // the fourth region's scenes are the story's, not stand-ins; its boss's phases are his edits
     for (const [id, boxes] of Object.entries(DUSK_STORY)) expect(boxes.some((b) => b.text.includes('(Scene to come)')), id).toBe(false);
     for (const id of ['lighthouse2', 'lighthouse3', 'duskVictory']) expect(DUSK_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
@@ -242,6 +244,18 @@ describe('camp banter', () => {
     }
     for (const id of Object.keys(STORY_SCENE_ACT)) expect(STORY[id], id).toBeDefined();
     const all = [...BANTER, ...HERO_BANTER, ...STORY_BANTER];
+    expect(new Set(all.map((l) => l.text)).size).toBe(all.length);
+  });
+
+  it("the fifth region's banter waits for its own scenes (story-noon.ts) and fits the bubble", () => {
+    for (const l of NOON_BANTER) {
+      expect(NOON_STORY[l.after], `${l.text}: after ${l.after}`).toBeDefined();
+      const lines = wrap(l.text);
+      expect(lines.length, l.text).toBeLessThanOrEqual(2);
+      for (const x of lines) expect(textWidth(x, 1, false), l.text).toBeLessThanOrEqual(BUBBLE_W);
+    }
+    for (const id of Object.keys(NOON_STORY)) expect(NOON_SCENE_ACT[id], id).toBeDefined();
+    const all = [...BANTER, ...HERO_BANTER, ...STORY_BANTER, ...NOON_BANTER];
     expect(new Set(all.map((l) => l.text)).size).toBe(all.length);
   });
 

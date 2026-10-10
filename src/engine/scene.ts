@@ -193,6 +193,11 @@ export class FightScene extends Phaser.Scene implements View {
     this.ensureRegionArt();
   }
 
+  /** (The fourth region's art is a pack too.) */
+  ensureDuskArt(): void {
+    this.ensureRegionArt();
+  }
+
   /** The world map's textures, now: whatever is left of its painting is done at once (then the view is built). */
   ensureWorldArt(): void {
     if (this.worldArtIn) return;

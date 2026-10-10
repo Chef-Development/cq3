@@ -9,7 +9,7 @@ import { anythingToErase, type Profile } from '../core/profile';
 import { restoreRun, snapshotRun, type RunSave } from '../core/save';
 import { markWelcomed, TipCoach, welcomeScene } from '../core/tips';
 import type { Settings, Tuning } from '../core/tuning';
-import { AMBIENCES, Synth, type Ambience, type MusicTrack, type TellSound } from './audio';
+import { AMBIENCES, Synth, TELL_SOUNDS, type Ambience, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, sameGameLayout, sameLayout, type ScreenLayout } from './layout';
 import { clearRunSave, eraseProgress, loadLabAcc, loadProfile, loadRunSave, saveSoon, setStorageSlot, writeLabAcc, writeProfile, writeRunSave } from './storage';
 
@@ -135,7 +135,7 @@ export class App {
     saveSoon(this.tuning, this.settings);
   }
 
-  /** Progress across runs (acts cleared, weights home): part of the profile. */
+  /** Progress across runs (acts cleared, regions restored): part of the profile. */
   get progress(): Profile {
     return this.profile;
   }
@@ -643,7 +643,8 @@ export class App {
           a.speedUp();
           break;
         case 'telegraph':
-          a.telegraph(e.sound as TellSound, e.sec);
+          // (a sound not built yet, as the fourth region's until its sounds land, borrows a generic wind-up)
+          a.telegraph((TELL_SOUNDS as string[]).includes(e.sound) ? (e.sound as TellSound) : 'charge', e.sec);
           break;
         case 'freeze':
           a.freeze();

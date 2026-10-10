@@ -310,6 +310,9 @@ export const DELL_POSES: Record<string, RigPose> = {
   // the slingshot loose in his far hand, tossing a pebble with the near one
   idle0: { near: { at: [-1, 10] }, far: { at: [8, 9] }, farFront: true, back: [kerchief(0.4), pouch], front: [slingshot({ ang: 0.3 }), tossed(2)] },
   idle1: { near: { at: [-1, 9] }, far: { at: [8, 8] }, farFront: true, dy: 1, back: [kerchief(0.6), pouch], front: [slingshot({ ang: 0.3 }), tossed(5)] },
+  // the pebble comes down, the kerchief settles a frame behind the breath
+  idle2: { near: { at: [-1, 9] }, far: { at: [8, 8] }, farFront: true, dy: 1, back: [kerchief(0.7), pouch], front: [slingshot({ ang: 0.3 }), tossed(4)] },
+  idle3: { near: { at: [-1, 10] }, far: { at: [8, 9] }, farFront: true, back: [kerchief(0.5), pouch], front: [slingshot({ ang: 0.3 }), tossed(1)] },
   dash: { near: { at: [-5, 10] }, far: { at: [8, 11] }, farFront: true, legs: 'run', dx: 1, lean: 1, back: [kerchief(0.05), pouch], front: [slingshot({ ang: 0.6 })] },
   // full draw: the band at his cheek, one eye shut
   slashA: { near: { at: [2, 17] }, far: { at: [12, 16] }, farFront: true, legs: 'lunge', head: 'aim', back: [kerchief(0.2), pouch], front: [slingshot({ ang: 1.45, drawn: true })] },

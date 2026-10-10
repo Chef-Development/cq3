@@ -1088,7 +1088,9 @@ export class Combat {
   lightReach(): number {
     const D = this.tuning.dark;
     const sec = Math.max(D.floorSec, D.lightSec * this.lightMult);
-    const reach = Math.max(D.lightMin, sec * this.cursorSpeed() * this.zoneMultAt(this.cursorPos()));
+    // Sunlamp (the fourth region's boss's signature): the light reaches further
+    const sun = this.has('sunlamp') ? 1 + this.tuning.effects.sunlamp : 1;
+    const reach = Math.max(D.lightMin, sec * this.cursorSpeed() * this.zoneMultAt(this.cursorPos())) * sun;
     return Math.max(0, this.mod(reach, (h, v) => h.lightReach?.(this, v)));
   }
 
@@ -2470,6 +2472,10 @@ export class Combat {
     if (setPieces(this.hero.gear, 'rimewalker') >= 2 && this.iceAt(b.pos)) mult *= 1 + T.effects.rimeIce;
     // the third region's: the Emberwright set's 2 pieces (hits on drifting blocks)
     if (b.vel !== 0 && setPieces(this.hero.gear, 'emberwright') >= 2) mult *= 1 + T.effects.emberDrift;
+    // the fourth region's: the Lamplighter's set's 2 pieces (hits on dark blocks), Breaker's Edge (blocks just up out
+    // of the water)
+    if (b.dark && setPieces(this.hero.gear, 'lamplighter') >= 2) mult *= 1 + T.effects.lampDark;
+    if (!echo && this.has('breakersEdge') && this.time - b.surfacedAt <= T.effects.riptideSec) mult *= T.effects.riptide;
     // the fifth region's: a blazing yellow lands harder (and gives Heat, below)
     if (b.blaze && !echo) mult *= T.heat.mult;
     const damage = Math.max(1, Math.round(st.atk * mult));
@@ -2554,7 +2560,7 @@ export class Combat {
     if (heal > 0) this.events.push({ type: 'gearFx', fx, amount: heal, enemyId: 0 });
   }
 
-  /** Pendulum Shard: every Nth combo hit spawns a green block. */
+  /** Keystone Shard (effect id 'pendulum', Fresh Ink): every Nth combo hit spawns a green block. */
   private pendulumTick(): void {
     const n = Math.max(2, Math.round(this.tuning.effects.pendulumEvery));
     if (!this.has('pendulum') || this.combo <= 0 || this.combo % n !== 0) return;
@@ -2569,6 +2575,8 @@ export class Combat {
     this.addMeter(T.meter.perBlock + (perfect ? T.meter.perfectBonus : 0), 'block');
     if (this.has('golemheart')) this.healHero(T.effects.golemHeal, 'golemheart');
     if (this.has('ramshorn') && this.iceAt(b.pos)) this.healHero(T.effects.ramshornHeal, 'ramshorn');
+    // the Lamplighter's set's 4 pieces: blocking a red in the water heals
+    if (!echo && (this.waterL > 0 || this.waterR > 0) && this.wet(b.pos) && setPieces(this.hero.gear, 'lamplighter') >= 4) this.healPerk(this.maxHp() * T.effects.lampHeal, 'lamplighter');
     if (b.taps > 1) {
       b.taps--;
       // a still red (an ice wall) takes its taps where it stands; a travelling shield is knocked back

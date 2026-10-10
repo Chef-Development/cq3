@@ -43,6 +43,11 @@ const FIREBEETLE: Pal = { 1: '#140c10', 2: '#2a1814', q: '#a0221a', x: '#e0501c'
 const SNAIL: Pal = { 1: '#4a4458', 2: '#7a7488', 3: '#aaa4b6', g: '#1e8a48', G: '#46c06a', W: '#d8ffd0', e: INK, k: INK };
 const GLOWBAT: Pal = { 1: '#1a1024', 2: '#3e1a6e', 3: '#9a5ad8', 4: '#e4c8ff', O: '#fff4c0' };
 const SOOT: Pal = { 1: '#0e0a0e', 2: '#221a20', 3: '#3a2e34', W: '#ffffff', e: INK, o: '#ff8a24', k: INK };
+// the Duskmire's: a bog frog with a lantern-orange throat, a mud crab, a dusk moth (muted, under the land's tones)
+const BOGFROG: Pal = { 1: '#16201e', 2: '#243426', 3: '#3a4a2c', 4: '#5a6634', 5: '#7e8040', k: INK, w: '#c8c4a0', o: '#c8702e' };
+const MUDCRAB: Pal = { 1: '#24121a', 2: '#4a2224', 3: '#6e3a2c', 4: '#94583a', k: INK, e: '#d8d0c0' };
+const DUSKMOTH: Pal = { 1: '#241e2c', 2: '#3e3648', 3: '#5c5266', 4: '#80768a', p: '#8a62a8', k: INK };
+const HERON: Pal = { 2: '#4a4c66', 3: '#767a96', 4: '#a8aac0' };
 const GULL: Pal = { 2: '#7c86a6', 3: '#b8c2d8', 4: '#eef3fa', y: '#f2c230', k: INK };
 const DOLPHIN: Pal = { 2: '#4a6890', 3: '#7896bc', 4: '#b4d0ea' };
 
@@ -223,6 +228,42 @@ export const CRITTERS: Record<string, Critter> = {
       ['..3.3..', '.33333.', '3W3W332', '3e3e322', '.22221.', '..1.1..'],
       ['..3.3..', '.33333.', '3333332', '3e3e322', '.22221.', '..1.1..'],
       ['.3...3.', '..333..', '.W3W33.', '3e3e322', '.22221.', '.......'],
+    ],
+  },
+  // a heron flying over the fen seen from below: its neck folded forward, legs trailing, wings up and down
+  heron: {
+    pal: HERON,
+    raw: true,
+    frames: [
+      ['...3.......3..', '....33...33...', '44.344443332222', '.......33......'],
+      ['...............', '..33333.33333..', '44.344443332222', '.......33......'],
+    ],
+  },
+  // sitting (its throat puffed, then not), leaping
+  bogfrog: {
+    pal: BOGFROG,
+    frames: [
+      ['..w..w..', '.3k33k3.', '3444443.', 'oo44332.', '.3.33.3.'],
+      ['..w..w..', '.3k33k3.', '3444443.', '.o44332.', '.3.33.3.'],
+      ['.w..w....', '3k33k33..', '.4444433.', '..o3432.3', '.3.....3.'],
+    ],
+  },
+  // a mud crab: claws up, claws down, scuttling sideways
+  mudcrab: {
+    pal: MUDCRAB,
+    frames: [
+      ['4.....4', '34.e.43', '.3k3k3.', '2333332', '.2.2.2.'],
+      ['.......', '4..e..4', '33k3k33', '2333332', '2.2.2.2'],
+      ['4.....4', '34.e.43', '.3k3k3.', '2333332', '2..2..2'],
+    ],
+  },
+  // a moth on a stone: wings spread, wings folded, taking off
+  duskmoth: {
+    pal: DUSKMOTH,
+    frames: [
+      ['4p...p4', '3443443', '.32k23.', '..2.2..'],
+      ['...4...', '..343..', '..3k3..', '..2.2..'],
+      ['p4...4p', '.34k43.', '..323..', '.......'],
     ],
   },
   // floating on the sea (bobbing)
