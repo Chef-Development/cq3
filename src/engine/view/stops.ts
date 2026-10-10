@@ -3,7 +3,7 @@
 // tiny tracker on the map (view/map-roam.ts). Pops in like the other node screens (view/nodes.ts).
 import type Phaser from 'phaser';
 import { signed } from '../../core/format';
-import { questById } from '../../data/quests';
+import { questById, questStory } from '../../data/quests';
 import { RARITY_INFO } from '../../data/gear';
 import { questText } from '../../core/quests';
 import type { FightScene } from '../scene';
@@ -117,6 +117,9 @@ export class StopScreens {
       hudIcon(g, 'star', rx, ry - Math.round(sh / 2));
       T.text('Relic pick', rx + sw + 3, ry, 0x6e30a8, { bold: true, oy: 0.5 });
     }
+    // a story bounty: who posted it, and why (one line under the notice)
+    const story = questStory(run.regionDef.id, def.id);
+    if (story) T.text(story.frame, b.x + b.w / 2, note.y + note.h + 5.5, 0xe8dcc0, { ox: 0.5, oy: 0.5 });
     // Take it / Pass
     const since = now - this.phaseAt;
     (['Take it', 'Pass'] as const).forEach((label, i) => {

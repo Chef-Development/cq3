@@ -9,6 +9,7 @@ import { GREENMARCH } from '../../src/data/greenmarch';
 import { TIPS } from '../../src/data/tips';
 import { ALL_ACTS, REGIONS } from '../../src/data/regions';
 import { regionOpen, unveilPending } from '../../src/core/world-plan';
+import { eventById } from '../../src/data/events';
 import { STORY } from '../../src/data/story';
 import { CAMP_UPGRADES, CAMP_UPGRADE_IDS } from '../../src/data/meta';
 import { buyRareChest, pityLeft } from '../../src/core/chests';
@@ -70,6 +71,9 @@ describe('Test lab scenarios (data)', () => {
         expect(st.act, s.id).toBeLessThan(ALL_ACTS.length);
       } else if (st.kind === 'world') {
         for (const k of st.replay ?? []) expect(k, s.id).toMatch(/^(restore|unveil):/);
+      } else if (st.kind === 'event') {
+        expect(eventById(st.event), s.id).toBeDefined();
+        expect(st.act, s.id).toBeLessThan(ALL_ACTS.length);
       } else {
         if (st.hero) expect(HERO_IDS).toContain(st.hero);
       }
@@ -327,6 +331,10 @@ describe('Test lab scenarios play', () => {
         expect(r.actIndex, s.id).toBe(s.setup.act);
         expect(r.path, s.id).toEqual([]);
         expect(r.map.nodes.some((n) => n.type === 'fight'), s.id).toBe(true);
+      } else if (s.setup.kind === 'event') {
+        expect(r.phase, s.id).toBe('event');
+        expect(r.event?.id, s.id).toBe(s.setup.event);
+        expect(eventById(s.setup.event), s.id).toBeDefined();
       } else if (s.setup.kind === 'title') expect(r.phase, s.id).toBe('title');
       else if (s.setup.kind === 'world') {
         expect(r.phase, s.id).toBe('world');

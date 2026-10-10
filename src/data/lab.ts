@@ -49,6 +49,8 @@ export type LabSetup =
   /** Act `act`'s map (its scenes skipped), with its foes, roaming packs and stops, to look at; over once the run
    *  leaves it (a node tapped, the camp). */
   | { kind: 'map'; act: number }
+  /** A map event (`event`, an id in src/data/events.ts) on act `act`'s map, opened at once; over once it's read. */
+  | { kind: 'event'; act: number; event: string }
   /** The Finisher gallery: any hero's finisher on demand (every hero in HEROES, at 1 to max stacks, at any rarity)
    *  against these foes at act `act`'s stage, as often as wanted; `hero` comes first. Nothing hurts, nothing dies,
    *  nothing is saved. */
@@ -293,6 +295,14 @@ export const LAB_NEW: LabScenario[] = [
   { id: 'r8Story1', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 1 story (new)', secs: 60, try: 'Read the scenes. A quick, clear start?', setup: { kind: 'story', act: 0, scenes: ['intro', 'act1', 'road', 'captain', 'sableJoin'] } },
   { id: 'r8Story2', group: 'spoiler', spoiler: true, label: 'Act 2 story (new)', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 1, scenes: ['act2', 'golem'] } },
   { id: 'r8Story3', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 3 story (new)', secs: 90, try: 'Read the scenes. Does the ending pull you on?', setup: { kind: 'story', act: 2, scenes: ['act3', 'boarKing', 'boarKing2', 'boarKing3', 'victory'] } },
+  // Atlas pages: one per act, in its hidden treasure; read when found, and again from the region card's treasure seals
+  { id: 'r8Pages', group: 'spoiler', spoiler: true, label: 'Atlas pages (new)', secs: 45, try: 'Read three pages. Do they make the land real?', setup: { kind: 'story', act: 0, scenes: ['atlasPage0', 'atlasPage1', 'atlasPage2'] } },
+  { id: 'r8PagesCard', group: 'camp', rev: 1, label: 'Atlas pages: reread', secs: 30, try: "Tap a treasure seal: that act's page.", setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'near' } },
+  // the regions' own events, one each here (the other of each pair turns up on that region's maps)
+  { id: 'r8Event1', group: 'spoiler', spoiler: true, label: 'Act 1 event (new)', secs: 30, try: 'Read it and choose. A real choice?', setup: { kind: 'event', act: 0, event: 'sleepingFarmer' } },
+  { id: 'r8Event4', group: 'spoiler', spoiler: true, label: 'Act 4 event (new)', secs: 30, try: 'Read it and choose. A real choice?', setup: { kind: 'event', act: 3, event: 'heldFast' } },
+  { id: 'r8Event7', group: 'spoiler', spoiler: true, label: 'Act 7 event (new)', secs: 30, try: 'Read it and choose. A real choice?', setup: { kind: 'event', act: 6, event: 'chainedPair' } },
+  { id: 'r8Event10', group: 'spoiler', spoiler: true, label: 'Act 10 event (new)', secs: 30, try: 'Read it and choose. A real choice?', setup: { kind: 'event', act: 9, event: 'tideReader' } },
   { id: 'r8Arrivals', group: 'spoiler', spoiler: true, rev: 1, label: 'Newest arrivals', secs: 90, try: 'Read how each arrives. Funny? Short enough?', setup: { kind: 'story', act: 1, scenes: ['meetSolenne', 'meetWren', 'meetYara', 'meetDell', 'meetGorm', 'meetTess', 'meetFizz', 'meetBrann'] } },
   // ---- art (team 2)
   { id: 'titleAtlas', group: 'camp', rev: 2, label: 'New title screen', secs: 30, try: 'Key art now: watch it come alive, then tap.', setup: { kind: 'title' }, profile: { actsCleared: 0 } },

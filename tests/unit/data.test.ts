@@ -401,3 +401,38 @@ describe('tuning sees the content', () => {
     expect(back.acts[0]).toEqual(DEFAULT_TUNING.acts[0]);
   });
 });
+
+describe("the regions' own events", () => {
+  it('each region has two of its own, and an act map only ever holds its region’s and the ones for anywhere', async () => {
+    const { eventIdsFor } = await import('../../src/data/events');
+    const { REGIONS } = await import('../../src/data/regions');
+    for (const r of REGIONS) {
+      expect(EVENTS.filter((e) => e.region === r.id).length, r.id).toBeGreaterThanOrEqual(2);
+      for (const act of r.acts) {
+        const ids = eventIdsFor(act);
+        for (const id of ids) {
+          const e = EVENTS.find((x) => x.id === id)!;
+          expect(!e.region || e.region === r.id, `${act.name}: ${id}`).toBe(true);
+        }
+        expect(ids.length).toBeGreaterThan(EVENTS.filter((e) => !e.region).length);
+      }
+    }
+    for (const e of EVENTS) if (e.region) expect(REGIONS.some((r) => r.id === e.region), e.id).toBe(true);
+  });
+});
+
+describe("the regions' story bounties", () => {
+  it('one per region, on a real bounty, each line fitting the board and the tracker', async () => {
+    const { QUEST_STORIES, questById, questStory } = await import('../../src/data/quests');
+    const { REGIONS } = await import('../../src/data/regions');
+    for (const r of REGIONS) expect(QUEST_STORIES.filter((s) => s.region === r.id).length, r.id).toBe(1);
+    for (const s of QUEST_STORIES) {
+      expect(questById(s.quest), s.quest).toBeDefined();
+      expect(questById(s.quest)?.style, s.quest).toBeUndefined(); // a board posts it (style calls come another way)
+      expect(textWidth(s.frame, 1, false), s.frame).toBeLessThanOrEqual(230);
+      expect(textWidth(s.payoff, 1, false), s.payoff).toBeLessThanOrEqual(240);
+      expect(questStory(s.region, s.quest)).toBe(s);
+    }
+    expect(questStory('greenmarch', 'combo')).toBeUndefined();
+  });
+});

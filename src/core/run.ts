@@ -10,6 +10,7 @@
 // the world map's wandering foe offers a bonus skirmish (core/skirmish.ts).
 
 import { eventById } from '../data/events';
+import { pageOfAct, pageSceneId } from '../data/atlas-pages';
 import { CAMPAIGN, REGIONS, actInRegion, lastActOfRegion, regionOfAct } from '../data/regions';
 import { questById, type QuestId } from '../data/quests';
 import type { ActDef, BarRules, EventOutcome, RegionDef } from '../data/types';
@@ -22,7 +23,7 @@ import { Combat, heroMaxHp, heroStats, killCoins, newHero, type Hero, type Saved
 import { itemLevel, rollDrops, rollItem, setPieces, type Item, type Loadout } from './gear';
 import { actXp, addXp, defaultBuild, killXp, type HeroBuild } from './heroes';
 import { actSeed, buildActMap, type ActMap, type MapNode } from './map';
-import { addItem, equip, heroProgress, itemByUid, replaces, meetNeve, meetSable, newProfile, profileBuild, profileLoadout, recordAct, recordRegion, unlockedRelics, unlockRelic, type ChestKind, type Profile } from './profile';
+import { addItem, equip, findPage, heroProgress, itemByUid, replaces, meetNeve, meetSable, newProfile, profileBuild, profileLoadout, recordAct, recordRegion, unlockedRelics, unlockRelic, type ChestKind, type Profile } from './profile';
 import { claimRegionReward, logBounty, logEvent, logTreasure } from './completion';
 import { hpNow, mult, one, signed, signedPct, whole } from './format';
 import { awardGems, bump, checkAchievements, checkMastery, hasCamp, type FeatCtx } from './meta';
@@ -402,6 +403,9 @@ export class Run {
   pickKind: 'secret' | 'bounty' | null = null;
   /** A bounty was just met (the map shows it once; the view empties it). */
   questDone: QuestId | null = null;
+  /** An Atlas page just found in the hidden treasure: read after the cache's pick (goOn), once. Not saved: a reload
+   *  skips the reading, but the page is kept (profile.pages) and reads again from the region card. */
+  pagePending: string | null = null;
   /** The world map's skirmish being fought, and the run as it was before it (put back after). */
   skirmish: { foe: Skirmish; hero: Hero; act: number; map: ActMap; path: number[]; extras: MapExtras | null } | null = null;
   private roamCache: { key: string; state: RoamState } | null = null;
@@ -555,6 +559,7 @@ export class Run {
   private resetActExtras(): void {
     this.quest = null;
     this.questDone = null;
+    this.pagePending = null;
     this.secretFound = false;
     this.ambush = null;
     this.merchant = false;
@@ -583,6 +588,8 @@ export class Run {
     if (!this.secretHere) return false;
     this.secretFound = true;
     if (logTreasure(this.profile, this.actIndex)) bump(this.profile, 'treasures');
+    // the act's Atlas page, the first time it's found: read once the cache's pick is done
+    if (pageOfAct(this.actIndex) && findPage(this.profile, this.actIndex)) this.pagePending = pageSceneId(this.actIndex);
     this.gem(this.tuning.gems.treasure);
     const coins = Math.round(this.tuning.map.treasureCoins * this.tuning.secret.coinsMult * (0.8 + 0.4 * this.rng.next()) * (1 + this.gear.stats.luck));
     this.treasure = { coins, opened: false, secret: true };
@@ -1212,6 +1219,11 @@ export class Run {
   private goOn(then: PickThen): void {
     if (then === 'world') return this.endSkirmish();
     if (then === 'node') return this.enterStop();
+    if (then === 'map' && this.pagePending) {
+      const page = this.pagePending;
+      this.pagePending = null;
+      return this.playScenes([page], 'map');
+    }
     const win = this.act.winScene;
     if (then === 'map' && win && this.firstWin) {
       this.profile.seen.push(`scene:${win}`);

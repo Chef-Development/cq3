@@ -884,6 +884,19 @@ S15. **L8 for the words: grown-up wit, not chirp.** Hero arrivals, banter, event
     Companion names (Bun, Sunny...) stay: L8 lets companions keep some charm, and the names run through tests and art
     notes. Tips are left to the first 10 minutes team (their wording is the onboarding).
 
+S16. **Side stories (backlog item 5).** Each of Regions 1-4 has two map events of its own (`events.ts` `region`: an act's
+    map draws from the events for anywhere plus its region's; `eventIdsFor`, tested). Each choice weighs two costs
+    (coins against Pip's approval, HP against strength, coins against the crossing's light). One story bounty per region
+    rides on an existing bounty (`QUEST_STORIES`): when that region's board posts it, a line says who posted it and why,
+    and meeting it shows what came of it under the tracker. The bounty system itself is unchanged (no new goals, nothing
+    saved). Test lab: a new setup, `event`, opens one event on its own (one new event per region to try).
+S17. **Atlas pages: one per act, built on what exists.** Each act's hidden treasure holds a page of lore (a ledger, a
+    letter, a keeper's note; `src/data/atlas-pages.ts`). The first time it's found it reads in the story view after the
+    cache's pick (`run.pagePending`, played by `goOn` like the first win's scene; not saved: a reload skips the
+    reading, never the page). The profile keeps the pages found (`pages`, a `CORE:` commit: optional, an old profile
+    reads as none). The region card's treasure seal opens that act's page in a `Sheet`. No new art. The pages
+    seed the river twist once (Act 11: "Amended."), and name nothing beyond their own region.
+
 (story: end of section)
 
 
