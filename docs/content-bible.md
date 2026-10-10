@@ -901,13 +901,15 @@ rules: the lantern's reach never under 0.32 s, the tide never over half the bar,
   before merge 3, its own seeds) read Act 11 harder than the guard (44-69% where the guard reads 70-86%): use it for
   gaps between heroes, the guard for the targets, and rebuild its cache after other teams' changes. The masher never wins the
   Lighthouse (0 of 73 tries over 15 seeds).
-- **Hero parity** (region-tune, 30 runs a hero, gaps to Rowan in Acts 10 / 11 / 12; ±12 is noise at 30 runs). Within
-  ~15 everywhere: Sable, Moss, Tam, Hollis, Torva, Wren, Yara, Gorm, Fizz. Outliers: Neve -18 / -55 / -20 before ice
-  floated (her Flash Freeze ice formed in the shallows and sank), -4 / -14 / -25 after; the Marksmen Vesper (-6 / -5 /
-  -40) and Dell (-15 / +7 / -32) at Act 12 (their Focus fires on greens, and the mere's tide and dark take greens
-  away); Tess (-22 / +4 / -14), Solenne (A11 -18, A12 -14), Brann (A12 -23). Candidates for a later chunk: a Marksman
-  green that sinks keeps its Focus, or greens surface first; a parity pass at 100+ runs with `npm run campaign
-  REGIONS=4`.
+- **Hero parity** (region-tune from cached end-of-Ashfell profiles, 30 runs a hero, gaps to Rowan in Acts 10 / 11 /
+  12; at 30 runs a sample swings 15-20 points, Rowan's own included, so these are leads, not verdicts). First pass
+  (first-tuning numbers): Neve -18 / -55 / -20 (her Flash Freeze ice formed in the shallows and sank: ice floats now),
+  Vesper -13 / -37 / -15, Tess -18 / -28 / -16, Dell -11 / -22 / -21, Sable +7 / +18 / -2, the rest within ~15. Final
+  numbers (Rowan 78 / 44 / 32 in that sample, low against the guard's 87 / 72 / 61, so positive gaps read high): Neve
+  -4 / -14 / 0, Vesper -6 / -5 / -12 (-40 at Act 12 the pass before), Tess -22 / +4 / +3, Dell -15 / +7 / +8, Sable
+  +14 / +43 / +18, Moss +14 / +1 / +26, Hollis +2 / +20 / +20; the rest within ~22. Leads for a parity chunk: the
+  Marksmen at Act 12 (their Focus fires on greens; the mere's tide and dark take greens away), Tess at Act 10, Sable in
+  the tide act; then `npm run campaign` with REGIONS=4 at 100+ runs and two seeds.
 - Region 5's first-guess numbers were raised to stay a step above (atkMult 21 / 25 / 26.5, redSpeed 1.32 / 1.44 /
   1.44, Act 3 hpMult 10.2).
 
