@@ -28,8 +28,8 @@ const PAL: Pal = {
   M: ROWAN_STEEL[1],
 };
 const SHADES: Record<string, Shade> = {
-  h: { ramp: ROWAN_STEEL, same: 'gGvEew', top: [4, 3], left: [3], right: [1], bottom: [1], mid: 2 }, // the helm
-  m: { ramp: ROWAN_STEEL, same: 'MyY', top: [4, 3], left: [3], right: [1], bottom: [0, 1], mid: 2 }, // plate
+  h: { ramp: ROWAN_STEEL, same: 'gGvEew', top: [4, 4], left: [4], right: [2], bottom: [1, 2], mid: 3 }, // the helm (polished: brighter than Hollis's)
+  m: { ramp: ROWAN_STEEL, same: 'MyY', top: [4, 3], left: [4], right: [1, 2], bottom: [0, 1], mid: 3 }, // plate
   c: { ramp: ROWAN_BLUE, same: 'GOgyY', top: [3], left: [3], right: [1], bottom: [0], mid: 2 }, // the tabard
   l: { ramp: LEATHER, same: 'X', top: [3], left: [2], right: [1], bottom: [0], mid: 2 }, // the belt
   o: { ramp: LEATHER, top: [3], left: [3], right: [1], bottom: [0], mid: 2 }, // boots
