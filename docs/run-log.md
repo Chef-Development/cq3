@@ -193,3 +193,6 @@ One PR at the end supersedes #1-#7.
 - 02:20 EDT: merged dusk-art's second chunk (Region 5's two unclear relic icons redrawn, Region 4's own gear icons, the
   sphinx's face turned and lit); boot-checked, pushed. Dusk-art's last chunk (03:45): the regular shop as a place,
   one relic icon.
+- 02:26 EDT: merged dusk-art's third chunk (the regular shop as a place, like the trader; the Sunshade icon);
+  boot-checked, pushed. Dusk-art on a last polish chunk (03:45): the map stall's awning, Pip's portrait, the camp's
+  doubled labels.
