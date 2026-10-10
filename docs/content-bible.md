@@ -1092,9 +1092,26 @@ Heat), Haze Hunter (Mirage + Crit), Sunstruck (Heat + Risk). At wiring: hooks in
 and Fata Morgana need a hop time on the block; Shade Tree a way to cool one stack), a with/without test each, and the
 cautious bot's `avoid` list takes Fata Morgana and Noonday.
 
+### Music and art (as built)
+Music (`music.ts`, tracks `noon1`-`noon3`, `sphinx`, `brassLion`, `gnomon`):
+
+| Track | Key | BPM | Meter | Calm | Fight |
+|---|---|---|---|---|---|
+| `noon1` The White Road | D Hijaz | 126 | 7/8 (2+2+3) | duduk over a hurdy-gurdy drone, santur on the pulses, frame drum, shaker | goblet drum, santur in 16ths, kit, bass; lead: thin square |
+| `noon2` The Spire Steps | F Lydian | 98 | 6/8 | muted horns on the chords, harp, timpani into each phrase | the Dawn Order's fanfare: trombone stabs, snare and timpani, tuba; lead: open trumpet |
+| `noon3` The Great Sundial | F# Phrygian | 136 | 4/4 | tick-tock on the 8ths, music-box ostinato, low organ, celesta tune | ticks in 16ths, organ, timpani, kit, 8th bass; lead: hard saw |
+| `sphinx` (Act 13 mini-boss) | A Hijaz | 144 | 4/4 | | santur ostinato, duduk riddle, goblet drum; phase 2: brass stabs on the offbeats, a choir |
+| `brassLion` (Act 14 mini-boss) | Bb Mixolydian | 172 | 4/4 | | low brass riffs in octaves, timpani, snare, trumpet; phase 2: brass every beat, timpani rolls |
+| `gnomon` (boss) | G# minor (phase 3: A# minor) | 158 | 4/4 | | clockwork ticks, low brass ostinato, timpani, horns; phase 2: kit, choir, celesta; phase 3: up a whole tone, double-time drums, distorted bass, the lead |
+
+Ambience beds (`audio.ts`): `dunes` (a hot wind, sand hissing, cicadas), `spire` (wind whistling round the towers,
+chains, a far hammer), `dial` (the dial's hum, a clock ticking, far rumbles).
+
+Art: the pack `pack-noon.ts` (`art-noon.ts`: every foe, `sphinx2`, `brasslion2`, `gnomon2`/`gnomon3`, `portrait_sphinx`;
+`backdrop-noon.ts`: the white road, the spire steps, the great dial), the stage light and air, the act maps' land, kit,
+lairs (the sphinx on her plinth by the road, the lion-headed gate, the gnomon on its dial) and critters in the shared files (decisions C-ART-7).
+
 ### Still to design and build (next chunks)
-Music (six pieces,
-unlike Regions 1-4: e.g. a desert 7/8 in D Hijaz, a brass fanfare 6/8 for the spire steps, a ticking clock-work
-ostinato for the dial), art (sprites, portraits, backdrops: `art-noon.ts`, `backdrop-noon.ts`), telegraph sounds
-(`NOON_NEW_SOUNDS`), and balance (a little harder than Lanternfen: Act 1 ~80%, Act 2 ~65%, Act 3 ~50%, the Gnomon's
+Telegraph sounds (`NOON_NEW_SOUNDS`), the music and ambience cues in app.ts (`ACT_AMBIENCE` 12-14: `dunes`, `spire`,
+`dial`), and balance (a little harder than Lanternfen: Act 1 ~80%, Act 2 ~65%, Act 3 ~50%, the Gnomon's
 first fight ~45-55%).
