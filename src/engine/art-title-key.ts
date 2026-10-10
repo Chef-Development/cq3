@@ -29,7 +29,6 @@ const RIVER = [0x8a3a4a, 0xd8644a, 0xffa858, 0xffd890, 0xfff6d0];
 /** The blank: a warm grey vellum, kept dimmer than the logo's gold (the eye goes to the logo and the hero first). */
 const PAPER = [0x5a524e, 0x6a605a, 0x786c64, 0x887c72];
 const INKS = [0x140c1c, 0x1a1026, 0x2e2240, 0x4a3a5e];
-const PARCH = [0x3e2818, 0x5a3e24, 0x765630, 0x8c6a3e];
 const GOLD = [0x5a3410, 0x9a5a14, 0xd8901c, 0xf2c230, 0xfff0a0];
 
 // ------------------------------------------------------------------ helpers
@@ -342,14 +341,12 @@ function erase(px: Int32Array): void {
       if (x >= ex && rag < 3) px[i] = rag < 1 ? INKS[0] : mixC(px[i], 0x2a160c, 0.7 - rag * 0.12);
       else if (fr > 0) px[i] = mixC(px[i], INKS[1], fr);
     }
-  // the page's corner, curling up at the bottom right: the folded-back sheet (aged parchment, not a beige wedge) and
-  // its shadow
-  for (let y = 0; y < H; y++)
-    for (let x = 0; x < W; x++) {
-      const f = W - 1 - x + (H - 1 - y);
-      if (f < 34) px[y * W + x] = f > 31 ? INKS[3] : rampAt(PARCH, 0.35 + (f / 34) * 0.65, x, y);
-      else if (f < 38 && x > 200) px[y * W + x] = mixC(px[y * W + x], INKS[3], 0.35);
-    }
+  // (review-4 R4-16: the page's curled corner read as a flat tan triangle, a render artifact, so it's gone; and the
+  // foot of the picture falls into shadow, so no slivers of it peek out under the "Tap to start!" plate)
+  for (let y = H - 16; y < H; y++) {
+    const k = clamp01((y - (H - 16)) / 14) * 0.85;
+    for (let x = 0; x < W; x++) if (px[y * W + x] >= 0) px[y * W + x] = mixC(px[y * W + x], INKS[0], k);
+  }
 }
 
 /** The quill: a barred owl's feather (dark, banded, a gold rim from the sun on its left), a silver nib, the tip of the
