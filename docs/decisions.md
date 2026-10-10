@@ -1458,6 +1458,19 @@ C-ART-16. **The last two fight screens in the old style join the mood**: the rel
     AMBUSH!, COIN RUSH!, SKIRMISH!, TIME'S UP!) is ink with brass rules and pale brass letters, an elite's oxblood.
     Same rects, same taps.
 
+C19. **Act 11's gap for Tess and Vesper isn't how their kits meet the mini-boss; numbers left as they are.** Probe:
+    the Sluice Keeper alone, 24 fights a hero from cached end-of-Ashfell heroes, the 75% bot, each piece switched off in
+    turn. The gap (Rowan 29% won, Tess 13%, Vesper 8%) is the same with the tide off, with the spillway dry, without
+    the dam, without Overtime, and with the boss at half attack. It's not the bot: block rates are 0.93 / 0.92 / 0.91,
+    and Vesper with normal-width greens plays the same. It's not Volley's pins: without them she wins 0%. A Volley that
+    clears the reds doesn't help either (4%). What separates them is Rowan's own kit in a long fight: his green
+    ability's crit bonus is worth 16 points there (29% -> 13% without it). Vesper loses about 60% more HP a minute
+    (more reds a minute: her finisher keeps them, and she reaches the boss's faster second phase sooner). A hero-numbers
+    question for the next pass (both heroes' sustain in long boss fights), not a kit-meets-rule bug. A 100-run read
+    after C18 (region-tune, end-of-Ashfell heroes; Rowan 75 / 58 / 48%) puts Tess inside the band (-7 / -7 / +3) and
+    Vesper at -5 / -22 / -9: the 40-run -33 for Tess was mostly noise. In the same runs, Regions 1-3 read Tess
+    0 / +3 / +9, -1 / -12 / -12, +2 / -5 / -4 and Vesper 0 / +10 / +6, +4 / -19 / -15, -1 / +3 / +2.
+
 (content: end of section)
 
 

@@ -1199,7 +1199,8 @@ Regions 1-3 by `npm run campaign`, 60 runs, seeds 1 and 2 averaged). Gaps to Row
 | Vesper before | 0 / +6 / -2 | +8 / -5 / -10 | 0 / -5 / +14 | -1 / -38 / -22 | -12 / -6 / -16 |
 | Vesper after | 0 / +6 / -2 | +7 / -5 / -13 | -3 / -5 / +7 | -1 / -38 / -12 | -12 / -6 / -6 |
 
-What's left is Act 11 for both: the Sluice Keeper. Vesper takes about 60% more hits a second from it than Rowan with
+At 100 runs (after the change): Tess -7 / -7 / +3 and Vesper -5 / -22 / -9 in Acts 10-12 (Rowan 75 / 58 / 48%).
+What's left is Act 11 for Vesper: the Sluice Keeper (decision C19). Vesper takes about 60% more hits a second from it than Rowan with
 the tide on or off. HP +15 or attack +6% didn't move her gaps, so it isn't plain weakness. Next: the bot's choices
 with her wider target greens near reds, and her Volley pins.
 
