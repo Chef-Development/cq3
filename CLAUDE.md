@@ -25,12 +25,14 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
 ## Rules
 
 - **Original assets only.** No CQ2 art, names, music, sounds or code. Art is drawn from character maps in
-  `src/engine/art.ts` (hero, Pip, first enemies), `art-foes.ts` (Greenmarch enemies), `art-story.ts` (portraits, map
+  `src/engine/art.ts` (Pip, first enemies; the hero frame box `HERO_W` x `HERO_H`, 54x48, every view anchors a frame at
+  its feet), `art-hero-rowan.ts` + `art-sword.ts` (Rowan's frames; his sword and the daggers), `art-foes.ts` (Greenmarch enemies), `art-story.ts` (portraits, map
   icons), `art-world.ts` + `art-world-sites.ts` (the kingdom world map: the land, and what stands on it), `art-map.ts` (act map landscapes, map-scale Rowan, node props),
   `art-stage.ts` (per-act fight lighting), `art-sable.ts` (Sable's frames, map walker, hero cards), `art-relics.ts`
   (relic, tag and skill icons), `art-life.ts` (the maps' critters), `art-minis.ts` (every foe's map-scale sprite: pure
   data and the one lookup, no DOM; painted at boot by `art-map.ts`), `art-hero-<id>.ts` (each hero's sprite set on the
-  shared rig, `art-rig.ts`), `art-frost.ts` / `art-ash.ts` (the later regions' foes, portraits and bar pieces) +
+  shared rig, `art-rig.ts`, with the mature build's shared parts: about three heads tall, `STANCES`/`matureLegs`,
+  `matureHeads`, the `gradeGrid` grade; walkers in `art-hero-map.ts`, any height, anchored two rows up from the bottom), `art-frost.ts` / `art-ash.ts` (the later regions' foes, portraits and bar pieces) +
   `art-relics-ash.ts` (the third region's relic and tag icons), `backdrop.ts`, `backdrop-frost.ts` + `backdrop-ash.ts`
   (the later regions' fight backdrops: painted the first time an act needs one, `Stage.ensure`; `backdrop-ice.ts` the
   ice parts the act maps share) and `chrome.ts` (style guide: `docs/art-style.md`), the font in `src/engine/font.ts`, sounds
@@ -135,7 +137,8 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `core/kit-fx.ts` (`KIT_HOOKS`, numbers `tuning.kits.<id>`: base HP and attack share, ability, passive, finisher, 3-
   and 5-star moves). Gear is shared; each hero has their own XP, level and tree (`core/heroes.ts`), stars 1-5 from
   shards (`core/roster.ts`). The fight reads who is fighting from the profile as `hero.build` (switching heroes at camp
-  mid-act works). A new hero needs: data, kit hooks, a tree with with/without tests, a full sprite set, portrait and
+  mid-act works). A new hero needs: data, kit hooks, a tree with with/without tests, a full sprite set (at least the 14 poses
+  `tests/unit/hero-frames.test.ts` checks: idle0-3, windup, slashA/B, dash, leap, parry, hurt, cast, down, fin), portrait and
   chest reveal, a Test lab scenario, a finisher, and the parity check (`npm run campaign`: every hero within +/-10
   points of Rowan in every act at the target accuracy, 75%; two 200-run samples of the same numbers differ by up to 12
   points an act, so average `SEED=1` and `SEED=2`). **A finisher** = the style's kit (it comes free) + the hero's own
