@@ -82,7 +82,7 @@ const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally', 'spir
 const ALLY_PERK = new Set(['thornling', 'glowmoth', 'seedling', 'spiritWolf', 'spiritStag']);
 /** Until a later region's foes are painted (art-dusk*.ts, art-noon*.ts), each fights in an earlier foe's sprite set (its poses,
  *  flash and phase looks), so a fight never shows a missing texture. Used only while `${key}_idle0` doesn't exist. */
-const SPRITE_STAND_IN: Record<string, string> = {
+export const SPRITE_STAND_IN: Record<string, string> = {
   bogwisp: 'aurorawisp',
   miretoad: 'slime',
   reedling: 'shaman',
@@ -196,6 +196,11 @@ export class Fighters {
       lungeAt: -1e9,
       down: false,
     };
+  }
+
+  /** The hero's image (the story stage lays a lit copy over it: view/story-stage.ts). */
+  get heroImage(): Phaser.GameObjects.Image {
+    return this.hero;
   }
 
   /** Who is fighting. */
