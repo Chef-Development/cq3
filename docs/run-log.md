@@ -214,3 +214,7 @@ One PR at the end supersedes #1-#7.
 - 02:50 EDT: merged dusk-art's relic panel and intro band (ink glass with brass; an elite's band oxblood); boot-checked,
   pushed. Dusk-art rests. Plan: ~03:30 one short fresh-eyes review of the most-seen screens on the merged build; fixes
   of its high findings until ~04:45; visual freeze 05:00 (baselines, full suites, the PR).
+- 02:56 EDT: content's C19 (Act 11's gap is staying power in long boss fights, not how the kits meet the rules;
+  numbers left; 100 runs put Tess inside +/-10, Vesper -5 / -22 / -9 in Region 4) merged; content tries a Vesper
+  staying-power pass until 03:50. A fourth fresh-eyes reviewer started on the merged build (the first 10 minutes as a
+  new player, tips on; a later region; desktop), findings by 03:35 for fixes until ~04:45.
