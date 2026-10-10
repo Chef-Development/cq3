@@ -36,7 +36,7 @@ export function campBanter(p: Pick<Profile, 'seen' | 'actsCleared'>, here: Reado
   const sable = here.has('sable');
   const present = (l: HeroBanterLine) => here.has(l.who) && (l.with ?? []).every((w) => here.has(w));
   const base = BANTER.filter((l) => (l.who !== 'sable' && !l.sable) || sable);
-  const heroes = HERO_BANTER.filter(present);
+  const heroes = HERO_BANTER.filter((l) => present(l) && !(l.until && storyReached(p, l.until)));
   const story = GATED_BANTER.filter((l) => present(l) && storyReached(p, l.after));
   return [...base, ...heroes, ...story];
 }

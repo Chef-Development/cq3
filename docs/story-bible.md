@@ -617,8 +617,8 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   that was home." The camp is the only awake place Rowan has left (the world map: the capital blank).
 - **Scenes (drafted in full: `src/data/story-salt.ts`, speaker `gale`):** `salt1`, `saltworks`, `saltCamp`,
   `salt2`, `gale`, `salt3`, `brine`, `brine2`, `brine3`, `saltVictory`. Brann's first words are banter (he may not be
-  at the camp; `banter-isles.ts`): "...The bell rang. So. Hello." (no "(writes)"). Once the region is in play, his
-  `(writes)` lines in `banter.ts` should stop after `saltVictory` (the banter picker has no "before" gate yet).
+  at the camp; `banter-isles.ts`): "...The bell rang. So. Hello." (no "(writes)"). His `(writes)` lines in `banter.ts`
+  stop after `saltVictory` (`until`, read by `core/banter.ts`).
 
 ### Region 10: Farlight (far isle) — outline
 - **Original:** a beacon isle whose lighthouse guided ships home; Fizz's flame-brews fed its light.
