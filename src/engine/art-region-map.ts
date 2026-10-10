@@ -638,7 +638,23 @@ function regionMap(id: string): HTMLCanvasElement {
   else if (id === 'ashfell') ashfell(p);
   else if (id === 'duskmire') duskmire(p);
   else fog(p);
+  aged(p);
   return p.canvas();
+}
+
+/** L7 (docs/art-style.md 0.4): the whole sheet aged, as the Atlas's parchment is: a quarter desaturated, about two
+ *  thirds the value, warmed toward brown (pale cream and mint read as the menus' largest pale fill); the wax seals
+ *  stamped on it are then the brightest things on the card. */
+function aged(p: Paper): void {
+  const d = p.d;
+  for (let i = 0; i < d.length; i += 4) {
+    if (!d[i + 3]) continue;
+    const l = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    const ch = (v: number, warm: number) => Math.round((v + (l - v) * 0.25) * 0.7 * warm);
+    d[i] = ch(d[i], 1.02);
+    d[i + 1] = ch(d[i + 1], 0.92);
+    d[i + 2] = ch(d[i + 2], 0.78);
+  }
 }
 
 // ------------------------------------------------------------------ the frame and the pedestal
@@ -761,18 +777,29 @@ function paintStudy(ctx: CanvasRenderingContext2D, w: number, sp: StageSpec, r: 
     px(x + 1, 0, '#2e2016', 1, fy);
     for (let y = 4 + Math.floor(r() * 30); y < fy; y += 30 + Math.floor(r() * 30)) px(x + 4 + Math.floor(r() * 6), y, '#140c08', 2, 1);
   }
-  // a rack of rolled maps on the right: scroll ends in cubbyholes
+  // a rack of rolled maps at the left: dark cubbyholes, each holding round scroll ends (a curl of aged paper with a dark
+  // core, lit from the top left), kept a step dimmer than the card so it stays the wall's (it read as a column of
+  // beige squares, a placeholder legend)
   const rack = (x0: number, y0: number, cols: number, rowsN: number) => {
-    px(x0 - 2, y0 - 2, '#120c08', cols * 9 + 3, rowsN * 9 + 3);
+    px(x0 - 2, y0 - 2, '#0e0806', cols * 10 + 3, rowsN * 9 + 3);
+    px(x0 - 2, y0 - 2, '#3a2616', cols * 10 + 3, 1);
     for (let i = 0; i < cols; i++)
       for (let j = 0; j < rowsN; j++) {
-        const x = x0 + i * 9;
+        const x = x0 + i * 10;
         const y = y0 + j * 9;
-        px(x, y, '#0a0604', 8, 8);
-        if (r() < 0.8) {
-          px(x + 1, y + 2, '#c8a874', 6, 5);
-          px(x + 2, y + 3, '#e8d4a8', 4, 3);
-          px(x + 3, y + 4, '#8a6a44', 2, 1);
+        px(x, y, '#060403', 9, 8);
+        px(x, y + 7, '#2a1a10', 9, 1);
+        const n = r() < 0.75 ? 2 : r() < 0.6 ? 1 : 0;
+        for (let k = 0; k < n; k++) {
+          const sx = x + 1 + k * 4;
+          const sy = y + 2 + (k % 2);
+          // a 4 x 4 scroll end: the curl's rim, its lit top-left, the dark core
+          px(sx, sy + 1, '#5a3e24', 4, 2);
+          px(sx + 1, sy, '#5a3e24', 2, 4);
+          px(sx, sy + 1, '#7a5a36', 1, 1);
+          px(sx + 1, sy, '#86623a', 2, 1);
+          px(sx + 1, sy + 1, '#2a1a0e', 2, 2);
+          px(sx + 2, sy + 2, '#4a3020', 1, 1);
         }
       }
   };
@@ -781,12 +808,41 @@ function paintStudy(ctx: CanvasRenderingContext2D, w: number, sp: StageSpec, r: 
   px(0, 15, '#120c08', w, 3);
   px(0, 15, '#5a3c22', w, 1);
   px(0, 17, '#2a1a10', w, 1);
-  px(316, 22, '#2a1a10', 6, 2);
-  px(318, 24, '#2a1a10', 1, 6);
-  px(315, 30, '#2a1a10', 7, 2);
-  px(316, 32, '#ffd890', 5, 7);
-  px(317, 33, '#fff4c8', 3, 5);
-  px(315, 39, '#2a1a10', 7, 2);
+  // the lantern: an iron bracket, a ring and a short chain, a peaked cap, a glass cage with two bars round a flame,
+  // a base; a halo of warm light round it on the planks (it read as a stray beige rectangle)
+  const lx = 318;
+  const ly = 30;
+  for (const [rad, a] of [
+    [16, 0.05],
+    [11, 0.07],
+    [7, 0.1],
+  ] as const) {
+    ctx.fillStyle = `rgba(255, 200, 120, ${a})`;
+    for (let y = -rad; y <= rad; y++) {
+      const hw = Math.round(Math.sqrt(rad * rad - y * y));
+      ctx.fillRect(lx - hw, ly + 6 + y, hw * 2 + 1, 1);
+    }
+  }
+  px(w - 12, 20, '#2a1a10', 12, 2);
+  px(w - 12, 20, '#4a3020', 12, 1);
+  px(lx, 22, '#3a2616', 1, 2);
+  px(lx - 1, 24, '#1a100a', 3, 1);
+  px(lx, 25, '#3a2616', 1, 2);
+  // cap
+  px(lx - 1, 27, '#1a100a', 3, 1);
+  px(lx - 3, 28, '#1a100a', 7, 2);
+  px(lx - 2, 28, '#5a3c22', 5, 1);
+  // cage and glass
+  px(lx - 3, 30, '#1a100a', 7, 8);
+  px(lx - 2, 30, '#c88a3a', 5, 7);
+  px(lx - 1, 31, '#ffd890', 3, 5);
+  px(lx, 32, '#fff4c8', 1, 3);
+  px(lx - 2, 30, '#1a100a', 1, 7);
+  px(lx + 2, 30, '#1a100a', 1, 7);
+  // base
+  px(lx - 3, 37, '#1a100a', 7, 2);
+  px(lx - 2, 37, '#4a3020', 5, 1);
+  px(lx - 1, 39, '#1a100a', 3, 1);
 }
 
 let painted = false;
