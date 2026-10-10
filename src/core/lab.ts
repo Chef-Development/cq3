@@ -28,7 +28,7 @@ export const labLevel = (act: number): number => Math.max(1, Math.min(30, 3 + 2 
 
 /** The act a scenario plays at (a camp screen: the last act its profile has cleared). */
 export function labAct(s: LabScenario): number {
-  if (s.setup.kind === 'fight' || s.setup.kind === 'story' || s.setup.kind === 'map' || s.setup.kind === 'gallery') return s.setup.act;
+  if (s.setup.kind === 'fight' || s.setup.kind === 'story' || s.setup.kind === 'map' || s.setup.kind === 'event' || s.setup.kind === 'gallery') return s.setup.act;
   return Math.max(0, (s.profile?.actsCleared ?? 0) - 1);
 }
 
@@ -185,8 +185,8 @@ export function labFight(s: LabScenario): LabFightPlan | null {
 
 /** The phase a scenario plays in: its fight (the Finisher gallery's too), its scenes, an act's map, or the camp (the
  *  engine opens the camp screen). Once the run leaves it the scenario is over (the rating card comes up). */
-export const labHomePhase = (s: LabScenario): 'fight' | 'scene' | 'map' | 'camp' | 'title' | 'world' =>
-  s.setup.kind === 'fight' || s.setup.kind === 'gallery' ? 'fight' : s.setup.kind === 'story' ? 'scene' : s.setup.kind === 'map' ? 'map' : s.setup.kind === 'title' ? 'title' : s.setup.kind === 'world' ? 'world' : 'camp';
+export const labHomePhase = (s: LabScenario): 'fight' | 'scene' | 'map' | 'event' | 'camp' | 'title' | 'world' =>
+  s.setup.kind === 'fight' || s.setup.kind === 'gallery' ? 'fight' : s.setup.kind === 'story' ? 'scene' : s.setup.kind === 'map' ? 'map' : s.setup.kind === 'event' ? 'event' : s.setup.kind === 'title' ? 'title' : s.setup.kind === 'world' ? 'world' : 'camp';
 
 /** Where a scenario plays on the lab's run: its practice fight (then back to the lab's camp), its story scenes, an
  *  act's map, or the lab's camp (the engine opens the camp screen). The run must be the lab's, built on labProfile. */
@@ -202,6 +202,12 @@ export function startLabScenario(run: Run, s: LabScenario, seed: number): void {
   } else if (s.setup.kind === 'gallery') galleryFight(run, s, s.setup.hero ?? galleryHeroes()[0], seed);
   else if (s.setup.kind === 'story') run.enterAct(s.setup.act, s.setup.scenes);
   else if (s.setup.kind === 'map') run.enterAct(s.setup.act);
+  else if (s.setup.kind === 'event') {
+    // the act's map behind it, the event open at once (choosing ends the scenario: the run goes back to the map)
+    run.enterAct(s.setup.act);
+    run.event = { id: s.setup.event, choice: -1, outcome: -1, boost: null };
+    run.phase = 'event';
+  }
   else if (s.setup.kind === 'title') run.phase = 'title';
   else if (s.setup.kind === 'world') {
     // the world map, with these one-time moments to play again (a land's restoring, its unveiling)
