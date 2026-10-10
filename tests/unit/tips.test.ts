@@ -704,6 +704,21 @@ describe('the map extras each teach once, the moment they matter', () => {
     expect(take({ preFight: true })).toBe('rush');
   });
 
+  it("a newcomer's first stall is the trader's: her own tip, and the shop's waits for a real shop", () => {
+    const p = knows();
+    p.tips = p.tips.filter((id) => id !== 'shop');
+    const { run, take } = setup(p);
+    run.phase = 'shop';
+    run.merchant = true;
+    expect(take()).toBe('merchant');
+    expect(p.tips).not.toContain('shop');
+    run.phase = 'rest';
+    take();
+    run.phase = 'shop';
+    run.merchant = false;
+    expect(take()).toBe('shop');
+  });
+
   it("the world map's wandering foe", () => {
     const p = knows();
     p.actsCleared = 1;

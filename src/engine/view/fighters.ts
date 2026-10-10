@@ -697,7 +697,7 @@ export class Fighters {
    * (more strikes, rings and sky). It always fits the envelope the core holds the cursor for (finisherShowMs). The last
    * blow lands here: the hit on every target and its number counting up. Kills and the HP bars wait for it.
    */
-  heroFinisher(damage: number, stacks: number, targets: number[] = []): void {
+  heroFinisher(damage: number, stacks: number, targets: number[] = [], named = true): void {
     const s = this.s;
     const fx = s.fx;
     const h = this.h;
@@ -733,7 +733,7 @@ export class Fighters {
     // (a long name steps down a size so the title stays on screen: Part 6's "Spirit Stampede x3!" ran off it)
     const big = n >= 2 ? 3 : 2;
     const fit = Math.max(1, Math.min(big, Math.floor((GAME_W - 12) / Math.max(1, textWidth(title, 1, true)))));
-    fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, fit, true, 0, -6, 0, ms * 0.95, false);
+    if (named) fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, fit, true, 0, -6, 0, ms * 0.95, false);
     // the last blow (three or more foes side by side: smaller numbers, so they read)
     const crowd = views.length > 2;
     let row = 0;

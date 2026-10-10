@@ -528,7 +528,7 @@ export class Hud {
     const c = s.app.run.combat;
     if (c) {
       this.drawEnemy(g, now, dt, c, sl.r);
-      this.drawTop(g, now, c);
+      if (!s.reveal.active) this.drawTop(g, now, c); // (the first finisher's reveal: its letters over a clear top)
       this.drawCombo(g, now, c, sl.l);
       this.drawStrip(g, now, c, sl.d);
     }
@@ -1176,7 +1176,9 @@ export class Hud {
       const col = hot ? (Math.floor(now / 120) % 2 ? 0xff5a2a : 0xffd080) : [0x9ad8ff, 0xffe680, 0xff9a3a][i];
       chevron(g, vx + i * 5, Math.round(cy - 3), 7, on ? col : NAVY[5], 1, 1, true);
     }
-    if (ready && s.app.run.phase === 'fight') {
+    // ("SWIPE!" waits for the finisher's lesson: before it, a full meter is quiet, its gems lit)
+    const taught = s.app.profile.tipsOff || s.app.tips.learned('finisher');
+    if (ready && s.app.run.phase === 'fight' && taught) {
       const label = keyboardUsed() ? 'PRESS F!' : s.app.settings.finisherInput === 'swipe' ? 'SWIPE!' : 'FINISHER!';
       this.texts.text(label, m.x + m.w / 2, cy, Math.floor(now / 150) % 2 ? WHITE : stackCol(stacks)[1], { bold: true, ox: 0.5, oy: 0.5 });
       if (stacks > 1) this.texts.text(`x${stacks}`, m.x + m.w / 2 + textWidth(label, 1, true) / 2 + 3, cy, sc, { bold: true, oy: 0.5 });
