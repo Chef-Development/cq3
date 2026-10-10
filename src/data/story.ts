@@ -95,7 +95,7 @@ export const STORY: Record<string, StoryBox[]> = {
   intro: [
     { who: 'narrator', text: 'Whatever is drawn on the Great Atlas is real:\nevery road, river and hill in the kingdom.' },
     { who: 'narrator', text: 'Someone is redrawing it, land by land. Where\nhe rubs out a line, the land goes blank.' },
-    { who: 'narrator', text: 'Last night he came to the Meadow Road. Only\none knight woke up. A voice: "Now that is odd."' },
+    { who: 'narrator', text: 'Last night he came to the Meadow Road, and\nall there fell asleep. All but one knight.' },
   ],
   // Act 1 starts: Pip arrives (and already knows Rowan's name)
   act1: [
