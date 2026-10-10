@@ -92,7 +92,7 @@ export class TipsView {
     const peek = s.overlays.tipPeek();
     if (peek.toast) return false;
     // a "New relic unlocked!" card still to come on this screen
-    if (run.newRelics.length && (ph === 'boost' || ph === 'map' || ph === 'actClear' || ph === 'event')) return false;
+    if (run.newRelics.length && (ph === 'map' || ph === 'actClear')) return false;
     switch (ph) {
       case 'fight': {
         const c = run.combat;

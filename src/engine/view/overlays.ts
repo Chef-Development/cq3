@@ -1458,14 +1458,16 @@ export class Overlays {
 
   // ------------------------------------------------------------------ new relics unlocked
 
-  /** "New relic unlocked!" is up: an act's first clear, an elite's first win (after its loot), an event choice. */
+  /** "New relic unlocked!" is up: an act's first clear, an elite's first win (after its loot), an event choice, a
+   *  secret's pick. It waits for the screen it was earned on to be done (review round 8: it stacked over the relic
+   *  pick, its "Tap to continue" printed over the pick's cards, and over an event's outcome): it comes up on the act
+   *  map once the run is back there, or on the act clear once its chest is open. */
   unlockActive(): boolean {
     const run = this.s.app.run;
     if (!run.newRelics.length) return false;
     const ph = run.phase;
-    if (ph === 'boost' || ph === 'map') return performance.now() - this.phaseAt > 260;
+    if (ph === 'map') return performance.now() - this.phaseAt > 260;
     if (ph === 'actClear') return this.clearReady() && this.s.anim - this.chestOpenAt > Overlays.CLEAR_BTN_MS + 1700;
-    if (ph === 'event') return (run.event?.outcome ?? -1) >= 0;
     return false;
   }
 
