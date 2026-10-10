@@ -139,3 +139,29 @@ could register its songs into `SONGS`, the cue falling back to the act's calm th
 extended for the new regions tonight, so moving 800 lines would collide), the **sharper chest reveal** (`chest-hd.ts`,
 `art-chests-hd.ts`, `art-reveal-hd.ts`: ~50 KB raw, off by default, but drawn into from every frame of a chest
 opening: six call sites to guard), the **Test lab** list (~30 KB).
+
+### Measured (CPU 4x, Fast 4G, median of 3; the machine at load 12-15 on 4 CPUs: expect 15-20% noise)
+
+Before: the run branch at `693e1d8` (Region 4 in play, no packs). After: this branch (the Frostpeaks, Ashfell and
+Region 4 as packs). Bundle sizes are exact; the timings are as noisy as the note says (the same build measured twice
+read 11.4 and 12.4 s to the title).
+
+| chunk | before raw | before gzip | after raw | after gzip |
+|---|---|---|---|---|
+| index.js (the game) | 2307 KB | 807 KB | **2119 KB** | **735 KB** (-9%) |
+| phaser.js | 1342 KB | 345 KB | 1342 KB | 345 KB |
+| pack-ash.js (Ashfell's foes, backdrops) | | | 73 KB | 29 KB |
+| pack-dusk.js (Region 4's foes, backdrops) | | | 48 KB | 20 KB |
+| art-frost.js (the Frostpeaks' foes; the toolkit the other packs share) | | | 44 KB | 17 KB |
+| pack-frost.js (the Frostpeaks' backdrops) | | | 25 KB | 11 KB |
+| **total** | 3660 KB | 1155 KB | 3662 KB | 1161 KB |
+
+BEFORE_AFTER_TABLE
+
+**Frame time** (a CPU profile of 6 s of a busy late fight, Act 9's forge hand, chain sentinel, stoker imp and magma eel
+with Space every 140 ms, and of the world map dragged; a non-minified build at CPU 1x): 75% of the fight's main thread
+and 94% of the world map's is native time outside the game's code (this container renders WebGL in software; an
+iPhone's GPU does that work). The game's own code costs about 4 ms a frame in the busy fight at 1x (the frame's update,
+the HUD panel, the actors, a tap's events and sounds) and under 1 ms on the world map: no cheap JS offender to fix. One-time
+costs seen: the first tap creates the AudioContext (~0.3 s at 1x, once), the first ambience bed (~85 ms, cached after),
+and the world map's idle slices still painting when a fight starts right after boot (sliced: no long frame).

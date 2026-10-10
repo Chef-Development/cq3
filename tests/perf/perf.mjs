@@ -167,7 +167,7 @@ console.log(`| load event | ${median(loads.map((l) => l.load)).toFixed(0)} |`);
 console.log(`| title ready for a tap | ${median(loads.map((l) => l.ready)).toFixed(0)} |`);
 console.log(`| later regions' art in (__cq3.ready) | ${median(loads.map((l) => l.packs)).toFixed(0)} |`);
 console.log(`| first fight on screen | ${median(loads.map((l) => l.fight)).toFixed(0)} |`);
-console.log(`(each run: ${loads.map((l) => `${l.ready.toFixed(0)}/${l.fight.toFixed(0)}`).join(', ')})`);
+console.log(`(each run, title / packs / fight: ${loads.map((l) => `${l.ready.toFixed(0)}/${l.packs.toFixed(0)}/${l.fight.toFixed(0)}`).join(', ')})`);
 const fr = await frameRuns(browser);
 console.log(`\n## Frames over 10 s (CPU ${CPU}x)\n\n| scene | rate | p50 ms | p95 ms | p99 ms | max ms | > 20 ms | > 34 ms |\n|---|---|---|---|---|---|---|---|`);
 console.log(`| fight (Space every 140 ms) | ${fmt(fr.fight)} |`);
