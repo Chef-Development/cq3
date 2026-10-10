@@ -56,14 +56,18 @@ const HEAD = [
   '.......zzzSSSz..',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 16 - swap[y].length) + swap[y] : r));
-const HEADS = {
+// (playtest round 8, L8, after the fresh-eyes review: two columns of hair out at the back, so the head is no wider than the shoulders and
+// the hero reads about three heads tall at 3x on the hero select; the face keeps its place)
+const narrowHeads = (heads: Record<string, string[]>): Record<string, string[]> =>
+  Object.fromEntries(Object.entries(heads).map(([k, rows]) => [k, rows.map((r) => r[0] + r.slice(3))]));
+const HEADS = narrowHeads({
   base: HEAD,
   squint: face(HEAD, { 5: 'SHHSSHH', 6: 'SSzzSzzS', 9: 'SSxWxz.' }),
   // knocked out: blackened with soot, eyes crossed out
   ko: face(HEAD, { 5: 'MSSmMSMSS', 6: 'SmkSmSkSm', 7: 'SSmSSSmSS', 8: 'SmSSMSSzS', 9: 'zSSxSz.' }),
   // goggles pulled down over the eyes (bracing for a blast)
   goggles: face(HEAD, { 1: 'oooooooooooooo', 2: 'ooooooooooooo', 3: 'ooooooooooo', 4: 'hhhhhhhSSSS', 5: 'zqbbqbbqb', 6: 'zqbGgbGgb', 7: 'zqbgnbgnb', 8: 'zSqbbqbbq', 9: 'zzSSxxz.' }),
-};
+});
 
 // The shirt with the satchel's strap across it, the leather apron's bib with its pockets.
 const TORSO = [
@@ -102,7 +106,7 @@ export const TAM_RIG: Rig = {
   legsFeetX: LEG_FEET_X,
   torsoX: -6,
   torsoOverlap: 1,
-  headX: -2,
+  headX: 0,
   headOverlap: 1,
   shoulderNear: [4, 2],
   shoulderFar: [9, 2],
