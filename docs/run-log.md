@@ -119,3 +119,7 @@ One PR at the end supersedes #1-#7.
   grade; Rowan hand-made) and story chunk 3 (the L8 tone pass on words, the second editor's 59 notes: the Fair Copy
   set up, the fading portrait paid off; the first minutes' long reads cut to 4 boxes). Next: 2B portraits, walkers,
   crops; story chunk 4: more events and side quests per region, Atlas lore pages.
+- 22:46 EDT: a boot crash (a camp pose's stance the new hero legs lacked) reached the live build with the 22:37 push;
+  fixed by art 2B (e32ea28), merged, boot-checked, pushed. L9: a boot check before every push (lead) and before team
+  commits that touch boot-painted art (TEAM-RULES.md). Dusk-art chunk done: Region 4's foes, bosses, portraits,
+  backdrops, critters, six music pieces, L7 pass; telegraph sounds still to do.

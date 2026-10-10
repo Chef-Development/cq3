@@ -800,6 +800,11 @@ L8. **More mature, less chibi** (playtester, round 8: "everything looks a little
     Teams: art 2B the heroes (and portraits of heroes); a new art 2C the fight backdrops (L7) and the foes; art 2A the
     UI, menus, world map and title; the region helpers their regions.
 
+L9. **A boot check before every push** (a boot crash from a hero-rig change reached the live build at 22:37 for about
+    ten minutes: unit tests and the build passed, the game didn't start): the lead's pushes and the teams' commits that
+    touch boot-painted art run `boot-check.mjs` (the built game at phone and desktop size: no page errors, title ->
+    world map -> the first story box); hero-frames.test.ts now paints every card and camp pose.
+
 (lead: end of section)
 
 
