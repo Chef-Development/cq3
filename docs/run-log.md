@@ -74,3 +74,11 @@ One PR at the end supersedes #1-#7.
 - 21:06 EDT: the title redone as key art (2A; preview docs/art-audit/after/title-key-art.png on team/art): approved
   with small notes. The single Playwright lock had ~16 waiters behind long QA crawls: split into a short lock and a
   long lock (TEAM-RULES.md).
+- 21:11 EDT: a third container restart; this time all seven teams resumed from their transcripts. Playtester note:
+  "Rowan needs a polish: the sword looks too thin etc.; apply that same standard to other heroes too": art 2B's top
+  priority now (a sword with heft, a polished Rowan at every size, then every hero's weapons and props readable at 8x).
+- 21:20 EDT: merge 4 (all seven): the title as key art, the Great Atlas world map (drafts, blank erased land, a
+  restore animation), the Mapmaker's and Hesper's portraits, Region 4 balanced (bot-region4 guard), Region 4's art and
+  music, the story's text sweep, Android/desktop fixes, the first 10 minutes through Act 1. The masher guard fix
+  (content: a 15-run boss-alone sample; region 2 measures 4% over 30 seeds; the 5-seed sample swung on one lucky run)
+  merged 21:24. Typecheck and build clean; pushed (GitHub runs the suite).
