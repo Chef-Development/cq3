@@ -626,6 +626,11 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   the Margin now, and its Flame burns the ink he scraped from Meridian to stay lit. Out at sea, ships wreck in the dark.
 - **Acts (suggested):** 1 **The Dark Harbor**; 2 **The Wreck Shore** (the hulls of every ship the dark sea wrecked);
   3 **The Beacon Stair**.
+- **Mini-bosses (suggested):** **Old Barnacle** (`barnacle`, Act 1: a giant hermit crab from the open sea, wearing a
+  wrecked rowboat for a shell; proud and slow: "MY boat. Found it. Keeping it."); **the Lampless** (`lampless`, Act 2:
+  an empty lantern on long legs he drew to snuff every light but his own, so no one relights the harbor; no speech).
+- **Rule hooks (ideas):** *the beam* (a sweeping light: blocks in it are clear, the rest dim) and *wreckage* (a hit
+  red breaks into two small ones).
 - **Boss: the Wreckwarden**, a giant pieced together from those hulls, drawn to guard the beacon stair. Keystone:
   **the Flame**. (Not a lighthouse boss: the Duskmire has the one.)
 - **Restoring (and Meridian):** the Flame breaks; the beacon swings back out to sea; and the ink it was burning runs
@@ -635,7 +640,7 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   living) and that Ambrose broke it once, the night after the funeral, and no more. Pip begs her to tell the rest
   ("He has a right to know, Hesper."); she won't: "Not today." Pip's anger is the first
   time he raises his voice in the game. (Her secret, the river, waits for her confession at the end.)
-- **Scenes:** `far1`-`far3`, two mini-bosses' (to design), `warden`, `warden2`, `warden3`, `farVictory`,
+- **Scenes:** `far1`-`far3`, `barnacle`, `lampless`, `warden`, `warden2`, `warden3`, `farVictory`,
   `hallWakes` (the last two drafted: `src/data/story-far.ts`). Fizz after
   `farVictory`: "MY light! Pointing the RIGHT way!"
 
