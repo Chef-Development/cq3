@@ -4,10 +4,10 @@
 // and its exiled Mapmaker is redrawing it region by region. Tone: the plot is earnest (no gags, puns or winks); the
 // comedy lives in the heroes' arrivals, the camp banter, Mags and the companions.
 
-import { PAGE_STORY } from './atlas-pages';
 import type { Speaker, StoryBox } from './types';
 import { ASH_STORY } from './story-ash';
 import { DUSK_STORY } from './story-dusk';
+import { PAGE_STORY } from './atlas-pages';
 
 export const SPEAKER_NAME: Record<Speaker, string> = {
   narrator: '',
@@ -326,6 +326,8 @@ export const STORY: Record<string, StoryBox[]> = {
 Object.assign(STORY, ASH_STORY);
 // the fourth region's scenes (src/data/story-dusk.ts)
 Object.assign(STORY, DUSK_STORY);
+// the Atlas pages, one per act, read when found in a hidden treasure (src/data/atlas-pages.ts)
+Object.assign(STORY, PAGE_STORY);
 
 // ---- Gorm and Tess (Part 6): their first chest reveals
 Object.assign(STORY, {
@@ -342,6 +344,3 @@ Object.assign(STORY, {
     { who: 'tess', text: 'Excuses. Every clock in my workshop, across\nthe sea, stopped at once. Someone owes me.' },
   ],
 } satisfies Record<string, StoryBox[]>);
-
-// the Atlas pages, one per act, read when found in a hidden treasure (src/data/atlas-pages.ts)
-Object.assign(STORY, PAGE_STORY);
