@@ -22,7 +22,7 @@ import { BOOST_ICON, clamp01, easeBack, easeInOut, easeOut3, hpLabel, inRect, IN
 import { hdFor, screenCovered } from './hd-text';
 import { FACE, ImagePool, isPressed, notePress, ribbon, RIBBON, strip, tag, TextPool } from './ui';
 import { cardFrame, cardShine, cardTile, mainTag, relicCard, relicIcon, tagChip, TAG_FACE, UPRIGHT_NAME_Y, uprightWell, type CardCtx } from './relic-ui';
-import { glass } from './ui-modern';
+import { glass, vignette } from './ui-modern';
 import { wrapText } from './items';
 import { pix } from './camp-kit';
 
@@ -780,6 +780,8 @@ export class Overlays {
     const s = this.s;
     const run = s.app.run;
     this.dim(g, 0.45);
+    // depth behind the plate: the screen's edges fall into shadow (review-4 R4-3)
+    vignette(g, s, 0.9);
     const p0 = this.boostPanel();
     const k = easeBack(since / 200, 1.5);
     const sc = 0.75 + 0.25 * k;
@@ -797,8 +799,8 @@ export class Overlays {
           : run.boostChoices.some(isRelicOffer)
             ? 'Pick a Relic'
             : 'Pick a Boost';
-    ribbon(gc, p.x + p.w / 2, p.y - 6, Math.max(112, textWidth(title, 1, true) + 22), 13, RIBBON.purple);
-    this.texts.text(title, p.x + p.w / 2, p.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    ribbon(gc, p.x + p.w / 2, p.y - 6, Math.max(112, textWidth(title, 1, true) + 22), 13, INK_TAB);
+    this.texts.text(title, p.x + p.w / 2, p.y + 0.5, 0xe8c878, { bold: true, ox: 0.5, oy: 0.5 });
     const owned = run.hero.relics;
     // a relic being picked flies into the tray (drawPicked); once it lands it sits in its slot
     const pk = this.pickThen && this.picked ? this.picked : null;
@@ -926,7 +928,11 @@ export class Overlays {
         }
       }
     });
-    if (more) texts.text(`+${more}`, slots[shown].x + 6, t.y + 7, 0xe8e4ff, { bold: true, ox: 0.5, oy: 0.5, alpha });
+    if (more) texts.text(`+${whole(more)}`, slots[shown].x + 6, t.y + 7, 0xe8e4ff, { bold: true, ox: 0.5, oy: 0.5, alpha });
+    // what the tray is (review-4 R4-3: an unlabelled gem and a dashed slot), after its slots while there's room
+    const lx = (slots.length ? slots[slots.length - 1].x + 16 : t.x + 15) + 2;
+    const label = owned.length ? 'Your relics' : 'Your relics go here';
+    if (lx + textWidth(label, 1, false) <= t.x + t.w - 4) texts.text(label, lx, t.y + 7, 0xa89870, { oy: 0.5, alpha });
   }
 
   /**
