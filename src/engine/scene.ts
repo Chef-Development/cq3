@@ -28,7 +28,7 @@ import { Overlays } from './view/overlays';
 import { StopScreens } from './view/stops';
 import { StoryView } from './view/story';
 import { WorldView } from './view/world';
-import { onRegionPack, regionPacks, type RegionArtPack } from './region-art';
+import { loadRegionArt, onRegionPack, packOfTheme, regionArtLoaded, regionPacks, type RegionArtPack } from './region-art';
 import { buildWorldArt, paintWorldSlice, WORLD_PAINT, worldArtReady } from './art-world';
 import { buildMapArt } from './art-map';
 import { buildRoamArt } from './art-roam';
@@ -161,6 +161,8 @@ export class FightScene extends Phaser.Scene implements View {
     if (this.packsIn.has(p.id)) return;
     p.addArt(this.addTex, now);
     this.packsIn.add(p.id);
+    // a fight that began before its pack arrived (a very slow first visit) gets its backdrop now
+    if (this.packsNow && packOfTheme(this.app.run.theme) === p.id) this.stage.applyTheme();
   }
 
   /** Paint the packs that have arrived in idle slices, one after another, adding each when it's done. */
@@ -182,6 +184,8 @@ export class FightScene extends Phaser.Scene implements View {
   ensureRegionArt(): void {
     this.packsNow = true;
     for (const p of regionPacks()) this.addPack(p, true);
+    // one that failed to download (a dropped connection) is asked for again
+    if (!regionArtLoaded()) void loadRegionArt();
   }
 
   /** (The older name: Ashfell's art is one of the packs now.) */
