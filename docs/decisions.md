@@ -938,12 +938,15 @@ F7. **Pip's road scene plays after a new player's first win** (the lead's reques
 F8. **A new player's first win has no pick of its own** (`CORE:` run.ts, `Run.firstWin`): the first fight's relic pick
     came half a minute before the promised chest's rare pick, two picks around one story scene in minute one. The
     first win now goes loot, road scene, map; the chest's pick is the first relic a newcomer meets (with its tip).
-    Replays and returning players are unchanged. Act 1's bot guards and the masher's (region 1) still pass.
+    Replays and returning players are unchanged. The balance bot sees no difference: Act 1 first try with and without
+    that pick, 300 runs each at a newcomer's reaction time, 97-98% at 62% accuracy, 99-100% at 70% and 75%; the
+    Act 1, region 2 and 3 bot guards and the masher's all pass.
 F9. **The first finisher finishes.** Measured: the named reveal played, then the whirlwind left the boar standing
     (51 of 150). The finisher's lesson (its tip, and the stack the coach places when the meter isn't full by itself)
     now waits for the foe in front to be low enough for the blow to kill it, but more than a tap or two from falling
-    anyway (`TipCoach.finisherMoment`; floor 0.3 of one stack's blow; at most 15 s into its turn, `finWaitSec`). A
-    unit guard plays 30 first fights: the first finisher kills the foe in front in at least 27.
+    anyway (`TipCoach.finisherMoment`; floor 0.3 of one stack's blow; at most 15 s into its turn, `finWaitSec`).
+    Measured: the newcomer bot's first finisher now kills on all three seeds; a unit guard plays 30 first fights and
+    wants at least 27 kills.
 F10. **The quiet start ends one tip at a time.** After 3 wins, its five tips (Synergy!, the packs, the skill point, the
     relic belt, the sparkle) came in a burst: five tips over the four screens before the first boss. Now each one
     seen moves the next a fight won later (`quietOver`).
