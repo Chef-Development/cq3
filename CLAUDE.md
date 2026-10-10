@@ -332,7 +332,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   (`profile.gear`); a scenario can set companions' levels and stars (`petLevels` / `petStars`). Setups: `fight`,
   `camp` (incl. `chestDemo` and `chestHd`, the old and sharper reveals side by side), `story`, `map` (act N's map to
   look at) and `gallery` (the Finisher gallery: any hero's finisher on demand; `App.galleryHold` holds its clock).
-  The lab smoke test that walks every scenario has 7 minutes (the list grows every round).
+  The lab smoke test that walks every scenario has 9 minutes (the list grows every round).
   Practice and lab fights count toward the accuracy readout: the lab's taps go to its own log (`cq3.lab.acc`) and the
   lab report counts them with the real game's (the real save is never written). `chestDemo` plays the chest opening
   at forced tiers without granting anything (`camp.chests.demo(tiers, kind, now)`).
