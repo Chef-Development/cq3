@@ -218,3 +218,8 @@ One PR at the end supersedes #1-#7.
   numbers left; 100 runs put Tess inside +/-10, Vesper -5 / -22 / -9 in Region 4) merged; content tries a Vesper
   staying-power pass until 03:50. A fourth fresh-eyes reviewer started on the merged build (the first 10 minutes as a
   new player, tips on; a later region; desktop), findings by 03:35 for fixes until ~04:45.
+- 03:09 EDT: merged first10's last-but-one chunk (the first 10 minutes replayed on the merged build at phone and
+  desktop size: Act 1 cleared first try on both seeds, the first chest at 1:08-1:17, the first hero chest at ~5:40, the
+  first finisher's reveal clean; tips moved off the first pick's second card, the event's first choice and the trader's
+  wares; the Edits screen's riddles fixed). Boot-checked, pushed. First10's last chunk (04:00): the pick tip beside the
+  cards, the level-up ribbon off the HP plate.
