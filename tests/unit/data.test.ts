@@ -14,6 +14,7 @@ import { NOON_STORY } from '../../src/data/story-noon';
 import { HUSH_STORY } from '../../src/data/story-hush';
 import { REACH_STORY } from '../../src/data/story-reach';
 import { WICK_STORY } from '../../src/data/story-wick';
+import { SALT_STORY } from '../../src/data/story-salt';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
 import { HEROES } from '../../src/data/heroes';
 import { TIER_INFO } from '../../src/data/rarity';
@@ -170,8 +171,9 @@ describe('story', () => {
     for (const id of ['reach1', 'ropewright', 'reachCamp', 'reach2', 'squall', 'reach3', 'kestrel', 'kestrel2', 'kestrel3', 'reachVictory']) expect(REACH_STORY[id], id).toBeDefined();
     for (const id of ['wick1', 'polisher', 'wickCamp', 'wick2', 'press', 'wick3', 'mender', 'mender2', 'mender3', 'wickVictory']) expect(WICK_STORY[id], id).toBeDefined();
     for (const id of ['kestrel2', 'kestrel3', 'mender2', 'mender3']) expect({ ...REACH_STORY, ...WICK_STORY }[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
-    const drafts = [NOON_STORY, HUSH_STORY, REACH_STORY, WICK_STORY];
-    for (const [id, boxes] of Object.entries({ ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY })) {
+    for (const id of ['salt1', 'saltworks', 'saltCamp', 'salt2', 'gale', 'salt3', 'brine', 'brine2', 'brine3', 'saltVictory']) expect(SALT_STORY[id], id).toBeDefined();
+    const drafts = [NOON_STORY, HUSH_STORY, REACH_STORY, WICK_STORY, SALT_STORY];
+    for (const [id, boxes] of Object.entries({ ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY })) {
       expect(!(id in STORY) || STORY[id] === boxes, id).toBe(true);
       expect(drafts.filter((d) => id in d).length, `${id}: one region's id`).toBe(1);
       for (const b of boxes) if (b.who === 'mapmaker') expect(b.text, id).not.toMatch(/\bRowan\b/);
@@ -186,7 +188,7 @@ describe('story', () => {
   });
 
   it("keeps the Mapmaker's and the High Keeper's voices: no contractions (docs/story-bible.md, Voices)", () => {
-    const all = { ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY };
+    const all = { ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY };
     for (const [id, boxes] of Object.entries(all)) {
       for (const b of boxes) if (b.who === 'mapmaker' || b.who === 'keeper') expect(b.text, `${id}: ${b.text}`).not.toMatch(/\b(it|that|he|she|there|what|who|here|let)'s\b|n't\b|'(re|ll|ve|d|m)\b/i); // a possessive is fine
     }
@@ -282,7 +284,7 @@ describe('camp banter', () => {
   });
 
   it("the first isles' banter waits for their drafted scenes and fits the bubble", () => {
-    const drafts = { ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY };
+    const drafts = { ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY };
     for (const l of ISLES_BANTER) {
       expect(drafts[l.after], `${l.text}: after ${l.after}`).toBeDefined();
       const lines = wrap(l.text);

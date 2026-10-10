@@ -600,7 +600,7 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   back nothing); 3 **The Glass** (out where the deep water was, under a pane laid over the sea).
 - **Rule hooks (ideas):** *salt crust* (blocks crusted over: the first tap cracks the salt, the second hits) and
   *glass calm* (a stretch of bar where nothing moves at all: blocks there wait until the cursor has passed once).
-- **Mini-bosses:** **the Saltworks** (Act 1: a rake-armed thing he drew to keep the flats smooth; no speech); **Gale**
+- **Mini-bosses:** **the Saltworks** (`saltworks`, Act 1: a rake-armed thing he drew to keep the flats smooth; no speech); **Gale**
   (Act 2: a storm petrel who was out at sea when the isle went blank and has flown ever since, looking for a storm to
   ride: "No wind. No wave. Nowhere to land." It speaks; tired, proud).
 - **Boss: Old Brine**, a sea serpent who was out in the deep when the isle went blank, came home, and was caught when
@@ -615,9 +615,10 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   itself stays (a page can't erase itself), alone in white. Ambrose, honest: "The isles did not hold enough. I took it
   from the one place that has plenty. They are sleeping, knight. Only sleeping." Rowan says nothing. Pip: "Rowan...
   that was home." The camp is the only awake place Rowan has left (the world map: the capital blank).
-- **Scenes:** `salt1`, the Act 1 mini-boss's, `salt2`, the Act 2 mini-boss's, `salt3`, `brine`, `brine2`, `brine3`,
-  `saltVictory`. Brann's first words go in banter (he may not be at the camp): after `saltVictory`, with Brann there,
-  `{ who: 'brann', text: '...The bell rang. So. Hello.' }` (no "(writes)").
+- **Scenes (drafted in full: `src/data/story-salt.ts`, speaker `gale`):** `salt1`, `saltworks`, `saltCamp`,
+  `salt2`, `gale`, `salt3`, `brine`, `brine2`, `brine3`, `saltVictory`. Brann's first words are banter (he may not be
+  at the camp; `banter-isles.ts`): "...The bell rang. So. Hello." (no "(writes)"). Once the region is in play, his
+  `(writes)` lines in `banter.ts` should stop after `saltVictory` (the banter picker has no "before" gate yet).
 
 ### Region 10: Farlight (far isle) — outline
 - **Original:** a beacon isle whose lighthouse guided ships home; Fizz's flame-brews fed its light.

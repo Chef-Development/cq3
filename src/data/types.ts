@@ -213,6 +213,8 @@ export type Speaker =
   // Regions 7-8's, drafted ahead (src/data/story-reach.ts, story-wick.ts)
   | 'squall'
   | 'press'
+  // Region 9's, drafted ahead (src/data/story-salt.ts)
+  | 'gale'
   | 'captain'
   | 'golem'
   | 'boarking'
