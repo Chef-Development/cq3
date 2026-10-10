@@ -10,7 +10,7 @@
 // blade pointing down out of the fist.
 import { HERO_FEET_X, HERO_H, HERO_W, grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 import { ROWAN_CARD, ROWAN_RIG } from './art-hero-rowan';
-import { rigFrame } from './art-rig';
+import { jointLegs, LEG_FEET_X, rigFrame, STANCES, type LegLook } from './art-rig';
 import { daggerMap } from './art-sword';
 import { EARTH, LEAF, STONE, ell, fill, or, rect, sphere, tone } from './art-paint';
 import { bay } from './backdrop';
@@ -38,24 +38,23 @@ const PAL: Pal = {
 
 // ------------------------------------------------------------------ body parts (facing right)
 
-// The hood and the scarf over the mouth, 16 wide. The face opening sits on the right under the brim's lit lip: the
-// skin band with the eyes (glints toward the light), the cheeks, then the mask.
+// The hood and the scarf over the mouth, 13 x 11 (playtest round 8, L8: a smaller head on a longer body, about three
+// heads tall). The face opening sits on the right under the brim's lit lip: a narrow band of skin with two small dark
+// eyes, then the mask.
 const HEAD = [
-  '......5566......',
-  '....56777654....',
-  '..456776665543..',
-  '.45677665554433.',
-  '.456665554433322',
-  '4566554666666522',
-  '4565546zWkzzWk22',
-  '4555436zkkSskk22',
-  '4554436zsSSSSs2.',
-  '.4443ddeeeeddcc.',
-  '..3322deeeddccb.',
-  '...21ccddddccba.',
-  '.....bbccccbba..',
+  '....5566.....',
+  '..5677765....',
+  '.567766554...',
+  '45676655443..',
+  '4566554433332',
+  '456554666652.',
+  '45554zSkSSk2.',
+  '4554zsSSSSs2.',
+  '.443ddeeeedc.',
+  '..32deeedccb.',
+  '...1cdddccb..',
 ];
-const SQUINT: Record<number, [string, string]> = { 6: ['zWkzzWk', 'zzzzzzz'], 7: ['zkkSskk', 'zkkSskk'] };
+const SQUINT: Record<number, [string, string]> = { 6: ['zSkSSk', 'zSzSSz'] };
 const squint = (rows: string[]) => rows.map((r, y) => (SQUINT[y] ? r.replace(SQUINT[y][0], SQUINT[y][1]) : r));
 
 // Shoulders to the sash and the gi's split hem, 15 wide (the mask covers the neck): a leather strap with a brass
@@ -66,74 +65,24 @@ const TORSO = [
   '.34555hHg54332.',
   '.3455554hHH321.',
   '.345544443hH21.',
+  '.3455544433321.',
+  '.3455444333321.',
   '.2QQqqqqqRRrr1.',
   '..rqqqRRqRRr...',
   '..34554.33321..',
   '..3443...3321..',
 ];
 
-// Legs (darker trousers than the gi), 17 wide, the feet centred on x = 8.
+// Legs from the shared joints (art-rig.ts STANCES): dark trousers lit on the left, linen wraps up the shins, the back
+// leg a value darker; 'ready' is her own stance, knees bent on the balls of the feet.
+const SABLE_LEGS: LegLook = { leg: '3', legLit: '4', legBack: '2', boot: 'w', bootLit: 'v', bootBack: '2', sole: '1', bootRows: 5 };
 const LEGS: Record<string, string[]> = {
-  // knees bent, feet apart, on the balls of the feet
-  ready: [
-    '.....344433332...',
-    '....3443...3332..',
-    '...3443.....3332.',
-    '...Vvw......Vvw..',
-    '...Vvw......Vvw..',
-    '...Vvw......Vvw..',
-    '..33332....33332.',
-    '..12222....12222.',
-  ],
-  // a long lunge: the front knee over the toes, the back leg straight
-  lunge: [
-    '......344433332..',
-    '.....3443..33332.',
-    '....3443.....3332',
-    '...3443......Vvw.',
-    '..Vvw........Vvw.',
-    '.Vvw.........Vvw.',
-    '33332.......33332',
-    '12222.......12222',
-  ],
-  // running: the back foot kicked up behind
-  run: [
-    '......344433332..',
-    '.....344333.3332.',
-    '...33443.....3332',
-    '.3333Vv......Vvw.',
-    '12222........Vvw.',
-    '.............Vvw.',
-    '............33332',
-    '............12222',
-  ],
-  // a deep crouch, knees wide
-  crouch: [
-    '....3444333332...',
-    '...3443333.3332..',
-    '..3443......3332.',
-    '..Vvw.......Vvw..',
-    '.33332.....33332.',
-    '.12222.....12222.',
-  ],
-  // knees tucked up under the body (in the air)
-  tuck: [
-    '....34443333332..',
-    '....344333333332.',
-    '.........wvVVvw..',
-    '.......3332Vvw...',
-    '.......1222......',
-  ],
-  // down on one knee: the back knee and shin on the ground, the toes tucked
-  kneel: [
-    '.....3444333322..',
-    '....344333.33332.',
-    '....3443....Vvw..',
-    '...3443.....Vvw..',
-    '3..3443.....Vvw..',
-    '2VVvvw33...33332.',
-    '1vvwww222..12222.',
-  ],
+  ready: jointLegs({ h: 13, skirt: 0, flare: 0, back: [[LEG_FEET_X - 2, 1], [LEG_FEET_X - 5, 7], [LEG_FEET_X - 4, 12]], front: [[LEG_FEET_X + 2, 1], [LEG_FEET_X + 5, 6], [LEG_FEET_X + 4, 12]] }, SABLE_LEGS),
+  lunge: jointLegs(STANCES.lunge, SABLE_LEGS),
+  run: jointLegs(STANCES.run, SABLE_LEGS),
+  crouch: jointLegs(STANCES.crouch, SABLE_LEGS),
+  tuck: jointLegs(STANCES.tuck, SABLE_LEGS),
+  kneel: jointLegs(STANCES.kneel, SABLE_LEGS),
 };
 type Legs = keyof typeof LEGS;
 
@@ -317,16 +266,22 @@ function sparkle(g: Grid, x: number, y: number): void {
 }
 
 /** Paint a pose into `g` (the frame's box). */
+/** Her poses were set for the shorter build: each stance's old leg height (the hands rise by the difference, plus the
+ *  longer gi). */
+const OLD_LEG_H: Record<string, number> = { ready: 8, lunge: 8, run: 8, crouch: 6, tuck: 5, kneel: 7 };
+
 export function paintSable(g: Grid, p: SablePose): void {
   const feetY = HERO_H - 2;
   const legs = LEGS[p.legs ?? 'ready'];
-  const lx = HERO_FEET_X - 8;
+  const SABLE_LIFT = legs.length - OLD_LEG_H[p.legs ?? 'ready'] + 2;
+  const lx = HERO_FEET_X - LEG_FEET_X;
   const ly = feetY - legs.length + 1;
   const tx = HERO_FEET_X - 7 + (p.dx ?? 0);
   const ty = ly - TORSO.length + 2 + (p.dy ?? 0);
-  const hx0 = tx + (p.lean ?? 0);
+  const hx0 = tx + 1 + (p.lean ?? 0);
   const hy0 = ty - HEAD.length + 1 + (p.bow ?? 0);
-  const hand = (a: Arm): [number, number] => [HERO_FEET_X + a.hand[0], feetY - a.hand[1]];
+  // (her poses were set for the shorter build: the hands rise with the longer body, playtest round 8)
+  const hand = (a: Arm): [number, number] => [HERO_FEET_X + a.hand[0], feetY - a.hand[1] - SABLE_LIFT];
   const drawDagger = (a: Arm) => {
     if (!a.dir) return;
     const b = dagger(a.dir);
@@ -337,7 +292,7 @@ export function paintSable(g: Grid, p: SablePose): void {
     const b = dagger(dir);
     stamp(g, b.rows, PAL, HERO_FEET_X + x - b.grip[0], feetY - y - b.grip[1]);
   }
-  scarf(g, hx0 + 2, hy0 + 9, p.scarf ?? 'breeze');
+  scarf(g, hx0 + 2, hy0 + 8, p.scarf ?? 'breeze');
   // far arm and its dagger, behind the body
   const [fx, fy] = hand(p.far);
   drawDagger(p.far);
@@ -355,7 +310,7 @@ export function paintSable(g: Grid, p: SablePose): void {
   stamp(g, p.squint ? squint(HEAD) : HEAD, PAL, hx0, hy0);
   // near arm in front
   if (!p.armsUp) nearArm();
-  for (const [x, y] of p.glint ?? []) sparkle(g, HERO_FEET_X + x, feetY - y);
+  for (const [x, y] of p.glint ?? []) sparkle(g, HERO_FEET_X + x, feetY - y - SABLE_LIFT);
 }
 
 function sableFrame(p: SablePose): HTMLCanvasElement {

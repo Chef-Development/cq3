@@ -5,7 +5,7 @@
 // "more mature and moodier"): about three heads tall (a 13 x 11 helm on a 35 px figure), legs built from joints, worn
 // and darker materials. His hero card is drawn from ROWAN_CARD (art-sable.ts).
 import { put, type Grid, type Pal, type Shade } from './art';
-import { sparkle, stampAt, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose, type Sprite } from './art-rig';
+import { LEG_FEET_X, matureLegs, sparkle, stampAt, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose, type Sprite } from './art-rig';
 import { swordMap, SWORD_PAL } from './art-sword';
 
 // ------------------------------------------------------------------ palette
@@ -90,69 +90,9 @@ const TORSO = [
   '...ccccccccccccc...',
 ];
 
-// ---- legs, built from joints (hip, knee, ankle) so every stance has the same long-limbed build: plate on the thigh
-// and shin, a bronze knee cop, a worn boot; the tabard's skirt hangs over the thighs with folds and a bronze hem.
-type Joint = [number, number];
-interface LegSpec {
-  h: number; // the map's height (the ground is its last row)
-  skirt: number; // the skirt's rows
-  flare: number; // how far the skirt spreads past the hips at its hem
-  shift?: number; // the skirt's hem leans this far (back = negative)
-  back: [Joint, Joint, Joint];
-  front: [Joint, Joint, Joint];
-}
-const LEG_W = 21;
-const LEG_FEET_X = 10;
-function legMap(o: LegSpec): string[] {
-  const g: string[][] = Array.from({ length: o.h }, () => Array<string>(LEG_W).fill('.'));
-  const set = (x: number, y: number, c: string) => {
-    if (x >= 0 && y >= 0 && x < LEG_W && y < o.h) g[y][x] = c;
-  };
-  const limb = (a: Joint, b: Joint, w: number, c: string) => {
-    const n = Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]), 1);
-    for (let i = 0; i <= n; i++) {
-      const x = a[0] + ((b[0] - a[0]) * i) / n;
-      const y = Math.round(a[1] + ((b[1] - a[1]) * i) / n);
-      for (let k = 0; k < w; k++) set(Math.round(x - (w - 1) / 2 + k), y, c);
-    }
-  };
-  // (the back leg a value darker than the front one: depth)
-  const leg = ([hip, knee, ank]: [Joint, Joint, Joint], back: boolean) => {
-    const [plate, boot, cop] = back ? ['n', 'b', 'y'] : ['m', 'o', 'g'];
-    limb(hip, knee, 4, plate);
-    limb(knee, ank, 3, plate);
-    // the knee cop
-    set(knee[0], knee[1], cop);
-    set(knee[0] + 1, knee[1], cop);
-    // the boot: a shaft up the shin and a foot pointing forward, its sole dark
-    for (let y = ank[1] - 3; y < ank[1]; y++) for (let x = ank[0] - 1; x <= ank[0] + 1; x++) set(x, y, boot);
-    for (let x = ank[0] - 2; x <= ank[0] + 3; x++) set(x, ank[1], x === ank[0] + 3 ? boot : 'Z');
-    for (let x = ank[0] - 2; x <= ank[0] + 2; x++) set(x, ank[1] - 1, boot);
-  };
-  leg(o.back, true);
-  leg(o.front, false);
-  // the skirt over the thighs: folds in shadow, a bronze hem
-  for (let y = 0; y < o.skirt; y++) {
-    const t = y / Math.max(1, o.skirt - 1);
-    const lean = Math.round((o.shift ?? 0) * t);
-    const x0 = LEG_FEET_X - 6 - Math.round(o.flare * t) + lean;
-    const x1 = LEG_FEET_X + 6 + Math.round(o.flare * t * 0.6) + lean;
-    for (let x = x0; x <= x1; x++) {
-      const fold = y > 0 && (x === LEG_FEET_X - 2 + lean || x === LEG_FEET_X + 3 + lean);
-      set(x, y, y === o.skirt - 1 ? 'y' : fold ? 'C' : 'c');
-    }
-  }
-  return g.map((r) => r.join(''));
-}
-const F = LEG_FEET_X;
-const LEGS: Record<string, string[]> = {
-  stand: legMap({ h: 14, skirt: 5, flare: 1, back: [[F - 2, 2], [F - 3, 8], [F - 3, 13]], front: [[F + 2, 2], [F + 3, 8], [F + 3, 13]] }),
-  run: legMap({ h: 14, skirt: 4, flare: 2, shift: -2, back: [[F - 1, 2], [F - 5, 6], [F - 9, 8]], front: [[F + 2, 2], [F + 5, 7], [F + 5, 13]] }),
-  lunge: legMap({ h: 14, skirt: 4, flare: 2, back: [[F - 2, 2], [F - 6, 8], [F - 8, 13]], front: [[F + 2, 2], [F + 6, 7], [F + 6, 13]] }),
-  crouch: legMap({ h: 11, skirt: 4, flare: 2, back: [[F - 2, 2], [F - 6, 6], [F - 4, 10]], front: [[F + 2, 2], [F + 6, 5], [F + 5, 10]] }),
-  tuck: legMap({ h: 10, skirt: 4, flare: 1, back: [[F - 2, 2], [F + 1, 5], [F - 2, 9]], front: [[F + 2, 2], [F + 6, 4], [F + 4, 9]] }),
-  kneel: legMap({ h: 10, skirt: 4, flare: 2, back: [[F - 2, 2], [F - 4, 8], [F - 9, 9]], front: [[F + 2, 2], [F + 6, 4], [F + 6, 9]] }),
-};
+// ---- legs, built from joints (art-rig.ts STANCES): plate on the thigh and shin, a bronze knee cop, a worn boot; the
+// tabard's skirt hangs over the thighs with folds and a bronze hem
+const LEGS = matureLegs({ leg: 'm', legBack: 'n', boot: 'o', bootBack: 'b', sole: 'Z', cop: 'g', copBack: 'y', skirt: 'c', fold: 'C', hem: 'y' });
 
 const GAUNTLET = ['RRr', 'Rrq', 'rqq'];
 const GAUNTLET_PAL: Pal = { R: ROWAN_STEEL[4], r: ROWAN_STEEL[3], q: ROWAN_STEEL[1] };
