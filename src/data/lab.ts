@@ -296,7 +296,7 @@ export const LAB_NEW: LabScenario[] = [
   { id: 'r8Arrivals', group: 'spoiler', spoiler: true, label: 'Newest arrivals', secs: 90, try: 'Read how each arrives. Funny? Short enough?', setup: { kind: 'story', act: 1, scenes: ['meetSolenne', 'meetWren', 'meetYara', 'meetDell', 'meetGorm', 'meetTess', 'meetFizz', 'meetBrann'] } },
   // ---- art (team 2)
   { id: 'titleAtlas', group: 'camp', rev: 2, label: 'New title screen', secs: 30, try: 'Key art now: watch it come alive, then tap.', setup: { kind: 'title' }, profile: { actsCleared: 0 } },
-  { id: 'atlasMap', group: 'camp', label: 'The Atlas map', secs: 45, try: 'Drag the map: ink, paper, erased land.', setup: { kind: 'world' }, profile: { actsCleared: 1 } },
+  { id: 'atlasMap', group: 'camp', label: 'The Atlas map', secs: 45, try: 'Drag the map: painted lands, erased land.', setup: { kind: 'world' }, profile: { actsCleared: 1 } },
   { id: 'atlasRestore', group: 'camp', label: 'A land comes back', secs: 30, try: 'A land restored: its colour floods back.', setup: { kind: 'world', replay: ['restore:greenmarch'], weights: 1 }, profile: { actsCleared: 2 } },
   // Rowan redrawn on the shared rig (plume and cape that lag his breath, every pose), the four-frame idles, squash and
   // stretch on cuts, blows and landings

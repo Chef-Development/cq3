@@ -922,6 +922,31 @@ A14. **Section 9's words on every screen I own**: "The Great Atlas" and "Regions
     reads "Greenmarch restored!" / "N regions to go." Nothing about a Pendulum is left in the view text (the capital's
     landmark sprite and the narrator's portrait still show the pendulum: next).
 
+A15. **L6 on the Atlas: the open lands keep the painted world.** The ink draft read as dirt and specks at the map's
+    zoom; it is gone. An open land not yet restored shows the painted land a touch drained (a third toward its own
+    grey, `draftOf`), with full colour already back round Rowan and each cleared act; restoring floods the full colour
+    out from the boss in the ragged gold-fronted ring (A13). Erased land stays blank vellum with the impression of its
+    lines, now behind a clear torn edge: the paper's rim lit warm, a thin ink shadow on the land beside it.
+A16. **L7 (mood) on the Atlas:** aged, darker parchment (`AGED`) browning to burnt edges, a deeper teal sea wash, the
+    land graded about a fifth darker with cool midtones and warm lights kept (`MOOD`), the erased lands and the far
+    isles a dim warm-grey vellum (no cream), clouds a dusk lavender grey, a vignette half again as strong. The title's
+    blank is a warm grey kept below the logo's and the sun's values.
+A17. **The art bible's section 0, Mood (L7) and Maturity (L8)**, ahead of everything else and overriding it: values
+    down, cool midtones, deep cool shadows, warm light only as accents, actors rim-lit; people not toys, foes with
+    menace, portraits with defined features, UI as metal, ink and leather.
+A18. **L7/L8 in the menus' shared parts** (every screen built from them follows): plates' ink (`NAVY`) a step darker
+    and less purple, trim gold (`GOLD` in pixels.ts) antique brass, button faces (`FACE`) and ribbons in the mood's
+    accents (moss, brass, oxblood, iron, steel blue, plum, ink), `button3d` an iron rim with a narrow lit lip and one
+    dull glint instead of a silver rim, a glossy band and two white speculars; glass plates one dull glint. Every
+    painted menu stage (`ensureStage`), the grove and the camp's backdrop get `moodGrade` (art-paint.ts: midtones
+    toward a deep indigo, light sources spared). Text colours with fixed meanings (reward gold, done green) are kept.
+A19. **The old premise out of the pictures** (story bible section 11): the narrator's portrait is a corner of the
+    Atlas, the capital's tower is the domed Atlas Hall, the shrine's gable (camp and shrine) carries a compass rose,
+    the Keystone Shard's icon is a keystone's broken wedge with his gold line glowing, the captain holds looted coin
+    (not a "genuine weight"), the golem's brow rune is a compass star. The Boar King's crown and Bellows's anvil are
+    foes' art (team 2C). New portraits: the Noon Sphinx; the non-hero speakers' portraits (the Mapmaker, Hesper, Mags,
+    Pip, the narrator) get the mood's light (`portraitMood`: the far side stepped into a deep cool shadow).
+
 (art: end of section)
 
 
