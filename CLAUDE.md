@@ -337,8 +337,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   unlit dark block shows nothing). **Motion** Auto/Less/Full (Auto follows `prefers-reduced-motion`): Less turns the
   screen shake, the camera's kick and the white impact frames off and shortens screen flashes (`view/effects.ts`: new
   screen motion goes through `fx.shake`/`fx.kick`/`fx.screenFlash` so it obeys). **Larger text** (off by default):
-  the story boxes and the tips in the bold display letters wherever a box's lines fit its text area in them
-  (`bigFits`: about 94% of story boxes; the rest keep the small letters; the tip card grows to hold them).
+  the story boxes and the tips in the bold display letters: a story box keeps its own two lines when they fit them
+  (`bigLines`), else its words are re-wrapped into three and that box grows a line (every box fits, unit-tested over
+  STORY; the normal size keeps the two-line rule `data.test.ts` checks); the tip card grows to hold them.
 - **Clean capture** (`cq3.cleanCapture`, storage.ts): the gear panel's Modes or C hides the HUD buttons and the Test
   lab's for recording clips; a long press on the top middle (or C) brings them back.
 - **Test lab** (`src/data/lab.ts` scenarios, `core/lab.ts` profiles/fights/ratings/report, `engine/lab.ts` the list):
