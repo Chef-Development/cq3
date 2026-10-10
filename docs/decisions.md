@@ -1486,6 +1486,14 @@ C20. **Vesper is left as she is: neither more HP nor longer pins move her gaps**
     while her damage a second is higher than Rowan's (her Focus economy against one foe, Patience's crit at full
     Focus); a probe like C19's, with her style's parts switched off one at a time.
 
+C-ART-17. **Review 4's art findings** (R4-3, R4-5, R4-10, R4-14, R4-16): the camp's band in one dark metal face (the
+    colour in the icons, the way out in brass) and its top button says Build; a new player's two relic cards fill
+    (the icon at 3x, the block centred), a vignette behind the pick, the tray labelled; the world map's land graded
+    toward the dusk (the land only, before the Atlas's print, so the parchment, ink and drafts are as drawn) and its
+    twelve roses only once a land is restored; the treasure's banner ink and brass; the title's curled corner gone and
+    its foot in shadow. Left: the treasure screen's empty band and the HUD's bright HP green (shared with every fight),
+    and "Tap to start!" on a desktop (words, not art).
+
 (content: end of section)
 
 
