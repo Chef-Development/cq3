@@ -43,7 +43,7 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     vignette: 0.68,
     floor: 0.56,
     top: 0.4,
-    rim: 0xfff0b8,
+    rim: 0xffd890, // the late sun's gold
     rimAmt: 0.75,
     rimLeft: 0.6,
     rimTop: 1,
@@ -51,7 +51,7 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     shadowDx: 2,
     shadowLen: 1.1,
     dust: [0xc8a878, 0xa88a60, 0xe0c898],
-    pool: 0xffe0a0,
+    pool: 0xffc878,
     poolAmt: 0.2,
     air: 0x8290b8,
   },

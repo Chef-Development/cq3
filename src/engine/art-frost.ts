@@ -511,10 +511,11 @@ function impParts(pose: string): Part[] {
 // ------------------------------------------------------------------ icicle bat (a pale bat, icicles hanging off its wings)
 
 // pale lilac fur with deep violet shadows (so it holds its shape on snow)
-const BATFUR = ['#262040', '#463e6c', '#6e6696', '#9a94c0', '#c8c6e2', '#f2f2fc'];
+// (decision L8) a step darker, the ears and nose no longer candy pink, a scowl over the amber eyes
+const BATFUR = ['#1a1430', '#2e2650', '#4a4274', '#6a6496', '#8e8ab6', '#b8b6d8'];
 const BAT_PAL: Pal = {
   ...EYE,
-  E: '#e2768a', n: '#f09aa8', // inner ears, nose
+  E: '#7a3450', n: '#a4566a', // inner ears, nose
   m: '#2a0c24', t: '#f4f0e8', // mouth, fangs
   i: ICE[4], I: ICE[5], j: ICE[3], // icicles
 };
@@ -530,7 +531,7 @@ const BAT_BODY = [
   '.ff....ff.',
   '.fEf..fEf.',
   '.fEffffEf.',
-  'ffffffffff',
+  'fkkffkkfff',
   'fOOffOOfff',
   'fkOffkOfff',
   'ffffnfffff',
