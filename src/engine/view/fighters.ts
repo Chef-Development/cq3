@@ -66,6 +66,8 @@ type Face = readonly [number, number, number, number];
 const mixWhite = (c: number) => mix(c, WHITE, 0.4);
 /** The four-frame idle's step (a 1.2 s loop: docs/art-style.md section 7). */
 const IDLE_STEP_MS = 300;
+/** A foe's two idle frames each last this long. */
+const FOE_IDLE_MS = 460;
 /** Squash and stretch never lasts longer than this. */
 const SQUASH_MS = 100;
 /** A new wave's enemies hop (or drop) in over this long. */
@@ -76,7 +78,6 @@ const HERO_ALT: Record<string, string> = { slashX: 'slashB', fang: 'slashA', dow
 const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally', 'spiritWolf', 'wispSwarm', 'spiritStag']);
 /** Allies whose perk is a blow or a heal: the bolt starts at the ally (not the hero). */
 const ALLY_PERK = new Set(['thornling', 'glowmoth', 'seedling', 'spiritWolf', 'spiritStag']);
-/** Perks that heal (their amount is HP; any relic tagged Sustain does too). */
 /** Until the fourth region's foes are painted (art-dusk*.ts), each fights in an earlier foe's sprite set (its poses,
  *  flash and phase looks), so a fight never shows a missing texture. Used only while `${key}_idle0` doesn't exist. */
 const SPRITE_STAND_IN: Record<string, string> = {
@@ -96,6 +97,7 @@ const SPRITE_STAND_IN: Record<string, string> = {
   sunkensentinel: 'chainsentinel',
   lighthouse: 'bellows',
 };
+/** Perks that heal (their amount is HP; any relic tagged Sustain does too). */
 const HEAL_PERKS = new Set(['photosynthesis', 'vampiricFang', 'glowmoth', 'mend', 'rimewalker', 'emberwright', 'lamplighter', 'sanctuary', 'hotCocoa']);
 
 export class Fighters {
@@ -127,6 +129,8 @@ export class Fighters {
   /** Anim times of the last blow taken and the last landing (squash and stretch), and the last frame's lift. */
   private hurtAt = -1e9;
   private landAt = -1e9;
+  /** Foes landing from a wave's hops: id -> anim time (their squash). */
+  private foeLandAt = new Map<number, number>();
   private lastLift = 0;
   /** Gear light under and around Rowan (additive, behind the actors), and a glowing silhouette just behind him. */
   private gAura!: G;
@@ -248,6 +252,7 @@ export class Fighters {
 
   /** Forget every enemy view and reset the hero (their images went with the old layout). */
   reset(): void {
+    this.foeLandAt.clear();
     this.enemies.clear();
     this.enemyRims.clear();
     this.waveIn.clear();
@@ -256,6 +261,7 @@ export class Fighters {
 
   /** A new fight: old enemy views go, the hero starts fresh. */
   newFight(): void {
+    this.foeLandAt.clear();
     for (const v of this.enemies.values()) v.img.destroy();
     for (const r of this.enemyRims.values()) r.destroy();
     this.enemies.clear();
@@ -1139,7 +1145,9 @@ export class Fighters {
     // a small forward lunge on every slash
     const lk = (a - h.lungeAt) / 90;
     const lunge = lk >= 0 && lk < 1 ? Math.round(4 * Math.sin(lk * Math.PI)) : 0;
-    this.hero.setPosition(Math.round(h.x + knock + lunge), Math.round(s.ground + yOff));
+    // on guard between blows (the windup held): a 1 px ready bounce up onto the balls of the feet
+    const ready = h.state === 'engaged' && pose === 'windup' && a >= h.poseUntil && Math.floor((a - h.lastAction) / 240) % 2 ? 1 : 0;
+    this.hero.setPosition(Math.round(h.x + knock + lunge), Math.round(s.ground + yOff) - ready);
     const st = this.squash(a, !!sm);
     this.hero.setScale(SPRITE_SCALE * st, SPRITE_SCALE / st);
     // afterimages while dashing, returning or leaping
@@ -1177,7 +1185,7 @@ export class Fighters {
 
   /**
    * Squash and stretch (docs/art-style.md section 7: at most 100 ms, volume kept): the hero's width factor (the height
-   * is its inverse). A cut stretches him forward, a blow taken squashes him, a landing squashes him wide.
+   * is its inverse). A dash or a cut stretches him forward, a blow taken squashes him, a landing squashes him wide.
    */
   private squash(a: number, inShow: boolean): number {
     const bump = (t0: number, ms: number) => {
@@ -1186,7 +1194,9 @@ export class Fighters {
     };
     const land = bump(this.landAt, SQUASH_MS);
     if (inShow) return 1 + 0.14 * land;
-    return 1 + 0.14 * land + 0.08 * bump(this.h.lungeAt, 90) + 0.1 * bump(this.hurtAt, SQUASH_MS);
+    // (the dash's push-off stretches him forward too, for as long as the dash lasts)
+    const push = this.h.state === 'dash' ? 0.07 * bump(this.h.t0, DASH_MS) : 0;
+    return 1 + 0.14 * land + 0.08 * bump(this.h.lungeAt, 90) + 0.1 * bump(this.hurtAt, SQUASH_MS) + push;
   }
 
   /**
@@ -1242,6 +1252,7 @@ export class Fighters {
           if (wave === false) {
             // a wave lands: a puff of dust (and a soft thump of air under a flier)
             this.waveIn.delete(v.id);
+            if (!v.fly) this.foeLandAt.set(v.id, a);
             s.fx.dust(x, v.y + v.fly, v.fly ? 4 : 7, 0, v.fly ? 0.8 : 1.1);
             if (!v.fly) s.fx.shock(x, s.ground, 16, 0xe8dcc0);
           }
@@ -1298,7 +1309,8 @@ export class Fighters {
       if (kk >= 0 && kk < 1) x += Math.round(v.kickDist * Math.exp(-4.5 * kk) * Math.cos(kk * Math.PI * 2.2));
       v.x = x;
       const flash = a < v.flashUntil;
-      let pose = a < v.poseUntil ? v.pose : Math.floor((a + v.phase) / 380) % 2 ? 'idle1' : 'idle0';
+      // (the idle breath: a 920 ms loop, inside the bible's 900-1400 ms)
+      let pose = a < v.poseUntil ? v.pose : Math.floor((a + v.phase) / FOE_IDLE_MS) % 2 ? 'idle1' : 'idle0';
       // a boss's phase look (glacia2_*, glacia3_*) when it has one
       const phased = e.phase > 1 && s.textures.exists(`${v.sprite}${e.phase}_idle0`);
       const look = phased ? `${v.sprite}${e.phase}` : v.sprite;
@@ -1326,7 +1338,10 @@ export class Fighters {
       }
       // squash on impact: wide and short for a few frames, then a little stretch back
       const sq = (a - v.kickAt) / 150;
-      const amt = sq >= 0 && sq < 1 ? Math.sin(sq * Math.PI) * (sq < 0.5 ? 0.16 : -0.06) * Math.min(1.6, v.kickDist / 8) : 0;
+      let amt = sq >= 0 && sq < 1 ? Math.sin(sq * Math.PI) * (sq < 0.5 ? 0.16 : -0.06) * Math.min(1.6, v.kickDist / 8) : 0;
+      // a walker landing from its wave's hops squashes wide for a moment (at most 100 ms, docs/art-style.md section 7)
+      const lq = (a - (this.foeLandAt.get(v.id) ?? -1e9)) / 100;
+      if (lq >= 0 && lq < 1) amt += Math.sin(lq * Math.PI) * 0.12;
       const hover = v.fly ? Math.round(Math.sin((a + v.phase) / 260) * 2) : 0;
       const tellK = a < v.tellUntil ? (a - v.tellAt) / Math.max(1, v.tellUntil - v.tellAt) : -1;
       const tremble = tellK > 0.6 ? Math.round(Math.sin(a / 18)) : 0; // shakes as the special is about to land

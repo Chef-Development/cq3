@@ -108,7 +108,7 @@ export const DUSK_ENEMIES: Record<string, EnemyDef> = {
   bellybog: {
     name: 'Old Bellybog',
     tags: ['beast', 'brute'],
-    hp: 3500,
+    hp: 4000,
     atk: 20,
     special: 17,
     interval: 0.6,
@@ -220,8 +220,8 @@ export const DUSK_ENEMIES: Record<string, EnemyDef> = {
   sluiceKeeper: {
     name: 'The Sluice Keeper',
     tags: ['construct', 'folk'],
-    hp: 3100,
-    atk: 18,
+    hp: 5300,
+    atk: 24,
     special: 17,
     interval: 0.6,
     pattern: 'YRYGYSYRYY',

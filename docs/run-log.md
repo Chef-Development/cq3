@@ -62,3 +62,23 @@ One PR at the end supersedes #1-#7.
 - 20:01 EDT: playtester note on the new title: "too simplistic and drained. How am I supposed to be interested?" Sent
   to art 2A as top priority (before the Atlas): key art with drama and depth (light, parallax, Rowan on a ledge, the
   living land against the erased blank), motion, a logo with presence, no tutorial strip on the title.
+- 20:30-20:55 EDT: merge 3 (all seven teams). Conflicts: camp banter (story's core/banter.ts kept), Region 4's art on
+  demand vs the content team's stand-ins (both kept), the two art teams' Rowan/idle work (2B's rig kept, 2A's derived
+  idles dropped), the region victory's words. Region 4 is in play. With seven teams on four cores a local full unit
+  run takes ~25 min: merges are pushed after typecheck + build + targeted tests, and GitHub's run of the full suite
+  (~3 min) is the gate (L5); the lead still runs the full suites locally when the machine is quieter.
+- 20:57 EDT: merge 3's GitHub run: 1,165 of 1,166 green; the one red is the region 2 masher guard (the masher won its
+  boss alone 2 of 19 tries, bound 10%): a knock-on of this round's core changes to the first act. The content team
+  (balance owner) is fixing it; the live build stays on the last green deploy until then. The other local failures
+  (audio, tips) were load timeouts: green when run alone.
+- 21:06 EDT: the title redone as key art (2A; preview docs/art-audit/after/title-key-art.png on team/art): approved
+  with small notes. The single Playwright lock had ~16 waiters behind long QA crawls: split into a short lock and a
+  long lock (TEAM-RULES.md).
+- 21:11 EDT: a third container restart; this time all seven teams resumed from their transcripts. Playtester note:
+  "Rowan needs a polish: the sword looks too thin etc.; apply that same standard to other heroes too": art 2B's top
+  priority now (a sword with heft, a polished Rowan at every size, then every hero's weapons and props readable at 8x).
+- 21:20 EDT: merge 4 (all seven): the title as key art, the Great Atlas world map (drafts, blank erased land, a
+  restore animation), the Mapmaker's and Hesper's portraits, Region 4 balanced (bot-region4 guard), Region 4's art and
+  music, the story's text sweep, Android/desktop fixes, the first 10 minutes through Act 1. The masher guard fix
+  (content: a 15-run boss-alone sample; region 2 measures 4% over 30 seeds; the 5-seed sample swung on one lucky run)
+  merged 21:24. Typecheck and build clean; pushed (GitHub runs the suite).
