@@ -115,3 +115,7 @@ One PR at the end supersedes #1-#7.
   art split into packs, the core crawl and UI crawl, the HP-above-max fix (CORE), the boss-shout/number overlap and
   the vault's words). QA chunk 3: smoke timeouts, accessibility (colourblind blocks, reduced motion, text size), the
   crawl through Acts 2-3. Fresh-eyes screen reviewers: planned for ~00:45, after the art passes land.
+- 22:38 EDT: merged art 2B's L8 for all sixteen heroes (~3 heads, single dark irises, no blush, jointed legs, a mature
+  grade; Rowan hand-made) and story chunk 3 (the L8 tone pass on words, the second editor's 59 notes: the Fair Copy
+  set up, the fading portrait paid off; the first minutes' long reads cut to 4 boxes). Next: 2B portraits, walkers,
+  crops; story chunk 4: more events and side quests per region, Atlas lore pages.
