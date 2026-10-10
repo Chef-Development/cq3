@@ -50,7 +50,8 @@ trap `COL.purple`, green ability `COL.green`; rarity colours are `TIER_INFO[tier
 
 **Per scene:** one region = one limited palette. A backdrop uses at most about 24 colours, pulled from the region's
 ramps plus the sky. Greenmarch: green leaf, earth, day sky (dusk and night variants tint toward teal night). Frostpeaks:
-frost, steel, teal night. Ashfell: ash/ember, purple, steel.
+frost, steel, teal night. Ashfell: ash/ember, purple, steel. Duskmire: dusk sky (violet to rose to peach), black water,
+peat, reed green, with lantern gold for every light.
 
 ## 3. Light
 
@@ -159,6 +160,7 @@ Everything animates from `now` and seeds (screenshots stay exact). Minimum frame
 | Greenmarch, act 3 (hollow) | dim teal moon | deep teal night | cool cyan | fireflies, spores |
 | Frostpeaks | cold white, high | steel blue | ice cyan | snow streaks, spindrift |
 | Ashfell | ember orange from below the frame plus a dim top-left key | smoky purple | orange | embers rising, ash falling |
+| Duskmire | low rose-violet dusk from the top left (the sky stuck at sunset); lantern amber pooled where the fighters stand | deep violet (teal-violet over the flats) | rose on top, lantern amber below (`duskRim` on dark foes) | fireflies, wisps, dusk motes, mist on the water |
 | The Atlas (title, world map) | lamplight, top left, warm | parchment | gold | fog drifting at the edges, ink motes |
 
 A new region (another team's) brings its row here: key, ambient, rim, air.

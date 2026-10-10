@@ -852,6 +852,22 @@ C4. **Region 4's names are the first version's** (lead's L3): Duskmire; Lanternf
 C5. **Region 5's two rules are built ahead of its art** (core, tests, bar pictures, tips, lab items, data and map
     minis), on the story bible's hook for the region; their design and a bot probe are in the content bible
     (section 8). Neither rule moves anything under the cursor at the last moment.
+C-ART-1. **Region 4's art follows Ashfell's pattern** (helper team "dusk-art"): `art-dusk.ts` draws every foe's
+    fight frames, the two mini-bosses (the first with a second look past half HP), the boss with a look per phase, and
+    the two new speakers' portraits, painted in idle slices after Ashfell's or at once when a fight or scene needs them
+    (`scene.ensureDuskArt()`); `backdrop-dusk.ts` paints the three acts' backdrops the first time one is needed. The
+    region's look: dusk violet and rose from the top left, lantern amber where light pools, black water mirroring
+    both; dark foes get a rose rim on top and a lantern rim below (`duskRim`), as Ashfell's got its ember rim. The
+    region's third speaker's portrait stays with the art team (the speaker list says so).
+C-ART-2. **The three looks join the `Theme` unions** (`fen`, `causeway`, `mere`) with their stage light, rays, mist,
+    air, map landscape, kit, lairs and critters (a bog frog, a mud crab, a moth, a heron over the fen), and the
+    region's acts show them (`DUSK_STAND_IN` is now each act's own look). One shared map painter for the three
+    (`groundDusk` / `roadsDusk` / `decorDusk` / `duskLight` in art-map.ts) keeps the shared file's addition in one block.
+C-ART-3. **Region 4's music is built to the content bible** (six pieces, each its own key, tempo and instruments,
+    fifteen new Band instruments from a slide dobro to a foghorn), with two tempo moves: the Drowned Causeway at 102 and
+    the Sluice Keeper at 114, not 100 and 112 (the title and Act 7 already have those; the audio test wants every
+    tempo once). Both mini-bosses follow their phases (layers, no key change); the boss drops a whole tone in its last
+    phase (`keyUp: -2`). Cued by act and boss in app.ts. The three ambience beds are not built yet.
 
 (content: end of section)
 

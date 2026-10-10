@@ -861,6 +861,43 @@ Signature Legendaries (the Lighthouse): **Sunlamp** (trinket, *Daybreak*: your l
 Ambience beds: `fen` (frogs and crickets, reeds in a breeze, a far owl), `causeway` (water lapping on stone, the tide
 clock ticking, gulls far off), `mere` (a deep still-water hum, a slow foghorn, the lighthouse's lamp humming).
 
+#### As built (`src/engine/music.ts`, tracks `dusk1..3`, `bellybog`, `sluiceKeeper`, `lighthouse`; cued in app.ts)
+| Track | Key, tempo, meter | Calm | Intense (base; the combo's drums / bass / lead; phases) |
+|---|---|---|---|
+| `dusk1` Lanternfen | Eb Mixolydian, 84, 12/8 (24 16ths, a dotted-quarter beat) | a dobro on each beat, banjo rolls in triplet 8ths, the harmonica on the tune, a walking upright bass, a frog-croak guiro and a cricket shaker | the dobro on the tune over banjo rolls; a washboard shuffle and a two-beat kit; the bass in 8ths; the harmonica wailing an octave up (bending into its long notes) |
+| `dusk2` The Drowned Causeway | G Aeolian, **102** (100 is the title's), 6/4 (vibes in threes over an accordion drone in twos) | vibraphone with motor tremolo, a low accordion drone, a bowed saw on the tune, water lapping every bar | a talking drum and claps in threes against a kick in twos; the bass; a reedy accordion lead |
+| `dusk3` The Gloaming Mere | A Phrygian, 120 | a low organ, a choir "oo", a bell tolling every 2 bars, a theremin on the tune | organ stabs, taiko, a 16th bass; the theremin an octave up |
+| `bellybog` | E Mixolydian, 176, a swung two-step | (fight only) | accordion on the tune and its left hand's oom-pah, a washboard in 16ths, a tuba burp every phrase; the kit, a walking tuba, the fiddle; phase 2 (lit up): the accordion's chords stab the offbeats, the burps double |
+| `sluiceKeeper` | D Dorian, **114** (112 is Act 7's), 7/4 counted 4+3 | (fight only) | a bari sax on the riff, a mallet on a pipe every beat, a ratchet on the 3, a steam whistle every 4 bars; the kit on the 4+3, the bass, the sax up an octave; phase 2 (the spillway): the whistle every bar, brass stabs on the 3 |
+| `lighthouse` | C# Phrygian, 152; phase 3 B Phrygian (`keyUp: -2`, the redraw) | (fight only) | phase 1: string tremolo, a foghorn every 2 bars, a bell tower, horns on the tune, war drums; phase 2: the kit, a choir and a harpsichord scratching 16ths like a pen; phase 3: a whole tone down, double-time drums, a distorted bass, the lead (theremin and horn), brass stabs |
+Sound lab labels by act number only (global 1-based: "Act 10: map", "Act 11 mini-boss, phase 2", "Act 12 boss, phase
+3"). The three ambience beds and the region's telegraph sounds (`DUSK_NEW_SOUNDS`) are not built yet.
+
+#### Art as built
+- Foes (`src/engine/art-dusk.ts`): every foe's idle0/idle1/windup/attack/hurt/flash/tell, the tell being its special
+  (the wisp dangles two little lights, one a yellow; the toad's throat swells gold; the reedling's reeds fan out; the
+  golem cups a hand over its lantern heart; the mudskipper leaps out of a splash; the heron crouches on its stilts,
+  wings spread, spear levelled; the lamplighter caps his flame; the snapper raises its head, water pouring off its
+  island; the eel rears over a whirl of ink; the moths close round their lantern; the hag swings up her kettle in a
+  fog bank; the sentinel's visor opens and the marsh pours out). Old Bellybog (`bellybog2_*` past half HP: the belly
+  glows gold like a paper lamp, his crown lantern blazing); the Sluice Keeper (brass diving helmet, porthole face,
+  pocket watch, wrench, steam from the valve when he gives orders). The Lighthouse: lime-washed with red bands, on two
+  legs of stacked stone, its door a mouth, the sun in the lamp, its beam sweeping, the mapmaker a small figure with a
+  pen on its gallery; `lighthouse2_*` the shoreline redrawn (water up to its knees, fresh pencil hatching and a pencil
+  guide line across the stone); `lighthouse3_*` the sky erased (two broad eraser strokes rubbed back to paper, the
+  bands gone to ink, the lamp shuttered to a red glare, its windows lit like eyes, no beam).
+- Backdrops (`backdrop-dusk.ts`): Lanternfen (willows far off, black pools mirroring the dusk, reed beds, stilt houses
+  with a lit window, a sunken boat, lantern poles with their light wavering on the water, a plank boardwalk under the
+  fighters; a willow's fronds and tall cattails frame it); the Drowned Causeway (tidal flats and sandbars, the stone
+  road running off half-drowned to the horizon, the tide clock tower with its one painted hand, a sluice gate, stilt
+  houses; wet flagstones underfoot; mooring posts and a hung lantern frame it); the Gloaming Mere (a burning sunset
+  over a wide black lake, the lighthouse far out on its legs with its beam laid across the water, the mapmaker's
+  drafting stilts, dead snags; black shingle underfoot; a drowned tree and a cairn with a lantern frame it).
+- Map: one painter for the three (fen pools and boardwalks; flooded flats and causeway flags; a black lake and a
+  shingle path), willows, reed clumps, stilt huts and lantern poles (their light pools and pulses), snags; lairs: the
+  toad's mudhole full of lanterns, the sluice gate, the lighthouse. Critters: bog frogs and a heron (fen), mud crabs
+  (causeway), moths and a frog (mere).
+
 ### Balance targets (a 75% player, a fresh first playthrough of the region, from a typical end-of-Ashfell hero)
 Act 1 ~85% first try, Act 2 ~68%, Act 3 ~55%, the Lighthouse's first fight won ~50-60%; Region 5 a little harder. The
 masher bot loses every Act 3 and the boss's first fight (`bot-masher.test.ts`); every hero within +/-10 of Rowan. Thumb
