@@ -127,3 +127,6 @@ One PR at the end supersedes #1-#7.
   Hesper and the Sphinx, the old pendulum symbols replaced, the UI toned down (L8: iron rims, dull glints), every
   stage graded (moodGrade), the bible's Mood and Maturity sections, Region 4's world landmark). 2A chunk 3: the
   sharper 2x layer rollout, L8 on the overlays, CLAUDE.md's world-map paragraph.
+- 23:12 EDT: art 2B's portraits, walkers and finisher wind-ups merged (boot-checked). A functional Playwright run
+  (smoke, numbers, minis, desktop, lab; no pixel specs) started on the long lock to catch regressions before the
+  final baseline regeneration.
