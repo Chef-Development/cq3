@@ -65,6 +65,8 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
   const decimals = (step: number) => (step >= 1 ? 0 : Math.min(4, Math.ceil(-Math.log10(step) - 1e-9)));
 
   let rebuild = () => {};
+  /** The tester's tools fold, open or not (kept while the panel is rebuilt and reopened). */
+  let toolsOpen = false;
   /** The Sound lab's music choice (kept while the panel is rebuilt). */
   const labMusic: { piece: MusicPiece | null; combo: number } = { piece: null, combo: 0 };
 
@@ -93,11 +95,13 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
     const body = el('div', 'dbg-body');
     root.appendChild(body);
 
+    // the player's settings first (open), their accuracy, then the tester's tools folded away (review F28)
+    let into: HTMLElement = body;
     const section = (title: string) => {
       const s = el('details', 'dbg-sec');
-      s.open = title === 'Modes' || title === 'Jump to' || title === 'Sound lab';
+      s.open = title === 'Settings' || (title === 'Export' && into !== body);
       s.appendChild(el('summary', undefined, title));
-      body.appendChild(s);
+      into.appendChild(s);
       return s;
     };
 
@@ -121,35 +125,7 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
       parent.appendChild(row);
     };
 
-    accuracySection(body);
-
-    const modes = section('Modes');
-    seg(modes, 'Empty tap', 'mode', [
-      ['classic', 'Classic'],
-      ['relaxed', 'Relaxed'],
-    ]);
-    seg(
-      modes,
-      'Finisher',
-      'finisherInput',
-      [
-        ['swipe', 'Swipe'],
-        ['button', 'Button'],
-      ],
-      () => app.relayout(true),
-    );
-    seg(modes, 'Combo tiers', 'comboTiers', [
-      [false, 'Off'],
-      [true, 'On'],
-    ]);
-    seg(modes, 'Targeting', 'targeting', [
-      ['auto', 'Auto'],
-      ['tap', 'Tap'],
-    ]);
-    seg(modes, 'God mode', 'godMode', [
-      [false, 'Off'],
-      [true, 'On'],
-    ]);
+    const modes = section('Settings');
     seg(
       modes,
       'Sound',
@@ -175,14 +151,24 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
       'Silent switch',
       'audioIgnoresSilentSwitch',
       [
-        [true, 'Ignore'],
-        [false, 'Obey'],
+        [true, 'Play anyway'],
+        [false, 'Go quiet'],
       ],
       () => app.applyAudioSettings(),
     );
-
-    // the clean capture (not a setting of the game: kept on its own, storage.ts)
-    {
+    seg(
+      modes,
+      'Finisher',
+      'finisherInput',
+      [
+        ['swipe', 'Swipe'],
+        ['button', 'Button'],
+      ],
+      () => app.relayout(true),
+    );
+    modes.appendChild(el('div', 'dbg-note', 'Silent switch: whether the game goes quiet while the phone is set to silent. Finisher: a swipe, or a button to tap.'));
+    // (the clean capture's row goes in the tester's tools, below)
+    const captureRow = (testModes: HTMLElement) => {
       const row = el('div', 'dbg-row');
       row.appendChild(el('span', 'dbg-label', 'Clean capture'));
       const g = el('div', 'dbg-seg');
@@ -195,9 +181,9 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
       on.onclick = () => setCapture(true);
       g.append(off, on);
       row.appendChild(g);
-      modes.appendChild(row);
-      modes.appendChild(el('div', 'dbg-note', 'Hides this gear button and the Test lab for recording clips. Hold the top middle of the screen (or press C) to bring them back.'));
-    }
+      testModes.appendChild(row);
+      testModes.appendChild(el('div', 'dbg-note', 'Hides this gear button and the Test lab for recording clips. Hold the top middle of the screen (or press C) to bring them back.'));
+    };
     // accessibility (engine/a11y.ts; kept on their own, storage.ts): marks on the reds, less motion
     {
       const pick = <T,>(label: string, opts: Array<[T, string]>, now: () => T, set: (v: T) => void, note?: string) => {
@@ -244,6 +230,60 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
       row.appendChild(g);
       modes.appendChild(row);
     }
+
+    // the tips ("teach it slowly"): turn them off, or see every one again; and starting over (asked twice)
+    {
+      const tipsLabel = () => (app.profile.tipsOff ? 'Tips: off' : 'Tips: on');
+      const tips = el('button', 'dbg-btn', tipsLabel());
+      tips.onclick = () => {
+        app.setTipsOff(!app.profile.tipsOff);
+        tips.textContent = tipsLabel();
+      };
+      const again = el('button', 'dbg-btn', 'Show tips again');
+      again.onclick = () => {
+        app.showTipsAgain();
+        tips.textContent = tipsLabel();
+        toast('Tips will show again');
+      };
+      const over = el('button', 'dbg-btn', 'Start over');
+      over.onclick = () => {
+        // the same as the title's New game: erases it all (twice asked: it can't be undone)
+        if (!window.confirm('Start over? This erases ALL progress: acts, gear, coins, scrap, heroes, skills and relics.')) return;
+        if (!window.confirm('Really erase everything? There is no undo.')) return;
+        app.startOver();
+      };
+      const sg = el('div', 'dbg-grid');
+      sg.append(tips, again, over);
+      modes.appendChild(sg);
+    }
+
+    accuracySection(body);
+
+    // the tester's tools, folded away (remembered while the page lives)
+    const fold = el('details', 'dbg-tools');
+    fold.open = toolsOpen;
+    fold.ontoggle = () => (toolsOpen = fold.open);
+    fold.appendChild(el('summary', undefined, 'Tester tools'));
+    body.appendChild(fold);
+    into = fold;
+    const testModes = section('Test modes');
+    seg(testModes, 'Empty tap', 'mode', [
+      ['classic', 'Classic'],
+      ['relaxed', 'Relaxed'],
+    ]);
+    seg(testModes, 'Combo tiers', 'comboTiers', [
+      [false, 'Off'],
+      [true, 'On'],
+    ]);
+    seg(testModes, 'Targeting', 'targeting', [
+      ['auto', 'Auto'],
+      ['tap', 'Tap'],
+    ]);
+    seg(testModes, 'God mode', 'godMode', [
+      [false, 'Off'],
+      [true, 'On'],
+    ]);
+    captureRow(testModes);
 
     // Sound lab: play every sound effect and tune the impact layers by ear, on the phone
     const lab = section('Sound lab');
@@ -338,7 +378,6 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
     }
 
     const tools = section('Export');
-    tools.open = true;
     const tg = el('div', 'dbg-grid');
     const copy = el('button', 'dbg-btn', 'Copy game numbers');
     copy.onclick = () => copyText(JSON.stringify({ tuning: app.tuning, settings: app.settings }, null, 2)).then((ok) => toast(ok ? 'Copied!' : 'Copy failed'));
@@ -375,26 +414,6 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
       rebuild();
       toast('Settings reset');
     };
-    const over = el('button', 'dbg-btn', 'Start over');
-    over.onclick = () => {
-      // the same as the title's New game: erases it all (twice asked: it can't be undone)
-      if (!window.confirm('Start over? This erases ALL progress: acts, gear, coins, scrap, heroes, skills and relics.')) return;
-      if (!window.confirm('Really erase everything? There is no undo.')) return;
-      app.startOver();
-    };
-    // the tips ("teach it slowly"): turn them off, or see every one again
-    const tipsLabel = () => (app.profile.tipsOff ? 'Tips: off' : 'Tips: on');
-    const tips = el('button', 'dbg-btn', tipsLabel());
-    tips.onclick = () => {
-      app.setTipsOff(!app.profile.tipsOff);
-      tips.textContent = tipsLabel();
-    };
-    const again = el('button', 'dbg-btn', 'Show tips again');
-    again.onclick = () => {
-      app.showTipsAgain();
-      tips.textContent = tipsLabel();
-      toast('Tips will show again');
-    };
     // every hero and companion to try out (a toggle: off puts things back as they were; it never earns achievements)
     const allLabel = () => (app.profile.allUnlocked ? 'Unlock all heroes and companions: on' : 'Unlock all heroes and companions: off');
     const all = el('button', 'dbg-btn', allLabel());
@@ -405,7 +424,7 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
       all.textContent = allLabel();
       toast(app.profile.allUnlocked ? 'Every hero and companion unlocked' : 'Back to the ones you have');
     };
-    tg.append(copy, load, resetT, resetS, tips, again, all, over);
+    tg.append(copy, load, resetT, resetS, all);
     tools.appendChild(tg);
     body.appendChild(el('div', 'dbg-foot', 'Keys: Space tap · F finisher · P pause · ` panel'));
     body.appendChild(el('div', 'dbg-foot', `Version ${typeof __BUILD__ === 'string' ? __BUILD__ : 'dev'}`));
@@ -570,6 +589,8 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
     app.panelOpen = open;
     root.hidden = !open;
     gearBtn.classList.toggle('on', open);
+    // the gear button joins the panel's header row (on a framed desktop window it sat over the panel's text)
+    document.documentElement.classList.toggle('panel-open', open);
     if (open) build();
     app.syncClock(performance.now());
   };

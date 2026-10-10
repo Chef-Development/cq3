@@ -346,7 +346,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   desktop the gear panel has Full screen (and on a phone held upright it locks the game sideways). The "turn your
   phone sideways" card shows on touch screens only.
 - **Accessibility** (round 8, `core/a11y.ts` rules, unit-tested; `engine/a11y.ts` the live values; `cq3.a11y` in
-  storage.ts; the gear panel's Modes): **Block marks** (on by default): a plain red carries a small chevron so no block
+  storage.ts; the gear panel's Settings, first in it): **Block marks** (on by default): a plain red carries a small chevron so no block
   kind is told apart by colour alone (every other kind already has a glyph or a shape: keep it so for new kinds; an
   unlit dark block shows nothing). **Motion** Auto/Less/Full (Auto follows `prefers-reduced-motion`): Less turns the
   screen shake, the camera's kick and the white impact frames off and shortens screen flashes (`view/effects.ts`: new
@@ -354,7 +354,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   the story boxes and the tips in the bold display letters: a story box keeps its own two lines when they fit them
   (`bigLines`), else its words are re-wrapped into three and that box grows a line (every box fits, unit-tested over
   STORY; the normal size keeps the two-line rule `data.test.ts` checks); the tip card grows to hold them.
-- **Clean capture** (`cq3.cleanCapture`, storage.ts): the gear panel's Modes or C hides the HUD buttons and the Test
+- **Clean capture** (`cq3.cleanCapture`, storage.ts): the gear panel's Test modes (under Tester tools) or C hides the HUD buttons and the Test
   lab's for recording clips; a long press on the top middle (or C) brings them back.
 - **Test lab** (`src/data/lab.ts` scenarios, `core/lab.ts` profiles/fights/ratings/report, `engine/lab.ts` the list):
   short scenarios that drop the playtester straight into what's new, rated Good / Needs work / Broken with a note,

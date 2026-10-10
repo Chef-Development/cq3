@@ -234,6 +234,8 @@ test('clean capture: C and the gear panel hide the buttons, a long press brings 
   await expect(page.locator('#debug')).toBeHidden();
   // the gear panel's switch
   await page.click('#btn-gear');
+  await page.locator('#debug summary', { hasText: 'Tester tools' }).click();
+  await page.locator('#debug summary', { hasText: 'Test modes' }).click();
   await page.click('#capture-on');
   await expect(page.locator('#btn-gear')).toBeHidden();
   await expect(page.locator('#debug')).toBeHidden();
