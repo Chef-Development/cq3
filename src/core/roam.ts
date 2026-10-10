@@ -78,9 +78,11 @@ export function packCount(t: Tuning, act: number, acts: number): number {
 /**
  * Place act `act`'s extras on its freshly built map (the rush and bounty nodes change type in place) and set who
  * roams it. Seeded from the act's map seed, so the same map always gets the same extras. Uses its own random
- * stream: the map itself comes out exactly as buildActMap made it.
+ * stream: the map itself comes out exactly as buildActMap made it. `calm`: a brand-new player's first map (Act 1,
+ * nothing cleared yet): one pack at most and no merchant (review round 8: every extra at once crowded the first map);
+ * the rush, the board and the secret are drawn as ever (the roamers come last in the stream).
  */
-export function addExtras(map: ActMap, def: ActDef, act: number, acts: number, seed: number, t: Tuning): MapExtras {
+export function addExtras(map: ActMap, def: ActDef, act: number, acts: number, seed: number, t: Tuning, calm = false): MapExtras {
   const rng = new Rng(mix(seed, 0x51ce7));
   const R = map.rows.length - 1; // rows before the boss's
   const parents = (n: MapNode) => map.nodes.filter((p) => p.next.includes(n.id));
@@ -126,13 +128,13 @@ export function addExtras(map: ActMap, def: ActDef, act: number, acts: number, s
     return n;
   };
   const pool = (def.packs ?? []).slice();
-  for (let i = 0; i < packCount(t, act, acts) && pool.length; i++) {
+  for (let i = 0; i < (calm ? Math.min(1, packCount(t, act, acts)) : packCount(t, act, acts)) && pool.length; i++) {
     const n = startAt(2);
     if (!n) break;
     const waves = pool.splice(rng.int(pool.length), 1)[0];
     out.roamers.push({ id: out.roamers.length, kind: 'pack', start: n.id, waves: waves.map((w) => w.slice()) });
   }
-  for (let i = 0; i < Math.round(t.roam.merchant); i++) {
+  for (let i = 0; i < (calm ? 0 : Math.round(t.roam.merchant)); i++) {
     const n = startAt(1);
     if (!n) break;
     out.roamers.push({ id: out.roamers.length, kind: 'merchant', start: n.id, waves: [] });
@@ -141,13 +143,13 @@ export function addExtras(map: ActMap, def: ActDef, act: number, acts: number, s
 }
 
 /** An act's map as a run plays it: buildActMap, then its extras (none when `extras` is off: a save from before them). */
-export function actMap(t: Tuning, region: RegionDef, act: number, seed: number, extras = true): { map: ActMap; extras: MapExtras | null } {
+export function actMap(t: Tuning, region: RegionDef, act: number, seed: number, extras = true, calm = false): { map: ActMap; extras: MapExtras | null } {
   const def = region.acts[act];
   const map = buildActMap(def, seed);
   // the packs ramp up within each region (its first act has the fewest)
   const local = region.acts.length > 3 ? actInRegion(act) : act;
   const count = region.acts.length > 3 ? REGIONS[regionOfAct(act)].acts.length : region.acts.length;
-  return { map, extras: extras ? addExtras(map, def, local, count, seed, t) : null };
+  return { map, extras: extras ? addExtras(map, def, local, count, seed, t, calm) : null };
 }
 
 /** The nodes linked to `id` (forward and back) that a roamer may step to (never the first row: the act's first step

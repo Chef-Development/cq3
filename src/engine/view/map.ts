@@ -1331,7 +1331,8 @@ export class MapView implements MapHost {
     glyph(g, 'tent', camp.x + 7, camp.y + Math.round((camp.h - ih) / 2) + dy);
     T.text('Camp', camp.x + 7 + iw + 3, camp.y + camp.h / 2 + dy, WHITE, { bold: true, oy: 0.5 });
     // the first time on a map: how to travel
-    const hint = this.walk ? null : this.hint();
+    // (not while a tip card is up: it said the same thing twice, review round 8)
+    const hint = this.walk || this.s.tips.current ? null : this.hint();
     if (hint) {
       // (full strength, its brightness breathing: it was the faintest words on the screen)
       const k = 0.5 + 0.5 * Math.sin(now / 300);
