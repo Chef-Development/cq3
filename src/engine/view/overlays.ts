@@ -627,6 +627,28 @@ export class Overlays {
 
   // ------------------------------------------------------------------ the frame
 
+  /** Fill the stage (above the bar's band) in the current fill style, all but the HUD's plates (`hud.keepOut()`). */
+  private stageFill(g: G): void {
+    const s = this.s;
+    const holes = s.hud.keepOut().filter((h) => h.w > 0 && h.h > 0);
+    let y = 0;
+    while (y < s.splitY) {
+      let next = s.splitY;
+      for (const h of holes) {
+        if (h.y > y) next = Math.min(next, h.y);
+        if (h.y + h.h > y) next = Math.min(next, h.y + h.h);
+      }
+      const cut = holes.filter((h) => y >= h.y && y < h.y + h.h).sort((a, b) => a.x - b.x);
+      let x = 0;
+      for (const h of cut) {
+        if (h.x > x) g.fillRect(x, y, h.x - x, next - y);
+        x = Math.max(x, h.x + h.w);
+      }
+      if (x < GAME_W) g.fillRect(x, y, GAME_W - x, next - y);
+      y = next;
+    }
+  }
+
   draw(now: number): void {
     const s = this.s;
     const g = s.gTop;
@@ -652,15 +674,16 @@ export class Overlays {
       if (ph === 'boost') then();
     }
     if (now < s.fx.screenFlashUntil) {
-      // scene only: the bar must stay readable
+      // scene only: the bar and the HUD's plates must stay readable
       g.fillStyle(s.fx.screenFlashColor, Math.min(0.6, (s.fx.screenFlashUntil - now) / 260));
-      g.fillRect(0, 0, GAME_W, s.splitY);
+      this.stageFill(g);
     }
     if (now < s.fx.impactFlashUntil || s.fx.impactFlashPending) {
-      // heavy impact: the scene goes white for a frame or two
+      // heavy impact: the scene goes white for a frame or two (never the plates or the bar: review round 8 found the
+      // finishers' white frames washing over the whole HUD)
       s.fx.impactFlashPending = false;
       g.fillStyle(WHITE, 0.82);
-      g.fillRect(0, 0, GAME_W, s.splitY);
+      this.stageFill(g);
     }
     // the old named texts are no longer used by the overlays
     for (const k of ['ovTitle', 'ovSub', 'ovLine1', 'ovLine2', 'ovLine3', 'begin', 'banner', 'tCont', 'tContSub', 'tNew']) txt[k]?.setVisible(false);

@@ -1394,14 +1394,28 @@ C-ART-9. **Region 5's telegraph sounds are in** (`skitter`, `shimmer2`, `sunflas
     door-mouth.
 C-ART-10. **Region 4's bar, readable at phone size** (review 2's DUSK-ART findings): the lantern is a pool of saturated
     amber in four steps with the track's rails catching it and a dithered edge (a pale amber over the violet track read
-    as brown dirt); blocks in its light catch it on their top edge; an unlit dark block is ink-grey with a faint "?"
-    (violet is the trap's colour, and some dark blocks are traps); the tide has a moving crest along its top, rings
+    as brown dirt); blocks in its light catch it on their top edge; an unlit dark block is ink-grey, not violet
+    (violet is the trap's colour, and some dark blocks are traps; at the merge, QA's Q20 dashed slate with no glyph
+    replaced the faint "?" drawn here, per the block-marks rule); the tide has a moving crest along its top, rings
     where the cursor wades, and sunk blocks keep their own colour under a thin veil with ripples (not olive). The
     Duskmire skies' long 1 px cloud streaks are short clumps at least 3 px tall.
 C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics-noon.ts`, painted at boot after the
     Ashfell ones whether or not the region is on; `noonspire()` in art-region-map.ts, a sand plateau with salt pans and
     a dotted mirage lake), and its seventeen gear icons (art-gear.ts `NOON_ICONS`; Region 4's still borrow the slot icons). Under L7 its first act
     map's sand is a cool neutral stone (it read as mud), the salt pans a step brighter and still under the road.
+C-ART-12. **Checked at phone size with Region 5 on: its relic pick and its region card read** (tags, synergy, the
+    belt, the card's sand map and seals). Two icons didn't at card size: the Dust Devil read as the Sand Glass's
+    hourglass (now a twisting funnel with no foot) and the Fata Morgana as a cart (now a castle standing in the air
+    over the haze). Region 4's gear has its own icons now (`DUSK_ICONS`; its Waders keep Region 1's, as the data
+    says). The sphinx's face was a flat, square, front-lit block that read as a mask: now turned a little toward the
+    hero, lit from her left with the far side in the headdress's shadow, the jaw tapering, fangs when she speaks or
+    strikes (her portrait is the Atlas's, unchanged).
+
+C-ART-13. **The shop is a place too** (backlog "art polish on the weakest screens", after 2A's stops): the act's stage
+    in view with its edges in shadow, the stall (the map's, at 3x) in a lantern's pool on the left, the wares on glass
+    as tall as their rows; the stage's hero and party step aside as at the trader. The shop's focal column (trader or
+    stall) sits 8 px further left than an event's so the plate keeps the width a relic's one line of text needs (at
+    the event's width most relics showed only "Tap to read"). The Sunshade icon is a parasol with a crook now.
 
 (content: end of section)
 
@@ -1558,6 +1572,14 @@ C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics
   and the new items' count shows on the band only. An event, rest or shop opened straight from elsewhere (the lab's
   event scenarios) shows its own act's stage. Not reproduced: the world map's first-visit "whip-pan" (sampled every
   frame at 1440x900 the glide runs ~1.2 s, smoothly; the review's 150 ms screenshots stalled the page between frames).
+- **Q20 The bar rules read at phone size** (review 2): a drifting block has two bold chevrons ahead of it (7 rows,
+  2 px thick, ink-rimmed) and speed lines trailing it in its own colour; a linked pair's chain is 3x2 links with an
+  ink rim, each linked yellow wears an interlocked-links glyph on its face, and once one is hit its partner pulses with
+  a 2 px rim; an unlit dark block is a neutral slate with a dashed outline (no block has one), never the trap's violet;
+  a hold is copper (its ridges, fill, glow, ring and "Hold!" to match), so the bar's blues are only the ice, the frozen
+  reds and the cursor. Every kind is still told apart without colour (the hold by its groove and notches).
+- **Q21 Impact white frames and screen flashes stay off the HUD**: they fill the stage around `hud.keepOut()` (the
+  plates, the act plate and wave pips, the belt, the name lane, the combo counter), never the bar's band.
 (qa: end of section)
 
 

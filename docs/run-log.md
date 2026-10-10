@@ -175,3 +175,24 @@ One PR at the end supersedes #1-#7.
   wash, the Act 1 map, the yeti cub); content (Region 5 in play, balanced, guarded; the Boar King's revision as the
   first New Game+ remix). Unit suite 1,235 green; boot-checked; pushed. Lead's look at the title and intro: good.
   Next: QA-fight on the bar-rule markers, content on Tess/Vesper; 2A, QA-menus, first10, dusk-art finishing.
+- 02:04 EDT: merged dusk-art (the Lighthouse's lamp as an eye, Region 4's lantern pool and tide, Region 5's relic and
+  gear icons, its region card map, the sky streaks), 2A (the region card, the title's blank and gear button, de-glossed
+  buttons, map stops as places), first10 (the Mapmaker's Edits finished; CORE `Combat.calm` for the first finisher's
+  calm beat, reviewed: view-only; the tips moved off the things they teach; the first map's chevrons) and QA-menus
+  (the 16-face strip pages, Options reordered with the tester's tools folded, the relic log pages, keyboard reach).
+  Boot-checked, targeted tests green, pushed. Resumed four with a last chunk, HARD STOP 04:00: 2A (the unlock card's
+  queueing, relic pick cards), dusk-art (Region 5's pick and card at phone size, Region 4's gear icons), first10 (the
+  whole first 10 minutes on the merged build, phone and desktop), QA-menus (the UI crawl, keyboard reach). QA-fight
+  (03:30) and content (03:45) still on theirs. Then: freeze ~04:15, baselines, full suites, report, PR.
+- 02:20 EDT: merged QA-fight (bar-rule markers readable at phone size, holds copper, impact frames off the HUD; a
+  conflict with dusk-art on the unlit dark block: QA's no-glyph slate kept, per the block-marks rule); boot-checked,
+  pushed. QA-fight's last chunk (HARD STOP 04:00): the world map's skip-tap regression, then the functional specs one
+  by one. Lead's look on the merged build (Act 1 fight and map at dusk, an event as a place, the Edits screen, Act 10's
+  bar rule): good; two Edits-screen riddles sent to first10. CLAUDE.md: the name and round 8 in the intro. The round 8
+  status report drafted (filled in after the final suites).
+- 02:20 EDT: merged dusk-art's second chunk (Region 5's two unclear relic icons redrawn, Region 4's own gear icons, the
+  sphinx's face turned and lit); boot-checked, pushed. Dusk-art's last chunk (03:45): the regular shop as a place,
+  one relic icon.
+- 02:26 EDT: merged dusk-art's third chunk (the regular shop as a place, like the trader; the Sunshade icon);
+  boot-checked, pushed. Dusk-art on a last polish chunk (03:45): the map stall's awning, Pip's portrait, the camp's
+  doubled labels.

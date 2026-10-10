@@ -15,7 +15,7 @@ export const COL = {
   ward: [0x3aa8a0, 0xa8f0e0, 0x1a6a6a], // a shell block
   keg: [0x3a3444, 0xffb060, 0x1a1620], // a Bomber's keg (its fuse's glow as the light)
   frozen: [0x8ae0f6, 0xe0faff, 0x4aa4d0], // a red frozen in place
-  hold: [0x5ab4ec, 0xb8e8ff, 0x2a78c0], // a hold
+  hold: [0xd2803a, 0xf6c486, 0x8e4a1e], // a hold (copper: the bar's blues are ice, frozen reds and the cursor)
   mirror: [0xc8d8f0, 0xffffff, 0x7a8ab0], // a mirror shard
 } as const;
 export const kindCol = (k: BlockKind) =>
@@ -33,7 +33,7 @@ export const kindCol = (k: BlockKind) =>
               ? COL[k]
               : COL.red;
 export const BOMB_COL = [0xf28a2a, 0xffd890, 0xa04a10] as const;
-const DEEP: Partial<Record<BlockKind, number>> = { yellow: 0x7a4410, green: 0x14622a, purple: 0x3a1a60, spore: 0x5a1050, ward: 0x0e3a3a, keg: 0x100c14, frozen: 0x1e5a80, hold: 0x14407a, mirror: 0x4a5a80 };
+const DEEP: Partial<Record<BlockKind, number>> = { yellow: 0x7a4410, green: 0x14622a, purple: 0x3a1a60, spore: 0x5a1050, ward: 0x0e3a3a, keg: 0x100c14, frozen: 0x1e5a80, hold: 0x4a2410, mirror: 0x4a5a80 };
 export const deepOf = (k: BlockKind) => DEEP[k] ?? 0x5a1020;
 
 /** How a block leaves the bar: never instantly. */
