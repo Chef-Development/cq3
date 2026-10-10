@@ -27,11 +27,9 @@ function fresh(tune?: (t: Tuning) => void, seed = 7): Run {
   return r;
 }
 
-/** A run on act `act`'s map (scenes skipped); `veteran`: a player who has cleared an act (a brand-new player's first
- *  map is calmer: one pack at most, no merchant). */
-function onMap(seed = 7, tune?: (t: Tuning) => void, act = 0, veteran = false): Run {
+/** A run on act `act`'s map (scenes skipped). */
+function onMap(seed = 7, tune?: (t: Tuning) => void, act = 0): Run {
   const r = fresh(tune, seed);
-  if (veteran) r.profile.actsCleared = 1;
   r.newRun();
   r.skipScenes();
   if (act > 0) {
@@ -62,7 +60,7 @@ function findMeet(r: Run, kind: RoamerKind, type?: NodeType): { prefix: number[]
 /** A run (any of a few seeds) whose map has that meeting; walked to just before it. */
 function meetRun(kind: RoamerKind, type?: NodeType, tune?: (t: Tuning) => void, act = 0): { r: Run; node: number } {
   for (let seed = 1; seed < 200; seed++) {
-    const r = onMap(seed, tune, act, kind === 'merchant');
+    const r = onMap(seed, tune, act);
     const m = findMeet(r, kind, type);
     if (!m) continue;
     r.path = m.prefix;
@@ -177,18 +175,6 @@ describe('ambushes', () => {
 });
 
 describe('the travelling merchant', () => {
-  it("a brand-new player's first map is calmer: one pack at most and no merchant; the map and its stops as ever", () => {
-    for (const seed of [1, 2, 3, 7, 9, 11]) {
-      const calm = onMap(seed);
-      const vet = onMap(seed, undefined, 0, true);
-      expect(calm.extras!.roamers.some((x) => x.kind === 'merchant'), String(seed)).toBe(false);
-      expect(calm.extras!.roamers.filter((x) => x.kind === 'pack').length, String(seed)).toBeLessThanOrEqual(1);
-      expect(vet.extras!.roamers.some((x) => x.kind === 'merchant'), String(seed)).toBe(true);
-      expect(calm.map.nodes.map((n) => n.type)).toEqual(vet.map.nodes.map((n) => n.type));
-      expect([calm.extras!.rush, calm.extras!.bounty, calm.extras!.secret]).toEqual([vet.extras!.rush, vet.extras!.bounty, vet.extras!.secret]);
-    }
-  });
-
   it("meeting her opens her small shop: a rare-or-better relic and a potion, a little cheaper; then the node's stop", () => {
     const { r, node } = meetRun('merchant', undefined, (t) => (t.roam.merchantRelics = 2));
     const type = r.map.nodes[node].type;

@@ -816,6 +816,13 @@ L12. **The Test lab button stays on the title for now** (review 4, R4-2 asked to
     the playtester's loop runs through it tonight. Before a public debut, hide it behind `?lab` or a gear-panel switch
     (next round's first item).
 
+L13. **A newcomer's calmer first map is held back for tonight** (first10's F24, 7812c14: one pack at most and no
+    merchant on a brand-new player's first Act 1 map). The balance bot plays a newcomer, so fewer early ambushes
+    moved two sample-based guards just over their edges on GitHub (normal fights 30.01 s against "under 30" in
+    `bot.test.ts`; the Act 3 revision won 0.5 against "less than the boss's first fight", 0.5, in `remix.test.ts`).
+    At the freeze the roamer change is reverted (the map's hint hiding under a tip stays); next round: bring it back
+    with those guards re-measured (a bigger remix sample), not loosened.
+
 (lead: end of section)
 
 

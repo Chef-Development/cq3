@@ -755,8 +755,7 @@ export class Run {
    *  `extras` false: the map without the rush, bounty, secret and roamers (a save from before them goes on so). */
   enterAct(i: number, scenes: string[] = [], extras = true): void {
     this.actIndex = Math.max(0, Math.min(this.region.acts.length - 1, i));
-    // (a brand-new player's first map is calmer: one pack at most, no merchant; roam.ts addExtras)
-    const built = actMap(this.tuning, this.region, this.actIndex, this.mapSeedFor(this.actIndex), extras, this.actIndex === 0 && this.profile.actsCleared === 0 && !this.practice);
+    const built = actMap(this.tuning, this.region, this.actIndex, this.mapSeedFor(this.actIndex), extras);
     this.map = built.map;
     this.extras = built.extras;
     this.resetActExtras();
