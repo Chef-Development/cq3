@@ -133,7 +133,7 @@ const LAND_NAMES: Record<string, [string, number, number]> = {
   greenmarch: ['G R E E N M A R C H', 112, 158],
   frostpeaks: ['T H E   F R O S T P E A K S', 380, 22],
   ashfell: ['A S H F E L L', 836, 206],
-  duskmire: ['T H E   D U S K M I R E', 600, 204],
+  duskmire: ['T H E   D U S K M I R E', 712, 212],
 };
 /** The compass rose drawn in the north-west sea (its texture's top-left, world px). */
 const COMPASS_AT: Pt = [170, 30];
@@ -1144,11 +1144,11 @@ export class WorldView {
       }
     }
     for (let i = this.stripN; i < this.strips.length; i++) this.strips[i].setVisible(false);
-    // the lettering: each land's name across it once it's drawn (ink on his draft, pale with an ink edge on colour)
+    // the lettering: each land's name across it once it's drawn
     for (const [id, [name, x, y]] of Object.entries(LAND_NAMES)) {
       if (!(id === 'greenmarch' || this.veilOf(id, now) < 1) || !this.seen(x, y, 90)) continue;
-      const ink = this.drafted(id) && !(rs?.id === id && rk > 0.5);
-      this.nameTexts.text(name, x - this.ox, y - this.oy, ink ? 0x2e2240 : 0xf8ecc8, { bold: true, ox: 0.5, oy: 0.5, alpha: id === 'greenmarch' ? 1 : 1 - this.veilOf(id, now) });
+      // (pale lettering with the font's ink edge: it reads on the painted land, drained or restored)
+      this.nameTexts.text(name, x - this.ox, y - this.oy, 0xecdcb4, { bold: true, ox: 0.5, oy: 0.5, alpha: id === 'greenmarch' ? 1 : 1 - this.veilOf(id, now) });
     }
   }
 
