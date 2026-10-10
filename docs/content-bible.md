@@ -982,7 +982,9 @@ not speak.
 
 ### Story
 The story team's ids above, and the mini-bosses' intros, all written in `src/data/story-noon.ts`
-(`story-noon-minis.ts` is empty now). `sphinx`: the Noon Sphinx keeps the White Road with a riddle (long at dawn, gone
+(`story-noon-minis.ts` is empty now), and a camp scene, `noonCamp` (after Act 1: no night to sleep in, and Pip
+apart; wire it like `duskCamp` in `run.ts` `campScene`/`sableJoined` at `actsCleared >= 13`, and mark it seen in
+`core/lab.ts` like `duskCamp`). `sphinx`: the Noon Sphinx keeps the White Road with a riddle (long at dawn, gone
 at noon: a shadow); Rowan answers, but a traveler with no shadow is a mirage to her (she speaks: speaker `sphinx`,
 plate "Noon Sphinx", portrait `portrait_sphinx` needed). `brassLion`: the Dawn Order's lion that roared the sun up
 every morning, a month without one (it doesn't speak). The hints follow the rules as built: `sphinx` "strike where the
