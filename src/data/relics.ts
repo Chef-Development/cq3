@@ -154,7 +154,7 @@ export const RELICS: RelicDef[] = [
   R('evergreen', 'Evergreen', ['green'], 'rare', 'While your green ability is on, Perfects restart it.', undefined, { kind: 'event', event: 'shrine', choice: 0 }),
   R('photosynthesis', 'Photosynthesis', ['green', 'sustain'], 'common', 'Green hits heal {n}% HP.', 3),
   // Pip
-  R('treasureNose', 'Treasure Nose', ['pip', 'coins'], 'common', "Pip's pecks steal {n} coin.", 1),
+  R('treasureNose', 'Light Talons', ['pip', 'coins'], 'common', "Pip's pecks steal {n} coin.", 1),
   R('wingman', 'Wingman', ['pip', 'finisher'], 'common', "Pip's pecks fill the meter like a hit."),
   // Sustain and coins
   R('vampiricFang', 'Vampiric Fang', ['sustain', 'risk'], 'rare', 'Every hit heals {n} HP, but rests heal nothing.', 1, { kind: 'event', event: 'mushroom', choice: 0 }),
@@ -164,7 +164,7 @@ export const RELICS: RelicDef[] = [
   // Ice (Region 2): patches of ice on the bar speed the cursor up
   F('skateBlades', 'Skate Blades', ['ice'], 'common', 'Hits on ice deal +{n}%.', 40, { kind: 'mastery' }),
   F('frostRune', 'Frost Rune', ['ice', 'crit'], 'rare', 'Perfect hits on ice always crit.', undefined, { kind: 'act', act: 3 }),
-  F('hotCocoa', 'Hot Cocoa', ['ice', 'sustain'], 'common', 'When an ice patch melts, heal {n} HP.', 3, { kind: 'mastery' }),
+  F('hotCocoa', 'Spiced Cider', ['ice', 'sustain'], 'common', 'When an ice patch melts, heal {n} HP.', 3, { kind: 'mastery' }),
   F('icebreaker', 'Icebreaker', ['ice', 'block'], 'rare', 'Blocking a red on ice knocks it back to the far end.', undefined, { kind: 'mastery' }),
   F('snowplow', 'Snowplow', ['ice', 'finisher'], 'rare', 'Your finisher clears every patch, +{n}% per patch.', 15, { kind: 'mastery' }),
   F('glacierHeart', 'Glacier Heart', ['ice', 'block'], 'rare', 'Reds on ice move {n}% slower.', 30, { kind: 'mastery' }),
@@ -176,7 +176,7 @@ export const RELICS: RelicDef[] = [
   F('holdFast', 'Hold Fast', ['hold', 'block'], 'rare', 'While you hold, reds that reach you deal half.', undefined, { kind: 'mastery' }),
   F('releaseValve', 'Release Valve', ['hold', 'finisher'], 'rare', 'Every {n}rd finished hold banks a finisher stack.', 3, { kind: 'act', act: 4 }),
   F('tether', 'Tether', ['hold', 'crit'], 'rare', 'A Perfect hold always crits.', undefined, { kind: 'mastery' }),
-  F('luckyMitten', 'Lucky Mitten', ['hold', 'coins'], 'common', 'Each finished hold drops {n} coin.', 1),
+  F('luckyMitten', 'Lucky Glove', ['hold', 'coins'], 'common', 'Each finished hold drops {n} coin.', 1),
   F('crampons', 'Crampons', ['hold', 'sustain'], 'rare', "Once a fight, a slipped hold doesn't break your combo.", undefined, { kind: 'elite', act: 4 }),
 ];
 

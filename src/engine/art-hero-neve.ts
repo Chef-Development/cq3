@@ -2,7 +2,7 @@
 // sash, silver hair in a long braid, frost-white boots, and a staff topped by a floating ice crystal. Fight frames
 // `neve_${pose}` on the shared rig (art-rig.ts).
 import { put, stamp, type Grid, type Pal, type Shade } from './art';
-import { along, pole, ribbon, sparkle, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose } from './art-rig';
+import { along, LEG_FEET_X, matureLegs, pole, ribbon, sparkle, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -33,30 +33,30 @@ export const NEVE_SHADES: Record<string, Shade> = {
 
 // ------------------------------------------------------------------ body
 
+// Silver hair swept back into the braid (a layer), a pale face in profile with a defined brow and two small dark eyes
+// (no glossy whites, no blush: playtest round 8, L8), 13 x 11 on a body about three heads tall.
 const HEAD = [
-  '.....hhhhhh.....',
-  '...hhhhLLhhhh...',
-  '..hhhLLhhhhHhh..',
-  '.hhhLhhhhhHhhhh.',
-  '.hhLhhhhhHhhhHhh',
-  'hhhhhhhhHhhhHhhh',
-  'hhhhhhhHhhhHhhHh',
-  'hhhhhhHhhskkSkkh',
-  'hhhhhhhhHsWiSWiS',
-  'hhhhhhhhHsijSijS',
-  '.hhhhhhhHpSSSSpS',
-  '..hhhhhhhHSSSzS.',
-  '...hhh..hH.ss...',
+  '...hhhhhhh...',
+  '.hhhhLLhhhhh.',
+  'hhhhLhhhhhHhh',
+  'hhhLhhhhhHhhh',
+  'hhhhhhhhHhhhh',
+  'hhhhhhhHHsHHh',
+  'hhhhhhhsjSSjS',
+  'hhhhhhhsSSSST',
+  'hhhhhhhzSSzzS',
+  '.hhhhhhhzSSS.',
+  '..hhh..hzz...',
 ];
-const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 16 - swap[y].length) + swap[y] : r));
+const swapRow = (rows: string[], y: number, row: string) => rows.map((r, i) => (i === y ? row : r));
 const HEADS = {
   base: HEAD,
-  // eyes squeezed shut, mouth open in a yelp
-  squint: face(HEAD, { 7: 'sSSSSSh', 8: 'skkSkkS', 9: 'sSSSSSS', 11: 'SSkz.' }),
+  // eyes squeezed shut
+  squint: swapRow(swapRow(HEAD, 6, 'hhhhhhhszSSzS'), 8, 'hhhhhhhzSzkzS'),
   // knocked out: eyes closed, head hung
-  ko: face(HEAD, { 7: 'sSSSSSh', 8: 'sSSSSSS', 9: 'skkSkkS', 11: 'SSzS.' }),
-  // casting: eyes narrowed in focus
-  focus: face(HEAD, { 7: 'sSSSSSh', 8: 'skkSkkS', 9: 'sijSijS' }),
+  ko: swapRow(HEAD, 6, 'hhhhhhhszSSzS'),
+  // casting: the brow drawn down in focus
+  focus: swapRow(HEAD, 5, 'hhhhhhhHHHHHh'),
 };
 
 const TORSO = [
@@ -65,83 +65,17 @@ const TORSO = [
   '.rrrrwwwrrrr.',
   'rrrrrrwrrrrrr',
   'rrrrrrRrrrrrr',
+  'rrrrrrRrrrrrr',
+  '.rrrrrRrrrrr.',
   '.rrrrrRrrrrr.',
   '.nnnnnnnnnnn.',
   '..rrrrrNmrr..',
   '..rrrrrNmrr..',
 ];
 
-// The robe's skirt and the boots, 15 wide, the feet centred on x = 7.
-const LEGS: Record<string, string[]> = {
-  stand: [
-    '...rrrrrrrrr...',
-    '...rrrrRrrrw...',
-    '..rrrrrRrrrw...',
-    '..rrrrRrrrrrw..',
-    '..rrrrRrrrrrw..',
-    '.rrrrRrrrrrrw..',
-    '.rrrrRrrrrrrrw.',
-    'wwwwwwwwwwwwwww',
-    '..bbb....bbbb..',
-    '.bbbbb..bbbbbb.',
-  ],
-  // running: the skirt swept back, the back boot kicked up
-  run: [
-    '....rrrrrrrr...',
-    '...rrrrrrrrw...',
-    '..rrrrrrRrrw...',
-    '.rrrrrrRrrrrw..',
-    'rrrrrrRrrrrrw..',
-    'rrrrrRrrrrrrrw.',
-    'wwrrrRrrrrrrrw.',
-    '..wwwwwwwwwwwww',
-    'bbb......bbbbb.',
-    '........bbbbbbb',
-  ],
-  // a wide stance, the skirt spread
-  lunge: [
-    '...rrrrrrrrr...',
-    '...rrrrrRrrw...',
-    '..rrrrrRrrrrw..',
-    '..rrrrRrrrrrw..',
-    '.rrrrRrrrrrrrw.',
-    '.rrrrRrrrrrrrw.',
-    'rrrrRrrrrrrrrrw',
-    'wwwwwwwwwwwwwww',
-    'bbbb......bbbb.',
-    'bbbb.....bbbbbb',
-  ],
-  // knees bent under the skirt
-  crouch: [
-    '...rrrrrrrrr...',
-    '..rrrrrrRrrw...',
-    '..rrrrrRrrrrw..',
-    '.rrrrrRrrrrrw..',
-    '.rrrrRrrrrrrrw.',
-    'wwwwwwwwwwwwwww',
-    '.bbbb....bbbbb.',
-    'bbbbbb..bbbbbbb',
-  ],
-  // in the air: the skirt bunched, the boots tucked under
-  tuck: [
-    '...rrrrrrrrr...',
-    '..rrrrrrRrrrw..',
-    '..rrrrrRrrrrw..',
-    '..rrrrRrrrrrrw.',
-    '...wwwwwwwwwww.',
-    '.....bbbb.bbbb.',
-    '....bbbb..bbbb.',
-  ],
-  // down on her knees, the skirt pooled on the ground
-  kneel: [
-    '...rrrrrrrrr...',
-    '..rrrrrrRrrrw..',
-    '..rrrrrRrrrrw..',
-    '.rrrrrRrrrrrrw.',
-    'rrrrrRrrrrrrrrw',
-    'wwwwwwwwwwwwwww',
-  ],
-};
+// The robe falls to the shins over frost-white boots (the shared joints, art-rig.ts), its folds in shadow, the fur at
+// its hem; the back leg a value darker.
+const LEGS = matureLegs({ leg: 'b', legBack: 'n', boot: 'b', bootBack: 'n', sole: 'N', skirt: 'r', fold: 'R', hem: 'w', robe: 4, bootRows: 4 });
 
 const SKIN_FIST = ['SS', 'sz'];
 
@@ -151,10 +85,10 @@ export const NEVE_RIG: Rig = {
   heads: HEADS,
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 7,
+  legsFeetX: LEG_FEET_X,
   torsoX: -6,
   torsoOverlap: 1,
-  headX: -2,
+  headX: 0,
   headOverlap: 1,
   shoulderNear: [4, 2],
   shoulderFar: [9, 2],
@@ -214,7 +148,7 @@ function staff(dir: Dir, len: number, back: number, o: { gap?: number; big?: boo
 /** The braid from the nape: a 3px plait woven in alternating lit and shaded links, a navy tie, a pale tuft. */
 function braid(a0: number, curl: number, wave: number, n = 13): Layer {
   return (g, a) =>
-    ribbon(g, a.hx + 1, a.hy + 10, n, (t) => Math.PI * (a0 + curl * t + wave * Math.sin(t * Math.PI * 2)), (t, i) => {
+    ribbon(g, a.hx + 1, a.hy + 8, n, (t) => Math.PI * (a0 + curl * t + wave * Math.sin(t * Math.PI * 2)), (t, i) => {
       if (t > 0.9) return [HAIR[4], HAIR[2]];
       if (t > 0.78) return [SASH[3], SASH[1]];
       const thin = t > 0.55;
@@ -305,7 +239,7 @@ const motes =
 const spikes: Layer = (g, a) => {
   // ice spikes bursting from the raised crystal
   const cx = a.fx + 9;
-  const cy = a.fy - 33;
+  const cy = a.fy - 39;
   for (const [dx, dy, n] of [
     [-1, 0, 4],
     [1, 0, 4],
@@ -326,14 +260,14 @@ const droppedStaff: Layer = (g, a) => {
 // ------------------------------------------------------------------ poses
 
 export const NEVE_POSES: Record<string, RigPose> = {
-  idle0: { near: { at: [9, 9], item: staff('u', 17, 9) }, far: { at: [11, 11] }, back: [braid(0.62, 0.02, 0.03)] },
-  idle1: { near: { at: [9, 8], item: staff('u', 17, 8, { bob: 1 }) }, far: { at: [11, 10] }, dy: 1, back: [braid(0.63, 0.02, -0.03)] },
+  idle0: { near: { at: [9, 15], item: staff('u', 17, 15) }, far: { at: [11, 17] }, back: [braid(0.62, 0.02, 0.03)] },
+  idle1: { near: { at: [9, 14], item: staff('u', 17, 14, { bob: 1 }) }, far: { at: [11, 16] }, dy: 1, back: [braid(0.63, 0.02, -0.03)] },
   // the braid swings on a frame behind the breath, the crystal bobs a little higher
-  idle2: { near: { at: [9, 8], item: staff('u', 17, 8, { bob: 2 }) }, far: { at: [11, 10] }, dy: 1, back: [braid(0.66, 0.03, -0.06)] },
-  idle3: { near: { at: [9, 9], item: staff('u', 17, 9, { bob: 1 }) }, far: { at: [11, 11] }, back: [braid(0.65, 0.03, 0)] },
+  idle2: { near: { at: [9, 14], item: staff('u', 17, 14, { bob: 2 }) }, far: { at: [11, 16] }, dy: 1, back: [braid(0.66, 0.03, -0.06)] },
+  idle3: { near: { at: [9, 15], item: staff('u', 17, 15, { bob: 1 }) }, far: { at: [11, 17] }, back: [braid(0.65, 0.03, 0)] },
   dash: {
-    near: { at: [6, 11], item: staff('ur', 12, 8) },
-    far: { at: [-6, 11] },
+    near: { at: [6, 17], item: staff('ur', 12, 8) },
+    far: { at: [-6, 17] },
     legs: 'run',
     dx: 1,
     lean: 1,
@@ -341,29 +275,29 @@ export const NEVE_POSES: Record<string, RigPose> = {
   },
   // casting a frost bolt: the staff levelled at the foe
   slashA: {
-    near: { at: [10, 14], item: staff('r', 10, 6, { gap: 4, glint: true }) },
-    far: { at: [5, 11] },
+    near: { at: [10, 20], item: staff('r', 10, 6, { gap: 4, glint: true }) },
+    far: { at: [5, 17] },
     legs: 'lunge',
     dx: 1,
     lean: 1,
     head: 'focus',
     back: [braid(0.85, 0.05, 0.08, 14)],
-    front: [shard(34, 15)],
+    front: [shard(34, 21)],
   },
   // a burst of frost from the open hand, the staff held back
   slashB: {
-    near: { at: [2, 10], item: staff('u', 16, 9) },
-    far: { at: [14, 15] },
+    near: { at: [2, 16], item: staff('u', 16, 15) },
+    far: { at: [14, 21] },
     legs: 'lunge',
     dx: 1,
     lean: 1,
     head: 'focus',
     back: [braid(0.8, 0.05, -0.08, 14)],
-    front: [flake(20, 16, 3), motes([[17, 19], [24, 13], [25, 19], [18, 12]])],
+    front: [flake(20, 22, 3), motes([[17, 25], [24, 19], [25, 25], [18, 18]])],
   },
   windup: {
-    near: { at: [-4, 19], item: staff('ul', 9, 6, { glint: true }) },
-    far: { at: [10, 11] },
+    near: { at: [-4, 25], item: staff('ul', 9, 6, { glint: true }) },
+    far: { at: [10, 17] },
     legs: 'crouch',
     dy: 1,
     head: 'focus',
@@ -372,8 +306,8 @@ export const NEVE_POSES: Record<string, RigPose> = {
   },
   // the staff held crosswise and a wall of ice thrown up in front
   parry: {
-    near: { at: [3, 13], item: staff('r', 11, 3, { gap: 4 }) },
-    far: { at: [12, 13] },
+    near: { at: [3, 19], item: staff('r', 11, 3, { gap: 4 }) },
+    far: { at: [12, 19] },
     legs: 'crouch',
     dy: 1,
     farFront: true,
@@ -381,8 +315,8 @@ export const NEVE_POSES: Record<string, RigPose> = {
     front: [iceWall(20)],
   },
   hurt: {
-    near: { at: [-3, 11], item: staff('ul', 12, 7) },
-    far: { at: [8, 15] },
+    near: { at: [-3, 17], item: staff('ul', 12, 7) },
+    far: { at: [8, 21] },
     dx: -1,
     lean: -1,
     dy: 1,
@@ -390,8 +324,8 @@ export const NEVE_POSES: Record<string, RigPose> = {
     back: [braid(0.3, -0.1, 0.06)],
   },
   leap: {
-    near: { at: [7, 17], item: staff('u', 12, 9, { glint: true }) },
-    far: { at: [11, 15] },
+    near: { at: [7, 23], item: staff('u', 12, 9, { glint: true }) },
+    far: { at: [11, 21] },
     legs: 'tuck',
     back: [braid(0.75, -0.25, 0.04)],
   },
@@ -409,21 +343,21 @@ export const NEVE_POSES: Record<string, RigPose> = {
   },
   // the finisher: the staff raised high in both hands, the crystal grown huge and bristling with ice
   fin: {
-    near: { at: [9, 20], item: staff('u', 6, 9, { big: true, gap: 3 }) },
-    far: { at: [10, 19] },
+    near: { at: [9, 26], item: staff('u', 6, 9, { big: true, gap: 3 }) },
+    far: { at: [10, 25] },
     legs: 'lunge',
     armsUp: true,
     head: 'focus',
     back: [braid(0.7, -0.08, 0.06, 14)],
-    front: [spikes, motes([[-1, 26], [19, 25], [2, 34], [16, 38]], NEVE_ICE[3])],
+    front: [spikes, motes([[-1, 32], [19, 31], [2, 40], [16, 44]], NEVE_ICE[3])],
   },
   // Chill: the staff planted, a snowflake spinning over the raised palm
   cast: {
-    near: { at: [6, 9], item: staff('u', 17, 9, { glint: true }) },
-    far: { at: [13, 20] },
+    near: { at: [6, 15], item: staff('u', 17, 15, { glint: true }) },
+    far: { at: [13, 26] },
     head: 'focus',
     back: [braid(0.55, -0.05, 0.04)],
-    front: [flake(15, 27, 4), motes([[10, 31], [20, 30], [19, 22], [11, 24]])],
+    front: [flake(15, 33, 4), motes([[10, 37], [20, 36], [19, 28], [11, 30]])],
   },
 };
 
@@ -431,12 +365,12 @@ export const NEVE_POSES: Record<string, RigPose> = {
  *  with a cyan heart. */
 export const NEVE_CARD: HeroCardSpec = {
   pose: {
-    near: { at: [8, 10], item: staff('u', 16, 10, { glint: true }) },
-    far: { at: [12, 14] },
+    near: { at: [8, 16], item: staff('u', 16, 16, { glint: true }) },
+    far: { at: [12, 20] },
     farFront: true,
     head: 'base',
     back: [braid(0.62, 0.02, 0.03)],
-    front: [flake(15, 19, 2)],
+    front: [flake(15, 25, 2)],
   },
   glow: ['#c4f6ff', '#4a7ac0'],
   motes: [[5, 13], [34, 8], [35, 30]],
@@ -444,6 +378,6 @@ export const NEVE_CARD: HeroCardSpec = {
 
 /** By the campfire (two breaths): the staff planted, a hand held out to the warmth. */
 export const NEVE_CAMP: [RigPose, RigPose] = [
-  { near: { at: [5, 9], item: staff('u', 17, 9) }, far: { at: [12, 13] }, farFront: true, back: [braid(0.62, 0.02, 0.03)] },
-  { near: { at: [5, 8], item: staff('u', 17, 8, { bob: 1 }) }, far: { at: [12, 12] }, farFront: true, dy: 1, back: [braid(0.63, 0.02, -0.03)] },
+  { near: { at: [5, 15], item: staff('u', 17, 15) }, far: { at: [12, 19] }, farFront: true, back: [braid(0.62, 0.02, 0.03)] },
+  { near: { at: [5, 14], item: staff('u', 17, 14, { bob: 1 }) }, far: { at: [12, 18] }, farFront: true, dy: 1, back: [braid(0.63, 0.02, -0.03)] },
 ];

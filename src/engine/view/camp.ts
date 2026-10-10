@@ -209,7 +209,7 @@ export class CampView {
     const pe = app.run.practiceEnded;
     if (pe) {
       app.run.practiceEnded = null;
-      this.kit.after(350, () => this.kit.toast({ title: 'Practice done!', ribbon: RIBBON.green, lines: [], text: [{ text: pe.won ? 'The dummy is down. Again?' : 'Nice swings!', col: WHITE, bold: true }], cx: (this.s.L + this.s.R) / 2, cy: 60 }));
+      this.kit.after(350, () => this.kit.toast({ title: 'Practice done!', ribbon: RIBBON.green, lines: [], text: [{ text: pe.won ? 'The dummy is down. Again?' : 'Good work. The dummy will keep.', col: WHITE, bold: true }], cx: (this.s.L + this.s.R) / 2, cy: 60 }));
     }
   }
 

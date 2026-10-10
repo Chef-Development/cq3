@@ -16,7 +16,7 @@ import type { StoryBox } from './types';
 export const WICK_STORY: Record<string, StoryBox[]> = {
   // Act 1 start: a town where nothing wears out
   wick1: [
-    { who: 'narrator', text: 'Thimblewick, a town of makers. Not a scuff\non it. Every hinge silent. Every shop shut.' },
+    { who: 'narrator', text: 'Thimblewick, a town of makers. Every hinge\nsilent. Every shop shut.' },
     { who: 'sable', text: 'Not one scuff. Who lives like this?' },
     { who: 'pip', text: "Nobody. That's the trouble. Nothing here\nwears out, so nobody needs a maker." },
     { who: 'neve', text: "A town that doesn't need its people.\nHe's outdone himself." },
@@ -25,8 +25,8 @@ export const WICK_STORY: Record<string, StoryBox[]> = {
   // Act 1 mini-boss: an eight-armed brass thing that polishes away every scuff (no speech)
   polisher: [
     { who: 'narrator', text: 'A brass thing with eight arms comes down\nthe lane, polishing everything it passes.' },
-    { who: 'sable', text: "It polished my dagger. It polished my\nBOOTS. It's polishing Neve." },
-    { who: 'neve', text: 'Get. It. OFF.' },
+    { who: 'sable', text: 'It buffed my dagger clean. Every nick\non that blade was a story.' },
+    { who: 'neve', text: 'Then keep it OFF you.' },
   ],
   // camp, after Act 1: Mags on a town that never needs a smith (seeds her line for the end)
   wickCamp: [
@@ -38,23 +38,23 @@ export const WICK_STORY: Record<string, StoryBox[]> = {
   ],
   // Act 2 start (twist 2): the copyists' archive; two copies of the Atlas, a century apart; the river; the flood
   wick2: [
-    { who: 'narrator', text: 'In the Hall of Copies, two great maps lie\nside by side: the Atlas, a century apart.' },
+    { who: 'narrator', text: 'In the archive, two great copies of the\nAtlas lie side by side, a century apart.' },
     { who: 'mapmaker', text: 'Look at the river, knight. Here, it runs\nthrough Meridian. Here, it does not.' },
     { who: 'mapmaker', text: 'A keeper moved it, a hundred years ago,\ninto a valley. Into my village. Wend.' },
-    { who: 'mapmaker', text: 'A flood came down it. I begged for a levee.\nThey said: keep the line, never make it.' },
+    { who: 'mapmaker', text: 'A flood came. I begged the High Keeper for a\nlevee. She said: keep the line, never make it.' },
     { who: 'mapmaker', text: 'So I kept the line.\nAnd the water took my boy.' },
-    { who: 'rowan', text: "The world was unfair to you. You're right\nabout that. You're wrong about the rest." },
+    { who: 'rowan', text: "...The world was unfair to you. You're\nright about that. You're wrong about the rest." },
   ],
   // Act 2 mini-boss: the archive's printing press, drawn to walk, copying everything so nothing is ever lost
   press: [
     { who: 'narrator', text: "Behind the shelves, the archive's great press\nwakes with a thump, and walks." },
     { who: 'press', text: 'COPY. COPY. COPY.' },
-    { who: 'sable', text: "It's printing us. That's me. That's ME,\nbut flatter." },
+    { who: 'sable', text: "It's printing us. Page after page of me,\nand not one of them breathing." },
     { who: 'press', text: 'NOTHING LOST. NOTHING LOST. COPY.' },
   ],
   // Act 3 start: the works under the town; Rowan can't stop thinking about the boy
   wick3: [
-    { who: 'narrator', text: 'Under the town, the great works turn. At\ntheir heart stands a brass giant of hands.' },
+    { who: 'narrator', text: 'Under the town, the great works turn. At\ntheir heart stands a brass giant, all hands.' },
     { who: 'pip', text: "The Mender. In its back, the Key that keeps\nit all wound. That's his line." },
     { who: 'sable', text: "Rowan. You've been quiet since the archive." },
     { who: 'rowan', text: 'He had a son.\nI keep thinking about it.' },
@@ -84,8 +84,8 @@ export const WICK_STORY: Record<string, StoryBox[]> = {
   wickVictory: [
     { who: 'narrator', text: 'The Key snaps. Somewhere above, a hinge\nsqueaks: the first sound of wear in months.' },
     { who: 'narrator', text: 'In their white patches, the makers wake,\nand reach for their tools.' },
-    { who: 'mapmaker', text: 'These isles do not hold ink enough for what\nI am drawing, knight. I will find more.' },
-    { who: 'narrator', text: 'He walks on along his road, and the blank\nahead takes a shape.' },
+    { who: 'mapmaker', text: 'These isles do not hold ink enough for the\nFair Copy, knight. I will find more.' },
+    { who: 'narrator', text: 'He goes. Far out on the sea, his next isle\nis already drawn, and waiting.' },
     { who: 'pip', text: "Rowan. There's more. It isn't mine to tell." },
   ],
 };

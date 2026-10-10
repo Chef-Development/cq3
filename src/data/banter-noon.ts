@@ -21,9 +21,10 @@ export const NOON_BANTER: NoonBanterLine[] = [
   { who: 'sable', text: 'Lakes on the road. None of them wet.', after: 'noon1' },
   { who: 'rowan', text: 'I got a riddle right. First time ever.', after: 'sphinx' },
   { who: 'sable', text: 'Touched the mane. Pip was right.', after: 'brassLion' },
-  { who: 'torva', text: 'A brass lion! Can I keep the mane?', after: 'brassLion' },
+  { who: 'torva', text: "Brass lion. I'd have kept the mane.", after: 'brassLion' },
   { who: 'solenne', text: 'We greeted the dawn. I wept.', after: 'noonVictory' },
   { who: 'rowan', text: 'A sunset. I forgot how long they take.', after: 'noonVictory' },
+  { who: 'rowan', text: 'The Order sang at dawn. All of them.', after: 'noonVictory' },
   { who: 'pip', text: 'Still your owl, Rowan. Hoo.', after: 'noonVictory' },
   { who: 'smith', text: 'A feather pen? Bah. Use a hammer.', after: 'noonVictory' },
 ];
