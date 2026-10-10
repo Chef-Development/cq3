@@ -8,6 +8,7 @@
 // until "Show spoilers"), labelled by act number only, never by name. Labels and "what to try" lines are game words,
 // one short line each (the playtester reads little).
 
+import type { EditId } from './edits';
 import type { CompanionId } from './companions';
 import type { RelicId } from './relics';
 import type { HeroId } from './heroes';
@@ -30,7 +31,7 @@ export const LAB_GROUPS: Array<{ id: LabGroupId; name: string; spoiler?: boolean
 ];
 
 /** A camp screen a scenario opens. */
-export type LabScreen = 'heroes' | 'skills' | 'chest' | 'chestDemo' | 'chestHd' | 'shrine' | 'companions' | 'upgrades' | 'completion';
+export type LabScreen = 'heroes' | 'skills' | 'chest' | 'chestDemo' | 'chestHd' | 'shrine' | 'companions' | 'upgrades' | 'completion' | 'edits';
 
 /** What a scenario drops the playtester into. */
 export type LabSetup =
@@ -39,7 +40,7 @@ export type LabSetup =
    *  banked at the start; `safe`: nothing hurts the hero; `relics` carried into it; `pick`: a won fight ends in a
    *  stat card pick (three cards, nothing kept) before the rating card. `stage`: the act whose stage, music and name show around it (default `act`: a
    *  later act's numbers can play on an earlier act's stage). */
-  | { kind: 'fight'; hero: HeroId; stars?: number; pets?: CompanionId[]; act: number; waves: string[][]; bar?: BarRules | 'act'; row?: number; safe?: boolean; stacks?: number; relics?: RelicId[]; pick?: boolean; stage?: number }
+  | { kind: 'fight'; hero: HeroId; stars?: number; pets?: CompanionId[]; act: number; waves: string[][]; bar?: BarRules | 'act'; row?: number; safe?: boolean; stacks?: number; relics?: RelicId[]; pick?: boolean; stage?: number; edits?: EditId[] }
   /** A camp screen (with `hero` shown first where it has one). 'chestDemo': the chest opening played at these
    *  `tiers` one after another (a demo: nothing is granted), from a chest of kind `chest`. 'chestHd': the old chest
    *  reveal and the sharper one side by side, Rare to Divine (a demo; view/chest-compare.ts). */
@@ -66,6 +67,8 @@ export type LabSetup =
 /** What the lab's profile holds for a scenario (core/lab.ts builds it on a fresh profile). */
 export interface LabProfileSpec {
   actsCleared?: number;
+  /** Regions restored (opens what waits for one: the Mapmaker's Edits), whatever `actsCleared` says. */
+  weights?: number;
   /** Heroes owned and their stars (Rowan and Sable are always owned; the rest are locked unless listed). */
   heroes?: Partial<Record<HeroId, number>>;
   /** The picked hero. */
@@ -405,6 +408,9 @@ export const LAB_NEW: LabScenario[] = [
     setup: { kind: 'fight', hero: 'sable', act: 0, waves: [['crow'], ['boar'], ['slime']] },
     profile: { tips: ['finisher'] },
   },
+  // the Mapmaker's Edits (chunk 4): the chooser at camp, and a fight under all five
+  { id: 'editsCamp', group: 'camp', label: "The Mapmaker's Edits", secs: 40, try: 'Draw two in, rub one out. Clear what each does?', setup: { kind: 'camp', screen: 'edits' }, profile: { actsCleared: 2, weights: 1 } },
+  { id: 'editsFight', group: 'fights', label: 'All Edits, one fight', secs: 60, try: 'Fast reds, tough foes, thin heals: still fair?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['wolf', 'wolf'], ['boar', 'crow'], ['shaman', 'boar']], edits: ['swiftReds', 'ironHides', 'thinMercy', 'sharpEdges', 'lastLife'] } },
 ];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,

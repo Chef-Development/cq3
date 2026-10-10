@@ -244,10 +244,10 @@ const PIX: Record<string, { rows: string[]; pal: Record<string, number> }> = {
 };
 
 const runCache = new Map<string, Array<[number, number, number, number]>>();
-/** Draw one of the camp's small icons (or a HUD icon of the same name). */
-export function pix(g: G, key: string, x: number, y: number, alpha = 1): void {
+/** Draw one of the camp's small icons (or a HUD icon of the same name), `scale` times its size. */
+export function pix(g: G, key: string, x: number, y: number, alpha = 1, scale = 1): void {
   const def = PIX[key];
-  if (!def) return hudIcon(g, key, x, y, 1, alpha);
+  if (!def) return hudIcon(g, key, x, y, scale, alpha);
   let runs = runCache.get(key);
   if (!runs) {
     runs = [];
@@ -264,7 +264,7 @@ export function pix(g: G, key: string, x: number, y: number, alpha = 1): void {
   }
   for (const [col, rx, ry, rw] of runs) {
     g.fillStyle(col, alpha);
-    g.fillRect(x + rx, y + ry, rw, 1);
+    g.fillRect(x + rx * scale, y + ry * scale, rw * scale, scale);
   }
 }
 

@@ -1443,4 +1443,16 @@ F17. **The newcomer bot spends skill points** (`tests/smoke/first10.spec.ts`): f
     point is waiting on the map it taps Camp, opens Skills, learns down one branch and goes back (`F10_SKILLS=0` never
     does), so its boss result compares with the balance bot, which spends them after every loot.
 
+F18. **The Mapmaker's Edits** (the lead's request; `CORE:` b092f75): five opt-in hardships a player draws into the
+    next act once Region 1 is restored (off by default; never in the first ten minutes): Swift Reds, Iron Hides, Thin
+    Mercy, Sharp Edges, Last Life. They pay +15% XP per point of weight and gems the first time each act is cleared
+    under each (no timers, energy or money). Chosen at camp (an oxblood Edits key right of the top bar's middle; its
+    glyph alone when the purse leaves no room) or from the act picker's key (top left of the panel, with the count),
+    on the Atlas study's stage: one iron plate per Edit (a socket round its glyph, an oxblood wax seal once drawn in),
+    the ledger on the right (a big seal with the count, the XP and gems the next act pays, the seals won). In a fight
+    the act plate carries an oxblood "2 Edits" tag beside it; the plate no longer shows the map row ("1/8", a riddle
+    to the reviewers: the skulls under it count the foes). Unit tests: each with/without, the rewards, the save, each
+    line fits its row, and the bot at 75% (each costs more; Last Life: Act 2 lost 10 of 16 times, 5 without).
+    Test lab: "The Mapmaker's Edits" (camp) and "All Edits, one fight".
+
 (first10: end of section)
