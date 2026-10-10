@@ -17,7 +17,7 @@ export const REACH_STORY: Record<string, StoryBox[]> = {
   // Act 1 start: the road ends at floating steps; Rowan walks on the blank between them
   reach1: [
     { who: 'narrator', text: "His road ends at a cliff that isn't there:\nrocks floating in a row, and white between." },
-    { who: 'sable', text: 'Those gaps. How do we get across those?' },
+    { who: 'sable', text: 'Those gaps. How do we get across?' },
     { who: 'narrator', text: 'Rowan steps off the edge, onto the white.\nIt holds him.' },
     { who: 'neve', text: 'You are standing on NOTHING.' },
     { who: 'rowan', text: "It isn't nothing. It feels like paper.\nTake my hand. All of you." },
@@ -49,8 +49,8 @@ export const REACH_STORY: Record<string, StoryBox[]> = {
   squall: [
     { who: 'narrator', text: 'On the highest roof, a huge gull stands over\na nest of chicks, and screams at them.' },
     { who: 'squall', text: 'Jump! JUMP! ...They will not. They have\nnever fallen. So they have never flown.' },
-    { who: 'rowan', text: 'Nothing falls here.\nSo nothing learns to fly.' },
-    { who: 'squall', text: 'And you came to take MORE from us?\nOff my roof!' },
+    { who: 'rowan', text: "We can bring the falling back.\nThen they'll learn." },
+    { who: 'squall', text: 'Fall? From HERE? Into THAT?\nOff my roof!' },
     { who: 'pip', text: "She's frightened for them, Rowan.\nGo gently. She won't." },
   ],
   // Act 3 start: the Eyrie and the Tether
@@ -63,6 +63,7 @@ export const REACH_STORY: Record<string, StoryBox[]> = {
   // Act 3 boss: he means it kindly; Rowan sees what he is
   kestrel: [
     { who: 'narrator', text: 'The Great Kestrel spreads her wings, and\nthe whole Eyrie falls into shadow.' },
+    { who: 'mapmaker', text: 'You crossed my blank on foot, knight.\nIt held you. Who drew you?' },
     { who: 'mapmaker', text: 'She was out at sea when the isle went blank.\nShe came home to this. She likes it.' },
     { who: 'mapmaker', text: 'Here, no one falls. No one is ever too far\naway to reach. Is that so terrible?' },
     { who: 'rowan', text: 'Then why do you look so alone?' },
@@ -70,7 +71,7 @@ export const REACH_STORY: Record<string, StoryBox[]> = {
   ],
   // phase 2 (his first edit): the pieces drawn together, the gaps closed (hint: the outline's idea)
   kestrel2: [
-    { who: 'mapmaker', text: 'Closer.' },
+    { who: 'mapmaker', text: 'Closer. ...There. Better.' },
     { who: 'narrator', text: 'He draws the pieces in. The gaps close,\nand everything crowds together.' },
     { who: 'neve', text: "No more gaps. It's all packed tight.\nKeep your rhythm, Rowan!" },
   ],
@@ -86,6 +87,6 @@ export const REACH_STORY: Record<string, StoryBox[]> = {
     { who: 'narrator', text: 'On a ledge, a gull chick tips over the edge.\nIt falls. Then it flies.' },
     { who: 'mapmaker', text: 'I was too far away, once. Only once.\nIt was enough.' },
     { who: 'rowan', text: 'Too far away from who?' },
-    { who: 'narrator', text: 'He does not answer. He walks on along his\nroad, and the blank ahead takes a shape.' },
+    { who: 'narrator', text: 'He does not answer. Ahead of him, out of\nthe blank, the next isle rises.' },
   ],
 };

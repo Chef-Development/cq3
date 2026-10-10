@@ -289,25 +289,23 @@ Then the beat, in as few words as it takes:
 - And the turn: his son is alive, which means the Fair Copy can never hold him (a cut can't be copied onto a fresh
   sheet). If he finishes it, the son he got back is the one thing his perfect world leaves out. He doesn't stop. He
   can't, yet: "Then I'll draw you in by hand. I'll get it right this time." He leaves for the Margin.
-- Rowan's answer (the line the whole game has been walking toward): "You did get it right. You just didn't stay to
-  see it."
+- Rowan's answer (the line the whole game has been walking toward), said so Ambrose hears it as he goes: "You did get
+  it right. You just weren't there to see it." (Hesper sent him away; it was never his choice.) He stops on the road as
+  if to answer, and can't, yet.
 
 ---
 
-### Draft script: the beat (for review; in code as `src/data/story-end.ts`, which wins if the two differ; `/` = the line break)
+### Draft script: the beat (in code: `src/data/story-end.ts`, the single copy; editor-passed twice)
 Three short scenes after the Flood's last phase, played back to back. From the second, his plate reads "Ambrose"
-(a new speaker `ambrose`, the Mapmaker's portrait) and his composure breaks: contractions allowed from here on.
-- `floodEnd`: narrator "The levee gives. The river goes down to its / bed, and is only a river again." · narrator "He
-  cannot draw fast enough. He turns his nib / on Rowan, close, and stops." · mapmaker "This is not a line. It is a cut,
-  / through the page. ...It is my hand." · mapmaker "I pressed too hard. I could not see. / I was crying." · mapmaker
-  "You were six. You were soaked through." · rowan "Pip. Tell me. All of it."
-- `lowTruth`: pip "The night after the funeral, he drew his boy / back. I was on his shoulder. I saw you come." · pip
-  "Hesper broke his nib and sent him away. She / told him the drawing faded. It didn't." · pip "She took you to the
-  knights' hall. I stayed / to watch over you. That was the reason." · rowan "The blank can't hold me. Deep water. The
-  / way he's looked at me, since the first night." · ambrose "...Rowan." (the first time; the scene ends on it)
-- `lowGoes`: ambrose "You're alive. So the Fair Copy can never / hold you. A cut can't be copied." · ambrose "Then I'll
-  draw you in by hand. I'll get it / right this time." · narrator "He goes, along his road, toward the very / edge of
-  the map." · rowan "You did get it right. You just didn't stay / to see it."
+(speaker `ambrose`, the Mapmaker's portrait) and his composure breaks: contractions allowed from here on.
+- `floodEnd`: the levee gives; he turns his nib on Rowan to rub him out, close this time, and stops: "This is not a
+  line. It is a cut, through the page. ...I know this hand. It is mine." / "I pressed too hard..." / "You were six."
+  / Rowan: "Pip. Tell me. All of it."
+- `lowTruth`: Pip tells it (the night after the funeral; Hesper's lie; "That was the reason"); Rowan puts it together;
+  the scene ends on the name: "...Rowan."
+- `lowGoes`: "That's why the window is empty every morning. You were already here." (pays `flood`'s fading
+  portrait) / the Fair Copy can't hold a cut / "Then I'll draw you in by hand." / Rowan, so he hears it: "You did get
+  it right. You just weren't there to see it." / he stops on the road as if to answer, then goes on.
 
 ## 7. The finale and the ending (Region 12: the Margin)
 
@@ -327,23 +325,21 @@ Hesper tells the kingdom the truth about the river. The keepers will draw no new
 drawn by Hesper, that everyone agrees to: the word **Wend**, written on the lake. Ambrose is not exiled again. He
 lives by the lake and mends fences in Greenmarch the slow way, by hand. Pip splits his time. The last image: Rowan and
 Ambrose at the water's edge; Rowan takes his boots off and puts his feet in the lake for the first time; Pip on a
-branch above them. The Atlas keeps its one hole, and nobody patches it.
+branch above them. The Atlas keeps its one cut, and nobody patches it.
 
 ---
 
-### Draft script: the ending (for review; in code as `src/data/story-end.ts`, with the Margin's `fairKnight`)
-- `marginEnd` (after the Fair Knight fades): narrator "The Fair Knight fades mid-stroke, like breath / on glass.
-  Ambrose stands at his table." · narrator "One line would finish the Fair Copy. / The ink is on his nib." · narrator
-  "Rowan doesn't fight him for the pen. He sits / down beside the table, and waits." · ambrose "...There's no lake in
-  it. No flood. / No you." · narrator "He puts the nib down. He holds the Fair / Copy to the lamp, and lets it burn."
-- `epilogue` (Meridian): narrator "Every region's old lines come home. The / isles wake. The blank is gone from the
-  map." · keeper "A hundred years ago, the keepers moved the / river into Wend. I knew. I kept the line." · keeper "And
-  I let a man believe his son was gone. / I am sorry. To you both." · narrator "She draws one new line on the Atlas,
-  the / only one everyone agrees to: a name." · narrator "On the lake, in small, careful letters: / Wend."
-- `lastImage`: narrator "Ambrose lives by the lake now. He mends / fences in Greenmarch, the slow way." · smith "A
-  mend should show, Ambrose. / That's the whole point of it." · narrator "At the water's edge, Rowan takes off his /
-  boots, and puts his feet in the lake." · ambrose "Cold?" · rowan "Yes. ...It's all right, though." · narrator "Pip,
-  on a branch above them, says nothing / at all. The Atlas keeps its one hole."
+### Draft script: the ending (in code: `src/data/story-end.ts`, with the Margin's `fairKnight`)
+- The Fair Copy is set up before the end: `yew` (they will wake in the Fair Copy, the kingdom drawn again, clean),
+  `wickVictory` (the isles don't hold ink enough for it), `farVictory` (when it's done, the old Atlas burns, "and every
+  grief in it"). So at the Margin one line would finish it, and burn the Atlas Rowan is cut into.
+- `marginEnd`: the Fair Knight fades; one line would finish the copy; Rowan does not fight him for the pen, he sits
+  down and waits; "...There's no lake in it. No flood. No you."; he burns the copy at the candle (his lamp was
+  Farlight's beacon, put out in Region 10).
+- `epilogue`: every land's lines come home; in the Atlas Hall, before all Meridian, Hesper confesses the river and the
+  lie; she writes one new line: Wend, on the lake.
+- `lastImage`: Ambrose mends fences by hand; Mags: "A mend should show, Ambrose. That's how you know someone cared." /
+  Rowan's feet in the lake: "Cold?" / "Yes. ...It's all right, though." / Pip says nothing. The Atlas keeps its one cut.
 
 ## 8. The regions
 
