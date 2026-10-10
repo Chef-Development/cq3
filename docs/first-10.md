@@ -223,7 +223,28 @@ next foe walks in behind it), the first chest at 1:24-1:36, the first relic pick
 2. **The newcomer bot spends skill points** (F17) from the first chest on, as the balance bot does after every loot.
 3. **The story team trimmed** the road, captain and Sable scenes to four boxes each (intro 3 + 1 before the fight).
 
-MEASURE3
+### Measured (the run branch at 49cd26a merged; load average 17-18 on 4 CPUs throughout, so not calmer)
+
+| Beat | seed 7 | seed 9 | seed 11 | part 2 (s7 / s9 / s11) |
+| --- | --- | --- | --- | --- |
+| First fight on screen | 0:20 | 0:20 | 0:19 | 0:22 / 0:19 / 0:20 |
+| First finisher (named; kills) | 2:06, second fight | 0:58 | 0:53 | 0:57 / 0:56 / 0:48 |
+| First win | 1:09 | 1:04 | 1:03 | 1:10 / 1:11 / 1:11 |
+| Road scene (now 4 boxes) | 1:13-1:24 | 1:06-1:15 | 1:05-1:13 | 1:14-1:28 (6 boxes) |
+| **First chest** | **1:26** | **1:17** | **1:16** | 1:31 / 1:29 / 1:29 |
+| First relic pick (two plain cards) | 1:33 | 1:21 | 1:20 | 1:38 / 1:33 / 1:32 (three) |
+| Map after the chest | 1:38 | 1:27 | 1:26 | 1:43 / 1:39 / 1:38 |
+| Skill point spent at camp | 1:49 | 1:40 | | |
+| Act 1 | lost the boss once (at 19% of its HP), cleared 9:41 | cleared first try, 6:17 | (to the chest) | |
+| First hero chest revealed | 10:08, Rare, new | 6:43, Rare, new | | |
+| Readout accuracy at the act clear | 58% | 64% | | |
+
+The trimmed story saves about 10 s before the first chest (now 1:16-1:26). Seed 7's first-fight finisher was lost to
+the test itself: on the loaded box the bot's synthetic flick fired its moves 0.3-1.2 s late, past the swipe's 350 ms
+(fixed in the spec after that run: the flick's first move now goes with the press; seeds 9 and 11 ran with the fix).
+A player's own touches carry their own timestamps, so this isn't a game problem. The newcomer bot, now spending its
+skill points, cleared Act 1 first try on seed 9 and lost the boss once on seed 7 (its weakest path: three fights and
+two rests before the boss) at a 58-64% readout; the balance bot at 60% clears Act 1 first try 98% of the time.
 
 ### The first ten minutes on the new art (screenshots: `team-first10/r3/` phone and desk, `c1-s7/`)
 
