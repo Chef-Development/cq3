@@ -21,7 +21,8 @@ import { band, button3d, chevron, gauge, glow, GOLD, hudIcon, iconSize, NAVY, pa
 import { BOOST_ICON, clamp01, easeBack, easeInOut, easeOut3, hpLabel, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
 import { hdFor, screenCovered } from './hd-text';
 import { FACE, ImagePool, isPressed, notePress, ribbon, RIBBON, strip, tag, TextPool } from './ui';
-import { cardFrame, cardShine, cardTile, mainTag, relicCard, relicIcon, tagChip, TAG_FACE, type CardCtx } from './relic-ui';
+import { cardFrame, cardShine, cardTile, mainTag, relicCard, relicIcon, tagChip, TAG_FACE, UPRIGHT_NAME_Y, uprightWell, type CardCtx } from './relic-ui';
+import { glass } from './ui-modern';
 import { wrapText } from './items';
 import { pix } from './camp-kit';
 
@@ -419,17 +420,23 @@ export class Overlays {
     return null;
   }
 
-  /** Boost choices: a navy panel with three stacked cards and, along its bottom, the relics the hero carries. */
+  /** Boost choices: a glass plate with the cards standing side by side and, along its bottom, the relics carried. */
   private boostPanel(): Rect {
+    const s = this.s;
     const h = 121;
-    return { x: Math.round(GAME_W / 2 - 128), y: Math.min(24, this.s.B + 1 - h), w: 256, h };
+    const w = Math.min(280, s.R - s.L - 4);
+    return { x: Math.round((s.L + s.R) / 2 - w / 2), y: Math.min(24, s.B + 1 - h), w, h };
   }
 
+  /** Card i: upright, side by side (round 8 review: three flat rows read as a settings list; two for a new player's
+   *  first pick, wider). */
   cardRect(i: number): Rect {
     const p = this.boostPanel();
-    // two cards (a new player's first pick): taller, with room for their words
-    if (this.s.app.run.boostChoices.length === 2) return { x: p.x + 8, y: p.y + 8 + i * 48, w: p.w - 16, h: 44 };
-    return { x: p.x + 8, y: p.y + 8 + i * 32, w: p.w - 16, h: 30 };
+    const n = Math.max(2, Math.min(3, this.s.app.run.boostChoices.length || 3));
+    const gap = 6;
+    const w = Math.floor((p.w - 14 - gap * (n - 1)) / n);
+    const x0 = Math.round(p.x + (p.w - (w * n + gap * (n - 1))) / 2);
+    return { x: x0 + i * (w + gap), y: p.y + 9, w, h: p.h - 9 - 22 };
   }
 
   /** The tray along the pick panel's bottom: an amulet, then the relics carried (the pick lands in the next slot). */
@@ -522,12 +529,13 @@ export class Overlays {
     const s = this.s;
     if (isRelicOffer(offer)) {
       // (a new player's first pick: plain cards, while it flies to the tray too)
-      relicCard(c, r, offer.relic, { owned: s.app.run.hero.relics, tuning: s.app.tuning, now, flash, alpha, plain: s.app.run.simplePick });
+      relicCard(c, r, offer.relic, { owned: s.app.run.hero.relics, tuning: s.app.tuning, now, flash, alpha, plain: s.app.run.simplePick, upright: r.h > 60 });
       return;
     }
     const { g, texts } = c;
     const look = CARD[offer.rarity];
     const [hi] = look.face;
+    if (r.h > 60) return this.statCardUpright(c, r, offer, preview, now, flash, alpha);
     cardFrame(g, r, look.face, offer.rarity, now, alpha);
     const tile: Rect = { x: r.x + 2, y: r.y + 2, w: 22, h: r.h - 4 };
     cardTile(g, tile, look.face, alpha);
@@ -547,6 +555,42 @@ export class Overlays {
       const tr: Rect = { x: r.x + r.w - tw - 3, y: r.y + 4, w: tw, h: 9 };
       tag(g, tr, look.face, alpha);
       texts.text(look.tag, tr.x + 3, tr.y + 4.5, WHITE, { oy: 0.5, alpha });
+    }
+    cardShine(g, r, offer.rarity, now, alpha);
+    if (flash > 0) {
+      g.fillStyle(WHITE, flash * alpha);
+      g.fillRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
+    }
+  }
+
+  /** A stat card standing upright (the pick): its icon at 2x in the well, its name, and what it does to the hero's
+   *  stat right now on a dark strip under it ("ATK 14 -> 16"); the rarity at the top right. */
+  private statCardUpright(c: CardCtx, r: Rect, offer: BoostOffer, preview: BoostPreview, now: number, flash: number, alpha: number): void {
+    const { g, texts } = c;
+    const look = CARD[offer.rarity];
+    const [hi] = look.face;
+    cardFrame(g, r, look.face, offer.rarity, now, alpha);
+    const well = uprightWell(g, r, look.face, offer.rarity, now, alpha);
+    const icon = BOOST_ICON[offer.id];
+    const [iw, ih] = iconSize(icon);
+    hudIcon(g, icon, Math.round(well.x + (well.w - iw * 2) / 2), Math.round(well.y + (well.h - ih * 2) / 2), 2, alpha);
+    const cx = r.x + r.w / 2;
+    const [name] = boostLabel(this.s.app.tuning, offer);
+    const nm = wrapText(name, r.w - 4, true).slice(0, 2);
+    nm.forEach((line, i) => texts.text(line, cx, r.y + UPRIGHT_NAME_Y + i * 9, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha }));
+    // the stat as it stands, and after this card (the stat's name dropped when the strip is too wide for the card)
+    const showStat = preview.stat !== name && previewWidth(preview, true) + 8 <= r.w - 4;
+    const pw = previewWidth(preview, showStat);
+    const sy = r.y + UPRIGHT_NAME_Y + nm.length * 9 + 4;
+    const sx = Math.round(cx - (pw + 6) / 2);
+    rows(g, sx, sy, pw + 6, 11, 2, NAVY[1], 0.85 * alpha);
+    band(g, sx, sy, pw + 6, 11, 2, 0, 1, INK, alpha);
+    previewLine(g, texts, preview, sx + 3, sy + 5.5, offer.rarity === 'common' ? 0xb4f070 : mix(hi, WHITE, 0.25), alpha, showStat);
+    if (look.tag) {
+      const tw = textWidth(look.tag, 1, false) + 4;
+      const tr: Rect = { x: r.x + r.w - tw - 2, y: r.y + 4, w: tw, h: 9 };
+      tag(g, tr, look.face, alpha);
+      texts.text(look.tag, tr.x + 2, tr.y + 4.5, WHITE, { oy: 0.5, alpha });
     }
     cardShine(g, r, offer.rarity, now, alpha);
     if (flash > 0) {
@@ -713,7 +757,7 @@ export class Overlays {
     const sc = 0.75 + 0.25 * k;
     const p: Rect = { x: Math.round(p0.x + (p0.w * (1 - sc)) / 2), y: Math.round(p0.y + (p0.h * (1 - sc)) / 2), w: Math.round(p0.w * sc), h: Math.round(p0.h * sc) };
     if (since < 40) return;
-    panel(gc, p, { trim: 'full', alpha: clamp01(since / 100) });
+    glass(gc, p, { alpha: clamp01(since / 100), clear: 0.12, rim: GOLD[1] });
     if (k < 0.98) return;
     // a replay's opening draft counts its picks; a pick with a relic in it is a relic pick
     const title = run.startPick
@@ -767,7 +811,7 @@ export class Overlays {
       // face up: the whole card (a flash as it lands; a reroll flashes them all)
       const flash = Math.max(0, 0.6 * (1 - (dt - T.up) / 160));
       const chips: Array<{ tag: RelicTag; r: Rect; hot: boolean }> = [];
-      if (isRelicOffer(offer)) relicCard(ctx, slot, offer.relic, { owned, tuning: s.app.tuning, now: now + i * 300, flash, chips, plain: run.simplePick });
+      if (isRelicOffer(offer)) relicCard(ctx, slot, offer.relic, { owned, tuning: s.app.tuning, now: now + i * 300, flash, chips, plain: run.simplePick, upright: true });
       else this.card(ctx, slot, offer, boostPreview(run.tuning, run.hero, offer), now + i * 300, flash);
       for (const c of chips) if (c.hot) synergy.push({ chip: c.r, tag: c.tag, card: slot, at: deal.at + T.up });
     });
@@ -822,7 +866,8 @@ export class Overlays {
   private cardFace(g: G, r: Rect, offer: BoostOffer, now: number): void {
     const face = isRelicOffer(offer) ? RARITY_FACE_OF(relicById(offer.relic)?.rarity ?? offer.rarity) : CARD[offer.rarity].face;
     cardFrame(g, r, face, 'common', now);
-    if (r.h >= 6) cardTile(g, { x: r.x + 2, y: r.y + 2, w: 22, h: r.h - 4 }, face);
+    if (r.h > 34 && r.w < 160) uprightWell(g, r, face, 'common', now);
+    else if (r.h >= 6) cardTile(g, { x: r.x + 2, y: r.y + 2, w: 22, h: r.h - 4 }, face);
   }
 
   /**
@@ -952,8 +997,10 @@ export class Overlays {
       g.fillRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
     }
     // the icon: pops out of the card's tile at 2x, then flies (shrinking to 1x) along an arc to its slot
-    const x0 = p.r.x + 1;
-    const y0 = p.r.y + p.r.h / 2 - 12;
+    // (an upright card's icon sits in the well at its top middle)
+    const up = p.r.h > 60;
+    const x0 = up ? Math.round(p.r.x + p.r.w / 2 - 12) : p.r.x + 1;
+    const y0 = up ? p.r.y + 4 : p.r.y + p.r.h / 2 - 12;
     if (age < landAt) {
       const k = clamp01((age - 60) / (landAt - 60));
       const e = k * k * (3 - 2 * k);
