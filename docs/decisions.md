@@ -860,7 +860,7 @@ A2B-2. **Four-frame idles for all sixteen heroes** (`idle2`, `idle3` in every he
     weapon's weight for the heroes without one) follows a frame behind. 300 ms a frame (a 1.2 s loop, inside the
     bible's 900-1400 ms); a hero without the extra frames keeps the two-frame breath (fighters.ts `idlePose`).
 A2B-3. **Squash and stretch on the hero by transform** (fighters.ts `squash`, at most 100 ms, volume kept): a cut
-    stretches him forward (+8%), a blow taken squashes him (+10%), a landing squashes him wide (+14%; a finisher show's
+    stretches him forward (+8%; the dash's push-off +7%), a blow taken squashes him (+10%), a landing squashes him wide (+14%; a finisher show's
     leap is caught when its lift comes back to the ground). No held anticipation is added before the first blow: the
     engaged pose between blows is already the windup, and the dash (70 ms) must not delay the hit the tap asked for.
 A2B-4. **Sable gets the bible's twelve**: a finisher pose (both blades thrown wide, the scarf rising) and the green
@@ -883,6 +883,10 @@ A8. (Superseded by A2B-2.) **A four-step idle breath** for the fourteen rig hero
     them; Rowan and Sable keep their two frames. The menus' 3x heroes still use two.
 A9. **Ashfell's darkest foes get an ember rim** (light from below, section 9 of the bible) and the glass warren a light
     spill from its lake; the forge was re-scored from a fight screen (the sheet had made it look flat).
+
+A2B-8. **The four-frame idle shows on the hero select too** (heroes.ts, at 340 ms a frame): at 3x the plume, cape and
+    hair lagging the breath read best there. Foes landing from a wave's hops squash wide for 100 ms, and the cinderling
+    joins the foes with Ashfell's ember rim (it sank into the plain's dark ground at phone size).
 
 (art: end of section)
 
