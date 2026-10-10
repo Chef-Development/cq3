@@ -39,7 +39,7 @@ export function moodColour(c: Col, m: Mood): Col {
   const sat = mx > 0 ? (mx - mn) / mx : 0;
   const L = 0.299 * r + 0.587 * g + 0.114 * b;
   // a light: bright and saturated (or very bright): it keeps its colour
-  const k = m.keep * Math.max(ss(0.5, 0.86, mx) * ss(0.38, 0.72, sat), ss(0.9, 1, L) * 0.6);
+  const k = m.keep * Math.max(ss(0.55, 0.9, mx) * ss(0.28, 0.6, sat), ss(0.9, 1, L) * 0.6);
   const ds = m.desat * (1 - k);
   r = L + (r - L) * (1 - ds);
   g = L + (g - L) * (1 - ds);
