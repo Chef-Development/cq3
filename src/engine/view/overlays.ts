@@ -131,9 +131,10 @@ export function previewLine(g: Phaser.GameObjects.Graphics, texts: TextPool, p: 
 
 /** Boost card looks per rarity: button face [hi, base, lo, deep], icon well [fill, top line], tag. */
 export const CARD: Record<Rarity, { face: readonly [number, number, number, number]; well: [number, number]; tag: string }> = {
-  common: { face: [0x8af06a, 0x5ad848, 0x3aaa34, 0x247a26], well: [0x2a8a2e, 0x1e6a24], tag: '' },
-  rare: { face: [0x8ac8ff, 0x3a8ae8, 0x2a62c8, 0x1a3c8a], well: [0x2456b0, 0x1a3c8a], tag: 'RARE' },
-  epic: { face: [0xf0b8ff, 0xb05ae0, 0x8a3ac0, 0x5a1a8a], well: [0x6a2aa8, 0x4a1a7a], tag: 'EPIC' },
+  // L8: worn moss, steel blue and plum (relic-ui.ts RARITY_FACE), not candy lime, sky and violet
+  common: { face: [0xa6c884, 0x6c9a52, 0x4a763a, 0x2a4a26], well: [0x34603a, 0x26482a], tag: '' },
+  rare: { face: [0x9cbcdc, 0x5c82b4, 0x3e5c90, 0x22345e], well: [0x2e4a7a, 0x22345e], tag: 'RARE' },
+  epic: { face: [0xccaadc, 0x8c5eaa, 0x663e86, 0x3c2056], well: [0x553276, 0x3c2056], tag: 'EPIC' },
 };
 
 type G = Phaser.GameObjects.Graphics;
