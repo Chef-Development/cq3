@@ -829,6 +829,12 @@ S12. **Nothing says "can't be erased" before the end of the first region.** Rowa
     away, and creatures that crossed his sea road. Regions 6-8's scenes are drafted in full ahead of their data
     (`story-hush.ts`, `story-reach.ts`, `story-wick.ts`), as Region 5's were: the content team builds on the ids.
 
+S13. **The rest of the story is drafted in data, not in play.** Region 9 in full (`story-salt.ts`), Region 10's two
+    key scenes (`story-far.ts`), and Regions 11-12's key scenes, the beat and the ending (`story-end.ts`), checked by
+    the same tests as the scenes in play (box counts, widths, speakers, the Mapmaker's and Hesper's no-contraction
+    voices; he is named only at the end of `lowTruth`, speaker `ambrose`). Camp banter can now stop being true
+    (`until`): Brann's slate lines stop once his bell rings (`saltVictory`).
+
 (story: end of section)
 
 
