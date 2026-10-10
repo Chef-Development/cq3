@@ -1549,6 +1549,13 @@ C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics
   page), build mode's hammer markers (a built upgrade: its object; none under the open card), the hero select's name
   and level rows, the companions' Along sockets. Pressing one taps its centre, as a finger would. desktop.spec Tabs to
   a chest, a seal and a spot and presses each.
+- **Q2-8 The UI crawl on the merged branch, three ways** (phone New game through Act 1 and every camp screen; phone
+  from Noonspire's first act, god mode; desktop with all 136 Test lab scenarios): no page error, no long decimal, no
+  missing mini or texture, no stuck screen. The desktop run flagged the camp home's counters three px past the top for
+  1.5 s once; walking every lab scenario again (each, its rating card and the list after it) didn't reproduce it, so it
+  was the top bar's slide-in caught by a fast screen change, not a resting state. A tall hero sheet now takes the whole
+  column (it cut the name in half); the settings button is a hand-drawn cog (the round one read as a compass) and is
+  dimmed over the title and every story scene.
 (qa: end of section)
 
 
