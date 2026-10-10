@@ -34,7 +34,7 @@ One PR at the end supersedes #1-#7.
 | 5 | First 10 minutes: new-player bot path, measure, fix | 5 | title -> first fight 0:33 -> 0:20; first chest ~1:30; the first finisher finishes its foe; auto-wear; next: a simpler first relic pick |
 | 6 | Story rewrite: intro, regions 1-3 scenes, heroes, companions, banter, lore, UI words | 1 | done (sweep, companions, editor's 45 notes applied, Region 5 fit, Regions 6-12 drafted); L8 tone pass + 2nd editor next |
 | 7 | The Great Atlas world map (2A); animation upgrade + lighting pass (2B); 2x rollout | 2A/2B | in progress |
-| 8 | Region 4 complete: in play + balance (3), art + music (dusk-art) | 3 + dusk-art | in progress |
+| 8 | Region 4 complete: in play + balance (3), art + music (dusk-art) | 3 + dusk-art | in play, balanced (acts 10-12: 84-90 / 71-74 / 53-69%, masher 0/73); art + music landing; parity pass next |
 | 9 | Resizable window, Android, code split, bot crawl part 1; then reviewers | 4 | in progress |
 | 10 | Region 5 (bar rules + data done, not in play; art and wiring later) | 3 | later |
 | 11 | Backlog cycle (QA, Region 6, polish, NG+, more content, music, accessibility) | all | later |
@@ -103,3 +103,6 @@ One PR at the end supersedes #1-#7.
   first hero chest always someone new (CORE), each hero's first finisher revealed) and art 2C's darker Greenmarch,
   Frostpeaks and Ashfell (a grade baked per theme at paint time). Second editor's notes (59, the ending) to the story
   team. first10 chunk 3 launched (a simpler first relic pick, re-measure).
+- 22:20 EDT: content chunk 2 merged: Region 4 in play after Ashfell (acts 10-12; 14 relics, gear, the camp scene,
+  12 spoiler lab items), balanced at 75% (guard bot-region4), masher 0 of 73 at its boss; CORE: its set/signature
+  effects, ice floats on the tide. Content chunk 3 launched (Region 4 parity, Region 5 wiring with stand-ins).
