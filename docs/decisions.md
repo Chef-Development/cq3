@@ -1388,6 +1388,13 @@ C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics
     Ashfell ones whether or not the region is on; `noonspire()` in art-region-map.ts, a sand plateau with salt pans and
     a dotted mirage lake), and its seventeen gear icons (art-gear.ts `NOON_ICONS`; Region 4's still borrow the slot icons). Under L7 its first act
     map's sand is a cool neutral stone (it read as mud), the salt pans a step brighter and still under the road.
+C-ART-12. **Checked at phone size with Region 5 on: its relic pick and its region card read** (tags, synergy, the
+    belt, the card's sand map and seals). Two icons didn't at card size: the Dust Devil read as the Sand Glass's
+    hourglass (now a twisting funnel with no foot) and the Fata Morgana as a cart (now a castle standing in the air
+    over the haze). Region 4's gear has its own icons now (`DUSK_ICONS`; its Waders keep Region 1's, as the data
+    says). The sphinx's face was a flat, square, front-lit block that read as a mask: now turned a little toward the
+    hero, lit from her left with the far side in the headdress's shadow, the jaw tapering, fangs when she speaks or
+    strikes (her portrait is the Atlas's, unchanged).
 
 (content: end of section)
 
