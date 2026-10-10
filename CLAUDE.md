@@ -39,8 +39,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   packs"): its art files (foes, portraits, bar pieces, backdrops) are imported only by `pack-<region>.ts`, which exports
   `PACK: RegionArtPack` (paint in slices, add the drawn art, name its keys, paint a backdrop, its foes' colours); its
   loader and fight themes go in `region-art.ts` (`LOADERS`, `PACK_THEMES`). `main.ts` starts every pack's `import()`
-  at boot, the scene paints them in idle slices on the title, and the first screen past the title finishes them at
-  once (`App.setPhase` -> `ensureRegionArt`), so nothing after the title waits; `__cq3.ready` waits for the packs. A
+  at boot, the scene paints them in idle slices from the title on, and a fight or any screen of a later region finishes
+  them at once (`App.setPhase` -> `ensureRegionArt`; a missing foe or portrait asks too), so nothing ever draws a
+  texture that isn't there; `__cq3.ready` waits for the packs to arrive. A
   static import of a pack's file from anywhere else pulls it back into the main chunk (check the build's chunk list):
   a small thing the game needs before the pack arrives (a theme list, a helper the act maps share) gets a file of its
   own. The service worker's precache lists every built file by itself.

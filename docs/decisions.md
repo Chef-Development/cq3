@@ -975,10 +975,11 @@ C7. **Stand-ins until a region's art lands, never a missing texture or a silent 
   pixels instead of 6x.
 - **Q9 The later regions' art in packs** (region-art.ts, docs/perf.md "Region art packs"). The Frostpeaks' and
   Ashfell's foes, portraits, bar pieces and backdrops are chunks loaded with `import()` as the game boots, painted in
-  idle slices on the title, and finished at once on the first screen past it (`App.setPhase`), so no screen after the
-  title can meet a missing texture; the Frostpeaks' foes no longer paint at boot (they did, ~0.4 s at 1x). Gated on
-  "the first screen past the title" rather than on each use: the art is used from many places (bar pieces in any
-  fight, portraits, the stage), and one gate keeps every one of them synchronous. `__cq3.ready` waits for the packs.
+  idle slices from the title on, and finished at once when a fight starts or the run is in a later region
+  (`App.setPhase`), so no fight can meet a missing texture; the Frostpeaks' foes no longer paint at boot (they did,
+  ~0.4 s at 1x). Gated per screen change rather than at each use: the art is used from many places (bar pieces in any
+  fight, portraits, the stage), and one gate keeps every one of them synchronous. Region 4's art (landed tonight) is a
+  pack too (`pack-dusk.ts`). `__cq3.ready` waits for the packs.
   The pattern is written for the content teams (CLAUDE.md, docs/perf.md). Not split tonight: the later regions' music
   (music.ts is being extended for the new regions; moving 800 lines would collide), the sharper chest reveal, the lab.
 - **Q10 The crawls.** `npm run crawl` (tests/balance/crawl.run.ts, by hand through the balance lock): every hero
