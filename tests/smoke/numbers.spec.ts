@@ -255,7 +255,8 @@ test('numbers: a won fight: the loot, the boost pick (every stat card), the stat
   test.setTimeout(120_000);
   await ready(page);
   await onMap(page);
-  await run(page, `x.setPhase(() => x.run.chooseNode(x.run.choices()[0])); messyHero(); x.begin(); messyFoes();`);
+  // (Act 1's first win would bring Pip's road scene before the map: seen, so the pick goes straight on)
+  await run(page, `x.profile.seen.push('scene:road'); x.setPhase(() => x.run.chooseNode(x.run.choices()[0])); messyHero(); x.begin(); messyFoes();`);
   await winFight(page);
   await expect.poll(() => app(page)((x) => x.run.phase), { timeout: 15_000 }).toMatch(/loot|boost/);
   await check(page, 'the loot', 1500);

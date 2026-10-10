@@ -2561,7 +2561,7 @@ export class Combat {
     if (heal > 0) this.events.push({ type: 'gearFx', fx, amount: heal, enemyId: 0 });
   }
 
-  /** Pendulum Shard: every Nth combo hit spawns a green block. */
+  /** Keystone Shard (effect id 'pendulum', Fresh Ink): every Nth combo hit spawns a green block. */
   private pendulumTick(): void {
     const n = Math.max(2, Math.round(this.tuning.effects.pendulumEvery));
     if (!this.has('pendulum') || this.combo <= 0 || this.combo % n !== 0) return;
@@ -3026,7 +3026,8 @@ export class Combat {
     if (this.hero.hp > 0 && (K.atk || K.maxHp || K.comboPower)) {
       this.hero.bonusAtk += K.atk;
       this.hero.bonusMaxHp += K.maxHp;
-      this.hero.hp += K.maxHp;
+      // (max HP is rounded: a hero at full HP stays at it, never a fraction above: "252/251" on the plate)
+      this.hero.hp = Math.min(this.hero.hp + K.maxHp, heroMaxHp(this.tuning, this.hero));
       this.hero.bonusComboPower += K.comboPower;
       this.events.push({ type: 'statGain', enemyId: e.id, atk: K.atk, maxHp: K.maxHp, comboPower: K.comboPower });
     }

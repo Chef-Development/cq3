@@ -16,6 +16,7 @@ export const SPEAKER_NAME: Record<Speaker, string> = {
   keeper: 'Hesper',
   bellybog: 'Old Bellybog',
   sluiceKeeper: 'Sluice Keeper',
+  sphinx: 'Noon Sphinx',
   captain: 'Bandit Captain',
   golem: 'Ruin Golem',
   boarking: 'Boar King',
@@ -54,7 +55,7 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'smith', text: "Oi! Mind the sparks. Name's Mags.\nI fix what knights break. So, everything." },
     { who: 'rowan', text: 'Is that... a badger? With a hammer?' },
     { who: 'smith', text: "Best hammer in Greenmarch. Bring me junk,\nI melt it into scrap." },
-    { who: 'smith', text: 'Scrap and coin buy upgrades. Coin buys\na fresh roll on a gem. No refunds.' },
+    { who: 'smith', text: 'Scrap and coin buy upgrades. Coin swaps\na bonus stat for a new one. No refunds.' },
     { who: 'pip', text: 'She once forged a spoon so sharp\nit got banned. Twice.' },
     { who: 'smith', text: "Hand over that sword. It's bent.\nYou slept on it, didn't you?" },
   ],
@@ -64,7 +65,7 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'narrator', text: 'Night at camp. Rowan sleeps at last.\nSomeone creeps toward the bags.' },
     { who: 'sable', text: "Coins, a map, a good sword. A lot of nice\nthings for one knight. He won't miss a few." },
     { who: 'pip', text: 'He will. Put it down. Owls see very well\nin the dark, and I bite.' },
-    { who: 'sable', text: 'Fine. Sable, thief, of Crookwell. Last night\nsomeone drew all my alleys straight.' },
+    { who: 'sable', text: "Fine. I'm Sable. Thief. From Crookwell.\nLast night someone drew all my alleys straight." },
     { who: 'rowan', text: "We're after the man who did it. Help us put\nit back. We could use quick hands." },
     { who: 'sable', text: 'Give me my alleys back, and you get two\ndaggers. I keep anything shiny. Deal?' },
   ],
@@ -73,17 +74,17 @@ export const STORY: Record<string, StoryBox[]> = {
   // on whether Sable has joined. (It replays only if data/tips.ts WELCOME_ID changes: see the story team's report.)
   welcomeBack: [
     { who: 'pip', text: "Hoo! You're back. A lot has changed while you\nwere away. Sit down, I'll catch you up." },
-    { who: 'pip', text: "The kingdom is a living map. The man redrawing\nit is the Mapmaker, and he can't erase you." },
+    { who: 'pip', text: 'The kingdom is a living map. The man redrawing\nit is the Mapmaker. Only you stayed awake.' },
     { who: 'pip', text: "Restore a region and his redraw breaks.\nSable's at camp. Counting our coins. Again." },
   ],
   welcomeBackVisitor: [
     { who: 'pip', text: "Hoo! You're back. A lot has changed while you\nwere away. Sit down, I'll catch you up." },
-    { who: 'pip', text: "The kingdom is a living map. The man redrawing\nit is the Mapmaker, and he can't erase you." },
+    { who: 'pip', text: 'The kingdom is a living map. The man redrawing\nit is the Mapmaker. Only you stayed awake.' },
     { who: 'pip', text: "Restore a region and his redraw breaks.\nAnd someone's been creeping round the camp..." },
   ],
   welcomeBackSoon: [
     { who: 'pip', text: "Hoo! You're back. A lot has changed while you\nwere away. Sit down, I'll catch you up." },
-    { who: 'pip', text: "The kingdom is a living map. The man redrawing\nit is the Mapmaker, and he can't erase you." },
+    { who: 'pip', text: 'The kingdom is a living map. The man redrawing\nit is the Mapmaker. Only you stayed awake.' },
     { who: 'pip', text: 'Restore a region and his redraw breaks.\nClear Act 1 and we get a visitor. Shifty one.' },
   ],
   // New game: at most 4 boxes before the first fight (this and act1). Who he is, and the Atlas, come later.
@@ -100,7 +101,7 @@ export const STORY: Record<string, StoryBox[]> = {
   road: [
     { who: 'rowan', text: 'Thanks for the warning. Who are you?\nAnd how do you know my name?' },
     { who: 'pip', text: 'Pip. I know a lot of names. Look at the farms.\nThe farmers are asleep where they stood.' },
-    { who: 'rowan', text: "Then let's wake them. Come on." },
+    { who: 'rowan', text: 'So we wake them. Come on.' },
     { who: 'pip', text: "We can't. Someone rubbed this land off the\nGreat Atlas. What's erased, sleeps." },
     { who: 'pip', text: 'And what he redraws wakes up wrong. This road\nwas crooked yesterday. Follow it.' },
     { who: 'rowan', text: 'Then we follow it. Someone has to stay\nawake for them.' },
@@ -116,8 +117,8 @@ export const STORY: Record<string, StoryBox[]> = {
   act2: [
     { who: 'narrator', text: 'The Old Ruins lay broken for three hundred\nyears. Now they have walls again.' },
     { who: 'sable', text: 'Fresh stone. Fresh mortar. Not a crack.\nWho builds a fortress overnight?' },
-    { who: 'pip', text: 'Nobody built it. He drew it back the way it\nwas. Walls, towers, gate. And the guard.' },
-    { who: 'rowan', text: 'Then his trail runs through here.\nStay close, both of you.' },
+    { who: 'pip', text: 'Nobody built it. He drew it back the way it\nwas. Walls, towers, gate. The guard woke too.' },
+    { who: 'rowan', text: 'His trail runs through here.\nStay close, both of you.' },
   ],
   // Act 2 mini-boss: the fortress's guardian, woken when its walls came back
   golem: [
@@ -147,6 +148,7 @@ export const STORY: Record<string, StoryBox[]> = {
   boarKing2: [
     { who: 'mapmaker', text: 'Struggling, Majesty? A king needs\nsubjects. Allow me.' },
     { who: 'narrator', text: 'Gold lines run from his pen. He draws a door\nin the roots, and piglets pour out of it.' },
+    { who: 'mapmaker', text: 'There. Better.' },
     { who: 'pip', text: 'The piglets first, Rowan.\nThe king hides behind them.' },
   ],
   // phase 3 (his second edit): everything faster
@@ -180,7 +182,7 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'rimehorn', text: 'STOP. Nobody crosses Frostbite Pass.\nThe road is glass now. Turn back.' },
     { who: 'rowan', text: 'We have to cross. Something up there holds\nthis whole mountain still.' },
     { who: 'rimehorn', text: 'The last ones who tried slid off the edge.\nI caught two. I could not catch the third.' },
-    { who: 'pip', text: "He's guarding the pass from the road itself,\nRowan. Not from us." },
+    { who: 'pip', text: "He's guarding people from the road itself,\nRowan. Not the road from us." },
     { who: 'rimehorn', text: 'Then show me you can stand on it. Stand\nagainst me. If you fall, you go home.' },
   ],
   // after the Act 1 mini-boss: the fight's shockwave cracks Neve out of her own frost spell, and she joins
@@ -188,7 +190,7 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'narrator', text: "Rimehorn's last stomp shakes the whole pass.\nA block of ice beside the road cracks open." },
     { who: 'neve', text: "FINALLY. How long was I in there? Don't say.\nIt's always ten past three up here." },
     { who: 'rowan', text: 'You were frozen inside that ice.\nAre you all right?' },
-    { who: 'neve', text: "Neve. Frost mage. I climbed up to break the\nwyrm's mirror. It threw my spell right back." },
+    { who: 'neve', text: "Neve. Frost mage. The wyrm's mirror threw my\nspell back, and me ALL the way down here." },
     { who: 'pip', text: "Glacia's mirror. That's his line, Rowan.\nThat's what holds the mountain." },
     { who: 'neve', text: "Then I'm coming. You need a real mage.\nNot for the company. ...Do you play cards?" },
   ],
@@ -199,14 +201,14 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'neve', text: 'A winter that never ends. Cold keeps her\nhoard bright, and her scales. She adores it.' },
     { who: 'sable', text: "A hoard? Of shiny things?\nWhy is nobody running? Let's GO." },
     { who: 'pip', text: 'He finds whoever will love his fix the most,\nand gives them the line to keep.' },
-    { who: 'rowan', text: "Then she won't give it up for asking." },
+    { who: 'rowan', text: "So she won't give it up for asking." },
   ],
   // Act 2 mini-boss: a giant frost spider who weaves the frozen afternoon, and likes it that way
   matron: [
     { who: 'matron', text: 'Quiet, knight. Look down. You are standing\non my finest work.' },
     { who: 'rowan', text: 'A tapestry of one afternoon, over and over.\nThe same snow, the same clouds.' },
     { who: 'matron', text: 'Panel ninety. Nothing changes now, so at\nlast I can weave it exactly. Every flake.' },
-    { who: 'neve', text: 'The Loom Matron. She weaves the hoard for\nGlacia. She LIKES it like this.' },
+    { who: 'neve', text: "The Loom Matron. She weaves for Glacia's\nhoard. She LIKES it like this." },
     { who: 'matron', text: 'Break that mirror and everything moves again.\nNo. Hold still. I will weave you in.' },
   ],
   // Act 3 start: the glacier under the aurora, the mirror in sight
@@ -228,8 +230,8 @@ export const STORY: Record<string, StoryBox[]> = {
   // phase 2 (his edit): holds every 3rd yellow, a mirror in the middle of the bar
   glacia2: [
     { who: 'mapmaker', text: 'Forgive me, Glacia. Allow me to steady\nthings. Hold still, all of you.' },
-    { who: 'narrator', text: 'His pen moves. Every third block sets into\nholding ice, and her scales turn to mirror.' },
-    { who: 'neve', text: "Her mirror bounces your cursor back. And\nhold the long ones right to the end!" },
+    { who: 'narrator', text: 'His pen moves. The ice grips whatever\ntouches it, and her scales turn to mirror.' },
+    { who: 'neve', text: 'Her scales bounce your swing right back.\nAnd hold the long ones right to the end!' },
   ],
   // phase 3 (his edit): he draws the one thing he came to stop, an avalanche of ice and snowdrift
   glacia3: [
@@ -268,7 +270,7 @@ export const STORY: Record<string, StoryBox[]> = {
   ],
   meetVesper: [
     { who: 'narrator', text: 'A silver longbow rises from the chest,\nthen a hooded ranger in dusk purple.' },
-    { who: 'vesper', text: "Vesper. Ranger. My fen went dark, so I hunt\nwhoever did it. I don't do small talk." },
+    { who: 'vesper', text: "Vesper. Ranger. Someone stole my fen's\nnight. I hunt him. I don't do small talk." },
     { who: 'vesper', text: "...Is that an owl? A little tufty one?\nAhem. Never mind. I didn't say that." },
     { who: 'pip', text: "Hoo. She likes me. They always do.\nIt's the ear tufts." },
   ],
@@ -289,14 +291,14 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'narrator', text: 'The chest creaks open. Empty?\nA rope drops from the branch above.' },
     { who: 'wren', text: "Wren. I run roofs. Doors are slow.\nNice chest. Was it locked? It isn't now." },
     { who: 'pip', text: 'Hoo! She took my snack.\nMid-sentence! While I was LOOKING!' },
-    { who: 'wren', text: "Borrowed. My town's across the sea, in the\nfog. I'm owed a few things. Point me at him." },
+    { who: 'wren', text: "Borrowed. My town's across the sea. Gone\nblank. I'm owed a few things. Point me at him." },
   ],
   // ---- Yara and Dell (Part 6): their first chest reveal
   meetYara: [
     { who: 'narrator', text: 'Starlight spills from the chest. A wolf\nmade of light pads out. Then a girl.' },
     { who: 'yara', text: "I'm Yara. I call spirits. This is Wolf.\nHe says you smell like boar. Sorry." },
     { who: 'yara', text: 'That is Tortoise. Never say turtle.\nShe holds a grudge for a hundred years.' },
-    { who: 'yara', text: "My village sleeps across the sea, in the fog.\nThe spirits say it's only sleeping. I listen." },
+    { who: 'yara', text: 'My village is asleep across the sea.\nThe spirits say it will wake. I listen.' },
   ],
   meetDell: [
     { who: 'narrator', text: 'A pebble pings off the lid from inside.\nThen a straw hat pokes out.' },
@@ -309,11 +311,11 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'narrator', text: 'The chest hisses, fizzes and pops. Green\nsmoke pours out, then a scorched cap.' },
     { who: 'fizz', text: "Fizz! Alchemist! Don't touch the red one.\nOr the blue one. The green one's fine. Ish." },
     { who: 'pip', text: 'Hoo. She smells like a burnt kettle.\nI like her already.' },
-    { who: 'fizz', text: "My lighthouse is across the sea, in the fog.\nWhere's the lab? ...This is the lab now." },
+    { who: 'fizz', text: "My lighthouse went blank, across the sea.\nWhere's the lab? ...This is the lab now." },
   ],
   meetBrann: [
-    { who: 'narrator', text: 'A deep BONNNG rolls out of the chest. A calm\nmonk climbs out, a huge bell on his back.' },
-    { who: 'brann', text: 'Brann. Bellwarden. I took a vow of silence.\nThe bell did not.' },
+    { who: 'narrator', text: 'A deep BONNG rolls out of the chest. A calm\nmonk climbs out, a huge bell on his back.' },
+    { who: 'brann', text: '(writes on a slate) Brann. Bellwarden.\nI took a vow of silence. The bell did not.' },
     { who: 'narrator', text: 'His abbey sleeps across the sea. He will\nspeak when its bell rings again.' },
     { who: 'narrator', text: 'For now, he rings his own, very softly.\nIt is the loudest thing Rowan has ever heard.' },
   ],
@@ -327,10 +329,10 @@ Object.assign(STORY, DUSK_STORY);
 // ---- Gorm and Tess (Part 6): their first chest reveals
 Object.assign(STORY, {
   meetGorm: [
-    { who: 'narrator', text: 'The chest creaks open. Two stone fists\nlift the lid off, very, very gently.' },
+    { who: 'narrator', text: "Two stone fists lift the chest's lid off,\nvery, very gently." },
     { who: 'gorm', text: "Oh. Hello. Sorry, I was napping.\nI'm Gorm. I punch rocks. Nicely." },
-    { who: 'rowan', text: 'You were napping in a CHEST?\nHow did you even fit in there?' },
-    { who: 'gorm', text: "I folded up small, like my stones back home.\nThey're in the fog now. Who needs squashing?" },
+    { who: 'rowan', text: 'You were napping in a chest?\nHow did you even fit in there?' },
+    { who: 'gorm', text: "I folded up small, like my stones back home.\nThey've gone blank. Who needs squashing?" },
   ],
   meetTess: [
     { who: 'narrator', text: 'The chest ticks. Then it chimes.\nA tiny old lady climbs out, scowling.' },

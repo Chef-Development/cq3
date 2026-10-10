@@ -206,7 +206,7 @@ export const DEFAULT_TUNING = {
   },
   specials: {
     tellGap: 0.5, // seconds after one telegraph's action before the next telegraph may start (one at a time)
-    jitter: 0.15, // +/- share of a timed special's interval, so they don't tick like clockwork
+    jitter: 0.15, // +/- share of a timed special's interval, so they don't come like a metronome
     maxEnemies: 4, // summons and splits stop at this many enemies on screen
   },
   waves: {
@@ -293,7 +293,7 @@ export const DEFAULT_TUNING = {
     setChance: 0.25, // a Rare or Epic drop is a set piece (of its slot) this often
     sigChance: 0.2, // a boss's signature Legendary drops this often on a kill...
     sigStep: 0.1, // ...plus this for every kill that didn't drop it (bad-luck protection)
-    mythicChance: 0.05, // the same for the Boar King's Mythic (the Pendulum Shard)
+    mythicChance: 0.05, // the same for the Boar King's Mythic (the Keystone Shard)
     mythicStep: 0.03,
     // Item level comes from the act (and creeps up along its map rows); stats grow x(1 + level x levelScale).
     ilvlAct1: 1,
@@ -626,7 +626,7 @@ export const DEFAULT_TUNING = {
     greenwardenKillHeal: 0.03, // ...and kills heal this much
     tuskCrit: 0.05, // Tusk Crown: +5% crit per finisher stack spent...
     tuskSec: 5, // ...for this long
-    pendulumEvery: 10, // Pendulum Shard: every Nth combo hit spawns a green block
+    pendulumEvery: 10, // Keystone Shard (Fresh Ink): every Nth combo hit spawns a green block
     golemHeal: 1, // Golemheart Plate: HP healed per red blocked
     leechHp: 2, // Leech: HP per crit
     riposte: 0.5, // Riposte: a blocked red hits its owner for this share of your attack
@@ -1288,7 +1288,7 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       s('effects.greenwardenKillHeal', 'Greenwarden 4: kill heals', 0, 0.2, 0.01),
       s('effects.tuskCrit', 'Tusk Crown: crit per stack', 0, 0.3, 0.01),
       s('effects.tuskSec', 'Tusk Crown: seconds', 0, 20, 0.5),
-      s('effects.pendulumEvery', 'Pendulum Shard: every N hits', 2, 30, 1),
+      s('effects.pendulumEvery', 'Keystone Shard: every N hits', 2, 30, 1),
       s('effects.golemHeal', 'Golemheart: HP per block', 0, 10, 1),
       s('effects.leechHp', 'Leech: HP per crit', 0, 20, 1),
       s('effects.riposte', 'Riposte: x attack', 0, 3, 0.05),

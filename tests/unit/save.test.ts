@@ -129,6 +129,7 @@ describe('save at every node', () => {
 
   it('a kill still waiting on its animation keeps its coins (in the purse), and the reward comes up', () => {
     const r = onMap();
+    r.profile.seen.push('scene:road'); // (past a new player's first win: it has no pick)
     r.chooseNode(r.map.rows[0][0]);
     const c = r.combat!;
     toLastWave(c);

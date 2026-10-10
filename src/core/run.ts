@@ -1123,6 +1123,7 @@ export class Run {
     this.boostMin = min;
     this.boostThen = then;
     if (this.loot.length) this.phase = 'loot';
+    else if (then === 'map' && this.firstWin) this.goOn(then);
     else this.offerBoosts(min, then);
   }
 
@@ -1131,7 +1132,18 @@ export class Run {
     if (this.phase !== 'loot') return;
     this.loot = [];
     this.lootSalvaged = 0;
+    if (this.boostThen === 'map' && this.firstWin) return this.goOn('map');
     this.offerBoosts(this.boostMin, this.boostThen);
+  }
+
+  /**
+   * The act's first fight won on its first playthrough, once per profile (Act 1's: a newcomer's first win). Its scene
+   * plays before the map (`winScene`: Pip's road scene), and it offers no pick of its own: the chest the map promises
+   * right after it (`chestRow`) has one, and two picks within a minute of the first fight was one too many.
+   */
+  private get firstWin(): boolean {
+    const win = this.act.winScene;
+    return !!win && !this.skirmish && this.node?.type === 'fight' && this.profile.actsCleared <= this.actIndex && !this.profile.seen.includes(`scene:${win}`);
   }
 
   offerBoosts(min: boolean | Rarity, then: PickThen): void {
@@ -1182,10 +1194,17 @@ export class Run {
     this.goOn(this.boostThen);
   }
 
-  /** After the loot and the pick: the map, the act clear, the node's own stop (an ambush fought first), the world map. */
+  /** After the loot and the pick: the map, the act clear, the node's own stop (an ambush fought first), the world map.
+   *  The act's first fight won on its first playthrough brings its scene first (firstWin; a replay of a cleared act
+   *  never does). */
   private goOn(then: PickThen): void {
     if (then === 'world') return this.endSkirmish();
     if (then === 'node') return this.enterStop();
+    const win = this.act.winScene;
+    if (then === 'map' && win && this.firstWin) {
+      this.profile.seen.push(`scene:${win}`);
+      return this.playScenes([win], 'map');
+    }
     this.phase = then;
     if (then === 'actClear') this.clearAct();
   }
@@ -1387,7 +1406,7 @@ export class Run {
     // after a region's first act, the night at camp: a story hero joins (unless the camp already played it)
     const sable = this.campScene ? [this.campScene] : [];
     if (sable.length) this.sableJoined();
-    // the region's last act cleared: its victory scene (the weight comes home); else on to its next act
+    // the region's last act cleared: its victory scene (the region is restored); else on to its next act
     if (!lastActOfRegion(this.actIndex) && this.actIndex + 1 < this.region.acts.length) this.enterAct(this.actIndex + 1, [...sable, this.region.acts[this.actIndex + 1].startScene ?? '']);
     else this.playScenes([this.regionDef.victoryScene], 'victory');
   }

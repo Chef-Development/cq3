@@ -14,14 +14,13 @@
 // first visit to the forge plays Mags's intro scene, and the first visit after a region's first act plays a story
 // hero's arrival (Sable, then Neve: run.campScene); a chest hero's arrival plays after their reveal. While the home
 // sits idle, now and then (every 12-20 s) someone by the fire says a one-line quip in a small speech bubble
-// (src/data/banter.ts: BANTER, and HERO_BANTER once its speakers are at the camp).
+// (core/banter.ts picks: the camp's lines, the heroes' once they're here, the story's once it has reached their scene).
 import { signed } from '../../core/format';
 import Phaser from 'phaser';
 import { COMPANIONS, type CompanionId } from '../../data/companions';
 import { HEROES, HERO_IDS, type HeroId } from '../../data/heroes';
-import { BANTER, HERO_BANTER, type CampSpeaker } from '../../data/banter';
-import { ASH_BANTER, ASH_SCENE_ACT } from '../../data/banter-ash';
-import { DUSK_BANTER, DUSK_SCENE_ACT } from '../../data/banter-dusk';
+import type { CampSpeaker } from '../../data/banter';
+import { campBanter } from '../../core/banter';
 import { itemPower } from '../../core/gear';
 import { CAMP_UPGRADE_IDS, type CampUpgradeId } from '../../data/meta';
 import { hasCamp } from '../../core/meta';
@@ -1025,18 +1024,10 @@ export class CampView {
 
   // ------------------------------------------------------------------ banter by the fire
 
-  /** The lines that can be said now: the camp's own (Sable's once they're here) and the new heroes' once their
-   *  speakers (and whoever the line is to) are at the camp. */
+  /** The lines that can be said now (core/banter.ts): the camp's own, the heroes' once they (and whoever the line is
+   *  to) are at the camp, and the story's once it has reached their scene (they'd spoil it before). */
   private banterLines(): Array<{ who: CampSpeaker; text: string }> {
-    const here = this.speakers();
-    const sable = here.has('sable');
-    const base = BANTER.filter((l) => (l.who !== 'sable' && !l.sable) || sable);
-    const more = HERO_BANTER.filter((l) => here.has(l.who) && (l.with ?? []).every((w) => here.has(w)));
-    // the later regions' lines wait for the story to reach their scene (they'd spoil it)
-    const p = this.s.app.run.profile;
-    const ash = ASH_BANTER.filter((l) => here.has(l.who) && (p.seen.includes(l.after) || p.actsCleared >= (ASH_SCENE_ACT[l.after] ?? 99)));
-    const dusk = DUSK_BANTER.filter((l) => here.has(l.who) && (l.with ?? []).every((w) => here.has(w)) && (p.seen.includes(l.after) || p.actsCleared >= (DUSK_SCENE_ACT[l.after] ?? 99)));
-    return [...base, ...more, ...ash, ...dusk];
+    return campBanter(this.s.app.run.profile, this.speakers());
   }
 
   /** Where a speaker's bubble points: the top of their name plate or their head. */

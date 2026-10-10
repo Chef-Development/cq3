@@ -181,6 +181,59 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     pool: 0xff6a2a,
     poolAmt: 0.18,
   },
+  // Lanternfen: a violet dusk that never ends, the low sky rose behind; the fighters rimmed rose from the top left,
+  // lantern-warm light pooled where they stand
+  fen: {
+    shade: 0x24163e,
+    vignette: 0.62,
+    floor: 0.5,
+    top: 0.36,
+    rim: 0xf0a0c0,
+    rimAmt: 0.74,
+    rimLeft: 0.7,
+    rimTop: 0.9,
+    shadow: 0x0a0614,
+    shadowDx: 2,
+    shadowLen: 1.2,
+    dust: [0x5a4a5a, 0x6e5e66, 0x46384a],
+    pool: 0xffb060,
+    poolAmt: 0.14,
+  },
+  // the Drowned Causeway: a cooler teal-violet dusk over the flats, the rim pale lilac, wet stone underfoot
+  causeway: {
+    shade: 0x1a1e3a,
+    vignette: 0.6,
+    floor: 0.48,
+    top: 0.34,
+    rim: 0xd0b8f0,
+    rimAmt: 0.72,
+    rimLeft: 0.6,
+    rimTop: 1,
+    shadow: 0x06081a,
+    shadowDx: 2,
+    shadowLen: 1.1,
+    dust: [0x7aaab0, 0x5a6a80, 0xb4c4cc],
+    pool: 0xffc070,
+    poolAmt: 0.1,
+  },
+  // the Gloaming Mere: the sky stuck at sunset, the lighthouse's lamp far off on the right; red-rose rims, deep plum
+  // shade, the black lake under it all
+  mere: {
+    shade: 0x2a0e2a,
+    vignette: 0.66,
+    floor: 0.52,
+    top: 0.38,
+    rim: 0xff9a7a,
+    rimAmt: 0.82,
+    rimLeft: 0.75,
+    rimTop: 0.6,
+    shadow: 0x0c040e,
+    shadowDx: 3,
+    shadowLen: 1.3,
+    dust: [0x5a4658, 0x46364a, 0x7a6070],
+    pool: 0xffa060,
+    poolAmt: 0.12,
+  },
 };
 
 // ------------------------------------------------------------------ RGBA buffer
@@ -260,6 +313,7 @@ function rays(w: number, h: number, G: number, theme: Theme): Rgba {
   const out = new Rgba(w, h);
   if (theme === 'pass' || theme === 'caves' || theme === 'glacier') return frostRays(out, w, h, G, theme);
   if (theme === 'cinder' || theme === 'glass' || theme === 'forge') return ashRays(out, w, h, G, theme);
+  if (theme === 'fen' || theme === 'causeway' || theme === 'mere') return duskRays(out, w, h, G, theme);
   if (theme === 'hollow') {
     // the low sun on the left: long beams raking right across the den, a bloom around the disc
     const sx = Math.round(w * 0.24);
@@ -433,6 +487,33 @@ function ashRays(out: Rgba, w: number, h: number, G: number, theme: 'cinder' | '
   return out;
 }
 
+/**
+ * The Duskmire's light (ADD): the low sky's afterglow along the horizon (rose in the fen, a cooler band over the
+ * flats, burning on the mere), and on the mere the lighthouse's lamp blooming far off with its beam laid low across the
+ * water toward the fighters.
+ */
+function duskRays(out: Rgba, w: number, h: number, G: number, theme: 'fen' | 'causeway' | 'mere'): Rgba {
+  const [hx, hy, hr, hc, amt] = theme === 'fen' ? [w * 0.3, G - 30, 120, 0xff9aa0, 0.2] : theme === 'causeway' ? [w * 0.7, G - 34, 120, 0xd8a0d0, 0.18] : [w * 0.5, G - 32, 140, 0xff8a6a, 0.26];
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const d = Math.hypot((x + 0.5 - hx) * 0.45, (y + 0.5 - hy) * 2.2);
+      let a = Math.pow(clamp01(1 - d / hr), 2) * amt;
+      let c = hc;
+      if (theme === 'mere') {
+        // the lamp's bloom and its beam across the lake (drawn in the backdrop: this is its glow on the air)
+        const ld = Math.hypot(x + 0.5 - 214, (y + 0.5 - (G - 62)) * 1.2);
+        const la = Math.pow(clamp01(1 - ld / 34), 2) * 0.45;
+        const along = 214 - x;
+        const bm = along > 0 ? Math.pow(clamp01(1 - Math.abs(y - (G - 62 + along * 0.16)) / (2 + along * 0.05)), 2) * clamp01(1 - along / 170) * 0.22 : 0;
+        if (la + bm > a) c = 0xffd890;
+        a = Math.max(a, la + bm);
+      }
+      a *= 1 - ss(G - 6, G + 8, y) * 0.6;
+      if (a > 0.004) out.set(x, y, c, a);
+    }
+  return out;
+}
+
 /** A soft round glow (ADD), white so it can be tinted. */
 function glow(size: number): Rgba {
   const out = new Rgba(size, size);
@@ -501,15 +582,23 @@ const ASH_MIST: Record<'cinder' | 'glass' | 'forge', (w: number, h: number, G: n
   forge: (w, h, G) => [patches(w, h, G - 34, G + 2, 0x7a2a20, 0.22, 79, 0.46, 0.022, 0.12), patches(w, h, G - 6, h, 0x4a1a14, 0.18, 83, 0.5, 0.016, 0.18)],
 };
 
+/** The Duskmire's drifting banks (far, near): mist lying on the fen's black pools, a sea haze over the flats, the
+ *  mere's low fog. */
+const DUSK_MIST: Record<'fen' | 'causeway' | 'mere', (w: number, h: number, G: number) => [Rgba, Rgba]> = {
+  fen: (w, h, G) => [patches(w, h, G - 26, G - 4, 0xb898c8, 0.24, 91, 0.45, 0.022, 0.14), patches(w, h, G - 5, h, 0x7a6090, 0.16, 93, 0.52, 0.014, 0.16)],
+  causeway: (w, h, G) => [patches(w, h, G - 30, G - 4, 0xa8b0d8, 0.22, 97, 0.46, 0.02, 0.12), patches(w, h, G - 5, h, 0x6a7898, 0.14, 99, 0.52, 0.014, 0.16)],
+  mere: (w, h, G) => [patches(w, h, G - 28, G - 4, 0xd08aa0, 0.2, 101, 0.46, 0.022, 0.12), patches(w, h, G - 6, h, 0x6a3a5a, 0.18, 103, 0.5, 0.016, 0.18)],
+};
+
 /** One Frostpeaks or Ashfell theme's stage textures for the current layout (painted the first time an act needs them). */
-export function buildStageTheme(scene: Phaser.Scene, w: number, h: number, G: number, theme: 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge'): void {
+export function buildStageTheme(scene: Phaser.Scene, w: number, h: number, G: number, theme: 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere'): void {
   const add = (key: string, canvas: HTMLCanvasElement) => {
     if (scene.textures.exists(key)) scene.textures.remove(key);
     scene.textures.addCanvas(key, canvas);
   };
   add(`st_grade_${theme}`, grade(w, h, G, STAGE_LIGHT[theme]).canvas());
   add(`st_rays_${theme}`, rays(w, h, G, theme).canvas());
-  const [far, near] = theme === 'cinder' || theme === 'glass' || theme === 'forge' ? ASH_MIST[theme](w, h, G) : FROST_MIST[theme](w, h, G);
+  const [far, near] = theme === 'cinder' || theme === 'glass' || theme === 'forge' ? ASH_MIST[theme](w, h, G) : theme === 'fen' || theme === 'causeway' || theme === 'mere' ? DUSK_MIST[theme](w, h, G) : FROST_MIST[theme](w, h, G);
   add(`st_mist_${theme}`, far.canvas());
   add(`st_mist_${theme}_near`, near.canvas());
 }

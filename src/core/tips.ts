@@ -61,9 +61,14 @@ export interface CoachOptions {
   lessonSec: number;
   /** At most this many lesson blocks per lesson per fight (one that's let go by unseen gets another). */
   lessonsPerFight: number;
+  /** The first finisher finishes: its lesson (the tip, and the stack when the meter isn't full by itself) waits for
+   *  the foe in front to be low enough for it to kill, for at most this long (fight time, s) into its turn... */
+  finWaitSec: number;
+  /** ...and not so low that a tap or two would beat it there (the foe's HP above this share of one stack's blow). */
+  finFloor: number;
 }
 
-export const COACH_DEFAULTS: CoachOptions = { gapSec: 4, perFight: 2, holdSec: 1.5, breakStacks: 2, lessonGapSec: 2.5, lessonSec: 1.5, lessonsPerFight: 3 };
+export const COACH_DEFAULTS: CoachOptions = { gapSec: 4, perFight: 2, holdSec: 1.5, breakStacks: 2, lessonGapSec: 2.5, lessonSec: 1.5, lessonsPerFight: 3, finWaitSec: 15, finFloor: 0.3 };
 
 /** What counts as doing what a tip teaches (its `known` count): a yellow hit, a red blocked, a green hit, a purple let
  *  pass (it ran out untouched), a finisher fired. */
@@ -137,6 +142,8 @@ export class TipCoach {
   /** The first fight's lessons: whose turn it is (since when, fight time), the block placed for it (still waiting
    *  in the fight's queue), and how many were placed in this fight. */
   private turn: { combat: unknown; id: TipId; at: number } | null = null;
+  /** The finisher's lesson: since when (fight time) its turn has run in this fight (finisherMoment). */
+  private finTurn: { combat: unknown; at: number } = { combat: null, at: 0 };
   private placed: { combat: unknown; entry: FormationEntry | null; n: Partial<Record<TipId, number>> } = { combat: null, entry: null, n: {} };
 
   constructor(
@@ -167,9 +174,13 @@ export class TipCoach {
     return !this.learned(def.id) && (def.after ?? []).every((a) => this.learned(a)) && this.quietOver(def);
   }
 
-  /** The quiet start is over for `def`: it waits for no wins, an act has been cleared, or enough fights were won. */
+  /** The quiet start is over for `def`: it waits for no wins, an act has been cleared, or enough fights were won.
+   *  Then its tips come one per fight won (all five at once made a burst of tips over the four screens before the
+   *  first boss): each one seen moves the next one win further. */
   quietOver(def: TipDef): boolean {
-    return !def.wins || this.profile.actsCleared > 0 || (this.profile.counts.wins ?? 0) >= def.wins;
+    if (!def.wins || this.profile.actsCleared > 0) return true;
+    const met = TIPS.filter((d) => d.wins && this.seen(d.id)).length;
+    return (this.profile.counts.wins ?? 0) >= def.wins + met;
   }
 
   /** A fight's events (each flush): what the player did (tipsDone, counted even while tips are off), the passing
@@ -267,6 +278,7 @@ export class TipCoach {
       this.turn = null;
       return;
     }
+    if (lesson.id === 'finisher' && this.finTurn.combat !== c) this.finTurn = { combat: c, at: c.time };
     // its block is on the bar (the tip comes with it), or one placed is still on its way
     const waiting = !!this.placed.entry && c.queue.some((q) => q.entry === this.placed.entry);
     if (onBar(lesson.id, c) || waiting || (this.placed.n[lesson.id] ?? 0) >= this.o.lessonsPerFight) {
@@ -283,6 +295,7 @@ export class TipCoach {
     if (c.time - this.turn.at < this.o.lessonSec || c.time < gapEnds) return;
     const owner = c.enemies.find((e) => e.alive);
     if (!owner) return;
+    if (lesson.lesson === 'stack' && !this.finisherMoment(c, 1)) return;
     if (lesson.lesson === 'stack') c.fillMeter(Math.max(0.01, 1 - c.meter), 'perk');
     else {
       const entry: FormationEntry = { ...lesson.lesson };
@@ -291,6 +304,20 @@ export class TipCoach {
     }
     this.placed.n[lesson.id] = (this.placed.n[lesson.id] ?? 0) + 1;
     this.turn = null;
+  }
+
+  /**
+   * The first finisher should finish: it's the moment the game names it (view/finisher-reveal.ts), and a foe left
+   * standing after it was a let-down. Its lesson comes when the foe in front is low enough for the finisher (with
+   * `stacks` banked) to kill it, but not so low that a tap or two would first (finFloor), or once its turn has run
+   * finWaitSec (a fight that never gets there still teaches it).
+   */
+  finisherMoment(c: Combat, stacks = Math.max(1, c.stacks)): boolean {
+    if (this.finTurn.combat === c && c.time - this.finTurn.at >= this.o.finWaitSec) return true;
+    const front = c.frontEnemy();
+    if (!front) return false;
+    // (the floor is a tap or two of the hero's: a share of one stack's blow, whatever is banked)
+    return front.hp <= c.finisherDamage(stacks) * 0.9 && front.hp > c.finisherDamage(1) * 0.9 * this.o.finFloor;
   }
 
   /** Keep track of the screen (a new phase, camp screen or fight is a new one), and drop fight tips gone stale. */
@@ -346,7 +373,10 @@ export class TipCoach {
       }
       if (m.preFight || run.combat.result) return null;
       const p = this.pending.find((q) => q.cue.id === id);
-      return p ? { ...p.cue } : onBar(id, run.combat);
+      if (p) return { ...p.cue };
+      // (the meter filled by itself: the finisher's tip still waits for the blow that finishes the foe in front)
+      if (id === 'finisher' && !this.finisherMoment(run.combat)) return null;
+      return onBar(id, run.combat);
     }
     const camp = ph === 'camp' ? (m.campMode ?? '') : null;
     switch (id) {

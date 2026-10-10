@@ -36,11 +36,12 @@ import { TESS_CAMP, TESS_CARD, TESS_POSES, TESS_RIG } from './art-hero-tess';
 import { FIZZ_CAMP, FIZZ_CARD, FIZZ_POSES, FIZZ_RIG } from './art-hero-fizz';
 import { BRANN_CAMP, BRANN_CARD, BRANN_POSES, BRANN_RIG } from './art-hero-brann';
 import { VESPER_CAMP, VESPER_CARD, VESPER_POSES, VESPER_RIG } from './art-hero-vesper';
+import { ROWAN_POSES, ROWAN_RIG, rowanTip } from './art-hero-rowan';
 import { fireRim, paintRig, rigFrame, type Add, type HeroCardSpec, type Rig, type RigPose } from './art-rig';
 import { heroCard } from './art-sable';
 
 /** The poses every M5 hero has a fight frame for. */
-export const HERO_POSE_KEYS = ['idle0', 'idle1', 'dash', 'slashA', 'slashB', 'windup', 'parry', 'hurt', 'leap', 'down', 'fin', 'cast'] as const;
+export const HERO_POSE_KEYS = ['idle0', 'idle1', 'idle2', 'idle3', 'dash', 'slashA', 'slashB', 'windup', 'parry', 'hurt', 'leap', 'down', 'fin', 'cast'] as const;
 /** The M5 heroes with art. */
 export const M5_HEROES = ['neve', 'moss', 'tam', 'hollis', 'vesper', 'torva', 'fizz', 'brann'] as const;
 
@@ -91,7 +92,22 @@ function campFrame(rig: Rig, p: RigPose): HTMLCanvasElement {
   return c;
 }
 
+/** Where the point of Rowan's sword is in each of his fight frames, from the sprite's anchor (feet centre, bottom):
+ *  filled when his frames are painted (the blade's glint, fighters.ts). */
+export const ROWAN_SWORD_TIP: Record<string, [number, number]> = {};
+
+/** Rowan's fight frames (`hero_${pose}`), on the shared rig like everyone else's. */
+function buildRowanArt(add: Add): void {
+  for (const k of HERO_POSE_KEYS) {
+    const g = grid(HERO_W, HERO_H);
+    const tip = rowanTip((gg) => paintRig(gg, ROWAN_RIG, ROWAN_POSES[k]), g);
+    if (tip && k !== 'down') ROWAN_SWORD_TIP[k] = [tip[0] - HERO_FEET_X, tip[1] - HERO_H];
+    add(`hero_${k}`, toCanvas(g));
+  }
+}
+
 export function buildHeroArt(add: Add): void {
+  buildRowanArt(add);
   // (every hero in the registry: the M5 six and round 7's, Part 6)
   for (const [id, h] of Object.entries(HEROES)) {
     for (const k of HERO_POSE_KEYS) add(`${id}_${k}`, rigFrame(h.rig, h.poses[k]));

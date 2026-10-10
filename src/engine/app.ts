@@ -133,7 +133,7 @@ export class App {
     saveSoon(this.tuning, this.settings);
   }
 
-  /** Progress across runs (acts cleared, weights home): part of the profile. */
+  /** Progress across runs (acts cleared, regions restored): part of the profile. */
   get progress(): Profile {
     return this.profile;
   }

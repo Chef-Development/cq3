@@ -256,6 +256,9 @@ const droppedSword: Layer = (g, a) => stampAt(g, SWORD_R, HOLLIS_PAL, a.fx - 15,
 export const HOLLIS_POSES: Record<string, RigPose> = {
   idle0: { near: { at: [-4, 11], item: sword('u') }, far: { at: [11, 10], item: shield(), over: true }, farFront: true },
   idle1: { near: { at: [-4, 10], item: sword('u') }, far: { at: [11, 9], item: shield(), over: true }, farFront: true, dy: 1 },
+  // the sword and shield settle a frame behind the breath
+  idle2: { near: { at: [-4, 9], item: sword('u') }, far: { at: [11, 8], item: shield(), over: true }, farFront: true, dy: 1 },
+  idle3: { near: { at: [-4, 10], item: sword('u') }, far: { at: [11, 9], item: shield(), over: true }, farFront: true },
   // charging behind the shield
   dash: { near: { at: [-6, 12], item: sword('l') }, far: { at: [13, 12], item: shield(), over: true }, farFront: true, legs: 'run', dx: 1, lean: 1 },
   // a thrust over the top of the shield

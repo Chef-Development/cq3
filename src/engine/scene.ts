@@ -29,6 +29,7 @@ import { StopScreens } from './view/stops';
 import { StoryView } from './view/story';
 import { WorldView } from './view/world';
 import { buildAshFoeArt, paintAshFoeSlice } from './art-ash';
+import { buildDuskFoeArt, paintDuskFoeSlice } from './art-dusk';
 import { buildWorldArt, paintWorldSlice, WORLD_PAINT, worldArtReady } from './art-world';
 import { buildMapArt } from './art-map';
 import { buildRoamArt } from './art-roam';
@@ -137,9 +138,16 @@ export class FightScene extends Phaser.Scene implements View {
     this.app.welcome();
     // paint the world map in small slices while the title is up (the world map finishes it if it's needed sooner),
     // then the third region's foes (a fight or a scene that needs them finishes those at once: ensureAshArt)
+    // and then the fourth region's (ensureDuskArt)
+    const duskIdle = () => {
+      if (paintDuskFoeSlice(8)) this.ensureDuskArt();
+      else window.setTimeout(duskIdle, 0);
+    };
     const ashIdle = () => {
-      if (paintAshFoeSlice(8)) this.ensureAshArt();
-      else window.setTimeout(ashIdle, 0);
+      if (paintAshFoeSlice(8)) {
+        this.ensureAshArt();
+        window.setTimeout(duskIdle, 0);
+      } else window.setTimeout(ashIdle, 0);
     };
     const idle = () => {
       if (!this.worldArtIn && !paintWorldSlice(8)) return void window.setTimeout(idle, 0);
@@ -152,6 +160,14 @@ export class FightScene extends Phaser.Scene implements View {
   /** The third region's foes, portraits and bar pieces, now (whatever is left of their painting is done at once). */
   ensureAshArt(): void {
     buildAshFoeArt((key, canvas) => {
+      if (this.textures.exists(key)) this.textures.remove(key);
+      this.textures.addCanvas(key, canvas);
+    }, true);
+  }
+
+  /** The fourth region's foes and portraits, now (whatever is left of their painting is done at once). */
+  ensureDuskArt(): void {
+    buildDuskFoeArt((key, canvas) => {
       if (this.textures.exists(key)) this.textures.remove(key);
       this.textures.addCanvas(key, canvas);
     }, true);

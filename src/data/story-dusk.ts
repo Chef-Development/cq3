@@ -46,7 +46,7 @@ export const DUSK_STORY: Record<string, StoryBox[]> = {
     { who: 'rowan', text: "He's rubbing it out. Right in front of us.\nPip, there are people in there." },
     { who: 'pip', text: 'He needs ink. Every line he draws is scraped\nfrom somewhere else. Now it comes from here.' },
     { who: 'narrator', text: 'Rowan walks into the blank. White boards,\nwhite water, and the villagers asleep.' },
-    { who: 'rowan', text: "They're asleep where they stood. I'll come\nback for you. Every one of you." },
+    { who: 'rowan', text: "Hold on. I'll come back for you.\nEvery one of you." },
     { who: 'sable', text: 'Rowan. The water went white, and you\nwalked on it. Just... walked.' },
   ],
   // Act 2 mini-boss: a beaver engineer who runs the floodgates on the Mapmaker's timetable, and believes in it
@@ -56,15 +56,15 @@ export const DUSK_STORY: Record<string, StoryBox[]> = {
     { who: 'sluiceKeeper', text: 'For everyone. Before the timetable, the tide\ncame when it liked. It took my brother.' },
     { who: 'sluiceKeeper', text: 'Now it comes on the minute. Nobody drowns.\nNobody is ever surprised. It is perfect.' },
     { who: 'pip', text: "He means it, Rowan. They all mean it.\nThat's what makes this hard." },
-    { who: 'sluiceKeeper', text: "Four-oh-five. Gates open. Stand clear,\nor don't. The schedule won't wait." },
+    { who: 'sluiceKeeper', text: "Four-oh-five. Gates open. Stand clear,\nor don't. The timetable won't wait." },
   ],
   // Act 3 start: the lighthouse wading in the mere; Rowan can't swim and doesn't know why
   dusk3: [
     { who: 'narrator', text: 'The Gloaming Mere. Out on the black water,\na lighthouse stands on stone legs.' },
-    { who: 'pip', text: "The sun's in that lamp. He shut it in, so the\nlight goes only where he points it." },
+    { who: 'pip', text: "The sun's in that lamp. That's his line.\nBreak it, and the fen gets its night back." },
     { who: 'rowan', text: "Then we go out to it. Over the water.\n...I can't swim. I never could." },
     { who: 'rowan', text: "I don't know why. Deep water, and my hands\njust stop. Since before I remember." },
-    { who: 'neve', text: "Then you won't fall in. I'll freeze you a\npath. You're welcome in advance." },
+    { who: 'neve', text: "So don't fall in. I'll freeze you a\npath. You're welcome in advance." },
     { who: 'sable', text: "Someone's up on the gallery.\nWith a pen." },
   ],
   // Act 3 boss: the Gloaming Lighthouse; he speaks from its gallery and defends the sum he did
@@ -78,7 +78,7 @@ export const DUSK_STORY: Record<string, StoryBox[]> = {
   ],
   // phase 2 (his first edit): the shoreline moves; water from both ends
   lighthouse2: [
-    { who: 'mapmaker', text: 'The shoreline was in the wrong place.\nAllow me.' },
+    { who: 'mapmaker', text: 'The shoreline was in the wrong place.\nThere. Better.' },
     { who: 'narrator', text: 'He redraws the shore around them. The water\ncomes in from both sides at once.' },
     { who: 'pip', text: "Mind the water, Rowan! What's under it is\nout of reach. Read the tide." },
   ],

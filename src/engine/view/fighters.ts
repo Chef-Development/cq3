@@ -13,6 +13,7 @@
 // to its target (a mark on the foe, a box on the block, a burning foe's flames, Sunny's sweep) is view/onsite.ts.
 import Phaser from 'phaser';
 import { isAshArtKey } from '../art-ash';
+import { isDuskArtKey } from '../art-dusk';
 import { rimMask, STAGE_LIGHT } from '../art-stage';
 import { whole } from '../../core/format';
 import type { Combat } from '../../core/combat';
@@ -26,6 +27,7 @@ import type { ImpactFeel } from '../../core/impact';
 import type { Tier } from '../../data/rarity';
 import type { FightScene } from '../scene';
 import { HERO_FEET_X, HERO_W, ICONS } from '../art';
+import { ROWAN_SWORD_TIP } from '../art-heroes';
 import { GAME_W } from '../layout';
 import { textWidth } from '../font';
 import { hpBar, icon } from './pixels';
@@ -64,17 +66,12 @@ type G = Phaser.GameObjects.Graphics;
 type Face = readonly [number, number, number, number];
 /** A colour lifted halfway to white (damage numbers in a perk's colour). */
 const mixWhite = (c: number) => mix(c, WHITE, 0.4);
+/** The four-frame idle's step (a 1.2 s loop: docs/art-style.md section 7). */
+const IDLE_STEP_MS = 300;
+/** Squash and stretch never lasts longer than this. */
+const SQUASH_MS = 100;
 /** A new wave's enemies hop (or drop) in over this long. */
 const WAVE_IN_MS = 460;
-/** Where the blade's tip is in each of Rowan's poses, from his sprite's anchor (feet centre, bottom). */
-const SWORD_TIP: Record<string, [number, number]> = {
-  idle0: [21, -24],
-  idle1: [21, -23],
-  slashA: [22, -4],
-  slashB: [29, -13],
-  windup: [-5, -38],
-  parry: [9, -31],
-};
 /** The frame to use for a pose a hero doesn't have (their own first, then Rowan's). */
 const HERO_ALT: Record<string, string> = { slashX: 'slashB', fang: 'slashA', down: 'hurt', fin: 'slashB', cast: 'windup' };
 /** Perks that never name themselves in the lane (the allies' own doings, shown on them). */
@@ -129,6 +126,10 @@ export class Fighters {
   }
   private enemyRims = new Map<number, Phaser.GameObjects.Image>();
   private hurtSeen = 0;
+  /** Anim times of the last blow taken and the last landing (squash and stretch), and the last frame's lift. */
+  private hurtAt = -1e9;
+  private landAt = -1e9;
+  private lastLift = 0;
   /** Gear light under and around Rowan (additive, behind the actors), and a glowing silhouette just behind him. */
   private gAura!: G;
   private heroGlow!: Phaser.GameObjects.Image;
@@ -289,6 +290,7 @@ export class Fighters {
       // the third region's foes are painted in idle time after boot: one that's needed sooner is finished now
       if (!s.textures.exists(`${def.sprite}_idle0`) && isAshArtKey(`${def.sprite}_idle0`)) s.ensureAshArt();
       // a foe whose art isn't painted yet (the fourth region's, until its art lands) wears a stand-in's sprite set
+      if (!s.textures.exists(`${def.sprite}_idle0`) && isDuskArtKey(`${def.sprite}_idle0`)) s.ensureDuskArt();
       let sprite = def.sprite;
       if (!s.textures.exists(`${sprite}_idle0`) && SPRITE_STAND_IN[sprite]) {
         sprite = SPRITE_STAND_IN[sprite];
@@ -721,7 +723,7 @@ export class Fighters {
     });
   }
 
-  /** The hero is knocked out (the defeat): the KO pose (Sable's; Rowan just stays hurt) until the next fight. */
+  /** The hero is knocked out (the defeat): their KO pose (down on one knee) until the next fight. */
   heroDown(): void {
     this.h.down = true;
   }
@@ -1120,13 +1122,17 @@ export class Fighters {
       pose = 'dash';
       flip = true;
     } else if (h.state === 'engaged') pose = 'windup';
-    else pose = Math.floor(a / 420) % 2 ? 'idle1' : 'idle0';
+    else pose = this.idlePose(a);
     const knock = a < h.hurtUntil ? -4 : 0;
     if (knock && h.hurtUntil !== this.hurtSeen) {
       // knocked back a step: his heels scuff the dust
       this.hurtSeen = h.hurtUntil;
+      this.hurtAt = a;
       s.fx.dust(h.x - 4, s.ground, 3, -1, 0.8);
     }
+    // a landing (a show's leap coming down): squash on the touch-down
+    if (this.lastLift > 3 && yOff > -1) this.landAt = a;
+    this.lastLift = -yOff;
     h.y = yOff;
     // (a show can hide the hero: a tornado, a shadow stands in for them) or fade them (into the shadows)
     const hidden = !!sm && sm.hidden;
@@ -1140,6 +1146,8 @@ export class Fighters {
     const lk = (a - h.lungeAt) / 90;
     const lunge = lk >= 0 && lk < 1 ? Math.round(4 * Math.sin(lk * Math.PI)) : 0;
     this.hero.setPosition(Math.round(h.x + knock + lunge), Math.round(s.ground + yOff));
+    const st = this.squash(a, !!sm);
+    this.hero.setScale(SPRITE_SCALE * st, SPRITE_SCALE / st);
     // afterimages while dashing, returning or leaping
     const moving = (h.state === 'dash' || h.state === 'return' || h.state === 'leap' || (h.state === 'super' && !hidden)) && this.hero.visible;
     const last = this.ghostTrail[this.ghostTrail.length - 1];
@@ -1164,6 +1172,27 @@ export class Fighters {
 
   clearShadows(): void {
     this.gShadow.clear();
+  }
+
+  /** The idle: four frames at IDLE_STEP_MS (the breath, the plume, cape, hair or weapon settling a frame behind) when
+   *  the hero has them, else the two-frame breath. */
+  private idlePose(a: number): string {
+    if (this.hasPose('idle2') && this.hasPose('idle3')) return `idle${Math.floor(a / IDLE_STEP_MS) % 4}`;
+    return Math.floor(a / 420) % 2 ? 'idle1' : 'idle0';
+  }
+
+  /**
+   * Squash and stretch (docs/art-style.md section 7: at most 100 ms, volume kept): the hero's width factor (the height
+   * is its inverse). A cut stretches him forward, a blow taken squashes him, a landing squashes him wide.
+   */
+  private squash(a: number, inShow: boolean): number {
+    const bump = (t0: number, ms: number) => {
+      const k = (a - t0) / ms;
+      return k >= 0 && k < 1 ? Math.sin(k * Math.PI) : 0;
+    };
+    const land = bump(this.landAt, SQUASH_MS);
+    if (inShow) return 1 + 0.14 * land;
+    return 1 + 0.14 * land + 0.08 * bump(this.h.lungeAt, 90) + 0.1 * bump(this.hurtAt, SQUASH_MS);
   }
 
   /**
@@ -1477,7 +1506,7 @@ export class Fighters {
     }
     // the blade's glint, in the weapon's rarity colour
     const wl = this.weaponLook();
-    const tip = hero.texture.key.startsWith('hero_') ? SWORD_TIP[hero.texture.key.slice(5)] : undefined;
+    const tip = hero.texture.key.startsWith('hero_') ? ROWAN_SWORD_TIP[hero.texture.key.slice(5)] : undefined;
     if (wl && tip && !hero.flipX) {
       const a = s.anim;
       const period = 2600 - wl.r * 260;
