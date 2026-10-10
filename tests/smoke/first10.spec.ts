@@ -138,6 +138,7 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
         }
         if (next === 'fight' && x.run.node?.type === 'elite') beat('firstElite');
         if (next === 'fight' && x.run.node?.type === 'boss') beat('bossFight');
+        if (prev === 'defeat' && next !== 'defeat') beat('retried', next);
         if (x.profile.chests.hero > 0) beat('heroChest');
       });
       const onEvents = view.onEvents.bind(view);
@@ -390,10 +391,21 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
               busyUntil = now + 600;
             }
             return;
-          case 'defeat':
-            beat('defeat');
-            S.done = true;
+          case 'defeat': {
+            beat('defeat', `retries ${S.retries ?? 0}`);
+            // through Act 1: a newcomer tries again (Retry: the act from its start, found gear and coins kept), twice
+            const btn = view.overlays.tipPeek().defeat;
+            if (until !== 'act' || (S.retries ?? 0) >= 2) {
+              S.done = true;
+              return;
+            }
+            if (!btn || now - screenAt < 2500) return;
+            S.retries = (S.retries ?? 0) + 1;
+            log(`retry ${S.retries}`);
+            tap(btn.retry.x + btn.retry.w / 2, btn.retry.y + btn.retry.h / 2);
+            busyUntil = now + 1500;
             return;
+          }
           case 'actClear': {
             beat('actClear');
             if (until !== 'act') {
