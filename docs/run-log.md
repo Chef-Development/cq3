@@ -196,3 +196,9 @@ One PR at the end supersedes #1-#7.
 - 02:26 EDT: merged dusk-art's third chunk (the regular shop as a place, like the trader; the Sunshade icon);
   boot-checked, pushed. Dusk-art on a last polish chunk (03:45): the map stall's awning, Pip's portrait, the camp's
   doubled labels.
+- 02:34 EDT: merged dusk-art's fourth chunk (the map stall's awning to the mood, Pip's portrait and an ink-and-brass
+  name tab, the camp's doubled Bag/Forge plates gone) and 2A's second (the "New relic unlocked!" card waits for the
+  screen it was earned on; the relic pick as upright cards with a fit test; erased lands' torn edges, no colour under
+  them; the first-visit glide shorter and on its own clock). Boot-checked, targeted tests green, pushed. Last chunks
+  (03:45): dusk-art (the dummy's cross, every speaker's name tab, the late camp's crowding), 2A (the region-won
+  victory, the empty loot screen).

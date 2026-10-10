@@ -25,7 +25,7 @@ const BURLAP = ['#4a2e1a', '#6e4626', '#98663a', '#c0905a', '#e0bc84'];
 const WOOD = ['#2e1a0e', '#4e2c16', '#6e4020', '#8e5a2e', '#b07a44'];
 const ROPE = ['#5a1a1a', '#8a2a22', '#c04a30', '#e07a4a'];
 const DIRT = ['#2a1810', '#4a2c18', '#6e4426'];
-const TARGET = { red: '#d03030', redHi: '#f05a48', white: '#f4ecd8', whiteLo: '#c8bca0' };
+const TARGET = { red: '#a03028', redHi: '#c44a3a', white: '#d4c6a4', whiteLo: '#a8987a' };
 
 interface Pose {
   lean: number; // px the top leans right (back, away from the hero); negative leans at the hero
@@ -86,7 +86,9 @@ function dummyFrame(o: Pose): HTMLCanvasElement {
     for (let x = -3; x <= 3; x++) {
       const r = Math.hypot(x, y);
       if (r > 3.3) continue;
-      const ring = r < 1.2 ? 'red' : r < 2.3 ? 'white' : 'red';
+      // a bullseye: a red dot, a ring of linen, a red ring, a linen rim (its centre was a red plus on white, which
+      // read as a first-aid cross)
+      const ring = r < 0.6 ? 'red' : r < 1.6 ? 'white' : r < 2.5 ? 'red' : 'white';
       const lit = x + y < 0;
       set(tx + x, ty + y, ring === 'red' ? (lit ? TARGET.redHi : TARGET.red) : lit ? TARGET.white : TARGET.whiteLo);
     }
