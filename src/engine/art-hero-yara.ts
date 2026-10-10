@@ -225,14 +225,18 @@ function staff(dir: Dir, len: number, back: number, o: { bright?: boolean; swing
       const X = x + sx * i;
       const Y = y + sy * i;
       const band = i > 0 && i % 5 === 0;
+      // (3 px thick so it reads at 8x: a lit side, the wood, a shaded side)
       if (diag) {
+        put(g, X + (sx === sy ? 1 : -1), Y, WOOD[4]);
         put(g, X, Y, band ? WOOD[4] : WOOD[3]);
         put(g, X + (sx === sy ? -1 : 1), Y, band ? WOOD[3] : WOOD[2]);
         put(g, X, Y + 1, WOOD[1]);
       } else if (sx === 0) {
+        put(g, X - 1, Y, WOOD[4]);
         put(g, X, Y, band ? WOOD[4] : WOOD[3]);
         put(g, X + 1, Y, band ? WOOD[2] : WOOD[1]);
       } else {
+        put(g, X, Y - 1, WOOD[4]);
         put(g, X, Y, band ? WOOD[4] : WOOD[3]);
         put(g, X, Y + 1, band ? WOOD[2] : WOOD[1]);
       }
