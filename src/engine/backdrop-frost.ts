@@ -5,6 +5,7 @@
 // horizon). Same contract as backdrop.ts (`bg_`, `frame_`, `fg_`/`fgo_` per sway frame), but painted the first time
 // an act needs one (Stage.ensure), not at boot: Greenmarch's players never pay for them.
 import type Phaser from 'phaser';
+import { gradeLayer } from './art-mood';
 import {
   backlight,
   bay,
@@ -275,29 +276,29 @@ function pass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const p = new Pix(w, h, 0);
   const rnd = rng(131);
   const ink = col('#140c1c');
-  const hz = col('#d4c6d8');
+  const hz = col('#4a5e86');
 
-  // a cold afternoon that never ends: slate blue overhead, lilac, a peach glow round the veiled sun
-  const skyR = ramp('#3a4888', '#465696', '#5664a4', '#6a74b0', '#8286bc', '#9c9ac6', '#b6aecc', '#ceC0d0', '#e2cccc', '#f0d4c6', '#f8dcc0', '#ffe8c8');
+  // a blue night on the pass (decision L7): near-black blue overhead, a cold glow round the moon, stars
+  const skyR = ramp('#05071a', '#080b22', '#0b112c', '#0f1836', '#132040', '#18284a', '#1d3254', '#243c5e', '#2c4868', '#365472', '#42627c', '#4e6e86');
   const sunX = Math.round(w * 0.4);
   const sunY = 26;
   const skyBot = G - 14;
   const glowAt = (x: number, y: number) => Math.max(0, 1 - Math.hypot((x - sunX) * 0.4, (y - sunY) * 1.0) / 70) ** 1.5;
   for (let y = 0; y < skyBot; y++) for (let x = 0; x < w; x++) p.set(x, y, pick(skyR, (y / (G - 30)) * 0.8 + glowAt(x, y) * 0.36, x, y, 0.3));
-  const sunHalo = col('#fff2dc');
+  const sunHalo = col('#7a98c8');
   for (let y = sunY - 24; y <= sunY + 24; y++)
     for (let x = sunX - 32; x <= sunX + 32; x++) {
       const d = Math.hypot(x + 0.5 - sunX, (y + 0.5 - sunY) * 1.2);
       if (d < 28) p.tint(x, y, (c) => fade(c, sunHalo, Math.pow(1 - d / 28, 2.2) * 0.75, x, y, 3, 0.7));
     }
-  const sunR = ramp('#f8e6cc', '#fff2de', '#fffcf4');
-  for (let y = -7; y <= 7; y++)
-    for (let x = -7; x <= 7; x++) {
+  const sunR = ramp('#9eb2cc', '#d0dcea', '#f2f6fc');
+  for (let y = -5; y <= 5; y++)
+    for (let x = -5; x <= 5; x++) {
       const d = Math.hypot(x, y);
-      if (d <= 7.2) p.set(sunX + x, sunY + y, sunR[d > 6 ? 0 : d > 4 && x + y > -2 ? 1 : 2]);
+      if (d <= 5.2) p.set(sunX + x, sunY + y, sunR[d > 4.2 ? 0 : (d > 2.5 && x + y > -1) || (x === 1 && y === 1) ? 1 : 2]);
     }
   // long bands of snow cloud, lit along their tops (warm near the sun); one veils the sun's lower half
-  const cloudR = ramp('#6e78a2', '#8690b4', '#9ea4c4', '#b8bad4', '#d0cede', '#e6dfe6', '#f8eeec', '#fff6ec');
+  const cloudR = ramp('#0a1028', '#0e1630', '#141e3a', '#1a2644', '#22304e', '#2c3a5a', '#3c4c6c', '#566a8c');
   for (const [fx, fy, len, th] of [
     [-0.08, 12, 92, 3.5],
     [0.1, 34, 66, 2.2],
@@ -307,6 +308,13 @@ function pass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     [0.84, 40, 56, 2],
   ])
     stratus(p, Math.round(fx * w), fy, len, th, cloudR, Math.round(fx * 100 + fy), glowAt);
+  // stars in the clear sky between the clouds
+  for (let i = 0; i < 70; i++) {
+    const x = Math.floor(hash(i, 1, 131) * w);
+    const y = Math.floor(hash(i, 2, 131) * (G - 52));
+    if (skyR.includes(p.get(x, y)) && Math.hypot(x - sunX, y - sunY) > 14) p.set(x, y, i % 5 === 0 ? col('#dce8fa') : i % 2 ? col('#8a9cc0') : col('#6a7ca4'));
+  }
+  const skyDone = p.buf.slice(); // the sky is painted for the mood: the grade leaves it
 
   // the far range in the haze: one great peak framed by the pass, its snowfields catching the light
   const farRock = haze(ramp('#3c4474', '#4a5480', '#5a648e', '#6c769c'), hz, 0.5);
@@ -541,6 +549,8 @@ function pass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   // the near rope of prayer flags across the top, from the spruce to the crag
   prayerFlags(p, 20, 7, w - 44, 3, 13, 4, 5, 3, hz, 0, 0, col('#2a1c20'));
   const frame = changed(p, before);
+  gradeLayer('pass', p, G, skyDone);
+  gradeLayer('pass', frame, G);
 
   const glints = fallGlints.map(([x, y]) => ({ x, y, c: 0xe8fbff }));
   return [p, frame, { torches: [], glints, drips }];
@@ -829,6 +839,8 @@ function caves(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     x += icy ? 2 : 4;
   }
   const frame = changed(p, before);
+  gradeLayer('caves', p, G);
+  gradeLayer('caves', frame, G);
   return [p, frame, { torches: [], glints, drips }];
 }
 
@@ -1052,6 +1064,8 @@ function glacier(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     }
   }
   const frame = changed(p, before);
+  gradeLayer('glacier', p, G);
+  gradeLayer('glacier', frame, G);
   return [p, frame, { torches: [], glints }];
 }
 
@@ -1177,6 +1191,7 @@ export function buildFrostBackdrop(scene: Phaser.Scene, theme: FrostTheme, w: nu
   add(`frame_${theme}`, frame.canvas());
   for (let f = 0; f < FG_FRAMES; f++) {
     const fg = foregroundFrost(theme, w, h, f);
+    gradeLayer(theme, fg, 1e9);
     const top = new Pix(w, h, -1);
     top.buf.set(fg.buf.subarray(0, w * h));
     const over = new Pix(w, FG_OVERLAP, -1);
