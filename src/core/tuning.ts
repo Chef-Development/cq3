@@ -1345,8 +1345,8 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
     groups.push({
       title: `Act ${i + 1}: ${a.name}`,
       sliders: [
-        s(`acts.${i}.hpMult`, 'Enemy HP x', 0.2, 12, 0.05),
-        s(`acts.${i}.atkMult`, 'Enemy attack x', 0.2, 24, 0.05),
+        s(`acts.${i}.hpMult`, 'Enemy HP x', 0.2, 30, 0.05),
+        s(`acts.${i}.atkMult`, 'Enemy attack x', 0.2, 60, 0.05),
         s(`acts.${i}.pace`, 'Spawn interval x', 0.4, 2, 0.05),
         s(`acts.${i}.redSpeed`, 'Red speed x', 0.5, 1.5, 0.05),
       ],
