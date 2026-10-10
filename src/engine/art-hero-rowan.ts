@@ -321,7 +321,8 @@ export const ROWAN_POSES: Record<string, RigPose> = {
   windup: P({ near: { at: [-2, 23], item: sword('ul', 15) }, far: { at: [0, 22], hidden: true }, legs: 'crouch', dy: 1, armsUp: true, back: [cape('hang'), plume('up')] }),
   // the blade upright before him, the free hand bracing behind it
   parry: P({ near: { at: [9, 13], item: sword('u', 14) }, far: { at: [11, 15] }, farFront: true, legs: 'crouch', dy: 1, back: [cape('hang'), plume('hang')], front: [motes([[13, 30], [7, 26]])] }),
-  hurt: P({ near: { at: [-5, 11], item: sword('dl', 12) }, far: { at: [8, 15] }, dx: -1, lean: -1, dy: 1, head: 'squint', back: [cape('rise'), plume('rise')] }),
+  // knocked back a step: the sword flung up and back, the free hand thrown out
+  hurt: P({ near: { at: [-4, 13], item: sword('ul', 12) }, far: { at: [9, 16] }, dx: -1, lean: -1, dy: 1, head: 'squint', back: [cape('rise'), plume('rise')] }),
   leap: P({ near: { at: [6, 24], item: sword('ur') }, far: { at: [8, 23], hidden: true }, legs: 'tuck', armsUp: true, back: [cape('rise'), plume('flow')] }),
   // knocked out: on one knee, the sword dropped beside him, the visor dark
   down: P({ near: { at: [7, 10] }, far: { at: [10, 9] }, farFront: true, legs: 'kneel', dy: 2, lean: 2, bow: 3, head: 'ko', back: [cape('limp'), plume('limp'), droppedSword] }),

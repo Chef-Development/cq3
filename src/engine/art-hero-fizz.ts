@@ -287,7 +287,7 @@ export const FIZZ_POSES: Record<string, RigPose> = {
   idle1: P({ near: { at: [8, 9] }, far: { at: [3, 12], item: ladle('ul', 14, 3), behind: true }, dy: 1, front: [flaskHeld('near', 'fire', 2, -2), drops([[12, 17]], 'fire')] }),
   // the flask settles back into her hand a frame behind the breath, the brew still sloshing
   idle2: P({ near: { at: [8, 8] }, far: { at: [3, 12], item: ladle('ul', 14, 3), behind: true }, dy: 1, front: [flaskHeld('near', 'fire', 2, 0), drops([[11, 21]], 'fire')] }),
-  idle3: P({ near: { at: [8, 8] }, far: { at: [3, 13], item: ladle('ul', 14, 3), behind: true }, front: [flaskHeld('near', 'fire', 2, -1)] }),
+  idle3: P({ near: { at: [8, 8] }, far: { at: [3, 13], item: ladle('ul', 14, 3), behind: true }, front: [flaskHeld('near', 'fire', 2, 0), drops([[11, 18]], 'fire')] }),
   dash: P({ near: { at: [6, 10] }, far: { at: [-4, 12], item: ladle('l', 13, 2), behind: true }, legs: 'run', dx: 1, lean: 1, front: [flaskHeld('near', 'frost', 1, -1)] }),
   // an overhand toss: the flask just leaving her hand, spinning
   slashA: P({
