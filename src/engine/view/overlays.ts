@@ -1077,11 +1077,13 @@ export class Overlays {
     const clear = actClear && opened;
     const ok = clear ? Math.min(1, easeBack((s.anim - this.chestOpenAt) / 320, 1.8)) : 1;
     const title = clear ? `Act ${run.actIndex + 1} Clear!` : actClear ? run.act.name : run.treasure?.secret ? 'Hidden Treasure!' : 'Treasure!';
-    const look = clear ? RIBBON.gold : actClear ? RIBBON.blue : RIBBON.gold;
+    // (review-4 R4-10: the treasure's and the act name's banners were flat tan and blue slabs: ink with a brass rim and
+    // brass letters now, like every name tab; the act clear keeps its gold, the one celebration)
+    const look = clear ? RIBBON.gold : INK_TAB;
     const tw = textWidth(title, 2, true);
     ribbon(gc, cx, y, Math.round((tw + 24) * (clear ? ok : 1)), 22, look, 1, ok > 0.9);
     if (ok > 0.5)
-      this.texts.text(title, cx, y + 11, clear ? 0xfff6c0 : actClear ? WHITE : 0xfff6c0, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: clear || !actClear ? 0x7a3a0a : 0x10204a });
+      this.texts.text(title, cx, y + 11, clear ? 0xfff6c0 : 0xe8c878, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 1, extrudeCol: clear ? 0x7a3a0a : 0x0c0814 });
     if (clear) this.drawXp(gc, now);
     else this.drawStatus(gc, now);
     if (!clear) this.subLine(gc, actClear ? 'Tap the chest to continue' : 'Tap the chest', cx, y + 32, 1, true);
