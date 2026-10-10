@@ -1321,7 +1321,7 @@ C-ART-10. **Region 4's bar, readable at phone size** (review 2's DUSK-ART findin
     Duskmire skies' long 1 px cloud streaks are short clumps at least 3 px tall.
 C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics-noon.ts`, painted at boot after the
     Ashfell ones whether or not the region is on; `noonspire()` in art-region-map.ts, a sand plateau with salt pans and
-    a dotted mirage lake). Its gear icons still fall back to the slot icons (as Region 4's do). Under L7 its first act
+    a dotted mirage lake), and its seventeen gear icons (art-gear.ts `NOON_ICONS`; Region 4's still borrow the slot icons). Under L7 its first act
     map's sand is a cool neutral stone (it read as mud), the salt pans a step brighter and still under the road.
 
 (content: end of section)
