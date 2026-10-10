@@ -40,7 +40,8 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
     applyCapture();
     if (on) {
       setOpen(false);
-      toast('Clean capture: hold the top middle to undo');
+      // small and dark at the top, where the gear was: it's in the first second of the clip being recorded
+      toast('Hold here (or press C) to bring the buttons back', true);
     }
   };
 

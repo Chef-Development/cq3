@@ -26,9 +26,9 @@ export async function copyText(text: string): Promise<boolean> {
 }
 
 /** A short message over everything, gone after a moment. */
-export function toast(msg: string): void {
+export function toast(msg: string, quiet = false): void {
   const t = document.createElement('div');
-  t.className = 'toast';
+  t.className = quiet ? 'toast quiet' : 'toast';
   t.textContent = msg;
   document.body.appendChild(t);
   window.setTimeout(() => t.remove(), 1400);

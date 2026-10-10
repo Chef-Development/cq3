@@ -1008,6 +1008,12 @@ export class CampKit {
   }
 
   /** A counter bubble centred on (x, y): red for new things, gold for "!" (something to do). It bobs. */
+  /** A count bubble on a button's top-right corner, kept inside its right edge (it sat half over the next button). */
+  bubbleOn(g: G, texts: TextPool, r: Rect, txt: string, now: number, gold = false): void {
+    const w = Math.max(9, textWidth(txt, 1, gold) + 4);
+    this.bubble(g, texts, r.x + r.w - 1 - Math.max(0, Math.ceil(w / 2) - 2), r.y - 3, txt, now, gold);
+  }
+
   bubble(g: G, texts: TextPool, x: number, y: number, txt: string, now: number, gold = false): void {
     const w = Math.max(9, textWidth(txt, 1, gold) + 4);
     const bump = Math.round(Math.abs(Math.sin(now / 300)) * -1);

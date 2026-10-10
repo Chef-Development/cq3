@@ -275,6 +275,12 @@ export function installInput(app: App, getScene: () => FightScene | null, ui: { 
     (e) => {
       if (inUi(e.target)) return;
       e.preventDefault();
+      // the gear panel open with the game held: a tap outside it closes it, and nothing under it is pressed (the
+      // title's New game sat live under the panel; with Play on, the game under it plays as before)
+      if (app.panelOpen && !app.playWhilePanelOpen) {
+        ui.togglePanel();
+        return;
+      }
       app.audio.unlock();
       if (document.documentElement.classList.contains('clean-capture')) {
         const g = clientToGame(app.layout, e.clientX, e.clientY);

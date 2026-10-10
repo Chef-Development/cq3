@@ -61,7 +61,10 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
     root.dataset.view = 'list';
     const head = el('div', 'lab-head');
     head.appendChild(el('div', 'lab-title', 'TEST LAB'));
-    head.appendChild(el('div', 'lab-sub', `about ${labMinutes(state.spoilers)} min · ${ratedCount()}/${labVisible(state.spoilers).length} rated`));
+    // the time is the New items' (what a session is asked to try); the count says which it means
+    const fresh = labVisible(state.spoilers, LAB_NEW);
+    const freshRated = fresh.filter((s) => ratingOf(state, s)).length;
+    head.appendChild(el('div', 'lab-sub', `New: about ${labMinutes(state.spoilers)} min, ${freshRated}/${fresh.length} rated · all: ${ratedCount()}/${labVisible(state.spoilers).length}`));
     head.appendChild(
       button(`lab-btn${state.spoilers ? ' on' : ''}`, state.spoilers ? 'Hide spoilers' : 'Show spoilers', () => {
         state.spoilers = !state.spoilers;
@@ -226,7 +229,7 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
   function showRate(s: LabScenario): void {
     const c = card('rate', true);
     const old = ratingOf(state, s);
-    c.appendChild(el('div', 'lab-card-title', `How was ${s.label}?`));
+    c.appendChild(el('div', 'lab-card-title', `How was it? ${s.label}`));
     const note = el('textarea', 'lab-note');
     note.placeholder = 'A short note (optional)';
     note.maxLength = 280;

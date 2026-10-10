@@ -436,9 +436,10 @@ html.panel-open #hud {
   left: 100%;
   top: 0;
   margin-left: calc(var(--gpx, 2.667px) * 3);
-  color: var(--ink);
-  background: #8af06a;
-  box-shadow: inset 0 calc(var(--gpx, 2.667px) * 1) 0 #c8ffb0, inset 0 calc(var(--gpx, 2.667px) * -1) 0 #3a9a2a;
+  /* ink and brass (L8: no candy gloss), apart from the scenario's own lime and gold buttons on the canvas */
+  color: #f0d890;
+  background: #262040;
+  box-shadow: inset 0 calc(var(--gpx, 2.667px) * 1) 0 #be8e3a, inset 0 calc(var(--gpx, 2.667px) * -1) 0 #16122a;
 }
 .lab-title-btn:active,
 .lab-done:active {
@@ -684,6 +685,17 @@ html.panel-open #hud {
   border: 2px solid var(--ink);
   z-index: 60;
   font-weight: bold;
+}
+
+/* a quiet toast (the clean capture's): small, dark, at the top middle */
+.toast.quiet {
+  top: calc(var(--game-top, 0px) + 4px);
+  background: rgba(14, 11, 26, 0.82);
+  color: #d8d0f0;
+  border: 1px solid #3a3460;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: normal;
 }
 
 #rotate {

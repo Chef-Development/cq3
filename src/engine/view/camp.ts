@@ -1005,7 +1005,7 @@ export class CampView {
       const [iw, ih] = pixSize(pl.icon);
       pix(g, pl.icon, r.x + 3, r.y + Math.round((r.h - ih) / 2));
       texts.text(pl.label, r.x + iw + 5, r.y + r.h / 2, pl.id === 'shrine' ? 0xe8d0ff : WHITE, { bold: true, oy: 0.5 });
-      if (pl.id === 'bag' && fresh > 0) kit.bubble(g, texts, r.x + r.w - 2, r.y - 3, `${fresh}`, now);
+      // (the new items' count is on the band's Bag button only: once is enough)
       if (pl.id === 'chests' && waiting > 0) kit.bubble(g, texts, r.x + r.w - 2, r.y - 3, `${waiting}`, now);
     });
 
@@ -1033,9 +1033,9 @@ export class CampView {
       const [iw, ih] = pixSize(b.icon);
       pix(g, b.icon, r.x + 4, r.y + Math.round((r.h - ih) / 2) + prs - 1);
       texts.text(b.label, r.x + iw + 6, r.y + r.h / 2 + prs, WHITE, { bold: true, oy: 0.5 });
-      if (b.id === 'bag' && fresh > 0) kit.bubble(g, texts, r.x + r.w - 1, r.y - 3, `${fresh}`, now);
-      if (points) kit.bubble(g, texts, r.x + r.w - 1, r.y - 3, '!', now, true);
-      if (b.id === 'relics' && p.relicsNew.length) kit.bubble(g, texts, r.x + r.w - 1, r.y - 3, `${p.relicsNew.length}`, now);
+      if (b.id === 'bag' && fresh > 0) kit.bubbleOn(g, texts, r, `${fresh}`, now);
+      if (points) kit.bubbleOn(g, texts, r, '!', now, true);
+      if (b.id === 'relics' && p.relicsNew.length) kit.bubbleOn(g, texts, r, `${p.relicsNew.length}`, now);
     }
   }
 
