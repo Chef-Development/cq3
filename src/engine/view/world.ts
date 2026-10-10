@@ -1,20 +1,20 @@
-// The kingdom's world map (between runs): a painted continent about three screens wide and two tall
-// (art-world.ts), alive, that you drag to explore. The view is a camera over it: a press that moves more than a few
-// game px is a drag (it pans the map, with momentum, clamped at the edges, and never starts anything); a press that
-// stays put is a tap, judged on release. The map opens on where the story is (the act Rowan is on); the very first
-// visit glides in from the far east over the locked lands, so you see how big the world is (any tap skips it).
+// The kingdom's world map (between runs): a page of the Great Atlas, a continent about three screens wide and two
+// tall (art-world.ts, printed by art-world-atlas.ts), alive, that you drag to explore. The view is a camera over it: a
+// press that moves more than a few game px is a drag (it pans the map, with momentum, clamped at the edges, and never
+// starts anything); a press that stays put is a tap, judged on release. The map opens on where the story is (the act
+// Rowan is on); the very first visit glides in from the far east, so you see how big the world is (a tap skips it).
 //
-// Every playable act is a landmark (Greenmarch's three, then the Frostpeaks' once Greenmarch is cleared): tap one to
-// select it (its card says what playing it means, Play starts it: the story, or a cleared act replayed for its
-// drops); Rowan and Pip wait at the current act under a call to action (tap it, or Rowan: the run starts, or once an
-// act is cleared the act picker opens with his region's acts). A flag flies over each cleared act. Once an act is
-// cleared, a chip at the top right names the region in view and how complete it is (a laurel badge at 100%, also
-// beside its boss's landmark); a tap on it opens that region's act picker. The locked lands sit under a drifting fog
-// of war; tapped, the fog thins for a moment and a small card names the land. A land's veil lifts once it can be
-// played (core/world-plan.ts), with a short reveal the first time. Beyond the sea, at the map's edges, seven more
-// lands wait as silhouettes under fog banks that thin as weights come home (art-world-lands.ts). The capital tells
-// how many weights are home; the Camp button (bottom left) opens the camp. Once Act 1 is cleared, a wandering foe
-// sometimes paces the Meadow Road (view/world-roam.ts).
+// Every playable act is a landmark: tap one to select it (its card says what playing it means, Play starts it: the
+// story, or a cleared act replayed for its drops); Rowan and Pip wait at the current act under a call to action (tap
+// it, or Rowan: the run starts, or once an act is cleared the act picker opens with his region's acts). A flag flies
+// over each cleared act. Once an act is cleared, a chip at the top right names the region in view and how complete it
+// is (a laurel badge at 100%, also beside its boss's landmark); a tap on it opens that region's act picker. A land
+// has three looks (core/world-plan.ts): erased (blank vellum with a lit torn edge, until it can be played: then it
+// unveils, once, with a short reveal), in the Mapmaker's draft (its colour drained, back only round Rowan and the
+// cleared acts) while its region isn't won, and restored (its colour floods back from its boss's landmark, once, on
+// the next visit). The seven far isles out in the sea are blank vellum that thins and lifts as regions are won
+// (art-world-lands.ts). The header's compass counts the regions restored; the Camp button (bottom left) opens the camp.
+// Once Act 1 is cleared, a wandering foe sometimes paces the Meadow Road (view/world-roam.ts).
 //
 // The HUD (the header, the Camp button, the cards and the act picker) stays put inside the safe areas; everything
 // else is drawn in world px less the camera. Everything animates from `now` (deterministic for the screenshot

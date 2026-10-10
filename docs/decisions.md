@@ -1111,6 +1111,30 @@ A2B-13. **Map walkers 18 px tall** (the chest heroes' walkers in `art-hero-map.t
     to two more leg rows, so they stand about three heads tall like the fight frames, with the mature grade. The act
     map and the title anchor a walker at its feet from its own height (two rows up from the bottom), so walkers of any
     height share the ground line.
+A20. **The sharper text: where the fine layer went and where it didn't** (the chest reveal's 2x layer rolled out to
+    what the player reads most; judged from side-by-side phone shots, 874x402 @3x, each crop at device pixels).
+    *How:* a `TextPool` a surface hands the fine layer (`pool.hd`, view/hd-text.ts) draws each text it can on one DOM
+    canvas over the game (`#hd-text`, cleared once a frame, hidden on frames that don't draw on it), in the bitmap's
+    exact place and width; the bitmap stays, transparent, for measuring, focus and tests. *The lettering:* plain
+    Scale2x was a loss on the small font (2 px strokes: '+' became a diamond, 'f' a blob, '%' and 'x' smeared), so
+    the text uses `smooth: 'round'` (font-hd.ts: a doubled glyph only loses its outer corners, never gains a pixel)
+    at the game text's weight (a 2 fine px outline and drop shadow; the reveal's 1 px read thin and grey on dark
+    boxes). The win is modest but everywhere: stroke ends and bends round off, 'e a o g s S G' read as letters
+    rather than blocks, same size, same weight. *The switch:* one flag a surface (hd-switch.ts: story, heroSelect,
+    tips, cards), all on; the 'cq3.hdText' setting ('off', 'on', or per surface) puts any back on the old path. A
+    surface turns it off for any frame something covers it (a wipe, a tip card, a story box over the camp, the
+    finisher reveal, a toast, a sheet over the hero select, a reveal card over the loot row), since the fine layer
+    sits above the whole game canvas. *Where it went:* the story boxes (lines, typed out by cropping the whole line's
+    image so typing paints nothing new; the speaker's ribbon; Skip), the tip card, the hero select (chips, the hero's title,
+    kit labels, buttons, Lv) and its sheets, the relic/boost pick's cards, the loot row's names and its Legendary/
+    Mythic card. *Where it didn't:* text at scale 3 (the hero select's big name: the fine path doubles twice at
+    most), extruded or explicitly graded text (titles, ribbons' gradients: they keep the old path inside the same
+    surface), several-line strings; the fight HUD, the bar's callouts and the act map (they move with the world, sit
+    under particles and flashes, and are read at a glance, not read: no gain worth the overlap risk); the world map
+    and the camp home (labels over a moving, panning picture). *Cost:* a new line paints once (cached; colours to 5
+    bits a channel so a pulsing colour reuses a few images); painting went to a pixel buffer (a fillRect a pixel
+    cost ~10 ms a story line on the loaded test machine, now a few). The chest reveal's lettering is unchanged
+    (its defaults; its summary snapshot passes).
 
 (art: end of section)
 

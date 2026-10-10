@@ -101,29 +101,32 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   `heroFor` that act; used up when it starts, never saved) for gear and XP, then back to the world map. Drawing:
   `view/map-roam.ts` (roamers, telegraphs, secret, the bounty tracker beside the coins), `view/stops.ts` (the board),
   `view/world-roam.ts` (the foe and its card), `art-roam.ts` (sprites); the Coin Rush clock is on the enemy plate.
-- **The world map is bigger than the screen and pans** (`view/world.ts`, art in `art-world.ts`): a continent
-  `WORLD_W` x `WORLD_H` (960x300, about 3x2 screens) plus a strip of far sea east of it (`FAR_SEA_W`, painted on its
-  own: the camera pans over `MAP_W`) under a camera (`worldMap.ox/oy`); everything on it is placed in
-  world px less the camera, while the HUD (the header, the Camp button, the cards, the act picker) stays put inside the
-  safe areas. **Tap vs drag:** there a press is judged on release (`input.ts` -> `pressAt/dragTo/releaseAt`): one that
-  moves more than `DRAG_PX` (4 game px) is a drag (it pans, flings on with momentum, clamps at the edges, and never
-  starts anything); one that stays put is a tap. It opens on the current act's `WORLD_ACTS[i].view`; the very first
-  visit (`profile.worldTour`) glides in from the far east in under 2 s (any tap skips it). Every playable act is a
-  landmark (`WORLD_ACTS`, by global act index: Greenmarch's 0-2, the Frostpeaks' 3-5; box, Rowan's stand, flag): a
-  tap selects one (its card: name, what playing it means, Play = the act picker's start), Rowan (or, before any act
-  is cleared, his "Tap to begin!" plate) opens the story or the act picker on his region's acts (never all of them);
-  once an act is cleared a region chip (top right) names the region in view with its completion (`core/completion.ts`:
-  "65%", the `badge_region` laurel at 100%, also beside the region's boss flag) and opens that region's picker. The
-  locked lands sit under veils (`wm_veil_<id>`) that thin when tapped; a land unveils once it can be played
-  (`core/world-plan.ts` `landOpen`: the Frostpeaks at `actsCleared >= 3`), with a short reveal the first time (the
-  view glides there, the veil thins away, a card names it; remembered as `unveil:<id>` in `profile.seen`). The world
-  plan has 12 regions (one per weight): the 7 far lands (`FAR_ISLES` in `art-world-lands.ts`, placeholder ids, no
-  names: "Beyond the sea") are silhouettes in the far sea under fog that thins and lifts with `profile.weights`
-  (`WORLD_PLAN` thin/lift). Tests use `greenmarch()`, `actSpot(i)`, `cardPlay()`, `camera()`, `lookAt(x, y)`,
-  `regionChip()`, `pickerRegion`, `revealing` and `life.sparkleOnScreen()` (screen px).
-  The world is painted once, in idle slices after boot (`paintWorldSlice`; `scene.ensureWorldArt()` finishes it at
-  once if the map is opened first): keep each step a few tens of ms and the frame to moving images and a modest
-  number of rects for what's in view.
+- **The world map is a page of the Great Atlas, bigger than the screen, that pans** (`view/world.ts`; art in
+  `art-world.ts` the land, `art-world-sites.ts` what stands on it (the capital is the domed Atlas Hall),
+  `art-world-lands.ts` the later regions' markers and the far isles, `art-world-atlas.ts` the print: parchment,
+  watercolour coasts, inked shores, dashed borders, neatline): a continent `WORLD_W` x `WORLD_H` (960x300, about 3x2
+  screens) plus a strip of far sea east (`FAR_SEA_W`; the camera pans over `MAP_W`) under a camera
+  (`worldMap.ox/oy`): the map is placed in world px less the camera, the HUD (header and its compass of regions
+  restored, the Camp button, cards, the act picker) stays put inside the safe areas. **Tap vs drag:** a press is judged
+  on release (`input.ts` -> `pressAt/dragTo/releaseAt`): moved more than `DRAG_PX` (4 game px) it's a drag (pans,
+  flings, clamps, never starts anything), else a tap. It opens on the current act's `WORLD_ACTS[i].view`; the first
+  visit (`profile.worldTour`) glides in from the far east in under 2 s (a tap skips it). Every playable act is a
+  landmark (`WORLD_ACTS`, by global act index): a tap selects it (its card; Play = the act picker's start); Rowan (or
+  his "Tap to begin!" plate) opens the story or the act picker on his region's acts; once an act is cleared a region
+  chip (top right) names the region in view with its completion (`core/completion.ts`; the `badge_region` laurel at
+  100%) and opens its picker. **A land's three looks** (`core/world-plan.ts`): not yet playable, it is **erased**:
+  blank vellum with a lit torn edge (`wm_veil_<id>`; a tap names it "Erased land"), until `landOpen`, when it unveils
+  once (`unveil:<id>` in `profile.seen`: the view glides there, the blank thins away, a card names it); playable but
+  its region not yet won, it is in the Mapmaker's **draft** (`wm_draft_<id>`: its colour drained, colour already back
+  round Rowan and each cleared act); won (`regionRestored`, `profile.weights`), its colour **floods back** from its
+  boss's landmark on the next visit, once (`restore:<id>`, `RESTORE_MS` 2.6 s, a tap ends it). Open lands carry their
+  names in spaced capitals (`LAND_NAMES`). The plan has 12 regions (`WORLD_PLAN`): the 7 far isles (`FAR_ISLES`,
+  placeholder ids) are blank vellum in the far sea that thins and lifts with `profile.weights` (thin/lift), named "?"
+  until revealed. Tests use `greenmarch()`, `actSpot(i)`, `cardPlay()`, `camera()`, `lookAt(x, y)`, `regionChip()`,
+  `pickerRegion`, `revealing`, `restoring` and `life.sparkleOnScreen()` (screen px); the lab replays a moment with
+  `{ kind: 'world', replay, weights }`. The world is painted once, in idle slices after boot (`paintWorldSlice`;
+  `scene.ensureWorldArt()` finishes it at once if the map is opened first): keep each step a few tens of ms and the
+  frame to moving images and a modest number of rects for what's in view.
 - **Heroes: one cursor for every hero, always.** A hero = a **style** (`src/data/styles.ts`: Blade, Shadow, Guardian,
   Marksman, Brute, Controller, Summoner, Bomber; each style's shared rule is a set of fight hooks in `core/styles.ts`,
   numbers `tuning.styles`) + a signature, an ability (the green-hit ability window), a passive, a finisher twist, a
@@ -309,7 +312,13 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   the game fonts doubled with Scale2x), sprites keep the game grid (never mix grids inside one piece of art).
   `ChestOpening.view` is 'old' | 'hd' | 'split' (it reads 'old' until the sharper reveal's chunk has loaded: chest-hd.ts
   is imported only with `import()`, beside the boot: `loadChestHd`); the setting is `cq3.chestReveal`
-  (`storage.ts`, not in the gear panel); the timeline, taps, sounds and queue are shared. The rollout plan is in docs/decisions.md (S6).
+  (`storage.ts`, not in the gear panel); the timeline, taps, sounds and queue are shared. The rollout plan is in docs/decisions.md (S6). **The sharper text** (round 8, on by default; A20): a surface
+  hands its `TextPool` the fine layer (`pool.hd = hdFor(scene, surface, covered)`, `view/hd-text.ts`) and its texts
+  draw on a second fine canvas (`#hd-text`) at the bitmaps' places (they stay, transparent, for measuring and
+  tests), corners rounded (`font-hd.ts` smooth 'round'); now the story boxes, tips, the hero select and its sheets,
+  the relic pick and the loot cards. One flag a surface (`hd-switch.ts`), the `cq3.hdText` setting overrides ('off'
+  is the old path everywhere); a surface passes `covered` for any frame something is drawn over it (the fine layer
+  sits above the whole game canvas: `screenCovered`, a sheet, a toast).
 - **Accuracy readout** (`core/accuracy.ts`): every tap aimed at an isolated yellow gives a timing error; the median and
   MAD of the recent ones, mapped through `SD_CALIBRATION` (made with bots of known accuracy: `npm run calibrate`; re-run
   it after changing block widths, the cursor or the acts' pace; `tests/unit/accuracy.test.ts` fails when it drifts),
@@ -390,7 +399,7 @@ src/core/      tuning.ts (numbers), combat.ts (sim; heroStats, gear effects), sp
                (save at every node, migrations), bot.ts (balance bot, farming, the masher), tips.ts (which tip shows when, in
                the teaching order; the welcome back), format.ts (every number the player sees), finisher-show.ts (each
                hero's finisher plan: style moves, signature moments, the rarity scaler), sparkle.ts (the maps' sparkles: when, where, what they pay, claimed once), world-plan.ts
-               (the world map's 12 regions: which lands are open, the far lands' fog per weights home), clock.ts,
+               (the world map's 12 regions: which lands are open, drafted or restored, the far isles per regions won), clock.ts,
                calibration.ts, swipe.ts, rng.ts
 src/engine/    app.ts (time + input glue, music cues, story state, the Test lab's swap to its own save), scene.ts
                (Phaser scene: layout, layers, anim clock, routes core events to view/), input.ts, debug.ts (tuning
@@ -398,7 +407,8 @@ src/engine/    app.ts (time + input glue, music cues, story state, the Test lab'
                calibrate.ts, audio.ts (sounds, ambience), music.ts (the soundtrack), art.ts / art-foes.ts / art-story.ts / art-world.ts /
                art-map.ts / art-stage.ts (sprites, portraits, the world map, act map landscapes, fight lighting),
                art-world-sites.ts (the world map's trees, villages, landmarks, mountains: what stands on its land),
-               art-world-lands.ts (the later regions' landmark markers, the far lands and their fog),
+               art-world-lands.ts (the later regions' landmark markers, the far isles), art-world-atlas.ts (the Atlas's print,
+               drafts and blanks),
                art-ash.ts (the third region's foes, portraits, bar pieces), region-art.ts + pack-frost.ts / pack-ash.ts (the
                later regions' art packs: chunks loaded at boot, painted on the title), art-relics-ash.ts (its relic and tag icons),
                art-roam.ts (the coin sack, the board, the secret rock, the merchant),

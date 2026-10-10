@@ -68,6 +68,8 @@ export class HdLayer {
   constructor(
     private readonly s: Phaser.Scene,
     private readonly layout: () => ScreenLayout,
+    /** The canvas's DOM id (the sharper text's own layer is 'hd-text', view/hd-text.ts). */
+    private readonly id = 'hd-layer',
   ) {}
 
   /** The canvas (tests). */
@@ -99,7 +101,7 @@ export class HdLayer {
     this.hook();
     if (!this.cv) {
       const cv = document.createElement('canvas');
-      cv.id = 'hd-layer';
+      cv.id = this.id;
       cv.setAttribute('aria-hidden', 'true');
       const st = cv.style;
       st.position = 'absolute';

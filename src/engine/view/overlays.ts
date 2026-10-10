@@ -19,6 +19,7 @@ import { textWidth } from '../font';
 import { GAME_H, GAME_W } from '../layout';
 import { band, button3d, chevron, gauge, glow, GOLD, hudIcon, iconSize, NAVY, panel, RAMP, rows } from './pixels';
 import { BOOST_ICON, clamp01, easeBack, easeInOut, easeOut3, hpLabel, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
+import { hdFor, screenCovered } from './hd-text';
 import { FACE, ImagePool, isPressed, notePress, ribbon, RIBBON, strip, tag, TextPool } from './ui';
 import { cardFrame, cardShine, cardTile, mainTag, relicCard, relicIcon, tagChip, TAG_FACE, type CardCtx } from './relic-ui';
 import { wrapText } from './items';
@@ -619,6 +620,8 @@ export class Overlays {
     // the old named texts are no longer used by the overlays
     for (const k of ['ovTitle', 'ovSub', 'ovLine1', 'ovLine2', 'ovLine3', 'begin', 'banner', 'tCont', 'tContSub', 'tNew']) txt[k]?.setVisible(false);
     if (ph !== 'title') this.title.hide();
+    // the sharper text (view/hd-text.ts) on the boost cards, unless a toast or an unlock comes up over them
+    this.texts.hd = ph === 'boost' ? hdFor(s, 'cards', screenCovered(s, now) || !!this.levelToast || this.unlockActive()) : null;
     const since = now - this.phaseAt;
     if (ph === 'fight') this.drawBanner(g, now);
     if (ph === 'title') this.drawTitle(g, gc, now, since);

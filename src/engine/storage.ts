@@ -183,6 +183,18 @@ export const readChestReveal = (v: unknown): ChestRevealMode => (v === 'hd' ? 'h
 export const loadChestReveal = (): ChestRevealMode => readChestReveal(read(CHEST_REVEAL_KEY));
 export const saveChestReveal = (m: ChestRevealMode): void => write(CHEST_REVEAL_KEY, m);
 
+// ------------------------------------------------------------------ the sharper text (view/hd-text.ts)
+
+const HD_TEXT_KEY = 'cq3.hdText';
+/** The sharper text's switch: 'off' (every surface the old way), 'on' (every surface sharper), or per surface
+ *  ({ story: false, ... }); anything else (nothing stored) keeps the defaults in view/hd-text.ts. Not in the gear
+ *  panel: a switch for side-by-side checks and a way back if a surface ever breaks. */
+export type HdTextSetting = 'off' | 'on' | Record<string, boolean> | null;
+export const readHdText = (v: unknown): HdTextSetting =>
+  v === 'off' || v === 'on' ? v : v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, boolean>) : null;
+export const loadHdText = (): HdTextSetting => readHdText(read(HD_TEXT_KEY));
+export const saveHdText = (v: HdTextSetting): void => write(HD_TEXT_KEY, v);
+
 // ------------------------------------------------------------------ the clean capture (for recording clips)
 
 /**

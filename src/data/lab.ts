@@ -307,6 +307,10 @@ export const LAB_NEW: LabScenario[] = [
   // ---- art (team 2)
   { id: 'titleAtlas', group: 'camp', rev: 2, label: 'New title screen', secs: 30, try: 'Key art now: watch it come alive, then tap.', setup: { kind: 'title' }, profile: { actsCleared: 0 } },
   { id: 'atlasMap', group: 'camp', label: 'The Atlas map', secs: 45, try: 'Drag the map: painted lands, erased land.', setup: { kind: 'world' }, profile: { actsCleared: 1 } },
+  // the sharper lettering (view/hd-text.ts): the story boxes, tips, the hero select and the relic/loot cards drawn at
+  // twice the detail, rounded corners, the game text's weight
+  { id: 'hdStory', group: 'spoiler', spoiler: true, label: 'Sharper story text', secs: 30, try: 'Read a few boxes: crisper, easier to read?', setup: { kind: 'story', act: 0, scenes: ['intro'] } },
+  { id: 'hdHeroes', group: 'camp', label: 'Sharper hero text', secs: 30, try: 'Read names, cards, a sheet: crisper?', setup: { kind: 'camp', screen: 'heroes', hero: 'sable' }, profile: { actsCleared: 1 } },
   { id: 'atlasRestore', group: 'camp', label: 'A land comes back', secs: 30, try: 'A land restored: its colour floods back.', setup: { kind: 'world', replay: ['restore:greenmarch'], weights: 1 }, profile: { actsCleared: 2 } },
   // Rowan redrawn on the shared rig (plume and cape that lag his breath, every pose), the four-frame idles, squash and
   // stretch on cuts, blows and landings
