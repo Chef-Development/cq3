@@ -211,3 +211,6 @@ One PR at the end supersedes #1-#7.
   and glows; the world map's far isle drained until it opens, the header's roses until a region is restored). 2A
   done for the night; boot-checked, pushed. Dusk-art takes the two screens still in the old style (the in-fight relic
   panel, the boss intro band) until 03:45.
+- 02:50 EDT: merged dusk-art's relic panel and intro band (ink glass with brass; an elite's band oxblood); boot-checked,
+  pushed. Dusk-art rests. Plan: ~03:30 one short fresh-eyes review of the most-seen screens on the merged build; fixes
+  of its high findings until ~04:45; visual freeze 05:00 (baselines, full suites, the PR).
