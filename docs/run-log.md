@@ -133,3 +133,6 @@ One PR at the end supersedes #1-#7.
 - 23:33 EDT: art 2C merged (every region 1-3 stage graded at paint time, skies repainted: forest late day, ruins rainy
   dusk, hollow blood-red, pass moonlit, cinder smoke-dark; foes with menace; the pendulum symbols gone from foes).
   2C chunk 2: the act maps under L7, more menace (slimes, the Boar King's body and phases, Region 2's foes).
+- 23:42 EDT: art 2B chunk merged (all sixteen portraits and walkers in the mature look, Moss on the taller build, a
+  finisher wind-up and follow-through). The lead's boot check now builds to its own folder and port, so it never
+  disturbs a Playwright run on the main build. 2B chunk 3: hand-redrawn faces, walker heads, CLAUDE.md hero notes.
