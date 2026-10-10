@@ -259,8 +259,82 @@ function keeper(): HTMLCanvasElement {
   return toCanvas(g);
 }
 
-/** Paint both (called from art-story.ts buildStoryArt). */
+// ------------------------------------------------------------------ the narrator: a corner of the Atlas
+
+const N_PARCH = ['#6e4a2a', '#a8804e', '#d2b07a', '#ead2a0', '#f8ecc8'];
+const N_WASH = ['#5a8a9a', '#86b0b4', '#b4cab8'];
+
+/** The narrator (docs/story-bible.md section 9): a corner of the living map, lit from the top left: a sheet of
+ *  parchment with a coast drawn on it (the sea washed blue, a patch of land in colour), the corner curling up, and a
+ *  compass rose in gold and ink at its heart. */
+function narrator(): HTMLCanvasElement {
+  const g = grid(P, P);
+  // the sheet: a slightly tilted square of parchment, lighter toward the lamp (top left)
+  const sheet = (x: number, y: number) => x >= 3 && y >= 3 && x <= 37 && y <= 37 && x + y <= 70;
+  fill(g, sheet, (x, y) => {
+    const v = 1 - (x + y) / 80;
+    return N_PARCH[v > 0.72 ? 4 : v > 0.42 ? 3 : 2];
+  });
+  // the sea, washed blue along the left, its engraved water lines following the coast
+  const coast = (y: number) => 13 + Math.round(Math.sin(y * 0.35) * 2 + Math.sin(y * 0.9) * 1);
+  for (let y = 3; y <= 37; y++)
+    for (let x = 3; x < coast(y); x++) {
+      if (!sheet(x, y)) continue;
+      const d = coast(y) - x;
+      put(g, x, y, d <= 2 ? N_WASH[0] : d <= 5 ? N_WASH[1] : N_WASH[2]);
+      if (d === 4 && y % 3 !== 0) put(g, x, y, '#4a3a5e');
+    }
+  // the land in colour round a little wood, the rest still ink on paper
+  for (let y = 4; y <= 36; y++) {
+    const cx = coast(y);
+    put(g, cx, y, ATLAS_INK[1]);
+    for (let x = cx + 1; x < cx + 9 && x < 37; x++) if (Math.hypot(x - 18, y - 30) < 7.5) put(g, x, y, (x + y) % 5 === 0 ? '#2e5a32' : x < 18 ? '#78a83c' : '#4a7e36');
+  }
+  stamp(g, ['.gG.', 'gGGg', 'ddgd', '.t..'], { g: '#2e5a32', G: '#4a7e36', d: '#1e3c2a', t: '#4e2c16' }, 17, 27);
+  // a few ink marks: hills and a road
+  stamp(g, ['..k..', '.k.k.', 'k...k'], { k: ATLAS_INK[2] }, 27, 8);
+  stamp(g, ['..k..', '.k.k.', 'k...k'], { k: ATLAS_INK[2] }, 31, 12);
+  for (let x = 21; x <= 34; x += 2) put(g, x, 34 - Math.round((x - 21) * 0.3), '#8a1a22');
+  // the compass rose: four long points (gold, lit on their top-left halves), four short ink ones, a ring
+  const cx = 22;
+  const cy = 17;
+  for (let a = 0; a < 64; a++) {
+    const t = (a / 64) * Math.PI * 2;
+    put(g, Math.round(cx + Math.cos(t) * 7.4), Math.round(cy + Math.sin(t) * 7.4), ATLAS_INK[2]);
+  }
+  const pt = (dx: number, dy: number, len: number, lit: string, dark: string) => {
+    for (let k = 0; k <= len; k++) {
+      const w = Math.round(2 * (1 - k / len));
+      for (let s = -w; s <= w; s++) put(g, cx + dx * k - dy * s, cy + dy * k + dx * s, s < 0 ? lit : s > 0 ? dark : ATLAS_INK[1]);
+    }
+  };
+  for (const [dx, dy] of [
+    [1, 1],
+    [-1, 1],
+    [1, -1],
+    [-1, -1],
+  ])
+    for (let k = 1; k <= 5; k++) put(g, cx + dx * k, cy + dy * k, ATLAS_INK[2]);
+  pt(0, -1, 10, '#fff0a0', '#d8901c');
+  pt(0, 1, 10, '#f2c230', '#9a5a14');
+  pt(1, 0, 10, '#f2c230', '#9a5a14');
+  pt(-1, 0, 10, '#fff0a0', '#d8901c');
+  put(g, cx, cy, '#ffffff');
+  // the N over the north point
+  stamp(g, ['k..k', 'kk.k', 'k.kk', 'k..k'], { k: ATLAS_INK[1] }, cx - 1, 1);
+  // the corner curling up at the bottom right: the back of the sheet, a shadow under it
+  for (let y = 26; y <= 38; y++)
+    for (let x = 26; x <= 38; x++) {
+      const f = 38 - x + (38 - y);
+      if (f < 9) put(g, x, y, f < 2 ? N_PARCH[0] : f < 5 ? N_PARCH[1] : N_PARCH[2]);
+      else if (f < 11 && sheet(x, y)) put(g, x, y, N_PARCH[1]);
+    }
+  return toCanvas(g);
+}
+
+/** Paint the Atlas's people and the narrator (called from art-story.ts buildStoryArt). */
 export function buildAtlasPortraits(add: (key: string, c: HTMLCanvasElement) => void): void {
   add('portrait_mapmaker', mapmaker());
   add('portrait_keeper', keeper());
+  add('portrait_narrator', narrator());
 }

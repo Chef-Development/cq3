@@ -884,6 +884,44 @@ A8. (Superseded by A2B-2.) **A four-step idle breath** for the fourteen rig hero
 A9. **Ashfell's darkest foes get an ember rim** (light from below, section 9 of the bible) and the glass warren a light
     spill from its lake; the forge was re-scored from a fight screen (the sheet had made it look flat).
 
+A10. **Playtester note: "title too simplistic and drained".** The parchment-map title (A3) is replaced by key art
+    (`art-title-key.ts`, `view/title.ts`): a dusk over the kingdom in saturated, stepped layers (indigo to molten gold
+    round a low sun in a mountain notch, two rim-lit ranges, backlit green hills, a river of reflected gold, the
+    capital's dome) with the premise as an image, spoiler-free: on the right the world is being erased (the colour
+    drains into an ink drawing in torn patches, then blank vellum keeping only the impression of its lines, an ink
+    front clawing into the colour) under a giant owl-feather quill whose gold nib draws down the front; the page's
+    corner curls up. Rowan stands on a dark cliff in the foreground, backlit, Pip by him. Motion: rays breathing from
+    the sun, cloud wisps, the front's ink crawling in a slow wave and shedding flecks of paper, the nib glowing and
+    drawing, motes. The logo sits on a dark halo with a warm glow, ink drips off its lettering. The tutorial strip is
+    gone (the first fight teaches); "Tap to start!" sits low, clear of the hero; Continue / New game keep their rects.
+A11. **Portraits for the Mapmaker and Hesper** (`art-portraits-atlas.ts`): both face left on the shared eye line.
+    Ambrose: faded keeper's-blue coat with an unfaded patch where the badge was torn off, salt-and-pepper hair tied
+    back, a short beard, spectacles pushed up, kind tired eyes, maps in his satchel, the owl-feather pen in an
+    ink-stained hand. Hesper: silver hair in a tight bun, grey keeper's robes with a silver-trimmed high collar, the
+    hall's heavy key on a chain (its bow a compass rose). Hesper joins `ALLY`; the Mapmaker's plate is the Atlas's ink
+    with a gold ribbon (his lines glow gold), not a foe's red.
+A12. **The world map is printed on the Great Atlas** (`art-world-atlas.ts`, a pass after the painting, still in idle
+    slices): the sea is parchment with a watercolour wash along the coasts and engraved water lines, coasts and lake
+    shores inked, regions' borders dashed, a burnt edge and a double neatline round the whole sheet (far sea too), a
+    compass rose in the north-west sea, each open land's name lettered across it. The painted cloud band along the
+    north is gone (the sheet ends in its neatline); the sea's wave marks and surf are strokes of faded ink and paper.
+A13. **Three states per land on the Atlas.** Locked (and the far isles): erased, blank white-grey vellum keeping the
+    impression of its lines, still (it no longer drifts) and nothing alive on it. Open but not restored: his draft,
+    an ink drawing on bare paper (`wm_draft_<id>`), with the colour already back in rings round Rowan (ink slides off
+    him) and round every act cleared there (drawn as 2 px rows cropped round the rings: no per-frame painting). Restored
+    (its region won): full colour. The first visit after a region is won plays its restoring once (`restore:<id>` in
+    `profile.seen`, `core/world-plan.ts` restorePending): the colour floods out from the boss's landmark in a ragged
+    ring with a front of gold ink and motes, 2.6 s, a card "Restored!"; a tap ends it. When the next land unveils on
+    the same visit, the view holds on the restored land through it, then glides on (the unveil's tour holds longer).
+    The lab profiles mark every restoring seen; the lab's "A land comes back" replays Greenmarch's (spoiler-free:
+    the next land stays blank).
+A14. **Section 9's words on every screen I own**: "The Great Atlas" and "Regions restored: N/12" with a compass rose
+    per region (the weights' pips) in the world map's header, the capital's card ("Its lines are fading." / "N of 12
+    regions restored." / "Whole again."), "Erased land" for the far isles ("Restore more regions to bring it back.",
+    "Something is being drawn here."), a locked land's card names the land to restore first, and the region victory
+    reads "Greenmarch restored!" / "N regions to go." Nothing about a Pendulum is left in the view text (the capital's
+    landmark sprite and the narrator's portrait still show the pendulum: next).
+
 (art: end of section)
 
 
