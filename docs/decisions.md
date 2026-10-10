@@ -817,6 +817,13 @@ S11. **Region 5's scenes fit its data as built.** The Noon Sphinx speaks (speake
     placeholders are written into `story-noon.ts`. Each phase hint names the rule it brings (the glare's blazing
     yellows and the green that cools; the sun drawn down's outlines).
 
+S12. **Nothing says "can't be erased" before the end of the first region.** Rowan's hero bio ("Stays awake. Naps
+    anywhere."), his banter and the welcome back ("Only you stayed awake.") keep it for `victory`, where the Mapmaker
+    first tries. The fifth region gets a camp scene (`noonCamp`, to wire like `duskCamp`) and gated banter
+    (`banter-noon.ts`, read by `core/banter.ts`; it shows only once the region is in play). Regions 6-10 are outlined in
+    the story bible: on an erased isle everything sleeps, so its foes are things he drew to move, creatures that were
+    away, and creatures that crossed his sea road.
+
 (story: end of section)
 
 
