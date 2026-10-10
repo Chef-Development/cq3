@@ -843,6 +843,9 @@ export class FightScene extends Phaser.Scene implements View {
 
   // ------------------------------------------------------------------ frame
 
+  /** The HUD's gear button is quiet now (style.css html.hud-quiet). */
+  private hudQuiet = false;
+
   update(): void {
     const now = performance.now();
     const dt = Math.min(100, now - this.lastNow);
@@ -850,6 +853,12 @@ export class FightScene extends Phaser.Scene implements View {
     if (now >= this.fx.freezeUntil) this.anim += dt;
     this.app.update(now);
     this.syncCombat();
+    // the HTML gear button goes quiet over the title's key art and a story scene (it sat on the logo and the scene)
+    const quiet = this.app.run.phase === 'title' || !!this.app.storyId;
+    if (quiet !== this.hudQuiet) {
+      this.hudQuiet = quiet;
+      document.documentElement.classList.toggle('hud-quiet', quiet);
+    }
     for (let i = 0; i < this.pending.length; i++) {
       const p = this.pending[i];
       if (this.anim >= p.at) {

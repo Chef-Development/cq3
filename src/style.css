@@ -81,6 +81,10 @@ body {
 #btn-gear.on {
   background-image: var(--img-gearOn);
 }
+/* over the title's key art and a story scene: dimmed until the pointer is on it (scene.ts toggles the class) */
+html.hud-quiet #btn-gear:not(.on):not(:hover):not(:focus-visible) {
+  opacity: 0.4;
+}
 
 #debug {
   position: fixed;
