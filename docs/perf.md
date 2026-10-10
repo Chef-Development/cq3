@@ -106,3 +106,36 @@ within this machine's noise.)
    are painted lazily: ~20-30% of the game's chunk is art data that a first session never draws.
 4. **Frame time**: profile a fight's frame (the menus and bar redraw their Graphics every frame) once a real phone
    trace is available; this container's software WebGL is too slow and noisy to judge 60 fps by.
+
+## Round 8, second chunk: region art packs (team 4)
+
+### Region art packs (the pattern for every later region)
+
+A first session plays Greenmarch, so the later regions' art should neither download before the title nor paint at
+boot. Each later region's art is a **pack**, a chunk of its own (`src/engine/region-art.ts`):
+
+- `pack-<region>.ts` is the only file that imports the region's art files (`art-<region>.ts`, `backdrop-<region>.ts`,
+  ...). It exports `PACK: RegionArtPack`: `paintSlice(ms)` (draw whole sprites until `ms` have gone by; true when all is
+  drawn), `addArt(add, now)` (add the drawn art as textures; `now` draws what's left first; a relayout calls it again),
+  `isArtKey(key)`, `backdrop(scene, theme, ...)` (a fight theme's backdrop, painted the first time an act needs it) and
+  `col` (its foes' colours, merged into `view/shared` `ENEMY_COL` when it arrives).
+- `region-art.ts` lists the pack's loader (`LOADERS: { dusk: () => import('./pack-dusk') }`) and its fight themes
+  (`PACK_THEMES`, so the stage knows which pack a theme needs before it arrives).
+- `main.ts` starts every pack's `import()` before Phaser boots, so the packs download beside the main chunk (on a
+  return visit the service worker has them). The scene paints them in idle slices once the title is up (after the
+  world map's slices), and the first screen past the title finishes them at once (`App.setPhase` ->
+  `FightScene.ensureRegionArt`, a no-op once all are in): no screen after the title ever asks for a texture that isn't
+  there. A foe or portrait asked for earlier (a test) finishes them too (fighters, story). `__cq3.ready` waits for the
+  packs, so a test may jump anywhere at once.
+- **The one way to get it wrong**: a static `import` of a pack's file from anywhere else pulls it (and what it imports)
+  back into the main chunk. Check the build's chunk list (`npm run build` prints `pack-<region>-*.js`). Something the
+  game needs before the pack arrives (a theme list, a helper the act maps share, a palette) gets a small file of its
+  own: e.g. `backdrop-ice.ts` holds the ice shards and seracs the act maps (painted at boot) and Ashfell's backdrops
+  share with the Frostpeaks' backdrops.
+- `scripts/sw-template.js` needs nothing: the build plugin lists every file in `dist/` for the precache.
+
+Not split yet (next, in order of payoff): the later regions' **music** (about 40% of `music.ts`, ~28 KB raw: a pack
+could register its songs into `SONGS`, the cue falling back to the act's calm theme until it's in; music.ts is being
+extended for the new regions tonight, so moving 800 lines would collide), the **sharper chest reveal** (`chest-hd.ts`,
+`art-chests-hd.ts`, `art-reveal-hd.ts`: ~50 KB raw, off by default, but drawn into from every frame of a chest
+opening: six call sites to guard), the **Test lab** list (~30 KB).

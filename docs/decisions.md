@@ -897,6 +897,34 @@ C5. **Region 5's two rules are built ahead of its art** (core, tests, bar pictur
   build instead of "Combo Quest 3"/"CQ3". Listed for their owners, not changed: the world map's flags and padlocks
   (the reference's kingdom map), Sunny's gold colouring (its "golden dragon"), the roster cards' bio + role tag +
   "Locked", and the word "bounties" ("Dares" proposed).
+- **Q7 Desktop windows: integer scale kept, the rotate card only on touch screens.** Resized through ten sizes
+  (800x600 to 2560x1440, a tall 900x1200, a 500x700 sliver, a full-screen 1920x1080 after a 1920x969 window, a 30-step
+  drag): the canvas, the frame, the HUD buttons and the focus ring land right every time with no rebuild. A narrow
+  desktop window (portrait, under 600 px) showed "Turn your phone sideways": the card now needs a touch screen
+  (`pointer: coarse`). A small window (640x360 at 1x) shows the game at 1x with room to spare: kept (pixels at a
+  fractional scale come out uneven); real desktops have a DPR of 1.5-2 and get 7x or more.
+- **Q8 Android Chrome.** A Pixel 7 sideways (in a tab 863x360: 6x; installed 915x412: 7x), a small 360x800 Android at
+  DPR 2 and 3 (in a tab 800x304: 4x; installed: 4x and 7x), and a Pixel 7 with an emulated camera cutout (34 px on the
+  left: 5 game px of safe area, the HUD clears it): boot, title, touch taps in a fight (judged hits and blocks), a real
+  touch drag on the world map, the camp and its screens; no errors, no long decimals. The installed app now asks for
+  full screen (`display_override: ["fullscreen"]`; Safari ignores it): with the status bar gone a Pixel 7 gets 7x
+  pixels instead of 6x.
+- **Q9 The later regions' art in packs** (region-art.ts, docs/perf.md "Region art packs"). The Frostpeaks' and
+  Ashfell's foes, portraits, bar pieces and backdrops are chunks loaded with `import()` as the game boots, painted in
+  idle slices on the title, and finished at once on the first screen past it (`App.setPhase`), so no screen after the
+  title can meet a missing texture; the Frostpeaks' foes no longer paint at boot (they did, ~0.4 s at 1x). Gated on
+  "the first screen past the title" rather than on each use: the art is used from many places (bar pieces in any
+  fight, portraits, the stage), and one gate keeps every one of them synchronous. `__cq3.ready` waits for the packs.
+  The pattern is written for the content teams (CLAUDE.md, docs/perf.md). Not split tonight: the later regions' music
+  (music.ts is being extended for the new regions; moving 800 lines would collide), the sharper chest reveal, the lab.
+- **Q10 The crawls.** `npm run crawl` (tests/balance/crawl.run.ts, by hand through the balance lock): every hero
+  through the three playable regions on 4 seeds, odd seeds like the balance bot, even seeds at random (any pick, any
+  buy, bounties passed, a hero switched mid-act), the world map's skirmish between regions; invariants after every
+  step and every 16 fight ticks. 64 campaigns in 98 s: no exception, no stuck fight, map or pick, no NaN. One finding,
+  fixed (`CORE:`): a kill's max HP gain (0.6) went onto HP even at full HP while max HP is rounded, so a full hero
+  read "252/251". `scripts/ui-crawl.mjs` (by hand through the Playwright lock) plays the built game from New game
+  through Act 1 with fast taps, then every camp screen and the gear panel, recording errors, long decimals, missing
+  minis, missing textures (every key asked of Phaser that isn't there) and text past the canvas's edge.
 (qa: end of section)
 
 
