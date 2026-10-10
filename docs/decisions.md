@@ -1479,6 +1479,17 @@ C20. **Vesper is left as she is: neither more HP nor longer pins move her gaps**
     while her damage a second is higher than Rowan's (her Focus economy against one foe, Patience's crit at full
     Focus); a probe like C19's, with her style's parts switched off one at a time.
 
+C21. **Vesper's gap is in the skill trees, not her style; left as she is.** Probe: the fourth region's Act 11 mini-boss
+    alone, 30 fights, cached end-of-Ashfell heroes, the 75% bot, a part switched off each time. HP lost a minute with
+    every Marksman part on or off (yellows at full damage, no Focus at all, no Volley Focus, a smaller Focus cap): 1,120
+    to 1,250 for her, against Rowan's 730. With both heroes' skill trees emptied they are level: Rowan 1,340 a minute,
+    0% won; Vesper 1,270, 3% won. So the gap is Rowan's tree as the bot learns it. He goes down Bulwark half the time
+    (+12% HP, +10 Defense, Parry: a Perfect block knocks every other red back). Neither change below moved her gaps
+    (100 runs, Acts 4-6 / 10-12, from +4 / -19 / -15 and -5 / -22 / -9):
+    - her tree's matching tier at Rowan's sizes (Ranger Cloak +12%, Leathers +10): +3 / -19 / -14 and -5 / -16 / -17;
+    - a 2 s Pinning Shot: +1 / -21 / -17 and +2 / -23 / -25.
+    Next: Parry against her red control at the bosses, and how the bot picks her branch.
+
 (content: end of section)
 
 
