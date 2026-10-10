@@ -988,7 +988,8 @@ C7. **Stand-ins until a region's art lands, never a missing texture or a silent 
 - **Q10 The crawls.** `npm run crawl` (tests/balance/crawl.run.ts, by hand through the balance lock): every hero
   through the three playable regions on 4 seeds, odd seeds like the balance bot, even seeds at random (any pick, any
   buy, bounties passed, a hero switched mid-act), the world map's skirmish between regions; invariants after every
-  step and every 16 fight ticks. 64 campaigns in 98 s: no exception, no stuck fight, map or pick, no NaN. One finding,
+  step and every 16 fight ticks. 64 campaigns in 98 s (and after Region 4 came into play, 48 through four regions in
+  127 s): no exception, no stuck fight, map or pick, no NaN. One finding,
   fixed (`CORE:`): a kill's max HP gain (0.6) went onto HP even at full HP while max HP is rounded, so a full hero
   read "252/251". `scripts/ui-crawl.mjs` (by hand through the Playwright lock) plays the built game from New game
   through Act 1 with fast taps, then every camp screen and the gear panel, recording errors, long decimals, missing
