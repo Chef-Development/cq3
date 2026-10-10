@@ -147,7 +147,11 @@ function firstFights(o: { seed: number; fights: number; beginMs: (n: number) => 
       const st = { decided: new Map<string, boolean>(), busy: 0 };
       for (let i = 0; i < 300 / DT && !c.result; i++) {
         c.step();
+        const front = c.frontEnemy();
+        const banked = c.stacks;
         playStep(c, rng, st, coach.learned('finisher'));
+        // (the game's first finisher: did it finish the foe in front?)
+        if (banked > 0 && c.stacks === 0 && front && !finishers.has(p)) finishers.set(p, !front.alive);
         coach.feed(c.drainEvents(), c);
         const m = { run, safe: true };
         show(m, coach.next(m), c.time);
@@ -169,6 +173,9 @@ function firstFights(o: { seed: number; fights: number; beginMs: (n: number) => 
   }
   return shown;
 }
+
+/** Each profile's first finisher in firstFights: whether it finished the foe in front. */
+const finishers = new Map<Profile, boolean>();
 
 /** The playtester: TAP TO BEGIN at once (0.3 s) in the first two fights, a moment's pause (1.5 s) in the third. */
 const QUICK = (n: number) => (n < 3 ? 300 : 1500);
@@ -782,6 +789,20 @@ describe("a new player's first fights (the playtester: \"'yellow blocks are atta
       expect(shown.filter((x) => x.fight === 1 && tipById(x.id)!.fight === 'pause' && !FIRST_FIGHT.includes(x.id)), `seed ${seed}`).toEqual([]);
     }
   });
+
+  it('the first finisher finishes the foe in front (the coach waits for the blow that does)', () => {
+    let kills = 0;
+    let fired = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      const p = newProfile();
+      firstFights({ seed, fights: 2, beginMs: QUICK, profile: p });
+      if (!finishers.has(p)) continue;
+      fired++;
+      if (finishers.get(p)) kills++;
+    }
+    expect(fired).toBe(30);
+    expect(kills, `${kills} of ${fired}`).toBeGreaterThanOrEqual(27);
+  });
 });
 
 describe('a tip the player already knows is skipped', () => {
@@ -929,6 +950,7 @@ describe("the first fight's lessons: what the fight doesn't bring is placed in t
     const front = c.frontEnemy()!;
     const blow = c.finisherDamage(1);
     expect(front.hp, 'a fresh foe outlasts one stack').toBeGreaterThan(blow);
+    for (const e of c.enemies) e.atk = 0; // (no taps here: nothing hurts meanwhile)
     // a full-HP foe: no stack, no tip, for a while
     const { cue: early, t } = stepToTip(run, coach, COACH_DEFAULTS.finWaitSec - 1);
     expect(early, `nothing by ${t.toFixed(1)} s`).toBeNull();

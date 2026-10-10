@@ -64,11 +64,11 @@ export interface CoachOptions {
   /** The first finisher finishes: its lesson (the tip, and the stack when the meter isn't full by itself) waits for
    *  the foe in front to be low enough for it to kill, for at most this long (fight time, s) into its turn... */
   finWaitSec: number;
-  /** ...and not so low that a tap or two would beat it there (the foe's HP above this share of the blow). */
+  /** ...and not so low that a tap or two would beat it there (the foe's HP above this share of one stack's blow). */
   finFloor: number;
 }
 
-export const COACH_DEFAULTS: CoachOptions = { gapSec: 4, perFight: 2, holdSec: 1.5, breakStacks: 2, lessonGapSec: 2.5, lessonSec: 1.5, lessonsPerFight: 3, finWaitSec: 8, finFloor: 0.3 };
+export const COACH_DEFAULTS: CoachOptions = { gapSec: 4, perFight: 2, holdSec: 1.5, breakStacks: 2, lessonGapSec: 2.5, lessonSec: 1.5, lessonsPerFight: 3, finWaitSec: 15, finFloor: 0.3 };
 
 /** What counts as doing what a tip teaches (its `known` count): a yellow hit, a red blocked, a green hit, a purple let
  *  pass (it ran out untouched), a finisher fired. */
@@ -316,8 +316,8 @@ export class TipCoach {
     if (this.finTurn.combat === c && c.time - this.finTurn.at >= this.o.finWaitSec) return true;
     const front = c.frontEnemy();
     if (!front) return false;
-    const blow = c.finisherDamage(stacks) * 0.9;
-    return front.hp <= blow && front.hp > blow * this.o.finFloor;
+    // (the floor is a tap or two of the hero's: a share of one stack's blow, whatever is banked)
+    return front.hp <= c.finisherDamage(stacks) * 0.9 && front.hp > c.finisherDamage(1) * 0.9 * this.o.finFloor;
   }
 
   /** Keep track of the screen (a new phase, camp screen or fight is a new one), and drop fight tips gone stale. */
