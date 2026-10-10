@@ -11,7 +11,8 @@
 //   - foes a map drew without a mini (window.__cq3.miniMisses);
 //   - missing textures: every key the game asked Phaser for that doesn't exist (drawn as Phaser's missing-texture box);
 //   - text out of bounds: a bitmap text that stays past the canvas's edge (5 scans in the same spot: sliding in or
-//     out doesn't count), an HTML panel's text wider than its box;
+//     out doesn't count; the world map's land names are cut by the screen's edge on purpose as it pans), an HTML
+//     panel's text wider than its box;
 //   - a screen that doesn't change for 40 s (a softlock).
 // Exits 1 when it found anything.
 import { mkdirSync } from 'node:fs';
