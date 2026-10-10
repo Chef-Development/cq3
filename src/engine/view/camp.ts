@@ -418,7 +418,7 @@ export class CampView {
   /** The Camp button, top left beside the hero chip (the upgrades and the region progress). */
   campRect(): Rect {
     const c = this.chipRect();
-    return { x: c.x + c.w + 4, y: 5, w: textWidth('Camp', 1, true) + pixSize('tent')[0] + 14, h: 15 };
+    return { x: c.x + c.w + 4, y: 5, w: textWidth('Build', 1, true) + pixSize('tent')[0] + 14, h: 15 };
   }
 
   /** A prop's tap area. */
@@ -1030,7 +1030,8 @@ export class CampView {
 
     // the Camp button beside the chip
     const cb = this.campRect();
-    kit.button(g, texts, { ...cb, y: cb.y + ty - 3 }, 'Camp', FACE.green, now, { icon: 'tent', glowCol: this.upgrades.canBuild() ? 0xffd23a : undefined });
+    // (it says what it does: build mode; one dark metal face, review-4 R4-5)
+    kit.button(g, texts, { ...cb, y: cb.y + ty - 3 }, 'Build', FACE.navy, now, { icon: 'tent', glowCol: this.upgrades.canBuild() ? 0xffd23a : undefined });
     if (this.upgrades.canBuild()) kit.bubble(g, texts, cb.x + cb.w - 1, cb.y + ty - 6, '!', now, true);
     // the Mapmaker's Edits (a region restored): oxblood, with how many are drawn in
     const eb = this.editsRect();
@@ -1068,9 +1069,10 @@ export class CampView {
     for (const b of this.band()) {
       const r = { ...b.r, y: b.r.y + dy };
       const prs = isPressed(b.r, now) ? 2 : 0;
+      // (one dark metal face for the band, the colour in the icons only; the way out in brass: review-4 R4-5)
       if (b.id === 'leave') {
-        glow(g, r, 0x8af06a, 0.3 + 0.3 * pulse(now, 1000), 3);
-        button3d(g, r, FACE.green, prs > 0);
+        glow(g, r, 0xd8a84a, 0.12 + 0.12 * pulse(now, 1000), 2);
+        button3d(g, r, FACE.gold, prs > 0);
         texts.text(b.label, r.x + 6, r.y + r.h / 2 + prs, WHITE, { bold: true, oy: 0.5 });
         chevron(g, r.x + r.w - 8, r.y + 4 + prs, 7, WHITE, 1, 1, true);
         continue;
@@ -1078,7 +1080,7 @@ export class CampView {
       // Skills: a gold "!" (and a glow) when the picked hero has points to spend; Relics: how many are new
       const points = b.id === 'skills' && kit.level(p.hero).points > 0;
       if (points) glow(g, r, 0xffd23a, 0.3 + 0.35 * pulse(now, 900), 3);
-      button3d(g, r, b.id === 'forge' ? FACE.wood : b.id === 'skills' ? FACE.purple : b.id === 'relics' ? FACE.red : FACE.blue, prs > 0);
+      button3d(g, r, FACE.navy, prs > 0);
       const [iw, ih] = pixSize(b.icon);
       pix(g, b.icon, r.x + 4, r.y + Math.round((r.h - ih) / 2) + prs - 1);
       texts.text(b.label, r.x + iw + 6, r.y + r.h / 2 + prs, WHITE, { bold: true, oy: 0.5 });
