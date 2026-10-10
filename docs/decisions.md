@@ -1424,6 +1424,13 @@ C-ART-14. **Reviews' leftovers in the mood**: the act maps' stall wears deep mos
     shrine, chests, practice and companion plates stay). Not done from review-3 F6: the late camp's plates over props
     and the heroes standing in the fire or the forge mouth.
 
+C-ART-15. **More review leftovers**: the Training Dummy's painted target is a bullseye in oxblood and linen (its red
+    plus on white read as a first-aid cross, a protected emblem); every story speaker's name tab is the ink plate with
+    a brass rim Pip got (one look for all; the grounds behind the portraits still tell the sides apart); in the late
+    camp the first standing hero waits by the forge's left wall and the second at the back of the clearing behind the
+    fire, and the chests' and the dummy's plates straddle their prop's top (the Practice plate still covers the
+    shrine's base a little: the dummy stands in front of it, and no free spot is near).
+
 (content: end of section)
 
 
