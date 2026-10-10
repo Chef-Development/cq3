@@ -291,3 +291,6 @@ One PR at the end supersedes #1-#7.
   colours, a few labels) go to the next round (docs/backlog.md).
 - 05:39 EDT: baselines regenerated for the new "a" (only the fight tip card moved past the 0.2% tolerance); committed,
   pushed; the final unit and Playwright runs going on the final code.
+- 05:58 EDT: the final suites on the final code (head after the new "a"): 1,260 unit tests (72 files) green;
+  Playwright 154 passed, 1 skipped (a region slot not yet in play), 0 failed; CI green on PR #8. The code stays
+  frozen from here (a change now couldn't be re-verified before 06:45); the final message at 06:45.
