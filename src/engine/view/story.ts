@@ -29,8 +29,8 @@ const LEFT: Speaker[] = [
   // part6:D
   'fizz', 'brann',
 ];
-/** Friends who aren't heroes (Mags the smith): on the right like a villain, but in warm forge colors. */
-const ALLY: Speaker[] = ['smith'];
+/** Friends who aren't heroes (Mags the smith, Hesper the High Keeper): on the right like a villain, but in warm colors. */
+const ALLY: Speaker[] = ['smith', 'keeper'];
 /** Portrait backdrop [top, bottom] and name ribbon per side. */
 const LOOK = {
   narrator: { bg: [0x3a3060, 0x1e1836], ribbon: RIBBON.purple, name: 0xf0e0ff },
