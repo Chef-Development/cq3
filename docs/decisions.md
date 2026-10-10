@@ -1551,6 +1551,9 @@ C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics
   reds and the cursor. Every kind is still told apart without colour (the hold by its groove and notches).
 - **Q21 Impact white frames and screen flashes stay off the HUD**: they fill the stage around `hud.keepOut()` (the
   plates, the act plate and wave pips, the belt, the name lane, the combo counter), never the bar's band.
+- **Q22 The Training Dummy's HUD** (review 3, F24): the act plate reads "Practice", the purse and the potion are gone
+  (nothing is paid or spent there), and the dummy's plate counts what's been dealt to it ("51 dealt") over its gauge
+  instead of "2349/2400". The Test lab's practice fights (real foes) keep the normal HUD.
 (qa: end of section)
 
 
