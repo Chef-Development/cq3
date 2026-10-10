@@ -73,7 +73,10 @@ rule (section 4) and added to this table; never a one-off hex picked by eye.
 | day sky | `#3a8ad8 #5aaae8 #86c8f2 #b8e2f6 #e6f6fb` |
 | **parchment** (the Atlas) | `#3a2416 #6e4a2a #a8804e #d2b07a #ead2a0 #f8ecc8` |
 | **atlas ink** (map lines) | `#1a1026 #2e2240 #4a3a5e` (line, wash, faded line) |
-| **fog** (erased land) | `#6a6478 #9a94a8 #c8c2d2 #ece8f0` |
+| **fog** (erased land) | `#4e4644 #6e645e #8c8078 #a09488 #ac9f92` (a dim warm-grey vellum since L7; the bible's first cool fog read as cream) |
+| **aged parchment** (the Atlas's sheet, L7) | `#4a3020 #6a4a2c #86623a #9c7848 #ae8a56` |
+| **UI accents** (buttons, L8: `FACE` in view/ui.ts) | moss `#1e3e24 #356638 #4c8646 #8cb87a`, brass `#553812 #8c6224 #be8e3a #e6c886`, oxblood `#481418 #782828 #a4403a #d8907e`, ink `#16122a #262040 #342c54 #5a5280` |
+| **mood shadow** (grades, L7) | `#141a30` (`moodGrade`, the Atlas's land), `#14142a` (`portraitMood`) |
 | frost | `#16243a #2a4a6e #4a7aa6 #86b4d8 #c4e2f4 #f0faff` |
 | ash / ember | `#1a1014 #3a1c18 #6e2a18 #c24a1c #f08a2a #ffd070` |
 
