@@ -7,7 +7,7 @@
 import type Phaser from 'phaser';
 import { eventById } from '../../data/events';
 import { relicById } from '../../data/relics';
-import { hpNow, pct, signed, signedPct, whole } from '../../core/format';
+import { hpNow, one, pct, signed, signedPct, whole } from '../../core/format';
 import { heroMaxHp } from '../../core/combat';
 import { relicText } from '../../core/relics';
 import { boostLabel, boostPreview, isRelicOffer, type BoostPreview, type ShopItem } from '../../core/run';
@@ -20,6 +20,14 @@ import { chipWidth, relicCard, relicIcon, tagChip } from './relic-ui';
 import { FACE, ImagePool, isPressed, notePress, parchment, ribbon, RIBBON, tag, TextPool } from './ui';
 import { glass, stopLight } from './ui-modern';
 import { wrapText } from './items';
+
+/** One change an event's choice made: its icon, the floater's number, the chip's words and colour. */
+interface EventChip {
+  icon: string;
+  num: string;
+  text: string;
+  col: number;
+}
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -128,6 +136,9 @@ export class NodeScreens {
     }
   }
 
+  /** What an event's choice changed (the outcome screen's chips), from the moment it was chosen. */
+  private evGains: { at: number; chips: EventChip[] } | null = null;
+
   /** The focal column on a stop's left: the hero at an event, the trader (its centre x). */
   private focalX(): number {
     return this.s.L + 44;
@@ -135,7 +146,7 @@ export class NodeScreens {
 
   /** The event's plate, right of the focal column (glass over the stage), as tall as its words and its buttons:
    *  the words on aged parchment (wrapped to the plate), then the choices (Continue once one has played out). */
-  private eventLayout(): { b: Rect; note: Rect; lines: string[]; buttons: Rect[] } {
+  private eventLayout(): { b: Rect; note: Rect; lines: string[]; buttons: Rect[]; chips: Rect[] } {
     const s = this.s;
     const run = s.app.run;
     const ev = run.event;
@@ -148,12 +159,33 @@ export class NodeScreens {
     if (done && ev?.boost) lines.push('A boost pick is next!');
     const n = done ? 1 : Math.max(1, def?.choices.length ?? 2);
     const noteH = lines.length * 10 + 12;
-    const h = 12 + noteH + 8 + n * 21 + 2;
+    // what the choice changed: a chip each under the words, in rows that fit the plate (x, row from the top)
+    const gains = done ? (this.evGains?.chips ?? []) : [];
+    const cw = gains.map((c) => textWidth(c.text, 1, true) + iconSize(c.icon)[0] + 9);
+    const placed: Array<{ x: number; row: number; w: number }> = [];
+    let row = 0;
+    let used = 0;
+    const room = w - 12;
+    cw.forEach((cwi) => {
+      if (used > 0 && used + 4 + cwi > room) {
+        row++;
+        used = 0;
+      }
+      placed.push({ x: used + (used ? 4 : 0), row, w: cwi });
+      used += (used ? 4 : 0) + cwi;
+    });
+    const chipRows = gains.length ? row + 1 : 0;
+    const chipH = chipRows * 17;
+    const h = 12 + noteH + 8 + chipH + n * 21 + 2;
     const y = Math.max(20, Math.round((18 + s.B - h) / 2));
     const b: Rect = { x, y, w, h };
     const note: Rect = { x: b.x + 6, y: b.y + 12, w: b.w - 12, h: noteH };
-    const buttons = Array.from({ length: n }, (_, i) => ({ x: b.x + 10, y: note.y + noteH + 8 + i * 21, w: b.w - 20, h: 17 }));
-    return { b, note, lines, buttons };
+    const by = note.y + noteH + 8 + chipH;
+    const buttons = Array.from({ length: n }, (_, i) => ({ x: b.x + 10, y: by + i * 21, w: b.w - 20, h: 17 }));
+    // each row of chips centred on the plate
+    const rowW = (r: number) => placed.filter((q) => q.row === r).reduce((a, q) => Math.max(a, q.x + q.w), 0);
+    const chips = placed.map((q) => ({ x: Math.round(b.x + (b.w - rowW(q.row)) / 2 + q.x), y: note.y + noteH + 5 + q.row * 17, w: q.w, h: 14 }));
+    return { b, note, lines, buttons, chips };
   }
 
   private eventButton(i: number): Rect {
@@ -243,8 +275,24 @@ export class NodeScreens {
         notePress(this.eventButton(i));
         const coins = run.coins;
         const hp = run.hero.hp;
+        const H = run.hero;
+        const before = { coins, hp, max: heroMaxHp(app.tuning, H), atk: H.bonusAtk, pet: H.bonusPet };
         if (run.chooseEvent(i)) {
           const o = def!.choices[i].outcomes[run.event!.outcome];
+          // what changed, shown where it lands on the outcome screen (every effect shows: a max HP gain fills HP too,
+          // so the HP chip shows the rest of the HP change)
+          const dMax = heroMaxHp(app.tuning, H) - before.max;
+          const dHp = H.hp - before.hp - (o.maxHp ?? 0);
+          const dCoins = run.coins - before.coins;
+          const dAtk = H.bonusAtk - before.atk;
+          const dPet = H.bonusPet - before.pet;
+          const chips: EventChip[] = [];
+          if (dMax) chips.push({ icon: 'heart', num: signed(dMax), text: `${signed(dMax)} Max HP`, col: 0x9af06a });
+          if (Math.round(dHp)) chips.push({ icon: 'heart', num: signed(dHp), text: `${signed(dHp)} HP`, col: dHp > 0 ? 0x9af06a : 0xff8a7a });
+          if (dCoins) chips.push({ icon: 'coin', num: signed(dCoins), text: signed(dCoins), col: dCoins > 0 ? 0xffe680 : 0xff8a7a });
+          if (dAtk) chips.push({ icon: 'sword', num: signed(dAtk, one), text: `${signed(dAtk, one)} Attack`, col: 0xffc89a });
+          if (dPet) chips.push({ icon: 'feather', num: signed(dPet, one), text: `${signed(dPet, one)} Companion Power`, col: 0x9ad8ff });
+          this.evGains = { at: performance.now(), chips };
           if (o.coins && run.coins > coins) app.audio.coin();
           else if (run.hero.hp > hp || o.maxHp) app.audio.heal();
           else if (run.hero.hp < hp) app.audio.hurt();
@@ -614,6 +662,28 @@ export class NodeScreens {
     parchment(g, note);
     L.lines.forEach((line, i) => this.texts.text(line, note.x + 6, note.y + 11 + i * 10, done && ev.boost && i === L.lines.length - 1 ? 0x1a2a5a : 0x2a1608, { oy: 0.5 }));
     const since = now - this.phaseAt;
+    if (!done) this.evGains = null;
+    const gains = done ? this.evGains : null;
+    if (gains?.chips.length) {
+      // what the choice changed, a chip each (under the words, rows that fit the plate: eventLayout), popping in one
+      // after another with a floater rising off it
+      const iw = gains.chips.map((c) => iconSize(c.icon)[0]);
+      gains.chips.forEach((c, i) => {
+        const w = L.chips[i].w;
+        const t0 = gains.at + 150 + i * 160;
+        const ck = easeBack((now - t0) / 260, 1.6);
+        if (ck > 0) {
+          // tall enough for the heart (15x13): the icon sits inside the chip, centred
+          const r: Rect = { ...L.chips[i] };
+          rows(g, r.x, r.y, r.w, r.h, 2, NAVY[0], 0.85 * clamp01(ck));
+          hudIcon(g, c.icon, r.x + 2, r.y + Math.floor((r.h - iconSize(c.icon)[1]) / 2), 1, clamp01(ck));
+          this.texts.text(c.text, r.x + iw[i] + 5, r.y + r.h / 2, c.col, { bold: true, oy: 0.5, alpha: clamp01(ck) });
+          // its number rises off it and fades (drawn here: the event panel sits over the fight's floaters)
+          const ft = (now - t0) / 900;
+          if (ft < 1) this.texts.text(c.num, r.x + w / 2, r.y - 3 - Math.round(16 * Math.sqrt(ft)), c.col, { bold: true, ox: 0.5, oy: 0.5, alpha: 1 - ft * ft });
+        }
+      });
+    }
     if (done) {
       const r = this.continueButton();
       glow(g, r, 0x8af06a, 0.2 + 0.2 * pulse(now, 900), 3);

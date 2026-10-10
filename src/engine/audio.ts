@@ -222,7 +222,15 @@ export type TellSound =
   | 'burp'
   | 'sluice'
   | 'foghorn'
-  | 'redraw';
+  | 'redraw'
+  | 'skitter'
+  | 'shimmer2'
+  | 'sunflash'
+  | 'scorch'
+  | 'roar'
+  | 'needle'
+  | 'glare'
+  | 'heatwave';
 export const TELL_SOUNDS: TellSound[] = [
   'split',
   'charge',
@@ -277,6 +285,14 @@ export const TELL_SOUNDS: TellSound[] = [
   'sluice',
   'foghorn',
   'redraw',
+  'skitter',
+  'shimmer2',
+  'sunflash',
+  'scorch',
+  'roar',
+  'needle',
+  'glare',
+  'heatwave',
 ];
 
 /** Mix level per telegraph (scales every voice in it), balanced by ear-by-numbers so they all land at about the
@@ -335,6 +351,14 @@ const TELL_MIX: Record<TellSound, number> = {
   sluice: 0.5,
   foghorn: 0.95,
   redraw: 0.87,
+  skitter: 1.1,
+  shimmer2: 0.45,
+  sunflash: 0.9,
+  scorch: 0.62,
+  roar: 1,
+  needle: 0.47,
+  glare: 0.4,
+  heatwave: 1.5,
 };
 
 /** [seconds after a voice starts, value] breakpoints (see Synth.voice). */
@@ -1731,6 +1755,22 @@ export class Synth {
         return this.tellFoghorn(t, T);
       case 'redraw':
         return this.tellRedraw(t, T);
+      case 'skitter':
+        return this.tellSkitter(t, T);
+      case 'shimmer2':
+        return this.tellShimmer2(t, T);
+      case 'sunflash':
+        return this.tellSunflash(t, T);
+      case 'scorch':
+        return this.tellScorch(t, T);
+      case 'roar':
+        return this.tellRoar(t, T);
+      case 'needle':
+        return this.tellNeedle(t, T);
+      case 'glare':
+        return this.tellGlare(t, T);
+      case 'heatwave':
+        return this.tellHeatwave(t, T);
     }
   }
 
@@ -1882,6 +1922,84 @@ export class Synth {
     }
     const e = t + 0.72 * T;
     this.voice({ at: e, type: 'square', f: [[0, 1500], [0.12, 1900]], vib: { rate: 30, cents: 60 }, filter: 'bandpass', ff: [[0, 2000]], q: 3, amp: [[0.01, 0.14], [0.14, 0.17], [0.16, 0]] });
+  }
+
+  // ---- Region 5's telegraphs (the noon plateau: sand, mirages, heat, brass, the great dial)
+
+  /** A skink skittering: claws scrabbling on hot stone in quick, even dashes, the last the longest. */
+  private tellSkitter(t: number, T: number): void {
+    for (const [a, n, g] of [[0, 5, 0.5], [0.25, 5, 0.6], [0.5, 5, 0.7], [0.75, 5, 0.85], [0.95, 8, 1]] as const) {
+      const ts = Array.from({ length: n }, (_, i) => t + a * T + i * 0.012 + this.rand() * 0.004);
+      this.ticks(ts, { gain: 0.5 * g, f: 5200, q: 3, ms: 5 });
+      this.voice({ at: t + a * T, type: 'noise', filter: 'highpass', ff: [[0, 4000]], amp: [[0.005, 0.3 * g], [n * 0.012 + 0.015, 0]] });
+    }
+  }
+
+  /** A mirage: nothing, then a glassy chord wavering into being, beating against itself as it brightens. */
+  private tellShimmer2(t: number, T: number): void {
+    const s = t + 0.3 * T;
+    const d = 0.66 * T;
+    // (it wavers in and out slowly, the way heat haze does)
+    for (const [f, det] of [[2637, 0], [3322, 7], [3951, -6]] as const)
+      this.voice({ at: s, type: 'sine', f: [[0, f * 0.985], [d, f]], vib: { rate: 7, cents: 18 + det }, trem: { rate: 3.6, rate1: 5, depth: 0.95 }, amp: [[d * 0.5, 0.12], [d * 0.95, 0.3], [d + 0.03, 0]] });
+    this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, 3000], [d, 4200]], q: 3, trem: { rate: 3.6, rate1: 5, depth: 0.95 }, amp: [[d * 0.6, 0.04], [d * 0.95, 0.12], [d + 0.03, 0]] });
+  }
+
+  /** The sun flashing off a mirror: a quick rising sweep, a beat of nothing, then a bright clang and its ring. */
+  private tellSunflash(t: number, T: number): void {
+    const d = 0.4 * T;
+    this.voice({ at: t + 0.05 * T, type: 'sawtooth', f: [[0, 900], [d, 3000]], filter: 'bandpass', ff: [[0, 2400], [d, 4800]], q: 2, amp: [[d * 0.6, 0.25], [d, 0.4], [d + 0.02, 0]] });
+    const c = t + 0.76 * T;
+    for (const [f, g] of [[2637, 0.45], [3951, 0.3], [5274, 0.18]] as const) this.tone({ type: 'triangle', f, at: c, attack: 0.002, dur: 0.3, gain: g });
+    this.ticks([c], { gain: 0.8, f: 4500, q: 2, ms: 5 });
+  }
+
+  /** Something scorched: three hisses of heat on stone, each closer, the last a long searing one. */
+  private tellScorch(t: number, T: number): void {
+    for (const [a, b, g] of [[0, 0.16, 0.45], [0.3, 0.46, 0.65], [0.6, 0.98, 1]] as const) {
+      const d = (b - a) * T;
+      this.voice({ at: t + a * T, type: 'noise', filter: 'bandpass', ff: [[0, 2600], [d, 3400]], q: 0.9, amp: [[0.01, 0.6 * g], [d * 0.7, 0.75 * g], [d, 0]] });
+      this.voice({ at: t + a * T, type: 'noise', filter: 'highpass', ff: [[0, 7000]], amp: [[0.01, 0.2 * g], [d, 0]] });
+    }
+  }
+
+  /** A lion's roar: a sharp breath in, a held beat, then the roar opening up, rough and low. */
+  private tellRoar(t: number, T: number): void {
+    this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 1400], [0.2 * T, 2200]], q: 1.2, amp: [[0.18 * T, 0.3], [0.22 * T, 0]] });
+    const s = t + 0.36 * T;
+    const d = 0.6 * T;
+    this.voice({ at: s, type: 'sawtooth', f: [[0, 95], [d * 0.6, 120], [d, 105]], trem: { rate: 24, depth: 0.5 }, filter: 'bandpass', ff: [[0, 500], [d * 0.6, 900]], q: 1.4, amp: [[0.04, 0.7], [d * 0.9, 1], [d + 0.03, 0]] });
+    this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, 700]], q: 1, trem: { rate: 24, depth: 0.6 }, amp: [[0.04, 0.3], [d * 0.9, 0.4], [d + 0.03, 0]] });
+  }
+
+  /** The dial's needle: four heavy tocks, slowing, then a high steel note ringing out at the strike. */
+  private tellNeedle(t: number, T: number): void {
+    [0, 0.17, 0.36, 0.56].forEach((k, i) => {
+      const s = t + k * T;
+      this.tone({ type: 'triangle', f: 620 - 40 * i, at: s, attack: 0.001, dur: 0.08, gain: 0.6 });
+      this.ticks([s], { gain: 0.5, f: 1400, q: 4, ms: 7 });
+    });
+    const r = t + 0.72 * T;
+    for (const [f, g] of [[3520, 0.3], [5274, 0.12]] as const) this.voice({ at: r, type: 'sine', f: [[0, f]], amp: [[0.005, g], [0.24 * T, g * 0.85], [0.3 * T, 0]] });
+  }
+
+  /** A glare: three short bright pulses of light (a rising tone), the last held and blinding. */
+  private tellGlare(t: number, T: number): void {
+    for (const [a, b, g] of [[0.05, 0.14, 0.5], [0.3, 0.39, 0.65], [0.6, 0.95, 1]] as const) {
+      const d = (b - a) * T;
+      this.voice({ at: t + a * T, type: 'square', f: [[0, 1600], [d, 2000]], filter: 'bandpass', ff: [[0, 2000]], q: 3, amp: [[0.006, 0.3 * g], [d * 0.9, 0.34 * g], [d, 0]] });
+      this.voice({ at: t + a * T, type: 'sine', f: [[0, 800], [d, 1000]], amp: [[0.006, 0.2 * g], [d, 0]] });
+    }
+  }
+
+  /** A heat wave: the air rolling in three slow swells, each heavier, warping as it comes. */
+  private tellHeatwave(t: number, T: number): void {
+    for (const [a, b, g] of [[0, 0.26, 0.5], [0.32, 0.56, 0.7], [0.62, 0.94, 1]] as const) {
+      const d = (b - a) * T;
+      this.voice({ at: t + a * T, type: 'noise', filter: 'lowpass', ff: [[0, 600], [d, 1600]], q: 1.2, amp: [[d * 0.7, 0.6 * g], [d, 0]] });
+      this.voice({ at: t + a * T, type: 'noise', filter: 'bandpass', ff: [[0, 800], [d, 1200]], q: 1.5, amp: [[d * 0.7, 0.5 * g], [d, 0]] });
+      this.voice({ at: t + a * T, type: 'sine', f: [[0, 70], [d, 55]], vib: { rate: 5, cents: 60 }, amp: [[d * 0.7, 0.12 * g], [d, 0]] });
+    }
   }
 
   /** A slime about to divide: a wet, wobbling gloop rising in pitch, bubbles popping faster and faster, and a

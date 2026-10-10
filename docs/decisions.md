@@ -1136,6 +1136,57 @@ A20. **The sharper text: where the fine layer went and where it didn't** (the ch
     cost ~10 ms a story line on the loaded test machine, now a few). The chest reveal's lettering is unchanged
     (its defaults; its summary snapshot passes).
 
+A2C-6. **The act maps under the mood** (L7; `art-mood.ts` `MAP_MOOD`, `gradeMap`): each landscape of regions 1-3 takes
+    its stage's kind of grade, a little lighter (a map is read, not watched), with the roads and clearings graded only
+    part way so the route stays a lit thread. The light is accents: lanterns on posts beside the roads of the meadow,
+    the hollow and the pass (placed along the trails, never near a node's clearing, a label, the HUD or another
+    lantern; `land.lamps`, flickering in the view), the meadow's farmhouse lit inside with its light pooled round it.
+    The nodes, tags, roamers and lairs are drawn over the land at full value, so they pop more than before.
+A2C-7. **The slimes, second pass** (the very first foe): no brows or scowl; a gaping maw low at the front (teeth top
+    and bottom, a strand of slime across it, the gullet's sickly glow, drool hanging off the lip), two lidded eyes
+    glowing yellow-green high on the dome, a murky jelly with a ragged sickly light deep inside round what it swallowed
+    (a bone, a skull in the big one, seen as a shadow in the glow). The slimelet keeps a small maw.
+A2C-8. **The Boar King rebuilt, with a look per phase**: a great hunched hump under a tall mane, the head carried low
+    on a long snout (worked out on a shifted canvas so it reaches past the old frame edge), both tusks. Phase 2
+    (`boarking2_*`): hackles fully up, the eye white-hot, fresh wounds on the shoulder, steam at the snout. Phase 3
+    (`boarking3_*`): darker fur, the mane's tips smouldering, the crown cracked and a point broken off, the old scars
+    glowing, foam at the jaw. The three looks share one crop (`fitGroup`), so the swap at a phase change never jumps.
+A2C-9. **Readable at dusk** (the first-10 team's review): the crow is a hooded crow (an ash-grey mantle and belly, the
+    head, wings and tail black-blue), so it holds against the dusk treeline; every Act 1 foe checked at phone size on
+    the new stage (the boar and bandit hold by the gold rim and the bandit's glowing eyes). Region 2's rime imp
+    (darker, cold glowing eyes, a wide fanged maw, its scarf a frozen crimson), aurora wisp (its core a little skull
+    of cold light) and frost knight (a crown of ice spikes, a dark frozen-crimson tabard) get the same edge.
+
+A2C-10. **Act 3's planes apart** (review 2: "one red wash"): the red sky band is kept; the far hills, the far grove
+    and the valley mist haze toward a cool dusky violet (`#3c2c56`, it was the sky's red), the near grove a step darker
+    with some of its autumn warmth, the ground and road a calm cool plum with half the leaf litter and none by the feet
+    line; the hollow's grade leans plum-indigo (`MOOD.hollow`), its mist banks and air are violet and its rays fade
+    before the ground strip. Planes now read far-cool / near-warm-dark / ground-calm, and the actors' orange rim and the
+    bar's reds stand apart.
+A2C-11. **The crow, second pass** (the brief: it still sank into the treeline): the hooded crow's ash-grey mantle and
+    belly a step paler and the wing ramp's lit edge brighter, so it reads by value against the dark trees, not only by
+    its rim. Every Act 1 foe checked on the stage at phone size: the slime (lit green, glowing eyes), the boar (gold rim
+    on the mane), the bandit (purple, glowing eyes) and the crow hold.
+A2C-12. **Act 1's map at dusk, finished** (review 1's top finding, on a build from before A2C-6): `MAP_MOOD.forest`
+    darker and cooler (the lime gone), the meadow's vignette as deep as the ruins' with the low sun's last gold top left
+    and blue dusk in the far corner, the wildflowers fewer and muted (bright saturated colours escape the grade as
+    lights, so the petals themselves were candy), the Bandit Captain's tent a weathered war tent in dark hide and
+    oxblood (it was red and lilac: a circus tent). Act 2's and Act 3's maps were already under the mood.
+A2C-13. **Map markers**: an elite's skull has red-glowing sockets (like the red skull on its tag and the red ring under
+    it) and sits on the foe's shoulder instead of floating beside it; the boss's name keeps 6 px from the right edge (a
+    rounded corner). Not done: the tags' words ("Gear") and when tags show (QA / STORY), the hint's contrast (FIRST10).
+A2C-14. **The map minis as they fight** (review 1): the slimes with two glowing eyes and one fanged maw, a hooded crow
+    (black hood, red eye, horn beak, ash-grey mantle, swept black wings), and every Greenmarch mini in its fight
+    sprite's darker palette (A2C-7..9).
+A2C-15. **The yeti cub rebuilt** (review 2: "a smiling snowball", the most chibi foe): hunched, a shaggy hump of
+    shoulders with the head carried low and forward under a heavy brow ridge, small eyes glinting in its shadow, a dark
+    muzzle with two short tusks, a long arm hanging to its knuckles; frost-grey in the body with the moonlight on the
+    hump. Still a cub (it is small), no longer a toy.
+A2C-16. **Bellows ember-rimmed** (review 2: grey plates on a dark forge): he joins the dark Ashfell foes that take the
+    region's light from below (`UPLIT`, `emberRim`: ember on the lower edges, a cool lift on the top edges), in all
+    three phase looks.
+A2C-17. **The glacier's far hoard sits back** (review 2: a gold shape at foe height read as an actor): hazed into the
+    blue, its glow and glints cut down; a dull far gold, not a lit shape.
 A21. **The fresh-eyes review's 2A findings, first pass** (review-1/2/3 at 00:00; sheets in
     `docs/art-audit/after/stops-as-places-before-after.png`, `region-card-title-before-after.png`). *Map stops as
     places:* an event, the bounty board and the trader no longer open the full-width navy panel with a cream card; the
@@ -1271,6 +1322,16 @@ C-ART-8. **Region 5's music** (six pieces, each its own key, tempo and meter; ne
     wind, sand hissing, cicadas), `spire` (wind whistling round the towers, chains, a far hammer), `dial` (the dial's
     hum, a clock ticking, far rumbles). Not cued yet: app.ts cues the music by act and boss and the beds in
     `ACT_AMBIENCE` (12-14) when the region joins.
+C15. **New Game+ starts with one revision, done whole** (backlog 4): once a region is restored its boss comes back
+    redrawn with one more phase that brings a later region's bar rule, from the foot of that region's act picker, fought
+    like a skirmish at the numbers of the furthest act reached (so it stays a challenge), for gems and a hero chest the
+    first time and Rare-or-better gear every time. The Boar King first (in the dark); Glacia and Bellows follow the
+    same data shape. A bot guard checks it is a step up from the boss's own first fight and the masher never wins it.
+    The design and numbers are in the content bible (§9, spoilers).
+C16. **Tess's and Vesper's gaps in the fourth region aren't a rule meeting their kit** (100-run diagnostics): without
+    Tess's Stopwatch her numbers barely move, without Slow Time they drop, and without Vesper's Volley pin they halve;
+    their kits work there, the region just gives them less (Tess's soft strengths are fire and construct; Vesper keeps
+    the reds a finisher would clear, in the region with the most reds in water). Left for a hero-numbers pass.
 
 (content: end of section)
 

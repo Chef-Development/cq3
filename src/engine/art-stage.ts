@@ -89,7 +89,7 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     dust: [0x9a6060, 0xb87a6a, 0x7a4450],
     pool: 0xffa060,
     poolAmt: 0.14,
-    air: 0xb07c88,
+    air: 0x9484a8, // (A2C-10) the mist a cool dusk violet, not the sky's red
   },
   // a blue night (decision L7): cold moonlight high on the left, deep blue shadows on the snow
   pass: {
@@ -405,8 +405,8 @@ function rays(w: number, h: number, G: number, theme: Theme): Rgba {
         }
         const along = ss(8, 40, d) * (1 - ss(120, 260, d));
         const bloom = Math.pow(clamp01(1 - d / 46), 2.2) * 0.9;
-        const ground = 1 - ss(G - 10, G + 6, y) * 0.7;
-        const a = (v * along * 0.18 + bloom * 0.34) * ground;
+        const ground = 1 - ss(G - 14, G + 2, y) * 0.85;
+        const a = (v * along * 0.16 + bloom * 0.34) * ground;
         out.set(x, y, 0xffb070, a);
       }
     return out;
@@ -718,6 +718,6 @@ export function buildStageArt(scene: Phaser.Scene, w: number, h: number, G: numb
   add('st_cloudshade', patches(w, h, G - 26, h, 0x1c2a40, 0.36, 5, 0.47, 0.026, 0.1).canvas());
   add('st_mist_ruins', patches(w, h, G - 30, G + 4, 0x7e98b0, 0.3, 11, 0.44, 0.02, 0.12).canvas());
   add('st_mist_ruins_near', patches(w, h, G - 6, h, 0x6a84a0, 0.22, 17, 0.5, 0.014, 0.16).canvas());
-  add('st_mist_hollow', patches(w, h, G - 28, G + 2, 0xe8a098, 0.17, 23, 0.48, 0.02, 0.12).canvas());
-  add('st_mist_hollow_near', patches(w, h, G - 4, h, 0xb86a7a, 0.12, 29, 0.54, 0.014, 0.16).canvas());
+  add('st_mist_hollow', patches(w, h, G - 28, G + 2, 0xb8a0c8, 0.17, 23, 0.48, 0.02, 0.12).canvas());
+  add('st_mist_hollow_near', patches(w, h, G - 4, h, 0x7c6a9c, 0.12, 29, 0.54, 0.014, 0.16).canvas());
 }

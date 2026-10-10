@@ -7,7 +7,7 @@ import type Phaser from 'phaser';
 import { TIER_INFO, type Tier } from '../../data/rarity';
 import { ensureStage, STAGE_THEMES } from '../art-ui-stage';
 import { textWidth } from '../font';
-import { D, GOLD_TXT, pix, pixSize, type CampKit, type Layer } from './camp-kit';
+import { D, GOLD_TXT, pix, pixSize, type CampKit, type Layer, type StripRow } from './camp-kit';
 import { wrapText } from './items';
 import { band, button3d, glow, GOLD, gauge, NAVY, rows } from './pixels';
 import { clamp01, easeBack, easeOut3, INK, inRect, mix, pulse, WHITE, type Rect } from './shared';
@@ -1005,4 +1005,12 @@ export function stopLight(g: G, s: { L: number; R: number; B: number }, cx: numb
   ] as const)
     fillEllipse(g, cx, footY + 1, rx, ry, col, a * k * fl);
   fillEllipse(g, cx, footY + 1, 12, 2, INK, 0.45 * k);
+}
+
+/** A top-bar strip's paging arrows (`CampKit.stripRow`): the small glass arrows at its ends, dim at an end. */
+export function stripArrows(g: G, row: StripRow | null, now: number, alpha = 1): void {
+  if (!row?.prev || !row.next) return;
+  const first = row.cells.findIndex((c) => c !== null);
+  const atEnd = [first <= 0, first + row.k >= row.cells.length];
+  [row.prev, row.next].forEach((r, i) => pageArrow(g, r, i ? 1 : -1, now, alpha * (atEnd[i] ? 0.35 : 1)));
 }

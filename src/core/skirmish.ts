@@ -5,16 +5,19 @@
 // most one is out at a time, which one it is follows from how many came before, and it is used up the moment its
 // fight starts (won or lost).
 
-import type { RegionDef } from '../data/types';
+import type { RegionDef, Theme } from '../data/types';
 import type { Profile } from './profile';
 import { Rng } from './rng';
 import type { Tuning } from './tuning';
 
 export interface Skirmish {
-  act: number; // the cleared act it comes from
+  act: number; // the cleared act it comes from (a revision: the act whose numbers it fights at)
   waves: string[][];
   /** Where it stands on the world map's road (0..1 along it). */
   spot: number;
+  /** A Mapmaker's revision (src/data/remixes.ts id), fought in its boss's own lair (`theme`), not a wandering foe. */
+  remix?: string;
+  theme?: Theme;
 }
 
 /** A fight was won in a run: one step closer to the next wandering foe. */

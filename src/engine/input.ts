@@ -469,6 +469,8 @@ function focusExtras(app: App, scene: FightScene | null): Array<{ x: number; y: 
   const run = app.run;
   if (run.phase === 'map' && !app.storyOverlay) return run.choices().map((id) => scene.mapView.nodeBox(run.map.nodes[id]));
   if (run.phase === 'world') return scene.worldMap.focusTargets();
+  // the camp home's plates over the shrine, the chests, practice and the companion (drawn as plates, not buttons)
+  if (run.phase === 'camp' && !app.storyOverlay) return scene.camp.focusTargets();
   // the boost pick's cards (drawn as cards, not buttons)
   if (run.phase === 'boost' && !scene.overlays.unlockActive()) return run.boostChoices.map((_, i) => scene.overlays.cardRect(i));
   return [];
