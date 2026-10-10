@@ -67,3 +67,7 @@ One PR at the end supersedes #1-#7.
   idles dropped), the region victory's words. Region 4 is in play. With seven teams on four cores a local full unit
   run takes ~25 min: merges are pushed after typecheck + build + targeted tests, and GitHub's run of the full suite
   (~3 min) is the gate (L5); the lead still runs the full suites locally when the machine is quieter.
+- 20:57 EDT: merge 3's GitHub run: 1,165 of 1,166 green; the one red is the region 2 masher guard (the masher won its
+  boss alone 2 of 19 tries, bound 10%): a knock-on of this round's core changes to the first act. The content team
+  (balance owner) is fixing it; the live build stays on the last green deploy until then. The other local failures
+  (audio, tips) were load timeouts: green when run alone.
