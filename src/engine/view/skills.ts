@@ -683,7 +683,7 @@ export class SkillsScreen {
     let next = lv + 1;
     while (next <= maxLevel(t) && skillPoints(t, next) <= skillPoints(t, lv)) next++;
     if (next > maxLevel(t)) return 'No points left';
-    return fit([`Point at Lv ${next}`, `Lv ${next}`], w);
+    return fit([`Next point: Lv ${next}`, `Point at Lv ${next}`, `Lv ${next}`], w);
   }
 }
 
