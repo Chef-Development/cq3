@@ -2106,10 +2106,11 @@ export class WorldView {
           col = 0xb8d0f0;
         } else {
           const r = WORLD_REGIONS.find((q) => q.id === inf.id)!;
-          // a land still blank: which land to restore first (the one before it), or just erased
+          // a land still blank: which land to restore first (the one before it, named only once the player can see
+          // it), or just erased
           const ri = playableIndex(r.id);
           title = r.name;
-          line = ri > 0 ? `Restore ${REGIONS[ri - 1].name} first` : 'Erased land';
+          line = ri > 0 && regionOpen(this.s.app.progress, ri - 1) ? `Restore ${REGIONS[ri - 1].name} first` : 'Erased land';
           ax = r.x;
           ay = r.y + 23;
         }
