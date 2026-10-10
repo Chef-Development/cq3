@@ -213,7 +213,8 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   bump `SAVE_VERSION` if `RunSave` changes shape and add a migration (v5 = gear: `migrateSave` moves a v4 save's coins
   into the profile's purse; v6 = relics: a v5 save gets none; v7 = map extras: the quest, the secret found, an ambush
   in progress, the merchant's shop, a bounty's picks to come, and `extras` (a v6 save's act goes on with a plain map:
-  `enterAct(i, scenes, false)`; the next act has them); older saves are dropped). The **profile** (`core/profile.ts`, key `cq3.profile.v2`) is kept
+  `enterAct(i, scenes, false)`; the next act has them); v8 = the Mapmaker's Edits drawn into the act (`edits`; a v7
+  save's act has none); older saves are dropped). The **profile** (`core/profile.ts`, key `cq3.profile.v2`) is kept
   across runs: progress, the bag (60 items), what's equipped, coins (the purse carries over between runs), scrap, each
   signature drop's bad-luck counter, the accuracy log, whether the smith was met; v3 adds the heroes (picked, XP, skills, Sable met, the twin tutorial
   shown) and the relics unlocked, the tips seen and whether tips are off (and the tips' known counts, `tipsDone`), the world map's wandering foe (`wander`), the map sparkles picked up, whether the world map's first-visit reveal played (`worldTour`) (still v3: missing reads as none; a profile
