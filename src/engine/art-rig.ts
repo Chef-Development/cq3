@@ -62,6 +62,8 @@ export interface Rig {
   fistNear: string[];
   fistFar: string[];
   fistAt: Pt; // the fist map's top left relative to the hand point
+  /** The palette is already made for the dark stage (decision L7): no grade on its frames (Rowan's). */
+  graded?: boolean;
 }
 
 export interface Hand {
@@ -160,7 +162,40 @@ export interface HeroCardSpec {
 export function rigFrame(rig: Rig, p: RigPose): HTMLCanvasElement {
   const g = grid(HERO_W, HERO_H);
   paintRig(g, rig, p);
+  if (!rig.graded) gradeGrid(g);
   return toCanvas(g);
+}
+
+/**
+ * The mature grade (playtest round 8, decisions L7 and L8: darker, moodier): every colour of a painted frame goes down
+ * in value (the mids and darks more than the lights, so each hero keeps a light value that pops on a dark stage) and
+ * a little in saturation. Painted once, with the frames.
+ */
+export function gradeGrid(g: Grid): void {
+  const memo = new Map<string, string>();
+  for (const row of g)
+    for (let x = 0; x < row.length; x++) {
+      const c = row[x];
+      if (!c) continue;
+      let out = memo.get(c);
+      if (!out) {
+        const v = parseInt(c.slice(1), 16);
+        let r = ((v >> 16) & 255) / 255;
+        let gg = ((v >> 8) & 255) / 255;
+        let b = (v & 255) / 255;
+        const mx = Math.max(r, gg, b);
+        const k = 0.8 + 0.2 * mx; // the lights keep most of their value
+        const grey = (r + gg + b) / 3;
+        const sat = 0.88;
+        r = (grey + (r - grey) * sat) * k;
+        gg = (grey + (gg - grey) * sat) * k;
+        b = (grey + (b - grey) * sat) * k * 1.02; // shadows lean a touch cooler
+        const h2 = (n: number) => Math.max(0, Math.min(255, Math.round(n * 255))).toString(16).padStart(2, '0');
+        out = `#${h2(r)}${h2(gg)}${h2(b)}`;
+        memo.set(c, out);
+      }
+      row[x] = out;
+    }
 }
 
 // ------------------------------------------------------------------ shapes shared by the heroes' kits

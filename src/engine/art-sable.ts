@@ -10,7 +10,7 @@
 // blade pointing down out of the fist.
 import { HERO_FEET_X, HERO_H, HERO_W, grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 import { ROWAN_CARD, ROWAN_RIG } from './art-hero-rowan';
-import { jointLegs, LEG_FEET_X, rigFrame, STANCES, type LegLook } from './art-rig';
+import { gradeGrid, jointLegs, LEG_FEET_X, rigFrame, STANCES, type LegLook } from './art-rig';
 import { daggerMap } from './art-sword';
 import { EARTH, LEAF, STONE, ell, fill, or, rect, sphere, tone } from './art-paint';
 import { bay } from './backdrop';
@@ -316,6 +316,7 @@ export function paintSable(g: Grid, p: SablePose): void {
 function sableFrame(p: SablePose): HTMLCanvasElement {
   const g = grid(HERO_W, HERO_H);
   paintSable(g, p);
+  gradeGrid(g);
   return toCanvas(g);
 }
 
@@ -412,6 +413,7 @@ const rowanCard = () => heroCard(ROWAN_CARD.glow, ROWAN_CARD.motes, rigFrame(ROW
 const sableCard = () => {
   const g = grid(HERO_W, HERO_H);
   paintSable(g, { near: { hand: [9, 9], dir: 'r' }, far: { hand: [10, 19], dir: 'ur' }, glint: [[19, 26]] });
+  gradeGrid(g);
   return heroCard(['#8af0c8', '#a274b0'], [[5, 12], [34, 10], [33, 29]], toCanvas(g));
 };
 

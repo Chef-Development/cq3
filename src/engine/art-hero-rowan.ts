@@ -125,6 +125,8 @@ export const ROWAN_RIG: Rig = {
   fistNear: GAUNTLET,
   fistFar: GAUNTLET,
   fistAt: [-1, -1],
+  // (his palette is made for the dark stage already)
+  graded: true,
 };
 
 // ------------------------------------------------------------------ the sword
