@@ -1453,6 +1453,11 @@ C18. **Tess's and Vesper's late game: two finishers that keep the reds** (diagno
     and 15. Left: both at Act 11 (Vesper takes about 60% more hits a second from that mini-boss than Rowan, with or
     without the tide).
 
+C-ART-16. **The last two fight screens in the old style join the mood**: the relic panel (from the belt) is dark glass
+    with a brass rim under the same ink-and-brass tab as the story's names; the intro band (a boss's name, ELITE!,
+    AMBUSH!, COIN RUSH!, SKIRMISH!, TIME'S UP!) is ink with brass rules and pale brass letters, an elite's oxblood.
+    Same rects, same taps.
+
 (content: end of section)
 
 
