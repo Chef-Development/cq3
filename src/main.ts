@@ -50,6 +50,9 @@ const place = () => {
   // DOM HUD buttons are pixel art too: size them in game pixels.
   rootStyle.setProperty('--gpx', `${app.layout.scale / app.layout.dpr}px`);
   rootStyle.setProperty('--game-top', `${app.layout.top}px`);
+  // the safe right edge of the game (CSS px from the window's right): the title puts the gear button in its corner
+  const L = app.layout;
+  rootStyle.setProperty('--game-right', `${Math.max(0, window.innerWidth - (L.left + L.cssW)) + (L.safeRight * L.cssW) / 327}px`);
 };
 const relayout = (force = false) => {
   if (app.relayout(force)) place();
