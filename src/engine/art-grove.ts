@@ -10,7 +10,7 @@
 // (`ensureGroveArt`), never at boot.
 import type Phaser from 'phaser';
 import { grid, put, stamp, toCanvas } from './art';
-import { ell, fill, rect, tone, type Inside } from './art-paint';
+import { ell, fill, moodGrade, rect, tone, type Inside } from './art-paint';
 import { paintStage, registerStageTheme, type StageSpec } from './art-ui-stage';
 
 export const GROVE_THEME = 'grove';
@@ -371,7 +371,8 @@ export function ensureGroveArt(scene: Phaser.Scene): void {
   if (!scene.textures.exists(key)) {
     const c = paintStage(GROVE);
     paintGroveFloor(c.getContext('2d')!, c.width, c.height, GROVE);
-    scene.textures.addCanvas(key, c);
+    // (L7: the menus' stages in the mood's darker light)
+    scene.textures.addCanvas(key, moodGrade(c, 0.2));
   }
   if (!scene.textures.exists('grove_stump')) scene.textures.addCanvas('grove_stump', stumpSprite());
 }

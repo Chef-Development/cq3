@@ -218,8 +218,9 @@ export function glass(g: G, r: Rect, o: GlassOpts = {}): void {
   // a faint lighter top half and the lit top edge
   band(g, r.x, r.y, r.w, r.h, 2, 0, Math.max(2, Math.round(r.h * 0.35)), mix(body, 0x8a7cc0, 0.18), 0.5 * op * a);
   band(g, r.x, r.y, r.w, r.h, 2, 0, 1, mix(body, WHITE, 0.35), 0.8 * a);
-  g.fillStyle(WHITE, 0.5 * a);
-  g.fillRect(r.x + r.w - 7, r.y + 1, 3, 1);
+  // (L8: one dull glint, not a shine)
+  g.fillStyle(WHITE, 0.22 * a);
+  g.fillRect(r.x + r.w - 7, r.y + 1, 2, 1);
 }
 
 export interface IconCardOpts {
@@ -414,12 +415,12 @@ export function ring(g: G, cx: number, cy: number, r: number, frac: number, o: {
 export function bigButton(kit: CampKit, g: G, texts: TextPool, r: Rect, label: string, face: Face, now: number, o: Parameters<CampKit['button']>[6] = {}): void {
   kit.button(g, texts, r, label, face, now, { glowCol: o.disabled ? undefined : (o.glowCol ?? face[0]), ...o });
   if (o.disabled) return;
-  // the sheen: a bright slanted band crossing the face every 2.6 s
-  const t = (now % 2600) / 700;
+  // the sheen: a soft slanted glint crossing the metal every 3.4 s (L8: a gleam on worn metal, not a plastic flash)
+  const t = (now % 3400) / 800;
   if (t < 1) {
     const pr = isPressed(r, now) ? 2 : 0;
     const x = Math.round(r.x - 6 + t * (r.w + 12));
-    g.fillStyle(WHITE, 0.35);
+    g.fillStyle(WHITE, 0.16);
     for (let y = 1; y < r.h - 2; y++) {
       const sx = x - Math.round(y * 0.5);
       if (sx >= r.x + 1 && sx + 3 <= r.x + r.w - 1) g.fillRect(sx, r.y + y + pr, 3, 1);

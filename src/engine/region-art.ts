@@ -1,9 +1,10 @@
 // The later regions' art in chunks of their own (docs/perf.md, "Region art packs"; team 4, round 8). A first session
 // plays Greenmarch: its art is in the main chunk and painted at boot, while each later region's foes, portraits, bar
-// pieces, relic icons and fight backdrops come in a pack (`pack-<region>.ts`) that is loaded with import() as the
-// game boots (it downloads beside the main chunk and the service worker keeps it), painted in idle slices once the
-// title is up (scene.ts), and finished at once on the first screen after the title (App.setPhase -> FightScene
-// ensureRegionArt), so no screen past the title ever asks for a texture that isn't there.
+// pieces and fight backdrops come in a pack (`pack-<region>.ts`) that is loaded with import() as the game boots (it
+// downloads beside the main chunk and the service worker keeps it), painted in idle slices from the title on
+// (scene.ts), and finished at once on any screen of a later region (App.setPhase -> FightScene.ensureRegionPacks) or
+// when a foe or portrait a pack draws is needed sooner (fighters, story), so nothing ever asks for a texture that
+// isn't there, and a Greenmarch player never waits for them.
 //
 // A new region's art joins like this:
 //   1. its art files (art-<region>.ts, backdrop-<region>.ts...) are imported ONLY by its pack file (and each other):

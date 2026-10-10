@@ -13,8 +13,8 @@ export const EVENTS: EventDef[] = [
         label: 'Toss 15 coins',
         cost: 15,
         outcomes: [
-          { chance: 1, text: 'The well burps up a shiny boost!', boost: 'rare' },
-          { chance: 1, text: 'Plop. Nothing. Pip: "Told you."' },
+          { chance: 1, text: 'Something glints its way back up.', boost: 'rare' },
+          { chance: 1, text: 'Nothing. Pip: "Told you."' },
         ],
       },
       { label: 'Walk on', outcomes: [{ text: 'You keep your coins. Wise, says Pip.' }] },
@@ -23,16 +23,16 @@ export const EVENTS: EventDef[] = [
   {
     id: 'mushroom',
     title: 'Suspicious Mushroom',
-    text: 'A mushroom the size of a helmet. It smells\nlike pancakes. Rowan is very hungry.',
+    text: 'A mushroom the size of a helmet. It smells\nlike fresh bread. Rowan is very hungry.',
     choices: [
       {
         label: 'Eat it',
         outcomes: [
-          { chance: 2, text: 'Delicious! You feel much better.', heal: 0.3 },
-          { chance: 1, text: 'Your tongue goes purple. Ouch.', hp: -12 },
+          { chance: 2, text: 'Delicious. You feel much better.', heal: 0.3 },
+          { chance: 1, text: 'Your tongue goes numb. Then your knees.', hp: -12 },
         ],
       },
-      { label: 'Leave it', outcomes: [{ text: 'The mushroom looks a little hurt.' }] },
+      { label: 'Leave it', outcomes: [{ text: 'You leave it. Pip looks relieved.' }] },
     ],
   },
   {
@@ -47,7 +47,7 @@ export const EVENTS: EventDef[] = [
   {
     id: 'merchant',
     title: 'Lost Merchant',
-    text: 'A merchant is stuck in a hedge. "Help!\nI will pay! Mostly in exposure!"',
+    text: 'A merchant hangs upside down in a hedge.\n"A little help? I can pay. Some."',
     choices: [
       { label: 'Pull him out', outcomes: [{ text: 'He gives you a tonic. Max HP up!', maxHp: 10, hp: -5 }] },
       {
@@ -64,7 +64,7 @@ export const EVENTS: EventDef[] = [
     title: 'Pip Found Something',
     text: 'Pip lands with a shiny button. "Consulting\nfee," Pip says, and won\'t let go.',
     choices: [
-      { label: 'Let Pip keep it', outcomes: [{ text: 'Pip is thrilled. Pip pecks harder now.', pet: 3 }] },
+      { label: 'Let Pip keep it', outcomes: [{ text: 'Pip is pleased. His pecks land harder.', pet: 3 }] },
       { label: 'Sell it', outcomes: [{ text: 'It was a real gold button! +25 coins.', coins: 25 }] },
     ],
   },

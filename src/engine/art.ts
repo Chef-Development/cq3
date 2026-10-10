@@ -122,7 +122,9 @@ export function stampShaded(g: Grid, rows: string[], pal: Pal, shades: Record<st
 // ------------------------------------------------------------------ hero (Rowan, an armored blade knight)
 
 export const HERO_W = 54;
-export const HERO_H = 42;
+// (48 since playtest round 8's mature look: taller figures with raised weapons need the headroom; everything that
+// draws a hero frame anchors it at the feet, so the extra rows are at the top)
+export const HERO_H = 48;
 export const HERO_FEET_X = 23; // x of the feet center inside the frame
 
 // Rowan's frames are drawn on the shared rig: art-hero-rowan.ts (his sword: art-sword.ts).

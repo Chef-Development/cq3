@@ -2,7 +2,7 @@
 // and freckles, fur pauldrons over a leather harness, wrist wraps, tattoos on her arms and a giant stone-headed
 // warhammer. Fight frames `torva_${pose}` on the shared rig (art-rig.ts).
 import { put, type Pal, type Shade } from './art';
-import { along, block, dirAngle, pole, ribbon, sparkle, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose } from './art-rig';
+import { along, block, type Dir, dirAngle, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, pole, ribbon, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -69,6 +69,8 @@ const TORSO = [
   'uuuUuuulllsuuUuu.',
   '.uuuulNllNllluu..',
   '..sllNlllNllls...',
+  '..sllNlllNllls...',
+  '..sllNlllNllls...',
   '..sslllllllls....',
   '..ssssmsmsmss....',
   '..sssssmsmsss....',
@@ -77,72 +79,8 @@ const TORSO = [
 ];
 
 // A leather kilt, dark trousers, fur-topped boots; 17 wide, the feet centred on x = 8.
-const LEGS: Record<string, string[]> = {
-  stand: [
-    '..qqqqqqqqqqqqq..',
-    '..qQqqQqqQqqQqq..',
-    '.qqQqqQqqQqqQqqq.',
-    '.qqQqqQqqQqqQqqq.',
-    '...pppp...pppp...',
-    '...pppp...pppp...',
-    '...pppp...pppp...',
-    '..uuuuu..uuuuu...',
-    '..bbbbbb.bbbbbb..',
-    '..bbbbbbb.bbbbbbb',
-  ],
-  run: [
-    '...qqqqqqqqqqqqq.',
-    '..qqQqqQqqQqqQqq.',
-    '.qqQqqQqqQqqQqqq.',
-    'qqQqqQqqQqqQqqq..',
-    'ppp.......pppp...',
-    'pp.........pppp..',
-    'uu..........pppp.',
-    'bb.........uuuuu.',
-    '...........bbbbbb',
-    '...........bbbbbbb',
-  ],
-  lunge: [
-    '...qqqqqqqqqqqqq.',
-    '..qqQqqQqqQqqQqq.',
-    '.qqQqqQqqQqqQqqqq',
-    '.qqQqqQqqQqqQqqqq',
-    '.ppp.......pppp..',
-    'ppp.........pppp.',
-    'ppp.........pppp.',
-    'uuu........uuuuu.',
-    'bbbb.......bbbbbb',
-    'bbbbb......bbbbbbb',
-  ],
-  crouch: [
-    '..qqqqqqqqqqqqq..',
-    '.qqQqqQqqQqqQqqq.',
-    '.qqQqqQqqQqqQqqqq',
-    '.ppp........pppp.',
-    'pppp........pppp.',
-    'uuuu.......uuuuu.',
-    'bbbbb......bbbbbb',
-    'bbbbbb.....bbbbbbb',
-  ],
-  tuck: [
-    '..qqqqqqqqqqqqq..',
-    '.qqQqqQqqQqqQqqq.',
-    '.qqQqqQqqQqqQqqq.',
-    '..ppppppp.ppppp..',
-    '.....uuuuu.uuuu..',
-    '.....bbbbbbbbbbb.',
-    '......bbbbb.bbbb.',
-  ],
-  kneel: [
-    '..qqqqqqqqqqqqq..',
-    '.qqQqqQqqQqqQqqq.',
-    '.qqQqqQqqQqqQqqqq',
-    '..pppppp....pppp.',
-    'bbppppppp...pppp.',
-    'bbbbbbbbb..uuuuu.',
-    '...........bbbbbb',
-  ],
-};
+// the shared jointed legs (art-rig.ts STANCES, playtest round 8: L8, about three heads tall)
+const LEGS = matureLegs({ leg: 'p', legBack: '8', boot: 'b', bootBack: '9', sole: '9', skirt: 'q', fold: 'Q' });
 
 const FIST = ['VVv', 'Vvv', 'vvn'];
 const ARM_PAL_NEAR: Array<[number, ...string[]]> = [
@@ -159,12 +97,12 @@ const ARM_PAL_FAR: Array<[number, ...string[]]> = [
 ];
 
 export const TORVA_RIG: Rig = {
-  pal: TORVA_PAL,
+  pal: { ...TORVA_PAL, '8': TROUSER[1], '9': LEATHER[0] },
   shades: TORVA_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [1, 3], blush: 'f'}),
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 8,
+  legsFeetX: LEG_FEET_X,
   torsoX: -8,
   torsoOverlap: 1,
   headX: 1,
@@ -199,7 +137,7 @@ function hammer(dir: Dir, len: number, back: number): Item {
 /** The thick braid from the nape: a 4px plait in alternating links, a leather tie, a flared tuft. */
 function braid(a0: number, curl: number, wave: number, n = 15): Layer {
   return (g, a) =>
-    ribbon(g, a.hx + 1, a.hy + 9, n, (t) => Math.PI * (a0 + curl * t + wave * Math.sin(t * Math.PI * 2)), (t, i) => {
+    ribbon(g, a.hx + 1, a.hy + 7, n, (t) => Math.PI * (a0 + curl * t + wave * Math.sin(t * Math.PI * 2)), (t, i) => {
       if (t > 0.88) return [HAIR[4], HAIR[3], HAIR[2]];
       if (t > 0.78) return [LEATHER[3], LEATHER[1]];
       if (i % 2 === 0) return [HAIR[4], HAIR[3], HAIR[2], HAIR[1]];
@@ -254,16 +192,16 @@ const rage =
 const P = (p: RigPose): RigPose => p;
 export const TORVA_POSES: Record<string, RigPose> = {
   // the hammer resting on her shoulder, its head behind her back
-  idle0: P({ near: { at: [3, 15], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 10] }, back: [braid(0.62, 0.02, 0.03)] }),
-  idle1: P({ near: { at: [3, 14], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 9] }, dy: 1, back: [braid(0.63, 0.02, -0.03)] }),
+  idle0: P({ near: { at: [3, 21], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 16] }, back: [braid(0.62, 0.02, 0.03)] }),
+  idle1: P({ near: { at: [3, 20], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 15] }, dy: 1, back: [braid(0.63, 0.02, -0.03)] }),
   // the braid swings a frame behind the breath, the hammer's weight settles on her shoulder
-  idle2: P({ near: { at: [3, 14], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 9] }, dy: 1, back: [braid(0.66, 0.03, -0.06)] }),
-  idle3: P({ near: { at: [3, 15], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 10] }, back: [braid(0.65, 0.03, 0)] }),
-  dash: P({ near: { at: [3, 11], item: hammer('l', 14, 3), behind: true }, far: { at: [6, 12] }, legs: 'run', dx: 1, lean: 1, back: [braid(0.92, -0.06, 0.06)] }),
+  idle2: P({ near: { at: [3, 20], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 15] }, dy: 1, back: [braid(0.66, 0.03, -0.06)] }),
+  idle3: P({ near: { at: [3, 21], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 16] }, back: [braid(0.65, 0.03, 0)] }),
+  dash: P({ near: { at: [3, 17], item: hammer('l', 14, 3), behind: true }, far: { at: [6, 18] }, legs: 'run', dx: 1, lean: 1, back: [braid(0.92, -0.06, 0.06)] }),
   // the overhead smash lands in front
   slashA: P({
-    near: { at: [11, 14], item: hammer('dr', 9, 4) },
-    far: { at: [13, 13] },
+    near: { at: [11, 20], item: hammer('dr', 9, 4) },
+    far: { at: [13, 19] },
     legs: 'lunge',
     dx: 2,
     lean: 1,
@@ -273,8 +211,8 @@ export const TORVA_POSES: Record<string, RigPose> = {
   }),
   // a sweeping side swing, level with her chest
   slashB: P({
-    near: { at: [11, 16], item: hammer('r', 13, 4) },
-    far: { at: [13, 15] },
+    near: { at: [11, 22], item: hammer('r', 13, 4) },
+    far: { at: [13, 21] },
     legs: 'lunge',
     dx: 2,
     lean: 1,
@@ -282,8 +220,8 @@ export const TORVA_POSES: Record<string, RigPose> = {
   }),
   // the hammer heaved up behind her head
   windup: P({
-    near: { at: [-1, 24], item: hammer('ul', 9, 3), behind: true },
-    far: { at: [1, 23], hidden: true },
+    near: { at: [-1, 30], item: hammer('ul', 9, 3), behind: true },
+    far: { at: [1, 29], hidden: true },
     legs: 'crouch',
     dy: 1,
     armsUp: true,
@@ -292,23 +230,23 @@ export const TORVA_POSES: Record<string, RigPose> = {
   }),
   // the haft held crosswise in both fists
   parry: P({
-    near: { at: [4, 14], item: hammer('r', 15, 3) },
-    far: { at: [14, 14] },
+    near: { at: [4, 20], item: hammer('r', 15, 3) },
+    far: { at: [14, 20] },
     legs: 'crouch',
     dy: 1,
     farFront: true,
     back: [braid(0.62, 0.02, 0.03)],
   }),
   hurt: P({
-    near: { at: [-4, 10], item: hammer('dl', 9, 3), behind: true },
-    far: { at: [8, 16] },
+    near: { at: [-4, 16], item: hammer('dl', 9, 3), behind: true },
+    far: { at: [8, 22] },
     dx: -1,
     lean: -1,
     dy: 1,
     head: 'squint',
     back: [braid(0.35, -0.1, 0.06)],
   }),
-  leap: P({ near: { at: [5, 26], item: hammer('u', 9, 4) }, far: { at: [7, 25], hidden: true }, legs: 'tuck', armsUp: true, back: [braid(0.75, -0.25, 0.04)] }),
+  leap: P({ near: { at: [5, 32], item: hammer('u', 9, 4) }, far: { at: [7, 31], hidden: true }, legs: 'tuck', armsUp: true, back: [braid(0.75, -0.25, 0.04)] }),
   // knocked out: on one knee, sagging on the hammer stood head-down in front of her
   down: P({
     near: { at: [10, 15], item: hammer('d', 11, 2) },
@@ -323,8 +261,8 @@ export const TORVA_POSES: Record<string, RigPose> = {
   }),
   // the finisher: the hammer hoisted straight overhead in both fists
   fin: P({
-    near: { at: [3, 28], item: hammer('u', 6, 4) },
-    far: { at: [5, 28], hidden: true },
+    near: { at: [3, 34], item: hammer('u', 6, 4) },
+    far: { at: [5, 34], hidden: true },
     legs: 'lunge',
     armsUp: true,
     head: 'roar',
@@ -333,8 +271,8 @@ export const TORVA_POSES: Record<string, RigPose> = {
   }),
   // Wind-Up: the hammer planted, a fist raised in a flex, roaring
   cast: P({
-    near: { at: [-10, 24] },
-    far: { at: [11, 10], item: hammer('d', 6, 6) },
+    near: { at: [-10, 30] },
+    far: { at: [11, 16], item: hammer('d', 6, 6) },
     farFront: true,
     head: 'roar',
     back: [braid(0.62, 0.02, 0.03)],
@@ -344,13 +282,13 @@ export const TORVA_POSES: Record<string, RigPose> = {
 
 /** Hero select card: the hammer on her shoulder and a grin, before an ember-red glow with an orange heart. */
 export const TORVA_CARD: HeroCardSpec = {
-  pose: { near: { at: [3, 15], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 10] }, back: [braid(0.62, 0.02, 0.03)] },
+  pose: { near: { at: [3, 21], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 16] }, back: [braid(0.62, 0.02, 0.03)] },
   glow: ['#ffc070', '#b02a20'],
   motes: [[5, 14], [34, 10], [34, 30]],
 };
 
 /** By the campfire (two breaths): the hammer stood head-down, both fists stacked on the end of its haft. */
 export const TORVA_CAMP: [RigPose, RigPose] = [
-  P({ near: { at: [9, 16], item: hammer('d', 12, 1) }, far: { at: [10, 17] }, farFront: true, back: [braid(0.62, 0.02, 0.03)] }),
-  P({ near: { at: [9, 15], item: hammer('d', 11, 1) }, far: { at: [10, 16] }, farFront: true, dy: 1, back: [braid(0.63, 0.02, -0.03)] }),
+  P({ near: { at: [9, 22], item: hammer('d', 12, 1) }, far: { at: [10, 23] }, farFront: true, back: [braid(0.62, 0.02, 0.03)] }),
+  P({ near: { at: [9, 21], item: hammer('d', 11, 1) }, far: { at: [10, 22] }, farFront: true, dy: 1, back: [braid(0.63, 0.02, -0.03)] }),
 ];

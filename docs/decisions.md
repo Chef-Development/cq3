@@ -800,6 +800,11 @@ L8. **More mature, less chibi** (playtester, round 8: "everything looks a little
     Teams: art 2B the heroes (and portraits of heroes); a new art 2C the fight backdrops (L7) and the foes; art 2A the
     UI, menus, world map and title; the region helpers their regions.
 
+L9. **A boot check before every push** (a boot crash from a hero-rig change reached the live build at 22:37 for about
+    ten minutes: unit tests and the build passed, the game didn't start): the lead's pushes and the teams' commits that
+    touch boot-painted art run `boot-check.mjs` (the built game at phone and desktop size: no page errors, title ->
+    world map -> the first story box); hero-frames.test.ts now paints every card and camp pose.
+
 (lead: end of section)
 
 
@@ -868,6 +873,16 @@ S13. **The rest of the story is drafted in data, not in play.** Region 9 in full
     the same tests as the scenes in play (box counts, widths, speakers, the Mapmaker's and Hesper's no-contraction
     voices; he is named only at the end of `lowTruth`, speaker `ambrose`). Camp banter can now stop being true
     (`until`): Brann's slate lines stop once his bell rings (`saltVictory`).
+
+S14. **The second editor's pass on Regions 5-12 and the ending is applied, with every optional note taken.** That
+    includes the stronger `lowGoes` order: Rowan's line comes before Ambrose goes, so he hears it, and the region ends
+    on him stopping on the road. One note is rejected: "Travelers" stays (the player-facing text is American; only a
+    code comment says "travellers"). Added from the editor's "smaller gaps": Ambrose mentions his wife once
+    (`kestrel`: "My wife asked me that, once.").
+S15. **L8 for the words: grown-up wit, not chirp.** Hero arrivals, banter, events, achievements and a few names (three
+    relics, two capstones, a companion's kind) lose the toy-like and exclamation-heavy phrasing; the jokes stay, drier.
+    Companion names (Bun, Sunny...) stay: L8 lets companions keep some charm, and the names run through tests and art
+    notes. Tips are left to the first 10 minutes team (their wording is the onboarding).
 
 (story: end of section)
 
@@ -978,6 +993,30 @@ A14. **Section 9's words on every screen I own**: "The Great Atlas" and "Regions
     reads "Greenmarch restored!" / "N regions to go." Nothing about a Pendulum is left in the view text (the capital's
     landmark sprite and the narrator's portrait still show the pendulum: next).
 
+A15. **L6 on the Atlas: the open lands keep the painted world.** The ink draft read as dirt and specks at the map's
+    zoom; it is gone. An open land not yet restored shows the painted land a touch drained (a third toward its own
+    grey, `draftOf`), with full colour already back round Rowan and each cleared act; restoring floods the full colour
+    out from the boss in the ragged gold-fronted ring (A13). Erased land stays blank vellum with the impression of its
+    lines, now behind a clear torn edge: the paper's rim lit warm, a thin ink shadow on the land beside it.
+A16. **L7 (mood) on the Atlas:** aged, darker parchment (`AGED`) browning to burnt edges, a deeper teal sea wash, the
+    land graded about a fifth darker with cool midtones and warm lights kept (`MOOD`), the erased lands and the far
+    isles a dim warm-grey vellum (no cream), clouds a dusk lavender grey, a vignette half again as strong. The title's
+    blank is a warm grey kept below the logo's and the sun's values.
+A17. **The art bible's section 0, Mood (L7) and Maturity (L8)**, ahead of everything else and overriding it: values
+    down, cool midtones, deep cool shadows, warm light only as accents, actors rim-lit; people not toys, foes with
+    menace, portraits with defined features, UI as metal, ink and leather.
+A18. **L7/L8 in the menus' shared parts** (every screen built from them follows): plates' ink (`NAVY`) a step darker
+    and less purple, trim gold (`GOLD` in pixels.ts) antique brass, button faces (`FACE`) and ribbons in the mood's
+    accents (moss, brass, oxblood, iron, steel blue, plum, ink), `button3d` an iron rim with a narrow lit lip and one
+    dull glint instead of a silver rim, a glossy band and two white speculars; glass plates one dull glint. Every
+    painted menu stage (`ensureStage`), the grove and the camp's backdrop get `moodGrade` (art-paint.ts: midtones
+    toward a deep indigo, light sources spared). Text colours with fixed meanings (reward gold, done green) are kept.
+A19. **The old premise out of the pictures** (story bible section 11): the narrator's portrait is a corner of the
+    Atlas, the capital's tower is the domed Atlas Hall, the shrine's gable (camp and shrine) carries a compass rose,
+    the Keystone Shard's icon is a keystone's broken wedge with his gold line glowing, the captain holds looted coin
+    (not a "genuine weight"), the golem's brow rune is a compass star. The Boar King's crown and Bellows's anvil are
+    foes' art (team 2C). New portraits: the Noon Sphinx; the non-hero speakers' portraits (the Mapmaker, Hesper, Mags,
+    Pip, the narrator) get the mood's light (`portraitMood`: the far side stepped into a deep cool shadow).
 A2C-1. **The mood is baked into the stage's pixels, not multiplied over them** (L7; `art-mood.ts`). Every painted layer
     of the nine fight stages (backdrop, framing, the four foreground frames) goes once through its act's grade when it
     is painted (never per frame): midtones lose some saturation and take the act's cool shade colour (values ~20-35%
@@ -1006,12 +1045,10 @@ A2C-3. **Foes get menace without losing their read** (L8). Bosses: the Boar King
     face lost in the hood's shadow with two eyes catching the light; the captain weathered, scarred, a grubby plume.
     Also: the yeti cub's dark face and glowing eyes, the shaman's crimson toadstool, the wolf's fang. Their read is
     kept (same silhouettes and sizes; the stage rim still lifts them off the darker stages at phone size).
-A2C-4. **The old premise's pendulum is gone from the foes' art** (story bible section 11): the Boar King's crown has
-    a blood-red stone instead of the brass bob (fight sprite and portrait), the golem's forehead rune is a compass star
-    (portrait) and the flower on its crown a glowing compass-star rune (fight sprite), the Bandit Captain's portrait
-    sells a torn Atlas page instead of a pendulum weight, and Bellows forges a white-hot blade on his anvil instead of
-    guarding the weight. Still showing it (not this team's files): the narrator's portrait, the shrine's and camp's
-    emblem, the Keystone Shard's icon, the capital's clock tower.
+A2C-4. **The old premise's pendulum is gone from the foes' art** (story bible section 11; the portraits are 2A's, A19):
+    the Boar King's crown has a blood-red stone instead of the brass bob (fight sprite and portrait), the flower on the
+    golem's crown is a glowing compass-star rune (fight sprite), and Bellows forges a white-hot blade on his anvil
+    instead of guarding the weight.
 
 (art: end of section)
 
@@ -1140,8 +1177,8 @@ C12. **The region card's tabs fall back to short names** (Green, Frost, Ash, Dus
   full screen, so the row is hidden there).
 - **Q9 The later regions' art in packs** (region-art.ts, docs/perf.md "Region art packs"). The Frostpeaks' and
   Ashfell's foes, portraits, bar pieces and backdrops are chunks loaded with `import()` as the game boots, painted in
-  idle slices from the title on, and finished at once when a fight starts or the run is in a later region
-  (`App.setPhase`), so no fight can meet a missing texture; the Frostpeaks' foes no longer paint at boot (they did,
+  idle slices from the title on, and finished at once when the run is in a later region (`App.setPhase`; a later foe
+  or portrait met sooner asks for them itself), so no screen can meet a missing texture; the Frostpeaks' foes no longer paint at boot (they did,
   ~0.4 s at 1x). Gated per screen change rather than at each use: the art is used from many places (bar pieces in any
   fight, portraits, the stage), and one gate keeps every one of them synchronous. Region 4's art (landed tonight) is a
   pack too (`pack-dusk.ts`). `__cq3.ready` waits for the packs.
@@ -1150,11 +1187,20 @@ C12. **The region card's tabs fall back to short names** (Green, Frost, Ash, Dus
 - **Q10 The crawls.** `npm run crawl` (tests/balance/crawl.run.ts, by hand through the balance lock): every hero
   through the three playable regions on 4 seeds, odd seeds like the balance bot, even seeds at random (any pick, any
   buy, bounties passed, a hero switched mid-act), the world map's skirmish between regions; invariants after every
-  step and every 16 fight ticks. 64 campaigns in 98 s: no exception, no stuck fight, map or pick, no NaN. One finding,
+  step and every 16 fight ticks. 64 campaigns in 98 s (and after Region 4 came into play, 48 through four regions in
+  127 s): no exception, no stuck fight, map or pick, no NaN. One finding,
   fixed (`CORE:`): a kill's max HP gain (0.6) went onto HP even at full HP while max HP is rounded, so a full hero
   read "252/251". `scripts/ui-crawl.mjs` (by hand through the Playwright lock) plays the built game from New game
   through Act 1 with fast taps, then every camp screen and the gear panel, recording errors, long decimals, missing
-  minis, missing textures (every key asked of Phaser that isn't there) and text past the canvas's edge.
+  minis, missing textures (every key asked of Phaser that isn't there) and text past the canvas's edge. Its run on
+  the merged build (tips on): New game to Act 1 cleared in 231 s (215 taps, 17 finishers), then 15 camp screens and
+  tabs: no error, no long decimal, no missing mini or texture, no stuck screen, no HTML text wider than its box (its
+  first edge check flagged banners sliding in: it now counts only text that stays past the edge).
+- **Q11 Two UI fixes from the first-10 team's screens.** A boss's shout (its special's name) and the damage numbers
+  piled up at the top centre: while a foe's shout is up it keeps its lane over the foe's head, and that foe's
+  damage numbers pop just under it and settle (cascading down, not up) until the shout is gone (`view/fighters.ts`).
+  The vault said "No chests yet" after the first chest was opened: once any has been opened it says "No chests
+  waiting" (`view/chests.ts`).
 (qa: end of section)
 
 

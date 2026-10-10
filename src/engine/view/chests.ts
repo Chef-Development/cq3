@@ -188,7 +188,8 @@ export class ChestScreen {
       const r = this.allRect();
       bigButton(kit, g, kit.texts, { ...r, y: r.y + Math.round((1 - bk) * 10) }, 'Open all', FACE.gold, now, { icon: 'chest', alpha: bk });
     } else
-      kit.texts.text(w === 1 ? 'Tap the chest!' : 'No chests yet', Math.round((s.L + s.R) / 2), s.B - 11, w === 1 ? 0xfff0c0 : DIM_TXT, {
+      // (once one has been opened, the vault isn't new: none are waiting, not "none yet")
+      kit.texts.text(w === 1 ? 'Tap the chest!' : (kit.profile.counts.chests ?? 0) > 0 ? 'No chests waiting' : 'No chests yet', Math.round((s.L + s.R) / 2), s.B - 11, w === 1 ? 0xfff0c0 : DIM_TXT, {
         bold: true,
         ox: 0.5,
         oy: 0.5,
