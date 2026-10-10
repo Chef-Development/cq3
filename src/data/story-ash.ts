@@ -15,7 +15,7 @@ export const ASH_STORY: Record<string, StoryBox[]> = {
     { who: 'narrator', text: 'Ashfell. Black rock, gray ash, rivers of\nlava. And none of it will hold still.' },
     { who: 'rowan', text: 'That boulder just slid past me. On its own.\nThe whole land is drifting.' },
     { who: 'pip', text: "He unpinned it. Every stone floats out of\nthe lava's way, so no home burns again." },
-    { who: 'neve', text: "Too hot, AND it won't hold still. My two\nleast favorite things." },
+    { who: 'neve', text: 'Too hot, AND it drifts. My two least\nfavorite things.' },
     { who: 'sable', text: "And chains. On the carts, the doors, the\npeople. Everyone's chained in pairs." },
     { who: 'pip', text: "So no new river of fire can part a family.\nTogether, always. That's his fix." },
   ],
@@ -44,7 +44,7 @@ export const ASH_STORY: Record<string, StoryBox[]> = {
     { who: 'pip', text: 'Hit both ends of a pair, and quick.\nOne, then the other.' },
     { who: 'neve', text: "Glass bounces things back. That's how I got\nfrozen. I'm watching every wall." },
   ],
-  // Act 2 mini-boss: the forge's two-headed hound; one guards, one wants to play; nobody has patted them in years
+  // Act 2 mini-boss: the forge's two-headed hound; one guards, one is hungry; their master stopped feeding them long ago
   hobnob: [
     { who: 'hobnob', text: "HOB: Who goes there? Turn back.\nNOB: ...Do you have food? We're hungry." },
     { who: 'rowan', text: 'Two heads, one hound. Which of you\nguards the forge?' },

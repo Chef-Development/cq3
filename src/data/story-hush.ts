@@ -51,7 +51,7 @@ export const HUSH_STORY: Record<string, StoryBox[]> = {
   // Act 2 mini-boss: the isle's last wolf, out hunting on the far shore when the isle went blank; a month in a wood
   // with nothing living in it (he can't draw creatures), and starving
   hollowfang: [
-    { who: 'narrator', text: 'Between the white patches, a grey wolf\nwatches them. Its ribs show.' },
+    { who: 'narrator', text: 'Between the white patches, a gray wolf\nwatches them. Its ribs show.' },
     { who: 'hollowfang', text: 'A month. Not one living thing in this wood.\nNot a deer. Not a bird. And now, four.' },
     { who: 'rowan', text: "We're not here to hurt you.\nWe're here to wake the wood." },
     { who: 'hollowfang', text: 'Then wake it. After I have eaten.' },

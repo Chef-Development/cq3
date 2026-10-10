@@ -538,17 +538,17 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   whatever it touches to something; no speech). **Squall, the gull queen** (Act 2: the gulls were out at sea when the
   isle went blank; earnest: "Nothing falls here. So my chicks have never flown." You learn to fly by falling).
 - **Boss: the Great Kestrel**, who was hunting far out at sea when the isle went blank and came home to his draft. He
-  gave her the Tether (keystone): a gold thread that holds every piece up, her nest too. Wren's town climbed her cliff.
+  gave her the Mooring (keystone): a gold thread that holds every piece up, her nest too. Wren's town climbed her cliff.
   - Phase 2 edit: "Closer." He pulls the pieces together: the gaps close and everything crowds in.
   - Phase 3 edit: "Hold on to each other." Every block tied to the next.
-- **Restoring:** the Tether snaps; the pieces come down to the sea and stand as cliffs again; the bridges sway; the
+- **Restoring:** the Mooring snaps; the pieces come down to the sea and stand as cliffs again; the bridges sway; the
   sleepers wake on their own doorsteps; a gull chick tumbles off a ledge, and flies.
 - **Scenes (drafted in full: `src/data/story-reach.ts`, speaker `squall`):** `reach1` (Act 1 start: the steps hanging over nothing; between the pieces, white blank; Rowan steps out
   onto it and it holds him. Neve: "You are standing on NOTHING." Rowan: "It isn't nothing. It feels like paper.");
   `ropewright`; `reachCamp` (camp: Sable and Neve on Rowan walking on the blank; Rowan: "I don't know what I am." Neve:
   "You're the one who carries us across. That'll do."); `reach2` (Act 2 start: Ropetown; every house tied to every
   other; the people asleep in white pockets, tied together too); `squall`; `reach3` (Act 3 start: the Eyrie, the
-  Tether shining up into the sky); `kestrel` (boss intro: he means it kindly: "Here, no one falls. No one is ever too
+  Mooring shining up into the sky); `kestrel` (boss intro: he means it kindly: "Here, no one falls. No one is ever too
   far away to reach." Rowan: "Then why do you look so alone?"); `kestrel2`, `kestrel3`; `reachVictory` (the isle comes
   down; he, quietly: "I was too far away, once. Only once." He goes; the next isle takes shape).
 - **Banter seeds:** Wren after `reachVictory`: "Ma climbed back down. She's FURIOUS." Sable after `reach1`: "Rowan

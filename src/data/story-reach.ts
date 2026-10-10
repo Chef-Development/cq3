@@ -8,7 +8,7 @@
 // Kestrel Reach was a cliff isle of rope bridges and climbing towns; people fell, sometimes. His draft over the blank:
 // the isle in floating pieces at one height, each tied to the next with gold thread: nothing falls, nobody climbs, and
 // nobody is ever far from anyone (his first fix of people's troubles, not the land's). Between the pieces is blank,
-// and the blank holds Rowan up (a seed). Keystone: the Tether, held by the Great Kestrel, who was out at sea when the
+// and the blank holds Rowan up (a seed). Keystone: the Mooring, held by the Great Kestrel, who was out at sea when the
 // isle went blank (she doesn't speak).
 
 import type { StoryBox } from './types';
@@ -53,10 +53,10 @@ export const REACH_STORY: Record<string, StoryBox[]> = {
     { who: 'squall', text: 'Fall? From HERE? Into THAT?\nOff my roof!' },
     { who: 'pip', text: "She's frightened for them, Rowan.\nGo gently. She won't." },
   ],
-  // Act 3 start: the Eyrie and the Tether
+  // Act 3 start: the Eyrie and the Mooring
   reach3: [
     { who: 'narrator', text: 'The Eyrie, on the highest rock of all. From\nit, a gold thread runs up into the sky.' },
-    { who: 'pip', text: "The Tether. It holds every piece up, her\nnest too. That's his line." },
+    { who: 'pip', text: "The Mooring. It holds every piece up, her\nnest too. That's his line." },
     { who: 'neve', text: 'And on the nest, the biggest bird I have\never seen. Is it looking at us?' },
     { who: 'sable', text: "It's looking at Pip." },
   ],
@@ -83,7 +83,7 @@ export const REACH_STORY: Record<string, StoryBox[]> = {
   ],
   // victory: the isle comes down; a chick falls, and flies; "too far away, once" (a seed for the next region)
   reachVictory: [
-    { who: 'narrator', text: 'The Tether snaps. Rock by rock, the isle\ncomes down to the sea, and stands.' },
+    { who: 'narrator', text: 'The Mooring snaps. Rock by rock, the isle\ncomes down to the sea, and stands.' },
     { who: 'narrator', text: 'On a ledge, a gull chick tips over the edge.\nIt falls. Then it flies.' },
     { who: 'mapmaker', text: 'I was too far away, once. Only once.\nIt was enough.' },
     { who: 'rowan', text: 'Too far away from who?' },
