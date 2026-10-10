@@ -6,7 +6,7 @@
 // 18x18 face window sits at (12, 6) for Rowan and at (14, 8) for Sable (both eyes and the top of the mask).
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
 import { buildAtlasPortraits } from './art-portraits-atlas';
-import { portraitMood } from './art-paint';
+import { moodGrade, portraitMood } from './art-paint';
 import { ROWAN_BLUE, ROWAN_BRONZE, ROWAN_GLOW, ROWAN_PLUME, ROWAN_STEEL } from './art-hero-rowan';
 
 type Add = (key: string, canvas: HTMLCanvasElement) => void;
@@ -753,7 +753,8 @@ const ICON_MAPS: Record<string, string[]> = {
 export function buildStoryArt(add: Add): void {
   add('portrait_rowan', rowan());
   add('portrait_sable', sable());
-  add('portrait_pip', portraitMood(pip(), 0.26));
+  // (Pip keeps his charm inside the mood: his blue a step darker and cooler, a key from the left, the far side in shadow)
+  add('portrait_pip', portraitMood(moodGrade(pip(), 0.24), 0.42));
   add('portrait_captain', captain());
   add('portrait_golem', golem());
   add('portrait_boarking', boarKing());
