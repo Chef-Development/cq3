@@ -96,3 +96,5 @@ One PR at the end supersedes #1-#7.
   merged: the old premise gone from player text, companions' bios, the editor's notes applied, Region 5 fitted,
   Regions 6-12 and the ending drafted (not in play). Story chunk 3 launched (an L8 tone pass, a second editor on the
   drafts and the ending).
+- 22:02 EDT: Rowan's mature look (L8) reviewed (team/art2 docs/art-audit/after/rowan-mature-before-after.png): ~3 heads,
+  slit visor, pauldrons, jointed legs, darker steel: approved with a contrast note; 2B rolls it to all sixteen.
