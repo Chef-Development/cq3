@@ -1,4 +1,93 @@
-# Combo Quest 3: status report (playtest round 7: fixes that stay fixed, anti-spam, unique finishers, 16 heroes)
+# The Unerased (working title Combo Quest 3): status report (playtest round 8: the living map, a darker and more grown-up look, two more regions, every platform, the first 10 minutes)
+
+## Playtest round 8: the overnight run (18:16-06:45 EDT)
+
+A lead integrated seven to nine teams working in parallel (story, three art teams, content, two QA teams, the first
+10 minutes, a region art-and-music helper), plus an independent story editor and four fresh-eyes screen reviewers.
+Every call is in `docs/decisions.md` ("Overnight run, playtest round 8"); the timeline is in `docs/run-log.md`.
+Spoilers (the story, the new regions' content) are only in `docs/story-bible.md` and `docs/content-bible.md`.
+
+- **Live build:** https://chef-development.github.io/cq3/ (every push deploys).
+- **Branch:** `claude/exciting-fermat-9rxtbl`, PR Chef-Development/cq3#8: it continues PR #7's branch and supersedes #1-#7 (`main` still
+  has only the first commit). Merge it; #1-#7 can be closed.
+- **How to check it:** open the **Test lab** (title screen, top left). "New" holds this round's items (the region and
+  story ones under "Show spoilers"); then "Copy report" for the planning chat.
+- **Tests:** 1,260 Vitest unit tests in 72 files, all green; the Playwright suite's final run: (pending).
+
+### What changed
+1. **A new story and a name.** The pendulum plot is replaced by the approved living-map premise (the world is a map
+   being erased; the hero is the one thing that won't erase): a new intro, every scene of Regions 1-3 rewritten, the
+   new regions' scenes, companions, banter, hero arrivals, events, lore pages; three passes by an independent editor;
+   story scenes staged from their speakers (whoever speaks stands on the stage). Words got drier and more grown-up
+   outside the earnest main plot (L8). **Name: The Unerased** (`src/data/brand.ts` `GAME_NAME`; shortlist with web
+   checks in `docs/names.md`: The Unerased, The Living Map, Atlas Unwritten, Fair Copy, Mapbound). Check the pick
+   against the USPTO / UK IPO registers before anything public.
+2. **Darker, moodier, more grown-up (the playtester's notes; L7, L8).** The art bible (`docs/art-style.md`) opens with
+   Mood and Maturity rules. The title is key art (the hero in a land going blank, the logo built from the name). Heroes
+   moved from chibi to about three heads tall on a shared mature rig (Rowan first, a heavier sword; all sixteen, with
+   four-frame idles and hand-drawn faces); foes got more menace; every fight backdrop and act map was repainted darker
+   and cooler with warm light as an accent; the menus lost their candy gloss (engraved metal, ink, leather). The world
+   map is a page of the **Great Atlas**: erased lands are blank vellum, playable ones a drained draft, and a won region's
+   colour floods back from its boss's landmark. The sharper 2x text layer is on for story boxes, tips, the hero select,
+   relic picks and loot cards. Map stops (events, the bounty board, the trader) are places, not forms.
+3. **Two more regions** (acts 10-15; details in `docs/content-bible.md`): each with two new bar rules, its foes, mini-
+   bosses and boss, relics, gear, events, music, ambience, art and scenes; balanced at 75% from a typical hero who
+   cleared the region before (guards `bot-region4.test.ts`, `bot-region5.test.ts`); the masher loses both.
+4. **Backlog:** New Game+ starts with one remixed boss (secret; foundations for more); **the Mapmaker's Edits**
+   (opt-in modifiers that make an act harder for more XP and gems; the camp's Edits key and the act picker);
+   side stories (two events per region), story bounties, an Atlas lore page per act; **accessibility**: block marks
+   (no block told apart by colour alone), Motion Auto/Less/Full, Larger text.
+5. **Every platform:** desktop (mouse, keyboard: Space taps, F the finisher, arrows/Tab a focus ring through every
+   screen, a frame round the canvas), Android (the back gesture, full screen), any window size, and a faster load (the
+   later regions' art in chunks of their own: title ready 12.1 -> 7.8 s on a slow phone profile). A clean capture
+   mode hides the HUD buttons for recording clips. An originality audit (`docs/originality.md`) found nothing copied.
+6. **The first 10 minutes** (`docs/first-10.md`): title to the first fight in 0:20 (was 0:33); the first chest right
+   after the first fight on every map (1:08-1:17 on the bot's seeds), the first hero chest at ~5:40; the first
+   finisher revealed in a calm beat (no reds through it); tips
+   placed off the things they teach; chevrons on the first map's reachable spots.
+7. **Four fresh-eyes reviews** (189 findings over every screen, each with an owner): the high ones and most mediums
+   fixed (fight HUD lanes, readable bar-rule markers, copper holds, impact frames off the HUD, the region card, the
+   Options panel with the tester's tools folded away, the 16-face strip, overlaps); what's left is listed below.
+8. **Saves:** the run save is v8 (the Mapmaker's Edits drawn into an act; a v7 save migrates, tested); the profile
+   gains optional fields (the Atlas pages found, the Edits) that a round 7 profile reads as none.
+
+### Balance
+- **Region 4** (acts 10-12; 75%, Rowan, from a typical hero who cleared the region before; guard
+  `bot-region4.test.ts`): first try 84-90 / 71-74 / 53-69% (targets ~85 / ~68 / ~55; the boss's first fight 50-60%);
+  fights 13 / 15 / 19 s.
+- **Region 5** (acts 13-15; guard `bot-region5.test.ts`): pooled 79 / 65 / 48% (targets ~80 / ~65 / ~50); clear within
+  6 tries 95-100%.
+- **The masher** loses every region's Act 3 and its boss's first fight (`bot-masher.test.ts`, now five regions).
+- **Hero parity** (docs/content-bible.md, decisions C13, C18-C21): Tess is back inside +/-10 after her Rewind clears
+  like other finishers (Region 4: -7 / -7 / +3 at 100 runs). Vesper trails in a few boss acts (Acts 5-6: -19 / -15;
+  Region 4: -5 / -22 / -9): not her style or her HP; the bot often takes Rowan down his defensive branch (Parry), so
+  the fix belongs in the skill trees (next round). First reads in Region 5 (about +/-12 noise): Sable +18 in Act 13,
+  Neve -15, Dell -19 (unconfirmed).
+- **The Mapmaker's Edits** cost what they say: with Last Life a 75% bot lost Act 2 in 10 of 16 runs (5 without).
+
+### Decisions worth a look
+- L7/L8 (the mood and maturity rules) and what they changed everywhere: compare with round 7's screenshots.
+- Holds are copper now (QA Q20; they were blue, which only ice, frozen reds and the cursor keep).
+- The Mapmaker's Edits and New Game+'s first remix are opt-in and spoiler-light in the lab.
+- L10: no boot guard in CI yet (recommended next: boot the built game in the deploy job before publishing).
+
+### Not verified / left
+- **Hide the Test lab button before a public debut** (L12; it stays tonight for the playtester's report).
+- Vesper's parity (above), and a 100-run parity read of all sixteen heroes in Regions 4-5.
+- From the reviews, not done: the bag's flat grid, Pip's size in fights (the most childish thing left on screen), the
+  events' small dark-on-tan prose, the keyboard ring over a button's "!" badge, the Mythic heroes' five crowded kit
+  labels, the fight HUD's bright HP green.
+- Load time was measured mid-run (title ready 12.1 -> 7.8 s at CPU 4x), not after the last art passes.
+- No boot guard in CI yet (L10); the lead boot-checked every push tonight.
+- Region 6 not started (its story is drafted in data, off).
+
+### Next steps
+1. The playtester's Test lab report on this build (the mood and maturity changes on the iPhone first).
+2. Before Reddit: hide the Test lab button, record clips in clean capture mode, a last look at the first 10 minutes.
+3. Hero parity in Regions 4-5 (Vesper's skill tree first), then Region 6.
+4. A CI boot check before publishing.
+
+## (Round 7, kept below for history)
 
 ## Playtest round 7: the overnight run (Test lab: 25 of 27 good; plus a first stretch of real play)
 
