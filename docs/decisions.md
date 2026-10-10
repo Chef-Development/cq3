@@ -1402,6 +1402,13 @@ C-ART-13. **The shop is a place too** (backlog "art polish on the weakest screen
     stall) sits 8 px further left than an event's so the plate keeps the width a relic's one line of text needs (at
     the event's width most relics showed only "Tap to read"). The Sunshade icon is a parasol with a crook now.
 
+C-ART-14. **Reviews' leftovers in the mood**: the act maps' stall wears deep moss and aged linen (its own palette in
+    art-map.ts; the shared prop palette is untouched); Pip speaks from a dark teal ground with his blue graded a step
+    darker and cooler, his name on an ink plate with a brass rim (story.ts `LOOK.pet`; other speakers' tabs as they
+    were); the camp home drops the plates over the tent and the forge (the band's Bag and Forge buttons name them; the
+    shrine, chests, practice and companion plates stay). Not done from review-3 F6: the late camp's plates over props
+    and the heroes standing in the fire or the forge mouth.
+
 (content: end of section)
 
 
