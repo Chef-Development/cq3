@@ -255,6 +255,8 @@ export const TIP_IDS: readonly TipId[] = TIPS.map((t) => t.id);
 /** The first finisher in the game is revealed by name before its show (view/finisher-reveal.ts): its one-time mark in
  *  profile.seen. The Test lab's profiles have it seen unless a scenario teaches the finisher (its tips list it). */
 export const FINISHER_REVEAL = 'finisherReveal';
+/** Each hero's first finisher gets the reveal too (Sable's, a chest hero's): Rowan's mark is FINISHER_REVEAL. */
+export const revealKey = (hero: HeroId): string => (hero === 'rowan' ? FINISHER_REVEAL : `${FINISHER_REVEAL}:${hero}`);
 
 export const isTipId = (v: unknown): v is TipId => typeof v === 'string' && (TIP_IDS as readonly string[]).includes(v);
 

@@ -7,7 +7,7 @@ import { BASE_BY_ID, SLOT_KEYS, type SlotKey } from '../data/gear';
 import { HERO_IDS, type HeroId } from '../data/heroes';
 import { COMPANION_IDS, type CompanionId } from '../data/companions';
 import { EVENTS } from '../data/events';
-import { FINISHER_REVEAL, TIPS } from '../data/tips';
+import { FINISHER_REVEAL, revealKey, TIPS } from '../data/tips';
 import { LAB_EARLIER, LAB_GROUPS, LAB_NEW, type LabScenario } from '../data/lab';
 import { ALL_ACTS, REGIONS } from '../data/regions';
 import type { RelicId } from '../data/relics';
@@ -39,7 +39,7 @@ export function labBaseProfile(): Profile {
   p.tipsOff = true;
   p.worldTour = true;
   // (and the later regions' camp tales: they'd play over any lab screen that opens the camp's view, fights too)
-  p.seen = [...REGIONS.slice(1).map((r) => unveilKey(r.id)), FINISHER_REVEAL, 'magsTale', 'duskCamp'];
+  p.seen = [...REGIONS.slice(1).map((r) => unveilKey(r.id)), ...HERO_IDS.map(revealKey), 'magsTale', 'duskCamp'];
   p.smithMet = true;
   p.sableMet = true;
   p.heroes.sable.unlocked = true;

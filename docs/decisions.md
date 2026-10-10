@@ -1105,4 +1105,9 @@ F14. **Found gear for an empty slot goes on at once** (`CORE:` run.ts, tuning.ts
     camp (balance bot, 200 runs, a newcomer's 0.38 s reaction): Act 1 first try 84.5% -> 94.5% at 55% accuracy,
     91.5% -> 98% at 60%.
 
+F15. **Each hero's first finisher gets the reveal** (the letterbox, the light, its name stamped in big): Rowan's first
+    (as F3), then Sable's (who joins a minute after the first boss) and a chest hero's (the first hero chest now
+    always brings someone new). One mark per hero in `profile.seen` (`revealKey`: Rowan keeps `finisherReveal`); only
+    with tips on; the Test lab's profiles have every hero's seen.
+
 (first10: end of section)

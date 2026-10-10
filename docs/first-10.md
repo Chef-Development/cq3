@@ -224,4 +224,5 @@ next foe walks in behind it), the first chest at 1:24-1:36, the first relic pick
   `50-bossHalf.png`; the fight view's floaters).
 - The newcomer bot is cruder than the balance bot (no gear, no skills): teaching it to wear what drops at camp would
   make its boss result comparable.
-- Each new hero's first finisher could get the same reveal (Sable's, a chest hero's): one mark per hero.
+- Each new hero's first finisher now gets the same reveal (F15); a Test lab item for it (a hero's first fight with
+  the reveal unseen) would let the playtester see Sable's and a chest hero's without a new save.
