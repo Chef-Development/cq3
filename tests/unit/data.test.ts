@@ -420,3 +420,19 @@ describe("the regions' own events", () => {
     for (const e of EVENTS) if (e.region) expect(REGIONS.some((r) => r.id === e.region), e.id).toBe(true);
   });
 });
+
+describe("the regions' story bounties", () => {
+  it('one per region, on a real bounty, each line fitting the board and the tracker', async () => {
+    const { QUEST_STORIES, questById, questStory } = await import('../../src/data/quests');
+    const { REGIONS } = await import('../../src/data/regions');
+    for (const r of REGIONS) expect(QUEST_STORIES.filter((s) => s.region === r.id).length, r.id).toBe(1);
+    for (const s of QUEST_STORIES) {
+      expect(questById(s.quest), s.quest).toBeDefined();
+      expect(questById(s.quest)?.style, s.quest).toBeUndefined(); // a board posts it (style calls come another way)
+      expect(textWidth(s.frame, 1, false), s.frame).toBeLessThanOrEqual(230);
+      expect(textWidth(s.payoff, 1, false), s.payoff).toBeLessThanOrEqual(240);
+      expect(questStory(s.region, s.quest)).toBe(s);
+    }
+    expect(questStory('greenmarch', 'combo')).toBeUndefined();
+  });
+});
