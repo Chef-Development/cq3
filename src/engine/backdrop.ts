@@ -537,7 +537,7 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     }
 
   // far mountains with snowy peaks, in the haze
-  const mR = haze(ramp('#3a4264', '#4a5072', '#5e6282', '#767694'), hz, 0.42);
+  const mR = haze(ramp('#2a2c4a', '#363858', '#464666', '#585676'), hz, 0.3);
   const snowR = haze(ramp('#8a7c94', '#e0a888'), hz, 0.12); // the last light on the snow
   for (const [fx, fy, sl, sr] of [
     [0.04, -52, 0.62, 0.7],
@@ -562,6 +562,7 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     }
     mass(p, bl, { ramp: cloudR, seed: 3 + x, bump: 0.12, tex: 0.1, vgrad: 0.5, light: 0.2, shadow: 0.14, floor: cy + 6, band: 0.3 });
   }
+  const skyDone = p.buf.slice(); // the sky, the far peaks and the cloud bank are painted for the mood: the grade leaves them
 
   // rolling hills with a castle (original design) on the highest one
   const hillR = haze(ramp('#3a7866', '#48886c', '#5a9a72', '#70ac7c', '#8abe88'), hz, 0.36);
@@ -886,8 +887,25 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   cornerCanopy(p, w - 4, -1, 86, 6, frameLeaf, vineR);
   const frame = changed(p, before);
   const sky = new Set([...skyR, ...cloudR, ...lamp]);
-  gradeLayer('forest', p, G, sky);
+  gradeLayer('forest', p, G, skyDone);
   gradeLayer('forest', frame, G);
+  // the low sun catches the tops of everything against the sky (the peaks, the castle, the far woods): a warm rim
+  {
+    const open = (x: number, y: number) => {
+      const c = p.get(x, y);
+      return c >= 0 && sky.has(c) && !lamp.includes(c);
+    };
+    const src = p.buf.slice();
+    const rim = col('#d8945a');
+    for (let y = 1; y < G - 12; y++)
+      for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        if (frame.buf[i] >= 0 || sky.has(src[i])) continue;
+        const top = open(x, y - 1);
+        const left = open(x - 1, y) && open(x - 1, y - 1);
+        if (top || left) p.buf[i] = mix(src[i], rim, top && left ? 0.6 : 0.42);
+      }
+  }
 
   return [p, frame, { torches: [] }];
 }
