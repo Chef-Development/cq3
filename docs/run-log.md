@@ -253,3 +253,7 @@ One PR at the end supersedes #1-#7.
   under iPhone insets, the region card's seals, the treasure's empty band, the bag), first10 (a quieter first Act 1
   map for a newcomer). The full unit suite running on the merged code meanwhile. Freeze 04:30: baselines, the full
   Playwright suite, the report, the PR.
+- 03:38 EDT: merged the last polish (dusk-art: the hero select under iPhone insets, the region card's seals duller
+  and its rack gone, the bag's empty cells quieter; first10: a newcomer's first Act 1 map has at most one pack and no
+  merchant, the map hint hides under a tip). Boot-checked, tests green, pushed. **Every agent is done: the freeze.**
+  Full unit suite on the merged code at 03:35: 1,260 green (72 files). The Playwright suite running (built at 03:36).
