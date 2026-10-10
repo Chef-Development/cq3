@@ -27,7 +27,7 @@ export const DUSKMIRE: RegionDef = {
     {
       name: 'Lanternfen',
       theme: look('fen'),
-      hpMult: 7.2,
+      hpMult: 7.4,
       atkMult: 20,
       pace: 0.8,
       redSpeed: 1.3,
@@ -51,10 +51,10 @@ export const DUSKMIRE: RegionDef = {
     {
       name: 'The Drowned Causeway',
       theme: look('causeway'),
-      hpMult: 7.6,
+      hpMult: 8,
       atkMult: 24,
       pace: 0.76,
-      redSpeed: 1.36,
+      redSpeed: 1.42,
       rows: 7,
       waves: { first: 3, last: 5, eliteEscort: 2 },
       fights: {
@@ -75,10 +75,10 @@ export const DUSKMIRE: RegionDef = {
     {
       name: 'The Gloaming Mere',
       theme: look('mere'),
-      hpMult: 9.2,
+      hpMult: 9.8,
       atkMult: 25,
       pace: 0.72,
-      redSpeed: 1.38,
+      redSpeed: 1.42,
       rows: 7,
       waves: { first: 3, last: 6, eliteEscort: 2 },
       fights: {
