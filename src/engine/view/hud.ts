@@ -428,6 +428,14 @@ export class Hud {
     return { l: Math.round((1 - k) * -130), r: Math.round((1 - k2) * 130), d: Math.round((1 - k) * 18) };
   }
 
+  /** Where the combo counter is, or where it will come up (the first hit's judgement steps aside from it too). */
+  comboZone(): Rect | null {
+    if (this.comboRect) return this.comboRect;
+    if (!(this.s.app.run.combat?.combo ?? 0)) return null;
+    const a = this.comboAnchor();
+    return { x: a.x - 3, y: a.y - 20, w: 66, h: 20 };
+  }
+
   /** Bottom-left corner of the combo counter (on the ground, just above the bar's band). */
   private comboAnchor(): { x: number; y: number } {
     return { x: this.s.L + 5, y: this.s.splitY - 5 };
@@ -560,8 +568,12 @@ export class Hud {
     if (c) {
       this.drawEnemy(g, now, dt, c, sl.r);
       if (!s.reveal.active) this.drawTop(g, now, c); // (the first finisher's reveal: its letters over a clear top)
-      this.drawCombo(g, now, c, sl.l);
-      this.drawStrip(g, now, c, sl.d);
+      // (under the loot the last fight's combo and meter are stale, and after a treasure there was no fight at all:
+      // review 4)
+      if (s.app.run.phase !== 'loot') {
+        this.drawCombo(g, now, c, sl.l);
+        this.drawStrip(g, now, c, sl.d);
+      } else this.comboRect = null;
     }
   }
 
@@ -1141,7 +1153,8 @@ export class Hud {
     g.fillStyle(NAVY[3], 1);
     for (const q of [0.25, 0.5, 0.75]) g.fillRect(Math.round(m.x + m.w * q), m.y + 1, 1, m.h - 2);
     const fw = Math.round(m.w * frac);
-    if (!ready && frac < 0.42) this.texts.text('FINISHER', m.x + m.w / 2, cy, NAVY[6], { ox: 0.5, oy: 0.5 });
+    // (a pale lavender, not the track's own navy: review 4 read the dim label as a disabled button)
+    if (!ready && frac < 0.42) this.texts.text('FINISHER', m.x + m.w / 2, cy, 0xc4bce0, { ox: 0.5, oy: 0.5 });
     if (fw > 0) {
       const deep = shade(fl, 0.65);
       g.fillStyle(fc, 1);

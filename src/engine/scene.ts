@@ -20,7 +20,7 @@ import { CampView } from './view/camp';
 import { GainsView } from './view/gains';
 import { LootView } from './view/loot';
 import { Effects } from './view/effects';
-import { Fighters } from './view/fighters';
+import { Fighters, HURT_RED } from './view/fighters';
 import { Hud } from './view/hud';
 import { MapView } from './view/map';
 import { NodeScreens } from './view/nodes';
@@ -518,8 +518,10 @@ export class FightScene extends Phaser.Scene implements View {
             const h = f.h;
             h.hurtUntil = this.anim + 220;
             h.flashUntil = this.anim + J.flashMs * 1.5;
-            h.flashColor = 0xff3030;
-            if (e.damage > 0 || this.app.settings.godMode) fx.floatNum(h.x, this.ground - 40, whole(e.damage), 0xff4a4a, 1);
+            h.flashColor = HURT_RED;
+            // (over his head, not on his body)
+            // (never on his body: review 4 saw a hurt Rowan buried under his own "93")
+            if (e.damage > 0 || this.app.settings.godMode) fx.num(h.x, this.ground - 50, whole(e.damage), 0xff4a4a, 1, { avoid: [{ x: h.x - 14, y: this.ground - 44, w: 28, h: 44 }] });
             fx.burst(h.x + 4, this.ground - 16, 0xff5a5a, e.source === 'miss' ? 3 : 10, true);
             fx.shake(e.source === 'miss' ? J.shakeMinPx : J.shakeMaxPx, J.shakeMs);
           });

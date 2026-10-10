@@ -35,6 +35,8 @@ import { BLOCKER_FACE } from './bar-kinds';
 import { PERK_ALLY, PERK_AT } from './perk-at';
 import { FinisherShow } from './finishers';
 import { runningTotals } from './num-lanes';
+import { CALLOUT_WORDS } from './callouts';
+
 import type { HeroMotion } from './finisher-signatures';
 import {
   clamp01,
@@ -59,6 +61,9 @@ import {
   type EnemyView,
   type HeroAnim,
 } from './shared';
+
+/** The hero's hurt flash colour (scene.ts sets it on a hit taken). */
+export const HURT_RED = 0xff3030;
 
 type G = Phaser.GameObjects.Graphics;
 type Face = readonly [number, number, number, number];
@@ -776,6 +781,9 @@ export class Fighters {
     // the allies' own doings (a jab, a glow, a seed, a Rally) show on the allies themselves: no name in the lane, so
     // three allies out never flood it
     if (QUIET_PERKS.has(id)) return false;
+    // a kit, style, ally or companion perk with a word over the bar says it there: not twice (review 4: "Resolve" in
+    // the lane and over the bar at once)
+    if (CALLOUT_WORDS[id]) return false;
     if (!this.firstName(`perk-${id}`)) return false;
     const relic = relicById(id);
     this.s.hud.announce(perkName(id), perkColor(id), { relic: relic?.id, tex: relic ? undefined : `skill_${id}` });
@@ -1212,7 +1220,9 @@ export class Fighters {
       gh.setTint(tint).setAlpha((0.5 - i * 0.14) * (1 - age / 140) * (sm ? sm.alpha : 1)).setVisible(true);
     });
     const flashing = a < h.flashUntil;
-    if (flashing) this.hero.setTint(h.flashColor).setTintMode(Phaser.TintModes.FILL);
+    // (hurt: a red wash over the hero's own shading, not a solid red cut-out: review 4 read it as a red blob)
+    if (flashing && h.flashColor === HURT_RED) this.hero.setTint(0xff7060).setTintMode(Phaser.TintModes.MULTIPLY);
+    else if (flashing) this.hero.setTint(h.flashColor).setTintMode(Phaser.TintModes.FILL);
     else this.hero.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
     this.syncRim(this.hero, this.heroRim, !flashing);
   }

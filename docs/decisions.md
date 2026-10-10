@@ -1679,6 +1679,12 @@ C21. **Vesper's gap is in the skill trees, not her style; left as she is.** Prob
   was the top bar's slide-in caught by a fast screen change, not a resting state. A tall hero sheet now takes the whole
   column (it cut the name in half); the settings button is a hand-drawn cog (the round one read as a compass) and is
   dimmed over the title and every story scene.
+- **Q24 Review 4's fight findings**: a foe's shout takes its spot over its foe even when a finisher's name is there
+  (the name and its tag fade; the captain's "Lads, help!" had been pushed over Rowan's head); a hurt hero is washed
+  red over his own shading (no solid red cut-out) and his damage number keeps off his body; a kit, style, ally or
+  companion perk with a word over the bar no longer also names itself in the lane ("Resolve" twice); the meter's
+  "FINISHER" label is a pale lavender (it looked disabled); the first hit's judgement steps aside from where the combo
+  counter is about to come up; the loot screen hides the last fight's combo counter and meter.
 (qa: end of section)
 
 
