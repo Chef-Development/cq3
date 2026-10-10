@@ -138,9 +138,12 @@ export class Fighters {
   private waveIn = new Map<number, boolean>();
   /** Rim-light companions (ADD), drawn right above their fighter. */
   private heroRim!: Phaser.GameObjects.Image;
-  /** The title screen shows big showcase versions of Rowan and Pip: the stage's own stay hidden (rims and shadows too). */
+  /** The title screen shows big showcase versions of Rowan and Pip, and a map stop that is a place (an event, the
+   *  bounty board, the trader: view/nodes.ts, stops.ts) its own focal figure: the stage's own stay hidden there (rims
+   *  and shadows too). */
   private get showcase(): boolean {
-    return this.s.app.run.phase === 'title';
+    const run = this.s.app.run;
+    return run.phase === 'title' || run.phase === 'event' || run.phase === 'bounty' || (run.phase === 'shop' && run.merchant);
   }
   private enemyRims = new Map<number, Phaser.GameObjects.Image>();
   private hurtSeen = 0;

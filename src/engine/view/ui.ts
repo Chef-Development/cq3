@@ -184,17 +184,31 @@ export function darkPanel(g: G, r: Rect, fill = 0x231a33, alpha = 1): void {
     g.fillRect(x, y, 1, 1);
 }
 
-/** Parchment fill (the map, event notes) with darker edges. */
+/** Parchment fill (event notes, the bounty's notice): aged and darker toward a burnt rim (L7, docs/art-style.md 0.4:
+ *  no large cream fills), for dark ink lettering. */
 export function parchment(g: G, r: Rect, speckles: Array<[number, number, number]> = []): void {
-  rows(g, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 2, 0x6a4a2a);
-  rows(g, r.x, r.y, r.w, r.h, 2, 0xe2c992);
-  g.fillStyle(0xecd8aa, 1);
-  g.fillRect(r.x + 3, r.y + 3, r.w - 6, r.h - 6);
-  g.fillStyle(0xf4e6c0, 1);
-  g.fillRect(r.x + 6, r.y + 5, r.w - 12, r.h - 10);
-  g.fillStyle(0xd2b47a, 1);
-  g.fillRect(r.x + 1, r.y + r.h - 3, r.w - 2, 2);
-  g.fillRect(r.x + r.w - 3, r.y + 1, 2, r.h - 2);
+  rows(g, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 2, 0x2a180c);
+  rows(g, r.x, r.y, r.w, r.h, 2, 0x6a4a2c);
+  g.fillStyle(0x86623a, 1);
+  g.fillRect(r.x + 2, r.y + 2, r.w - 4, r.h - 4);
+  g.fillStyle(0x9c7848, 1);
+  g.fillRect(r.x + 4, r.y + 3, r.w - 8, r.h - 6);
+  g.fillStyle(0xa8845a, 1);
+  g.fillRect(r.x + 8, r.y + 5, r.w - 16, r.h - 10);
+  // the burnt rim: a ragged dark edge, stepped in from the corners
+  g.fillStyle(0x4a3020, 1);
+  for (let x = r.x + 2; x < r.x + r.w - 2; x += 3) {
+    const n = ((x * 37) >> 2) % 3;
+    g.fillRect(x, r.y + 1, 2, n === 0 ? 2 : 1);
+    g.fillRect(x + 1, r.y + r.h - 1 - (n === 1 ? 2 : 1), 2, n === 1 ? 2 : 1);
+  }
+  for (const [x, y] of [
+    [r.x + 1, r.y + 1],
+    [r.x + r.w - 3, r.y + 1],
+    [r.x + 1, r.y + r.h - 3],
+    [r.x + r.w - 3, r.y + r.h - 3],
+  ])
+    g.fillRect(x, y, 2, 2);
   for (const [x, y, c] of speckles) {
     g.fillStyle(c, 1);
     g.fillRect(r.x + x, r.y + y, 1, 1);

@@ -985,3 +985,24 @@ export class SwipePager {
     return off;
   }
 }
+
+/**
+ * A map stop as a place (round 8 review: the events, the bounty board and the trader were forms on a navy panel):
+ * the act's stage stays in view, its edges in shadow, and the stop's focal thing (the hero at an event, the board, the
+ * trader) stands at (cx, footY) in a lantern's warm pool and a soft cone of light. Draw it before the focal sprite and
+ * the stop's glass plate.
+ */
+export function stopLight(g: G, s: { L: number; R: number; B: number }, cx: number, footY: number, col: number, now: number, k = 1): void {
+  g.fillStyle(0x05040a, 0.3 * k);
+  g.fillRect(-40, -20, 327 + 80, 150 + 40);
+  vignette(g, s, 1.1 * k);
+  const fl = 0.9 + 0.1 * pulse(now, 1300) + 0.03 * Math.sin(now / 97);
+  spotlight(g, cx, 6, footY + 2, 12, 50, col, 0.06 * k, fl);
+  for (const [rx, ry, a] of [
+    [36, 7, 0.08],
+    [26, 5, 0.1],
+    [16, 3, 0.14],
+  ] as const)
+    fillEllipse(g, cx, footY + 1, rx, ry, col, a * k * fl);
+  fillEllipse(g, cx, footY + 1, 12, 2, INK, 0.45 * k);
+}
