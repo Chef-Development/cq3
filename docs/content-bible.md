@@ -1072,10 +1072,20 @@ Legendaries (the Gnomon): **Sunstone** (trinket, *Cool Head*: the Heat burns hal
 *True Hour*: a mirage hit right after its hop deals x3; needs a hop time on the block at wiring). Merging: as for
 Duskmire's (the ids into gear.ts's unions, the effects in combat.ts with `tuning.effects` sliders).
 
+### Relics (`src/data/relics-noon.ts`, data only: no hooks yet, not merged; checked by `noonspire-data.test.ts`)
+Mirage: **Oasis Map** (hits on mirages +40%), **Haze Lens** (rare: a mirage hit right after its hop crits), **Sand
+Glass** (mirages hop 30% less often), **Ghost Step** (rare: a mirage hit fills the meter like 2 hits), **Sand Dollar**
+(a coin a mirage hit), **Dust Devil** (rare: a mirage hit counts 2 extra combo), **Fata Morgana** (epic: mirages hop
+twice as often; hits on them x3). Heat: **Sunshade** (the Heat burns 30% slower), **Cool Spring** (a green that cools
+you heals 3 HP), **Kindling** (rare: blazing hits fill 50% more meter), **Sun Shard** (rare: at full Heat every hit
+crits), **Sun Purse** (a coin a blazing hit), **Shade Tree** (rare: blocking a red cools 1 Heat), **Noonday** (epic: the
+Heat never burns; blazing hits deal x1.2 only). Builds: Wayfinder (Mirage), Sunborn (Heat), High Noon (Mirage +
+Heat), Haze Hunter (Mirage + Crit), Sunstruck (Heat + Risk). At wiring: hooks in `core/relic-fx-noon.ts` (Haze Lens
+and Fata Morgana need a hop time on the block; Shade Tree a way to cool one stack), a with/without test each, and the
+cautious bot's `avoid` list takes Fata Morgana and Noonday.
+
 ### Still to design and build (next chunks)
-Relics (Mirage and Heat tags; ideas: hits on a mirage just after it hops crit; a ghost spot struck before the hop
-counts; Heat cools faster; blazing hits fill more meter; a green cools and heals; epic: Heat never burns, but blazing
-hits deal x1.2 only), music (six pieces,
+Music (six pieces,
 unlike Regions 1-4: e.g. a desert 7/8 in D Hijaz, a brass fanfare 6/8 for the spire steps, a ticking clock-work
 ostinato for the dial), art (sprites, portraits, backdrops: `art-noon.ts`, `backdrop-noon.ts`), telegraph sounds
 (`NOON_NEW_SOUNDS`), and balance (a little harder than Lanternfen: Act 1 ~80%, Act 2 ~65%, Act 3 ~50%, the Gnomon's
