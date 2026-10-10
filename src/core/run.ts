@@ -16,7 +16,7 @@ import { questById, type QuestId } from '../data/quests';
 import type { ActDef, BarRules, EventOutcome, RegionDef } from '../data/types';
 import { HEROES, type HeroId } from '../data/heroes';
 import type { PetBuild } from './roster';
-import { RELICS, relicById, type RelicId } from '../data/relics';
+import { RELICS, relicById, STARTER_RELICS, type RelicId } from '../data/relics';
 import { skillById } from '../data/skills';
 import { recordActAccuracy, addSamples, type AccEntry } from './accuracy';
 import { Combat, heroMaxHp, heroStats, killCoins, newHero, type Hero, type SavedFoe } from './combat';
@@ -292,6 +292,28 @@ export function rollPick(rng: Rng, t: Tuning, pool: readonly RelicId[], owned: r
     for (const c of cards) out.splice(rng.int(out.length + 1), 0, c);
   }
   return out;
+}
+
+/** The mark of a new player's first relic pick made (Run.simplePick), in profile.seen. */
+export const FIRST_PICK = 'pick:first';
+
+/**
+ * A new player's first relic pick: two relics (`min` rare or better for the first, as the pick asked), the second one
+ * sharing no tag with the first, so the two cards are two different ways to play (falls back to any other relic).
+ */
+export function rollFirstPick(rng: Rng, t: Tuning, all: readonly RelicId[], min: boolean | Rarity = false): BoostOffer[] {
+  if (!t.relics.on) return rollPick(rng, t, all, [], min, { n: 2 });
+  const want: Rarity = min === true ? 'rare' : min === false ? 'common' : min;
+  // the starter relics when they can make the pick (two tags, one rare enough), else the whole pool
+  const starters = all.filter((id) => STARTER_RELICS.includes(id));
+  const rareEnough = (id: RelicId) => RARITIES.indexOf(relicById(id)!.rarity as Rarity) >= RARITIES.indexOf(want);
+  const pool = starters.length >= 2 && starters.some(rareEnough) ? starters : all;
+  const [a] = rollRelics(rng, t, pool, [], 1, want === 'common' ? undefined : want);
+  if (!a) return rollPick(rng, t, pool, [], min, { n: 2 });
+  const tags = relicById(a)!.tags;
+  const other = pool.filter((id) => id !== a && !relicById(id)?.tags.some((tg) => tags.includes(tg)));
+  const [b] = rollRelics(rng, t, other.length ? other : pool.filter((id) => id !== a), [], 1);
+  return [a, b].filter((id): id is RelicId => !!id).map((id) => ({ id: 'relic', rarity: relicById(id)!.rarity, relic: id }));
 }
 
 /** What a shop sells: three cards (relics and at most one stat card), a potion, and a reroll of the next pick. */
@@ -1181,6 +1203,15 @@ export class Run {
     this.phase = 'boost';
   }
 
+  /**
+   * A new player's first relic pick (no act cleared, no relic carried, none picked before: in Act 1 it's the promised
+   * chest's): two relics, plain cards (no tag chips, no rarity badge), two different ways to play. From the next pick
+   * on, the usual three cards with their tags.
+   */
+  get simplePick(): boolean {
+    return this.pickKind === null && !this.startPick && !this.practice && this.profile.actsCleared === 0 && !this.hero.relics.length && !this.profile.seen.includes(FIRST_PICK);
+  }
+
   /** Whether the pick on screen is one of a replay's starting relic picks ("Starting relic 2/4"). */
   get startPick(): boolean {
     return this.startPicks > 0 && !this.path.length && this.boostThen === 'map';
@@ -1190,6 +1221,7 @@ export class Run {
     if (this.phase !== 'boost') return;
     const offer = this.boostChoices[index];
     if (!offer) return;
+    if (this.simplePick) this.profile.seen.push(FIRST_PICK);
     applyBoost(this.tuning, this.hero, offer);
     // a secret cache's relic stays unlocked
     if (this.pickKind === 'secret' && isRelicOffer(offer)) this.unlock([offer.relic]);
@@ -1262,6 +1294,7 @@ export class Run {
   /** Roll a fresh set of choices for the pick on screen (also: a save from before the cards were rolled). */
   rollChoices(): BoostOffer[] {
     const pool = this.pickKind === 'secret' ? RELICS.filter((r) => (r.from ?? 0) <= this.actIndex).map((r) => r.id) : this.relicPool;
+    if (this.simplePick) return rollFirstPick(this.rng, this.tuning, pool, this.boostMin);
     // the Lucky Stone: once an act, a pick shows four cards
     const lucky = hasCamp(this.profile, 'luckyStone') && !this.luckyUsed;
     if (lucky) this.luckyUsed = true;

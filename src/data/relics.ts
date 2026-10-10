@@ -239,3 +239,8 @@ export const PAIR_NAME: Array<[RelicTag, RelicTag, string]> = [
   ...(ASH_PAIR_NAME as Array<[RelicTag, RelicTag, string]>),
   ...(DUSK_PAIR_NAME as Array<[RelicTag, RelicTag, string]>),
 ];
+
+/** A new player's first relic pick (core/run.ts rollFirstPick) draws from these when it can: plain rules felt in the
+ *  first fights (crits, blocks, greens, the finisher, healing), none that needs a bar piece Act 1 hasn't shown yet
+ *  (bombs), a trade-off or a shop. The chest's rare one comes from the rares among them. */
+export const STARTER_RELICS: readonly RelicId[] = ['sharpshooter', 'weakSpot', 'ironRhythm', 'nightWatch', 'photosynthesis', 'chainReaction', 'quickDraw', 'sweeper', 'hoarder', 'fieldRations'];

@@ -214,6 +214,56 @@ The runs above showed the newcomer bot dying in Act 1 more than the balance bot 
 The first five minutes hold in every run: first fight on screen at 0:19-0:22, the first finisher at 0:57-1:02 (the
 next foe walks in behind it), the first chest at 1:24-1:36, the first relic pick (the chest's) a few seconds later.
 
+## Round 8, part 3: the first pick in one look, the newcomer bot at camp, the trimmed story, the new art
+
+1. **The first relic pick is two plain cards** (F16): two starter relics that share no tag (two ways to play; the
+   chest's rare one among them), each with its name and what it does in plain words; no tag chips, no RARE badge, no
+   stat card. Tags, rarity and Synergy! come from the second pick on. It was three dense cards in minute one (Blast
+   Wave, about bombs Act 1 hasn't shown, beside Greenhouse, a trade-off).
+2. **The newcomer bot spends skill points** (F17) from the first chest on, as the balance bot does after every loot.
+3. **The story team trimmed** the road, captain and Sable scenes to four boxes each (intro 3 + 1 before the fight).
+
+### Measured (the run branch at 49cd26a merged; load average 17-18 on 4 CPUs throughout, so not calmer)
+
+| Beat | seed 7 | seed 9 | seed 11 | part 2 (s7 / s9 / s11) |
+| --- | --- | --- | --- | --- |
+| First fight on screen | 0:20 | 0:20 | 0:19 | 0:22 / 0:19 / 0:20 |
+| First finisher (named; kills) | 2:06, second fight | 0:58 | 0:53 | 0:57 / 0:56 / 0:48 |
+| First win | 1:09 | 1:04 | 1:03 | 1:10 / 1:11 / 1:11 |
+| Road scene (now 4 boxes) | 1:13-1:24 | 1:06-1:15 | 1:05-1:13 | 1:14-1:28 (6 boxes) |
+| **First chest** | **1:26** | **1:17** | **1:16** | 1:31 / 1:29 / 1:29 |
+| First relic pick (two plain cards) | 1:33 | 1:21 | 1:20 | 1:38 / 1:33 / 1:32 (three) |
+| Map after the chest | 1:38 | 1:27 | 1:26 | 1:43 / 1:39 / 1:38 |
+| Skill point spent at camp | 1:49 | 1:40 | | |
+| Act 1 | lost the boss once (at 19% of its HP), cleared 9:41 | cleared first try, 6:17 | (to the chest) | |
+| First hero chest revealed | 10:08, Rare, new | 6:43, Rare, new | | |
+| Readout accuracy at the act clear | 58% | 64% | | |
+
+The trimmed story saves about 10 s before the first chest (now 1:16-1:26). Seed 7's first-fight finisher was lost to
+the test itself: on the loaded box the bot's synthetic flick fired its moves 0.3-1.2 s late, past the swipe's 350 ms
+(fixed in the spec after that run: the flick's first move now goes with the press; seeds 9 and 11 ran with the fix).
+A player's own touches carry their own timestamps, so this isn't a game problem. The newcomer bot, now spending its
+skill points, cleared Act 1 first try on seed 9 and lost the boss once on seed 7 (its weakest path: three fights and
+two rests before the boss) at a 58-64% readout; the balance bot at 60% clears Act 1 first try 98% of the time.
+
+### The first ten minutes on the new art (screenshots: `team-first10/r3/` phone and desk, `c1-s7/`)
+
+What reads worse, for the art teams (the run branch at 49cd26a, phone 874x402 and desk 1440x900):
+
+- **The crow on the darker Greenmarch** (`r3/phone-fight.png`, `c1-s7/11-firstHit.png`): a dark navy bird against
+  the dark treeline at dusk; it's the first foe a newcomer meets (seed 7) and it nearly disappears. A rim light or a
+  lighter belly would bring it back. The boar and the Bandit Captain read fine.
+- **Two Rowans** (`r3/phone-camp.png`, `r3/phone-fight.png`): the fight shows the new, taller, darker Rowan, but the
+  HUD portrait (top left of every fight and of the camp) and the camp's Rowan by the fire are still the round white
+  chibi helmet.
+- **Rowan himself** reads by his red plume, sword and cape; his dark steel and visor sit close to the background's
+  values, so the bright blue owl beside him is now the first thing the eye finds. A touch more light on his helm
+  and shoulders would make him the focus again.
+- **The act map is still bright, saturated green** (`r3/phone-map.png`) between a dusky title, a dusky fight stage
+  and a night camp: the only screen of the first ten minutes without the mood.
+- Fine as they are: the bar's blocks (yellow, red, green, purple) keep their contrast on the darker stage; the title's
+  key art and the world map ("The Great Atlas", "Regions restored") read in one look; the story box; the camp.
+
 ## Still to do (not ours, or next)
 
 - The road scene is six boxes (~14 s) between the first win and the first chest; the captain's five and Sable's six
