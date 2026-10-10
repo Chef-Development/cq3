@@ -1255,6 +1255,14 @@ C16. **Tess's and Vesper's gaps in the fourth region aren't a rule meeting their
     their kits work there, the region just gives them less (Tess's soft strengths are fire and construct; Vesper keeps
     the reds a finisher would clear, in the region with the most reds in water). Left for a hero-numbers pass.
 
+C17. **The fifth region joins the campaign** (its art and music landed): `NOON_ON` is on (`CQ3_REGION5=0` leaves it
+    out for a balance tool), its music and beds are cued (acts 12-14, the sphinx, the brass lion, the Gnomon phased),
+    the region card's tab is "Noon", and its Test lab items are the in-play set (each act's foes, mini-boss or boss with
+    nothing hurting, its maps, its story and an event; the early looks reworked, rev 1). Its numbers stay as the first
+    pass set them: a 75% Rowan from a typical end-of-Duskmire hero clears it on target (three 30-run samples pooled,
+    `tests/unit/bot-region5.test.ts`), and the masher loses its Act 3 and its boss (`bot-masher.test.ts`, its row came
+    free). Nothing else assumed four regions (the fast unit tests all passed with it on).
+
 (content: end of section)
 
 

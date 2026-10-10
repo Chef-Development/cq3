@@ -49,7 +49,7 @@ interface Mark extends RegionMark {
 }
 
 /** The regions' short names for the tabs when their full names don't fit the top bar. */
-const SHORT_NAME: Record<string, string> = { greenmarch: 'Green', frostpeaks: 'Frost', ashfell: 'Ash', duskmire: 'Dusk' };
+const SHORT_NAME: Record<string, string> = { greenmarch: 'Green', frostpeaks: 'Frost', ashfell: 'Ash', duskmire: 'Dusk', noonspire: 'Noon' };
 
 export class ProgressScreen {
   region = 0;

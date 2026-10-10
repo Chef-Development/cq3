@@ -1168,6 +1168,22 @@ Art: the pack `pack-noon.ts` (`art-noon.ts`: every foe, `sphinx2`, `brasslion2`,
 `backdrop-noon.ts`: the white road, the spire steps, the great dial), the stage light and air, the act maps' land, kit,
 lairs (the sphinx on her plinth by the road, the lion-headed gate, the gnomon on its dial) and critters in the shared files (decisions C-ART-7).
 
+### In play (round 8, team content chunk 4)
+`NOON_ON` is on (art and music landed): acts 12-14 after the Duskmire's victory, its music and beds cued in app.ts
+(`noon1`-`noon3`, `dunes`/`spire`/`dial`; the sphinx, the brass lion and the Gnomon phased). Balance as set by the first
+pass, measured with the guard (`tests/unit/bot-region5.test.ts`: Rowan at 75% from a typical end-of-Duskmire hero, 30
+runs through five regions, seeds 7 / 8 / 9; first try = the act's mini-boss or boss's first fight):
+
+| Act | Target | Seed 7 | Seed 8 | Seed 9 | Pooled (75 reached) | Fight s |
+|---|---|---|---|---|---|---|
+| 13 The White Road | ~80% | 75% (24) | 86% (29) | 73% (22) | 79% | 10.5-11 |
+| 14 The Spire Steps | ~65% | 63% | 76% | 55% | 65% | 13-14 |
+| 15 The Great Sundial (the Gnomon's first fight) | ~50% / 45-55% | 42% | 38% | 68% | 48% | 16 |
+
+Clear within 6 tries 95-100%; no boss one-shot. The masher loses Act 15 first try and the Gnomon's first fight
+(`bot-masher.test.ts`). Fights are shorter than the Duskmire's (13 / 15 / 19 s): the hero arrives at level 22; a later
+pass could trade attack for HP. Not yet: a 100-run hero parity pass.
+
 ### Still to design and build (next chunks)
 Telegraph sounds (`NOON_NEW_SOUNDS`), the music and ambience cues in app.ts (`ACT_AMBIENCE` 12-14: `dunes`, `spire`,
 `dial`), and balance (a little harder than Lanternfen: Act 1 ~80%, Act 2 ~65%, Act 3 ~50%, the Gnomon's
