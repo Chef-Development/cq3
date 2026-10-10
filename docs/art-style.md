@@ -8,6 +8,39 @@ Goal: a cohesive, hand-crafted look at the polish of modern pixel-art RPGs (Sea 
 Knight), 100% original, drawn from code. The world is **the Great Atlas**, a living map where whatever is drawn becomes
 real: ink, paper and colour are the game's visual motifs (the title, the world map, region restoration, transitions).
 
+## 0. Mood and maturity (playtest round 8: L7, L8: these override anything brighter or cuter below)
+
+The playtester: "the atmosphere needs to be slightly more dark and not all bright and peachy" and "everything looks a
+little childish and chibi; a little more mature and moodier". Every screen and sprite follows these two lists.
+
+**Mood (L7)**
+1. **Values drop** about 20-30% from the old look: skies are dusk, overcast, storm or night, never a flat bright noon.
+   The brightest values belong to light sources (sun, lanterns, magic, fire) and the actors' highlights.
+2. **Midtones lean cool** (blue, teal, violet) and a step less saturated; saturated colour lives in light pools and
+   accents.
+3. **Shadows are deep and cool** (indigo, teal) and take more of the frame; vignettes are stronger (the menus' and the
+   world map's about half again as dark at the corners).
+4. **Warm light is an accent, not a wash**: no large peach, beige or cream fills. Parchment is aged and darker with
+   burnt edges (the Atlas: `AGED` in `art-world-atlas.ts`); the blank (erased land) is a dim warm-grey vellum; UI
+   plates are deep ink.
+5. **Actors stay readable**: a rim light from the scene's light and a clear value step from the backdrop; the ground
+   strip under them is calm and darker.
+6. **Darker never means muddy**: every material keeps 3+ hue-shifted tones and the scene keeps strong contrast; check
+   at phone size that landmarks and silhouettes still read at a glance.
+
+**Maturity (L8)**
+1. **Heroes** about 3-3.5 heads tall (longer torsos and legs, smaller heads), smaller eyes (no big glossy eyes, no
+   rosy cheeks), a defined brow and jaw, weathered materials (worn leather, dented steel, cloth with folds):
+   silhouettes that read as people, not toys. Weapons keep their heft.
+2. **Foes** carry menace: sharper silhouettes, glowing eyes, teeth, scars, darker palettes; round cute shapes get an
+   edge.
+3. **Portraits** match: defined features (brow, cheekbone, jaw), moodier light (a strong key from one side, deep
+   shadow on the other, a rim), no pastel backgrounds.
+4. **UI loses its candy gloss**: plates and buttons read as engraved metal, ink and leather, not shiny plastic: one
+   small specular at most, no bright bubbly fills, bevels in the material's own dark and light; the action colours
+   (the green "go", the gold "reward") are toned to the mood's accents, deep and a little desaturated.
+5. **Companions** may keep some charm, inside the mood's palette.
+
 ## 1. The grid
 
 - The canvas is **327 x 150 game px**, integer-scaled (8x on an iPhone 16 Pro held sideways: 1 game px = 2.67 CSS px).

@@ -1294,7 +1294,8 @@ export class WorldView {
       const sy = y + Math.round(Math.sin(t * 0.5 + i) * 0.6);
       if (!this.seen(x + 30, sy + 10, 60)) return;
       this.at(this.pool.at(`wm_cloudsh${k % CLOUD_KINDS}`, 0, 0, DEPTH.shadow, 0.24), x + 6, sy + 13);
-      this.at(this.pool.at(`wm_cloud${k % CLOUD_KINDS}`, 0, 0, DEPTH.cloud), x, sy);
+      // (L7: dusk clouds, a muted lavender grey rather than bright white)
+      this.at(this.pool.at(`wm_cloud${k % CLOUD_KINDS}`, 0, 0, DEPTH.cloud, 0.85, 0xa49cb4), x, sy);
     });
     // (the painted map's cloud band along the far north: not on the Atlas, whose sheet ends in its neatline)
     this.rim.setVisible(false);
