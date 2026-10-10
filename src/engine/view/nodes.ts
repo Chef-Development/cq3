@@ -18,6 +18,8 @@ import { BOOST_ICON, clamp01, easeBack, hpLabel, inRect, INK, mix, pulse, rand, 
 import { CARD, previewLine, previewWidth } from './overlays';
 import { chipWidth, relicCard, relicIcon, tagChip } from './relic-ui';
 import { FACE, ImagePool, isPressed, notePress, parchment, ribbon, RIBBON, tag, TextPool } from './ui';
+import { glass, stopLight } from './ui-modern';
+import { wrapText } from './items';
 
 /** One change an event's choice made: its icon, the floater's number, the chip's words and colour. */
 interface EventChip {
@@ -72,6 +74,15 @@ export class NodeScreens {
 
   private shopBoard(): Rect {
     const s = this.s;
+    const run = s.app.run;
+    if (run.merchant) {
+      // the travelling trader: she stands on the left in her lantern's light; her few wares on a plate beside her,
+      // as tall as its rows (it was a full board, two thirds empty)
+      const x = s.L + 90;
+      const cards = run.shop.filter((it) => it.kind === 'boost').length;
+      const h = 11 + cards * 24 + (run.shop.some((it) => it.kind !== 'boost') ? 14 : 0) + 27;
+      return { x, y: Math.max(23, Math.round((s.B + 18 - h) / 2) - 6), w: Math.min(250, s.R - 4 - x), h };
+    }
     const w = Math.min(270, s.R - s.L - 6);
     return { x: Math.round((s.L + s.R) / 2 - w / 2), y: 23, w, h: 117 };
   }
@@ -128,15 +139,63 @@ export class NodeScreens {
   /** What an event's choice changed (the outcome screen's chips), from the moment it was chosen. */
   private evGains: { at: number; chips: EventChip[] } | null = null;
 
-  private eventBoard(): Rect {
+  /** The focal column on a stop's left: the hero at an event, the trader (its centre x). */
+  private focalX(): number {
+    return this.s.L + 44;
+  }
+
+  /** The event's plate, right of the focal column (glass over the stage), as tall as its words and its buttons:
+   *  the words on aged parchment (wrapped to the plate), then the choices (Continue once one has played out). */
+  private eventLayout(): { b: Rect; note: Rect; lines: string[]; buttons: Rect[]; chips: Rect[] } {
     const s = this.s;
-    const w = Math.min(276, s.R - s.L - 6);
-    return { x: Math.round((s.L + s.R) / 2 - w / 2), y: 24, w, h: 110 };
+    const run = s.app.run;
+    const ev = run.event;
+    const def = ev ? eventById(ev.id) : undefined;
+    const x = s.L + 90;
+    const w = Math.min(250, s.R - 4 - x);
+    const done = !!ev && ev.outcome >= 0;
+    const body = def ? (done ? def.choices[ev!.choice].outcomes[ev!.outcome].text : def.text).replace(/\n/g, ' ') : '';
+    const lines = body ? wrapText(body, w - 24) : [];
+    if (done && ev?.boost) lines.push('A boost pick is next!');
+    const n = done ? 1 : Math.max(1, def?.choices.length ?? 2);
+    const noteH = lines.length * 10 + 12;
+    // what the choice changed: a chip each under the words, in rows that fit the plate (x, row from the top)
+    const gains = done ? (this.evGains?.chips ?? []) : [];
+    const cw = gains.map((c) => textWidth(c.text, 1, true) + iconSize(c.icon)[0] + 9);
+    const placed: Array<{ x: number; row: number; w: number }> = [];
+    let row = 0;
+    let used = 0;
+    const room = w - 12;
+    cw.forEach((cwi) => {
+      if (used > 0 && used + 4 + cwi > room) {
+        row++;
+        used = 0;
+      }
+      placed.push({ x: used + (used ? 4 : 0), row, w: cwi });
+      used += (used ? 4 : 0) + cwi;
+    });
+    const chipRows = gains.length ? row + 1 : 0;
+    const chipH = chipRows * 17;
+    const h = 12 + noteH + 8 + chipH + n * 21 + 2;
+    const y = Math.max(20, Math.round((18 + s.B - h) / 2));
+    const b: Rect = { x, y, w, h };
+    const note: Rect = { x: b.x + 6, y: b.y + 12, w: b.w - 12, h: noteH };
+    const by = note.y + noteH + 8 + chipH;
+    const buttons = Array.from({ length: n }, (_, i) => ({ x: b.x + 10, y: by + i * 21, w: b.w - 20, h: 17 }));
+    // each row of chips centred on the plate
+    const rowW = (r: number) => placed.filter((q) => q.row === r).reduce((a, q) => Math.max(a, q.x + q.w), 0);
+    const chips = placed.map((q) => ({ x: Math.round(b.x + (b.w - rowW(q.row)) / 2 + q.x), y: note.y + noteH + 5 + q.row * 17, w: q.w, h: 14 }));
+    return { b, note, lines, buttons, chips };
   }
 
   private eventButton(i: number): Rect {
-    const b = this.eventBoard();
-    return { x: b.x + 14, y: b.y + 60 + i * 22, w: b.w - 28, h: 17 };
+    const bs = this.eventLayout().buttons;
+    return bs[Math.min(i, bs.length - 1)];
+  }
+
+  /** Continue, once a choice has played out. */
+  private continueButton(): Rect {
+    return this.eventButton(0);
   }
 
   // ------------------------------------------------------------------ taps
@@ -203,8 +262,8 @@ export class NodeScreens {
       const ev = run.event;
       if (!ev) return;
       if (ev.outcome >= 0) {
-        if (key || inRect(this.eventButton(1), x, y, 3)) {
-          notePress(this.eventButton(1));
+        if (key || inRect(this.continueButton(), x, y, 3)) {
+          notePress(this.continueButton());
           app.audio.uiClick();
           app.setPhase(() => run.endEvent());
         }
@@ -384,9 +443,19 @@ export class NodeScreens {
   private drawShop(g: G, now: number): void {
     const s = this.s;
     const run = s.app.run;
-    this.dim(g, 0.5);
+    if (run.merchant) {
+      // the trader herself, at 3x, in her lantern's pool (map-scale sprite scaled whole); her wares on glass
+      const ek = clamp01((now - this.phaseAt) / 260);
+      const fx = this.focalX();
+      stopLight(g, s, fx, s.ground, 0xffc070, now, ek);
+      const key = 'mn_merch_0';
+      const [w, h] = this.pool.size(key);
+      const bob = Math.floor(now / 700) % 2;
+      this.pool.scaled(key, Math.round(fx - (w * 3) / 2), s.ground + 2 - h * 3 + bob * 3, 31.42, 3, ek);
+    } else this.dim(g, 0.5);
     const { r: b, k } = this.popIn(this.shopBoard(), now);
-    panel(g, b, { trim: 'full', alpha: clamp01(k * 2) });
+    if (run.merchant) glass(g, b, { alpha: clamp01(k * 2), clear: 0.12 });
+    else panel(g, b, { trim: 'full', alpha: clamp01(k * 2) });
     if (k < 0.98) return;
     // the travelling merchant's small shop has her own banner
     const title = run.merchant ? 'Trader' : 'Shop';
@@ -572,35 +641,40 @@ export class NodeScreens {
     const run = s.app.run;
     const ev = run.event;
     const def = ev ? eventById(ev.id) : undefined;
-    this.dim(g, 0.5);
-    const { r: b, k } = this.popIn(this.eventBoard(), now);
-    panel(g, b, { trim: 'full', alpha: clamp01(k * 2) });
+    // a place, not a form: the stage in view, the hero standing in a lantern's pool on the left, the moment on a
+    // glass plate beside him (its words on aged parchment), the choices under it
+    const ek = clamp01((now - this.phaseAt) / 260);
+    const fx = this.focalX();
+    stopLight(g, s, fx, s.ground, 0xffc880, now, ek);
+    const idle = Math.floor(now / 260) % 4;
+    this.pool.foot(s.fighters.heroTex(`idle${idle}`), fx, s.ground + 1, 31.42, ek);
+    // the moment's mark over him: the map's "?" (it bobs)
+    this.pool.foot(Math.floor(now / 500) % 2 ? 'mn_q_1' : 'mn_q_0', fx + 6, s.ground - 44 + Math.round(Math.sin(now / 420)), 31.43, ek);
+    const L = this.eventLayout();
+    const { r: b, k } = this.popIn(L.b, now);
+    glass(g, b, { alpha: clamp01(k * 2), clear: 0.12 });
     if (!ev || !def || k < 0.98) return;
     const tw = textWidth(def.title, 1, true) + 22;
-    ribbon(g, b.x + b.w / 2, b.y - 6, tw, 12, RIBBON.blue);
-    this.texts.text(def.title, b.x + b.w / 2, b.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
-    const note = { x: b.x + 6, y: b.y + 12, w: b.w - 12, h: 40 };
-    parchment(g, note);
+    ribbon(g, b.x + b.w / 2, b.y - 6, Math.min(tw, b.w + 10), 12, RIBBON.gold);
+    this.texts.text(def.title, b.x + b.w / 2, b.y + 0.5, 0xfff0d0, { bold: true, ox: 0.5, oy: 0.5 });
     const done = ev.outcome >= 0;
-    const body = done ? def.choices[ev.choice].outcomes[ev.outcome].text : def.text;
-    body.split('\n').forEach((line, i) => this.texts.text(line, note.x + 7, note.y + 13 + i * 11, done ? 0x7a2a10 : 0x4a2a12, { oy: 0.5 }));
+    const note = L.note;
+    parchment(g, note);
+    L.lines.forEach((line, i) => this.texts.text(line, note.x + 6, note.y + 11 + i * 10, done && ev.boost && i === L.lines.length - 1 ? 0x1a2a5a : 0x2a1608, { oy: 0.5 }));
     const since = now - this.phaseAt;
     if (!done) this.evGains = null;
     const gains = done ? this.evGains : null;
     if (gains?.chips.length) {
-      // what the choice changed, a chip each, popping in one after another with a floater rising off it
-      const row = this.eventButton(0);
+      // what the choice changed, a chip each (under the words, rows that fit the plate: eventLayout), popping in one
+      // after another with a floater rising off it
       const iw = gains.chips.map((c) => iconSize(c.icon)[0]);
-      const widths = gains.chips.map((c, i) => textWidth(c.text, 1, true) + iw[i] + 9);
-      let x = b.x + b.w / 2 - (widths.reduce((a, w) => a + w, 0) + 4 * (widths.length - 1)) / 2;
-      const y = row.y + (ev.boost ? -4 : 3);
       gains.chips.forEach((c, i) => {
-        const w = widths[i];
+        const w = L.chips[i].w;
         const t0 = gains.at + 150 + i * 160;
         const ck = easeBack((now - t0) / 260, 1.6);
         if (ck > 0) {
           // tall enough for the heart (15x13): the icon sits inside the chip, centred
-          const r: Rect = { x: Math.round(x), y, w, h: 14 };
+          const r: Rect = { ...L.chips[i] };
           rows(g, r.x, r.y, r.w, r.h, 2, NAVY[0], 0.85 * clamp01(ck));
           hudIcon(g, c.icon, r.x + 2, r.y + Math.floor((r.h - iconSize(c.icon)[1]) / 2), 1, clamp01(ck));
           this.texts.text(c.text, r.x + iw[i] + 5, r.y + r.h / 2, c.col, { bold: true, oy: 0.5, alpha: clamp01(ck) });
@@ -608,15 +682,13 @@ export class NodeScreens {
           const ft = (now - t0) / 900;
           if (ft < 1) this.texts.text(c.num, r.x + w / 2, r.y - 3 - Math.round(16 * Math.sqrt(ft)), c.col, { bold: true, ox: 0.5, oy: 0.5, alpha: 1 - ft * ft });
         }
-        x += w + 4;
       });
     }
     if (done) {
-      const r = this.eventButton(1);
-      glow(g, r, 0x8af06a, 0.3 + 0.3 * pulse(now, 900), 3);
+      const r = this.continueButton();
+      glow(g, r, 0x8af06a, 0.2 + 0.2 * pulse(now, 900), 3);
       button3d(g, r, FACE.green, isPressed(r, now));
       this.texts.text('Continue', r.x + r.w / 2, r.y + r.h / 2 + (isPressed(r, now) ? 2 : 0), WHITE, { bold: true, ox: 0.5, oy: 0.5 });
-      if (ev.boost) this.texts.text('A boost pick is next!', b.x + b.w / 2, this.eventButton(0).y + (gains?.chips.length ? 16 : 8), 0x9ad8ff, { bold: true, ox: 0.5, oy: 0.5 });
       return;
     }
     def.choices.forEach((c, i) => {

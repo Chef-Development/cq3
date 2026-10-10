@@ -31,8 +31,8 @@ export const REGION_SITES: Record<string, { acts: Pt[]; events: Pt }> = {
 };
 
 /** A seal's radius (game px) and the spacing of a row of them. */
-export const SEAL_R = 5;
-export const SEAL_STEP = 12;
+export const SEAL_R = 6;
+export const SEAL_STEP = 14;
 /** Each act's row under its site, left to right: the act, its mini-boss (the boss on the last act), its bounty, its
  *  hidden treasure. */
 const ROW: Partial<Record<CompletionKey, number>> = { acts: 0, minis: 1, boss: 1, bounties: 2, treasures: 3 };

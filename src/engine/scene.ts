@@ -82,6 +82,7 @@ export class FightScene extends Phaser.Scene implements View {
   private pending: Pending[] = [];
   private lastCombat: Combat | null = null;
   private pauseShown = true;
+  private titleShown = false;
   // modules
   readonly fx = new Effects(this);
   readonly barView = new BarView(this);
@@ -699,8 +700,13 @@ export class FightScene extends Phaser.Scene implements View {
           break;
         }
         case 'revive':
-          fx.screenFlash(0x9af0a0, now, 320);
-          fx.floatNum(this.heroHome + 10, this.ground - 50, 'Revived!', 0x9af0a0, 2);
+          // a warm, brief light, not a lime wash over the stage (L7: warm light is an accent): a short amber breath on
+          // the scene, the glow and a ring on the hero where it happened
+          fx.screenFlash(0xffc890, now, 130);
+          fx.glow(this.heroHome, this.ground - 18, 30, 0xffc070, 700, this.ground);
+          fx.ring(this.heroHome, this.ground - 18, 26, 0xffd8a0, true);
+          fx.burst(this.heroHome, this.ground - 18, 0xffd8a0, 10, true, 0.8);
+          fx.floatNum(this.heroHome + 10, this.ground - 50, 'Revived!', 0xffe0a0, 2);
           break;
         case 'telegraph':
           f.telegraph(e.enemyId, e.name, e.sec);
@@ -861,6 +867,12 @@ export class FightScene extends Phaser.Scene implements View {
         this.pending.splice(i--, 1);
         p.fn();
       }
+    }
+    // on the title the HTML buttons move to the top-right corner, off the logo's rule (style.css html.on-title)
+    const onTitle = this.app.run.phase === 'title';
+    if (onTitle !== this.titleShown) {
+      this.titleShown = onTitle;
+      document.documentElement.classList.toggle('on-title', onTitle);
     }
     // the pause button only makes sense in a fight
     const pause = this.app.run.phase === 'fight';

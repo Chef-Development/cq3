@@ -41,6 +41,10 @@ const SEALS: Record<CompletionKey, { wax: Face; mark: string[]; ink: number; nam
 /** A press that moves more than this (game px) is a drag: it pans the map (as on the world map, view/world.ts). */
 const DRAG_PX = 4;
 
+/** The open region tab's face: dark antique brass (light lettering on it; the bright gold face put dark gold on
+ *  mustard, the top bar's lowest contrast). */
+const TAB_ON: Face = [0xb08a4c, 0x7a5624, 0x5e401a, 0x3a240c];
+
 /** A seal or a socket on the screen: what it stands for, whether it's done, where (screen px), its place in the list,
  *  and how much of it shows (it fades out at the frame's edge as the map pans). */
 interface Mark extends RegionMark {
@@ -48,8 +52,29 @@ interface Mark extends RegionMark {
   vis: number;
 }
 
-/** The regions' short names for the tabs when their full names don't fit the top bar. */
-const SHORT_NAME: Record<string, string> = { greenmarch: 'Green', frostpeaks: 'Frost', ashfell: 'Ash', duskmire: 'Dusk', noonspire: 'Noon' };
+/** Each region's emblem on its tab (7 x 6, '#' = the tab's ink): a tree, a snowcapped peak, a smoking cone, a moon over
+ *  water, a sun on a spire. The open tab shows the emblem and the region's full name; the others the emblem alone (four
+ *  names never fit a phone's top bar, and "Green" / "Frost" read as colours, not places). */
+const EMBLEM: Record<string, string[]> = {
+  greenmarch: ['..###..', '.#####.', '#######', '.#####.', '...#...', '...#...'],
+  frostpeaks: ['...#...', '..###..', '.##.##.', '.#####.', '#######', '#######'],
+  ashfell: ['...##..', '..#....', '..###..', '.##.##.', '#######', '#######'],
+  duskmire: ['..###..', '.##....', '.##....', '..###..', '.......', '#.#.#.#'],
+  noonspire: ['#.#.#..', '.###...', '#####..', '.###.#.', '#.#.###', '....###'],
+};
+
+/** A tab's emblem at (x, y) top-left, with an ink shadow under it. */
+function emblem(g: G, id: string, x: number, y: number, col: number, a: number): void {
+  const rows = EMBLEM[id];
+  if (!rows) return;
+  for (const [dy, c, k] of [
+    [1, INK, 0.8],
+    [0, col, 1],
+  ] as const) {
+    g.fillStyle(c, a * k);
+    rows.forEach((row, j) => [...row].forEach((ch, i) => ch === '#' && g.fillRect(x + i, y + j + dy, 1, 1)));
+  }
+}
 
 export class ProgressScreen {
   region = 0;
@@ -94,21 +119,14 @@ export class ProgressScreen {
 
   // ------------------------------------------------------------------ layout
 
-  /** A tab per region in the top bar, right after Back (hopping over the HTML buttons in its middle): the regions'
-   *  names while they fit, then their short names (four regions and more don't fit a phone's bar by name). */
+  /** A tab per region in the top bar, right after Back (hopping over the HTML buttons in its middle): the open one its
+   *  emblem and full name, the others their emblem alone (a padlock for one not reached). */
   tabs(): Array<{ r: Rect; region: number; label: string }> {
     const kit = this.kit;
     const b = kit.backRect();
-    const row = (short: boolean) => {
-      const labels = REGIONS.map((def, i) => (!this.reached(i) ? '???' : short ? (SHORT_NAME[def.id] ?? def.name) : def.name));
-      const widths = labels.map((l, i) => textWidth(l, 1, true) + 10 + (this.reached(i) ? 0 : 9));
-      const rs = kit.topRow(widths, b.x + b.w + 4, kit.s.R - 3);
-      return rs ? { labels, rs } : null;
-    };
-    const fit = row(false) ?? row(true);
-    if (fit) return fit.labels.map((label, i) => ({ r: fit.rs[i], region: i, label }));
-    const labels = REGIONS.map((def, i) => (!this.reached(i) ? '???' : (SHORT_NAME[def.id] ?? def.name)));
-    const rs = kit.topRow(labels.map((l, i) => textWidth(l, 1, true) + 10 + (this.reached(i) ? 0 : 9)), b.x + b.w + 4, 1e9)!;
+    const labels = REGIONS.map((def, i) => (!this.reached(i) ? '???' : def.name));
+    const widths = REGIONS.map((_, i) => (i === this.region && this.reached(i) ? textWidth(labels[i], 1, true) + 21 : 16));
+    const rs = kit.topRow(widths, b.x + b.w + 4, kit.s.R - 3) ?? kit.topRow(widths, b.x + b.w + 4, 1e9)!;
     return labels.map((label, i) => ({ r: rs[i], region: i, label }));
   }
 
@@ -337,15 +355,19 @@ export class ProgressScreen {
       const on = t.region === this.region;
       const pr = isPressed(t.r, now) || on;
       const r = { ...t.r, y: t.r.y - Math.round((1 - k) * 6) };
-      if (on) glow(g, r, 0xffd23a, 0.25 + 0.15 * pulse(now, 1200), 2);
-      button3d(g, r, on ? FACE.gold : FACE.navy, pr);
+      if (on) glow(g, r, 0xd8a040, 0.18 + 0.1 * pulse(now, 1200), 2);
+      // the open tab a dark brass plate with light lettering; the others ink
+      button3d(g, r, on ? TAB_ON : FACE.navy, pr);
       const y = r.y + r.h / 2 + (pr ? 2 : 0);
-      let x = r.x + 5;
-      if (!this.reached(t.region)) {
-        padlock(kit.gOver, x, Math.round(y - 4), 1, 0xd8901c);
-        x += 9;
+      const reached = this.reached(t.region);
+      if (!reached) {
+        padlock(kit.gOver, Math.round(r.x + r.w / 2 - 3), Math.round(y - 4), 1, 0xb88a3a);
+        return;
       }
-      kit.texts.text(t.label, x, y, on ? 0x4a2408 : this.reached(t.region) ? 0xd8d0f0 : 0x9890b8, { bold: true, oy: 0.5 });
+      const col = on ? 0xffe8b0 : 0xb8b0d0;
+      const ex = on ? r.x + 5 : Math.round(r.x + (r.w - 7) / 2);
+      emblem(kit.gOver, REGIONS[t.region].id, ex, Math.round(y - 3), col, k);
+      if (on) kit.texts.text(t.label, ex + 10, y, 0xfff0d0, { bold: true, oy: 0.5 });
     });
   }
 
@@ -376,6 +398,7 @@ export class ProgressScreen {
     }
     if (k < 0.8) return;
     const ov = kit.gOver;
+    vignetteIn(ov, { ...win, y: win.y + dy }, k);
     for (const m of this.marks()) {
       const sk = popK(now, Math.max(this.regionAt, this.openAt + 200), m.i, 45, 220);
       if (sk <= 0 || m.vis <= 0) continue;
@@ -385,11 +408,15 @@ export class ProgressScreen {
         sl.mark.forEach((row, j) => [...row].forEach((ch, i) => ch === '#' && gg.fillRect(Math.round(cx - 2.5 + i), Math.round(cy - sl.mark.length / 2 + j), 1, 1)));
       };
       if (!m.done) {
-        inkSocket(ov, m.x, m.y, SEAL_R - 0.5, now, sk * m.vis, (cx, cy, a) => stamp(ov, cx, cy, 0x6a4a2c, a));
+        inkSocket(ov, m.x, m.y, SEAL_R - 0.5, now, sk * m.vis, (cx, cy, a) => stamp(ov, cx, cy, 0xa08458, a));
         continue;
       }
       const rad = (SEAL_R - 0.4) * (sk < 1 ? 1 + (1 - sk) * 0.8 : 1);
-      waxSeal(ov, m.x, m.y, rad, sl.wax, Math.min(1, sk * 1.5) * m.vis, (gg, cx, cy, a) => stamp(gg, cx, cy, sl.ink, a));
+      // the emblem pressed into the wax: its shadow in the wax's deepest tone, then the emblem (two tones: it reads)
+      waxSeal(ov, m.x, m.y, rad, sl.wax, Math.min(1, sk * 1.5) * m.vis, (gg, cx, cy, a) => {
+        stamp(gg, cx, cy + 1, sl.wax[3], a);
+        stamp(gg, cx, cy, sl.ink, a);
+      });
     }
     this.drawChevrons(ov, f, dy, now, k);
   }
@@ -528,24 +555,54 @@ export class ProgressScreen {
       }
     } else if (done) bigButton(kit, g, texts, b, 'Claim', FACE.gold, now);
     else {
-      kit.button(g, texts, b, 'Claim', FACE.grey, now, { disabled: true, shakeAt: this.shakeAt });
-      padlock(kit.gOver, b.x + 5, b.y + 4, 1, 0xd8901c);
+      kit.button(g, texts, b, 'At 100%', FACE.grey, now, { disabled: true, shakeAt: this.shakeAt });
     }
   }
 }
 
-/** A socket inked on the parchment (what's still to do): a pressed hollow, a solid inked ring that breathes, and the
- *  seal's emblem ghosted in it (so an empty one still says what goes there). */
+/** A socket inked on the parchment (what's still to do): a dark pressed hole with a solid ink ring that breathes, and
+ *  the seal's emblem ghosted pale in it (so an empty one still says what goes there, and reads as a hole, not a
+ *  tan smudge on tan paper). */
 function inkSocket(g: G, cx: number, cy: number, rad: number, now: number, a: number, emblem: (cx: number, cy: number, a: number) => void): void {
-  fillEllipse(g, cx, cy, rad, rad, 0x8a6a44, 0.32 * a);
+  fillEllipse(g, cx, cy, rad, rad, 0x1e120a, 0.62 * a);
+  fillEllipse(g, cx + 0.5, cy + 0.5, rad - 1.5, rad - 1.5, 0x2e1c10, 0.5 * a);
   const n = Math.round(rad * 8);
-  const k = 0.7 + 0.25 * pulse(now, 2400, cx * 37);
-  g.fillStyle(0x3a2412, k * a);
+  const k = 0.75 + 0.25 * pulse(now, 2400, cx * 37);
+  g.fillStyle(0x120a06, k * a);
   for (let i = 0; i < n; i++) {
     const ang = (i / n) * Math.PI * 2;
     g.fillRect(Math.round(cx + Math.cos(ang) * rad - 0.5), Math.round(cy + Math.sin(ang) * rad - 0.5), 1, 1);
   }
-  emblem(cx, cy, 0.5 * a);
-  g.fillStyle(0xfff4d8, 0.4 * a);
-  g.fillRect(Math.round(cx + rad * 0.4), Math.round(cy + rad * 0.85), 2, 1);
+  emblem(cx, cy, 0.7 * a);
+  // the paper's lit lip on the hole's lower right
+  g.fillStyle(0xc8a874, 0.45 * a);
+  g.fillRect(Math.round(cx + rad * 0.3), Math.round(cy + rad + 0.5), 3, 1);
+}
+
+/** The frame's window darkened toward its edges and corners (stepped bands), so the eye stays on the middle and the
+ *  seals; drawn over the map, under the seals. */
+function vignetteIn(g: G, r: Rect, k: number): void {
+  const bands: Array<[number, number]> = [
+    [0, 0.26],
+    [2, 0.18],
+    [5, 0.11],
+    [9, 0.06],
+  ];
+  for (const [d, a] of bands) {
+    g.fillStyle(0x140a04, a * k);
+    const bw = d === 0 ? 2 : d === 2 ? 3 : d === 5 ? 4 : 5;
+    g.fillRect(r.x + d, r.y + d, r.w - d * 2, bw);
+    g.fillRect(r.x + d, r.y + r.h - d - bw, r.w - d * 2, bw);
+    g.fillRect(r.x + d, r.y + d + bw, bw, r.h - (d + bw) * 2);
+    g.fillRect(r.x + r.w - d - bw, r.y + d + bw, bw, r.h - (d + bw) * 2);
+  }
+  // the corners a step deeper
+  g.fillStyle(0x140a04, 0.16 * k);
+  for (const [x, y] of [
+    [r.x, r.y],
+    [r.x + r.w - 10, r.y],
+    [r.x, r.y + r.h - 10],
+    [r.x + r.w - 10, r.y + r.h - 10],
+  ])
+    g.fillRect(x, y, 10, 10);
 }

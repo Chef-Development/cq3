@@ -27,9 +27,9 @@ const LAND = [0x0e1a22, 0x14262a, 0x1c3430, 0x284634, 0x365a38, 0x4a7038];
 const CLIFF = [0x0c0612, 0x140a1c, 0x1e1028, 0x2a1634];
 const RIVER = [0x8a3a4a, 0xd8644a, 0xffa858, 0xffd890, 0xfff6d0];
 /** The blank: a warm grey vellum, kept dimmer than the logo's gold (the eye goes to the logo and the hero first). */
-const PAPER = [0x8e868c, 0x9e969a, 0xaea6a6, 0xbab2ae];
+const PAPER = [0x5a524e, 0x6a605a, 0x786c64, 0x887c72];
 const INKS = [0x140c1c, 0x1a1026, 0x2e2240, 0x4a3a5e];
-const PARCH = [0x6e4a2a, 0xa8804e, 0xd2b07a, 0xead2a0];
+const PARCH = [0x3e2818, 0x5a3e24, 0x765630, 0x8c6a3e];
 const GOLD = [0x5a3410, 0x9a5a14, 0xd8901c, 0xf2c230, 0xfff0a0];
 
 // ------------------------------------------------------------------ helpers
@@ -330,7 +330,20 @@ function erase(px: Int32Array): void {
       if (x >= 0 && x < W && sy >= 0 && sy < H && x >= keyEdge(sy) + 2 && (Math.abs(k) < 2 || dith(x, sy, 0.5))) px[sy * W + x] = PAPER[0];
     }
   }
-  // the page's corner, curling up at the bottom right: the folded-back sheet (parchment) and its shadow
+  // review round 8: the blank was the second-brightest thing (a pale placeholder): it sinks toward the right, the
+  // sheet's edges burnt (a ragged scorched rim, darkest at the corners), so the logo and the quill's gold stay on top
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      const ex = keyEdge(y);
+      if (x < ex - 34) continue;
+      const fr = clamp01((x - ex) / (W - ex)) * 0.32 + clamp01(1 - Math.min(y, H - 1 - y) / 26) * 0.18;
+      const rag = Math.min(W - 1 - x, y, H - 1 - y) - fbm(x, y, 4, 381) * 7;
+      if (x >= ex && rag < 3) px[i] = rag < 1 ? INKS[0] : mixC(px[i], 0x2a160c, 0.7 - rag * 0.12);
+      else if (fr > 0) px[i] = mixC(px[i], INKS[1], fr);
+    }
+  // the page's corner, curling up at the bottom right: the folded-back sheet (aged parchment, not a beige wedge) and
+  // its shadow
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       const f = W - 1 - x + (H - 1 - y);

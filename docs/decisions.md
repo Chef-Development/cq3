@@ -1218,6 +1218,32 @@ A2C-16. **Bellows ember-rimmed** (review 2: grey plates on a dark forge): he joi
     three phase looks.
 A2C-17. **The glacier's far hoard sits back** (review 2: a gold shape at foe height read as an actor): hazed into the
     blue, its glow and glints cut down; a dull far gold, not a lit shape.
+A21. **The fresh-eyes review's 2A findings, first pass** (review-1/2/3 at 00:00; sheets in
+    `docs/art-audit/after/stops-as-places-before-after.png`, `region-card-title-before-after.png`). *Map stops as
+    places:* an event, the bounty board and the trader no longer open the full-width navy panel with a cream card; the
+    act's stage stays in view (a light dim, a stronger vignette) and the stop's focal figure stands in a lantern's pool
+    on the left (`ui-modern.ts stopLight`): the hero with the map's "?" over him at an event, the board's map sprite at
+    3x, the trader's at 3x (map sprites scaled whole, the bible's rule); the stage's own hero and party step aside on
+    those three (fighters.ts `showcase`). The words sit on a glass plate beside it; the parchment (ui.ts `parchment`,
+    events and the board) is aged (#6a4a2c-#a8845a) with a burnt rim and dark ink; an event's plate is as tall as its
+    words (re-wrapped to the plate) and its choices, the trader's as tall as her wares (it was two thirds empty). The
+    regular shop keeps its full board (five rows and a half-width potion/reroll pair don't fit beside a figure).
+    *Region card:* the study's map rack is dim scroll ends in cubbies and the lantern a lantern (they read as an
+    unlabelled legend and a stray rectangle); the region maps are aged in one grade after painting (`aged()`: a
+    quarter desaturated, ~70% value, warmed) with a vignette inside the frame; seals 13 px (`SEAL_R` 6, step 14; the
+    fit test still passes) with a two-tone emblem; empty sockets dark ink holes with the emblem ghosted pale; tabs an
+    emblem per region (tree, peak, smoking cone, moon on water, sun on a spire), the open one dark brass with its full
+    name in light letters (four names never fit a phone's bar; "Green / Frost / Ash" read as colours); the locked
+    reward button reads "At 100%". *Title:* the blank's ramp drops to the fog ramp (#5a524e-#887c72), the sheet's edge
+    burnt and ragged, its right side darkening, the page-curl aged parchment; on the title the HTML buttons sit in the
+    top-right corner (style.css `html.on-title`, main.ts `--game-right`), off the logo's rule. *Revived!:* a warm
+    130 ms breath on the stage plus a glow, ring and motes on the hero, not a 320 ms lime wash. *Chrome:* FACE and
+    RIBBON a step deeper and less saturated (no base above ~60% value); the reward cards' rarity faces worn (moss,
+    steel blue, plum: the predecessor's L8 pass). *Not done (this chunk):* the relic pick as upright cards and the
+    unlock card stacked on the first pick; the world map items (the first-visit glide, the veils' straight edges,
+    coloured rivers on erased land, the full-colour far isle, the plate's 0/12, the windmill, padlocks); Pip's portrait
+    and name tab; the Atlas page sheet; the victory's restore motif; the loot screen's emptiness; the Options panel's
+    look; the camp's doubled labels.
 
 (art: end of section)
 
