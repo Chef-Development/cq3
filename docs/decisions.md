@@ -766,6 +766,10 @@ L5. **The full unit suite runs on GitHub at every push** (about 3 minutes there;
     teams share its four cores): the lead pushes a merge after typecheck, the build and the tests nearest the merge,
     checks the run, and fixes forward at once if it goes red.
 
+L6. **The world map keeps its painted lands** (after the Atlas pass at phone size): the dense ink-draft rendering of
+    open lands read as noise at the map's real zoom; playable lands are painted (the Atlas frames them: parchment sea,
+    inked coasts, names, the neatline), erased lands are blank vellum, and restoring a region paints it back.
+
 (lead: end of section)
 
 

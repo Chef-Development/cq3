@@ -82,3 +82,6 @@ One PR at the end supersedes #1-#7.
   music, the story's text sweep, Android/desktop fixes, the first 10 minutes through Act 1. The masher guard fix
   (content: a 15-run boss-alone sample; region 2 measures 4% over 30 seeds; the 5-seed sample swung on one lucky run)
   merged 21:24. Typecheck and build clean; pushed (GitHub runs the suite).
+- 21:36 EDT: looked at merge 4 at phone and desktop size: the title key art reads well; the Atlas's ink-draft lands
+  read as noise at the map's zoom: L6 (painted lands framed as an Atlas page, blank vellum for erased lands, restore
+  = paint spreading back), sent to art 2A.
