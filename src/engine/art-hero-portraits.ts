@@ -115,8 +115,8 @@ function neve(): HTMLCanvasElement {
   for (let y = 15; y < 27; y++) put(g, 22, y, N_HAIR[1]);
   // eyes: big ice-blue irises, glints toward the light (the near eye larger)
   const eye: Pal = { k: INK, W: '#ffffff', i: '#3ab8f0', I: '#1a6ab0', j: '#9ae8ff' };
-  eyes(g, ['kkkkk', 'kkiIk', '.kkk.'], eye, 23, 18);
-  eyes(g, ['kkkk', 'kiIk', '.kk.'], eye, 30, 18);
+  eyes(g, ['.kkkk', '..Ik.'], eye, 23, 18);
+  eyes(g, ['kkk', '.Ik'], eye, 30, 18);
   // brows, the nose's shadow, the mouth, blush
   for (const [x, y] of [
     [24, 15],
@@ -205,8 +205,8 @@ function torva(): HTMLCanvasElement {
       put(g, x, y0 + (x0 === 22 ? (x > 24 ? 1 : 0) : x < 30 ? 1 : 0), T_HAIR[1]);
     }
   const eye: Pal = { k: INK, W: '#ffffff', g: '#3aa04a', G: '#1e6a34', w: '#e8dcd0' };
-  eyes(g, ['kkkk', 'kgGk', '.kk.'], eye, 23, 17);
-  eyes(g, ['kkk', 'kgG', '.kk'], eye, 30, 17);
+  eyes(g, ['kkkk', '.Gk.'], eye, 23, 17);
+  eyes(g, ['kkk', '.Gk'], eye, 30, 17);
   for (const [x, y] of [
     [24, 22],
     [26, 23],
@@ -219,7 +219,7 @@ function torva(): HTMLCanvasElement {
     put(g, x, y, '#b45a3a');
   // the nose's shade, a wide grin
   put(g, 34, 23, T_SKIN[2]);
-  stamp(g, ['xxxxxx', 'xWWWWx', '.xxxx.'], { x: '#5a1a1a', W: '#fff4e8' }, 26, 25);
+  stamp(g, ['xxxxx'], { x: '#5a1a1a' }, 27, 26);
   return toCanvas(g);
 }
 
@@ -281,8 +281,8 @@ function hollis(): HTMLCanvasElement {
   for (let x = 30; x <= 32; x++) put(g, x, 16, H_BLACK[0]);
   for (let x = 24; x <= 25; x++) put(g, x, 15, H_BLACK[2]);
   const eye: Pal = { k: INK, W: '#fff8f0', b: '#6a3a24', w: '#d8ccc4' };
-  eyes(g, ['kkkk', 'kbbk', '.kk.'], eye, 23, 17);
-  eyes(g, ['kkk', 'kbk', '.kk'], eye, 30, 17);
+  eyes(g, ['kkkk', '.bk.'], eye, 23, 17);
+  eyes(g, ['kkk', '.bk'], eye, 30, 17);
   // the cheekbone and brow catching the light
   put(g, 27, 20, H_SKIN[4]);
   put(g, 28, 20, H_SKIN[4]);
@@ -362,8 +362,8 @@ function vesper(): HTMLCanvasElement {
   ])
     put(g, x, y, V_HAIR[1]);
   const eye: Pal = { k: INK, W: '#ffffff', a: '#f2c040', A: '#b07018' };
-  eyes(g, ['kkkkk', 'kkaAk', '.kkk.'], eye, 22, 17);
-  eyes(g, ['kkkk', 'kaAk', '.kk.'], eye, 30, 17);
+  eyes(g, ['.kkkk', '..Ak.'], eye, 22, 17);
+  eyes(g, ['kkk', '.Ak'], eye, 30, 17);
   put(g, 34, 23, SKIN_FAIR[2]);
   put(g, 29, 26, '#a04a4a');
   put(g, 30, 26, '#a04a4a');
@@ -457,10 +457,10 @@ function tam(): HTMLCanvasElement {
   for (let x = 23; x <= 25; x++) put(g, x, 16, TM_HAIR[1]);
   for (let x = 30; x <= 32; x++) put(g, x, 16, TM_HAIR[1]);
   const eye: Pal = { k: INK, W: '#ffffff', b: '#4a3020' };
-  eyes(g, ['kbk', '.kk'], eye, 23, 18);
-  eyes(g, ['kb', '.k'], eye, 30, 18);
+  eyes(g, ['kkk', '.bk'], eye, 23, 18);
+  eyes(g, ['kk', 'bk'], eye, 30, 18);
   put(g, 34, 23, TM_SKIN[2]);
-  stamp(g, ['xxxxx', 'xWxWx', '.xxx.'], { x: '#5a1a1a', W: '#fff4e8' }, 27, 25);
+  stamp(g, ['...x', 'xxx.'], { x: '#5a1a1a' }, 28, 25);
   return toCanvas(g);
 }
 
@@ -469,7 +469,7 @@ function tam(): HTMLCanvasElement {
 const M_LEAF = ['#12261e', '#1e3c2a', '#2e5a32', '#4a7e36', '#78a83c', '#b4d058'];
 const M_HAIR = ['#7a7468', '#aea696', '#d8d0be', '#f4efe2', '#ffffff'];
 const M_SKIN = ['#8a4a34', '#c47a54', '#eaa878', '#ffd0a4', '#fff0dc'];
-const M_NOSE = ['#a04a44', '#d0705c', '#f49a80', '#ffc4a8', '#ffe4d4'];
+const M_NOSE = ['#6a3430', '#9a5040', '#c47a5e', '#e0a07e', '#f4c8a8'];
 const M_BARK = ['#2e1a0e', '#4e2c16', '#6e4020', '#8e5a2e', '#b07a44'];
 
 function moss(): HTMLCanvasElement {
@@ -518,19 +518,20 @@ function moss(): HTMLCanvasElement {
     [30.8, 15.2],
   ])
     fill(g, ell(cx, cy, 2.8, 1.4), sphere(M_HAIR, cx - 1, cy - 1, 3.5, 2, 0.15));
-  const eye: Pal = { k: INK, W: '#ffffff' };
-  eyes(g, ['kk', 'kk'], eye, 24, 18);
-  eyes(g, ['kk', 'kk'], eye, 30, 18);
-  put(g, 22, 21, '#f49a90');
-  put(g, 23, 21, '#f49a90');
+  // (playtest round 8, L8: small dark eyes in the shadow of the brows, crow's feet, a weathered nose)
+  const eye: Pal = { k: INK, z: M_SKIN[1], s: M_SKIN[2] };
+  eyes(g, ['zzz', 'zks', '.s.'], eye, 23, 17);
+  eyes(g, ['zz', 'kz'], eye, 30, 17);
+  put(g, 21, 19, M_SKIN[1]);
+  put(g, 21, 21, M_SKIN[1]);
+  put(g, 22, 20, M_SKIN[1]);
   // the moustache sweeping out under the nose
   fill(g, or(ell(26, 25.8, 4, 1.8), ell(32.5, 25.8, 3.2, 1.6)), sphere(M_HAIR, 25, 24.5, 8, 3, 0.2));
-  // the big soft nose: a round rosy bulb poking past the face, a glint on top
-  const nose = ell(32, 22, 4.4, 3.8);
-  fill(g, nose, sphere(M_NOSE, 30.5, 20, 5.5, 5, 0.12));
+  // the nose: a weathered bulb poking past the face, a glint on top
+  const nose = ell(32, 22, 3.4, 3);
+  fill(g, nose, sphere(M_NOSE, 30.5, 20.5, 4.5, 4, 0.08));
   rimShade(g, nose, M_NOSE[0]);
-  put(g, 30, 20, M_NOSE[4]);
-  put(g, 31, 20, M_NOSE[3]);
+  put(g, 31, 20, M_NOSE[4]);
   // the twig crown: a band of twigs round the hair, three prongs, two buds (green, pink)
   for (let x = 10; x <= 30; x++) {
     const y = Math.round(9.5 + ((x - 20) / 11) ** 2 * 3);
@@ -620,8 +621,8 @@ function yara(): HTMLCanvasElement {
   ])
     put(g, x, y, Y_HAIR[1]);
   const eye: Pal = { k: INK, W: '#ffffff', a: '#7a3a1e', A: '#4a200e' };
-  eyes(g, ['kkkk', 'kaAk', '.kk.'], eye, 23, 17);
-  eyes(g, ['kkk', 'kaA', '.kk'], eye, 30, 17);
+  eyes(g, ['kkkk', '.Ak.'], eye, 23, 17);
+  eyes(g, ['kkk', '.Ak'], eye, 30, 17);
   put(g, 34, 23, Y_SKIN[2]);
   for (const [x, y] of [
     [28, 26],
@@ -691,8 +692,8 @@ function dell(): HTMLCanvasElement {
     put(g, x, y, D_HAIR[3]);
   // big green eyes, freckles, a gap-toothed grin
   const eye: Pal = { k: INK, W: '#ffffff', a: '#3aa04a', A: '#1e6a34' };
-  eyes(g, ['.kkk', 'kaAk', '.kk.'], eye, 22, 17);
-  eyes(g, ['.kk', 'kaA', '.kk'], eye, 30, 17);
+  eyes(g, ['.kkk', '..Ak'], eye, 22, 17);
+  eyes(g, ['kkk', '.Ak'], eye, 30, 17);
   for (const [x, y] of [
     [23, 22],
     [25, 23],
@@ -704,7 +705,7 @@ function dell(): HTMLCanvasElement {
   ])
     put(g, x, y, '#c8704a');
   put(g, 34, 23, D_SKIN[2]);
-  stamp(g, ['xxxxx', 'xW.Wx', '.xxx.'], { x: '#8a3030', W: '#fff4e8', '.': '#c05050' }, 26, 25);
+  stamp(g, ['....x', 'xxxx.'], { x: '#8a3030' }, 26, 25);
   // the straw hat: a domed crown with a red band, a wide brim tilted back
   const crown = ell(21, 7.5, 8, 5.5);
   fill(g, crown, sphere(D_STRAW, 17, 4, 11, 7, 0.1));
