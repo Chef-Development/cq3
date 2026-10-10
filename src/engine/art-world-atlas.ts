@@ -192,12 +192,11 @@ export function draftOf(buf: Int32Array, W: number, H: number, on: (i: number) =
         const l = luma(c);
         // mostly bare paper: the colour's brightness becomes a light wash (dithered between steps); the strong edges
         // are drawn in line, the darks hatched with diagonal strokes like an engraving
-        const v = Math.max(0, Math.min(1, 0.3 + l * 1.05));
-        let t = rampAt(DRAFT.slice(3), v, gx, gy);
-        if (l < 0.34 && (gx + gy) % 3 === 0) t = DRAFT[2];
-        else if (l < 0.22 && (gx - gy + 300) % 3 === 0) t = DRAFT[3];
-        if (e > 0.2) t = DRAFT[1];
-        else if (e > 0.13) t = DRAFT[2];
+        const v = Math.max(0, Math.min(1, 0.45 + l * 0.95));
+        let t = rampAt(DRAFT.slice(4), v, gx, gy);
+        if (l < 0.26 && (gx + gy) % 3 === 0) t = DRAFT[3];
+        if (e > 0.3) t = DRAFT[1];
+        else if (e > 0.2) t = DRAFT[3];
         u[y * box.w + x] = rgba32(t);
       }
   });
