@@ -9,6 +9,7 @@
 // v1 was "progress" (acts cleared and regions restored only), v2 the gear; readProfile migrates both.
 
 import { ALL_ACTS } from '../data/regions';
+import { isEditId, type EditId } from '../data/edits';
 import { heroOwned, petBuilds } from './roster';
 import { COMPANION_IDS, isCompanionId, type CompanionId } from '../data/companions';
 import { ACHIEVEMENTS, CAMP_UPGRADE_IDS, type AchievementId, type CampUpgradeId } from '../data/meta';
@@ -85,6 +86,9 @@ export interface Profile {
   achievements: AchievementId[];
   counts: Record<string, number>; // lifetime counters (holds, bounties, treasures, boss kills...)
   seen: string[]; // one-time scenes played (a chest hero's arrival)
+  /** The Mapmaker's Edits (data/edits.ts): the ones drawn into the next act started, and each act's cleared under
+   *  which (by global act index; their first-clear gems are paid once). Still v3: missing reads as none. */
+  edits: { on: EditId[]; cleared: Record<string, EditId[]> };
   cosmetics: string[]; // camp banners
   allUnlocked: boolean; // debug: "Unlock all heroes and companions"
 }
@@ -164,6 +168,7 @@ export function newProfile(): Profile {
     achievements: [],
     counts: {},
     seen: [],
+    edits: { on: [], cleared: {} },
     cosmetics: [],
     allUnlocked: false,
   };
@@ -237,6 +242,10 @@ function readV4(p: Profile, d: Record<string, unknown>): void {
   const counts = (d.counts ?? {}) as Record<string, unknown>;
   for (const k of Object.keys(counts)) p.counts[k] = int(counts[k], 0, 1e9);
   p.seen = strs(d.seen);
+  const ed = (d.edits ?? {}) as { on?: unknown; cleared?: unknown };
+  p.edits = { on: strs(ed.on).filter(isEditId), cleared: {} };
+  if (ed.cleared && typeof ed.cleared === 'object')
+    for (const [k, v] of Object.entries(ed.cleared as Record<string, unknown>)) if (/^\d+$/.test(k)) p.edits.cleared[k] = strs(v).filter(isEditId);
   p.cosmetics = strs(d.cosmetics);
   p.allUnlocked = d.allUnlocked === true;
   if (p.allUnlocked && isHeroId(d.hero)) p.hero = d.hero; // the debug toggle lets any hero be picked

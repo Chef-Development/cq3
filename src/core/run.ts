@@ -18,6 +18,7 @@ import type { ActDef, BarRules, EventOutcome, RegionDef } from '../data/types';
 import { HEROES, type HeroId } from '../data/heroes';
 import type { PetBuild } from './roster';
 import { RELICS, relicById, STARTER_RELICS, type RelicId } from '../data/relics';
+import { editById, isEditId, type EditId } from '../data/edits';
 import { skillById } from '../data/skills';
 import { recordActAccuracy, addSamples, type AccEntry } from './accuracy';
 import { Combat, heroMaxHp, heroStats, killCoins, newHero, type Hero, type SavedFoe } from './combat';
@@ -295,6 +296,24 @@ export function rollPick(rng: Rng, t: Tuning, pool: readonly RelicId[], owned: r
   return out;
 }
 
+/**
+ * A fight under the Mapmaker's Edits (data/edits.ts): the tuning it's fought with (a copy with Thin Mercy's heal cap,
+ * Sharp Edges' miss cost and Last Life's no-forgiving; the run's own tuning when there are none) and its foes' HP and
+ * red speed factors (Iron Hides, Swift Reds). Last Life's no-revives is the act's (Run.enterAct).
+ */
+export function editedFight(t: Tuning, edits: readonly EditId[]): { tuning: Tuning; hpMult: number; redSpeed: number } {
+  if (!edits.length) return { tuning: t, hpMult: 1, redSpeed: 1 };
+  const E = t.edits;
+  const has = (id: EditId) => edits.includes(id);
+  const miss = has('sharpEdges') ? Math.max(1, E.missMult) : 1;
+  const tuning: Tuning = {
+    ...t,
+    spam: { ...t.spam, healCap: has('thinMercy') ? Math.min(t.spam.healCap, Math.max(0, E.healCap)) : t.spam.healCap, forgiveMax: has('lastLife') ? 0 : t.spam.forgiveMax },
+    judge: { ...t.judge, missHpShare: t.judge.missHpShare * miss, missSelfDamage: t.judge.missSelfDamage * miss },
+  };
+  return { tuning, hpMult: has('ironHides') ? Math.max(1, E.hpMult) : 1, redSpeed: has('swiftReds') ? Math.max(1, E.redSpeed) : 1 };
+}
+
 /** The mark of a new player's first relic pick made (Run.simplePick), in profile.seen. */
 export const FIRST_PICK = 'pick:first';
 
@@ -380,6 +399,8 @@ export class Run {
   lootWorn: number[] = [];
   /** Found gear for an empty slot is worn at once (the bot's "without gear" ablation turns it off). */
   autoWear = true;
+  /** The Mapmaker's Edits drawn into the act in progress (data/edits.ts; from profile.edits.on when it began). */
+  edits: EditId[] = [];
   /** The profile (kept across runs): the purse, the bag, the gear worn, progress, the accuracy log. */
   profile: Profile;
   /** Where the camp goes back to. */
@@ -521,7 +542,19 @@ export class Run {
   }
 
   /** XP for the hero who's fighting. */
+  /** Whether the Mapmaker's Edits are open (a region restored: never in a newcomer's first act). */
+  get editsOpen(): boolean {
+    return this.profile.weights >= Math.max(0, this.tuning.edits.unlockWeights);
+  }
+
+  /** The act's Edits' weight (data/edits.ts): what their reward scales with. */
+  get editWeight(): number {
+    return this.edits.reduce((n, id) => n + editById(id).weight, 0);
+  }
+
   private grantXp(xp: number): void {
+    // the Edits drawn into the act pay more XP (its fights and its clear)
+    if (this.edits.length) xp = Math.round(xp * (1 + Math.max(0, this.tuning.edits.xpPer) * this.editWeight));
     if (xp <= 0) return;
     this.actXpGained += xp;
     this.levelUps += addXp(this.tuning, heroProgress(this.profile), xp);
@@ -723,6 +756,9 @@ export class Run {
     this.path = [];
     this.combat = null;
     this.hero = { ...this.hero, abilityTimer: 0, revives: this.tuning.hero.revivesPerAct, gear: this.gear, build: this.build };
+    // the Edits on when the act begins are drawn into it (Last Life: no revives)
+    this.edits = this.editsOpen ? this.profile.edits.on.filter(isEditId) : [];
+    if (this.edits.includes('lastLife')) this.hero.revives = 0;
     this.actHero = { ...this.hero };
     this.actRerolls = this.rerolls;
     this.freeReroll = hasCamp(this.profile, 'rerollCharm');
@@ -849,8 +885,9 @@ export class Run {
     this.fightSeed = restore ? restore.seed >>> 0 : this.seed;
     this.refreshGear();
     const waves = this.fightWaves;
+    const ed = editedFight(this.tuning, this.edits);
     this.combat = new Combat({
-      tuning: this.tuning,
+      tuning: ed.tuning,
       settings: this.settings,
       hero: this.hero,
       enemies: waves.flat(),
@@ -858,10 +895,10 @@ export class Run {
       wave: restore?.wave,
       seed: this.fightSeed,
       restore: restore?.foes,
-      hpMult: this.actScale.hpMult * (1 + this.tuning.map.rowHp * n.row),
+      hpMult: this.actScale.hpMult * (1 + this.tuning.map.rowHp * n.row) * ed.hpMult,
       atkMult: this.actScale.atkMult,
       pace: this.actScale.pace,
-      redSpeed: this.actScale.redSpeed,
+      redSpeed: this.actScale.redSpeed * ed.redSpeed,
       bar: this.act.bar,
       row: n.row,
     });
@@ -1078,7 +1115,7 @@ export class Run {
    * A practice fight: no rewards, no XP, nothing saved. By default against the Training Dummy, as the picked hero,
    * with nothing able to hurt the hero (`safe`); the Test lab sets the hero, stars, companions, foes, act and bar rules.
    */
-  startPractice(o: { hero?: HeroId; stars?: number; pets?: PetBuild[]; enemies?: string[]; waves?: string[][]; act?: number; bar?: BarRules; row?: number; safe?: boolean; then?: Phase; seed?: number; relics?: RelicId[]; pick?: boolean } = {}): void {
+  startPractice(o: { hero?: HeroId; stars?: number; pets?: PetBuild[]; enemies?: string[]; waves?: string[][]; act?: number; bar?: BarRules; row?: number; safe?: boolean; then?: Phase; seed?: number; relics?: RelicId[]; pick?: boolean; edits?: EditId[] } = {}): void {
     if (!this.practice) this.practice = { hero: this.hero, combat: this.combat, actIndex: this.actIndex, phase: this.phase === 'fight' ? 'camp' : this.phase, then: o.then ?? (this.phase === 'fight' ? 'camp' : this.phase) };
     else this.practice.then = o.then ?? this.practice.then;
     this.practice.pick = !!o.pick;
@@ -1090,17 +1127,20 @@ export class Run {
     if (o.relics) this.hero.relics = o.relics.slice();
     const scale = this.tuning.acts[act];
     const waves = o.waves ?? [o.enemies ?? ['dummy']];
+    // (the Test lab can try the Edits on a practice fight)
+    const ed = editedFight(this.tuning, o.edits ?? []);
+    if (o.edits?.includes('lastLife')) this.hero.revives = 0;
     this.combat = new Combat({
-      tuning: this.tuning,
+      tuning: ed.tuning,
       settings: this.settings,
       hero: this.hero,
       enemies: waves.flat(),
       waves,
       seed: (o.seed ?? this.seed + 77) >>> 0,
-      hpMult: scale?.hpMult ?? 1,
+      hpMult: (scale?.hpMult ?? 1) * ed.hpMult,
       atkMult: scale?.atkMult ?? 1,
       pace: scale?.pace ?? 1,
-      redSpeed: scale?.redSpeed ?? 1,
+      redSpeed: (scale?.redSpeed ?? 1) * ed.redSpeed,
       bar: o.bar,
       row: o.row ?? 9,
       practice: o.safe ?? true,
@@ -1276,6 +1316,15 @@ export class Run {
     this.grantXp(actXp(this.tuning, this.actIndex, first));
     this.actAccuracy = recordActAccuracy(this.tuning, this.profile.acc, this.actIndex, this.actAims);
     if (first) this.gem(this.tuning.gems.actFirst);
+    // each Edit the act was cleared under is remembered; the first time, it pays gems
+    if (this.edits.length) {
+      const key = String(this.actIndex);
+      const had = this.profile.edits.cleared[key] ?? [];
+      const fresh = this.edits.filter((id) => !had.includes(id));
+      this.profile.edits.cleared[key] = [...had, ...fresh];
+      const gems = fresh.reduce((n, id) => n + editById(id).weight, 0) * Math.max(0, this.tuning.edits.gemsPer);
+      if (gems > 0) this.gem(Math.round(gems));
+    }
     heroProgress(this.profile).acts++; // mastery counts acts cleared with each hero
     this.feats();
     // the region's tracker at 100%: its chest and gems, once

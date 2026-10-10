@@ -5,6 +5,7 @@
 import { eventById } from '../data/events';
 import { GREENMARCH } from '../data/greenmarch';
 import { isRelicId } from '../data/relics';
+import { isEditId } from '../data/edits';
 import type { RegionDef } from '../data/types';
 import type { Hero, SavedFoe } from './combat';
 import type { AccEntry } from './accuracy';
@@ -23,7 +24,7 @@ import type { Tuning } from './tuning';
 // being fought, the merchant's shop, a bounty's relic picks to come. The roamers aren't saved: they follow from the
 // map's seed and the path (roamAt replays it). A v4 save is migrated (its coins go into the purse), a v5 one (no
 // relics yet) and a v6 one (its act goes on without extras: the next act has them); older ones are dropped.
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 type SavedPhase = Exclude<Phase, 'title' | 'world' | 'victory' | 'camp'>;
 const PHASES: SavedPhase[] = ['scene', 'map', 'fight', 'loot', 'boost', 'treasure', 'rest', 'shop', 'event', 'bounty', 'actClear', 'defeat'];
@@ -63,6 +64,7 @@ export interface RunSave {
   merchant: boolean; // the shop on screen is the travelling merchant's
   bonusPicks: number; // a bounty's relic picks still to come
   pickKind: 'secret' | 'bounty' | null; // the pick on screen is a secret cache's or a bounty's
+  edits: string[]; // the Mapmaker's Edits drawn into the act (v8; a v7 save's act has none)
 }
 
 /** The hero as saved: the gear and the build aren't (they come from the profile when the run resumes). */
@@ -96,6 +98,10 @@ export function migrateSave(data: unknown, profile: Profile): unknown {
   if (s.v === 6) {
     // v6 -> v7: the act in progress has no roamers, quest, rush or secret (its map was made before them)
     s = { ...s, v: 7, extras: false, quest: null, secret: false, ambush: null, merchant: false, bonusPicks: 0, pickKind: null };
+  }
+  if (s.v === 7) {
+    // v7 -> v8: the act in progress began before the Mapmaker's Edits
+    s = { ...s, v: 8, edits: [] };
   }
   return s;
 }
@@ -152,6 +158,7 @@ export function snapshotRun(run: Run, now = Date.now()): RunSave | null {
     merchant: run.phase === 'shop' && run.merchant,
     bonusPicks: run.bonusPicks,
     pickKind: run.phase === 'boost' || run.phase === 'loot' || run.phase === 'treasure' ? run.pickKind : null,
+    edits: run.edits.slice(),
   };
 }
 
@@ -198,6 +205,7 @@ export function readSave(data: unknown, t: Tuning, region: RegionDef = GREENMARC
   if (typeof s.extras !== 'boolean' || typeof s.secret !== 'boolean' || typeof s.merchant !== 'boolean' || !num(s.bonusPicks)) return null;
   if (s.quest !== null && !readQuest(t, s.quest)) return null;
   if (![null, 'secret', 'bounty'].includes(s.pickKind)) return null;
+  if (!Array.isArray(s.edits)) return null;
   const known = (w: unknown) => Array.isArray(w) && w.length > 0 && w.every((g) => Array.isArray(g) && g.length > 0 && g.every((k) => typeof k === 'string' && !!t.enemies[k]));
   if (s.ambush !== null && (!s.ambush || !num(s.ambush.roamer) || !known(s.ambush.waves) || !['map', 'node'].includes(s.ambush.then))) return null;
   const map = actMap(t, region, s.act, actSeed(s.mapSeed, s.act), s.extras).map;
@@ -246,6 +254,7 @@ export function restoreRun(run: Run, data: unknown): boolean {
   run.merchant = s.phase === 'shop' && s.merchant;
   run.bonusPicks = Math.max(0, Math.round(s.bonusPicks));
   run.pickKind = s.pickKind;
+  run.edits = [...new Set(s.edits.filter(isEditId))]; // (known Edits only)
   run.actHero = { ...s.actHero, relics: relicsOf(s.actHero), abilityTimer: 0, gear, build };
   run.actRerolls = s.actRerolls;
   run.actSpent = Math.max(0, s.actSpent);
