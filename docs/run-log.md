@@ -130,3 +130,6 @@ One PR at the end supersedes #1-#7.
 - 23:12 EDT: art 2B's portraits, walkers and finisher wind-ups merged (boot-checked). A functional Playwright run
   (smoke, numbers, minis, desktop, lab; no pixel specs) started on the long lock to catch regressions before the
   final baseline regeneration.
+- 23:33 EDT: art 2C merged (every region 1-3 stage graded at paint time, skies repainted: forest late day, ruins rainy
+  dusk, hollow blood-red, pass moonlit, cinder smoke-dark; foes with menace; the pendulum symbols gone from foes).
+  2C chunk 2: the act maps under L7, more menace (slimes, the Boar King's body and phases, Region 2's foes).
