@@ -121,9 +121,39 @@ function frame(paint: (g: Grid) => Glow): HTMLCanvasElement {
 function framed(paint: (g: Grid) => Glow): { canvas: HTMLCanvasElement; feet: number } {
   const g = grid(W, H);
   const glow = paint(g);
+  moodGrade(g);
   const canvas = toCanvas(g);
   if (glow) glow(canvas.getContext('2d')!);
   return { canvas, feet: lowestRow(g) };
+}
+
+/**
+ * The companions' grade (playtest round 8, L8, after the fresh-eyes review: a companion was the brightest thing on the
+ * stage beside a moody hero): every colour down in value (a step more than the heroes' grade, art-rig.ts gradeGrid, so
+ * a companion never outshines the hero) and in saturation, the shadows a touch cooler. Their shapes, faces and accent
+ * colours stay; the glow passes drawn over the frame are left as they are.
+ */
+function moodGrade(g: Grid): void {
+  const memo = new Map<string, string>();
+  for (const row of g)
+    for (let x = 0; x < row.length; x++) {
+      const c = row[x];
+      if (!c || c[0] !== '#' || c.length !== 7) continue;
+      let out = memo.get(c);
+      if (!out) {
+        const v = parseInt(c.slice(1), 16);
+        const r0 = ((v >> 16) & 255) / 255;
+        const g0 = ((v >> 8) & 255) / 255;
+        const b0 = (v & 255) / 255;
+        const k = 0.7 + 0.2 * Math.max(r0, g0, b0);
+        const grey = (r0 + g0 + b0) / 3;
+        const sat = 0.8;
+        const h2 = (n: number) => Math.max(0, Math.min(255, Math.round(n * 255))).toString(16).padStart(2, '0');
+        out = `#${h2((grey + (r0 - grey) * sat) * k)}${h2((grey + (g0 - grey) * sat) * k)}${h2((grey + (b0 - grey) * sat) * k * 1.03)}`;
+        memo.set(c, out);
+      }
+      row[x] = out;
+    }
 }
 
 /** A translucent pixel (for glow passes). */
