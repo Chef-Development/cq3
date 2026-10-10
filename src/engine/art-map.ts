@@ -786,7 +786,28 @@ function lairRoadworks(): Lair {
       p.set(x, y + 2, pick(basalt, x < x0 + w / 2 ? 0.32 : 0.2, x, y + 2));
     }
   }
+  // the heap is hot: lava glows in the seams between some pavers, and their left faces catch the cauldron's light
+  for (let i = 0; i < 5; i++) {
+    const w = 18 - i * 3;
+    const x0 = 22 - Math.floor(w / 2) + (i % 2);
+    const y = base - 8 - i * 3;
+    for (let x = x0 + 2; x < x0 + w - 1; x += 4 + (i % 2)) {
+      p.set(x, y + 1, col(i % 2 ? '#c24a1c' : '#f08a2a'));
+      p.set(x, y + 2, col('#6e2a18'));
+    }
+    p.set(x0, y, col('#a28e88'));
+    p.set(x0, y + 1, col('#887674'));
+  }
   stampPix(p, ['..kkk..', '.k...k.', 'kIIIIIk', 'IiiIiiI', 'IiiiiiI', 'jjjjjjj'], P({ k: '#46444e', I: '#6a6872', i: '#34323c', j: '#a4a2ac' }), 19, base - 28);
+  // the cauldron's pitch, glowing at the brim
+  for (const [dx, c] of [
+    [1, '#f08a2a'],
+    [2, '#ffd070'],
+    [3, '#ffd070'],
+    [4, '#f08a2a'],
+    [5, '#c24a1c'],
+  ] as const)
+    p.set(19 + dx, base - 28 + 2, col(c));
   // a striped barrier on two legs, and a sign on a post: WET BASALT (a blob of a warning)
   stampPix(p, ['ooowwwoooww', 'OOwwwOOOwwy', 'ooowwwoooww', '.d.......d.', 'dk.......kd', 'k.........k'], P({ o: '#f27a1c', O: '#ffb05a', w: '#f4ece0', y: '#b8aaa0', k: '#2a1c14', d: '#5a3a26' }), 1, base - 7);
   stampPix(p, ['yyyyyyy', 'ykykkky', 'yyyyyyy', '...d...', '...d...', '...d...', '...d...'], P({ y: '#f2c230', k: '#2a1c14', d: '#5a3a26' }), W - 10, base - 12);

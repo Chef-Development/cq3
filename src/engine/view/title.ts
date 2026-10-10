@@ -230,7 +230,7 @@ export class TitleScreen {
     const w = textWidth(text, 2, true);
     const p = pulse(now, 900);
     const cx = Math.round(GAME_W / 2);
-    const r: Rect = { x: cx - Math.round(w / 2) - 34, y: cy - 11, w: w + 68, h: 22 };
+    const r: Rect = { x: cx - Math.round(w / 2) - 34, y: cy - 11, w: w + 68, h: 26 }; // (room for the descenders: the p of "Tap")
     glass(gc, r, { alpha: 0.9 * alpha, clear: 0.2 });
     for (const side of [-1, 1])
       for (let i = 0; i < 3; i++) {
@@ -238,7 +238,7 @@ export class TitleScreen {
         const x = Math.round(cx + side * (w / 2 + 26 - k * 14));
         chevron(gc, x, cy - 5, 11, i === 0 ? GOLD[4] : GOLD[3], alpha * Math.sin(k * Math.PI), -side, true);
       }
-    texts.text(text, cx, cy + 1, mix(WHITE, 0xfff0a0, 0.5 * p), { bold: true, scale: 2, ox: 0.5, oy: 0.5, alpha: alpha * (0.85 + 0.15 * p), extrude: 1, extrudeCol: 0x3a1c18 });
+    texts.text(text, cx, cy, mix(WHITE, 0xfff0a0, 0.5 * p), { bold: true, scale: 2, ox: 0.5, oy: 0.5, alpha: alpha * (0.85 + 0.15 * p), extrude: 1, extrudeCol: 0x3a1c18 });
   }
 
   /** The legend: the three blocks a first fight teaches, as a map's key on a small plate. */
