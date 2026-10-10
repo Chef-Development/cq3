@@ -188,7 +188,7 @@ export const EVENTS: EventDef[] = [
     title: 'The Lost Caravan',
     text: 'A caravan has walked in circles for days.\nWith no shadows, nobody can find north.',
     choices: [
-      { label: 'Guide them', outcomes: [{ text: 'Hours in the glare. At the road they press\na sun-charm into your hand.', hp: -12, boost: 'rare' }] },
+      { label: 'Guide them', outcomes: [{ text: 'Hours in the glare leave you burned. At the\nroad they press a sun-charm into your hand.', hp: -12, boost: 'rare' }] },
       { label: 'Sell them your map', outcomes: [{ text: 'They pay well. You hope a map is enough\nwhere nothing casts a shadow.', coins: 25 }] },
     ],
   },
