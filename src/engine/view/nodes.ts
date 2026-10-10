@@ -148,7 +148,7 @@ export class NodeScreens {
 
   /** The event's plate, right of the focal column (glass over the stage), as tall as its words and its buttons:
    *  the words on aged parchment (wrapped to the plate), then the choices (Continue once one has played out). */
-  private eventLayout(): { b: Rect; note: Rect; lines: string[]; buttons: Rect[]; chips: Rect[] } {
+  private eventLayout(): { b: Rect; note: Rect; lines: string[]; buttons: Rect[]; chips: Rect[]; bold: boolean } {
     const s = this.s;
     const run = s.app.run;
     const ev = run.event;
@@ -157,10 +157,19 @@ export class NodeScreens {
     const w = Math.min(250, s.R - 4 - x);
     const done = !!ev && ev.outcome >= 0;
     const body = def ? (done ? def.choices[ev!.choice].outcomes[ev!.outcome].text : def.text).replace(/\n/g, ' ') : '';
-    const lines = body ? wrapText(body, w - 24) : [];
-    if (done && ev?.boost) lines.push('A boost pick is next!');
     const n = done ? 1 : Math.max(1, def?.choices.length ?? 2);
-    const noteH = lines.length * 10 + 12;
+    // the must-read words in the bold letters (ui-style: bold scale 1 is the smallest must-read type; review-4 R4-20),
+    // when the plate still fits the screen with them; else the small letters as before
+    const wrap = (bold: boolean) => {
+      const ls = body ? wrapText(body, w - 24, bold) : [];
+      if (done && ev?.boost) ls.push('A boost pick is next!');
+      return ls;
+    };
+    const boldLines = wrap(true);
+    const fixedH = 12 + 12 + 8 + (done ? 17 * 2 : 0) + n * 21 + 2;
+    const bold = fixedH + boldLines.length * 11 <= s.B - 24;
+    const lines = bold ? boldLines : wrap(false);
+    const noteH = lines.length * (bold ? 11 : 10) + 12;
     // what the choice changed: a chip each under the words, in rows that fit the plate (x, row from the top)
     const gains = done ? (this.evGains?.chips ?? []) : [];
     const cw = gains.map((c) => textWidth(c.text, 1, true) + iconSize(c.icon)[0] + 9);
@@ -187,7 +196,7 @@ export class NodeScreens {
     // each row of chips centred on the plate
     const rowW = (r: number) => placed.filter((q) => q.row === r).reduce((a, q) => Math.max(a, q.x + q.w), 0);
     const chips = placed.map((q) => ({ x: Math.round(b.x + (b.w - rowW(q.row)) / 2 + q.x), y: note.y + noteH + 5 + q.row * 17, w: q.w, h: 14 }));
-    return { b, note, lines, buttons, chips };
+    return { b, note, lines, buttons, chips, bold };
   }
 
   private eventButton(i: number): Rect {
@@ -653,7 +662,7 @@ export class NodeScreens {
     const done = ev.outcome >= 0;
     const note = L.note;
     parchment(g, note);
-    L.lines.forEach((line, i) => this.texts.text(line, note.x + 6, note.y + 11 + i * 10, done && ev.boost && i === L.lines.length - 1 ? 0x1a2a5a : 0x2a1608, { oy: 0.5 }));
+    L.lines.forEach((line, i) => this.texts.text(line, note.x + 6, note.y + 11 + i * (L.bold ? 11 : 10), done && ev.boost && i === L.lines.length - 1 ? 0x1a2a5a : 0x2a1608, { oy: 0.5, bold: L.bold }));
     const since = now - this.phaseAt;
     if (!done) this.evGains = null;
     const gains = done ? this.evGains : null;
