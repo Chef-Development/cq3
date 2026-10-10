@@ -629,7 +629,8 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
 - **Mini-bosses (suggested):** **Old Barnacle** (`barnacle`, Act 1: a giant hermit crab from the open sea, wearing a
   wrecked rowboat for a shell; proud and slow: "MY boat. Found it. Keeping it."); **the Lampless** (`lampless`, Act 2:
   an empty lantern on long legs he drew to snuff every light but his own, so no one relights the harbor; no speech).
-- **Rule hooks (ideas):** *the beam* (a sweeping light: blocks in it are clear, the rest dim) and *wreckage* (a hit
+- **Rule hooks (ideas):** *the turning light* (the beacon's beam sweeps the bar: a block hit while it's in the beam is worth
+  double; not Region 4's dark) and *wreckage* (a hit
   red breaks into two small ones).
 - **Boss: the Wreckwarden**, a giant pieced together from those hulls, drawn to guard the beacon stair. Keystone:
   **the Flame**. (Not a lighthouse boss: the Duskmire has the one.)
