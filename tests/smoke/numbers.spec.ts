@@ -369,7 +369,7 @@ test('numbers: the camp: companions, chests and an opening, the shrine (odds, pi
     await check(page, `completion: region ${r + 1}`, 900);
   }
   // the region card's Atlas pages, read from a treasure seal
-  await run(page, `p.pages = [0, 1]; camp().go('home', now()); camp().go('progress', now()); camp().progress.open(now(), 0); camp().progress.showPages(now());`);
+  await run(page, `p.pages = [0, 1]; camp().go('home', now()); camp().go('progress', now()); camp().progress.open(now(), 0); camp().progress.showPage(now(), 1);`);
   await check(page, 'completion: the Atlas pages found', 900);
 });
 

@@ -275,21 +275,20 @@ export class ProgressScreen {
       const name = SEALS[best.key].name;
       this.tip = { text: `${name} ${part.have}/${part.of}`, x: best.x, y: best.y - 5, at: now };
       kit.app.audio.uiClick();
-      // a treasure seal reads the Atlas pages found in this region's hidden treasures
-      if (best.key === 'treasures') this.showPages(now);
+      // a treasure seal reads the Atlas page found in that act's hidden treasure
+      if (best.key === 'treasures') this.showPage(now, best.n);
     }
   }
 
-  /** The region's Atlas pages found, in act order, in a sheet (none found: nothing opens, the seal's tip says 0). */
-  private showPages(now: number): void {
-    const p = this.kit.profile;
-    const first = regionStart(this.region);
-    const acts = REGIONS[this.region]?.acts.length ?? 0;
-    const pages = ATLAS_PAGES.filter((pg) => pg.act >= first && pg.act < first + acts && p.pages.includes(pg.act));
-    if (!pages.length) return;
-    const lines: SheetLine[] = pages.map((pg, i) => ({ text: `${pg.title}. ${pg.lines.join(' ')}`, col: i % 2 ? 0xe8e0f4 : 0xffe8a0 }));
+  /** The Atlas page found in act `n`'s hidden treasure (n: the act in this region), in a sheet; not found yet: nothing
+   *  opens (the seal's tip has its count). */
+  private showPage(now: number, n: number): void {
+    const act = regionStart(this.region) + n;
+    const pg = ATLAS_PAGES.find((x) => x.act === act);
+    if (!pg || !this.kit.profile.pages.includes(act)) return;
+    const lines: SheetLine[] = [{ text: `Act ${whole(act + 1)}`, bold: true, col: 0xffe8a0 }, ...pg.lines.map((text) => ({ text, col: 0xf0e8ff }))];
     this.tip = null;
-    this.sheet.show(`Atlas pages ${whole(pages.length)}/${whole(acts)}`, lines, now);
+    this.sheet.show(pg.title, lines, now);
   }
 
   /** The 100% reward: the chest bursts open, gems and a region chest. */

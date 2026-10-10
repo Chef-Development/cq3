@@ -297,7 +297,7 @@ export const LAB_NEW: LabScenario[] = [
   { id: 'r8Story3', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 3 story (new)', secs: 90, try: 'Read the scenes. Does the ending pull you on?', setup: { kind: 'story', act: 2, scenes: ['act3', 'boarKing', 'boarKing2', 'boarKing3', 'victory'] } },
   // Atlas pages: one per act, in its hidden treasure; read when found, and again from the region card's treasure seals
   { id: 'r8Pages', group: 'spoiler', spoiler: true, label: 'Atlas pages (new)', secs: 45, try: 'Read three pages. Do they make the land real?', setup: { kind: 'story', act: 0, scenes: ['atlasPage0', 'atlasPage1', 'atlasPage2'] } },
-  { id: 'r8PagesCard', group: 'camp', rev: 1, label: 'Atlas pages: reread', secs: 30, try: 'Tap a green treasure seal: the pages found.', setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'near' } },
+  { id: 'r8PagesCard', group: 'camp', rev: 1, label: 'Atlas pages: reread', secs: 30, try: "Tap a treasure seal: that act's page.", setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'near' } },
   // the regions' own events, one each here (the other of each pair turns up on that region's maps)
   { id: 'r8Event1', group: 'spoiler', spoiler: true, label: 'Act 1 event (new)', secs: 30, try: 'Read it and choose. A real choice?', setup: { kind: 'event', act: 0, event: 'sleepingFarmer' } },
   { id: 'r8Event4', group: 'spoiler', spoiler: true, label: 'Act 4 event (new)', secs: 30, try: 'Read it and choose. A real choice?', setup: { kind: 'event', act: 3, event: 'heldFast' } },
