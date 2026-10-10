@@ -1212,6 +1212,38 @@ C14. **The fifth region is wired behind a switch** (`src/data/flags.ts` `NOON_ON
     are in the core (`CORE:`), `noonCamp` is wired like `duskCamp`, its foes are in ENEMIES for the Test lab's early
     looks, and placeholders stand in for its art. What its art and music need is listed in the content bible (§8).
     Its scenes stay out of STORY while it's off: a scene in STORY lets the camp lines waiting for it show.
+C-ART-4. **Held things have heft** (playtest: sprites must read at 8x): every pole, stick, spear, wrench and arm a foe
+    holds is at least 2 px with a lit edge, the heads (spearhead, wrench, kettle, crossguard) a size up. The boss is
+    64 px tall, not 80: the stage above the feet line is about 67 px under the enemy plate, so a taller boss hides its
+    lamp (its focal point) behind the plate. The region's thirteen telegraph sounds are drafted but not in yet (they
+    need a calibration pass against the telegraph tests); until then C7's generic wind-up plays.
+C-ART-5. **L7 in the Duskmire**: its sky ramp ends in a muted rose (no peach), clouds, water reflections and puddles
+    cooler and darker, the lighthouse's beam an accent (narrower, fainter, its edges falling away), vignettes stronger,
+    the ground strips a step darker; the stage's rays a third as bright, its mists cool violet and slate, its grades
+    deeper; the act maps' light cooled (no rose wash). The lanterns, lit windows and the lamp stay the warm accents.
+C-ART-6. **Region 4's thirteen telegraph sounds are in** (`TellSound`, the Sound lab, `TELL_MIX`), replacing C7's
+    generic wind-up for its foes. Several had to be told apart from older ones by rhythm, not timbre: the foghorn
+    blows twice, the moths scatter for a beat before they rush back, the toad croaks twice before the belch, the snuffed
+    flame gutters out before the cup comes down, the floodgate's creaks fall silent before a flat, bright burst of water
+    (a breath of nothing is what the test's 100 ms slices hear best). The splash's low thumps were halved and its slaps
+    raised, so its phone level clears the loudest fight bands without clipping.
+C-ART-7. **Region 5's art is a pack like the QA split's** (`pack-noon.ts` + a `region-art.ts` entry; nothing outside
+    the pack imports `art-noon.ts` or `backdrop-noon.ts`): every foe, the two mini-bosses and the boss with their phase
+    looks (`sphinx2`, `brasslion2`, `gnomon2`, `gnomon3`), the new speaker's portrait, three backdrops; the three looks
+    (`whiteRoad`, `spireSteps`, `sundial`) join the `Theme` unions with their stage light, air (blown dust, heat motes,
+    glints), map land, kit, lairs and critters (a jerboa, a dune beetle, a vulture), and `NOON_STAND_IN` is each act's
+    own look. L7/L8 under a noon sun: a slate sky, the sun a hard white disc pinned through, deep cool shadows, heat haze
+    as pale broken lines (not blue, which read as rain), warm light only on brass and the sun; foes with glowing eyes and
+    teeth, the faces drawn by hand (brow shelf, sockets, lit nose ridge), the boss given mass (heavy limbs, the dial's
+    ring behind it). Its telegraph sounds (`NOON_NEW_SOUNDS`) are not drawn up yet.
+C-ART-8. **Region 5's music** (six pieces, each its own key, tempo and meter; new instruments santur, duduk, trumpet,
+    clockwork ticks): the White Road D Hijaz 126 in 7/8 (2+2+3, `pulses`), the Spire Steps F Lydian 98 in 6/8, the
+    Great Sundial F sharp Phrygian 136; the sphinx A Hijaz 144 and the brass lion B flat Mixolydian 172 follow their
+    phases (layers, no key change); the Gnomon G sharp minor 158 lifts a whole tone in its last phase (`keyUp: 2`),
+    its phase-3 hats and its celesta in 8ths to stay under the node budget. Three ambience beds under it: `dunes` (a hot
+    wind, sand hissing, cicadas), `spire` (wind whistling round the towers, chains, a far hammer), `dial` (the dial's
+    hum, a clock ticking, far rumbles). Not cued yet: app.ts cues the music by act and boss and the beds in
+    `ACT_AMBIENCE` (12-14) when the region joins.
 
 (content: end of section)
 

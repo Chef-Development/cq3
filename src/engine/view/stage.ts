@@ -11,7 +11,7 @@
 import Phaser from 'phaser';
 import type { FightScene } from '../scene';
 import { buildBackdrops, FG_FRAMES, type Backdrop, type Theme } from '../backdrop';
-import { isAshTheme, isDuskTheme, packOfTheme, regionPack } from '../region-art';
+import { isAshTheme, isDuskTheme, isNoonTheme, packOfTheme, regionPack } from '../region-art';
 import { buildStageArt, buildStageTheme, STAGE_LIGHT } from '../art-stage';
 import { GAME_W } from '../layout';
 import { rand } from './shared';
@@ -288,6 +288,8 @@ export class Stage {
         this.spawnAsh(a, ground, r);
       } else if (isDuskTheme(theme)) {
         this.spawnDusk(a, ground, r);
+      } else if (isNoonTheme(theme)) {
+        this.spawnNoon(a, ground, r);
       } else {
         // rain: most of it far, a few heavy streaks close to the camera
         const near = r < 0.06;
@@ -470,6 +472,22 @@ export class Stage {
       else glint();
       this.nextAmbient += 220;
     }
+  }
+
+  /**
+   * Noonspire's air: dust blown sideways low over the ground in the hot wind, motes of heat shimmering up, now and then
+   * a glint off brass or the sun; on the dial the glare catches more of it.
+   */
+  private spawnNoon(a: number, ground: number, r: number): void {
+    const W = GAME_W;
+    const glints = this.backdrops[this.theme]?.glints ?? [];
+    if (r < 0.55) this.bits.push({ kind: 'mote', x: rand(-20, W - 60), y: rand(ground - 26, ground + 2), vx: rand(10, 22), vy: rand(-1.5, 1), born: a, life: rand(2400, 4200), color: Math.random() < 0.6 ? 0x9a8c74 : 0xb8ac90, phase: rand(0, 6) });
+    else if (r < 0.85) this.bits.push({ kind: 'mote', x: rand(20, W - 20), y: rand(30, ground), vx: rand(-1, 1), vy: rand(-6, -3), born: a, life: rand(1800, 3000), color: 0xd8d0c0, phase: rand(0, 6) });
+    else if (glints.length) {
+      const g = glints[Math.floor(Math.random() * glints.length)];
+      this.bits.push({ kind: 'glint', x: g.x, y: g.y, vx: 0, vy: 0, born: a, life: rand(500, 900), color: g.c, phase: 0 });
+    }
+    this.nextAmbient += 200;
   }
 
   /** A flake of ash: grey, drifting down slowly (far ones settle behind the fighters). */

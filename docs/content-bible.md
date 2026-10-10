@@ -890,7 +890,15 @@ clock ticking, gulls far off), `mere` (a deep still-water hum, a slow foghorn, t
 | `sluiceKeeper` | D Dorian, **114** (112 is Act 7's), 7/4 counted 4+3 | (fight only) | a bari sax on the riff, a mallet on a pipe every beat, a ratchet on the 3, a steam whistle every 4 bars; the kit on the 4+3, the bass, the sax up an octave; phase 2 (the spillway): the whistle every bar, brass stabs on the 3 |
 | `lighthouse` | C# Phrygian, 152; phase 3 B Phrygian (`keyUp: -2`, the redraw) | (fight only) | phase 1: string tremolo, a foghorn every 2 bars, a bell tower, horns on the tune, war drums; phase 2: the kit, a choir and a harpsichord scratching 16ths like a pen; phase 3: a whole tone down, double-time drums, a distorted bass, the lead (theremin and horn), brass stabs |
 Sound lab labels by act number only (global 1-based: "Act 10: map", "Act 11 mini-boss, phase 2", "Act 12 boss, phase
-3"). The three ambience beds and the region's telegraph sounds (`DUSK_NEW_SOUNDS`) are not built yet.
+3"). Ambience beds as built (`audio.ts`, cued by act in app.ts): `fen` (reeds in a breeze, a low hush, frogs croaking,
+a cricket; the owl was too loud on a phone under the Lanternfen music), `causeway` (the tide's hush, water lapping on stone, the tide clock ticking far off,
+gulls), `mere` (a deep still-water hum and the lamp humming far off, a slow foghorn out on the water, lapping, a frog).
+Telegraphs (`DUSK_NEW_SOUNDS`; drafted, not in yet: the generic wind-up plays until they pass the telegraph tests): lure (sly rising bubbles, two pings), gulp (a throat swelling, a
+deep glunk), rustle (three swishes of reeds), splash (a rising rush, a splash, drops), snuff (a fluttering flame, the
+cup's tok, smoke), undertow (a whirl sinking and quickening, a deep pull), flutter (papery wingbeats speeding up),
+fog (a kettle bubbling, a whoosh, a hollow hoo), floodgate (a windlass creaking up, water roaring through), burp (a
+long rattling croak), sluice (a ratchet winding faster, the steam whistle), foghorn (a low beating blare), redraw (pen
+strokes scratching back and forth, an eraser's squeak; "pen scratch" in the Sound lab).
 
 #### Art as built
 - Foes (`src/engine/art-dusk.ts`): every foe's idle0/idle1/windup/attack/hurt/flash/tell, the tell being its special
@@ -902,7 +910,7 @@ Sound lab labels by act number only (global 1-based: "Act 10: map", "Act 11 mini
   glows gold like a paper lamp, his crown lantern blazing); the Sluice Keeper (brass diving helmet, porthole face,
   pocket watch, wrench, steam from the valve when he gives orders). The Lighthouse: lime-washed with red bands, on two
   legs of stacked stone, its door a mouth, the sun in the lamp, its beam sweeping, the mapmaker a small figure with a
-  pen on its gallery; `lighthouse2_*` the shoreline redrawn (water up to its knees, fresh pencil hatching and a pencil
+  pen on its gallery (64 px tall, so its lamp stays clear of the enemy plate); `lighthouse2_*` the shoreline redrawn (water up to its knees, fresh pencil hatching and a pencil
   guide line across the stone); `lighthouse3_*` the sky erased (two broad eraser strokes rubbed back to paper, the
   bands gone to ink, the lamp shuttered to a red glare, its windows lit like eyes, no beam).
 - Backdrops (`backdrop-dusk.ts`): Lanternfen (willows far off, black pools mirroring the dusk, reed beds, stilt houses
@@ -1141,9 +1149,26 @@ kits, lairs, critters; then point `NOON_STAND_IN` at them). Music cues (app.ts):
 relic icons and the gear's item icons, the region card's parchment map (art-region-map.ts, a fog sheet until then),
 and the island's three landmarks (move `WORLD_ACTS_NOON` with them).
 
+### Music and art (as built)
+Music (`music.ts`, tracks `noon1`-`noon3`, `sphinx`, `brassLion`, `gnomon`):
+
+| Track | Key | BPM | Meter | Calm | Fight |
+|---|---|---|---|---|---|
+| `noon1` The White Road | D Hijaz | 126 | 7/8 (2+2+3) | duduk over a hurdy-gurdy drone, santur on the pulses, frame drum, shaker | goblet drum, santur in 16ths, kit, bass; lead: thin square |
+| `noon2` The Spire Steps | F Lydian | 98 | 6/8 | muted horns on the chords, harp, timpani into each phrase | the Dawn Order's fanfare: trombone stabs, snare and timpani, tuba; lead: open trumpet |
+| `noon3` The Great Sundial | F# Phrygian | 136 | 4/4 | tick-tock on the 8ths, music-box ostinato, low organ, celesta tune | ticks in 16ths, organ, timpani, kit, 8th bass; lead: hard saw |
+| `sphinx` (Act 13 mini-boss) | A Hijaz | 144 | 4/4 | | santur ostinato, duduk riddle, goblet drum; phase 2: brass stabs on the offbeats, a choir |
+| `brassLion` (Act 14 mini-boss) | Bb Mixolydian | 172 | 4/4 | | low brass riffs in octaves, timpani, snare, trumpet; phase 2: brass every beat, timpani rolls |
+| `gnomon` (boss) | G# minor (phase 3: A# minor) | 158 | 4/4 | | clockwork ticks, low brass ostinato, timpani, horns; phase 2: kit, choir, celesta; phase 3: up a whole tone, double-time drums, distorted bass, the lead |
+
+Ambience beds (`audio.ts`): `dunes` (a hot wind, sand hissing, cicadas), `spire` (wind whistling round the towers,
+chains, a far hammer), `dial` (the dial's hum, a clock ticking, far rumbles).
+
+Art: the pack `pack-noon.ts` (`art-noon.ts`: every foe, `sphinx2`, `brasslion2`, `gnomon2`/`gnomon3`, `portrait_sphinx`;
+`backdrop-noon.ts`: the white road, the spire steps, the great dial), the stage light and air, the act maps' land, kit,
+lairs (the sphinx on her plinth by the road, the lion-headed gate, the gnomon on its dial) and critters in the shared files (decisions C-ART-7).
+
 ### Still to design and build (next chunks)
-Music (six pieces,
-unlike Regions 1-4: e.g. a desert 7/8 in D Hijaz, a brass fanfare 6/8 for the spire steps, a ticking clock-work
-ostinato for the dial), art (sprites, portraits, backdrops: `art-noon.ts`, `backdrop-noon.ts`), telegraph sounds
-(`NOON_NEW_SOUNDS`), and balance (a little harder than Lanternfen: Act 1 ~80%, Act 2 ~65%, Act 3 ~50%, the Gnomon's
+Telegraph sounds (`NOON_NEW_SOUNDS`), the music and ambience cues in app.ts (`ACT_AMBIENCE` 12-14: `dunes`, `spire`,
+`dial`), and balance (a little harder than Lanternfen: Act 1 ~80%, Act 2 ~65%, Act 3 ~50%, the Gnomon's
 first fight ~45-55%).

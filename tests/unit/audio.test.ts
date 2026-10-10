@@ -12,6 +12,7 @@ import { OfflineAudioContext } from 'node-web-audio-api';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { cloneTuning, type Tuning } from '../../src/core/tuning';
 import { ASH_NEW_SOUNDS } from '../../src/data/enemies-ash';
+import { DUSK_NEW_SOUNDS } from '../../src/data/enemies-dusk';
 import { STYLE_IDS } from '../../src/data/heroes';
 import { AMBIENCES, SFX, Synth, TELL_SOUNDS, type Ambience, type TellSound } from '../../src/engine/audio';
 import { Band, midi, MUSIC_PIECES, MUSIC_TRACKS, SONGS, stepSec, type MusicPiece, type MusicRender, type MusicTrack } from '../../src/engine/music';
@@ -32,6 +33,9 @@ const ACTS3 = ['ash1', 'ash2', 'ash3'] as const;
 /** Region 4's (docs/content-bible.md, section 7). */
 const REGION4: MusicTrack[] = ['dusk1', 'dusk2', 'dusk3', 'bellybog', 'sluiceKeeper', 'lighthouse'];
 const ACTS4 = ['dusk1', 'dusk2', 'dusk3'] as const;
+/** Region 5's (docs/content-bible.md, section 8). */
+const REGION5: MusicTrack[] = ['noon1', 'noon2', 'noon3', 'sphinx', 'brassLion', 'gnomon'];
+const ACTS5 = ['noon1', 'noon2', 'noon3'] as const;
 
 type Play = (s: Synth, at: number) => void;
 
@@ -252,11 +256,13 @@ describe('impact layers', () => {
 
 describe('telegraphs', () => {
   it('every TellSound is in the Sound lab catalog (and no tell is an impact tier)', () => {
-    expect(new Set(TELL_SOUNDS).size).toBe(40);
+    expect(new Set(TELL_SOUNDS).size).toBe(53);
     // Region 2's ten (cold, crystalline, heavy snow) go through every check below like Region 1's
     for (const k of ['frost', 'icicles', 'snowball', 'silk', 'mirror', 'hail', 'drift', 'shimmer', 'avalanche', 'wings']) expect(TELL_SOUNDS, k).toContain(k);
     // and so do the fourteen Region 3's foes ask for (fire and ash, volcanic glass, chains and iron)
     for (const k of ASH_NEW_SOUNDS) expect(TELL_SOUNDS, k).toContain(k);
+    // and the thirteen Region 4's (water, lanterns, reeds and frogs, floodgates, a lighthouse and a pen)
+    for (const k of DUSK_NEW_SOUNDS) expect(TELL_SOUNDS, k).toContain(k);
     for (const k of TELL_SOUNDS) {
       const e = SFX.find((x) => x.id === `tell-${k}`);
       expect(e, k).toBeDefined();
@@ -370,6 +376,40 @@ describe('the music', () => {
       expect(SONGS[t].calm, t).toBeUndefined();
     }
     for (const p of MUSIC_PIECES.filter((x) => REGION4.includes(x.track))) expect(p.label, p.id).toMatch(/^Act 1[0-2]( boss| mini-boss|:)/);
+    // Region 5: the same
+    for (const act of ACTS5) {
+      expect(MUSIC_PIECES.some((p) => p.track === act && !p.intense), `${act} calm`).toBe(true);
+      expect(MUSIC_PIECES.some((p) => p.track === act && p.intense), `${act} fight`).toBe(true);
+      expect(SONGS[act].calm && SONGS[act].intense, `${act} has both arrangements`).toBeTruthy();
+    }
+    expect(MUSIC_PIECES.filter((p) => p.track === 'sphinx').map((p) => p.phase)).toEqual([1, 2]);
+    expect(MUSIC_PIECES.filter((p) => p.track === 'brassLion').map((p) => p.phase)).toEqual([1, 2]);
+    expect(MUSIC_PIECES.filter((p) => p.track === 'gnomon').map((p) => p.phase)).toEqual([1, 2, 3]);
+    for (const t of ['sphinx', 'brassLion', 'gnomon'] as const) {
+      expect(SONGS[t].intense, t).toBeTruthy();
+      expect(SONGS[t].calm, t).toBeUndefined();
+    }
+    for (const p of MUSIC_PIECES.filter((x) => REGION5.includes(x.track))) expect(p.label, p.id).toMatch(/^Act 1[3-5]( boss| mini-boss|:)/);
+  });
+
+  it('Region 5 is built to the content bible: modes, tempos, meters (a 7/8 caravan limp, a 6/8 lilt)', () => {
+    const want: Record<string, [string, number, number, number]> = {
+      // key, BPM, 16ths per bar, 16ths per beat
+      noon1: ['D Hijaz', 126, 14, 4],
+      noon2: ['F Lydian', 98, 12, 6],
+      noon3: ['F# Phrygian', 136, 16, 4],
+      sphinx: ['A Hijaz', 144, 16, 4],
+      brassLion: ['Bb Mixolydian', 172, 16, 4],
+      gnomon: ['G# minor (phase 3: A# minor)', 158, 16, 4],
+    };
+    for (const t of REGION5) {
+      const s = SONGS[t];
+      expect([s.key, s.bpm, s.meter, s.beat], t).toEqual(want[t]);
+      expect(MUSIC_TRACKS.filter((o) => o !== t && SONGS[o].bpm === s.bpm), `${t} tempo`).toEqual([]);
+    }
+    expect(SONGS.noon1.pulses, 'the 7/8 is counted 2+2+3').toEqual([0, 4, 8]);
+    expect(SONGS.gnomon.keyUp).toBe(2); // G sharp minor up a whole tone to A sharp minor: noon strikes
+    expect(SONGS.sphinx.phased && SONGS.brassLion.phased, 'the mini-bosses follow their phases without a key change').toBe(true);
   });
 
   it('Region 4 is built to the content bible: modes, tempos, meters (a 12/8 shuffle, a 6/4 hemiola, a 7/4 work song)', () => {
@@ -435,7 +475,7 @@ describe('the music', () => {
     }
     expect(SONGS.rimehorn.pulses).toEqual([0, 4, 8]);
     expect(SONGS.glacia.keyUp).toBe(3); // E flat minor up to F sharp minor
-    for (const t of MUSIC_TRACKS) if (t !== 'rimehorn') expect(SONGS[t].pulses, t).toBeUndefined();
+    for (const t of MUSIC_TRACKS) if (t !== 'rimehorn' && t !== 'noon1') expect(SONGS[t].pulses, t).toBeUndefined();
   });
 
   it('every melody is its own: no two pieces share a tune, even transposed or at another tempo', () => {
@@ -444,7 +484,7 @@ describe('the music', () => {
       const notes = SONGS[t].melody.filter((n): n is [number, number] => !!n).slice(0, 17);
       return notes.slice(1).map((n, i) => `${n[0] - notes[i][0]}:${notes[i][1]}`);
     };
-    for (const a of [...REGION2, ...REGION3, ...REGION4]) {
+    for (const a of [...REGION2, ...REGION3, ...REGION4, ...REGION5]) {
       for (const b of MUSIC_TRACKS) {
         if (a === b) continue;
         const [x, y] = [steps(a), steps(b)];
@@ -499,6 +539,12 @@ describe('the music', () => {
       bellybog: 'e f# g# a b c# d d#',
       sluiceKeeper: 'd e f g a b c',
       lighthouse: 'c# d e f# g# a b',
+      noon1: 'd eb f# g a bb c',
+      noon2: 'f g a b c d e',
+      noon3: 'f# g a b c# d e',
+      sphinx: 'a bb c# d e f g',
+      brassLion: 'bb c d eb f g ab',
+      gnomon: 'g# a# b c# d# e f#',
     };
     for (const t of MUSIC_TRACKS) {
       const song = SONGS[t];
@@ -544,7 +590,7 @@ describe('the music', () => {
   });
 
   it("each act's calm arrangement is calmer than its fight band but still audible on phone speakers", () => {
-    for (const act of ['act1', 'act2', 'act3', ...ACTS2, ...ACTS3, ...ACTS4]) {
+    for (const act of ['act1', 'act2', 'act3', ...ACTS2, ...ACTS3, ...ACTS4, ...ACTS5]) {
       const calm = mus(act);
       expect(calm.loud, act).toBeLessThanOrEqual(mus(`${act}-fight@full`).loud - 1.5);
       expect(calm.phoneLoud, act).toBeGreaterThan(-30);
@@ -891,10 +937,14 @@ describe('ambience', () => {
     ['fen', ['dusk1', 'dusk1-fight@0', 'dusk1-fight@full', 'bellybog1@0', 'bellybog1@full', 'bellybog2@0', 'bellybog2@full']],
     ['causeway', ['dusk2', 'dusk2-fight@0', 'dusk2-fight@full', 'sluice1@0', 'sluice1@full', 'sluice2@0', 'sluice2@full']],
     ['mere', ['dusk3', 'dusk3-fight@0', 'dusk3-fight@full', 'lighthouse1@0', 'lighthouse1@full', 'lighthouse2@0', 'lighthouse2@full', 'lighthouse3']],
+    // and Region 5's
+    ['dunes', ['noon1', 'noon1-fight@0', 'noon1-fight@full', 'sphinx1@0', 'sphinx1@full', 'sphinx2@0', 'sphinx2@full']],
+    ['spire', ['noon2', 'noon2-fight@0', 'noon2-fight@full', 'brassLion1@0', 'brassLion1@full', 'brassLion2@0', 'brassLion2@full']],
+    ['dial', ['noon3', 'noon3-fight@0', 'noon3-fight@full', 'gnomon1@0', 'gnomon1@full', 'gnomon2@0', 'gnomon2@full', 'gnomon3']],
   ];
 
   it('every place has an ambience in the Sound lab catalog (and none is an impact tier)', () => {
-    expect(AMBIENCES.length).toBe(15);
+    expect(AMBIENCES.length).toBe(18);
     expect(new Set(UNDER.map(([a]) => a))).toEqual(new Set(AMBIENCES));
     for (const a of AMBIENCES) {
       const e = SFX.find((x) => x.id === `amb-${a}`);
@@ -976,6 +1026,15 @@ describe('ambience', () => {
       ['mere', 'dusk3'],
       ['mere', 'dusk3-fight@full'],
       ['mere', 'lighthouse3'],
+      ['dunes', 'noon1'],
+      ['dunes', 'noon1-fight@full'],
+      ['dunes', 'sphinx2@full'],
+      ['spire', 'noon2'],
+      ['spire', 'noon2-fight@full'],
+      ['spire', 'brassLion2@full'],
+      ['dial', 'noon3'],
+      ['dial', 'noon3-fight@full'],
+      ['dial', 'gnomon3'],
     ];
     for (const [a, id] of pairs) {
       const c = CUES.find((x) => x.id === id)!;

@@ -96,8 +96,8 @@ interface Graph {
 
 /** Places with their own sound bed under the music (Region 2's acts: 'pass', 'caves', 'glacier'; Region 3's, not in
  *  play yet: 'cinder', 'glass', 'forge'). */
-export type Ambience = 'forest' | 'ruins' | 'hollow' | 'map' | 'world' | 'camp' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere';
-export const AMBIENCES: Ambience[] = ['forest', 'ruins', 'hollow', 'map', 'world', 'camp', 'pass', 'caves', 'glacier', 'cinder', 'glass', 'forge', 'fen', 'causeway', 'mere'];
+export type Ambience = 'forest' | 'ruins' | 'hollow' | 'map' | 'world' | 'camp' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere' | 'dunes' | 'spire' | 'dial';
+export const AMBIENCES: Ambience[] = ['forest', 'ruins', 'hollow', 'map', 'world', 'camp', 'pass', 'caves', 'glacier', 'cinder', 'glass', 'forge', 'fen', 'causeway', 'mere', 'dunes', 'spire', 'dial'];
 
 /** A looping filtered-noise layer of an ambience (wind, rain, fire, surf), nudged at random by gusts. */
 interface Bed {
@@ -152,7 +152,7 @@ const SPOTS: [number, number][] = [
 const ALL_SPOTS = [0, 1, 2, 3, 4] as const;
 const FAR_SPOTS = [0, 2, 4] as const;
 /** How much of each ambience goes to the reverb. */
-const AMB_WET: Record<Ambience, number> = { forest: 0.18, ruins: 0.55, hollow: 0.25, map: 0.12, world: 0.15, camp: 0.2, pass: 0.2, caves: 0.6, glacier: 0.25, cinder: 0.15, glass: 0.5, forge: 0.35, fen: 0.22, causeway: 0.25, mere: 0.45 };
+const AMB_WET: Record<Ambience, number> = { forest: 0.18, ruins: 0.55, hollow: 0.25, map: 0.12, world: 0.15, camp: 0.2, pass: 0.2, caves: 0.6, glacier: 0.25, cinder: 0.15, glass: 0.5, forge: 0.35, fen: 0.22, causeway: 0.25, mere: 0.45, dunes: 0.15, spire: 0.3, dial: 0.35 };
 
 // Hit melody: major pentatonic, wrapping up an octave every 5 combo steps.
 const PENTA = [0, 2, 4, 7, 9];
@@ -208,7 +208,21 @@ export type TellSound =
   | 'lava'
   | 'anvil'
   | 'bellows'
-  | 'eruption';
+  | 'eruption'
+  // Region 4 (water, lanterns, reeds and frogs; floodgates; a lighthouse and a pen: src/data/enemies-dusk.ts DUSK_NEW_SOUNDS)
+  | 'lure'
+  | 'gulp'
+  | 'rustle'
+  | 'splash'
+  | 'snuff'
+  | 'undertow'
+  | 'flutter'
+  | 'fog'
+  | 'floodgate'
+  | 'burp'
+  | 'sluice'
+  | 'foghorn'
+  | 'redraw';
 export const TELL_SOUNDS: TellSound[] = [
   'split',
   'charge',
@@ -250,6 +264,19 @@ export const TELL_SOUNDS: TellSound[] = [
   'anvil',
   'bellows',
   'eruption',
+  'lure',
+  'gulp',
+  'rustle',
+  'splash',
+  'snuff',
+  'undertow',
+  'flutter',
+  'fog',
+  'floodgate',
+  'burp',
+  'sluice',
+  'foghorn',
+  'redraw',
 ];
 
 /** Mix level per telegraph (scales every voice in it), balanced by ear-by-numbers so they all land at about the
@@ -295,6 +322,19 @@ const TELL_MIX: Record<TellSound, number> = {
   anvil: 0.94,
   bellows: 0.63,
   eruption: 0.53,
+  lure: 0.8,
+  gulp: 0.74,
+  rustle: 0.8,
+  splash: 1.05,
+  snuff: 1.2,
+  undertow: 2.1,
+  flutter: 2.2,
+  fog: 1.2,
+  floodgate: 0.5,
+  burp: 1.5,
+  sluice: 0.5,
+  foghorn: 0.95,
+  redraw: 0.87,
 };
 
 /** [seconds after a voice starts, value] breakpoints (see Synth.voice). */
@@ -1665,7 +1705,183 @@ export class Synth {
         return this.tellBellows(t, T);
       case 'eruption':
         return this.tellEruption(t, T);
+      case 'lure':
+        return this.tellLure(t, T);
+      case 'gulp':
+        return this.tellGulp(t, T);
+      case 'rustle':
+        return this.tellRustle(t, T);
+      case 'splash':
+        return this.tellSplash(t, T);
+      case 'snuff':
+        return this.tellSnuff(t, T);
+      case 'undertow':
+        return this.tellUndertow(t, T);
+      case 'flutter':
+        return this.tellFlutter(t, T);
+      case 'fog':
+        return this.tellFog(t, T);
+      case 'floodgate':
+        return this.tellFloodgate(t, T);
+      case 'burp':
+        return this.tellBurp(t, T);
+      case 'sluice':
+        return this.tellSluice(t, T);
+      case 'foghorn':
+        return this.tellFoghorn(t, T);
+      case 'redraw':
+        return this.tellRedraw(t, T);
     }
+  }
+
+  // ---- Region 4's telegraphs (the fen: water, lanterns, reeds, frogs; the floodgates; the lighthouse and his pen)
+
+  /** A wisp's lure: three sly bubbling notes sliding up, a shimmer of air, then two bright pings (one light is real). */
+  private tellLure(t: number, T: number): void {
+    [0, 0.2, 0.4].forEach((k, i) => {
+      const s = t + k * T;
+      const f = 700 + 160 * i;
+      this.voice({ at: s, type: 'sine', f: [[0, f * 0.7], [0.1, f * 1.25]], vib: { rate: 9, cents: 40 }, amp: [[0.02, 0.22 + 0.06 * i], [0.14, 0]] });
+    });
+    this.voice({ at: t + 0.2 * T, type: 'noise', filter: 'bandpass', ff: [[0, 2400], [0.6 * T, 4200]], q: 2.5, amp: [[0.3 * T, 0.08], [0.6 * T, 0.16], [0.66 * T, 0]] });
+    [0.74, 0.86].forEach((k, i) => this.tone({ type: 'sine', f: i ? 2349 : 1760, at: t + k * T, attack: 0.002, dur: 0.22, gain: 0.34 + 0.08 * i }));
+  }
+
+  /** A toad gulping down the light: a throat swelling with a low wobbling hum, then one deep, wet GLUNK. */
+  private tellGulp(t: number, T: number): void {
+    const d = 0.7 * T;
+    this.voice({ at: t, type: 'triangle', f: [[0, 280], [d, 190]], trem: { rate: 7, rate1: 14, depth: 0.6 }, filter: 'lowpass', ff: [[0, 1200]], amp: [[d * 0.4, 0.4], [d, 0.7], [d + 0.03, 0]] });
+    this.voice({ at: t, type: 'sawtooth', f: [[0, 140], [d, 110]], filter: 'bandpass', ff: [[0, 900]], q: 3, amp: [[d * 0.5, 0.15], [d, 0.35], [d + 0.03, 0]] });
+    const g = t + 0.82 * T;
+    this.voice({ at: g, type: 'sine', f: [[0, 520], [0.09, 160]], amp: [[0.004, 0.55], [0.16, 0]] });
+    this.voice({ at: g, type: 'noise', filter: 'bandpass', ff: [[0, 900], [0.06, 500]], q: 2, amp: [[0.003, 0.25], [0.07, 0]] });
+  }
+
+  /** Reeds rustled: three swishes of dry stalks, each closer and longer than the last. */
+  private tellRustle(t: number, T: number): void {
+    [0, 0.32, 0.6].forEach((k, i) => {
+      const s = t + k * T;
+      const d = (0.16 + 0.07 * i) * T + 0.05;
+      this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, 1200 + 300 * i], [d, 2200]], q: 1.1, trem: { rate: 9 + 3 * i, depth: 0.5 }, amp: [[d * 0.5, 0.35 + 0.15 * i], [d * 0.9, 0.4 + 0.2 * i], [d, 0]] });
+    });
+  }
+
+  /** Water gathering and thrown up: a rising rush, then a splash and drops pattering down. */
+  private tellSplash(t: number, T: number): void {
+    // water slapping three times, each wave bigger, then thrown up in a splash
+    [0.12, 0.36, 0.58].forEach((k, i) => {
+      const s = t + k * T;
+      const d = 0.09 + 0.03 * i;
+      this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, 900 - 100 * i], [d, 500]], q: 1.4, amp: [[0.006, 0.5 + 0.15 * i], [d, 0]] });
+      this.voice({ at: s, type: 'sine', f: [[0, 240 - 30 * i], [d, 120]], amp: [[0.004, 0.12 + 0.05 * i], [d, 0]] });
+    });
+    const s = t + 0.8 * T;
+    this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, 1200], [0.2, 600]], q: 0.9, amp: [[0.005, 0.95], [0.22, 0]] });
+    this.voice({ at: s, type: 'sine', f: [[0, 220], [0.14, 90]], amp: [[0.004, 0.3], [0.16, 0]] });
+  }
+
+
+  /** A flame snuffed: the wick's flame fluttering, the brass cup clapped down over it (tok), the smoke's last breath. */
+  private tellSnuff(t: number, T: number): void {
+    const d = 0.5 * T;
+    this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 1100], [d, 1600]], q: 1.8, trem: { rate: 12, rate1: 30, depth: 0.8 }, amp: [[d * 0.3, 0.2], [d * 0.8, 0.4], [d, 0]] });
+    const c = t + 0.76 * T;
+    this.tone({ type: 'triangle', f: 980, f1: 700, glide: 0.03, at: c, attack: 0.001, dur: 0.1, gain: 0.7 });
+    this.ticks([c], { gain: 0.9, f: 3000, q: 2, ms: 6 });
+    this.voice({ at: c + 0.04, type: 'noise', filter: 'highpass', ff: [[0, 3500], [0.25, 1800]], amp: [[0.02, 0.15], [0.26, 0]] });
+  }
+
+  /** An undertow: water sucked back in a whirl, its pitch sinking and its swirl quickening, then a deep pull. */
+  private tellUndertow(t: number, T: number): void {
+    const d = 0.8 * T;
+    this.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 2600], [d, 800]], q: 2.5, trem: { rate: 4, rate1: 18, depth: 0.7 }, amp: [[d * 0.3, 0.35], [d * 0.9, 0.85], [d + 0.03, 0]] });
+    this.voice({ at: t + 0.4 * T, type: 'sawtooth', f: [[0, 220], [0.45 * T, 130]], trem: { rate: 20, depth: 0.6 }, filter: 'bandpass', ff: [[0, 1000]], q: 2, amp: [[0.3 * T, 0.3], [0.45 * T, 0.45], [0.48 * T, 0]] });
+  }
+
+  /** Moths swarming the light: soft papery wingbeats, faster and closer, a rush of them at the end. */
+  private tellFlutter(t: number, T: number): void {
+    // the wingbeats' soft thump (low) and their papery edges (high): the swarm swells, scatters (a beat of nothing),
+    // then rushes back at the light
+    for (const [a, b, g] of [[0, 0.5, 0.45], [0.74, 1.08, 1]]) {
+      const s = t + a * T;
+      const d = (b - a) * T;
+      this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, 650], [d, 900]], q: 2, trem: { rate: 11, rate1: 19, depth: 1, wave: 'square' }, amp: [[d * 0.4, 0.4 * g], [d * 0.85, 0.85 * g], [d, 0]] });
+      this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, 3000], [d, 3600]], q: 3, trem: { rate: 11, rate1: 19, depth: 1, wave: 'square' }, amp: [[d * 0.4, 0.2 * g], [d * 0.85, 0.45 * g], [d, 0]] });
+    }
+  }
+
+  /** A fog bank rising off a hag's kettle: the pot bubbling faster, a breathy rolling whoosh, a low hollow "hooo". */
+  private tellFog(t: number, T: number): void {
+    for (let i = 0; i < 8; i++) {
+      const s = t + T * 0.6 * Math.pow(i / 8, 0.8);
+      const f = 500 + this.rand() * 400;
+      this.tone({ type: 'sine', f, f1: f * 1.8, glide: 0.04, at: s, dur: 0.06, gain: 0.12 + 0.02 * i });
+    }
+    this.voice({ at: t + 0.3 * T, type: 'noise', filter: 'lowpass', ff: [[0, 500], [0.55 * T, 1500]], q: 0.8, amp: [[0.3 * T, 0.25], [0.55 * T, 0.45], [0.58 * T, 0]] });
+    this.voice({ at: t + 0.55 * T, type: 'sine', f: [[0, 260], [0.35 * T, 220]], vib: { rate: 5, cents: 25 }, amp: [[0.1 * T, 0.35], [0.33 * T, 0.4], [0.36 * T, 0]] });
+  }
+
+  /** A floodgate wound open: the windlass creaking up in steps, then the water roaring through. */
+  private tellFloodgate(t: number, T: number): void {
+    // the windlass: three hard creaks, each higher
+    [0, 0.14, 0.28].forEach((k, i) => {
+      const s = t + k * T;
+      const d = 0.1 * T + 0.02;
+      this.voice({ at: s, type: 'sawtooth', f: [[0, 260 + 50 * i], [d, 340 + 60 * i]], trem: { rate: 35, depth: 0.85, wave: 'square' }, filter: 'bandpass', ff: [[0, 1100 + 200 * i]], q: 3, amp: [[0.01, 0.55], [d, 0]] });
+    });
+    // the gate gives (a held breath), then the water bursts through all at once: a bright, flat roar of spray
+    const r = t + 0.6 * T;
+    const rd = 0.34 * T;
+    this.voice({ at: r, type: 'noise', filter: 'bandpass', ff: [[0, 2000], [rd, 2400]], q: 0.6, amp: [[0.012, 0.9], [rd * 0.95, 0.85], [rd + 0.03, 0]] });
+    this.voice({ at: r, type: 'noise', filter: 'lowpass', ff: [[0, 600]], q: 0.7, trem: { rate: 7, depth: 0.35 }, amp: [[0.015, 0.35], [rd * 0.95, 0.35], [rd + 0.03, 0]] });
+  }
+
+  /** A belch from a toad the size of a hut: a long, rising, rattling croak that cuts off. */
+  private tellBurp(t: number, T: number): void {
+    for (const k of [0.02, 0.28]) {
+      const d = 0.13 * T;
+      this.voice({ at: t + k * T, type: 'sawtooth', f: [[0, 118], [d, 128]], trem: { rate: 22, depth: 0.85, wave: 'square' }, filter: 'bandpass', ff: [[0, 800]], q: 2.2, amp: [[0.02, 0.5], [d * 0.8, 0.45], [d, 0]] });
+    }
+    const d = 0.86 * T;
+    this.voice({ at: t + 0.1 * T, type: 'sawtooth', f: [[0, 124], [d * 0.6, 156], [d - 0.1 * T, 140]], trem: { rate: 18, rate1: 24, depth: 0.85, wave: 'square' }, filter: 'bandpass', ff: [[0, 900], [d * 0.7, 1300]], q: 2.2, amp: [[d * 0.5, 0], [d * 0.6, 0.6], [d * 0.85, 0.9], [d - 0.1 * T + 0.02, 0]] });
+    this.voice({ at: t + 0.1 * T, type: 'noise', filter: 'bandpass', ff: [[0, 1600]], q: 1.5, trem: { rate: 18, depth: 0.8 }, amp: [[d * 0.5, 0], [d * 0.6, 0.2], [d * 0.85, 0.35], [d - 0.1 * T + 0.02, 0]] });
+  }
+
+  /** The sluice keeper's orders: a ratchet wound faster and faster, then the steam whistle. */
+  private tellSluice(t: number, T: number): void {
+    const n = 12;
+    this.ticks(
+      Array.from({ length: n }, (_, i) => t + 0.62 * T * Math.sqrt(i / n)),
+      { gain: 0.55, f: 2100, q: 4, ms: 8 },
+    );
+    const w = t + 0.66 * T;
+    const d = 0.3 * T;
+    for (const f of [1046, 1318]) this.voice({ at: w, type: 'triangle', f: [[0, f * 0.96], [0.04, f]], amp: [[0.03, 0.28], [d * 0.9, 0.3], [d + 0.02, 0]] });
+    this.voice({ at: w, type: 'noise', filter: 'bandpass', ff: [[0, 2600]], q: 1.4, amp: [[0.03, 0.2], [d, 0]] });
+  }
+
+  /** A foghorn: a low blare swelling over the water, two reeds beating against each other. */
+  private tellFoghorn(t: number, T: number): void {
+    // a short blast, a breath, then the long one
+    for (const [a, b, g] of [[0, 0.3, 0.55], [0.5, 0.95, 1]]) {
+      const s = t + a * T;
+      const d = (b - a) * T;
+      for (const det of [0.992, 1.008])
+        this.voice({ at: s, type: 'sawtooth', f: [[0, 104 * det], [0.08, 110 * det]], filter: 'bandpass', ff: [[0, 380], [d, 700]], q: 1.6, amp: [[0.05, 0.5 * g], [d * 0.9, 0.75 * g], [d + 0.03, 0]] });
+      this.voice({ at: s, type: 'square', f: [[0, 220]], filter: 'bandpass', ff: [[0, 1100]], q: 4, amp: [[0.05, 0.06 * g], [d * 0.9, 0.12 * g], [d + 0.03, 0]] });
+    }
+  }
+
+  /** A pen redrawing the line: quick scratching strokes across paper, back and forth, then an eraser's squeak. */
+  private tellRedraw(t: number, T: number): void {
+    for (let i = 0; i < 6; i++) {
+      const s = t + i * 0.11 * T;
+      const d = 0.08 * T;
+      const up = i % 2 === 0;
+      this.voice({ at: s, type: 'noise', filter: 'bandpass', ff: [[0, up ? 3000 : 6000], [d, up ? 6000 : 3000]], q: 5, amp: [[0.01, 0.3 + 0.05 * i], [d, 0]] });
+    }
+    const e = t + 0.72 * T;
+    this.voice({ at: e, type: 'square', f: [[0, 1500], [0.12, 1900]], vib: { rate: 30, cents: 60 }, filter: 'bandpass', ff: [[0, 2000]], q: 3, amp: [[0.01, 0.14], [0.14, 0.17], [0.16, 0]] });
   }
 
   /** A slime about to divide: a wet, wobbling gloop rising in pitch, bubbles popping faster and faster, and a
@@ -3459,6 +3675,22 @@ export class Synth {
         this.hum(r, t, 41, 0.016); // a deep still-water hum
         this.hum(r, t, 117, 0.0035); // the lamp humming far off
         break;
+      case 'dunes':
+        this.bed(r, t, { type: 'bandpass', f: 800, q: 0.6, g: 0.02, gust: [0.3, 1.7], sway: [0.7, 1.5], tau: 1.1 }); // a hot wind over the sand
+        this.bed(r, t, { type: 'lowpass', f: 200, q: 0.5, g: 0.035, gust: [0.6, 1.4], tau: 2 }); // its low body
+        this.bed(r, t, { type: 'highpass', f: 6000, q: 0.5, g: 0.004, gust: [0.4, 1.8], tau: 0.8 }); // sand hissing along the road
+        break;
+      case 'spire':
+        this.bed(r, t, { type: 'bandpass', f: 1500, q: 7, g: 0.021, gust: [0.1, 1.5], sway: [0.8, 1.3], tau: 0.9 }); // wind whistling round the towers
+        this.bed(r, t, { type: 'bandpass', f: 650, q: 0.7, g: 0.025, gust: [0.3, 1.7], sway: [0.7, 1.5], tau: 1 }); // the wind up the stair
+        this.bed(r, t, { type: 'lowpass', f: 220, q: 0.5, g: 0.05, gust: [0.6, 1.4], tau: 2 }); // its low body
+        break;
+      case 'dial':
+        this.bed(r, t, { type: 'lowpass', f: 120, q: 0.7, g: 0.03, gust: [0.8, 1.2], tau: 3 }); // the great stone breathing heat
+        this.bed(r, t, { type: 'bandpass', f: 700, q: 0.6, g: 0.016, gust: [0.4, 1.6], sway: [0.8, 1.3], tau: 1.6 }); // air moving over the dial
+        this.bed(r, t, { type: 'highpass', f: 4000, q: 0.5, g: 0.003, gust: [0.6, 1.4], tau: 2 }); // heat shimmer
+        this.hum(r, t, 55, 0.012); // the dial's deep hum
+        break;
     }
   }
 
@@ -3611,6 +3843,23 @@ export class Synth {
           lap: { every: [1.6, 3.6], play: (r, t) => this.waterLap(r, t, 0.6) },
           tick: { every: [0.98, 1.02], play: (r, t) => this.clockTick(r, t) },
           gulls: { every: [12, 26], play: (r, t) => this.gulls(r, t) },
+        };
+      case 'dunes':
+        return {
+          gust: { every: [2, 5], play: (r, t) => this.gust(r, t) },
+          cicada: { every: [1.5, 5], play: (r, t) => this.cricket(r, t, 0, 1.2) },
+        };
+      case 'spire':
+        return {
+          gust: { every: [1.5, 4], play: (r, t) => this.gust(r, t) },
+          chains: { every: [4, 10], play: (r, t) => this.chainClink(r, t) },
+          hammer: { every: [6, 14], play: (r, t) => this.farHammer(r, t) },
+        };
+      case 'dial':
+        return {
+          gust: { every: [3, 7], play: (r, t) => this.gust(r, t) },
+          tick: { every: [0.98, 1.02], play: (r, t) => this.clockTick(r, t) },
+          rumble: { every: [10, 20], play: (r, t) => this.farRumble(r, t) },
         };
       case 'mere':
         return {
@@ -4135,6 +4384,9 @@ const AMB_LABEL: Record<Ambience, string> = {
   fen: 'act 10',
   causeway: 'act 11',
   mere: 'act 12',
+  dunes: 'act 13',
+  spire: 'act 14',
+  dial: 'act 15',
 };
 
 /** Every sound effect, for the Sound lab and the loudness tests. `tier` marks the impacts (lightest first). */
@@ -4163,7 +4415,7 @@ export const FINISHER_LAYER: Record<StyleId, string> = {
 };
 
 /** Sound lab names for telegraph sounds whose id would name a region's foe (spoilers). */
-const TELL_LABEL: Record<string, string> = { bellows: 'furnace breath' };
+const TELL_LABEL: Record<string, string> = { bellows: 'furnace breath', redraw: 'pen scratch' };
 
 export const SFX: SfxEntry[] = [
   { id: 'hit', label: 'Hit', tier: 'hit', len: 0.6, play: (s, at) => s.hit(1, false, false, at) },

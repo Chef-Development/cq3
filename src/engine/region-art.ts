@@ -32,13 +32,14 @@ export interface RegionArtPack {
   col: Record<string, number>;
 }
 
-export type PackId = 'frost' | 'ash' | 'dusk';
+export type PackId = 'frost' | 'ash' | 'dusk' | 'noon';
 
 /** Each pack's chunk. */
 const LOADERS: Record<PackId, () => Promise<{ PACK: RegionArtPack }>> = {
   frost: () => import('./pack-frost'),
   ash: () => import('./pack-ash'),
   dusk: () => import('./pack-dusk'),
+  noon: () => import('./pack-noon'),
 };
 
 /** The fight themes each pack paints (known before it arrives: the stage asks which pack a theme needs). */
@@ -46,6 +47,7 @@ const PACK_THEMES: Record<PackId, readonly string[]> = {
   frost: ['pass', 'caves', 'glacier'],
   ash: ['cinder', 'glass', 'forge'],
   dusk: ['fen', 'causeway', 'mere'],
+  noon: ['whiteRoad', 'spireSteps', 'sundial'],
 };
 
 const loaded = new Map<PackId, RegionArtPack>();
@@ -99,3 +101,6 @@ export const isAshTheme = (theme: string): boolean => PACK_THEMES.ash.includes(t
 
 /** The fourth region's themes (the stage's own weather there). */
 export const isDuskTheme = (theme: string): boolean => PACK_THEMES.dusk.includes(theme);
+
+/** The fifth region's themes (the stage's own weather there). */
+export const isNoonTheme = (theme: string): boolean => PACK_THEMES.noon.includes(theme);

@@ -112,7 +112,7 @@ export type NodeType = 'fight' | 'elite' | 'treasure' | 'rest' | 'shop' | 'event
 export type RolledNode = Exclude<NodeType, 'boss' | 'rush' | 'bounty'>;
 /** An act's look: Greenmarch's meadow, ruins and hollow; the Frostpeaks' mountain pass, ice caves and glacier;
  *  Ashfell's cinder flats, glass warrens and black forge (not in play yet). */
-export type Theme = 'forest' | 'ruins' | 'hollow' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere';
+export type Theme = 'forest' | 'ruins' | 'hollow' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere' | 'whiteRoad' | 'spireSteps' | 'sundial';
 
 export interface ActDef {
   name: string;
