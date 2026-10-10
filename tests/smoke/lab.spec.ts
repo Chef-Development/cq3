@@ -234,7 +234,7 @@ test('every Test lab scenario starts and ends without errors (spoilers included)
     await page.click('.lab-btn.go');
     await expect(page.locator('#btn-lab-done')).toBeVisible();
     const home = (await a((x) => x.run.phase)) as string;
-    expect(['fight', 'camp', 'scene', 'map', 'title'], id).toContain(home);
+    expect(['fight', 'camp', 'scene', 'map', 'title', 'world'], id).toContain(home);
     if (home === 'fight') {
       await page.mouse.click(437, 200); // TAP TO BEGIN
       await page.waitForTimeout(500);
