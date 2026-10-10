@@ -131,7 +131,7 @@ describe('region data', () => {
   });
 
   it('every scene the region names exists', () => {
-    const ids = [GREENMARCH.introScene, GREENMARCH.victoryScene, ...GREENMARCH.acts.flatMap((a) => [a.startScene, a.bossScene])];
+    const ids = [GREENMARCH.introScene, GREENMARCH.victoryScene, ...GREENMARCH.acts.flatMap((a) => [a.startScene, a.bossScene, ...(a.winScene ? [a.winScene] : [])])];
     for (const id of ids) expect(STORY[id ?? ''], id).toBeDefined();
   });
 });

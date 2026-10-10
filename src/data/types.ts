@@ -135,6 +135,9 @@ export interface ActDef {
   boss: string[];
   startScene?: string;
   bossScene?: string;
+  /** A scene after the act's first fight is won (after its loot and pick, before the map), once per profile: Act 1's
+   *  is Pip's road scene (docs/first-10.md). */
+  winScene?: string;
   /** How likely each node type is on the map (the generator then makes sure each appears at least once). */
   weights: Record<RolledNode, number>;
   /** A chest offered on this map row whichever way the hero comes (every node of the row before links to one): Act
