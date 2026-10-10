@@ -119,7 +119,7 @@ export class StopScreens {
     }
     // a story bounty: who posted it, and why (one line under the notice)
     const story = questStory(run.regionDef.id, def.id);
-    if (story) T.text(story.frame, b.x + b.w / 2, note.y + note.h + 6.5, 0xe8dcc0, { ox: 0.5, oy: 0.5 });
+    if (story) T.text(story.frame, b.x + b.w / 2, note.y + note.h + 5.5, 0xe8dcc0, { ox: 0.5, oy: 0.5 });
     // Take it / Pass
     const since = now - this.phaseAt;
     (['Take it', 'Pass'] as const).forEach((label, i) => {

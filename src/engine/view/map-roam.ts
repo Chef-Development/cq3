@@ -438,8 +438,8 @@ export class MapRoam {
     if (story && since < 6000) {
       const a = clamp01(Math.min(since / 300, (6000 - since) / 600));
       const w = textWidth(story.payoff, 1, false) + 10;
-      rows(g, r.x + r.w - w, r.y + r.h + 3, w, 11, 1, 0x1a1628, 0.85 * a);
-      this.texts.text(story.payoff, r.x + r.w - 5, r.y + r.h + 9, 0xfff0c0, { ox: 1, oy: 0.5, alpha: a });
+      rows(g, r.x + r.w - w, r.y + r.h + 6, w, 11, 1, 0x1a1628, 0.85 * a);
+      this.texts.text(story.payoff, r.x + r.w - 5, r.y + r.h + 12, 0xfff0c0, { ox: 1, oy: 0.5, alpha: a });
     }
   }
 
