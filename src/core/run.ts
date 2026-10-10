@@ -10,19 +10,21 @@
 // the world map's wandering foe offers a bonus skirmish (core/skirmish.ts).
 
 import { eventById } from '../data/events';
+import { pageOfAct, pageSceneId } from '../data/atlas-pages';
 import { CAMPAIGN, REGIONS, actInRegion, lastActOfRegion, regionOfAct } from '../data/regions';
+import { STORY } from '../data/story';
 import { questById, type QuestId } from '../data/quests';
 import type { ActDef, BarRules, EventOutcome, RegionDef } from '../data/types';
 import { HEROES, type HeroId } from '../data/heroes';
 import type { PetBuild } from './roster';
-import { RELICS, relicById, type RelicId } from '../data/relics';
+import { RELICS, relicById, STARTER_RELICS, type RelicId } from '../data/relics';
 import { skillById } from '../data/skills';
 import { recordActAccuracy, addSamples, type AccEntry } from './accuracy';
 import { Combat, heroMaxHp, heroStats, killCoins, newHero, type Hero, type SavedFoe } from './combat';
 import { itemLevel, rollDrops, rollItem, setPieces, type Item, type Loadout } from './gear';
 import { actXp, addXp, defaultBuild, killXp, type HeroBuild } from './heroes';
 import { actSeed, buildActMap, type ActMap, type MapNode } from './map';
-import { addItem, equip, heroProgress, itemByUid, replaces, meetNeve, meetSable, newProfile, profileBuild, profileLoadout, recordAct, recordRegion, unlockedRelics, unlockRelic, type ChestKind, type Profile } from './profile';
+import { addItem, equip, findPage, heroProgress, itemByUid, replaces, meetNeve, meetSable, newProfile, profileBuild, profileLoadout, recordAct, recordRegion, unlockedRelics, unlockRelic, type ChestKind, type Profile } from './profile';
 import { claimRegionReward, logBounty, logEvent, logTreasure } from './completion';
 import { hpNow, mult, one, signed, signedPct, whole } from './format';
 import { awardGems, bump, checkAchievements, checkMastery, hasCamp, type FeatCtx } from './meta';
@@ -293,6 +295,28 @@ export function rollPick(rng: Rng, t: Tuning, pool: readonly RelicId[], owned: r
   return out;
 }
 
+/** The mark of a new player's first relic pick made (Run.simplePick), in profile.seen. */
+export const FIRST_PICK = 'pick:first';
+
+/**
+ * A new player's first relic pick: two relics (`min` rare or better for the first, as the pick asked), the second one
+ * sharing no tag with the first, so the two cards are two different ways to play (falls back to any other relic).
+ */
+export function rollFirstPick(rng: Rng, t: Tuning, all: readonly RelicId[], min: boolean | Rarity = false): BoostOffer[] {
+  if (!t.relics.on) return rollPick(rng, t, all, [], min, { n: 2 });
+  const want: Rarity = min === true ? 'rare' : min === false ? 'common' : min;
+  // the starter relics when they can make the pick (two tags, one rare enough), else the whole pool
+  const starters = all.filter((id) => STARTER_RELICS.includes(id));
+  const rareEnough = (id: RelicId) => RARITIES.indexOf(relicById(id)!.rarity as Rarity) >= RARITIES.indexOf(want);
+  const pool = starters.length >= 2 && starters.some(rareEnough) ? starters : all;
+  const [a] = rollRelics(rng, t, pool, [], 1, want === 'common' ? undefined : want);
+  if (!a) return rollPick(rng, t, pool, [], min, { n: 2 });
+  const tags = relicById(a)!.tags;
+  const other = pool.filter((id) => id !== a && !relicById(id)?.tags.some((tg) => tags.includes(tg)));
+  const [b] = rollRelics(rng, t, other.length ? other : pool.filter((id) => id !== a), [], 1);
+  return [a, b].filter((id): id is RelicId => !!id).map((id) => ({ id: 'relic', rarity: relicById(id)!.rarity, relic: id }));
+}
+
 /** What a shop sells: three cards (relics and at most one stat card), a potion, and a reroll of the next pick. */
 export interface ShopItem {
   kind: 'boost' | 'potion' | 'reroll';
@@ -402,6 +426,9 @@ export class Run {
   pickKind: 'secret' | 'bounty' | null = null;
   /** A bounty was just met (the map shows it once; the view empties it). */
   questDone: QuestId | null = null;
+  /** An Atlas page just found in the hidden treasure: read after the cache's pick (goOn), once. Not saved: a reload
+   *  skips the reading, but the page is kept (profile.pages) and reads again from the region card. */
+  pagePending: string | null = null;
   /** The world map's skirmish being fought, and the run as it was before it (put back after). */
   skirmish: { foe: Skirmish; hero: Hero; act: number; map: ActMap; path: number[]; extras: MapExtras | null } | null = null;
   private roamCache: { key: string; state: RoamState } | null = null;
@@ -526,6 +553,8 @@ export class Run {
     if (this.profile.actsCleared >= 4 && !this.profile.neveMet) return 'neveJoin';
     if (this.profile.actsCleared >= 7 && !this.profile.seen.includes('magsTale')) return 'magsTale';
     if (this.profile.actsCleared >= 10 && !this.profile.seen.includes('duskCamp')) return 'duskCamp';
+    // (the fifth region's, once it is in play: its scene is in STORY then)
+    if (this.profile.actsCleared >= 13 && STORY.noonCamp && !this.profile.seen.includes('noonCamp')) return 'noonCamp';
     return null;
   }
 
@@ -535,6 +564,7 @@ export class Run {
     else if (!this.profile.neveMet) meetNeve(this.profile);
     else if (!this.profile.seen.includes('magsTale')) this.profile.seen.push('magsTale');
     else if (!this.profile.seen.includes('duskCamp')) this.profile.seen.push('duskCamp');
+    else if (STORY.noonCamp && !this.profile.seen.includes('noonCamp')) this.profile.seen.push('noonCamp');
   }
 
   /** The act's live-tuned enemy scaling. */
@@ -555,6 +585,7 @@ export class Run {
   private resetActExtras(): void {
     this.quest = null;
     this.questDone = null;
+    this.pagePending = null;
     this.secretFound = false;
     this.ambush = null;
     this.merchant = false;
@@ -583,6 +614,8 @@ export class Run {
     if (!this.secretHere) return false;
     this.secretFound = true;
     if (logTreasure(this.profile, this.actIndex)) bump(this.profile, 'treasures');
+    // the act's Atlas page, the first time it's found: read once the cache's pick is done
+    if (pageOfAct(this.actIndex) && findPage(this.profile, this.actIndex)) this.pagePending = pageSceneId(this.actIndex);
     this.gem(this.tuning.gems.treasure);
     const coins = Math.round(this.tuning.map.treasureCoins * this.tuning.secret.coinsMult * (0.8 + 0.4 * this.rng.next()) * (1 + this.gear.stats.luck));
     this.treasure = { coins, opened: false, secret: true };
@@ -1174,6 +1207,15 @@ export class Run {
     this.phase = 'boost';
   }
 
+  /**
+   * A new player's first relic pick (no act cleared, no relic carried, none picked before: in Act 1 it's the promised
+   * chest's): two relics, plain cards (no tag chips, no rarity badge), two different ways to play. From the next pick
+   * on, the usual three cards with their tags.
+   */
+  get simplePick(): boolean {
+    return this.pickKind === null && !this.startPick && !this.practice && this.profile.actsCleared === 0 && !this.hero.relics.length && !this.profile.seen.includes(FIRST_PICK);
+  }
+
   /** Whether the pick on screen is one of a replay's starting relic picks ("Starting relic 2/4"). */
   get startPick(): boolean {
     return this.startPicks > 0 && !this.path.length && this.boostThen === 'map';
@@ -1183,6 +1225,7 @@ export class Run {
     if (this.phase !== 'boost') return;
     const offer = this.boostChoices[index];
     if (!offer) return;
+    if (this.simplePick) this.profile.seen.push(FIRST_PICK);
     applyBoost(this.tuning, this.hero, offer);
     // a secret cache's relic stays unlocked
     if (this.pickKind === 'secret' && isRelicOffer(offer)) this.unlock([offer.relic]);
@@ -1212,6 +1255,11 @@ export class Run {
   private goOn(then: PickThen): void {
     if (then === 'world') return this.endSkirmish();
     if (then === 'node') return this.enterStop();
+    if (then === 'map' && this.pagePending) {
+      const page = this.pagePending;
+      this.pagePending = null;
+      return this.playScenes([page], 'map');
+    }
     const win = this.act.winScene;
     if (then === 'map' && win && this.firstWin) {
       this.profile.seen.push(`scene:${win}`);
@@ -1250,6 +1298,7 @@ export class Run {
   /** Roll a fresh set of choices for the pick on screen (also: a save from before the cards were rolled). */
   rollChoices(): BoostOffer[] {
     const pool = this.pickKind === 'secret' ? RELICS.filter((r) => (r.from ?? 0) <= this.actIndex).map((r) => r.id) : this.relicPool;
+    if (this.simplePick) return rollFirstPick(this.rng, this.tuning, pool, this.boostMin);
     // the Lucky Stone: once an act, a pick shows four cards
     const lucky = hasCamp(this.profile, 'luckyStone') && !this.luckyUsed;
     if (lucky) this.luckyUsed = true;

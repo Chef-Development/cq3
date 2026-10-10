@@ -213,17 +213,29 @@ export const WORLD_ACTS_ASH: ActSpot[] = [
 ];
 
 /**
- * The fourth region's three acts, by global act index 9-11, on what its land already shows (art-world.ts stageDusk):
- * the drowned arch in its pool (the lantern-lit fen), the stilt village on its boardwalks (the half-sunk causeway), the
- * lighthouse's lamp in the middle (the mere). Placeholders for the art team: move them with the landmarks they draw.
+ * The fourth region's three acts, by global act index 9-11, on the landmarks its land shows (art-world.ts stageDusk):
+ * the drowned arch in its black pool between two fen lanterns (the lantern-lit fen), the stilt village on its
+ * boardwalks (the half-sunk causeway), the lighthouse wading in the mere. Rowan stands in a small clearing beside each
+ * (claimed in stageDusk so no tree hides him), the flag just off the landmark.
  */
 export const WORLD_ACTS_DUSK: ActSpot[] = [
   // the drowned arch in its black pool, the fen's wisps round it
-  { x: 779, y: 254, box: { x: 766, y: 244, w: 26, h: 20 }, stand: [762, 262], flag: [792, 246], view: [770, 252] },
+  { x: 779, y: 254, box: { x: 765, y: 244, w: 29, h: 20 }, stand: [762, 263], flag: [797, 253], view: [772, 252] },
   // the stilt village on its boardwalks, the causeway's half-sunk road
-  { x: 626, y: 254, box: { x: 604, y: 240, w: 44, h: 28 }, stand: [600, 264], flag: [648, 240], view: [626, 250] },
+  { x: 626, y: 254, box: { x: 604, y: 240, w: 44, h: 28 }, stand: [597, 259], flag: [648, 240], view: [624, 250] },
   // the lighthouse wading in the mere
-  { x: 708, y: 234, box: { x: 699, y: 222, w: 20, h: 28 }, stand: [694, 252], flag: [718, 222], view: [708, 240] },
+  { x: 708, y: 234, box: { x: 699, y: 222, w: 20, h: 28 }, stand: [692, 251], flag: [718, 224], view: [706, 240] },
+];
+
+/**
+ * The fifth region's three acts, by global act index 12-14, on the floating island (NOON_BOX in art-world.ts): the white
+ * road at its foot, the spire's steps, the great sundial on top. Placeholders for its art; in WORLD_ACTS only while the
+ * region is in play (src/data/flags.ts).
+ */
+export const WORLD_ACTS_NOON: ActSpot[] = [
+  { x: 906, y: 128, box: { x: 896, y: 120, w: 22, h: 16 }, stand: [892, 134], flag: [916, 120], view: [900, 110] },
+  { x: 914, y: 100, box: { x: 904, y: 90, w: 22, h: 18 }, stand: [900, 106], flag: [924, 92], view: [904, 96] },
+  { x: 918, y: 70, box: { x: 906, y: 58, w: 24, h: 22 }, stand: [902, 78], flag: [928, 60], view: [906, 82] },
 ];
 
 /** Where the third region's landmark sprites stand (world px, the textures' top-left), once its veil lifts. */

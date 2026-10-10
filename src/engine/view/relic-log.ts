@@ -41,6 +41,8 @@ export const TAG_COL: Record<RelicTag, number> = {
   link: 0xb8b0c8,
   light: 0xf6d860,
   tide: 0x4ab8c0,
+  mirage: 0xd8c08a,
+  heat: 0xf8a838,
 };
 
 const RARITIES: RelicRarity[] = ['common', 'rare', 'epic'];

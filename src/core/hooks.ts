@@ -157,7 +157,17 @@ export interface FightHooks {
   wadeMult?(c: Combat, mult: number): number;
   /** How far the water comes (x its reach from each end). */
   tideMult?(c: Combat, mult: number): number;
+  // ---- Region 5: mirages and heat
+  /** How often a mirage hops (seconds between hops; Sand Glass, Fata Morgana). */
+  mirageEvery?(c: Combat, sec: number): number;
+  /** How fast the Heat burns (x its damage a second; Sunshade, Noonday). */
+  heatDps?(c: Combat, mult: number): number;
+  /** The Heat just went out: a green cooled it, it burned out, or a perk cooled it (Cool Spring). */
+  cooled?(c: Combat, by: CoolCause): void;
 }
+
+/** What put the Heat out. */
+export type CoolCause = 'green' | 'out' | 'perk';
 
 /** A linked pair as its hooks see it: where it was, and (when it breaks) whether the combo is spared. */
 export interface LinkCtx {

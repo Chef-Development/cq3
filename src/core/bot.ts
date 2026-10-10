@@ -893,7 +893,7 @@ function plan(c: Combat, rng: Rng, aim: Aim, gauss: () => number, avoidYellow: b
     // is left alone
     if (b.dark && b.litAt === Infinity) continue;
     if (!wantsBlock(c, b, guarded) && !misreads_(c, b, rng, aim)) continue;
-    if (water && !isRed(b.kind) && (c.sunk(b) || b.pos < c.waterL + 0.03 || b.pos > 1 - c.waterR - 0.03) && !tapsSunk(b, rng, aim)) continue;
+    if (water && c.canSink(b) && (c.sunk(b) || b.pos < c.waterL + 0.03 || b.pos > 1 - c.waterR - 0.03) && !tapsSunk(b, rng, aim)) continue;
     // Region 5: a blazing yellow is left alone while the Heat is at its most and HP is low (a person would); a mirage
     // whose landing spot shows is left until it has hopped (it may hop before the cursor gets there)
     if (b.blaze && c.heat >= c.tuning.heat.max && c.hero.hp < c.maxHp() * 0.5) continue;

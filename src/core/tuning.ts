@@ -647,6 +647,11 @@ export const DEFAULT_TUNING = {
     sunlamp: 0.5, // Sunlamp: the light reaches this much further
     riptide: 3, // Breaker's Edge: blocks just up out of the water take this many times the damage...
     riptideSec: 1.5, // ...for this many seconds after they come up
+    wayBlaze: 0.2, // the Wayfarer's set, 2 pieces: blazing hits deal this much more...
+    wayHeal: 0.02, // ...4 pieces: a green that cools the Heat heals this share of max HP
+    sunstone: 0.5, // Sunstone: the Heat burns at this rate
+    trueHour: 3, // the Gnomon's Hand: a mirage hit just after its hop deals this many times the damage...
+    trueHourSec: 1, // ...within this many seconds of the hop
     // Divine auras
     radiance: 0.1, // Radiance: foes take this much more damage
     sanctuarySec: 4, // Sanctuary: every this many seconds...
@@ -1310,6 +1315,11 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       s('effects.sunlamp', 'Sunlamp: light reach +', 0, 2, 0.05),
       s('effects.riptide', "Breaker's Edge: surfaced x", 1, 5, 0.1),
       s('effects.riptideSec', "Breaker's Edge: window (s)", 0.2, 4, 0.1),
+      s('effects.wayBlaze', 'Wayfarer 2: blazing damage +', 0, 1, 0.05),
+      s('effects.wayHeal', 'Wayfarer 4: cooling heals', 0, 0.2, 0.005),
+      s('effects.sunstone', 'Sunstone: Heat burn rate', 0, 1, 0.05),
+      s('effects.trueHour', "Gnomon's Hand: after a hop x", 1, 5, 0.1),
+      s('effects.trueHourSec', "Gnomon's Hand: window (s)", 0.2, 3, 0.1),
       s('effects.radiance', 'Aura Radiance: foes take +', 0, 1, 0.01),
       s('effects.sanctuarySec', 'Aura Sanctuary: every (s)', 1, 20, 0.5),
       s('effects.sanctuaryHeal', 'Aura Sanctuary: heals', 0, 0.1, 0.005),

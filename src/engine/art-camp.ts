@@ -19,7 +19,7 @@
 // and last the buildings and props as outlined sprites (each carrying its own firelight), smoke and fireflies.
 // The top ~16 px and the bottom ~20 px stay calm for the UI; nothing important sits in the 23 px safe areas.
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
-import { and, ell, fill, lambert, not, or, rect, rimShade, sphere, stroke, tone, type Inside } from './art-paint';
+import { and, ell, fill, lambert, moodGrade, not, or, portraitMood, rect, rimShade, sphere, stroke, tone, type Inside } from './art-paint';
 import { SABLE_FIST, SABLE_HEAD, SABLE_PAL, SABLE_TORSO, sableArm, sableDagger, scarfTail } from './art-sable';
 import { PORTRAIT_SIZE } from './art-story';
 import { bay, clamp01, col, conifer, fbm, hash, level, mass, mix, noise, pick, Pix, ramp, rng, tree, type Blob, type Col, type Ramp } from './backdrop';
@@ -577,11 +577,20 @@ function shrineSprite(): HTMLCanvasElement {
     const roof: Inside = (x, y) => y >= 5 && y < 16 && Math.abs(x + 0.5 - 18.5) <= (y - 4) * 1.6;
     fill(g, roof, (x, y) => tone(FSTONE, (x < 18 ? 0.7 : 0.38) - (y - 5) / 40 + ((x + y * 2) % 7 === 0 ? -0.12 : 0)));
     fill(g, ell(18.5, 3, 2.2, 2.2), (x, y) => (x + y < 20 ? FSTONE[5] : x + y < 22 ? FSTONE[4] : FSTONE[2]));
-    // the carved pendulum emblem on the gable, its rune dark (the shrine sleeps)
+    // the carved compass rose of the Atlas on the gable, dark (the shrine sleeps)
     fill(g, and(ell(18.5, 11, 3.4, 3.4), not(ell(18.5, 11, 2.3, 2.3))), (x, y) => (x + y < 29 ? FSTONE[1] : FSTONE[2]));
-    put(g, 18, 10, '#4a3a6a');
-    put(g, 18, 11, '#4a3a6a');
-    put(g, 18, 12, '#5a4a7a');
+    for (const [x, y] of [
+      [18, 8],
+      [18, 9],
+      [18, 13],
+      [18, 14],
+      [15, 11],
+      [16, 11],
+      [20, 11],
+      [21, 11],
+      [18, 11],
+    ])
+      put(g, x, y, y === 11 && x === 18 ? '#5a4a7a' : '#4a3a6a');
     // moss over the roof and ivy down the left pillar
     fill(g, and(roof, (x, y) => y <= 6 + noise(x * 0.5, 1, 4) * 6 - Math.abs(x - 18) * 0.15), (x, y) => tone(MOSS_R, 0.95 - (y - 5) * 0.12 - (x > 18 ? 0.25 : 0)));
     for (const [x, len] of [
@@ -834,14 +843,15 @@ function flameFrame(f: number): HTMLCanvasElement {
 
 // ------------------------------------------------------------------ Rowan by the fire (sitting on the log, facing right)
 
+// (playtest round 8, L7/L8: the darker, worn colours of his fight frames)
 const ROWAN_PAL: Record<string, string> = {
-  x: '#4a0f1a', R: '#8a1a22', r: '#d03030', q: '#f05a48', Q: '#ff9a80',
-  K: '#2a2f45', M: '#4a5272', m: '#7c86a6', s: '#b8c2d8', S: '#eef3fa', W: '#ffffff',
-  z: '#5a3410', Y: '#9a5a14', y: '#d8901c', g: '#f2c230', G: '#fff0a0',
-  n: '#10204a', B: '#1a3c8a', b: '#2a6ad8', l: '#4aa0f0', L: '#9ad8ff',
-  k: '#1c1430', e: '#4ad8ff', E: '#e0fcff',
-  D: '#2a1810', d: '#4a2c18', h: '#6e4426', H: '#98663a',
-  u: '#3e0c1c', c: '#6a1424', C: '#8e1e2a', v: '#b42c34', V: '#d24840',
+  x: '#2a0810', R: '#52121c', r: '#7e1c24', q: '#b03430', Q: '#e0705e',
+  K: '#1c1f2e', M: '#343a52', m: '#565e7c', s: '#8a92ae', S: '#d4d8e4', W: '#e8ecf4',
+  z: '#2e1c0c', Y: '#5a3814', y: '#8a5a1e', g: '#b8862e', G: '#dcb45a',
+  n: '#0a1228', B: '#13234c', b: '#1e3772', l: '#2f5096', L: '#4a6cb2',
+  k: '#0e0a16', e: '#4ad8ff', E: '#e6fcff',
+  D: '#1a100a', d: '#2e1e14', h: '#4a3020', H: '#6a4630',
+  u: '#1e0610', c: '#3a0c18', C: '#561622', v: '#70222a', V: '#8c3434',
   // firelight on the side facing the flames
   F: '#ffc890', f: '#e8a070',
 };
@@ -1316,7 +1326,8 @@ function magsPortrait(): HTMLCanvasElement {
 // ------------------------------------------------------------------ build
 
 export function buildCampArt(add: Add, w: number, h: number): void {
-  add('camp_bg', backdrop(w, h));
+  // (L7: the camp in the mood's darker, cooler night; the forge and the fire keep their glow)
+  add('camp_bg', moodGrade(backdrop(w, h), 0.16));
   for (let i = 0; i < 4; i++) add(`camp_fire${i}`, flameFrame(i));
   for (const [k, pose] of Object.entries(MAGS_POSES)) add(`smith_${k}`, magsFrame(pose));
   add('camp_rowan0', rowanFrame(0));
@@ -1325,6 +1336,6 @@ export function buildCampArt(add: Add, w: number, h: number): void {
   add('camp_pip1', pipFrame(1));
   add('camp_sable0', sableCampFrame(0));
   add('camp_sable1', sableCampFrame(1));
-  add('portrait_smith', magsPortrait());
+  add('portrait_smith', portraitMood(magsPortrait(), 0.3));
 }
 

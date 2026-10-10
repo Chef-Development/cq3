@@ -80,7 +80,7 @@ const HERO_ALT: Record<string, string> = { slashX: 'slashB', fang: 'slashA', dow
 const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally', 'spiritWolf', 'wispSwarm', 'spiritStag']);
 /** Allies whose perk is a blow or a heal: the bolt starts at the ally (not the hero). */
 const ALLY_PERK = new Set(['thornling', 'glowmoth', 'seedling', 'spiritWolf', 'spiritStag']);
-/** Until the fourth region's foes are painted (art-dusk*.ts), each fights in an earlier foe's sprite set (its poses,
+/** Until a later region's foes are painted (art-dusk*.ts, art-noon*.ts), each fights in an earlier foe's sprite set (its poses,
  *  flash and phase looks), so a fight never shows a missing texture. Used only while `${key}_idle0` doesn't exist. */
 const SPRITE_STAND_IN: Record<string, string> = {
   bogwisp: 'aurorawisp',
@@ -98,9 +98,25 @@ const SPRITE_STAND_IN: Record<string, string> = {
   boghag: 'hailcaller',
   sunkensentinel: 'chainsentinel',
   lighthouse: 'bellows',
+  // the fifth region's, until its art (art-noon*.ts): only the Test lab's previews meet them before it's in play
+  duneskink: 'cinderling',
+  glarehawk: 'cinderkite',
+  dunebandit: 'bandit',
+  dunecolossus: 'golem',
+  sphinx: 'rimehorn',
+  emberscarab: 'beetle',
+  brasssentry: 'frostknight',
+  sandsalamander: 'magmaeel',
+  sunforgedgolem: 'kilnwarden',
+  brasslion: 'hobnob',
+  dialwarden: 'knight',
+  heatdjinn: 'icewraith',
+  sunvulture: 'crow',
+  noonknight: 'chainsentinel',
+  gnomon: 'glacia',
 };
 /** Perks that heal (their amount is HP; any relic tagged Sustain does too). */
-const HEAL_PERKS = new Set(['photosynthesis', 'vampiricFang', 'glowmoth', 'mend', 'rimewalker', 'emberwright', 'lamplighter', 'sanctuary', 'hotCocoa']);
+const HEAL_PERKS = new Set(['photosynthesis', 'vampiricFang', 'glowmoth', 'mend', 'rimewalker', 'emberwright', 'lamplighter', 'wayfarer', 'sanctuary', 'hotCocoa']);
 
 export class Fighters {
   h: HeroAnim;
@@ -131,6 +147,9 @@ export class Fighters {
   /** Anim times of the last blow taken and the last landing (squash and stretch), and the last frame's lift. */
   private hurtAt = -1e9;
   private landAt = -1e9;
+  /** The anim time a finisher's big blow began (its pose stretches forward for a moment) and the last show pose. */
+  private finAt = -1e9;
+  private lastShowPose = '';
   /** Foes landing from a wave's hops: id -> anim time (their squash). */
   private foeLandAt = new Map<number, number>();
   private lastLift = 0;
@@ -1150,6 +1169,8 @@ export class Fighters {
     else if (sm) {
       pose = sm.pose === 'cast' && !this.hasPose('cast') ? 'windup' : sm.pose;
       flip = sm.flip;
+      if (pose === 'fin' && this.lastShowPose !== 'fin') this.finAt = a;
+      this.lastShowPose = pose;
     } else if (h.state === 'leap') pose = a - h.t0 < LEAP_MS * 0.7 ? 'leap' : 'slashA';
     else if (a < h.poseUntil) pose = h.pose;
     else if (h.state === 'dash') pose = 'dash';
@@ -1228,7 +1249,8 @@ export class Fighters {
       return k >= 0 && k < 1 ? Math.sin(k * Math.PI) : 0;
     };
     const land = bump(this.landAt, SQUASH_MS);
-    if (inShow) return 1 + 0.14 * land;
+    // (in a show: the big blow stretches him forward, out of the windup's crouch)
+    if (inShow) return 1 + 0.14 * land + 0.09 * bump(this.finAt, SQUASH_MS);
     // (the dash's push-off stretches him forward too, for as long as the dash lasts)
     const push = this.h.state === 'dash' ? 0.07 * bump(this.h.t0, DASH_MS) : 0;
     return 1 + 0.14 * land + 0.08 * bump(this.h.lungeAt, 90) + 0.1 * bump(this.hurtAt, SQUASH_MS) + push;

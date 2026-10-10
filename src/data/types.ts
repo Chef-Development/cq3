@@ -278,4 +278,6 @@ export interface EventDef {
   title: string;
   text: string; // two lines at most
   choices: EventChoice[];
+  /** Only in this region's acts (a RegionDef id); none: anywhere. */
+  region?: string;
 }

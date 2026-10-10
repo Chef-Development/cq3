@@ -260,14 +260,17 @@ export class Stage {
       const r = Math.random();
       if (theme === 'forest') {
         if (r < 0.26)
-          this.bits.push({ kind: 'leaf', x: rand(0, W), y: -2, vx: rand(4, 14), vy: rand(10, 18), born: a, life: 9000, color: [0x5aa84c, 0x8ac850, 0xe8c048][Math.floor(Math.random() * 3)], phase: rand(0, 6) });
+          this.bits.push({ kind: 'leaf', x: rand(0, W), y: -2, vx: rand(4, 14), vy: rand(10, 18), born: a, life: 9000, color: [0x3e6e3a, 0x5a8a3c, 0xc8963e][Math.floor(Math.random() * 3)], phase: rand(0, 6) });
         else if (r < 0.72) {
           // pollen glinting inside a sunbeam
           const [x0, wid] = BEAMS[Math.floor(Math.random() * BEAMS.length)];
           const y = rand(14, ground - 8);
-          this.bits.push({ kind: 'beam', x: x0 + y * BEAM_SLOPE + rand(-wid / 2, wid / 2), y, vx: rand(-2, 3), vy: rand(-3, 2), born: a, life: rand(2600, 4600), color: Math.random() < 0.6 ? 0xfffbe0 : 0xffe890, phase: rand(0, 6) });
-        } else if (r < 0.96)
-          this.bits.push({ kind: 'mote', x: rand(20, W - 20), y: rand(30, bottom), vx: rand(-3, 3), vy: rand(-6, -2), born: a, life: rand(2500, 4500), color: Math.random() < 0.6 ? 0xffffff : 0xfff0a0, phase: rand(0, 6) });
+          this.bits.push({ kind: 'beam', x: x0 + y * BEAM_SLOPE + rand(-wid / 2, wid / 2), y, vx: rand(-2, 3), vy: rand(-3, 2), born: a, life: rand(2600, 4600), color: Math.random() < 0.6 ? 0xffe8b0 : 0xffd070, phase: rand(0, 6) });
+        } else if (r < 0.86)
+          // late day: the first fireflies waking low over the meadow
+          this.bits.push({ kind: 'firefly', x: rand(24, W - 24), y: rand(ground - 30, ground - 6), vx: rand(-4, 4), vy: rand(-3, 1), born: a, life: rand(3000, 5200), color: Math.random() < 0.7 ? FIREFLY : 0xffd870, phase: rand(0, 6) });
+        else if (r < 0.96)
+          this.bits.push({ kind: 'mote', x: rand(20, W - 20), y: rand(30, bottom), vx: rand(-3, 3), vy: rand(-6, -2), born: a, life: rand(2500, 4500), color: Math.random() < 0.6 ? 0xffe8c0 : 0xffd890, phase: rand(0, 6) });
         else this.nearLeaf(a, [0x1e3a1a, 0x2a4a1e, 0x16301a]);
         this.nextAmbient += 240;
       } else if (theme === 'hollow') {
@@ -528,10 +531,10 @@ export class Stage {
     const far = this.gFar;
     const theme = this.theme;
     if (theme === 'forest') {
-      // two butterflies wandering over the meadow behind the fighters
+      // two moths wandering over the meadow behind the fighters (late day: dusty, not candy-bright)
       for (const [i, c1, c2] of [
-        [0, 0xfff4e0, 0xf2d060],
-        [1, 0x9ad0ff, 0x4a8ad8],
+        [0, 0xd8ccb4, 0xa48e6a],
+        [1, 0xb4a8c8, 0x6e6290],
       ] as const) {
         const t = a / 1000 + i * 37;
         const x = Math.round(40 + (Math.sin(t * 0.21 + i) * 0.5 + 0.5) * 250 + Math.sin(t * 1.3 + i * 2) * 8);

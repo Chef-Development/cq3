@@ -249,3 +249,26 @@ describe('round 7 save migration', () => {
     expect(q.tipsDone).toEqual({});
   });
 });
+
+describe('the Atlas pages found (round 8)', () => {
+  it('a new profile has none; a page is kept once; an old profile without the field reads as none', async () => {
+    const { findPage, readPages } = await import('../../src/core/profile');
+    const p = newProfile();
+    expect(p.pages).toEqual([]);
+    expect(findPage(p, 3)).toBe(true);
+    expect(findPage(p, 3)).toBe(false);
+    expect(findPage(p, 0)).toBe(true);
+    expect(p.pages).toEqual([3, 0]);
+    // saved and read back
+    expect(readProfile(JSON.parse(JSON.stringify(p))).pages).toEqual([3, 0]);
+    // a profile saved before pages existed (still v4): none found, nothing else lost
+    const old = JSON.parse(JSON.stringify(p));
+    delete old.pages;
+    const back = readProfile(old);
+    expect(back.pages).toEqual([]);
+    expect(back.actsCleared).toBe(p.actsCleared);
+    // junk is dropped
+    expect(readPages([1, 1, -2, 2.5, 'x', null, 4, 99999])).toEqual([1, 4]);
+    expect(readPages('nope')).toEqual([]);
+  });
+});

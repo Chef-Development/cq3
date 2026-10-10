@@ -941,20 +941,25 @@ rules: the lantern's reach never under 0.32 s, the tide never over half the bar,
   hpMult 7.4 / 8 / 9.8, atkMult 20 / 24 / 25, redSpeed 1.3 / 1.42 / 1.42; Old Bellybog 4000 HP; the Sluice Keeper 5800
   HP, atk 24. Measured after merge 3 (two 40-run samples, seeds 7 and 8): Act 10 84 / 90%,
   Act 11 71 / 74%, Act 12 53 / 69% (at hpMult 9.6: 55 / 64; at 10.1: 45 / 49), the Lighthouse's first fight the same
-  (the act's first try is its boss's): a little above the targets in Acts 11-12, inside the guard's bands; fights 13 / 15-16 / 19 s, boss fights ~60 / 63 / 85 s. Samples of 40 swing 10-25
+  (the act's first try is its boss's): a little above the targets in Acts 11-12, inside the guard's bands (the Sluice
+  Keeper's retag in chunk 3 takes Act 11 down about 10 points for Rowan); fights 13 / 15-16 / 19 s, boss fights ~60 / 63 / 85 s. Samples of 40 swing 10-25
   points (seed 7 vs 8), so read one run of the guard as a band, not a number. `npm run region-tune` (cached end-of-Ashfell profiles from
   before merge 3, its own seeds) read Act 11 harder than the guard (44-69% where the guard reads 70-86%): use it for
   gaps between heroes, the guard for the targets, and rebuild its cache after other teams' changes. The masher never wins the
   Lighthouse (0 of 73 tries over 15 seeds).
-- **Hero parity** (region-tune from cached end-of-Ashfell profiles, 30 runs a hero, gaps to Rowan in Acts 10 / 11 /
-  12; at 30 runs a sample swings 15-20 points, Rowan's own included, so these are leads, not verdicts). First pass
-  (first-tuning numbers): Neve -18 / -55 / -20 (her Flash Freeze ice formed in the shallows and sank: ice floats now),
-  Vesper -13 / -37 / -15, Tess -18 / -28 / -16, Dell -11 / -22 / -21, Sable +7 / +18 / -2, the rest within ~15. Final
-  numbers (Rowan 78 / 44 / 32 in that sample, low against the guard's 87 / 72 / 61, so positive gaps read high): Neve
-  -4 / -14 / 0, Vesper -6 / -5 / -12 (-40 at Act 12 the pass before), Tess -22 / +4 / +3, Dell -15 / +7 / +8, Sable
-  +14 / +43 / +18, Moss +14 / +1 / +26, Hollis +2 / +20 / +20; the rest within ~22. Leads for a parity chunk: the
-  Marksmen at Act 12 (their Focus fires on greens; the mere's tide and dark take greens away), Tess at Act 10, Sable in
-  the tide act; then `npm run campaign` with REGIONS=4 at 100+ runs and two seeds.
+- **Hero parity, 100 runs a hero** (round 8, chunk 3: region-tune from end-of-Ashfell profiles cached after merge 3;
+  gaps to Rowan in Acts 10 / 11 / 12; a 100-run gap moves about ±7). First read: Sable +6 / +6 / -17, Neve -8 / -34 /
+  -20, Tess -27 / -10 / -28, Vesper -9 / -33 / -26, Dell -14 / -20 / -36. Three causes found and fixed, each in how a
+  kit meets the region rather than in a hero's numbers: (1) the bot left everything in or near the water alone, so it
+  never tapped Neve's floating ice: one rule now says what can sink (`Combat.canSink`: reds wade, ice floats, a
+  Marksman's target stands on its post) and the bot asks it; (2) Marksman targets (Vesper's and Dell's greens) light
+  themselves and stand above the tide (their Focus fires on greens, and the mere's dark and water took them away); (3)
+  the Sluice Keeper was tagged folk, which the starting hero (the reference) hits 20% harder: now beast and armored (a
+  beaver in a brass diving helmet). After: Neve -8 / 0 / -2, Dell -10 / -6 / -17, Vesper -9 / -23 / -16, Tess -27 /
+  -16 / -26, Sable +6 / +16 / -11 (Rowan 84 / 57 / 59 in that sample). Left: Tess everywhere in the region (her soft
+  strengths are fire and construct, and only the Lighthouse is construct here; a kit idea: her Stopwatch also holds
+  the tide still), Vesper in Act 11, Sable ahead in Act 11. The other heroes weren't re-run at 100 (30-run reads were
+  within noise).
 - Region 5's first-guess numbers were raised to stay a step above (atkMult 21 / 25 / 26.5, redSpeed 1.32 / 1.44 /
   1.44, Act 3 hpMult 10.2).
 
@@ -979,7 +984,7 @@ rules: the lantern's reach never under 0.32 s, the tide never over half the bar,
 
 ---
 
-## 8. Region 5: NOONSPIRE (secret; id `noonspire`; being built, not in play yet)
+## 8. Region 5: NOONSPIRE (secret; id `noonspire`; wired behind a switch, out of the campaign until its art exists)
 
 *The story is docs/story-bible.md's (section 8, "Noonspire"; the midpoint twist is there); the scenes are the story
 team's (`src/data/story-noon.ts`: `noon1`-`noon3`, `noonBoss`, `noonBoss2`, `noonBoss3`, `noonVictory`); the foes,
@@ -1072,15 +1077,15 @@ every morning, a month without one (it doesn't speak). The hints follow the rule
 shimmer lands"; `noonBoss2` (the glare) "the blazing ones hit hard, and they burn; a green cools you off";
 `noonBoss3` (the sun drawn down) "watch the outlines: that's where they'll land".
 
-### Gear (`src/data/gear-noon.ts`, data only, not merged; checked by `noonspire-data.test.ts`)
+### Gear (`src/data/gear-noon.ts`; effects in the core, the items in the tables once the region is on)
 Bases: Dial Spear, Sunsteel Saber, Spire Hammer (weapons); Veil Hood, Brass Visor (helms); Dust Mail, Sunplate (armor);
 Dune Striders, Stair Treads (boots); Noon Pearl, Haze Glass (trinkets). Set: **Wayfarer's** (Sun Hat, Linen Robe,
 Sandals, Water Skin): 2-piece +20% damage on blazing blocks; 4-piece a green cools the Heat and heals 2% HP. Signature
 Legendaries (the Gnomon): **Sunstone** (trinket, *Cool Head*: the Heat burns half as fast), **Gnomon's Hand** (weapon,
-*True Hour*: a mirage hit right after its hop deals x3; needs a hop time on the block at wiring). Merging: as for
-Duskmire's (the ids into gear.ts's unions, the effects in combat.ts with `tuning.effects` sliders).
+*True Hour*: a mirage hit within 1 s of its hop deals x3: `Block.hoppedAt`). As built: `tuning.effects.wayBlaze`,
+`wayHeal`, `sunstone`, `trueHour`, `trueHourSec` (sliders); the effect and set ids are in gear.ts's unions.
 
-### Relics (`src/data/relics-noon.ts`, data only: no hooks yet, not merged; checked by `noonspire-data.test.ts`)
+### Relics (`src/data/relics-noon.ts`; hooks `core/relic-fx-noon.ts` in RELIC_HOOKS; with/without tests `relics-noon.test.ts`)
 Mirage: **Oasis Map** (hits on mirages +40%), **Haze Lens** (rare: a mirage hit right after its hop crits), **Sand
 Glass** (mirages hop 30% less often), **Ghost Step** (rare: a mirage hit fills the meter like 2 hits), **Sand Dollar**
 (a coin a mirage hit), **Dust Devil** (rare: a mirage hit counts 2 extra combo), **Fata Morgana** (epic: mirages hop
@@ -1088,9 +1093,43 @@ twice as often; hits on them x3). Heat: **Sunshade** (the Heat burns 30% slower)
 you heals 3 HP), **Kindling** (rare: blazing hits fill 50% more meter), **Sun Shard** (rare: at full Heat every hit
 crits), **Sun Purse** (a coin a blazing hit), **Shade Tree** (rare: blocking a red cools 1 Heat), **Noonday** (epic: the
 Heat never burns; blazing hits deal x1.2 only). Builds: Wayfinder (Mirage), Sunborn (Heat), High Noon (Mirage +
-Heat), Haze Hunter (Mirage + Crit), Sunstruck (Heat + Risk). At wiring: hooks in `core/relic-fx-noon.ts` (Haze Lens
-and Fata Morgana need a hop time on the block; Shade Tree a way to cool one stack), a with/without test each, and the
-cautious bot's `avoid` list takes Fata Morgana and Noonday.
+Heat), Haze Hunter (Mirage + Crit), Sunstruck (Heat + Risk). New hook points (core/hooks.ts): `mirageEvery`,
+`heatDps`, `cooled` (green / out / perk); `Block.hoppedAt`; `Combat.easeHeat(n)`. In RELICS (offered from act 12) only
+once the region is on; the cautious bot's `avoid` list should take Fata Morgana and Noonday then.
+
+### Wired behind a switch (round 8, team content chunk 3)
+`src/data/flags.ts` `NOON_ON`: off in the game and the unit tests; `CQ3_REGION5=1` in the environment turns it on for
+the balance tools (`CQ3_REGION5=1 REGION=4 npm run region-tune`). On: NOONSPIRE in REGIONS (acts 12-14), its scenes and
+mini-boss scenes in STORY (off, they stay out: a scene in STORY lets the camp lines waiting for it show), its relics in
+RELICS, its bases, set and signatures in the tables, `WORLD_ACTS_NOON` (three placeholder spots on the floating island,
+art-world-lands.ts), `REGION_SITES.noonspire`. Always: its foes in ENEMIES (the Test lab's previews, labelled "Act 13
+foes" etc. with an "early look" line, at Act 12's numbers with the region's bar rules), the relic hooks, the gear effects, `noonCamp`
+(run.ts `campScene` at `actsCleared >= 13` once it's in STORY; the lab marks it seen), stand-in fight sprites
+(`SPRITE_STAND_IN`: skink -> cinderling, hawk -> cinder kite, dune bandit -> bandit, colossus -> golem, sphinx ->
+rimehorn, scarab -> beetle, brass sentry -> frost knight, salamander -> magma eel, sunforged golem -> kiln warden, brass
+lion -> Hob & Nob, dial warden -> knight, heat djinn -> ice wraith, sun vulture -> crow, noon knight -> chain sentinel,
+the Gnomon -> Glacia) and themes (`NOON_STAND_IN`: pass, ruins, cinder). To turn it on: set `NOON_ON = true` once its
+art exists; then the region tests, the masher guard and a `bot-region5.test.ts` guard cover it.
+
+**Balance, first pass** (`CQ3_REGION5=1 REGION=4 npm run region-tune`, Rowan, 52 end-of-Duskmire profiles at 75%;
+targets a little harder than Region 4: Act 13 ~80%, Act 14 ~65%, Act 15 ~50%, the Gnomon's first fight ~45-55%). The
+first guesses were far too easy (98 / 94 / 67%, fights 9 s): the hero arrives at level 22. As set: hpMult 10.5 / 11 /
+12, atkMult 24 / 28 / 30 (red speeds as before, 1.32 / 1.44 / 1.44); the Sphinx 7300 HP atk 29, the Brass Lion 7000 /
+28, the Gnomon 8000 / 22. Measured either side (the last two configs): Act 13 85 / 73%, Act 14 56 / 63%, Act 15 35 /
+43%, fights 10 / 15 / 17 s, mini-boss fights 93-100 / 70 s, the Gnomon 70 s; the numbers set sit between them. Still to
+do once it's on: a 100-run pass, a `bot-region5.test.ts` guard, the masher (its row comes free in bot-masher), hero
+parity.
+
+**For the art and music helper** (keys as the data names them): foe sprites `duneskink`, `glarehawk`, `dunebandit`,
+`dunecolossus` (elite), `sphinx` (mini-boss), `emberscarab`, `brasssentry`, `sandsalamander`, `sunforgedgolem` (elite),
+`brasslion` (mini-boss), `dialwarden`, `heatdjinn`, `sunvulture`, `noonknight` (elite), `gnomon` (boss: phase looks
+`gnomon2_*`, `gnomon3_*`); map minis exist (art-minis.ts). Speakers: `sphinx` (`portrait_sphinx`; the brass lion and the
+Gnomon don't speak). Themes for the `Theme` union: `whiteRoad`, `spireSteps`, `sundial` (backdrops, stage lights, map
+kits, lairs, critters; then point `NOON_STAND_IN` at them). Music cues (app.ts): `ACT_THEMES` for global acts 12-14,
+`ACT_AMBIENCE` 12-14, `BOSS_THEMES` for `sphinx`, `brassLion`, `gnomon` (`gnomon` in `PHASED_BOSSES`); telegraph sounds
+`NOON_NEW_SOUNDS` (skitter, shimmer2, sunflash, scorch, roar, needle, glare, heatwave) into `TellSound`. Also: 14
+relic icons and the gear's item icons, the region card's parchment map (art-region-map.ts, a fog sheet until then),
+and the island's three landmarks (move `WORLD_ACTS_NOON` with them).
 
 ### Music and art (as built)
 Music (`music.ts`, tracks `noon1`-`noon3`, `sphinx`, `brassLion`, `gnomon`):

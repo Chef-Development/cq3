@@ -97,6 +97,7 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   sanctuary: ['heal'],
   emberwright: ['heal'],
   lamplighter: ['heal'],
+  wayfarer: ['heal'],
   // ---- the Test lab's banked stacks
   testLab: ['meter'],
   // ---- the anti-spam rules (playtest round 7): the fight's heals used up; no more misses forgiven this fight
@@ -178,6 +179,15 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   driftwood: ['bar', 'foe'],
   tidepool: ['coins'],
   moonpull: ['bar'],
+  // the fifth region's relics (core/relic-fx-noon.ts)
+  hazeLens: ['bar', 'foe'],
+  ghostStep: ['bar', 'meter'],
+  sandDollar: ['coins'],
+  dustDevil: ['bar', 'combo'],
+  sunShard: ['bar', 'foe'],
+  sunPurse: ['coins'],
+  shadeTree: ['bar', 'hero'],
+  coolSpring: ['heal'],
   // ---- the fifth region's Heat (its burn on the hero: view/bar-noon.ts drawHeat)
   heat: ['hurt'],
   // ---- skill nodes: Rowan
@@ -447,6 +457,8 @@ export const COIN_FROM: Record<string, CoinFrom> = {
   goldRivets: 'pos',
   glowWorms: 'pos',
   tidepool: 'pos',
+  sandDollar: 'pos',
+  sunPurse: 'pos',
   rush: 'sack',
 };
 

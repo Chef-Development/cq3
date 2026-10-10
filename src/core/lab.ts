@@ -9,7 +9,7 @@ import { COMPANION_IDS, type CompanionId } from '../data/companions';
 import { EVENTS } from '../data/events';
 import { revealKey, TIPS } from '../data/tips';
 import { LAB_EARLIER, LAB_GROUPS, LAB_NEW, type LabScenario } from '../data/lab';
-import { ALL_ACTS, REGIONS } from '../data/regions';
+import { ALL_ACTS, REGIONS, regionStart } from '../data/regions';
 import type { RelicId } from '../data/relics';
 import type { BarRules } from '../data/types';
 import type { Combat } from './combat';
@@ -28,7 +28,7 @@ export const labLevel = (act: number): number => Math.max(1, Math.min(30, 3 + 2 
 
 /** The act a scenario plays at (a camp screen: the last act its profile has cleared). */
 export function labAct(s: LabScenario): number {
-  if (s.setup.kind === 'fight' || s.setup.kind === 'story' || s.setup.kind === 'map' || s.setup.kind === 'gallery') return s.setup.act;
+  if (s.setup.kind === 'fight' || s.setup.kind === 'story' || s.setup.kind === 'map' || s.setup.kind === 'event' || s.setup.kind === 'gallery') return s.setup.act;
   return Math.max(0, (s.profile?.actsCleared ?? 0) - 1);
 }
 
@@ -40,7 +40,7 @@ export function labBaseProfile(): Profile {
   p.tipsOff = true;
   p.worldTour = true;
   // (and the later regions' camp tales: they'd play over any lab screen that opens the camp's view, fights too)
-  p.seen = [...REGIONS.slice(1).map((r) => unveilKey(r.id)), ...REGIONS.map((r) => restoreKey(r.id)), ...HERO_IDS.map(revealKey), 'magsTale', 'duskCamp'];
+  p.seen = [...REGIONS.slice(1).map((r) => unveilKey(r.id)), ...REGIONS.map((r) => restoreKey(r.id)), ...HERO_IDS.map(revealKey), 'magsTale', 'duskCamp', 'noonCamp'];
   p.smithMet = true;
   p.sableMet = true;
   p.heroes.sable.unlocked = true;
@@ -135,6 +135,9 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
       log.treasures = Array.from({ length: n }, (_, i) => i);
       log.events = EVENTS.slice(0, 3).map((e) => e.id);
       p.regions[def.id] = log;
+      // every treasure found: its act's Atlas page too (read from a treasure seal on the region card)
+      const first = regionStart(REGIONS.indexOf(def));
+      for (let a = first; a < first + n; a++) if (!p.pages.includes(a)) p.pages.push(a);
     }
     const n = REGIONS[0].acts.length;
     p.actsCleared = all ? ALL_ACTS.length : spec.completion === 'done' ? Math.max(p.actsCleared, n) : n - 1;
@@ -185,8 +188,8 @@ export function labFight(s: LabScenario): LabFightPlan | null {
 
 /** The phase a scenario plays in: its fight (the Finisher gallery's too), its scenes, an act's map, or the camp (the
  *  engine opens the camp screen). Once the run leaves it the scenario is over (the rating card comes up). */
-export const labHomePhase = (s: LabScenario): 'fight' | 'scene' | 'map' | 'camp' | 'title' | 'world' =>
-  s.setup.kind === 'fight' || s.setup.kind === 'gallery' ? 'fight' : s.setup.kind === 'story' ? 'scene' : s.setup.kind === 'map' ? 'map' : s.setup.kind === 'title' ? 'title' : s.setup.kind === 'world' ? 'world' : 'camp';
+export const labHomePhase = (s: LabScenario): 'fight' | 'scene' | 'map' | 'event' | 'camp' | 'title' | 'world' =>
+  s.setup.kind === 'fight' || s.setup.kind === 'gallery' ? 'fight' : s.setup.kind === 'story' ? 'scene' : s.setup.kind === 'map' ? 'map' : s.setup.kind === 'event' ? 'event' : s.setup.kind === 'title' ? 'title' : s.setup.kind === 'world' ? 'world' : 'camp';
 
 /** Where a scenario plays on the lab's run: its practice fight (then back to the lab's camp), its story scenes, an
  *  act's map, or the lab's camp (the engine opens the camp screen). The run must be the lab's, built on labProfile. */
@@ -202,6 +205,12 @@ export function startLabScenario(run: Run, s: LabScenario, seed: number): void {
   } else if (s.setup.kind === 'gallery') galleryFight(run, s, s.setup.hero ?? galleryHeroes()[0], seed);
   else if (s.setup.kind === 'story') run.enterAct(s.setup.act, s.setup.scenes);
   else if (s.setup.kind === 'map') run.enterAct(s.setup.act);
+  else if (s.setup.kind === 'event') {
+    // the act's map behind it, the event open at once (choosing ends the scenario: the run goes back to the map)
+    run.enterAct(s.setup.act);
+    run.event = { id: s.setup.event, choice: -1, outcome: -1, boost: null };
+    run.phase = 'event';
+  }
   else if (s.setup.kind === 'title') run.phase = 'title';
   else if (s.setup.kind === 'world') {
     // the world map, with these one-time moments to play again (a land's restoring, its unveiling)

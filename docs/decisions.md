@@ -805,6 +805,10 @@ L9. **A boot check before every push** (a boot crash from a hero-rig change reac
     touch boot-painted art run `boot-check.mjs` (the built game at phone and desktop size: no page errors, title ->
     world map -> the first story box); hero-frames.test.ts now paints every card and camp pose.
 
+L10. **No boot guard in CI tonight**: the QA team's proposal (install Chromium in the deploy job, boot the built game
+    before publishing) is sound, but a new dependency install in the deploy job late at night could block every
+    deploy the playtester is waiting on; the lead's pre-push boot check covers tonight. Recommended for the next round.
+
 (lead: end of section)
 
 
@@ -883,6 +887,19 @@ S15. **L8 for the words: grown-up wit, not chirp.** Hero arrivals, banter, event
     relics, two capstones, a companion's kind) lose the toy-like and exclamation-heavy phrasing; the jokes stay, drier.
     Companion names (Bun, Sunny...) stay: L8 lets companions keep some charm, and the names run through tests and art
     notes. Tips are left to the first 10 minutes team (their wording is the onboarding).
+
+S16. **Side stories (backlog item 5).** Each of Regions 1-4 has two map events of its own (`events.ts` `region`: an act's
+    map draws from the events for anywhere plus its region's; `eventIdsFor`, tested). Each choice weighs two costs
+    (coins against Pip's approval, HP against strength, coins against the crossing's light). One story bounty per region
+    rides on an existing bounty (`QUEST_STORIES`): when that region's board posts it, a line says who posted it and why,
+    and meeting it shows what came of it under the tracker. The bounty system itself is unchanged (no new goals, nothing
+    saved). Test lab: a new setup, `event`, opens one event on its own (one new event per region to try).
+S17. **Atlas pages: one per act, built on what exists.** Each act's hidden treasure holds a page of lore (a ledger, a
+    letter, a keeper's note; `src/data/atlas-pages.ts`). The first time it's found it reads in the story view after the
+    cache's pick (`run.pagePending`, played by `goOn` like the first win's scene; not saved: a reload skips the
+    reading, never the page). The profile keeps the pages found (`pages`, a `CORE:` commit: optional, an old profile
+    reads as none). The region card's treasure seal opens that act's page in a `Sheet`. No new art. The pages
+    seed the river twist once (Act 11: "Amended."), and name nothing beyond their own region.
 
 (story: end of section)
 
@@ -993,6 +1010,96 @@ A14. **Section 9's words on every screen I own**: "The Great Atlas" and "Regions
     reads "Greenmarch restored!" / "N regions to go." Nothing about a Pendulum is left in the view text (the capital's
     landmark sprite and the narrator's portrait still show the pendulum: next).
 
+A15. **L6 on the Atlas: the open lands keep the painted world.** The ink draft read as dirt and specks at the map's
+    zoom; it is gone. An open land not yet restored shows the painted land a touch drained (a third toward its own
+    grey, `draftOf`), with full colour already back round Rowan and each cleared act; restoring floods the full colour
+    out from the boss in the ragged gold-fronted ring (A13). Erased land stays blank vellum with the impression of its
+    lines, now behind a clear torn edge: the paper's rim lit warm, a thin ink shadow on the land beside it.
+A16. **L7 (mood) on the Atlas:** aged, darker parchment (`AGED`) browning to burnt edges, a deeper teal sea wash, the
+    land graded about a fifth darker with cool midtones and warm lights kept (`MOOD`), the erased lands and the far
+    isles a dim warm-grey vellum (no cream), clouds a dusk lavender grey, a vignette half again as strong. The title's
+    blank is a warm grey kept below the logo's and the sun's values.
+A17. **The art bible's section 0, Mood (L7) and Maturity (L8)**, ahead of everything else and overriding it: values
+    down, cool midtones, deep cool shadows, warm light only as accents, actors rim-lit; people not toys, foes with
+    menace, portraits with defined features, UI as metal, ink and leather.
+A18. **L7/L8 in the menus' shared parts** (every screen built from them follows): plates' ink (`NAVY`) a step darker
+    and less purple, trim gold (`GOLD` in pixels.ts) antique brass, button faces (`FACE`) and ribbons in the mood's
+    accents (moss, brass, oxblood, iron, steel blue, plum, ink), `button3d` an iron rim with a narrow lit lip and one
+    dull glint instead of a silver rim, a glossy band and two white speculars; glass plates one dull glint. Every
+    painted menu stage (`ensureStage`), the grove and the camp's backdrop get `moodGrade` (art-paint.ts: midtones
+    toward a deep indigo, light sources spared). Text colours with fixed meanings (reward gold, done green) are kept.
+A19. **The old premise out of the pictures** (story bible section 11): the narrator's portrait is a corner of the
+    Atlas, the capital's tower is the domed Atlas Hall, the shrine's gable (camp and shrine) carries a compass rose,
+    the Keystone Shard's icon is a keystone's broken wedge with his gold line glowing, the captain holds looted coin
+    (not a "genuine weight"), the golem's brow rune is a compass star. The Boar King's crown and Bellows's anvil are
+    foes' art (team 2C). New portraits: the Noon Sphinx; the non-hero speakers' portraits (the Mapmaker, Hesper, Mags,
+    Pip, the narrator) get the mood's light (`portraitMood`: the far side stepped into a deep cool shadow).
+A2C-1. **The mood is baked into the stage's pixels, not multiplied over them** (L7; `art-mood.ts`). Every painted layer
+    of the nine fight stages (backdrop, framing, the four foreground frames) goes once through its act's grade when it
+    is painted (never per frame): midtones lose some saturation and take the act's cool shade colour (values ~20-35%
+    lower), the darkest tones take the act's shadow hue at their own value (indigo, teal, plum: shade, not black paint),
+    bright saturated colours escape it (lava, torches, the sun, crystals, the aurora, the castle's windows: warm light
+    stays an accent), and the strip the fighters stand on takes an extra, calm darkening. It is a smooth colour map, so a
+    ramp's 3+ hue-shifted tones stay apart (never muddy). It replaces 2B's first-pass flat runtime multiply for regions
+    1-3 (whose `mood` tints become `air`, used only on the drifting clouds and mist); a later region can still use
+    `mood` or add its own grade to `MOOD`.
+A2C-2. **Skies are repainted, not just darkened, where the mood is the sky**: the forest is late day (an indigo sky
+    going to dusty rose and a band of amber behind the hills, warmest on the left where the sun is low; the far peaks
+    painted at their dusk colours with alpenglow; a warm rim on everything against the sky; the castle a dark
+    silhouette with lit windows; gold shafts and rays instead of white noon beams); the hollow is a blood-red evening
+    (near-black crimson overhead, a band of fire round an orange sun, red haze and mist); the pass is a moonlit blue
+    night (stars, a small cold moon and its bloom, night clouds, moonlit snow, the stage's rim and pool moonlight
+    blue); the cinder flats' sky is smoke-dark with the orange kept low, where the volcano and the river light it.
+    The ruins are a rainy dusk (a low overcast with a heavy bank of rain cloud, no stars, the moon veiled and dim, a
+    cold mauve band of last light behind the hills, curtains of rain over them); caves, glacier, glass and forge take
+    only the grade.
+    A repainted sky is left out of the grade (a snapshot of the layer taken once its sky is done).
+A2C-3. **Foes get menace without losing their read** (L8). Bosses: the Boar King darker with an ember eye under the
+    brow, fangs, hackles always half up and a jagged five-point crown with a blood-red stone; Glacia's scales a step
+    darker, a reptile's slit pupil, fangs over the lip. Act 1's first foes: the slimes are a murkier bog green with
+    scowling glowing eyes and teeth (no blush, no smile) and a bone sunk in the core (a skull in the big one); the boar
+    darker with a glowing eye, a longer tusk and a scar; the crow's beak dark horn instead of candy yellow; the bandit's
+    face lost in the hood's shadow with two eyes catching the light; the captain weathered, scarred, a grubby plume.
+    Also: the yeti cub's dark face and glowing eyes, the shaman's crimson toadstool, the wolf's fang, the icicle bat's
+    scowl, the drift troll's frostbitten nose, the piglets in the King's darker fur, the bandits in a deep plum. Their
+    read is kept (same silhouettes and sizes; the stage rim still lifts them off the darker stages at phone size).
+A2C-4. **The old premise's pendulum is gone from the foes' art** (story bible section 11; the portraits are 2A's, A19):
+    the Boar King's crown has a blood-red stone instead of the brass bob (fight sprite and portrait), the flower on the
+    golem's crown is a glowing compass-star rune (fight sprite), and Bellows forges a white-hot blade on his anvil
+    instead of guarding the weight.
+
+A2C-5. **The actors keep their step from the darker stages by light, not by brightening the stages**: the rim light on
+    the fighters is stronger where the stage got darkest (forest 0.86, ruins 0.8, pass 0.76, hollow 0.9) and warmer in
+    the forest (the late sun's gold; its pooled light too). The forest's air follows the hour: the first fireflies low
+    over the meadow, warm motes and pollen in the gold shafts, dusty moths instead of bright butterflies.
+
+A2B-9. **Weapons with heft at 8x** (playtester: "the sword looks too thin"): Rowan's sword is a 4 px blade band (a
+    warm white lit edge, pale and mid steel, a violet-shaded edge), an 8 px bronze guard with a stone, a wrapped grip
+    and a pommel (`art-sword.ts`, shared by Hollis and Solenne in their own colours); a 3 px dagger map for Sable and
+    Wren; the rig's `pole()` and every hero's staff 3 px (lit, mid, shaded); Dell's slingshot fork and Vesper's bow
+    limbs thickened. hero-frames.test.ts fails on a palette miss (magenta).
+A2B-10. **The mature look (L8)** comes from shared parts in `art-rig.ts`, so the sixteen stay one cast: `STANCES` +
+    `jointLegs`/`matureLegs` (legs from hip, knee and ankle in each hero's materials, the back leg a value darker,
+    robes for Neve, Tess and Brann), `matureHeads` (two rows out of the hair or hat's dome, glossy eye whites to single
+    dark irises under a brow, blush to skin) and `gradeGrid` (values down, the darks more than the lights, a little
+    desaturated; Rowan's hand-made palette skips it). HERO_H grew to 48 for the taller figures' raised weapons
+    (every view anchors a frame at the feet). Rowan and Sable (and Neve's head) were redrawn by hand as the
+    reference; the rest were converted by a script and checked by eye. Moss stays a gnome (face only).
+A2B-11. **Portraits follow** (`art-hero-portraits.ts maturePortrait` + hand-narrowed eyes): one row of iris under the
+    lid, no white glints, blush gone, the same grade; Rowan's portrait redrawn (a smaller dented helm on broad
+    pauldrons, a narrow lit slit), Sable's eyes narrowed. Map walkers get a row more of leg.
+A2B-12. **Finishers wind up and follow through**: every kit but the Shadow's blink holds the windup for 120 ms
+    before the big blow (the stand-and-cast kits too), the blow's first frames stretch the hero forward (squash and
+    stretch, 100 ms), and the time after the blow (the show's last fifth) is split 30% blow held, 30% follow-through
+    where it landed (the weapon low, or the cast pose), 40% the run home, arriving on the idle's settling frame. (The
+    first cut held the follow-through 180 ms after the blow, past the moment the show sends the hero home: it never
+    showed.) A won fight ends with the hero stepping back and raising their weapon (their cast pose).
+
+A2B-13. **Map walkers 18 px tall** (the chest heroes' walkers in `art-hero-map.ts`; Rowan's and Sable's stay 16): up
+    to two more leg rows, so they stand about three heads tall like the fight frames, with the mature grade. The act
+    map and the title anchor a walker at its feet from its own height (two rows up from the bottom), so walkers of any
+    height share the ground line.
+
 (art: end of section)
 
 
@@ -1058,6 +1165,17 @@ C11. **Ice floats on the tide** (`CORE:`): a frozen block in the water is never 
     tide act, since reds are blocked in the shallows and her ice sank where it formed.
 C12. **The region card's tabs fall back to short names** (Green, Frost, Ash, Dusk) when four regions don't fit the
     top bar by name (the fourth tab ran off a phone's screen); screenshots of the card change with it.
+C13. **The fourth region's hero parity (100 runs a hero): fix how kits meet the bar rules, not their numbers.** The
+    bot left everything in the water alone, even what floats (it never tapped Neve's floating ice): one rule now says
+    what can sink (`Combat.canSink`, `CORE:`): reds wade, ice floats, and a Marksman's target stands above the tide on
+    its post and lights itself (never dark). The second mini-boss carried a tag the starting hero (the reference) is
+    20% stronger against, which tilted that act toward him: retagged (CLAUDE.md's lesson on soft strengths and region
+    bosses). Gaps and what's left in the content bible (§7, As wired).
+C14. **The fifth region is wired behind a switch** (`src/data/flags.ts` `NOON_ON`: off in the game and the unit tests;
+    `CQ3_REGION5=1` turns it on for the balance tools). Its relics have hooks and with/without tests, its gear effects
+    are in the core (`CORE:`), `noonCamp` is wired like `duskCamp`, its foes are in ENEMIES for the Test lab's early
+    looks, and placeholders stand in for its art. What its art and music need is listed in the content bible (§8).
+    Its scenes stay out of STORY while it's off: a scene in STORY lets the camp lines waiting for it show.
 C-ART-4. **Held things have heft** (playtest: sprites must read at 8x): every pole, stick, spear, wrench and arm a foe
     holds is at least 2 px with a lit edge, the heads (spearhead, wrench, kettle, crossguard) a size up. The boss is
     64 px tall, not 80: the stage above the feet line is about 67 px under the enemy plate, so a taller boss hides its
@@ -1067,7 +1185,6 @@ C-ART-5. **L7 in the Duskmire**: its sky ramp ends in a muted rose (no peach), c
     cooler and darker, the lighthouse's beam an accent (narrower, fainter, its edges falling away), vignettes stronger,
     the ground strips a step darker; the stage's rays a third as bright, its mists cool violet and slate, its grades
     deeper; the act maps' light cooled (no rose wash). The lanterns, lit windows and the lamp stay the warm accents.
-
 C-ART-6. **Region 4's thirteen telegraph sounds are in** (`TellSound`, the Sound lab, `TELL_MIX`), replacing C7's
     generic wind-up for its foes. Several had to be told apart from older ones by rhythm, not timbre: the foghorn
     blows twice, the moths scatter for a beat before they rush back, the toad croaks twice before the belch, the snuffed
@@ -1177,6 +1294,29 @@ C-ART-8. **Region 5's music** (six pieces, each its own key, tempo and meter; ne
   damage numbers pop just under it and settle (cascading down, not up) until the shout is gone (`view/fighters.ts`).
   The vault said "No chests yet" after the first chest was opened: once any has been opened it says "No chests
   waiting" (`view/chests.ts`).
+- **Q12 Smoke tests that grow with the content.** The intro test clicked ~110 Sound lab buttons one Playwright click at
+  a time and passed its 150 s; it now clicks three for real and plays every one in the page, a beat apart (57 s). The
+  every-enemy walk is one test per region (each about a minute; regions not in play skip; a region past six fails).
+- **Q13 Accessibility.** Block marks on by default (one small chevron on a plain red: the only kind told from a yellow
+  by colour alone; every other kind has a glyph or a shape) and Motion Auto/Less/Full (Less: no shake, kick or white
+  frames, shorter flashes; Auto follows the device). Their own storage key, kept through a New game. **Larger text**
+  (off by default): the pixel fonts scale only in whole steps (2x would need four lines in a two-line box), so it uses
+  the bold display letters (caps 7 px, not 5), which the story's 11 px pitch holds: a story box takes them when all its
+  lines fit the 256 px text area in them (258 of 274 boxes; the other 16 keep the small letters), and the tip card
+  grows to hold them. A third line or paging for the rest is the story view's owners' call.
+- **Q14 The boot check in the repo** (`scripts/boot-check.mjs`, `npm run boot-check -- <port>`): proposed as a CI
+  step after the build (the deploy workflow: install Chromium, preview, run it; about a minute) so a boot crash never
+  reaches the live build; a jsdom version in `npm test` can't paint (no canvas or WebGL).
+- **Q15 The UI crawl, part 2.** New game through Act 3 (871 s of real play with fast taps and tips on, two defeats
+  retried), every camp screen, the world map (each cleared act's card, the region chip and its picker, a drag) and
+  all 105 Test lab scenarios (spoilers included): no page or console error, no long decimal, no foe without a map
+  sprite, no missing texture, no stuck screen, no HTML text wider than its box. Its text-past-the-edge check now counts
+  only text partly on screen (bars and plates park wholly off screen between their slide-ins; the world map's land
+  names are cut by the edge on purpose as it pans).
+- **Q16 The sharper chest reveal is a chunk of its own** (38 KB, 16 KB gzip), downloaded beside the boot like the
+  region packs (`loadChestHd`); `ChestOpening.view` reads 'old' in the moment before it's in and `__cq3.ready` waits
+  for it, so the reveal and the tests behave as before. The chest-hd spec's side-by-side screenshot fails on the run
+  branch's own code too (the old reveal's sparkles land elsewhere: a stale baseline for the lead to regenerate).
 (qa: end of section)
 
 
@@ -1254,5 +1394,17 @@ F15. **Each hero's first finisher gets the reveal** (the letterbox, the light, i
     (as F3), then Sable's (who joins a minute after the first boss) and a chest hero's (the first hero chest now
     always brings someone new). One mark per hero in `profile.seen` (`revealKey`: Rowan keeps `finisherReveal`); only
     with tips on; the Test lab's profiles have every hero's seen.
+
+F16. **A new player's first relic pick is two plain cards** (`CORE:` run.ts, the lead's request). Minute one's first
+    pick (Act 1's promised chest) showed three dense cards: tag chips, a RARE badge, a stat card. The first pick a new
+    player makes (no act cleared, no relic carried, none picked before: `Run.simplePick`, `'pick:first'` in
+    `profile.seen`) now offers two relics that share no tag, so the choice is between two ways to play (the chest's
+    rare one still among them: `rollFirstPick`), drawn as two taller cards with the name and what it does (relic-ui
+    `relicCard` `plain`). Tags, rarity and the third card come from the second pick on, with Synergy!. The two come
+    from plain starter relics (`STARTER_RELICS`: crits, blocks, greens, the finisher, healing) when those can make the
+    pick: the first measured one offered Blast Wave (bombs, which Act 1 hasn't shown) beside Greenhouse (a trade-off).
+F17. **The newcomer bot spends skill points** (`tests/smoke/first10.spec.ts`): from the first chest on, whenever a
+    point is waiting on the map it taps Camp, opens Skills, learns down one branch and goes back (`F10_SKILLS=0` never
+    does), so its boss result compares with the balance bot, which spends them after every loot.
 
 (first10: end of section)

@@ -27,7 +27,7 @@ async function ready(page: Page, o: { tips?: boolean; tour?: boolean } = {}): Pr
 }
 
 test('loads, plays the intro, walks the map, starts a fight, taps, no console errors', async ({ page }) => {
-  test.setTimeout(150_000); // it plays every Sound lab button (a list that grows with each region)
+  test.setTimeout(120_000);
   const errors: string[] = [];
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());
@@ -80,13 +80,26 @@ test('loads, plays the intro, walks the map, starts a fight, taps, no console er
   expect(state.tick).toBeGreaterThan(60);
   expect(state.tap).not.toBeNull();
 
-  // Tuning panel opens; every Sound lab button plays without errors; it closes again.
+  // Tuning panel opens; every Sound lab button plays without errors; it closes again. (A few by a real click: the
+  // first, the middle, the last; then every one of them in the page, a beat apart: one Playwright click per button
+  // outgrew the test's time as the list grew with each region.)
   await page.click('#btn-gear');
   await expect(page.locator('#debug')).toBeVisible();
   const lab = page.locator('details', { has: page.locator('summary', { hasText: 'Sound lab' }) });
   const buttons = lab.locator('.dbg-grid button');
-  expect(await buttons.count()).toBeGreaterThan(40);
-  for (let i = 0; i < (await buttons.count()); i++) await buttons.nth(i).click();
+  const nButtons = await buttons.count();
+  expect(nButtons).toBeGreaterThan(40);
+  for (const i of [0, Math.floor(nButtons / 2), nButtons - 1]) await buttons.nth(i).click();
+  const played = (await page.evaluate(async () => {
+    const sound = [...document.querySelectorAll('#debug details')].find((d) => d.querySelector('summary')?.textContent?.includes('Sound lab'));
+    const all = [...(sound?.querySelectorAll<HTMLButtonElement>('.dbg-grid button') ?? [])];
+    for (const b of all) {
+      b.click();
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    return all.length;
+  })) as number;
+  expect(played).toBe(nButtons);
   await page.waitForTimeout(300);
   expect(await a((x) => x.audio.ctx?.state)).toBe('running');
   await page.click('#btn-gear');
@@ -96,60 +109,83 @@ test('loads, plays the intro, walks the map, starts a fight, taps, no console er
   expect(errors).toEqual([]);
 });
 
-test('every enemy fights and uses each special without errors', async ({ page }) => {
-  test.setTimeout(150_000);
-  const errors: string[] = [];
-  page.on('pageerror', (e) => errors.push(e.message));
-  page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(m.text());
-  });
-  await ready(page);
-  const a = app(page);
-  await a((x) => (x.settings.godMode = true));
-  const fights = (await a((x) => {
-    const out: Array<[number, string[], string]> = [];
-    const seen = new Set<string>();
-    x.run.region.acts.forEach((act: Any, i: number) => {
-      for (const g of [...act.fights.early, ...act.fights.late, ...act.elites, act.boss])
-        for (const k of g) {
-          if (seen.has(k)) continue;
-          seen.add(k);
-          const def = x.tuning.enemies[k];
-          out.push([i, k === 'wolf' ? ['wolf', 'wolf'] : [k], def.boss ? 'boss' : def.elite ? 'elite' : 'fight']);
-        }
+// Every enemy fights and uses each special, one test per region (the walk through every region outgrew one test's
+// time). A region past MAX_REGIONS fails the first test: add to it.
+const MAX_REGIONS = 6;
+for (let region = 0; region < MAX_REGIONS; region++) {
+  test(`every enemy of region ${region + 1} fights and uses each special without errors`, async ({ page }) => {
+    test.setTimeout(150_000);
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    page.on('console', (m) => {
+      if (m.type() === 'error') errors.push(m.text());
     });
-    return out;
-  })) as Array<[number, string[], string]>;
-  expect(fights.length).toBeGreaterThanOrEqual(13);
-  for (const [act, enemies, type] of fights) {
-    await page.evaluate(([act, enemies, type]) => {
-      const x = (window as Any).__cq3.app;
-      x.setPhase(() => x.run.debugFight(act, enemies, type, x.run.hero));
-      x.begin();
-    }, [act, enemies, type] as const);
-    await page.waitForTimeout(250);
-    const n = (await a((x) => x.run.combat.specialsOf(x.run.combat.enemies[0]).length)) as number;
-    for (let i = 0; i < n; i++) {
-      // force each special in turn (the boss's phase changes too) and let it play out
-      const tell = (await page.evaluate((i) => {
+    await ready(page);
+    const a = app(page);
+    await a((x) => (x.settings.godMode = true));
+    const { fights, regions } = (await page.evaluate(
+      (region) => {
         const x = (window as Any).__cq3.app;
-        const c = x.run.combat;
-        const e = c.enemies.find((q: Any) => q.alive && c.specialsOf(q).length) ?? c.enemies[0];
-        if (!e.alive || c.result) return 0;
-        c.telegraph = null;
-        c.startTelegraph(e, Math.min(i, c.specialsOf(e).length - 1));
-        return c.specialsOf(e)[Math.min(i, c.specialsOf(e).length - 1)].tell;
-      }, i)) as number;
-      await page.waitForTimeout(tell * 1000 + 400);
-      // a boss's phase scene: skip it
-      await a((x) => x.storyOverlay && x.storySkip());
+        // the region of global act i, read through the run (the spec doesn't import the game's data)
+        const regionOf = (i: number): number => {
+          const k = x.run.actIndex;
+          x.run.actIndex = i;
+          const r = x.run.regionIndex;
+          x.run.actIndex = k;
+          return r;
+        };
+        const out: Array<[number, string[], string]> = [];
+        const seen = new Set<string>();
+        let regions = 0;
+        x.run.region.acts.forEach((act: Any, i: number) => {
+          const r = regionOf(i);
+          regions = Math.max(regions, r + 1);
+          if (r !== region) return;
+          for (const g of [...act.fights.early, ...act.fights.late, ...act.elites, act.boss])
+            for (const k of g) {
+              if (seen.has(k)) continue;
+              seen.add(k);
+              const def = x.tuning.enemies[k];
+              out.push([i, k === 'wolf' ? ['wolf', 'wolf'] : [k], def.boss ? 'boss' : def.elite ? 'elite' : 'fight']);
+            }
+        });
+        return { fights: out, regions };
+      },
+      region,
+    )) as { fights: Array<[number, string[], string]>; regions: number };
+    if (region === 0) expect(regions, 'regions in play: add to MAX_REGIONS').toBeLessThanOrEqual(MAX_REGIONS);
+    test.skip(region >= regions, 'not in play');
+    expect(fights.length).toBeGreaterThanOrEqual(region === 0 ? 13 : 5);
+    for (const [act, enemies, type] of fights) {
+      await page.evaluate(([act, enemies, type]) => {
+        const x = (window as Any).__cq3.app;
+        x.setPhase(() => x.run.debugFight(act, enemies, type, x.run.hero));
+        x.begin();
+      }, [act, enemies, type] as const);
+      await page.waitForTimeout(250);
+      const n = (await a((x) => x.run.combat.specialsOf(x.run.combat.enemies[0]).length)) as number;
+      for (let i = 0; i < n; i++) {
+        // force each special in turn (the boss's phase changes too) and let it play out
+        const tell = (await page.evaluate((i) => {
+          const x = (window as Any).__cq3.app;
+          const c = x.run.combat;
+          const e = c.enemies.find((q: Any) => q.alive && c.specialsOf(q).length) ?? c.enemies[0];
+          if (!e.alive || c.result) return 0;
+          c.telegraph = null;
+          c.startTelegraph(e, Math.min(i, c.specialsOf(e).length - 1));
+          return c.specialsOf(e)[Math.min(i, c.specialsOf(e).length - 1)].tell;
+        }, i)) as number;
+        await page.waitForTimeout(tell * 1000 + 400);
+        // a boss's phase scene: skip it
+        await a((x) => x.storyOverlay && x.storySkip());
+      }
+      const shown = (await a((x) => x.run.combat.enemies.filter((e: Any) => e.alive).length)) as number;
+      expect(shown, enemies.join('+')).toBeGreaterThan(0);
     }
-    const shown = (await a((x) => x.run.combat.enemies.filter((e: Any) => e.alive).length)) as number;
-    expect(shown, enemies.join('+')).toBeGreaterThan(0);
-  }
-  await page.screenshot({ path: 'test-results/specials.png' });
-  expect(errors).toEqual([]);
-});
+    await page.screenshot({ path: `test-results/specials-${region + 1}.png` });
+    expect(errors).toEqual([]);
+  });
+}
 
 test('a run survives a reload: Continue picks the fight back up', async ({ page }) => {
   await ready(page);

@@ -499,6 +499,21 @@ describe('the fourth region: dark blocks (the lantern) and the tide', () => {
     expect(c.tap(timeAt(t, 0.8)).outcome).toBe('hit');
   });
 
+  it("a Marksman's target stands above the tide on its post and lights itself: never sunk, never dark (another hero's green: both)", () => {
+    for (const hero of ['vesper', 'rowan'] as const) {
+      const { c, t } = setup({ hero, bar: { tide: { ...tide, low: 0.4, high: 0.4 }, dark: { share: 1, fromRow: 0, traps: 0 } } });
+      const g = c.spawnBlock('green', 0.8, c.enemies[0].id, undefined, { dark: true });
+      go(c, timeAt(t, 0.8));
+      expect(c.sunk(g), hero).toBe(hero === 'rowan');
+      expect(g.dark, hero).toBe(hero === 'rowan');
+      expect(c.tap(timeAt(t, 0.8)).outcome, hero).toBe(hero === 'rowan' ? 'miss' : 'hit');
+      // a darkening leaves targets alone
+      const g2 = c.spawnBlock('green', 0.3);
+      c.darken(0);
+      expect(g2.dark, hero).toBe(hero === 'rowan');
+    }
+  });
+
   it('reds wade through the water (slower), and new blocks only come on dry ground', () => {
     const wet = setup({ bar: { tide: { ...tide, low: 0.4 } } }).c;
     const dry = setup().c;

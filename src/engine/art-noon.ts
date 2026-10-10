@@ -6,7 +6,7 @@
 // the shadows deep and cool (indigo, slate), the stone and sand bleached; menace comes from glowing eyes, teeth and hard
 // silhouettes, and what is hot is white-gold.
 //
-// Textures: `${sprite}_${pose}` (data/enemies-noon.ts's `sprite` fields) and the speaker's portrait (`portrait_sphinx`).
+// Textures: `${sprite}_${pose}` (data/enemies-noon.ts's `sprite` fields); the speaker's portrait is the Atlas's.
 // Imported only by pack-noon.ts (region-art.ts): painted in idle slices, or at once when a fight or scene needs them.
 import type { Pal } from './art';
 import {
@@ -21,7 +21,6 @@ import {
   limb,
   line,
   poly,
-  render,
   sweep,
   vol,
   type Add,
@@ -79,6 +78,7 @@ const SAND = ['#14121e', '#2e2630', '#56443e', '#8a6c52', '#bc9a72', '#e2cca0'];
 const BONE = ['#16182a', '#34364e', '#626478', '#9a98a6', '#cac4c2', '#efe8dc'];
 const BRASS = ['#1c120e', '#4a2c12', '#8a5a18', '#c8902a', '#ecc456', '#fbe8a0'];
 const STONE = ['#181420', '#3a2c2e', '#6a4c3a', '#9a744c', '#c49a64', '#e2c088'];
+const LAPIS = ['#080c24', '#0e1640', '#1c2c78', '#2e4aa8', '#4a6cc8', '#6a8ce0'];
 const CLOTH = ['#080a1a', '#141834', '#222a50', '#38446e', '#56628c', '#7c86a8'];
 const IRON = ['#0a0a12', '#181a26', '#2a2c3c', '#424456', '#626476', '#8a8c9c'];
 const SCALE = ['#0a1218', '#122a32', '#1c4648', '#2a6a62', '#4a9282', '#7cbaa0'];
@@ -446,9 +446,9 @@ function sphinxParts(pose: string, phase: number): Part[] {
   out.push(parts({ t: [[paw[0] + bx - 1, paw[1] + by + 1], [paw[0] + bx + 1, paw[1] + by + 2], [paw[0] + bx + 3, paw[1] + by + 2]] }, { pal: GLOW }));
   // the headdress: striped indigo and gold falling to her shoulders
   const nemes = poly([[X(10), Y(8)], [X(24), Y(6)], [X(30), Y(14)], [X(30), Y(28)], [X(22), Y(30)], [X(12), Y(24)]]);
-  const np = V(nemes, [X(9), Y(5), X(31), Y(31)], [X(17), Y(10), 12, 12], CLOTH);
+  const np = V(nemes, [X(9), Y(5), X(31), Y(31)], [X(17), Y(10), 12, 12], LAPIS);
   np[0] = np[0].map((r, y) => [...r].map((c) => (c !== '.' && Math.floor((y + Y(5)) / 2) % 2 === 0 ? (+c > 2 ? 'G' : 'g') : c)).join(''));
-  out.push([np[0], np[1], np[2], { pal: { ...digits(CLOTH), G: BRASS[4], g: BRASS[2] }, edge: CLOTH[0] }]);
+  out.push([np[0], np[1], np[2], { pal: { ...digits(LAPIS), G: BRASS[4], g: BRASS[2] }, edge: LAPIS[0] }]);
   // the face, drawn by hand: a hard brow shelf over deep sockets, eyes red (her sun eyes white-gold past half HP), the
   // nose ridge and cheekbones catching the overhead light, the jaw in shadow
   const FACE = [
@@ -467,11 +467,14 @@ function sphinxParts(pose: string, phase: number): Part[] {
     '.0223333220.',
     '..01222210..',
     '...000000...',
-  ].map((r) => (sun ? r.replace(/R/g, 'Z').replace(/r/g, 'W') : r))
+  ]
+    // kohl-rimmed eyes of gold (white-gold, her sun eyes, past half HP), a gold circlet across the brow
+    .map((r) => (sun ? r.replace(/R/g, 'Z').replace(/r/g, 'W') : r.replace(/R/g, 'X').replace(/r/g, 'x')))
+    .map((r, y) => (y === 2 ? '0xXXXXXXXxx0' : r))
     .map((r, y) => (y === 10 && mouth ? '0231ntnt1320' : y === 11 && mouth === 2 ? '021nnnnnn120' : y === 12 && mouth === 2 ? '.021tttt120.' : r));
   out.push([FACE, X(8), Y(10), { pal: { ...GLOW, ...digits(SKIN) } }]);
-  // a gold uraeus on her brow (the crown that marks her above the rest)
-  out.push([['.X.', 'XZX', '.x.'], X(13), Y(8), { pal: GLOW }]);
+  // the sun pinned at the circlet's front
+  out.push([['.x.', 'xZx', 'XWX', '.x.'], X(13), Y(9), { pal: GLOW }]);
   if (sun) extra.push(glare(X(14), Y(15), 3));
   return [...out, ...extra];
 }
@@ -1097,54 +1100,11 @@ function gnomonParts(pose: string, phase: number): Part[] {
   return [...out, ...extra];
 }
 
-// ------------------------------------------------------------------ portrait (40x40, facing left)
+// ------------------------------------------------------------------ portraits
 
-export const NOON_PORTRAITS = ['sphinx'] as const;
-
-function sphinxPortrait(): HTMLCanvasElement {
-  const p: Part[] = [];
-  const FUR = ['#141220', '#3e2c2e', '#7a5a3e', '#b08a58', '#d8b680', '#f0dcae'];
-  // her lion shoulders, then the striped headdress falling either side
-  p.push(V(ell(26, 42, 17, 10), [7, 32, 39, 39], [22, 35, 14, 6], FUR));
-  const nemes = poly([[6, 6], [30, 3], [38, 14], [38, 39], [26, 39], [12, 30], [4, 20]]);
-  const np = V(nemes, [3, 2, 39, 39], [18, 10, 16, 16], CLOTH);
-  np[0] = np[0].map((r, y) => [...r].map((c) => (c !== '.' && Math.floor((y + 2) / 2) % 2 === 0 ? (+c > 2 ? 'G' : 'g') : c)).join(''));
-  p.push([np[0], np[1], np[2], { pal: { ...digits(CLOTH), G: BRASS[4], g: BRASS[2] }, edge: CLOTH[0] }]);
-  // the face, drawn by hand: the brow a hard shelf over deep sockets and red eyes, the nose ridge and cheekbones lit
-  // from above, the mouth a straight line, the jaw falling into shadow
-  p.push([
-    [
-      '....000000000000....',
-      '...04444555544440...',
-      '..0445555555555440..',
-      '.044455555555554440.',
-      '.034444444444444430.',
-      '.033333333333333330.',
-      '01111111111111111110',
-      '0111RRr114411rRR1110',
-      '0121rnn124421nnr1210',
-      '03442123455432124430',
-      '03443223455432234430',
-      '02343323455432334320',
-      '02333323544532333320',
-      '02233321111112333220',
-      '02233332222223333220',
-      '0223331nnnnnn1333220',
-      '02233322111122333220',
-      '.022333344443333220.',
-      '..0222333333332220..',
-      '...01222222222210...',
-      '....001111111100....',
-      '......00000000......',
-    ],
-    3,
-    10,
-    { pal: { ...GLOW, ...digits(SKIN) } },
-  ]);
-  // the gold uraeus on her brow
-  p.push([['.X.', 'XZX', '.x.'], 12, 7, { pal: GLOW }]);
-  return render(40, 40, GLOW, {}, p);
-}
+/** The speaker's portrait (`portrait_sphinx`) is the Atlas's (art-portraits-atlas.ts, painted with the story art): this
+ *  pack paints none, and her fight sprite wears its colours (lapis and gold, a sun at the brow, gold eyes). */
+export const NOON_PORTRAITS: readonly string[] = [];
 
 // ------------------------------------------------------------------ build
 
@@ -1173,7 +1133,6 @@ function jobs(): Array<() => Array<[string, HTMLCanvasElement]>> {
   };
   const groups: Record<string, string[]> = { sphinx: ['sphinx', 'sphinx2'], brasslion: ['brasslion', 'brasslion2'], gnomon: ['gnomon', 'gnomon2', 'gnomon3'] };
   const out: Array<() => Array<[string, HTMLCanvasElement]>> = NOON_SPRITES.map((name) => () => fitFrames((groups[name] ?? [name]).flatMap((n) => NOON_POSES.map((pose): [string, SpriteDef, string] => [n, defs[n], pose]))));
-  out.push(() => [['portrait_sphinx', sphinxPortrait()]]);
   return out;
 }
 

@@ -183,7 +183,7 @@ export const CALLOUT_WORDS: Record<string, string> = {
 /** Perks that happen where reds land (a blocker took one, a hit taken): their word shows at the bar's left end. */
 const AT_LEFT = new Set(['resolve', 'afterimage', 'rockWall', 'barkback']);
 /** Kit perks that are gear, not the hero: never called out (their names show in the lane). */
-const GEAR_PERKS = new Set(['rimewalker', 'sanctuary', 'emberwright', 'lamplighter']);
+const GEAR_PERKS = new Set(['rimewalker', 'sanctuary', 'emberwright', 'lamplighter', 'wayfarer']);
 /** The allies' own doings: they act every second or so, so at most one of them shows per BUCKET_MS.ally (and each
  *  kind at most every ALLY_KIND_MS); a call, a Rally and a Barkback's block always show. */
 const ALLY_DOINGS = new Set(['thornling', 'glowmoth', 'seedling']);

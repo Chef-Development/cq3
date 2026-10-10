@@ -7,6 +7,7 @@ import { HEROES } from '../../data/heroes';
 import { COMPANIONS } from '../../data/companions';
 import { STYLES } from '../../data/styles';
 import { AURAS, SETS } from '../../data/gear';
+import { NOON_SETS } from '../../data/gear-noon';
 import { relicById, TAG_NAME, type RelicId, type RelicRarity, type RelicTag } from '../../data/relics';
 import { skillById } from '../../data/skills';
 import { relicText, sharedTags } from '../../core/relics';
@@ -42,6 +43,8 @@ export const TAG_FACE: Record<RelicTag, Face> = {
   link: [0xe8e0f0, 0xa89ab8, 0x6a5e7a, 0x342c40],
   light: [0xfff4c0, 0xf6d860, 0xc89a2a, 0x5e4410],
   tide: [0xc0f0ec, 0x4ab8c0, 0x2a7a8a, 0x123c4a],
+  mirage: [0xf8ecd0, 0xd8c08a, 0xa08a5a, 0x4e4028],
+  heat: [0xffe0a0, 0xf8a838, 0xc8601a, 0x6a2a0a],
 };
 
 /** The rarity look of a card: face [hi, base, lo, deep] and its tag (common has none). */
@@ -69,6 +72,8 @@ const TAG_GLYPH: Record<RelicTag, string[]> = {
   link: ['##...', '#.#..', '.###.', '..#.#', '...##'],
   light: ['..#..', '.###.', '##.##', '.###.', '..#..'],
   tide: ['.....', '.#..#', '#.##.', '.....', '#####'],
+  mirage: ['.#.#.', '#.#.#', '.....', '.#.#.', '#.#.#'],
+  heat: ['..#..', '.#.#.', '.#.#.', '#.#.#', '.###.'],
 };
 
 const at = (rows5: string[], x: number, y: number) => rows5[y]?.[x] === '#';
@@ -253,13 +258,14 @@ export const relicLines = (t: Tuning, id: RelicId, w: number): string[] => wrapT
  * A relic card (the boost pick, the shop's detail card): the frame in the rarity's colours, the icon on a tile, the
  * name, its tag chips (a shared tag lit gold), the rarity tag, a "Synergy!" badge on the top edge when it shares a
  * tag with a relic you own, and its text in two lines. Best at 30-32 px tall and 220+ wide; `chips` collects where
- * its tag chips went (the pick draws a line from a shared one to the relic it matches).
+ * its tag chips went (the pick draws a line from a shared one to the relic it matches). `plain` (a new player's first
+ * pick, a taller card): the name and what it does, nothing else.
  */
 export function relicCard(
   c: CardCtx,
   r: Rect,
   id: RelicId,
-  o: { owned: readonly RelicId[]; tuning: Tuning; now: number; flash?: number; alpha?: number; chips?: Array<{ tag: RelicTag; r: Rect; hot: boolean }> },
+  o: { owned: readonly RelicId[]; tuning: Tuning; now: number; flash?: number; alpha?: number; chips?: Array<{ tag: RelicTag; r: Rect; hot: boolean }>; plain?: boolean },
 ): void {
   const def = relicById(id);
   if (!def) return;
@@ -271,8 +277,21 @@ export function relicCard(
   const tile: Rect = { x: r.x + 2, y: r.y + 2, w: 22, h: r.h - 4 };
   cardTile(g, tile, face, a);
   relicIcon(s, pool, g, id, tile.x + 5, tile.y + Math.round((tile.h - RELIC_ICON) / 2), c.depth, a);
-  // row 1: the name, the tag chips, the rarity
   const nx = r.x + 28;
+  if (o.plain) {
+    // a new player's first pick: the name and what it does, nothing else (tags and rarity come from the next pick on)
+    const lines = relicLines(o.tuning, id, r.w).slice(0, 3);
+    const top = Math.round(r.y + (r.h - 10 - lines.length * 9) / 2);
+    texts.text(def.name, nx, top, WHITE, { bold: true, alpha: a });
+    lines.forEach((line, i) => texts.text(line, nx, top + 11 + i * 9, 0xe8e2ff, { alpha: a }));
+    cardShine(g, r, def.rarity, o.now, a);
+    if (o.flash && o.flash > 0) {
+      g.fillStyle(WHITE, o.flash * a);
+      g.fillRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
+    }
+    return;
+  }
+  // row 1: the name, the tag chips, the rarity
   texts.text(def.name, nx, r.y + 2, WHITE, { bold: true, alpha: a });
   let right = r.x + r.w - 3;
   if (look.tag) {
@@ -389,6 +408,7 @@ const KIT_NAME: Record<string, string> = {
   rimewalker: SETS.rimewalker.name,
   emberwright: SETS.emberwright.name,
   lamplighter: SETS.lamplighter.name,
+  wayfarer: NOON_SETS.wayfarer.name,
   sanctuary: AURAS.sanctuary.name,
   // ---- Yara (Part 6) and her spirits
   spiritWolf: 'Spirit Wolf',

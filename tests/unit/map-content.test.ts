@@ -2,6 +2,8 @@
 // merchant, Coin Rush, bounties, the secret cache, the world map's skirmish, and saving all of it (v7, and a v6 save
 // going on without them).
 import { describe, expect, it } from 'vitest';
+import { pageSceneId } from '../../src/data/atlas-pages';
+import { STORY } from '../../src/data/story';
 import { setup, timeAt, toLastWave } from './helpers';
 import { RELICS } from '../../src/data/relics';
 import type { NodeType } from '../../src/data/types';
@@ -353,9 +355,32 @@ describe('the secret cache', () => {
     r.boostChoices = [{ id: 'relic', rarity: 'epic', relic: [...locked][0] }];
     r.pickBoost(0);
     expect(relicUnlocked(r.profile, [...locked][0])).toBe(true);
+    // the act's Atlas page, found for the first time, is read next (then the map); the profile keeps it
+    expect(r.profile.pages).toEqual([r.actIndex]);
+    expect(r.phase).toBe('scene');
+    expect(r.sceneQueue).toEqual([pageSceneId(r.actIndex)]);
+    expect(STORY[pageSceneId(r.actIndex)]).toBeDefined();
+    r.advanceScene();
     expect(r.phase).toBe('map');
     expect(r.secretHere).toBe(false); // once
     expect(r.openSecret()).toBe(false);
+  });
+
+  it("an Atlas page reads only the first time it's found (with/without: found before, no reading)", () => {
+    const r = onMap(7, noRoamers);
+    r.profile.pages = [r.actIndex]; // found on an earlier run
+    const host = r.extras!.secret;
+    const path = [host];
+    while (r.map.nodes[path[0]].row > 0) path.unshift(r.map.nodes.find((p) => p.next.includes(path[0]))!.id);
+    r.path = path;
+    r.phase = 'map';
+    expect(r.openSecret()).toBe(true);
+    expect(r.pagePending).toBeNull();
+    r.openTreasure();
+    r.collectLoot();
+    r.pickBoost(0);
+    expect(r.phase).toBe('map');
+    expect(r.profile.pages).toEqual([r.actIndex]);
   });
 });
 

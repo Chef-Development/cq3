@@ -2214,7 +2214,7 @@ function bellowsParts(pose: string, phase: number): Part[] {
   parts.push([['55544.55544', '.4433..4433'], HX(31), HY(7), { pal: digits(ASHBEARD), edge: ASHBEARD[0] }]);
   if (phase >= 3) parts.push(flame(HX(42), HY(4), 7, 7, 1), flame(X(66), Y(19), 7, 6, 2), flame(X(36), Y(20), 5, 5, 3));
 
-  // --- the anvil, with the brass pendulum weight glowing on it
+  // --- the anvil, a blade blank lying on it white-hot from the fire
   const anvil: Record<string, [number, number][]> = {};
   const A = (ch: string, x: number, y: number) => (anvil[ch] ??= []).push([x, y]);
   for (let x = 0; x <= 22; x++) {
@@ -2227,11 +2227,9 @@ function bellowsParts(pose: string, phase: number): Part[] {
   for (let y = 55; y <= 61; y++) for (let x = 9 - Math.floor((61 - y) / 4); x <= 17 + Math.floor((61 - y) / 4); x++) A(x < 11 ? '4' : x > 15 ? '2' : '3', x, y);
   for (let y = 62; y <= F; y++) for (let x = 5; x <= 21; x++) A(y === 62 ? '4' : x < 8 ? '3' : x > 18 ? '1' : '2', x, y);
   parts.push(dots(Object.entries(anvil) as [string, [number, number][]][], { pal: digits(IRON), edge: IRON[0] }));
-  // the pendulum's weight: a glowing brass bob with its ring
-  parts.push([['.cc.', 'c..c', '.cc.'], 11, 39, { pal: BELLOWS_PAL }]);
-  parts.push(vol(ell(13, 46, 4.6, 4.4), [8, 41, 18, 51], [11, 44, 5, 4], BRASS, { edge: BRASS[0] }));
-  parts.push(dots([['C', [[11, 43], [12, 43]]], ['X', [[13, 47]]]], { pal: BELLOWS_PAL }));
-  parts.push(dots([['X', [[6, 42], [20, 44], [8, 38], [18, 39]]]], { pal: HOT, late: true }));
+  // the blade being forged (decision L8: no pendulum weight; plain menace): tang to the right, the point to the left
+  parts.push([['....xxXXXXXXXXXXxxx', '.xXXZZZZZZZZZXXXXxkk', 'xxxxxxxxxxxxxxxxxx.'], 1, 47, { pal: HOT }]);
+  parts.push(dots([['X', [[6, 42], [20, 44], [8, 38], [18, 39], [13, 41]]]], { pal: HOT, late: true }));
 
   // --- the hammer and the near fist in front
   if (!back) parts.push(...hammer);

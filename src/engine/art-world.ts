@@ -21,7 +21,8 @@
 // band along the far north (`wm_rim`) and small sprites. Everything else that moves the view draws as a handful of
 // rects a frame. The whole lot is painted once; later layouts reuse the canvases.
 import { grid, stamp, toCanvas, type Pal } from './art';
-import { paintLands, WORLD_ACTS_ASH, WORLD_ACTS_DUSK } from './art-world-lands';
+import { paintLands, WORLD_ACTS_ASH, WORLD_ACTS_DUSK, WORLD_ACTS_NOON } from './art-world-lands';
+import { NOON_ON } from '../data/flags';
 import { ATLAS_INK, atlasPrint, blankOf, compassRose, draftOf, neatline, PARCH, paperAt } from './art-world-atlas';
 import { bay, col, fbm, hash, level, lighten, mass, mix, noise, pick, Pix, ramp, rgba32, rng, tuft, wordCanvas, type Blob, type Col, type Ramp } from './backdrop';
 import {
@@ -104,6 +105,7 @@ export const WORLD_ACTS: Array<{ x: number; y: number; box: Box; stand: Pt; flag
   { x: 566, y: 60, box: { x: 546, y: 38, w: 42, h: 44 }, stand: [538, 94], flag: [592, 50], view: [560, 84] },
   ...WORLD_ACTS_ASH,
   ...WORLD_ACTS_DUSK,
+  ...(NOON_ON ? WORLD_ACTS_NOON : []),
 ];
 
 /** The capital's gate, right under the Great Pendulum's tower; and the walled town's tap box. */
@@ -1189,6 +1191,9 @@ function stageDusk(S: Stage): void {
       buf[y * W + 627] = col('#2a1e14');
     }
     claimBox(c, 600, 236, 50, 36);
+    // small clearings where Rowan stands by the village and the lighthouse (WORLD_ACTS_DUSK stands)
+    claimBox(c, 588, 248, 14, 14);
+    claimBox(c, 684, 241, 14, 14);
     for (const [x, y] of STILT_HUTS) stiltHut(c, x, y);
     const b = WORLD_SPOTS.beacon;
     shade(p, b.x + 2, b.y + 15, 5, 1.5, 0.35);

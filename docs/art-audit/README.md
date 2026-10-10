@@ -57,7 +57,7 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 ## Outliers (the redo list, worst first)
 
 1. Skill icons (2, now 3): about half were generic; now themed emblems, still repeated within a tree.
-2. World map veils (2): placeholder fog. Part of the Great Atlas rework of the world map.
+2. World map veils (2, done: 4): placeholder fog, now erased land as blank vellum. Part of the Great Atlas rework of the world map.
 3. Relic icons sharing generic glyphs (3): done, the Frostpeaks' 15 painted.
 4. Rowan's fight frames (3): done, on the rig with every pose.
 5. The dark Ashfell foes (3): done, an ember rim from below.
@@ -79,12 +79,34 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Cinder lair | 3 | 4 | `after/lairs-ashfell.png` (left): the paver heap glows in its seams, the left faces catch the cauldron's light, the pitch glows at the brim. |
 | Title screen, logo, key art | 3 | 4 | `before/title-phone.png`; `after/title-phone.png`, `after/title-desktop.png`, `after/title-continue.png`. The Atlas spread open: an inked parchment map, colour come back round the hero, fog over the erased east, a quill drawing the route; the logo built from `GAME_NAME` (Scale3x lettering, gold face, rim light, extrusion, ink outline). |
 | Title screen (round 8, second take: playtester "too simplistic and drained") | 4 | 4+ | `after/title-key-art.png` (offline render of the layers), `after/title-phone.png`, `after/title-desktop.png`. Key art: a dusk in saturated layers, the world drained into ink and blank vellum on the right under a giant quill, Rowan rim-lit on a cliff; rays, a crawling ink front, motes; the logo on a halo with ink drips; no tutorial strip. |
-| World map veils (erased land) | 2 | 4 | `after/world-atlas-*.png`. Blank warm vellum with the impression of the land's lines, a ragged rubbed edge; the far isles likewise. |
-| World map (style) | 4 | 4 | Printed on the Atlas: parchment sea with wash and engraved water lines, inked coasts and borders, neatline, compass rose, lettered names; unrestored lands in his ink draft with colour back round Rowan and cleared acts; a restored land's colour floods back once. The capital is the domed Atlas Hall. |
+| World map veils (erased land) | 2 | 4 | `after/world-phone-erased.png`, `after/world-atlas-full.png`. Blank warm vellum with the impression of the land's lines, a ragged rubbed edge; the far isles likewise. |
+| World map (style) | 4 | 4 | `after/world-phone-opening.png`, `after/world-phone-restored.png`, `after/world-desktop.png` (before: `before/screens.png`). Printed on the Atlas: parchment sea with wash and engraved water lines, inked coasts and borders, neatline, compass rose, lettered names; unrestored lands in his ink draft with colour back round Rowan and cleared acts; a restored land's colour floods back once. The capital is the domed Atlas Hall. |
 | Portraits: the Mapmaker, Hesper, the narrator | - | 4 | `after/portraits-mapmaker-keeper.png` (narrator, Mapmaker, Hesper). |
+| Menus, camp, story frames, fight chrome (L7 mood, L8 maturity) | 4 | 4 | `before/menus-mood.png` / `after/menus-mood.png` (camp, hero select, companions, shrine, bag, vault, story). Deep ink plates, antique brass trim, buttons as worn metal and leather in the mood's accents, every painted stage and the camp graded darker and cooler (lamps spared); the bar's capsule forged iron. |
+| The Noon Sphinx's portrait | - | 4 | Region 5's first mini-boss: lapis-and-gold headdress, the sun pinned on her circlet. |
 | Rowan's fight frames | 3 | 4 | `after/rowan-before-after.png`, in a fight `after/fight-act1-rowan.png`. On the shared rig (`art-hero-rowan.ts`): the peers' head size and stance, 14 poses (idle0-3, windup, slashA, slashB, dash, leap, parry, hurt, cast, down, fin), a plume and a cape that lag his breath, polished steel. |
 | Heroes' idles | 4 | 4 | `after/heroes-idle4.png`. Every hero idles in four frames (the secondary piece a frame behind); Sable gains fin and cast. |
 | Spirit stag | 3 | 4 | `after/stag-before-after.png`. A haunch and a shoulder, jointed legs with hocks and hooves, great antlers, fewer specks. |
 | Backdrops: glass, forge | 3 | 4 | `after/backdrops-glass-forge.png`, in a fight at phone size `after/fight-act8-glass.png`, `after/fight-act9-forge.png`. The warren: a tall arch onto a hazy far cavern (pillars at two depths, heat shafts), the lake's light on the wall, embers rising. The forge: a far ridge, a heat plume lit from below, pilasters, a calm strip under the feet. |
 | Rowan's sword and polish (playtester: "the sword looks too thin") | 4 | 4 | `after/rowan-sword-before-after.png`. A 4 px blade with lit and shaded edges, an 8 px gold guard with a red stone, the sword in his forward hand (no arm across his chest), a thick plume, a warm specular dash on the helm; his map walker gets a 2 px blade and plume. |
 | Heroes' weapons and props at 8x | 3 | 4 | `after/heroes-weapons-1.png`, `-2.png`. Staves and hafts 3 px (Neve, Moss, Tess, Yara, Fizz's ladle, Torva's haft), daggers 3 px with a guard (Sable, Wren), Dell's slingshot fork, Vesper's bow limbs, Hollis's and Solenne's swords on Rowan's 4 px build. |
+
+## The mood pass and foes with menace (round 8, team 2C: decisions L7, L8, A2C-1..4)
+
+| Item | Before | After | Notes |
+| --- | --- | --- | --- |
+| Fight stages, Greenmarch | 4-5 (bright noon forest, peach sunset) | 4-5 | `after/fight-mood-greenmarch.png` (left before, right after, phone size; Acts 1-3, fights and bosses). The forest at late day (indigo to amber sky, dusk peaks with alpenglow, a dark castle with lit windows, gold shafts, deep teal shade, a darker path); the ruins a step darker; the hollow a blood-red evening. |
+| Fight stages, Frostpeaks and Ashfell | 4 | 4 | `after/fight-mood-frostpeaks-ashfell.png`. The pass a moonlit blue night (stars, a cold moon, moonlit snow); caves and glacier colder and darker; the cinder flats under a smoke-dark sky with the orange kept low; the warrens and the forge darker with their fires kept. |
+| All nine stages side by side | | | `after/backdrops-mood.png` (left before, right after, the textures alone); `after/fight-mood-act1-desktop.png` (1440x900). |
+| Greenmarch foes | 4 (cute: blush, smiles, candy colours) | 4 | `after/foes-menace-greenmarch.png` (top before, bottom after). Slimes scowl with glowing eyes and teeth, a bone in the core; the boar, crow, bandit, captain, shaman, wolf and piglets darker with an edge; the Boar King's ember eye, fangs, hackles and jagged crown. |
+| Frostpeaks foes | 4 | 4 | `after/foes-menace-frostpeaks.png`. Glacia darker with a slit pupil and fangs; the yeti cub's dark face and glowing eyes. |
+| Pendulum symbols on foes | | | Gone from the Boar King (crown, portrait), the golem's crown (a glowing compass-star rune) and Bellows (a white-hot blade on his anvil); the captain's and golem's portraits are 2A's (A19). |
+
+## Heroes, portraits, walkers and finishers (round 8, team 2B: L8)
+
+| Item | Before | After | Notes |
+| --- | --- | --- | --- |
+| Heroes' maturity (playtester: "childish and chibi", L8) | 3 | 4 | `after/rowan-mature-before-after.png`, `after/heroes-mature-before-after.png`, `after/moss-mature-before-after.png`; in fights at phone size `after/rowan-mature-fight.png`, `after/neve-mature-fight.png`, `after/moss-mature-fight.png`; the hero select `after/rowan-mature-select.png`. Frames 48 px tall; about three heads (smaller heads, a longer torso, the shared jointed legs, `art-rig.ts` matureLegs); single dark eyes under a brow, no glossy whites or blush (matureHeads); a shared grade (darker, weathered); a lit top-left edge kept so each reads on a dark stage. Still to do: hand-drawn heads for the heroes done by script. |
+| Hero portraits | 3 | 3+ | `after/hero-portraits-mature.png`, the chest reveal `after/chest-reveal-mature.png`. Eyes narrowed to one row of iris under the lid, blush gone, the mature grade; Rowan's and Sable's redrawn in their new colours. Still to do: per-hero redraws of the jaw and brow. |
+| Map walkers | 3 | 3+ | `after/walkers-mature-before-after.png` (top before), on the act map `after/walkers-on-map.png` (Rowan, Tam, Neve). Two rows taller (longer legs, about three heads), the mature grade; Rowan's redrawn. Still to do: smaller hand-drawn heads for the chest heroes. |
+| Finishers' motion | 3 | 4 | A windup beat before the big blow (every kit but the blink), a forward stretch on the blow, the follow-through held where it landed, then home on the idle's settling frame (A2B-12). |

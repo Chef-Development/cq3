@@ -170,7 +170,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   Duskmire 9-11; each region's data in its own files: `frostpeaks.ts` + `enemies-frost.ts`, `ashfell.ts` +
   `enemies-ash.ts`, `story-ash.ts`, `relics-ash.ts`, `gear-ash.ts`, `banter-ash.ts`, and the `-dusk` set likewise
   (`duskmire.ts`, `relic-fx-dusk.ts`...), merged into the game's tables; a region whose art hasn't landed yet fights in
-  stand-in sprites, `view/fighters.ts` `SPRITE_STAND_IN`, on earlier themes, `DUSK_STAND_IN`); the run walks
+  stand-in sprites, `view/fighters.ts` `SPRITE_STAND_IN`, on earlier themes, `DUSK_STAND_IN`; Noonspire, acts 12-14, is
+  wired behind `src/data/flags.ts` `NOON_ON`: off in the game and the unit tests, `CQ3_REGION5=1` turns it on for the
+  balance tools); the run walks
   `CAMPAIGN` and a region's last act ends in its own victory scene (`profile.weights` = regions won). A region starts a
   fresh run (relic picks only for acts behind within the region). An act's **bar rules** (`acts[i].bar`, introduced
   from a map row: ice and snow patches that change the cursor's speed, hold blocks; drifting blocks (`b.vel` on a
@@ -302,8 +304,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   frames that draw on it). Hard pixels only (filled rects and pre-painted canvases, no paths, smoothing off; particles
   from the time and a seed); its art is drawn on the fine grid (`art-chests-hd.ts`, `art-reveal-hd.ts`, `font-hd.ts`:
   the game fonts doubled with Scale2x), sprites keep the game grid (never mix grids inside one piece of art).
-  `ChestOpening.view` is 'old' | 'hd' | 'split'; the setting is `cq3.chestReveal` (`storage.ts`, not in the gear
-  panel); the timeline, taps, sounds and queue are shared. The rollout plan is in docs/decisions.md (S6).
+  `ChestOpening.view` is 'old' | 'hd' | 'split' (it reads 'old' until the sharper reveal's chunk has loaded: chest-hd.ts
+  is imported only with `import()`, beside the boot: `loadChestHd`); the setting is `cq3.chestReveal`
+  (`storage.ts`, not in the gear panel); the timeline, taps, sounds and queue are shared. The rollout plan is in docs/decisions.md (S6).
 - **Accuracy readout** (`core/accuracy.ts`): every tap aimed at an isolated yellow gives a timing error; the median and
   MAD of the recent ones, mapped through `SD_CALIBRATION` (made with bots of known accuracy: `npm run calibrate`; re-run
   it after changing block widths, the cursor or the acts' pace; `tests/unit/accuracy.test.ts` fails when it drifts),
@@ -330,6 +333,14 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   or sheet closes; on the title it leaves); the installed app opens full screen (`display_override`); in a tab or on a
   desktop the gear panel has Full screen (and on a phone held upright it locks the game sideways). The "turn your
   phone sideways" card shows on touch screens only.
+- **Accessibility** (round 8, `core/a11y.ts` rules, unit-tested; `engine/a11y.ts` the live values; `cq3.a11y` in
+  storage.ts; the gear panel's Modes): **Block marks** (on by default): a plain red carries a small chevron so no block
+  kind is told apart by colour alone (every other kind already has a glyph or a shape: keep it so for new kinds; an
+  unlit dark block shows nothing). **Motion** Auto/Less/Full (Auto follows `prefers-reduced-motion`): Less turns the
+  screen shake, the camera's kick and the white impact frames off and shortens screen flashes (`view/effects.ts`: new
+  screen motion goes through `fx.shake`/`fx.kick`/`fx.screenFlash` so it obeys). **Larger text** (off by default):
+  the story boxes and the tips in the bold display letters wherever a box's lines fit its text area in them
+  (`bigFits`: about 94% of story boxes; the rest keep the small letters; the tip card grows to hold them).
 - **Clean capture** (`cq3.cleanCapture`, storage.ts): the gear panel's Modes or C hides the HUD buttons and the Test
   lab's for recording clips; a long press on the top middle (or C) brings them back.
 - **Test lab** (`src/data/lab.ts` scenarios, `core/lab.ts` profiles/fights/ratings/report, `engine/lab.ts` the list):

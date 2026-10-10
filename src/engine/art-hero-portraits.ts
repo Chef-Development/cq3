@@ -115,8 +115,8 @@ function neve(): HTMLCanvasElement {
   for (let y = 15; y < 27; y++) put(g, 22, y, N_HAIR[1]);
   // eyes: big ice-blue irises, glints toward the light (the near eye larger)
   const eye: Pal = { k: INK, W: '#ffffff', i: '#3ab8f0', I: '#1a6ab0', j: '#9ae8ff' };
-  eyes(g, ['kkkkk', 'kWiik', 'kiIIk', 'kjiIk', '.kkk.'], eye, 23, 17);
-  eyes(g, ['kkkk', 'Wiik', 'iIIk', 'jiIk', 'kkk.'], eye, 30, 17);
+  eyes(g, ['kkkkk', 'kkiIk', '.kkk.'], eye, 23, 18);
+  eyes(g, ['kkkk', 'kiIk', '.kk.'], eye, 30, 18);
   // brows, the nose's shadow, the mouth, blush
   for (const [x, y] of [
     [24, 15],
@@ -205,8 +205,8 @@ function torva(): HTMLCanvasElement {
       put(g, x, y0 + (x0 === 22 ? (x > 24 ? 1 : 0) : x < 30 ? 1 : 0), T_HAIR[1]);
     }
   const eye: Pal = { k: INK, W: '#ffffff', g: '#3aa04a', G: '#1e6a34', w: '#e8dcd0' };
-  eyes(g, ['kkkk', 'WgGk', 'wGkk', '.kk.'], eye, 23, 17);
-  eyes(g, ['kkk', 'WgG', 'wGk'], eye, 30, 17);
+  eyes(g, ['kkkk', 'kgGk', '.kk.'], eye, 23, 17);
+  eyes(g, ['kkk', 'kgG', '.kk'], eye, 30, 17);
   for (const [x, y] of [
     [24, 22],
     [26, 23],
@@ -281,8 +281,8 @@ function hollis(): HTMLCanvasElement {
   for (let x = 30; x <= 32; x++) put(g, x, 16, H_BLACK[0]);
   for (let x = 24; x <= 25; x++) put(g, x, 15, H_BLACK[2]);
   const eye: Pal = { k: INK, W: '#fff8f0', b: '#6a3a24', w: '#d8ccc4' };
-  eyes(g, ['kkkk', 'WWbk', 'wbbk'], eye, 23, 17);
-  eyes(g, ['kkk', 'Wbk', 'wbk'], eye, 30, 17);
+  eyes(g, ['kkkk', 'kbbk', '.kk.'], eye, 23, 17);
+  eyes(g, ['kkk', 'kbk', '.kk'], eye, 30, 17);
   // the cheekbone and brow catching the light
   put(g, 27, 20, H_SKIN[4]);
   put(g, 28, 20, H_SKIN[4]);
@@ -362,8 +362,8 @@ function vesper(): HTMLCanvasElement {
   ])
     put(g, x, y, V_HAIR[1]);
   const eye: Pal = { k: INK, W: '#ffffff', a: '#f2c040', A: '#b07018' };
-  eyes(g, ['kkkkk', 'kWaAk', '.kkk.'], eye, 22, 17);
-  eyes(g, ['kkkk', 'WaAk', '.kk.'], eye, 30, 17);
+  eyes(g, ['kkkkk', 'kkaAk', '.kkk.'], eye, 22, 17);
+  eyes(g, ['kkkk', 'kaAk', '.kk.'], eye, 30, 17);
   put(g, 34, 23, SKIN_FAIR[2]);
   put(g, 29, 26, '#a04a4a');
   put(g, 30, 26, '#a04a4a');
@@ -457,8 +457,8 @@ function tam(): HTMLCanvasElement {
   for (let x = 23; x <= 25; x++) put(g, x, 16, TM_HAIR[1]);
   for (let x = 30; x <= 32; x++) put(g, x, 16, TM_HAIR[1]);
   const eye: Pal = { k: INK, W: '#ffffff', b: '#4a3020' };
-  eyes(g, ['Wbk', 'bkk', '.k.'], eye, 23, 18);
-  eyes(g, ['Wb', 'bk'], eye, 30, 18);
+  eyes(g, ['kbk', '.kk'], eye, 23, 18);
+  eyes(g, ['kb', '.k'], eye, 30, 18);
   put(g, 34, 23, TM_SKIN[2]);
   stamp(g, ['xxxxx', 'xWxWx', '.xxx.'], { x: '#5a1a1a', W: '#fff4e8' }, 27, 25);
   return toCanvas(g);
@@ -519,8 +519,8 @@ function moss(): HTMLCanvasElement {
   ])
     fill(g, ell(cx, cy, 2.8, 1.4), sphere(M_HAIR, cx - 1, cy - 1, 3.5, 2, 0.15));
   const eye: Pal = { k: INK, W: '#ffffff' };
-  eyes(g, ['kW', 'kk', 'kk'], eye, 24, 17);
-  eyes(g, ['kW', 'kk', 'kk'], eye, 30, 17);
+  eyes(g, ['kk', 'kk'], eye, 24, 18);
+  eyes(g, ['kk', 'kk'], eye, 30, 18);
   put(g, 22, 21, '#f49a90');
   put(g, 23, 21, '#f49a90');
   // the moustache sweeping out under the nose
@@ -620,8 +620,8 @@ function yara(): HTMLCanvasElement {
   ])
     put(g, x, y, Y_HAIR[1]);
   const eye: Pal = { k: INK, W: '#ffffff', a: '#7a3a1e', A: '#4a200e' };
-  eyes(g, ['kkkk', 'WaAk', '.kk.'], eye, 23, 17);
-  eyes(g, ['kkk', 'WaA', '.kk'], eye, 30, 17);
+  eyes(g, ['kkkk', 'kaAk', '.kk.'], eye, 23, 17);
+  eyes(g, ['kkk', 'kaA', '.kk'], eye, 30, 17);
   put(g, 34, 23, Y_SKIN[2]);
   for (const [x, y] of [
     [28, 26],
@@ -691,8 +691,8 @@ function dell(): HTMLCanvasElement {
     put(g, x, y, D_HAIR[3]);
   // big green eyes, freckles, a gap-toothed grin
   const eye: Pal = { k: INK, W: '#ffffff', a: '#3aa04a', A: '#1e6a34' };
-  eyes(g, ['.kk.', 'kWak', 'kaAk', '.kk.'], eye, 22, 17);
-  eyes(g, ['.kk', 'kWa', 'kaA', '.kk'], eye, 30, 17);
+  eyes(g, ['.kkk', 'kaAk', '.kk.'], eye, 22, 17);
+  eyes(g, ['.kk', 'kaA', '.kk'], eye, 30, 17);
   for (const [x, y] of [
     [23, 22],
     [25, 23],
@@ -723,7 +723,58 @@ function dell(): HTMLCanvasElement {
 
 // ------------------------------------------------------------------ build
 
-export function buildHeroPortraits(add: (key: string, c: HTMLCanvasElement) => void): void {
+/**
+ * The mature look on a finished portrait (playtest round 8, L8: defined features, single dark irises, moodier light):
+ * blush on the cheeks goes back to skin; then every colour goes down in value (the darks more than the lights) and a
+ * little in saturation, like the fight frames (art-rig.ts gradeGrid). Painted once, at boot. (The eyes are narrowed
+ * by hand in each portrait: one row of iris under the lid, no white glints.)
+ */
+export function maturePortrait(c: HTMLCanvasElement): HTMLCanvasElement {
+  const ctx = c.getContext('2d')!;
+  const W = c.width;
+  const H = c.height;
+  const img = ctx.getImageData(0, 0, W, H);
+  const d = img.data;
+  const at = (x: number, y: number) => (y * W + x) * 4;
+  // blush on the cheeks goes back to skin; only on the face's side (portraits face right)
+  const src2 = new Uint8ClampedArray(d);
+  for (let y = 17; y <= 27; y++)
+    for (let x = 17; x < W - 2; x++) {
+      const i = at(x, y);
+      if (src2[i + 3] < 128) continue;
+      if (!(src2[i] > 200 && src2[i] - src2[i + 1] > 55 && src2[i] - src2[i + 2] > 40)) continue;
+      // blush: take the skin of a neighbour that isn't pink
+      for (const [dx, dy] of [
+        [0, -1],
+        [-1, 0],
+        [1, 0],
+        [0, 1],
+      ]) {
+        const j = at(x + dx, y + dy);
+        if (src2[j + 3] < 128 || (src2[j] - src2[j + 1] > 55 && src2[j] > 200)) continue;
+        d[i] = src2[j];
+        d[i + 1] = src2[j + 1];
+        d[i + 2] = src2[j + 2];
+        break;
+      }
+    }
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] < 128) continue;
+    const r = d[i] / 255;
+    const g = d[i + 1] / 255;
+    const b = d[i + 2] / 255;
+    const k = 0.74 + 0.26 * Math.max(r, g, b);
+    const grey = (r + g + b) / 3;
+    d[i] = Math.round((grey + (r - grey) * 0.85) * k * 255);
+    d[i + 1] = Math.round((grey + (g - grey) * 0.85) * k * 255);
+    d[i + 2] = Math.min(255, Math.round((grey + (b - grey) * 0.85) * k * 1.03 * 255));
+  }
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
+
+export function buildHeroPortraits(addRaw: (key: string, c: HTMLCanvasElement) => void): void {
+  const add = (key: string, c: HTMLCanvasElement) => addRaw(key, maturePortrait(c));
   add('portrait_neve', neve());
   add('portrait_moss', moss());
   add('portrait_tam', tam());

@@ -82,7 +82,8 @@ describe('Region 5: the foes', () => {
     expect(all.filter(([, e]) => !e.boss && !e.elite).length).toBeGreaterThanOrEqual(8);
     expect(all.filter(([, e]) => e.elite).length).toBe(3);
     expect(all.filter(([, e]) => e.boss).length).toBe(3);
-    for (const [k] of all) expect(k in ENEMIES || k in DUSK_ENEMIES, k).toBe(false);
+    // (merged into ENEMIES for the Test lab's previews: its own entries, no clash with another region's)
+    for (const [k, e] of all) expect((k in ENEMIES && ENEMIES[k] !== e) || k in DUSK_ENEMIES, k).toBe(false);
     for (const tag of ['folk', 'caster', 'beast', 'swarm', 'armored', 'brute', 'flyer', 'construct'] as const) expect(all.some(([, e]) => e.tags?.includes(tag)), tag).toBe(true);
   });
 
@@ -144,11 +145,11 @@ describe('Region 5: the foes', () => {
   });
 });
 
-describe('Region 5: gear (not merged yet)', () => {
+describe('Region 5: gear (merged once the region is in play)', () => {
   it("unique ids and names new to the game, every slot covered, a set and the boss's two signature Legendaries", () => {
     const ids = NOON_BASE_ITEMS.map((b) => b.id);
     expect(new Set(ids).size).toBe(ids.length);
-    const old = [...BASE_ITEMS, ...(DUSK_BASE_ITEMS as typeof BASE_ITEMS)];
+    const old = [...BASE_ITEMS.filter((b) => b.act < NOON_FIRST_ACT), ...(DUSK_BASE_ITEMS as typeof BASE_ITEMS)];
     const oldIds = new Set(old.map((b) => b.id));
     const oldNames = new Set(old.map((b) => b.name));
     const widestName = Math.max(...BASE_ITEMS.map((b) => textWidth(b.name, 1, true)));
@@ -162,14 +163,14 @@ describe('Region 5: gear (not merged yet)', () => {
     expect(plain.length).toBeGreaterThanOrEqual(10);
     for (const slot of SLOTS) expect(plain.some((b) => b.slot === slot), slot).toBe(true);
     for (const [id, set] of Object.entries(NOON_SETS)) {
-      expect(id in SETS, id).toBe(false);
+      expect(id in SETS && SETS[id as keyof typeof SETS] !== set, id).toBe(false);
       const pieces = set.pieces.map((p) => NOON_BASE_ITEMS.find((b) => b.id === p));
       for (const [i, p] of pieces.entries()) expect(p?.set, set.pieces[i]).toBe(id);
       expect(new Set(pieces.map((p) => p?.slot)).size).toBe(pieces.length);
     }
     const widestEffect = Math.max(...Object.values(EFFECTS).map((e) => textWidth(e.text, 1, false)));
     for (const [id, e] of Object.entries(NOON_EFFECTS)) {
-      expect(id in EFFECTS, id).toBe(false);
+      expect(EFFECTS[id as keyof typeof EFFECTS], id).toBe(e);
       expect(textWidth(e.text, 1, false), e.text).toBeLessThanOrEqual(widestEffect);
     }
     for (const [boss, items] of Object.entries(NOON_SIGNATURES)) {
@@ -184,14 +185,15 @@ describe('Region 5: gear (not merged yet)', () => {
   });
 });
 
-describe('Region 5: relics (data only, not merged yet)', () => {
+describe('Region 5: relics (in RELICS once the region is in play)', () => {
   const sub = (text: string, n?: number) => text.replace('{n}', String(n ?? ''));
   it('fourteen Mirage and Heat relics: unique ids and names new to the game, one number at most, each fits a card', () => {
     const ids = NOON_RELICS.map((r) => r.id);
     expect(new Set(ids).size).toBe(ids.length);
-    const oldIds = new Set<string>(RELICS.map((r) => r.id));
-    const oldNames = new Set(RELICS.map((r) => r.name));
-    const widest = Math.max(...RELICS.map((r) => textWidth(sub(r.text, r.n), 1, false)));
+    const older = RELICS.filter((r) => (r.from ?? 0) < NOON_FIRST_ACT);
+    const oldIds = new Set<string>(older.map((r) => r.id));
+    const oldNames = new Set(older.map((r) => r.name));
+    const widest = Math.max(...older.map((r) => textWidth(sub(r.text, r.n), 1, false)));
     for (const r of NOON_RELICS) {
       expect(oldIds.has(r.id), r.id).toBe(false);
       expect(oldNames.has(r.name), r.name).toBe(false);
@@ -204,8 +206,10 @@ describe('Region 5: relics (data only, not merged yet)', () => {
       expect(textWidth(sub(r.text, r.n), 1, false), `${r.id}: fits a card like the others`).toBeLessThanOrEqual(widest);
     }
     for (const tag of NOON_RELIC_TAGS) expect(NOON_RELICS.filter((r) => r.tags.includes(tag)).length, tag).toBeGreaterThanOrEqual(6);
-    const builds = new Set([...Object.values(BUILD_NAME), ...PAIR_NAME.map((p) => p[2])]);
-    for (const name of [...Object.values(NOON_BUILD_NAME), ...NOON_PAIR_NAME.map((p) => p[2])]) expect(builds.has(name), name).toBe(false);
+    const ours = new Set([...Object.values(NOON_BUILD_NAME), ...NOON_PAIR_NAME.map((p) => p[2])]);
+    const others = [...Object.entries(BUILD_NAME).filter(([t]) => !(NOON_RELIC_TAGS as string[]).includes(t)).map(([, v]) => v), ...PAIR_NAME.filter((p) => !p.some((t) => (NOON_RELIC_TAGS as string[]).includes(t))).map((p) => p[2])];
+    for (const name of others) expect(ours.has(name), name).toBe(false);
+    expect(BUILD_NAME.mirage).toBe(NOON_BUILD_NAME.mirage);
     for (const [a, b] of NOON_PAIR_NAME) expect([a, b].some((t) => (NOON_RELIC_TAGS as string[]).includes(t))).toBe(true);
   });
 });

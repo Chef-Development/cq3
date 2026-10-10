@@ -30,6 +30,11 @@ import { ImagePool } from './ui';
 import { drawBarRules } from './bar-links';
 import { drawDarkShape, drawLantern, drawWater, glisten } from './bar-dusk';
 import { drawBlaze, drawHeat, drawMirages } from './bar-noon';
+import { A11Y } from '../a11y';
+
+/** The block mark on a plain red: an incoming strike (a down chevron); the thin one for a red too narrow for it. */
+const RED_MARK = ['#...#', '.#.#.', '..#..'];
+const RED_MARK_THIN = ['#.#', '.#.'];
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -449,8 +454,8 @@ export class BarView {
     this.drawMarks(g, gt, now, bx);
     const group = c.enemies.length > 1;
     this.drawGhosts(g, c, now, bx);
-    // (ice floats on the tide: frozen blocks are drawn over the water with the reds, never under it)
-    const afloat = (b: Block) => b.kind === 'frozen' && (c.waterL > 0 || c.waterR > 0);
+    // (what can't sink is drawn over the water with the reds: ice floats, a Marksman's target stands on its post)
+    const afloat = (b: Block) => !isRed(b.kind) && !c.canSink(b) && (c.waterL > 0 || c.waterR > 0);
     for (const b of c.blocks) if (!isRed(b.kind) && !afloat(b)) this.drawBlock(g, b, c, t, now, group, bx);
     drawBarRules(g, c, t, now, s.bar, bx); // linked pairs' chains, drifting blocks' chevrons
     drawWater(g, c, t, now, s.bar, bx); // the tide: over the still blocks (they lie under it), under the reds
@@ -691,6 +696,11 @@ export class BarView {
         icon(g, variant, cx, ownerIcon ? Y + 12 : cy, b.kind === 'speed' ? 0xffe680 : INK);
         if (ownerIcon) icon(g, ownerIcon, cx, Y + 3, WHITE);
       } else if (ownerIcon && !b.still) icon(g, ownerIcon, cx, cy, WHITE);
+      // (block marks: a plain red is told from a yellow by a mark, not by its colour alone; engine/a11y.ts)
+      else if (A11Y.marks && !b.still) {
+        const m = W >= 7 ? RED_MARK : RED_MARK_THIN;
+        icon(g, m, Math.round(X + W / 2 - m[0].length / 2), Math.round(Y + H / 2 - m.length / 2), INK);
+      }
       if (b.chill > 0) {
         // (frozen solid: how much of its freeze is left, so it cracks as it thaws)
         let c0 = this.chill0.get(b.id) ?? 0;

@@ -49,6 +49,8 @@ export type LabSetup =
   /** Act `act`'s map (its scenes skipped), with its foes, roaming packs and stops, to look at; over once the run
    *  leaves it (a node tapped, the camp). */
   | { kind: 'map'; act: number }
+  /** A map event (`event`, an id in src/data/events.ts) on act `act`'s map, opened at once; over once it's read. */
+  | { kind: 'event'; act: number; event: string }
   /** The Finisher gallery: any hero's finisher on demand (every hero in HEROES, at 1 to max stacks, at any rarity)
    *  against these foes at act `act`'s stage, as often as wanted; `hero` comes first. Nothing hurts, nothing dies,
    *  nothing is saved. */
@@ -293,10 +295,18 @@ export const LAB_NEW: LabScenario[] = [
   { id: 'r8Story1', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 1 story (new)', secs: 60, try: 'Read the scenes. A quick, clear start?', setup: { kind: 'story', act: 0, scenes: ['intro', 'act1', 'road', 'captain', 'sableJoin'] } },
   { id: 'r8Story2', group: 'spoiler', spoiler: true, label: 'Act 2 story (new)', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 1, scenes: ['act2', 'golem'] } },
   { id: 'r8Story3', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 3 story (new)', secs: 90, try: 'Read the scenes. Does the ending pull you on?', setup: { kind: 'story', act: 2, scenes: ['act3', 'boarKing', 'boarKing2', 'boarKing3', 'victory'] } },
+  // Atlas pages: one per act, in its hidden treasure; read when found, and again from the region card's treasure seals
+  { id: 'r8Pages', group: 'spoiler', spoiler: true, label: 'Atlas pages (new)', secs: 45, try: 'Read three pages. Do they make the land real?', setup: { kind: 'story', act: 0, scenes: ['atlasPage0', 'atlasPage1', 'atlasPage2'] } },
+  { id: 'r8PagesCard', group: 'camp', rev: 1, label: 'Atlas pages: reread', secs: 30, try: "Tap a treasure seal: that act's page.", setup: { kind: 'camp', screen: 'completion' }, profile: { completion: 'near' } },
+  // the regions' own events, one each here (the other of each pair turns up on that region's maps)
+  { id: 'r8Event1', group: 'spoiler', spoiler: true, label: 'Act 1 event (new)', secs: 30, try: 'Read it and choose. A real choice?', setup: { kind: 'event', act: 0, event: 'sleepingFarmer' } },
+  { id: 'r8Event4', group: 'spoiler', spoiler: true, label: 'Act 4 event (new)', secs: 30, try: 'Read it and choose. A real choice?', setup: { kind: 'event', act: 3, event: 'heldFast' } },
+  { id: 'r8Event7', group: 'spoiler', spoiler: true, label: 'Act 7 event (new)', secs: 30, try: 'Read it and choose. A real choice?', setup: { kind: 'event', act: 6, event: 'chainedPair' } },
+  { id: 'r8Event10', group: 'spoiler', spoiler: true, label: 'Act 10 event (new)', secs: 30, try: 'Read it and choose. A real choice?', setup: { kind: 'event', act: 9, event: 'tideReader' } },
   { id: 'r8Arrivals', group: 'spoiler', spoiler: true, rev: 1, label: 'Newest arrivals', secs: 90, try: 'Read how each arrives. Funny? Short enough?', setup: { kind: 'story', act: 1, scenes: ['meetSolenne', 'meetWren', 'meetYara', 'meetDell', 'meetGorm', 'meetTess', 'meetFizz', 'meetBrann'] } },
   // ---- art (team 2)
   { id: 'titleAtlas', group: 'camp', rev: 2, label: 'New title screen', secs: 30, try: 'Key art now: watch it come alive, then tap.', setup: { kind: 'title' }, profile: { actsCleared: 0 } },
-  { id: 'atlasMap', group: 'camp', label: 'The Atlas map', secs: 45, try: 'Drag the map: ink, paper, erased land.', setup: { kind: 'world' }, profile: { actsCleared: 1 } },
+  { id: 'atlasMap', group: 'camp', label: 'The Atlas map', secs: 45, try: 'Drag the map: painted lands, erased land.', setup: { kind: 'world' }, profile: { actsCleared: 1 } },
   { id: 'atlasRestore', group: 'camp', label: 'A land comes back', secs: 30, try: 'A land restored: its colour floods back.', setup: { kind: 'world', replay: ['restore:greenmarch'], weights: 1 }, profile: { actsCleared: 2 } },
   // Rowan redrawn on the shared rig (plume and cape that lag his breath, every pose), the four-frame idles, squash and
   // stretch on cuts, blows and landings
@@ -304,6 +314,12 @@ export const LAB_NEW: LabScenario[] = [
   // the third region's last two stages with depth and air (the far cavern, heat shafts, the furnace's plume)
   { id: 'spStage8', group: 'spoiler', spoiler: true, label: 'Act 8 stage', secs: 30, try: 'Look past the foe: depth? Does the hero pop?', setup: { kind: 'fight', hero: 'rowan', act: 7, waves: [['dummy']], safe: true } },
   { id: 'spStage9', group: 'spoiler', spoiler: true, label: 'Act 9 stage', secs: 30, try: 'Look past the foe: depth? Does the hero pop?', setup: { kind: 'fight', hero: 'rowan', act: 8, waves: [['dummy']], safe: true } },
+  // team 2C: the stages darker and moodier (late day, a red evening, a moonlit night), the foes with an edge (nothing
+  // hurts: look at them)
+  { id: 'moodAct1', group: 'fights', label: 'Act 1 at dusk', secs: 45, try: 'Moodier now? Do you and the foes still pop?', setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['slime', 'crow'], ['boar', 'bandit'], ['bigSlime']], safe: true } },
+  { id: 'moodAct3', group: 'fights', label: 'Act 3, red evening', secs: 40, try: 'A blood-red sky. Too dark, or just right?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['wolf', 'shaman'], ['boar', 'crow']], safe: true } },
+  { id: 'spMoodBoss3', group: 'spoiler', spoiler: true, label: 'Act 3 boss look', secs: 30, try: 'More menace? Still clear what he is?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['boarKing']], safe: true } },
+  { id: 'spMood4', group: 'spoiler', spoiler: true, label: 'Act 4 at night', secs: 40, try: 'Moonlit now. Do the foes still read?', setup: { kind: 'fight', hero: 'rowan', act: 3, waves: [['rimeImp', 'icicleBat'], ['yetiCub', 'rimeImp']], safe: true } },
   // ---- content: the new regions (team 3; spoilers)
   // the fourth region's two bar rules, each alone against the Training Dummy (nothing hurts, the rule's tip on), then
   // both at once against real foes
@@ -312,6 +328,12 @@ export const LAB_NEW: LabScenario[] = [
   { id: 'spBarMirage', group: 'spoiler', spoiler: true, label: 'Act 13 bar rule', secs: 40, try: 'Some blocks jump to their ghost. Read the outline.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, waves: [['dummy']], bar: { mirage: { share: 0.4, fromRow: 0, every: 2.6 } }, safe: true }, profile: { tips: ['mirage'] } },
   { id: 'spBarHeat', group: 'spoiler', spoiler: true, label: 'Act 14 bar rule', secs: 40, try: 'Blazing blocks hit hard but burn. Greens cool.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, waves: [['dummy']], bar: { heat: { share: 0.35, fromRow: 0 } }, safe: true }, profile: { tips: ['heat'] } },
   { id: 'spBarDusk', group: 'spoiler', spoiler: true, label: 'Act 12 bar rules', secs: 75, try: 'Both at once, real foes. Fair? Easy to read?', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 7, stage: 2, waves: [['cinderKite', 'cragCrab'], ['glassMantis'], ['cinderling', 'prismBat']], bar: { dark: { share: 0.3, fromRow: 0, traps: 0.25 }, tide: { fromRow: 0, low: 0.08, high: 0.4, period: 8, from: 'right' } } } },
+  // the fifth region ahead of its art (not in the campaign yet): its foes and mini-bosses on stand-in looks, at Act 12's
+  // numbers with its own bar rules (its sprites, sounds and scenes come with its art)
+  { id: 'spAct13', group: 'spoiler', spoiler: true, label: 'Act 13 foes', secs: 90, try: 'Early look, borrowed sprites: moves and mirages.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 11, waves: [['duneSkink', 'glareHawk'], ['duneBandit', 'duneSkink'], ['duneColossus']], bar: { mirage: { share: 0.25, fromRow: 0, every: 2.8 } } } },
+  { id: 'spMini13', group: 'spoiler', spoiler: true, label: 'Act 13 mini-boss', secs: 90, try: 'Early look, borrowed sprite. No damage here.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 11, waves: [['sphinx']], bar: { mirage: { share: 0.25, fromRow: 0, every: 2.8 } }, safe: true } },
+  { id: 'spAct14', group: 'spoiler', spoiler: true, label: 'Act 14 foes', secs: 90, try: 'Early look, borrowed sprites: blazing blocks.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 11, waves: [['emberScarab', 'brassSentry'], ['sandSalamander', 'glareHawk'], ['sunforgedGolem']], bar: { heat: { share: 0.2, fromRow: 0 }, mirage: { share: 0.1, fromRow: 0, every: 2.8 } } } },
+  { id: 'spAct15', group: 'spoiler', spoiler: true, label: 'Act 15 foes', secs: 90, try: 'Early look, borrowed sprites: both rules.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 11, waves: [['dialWarden', 'heatDjinn'], ['sunVulture', 'brassSentry'], ['noonKnight']], bar: { mirage: { share: 0.2, fromRow: 0, every: 2.5 }, heat: { share: 0.2, fromRow: 0 } } } },
   // the fourth region in play: each act's foes, its mini-boss or boss (nothing hurts), its map and its story
   { id: 'spAct10', group: 'spoiler', spoiler: true, label: 'Act 10 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 9, waves: [['bogWisp', 'mireToad'], ['reedling', 'reedling'], ['peatGolem']], bar: 'act', row: 3 } },
   { id: 'spMini10', group: 'spoiler', spoiler: true, label: 'Act 10 mini-boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 9, waves: [['bellybog']], bar: 'act', row: 6, safe: true } },
@@ -331,6 +353,15 @@ export const LAB_NEW: LabScenario[] = [
     secs: 40,
     try: 'Gear: Clean capture On. Hold the top middle to undo.',
     setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['dummy'], ['dummy'], ['dummy']], safe: true },
+  },
+  // accessibility: a mark on every red (no block told apart by colour alone), and less motion (gear panel, Modes)
+  {
+    id: 'blockMarks',
+    group: 'fights',
+    label: 'Block marks',
+    secs: 50,
+    try: 'Reds carry a mark. Gear: Larger text, Motion Less.',
+    setup: { kind: 'fight', hero: 'rowan', act: 1, waves: [['boar'], ['archer'], ['boar', 'crow']], safe: true },
   },
   // a boss's shout keeps its own lane: the damage numbers pop under it (they piled up at the top centre)
   {

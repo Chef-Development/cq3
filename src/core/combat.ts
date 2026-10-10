@@ -10,7 +10,7 @@ import { AIM_WINDOW_MS, ISOLATION_MS } from './accuracy';
 import { emptyLoadout, hasAura, hasEffect, setPieces, type Loadout, type StatBlock } from './gear';
 import { buildBonus, defaultBuild, type HeroBuild } from './heroes';
 import { heroDef } from '../data/heroes';
-import type { BreakCtx, FightHooks, FinisherCtx, HitCtx, MeterSource, MissCtx, PeckCtx, LinkCtx } from './hooks';
+import type { BreakCtx, CoolCause, FightHooks, FinisherCtx, HitCtx, MeterSource, MissCtx, PeckCtx, LinkCtx } from './hooks';
 import { finisherShowMs } from './impact';
 import { kitHooks } from './kit-fx';
 import { companionHooks } from './companion-fx';
@@ -67,6 +67,8 @@ export interface Block {
   /** A mirage (Region 5): when it hops next (motion time; Infinity: not a mirage) and where to (-1: no spot shown yet). */
   hopAt: number;
   hopTo: number;
+  /** ...and when it last hopped (sim time; -Infinity: never). */
+  hoppedAt: number;
   /** A blazing yellow (Region 5): a hit lands harder but gives the hero Heat. */
   blaze: boolean;
 }
@@ -1138,7 +1140,7 @@ export class Combat {
     const reach = this.lightReach();
     const cpos = this.cursorPos();
     const far = this.blocks
-      .filter((b) => (b.kind === 'yellow' || b.kind === 'green') && !b.link && !unlit(b) && !this.inLight(b, reach) && !this.sunk(b))
+      .filter((b) => (b.kind === 'yellow' || b.kind === 'green') && !b.link && !b.target && !unlit(b) && !this.inLight(b, reach) && !this.sunk(b))
       .sort((a, b) => Math.abs(b.pos - cpos) - Math.abs(a.pos - cpos));
     const n = count > 0 ? Math.min(count, far.length) : far.length;
     for (let i = 0; i < n; i++) {
@@ -1162,10 +1164,15 @@ export class Combat {
     return pos < w.l || pos > 1 - w.r;
   }
 
-  /** A still block (anything but a red or ice) whose centre is under water at sim time t: sunk, out of reach. */
+  /** Whether a block can sink under the tide: still blocks do; reds wade, ice floats (a frozen block, Neve's Flash
+   *  Freeze or a frost foe's), and a Marksman's target stands above the water on its post. */
+  canSink(b: Block): boolean {
+    return !isRed(b.kind) && b.kind !== 'frozen' && !b.target;
+  }
+
+  /** A block that can sink whose centre is under water at sim time t: sunk, out of reach. */
   sunk(b: Block, t = this.time): boolean {
-    // (ice floats: a frozen block, Neve's Flash Freeze or a frost foe's, bobs on the water and can still be hit)
-    if (isRed(b.kind) || b.kind === 'frozen') return false;
+    if (!this.canSink(b)) return false;
     const w = this.waterAt(t);
     if (w.l <= 0 && w.r <= 0) return false;
     const p = this.blockPosAt(b, t);
@@ -1177,7 +1184,8 @@ export class Combat {
   /** How often a mirage hops (s): the act's rule, else tuning.mirage.every (a special's mirage). */
   mirageEvery(): number {
     const M = this.bar?.mirage;
-    return Math.max(0.5, M && this.row >= M.fromRow ? M.every : this.tuning.mirage.every);
+    const every = M && this.row >= M.fromRow ? M.every : this.tuning.mirage.every;
+    return Math.max(0.5, this.mod(every, (h, v) => h.mirageEvery?.(this, v)));
   }
 
   /** Whether the cursor is close to bar position p (within `sec` of its travel either way, at its speed now). */
@@ -1221,6 +1229,7 @@ export class Combat {
     b.pos = b.hopTo;
     b.from = b.pos;
     b.hopTo = -1;
+    b.hoppedAt = this.time;
     b.hopAt = this.motionTime + this.mirageEvery() * (0.85 + 0.3 * this.spawnRng.next());
     this.events.push({ type: 'hop', id: b.id, from, to: b.pos });
   }
@@ -1240,12 +1249,23 @@ export class Combat {
     this.events.push({ type: 'heat', stacks: this.heat });
   }
 
-  /** The Heat is gone (a green cooled it, or it burned out). */
-  coolHeat(): void {
+  /** The Heat is gone (a green cooled it, it burned out, or a perk cooled it). */
+  coolHeat(by: CoolCause = 'out'): void {
     if (this.heat <= 0) return;
     this.heat = 0;
     this.heatLeft = 0;
     this.events.push({ type: 'cool' });
+    // the Wayfarer's set's 4 pieces: a green that cools you heals
+    if (by === 'green' && setPieces(this.hero.gear, 'wayfarer') >= 4) this.healPerk(this.maxHp() * this.tuning.effects.wayHeal, 'wayfarer');
+    for (const h of this.hooks) h.cooled?.(this, by);
+  }
+
+  /** Cool `n` stacks of Heat (a perk); the last one puts it out. */
+  easeHeat(n: number): void {
+    if (this.heat <= 0 || n <= 0) return;
+    if (this.heat <= n) return this.coolHeat('perk');
+    this.heat -= n;
+    this.events.push({ type: 'heat', stacks: this.heat });
   }
 
   /** The Heat burns: every heat.tick s, stacks x heat.dps x max HP a second (it never breaks the combo). */
@@ -1254,7 +1274,9 @@ export class Combat {
     this.heatLeft -= DT;
     if ((this.heatTick -= DT) <= 1e-9) {
       this.heatTick += X.tick;
-      const dmg = this.heat * X.dps * this.maxHp() * X.tick;
+      // (Sunstone and the hooks: Sunshade, Noonday change how fast it burns)
+      const rate = this.mod(this.has('sunstone') ? this.tuning.effects.sunstone : 1, (h, v) => h.heatDps?.(this, v));
+      const dmg = this.heat * X.dps * rate * this.maxHp() * X.tick;
       if (dmg > 0) this.hurtHero(Math.max(1, Math.round(dmg)), 'heat', true);
     }
     if (this.heatLeft <= 1e-9) this.coolHeat();
@@ -2143,6 +2165,7 @@ export class Combat {
       surfacedAt: -Infinity,
       hopAt: Infinity,
       hopTo: -1,
+      hoppedAt: -Infinity,
       blaze: !!o.blaze && kind === 'yellow',
     };
     if (o.mirage && kind === 'yellow') b.hopAt = this.motionTime + this.mirageEvery() * (0.6 + 0.4 * this.spawnRng.next());
@@ -2359,7 +2382,7 @@ export class Combat {
     const wetAny = water.l > 0 || water.r > 0;
     for (const b of this.blocks) {
       if (b.bornAt > t + 1e-9 || untappable(b.kind) || b.id === this.holding?.id) continue;
-      if (wetAny && !isRed(b.kind) && b.kind !== 'frozen') {
+      if (wetAny && this.canSink(b)) {
         const bp = this.blockPosAt(b, t);
         if (bp < water.l || bp > 1 - water.r) continue;
       }
@@ -2477,6 +2500,9 @@ export class Combat {
     // of the water)
     if (b.dark && setPieces(this.hero.gear, 'lamplighter') >= 2) mult *= 1 + T.effects.lampDark;
     if (!echo && this.has('breakersEdge') && this.time - b.surfacedAt <= T.effects.riptideSec) mult *= T.effects.riptide;
+    // the fifth region's: the Wayfarer's set's 2 pieces (blazing hits), the Gnomon's Hand (a mirage just after its hop)
+    if (b.blaze && setPieces(this.hero.gear, 'wayfarer') >= 2) mult *= 1 + T.effects.wayBlaze;
+    if (!echo && this.has('gnomonHand') && this.time - b.hoppedAt <= T.effects.trueHourSec) mult *= T.effects.trueHour;
     // the fifth region's: a blazing yellow lands harder (and gives Heat, below)
     if (b.blaze && !echo) mult *= T.heat.mult;
     const damage = Math.max(1, Math.round(st.atk * mult));
@@ -2487,7 +2513,7 @@ export class Combat {
     if (green) {
       H.abilityTimer = this.abilitySec();
       this.events.push({ type: 'ability' });
-      if (this.heat > 0) this.coolHeat(); // a green cools the Heat
+      if (this.heat > 0) this.coolHeat('green'); // a green cools the Heat
     }
     if (b.blaze && !echo) this.addHeat();
     if (crit) this.startHitStop();
