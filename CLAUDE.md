@@ -110,7 +110,7 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   restored, the Camp button, cards, the act picker) stays put inside the safe areas. **Tap vs drag:** a press is judged
   on release (`input.ts` -> `pressAt/dragTo/releaseAt`): moved more than `DRAG_PX` (4 game px) it's a drag (pans,
   flings, clamps, never starts anything), else a tap. It opens on the current act's `WORLD_ACTS[i].view`; the first
-  visit (`profile.worldTour`) glides in from the far east in under 2 s (a tap skips it). Every playable act is a
+  visit (`profile.worldTour`) glides in from the erased lands east of home in about 2 s (a tap skips it). Every playable act is a
   landmark (`WORLD_ACTS`, by global act index): a tap selects it (its card; Play = the act picker's start); Rowan (or
   his "Tap to begin!" plate) opens the story or the act picker on his region's acts; once an act is cleared a region
   chip (top right) names the region in view with its completion (`core/completion.ts`; the `badge_region` laurel at

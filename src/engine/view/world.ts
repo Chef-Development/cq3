@@ -2,7 +2,8 @@
 // tall (art-world.ts, printed by art-world-atlas.ts), alive, that you drag to explore. The view is a camera over it: a
 // press that moves more than a few game px is a drag (it pans the map, with momentum, clamped at the edges, and never
 // starts anything); a press that stays put is a tap, judged on release. The map opens on where the story is (the act
-// Rowan is on); the very first visit glides in from the far east, so you see how big the world is (a tap skips it).
+// Rowan is on); the very first visit glides in from the erased lands east of home, so you see how much is lost (a tap
+// skips it).
 //
 // Every playable act is a landmark: tap one to select it (its card says what playing it means, Play starts it: the
 // story, or a cleared act replayed for its drops); Rowan and Pip wait at the current act under a call to action (tap
@@ -114,7 +115,8 @@ const FLING_TAU = 0.36;
 const FLING_MAX = 900;
 /** A press on a map still gliding faster than this (px/s) only stops it. */
 const CATCH_SPEED = 60;
-/** The first visit's reveal: a short hold, then a glide from the far east to the current act (ms). */
+/** The first visit's reveal: a short hold, then a glide from the erased lands east of home to the current act (ms;
+ *  its own clock, a frame's step capped). */
 const TOUR_HOLD = 250;
 const TOUR_MS = 1700;
 /** The camera easing to a landmark or back home (ms). */
@@ -292,7 +294,7 @@ export class WorldView {
   private visit = -1;
   private last = 0;
   private press: { x: number; y: number; cx: number; cy: number; drag: boolean; skip: boolean; samples: Array<[number, number, number]> } | null = null;
-  private tour: { at: number; from: Pt; to: Pt; hold: number } | null = null;
+  private tour: { at: number; from: Pt; to: Pt; hold: number; t: number } | null = null;
   private glideTo: { at: number; from: Pt; to: Pt } | null = null;
   /** The act landmark selected (its card is up), and the moment the screen settled after the tour. */
   private sel: { act: number; at: number } | null = null;
@@ -379,7 +381,7 @@ export class WorldView {
     return this.clampCam(Math.round(vx - GAME_W / 2), Math.round(vy - GAME_H / 2));
   }
 
-  /** A new visit: the camera starts home (the first ever visit: on the far east, gliding home). */
+  /** A new visit: the camera starts home (the first ever visit: over the erased lands east of home, gliding home). */
   private arrive(now: number): void {
     const app = this.s.app;
     this.visit = app.phaseSince;
@@ -406,11 +408,13 @@ export class WorldView {
       app.profile.worldTour = true;
       app.saveProfile();
       // (from this frame on: the first one may have waited for the world's painting to finish); a land's reveal
-      // glides in from the last act of the region before it (the very first visit: from the far east)
+      // glides in from the last act of the region before it (the very first visit: from the erased lands east of home)
       const r = pend ? playableIndex(pend) : -1;
       const prev = r > 0 ? WORLD_ACTS[regionStart(r) - 1]?.view : undefined;
-      const from = prev && !firstVisit ? this.clampCam(Math.round(prev[0] - GAME_W / 2), Math.round(prev[1] - GAME_H / 2)) : this.clampCam(MAP_W, 0);
-      this.tour = { at: now, from, to: h, hold };
+      // (the first visit starts over the heartland and the erased lands east of home, about a screen and a bit away:
+      // from the far sea it was a whip-pan over the map's weakest view, review round 8)
+      const from = prev && !firstVisit ? this.clampCam(Math.round(prev[0] - GAME_W / 2), Math.round(prev[1] - GAME_H / 2)) : this.clampCam(h[0] + 380, h[1] - 12);
+      this.tour = { at: now, from, to: h, hold, t: 0 };
       this.cam = { x: from[0], y: from[1] };
       this.uiAt = now + hold + TOUR_MS;
     } else {
@@ -466,7 +470,10 @@ export class WorldView {
     const dt = Math.min(0.05, Math.max(0, (now - this.last) / 1000));
     this.last = now;
     if (this.tour) {
-      const k = (now - this.tour.at - this.tour.hold) / TOUR_MS;
+      // its own clock, a frame's step capped (the frames right after the world's painting can be long: the glide
+      // must not jump across the map in two of them)
+      this.tour.t += dt * 1000;
+      const k = (this.tour.t - this.tour.hold) / TOUR_MS;
       const e = smooth(k);
       this.cam.x = this.tour.from[0] + (this.tour.to[0] - this.tour.from[0]) * e;
       this.cam.y = this.tour.from[1] + (this.tour.to[1] - this.tour.from[1]) * e;
