@@ -110,6 +110,7 @@ function glacier(c: Combat): void {
 
 /** Whether the cursor can get to block b: no mirror shard (it bounces the cursor back) between them. */
 const reachable = (c: Combat, b: Block): boolean => {
+  if (c.sunk(b)) return false; // (under the tide: out of reach until the water falls)
   const p = c.cursorPos();
   return !c.blocks.some((m) => m.kind === 'mirror' && (m.pos - p) * (b.pos - m.pos) > 0);
 };

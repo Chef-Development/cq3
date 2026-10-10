@@ -539,6 +539,13 @@ describe('hero kits', () => {
     m.c.spawnBlock('green', 0.85);
     tapNew(m.c, m.t, 'yellow', 0.3);
     expect(focusOf(m.c)).toBe(0);
+    // ...nor does a green sunk under the tide (it can't be hit until the water falls)
+    const w = fight('vesper', { enemies: ['bandit'], bar: { tide: { fromRow: 0, low: 0.3, high: 0.3, period: 8, from: 'right' } }, tune: (t) => (t.enemies.bandit.hp = 3000) });
+    w.c.perk.focus = focusCap(w.c);
+    const sunk = w.c.spawnBlock('green', 0.85);
+    expect(w.c.sunk(sunk)).toBe(true);
+    tapNew(w.c, w.t, 'yellow', 0.3);
+    expect(focusOf(w.c)).toBe(0);
   });
 
   it("Moss's allies grow with the Companion stat: a Thornling jabs harder, a Glowmoth heals more; the ally events say what they did and how strong", () => {
