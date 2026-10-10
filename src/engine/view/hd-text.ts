@@ -17,7 +17,7 @@ import { HD_K } from '../hd-layer';
 import type { FightScene } from '../scene';
 import { surfaceOn, type HdSurface } from '../hd-switch';
 import { loadHdText, type HdTextSetting } from '../storage';
-import { HdLayer } from './chest-hd';
+import { HdLayer } from '../hd-canvas';
 import type { TextOpts } from './ui';
 
 let setting: HdTextSetting | undefined;
