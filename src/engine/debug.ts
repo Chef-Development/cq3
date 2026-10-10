@@ -225,6 +225,7 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
         (v: MotionPref) => setA11y({ motion: v }),
         'Less: no screen shake, softer flashes. Auto follows the device.',
       );
+      pick('Larger text', [[false, 'Off'], [true, 'On']], () => A11Y.settings.bigText, (v) => setA11y({ bigText: v }), 'Story and tips in bigger letters, wherever they fit.');
     }
     if (canFullscreen()) {
       const row = el('div', 'dbg-row');

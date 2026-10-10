@@ -4,15 +4,18 @@
 //          yellow by colour alone). On by default: one small glyph on the reds.
 //   motion: 'auto' follows the device's "reduce motion"; 'less' turns the screen shake, the camera's kick and the
 //          white impact frames off and the screen flashes down; 'full' always plays them.
+//   bigText: the story boxes and the tips in the bold display letters (caps 7 px, not 5) wherever a box's lines fit
+//          its text area in them (most do); off by default.
 
 export type MotionPref = 'auto' | 'less' | 'full';
 
 export interface A11ySettings {
   marks: boolean;
   motion: MotionPref;
+  bigText: boolean;
 }
 
-export const DEFAULT_A11Y: Readonly<A11ySettings> = { marks: true, motion: 'auto' };
+export const DEFAULT_A11Y: Readonly<A11ySettings> = { marks: true, motion: 'auto', bigText: false };
 
 const MOTIONS: readonly MotionPref[] = ['auto', 'less', 'full'];
 
@@ -22,12 +25,18 @@ export function parseA11y(raw: unknown): A11ySettings {
   return {
     marks: typeof o.marks === 'boolean' ? o.marks : DEFAULT_A11Y.marks,
     motion: MOTIONS.includes(o.motion as MotionPref) ? (o.motion as MotionPref) : DEFAULT_A11Y.motion,
+    bigText: typeof o.bigText === 'boolean' ? o.bigText : DEFAULT_A11Y.bigText,
   };
 }
 
 /** Whether to play less motion: the setting, or on 'auto' the device's own preference. */
 export function lessMotion(s: A11ySettings, deviceReduces: boolean): boolean {
   return s.motion === 'less' || (s.motion === 'auto' && deviceReduces);
+}
+
+/** Larger text for a box of lines: only when every line fits `width` in the bold letters (`widthOf(line, bold)`). */
+export function bigFits(lines: readonly string[], width: number, widthOf: (line: string, bold: boolean) => number): boolean {
+  return lines.every((l) => widthOf(l, true) <= width);
 }
 
 /** How much of a screen flash plays (its length; the overlay's fade follows from it). */

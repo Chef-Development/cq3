@@ -338,7 +338,7 @@ export const LAB_NEW: LabScenario[] = [
     group: 'fights',
     label: 'Block marks',
     secs: 50,
-    try: 'Reds carry a mark now. Gear: Motion Less: calmer?',
+    try: 'Reds carry a mark. Gear: Larger text, Motion Less.',
     setup: { kind: 'fight', hero: 'rowan', act: 1, waves: [['boar'], ['archer'], ['boar', 'crow']], safe: true },
   },
   // a boss's shout keeps its own lane: the damage numbers pop under it (they piled up at the top centre)
