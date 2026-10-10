@@ -21,7 +21,7 @@ export const ASH_STORY: Record<string, StoryBox[]> = {
   ],
   // Act 1 mini-boss: a road-roller armadillo who paves the drifting flats, and they never stay paved
   rumbleback: [
-    { who: 'rumbleback', text: "OFF THE ROAD! I just laid that slab. It's the\nonly one that hasn't drifted off!" },
+    { who: 'rumbleback', text: "OFF THE ROAD! I just laid that slab. It's the\nonly one that hasn't drifted off." },
     { who: 'rowan', text: "We're here to stop the drifting. Let us\nthrough, and you can finish your road." },
     { who: 'rumbleback', text: 'Finish it? Every slab drifts off by morning.\nI have paved these flats every single day.' },
     { who: 'pip', text: "Rumbleback. He paves a road nobody can keep.\nHe hasn't stopped since the redraw." },

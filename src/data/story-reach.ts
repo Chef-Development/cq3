@@ -48,7 +48,7 @@ export const REACH_STORY: Record<string, StoryBox[]> = {
   // Act 2 mini-boss: the gull queen, whose chicks have never fallen, so have never flown
   squall: [
     { who: 'narrator', text: 'On the highest roof, a huge gull stands over\na nest of chicks, and screams at them.' },
-    { who: 'squall', text: 'Jump! JUMP! ...They will not. They have\nnever fallen. So they have never flown.' },
+    { who: 'squall', text: 'Jump. JUMP! ...They will not. They have\nnever fallen. So they have never flown.' },
     { who: 'rowan', text: "We can bring the falling back.\nThen they'll learn." },
     { who: 'squall', text: 'Fall? From HERE? Into THAT?\nOff my roof!' },
     { who: 'pip', text: "She's frightened for them, Rowan.\nGo gently. She won't." },

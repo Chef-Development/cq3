@@ -25,7 +25,7 @@ commit titles, PR titles, the Test lab's labels and anything the playtester read
 
 ### Voices (for writers and the editor pass)
 Round 8 (L8, the playtester): grown-up wit, not chirp. Jokes are dry, wry and character-driven; no baby talk, toy-like
-names, slapstick panic or exclamation-heavy cheer; at most one "!" a box, and none in the narrator's.
+names, slapstick panic or exclamation-heavy cheer; at most one "!" a box (the Boar King may roar), and none in the narrator's (a data test).
 | Who | Voice | Never |
 |---|---|---|
 | Narrator | plain, concrete, present tense in scenes; one image per box | jokes, UI words ("bar", "tap") |
