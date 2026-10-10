@@ -38,7 +38,12 @@ One PR at the end supersedes #1-#7.
 | 9 | Resizable window, Android, code split, bot crawl part 1; then reviewers | 4 | done (10 window sizes, Pixel 7 + small Android, later regions' art in their own chunks: -9% main chunk, core crawl 16 heroes x 4 seeds clean, UI crawl through Act 1 clean); next: smoke timeouts, accessibility, crawl Acts 2-3 |
 | 10 | Region 5 (bar rules + data done, not in play; art and wiring later) | 3 | later |
 | 11 | Backlog cycle (QA, Region 6, polish, NG+, more content, music, accessibility) | all | later |
-| 12 | Final: everything committed, tests green, one PR | Lead | 06:45 |
+| 11a | Fresh-eyes screen reviewers (lead spawns; owners fix) | Lead + all | ~00:45 |
+| 11b | Region 5 art + music (a dusk-art-style helper), Region 5 into play | 3 + helper | after 23:00 |
+| 11c | The sharper 2x layer rolled out to menus/cards/text where it reads better | 2A | after the menus |
+| 11d | Accessibility (colourblind blocks, reduced motion, text size) | 4 | in progress |
+| 12 | Freeze visuals ~05:00; regenerate screenshot baselines; full unit + Playwright suites on a quiet machine; the PR | Lead | 05:00-06:45 |
+| 13 | Final: everything committed, tests green, one PR | Lead | 06:45 |
 
 ## Log
 
