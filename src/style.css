@@ -62,6 +62,13 @@ html.on-title #hud {
 html.on-title #btn-pause {
   display: none;
 }
+/* (the Test lab's Done sits to the HUD's left there: on its right it was off the screen) */
+html.on-title .lab-done {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: calc(var(--gpx, 2.667px) * 3);
+}
 
 .hud-btn {
   width: calc(var(--gpx, 2.667px) * 14);
