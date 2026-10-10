@@ -219,7 +219,7 @@ export function stag(g: Grid, o: { rear?: boolean; bob?: number }): void {
   // far legs first (behind the body)
   if (rear) {
     leg([[11, bodyY + 4], [8, feet - 6], [10, feet]], true);
-    leg([[30, bodyY - 1], [35, bodyY - 5], [35, bodyY + 1]], true);
+    leg([[31, bodyY - 3], [39, bodyY - 7], [41, bodyY - 2]], true);
   } else {
     leg([[11, bodyY + 4], [9, feet - 6], [11, feet]], true);
     leg([[28, bodyY + 5], [29, feet - 6], [29, feet]], true);
@@ -236,7 +236,7 @@ export function stag(g: Grid, o: { rear?: boolean; bob?: number }): void {
   // near legs (in front)
   if (rear) {
     leg([[15, bodyY + 4], [13, feet - 6], [15, feet]], false);
-    leg([[28, bodyY], [34, bodyY - 3], [33, bodyY + 3]], false);
+    leg([[29, bodyY - 1], [37, bodyY - 3], [38, bodyY + 3]], false);
   } else {
     leg([[15, bodyY + 4], [12, feet - 6], [14, feet]], false);
     leg([[25, bodyY + 5], [25, feet - 6], [24, feet]], false);
