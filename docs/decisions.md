@@ -913,6 +913,23 @@ S18. **The third editor's notes (round 8, 46 items): applied, with two calls of 
     is already earned in saves). Not ours, passed to the lead: Tess and Brann both unlock Crampons at mastery 5.
     US spelling throughout ("gray", "travelers").
 
+S19. **Story scenes are staged from their speakers** (`view/story-stage.ts`; the fresh-eyes review's "one still
+    picture"). Every hero who has spoken so far stands on the stage in their fight idle frames (anchored at the feet
+    like the fight view), stepping in the first time they speak; the speaker is lit (full colour and a warm pool at the
+    feet), the others a step darker, everyone even while a voice off the stage speaks. The hero fighting already stands
+    there (fighters.ts): the stage lays a lit copy over them and over the companions (`Fighters.heroImage`). Others
+    face the party from the right; with a foe on stage (a boss's scene mid-fight, or a boss speaker shown in its fight
+    sprite on the right, found by its name in the enemies' data) they line up facing the foes. Companions and the other
+    voices (narrator, the Mapmaker, Hesper, Mags) keep their portraits only. A chest hero's arrival (`HEROES[id].meetScene`)
+    shows the open hero chest lit in their rarity colour, and they rise out of its light and hop to their spot; a story
+    hero's join (`JOINS`: sableJoin, neveJoin) steps them in. Over the camp, only a join or an arrival is staged, in a
+    pool of light on a deeper dim (the camp's own scenes already show their speakers). No staging data, no new art,
+    drawn from `now` and when the scene and boxes began. Props from the text (a sleeping farmer, the lamp) are not done.
+S20. **Map and menu words from the reviews.** Node tags name the node (Fight, Elite, Coin Rush; not Gear, Gear+, Rush);
+    the act picker says "Play again" and "Boss drop" (not "Replay (farm)", "signature"); the shrine's sheet is
+    "Guaranteed" (not "Pity"); a potion at full HP says "At full HP"; the skill tree's "Next point: Lv N"; a companion's
+    sheet opens on its kind alone ("Sky whale. Tides." read like a note).
+
 (story: end of section)
 
 
@@ -1111,6 +1128,20 @@ A2B-13. **Map walkers 18 px tall** (the chest heroes' walkers in `art-hero-map.t
     to two more leg rows, so they stand about three heads tall like the fight frames, with the mature grade. The act
     map and the title anchor a walker at its feet from its own height (two rows up from the bottom), so walkers of any
     height share the ground line.
+
+A2B-14. **Heads no wider than the shoulders** (fresh-eyes review, F10: Brann ~2 heads at 3x, flat faces): the hero
+    select magnifies the fight frames 3x, so a head as wide as its torso reads chibi there however tall the body is.
+    Brann's head redrawn 12 x 10 (was 16 x 11) in weathered skin with an ear and a shaded face; Solenne and Yara
+    14 wide with the side plane of the face in shadow, sockets under the brows, a lit cheekbone and nose tip and a
+    shaded jaw; Rowan's helm a row and a column smaller (12 x 10, the plume a px shorter: the title, the hero select
+    and the fight show the same mature Rowan); Tam, Wren, Fizz and Dell lose two columns at the back of the head
+    (`narrowHeads`, every face variant narrowed alike; Dell's brim a px in at each end). Rule of thumb for a new
+    hero: head width <= torso width, a face with at least two skin tones.
+A2B-15. **Companions never outshine the hero** (review: Pip the brightest thing on every stage): Pip's frames (fight,
+    camp, maps, title) in a night teal with small amber eyes and a grey-cream belly; the other companions' frames
+    take `moodGrade` (art-companions.ts: a step below the heroes' `gradeGrid`, value and saturation down; their glow
+    passes and the bar's perk effects untouched, they are feedback). Flying companions hover 3 px lower (party.ts
+    `FLY_Y`). Pip's story portrait is 2A's (not changed here).
 A20. **The sharper text: where the fine layer went and where it didn't** (the chest reveal's 2x layer rolled out to
     what the player reads most; judged from side-by-side phone shots, 874x402 @3x, each crop at device pixels).
     *How:* a `TextPool` a surface hands the fine layer (`pool.hd`, view/hd-text.ts) draws each text it can on one DOM
@@ -1307,6 +1338,13 @@ C16. **Tess's and Vesper's gaps in the fourth region aren't a rule meeting their
     their kits work there, the region just gives them less (Tess's soft strengths are fire and construct; Vesper keeps
     the reds a finisher would clear, in the region with the most reds in water). Left for a hero-numbers pass.
 
+C17. **The fifth region joins the campaign** (its art and music landed): `NOON_ON` is on (`CQ3_REGION5=0` leaves it
+    out for a balance tool), its music and beds are cued (acts 12-14, the sphinx, the brass lion, the Gnomon phased),
+    the region card's tab is "Noon", and its Test lab items are the in-play set (each act's foes, mini-boss or boss with
+    nothing hurting, its maps, its story and an event; the early looks reworked, rev 1). Its numbers stay as the first
+    pass set them: a 75% Rowan from a typical end-of-Duskmire hero clears it on target (three 30-run samples pooled,
+    `tests/unit/bot-region5.test.ts`), and the masher loses its Act 3 and its boss (`bot-masher.test.ts`, its row came
+    free). Nothing else assumed four regions (the fast unit tests all passed with it on).
 C-ART-9. **Region 5's telegraph sounds are in** (`skitter`, `shimmer2`, `sunflash`, `scorch`, `roar`, `needle`, `glare`,
     `heatwave` in `TellSound`, the Sound lab and `TELL_MIX`), and app.ts cues its music (`noon1`-`noon3`, the sphinx,
     the brass lion, the Gnomon, phased) and beds (`dunes`, `spire`, `dial` for acts 12-14). The Gloaming Lighthouse's
@@ -1432,6 +1470,25 @@ C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics
   region packs (`loadChestHd`); `ChestOpening.view` reads 'old' in the moment before it's in and `__cq3.ready` waits
   for it, so the reveal and the tests behave as before. The chest-hd spec's side-by-side screenshot fails on the run
   branch's own code too (the old reveal's sparkles land elsewhere: a stale baseline for the lead to regenerate).
+- **Q17 An event's outcome shows each change where it lands**: a chip per change (HP, max HP, coins, Attack, Companion
+  Power) under the outcome's text, each with its number rising off it (`view/nodes.ts`; the chips are tall enough
+  for the heart icon).
+- **Q18 Fight text gets lanes** (review 2's top findings; `view/num-lanes.ts`, pure, unit-tested). Every damage number
+  and short word over the stage (`fx.num`, which `floatNum` now is) takes the free box nearest where it wants to be
+  (up first, then aside, then down) that no live number, shout or finisher name holds and the HUD keeps (`hud.keepOut()`:
+  the plates, the act plate and wave pips, the relic belt, the name lane, the combo counter; nothing floats above
+  y 30); numbers rise 10 px at a steady pace instead of the old arc, so the box they hold is known. A finisher's blows
+  are summed into one number above the foes' heads (what each foe really took, from the batch's enemyHurt events),
+  counting up a step per foe hit with a swell each (no more "36?367"). A foe's special name (`fx.shout`) gets its
+  own box on a dark plate, clear of the plates and pips and of other shouts (aside first), numbers already there fade
+  out and none enter it while it's up; a foe's new shout replaces its last. The finisher's name is bold 2 (1 when
+  over 200 px), pale gold, the stacks a small "x3" tag after it, over the foes and under the plates; the name lane
+  holds its perk names while it's up. The judgement word steps right of the combo counter; "Combo 25!" stamps above
+  the counter, not on it.
+- **Q19 HP readouts read**: the gauge skips its notches and end cap under the readout and puts a dark inset behind it
+  (`GaugeOpts.label`); a foe plate keeps one format the whole fight, chosen by its max HP (`foeHpText`: "71/90", or
+  both halves in thousands, "7.7k/12.3k"). In a scene during a fight (a boss's phase line) Skip rests on the dialogue
+  box's top edge at the end away from the portrait, never on the foe's plate.
 (qa: end of section)
 
 

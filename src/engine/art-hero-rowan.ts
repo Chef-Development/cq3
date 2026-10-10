@@ -52,28 +52,29 @@ const SHADES: Record<string, Shade> = {
 // A flat-topped great helm (13 x 11: about a third of his height; no round dome), a raised ridge down its face, a
 // bronze band over the brow, a narrow visor slit with two small points of light, a breathing hole; a dent on the crown. The plume is a layer (it
 // lags the head).
+// (second pass, after the fresh-eyes review: 12 x 10, a crown row and a back column less, so the helm sits on the
+// pauldrons at about a third of his height)
 const HEAD = [
-  '..hhhhhhhh...',
-  '.hKKhhhhhhhh.',
-  '.hKhhhhhhhhhh',
-  'hhhhhhhhhshhh',
-  'hhhhhhhdhshhh',
-  'hhhhhgGGGGGGg',
-  'hhhhhvvvvvvvv',
-  'hhhhhvEvvvvEv',
-  'hhhhhhhhhshhh',
-  'hhhhhhhhhshdh',
-  '.hhhhhhhhhhh.',
+  '.hhhhhhhh...',
+  'hKKhhhhhhhh.',
+  'hKhhhhhhhhhh',
+  'hhhhhhdhshhh',
+  'hhhhgGGGGGGg',
+  'hhhhvvvvvvvv',
+  'hhhhvEvvvvEv',
+  'hhhhhhhhshhh',
+  'hhhhhhhhshdh',
+  '.hhhhhhhhhh.',
 ];
-const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 13 - swap[y].length) + swap[y] : r));
+const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, r.length - swap[y].length) + swap[y] : r));
 const HEADS = {
   base: HEAD,
   // a wince: the light in the slit gone to a line
-  squint: face(HEAD, { 7: 'vwvvvvwv' }),
+  squint: face(HEAD, { 6: 'vwvvvvwv' }),
   // knocked out: the slit dark
-  ko: face(HEAD, { 7: 'vvvvvvvv' }),
+  ko: face(HEAD, { 6: 'vvvvvvvv' }),
   // a battle cry: the eyes flare
-  cry: face(HEAD, { 6: 'vevvvvev', 7: 'vEEvvvEE' }),
+  cry: face(HEAD, { 5: 'vevvvvev', 6: 'vEEvvvEE' }),
 };
 
 // Broad steel pauldrons (bronze-rimmed, scratched) and a dark gorget over the navy tabard with its bronze emblem, mail
@@ -119,7 +120,7 @@ export const ROWAN_RIG: Rig = {
   legsFeetX: LEG_FEET_X,
   torsoX: -9,
   torsoOverlap: 1,
-  headX: 4,
+  headX: 5,
   headOverlap: 1,
   shoulderNear: [4, 4],
   shoulderFar: [14, 4],
@@ -154,9 +155,9 @@ const sword =
  *  from 3 px to 2 (no 1 px tail at 8x) and is lit on its upper side. */
 type PlumeK = 'hang' | 'lag' | 'sway' | 'flow' | 'rise' | 'limp' | 'up';
 const PLUMES: Record<PlumeK, { ctrl: [number, number]; tail: [number, number] }> = {
-  hang: { ctrl: [-4, -7], tail: [-11, 5] },
-  lag: { ctrl: [-4, -7], tail: [-11, 6] },
-  sway: { ctrl: [-5, -6], tail: [-12, 7] },
+  hang: { ctrl: [-4, -6], tail: [-10, 5] },
+  lag: { ctrl: [-4, -6], tail: [-10, 6] },
+  sway: { ctrl: [-5, -5], tail: [-11, 6] },
   flow: { ctrl: [-7, -4], tail: [-15, 1] },
   rise: { ctrl: [-5, -7], tail: [-13, -4] },
   limp: { ctrl: [-4, -4], tail: [-8, 8] },
@@ -166,7 +167,7 @@ const plume =
   (k: PlumeK): Layer =>
   (g, a) => {
     const { ctrl, tail } = PLUMES[k];
-    const rx = a.hx + 6;
+    const rx = a.hx + 5;
     const ry = a.hy;
     const cells = new Map<string, number>();
     const N = 40;

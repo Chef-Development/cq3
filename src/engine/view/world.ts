@@ -709,7 +709,7 @@ export class WorldView {
     const app = this.s.app;
     const cleared = i < app.profile.actsCleared;
     const name = ALL_ACTS[i]?.name ?? '';
-    if (cleared) return { name, status: 'Replay (farm)', col: 0x9af06a };
+    if (cleared) return { name, status: 'Play again', col: 0x9af06a };
     return { name, status: app.profile.actsCleared > 0 ? 'Continue the story' : 'Begin the story', col: 0xffe680 };
   }
 
@@ -2158,7 +2158,7 @@ export class WorldView {
 
   /**
    * The act picker: a navy panel popping in over the dimmed map, one row per act (staggered in): its number badge
-   * (a tick once cleared, a padlock while locked), its name and what playing it means ("Replay (farm)", "Continue the
+   * (a tick once cleared, a padlock while locked), its name and what playing it means ("Play again", "Continue the
    * story"), the gear level its drops have, its boss's signature drops in their rarity frames (a tick on the ones in
    * the bag), and Play.
    */
@@ -2258,9 +2258,9 @@ export class WorldView {
       // name, and what playing it means
       const tx = bx + 23;
       T.text(act.name, tx, r.y + 9, locked ? 0x8a84a0 : WHITE, { bold: true, oy: 0.5, alpha: a });
-      const status = cleared ? 'Replay (farm)' : next ? 'Continue the story' : `Clear Act ${gi} first`;
+      const status = cleared ? 'Play again' : next ? 'Continue the story' : `Clear Act ${gi} first`;
       T.text(status, tx, r.y + 20, cleared ? 0x9af06a : next ? 0xffe680 : 0x8a84a0, { oy: 0.5, alpha: a });
-      // the gear its drops have, and the boss's signature drops
+      // the gear its drops have, and the boss's own drops ("Boss drop": round 8's review found "signature" jargon)
       const mx = r.x + 134;
       const lo = itemLevel(run.tuning, gi, 0);
       const hi = itemLevel(run.tuning, gi, act.rows);
@@ -2286,7 +2286,7 @@ export class WorldView {
         }
       });
       if (sigs.length) {
-        T.text('signature', mx + sigs.length * 15 + 1, r.y + 19, locked ? 0x6a6480 : 0xffb060, { oy: 0.5, alpha: a });
+        T.text('Boss drop', mx + sigs.length * 15 + 1, r.y + 19, locked ? 0x6a6480 : 0xffb060, { oy: 0.5, alpha: a });
       }
       // Play
       if (!locked) {

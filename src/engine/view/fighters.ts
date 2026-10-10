@@ -27,7 +27,6 @@ import type { FightScene } from '../scene';
 import { HERO_FEET_X, HERO_W, ICONS } from '../art';
 import { ROWAN_SWORD_TIP } from '../art-heroes';
 import { GAME_W } from '../layout';
-import { textWidth } from '../font';
 import { hpBar, icon } from './pixels';
 import { perkColor, perkName, perkSource, TAG_FACE } from './relic-ui';
 import { FOE_ICONS } from './icons';
@@ -35,6 +34,7 @@ import { ALLY_COL, Party, PERK_PET } from './party';
 import { BLOCKER_FACE } from './bar-kinds';
 import { PERK_ALLY, PERK_AT } from './perk-at';
 import { FinisherShow } from './finishers';
+import { runningTotals } from './num-lanes';
 import type { HeroMotion } from './finisher-signatures';
 import {
   clamp01,
@@ -82,7 +82,7 @@ const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally', 'spir
 const ALLY_PERK = new Set(['thornling', 'glowmoth', 'seedling', 'spiritWolf', 'spiritStag']);
 /** Until a later region's foes are painted (art-dusk*.ts, art-noon*.ts), each fights in an earlier foe's sprite set (its poses,
  *  flash and phase looks), so a fight never shows a missing texture. Used only while `${key}_idle0` doesn't exist. */
-const SPRITE_STAND_IN: Record<string, string> = {
+export const SPRITE_STAND_IN: Record<string, string> = {
   bogwisp: 'aurorawisp',
   miretoad: 'slime',
   reedling: 'shaman',
@@ -196,6 +196,11 @@ export class Fighters {
       lungeAt: -1e9,
       down: false,
     };
+  }
+
+  /** The hero's image (the story stage lays a lit copy over it: view/story-stage.ts). */
+  get heroImage(): Phaser.GameObjects.Image {
+    return this.hero;
   }
 
   /** Who is fighting. */
@@ -339,8 +344,6 @@ export class Fighters {
         knockUntil: 0,
         kickAt: -1e9,
         kickDist: 0,
-        numAt: -1e9,
-        numLevel: 0,
         lunge: null,
         dieAt: 0,
         phase: Math.random() * 1000,
@@ -626,22 +629,12 @@ export class Fighters {
     // (a finisher's last blow brings its style's own burst and cut: view/finishers.ts)
     if (big && !finisher) fx.stars.push({ x: v.x, y: cy - 8, at: s.anim, r: 24, color: 0xfff07a });
     fx.sparks.push({ x: hx, y: cy, at: s.anim, size: finisher ? 18 : crit ? 14 : 10, color: big ? 0xfff07a : 0xbfe8ff });
-    const numScale = scale || (finisher ? 3 : 2);
-    // quick successive numbers cascade upward and alternate sides instead of piling on each other
-    const recent = s.anim - v.numAt < 260;
-    v.numLevel = recent ? (v.numLevel + 1) % 3 : 0;
-    v.numAt = s.anim;
-    // (a Coin Rush counts coins, not damage: the coins float up instead, from onsite.coins)
-    if (damage > 0 && !s.app.run.combat?.rush) {
-      const nx = v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2);
-      // while its special's name is up over its head (a boss's shout), the shout keeps that lane: the numbers pop just
-      // under it and settle, cascading downward (the playtest: shouts and numbers piled up at the top centre)
-      if (v.shoutY !== undefined && s.anim < (v.shoutUntil ?? 0)) {
-        const w = textWidth(whole(damage), numScale, true);
-        const x = Math.max(w / 2 + 2, Math.min(GAME_W - w / 2 - 2, nx));
-        fx.addFloater(x, v.shoutY + 6 + 4 * numScale + v.numLevel * 11, whole(damage), col, numScale, true, rand(-6, 6), -8, 40, 760, true);
-      } else fx.floatNum(nx, v.y - v.img.displayHeight - 10 - v.numLevel * 11, whole(damage), col, numScale);
-    }
+    const numScale = scale || (finisher ? 2 : 2);
+    // (a Coin Rush counts coins, not damage: the coins float up instead, from onsite.coins; a finisher's blows are
+    // summed into one number by heroFinisher: scale < 0)
+    // the number takes a box over the foe's head that no other live number or shout holds (fx.num: successive blows
+    // stack up beside each other instead of piling into one "1844")
+    if (damage > 0 && scale >= 0 && !s.app.run.combat?.rush) fx.num(v.x + 2, v.y - v.img.displayHeight - 8, whole(damage), col, numScale);
     const tier = combo >= 50 ? 3 : combo >= 25 ? 2 : combo >= 10 ? 1 : 0;
     const slashCol = crit ? 0xffd23a : comboSlashCol(combo);
     // a weapon better than Common slashes in its rarity's colours (the combo's heat still shows in the inner band)
@@ -697,7 +690,7 @@ export class Fighters {
    * (more strikes, rings and sky). It always fits the envelope the core holds the cursor for (finisherShowMs). The last
    * blow lands here: the hit on every target and its number counting up. Kills and the HP bars wait for it.
    */
-  heroFinisher(damage: number, stacks: number, targets: number[] = []): void {
+  heroFinisher(damage: number, stacks: number, targets: number[] = [], dealt?: Map<number, number>): void {
     const s = this.s;
     const fx = s.fx;
     const h = this.h;
@@ -728,37 +721,28 @@ export class Fighters {
     this.superFinalAt = s.anim + ms * finalK;
     const [, hi] = stackCol(n);
     const name = heroDef(id as HeroId).finisher.name;
-    const title = n > 1 ? `${name} x${n}!` : `${name}!`;
-    // (over the HUD, not in the world: the act's name and the foe pips sat on top of it; it doesn't shake either)
-    // (a long name steps down a size so the title stays on screen: Part 6's "Spirit Stampede x3!" ran off it)
-    const big = n >= 2 ? 3 : 2;
-    const fit = Math.max(1, Math.min(big, Math.floor((GAME_W - 12) / Math.max(1, textWidth(title, 1, true)))));
-    fx.addFloater(GAME_W / 2, 42, title, n === 1 ? 0xffe680 : hi, fit, true, 0, -6, 0, ms * 0.95, false);
-    // the last blow (three or more foes side by side: smaller numbers, so they read)
-    const crowd = views.length > 2;
-    let row = 0;
+    // its name over the foes, under the HUD's plates, gold, bold 2 at most (a long one steps down), the stacks a small
+    // tag after it; clear of the hero's own moment and of the plates (review round 8: "Whirlwind x2!" ran 280 px over
+    // the HUD and hid the show). The name lane holds its perk names while it's up (they'd say the same).
+    const foesX = views.length ? views.reduce((a, v) => a + v.x, 0) / views.length : GAME_W * 0.65;
+    fx.title(Math.max(foesX, h.x + 60), 50, `${name}!`, 0xffe680, n > 1 ? `x${n}` : '', hi, ms * 0.95);
+    s.hud.quiet(ms);
     s.later(ms * finalK, () => {
       s.app.audio.finisherBoom(n);
       const feel = fx.impact(fx.weight('finisher', n));
+      const blows: number[] = [];
       for (const v of views) {
-        this.enemyHurtFx(v.id, damage, false, false, feel, true, crowd ? 2 : 3);
-        // the damage number (the floater enemyHurtFx just made) counts up over the enemy, hangs longer, rises slowly
-        const num = fx.floaters[fx.floaters.length - 1];
-        if (num && damage > 0) {
-          num.y = Math.max(34, v.y - v.img.displayHeight / 2 - 4);
-          num.count = { to: damage, dur: 260 + 50 * n };
-          num.life = 1300 + 100 * n;
-          num.vy = -28;
-          num.g = 20;
-          num.vx = 0;
-        }
-        // (side by side: every other number a row higher, all spread a little apart, so they never pile up)
-        if (num && damage > 0 && crowd) {
-          num.y -= (row % 2) * 18;
-          num.x += (row - (views.length - 1) / 2) * 6;
-          row++;
-        }
+        // (the number is summed below: scale -1)
+        this.enemyHurtFx(v.id, damage, false, false, feel, true, -1);
+        blows.push(dealt?.get(v.id) ?? damage);
         fx.burst(v.x, v.y - v.img.displayHeight / 2, c.pal.light, 10 + n * 6, true, 1.4 + n * 0.15);
+      }
+      // every blow summed into one number above the foes' heads (never over the hero), counting up a step per foe
+      // hit and swelling as each lands (review round 8: three foes' "367" piled into "36?367")
+      const total = blows.reduce((a, b) => a + b, 0);
+      if (total > 0 && views.length && !s.app.run.combat?.rush) {
+        const top = Math.min(...views.map((v) => v.y - v.img.displayHeight));
+        fx.finisherNum(Math.max(foesX, h.x + 40), top - 10, runningTotals(blows.filter((b) => b > 0)), 0xff8a2a, 2, 200 + 110 * blows.length, 1300 + 100 * n);
       }
       // the style's last blow and the signature's (a cut, fangs, a shattering glacier, a toppling wall...)
       this.show.blow();
@@ -1040,7 +1024,7 @@ export class Fighters {
     if (!v || v.dieAt) return;
     v.stunUntil = s.anim + sec * 1000;
     s.fx.ring(v.x, v.y - v.img.displayHeight, 12, 0xffe680, true);
-    s.fx.addFloater(v.homeX, Math.max(38, v.y - v.img.displayHeight - 12), 'Stunned!', 0xffe680, 1, true, 0, -10, 0, 700, true);
+    s.fx.num(v.homeX, v.y - v.img.displayHeight - 12, 'Stunned!', 0xffe680, 1, { life: 700, rise: 7 });
   }
 
   /** An enemy winds up its special: the 'tell' pose, a countdown ring, a "!" and the special's name. */
@@ -1050,10 +1034,11 @@ export class Fighters {
     if (!v || v.dieAt) return;
     v.tellAt = s.anim;
     v.tellUntil = s.anim + sec * 1000;
-    // (over a huge foe's head it would sit under the HUD's plates: it stays below them)
-    v.shoutY = Math.max(38, v.y - v.img.displayHeight - 16);
+    // its own box over its head, on a dark plate, clear of the HUD's plates and wave pips and any other shout; the
+    // numbers keep out of it while it's up (fx.shout; review round 8: "Frost Breath!" sat under a "661")
+    const b = s.fx.shout(v.homeX, v.y - v.img.displayHeight - 16, name, 0xff9a3a, sec * 1000 + 250, `foe${enemyId}`);
+    v.shoutY = b.y + b.h / 2;
     v.shoutUntil = s.anim + sec * 1000 + 250;
-    s.fx.addFloater(v.homeX, v.shoutY, name, 0xff9a3a, 1, true, 0, -6, 0, sec * 1000 + 250, true);
   }
 
   tellOver(enemyId: number): void {

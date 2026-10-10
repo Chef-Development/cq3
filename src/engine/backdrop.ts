@@ -1979,7 +1979,8 @@ function foreground(theme: Theme, w: number, h: number, frame: number): Pix {
       frond(p, x, H - 1, len, d, SWAY[(frame + (x > w / 2 ? 2 : 0)) % 4], L);
     grassStrip(p, w, h, frame, L, 55, 0.85);
   } else {
-    const L: FgLook = { blade: ramp('#12040a', '#220a10', '#381218', '#521c1c'), rim: col('#c4602e'), bush: ramp('#0a0306', '#14060c', '#200a12', '#32121a', '#4a1c1e', '#6a2c22'), ink };
+    // (A2C-10) plum blades with a muted rust rim: the strip at the frame's foot calm, not a row of orange sparks
+    const L: FgLook = { blade: ramp('#10060e', '#1c0a16', '#2c1020', '#3e1a26'), rim: col('#8a4434'), bush: ramp('#0a0308', '#14060e', '#200a16', '#30121e', '#461c24', '#622c28'), ink };
     // a great root arching out of the ground in each corner, lit along its top by the low sun
     const arch = (x0: number, dir: number, span: number, rise: number, th: number) => {
       for (let i = 0; i <= span; i++) {
@@ -2020,7 +2021,7 @@ function foreground(theme: Theme, w: number, h: number, frame: number): Pix {
     toadstool(p, 44, h + 1, 1, capRed, stemR, ink, true);
     toadstool(p, w - 42, h, 2, capRed, stemR, ink, true);
   }
-  const [rim, mid] = theme === 'forest' ? [col('#5e9a3c'), col('#25492a')] : theme === 'ruins' ? [col('#40707e'), col('#1a3640')] : [col('#c45a30'), col('#5e1e1e')];
+  const [rim, mid] = theme === 'forest' ? [col('#5e9a3c'), col('#25492a')] : theme === 'ruins' ? [col('#40707e'), col('#1a3640')] : [col('#8a4434'), col('#3a1a26')];
   backlight(p, rim, mid, theme.length);
   gradeLayer(theme, p, 1e9);
   return p;

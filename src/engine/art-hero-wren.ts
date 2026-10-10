@@ -58,13 +58,17 @@ const HEAD = [
   '.....ooozzSz...',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 15 - swap[y].length) + swap[y] : r));
-const HEADS = {
+// (playtest round 8, L8, after the fresh-eyes review: two columns of hood out at the back, so the head is no wider than the shoulders and
+// the hero reads about three heads tall at 3x on the hero select; the face keeps its place)
+const narrowHeads = (heads: Record<string, string[]>): Record<string, string[]> =>
+  Object.fromEntries(Object.entries(heads).map(([k, rows]) => [k, rows.map((r) => r[0] + r.slice(3))]));
+const HEADS = narrowHeads({
   base: HEAD,
   squint: face(HEAD, { 3: 'SkkSk', 4: 'SSzzSzz', 8: 'SSxWxS.' }),
   ko: face(HEAD, { 3: 'SSSSS', 4: 'SSzzSzz', 8: 'SSSxSS.' }),
   // a grin with the tongue out, eyes narrowed (her tricks)
   sly: face(HEAD, { 3: 'SkkSk', 4: 'SSSzkSzk', 8: 'SxxxxS.' }),
-};
+});
 
 // The mustard scarf wound thick round her neck (its knot at the front), a charcoal jacket, a belt with a brass
 // buckle; 13 wide.
@@ -104,7 +108,7 @@ export const WREN_RIG: Rig = {
   legsFeetX: LEG_FEET_X,
   torsoX: -6,
   torsoOverlap: 1,
-  headX: -1,
+  headX: 1,
   headOverlap: 2,
   shoulderNear: [3, 2],
   shoulderFar: [9, 2],
