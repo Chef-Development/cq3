@@ -50,7 +50,13 @@ export type MusicTrack =
   | 'dusk3'
   | 'bellybog'
   | 'sluiceKeeper'
-  | 'lighthouse';
+  | 'lighthouse'
+  | 'noon1'
+  | 'noon2'
+  | 'noon3'
+  | 'sphinx'
+  | 'brassLion'
+  | 'gnomon';
 export const MUSIC_TRACKS: MusicTrack[] = [
   'title',
   'camp',
@@ -78,6 +84,12 @@ export const MUSIC_TRACKS: MusicTrack[] = [
   'bellybog',
   'sluiceKeeper',
   'lighthouse',
+  'noon1',
+  'noon2',
+  'noon3',
+  'sphinx',
+  'brassLion',
+  'gnomon',
 ];
 
 /** Calm (maps, nodes, scenes) or intense (fights). */
@@ -1863,6 +1875,324 @@ const LIGHTHOUSE: Song = {
   ],
 };
 
+// ---- Region 5, Noonspire: a plateau under a sun nailed at noon ----
+
+// Act 13, the white road: D Hijaz (the E flat over the D, the leap from E flat up to F sharp), 7/8 at 126 counted
+// 2+2+3, a caravan's limp. A duduk sings the tune over a hurdy-gurdy drone, a santur strikes the pulses, a frame drum
+// and a shaker keep the 2+2+3. The fight brings a goblet drum on the 2+2+3, the santur in 16ths, the bass; the lead a
+// thin square with a wide vibrato.
+const NOON1_SANTUR = '0.2.1.3.2.4.1.';
+const NOON1_BASS = bassBar('0:2 . 12:2 . 0:2 . 7:2 . 0:2 . 10:2 . 7:2 .'.split(' ').slice(0, 14).join(' '));
+const NOON1: Song = {
+  track: 'noon1',
+  name: 'The White Road',
+  key: 'D Hijaz',
+  bpm: 126,
+  meter: 14,
+  beat: 4,
+  pulses: [0, 4, 8],
+  bars: 8,
+  split: 8,
+  chords: chords('D | Eb | D | Cm | Gm | Eb | Cm D | D'),
+  melody: mel(14, 'd5:4 eb5:2 f#5:2 g5:6 | a5:4 g5:2 f#5:2 eb5:6 | f#5:4 g5:2 a5:2 bb5:6 | a5:4 g5:2 eb5:2 c5:6 | bb4:4 d5:2 g5:2 f#5:6 | eb5:4 g5:2 bb5:2 a5:6 | c5:4 eb5:4 f#5:6 | d5:10 r:4'),
+  echo: 0.32,
+  swing: 0,
+  calm: [
+    pad({ level: 0.08, hz: 1000, attack: 0.3, detune: 16 }),
+    part('base', (x) => (x.s === 0 || x.first) && x.b.drone(x, x.chord.root, 0.05)),
+    part('base', (x) => {
+      const m = pat(NOON1_SANTUR, x);
+      if (m !== null) x.b.santur(x, x.t, m + 12, x.s === 0 || x.s === 4 || x.s === 8 ? 0.26 : 0.17);
+    }),
+    melody('base', (x, m, len) => x.b.duduk(x, m, len, 0.42)),
+    bass(() => held(14), { level: 0.22, hz: [600, 280], sub: 1.25, gate: 1.04, hold: 0.94 }, 'base'),
+    perc(['X...x...X.....'], (x, v) => x.b.frame(x, x.t, v * 0.6)),
+    perc(['..o...o...o.o.'], (x, v) => x.b.shaker(x, x.t, v)),
+    riser(0.25),
+  ],
+  intense: [
+    pad({ level: 0.1, hz: 1100, attack: 0.15, detune: 14 }),
+    part('base', (x) => {
+      const m = pat(NOON1_SANTUR, x);
+      x.b.santur(x, x.t, m !== null ? m + 12 : tone(x.chord, x.s % 4) + 12, m !== null ? 0.26 : 0.14);
+    }),
+    melody('base', (x, m, len) => x.b.duduk(x, m, len, 0.44 * x.lead)),
+    part('base', (x) => {
+      const k = ['D.T.D.T.D.k.T.', 'D.T.D.T.D.k.TT'][x.bar % 2][x.s];
+      if (k !== '.') x.b.doumbek(x, x.t, k === 'k' ? 0.7 : 1.3, k as 'D' | 'T' | 'k');
+    }),
+    riser(0.6),
+    kit({
+      kick: ['X...X...X.....', 'X...X...X...x.'],
+      snare: ['........X.....'],
+      hats: ['x.x.x.x.x.x.x.'],
+      clap: true,
+      fill: { snare: '....X...X.XxXX', hats: 'x.x.x.x.......' },
+      crash: [0],
+      level: 0.8,
+    }),
+    bass(() => NOON1_BASS, { level: 0.34, hz: [1500, 420], sub: 1.35 }),
+    melody('lead', (x, m, len) => x.b.lead(x, m + 12, len, 0.15, 'square', 3200)),
+  ],
+};
+
+// Act 14, the spire steps: F Lydian (the raised B: bright, hard, no rest), a fanfare in 6/8 at 98. Muted horns hold the
+// chords, a harp plucks the 6/8, a timpani rolls into each phrase. The fight is the Dawn Order's fanfare: trombones in
+// stabs, a snare and the timpani, a tuba under it; the lead an open trumpet.
+const NOON2_HARP = [0, 1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1];
+const NOON2_BASS = bassBar('0:3 . . 7:3 . . 0:3 . . 7:2 . 12:1');
+const NOON2: Song = {
+  track: 'noon2',
+  name: 'The Spire Steps',
+  key: 'F Lydian',
+  bpm: 98,
+  meter: 12,
+  beat: 6,
+  bars: 8,
+  chords: chords('F | G | Am | F | Dm | G | Em G | F'),
+  melody: mel(12, 'c5:4 f5:2 a5:6 | b5:4 a5:2 g5:6 | a5:2 g5:2 e5:2 c5:6 | f5:6 a5:6 | d6:4 c6:2 a5:6 | b5:2 c6:2 b5:2 g5:6 | e5:4 g5:2 b5:2 d6:4 | a5:6 f5:6'),
+  echo: 0.28,
+  swing: 0,
+  calm: [
+    part('base', (x) => {
+      if (!(x.change || x.first)) return;
+      x.chord.tones.slice(0, 3).forEach((m, i) => x.b.horn(x, m - 12, x.left, 0.08, i === 1 ? 'duet' : 'brass'));
+    }),
+    pad({ level: 0.08, hz: 1100, attack: 0.3, detune: 16 }),
+    part('base', (x) => x.s % 2 === 0 && x.b.pizz(x, tone(x.chord, NOON2_HARP[x.s]) + 12, 0.26, { hz: 4200 })),
+    melody('base', (x, m, len) => x.b.horn(x, m, len, 0.44)),
+    bass(() => held(12), { level: 0.2, hz: [600, 280], sub: 1.25, gate: 1.04, hold: 0.94 }, 'base'),
+    part('base', (x) => x.bar % 4 === 3 && x.s === 6 && x.b.timpani(x, x.t, x.chord.root, 0.5, 6)),
+    riser(0.25),
+  ],
+  intense: [
+    pad({ level: 0.12, hz: 1200, attack: 0.1, detune: 14 }),
+    part('base', (x) => x.b.pizz(x, tone(x.chord, NOON2_HARP[x.s]) + 12, x.s % 6 ? 0.22 : 0.32, { hz: 4200 })),
+    melody('base', (x, m, len) => x.b.horn(x, m, len, 0.5 * x.lead)),
+    // the fanfare: trombones stab the beats, the timpani answers
+    part('base', (x) => (x.s === 0 || x.s === 6) && x.chord.tones.slice(0, 3).forEach((m, i) => x.b.trombone(x, m - 12, 2 * x.STEP, 0.1, i === 1 ? 'duet' : 'brass', x.t + i * 0.01, i === 2))),
+    part('base', (x) => (x.s === 0 || x.s === 9) && x.b.timpani(x, x.t, x.chord.root, x.s ? 0.4 : 0.6)),
+    riser(0.6),
+    kit({
+      kick: ['X.....X.....', 'X.....X...x.'],
+      snare: ['...x.x...X.x'],
+      hats: ['x.x.x.x.x.x.'],
+      clap: false,
+      fill: { snare: '...x.xXxXxXX', hats: 'x.x.x.......' },
+      crash: [0, 4],
+      level: 0.8,
+    }),
+    part('bass', (x) => {
+      const n = NOON2_BASS[x.s];
+      if (n) x.b.tuba(x, x.t, x.chord.root - 12 + n[0], n[1] * x.STEP * 0.85, 0.36);
+    }),
+    melody('lead', (x, m, len) => x.b.trumpet(x, m, len, 0.2)),
+  ],
+};
+
+// Act 15, the great sundial: F sharp Phrygian (the G over the F sharp), 136. Clockwork: a tick-tock on every 8th, a
+// music-box ostinato turning in 16ths, a low organ holding the hours, a celesta on the tune. The fight drives the
+// clockwork: the ticks in 16ths, timpani, the kit, an 8th-note bass; the lead a hard saw.
+const NOON3_BOX = [0, 2, 1, 3, 0, 2, 1, 3, 4, 2, 3, 1, 4, 3, 2, 1];
+const NOON3_BASS = bassBar('0:2 . 0:2 . 12:2 . 0:2 . 0:2 . 1:2 . 0:2 . 10:2 .');
+const NOON3: Song = {
+  track: 'noon3',
+  name: 'The Great Sundial',
+  key: 'F# Phrygian',
+  bpm: 136,
+  meter: 16,
+  beat: 4,
+  bars: 8,
+  chords: chords('F#m | G | F#m | Em | D | G | Em G | F#m'),
+  melody: mel(16, 'f#5:4 g5:4 a5:8 | b5:4 a5:2 g5:2 f#5:8 | e5:4 f#5:2 g5:2 b5:4 a5:4 | g5:12 r:4 | d5:4 f#5:4 a5:4 c#6:4 | d6:6 c#6:2 b5:4 g5:4 | e5:4 g5:4 b5:4 a5:4 | f#5:12 r:4'),
+  echo: 0.3,
+  swing: 0,
+  calm: [
+    part('base', (x) => (x.change || x.first) && x.b.organ(x, x.chord.tones.slice(0, 3).map((m) => m - 12), x.left, 0.07)),
+    pad({ level: 0.07, hz: 1000, attack: 0.3, detune: 16 }),
+    part('base', (x) => x.s % 2 === 0 && x.b.clock(x, x.t, 1, x.s % 4 === 2)),
+    part('base', (x) => x.b.box(x, tone(x.chord, NOON3_BOX[x.s]) + 12, x.s % 4 ? 0.22 : 0.32)),
+    melody('base', (x, m) => x.b.celesta(x, m, 0.5)),
+    bass(() => WHOLE, { level: 0.2, hz: [500, 260], sub: 1.3, gate: 1.05, hold: 0.94 }, 'base'),
+    riser(0.25),
+  ],
+  intense: [
+    pad({ level: 0.15, hz: 1100, attack: 0.1, detune: 14 }),
+    part('base', (x) => (x.change || x.first) && x.b.organ(x, x.chord.tones.slice(0, 3).map((m) => m - 12), x.left, 0.06)),
+    part('base', (x) => x.b.clock(x, x.t, x.s % 4 === 0 ? 1.3 : 0.8, x.s % 2 === 1)),
+    part('base', (x) => x.b.box(x, tone(x.chord, NOON3_BOX[x.s]) + 12, x.s % 4 ? 0.28 : 0.4)),
+    melody('base', (x, m) => x.b.celesta(x, m, 0.56 * x.lead)),
+    part('base', (x) => (x.s === 0 || x.s === 10) && x.b.timpani(x, x.t, x.chord.root, x.s ? 0.4 : 0.6)),
+    riser(0.7),
+    kit({
+      kick: ['X.......X.x.....', 'X.......X.x...x.'],
+      snare: ['....X.......X...'],
+      hats: ['x.x.x.x.x.x.x.x.'],
+      clap: true,
+      fill: { snare: '....X.......XxXX', hats: 'x.x.x.x.x.x.....' },
+      crash: [0, 4],
+      level: 0.85,
+    }),
+    bass(() => NOON3_BASS, { level: 0.36, hz: [1700, 460], sub: 1.3 }),
+    melody('lead', (x, m, len) => x.b.lead(x, m, len, 0.16, 'sawtooth', 3000)),
+  ],
+};
+
+// Act 13's mini-boss, the sphinx of the road: A Hijaz, 144, a riddle in 4/4. The santur turns an ostinato, a duduk asks
+// the riddle, a goblet drum drives it. The combo brings the kit, the bass and a reedy lead; past half HP (her sun
+// eyes) brass stabs blaze on the offbeats and a choir answers.
+const SPHINX_OST = [0, -1, 2, 1, 0, -1, 3, 2, 0, -1, 2, 1, 4, 3, 2, 1];
+const SPHINX_BASS = bassBar('0:2 . 0:1 1:1 0:2 . 0:2 . 0:1 1:1 0:2 . 7:2 .');
+const SPHINX: Song = {
+  track: 'sphinx',
+  name: 'The Noon Sphinx',
+  key: 'A Hijaz',
+  bpm: 144,
+  meter: 16,
+  beat: 4,
+  bars: 8,
+  chords: chords('A | Bb | A | Dm | Gm | Bb | Dm A | A'),
+  melody: mel(16, 'e5:2 f5:2 e5:2 c#5:2 a4:8 | bb4:2 c#5:2 d5:2 e5:2 f5:8 | g5:4 f5:2 e5:2 d5:4 c#5:4 | d5:12 r:4 | a5:4 g5:2 f5:2 e5:8 | f5:4 e5:2 d5:2 bb4:8 | d5:2 e5:2 f5:2 g5:2 a5:4 c#5:4 | a4:12 r:4'),
+  echo: 0.28,
+  swing: 0,
+  phased: true,
+  intense: [
+    pad({ level: 0.09, hz: 1100, attack: 0.1, detune: 14 }),
+    part('base', (x) => {
+      const k = SPHINX_OST[x.s];
+      if (k >= 0) x.b.santur(x, x.t, tone(x.chord, k) + 12, x.s % 4 ? 0.2 : 0.28);
+    }),
+    melody('base', (x, m, len) => x.b.duduk(x, m, len, 0.46 * (0.6 + 0.4 * x.lead))),
+    part('base', (x) => {
+      const k = 'D..TD.T.D..TD.kT'[x.s];
+      if (k !== '.') x.b.doumbek(x, x.t, k === 'k' ? 0.7 : 1.3, k as 'D' | 'T' | 'k');
+    }),
+    riser(0.6),
+    kit({
+      kick: ['X.......X.......', 'X.......X.....x.'],
+      snare: ['....X.......X...'],
+      hats: ['x.x.x.x.x.x.x.x.'],
+      clap: true,
+      fill: { snare: '....X.......XxXX' },
+      crash: [0],
+      level: 0.8,
+    }),
+    bass(() => SPHINX_BASS, { level: 0.34, hz: [1500, 420], sub: 1.35 }),
+    melody('lead', (x, m, len) => x.b.lead(x, m + 12, len, 0.14, 'pulse25', 3200)),
+    // phase 2 (her sun eyes): brass stabs on the offbeats, a choir answering
+    part('stabs', (x) => x.s % 4 === 2 && x.b.stab(x, 2 * x.STEP, 0.3)),
+    part('stabs', (x) => (x.change || x.first) && x.b.choir(x, 0.28, { oct: 1, role: 'hymn' })),
+  ],
+};
+
+// Act 14's mini-boss, the brass lion: B flat Mixolydian, 172, a roaring march. Low brass riffs in octaves, timpani,
+// a snare; the trumpet on the tune. Past half HP (overheated) the brass stabs every beat and the timpani rolls.
+const LION_RIFF = bassBar('0:2 . 0:1 0:1 12:2 . 10:2 . 0:2 . 0:1 0:1 7:2 . 10:2 .');
+const LION_BASS = bassBar('0:2 . 0:2 . 7:2 . 0:2 . 0:2 . 0:2 . 10:2 . 7:2 .');
+const BRASSLION: Song = {
+  track: 'brassLion',
+  name: 'The Brass Lion',
+  key: 'Bb Mixolydian',
+  bpm: 172,
+  meter: 16,
+  beat: 4,
+  bars: 8,
+  chords: chords('Bb | Ab | Bb | Eb | F | Ab | Eb F | Bb'),
+  melody: mel(16, 'f4:2 bb4:2 d5:4 f5:8 | ab5:4 g5:2 f5:2 eb5:8 | d5:2 f5:2 bb5:4 ab5:4 f5:4 | g5:12 r:4 | f5:2 g5:2 ab5:4 c6:8 | bb5:4 ab5:2 g5:2 eb5:8 | eb5:4 g5:4 f5:4 c5:4 | bb4:12 r:4'),
+  echo: 0.22,
+  swing: 0,
+  phased: true,
+  intense: [
+    pad({ level: 0.12, hz: 1200, attack: 0.05, detune: 14 }),
+    part('base', (x) => {
+      const n = LION_RIFF[x.s];
+      if (!n) return;
+      x.b.trombone(x, x.chord.root + 12 + n[0], n[1] * x.STEP * 0.85, 0.2, 'brass');
+      x.b.trombone(x, x.chord.root + 24 + n[0], n[1] * x.STEP * 0.85, 0.12, 'duet', x.t, true);
+    }),
+    melody('base', (x, m, len) => x.b.horn(x, m, len, 0.5 * x.lead)),
+    part('base', (x) => (x.s === 0 || x.s === 8) && x.b.timpani(x, x.t, x.chord.root, x.s ? 0.45 : 0.6)),
+    riser(0.7),
+    kit({
+      kick: ['X...X...X...X...'],
+      snare: ['....X..x....X..x'],
+      hats: ['x.x.x.x.x.x.x.x.'],
+      clap: true,
+      fill: { snare: '....X...XxXxXXXX' },
+      crash: [0, 4],
+      level: 0.85,
+    }),
+    bass(() => LION_BASS, { level: 0.34, hz: [1600, 440], sub: 1.35 }),
+    melody('lead', (x, m, len) => x.b.trumpet(x, m, len, 0.2)),
+    // phase 2 (overheated): brass on every beat, the timpani rolling into each bar's end
+    part('stabs', (x) => x.s % 4 === 0 && x.b.stab(x, 2 * x.STEP, 0.3)),
+    part('stabs', (x) => x.s === 12 && x.b.timpani(x, x.t, x.chord.root, 0.4, 4)),
+  ],
+};
+
+// Region 5's boss, the gnomon: G sharp minor, 158, the clock of the great dial. A clockwork tick-tock on the 8ths, a
+// low brass ostinato, timpani, horns on the tune. Phase 2 (the glare) brings the kit, a choir and a celesta scattering
+// light in 8ths; phase 3 (the sun drawn down) lifts it a whole tone (A sharp minor) with double-time drums, a distorted
+// bass and the lead: everything in.
+const GNOMON_OST = bassBar('0:2 . . 0:2 . . 1:2 . 0:2 . . 0:2 . . -2:2 .');
+const GNOMON_BASS = bassBar('0:1 . 0:1 . 0:1 0:1 12:1 . 0:1 . 0:1 . 10:1 . 7:1 .');
+const GNOMON_SPARK = [0, 2, 4, 6, 4, 2, 1, 3, 5, 7, 5, 3, 2, 4, 6, 8];
+const GNOMON: Song = {
+  track: 'gnomon',
+  name: 'The Gnomon',
+  key: 'G# minor (phase 3: A# minor)',
+  bpm: 158,
+  meter: 16,
+  beat: 4,
+  bars: 8,
+  chords: chords('G#m | E | C#m | D# | G#m | B | E D# | G#m'),
+  melody: mel(16, 'g#4:4 b4:4 d#5:8 | e5:4 d#5:2 c#5:2 b4:8 | c#5:4 e5:4 g#5:4 f#5:4 | d#5:12 r:4 | g#5:4 f#5:2 e5:2 d#5:8 | b5:4 a#5:2 g#5:2 f#5:8 | e5:4 f#5:4 g#5:4 a#5:4 | g#5:12 r:4'),
+  echo: 0.3,
+  swing: 0,
+  keyUp: 2,
+  intense: [
+    pad({ level: 0.1, hz: 1000, attack: 0.1, detune: 14, shift: -12 }),
+    part('base', (x) => x.s % 2 === 0 && x.b.clock(x, x.t, 1.1, x.s % 4 === 2)),
+    part('base', (x) => {
+      const n = GNOMON_OST[x.s];
+      if (!n) return;
+      x.b.trombone(x, x.chord.root + 12 + n[0], n[1] * x.STEP * 0.85, 0.16, 'brass');
+      if (x.s % 8 === 0) x.b.tuba(x, x.t, x.chord.root + n[0], n[1] * x.STEP * 0.85, 0.16, 'brass');
+    }),
+    melody('base', (x, m, len) => x.b.horn(x, m - 12, len, 0.46 * x.lead)),
+    perc(['X..x..x.X.x.X...', 'X..x..x.X.x.X.xx'], (x, v) => (x.phase < 3 || v >= 1) && x.b.timpani(x, x.t, x.chord.root, v * 0.5)),
+    riser(0.8),
+    part('drums', (x) => {
+      const p3 = x.phase >= 3;
+      const fill = x.last && x.s >= 8;
+      const v = p3 ? 0.9 : 0.8;
+      const k = hit(p3 ? 'X.x.X.x.X.x.X.x.' : 'X.......X...X...', x.s);
+      if (k && !fill) x.b.kick(x, x.t, k * v, 0.95);
+      const sn = fill ? hit('........XxXxXXXX', x.s) : hit('....X.......X...', x.s);
+      if (sn) x.b.snare(x, x.t, sn * v, sn >= 1 && !fill);
+      if ((x.bar === 0 || x.bar === 4) && x.s === 0) x.b.crash(x, x.t, v * 0.8);
+      else if (!fill) {
+        const h = hit(p3 ? 'X.x.X.x.X.x.X.x.' : 'x.o.x.o.x.o.x.o.', x.s);
+        if (h) x.b.hat(x, x.t, h * v);
+      }
+    }),
+    part('bass', (x) => {
+      const n = GNOMON_BASS[x.s];
+      if (!n) return;
+      if (x.phase >= 3) x.b.grit(x, x.chord.root + n[0], n[1] * x.STEP * 0.9, 0.14);
+      else x.b.bass(x, x.chord.root + n[0], n[1] * x.STEP * 0.9, { level: 0.3, hz: [1800, 480], sub: 1.4 });
+    }),
+    part('lead', (x) => {
+      if (!x.note) return;
+      x.b.trumpet(x, x.note[0], x.note[1] * x.STEP, 0.16, 'lead');
+    }),
+    // phase 2 on: the choir, and a celesta scattering the glare in 8ths
+    part('stabs', (x) => (x.change || x.first) && x.b.choir(x, 0.3, { oct: 1, role: 'hymn' })),
+    part('stabs', (x) => x.s % 2 === 0 && x.b.celesta(x, tone(x.chord, GNOMON_SPARK[x.s]) + 12, x.s % 4 ? 0.07 : 0.1, 'stab')),
+    part('stabs', (x) => x.phase >= 3 && x.s % 4 === 2 && x.b.stab(x, 2 * x.STEP, 0.34)),
+  ],
+};
+
 export const SONGS: Record<MusicTrack, Song> = {
   title: TITLE,
   camp: CAMP,
@@ -1890,6 +2220,12 @@ export const SONGS: Record<MusicTrack, Song> = {
   bellybog: BELLYBOG,
   sluiceKeeper: SLUICE,
   lighthouse: LIGHTHOUSE,
+  noon1: NOON1,
+  noon2: NOON2,
+  noon3: NOON3,
+  sphinx: SPHINX,
+  brassLion: BRASSLION,
+  gnomon: GNOMON,
 };
 
 /** Seconds per step of a piece. */
@@ -1955,6 +2291,19 @@ export const MUSIC_PIECES: MusicPiece[] = [
   { id: 'lighthouse1', label: 'Act 12 boss, phase 1', track: 'lighthouse', intense: true, phase: 1 },
   { id: 'lighthouse2', label: 'Act 12 boss, phase 2', track: 'lighthouse', intense: true, phase: 2 },
   { id: 'lighthouse3', label: 'Act 12 boss, phase 3', track: 'lighthouse', intense: true, phase: 3 },
+  { id: 'noon1', label: 'Act 13: map', track: 'noon1', intense: false },
+  { id: 'noon1-fight', label: 'Act 13: fight', track: 'noon1', intense: true },
+  { id: 'noon2', label: 'Act 14: map', track: 'noon2', intense: false },
+  { id: 'noon2-fight', label: 'Act 14: fight', track: 'noon2', intense: true },
+  { id: 'noon3', label: 'Act 15: map', track: 'noon3', intense: false },
+  { id: 'noon3-fight', label: 'Act 15: fight', track: 'noon3', intense: true },
+  { id: 'sphinx1', label: 'Act 13 mini-boss, phase 1', track: 'sphinx', intense: true, phase: 1 },
+  { id: 'sphinx2', label: 'Act 13 mini-boss, phase 2', track: 'sphinx', intense: true, phase: 2 },
+  { id: 'brassLion1', label: 'Act 14 mini-boss, phase 1', track: 'brassLion', intense: true, phase: 1 },
+  { id: 'brassLion2', label: 'Act 14 mini-boss, phase 2', track: 'brassLion', intense: true, phase: 2 },
+  { id: 'gnomon1', label: 'Act 15 boss, phase 1', track: 'gnomon', intense: true, phase: 1 },
+  { id: 'gnomon2', label: 'Act 15 boss, phase 2', track: 'gnomon', intense: true, phase: 2 },
+  { id: 'gnomon3', label: 'Act 15 boss, phase 3', track: 'gnomon', intense: true, phase: 3 },
 ];
 
 /** Which arrangement a piece plays when the game asks for calm or intense (the camp, the title and the bosses
@@ -3625,5 +3974,46 @@ export class Band {
     const amp: Pts = [[0.04, level], [d * 0.85, level * 0.8], [d + 0.06, 0]];
     for (const f of [1046, 1318]) this.h.voice({ at: t, type: 'triangle', f: [[0, f * 0.97], [0.05, f]], amp: scale(amp, 0.35), out: c.in });
     this.h.voice({ at: t, type: 'noise', filter: 'bandpass', ff: [[0, 2600]], q: 1.4, amp: scale(amp, 0.4), out: c.in });
+  }
+  // ---------------------------------------------------------------- Region 5's instruments
+
+  /** A santur (hammered dulcimer): two strings a hair apart struck with light hammers, a bright ring and a quick decay;
+   *  the hammers alternate sides. */
+  santur(x: Step, t: number, m: number, level: number): void {
+    const c = this.chain(x.g, 'arp', { hz: 6400, echo: 0.2 });
+    const f = hz(m);
+    const out = (x.s + (x.s >> 1)) % 2 ? (c.r ?? c.in) : c.in;
+    for (const det of [0.997, 1.003]) this.h.voice({ at: t, type: 'triangle', f: [[0, f * det]], amp: [[0.002, level * 0.6], [0.08, level * 0.3], [0.7, 0]], out });
+    this.h.voice({ at: t, type: 'sawtooth', f: [[0, f * 2]], filter: 'lowpass', ff: [[0, f * 6], [0.06, f * 2]], amp: [[0.002, level * 0.2], [0.12, 0]], out });
+  }
+
+  /** A duduk: a mellow double reed, dark and breathy, sliding into its notes, a slow wide vibrato on the long ones. */
+  duduk(x: Step, m: number, len: number, level: number, role: Role = 'bell'): void {
+    const c = this.chain(x.g, role, { hz: 2600, echo: 0.34 });
+    const f = hz(m);
+    const l = Math.max(0.12, len);
+    const vib = len >= 4 * x.STEP ? { rate: 4.8, cents: 0, cents1: 22 } : undefined;
+    const amp: Pts = [[0.05, level], [l * 0.75, level * 0.85], [l * 0.97 + 0.04, 0]];
+    const slide: Pts = [[0, f * 0.97], [0.08, f]];
+    this.h.voice({ at: x.t, type: 'sawtooth', f: slide, vib, filter: 'lowpass', ff: [[0, 1300]], q: 1.6, amp: scale(amp, 0.6), out: c.in });
+    this.h.voice({ at: x.t, type: 'triangle', f: slide, vib, amp: scale(amp, 0.5), out: c.in });
+    this.h.voice({ at: x.t, type: 'noise', filter: 'bandpass', ff: [[0, f * 2.5]], q: 1.5, amp: scale(amp, 0.12), out: c.in });
+  }
+
+  /** An open trumpet: a bright brassy saw that blooms open as it speaks, a lip-scoop into the note. */
+  trumpet(x: Step, m: number, len: number, level: number, role: Role = 'lead'): void {
+    const c = this.chain(x.g, role, { hz: 5200, echo: 0.24 });
+    const f = hz(m);
+    const l = Math.max(0.08, len);
+    const vib = len >= 4 * x.STEP ? { rate: 5.8, cents: 0, cents1: 14 } : undefined;
+    const amp: Pts = [[0.02, level], [l * 0.8, level * 0.85], [l * 0.96 + 0.02, 0]];
+    this.h.voice({ at: x.t, type: 'sawtooth', f: [[0, f * 0.98], [0.03, f]], vib, filter: 'lowpass', ff: [[0, 900], [0.06, Math.min(6000, f * 7)], [l, f * 4]], q: 1.2, amp, out: c.in });
+  }
+
+  /** A clockwork tick (the great dial): a hard little woodblock click and a metal tock, alternating (`tock`). */
+  clock(x: Step, t: number, v: number, tock: boolean, role: Role = 'perc'): void {
+    const c = this.chain(x.g, role);
+    this.h.ticks([t], { gain: 0.5 * v, f: tock ? 1700 : 2600, q: 6, ms: 6, out: c.in });
+    this.h.tone({ type: 'sine', f: tock ? 1180 : 1980, at: t, attack: 0.001, dur: 0.05, gain: 0.08 * v, out: c.in });
   }
 }

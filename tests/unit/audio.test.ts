@@ -33,6 +33,9 @@ const ACTS3 = ['ash1', 'ash2', 'ash3'] as const;
 /** Region 4's (docs/content-bible.md, section 7). */
 const REGION4: MusicTrack[] = ['dusk1', 'dusk2', 'dusk3', 'bellybog', 'sluiceKeeper', 'lighthouse'];
 const ACTS4 = ['dusk1', 'dusk2', 'dusk3'] as const;
+/** Region 5's (docs/content-bible.md, section 8). */
+const REGION5: MusicTrack[] = ['noon1', 'noon2', 'noon3', 'sphinx', 'brassLion', 'gnomon'];
+const ACTS5 = ['noon1', 'noon2', 'noon3'] as const;
 
 type Play = (s: Synth, at: number) => void;
 
@@ -373,6 +376,40 @@ describe('the music', () => {
       expect(SONGS[t].calm, t).toBeUndefined();
     }
     for (const p of MUSIC_PIECES.filter((x) => REGION4.includes(x.track))) expect(p.label, p.id).toMatch(/^Act 1[0-2]( boss| mini-boss|:)/);
+    // Region 5: the same
+    for (const act of ACTS5) {
+      expect(MUSIC_PIECES.some((p) => p.track === act && !p.intense), `${act} calm`).toBe(true);
+      expect(MUSIC_PIECES.some((p) => p.track === act && p.intense), `${act} fight`).toBe(true);
+      expect(SONGS[act].calm && SONGS[act].intense, `${act} has both arrangements`).toBeTruthy();
+    }
+    expect(MUSIC_PIECES.filter((p) => p.track === 'sphinx').map((p) => p.phase)).toEqual([1, 2]);
+    expect(MUSIC_PIECES.filter((p) => p.track === 'brassLion').map((p) => p.phase)).toEqual([1, 2]);
+    expect(MUSIC_PIECES.filter((p) => p.track === 'gnomon').map((p) => p.phase)).toEqual([1, 2, 3]);
+    for (const t of ['sphinx', 'brassLion', 'gnomon'] as const) {
+      expect(SONGS[t].intense, t).toBeTruthy();
+      expect(SONGS[t].calm, t).toBeUndefined();
+    }
+    for (const p of MUSIC_PIECES.filter((x) => REGION5.includes(x.track))) expect(p.label, p.id).toMatch(/^Act 1[3-5]( boss| mini-boss|:)/);
+  });
+
+  it('Region 5 is built to the content bible: modes, tempos, meters (a 7/8 caravan limp, a 6/8 lilt)', () => {
+    const want: Record<string, [string, number, number, number]> = {
+      // key, BPM, 16ths per bar, 16ths per beat
+      noon1: ['D Hijaz', 126, 14, 4],
+      noon2: ['F Lydian', 98, 12, 6],
+      noon3: ['F# Phrygian', 136, 16, 4],
+      sphinx: ['A Hijaz', 144, 16, 4],
+      brassLion: ['Bb Mixolydian', 172, 16, 4],
+      gnomon: ['G# minor (phase 3: A# minor)', 158, 16, 4],
+    };
+    for (const t of REGION5) {
+      const s = SONGS[t];
+      expect([s.key, s.bpm, s.meter, s.beat], t).toEqual(want[t]);
+      expect(MUSIC_TRACKS.filter((o) => o !== t && SONGS[o].bpm === s.bpm), `${t} tempo`).toEqual([]);
+    }
+    expect(SONGS.noon1.pulses, 'the 7/8 is counted 2+2+3').toEqual([0, 4, 8]);
+    expect(SONGS.gnomon.keyUp).toBe(2); // G sharp minor up a whole tone to A sharp minor: noon strikes
+    expect(SONGS.sphinx.phased && SONGS.brassLion.phased, 'the mini-bosses follow their phases without a key change').toBe(true);
   });
 
   it('Region 4 is built to the content bible: modes, tempos, meters (a 12/8 shuffle, a 6/4 hemiola, a 7/4 work song)', () => {
@@ -438,7 +475,7 @@ describe('the music', () => {
     }
     expect(SONGS.rimehorn.pulses).toEqual([0, 4, 8]);
     expect(SONGS.glacia.keyUp).toBe(3); // E flat minor up to F sharp minor
-    for (const t of MUSIC_TRACKS) if (t !== 'rimehorn') expect(SONGS[t].pulses, t).toBeUndefined();
+    for (const t of MUSIC_TRACKS) if (t !== 'rimehorn' && t !== 'noon1') expect(SONGS[t].pulses, t).toBeUndefined();
   });
 
   it('every melody is its own: no two pieces share a tune, even transposed or at another tempo', () => {
@@ -447,7 +484,7 @@ describe('the music', () => {
       const notes = SONGS[t].melody.filter((n): n is [number, number] => !!n).slice(0, 17);
       return notes.slice(1).map((n, i) => `${n[0] - notes[i][0]}:${notes[i][1]}`);
     };
-    for (const a of [...REGION2, ...REGION3, ...REGION4]) {
+    for (const a of [...REGION2, ...REGION3, ...REGION4, ...REGION5]) {
       for (const b of MUSIC_TRACKS) {
         if (a === b) continue;
         const [x, y] = [steps(a), steps(b)];
@@ -502,6 +539,12 @@ describe('the music', () => {
       bellybog: 'e f# g# a b c# d d#',
       sluiceKeeper: 'd e f g a b c',
       lighthouse: 'c# d e f# g# a b',
+      noon1: 'd eb f# g a bb c',
+      noon2: 'f g a b c d e',
+      noon3: 'f# g a b c# d e',
+      sphinx: 'a bb c# d e f g',
+      brassLion: 'bb c d eb f g ab',
+      gnomon: 'g# a# b c# d# e f#',
     };
     for (const t of MUSIC_TRACKS) {
       const song = SONGS[t];
@@ -547,7 +590,7 @@ describe('the music', () => {
   });
 
   it("each act's calm arrangement is calmer than its fight band but still audible on phone speakers", () => {
-    for (const act of ['act1', 'act2', 'act3', ...ACTS2, ...ACTS3, ...ACTS4]) {
+    for (const act of ['act1', 'act2', 'act3', ...ACTS2, ...ACTS3, ...ACTS4, ...ACTS5]) {
       const calm = mus(act);
       expect(calm.loud, act).toBeLessThanOrEqual(mus(`${act}-fight@full`).loud - 1.5);
       expect(calm.phoneLoud, act).toBeGreaterThan(-30);
