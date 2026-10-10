@@ -47,7 +47,10 @@ Spoilers (the story, the new regions' content) are only in `docs/story-bible.md`
    placed off the things they teach; chevrons on the first map's reachable spots.
 7. **Four fresh-eyes reviews** (189 findings over every screen, each with an owner): the high ones and most mediums
    fixed (fight HUD lanes, readable bar-rule markers, copper holds, impact frames off the HUD, the region card, the
-   Options panel with the tester's tools folded away, the 16-face strip, overlaps); what's left is listed below.
+   Options panel with the tester's tools folded away, the 16-face strip, overlaps; from the last one: a readable small
+   "a", the camp's buttons in one dark style, the relic pick as cards, the map stops and the shop as places, a smaller
+   Pip in fights, deeper HP colours, events' prose in the bold letters, the settings button a cog); what's left is
+   listed below.
 8. **Saves:** the run save is v8 (the Mapmaker's Edits drawn into an act; a v7 save migrates, tested); the profile
    gains optional fields (the Atlas pages found, the Edits) that a round 7 profile reads as none.
 
@@ -74,9 +77,11 @@ Spoilers (the story, the new regions' content) are only in `docs/story-bible.md`
 ### Not verified / left
 - **Hide the Test lab button before a public debut** (L12; it stays tonight for the playtester's report).
 - Vesper's parity (above), and a 100-run parity read of all sixteen heroes in Regions 4-5.
-- From the reviews, not done: the bag's flat grid, Pip's size in fights (the most childish thing left on screen), the
-  events' small dark-on-tan prose, the keyboard ring over a button's "!" badge, the Mythic heroes' five crowded kit
-  labels, the fight HUD's bright HP green.
+- From the reviews, not done: the bag's full redesign (its empty cells are only quieter), the region card's light
+  parchment, the act map's tags over other nodes, the keyboard ring over a button's "!" badge, the Mythic heroes'
+  five crowded kit labels.
+- A newcomer's calmer first Act 1 map (one pack, no merchant) is held back (L13): it moved two balance guards; bring
+  it back with the guards re-measured.
 - Load time was measured mid-run (title ready 12.1 -> 7.8 s at CPU 4x), not after the last art passes.
 - No boot guard in CI yet (L10); the lead boot-checked every push tonight.
 - Region 6 not started (its story is drafted in data, off).
