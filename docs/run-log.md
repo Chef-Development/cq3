@@ -259,3 +259,8 @@ One PR at the end supersedes #1-#7.
   Full unit suite on the merged code at 03:35: 1,260 green (72 files). The Playwright suite running (built at 03:36).
 - 03:41 EDT: opened the one PR: Chef-Development/cq3#8 (supersedes #1-#7); its test section is updated after the
   final Playwright run.
+- 03:58 EDT: CI on PR #8 went red on two sample-based balance guards after first10's calmer first map (normal fights
+  30.01 s vs under 30; the remix 0.5 vs under 0.5): that roamer change is held back (L13), CI green again. The full
+  Playwright run (built 03:36): every functional spec green (smoke, numbers, minis, desktop, first10) except the lab
+  walk, which hung because the "buttons step aside under a tip" rule also hid the lab's Done: fixed (only the gear
+  and pause step aside). 105 screenshot diffs, all from tonight's intended art changes. Regenerating the baselines now.
