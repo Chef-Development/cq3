@@ -76,15 +76,22 @@ function sky(p: Pix, w: number, bottom: number, gx: number, lift: number, seed: 
     }
 }
 
-/** Long thin clouds lying across the dusk, lit rose underneath (from the low sky), violet on top. */
+/** A bank of cloud lying across the dusk in short clumps (at least 3 px tall, open sky between them: one long 1 px
+ *  streak read as a scanline glitch at phone size), lit rose underneath from the low sky, a softer lit top edge. */
 function cloudBand(p: Pix, x0: number, y0: number, len: number, thick: number, seed: number): void {
   const r2 = rng(seed);
   const bl: Blob[] = [];
-  const n = Math.max(3, Math.round(len / 8));
-  for (let i = 0; i < n; i++) {
-    const f = i / (n - 1);
-    const t = Math.sin(f * Math.PI);
-    bl.push({ x: x0 + f * len + (r2() - 0.5) * 6, y: y0 - t * thick * 0.3, rx: 5 + t * len * 0.12, ry: 0.9 + t * thick * (0.5 + r2() * 0.3) });
+  for (let x = x0 + r2() * 6; x < x0 + len; ) {
+    const t = Math.sin(Math.min(1, Math.max(0, (x - x0) / len)) * Math.PI);
+    const cl = 8 + r2() * 12 * (0.5 + t); // the clump's length
+    const dy = (r2() - 0.5) * 3;
+    const k = Math.max(2, Math.round(cl / 5));
+    for (let i = 0; i < k; i++) {
+      const g = i / (k - 1);
+      const sw = Math.sin(g * Math.PI);
+      bl.push({ x: x + g * cl, y: y0 + dy - t * thick * 0.3 - sw * 0.8, rx: 3 + sw * cl * 0.22, ry: 1.4 + sw * thick * (0.3 + r2() * 0.25) });
+    }
+    x += cl + 6 + r2() * 12; // a gap of open sky
   }
   const inside = (x: number, y: number) => bl.some((b) => ((x + 0.5 - b.x) / b.rx) ** 2 + ((y + 0.5 - b.y) / b.ry) ** 2 <= 1);
   const cr = ramp('#16122e', '#20163a', '#2e1c46', '#44264e', '#5e3256', '#7a4060');
@@ -93,7 +100,7 @@ function cloudBand(p: Pix, x0: number, y0: number, len: number, thick: number, s
       if (!inside(x, y)) continue;
       const below = inside(x, y + 1) ? (inside(x, y + 2) ? 0 : 1) : 2;
       const above = inside(x, y - 1) ? 0 : 1;
-      const v = below === 2 ? 0.95 : below === 1 ? 0.72 : above ? 0.28 : 0.45;
+      const v = below === 2 ? 0.95 : below === 1 ? 0.72 : above ? 0.6 : 0.4;
       p.set(x, y, pick(cr, v + (noise(x * 0.2, y, seed) - 0.5) * 0.15, x, y));
     }
 }

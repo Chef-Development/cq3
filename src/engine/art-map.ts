@@ -3021,7 +3021,7 @@ function lairLighthouse(): Lair {
 type NoonMap = 'whiteRoad' | 'spireSteps' | 'sundial';
 const isNoonMap = (t: Theme): t is NoonMap => t === 'whiteRoad' || t === 'spireSteps' || t === 'sundial';
 const NGROUND: Record<NoonMap, Ramp> = {
-  whiteRoad: ramp('#2a2430', '#3a3036', '#4a3e3e', '#5c4e46', '#6e5e50', '#82705a', '#968464'),
+  whiteRoad: ramp('#24222e', '#322e38', '#423c42', '#544c4c', '#685e58', '#7e7464', '#948a74'), // sandstone in a cool shade (it read as mud)
   spireSteps: ramp('#2a2c3c', '#363848', '#444656', '#545464', '#666474', '#787684', '#8a8892'),
   sundial: ramp('#262838', '#323444', '#404252', '#504f60', '#625f6e', '#76727e', '#8a8690'),
 };
@@ -3037,7 +3037,7 @@ function groundNoon(p: Pix, c: Ctx, theme: NoonMap): void {
       let r = g;
       if (theme === 'whiteRoad' && fbm(x * 0.025, y * 0.04, c.seed + 5) > 0.6) {
         r = NCHALK; // a salt pan, cracked
-        v = 0.5 + (Math.abs(noise(x * 0.3, y * 0.3, c.seed + 6) - 0.5) < 0.04 ? -0.25 : 0);
+        v = 0.56 + (Math.abs(noise(x * 0.3, y * 0.3, c.seed + 6) - 0.5) < 0.04 ? -0.28 : 0); // bleached, a step above the sand and below the road
       }
       if (theme === 'spireSteps' && ((x + Math.floor(y / 6) * 5) % 10 === 0 || y % 6 === 0)) v -= 0.12; // flagstones
       if (theme === 'sundial') {

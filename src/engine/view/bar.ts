@@ -28,7 +28,7 @@ import { BOMB_COL, clamp01, deepOf, DYING_MS, dyingStyle, ease, INK, kindCol, mi
 import { focusCap, focusOf } from '../../core/styles';
 import { ImagePool } from './ui';
 import { drawBarRules } from './bar-links';
-import { drawDarkShape, drawLantern, drawWater, glisten } from './bar-dusk';
+import { drawDarkShape, drawLantern, drawWater, glisten, lanternRim } from './bar-dusk';
 import { drawBlaze, drawHeat, drawMirages } from './bar-noon';
 import { A11Y } from '../a11y';
 
@@ -664,6 +664,8 @@ export class BarView {
     // it just changed kind: a white flash fading off it
     const mk = (s.anim - (this.morphs.get(b.id) ?? -1e9)) / 280;
     if (mk >= 0 && mk < 1) rows(g, X, Y, W, H, 2, WHITE, 0.85 * (1 - mk));
+    // in the lantern's light: its top edge catches the light (the fourth region; view/bar-dusk.ts)
+    if (!impacting) lanternRim(g, c, t, pos, X, Y, W);
     // a dark block the lantern just reached: its colour floods in behind a warm flash
     if (b.dark) {
       const lk = (c.time - b.litAt) / 0.3;

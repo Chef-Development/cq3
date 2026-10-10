@@ -1345,6 +1345,22 @@ C17. **The fifth region joins the campaign** (its art and music landed): `NOON_O
     pass set them: a 75% Rowan from a typical end-of-Duskmire hero clears it on target (three 30-run samples pooled,
     `tests/unit/bot-region5.test.ts`), and the masher loses its Act 3 and its boss (`bot-masher.test.ts`, its row came
     free). Nothing else assumed four regions (the fast unit tests all passed with it on).
+C-ART-9. **Region 5's telegraph sounds are in** (`skitter`, `shimmer2`, `sunflash`, `scorch`, `roar`, `needle`, `glare`,
+    `heatwave` in `TellSound`, the Sound lab and `TELL_MIX`), and app.ts cues its music (`noon1`-`noon3`, the sphinx,
+    the brass lion, the Gnomon, phased) and beds (`dunes`, `spire`, `dial` for acts 12-14). The Gloaming Lighthouse's
+    lamp already cleared the enemy plate (C-ART-4, after the review's build); the review's second ask is in too: the
+    sun in the lamp is an eye (a slit pupil, a pinprick when it flares, a squeezed lid when hurt), its face with the
+    door-mouth.
+C-ART-10. **Region 4's bar, readable at phone size** (review 2's DUSK-ART findings): the lantern is a pool of saturated
+    amber in four steps with the track's rails catching it and a dithered edge (a pale amber over the violet track read
+    as brown dirt); blocks in its light catch it on their top edge; an unlit dark block is ink-grey with a faint "?"
+    (violet is the trap's colour, and some dark blocks are traps); the tide has a moving crest along its top, rings
+    where the cursor wades, and sunk blocks keep their own colour under a thin veil with ripples (not olive). The
+    Duskmire skies' long 1 px cloud streaks are short clumps at least 3 px tall.
+C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics-noon.ts`, painted at boot after the
+    Ashfell ones whether or not the region is on; `noonspire()` in art-region-map.ts, a sand plateau with salt pans and
+    a dotted mirage lake), and its seventeen gear icons (art-gear.ts `NOON_ICONS`; Region 4's still borrow the slot icons). Under L7 its first act
+    map's sand is a cool neutral stone (it read as mud), the salt pans a step brighter and still under the road.
 
 (content: end of section)
 
