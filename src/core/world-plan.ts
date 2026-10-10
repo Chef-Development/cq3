@@ -79,3 +79,20 @@ export function unveilPending(p: { actsCleared: number; seen: string[] }): strin
 export function markUnveiled(p: { seen: string[] }, id: string): void {
   if (!p.seen.includes(unveilKey(id))) p.seen.push(unveilKey(id));
 }
+
+/** The profile's `seen` entry for a land's restoring (its colour flooding back on the world map, played once). */
+export const restoreKey = (id: string): string => `restore:${id}`;
+
+/** Whether playable region `r` (an index into REGIONS) is restored: its region won (a weight per region won). */
+export const regionRestored = (p: { weights: number }, r: number): boolean => r >= 0 && p.weights > r;
+
+/** The restored land whose colour has still to flood back on the world map (the first not seen yet), or null. */
+export function restorePending(p: { weights: number; seen: string[] }): string | null {
+  for (let r = 0; r < Math.min(p.weights, REGIONS.length); r++) if (!p.seen.includes(restoreKey(REGIONS[r].id))) return REGIONS[r].id;
+  return null;
+}
+
+/** Remember that a land's restoring has played (once). */
+export function markRestored(p: { seen: string[] }, id: string): void {
+  if (!p.seen.includes(restoreKey(id))) p.seen.push(restoreKey(id));
+}
