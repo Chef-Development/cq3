@@ -68,11 +68,9 @@ export const STORY: Record<string, StoryBox[]> = {
   // was one of his redraws: every alley drawn straight.
   sableJoin: [
     { who: 'narrator', text: 'Night at camp. Rowan sleeps at last.\nSomeone creeps toward the bags.' },
-    { who: 'sable', text: "Coins, a map, a good sword. A lot of nice\nthings for one knight. He won't miss a few." },
-    { who: 'pip', text: 'He will. Put it down. Owls see very well\nin the dark, and I bite.' },
-    { who: 'sable', text: "Fine. I'm Sable. Thief. From Crookwell.\nLast night someone drew all my alleys straight." },
-    { who: 'rowan', text: "We're after the man who did it. Help us put\nit back. We could use quick hands." },
-    { who: 'sable', text: 'Give me my alleys back, and you get two\ndaggers. I keep anything shiny. Deal?' },
+    { who: 'pip', text: 'Put it down. Owls see very well in the\ndark, and I bite.' },
+    { who: 'sable', text: "Fine. I'm Sable, from Crookwell. Last night\nsomeone drew all my alleys straight." },
+    { who: 'rowan', text: "We're after the man who did it. Come with\nus. We could use quick hands." },
   ],
   // welcome back: a returning player opens this version for the first time (over the title, once; core/tips.ts
   // welcomeScene picks one): the new story in two boxes (their save never replays the intro). The last box depends
@@ -104,19 +102,16 @@ export const STORY: Record<string, StoryBox[]> = {
   ],
   // after a new player's first win (greenmarch.ts Act 1 `winScene`; run.ts plays it once per profile): what the blank is
   road: [
-    { who: 'rowan', text: 'Thanks for the warning. Who are you?\nAnd how do you know my name?' },
-    { who: 'pip', text: 'Pip. I know a lot of names. Look at the farms.\nThe farmers are asleep where they stood.' },
-    { who: 'rowan', text: 'So we wake them. Come on.' },
-    { who: 'pip', text: "We can't. Someone rubbed this land off the\nGreat Atlas. What's erased, sleeps." },
-    { who: 'pip', text: 'And what he redraws wakes up wrong. This road\nwas crooked yesterday. Follow it.' },
+    { who: 'rowan', text: 'Who are you?\nAnd how do you know my name?' },
+    { who: 'pip', text: 'Pip. I know a lot of names. Look: the\nfarmers are asleep where they stood.' },
+    { who: 'pip', text: "Rubbed off the Great Atlas. What's erased,\nsleeps. And this road was crooked yesterday." },
     { who: 'rowan', text: 'Then we follow it. Someone has to stay\nawake for them.' },
   ],
   // Act 1 mini-boss: a bandit robbing the sleeping farms
   captain: [
     { who: 'captain', text: 'Well, well. A whole road asleep, and one\nknight left to guard it. Bad luck.' },
-    { who: 'rowan', text: "Put it back. All of it. Those people can't\neven wake up to stop you." },
+    { who: 'rowan', text: "Put back what you took. Those people can't\neven wake up to stop you." },
     { who: 'captain', text: "That's what makes it fair. Somebody redrew\nthe world last night. I'm just keeping up." },
-    { who: 'pip', text: "The sleepers' things are in his cart, Rowan.\nDon't let him reach the crossroads." },
     { who: 'captain', text: 'Lads! Up you get. This knight wants\nto be a hero.' },
   ],
   act2: [

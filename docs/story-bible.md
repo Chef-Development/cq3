@@ -684,7 +684,7 @@ gold lines while he's drawing there.
 
 ## 10. Scene plan and status, Regions 1-3 (ids stay stable)
 
-Region 1: `intro` (3 boxes), `act1` (1 box: Pip): together the 4 boxes before the first fight. Proposed new scene
+Region 1: `intro` (3 boxes), `act1` (1 box: Pip): together the 4 boxes before the first fight. The first minutes' other reads are 4 boxes each (the first 10 minutes team's measurements): `road`, `captain`, `sableJoin`. Proposed new scene
 `road` (after a new player's first win: Pip explains the blank and the Atlas; hooked by `winScene`). `captain`,
 `sableJoin` (camp), `act2`, `golem`, `act3`, `boarKing`, `boarKing2`, `boarKing3`, `victory` (ends in Meridian with
 Hesper). Region 2 and 3: the same ids as now (`frost1` ... `frostVictory`, `ash1` ... `ashVictory`), rewritten to this
