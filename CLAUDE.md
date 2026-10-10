@@ -302,8 +302,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   frames that draw on it). Hard pixels only (filled rects and pre-painted canvases, no paths, smoothing off; particles
   from the time and a seed); its art is drawn on the fine grid (`art-chests-hd.ts`, `art-reveal-hd.ts`, `font-hd.ts`:
   the game fonts doubled with Scale2x), sprites keep the game grid (never mix grids inside one piece of art).
-  `ChestOpening.view` is 'old' | 'hd' | 'split'; the setting is `cq3.chestReveal` (`storage.ts`, not in the gear
-  panel); the timeline, taps, sounds and queue are shared. The rollout plan is in docs/decisions.md (S6).
+  `ChestOpening.view` is 'old' | 'hd' | 'split' (it reads 'old' until the sharper reveal's chunk has loaded: chest-hd.ts
+  is imported only with `import()`, beside the boot: `loadChestHd`); the setting is `cq3.chestReveal`
+  (`storage.ts`, not in the gear panel); the timeline, taps, sounds and queue are shared. The rollout plan is in docs/decisions.md (S6).
 - **Accuracy readout** (`core/accuracy.ts`): every tap aimed at an isolated yellow gives a timing error; the median and
   MAD of the recent ones, mapped through `SD_CALIBRATION` (made with bots of known accuracy: `npm run calibrate`; re-run
   it after changing block widths, the cursor or the acts' pace; `tests/unit/accuracy.test.ts` fails when it drifts),

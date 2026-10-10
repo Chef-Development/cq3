@@ -10,10 +10,12 @@ import { applyCanvasLayout, applyFrame, GAME_H, GAME_W } from './engine/layout';
 import { FightScene } from './engine/scene';
 import { MINI_MISSES } from './engine/art-minis';
 import { loadRegionArt, regionArtLoaded } from './engine/region-art';
+import { chestHdLoaded, loadChestHd } from './engine/view/chest-opening';
 import { loadSettings, loadTuning } from './engine/storage';
 
 // the later regions' art packs download beside the boot (region-art.ts, docs/perf.md)
 void loadRegionArt();
+void loadChestHd(); // (the sharper chest reveal: a chunk of its own too)
 
 const app = new App(loadTuning(), loadSettings());
 
@@ -64,7 +66,7 @@ const handle: Record<string, unknown> = {
   game,
   /** The title is up and the later regions' art packs have arrived (a test may jump anywhere at once). */
   get ready() {
-    return app.sceneReady && regionArtLoaded();
+    return app.sceneReady && regionArtLoaded() && chestHdLoaded();
   },
   /** Foe sprites a map asked for that have no mini (drawn as the crossed swords): the tests expect none. */
   miniMisses: MINI_MISSES,
