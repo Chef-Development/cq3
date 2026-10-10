@@ -342,8 +342,8 @@ export class CampView {
   private plateDefs(): Array<{ id: PlateId; label: string; icon: string; target: Rect; roof: boolean }> {
     const p = this.s.app.run.profile;
     const out: Array<{ id: PlateId; label: string; icon: string; target: Rect; roof: boolean }> = [];
-    // (no plates over the tent and the forge: the Bag and Forge buttons in the band name them, and a home screen that
-    // said everything twice was mostly words; review-3 F6)
+    // (the Bag and the Forge have their buttons in the band: no plate says them twice, review round 8; the tent and
+    // the forge still open them when tapped)
     out.push({ id: 'shrine', label: 'Shrine', icon: 'shrine', target: CAMP_SPOTS.shrine, roof: true });
     if (bestWaiting(p)) out.push({ id: 'chests', label: 'Chests', icon: 'chest', target: this.propRect('chests'), roof: false });
     if (hasCamp(p, 'dummy')) out.push({ id: 'dummy', label: 'Practice', icon: 'target', target: this.propRect('dummy'), roof: false });
