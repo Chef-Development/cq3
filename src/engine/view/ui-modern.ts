@@ -503,8 +503,10 @@ export class Sheet {
     return this.open || now - this.closeAt < 160;
   }
 
-  /** Draw it in `area` (it takes the width, and the height its lines need, sitting at the area's bottom). */
-  draw(kit: CampKit, area: Rect, now: number): void {
+  /** Draw it in `area` (it takes the width, and the height its lines need, sitting at the area's bottom). `snapAbove`:
+   *  a tall sheet whose top (its title tab) would land above this y takes the whole area instead, so it never cuts
+   *  what sits there (a hero's name) in half. */
+  draw(kit: CampKit, area: Rect, now: number, snapAbove?: number): void {
     const out = !this.open;
     const k = out ? 1 - clamp01((now - this.closeAt) / 160) : easeOut3((now - this.at) / 220);
     if (k <= 0) return;
@@ -516,7 +518,8 @@ export class Sheet {
       const iw = ln.icon ? pixSize(ln.icon)[0] + 3 : 0;
       wrapText(ln.text, area.w - pad * 2 - iw).forEach((s, i) => wrapped.push({ l: ln, s, first: i === 0 }));
     }
-    const h = 16 + wrapped.length * 9 + 4;
+    let h = 16 + wrapped.length * 9 + 4;
+    if (snapAbove !== undefined && area.y + area.h - h - 6 < snapAbove) h = area.h - 6;
     const r = { x: area.x, y: Math.round(area.y + area.h - h + (1 - k) * 18), w: area.w, h };
     this.rect = r;
     // a dim over the rest

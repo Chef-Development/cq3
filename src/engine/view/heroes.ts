@@ -677,7 +677,8 @@ export class HeroesScreen {
     kit.drawBack(g, now);
     this.drawStrip(g, now);
     this.drawColumn(now);
-    this.sheet.draw(kit, this.sheetArea(), now);
+    // (a tall sheet covers the whole column rather than cut the name or the chips in half)
+    this.sheet.draw(kit, this.sheetArea(), now, this.rowY().chips + 8);
     // once settled, paint the stages a page turn would need (one per frame), so turning never stalls on a paint
     if (now - this.viewAt > 400 && !this.press) this.prepaint();
   }
