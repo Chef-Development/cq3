@@ -913,6 +913,23 @@ S18. **The third editor's notes (round 8, 46 items): applied, with two calls of 
     is already earned in saves). Not ours, passed to the lead: Tess and Brann both unlock Crampons at mastery 5.
     US spelling throughout ("gray", "travelers").
 
+S19. **Story scenes are staged from their speakers** (`view/story-stage.ts`; the fresh-eyes review's "one still
+    picture"). Every hero who has spoken so far stands on the stage in their fight idle frames (anchored at the feet
+    like the fight view), stepping in the first time they speak; the speaker is lit (full colour and a warm pool at the
+    feet), the others a step darker, everyone even while a voice off the stage speaks. The hero fighting already stands
+    there (fighters.ts): the stage lays a lit copy over them and over the companions (`Fighters.heroImage`). Others
+    face the party from the right; with a foe on stage (a boss's scene mid-fight, or a boss speaker shown in its fight
+    sprite on the right, found by its name in the enemies' data) they line up facing the foes. Companions and the other
+    voices (narrator, the Mapmaker, Hesper, Mags) keep their portraits only. A chest hero's arrival (`HEROES[id].meetScene`)
+    shows the open hero chest lit in their rarity colour, and they rise out of its light and hop to their spot; a story
+    hero's join (`JOINS`: sableJoin, neveJoin) steps them in. Over the camp, only a join or an arrival is staged, in a
+    pool of light on a deeper dim (the camp's own scenes already show their speakers). No staging data, no new art,
+    drawn from `now` and when the scene and boxes began. Props from the text (a sleeping farmer, the lamp) are not done.
+S20. **Map and menu words from the reviews.** Node tags name the node (Fight, Elite, Coin Rush; not Gear, Gear+, Rush);
+    the act picker says "Play again" and "Boss drop" (not "Replay (farm)", "signature"); the shrine's sheet is
+    "Guaranteed" (not "Pity"); a potion at full HP says "At full HP"; the skill tree's "Next point: Lv N"; a companion's
+    sheet opens on its kind alone ("Sky whale. Tides." read like a note).
+
 (story: end of section)
 
 
