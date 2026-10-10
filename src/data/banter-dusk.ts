@@ -1,8 +1,8 @@
-// Region 4's camp banter (SPOILERS: docs/content-bible.md section 7). NOT IN PLAY YET: not merged into HERO_BANTER
-// (src/data/banter.ts). Like Ashfell's, a line plays only once its speaker and everyone in `with` are at the camp, and
+// Region 4's camp banter (SPOILERS: docs/content-bible.md section 7). Played by the camp (view/camp.ts banterLines).
+// Like Ashfell's, a line plays only once its speaker and everyone in `with` are at the camp, and
 // only once the story has reached `after` (a Region 4 scene id from src/data/story-dusk.ts). Each line fits the
-// camp's bubble in two short lines (tests/unit/duskmire-data.test.ts). They name no one the story team hasn't
-// named yet (no mapmaker lines until docs/story-bible.md gives him his name and voice).
+// camp's bubble in two short lines (tests/unit/duskmire-data.test.ts). The Mapmaker may be named (docs/story-bible.md
+// section 4 gives his voice).
 
 import type { HeroBanterLine } from './banter';
 
@@ -20,8 +20,8 @@ export const DUSK_BANTER: DuskBanterLine[] = [
   { who: 'neve', text: 'Damp. Everything is damp. Ugh.', after: 'dusk1' },
   { who: 'tam', text: 'Wet powder. My worst nightmare.', after: 'dusk1' },
   { who: 'moss', text: 'The reeds whisper. Mostly gossip.', after: 'dusk1' },
-  { who: 'vesper', text: 'Dusk all day. My favourite hour.', after: 'dusk1' },
-  { who: 'hollis', text: 'Toads ate my lamp. Rude toads.', after: 'bellybog' },
+  { who: 'vesper', text: 'My fen, stuck at sunset. I hate it.', after: 'dusk1' },
+  { who: 'hollis', text: 'A toad ate my lamp. Whole.', after: 'bellybog' },
   { who: 'sable', text: 'A tide with a timetable? Fishy.', after: 'dusk2' },
   { who: 'torva', text: 'A beaver with a clipboard. Respect.', after: 'sluiceKeeper' },
   { who: 'rowan', text: 'Morning! I missed you, morning.', after: 'duskVictory' },

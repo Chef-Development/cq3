@@ -39,8 +39,9 @@ describe("the fourth region's relics: the data", () => {
   it('fourteen Light and Tide relics: unique ids and names, new to the game, one number at most, each fits a card', () => {
     const ids = DUSK_RELICS.map((r) => r.id);
     expect(new Set(ids).size).toBe(ids.length);
-    const oldIds = new Set<string>(RELICS.map((r) => r.id));
-    const oldNames = new Set(RELICS.map((r) => r.name));
+    const old = RELICS.filter((r) => (r.from ?? 0) < 9);
+    const oldIds = new Set<string>(old.map((r) => r.id));
+    const oldNames = new Set(old.map((r) => r.name));
     const widest = Math.max(...RELICS.map((r) => textWidth(sub(r.text, r.n), 1, false)));
     for (const r of DUSK_RELICS) {
       expect(oldIds.has(r.id), r.id).toBe(false);

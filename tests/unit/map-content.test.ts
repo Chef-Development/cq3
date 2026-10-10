@@ -20,7 +20,9 @@ function fresh(tune?: (t: Tuning) => void, seed = 7): Run {
   t.hero.critChance = 0;
   t.juice.hitStopMs = 0;
   tune?.(t);
-  return new Run(t, { ...DEFAULT_SETTINGS }, seed);
+  const r = new Run(t, { ...DEFAULT_SETTINGS }, seed);
+  r.profile.seen.push('scene:road'); // (Act 1's first win brings Pip's road scene once: not what these test)
+  return r;
 }
 
 /** A run on act `act`'s map (scenes skipped). */

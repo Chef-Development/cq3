@@ -38,7 +38,8 @@ export function labBaseProfile(): Profile {
   const p = newProfile();
   p.tipsOff = true;
   p.worldTour = true;
-  p.seen = [...REGIONS.slice(1).map((r) => unveilKey(r.id)), FINISHER_REVEAL];
+  // (and the later regions' camp tales: they'd play over any lab screen that opens the camp's view, fights too)
+  p.seen = [...REGIONS.slice(1).map((r) => unveilKey(r.id)), FINISHER_REVEAL, 'magsTale', 'duskCamp'];
   p.smithMet = true;
   p.sableMet = true;
   p.heroes.sable.unlocked = true;
@@ -141,7 +142,6 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
       p.neveMet = true;
       p.heroes.neve.unlocked = true;
       p.allUnlocked = true;
-      p.seen.push('magsTale'); // (the third region's camp tale never plays over the lab's camp)
     }
   }
   if (spec.tips?.length) {

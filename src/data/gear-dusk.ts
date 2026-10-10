@@ -1,9 +1,8 @@
-// Region 4's gear (SPOILERS: docs/content-bible.md section 7). NOT IN PLAY YET: not merged into BASE_ITEMS, EFFECTS,
-// SETS or SIGNATURES (src/data/gear.ts) until the region is wired in. Same shapes as gear.ts entries; merging means
-// adding the effect and set ids to the unions there, and the effects to the core (combat.ts, beside the Emberwright
-// set's): the Lamplighter's set (2 pieces: hits on dark blocks; 4: blocking a red in the water heals) and the boss's
-// signatures (Sunlamp: the light reaches further and a block's first hit after it's lit crits; Breaker's Edge: hits
-// on blocks that just came up out of the water). Icons fall back to a slot's look until painted ones exist.
+// Region 4's gear (SPOILERS: docs/content-bible.md section 7). Merged into BASE_ITEMS, EFFECTS, SETS and
+// SIGNATURES (src/data/gear.ts); the effects are in the core (combat.ts, beside the Emberwright set's; numbers in
+// tuning.effects): the Lamplighter's set (2 pieces: hits on dark blocks; 4: blocking a red in the water heals) and the
+// boss's signatures (Sunlamp: the light reaches further; Breaker's Edge: blocks just up out of the water take more).
+// Icons fall back to a slot's look until painted ones exist.
 
 import type { BaseItem, EffectDef, GearRarity, SetDef } from './gear';
 

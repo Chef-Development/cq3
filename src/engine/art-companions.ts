@@ -287,7 +287,7 @@ function newt(g: Grid, pose: Pose): void {
   flame(g, 6.6, 10, act ? 8 : 6 + f, act ? 1.5 : f ? -1 : 1, f);
 }
 
-// ------------------------------------------------------------------ Sprocket: a little clockwork robot with a wind-up key
+// ------------------------------------------------------------------ Sprocket: a little wind-up tin robot with its key
 
 const BRASS = ['#3e2210', '#7a4a1a', '#b8802a', '#e2b048', '#fbe08a', '#fffbd8'];
 const STEEL = ['#2a2f45', '#4a5272', '#7c86a6', '#b8c2d8', '#eef3fa'];

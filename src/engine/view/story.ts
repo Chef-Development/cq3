@@ -8,6 +8,7 @@ import { SPEAKER_NAME, STORY } from '../../data/story';
 import type { Speaker } from '../../data/types';
 import type { FightScene } from '../scene';
 import { isAshArtKey } from '../art-ash';
+import { isDuskArtKey } from '../art-dusk';
 import { textWidth } from '../font';
 import { band, button3d, chevron, GOLD, NAVY, panel, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, WHITE, type Rect } from './shared';
@@ -29,7 +30,7 @@ const LEFT: Speaker[] = [
   // part6:D
   'fizz', 'brann',
 ];
-/** Friends who aren't heroes (Mags the smith, Hesper the High Keeper): on the right like a villain, but in warm forge colors. */
+/** Friends who aren't heroes (Mags the smith, Hesper the High Keeper): on the right like a villain, but in warm colors. */
 const ALLY: Speaker[] = ['smith', 'keeper'];
 /** Portrait backdrop [top, bottom] and name ribbon per side. */
 const LOOK = {
@@ -174,7 +175,10 @@ export class StoryView {
     if (this.portrait) {
       // the third region's speakers are painted in idle time after boot: finish them now if this scene comes sooner
       if (!this.s.textures.exists(`portrait_${box.who}`) && isAshArtKey(`portrait_${box.who}`)) this.s.ensureAshArt();
-      const p = this.portrait.setTexture(`portrait_${box.who}`).setPosition(Math.round(fx + fw / 2), fy + fw - 3 - bob).setVisible(true);
+      if (!this.s.textures.exists(`portrait_${box.who}`) && isDuskArtKey(`portrait_${box.who}`)) this.s.ensureDuskArt();
+      // (a speaker not painted yet, as the fourth region's until its art lands, speaks from an empty frame)
+      const has = this.s.textures.exists(`portrait_${box.who}`);
+      const p = this.portrait.setTexture(has ? `portrait_${box.who}` : 'portrait_rowan').setPosition(Math.round(fx + fw / 2), fy + fw - 3 - bob).setVisible(has);
       // keep the portrait inside its frame
       const over = Math.max(0, p.height - (fw - 6));
       p.setCrop(0, over, p.width, p.height - over);

@@ -61,7 +61,7 @@ interface Pill {
   w: number;
   h: number;
   text: string[];
-  sub: string;
+  sub: string[];
 }
 
 export class GainsView {
@@ -122,11 +122,13 @@ export class GainsView {
     if (one) {
       const both = l.sub ? `${l.sub} ${l.text}` : l.text;
       const t = textWidth(both, 1, true) <= room ? both : l.text;
-      return { w: iw + 10 + Math.min(room, textWidth(t, 1, true)), h: 12, text: [t], sub: '' };
+      return { w: iw + 10 + Math.min(room, textWidth(t, 1, true)), h: 12, text: [t], sub: [] };
     }
     const text = textWidth(l.text, 1, true) <= room ? [l.text] : wrapBold(l.text, room);
-    const tw = Math.max(...text.map((t) => textWidth(t, 1, true)), l.sub ? textWidth(l.sub, 1, false) : 0);
-    return { w: iw + 10 + tw, h: 6 + text.length * 8 + (l.sub ? 8 : 0), text, sub: l.sub ?? '' };
+    // (the small line wraps too: "Rowan: mastery!" was wider than the act clear's column and ran under its headline)
+    const sub = !l.sub ? [] : textWidth(l.sub, 1, false) <= room ? [l.sub] : wrapBold(l.sub, room, false);
+    const tw = Math.max(...text.map((t) => textWidth(t, 1, true)), ...sub.map((t) => textWidth(t, 1, false)));
+    return { w: iw + 10 + tw, h: 6 + text.length * 8 + sub.length * 8, text, sub };
   }
 
   /** Rows of pills that fit across the screen (a column: one row). */
@@ -189,7 +191,8 @@ export class GainsView {
     const where = this.where;
     const age = now - this.at;
     const span = s.R - s.L - 12;
-    const maxW = where === 'column' ? 80 : Math.min(where === 'band' ? 170 : 150, span);
+    // (the act clear's column keeps left of its headline and the line under it)
+    const maxW = where === 'column' ? Math.max(56, Math.min(80, s.overlays.clearHeadLeft() - 3 - (s.L + 4))) : Math.min(where === 'band' ? 170 : 150, span);
     const sizes = this.lines.map((l) => this.size(l, maxW, where === 'band'));
     const rs = this.rowsOf(sizes, span, where === 'column');
     const life = where === 'band' ? rs.length * PAGE : STAY + this.lines.length * 400;
@@ -230,8 +233,8 @@ export class GainsView {
       pix(g, l.icon, x + 4, Math.round(y + z.h / 2 - ih / 2), a);
       const tx = x + iw + 7;
       let ty = z.h === 12 ? y + 6 : y + 7;
-      if (z.sub) {
-        this.texts.text(z.sub, tx, ty - 0.5, 0xc8c0e8, { oy: 0.5, alpha: a });
+      for (const sub of z.sub) {
+        this.texts.text(sub, tx, ty - 0.5, 0xc8c0e8, { oy: 0.5, alpha: a });
         ty += 8;
       }
       z.text.forEach((t, j) => this.texts.text(t, tx, ty + j * 8, l.col, { bold: true, oy: 0.5, alpha: a }));
@@ -240,13 +243,13 @@ export class GainsView {
   }
 }
 
-/** Bold text wrapped to `w`. */
-function wrapBold(s: string, w: number): string[] {
+/** Bold (or plain) text wrapped to `w`. */
+function wrapBold(s: string, w: number, bold = true): string[] {
   const out: string[] = [];
   let cur = '';
   for (const word of s.split(' ')) {
     const t = cur ? `${cur} ${word}` : word;
-    if (textWidth(t, 1, true) <= w || !cur) cur = t;
+    if (textWidth(t, 1, bold) <= w || !cur) cur = t;
     else {
       out.push(cur);
       cur = word;

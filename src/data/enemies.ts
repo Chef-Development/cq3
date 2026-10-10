@@ -5,6 +5,7 @@
 
 import { FROST_ENEMIES } from './enemies-frost';
 import { ASH_ENEMIES } from './enemies-ash';
+import { DUSK_ENEMIES } from './enemies-dusk';
 import type { EnemyDef } from './types';
 
 // Fair to a thumb (tests/unit/data.test.ts checks every red formation): a red is never thinner than normal, a fast
@@ -350,4 +351,6 @@ export const ENEMIES: Record<string, EnemyDef> = {
   ...FROST_ENEMIES,
   // Region 3 (src/data/enemies-ash.ts)
   ...ASH_ENEMIES,
+  // Region 4 (src/data/enemies-dusk.ts)
+  ...DUSK_ENEMIES,
 };

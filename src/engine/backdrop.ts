@@ -10,8 +10,8 @@
 // dithering is only used for broad gradients: sky, mist, light shafts and torch light.
 import type Phaser from 'phaser';
 
-export type Theme = 'forest' | 'ruins' | 'hollow' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge';
-export const THEMES: Theme[] = ['forest', 'ruins', 'hollow', 'pass', 'caves', 'glacier', 'cinder', 'glass', 'forge'];
+export type Theme = 'forest' | 'ruins' | 'hollow' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere';
+export const THEMES: Theme[] = ['forest', 'ruins', 'hollow', 'pass', 'caves', 'glacier', 'cinder', 'glass', 'forge', 'fen', 'causeway', 'mere'];
 /** Greenmarch's themes are painted at boot (buildBackdrops); the Frostpeaks' (backdrop-frost.ts) and Ashfell's
  *  (backdrop-ash.ts) the first time an act needs one (Stage.ensure). */
 export const BOOT_THEMES: Theme[] = ['forest', 'ruins', 'hollow'];

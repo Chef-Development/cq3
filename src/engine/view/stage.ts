@@ -12,6 +12,7 @@ import Phaser from 'phaser';
 import type { FightScene } from '../scene';
 import { buildBackdrops, FG_FRAMES, type Backdrop, type Theme } from '../backdrop';
 import { buildAshBackdrop, isAsh } from '../backdrop-ash';
+import { buildDuskBackdrop, isDusk } from '../backdrop-dusk';
 import { buildFrostBackdrop, isFrost } from '../backdrop-frost';
 import { buildStageArt, buildStageTheme, STAGE_LIGHT } from '../art-stage';
 import { GAME_W } from '../layout';
@@ -91,9 +92,10 @@ export class Stage {
   /** A theme's backdrop and light for this layout: the Frostpeaks' and Ashfell's are painted the first time an act
    *  needs one. */
   ensure(theme: Theme): void {
-    if (this.backdrops[theme] || !(isFrost(theme) || isAsh(theme))) return;
+    if (this.backdrops[theme] || !(isFrost(theme) || isAsh(theme) || isDusk(theme))) return;
     const t0 = performance.now();
-    this.backdrops[theme] = isAsh(theme) ? buildAshBackdrop(this.s, theme, GAME_W, this.s.splitY, this.s.ground) : buildFrostBackdrop(this.s, theme, GAME_W, this.s.splitY, this.s.ground);
+    const [w, h, g] = [GAME_W, this.s.splitY, this.s.ground];
+    this.backdrops[theme] = isAsh(theme) ? buildAshBackdrop(this.s, theme, w, h, g) : isDusk(theme) ? buildDuskBackdrop(this.s, theme, w, h, g) : buildFrostBackdrop(this.s, theme, w, h, g);
     buildStageTheme(this.s, GAME_W, this.s.splitY, this.s.ground, theme);
     this.paintMs[theme] = performance.now() - t0;
   }
@@ -265,6 +267,8 @@ export class Stage {
         this.spawnFrost(a, ground, r);
       } else if (isAsh(theme)) {
         this.spawnAsh(a, ground, r);
+      } else if (isDusk(theme)) {
+        this.spawnDusk(a, ground, r);
       } else {
         // rain: most of it far, a few heavy streaks close to the camera
         const near = r < 0.06;
@@ -398,9 +402,12 @@ export class Stage {
       else glint();
       this.nextAmbient += 140;
     } else if (theme === 'glass') {
-      if (r < 0.55) {
+      if (r < 0.45) {
         const c = [0xffc070, 0xff8a5a, 0xc89aff, 0x9ae89a][Math.floor(Math.random() * 4)];
         this.bits.push({ kind: 'mote', x: rand(20, W - 20), y: rand(26, ground + 2), vx: rand(-2, 2), vy: rand(-5, -1.5), born: a, life: rand(3200, 5600), color: c, phase: rand(0, 6) });
+      } else if (r < 0.7) {
+        // embers rising off the magma lake through the far arch (backdrop-ash.ts glass: the lake spans about 0.3-0.75)
+        this.bits.push({ kind: 'ember', x: rand(W * 0.34, W * 0.7), y: ground - rand(20, 24), vx: rand(-3, 3), vy: rand(-12, -6), born: a, life: rand(1400, 2400), color: Math.random() < 0.6 ? 0xff8a3a : 0xffd070, phase: 0 });
       } else glint();
       this.nextAmbient += 210;
     } else {
@@ -409,6 +416,40 @@ export class Stage {
       else if (r < 0.88) this.bits.push(this.ashFlake(a, ground, h));
       else glint();
       this.nextAmbient += 110;
+    }
+  }
+
+  /**
+   * The Duskmire's air. Lanternfen: fireflies waking over the pools, a will-o'-wisp's cold green light bobbing low far
+   * off, the lanterns and lit windows glinting. The Drowned Causeway: sea haze motes drifting along the flats, a gull's
+   * glint, the water catching the light. The Gloaming Mere: moths and dusk motes rising, the lamp's glints on the lake.
+   */
+  private spawnDusk(a: number, ground: number, r: number): void {
+    const theme = this.theme;
+    const W = GAME_W;
+    const glints = this.backdrops[theme]?.glints ?? [];
+    const glint = () => {
+      if (!glints.length) return;
+      const g = glints[Math.floor(Math.random() * glints.length)];
+      this.bits.push({ kind: 'glint', x: g.x, y: g.y, vx: 0, vy: 0, born: a, life: rand(500, 900), color: g.c, phase: 0 });
+    };
+    const fly = (y0: number, y1: number, c: number) => this.bits.push({ kind: 'firefly', x: rand(24, W - 24), y: rand(y0, y1), vx: rand(-4, 4), vy: rand(-3, 1), born: a, life: rand(3000, 5200), color: c, phase: rand(0, 6) });
+    if (theme === 'fen') {
+      if (r < 0.5) fly(ground - 40, ground - 4, Math.random() < 0.7 ? 0xe0ff8a : 0xffd870);
+      else if (r < 0.62) fly(ground - 30, ground - 22, 0x8affd0); // a wisp far over the water
+      else if (r < 0.84) this.bits.push({ kind: 'mote', x: rand(20, W - 20), y: rand(26, ground), vx: rand(-2, 2), vy: rand(-4, -1), born: a, life: rand(2600, 4200), color: 0xe8b0c8, phase: rand(0, 6) });
+      else glint();
+      this.nextAmbient += 230;
+    } else if (theme === 'causeway') {
+      if (r < 0.5) this.bits.push({ kind: 'mote', x: rand(-10, W - 40), y: rand(30, ground), vx: rand(4, 9), vy: rand(-1, 1), born: a, life: rand(3200, 5200), color: Math.random() < 0.6 ? 0xc8d0f0 : 0xf0c0d0, phase: rand(0, 6) });
+      else if (r < 0.66) fly(ground - 36, ground - 6, 0xffd870);
+      else glint();
+      this.nextAmbient += 240;
+    } else {
+      if (r < 0.4) this.bits.push({ kind: 'mote', x: rand(20, W - 20), y: rand(30, ground + 2), vx: rand(-2, 3), vy: rand(-5, -2), born: a, life: rand(3000, 5000), color: Math.random() < 0.5 ? 0xffb090 : 0xc8a0d8, phase: rand(0, 6) });
+      else if (r < 0.62) fly(ground - 44, ground - 8, 0xffe0a0);
+      else glint();
+      this.nextAmbient += 220;
     }
   }
 

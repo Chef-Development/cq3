@@ -212,6 +212,20 @@ export const WORLD_ACTS_ASH: ActSpot[] = [
   { x: 803, y: 26, box: { x: 792, y: 14, w: 24, h: 22 }, stand: [786, 44], flag: [816, 18], view: [806, 70] },
 ];
 
+/**
+ * The fourth region's three acts, by global act index 9-11, on what its land already shows (art-world.ts stageDusk):
+ * the drowned arch in its pool (the lantern-lit fen), the stilt village on its boardwalks (the half-sunk causeway), the
+ * lighthouse's lamp in the middle (the mere). Placeholders for the art team: move them with the landmarks they draw.
+ */
+export const WORLD_ACTS_DUSK: ActSpot[] = [
+  // the drowned arch in its black pool, the fen's wisps round it
+  { x: 779, y: 254, box: { x: 766, y: 244, w: 26, h: 20 }, stand: [762, 262], flag: [792, 246], view: [770, 252] },
+  // the stilt village on its boardwalks, the causeway's half-sunk road
+  { x: 626, y: 254, box: { x: 604, y: 240, w: 44, h: 28 }, stand: [600, 264], flag: [648, 240], view: [626, 250] },
+  // the lighthouse wading in the mere
+  { x: 708, y: 234, box: { x: 699, y: 222, w: 20, h: 28 }, stand: [694, 252], flag: [718, 222], view: [708, 240] },
+];
+
 /** Where the third region's landmark sprites stand (world px, the textures' top-left), once its veil lifts. */
 export const ASH_SIGHTS = {
   /** the half-paved road, its barrier and the road-roller curled up on it (the region's first act) */

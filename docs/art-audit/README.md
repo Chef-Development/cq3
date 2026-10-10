@@ -22,15 +22,15 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 
 | Item | Score | What's off |
 | --- | --- | --- |
-| Heroes' fight frames (15 on the shared rig) | 4 | Consistent rig, ramps and outlines. Idles are 2 frames (the bible's target is 4 with secondary motion). |
-| **Rowan's fight frames** (`hero_*`) | 3 | Off the shared rig: a bigger helmeted head than the other fifteen; 9 poses (no cast, down, fin). He is the first hero anyone sees. |
+| Heroes' fight frames (all 16 on the shared rig) | 4 | Consistent rig, ramps and outlines. Now 4-frame idles with secondary motion and every pose of the bible's twelve (round 8, A2B-2). |
+| Rowan's fight frames (`hero_*`) | 3, now 4 | Was off the shared rig with 9 poses; redrawn on it with all 14 (below). |
 | Hero cards | 4 | Same glow and framing for all sixteen. |
 | Greenmarch foes | 4 | Cohesive; good tells. |
 | Frostpeaks foes | 4 | The wisp and the hailcaller are small inside their frames. |
 | **Ashfell foes: chain sentinel, forgehand, obsidian ox, cinder kite** | 3 | Dark on dark: their values sit inside the Ashfell backdrops' range, so they don't pop (section 8). Needs a lighter rim on the ember side. |
 | Other Ashfell foes, the three region bosses | 4-5 | Strong silhouettes, phase looks. |
 | Companions, their cards | 4 | Soft, readable, consistent. |
-| **Spirit stag (Summoner ally)** | 3 | No ink outline, stick legs, flat fill: reads as an effect, not a creature. |
+| Spirit stag (Summoner ally) | 3, now 4 | Was stick legs and a flat fill; rebuilt (below). |
 | Other allies | 4 | |
 | Portraits | 4 | Same bust framing; lit from the top left. |
 | Map walkers, foe minis | 4 | Every foe has one; readable at 1x. |
@@ -43,8 +43,7 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Tag icons | 4 | |
 | Backdrops: forest, hollow | 5 | Layers, light shafts, calm ground. |
 | Backdrops: ruins, pass, caves, glacier, cinder | 4 | |
-| **Backdrop: glass** | 3 | Flat: one near-black wall plane; the coloured glass windows read as gems floating in the dark; the kiln on the left reads as a dithered blob. |
-| Backdrop: forge | 4 | The sheet made it look flat; in a fight the furnace light and the lava carry it (re-scored from the screen). |
+| Backdrops: glass, forge | 3, now 4 | Were flat; a far cavern, heat shafts, a far ridge, a lit plume, a calm floor (below). |
 | World map (craft) | 4 | Lush and well made, but a painted continent, not the inked Atlas the new story needs (the planned rework). |
 | **World map veils** (`wm_veil_*`) | 2 | Flat grey with rectangular holes: reads as a placeholder, not erased land. To become Atlas fog (blank paper, faded lines). |
 | Act maps | 4 | Busy but cohesive. |
@@ -60,11 +59,11 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 1. Skill icons (2, now 3): about half were generic; now themed emblems, still repeated within a tree.
 2. World map veils (2): placeholder fog. Part of the Great Atlas rework of the world map.
 3. Relic icons sharing generic glyphs (3): done, the Frostpeaks' 15 painted.
-4. Rowan's fight frames (3): the missing poses are drawn; still off the shared rig (a deliberate look?) and a 2-frame idle.
+4. Rowan's fight frames (3): done, on the rig with every pose.
 5. The dark Ashfell foes (3): done, an ember rim from below.
-6. The glass backdrop (3): done (light spill, sockets, no checkerboard). The forge re-scored 4.
-7. The vault's empty state (3): dim, no focal light (with chests waiting it is a 4).
-8. The spirit stag (3; its 1 px legs and antlers thin out at 1x) and the cinder lair (3: done, it glows).
+6. The glass and forge backdrops (3): done, depth and air.
+7. The vault (3): dim, no focal light.
+8. The spirit stag (3): done. The cinder lair (3).
 9. The world map's style (4 in craft): becomes the inked Atlas.
 
 ## Redone
@@ -79,6 +78,10 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Heroes' idles (the 14 rig heroes) | 4 | 4+ | A four-step breath instead of two: `idle2`/`idle3`, the head following the body a beat late (secondary motion, bible section 7). |
 | Cinder lair | 3 | 4 | `after/lairs-ashfell.png` (left): the paver heap glows in its seams, the left faces catch the cauldron's light, the pitch glows at the brim. |
 | Title screen, logo, key art | 3 | 4 | `before/title-phone.png`; `after/title-phone.png`, `after/title-desktop.png`, `after/title-continue.png`. The Atlas spread open: an inked parchment map, colour come back round the hero, fog over the erased east, a quill drawing the route; the logo built from `GAME_NAME` (Scale3x lettering, gold face, rim light, extrusion, ink outline). |
+| Rowan's fight frames | 3 | 4 | `after/rowan-before-after.png`, in a fight `after/fight-act1-rowan.png`. On the shared rig (`art-hero-rowan.ts`): the peers' head size and stance, 14 poses (idle0-3, windup, slashA, slashB, dash, leap, parry, hurt, cast, down, fin), a plume and a cape that lag his breath, polished steel. |
+| Heroes' idles | 4 | 4 | `after/heroes-idle4.png`. Every hero idles in four frames (the secondary piece a frame behind); Sable gains fin and cast. |
+| Spirit stag | 3 | 4 | `after/stag-before-after.png`. A haunch and a shoulder, jointed legs with hocks and hooves, great antlers, fewer specks. |
+| Backdrops: glass, forge | 3 | 4 | `after/backdrops-glass-forge.png`, in a fight at phone size `after/fight-act8-glass.png`, `after/fight-act9-forge.png`. The warren: a tall arch onto a hazy far cavern (pillars at two depths, heat shafts), the lake's light on the wall, embers rising. The forge: a far ridge, a heat plume lit from below, pilasters, a calm strip under the feet. |
 
 ## Next: the world map as the Great Atlas (a prototype)
 

@@ -60,7 +60,7 @@ fight, its loot and relic pick, the map), so the first chest comes at 1:20 to 6:
 - **The chest (seed 7: 2:14; seed 9: 4:36).** "Treasure! Tap the chest", coins burst, the loot, a rare pick. On
   seed 9 the newcomer met 18 tips first (the bounty board's, the secret's, the elite's, the rest's, the shop's...).
 
-## Changes (Team 5, round 8; docs/decisions.md F1-F5)
+## Changes (Team 5, round 8; docs/decisions.md F1-F6)
 
 1. **Act 1 always offers a chest right after the first fight** (F1). `ActDef.chestRow` (Act 1: row 1): every first-row
    fight links to a chest in row 1, as few chests as that takes (one in ~45% of maps, the whole row of two in ~30%),
@@ -71,8 +71,11 @@ fight, its loot and relic pick, the map), so the first chest comes at 1:20 to 6:
 3. **The first finisher is a moment** (F3): the first finisher in the game holds the fight's clock for 1.5 s
    (`App.holdUntil`): letterbox bars, the stage darkens, light gathers on Rowan, "FINISHER" and then
    **WHIRLWIND** stamp in big with what it does ("Hits all, clears reds."), then the usual show plays
-   (`view/finisher-reveal.ts`; once per profile, `finisherReveal` in `profile.seen`).
+   (`view/finisher-reveal.ts`; once per profile, `finisherReveal` in `profile.seen`; only with tips on, so the specs,
+   which run with tips off, never meet it unasked).
 4. **Test lab: "The first fight"** (F4): Rowan against Act 1's first foes with the five lessons and the reveal unseen.
+5. **The spec guards it**: the first chest within 3 minutes of New game, the first finisher revealed (the clock held,
+   its name up), and none of the quiet start's tips before the chest.
 
 ## Measured: after
 
@@ -90,6 +93,9 @@ The same three seeds, same bot, after F1-F3 (the first finisher's reveal adds 1.
 | Taps to the chest | 73 (was 127) | 69 (was 65) | 76 (was 344) |
 | Tips before the chest | 7 (was 12) | 6 (was 7) | 6 (was 18) |
 
+A struggling newcomer (`F10_ACC=0.55`, seed 7) wins the first fight too: first finisher 1:03, first win 1:21, first
+chest 1:34, 86 taps.
+
 Over 2,000 Act 1 maps the first chest is now offered right after the first fight on every map (it was 22%; 24% had
 none in Act 1). A newcomer who takes it opens it at about 1:25-1:30, after one fight; the first five minutes now hold
 the story, the first fight with its five lessons and the named first finisher, the first chest, and a second fight.
@@ -104,13 +110,16 @@ What a newcomer sees now, where it changed:
   point yet.
 - **The chest:** "Treasure! Tap the chest", coins, the loot, a rare pick, then the map, 1:30 in.
 
-Screenshots of every beat (before and after) are in the run's scratch folder; the spec writes them to
-`test-results/first10/` (or `F10_OUT`) with `first10.json` (the beats, the tips, the phase log).
+The spec writes a screenshot of every beat to `test-results/first10/` (or `F10_OUT`) with `first10.json` (the beats,
+the tips, the phase log). The before/after runs and a contact sheet of the key beats (`first10-contact.png`: seed 9
+before, seed 7 after) are in the run's scratch folder (team-first10/).
 
 ## Still to do (not ours, or next)
 
 - The story before the first fight: 11 boxes, 24 s, 11 taps (story team: at most 4 boxes).
 - The first relic pick is dense for minute 1 (three cards, tags, a RARE badge). A first pick of plain stat cards, or
   two cards, would read faster.
-- The hero chest (the gacha reveal) first comes after the Act 1 boss; a first hero chest within the first 10 minutes
-  would show off the chest reveal early.
+- The hero chest (the gacha reveal) first comes after the Act 1 boss (about 10 minutes in for a newcomer) and opens at
+  camp; a first hero chest within the first 10 minutes would show off the chest reveal early.
+- Two relic picks within 20 s around the first chest (the first fight's, then the chest's rare one).
+- Each new hero's first finisher could get the same reveal (Sable's, a chest hero's): one mark per hero.

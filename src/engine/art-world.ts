@@ -21,7 +21,7 @@
 // band along the far north (`wm_rim`) and small sprites. Everything else that moves the view draws as a handful of
 // rects a frame. The whole lot is painted once; later layouts reuse the canvases.
 import { grid, stamp, toCanvas, type Pal } from './art';
-import { paintLands, WORLD_ACTS_ASH } from './art-world-lands';
+import { paintLands, WORLD_ACTS_ASH, WORLD_ACTS_DUSK } from './art-world-lands';
 import { ATLAS_INK, atlasPrint, blankOf, compassRose, draftOf, neatline, PARCH, paperAt } from './art-world-atlas';
 import { bay, col, fbm, hash, level, lighten, mass, mix, noise, pick, Pix, ramp, rgba32, rng, tuft, wordCanvas, type Blob, type Col, type Ramp } from './backdrop';
 import {
@@ -90,7 +90,8 @@ export const WORLD_REGIONS: Array<{ id: string; name: string; x: number; y: numb
  * Every playable act as a landmark, by global act index (data/regions.ts): Greenmarch's three (the Bandit Captain's
  * camp, the Old Ruins, the Boar King's Hollow), then the Frostpeaks' three (the pass by the frozen falls, the cave
  * mouth above the frozen lake, the mountain keep), then the third region's three round the volcano (WORLD_ACTS_ASH in
- * art-world-lands.ts: the half-paved road, the glowing cave mouth, the black forge on the rim). Each: the landmark's
+ * art-world-lands.ts: the half-paved road, the glowing cave mouth, the black forge on the rim), then the fourth
+ * region's three in its marsh (WORLD_ACTS_DUSK, beside them). Each: the landmark's
  * centre and its tap box, where Rowan stands while it's the act he's on, where its flag flies, and the view centre the
  * map opens on while it's the current act.
  */
@@ -102,6 +103,7 @@ export const WORLD_ACTS: Array<{ x: number; y: number; box: Box; stand: Pt; flag
   { x: 656, y: 82, box: { x: 630, y: 56, w: 54, h: 50 }, stand: [624, 94], flag: [688, 88], view: [648, 88] },
   { x: 566, y: 60, box: { x: 546, y: 38, w: 42, h: 44 }, stand: [538, 94], flag: [592, 50], view: [560, 84] },
   ...WORLD_ACTS_ASH,
+  ...WORLD_ACTS_DUSK,
 ];
 
 /** The capital's gate, right under the Great Pendulum's tower; and the walled town's tap box. */

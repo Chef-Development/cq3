@@ -609,12 +609,44 @@ function glass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   // chain bridge slung across
   const ox = w * 0.52;
   const lakeY = G - 21;
+  // (a tall arch, so the far cavern gives the warren depth: its haze lightens toward the lake like air in sunlight)
+  const openH = 44;
   const open = (x: number, y: number) => {
-    const dx = (x + 0.5 - ox) / (w * 0.22);
-    const dy = (y + 0.5 - (G - 17)) / 22;
-    return y < G - 16 && dy < 0 && dx * dx + dy * dy < 1 + (noise(x * 0.09, y * 0.12, 7) - 0.5) * 0.45;
+    const dx = (x + 0.5 - ox) / (w * 0.24);
+    const dy = (y + 0.5 - (G - 17)) / openH;
+    return y < G - 16 && dy < 0 && dx * dx + dy * dy < 1 + (noise(x * 0.09, y * 0.12, 7) - 0.5) * 0.3;
   };
-  const far = ramp('#1a060e', '#2a0a12', '#3e1014', '#561a16', '#702818', '#8e3a1c');
+  // the warm light of the lake spilling out of the opening onto the near wall round it
+  glowAt(p, ox + 0.5, G - 26, w * 0.34, 34, col('#a03a1c'), 0.16);
+  const far = ramp('#1a060e', '#2a0a12', '#3e1014', '#561a16', '#702818', '#8e3a1c', '#a84c22', '#c2602a');
+  const farTop = G - 17 - openH;
+  /** The far cavern's air: dark high up, glowing hot just over the lake. */
+  const airV = (x: number, y: number) => 0.06 + ((y - farTop) / (lakeY - farTop)) ** 1.6 * 0.74 + (noise(x * 0.12, y * 0.2, 9) - 0.5) * 0.12;
+  // pillars of obsidian standing in the far cavern, two depths: the farthest barely darker than the air, the nearer
+  // darker; each its own width and height, tapering, joined by the odd broken arch
+  const farCols: Array<[number, number, number, number]> = [
+    // [x as a share of w, half width, top (px above the lake), row: 0 far, 1 near]
+    [0.36, 2, 30, 0],
+    [0.41, 1.5, 22, 0],
+    [0.49, 2.5, 36, 0],
+    [0.57, 1.5, 26, 0],
+    [0.66, 2, 32, 0],
+    [0.33, 3, 40, 1],
+    [0.45, 2.5, 18, 1],
+    [0.6, 3.5, 44, 1],
+    [0.7, 2.5, 20, 1],
+  ];
+  const pillarAt = (x: number, y: number): number => {
+    let row = -1;
+    for (const [fx2, half, top, r] of farCols) {
+      const cx = fx2 * w;
+      const t = (lakeY - y) / top;
+      if (t < 0 || t > 1) continue;
+      const hw = half * (1 - t * 0.35) + (t < 0.12 ? (0.12 - t) * 8 : 0);
+      if (Math.abs(x + 0.5 - cx) <= hw) row = Math.max(row, r);
+    }
+    return row;
+  };
   for (let y = 0; y < G - 14; y++)
     for (let x = 0; x < w; x++) {
       if (!open(x, y)) continue;
@@ -623,7 +655,10 @@ function glass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
         continue;
       }
       if (y < lakeY) {
-        const v = 0.1 + ((y - (G - 40)) / 20) * 0.6 + (noise(x * 0.12, y * 0.2, 9) - 0.5) * 0.25;
+        let v = airV(x, y);
+        const row = pillarAt(x, y);
+        if (row === 1) v -= pillarAt(x - 1, y) === 1 ? 0.36 : 0.24; // a lit left edge toward the light
+        else if (row === 0) v -= 0.14;
         p.set(x, y, pick(far, v, x, y, 0.3));
       } else {
         const v = 0.5 + ((y - lakeY) / 5) * 0.3 + (noise(x * 0.25, y * 0.9, 11) - 0.5) * 0.4;
@@ -645,6 +680,26 @@ function glass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     for (let k = 0; k < hgt; k++) {
       const half = 2.2 * (1 - k / hgt);
       for (let xx = Math.floor(x - half); xx <= x + half; xx++) if (open(xx, lakeY + 2 - k)) p.set(xx, lakeY + 2 - k, xx < x ? OBSID[3] : OBSID[1]);
+    }
+  }
+  // heat rising off the lake in shafts: stepped bands of lighter air, dithered at their edges, fading upward
+  for (const [fx2, half] of [
+    [0.44, 3],
+    [0.53, 5],
+    [0.62, 3],
+  ] as const) {
+    const cx = Math.round(fx2 * w);
+    for (let y = farTop; y < lakeY; y++) {
+      const up = (lakeY - y) / (lakeY - farTop);
+      for (let x = cx - half - 1; x <= cx + half + 1; x++) {
+        if (!open(x, y) || !open(x - 1, y) || !open(x + 1, y) || !open(x, y - 1)) continue;
+        const edge = Math.abs(x - cx) > half;
+        if (edge && (x + y) % 2) continue;
+        const sway = Math.round(Math.sin(y * 0.18 + cx) * 1);
+        if (Math.abs(x - cx - sway) > half + (edge ? 1 : 0)) continue;
+        const lift = (1 - up) * 0.22 + 0.04;
+        p.tint(x, y, () => pick(far, airV(x, y) + lift, x, y, 0.3));
+      }
     }
   }
   // the chain bridge: a chain sagging across the opening, planks hung from it, a lit link here and there
@@ -772,6 +827,13 @@ function forge(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     [0.24, 22, 70, 3],
   ])
     smokeBand(p, Math.round(fxx * w), fy, len, th, SMOKE, Math.round(fxx * 50 + fy), (x) => 0.35 + heat(x, 40) * 0.6);
+  // a far ridge of the crater behind the rim, hazy and low in contrast (atmospheric perspective: tinted toward the sky)
+  const ridgeTop = (x: number) => Math.round(G - 66 + fbm(x * 0.02, 5, 19) * 16 + Math.abs(x - fx) * 0.04);
+  for (let x = 0; x < w; x++)
+    for (let y = ridgeTop(x); y < G - 30; y++) {
+      const sky = (y / (G - 14)) * 0.55 + heat(x, y) * 0.45;
+      p.set(x, y, pick(SKY_FORGE, sky - 0.16 + (y === ridgeTop(x) ? 0.08 : 0), x, y, 0.35));
+    }
   // the crater's far rim, black, with lava falls pouring down it
   const rimR = haze(BASALT, hz, 0.3);
   const rimTop = (x: number) => Math.round(G - 52 + fbm(x * 0.03, 1, 11) * 14 + Math.abs(x - fx) * 0.05);
@@ -843,6 +905,29 @@ function forge(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
       p.set(x, y, pick(cit, v, x, y, 0.2));
     }
   for (let x = Math.round(w * 0.3); x < Math.round(w * 0.7); x += 4) p.set(x, G - 47, cit[4]);
+  // pilasters along the wall: a lit left face and a shaded right one (light from the top left), so it has volume
+  for (const px of [0.34, 0.42, 0.58, 0.66]) {
+    const x0 = Math.round(px * w);
+    for (let y = G - 46; y < G - 14; y++) {
+      p.set(x0, y, pick(cit, 0.62 + heat(x0, y) * 0.3, x0, y, 0.2));
+      p.set(x0 + 1, y, pick(cit, 0.48 + heat(x0, y) * 0.3, x0 + 1, y, 0.2));
+      p.set(x0 + 2, y, pick(cit, 0.1, x0 + 2, y, 0.2));
+    }
+    for (let x = x0 - 1; x <= x0 + 3; x++) p.set(x, G - 47, cit[5]);
+  }
+  // the furnace's heat rising over the wall: a plume of smoke lit from below, stepped and dithered, fading upward
+  for (let y = 6; y < G - 46; y++) {
+    const up = (G - 46 - y) / (G - 52);
+    const half = 7 + up * 12;
+    const sway = Math.sin(y * 0.09) * 3 * up;
+    for (let x = Math.floor(fx - half - 2); x <= fx + half + 2; x++) {
+      const d = Math.abs(x + 0.5 - fx - sway) / half;
+      if (d > 1.15) continue;
+      if (d > 1 && (x + y) % 2) continue;
+      const lift = (1 - up) * 0.3 * (1 - d * 0.6);
+      p.tint(x, y, (c) => (c === SKY_FORGE[0] || c === SKY_FORGE[1] || c === SKY_FORGE[2] || c >= 0 ? pick(SKY_FORGE, (y / (G - 14)) * 0.55 + heat(x, y) * 0.45 + lift + (fbm(x * 0.025, y * 0.07, 3) - 0.5) * 0.2, x, y, 0.35) : c));
+    }
+  }
   for (let y = furnaceY - 12; y < G - 14; y++)
     for (let x = fx - 13; x <= fx + 13; x++) {
       const dx = (x + 0.5 - fx) / 12;
@@ -875,7 +960,10 @@ function forge(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
       let v = 0.5 - t * 0.14 + (hash(cell, row, 41) - 0.5) * 0.18 + (noise(x * 0.3, y * 0.3, 43) - 0.5) * 0.12;
       if ((y - floorTop) % 5 === 1) v += 0.1;
       let c = pick(floorR, seam ? 0.05 : v, x, y, 0.2);
-      if (seam && hash(cell, row, 47) > 0.72 && Math.abs(y - G) > 2) c = (x + y) % 3 ? LAVA[2] : LAVA[3];
+      // (the strip the fighters stand on stays calm: no glowing seams within 6 px of the feet line in the arena)
+      const arena = x > w * 0.12 && x < w * 0.9 && y >= G - 10 && y <= G + 6;
+      if (arena) c = pick(floorR, seam ? 0.2 : 0.38 + (v - 0.5) * 0.4, x, y, 0.2);
+      else if (seam && hash(cell, row, 47) > 0.72 && Math.abs(y - G) > 2) c = (x + y) % 3 ? LAVA[2] : LAVA[3];
       p.set(x, y, c);
     }
   // the furnace's light across the floor

@@ -101,6 +101,24 @@ describe('hero chests and the shrine', () => {
     for (const id of ['burr', 'lark', 'gloam']) expect(seen.has(id), id).toBe(true);
   });
 
+  it("the game's first hero chest always brings someone new: never shards, never a duplicate", () => {
+    for (let seed = 1; seed <= 200; seed++) {
+      const p = newProfile();
+      grantHero(p, t, 'sable'); // (a newcomer's: Sable joined in the story minutes before)
+      p.chests.hero = 2;
+      const prize = openChest(new Rng(seed), t, p, 'hero')!;
+      expect(prize.kind === 'hero' || prize.kind === 'pet', `seed ${seed}: ${prize.kind}`).toBe(true);
+      expect((prize as { fresh: boolean }).fresh, `seed ${seed}: ${prize.id}`).toBe(true);
+    }
+    // the next ones are as before: shards come up
+    const p = newProfile();
+    p.chests.hero = 60;
+    const kinds = new Set<string>();
+    const rng = new Rng(5);
+    for (let i = 0; i < 60; i++) kinds.add(openChest(rng, t, p, 'hero')!.kind);
+    expect(kinds.has('heroShards') || kinds.has('petShards')).toBe(true);
+  });
+
   it('gems buy a Rare chest only when there are enough', () => {
     const p = newProfile();
     p.gems = t.chests.rareCost - 1;
