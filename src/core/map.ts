@@ -3,7 +3,7 @@
 // always offers a rest, and the last row is the act's boss. Node types follow the act's weights
 // (src/data/greenmarch.ts), and each type shows up at least once per act.
 
-import { EVENT_IDS } from '../data/events';
+import { eventIdsFor } from '../data/events';
 import type { ActDef, NodeType, RolledNode } from '../data/types';
 import { Rng } from './rng';
 
@@ -167,7 +167,7 @@ export function buildActMap(act: ActDef, seed: number): ActMap {
         used.push(elite.join('+'));
         n.waves = [...pickWaves(act.fights.late, Math.max(0, Math.round(W.eliteEscort))), elite.slice()];
       } else if (n.type === 'event') {
-        if (!events.length) events = EVENT_IDS.slice();
+        if (!events.length) events = eventIdsFor(act);
         n.event = events.splice(rng.int(events.length), 1)[0];
       }
       n.enemies = n.waves.flat();

@@ -401,3 +401,22 @@ describe('tuning sees the content', () => {
     expect(back.acts[0]).toEqual(DEFAULT_TUNING.acts[0]);
   });
 });
+
+describe("the regions' own events", () => {
+  it('each region has two of its own, and an act map only ever holds its region’s and the ones for anywhere', async () => {
+    const { eventIdsFor } = await import('../../src/data/events');
+    const { REGIONS } = await import('../../src/data/regions');
+    for (const r of REGIONS) {
+      expect(EVENTS.filter((e) => e.region === r.id).length, r.id).toBeGreaterThanOrEqual(2);
+      for (const act of r.acts) {
+        const ids = eventIdsFor(act);
+        for (const id of ids) {
+          const e = EVENTS.find((x) => x.id === id)!;
+          expect(!e.region || e.region === r.id, `${act.name}: ${id}`).toBe(true);
+        }
+        expect(ids.length).toBeGreaterThan(EVENTS.filter((e) => !e.region).length);
+      }
+    }
+    for (const e of EVENTS) if (e.region) expect(REGIONS.some((r) => r.id === e.region), e.id).toBe(true);
+  });
+});
