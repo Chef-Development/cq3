@@ -1484,8 +1484,11 @@ export class Overlays {
     const a = 1 - clamp01((age - 2400) / 400);
     const label = `Level up! Lv ${t.level}`;
     const w = textWidth(label, 1, true) + 16;
-    const x = s.L + 13 + Math.round((1 - k) * -(w + 24));
-    const y = 6; // over the hero plate: clear of the pick's cards and the loot
+    // on the loot: centred over the dimmed bar, rising into place (it sat on the HP plate, review round 8); over a
+    // pick or a scene: over the hero plate, clear of the cards
+    const loot = s.app.run.phase === 'loot';
+    const x = loot ? Math.round((s.L + s.R - w) / 2) : s.L + 13 + Math.round((1 - k) * -(w + 24));
+    const y = loot ? s.splitY + 6 + Math.round((1 - Math.min(1, k)) * 14) : 6;
     glow(g, { x, y, w, h: 13 }, 0xffe680, (0.35 + 0.3 * pulse(now, 500)) * a, 3);
     ribbon(g, x + w / 2, y, w, 13, RIBBON.gold, a, k > 0.9);
     this.flyTexts.text(label, x + w / 2, y + 6.5, 0xfffbe0, { bold: true, ox: 0.5, oy: 0.5, alpha: a, extrude: 1, extrudeCol: 0x7a3a0a });

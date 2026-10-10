@@ -1819,4 +1819,14 @@ F22. **The first ten minutes on the merged build** (02:00-03:00; the newcomer bo
     and "Seals 0/60" as a riddle ("Edited clears N", only once there is one). Both seeds cleared Act 1 first try; the
     first chest at 1:08-1:12, the first hero chest revealed at 5:35-5:36.
 
+F23. **Review 4's first-ten findings** (03:10-03:30). A pick's tip sits along the screen's foot, over the upright
+    cards' empty lower ends and the tray (beside the first card it hid the other two). "Level up! Lv N" on the loot
+    screen rises over the dimmed bar instead of the HP plate. From a new player's first banked stack until their first
+    finisher the meter shows full and glowing ("Meter full!" sat over a nearly empty bar), the tip's second line plain
+    ("Or fill it again: a bigger one."). Fight tips start under the foe's plate and their "Tap to continue" stays left
+    of it (it hid the name). The HTML buttons step aside while a tip card is up (`html.tip-up`; the gear sat on the
+    bounty tip). Act-map tips keep off the HUD and the other tags (the card clipped "Captain"). A kill's lasting max HP
+    gain says "+N Max HP" under the plate as it lands. Not ours / not done: the crowded first map (tags over nodes,
+    every extra at once) and the board's dark-on-tan text (2A/2C).
+
 (first10: end of section)

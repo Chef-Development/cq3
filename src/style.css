@@ -118,6 +118,11 @@ html.hud-quiet #btn-gear:not(.on):not(:hover):not(:focus-visible) {
 }
 /* the panel open: the HUD's buttons (the gear, the pause) sit in its header row at phone size, wherever the canvas
    is (on a framed desktop window the canvas's top is well down the page, inside the panel's text) */
+/* a tip card is up (scene.ts toggles the class): the buttons step aside, they sat on the card's top edge; the next
+   tap only puts the card away */
+html.tip-up #hud {
+  visibility: hidden;
+}
 html.panel-open #hud {
   --gpx: 2.667px;
   top: calc(env(safe-area-inset-top) + 5px);
