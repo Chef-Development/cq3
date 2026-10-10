@@ -1,5 +1,20 @@
 # Backlog: meta-game seen in the reference (deferred)
 
+## Next round (left from playtest round 8; details in docs/orchestrator-report.md and docs/decisions.md)
+
+1. **Before a public debut:** hide the title's Test lab button (behind `?lab` or a gear-panel switch; L12); record
+   clips in clean capture mode; a last fresh-eyes pass on the first 10 minutes.
+2. **The playtester's Test lab report** on round 8 (mood and maturity on the iPhone first).
+3. **Hero parity in Regions 4-5:** Vesper trails in a few boss acts (C19-C21: the skill trees, Rowan's defensive
+   branch); a 100-run read of all sixteen heroes there (Sable +18 / Neve -15 / Dell -19 in Act 13 are first reads).
+4. **A newcomer's calmer first Act 1 map** (one pack, no merchant; first10 F24): bring it back with `bot.test.ts`'s
+   fight-length band and `remix.test.ts`'s sample re-measured, not loosened (L13).
+5. **Region 6** (its story is drafted in data, off).
+6. **Review leftovers:** the bag's full redesign, the region card's light parchment, act-map tags over other nodes,
+   the keyboard ring over a button's "!" badge, the Mythic heroes' five crowded kit labels.
+7. **A CI boot check** before publishing (L10), and load time re-measured after round 8's art.
+
+
 **Done in M4a:** relics (rule-changing run picks with synergy tags, unlocks and a relic log), a second hero (Sable,
 two cursors) with a hero select at the camp, hero levels (1-30) and a skill tree per hero, a soundtrack per act.
 The reference's hero roster (more heroes, Lvl Up priced in gems) and companions are still to come.
