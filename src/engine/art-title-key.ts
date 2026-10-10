@@ -15,7 +15,7 @@ export const KEY_H = 150;
 /** The low sun (centre). */
 export const KEY_SUN = { x: 64, y: 71 };
 /** Where the quill's texture sits (top-left) and its nib (the texture's px) when at rest. */
-export const KEY_QUILL = { x: 240, y: -8, nibX: 7, nibY: 100 };
+export const KEY_QUILL = { x: 231, y: -8, nibX: 7, nibY: 100 };
 
 // ------------------------------------------------------------------ ramps (docs/art-style.md section 2, pushed)
 
@@ -26,7 +26,8 @@ const RIM = [0xa8505a, 0xe0785a, 0xffa868, 0xffd890];
 const LAND = [0x0e1a22, 0x14262a, 0x1c3430, 0x284634, 0x365a38, 0x4a7038];
 const CLIFF = [0x0c0612, 0x140a1c, 0x1e1028, 0x2a1634];
 const RIVER = [0x8a3a4a, 0xd8644a, 0xffa858, 0xffd890, 0xfff6d0];
-const PAPER = [0xc8c2d2, 0xdcd6e2, 0xece8f0, 0xf6f4f8];
+/** The blank: a warm grey vellum, kept dimmer than the logo's gold (the eye goes to the logo and the hero first). */
+const PAPER = [0xa49ca4, 0xb8b0b4, 0xc8c0c0, 0xd4ccc8];
 const INKS = [0x140c1c, 0x1a1026, 0x2e2240, 0x4a3a5e];
 const PARCH = [0x6e4a2a, 0xa8804e, 0xd2b07a, 0xead2a0];
 const GOLD = [0x5a3410, 0x9a5a14, 0xd8901c, 0xf2c230, 0xfff0a0];
@@ -93,7 +94,7 @@ function toCanvas(w: number, h: number, px: Int32Array): HTMLCanvasElement {
 
 /** The erasing front: blank vellum east of this x (it wanders as it climbs). */
 export function keyEdge(y: number): number {
-  return Math.round(236 + Math.sin(y * 0.06 + 1.2) * 9 + (fbm(5, y, 16, 301) - 0.5) * 22 - Math.max(0, 40 - y) * 0.35);
+  return Math.round(226 + Math.sin(y * 0.06 + 1.2) * 8 + (fbm(5, y, 16, 301) - 0.5) * 22 - Math.max(0, 40 - y) * 0.35);
 }
 /** The far range's ridge (y of its top at column x) and the nearer range's. */
 const ridgeA = (x: number) => 66 - Math.abs(Math.sin(x * 0.045 + 0.4)) * 14 - fbm(x, 0, 9, 311) * 10 + Math.max(0, 16 - Math.abs(x - KEY_SUN.x) * 0.7);
