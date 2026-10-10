@@ -91,3 +91,5 @@ paper, every coast inked, a double neatline. Lakes and rivers keep their painted
 veils) as blank vellum keeping the impression of its lines (as on the title), the restoring animation (colour blooming
 out from the keystone, lines re-inking), and judging it at phone size before it replaces the painted look (or ships
 behind a Test lab switch first, like the sharper chest reveal).
+| Rowan's sword and polish (playtester: "the sword looks too thin") | 4 | 4 | `after/rowan-sword-before-after.png`. A 4 px blade with lit and shaded edges, an 8 px gold guard with a red stone, the sword in his forward hand (no arm across his chest), a thick plume, a warm specular dash on the helm; his map walker gets a 2 px blade and plume. |
+| Heroes' weapons and props at 8x | 3 | 4 | `after/heroes-weapons-1.png`, `-2.png`. Staves and hafts 3 px (Neve, Moss, Tess, Yara, Fizz's ladle, Torva's haft), daggers 3 px with a guard (Sable, Wren), Dell's slingshot fork, Vesper's bow limbs, Hollis's and Solenne's swords on Rowan's 4 px build. |
