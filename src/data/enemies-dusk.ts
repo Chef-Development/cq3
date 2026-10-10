@@ -220,7 +220,7 @@ export const DUSK_ENEMIES: Record<string, EnemyDef> = {
   sluiceKeeper: {
     name: 'The Sluice Keeper',
     tags: ['construct', 'folk'],
-    hp: 5300,
+    hp: 5800,
     atk: 24,
     special: 17,
     interval: 0.6,

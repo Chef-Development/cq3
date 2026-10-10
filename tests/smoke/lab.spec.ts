@@ -217,7 +217,7 @@ test('the Finisher gallery: two heroes played on demand (stacks and rarity picke
 });
 
 test('every Test lab scenario starts and ends without errors (spoilers included)', async ({ page }) => {
-  test.setTimeout(420_000); // (about 5 s a scenario; every session adds items, and the machine is shared)
+  test.setTimeout(540_000); // (about 5 s a scenario; every session adds items, and the machine is shared)
   const errors: string[] = [];
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());

@@ -46,6 +46,9 @@ interface Mark extends RegionMark {
   vis: number;
 }
 
+/** The regions' short names for the tabs when their full names don't fit the top bar. */
+const SHORT_NAME: Record<string, string> = { greenmarch: 'Green', frostpeaks: 'Frost', ashfell: 'Ash', duskmire: 'Dusk' };
+
 export class ProgressScreen {
   region = 0;
   /** It draws its own stage (the camp skips its dim behind it). */
@@ -86,13 +89,21 @@ export class ProgressScreen {
 
   // ------------------------------------------------------------------ layout
 
-  /** A tab per region in the top bar, right after Back (hopping over the HTML buttons in its middle). */
+  /** A tab per region in the top bar, right after Back (hopping over the HTML buttons in its middle): the regions'
+   *  names while they fit, then their short names (four regions and more don't fit a phone's bar by name). */
   tabs(): Array<{ r: Rect; region: number; label: string }> {
     const kit = this.kit;
     const b = kit.backRect();
-    const labels = REGIONS.map((def, i) => (this.reached(i) ? def.name : '???'));
-    const widths = labels.map((l, i) => textWidth(l, 1, true) + 10 + (this.reached(i) ? 0 : 9));
-    const rs = kit.topRow(widths, b.x + b.w + 4, kit.s.R - 3) ?? kit.topRow(widths, b.x + b.w + 4, 1e9)!;
+    const row = (short: boolean) => {
+      const labels = REGIONS.map((def, i) => (!this.reached(i) ? '???' : short ? (SHORT_NAME[def.id] ?? def.name) : def.name));
+      const widths = labels.map((l, i) => textWidth(l, 1, true) + 10 + (this.reached(i) ? 0 : 9));
+      const rs = kit.topRow(widths, b.x + b.w + 4, kit.s.R - 3);
+      return rs ? { labels, rs } : null;
+    };
+    const fit = row(false) ?? row(true);
+    if (fit) return fit.labels.map((label, i) => ({ r: fit.rs[i], region: i, label }));
+    const labels = REGIONS.map((def, i) => (!this.reached(i) ? '???' : (SHORT_NAME[def.id] ?? def.name)));
+    const rs = kit.topRow(labels.map((l, i) => textWidth(l, 1, true) + 10 + (this.reached(i) ? 0 : 9)), b.x + b.w + 4, 1e9)!;
     return labels.map((label, i) => ({ r: rs[i], region: i, label }));
   }
 
