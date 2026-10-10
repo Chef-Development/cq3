@@ -1504,6 +1504,12 @@ C-ART-17. **Review 4's art findings** (R4-3, R4-5, R4-10, R4-14, R4-16): the cam
     its foot in shadow. Left: the treasure screen's empty band and the HUD's bright HP green (shared with every fight),
     and "Tap to start!" on a desktop (words, not art).
 
+C-ART-18. **Review 4, second pass**: the hero select spaces its kit cards by their labels for any count (with an
+    iPhone's side insets "Special" and "Green" touched), tones the kit's colours a step toward ink and lifts the Skills
+    badge off the word; the region card's seals are deeper, duller wax and the study's rack of rolled maps is gone;
+    the bag's empty cells are faint wells. Left: the treasure screen's empty band (the fight HUD's, hud.ts/bar.ts, out
+    of bounds tonight), the region card's light parchment and "At 100%" button, the bag's full redesign.
+
 (content: end of section)
 
 
