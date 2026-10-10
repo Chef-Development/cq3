@@ -71,3 +71,6 @@ One PR at the end supersedes #1-#7.
   boss alone 2 of 19 tries, bound 10%): a knock-on of this round's core changes to the first act. The content team
   (balance owner) is fixing it; the live build stays on the last green deploy until then. The other local failures
   (audio, tips) were load timeouts: green when run alone.
+- 21:06 EDT: the title redone as key art (2A; preview docs/art-audit/after/title-key-art.png on team/art): approved
+  with small notes. The single Playwright lock had ~16 waiters behind long QA crawls: split into a short lock and a
+  long lock (TEAM-RULES.md).
