@@ -15,7 +15,7 @@ export const ASH_STORY: Record<string, StoryBox[]> = {
     { who: 'narrator', text: 'Ashfell. Black rock, gray ash, rivers of\nlava. And none of it will hold still.' },
     { who: 'rowan', text: 'That boulder just slid past me. On its own.\nThe whole land is drifting.' },
     { who: 'pip', text: "He unpinned it. Every stone floats out of\nthe lava's way, so no home burns again." },
-    { who: 'neve', text: 'Too hot AND too wobbly. My two least\nfavorite things. Someone fan me.' },
+    { who: 'neve', text: "Too hot, AND it won't hold still. My two\nleast favorite things." },
     { who: 'sable', text: "And chains. On the carts, the doors, the\npeople. Everyone's chained in pairs." },
     { who: 'pip', text: "So no new river of fire can part a family.\nTogether, always. That's his fix." },
   ],
