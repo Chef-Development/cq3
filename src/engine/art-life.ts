@@ -47,6 +47,10 @@ const SOOT: Pal = { 1: '#0e0a0e', 2: '#221a20', 3: '#3a2e34', W: '#ffffff', e: I
 const BOGFROG: Pal = { 1: '#16201e', 2: '#243426', 3: '#3a4a2c', 4: '#5a6634', 5: '#7e8040', k: INK, w: '#c8c4a0', o: '#c8702e' };
 const MUDCRAB: Pal = { 1: '#24121a', 2: '#4a2224', 3: '#6e3a2c', 4: '#94583a', k: INK, e: '#d8d0c0' };
 const DUSKMOTH: Pal = { 1: '#241e2c', 2: '#3e3648', 3: '#5c5266', 4: '#80768a', p: '#8a62a8', k: INK };
+// Noonspire's: a jerboa (sand and shadow), a dune beetle (dull brass), a vulture circling (seen from below)
+const JERBOA: Pal = { 1: '#2a2228', 2: '#4a3c36', 3: '#6e5a48', 4: '#8a7458', W: '#b8a888', k: INK };
+const DUNEBEETLE: Pal = { 1: '#1a1210', 2: '#3a2a16', 3: '#5e4420', 4: '#82602c', k: INK };
+const VULTURE: Pal = { 2: '#2a2228', 3: '#4a3e40', 4: '#7a6e6a' };
 const HERON: Pal = { 2: '#4a4c66', 3: '#767a96', 4: '#a8aac0' };
 const GULL: Pal = { 2: '#7c86a6', 3: '#b8c2d8', 4: '#eef3fa', y: '#f2c230', k: INK };
 const DOLPHIN: Pal = { 2: '#4a6890', 3: '#7896bc', 4: '#b4d0ea' };
@@ -228,6 +232,32 @@ export const CRITTERS: Record<string, Critter> = {
       ['..3.3..', '.33333.', '3W3W332', '3e3e322', '.22221.', '..1.1..'],
       ['..3.3..', '.33333.', '3333332', '3e3e322', '.22221.', '..1.1..'],
       ['.3...3.', '..333..', '.W3W33.', '3e3e322', '.22221.', '.......'],
+    ],
+  },
+  // a jerboa: sitting up, ears twitching, a long hop
+  jerboa: {
+    pal: JERBOA,
+    frames: [
+      ['.33.....', '3433....', '.k443...', '..3443..', '..2332.4', '..2.2..3'],
+      ['.3......', '3433....', '.k443...', '..3443..', '..2332.4', '..2.2..3'],
+      ['........', '.33...4.', '3k4443.3', '..33332.', '.2....2.'],
+    ],
+  },
+  // a dune beetle trundling (two steps), its dull brass back
+  dunebeetle: {
+    pal: DUNEBEETLE,
+    frames: [
+      ['.344..', '34443k', '.1.1.1'],
+      ['.344..', '34443k', '1.1.1.'],
+    ],
+  },
+  // a vulture circling high over the road, wings level then tipped
+  vulture: {
+    pal: VULTURE,
+    raw: true,
+    frames: [
+      ['2..............2', '23333.44.33332..', '..2223443222....', '......33........'],
+      ['................', '3333.44.333332..', '2.22234432222..2', '......33........'],
     ],
   },
   // a heron flying over the fen seen from below: its neck folded forward, legs trailing, wings up and down

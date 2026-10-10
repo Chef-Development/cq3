@@ -11,8 +11,8 @@
 import type Phaser from 'phaser';
 import { gradeLayer } from './art-mood';
 
-export type Theme = 'forest' | 'ruins' | 'hollow' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere';
-export const THEMES: Theme[] = ['forest', 'ruins', 'hollow', 'pass', 'caves', 'glacier', 'cinder', 'glass', 'forge', 'fen', 'causeway', 'mere'];
+export type Theme = 'forest' | 'ruins' | 'hollow' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere' | 'whiteRoad' | 'spireSteps' | 'sundial';
+export const THEMES: Theme[] = ['forest', 'ruins', 'hollow', 'pass', 'caves', 'glacier', 'cinder', 'glass', 'forge', 'fen', 'causeway', 'mere', 'whiteRoad', 'spireSteps', 'sundial'];
 /** Greenmarch's themes are painted at boot (buildBackdrops); the Frostpeaks' (backdrop-frost.ts) and Ashfell's
  *  (backdrop-ash.ts) the first time an act needs one (Stage.ensure). */
 export const BOOT_THEMES: Theme[] = ['forest', 'ruins', 'hollow'];

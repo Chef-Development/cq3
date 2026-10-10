@@ -10,11 +10,12 @@
 
 import type { RegionDef, Theme } from './types';
 
-/** Region 5's act looks (a white desert road, the spire steps, the great sundial). Not in the `Theme` union yet: each
- *  act stands in an earlier look until its own is painted. */
+/** Region 5's act looks (a white desert road, the spire steps, the great sundial), in the `Theme` union with their art
+ *  (the art pack pack-noon.ts: backdrop-noon.ts, art-noon.ts; the stage lights, map kits, lairs and critters). */
 export type NoonTheme = 'whiteRoad' | 'spireSteps' | 'sundial';
 export const NOON_THEMES: NoonTheme[] = ['whiteRoad', 'spireSteps', 'sundial'];
-export const NOON_STAND_IN: Record<NoonTheme, Theme> = { whiteRoad: 'pass', spireSteps: 'ruins', sundial: 'cinder' };
+/** The look each act shows: its own, now that it's painted (it borrowed an earlier one until then). */
+export const NOON_STAND_IN: Record<NoonTheme, Theme> = { whiteRoad: 'whiteRoad', spireSteps: 'spireSteps', sundial: 'sundial' };
 const look = (t: NoonTheme): Theme => NOON_STAND_IN[t];
 
 /** The global number of Region 5's first act once it's wired in. */

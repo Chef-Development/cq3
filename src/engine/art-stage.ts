@@ -253,6 +253,58 @@ export const STAGE_LIGHT: Record<Theme, StageLight> = {
     pool: 0xffa060,
     poolAmt: 0.12,
   },
+  // the White Road: the sun nailed overhead, hard white light from above and the left, short deep indigo shadows,
+  // the dust bleached; nothing warm but the glare
+  whiteRoad: {
+    shade: 0x182038,
+    vignette: 0.72,
+    floor: 0.52,
+    top: 0.3,
+    rim: 0xf4ecd0,
+    rimAmt: 0.8,
+    rimLeft: 0.45,
+    rimTop: 1,
+    shadow: 0x080a18,
+    shadowDx: 0,
+    shadowLen: 0.7,
+    dust: [0x8a7a62, 0x6e604e, 0xa8987c],
+    pool: 0xe8e0c0,
+    poolAmt: 0.08,
+  },
+  // the Spire Steps: white towers throwing the glare back, cool shade between them
+  spireSteps: {
+    shade: 0x141c36,
+    vignette: 0.74,
+    floor: 0.54,
+    top: 0.34,
+    rim: 0xfff0c8,
+    rimAmt: 0.78,
+    rimLeft: 0.5,
+    rimTop: 1,
+    shadow: 0x060818,
+    shadowDx: 0,
+    shadowLen: 0.7,
+    dust: [0x9a9488, 0x6a6660, 0xb8b0a0],
+    pool: 0xf0d890,
+    poolAmt: 0.08,
+  },
+  // the Great Sundial: the sun drawn down over it, the brightest place in the game and the darkest shadows
+  sundial: {
+    shade: 0x10142e,
+    vignette: 0.78,
+    floor: 0.56,
+    top: 0.4,
+    rim: 0xfff4d0,
+    rimAmt: 0.9,
+    rimLeft: 0.35,
+    rimTop: 1,
+    shadow: 0x04060e,
+    shadowDx: 0,
+    shadowLen: 0.6,
+    dust: [0x8a8478, 0x5e5a56, 0xaaa290],
+    pool: 0xffe8a0,
+    poolAmt: 0.1,
+  },
 };
 
 // ------------------------------------------------------------------ RGBA buffer
@@ -333,6 +385,7 @@ function rays(w: number, h: number, G: number, theme: Theme): Rgba {
   if (theme === 'pass' || theme === 'caves' || theme === 'glacier') return frostRays(out, w, h, G, theme);
   if (theme === 'cinder' || theme === 'glass' || theme === 'forge') return ashRays(out, w, h, G, theme);
   if (theme === 'fen' || theme === 'causeway' || theme === 'mere') return duskRays(out, w, h, G, theme);
+  if (theme === 'whiteRoad' || theme === 'spireSteps' || theme === 'sundial') return noonRays(out, w, h, G, theme);
   if (theme === 'hollow') {
     // the low sun on the left: long beams raking right across the den, a bloom around the disc
     const sx = Math.round(w * 0.24);
@@ -533,6 +586,25 @@ function duskRays(out: Rgba, w: number, h: number, G: number, theme: 'fen' | 'ca
   return out;
 }
 
+/**
+ * Noonspire's light (ADD): the nailed sun's hard bloom where it hangs (small on the road and the steps, wide over the
+ * dial), and a faint bleached glare straight down onto the ground the fighters stand on. Kept low: the sun is the one
+ * bright thing (L7).
+ */
+function noonRays(out: Rgba, w: number, h: number, G: number, theme: 'whiteRoad' | 'spireSteps' | 'sundial'): Rgba {
+  const [sx, sy, sr, amt] = theme === 'whiteRoad' ? [w * 0.22, 14, 34, 0.32] : theme === 'spireSteps' ? [w * 0.74, 10, 28, 0.28] : [w * 0.55, 18, 50, 0.42];
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const d = Math.hypot(x + 0.5 - sx, (y + 0.5 - sy) * 1.1);
+      let a = Math.pow(clamp01(1 - d / sr), 2) * amt;
+      // the glare laid on the ground straight down from it
+      a += clamp01(1 - Math.abs(x - sx) / 60) * clamp01(1 - Math.abs(y - (G - 4)) / 8) * 0.05;
+      a *= 1 - ss(G - 2, G + 10, y) * 0.6;
+      if (a > 0.004) out.set(x, y, 0xfff0c8, a);
+    }
+  return out;
+}
+
 /** A soft round glow (ADD), white so it can be tinted. */
 function glow(size: number): Rgba {
   const out = new Rgba(size, size);
@@ -609,15 +681,22 @@ const DUSK_MIST: Record<'fen' | 'causeway' | 'mere', (w: number, h: number, G: n
   mere: (w, h, G) => [patches(w, h, G - 28, G - 4, 0x7a5a7e, 0.18, 101, 0.46, 0.022, 0.12), patches(w, h, G - 6, h, 0x3a2442, 0.2, 103, 0.5, 0.016, 0.18)],
 };
 
+/** Noonspire's drifting banks (far, near): heat haze low over the ground, dust blowing. */
+const NOON_MIST: Record<'whiteRoad' | 'spireSteps' | 'sundial', (w: number, h: number, G: number) => [Rgba, Rgba]> = {
+  whiteRoad: (w, h, G) => [patches(w, h, G - 24, G - 2, 0x8a8a9c, 0.16, 111, 0.47, 0.024, 0.14), patches(w, h, G - 5, h, 0x4a4250, 0.16, 113, 0.52, 0.014, 0.16)],
+  spireSteps: (w, h, G) => [patches(w, h, G - 26, G - 2, 0x8890a8, 0.14, 117, 0.48, 0.022, 0.12), patches(w, h, G - 5, h, 0x3e4054, 0.16, 119, 0.52, 0.014, 0.16)],
+  sundial: (w, h, G) => [patches(w, h, G - 26, G - 2, 0x9a9488, 0.16, 121, 0.47, 0.024, 0.12), patches(w, h, G - 6, h, 0x34303e, 0.2, 123, 0.5, 0.016, 0.18)],
+};
+
 /** One Frostpeaks or Ashfell theme's stage textures for the current layout (painted the first time an act needs them). */
-export function buildStageTheme(scene: Phaser.Scene, w: number, h: number, G: number, theme: 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere'): void {
+export function buildStageTheme(scene: Phaser.Scene, w: number, h: number, G: number, theme: 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere' | 'whiteRoad' | 'spireSteps' | 'sundial'): void {
   const add = (key: string, canvas: HTMLCanvasElement) => {
     if (scene.textures.exists(key)) scene.textures.remove(key);
     scene.textures.addCanvas(key, canvas);
   };
   add(`st_grade_${theme}`, grade(w, h, G, STAGE_LIGHT[theme]).canvas());
   add(`st_rays_${theme}`, rays(w, h, G, theme).canvas());
-  const [far, near] = theme === 'cinder' || theme === 'glass' || theme === 'forge' ? ASH_MIST[theme](w, h, G) : theme === 'fen' || theme === 'causeway' || theme === 'mere' ? DUSK_MIST[theme](w, h, G) : FROST_MIST[theme](w, h, G);
+  const [far, near] = theme === 'cinder' || theme === 'glass' || theme === 'forge' ? ASH_MIST[theme](w, h, G) : theme === 'fen' || theme === 'causeway' || theme === 'mere' ? DUSK_MIST[theme](w, h, G) : theme === 'whiteRoad' || theme === 'spireSteps' || theme === 'sundial' ? NOON_MIST[theme](w, h, G) : FROST_MIST[theme](w, h, G);
   add(`st_mist_${theme}`, far.canvas());
   add(`st_mist_${theme}_near`, near.canvas());
 }

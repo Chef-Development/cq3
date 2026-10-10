@@ -943,7 +943,7 @@ function lairForge(): Lair {
   };
 }
 
-const LAIRS: Record<Theme, () => Lair> = { forest: lairCamp, ruins: lairGate, hollow: lairDen, pass: lairToll, caves: lairWeb, glacier: lairHoard, cinder: lairRoadworks, glass: lairKennel, forge: lairForge, fen: () => lairMudhole(), causeway: () => lairSluice(), mere: () => lairLighthouse() };
+const LAIRS: Record<Theme, () => Lair> = { forest: lairCamp, ruins: lairGate, hollow: lairDen, pass: lairToll, caves: lairWeb, glacier: lairHoard, cinder: lairRoadworks, glass: lairKennel, forge: lairForge, fen: () => lairMudhole(), causeway: () => lairSluice(), mere: () => lairLighthouse(), whiteRoad: () => lairSphinx(), spireSteps: () => lairLionGate(), sundial: () => lairGnomon() };
 /** Each theme's lair spots (filled when buildMapArt builds the `maplair_${theme}` textures). */
 export const LAIR_SPOTS: Partial<Record<Theme, { flames: Pt[]; glows: Pt[]; glow?: [number, number] }>> = {};
 
@@ -3002,7 +3002,205 @@ function lairLighthouse(): Lair {
   return { canvas: p.canvas(), flames: [], glows: [[cx - W / 2, 10 - H]], glow: [0xffb050, 0xfff4c4] };
 }
 
-const KITS: Record<Theme, () => Kit> = { forest: forestKit, ruins: ruinsKit, hollow: hollowKit, pass: passKit, caves: cavesKit, glacier: glacierKit, cinder: cinderKit, glass: glassKit, forge: forgeKit, fen: () => duskKit('fen'), causeway: () => duskKit('causeway'), mere: () => duskKit('mere') };
+// ------------------------------------------------------------------ Noonspire (Region 5): the road, the steps, the dial
+// The White Road: bleached sand and salt pans, a chalk-white road, standing stones and dead thorn trees. The Spire Steps:
+// white flagstone plazas between small white towers, brass gate posts, the roads stairs. The Great Sundial: the dial's
+// pale stone with its hour lines, broken hour pillars. Lairs: the sphinx couched on her plinth, the brass lion's gate,
+// the gnomon on its dial. The light is hard and from above (short, deep cool shadows), never a warm wash (L7).
+
+type NoonMap = 'whiteRoad' | 'spireSteps' | 'sundial';
+const isNoonMap = (t: Theme): t is NoonMap => t === 'whiteRoad' || t === 'spireSteps' || t === 'sundial';
+const NGROUND: Record<NoonMap, Ramp> = {
+  whiteRoad: ramp('#2a2430', '#3a3036', '#4a3e3e', '#5c4e46', '#6e5e50', '#82705a', '#968464'),
+  spireSteps: ramp('#2a2c3c', '#363848', '#444656', '#545464', '#666474', '#787684', '#8a8892'),
+  sundial: ramp('#262838', '#323444', '#404252', '#504f60', '#625f6e', '#76727e', '#8a8690'),
+};
+const NCHALK = ramp('#2a2e40', '#3a3e52', '#4e5064', '#646476', '#7c7a88', '#94909a', '#aaa6aa');
+const NBRASS = ramp('#2a1a10', '#4e3214', '#7a5018', '#a07020', '#c4942e', '#e0b84a');
+const NDEAD = ramp('#1a1418', '#2a2022', '#3c2e2c', '#4e3e36');
+
+function groundNoon(p: Pix, c: Ctx, theme: NoonMap): void {
+  const g = NGROUND[theme];
+  for (let y = 0; y < c.H; y++)
+    for (let x = 0; x < c.W; x++) {
+      let v = 0.46 + (fbm(x * 0.05, y * 0.07, c.seed) - 0.5) * 0.6 + (sun(c, x, y) - 0.5) * 0.25;
+      let r = g;
+      if (theme === 'whiteRoad' && fbm(x * 0.025, y * 0.04, c.seed + 5) > 0.6) {
+        r = NCHALK; // a salt pan, cracked
+        v = 0.5 + (Math.abs(noise(x * 0.3, y * 0.3, c.seed + 6) - 0.5) < 0.04 ? -0.25 : 0);
+      }
+      if (theme === 'spireSteps' && ((x + Math.floor(y / 6) * 5) % 10 === 0 || y % 6 === 0)) v -= 0.12; // flagstones
+      if (theme === 'sundial') {
+        const a = Math.atan2(y - c.H * 0.45, x - c.W * 0.5);
+        if (Math.abs(((a * 12) / Math.PI) % 1) < 0.04) v = 0.18; // the hour lines
+      }
+      p.set(x, y, pick(r, v, x, y, 0.3));
+    }
+}
+
+function roadsNoon(p: Pix, c: Ctx, theme: NoonMap): void {
+  const R = c.road;
+  const W = c.W;
+  paintRoads(
+    p,
+    c,
+    (x, y, clr) => {
+      const up = y > 0 && !R[(y - 1) * W + x];
+      const down = y < c.H - 1 && !R[(y + 1) * W + x];
+      const lit = (sun(c, x, y) - 0.5) * 0.2;
+      if (theme === 'spireSteps' && y % 3 === 0) return up ? NCHALK[1] : NCHALK[2]; // steps: a shadowed riser every third row
+      let v = (clr ? 0.66 : 0.6) + (noise(x * 0.4, y * 0.4, 51) - 0.5) * 0.2 + lit;
+      if (up) v -= 0.3;
+      else if (down) v += 0.12;
+      if (theme === 'sundial' && hash(x, y, 53) > 0.96) return NBRASS[3];
+      return pick(NCHALK, v, x, y, 0.2);
+    },
+    (k) => mix(k, col('#141020'), 0.3),
+  );
+}
+
+function menhirDeco(seed: number, hgt: number): Deco {
+  const p = new Pix(7, hgt + 3, -1);
+  const r = rng(seed);
+  for (let k = 0; k < hgt; k++) {
+    const half = 2 - (k > hgt * 0.7 ? 1 : 0);
+    for (let x = 3 - half; x <= 3 + half; x++) p.set(x, hgt + 1 - k, pick(NCHALK, k >= hgt - 1 ? 0.8 : x < 3 ? 0.6 : 0.3, x, hgt + 1 - k));
+  }
+  void r;
+  return deco(p, 3, hgt + 1, 2, hgt * 0.4);
+}
+
+function thornDeco(seed: number, hgt: number): Deco {
+  const p = new Pix(11, hgt + 3, -1);
+  const r = rng(seed);
+  for (let k = 0; k < hgt; k++) p.set(5, hgt + 1 - k, NDEAD[k > hgt * 0.6 ? 2 : 3]);
+  for (let i = 0; i < 4; i++) {
+    const by = hgt + 1 - Math.round(hgt * (0.4 + r() * 0.5));
+    const dir = i % 2 ? 1 : -1;
+    for (let k = 1; k < 4; k++) p.set(5 + dir * k, by - k, NDEAD[2]);
+  }
+  return deco(p, 5, hgt + 1, 2, hgt * 0.5, { shadow: [2, 1] });
+}
+
+function noonTowerDeco(seed: number, hgt: number, dome: boolean): Deco {
+  const p = new Pix(10, hgt + 6, -1);
+  for (let y = 4; y <= hgt + 4; y++) for (let x = 2; x < 8; x++) p.set(x, y, pick(NCHALK, x < 4 ? 0.8 : x < 7 ? 0.55 : 0.3, x, y));
+  if (dome) for (let y = 1; y < 4; y++) for (let x = 5 - (y - 1) - 1; x <= 4 + (y - 1) + 1; x++) p.set(x, y, pick(NBRASS, x < 5 ? 0.85 : 0.4, x, y));
+  p.set(4, 7, col('#140c1c'));
+  p.set(4, 8, col('#140c1c'));
+  void seed;
+  return deco(p, 5, hgt + 4, 3, hgt * 0.5, { shadow: [3, 1] });
+}
+
+function noonKit(theme: NoonMap): Kit {
+  const stone = ramp('#2a2836', '#3e3a48', '#56505e', '#6e6874');
+  const big: Deco[] =
+    theme === 'whiteRoad'
+      ? [menhirDeco(1401, 9), menhirDeco(1402, 12), thornDeco(1403, 10), thornDeco(1404, 13), menhirDeco(1405, 7)]
+      : theme === 'spireSteps'
+        ? [noonTowerDeco(1411, 12, true), noonTowerDeco(1412, 16, false), noonTowerDeco(1413, 10, true), thornDeco(1414, 9)]
+        : [menhirDeco(1421, 11), menhirDeco(1422, 8), noonTowerDeco(1423, 9, false)];
+  const mid: Deco[] = [boulder(1431, 3, 2.4, stone, stone, col('#000000')), boulder(1432, 2.4, 2, stone, stone, col('#000000')), bush(1433, 2.4, NDEAD.concat([col('#5e4e40'), col('#6e5e4a')]))];
+  const small: Deco[] = [];
+  for (let i = 0; i < 4; i++) small.push(tuftDeco(1440 + i, 2 + (i % 2), ramp('#3a3028', '#54463a', '#6e5e4a', '#8a7858')));
+  return { big, mid, small, extra: { sign: [signDeco()] } };
+}
+
+function decorNoon(c: Ctx, theme: NoonMap): void {
+  const k = kit(theme);
+  const clump = (x: number, y: number) => fbm(x * 0.04, y * 0.05, c.seed + 9) > 0.58;
+  scatter(c, k, {
+    big: (x, y) => Math.max(edgy(c, x, y) * 0.5, clump(x, y) ? 0.35 : 0.04),
+    mid: (x, y) => (clump(x, y) ? 0.3 : 0.12),
+    small: () => 0.18,
+    step: 7,
+  });
+}
+
+/** Noonspire's light: harsh and from above; the edges sink into deep cool shade (never a warm wash). */
+function noonLight(p: Pix, c: Ctx, theme: NoonMap): void {
+  const { W, H } = c;
+  const edge = col('#0c0e20');
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const e = clamp01(1 - Math.min(x / 18, (W - 1 - x) / 18, y / 13, (H - 1 - y) / 13));
+      let k = p.get(x, y);
+      if (e > 0 && e * e > bay(x, y) * 0.9) k = mix(k, edge, e * 0.55);
+      const s = sun(c, x, y);
+      if (s < 0.42 && (0.42 - s) * 3 > bay(x, y)) k = mix(k, col('#141834'), 0.2);
+      k = mix(k, col('#1a1c36'), theme === 'sundial' ? 0.06 : 0.1);
+      p.set(x, y, k);
+    }
+}
+
+/** Act 13's lair: the sphinx couched on her plinth by the road. */
+function lairSphinx(): Lair {
+  const W = 44;
+  const H = 30;
+  const p = new Pix(W, H, -1);
+  const base = H - 2;
+  for (let y = base - 6; y <= base; y++) for (let x = 4; x < 40; x++) p.set(x, y, pick(NCHALK, y === base - 6 ? 0.85 : x < 10 ? 0.6 : 0.4, x, y));
+  const fur = ramp('#2a2228', '#4a3c34', '#6e5a44', '#927a58', '#b29a70');
+  for (let y = base - 15; y < base - 6; y++)
+    for (let x = 10; x < 36; x++) {
+      const dx = (x + 0.5 - 24) / 13;
+      const dy = (y + 0.5 - (base - 8)) / 8;
+      if (dx * dx + dy * dy > 1) continue;
+      p.set(x, y, pick(fur, 0.3 + 0.6 * lambert(dx, dy), x, y));
+    }
+  // her head and striped headdress, raised at the front (facing left)
+  for (let y = base - 24; y < base - 12; y++)
+    for (let x = 8; x < 17; x++) p.set(x, y, Math.floor(y / 2) % 2 ? NBRASS[4] : col('#2c3460'));
+  for (let y = base - 22; y < base - 14; y++) for (let x = 7; x < 12; x++) p.set(x, y, pick(ramp('#4a2220', '#7e4230', '#b06a46', '#d6946a'), x < 9 ? 0.85 : 0.45, x, y));
+  p.set(8, base - 19, col('#ff7a52'));
+  outline(p);
+  return { canvas: p.canvas(), flames: [], glows: [[8 - W / 2, base - 19 - H]], glow: [0xff7a52, 0xffd0a0] };
+}
+
+/** Act 14's lair: the brass gate at the stair top, its lion's head over the arch. */
+function lairLionGate(): Lair {
+  const W = 46;
+  const H = 40;
+  const p = new Pix(W, H, -1);
+  const base = H - 2;
+  for (const px of [4, 36]) for (let y = 6; y <= base; y++) for (let x = px; x < px + 6; x++) p.set(x, y, pick(NCHALK, x === px ? 0.8 : x < px + 4 ? 0.55 : 0.3, x, y));
+  for (let y = 6; y < 10; y++) for (let x = 4; x < 42; x++) p.set(x, y, pick(NCHALK, y === 6 ? 0.85 : 0.45, x, y));
+  for (let x = 12; x < 36; x += 3) for (let y = 10; y <= base; y++) p.set(x, y, NBRASS[x % 2 ? 3 : 2]);
+  for (let y = 0; y < 8; y++)
+    for (let x = 17; x < 29; x++) {
+      const dx = (x + 0.5 - 23) / 6;
+      const dy = (y + 0.5 - 4) / 4.5;
+      if (dx * dx + dy * dy > 1) continue;
+      p.set(x, y, pick(NBRASS, 0.3 + 0.6 * lambert(dx, dy), x, y));
+    }
+  p.set(21, 3, col('#ff7a52'));
+  p.set(25, 3, col('#ff7a52'));
+  outline(p);
+  return { canvas: p.canvas(), flames: [], glows: [[21 - W / 2, 3 - H], [25 - W / 2, 3 - H]], glow: [0xff7a52, 0xffd0a0] };
+}
+
+/** Act 15's lair: the gnomon standing on its dial, the sun nailed over it. */
+function lairGnomon(): Lair {
+  const W = 44;
+  const H = 46;
+  const p = new Pix(W, H, -1);
+  const base = H - 2;
+  for (let y = base - 5; y <= base; y++)
+    for (let x = 2; x < 42; x++) {
+      const u = (x - 22) / 20;
+      if (Math.abs(u) > 1 - (base - y) * 0.06) continue;
+      p.set(x, y, (x - 22) % 6 === 0 ? NCHALK[1] : pick(NCHALK, y === base - 5 ? 0.8 : 0.45, x, y));
+    }
+  for (let y = 10; y < base - 5; y++) {
+    const t = (y - 10) / (base - 15);
+    for (let x = 22 - Math.round(t * 2); x <= 22 + Math.round(t * 7); x++) p.set(x, y, pick(NBRASS, x < 23 ? 0.85 : 0.4, x, y));
+  }
+  for (let y = 0; y < 8; y++) for (let x = 18; x < 26; x++) if (Math.hypot(x + 0.5 - 22, y + 0.5 - 4) < 3.6) p.set(x, y, Math.hypot(x + 0.5 - 22, y + 0.5 - 4) < 2 ? col('#fff4c8') : col('#ffd86a'));
+  outline(p);
+  return { canvas: p.canvas(), flames: [], glows: [[22 - W / 2, 4 - H]], glow: [0xffd86a, 0xfff4c8] };
+}
+
+const KITS: Record<Theme, () => Kit> = { forest: forestKit, ruins: ruinsKit, hollow: hollowKit, pass: passKit, caves: cavesKit, glacier: glacierKit, cinder: cinderKit, glass: glassKit, forge: forgeKit, fen: () => duskKit('fen'), causeway: () => duskKit('causeway'), mere: () => duskKit('mere'), whiteRoad: () => noonKit('whiteRoad'), spireSteps: () => noonKit('spireSteps'), sundial: () => noonKit('sundial') };
 
 function kit(theme: Theme): Kit {
   return (kits[theme] ??= KITS[theme]());
@@ -3429,6 +3627,7 @@ function lightFrame(p: Pix, c: Ctx, theme: Theme): void {
   if (theme === 'pass' || theme === 'caves' || theme === 'glacier') return frostLight(p, c, theme);
   if (theme === 'cinder' || theme === 'glass' || theme === 'forge') return ashLight(p, c, theme);
   if (isDuskMap(theme)) return duskLight(p, c, theme);
+  if (isNoonMap(theme)) return noonLight(p, c, theme);
   const { W, H } = c;
   const edge = theme === 'forest' ? col('#14321e') : theme === 'ruins' ? col('#0a1020') : col('#1a0818');
   const warm = col('#ffb060');
@@ -3599,6 +3798,7 @@ export function paintLand(spec: LandSpec): Land {
     stream(base, c, LAVA_STREAM);
   } else if (spec.theme === 'glass') groundGlass(base, c);
   else if (isDuskMap(spec.theme)) groundDusk(base, c, spec.theme);
+  else if (isNoonMap(spec.theme)) groundNoon(base, c, spec.theme);
   else {
     groundForge(base, c);
     stream(base, c, LAVA_STREAM);
@@ -3620,6 +3820,7 @@ export function paintLand(spec: LandSpec): Land {
     slabBridges(base, c, MBASALT);
   } else if (spec.theme === 'glass') roadsGlass(base, c);
   else if (isDuskMap(spec.theme)) roadsDusk(base, c, spec.theme);
+  else if (isNoonMap(spec.theme)) roadsNoon(base, c, spec.theme);
   else {
     roadsForge(base, c);
     slabBridges(base, c, MIRON);
@@ -3647,6 +3848,7 @@ export function paintLand(spec: LandSpec): Land {
     magmaPools(base, c);
     decorGlass(c);
   } else if (isDuskMap(spec.theme)) decorDusk(c, spec.theme);
+  else if (isNoonMap(spec.theme)) decorNoon(c, spec.theme);
   else decorForge(c);
 
   // braziers light the stones around them
@@ -3659,7 +3861,7 @@ export function paintLand(spec: LandSpec): Land {
       land.glows.push([it.x, it.y - Math.round(it.d.cy), it.d.glow]);
     }
   // cast shadows, then the scenery in depth order
-  const SHADE: Record<Theme, string> = { forest: '#16301e', ruins: '#080c14', hollow: '#14060e', pass: '#3a4280', caves: '#02030a', glacier: '#0a1430', cinder: '#140a10', glass: '#05030a', forge: '#0a0204', fen: '#0e0a1a', causeway: '#0a0c1e', mere: '#12061a' };
+  const SHADE: Record<Theme, string> = { forest: '#16301e', ruins: '#080c14', hollow: '#14060e', pass: '#3a4280', caves: '#02030a', glacier: '#0a1430', cinder: '#140a10', glass: '#05030a', forge: '#0a0204', fen: '#0e0a1a', causeway: '#0a0c1e', mere: '#12061a', whiteRoad: '#0a0c1c', spireSteps: '#080a1c', sundial: '#060818' };
   const shade = col(SHADE[spec.theme]);
   const sx = spec.theme === 'hollow' ? 2 : 1;
   for (const it of c.items) if (it.d.shadow) shadowAt(base, it.x + sx, it.y, it.d.shadow[0], it.d.shadow[1], 0.35, shade);
