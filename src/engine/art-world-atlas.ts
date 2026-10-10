@@ -13,16 +13,21 @@ type Box = { x: number; y: number; w: number; h: number };
 
 /** Parchment (dark to light), the atlas ink (line, wash, faded line, a pale faded line) and the fog (erased land). */
 export const PARCH: readonly Col[] = ['#3a2416', '#6e4a2a', '#a8804e', '#d2b07a', '#ead2a0', '#f8ecc8'].map(col);
+/** The Atlas's own sheet: aged parchment, a step darker than the bible's ramp (L7). */
+const AGED: readonly Col[] = ['#4a3020', '#6a4a2c', '#86623a', '#9c7848', '#ae8a56'].map(col);
 export const ATLAS_INK: readonly Col[] = ['#1a1026', '#2e2240', '#4a3a5e', '#7a6a78', '#a8947e'].map(col);
-export const FOG: readonly Col[] = ['#6a6478', '#9a94a8', '#c8c2d2', '#ece8f0', '#f6f4f8'].map(col);
+/** The blank (erased land): a dim warm-grey vellum (L7: no large cream fills), its impression a shade darker. */
+export const FOG: readonly Col[] = ['#4e4644', '#6e645e', '#8c8078', '#a09488', '#ac9f92'].map(col);
+/** The blank's torn edge: its rim catching the light, the row inside it. */
+const TORN: readonly Col[] = ['#f0dcb0', '#cec2b8'].map(col);
 /** The sea's watercolour wash on the parchment (deep tint at the coast to bare paper offshore). */
-const WASH: readonly Col[] = ['#78a4ac', '#8eb2b0', '#a8bfae', '#c2caa8', '#d8d0a2'].map(col);
-/** His draft: ink on bare paper, from the ink's dark (cool) to the paper's light (warm). */
-const DRAFT: readonly Col[] = ['#2e2240', '#54445a', '#806a6c', '#a8906e', '#cbb07e', '#e4cc98', '#f2e0b0'].map(col);
+const WASH: readonly Col[] = ['#2a4e5e', '#36606c', '#4a7276', '#6a8478', '#8a8a6c'].map(col);
 
 const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 /** Ordered dither: whether a pixel at (x, y) takes the next step up for a fractional part `f`. */
 const dith = (x: number, y: number, f: number) => f * 16 > BAYER4[(y & 3) * 4 + (x & 3)] + 0.5;
+/** The mood's shadow colour (L7: deep, cool). */
+const MOOD = col('#141a30');
 const luma = (c: Col) => (((c >> 16) & 255) * 0.3 + ((c >> 8) & 255) * 0.55 + (c & 255) * 0.15) / 255;
 /** A tone from a ramp for v in 0..1, dithered between its two nearest steps. */
 function rampAt(r: readonly Col[], v: number, x: number, y: number): Col {
@@ -36,11 +41,12 @@ function rampAt(r: readonly Col[], v: number, x: number, y: number): Col {
 export function paperAt(x: number, y: number, W: number, H: number): Col {
   const m = noise(x * 0.025, y * 0.04, 71) * 0.7 + noise(x * 0.09, y * 0.11, 72) * 0.3;
   const e = Math.min(x, y, W - 1 - x, H - 1 - y);
-  if (e <= 1) return PARCH[1];
-  if (e <= 3) return PARCH[2];
-  const burn = e < 12 ? (12 - e) / 12 : 0;
-  const v = 0.72 + (m - 0.5) * 0.35 - burn * 0.5;
-  return rampAt(PARCH.slice(2), v, x, y);
+  if (e <= 1) return PARCH[0];
+  if (e <= 3) return AGED[0];
+  // aged paper (L7: darker, no cream), browning toward the burnt edge in stepped bands
+  const burn = e < 16 ? (16 - e) / 16 : 0;
+  const v = 0.62 + (m - 0.5) * 0.4 - burn * 0.55;
+  return rampAt(AGED, v, x, y);
 }
 
 /** What the atlas pass reads from the painting (art-world.ts's Stage). */
@@ -84,19 +90,24 @@ export function* atlasPrint(A: AtlasIn, sameRegion: (a: number, b: number) => bo
           if (k > 0) c = mix(c, rampAt(WASH, 1 - k, x, y), Math.min(1, k * 1.25));
         }
         // the engraved water lines: contours at set distances from the coast, broken further out
-        for (const [ld, keep, tone] of [
-          [2.6, 1, 2],
-          [5.4, 0.86, 3],
-          [9, 0.62, 3],
-          [14, 0.38, 4],
+        for (const [ld, keep, k] of [
+          [2.6, 1, 0.7],
+          [5.4, 0.86, 0.5],
+          [9, 0.62, 0.4],
+          [14, 0.38, 0.3],
         ] as const)
-          if (Math.abs(d - ld) < 0.5 && noise(x * 0.12, y * 0.12, 74 + ld) < keep + 0.12) c = mix(c, ATLAS_INK[tone], tone === 2 ? 0.75 : 0.6);
+          if (Math.abs(d - ld) < 0.5 && noise(x * 0.12, y * 0.12, 74 + ld) < keep + 0.12) c = mix(c, ATLAS_INK[1], k);
         buf[i] = c;
       }
   }
   yield;
-  // the land, printed on the paper: its colour warmed a touch toward the parchment, its lit tops a little paler
-  for (let i = 0; i < W * H; i++) if (land[i]) buf[i] = mix(src[i], PARCH[4], 0.1);
+  // the land in the Atlas's dusk (L7): about a fifth darker, the midtones cooled toward indigo, the lights kept warm
+  for (let i = 0; i < W * H; i++)
+    if (land[i]) {
+      const c = src[i];
+      const l = luma(c);
+      buf[i] = mix(c, MOOD, 0.24 - Math.max(0, l - 0.6) * 0.3);
+    }
   // the coast in ink (land touching the sea), the lakes' shores, and the regions' borders as dashed ink
   for (let y = 1; y < H - 1; y++) {
     if (y % 100 === 0) yield;
@@ -173,8 +184,10 @@ function edgeAt(buf: Int32Array, W: number, H: number, x: number, y: number): nu
 }
 
 /**
- * His draft over one land (the pixels `on` reports): the printed land as an ink drawing on bare paper. Its tones become
- * a few washes of ink by brightness (dithered between them), the strong edges are drawn in line, the coast stays inked.
+ * His version of one land (the pixels `on` reports), shown until its region is restored: the painted land itself, a
+ * touch drained (lead's call L6, playtest round 8: the open lands keep the painted look the playtester liked; an ink
+ * sketch read as dirt at the map's zoom). Each colour moves a third of the way toward its own grey, warmed a little
+ * toward the paper; the inked coast stays. The full colour floods back when the region is restored.
  * Returns the box and the canvas (transparent off the land).
  */
 export function draftOf(buf: Int32Array, W: number, H: number, on: (i: number) => boolean): { box: Box; canvas: HTMLCanvasElement } {
@@ -182,36 +195,27 @@ export function draftOf(buf: Int32Array, W: number, H: number, on: (i: number) =
   const canvas = wordCanvas(box.w, box.h, (u) => {
     for (let y = 0; y < box.h; y++)
       for (let x = 0; x < box.w; x++) {
-        const gx = box.x + x;
-        const gy = box.y + y;
-        const i = gy * W + gx;
+        const i = (box.y + y) * W + box.x + x;
         if (!on(i)) continue;
         const c = buf[i];
-        // keep the inked coast and borders as they are
         if (c === ATLAS_INK[0] || c === ATLAS_INK[1]) {
           u[y * box.w + x] = rgba32(c);
           continue;
         }
-        const e = edgeAt(buf, W, H, gx, gy);
-        const l = luma(c);
-        // mostly bare paper: the colour's brightness becomes a light wash (dithered between steps); the strong edges
-        // are drawn in line, the darks hatched with diagonal strokes like an engraving
-        const v = Math.max(0, Math.min(1, 0.45 + l * 0.95));
-        let t = rampAt(DRAFT.slice(4), v, gx, gy);
-        if (l < 0.26 && (gx + gy) % 3 === 0) t = DRAFT[3];
-        if (e > 0.3) t = DRAFT[1];
-        else if (e > 0.2) t = DRAFT[3];
-        u[y * box.w + x] = rgba32(t);
+        const l = Math.round(luma(c) * 255);
+        const grey = (l << 16) | (l << 8) | l;
+        u[y * box.w + x] = rgba32(mix(mix(c, grey, 0.36), PARCH[4], 0.08));
       }
   });
   return { box, canvas };
 }
 
 /**
- * The blank over one land (erased: white-grey vellum, docs/story-bible.md section 9): opaque paper over the land
- * that keeps only the impression of its old lines (the coast, the strong edges, pressed in a shade darker than the
- * paper), its frontier with the drawn land rubbed ragged (stepped and dithered toward clear, a few crumbs of eraser).
- * `soft(x, y)` is how far into the unknown a point lies (0..1), `on` the land to blank.
+ * The blank over one land (erased: warm white vellum, docs/story-bible.md section 9): opaque paper over the land that
+ * keeps only the impression of its old lines (the coast and the strong edges, pressed a shade darker than the paper).
+ * Its frontier with the painted land is a clear torn edge, as on the title: the paper's edge catches the light (a
+ * bright warm rim) and throws a thin ink-dark shadow onto the land beside it. `soft(x, y)` is how far into the
+ * unknown a point lies (0..1), `on` the land to blank (the shadow may fall on any land in the box).
  */
 export function blankOf(
   buf: Int32Array,
@@ -221,34 +225,45 @@ export function blankOf(
   on: (i: number) => boolean,
   soft: (x: number, y: number) => number,
 ): HTMLCanvasElement {
-  return wordCanvas(box.w, box.h, (u) => {
-    for (let y = 0; y < box.h; y++)
-      for (let x = 0; x < box.w; x++) {
+  const bw = box.w;
+  const bh = box.h;
+  const paper = new Uint8Array(bw * bh);
+  for (let y = 0; y < bh; y++)
+    for (let x = 0; x < bw; x++) {
+      const gx = box.x + x;
+      const gy = box.y + y;
+      if (gx >= W || gy >= H || !on(gy * W + gx)) continue;
+      const p = soft(gx, gy) + (noise(gx * 0.22, gy * 0.22, 92) - 0.5) * 0.3 + (noise(gx * 0.8, gy * 0.8, 94) - 0.5) * 0.1;
+      if (p > 0.47) paper[y * bw + x] = 1;
+    }
+  const at = (x: number, y: number) => x >= 0 && y >= 0 && x < bw && y < bh && paper[y * bw + x] === 1;
+  return wordCanvas(bw, bh, (u) => {
+    for (let y = 0; y < bh; y++)
+      for (let x = 0; x < bw; x++) {
         const gx = box.x + x;
         const gy = box.y + y;
         if (gx >= W || gy >= H) continue;
         const i = gy * W + gx;
-        if (!on(i)) continue;
-        // the paper itself: a pale vellum with a slow mottle
+        const k = y * bw + x;
+        if (!paper[k]) {
+          // the torn edge's shadow on the land beside it (any land under the box, not the sea)
+          const n1 = at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1);
+          if (n1 && (on(i) || buf[i] !== -1)) u[k] = rgba32(ATLAS_INK[1], 210);
+          else if (at(x - 2, y) || at(x, y - 2) || at(x - 1, y - 1)) u[k] = rgba32(ATLAS_INK[1], 90);
+          continue;
+        }
+        // the paper itself: a warm vellum with a slow mottle
         const m = noise(gx * 0.05, gy * 0.07, 91);
         let c = rampAt(FOG.slice(2), 0.55 + (m - 0.5) * 0.6, gx, gy);
         // the impression: the old lines pressed into it
         const coast = buf[i] === ATLAS_INK[0] || buf[i] === ATLAS_INK[1];
         const e = coast ? 1 : edgeAt(buf, W, H, gx, gy);
         if (e > 0.16) c = coast ? FOG[1] : FOG[2];
-        // the frontier: rubbed out raggedly where it meets the drawn land
-        const s = soft(gx, gy);
-        const a = Math.max(0, Math.min(1, (s - 0.18) / 0.5 + (noise(gx * 0.3, gy * 0.3, 92) - 0.5) * 0.5)) ;
-        if (a <= 0) continue;
-        if (a < 1) {
-          // stepped: full paper, a dithered half, a sparse quarter
-          const step = a > 0.66 ? 1 : a > 0.33 ? 0.5 : 0.25;
-          if (step < 1 && !dith(gx, gy, step)) {
-            if (hash(gx, gy, 93) < 0.02) u[y * box.w + x] = rgba32(FOG[1]);
-            continue;
-          }
-        }
-        u[y * box.w + x] = rgba32(c);
+        // the torn edge: the paper's rim lit warm, a second row a little less
+        const rim = !at(x - 1, y) || !at(x + 1, y) || !at(x, y - 1) || !at(x, y + 1);
+        if (rim) c = TORN[0];
+        else if (!at(x - 2, y) || !at(x + 2, y) || !at(x, y - 2) || !at(x, y + 2)) c = TORN[1];
+        u[k] = rgba32(c);
       }
   });
 }

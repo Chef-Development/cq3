@@ -1834,7 +1834,7 @@ function* paintFarSea(): Generator<void, { base: HTMLCanvasElement; waves: HTMLC
       // sheet's eastern edge
       let c = paperAt(gx, y, MAP_W, H);
       const m = level(clamp01((gx - (MAP_W - 72)) / 72), 4, gx, y, 0.3) / 4;
-      if (m > 0) c = mix(c, col('#ece8f0'), m * 0.55);
+      if (m > 0) c = mix(c, col('#8c8078'), m * 0.5);
       p.buf[y * W + x] = c;
     }
   neatline(p.buf, W, H, X0, MAP_W);
@@ -2102,10 +2102,11 @@ function vignette(w: number, h: number): HTMLCanvasElement {
       const nx = (x + 0.5 - w / 2) / (w / 2);
       const ny = (y + 0.5 - h * 0.5) / (h / 2);
       const r = Math.sqrt(nx * nx * 0.8 + ny * ny * 0.9);
-      let a = Math.min(1, Math.max(0, (r - 0.66) / 0.55));
+      let a = Math.min(1, Math.max(0, (r - 0.5) / 0.6));
       a = a * a * (3 - 2 * a);
       // three tones, dithered only where one meets the next
-      const q = (level(a, 3, x, y, 0.3) / 3) * 0.36;
+      // (L7: a stronger vignette)
+      const q = (level(a, 3, x, y, 0.3) / 3) * 0.55;
       const i = (y * w + x) * 4;
       d[i] = 16;
       d[i + 1] = 8;

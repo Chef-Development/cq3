@@ -64,7 +64,8 @@ export class TitleScreen {
     this.quill = mk('title_quill', D_QUILL);
     this.heroRim = mk('hero_idle0', 31.29).setOrigin(HERO_FEET_X / HERO_W, (HERO_H - 1) / HERO_H).setTint(0xffa858).setTintMode(Phaser.TintModes.FILL);
     this.hero = mk('hero_idle0', 31.3).setOrigin(HERO_FEET_X / HERO_W, (HERO_H - 1) / HERO_H);
-    this.pip = mk(s.textures.exists('pip_idle0') ? 'pip_idle0' : 'hero_idle0', 31.31).setOrigin(0.5, 0.5);
+    // (Pip at map scale: the fight-size owl was as big as Rowan's head and pulled the eye off the logo)
+    this.pip = mk(s.textures.exists('mpip_0') ? 'mpip_0' : 'hero_idle0', 31.31).setOrigin(0.5, 0.5);
     this.logo = mk('title_logo', 31.6);
     this.shine = mk('title_logo_shine_0', 31.7);
   }
@@ -118,8 +119,8 @@ export class TitleScreen {
     this.hero?.setTexture(frame).setPosition(hx, hy - Math.round((1 - hk) * 8)).setAlpha(clamp01(since / 160));
     this.heroRim?.setTexture(frame).setPosition(hx + 1, hy - Math.round((1 - hk) * 8)).setAlpha(clamp01(since / 160) * (0.75 + 0.2 * pulse(now, 1800)));
     const pk = clamp01((since - 120) / 300);
-    if (this.s.textures.exists('pip_idle1')) this.pip?.setTexture(Math.floor(now / 160) % 2 ? 'pip_idle1' : 'pip_idle0');
-    this.pip?.setPosition(hx + 22 + Math.round(Math.sin(now / 900) * 2), hy - 36 + Math.round(Math.sin(now / 340) * 2) - Math.round((1 - pk) * 20)).setAlpha(pk);
+    if (this.s.textures.exists('mpip_1')) this.pip?.setTexture(Math.floor(now / 160) % 2 ? 'mpip_1' : 'mpip_0');
+    this.pip?.setPosition(hx + 15 + Math.round(Math.sin(now / 900) * 2), hy - 30 + Math.round(Math.sin(now / 340) * 2) - Math.round((1 - pk) * 20)).setAlpha(pk);
 
     // the logo drops in with a bounce over a glow, bobs gently; a gleam crosses it every few seconds
     const lw = this.logo?.width ?? 160;
@@ -143,8 +144,8 @@ export class TitleScreen {
 
   /** A dark halo behind the logo (it reads on any sky) and a warm glow breathing in it. */
   private logoGlow(g: G, cx: number, cy: number, lw: number, lh: number, now: number, a: number): void {
-    for (let i = 0; i < 3; i++) {
-      g.fillStyle(0x140c1c, 0.16 * a);
+    for (let i = 0; i < 2; i++) {
+      g.fillStyle(0x140c1c, 0.13 * a);
       g.fillEllipse(Math.round(cx), Math.round(cy + 2), lw + 30 - i * 14, lh + 16 - i * 8);
     }
     const p = pulse(now, 1600);
