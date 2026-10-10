@@ -809,6 +809,13 @@ L10. **No boot guard in CI tonight**: the QA team's proposal (install Chromium i
     before publishing) is sound, but a new dependency install in the deploy job late at night could block every
     deploy the playtester is waiting on; the lead's pre-push boot check covers tonight. Recommended for the next round.
 
+L11. **The small font's "a" is a single-storey a with a full right stem** (`.####`, `##.##`, `##.##`, `.####`; fresh-eyes
+    review 4, R4-1: the old one read as a backwards c, "Tɔp", "drɔwn", in every tip, story and event line). Same
+    width, so no text moves; every screenshot with small lowercase text changes.
+L12. **The Test lab button stays on the title for now** (review 4, R4-2 asked to hide it: it reads as a debug build):
+    the playtester's loop runs through it tonight. Before a public debut, hide it behind `?lab` or a gear-panel switch
+    (next round's first item).
+
 (lead: end of section)
 
 
