@@ -635,7 +635,8 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   living) and that Ambrose broke it once, the night after the funeral, and no more. Pip begs her to tell the rest
   ("He has a right to know, Hesper."); she won't: "Not today." Pip's anger is the first
   time he raises his voice in the game. (Her secret, the river, waits for her confession at the end.)
-- **Scenes:** `far1`-`far3`, two mini-bosses', `warden`, `warden2`, `warden3`, `farVictory`, `hallWakes`. Fizz after
+- **Scenes:** `far1`-`far3`, two mini-bosses' (to design), `warden`, `warden2`, `warden3`, `farVictory`,
+  `hallWakes` (the last two drafted: `src/data/story-far.ts`). Fizz after
   `farVictory`: "MY light! Pointing the RIGHT way!"
 
 ### Region 11: Lowmoor (far isle): section 6.
