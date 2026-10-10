@@ -68,6 +68,8 @@ type Face = readonly [number, number, number, number];
 const mixWhite = (c: number) => mix(c, WHITE, 0.4);
 /** The four-frame idle's step (a 1.2 s loop: docs/art-style.md section 7). */
 const IDLE_STEP_MS = 300;
+/** A foe's two idle frames each last this long. */
+const FOE_IDLE_MS = 460;
 /** Squash and stretch never lasts longer than this. */
 const SQUASH_MS = 100;
 /** A new wave's enemies hop (or drop) in over this long. */
@@ -1313,7 +1315,8 @@ export class Fighters {
       if (kk >= 0 && kk < 1) x += Math.round(v.kickDist * Math.exp(-4.5 * kk) * Math.cos(kk * Math.PI * 2.2));
       v.x = x;
       const flash = a < v.flashUntil;
-      let pose = a < v.poseUntil ? v.pose : Math.floor((a + v.phase) / 380) % 2 ? 'idle1' : 'idle0';
+      // (the idle breath: a 920 ms loop, inside the bible's 900-1400 ms)
+      let pose = a < v.poseUntil ? v.pose : Math.floor((a + v.phase) / FOE_IDLE_MS) % 2 ? 'idle1' : 'idle0';
       // a boss's phase look (glacia2_*, glacia3_*) when it has one
       const phased = e.phase > 1 && s.textures.exists(`${v.sprite}${e.phase}_idle0`);
       const look = phased ? `${v.sprite}${e.phase}` : v.sprite;
