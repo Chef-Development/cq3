@@ -221,8 +221,10 @@ html.panel-open #hud {
   touch-action: manipulation;
 }
 .dbg-segbtn.on {
-  background: #ff9a2a;
+  /* brass, not candy orange (L8) */
+  background: #be8e3a;
   color: var(--ink);
+  box-shadow: inset 0 2px 0 #e0b45a, inset 0 -2px 0 #8c6224;
 }
 .dbg-grid {
   display: grid;
