@@ -680,7 +680,8 @@ function sunGolemParts(pose: string): Part[] {
   out.push([['.IIII.', ...dr], X(19), 17, { pal: { ...GLOW, I: IRON[2] } }]);
   // the small head, eyes like the inside of a kiln
   out.push(round(X(13), 9, 5, 4.4, SHELL));
-  out.push(eye(X(9), 8, 'sun'), eye(X(13), 8, 'sun'));
+  // a dark brow slot, the eyes burning white in it, a grate of a mouth
+  out.push([['nnnnnnnn', 'nZWnnWZn', 'n.XnnX.n'], X(9), 7, { pal: GLOW }], [['nnnn', 'XnXn'], X(11), 11, { pal: GLOW }]);
   out.push(capsule(X(14), 15, fist[0] + bx, fist[1], 4.6, 4, '3', { pal: digits(SHELL), edge: SHELL[0] }));
   out.push(round(fist[0] + bx, fist[1], 5, 4.4, SHELL));
   return [...out, ...extra];
@@ -727,9 +728,20 @@ function lionParts(pose: string, phase: number): Part[] {
   const out: Part[] = [];
   out.push(round(X(50), Y(38), 5, 5, darker(BRASS)));
   // the body: cast brass, riveted plates, a thin seam of heat at the joins (white-hot once it overheats)
-  const body = V(anyOf(ell(X(40), Y(30), 17, 10), ell(X(52), Y(31), 8, 9)), [X(22), Y(19), X(61), Y(42)], [X(36), Y(24), 18, 9], BRASS);
-  body[0] = body[0].map((r) => [...r].map((c, x) => (c !== '.' && (x + body[1] - X(22)) % 9 === 0 && +c > 1 ? String(+c - 1) : c)).join(''));
+  const HULL = hot ? ['#2a0e0a', '#6e2a0e', '#a8521a', '#d8862a', '#f0b848', '#fbe0a0'] : BRASS;
+  const body = V(anyOf(ell(X(40), Y(30), 17, 10), ell(X(52), Y(31), 8, 9)), [X(22), Y(19), X(61), Y(42)], [X(36), Y(24), 18, 9], HULL);
+  const seams: Pts = [];
+  body[0] = body[0].map((r, y) => [...r].map((c, x) => {
+    if (c === '.' || (x + body[1] - X(22)) % 9 !== 0 || +c <= 1) return c;
+    seams.push([x + body[1], y + body[2]]);
+    return String(+c - 1);
+  }).join(''));
   out.push(body);
+  // overheated: the seams glow red-hot and heat licks up off its back
+  if (hot) {
+    extra.push(parts({ Q: seams.filter((_, i) => i % 3 === 0), q: seams.filter((_, i) => i % 3 === 1), x: seams.filter((_, i) => i % 3 === 2) }, { pal: GLOW }));
+    extra.push(flame(X(38), Y(21), 7, 4, by + jaw), flame(X(47), Y(22), 5, 3, by + jaw + 2, 0.4));
+  }
   out.push(sweep(bezier([[X(59), Y(28)], [X(65), Y(20)], [X(64), Y(12)], [X(58), Y(14)]]), (t) => 1.3 - t * 0.3, (_t, side) => (side < 0 ? '4' : '3'), 50, { pal: digits(BRASS), edge: BRASS[0] }));
   out.push(round(X(58), Y(14), 2.4, 2.2, MANE));
   out.push(capsule(X(26), Y(30), paw[0] + bx + 3, paw[1] + by - 2, 3.8, 3.2, '3', { pal: digits(BRASS), edge: BRASS[0] }));
