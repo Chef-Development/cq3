@@ -145,6 +145,10 @@ Everything animates from `now` and seeds (screenshots stay exact). Minimum frame
   the sky colour: atmospheric perspective), mid layer, near layer (the most saturated scenery, still below the actors),
   the ground strip, and a foreground frame (`frame_*`: leaves, rocks, icicles at the edges, darkest values).
 - **The ground strip under the actors stays calm**: low contrast, no high-frequency detail within 10 px of the feet line.
+- **The mood (decision L7) is baked in, per act** (`art-mood.ts`, A2C-1): every stage layer goes once through its act's
+  grade when it is painted: midtones cooler and less saturated, darks toward the act's shadow hue, lights (fire, sun,
+  lanterns, crystals) kept, the strip under the feet darker. Skies are painted at dusk, night, storm or a red evening
+  and left out of the grade: never a flat bright noon. A new region's backdrop adds its act's grade to `MOOD`.
 - **Actors pop**: the backdrop's value range sits inside the middle; actors own the darkest darks (ink) and the
   brightest lights and the most saturation.
 - **Painterly shapes**: organic clumps with scalloped edges, layered silhouettes, light shafts, long thin rain or snow
@@ -155,10 +159,10 @@ Everything animates from `now` and seeds (screenshots stay exact). Minimum frame
 
 | Region | Key light | Ambient | Rim | Air |
 | --- | --- | --- | --- | --- |
-| Greenmarch, act 1 (forest) | warm white-gold, top left, god rays | green-blue | pale gold | drifting leaves, motes |
+| Greenmarch, act 1 (forest) | the low late-day sun, top left: gold shafts through the canopy, a warm rim on whatever stands against the sky | deep teal shade | pale gold | drifting leaves, motes |
 | Greenmarch, act 2 (ruins) | moonlight, top left; braziers below | night blue | pale blue | rain streaks, drips off the arches, brazier embers |
-| Greenmarch, act 3 (hollow) | the low sunset sun, from the left | plum | orange | autumn leaves, fireflies, warm dust |
-| Frostpeaks | cold white, high | steel blue | ice cyan | snow streaks, spindrift |
+| Greenmarch, act 3 (hollow) | the low sun in a blood-red evening, from the left | plum | orange | autumn leaves, fireflies, warm dust, red haze |
+| Frostpeaks | moonlight, high on the left (the pass at night; the caves' crystals; the glacier's aurora) | night blue | ice cyan | snow streaks, spindrift |
 | Ashfell | ember orange from below the frame plus a dim top-left key | smoky purple | orange | embers rising, ash falling |
 | Duskmire | low rose-violet dusk from the top left (the sky stuck at sunset); lantern amber pooled where the fighters stand | deep violet (teal-violet over the flats) | rose on top, lantern amber below (`duskRim` on dark foes) | fireflies, wisps, dusk motes, mist on the water |
 | The world map (the Atlas) | lamplight, top left, warm | parchment | gold | ink ripples on the sea, gold motes where colour comes back |

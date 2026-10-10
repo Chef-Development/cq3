@@ -978,6 +978,39 @@ A14. **Section 9's words on every screen I own**: "The Great Atlas" and "Regions
     reads "Greenmarch restored!" / "N regions to go." Nothing about a Pendulum is left in the view text (the capital's
     landmark sprite and the narrator's portrait still show the pendulum: next).
 
+A2C-1. **The mood is baked into the stage's pixels, not multiplied over them** (L7; `art-mood.ts`). Every painted layer
+    of the nine fight stages (backdrop, framing, the four foreground frames) goes once through its act's grade when it
+    is painted (never per frame): midtones lose some saturation and take the act's cool shade colour (values ~20-35%
+    lower), the darkest tones take the act's shadow hue at their own value (indigo, teal, plum: shade, not black paint),
+    bright saturated colours escape it (lava, torches, the sun, crystals, the aurora, the castle's windows: warm light
+    stays an accent), and the strip the fighters stand on takes an extra, calm darkening. It is a smooth colour map, so a
+    ramp's 3+ hue-shifted tones stay apart (never muddy). It replaces 2B's first-pass flat runtime multiply for regions
+    1-3 (whose `mood` tints become `air`, used only on the drifting clouds and mist); a later region can still use
+    `mood` or add its own grade to `MOOD`.
+A2C-2. **Skies are repainted, not just darkened, where the mood is the sky**: the forest is late day (an indigo sky
+    going to dusty rose and a band of amber behind the hills, warmest on the left where the sun is low; the far peaks
+    painted at their dusk colours with alpenglow; a warm rim on everything against the sky; the castle a dark
+    silhouette with lit windows; gold shafts and rays instead of white noon beams); the hollow is a blood-red evening
+    (near-black crimson overhead, a band of fire round an orange sun, red haze and mist); the pass is a moonlit blue
+    night (stars, a small cold moon and its bloom, night clouds, moonlit snow, the stage's rim and pool moonlight
+    blue); the cinder flats' sky is smoke-dark with the orange kept low, where the volcano and the river light it.
+    The ruins stay a rainy moonlit night, a step darker; caves, glacier, glass and forge take only the grade.
+    A repainted sky is left out of the grade (a snapshot of the layer taken once its sky is done).
+A2C-3. **Foes get menace without losing their read** (L8). Bosses: the Boar King darker with an ember eye under the
+    brow, fangs, hackles always half up and a jagged five-point crown with a blood-red stone; Glacia's scales a step
+    darker, a reptile's slit pupil, fangs over the lip. Act 1's first foes: the slimes are a murkier bog green with
+    scowling glowing eyes and teeth (no blush, no smile) and a bone sunk in the core (a skull in the big one); the boar
+    darker with a glowing eye, a longer tusk and a scar; the crow's beak dark horn instead of candy yellow; the bandit's
+    face lost in the hood's shadow with two eyes catching the light; the captain weathered, scarred, a grubby plume.
+    Also: the yeti cub's dark face and glowing eyes, the shaman's crimson toadstool, the wolf's fang. Their read is
+    kept (same silhouettes and sizes; the stage rim still lifts them off the darker stages at phone size).
+A2C-4. **The old premise's pendulum is gone from the foes' art** (story bible section 11): the Boar King's crown has
+    a blood-red stone instead of the brass bob (fight sprite and portrait), the golem's forehead rune is a compass star
+    (portrait) and the flower on its crown a glowing compass-star rune (fight sprite), the Bandit Captain's portrait
+    sells a torn Atlas page instead of a pendulum weight, and Bellows forges a white-hot blade on his anvil instead of
+    guarding the weight. Still showing it (not this team's files): the narrator's portrait, the shrine's and camp's
+    emblem, the Keystone Shard's icon, the capital's clock tower.
+
 (art: end of section)
 
 
