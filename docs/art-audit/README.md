@@ -101,3 +101,12 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Greenmarch foes | 4 (cute: blush, smiles, candy colours) | 4 | `after/foes-menace-greenmarch.png` (top before, bottom after). Slimes scowl with glowing eyes and teeth, a bone in the core; the boar, crow, bandit, captain, shaman, wolf and piglets darker with an edge; the Boar King's ember eye, fangs, hackles and jagged crown. |
 | Frostpeaks foes | 4 | 4 | `after/foes-menace-frostpeaks.png`. Glacia darker with a slit pupil and fangs; the yeti cub's dark face and glowing eyes. |
 | Pendulum symbols on foes | | | Gone from the Boar King (crown, portrait), the golem's crown (a glowing compass-star rune) and Bellows (a white-hot blade on his anvil); the captain's and golem's portraits are 2A's (A19). |
+
+## Heroes, portraits, walkers and finishers (round 8, team 2B: L8)
+
+| Item | Before | After | Notes |
+| --- | --- | --- | --- |
+| Heroes' maturity (playtester: "childish and chibi", L8) | 3 | 4 | `after/rowan-mature-before-after.png`, `after/heroes-mature-before-after.png`, `after/moss-mature-before-after.png`; in fights at phone size `after/rowan-mature-fight.png`, `after/neve-mature-fight.png`, `after/moss-mature-fight.png`; the hero select `after/rowan-mature-select.png`. Frames 48 px tall; about three heads (smaller heads, a longer torso, the shared jointed legs, `art-rig.ts` matureLegs); single dark eyes under a brow, no glossy whites or blush (matureHeads); a shared grade (darker, weathered); a lit top-left edge kept so each reads on a dark stage. Still to do: hand-drawn heads for the heroes done by script. |
+| Hero portraits | 3 | 3+ | `after/hero-portraits-mature.png`, the chest reveal `after/chest-reveal-mature.png`. Eyes narrowed to one row of iris under the lid, blush gone, the mature grade; Rowan's and Sable's redrawn in their new colours. Still to do: per-hero redraws of the jaw and brow. |
+| Map walkers | 3 | 3+ | `after/walkers-mature-before-after.png` (top before), on the act map `after/walkers-on-map.png` (Rowan, Tam, Neve). Two rows taller (longer legs, about three heads), the mature grade; Rowan's redrawn. Still to do: smaller hand-drawn heads for the chest heroes. |
+| Finishers' motion | 3 | 4 | A windup beat before the big blow (every kit but the blink), a forward stretch on the blow, the follow-through held where it landed, then home on the idle's settling frame (A2B-12). |

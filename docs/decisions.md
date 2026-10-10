@@ -1071,9 +1071,17 @@ A2B-10. **The mature look (L8)** comes from shared parts in `art-rig.ts`, so the
 A2B-11. **Portraits follow** (`art-hero-portraits.ts maturePortrait` + hand-narrowed eyes): one row of iris under the
     lid, no white glints, blush gone, the same grade; Rowan's portrait redrawn (a smaller dented helm on broad
     pauldrons, a narrow lit slit), Sable's eyes narrowed. Map walkers get a row more of leg.
-A2B-12. **Finishers wind up and follow through**: the dash and guard kits hold the windup for 120 ms before the big
-    blow and drop to a low follow-through 180 ms after it; a won fight ends with the hero stepping back and raising
-    their weapon (their cast pose).
+A2B-12. **Finishers wind up and follow through**: every kit but the Shadow's blink holds the windup for 120 ms
+    before the big blow (the stand-and-cast kits too), the blow's first frames stretch the hero forward (squash and
+    stretch, 100 ms), and the time after the blow (the show's last fifth) is split 30% blow held, 30% follow-through
+    where it landed (the weapon low, or the cast pose), 40% the run home, arriving on the idle's settling frame. (The
+    first cut held the follow-through 180 ms after the blow, past the moment the show sends the hero home: it never
+    showed.) A won fight ends with the hero stepping back and raising their weapon (their cast pose).
+
+A2B-13. **Map walkers 18 px tall** (the chest heroes' walkers in `art-hero-map.ts`; Rowan's and Sable's stay 16): up
+    to two more leg rows, so they stand about three heads tall like the fight frames, with the mature grade. The act
+    map and the title anchor a walker at its feet from its own height (two rows up from the bottom), so walkers of any
+    height share the ground line.
 
 (art: end of section)
 

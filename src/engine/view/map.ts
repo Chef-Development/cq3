@@ -974,7 +974,9 @@ export class MapView implements MapHost {
     const id = run.hero.build?.id ?? 'rowan';
     const own = id === 'rowan' ? key : key.replace('mrow_', id === 'sable' ? 'msab_' : `m${id}_`);
     const walker = this.s.textures.exists(own) ? own : key;
-    this.pool.at(walker, Math.round(x) - ROWAN_FEET[0], Math.round(y) - ROWAN_FEET[1], D_HERO);
+    // (anchored at the feet, two rows up from the frame's bottom: the walkers are not all Rowan's height)
+    const feetY = (this.s.textures.get(walker).getSourceImage() as { height: number }).height - 2;
+    this.pool.at(walker, Math.round(x) - ROWAN_FEET[0], Math.round(y) - feetY, D_HERO);
     // Pip flaps along beside him, a little behind
     const flap = Math.floor(now / (walking ? 90 : 160)) % 2;
     const px = pipLag[0] - 9;
