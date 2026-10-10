@@ -1182,7 +1182,12 @@ runs through five regions, seeds 7 / 8 / 9; first try = the act's mini-boss or b
 
 Clear within 6 tries 95-100%; no boss one-shot. The masher loses Act 15 first try and the Gnomon's first fight
 (`bot-masher.test.ts`). Fights are shorter than the Duskmire's (13 / 15 / 19 s): the hero arrives at level 22; a later
-pass could trade attack for HP. Not yet: a 100-run hero parity pass.
+pass could trade attack for HP. Hero parity, a first read (balanceCampaign through five regions, 30 runs a seed, seeds 7 and 8 averaged, 13-30 runs
+reaching each act, so about ±12 points of noise; first try, gap to Rowan's 80 / 70 / 40 in Acts 13 / 14 / 15): Sable
++18 / -2 / +8 (her caster strength meets the Sphinx, beast and caster), Neve -15 / +3 / +6, Dell -19 / -10 / +4, Tess
+-40 / -4 / -6 (her late-game gap, Act 12 -38 in the same runs, C16; the construct mini-boss and boss give her +25%),
+Vesper -16 / -25 / -14 (low in the fourth region too). Left for a hero-numbers pass: Tess's and Vesper's late game;
+Sable's Act 13 edge if a 100-run sample confirms it (retagging the Sphinx would cost her her look).
 
 ### Still to design and build (next chunks)
 Telegraph sounds (`NOON_NEW_SOUNDS`), the music and ambience cues in app.ts (`ACT_AMBIENCE` 12-14: `dunes`, `spire`,
