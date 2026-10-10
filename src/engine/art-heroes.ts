@@ -47,7 +47,8 @@ export const M5_HEROES = ['neve', 'moss', 'tam', 'hollis', 'vesper', 'torva', 'f
 
 /** The camp sprites' box (drawn bottom-centre at a spot, like camp_sable0/1): the feet centred, one row under them. */
 export const HERO_CAMP_W = 32;
-export const HERO_CAMP_H = 38;
+// (44 since the mature figures of playtest round 8: the crop keeps their heads and raised hands)
+export const HERO_CAMP_H = 44;
 
 interface HeroArt {
   rig: Rig;
