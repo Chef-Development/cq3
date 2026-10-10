@@ -26,6 +26,7 @@ export const REGION_SITES: Record<string, { acts: Pt[]; events: Pt }> = {
   greenmarch: { acts: [[46, 62], [100, 26], [158, 58]], events: [98, 100] },
   frostpeaks: { acts: [[38, 50], [102, 66], [160, 28]], events: [100, 100] },
   ashfell: { acts: [[42, 70], [98, 58], [142, 22]], events: [100, 100] },
+  duskmire: { acts: [[150, 62], [46, 40], [100, 24]], events: [100, 100] },
 };
 
 /** A seal's radius (game px) and the spacing of a row of them. */

@@ -141,7 +141,7 @@ export function labProfile(t: Tuning, s: LabScenario): Profile {
       p.neveMet = true;
       p.heroes.neve.unlocked = true;
       p.allUnlocked = true;
-      p.seen.push('magsTale'); // (the third region's camp tale never plays over the lab's camp)
+      p.seen.push('magsTale', 'duskCamp'); // (the later regions' camp tales never play over the lab's camp)
     }
   }
   if (spec.tips?.length) {

@@ -21,6 +21,7 @@ import { COMPANIONS, type CompanionId } from '../../data/companions';
 import { HEROES, HERO_IDS, type HeroId } from '../../data/heroes';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../data/banter';
 import { ASH_BANTER, ASH_SCENE_ACT } from '../../data/banter-ash';
+import { DUSK_BANTER, DUSK_SCENE_ACT } from '../../data/banter-dusk';
 import { itemPower } from '../../core/gear';
 import { CAMP_UPGRADE_IDS, type CampUpgradeId } from '../../data/meta';
 import { hasCamp } from '../../core/meta';
@@ -1031,10 +1032,11 @@ export class CampView {
     const sable = here.has('sable');
     const base = BANTER.filter((l) => (l.who !== 'sable' && !l.sable) || sable);
     const more = HERO_BANTER.filter((l) => here.has(l.who) && (l.with ?? []).every((w) => here.has(w)));
-    // the third region's lines wait for the story to reach their scene (they'd spoil it)
+    // the later regions' lines wait for the story to reach their scene (they'd spoil it)
     const p = this.s.app.run.profile;
     const ash = ASH_BANTER.filter((l) => here.has(l.who) && (p.seen.includes(l.after) || p.actsCleared >= (ASH_SCENE_ACT[l.after] ?? 99)));
-    return [...base, ...more, ...ash];
+    const dusk = DUSK_BANTER.filter((l) => here.has(l.who) && (l.with ?? []).every((w) => here.has(w)) && (p.seen.includes(l.after) || p.actsCleared >= (DUSK_SCENE_ACT[l.after] ?? 99)));
+    return [...base, ...more, ...ash, ...dusk];
   }
 
   /** Where a speaker's bubble points: the top of their name plate or their head. */
