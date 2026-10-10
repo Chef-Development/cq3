@@ -283,3 +283,9 @@ One PR at the end supersedes #1-#7.
   final message at 06:45.
 - 05:12 EDT: CLAUDE.md's map lists round 8's new files; docs/backlog.md opens with the next round. A last read-only
   fresh-eyes look at the final build's first 10 minutes (no code changes; its notes go to the next round's list).
+- 05:28 EDT: review 5 (read-only, the final build's first 10 minutes as a newcomer): the mood holds together, the
+  first fight teaches well, desktop plays; its top finding was real: the 03:13 "a" rounded into an "o" in the sharper
+  text ("Whotever is drown"). Redrawn so its difference from "o" isn't a corner (checked on the sharper and the plain
+  text; L11 updated); boot-checked, pushed. Every baseline regenerating for it, then the suites once more. Review 5's
+  other findings (tip plates over titles, the bag, Pip's portrait, the relic pick's stage, the hero select's kit
+  colours, a few labels) go to the next round (docs/backlog.md).

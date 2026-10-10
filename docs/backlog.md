@@ -13,6 +13,14 @@
 6. **Review leftovers:** the bag's full redesign, the region card's light parchment, act-map tags over other nodes,
    the keyboard ring over a button's "!" badge, the Mythic heroes' five crowded kit labels.
 7. **A CI boot check** before publishing (L10), and load time re-measured after round 8's art.
+8. **Review 5's notes on the final build** (05:12, read-only): the small "s" still reads like a "z"; on the loot screen
+   "Level up!" and "Tap to continue" share a strip (the prompt looks disabled); the treasure reveal flips to the fight
+   HUD and an empty bar; the stack callout "x1!" lands on "Perfect!" and "Block!" clips under the act plate; the first
+   finisher's cinematic keeps the HUD buttons and stray numbers on screen (the moment people clip); tip cards' "Tap to
+   continue" sits on their top border and covers titles; Pip's portrait still round and bright; the relic pick's
+   stage; the hero select's candy kit cards and "Green" label; the bounty board's sprite; the act map's "?" and
+   "Trader" tags and unexplained pack arrows; a "+" by Rowan on the world map that reads as a crosshair; "Tap" wording
+   on desktop.
 
 
 **Done in M4a:** relics (rule-changing run picks with synergy tags, unlocks and a relic log), a second hero (Sable,
