@@ -131,42 +131,44 @@ export const HERO_FEET_X = 23; // x of the feet center inside the frame
 
 // ------------------------------------------------------------------ slime (procedural glossy jelly)
 
-// bog-green jelly ramp, hue-shifted: shadows lean blue, highlights lean yellow-green (decision L8: a darker, murkier
-// jelly than the old candy teal)
-const SLIME_RAMP = ['#0c1a2c', '#123c44', '#1c604c', '#2e8452', '#5aae5c', '#b4e08c'];
-const SLIME_RIM = '#5ad4a4';
+// sickly bog-green jelly, hue-shifted: shadows lean blue, highlights lean yellow (decision L8: not a candy jelly)
+const SLIME_RAMP = ['#0a1620', '#132e2a', '#1e4630', '#305e36', '#527e3c', '#a2c062'];
+const SLIME_RIM = '#5ac898';
 const SLIME_INK = '#140c1c';
+/** The sickly light deep in the jelly round what it swallowed (outer, inner). */
+const SLIME_GLOW = ['#4c7a38', '#86a844'];
 
 type Face = 'idle' | 'angry' | 'attack' | 'hurt';
 
-// [left eye, right eye, mouth]; k ink, Y eye glow, W tooth, r gullet, d dark jelly. No round eyes or smiles any more
-// (decision L8): heavy-lidded glowing eyes under a scowl, and teeth.
+// [left eye, right eye, maw]: no brows, no scowl, no smile (decision L8, second pass). Two pinprick eyes glowing high
+// on the dome and a gaping maw low at the front: k ink, W teeth, m the dark gullet, g its sickly glow deep in the
+// throat, s strands of slime between the jaws, d drool hanging off the lip (a glossy drop, D its glint).
 const SLIME_FACE: Record<Face, string[][]> = {
-  idle: [['kk.', '.Yk'], ['.kk', 'kY.'], ['kWkWk', '.kkk.']],
-  angry: [['k..', '.kk', '.Yk'], ['..k', 'kk.', 'kY.'], ['kWkWkk', 'kkkkkk']],
-  attack: [['kk.', '.Yk'], ['.kk', 'kY.'], ['kWkWkk', 'krrrrk', 'kWkkWk', '.kkkk.']],
-  hurt: [['k.', '.k', 'k.'], ['.k', 'k.', '.k'], ['.d.', 'd.d']],
+  idle: [['kk', 'Yy'], ['kk', 'Yy'], ['..kkkk..', '.kWmWWk.', 'kWmmmmWk', 'kmsmggmk', 'kmsggmmk', '.kWmWmk.', '..kdkk..', '...d....', '...D....']],
+  angry: [['kk', 'YY', 'yy'], ['kk', 'YY', 'yy'], ['..kkkkk..', '.kWmWmWk.', 'kWmmmmmWk', 'kmsmmggmk', 'kmsmgggmk', 'kmmmgmmmk', '.kWmmWmk.', '..kdkdk..', '...d.D...', '...D.....']],
+  attack: [['kk', 'YY', 'yy'], ['kk', 'YY', 'yy'], ['..kkkkkk..', '.kWmWmmWk.', 'kWmmmmmmWk', 'kmsmmmmgmk', 'kmsmggggmk', 'kmmgggggmk', 'kmmmgggmmk', '.kWmmWmWk.', '..kdkkdk..', '...D...d..']],
+  hurt: [['k.k', '.k.'], ['k.k', '.k.'], ['.kkkkkk.', 'kWkWkWkk', '.kkkkkk.']],
 };
 const SLIME_FACE_BIG: Record<Face, string[][]> = {
   idle: [
-    ['kkk..', '.kkkk', '..YYk', '..kk.'],
-    ['..kkk', 'kkkk.', 'kYY..', '.kk..'],
-    ['kWkkWkWk', '.kkkkkk.'],
+    ['kkk', 'YYy', 'yy.'],
+    ['kkk', 'YYy', 'yy.'],
+    ['..kkkkkkkk..', '.kWWmWWmWWk.', 'kWmmmWmmmmWk', 'kmsmmmggmmmk', 'kmsmgggggmmk', 'kmsmggggmmmk', 'kWmmmmmWmmWk', '.kWWmkWWmWk.', '..kkdkkkkk..', '....d.......', '....D.......'],
   ],
   angry: [
-    ['kk...', '.kkk.', '..kkk', '..YYk', '..kk.'],
-    ['...kk', '.kkk.', 'kkk..', 'kYY..', '.kk..'],
-    ['kWkWkkWk', 'kkkkkkkk'],
+    ['kkk', 'YYY', 'yyy'],
+    ['kkk', 'YYY', 'yyy'],
+    ['..kkkkkkkkk..', '.kWWmWWmWWWk.', 'kWmmmWmmmWmmk', 'kmsmmmmggmmmk', 'kmsmmgggggmmk', 'kmsmggggggmmk', 'kmmmmgggmmmmk', 'kWmmmmmmWmmWk', '.kWWmkWWmWWk.', '..kkdkkkkdk..', '....d....D...', '....D........'],
   ],
   attack: [
-    ['kkk..', '.kkkk', '..YYk', '..kk.'],
-    ['..kkk', 'kkkk.', 'kYY..', '.kk..'],
-    ['.kkkkkk.', 'kWkWkkWk', 'krrrrrrk', 'kWkkWkWk', '.kkkkkk.'],
+    ['kkk', 'YYY', 'yyy'],
+    ['kkk', 'YYY', 'yyy'],
+    ['..kkkkkkkkkk..', '.kWWmWWmWWmWk.', 'kWmmmWmmmWmmWk', 'kmsmmmmmmggmmk', 'kmsmmgggggggmk', 'kmsmgggggggmmk', 'kmmmggggggmmmk', 'kmmmmgggggmmmk', 'kWmmmmmWmmmWmk', '.kWWmkWWmWWmk.', '..kkdkkkkkdk..', '....D.....d...'],
   ],
   hurt: [
-    ['k..', '.kk', '..k', '.kk', 'k..'],
-    ['..k', 'kk.', 'k..', 'kk.', '..k'],
-    ['.dd.', 'd..d'],
+    ['k..k', '.kk.', 'k..k'],
+    ['k..k', '.kk.', 'k..k'],
+    ['.kkkkkkkkkk.', 'kWkWkkWkWkWk', '.kkkkkkkkkk.'],
   ],
 };
 
@@ -234,11 +236,14 @@ export function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElem
       // the boss is big enough for a checker dither across each terminator
       const jit = big ? (((x + y) & 1) * 2 - 1) * 0.025 : 0;
       let t = lam + jit > 0.84 ? 4 : lam + jit > 0.45 ? 3 : 2;
-      // darker translucent core, low in the jelly behind the face
-      if (t === 3) {
-        const cu = (u - 0.12) / (big ? 0.3 : 0.26);
-        const cv = (v - (big ? 0.26 : 0.22)) / (big ? 0.17 : 0.14);
-        if (cu * cu + cv * cv < 1) t = 2;
+      // the core: a sickly light deep in the jelly, round what it swallowed (behind and above the maw)
+      let glow = -1;
+      if (t >= 2) {
+        const cu = (u - 0.4) / (big ? 0.34 : 0.36);
+        const cv = (v - (big ? 0.3 : 0.28)) / (big ? 0.24 : 0.24);
+        // a ragged blob, not a disc (so it never reads as a second eye)
+        const d2 = cu * cu + cv * cv + (((x * 7 + y * 13) % 5) - 2) * 0.06;
+        if (d2 < 1) glow = d2 < 0.3 ? 1 : 0;
       }
       // crescents that follow the silhouette
       const kk = big ? 3 : 2;
@@ -246,7 +251,7 @@ export function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElem
       if (off(x, y, kk, kk) || off(x, y, kk + 1, 0)) t = Math.min(t, 2);
       if (off(x, y, 1, 1) && u > -0.2) t = 1;
       if (off(x, y, 0, 1)) t = 1;
-      let col = R[t];
+      let col = glow >= 0 && t >= 2 ? SLIME_GLOW[glow] : R[t];
       // bounce light on the lower right rim
       if (off(x, y, 1, 0) && !off(x, y, 0, 1) && base - y < RY * 0.65 && u > 0.2) col = SLIME_RIM;
       put(g, x, y, col);
@@ -305,25 +310,27 @@ export function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElem
     }
     // face (looking left, toward the hero), stamped from little maps
     const F = big ? SLIME_FACE_BIG : SLIME_FACE;
-    const fp: Pal = { k: SLIME_INK, W: '#e8e4c8', r: '#5a1428', Y: '#f4e04a', d: R[0] };
+    const fp: Pal = { k: SLIME_INK, W: '#d8d4b0', m: '#1c0c14', g: '#7a8a2a', s: R[3], d: R[4], D: R[5], Y: '#e8f05a', y: '#8ca838' };
     const at = (u: number, v: number, rows: string[], ax: number, ay: number) => {
       const x0 = Math.round(cx + shiftAt(v) + u * RX) - ax;
       const y0 = Math.round(base - v * RY) - ay;
       stamp(g, rows, fp, x0, y0);
     };
-    const ev = 0.52;
-    const eL = -0.36;
-    const eR = big ? 0.08 : 0.14;
+    const tiny = rx < 10;
     const e = F[o.face];
-    at(eL, ev, e[0], 0, e[0].length - (big ? 4 : 2));
-    at(eR, ev, e[1], 0, e[1].length - (big ? 4 : 2));
-    at((eL + eR) / 2, ev - (big ? 0.2 : 0.23), e[2], 1, 0);
-    // something it swallowed, sunk in the core: a bone (a skull in the big one)
-    const bone: Pal = { o: '#a8c8a0', O: '#d4e8c0', x: R[1] };
-    if (o.face !== 'attack') {
+    // pinprick eyes high on the dome (the slimelet keeps only these and a small maw)
+    const ev = big ? 0.66 : 0.66;
+    at(-0.36, ev, e[0], 0, 0);
+    at(big ? -0.1 : -0.02, ev + 0.04, e[1], 0, 0);
+    // the maw, low at the front, its lower lip just above the ground
+    const maw = tiny ? (o.face === 'hurt' ? ['kkkk'] : o.face === 'attack' ? ['.kkkk.', 'kWmmWk', 'kmggmk', '.kdkk.'] : ['.kkkk', 'kWmWk', '.kdk.']) : e[2];
+    at(big ? -0.3 : -0.22, big ? 0.46 : 0.5, maw, Math.floor(maw[0].length / 2), 0);
+    // what it swallowed, a shadow in the glow: a bone (a skull in the big one)
+    const bone: Pal = { o: R[1], O: R[2], x: R[0] };
+    if (o.face !== 'attack' && !tiny) {
       const rows = big ? ['.OOo.', 'OooOo', 'oxoxo', '.ooo.', '.x.x.'] : ['O..o', '.Oo.', 'o..x'];
-      const x0 = Math.round(cx + shiftAt(0.2) + (big ? 0.44 : 0.46) * RX) - 1;
-      const y0 = Math.round(base - (big ? 0.3 : 0.26) * RY);
+      const x0 = Math.round(cx + shiftAt(0.3) + 0.42 * RX) - (big ? 2 : 2);
+      const y0 = Math.round(base - (big ? 0.42 : 0.4) * RY);
       stamp(g, rows, bone, x0, y0);
     }
   }

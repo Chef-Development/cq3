@@ -995,6 +995,15 @@ export class MapView implements MapHost {
     const t = now / 1000;
     const W = GAME_W;
     const H = GAME_H;
+    // the road lanterns flicker (decision L7: the dusk's light comes from them)
+    land.lamps.forEach(([lx, ly], i) => {
+      const k = 0.5 + 0.5 * Math.sin(now / 90 + i * 2.3) * Math.sin(now / 37 + i);
+      ellipse(this.gGround, lx, ly + 5, 7, 3, 0xff9a40, 0.05 + 0.05 * k);
+      a.fillStyle(0xffd070, 0.25 + 0.35 * k);
+      a.fillRect(Math.round(lx) - 1, Math.round(ly) - 1, 3, 3);
+      a.fillStyle(0xfff0b0, 0.6 + 0.4 * k);
+      a.fillRect(Math.round(lx), Math.round(ly), 1, 1);
+    });
     if (theme === 'forest') {
       // cloud shadows drifting over the meadow
       for (let i = 0; i < 2; i++) {
