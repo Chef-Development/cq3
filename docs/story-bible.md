@@ -560,23 +560,50 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
 - **Banter seeds:** Tess after `wick1`: "No clock wears out here. Disgusting." / after `wickVictory`: "A squeaky
   hinge! Music." Rowan after `archive`: "He had a son. I keep thinking about it." Sprocket is from here (its bio).
 
-### Region 9: Saltmarrow (far isle)
-- **Original:** a fishing isle in a stormy sea, a storm wall (Hollis) and a storm-bell abbey (Brann).
-- **His draft:** the sea drawn dead calm, flat as glass, until it crusted into salt.
-- **Boss (working): Old Brine**, a sea serpent caught in the still sea, salt-crusted. Keystone: **the Glass**, a pane
-  laid over the water.
-- **Restoring:** storms again, and the bell rings for a reason; Brann speaks his first words in the game.
-  **Beat:** Ambrose erases Meridian (section 5). The capital goes blank on the world map.
+### Region 9: Saltmarrow (far isle) — outline (the stakes peak)
+- **Original:** a fishing isle in a stormy sea, a storm wall (Hollis) and a storm-bell abbey (Brann) that rang when a
+  storm was coming.
+- **His draft:** "No boat will ever go down in a storm again." The sea drawn dead calm, flat as glass, until it
+  crusted into salt; no tide, no waves, no fish moving under it. The abbey bell has nothing to ring for.
+- **Acts (suggested):** 1 **The Salt Flats** (a sea you can walk on); 2 **The Storm Wall** (Hollis's wall, holding
+  back nothing); 3 **The Glass** (out where the deep water was, under a pane laid over the sea).
+- **Rule hooks (ideas):** *salt crust* (blocks crusted over: the first tap cracks the salt, the second hits) and
+  *glass calm* (a stretch of bar where nothing moves at all: blocks there wait until the cursor has passed once).
+- **Mini-bosses:** **the Saltworks** (Act 1: a rake-armed thing he drew to keep the flats smooth; no speech); **the
+  Lamplugger** or a sea creature that was out at sea when the isle went blank (content's pick; one should speak).
+- **Boss: Old Brine**, a sea serpent who was out in the deep when the isle went blank, came home, and was caught when
+  he drew the sea still: salt crusts its coils. He gave it the Glass (keystone) to lie under. It doesn't speak; it
+  groans like a ship.
+  - Phase 2 edit: "Be still." The salt spreads. Phase 3 edit: "Stiller."
+- **Restoring:** the Glass cracks; the first wave in months; then a storm, a real one, and the abbey bell rings for a
+  reason. The fishing village wakes, soaked and furious and alive.
+- **The end of the region (the stakes peak, `saltVictory`, 6 boxes):** the storm passes; Rowan looks west; on the
+  horizon the capital goes white, the way the causeway did (`dusk2`). He took the ink he needed from the one place that
+  has plenty: **Meridian**, the Atlas Hall's galleries, Hesper, the knights' hall, all asleep in the blank. The Atlas
+  itself stays (a page can't erase itself), alone in white. Ambrose, honest: "The isles did not hold enough. I took it
+  from the one place that has plenty. They are sleeping, knight. Only sleeping." Rowan says nothing. Pip: "Rowan...
+  that was home." The camp is the only awake place Rowan has left (the world map: the capital blank).
+- **Scenes:** `salt1`, the Act 1 mini-boss's, `salt2`, the Act 2 mini-boss's, `salt3`, `brine`, `brine2`, `brine3`,
+  `saltVictory`. Brann's first words go in banter (he may not be at the camp): after `saltVictory`, with Brann there,
+  `{ who: 'brann', text: '...The bell rang. So. Hello.' }` (no "(writes)").
 
-### Region 10: Farlight (far isle)
+### Region 10: Farlight (far isle) — outline
 - **Original:** a beacon isle whose lighthouse guided ships home; Fizz's flame-brews fed its light.
-- **His draft:** a light that never goes out, turned inward: the lamp over his drawing table on the Margin, burning
-  the isle's own ink to keep it lit.
-- **Boss (working): the Wreckwarden**, a giant pieced together from the hulls of every ship the dark sea wrecked
-  after he turned the light inward; it guards the beacon stair. Keystone: **the Flame**. (Not a lighthouse: the
-  Duskmire already has one.)
-- **Restoring:** the beacon points out to sea again; and Meridian is restored (Rowan walks into the blank Atlas Hall
-  and wakes Hesper). **Beat:** the oldest law; Hesper's silence; Pip's anger at her.
+- **His draft:** "A light that never goes out." He turned the beacon inward: it is the lamp over his drawing table on
+  the Margin now, and its Flame burns the ink he scraped from Meridian to stay lit. Out at sea, ships wreck in the dark.
+- **Acts (suggested):** 1 **The Dark Harbor**; 2 **The Wreck Shore** (the hulls of every ship the dark sea wrecked);
+  3 **The Beacon Stair**.
+- **Boss: the Wreckwarden**, a giant pieced together from those hulls, drawn to guard the beacon stair. Keystone:
+  **the Flame**. (Not a lighthouse boss: the Duskmire has the one.)
+- **Restoring (and Meridian):** the Flame breaks; the beacon swings back out to sea; and the ink it was burning runs
+  home (rule 7): Meridian comes back, line by line, on the horizon. Rowan crosses on his road, walks into the waking
+  Atlas Hall, and finds Hesper on the gallery, just waking.
+- **The beat (`farVictory` and a Meridian scene, e.g. `hallWakes`):** Hesper tells Rowan the oldest law (never the
+  living) and that Ambrose broke it once, the night after the funeral, and no more. Pip begs her to tell the rest
+  ("He has a right to know. You promised me you'd tell him one day."); she won't: "Not today." Pip's anger is the first
+  time he raises his voice in the game. (Her secret, the river, waits for her confession at the end.)
+- **Scenes:** `far1`-`far3`, two mini-bosses', `warden`, `warden2`, `warden3`, `farVictory`, `hallWakes`. Fizz after
+  `farVictory`: "MY light! Pointing the RIGHT way!"
 
 ### Region 11: Lowmoor (far isle): section 6.
 - Original: a moorland isle of standing stones (Gorm's). His draft: Wend before the flood. Boss: **the Flood**.
