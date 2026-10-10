@@ -101,19 +101,28 @@ describe('the map', () => {
     expect(c.enemies[0].atk).toBe(Math.round(r.tuning.enemies[k].atk * r.tuning.acts[0].atkMult));
   });
 
-  it("Act 1's first fight won brings Pip's road scene after its loot and pick, before the map: once per profile (winScene)", () => {
+  it("a new player's first win (Act 1's first fight): its loot, no pick (the chest right after has it), Pip's road scene, the map; once per profile", () => {
     const r = onMap();
     expect(r.act.winScene).toBe('road');
     r.chooseNode(r.map.rows[0][0]);
     win(r);
-    r.pickBoost(0);
     expect(r.phase).toBe('scene');
     expect(r.sceneQueue).toEqual(['road']);
     r.advanceScene();
     expect(r.phase).toBe('map');
-    // the next fight won goes straight back to the map; so does a new run on the same profile
+    // the chest the map promises right after it: its loot, then the pick (relics, rare or better)
+    const chest = r.choices().find((id) => r.map.nodes[id].type === 'treasure');
+    expect(chest).toBeDefined();
+    r.chooseNode(chest!);
+    r.openTreasure();
+    if (r.phase === 'loot') r.collectLoot();
+    expect(r.phase).toBe('boost');
+    r.pickBoost(0);
+    expect(r.phase).toBe('map');
+    // the next fight won offers its pick and goes straight back to the map; so does a new run on the same profile
     expect(goTo(r, 'fight')).toBe(true);
     win(r);
+    expect(r.phase).toBe('boost');
     r.pickBoost(0);
     expect(r.phase).toBe('map');
     const again = new Run(r.tuning, { ...DEFAULT_SETTINGS }, 8, r.profile);
@@ -121,6 +130,7 @@ describe('the map', () => {
     again.skipScenes();
     again.chooseNode(again.map.rows[0][0]);
     win(again);
+    expect(again.phase).toBe('boost');
     again.pickBoost(0);
     expect(again.phase).toBe('map');
     // a replay of Act 1 once it's cleared never brings it (a returning player's profile has never seen it)
@@ -130,6 +140,7 @@ describe('the map', () => {
     replay.skipScenes();
     replay.chooseNode(replay.map.rows[0][0]);
     win(replay);
+    expect(replay.phase).toBe('boost');
     replay.pickBoost(0);
     expect(replay.phase).toBe('map');
     expect(replay.profile.seen).not.toContain('scene:road');
@@ -137,6 +148,7 @@ describe('the map', () => {
 
   it('winning a fight offers one pick (mostly relics, at most one stat card), then the map again; an elite guarantees a rare', () => {
     const r = onMap((t) => ((t.boosts.rareChance = 0), (t.boosts.epicChance = 0), (t.relics.rareW = 0), (t.relics.epicW = 0), (t.relics.statCard = 1)));
+    r.profile.seen.push('scene:road'); // (past a new player's first win: it has no pick)
     r.chooseNode(r.map.rows[0][0]);
     win(r);
     expect(r.phase).toBe('boost');
@@ -145,10 +157,6 @@ describe('the map', () => {
     expect(r.boostChoices.filter((o) => o.id === 'relic')).toHaveLength(2);
     const i = r.boostChoices.findIndex((b) => b.id === 'damage');
     r.pickBoost(Math.max(0, i));
-    // (Act 1's first win brings Pip's road scene first, once per profile: winScene)
-    expect(r.phase).toBe('scene');
-    expect(r.sceneQueue).toEqual(['road']);
-    r.skipScenes();
     expect(r.phase).toBe('map');
     if (i >= 0) expect(r.hero.bonusDmg).toBeCloseTo(r.tuning.boosts.damage * rarityMult(r.tuning, 'common'));
     goTo(r, 'elite');
@@ -393,8 +401,7 @@ describe('the camp, replaying acts, the purse', () => {
     const r = onMap();
     r.chooseNode(r.map.rows[0][0]);
     win(r);
-    r.pickBoost(0);
-    r.skipScenes(); // (Act 1's first win: the road scene)
+    r.skipScenes(); // (a new player's first win: no pick, Pip's road scene)
     expect(r.phase).toBe('map');
     const path = r.path.slice();
     const relics = r.hero.relics.slice();

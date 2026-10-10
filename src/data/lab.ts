@@ -312,7 +312,7 @@ export const LAB_NEW: LabScenario[] = [
     group: 'fights',
     label: 'The first fight',
     secs: 60,
-    try: 'Your first fight again: tips, then a finisher.',
+    try: 'Your first fight again. Does the finisher finish?',
     setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['crow'], ['boar'], ['slime']] },
     profile: { tips: ['tapYellow', 'blockRed', 'green', 'purple', 'finisher'] },
   },

@@ -1121,6 +1121,7 @@ export class Run {
     this.boostMin = min;
     this.boostThen = then;
     if (this.loot.length) this.phase = 'loot';
+    else if (then === 'map' && this.firstWin) this.goOn(then);
     else this.offerBoosts(min, then);
   }
 
@@ -1129,7 +1130,18 @@ export class Run {
     if (this.phase !== 'loot') return;
     this.loot = [];
     this.lootSalvaged = 0;
+    if (this.boostThen === 'map' && this.firstWin) return this.goOn('map');
     this.offerBoosts(this.boostMin, this.boostThen);
+  }
+
+  /**
+   * The act's first fight won on its first playthrough, once per profile (Act 1's: a newcomer's first win). Its scene
+   * plays before the map (`winScene`: Pip's road scene), and it offers no pick of its own: the chest the map promises
+   * right after it (`chestRow`) has one, and two picks within a minute of the first fight was one too many.
+   */
+  private get firstWin(): boolean {
+    const win = this.act.winScene;
+    return !!win && !this.skirmish && this.node?.type === 'fight' && this.profile.actsCleared <= this.actIndex && !this.profile.seen.includes(`scene:${win}`);
   }
 
   offerBoosts(min: boolean | Rarity, then: PickThen): void {
@@ -1181,13 +1193,13 @@ export class Run {
   }
 
   /** After the loot and the pick: the map, the act clear, the node's own stop (an ambush fought first), the world map.
-   *  The act's first fight won on its first playthrough brings its scene first, once per profile (`winScene`: Act 1's
-   *  road scene; a replay of a cleared act never does). */
+   *  The act's first fight won on its first playthrough brings its scene first (firstWin; a replay of a cleared act
+   *  never does). */
   private goOn(then: PickThen): void {
     if (then === 'world') return this.endSkirmish();
     if (then === 'node') return this.enterStop();
     const win = this.act.winScene;
-    if (then === 'map' && win && this.node?.type === 'fight' && this.profile.actsCleared <= this.actIndex && !this.profile.seen.includes(`scene:${win}`)) {
+    if (then === 'map' && win && this.firstWin) {
       this.profile.seen.push(`scene:${win}`);
       return this.playScenes([win], 'map');
     }

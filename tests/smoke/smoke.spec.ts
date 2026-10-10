@@ -208,8 +208,10 @@ test('gear: loot after a win goes in the bag; act clear -> camp -> next act; def
   };
   const tapRect = async (r: { x: number; y: number; w: number; h: number }) => tapGame(page, r.x + r.w / 2, r.y + r.h / 2);
 
-  // a fight: win it, the loot screen shows what dropped (it's already in the bag), then the boost pick
+  // a fight: win it, the loot screen shows what dropped (it's already in the bag), then the boost pick (past a new
+  // player's first win, which has no pick of its own and brings Pip's road scene)
   await a((x) => {
+    x.profile.seen.push('scene:road');
     x.startRegion();
     x.storySkip();
     x.storySkip();
@@ -230,10 +232,6 @@ test('gear: loot after a win goes in the bag; act clear -> camp -> next act; def
   await expect.poll(phase).toBe('boost');
   await page.waitForTimeout(700);
   await tapRect((await a((x) => x.view.overlays.cardRect(0))) as Any);
-  // (Act 1's first win: Pip's road scene, once per profile, then the map)
-  await expect.poll(phase).toBe('scene');
-  expect(await a((x) => x.storyId)).toBe('road');
-  await a((x) => x.storySkip());
   await expect.poll(phase).toBe('map');
 
   // the mini-boss: its loot, the boost, then the act clear with Camp and Next
@@ -468,8 +466,9 @@ test('relics: pick one after a fight, its icon is on the HUD belt next fight, a 
   const phase = () => a((x) => x.run.phase);
   const tapRect = async (r: { x: number; y: number; w: number; h: number }) => tapGame(page, r.x + r.w / 2, r.y + r.h / 2);
 
-  // win the first fight
+  // win the first fight (past a new player's first win: it has no pick of its own)
   await a((x) => {
+    x.profile.seen.push('scene:road');
     x.startRegion();
     x.storySkip();
     x.storySkip();
@@ -494,8 +493,6 @@ test('relics: pick one after a fight, its icon is on the HUD belt next fight, a 
   await page.waitForTimeout(700);
   await page.screenshot({ path: 'test-results/relic-pick.png' });
   await tapRect((await a((x) => x.view.overlays.cardRect(0))) as Any);
-  await expect.poll(phase).toMatch(/scene|map/);
-  if ((await phase()) === 'scene') await a((x) => x.storySkip()); // (Act 1's first win: Pip's road scene)
   await expect.poll(phase).toBe('map');
   expect(await a((x) => x.run.hero.relics)).toContain('ironRhythm');
 
