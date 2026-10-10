@@ -124,7 +124,9 @@ export class ItemGrid {
       const uid = this.order[base + i];
       const it = uid ? p.items.find((x) => x.uid === uid) : undefined;
       if (!it) {
-        itemCell(g, { ...r0, y: r0.y + dy }, null, { dim: true, alpha: a * 0.8 });
+        // (an empty cell is a faint well, so the bag's items lead and 59 empty cells don't read as a flat grid:
+        // review-4 R4-9)
+        itemCell(g, { ...r0, y: r0.y + dy }, null, { dim: true, alpha: a * 0.42 });
         continue;
       }
       const sel = it.uid === o.selected;
