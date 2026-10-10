@@ -164,6 +164,43 @@ describe('the map', () => {
     expect(r.boostChoices.filter((o) => o.rarity !== 'common').length).toBeGreaterThanOrEqual(1);
   });
 
+  it('found gear for an empty slot goes on at once (gear.autoWear); for a filled slot it waits in the bag', () => {
+    const r = onMap((t) => (t.gear.fightChance = 1));
+    r.profile.seen.push('scene:road');
+    const worn = () => Object.values(r.profile.equipped).filter((uid) => uid > 0);
+    expect(worn()).toEqual([]);
+    for (let k = 0; k < 4; k++) {
+      expect(goTo(r, 'fight') || k > 0).toBe(true);
+      const before = { ...r.profile.equipped };
+      const atk = heroAtk(r.tuning, r.hero);
+      const c = r.combat!;
+      toLastWave(c);
+      for (const e of c.enemies) e.hp = Math.min(e.hp, 5);
+      c.stacks = 1;
+      c.finisher();
+      r.sync();
+      expect(r.phase).toBe('loot');
+      for (const it of r.loot) {
+        const slots = Object.entries(before).filter(([, uid]) => uid === 0).map(([k2]) => k2);
+        const went = r.lootWorn.includes(it.uid);
+        // worn exactly when its slot was empty (a trinket: either of two)
+        if (went) expect(Object.values(r.profile.equipped)).toContain(it.uid);
+        if (!went) expect(slots.some((k2) => k2.startsWith(BASE_BY_ID[it.base].slot))).toBe(false);
+      }
+      if (r.lootWorn.length) expect(heroAtk(r.tuning, r.hero)).toBeGreaterThanOrEqual(atk);
+      r.collectLoot();
+      if (r.phase === 'boost') r.pickBoost(0);
+      r.phase = 'map';
+      r.path = [];
+    }
+    expect(worn().length).toBeGreaterThan(0);
+    // turned off: everything waits in the bag
+    const off = onMap((t) => ((t.gear.fightChance = 1), (t.gear.autoWear = 0)));
+    off.chooseNode(off.map.rows[0][0]);
+    win(off);
+    expect(Object.values(off.profile.equipped).filter((uid) => uid > 0)).toEqual([]);
+  });
+
   it('collects coins for every kill, in every wave', () => {
     const r = onMap();
     r.chooseNode(r.map.rows[0][0]);

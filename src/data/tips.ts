@@ -224,7 +224,7 @@ export const TIPS: readonly TipDef[] = [
   // ---- the run
   { id: 'defeat', lines: ['Back to the start of the act.', 'Found gear and coins are kept.'], anchor: 'retryButton', basic: true },
   { id: 'actClear', lines: ['Act cleared! Gear up at camp,', 'or go on to the next act.'], anchor: 'campButton', basic: true },
-  { id: 'loot', lines: ['New gear goes in your bag.', 'Wear it at camp.'], anchor: 'none', basic: true },
+  { id: 'loot', lines: ['Gear for a free slot goes on.', 'Spares wait in your bag at camp.'], anchor: 'none', basic: true },
   { id: 'relicPick', lines: ['Relics change the rules of a fight.', 'Pick ones that fit your style.'], anchor: 'relicCard' },
   { id: 'synergy', lines: ['Synergy! It shares a tag with', 'a relic you own: a build forms!'], anchor: 'synergyCard', wins: QUIET_WINS },
   { id: 'map', lines: ['Pick a path to the boss.', "Icons show what's there."], anchor: 'mapNodes', basic: true },
