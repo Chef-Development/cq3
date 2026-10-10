@@ -330,6 +330,9 @@ export const GORM_POSES: Record<string, RigPose> = {
   // the gauntlets hanging heavy at his sides, a gentle slouch
   idle0: P({ near: { at: [-8, 9], ...G('d') }, far: { at: [12, 10], ...G('d', { dim: true }) } }),
   idle1: P({ near: { at: [-8, 8], ...G('d') }, far: { at: [12, 9], ...G('d', { dim: true }) }, dy: 1 }),
+  // the heavy gauntlets sway a frame behind the breath
+  idle2: P({ near: { at: [-8, 7], ...G('d') }, far: { at: [12, 8], ...G('d', { dim: true }) }, dy: 1 }),
+  idle3: P({ near: { at: [-8, 8], ...G('d') }, far: { at: [12, 9], ...G('d', { dim: true }) } }),
   dash: P({ near: { at: [-6, 14], ...G('r') }, far: { at: [14, 15], ...G('r', { dim: true }) }, legs: 'run', dx: 1, lean: 1 }),
   // a two-fisted hammer blow landing in front
   slashA: P({ near: { at: [16, 8], ...G('d') }, far: { at: [19, 10], ...G('d', { dim: true }) }, legs: 'lunge', dx: 2, lean: 1, bow: 1, front: [impact(18)] }),

@@ -171,16 +171,19 @@ function wisps(g: Grid, ph: number, bright: boolean): void {
 
 // ------------------------------------------------------------------ the Great Spirit
 
-/** The stag, painted as lit volumes of spirit light: body, neck and head, four slim legs (`rear`: up on its hind legs,
- *  forelegs raised, to strike), branching antlers, star specks on its flank, a starry mane. */
-function stag(g: Grid, o: { rear?: boolean; bob?: number }): void {
+/** The stag, painted as lit volumes of spirit light: a deep chest, a rounded haunch and shoulder, a neck rising to the
+ *  head, four jointed legs (the hind ones bent back at the hock, dark hooves; `rear`: up on its hind legs, forelegs
+ *  folded to strike), great branching antlers, a few stars on its flank, a starry mane and a tail tuft. */
+export function stag(g: Grid, o: { rear?: boolean; bob?: number }): void {
   const b = o.bob ?? 0;
   const feet = STAG_H - 2;
   const rear = !!o.rear;
   // the body tilts up when it rears
   const tilt = rear ? -4 : 0;
-  const bodyY = feet - 17 + b;
-  const body = or(ell(20, bodyY + tilt * 0.4, 12, 6.5), ell(28, bodyY - 1 + tilt, 7, 6));
+  const bodyY = feet - 18 + b;
+  const haunch = ell(13, bodyY + 1 + tilt * 0.1, 6, 6.5);
+  const shoulder = ell(27, bodyY + 1 + tilt * 0.8, 5.5, 6.5);
+  const body = or(ell(20, bodyY + tilt * 0.4, 11.5, 6), ell(28, bodyY - 1 + tilt, 7, 6), haunch, shoulder);
   // the neck rising to the head at the front
   const hx = 36;
   const hy = rear ? bodyY - 15 : bodyY - 12;
@@ -188,85 +191,107 @@ function stag(g: Grid, o: { rear?: boolean; bob?: number }): void {
     const t = (bodyY - 2 + tilt - y) / Math.max(1, bodyY - 2 + tilt - (hy + 3));
     if (t < 0 || t > 1) return false;
     const cx = 29 + (hx - 2 - 29) * t;
-    return Math.abs(x + 0.5 - cx) <= 4.6 - t * 1.2;
+    return Math.abs(x + 0.5 - cx) <= 4.8 - t * 1.4;
   };
-  const head = or(ell(hx, hy + 1, 4.6, 3.8), ell(hx + 4.5, hy + 2.6, 3.2, 2.3));
-  // legs: thin, two tones (the far pair darker); hooves
-  const leg = (x0: number, y0: number, x1: number, y1: number, far: boolean) => {
-    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
-    for (let i = 0; i <= n; i++) {
-      const x = Math.round(x0 + ((x1 - x0) * i) / n);
-      const y = Math.round(y0 + ((y1 - y0) * i) / n);
-      put(g, x, y, far ? GLOW[1] : GLOW[3]);
-      put(g, x + 1, y, far ? GLOW[0] : GLOW[2]);
+  const head = or(ell(hx, hy + 1, 4.8, 4), ell(hx + 4.6, hy + 2.8, 3.4, 2.4));
+  // a leg: a thick upper part (3 px) to the joint, a slim lower part (2 px) to the hoof; lit on its left
+  const leg = (pts: Array<[number, number]>, far: boolean) => {
+    const R = far ? [SPIRIT[0], GLOW[0], GLOW[1]] : [SPIRIT[1], GLOW[1], GLOW[3]];
+    for (let s = 0; s < pts.length - 1; s++) {
+      const [x0, y0] = pts[s];
+      const [x1, y1] = pts[s + 1];
+      const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+      const wide = s === 0;
+      for (let i = 0; i <= n; i++) {
+        const x = Math.round(x0 + ((x1 - x0) * i) / n);
+        const y = Math.round(y0 + ((y1 - y0) * i) / n);
+        put(g, x, y, R[2]);
+        put(g, x + 1, y, R[1]);
+        if (wide) put(g, x + 2, y, R[0]);
+      }
     }
-    put(g, x1, y1, far ? SPIRIT[0] : SPIRIT[1]);
-    put(g, x1 + 1, y1, SPIRIT[0]);
+    const [hx1, hy1] = pts[pts.length - 1];
+    // the hoof
+    put(g, hx1, hy1, '#0e3a56');
+    put(g, hx1 + 1, hy1, '#0a2a44');
+    put(g, hx1, hy1 - 1, far ? SPIRIT[0] : SPIRIT[1]);
   };
   // far legs first (behind the body)
   if (rear) {
-    leg(12, bodyY + 3, 11, feet, true);
-    leg(31, bodyY - 2, 37, bodyY - 9, true);
+    leg([[11, bodyY + 4], [8, feet - 6], [10, feet]], true);
+    leg([[30, bodyY - 1], [35, bodyY - 5], [35, bodyY + 1]], true);
   } else {
-    leg(13, bodyY + 4, 12, feet, true);
-    leg(29, bodyY + 4, 30, feet, true);
+    leg([[11, bodyY + 4], [9, feet - 6], [11, feet]], true);
+    leg([[28, bodyY + 5], [29, feet - 6], [29, feet]], true);
   }
   fill(g, or(body, neck), sphere(GLOW, 12, bodyY - 8, 28, 16, 0.12));
   fill(g, head, sphere(GLOW, hx - 4, hy - 3, 10, 7, 0.22));
+  // the belly's shade and a lit ridge along the back (the light from the top left)
+  for (let x = 9; x <= 32; x++)
+    for (let y = bodyY - 8; y <= bodyY + 8; y++) {
+      if (!body(x, y) || neck(x, y)) continue;
+      if (!body(x, y + 1) && g[y + 1]?.[x] === null) put(g, x, y, GLOW[0]);
+      else if (!body(x, y - 1) && x < 26) put(g, x, y, GLOW[4]);
+    }
   // near legs (in front)
   if (rear) {
-    leg(16, bodyY + 4, 15, feet, false);
-    leg(29, bodyY - 1, 35, bodyY - 6, false);
+    leg([[15, bodyY + 4], [13, feet - 6], [15, feet]], false);
+    leg([[28, bodyY], [34, bodyY - 3], [33, bodyY + 3]], false);
   } else {
-    leg(16, bodyY + 4, 17, feet, false);
-    leg(26, bodyY + 4, 25, feet, false);
+    leg([[15, bodyY + 4], [12, feet - 6], [14, feet]], false);
+    leg([[25, bodyY + 5], [25, feet - 6], [24, feet]], false);
   }
   // the eye, the nose
   put(g, hx + 1, hy, '#0a2a44');
   put(g, hx + 2, hy, '#ffffff');
-  put(g, hx + 6, hy + 2, SPIRIT[0]);
+  put(g, hx + 1, hy + 1, '#0a2a44');
+  put(g, hx + 7, hy + 2, SPIRIT[0]);
   // the ear
   put(g, hx - 3, hy - 3, SPIRIT[3]);
   put(g, hx - 4, hy - 4, SPIRIT[4]);
   put(g, hx - 3, hy - 4, SPIRIT[2]);
-  // branching antlers of starlight
-  const antler = (x: number, y: number, dir: number, far: boolean) => {
+  put(g, hx - 5, hy - 4, SPIRIT[3]);
+  // great branching antlers of starlight: a 2 px beam sweeping back then up, three tines, a star at the crown
+  const antler = (x: number, y: number, far: boolean) => {
     const c1 = far ? SPIRIT[2] : SPIRIT[4];
-    const c2 = far ? SPIRIT[1] : SPIRIT[3];
+    const c0 = far ? SPIRIT[1] : SPIRIT[3];
     const main: Array<[number, number]> = [];
-    for (let i = 0; i <= 9; i++) main.push([Math.round(x - i * 0.5 * dir), Math.round(y - i)]);
-    for (const [px, py] of main) put(g, px, py, c1);
-    // tines off the main beam
+    for (let i = 0; i <= 10; i++) {
+      const t = i / 10;
+      main.push([Math.round(x - Math.sin(t * 2.2) * 4), Math.round(y - i)]);
+    }
+    main.forEach(([px, py], i) => {
+      put(g, px, py, c1);
+      if (i < 7) put(g, px + 1, py, c0);
+    });
     for (const [at, len, side] of [
-      [3, 3, 1],
-      [6, 3, -1],
-      [8, 2, 1],
+      [2, 4, 1],
+      [5, 3, -1],
+      [8, 3, 1],
     ] as Array<[number, number, number]>) {
       const [px, py] = main[at];
-      for (let k = 1; k <= len; k++) put(g, px + side * k * dir, py - Math.round(k * 0.7), c2);
+      for (let k = 1; k <= len; k++) put(g, px + side * k, py - Math.round(k * 0.8), k === len ? c1 : c0);
     }
-    put(g, main[9][0], main[9][1], STAR);
+    put(g, main[10][0], main[10][1], STAR);
   };
-  antler(hx - 2, hy - 3, 1, true);
-  antler(hx, hy - 3, -1, false);
-  // a starry mane down the neck, star specks on the flank, the tail's tuft
+  antler(hx - 3, hy - 2, true);
+  antler(hx, hy - 2, false);
+  // a starry mane down the neck, three stars on the flank (a little constellation), the tail's tuft
   for (const [x, y] of [
-    [hx - 4, hy + 4],
-    [hx - 5, hy + 7],
-    [hx - 6, hy + 10],
+    [hx - 5, hy + 5],
+    [hx - 6, hy + 9],
   ])
     put(g, x, y, STAR);
   for (const [x, y] of [
-    [15, bodyY - 3],
-    [21, bodyY - 1],
-    [18, bodyY + 2],
-    [25, bodyY - 4],
-    [12, bodyY + 1],
+    [16, bodyY - 2],
+    [20, bodyY + 1],
+    [24, bodyY - 3],
   ])
     put(g, x, Math.round(y + tilt * 0.3), STAR);
-  put(g, 8, bodyY - 4 + tilt, SPIRIT[4]);
+  put(g, 7, bodyY - 4 + tilt, SPIRIT[4]);
+  put(g, 6, bodyY - 3 + tilt, SPIRIT[3]);
+  put(g, 6, bodyY - 5 + tilt, STAR);
   put(g, 7, bodyY - 3 + tilt, SPIRIT[3]);
-  put(g, 7, bodyY - 5 + tilt, STAR);
 }
 
 function stagFrame(o: { rear?: boolean; bob?: number }, seed: number): HTMLCanvasElement {
