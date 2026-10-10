@@ -749,6 +749,14 @@ export class MapView implements MapHost {
     return { x: x - 11, y: y - top, w: 21, h: top + 8 };
   }
 
+  /** What the tags keep off at a node: its art, with the foes waiting there standing taller than the clearing's box
+   *  (the matured minis; a tag sat on the heads of the next node's foes). */
+  private tagBox(n: MapNode): Rect {
+    const b = this.nodeBox(n);
+    const up = n.type === 'fight' || n.type === 'elite' || n.type === 'bounty' || n.type === 'rush' ? 5 : 0;
+    return { ...b, y: b.y - up, h: b.h + up };
+  }
+
   /** The HUD plates (the tags keep off them). */
   hudRects(): Rect[] {
     const s = this.s;
@@ -794,7 +802,7 @@ export class MapView implements MapHost {
       if (run.path.includes(n.id)) {
         const [x, y] = this.pos(n);
         obstacles.push({ r: { x: x - 10, y: y - 6, w: 9, h: 11 }, w: 0.5 });
-      } else obstacles.push({ r: this.nodeBox(n), w: choices.includes(n.id) ? 3 : n.type === 'boss' ? 2 : 1.5, id: n.id });
+      } else obstacles.push({ r: this.tagBox(n), w: choices.includes(n.id) ? 6 : n.type === 'boss' ? 2 : 1.5, id: n.id });
     }
     // the roamers and the secret
     for (const r of this.roam.roamerRects()) obstacles.push({ r, w: 3 });
@@ -826,7 +834,7 @@ export class MapView implements MapHost {
       const w = Math.max(boss ? textWidth(label, 1, false) + 6 : 0, this.chipW(chip, foes));
       const h = boss ? LABEL_H + 1 + CHIP_H : CHIP_H;
       const [x, y] = this.pos(n);
-      const box = this.nodeBox(n);
+      const box = this.tagBox(n);
       const spots: Array<[number, number, number]> = [
         [x - w / 2, boss ? y + 11 : y + 9, 0],
         [x - w / 2, box.y - h - 1, 8],
