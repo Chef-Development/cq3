@@ -442,28 +442,123 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
   shows on the world map now). Scenes: `src/data/story-noon.ts` (`noon1`, `sphinx`, `noon2`, `brassLion`, `noon3`,
   `noonBoss`-`noonBoss3`, `noonVictory`).
 
-### Region 6: Hushwood (far isle)
+### Beyond the sea: who is awake on the isles (Regions 6-12)
+Everything on an erased isle sleeps (rule 5). His drafts are drawn on top of the blank: land, weather and *things*,
+never creatures (rule 2). He draws around the sleepers: their villages stay blank, white pockets inside his drawing
+("They will wake into the Fair Copy. Somewhere better."). So the isles' foes are: **things he drew to move** (shears,
+rope, brass, presses: constructs, drawn to keep his draft as he wants it); **creatures that were away** when the isle
+went blank and came home to his draft (birds, sea things, like the far-isle heroes); and **creatures that crossed
+his sea road** from the continent. A keystone goes to the strongest creature awake there, or to the strongest thing
+he drew to keep it. The party crosses on the road he drew over the sea (`noonVictory`); each restored isle sends him
+to the next, already drawn (its fog lifts on the world map as the scene ends). Story heroes only in scenes (Rowan,
+Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter gated on that isle's scenes.
+
+### Region 6: Hushwood (far isle) — scene outline, ready for the content team
 - **Original:** a forest isle of giant trees and great storms; the storms toppled trees on villages; Yara's people
   called the forest's spirits to warn them.
-- **His draft on the blank:** a forest with no wind and no sound: nothing ever falls. The spirits can't hear anyone.
-- **Boss (working): Mother Yew**, an ancient walking yew. Keystone: **the Stopper** (he corked the wind in a jar).
-- **Restoring:** the wind comes back; the forest is loud again; the sleepers wake. **Beat:** the scale of the
-  sleepers; Yara finds her village asleep under the blank.
+- **His draft on the blank:** "A tree that never falls can never fall on anyone." A forest with no wind: nothing
+  falls, not a leaf, and with no wind and no creatures drawn in it, no sound at all. The villages are blank pockets.
+- **Acts (suggested):** 1 **The Windless Wood** (his road comes ashore; autumn leaves that never fall); 2 **The
+  Sleeping Hollows** (the blank pockets, Yara's village among them); 3 **The Yew Grove** (the heart of the wood).
+- **Rule hooks (ideas; content decides):** *growth* (nothing falls, everything grows: a yellow left alone sprouts
+  wider, then hardens into bark that takes two taps: hit it young) and *brambles* (a hit can drop a seed that grows
+  into a yellow, or a bramble trap). His last edit lets a little wind out: *gusts* push every block one way.
+- **Mini-bosses:** **the Shears** (Act 1: great garden shears walking on their points, drawn to keep his rows tidy;
+  they snip whatever grows out of line; no speech). **Old Slowcoach** (Act 2: a giant snail who followed his sea road
+  from the continent for a month; the only living thing in the wood; slow, polite, very territorial: "...Mine.").
+- **Boss: Mother Yew**, the isle's oldest yew, the first thing he drew back, drawn to walk so she can keep the wood as
+  he likes it. Keystone: **the Stopper**, a stone jar with the isle's wind corked in it, held in her branches.
+  - Phase 2 edit: "Hush." Everything grows twice as fast.
+  - Phase 3 edit: losing, he pulls the cork a little to knock Rowan down: "Just a breath." Gusts.
+- **Restoring:** the Stopper cracks; the wind pours out; every leaf held for months falls at once; birds, wakened
+  under the blank, start up all together; the blank pockets fill in and the villagers wake on their doorsteps.
+- **Scenes (ids; one line each of what happens, and lines to build on):**
+  - `hush1` (Act 1 start): off his sea road into a silent wood; no birds, no wind, leaves hanging. Rowan: "Listen.
+    ...Nothing. Not one bird." Pip: "He can't draw birds. Nobody can. So he left them out." Sable: "A forest that
+    doesn't creak. I hate it already."
+  - `shears` (Act 1 mini-boss): the Shears come snipping down a perfectly straight row. Neve: "It's trimming the
+    wood. And now it's measuring US."
+  - `hushCamp` (camp, after Act 1): night; Rowan asks Pip the rest of "for a reason". Pip: "I stayed for someone who
+    needed watching over. I promised I'd say nothing." Rowan: "Who?" Pip: "...Go to sleep, Rowan." (twist 3 seed)
+  - `hush2` (Act 2 start): the first blank pocket: a white village inside the green, people asleep mid-step. Rowan
+    walks in. The scale: from the ridge, dozens of white pockets. Pip reads the impression under the white: "This
+    river was moved once. Long before him." Rowan: "Who else draws?" Pip: "Nobody. Nobody should." (twist 2 seed)
+  - `slowcoach` (Act 2 mini-boss): the snail, a month from home, will not give up the only lettuce on the isle.
+  - `hush3` (Act 3 start): the Yew Grove; the Stopper in her branches; the Mapmaker drawing new trees in a ring.
+  - `yew` (boss intro): he is no longer gentle. "Storms dropped trees on these roofs every autumn. Count the graves,
+    knight, then tell me about wind." Rowan: "And they called the spirits, and the spirits warned them. You took
+    that too." He: "I took the danger. The warning goes with it."
+  - `yew2`, `yew3`: his two edits (short, his line + the narrator + a hint).
+  - `hushVictory`: the wind; the noise; the villagers wake. He, leaving: "The next storm will drop a tree on a roof,
+    and you will have let it." Rowan: "And they'll hear it coming. They always did." Far out, the next isle takes
+    shape.
+- **Banter seeds (gated):** Yara after `hush2`: "My village. Asleep. I sang to them." / after `hushVictory`: "They
+  woke up arguing. Home!" Moss after `hush1`: "The trees here don't even whisper." Rowan after `hushVictory`:
+  "Birds! Loud ones! I missed loud."
 
-### Region 7: Kestrel Reach (far isle)
+### Region 7: Kestrel Reach (far isle) — scene outline
 - **Original:** a cliff isle of rope bridges and climbing towns, wind and gulls; people fell, sometimes.
-- **His draft:** the isle drawn in floating pieces at one height: nothing ever falls, so nobody ever climbs.
-- **Boss (working): the Great Kestrel.** Keystone: **the Tether**, a gold thread holding the pieces up.
-- **Restoring:** the isle comes down to the sea where it belongs. **Beat:** Wren's family; Ambrose starts to fix
-  *people's* troubles, not the land's: "No one will ever be far from anyone again."
+- **His draft:** the isle drawn in floating pieces at one height, every piece tied to the next with gold thread:
+  nothing ever falls, so nobody ever climbs, and nobody is ever far from anyone. His first fix of *people's* troubles,
+  not the land's: "No one will ever be far from anyone again." (He was far from someone once, when it mattered.)
+- **Acts (suggested):** 1 **The Hanging Steps** (his road ends at a cliff that isn't there: stairs floating in a
+  row); 2 **Ropetown** (the climbing town, every house its own floating piece); 3 **The Eyrie** (the highest piece,
+  the kestrel's nest).
+- **Rule hooks (ideas):** *gaps* (the bar in floating pieces: the cursor leaps each gap, so a block just past a gap
+  comes sooner than it looks) and *updrafts* (a patch where the cursor floats a moment).
+- **Mini-bosses:** **the Ropewright** (Act 1: a knot of rope and planks he drew to tie the pieces together; it ties
+  whatever it touches to something; no speech). **Squall, the gull queen** (Act 2: the gulls were out at sea when the
+  isle went blank; earnest: "Nothing falls here. So my chicks have never flown." You learn to fly by falling).
+- **Boss: the Great Kestrel**, who was hunting far out at sea when the isle went blank and came home to his draft. He
+  gave her the Tether (keystone): a gold thread that holds every piece up, her nest too. Wren's town climbed her cliff.
+  - Phase 2 edit: "Closer." He pulls the pieces together: the gaps close and everything crowds in.
+  - Phase 3 edit: "Hold on to each other." Every block tied to the next.
+- **Restoring:** the Tether snaps; the pieces come down to the sea and stand as cliffs again; the bridges sway; the
+  sleepers wake on their own doorsteps; a gull chick tumbles off a ledge, and flies.
+- **Scenes:** `reach1` (Act 1 start: the steps hanging over nothing; between the pieces, white blank; Rowan steps out
+  onto it and it holds him. Neve: "You are standing on NOTHING." Rowan: "It isn't nothing. It feels like paper.");
+  `ropewright`; `reachCamp` (camp: Sable and Neve on Rowan walking on the blank; Rowan: "I don't know what I am." Neve:
+  "You're the one who carries us across. That'll do."); `reach2` (Act 2 start: Ropetown; every house tied to every
+  other; the people asleep in white pockets, tied together too); `squall`; `reach3` (Act 3 start: the Eyrie, the
+  Tether shining up into the sky); `kestrel` (boss intro: he means it kindly: "Here, no one falls. No one is ever too
+  far away to reach." Rowan: "Then why do you look so alone?"); `kestrel2`, `kestrel3`; `reachVictory` (the isle comes
+  down; he, quietly: "I was too far away, once. Only once." He goes; the next isle takes shape).
+- **Banter seeds:** Wren after `reachVictory`: "Ma climbed back down. She's FURIOUS." Sable after `reach1`: "Rowan
+  walks on nothing now. Normal." Pip after `reachCamp`: "Hoo. Nobody falls on my watch."
 
-### Region 8: Thimblewick (far isle)
+### Region 8: Thimblewick (far isle) — scene outline (twist 2)
 - **Original:** a makers' town: clockmakers, weavers, copyists. The copyists' archive keeps a copy of the Atlas made
   every hundred years.
-- **His draft:** nothing ever breaks or wears out, so nobody needs a maker, so the town stops.
-- **Boss (working): the Mender**, a vast clockwork that mends anything broken, including you. Keystone: **the Key**
-  that keeps everything wound.
-- **Restoring:** things wear out again and the makers go back to work. **Beat: twist 2** (section 5).
+- **His draft:** nothing ever breaks or wears out, so nobody needs a maker, and the town stops. He drew the copyists'
+  archive back line for line, on purpose: for what it holds.
+- **Acts (suggested):** 1 **The Spotless Lanes** (every cobble new, every hinge silent, every shop shut); 2 **The
+  Hall of Copies** (the archive); 3 **The Mainspring** (the great works under the town, where the Mender stands).
+- **Rule hooks (ideas):** *mending* (nothing breaks: a block you hit once mends itself unless hit again soon) and
+  *winding* (a wound block runs down: tap it to wind it back, or it goes off).
+- **Mini-bosses:** **the Polisher** (Act 1: a many-armed brass thing that polishes away every scuff, yours too; no
+  speech). **the Press** (Act 2: the archive's printing press, drawn to walk, stamping copies of everything so nothing
+  is ever lost; it shouts in capitals: "COPY. COPY. COPY.").
+- **Boss: the Mender**, a vast brass figure of many hands that mends anything broken, including the foes you break.
+  Keystone: **the Key**, turning in its back, that keeps everything wound.
+  - Phase 2 edit: "Nothing breaks." Everything mends faster.
+  - Phase 3 edit: "Let me mend this fight." He winds everything at once.
+- **Restoring:** the Key snaps; a hinge squeaks, the first sound of wear; the makers wake and go back to work.
+- **Scenes:** `wick1` (Act 1 start: a town where nothing is worn; Sable: "Not one scuff. Who LIVES like this?"
+  Pip: "Nobody. That's the trouble."); `polisher`; `wickCamp` (camp: Mags at her forge, cross about a town that never
+  needs a smith; "A mend should SHOW. That's how you know someone cared."); `wick2` (Act 2 start: the Hall of Copies;
+  he is waiting there, and he asks Rowan in, alone); `archive` (twist 2, below); `press`; `wick3` (Act 3 start: the
+  Mender under the town, the Key turning); `mender` (boss intro: "Nothing will ever wear out again. Nothing will ever
+  be lost." Rowan: "Things get lost. People find them. That's most of what people do."); `mender2`, `mender3`;
+  `wickVictory` (the Key snaps; the hinge; he, honest as ever: "These isles do not hold ink enough for what I am drawing,
+  knight. I will find more." (it sets up Region 9's end) Pip, after he goes: "Rowan. There's more. It isn't mine to tell." The next isle takes shape).
+- **`archive` (the twist, 6 boxes, the whole region turns on it):** two great copies of the Atlas side by side under
+  the lamps, made a hundred years apart. "Look at the river. Here, it runs through Meridian. Here, it does not." A
+  keeper moved it, a century ago, into a valley with a village in it: his. Wend. A spring flood came down it; he
+  asked the High Keeper for a levee; she said keep the line, never make it; Wend drowned, "and my boy with it". (Never
+  his son's name; never his age.) Rowan, after a long box of silence: "The world was unfair to you. You're right about
+  that. You're wrong about the rest." He: "Ask your High Keeper what she knew." (sets up Region 10)
+- **Banter seeds:** Tess after `wick1`: "No clock wears out here. Disgusting." / after `wickVictory`: "A squeaky
+  hinge! Music." Rowan after `archive`: "He had a son. I keep thinking about it." Sprocket is from here (its bio).
 
 ### Region 9: Saltmarrow (far isle)
 - **Original:** a fishing isle in a stormy sea, a storm wall (Hollis) and a storm-bell abbey (Brann).
