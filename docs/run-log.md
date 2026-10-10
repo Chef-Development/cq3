@@ -235,3 +235,8 @@ One PR at the end supersedes #1-#7.
 - 03:18 EDT: content's C21 merged (Vesper's boss-act gap comes from the skill trees: the bot often takes Rowan down
   his defensive branch, Parry included; two tree changes for her didn't close it; numbers left for the next round).
   Content done for the night.
+- 03:22 EDT: merged QA-menus' last chunk: the UI crawl clean three times (phone through Act 1 and the camp; phone from
+  Act 13 in god mode; desktop through all 136 Test lab scenarios: no page errors, long decimals, missing sprites or
+  textures, stuck screens); the keyboard reaches the vault's chests, the region card's seals and build mode's spots
+  (a desktop spec Tabs to each); the settings button a pixel cog (R4-17); tall hero sheets cover their column.
+  Boot-checked, pushed. QA-menus done for the night.
