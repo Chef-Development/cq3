@@ -1471,6 +1471,14 @@ C19. **Act 11's gap for Tess and Vesper isn't how their kits meet the mini-boss;
     Vesper at -5 / -22 / -9: the 40-run -33 for Tess was mostly noise. In the same runs, Regions 1-3 read Tess
     0 / +3 / +9, -1 / -12 / -12, +2 / -5 / -4 and Vesper 0 / +10 / +6, +4 / -19 / -15, -1 / +3 / +2.
 
+C20. **Vesper is left as she is: neither more HP nor longer pins move her gaps** (100 runs on the cached heroes,
+    regions 2 and 4; Acts 4-6 / 10-12, gap to Rowan). As she is: +4 / -19 / -15 and -5 / -22 / -9. HP share 135:
+    +4 / -17 / -15 and -3 / -23 / -19. HP 155 (+35%): +3 / -12 / -15 and -1 / -18 / -15. Volley pins 3 s: +8 / -10 /
+    -22 and -5 / -19 / -20. Pins 4 s: +9 / -23 / -18 and -2 / -15 / -22. She doesn't lose these boss fights for lack of
+    HP (a third more barely helps), so a sustain number isn't the lever. Next: why she trails in long single-foe fights
+    while her damage a second is higher than Rowan's (her Focus economy against one foe, Patience's crit at full
+    Focus); a probe like C19's, with her style's parts switched off one at a time.
+
 (content: end of section)
 
 
