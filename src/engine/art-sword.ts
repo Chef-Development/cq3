@@ -119,8 +119,10 @@ const flipX = (m: SwordMap): SwordMap => {
 /** Swap the lit and shaded tones (a flip that puts the lit edge underneath). */
 const LIT_SWAP: Record<string, string> = { A: 'C', C: 'A', L: 'M', M: 'L' };
 const swapLit = (r: string) => r.replace(/[ACLM]/g, (c) => LIT_SWAP[c]);
-const flipY = (m: SwordMap, swap: boolean): SwordMap => ({
-  rows: [...m.rows].reverse().map((r) => (swap ? swapLit(r) : r)),
+/** A dagger's band has three tones: only its edges swap. */
+const swapEdges = (r: string) => r.replace(/[AC]/g, (c) => (c === 'A' ? 'C' : 'A'));
+const flipY = (m: SwordMap, swap: boolean | ((r: string) => string)): SwordMap => ({
+  rows: [...m.rows].reverse().map((r) => (swap === true ? swapLit(r) : swap ? swap(r) : r)),
   grip: [m.grip[0], m.rows.length - 1 - m.grip[1]],
 });
 /** Rotate 90 degrees counter-clockwise: the top row becomes the left column (the lit edge stays toward the light). */
@@ -160,3 +162,90 @@ export const SWORD_PAL: Pal = {
   P: '#f2c230', p: '#9a5a14', h: '#4a2c18', H: '#8a5a30',
   G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14', R: '#ff7a5a', r: '#c0282a',
 };
+
+// ------------------------------------------------------------------ daggers (Sable, Wren)
+
+/** A dagger pointing right: a 3 px blade (A lit edge, L body, C shaded edge) `n` px long ending in a point (T) that
+ *  curves up, a gold guard (G/g/y) 5 px tall, a 2 px wrapped grip (H/h) and a pommel (P). */
+function daggerH(n: number): SwordMap {
+  const g = blank(4 + n, 5);
+  g[2][0] = 'P';
+  g[2][1] = 'H';
+  g[2][2] = 'h';
+  g[3][1] = 'h';
+  g[3][2] = 'h';
+  ['G', 'G', 'g', 'g', 'y'].forEach((c, y) => (g[y][3] = c));
+  for (let j = 0; j < n; j++) {
+    const x = 4 + j;
+    const t = n - 1 - j;
+    if (t >= 2) {
+      g[1][x] = 'A';
+      g[2][x] = 'L';
+      g[3][x] = 'C';
+    } else if (t === 1) {
+      g[1][x] = 'A';
+      g[2][x] = 'C';
+    } else g[1][x] = 'T';
+  }
+  return done(g, [1, 2]);
+}
+
+/** The dagger pointing up-right, `m` steps of blade. */
+function daggerD(m: number): SwordMap {
+  const S = m + 8;
+  const g = blank(S, S);
+  const set = (x: number, y: number, c: string) => {
+    if (x >= 0 && y >= 0 && x < S && y < S) g[y][x] = c;
+  };
+  const at = (c: number): [number, number] => [c + 1, S - 2 - c];
+  {
+    const [x, y] = at(0);
+    set(x, y, 'P');
+  }
+  for (let c = 1; c <= 2; c++) {
+    const [x, y] = at(c);
+    set(x, y, c % 2 ? 'H' : 'h');
+    set(x + 1, y, 'h');
+  }
+  {
+    const [x, y] = at(3);
+    for (let k = -2; k <= 2; k++) set(x + k, y + k, k < 0 ? 'G' : k === 0 ? 'g' : 'y');
+  }
+  for (let i = 0; i < m; i++) {
+    const [x, y] = at(4 + i);
+    const t = m - 1 - i;
+    if (t >= 2) {
+      set(x - 1, y, 'A');
+      set(x, y, 'L');
+      set(x + 1, y, 'C');
+    } else if (t === 1) {
+      set(x - 1, y, 'A');
+      set(x, y, 'C');
+    } else set(x - 1, y, 'T');
+  }
+  return done(g, at(1));
+}
+
+/** A dagger along `dir` with `len` px of blade (a diagonal has about 0.72 of that in steps). The letters are the
+ *  sword's (A L C T, G g y, H h, P): each hero maps them to their own palette. */
+export function daggerMap(dir: Dir, len: number): SwordMap {
+  const nd = Math.max(3, Math.round(len * 0.72));
+  switch (dir) {
+    case 'r':
+      return daggerH(len);
+    case 'l':
+      return flipX(daggerH(len));
+    case 'u':
+      return rotCCW(daggerH(len));
+    case 'd':
+      return flipY(rotCCW(daggerH(len)), false);
+    case 'ur':
+      return daggerD(nd);
+    case 'ul':
+      return flipX(daggerD(nd));
+    case 'dr':
+      return flipY(daggerD(nd), swapEdges);
+    case 'dl':
+      return flipX(flipY(daggerD(nd), swapEdges));
+  }
+}

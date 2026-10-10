@@ -5,7 +5,8 @@
 // She is drawn a head shorter than the knights: short legs, a small torso, a big hood.
 import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './art';
 import { and, bez, ell, fill, or, rimShade, sphere } from './art-paint';
-import { dir8, ribbon, sparkle, stampAt, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose, type Sprite } from './art-rig';
+import { ribbon, sparkle, stampAt, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose, type Sprite } from './art-rig';
+import { daggerMap } from './art-sword';
 
 // ------------------------------------------------------------------ palette
 
@@ -166,14 +167,17 @@ export const WREN_RIG: Rig = {
 
 // ------------------------------------------------------------------ the knife
 
-// One curved knife: a wrapped grip, a small brass guard, a blade sweeping up to its point.
-const KNIFE_PAL: Pal = { h: LEATHER[1], H: LEATHER[3], g: WREN_MUSTARD[3], A: STEEL[3], L: STEEL[2], C: STEEL[1], t: '#ffffff' };
-const KNIFE_R: Sprite = { rows: ['.........t', '...g...LAA', 'hHgLLLLLC.', '...gCCC...'], grip: [1, 2] };
-const KNIFE_UR: Sprite = { rows: ['.......At', '......ALC', '.....ALC.', '....ALC..', '..gALC...', '...g.....', '.H.......', 'h........'], grip: [1, 6] };
+// One curved knife: a wrapped grip, a small brass guard, a 3 px blade sweeping up to its point (art-sword.ts's dagger,
+// so it reads at 8x).
+const KNIFE_PAL: Pal = {
+  h: LEATHER[1], H: LEATHER[3], P: WREN_MUSTARD[2], G: WREN_MUSTARD[4], g: WREN_MUSTARD[3], y: WREN_MUSTARD[1],
+  A: STEEL[3], L: STEEL[2], C: STEEL[0], T: '#ffffff',
+};
+const KNIFE_R: Sprite = daggerMap('r', 7);
 const knife =
   (dir: Dir): Item =>
   (g, x, y) =>
-    stampAt(g, dir8(KNIFE_R, KNIFE_UR, dir), KNIFE_PAL, x, y);
+    stampAt(g, daggerMap(dir, 7), KNIFE_PAL, x, y);
 
 // ------------------------------------------------------------------ the scarf, the hook, the smoke
 
