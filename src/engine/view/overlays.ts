@@ -26,6 +26,9 @@ import { glass } from './ui-modern';
 import { wrapText } from './items';
 import { pix } from './camp-kit';
 
+/** An ink plate with a brass rim (the story's name tabs: one look for the panel tabs too). */
+const INK_TAB = [0xbe8e3a, 0x262040, 0x1c1830, 0x100c1c] as const;
+
 // ------------------------------------------------------------------ small UI glyphs (shared by the menus)
 
 const K = 0x140c1c;
@@ -1401,28 +1404,37 @@ export class Overlays {
     const y = 30;
     const h = 24;
     const elite = this.banner === 'ELITE!';
-    const col = elite ? 0x8a1a22 : 0x4a2470;
+    // (L7/L8: a band of ink with brass rules, the name in pale brass; an elite's in oxblood. It was a saturated purple
+    // slab with bright gold lines and yellow letters)
+    const col = elite ? 0x3a0e14 : 0x141026;
     const wIn = Math.round(GAME_W * inK);
     const x0 = Math.round(GAME_W * outK);
     const x1 = Math.min(GAME_W, wIn);
     if (x1 <= x0) return;
-    g.fillStyle(INK, 0.5);
-    g.fillRect(x0, y - h / 2 - 2, x1 - x0, h + 4);
-    g.fillStyle(col, 0.85);
+    g.fillStyle(INK, 0.55);
+    g.fillRect(x0, y - h / 2 - 3, x1 - x0, h + 6);
+    g.fillStyle(col, 0.9);
     g.fillRect(x0, y - h / 2, x1 - x0, h);
-    g.fillStyle(mix(col, WHITE, 0.25), 0.9);
-    g.fillRect(x0, y - h / 2, x1 - x0, 2);
-    g.fillStyle(GOLD[3], 1);
+    // a dull sheen across the top, the bottom in shadow
+    g.fillStyle(mix(col, 0x8a7cc0, 0.2), 0.6);
+    g.fillRect(x0, y - h / 2, x1 - x0, 3);
+    g.fillStyle(INK, 0.35);
+    g.fillRect(x0, y + h / 2 - 4, x1 - x0, 4);
+    // brass rules, a hairline gap inside each
+    g.fillStyle(GOLD[1], 1);
+    g.fillRect(x0, y - h / 2 - 2, x1 - x0, 1);
+    g.fillRect(x0, y + h / 2 + 1, x1 - x0, 1);
+    g.fillStyle(GOLD[2], 0.8);
     g.fillRect(x0, y - h / 2 - 1, x1 - x0, 1);
     g.fillRect(x0, y + h / 2, x1 - x0, 1);
-    // speed streaks
-    g.fillStyle(WHITE, 0.25);
+    // speed streaks, faint
+    g.fillStyle(0xe8c878, 0.12);
     for (let i = 0; i < 6; i++) {
       const sx = Math.round(((now * 0.4 + i * 67) % (GAME_W + 60)) - 30);
       if (sx > x0 && sx < x1) g.fillRect(GAME_W - sx, y - 8 + ((i * 5) % 16), 18, 1);
     }
     const tx = Math.round(GAME_W / 2 + (1 - inK) * 120 - outK * 160);
-    this.texts.text(this.banner, tx, y + 1, elite ? 0xffd0c0 : 0xffe680, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 2, extrudeCol: elite ? 0x4a0a10 : 0x2a1040 });
+    this.texts.text(this.banner, tx, y + 1, elite ? 0xf0b8a8 : 0xe8c878, { bold: true, scale: 2, ox: 0.5, oy: 0.5, extrude: 2, extrudeCol: elite ? 0x1e060a : 0x0c0814 });
   }
 
   // ------------------------------------------------------------------ levels and XP
@@ -1758,11 +1770,13 @@ export class Overlays {
     const k = easeBack(since / 240, 1.5);
     const sc = 0.8 + 0.2 * Math.min(1, k);
     const p: Rect = { x: Math.round(p0.x + (p0.w * (1 - sc)) / 2), y: Math.round(p0.y + (p0.h * (1 - sc)) / 2), w: Math.round(p0.w * sc), h: Math.round(p0.h * sc) };
-    panel(gc, p, { trim: 'full', alpha: clamp01(since / 100) });
+    // (L8: dark glass with a brass rim and an ink-and-brass tab, like the story's name tabs; it was a trimmed board
+    // under a purple ribbon)
+    glass(gc, p, { alpha: clamp01(since / 100), clear: 0.1, rim: GOLD[1] });
     if (k < 0.98) return;
-    const title = `Relics (${owned.length})`;
-    ribbon(gc, p.x + p.w / 2, p.y - 6, textWidth(title, 1, true) + 24, 13, RIBBON.purple);
-    this.texts.text(title, p.x + p.w / 2, p.y + 0.5, WHITE, { bold: true, ox: 0.5, oy: 0.5 });
+    const title = `Relics (${whole(owned.length)})`;
+    ribbon(gc, p.x + p.w / 2, p.y - 6, textWidth(title, 1, true) + 24, 13, INK_TAB);
+    this.texts.text(title, p.x + p.w / 2, p.y + 0.5, 0xe8c878, { bold: true, ox: 0.5, oy: 0.5 });
     // the grid: four rows of sockets at least (the empty ones dark wells), a relic in each one filled
     const cols = this.relicCols();
     const slots = Math.max(cols * 4, Math.ceil(owned.length / cols) * cols);
@@ -1819,11 +1833,11 @@ export class Overlays {
     const lines = wrapText(relicText(s.app.tuning, id), w);
     lines.slice(0, 4).forEach((line, i) => this.texts.text(line, x0, p.y + 45 + i * 9, 0xe8e2ff));
     const n = s.hud.perkCount(id);
-    if (n > 0) this.texts.text(n === 1 ? 'Kicked in once this fight' : `Kicked in ${n} times this fight`, x0, p.y + 46 + Math.min(4, lines.length) * 9, 0x9af0a0, { oy: 0 });
+    if (n > 0) this.texts.text(n === 1 ? 'Kicked in once this fight' : `Kicked in ${whole(n)} times this fight`, x0, p.y + 46 + Math.min(4, lines.length) * 9, 0x9af0a0, { oy: 0 });
     // Resume
     const rr = this.relicResume();
     const pr = isPressed(rr, now);
-    glow(gc, rr, 0x8af06a, 0.3 + 0.3 * pulse(now, 900), 3);
+    glow(gc, rr, 0x8af06a, 0.12 + 0.12 * pulse(now, 900), 2);
     button3d(gc, rr, FACE.green, pr);
     this.texts.text('Resume', rr.x + rr.w / 2, rr.y + rr.h / 2 + (pr ? 2 : 0), WHITE, { bold: true, ox: 0.5, oy: 0.5 });
   }
