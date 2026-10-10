@@ -3,13 +3,11 @@
 // hue-shifted. The hero is composed per pose from a body, legs, a cape and a pre-drawn sword at
 // clean 8-way pixel slopes; the slimes are shaded from their shape; HUD icons are native-size maps.
 import type Phaser from 'phaser';
-import { buildAshFoeArt } from './art-ash';
 import { buildCampArt } from './art-camp';
 import { buildChestArt } from './art-chests';
 import { buildCompanionArt } from './art-companions';
 import { CURRENCY_ICONS } from './art-currency';
 import { buildFoeArt } from './art-foes';
-import { buildFrostFoeArt } from './art-frost';
 import { buildGearArt } from './art-gear';
 import { buildHeroArt } from './art-heroes';
 import { buildRarityArt } from './art-rarity';
@@ -19,6 +17,7 @@ import { buildSableArt } from './art-sable';
 import { buildShrineArt } from './art-shrine';
 import { buildDummyArt } from './art-dummy';
 import { buildStoryArt } from './art-story';
+import { regionPacks } from './region-art';
 
 export const OUTLINE = '#140c1c';
 export type Grid = (string | null)[][];
@@ -1209,8 +1208,8 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   add('chest_open', mapFrame(CHEST_OPEN, CHEST_PAL));
   add('clouds', drawClouds(w));
   buildFoeArt(add);
-  buildFrostFoeArt(add);
-  buildAshFoeArt(add);
+  // the later regions' foes come in their own chunks (region-art.ts): a relayout adds again those already drawn
+  for (const p of regionPacks()) p.addArt(add, false);
   buildStoryArt(add);
   buildGearArt(add);
   buildSableArt(add);

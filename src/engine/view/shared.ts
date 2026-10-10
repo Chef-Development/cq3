@@ -3,9 +3,8 @@ import { hpOf } from '../../core/format';
 import Phaser from 'phaser';
 import { isRed, type BlockKind, type RemoveReason } from '../../core/combat';
 import type { BoostId } from '../../core/run';
-import { ASH_COL } from '../art-ash';
 import { FOE_COL } from '../art-foes';
-import { FROST_COL } from '../art-frost';
+import { onRegionPack } from '../region-art';
 
 export const COL = {
   yellow: [0xeab22e, 0xffe680, 0xb8781a],
@@ -69,7 +68,9 @@ export interface Dying {
   style: DyingStyle;
   at: number; // anim time
 }
-export const ENEMY_COL: Record<string, number> = { slime: 0x4fc4a0, bigslime: 0x4fc4a0, boar: 0x8a5a34, bandit: 0x5a4a6a, ...FOE_COL, ...FROST_COL, ...ASH_COL };
+export const ENEMY_COL: Record<string, number> = { slime: 0x4fc4a0, bigslime: 0x4fc4a0, boar: 0x8a5a34, bandit: 0x5a4a6a, ...FOE_COL };
+// a later region's foes' colours come with its art pack (region-art.ts)
+onRegionPack((p) => Object.assign(ENEMY_COL, p.col));
 
 export const WHITE = 0xffffff;
 export const INK = 0x0a0812;

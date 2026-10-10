@@ -35,7 +35,7 @@ import {
   type Theme,
   THEMES,
 } from './backdrop';
-import { cluster, serac, shard } from './backdrop-frost';
+import { cluster, serac, shard } from './backdrop-ice';
 import { MINIS } from './art-minis';
 
 type Add = (key: string, c: HTMLCanvasElement) => void;

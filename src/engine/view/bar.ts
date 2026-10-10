@@ -14,7 +14,7 @@ import Phaser from 'phaser';
 import { isAttack, isRed, unlit, type Block, type BlockKind, type Combat, type RemoveReason } from '../../core/combat';
 import type { FightScene } from '../scene';
 import { ICONS } from '../art';
-import { isAsh } from '../backdrop-ash';
+import { isAshTheme } from '../region-art';
 import { buildBarFrame } from '../chrome';
 import { brick, ellipse, icon, rows, slab } from './pixels';
 import { BLOCK_ICONS, FOE_ICONS } from './icons';
@@ -600,7 +600,7 @@ export class BarView {
       }
       // the icicle itself (in Ashfell an ember), falling in with a little streak above it
       const iy = Math.round(B.y - 17 + 10 * ease(k));
-      const drop = isAsh(s.app.run.theme) && s.textures.exists('ember_mark') ? 'ember_mark' : 'icicle_mark';
+      const drop = isAshTheme(s.app.run.theme) && s.textures.exists('ember_mark') ? 'ember_mark' : 'icicle_mark';
       if (s.textures.exists(drop)) this.pool.foot(drop, x, iy, 11.15);
       gt.fillStyle(WHITE, 0.5);
       gt.fillRect(x, iy - 12, 1, 4);
@@ -893,7 +893,7 @@ export class BarView {
     }
     if (!fading) {
       // a sliver of mirror (in Ashfell a pane of coloured glass)
-      const pane = isAsh(s.app.run.theme) && s.textures.exists('glass_pane') ? 'glass_pane' : 'mirror_shard';
+      const pane = isAshTheme(s.app.run.theme) && s.textures.exists('glass_pane') ? 'glass_pane' : 'mirror_shard';
       if (s.textures.exists(pane)) this.pool.foot(pane, x, y + h - 1, 11.15);
       else slab(g, x, y + 2, 5, h - 4, 0xc8d8f0, WHITE, 0x7a8ab0);
     }

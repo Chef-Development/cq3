@@ -18,6 +18,8 @@ export interface View {
   onEvents(events: CombatEvent[]): number;
   onPhase(prev: Phase, next: Phase): void;
   onLayout(): void;
+  /** The later regions' art (region-art.ts), now: asked on every screen change past the title. */
+  ensureRegionArt(): void;
   /** The tip card (view/tips.ts): TAP TO BEGIN asks it first (a pre-fight tip still due comes up instead). */
   readonly tips: { beforeBegin(now: number): boolean };
 }
@@ -407,6 +409,8 @@ export class App {
 
   private afterPhaseChange(prev: Phase): void {
     const now = performance.now();
+    // past the title, every later region's art is in (region-art.ts: painted in idle slices until now)
+    if (this.run.phase !== 'title') this.view?.ensureRegionArt();
     if (this.run.phase === 'fight' && this.run.combat && this.run.combat !== this.begunCombat) {
       // every fight from the map waits for TAP TO BEGIN (resumed ones too)
       this.begunCombat = this.run.combat;

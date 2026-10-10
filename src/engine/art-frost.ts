@@ -2466,7 +2466,8 @@ function mirrorShard(): HTMLCanvasElement {
 // ------------------------------------------------------------------ build
 
 /** Every texture this file draws, as [key, canvas], drawn once (see buildFrostFoeArt). */
-function drawAll(): [string, HTMLCanvasElement][] {
+/** The drawing, one job per foe (with its phase looks), then the portraits and bar pieces. */
+function jobs(): Array<() => Array<[string, HTMLCanvasElement]>> {
   const defs: Record<string, SpriteDef> = {
     rimeimp: { W: 26, H: 26, pal: IMP_PAL, shades: IMP_SHADES, parts: impParts },
     iciclebat: { W: 34, H: 22, pal: BAT_PAL, shades: BAT_SHADES, parts: batParts },
@@ -2485,31 +2486,47 @@ function drawAll(): [string, HTMLCanvasElement][] {
     glacia2: { W: 92, H: 66, pal: GLACIA_PAL, shades: {}, parts: (p) => glaciaParts(p, 2) },
     glacia3: { W: 92, H: 66, pal: GLACIA_PAL, shades: {}, parts: (p) => glaciaParts(p, 3) },
   };
-  const out: [string, HTMLCanvasElement][] = [];
-  for (const name of FROST_SPRITES) {
+  const out: Array<() => Array<[string, HTMLCanvasElement]>> = FROST_SPRITES.map((name) => () => {
     // the boss's phase looks share her frame size, so swapping between them never jumps
     const group = name === 'glacia' ? [name, ...GLACIA_PHASES] : [name];
-    out.push(...fitFrames(group.flatMap((n) => [...FROST_POSES, ...(defs[n].extras ?? [])].map((pose): [string, SpriteDef, string] => [n, defs[n], pose]))));
-  }
-  GLACIA_GEO.clear();
-  out.push(
+    const frames = fitFrames(group.flatMap((n) => [...FROST_POSES, ...(defs[n].extras ?? [])].map((pose): [string, SpriteDef, string] => [n, defs[n], pose])));
+    if (name === 'glacia') GLACIA_GEO.clear();
+    return frames;
+  });
+  out.push(() => [
     ['portrait_rimehorn', rimehornPortrait()],
     ['portrait_matron', matronPortrait()],
     ['portrait_glacia', glaciaPortrait()],
     ['icicle_mark', icicleMark()],
     ['mirror_shard', mirrorShard()],
-  );
+  ]);
   return out;
 }
 
-let drawn: [string, HTMLCanvasElement][] | null = null;
+const drawn: Array<[string, HTMLCanvasElement]> = [];
+let queue: Array<() => Array<[string, HTMLCanvasElement]>> | null = null;
 
 /**
- * Add the Region 2 foes, portraits and bar pieces. They are drawn the first time only (about as long as Region 1's foes
- * take); every call (a relayout rebuilds every texture) adds fresh copies of those canvases.
+ * Draw some of Region 2's foe art (whole sprites, until `ms` have gone by): it comes in its own chunk
+ * (pack-frost.ts, region-art.ts) and is painted in idle time after boot. True once it's all drawn.
  */
-export function buildFrostFoeArt(add: Add): void {
-  drawn ??= drawAll();
+export function paintFrostFoeSlice(ms = 8): boolean {
+  queue ??= jobs();
+  const t0 = performance.now();
+  while (queue.length && performance.now() - t0 < ms) drawn.push(...queue.shift()!());
+  return queue.length === 0;
+}
+
+/** Whether all of it has been drawn. */
+export const frostFoeArtReady = (): boolean => queue !== null && queue.length === 0;
+
+/**
+ * Add the Region 2 foes, portraits and bar pieces once they're drawn (every call after that, as on a relayout, adds
+ * fresh copies of the drawn canvases). `now`: draw whatever is left first.
+ */
+export function buildFrostFoeArt(add: Add, now = true): void {
+  if (now) while (!paintFrostFoeSlice(1e9));
+  if (!frostFoeArtReady()) return;
   for (const [key, c] of drawn) {
     // the textures get copies, so the drawn canvases stay pristine for the next relayout
     const copy = document.createElement('canvas');
@@ -2519,3 +2536,7 @@ export function buildFrostFoeArt(add: Add): void {
     add(key, copy);
   }
 }
+
+const FROST_ART_KEYS = new Set(['icicle_mark', 'mirror_shard', ...FROST_PORTRAITS.map((n) => 'portrait_' + n)]);
+/** Whether a texture is one this file draws (a foe's frame, a phase look's, a portrait, a bar piece). */
+export const isFrostArtKey = (key: string): boolean => FROST_ART_KEYS.has(key) || [...FROST_SPRITES, ...GLACIA_PHASES].some((n) => key.startsWith(n + '_'));

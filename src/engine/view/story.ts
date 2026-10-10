@@ -7,7 +7,6 @@ import type Phaser from 'phaser';
 import { SPEAKER_NAME, STORY } from '../../data/story';
 import type { Speaker } from '../../data/types';
 import type { FightScene } from '../scene';
-import { isAshArtKey } from '../art-ash';
 import { textWidth } from '../font';
 import { band, button3d, chevron, GOLD, NAVY, panel, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, WHITE, type Rect } from './shared';
@@ -171,7 +170,7 @@ export class StoryView {
     const bob = typing && Math.floor(now / 140) % 2 === 0 ? 1 : 0;
     if (this.portrait) {
       // the third region's speakers are painted in idle time after boot: finish them now if this scene comes sooner
-      if (!this.s.textures.exists(`portrait_${box.who}`) && isAshArtKey(`portrait_${box.who}`)) this.s.ensureAshArt();
+      if (!this.s.textures.exists(`portrait_${box.who}`)) this.s.ensureRegionArt();
       const p = this.portrait.setTexture(`portrait_${box.who}`).setPosition(Math.round(fx + fw / 2), fy + fw - 3 - bob).setVisible(true);
       // keep the portrait inside its frame
       const over = Math.max(0, p.height - (fw - 6));
