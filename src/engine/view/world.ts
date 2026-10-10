@@ -2041,11 +2041,13 @@ export class WorldView {
     // the count shows only once a region is restored; until then the name and the twelve roses, on a smaller plate)
     const L = s.L + 4;
     const restored = P.weights > 0 ? `Restored ${whole(P.weights)}/${whole(WEIGHTS_TOTAL)}` : '';
-    const hw = Math.max(textWidth('The Great Atlas', 1, true), restored ? textWidth(restored, 1, false) : 0, WEIGHTS_TOTAL * 7 - 2) + 14;
-    this.panel(g, L, 4, hw, restored ? 29 : 22, 1);
+    // (review-4 R4-14: twelve unlit roses read as a row of "+" that meant nothing: they show once a land is restored,
+    // under its count, the lit ones the lands restored)
+    const hw = Math.max(textWidth('The Great Atlas', 1, true), restored ? Math.max(textWidth(restored, 1, false), WEIGHTS_TOTAL * 7 - 2) : 0) + 14;
+    this.panel(g, L, 4, hw, restored ? 29 : 14, 1);
     this.texts.text('The Great Atlas', L + 7, 10, WHITE, { bold: true, oy: 0.5 });
     if (restored) this.texts.text(restored, L + 7, 19, 0xf2c230, { oy: 0.5 });
-    for (let i = 0; i < WEIGHTS_TOTAL; i++) roseIcon(g, L + 7 + i * 7, restored ? 24 : 17, i < P.weights);
+    if (restored) for (let i = 0; i < WEIGHTS_TOTAL; i++) roseIcon(g, L + 7 + i * 7, 24, i < P.weights);
 
     // the region chip (top right): the region in view and how complete it is; a tap opens its act picker
     const chip = this.regionChip();
