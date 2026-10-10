@@ -915,23 +915,16 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
 function ruins(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const p = new Pix(w, h, 0);
   const rnd = rng(91);
-  const hz = col('#4a6870');
-  const skyR = ramp('#0f1630', '#141f3c', '#1a2a48', '#223852', '#2c485c', '#3a5a66');
-  for (let y = 0; y < G - 14; y++) for (let x = 0; x < w; x++) p.set(x, y, pick(skyR, y / (G - 28), x, y, 0.25));
+  const hz = col('#3e4c62');
+  // a rainy dusk (decision L7): low overcast, slate overhead going to a cold mauve band of last light behind the hills
+  const skyR = ramp('#0a0e20', '#0e142a', '#141c34', '#1a243e', '#222c48', '#2c3450', '#3a3e58', '#4a4860', '#5a5266');
+  for (let y = 0; y < G - 14; y++) for (let x = 0; x < w; x++) p.set(x, y, pick(skyR, (y / (G - 26)) ** 1.25, x, y, 0.3));
 
-  // stars (deliberate sparkles) in the upper sky
+  // (no stars under the overcast: the old star field's draws are kept so the rest of the scene stays where it was)
   for (let i = 0; i < 30; i++) {
-    const x = Math.floor(rnd() * w);
-    const y = Math.floor(rnd() * (G - 50));
-    p.set(x, y, rnd() < 0.3 ? col('#e8f0ff') : col('#8ea2c8'));
-    if (i % 9 === 0)
-      for (const [dx, dy] of [
-        [-1, 0],
-        [1, 0],
-        [0, -1],
-        [0, 1],
-      ])
-        p.set(x + dx, y + dy, col('#5a6e98'));
+    rnd();
+    rnd();
+    rnd();
   }
 
   // moon with a dithered halo
@@ -942,9 +935,9 @@ function ruins(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     for (let x = mx - 28; x <= mx + 28; x++) {
       const d = Math.hypot(x + 0.5 - mx, y + 0.5 - my);
       if (d <= mr + 0.5 || d > 26) continue;
-      p.tint(x, y, (c) => fade(c, col('#6c8a9c'), Math.pow(1 - (d - mr) / 19, 2) * 0.8, x, y, 3, 0.7));
+      p.tint(x, y, (c) => fade(c, col('#4e5a74'), Math.pow(1 - (d - mr) / 19, 2) * 0.7, x, y, 3, 0.7));
     }
-  const moonR = ramp('#a8a690', '#cfcab0', '#ece6cc', '#fbf8ea');
+  const moonR = ramp('#6a7084', '#8a90a2', '#aab0bc', '#c8ccd4'); // veiled by the rain clouds
   for (let y = -mr; y <= mr; y++)
     for (let x = -mr; x <= mr; x++) {
       if (Math.hypot(x, y) > mr + 0.2) continue;
@@ -971,6 +964,32 @@ function ruins(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     }
     mass(p, bl, { ramp: nCloud, seed: Math.round(x0), bump: 0.1, tex: 0.15, vgrad: 0.5, light: 0.05, shadow: 0.12, floor: G + cy0 + 3, band: 0.3 });
   }
+  // the overcast: a heavy bank of rain cloud along the top, and a ragged veil drawn across the moon
+  const rainCloud = ramp('#080b1a', '#0c1122', '#11182c', '#182036', '#222a42', '#2e3650');
+  {
+    const r2 = rng(97);
+    const bank: Blob[] = [];
+    for (let x = -10; x < w + 10; x += 7 + r2() * 6) bank.push({ x, y: 2 + r2() * 6, rx: 7 + r2() * 6, ry: 4 + r2() * 3 });
+    mass(p, bank, { ramp: rainCloud, seed: 13, bump: 0.12, tex: 0.18, vgrad: -0.2, light: 0.02, shadow: 0.1, band: 0.3 });
+    const veil: Blob[] = [];
+    for (let i = 0; i < 7; i++) veil.push({ x: mx - 16 + i * 6, y: my + 2 + Math.sin(i * 1.3) * 1.5, rx: 6, ry: 2.2 });
+    mass(p, veil, { ramp: nCloud, seed: 19, bump: 0.14, tex: 0.2, vgrad: 0.6, light: 0.02, shadow: 0.1, band: 0.3 });
+  }
+  // curtains of rain hanging from the clouds over the far hills
+  shafts(
+    p,
+    [
+      [Math.round(w * 0.08), 16, 0.8],
+      [Math.round(w * 0.46), 22, 1],
+      [Math.round(w * 0.78), 14, 0.7],
+    ],
+    0.22,
+    10,
+    G - 20,
+    col('#46506a'),
+    0.22,
+  );
+  const skyDone = p.buf.slice(); // the sky is painted for the mood: the grade leaves it
 
   // far wooded hills in the haze
   const farWood = haze(ramp('#16222e', '#1c2c38', '#243844', '#2e4650'), hz, 0.5);
@@ -1312,7 +1331,7 @@ function ruins(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   cornerCanopy(p, 2, 1, 80, 15, canopyR, mossR);
   cornerCanopy(p, w - 2, -1, 80, 16, canopyR, mossR);
   const frame = changed(p, before);
-  gradeLayer('ruins', p, G);
+  gradeLayer('ruins', p, G, skyDone);
   gradeLayer('ruins', frame, G);
 
   return [p, frame, { torches }];

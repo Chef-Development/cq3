@@ -994,7 +994,9 @@ A2C-2. **Skies are repainted, not just darkened, where the mood is the sky**: th
     (near-black crimson overhead, a band of fire round an orange sun, red haze and mist); the pass is a moonlit blue
     night (stars, a small cold moon and its bloom, night clouds, moonlit snow, the stage's rim and pool moonlight
     blue); the cinder flats' sky is smoke-dark with the orange kept low, where the volcano and the river light it.
-    The ruins stay a rainy moonlit night, a step darker; caves, glacier, glass and forge take only the grade.
+    The ruins are a rainy dusk (a low overcast with a heavy bank of rain cloud, no stars, the moon veiled and dim, a
+    cold mauve band of last light behind the hills, curtains of rain over them); caves, glacier, glass and forge take
+    only the grade.
     A repainted sky is left out of the grade (a snapshot of the layer taken once its sky is done).
 A2C-3. **Foes get menace without losing their read** (L8). Bosses: the Boar King darker with an ember eye under the
     brow, fangs, hackles always half up and a jagged five-point crown with a blood-red stone; Glacia's scales a step

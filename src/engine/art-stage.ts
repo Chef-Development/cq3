@@ -395,7 +395,7 @@ function rays(w: number, h: number, G: number, theme: Theme): Rgba {
     for (let y = Math.max(0, my - 40); y < my + 40; y++)
       for (let x = mx - 50; x < mx + 50; x++) {
         const d = Math.hypot(x + 0.5 - mx, (y + 0.5 - my) * 1.2);
-        const b = Math.pow(clamp01(1 - d / 40), 2) * 0.35;
+        const b = Math.pow(clamp01(1 - d / 40), 2) * 0.22; // the moon veiled by the rain clouds
         if (b > 0) {
           const i = (y * w + x) * 4;
           const prev = x >= 0 && x < w ? out.d[i + 3] / 255 : 0;

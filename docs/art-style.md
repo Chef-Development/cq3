@@ -160,7 +160,7 @@ Everything animates from `now` and seeds (screenshots stay exact). Minimum frame
 | Region | Key light | Ambient | Rim | Air |
 | --- | --- | --- | --- | --- |
 | Greenmarch, act 1 (forest) | the low late-day sun, top left: gold shafts through the canopy, a warm rim on whatever stands against the sky | deep teal shade | pale gold | drifting leaves, motes |
-| Greenmarch, act 2 (ruins) | moonlight, top left; braziers below | night blue | pale blue | rain streaks, drips off the arches, brazier embers |
+| Greenmarch, act 2 (ruins) | a rainy dusk: a veiled moon, top left, the last light low behind the hills; braziers below | night blue | pale blue | rain streaks and far curtains of rain, drips off the arches, brazier embers |
 | Greenmarch, act 3 (hollow) | the low sun in a blood-red evening, from the left | plum | orange | autumn leaves, fireflies, warm dust, red haze |
 | Frostpeaks | moonlight, high on the left (the pass at night; the caves' crystals; the glacier's aurora) | night blue | ice cyan | snow streaks, spindrift |
 | Ashfell | ember orange from below the frame plus a dim top-left key | smoky purple | orange | embers rising, ash falling |

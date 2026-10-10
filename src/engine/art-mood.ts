@@ -106,7 +106,7 @@ export const MOOD: Partial<Record<Theme, Mood>> = {
   // late day in the woods: deep teal shade, the gold only where the low sun gets through
   forest: { tint: 0x9aa6c4, desat: 0.3, keep: 0.6, shadow: 0x0c1c2c, shadowAmt: 0.6, ground: 0x7c7a96, groundAmt: 0.42 },
   // a rainy dusk: the stones wet and blue, the braziers warm
-  ruins: { tint: 0xa6b0d0, desat: 0.24, keep: 0.85, shadow: 0x080e20, shadowAmt: 0.55, ground: 0x7a84a8, groundAmt: 0.38 },
+  ruins: { tint: 0xb8c0da, desat: 0.22, keep: 0.85, shadow: 0x080e20, shadowAmt: 0.5, ground: 0x7a84a8, groundAmt: 0.38 },
   // a blood-red evening: plum shade, the crimson kept in the sky and the light
   hollow: { tint: 0xb894a4, desat: 0.18, keep: 0.45, shadow: 0x1a0818, shadowAmt: 0.55, ground: 0x7a5a74, groundAmt: 0.46 },
   // a blue night on the pass: the snow under the moon, the flags' colours faded
