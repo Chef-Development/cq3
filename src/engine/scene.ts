@@ -28,8 +28,7 @@ import { Overlays } from './view/overlays';
 import { StopScreens } from './view/stops';
 import { StoryView } from './view/story';
 import { WorldView } from './view/world';
-import { buildAshFoeArt, paintAshFoeSlice } from './art-ash';
-import { buildDuskFoeArt, paintDuskFoeSlice } from './art-dusk';
+import { loadRegionArt, onRegionPack, packOfTheme, regionArtLoaded, regionPacks, type RegionArtPack } from './region-art';
 import { buildWorldArt, paintWorldSlice, WORLD_PAINT, worldArtReady } from './art-world';
 import { buildMapArt } from './art-map';
 import { buildRoamArt } from './art-roam';
@@ -74,6 +73,11 @@ export class FightScene extends Phaser.Scene implements View {
   }
   /** The world map's textures are in (for this layout). */
   private worldArtIn = false;
+  /** The later regions' art packs whose textures are in (region-art.ts), whether the idle painting runs, and whether
+   *  the title has been left (a pack that arrives after that is added at once). */
+  private packsIn = new Set<string>();
+  private packIdle = false;
+  private packsForced = false;
   private lastNow = 0;
   private pending: Pending[] = [];
   private lastCombat: Combat | null = null;
@@ -137,40 +141,61 @@ export class FightScene extends Phaser.Scene implements View {
     // a returning player's first launch of this version: Pip's welcome back, over the title
     this.app.welcome();
     // paint the world map in small slices while the title is up (the world map finishes it if it's needed sooner),
-    // then the third region's foes (a fight or a scene that needs them finishes those at once: ensureAshArt)
-    // and then the fourth region's (ensureDuskArt)
-    const duskIdle = () => {
-      if (paintDuskFoeSlice(8)) this.ensureDuskArt();
-      else window.setTimeout(duskIdle, 0);
-    };
-    const ashIdle = () => {
-      if (paintAshFoeSlice(8)) {
-        this.ensureAshArt();
-        window.setTimeout(duskIdle, 0);
-      } else window.setTimeout(ashIdle, 0);
-    };
+    // then the later regions' art packs as they arrive (region-art.ts: the first screen after the title finishes them
+    // at once, ensureRegionArt)
     const idle = () => {
       if (!this.worldArtIn && !paintWorldSlice(8)) return void window.setTimeout(idle, 0);
       this.ensureWorldArt();
-      window.setTimeout(ashIdle, 0);
+      onRegionPack((p) => (this.packsForced ? this.addPack(p, true) : this.paintPacks()));
     };
     window.setTimeout(idle, 30);
   }
 
-  /** The third region's foes, portraits and bar pieces, now (whatever is left of their painting is done at once). */
-  ensureAshArt(): void {
-    buildAshFoeArt((key, canvas) => {
-      if (this.textures.exists(key)) this.textures.remove(key);
-      this.textures.addCanvas(key, canvas);
-    }, true);
+  private addTex = (key: string, canvas: HTMLCanvasElement): void => {
+    if (this.textures.exists(key)) this.textures.remove(key);
+    this.textures.addCanvas(key, canvas);
+  };
+
+  /** A pack's textures, once its art is drawn (`now`: draw whatever is left first). */
+  private addPack(p: RegionArtPack, now: boolean): void {
+    if (this.packsIn.has(p.id)) return;
+    p.addArt(this.addTex, now);
+    this.packsIn.add(p.id);
+    // a fight that began before its pack arrived (a very slow first visit) gets its backdrop now
+    if (this.packsForced && packOfTheme(this.app.run.theme) === p.id) this.stage.applyTheme();
   }
 
-  /** The fourth region's foes and portraits, now (whatever is left of their painting is done at once). */
+  /** Paint the packs that have arrived in idle slices, one after another, adding each when it's done. */
+  private paintPacks(): void {
+    if (this.packIdle) return;
+    const next = () => {
+      const p = regionPacks().find((q) => !this.packsIn.has(q.id));
+      if (!p || this.packsForced) return void (this.packIdle = false);
+      if (p.paintSlice(8)) this.addPack(p, false);
+      window.setTimeout(next, 0);
+    };
+    this.packIdle = true;
+    window.setTimeout(next, 0);
+  }
+
+  /** The later regions' foes, portraits and bar pieces, now: every pack that has arrived is finished and added at once,
+   *  and one still on its way is added the moment it arrives. App.setPhase asks when a fight starts or the run is in a
+   *  later region (nothing to do once all are in); a fight's foe or a scene's portrait that isn't there yet asks too. */
+  ensureRegionArt(): void {
+    this.packsForced = true;
+    for (const p of regionPacks()) this.addPack(p, true);
+    // one that failed to download (a dropped connection) is asked for again
+    if (!regionArtLoaded()) void loadRegionArt();
+  }
+
+  /** (The older name: Ashfell's art is one of the packs now.) */
+  ensureAshArt(): void {
+    this.ensureRegionArt();
+  }
+
+  /** (The fourth region's art is a pack too.) */
   ensureDuskArt(): void {
-    buildDuskFoeArt((key, canvas) => {
-      if (this.textures.exists(key)) this.textures.remove(key);
-      this.textures.addCanvas(key, canvas);
-    }, true);
+    this.ensureRegionArt();
   }
 
   /** The world map's textures, now: whatever is left of its painting is done at once (then the view is built). */

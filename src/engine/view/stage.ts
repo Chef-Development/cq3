@@ -11,9 +11,7 @@
 import Phaser from 'phaser';
 import type { FightScene } from '../scene';
 import { buildBackdrops, FG_FRAMES, type Backdrop, type Theme } from '../backdrop';
-import { buildAshBackdrop, isAsh } from '../backdrop-ash';
-import { buildDuskBackdrop, isDusk } from '../backdrop-dusk';
-import { buildFrostBackdrop, isFrost } from '../backdrop-frost';
+import { isAshTheme, isDuskTheme, packOfTheme, regionPack } from '../region-art';
 import { buildStageArt, buildStageTheme, STAGE_LIGHT } from '../art-stage';
 import { GAME_W } from '../layout';
 import { rand } from './shared';
@@ -89,14 +87,17 @@ export class Stage {
     buildStageArt(this.s, GAME_W, this.s.splitY, this.s.ground);
   }
 
-  /** A theme's backdrop and light for this layout: the Frostpeaks' and Ashfell's are painted the first time an act
-   *  needs one. */
+  /** A theme's backdrop and light for this layout: a later region's (its art pack, region-art.ts) is painted the first
+   *  time an act needs one. (Its pack still on its way, on a first visit's very first seconds: the stage keeps the
+   *  theme it has until it's in.) */
   ensure(theme: Theme): void {
-    if (this.backdrops[theme] || !(isFrost(theme) || isAsh(theme) || isDusk(theme))) return;
+    const id = packOfTheme(theme);
+    if (this.backdrops[theme] || !id) return;
+    const pack = regionPack(id);
+    if (!pack) return;
     const t0 = performance.now();
-    const [w, h, g] = [GAME_W, this.s.splitY, this.s.ground];
-    this.backdrops[theme] = isAsh(theme) ? buildAshBackdrop(this.s, theme, w, h, g) : isDusk(theme) ? buildDuskBackdrop(this.s, theme, w, h, g) : buildFrostBackdrop(this.s, theme, w, h, g);
-    buildStageTheme(this.s, GAME_W, this.s.splitY, this.s.ground, theme);
+    this.backdrops[theme] = pack.backdrop(this.s, theme, GAME_W, this.s.splitY, this.s.ground);
+    buildStageTheme(this.s, GAME_W, this.s.splitY, this.s.ground, theme as Parameters<typeof buildStageTheme>[4]);
     this.paintMs[theme] = performance.now() - t0;
   }
 
@@ -265,9 +266,9 @@ export class Stage {
         this.nextAmbient += 240;
       } else if (theme === 'pass' || theme === 'caves' || theme === 'glacier') {
         this.spawnFrost(a, ground, r);
-      } else if (isAsh(theme)) {
+      } else if (isAshTheme(theme)) {
         this.spawnAsh(a, ground, r);
-      } else if (isDusk(theme)) {
+      } else if (isDuskTheme(theme)) {
         this.spawnDusk(a, ground, r);
       } else {
         // rain: most of it far, a few heavy streaks close to the camera

@@ -7,8 +7,6 @@ import type Phaser from 'phaser';
 import { SPEAKER_NAME, STORY } from '../../data/story';
 import type { Speaker } from '../../data/types';
 import type { FightScene } from '../scene';
-import { isAshArtKey } from '../art-ash';
-import { isDuskArtKey } from '../art-dusk';
 import { textWidth } from '../font';
 import { band, button3d, chevron, GOLD, NAVY, panel, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, WHITE, type Rect } from './shared';
@@ -174,8 +172,7 @@ export class StoryView {
     const bob = typing && Math.floor(now / 140) % 2 === 0 ? 1 : 0;
     if (this.portrait) {
       // the third region's speakers are painted in idle time after boot: finish them now if this scene comes sooner
-      if (!this.s.textures.exists(`portrait_${box.who}`) && isAshArtKey(`portrait_${box.who}`)) this.s.ensureAshArt();
-      if (!this.s.textures.exists(`portrait_${box.who}`) && isDuskArtKey(`portrait_${box.who}`)) this.s.ensureDuskArt();
+      if (!this.s.textures.exists(`portrait_${box.who}`)) this.s.ensureRegionArt();
       // (a speaker not painted yet, as the fourth region's until its art lands, speaks from an empty frame)
       const has = this.s.textures.exists(`portrait_${box.who}`);
       const p = this.portrait.setTexture(has ? `portrait_${box.who}` : 'portrait_rowan').setPosition(Math.round(fx + fw / 2), fy + fw - 3 - bob).setVisible(has);

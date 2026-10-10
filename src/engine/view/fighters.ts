@@ -12,8 +12,6 @@
 // boss shows its phase's look (`${sprite}${phase}_*`, when it has one) and a stunned foe sees stars. What each perk did
 // to its target (a mark on the foe, a box on the block, a burning foe's flames, Sunny's sweep) is view/onsite.ts.
 import Phaser from 'phaser';
-import { isAshArtKey } from '../art-ash';
-import { isDuskArtKey } from '../art-dusk';
 import { rimMask, STAGE_LIGHT } from '../art-stage';
 import { whole } from '../../core/format';
 import type { Combat } from '../../core/combat';
@@ -287,15 +285,11 @@ export class Fighters {
     for (const e of c.enemies) {
       if (this.enemies.has(e.id) || !e.alive) continue;
       const def = s.app.tuning.enemies[e.key];
-      // the third region's foes are painted in idle time after boot: one that's needed sooner is finished now
-      if (!s.textures.exists(`${def.sprite}_idle0`) && isAshArtKey(`${def.sprite}_idle0`)) s.ensureAshArt();
+      // the later regions' foes are painted in idle time after boot (region-art.ts): one needed sooner is finished now
+      if (!s.textures.exists(`${def.sprite}_idle0`)) s.ensureRegionArt();
       // a foe whose art isn't painted yet (the fourth region's, until its art lands) wears a stand-in's sprite set
-      if (!s.textures.exists(`${def.sprite}_idle0`) && isDuskArtKey(`${def.sprite}_idle0`)) s.ensureDuskArt();
       let sprite = def.sprite;
-      if (!s.textures.exists(`${sprite}_idle0`) && SPRITE_STAND_IN[sprite]) {
-        sprite = SPRITE_STAND_IN[sprite];
-        if (!s.textures.exists(`${sprite}_idle0`) && isAshArtKey(`${sprite}_idle0`)) s.ensureAshArt();
-      }
+      if (!s.textures.exists(`${sprite}_idle0`) && SPRITE_STAND_IN[sprite]) sprite = SPRITE_STAND_IN[sprite];
       const img = s.add.image(0, 0, `${sprite}_idle0`).setOrigin(0.5, 1).setScale(SPRITE_SCALE);
       const rim = this.makeRim();
       s.actors.add([img, rim]);

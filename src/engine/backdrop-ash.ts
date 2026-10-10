@@ -41,7 +41,7 @@ import {
   type Ramp,
   type Theme,
 } from './backdrop';
-import { cluster } from './backdrop-frost';
+import { cluster } from './backdrop-ice';
 
 export type AshTheme = 'cinder' | 'glass' | 'forge';
 export const ASH_BACKDROP_THEMES: AshTheme[] = ['cinder', 'glass', 'forge'];
