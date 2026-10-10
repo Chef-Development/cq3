@@ -1213,6 +1213,9 @@ export class Overlays {
     const cw = textWidth(coins, 1, true) + 15;
     const total = 16 + 104 + 8 + cw + 6 + 20;
     let x = Math.round((s.L + s.R) / 2 - total / 2);
+    // the hero's status on a dark glass plate in the band (review-4 R4-10: without the bar the band read as an empty
+    // housing; now it holds the one thing that matters between fights)
+    glass(gc, { x: x - 8, y: y - 5, w: total + 14, h: 20 }, { clear: 0.1, rim: GOLD[1] });
     hudIcon(gc, 'heart', x, y - 1);
     x += 18;
     gauge(gc, x, y + 1, 100, 8, H.hp / max, H.hp / max, { ramp: H.hp / max <= 0.3 ? RAMP.hpLow : RAMP.hp, seg: 10 });
