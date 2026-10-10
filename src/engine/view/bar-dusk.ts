@@ -3,8 +3,8 @@
 // - the lantern: outside its light the track lies in a cool dusk; round the cursor a pool of lamplight as wide as the
 //   light reaches, in steps that brighten toward the cursor and spill over the frame above and below (it widens as the
 //   cursor speeds up; a dimmed one burns low, cooler and flickering), with amber ticks where the light ends; blocks
-//   in the light catch it on their top edge. An unlit dark block is an ink-grey shape with a faint "?" (never violet:
-//   that's the trap's colour): what it is can't be seen. When the light reaches it, its colour floods in with a warm
+//   in the light catch it on their top edge. An unlit dark block is a neutral slate shape with a faint dashed outline
+//   and two breathing glints (never violet: that's the trap's colour): what it is can't be seen. When the light reaches it, its colour floods in with a warm
 //   flash (bar.ts).
 // - the tide: a band of dark water over that end of the bar, its top a moving crest of light, its front a bright
 //   wobbling line with foam; the blocks standing in it keep their own colour under a thin blue veil with ripples
@@ -118,8 +118,9 @@ export function lanternRim(g: G, c: Combat, t: number, pos: number, x: number, y
   if (d < 0.5) g.fillRect(x + 1, y + 1, 1, 2);
 }
 
-/** An unlit dark block (bar.ts draws it here instead of its colours): an ink-grey shape with a faint "?", slowly
- *  breathing (no violet: that's the trap's colour, and some dark blocks are traps). */
+/** An unlit dark block (bar.ts draws it here instead of its colours): a slate shape with a faint dashed outline and
+ *  two breathing glints (no violet: that's the trap's colour, and some dark blocks are traps; no glyph: it shows
+ *  nothing of its kind). */
 export function drawDarkShape(g: G, x: number, y: number, w: number, h: number, now: number, id: number): void {
   g.fillStyle(SHAPE, 0.96);
   g.fillRect(x, y + 1, w, h - 2);

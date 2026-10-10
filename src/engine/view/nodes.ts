@@ -13,7 +13,7 @@ import { relicText } from '../../core/relics';
 import { boostLabel, boostPreview, isRelicOffer, type BoostPreview, type ShopItem } from '../../core/run';
 import type { FightScene } from '../scene';
 import { textWidth } from '../font';
-import { band, button3d, gauge, glow, GOLD, hudIcon, iconSize, NAVY, panel, RAMP, rows } from './pixels';
+import { band, button3d, gauge, glow, GOLD, hudIcon, iconSize, NAVY, RAMP, rows } from './pixels';
 import { BOOST_ICON, clamp01, easeBack, hpLabel, inRect, INK, mix, pulse, rand, WHITE, type Rect } from './shared';
 import { CARD, previewLine, previewWidth } from './overlays';
 import { chipWidth, relicCard, relicIcon, tagChip } from './relic-ui';
@@ -75,16 +75,12 @@ export class NodeScreens {
   private shopBoard(): Rect {
     const s = this.s;
     const run = s.app.run;
-    if (run.merchant) {
-      // the travelling trader: she stands on the left in her lantern's light; her few wares on a plate beside her,
-      // as tall as its rows (it was a full board, two thirds empty)
-      const x = s.L + 90;
-      const cards = run.shop.filter((it) => it.kind === 'boost').length;
-      const h = 11 + cards * 24 + (run.shop.some((it) => it.kind !== 'boost') ? 14 : 0) + 27;
-      return { x, y: Math.max(23, Math.round((s.B + 18 - h) / 2) - 6), w: Math.min(250, s.R - 4 - x), h };
-    }
-    const w = Math.min(270, s.R - s.L - 6);
-    return { x: Math.round((s.L + s.R) / 2 - w / 2), y: 23, w, h: 117 };
+    // a place: the trader (or the act's stall) stands on the left in a lantern's light; the wares on a plate beside,
+    // as tall as its rows (the trader's was a full board, two thirds empty; the shop's a cream-trimmed form)
+    const x = this.shopFocalX() + 40;
+    const cards = run.shop.filter((it) => it.kind === 'boost').length;
+    const h = 11 + cards * 24 + (run.shop.some((it) => it.kind !== 'boost') ? 14 : 0) + (run.merchant ? 27 : 20);
+    return { x, y: Math.max(23, Math.round((s.B + 18 - h) / 2) - 6), w: Math.min(250, s.R - 4 - x), h };
   }
 
   /** Shop rows: the cards one per row (two lines tall), then the potion and the reroll side by side. */
@@ -142,6 +138,12 @@ export class NodeScreens {
   /** The focal column on a stop's left: the hero at an event, the trader (its centre x). */
   private focalX(): number {
     return this.s.L + 44;
+  }
+
+  /** The shop's focal column (the trader or the stall, about 40 px wide at 3x): a little further left than an
+   *  event's, so the wares' plate keeps the width for a relic's line of text. */
+  private shopFocalX(): number {
+    return this.s.L + 36;
   }
 
   /** The event's plate, right of the focal column (glass over the stage), as tall as its words and its buttons:
@@ -341,13 +343,6 @@ export class NodeScreens {
     return { r: { x: Math.round(r.x + (r.w * (1 - sc)) / 2), y: Math.round(r.y + (r.h * (1 - sc)) / 2), w: Math.round(r.w * sc), h: Math.round(r.h * sc) }, k };
   }
 
-  /** The dim behind a node board. */
-  private dim(g: G, a: number): void {
-    const s = this.s;
-    g.fillStyle(0x05040a, a);
-    g.fillRect(0, 0, s.R + s.L + 1000, s.B + 200);
-  }
-
   /** A slim item card: ink outline, a colored rim, navy body, an icon tile in the rim's colors. */
   private itemCard(g: G, r: Rect, face: readonly [number, number, number, number], icon: string, dim: boolean): void {
     const [hi, base, lo, deep] = face;
@@ -443,19 +438,17 @@ export class NodeScreens {
   private drawShop(g: G, now: number): void {
     const s = this.s;
     const run = s.app.run;
-    if (run.merchant) {
-      // the trader herself, at 3x, in her lantern's pool (map-scale sprite scaled whole); her wares on glass
-      const ek = clamp01((now - this.phaseAt) / 260);
-      const fx = this.focalX();
-      stopLight(g, s, fx, s.ground, 0xffc070, now, ek);
-      const key = 'mn_merch_0';
-      const [w, h] = this.pool.size(key);
-      const bob = Math.floor(now / 700) % 2;
-      this.pool.scaled(key, Math.round(fx - (w * 3) / 2), s.ground + 2 - h * 3 + bob * 3, 31.42, 3, ek);
-    } else this.dim(g, 0.5);
+    // the trader herself, or the act's stall with its awning, at 3x in a lantern's pool (map-scale sprites scaled
+    // whole); the wares on glass beside
+    const ek = clamp01((now - this.phaseAt) / 260);
+    const fx = this.shopFocalX();
+    stopLight(g, s, fx, s.ground, 0xffc070, now, ek);
+    const key = run.merchant ? 'mn_merch_0' : 'mn_stall';
+    const [w, h] = this.pool.size(key);
+    const bob = run.merchant ? Math.floor(now / 700) % 2 : 0;
+    this.pool.scaled(key, Math.round(fx - (w * 3) / 2), s.ground + 2 - h * 3 + bob * 3, 31.42, 3, ek);
     const { r: b, k } = this.popIn(this.shopBoard(), now);
-    if (run.merchant) glass(g, b, { alpha: clamp01(k * 2), clear: 0.12 });
-    else panel(g, b, { trim: 'full', alpha: clamp01(k * 2) });
+    glass(g, b, { alpha: clamp01(k * 2), clear: 0.12 });
     if (k < 0.98) return;
     // the travelling merchant's small shop has her own banner
     const title = run.merchant ? 'Trader' : 'Shop';
@@ -474,7 +467,7 @@ export class NodeScreens {
     const lb = this.leaveButton();
     button3d(g, lb, FACE.navy, isPressed(lb, now));
     this.texts.text('Leave', lb.x + lb.w / 2, lb.y + lb.h / 2 + (isPressed(lb, now) ? 2 : 0), WHITE, { bold: true, ox: 0.5, oy: 0.5 });
-    if (run.rerolls > 0) this.texts.text(`Rerolls: ${run.rerolls}`, b.x + 10, lb.y + lb.h / 2, 0x9ad8ff, { oy: 0.5 });
+    if (run.rerolls > 0) this.texts.text(`Rerolls: ${whole(run.rerolls)}`, b.x + 10, lb.y + lb.h / 2, 0x9ad8ff, { oy: 0.5 });
     else if (run.shopFree) this.texts.text('Haggler: your first buy is free!', b.x + 10, lb.y + lb.h / 2, 0x9af06a, { oy: 0.5 });
   }
 

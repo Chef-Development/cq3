@@ -342,8 +342,8 @@ export class CampView {
   private plateDefs(): Array<{ id: PlateId; label: string; icon: string; target: Rect; roof: boolean }> {
     const p = this.s.app.run.profile;
     const out: Array<{ id: PlateId; label: string; icon: string; target: Rect; roof: boolean }> = [];
-    out.push({ id: 'bag', label: 'Bag', icon: 'bag', target: CAMP_SPOTS.bag, roof: true });
-    out.push({ id: 'forge', label: 'Forge', icon: 'hammer', target: CAMP_SPOTS.forge, roof: true });
+    // (the Bag and the Forge have their buttons in the band: no plate says them twice, review round 8; the tent and
+    // the forge still open them when tapped)
     out.push({ id: 'shrine', label: 'Shrine', icon: 'shrine', target: CAMP_SPOTS.shrine, roof: true });
     if (bestWaiting(p)) out.push({ id: 'chests', label: 'Chests', icon: 'chest', target: this.propRect('chests'), roof: false });
     if (hasCamp(p, 'dummy')) out.push({ id: 'dummy', label: 'Practice', icon: 'target', target: this.propRect('dummy'), roof: false });

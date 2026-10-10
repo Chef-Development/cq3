@@ -224,10 +224,10 @@ const FLAG = ['hblll.', 'hbbll.', 'hbgbbl', 'hbbbB.', 'hBB...', 'h.....', 'h....
 const SKULL = ['.eeee.', 'eeeeeE', 'ekeekE', 'eeEeEE', '.eEeE.'];
 const SIGN = ['....h....', '.jjjjjjH.', 'jHHHHHHHd', 'jHkkkkHHdH', '.dddddddd', '....h....', '....h....', '...dhd...'];
 
-function prop(rows: string[], pad = 1): HTMLCanvasElement {
+function prop(rows: string[], pad = 1, pal: Pal = PROP_PAL): HTMLCanvasElement {
   const w = Math.max(...rows.map((r) => r.length));
   const g = grid(w + pad * 2, rows.length + pad * 2);
-  stamp(g, rows, PROP_PAL, pad, pad);
+  stamp(g, rows, pal, pad, pad);
   return toCanvas(g);
 }
 
@@ -4002,7 +4002,8 @@ export function buildMapArt(add: Add, w: number, h: number): void {
   add('mn_logs', prop(LOGS));
   add('mn_embers', prop(EMBERS));
   FLAMES.forEach((f, i) => add(`mn_flame_${i}`, raw(f, PROP_PAL)));
-  add('mn_stall', prop(STALL));
+  // the stall's awning in the mood's cloth (L7/L8): deep moss and aged linen, not candy green and cream
+  add('mn_stall', prop(STALL, 1, { ...PROP_PAL, a: '#1c3424', A: '#36583a', L: '#5a7c48', c: '#9c8c70' }));
   add('mn_q_0', prop(QMARK));
   add('mn_q_1', prop(QMARK_BIG));
   add('mn_flag', prop(FLAG));

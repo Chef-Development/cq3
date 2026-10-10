@@ -46,6 +46,8 @@ const LOOK = {
   ally: { bg: [0x6e4220, 0x26140c], ribbon: RIBBON.green, name: 0xfff6c0 },
   /** The Mapmaker: the Atlas's ink behind him, a gold ribbon (his lines glow gold). */
   mapmaker: { bg: [0x261c38, 0x0e0a16], ribbon: RIBBON.gold, name: 0x2e2240 },
+  /** Pip: a dark teal ground, his name on an ink plate with a brass rim (it was a bright blue pill: L8.4). */
+  pet: { bg: [0x1c4042, 0x08161a], ribbon: [0xbe8e3a, 0x262040, 0x1c1830, 0x100c1c], name: 0xe8c878 },
 } as const;
 
 export class StoryView {
@@ -174,7 +176,7 @@ export class StoryView {
 
     // portrait in a gold frame standing on the box; a new speaker slides in from their side
     const left = LEFT.includes(box.who);
-    const look = box.who === 'narrator' ? LOOK.narrator : box.who === 'mapmaker' ? LOOK.mapmaker : left ? LOOK.hero : ALLY.includes(box.who) ? LOOK.ally : LOOK.foe;
+    const look = box.who === 'narrator' ? LOOK.narrator : box.who === 'mapmaker' ? LOOK.mapmaker : box.who === 'pip' ? LOOK.pet : left ? LOOK.hero : ALLY.includes(box.who) ? LOOK.ally : LOOK.foe;
     const fw = 46;
     const wk = easeBack((now - this.whoAt) / 240, 1.6);
     const slide = Math.round((1 - wk) * (left ? -26 : 26));

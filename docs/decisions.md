@@ -1245,6 +1245,21 @@ A21. **The fresh-eyes review's 2A findings, first pass** (review-1/2/3 at 00:00;
     and name tab; the Atlas page sheet; the victory's restore motif; the loot screen's emptiness; the Options panel's
     look; the camp's doubled labels.
 
+A22. **The review's 2A findings, second pass** (sheet: `docs/art-audit/after/relic-pick-erased-lands-before-after.png`).
+    *The unlock card waits:* "New relic unlocked!" no longer comes up over the relic pick (its "Tap to continue" was
+    printed over the cards) or over an event's outcome; it waits for the screen it was earned on to be done and comes
+    up on the act map, or on the act clear once its chest is open (overlays `unlockActive`; the tips wait for it only
+    there). *The relic pick as upright cards:* three cards side by side on a glass plate (two wider ones for a new
+    player's first pick): the relic's icon at 2x in a well that glows in its rarity, its tags as icon chips beside the
+    well (a shared tag lit gold, "Synergy!" on that card's top edge, so it is clear which card has it), the rarity in
+    the corner, the name (bold, up to two lines) and what it does centred under it; a stat card the same with its
+    before-and-after on a strip. Every relic fits (`tests/unit/relic-cards.test.ts`, 84 x 90 cards; the line height
+    drops to 7 only for the longest). The shop's detail card keeps the wide layout. *Erased lands:* where two locked
+    lands meet, the line between their blanks is torn (each pixel near it belongs to whichever locked land a jittered
+    point round it falls in, the same for every veil, so no gap), not a ruled region border; a tap on an erased land no
+    longer thins it to show the coloured land under it (Ashfell's lava rivers showed in full colour), it only breathes;
+    clouds fade out as they drift onto an erased land.
+
 (art: end of section)
 
 
@@ -1379,14 +1394,35 @@ C-ART-9. **Region 5's telegraph sounds are in** (`skitter`, `shimmer2`, `sunflas
     door-mouth.
 C-ART-10. **Region 4's bar, readable at phone size** (review 2's DUSK-ART findings): the lantern is a pool of saturated
     amber in four steps with the track's rails catching it and a dithered edge (a pale amber over the violet track read
-    as brown dirt); blocks in its light catch it on their top edge; an unlit dark block is ink-grey with a faint "?"
-    (violet is the trap's colour, and some dark blocks are traps); the tide has a moving crest along its top, rings
+    as brown dirt); blocks in its light catch it on their top edge; an unlit dark block is ink-grey, not violet
+    (violet is the trap's colour, and some dark blocks are traps; at the merge, QA's Q20 dashed slate with no glyph
+    replaced the faint "?" drawn here, per the block-marks rule); the tide has a moving crest along its top, rings
     where the cursor wades, and sunk blocks keep their own colour under a thin veil with ripples (not olive). The
     Duskmire skies' long 1 px cloud streaks are short clumps at least 3 px tall.
 C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics-noon.ts`, painted at boot after the
     Ashfell ones whether or not the region is on; `noonspire()` in art-region-map.ts, a sand plateau with salt pans and
     a dotted mirage lake), and its seventeen gear icons (art-gear.ts `NOON_ICONS`; Region 4's still borrow the slot icons). Under L7 its first act
     map's sand is a cool neutral stone (it read as mud), the salt pans a step brighter and still under the road.
+C-ART-12. **Checked at phone size with Region 5 on: its relic pick and its region card read** (tags, synergy, the
+    belt, the card's sand map and seals). Two icons didn't at card size: the Dust Devil read as the Sand Glass's
+    hourglass (now a twisting funnel with no foot) and the Fata Morgana as a cart (now a castle standing in the air
+    over the haze). Region 4's gear has its own icons now (`DUSK_ICONS`; its Waders keep Region 1's, as the data
+    says). The sphinx's face was a flat, square, front-lit block that read as a mask: now turned a little toward the
+    hero, lit from her left with the far side in the headdress's shadow, the jaw tapering, fangs when she speaks or
+    strikes (her portrait is the Atlas's, unchanged).
+
+C-ART-13. **The shop is a place too** (backlog "art polish on the weakest screens", after 2A's stops): the act's stage
+    in view with its edges in shadow, the stall (the map's, at 3x) in a lantern's pool on the left, the wares on glass
+    as tall as their rows; the stage's hero and party step aside as at the trader. The shop's focal column (trader or
+    stall) sits 8 px further left than an event's so the plate keeps the width a relic's one line of text needs (at
+    the event's width most relics showed only "Tap to read"). The Sunshade icon is a parasol with a crook now.
+
+C-ART-14. **Reviews' leftovers in the mood**: the act maps' stall wears deep moss and aged linen (its own palette in
+    art-map.ts; the shared prop palette is untouched); Pip speaks from a dark teal ground with his blue graded a step
+    darker and cooler, his name on an ink plate with a brass rim (story.ts `LOOK.pet`; other speakers' tabs as they
+    were); the camp home drops the plates over the tent and the forge (the band's Bag and Forge buttons name them; the
+    shrine, chests, practice and companion plates stay). Not done from review-3 F6: the late camp's plates over props
+    and the heroes standing in the fire or the forge mouth.
 
 (content: end of section)
 

@@ -268,10 +268,12 @@ export function relicCard(
   c: CardCtx,
   r: Rect,
   id: RelicId,
-  o: { owned: readonly RelicId[]; tuning: Tuning; now: number; flash?: number; alpha?: number; chips?: Array<{ tag: RelicTag; r: Rect; hot: boolean }>; plain?: boolean },
+  o: { owned: readonly RelicId[]; tuning: Tuning; now: number; flash?: number; alpha?: number; chips?: Array<{ tag: RelicTag; r: Rect; hot: boolean }>; plain?: boolean; upright?: boolean },
 ): void {
   const def = relicById(id);
   if (!def) return;
+  // an upright card (the relic pick): its own layout
+  if (r.h > r.w || o.upright) return relicCardUpright(c, r, id, o);
   const { s, g, texts, pool } = c;
   const a = o.alpha ?? 1;
   const look = RARITY_FACE[def.rarity];
@@ -319,6 +321,80 @@ export function relicCard(
   cardShine(g, r, def.rarity, o.now, a);
   // "Synergy!" sits on the top edge, at the right end
   if (shared.length) synergyBadge(g, texts, r.x + r.w - textWidth('Synergy!', 1, false) - 9, r.y - 7, o.now, a);
+  if (o.flash && o.flash > 0) {
+    g.fillStyle(WHITE, o.flash * a);
+    g.fillRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
+  }
+}
+
+/** An upright card's icon well: a rounded square at the top middle in the rarity's colours (a soft glow round it for
+ *  rare and epic), the icon's 24 x 24 place in it. Returns where the icon goes. */
+export function uprightWell(g: G, r: Rect, face: Face, rarity: RelicRarity, now: number, alpha = 1): Rect {
+  const [hi, base, lo, deep] = face;
+  const w: Rect = { x: Math.round(r.x + r.w / 2 - 13), y: r.y + 3, w: 26, h: 26 };
+  if (rarity !== 'common') glow(g, w, base, (0.25 + 0.15 * pulse(now, 1100)) * alpha, 3);
+  rows(g, w.x - 1, w.y - 1, w.w + 2, w.h + 2, 3, INK, alpha);
+  rows(g, w.x, w.y, w.w, w.h, 2, mix(lo, deep, 0.35), alpha);
+  band(g, w.x, w.y, w.w, w.h, 2, 0, Math.round(w.h * 0.5), mix(base, lo, 0.55), alpha);
+  band(g, w.x, w.y, w.w, w.h, 2, 0, 1, mix(hi, base, 0.4), alpha);
+  band(g, w.x, w.y, w.w, w.h, 2, w.h - 1, w.h, deep, alpha);
+  return { x: w.x + 1, y: w.y + 1, w: 24, h: 24 };
+}
+
+/** The lines an upright card's words take: its name (bold, at most two lines) and what it does, wrapped to the card,
+ *  with the line height that fits them (tests: every relic fits the pick's cards). */
+export function uprightLines(name: string, text: string, w: number, h: number): { name: string[]; text: string[]; lh: number; fits: boolean } {
+  const nm = wrapText(name, w - 4, true).slice(0, 2);
+  const tx = wrapText(text, w - 6);
+  const room = h - (UPRIGHT_NAME_Y + nm.length * 9 + 3) - 2;
+  const lh = tx.length * 8 <= room ? 8 : 7;
+  return { name: nm, text: tx, lh, fits: tx.length * lh <= room };
+}
+/** Where an upright card's name sits under its well (its first line's middle, from the card's top). */
+export const UPRIGHT_NAME_Y = 35;
+
+/**
+ * The relic pick's upright card (round 8 review: the pick was three flat rows on a navy panel): the relic's icon at
+ * 2x in a well at the top, glowing in its rarity; its tags as chips down the well's left (a shared one lit gold,
+ * "Synergy!" on the card's top edge), the rarity at the top right; the name and what it does centred under it.
+ */
+function relicCardUpright(
+  c: CardCtx,
+  r: Rect,
+  id: RelicId,
+  o: { owned: readonly RelicId[]; tuning: Tuning; now: number; flash?: number; alpha?: number; chips?: Array<{ tag: RelicTag; r: Rect; hot: boolean }>; plain?: boolean },
+): void {
+  const def = relicById(id)!;
+  const { s, g, texts, pool } = c;
+  const a = o.alpha ?? 1;
+  const look = RARITY_FACE[def.rarity];
+  const face = look.face;
+  cardFrame(g, r, face, def.rarity, o.now, a);
+  const icon = uprightWell(g, r, face, def.rarity, o.now, a);
+  relicIcon(s, pool, g, id, icon.x, icon.y, c.depth, a, 2);
+  const shared = o.plain ? [] : sharedTags(id, o.owned);
+  if (!o.plain) {
+    def.tags.forEach((t, i) => {
+      const x = r.x + 3;
+      const y = r.y + 4 + i * (CHIP_H + 2);
+      const w = tagChip(s, g, texts, pool, t, x, y, c.depth, { name: false, hot: shared.includes(t), alpha: a, now: o.now });
+      o.chips?.push({ tag: t, r: { x, y, w, h: CHIP_H }, hot: shared.includes(t) });
+    });
+    // the rarity in the top-right corner, clear of the well
+    if (look.tag) {
+      const tw = textWidth(look.tag, 1, false) + 4;
+      const tr: Rect = { x: r.x + r.w - tw - 2, y: r.y + 4, w: tw, h: 9 };
+      tag(g, tr, face, a);
+      texts.text(look.tag, tr.x + 2, tr.y + 4.5, WHITE, { oy: 0.5, alpha: a });
+    }
+  }
+  const cx = r.x + r.w / 2;
+  const L = uprightLines(def.name, relicText(o.tuning, id), r.w, r.h);
+  L.name.forEach((line, i) => texts.text(line, cx, r.y + UPRIGHT_NAME_Y + i * 9, WHITE, { bold: true, ox: 0.5, oy: 0.5, alpha: a }));
+  const ty = r.y + UPRIGHT_NAME_Y + L.name.length * 9 + 3;
+  L.text.forEach((line, i) => texts.text(line, cx, ty + i * L.lh, 0xe8e2ff, { ox: 0.5, oy: 0.5, alpha: a }));
+  cardShine(g, r, def.rarity, o.now, a);
+  if (shared.length) synergyBadge(g, texts, cx - (textWidth('Synergy!', 1, false) + 8) / 2, r.y - 7, o.now, a);
   if (o.flash && o.flash > 0) {
     g.fillStyle(WHITE, o.flash * a);
     g.fillRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);

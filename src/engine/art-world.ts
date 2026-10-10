@@ -1809,12 +1809,41 @@ function* paintVeils(reg: Uint8Array, plate: Uint8Array, _broad: Float32Array, p
     const s = sat[y1 * sw + x1] - sat[y0 * sw + x1] - sat[y1 * sw + x0] + sat[y0 * sw + x0];
     return (s + area - (x1 - x0) * (y1 - y0)) / area;
   };
+  // where two locked lands meet, the line between their blanks is torn, not ruled (review round 8: the region border
+  // read as a straight box edge between two sheets): a pixel near such a border belongs to whichever locked land a
+  // point jittered round it falls in (the same jitter for every veil, so the two blanks still meet without a gap)
+  const locked = (r: number) => r === R_FROST || r === R_ASH || r === R_DUSK;
+  const owner = (i: number): number => {
+    const r = reg[i];
+    if (!locked(r)) return r;
+    const x = i % W;
+    const y = (i / W) | 0;
+    const jx = (noise(x * 0.11, y * 0.11, 61) - 0.5) * 22 + (noise(x * 0.6, y * 0.6, 63) - 0.5) * 5;
+    const jy = (noise(x * 0.11, y * 0.11, 62) - 0.5) * 22 + (noise(x * 0.6, y * 0.6, 64) - 0.5) * 5;
+    const sx = Math.max(0, Math.min(W - 1, Math.round(x + jx)));
+    const sy = Math.max(0, Math.min(H - 1, Math.round(y + jy)));
+    const j = sy * W + sx;
+    return plate[j] === 1 && locked(reg[j]) ? reg[j] : r;
+  };
   // each locked land as erased: blank vellum keeping the impression of its lines (art-world-atlas.ts blankOf)
   const out: Record<string, HTMLCanvasElement> = {};
   for (const [id, b] of Object.entries(VEIL_BOXES)) {
     yield;
     const R = VEIL_REG[id];
-    out[id] = blankOf(printed, W, H, b, (i) => plate[i] === 1 && reg[i] === R, soft);
+    // whose each pixel of the box is, worked out once (blankOf asks about a pixel more than once)
+    const own = new Uint8Array(b.w * b.h);
+    for (let y = 0; y < b.h; y++)
+      for (let x = 0; x < b.w; x++) {
+        const gx = b.x + x;
+        const gy = b.y + y;
+        if (gx < W && gy < H) own[y * b.w + x] = owner(gy * W + gx);
+      }
+    const ownAt = (i: number) => {
+      const x = (i % W) - b.x;
+      const y = ((i / W) | 0) - b.y;
+      return x >= 0 && y >= 0 && x < b.w && y < b.h ? own[y * b.w + x] : reg[i];
+    };
+    out[id] = blankOf(printed, W, H, b, (i) => plate[i] === 1 && ownAt(i) === R, soft);
   }
   return out;
 }
