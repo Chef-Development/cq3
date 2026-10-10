@@ -201,27 +201,27 @@ export function parchment(g: G, r: Rect, speckles: Array<[number, number, number
   }
 }
 
-/** Faces for menu buttons: [hi, base, lo, deep]. */
 /** Button faces [hi, base, lo, deep] (L7/L8: the mood's accents, deep and a little desaturated: moss, brass,
- *  oxblood, iron, steel blue, leather, plum, ink; not candy colours). */
+ *  oxblood, iron, steel blue, leather, plum, ink; not candy colours). Round 8 review: no face's base above about 60%
+ *  value, so a button is never brighter than the fire or the hero on a night stage. */
 export const FACE = {
-  green: [0x8cb87a, 0x4c8646, 0x356638, 0x1e3e24],
-  gold: [0xe6c886, 0xbe8e3a, 0x8c6224, 0x553812],
-  red: [0xd8907e, 0xa4403a, 0x782828, 0x481418],
-  grey: [0x7e8296, 0x5e6276, 0x4a4e60, 0x323442],
-  blue: [0x88aed4, 0x3c6aa4, 0x2c4e82, 0x182a4c],
-  wood: [0xc4925e, 0x95603a, 0x74462a, 0x46240e],
-  purple: [0xbea0d6, 0x7a54a6, 0x5a3c84, 0x34204e],
+  green: [0x84aa72, 0x467c42, 0x325e34, 0x1c3a22],
+  gold: [0xd2b27a, 0x9e7634, 0x765222, 0x4a3010],
+  red: [0xc0806e, 0x8c3630, 0x682426, 0x401216],
+  grey: [0x7a7e90, 0x585c70, 0x464a5c, 0x303240],
+  blue: [0x7c96b4, 0x345884, 0x284468, 0x16263e],
+  wood: [0xb88a58, 0x8a5a36, 0x6c4228, 0x42220e],
+  purple: [0xa68ebe, 0x644886, 0x4a3468, 0x2c1c40],
   navy: [0x5a5280, 0x342c54, 0x262040, 0x16122a],
 } as const;
 
-/** Ribbon colors [hi, base, lo, deep]. */
+/** Ribbon colors [hi, base, lo, deep] (the same worn accents as FACE: a banner is cloth, not plastic). */
 export const RIBBON = {
-  gold: [0xecd08e, 0xc69a42, 0x966a26, 0x5c3c14],
-  red: [0xe0907a, 0xb03c38, 0x82242a, 0x4e1018],
-  blue: [0x90b8e0, 0x3e70b0, 0x2c5090, 0x1a2c5a],
-  purple: [0xc6a2e0, 0x7e50ae, 0x5c3488, 0x361a56],
-  green: [0xa2c886, 0x4e8c48, 0x346838, 0x1c4224],
+  gold: [0xd8bc82, 0xa88236, 0x805c22, 0x503412],
+  red: [0xc8806c, 0x92322e, 0x6c2024, 0x420e16],
+  blue: [0x84a2c4, 0x345a8c, 0x284470, 0x162646],
+  purple: [0xac90c8, 0x66468c, 0x4c326c, 0x2c1a44],
+  green: [0x94b67c, 0x447a40, 0x305c32, 0x1a3a20],
 } as const;
 
 /**
