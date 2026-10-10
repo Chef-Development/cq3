@@ -257,7 +257,7 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'pip', text: 'Hoo. A grove keeper who talks to trees.\nStill better conversation than the knight.' },
   ],
   meetTam: [
-    { who: 'narrator', text: 'The chest lid blows off with a BANG!\nA cloud of soot coughs out a grin.' },
+    { who: 'narrator', text: 'The chest lid blows off with a BANG.\nA cloud of soot coughs out a grin.' },
     { who: 'tam', text: 'Tam. Sapper. I blow things up. Walls,\nmostly. Rocks. Once, a wedding. By accident.' },
     { who: 'tam', text: 'I set off little avalanches so big ones never\ncome. Then the snow STOPPED. No snow, no job.' },
     { who: 'rowan', text: "We'll get your snow back. Until then, no kegs\nin camp. ...Welcome, Tam." },

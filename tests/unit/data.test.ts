@@ -194,6 +194,11 @@ describe('story', () => {
     }
   });
 
+  it('keeps the narrator calm: no exclamation marks (docs/story-bible.md, Voices)', () => {
+    const all = { ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY, ...END_STORY };
+    for (const [id, boxes] of Object.entries(all)) for (const b of boxes) if (b.who === 'narrator') expect(b.text, id).not.toContain('!');
+  });
+
   it("keeps the Mapmaker's and the High Keeper's voices: no contractions (docs/story-bible.md, Voices)", () => {
     const all = { ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY, ...END_STORY };
     for (const [id, boxes] of Object.entries(all)) {
