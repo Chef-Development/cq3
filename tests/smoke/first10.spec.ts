@@ -12,6 +12,7 @@ import { expect, test } from './fixtures';
 //   PORT=4178 F10_OUT=/some/dir F10_SEED=7 npx playwright test tests/smoke/first10.spec.ts
 //
 // F10_SEED fixes the run (the act map, the fights' and loot's rolls); F10_ACC is the newcomer's accuracy (0.7);
+// F10_SKILLS=0 never opens the camp to spend skill points (by default it does, as the balance bot does);
 // F10_UNTIL=act plays on through Act 1 to its clear (the boss), then Camp (Sable's scene) and the first hero chest
 // opened in the vault, instead of stopping at the map after the first chest.
 
@@ -21,6 +22,8 @@ const OUT = process.env.F10_OUT ?? 'test-results/first10';
 const SEED = Number(process.env.F10_SEED ?? 7);
 const ACC = Number(process.env.F10_ACC ?? 0.7);
 const UNTIL = process.env.F10_UNTIL === 'act' ? 'act' : 'chest';
+/** Spend skill points at camp as they come (as the balance bot does); F10_SKILLS=0 never opens the camp for them. */
+const SKILLS = process.env.F10_SKILLS !== '0';
 /** Stop once these beats are in (or at the time limit). */
 const LAST_BEAT = 'chestOpened';
 
@@ -71,7 +74,7 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
 
   // ---- the newcomer, in the page
   await page.evaluate(
-    ([acc, until]) => {
+    ([acc, until, skills]) => {
       const w = window as Any;
       const x = w.__cq3.app;
       const view = x.view;
@@ -299,6 +302,16 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
             }
             if (!mapReadyAt) mapReadyAt = now;
             if (now - mapReadyAt < 1600) return; // looks at the choices
+            // a skill point to spend (the balance bot spends them after every loot): Camp, Skills, learn, back
+            if (skills && x.tips.pointsToSpend(x.run)) {
+              S.campFor = 'skills';
+              log('camp: to spend skill points');
+              const cr = view.mapView.campRect();
+              tap(cr.x + cr.w / 2, cr.y + cr.h / 2);
+              busyUntil = now + 1500;
+              mapReadyAt = 0;
+              return;
+            }
             const choices: number[] = x.run.choices();
             if (!choices.length) return;
             const nodes = choices.map((id) => x.run.map.nodes[id]);
@@ -428,6 +441,7 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
               beat('actClearOpen', `chests waiting ${x.profile.chests.hero + x.profile.chests.rare + x.profile.chests.region}`);
             }
             if (now - S.clearAt > 2600) {
+              S.campFor = 'chest';
               tap(btn.camp.x + btn.camp.w / 2, btn.camp.y + btn.camp.h / 2);
               busyUntil = now + 900;
             }
@@ -446,6 +460,37 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
               if (now - storyAt > rnd(1900, 2300)) {
                 tap(160, 128);
                 storyAt = now;
+              }
+              return;
+            }
+            if (S.campFor === 'skills') {
+              if (camp.mode === 'home') {
+                if (now - screenAt < 1200) return;
+                camp.go('skills', now);
+                busyUntil = now + 1200;
+                return;
+              }
+              if (camp.mode === 'skills') {
+                // down one branch (the first with a node learned, else the first), a tap to pick a node and one to learn it
+                const sk = camp.skills;
+                const tree = sk.tree();
+                const learned = sk.prog().skills as string[];
+                const first = Math.max(0, tree.findIndex((b: Any) => b.nodes.some((n: Any) => learned.includes(n.id))));
+                let n = 0;
+                for (let k = 0; k < tree.length; k++)
+                  for (const node of tree[(first + k) % tree.length].nodes)
+                    if (sk.check(node.id) === 'ok') {
+                      sk.sel = node.id;
+                      sk.doLearn(now);
+                      n++;
+                      S.taps += 2;
+                    }
+                beat('skillsSpent', `${n} node(s)`);
+                log(`skills: learned ${n}`);
+                S.campFor = null;
+                busyUntil = now + 1800; // (watches the node light up)
+                setTimeout(() => x.leaveCamp(), 1500);
+                return;
               }
               return;
             }
@@ -512,7 +557,7 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
         }
       }, 40);
     },
-    [ACC, UNTIL] as const,
+    [ACC, UNTIL, SKILLS] as const,
   );
 
   // ---- New game: the title's tap (a new player's only choice)
