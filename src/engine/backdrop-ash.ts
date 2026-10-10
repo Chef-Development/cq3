@@ -289,7 +289,7 @@ function cinder(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const skyBot = G - 14;
   for (let y = 0; y < skyBot; y++)
     for (let x = 0; x < w; x++) {
-      const v = (y / (G - 22)) ** 1.3 * 0.66 + glowSky(x, y) * 0.36 + (fbm(x * 0.02, y * 0.06, 7) - 0.5) * 0.16;
+      const v = (y / (G - 22)) ** 1.2 * 0.68 + glowSky(x, y) * 0.5 + (fbm(x * 0.02, y * 0.06, 7) - 0.5) * 0.16;
       p.set(x, y, pick(SKY_CINDER, v, x, y, 0.35));
     }
   // the volcano on the horizon, its plume of ash rolling off to the east

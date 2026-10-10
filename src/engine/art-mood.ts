@@ -116,7 +116,7 @@ export const MOOD: Partial<Record<Theme, Mood>> = {
   // night under the aurora
   glacier: { tint: 0xa8b4d8, desat: 0.16, keep: 0.9, shadow: 0x081028, shadowAmt: 0.5, ground: 0x8a94bc, groundAmt: 0.3 },
   // smoke over the flats: the plain dark, the lava and the volcano's fire kept
-  cinder: { tint: 0x9a8496, desat: 0.28, keep: 0.95, shadow: 0x140a14, shadowAmt: 0.5, ground: 0x80687a, groundAmt: 0.36 },
+  cinder: { tint: 0xa4909e, desat: 0.24, keep: 0.95, shadow: 0x140a14, shadowAmt: 0.45, ground: 0x80687a, groundAmt: 0.36 },
   // the warrens a step darker; the lake and the glass keep their light
   glass: { tint: 0xb0a4c4, desat: 0.14, keep: 0.95, shadow: 0x0c0818, shadowAmt: 0.45, ground: 0x887894, groundAmt: 0.3 },
   // the forge in smoke; the fires stay
