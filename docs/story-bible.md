@@ -24,6 +24,8 @@ commit titles, PR titles, the Test lab's labels and anything the playtester read
   south-east below the heartland, the sun plateau east; the far isles lie past the east coast.
 
 ### Voices (for writers and the editor pass)
+Round 8 (L8, the playtester): grown-up wit, not chirp. Jokes are dry, wry and character-driven; no baby talk, toy-like
+names, slapstick panic or exclamation-heavy cheer; at most one "!" a box, and none in the narrator's.
 | Who | Voice | Never |
 |---|---|---|
 | Narrator | plain, concrete, present tense in scenes; one image per box | jokes, UI words ("bar", "tap") |
@@ -31,7 +33,7 @@ commit titles, PR titles, the Test lab's labels and anything the playtester read
 | Pip (plot) | dry, warm, brief; knows too much and lets it show a little; contractions; "Hoo." at most once a scene | bits, billing jokes (those are banter) |
 | The Mapmaker | gentle, courteous, precise; **no contractions** (until Region 11, when his composure breaks); craftsman's words (line, draft, smudge); compliments; "There. Better." rarely | shouting (until Region 11), threats, lies |
 | Hesper | terse, formal, few kind words; no contractions | explaining herself (until the end) |
-| Sable | quick, light-fingered, practical; one quip per scene | cruelty |
+| Sable | quick, light-fingered, practical; one dry quip per scene | cruelty; CAPITALS (Neve's); slapstick |
 | Brann | (vow of silence until his abbey's bell rings, Region 9) writes on a slate: `(writes on a slate)` in his arrival, `(writes)` in banter; calm, kind, few words | speaking aloud before Region 9 |
 | Neve | prickly, proud, CAPITALS for emphasis, secretly glad of company | admitting it |
 | Mags | gruff, warm underneath, forge talk | (she can joke: she's camp) |
