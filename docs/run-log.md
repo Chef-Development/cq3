@@ -281,3 +281,5 @@ One PR at the end supersedes #1-#7.
 - 05:09 EDT: the final suites on the final code: 1,260 unit tests (72 files) green; Playwright 154 passed, 1 skipped (a
   region slot not yet in play), 0 failed. CI green on PR #8. Report and PR updated. Nothing new starts now; the
   final message at 06:45.
+- 05:12 EDT: CLAUDE.md's map lists round 8's new files; docs/backlog.md opens with the next round. A last read-only
+  fresh-eyes look at the final build's first 10 minutes (no code changes; its notes go to the next round's list).
