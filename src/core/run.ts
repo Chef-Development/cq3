@@ -11,8 +11,9 @@
 
 import { eventById } from '../data/events';
 import { pageOfAct, pageSceneId } from '../data/atlas-pages';
-import { CAMPAIGN, REGIONS, actInRegion, lastActOfRegion, regionOfAct } from '../data/regions';
+import { CAMPAIGN, REGIONS, actInRegion, lastActOfRegion, regionOfAct, regionStart } from '../data/regions';
 import { STORY } from '../data/story';
+import { REMIXES, type RemixDef } from '../data/remixes';
 import { questById, type QuestId } from '../data/quests';
 import type { ActDef, BarRules, EventOutcome, RegionDef } from '../data/types';
 import { HEROES, type HeroId } from '../data/heroes';
@@ -606,7 +607,7 @@ export class Run {
   }
 
   get theme() {
-    return this.act.theme;
+    return this.skirmish?.foe.theme ?? this.act.theme;
   }
 
   /** The node Rowan is on (null at the act's start). */
@@ -1103,6 +1104,55 @@ export class Run {
     return true;
   }
 
+  // ------------------------------------------------------------------ the Mapmaker's revisions (New Game+)
+
+  /** The revision a restored region offers (its boss redrawn: src/data/remixes.ts), or null (region `r` not won). */
+  remixFor(r: number): RemixDef | null {
+    const def = REGIONS[r];
+    if (!def || this.profile.weights <= r) return null;
+    return REMIXES.find((x) => x.region === def.id) ?? null;
+  }
+
+  /** Whether a region's revision has been beaten (its first-win reward taken). */
+  remixBeaten(id: string): boolean {
+    return this.profile.seen.includes(`remix:${id}`);
+  }
+
+  /** Fight a restored region's revised boss from the world map, as a skirmish: in the boss's own lair, at the numbers
+   *  of the furthest act reached (times tuning.remix), as a hero who has been through that act (heroFor). The run as
+   *  it was comes back after it, won or lost. */
+  startRemix(r: number): boolean {
+    const rx = this.remixFor(r);
+    if (this.phase !== 'world' || this.skirmish || !rx) return false;
+    const R = this.tuning.remix;
+    const lair = regionStart(r) + REGIONS[r].acts.length - 1; // the original boss's act: its look and music
+    const at = Math.max(lair, Math.min(this.region.acts.length, this.profile.actsCleared) - 1); // the furthest act
+    const foe: Skirmish = { act: at, waves: [[rx.id]], spot: 0, remix: rx.id, theme: this.region.acts[lair].theme };
+    this.skirmish = { foe, hero: this.hero, act: this.actIndex, map: this.map, path: this.path, extras: this.extras };
+    this.actIndex = at;
+    this.path = [];
+    this.hero = heroFor(this.tuning, at, this.gear, this.build);
+    this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
+    this.fightSeed = this.seed;
+    const S = this.actScale;
+    this.combat = new Combat({
+      tuning: this.tuning,
+      settings: this.settings,
+      hero: this.hero,
+      enemies: [rx.id],
+      waves: [[rx.id]],
+      seed: this.fightSeed,
+      hpMult: S.hpMult * R.hpMult,
+      atkMult: S.atkMult * R.atkMult,
+      pace: S.pace,
+      redSpeed: S.redSpeed,
+      row: 6,
+    });
+    this.boostChoices = [];
+    this.phase = 'fight';
+    return true;
+  }
+
   // ------------------------------------------------------------------ practice fights (the camp's Training Dummy,
   // and the Test lab's scenarios)
 
@@ -1167,6 +1217,17 @@ export class Run {
     const sk = this.skirmish!;
     if (c.result === 'lost') return this.endSkirmish();
     if (c.result !== 'won') return;
+    if (sk.foe.remix) {
+      // a revision beaten: the first time, gems and a hero chest; every time, XP and Rare-or-better gear
+      const R = this.tuning.remix;
+      if (!this.remixBeaten(sk.foe.remix)) {
+        this.profile.seen.push(`remix:${sk.foe.remix}`);
+        this.gem(Math.round(R.gems));
+        this.chest('hero');
+      }
+      this.grantXp(Math.round(R.xp * (sk.foe.act + 1)));
+      return this.showLoot(this.extraItems(Math.round(R.items), 'rare', 6), false, 'world');
+    }
     this.grantXp(Math.round(this.tuning.wander.xp * (sk.foe.act + 1)));
     this.showLoot(this.extraItems(Math.round(this.tuning.wander.items), 'uncommon', 3), false, 'world');
   }

@@ -16,12 +16,12 @@ import { heroProgress } from '../../core/profile';
 import { heroOwned, ownedHeroes } from '../../core/roster';
 import { skillStatPreview } from '../../core/run';
 import { textWidth } from '../font';
-import { CampKit, D, GREEN, pix, pixSize, STYLE_LOOK } from './camp-kit';
+import { CampKit, D, GREEN, pageStrip, pix, pixSize, STYLE_LOOK, type StripPage } from './camp-kit';
 import { padlock, wrapText } from './items';
 import { chevron, glow, GOLD, NAVY, rows } from './pixels';
 import { clamp01, easeOut3, inRect, INK, mix, pulse, WHITE, type Rect } from './shared';
 import { FACE, isPressed, notePress, tag } from './ui';
-import { bigButton, drawStage, enterK, fillEllipse, glass, liftDim, popK, starShape, type Face } from './ui-modern';
+import { bigButton, drawStage, enterK, fillEllipse, glass, liftDim, popK, starShape, stripArrows, type Face } from './ui-modern';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -55,6 +55,7 @@ export class SkillsScreen {
   private armed = 0; // Reset waits for a second tap until then
   private shakeAt = -1e9;
   private tickAt = -1e9;
+  private stripPage: StripPage = { first: 0, sel: -1 }; // the faces on view when they don't all fit
 
   constructor(private readonly kit: CampKit) {}
 
@@ -120,9 +121,10 @@ export class SkillsScreen {
     return { x: s.L + 3, y: 20, w: c.x - 4 - (s.L + 3), h: s.B - 3 - 20 };
   }
 
-  private tabs() {
-    return this.kit.heroTabs(false, this.pointsRect().x - 4);
+  private strip() {
+    return this.kit.heroTabs(false, this.pointsRect().x - 4, this.hero, this.stripPage);
   }
+
 
   /** Many heroes: the tabs are faces and Reset goes to its icon. */
   private crowded(): boolean {
@@ -221,7 +223,18 @@ export class SkillsScreen {
       notePress(kit.backRect());
       return 'back';
     }
-    for (const { id, r } of this.tabs()) {
+    const strip = this.strip();
+    const row = strip.row;
+    for (const [r, d] of [
+      [row?.prev, -1],
+      [row?.next, 1],
+    ] as const) {
+      if (!r || !inRect(r, x, y, 1)) continue;
+      notePress(r);
+      pageStrip(this.stripPage, row!, d);
+      return;
+    }
+    for (const { id, r } of strip.tabs) {
       if (!inRect(r, x, y, 2)) continue;
       notePress(r);
       if (id !== this.hero) this.setHero(id, now);
@@ -342,7 +355,9 @@ export class SkillsScreen {
     // the hero's stage, darker: the tree glows on it
     drawStage(kit, HEROES[this.hero].style, now, { alpha: enterK(now, this.openAt, 0, 0, 220), dim: 0.58, light: 0, motes: true });
     kit.drawBack(g, now);
-    kit.drawHeroTabs(g, this.tabs(), this.hero, now);
+    const strip = this.strip();
+    kit.drawHeroTabs(g, strip.tabs, this.hero, now);
+    stripArrows(g, strip.row, now);
     this.drawTop(g, now);
     this.drawTree(now);
     this.drawCard(now);

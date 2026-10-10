@@ -321,9 +321,11 @@ export const LAB_NEW: LabScenario[] = [
   // team 2C: the stages darker and moodier (late day, a red evening, a moonlit night), the foes with an edge (nothing
   // hurts: look at them)
   { id: 'moodAct1', group: 'fights', label: 'Act 1 at dusk', secs: 45, try: 'Moodier now? Do you and the foes still pop?', setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['slime', 'crow'], ['boar', 'bandit'], ['bigSlime']], safe: true } },
-  { id: 'moodAct3', group: 'fights', label: 'Act 3, red evening', secs: 40, try: 'A blood-red sky. Too dark, or just right?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['wolf', 'shaman'], ['boar', 'crow']], safe: true } },
-  { id: 'spMoodBoss3', group: 'spoiler', spoiler: true, label: 'Act 3 boss look', secs: 30, try: 'More menace? Still clear what he is?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['boarKing']], safe: true } },
-  { id: 'spMood4', group: 'spoiler', spoiler: true, label: 'Act 4 at night', secs: 40, try: 'Moonlit now. Do the foes still read?', setup: { kind: 'fight', hero: 'rowan', act: 3, waves: [['rimeImp', 'icicleBat'], ['yetiCub', 'rimeImp']], safe: true } },
+  { id: 'moodAct3', group: 'fights', label: 'Act 3, red evening', secs: 40, try: 'A red sky over a cool dusk. Do foes and reds pop?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['wolf', 'shaman'], ['boar', 'crow']], safe: true } },
+  { id: 'spMoodBoss3', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 3 boss look', secs: 60, try: 'Push him: a new look at each phase. Menace?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['boarKing']], safe: true } },
+  { id: 'moodMap1', group: 'fights', label: 'Act 1 map at dusk', secs: 30, try: 'Dusk, lanterns, meaner foes. Still easy to read?', setup: { kind: 'map', act: 0 } },
+  { id: 'spMood4', group: 'spoiler', spoiler: true, label: 'Act 4 at night', secs: 40, try: 'Moonlit. The small white beast: menace now?', setup: { kind: 'fight', hero: 'rowan', act: 3, waves: [['yetiCub', 'rimeImp'], ['rimeImp', 'icicleBat']], safe: true } },
+  { id: 'spMoodBoss9', group: 'spoiler', spoiler: true, label: 'Act 9 boss look', secs: 40, try: 'Does he stand off the dark forge now?', setup: { kind: 'fight', hero: 'rowan', act: 8, waves: [['bellows']], safe: true } },
   // ---- content: the new regions (team 3; spoilers)
   // the fourth region's two bar rules, each alone against the Training Dummy (nothing hurts, the rule's tip on), then
   // both at once against real foes
@@ -332,6 +334,10 @@ export const LAB_NEW: LabScenario[] = [
   { id: 'spBarMirage', group: 'spoiler', spoiler: true, label: 'Act 13 bar rule', secs: 40, try: 'Some blocks jump to their ghost. Read the outline.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, waves: [['dummy']], bar: { mirage: { share: 0.4, fromRow: 0, every: 2.6 } }, safe: true }, profile: { tips: ['mirage'] } },
   { id: 'spBarHeat', group: 'spoiler', spoiler: true, label: 'Act 14 bar rule', secs: 40, try: 'Blazing blocks hit hard but burn. Greens cool.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 6, waves: [['dummy']], bar: { heat: { share: 0.35, fromRow: 0 } }, safe: true }, profile: { tips: ['heat'] } },
   { id: 'spBarDusk', group: 'spoiler', spoiler: true, label: 'Act 12 bar rules', secs: 75, try: 'Both at once, real foes. Fair? Easy to read?', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 7, stage: 2, waves: [['cinderKite', 'cragCrab'], ['glassMantis'], ['cinderling', 'prismBat']], bar: { dark: { share: 0.3, fromRow: 0, traps: 0.25 }, tide: { fromRow: 0, low: 0.08, high: 0.4, period: 8, from: 'right' } } } },
+  // New Game+: a restored region's boss, redrawn (the Mapmaker's revision; the act picker offers it once the region is
+  // restored); here at its own act's numbers, with nothing able to hurt you, then for real
+  { id: 'spRevision3', group: 'spoiler', spoiler: true, label: 'Act 3 revision', secs: 90, try: 'Watch its last phase: the light goes out.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 2, waves: [['boarKingRevised']], row: 6, safe: true } },
+  { id: 'spRevision3b', group: 'spoiler', spoiler: true, label: 'Act 3 revision, real', secs: 90, try: 'A real fight. Fair? A step up from the first?', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 4, waves: [['boarKingRevised']], row: 6 }, profile: { level: 12, gear: 'rare' } },
   // the fifth region ahead of its art (not in the campaign yet): its foes and mini-bosses on stand-in looks, at Act 12's
   // numbers with its own bar rules (its sprites, sounds and scenes come with its art)
   { id: 'spAct13', group: 'spoiler', spoiler: true, label: 'Act 13 foes', secs: 90, try: 'Early look, borrowed sprites: moves and mirages.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 11, waves: [['duneSkink', 'glareHawk'], ['duneBandit', 'duneSkink'], ['duneColossus']], bar: { mirage: { share: 0.25, fromRow: 0, every: 2.8 } } } },

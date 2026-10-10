@@ -365,6 +365,15 @@ export class CampView {
     return out;
   }
 
+  /** The keyboard's targets on the camp home that aren't drawn as buttons (input.ts focusExtras): the plates over the
+   *  shrine, the chests, the Training Dummy and the companion along (Bag and Forge have their buttons in the band). */
+  focusTargets(): Rect[] {
+    if (this.mode !== 'home') return [];
+    return this.plates()
+      .filter((pl) => pl.id !== 'bag' && pl.id !== 'forge')
+      .map((pl) => pl.r);
+  }
+
   /** The Camp button, top left beside the hero chip (the upgrades and the region progress). */
   campRect(): Rect {
     const c = this.chipRect();
