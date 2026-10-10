@@ -326,6 +326,10 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   pressed; targets drawn without a button are added in `input.ts focusExtras` (map nodes, world landmarks, boost
   cards): a new screen whose tap targets aren't buttons adds them there. A window with room gets a quiet frame round
   the canvas (`layout.ts framed`/`applyFrame`). `tests/smoke/desktop.spec.ts` plays at 1440x900 with no touch.
+- **Android and browser tabs** (round 8): the back gesture does what Escape does (`input.ts`: a fight pauses, a screen
+  or sheet closes; on the title it leaves); the installed app opens full screen (`display_override`); in a tab or on a
+  desktop the gear panel has Full screen (and on a phone held upright it locks the game sideways). The "turn your
+  phone sideways" card shows on touch screens only.
 - **Clean capture** (`cq3.cleanCapture`, storage.ts): the gear panel's Modes or C hides the HUD buttons and the Test
   lab's for recording clips; a long press on the top middle (or C) brings them back.
 - **Test lab** (`src/data/lab.ts` scenarios, `core/lab.ts` profiles/fights/ratings/report, `engine/lab.ts` the list):

@@ -972,7 +972,10 @@ C7. **Stand-ins until a region's art lands, never a missing texture or a silent 
   left: 5 game px of safe area, the HUD clears it): boot, title, touch taps in a fight (judged hits and blocks), a real
   touch drag on the world map, the camp and its screens; no errors, no long decimals. The installed app now asks for
   full screen (`display_override: ["fullscreen"]`; Safari ignores it): with the status bar gone a Pixel 7 gets 7x
-  pixels instead of 6x.
+  pixels instead of 6x. Android's back gesture used to close the game, mid-fight too: it now does what Escape does (a
+  fight pauses, a screen or a sheet closes; on the title it leaves as before). A tab or a desktop gets Full screen in
+  the gear panel (Android also turns a phone held upright sideways once it's full screen; iPhone Safari has no element
+  full screen, so the row is hidden there).
 - **Q9 The later regions' art in packs** (region-art.ts, docs/perf.md "Region art packs"). The Frostpeaks' and
   Ashfell's foes, portraits, bar pieces and backdrops are chunks loaded with `import()` as the game boots, painted in
   idle slices from the title on, and finished at once when a fight starts or the run is in a later region
