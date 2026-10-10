@@ -240,3 +240,12 @@ One PR at the end supersedes #1-#7.
   textures, stuck screens); the keyboard reaches the vault's chests, the region card's seals and build mode's spots
   (a desktop spec Tabs to each); the settings button a pixel cog (R4-17); tall hero sheets cover their column.
   Boot-checked, pushed. QA-menus done for the night.
+- 03:29 EDT: merged the review-4 fixes: QA-fight (a foe's shout keeps its spot and the finisher name fades; a hurt
+  hero tinted, not a red cut-out; the damage number above his head; FINISHER readable; no fight HUD under the loot),
+  dusk-art (the camp's buttons one dark metal face with coloured icons, "Build"; the first relic pick's cards filled
+  and the tray labelled; the world map's lands toward dusk; the treasure banner in ink and brass; the title's corner),
+  first10 (the pick tip along the bottom; "Level up!" off the HP plate; the meter full while the first stack waits;
+  fight tips under the foe's plate; the gear button hides under a tip; "+N Max HP" on the plate). Every team has
+  reported; agents done. Boot-checked, pushed. Lead's look at the title, the Atlas and the intro: good.
+  Next (the freeze): the full unit suite, then the screenshot baselines (looked at), then the full Playwright suite on
+  a quiet machine, the report and the PR.
