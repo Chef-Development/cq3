@@ -1043,6 +1043,17 @@ C11. **Ice floats on the tide** (`CORE:`): a frozen block in the water is never 
     tide act, since reds are blocked in the shallows and her ice sank where it formed.
 C12. **The region card's tabs fall back to short names** (Green, Frost, Ash, Dusk) when four regions don't fit the
     top bar by name (the fourth tab ran off a phone's screen); screenshots of the card change with it.
+C13. **The fourth region's hero parity (100 runs a hero): fix how kits meet the bar rules, not their numbers.** The
+    bot left everything in the water alone, even what floats (it never tapped Neve's floating ice): one rule now says
+    what can sink (`Combat.canSink`, `CORE:`): reds wade, ice floats, and a Marksman's target stands above the tide on
+    its post and lights itself (never dark). The second mini-boss carried a tag the starting hero (the reference) is
+    20% stronger against, which tilted that act toward him: retagged (CLAUDE.md's lesson on soft strengths and region
+    bosses). Gaps and what's left in the content bible (§7, As wired).
+C14. **The fifth region is wired behind a switch** (`src/data/flags.ts` `NOON_ON`: off in the game and the unit tests;
+    `CQ3_REGION5=1` turns it on for the balance tools). Its relics have hooks and with/without tests, its gear effects
+    are in the core (`CORE:`), `noonCamp` is wired like `duskCamp`, its foes are in ENEMIES for the Test lab's early
+    looks, and placeholders stand in for its art. What its art and music need is listed in the content bible (§8).
+    Its scenes stay out of STORY while it's off: a scene in STORY lets the camp lines waiting for it show.
 
 (content: end of section)
 

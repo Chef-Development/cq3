@@ -29,8 +29,8 @@ export const NOONSPIRE: RegionDef = {
     {
       name: 'The White Road',
       theme: look('whiteRoad'),
-      hpMult: 8.2,
-      atkMult: 21,
+      hpMult: 10.5,
+      atkMult: 24,
       pace: 0.78,
       redSpeed: 1.32,
       rows: 7,
@@ -53,8 +53,8 @@ export const NOONSPIRE: RegionDef = {
     {
       name: 'The Spire Steps',
       theme: look('spireSteps'),
-      hpMult: 8.8,
-      atkMult: 25,
+      hpMult: 11,
+      atkMult: 28,
       pace: 0.74,
       redSpeed: 1.44,
       rows: 7,
@@ -77,8 +77,8 @@ export const NOONSPIRE: RegionDef = {
     {
       name: 'The Great Sundial',
       theme: look('sundial'),
-      hpMult: 10.2,
-      atkMult: 26.5,
+      hpMult: 12,
+      atkMult: 30,
       pace: 0.7,
       redSpeed: 1.44,
       rows: 7,

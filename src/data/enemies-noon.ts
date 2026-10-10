@@ -85,8 +85,8 @@ export const NOON_ENEMIES: Record<string, EnemyDef> = {
   sphinx: {
     name: 'The Noon Sphinx',
     tags: ['beast', 'caster'],
-    hp: 3800,
-    atk: 21,
+    hp: 7300,
+    atk: 29,
     special: 18,
     interval: 0.6,
     pattern: 'YRYSGYRYYR',
@@ -197,8 +197,8 @@ export const NOON_ENEMIES: Record<string, EnemyDef> = {
   brassLion: {
     name: 'The Brass Lion',
     tags: ['construct', 'beast'],
-    hp: 3400,
-    atk: 20,
+    hp: 7000,
+    atk: 28,
     special: 18,
     interval: 0.6,
     pattern: 'YRYGYSYRYY',
@@ -315,8 +315,8 @@ export const NOON_ENEMIES: Record<string, EnemyDef> = {
   gnomon: {
     name: 'The Gnomon',
     tags: ['construct', 'armored'],
-    hp: 9400,
-    atk: 21,
+    hp: 8000,
+    atk: 22,
     special: 19,
     interval: 0.55,
     pattern: 'YRYSRYGYRYY',

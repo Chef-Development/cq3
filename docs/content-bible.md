@@ -933,20 +933,25 @@ rules: the lantern's reach never under 0.32 s, the tide never over half the bar,
   hpMult 7.4 / 8 / 9.8, atkMult 20 / 24 / 25, redSpeed 1.3 / 1.42 / 1.42; Old Bellybog 4000 HP; the Sluice Keeper 5800
   HP, atk 24. Measured after merge 3 (two 40-run samples, seeds 7 and 8): Act 10 84 / 90%,
   Act 11 71 / 74%, Act 12 53 / 69% (at hpMult 9.6: 55 / 64; at 10.1: 45 / 49), the Lighthouse's first fight the same
-  (the act's first try is its boss's): a little above the targets in Acts 11-12, inside the guard's bands; fights 13 / 15-16 / 19 s, boss fights ~60 / 63 / 85 s. Samples of 40 swing 10-25
+  (the act's first try is its boss's): a little above the targets in Acts 11-12, inside the guard's bands (the Sluice
+  Keeper's retag in chunk 3 takes Act 11 down about 10 points for Rowan); fights 13 / 15-16 / 19 s, boss fights ~60 / 63 / 85 s. Samples of 40 swing 10-25
   points (seed 7 vs 8), so read one run of the guard as a band, not a number. `npm run region-tune` (cached end-of-Ashfell profiles from
   before merge 3, its own seeds) read Act 11 harder than the guard (44-69% where the guard reads 70-86%): use it for
   gaps between heroes, the guard for the targets, and rebuild its cache after other teams' changes. The masher never wins the
   Lighthouse (0 of 73 tries over 15 seeds).
-- **Hero parity** (region-tune from cached end-of-Ashfell profiles, 30 runs a hero, gaps to Rowan in Acts 10 / 11 /
-  12; at 30 runs a sample swings 15-20 points, Rowan's own included, so these are leads, not verdicts). First pass
-  (first-tuning numbers): Neve -18 / -55 / -20 (her Flash Freeze ice formed in the shallows and sank: ice floats now),
-  Vesper -13 / -37 / -15, Tess -18 / -28 / -16, Dell -11 / -22 / -21, Sable +7 / +18 / -2, the rest within ~15. Final
-  numbers (Rowan 78 / 44 / 32 in that sample, low against the guard's 87 / 72 / 61, so positive gaps read high): Neve
-  -4 / -14 / 0, Vesper -6 / -5 / -12 (-40 at Act 12 the pass before), Tess -22 / +4 / +3, Dell -15 / +7 / +8, Sable
-  +14 / +43 / +18, Moss +14 / +1 / +26, Hollis +2 / +20 / +20; the rest within ~22. Leads for a parity chunk: the
-  Marksmen at Act 12 (their Focus fires on greens; the mere's tide and dark take greens away), Tess at Act 10, Sable in
-  the tide act; then `npm run campaign` with REGIONS=4 at 100+ runs and two seeds.
+- **Hero parity, 100 runs a hero** (round 8, chunk 3: region-tune from end-of-Ashfell profiles cached after merge 3;
+  gaps to Rowan in Acts 10 / 11 / 12; a 100-run gap moves about ±7). First read: Sable +6 / +6 / -17, Neve -8 / -34 /
+  -20, Tess -27 / -10 / -28, Vesper -9 / -33 / -26, Dell -14 / -20 / -36. Three causes found and fixed, each in how a
+  kit meets the region rather than in a hero's numbers: (1) the bot left everything in or near the water alone, so it
+  never tapped Neve's floating ice: one rule now says what can sink (`Combat.canSink`: reds wade, ice floats, a
+  Marksman's target stands on its post) and the bot asks it; (2) Marksman targets (Vesper's and Dell's greens) light
+  themselves and stand above the tide (their Focus fires on greens, and the mere's dark and water took them away); (3)
+  the Sluice Keeper was tagged folk, which the starting hero (the reference) hits 20% harder: now beast and armored (a
+  beaver in a brass diving helmet). After: Neve -8 / 0 / -2, Dell -10 / -6 / -17, Vesper -9 / -23 / -16, Tess -27 /
+  -16 / -26, Sable +6 / +16 / -11 (Rowan 84 / 57 / 59 in that sample). Left: Tess everywhere in the region (her soft
+  strengths are fire and construct, and only the Lighthouse is construct here; a kit idea: her Stopwatch also holds
+  the tide still), Vesper in Act 11, Sable ahead in Act 11. The other heroes weren't re-run at 100 (30-run reads were
+  within noise).
 - Region 5's first-guess numbers were raised to stay a step above (atkMult 21 / 25 / 26.5, redSpeed 1.32 / 1.44 /
   1.44, Act 3 hpMult 10.2).
 
@@ -1097,6 +1102,15 @@ rimehorn, scarab -> beetle, brass sentry -> frost knight, salamander -> magma ee
 lion -> Hob & Nob, dial warden -> knight, heat djinn -> ice wraith, sun vulture -> crow, noon knight -> chain sentinel,
 the Gnomon -> Glacia) and themes (`NOON_STAND_IN`: pass, ruins, cinder). To turn it on: set `NOON_ON = true` once its
 art exists; then the region tests, the masher guard and a `bot-region5.test.ts` guard cover it.
+
+**Balance, first pass** (`CQ3_REGION5=1 REGION=4 npm run region-tune`, Rowan, 52 end-of-Duskmire profiles at 75%;
+targets a little harder than Region 4: Act 13 ~80%, Act 14 ~65%, Act 15 ~50%, the Gnomon's first fight ~45-55%). The
+first guesses were far too easy (98 / 94 / 67%, fights 9 s): the hero arrives at level 22. As set: hpMult 10.5 / 11 /
+12, atkMult 24 / 28 / 30 (red speeds as before, 1.32 / 1.44 / 1.44); the Sphinx 7300 HP atk 29, the Brass Lion 7000 /
+28, the Gnomon 8000 / 22. Measured either side (the last two configs): Act 13 85 / 73%, Act 14 56 / 63%, Act 15 35 /
+43%, fights 10 / 15 / 17 s, mini-boss fights 93-100 / 70 s, the Gnomon 70 s; the numbers set sit between them. Still to
+do once it's on: a 100-run pass, a `bot-region5.test.ts` guard, the masher (its row comes free in bot-masher), hero
+parity.
 
 **For the art and music helper** (keys as the data names them): foe sprites `duneskink`, `glarehawk`, `dunebandit`,
 `dunecolossus` (elite), `sphinx` (mini-boss), `emberscarab`, `brasssentry`, `sandsalamander`, `sunforgedgolem` (elite),
