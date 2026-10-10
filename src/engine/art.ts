@@ -396,7 +396,7 @@ const BOAR_LEGS: Record<string, string[]> = {
 
 const BANDIT_PAL: Pal = {
   // hood and cloak (purple ramp)
-  1: '#1e1430', 2: '#36244e', 3: '#523a72', 4: '#7a5a9a', 5: '#a888c8',
+  1: '#160e24', 2: '#2a1a3e', 3: '#40285a', 4: '#5c4078', 5: '#7e6098', // a deep plum (decision L8; was lilac)
   // face in the hood's shadow
   // the face lost in the hood's shadow, two eyes catching the light (decision L8)
   f: '#1e1028', s: '#4e2a26', S: '#6e3e30', k: '#140c1c', E: '#ffd25a',

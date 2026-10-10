@@ -1127,7 +1127,7 @@ function knightParts(pose: string): Part[] {
 // ------------------------------------------------------------------ captain (Bandit Captain: tricorn, eyepatch, bombs)
 
 // the bandit's purple, plus a darker hat
-const CPURPLE = ['#1e1430', '#36244e', '#523a72', '#7a5a9a', '#a888c8'];
+const CPURPLE = ['#160e24', '#2a1a3e', '#40285a', '#5c4078', '#7e6098']; // a deep plum (decision L8; was lilac)
 const CAPTAIN_PAL: Pal = {
   // hat (explicit tones) and gold trim
   b: CPURPLE[4], B: CPURPLE[3], n: CPURPLE[2], N: CPURPLE[1],
