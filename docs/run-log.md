@@ -289,3 +289,5 @@ One PR at the end supersedes #1-#7.
   text; L11 updated); boot-checked, pushed. Every baseline regenerating for it, then the suites once more. Review 5's
   other findings (tip plates over titles, the bag, Pip's portrait, the relic pick's stage, the hero select's kit
   colours, a few labels) go to the next round (docs/backlog.md).
+- 05:39 EDT: baselines regenerated for the new "a" (only the fight tip card moved past the 0.2% tolerance); committed,
+  pushed; the final unit and Playwright runs going on the final code.
