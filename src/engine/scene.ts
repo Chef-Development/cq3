@@ -179,8 +179,8 @@ export class FightScene extends Phaser.Scene implements View {
   }
 
   /** The later regions' foes, portraits and bar pieces, now: every pack that has arrived is finished and added at once,
-   *  and one still on its way is added the moment it arrives. App.setPhase asks when a fight starts or the run is in a
-   *  later region (nothing to do once all are in); a fight's foe or a scene's portrait that isn't there yet asks too. */
+   *  and one still on its way is added the moment it arrives. App.setPhase asks when the run is in a later region
+   *  (nothing to do once all are in); a fight's foe or a scene's portrait that isn't there yet asks too. */
   ensureRegionArt(): void {
     this.packsForced = true;
     for (const p of regionPacks()) this.addPack(p, true);

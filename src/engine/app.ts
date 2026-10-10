@@ -410,9 +410,10 @@ export class App {
 
   private afterPhaseChange(prev: Phase): void {
     const now = performance.now();
-    // a fight, or anything in a later region: every later region's art is in at once (region-art.ts; it's painted
-    // in idle slices from the title on, so a Greenmarch player's world map, camp and story never wait for it)
-    if (this.run.phase === 'fight' || (this.run.phase !== 'title' && regionOfAct(this.run.actIndex) > 0)) this.view?.ensureRegionArt();
+    // anything in a later region: every later region's art is in at once (region-art.ts; it's painted in idle slices
+    // from the title on, so a Greenmarch player never waits for it; a later foe or portrait met sooner, as in the Test
+    // lab, asks for it itself: fighters, story; the bar's later-region pieces are drawn only once they exist)
+    if (this.run.phase !== 'title' && regionOfAct(this.run.actIndex) > 0) this.view?.ensureRegionArt();
     if (this.run.phase === 'fight' && this.run.combat && this.run.combat !== this.begunCombat) {
       // every fight from the map waits for TAP TO BEGIN (resumed ones too)
       this.begunCombat = this.run.combat;

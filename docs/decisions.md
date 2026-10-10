@@ -978,8 +978,8 @@ C7. **Stand-ins until a region's art lands, never a missing texture or a silent 
   full screen, so the row is hidden there).
 - **Q9 The later regions' art in packs** (region-art.ts, docs/perf.md "Region art packs"). The Frostpeaks' and
   Ashfell's foes, portraits, bar pieces and backdrops are chunks loaded with `import()` as the game boots, painted in
-  idle slices from the title on, and finished at once when a fight starts or the run is in a later region
-  (`App.setPhase`), so no fight can meet a missing texture; the Frostpeaks' foes no longer paint at boot (they did,
+  idle slices from the title on, and finished at once when the run is in a later region (`App.setPhase`; a later foe
+  or portrait met sooner asks for them itself), so no screen can meet a missing texture; the Frostpeaks' foes no longer paint at boot (they did,
   ~0.4 s at 1x). Gated per screen change rather than at each use: the art is used from many places (bar pieces in any
   fight, portraits, the stage), and one gate keeps every one of them synchronous. Region 4's art (landed tonight) is a
   pack too (`pack-dusk.ts`). `__cq3.ready` waits for the packs.

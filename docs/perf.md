@@ -123,9 +123,10 @@ boot. Each later region's art is a **pack**, a chunk of its own (`src/engine/reg
   (`PACK_THEMES`, so the stage knows which pack a theme needs before it arrives).
 - `main.ts` starts every pack's `import()` before Phaser boots, so the packs download beside the main chunk (on a
   return visit the service worker has them). The scene paints them in idle slices once the title is up (after the
-  world map's slices), and a fight or any screen of a later region finishes them at once (`App.setPhase` ->
-  `FightScene.ensureRegionArt`, a no-op once all are in): no fight and no later region ever asks for a texture that
-  isn't there, and a Greenmarch player's world map, camp and story never wait for them. A foe or portrait asked for
+  world map's slices), and any screen of a later region finishes them at once (`App.setPhase` ->
+  `FightScene.ensureRegionArt`, a no-op once all are in): no later region ever asks for a texture that isn't there,
+  and a Greenmarch player never waits for them (a Greenmarch fight included: the bar's later-region pieces, icicles
+  and mirror shards, are drawn only once they exist). A foe or portrait asked for
   sooner finishes them too (fighters, story). `__cq3.ready` waits for the packs to arrive, so a test may jump anywhere.
 - **The one way to get it wrong**: a static `import` of a pack's file from anywhere else pulls it (and what it imports)
   back into the main chunk. Check the build's chunk list (`npm run build` prints `pack-<region>-*.js`). Something the
