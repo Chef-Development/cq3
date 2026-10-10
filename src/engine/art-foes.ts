@@ -346,7 +346,7 @@ const WOLF_HEAD: Record<string, string[]> = {
     '.bbbbbEesssss',
     'Nbbbbbbbbbsss',
     'nbbbbbbuubbss',
-    '.mmuuuuuubbbs',
+    '.mtuuuuuubbbs',
     '...uuuuuubb..',
   ],
   bite: [
@@ -762,13 +762,14 @@ function archerParts(pose: string): Part[] {
 // ------------------------------------------------------------------ shaman (mushroom folk with a crooked staff)
 
 // magenta cap, hue-shifted: shadows lean violet, highlights lean pink
-const CAP = ['#2a0c30', '#501650', '#7e1e68', '#ac2c7c', '#d85a92', '#ff9cb4'];
+// (decision L8) a toadstool's poisonous crimson rather than candy pink, its spots the colour of old bone
+const CAP = ['#1e0820', '#3a0e34', '#5c1442', '#82204e', '#a83c5c', '#cc6a74'];
 // deep teal robe (the cap's complement)
 const ROBE = ['#0e1a26', '#16343a', '#1e5050', '#2c7064', '#4c967a', '#80bc94'];
 const STEM = ['#4a3440', '#7a6070', '#a89098', '#d4c4bc', '#f4ece0'];
 const SHAMAN_PAL: Pal = {
   0: CAP[0], 1: CAP[1], 2: CAP[2], 3: CAP[3], 4: CAP[4], 5: CAP[5],
-  O: '#fff4e4', o: '#e0b8c8', // cap spots, lit and shaded
+  O: '#e4d8c4', o: '#a8949c', // cap spots, lit and shaded
   g: '#3e1438', G: '#6e3454', // gills under the cap
   f: '#2e1a30', F: '#46304a', // face in the cap's shadow
   E: '#eaff8a', e: '#8ad040', // glowing eyes
@@ -1307,7 +1308,7 @@ const GOLEM_PAL: Pal = {
   0: STONE[0], 1: STONE[1], 2: STONE[2], 3: STONE[3], 4: STONE[4], 5: STONE[5],
   A: MOSS[0], B: MOSS[1], C: MOSS[2], D: MOSS[3], E: MOSS[4],
   r: RUNE[0], t: RUNE[1], u: RUNE[2], U: RUNE[3],
-  p: '#ff8ac0', P: '#c04a8a', y: '#ffe070', // a little flower in the moss
+  p: '#22a098', P: '#14524e', y: '#d8fff6', // a compass-star rune glowing on its crown (it was a flower; decision L8)
   w: '#e8e0d0', // dust
 };
 
