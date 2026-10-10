@@ -3,7 +3,7 @@
 // with fizzing fuses. Fight frames `tam_${pose}` on the shared rig (art-rig.ts), and the UI's `keg_icon`.
 import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './art';
 import { ell, fill, sphere } from './art-paint';
-import { sparkle, type HeroCardSpec, type Layer, type Rig, type RigPose } from './art-rig';
+import { type HeroCardSpec, type Layer, LEG_FEET_X, matureLegs, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -72,61 +72,16 @@ const TORSO = [
   '.wwwwwLaaaaw.',
   '.wwwwwaLaaaw.',
   '..wwwaaaLaaa.',
+  '..wwwaaaLaaa.',
+  '..wwwaaaLaaa.',
   '..wwaalYaaLa.',
   '..wwaAAaaAAa.',
   '..wwaaaaaaaa.',
 ];
 
 // The apron to the knees over sooty trousers, stout boots; 13 wide, the feet centred on x = 6.
-const LEGS: Record<string, string[]> = {
-  stand: [
-    '..ppppaaaaa..',
-    '..ppppaAAaa..',
-    '..ppp.aaaa...',
-    '..ppp..ppp...',
-    '..ddd..ddd...',
-    '.ddddd.ddddd.',
-    '.ddddd.dddddd',
-  ],
-  run: [
-    '...pppaaaaa..',
-    '..pppaaAAaa..',
-    '.ppp..aaaa...',
-    'ddd.....ppp..',
-    'dd......ddd..',
-    '.......ddddd.',
-    '.......dddddd',
-  ],
-  lunge: [
-    '...pppaaaaa..',
-    '..pppaaAAaaa.',
-    '.ppp...aaaa..',
-    '.ppp....ppp..',
-    'ddd.....ddd..',
-    'dddd....ddddd',
-    'dddd....dddddd',
-  ],
-  crouch: [
-    '..ppppaaaaa..',
-    '.pppp.aAAaa..',
-    '.ppp...ppp...',
-    'dddd...dddd..',
-    'ddddd..dddddd',
-  ],
-  tuck: [
-    '..ppppaaaaa..',
-    '..pppaaAAaa..',
-    '....dddddddd.',
-    '....ddddd.ddd',
-  ],
-  // sat down hard, legs out in front
-  kneel: [
-    '..ppppaaaaa..',
-    '..pppppppppp.',
-    '..pppppppppdd',
-    '..........ddd',
-  ],
-};
+// the shared jointed legs (art-rig.ts STANCES, playtest round 8: L8, about three heads tall)
+const LEGS = matureLegs({ leg: 'p', legBack: '8', boot: 'd', bootBack: '9', sole: '9', skirt: 'a', fold: 'A' });
 
 const FIST = ['FF', 'fu'];
 const ARM_NEAR: Array<[number, ...string[]]> = [
@@ -139,12 +94,12 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 ];
 
 export const TAM_RIG: Rig = {
-  pal: TAM_PAL,
+  pal: { ...TAM_PAL, '8': TROUSER[1], '9': APRON[0] },
   shades: TAM_SHADES,
   heads: HEADS,
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 6,
+  legsFeetX: LEG_FEET_X,
   torsoX: -6,
   torsoOverlap: 1,
   headX: -2,
@@ -260,19 +215,19 @@ const match: Layer = (g, a) => {
 // ------------------------------------------------------------------ poses
 
 export const TAM_POSES: Record<string, RigPose> = {
-  idle0: { near: { at: [8, 8] }, far: { at: [3, 7] }, back: [satchel], front: [kegHeld('near')] },
+  idle0: { near: { at: [8, 17] }, far: { at: [3, 16] }, back: [satchel], front: [kegHeld('near')] },
   // tossing the keg an inch and catching it
-  idle1: { near: { at: [8, 8] }, far: { at: [3, 6] }, dy: 1, back: [satchel], front: [kegHeld('near', 2, -2)] },
+  idle1: { near: { at: [8, 17] }, far: { at: [3, 15] }, dy: 1, back: [satchel], front: [kegHeld('near', 2, -2)] },
   // the keg drops back into the hand a frame behind the breath
-  idle2: { near: { at: [8, 7] }, far: { at: [3, 6] }, dy: 1, back: [satchel], front: [kegHeld('near', 2, 1)] },
-  idle3: { near: { at: [8, 8] }, far: { at: [3, 7] }, back: [satchel], front: [kegHeld('near', 2, 1)] },
-  dash: { near: { at: [5, 9] }, far: { at: [-6, 10] }, legs: 'run', dx: 1, lean: 1, back: [satchel], front: [kegHeld('near', 1, 0)] },
+  idle2: { near: { at: [8, 16] }, far: { at: [3, 15] }, dy: 1, back: [satchel], front: [kegHeld('near', 2, 1)] },
+  idle3: { near: { at: [8, 17] }, far: { at: [3, 16] }, back: [satchel], front: [kegHeld('near', 2, 1)] },
+  dash: { near: { at: [5, 18] }, far: { at: [-6, 19] }, legs: 'run', dx: 1, lean: 1, back: [satchel], front: [kegHeld('near', 1, 0)] },
   // a sidearm toss: the keg just leaving the hand
-  slashA: { near: { at: [11, 11] }, far: { at: [-4, 9] }, legs: 'lunge', dx: 1, lean: 1, back: [satchel], front: [kegAt(17, 14), trail([[12, 12], [13, 14]])] },
+  slashA: { near: { at: [11, 20] }, far: { at: [-4, 18] }, legs: 'lunge', dx: 1, lean: 1, back: [satchel], front: [kegAt(17, 14), trail([[12, 12], [13, 14]])] },
   // an overhand lob: following through low, the keg arcing high ahead
   slashB: {
-    near: { at: [10, 6] },
-    far: { at: [-5, 12] },
+    near: { at: [10, 15] },
+    far: { at: [-5, 21] },
     legs: 'lunge',
     dx: 2,
     lean: 2,
@@ -280,11 +235,11 @@ export const TAM_POSES: Record<string, RigPose> = {
     back: [satchel],
     front: [kegAt(20, 23), trail([[13, 15], [14, 18], [16, 20]])],
   },
-  windup: { near: { at: [-6, 18] }, far: { at: [10, 13] }, legs: 'crouch', armsUp: true, back: [satchel, kegHeld('near', -2, -1)] },
+  windup: { near: { at: [-6, 27] }, far: { at: [10, 22] }, legs: 'crouch', armsUp: true, back: [satchel, kegHeld('near', -2, -1)] },
   // goggles down, arms up over the face, braced for the blast
-  parry: { near: { at: [7, 15] }, far: { at: [9, 17] }, legs: 'crouch', dy: 1, head: 'goggles', farFront: true, back: [satchel] },
-  hurt: { near: { at: [-5, 10] }, far: { at: [8, 14] }, dx: -1, lean: -1, dy: 1, head: 'squint', back: [satchel], front: [puffs([[13, 17, 2.6], [16, 19, 2.4], [14, 21, 2]])] },
-  leap: { near: { at: [0, 25] }, far: { at: [5, 24] }, legs: 'tuck', armsUp: true, back: [satchel], front: [kegAt(3, 26), (g, a) => stamp(g, FIST, TAM_PAL, a.near[0], a.near[1]), (g, a) => stamp(g, FIST, TAM_PAL, a.far[0], a.far[1])] },
+  parry: { near: { at: [7, 24] }, far: { at: [9, 26] }, legs: 'crouch', dy: 1, head: 'goggles', farFront: true, back: [satchel] },
+  hurt: { near: { at: [-5, 19] }, far: { at: [8, 23] }, dx: -1, lean: -1, dy: 1, head: 'squint', back: [satchel], front: [puffs([[13, 17, 2.6], [16, 19, 2.4], [14, 21, 2]])] },
+  leap: { near: { at: [0, 34] }, far: { at: [5, 33] }, legs: 'tuck', armsUp: true, back: [satchel], front: [kegAt(3, 26), (g, a) => stamp(g, FIST, TAM_PAL, a.near[0], a.near[1]), (g, a) => stamp(g, FIST, TAM_PAL, a.far[0], a.far[1])] },
   // knocked out: sat down hard, sooty, smoke curling up, the keg rolled off unlit
   down: {
     near: { at: [8, 3] },
@@ -298,8 +253,8 @@ export const TAM_POSES: Record<string, RigPose> = {
   },
   // the finisher: a big keg heaved overhead in both hands
   fin: {
-    near: { at: [1, 22] },
-    far: { at: [6, 22] },
+    near: { at: [1, 31] },
+    far: { at: [6, 31] },
     legs: 'lunge',
     dx: -1,
     armsUp: true,
@@ -307,12 +262,12 @@ export const TAM_POSES: Record<string, RigPose> = {
     front: [kegAt(4, 27, 5.5), (g, a) => stamp(g, FIST, TAM_PAL, a.near[0], a.near[1]), (g, a) => stamp(g, FIST, TAM_PAL, a.far[0], a.far[1])],
   },
   // Fuse Up: striking a match to a fresh keg's fuse
-  cast: { near: { at: [6, 15] }, far: { at: [10, 11] }, farFront: true, back: [satchel], front: [kegHeld('far', 1, 0), match] },
+  cast: { near: { at: [6, 24] }, far: { at: [10, 20] }, farFront: true, back: [satchel], front: [kegHeld('far', 1, 0), match] },
 };
 
 /** Hero select card: a lit keg held up with a grin, before an orange glow with a warm yellow heart. */
 export const TAM_CARD: HeroCardSpec = {
-  pose: { near: { at: [9, 12] }, far: { at: [3, 7] }, back: [satchel], front: [kegHeld('near', 1, -1)] },
+  pose: { near: { at: [9, 21] }, far: { at: [3, 16] }, back: [satchel], front: [kegHeld('near', 1, -1)] },
   glow: ['#ffe070', '#e0661c'],
   motes: [[5, 14], [34, 10], [34, 29]],
 };
@@ -339,6 +294,6 @@ export function kegIcon(): HTMLCanvasElement {
 
 /** By the campfire (two breaths): turning a cold keg over in one hand, the other on a hip. */
 export const TAM_CAMP: [RigPose, RigPose] = [
-  { near: { at: [8, 8] }, far: { at: [3, 7] }, back: [satchel], front: [kegCold('near', 2, 0)] },
-  { near: { at: [8, 7] }, far: { at: [3, 6] }, dy: 1, back: [satchel], front: [kegCold('near', 2, -1)] },
+  { near: { at: [8, 17] }, far: { at: [3, 16] }, back: [satchel], front: [kegCold('near', 2, 0)] },
+  { near: { at: [8, 16] }, far: { at: [3, 15] }, dy: 1, back: [satchel], front: [kegCold('near', 2, -1)] },
 ];

@@ -3,7 +3,7 @@
 // hanging charms, and soft cyan spirit-light round her hands. Fight frames `yara_${pose}` on the shared rig
 // (art-rig.ts).
 import { put, stamp, type Pal, type Shade } from './art';
-import { STEP, ribbon, sparkle, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, ribbon, type Rig, type RigPose, sparkle, STEP } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -70,6 +70,8 @@ const TORSO = [
   'cc+ccccccc*cc..',
   '.cccwwwwwccc...',
   '..ccwwwwwwcc...',
+  '..ccwwwwwwcc...',
+  '..ccwwwwwwcc...',
   '..cwwwwwwwwc...',
   '..wwwwwwwwww...',
   '..wOwRwYwQwOw..',
@@ -77,68 +79,8 @@ const TORSO = [
 ];
 
 // The tunic to the knee, bare shins and bare feet (a bead anklet); 15 wide, the feet centred on x = 7.
-const LEGS: Record<string, string[]> = {
-  stand: [
-    '..wwwwwwwwwww..',
-    '..wwwwwwwwwww..',
-    '..wwwwwwwwwwww.',
-    '...sss...sss...',
-    '...sss...sss...',
-    '...sss...sss...',
-    '...sQs...sss...',
-    '...sss...sss...',
-    '..eeee...eeeee.',
-  ],
-  run: [
-    '...wwwwwwwwwww.',
-    '..wwwwwwwwwwww.',
-    '.wwwwwwwwwwwww.',
-    'sss........sss.',
-    'ss..........sss',
-    'sQ...........ss',
-    'ss...........ss',
-    '............sss',
-    '...........eeee',
-  ],
-  lunge: [
-    '...wwwwwwwwwww.',
-    '..wwwwwwwwwwwww',
-    '.wwwwwwwwwwwwww',
-    '.sss.......sss.',
-    'sss.........sss',
-    'sss.........sss',
-    'sQs.........sss',
-    'sss.........sss',
-    'eeee.......eeeee',
-  ],
-  crouch: [
-    '..wwwwwwwwwww..',
-    '.wwwwwwwwwwwww.',
-    '.www.......www.',
-    'sss........sss.',
-    'sQs........sss.',
-    'sss........sss.',
-    'eeee......eeeee',
-  ],
-  tuck: [
-    '..wwwwwwwwwww..',
-    '.wwwwwwwwwwww..',
-    '..wwwwwww.www..',
-    '.....ssssssss..',
-    '.....sQsss.sss.',
-    '......eee..eeee',
-  ],
-  // down on one knee
-  kneel: [
-    '..wwwwwwwwwww..',
-    '.wwwwwwwwwwwww.',
-    '..wwwwwww..www.',
-    'sssssssss..sss.',
-    'sssssQss...sss.',
-    '...........sss.',
-    '..........eeeee',
-  ],
-};
+// the shared jointed legs (art-rig.ts STANCES, playtest round 8: L8, about three heads tall)
+const LEGS = matureLegs({ leg: 's', legBack: '8', boot: 'e', bootBack: '9', sole: '9', skirt: 'w' });
 
 export const YARA_FIST = ['FF', 'fv'];
 const ARM_NEAR: Array<[number, ...string[]]> = [
@@ -151,12 +93,12 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 ];
 
 export const YARA_RIG: Rig = {
-  pal: YARA_PAL,
+  pal: { ...YARA_PAL, '8': SKIN[1], '9': SKIN[0] },
   shades: YARA_SHADES,
   heads: HEADS,
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 7,
+  legsFeetX: LEG_FEET_X,
   torsoX: -7,
   torsoOverlap: 1,
   headX: -1,
@@ -370,16 +312,16 @@ const dizzy: Layer = (g, a) => {
 
 export const YARA_POSES: Record<string, RigPose> = {
   // the staff upright in her far hand, spirit-light circling the near one
-  idle0: { near: { at: [-7, 12] }, far: { at: [9, 12], item: staff('u', 14, 9, { swing: -0.2 }) }, farFront: true, back: [braid(0.62, 0.02, 0.03), drape('hang')], front: [spiritHand('near', 0.3)] },
-  idle1: { near: { at: [-7, 11] }, far: { at: [9, 11], item: staff('u', 14, 8, { swing: 0.2 }) }, farFront: true, dy: 1, back: [braid(0.63, 0.02, -0.03), drape('sway')], front: [spiritHand('near', 1.4)] },
+  idle0: { near: { at: [-7, 19] }, far: { at: [9, 19], item: staff('u', 14, 9, { swing: -0.2 }) }, farFront: true, back: [braid(0.62, 0.02, 0.03), drape('hang')], front: [spiritHand('near', 0.3)] },
+  idle1: { near: { at: [-7, 18] }, far: { at: [9, 18], item: staff('u', 14, 8, { swing: 0.2 }) }, farFront: true, dy: 1, back: [braid(0.63, 0.02, -0.03), drape('sway')], front: [spiritHand('near', 1.4)] },
   // the shawl and the braid swing a frame behind the breath, the spirit light circles on
-  idle2: { near: { at: [-7, 11] }, far: { at: [9, 11], item: staff('u', 14, 8, { swing: 0.5 }) }, farFront: true, dy: 1, back: [braid(0.66, 0.03, -0.06), drape('sway')], front: [spiritHand('near', 2.5)] },
-  idle3: { near: { at: [-7, 12] }, far: { at: [9, 12], item: staff('u', 14, 9, { swing: 0.1 }) }, farFront: true, back: [braid(0.65, 0.03, 0), drape('hang')], front: [spiritHand('near', 3.6)] },
-  dash: { near: { at: [-5, 12] }, far: { at: [9, 13], item: staff('ur', 10, 6, { swing: -0.8 }) }, farFront: true, legs: 'run', dx: 1, lean: 1, back: [braid(0.95, -0.05, 0.05), drape('flow')] },
+  idle2: { near: { at: [-7, 18] }, far: { at: [9, 18], item: staff('u', 14, 8, { swing: 0.5 }) }, farFront: true, dy: 1, back: [braid(0.66, 0.03, -0.06), drape('sway')], front: [spiritHand('near', 2.5)] },
+  idle3: { near: { at: [-7, 19] }, far: { at: [9, 19], item: staff('u', 14, 9, { swing: 0.1 }) }, farFront: true, back: [braid(0.65, 0.03, 0), drape('hang')], front: [spiritHand('near', 3.6)] },
+  dash: { near: { at: [-5, 19] }, far: { at: [9, 20], item: staff('ur', 10, 6, { swing: -0.8 }) }, farFront: true, legs: 'run', dx: 1, lean: 1, back: [braid(0.95, -0.05, 0.05), drape('flow')] },
   // the staff thrust out, a bolt of spirit light leaping from its stone
   slashA: {
-    near: { at: [6, 16] },
-    far: { at: [13, 16], item: staff('r', 10, 6, { bright: true, swing: -0.8 }) },
+    near: { at: [6, 23] },
+    far: { at: [13, 23], item: staff('r', 10, 6, { bright: true, swing: -0.8 }) },
     farFront: true,
     legs: 'lunge',
     dx: 2,
@@ -389,8 +331,8 @@ export const YARA_POSES: Record<string, RigPose> = {
   },
   // a sweeping swing that leaves an arc of spirit light
   slashB: {
-    near: { at: [8, 9] },
-    far: { at: [12, 10], item: staff('dr', 9, 4, { swing: 1 }) },
+    near: { at: [8, 16] },
+    far: { at: [12, 17], item: staff('dr', 9, 4, { swing: 1 }) },
     farFront: true,
     legs: 'lunge',
     dx: 2,
@@ -401,8 +343,8 @@ export const YARA_POSES: Record<string, RigPose> = {
   },
   // the staff raised behind her, its stone flaring
   windup: {
-    near: { at: [-2, 24], item: staff('ul', 8, 5, { bright: true, swing: 0.5 }) },
-    far: { at: [6, 12] },
+    near: { at: [-2, 31], item: staff('ul', 8, 5, { bright: true, swing: 0.5 }) },
+    far: { at: [6, 19] },
     legs: 'crouch',
     armsUp: true,
     dy: 1,
@@ -411,8 +353,8 @@ export const YARA_POSES: Record<string, RigPose> = {
   },
   // the staff crosswise, a ward of spirit light before it
   parry: {
-    near: { at: [4, 13] },
-    far: { at: [12, 13], item: staff('u', 9, 7, { swing: -0.4 }) },
+    near: { at: [4, 20] },
+    far: { at: [12, 20], item: staff('u', 9, 7, { swing: -0.4 }) },
     farFront: true,
     legs: 'crouch',
     dy: 1,
@@ -420,8 +362,8 @@ export const YARA_POSES: Record<string, RigPose> = {
     front: [swoosh(13, 13, 9, 1.3, -1.3), spiritHand('near', 0.2)],
   },
   hurt: {
-    near: { at: [-6, 11] },
-    far: { at: [6, 9], item: staff('ul', 10, 7, { swing: 1 }) },
+    near: { at: [-6, 18] },
+    far: { at: [6, 16], item: staff('ul', 10, 7, { swing: 1 }) },
     farFront: true,
     dx: -1,
     lean: -1,
@@ -430,8 +372,8 @@ export const YARA_POSES: Record<string, RigPose> = {
     back: [braid(0.35, -0.1, 0.06), drape('rise')],
   },
   leap: {
-    near: { at: [3, 19] },
-    far: { at: [10, 17], item: staff('ur', 9, 6, { bright: true, swing: 0.8 }) },
+    near: { at: [3, 26] },
+    far: { at: [10, 24], item: staff('ur', 9, 6, { bright: true, swing: 0.8 }) },
     farFront: true,
     legs: 'tuck',
     back: [braid(0.75, -0.25, 0.04), drape('rise')],
@@ -440,8 +382,8 @@ export const YARA_POSES: Record<string, RigPose> = {
   down: { near: { at: [8, 7] }, far: { at: [4, 6] }, legs: 'kneel', dy: 1, lean: 2, bow: 3, head: 'ko', back: [braid(0.56, -0.02, 0.01), drape('limp'), droppedStaff], front: [dizzy] },
   // the finisher: the staff held high in both hands, eyes shut, calling, stars rising round her
   fin: {
-    near: { at: [-9, 25] },
-    far: { at: [13, 26], item: staff('u', 8, 7, { bright: true, swing: 0.3 }) },
+    near: { at: [-9, 32] },
+    far: { at: [13, 33], item: staff('u', 8, 7, { bright: true, swing: 0.3 }) },
     farFront: true,
     legs: 'lunge',
     head: 'call',
@@ -450,8 +392,8 @@ export const YARA_POSES: Record<string, RigPose> = {
   },
   // Call: the staff planted, a hand raised and glowing, a spirit's sign at her feet
   cast: {
-    near: { at: [-10, 22] },
-    far: { at: [9, 12], item: staff('u', 14, 9, { bright: true, swing: 0 }) },
+    near: { at: [-10, 29] },
+    far: { at: [9, 19], item: staff('u', 14, 9, { bright: true, swing: 0 }) },
     farFront: true,
     head: 'call',
     back: [braid(0.62, 0.02, 0.03), drape('hang')],
@@ -462,13 +404,13 @@ export const YARA_POSES: Record<string, RigPose> = {
 /** Hero select card: the staff upright, its stone blazing, spirit-light round her hand, before an indigo glow with a
  *  cyan heart. */
 export const YARA_CARD: HeroCardSpec = {
-  pose: { near: { at: [-3, 14] }, far: { at: [9, 12], item: staff('u', 14, 9, { bright: true, swing: -0.2 }) }, farFront: true, head: 'call', back: [braid(0.62, 0.02, 0.03), drape('sway')], front: [spiritHand('near', 0.9, true)] },
+  pose: { near: { at: [-3, 21] }, far: { at: [9, 19], item: staff('u', 14, 9, { bright: true, swing: -0.2 }) }, farFront: true, head: 'call', back: [braid(0.62, 0.02, 0.03), drape('sway')], front: [spiritHand('near', 0.9, true)] },
   glow: ['#c4f8ff', '#3a3aa8'],
   motes: [[5, 12], [34, 9], [35, 28]],
 };
 
 /** By the campfire (two breaths): sat back on her heels, the staff across her lap, a mote of spirit light in her palm. */
 export const YARA_CAMP: [RigPose, RigPose] = [
-  { near: { at: [6, 14] }, far: { at: [9, 12], item: staff('u', 13, 9, { swing: -0.2 }) }, farFront: true, back: [braid(0.62, 0.02, 0.03), drape('hang')], front: [spiritHand('near', 0.5)] },
-  { near: { at: [6, 13] }, far: { at: [9, 11], item: staff('u', 13, 8, { swing: 0.2 }) }, farFront: true, dy: 1, back: [braid(0.63, 0.02, -0.03), drape('sway')], front: [spiritHand('near', 1.6)] },
+  { near: { at: [6, 21] }, far: { at: [9, 19], item: staff('u', 13, 9, { swing: -0.2 }) }, farFront: true, back: [braid(0.62, 0.02, 0.03), drape('hang')], front: [spiritHand('near', 0.5)] },
+  { near: { at: [6, 20] }, far: { at: [9, 18], item: staff('u', 13, 8, { swing: 0.2 }) }, farFront: true, dy: 1, back: [braid(0.63, 0.02, -0.03), drape('sway')], front: [spiritHand('near', 1.6)] },
 ];

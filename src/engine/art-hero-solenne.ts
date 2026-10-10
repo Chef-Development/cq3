@@ -5,7 +5,7 @@
 import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './art';
 import { and, ell, fill, or, rimShade, sphere } from './art-paint';
 import { swordMap } from './art-sword';
-import { sparkle, stampAt, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureLegs, type Rig, type RigPose, sparkle, stampAt } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -73,6 +73,8 @@ const TORSO = [
   'yyyyyppppppppyyyy',
   '.ppppppOppppppp..',
   '..pppppYOYpppp...',
+  '..pppppYOYpppp...',
+  '..pppppYOYpppp...',
   '..pppppOYOpppp...',
   '..ppppppYppppp...',
   '..ppppppppppp....',
@@ -81,69 +83,8 @@ const TORSO = [
 ];
 
 // Ivory tassets over white greaves (gold at the knee), gold-trimmed sabatons; 17 wide, the feet centred on x = 8.
-const LEGS: Record<string, string[]> = {
-  stand: [
-    '..ttttttytttttt..',
-    '..ttttttyttttttt.',
-    '...bbbb...bbbb...',
-    '...bbbb...bbbb...',
-    '...byyb...byyb...',
-    '...bbbb...bbbb...',
-    '...bbbb...bbbb...',
-    '...bbbb...bbbb...',
-    '..bbbbbb.bbbbbb..',
-    '..bbbbbbb.bbbbbbb',
-  ],
-  run: [
-    '...ttttttyttttt..',
-    '..tttttttytttttt.',
-    '.bbb......bbbb...',
-    'bbb........bbbb..',
-    'byy.........byyb.',
-    'bb..........bbbb.',
-    '............bbbb.',
-    '............bbbb.',
-    '...........bbbbbb',
-    '...........bbbbbbb',
-  ],
-  lunge: [
-    '...ttttttyttttt..',
-    '..tttttttyttttttt',
-    '.bbb.......bbbb..',
-    'bbb.........bbbb.',
-    'byy.........byyb.',
-    'bbb.........bbbb.',
-    'bbb.........bbbb.',
-    'bbb.........bbbb.',
-    'bbbb.......bbbbbb',
-    'bbbbb......bbbbbbb',
-  ],
-  crouch: [
-    '..ttttttytttttt..',
-    '.tttttttytttttttt',
-    '.bbbb.......bbbb.',
-    'byyb........byyb.',
-    'bbbb........bbbb.',
-    'bbbbb......bbbbbb',
-    'bbbbbb.....bbbbbbb',
-  ],
-  tuck: [
-    '..ttttttytttttt..',
-    '.tttttttyttttttt.',
-    '..bbbbbbb.bbbbb..',
-    '.....byybb.bbbb..',
-    '.....bbbbbbbbbbb.',
-    '......bbbbb.bbbb.',
-  ],
-  kneel: [
-    '..ttttttytttttt..',
-    '.tttttttytttttttt',
-    '..bbbbbb....bbbb.',
-    'bbbbbbbbb...byyb.',
-    'bbbbbbbbb..bbbbbb',
-    '...........bbbbbb',
-  ],
-};
+// the shared jointed legs (art-rig.ts STANCES, playtest round 8: L8, about three heads tall)
+const LEGS = matureLegs({ leg: 'b', legBack: '8', boot: 'b', bootBack: '8', sole: '9', cop: 'y', skirt: 't', fold: 'y', hem: 'y' });
 
 const GAUNTLET = ['RRr', 'Rrq', 'rqQ'];
 const ARM_NEAR: Array<[number, ...string[]]> = [
@@ -158,12 +99,12 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 ];
 
 export const SOLENNE_RIG: Rig = {
-  pal: SOLENNE_PAL,
+  pal: { ...SOLENNE_PAL, '8': SOLENNE_PLATE[1], '9': SOLENNE_PLATE[0] },
   shades: SOLENNE_SHADES,
   heads: HEADS,
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 8,
+  legsFeetX: LEG_FEET_X,
   torsoX: -8,
   torsoOverlap: 1,
   headX: 1,
@@ -270,30 +211,30 @@ const droppedBlade: Layer = (g, a) => stampAt(g, swordMap('r', 14), LONG_PAL, a.
 const P = (p: RigPose): RigPose => p;
 export const SOLENNE_POSES: Record<string, RigPose> = {
   // the blade held up before her, a knight's guard; the far hand at her belt
-  idle0: P({ near: { at: [7, 11], item: blade('ur') }, far: { at: [10, 9] }, back: [cape('hang')] }),
-  idle1: P({ near: { at: [7, 10], item: blade('ur') }, far: { at: [10, 8] }, dy: 1, back: [cape('sway')], front: [motes([[19, 26]])] }),
+  idle0: P({ near: { at: [7, 17], item: blade('ur') }, far: { at: [10, 15] }, back: [cape('hang')] }),
+  idle1: P({ near: { at: [7, 16], item: blade('ur') }, far: { at: [10, 14] }, dy: 1, back: [cape('sway')], front: [motes([[19, 26]])] }),
   // the cape swings a frame behind the breath
-  idle2: P({ near: { at: [7, 10], item: blade('ur') }, far: { at: [10, 8] }, dy: 1, back: [cape('sway')], front: [motes([[20, 28]])] }),
-  idle3: P({ near: { at: [7, 11], item: blade('ur') }, far: { at: [10, 9] }, back: [cape('sway')] }),
-  dash: P({ near: { at: [-6, 11], item: blade('l') }, far: { at: [7, 12] }, legs: 'run', dx: 1, lean: 1, back: [cape('flow')] }),
+  idle2: P({ near: { at: [7, 16], item: blade('ur') }, far: { at: [10, 14] }, dy: 1, back: [cape('sway')], front: [motes([[20, 28]])] }),
+  idle3: P({ near: { at: [7, 17], item: blade('ur') }, far: { at: [10, 15] }, back: [cape('sway')] }),
+  dash: P({ near: { at: [-6, 17], item: blade('l') }, far: { at: [7, 18] }, legs: 'run', dx: 1, lean: 1, back: [cape('flow')] }),
   // a cut down and forward
-  slashA: P({ near: { at: [12, 14], item: blade('dr') }, far: { at: [8, 11] }, legs: 'lunge', dx: 2, lean: 1, back: [cape('flow')], front: [sweep(9, 16, 15, 1.9, -0.6)] }),
+  slashA: P({ near: { at: [12, 20], item: blade('dr') }, far: { at: [8, 17] }, legs: 'lunge', dx: 2, lean: 1, back: [cape('flow')], front: [sweep(9, 16, 15, 1.9, -0.6)] }),
   // a sweep level with her chest
-  slashB: P({ near: { at: [12, 17], item: blade('r') }, far: { at: [8, 11] }, legs: 'lunge', dx: 2, lean: 1, head: 'cry', back: [cape('flow'), sweep(8, 17, 14, 2.4, 0.4)] }),
+  slashB: P({ near: { at: [12, 23], item: blade('r') }, far: { at: [8, 17] }, legs: 'lunge', dx: 2, lean: 1, head: 'cry', back: [cape('flow'), sweep(8, 17, 14, 2.4, 0.4)] }),
   // the blade raised back over her head in both hands
-  windup: P({ near: { at: [-2, 24], item: blade('ul') }, far: { at: [0, 23], hidden: true }, legs: 'crouch', dy: 1, armsUp: true, back: [cape('hang')] }),
+  windup: P({ near: { at: [-2, 30], item: blade('ul') }, far: { at: [0, 29], hidden: true }, legs: 'crouch', dy: 1, armsUp: true, back: [cape('hang')] }),
   // the blade held crosswise, point up, guarding
-  parry: P({ near: { at: [9, 13], item: blade('u') }, far: { at: [11, 16] }, farFront: true, legs: 'crouch', dy: 1, back: [cape('hang')], front: [motes([[13, 30], [8, 25]])] }),
-  hurt: P({ near: { at: [-5, 11], item: blade('dl') }, far: { at: [8, 15] }, dx: -1, lean: -1, dy: 1, head: 'squint', back: [cape('rise')] }),
-  leap: P({ near: { at: [6, 25], item: blade('ur') }, far: { at: [8, 24], hidden: true }, legs: 'tuck', armsUp: true, back: [cape('rise')] }),
+  parry: P({ near: { at: [9, 19], item: blade('u') }, far: { at: [11, 22] }, farFront: true, legs: 'crouch', dy: 1, back: [cape('hang')], front: [motes([[13, 30], [8, 25]])] }),
+  hurt: P({ near: { at: [-5, 17], item: blade('dl') }, far: { at: [8, 21] }, dx: -1, lean: -1, dy: 1, head: 'squint', back: [cape('rise')] }),
+  leap: P({ near: { at: [6, 31], item: blade('ur') }, far: { at: [8, 30], hidden: true }, legs: 'tuck', armsUp: true, back: [cape('rise')] }),
   // knocked out: on one knee, the blade dropped beside her
   down: P({ near: { at: [7, 11] }, far: { at: [10, 10] }, farFront: true, legs: 'kneel', dy: 2, lean: 2, bow: 3, head: 'ko', back: [cape('limp'), droppedBlade] }),
   // Sunfall: the blade raised high, a sun kindling over its point
-  fin: P({ near: { at: [5, 27], item: blade('ur') }, far: { at: [7, 26], hidden: true }, legs: 'lunge', armsUp: true, head: 'cry', back: [cape('flow')], front: [sun(19, 38, 3)] }),
+  fin: P({ near: { at: [5, 33], item: blade('ur') }, far: { at: [7, 32], hidden: true }, legs: 'lunge', armsUp: true, head: 'cry', back: [cape('flow')], front: [sun(19, 38, 3)] }),
   // Gleam: the blade up before her face, a glint running up it, the free hand open
   cast: P({
-    near: { at: [8, 13], item: blade('u') },
-    far: { at: [14, 19] },
+    near: { at: [8, 19], item: blade('u') },
+    far: { at: [14, 25] },
     farFront: true,
     back: [cape('sway')],
     front: [motes([[12, 34], [5, 28], [16, 24], [3, 33]]), (g, a) => sparkle(g, a.fx + 9, a.fy - 25, SOLENNE_LIGHT[2], '#ffffff', true)],
@@ -302,15 +243,15 @@ export const SOLENNE_POSES: Record<string, RigPose> = {
 
 /** Hero select card: the blade up in a knight's guard, before a sunrise glow with a white-gold heart. */
 export const SOLENNE_CARD: HeroCardSpec = {
-  pose: { near: { at: [7, 12], item: blade('ur') }, far: { at: [10, 9] }, back: [cape('hang')], front: [motes([[19, 27], [21, 31]])] },
+  pose: { near: { at: [7, 18], item: blade('ur') }, far: { at: [10, 15] }, back: [cape('hang')], front: [motes([[19, 27], [21, 31]])] },
   glow: ['#fff4c8', '#e07a20'],
   motes: [[5, 13], [34, 9], [35, 29]],
 };
 
 /** By the campfire (two breaths): the blade stood point-down, both gauntlets stacked on its pommel. */
 export const SOLENNE_CAMP: [RigPose, RigPose] = [
-  P({ near: { at: [9, 16], item: blade('d') }, far: { at: [10, 17] }, farFront: true, back: [cape('hang')] }),
-  P({ near: { at: [9, 15], item: blade('d') }, far: { at: [10, 16] }, farFront: true, dy: 1, back: [cape('sway')] }),
+  P({ near: { at: [9, 22], item: blade('d') }, far: { at: [10, 23] }, farFront: true, back: [cape('hang')] }),
+  P({ near: { at: [9, 21], item: blade('d') }, far: { at: [10, 22] }, farFront: true, dy: 1, back: [cape('sway')] }),
 ];
 
 // ------------------------------------------------------------------ the map walker (art-hero-map.ts draws it)
