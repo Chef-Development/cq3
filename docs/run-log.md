@@ -190,3 +190,6 @@ One PR at the end supersedes #1-#7.
   by one. Lead's look on the merged build (Act 1 fight and map at dusk, an event as a place, the Edits screen, Act 10's
   bar rule): good; two Edits-screen riddles sent to first10. CLAUDE.md: the name and round 8 in the intro. The round 8
   status report drafted (filled in after the final suites).
+- 02:20 EDT: merged dusk-art's second chunk (Region 5's two unclear relic icons redrawn, Region 4's own gear icons, the
+  sphinx's face turned and lit); boot-checked, pushed. Dusk-art's last chunk (03:45): the regular shop as a place,
+  one relic icon.
