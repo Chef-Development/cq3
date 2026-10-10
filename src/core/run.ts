@@ -1385,7 +1385,7 @@ export class Run {
     // after a region's first act, the night at camp: a story hero joins (unless the camp already played it)
     const sable = this.campScene ? [this.campScene] : [];
     if (sable.length) this.sableJoined();
-    // the region's last act cleared: its victory scene (the weight comes home); else on to its next act
+    // the region's last act cleared: its victory scene (the region is restored); else on to its next act
     if (!lastActOfRegion(this.actIndex) && this.actIndex + 1 < this.region.acts.length) this.enterAct(this.actIndex + 1, [...sable, this.region.acts[this.actIndex + 1].startScene ?? '']);
     else this.playScenes([this.regionDef.victoryScene], 'victory');
   }

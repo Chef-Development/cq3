@@ -2886,7 +2886,7 @@ export class Synth {
     this.voice({ at: t, type: 'noise', filter: 'highpass', ff: [[0, 6500]], trem: { rate: 20, depth: 0.6 }, amp: [[0.05, 0.03 + 0.03 * k], [0.3, 0]] });
   }
 
-  /** The Pendulum Shard spawns a green block: a brass tick and tock. */
+  /** The Keystone Shard (Fresh Ink) draws a green block: a brass tick and tock. */
   tickTock(at?: number): void {
     if (!this.ready) return;
     const t = this.now(at);
@@ -4168,7 +4168,7 @@ export const SFX: SfxEntry[] = [
   { id: 'lockToggle', label: 'Lock / unlock', len: 0.2, play: (s, at) => s.lockToggle(at) },
   { id: 'reroll', label: 'Forge: reroll', len: 1, play: (s, at) => s.reroll(at) },
   { id: 'gearProc', label: 'Gear effect kicks in', len: 0.5, play: (s, at) => s.gearProc(0.5, at) },
-  { id: 'tickTock', label: 'Pendulum: tick, tock', len: 0.5, play: (s, at) => s.tickTock(at) },
+  { id: 'tickTock', label: 'Fresh Ink: tick, tock', len: 0.5, play: (s, at) => s.tickTock(at) },
   // the places' ambience beds (8 s of each, as it starts: the first bird, drip or wave comes within a second or two)
   ...AMBIENCES.map((a): SfxEntry => ({ id: `amb-${a}`, label: `Ambience: ${AMB_LABEL[a]} (8 s)`, len: AMB_PREVIEW, play: (s, at) => s.scheduleAmbience(at, AMB_PREVIEW, a) })),
 ];

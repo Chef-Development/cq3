@@ -224,7 +224,7 @@ HERO_BANTER.push(
   { who: 'vesper', text: 'I miss real night. Stars. Quiet.' },
   { who: 'torva', text: 'Rocks should STAY PUT! HA!' },
   { who: 'solenne', text: "Our sun is stuck at noon. RUDE." },
-  { who: 'wren', text: 'My rooftops are in the fog. For now.' },
+  { who: 'wren', text: 'My rooftops went blank. Not for long.' },
   { who: 'yara', text: 'The spirits say my village dreams.' },
   { who: 'dell', text: 'Square fields. Corn hates it.' },
   { who: 'fizz', text: 'My lighthouse misses me. I know.' },
