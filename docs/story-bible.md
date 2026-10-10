@@ -569,8 +569,9 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   back nothing); 3 **The Glass** (out where the deep water was, under a pane laid over the sea).
 - **Rule hooks (ideas):** *salt crust* (blocks crusted over: the first tap cracks the salt, the second hits) and
   *glass calm* (a stretch of bar where nothing moves at all: blocks there wait until the cursor has passed once).
-- **Mini-bosses:** **the Saltworks** (Act 1: a rake-armed thing he drew to keep the flats smooth; no speech); **the
-  Lamplugger** or a sea creature that was out at sea when the isle went blank (content's pick; one should speak).
+- **Mini-bosses:** **the Saltworks** (Act 1: a rake-armed thing he drew to keep the flats smooth; no speech); **Gale**
+  (Act 2: a storm petrel who was out at sea when the isle went blank and has flown ever since, looking for a storm to
+  ride: "No wind. No wave. Nowhere to land." It speaks; tired, proud).
 - **Boss: Old Brine**, a sea serpent who was out in the deep when the isle went blank, came home, and was caught when
   he drew the sea still: salt crusts its coils. He gave it the Glass (keystone) to lie under. It doesn't speak; it
   groans like a ship.
@@ -600,7 +601,7 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   Atlas Hall, and finds Hesper on the gallery, just waking.
 - **The beat (`farVictory` and a Meridian scene, e.g. `hallWakes`):** Hesper tells Rowan the oldest law (never the
   living) and that Ambrose broke it once, the night after the funeral, and no more. Pip begs her to tell the rest
-  ("He has a right to know. You promised me you'd tell him one day."); she won't: "Not today." Pip's anger is the first
+  ("He has a right to know, Hesper."); she won't: "Not today." Pip's anger is the first
   time he raises his voice in the game. (Her secret, the river, waits for her confession at the end.)
 - **Scenes:** `far1`-`far3`, two mini-bosses', `warden`, `warden2`, `warden3`, `farVictory`, `hallWakes`. Fizz after
   `farVictory`: "MY light! Pointing the RIGHT way!"
