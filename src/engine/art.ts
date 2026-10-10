@@ -13,6 +13,7 @@ import { buildHeroArt } from './art-heroes';
 import { buildRarityArt } from './art-rarity';
 import { buildRelicArt } from './art-relics';
 import { buildAshRelicArt } from './art-relics-ash';
+import { buildNoonRelicArt } from './art-relics-noon';
 import { buildSableArt } from './art-sable';
 import { buildShrineArt } from './art-shrine';
 import { buildDummyArt } from './art-dummy';
@@ -1000,6 +1001,7 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   buildHeroArt(add);
   buildRelicArt(add);
   buildAshRelicArt(add);
+  buildNoonRelicArt(add);
   buildCampArt(add, w, 150);
   buildCompanionArt(add, owlFrame('down'));
   buildChestArt(add);
