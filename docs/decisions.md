@@ -1753,4 +1753,12 @@ F20. **The first tips out of the fighters' way** (review 1). Fight tip cards sit
 F21. **The first map says "tap here"** (review 1): until the first step, a bright chevron bobs over each spot Rowan
     can go to, and "Tap a glowing spot" is drawn at full strength (it was the faintest words on the screen).
 
+F22. **The first ten minutes on the merged build** (02:00-03:00; the newcomer bot through Act 1 to the first hero
+    chest, seeds 7 and 9 at phone size, seed 7 at 1440x900). What was rough, and fixed: the relic tip covered the
+    second of the first pick's two plain cards (it now waits for the next pick, where tags and rarity show); the
+    event, shop and trader tips sat over the first choice or the second ware (they sit at the top now, over the
+    stall's title: `TipDef.top`); the Edits ledger's empty circle read as a missing picture (an unbroken iron seal now)
+    and "Seals 0/60" as a riddle ("Edited clears N", only once there is one). Both seeds cleared Act 1 first try; the
+    first chest at 1:08-1:12, the first hero chest revealed at 5:35-5:36.
+
 (first10: end of section)

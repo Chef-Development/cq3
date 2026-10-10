@@ -12,7 +12,8 @@ import { expect, test } from './fixtures';
 //   PORT=4178 F10_OUT=/some/dir F10_SEED=7 npx playwright test tests/smoke/first10.spec.ts
 //
 // F10_SEED fixes the run (the act map, the fights' and loot's rolls); F10_ACC is the newcomer's accuracy (0.7);
-// F10_SKILLS=0 never opens the camp to spend skill points (by default it does, as the balance bot does);
+// F10_SKILLS=0 never opens the camp to spend skill points (by default it does, as the balance bot does); F10_DESK=1 at
+// desktop size;
 // F10_UNTIL=act plays on through Act 1 to its clear (the boss), then Camp (Sable's scene) and the first hero chest
 // opened in the vault, instead of stopping at the map after the first chest.
 
@@ -24,6 +25,8 @@ const ACC = Number(process.env.F10_ACC ?? 0.7);
 const UNTIL = process.env.F10_UNTIL === 'act' ? 'act' : 'chest';
 /** Spend skill points at camp as they come (as the balance bot does); F10_SKILLS=0 never opens the camp for them. */
 const SKILLS = process.env.F10_SKILLS !== '0';
+// F10_DESK=1 plays it at desktop size (1440x900 at 1x, a mouse: no touch)
+if (process.env.F10_DESK === '1') test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, isMobile: false, hasTouch: false });
 /** Stop once these beats are in (or at the time limit). */
 const LAST_BEAT = 'chestOpened';
 
