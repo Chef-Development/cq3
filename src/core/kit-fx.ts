@@ -314,6 +314,7 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       return v * (1 + (f * K(c).vesper.volleyFocus) / Math.max(1, x.damage * Math.max(1, x.targets.length)));
     },
     afterFinisher: (c) => {
+      clearWalls(c);
       // (an icicle is pinned too: its fuse waits, like a red's strike at the left end)
       const sec = K(c).vesper.pinSec * (c.stars >= 5 ? 2 : 1);
       for (const b of c.blocks) if (isRed(b.kind)) c.holdRed(b, sec);
@@ -638,13 +639,15 @@ export const KIT_HOOKS: Record<HeroId, FightHooks> = {
       }
       if (ability(c)) slowReds(c);
     },
-    // Rewind: hits every foe; every red on the bar winds back to where it started (5 stars: then time stops)
+    // Rewind: hits every foe; the reds on their way are undone (kits.tess.rewindClear), the ones just sent wind back to
+    // where they started (5 stars: then time stops)
     finisher: (_c, x, v) => {
       x.reds = 'keep';
       return v;
     },
     afterFinisher: (c) => {
-      const n = rewindReds(c);
+      clearWalls(c);
+      const n = rewindReds(c, K(c).tess.rewindClear);
       c.perkFx('rewind', n);
       if (c.stars >= 5 && !c.result) stopwatch(c, 0.5, 'secondHand');
     },
@@ -915,12 +918,33 @@ function slowReds(c: Combat): number {
   return n;
 }
 
+/** A finisher that keeps the reds (Volley pins them, Rewind winds them back) still breaks the walls a foe puts up where
+ *  the cursor is heading (a still shield: three taps before it falls, e.g. a dam or a slab), as every other finisher
+ *  does: keeping them cost those heroes the fights that raise them (the later regions' mini-bosses and bosses).
+ *  Returns how many. */
+export function clearWalls(c: Combat): number {
+  let n = 0;
+  for (const b of c.blocks.slice())
+    if (b.kind === 'shield' && b.still) {
+      c.removeBlock(b, 'finisher');
+      n++;
+    }
+  return n;
+}
+
 /** Rewind: every red winds back to where it came onto the bar (the right end: the furthest first, so they queue up
- *  behind each other), over kits.tess.rewindSec; an icicle's fuse winds back to full. Returns how many. */
-export function rewindReds(c: Combat): number {
+ *  behind each other), over kits.tess.rewindSec; an icicle's fuse winds back to full. A moving red already within
+ *  `clearNear` of the left end (the finisher's: kits.tess.rewindClear) is wound out of the fight instead (cleared, as
+ *  a finisher clears reds). Returns how many. */
+export function rewindReds(c: Combat, clearNear = 0): number {
   let n = 0;
   const reds = c.blocks.filter((b) => isRed(b.kind)).sort((a, b) => b.pos - a.pos);
   for (const b of reds) {
+    if (!b.still && b.pos < clearNear) {
+      c.removeBlock(b, 'finisher');
+      n++;
+      continue;
+    }
     if (b.still) {
       const f = FUSE.get(b);
       if (f !== undefined && b.impactTimer < f) {

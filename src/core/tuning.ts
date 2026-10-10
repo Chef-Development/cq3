@@ -478,8 +478,10 @@ export const DEFAULT_TUNING = {
     gorm: { hp: 85, atk: 0.75, abilitySec: 1, rockEvery: 4, rockEvery3: 3, rockMult: 1.6, shove: 0.02, roarMult: 0.92, skin: 0.1, rubbleSec: 2, rubbleWidth: 0.25, rubbleMult: 0.9 },
     // tess: every stopEvery hits (3 stars: stopEvery3) the reds hold still for stopSec; a green's Slow Time runs reds
     // at slowMult for abilitySec; on ice and snow her cursor keeps `steady` of the patch's pull; Rewind winds reds back over
-    // rewindSec (5 stars: then a Stopwatch)
-    tess: { hp: 100, atk: 1, abilitySec: 1.5, stopEvery: 16, stopEvery3: 13, stopSec: 0.3, slowMult: 0.9, steady: 0.25, rewindSec: 0.15 },
+    // rewindSec (5 stars: then a Stopwatch); a red already within rewindClear of the bar's left end (on its way, not just
+    // sent) is undone instead, cleared like any finisher's (keeping every red cost her the later regions, where reds hit
+    // hardest: 15-40 points behind the starting hero in Acts 10-15)
+    tess: { hp: 100, atk: 1, abilitySec: 1.5, stopEvery: 16, stopEvery3: 13, stopSec: 0.3, slowMult: 0.9, steady: 0.25, rewindSec: 0.15, rewindClear: 0.8 },
     // part6:D
     // fizz: kegs are flasks in turn (fire, frost, spark): fire burns every foe for fireDps x attack a second for fireSec;
     // frost slows every red on the bar to frostMult for frostSec; spark blasts sparkRadius wider and sparkMult harder.

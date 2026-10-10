@@ -366,8 +366,8 @@ export const HEROES: Record<HeroId, HeroDef> = {
     signature: part('Stopwatch', 'Every {n} hits, time stops: reds hold still for a blink.', 'Hits stop time.'),
     ability: part('Slow Time', 'Green hits: for {n} s, every red moves slower.', 'Green hits slow the reds.'),
     passive: part('Steady Hands', 'Ice and snow patches bother her cursor {n}% less.', 'Steady on ice and snow.'),
-    finisher: { name: 'Rewind', text: 'Hits all foes and winds every red back to its start.', short: 'Hits all, rewinds reds.', bar: 'Winds reds back' },
-    strengths: [{ tag: 'construct', kind: 'dmg', n: 0.25 }, { tag: 'fire', kind: 'dmg', n: 0.25 }],
+    finisher: { name: 'Rewind', text: 'Hits all foes, undoes reds on their way, rewinds new ones.', short: 'Hits all, rewinds reds.', bar: 'Winds reds back' },
+    strengths: [{ tag: 'construct', kind: 'dmg', n: 0.25 }],
     joins: 'chest',
     meetScene: 'meetTess',
     stars: [
