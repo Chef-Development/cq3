@@ -691,4 +691,6 @@ Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
   `duskCamp`: `run.ts` `campScene`/`sableJoined` at `actsCleared >= 13`, and `core/lab.ts` marks it seen), speaker
   `sphinx` ("Noon Sphinx", needs a portrait), and `banter-noon.ts` (already read by `core/banter.ts`; it shows once the
   region is in play). Regions 6-10 are outlined in section 8 with scene ids, mini-bosses, bosses, his edits and rule
-  ideas: the rule hooks are ideas; rename anything and tell the story team so the scenes follow.
+  ideas, and Regions 6-8's scenes are drafted in full (`story-hush.ts`, `story-reach.ts`, `story-wick.ts`; speakers
+  `slowcoach`, `squall`, `press`): the rule hooks are ideas; rename anything and tell the story team so the scenes
+  follow.

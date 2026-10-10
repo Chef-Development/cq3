@@ -822,7 +822,8 @@ S12. **Nothing says "can't be erased" before the end of the first region.** Rowa
     first tries. The fifth region gets a camp scene (`noonCamp`, to wire like `duskCamp`) and gated banter
     (`banter-noon.ts`, read by `core/banter.ts`; it shows only once the region is in play). Regions 6-10 are outlined in
     the story bible: on an erased isle everything sleeps, so its foes are things he drew to move, creatures that were
-    away, and creatures that crossed his sea road.
+    away, and creatures that crossed his sea road. Regions 6-8's scenes are drafted in full ahead of their data
+    (`story-hush.ts`, `story-reach.ts`, `story-wick.ts`), as Region 5's were: the content team builds on the ids.
 
 (story: end of section)
 
