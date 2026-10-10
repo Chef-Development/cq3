@@ -9,6 +9,7 @@ import { SPEAKER_NAME, STORY } from '../../src/data/story';
 import { DUSK_STORY } from '../../src/data/story-dusk';
 import { STORY_BANTER, STORY_SCENE_ACT } from '../../src/data/banter-story';
 import { NOON_BANTER, NOON_SCENE_ACT } from '../../src/data/banter-noon';
+import { ISLES_BANTER, ISLES_SCENE_ACT } from '../../src/data/banter-isles';
 import { NOON_STORY } from '../../src/data/story-noon';
 import { HUSH_STORY } from '../../src/data/story-hush';
 import { REACH_STORY } from '../../src/data/story-reach';
@@ -277,6 +278,19 @@ describe('camp banter', () => {
     }
     for (const id of Object.keys(NOON_STORY)) expect(NOON_SCENE_ACT[id], id).toBeDefined();
     const all = [...BANTER, ...HERO_BANTER, ...STORY_BANTER, ...NOON_BANTER];
+    expect(new Set(all.map((l) => l.text)).size).toBe(all.length);
+  });
+
+  it("the first isles' banter waits for their drafted scenes and fits the bubble", () => {
+    const drafts = { ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY };
+    for (const l of ISLES_BANTER) {
+      expect(drafts[l.after], `${l.text}: after ${l.after}`).toBeDefined();
+      const lines = wrap(l.text);
+      expect(lines.length, l.text).toBeLessThanOrEqual(2);
+      for (const x of lines) expect(textWidth(x, 1, false), l.text).toBeLessThanOrEqual(BUBBLE_W);
+    }
+    for (const id of Object.keys(drafts)) expect(ISLES_SCENE_ACT[id], id).toBeDefined();
+    const all = [...BANTER, ...HERO_BANTER, ...STORY_BANTER, ...NOON_BANTER, ...ISLES_BANTER];
     expect(new Set(all.map((l) => l.text)).size).toBe(all.length);
   });
 
