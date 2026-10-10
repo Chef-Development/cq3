@@ -292,16 +292,13 @@ export class HeroesScreen {
   private kitLayout(): { parts: typeof KIT; xs: number[]; w: number; h: number; tight: boolean } {
     const c = this.col();
     const parts = KIT.filter((q) => q.which !== 'gift' || !!HEROES[this.view].gift);
-    if (parts.length <= 4) {
-      const w = KIT_CARD_W;
-      const gap = Math.floor((c.w - 4 * w) / 3);
-      return { parts, xs: parts.map((_, i) => i * (w + gap)), w, h: 22, tight: false };
-    }
     const n = parts.length;
-    const w = Math.min(28, Math.floor((c.w - (n - 1) * 3) / n));
+    // (four cards spread by their frames alone let "Special" and "Green" touch with an iPhone's side insets (review-4
+    // R4-13): every count now spaces the cards by their labels too, and drops every other label a line when it must)
+    const w = n <= 4 ? Math.min(KIT_CARD_W, Math.floor((c.w - (n - 1) * 3) / n)) : Math.min(28, Math.floor((c.w - (n - 1) * 3) / n));
     const lw = parts.map((q) => Math.max(w, textWidth(q.label, 1, true)));
     // the least distance between neighbouring cards' centres: their labels 2 px apart, their frames 3 px apart
-    const need = parts.slice(1).map((_, i) => Math.max(w + 3, (lw[i] + lw[i + 1]) / 2 + 2));
+    const need = parts.slice(1).map((_, i) => Math.max(w + 3, (lw[i] + lw[i + 1]) / 2 + 3));
     const span = need.reduce((a, b) => a + b, 0) + (lw[0] + lw[n - 1]) / 2;
     if (span <= c.w) {
       const extra = (c.w - span) / (n - 1);
@@ -877,7 +874,9 @@ export class HeroesScreen {
       const ck = popK(now, this.openAt, 4 + i, 35, 240);
       if (ck <= 0) return;
       const on = this.sheet.open && this.sheetKind === q.which;
-      const rr = iconCard(kit, l, { ...card.r, y: card.r.y + Math.round((1 - ck) * 6) }, { face: q.face, emblem: (gg, cx, cy, a) => pixMap(gg, q.map, q.pal, cx, cy, 2, a), label: card.labelDy ? undefined : q.label, labelCol: q.name, selected: on, alpha: clamp01(ck) }, now);
+      // (the kit's colours toned to the mood: each face a step toward ink, review-4 R4-13's candy)
+      const face = q.face.map((c0) => mix(c0, 0x1a1428, 0.28)) as unknown as Face;
+      const rr = iconCard(kit, l, { ...card.r, y: card.r.y + Math.round((1 - ck) * 6) }, { face, emblem: (gg, cx, cy, a) => pixMap(gg, q.map, q.pal, cx, cy, 2, a), label: card.labelDy ? undefined : q.label, labelCol: q.name, selected: on, alpha: clamp01(ck) }, now);
       if (card.labelDy) l.texts.text(q.label, rr.x + rr.w / 2, rr.y + rr.h + 6 + card.labelDy, q.name, { bold: true, ox: 0.5, oy: 0.5, alpha: clamp01(ck) });
     });
     // Stats, Skills and Pick
@@ -889,7 +888,8 @@ export class HeroesScreen {
       const pts = kit.level(id).points;
       kit.button(g, texts, mv(b.stats), '', FACE.purple, now, { icon: 'stats', alpha: k });
       kit.button(g, texts, mv(b.skills), 'Skills', FACE.blue, now, { icon: 'skills', glowCol: pts > 0 ? 0xffd23a : undefined, alpha: k });
-      if (pts > 0) kit.bubble(kit.gOver, texts, b.skills.x + b.skills.w - 2, b.skills.y - 2 + lift, '!', now, true);
+      // (the badge sits on the button's corner, above its word, not biting it: review-4 R4-13)
+      if (pts > 0) kit.bubble(kit.gOver, texts, b.skills.x + b.skills.w, b.skills.y - 6 + lift, '!', now, true);
       if (p.hero === id) {
         const pk2 = clamp01((now - this.pickAt) / 400);
         kit.button(g, texts, mv(b.pick), 'Picked', FACE.gold, now, { icon: 'check', glowCol: pk2 < 1 ? 0xfff0a0 : undefined, alpha: k });
