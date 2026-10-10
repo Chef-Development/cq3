@@ -3445,13 +3445,13 @@ export class Synth {
         this.bed(r, t, { type: 'highpass', f: 3500, q: 0.5, g: 0.005, gust: [0.6, 1.5], tau: 1.5 }); // the hiss of the heat
         break;
       case 'fen':
-        this.bed(r, t, { type: 'bandpass', f: 1100, q: 0.5, g: 0.03, gust: [0.3, 1.7], sway: [0.7, 1.4], tau: 1.1 }); // the reeds in a breeze
-        this.bed(r, t, { type: 'lowpass', f: 220, q: 0.5, g: 0.06, gust: [0.6, 1.4], tau: 2.2 }); // the fen's low hush
-        this.bed(r, t, { type: 'highpass', f: 4500, q: 0.5, g: 0.006, gust: [0.4, 1.7], tau: 0.9 }); // the reed tops whispering
+        this.bed(r, t, { type: 'bandpass', f: 1100, q: 0.5, g: 0.009, gust: [0.3, 1.7], sway: [0.7, 1.4], tau: 1.1 }); // the reeds in a breeze
+        this.bed(r, t, { type: 'lowpass', f: 220, q: 0.5, g: 0.024, gust: [0.6, 1.4], tau: 2.2 }); // the fen's low hush
+        this.bed(r, t, { type: 'highpass', f: 4500, q: 0.5, g: 0.002, gust: [0.4, 1.7], tau: 0.9 }); // the reed tops whispering
         break;
       case 'causeway':
-        this.bed(r, t, { type: 'lowpass', f: 380, q: 0.5, g: 0.06, gust: [0.6, 1.4], tau: 2.5 }); // the tide's low hush on the flats
-        this.bed(r, t, { type: 'bandpass', f: 950, q: 0.45, g: 0.022, gust: [0.3, 1.7], sway: [0.7, 1.4], tau: 1.2 }); // a breeze off the water
+        this.bed(r, t, { type: 'lowpass', f: 380, q: 0.5, g: 0.045, gust: [0.6, 1.4], tau: 2.5 }); // the tide's low hush on the flats
+        this.bed(r, t, { type: 'bandpass', f: 950, q: 0.45, g: 0.014, gust: [0.3, 1.7], sway: [0.7, 1.4], tau: 1.2 }); // a breeze off the water
         break;
       case 'mere':
         this.bed(r, t, { type: 'lowpass', f: 140, q: 0.6, g: 0.045, gust: [0.7, 1.3], tau: 3 }); // the still water's depth
@@ -3602,16 +3602,13 @@ export class Synth {
       case 'fen':
         return {
           gust,
-          frogs: { every: [0.5, 2.2], play: (r, t) => this.frogCroak(r, t) },
-          cricket1: { every: [0.8, 3.2], play: (r, t) => this.cricket(r, t, 0) },
-          cricket2: { every: [1.5, 5], play: (r, t) => this.cricket(r, t, 2) },
-          rustle: { every: [6, 14], play: (r, t) => this.rustle(r, t, 0.4) },
-          owl: { every: [18, 36], play: (r, t) => this.owl(r, t) },
+          frogs: { every: [0.6, 2.4], play: (r, t) => this.frogCroak(r, t, 0.8) },
+          cricket: { every: [1.5, 5], play: (r, t) => this.cricket(r, t, 2) },
         };
       case 'causeway':
         return {
           gust: { every: [2, 5], play: (r, t) => this.gust(r, t) },
-          lap: { every: [1.6, 3.6], play: (r, t) => this.waterLap(r, t, 1) },
+          lap: { every: [1.6, 3.6], play: (r, t) => this.waterLap(r, t, 0.6) },
           tick: { every: [0.98, 1.02], play: (r, t) => this.clockTick(r, t) },
           gulls: { every: [12, 26], play: (r, t) => this.gulls(r, t) },
         };
@@ -3620,7 +3617,7 @@ export class Synth {
           gust: { every: [3, 7], play: (r, t) => this.gust(r, t) },
           lap: { every: [3.5, 8], play: (r, t) => this.waterLap(r, t, 0.6) },
           foghorn: { every: [12, 24], play: (r, t) => this.farFoghorn(r, t) },
-          frogs: { every: [2.5, 7], play: (r, t) => this.frogCroak(r, t) },
+          frogs: { every: [2.5, 7], play: (r, t) => this.frogCroak(r, t, 0.6) },
         };
       case 'forge':
         return {
@@ -3637,14 +3634,14 @@ export class Synth {
   // Region 4's places: the lantern fen, the drowned causeway, the gloaming mere
 
   /** A frog in the reeds: a low rasping croak (a run of clicks over a buzzy tone), now and then two. */
-  private frogCroak(r: AmbRig, t: number): number {
+  private frogCroak(r: AmbRig, t: number, k = 1): number {
     const out = this.spot(r);
     const f = 380 + r.rand() * 260;
     const n = r.rand() < 0.3 ? 2 : 1;
     for (let i = 0; i < n; i++) {
       const at = t + i * 0.32;
-      this.ticks([0, 0.018, 0.037, 0.058, 0.08, 0.104].map((d) => at + d), { gain: 0.05, f: f * 1.6, q: 3, ms: 9, out });
-      this.voice({ at, type: 'square', f: [[0, f * 0.5], [0.12, f * 0.42]], filter: 'bandpass', ff: [[0, f]], q: 2, amp: [[0.01, 0.025], [0.13, 0]], out });
+      this.ticks([0, 0.018, 0.037, 0.058, 0.08, 0.104].map((d) => at + d), { gain: 0.05 * k, f: f * 1.6, q: 3, ms: 9, out });
+      this.voice({ at, type: 'square', f: [[0, f * 0.5], [0.12, f * 0.42]], filter: 'bandpass', ff: [[0, f]], q: 2, amp: [[0.01, 0.025 * k], [0.13, 0]], out });
     }
     return 0.15 + n * 0.32;
   }
@@ -4021,11 +4018,11 @@ export class Synth {
   }
 
   /** One cricket's phrase: chirps of three or four quick pulses a few times a second, then it rests. */
-  private cricket(r: AmbRig, t: number, i: number): number {
+  private cricket(r: AmbRig, t: number, i: number, k = 1): number {
     const f = [4400, 4900, 5600][i];
     const pulses = 3 + (i % 2);
     const gap = 0.32 + 0.1 * i + r.rand() * 0.05;
-    const v = i === 2 ? 0.022 : 0.036;
+    const v = (i === 2 ? 0.022 : 0.036) * k;
     const notes: [number, number, number, number, number][] = [];
     for (let c = 0, n = 3 + Math.floor(r.rand() * 6); c < n; c++) for (let p = 0; p < pulses; p++) notes.push([c * gap + p * 0.034, 0.02, f, f * 0.985, v]);
     return this.whistle(r.spots[[1, 4, 0][i]], t, notes, 0.005);

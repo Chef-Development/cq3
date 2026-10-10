@@ -31,10 +31,10 @@ One PR at the end supersedes #1-#7.
 | 2 | Art bible, audit contact sheets, title/logo/key art | 2 | bible, audit, new title + logo merged; outlier redos in progress |
 | 3 | Region 4 bar rules + region design | 3 | bar rules in core (dark blocks, tides), data, relics, gear; names reconciled with the story (L3) |
 | 4 | Desktop input, clean capture, perf baseline, originality audit | 4 | merged (title ready 12.1 -> 7.8 s at CPU 4x); continuing |
-| 5 | First 10 minutes: new-player bot path, measure, fix | 5 | merged (first chest 1:22-4:36 -> ~1:30; the first finisher a moment); continuing |
+| 5 | First 10 minutes: new-player bot path, measure, fix | 5 | title -> first fight 0:33 -> 0:20; first chest ~1:30; the first finisher finishes its foe; auto-wear; next: a simpler first relic pick |
 | 6 | Story rewrite: intro, regions 1-3 scenes, heroes, companions, banter, lore, UI words | 1 | done (sweep, companions, editor's 45 notes applied, Region 5 fit, Regions 6-12 drafted); L8 tone pass + 2nd editor next |
 | 7 | The Great Atlas world map (2A); animation upgrade + lighting pass (2B); 2x rollout | 2A/2B | in progress |
-| 8 | Region 4 complete: in play + balance (3), art + music (dusk-art) | 3 + dusk-art | in progress |
+| 8 | Region 4 complete: in play + balance (3), art + music (dusk-art) | 3 + dusk-art | in play, balanced (acts 10-12: 84-90 / 71-74 / 53-69%, masher 0/73); art + music landing; parity pass next |
 | 9 | Resizable window, Android, code split, bot crawl part 1; then reviewers | 4 | in progress |
 | 10 | Region 5 (bar rules + data done, not in play; art and wiring later) | 3 | later |
 | 11 | Backlog cycle (QA, Region 6, polish, NG+, more content, music, accessibility) | all | later |
@@ -96,3 +96,13 @@ One PR at the end supersedes #1-#7.
   merged: the old premise gone from player text, companions' bios, the editor's notes applied, Region 5 fitted,
   Regions 6-12 and the ending drafted (not in play). Story chunk 3 launched (an L8 tone pass, a second editor on the
   drafts and the ending).
+- 22:02 EDT: Rowan's mature look (L8) reviewed (team/art2 docs/art-audit/after/rowan-mature-before-after.png): ~3 heads,
+  slit visor, pauldrons, jointed legs, darker steel: approved with a contrast note; 2B rolls it to all sixteen.
+- 22:15 EDT: merged the Region 4 audio fix (the last red test), first10 chunk 2 (title -> first fight 0:20, the road
+  scene after the first win, the first finisher finishes its foe, found gear for an empty slot goes on (CORE), the
+  first hero chest always someone new (CORE), each hero's first finisher revealed) and art 2C's darker Greenmarch,
+  Frostpeaks and Ashfell (a grade baked per theme at paint time). Second editor's notes (59, the ending) to the story
+  team. first10 chunk 3 launched (a simpler first relic pick, re-measure).
+- 22:20 EDT: content chunk 2 merged: Region 4 in play after Ashfell (acts 10-12; 14 relics, gear, the camp scene,
+  12 spoiler lab items), balanced at 75% (guard bot-region4), masher 0 of 73 at its boss; CORE: its set/signature
+  effects, ice floats on the tide. Content chunk 3 launched (Region 4 parity, Region 5 wiring with stand-ins).

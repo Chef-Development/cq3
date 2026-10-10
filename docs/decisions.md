@@ -1031,7 +1031,18 @@ C8. **The fourth region balanced at 75% from a typical end-of-third-region hero*
     the mini-bosses decide each act (first try = the boss's first fight), so the levers were their HP and attack plus
     each act's red speed; act attack alone moved little. The numbers and measurements are in the content bible (as
     wired). The next region's first-guess numbers were lifted to stay a step above it (its data test asks that).
-C9. **The next region's gear is written as data** (not merged; a data test), so its wiring is one merge like this one.
+C9. **The next region's gear and relics are written as data** (not merged, no hooks yet; a data test each), so its
+    wiring is one merge like this one plus the relics' hooks.
+C10. **The masher guard measures the boss alone over 15 runs, not 5** (merge 3 turned CI red: region 2, "every
+    try" 2 of 19 = 0.105 > 0.1). Not a balance shift: over 30 seeds region 2's boss-alone masher wins 6 of 152 tries
+    (4%) and 2 of 30 first fights (7%); with five runs, two early wins (a win ends that run's tries) were enough to cross
+    the bound. The bounds stay (every try at most 10%; the first fight at most one run in five). The whole-act sample
+    stays at 5.
+C11. **Ice floats on the tide** (`CORE:`): a frozen block in the water is never sunk and can be hit, and is drawn over
+    the water. Found by the hero parity run: the hero who freezes the reds she blocks lost most of her damage in the
+    tide act, since reds are blocked in the shallows and her ice sank where it formed.
+C12. **The region card's tabs fall back to short names** (Green, Frost, Ash, Dusk) when four regions don't fit the
+    top bar by name (the fourth tab ran off a phone's screen); screenshots of the card change with it.
 
 (content: end of section)
 
@@ -1171,5 +1182,20 @@ F12. **The game's first hero chest always brings someone new** (`CORE:` chests.t
 F13. **The newcomer bot goes on to the first hero chest** (`F10_UNTIL=act`): the act clear (a look, then Camp), Sable's
     scene, the vault, the reveal. It also times the first red's spawn and the first boss's arc (its first special,
     half and a fifth of its HP).
+
+F14. **Found gear for an empty slot goes on at once** (`CORE:` run.ts, tuning.ts `gear.autoWear` with a slider). A
+    newcomer plays Act 1 without opening the camp, so every item found waited in the bag and Rowan met the Bandit
+    Captain in nothing (the newcomer bot lost him on one seed); the balance bot wears the best it finds after every
+    loot, so the balance was set for a player who does. An item whose slot is empty now goes on as it drops (it never
+    replaces anything: choices stay at camp), the loot screen tags it "Worn" in green instead of NEW, and the loot tip
+    says "Gear for a free slot goes on. / Spares wait in your bag at camp." The bot is unchanged (it wore them anyway);
+    its "without gear" ablation turns this off (`Run.autoWear`). What it's worth to a newcomer who never opens the
+    camp (balance bot, 200 runs, a newcomer's 0.38 s reaction): Act 1 first try 84.5% -> 94.5% at 55% accuracy,
+    91.5% -> 98% at 60%.
+
+F15. **Each hero's first finisher gets the reveal** (the letterbox, the light, its name stamped in big): Rowan's first
+    (as F3), then Sable's (who joins a minute after the first boss) and a chest hero's (the first hero chest now
+    always brings someone new). One mark per hero in `profile.seen` (`revealKey`: Rowan keeps `finisherReveal`); only
+    with tips on; the Test lab's profiles have every hero's seen.
 
 (first10: end of section)

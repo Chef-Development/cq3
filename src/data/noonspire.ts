@@ -56,7 +56,7 @@ export const NOONSPIRE: RegionDef = {
       hpMult: 8.8,
       atkMult: 25,
       pace: 0.74,
-      redSpeed: 1.38,
+      redSpeed: 1.44,
       rows: 7,
       waves: { first: 3, last: 5, eliteEscort: 2 },
       fights: {
@@ -77,10 +77,10 @@ export const NOONSPIRE: RegionDef = {
     {
       name: 'The Great Sundial',
       theme: look('sundial'),
-      hpMult: 9.6,
+      hpMult: 10.2,
       atkMult: 26.5,
       pace: 0.7,
-      redSpeed: 1.4,
+      redSpeed: 1.44,
       rows: 7,
       waves: { first: 3, last: 6, eliteEscort: 2 },
       fights: {
