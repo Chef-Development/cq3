@@ -785,6 +785,21 @@ L7. **Mood: darker, not bright and peachy** (playtester, round 8: "the atmospher
        and darker.
     6. Darker never means muddy: every material keeps 3+ hue-shifted tones and the scene keeps strong contrast.
 
+L8. **More mature, less chibi** (playtester, round 8: "everything looks a little childish and chibi; a little more
+    mature and moodier"). On top of L7's mood:
+    1. Heroes: from about 2 heads tall to about 3-3.5: longer torsos and legs, heads a little smaller; smaller eyes
+       (no big glossy eyes, no rosy cheeks), a defined brow and jaw; weathered, grounded materials (worn leather,
+       dented steel, cloth with folds); silhouettes that read as people, not toys. Rowan first as the reference, then
+       every hero, the most seen first. Weapons keep the heft from the round's earlier note.
+    2. Foes: more menace (sharper silhouettes, eyes that glow, teeth, scars), darker palettes; cute shapes (round
+       slimes, wide eyes) get an edge.
+    3. Portraits: the same maturity (defined features, moodier light).
+    4. UI: less candy gloss: plates read as engraved metal, ink and leather rather than shiny plastic; bright saturated
+       buttons are toned down to the mood's accents.
+    5. Companions may keep some charm, inside the mood's palette.
+    Teams: art 2B the heroes (and portraits of heroes); a new art 2C the fight backdrops (L7) and the foes; art 2A the
+    UI, menus, world map and title; the region helpers their regions.
+
 (lead: end of section)
 
 

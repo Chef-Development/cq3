@@ -88,3 +88,7 @@ One PR at the end supersedes #1-#7.
 - 21:40 EDT: playtester note: "the atmosphere of everything needs to be slightly more dark and not all bright and
   peachy": decision L7 (mood rules) sent to art 2A (bible, title, world map, menus, camp, UI), art 2B (every fight
   backdrop and fight lighting, foes) and dusk-art (Region 4).
+- 21:50 EDT: playtester note: "everything looks a little childish and chibi; more mature and moodier": decision L8
+  (heroes ~3-3.5 heads tall, smaller eyes, weathered materials; foes with menace; portraits; less glossy UI). Art 2B
+  takes the heroes (Rowan prototype first); a new art 2C takes the fight backdrops' mood pass (L7) and the foes; art
+  2A the UI, menus, world map, title.
