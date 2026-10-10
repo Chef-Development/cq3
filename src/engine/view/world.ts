@@ -1094,6 +1094,11 @@ export class WorldView {
           // the front of the colour coming back: gold ink where it meets his draft
           if (front && cr === front[2] && rk < 0.95) {
             const a = Math.min(1, (0.95 - rk) * 6);
+            // a band of warm light just inside the front: the colour arriving
+            const band = Math.min(10, Math.round(half));
+            g.fillStyle(0xffd890, 0.22 * a);
+            g.fillRect(Math.round(cx - half), y, band, 2);
+            g.fillRect(Math.round(cx + half) - band, y, band, 2);
             g.fillStyle(0xf2c230, a);
             g.fillRect(Math.round(cx - half) - 1, y, 2, 2);
             g.fillRect(Math.round(cx + half) - 1, y, 2, 2);
