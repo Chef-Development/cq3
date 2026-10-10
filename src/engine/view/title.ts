@@ -107,7 +107,7 @@ export class TitleScreen {
     const frame = since > TITLE_IN.hero && Math.floor(now / 520) % 2 ? 'idle1' : 'idle0';
     // (the feet at (6, 14) whatever the walker's width: Rowan's is a column wider for his sword)
     this.hero?.setTexture(`${key}_${frame}`);
-    this.hero?.setOrigin(6 / this.hero.width, 14 / 16).setPosition(hx, hy - lift).setAlpha(clamp01(since / 120));
+    this.hero?.setOrigin(6 / this.hero.width, (this.hero.height - 2) / this.hero.height).setPosition(hx, hy - lift).setAlpha(clamp01(since / 120));
     if (since > TITLE_IN.hero && since < TITLE_IN.hero + 260) {
       const k = (since - TITLE_IN.hero) / 260;
       g.fillStyle(0xf8ecc8, 0.8 * (1 - k));
