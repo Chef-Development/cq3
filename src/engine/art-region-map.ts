@@ -624,6 +624,47 @@ function duskmire(p: Paper): void {
   compass(p, 177, 16);
 }
 
+const STONES = ['.k...k.', 'kSk.kSk', 'kSk.kSk', 'kSk.kSk', 'kkkkkkk'];
+const SPIRE = ['...k...', '..kOk..', '..kSk..', '..kSk..', '.kSSSk.', '.kSkSk.', 'kkkkkkk'];
+const DIAL = ['..kkk..', '.kSkSk.', 'kSSkSSk', 'kSSOSSk', '.kSSSk.', '..kkk..'];
+
+function noonspire(p: Paper): void {
+  const S = REGION_SITES.noonspire.acts;
+  // a high plateau of sand under a pinned sun: dune ripples, white salt pans, a lake that is only a mirage (dotted),
+  // the plateau's cliffs hatched along the south; the white road in from the west, up the spire steps to the dial
+  wash(p, (x, y) => fbm(x * 0.05, y * 0.07, 101) > 0.4, 0xa88a5a, 0.35, 102);
+  for (const [bx, by, brx, bry, seed] of [
+    [64, 92, 20, 7, 103],
+    [16, 44, 12, 6, 104],
+    [182, 64, 14, 6, 105],
+  ] as const) {
+    const pan = blob(bx, by, brx, bry, seed);
+    wash(p, pan, 0xd8d0bc, 0.4, seed + 10);
+    inkEdge(p, pan, seed + 20, 0x8a7a5a, 0.3);
+  }
+  // the mirage: a lake drawn in dots, as if the ink couldn't decide
+  const lake = blob(132, 84, 16, 7, 106);
+  for (let y = 70; y < 100; y++) for (let x = 110; x < 156; x++) if (lake(x, y) && (x + y) % 3 === 0) p.set(x, y, 0x6a8a96);
+  // dune ripples
+  for (let i = 0; i < 22; i++) {
+    const x = Math.floor(hash(i, 1, 107) * 200);
+    const y = 8 + Math.floor(hash(i, 2, 107) * 104);
+    if (S.some(([sx, sy]) => Math.hypot(x - sx, y - sy) < 12) || lake(x, y)) continue;
+    wave(p, x, y, 0x7a5a36);
+  }
+  // the cliffs at the plateau's south edge
+  for (let x = 0; x < 200; x += 3) {
+    const y = 108 + Math.round(Math.sin(x * 0.13) * 2 + hash(x, 3, 108) * 2);
+    p.set(x, y, INK_SOFT);
+    p.set(x + 1, y + 1, INK_SOFT);
+  }
+  road(p, [[-24, 86], [0, 80], S[0], [70, 64], S[1], [128, 40], S[2], [184, 8]], S, 0x6a5a4a);
+  mark(p, STONES, { k: INK, S: 0xb8ac98 }, S[0][0], S[0][1] + 2);
+  mark(p, SPIRE, { k: INK, S: 0xd8d0c4, O: 0xd8a030 }, S[1][0], S[1][1] + 2);
+  mark(p, DIAL, { k: INK, S: 0xc09a50, O: 0xffe080 }, S[2][0], S[2][1] + 2);
+  compass(p, 177, 96);
+}
+
 /** A region not reached yet: blank parchment under drifting grey fog (its map would spoil it). */
 function fog(p: Paper): void {
   wash(p, (x, y) => fbm(x * 0.04, y * 0.05, 71) > 0.35, 0x8a8a96, 0.35, 72);
@@ -637,6 +678,7 @@ function regionMap(id: string): HTMLCanvasElement {
   else if (id === 'frostpeaks') frostpeaks(p);
   else if (id === 'ashfell') ashfell(p);
   else if (id === 'duskmire') duskmire(p);
+  else if (id === 'noonspire') noonspire(p);
   else fog(p);
   return p.canvas();
 }
