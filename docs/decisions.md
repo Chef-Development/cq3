@@ -949,6 +949,12 @@ C-ART-3. **Region 4's music is built to the content bible** (six pieces, each it
     the Sluice Keeper at 114, not 100 and 112 (the title and Act 7 already have those; the audio test wants every
     tempo once). Both mini-bosses follow their phases (layers, no key change); the boss drops a whole tone in its last
     phase (`keyUp: -2`). Cued by act and boss in app.ts, with the three ambience beds (`fen`, `causeway`, `mere`) by act.
+C8. **The fourth region balanced at 75% from a typical end-of-third-region hero** (`npm run region-tune` with
+    REGION=3, then `tests/unit/bot-region4.test.ts` as the guard, 40 runs). Its first-guess numbers were far too easy:
+    the mini-bosses decide each act (first try = the boss's first fight), so the levers were their HP and attack plus
+    each act's red speed; act attack alone moved little. The numbers and measurements are in the content bible (as
+    wired). The next region's first-guess numbers were lifted to stay a step above it (its data test asks that).
+C9. **The next region's gear is written as data** (not merged; a data test), so its wiring is one merge like this one.
 
 (content: end of section)
 
