@@ -13,6 +13,8 @@ import { runCalibration } from './calibrate';
 import { copyText, toast } from './clipboard';
 import { loadCleanCapture, saveCleanCapture, saveNow } from './storage';
 import { setAllUnlocked } from '../core/roster';
+import { type MotionPref } from '../core/a11y';
+import { A11Y, setA11y } from './a11y';
 
 type Opt<T> = [T, string];
 
@@ -195,6 +197,34 @@ export function installDebug(app: App, testLab?: { open(): void }): DebugUi {
       row.appendChild(g);
       modes.appendChild(row);
       modes.appendChild(el('div', 'dbg-note', 'Hides this gear button and the Test lab for recording clips. Hold the top middle of the screen (or press C) to bring them back.'));
+    }
+    // accessibility (engine/a11y.ts; kept on their own, storage.ts): marks on the reds, less motion
+    {
+      const pick = <T,>(label: string, opts: Array<[T, string]>, now: () => T, set: (v: T) => void, note?: string) => {
+        const row = el('div', 'dbg-row');
+        row.appendChild(el('span', 'dbg-label', label));
+        const g = el('div', 'dbg-seg');
+        for (const [v, name] of opts) {
+          const b = el('button', 'dbg-segbtn', name);
+          b.classList.toggle('on', now() === v);
+          b.onclick = () => {
+            set(v);
+            for (const o of Array.from(g.children)) o.classList.toggle('on', o === b);
+          };
+          g.appendChild(b);
+        }
+        row.appendChild(g);
+        modes.appendChild(row);
+        if (note) modes.appendChild(el('div', 'dbg-note', note));
+      };
+      pick('Block marks', [[false, 'Off'], [true, 'On']], () => A11Y.settings.marks, (v) => setA11y({ marks: v }), 'A mark on every red block, so no block is told apart by its colour alone.');
+      pick(
+        'Motion',
+        [['auto', 'Auto'], ['less', 'Less'], ['full', 'Full']],
+        () => A11Y.settings.motion,
+        (v: MotionPref) => setA11y({ motion: v }),
+        'Less: no screen shake, softer flashes. Auto follows the device.',
+      );
     }
     if (canFullscreen()) {
       const row = el('div', 'dbg-row');

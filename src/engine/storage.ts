@@ -2,6 +2,7 @@
 import { readProfile, type Profile } from '../core/profile';
 import { migrateSave, readSave, type RunSave } from '../core/save';
 import { cloneTuning, DEFAULT_SETTINGS, DEFAULT_TUNING, mergeKnown, tuningDiff, type Settings, type Tuning } from '../core/tuning';
+import { parseA11y, type A11ySettings } from '../core/a11y';
 
 // Only values changed from the defaults are stored, so new defaults reach players. v3: every enemy and act was
 // rebalanced (waves of foes, a player-calibrated bot), so changes saved against the old numbers are dropped.
@@ -193,3 +194,8 @@ const CLEAN_CAPTURE_KEY = 'cq3.cleanCapture';
 export const readCleanCapture = (v: unknown): boolean => v === true;
 export const loadCleanCapture = (): boolean => readCleanCapture(read(CLEAN_CAPTURE_KEY));
 export const saveCleanCapture = (on: boolean): void => write(CLEAN_CAPTURE_KEY, on);
+
+/** The accessibility settings (core/a11y.ts): their own key, kept across runs, a New game and the lab's swaps. */
+const A11Y_KEY = 'cq3.a11y';
+export const loadA11y = (): A11ySettings => parseA11y(read(A11Y_KEY));
+export const saveA11y = (s: A11ySettings): void => write(A11Y_KEY, s);
