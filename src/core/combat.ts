@@ -1162,9 +1162,10 @@ export class Combat {
     return pos < w.l || pos > 1 - w.r;
   }
 
-  /** A still block (anything but a red) whose centre is under water at sim time t: sunk, out of reach. */
+  /** A still block (anything but a red or ice) whose centre is under water at sim time t: sunk, out of reach. */
   sunk(b: Block, t = this.time): boolean {
-    if (isRed(b.kind)) return false;
+    // (ice floats: a frozen block, Neve's Flash Freeze or a frost foe's, bobs on the water and can still be hit)
+    if (isRed(b.kind) || b.kind === 'frozen') return false;
     const w = this.waterAt(t);
     if (w.l <= 0 && w.r <= 0) return false;
     const p = this.blockPosAt(b, t);
@@ -2353,12 +2354,12 @@ export class Combat {
     let attackD = Infinity;
     let trap: Block | null = null;
     let trapD = Infinity;
-    // (Region 4's tide: a still block whose centre is under water is out of reach)
+    // (Region 4's tide: a still block whose centre is under water is out of reach; ice floats, see sunk)
     const water = this.waterAt(t);
     const wetAny = water.l > 0 || water.r > 0;
     for (const b of this.blocks) {
       if (b.bornAt > t + 1e-9 || untappable(b.kind) || b.id === this.holding?.id) continue;
-      if (wetAny && !isRed(b.kind)) {
+      if (wetAny && !isRed(b.kind) && b.kind !== 'frozen') {
         const bp = this.blockPosAt(b, t);
         if (bp < water.l || bp > 1 - water.r) continue;
       }
