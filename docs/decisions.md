@@ -1554,6 +1554,9 @@ C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics
 - **Q22 The Training Dummy's HUD** (review 3, F24): the act plate reads "Practice", the purse and the potion are gone
   (nothing is paid or spent there), and the dummy's plate counts what's been dealt to it ("51 dealt") over its gauge
   instead of "2349/2400". The Test lab's practice fights (real foes) keep the normal HUD.
+- **Q23 A tap meant to skip the world map's first glide only skips**, even when it lands just after the glide ended on
+  its own (600 ms of grace: on a busy machine the smoke test's skip tap arrived as the glide finished and started the
+  story through Rowan's plate, which had just come up).
 (qa: end of section)
 
 

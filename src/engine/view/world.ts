@@ -117,6 +117,9 @@ const CATCH_SPEED = 60;
 /** The first visit's reveal: a short hold, then a glide from the far east to the current act (ms). */
 const TOUR_HOLD = 250;
 const TOUR_MS = 1700;
+/** A tap this soon after the first visit's glide ends on its own was meant to skip it: it only skips (it never starts
+ *  the story through the plate that has just come up). */
+const TOUR_GRACE_MS = 600;
 /** The camera easing to a landmark or back home (ms). */
 const GLIDE_MS = 480;
 /** A land's first reveal (ms from its start): the view glides there from the region before (like the tour), its
@@ -293,6 +296,8 @@ export class WorldView {
   private last = 0;
   private press: { x: number; y: number; cx: number; cy: number; drag: boolean; skip: boolean; samples: Array<[number, number, number]> } | null = null;
   private tour: { at: number; from: Pt; to: Pt; hold: number } | null = null;
+  /** When the first visit's glide ended on its own (a tap just after it only skips). */
+  private tourEnd = -1e9;
   private glideTo: { at: number; from: Pt; to: Pt } | null = null;
   /** The act landmark selected (its card is up), and the moment the screen settled after the tour. */
   private sel: { act: number; at: number } | null = null;
@@ -470,7 +475,10 @@ export class WorldView {
       const e = smooth(k);
       this.cam.x = this.tour.from[0] + (this.tour.to[0] - this.tour.from[0]) * e;
       this.cam.y = this.tour.from[1] + (this.tour.to[1] - this.tour.from[1]) * e;
-      if (k >= 1) this.tour = null;
+      if (k >= 1) {
+        this.tour = null;
+        this.tourEnd = now;
+      }
     } else if (this.glideTo) {
       const k = (now - this.glideTo.at) / GLIDE_MS;
       const e = 1 - (1 - clamp01(k)) ** 3;
@@ -497,7 +505,7 @@ export class WorldView {
   /** A finger (or the mouse) goes down on the map (screen game px). */
   pressAt(x: number, y: number, now: number): void {
     const moving = Math.hypot(this.vel.x, this.vel.y) > CATCH_SPEED || !!this.glideTo;
-    const skip = !!this.tour || moving;
+    const skip = !!this.tour || moving || now - this.tourEnd < TOUR_GRACE_MS;
     // a tap ends a restoring at once (the colour all back)
     this.restore = null;
     if (this.tour) {
