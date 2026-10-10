@@ -42,12 +42,12 @@ export const SALT_STORY: Record<string, StoryBox[]> = {
     { who: 'narrator', text: 'The Storm Wall: a great sea wall, holding\nback a sea that never moves.' },
     { who: 'rowan', text: 'Someone built this against the storms.\nAnd up the hill, a bell.' },
     { who: 'pip', text: 'It rang when a storm was coming.\nNow it has nothing to ring for.' },
-    { who: 'sable', text: "A wall with nothing to stop. A bell with\nnothing to say. I'm sensing a theme." },
+    { who: 'sable', text: 'A wall with nothing to stop. A bell with\nnothing to say. I know how they feel.' },
   ],
   // Act 2 mini-boss: a storm petrel, a month on the wing with nowhere to land
   gale: [
     { who: 'narrator', text: 'A storm petrel drops out of the white sky,\nragged, its wings worn thin.' },
-    { who: 'gale', text: 'Storm? Storm? ...No. Nothing. A month on\nthe wing, and not one wave to land on.' },
+    { who: 'gale', text: 'Storm? Storm? ...No. Nothing. Months on\nthe wing, and not one wave to land on.' },
     { who: 'rowan', text: "We're bringing the storms back.\nLet us through." },
     { who: 'gale', text: 'Back? ...Then show me you can stand in\na wind. HOLD ON!' },
   ],
@@ -55,16 +55,16 @@ export const SALT_STORY: Record<string, StoryBox[]> = {
   salt3: [
     { who: 'narrator', text: 'Out where the deep water was, a pane of\nglass lies over the sea.' },
     { who: 'pip', text: "The Glass. That's his line. And under it,\nsomething very big has been waiting." },
-    { who: 'narrator', text: 'Under the glass, a coil of salt-white scales\nshifts, and groans like a ship.' },
+    { who: 'narrator', text: 'Under the Glass, a coil of salt-white scales\nshifts, and groans like a ship.' },
     { who: 'neve', text: "Rowan, you've gone pale." },
     { who: 'rowan', text: "It's deep under there. I'm fine.\nLet's go." },
   ],
   // Act 3 boss: his reason, in five words
   brine: [
-    { who: 'mapmaker', text: 'Not a boat lost since I came. Not one\nwidow on this shore. Count them, knight.' },
+    { who: 'mapmaker', text: 'Not a boat lost since I came. Not one\nwoman widowed on this shore.' },
     { who: 'rowan', text: 'Not one fish. Not one wave. Not one bell.\nYou took everything that moves.' },
     { who: 'mapmaker', text: 'Everything that moves can drown.' },
-    { who: 'narrator', text: 'The Glass cracks open beneath him, and Old\nBrine rises, crusted in salt.' },
+    { who: 'narrator', text: 'The Glass heaves, and Old Brine rises\nbeneath it, crusted in salt.' },
   ],
   // phase 2 (his first edit): the salt spreads (hint: the outline's salt crust)
   brine2: [
@@ -83,7 +83,7 @@ export const SALT_STORY: Record<string, StoryBox[]> = {
     { who: 'narrator', text: 'The Glass shatters. The first wave in months\nrolls in, and then a storm, a real one.' },
     { who: 'narrator', text: 'Up the hill, the abbey bell rings for a\nreason. The fishing village wakes, soaked.' },
     { who: 'mapmaker', text: 'Forgive me, knight. You will want to go\nhome now. You will find it asleep.' },
-    { who: 'mapmaker', text: 'The isles did not hold ink enough. I took\nMeridian. The hall, the keepers, all of it.' },
+    { who: 'mapmaker', text: 'The isles did not hold ink enough. I took\nMeridian. They are only sleeping, knight.' },
     { who: 'narrator', text: 'Rowan says nothing. Behind him, the storm\nwalks away across the sea.' },
     { who: 'pip', text: "Rowan... The knights' hall. Hesper.\nThat was home." },
   ],

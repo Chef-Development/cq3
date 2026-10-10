@@ -800,6 +800,11 @@ L8. **More mature, less chibi** (playtester, round 8: "everything looks a little
     Teams: art 2B the heroes (and portraits of heroes); a new art 2C the fight backdrops (L7) and the foes; art 2A the
     UI, menus, world map and title; the region helpers their regions.
 
+L9. **A boot check before every push** (a boot crash from a hero-rig change reached the live build at 22:37 for about
+    ten minutes: unit tests and the build passed, the game didn't start): the lead's pushes and the teams' commits that
+    touch boot-painted art run `boot-check.mjs` (the built game at phone and desktop size: no page errors, title ->
+    world map -> the first story box); hero-frames.test.ts now paints every card and camp pose.
+
 (lead: end of section)
 
 
@@ -868,6 +873,16 @@ S13. **The rest of the story is drafted in data, not in play.** Region 9 in full
     the same tests as the scenes in play (box counts, widths, speakers, the Mapmaker's and Hesper's no-contraction
     voices; he is named only at the end of `lowTruth`, speaker `ambrose`). Camp banter can now stop being true
     (`until`): Brann's slate lines stop once his bell rings (`saltVictory`).
+
+S14. **The second editor's pass on Regions 5-12 and the ending is applied, with every optional note taken.** That
+    includes the stronger `lowGoes` order: Rowan's line comes before Ambrose goes, so he hears it, and the region ends
+    on him stopping on the road. One note is rejected: "Travelers" stays (the player-facing text is American; only a
+    code comment says "travellers"). Added from the editor's "smaller gaps": Ambrose mentions his wife once
+    (`kestrel`: "My wife asked me that, once.").
+S15. **L8 for the words: grown-up wit, not chirp.** Hero arrivals, banter, events, achievements and a few names (three
+    relics, two capstones, a companion's kind) lose the toy-like and exclamation-heavy phrasing; the jokes stay, drier.
+    Companion names (Bun, Sunny...) stay: L8 lets companions keep some charm, and the names run through tests and art
+    notes. Tips are left to the first 10 minutes team (their wording is the onboarding).
 
 (story: end of section)
 
@@ -977,6 +992,88 @@ A14. **Section 9's words on every screen I own**: "The Great Atlas" and "Regions
     "Something is being drawn here."), a locked land's card names the land to restore first, and the region victory
     reads "Greenmarch restored!" / "N regions to go." Nothing about a Pendulum is left in the view text (the capital's
     landmark sprite and the narrator's portrait still show the pendulum: next).
+
+A15. **L6 on the Atlas: the open lands keep the painted world.** The ink draft read as dirt and specks at the map's
+    zoom; it is gone. An open land not yet restored shows the painted land a touch drained (a third toward its own
+    grey, `draftOf`), with full colour already back round Rowan and each cleared act; restoring floods the full colour
+    out from the boss in the ragged gold-fronted ring (A13). Erased land stays blank vellum with the impression of its
+    lines, now behind a clear torn edge: the paper's rim lit warm, a thin ink shadow on the land beside it.
+A16. **L7 (mood) on the Atlas:** aged, darker parchment (`AGED`) browning to burnt edges, a deeper teal sea wash, the
+    land graded about a fifth darker with cool midtones and warm lights kept (`MOOD`), the erased lands and the far
+    isles a dim warm-grey vellum (no cream), clouds a dusk lavender grey, a vignette half again as strong. The title's
+    blank is a warm grey kept below the logo's and the sun's values.
+A17. **The art bible's section 0, Mood (L7) and Maturity (L8)**, ahead of everything else and overriding it: values
+    down, cool midtones, deep cool shadows, warm light only as accents, actors rim-lit; people not toys, foes with
+    menace, portraits with defined features, UI as metal, ink and leather.
+A18. **L7/L8 in the menus' shared parts** (every screen built from them follows): plates' ink (`NAVY`) a step darker
+    and less purple, trim gold (`GOLD` in pixels.ts) antique brass, button faces (`FACE`) and ribbons in the mood's
+    accents (moss, brass, oxblood, iron, steel blue, plum, ink), `button3d` an iron rim with a narrow lit lip and one
+    dull glint instead of a silver rim, a glossy band and two white speculars; glass plates one dull glint. Every
+    painted menu stage (`ensureStage`), the grove and the camp's backdrop get `moodGrade` (art-paint.ts: midtones
+    toward a deep indigo, light sources spared). Text colours with fixed meanings (reward gold, done green) are kept.
+A19. **The old premise out of the pictures** (story bible section 11): the narrator's portrait is a corner of the
+    Atlas, the capital's tower is the domed Atlas Hall, the shrine's gable (camp and shrine) carries a compass rose,
+    the Keystone Shard's icon is a keystone's broken wedge with his gold line glowing, the captain holds looted coin
+    (not a "genuine weight"), the golem's brow rune is a compass star. The Boar King's crown and Bellows's anvil are
+    foes' art (team 2C). New portraits: the Noon Sphinx; the non-hero speakers' portraits (the Mapmaker, Hesper, Mags,
+    Pip, the narrator) get the mood's light (`portraitMood`: the far side stepped into a deep cool shadow).
+A2C-1. **The mood is baked into the stage's pixels, not multiplied over them** (L7; `art-mood.ts`). Every painted layer
+    of the nine fight stages (backdrop, framing, the four foreground frames) goes once through its act's grade when it
+    is painted (never per frame): midtones lose some saturation and take the act's cool shade colour (values ~20-35%
+    lower), the darkest tones take the act's shadow hue at their own value (indigo, teal, plum: shade, not black paint),
+    bright saturated colours escape it (lava, torches, the sun, crystals, the aurora, the castle's windows: warm light
+    stays an accent), and the strip the fighters stand on takes an extra, calm darkening. It is a smooth colour map, so a
+    ramp's 3+ hue-shifted tones stay apart (never muddy). It replaces 2B's first-pass flat runtime multiply for regions
+    1-3 (whose `mood` tints become `air`, used only on the drifting clouds and mist); a later region can still use
+    `mood` or add its own grade to `MOOD`.
+A2C-2. **Skies are repainted, not just darkened, where the mood is the sky**: the forest is late day (an indigo sky
+    going to dusty rose and a band of amber behind the hills, warmest on the left where the sun is low; the far peaks
+    painted at their dusk colours with alpenglow; a warm rim on everything against the sky; the castle a dark
+    silhouette with lit windows; gold shafts and rays instead of white noon beams); the hollow is a blood-red evening
+    (near-black crimson overhead, a band of fire round an orange sun, red haze and mist); the pass is a moonlit blue
+    night (stars, a small cold moon and its bloom, night clouds, moonlit snow, the stage's rim and pool moonlight
+    blue); the cinder flats' sky is smoke-dark with the orange kept low, where the volcano and the river light it.
+    The ruins are a rainy dusk (a low overcast with a heavy bank of rain cloud, no stars, the moon veiled and dim, a
+    cold mauve band of last light behind the hills, curtains of rain over them); caves, glacier, glass and forge take
+    only the grade.
+    A repainted sky is left out of the grade (a snapshot of the layer taken once its sky is done).
+A2C-3. **Foes get menace without losing their read** (L8). Bosses: the Boar King darker with an ember eye under the
+    brow, fangs, hackles always half up and a jagged five-point crown with a blood-red stone; Glacia's scales a step
+    darker, a reptile's slit pupil, fangs over the lip. Act 1's first foes: the slimes are a murkier bog green with
+    scowling glowing eyes and teeth (no blush, no smile) and a bone sunk in the core (a skull in the big one); the boar
+    darker with a glowing eye, a longer tusk and a scar; the crow's beak dark horn instead of candy yellow; the bandit's
+    face lost in the hood's shadow with two eyes catching the light; the captain weathered, scarred, a grubby plume.
+    Also: the yeti cub's dark face and glowing eyes, the shaman's crimson toadstool, the wolf's fang, the icicle bat's
+    scowl, the drift troll's frostbitten nose, the piglets in the King's darker fur, the bandits in a deep plum. Their
+    read is kept (same silhouettes and sizes; the stage rim still lifts them off the darker stages at phone size).
+A2C-4. **The old premise's pendulum is gone from the foes' art** (story bible section 11; the portraits are 2A's, A19):
+    the Boar King's crown has a blood-red stone instead of the brass bob (fight sprite and portrait), the flower on the
+    golem's crown is a glowing compass-star rune (fight sprite), and Bellows forges a white-hot blade on his anvil
+    instead of guarding the weight.
+
+A2C-5. **The actors keep their step from the darker stages by light, not by brightening the stages**: the rim light on
+    the fighters is stronger where the stage got darkest (forest 0.86, ruins 0.8, pass 0.76, hollow 0.9) and warmer in
+    the forest (the late sun's gold; its pooled light too). The forest's air follows the hour: the first fireflies low
+    over the meadow, warm motes and pollen in the gold shafts, dusty moths instead of bright butterflies.
+
+A2B-9. **Weapons with heft at 8x** (playtester: "the sword looks too thin"): Rowan's sword is a 4 px blade band (a
+    warm white lit edge, pale and mid steel, a violet-shaded edge), an 8 px bronze guard with a stone, a wrapped grip
+    and a pommel (`art-sword.ts`, shared by Hollis and Solenne in their own colours); a 3 px dagger map for Sable and
+    Wren; the rig's `pole()` and every hero's staff 3 px (lit, mid, shaded); Dell's slingshot fork and Vesper's bow
+    limbs thickened. hero-frames.test.ts fails on a palette miss (magenta).
+A2B-10. **The mature look (L8)** comes from shared parts in `art-rig.ts`, so the sixteen stay one cast: `STANCES` +
+    `jointLegs`/`matureLegs` (legs from hip, knee and ankle in each hero's materials, the back leg a value darker,
+    robes for Neve, Tess and Brann), `matureHeads` (two rows out of the hair or hat's dome, glossy eye whites to single
+    dark irises under a brow, blush to skin) and `gradeGrid` (values down, the darks more than the lights, a little
+    desaturated; Rowan's hand-made palette skips it). HERO_H grew to 48 for the taller figures' raised weapons
+    (every view anchors a frame at the feet). Rowan and Sable (and Neve's head) were redrawn by hand as the
+    reference; the rest were converted by a script and checked by eye. Moss stays a gnome (face only).
+A2B-11. **Portraits follow** (`art-hero-portraits.ts maturePortrait` + hand-narrowed eyes): one row of iris under the
+    lid, no white glints, blush gone, the same grade; Rowan's portrait redrawn (a smaller dented helm on broad
+    pauldrons, a narrow lit slit), Sable's eyes narrowed. Map walkers get a row more of leg.
+A2B-12. **Finishers wind up and follow through**: the dash and guard kits hold the windup for 120 ms before the big
+    blow and drop to a low follow-through 180 ms after it; a won fight ends with the hero stepping back and raising
+    their weapon (their cast pose).
 
 (art: end of section)
 

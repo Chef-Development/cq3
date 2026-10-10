@@ -23,12 +23,17 @@ describe('hero frames', () => {
   });
 
   test("the idle's last two frames are their own (the secondary motion), and every frame paints the figure", () => {
-    for (const [art, { rig, poses }] of Object.entries(RIG_HEROES)) {
+    for (const [art, { rig, poses, extra }] of Object.entries(RIG_HEROES)) {
       const frames = HERO_POSE_KEYS.map((k) => {
         const g = grid(HERO_W, HERO_H);
         paintRig(g, rig, poses[k]);
         return g;
       });
+      // the card's and the camp's poses paint too (a stance missing from the rig once broke the boot)
+      for (const p of extra) {
+        expect(!p.legs || rig.legs[p.legs], `${art}: stance ${p.legs}`).toBeTruthy();
+        expect(() => paintRig(grid(HERO_W, HERO_H), rig, p)).not.toThrow();
+      }
       const idle = frames.slice(0, 4).map(key);
       expect(idle[2], `${art}_idle2`).not.toBe(idle[1]);
       expect(idle[3], `${art}_idle3`).not.toBe(idle[0]);
@@ -46,19 +51,18 @@ describe('hero frames', () => {
     expect(sable[3]).not.toBe(sable[0]);
   });
 
-  test("Rowan stands on the shared rig: his head is no taller than his peers' and his feet are on the same row", () => {
-    const top = (rig: Rig) => {
+  test('Rowan (the reference for the mature look, decision L8) stands on the shared feet line, about three heads tall', () => {
+    const extent = (rig: Rig) => {
       const g = grid(HERO_W, HERO_H);
-      paintRig(g, rig, { near: { at: [8, 9] }, far: { at: [11, 9] } });
+      // (no hands: the figure alone)
+      paintRig(g, rig, { near: { at: [0, 12], hidden: true }, far: { at: [0, 12], hidden: true } });
       const rows = g.map((r) => r.some((c) => c !== null));
       return { top: rows.indexOf(true), feet: rows.lastIndexOf(true) };
     };
-    const rowan = top(ROWAN_RIG);
-    for (const peer of [NEVE_RIG, SOLENNE_RIG, HOLLIS_RIG]) {
-      const p = top(peer);
-      expect(rowan.feet).toBe(p.feet);
-      expect(Math.abs(rowan.top - p.top)).toBeLessThanOrEqual(3);
-    }
-    expect(ROWAN_RIG.heads.base.length).toBeLessThanOrEqual(13);
+    const rowan = extent(ROWAN_RIG);
+    for (const peer of [NEVE_RIG, SOLENNE_RIG, HOLLIS_RIG]) expect(rowan.feet).toBe(extent(peer).feet);
+    const head = ROWAN_RIG.heads.base.length;
+    expect(head).toBeLessThanOrEqual(11);
+    expect((rowan.feet - rowan.top + 1) / head).toBeGreaterThanOrEqual(3);
   });
 });

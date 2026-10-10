@@ -39,7 +39,7 @@ export function moodColour(c: Col, m: Mood): Col {
   const sat = mx > 0 ? (mx - mn) / mx : 0;
   const L = 0.299 * r + 0.587 * g + 0.114 * b;
   // a light: bright and saturated (or very bright): it keeps its colour
-  const k = m.keep * Math.max(ss(0.5, 0.86, mx) * ss(0.38, 0.72, sat), ss(0.9, 1, L) * 0.6);
+  const k = m.keep * Math.max(ss(0.55, 0.9, mx) * ss(0.28, 0.6, sat), ss(0.9, 1, L) * 0.6);
   const ds = m.desat * (1 - k);
   r = L + (r - L) * (1 - ds);
   g = L + (g - L) * (1 - ds);
@@ -106,9 +106,9 @@ export const MOOD: Partial<Record<Theme, Mood>> = {
   // late day in the woods: deep teal shade, the gold only where the low sun gets through
   forest: { tint: 0x9aa6c4, desat: 0.3, keep: 0.6, shadow: 0x0c1c2c, shadowAmt: 0.6, ground: 0x7c7a96, groundAmt: 0.42 },
   // a rainy dusk: the stones wet and blue, the braziers warm
-  ruins: { tint: 0xb4bcd6, desat: 0.22, keep: 0.85, shadow: 0x080e20, shadowAmt: 0.5, ground: 0x8088a8, groundAmt: 0.34 },
+  ruins: { tint: 0xb8c0da, desat: 0.22, keep: 0.85, shadow: 0x080e20, shadowAmt: 0.5, ground: 0x7a84a8, groundAmt: 0.38 },
   // a blood-red evening: plum shade, the crimson kept in the sky and the light
-  hollow: { tint: 0xb894a4, desat: 0.16, keep: 0.7, shadow: 0x1a0818, shadowAmt: 0.55, ground: 0x8a6a80, groundAmt: 0.38 },
+  hollow: { tint: 0xb894a4, desat: 0.18, keep: 0.45, shadow: 0x1a0818, shadowAmt: 0.55, ground: 0x7a5a74, groundAmt: 0.46 },
   // a blue night on the pass: the snow under the moon, the flags' colours faded
   pass: { tint: 0x7a8cc4, desat: 0.4, keep: 0.4, shadow: 0x0c1636, shadowAmt: 0.55, ground: 0x7884b4, groundAmt: 0.36 },
   // the caves colder and darker; the crystals keep their glow
@@ -116,7 +116,7 @@ export const MOOD: Partial<Record<Theme, Mood>> = {
   // night under the aurora
   glacier: { tint: 0xa8b4d8, desat: 0.16, keep: 0.9, shadow: 0x081028, shadowAmt: 0.5, ground: 0x8a94bc, groundAmt: 0.3 },
   // smoke over the flats: the plain dark, the lava and the volcano's fire kept
-  cinder: { tint: 0x9a8496, desat: 0.28, keep: 0.95, shadow: 0x140a14, shadowAmt: 0.5, ground: 0x80687a, groundAmt: 0.36 },
+  cinder: { tint: 0xa4909e, desat: 0.24, keep: 0.95, shadow: 0x140a14, shadowAmt: 0.45, ground: 0x80687a, groundAmt: 0.36 },
   // the warrens a step darker; the lake and the glass keep their light
   glass: { tint: 0xb0a4c4, desat: 0.14, keep: 0.95, shadow: 0x0c0818, shadowAmt: 0.45, ground: 0x887894, groundAmt: 0.3 },
   // the forge in smoke; the fires stay

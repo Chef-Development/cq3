@@ -343,10 +343,13 @@ Object.assign(WALKERS, { solenne: SOLENNE_WALKER, wren: WREN_WALKER });
 
 function walkerFrame(w: Walker, legs: keyof Walker['legs'], bob: number, flap: boolean): HTMLCanvasElement {
   const g = grid(W, H);
-  const top = H - 2 - 2 - w.top.length + bob;
+  // (playtest round 8, L8: a row longer in the leg, like their fight frames, when the frame has the room)
+  const two = w.legs[legs];
+  const leg = w.top.length + 3 <= H - 2 ? [two[0], ...two] : two;
+  const top = H - 2 - leg.length - w.top.length + bob;
   if (flap && w.flap) stamp(g, w.flap[0], w.pal, 1 + w.flap[1], top + w.flap[2]);
   stamp(g, w.top, w.pal, 1, top);
-  stamp(g, w.legs[legs], w.pal, 1, H - 2 - 2);
+  stamp(g, leg, w.pal, 1, H - 2 - leg.length);
   return toCanvas(g);
 }
 

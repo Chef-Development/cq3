@@ -190,7 +190,7 @@ export class TitleScreen {
       const x = Math.round(this.edge[y0] - 2 - q * (26 + (i % 4) * 8));
       const y = Math.round(y0 - q * 12 + Math.sin(q * 6 + i) * 2);
       const a = Math.sin(Math.min(1, q * 1.4) * Math.PI);
-      g.fillStyle(0xf6f4f8, a);
+      g.fillStyle(0xbab2ae, a);
       g.fillRect(x, y, i % 3 ? 2 : 3, 1);
       g.fillStyle(0x4a3a5e, a * 0.8);
       g.fillRect(x + 1, y + 1, 1, 1);

@@ -27,7 +27,7 @@ const LAND = [0x0e1a22, 0x14262a, 0x1c3430, 0x284634, 0x365a38, 0x4a7038];
 const CLIFF = [0x0c0612, 0x140a1c, 0x1e1028, 0x2a1634];
 const RIVER = [0x8a3a4a, 0xd8644a, 0xffa858, 0xffd890, 0xfff6d0];
 /** The blank: a warm grey vellum, kept dimmer than the logo's gold (the eye goes to the logo and the hero first). */
-const PAPER = [0xa49ca4, 0xb8b0b4, 0xc8c0c0, 0xd4ccc8];
+const PAPER = [0x8e868c, 0x9e969a, 0xaea6a6, 0xbab2ae];
 const INKS = [0x140c1c, 0x1a1026, 0x2e2240, 0x4a3a5e];
 const PARCH = [0x6e4a2a, 0xa8804e, 0xd2b07a, 0xead2a0];
 const GOLD = [0x5a3410, 0x9a5a14, 0xd8901c, 0xf2c230, 0xfff0a0];
@@ -124,6 +124,16 @@ function paintScene(): Int32Array {
   const H = KEY_H;
   const px = new Int32Array(W * H);
   const sun = KEY_SUN;
+  // the ridges and hilltops per column, once (not per pixel: this paints at boot, on a phone)
+  const col = <T,>(f: (x: number) => T) => Array.from({ length: W + 2 }, (_, x) => f(x - 1));
+  const RA = col(ridgeA);
+  const RB = col(ridgeB);
+  const H1 = col(hills1);
+  const H2 = col(hills2);
+  const ridgeA_ = (x: number) => RA[x + 1];
+  const ridgeB_ = (x: number) => RB[x + 1];
+  const hills1_ = (x: number) => H1[x + 1];
+  const hills2_ = (x: number) => H2[x + 1];
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
@@ -142,10 +152,10 @@ function paintScene(): Int32Array {
         c = under ? mixC(rampAt(SKY, Math.min(1, v + 0.35), x, y), 0xffe0a0, 0.3) : mixC(c, SKY[3], 0.45);
       }
       // ---- the far range: hazy, rim-lit on the slopes facing the sun
-      const ra = ridgeA(x);
+      const ra = ridgeA_(x);
       if (y >= ra) {
         const toward = x < sun.x ? 1 : -1;
-        const lit = ridgeA(x + toward) > ra + 0.2;
+        const lit = ridgeA_(x + toward) > ra + 0.2;
         const k = (y - ra) / 24;
         c = rampAt(FAR_A, clamp01(0.85 - k * 0.6 + glow * 0.4), x, y);
         c = mixC(c, SKY[8], glow * 0.35 + clamp01(k - 0.4) * 0.25);
@@ -153,10 +163,10 @@ function paintScene(): Int32Array {
         else if (lit && y - ra < 2.4) c = RIM[1];
       }
       // ---- the nearer range
-      const rb = ridgeB(x);
+      const rb = ridgeB_(x);
       if (y >= rb) {
         const toward = x < sun.x ? 1 : -1;
-        const lit = ridgeB(x + toward) > rb + 0.2;
+        const lit = ridgeB_(x + toward) > rb + 0.2;
         c = rampAt(FAR_B, clamp01(0.6 + glow * 0.5 - (y - rb) / 30), x, y);
         if (y - rb < 1.2) c = lit ? RIM[3] : RIM[1];
         else if (lit && y - rb < 2.5) c = RIM[2];
@@ -164,8 +174,8 @@ function paintScene(): Int32Array {
       }
       // ---- the hills: two rows of green, backlit (dark bodies, warm crests)
       for (const [top, base] of [
-        [hills1(x), 0.75],
-        [hills2(x), 0.5],
+        [hills1_(x), 0.75],
+        [hills2_(x), 0.5],
       ] as const) {
         if (y < top) continue;
         const k = (y - top) / 22;
@@ -177,7 +187,7 @@ function paintScene(): Int32Array {
       }
       // woods on the hills: dark round clumps with a warm rim toward the sun
       const wood = fbm(x, y * 1.6, 7, 341);
-      if (y > hills1(x) + 3 && y < 128 && wood > 0.62) {
+      if (y > hills1_(x) + 3 && y < 128 && wood > 0.62) {
         c = wood > 0.7 ? LAND[0] : LAND[1];
         if (fbm(x + (x < sun.x ? 1 : -1), (y - 1) * 1.6, 7, 341) <= 0.62) c = mixC(LAND[4], RIM[1], 0.45);
       }
@@ -195,7 +205,7 @@ function paintScene(): Int32Array {
     }
   // ---- the capital on a far hill: walls, towers, the Atlas Hall's dome lit gold at its rim, its windows lit
   const cx = 178;
-  const cy = Math.round(hills1(cx)) + 1;
+  const cy = Math.round(hills1_(cx)) + 1;
   const sil = (x: number, y: number) => px[y * W + x];
   const set = (x: number, y: number, col: number) => {
     if (x >= 0 && y >= 0 && x < W && y < H) px[y * W + x] = col;

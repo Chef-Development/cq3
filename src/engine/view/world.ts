@@ -130,10 +130,10 @@ const REVEAL_END = REVEAL_CARD[0] + REVEAL_CARD[1];
 const RESTORE_MS = 2600;
 /** The Atlas's lettering: each open land's name across it (world px; the text's centre). */
 const LAND_NAMES: Record<string, [string, number, number]> = {
-  greenmarch: ['G R E E N M A R C H', 112, 158],
+  greenmarch: ['G R E E N M A R C H', 344, 128],
   frostpeaks: ['T H E   F R O S T P E A K S', 380, 22],
   ashfell: ['A S H F E L L', 836, 206],
-  duskmire: ['T H E   D U S K M I R E', 600, 204],
+  duskmire: ['T H E   D U S K M I R E', 712, 212],
 };
 /** The compass rose drawn in the north-west sea (its texture's top-left, world px). */
 const COMPASS_AT: Pt = [170, 30];
@@ -211,7 +211,7 @@ function roseIcon(g: G, x: number, y: number, lit: boolean): void {
 }
 
 /** Plate colours: crisp dark glass with a light inner edge. */
-const PLATE = { fill: 0x161226, top: 0x221c38, edge: 0x6a5c98, lo: 0x0c0a16 };
+const PLATE = { fill: 0x110e1c, top: 0x1a1628, edge: 0x4e4668, lo: 0x08070e };
 
 /** Where an act's card rests its foot when it hangs over the landmark (world y): above the landmark and its flag. */
 function cardFoot(i: number): number {
@@ -1094,6 +1094,11 @@ export class WorldView {
           // the front of the colour coming back: gold ink where it meets his draft
           if (front && cr === front[2] && rk < 0.95) {
             const a = Math.min(1, (0.95 - rk) * 6);
+            // a band of warm light just inside the front: the colour arriving
+            const band = Math.min(10, Math.round(half));
+            g.fillStyle(0xffd890, 0.22 * a);
+            g.fillRect(Math.round(cx - half), y, band, 2);
+            g.fillRect(Math.round(cx + half) - band, y, band, 2);
             g.fillStyle(0xf2c230, a);
             g.fillRect(Math.round(cx - half) - 1, y, 2, 2);
             g.fillRect(Math.round(cx + half) - 1, y, 2, 2);
@@ -1144,11 +1149,11 @@ export class WorldView {
       }
     }
     for (let i = this.stripN; i < this.strips.length; i++) this.strips[i].setVisible(false);
-    // the lettering: each land's name across it once it's drawn (ink on his draft, pale with an ink edge on colour)
+    // the lettering: each land's name across it once it's drawn
     for (const [id, [name, x, y]] of Object.entries(LAND_NAMES)) {
       if (!(id === 'greenmarch' || this.veilOf(id, now) < 1) || !this.seen(x, y, 90)) continue;
-      const ink = this.drafted(id) && !(rs?.id === id && rk > 0.5);
-      this.nameTexts.text(name, x - this.ox, y - this.oy, ink ? 0x2e2240 : 0xf8ecc8, { bold: true, ox: 0.5, oy: 0.5, alpha: id === 'greenmarch' ? 1 : 1 - this.veilOf(id, now) });
+      // (pale lettering with the font's ink edge: it reads on the painted land, drained or restored)
+      this.nameTexts.text(name, x - this.ox, y - this.oy, 0xecdcb4, { bold: true, ox: 0.5, oy: 0.5, alpha: id === 'greenmarch' ? 1 : 1 - this.veilOf(id, now) });
     }
   }
 
@@ -1294,7 +1299,8 @@ export class WorldView {
       const sy = y + Math.round(Math.sin(t * 0.5 + i) * 0.6);
       if (!this.seen(x + 30, sy + 10, 60)) return;
       this.at(this.pool.at(`wm_cloudsh${k % CLOUD_KINDS}`, 0, 0, DEPTH.shadow, 0.24), x + 6, sy + 13);
-      this.at(this.pool.at(`wm_cloud${k % CLOUD_KINDS}`, 0, 0, DEPTH.cloud), x, sy);
+      // (L7: dusk clouds, a muted lavender grey rather than bright white)
+      this.at(this.pool.at(`wm_cloud${k % CLOUD_KINDS}`, 0, 0, DEPTH.cloud, 0.85, 0xa49cb4), x, sy);
     });
     // (the painted map's cloud band along the far north: not on the Atlas, whose sheet ends in its neatline)
     this.rim.setVisible(false);
@@ -2290,19 +2296,20 @@ export class WorldView {
 
   /** The glossy green call-to-action button, a highlight sweeping across it every couple of seconds. */
   private button(g: G, x: number, y: number, w: number, h: number, t: number, a: number): void {
+    // (L8: the mood's moss, a narrow lit lip and a soft sheen, not a candy-green bubble)
     rows(g, x - 1, y - 1, w + 2, h + 2, 2, INK, a);
-    rows(g, x, y, w, h, 2, 0x2e9a34, a);
-    rows(g, x, y, w, h - 2, 2, 0x4cc840, a);
-    g.fillStyle(0x8af06a, a);
+    rows(g, x, y, w, h, 2, 0x2a5a30, a);
+    rows(g, x, y, w, h - 2, 2, 0x467e42, a);
+    g.fillStyle(0x8cb87a, a);
     g.fillRect(x + 2, y, w - 4, 1);
-    g.fillStyle(0x6ade52, a);
-    g.fillRect(x + 1, y + 1, w - 2, 3);
-    g.fillStyle(0x1e6a26, a);
+    g.fillStyle(0x5a9452, a);
+    g.fillRect(x + 1, y + 1, w - 2, 1);
+    g.fillStyle(0x1a3c22, a);
     g.fillRect(x + 2, y + h - 1, w - 4, 1);
     const k = frac(t / 2.2);
     if (k < 0.35) {
       const sx = Math.round(x - 4 + (k / 0.35) * (w + 8));
-      g.fillStyle(WHITE, 0.45 * a);
+      g.fillStyle(WHITE, 0.22 * a);
       for (let j = 0; j < h - 2; j++) {
         const xx = sx + Math.round((h - j) / 3);
         if (xx >= x + 1 && xx < x + w - 2) g.fillRect(xx, y + 1 + j, 2, 1);

@@ -290,13 +290,13 @@ const ROUND7: LabScenario[] = [
  *  Reworked items carry a new rev: a rating given to their earlier version shows as "Reworked" with the old rating. */
 export const LAB_NEW: LabScenario[] = [
   // ---- story (team 1): the new story's first region, by act number only (spoilers)
-  { id: 'r8Story1', group: 'spoiler', spoiler: true, label: 'Act 1 story (new)', secs: 60, try: 'Read the scenes. A quick, clear start?', setup: { kind: 'story', act: 0, scenes: ['intro', 'act1', 'road', 'captain', 'sableJoin'] } },
+  { id: 'r8Story1', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 1 story (new)', secs: 60, try: 'Read the scenes. A quick, clear start?', setup: { kind: 'story', act: 0, scenes: ['intro', 'act1', 'road', 'captain', 'sableJoin'] } },
   { id: 'r8Story2', group: 'spoiler', spoiler: true, label: 'Act 2 story (new)', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 1, scenes: ['act2', 'golem'] } },
-  { id: 'r8Story3', group: 'spoiler', spoiler: true, label: 'Act 3 story (new)', secs: 90, try: 'Read the scenes. Does the ending pull you on?', setup: { kind: 'story', act: 2, scenes: ['act3', 'boarKing', 'boarKing2', 'boarKing3', 'victory'] } },
-  { id: 'r8Arrivals', group: 'spoiler', spoiler: true, label: 'Newest arrivals', secs: 90, try: 'Read how each arrives. Funny? Short enough?', setup: { kind: 'story', act: 1, scenes: ['meetSolenne', 'meetWren', 'meetYara', 'meetDell', 'meetGorm', 'meetTess', 'meetFizz', 'meetBrann'] } },
+  { id: 'r8Story3', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 3 story (new)', secs: 90, try: 'Read the scenes. Does the ending pull you on?', setup: { kind: 'story', act: 2, scenes: ['act3', 'boarKing', 'boarKing2', 'boarKing3', 'victory'] } },
+  { id: 'r8Arrivals', group: 'spoiler', spoiler: true, rev: 1, label: 'Newest arrivals', secs: 90, try: 'Read how each arrives. Funny? Short enough?', setup: { kind: 'story', act: 1, scenes: ['meetSolenne', 'meetWren', 'meetYara', 'meetDell', 'meetGorm', 'meetTess', 'meetFizz', 'meetBrann'] } },
   // ---- art (team 2)
   { id: 'titleAtlas', group: 'camp', rev: 2, label: 'New title screen', secs: 30, try: 'Key art now: watch it come alive, then tap.', setup: { kind: 'title' }, profile: { actsCleared: 0 } },
-  { id: 'atlasMap', group: 'camp', label: 'The Atlas map', secs: 45, try: 'Drag the map: ink, paper, erased land.', setup: { kind: 'world' }, profile: { actsCleared: 1 } },
+  { id: 'atlasMap', group: 'camp', label: 'The Atlas map', secs: 45, try: 'Drag the map: painted lands, erased land.', setup: { kind: 'world' }, profile: { actsCleared: 1 } },
   { id: 'atlasRestore', group: 'camp', label: 'A land comes back', secs: 30, try: 'A land restored: its colour floods back.', setup: { kind: 'world', replay: ['restore:greenmarch'], weights: 1 }, profile: { actsCleared: 2 } },
   // Rowan redrawn on the shared rig (plume and cape that lag his breath, every pose), the four-frame idles, squash and
   // stretch on cuts, blows and landings
@@ -304,6 +304,12 @@ export const LAB_NEW: LabScenario[] = [
   // the third region's last two stages with depth and air (the far cavern, heat shafts, the furnace's plume)
   { id: 'spStage8', group: 'spoiler', spoiler: true, label: 'Act 8 stage', secs: 30, try: 'Look past the foe: depth? Does the hero pop?', setup: { kind: 'fight', hero: 'rowan', act: 7, waves: [['dummy']], safe: true } },
   { id: 'spStage9', group: 'spoiler', spoiler: true, label: 'Act 9 stage', secs: 30, try: 'Look past the foe: depth? Does the hero pop?', setup: { kind: 'fight', hero: 'rowan', act: 8, waves: [['dummy']], safe: true } },
+  // team 2C: the stages darker and moodier (late day, a red evening, a moonlit night), the foes with an edge (nothing
+  // hurts: look at them)
+  { id: 'moodAct1', group: 'fights', label: 'Act 1 at dusk', secs: 45, try: 'Moodier now? Do you and the foes still pop?', setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['slime', 'crow'], ['boar', 'bandit'], ['bigSlime']], safe: true } },
+  { id: 'moodAct3', group: 'fights', label: 'Act 3, red evening', secs: 40, try: 'A blood-red sky. Too dark, or just right?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['wolf', 'shaman'], ['boar', 'crow']], safe: true } },
+  { id: 'spMoodBoss3', group: 'spoiler', spoiler: true, label: 'Act 3 boss look', secs: 30, try: 'More menace? Still clear what he is?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['boarKing']], safe: true } },
+  { id: 'spMood4', group: 'spoiler', spoiler: true, label: 'Act 4 at night', secs: 40, try: 'Moonlit now. Do the foes still read?', setup: { kind: 'fight', hero: 'rowan', act: 3, waves: [['rimeImp', 'icicleBat'], ['yetiCub', 'rimeImp']], safe: true } },
   // ---- content: the new regions (team 3; spoilers)
   // the fourth region's two bar rules, each alone against the Training Dummy (nothing hurts, the rule's tip on), then
   // both at once against real foes

@@ -61,8 +61,8 @@ export function gormPortrait(): HTMLCanvasElement {
   // the heavy brow, small kind eyes, the broad nose
   for (let x = 24; x <= 34; x++) put(g, x, x < 29 ? 15 : 14 + (x > 31 ? 1 : 0), G_SKIN[2]);
   const eye: Pal = { k: INK, W: '#f4f0e0', a: '#8a6a2a' };
-  stamp(g, ['kkk', 'Wak', '.k.'], eye, 25, 16);
-  stamp(g, ['kkk', 'Wak'], eye, 31, 16);
+  stamp(g, ['kkk', 'kak', '.k.'], eye, 25, 16);
+  stamp(g, ['kkk', 'kak'], eye, 31, 16);
   stamp(g, ['.ss', 'sSS', 'zzs'], { s: G_SKIN[4], S: G_SKIN[5], z: G_SKIN[2] }, 33, 18);
   // the mouth: a long line with the underbite's two little teeth pointing up
   for (let x = 25; x <= 35; x++) put(g, x, 24 + (x < 27 ? 1 : 0), '#2a1a1a');
