@@ -689,7 +689,7 @@ gold lines while he's drawing there.
 ## 10. Scene plan and status, Regions 1-3 (ids stay stable)
 
 Region 1: `intro` (3 boxes), `act1` (1 box: Pip): together the 4 boxes before the first fight. Proposed new scene
-`road` (after the first fight is won: Pip explains the blank and the Atlas; needs a hook, see the report). `captain`,
+`road` (after a new player's first win: Pip explains the blank and the Atlas; hooked by `winScene`). `captain`,
 `sableJoin` (camp), `act2`, `golem`, `act3`, `boarKing`, `boarKing2`, `boarKing3`, `victory` (ends in Meridian with
 Hesper). Region 2 and 3: the same ids as now (`frost1` ... `frostVictory`, `ash1` ... `ashVictory`), rewritten to this
 bible. New speakers: `mapmaker` ("The Mapmaker"), `keeper` ("Hesper"); both need portraits (art team).
@@ -701,7 +701,7 @@ need portraits); Region 5's nine scenes fit its data as built (`story-noon.ts`, 
 `brassLion`; speaker `sphinx` needs a portrait). Hesper speaks in the allies' warm look. Camp banter follows the story (`core/banter.ts` gates each region's
 lines on their scenes). Every player-facing data text was swept for the old premise (gear, meta, relics, events,
 quests, companions' bios, heroes' bios, act names, tips); the far isles' names are in `core/world-plan.ts` (shown
-once revealed). Still to do: the `road` hook (first 10 minutes team); the Region 4-5 speakers' portraits (until they
+once revealed). Still to do: the Region 4-5 speakers' portraits (until they
 exist the story view shows Phaser's missing-texture box) and the old-premise pictures (section 11). Region 4 is in play now (its scenes and banter with it);
 Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
 ---
@@ -717,12 +717,10 @@ Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
   camp's pendulum emblem (`art-shrine.ts`, `art-camp.ts`), Bellows's anvil weight (`art-ash.ts`), the Keystone Shard's
   icon (`art-gear.ts`) and the capital's clock tower (`art-world-sites.ts`). The Mapmaker's edits, when shown, are
   gold ink strokes hanging in the air.
-- **First 10 minutes (Team 5):** the `road` scene (6 boxes: who Pip is, what the blank is) is written for right after
-  the first fight is won, once (e.g. `profile.seen` 'road'); it needs a hook in the post-fight flow, which is yours.
-  If it costs the first minutes too much, cut it to 3 boxes or move it to the first rest: tell the story team.
-- **Lead:** `WELCOME_ID` in `src/data/tips.ts` is still `welcomeM4a`, so a returning player who saw the old welcome
-  won't see the new one (which now catches them up on the story); bumping it (e.g. `welcomeR8`) replays it once
-  (`tests/smoke/smoke.spec.ts` checks the id by name). The screenshot baseline `story.png` changes (the new intro).
+- **First 10 minutes (Team 5):** done: the `road` scene plays after a new player's first win (greenmarch.ts Act 1
+  `winScene`, once per profile).
+- **Lead:** done: `WELCOME_ID` is `welcomeR8` (first 10 minutes team), so a returning player sees the new welcome
+  once.
 - **Content (Team 3):** Region 5's nine scenes fit its data as built (`story-noon.ts`: the mini-bosses' `sphinx` and
   `brassLion` are written, `story-noon-minis.ts` is empty); new: `noonCamp`, the camp's scene after Act 1 (wire it like
   `duskCamp`: `run.ts` `campScene`/`sableJoined` at `actsCleared >= 13`, and `core/lab.ts` marks it seen), speaker

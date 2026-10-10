@@ -102,7 +102,7 @@ export const STORY: Record<string, StoryBox[]> = {
   act1: [
     { who: 'pip', text: "Hoo. You're awake, Rowan. Good. On your feet:\nwhat he redrew is waking up, and it's angry." },
   ],
-  // after the first fight is won (needs a hook: the first fight node's win, before the map): what the blank is
+  // after a new player's first win (greenmarch.ts Act 1 `winScene`; run.ts plays it once per profile): what the blank is
   road: [
     { who: 'rowan', text: 'Thanks for the warning. Who are you?\nAnd how do you know my name?' },
     { who: 'pip', text: 'Pip. I know a lot of names. Look at the farms.\nThe farmers are asleep where they stood.' },
@@ -256,14 +256,14 @@ export const STORY: Record<string, StoryBox[]> = {
 
   // ---- hero arrivals: the first time each chest hero is revealed from a hero chest (content bible section 3)
   meetMoss: [
-    { who: 'narrator', text: 'The chest creaks open. Out tumbles someone\nsmall and round, in a cloak of leaves.' },
+    { who: 'narrator', text: 'The chest creaks open. Out steps someone\nshort and weathered, in a cloak of leaves.' },
     { who: 'moss', text: "Oh! Hello. I'm Moss. I keep a grove. Well,\nthe grove mostly keeps me. Have we met?" },
     { who: 'moss', text: "Someone redrew my wild wood in tidy rows.\nThe trees don't know their neighbors now." },
-    { who: 'pip', text: 'Hoo. A gnome who talks to trees. Still\nbetter conversation than the knight.' },
+    { who: 'pip', text: 'Hoo. A grove keeper who talks to trees.\nStill better conversation than the knight.' },
   ],
   meetTam: [
     { who: 'narrator', text: 'The chest lid blows off with a BANG!\nA cloud of soot coughs out a grin.' },
-    { who: 'tam', text: 'TA-DA! Tam, sapper! I blow things up!\nWalls! Rocks! Boredom! Mostly walls!' },
+    { who: 'tam', text: 'Tam. Sapper. I blow things up. Walls,\nmostly. Rocks. Once, a wedding. By accident.' },
     { who: 'tam', text: 'I set off little avalanches so big ones never\ncome. Then the snow STOPPED. No snow, no job!' },
     { who: 'rowan', text: "We'll get your snow back. Until then, no kegs\nin camp. ...Welcome to the team, Tam." },
   ],
@@ -276,45 +276,45 @@ export const STORY: Record<string, StoryBox[]> = {
   meetVesper: [
     { who: 'narrator', text: 'A silver longbow rises from the chest,\nthen a hooded ranger in dusk purple.' },
     { who: 'vesper', text: "Vesper. Ranger. Someone stole my fen's\nnight. I hunt him. I don't do small talk." },
-    { who: 'vesper', text: "...Is that an owl? A little tufty one?\nAhem. Never mind. I didn't say that." },
-    { who: 'pip', text: "Hoo. She likes me. They always do.\nIt's the ear tufts." },
+    { who: 'vesper', text: "...Is that a barred owl? Hm.\nNever mind. I didn't say anything." },
+    { who: 'pip', text: 'Hoo. She likes me.\nThey always do.' },
   ],
   meetTorva: [
     { who: 'narrator', text: 'The chest groans, bulges, and bursts.\nA giant stone hammer comes out first.' },
     { who: 'torva', text: 'HA! TORVA! My quarry keeps floating off\nbefore I can smash it! What needs smashing?' },
     { who: 'rowan', text: 'Nothing needs smashing. Well. Not anymore.\nThat was a really nice chest.' },
-    { who: 'torva', text: 'Problem? HAMMER. Locked door? HAMMER.\nFeeling sad? HAMMER HUG! Come here!' },
+    { who: 'torva', text: 'Problem? HAMMER. Locked door? HAMMER.\nBad day? I buy the drinks. THEN hammer.' },
   ],
   // ---- Solenne and Wren (Part 6): round 7's chest heroes
   meetSolenne: [
     { who: 'narrator', text: 'The chest glows gold, then hotter.\nSomehow, the sun comes up. Indoors.' },
-    { who: 'solenne', text: 'Good MORNING! Solenne, Dawnblade!\nSworn to the sunrise. Every single one.' },
+    { who: 'solenne', text: 'Good morning. Solenne, Dawnblade. Sworn\nto greet the sunrise. Every single one.' },
     { who: 'rowan', text: "It's the middle of the night.\nAlso, you're very... bright." },
-    { who: 'solenne', text: "Then I'm early! Back home our sun is stuck\nat noon. I have SO many dawns to catch up on." },
+    { who: 'solenne', text: "Then I'm early. Back home our sun is stuck\nat noon. I have a lot of dawns to catch up on." },
   ],
   meetWren: [
     { who: 'narrator', text: 'The chest creaks open. Empty?\nA rope drops from the branch above.' },
     { who: 'wren', text: "Wren. I run roofs. Doors are slow.\nNice chest. Was it locked? It isn't now." },
-    { who: 'pip', text: 'Hoo! She took my snack.\nMid-sentence! While I was LOOKING!' },
+    { who: 'pip', text: 'Hoo. She took my supper. Mid-sentence.\nWhile I was looking right at her.' },
     { who: 'wren', text: "Borrowed. My town's across the sea. Gone\nblank. I'm owed a few things. Point me at him." },
   ],
   // ---- Yara and Dell (Part 6): their first chest reveal
   meetYara: [
-    { who: 'narrator', text: 'Starlight spills from the chest. A wolf\nmade of light pads out. Then a girl.' },
+    { who: 'narrator', text: 'Starlight spills from the chest. A wolf\nmade of light pads out. Then a young woman.' },
     { who: 'yara', text: "I'm Yara. I call spirits. This is Wolf.\nHe says you smell like boar. Sorry." },
     { who: 'yara', text: 'That is Tortoise. Never say turtle.\nShe holds a grudge for a hundred years.' },
     { who: 'yara', text: 'My village is asleep across the sea.\nThe spirits say it will wake. I listen.' },
   ],
   meetDell: [
     { who: 'narrator', text: 'A pebble pings off the lid from inside.\nThen a straw hat pokes out.' },
-    { who: 'dell', text: "Howdy! I'm Dell. I scare crows off our farm.\nOnly somebody drew the farm all square. Weird." },
+    { who: 'dell', text: "Name's Dell. I keep crows off our farm. Only\nsomeone drew the farm dead square. Odd." },
     { who: 'pip', text: "Hoo. Hold on. Crows? I'm a bird, kid.\nWe have an understanding, yes?" },
-    { who: 'dell', text: 'Course! Owls are pals. Owls are great.\n...Unless you eat my corn.' },
+    { who: 'dell', text: 'Course. Owls are welcome.\n...Until one eats my corn.' },
   ],
   // ---- Part 6: Fizz and Brann
   meetFizz: [
     { who: 'narrator', text: 'The chest hisses, fizzes and pops. Green\nsmoke pours out, then a scorched cap.' },
-    { who: 'fizz', text: "Fizz! Alchemist! Don't touch the red one.\nOr the blue one. The green one's fine. Ish." },
+    { who: 'fizz', text: "Fizz. Alchemist. Don't touch the red one.\nOr the blue. The green one's fine. Mostly." },
     { who: 'pip', text: 'Hoo. She smells like a burnt kettle.\nI like her already.' },
     { who: 'fizz', text: "My lighthouse went blank, across the sea.\nWhere's the lab? ...This is the lab now." },
   ],
@@ -337,10 +337,10 @@ Object.assign(STORY, {
     { who: 'narrator', text: "Two stone fists lift the chest's lid off,\nvery, very gently." },
     { who: 'gorm', text: "Oh. Hello. Sorry, I was napping.\nI'm Gorm. I punch rocks. Nicely." },
     { who: 'rowan', text: 'You were napping in a chest?\nHow did you even fit in there?' },
-    { who: 'gorm', text: "I folded up small, like my stones back home.\nThey've gone blank. Who needs squashing?" },
+    { who: 'gorm', text: "I folded up small, like my stones back home.\nThey've gone blank. So. Who do I hit?" },
   ],
   meetTess: [
-    { who: 'narrator', text: 'The chest ticks. Then it chimes.\nA tiny old lady climbs out, scowling.' },
+    { who: 'narrator', text: 'The chest ticks. Then it chimes. A small,\nsharp old woman climbs out, scowling.' },
     { who: 'tess', text: "You're four minutes late. I'm Tess.\nI fix clocks. And now and then, time." },
     { who: 'rowan', text: "Late? We didn't even know\nyou were in there." },
     { who: 'tess', text: 'Excuses. Every clock in my workshop, across\nthe sea, stopped at once. Someone owes me.' },
