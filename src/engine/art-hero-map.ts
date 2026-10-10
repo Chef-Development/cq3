@@ -3,6 +3,7 @@
 // right. A top map (head to hem, 11 wide) over two rows of legs; idle1 sits a pixel lower, the passing steps
 // (walk1, walk3) bob a pixel up, and the back edge of a cape, braid or cloak flaps on the long steps.
 import { grid, stamp, toCanvas, type Pal } from './art';
+import { gradeGrid } from './art-rig';
 import { SOLENNE_WALKER } from './art-hero-solenne';
 import { WREN_WALKER } from './art-hero-wren';
 
@@ -350,6 +351,8 @@ function walkerFrame(w: Walker, legs: keyof Walker['legs'], bob: number, flap: b
   if (flap && w.flap) stamp(g, w.flap[0], w.pal, 1 + w.flap[1], top + w.flap[2]);
   stamp(g, w.top, w.pal, 1, top);
   stamp(g, leg, w.pal, 1, H - 2 - leg.length);
+  // (and the fight frames' mature grade: darker, weathered, a little less saturated)
+  gradeGrid(g);
   return toCanvas(g);
 }
 
