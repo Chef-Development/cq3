@@ -73,17 +73,17 @@ export const STORY: Record<string, StoryBox[]> = {
   // on whether Sable has joined. (It replays only if data/tips.ts WELCOME_ID changes: see the story team's report.)
   welcomeBack: [
     { who: 'pip', text: "Hoo! You're back. A lot has changed while you\nwere away. Sit down, I'll catch you up." },
-    { who: 'pip', text: "The kingdom is a living map. The man redrawing\nit is the Mapmaker, and he can't erase you." },
+    { who: 'pip', text: 'The kingdom is a living map. The man redrawing\nit is the Mapmaker. Only you stayed awake.' },
     { who: 'pip', text: "Restore a region and his redraw breaks.\nSable's at camp. Counting our coins. Again." },
   ],
   welcomeBackVisitor: [
     { who: 'pip', text: "Hoo! You're back. A lot has changed while you\nwere away. Sit down, I'll catch you up." },
-    { who: 'pip', text: "The kingdom is a living map. The man redrawing\nit is the Mapmaker, and he can't erase you." },
+    { who: 'pip', text: 'The kingdom is a living map. The man redrawing\nit is the Mapmaker. Only you stayed awake.' },
     { who: 'pip', text: "Restore a region and his redraw breaks.\nAnd someone's been creeping round the camp..." },
   ],
   welcomeBackSoon: [
     { who: 'pip', text: "Hoo! You're back. A lot has changed while you\nwere away. Sit down, I'll catch you up." },
-    { who: 'pip', text: "The kingdom is a living map. The man redrawing\nit is the Mapmaker, and he can't erase you." },
+    { who: 'pip', text: 'The kingdom is a living map. The man redrawing\nit is the Mapmaker. Only you stayed awake.' },
     { who: 'pip', text: 'Restore a region and his redraw breaks.\nClear Act 1 and we get a visitor. Shifty one.' },
   ],
   // New game: at most 4 boxes before the first fight (this and act1). Who he is, and the Atlas, come later.
