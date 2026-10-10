@@ -12,8 +12,8 @@ import { expect, test } from './fixtures';
 //   PORT=4178 F10_OUT=/some/dir F10_SEED=7 npx playwright test tests/smoke/first10.spec.ts
 //
 // F10_SEED fixes the run (the act map, the fights' and loot's rolls); F10_ACC is the newcomer's accuracy (0.7);
-// F10_UNTIL=act plays on through Act 1 to its clear (the boss, the first hero chest: ~10 minutes) instead of stopping
-// at the map after the first chest.
+// F10_UNTIL=act plays on through Act 1 to its clear (the boss), then Camp (Sable's scene) and the first hero chest
+// opened in the vault, instead of stopping at the map after the first chest.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -146,7 +146,8 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
         for (const e of events) {
           S.counts[e.type] = (S.counts[e.type] ?? 0) + 1;
           if (e.type === 'hit' && !e.echo) beat('firstHit', e.kind);
-          if (e.type === 'block' && !e.echo) beat('firstBlock');
+          if (e.type === 'spawn' && (e.kind === 'red' || e.kind === 'shield' || e.kind === 'bomb')) beat('firstRed', `${e.kind}, tip up: ${x.tipUp}`);
+          if (e.type === 'block' && !e.echo) beat('firstBlock', `${e.kind}, tips seen: ${x.profile.tips.includes('blockRed')}`);
           if (e.type === 'heroHurt' && e.source === 'red') beat('firstRedTaken');
           if (e.type === 'miss') beat('firstMiss');
           if (e.type === 'finisher' && !finAt) {
@@ -386,18 +387,93 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
             beat('defeat');
             S.done = true;
             return;
-          case 'actClear':
+          case 'actClear': {
             beat('actClear');
-            if (until === 'act' && now - screenAt < 2500) {
-              // the act clear's chest: a tap bursts it (a look first)
-              if (now - screenAt > 1500 && !S.actChest) {
+            if (until !== 'act') {
+              S.done = true;
+              return;
+            }
+            // the act clear's chest: a tap bursts it (a look first)
+            if (!S.actChest) {
+              if (now - screenAt > 1500) {
                 S.actChest = true;
                 tap(163, 90);
               }
               return;
             }
-            S.done = true;
+            // what it gave, then Camp (a chest waits there: the boss's hero chest)
+            const btn = view.overlays.tipPeek().clear;
+            if (!btn) return;
+            if (!S.clearAt) {
+              S.clearAt = now;
+              beat('actClearOpen', `chests waiting ${x.profile.chests.hero + x.profile.chests.rare + x.profile.chests.region}`);
+            }
+            if (now - S.clearAt > 2600) {
+              tap(btn.camp.x + btn.camp.w / 2, btn.camp.y + btn.camp.h / 2);
+              busyUntil = now + 900;
+            }
             return;
+          }
+          case 'camp': {
+            // the camp: its scene first (Sable), then the vault and the first hero chest
+            const camp = view.camp;
+            if (x.storyOverlay) {
+              const k = `${x.storyOverlay}|${x.storyBox}`;
+              if (k !== lastStoryKey) {
+                lastStoryKey = k;
+                storyAt = now;
+                beat(`campScene`, x.storyOverlay);
+              }
+              if (now - storyAt > rnd(1900, 2300)) {
+                tap(160, 128);
+                storyAt = now;
+              }
+              return;
+            }
+            if (camp.mode === 'home') {
+              beat('campHome');
+              if (S.chestDone) {
+                S.done = true;
+                return;
+              }
+              if (now - screenAt < 1500 || S.vault) return;
+              const pl = camp.plates().find((q: Any) => q.id === 'chests');
+              if (!pl) return;
+              S.vault = true;
+              tap(pl.r.x + pl.r.w / 2, pl.r.y + pl.r.h / 2);
+              busyUntil = now + 1200;
+              return;
+            }
+            if (camp.mode === 'chests') {
+              const ch = camp.chests;
+              if (!S.chestTapped) {
+                beat('vault');
+                if (!S.vaultAt) S.vaultAt = now;
+                if (now - S.vaultAt < 1200) return;
+                const r = ch.slot(0).open;
+                S.chestTapped = true;
+                tap(r.x + r.w / 2, r.y + r.h / 2);
+                busyUntil = now + 600;
+                beat('heroChestOpen');
+                return;
+              }
+              if (ch.revealing) {
+                if (ch.opening.state.phase === 'reveal') beat('heroChestReveal', String(ch.opening.state.tier ?? ''));
+                // the build-up plays; once the prize is shown, a look, then a tap to close it
+                if (ch.opening.state.phase === 'reveal' && !S.revealAt) S.revealAt = now;
+                if (S.revealAt && now - S.revealAt > 2500) {
+                  tap(163, 75);
+                  busyUntil = now + 700;
+                }
+                return;
+              }
+              beat('heroChestDone');
+              S.chestDone = true;
+              S.done = true;
+              return;
+            }
+            return;
+          }
         }
       };
       // fights bank their clock when they end
@@ -458,7 +534,7 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
   // the story included), the first finisher revealed by name, and before the chest only the basics' tips (the quiet
   // start: no packs, relic belt, Synergy! or skill point yet)
   const at = (id: string) => res.beats.find((b) => b.id === id);
-  if (UNTIL === 'act') expect(ids, 'the act cleared').toContain('actClear');
+  if (UNTIL === 'act') for (const id of ['actClear', 'heroChestOpen', 'heroChestReveal']) expect(ids, id).toContain(id);
   expect(at('firstChest')!.wall, 'the first chest, s after New game').toBeLessThan(180);
   expect(await page.evaluate(() => (window as Any).__f10.reveal)).toEqual({ active: true, held: true });
   const early = (res.tips as Array<{ id: string; wall: number }>).filter((t) => t.wall < at('firstChest')!.wall).map((t) => t.id);
