@@ -115,9 +115,10 @@ function limb(x0: number, y0: number, x1: number, y1: number, ch: string, opts?:
 const CROW = ['#100c20', '#1e1e3c', '#2e3460', '#42548a', '#6488bc', '#9ccce0'];
 const CROW_PAL: Pal = {
   f: CROW[0], F: CROW[1], h: CROW[5], j: CROW[4],
-  G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14',
-  E: '#ff4a3a', e: '#b01828', k: '#140c1c', W: '#ffffff',
-  r: '#d03040', // open beak inside
+  // a dark horn beak and feet (decision L8: no candy-yellow beak), a red eye that glows
+  G: '#a4a0b0', g: '#6c6a7e', y: '#3e3c50', Y: '#24222e',
+  E: '#ff6a3a', e: '#b01828', k: '#140c1c', W: '#ffffff',
+  r: '#7a1828', // open beak inside
   0: CROW[0], 1: CROW[1], 2: CROW[2], 3: CROW[3], 4: CROW[4], 5: CROW[5],
 };
 const CROW_SHADES: Record<string, Shade> = {
@@ -126,7 +127,7 @@ const CROW_SHADES: Record<string, Shade> = {
 };
 // 19 wide, facing left: thick beak, round head, plump body tilted down to a fan tail
 const CROW_BODY = [
-  '....bhhb............',
+  '...b.hbb.b..........',
   '...bhjjbbb..........',
   '..bhjbbbbbb.........',
   'ggbbkEbbbbbb........',
@@ -1130,9 +1131,10 @@ const CAPTAIN_PAL: Pal = {
   b: CPURPLE[4], B: CPURPLE[3], n: CPURPLE[2], N: CPURPLE[1],
   G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14',
   // plume
-  W: '#ffffff', w: '#ece6f8', v: '#a898c8',
+  W: '#d8d2e2', w: '#aea6c0', v: '#746a8e', // a grubby plume (decision L8)
   // face: skin, nose, eye, patch and strap, moustache, mouth, gold tooth
-  S: '#f2b888', s: '#d88a5a', z: '#a0583a', k: '#140c1c', p: '#1c1430', P: '#4e3e62',
+  // weathered skin and an old scar across the cheek (decision L8)
+  S: '#c88a62', s: '#9a5c3e', z: '#6a3628', k: '#140c1c', p: '#1c1430', P: '#4e3e62', C: '#e8b4a0', E: '#ffd25a',
   m: '#2a1810', M: '#5a3420', r: '#4a1020', t: '#fff4e0',
   // scarf and sash
   R: '#8a1a22', q: '#d03030', Q: '#f05a48',
@@ -1170,9 +1172,9 @@ const PLUME = [
 const CAPTAIN_FACE = [
   '..mSSSSSSmm',
   '.SSSSSSSSsm',
-  '.SkSSSpppPm',
-  'SSSSSSpPpsm',
-  'zsSSSSSSssm',
+  '.SEkSSpppPm',
+  'SSCSSSpPpsm',
+  'zsSCSSSSssm',
   '.mmmSSmmmsm',
   '.m.mrtgrs..',
   '....sSSs...',
@@ -1498,7 +1500,7 @@ function golemParts(pose: string): Part[] {
 // ------------------------------------------------------------------ boarking (Boar King: the final boss)
 
 // dark fur, hue-shifted: shadows lean purple, highlights lean orange; the mane is near black
-const KFUR = ['#1e0e18', '#3a1a22', '#5e3030', '#844a38', '#a86a48', '#c88e5e'];
+const KFUR = ['#140a14', '#2a1420', '#46222c', '#643434', '#844c40', '#a26a50']; // darker, cooler (decision L8)
 const KMANE = ['#0e0812', '#1e1018', '#2e1622', '#46222e', '#66323a', '#8a4a48'];
 const VELVET = ['#3a0c1c', '#6a1424', '#a02430', '#d03c3c', '#f06a5a'];
 const IVORY = ['#6a5a4a', '#a8967a', '#d8c8a8', '#f4ead4', '#fffcf0'];
@@ -1510,7 +1512,7 @@ const KING_PAL: Pal = {
   i: IVORY[1], I: IVORY[2], j: IVORY[3], J: IVORY[4], z: IVORY[0],
   G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14', Z: '#5a3410', r: '#e8443a', c: '#4aa0f0',
   B: BRASS[2], b: BRASS[1], W: BRASS[4], X: BRASS[3], k: '#2a140c', // brass bob in its bezel
-  p: '#a85458', P: '#d88078', t: '#5a2430', // snout disc, nostril
+  p: '#7a3a40', P: '#a45a56', t: '#3a1420', // snout disc, nostril
   e: '#ff5a3a', E: '#ffd0a0', K: '#140c1c', // eye
   s: '#d89a9a', S: '#7a3a44', // scars
   h: '#2a1c24', H: '#5a4650', // hooves
@@ -1640,27 +1642,25 @@ function kingLeg(w: number, h: number, dark = false, slant = 0): string[] {
   return rows;
 }
 
-// crown: gold band with a point either side over a velvet cap; the brass pendulum bob hangs from the centre
-// finial in a dark bezel (brass is yellower than the crown's gold)
+// crown (decision L8, and the old premise's pendulum bob gone): a jagged beast-king's crown, five crude points of
+// tarnished gold, a blood-red stone glowing in its brow
 const KING_CROWN = [
-  'r......G......r',
-  'Gg....gGy....gy',
-  'Gg.....k.....gy',
-  'GgV...kkk...Vgy',
-  'GgVV.kXWBk.VVyY',
-  'GgVVkXWBBbkVVyY',
-  'GgVVkXBBBbkVVyY',
-  'GgVVkBBBbbkVvyY',
-  'GgVv.kbbbk.vvyY',
-  'GgVvv.kkk.vvvyY',
+  '.......G.......',
+  '.G.....Gy....y.',
+  '.Gg.G..Gy..y.yY',
+  '.GgyGg.Ggy.yYyY',
+  'GGgyGgyGgyyyYyY',
+  'GgggggqEqggyyyY',
+  'GggggqReRqgyyyY',
+  'GgggggqRqggyyyY',
   'GgggggggggggyyY',
-  'yryyyycyyyyyrYZ',
+  'yyryyyyyyyyyrYZ',
   'YYYYYYYYYYYYYZZ',
 ];
 // the near tusk curling up past the snout
 const KING_TUSK = ['.J..', 'Jj..', 'Jj..', 'Jji.', 'Jji.', 'jjI.', 'jII.', '.IIz', '.IIiz', '..iiizz', '....zzz'];
 const KING_EAR = ['.....o', '....oO', '...o32', '..oP23', '.oPp23', 'o2223.'];
-const KING_EYE = ['KKKKK', '.KKeE', '..KKK'];
+const KING_EYE = ['KKKKKK', '.KeEEe', '..Kee.', '...K..']; // an ember eye glaring under the brow
 const KING_SNOUT = ['.pP', 'pPP', 'tPp', 'pPp', 'pPp', 'tPp', 'pPP', '.pp'];
 
 function kingParts(pose: string): Part[] {
@@ -1669,7 +1669,7 @@ function kingParts(pose: string): Part[] {
   let hx = 0; // head offset (with crown and tusk)
   let hy = 0;
   let eye = KING_EYE;
-  let bristle = 1;
+  let bristle = 1.3; // hackles always half up (decision L8)
   // legs: [x, slant] for far front, far back, near front, near back
   let legs: [number, number][] = [[21, 0], [38, 0], [13, 0], [45, 0]];
   const extra: Part[] = [];
@@ -1683,7 +1683,7 @@ function kingParts(pose: string): Part[] {
       by = 1;
       hx = 2;
       hy = 2;
-      bristle = 1.2;
+      bristle = 1.5;
       extra.push([['.w', 'wu', 'u.'], 0, 20]);
       break;
     case 'attack':
@@ -1703,7 +1703,7 @@ function kingParts(pose: string): Part[] {
       bx = 1;
       hx = 1;
       hy = 2;
-      bristle = 1.35;
+      bristle = 1.7;
       legs = [[21, 0], [38, 0], [-99, 0], [45, 0]];
       extra.push([['.ww.', 'wwuw', '.uu.'], 0, 16], [['ww', 'u.'], 2, 20]);
       // the near front leg lifted and scraping back, kicking up dust
@@ -1734,8 +1734,9 @@ function kingParts(pose: string): Part[] {
     H(['.....s', '....sS', '...sS.', '..sS..'], 13, 23), // a scar across the cheek
     H(['.5554', '55443'], 3, 19), // lit ridge of the snout
     H(['0000000', '......00'], 6, 30), // the mouth line
+    H(['.j..j.j', '.I..I.I'], 6, 31), // fangs under the lip
     H(KING_TUSK, 3, 22),
-    H(KING_CROWN, 9, 0),
+    H(KING_CROWN, 9, 2),
     ...extra,
   );
   return parts;

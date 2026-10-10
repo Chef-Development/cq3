@@ -129,35 +129,37 @@ export const HERO_FEET_X = 23; // x of the feet center inside the frame
 
 // ------------------------------------------------------------------ slime (procedural glossy jelly)
 
-// teal jelly ramp, hue-shifted: shadows lean blue, highlights lean yellow-green
-const SLIME_RAMP = ['#14284a', '#1b5464', '#25866e', '#3fb47e', '#7cdc8e', '#d4fac0'];
-const SLIME_RIM = '#74ecd0';
+// bog-green jelly ramp, hue-shifted: shadows lean blue, highlights lean yellow-green (decision L8: a darker, murkier
+// jelly than the old candy teal)
+const SLIME_RAMP = ['#0c1a2c', '#123c44', '#1c604c', '#2e8452', '#5aae5c', '#b4e08c'];
+const SLIME_RIM = '#5ad4a4';
 const SLIME_INK = '#140c1c';
 
 type Face = 'idle' | 'angry' | 'attack' | 'hurt';
 
-// [left eye, right eye, mouth]; k ink, W shine, r tongue, d dark jelly
+// [left eye, right eye, mouth]; k ink, Y eye glow, W tooth, r gullet, d dark jelly. No round eyes or smiles any more
+// (decision L8): heavy-lidded glowing eyes under a scowl, and teeth.
 const SLIME_FACE: Record<Face, string[][]> = {
-  idle: [['Wk', 'kk', 'kk'], ['Wk', 'kk', 'kk'], ['d.d', '.d.']],
-  angry: [['k..', '.kk', '.Wk', '.kk'], ['..k', 'kk.', 'Wk.', 'kk.'], ['.kk.', 'k..k']],
-  attack: [['Wk', 'kk', 'kk'], ['Wk', 'kk', 'kk'], ['kkkk', 'krrk', '.kk.']],
+  idle: [['kk.', '.Yk'], ['.kk', 'kY.'], ['kWkWk', '.kkk.']],
+  angry: [['k..', '.kk', '.Yk'], ['..k', 'kk.', 'kY.'], ['kWkWkk', 'kkkkkk']],
+  attack: [['kk.', '.Yk'], ['.kk', 'kY.'], ['kWkWkk', 'krrrrk', 'kWkkWk', '.kkkk.']],
   hurt: [['k.', '.k', 'k.'], ['.k', 'k.', '.k'], ['.d.', 'd.d']],
 };
 const SLIME_FACE_BIG: Record<Face, string[][]> = {
   idle: [
-    ['WWk', 'Wkk', 'kkk', 'kkk', '.k.'],
-    ['WWk', 'Wkk', 'kkk', 'kkk', '.k.'],
-    ['d..d', '.dd.'],
+    ['kkk..', '.kkkk', '..YYk', '..kk.'],
+    ['..kkk', 'kkkk.', 'kYY..', '.kk..'],
+    ['kWkkWkWk', '.kkkkkk.'],
   ],
   angry: [
-    ['kk...', '..kk.', '.WWkk', '.Wkkk', '.kkkk', '..kk.'],
-    ['...kk', '.kk..', 'WWkk.', 'Wkkk.', 'kkkk.', '.kk..'],
-    ['.kkkk.', 'k....k'],
+    ['kk...', '.kkk.', '..kkk', '..YYk', '..kk.'],
+    ['...kk', '.kkk.', 'kkk..', 'kYY..', '.kk..'],
+    ['kWkWkkWk', 'kkkkkkkk'],
   ],
   attack: [
-    ['WWk', 'Wkk', 'kkk', 'kkk', '.k.'],
-    ['WWk', 'Wkk', 'kkk', 'kkk', '.k.'],
-    ['.kkkk.', 'kkrrkk', 'krrrrk', '.kkkk.'],
+    ['kkk..', '.kkkk', '..YYk', '..kk.'],
+    ['..kkk', 'kkkk.', 'kYY..', '.kk..'],
+    ['.kkkkkk.', 'kWkWkkWk', 'krrrrrrk', 'kWkkWkWk', '.kkkkkk.'],
   ],
   hurt: [
     ['k..', '.kk', '..k', '.kk', 'k..'],
@@ -301,7 +303,7 @@ export function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElem
     }
     // face (looking left, toward the hero), stamped from little maps
     const F = big ? SLIME_FACE_BIG : SLIME_FACE;
-    const fp: Pal = { k: SLIME_INK, W: '#ffffff', r: '#d0405a', p: '#f08aa0', d: R[0] };
+    const fp: Pal = { k: SLIME_INK, W: '#e8e4c8', r: '#5a1428', Y: '#f4e04a', d: R[0] };
     const at = (u: number, v: number, rows: string[], ax: number, ay: number) => {
       const x0 = Math.round(cx + shiftAt(v) + u * RX) - ax;
       const y0 = Math.round(base - v * RY) - ay;
@@ -314,9 +316,13 @@ export function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElem
     at(eL, ev, e[0], 0, e[0].length - (big ? 4 : 2));
     at(eR, ev, e[1], 0, e[1].length - (big ? 4 : 2));
     at((eL + eR) / 2, ev - (big ? 0.2 : 0.23), e[2], 1, 0);
-    if (big) {
-      at(eL, ev, ['pp'], 3, -4);
-      at(eR, ev, ['pp'], -4, -4);
+    // something it swallowed, sunk in the core: a bone (a skull in the big one)
+    const bone: Pal = { o: '#a8c8a0', O: '#d4e8c0', x: R[1] };
+    if (o.face !== 'attack') {
+      const rows = big ? ['.OOo.', 'OooOo', 'oxoxo', '.ooo.', '.x.x.'] : ['O..o', '.Oo.', 'o..x'];
+      const x0 = Math.round(cx + shiftAt(0.2) + (big ? 0.44 : 0.46) * RX) - 1;
+      const y0 = Math.round(base - (big ? 0.3 : 0.26) * RY);
+      stamp(g, rows, bone, x0, y0);
     }
   }
   if (o.crown) {
@@ -340,36 +346,37 @@ export function slimeFrame(rx: number, ry: number, o: SlimeOpts): HTMLCanvasElem
 // ------------------------------------------------------------------ boar and bandit (maps, facing left)
 
 // fur ramp, hue-shifted: shadows lean purple, highlights lean orange
-const FUR = ['#2e1622', '#5a2e26', '#8a4a2c', '#b06a36', '#d8964e'];
+const FUR = ['#1e0e18', '#3a1c20', '#5e3226', '#80482e', '#a2643c']; // darker (decision L8)
 const BOAR_SHADES: Record<string, Shade> = {
-  b: { ramp: FUR, same: 'fxhHLlcdeptT', top: [4, 3, 3], left: [3], right: [1, 1], bottom: [0, 1] },
-  p: { ramp: ['#5a2430', '#a85458', '#d88078', '#f4a898', '#ffd0c0'], same: 'o', top: [3], left: [4], right: [1], bottom: [0] },
+  b: { ramp: FUR, same: 'fxhHLlcdeptTsS', top: [4, 3, 3], left: [3], right: [1, 1], bottom: [0, 1] },
+  p: { ramp: ['#3a1620', '#6a3238', '#8e4a4a', '#ae6a60', '#c88a7a'], same: 'o', top: [3], left: [4], right: [1], bottom: [0] },
 };
 const BOAR_PAL: Pal = {
   L: FUR[4], l: FUR[3], c: FUR[2], d: FUR[1], // head, shaded by hand
   f: '#6e3a28', x: '#4a2226', // fur strokes, jowl line
   n: '#1e1018', N: '#3a1e26', // bristly mane
-  o: '#5a2430', t: '#fff8e8', T: '#c8b490', // nostril, tusk
-  e: '#140c1c', r: '#ff5a3a', // eye with an angry glint
+  o: '#2a0e18', t: '#f4ead4', T: '#a8967a', // nostril, tusk
+  e: '#140c1c', r: '#ff6a3a', R: '#ffc08a', // a glowing eye
+  s: '#c88a7a', S: '#3a1418', // an old scar
   h: '#2a1c24', H: '#5a4650', // hooves
   w: '#ffffff', W: '#c8d8e8', // snort steam
 };
 // 32 wide; the legs are separate so they can trot
 // The head is shaded by hand (L l c d), the body and legs automatically (b).
 const BOAR_BODY = [
-  '...............n..n..n..........',
-  '.........l...nnNnnNnnNn.........',
-  '........Ll..nNNNNNNNNNNn........',
-  '.......Llx.nNNbbbbbbbbNNNn......',
-  '......Lllx.Nbbbbbbbbbbbbbbn.....',
+  '.............n.n..n.n...........',
+  '.........l...nnNnnNnnNnn........',
+  '........Ll..nNNNNNNNNNNNn.......',
+  '.......Llx.nNNbbbbbbbbNNNnn.....',
+  '......Lllx.NbbbbbbbbbbbbbbNn....',
   '.....LlllcxNbbbbbbbbbbbbbbNn....',
   '....LllllcxbbbbbbbbbbbbbbbbNn...',
   '...LlllllccxbbbbbbbbbbbbbbbbbNnn',
-  '..Lllcerlccxbbbbbbfbbbbbbbbbbbn.',
-  '.ppllceeccccxbbbbbbfbbbbbbbbbb..',
-  'pppLlcccccccxbbbbbbbbbbbbbfbbbb.',
-  'poplctcccccxbbbbfbbbbbbbbbbfbbb.',
-  'ppppdtccccxbbbbbbfbbbbbbbbbbbbb.',
+  '..LllcerlccxbbbbbbfbbbsSbbbbbbn.',
+  '.ppllcRrccccxbbbbbbfbbbsSbbbbb..',
+  'tppLlcccccccxbbbbbbbbbbsSbfbbbb.',
+  'Toplctcccccxbbbbfbbbbbbbbbbfbbb.',
+  'ppptdtccccxbbbbbbfbbbbbbbbbbbbb.',
   '.ppTtddddxbbbbbbbbbbbbbbbbbbbb..',
   '...xxdddxbbbbbbbbbbbbbbbbbbbbb..',
   '.....xxbbbbbbbbbbbbbbbbbbbbbb...',
@@ -391,7 +398,8 @@ const BANDIT_PAL: Pal = {
   // hood and cloak (purple ramp)
   1: '#1e1430', 2: '#36244e', 3: '#523a72', 4: '#7a5a9a', 5: '#a888c8',
   // face in the hood's shadow
-  f: '#2a1830', s: '#b0683e', S: '#e0a070', k: '#140c1c',
+  // the face lost in the hood's shadow, two eyes catching the light (decision L8)
+  f: '#1e1028', s: '#4e2a26', S: '#6e3e30', k: '#140c1c', E: '#ffd25a',
   // scarf
   R: '#7a1424', r: '#c82e34', q: '#f05a48',
   // leather strap, belt, gold
@@ -409,7 +417,7 @@ const BANDIT_TOP = [
   '.......4455444443332......',
   '.......44fffffff33322.....',
   '......44ffssssfff333222...',
-  '......4fsSkSSkSf3332222...',
+  '......4fsSESSESf3332222...',
   '......4fsSSSSSSf3322222...',
   '......4rqqrrrrrRR3222.rR..',
   '......4rrrrrrrrRR322..rR..',
@@ -470,7 +478,7 @@ interface FoeOpts {
 function boarRows(legs: string[], o: FoeOpts = {}): string[] {
   let body = BOAR_BODY.map((r) => shiftRow(r, o.dx ?? 0));
   // hurt: the eye squeezes shut
-  if (o.hurt) body = body.map((r) => r.replace('Lllcerlcc', 'Lllccelcc').replace('ppllceecc', 'pplleeccc'));
+  if (o.hurt) body = body.map((r) => r.replace('Lllcerlcc', 'Lllccelcc').replace('ppllcRrcc', 'pplleeccc'));
   const blank = '.'.repeat(32);
   const bob = o.bob ?? 0;
   const rows = [...Array(1 + bob).fill(blank), ...body, ...legs.slice(bob)];
@@ -545,7 +553,7 @@ const BANDIT_TELL_PAL: Pal = { ...BANDIT_PAL, e: '#c8c4d8', A: '#8a84a6', a: '#4
 
 function banditRows(arm: string[], legs: string[], o: FoeOpts & { raise?: boolean; bomb?: boolean } = {}): string[] {
   let top = BANDIT_TOP.map((r) => shiftRow(r, o.dx ?? 0));
-  if (o.hurt) top = top.map((r) => r.replace('sSkSSkS', 'skkSkkS'));
+  if (o.hurt) top = top.map((r) => r.replace('sSESSES', 'skkSkkS'));
   let armRows = arm.map((r) => shiftRow(r, o.dx ?? 0));
   const cut = 5 + (o.dx ?? 0);
   if (o.raise || o.bomb) armRows = armRows.map((r) => '.'.repeat(cut) + r.slice(cut));

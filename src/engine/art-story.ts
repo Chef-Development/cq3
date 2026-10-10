@@ -403,10 +403,14 @@ function captain(): HTMLCanvasElement {
   const plume = bez([24, 8], [28, -1], [34, -2], [38, 5], 12);
   stroke(g, plume.map(([x, y]) => [x + 0.5, y + 1] as [number, number]), (t) => 2.2 - t * 1.5, () => '#a898c8');
   stroke(g, plume, (t) => 2.2 - t * 1.6, (_x, y) => (y < 3 ? '#ffffff' : '#ece6f8'));
-  // the "genuine" pendulum weight he is selling, held up in a gloved fist
-  fill(g, ell(5.5, 31, 4, 3.6), sphere(GOLD, 4.2, 29.6, 4.6, 4.4, 0.08));
-  fill(g, and(ell(5.5, 31, 4, 3.6), not(ell(5.5, 31, 3, 2.6))), (x, y) => (x + y < 34 ? null : GOLD[1]));
-  stamp(g, ['.y.', 'y.y'], { y: GOLD[2] }, 4, 26);
+  // the "genuine" page of the Atlas he is selling, torn out, held up in a gloved fist: aged paper, inked lines
+  stamp(
+    g,
+    ['.pPPPp.', 'pPkPPPp', 'PkPPkPq', 'PPkkPPq', 'pPPPkPq', 'PkPPPqq', 'pPqPqq.', '.q.q...'],
+    { P: '#c8ac7a', p: '#a08458', q: '#6e5434', k: '#3a2a3e' },
+    2,
+    26,
+  );
   stamp(g, ['.LLL.', 'LllLL', 'LllLL', '.LLL.'], { L: '#2a1810', l: '#5a3a24' }, 3, 34);
   stamp(g, ['.W.', 'WWW', '.W.'], { W: '#ffffff' }, 0, 27);
   return toCanvas(g);
@@ -463,8 +467,8 @@ function golem(): HTMLCanvasElement {
   const eyeP: Pal = { s: '#3a6066', a: TEAL[0], b: TEAL[1], c: TEAL[2], d: TEAL[3] };
   stamp(g, ['sabbs', 'abcdb', 'sabas'], eyeP, 7, 16);
   stamp(g, ['sbbas', 'bdcba', 'sabas'], eyeP, 17, 16);
-  // forehead rune: a little pendulum
-  stamp(g, ['.a.', '.b.', 'bcb', '.b.'], eyeP, 13, 7);
+  // forehead rune: a compass star (the Atlas's mark)
+  stamp(g, ['..a..', '..b..', 'abcba', '..b..', '..a..'], eyeP, 12, 6);
   // mouth: a carved slot with stubby teeth
   stamp(g, ['11111111', '13131311', '.2222222'], { 1: STONE[0], 2: STONE[2], 3: STONE[3] }, 9, 23);
   // cracks (a dark seam with a lit lip below)
@@ -578,38 +582,27 @@ function boarKing(): HTMLCanvasElement {
   stroke(g, tusk, (t) => 1.6 - t * 1.2, (x, y) => (x + y < 32 ? IVORY[4] : x + y < 36 ? IVORY[3] : IVORY[2]));
   // fierce little eye under a scowling brow (low toward the snout)
   stamp(g, ['....kk', '..kkk.', 'kkk...', '.krW..', '.kkk..'], { k: '#1a0c12', r: '#ff5a3a', W: '#ffe0a0' }, 13, 15);
-  // crown: a red velvet cap in a gold band with a point either side. The first pendulum weight (the story's
-  // MacGuffin, a round brass bob) is its centrepiece, hung from the middle point in a dark bezel so it reads
-  // as a separate object at 1x; brass is yellower than the crown's gold.
-  const BRASS = ['#6e4a14', '#b07c22', '#e0b040', '#f8dc70', '#fffad0'];
+  // crown (as on his fight sprite): a jagged beast-king's crown over a red velvet cap, five crude points of tarnished
+  // gold and a blood-red stone glowing in its brow
   fill(g, and(ell(18, 9.5, 7.5, 6.5), (_x, y) => y <= 9), sphere(VELVET, 14, 5, 9, 7, -0.12));
   stamp(
     g,
     [
-      'G.............g',
-      'G.............y',
-      'Gg...........gy',
-      'Gg...........yY',
-      'Ggy.........gyY',
-      'Ggy.........yyY',
-      'Ggyy.......gyYY',
-      'GgggggggggggyyY',
+      '.......G.......',
+      '.G.....Gy....y.',
+      '.Gg.G..Gy..y.yY',
+      '.GgyGg.Ggy.yYyY',
+      'GGgyGgyGgyyyYyY',
+      'GgggggqEqggyyyY',
+      'GggggqReRqgyyyY',
+      'GgggggqRqggyyyY',
       'yryyyyyyyyyyrYz',
       'YYYYYYYYYYYYYzz',
     ],
-    { G: GOLD[4], g: GOLD[3], y: GOLD[2], Y: GOLD[1], z: GOLD[0], r: '#e8443a' },
+    { G: GOLD[4], g: GOLD[3], y: GOLD[2], Y: GOLD[1], z: GOLD[0], r: '#e8443a', q: '#3a0c1c', R: '#d03c3c', e: '#ff5a3a', E: '#ffd0a0' },
     11,
     2,
   );
-  fill(g, ell(18.5, 5.5, 4.5, 4.5), () => '#2a140c');
-  stamp(
-    g,
-    ['..443..', '.4WW32.', '4WW3322', '4333221', '3332211', '.32110.', '..121..'],
-    { W: '#ffffff', 4: BRASS[4], 3: BRASS[3], 2: BRASS[2], 1: BRASS[1], 0: BRASS[0] },
-    15,
-    2,
-  );
-  stamp(g, ['gGy'], { G: GOLD[4], g: GOLD[3], y: GOLD[2] }, 17, 0); // the lug it hangs from
   return toCanvas(g);
 }
 
