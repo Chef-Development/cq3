@@ -294,6 +294,21 @@ Then the beat, in as few words as it takes:
 
 ---
 
+### Draft script: the beat (for review; boxes as the game shows them, `/` = the line break)
+Three short scenes after the Flood's last phase, played back to back. From the second, his plate reads "Ambrose"
+(a new speaker `ambrose`, the Mapmaker's portrait) and his composure breaks: contractions allowed from here on.
+- `floodEnd`: narrator "The levee gives. The river goes down to its / bed, and is only a river again." · narrator "He
+  cannot draw fast enough. He turns his nib / on Rowan, close, and stops." · mapmaker "This is not a line. It is a cut,
+  / through the page. ...It is my hand." · mapmaker "I pressed too hard. I could not see. / I was crying." · mapmaker
+  "You were six. You were soaked through." · rowan "Pip. Tell me. All of it."
+- `lowTruth`: pip "The night after the funeral, he drew his boy / back. I was on his shoulder. I saw you come." · pip
+  "Hesper broke his nib and sent him away. She / told him the drawing faded. It didn't." · pip "She took you to the
+  knights' hall. I stayed / to watch over you. That was the reason." · rowan "The blank can't hold me. Deep water. The
+  / way he's looked at me, since the first night." · ambrose "...Rowan." (the first time; the scene ends on it)
+- `lowGoes`: ambrose "You're alive. So the Fair Copy can never / hold you. A cut can't be copied." · ambrose "Then I'll
+  draw you in by hand. I'll get it / right this time." · narrator "He goes, along his road, toward the very / edge of
+  the map." · rowan "You did get it right. You just didn't stay / to see it."
+
 ## 7. The finale and the ending (Region 12: the Margin)
 
 The Margin is the isle at the very edge of the vellum, where the First Hand signed the Atlas with a compass rose. It was
@@ -315,6 +330,20 @@ Ambrose at the water's edge; Rowan takes his boots off and puts his feet in the 
 branch above them. The Atlas keeps its one hole, and nobody patches it.
 
 ---
+
+### Draft script: the ending (for review)
+- `marginEnd` (after the Fair Knight fades): narrator "The Fair Knight fades mid-stroke, like breath / on glass.
+  Ambrose stands at his table." · narrator "One line would finish the Fair Copy. / The ink is on his nib." · narrator
+  "Rowan doesn't fight him for the pen. He sits / down beside the table, and waits." · ambrose "...There's no lake in
+  it. No flood. / No you." · narrator "He puts the nib down. He holds the Fair / Copy to the lamp, and lets it burn."
+- `epilogue` (Meridian): narrator "Every region's old lines come home. The / isles wake. The blank is gone from the
+  map." · keeper "A hundred years ago, the keepers moved the / river into Wend. I knew. I kept the line." · keeper "And
+  I let a man believe his son was gone. / I am sorry. To you both." · narrator "She draws one new line on the Atlas,
+  the / only one everyone agrees to: a name." · narrator "On the lake, in small, careful letters: / Wend."
+- `lastImage`: narrator "Ambrose lives by the lake now. He mends / fences in Greenmarch, the slow way." · smith "A
+  mend should show, Ambrose. / That's the whole point of it." · narrator "At the water's edge, Rowan takes off his /
+  boots, and puts his feet in the lake." · ambrose "Cold?" · rowan "Yes. ...It's all right, though." · narrator "Pip,
+  on a branch above them, says nothing / at all. The Atlas keeps its one hole."
 
 ## 8. The regions
 
