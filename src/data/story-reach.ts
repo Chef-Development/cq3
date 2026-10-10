@@ -67,7 +67,7 @@ export const REACH_STORY: Record<string, StoryBox[]> = {
     { who: 'mapmaker', text: 'She was out at sea when the isle went blank.\nShe came home to this. She likes it.' },
     { who: 'mapmaker', text: 'Here, no one falls. No one is ever too far\naway to reach. Is that so terrible?' },
     { who: 'rowan', text: 'Then why do you look so alone?' },
-    { who: 'mapmaker', text: '...Hunt well.' },
+    { who: 'mapmaker', text: '...My wife asked me that, once.\nHunt well.' },
   ],
   // phase 2 (his first edit): the pieces drawn together, the gaps closed (hint: the outline's idea)
   kestrel2: [
