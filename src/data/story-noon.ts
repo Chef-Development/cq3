@@ -1,8 +1,10 @@
 // Region 5's story scenes (SPOILERS: docs/story-bible.md section 8, "Noonspire", and section 5: the midpoint twist).
 // NOT IN PLAY YET: the region's data (src/data/noonspire.ts, enemies-noon.ts; docs/content-bible.md section 8) points
 // at these ids but isn't wired in; when it is, `Object.assign(STORY, NOON_STORY)`. Acts: `startScene` noon1-3; the
-// mini-bosses' `bossScene` sphinx (Act 1) and brassLion (Act 2); the Gnomon's `bossScene` noonBoss and `phaseScenes`
-// { 2: 'noonBoss2', 3: 'noonBoss3' }; the region's `victoryScene` noonVictory. Same rules as story.ts
+// mini-bosses' `bossScene` sphinx (Act 1) and brassLion (Act 2); the camp's scene after Act 1, noonCamp (to wire like
+// duskCamp: run.ts campScene and sableJoined, actsCleared >= 13, once; core/lab.ts marks it seen); the Gnomon's
+// `bossScene` noonBoss and `phaseScenes` { 2: 'noonBoss2', 3: 'noonBoss3' }; the region's `victoryScene` noonVictory.
+// Same rules as story.ts
 // (tests/unit/data.test.ts). The hints follow the rules as built: mirages (a yellow hops to the ghost outline shown
 // first) from Act 1, heat (blazing yellows hit hard and burn; a green cools) from Act 2; the Gnomon's phase 2 is the
 // glare (every yellow blazes), phase 3 the sun drawn down (everything a mirage, the blaze stays).
@@ -33,6 +35,14 @@ export const NOON_STORY: Record<string, StoryBox[]> = {
     { who: 'sphinx', text: 'Yes. No one has answered me in a month.\nBut you cast no shadow. So you are a mirage.' },
     { who: 'sphinx', text: 'The road is full of mirages, and I do not\nlet them pass. Not one.' },
     { who: 'pip', text: 'The haze is her trick. Strike where the\nshimmer lands, not where it was.' },
+  ],
+  // camp, after Act 1 (like the fourth region's duskCamp: run.ts campScene, once): no night to sleep in; Pip apart
+  noonCamp: [
+    { who: 'narrator', text: 'Camp, under a noon that will not end.\nNobody can sleep. Not even Rowan.' },
+    { who: 'sable', text: 'I put a blanket over my face. It glows.\nThe BLANKET glows.' },
+    { who: 'neve', text: "Pip's been on that rock for an hour,\nlooking west. He hasn't said a word." },
+    { who: 'rowan', text: 'Pip? Are you all right?' },
+    { who: 'pip', text: 'Fine. Just remembering someone.\nTry to sleep, Rowan.' },
   ],
   // Act 2 start: the Dawn Order still faces east; Pip has gone quiet (a seed)
   noon2: [

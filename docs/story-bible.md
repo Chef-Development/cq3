@@ -439,7 +439,7 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
   more until the last phase ("Steady, Rowan. I'm still here."); after it, the feather pen and Pip's half of the truth.
   Ambrose walks out over the sea, drawing a road as he goes, and far out the blank takes a shape: the first far isle,
   his draft there done (rule 10: it thinned while he drew it, from Region 4's restoring; its fog lifts and its name
-  shows on the world map now). Scenes: `src/data/story-noon.ts` (`noon1`, `sphinx`, `noon2`, `brassLion`, `noon3`,
+  shows on the world map now). Scenes: `src/data/story-noon.ts` (`noon1`, `sphinx`, `noonCamp`, `noon2`, `brassLion`, `noon3`,
   `noonBoss`-`noonBoss3`, `noonVictory`).
 
 ### Beyond the sea: who is awake on the isles (Regions 6-12)
