@@ -148,15 +148,18 @@ export class Stage {
     this.raysImg.setTexture(`st_rays_${theme}`);
     this.gradeImg.setTexture(`st_grade_${theme}`);
     // the act's mood (decision L7): the painted stage darker and cooler, the actors and the warm accents untouched
+    // (Greenmarch, the Frostpeaks and Ashfell have it baked into their pixels, art-mood.ts: only their air is tinted)
     const mood = STAGE_LIGHT[theme].mood ?? 0xffffff;
+    const air = STAGE_LIGHT[theme].air ?? mood;
     this.bgImg.setTint(mood);
     this.frameImg.setTint(mood);
     for (const cl of this.clouds) {
       // the hollow's sunset sky has its own painted wisps, the caves a roof, the glacier the aurora: no cumulus there
       cl.setVisible(theme === 'forest' || theme === 'ruins' || theme === 'pass');
-      if (theme === 'ruins') cl.setTint(mulCol(0x6a7090, mood)).setAlpha(0.45);
-      else if (theme === 'pass') cl.setTint(mulCol(0xc4c0da, mood)).setAlpha(0.5);
-      else cl.setTint(mood).setAlpha(0.95);
+      if (theme === 'ruins') cl.setTint(mulCol(0x6a7090, air)).setAlpha(0.45);
+      else if (theme === 'pass') cl.setTint(mulCol(0x6a7498, air)).setAlpha(0.45);
+      // the forest's late day: the cumulus in shadow, mauve against the sunset
+      else cl.setTint(mulCol(0x9a7c94, air)).setAlpha(0.8);
     }
     this.prefill = theme === 'pass' || theme === 'glacier' || theme === 'cinder' || theme === 'forge';
     // cloud shadows sweep the meadow; mist banks roll through the ruins and the hollow
@@ -164,8 +167,8 @@ export class Stage {
       im.setTexture(theme === 'forest' ? 'st_cloudshade' : `st_mist_${theme}`);
       im.setBlendMode(theme === 'forest' ? Phaser.BlendModes.MULTIPLY : Phaser.BlendModes.NORMAL);
     }
-    for (const im of this.mistImgs) im.setTexture(`st_mist_${theme === 'forest' ? 'ruins' : theme}_near`).setVisible(theme !== 'forest').setTint(mood);
-    for (const im of this.shadeImgs) if (theme !== 'forest') im.setTint(mood);
+    for (const im of this.mistImgs) im.setTexture(`st_mist_${theme === 'forest' ? 'ruins' : theme}_near`).setVisible(theme !== 'forest').setTint(air);
+    for (const im of this.shadeImgs) if (theme !== 'forest') im.setTint(air);
     else im.clearTint();
     this.fgImg.setTint(mood);
     this.fgOver?.setTint(mood);

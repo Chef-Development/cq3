@@ -9,6 +9,7 @@
 // hue-shifted ramps. Far layers are mixed toward the haze colour (atmospheric perspective). Ordered
 // dithering is only used for broad gradients: sky, mist, light shafts and torch light.
 import type Phaser from 'phaser';
+import { gradeLayer } from './art-mood';
 
 export type Theme = 'forest' | 'ruins' | 'hollow' | 'pass' | 'caves' | 'glacier' | 'cinder' | 'glass' | 'forge' | 'fen' | 'causeway' | 'mere';
 export const THEMES: Theme[] = ['forest', 'ruins', 'hollow', 'pass', 'caves', 'glacier', 'cinder', 'glass', 'forge', 'fen', 'causeway', 'mere'];
@@ -525,13 +526,19 @@ export function changed(p: Pix, before: Int32Array): Pix {
 function forest(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const p = new Pix(w, h, 0);
   const rnd = rng(23);
-  const hz = col('#d4ecf2');
-  const skyR = ramp('#3d8ddc', '#56a4e6', '#74bbee', '#98cff2', '#bfe3f5');
-  for (let y = 0; y < G - 14; y++) for (let x = 0; x < w; x++) p.set(x, y, pick(skyR, y / (G - 30), x, y, 0.22));
+  // late day (decision L7): an indigo sky going to dusty rose and a band of amber behind the hills, warmest on the
+  // left where the low sun is; everything below it in the woods' deep shade (the grade at the end, art-mood.ts)
+  const hz = col('#7a6278');
+  const skyR = ramp('#121a30', '#1a2440', '#243050', '#363c5c', '#4e4864', '#6c5468', '#8e6066', '#b47062', '#d48c60', '#eab06a', '#f6cc7e');
+  for (let y = 0; y < G - 14; y++)
+    for (let x = 0; x < w; x++) {
+      const t = y / (G - 30);
+      p.set(x, y, pick(skyR, t * 0.92 + 0.14 * (1 - x / w) * t * t - 0.04, x, y, 0.3));
+    }
 
   // far mountains with snowy peaks, in the haze
-  const mR = haze(ramp('#58809f', '#6c93b2', '#86a9c4', '#a2c0d6'), hz, 0.42);
-  const snowR = haze(ramp('#b6cede', '#f2fafc'), hz, 0.15);
+  const mR = haze(ramp('#3a4264', '#4a5072', '#5e6282', '#767694'), hz, 0.42);
+  const snowR = haze(ramp('#8a7c94', '#e0a888'), hz, 0.12); // the last light on the snow
   for (const [fx, fy, sl, sr] of [
     [0.04, -52, 0.62, 0.7],
     [0.27, -60, 0.66, 0.55],
@@ -542,7 +549,7 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     massif(p, Math.round(fx * w), G + fy, sl, sr, G - 26, mR, Math.round(fx * 100), snowR);
 
   // cumulus bank wrapped around the mountain feet
-  const cloudR = ramp('#a2b6da', '#bed0ea', '#dbeaf6', '#f4fbfd', '#ffffff');
+  const cloudR = ramp('#2a2a46', '#3c3654', '#5a4660', '#8a5a64', '#c87c62'); // underlit by the sunset
   const cy = G - 38;
   for (let x = -14; x < w + 20; x += 24 + Math.floor(rnd() * 16)) {
     const bl: Blob[] = [];
@@ -570,8 +577,9 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     { ramp: hillR, seed: 41, bump: 0.03, tex: 0.18, vgrad: 0.35, light: 0.12, shadow: 0, frontLow: true, floor: G - 14 },
   );
   const kb = G - 36;
-  const wallR = haze(ramp('#6e7c92', '#8898ac', '#a6b4c2', '#c4ced6'), hz, 0.3);
-  const roofR = haze(ramp('#3c4e7a', '#55689a', '#7084b0'), hz, 0.25);
+  const wallR = haze(ramp('#3a3a56', '#4a4864', '#5e5876', '#786c88'), hz, 0.3);
+  const roofR = haze(ramp('#22263e', '#30344e', '#424662'), hz, 0.2);
+  const lamp = ramp('#c8642a', '#ffb84a'); // lit windows: the castle keeps a light
   const tower = (tx: number, tw: number, th: number, roofH: number) => {
     for (let y = kb - th; y < kb + 3; y++)
       for (let x = tx; x < tx + tw; x++) p.set(x, y, x === tx ? wallR[3] : x >= tx + tw - 2 ? wallR[1] : wallR[2]);
@@ -580,8 +588,8 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
       for (let x = Math.round(tx + tw / 2 - half); x < Math.round(tx + tw / 2 + half); x++) p.set(x, kb - th - roofH + i, x < tx + tw / 2 - 0.5 ? roofR[2] : roofR[0]);
     }
     p.set(Math.floor(tx + tw / 2), kb - th - roofH - 1, roofR[1]);
-    p.set(tx + Math.floor(tw / 2), kb - th + 3, roofR[0]);
-    p.set(tx + Math.floor(tw / 2), kb - th + 4, roofR[0]);
+    p.set(tx + Math.floor(tw / 2), kb - th + 3, lamp[1]);
+    p.set(tx + Math.floor(tw / 2), kb - th + 4, lamp[0]);
   };
   for (let y = kb - 8; y < kb + 3; y++) for (let x = kx - 14; x < kx + 12; x++) p.set(x, y, y === kb - 8 ? wallR[3] : x > kx + 4 ? wallR[1] : wallR[2]);
   for (let x = kx - 14; x < kx + 12; x += 3) {
@@ -600,7 +608,7 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     [kx + 2, kb - 33],
   ])
     p.set(x, y, col('#e0503c'));
-  for (let y = kb - 3; y < kb + 3; y++) for (let x = kx - 2; x < kx + 1; x++) p.set(x, y, roofR[0]);
+  for (let y = kb - 3; y < kb + 3; y++) for (let x = kx - 2; x < kx + 1; x++) p.set(x, y, y === kb - 3 ? roofR[0] : lamp[x === kx - 2 ? 0 : 1]);
   // little trees dotted on the hills
   const hillTreeR = haze(ramp('#2a5e4a', '#3a7454', '#4e8a5c'), hz, 0.3);
   for (let i = 0; i < 16; i++) {
@@ -782,8 +790,8 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     0.55,
     0,
     G - 8,
-    col('#fffbe0'),
-    0.16,
+    col('#ffd27a'),
+    0.22,
   );
 
   // the dirt path the fight happens on
@@ -877,6 +885,9 @@ function forest(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   cornerCanopy(p, 4, 1, 86, 5, frameLeaf, vineR);
   cornerCanopy(p, w - 4, -1, 86, 6, frameLeaf, vineR);
   const frame = changed(p, before);
+  const sky = new Set([...skyR, ...cloudR, ...lamp]);
+  gradeLayer('forest', p, G, sky);
+  gradeLayer('forest', frame, G);
 
   return [p, frame, { torches: [] }];
 }
@@ -1283,6 +1294,8 @@ function ruins(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   cornerCanopy(p, 2, 1, 80, 15, canopyR, mossR);
   cornerCanopy(p, w - 2, -1, 80, 16, canopyR, mossR);
   const frame = changed(p, before);
+  gradeLayer('ruins', p, G);
+  gradeLayer('ruins', frame, G);
 
   return [p, frame, { torches }];
 }
@@ -1349,7 +1362,8 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const ink = col('#140c1c');
 
   // sunset sky: deep violet overhead, rose, then gold at the horizon; a wide glow around the low sun
-  const skyR = ramp('#20123a', '#301746', '#451c50', '#5e2457', '#7c2e5c', '#9c3a5e', '#bc4c5e', '#d8645c', '#ec845c', '#f8a862', '#fdcb78');
+  // a blood-red evening (decision L7): near-black crimson overhead, red, then a band of fire round the low sun
+  const skyR = ramp('#0e0612', '#18081a', '#260c20', '#3a1024', '#521426', '#6e1a26', '#8c2224', '#aa2e22', '#c44424', '#da662a', '#ec9a3e');
   const sunX = Math.round(w * 0.24);
   const sunY = G - 38;
   const skyBot = G - 12;
@@ -1360,14 +1374,14 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
       p.set(x, y, pick(skyR, (y / (G - 26)) * 0.84 + glow * 0.3, x, y, 0.3));
     }
   // the sun: a soft halo and a pale disc, sinking behind the far hills
-  const sunHalo = col('#ffe4a0');
+  const sunHalo = col('#ff9c4a');
   for (let y = sunY - 26; y <= sunY + 26; y++)
     for (let x = sunX - 34; x <= sunX + 34; x++) {
       const d = Math.hypot(x + 0.5 - sunX, (y + 0.5 - sunY) * 1.15);
       if (d > 30) continue;
       p.tint(x, y, (c) => fade(c, sunHalo, Math.pow(1 - d / 30, 2.2) * 0.75, x, y, 3, 0.7));
     }
-  const sunR = ramp('#ffc46a', '#ffdc8c', '#fff0be', '#fffbe6');
+  const sunR = ramp('#ff8a3a', '#ffae58', '#ffd08a', '#ffeabc');
   const sr = 8;
   for (let y = -sr; y <= sr; y++)
     for (let x = -sr; x <= sr; x++) {
@@ -1377,7 +1391,7 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     }
 
   // long wisps of cloud, lit along their undersides by the sinking sun
-  const cloudR = ramp('#3a1a4a', '#542254', '#742c5a', '#983a5c', '#bc4e5c', '#dc6a5c', '#f29062', '#ffbc7c', '#ffe0a0');
+  const cloudR = ramp('#16060e', '#220a14', '#320e1a', '#48121e', '#621a20', '#802422', '#a03424', '#c4502a', '#e27a36');
   const wisp = (x0: number, y0: number, len: number, thick: number, seed: number) => {
     const r2 = rng(seed);
     const bl: Blob[] = [];
@@ -1412,8 +1426,9 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     wisp(Math.round(fx * w), Math.round(fy * (G - 40)) + 4, len, th, Math.round(fx * 100 + fy * 1000));
 
   // far hills with a fringe of tiny trees, almost lost in the rose haze
-  const hz = col('#d87a6c');
-  const farR = haze(ramp('#4a2248', '#5c2a4e', '#703456', '#86405c'), hz, 0.52);
+  const skyDone = p.buf.slice(); // the sky, the sun and the wisps are painted for the mood: the grade leaves them
+  const hz = col('#8a2a2c');
+  const farR = haze(ramp('#2a0e20', '#3a1426', '#4c1a2c', '#602232'), hz, 0.5);
   const far: Blob[] = [];
   for (let x = -10; x < w + 10; x += 14 + rnd() * 12) far.push({ x, y: G - 27 - Math.sin(x / 41 + 1) * 4, rx: 16 + rnd() * 10, ry: 6 + rnd() * 3 });
   for (let x = -10; x < w + 10; x += 20) far.push({ x, y: G - 16, rx: 16, ry: 6 }); // hide the horizon line
@@ -1421,7 +1436,7 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   mass(p, far, { ramp: farR, seed: 5, bump: 0.12, tex: 0.12, vgrad: 0.45, light: 0.06, shadow: 0.08, floor: G - 14 });
 
   // mist pooled in the valley
-  const mistC = col('#e8a49c');
+  const mistC = col('#b0403a');
   const mist = (yc: number, half: number, amt: number, seed: number) => {
     for (let y = Math.floor(yc - half); y <= yc + half; y++)
       for (let x = 0; x < w; x++) {
@@ -1741,6 +1756,8 @@ function hollow(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   cornerCanopy(p, 4, 1, 84, 25, canopyR, strandR);
   cornerCanopy(p, w - 4, -1, 84, 26, canopyR, strandR);
   const frame = changed(p, before);
+  gradeLayer('hollow', p, G, skyDone);
+  gradeLayer('hollow', frame, G);
 
   return [p, frame, { torches }];
 }
@@ -1964,6 +1981,7 @@ function foreground(theme: Theme, w: number, h: number, frame: number): Pix {
   }
   const [rim, mid] = theme === 'forest' ? [col('#5e9a3c'), col('#25492a')] : theme === 'ruins' ? [col('#40707e'), col('#1a3640')] : [col('#c45a30'), col('#5e1e1e')];
   backlight(p, rim, mid, theme.length);
+  gradeLayer(theme, p, 1e9);
   return p;
 }
 

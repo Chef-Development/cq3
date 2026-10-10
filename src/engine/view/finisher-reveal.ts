@@ -2,12 +2,14 @@
 // lands, the fight's clock holds (App.holdUntil: nothing moves, taps do nothing) and the stage goes dark behind
 // letterbox bars; light gathers on the hero, "FINISHER" pops up and the finisher's name stamps in big, with what it
 // does in three words under it. Then the bars open and the hero's usual show (view/finishers.ts) plays. Once per
-// profile (FINISHER_REVEAL in profile.seen); the Test lab's first-fight scenario plays it on its own save.
+// hero per profile (revealKey in profile.seen: Rowan's first, then Sable's, a chest hero's); the Test lab's
+// first-fight scenario plays Rowan's on its own save.
 import type Phaser from 'phaser';
 import type { FightScene } from '../scene';
 import { GAME_W, GAME_H } from '../layout';
 import { textWidth } from '../font';
-import { FINISHER_REVEAL } from '../../data/tips';
+import { revealKey } from '../../data/tips';
+import type { HeroId } from '../../data/heroes';
 import { TextPool } from './ui';
 import { clamp01, easeBack, easeOut3, INK, WHITE } from './shared';
 
@@ -39,19 +41,24 @@ export class FinisherReveal {
     this.at = -1e9;
   }
 
-  /** Whether this finisher is the player's first in the game, with tips on (it's part of the teaching: a player who
+  /** Whether this finisher is the player's first in the game (or this hero's first), with tips on (it's part of the teaching: a player who
    *  turned tips off, and the tests, which run with tips off unless they ask, never get it); not at the Training
    *  Dummy, nor in the Test lab's gallery (a Test lab fight whose profile hasn't seen it: its first-fight scenario). */
   wanted(): boolean {
     const app = this.s.app;
     if (app.profile.tipsOff || (app.run.practice && !app.inLab) || this.s.gallery.active) return false;
-    return !app.profile.seen.includes(FINISHER_REVEAL);
+    return !app.profile.seen.includes(this.key());
+  }
+
+  /** The mark of the fighting hero's reveal. */
+  private key(): string {
+    return revealKey((this.s.app.run.hero.build?.id ?? 'rowan') as HeroId);
   }
 
   /** Start it (marked seen at once): the clock holds for REVEAL_MS. */
   start(name: string, line: string, heroX: number, heroY: number): void {
     const app = this.s.app;
-    app.profile.seen.push(FINISHER_REVEAL);
+    app.profile.seen.push(this.key());
     app.saveProfile();
     this.at = performance.now();
     this.name = name.toUpperCase();
