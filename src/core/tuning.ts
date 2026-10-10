@@ -55,6 +55,16 @@ export const DEFAULT_TUNING = {
     // Link); after that a miss breaks the combo
     forgiveMeter: 1, // a forgiven miss still loses this share of the meter's fill toward the next stack
   },
+  edits: {
+    // The Mapmaker's Edits (data/edits.ts): opt-in hardships for the next act, once this many regions are restored
+    unlockWeights: 1,
+    redSpeed: 1.25, // Swift Reds: the act's red speed x this
+    hpMult: 1.35, // Iron Hides: foes' HP x this
+    healCap: 0.15, // Thin Mercy: in-fight heals stop at this share of max HP (spam.healCap otherwise)
+    missMult: 3, // Sharp Edges: a miss costs this many times the HP
+    xpPer: 0.15, // the reward: XP from the act's fights and its clear +this per point of the Edits' weight...
+    gemsPer: 4, // ...and gems per point the first time the act is cleared under each Edit
+  },
   blocks: {
     attackWidth: 0.07, // yellow width (fraction of bar); narrow like the reference, timing has to be sharp
     greenWidth: 0.05,
@@ -832,6 +842,18 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
         s('spam.healStack', 'Heal sources stack -', 0, 2, 0.01),
         s('spam.forgiveMax', 'Misses forgiven', 0, 10, 1),
         s('spam.forgiveMeter', 'Forgiven miss: meter lost', 0, 1, 0.05),
+      ],
+    },
+    {
+      title: "The Mapmaker's Edits",
+      sliders: [
+        s('edits.unlockWeights', 'Open after regions', 0, 12, 1),
+        s('edits.redSpeed', 'Swift Reds: red speed x', 1, 2, 0.05),
+        s('edits.hpMult', 'Iron Hides: foe HP x', 1, 3, 0.05),
+        s('edits.healCap', 'Thin Mercy: heals per fight', 0, 0.35, 0.01),
+        s('edits.missMult', 'Sharp Edges: a miss costs x', 1, 6, 0.5),
+        s('edits.xpPer', 'Reward: XP + per weight', 0, 1, 0.01),
+        s('edits.gemsPer', 'Reward: gems per weight', 0, 20, 1),
       ],
     },
     {
