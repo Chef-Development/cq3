@@ -170,9 +170,9 @@ function paintScene(): Int32Array {
         const k = (y - top) / 22;
         c = rampAt(LAND, clamp01(base - k * 0.5 + glow * 0.3 + (fbm(x, y, 6, 337) - 0.5) * 0.35), x, y);
         // (the crests catch the sun where it's near or where they turn to it; elsewhere a cool lit edge)
-        const sunny = glow > 0.18 || fbm(x, top, 9, 339) > 0.6;
-        if (y - top < 1.2) c = sunny ? (glow > 0.3 ? RIM[3] : RIM[2]) : LAND[5];
-        else if (y - top < 2.4) c = sunny ? mixC(LAND[5], RIM[1], 0.5) : LAND[4];
+        const sunny = fbm(x, top, 9, 339) > 0.5 - glow * 0.4;
+        if (y - top < 1.2) c = sunny ? (glow > 0.3 ? RIM[3] : RIM[2]) : LAND[4];
+        else if (y - top < 2.4) c = sunny ? mixC(LAND[5], RIM[1], 0.5) : LAND[3];
       }
       // woods on the hills: dark round clumps with a warm rim toward the sun
       const wood = fbm(x, y * 1.6, 7, 341);
@@ -275,8 +275,9 @@ function erase(px: Int32Array): void {
       const e = edgeAt(x, y);
       const paper = rampAt(PAPER.slice(1), 0.5 + (fbm(x, y, 14, 361) - 0.5) * 0.8, x, y);
       if (x >= ex) {
-        // the blank: vellum with the impression of the lines that were here
-        px[i] = e > 0.09 ? PAPER[0] : paper;
+        // the blank: vellum with the impression of the lines that were here, and the sheet's own neatline (a map page)
+        const nl = Math.min(W - 1 - x, H - 1 - y);
+        px[i] = nl === 6 ? INKS[3] : nl === 8 ? PAPER[0] : e > 0.09 ? PAPER[0] : paper;
         continue;
       }
       // the drain: colour into an ink drawing on bare paper, in torn patches (more drawing the closer to the front)
@@ -322,8 +323,8 @@ function erase(px: Int32Array): void {
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       const f = W - 1 - x + (H - 1 - y);
-      if (f < 26) px[y * W + x] = f > 23 ? INKS[3] : rampAt(PARCH, 0.4 + (f / 26) * 0.6, x, y);
-      else if (f < 29 && x > 200) px[y * W + x] = mixC(px[y * W + x], PAPER[0], 0.6);
+      if (f < 34) px[y * W + x] = f > 31 ? INKS[3] : rampAt(PARCH, 0.35 + (f / 34) * 0.65, x, y);
+      else if (f < 38 && x > 200) px[y * W + x] = mixC(px[y * W + x], INKS[3], 0.35);
     }
 }
 
