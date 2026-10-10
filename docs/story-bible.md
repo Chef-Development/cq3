@@ -402,8 +402,7 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
   forged the chain for all of Ashfell ever since: every blow shakes the land.
 - **Bar rules:** **drifting blocks** (the unpinned land that won't hold still); **linked pairs** (his chains: hit one,
   then the other).
-- **Mini-bosses:** Rumbleback (paves the drifting flats every day, and every night they drift away); Hob & Nob (the
-  forge's two-headed hound: one guards, one wants to play, and their master hasn't patted them in ages).
+- **Mini-bosses:** Rumbleback (paves the drifting flats every day, and every night they drift away); Hob & Nob (the forge's two-headed hound: one guards, one only wants feeding; their master hasn't stopped long enough to feed them in years).
 - **Boss: Bellows, the Forge Titan.** Keystone: the anvil that never cools. Bellows was Mags's master.
   - Phase 2 edit: "Together. Always together." He pins the land still and doubles the chains.
   - Phase 3 edit: the volcano erupts *through* his drawing, the old land pushing back, and he redraws as fast as it

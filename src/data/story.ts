@@ -199,7 +199,7 @@ export const STORY: Record<string, StoryBox[]> = {
     { who: 'neve', text: 'The Glimmer Caves. Mind the ice: he drew it\nto hold whatever touches it. Fingers too.' },
     { who: 'rowan', text: 'Why give the mirror to a wyrm?\nWhat does she get out of it?' },
     { who: 'neve', text: 'A winter that never ends. Cold keeps her\nhoard bright, and her scales. She adores it.' },
-    { who: 'sable', text: "A hoard? Of shiny things?\nWhy is nobody running? Let's GO." },
+    { who: 'sable', text: 'A hoard. Of shiny things.\nWhy are we still standing here?' },
     { who: 'pip', text: 'He finds whoever will love his fix the most,\nand gives them the line to keep.' },
     { who: 'rowan', text: "So she won't give it up for asking." },
   ],
