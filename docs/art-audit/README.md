@@ -57,7 +57,7 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 ## Outliers (the redo list, worst first)
 
 1. Skill icons (2, now 3): about half were generic; now themed emblems, still repeated within a tree.
-2. World map veils (2): placeholder fog. Part of the Great Atlas rework of the world map.
+2. World map veils (2, done: 4): placeholder fog, now erased land as blank vellum. Part of the Great Atlas rework of the world map.
 3. Relic icons sharing generic glyphs (3): done, the Frostpeaks' 15 painted.
 4. Rowan's fight frames (3): done, on the rig with every pose.
 5. The dark Ashfell foes (3): done, an ember rim from below.
@@ -79,8 +79,8 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Cinder lair | 3 | 4 | `after/lairs-ashfell.png` (left): the paver heap glows in its seams, the left faces catch the cauldron's light, the pitch glows at the brim. |
 | Title screen, logo, key art | 3 | 4 | `before/title-phone.png`; `after/title-phone.png`, `after/title-desktop.png`, `after/title-continue.png`. The Atlas spread open: an inked parchment map, colour come back round the hero, fog over the erased east, a quill drawing the route; the logo built from `GAME_NAME` (Scale3x lettering, gold face, rim light, extrusion, ink outline). |
 | Title screen (round 8, second take: playtester "too simplistic and drained") | 4 | 4+ | `after/title-key-art.png` (offline render of the layers), `after/title-phone.png`, `after/title-desktop.png`. Key art: a dusk in saturated layers, the world drained into ink and blank vellum on the right under a giant quill, Rowan rim-lit on a cliff; rays, a crawling ink front, motes; the logo on a halo with ink drips; no tutorial strip. |
-| World map veils (erased land) | 2 | 4 | `after/world-atlas-*.png`. Blank warm vellum with the impression of the land's lines, a ragged rubbed edge; the far isles likewise. |
-| World map (style) | 4 | 4 | Printed on the Atlas: parchment sea with wash and engraved water lines, inked coasts and borders, neatline, compass rose, lettered names; unrestored lands in his ink draft with colour back round Rowan and cleared acts; a restored land's colour floods back once. The capital is the domed Atlas Hall. |
+| World map veils (erased land) | 2 | 4 | `after/world-phone-erased.png`, `after/world-atlas-full.png`. Blank warm vellum with the impression of the land's lines, a ragged rubbed edge; the far isles likewise. |
+| World map (style) | 4 | 4 | `after/world-phone-opening.png`, `after/world-phone-restored.png`, `after/world-desktop.png` (before: `before/screens.png`). Printed on the Atlas: parchment sea with wash and engraved water lines, inked coasts and borders, neatline, compass rose, lettered names; unrestored lands in his ink draft with colour back round Rowan and cleared acts; a restored land's colour floods back once. The capital is the domed Atlas Hall. |
 | Portraits: the Mapmaker, Hesper, the narrator | - | 4 | `after/portraits-mapmaker-keeper.png` (narrator, Mapmaker, Hesper). |
 | Menus, camp, story frames, fight chrome (L7 mood, L8 maturity) | 4 | 4 | `before/menus-mood.png` / `after/menus-mood.png` (camp, hero select, companions, shrine, bag, vault, story). Deep ink plates, antique brass trim, buttons as worn metal and leather in the mood's accents, every painted stage and the camp graded darker and cooler (lamps spared); the bar's capsule forged iron. |
 | The Noon Sphinx's portrait | - | 4 | Region 5's first mini-boss: lapis-and-gold headdress, the sun pinned on her circlet. |
