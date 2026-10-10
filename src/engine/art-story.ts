@@ -5,11 +5,12 @@
 // and toCanvas adds the 1px ink outline. Rowan, Sable and Pip face right; the villains face left. The HUD badge's
 // 18x18 face window sits at (12, 6) for Rowan and at (14, 8) for Sable (both eyes and the top of the mask).
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
+import { buildAtlasPortraits } from './art-portraits-atlas';
 
 type Add = (key: string, canvas: HTMLCanvasElement) => void;
 
 /** Portrait textures: `portrait_${name}`. */
-export const PORTRAITS = ['rowan', 'sable', 'pip', 'captain', 'golem', 'boarking', 'narrator', 'smith'] as const;
+export const PORTRAITS = ['rowan', 'sable', 'pip', 'captain', 'golem', 'boarking', 'narrator', 'smith', 'mapmaker', 'keeper'] as const;
 /** Map node icons: `mapicon_${type}`. */
 export const MAP_ICONS = ['fight', 'elite', 'treasure', 'rest', 'shop', 'event', 'boss'] as const;
 /** A representative colour per map icon (for glows and highlights). */
@@ -814,6 +815,7 @@ export function buildStoryArt(add: Add): void {
   add('portrait_golem', golem());
   add('portrait_boarking', boarKing());
   add('portrait_narrator', narrator());
+  buildAtlasPortraits(add);
   for (const m of MAP_ICONS) {
     const g = grid(15, 15);
     stamp(g, ICON_MAPS[m], ICON_PAL, 1, 1);

@@ -1,14 +1,13 @@
 // Region 4's relics as fight hooks (core/hooks.ts): the Light relics (dark blocks and the cursor's lantern) and the
-// Tide relics (the water at the bar's ends). NOT IN PLAY YET: not merged into RELIC_HOOKS (relic-fx.ts) until the
-// region is wired in. Each one's number is its data's `n` (duskN) until it moves to tuning.relics.n; each calls
-// c.perkFx when it kicks in.
+// Tide relics (the water at the bar's ends), merged into RELIC_HOOKS (relic-fx.ts). Each one's number is tuning.relics.n[id] (its data's `n`); each calls c.perkFx when it kicks in.
 
 import { duskN, type DuskRelicId } from '../data/relics-dusk';
 import { isRed } from './blocks';
 import type { Combat } from './combat';
 import type { FightHooks, HitCtx } from './hooks';
 
-const n = (id: DuskRelicId): number => duskN(id);
+/** A relic's live number (tuning.relics.n; its data's `n` if a tuning from before the region lacks it). */
+const n = (c: Combat, id: DuskRelicId): number => c.tuning.relics.n[id] ?? duskN(id);
 /** A hit (not an echo) on a block that came dark. */
 const darkHit = (x: HitCtx): boolean => !x.echo && x.block.dark;
 /** How long after coming up a block still counts as just surfaced (Driftwood). */
@@ -29,7 +28,7 @@ export const DUSK_RELIC_HOOKS: Record<DuskRelicId, FightHooks> = {
 
   // Moth Wing: hits on dark blocks deal more
   mothWing: {
-    hitMult: (_c, x, v) => (darkHit(x) ? v * (1 + n('mothWing') / 100) : v),
+    hitMult: (c, x, v) => (darkHit(x) ? v * (1 + n(c, 'mothWing') / 100) : v),
   },
   // Wick Trimmer: Perfect hits on dark blocks always crit
   wickTrimmer: {
@@ -40,12 +39,12 @@ export const DUSK_RELIC_HOOKS: Record<DuskRelicId, FightHooks> = {
   },
   // Night Owl: the lantern reaches further
   nightOwl: {
-    lightReach: (_c, r) => r * (1 + n('nightOwl') / 100),
+    lightReach: (c, r) => r * (1 + n(c, 'nightOwl') / 100),
   },
   // Lantern Oil: each dark block the light reaches fills a little meter
   lanternOil: {
     lit: (c, b) => {
-      c.fillMeter((c.tuning.meter.perHit * n('lanternOil')) / 100, 'perk', 'lanternOil');
+      c.fillMeter((c.tuning.meter.perHit * n(c, 'lanternOil')) / 100, 'perk', 'lanternOil');
       c.perkFx('lanternOil', 0, 0, b.pos);
     },
   },
@@ -53,8 +52,8 @@ export const DUSK_RELIC_HOOKS: Record<DuskRelicId, FightHooks> = {
   glowWorms: {
     afterHit: (c, x) => {
       if (!darkHit(x)) return;
-      c.awardCoins(n('glowWorms'), 'glowWorms');
-      c.perkFx('glowWorms', n('glowWorms'), 0, x.block.pos);
+      c.awardCoins(n(c, 'glowWorms'), 'glowWorms');
+      c.perkFx('glowWorms', n(c, 'glowWorms'), 0, x.block.pos);
     },
   },
   // Ember Jar: the light burns dark traps away as it reaches them
@@ -67,7 +66,7 @@ export const DUSK_RELIC_HOOKS: Record<DuskRelicId, FightHooks> = {
   },
   // Blindfold: the lantern reaches less far, but hits on dark blocks deal triple
   blindfold: {
-    lightReach: (_c, r) => r * (1 - n('blindfold') / 100),
+    lightReach: (c, r) => r * (1 - n(c, 'blindfold') / 100),
     hitMult: (_c, x, v) => (darkHit(x) ? v * 3 : v),
   },
 
@@ -77,7 +76,7 @@ export const DUSK_RELIC_HOOKS: Record<DuskRelicId, FightHooks> = {
   wadingBoots: {
     afterBlock: (c, x) => {
       if (x.echo || !c.wet(x.block.pos)) return;
-      c.healPerk(n('wadingBoots'), 'wadingBoots');
+      c.healPerk(n(c, 'wadingBoots'), 'wadingBoots');
     },
   },
   // Driftwood: a block that just came up out of the water crits
@@ -89,26 +88,26 @@ export const DUSK_RELIC_HOOKS: Record<DuskRelicId, FightHooks> = {
   },
   // Undertow Charm: reds wade slower
   undertowCharm: {
-    wadeMult: (_c, m) => m * (1 - n('undertowCharm') / 100),
+    wadeMult: (c, m) => m * (1 - n(c, 'undertowCharm') / 100),
   },
   // Low Water: the water comes less far
   lowWater: {
-    tideMult: (_c, m) => m * (1 - n('lowWater') / 100),
+    tideMult: (c, m) => m * (1 - n(c, 'lowWater') / 100),
   },
   // Tidepool: each block that comes up out of the water drops a coin
   tidepool: {
     surfaced: (c, b) => {
-      c.awardCoins(n('tidepool'), 'tidepool');
-      c.perkFx('tidepool', n('tidepool'), 0, b.pos);
+      c.awardCoins(n(c, 'tidepool'), 'tidepool');
+      c.perkFx('tidepool', n(c, 'tidepool'), 0, b.pos);
     },
   },
   // Spring Tide: hits right by the water deal more
   springTide: {
-    hitMult: (c, x, v) => (!x.echo && byWater(c, x.block.pos) ? v * (1 + n('springTide') / 100) : v),
+    hitMult: (c, x, v) => (!x.echo && byWater(c, x.block.pos) ? v * (1 + n(c, 'springTide') / 100) : v),
   },
   // Moonpull: blocking a red in the water knocks the next red on the bar back, but the water comes further
   moonpull: {
-    tideMult: (_c, m) => m * (1 + n('moonpull') / 100),
+    tideMult: (c, m) => m * (1 + n(c, 'moonpull') / 100),
     afterBlock: (c, x) => {
       if (x.echo || x.cracked || !c.wet(x.block.pos)) return;
       let next = null;

@@ -256,6 +256,9 @@ export const TORVA_POSES: Record<string, RigPose> = {
   // the hammer resting on her shoulder, its head behind her back
   idle0: P({ near: { at: [3, 15], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 10] }, back: [braid(0.62, 0.02, 0.03)] }),
   idle1: P({ near: { at: [3, 14], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 9] }, dy: 1, back: [braid(0.63, 0.02, -0.03)] }),
+  // the braid swings a frame behind the breath, the hammer's weight settles on her shoulder
+  idle2: P({ near: { at: [3, 14], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 9] }, dy: 1, back: [braid(0.66, 0.03, -0.06)] }),
+  idle3: P({ near: { at: [3, 15], item: hammer('ul', 13, 5), behind: true }, far: { at: [8, 10] }, back: [braid(0.65, 0.03, 0)] }),
   dash: P({ near: { at: [3, 11], item: hammer('l', 14, 3), behind: true }, far: { at: [6, 12] }, legs: 'run', dx: 1, lean: 1, back: [braid(0.92, -0.06, 0.06)] }),
   // the overhead smash lands in front
   slashA: P({

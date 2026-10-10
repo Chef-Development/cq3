@@ -368,6 +368,9 @@ export const YARA_POSES: Record<string, RigPose> = {
   // the staff upright in her far hand, spirit-light circling the near one
   idle0: { near: { at: [-7, 12] }, far: { at: [9, 12], item: staff('u', 14, 9, { swing: -0.2 }) }, farFront: true, back: [braid(0.62, 0.02, 0.03), drape('hang')], front: [spiritHand('near', 0.3)] },
   idle1: { near: { at: [-7, 11] }, far: { at: [9, 11], item: staff('u', 14, 8, { swing: 0.2 }) }, farFront: true, dy: 1, back: [braid(0.63, 0.02, -0.03), drape('sway')], front: [spiritHand('near', 1.4)] },
+  // the shawl and the braid swing a frame behind the breath, the spirit light circles on
+  idle2: { near: { at: [-7, 11] }, far: { at: [9, 11], item: staff('u', 14, 8, { swing: 0.5 }) }, farFront: true, dy: 1, back: [braid(0.66, 0.03, -0.06), drape('sway')], front: [spiritHand('near', 2.5)] },
+  idle3: { near: { at: [-7, 12] }, far: { at: [9, 12], item: staff('u', 14, 9, { swing: 0.1 }) }, farFront: true, back: [braid(0.65, 0.03, 0), drape('hang')], front: [spiritHand('near', 3.6)] },
   dash: { near: { at: [-5, 12] }, far: { at: [9, 13], item: staff('ur', 10, 6, { swing: -0.8 }) }, farFront: true, legs: 'run', dx: 1, lean: 1, back: [braid(0.95, -0.05, 0.05), drape('flow')] },
   // the staff thrust out, a bolt of spirit light leaping from its stone
   slashA: {

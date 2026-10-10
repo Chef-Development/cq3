@@ -32,11 +32,11 @@ One PR at the end supersedes #1-#7.
 | 3 | Region 4 bar rules + region design | 3 | bar rules in core (dark blocks, tides), data, relics, gear; names reconciled with the story (L3) |
 | 4 | Desktop input, clean capture, perf baseline, originality audit | 4 | merged (title ready 12.1 -> 7.8 s at CPU 4x); continuing |
 | 5 | First 10 minutes: new-player bot path, measure, fix | 5 | merged (first chest 1:22-4:36 -> ~1:30; the first finisher a moment); continuing |
-| 6 | Story rewrite: intro, regions 1-3 scenes, heroes, companions, banter, lore, UI words | 1 | next |
-| 7 | The Great Atlas world map; animation upgrade; lighting pass; 2x rollout | 2 | next |
-| 8 | Region 4 complete (content, art, music, balance, lab) | 3 | next |
-| 9 | Full bot crawl, fresh-eyes reviews, fixes, Android/desktop checks | 4 | next |
-| 10 | Region 5 | 3 | later |
+| 6 | Story rewrite: intro, regions 1-3 scenes, heroes, companions, banter, lore, UI words | 1 | regions 1-3 + arrivals + gated banter done; text sweep, companions, editor notes in progress |
+| 7 | The Great Atlas world map (2A); animation upgrade + lighting pass (2B); 2x rollout | 2A/2B | in progress |
+| 8 | Region 4 complete: in play + balance (3), art + music (dusk-art) | 3 + dusk-art | in progress |
+| 9 | Resizable window, Android, code split, bot crawl part 1; then reviewers | 4 | in progress |
+| 10 | Region 5 (bar rules + data done, not in play; art and wiring later) | 3 | later |
 | 11 | Backlog cycle (QA, Region 6, polish, NG+, more content, music, accessibility) | all | later |
 | 12 | Final: everything committed, tests green, one PR | Lead | 06:45 |
 
@@ -53,3 +53,12 @@ One PR at the end supersedes #1-#7.
   scenes drafted). Story merged. Region 4 names crossed between story and content: L3 picks the story's current
   version; the content team adapts. Story chunk 2 launched (text sweep, companions, gated banter, apply editor notes);
   a separate editor agent reviews every line (notes in the lead's scratchpad).
+- 19:44 EDT: a second container restart (my full unit run died with it). This time the team agents' sessions were
+  lost (their work was on disk). Run branch: cherry-picked the content team's perk-at fix, 1,138 green, pushed; then
+  merged the content team's L3 reconcile (1,153 green), pushed.
+- 19:55 EDT: relaunched as seven teams (art split into 2A world map/title/portraits and 2B animation/lighting; a
+  dusk-art helper for Region 4's art and music), fresh instances told to recover their predecessor's uncommitted work.
+  New rules against overload: one Playwright run at a time (flock), balance runs through a lock, vitest maxWorkers=2.
+- 20:01 EDT: playtester note on the new title: "too simplistic and drained. How am I supposed to be interested?" Sent
+  to art 2A as top priority (before the Atlas): key art with drama and depth (light, parallax, Rowan on a ledge, the
+  living land against the erased blank), motion, a logo with presence, no tutorial strip on the title.

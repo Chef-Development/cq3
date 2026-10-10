@@ -156,8 +156,8 @@ Everything animates from `now` and seeds (screenshots stay exact). Minimum frame
 | Region | Key light | Ambient | Rim | Air |
 | --- | --- | --- | --- | --- |
 | Greenmarch, act 1 (forest) | warm white-gold, top left, god rays | green-blue | pale gold | drifting leaves, motes |
-| Greenmarch, act 2 (ruins) | low amber afternoon | dusty olive | amber | pollen, dust in shafts |
-| Greenmarch, act 3 (hollow) | dim teal moon | deep teal night | cool cyan | fireflies, spores |
+| Greenmarch, act 2 (ruins) | moonlight, top left; braziers below | night blue | pale blue | rain streaks, drips off the arches, brazier embers |
+| Greenmarch, act 3 (hollow) | the low sunset sun, from the left | plum | orange | autumn leaves, fireflies, warm dust |
 | Frostpeaks | cold white, high | steel blue | ice cyan | snow streaks, spindrift |
 | Ashfell | ember orange from below the frame plus a dim top-left key | smoky purple | orange | embers rising, ash falling |
 | Duskmire | low rose-violet dusk from the top left (the sky stuck at sunset); lantern amber pooled where the fighters stand | deep violet (teal-violet over the flats) | rose on top, lantern amber below (`duskRim` on dark foes) | fireflies, wisps, dusk motes, mist on the water |

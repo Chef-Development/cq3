@@ -1,12 +1,7 @@
-// Region 5's story scenes that aren't written yet (SPOILERS: docs/content-bible.md section 8). The story team's
-// scenes for the region are in src/data/story-noon.ts (noon1-3, noonBoss, noonBoss2-3, noonVictory); these are one-line
-// PLACEHOLDERS for the two mini-bosses' intros (the ids the region's data uses). Not merged into STORY yet.
+// Region 5's mini-bosses' scenes used to wait here as placeholders; the story team has written them into
+// src/data/story-noon.ts (`sphinx`, `brassLion`, with the region's other scenes). Nothing is left to write: this stays
+// empty (tests/unit/noonspire-data.test.ts still reads it, and a placeholder here must never clash with a real scene).
 
 import type { StoryBox } from './types';
 
-const todo = (what: string): StoryBox[] => [{ who: 'narrator', text: what }];
-
-export const NOON_MINI_STORY: Record<string, StoryBox[]> = {
-  sphinx: todo('(Scene to come) The Noon Sphinx\nguards the road with riddles of light.'),
-  brassLion: todo('(Scene to come) A brass lion guards\nthe spire stairs. Its mane is too hot.'),
-};
+export const NOON_MINI_STORY: Record<string, StoryBox[]> = {};

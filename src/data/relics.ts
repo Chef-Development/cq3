@@ -4,9 +4,10 @@
 // src/core/relic-fx.ts makes them work in fights, src/core/relics.ts rolls the offers and names the build.
 
 import { ASH_PAIR_NAME, ASH_RELICS, type AshRelicId } from './relics-ash';
+import { DUSK_PAIR_NAME, DUSK_RELICS, type DuskRelicId } from './relics-dusk';
 
-export type RelicTag = 'bomb' | 'crit' | 'block' | 'combo' | 'finisher' | 'green' | 'pip' | 'sustain' | 'coins' | 'risk' | 'ice' | 'hold' | 'drift' | 'link';
-export const RELIC_TAGS: RelicTag[] = ['bomb', 'crit', 'block', 'combo', 'finisher', 'green', 'pip', 'sustain', 'coins', 'risk', 'ice', 'hold', 'drift', 'link'];
+export type RelicTag = 'bomb' | 'crit' | 'block' | 'combo' | 'finisher' | 'green' | 'pip' | 'sustain' | 'coins' | 'risk' | 'ice' | 'hold' | 'drift' | 'link' | 'light' | 'tide';
+export const RELIC_TAGS: RelicTag[] = ['bomb', 'crit', 'block', 'combo', 'finisher', 'green', 'pip', 'sustain', 'coins', 'risk', 'ice', 'hold', 'drift', 'link', 'light', 'tide'];
 export const TAG_NAME: Record<RelicTag, string> = {
   bomb: 'Bomb',
   crit: 'Crit',
@@ -22,6 +23,8 @@ export const TAG_NAME: Record<RelicTag, string> = {
   hold: 'Hold',
   drift: 'Drift',
   link: 'Link',
+  light: 'Light',
+  tide: 'Tide',
 };
 
 export type RelicRarity = 'common' | 'rare' | 'epic';
@@ -88,7 +91,9 @@ export type RelicId =
   | 'luckyMitten'
   | 'crampons'
   // the third region's (src/data/relics-ash.ts)
-  | AshRelicId;
+  | AshRelicId
+  // the fourth region's (src/data/relics-dusk.ts)
+  | DuskRelicId;
 
 export interface RelicDef {
   id: RelicId;
@@ -177,6 +182,8 @@ export const RELICS: RelicDef[] = [
 
 // the third region's relics (offered from its first act on)
 RELICS.push(...(ASH_RELICS as RelicDef[]));
+// the fourth region's relics (offered from its first act on)
+RELICS.push(...(DUSK_RELICS as RelicDef[]));
 
 export const RELIC_IDS: RelicId[] = RELICS.map((r) => r.id);
 export const relicById = (id: string): RelicDef | undefined => RELICS.find((r) => r.id === id);
@@ -198,6 +205,8 @@ export const BUILD_NAME: Record<RelicTag, string> = {
   hold: 'Steady Hand',
   drift: 'Firewalker',
   link: 'Chainsmith',
+  light: 'Lamplighter',
+  tide: 'Tidewalker',
 };
 
 /** Two-tag builds (either order). */
@@ -228,4 +237,5 @@ export const PAIR_NAME: Array<[RelicTag, RelicTag, string]> = [
   ['ice', 'crit', 'Ice Pick'],
   ['hold', 'finisher', 'Slow Burn'],
   ...(ASH_PAIR_NAME as Array<[RelicTag, RelicTag, string]>),
+  ...(DUSK_PAIR_NAME as Array<[RelicTag, RelicTag, string]>),
 ];

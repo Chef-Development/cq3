@@ -28,10 +28,11 @@ describe('world plan', () => {
     for (const r of WORLD_PLAN) for (let w = 0; w < WEIGHTS_TOTAL; w++) expect(fogOf(w + 1, r)).toBeLessThanOrEqual(fogOf(w, r));
   });
 
-  it('with the weights there are today (0-2), every far land stays fogged and nameless', () => {
+  it('with the weights there are today (0-2), every far land stays fogged and unnamed', () => {
     for (const w of [0, 1, 2]) for (const r of FAR_PLAN) expect([fogOf(w, r), revealed(w, r), planName(w, r)]).toEqual([1, false, '?']);
-    expect(planName(WEIGHTS_TOTAL, FAR_PLAN[0])).toBe('?'); // revealed, but it has no name yet
-    expect(planName(WEIGHTS_TOTAL, { ...FAR_PLAN[0], name: 'Somewhere' })).toBe('Somewhere');
+    // every far land has its name (the story bible's), shown only once its fog lifts
+    for (const r of FAR_PLAN) expect([planName(r.lift - 1, r), planName(r.lift, r) === r.name, !!r.name]).toEqual(['?', true, true]);
+    expect(planName(WEIGHTS_TOTAL, { ...FAR_PLAN[0], name: undefined })).toBe('?'); // revealed, but nameless
     expect(planRegion('far9')?.n).toBe(9);
   });
 
@@ -44,7 +45,10 @@ describe('world plan', () => {
     // the third region opens once the second is won
     expect(landOpen({ actsCleared: 5 }, 'ashfell')).toBe(false);
     expect(landOpen({ actsCleared: 6 }, 'ashfell')).toBe(true);
-    expect(landOpen({ actsCleared: 99 }, 'duskmire')).toBe(false);
+    // the fourth once the third is won
+    expect(landOpen({ actsCleared: 8 }, 'duskmire')).toBe(false);
+    expect(landOpen({ actsCleared: 9 }, 'duskmire')).toBe(true);
+    expect(landOpen({ actsCleared: 99 }, 'noonspire')).toBe(false);
     expect(landOpen({ actsCleared: 99 }, 'far6')).toBe(false);
   });
 

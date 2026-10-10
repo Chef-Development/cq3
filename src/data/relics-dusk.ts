@@ -1,7 +1,6 @@
-// Region 4's relics (SPOILERS: docs/content-bible.md section 7). NOT IN PLAY YET: not merged into RELICS
-// (src/data/relics.ts) until the region is wired in (merging adds the two tags and these ids to the unions in
-// relics.ts, TAG_NAME, BUILD_NAME, the tag chips' faces and glyphs in engine/view/relic-ui.ts and relic-log.ts, an
-// icon each, their numbers in tuning.relics.n, and an entry each in view/perk-at.ts). Same shape as RELICS entries
+// Region 4's relics (SPOILERS: docs/content-bible.md section 7), merged into RELICS (src/data/relics.ts: the tags,
+// ids, build names; tag chips in engine/view/relic-ui.ts and relic-log.ts; numbers in tuning.relics.n; perk places in
+// view/perk-at.ts). Icons fall back to a tag tile until painted ones exist. Same shape as RELICS entries
 // (one rule each, at most one number, 1-2 tags, an unlock, `from` the region's first act), with two new tags: Light
 // (dark blocks and the cursor's lantern) and Tide (the water at the bar's ends). Their hooks: core/relic-fx-dusk.ts.
 

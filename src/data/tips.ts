@@ -264,9 +264,11 @@ export const tipById = (id: string): TipDef | undefined => TIPS.find((t) => t.id
 export const BASIC_TIPS: readonly TipId[] = TIPS.filter((t) => t.basic).map((t) => t.id);
 
 /**
- * The welcome back: a short scene for a player returning from an earlier version (what's new: relics, levels and
- * skills, Sable), played once over the title. Kept in the profile's seen list with the tips.
+ * The welcome back: a short scene for a player returning from an earlier version (round 8: the new story, the living
+ * map and the Mapmaker), played once over the title. Kept in the profile's seen list with the tips. A new id replays
+ * it for every returning player (an older id is dropped when the profile is read): round 8's is 'welcomeR8' (it was
+ * 'welcomeM4a', relics, levels and Sable).
  */
-export const WELCOME_ID = 'welcomeM4a';
+export const WELCOME_ID = 'welcomeR8';
 export type SeenId = TipId | typeof WELCOME_ID;
 export const isSeenId = (v: unknown): v is SeenId => v === WELCOME_ID || isTipId(v);
