@@ -1829,4 +1829,11 @@ F23. **Review 4's first-ten findings** (03:10-03:30). A pick's tip sits along th
     gain says "+N Max HP" under the plate as it lands. Not ours / not done: the crowded first map (tags over nodes,
     every extra at once) and the board's dark-on-tan text (2A/2C).
 
+F24. **A brand-new player's first map is calmer** (review 4, R4-8): on Act 1 with nothing cleared, one pack at most
+    and no merchant (`addExtras(..., calm)`); the map, the Coin Rush, the bounty board and the secret are as ever (the
+    roamers come last in the extras' own random stream), a save or a retry rebuilds the same (the profile hasn't
+    changed), and the merchant meets a returning player from the next map on. The act map's "Tap a glowing spot"
+    hides while a tip card is up (R4-19). Act 1's bot guard and the masher's pass. Not done: tags over other nodes
+    (2C's layout).
+
 (first10: end of section)
