@@ -1346,6 +1346,18 @@ C17. **The fifth region joins the campaign** (its art and music landed): `NOON_O
     `tests/unit/bot-region5.test.ts`), and the masher loses its Act 3 and its boss (`bot-masher.test.ts`, its row came
     free). Nothing else assumed four regions (the fast unit tests all passed with it on).
 
+C18. **Tess's and Vesper's late game: two finishers that keep the reds** (diagnostics: practice fights of each late
+    boss with and without the act's bar rule, and region replays from cached end-of-region heroes). The gaps aren't the
+    dark, the tide or the mirages: they're the same with the rule off. Both finishers keep the reds where every other
+    finisher knocks them off, and that costs most where reds hit hardest. Tess: with Rewind clearing like a normal
+    finisher she reaches Rowan in Regions 4-5. Now Rewind undoes the reds on their way (`kits.tess.rewindClear`
+    0.8, `CORE:`) and winds only the newest back. Both Rewind and Volley also break a foe's wall (a still shield:
+    three taps before it falls; the dams, slabs and the Gnomon's strike), as every finisher does (`clearWalls`).
+    Tess's fire strength is gone (construct stays): with walls broken the third region's fire boss tipped to her
+    (+21-26 at Act 9, CLAUDE.md's lesson). Vesper: HP or attack bumps didn't move her gaps; walls help her Acts 12
+    and 15. Left: both at Act 11 (Vesper takes about 60% more hits a second from that mini-boss than Rowan, with or
+    without the tide).
+
 (content: end of section)
 
 
