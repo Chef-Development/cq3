@@ -50,10 +50,10 @@ const RELIC_ICONS: Record<string, string[]> = {
   ghostStep: ['......V.V.', '......VwV.', '......VVV.', '.......VV.', '...t...VV.', '.2.2..t...', '.232......', '.222......', '..22......', '..22......'],
   // a sand dollar, five petals, a glint of gold
   sandDollar: ['...3333...', '.33G42433.', '.34442443.', '3442444243', '34444k4443', '3444444443', '3442444243', '.34444443.', '.33444433.', '...3333...'],
-  // a whirl of sand and haze off the dunes
-  dustDevil: ['.33443344.', '..t44334..', '..3443t...', '...3t43...', '...434....', '....t3....', '....43....', '...34.....', '...3......', '.22223322.'],
-  // a castle hanging upside down over the dunes, the haze line under it
-  fataMorgana: ['.TTTkkTTT.', '.TCTTTTCT.', '.TTT..TTT.', '.T.T..T.T.', '..t.t.t.t.', '..........', '.....3344.', '..33344443', '3344444444', '2233333332'],
+  // a whirl of sand and haze twisting up off the dunes (no foot: an hourglass is the Sand Glass)
+  dustDevil: ['..43344334', '...t4334t.', '...3443...', '....t43...', '....34....', '...t4.....', '...43.....', '....3.....', '..2.3.2...', '.2.2322.2.'],
+  // a castle standing in the air over the dunes, the haze under it
+  fataMorgana: ['.T.T..T.T.', '.TTT..TTT.', '.TCTTTTCT.', '.TTTkkTTT.', '..t.t.t.t.', '.t.t.t.t..', '..........', '....33....', '..334443..', '3344444433'],
   // ---------------------------------------------------------------- Heat
   // a parasol and the cool pool of shade under it
   sunshade: ['...oOOo...', '..oOpOpo..', '.oOpOpOpo.', '..o..h..o.', '.....h....', '.....h....', '.....h....', '.....h....', '..AAAhAA..', '.AAAAAAAA.'],
