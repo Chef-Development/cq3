@@ -2865,13 +2865,16 @@ function snagDeco(seed: number, hgt: number): Deco {
   const p = new Pix(9, hgt + 3, -1);
   const r = rng(seed);
   const wood = ramp('#1e1a24', '#2e2834', '#443a48', '#5a4e5c', '#706274');
+  // a straight dead trunk leaning a little, two broken limbs off it
+  const lean = r() < 0.5 ? -1 : 1;
   for (let k = 0; k < hgt; k++) {
-    const x = 4 + Math.round(Math.sin(k * 0.4 + seed) * 0.7);
+    const x = 4 + (k > hgt * 0.6 ? lean : 0);
     p.set(x, hgt + 1 - k, wood[2]);
-    p.set(x - 1, hgt + 1 - k, wood[k > hgt * 0.7 ? 2 : 3]);
+    p.set(x - 1, hgt + 1 - k, wood[k > hgt * 0.8 ? 2 : 4]);
   }
   const by = Math.round(hgt * (0.4 + r() * 0.2));
   for (let k = 1; k < 4; k++) p.set(4 + k, hgt + 1 - by - k, wood[3]);
+  for (let k = 1; k < 3; k++) p.set(3 - k, hgt + 1 - Math.round(hgt * 0.7) - k, wood[3]);
   return deco(p, 4, hgt + 1, 1.5, hgt * 0.4, { shadow: [2, 1] });
 }
 
@@ -2917,9 +2920,9 @@ function duskLight(p: Pix, c: Ctx, theme: DuskMap): void {
       let k = p.get(x, y);
       if (e > 0 && e * e > bay(x, y) * 0.9) k = mix(k, edge, e * 0.5);
       const s = sun(c, x, y);
-      if (s > 0.62 && (s - 0.62) * 3 > bay(x, y)) k = lighten(k, col('#e890a8'), 0.06);
-      if (s < 0.4 && (0.4 - s) * 3 > bay(x, y)) k = mix(k, col('#2a1440'), 0.16);
-      k = mix(k, theme === 'mere' ? col('#3a1430') : col('#24164a'), 0.07);
+      if (s > 0.66 && (s - 0.66) * 3 > bay(x, y)) k = lighten(k, col('#8a8ab8'), 0.04);
+      if (s < 0.42 && (0.42 - s) * 3 > bay(x, y)) k = mix(k, col('#141030'), 0.22);
+      k = mix(k, theme === 'mere' ? col('#1c1030') : col('#141238'), 0.12);
       p.set(x, y, k);
     }
 }

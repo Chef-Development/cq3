@@ -460,11 +460,11 @@ function reedParts(pose: string): Part[] {
   else out.push([['k.k'], fx, 13, { pal: GLOW }]);
   // the cattail hat on its stalk
   const hx = 10 + Math.round((lean + sway) * 1.2) + (splay ? 0 : 0);
-  out.push(line(hx, 7, hx + sway, 2, '4', { pal: digits(REED) }));
+  out.push(limb(hx, 3, hx + sway, 7, '4', { pal: digits(REED) }));
   out.push(capsule(hx + sway + 0.5, 1, hx + sway + 0.5, 5, 1.7, 1.7, '3', { pal: digits(CATTAIL), edge: CATTAIL[0] }));
   out.push(parts({ 5: [[hx + sway - 1, 1]], 4: [[hx + sway - 1, 2], [hx + sway - 1, 3]] }, { pal: digits(CATTAIL) }));
   // the near arm and the reed pipe (pale cane)
-  out.push(line(9, 16, arms[0], arms[1], '2', { pal: digits(REED) }));
+  out.push(limb(9, 16, arms[0], arms[1], '2', { pal: digits(REED) }));
   out.push(limb(pipe[0], pipe[1], pipe[2], pipe[3], '4', { pal: digits(WOOD) }));
   out.push(parts({ 2: [[pipe[2], pipe[3]]] }, { pal: digits(WOOD) }));
   return [...out, ...extra];
@@ -793,7 +793,7 @@ function heronParts(pose: string): Part[] {
   const hip = 31 + crouch;
   out.push(limb(12, hip + 1, 11, F, '3', { pal: digits(WOOD) }), limb(17, hip + 1, 18, F, '4', { pal: digits(WOOD) }));
   out.push(parts({ 1: [[11, hip + 6], [12, hip + 6], [18, hip + 6], [19, hip + 6]] }, { pal: digits(WOOD) }));
-  out.push(line(13, hip - 2, 12, hip + 5, 'x', { pal: GLOW }), line(16, hip - 2, 18, hip + 5, 'q', { pal: GLOW }));
+  out.push(limb(12, hip - 2, 11, hip + 5, 'x', { pal: GLOW }), limb(16, hip - 2, 17, hip + 5, 'q', { pal: GLOW }));
   // the ferryman's coat: a long dark coat over the body, its tails flaring
   const coat = anyOf(ell(16, 22 + crouch, 7, 8.5), poly([[10, 24 + crouch], [22, 24 + crouch], [24, hip + 1], [9, hip + 1]]));
   out.push(V(coat, [8, 12 + crouch, 25, hip + 2], [13, 17 + crouch, 9, 9], COAT));
@@ -819,10 +819,10 @@ function heronParts(pose: string): Part[] {
   out.push([['......xx', '..xxxXXq', 'qqqqqq..'], bk, head[1] + 1, { pal: GLOW }]);
   out.push(eye ? [['y'], head[0] + 1, head[1] + 1, { pal: GLOW }] : [['k'], head[0] + 1, head[1] + 2, { pal: GLOW }]);
   // the punt pole with its spearhead
+  out.push(limb(pole[0], pole[1], pole[2], pole[3], '2', { pal: digits(WOOD) }));
   out.push(line(pole[0], pole[1], pole[2], pole[3], '4', { pal: digits(WOOD) }));
   const ang = Math.atan2(pole[3] - pole[1], pole[2] - pole[0]);
-  const tip: Pts = [0, 1, 2, 3].map((i) => [Math.round(pole[2] + Math.cos(ang) * i), Math.round(pole[3] + Math.sin(ang) * i)]);
-  out.push(parts({ 4: tip.slice(0, 2), 5: tip.slice(2) }, { pal: digits(['#2a2f45', '#4a5272', '#7c86a6', '#b8c2d8', '#eef3fa']) }));
+  out.push(capsule(pole[2], pole[3], pole[2] + Math.cos(ang) * 5, pole[3] + Math.sin(ang) * 5, 1.6, 0.5, '4', { pal: digits(['#2a2f45', '#4a5272', '#7c86a6', '#b8c2d8', '#eef3fa']), edge: '#2a2f45' }));
   // the hand on the pole
   const hx = Math.round(pole[0] + (pole[2] - pole[0]) * 0.55);
   const hy = Math.round(pole[1] + (pole[3] - pole[1]) * 0.55);
@@ -883,10 +883,11 @@ function lamplighterParts(pose: string): Part[] {
   out.push([['nnnn', 'nynn', 'nnnn'], hx, 14, { pal: GLOW }]);
   out.push(parts({ y: [[hx + 3, 15]] }, { pal: GLOW }));
   // the wick-pole: a long thin pole, a little flame at its tip (or the cup over it)
-  out.push(line(hand[0], hand[1] + 4, tip[0], tip[1], '3', { pal: digits(WOOD) }));
+  out.push(limb(hand[0], hand[1] + 4, tip[0], tip[1], '2', { pal: digits(WOOD) }));
+  out.push(line(hand[0], hand[1] + 4, tip[0], tip[1], '4', { pal: digits(WOOD) }));
   out.push([['44', '33'], hand[0] - 1, hand[1], { pal: digits(CLOAK), edge: CLOAK[0] }]);
-  if (flameOn) out.push(flame(tip[0], tip[1] - 1, 5, 3, fl));
-  else out.push([['.3.', '343', '222'], tip[0] - 1, tip[1] - 2, { pal: digits(BRASS), edge: BRASS[0] }]);
+  if (flameOn) out.push(flame(tip[0] + 1, tip[1] - 1, 7, 4, fl));
+  else out.push([['.33.', '3443', '2222'], tip[0] - 1, tip[1] - 3, { pal: digits(BRASS), edge: BRASS[0] }]);
   return [...out, ...extra];
 }
 
@@ -1008,8 +1009,8 @@ function sluiceParts(pose: string): Part[] {
   out.push(tail);
   // the far arm and its wrench
   out.push(limb(X(30), 24, wrench[0] + bx, wrench[1] + 4, '2', { pal: digits(FUR) }));
-  out.push(line(wrench[0] + bx, wrench[1] + 3, wrench[0] + bx - 1, wrench[1] + 10, '3', { pal: digits(STONE) }));
-  out.push([['33.33', '43344', '.343.'], wrench[0] + bx - 2, wrench[1], { pal: digits(STONE), edge: STONE[0] }]);
+  out.push(limb(wrench[0] + bx, wrench[1] + 3, wrench[0] + bx - 1, wrench[1] + 11, '3', { pal: digits(STONE) }));
+  out.push([['44..44', '443344', '433334', '.3333.'], wrench[0] + bx - 2, wrench[1] - 1, { pal: digits(STONE), edge: STONE[0] }]);
   // big webbed feet
   out.push([['..3333', '334443', '222222'], X(13), F - 2, { pal: digits(FUR), edge: FUR[0] }], [['3333..', '344433', '222222'], X(24), F - 2, { pal: digits(FUR), edge: FUR[0] }]);
   // the body in its overalls
@@ -1262,12 +1263,13 @@ function hagParts(pose: string): Part[] {
   out.push(eyes ? [['Yk', 'y.'], hx + 2, 9, { pal: GLOW }] : [['kk'], hx + 2, 10, { pal: GLOW }]);
   out.push(grin ? [['nnnn', '.t.t'], hx, 15, { pal: GLOW }] : line(hx, 16, hx + 3, 16, 'n', { pal: GLOW }));
   // the stick, the black kettle hanging from its end, green steam curling up
-  out.push(line(stick[0], stick[1], stick[2], stick[3], '3', { pal: digits(WOOD) }));
+  out.push(limb(stick[0], stick[1], stick[2], stick[3], '2', { pal: digits(WOOD) }));
+  out.push(line(stick[0], stick[1], stick[2], stick[3], '4', { pal: digits(WOOD) }));
   out.push([['33', '22'], stick[0] - 1, stick[1] - 1, { pal: digits(HAG), edge: HAG[0] }]);
   const kx = stick[2] - 3;
   const ky = stick[3] + 1;
   out.push(line(stick[2], stick[3], kx + 3, ky + 1, 'S', { pal: GLOW }));
-  out.push([['.444.', '43332', '43322', '.222.'], kx + 1, ky + 2, { pal: digits(IRONR), edge: IRONR[0] }]);
+  out.push([['..44..', '.4443.', '443332', '433322', '.2222.'], kx, ky + 2, { pal: digits(IRONR), edge: IRONR[0] }]);
   out.push([['dc'], kx + 2, ky + 2, { pal: GLOW }]);
   for (let i = 0; i < steam; i++) out.push(parts({ c: [[kx + 2 + i, ky - i * 2], [kx + 3 + i, ky - 1 - i * 2]], d: [[kx + 2 + i * 2, ky - 2 - i * 2]] }, { pal: GLOW, late: true }));
   return [...out, ...extra];
@@ -1314,6 +1316,8 @@ function sentinelParts(pose: string): Part[] {
   out.push(limb(X(28), 20, blade[0] + bx, blade[1], '2', { pal: digits(ARMOR) }));
   out.push(line(blade[0] + bx, blade[1], blade[2] + bx, blade[3], '4', { pal: digits(ARMOR) }));
   out.push(line(blade[0] + bx + 1, blade[1], blade[2] + bx + 1, blade[3], '2', { pal: digits(ARMOR) }));
+  // a heavy crossguard where the blade meets the gauntlet
+  out.push([['5443', '3221'], blade[0] + bx - 1, blade[1] - 1, { pal: digits(ARMOR), edge: ARMOR[0] }]);
   // legs: greaves and sabatons
   out.push(V(poly([[X(13), 31], [X(19), 31], [X(19), F - 2], [X(12), F - 2]]), [X(11), 30, X(20), F - 1], [X(14), 33, 5, 7], ARMOR));
   out.push(V(poly([[X(22), 31], [X(28), 31], [X(29), F - 2], [X(22), F - 2]]), [X(21), 30, X(30), F - 1], [X(24), 33, 5, 7], ARMOR));
@@ -1397,7 +1401,7 @@ function lighthouseParts(pose: string, phase: number): Part[] {
   const leg = (x0: number, lift: number, far: boolean) => {
     const ramp = far ? STONE.map((_, i) => STONE[Math.max(0, i - 1)]) : STONE;
     const pts: Record<string, Pts> = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-    const top = 54;
+    const top = 60;
     for (let y = top; y <= F - lift; y++) {
       const t = (y - top) / (F - lift - top);
       const knee = Math.sin(t * Math.PI) * (far ? 2 : 3);
@@ -1420,7 +1424,7 @@ function lighthouseParts(pose: string, phase: number): Part[] {
   // phase 2: the water redrawn up round its knees, foam where it meets the stone
   if (phase === 2) {
     const wp: Record<string, Pts> = { u: [], w: [], v: [], V: [] };
-    const surf = (x: number) => 69 + Math.round(Math.sin(x * 0.45 + (pose === 'idle1' ? 1.5 : 0)) * 0.8);
+    const surf = (x: number) => 71 + Math.round(Math.sin(x * 0.45 + (pose === 'idle1' ? 1.5 : 0)) * 0.8);
     for (let x = 14; x <= 64; x++) {
       const end = Math.min(1, (x - 14) / 6, (64 - x) / 6);
       const top = surf(x) + Math.round((1 - end) * 4);
@@ -1432,16 +1436,16 @@ function lighthouseParts(pose: string, phase: number): Part[] {
     out.push(parts(wp, { pal: GLOW }));
   }
   // ---- the tower: tapering, lime-washed, red bands (ink in phase 3), stones in courses
-  const T0 = 22; // top of the tower body (under the gallery)
-  const T1 = 58; // its foot
+  const T0 = 40; // top of the tower body (under the gallery)
+  const T1 = 62; // its foot
   const half = (y: number) => 8 + ((y - T0) / (T1 - T0)) * 5;
   const tw: Record<string, Pts> = { 1: [], 2: [], 3: [], 4: [], 5: [], A: [], B: [], C: [], D: [], E: [], a: [], b: [], c: [], d: [], e: [], l: [] };
   // phase 3: two broad strokes of the eraser across the tower, ragged at their edges, rubbed back to paper
   const erased = (x: number, y: number) => {
     if (phase < 3) return false;
     const rag = (hash2(x, y * 3) - 0.5) * 1.6 + Math.sin(y * 0.9) * 0.8;
-    const s1 = Math.abs((x - cx) * 0.75 + (y - 31)) < 3.6 + rag;
-    const s2 = Math.abs((x - cx) * 0.6 - (y - 50)) < 2.8 + rag && x > cx - 6;
+    const s1 = Math.abs((x - cx) * 0.75 + (y - 46)) < 3.6 + rag;
+    const s2 = Math.abs((x - cx) * 0.6 - (y - 57)) < 2.8 + rag && x > cx - 6;
     return s1 || s2;
   };
   for (let y = T0; y <= T1; y++) {
@@ -1450,13 +1454,13 @@ function lighthouseParts(pose: string, phase: number): Part[] {
       const u = (x + 0.5 - cx) / hw; // -1 lit side .. 1 shade side
       let k = u < -0.6 ? 4 : u < -0.1 ? 5 : u < 0.35 ? 4 : u < 0.72 ? 3 : 2;
       if (y === T1) k = 1;
-      const band = Math.floor((y - T0) / 6) % 2 === 1;
+      const band = Math.floor((y - T0) / 5) % 2 === 1;
       if ((y - T0) % 3 === 0 && (x + Math.floor((y - T0) / 3) * 2) % 5 === 0) k = Math.max(1, k - 1); // stone joints
       if (erased(x, y)) {
         tw[u < -0.1 ? 'e' : u < 0.5 ? 'd' : 'c'].push([X(x), Y(y)]);
         continue;
       }
-      if (phase === 2 && (((x - cx) * 2 + y) % 11 === 0 && y > 40) && k > 2) {
+      if (phase === 2 && (((x - cx) * 2 + y) % 11 === 0 && y > 48) && k > 2) {
         tw.l.push([X(x), Y(y)]); // fresh pencil hatching where the shoreline was redrawn
         continue;
       }
@@ -1481,23 +1485,24 @@ function lighthouseParts(pose: string, phase: number): Part[] {
   if (phase >= 3) Object.assign(towerPal, digits(['#1a1222', '#2e2238', '#4a3a56', '#6a5a72', '#8e7e92', '#b2a2b0']));
   out.push(dots(Object.entries(tw).filter(([, p]) => p.length) as [string, Pts][], { pal: towerPal, edge: PLASTER[0] }));
   // phase 2: a pencil guide line across the tower where the new shore is measured from
-  if (phase === 2) out.push(line(X(cx - 12), Y(48), X(cx + 13), Y(50), 'L', { pal: GLOW, late: true }));
+  if (phase === 2) out.push(line(X(cx - 12), Y(53), X(cx + 13), Y(55), 'L', { pal: GLOW, late: true }));
   // windows up the tower (lit like eyes once the sky is erased)
-  for (const wy of [30, 42]) out.push([phase >= 3 ? ['XZ', 'xX', 'qx'] : ['kk', 'kn', 'nn'], X(cx - 2), Y(wy), { pal: GLOW }]);
+  for (const wy of [45]) out.push([phase >= 3 ? ['XZ', 'xX', 'qx'] : ['kk', 'kn', 'nn'], X(cx - 2), Y(wy), { pal: GLOW }]);
   // the door: an arched mouth with stone teeth
-  const dy = 50;
+  const dy = 55;
   const doorRows = door === 2 ? ['.3333.', '3tnnt3', '3nnnn3', '3nqqn3', '3nxXn3', '3tnnt3'] : door === 1 ? ['.3333.', '3tttt3', '3nnnn3', '3nnnn3', '3tttt3', '333333'] : ['.3333.', '3tttt3', '3tttt3', '3tttt3', '3tttt3', '333333'];
   out.push([doorRows, X(cx - 5), Y(dy), { pal: { ...GLOW, 3: STONE[3] } }]);
   // ---- the gallery: a stone ring with an iron rail, and the mapmaker standing on it with his pen
-  out.push(V(poly([[X(cx - 13), Y(18)], [X(cx + 13), Y(18)], [X(cx + 11), Y(23)], [X(cx - 11), Y(23)]]), [X(cx - 14), Y(17), X(cx + 14), Y(24)], [X(cx - 6), Y(19), 12, 3], STONE));
-  out.push(line(X(cx - 13), Y(14), X(cx + 13), Y(14), '2', { pal: digits(IRONR) }));
-  for (let x = cx - 13; x <= cx + 13; x += 3) out.push(line(X(x), Y(14), X(x), Y(17), '1', { pal: digits(IRONR) }));
+  out.push(V(poly([[X(cx - 13), Y(36)], [X(cx + 13), Y(36)], [X(cx + 11), Y(41)], [X(cx - 11), Y(41)]]), [X(cx - 14), Y(35), X(cx + 14), Y(42)], [X(cx - 6), Y(37), 12, 3], STONE));
+  out.push(line(X(cx - 13), Y(32), X(cx + 13), Y(32), '2', { pal: digits(IRONR) }));
+  for (let x = cx - 13; x <= cx + 13; x += 3) out.push(line(X(x), Y(32), X(x), Y(35), '1', { pal: digits(IRONR) }));
   // the mapmaker: a small dark coat, a pale face, a pen raised (it writes on the scene in the edits)
   const mx = cx - 11;
-  out.push([['.11.', '1551', '.11.', '2222', '2332', '2222', '1.1.'], X(mx), Y(10), { pal: { 1: '#1a1426', 2: '#2a2240', 3: '#4a3a5e', 5: '#e8d2c0' } }]);
-  out.push(line(X(mx - 2), Y(phase > 1 || pose === 'tell' ? 8 : 12), X(mx), Y(14), 'L', { pal: GLOW }));
+  out.push([['.11.', '1551', '.11.', '2222', '2332', '2222', '1.1.'], X(mx), Y(28), { pal: { 1: '#1a1426', 2: '#2a2240', 3: '#4a3a5e', 5: '#e8d2c0' } }]);
+  // his pen: a long quill held up (2 px, so it reads at 8x)
+  out.push(limb(X(mx - 3), Y(phase > 1 || pose === 'tell' ? 24 : 28), X(mx), Y(31), 'L', { pal: GLOW }));
   // ---- the lantern room: a glass cage on the gallery, the sun shut inside it; a cupola and a vane on top
-  const L0 = 4;
+  const L0 = 22;
   const sun = lampK >= 3 ? ['ZZZZZ', 'ZWWWZ', 'ZWWWZ', 'ZZZZZ'] : lampK === 2 ? ['XZZZX', 'ZZWZZ', 'ZZZZZ', 'XZZZX'] : ['qxxxq', 'xXXXx', 'xXXXx', 'qxxxq'];
   const room = [
     '1' + '2'.repeat(15) + '1',
@@ -1527,20 +1532,20 @@ function lighthouseParts(pose: string, phase: number): Part[] {
     const bp: Record<string, Pts> = { Z: [], X: [], x: [] };
     const ox = cx - 9;
     const oy = L0 + 6;
-    for (let i = 2; i < 36; i++) {
+    for (let i = 2; i < 30; i++) {
       const spread = 0.8 + i * 0.16;
       for (let s = -spread; s <= spread; s += 1) {
         const x = Math.round(ox - i * Math.cos(beam) - s * Math.sin(beam) * 0.3);
         const y = Math.round(oy + i * Math.sin(beam) + s);
         const edge = Math.abs(s) > spread - 1;
-        if (i > 28 && (x + y) % 2) continue; // the far end breaks up (an ordered dither)
+        if (i > 23 && (x + y) % 2) continue; // the far end breaks up (an ordered dither)
         bp[edge ? 'x' : i < 12 ? 'Z' : 'X'].push([X(x), Y(y)]);
       }
     }
     extra.push(parts(bp, { pal: GLOW, late: true }));
   }
   // phase 3: the sky's rubbed-out edge: crumbs of eraser falling off the tower
-  if (phase >= 3) extra.push(parts({ e: [[X(cx + 14), Y(30)], [X(cx + 16), Y(36)], [X(cx - 15), Y(44)]], d: [[X(cx + 15), Y(33)], [X(cx - 14), Y(40)]] }, { pal: { d: FOG[4], e: FOG[5] }, late: true }));
+  if (phase >= 3) extra.push(parts({ e: [[X(cx + 14), Y(44)], [X(cx + 16), Y(50)], [X(cx - 15), Y(56)]], d: [[X(cx + 15), Y(47)], [X(cx - 14), Y(53)]] }, { pal: { d: FOG[4], e: FOG[5] }, late: true }));
   if (pose === 'tell') extra.push(parts({ s: [[X(cx - 9), Y(dy + 2)], [X(cx - 11), Y(dy + 1)], [X(cx - 13), Y(dy + 3)]], S: [[X(cx - 12), Y(dy + 4)], [X(cx - 15), Y(dy + 2)]] }, { pal: GLOW, late: true }));
   return [...out, ...extra];
 }

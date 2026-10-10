@@ -871,7 +871,15 @@ clock ticking, gulls far off), `mere` (a deep still-water hum, a slow foghorn, t
 | `sluiceKeeper` | D Dorian, **114** (112 is Act 7's), 7/4 counted 4+3 | (fight only) | a bari sax on the riff, a mallet on a pipe every beat, a ratchet on the 3, a steam whistle every 4 bars; the kit on the 4+3, the bass, the sax up an octave; phase 2 (the spillway): the whistle every bar, brass stabs on the 3 |
 | `lighthouse` | C# Phrygian, 152; phase 3 B Phrygian (`keyUp: -2`, the redraw) | (fight only) | phase 1: string tremolo, a foghorn every 2 bars, a bell tower, horns on the tune, war drums; phase 2: the kit, a choir and a harpsichord scratching 16ths like a pen; phase 3: a whole tone down, double-time drums, a distorted bass, the lead (theremin and horn), brass stabs |
 Sound lab labels by act number only (global 1-based: "Act 10: map", "Act 11 mini-boss, phase 2", "Act 12 boss, phase
-3"). The three ambience beds and the region's telegraph sounds (`DUSK_NEW_SOUNDS`) are not built yet.
+3"). Ambience beds as built (`audio.ts`, cued by act in app.ts): `fen` (reeds in a breeze, a low hush, frogs croaking,
+a cricket; the owl was too loud on a phone under the Lanternfen music), `causeway` (the tide's hush, water lapping on stone, the tide clock ticking far off,
+gulls), `mere` (a deep still-water hum and the lamp humming far off, a slow foghorn out on the water, lapping, a frog).
+Telegraphs (`DUSK_NEW_SOUNDS`; drafted, not in yet: the generic wind-up plays until they pass the telegraph tests): lure (sly rising bubbles, two pings), gulp (a throat swelling, a
+deep glunk), rustle (three swishes of reeds), splash (a rising rush, a splash, drops), snuff (a fluttering flame, the
+cup's tok, smoke), undertow (a whirl sinking and quickening, a deep pull), flutter (papery wingbeats speeding up),
+fog (a kettle bubbling, a whoosh, a hollow hoo), floodgate (a windlass creaking up, water roaring through), burp (a
+long rattling croak), sluice (a ratchet winding faster, the steam whistle), foghorn (a low beating blare), redraw (pen
+strokes scratching back and forth, an eraser's squeak; "pen scratch" in the Sound lab).
 
 #### Art as built
 - Foes (`src/engine/art-dusk.ts`): every foe's idle0/idle1/windup/attack/hurt/flash/tell, the tell being its special
@@ -883,7 +891,7 @@ Sound lab labels by act number only (global 1-based: "Act 10: map", "Act 11 mini
   glows gold like a paper lamp, his crown lantern blazing); the Sluice Keeper (brass diving helmet, porthole face,
   pocket watch, wrench, steam from the valve when he gives orders). The Lighthouse: lime-washed with red bands, on two
   legs of stacked stone, its door a mouth, the sun in the lamp, its beam sweeping, the mapmaker a small figure with a
-  pen on its gallery; `lighthouse2_*` the shoreline redrawn (water up to its knees, fresh pencil hatching and a pencil
+  pen on its gallery (64 px tall, so its lamp stays clear of the enemy plate); `lighthouse2_*` the shoreline redrawn (water up to its knees, fresh pencil hatching and a pencil
   guide line across the stone); `lighthouse3_*` the sky erased (two broad eraser strokes rubbed back to paper, the
   bands gone to ink, the lamp shuttered to a red glare, its windows lit like eyes, no beam).
 - Backdrops (`backdrop-dusk.ts`): Lanternfen (willows far off, black pools mirroring the dusk, reed beds, stilt houses

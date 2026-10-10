@@ -932,6 +932,15 @@ C-ART-3. **Region 4's music is built to the content bible** (six pieces, each it
     the Sluice Keeper at 114, not 100 and 112 (the title and Act 7 already have those; the audio test wants every
     tempo once). Both mini-bosses follow their phases (layers, no key change); the boss drops a whole tone in its last
     phase (`keyUp: -2`). Cued by act and boss in app.ts, with the three ambience beds (`fen`, `causeway`, `mere`) by act.
+C-ART-4. **Held things have heft** (playtest: sprites must read at 8x): every pole, stick, spear, wrench and arm a foe
+    holds is at least 2 px with a lit edge, the heads (spearhead, wrench, kettle, crossguard) a size up. The boss is
+    64 px tall, not 80: the stage above the feet line is about 67 px under the enemy plate, so a taller boss hides its
+    lamp (its focal point) behind the plate. The region's thirteen telegraph sounds are drafted but not in yet (they
+    need a calibration pass against the telegraph tests); until then C7's generic wind-up plays.
+C-ART-5. **L7 in the Duskmire**: its sky ramp ends in a muted rose (no peach), clouds, water reflections and puddles
+    cooler and darker, the lighthouse's beam an accent (narrower, fainter, its edges falling away), vignettes stronger,
+    the ground strips a step darker; the stage's rays a third as bright, its mists cool violet and slate, its grades
+    deeper; the act maps' light cooled (no rose wash). The lanterns, lit windows and the lamp stay the warm accents.
 
 (content: end of section)
 
