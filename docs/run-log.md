@@ -62,3 +62,8 @@ One PR at the end supersedes #1-#7.
 - 20:01 EDT: playtester note on the new title: "too simplistic and drained. How am I supposed to be interested?" Sent
   to art 2A as top priority (before the Atlas): key art with drama and depth (light, parallax, Rowan on a ledge, the
   living land against the erased blank), motion, a logo with presence, no tutorial strip on the title.
+- 20:30-20:55 EDT: merge 3 (all seven teams). Conflicts: camp banter (story's core/banter.ts kept), Region 4's art on
+  demand vs the content team's stand-ins (both kept), the two art teams' Rowan/idle work (2B's rig kept, 2A's derived
+  idles dropped), the region victory's words. Region 4 is in play. With seven teams on four cores a local full unit
+  run takes ~25 min: merges are pushed after typecheck + build + targeted tests, and GitHub's run of the full suite
+  (~3 min) is the gate (L5); the lead still runs the full suites locally when the machine is quieter.

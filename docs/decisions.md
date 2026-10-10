@@ -762,6 +762,10 @@ L3. **Region 4's names follow the story team's final version** (Duskmire; Lanter
 L4. **An independent editor** reviews every story line (the story team had no way to spawn one): its notes go to the
     story team, which applies them or logs why not.
 
+L5. **The full unit suite runs on GitHub at every push** (about 3 minutes there; about 25 on this machine while seven
+    teams share its four cores): the lead pushes a merge after typecheck, the build and the tests nearest the merge,
+    checks the run, and fixes forward at once if it goes red.
+
 (lead: end of section)
 
 
