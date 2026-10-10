@@ -128,6 +128,8 @@ export class CampView {
   /** Where a screen's Back goes (Stats and Skills opened from the hero select go back there; the progress opened from
    *  the world map goes back to it). */
   private backTo: CampMode | 'leave' = 'home';
+  /** The camp opens only to show a region card (openProgress from the world map): no arrival scene this time. */
+  private cardOnly = false;
   private modeAt = 0;
   /** Each story hero was on screen last frame (they appear in a puff of smoke when their scene ends). */
   private shown = new Map<HeroId, boolean>();
@@ -196,7 +198,9 @@ export class CampView {
     // the first visit after a region's first act: a story hero joins (Sable tries to rob the camp; later the frost
     // mage thaws out). Their scene plays over the camp the way Mags's does; skipping it still counts.
     const app = this.s.app;
-    const scene = app.run.campScene;
+    // (not when the camp opens only to show a region card from the world map: the scene waits for a real visit)
+    const scene = this.cardOnly ? null : app.run.campScene;
+    this.cardOnly = false;
     if (scene) {
       app.run.sableJoined();
       app.saveProfile();
@@ -216,7 +220,9 @@ export class CampView {
   /** The world map's region card: the camp opens straight on a region's progress, and Back goes back to the map. */
   openProgress(region: number): void {
     const app = this.s.app;
+    this.cardOnly = app.run.phase !== 'camp';
     if (app.run.phase !== 'camp') app.openCamp();
+    this.cardOnly = false;
     const now = performance.now();
     this.go('progress', now);
     this.progress.open(now, region);
@@ -973,9 +979,11 @@ export class CampView {
     const tk = easeBack(since / 280, 1.4);
     const ty = Math.round(3 - (1 - tk) * 24);
     this.drawChip(g, ty, now);
-    // top right: the gems, the purse and the scrap
-    const pr = kit.purse(g, texts, s.R - 3, ty + 1, now, true);
-    kit.gemsTag(g, texts, pr.coins.x - 3, ty + 1, now);
+    // top right: the gems, the purse and the scrap (not while a scene plays over the camp: its Skip button sits there)
+    if (!s.app.storyId) {
+      const pr = kit.purse(g, texts, s.R - 3, ty + 1, now, true);
+      kit.gemsTag(g, texts, pr.coins.x - 3, ty + 1, now);
+    }
 
     // the Camp button beside the chip
     const cb = this.campRect();
