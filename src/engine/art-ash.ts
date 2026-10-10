@@ -2344,7 +2344,8 @@ function glassPane(): HTMLCanvasElement {
 // ------------------------------------------------------------------ build
 
 /** Foes dark enough to sink into Ashfell's backdrops: they get an ember rim along their lower edges. */
-const UPLIT = ['cinderkite', 'obsidianox', 'forgehand', 'chainsentinel', 'cinderling'];
+// (A2C-16) Bellows too: the region's boss was grey plates on the dark forge, only his grill reading
+const UPLIT = ['cinderkite', 'obsidianox', 'forgehand', 'chainsentinel', 'cinderling', 'bellows'];
 
 /**
  * Ashfell's light from below on a finished frame: every pixel of the form whose pixel below is outline or empty takes

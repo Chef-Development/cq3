@@ -47,11 +47,12 @@ export const TAG_FACE: Record<RelicTag, Face> = {
   heat: [0xffe0a0, 0xf8a838, 0xc8601a, 0x6a2a0a],
 };
 
-/** The rarity look of a card: face [hi, base, lo, deep] and its tag (common has none). */
+/** The rarity look of a card: face [hi, base, lo, deep] and its tag (common has none). L8: worn materials, not candy
+ *  (moss, steel blue, plum; they were full lime, sky and violet). */
 export const RARITY_FACE: Record<RelicRarity, { face: Face; tag: string }> = {
-  common: { face: [0x8af06a, 0x5ad848, 0x3aaa34, 0x247a26], tag: '' },
-  rare: { face: [0x8ac8ff, 0x3a8ae8, 0x2a62c8, 0x1a3c8a], tag: 'RARE' },
-  epic: { face: [0xf0b8ff, 0xb05ae0, 0x8a3ac0, 0x5a1a8a], tag: 'EPIC' },
+  common: { face: [0xa6c884, 0x6c9a52, 0x4a763a, 0x2a4a26], tag: '' },
+  rare: { face: [0x9cbcdc, 0x5c82b4, 0x3e5c90, 0x22345e], tag: 'RARE' },
+  epic: { face: [0xccaadc, 0x8c5eaa, 0x663e86, 0x3c2056], tag: 'EPIC' },
 };
 
 /** 5x5 marks for the tag icons and the fallback relic tiles (until the painted icons are in). */
@@ -175,24 +176,26 @@ export function tagChip(s: FightScene, g: G, texts: TextPool, pool: ImagePool, t
  */
 export function cardFrame(g: G, r: Rect, face: Face, rarity: RelicRarity, now: number, alpha = 1): void {
   const [hi, base, , deep] = face;
-  if (rarity !== 'common') glow(g, r, base, (0.45 + 0.3 * pulse(now, 900)) * alpha, 3);
+  if (rarity !== 'common') glow(g, r, base, (0.22 + 0.12 * pulse(now, 900)) * alpha, 3);
   rows(g, r.x - 1, r.y + 3, r.w + 2, r.h, 3, INK, 0.45 * alpha);
   rows(g, r.x - 2, r.y - 2, r.w + 4, r.h + 4, 4, INK, alpha);
   rows(g, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 3, base, alpha);
   band(g, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 3, 0, 1, hi, alpha);
   band(g, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 3, r.h + 1, r.h + 2, deep, alpha);
-  rows(g, r.x, r.y, r.w, r.h, 2, 0x241d3e, alpha);
-  band(g, r.x, r.y, r.w, r.h, 2, 0, Math.round(r.h * 0.45), 0x2f2650, alpha);
-  band(g, r.x, r.y, r.w, r.h, 2, r.h - 4, r.h, 0x1b1530, alpha);
-  band(g, r.x, r.y, r.w, r.h, 2, 0, 1, mix(0x5e5090, base, 0.35), alpha);
+  // the body: deep cool ink, lit a step on top (L7/L8: less purple, no plastic sheen)
+  rows(g, r.x, r.y, r.w, r.h, 2, 0x1c1a30, alpha);
+  band(g, r.x, r.y, r.w, r.h, 2, 0, Math.round(r.h * 0.45), 0x24223a, alpha);
+  band(g, r.x, r.y, r.w, r.h, 2, r.h - 4, r.h, 0x141224, alpha);
+  band(g, r.x, r.y, r.w, r.h, 2, 0, 1, mix(0x4a4668, base, 0.3), alpha);
 }
 
 /** The icon tile at a card's left end, in the rarity's colours. */
 export function cardTile(g: G, tile: Rect, face: Face, alpha = 1): void {
   const [hi, base, lo, deep] = face;
-  rows(g, tile.x, tile.y, tile.w, tile.h, 2, lo, alpha);
-  band(g, tile.x, tile.y, tile.w, tile.h, 2, 0, Math.round(tile.h * 0.5), base, alpha);
-  band(g, tile.x, tile.y, tile.w, tile.h, 2, 0, 1, hi, alpha);
+  // a worn tile: a low-contrast step instead of a glossy half (L8)
+  rows(g, tile.x, tile.y, tile.w, tile.h, 2, mix(lo, deep, 0.25), alpha);
+  band(g, tile.x, tile.y, tile.w, tile.h, 2, 0, Math.round(tile.h * 0.5), mix(base, lo, 0.45), alpha);
+  band(g, tile.x, tile.y, tile.w, tile.h, 2, 0, 1, mix(hi, base, 0.4), alpha);
   band(g, tile.x, tile.y, tile.w, tile.h, 2, tile.h - 1, tile.h, deep, alpha);
   g.fillStyle(INK, 0.6 * alpha);
   g.fillRect(tile.x + tile.w, tile.y + 1, 1, tile.h - 2);
@@ -204,7 +207,7 @@ export function cardShine(g: G, r: Rect, rarity: RelicRarity, now: number, alpha
   const cyc = ((now + r.y * 37) % 1700) / 1700;
   if (cyc < 0.4) {
     const sx = r.x + (r.w + 20) * (cyc / 0.4) - 14;
-    g.fillStyle(WHITE, (rarity === 'epic' ? 0.3 : 0.2) * alpha);
+    g.fillStyle(WHITE, (rarity === 'epic' ? 0.12 : 0.08) * alpha); // a dull glint on worn metal, not a plastic flash (L8)
     for (let y = 1; y < r.h - 1; y++) {
       const x = Math.round(sx + (r.h - y) * 0.5);
       const x0 = Math.max(r.x + 1, x);

@@ -1,7 +1,7 @@
 // The UI crawl (team 4, round 8; run by hand through the Playwright lock, never in CI):
 //   npm run build && npx vite preview --port 4177 --strictPort &
 //   flock /home/user/wt/.pwlong.lock nice -n 15 node scripts/ui-crawl.mjs [minutes=10]   (URL=... SHOTS=dir HEADED=1
-//   DESKTOP=1 ACTS=3 LAB=1)
+//   DESKTOP=1 ACTS=3 LAB=1 START=3 GOD=1)
 // Plays the real game from a fresh save (New game) through Act 1 (or ACTS acts) at the phone's size: the keyboard's defaults move
 // the menus on (Enter: Continue, the first node, the first card, Next...; ui-bot.mjs's way), an in-page player taps
 // the bar fast (a tap at most every 110 ms, when the cursor sits on a block worth tapping, about 85% of them), fires
@@ -25,6 +25,10 @@ const MINUTES = Number(process.argv[2] ?? 10);
 const SHOTS = process.env.SHOTS ?? '';
 const ACTS = Number(process.env.ACTS ?? 1);
 const LAB = !!process.env.LAB;
+/** START=n: begin at global act n (a later region; the profile as one who has cleared the acts before it). GOD=1: the
+ *  hero can't lose (the crawl looks at screens, not balance). */
+const START = Number(process.env.START ?? 0);
+const GOD = !!process.env.GOD;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
 /** In the page: the fight player (as ui-bot.mjs's, faster) and the watchers. */
@@ -136,6 +140,11 @@ await Promise.all([page.waitForEvent('load'), page.evaluate(() => void window.__
 await page.waitForFunction(() => window.__cq3?.ready === true, null, { timeout: 120_000 });
 await page.evaluate(INSTALL);
 const ev = (s) => page.evaluate(`(() => { const x = window.__cq3.app; ${s} })()`);
+if (GOD) await ev('x.settings.godMode = true;');
+if (START > 0) {
+  await ev(`const p = x.profile; p.actsCleared = ${START}; p.worldTour = true; x.newRun(); x.startAct(${START});`);
+  await page.waitForTimeout(800);
+}
 const until = Date.now() + MINUTES * 60_000;
 let last = '';
 let lastChange = Date.now();
@@ -145,7 +154,7 @@ while (Date.now() < until) {
   const st = await ev(
     `const c = x.run.combat; return { phase: x.run.phase, act: x.run.actIndex, cleared: x.profile.actsCleared, story: x.storyOverlay, tip: x.tipUp, camp: x.view?.camp?.mode, foes: c ? c.enemies.map((e) => Math.round(e.hp)).join(',') : '', begin: x.awaitingBegin, paused: x.userPaused, node: x.run.node?.id ?? -1 };`,
   );
-  if (st.cleared >= ACTS && st.phase !== 'fight') break;
+  if (st.cleared >= START + ACTS && st.phase !== 'fight') break;
   const sig = `${st.phase}|${st.act}|${st.story}|${st.tip}|${st.camp}|${st.foes}|${st.begin}|${st.node}`;
   if (sig !== last) {
     last = sig;
