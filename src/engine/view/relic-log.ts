@@ -15,6 +15,7 @@ import { cardTile, chipWidth, RARITY_FACE, tagChip } from './relic-ui';
 import { gauge, glow, GOLD, NAVY, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, pulse, WHITE, type Rect } from './shared';
 import { notePress, RIBBON, tag } from './ui';
+import { pageArrow } from './ui-modern';
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -52,6 +53,8 @@ export class RelicLogScreen {
   private openAt = 0;
   private selAt = 0;
   private seenAt = new Map<RelicId, number>();
+  /** The page of the grid on view (more relics than fit the pane: it pages, arrows at its foot). */
+  private page = 0;
 
   constructor(private readonly kit: CampKit) {}
 
@@ -60,6 +63,7 @@ export class RelicLogScreen {
     this.selAt = now;
     this.sel = null;
     this.seenAt.clear();
+    this.page = 0;
   }
 
   // ------------------------------------------------------------------ layout
@@ -69,9 +73,41 @@ export class RelicLogScreen {
     return { x: s.L + 3, y: 20, w: COLS * PX - 2 + 12, h: s.B - 23 };
   }
 
+  /** Rows of cells that fit the pane above the tally at its foot. */
+  private rowsFit(): number {
+    return Math.max(1, Math.floor((this.gridPane().h - 8 - 22) / PY));
+  }
+
+  private perPage(): number {
+    return COLS * this.rowsFit();
+  }
+
+  private pages(): number {
+    return Math.ceil(RELICS.length / this.perPage());
+  }
+
+  private onPage(i: number): boolean {
+    return Math.floor(i / this.perPage()) === this.page;
+  }
+
+  /** Relic i's cell on its page (only the page on view is drawn and tapped: onPage). */
   private cell(i: number): Rect {
     const p = this.gridPane();
-    return { x: p.x + 6 + (i % COLS) * PX, y: p.y + 8 + Math.floor(i / COLS) * PY, w: CELL, h: CELL };
+    const j = i % this.perPage();
+    return { x: p.x + 6 + (j % COLS) * PX, y: p.y + 8 + Math.floor(j / COLS) * PY, w: CELL, h: CELL };
+  }
+
+  /** The tally's row at the pane's foot (its bar, and the page arrows either side of it when the grid pages). */
+  private tallyY(): number {
+    const gp = this.gridPane();
+    return gp.y + gp.h - 24;
+  }
+
+  private pager(): { prev: Rect; next: Rect } | null {
+    if (this.pages() <= 1) return null;
+    const gp = this.gridPane();
+    const y = this.tallyY() - 3;
+    return { prev: { x: gp.x + 5, y, w: 9, h: 11 }, next: { x: gp.x + gp.w - 14, y, w: 9, h: 11 } };
   }
 
   private card(): Rect {
@@ -97,8 +133,24 @@ export class RelicLogScreen {
       notePress(kit.backRect());
       return 'back';
     }
+    const pg = this.pager();
+    if (pg)
+      for (const [r, d] of [
+        [pg.prev, -1],
+        [pg.next, 1],
+      ] as const) {
+        if (!inRect(r, x, y, 2)) continue;
+        notePress(r);
+        const next = Math.max(0, Math.min(this.pages() - 1, this.page + d));
+        if (next !== this.page) {
+          this.page = next;
+          this.openAt = now - 300; // the page's cells pop in again
+          kit.app.audio.uiClick();
+        }
+        return;
+      }
     for (let i = 0; i < RELICS.length; i++)
-      if (inRect(this.cell(i), x, y, 1)) {
+      if (this.onPage(i) && inRect(this.cell(i), x, y, 1)) {
         const id = RELICS[i].id;
         if (id === this.sel) return;
         return this.select(id, now);
@@ -110,6 +162,7 @@ export class RelicLogScreen {
     const p = kit.profile;
     this.sel = id;
     this.selAt = now;
+    this.page = Math.floor(Math.max(0, RELICS.findIndex((q) => q.id === id)) / this.perPage());
     if (p.relicsNew.includes(id)) {
       // a new one, seen: its NEW tag pops off
       p.relicsNew = p.relicsNew.filter((r) => r !== id);
@@ -166,14 +219,14 @@ export class RelicLogScreen {
     const over = kit.gOver;
     const gp = this.gridPane();
     // the grid sits in a dark tray
-    const last = this.cell(RELICS.length - 1);
-    const tray = { x: gp.x + 3, y: gp.y + 3, w: COLS * PX - 2 + 6, h: last.y + last.h + 3 - (gp.y + 3) };
+    const tray = { x: gp.x + 3, y: gp.y + 3, w: COLS * PX - 2 + 6, h: 8 + (this.rowsFit() - 1) * PY + CELL + 3 - 3 };
     rows(g, tray.x, tray.y, tray.w, tray.h, 2, NAVY[1]);
     g.fillStyle(INK, 1);
     g.fillRect(tray.x + 2, tray.y, tray.w - 4, 1);
     RELICS.forEach((def, i) => {
+      if (!this.onPage(i)) return;
       const col = i % COLS;
-      const row = Math.floor(i / COLS);
+      const row = Math.floor((i % this.perPage()) / COLS);
       const ck = clamp01((now - this.openAt - 80 - (col + row) * 16) / 150);
       if (ck <= 0) return;
       const on = def.id === this.sel;
@@ -190,6 +243,7 @@ export class RelicLogScreen {
     });
     // NEW tags over everything (they stick out of their cells)
     RELICS.forEach((def, i) => {
+      if (!this.onPage(i)) return;
       const r = this.cell(i);
       const ck = clamp01((now - this.openAt - 300) / 150);
       if (this.isNew(def.id)) newTag(over, r.x - 2, r.y - 5, now, ck);
@@ -204,11 +258,15 @@ export class RelicLogScreen {
     const texts = kit.texts;
     const p = kit.profile;
     const gp = this.gridPane();
-    const last = this.cell(RELICS.length - 1);
     const have = RELICS.filter((r) => relicUnlocked(p, r.id)).length;
-    // at the panel's foot (the grid keeps its place at the top)
-    let y = Math.max(last.y + last.h + 10, gp.y + gp.h - 24);
-    const bar = { x: gp.x + 6, y, w: gp.w - 12, h: 5 };
+    // at the panel's foot (the grid keeps its place at the top); the page arrows either side of the bar
+    let y = this.tallyY();
+    const pg = this.pager();
+    if (pg) {
+      pageArrow(g, pg.prev, -1, now, this.page > 0 ? 1 : 0.35);
+      pageArrow(g, pg.next, 1, now, this.page < this.pages() - 1 ? 1 : 0.35);
+    }
+    const bar = pg ? { x: pg.prev.x + pg.prev.w + 4, y, w: pg.next.x - 4 - (pg.prev.x + pg.prev.w + 4), h: 5 } : { x: gp.x + 6, y, w: gp.w - 12, h: 5 };
     gauge(g, bar.x, bar.y, bar.w, bar.h, have / RELICS.length, 0, { ramp: [0xf0d8ff, 0xb05ae0, 0x8a3ac0, 0x5a1a8a] });
     y += 13;
     const part = (gp.w - 12) / RARITIES.length;
