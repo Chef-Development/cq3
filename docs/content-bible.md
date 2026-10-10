@@ -926,14 +926,29 @@ rules: the lantern's reach never under 0.32 s, the tide never over half the bar,
   themes. World map: `WORLD_ACTS_DUSK` (art-world-lands.ts) puts Act 10 at the drowned arch (779, 254), Act 11 at the
   stilt village (626, 254), Act 12 at the lighthouse's lamp (708, 234), placeholders for the land's art team. The region
   card has its sites (`REGION_SITES.duskmire`) on a fogged sheet until its parchment map is drawn.
-- **Balance** (`npm run region-tune` REGION=3, Rowan, 54 end-of-Ashfell profiles at 75%; the guard is
-  `tests/unit/bot-region4.test.ts`). The first guesses were far too easy (96% / 100% / 76%): the hero arrives at level
-  18-20 and the tide's wading slows reds. Act attack and red speed alone moved little (the mini-bosses decide each act:
-  first try = boss first try); a longer, harder Sluice Keeper with faster reds did it. As tuned: hpMult 7.2 / 7.6 / 9.2,
-  atkMult 20 / 24 / 25, redSpeed 1.3 / 1.36 / 1.38; Old Bellybog 4000 HP; the Sluice Keeper 5300 HP, atk 24. Measured:
-  Act 10 85%, Act 11 69%, Act 12 ~55% (four samples 44-65%), the Lighthouse's first fight ~55-65%; fights 12-21 s, boss
-  fights 60 / 59 / 85 s. Region 5's first-guess numbers were raised to stay a step above (atkMult 21 / 25 / 26.5,
-  redSpeed 1.32 / 1.38 / 1.4).
+- **Balance** (75%, Rowan, from a typical end-of-Ashfell hero; the guard is `tests/unit/bot-region4.test.ts`, 40
+  runs of `balanceCampaign` through four regions, seed 7). The first guesses were far too easy (96% / 100% / 76% first
+  try): the hero arrives at level 18-20 and wading slows reds. The mini-bosses decide each act (first try = their first
+  fight), so their HP and attack and each act's red speed were the levers; act attack alone moved little. As tuned:
+  hpMult 7.4 / 8 / 9.8, atkMult 20 / 24 / 25, redSpeed 1.3 / 1.42 / 1.42; Old Bellybog 4000 HP; the Sluice Keeper 5800
+  HP, atk 24. Measured after merge 3 (two 40-run samples, seeds 7 and 8): Act 10 84 / 90%,
+  Act 11 71 / 74%, Act 12 53 / 69% (at hpMult 9.6: 55 / 64; at 10.1: 45 / 49), the Lighthouse's first fight the same
+  (the act's first try is its boss's): a little above the targets in Acts 11-12, inside the guard's bands; fights 13 / 15-16 / 19 s, boss fights ~60 / 63 / 85 s. Samples of 40 swing 10-25
+  points (seed 7 vs 8), so read one run of the guard as a band, not a number. `npm run region-tune` (cached end-of-Ashfell profiles from
+  before merge 3, its own seeds) read Act 11 harder than the guard (44-69% where the guard reads 70-86%): use it for
+  gaps between heroes, the guard for the targets, and rebuild its cache after other teams' changes. The masher never wins the
+  Lighthouse (0 of 73 tries over 15 seeds).
+- **Hero parity** (region-tune from cached end-of-Ashfell profiles, 30 runs a hero, gaps to Rowan in Acts 10 / 11 /
+  12; at 30 runs a sample swings 15-20 points, Rowan's own included, so these are leads, not verdicts). First pass
+  (first-tuning numbers): Neve -18 / -55 / -20 (her Flash Freeze ice formed in the shallows and sank: ice floats now),
+  Vesper -13 / -37 / -15, Tess -18 / -28 / -16, Dell -11 / -22 / -21, Sable +7 / +18 / -2, the rest within ~15. Final
+  numbers (Rowan 78 / 44 / 32 in that sample, low against the guard's 87 / 72 / 61, so positive gaps read high): Neve
+  -4 / -14 / 0, Vesper -6 / -5 / -12 (-40 at Act 12 the pass before), Tess -22 / +4 / +3, Dell -15 / +7 / +8, Sable
+  +14 / +43 / +18, Moss +14 / +1 / +26, Hollis +2 / +20 / +20; the rest within ~22. Leads for a parity chunk: the
+  Marksmen at Act 12 (their Focus fires on greens; the mere's tide and dark take greens away), Tess at Act 10, Sable in
+  the tide act; then `npm run campaign` with REGIONS=4 at 100+ runs and two seeds.
+- Region 5's first-guess numbers were raised to stay a step above (atkMult 21 / 25 / 26.5, redSpeed 1.32 / 1.44 /
+  1.44, Act 3 hpMult 10.2).
 
 ### Build calls (decisions.md round 8, team content C1-C3; kept here: spoilers)
 - **Dark blocks: the light is a time, not a distance.** The cursor's lantern reaches `dark.lightSec` (0.45 s) of
@@ -1057,10 +1072,20 @@ Legendaries (the Gnomon): **Sunstone** (trinket, *Cool Head*: the Heat burns hal
 *True Hour*: a mirage hit right after its hop deals x3; needs a hop time on the block at wiring). Merging: as for
 Duskmire's (the ids into gear.ts's unions, the effects in combat.ts with `tuning.effects` sliders).
 
+### Relics (`src/data/relics-noon.ts`, data only: no hooks yet, not merged; checked by `noonspire-data.test.ts`)
+Mirage: **Oasis Map** (hits on mirages +40%), **Haze Lens** (rare: a mirage hit right after its hop crits), **Sand
+Glass** (mirages hop 30% less often), **Ghost Step** (rare: a mirage hit fills the meter like 2 hits), **Sand Dollar**
+(a coin a mirage hit), **Dust Devil** (rare: a mirage hit counts 2 extra combo), **Fata Morgana** (epic: mirages hop
+twice as often; hits on them x3). Heat: **Sunshade** (the Heat burns 30% slower), **Cool Spring** (a green that cools
+you heals 3 HP), **Kindling** (rare: blazing hits fill 50% more meter), **Sun Shard** (rare: at full Heat every hit
+crits), **Sun Purse** (a coin a blazing hit), **Shade Tree** (rare: blocking a red cools 1 Heat), **Noonday** (epic: the
+Heat never burns; blazing hits deal x1.2 only). Builds: Wayfinder (Mirage), Sunborn (Heat), High Noon (Mirage +
+Heat), Haze Hunter (Mirage + Crit), Sunstruck (Heat + Risk). At wiring: hooks in `core/relic-fx-noon.ts` (Haze Lens
+and Fata Morgana need a hop time on the block; Shade Tree a way to cool one stack), a with/without test each, and the
+cautious bot's `avoid` list takes Fata Morgana and Noonday.
+
 ### Still to design and build (next chunks)
-Relics (Mirage and Heat tags; ideas: hits on a mirage just after it hops crit; a ghost spot struck before the hop
-counts; Heat cools faster; blazing hits fill more meter; a green cools and heals; epic: Heat never burns, but blazing
-hits deal x1.2 only), music (six pieces,
+Music (six pieces,
 unlike Regions 1-4: e.g. a desert 7/8 in D Hijaz, a brass fanfare 6/8 for the spire steps, a ticking clock-work
 ostinato for the dial), art (sprites, portraits, backdrops: `art-noon.ts`, `backdrop-noon.ts`), telegraph sounds
 (`NOON_NEW_SOUNDS`), and balance (a little harder than Lanternfen: Act 1 ~80%, Act 2 ~65%, Act 3 ~50%, the Gnomon's

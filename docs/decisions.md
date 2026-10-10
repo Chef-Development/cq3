@@ -1031,7 +1031,18 @@ C8. **The fourth region balanced at 75% from a typical end-of-third-region hero*
     the mini-bosses decide each act (first try = the boss's first fight), so the levers were their HP and attack plus
     each act's red speed; act attack alone moved little. The numbers and measurements are in the content bible (as
     wired). The next region's first-guess numbers were lifted to stay a step above it (its data test asks that).
-C9. **The next region's gear is written as data** (not merged; a data test), so its wiring is one merge like this one.
+C9. **The next region's gear and relics are written as data** (not merged, no hooks yet; a data test each), so its
+    wiring is one merge like this one plus the relics' hooks.
+C10. **The masher guard measures the boss alone over 15 runs, not 5** (merge 3 turned CI red: region 2, "every
+    try" 2 of 19 = 0.105 > 0.1). Not a balance shift: over 30 seeds region 2's boss-alone masher wins 6 of 152 tries
+    (4%) and 2 of 30 first fights (7%); with five runs, two early wins (a win ends that run's tries) were enough to cross
+    the bound. The bounds stay (every try at most 10%; the first fight at most one run in five). The whole-act sample
+    stays at 5.
+C11. **Ice floats on the tide** (`CORE:`): a frozen block in the water is never sunk and can be hit, and is drawn over
+    the water. Found by the hero parity run: the hero who freezes the reds she blocks lost most of her damage in the
+    tide act, since reds are blocked in the shallows and her ice sank where it formed.
+C12. **The region card's tabs fall back to short names** (Green, Frost, Ash, Dusk) when four regions don't fit the
+    top bar by name (the fourth tab ran off a phone's screen); screenshots of the card change with it.
 
 (content: end of section)
 
