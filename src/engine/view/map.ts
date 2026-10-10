@@ -708,14 +708,15 @@ export class MapView implements MapHost {
 
   // ------------------------------------------------------------------ tags: what a node is, and what it pays out
 
-  /** What a node pays out, icon first: the loot bag in the drop's rarity colour, a heart, a coin, a warning. */
+  /** What a node is, icon first (the loot bag in the drop's rarity colour, a heart, a coin, a warning), in a plain
+   *  word: a fight, an elite (the bag says its loot is better), a Coin Rush (round 8's review: no "Gear" or "Rush"). */
   private chip(n: MapNode): Chip {
     const bag = (r: keyof typeof RARITY_INFO) => bagPal(RARITY_INFO[r].face);
     switch (n.type) {
       case 'fight':
-        return { icon: 'bag', pal: bag('common'), text: 'Gear', col: 0xd8dcec };
+        return { icon: 'bag', pal: bag('common'), text: 'Fight', col: 0xd8dcec };
       case 'elite':
-        return { icon: 'bag', pal: bag('uncommon'), text: 'Gear+', col: 0xb4f070 };
+        return { icon: 'bag', pal: bag('uncommon'), text: 'Elite', col: 0xb4f070 };
       case 'treasure':
         return { icon: 'bag', pal: { h: 0xfff0a0, b: 0xf2c230, d: 0x9a5a14 }, text: 'Loot', col: 0xffe680 };
       case 'rest':
@@ -727,7 +728,7 @@ export class MapView implements MapHost {
       case 'boss':
         return { icon: 'bag', pal: bag('legendary'), text: 'Boss', col: 0xffc070 };
       case 'rush':
-        return { icon: 'coin', text: 'Rush', col: 0xffe680 };
+        return { icon: 'coin', text: 'Coin Rush', col: 0xffe680 };
       case 'bounty':
         return { icon: 'warn', text: 'Bounty', col: 0xffd890 };
     }
