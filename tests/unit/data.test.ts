@@ -295,6 +295,10 @@ describe('camp banter', () => {
     expect(new Set(all.map((l) => l.text)).size).toBe(all.length);
   });
 
+  it('grown-up wit (L8): at most one exclamation mark a line', () => {
+    for (const l of [...BANTER, ...HERO_BANTER, ...STORY_BANTER, ...NOON_BANTER, ...ISLES_BANTER]) expect((l.text.match(/!/g) ?? []).length, l.text).toBeLessThanOrEqual(1);
+  });
+
   it("the first isles' banter waits for their drafted scenes and fits the bubble", () => {
     const drafts = { ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY };
     for (const l of ISLES_BANTER) {

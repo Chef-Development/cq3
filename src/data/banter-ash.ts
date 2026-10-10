@@ -24,7 +24,7 @@ export const ASH_BANTER: AshBanterLine[] = [
   { who: 'smith', text: 'Bellows. Still banging. The fool.', after: 'magsTale' },
   { who: 'smith', text: "His tongs? Mine now. Don't tell.", after: 'magsTale' },
   { who: 'sable', text: 'I took a little glass wall. Shh.', after: 'ash2' },
-  { who: 'torva', text: 'A forge titan? Arm wrestle! HA!', after: 'ash3' },
+  { who: 'torva', text: 'A forge titan. Arm wrestle? HA!', after: 'ash3' },
   { who: 'rowan', text: 'Taught a titan to nap. Proudest day.', after: 'ashVictory' },
   { who: 'smith', text: 'Bellows, snoring? Ha! About time.', after: 'ashVictory' },
 ];
