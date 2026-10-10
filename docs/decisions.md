@@ -860,9 +860,10 @@ A2B-2. **Four-frame idles for all sixteen heroes** (`idle2`, `idle3` in every he
     weapon's weight for the heroes without one) follows a frame behind. 300 ms a frame (a 1.2 s loop, inside the
     bible's 900-1400 ms); a hero without the extra frames keeps the two-frame breath (fighters.ts `idlePose`).
 A2B-3. **Squash and stretch on the hero by transform** (fighters.ts `squash`, at most 100 ms, volume kept): a cut
-    stretches him forward (+8%; the dash's push-off +7%), a blow taken squashes him (+10%), a landing squashes him wide (+14%; a finisher show's
-    leap is caught when its lift comes back to the ground). No held anticipation is added before the first blow: the
-    engaged pose between blows is already the windup, and the dash (70 ms) must not delay the hit the tap asked for.
+    stretches him forward (+8%; the dash's push-off +7%), a blow taken squashes him (+10%), a landing squashes him
+    wide (+14%; a finisher show's leap is caught when its lift comes back to the ground). No held anticipation is
+    added before the first blow: the engaged pose between blows is already the windup, and the dash (70 ms) must not
+    delay the hit the tap asked for.
 A2B-4. **Sable gets the bible's twelve**: a finisher pose (both blades thrown wide, the scarf rising) and the green
     ability's crossed daggers, plus the scarf's two in-between states for her idle.
 A2B-5. **The spirit stag (audit: 3) is rebuilt** with a haunch and a shoulder, jointed legs (hocks, hooves), great
