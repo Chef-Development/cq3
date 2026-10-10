@@ -23,16 +23,16 @@ export const EVENTS: EventDef[] = [
   {
     id: 'mushroom',
     title: 'Suspicious Mushroom',
-    text: 'A mushroom the size of a helmet. It smells\nlike pancakes. Rowan is very hungry.',
+    text: 'A mushroom the size of a helmet. It smells\nlike fresh bread. Rowan is very hungry.',
     choices: [
       {
         label: 'Eat it',
         outcomes: [
           { chance: 2, text: 'Delicious. You feel much better.', heal: 0.3 },
-          { chance: 1, text: 'Your tongue goes purple. Ouch.', hp: -12 },
+          { chance: 1, text: 'Your tongue goes numb. Then your knees.', hp: -12 },
         ],
       },
-      { label: 'Leave it', outcomes: [{ text: 'The mushroom looks a little hurt.' }] },
+      { label: 'Leave it', outcomes: [{ text: 'You leave it. Pip looks relieved.' }] },
     ],
   },
   {
