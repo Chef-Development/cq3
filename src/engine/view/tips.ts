@@ -276,7 +276,9 @@ export class TipsView {
         if (ph !== 'map') return null;
         // the spots and their tags (what's there)
         const ids = run.choices().filter((id) => anchor === 'mapNodes' || run.map.nodes[id]?.type === 'elite');
-        return union(s.mapView.nodeRects(ids.slice(0, anchor === 'eliteNode' ? 1 : ids.length)));
+        // (the map tip's window takes Rowan in too: it cut him in half)
+        const rects = s.mapView.nodeRects(ids.slice(0, anchor === 'eliteNode' ? 1 : ids.length));
+        return union(anchor === 'mapNodes' ? [...rects, s.mapView.heroBox()] : rects);
       }
       case 'sparkle':
         return ph === 'map' ? s.mapView.life.sparkleRect() : null;

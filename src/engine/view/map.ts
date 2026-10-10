@@ -283,6 +283,12 @@ export class MapView implements MapHost {
   }
 
   /** Where these nodes stand on the map, each with its tag (what a tip points at). */
+  /** Rowan and Pip where he stands (the map tip's window takes them in). */
+  heroBox(): Rect {
+    const [hx, hy] = this.pos(this.s.app.run.node);
+    return { x: hx - 18, y: hy - 18, w: 27, h: 24 };
+  }
+
   nodeRects(ids: number[]): Rect[] {
     const run = this.s.app.run;
     const tags = this.layoutTags();
@@ -516,6 +522,18 @@ export class MapView implements MapHost {
         ring(gg, x, y + 2, 9 + 4 * k, 5.4 + 2.4 * k, 0xfff8c0, 0.8 * (1 - k));
         ring(gg, x, y + 2, 10, 6, 0xffe680, 0.9);
         bounce = target ? 0 : Math.abs(Math.sin(now / 190)) * 2.4;
+        // until the first step: a bright chevron bobbing over each spot Rowan can go to (a newcomer's "tap here")
+        if (next && !path.length) {
+          const cy = Math.round(y - 15 - Math.abs(Math.sin(now / 230)) * 2);
+          for (let i = 0; i < 4; i++) {
+            gg.fillStyle(INK, 0.9);
+            gg.fillRect(x - 4 + i - 1, cy + i - 1, 9 - i * 2 + 2, 3);
+          }
+          for (let i = 0; i < 4; i++) {
+            gg.fillStyle(i === 0 ? 0xfffbe0 : 0xffe680, 1);
+            gg.fillRect(x - 4 + i, cy + i, 9 - i * 2, 1);
+          }
+        }
       }
       if (visited) {
         // been here: Rowan's pennant, and what's left (an open chest, embers, the stall)
@@ -788,8 +806,7 @@ export class MapView implements MapHost {
     const bossNext = choices.includes(map.boss);
     const obstacles: Array<{ r: Rect; w: number; id?: number }> = hud.map((r) => ({ r, w: 6 }));
     // Rowan and Pip, where he stands
-    const [hx, hy] = this.pos(run.node);
-    obstacles.push({ r: { x: hx - 18, y: hy - 18, w: 27, h: 24 }, w: 4 });
+    obstacles.push({ r: this.heroBox(), w: 4 });
     for (const n of map.nodes) {
       if (run.path.includes(n.id)) {
         const [x, y] = this.pos(n);
@@ -1306,9 +1323,10 @@ export class MapView implements MapHost {
     // the first time on a map: how to travel
     const hint = this.walk ? null : this.hint();
     if (hint) {
-      const k = 0.75 + 0.25 * Math.sin(now / 300);
+      // (full strength, its brightness breathing: it was the faintest words on the screen)
+      const k = 0.5 + 0.5 * Math.sin(now / 300);
       plate(g, hint.r.x, hy, hint.r.w, 16);
-      T.text(hint.text, hint.r.x + hint.r.w / 2, hy + 8, 0xffe680, { ox: 0.5, oy: 0.5, alpha: k });
+      T.text(hint.text, hint.r.x + hint.r.w / 2, hy + 8, mix(0xffe680, 0xfffbe0, 0.5 * k), { ox: 0.5, oy: 0.5 });
     }
   }
 }
