@@ -319,7 +319,7 @@ export class TipsView {
       // an elite's or a boss's banner holds across the stage until the fight begins: the card stays under it
       const type = s.app.run.node?.type;
       // (else at the very top of the stage, over the act plate while the fight waits: clear of the fighters' heads)
-      const top = s.app.awaitingBegin && (type === 'elite' || type === 'boss') ? 45 : 17;
+      const top = s.app.awaitingBegin && (type === 'elite' || type === 'boss') ? 45 : 22;
       return { x, y: top, w, h: s.splitY - 2 - top };
     }
     if (ph === 'map') return { x, y: 30, w, h: s.B - 23 - 30 };

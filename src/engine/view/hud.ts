@@ -1103,10 +1103,10 @@ export class Hud {
     const stacks = c.stacks;
     const ready = c.finisherReady;
     const maxStacks = c.maxStacks();
-    // until the finisher is taught, a banked stack shows the bar full and glowing (it fills on toward the next stack
-    // underneath: "Meter full!" over a nearly empty bar read as a lie, review round 8)
+    // until a new player's first finisher, a banked stack shows the bar full and glowing (it fills on toward the next
+    // stack underneath: the finisher tip's "Meter full!" over a nearly empty bar read as a lie, review round 8)
     const taught = s.app.profile.tipsOff || s.app.tips.learned('finisher');
-    const maxed = stacks >= maxStacks || (ready && !taught);
+    const maxed = stacks >= maxStacks || (ready && !s.app.profile.tipsOff && !s.app.tips.known('finisher'));
     const frac = maxed ? 1 : clamp01(c.meter);
     const [fc, fh, fl] = stackCol(maxed ? stacks : stacks + 1);
     const [sc, sh] = stackCol(Math.max(1, stacks));
