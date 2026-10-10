@@ -29,7 +29,7 @@ export class Effects {
   private singles: Record<string, Floater | undefined> = {};
   /** Floaters that hold a box on the stage (numbers, shouts): the text's size, and whether it's a foe's shout. No new
    *  number or shout is placed over a live one (view/num-lanes.ts). */
-  private held = new Map<Floater, { w: number; h: number; shout: boolean; key?: string }>();
+  private held = new Map<Floater, { w: number; h: number; shout: boolean; key?: string; title?: boolean }>();
   rings: Array<{ x: number; y: number; at: number; r: number; color: number; world: boolean }> = [];
   sparks: Array<{ x: number; y: number; at: number; size: number; color: number }> = [];
   /** Starbursts; `world: false` ones are drawn in screen space over the bar (with the bar's rings and particles). */
@@ -268,7 +268,7 @@ export class Effects {
     x = Math.max(w / 2 + 2, Math.min(GAME_W - w / 2 - 2, x));
     // it rises over the combo counter's corner: there it steps just right of the counter (review round 8: a fading
     // "Perfect!" was drawn through "Combo" and its next milestone)
-    const cr = this.s.hud.comboRect;
+    const cr = this.s.hud.comboZone();
     if (cr && x - w / 2 < cr.x + cr.w + 2 && x + w / 2 > cr.x) x = cr.x + cr.w + 3 + w / 2;
     this.replaceFloater('judge', () => this.addFloater(x, this.s.bar.y - 10 + dy, text, color, 1, false, 0, pop ? -40 : -26, pop ? 60 : 0, 520, false));
   }
@@ -308,7 +308,7 @@ export class Effects {
   }
 
   /** The boxes the live numbers and shouts hold (world px), each grown by the rise it still has to go. */
-  private heldBoxes(now: number, which: 'all' | 'shouts' | 'numbers' = 'all'): Box[] {
+  private heldBoxes(now: number, which: 'all' | 'shouts' | 'numbers' | 'foeShouts' = 'all'): Box[] {
     const out: Box[] = [];
     for (const [f, b] of this.held) {
       const age = now - f.born;
@@ -316,7 +316,7 @@ export class Effects {
         this.held.delete(f);
         continue;
       }
-      if ((which === 'shouts' && !b.shout) || (which === 'numbers' && b.shout)) continue;
+      if ((which === 'shouts' && !b.shout) || (which === 'numbers' && b.shout) || (which === 'foeShouts' && (!b.shout || b.title))) continue;
       const sec = age / 1000;
       const y = f.y + f.vy * sec + 0.5 * f.g * sec * sec;
       const left = Math.max(0, (-f.vy * (f.life - age)) / 1000);
@@ -330,14 +330,14 @@ export class Effects {
    * then down) that no live number or shout holds and the HUD's plates don't cover, pops, rises `rise` px and fades.
    * (Review round 8: two blows at once popped at one spot, "18" + "44" reading "1844".)
    */
-  num(x: number, y: number, text: string, color: number, scale: number, o: { life?: number; rise?: number } = {}): Floater | undefined {
+  num(x: number, y: number, text: string, color: number, scale: number, o: { life?: number; rise?: number; avoid?: Box[] } = {}): Floater | undefined {
     const now = performance.now();
     const life = o.life ?? 760;
     const rise = o.rise ?? 10;
     const w = textWidth(text, scale, true) + 2;
     const h = FONT_BOLD_H * scale - 2;
     const want: Box = { x: Math.round(x - w / 2), y: Math.round(y - h / 2 - rise), w, h: h + rise };
-    const b = placeBox(want, [...this.heldBoxes(now), ...this.s.hud.keepOut()], { area: this.area(), up: 48, down: 24, side: 40, step: 2, gap: 3 });
+    const b = placeBox(want, [...this.heldBoxes(now), ...this.s.hud.keepOut(), ...(o.avoid ?? [])], { area: this.area(), up: 48, down: 24, side: 40, step: 2, gap: 3 });
     this.addFloater(b.x + w / 2, b.y + rise + h / 2, text, color, scale, true, 0, -rise / (life / 1000), 0, life, true);
     const f = this.floaters[this.floaters.length - 1];
     if (f) this.held.set(f, { w, h, shout: false });
@@ -356,7 +356,9 @@ export class Effects {
     const w = textWidth(text, 1, true) + 8;
     const h = 12;
     const want: Box = { x: Math.round(x - w / 2), y: Math.round(y - h / 2), w, h };
-    const b = placeBox(want, [...this.heldBoxes(now, 'shouts'), ...this.s.hud.keepOut()], {
+    // (a finisher's name gives way to it: the shout is the word the player must read to react; review 4 found the
+    // captain's "Lads, help!" pushed over the hero's head by a "Whirlwind!")
+    const b = placeBox(want, [...this.heldBoxes(now, 'foeShouts'), ...this.s.hud.keepOut()], {
       area: this.area(),
       up: 12,
       down: 28,
@@ -366,13 +368,18 @@ export class Effects {
       costSide: 1,
       step: 1,
     });
+    let titleHit = false;
     for (const [f, hb] of this.held) {
-      if (hb.shout) continue;
+      if (hb.shout && !hb.title) continue;
       const age = now - f.born;
       const sec = age / 1000;
       const fb: Box = { x: f.x + f.vx * sec - hb.w / 2, y: f.y + f.vy * sec - hb.h / 2, w: hb.w, h: hb.h };
-      if (overlaps(fb, b)) f.life = Math.min(f.life, age + 120);
+      if (!overlaps(fb, b)) continue;
+      f.life = Math.min(f.life, age + 120);
+      if (hb.title) titleHit = true;
     }
+    // (a finisher's name and its "x3" tag go together)
+    if (titleHit) for (const [f, hb] of this.held) if (hb.title) f.life = Math.min(f.life, now - f.born + 120);
     this.addFloater(b.x + w / 2, b.y + h / 2, text, color, 1, true, 0, 0, 0, ms, true);
     const f = this.floaters[this.floaters.length - 1];
     if (f) {
@@ -408,12 +415,12 @@ export class Effects {
     });
     this.addFloater(b.x + 1 + tw / 2, b.y + h / 2, text, color, scale, true, 0, -4, 0, ms, false);
     const f = this.floaters[this.floaters.length - 1];
-    if (f) this.held.set(f, { w: tw + 2, h, shout: true });
+    if (f) this.held.set(f, { w: tw + 2, h, shout: true, title: true });
     if (!tag) return;
     const th = FONT_BOLD_H - 2;
     this.addFloater(b.x + 1 + tw + tagW / 2 + 1, b.y + h - th / 2, tag, tagCol, 1, true, 0, -4, 0, ms, false);
     const t = this.floaters[this.floaters.length - 1];
-    if (t) this.held.set(t, { w: tagW, h: th, shout: true });
+    if (t) this.held.set(t, { w: tagW, h: th, shout: true, title: true });
   }
 
   /**

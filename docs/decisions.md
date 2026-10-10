@@ -1655,6 +1655,12 @@ C20. **Vesper is left as she is: neither more HP nor longer pins move her gaps**
 - **Q23 A tap meant to skip the world map's first glide only skips**, even when it lands just after the glide ended on
   its own (600 ms of grace: on a busy machine the smoke test's skip tap arrived as the glide finished and started the
   story through Rowan's plate, which had just come up).
+- **Q24 Review 4's fight findings**: a foe's shout takes its spot over its foe even when a finisher's name is there
+  (the name and its tag fade; the captain's "Lads, help!" had been pushed over Rowan's head); a hurt hero is washed
+  red over his own shading (no solid red cut-out) and his damage number keeps off his body; a kit, style, ally or
+  companion perk with a word over the bar no longer also names itself in the lane ("Resolve" twice); the meter's
+  "FINISHER" label is a pale lavender (it looked disabled); the first hit's judgement steps aside from where the combo
+  counter is about to come up; the loot screen hides the last fight's combo counter and meter.
 (qa: end of section)
 
 
