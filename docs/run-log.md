@@ -225,3 +225,10 @@ One PR at the end supersedes #1-#7.
   cards, the level-up ribbon off the HP plate.
 - 03:11 EDT: content's C20 merged (Vesper: more HP or longer pins don't close her boss-act gaps; her numbers left);
   a last probe of her style's parts until 03:50.
+- 03:15 EDT: review 4 reported (23 findings on the most-seen screens; no page errors, long decimals or missing
+  sprites). The lead fixed the worst (R4-1: the small font's "a" read as a backwards c, L11) and kept the title's Test
+  lab button for the playtester (L12: hide it before a public debut). Merged QA-fight (the skip tap only skips: a tap
+  within 600 ms of the glide ending is a skip; the practice fight's HUD; smoke 24/25 + numbers 8 + minis + desktop 4
+  green before the merge). Routed: dusk-art (camp buttons, the first relic pick, the world map's mood, the treasure
+  node, the title's corner), QA-fight (fight lanes, the hurt flash, FINISHER label, loot HUD), first10 (the finisher
+  tip, tip plates, the bounty tip, the first map), QA-menus (the settings cog). Hard stops 04:30; freeze 04:45-05:00.
