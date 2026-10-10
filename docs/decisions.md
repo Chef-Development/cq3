@@ -911,6 +911,11 @@ A2B-12. **Finishers wind up and follow through**: every kit but the Shadow's bli
     first cut held the follow-through 180 ms after the blow, past the moment the show sends the hero home: it never
     showed.) A won fight ends with the hero stepping back and raising their weapon (their cast pose).
 
+A2B-13. **Map walkers 18 px tall** (the chest heroes' walkers in `art-hero-map.ts`; Rowan's and Sable's stay 16): up
+    to two more leg rows, so they stand about three heads tall like the fight frames, with the mature grade. The act
+    map and the title anchor a walker at its feet from its own height (two rows up from the bottom), so walkers of any
+    height share the ground line.
+
 (art: end of section)
 
 
