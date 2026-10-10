@@ -78,16 +78,11 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Heroes' idles (the 14 rig heroes) | 4 | 4+ | A four-step breath instead of two: `idle2`/`idle3`, the head following the body a beat late (secondary motion, bible section 7). |
 | Cinder lair | 3 | 4 | `after/lairs-ashfell.png` (left): the paver heap glows in its seams, the left faces catch the cauldron's light, the pitch glows at the brim. |
 | Title screen, logo, key art | 3 | 4 | `before/title-phone.png`; `after/title-phone.png`, `after/title-desktop.png`, `after/title-continue.png`. The Atlas spread open: an inked parchment map, colour come back round the hero, fog over the erased east, a quill drawing the route; the logo built from `GAME_NAME` (Scale3x lettering, gold face, rim light, extrusion, ink outline). |
+| Title screen (round 8, second take: playtester "too simplistic and drained") | 4 | 4+ | `after/title-key-art.png` (offline render of the layers), `after/title-phone.png`, `after/title-desktop.png`. Key art: a dusk in saturated layers, the world drained into ink and blank vellum on the right under a giant quill, Rowan rim-lit on a cliff; rays, a crawling ink front, motes; the logo on a halo with ink drips; no tutorial strip. |
+| World map veils (erased land) | 2 | 4 | `after/world-atlas-*.png`. Blank warm vellum with the impression of the land's lines, a ragged rubbed edge; the far isles likewise. |
+| World map (style) | 4 | 4 | Printed on the Atlas: parchment sea with wash and engraved water lines, inked coasts and borders, neatline, compass rose, lettered names; unrestored lands in his ink draft with colour back round Rowan and cleared acts; a restored land's colour floods back once. The capital is the domed Atlas Hall. |
+| Portraits: the Mapmaker, Hesper, the narrator | - | 4 | `after/portraits-mapmaker-keeper.png` (narrator, Mapmaker, Hesper). |
 | Rowan's fight frames | 3 | 4 | `after/rowan-before-after.png`, in a fight `after/fight-act1-rowan.png`. On the shared rig (`art-hero-rowan.ts`): the peers' head size and stance, 14 poses (idle0-3, windup, slashA, slashB, dash, leap, parry, hurt, cast, down, fin), a plume and a cape that lag his breath, polished steel. |
 | Heroes' idles | 4 | 4 | `after/heroes-idle4.png`. Every hero idles in four frames (the secondary piece a frame behind); Sable gains fin and cast. |
 | Spirit stag | 3 | 4 | `after/stag-before-after.png`. A haunch and a shoulder, jointed legs with hocks and hooves, great antlers, fewer specks. |
 | Backdrops: glass, forge | 3 | 4 | `after/backdrops-glass-forge.png`, in a fight at phone size `after/fight-act8-glass.png`, `after/fight-act9-forge.png`. The warren: a tall arch onto a hazy far cavern (pillars at two depths, heat shafts), the lake's light on the wall, embers rising. The forge: a far ridge, a heat plume lit from below, pilasters, a calm strip under the feet. |
-
-## Next: the world map as the Great Atlas (a prototype)
-
-`after/world-atlas-prototype.png` (top: the painted world now; bottom: `art-world-atlas.ts`, not wired into the game):
-the open sea as a pale watercolour wash on parchment with ink ripple lines along the coast, the land printed on the
-paper, every coast inked, a double neatline. Lakes and rivers keep their painted water. Still to do: erased land (the
-veils) as blank vellum keeping the impression of its lines (as on the title), the restoring animation (colour blooming
-out from the keystone, lines re-inking), and judging it at phone size before it replaces the painted look (or ships
-behind a Test lab switch first, like the sharper chest reveal).
