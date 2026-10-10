@@ -88,7 +88,7 @@ test('loads, plays the intro, walks the map, starts a fight, taps, no console er
   // the Sound lab is one of the tester's tools: open the fold, then the lab
   await page.locator('#debug summary', { hasText: 'Tester tools' }).click();
   await page.locator('#debug summary', { hasText: 'Sound lab' }).click();
-  const lab = page.locator('details', { has: page.locator('summary', { hasText: 'Sound lab' }) });
+  const lab = page.locator('details.dbg-sec', { has: page.locator('summary', { hasText: 'Sound lab' }) });
   const buttons = lab.locator('.dbg-grid button');
   const nButtons = await buttons.count();
   expect(nButtons).toBeGreaterThan(40);

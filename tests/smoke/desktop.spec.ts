@@ -205,6 +205,7 @@ test('desktop: the camp by keyboard, Escape backs out', async ({ page }) => {
   expect(onShrine).toBe(true);
   await page.keyboard.press('Enter');
   await expect.poll(() => a((x) => x.view.camp.mode)).toBe('shrine');
+  await page.waitForTimeout(400); // (a screen ignores taps in its first moment: camp.tap)
   await page.keyboard.press('Escape');
   await expect.poll(() => a((x) => x.view.camp.mode)).toBe('home');
   await page.waitForTimeout(400);
