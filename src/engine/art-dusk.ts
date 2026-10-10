@@ -68,6 +68,7 @@ export const DUSK_COL: Record<string, number> = {
   lamplighter: 0xc8901c,
   oldsnapper: 0x3e5628,
   sluicekeeper: 0x7e4c30,
+  sluicekeeper2: 0x7e4c30,
   inkeel: 0x2c2444,
   duskmoths: 0x6e6478,
   boghag: 0x5c6e4a,
@@ -966,7 +967,7 @@ function snapperParts(pose: string): Part[] {
 
 // ------------------------------------------------------------------ the Sluice Keeper (a beaver in a diving helmet)
 
-function sluiceParts(pose: string): Part[] {
+function sluiceParts(pose: string, phase = 1): Part[] {
   let watch: [number, number] = [8, 26]; // the pocket watch in the near hand
   let wrench: [number, number] = [36, 18]; // the wrench's head in the far hand
   let mouth = false;
@@ -1003,6 +1004,9 @@ function sluiceParts(pose: string): Part[] {
   const X = (x: number) => x + bx;
   const F = 47;
   const out: Part[] = [];
+  // phase 2 (the spillway): steam pours off him, his overalls soaked dark
+  if (phase > 1) steam = Math.max(steam, 2);
+  const OVER = phase > 1 ? ['#080c1a', '#0e162a', '#182440', '#22345a', '#304a72', '#44628c'] : OVERALL;
   // the flat tail behind, cross-hatched
   const tail = V(ell(X(40), 43, 8, 3.2), [X(31), 39, X(49), 47], [X(38), 41, 7, 3], FUR.map((_, i) => FUR[Math.max(0, i - 1)]));
   tail[0] = tail[0].map((r, y) => [...r].map((c, x) => (c !== '.' && (x + y) % 3 === 0 && +c > 1 ? String(+c - 1) : c)).join(''));
@@ -1015,8 +1019,9 @@ function sluiceParts(pose: string): Part[] {
   out.push([['..3333', '334443', '222222'], X(13), F - 2, { pal: digits(FUR), edge: FUR[0] }], [['3333..', '344433', '222222'], X(24), F - 2, { pal: digits(FUR), edge: FUR[0] }]);
   // the body in its overalls
   out.push(V(ell(X(23), 31, 11, 13), [X(11), 17, X(35), F - 2], [X(19), 25, 10, 10], FUR));
-  out.push(V(poly([[X(14), 27], [X(32), 27], [X(33), 40], [X(30), F - 3], [X(16), F - 3], [X(13), 40]]), [X(12), 26, X(34), F - 2], [X(20), 31, 9, 9], OVERALL));
-  out.push(parts({ X: [[X(16), 28], [X(30), 28]], 5: [[X(21), 33], [X(22), 33], [X(23), 33], [X(24), 33]], 1: [[X(21), 35], [X(22), 35], [X(23), 35], [X(24), 35]] }, { pal: { ...GLOW, ...digits(OVERALL) } }));
+  out.push(V(poly([[X(14), 27], [X(32), 27], [X(33), 40], [X(30), F - 3], [X(16), F - 3], [X(13), 40]]), [X(12), 26, X(34), F - 2], [X(20), 31, 9, 9], OVER));
+  out.push(parts({ X: [[X(16), 28], [X(30), 28]], 5: [[X(21), 33], [X(22), 33], [X(23), 33], [X(24), 33]], 1: [[X(21), 35], [X(22), 35], [X(23), 35], [X(24), 35]] }, { pal: { ...GLOW, ...digits(OVER) } }));
+  if (phase > 1) out.push(drops([[X(14), 41], [X(31), 43], [X(18), F - 1], [X(27), F - 1]]));
   // the brass diving helmet: a round dome, a collar plate, a porthole on the front with the beaver's face behind it
   const hx = X(20);
   out.push(V(poly([[X(11), 21], [X(31), 21], [X(32), 26], [X(10), 26]]), [X(9), 20, X(33), 27], [X(16), 21, 10, 3], BRASS));
@@ -1025,10 +1030,17 @@ function sluiceParts(pose: string): Part[] {
   out.push(V(dome, [hx - 10, 1, hx + 11, 23], [hx - 4, 7, 9, 9], BRASS));
   // the valve on top (steam when he talks), bolts round the porthole
   out.push([['.33.', '4433', '.22.'], hx + 3, 0, { pal: digits(BRASS), edge: BRASS[0] }]);
+  // phase 2: a red alarm lamp on the valve
+  if (phase > 1) out.push([['rr', 'Qr'], hx + 4, -2, { pal: { ...GLOW, r: '#ff5a3a', Q: '#a01a14' } }]);
   for (let i = 0; i < steam; i++) out.push(puff(hx + 6 + i * 2, -3 - i * 3, 1 + (i > 1 ? 1 : 0)));
   // the porthole: a glass disc showing his face (eyes, a pink nose, the two big teeth)
   const px = hx - 9;
-  out.push([['.11111.', '1vVvvv1', '1ukvuk1', '1vugGv1', '1vutt.1', '.1tt11.'], px, 9, { pal: { ...GLOW, 1: BRASS[1], '.': '' } }]);
+  out.push([
+    phase > 1 ? ['.11111.', '1vVvvv1', '1ukvuk1', '1wwwww1', '1uwwwu1', '.11111.'] : ['.11111.', '1vVvvv1', '1ukvuk1', '1vugGv1', '1vutt.1', '.1tt11.'],
+    px,
+    9,
+    { pal: { ...GLOW, 1: BRASS[1], '.': '' } },
+  ]);
   out.push([['.5.....', '5......'], px, 8, { pal: { 5: BRASS[5] } }]);
   if (mouth) out.push(parts({ n: [[px + 3, 13], [px + 4, 13]] }, { pal: GLOW }));
   // the near arm, the pocket watch on its chain
@@ -1665,7 +1677,8 @@ function jobs(): Array<() => Array<[string, HTMLCanvasElement]>> {
     stiltheron: def(32, 48, heronParts),
     lamplighter: def(24, 32, lamplighterParts),
     oldsnapper: def(55, 34, snapperParts),
-    sluicekeeper: def(48, 48, sluiceParts),
+    sluicekeeper: def(48, 48, (p) => sluiceParts(p, 1)),
+    sluicekeeper2: def(48, 48, (p) => sluiceParts(p, 2)),
     inkeel: def(32, 42, eelParts),
     duskmoths: def(34, 32, mothParts),
     boghag: def(32, 36, hagParts),
@@ -1676,7 +1689,7 @@ function jobs(): Array<() => Array<[string, HTMLCanvasElement]>> {
   };
   const out: Array<() => Array<[string, HTMLCanvasElement]>> = DUSK_SPRITES.map((name) => () => {
     // a boss's phase looks share its frame size, so swapping between them never jumps
-    const group: string[] = name === 'lighthouse' ? [name, ...LIGHTHOUSE_PHASES] : name === 'bellybog' ? [name, 'bellybog2'] : [name];
+    const group: string[] = name === 'lighthouse' ? [name, ...LIGHTHOUSE_PHASES] : name === 'bellybog' || name === 'sluicekeeper' ? [name, name + '2'] : [name];
     const frames = fitFrames(group.flatMap((n) => DUSK_POSES.map((pose): [string, SpriteDef, string] => [n, defs[n], pose])));
     if (RIMMED.includes(name)) for (const [key, c] of frames) if (!key.endsWith('_flash')) duskRim(c);
     return frames;
