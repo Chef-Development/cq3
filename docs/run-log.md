@@ -35,7 +35,7 @@ One PR at the end supersedes #1-#7.
 | 6 | Story rewrite: intro, regions 1-3 scenes, heroes, companions, banter, lore, UI words | 1 | done (sweep, companions, editor's 45 notes applied, Region 5 fit, Regions 6-12 drafted); L8 tone pass + 2nd editor next |
 | 7 | The Great Atlas world map (2A); animation upgrade + lighting pass (2B); 2x rollout | 2A/2B | in progress |
 | 8 | Region 4 complete: in play + balance (3), art + music (dusk-art) | 3 + dusk-art | in play, balanced (acts 10-12: 84-90 / 71-74 / 53-69%, masher 0/73); art + music landing; parity pass next |
-| 9 | Resizable window, Android, code split, bot crawl part 1; then reviewers | 4 | in progress |
+| 9 | Resizable window, Android, code split, bot crawl part 1; then reviewers | 4 | done (10 window sizes, Pixel 7 + small Android, later regions' art in their own chunks: -9% main chunk, core crawl 16 heroes x 4 seeds clean, UI crawl through Act 1 clean); next: smoke timeouts, accessibility, crawl Acts 2-3 |
 | 10 | Region 5 (bar rules + data done, not in play; art and wiring later) | 3 | later |
 | 11 | Backlog cycle (QA, Region 6, polish, NG+, more content, music, accessibility) | all | later |
 | 12 | Final: everything committed, tests green, one PR | Lead | 06:45 |
@@ -106,3 +106,7 @@ One PR at the end supersedes #1-#7.
 - 22:20 EDT: content chunk 2 merged: Region 4 in play after Ashfell (acts 10-12; 14 relics, gear, the camp scene,
   12 spoiler lab items), balanced at 75% (guard bot-region4), masher 0 of 73 at its boss; CORE: its set/signature
   effects, ice floats on the tide. Content chunk 3 launched (Region 4 parity, Region 5 wiring with stand-ins).
+- 22:25 EDT: QA chunk 2 merged (resizable desktop window, Android full screen and back gesture, the later regions'
+  art split into packs, the core crawl and UI crawl, the HP-above-max fix (CORE), the boss-shout/number overlap and
+  the vault's words). QA chunk 3: smoke timeouts, accessibility (colourblind blocks, reduced motion, text size), the
+  crawl through Acts 2-3. Fresh-eyes screen reviewers: planned for ~00:45, after the art passes land.
