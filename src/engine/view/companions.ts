@@ -193,6 +193,11 @@ export class CompanionsScreen {
     return kit.topRow(Array(n).fill(13), b.x + b.w + 4, 1e9, 1, 2, 13)![i];
   }
 
+  /** The keyboard's targets drawn without a button: the Along sockets. */
+  focusTargets(): Rect[] {
+    return this.sheet.open ? [] : this.slots();
+  }
+
   /** The "Along" sockets at the stage's foot (two: the second padlocked until the Companion Perch). */
   slots(): Rect[] {
     const st = this.stage();

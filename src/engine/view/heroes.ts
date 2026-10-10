@@ -329,6 +329,11 @@ export class HeroesScreen {
     return { x: c.x + c.w - w, y: this.rowY().meters, w, h: 13 };
   }
 
+  /** The keyboard's targets drawn without a button: the name and chips (who they are), the level row. */
+  focusTargets(): Rect[] {
+    return this.sheet.open ? [] : [this.infoRect(), this.levelRect()];
+  }
+
   private levelRect(): Rect {
     const c = this.col();
     return { x: c.x, y: this.rowY().level, w: c.w, h: 10 };

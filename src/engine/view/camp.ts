@@ -407,6 +407,8 @@ export class CampView {
     if (this.mode === 'chests') return this.chests.focusTargets();
     if (this.mode === 'progress') return this.progress.focusTargets();
     if (this.mode === 'upgrades') return this.upgrades.focusTargets();
+    if (this.mode === 'heroes') return this.heroes.focusTargets();
+    if (this.mode === 'pets') return this.pets.focusTargets();
     if (this.mode !== 'home') return [];
     return this.plates()
       .filter((pl) => pl.id !== 'bag' && pl.id !== 'forge')
