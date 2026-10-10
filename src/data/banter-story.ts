@@ -1,6 +1,5 @@
-// Camp banter that follows the story (SPOILERS: docs/story-bible.md). NOT IN PLAY YET: camp.ts plays BANTER and
-// HERO_BANTER only; these wait, like banter-ash.ts and banter-dusk.ts, for a camp that knows which scenes have played.
-// Like HERO_BANTER, a line plays only once its speaker and everyone in `with` are at the camp, and only once the story
+// Camp banter that follows the story (SPOILERS: docs/story-bible.md). core/banter.ts gates these, with banter-ash.ts,
+// banter-dusk.ts and banter-noon.ts, on the scenes the player has reached. Like HERO_BANTER, a line plays only once its speaker and everyone in `with` are at the camp, and only once the story
 // has reached `after` (a scene id in STORY): before then it would spoil the scene. Each line fits the camp's bubble in
 // two short lines (tests/unit/data.test.ts). Comedy and quiet seeds, never the plot's answers.
 

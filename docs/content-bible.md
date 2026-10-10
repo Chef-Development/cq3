@@ -981,9 +981,13 @@ not speak.
   blaze).
 
 ### Story
-The story team's ids above; still to write (one-line placeholders in `src/data/story-noon-minis.ts`): `sphinx`,
-`brassLion` (the mini-bosses' intros). The phase scenes' hints ("everything blazes white", "the stones shimmer") match
-the rules as built.
+The story team's ids above, and the mini-bosses' intros, all written in `src/data/story-noon.ts`
+(`story-noon-minis.ts` is empty now). `sphinx`: the Noon Sphinx keeps the White Road with a riddle (long at dawn, gone
+at noon: a shadow); Rowan answers, but a traveler with no shadow is a mirage to her (she speaks: speaker `sphinx`,
+plate "Noon Sphinx", portrait `portrait_sphinx` needed). `brassLion`: the Dawn Order's lion that roared the sun up
+every morning, a month without one (it doesn't speak). The hints follow the rules as built: `sphinx` "strike where the
+shimmer lands"; `noonBoss2` (the glare) "the blazing ones hit hard, and they burn; a green cools you off";
+`noonBoss3` (the sun drawn down) "watch the outlines: that's where they'll land".
 
 ### Still to design and build (next chunks)
 Relics (Mirage and Heat tags; ideas: hits on a mirage just after it hops crit; a ghost spot struck before the hop
