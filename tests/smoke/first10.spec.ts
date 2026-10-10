@@ -302,8 +302,9 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
             }
             if (!mapReadyAt) mapReadyAt = now;
             if (now - mapReadyAt < 1600) return; // looks at the choices
-            // a skill point to spend (the balance bot spends them after every loot): Camp, Skills, learn, back
-            if (skills && x.tips.pointsToSpend(x.run)) {
+            // a skill point to spend (the balance bot spends them after every loot): Camp, Skills, learn, back (from
+            // the first chest on: the first minutes are timed as a newcomer who hasn't found the camp yet plays them)
+            if (skills && S.beats.some((b: Any) => b.id === 'chestOpened') && x.tips.pointsToSpend(x.run)) {
               S.campFor = 'skills';
               log('camp: to spend skill points');
               const cr = view.mapView.campRect();
