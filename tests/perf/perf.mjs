@@ -42,11 +42,13 @@ async function throttled(browser) {
   await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
   await cdp.send('Network.emulateNetworkConditions', NET);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
-  // the moment the scene is ready (the title takes taps), from navigation start
+  // the moment the scene is ready (the title takes taps), from navigation start; and the moment the later regions'
+  // art packs are in too (__cq3.ready since they're chunks of their own: region-art.ts; the same moment before)
   await page.addInitScript(() => {
     const w = window;
     const poll = () => {
-      if (w.__cq3?.ready === true) w.__perfReady = performance.now();
+      if (w.__cq3?.app?.sceneReady === true) w.__perfReady ??= performance.now();
+      if (w.__cq3?.ready === true) w.__perfPacks = performance.now();
       else requestAnimationFrame(poll);
     };
     requestAnimationFrame(poll);
@@ -57,8 +59,9 @@ async function throttled(browser) {
 async function loadOnce(browser) {
   const { ctx, page } = await throttled(browser);
   await page.goto(URL, { waitUntil: 'commit' });
-  await page.waitForFunction(() => typeof window.__perfReady === 'number', null, { timeout: 120_000, polling: 50 });
+  await page.waitForFunction(() => typeof window.__perfPacks === 'number', null, { timeout: 120_000, polling: 50 });
   const ready = await page.evaluate(() => window.__perfReady);
+  const packs = await page.evaluate(() => window.__perfPacks);
   const nav = await page.evaluate(() => {
     const n = performance.getEntriesByType('navigation')[0];
     return { dcl: n.domContentLoadedEventEnd, load: n.loadEventEnd };
@@ -85,7 +88,7 @@ async function loadOnce(browser) {
   await page.waitForFunction(() => window.__cq3.app.run.phase === 'fight', null, { polling: 20, timeout: 60_000 });
   const fight = await page.evaluate(() => performance.now());
   await ctx.close();
-  return { ready, fight, dcl: nav.dcl, load: nav.load };
+  return { ready, packs, fight, dcl: nav.dcl, load: nav.load };
 }
 
 /** Frame times (ms) over `secs` while `drive` runs. */
@@ -118,14 +121,16 @@ async function frameRuns(browser) {
   const { ctx, page } = await throttled(browser);
   await page.goto(URL);
   await page.waitForFunction(() => window.__cq3?.ready === true, null, { timeout: 120_000 });
-  await page.evaluate(() => {
+  await page.evaluate((early) => {
     const x = window.__cq3.app;
     x.profile.tipsOff = true;
     x.profile.worldTour = true;
     x.settings.godMode = true;
-    x.setPhase(() => x.run.debugFight(1, ['boar', 'archer', 'shaman'], 'fight', x.run.hero));
+    // a busy late fight (FIGHT=early: Act 2's boar, archer and shaman, the numbers before round 8's second chunk)
+    if (early) x.setPhase(() => x.run.debugFight(1, ['boar', 'archer', 'shaman'], 'fight', x.run.hero));
+    else x.setPhase(() => x.run.debugFight(8, ['forgeHand', 'chainSentinel', 'stokerImp', 'magmaEel'], 'fight', x.run.hero));
     x.begin();
-  });
+  }, process.env.FIGHT === 'early');
   await page.waitForTimeout(1500);
   const fight = await frames(page, 10, async () => {
     await page.keyboard.press('Space');
@@ -160,6 +165,7 @@ console.log(`\n## Load (CPU ${CPU}x, Fast 4G, no cache; median of ${RUNS})\n\n| 
 console.log(`| DOMContentLoaded | ${median(loads.map((l) => l.dcl)).toFixed(0)} |`);
 console.log(`| load event | ${median(loads.map((l) => l.load)).toFixed(0)} |`);
 console.log(`| title ready for a tap | ${median(loads.map((l) => l.ready)).toFixed(0)} |`);
+console.log(`| later regions' art in (__cq3.ready) | ${median(loads.map((l) => l.packs)).toFixed(0)} |`);
 console.log(`| first fight on screen | ${median(loads.map((l) => l.fight)).toFixed(0)} |`);
 console.log(`(each run: ${loads.map((l) => `${l.ready.toFixed(0)}/${l.fight.toFixed(0)}`).join(', ')})`);
 const fr = await frameRuns(browser);

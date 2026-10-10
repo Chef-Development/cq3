@@ -306,6 +306,16 @@ export const LAB_NEW: LabScenario[] = [
     try: 'Gear: Clean capture On. Hold the top middle to undo.',
     setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['dummy'], ['dummy'], ['dummy']], safe: true },
   },
+  // later regions' art loads on its own now (region-art.ts): a fight there straight after launch must look whole
+  {
+    id: 'lateArtFirst',
+    group: 'spoiler',
+    spoiler: true,
+    label: 'Act 7 at once',
+    secs: 40,
+    try: 'Reopen the app, come straight here: all drawn?',
+    setup: { kind: 'fight', hero: 'rowan', act: 6, waves: [['cinderling', 'cragCrab'], ['cinderKite'], ['cinderling', 'cinderling']], safe: true },
+  },
   // ---- the first 10 minutes (team 5)
   {
     id: 'firstFight',
