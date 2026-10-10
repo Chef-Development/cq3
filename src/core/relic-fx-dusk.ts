@@ -1,6 +1,5 @@
 // Region 4's relics as fight hooks (core/hooks.ts): the Light relics (dark blocks and the cursor's lantern) and the
-// Tide relics (the water at the bar's ends). NOT IN PLAY YET: not merged into RELIC_HOOKS (relic-fx.ts) until the
-// region is wired in. Each one's number is tuning.relics.n[id] (its data's `n`); each calls c.perkFx when it kicks in.
+// Tide relics (the water at the bar's ends), merged into RELIC_HOOKS (relic-fx.ts). Each one's number is tuning.relics.n[id] (its data's `n`); each calls c.perkFx when it kicks in.
 
 import { duskN, type DuskRelicId } from '../data/relics-dusk';
 import { isRed } from './blocks';

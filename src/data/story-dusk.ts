@@ -1,5 +1,5 @@
-// Region 4's story scenes (SPOILERS: docs/story-bible.md section 8, mechanics in docs/content-bible.md section 7). Not
-// merged into STORY yet: the region joins REGIONS with its art (then `Object.assign(STORY, DUSK_STORY)`). Same rules as
+// Region 4's story scenes (SPOILERS: docs/story-bible.md section 8, mechanics in docs/content-bible.md section 7). Merged
+// into STORY (story.ts). Same rules as
 // story.ts: at most 6 boxes a scene, 2 lines a box, every line fits (tests/unit/duskmire-data.test.ts). The plot is
 // earnest; the jokes belong to the heroes.
 //
