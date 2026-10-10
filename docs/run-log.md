@@ -33,7 +33,7 @@ One PR at the end supersedes #1-#7.
 | 4 | Desktop input, clean capture, perf baseline, originality audit | 4 | merged (title ready 12.1 -> 7.8 s at CPU 4x); continuing |
 | 5 | First 10 minutes: new-player bot path, measure, fix | 5 | title -> first fight 0:33 -> 0:20; first chest ~1:30; the first finisher finishes its foe; auto-wear; next: a simpler first relic pick |
 | 6 | Story rewrite: intro, regions 1-3 scenes, heroes, companions, banter, lore, UI words | 1 | done (sweep, companions, editor's 45 notes applied, Region 5 fit, Regions 6-12 drafted); L8 tone pass + 2nd editor next |
-| 7 | The Great Atlas world map (2A); animation upgrade + lighting pass (2B); 2x rollout | 2A/2B | in progress |
+| 7 | The Great Atlas world map (2A); animation upgrade + lighting pass (2B); 2x rollout | 2A/2B/2C | Atlas done (L6/L7), title key art, portraits, UI de-gloss (L8), heroes mature (2B), backdrops darker (2C); 2x rollout + overlays next (2A), portraits/walkers (2B), foes (2C) |
 | 8 | Region 4 complete: in play + balance (3), art + music (dusk-art) | 3 + dusk-art | in play, balanced (acts 10-12: 84-90 / 71-74 / 53-69%, masher 0/73); art + music landing; parity pass next |
 | 9 | Resizable window, Android, code split, bot crawl part 1; then reviewers | 4 | done (10 window sizes, Pixel 7 + small Android, later regions' art in their own chunks: -9% main chunk, core crawl 16 heroes x 4 seeds clean, UI crawl through Act 1 clean); next: smoke timeouts, accessibility, crawl Acts 2-3 |
 | 10 | Region 5 (bar rules + data done, not in play; art and wiring later) | 3 | later |
@@ -123,3 +123,7 @@ One PR at the end supersedes #1-#7.
   fixed by art 2B (e32ea28), merged, boot-checked, pushed. L9: a boot check before every push (lead) and before team
   commits that touch boot-painted art (TEAM-RULES.md). Dusk-art chunk done: Region 4's foes, bosses, portraits,
   backdrops, critters, six music pieces, L7 pass; telegraph sounds still to do.
+- 23:05 EDT: art 2A chunk merged (the title as key art with the notes, the Atlas world map, portraits for the Mapmaker,
+  Hesper and the Sphinx, the old pendulum symbols replaced, the UI toned down (L8: iron rims, dull glints), every
+  stage graded (moodGrade), the bible's Mood and Maturity sections, Region 4's world landmark). 2A chunk 3: the
+  sharper 2x layer rollout, L8 on the overlays, CLAUDE.md's world-map paragraph.
