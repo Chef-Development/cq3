@@ -670,21 +670,23 @@ Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
 ## 11. What the story needs from other teams (round 8)
 
 - **Art (Team 2):** portraits `portrait_mapmaker` (section 4's look: tall, spare, near fifty, kind tired eyes,
-  ink-stained fingers, faded keeper's-blue coat with the badge torn off, an owl-feather pen with a silver tip) and
-  `portrait_keeper` (Hesper: silver-haired, upright, grey-blue keeper's robes, a heavy key on a chain). Until they
-  exist, the story view shows Phaser's missing-texture box in `boarKing*`, `victory`, `glacia2/3`, `frostVictory`,
-  `bellows2/3`, `ashVictory`. `keeper` belongs in `ALLY` in `view/story.ts` (warm look, not a foe's). The narrator's
-  portrait (now the Pendulum's bob) becomes a corner of the Atlas with a compass rose. The Mapmaker's edits, when
-  shown, are gold ink strokes hanging in the air. Every UI word in section 9.
+  ink-stained fingers, faded keeper's-blue coat with the badge torn off, an owl-feather pen with a silver tip),
+  `portrait_keeper` (Hesper: silver-haired, upright, grey-blue keeper's robes, a heavy key on a chain), and Region 4-5's
+  speakers (`portrait_bellybog`, `portrait_sluiceKeeper`, `portrait_sphinx`: a gold desert sphinx, eyes half shut
+  against the glare). Until they exist, the story view shows Phaser's missing-texture box. (`keeper` now has the
+  allies' warm look in `view/story.ts`.) The narrator's portrait (now the Pendulum's bob) becomes a corner of the Atlas
+  with a compass rose. The Mapmaker's edits, when shown, are gold ink strokes hanging in the air. Every UI word in
+  section 9, including its last rows: the Bandit Captain's prize, the golem's rune, the Keystone Shard's icon, and
+  `view/world.ts`'s capital card, header and pips (still "Weights home" / "The Great Pendulum" on the run branch).
 - **First 10 minutes (Team 5):** the `road` scene (6 boxes: who Pip is, what the blank is) is written for right after
   the first fight is won, once (e.g. `profile.seen` 'road'); it needs a hook in the post-fight flow, which is yours.
   If it costs the first minutes too much, cut it to 3 boxes or move it to the first rest: tell the story team.
 - **Lead:** `WELCOME_ID` in `src/data/tips.ts` is still `welcomeM4a`, so a returning player who saw the old welcome
   won't see the new one (which now catches them up on the story); bumping it (e.g. `welcomeR8`) replays it once
   (`tests/smoke/smoke.spec.ts` checks the id by name). The screenshot baseline `story.png` changes (the new intro).
-- **Content (Team 3):** Region 4 keeps your names (the Duskmire; Lanternfen, the Drowned Causeway, the Gloaming
-  Mere; Old Bellybog, the Sluice Keeper, the Gloaming Lighthouse). Its ten scenes are written in your
-  `src/data/story-dusk.ts` (same ids; your placeholders replaced); speakers `bellybog` ("Old Bellybog") and
-  `sluiceKeeper` ("Sluice Keeper") are in the `Speaker` union and need portraits; the lighthouse doesn't speak.
-  `banter-dusk.ts` can now name the Mapmaker. Region 5's scenes are drafted in `src/data/story-noon.ts` (ids for your
-  data to point at). Rename anything; tell the story team so the scenes follow.
+- **Content (Team 3):** Region 5's nine scenes fit its data as built (`story-noon.ts`: the mini-bosses' `sphinx` and
+  `brassLion` are written, `story-noon-minis.ts` is empty); new: `noonCamp`, the camp's scene after Act 1 (wire it like
+  `duskCamp`: `run.ts` `campScene`/`sableJoined` at `actsCleared >= 13`, and `core/lab.ts` marks it seen), speaker
+  `sphinx` ("Noon Sphinx", needs a portrait), and `banter-noon.ts` (already read by `core/banter.ts`; it shows once the
+  region is in play). Regions 6-10 are outlined in section 8 with scene ids, mini-bosses, bosses, his edits and rule
+  ideas: the rule hooks are ideas; rename anything and tell the story team so the scenes follow.
