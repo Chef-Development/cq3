@@ -192,6 +192,9 @@ export interface GaugeOpts {
   glow?: number;
   ghostCol?: number;
   trough?: number;
+  /** A readout drawn over it, from x to x + w: no notch or end cap under it, and a dark inset behind it so its digits
+   *  read on any fill (review round 8: a notch through "92/102" read "92//102", the cap before "71/90" read "!71/90"). */
+  label?: { x: number; w: number };
 }
 
 /**
@@ -209,6 +212,8 @@ export function gauge(g: G, x: number, y: number, w: number, h: number, frac: nu
   const fw = Math.round(w * clamp01(frac));
   const gw = Math.round(w * clamp01(ghost));
   const at = (len: number) => (o.mirror ? x + w - len : x);
+  const lb = o.label;
+  const under = (px: number): boolean => !!lb && px >= lb.x - 1 && px <= lb.x + lb.w;
   if (gw > fw) {
     g.fillStyle(o.ghostCol ?? 0xfff2c8, 1);
     g.fillRect(o.mirror ? at(gw) : x + fw, y, gw - fw, h);
@@ -235,16 +240,25 @@ export function gauge(g: G, x: number, y: number, w: number, h: number, frac: nu
     g.fillStyle(deep, 0.6);
     for (let sx = o.seg; sx < w; sx += o.seg) {
       const px = o.mirror ? x + w - sx : x + sx;
-      if (px > fx && px < fx + fw - 1) g.fillRect(px, y + 2, 1, h - 3);
+      if (px > fx && px < fx + fw - 1 && !under(px)) g.fillRect(px, y + 2, 1, h - 3);
     }
   }
   // bright cap at the moving end
-  g.fillStyle(WHITE, 0.75);
-  g.fillRect(o.mirror ? fx : fx + fw - 1, y, 1, h - 1);
+  const capX = o.mirror ? fx : fx + fw - 1;
+  if (!under(capX)) {
+    g.fillStyle(WHITE, 0.75);
+    g.fillRect(capX, y, 1, h - 1);
+  }
   if (o.glow && o.glow > 0) {
     g.fillStyle(WHITE, 0.45 * clamp01(o.glow));
     g.fillRect(fx, y, fw, h);
   }
+  if (o.label) labelInset(g, o.label.x, y, o.label.w, h);
+}
+
+/** The dark inset behind a readout on a gauge (its digits read on any fill). */
+function labelInset(g: G, x: number, y: number, w: number, h: number): void {
+  rows(g, Math.round(x), y, Math.round(w), h, 1, INK, 0.72);
 }
 
 /** A soft rectangular glow (stacked translucent rounded rects) around r. */

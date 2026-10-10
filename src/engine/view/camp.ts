@@ -15,7 +15,7 @@
 // hero's arrival (Sable, then Neve: run.campScene); a chest hero's arrival plays after their reveal. While the home
 // sits idle, now and then (every 12-20 s) someone by the fire says a one-line quip in a small speech bubble
 // (core/banter.ts picks: the camp's lines, the heroes' once they're here, the story's once it has reached their scene).
-import { signed } from '../../core/format';
+import { signed, whole } from '../../core/format';
 import Phaser from 'phaser';
 import { COMPANIONS, type CompanionId } from '../../data/companions';
 import { HEROES, HERO_IDS, type HeroId } from '../../data/heroes';
@@ -39,6 +39,7 @@ import { ForgeScreen } from './forge';
 import { hasGains, takeGains } from './gains';
 import { HeroesScreen } from './heroes';
 import { button3d, chevron, gauge, glow, GOLD, rows } from './pixels';
+import { EditsScreen } from './edits';
 import { ProgressScreen } from './progress';
 import { RelicLogScreen } from './relic-log';
 import { clamp01, easeBack, inRect, INK, pulse, rand, WHITE, type Rect } from './shared';
@@ -50,7 +51,7 @@ import { UpgradesScreen } from './upgrades';
 import { wrapText } from './items';
 
 type G = Phaser.GameObjects.Graphics;
-export type CampMode = 'home' | 'bag' | 'forge' | 'stats' | 'heroes' | 'skills' | 'relics' | 'chests' | 'shrine' | 'pets' | 'upgrades' | 'progress';
+export type CampMode = 'home' | 'bag' | 'forge' | 'stats' | 'heroes' | 'skills' | 'relics' | 'chests' | 'shrine' | 'pets' | 'upgrades' | 'progress' | 'edits';
 type Spot = 'bag' | 'forge' | 'skills' | 'relics' | 'shrine' | 'leave';
 type PlateId = 'bag' | 'forge' | 'shrine' | 'chests' | 'dummy' | 'pet';
 /** The modern screens: each paints its own full-screen stage (ui-modern.ts drawStage) or, in build mode, is the camp
@@ -116,6 +117,8 @@ export class CampView {
   readonly bag: BagScreen;
   readonly forge: ForgeScreen;
   readonly stats: StatsScreen;
+  /** The Mapmaker's Edits (once a region is restored: the Edits button beside Camp). */
+  readonly edits: EditsScreen;
   readonly heroes: HeroesScreen;
   readonly skills: SkillsScreen;
   readonly relics: RelicLogScreen;
@@ -166,6 +169,7 @@ export class CampView {
     this.pets = new CompanionsScreen(this.kit);
     this.upgrades = new UpgradesScreen(this.kit);
     this.progress = new ProgressScreen(this.kit);
+    this.edits = new EditsScreen(this.kit);
   }
 
   build(): void {
@@ -218,6 +222,14 @@ export class CampView {
   }
 
   /** The world map's region card: the camp opens straight on a region's progress, and Back goes back to the map. */
+  /** The world map's act picker: the camp opens straight on the Mapmaker's Edits, and Back goes back to the map. */
+  openEdits(): void {
+    const app = this.s.app;
+    if (app.run.phase !== 'camp') app.openCamp();
+    this.go('edits', performance.now());
+    this.backTo = 'leave';
+  }
+
   openProgress(region: number): void {
     const app = this.s.app;
     this.cardOnly = app.run.phase !== 'camp';
@@ -371,6 +383,20 @@ export class CampView {
     return out;
   }
 
+  /** The Edits button in the top bar, right of its middle (the HTML gear button), once a region is restored (the
+   *  Mapmaker's Edits): its name when it fits before the gems, else its glyph alone; null before. */
+  editsRect(): Rect & { label: boolean } | null {
+    if (!this.s.app.run.editsOpen) return null;
+    const kit = this.kit;
+    const z = kit.hudZone();
+    const coins = kit.purseRects(this.s.R - 3, 4, true).coins;
+    const gemW = Math.max(28, textWidth(whole(kit.gemsShown), 1, true) + 18);
+    const right = coins.x - 3 - gemW - 4;
+    const x = z.x + z.w + 3;
+    const w = textWidth('Edits', 1, true) + pixSize('rune')[0] + 14;
+    return x + w <= right ? { x, y: 5, w, h: 15, label: true } : { x, y: 5, w: pixSize('rune')[0] + 8, h: 15, label: false };
+  }
+
   /** The keyboard's targets that aren't drawn as buttons (input.ts focusExtras): on the camp home the plates over the
    *  shrine, the chests, the Training Dummy and the companion along (Bag and Forge have their buttons in the band); the
    *  bag's, the forge's and the relic log's cells. */
@@ -477,6 +503,11 @@ export class CampView {
     if (inRect(cb, x, y, 2)) {
       notePress(cb);
       return this.go('upgrades', now);
+    }
+    const eb = this.editsRect();
+    if (eb && inRect(eb, x, y, 2)) {
+      notePress(eb);
+      return this.go('edits', now);
     }
     // the companions along (Pip hops and hoots on the way)
     if (inRect(this.pipRect(), x, y)) {
@@ -614,6 +645,8 @@ export class CampView {
         return this.upgrades;
       case 'progress':
         return this.progress;
+      case 'edits':
+        return this.edits;
       default:
         return this.stats;
     }
@@ -662,6 +695,7 @@ export class CampView {
     else if (mode === 'pets') this.pets.open(now, pet);
     else if (mode === 'upgrades') this.upgrades.open(now);
     else if (mode === 'progress') this.progress.open(now);
+    else if (mode === 'edits') this.edits.open(now);
     else if (mode === 'forge') {
       this.forge.open(now);
       if (!p.smithMet) {
@@ -993,6 +1027,12 @@ export class CampView {
     const cb = this.campRect();
     kit.button(g, texts, { ...cb, y: cb.y + ty - 3 }, 'Camp', FACE.green, now, { icon: 'tent', glowCol: this.upgrades.canBuild() ? 0xffd23a : undefined });
     if (this.upgrades.canBuild()) kit.bubble(g, texts, cb.x + cb.w - 1, cb.y + ty - 6, '!', now, true);
+    // the Mapmaker's Edits (a region restored): oxblood, with how many are drawn in
+    const eb = this.editsRect();
+    if (eb) {
+      kit.button(g, texts, { x: eb.x, y: eb.y + ty - 3, w: eb.w, h: eb.h }, eb.label ? 'Edits' : '', FACE.red, now, { icon: 'rune' });
+      if (p.edits.on.length) kit.bubble(g, texts, eb.x + eb.w - 1, eb.y + ty - 6, whole(p.edits.on.length), now);
+    }
     // name plates over the buildings, the props and the companion along (they bob)
     const fresh = p.items.filter((i) => i.fresh).length;
     const waiting = p.chests.hero + p.chests.rare + p.chests.region;

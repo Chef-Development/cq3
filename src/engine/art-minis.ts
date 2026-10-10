@@ -57,7 +57,7 @@ const GREENMARCH_MINIS: Record<string, Mini> = {
   // (A2C-14) a hooded crow, as in the fights: a black hood with a red eye, a sharp horn beak, an ash-grey mantle,
   // black wings swept back to a fan tail
   crow: {
-    pal: { h: '#1a1a2c', H: '#3a3c5c', m: '#8a889c', M: '#b4b2c4', s: '#5a586c', w: '#22243c', W: '#4a5276', g: '#6c6a7e', G: '#a4a0b0', E: '#ff6a3a', y: '#3e3c50' },
+    pal: { h: '#1a1a2c', H: '#3a3c5c', m: '#9c9aae', M: '#c4c2d2', s: '#64627a', w: '#22243c', W: '#4a5276', g: '#6c6a7e', G: '#a4a0b0', E: '#ff6a3a', y: '#3e3c50' },
     frames: [
       ['..HHh.......', '.HhEh.......', 'GghhhmMm....', '..hmmmmsss..', '...mWWWwww.w', '...swwwwwwww', '....sww..ww.', '....y..y....'],
       ['.......WW...', '..HHh.WWww..', '.HhEhWWww...', 'GghhhmMw....', '..hmmmmsss..', '...mmssswwww', '....sss..ww.', '....y..y....'],

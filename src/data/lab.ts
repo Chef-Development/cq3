@@ -8,6 +8,7 @@
 // until "Show spoilers"), labelled by act number only, never by name. Labels and "what to try" lines are game words,
 // one short line each (the playtester reads little).
 
+import type { EditId } from './edits';
 import type { CompanionId } from './companions';
 import type { RelicId } from './relics';
 import type { HeroId } from './heroes';
@@ -30,7 +31,7 @@ export const LAB_GROUPS: Array<{ id: LabGroupId; name: string; spoiler?: boolean
 ];
 
 /** A camp screen a scenario opens. */
-export type LabScreen = 'heroes' | 'skills' | 'chest' | 'chestDemo' | 'chestHd' | 'shrine' | 'companions' | 'upgrades' | 'completion';
+export type LabScreen = 'heroes' | 'skills' | 'chest' | 'chestDemo' | 'chestHd' | 'shrine' | 'companions' | 'upgrades' | 'completion' | 'edits';
 
 /** What a scenario drops the playtester into. */
 export type LabSetup =
@@ -39,7 +40,7 @@ export type LabSetup =
    *  banked at the start; `safe`: nothing hurts the hero; `relics` carried into it; `pick`: a won fight ends in a
    *  stat card pick (three cards, nothing kept) before the rating card. `stage`: the act whose stage, music and name show around it (default `act`: a
    *  later act's numbers can play on an earlier act's stage). */
-  | { kind: 'fight'; hero: HeroId; stars?: number; pets?: CompanionId[]; act: number; waves: string[][]; bar?: BarRules | 'act'; row?: number; safe?: boolean; stacks?: number; relics?: RelicId[]; pick?: boolean; stage?: number }
+  | { kind: 'fight'; hero: HeroId; stars?: number; pets?: CompanionId[]; act: number; waves: string[][]; bar?: BarRules | 'act'; row?: number; safe?: boolean; stacks?: number; relics?: RelicId[]; pick?: boolean; stage?: number; edits?: EditId[] }
   /** A camp screen (with `hero` shown first where it has one). 'chestDemo': the chest opening played at these
    *  `tiers` one after another (a demo: nothing is granted), from a chest of kind `chest`. 'chestHd': the old chest
    *  reveal and the sharper one side by side, Rare to Divine (a demo; view/chest-compare.ts). */
@@ -66,6 +67,8 @@ export type LabSetup =
 /** What the lab's profile holds for a scenario (core/lab.ts builds it on a fresh profile). */
 export interface LabProfileSpec {
   actsCleared?: number;
+  /** Regions restored (opens what waits for one: the Mapmaker's Edits), whatever `actsCleared` says. */
+  weights?: number;
   /** Heroes owned and their stars (Rowan and Sable are always owned; the rest are locked unless listed). */
   heroes?: Partial<Record<HeroId, number>>;
   /** The picked hero. */
@@ -338,12 +341,19 @@ export const LAB_NEW: LabScenario[] = [
   // restored); here at its own act's numbers, with nothing able to hurt you, then for real
   { id: 'spRevision3', group: 'spoiler', spoiler: true, label: 'Act 3 revision', secs: 90, try: 'Watch its last phase: the light goes out.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 2, waves: [['boarKingRevised']], row: 6, safe: true } },
   { id: 'spRevision3b', group: 'spoiler', spoiler: true, label: 'Act 3 revision, real', secs: 90, try: 'A real fight. Fair? A step up from the first?', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 4, waves: [['boarKingRevised']], row: 6 }, profile: { level: 12, gear: 'rare' } },
-  // the fifth region ahead of its art (not in the campaign yet): its foes and mini-bosses on stand-in looks, at Act 12's
-  // numbers with its own bar rules (its sprites, sounds and scenes come with its art)
-  { id: 'spAct13', group: 'spoiler', spoiler: true, label: 'Act 13 foes', secs: 90, try: 'Early look, borrowed sprites: moves and mirages.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 11, waves: [['duneSkink', 'glareHawk'], ['duneBandit', 'duneSkink'], ['duneColossus']], bar: { mirage: { share: 0.25, fromRow: 0, every: 2.8 } } } },
-  { id: 'spMini13', group: 'spoiler', spoiler: true, label: 'Act 13 mini-boss', secs: 90, try: 'Early look, borrowed sprite. No damage here.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 11, waves: [['sphinx']], bar: { mirage: { share: 0.25, fromRow: 0, every: 2.8 } }, safe: true } },
-  { id: 'spAct14', group: 'spoiler', spoiler: true, label: 'Act 14 foes', secs: 90, try: 'Early look, borrowed sprites: blazing blocks.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 11, waves: [['emberScarab', 'brassSentry'], ['sandSalamander', 'glareHawk'], ['sunforgedGolem']], bar: { heat: { share: 0.2, fromRow: 0 }, mirage: { share: 0.1, fromRow: 0, every: 2.8 } } } },
-  { id: 'spAct15', group: 'spoiler', spoiler: true, label: 'Act 15 foes', secs: 90, try: 'Early look, borrowed sprites: both rules.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 11, waves: [['dialWarden', 'heatDjinn'], ['sunVulture', 'brassSentry'], ['noonKnight']], bar: { mirage: { share: 0.2, fromRow: 0, every: 2.5 }, heat: { share: 0.2, fromRow: 0 } } } },
+  // the fifth region in play (its art and music are in): each act's foes, its mini-boss or boss (nothing hurts), its
+  // map, its story and one of its events (the earlier "early look" items, reworked)
+  { id: 'spAct13', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 13 foes', secs: 90, try: "Meet the act's foes. Do the mirages read?", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 12, waves: [['duneSkink', 'glareHawk'], ['duneBandit', 'duneSkink'], ['duneColossus']], bar: 'act', row: 3 } },
+  { id: 'spMini13', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 13 mini-boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 12, waves: [['sphinx']], bar: 'act', row: 6, safe: true } },
+  { id: 'spAct14', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 14 foes', secs: 90, try: "Meet the act's foes. Blazing blocks: worth it?", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 13, waves: [['emberScarab', 'brassSentry'], ['sandSalamander', 'glareHawk'], ['sunforgedGolem']], bar: 'act', row: 3 } },
+  { id: 'spMini14', group: 'spoiler', spoiler: true, label: 'Act 14 mini-boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 13, waves: [['brassLion']], bar: 'act', row: 6, safe: true } },
+  { id: 'spAct15', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 15 foes', secs: 90, try: "Meet the act's foes: both rules at once.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 14, waves: [['dialWarden', 'heatDjinn'], ['sunVulture', 'brassSentry'], ['noonKnight']], bar: 'act', row: 3 } },
+  { id: 'spBoss15', group: 'spoiler', spoiler: true, label: 'Act 15 boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 14, waves: [['gnomon']], bar: 'act', row: 6, safe: true } },
+  ...[12, 13, 14].map((act): LabScenario => ({ id: `spMap${act + 1}`, group: 'spoiler', spoiler: true, label: `Act ${act + 1} map`, secs: 30, try: 'Walk the map: its foes, stops and extras.', setup: { kind: 'map', act } })),
+  { id: 'spStory13', group: 'spoiler', spoiler: true, label: 'Act 13 story', secs: 60, try: 'Read the scenes.', setup: { kind: 'story', act: 12, scenes: ['noon1', 'sphinx', 'noonCamp'] } },
+  { id: 'spStory14', group: 'spoiler', spoiler: true, label: 'Act 14 story', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 13, scenes: ['noon2', 'brassLion'] } },
+  { id: 'spStory15', group: 'spoiler', spoiler: true, label: 'Act 15 story', secs: 90, try: 'Read the scenes.', setup: { kind: 'story', act: 14, scenes: ['noon3', 'noonBoss', 'noonBoss2', 'noonBoss3', 'noonVictory'] } },
+  { id: 'spEvent13', group: 'spoiler', spoiler: true, label: 'Act 13 event', secs: 30, try: 'Read it and choose. A real choice?', setup: { kind: 'event', act: 12, event: 'lostCaravan' } },
   // the fourth region in play: each act's foes, its mini-boss or boss (nothing hurts), its map and its story
   { id: 'spAct10', group: 'spoiler', spoiler: true, label: 'Act 10 foes', secs: 90, try: "Meet the act's foes and their moves.", setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 9, waves: [['bogWisp', 'mireToad'], ['reedling', 'reedling'], ['peatGolem']], bar: 'act', row: 3 } },
   { id: 'spMini10', group: 'spoiler', spoiler: true, label: 'Act 10 mini-boss', secs: 90, try: 'No damage here: watch its moves.', setup: { kind: 'fight', hero: 'rowan', stars: 2, act: 9, waves: [['bellybog']], bar: 'act', row: 6, safe: true } },
@@ -411,6 +421,9 @@ export const LAB_NEW: LabScenario[] = [
     setup: { kind: 'fight', hero: 'sable', act: 0, waves: [['crow'], ['boar'], ['slime']] },
     profile: { tips: ['finisher'] },
   },
+  // the Mapmaker's Edits (chunk 4): the chooser at camp, and a fight under all five
+  { id: 'editsCamp', group: 'camp', label: "The Mapmaker's Edits", secs: 40, try: 'Draw two in, rub one out. Clear what each does?', setup: { kind: 'camp', screen: 'edits' }, profile: { actsCleared: 2, weights: 1 } },
+  { id: 'editsFight', group: 'fights', label: 'All Edits, one fight', secs: 60, try: 'Fast reds, tough foes, thin heals: still fair?', setup: { kind: 'fight', hero: 'rowan', act: 2, waves: [['wolf', 'wolf'], ['boar', 'crow'], ['shaman', 'boar']], edits: ['swiftReds', 'ironHides', 'thinMercy', 'sharpEdges', 'lastLife'] } },
 ];
 
 /** Earlier sessions' items (still playable; rated before): round 6's heroes, companions, menus, chests and bar rules,

@@ -465,6 +465,8 @@ export class Combat {
   telegraph: Telegraph | null = null;
   /** Seconds until the next telegraph may start. */
   tellCooldown = 0;
+  /** Seconds of a calm beat (calm()): no foe sends a red from its pattern. */
+  redCalm = 0;
   /** Formation blocks waiting for their delay (motion time) or for room on the bar. */
   queue: Array<{ at: number; ownerId: number; entry: FormationEntry; tries: number }> = [];
   specialsOn: boolean;
@@ -1902,6 +1904,7 @@ export class Combat {
   private updateSpawners(): void {
     const B = this.tuning.blocks;
     const groupMult = this.groupFight ? B.groupSpawnMult : 1;
+    if (this.redCalm > 0) this.redCalm = Math.max(0, this.redCalm - DT);
     // Keep the bar stocked: a fast player should never stare at an empty bar.
     this.refillTimer -= DT;
     if (this.refillTimer <= 0) {
@@ -1927,6 +1930,11 @@ export class Combat {
       const kind = CODE_KIND[def.pattern[e.seq % def.pattern.length] as BlockCode];
       if (!kind) {
         e.seq++;
+        continue;
+      }
+      if (this.redCalm > 0 && isRed(kind)) {
+        // a calm beat: the red waits for it to pass (the pattern with it; the bar's refill keeps yellows coming)
+        e.spawnTimer = this.redCalm;
         continue;
       }
       if (this.trySpawn(kind, e.id, true) || this.crowded) {
@@ -2220,6 +2228,23 @@ export class Combat {
     const was = b.chill > 0;
     b.chill = Math.max(b.chill, sec);
     b.chillMult = was ? Math.min(b.chillMult, Math.max(0, mult)) : Math.max(0, mult);
+  }
+
+  /**
+   * A calm beat (the first finisher's reveal, docs/first-10.md): the special a foe is winding up is called off, and
+   * for `sec` of fight time no foe starts one (a boss's phase change still cuts in) or sends a red from its pattern;
+   * the timed specials wait at least that long. Called by the view, never by the sim itself.
+   */
+  calm(sec: number): void {
+    if (sec <= 0) return;
+    const tg = this.telegraph;
+    if (tg) {
+      this.telegraph = null;
+      this.events.push({ type: 'tellCancel', enemyId: tg.enemyId });
+    }
+    this.tellCooldown = Math.max(this.tellCooldown, sec);
+    this.redCalm = Math.max(this.redCalm, sec);
+    for (const e of this.enemies) if (e.alive) e.timers = e.timers.map((t) => Math.max(t, sec));
   }
 
   /** Stun a foe: it stops attacking for `sec`. */

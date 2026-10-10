@@ -2,8 +2,9 @@
 // restored. Each one, with and without: what it changes in the act's fights, that it pays (XP, first-clear gems once),
 // that it survives a save, and (the bot at 75%) that it measurably makes the act harder.
 import { describe, expect, it } from 'vitest';
-import { EDITS, EDIT_IDS, type EditId } from '../../src/data/edits';
-import { botRun, fight } from '../../src/core/bot';
+import { EDITS, EDIT_IDS, EDIT_LINE_W, type EditId } from '../../src/data/edits';
+import { textWidth } from '../../src/engine/font';
+import { botRun, fight, playAct } from '../../src/core/bot';
 import { heroMaxHp } from '../../src/core/combat';
 import { newProfile, type Profile } from '../../src/core/profile';
 import { Rng } from '../../src/core/rng';
@@ -45,6 +46,7 @@ describe("the Mapmaker's Edits", () => {
     for (const e of EDITS) {
       expect(e.name.length, e.id).toBeLessThanOrEqual(14);
       expect(e.line.length, e.id).toBeLessThanOrEqual(36);
+      expect(textWidth(e.line, 1, false), e.id).toBeLessThanOrEqual(EDIT_LINE_W); // (one row of the chooser)
       expect(e.weight, e.id).toBeGreaterThanOrEqual(1);
     }
     expect(newProfile().edits).toEqual({ on: [], cleared: {} });
@@ -157,7 +159,14 @@ describe("the Mapmaker's Edits", () => {
         return sum + Object.values(st.healBy).reduce((a, b) => a + b, 0);
       }, 0);
     expect(healBase(['thinMercy'])).toBeLessThan(healBase([]) * 0.8);
-    // Last Life: the act's revives are gone (every act's safety net)
+    // Last Life: the act's revives are gone (every act's safety net): over whole acts at 75%, more are lost
     expect(onAct(restored(['lastLife'])).hero.revives).toBeLessThan(onAct(restored([])).hero.revives);
+    // (Act 2 replayed by a hero with nothing: it dies now and then; measured 5 of 16 lost, 10 under Last Life)
+    const lost = (on: EditId[]) =>
+      seeds.filter((s) => {
+        const r = onAct(restored(on), 1, s);
+        return !playAct(r, new Rng(s * 13 + 5), { accuracy: 0.75, seed: s }).won;
+      }).length;
+    expect(lost(['lastLife'])).toBeGreaterThanOrEqual(lost([]) + 2);
   });
 });

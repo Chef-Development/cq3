@@ -1515,7 +1515,16 @@ function lighthouseParts(pose: string, phase: number): Part[] {
   out.push(limb(X(mx - 3), Y(phase > 1 || pose === 'tell' ? 24 : 28), X(mx), Y(31), 'L', { pal: GLOW }));
   // ---- the lantern room: a glass cage on the gallery, the sun shut inside it; a cupola and a vane on top
   const L0 = 22;
-  const sun = lampK >= 3 ? ['ZZZZZ', 'ZWWWZ', 'ZWWWZ', 'ZZZZZ'] : lampK === 2 ? ['XZZZX', 'ZZWZZ', 'ZZZZZ', 'XZZZX'] : ['qxxxq', 'xXXXx', 'xXXXx', 'qxxxq'];
+  // the sun shut in the lamp is its eye (the door below its mouth): a dark slit pupil, a pinprick when it flares, a
+  // squeezed lid when it's hurt (decision C-ART-9: it has to read as a face from across the stage)
+  const sun =
+    pose === 'hurt'
+      ? ['qxxxq', 'xkkkx', 'xXXXx', 'qxxxq']
+      : lampK >= 3
+        ? ['ZZZZZ', 'ZWWWZ', 'ZWkWZ', 'ZZZZZ']
+        : lampK === 2
+          ? ['XZZZX', 'ZZkZZ', 'ZZkZZ', 'XZZZX']
+          : ['qxxxq', 'xXkXx', 'xXkXx', 'qxxxq'];
   const room = [
     '1' + '2'.repeat(15) + '1',
     '2' + sun[0].padStart(10, '.').padEnd(15, '.') + '2',

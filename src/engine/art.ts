@@ -13,6 +13,7 @@ import { buildHeroArt } from './art-heroes';
 import { buildRarityArt } from './art-rarity';
 import { buildRelicArt } from './art-relics';
 import { buildAshRelicArt } from './art-relics-ash';
+import { buildNoonRelicArt } from './art-relics-noon';
 import { buildSableArt } from './art-sable';
 import { buildShrineArt } from './art-shrine';
 import { buildDummyArt } from './art-dummy';
@@ -579,16 +580,19 @@ function banditRows(arm: string[], legs: string[], o: FoeOpts & { raise?: boolea
 export const PIP_W = 36;
 export const PIP_H = 24;
 
+// (playtest round 8, L8, after the fresh-eyes review: Pip was the brightest thing on every stage, a noon-sky blue
+// with big yellow eyes beside a moody hero. Now a night-teal owl a couple of steps darker, small amber eyes with one
+// glint each, a grey-cream belly: still round, tufted and charming, never brighter than the hero.)
 const PIP_SHADES: Record<string, Shade> = {
-  b: { ramp: ['#14204a', '#1e3c8a', '#2a6ad8', '#4aa0f0', '#9ad8ff'], same: 'kwWgyYf', top: [4, 3], left: [3], right: [1, 1], bottom: [0, 1] },
-  c: { ramp: ['#7a6a6a', '#c8b496', '#efe2c4', '#fff8e6', '#ffffff'], same: 'v', top: [3], left: [3], right: [1], bottom: [1] },
+  b: { ramp: ['#0c1620', '#173040', '#22495a', '#33666e', '#4e8684'], same: 'kwWgyYf', top: [4, 3], left: [3], right: [1, 1], bottom: [0, 1] },
+  c: { ramp: ['#3e3a3a', '#6e665c', '#94897a', '#b2a690', '#c8bca4'], same: 'v', top: [3], left: [3], right: [1], bottom: [1] },
 };
 const PIP_PAL: Pal = {
-  k: '#140c1c', i: '#ffd84a', I: '#e89a20', W: '#ffffff', // eyes
-  f: '#8ac4f6', // facial disc
-  g: '#ffe070', y: '#f2a020', Y: '#b0601a', // beak and feet
-  v: '#c8b496', // belly chevrons
-  B: '#1a2e70', n: '#3a78d8', N: '#6aaef0', // wing feathers
+  k: '#140c1c', i: '#d09a3a', I: '#9a6220', W: '#f0e2c0', // eyes
+  f: '#557a76', // facial disc
+  g: '#d0a85a', y: '#a8782a', Y: '#6a4418', // beak and feet
+  v: '#7a7062', // belly chevrons
+  B: '#0e1c28', n: '#28485a', N: '#3e6a72', // wing feathers
 };
 // 22 wide, egg-shaped with ear tufts
 const PIP_BODY = [
@@ -610,16 +614,16 @@ const PIP_BODY = [
   '...bbbbbbbbbbbbbbbb...',
   '.....bbbbbbbbbbbb.....',
 ];
-// big yellow eyes looking right, set in a pale facial disc
+// small amber eyes (one glint each) set in the facial disc
 const PIP_FACE = [
   '..fffff..fffff..',
-  '.ffkkkf..fkkkff.',
-  'ffkiiikffkiiikff',
-  'fkiiWkikkiiWkikf',
-  'fkiikkikkiikkikf',
-  'fkIIIIIkkIIIIIkf',
-  'ffkIIIkffkIIIkff',
-  '.ffkkkfgyfkkkff.',
+  '.ffffff..ffffff.',
+  'ffkkkkffffkkkkff',
+  'ffkiWkffffkiWkff',
+  'ffkIIkffffkIIkff',
+  'fffkkffffffkkfff',
+  '.ffffffffffffff.',
+  '.ffffffgyffffff.',
   '...ffffyYffff...',
 ];
 const PIP_BELLY = [
@@ -1000,6 +1004,7 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   buildHeroArt(add);
   buildRelicArt(add);
   buildAshRelicArt(add);
+  buildNoonRelicArt(add);
   buildCampArt(add, w, 150);
   buildCompanionArt(add, owlFrame('down'));
   buildChestArt(add);

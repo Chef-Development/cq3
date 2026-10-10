@@ -36,8 +36,8 @@ One PR at the end supersedes #1-#7.
 | 7 | The Great Atlas world map (2A); animation upgrade + lighting pass (2B); 2x rollout | 2A/2B/2C | Atlas done (L6/L7), title key art, portraits, UI de-gloss (L8), heroes mature (2B), backdrops darker (2C); 2x rollout + overlays next (2A), portraits/walkers (2B), foes (2C) |
 | 8 | Region 4 complete: in play + balance (3), art + music (dusk-art) | 3 + dusk-art | in play, balanced (acts 10-12: 84-90 / 71-74 / 53-69%, masher 0/73); art + music landing; parity pass next |
 | 9 | Resizable window, Android, code split, bot crawl part 1; then reviewers | 4 | done (10 window sizes, Pixel 7 + small Android, later regions' art in their own chunks: -9% main chunk, core crawl 16 heroes x 4 seeds clean, UI crawl through Act 1 clean); next: smoke timeouts, accessibility, crawl Acts 2-3 |
-| 10 | Region 5 (bar rules + data done, not in play; art and wiring later) | 3 + dusk-art | plays end to end behind NOON_ON (off); first balance pass; art + music in progress (dusk-art) |
-| 11 | Backlog cycle (QA, Region 6, polish, NG+, more content, music, accessibility) | all | later |
+| 10 | Region 5 | 3 + dusk-art | in play (NOON_ON on): art, music, scenes, events, pages; balanced (acts 13-15 pooled 79/65/48%), bot-region5 guard, masher loses |
+| 11 | Backlog cycle | all | NG+: the Boar King's revision (one remix, foundations for more); the Mapmaker's Edits (opt-in modifiers) in progress; 8 events + 4 story bounties + Atlas pages + 6 companion designs; accessibility done |
 | 11a | Fresh-eyes screen reviewers (lead spawns; owners fix) | Lead + all | 3 reviewers running since 23:55 (title/maps/story, fights, camp/menus/desktop) |
 | 11b | Region 5 art + music (a dusk-art-style helper), Region 5 into play | 3 + helper | after 23:00 |
 | 11c | The sharper 2x layer rolled out to menus/cards/text where it reads better | 2A | after the menus |
@@ -164,3 +164,14 @@ One PR at the end supersedes #1-#7.
   as one still picture, a scene over the region card, tips in the way, the title's small Rowan). Routed to 2C, 2A,
   QA-menus, first10; a story instance launched to stage scenes (heroes who speak stand on the stage; arrivals show the
   chest and the hero) and fix the flagged words.
+- 00:55-01:31 EDT: the session hit its usage limit: every agent stopped mid-task (and the container restarted again).
+  01:31: the limit reset; all nine agents RESUMED with their context (not fresh), each with a narrowed scope and a
+  hard stop 02:45-03:45, told to be economical; after that only a few agents, and none past ~04:30, so the final
+  integration (baselines, full suites, the PR) can't be starved by a second limit. Merged their committed work (a
+  conflict in app.ts: Region 5's boss cues beside the first Mapmaker's revision).
+- 01:55 EDT: resumed agents' results merged: story staging (heroes who speak stand on stage; chest arrivals shown),
+  the act map's tag words; QA-fight (number lanes, the shout lane, HP readouts, finisher names, event outcome chips);
+  2B (Brann/Solenne/Yara faces, Pip and companions graded under the hero, Rowan's helm); 2C (the crow, Act 3's red
+  wash, the Act 1 map, the yeti cub); content (Region 5 in play, balanced, guarded; the Boar King's revision as the
+  first New Game+ remix). Unit suite 1,235 green; boot-checked; pushed. Lead's look at the title and intro: good.
+  Next: QA-fight on the bar-rule markers, content on Tess/Vesper; 2A, QA-menus, first10, dusk-art finishing.

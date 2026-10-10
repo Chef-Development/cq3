@@ -101,6 +101,11 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Greenmarch foes | 4 (cute: blush, smiles, candy colours) | 4 | `after/foes-menace-greenmarch.png` (top before, bottom after). Slimes scowl with glowing eyes and teeth, a bone in the core; the boar, crow, bandit, captain, shaman, wolf and piglets darker with an edge; the Boar King's ember eye, fangs, hackles and jagged crown. |
 | Frostpeaks foes | 4 | 4 | `after/foes-menace-frostpeaks.png`. Glacia darker with a slit pupil and fangs; the yeti cub's dark face and glowing eyes. |
 | Pendulum symbols on foes | | | Gone from the Boar King (crown, portrait), the golem's crown (a glowing compass-star rune) and Bellows (a white-hot blade on his anvil); the captain's and golem's portraits are 2A's (A19). |
+| Act 1 map (review 1's top finding) | 3 (bright noon, candy) | 4 | `after/map-act1-dusk-before-after.png` (the review's build, the first mood pass, now). Darker and cooler, a dusk vignette, muted wildflowers, a weathered war tent (A2C-12). |
+| Map minis, Greenmarch | 3 (cute) | 4 | `after/map-minis-before-after.png`. Slimes with glowing eyes and a fanged maw, a hooded crow, the fight palettes; an elite's skull red-eyed on the foe (A2C-13, A2C-14). |
+| Act 3 stage (the hollow) | 3 (one red wash) | 4 | `after/fight-act3-planes-before-after.png`. Red sky kept; far planes cool violet, the ground calm cool plum (A2C-10). |
+| The crow at dusk | 3 | 4 | `after/crow-dusk-before-after.png`. A paler mantle and a lit wing edge (A2C-11). |
+| The yeti cub | 2 (a smiling snowball) | 4 | `after/yeti-cub-before-after.png`. Hunched, head low under a brow ridge, tusks, frost-grey (A2C-15). |
 
 ## Heroes, portraits, walkers and finishers (round 8, team 2B: L8)
 

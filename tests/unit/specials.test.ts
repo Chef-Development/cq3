@@ -50,6 +50,28 @@ describe('telegraphs', () => {
     expect(c.time - firstAt).toBeGreaterThanOrEqual(t.specials.tellGap - 0.01);
   });
 
+  it('a calm beat (the first finisher\'s reveal) calls off the wind-up, and no special or red comes for its length', () => {
+    const { c } = setup({ enemies: ['boar', 'wolf'], specials: true });
+    until(c, 'telegraph');
+    expect(c.telegraph).not.toBeNull();
+    for (const b of reds(c)) c.removeBlock(b, 'finisher');
+    c.drainEvents();
+    const t0 = c.time;
+    c.calm(3);
+    expect(c.telegraph).toBeNull();
+    expect(of(c.drainEvents(), 'tellCancel')).toHaveLength(1);
+    const ev: CombatEvent[] = [];
+    while (c.time < t0 + 2.9) {
+      c.step();
+      ev.push(...c.drainEvents());
+    }
+    expect(of(ev, 'telegraph')).toHaveLength(0);
+    expect(ev.filter((e) => e.type === 'spawn' && isRed(e.kind))).toHaveLength(0);
+    // ...and then the fight goes on as before
+    const later = until(c, 'telegraph', 20);
+    expect(of(later, 'telegraph').length).toBe(1);
+  });
+
   it('a telegraph is called off if its enemy dies first', () => {
     const { c } = setup({ enemies: ['boar', 'slime'], specials: true });
     until(c, 'telegraph');

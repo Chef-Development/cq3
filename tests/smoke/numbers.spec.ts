@@ -371,6 +371,9 @@ test('numbers: the camp: companions, chests and an opening, the shrine (odds, pi
   // the region card's Atlas pages, read from a treasure seal
   await run(page, `p.pages = [0, 1]; camp().go('home', now()); camp().go('progress', now()); camp().progress.open(now(), 0); camp().progress.showPage(now(), 1);`);
   await check(page, 'completion: the Atlas pages found', 900);
+  // the Mapmaker's Edits: three drawn in, odd rewards, seals won
+  await run(page, `x.run.tuning.edits.xpPer = 0.1537; x.run.tuning.edits.gemsPer = 3.7; p.edits.on = ['swiftReds', 'thinMercy', 'lastLife']; p.edits.cleared = { 0: ['swiftReds'], 2: ['ironHides', 'lastLife'] }; camp().go('home', now()); camp().go('edits', now());`);
+  await check(page, "the Mapmaker's Edits", 900);
 });
 
 test('numbers: the gear panel and the Test lab list', async ({ page }) => {

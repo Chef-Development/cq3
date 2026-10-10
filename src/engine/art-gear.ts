@@ -6,6 +6,7 @@
 // ember orange with brass fittings. Signature drops are gold and glow.
 import { BASE_ITEMS } from '../data/gear';
 import { ASH_BASE_ITEMS } from '../data/gear-ash';
+import { NOON_BASE_ITEMS } from '../data/gear-noon';
 import { grid, stamp, toCanvas, type Pal } from './art';
 
 type Add = (key: string, canvas: HTMLCanvasElement) => void;
@@ -647,13 +648,36 @@ function icon(key: string): HTMLCanvasElement {
   return toCanvas(g);
 }
 
+/** Region 5's bases (sand-worn linen and brass under a pinned sun; the Gnomon's two signatures gold and glowing),
+ *  painted whether or not the region is in play. */
+const NOON_ICONS: Record<string, string[]> = {
+  dialspear: ['........90', '.......987', '......987.', '.....6Y...', '....hH....', '...hH.....', '..hH......', '.hH.......', 'hH........', 'h.........'],
+  sunsaber: ['.........W', '........45', '.......45.', '......34..', '.....34...', '..g.34....', '...gy.....', '..hyg.....', '.hH.......', 'hH........'],
+  spirehammer: ['......7...', '.....CDC..', '....CDDDC.', '.....CDDDC', '......CDC.', '.....h.C..', '....hH....', '...hH.....', '..hH......', '.hH.......'],
+  veilhood: ['...ZZZZ...', '..ZXXXXZ..', '.ZXXXXXXZ.', '.ZXkkkkXZ.', '.ZkgkkgkZ.', '.ZXXXXXXZ.', 'ZXAXXAXXXZ', 'ZXXXXXXXXZ', 'ZKXKXXKXKZ', '.KKKKKKKK.'],
+  brassvisor: ['...6776...', '..678876..', '.67889876.', '.6kkkkkk6.', '.67888876.', '.67k88k76.', '.67888876.', '..677776..', '..66..66..', '..........'],
+  dustmail: ['.ZZ....ZZ.', 'ZXZ3443ZXZ', 'ZZ343434ZZ', '.Z434343Z.', '..343434..', '..434343..', '..343434..', '..434343..', '..KZKZKZ..', '..ZKZKZK..'],
+  sunplate: ['.33....33.', '3443223443', '.34444443.', '.34489443.', '.34899843.', '.34489443.', '.34444443.', '..344443..', '..233332..', '...2222...'],
+  dunestriders: ['...KZXZ...', '...ZXZK...', '...KZXZ...', '...ZXZK...', '...KZXZ...', '...dhHh...', '...dhHhh..', '...dhHHhh.', '...ddhhhhd', '...aaaaaa.'],
+  stairtreads: ['..dhh.....', '..dhH.....', '..dhH.....', '..dhH.....', '..dhHh....', '..dhHHh...', '..dhHHhh..', '..dhhhh78.', '..ddddd788', '..a6a6a6a.'],
+  noonpearl: ['....78....', '...7887...', '..ZXAAXZ..', '.ZXAWWAXZ.', '.XAWWAAAX.', '.XAAAAAXZ.', '.ZXAAAXZK.', '..ZXXXZK..', '...KZZK...', '..........'],
+  hazeglass: ['....hh....', '....hh....', '....33....', '...3TT3...', '..3TiiT3..', '..3tTTt3..', '..3stts3..', '..3tTTt3..', '...3ss3...', '....33....'],
+  sunhat: ['..........', '...ZXXZ...', '..ZXJXXZ..', '..ZXXXXZ..', '..RrrrrR..', 'ZZXXXXXXZZ', 'KZZXXXXZZK', '.KKZZZZKK.', '..........', '..........'],
+  linenrobe: ['..ZXZZXZ..', '.ZXXkkXXZ.', 'ZXXXXXXXXZ', 'ZXXXXXXXXZ', '.ZXXRRXXZ.', '..ZXXXXZ..', '..ZXXXXZ..', '..ZXXXXZ..', '.ZXXXXXXZ.', '.KZZZZZZK.'],
+  sandals: ['..........', '..........', '...h.h....', '...hh.....', '...h.h....', '...h..h...', '...h...h..', '.hHHHHHHh.', '.dddddddd.', '..........'],
+  waterskin: ['....hh....', '...h..h...', '....dd....', '...dhHd...', '..dhHHjd..', '.dhHHHjhd.', '.dhHHHHhd.', '.dhhHHhhd.', '..dhhhhd..', '...dddd.L.'],
+  sunstone: ['....9.....', '.9..8..9..', '...888....', '..8g0g8...', '98g000g89.', '..8g0g8...', '...888....', '.9..8..9..', '....9.....', '..........'],
+  gnomonhand: ['.........0', '........99', '.......989', '......9887', '.....9877.', '...6y87...', '..y6y.....', '..hy......', '.hH.......', 'hH........'],
+};
+Object.assign(ICONS, NOON_ICONS);
+
 /** The look an item borrows until its own icon is painted. */
 const SLOT_FALLBACK: Record<string, string> = { weapon: 'saber', helm: 'hood', armor: 'ringmail', boots: 'hobnail', trinket: 'locket' };
 
 export function buildGearArt(add: Add): void {
   const done = new Set<string>();
   // Region 3's bases are drawn too (not in BASE_ITEMS until the region is in play; then they're simply skipped here)
-  for (const b of [...BASE_ITEMS, ...ASH_BASE_ITEMS]) {
+  for (const b of [...BASE_ITEMS, ...ASH_BASE_ITEMS, ...NOON_BASE_ITEMS]) {
     if (done.has(b.icon)) continue;
     done.add(b.icon);
     // an item without a painted icon yet borrows its slot's look

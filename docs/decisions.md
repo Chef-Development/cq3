@@ -913,6 +913,23 @@ S18. **The third editor's notes (round 8, 46 items): applied, with two calls of 
     is already earned in saves). Not ours, passed to the lead: Tess and Brann both unlock Crampons at mastery 5.
     US spelling throughout ("gray", "travelers").
 
+S19. **Story scenes are staged from their speakers** (`view/story-stage.ts`; the fresh-eyes review's "one still
+    picture"). Every hero who has spoken so far stands on the stage in their fight idle frames (anchored at the feet
+    like the fight view), stepping in the first time they speak; the speaker is lit (full colour and a warm pool at the
+    feet), the others a step darker, everyone even while a voice off the stage speaks. The hero fighting already stands
+    there (fighters.ts): the stage lays a lit copy over them and over the companions (`Fighters.heroImage`). Others
+    face the party from the right; with a foe on stage (a boss's scene mid-fight, or a boss speaker shown in its fight
+    sprite on the right, found by its name in the enemies' data) they line up facing the foes. Companions and the other
+    voices (narrator, the Mapmaker, Hesper, Mags) keep their portraits only. A chest hero's arrival (`HEROES[id].meetScene`)
+    shows the open hero chest lit in their rarity colour, and they rise out of its light and hop to their spot; a story
+    hero's join (`JOINS`: sableJoin, neveJoin) steps them in. Over the camp, only a join or an arrival is staged, in a
+    pool of light on a deeper dim (the camp's own scenes already show their speakers). No staging data, no new art,
+    drawn from `now` and when the scene and boxes began. Props from the text (a sleeping farmer, the lamp) are not done.
+S20. **Map and menu words from the reviews.** Node tags name the node (Fight, Elite, Coin Rush; not Gear, Gear+, Rush);
+    the act picker says "Play again" and "Boss drop" (not "Replay (farm)", "signature"); the shrine's sheet is
+    "Guaranteed" (not "Pity"); a potion at full HP says "At full HP"; the skill tree's "Next point: Lv N"; a companion's
+    sheet opens on its kind alone ("Sky whale. Tides." read like a note).
+
 (story: end of section)
 
 
@@ -1111,6 +1128,20 @@ A2B-13. **Map walkers 18 px tall** (the chest heroes' walkers in `art-hero-map.t
     to two more leg rows, so they stand about three heads tall like the fight frames, with the mature grade. The act
     map and the title anchor a walker at its feet from its own height (two rows up from the bottom), so walkers of any
     height share the ground line.
+
+A2B-14. **Heads no wider than the shoulders** (fresh-eyes review, F10: Brann ~2 heads at 3x, flat faces): the hero
+    select magnifies the fight frames 3x, so a head as wide as its torso reads chibi there however tall the body is.
+    Brann's head redrawn 12 x 10 (was 16 x 11) in weathered skin with an ear and a shaded face; Solenne and Yara
+    14 wide with the side plane of the face in shadow, sockets under the brows, a lit cheekbone and nose tip and a
+    shaded jaw; Rowan's helm a row and a column smaller (12 x 10, the plume a px shorter: the title, the hero select
+    and the fight show the same mature Rowan); Tam, Wren, Fizz and Dell lose two columns at the back of the head
+    (`narrowHeads`, every face variant narrowed alike; Dell's brim a px in at each end). Rule of thumb for a new
+    hero: head width <= torso width, a face with at least two skin tones.
+A2B-15. **Companions never outshine the hero** (review: Pip the brightest thing on every stage): Pip's frames (fight,
+    camp, maps, title) in a night teal with small amber eyes and a grey-cream belly; the other companions' frames
+    take `moodGrade` (art-companions.ts: a step below the heroes' `gradeGrid`, value and saturation down; their glow
+    passes and the bar's perk effects untouched, they are feedback). Flying companions hover 3 px lower (party.ts
+    `FLY_Y`). Pip's story portrait is 2A's (not changed here).
 A20. **The sharper text: where the fine layer went and where it didn't** (the chest reveal's 2x layer rolled out to
     what the player reads most; judged from side-by-side phone shots, 874x402 @3x, each crop at device pixels).
     *How:* a `TextPool` a surface hands the fine layer (`pool.hd`, view/hd-text.ts) draws each text it can on one DOM
@@ -1187,6 +1218,32 @@ A2C-16. **Bellows ember-rimmed** (review 2: grey plates on a dark forge): he joi
     three phase looks.
 A2C-17. **The glacier's far hoard sits back** (review 2: a gold shape at foe height read as an actor): hazed into the
     blue, its glow and glints cut down; a dull far gold, not a lit shape.
+A21. **The fresh-eyes review's 2A findings, first pass** (review-1/2/3 at 00:00; sheets in
+    `docs/art-audit/after/stops-as-places-before-after.png`, `region-card-title-before-after.png`). *Map stops as
+    places:* an event, the bounty board and the trader no longer open the full-width navy panel with a cream card; the
+    act's stage stays in view (a light dim, a stronger vignette) and the stop's focal figure stands in a lantern's pool
+    on the left (`ui-modern.ts stopLight`): the hero with the map's "?" over him at an event, the board's map sprite at
+    3x, the trader's at 3x (map sprites scaled whole, the bible's rule); the stage's own hero and party step aside on
+    those three (fighters.ts `showcase`). The words sit on a glass plate beside it; the parchment (ui.ts `parchment`,
+    events and the board) is aged (#6a4a2c-#a8845a) with a burnt rim and dark ink; an event's plate is as tall as its
+    words (re-wrapped to the plate) and its choices, the trader's as tall as her wares (it was two thirds empty). The
+    regular shop keeps its full board (five rows and a half-width potion/reroll pair don't fit beside a figure).
+    *Region card:* the study's map rack is dim scroll ends in cubbies and the lantern a lantern (they read as an
+    unlabelled legend and a stray rectangle); the region maps are aged in one grade after painting (`aged()`: a
+    quarter desaturated, ~70% value, warmed) with a vignette inside the frame; seals 13 px (`SEAL_R` 6, step 14; the
+    fit test still passes) with a two-tone emblem; empty sockets dark ink holes with the emblem ghosted pale; tabs an
+    emblem per region (tree, peak, smoking cone, moon on water, sun on a spire), the open one dark brass with its full
+    name in light letters (four names never fit a phone's bar; "Green / Frost / Ash" read as colours); the locked
+    reward button reads "At 100%". *Title:* the blank's ramp drops to the fog ramp (#5a524e-#887c72), the sheet's edge
+    burnt and ragged, its right side darkening, the page-curl aged parchment; on the title the HTML buttons sit in the
+    top-right corner (style.css `html.on-title`, main.ts `--game-right`), off the logo's rule. *Revived!:* a warm
+    130 ms breath on the stage plus a glow, ring and motes on the hero, not a 320 ms lime wash. *Chrome:* FACE and
+    RIBBON a step deeper and less saturated (no base above ~60% value); the reward cards' rarity faces worn (moss,
+    steel blue, plum: the predecessor's L8 pass). *Not done (this chunk):* the relic pick as upright cards and the
+    unlock card stacked on the first pick; the world map items (the first-visit glide, the veils' straight edges,
+    coloured rivers on erased land, the full-colour far isle, the plate's 0/12, the windmill, padlocks); Pip's portrait
+    and name tab; the Atlas page sheet; the victory's restore motif; the loot screen's emptiness; the Options panel's
+    look; the camp's doubled labels.
 
 (art: end of section)
 
@@ -1307,6 +1364,30 @@ C16. **Tess's and Vesper's gaps in the fourth region aren't a rule meeting their
     their kits work there, the region just gives them less (Tess's soft strengths are fire and construct; Vesper keeps
     the reds a finisher would clear, in the region with the most reds in water). Left for a hero-numbers pass.
 
+C17. **The fifth region joins the campaign** (its art and music landed): `NOON_ON` is on (`CQ3_REGION5=0` leaves it
+    out for a balance tool), its music and beds are cued (acts 12-14, the sphinx, the brass lion, the Gnomon phased),
+    the region card's tab is "Noon", and its Test lab items are the in-play set (each act's foes, mini-boss or boss with
+    nothing hurting, its maps, its story and an event; the early looks reworked, rev 1). Its numbers stay as the first
+    pass set them: a 75% Rowan from a typical end-of-Duskmire hero clears it on target (three 30-run samples pooled,
+    `tests/unit/bot-region5.test.ts`), and the masher loses its Act 3 and its boss (`bot-masher.test.ts`, its row came
+    free). Nothing else assumed four regions (the fast unit tests all passed with it on).
+C-ART-9. **Region 5's telegraph sounds are in** (`skitter`, `shimmer2`, `sunflash`, `scorch`, `roar`, `needle`, `glare`,
+    `heatwave` in `TellSound`, the Sound lab and `TELL_MIX`), and app.ts cues its music (`noon1`-`noon3`, the sphinx,
+    the brass lion, the Gnomon, phased) and beds (`dunes`, `spire`, `dial` for acts 12-14). The Gloaming Lighthouse's
+    lamp already cleared the enemy plate (C-ART-4, after the review's build); the review's second ask is in too: the
+    sun in the lamp is an eye (a slit pupil, a pinprick when it flares, a squeezed lid when hurt), its face with the
+    door-mouth.
+C-ART-10. **Region 4's bar, readable at phone size** (review 2's DUSK-ART findings): the lantern is a pool of saturated
+    amber in four steps with the track's rails catching it and a dithered edge (a pale amber over the violet track read
+    as brown dirt); blocks in its light catch it on their top edge; an unlit dark block is ink-grey with a faint "?"
+    (violet is the trap's colour, and some dark blocks are traps); the tide has a moving crest along its top, rings
+    where the cursor wades, and sunk blocks keep their own colour under a thin veil with ripples (not olive). The
+    Duskmire skies' long 1 px cloud streaks are short clumps at least 3 px tall.
+C-ART-11. **Region 5's relic icons, tag chips and region card map** (`art-relics-noon.ts`, painted at boot after the
+    Ashfell ones whether or not the region is on; `noonspire()` in art-region-map.ts, a sand plateau with salt pans and
+    a dotted mirage lake), and its seventeen gear icons (art-gear.ts `NOON_ICONS`; Region 4's still borrow the slot icons). Under L7 its first act
+    map's sand is a cool neutral stone (it read as mud), the salt pans a step brighter and still under the road.
+
 (content: end of section)
 
 
@@ -1415,6 +1496,25 @@ C16. **Tess's and Vesper's gaps in the fourth region aren't a rule meeting their
   region packs (`loadChestHd`); `ChestOpening.view` reads 'old' in the moment before it's in and `__cq3.ready` waits
   for it, so the reveal and the tests behave as before. The chest-hd spec's side-by-side screenshot fails on the run
   branch's own code too (the old reveal's sparkles land elsewhere: a stale baseline for the lead to regenerate).
+- **Q17 An event's outcome shows each change where it lands**: a chip per change (HP, max HP, coins, Attack, Companion
+  Power) under the outcome's text, each with its number rising off it (`view/nodes.ts`; the chips are tall enough
+  for the heart icon).
+- **Q18 Fight text gets lanes** (review 2's top findings; `view/num-lanes.ts`, pure, unit-tested). Every damage number
+  and short word over the stage (`fx.num`, which `floatNum` now is) takes the free box nearest where it wants to be
+  (up first, then aside, then down) that no live number, shout or finisher name holds and the HUD keeps (`hud.keepOut()`:
+  the plates, the act plate and wave pips, the relic belt, the name lane, the combo counter; nothing floats above
+  y 30); numbers rise 10 px at a steady pace instead of the old arc, so the box they hold is known. A finisher's blows
+  are summed into one number above the foes' heads (what each foe really took, from the batch's enemyHurt events),
+  counting up a step per foe hit with a swell each (no more "36?367"). A foe's special name (`fx.shout`) gets its
+  own box on a dark plate, clear of the plates and pips and of other shouts (aside first), numbers already there fade
+  out and none enter it while it's up; a foe's new shout replaces its last. The finisher's name is bold 2 (1 when
+  over 200 px), pale gold, the stacks a small "x3" tag after it, over the foes and under the plates; the name lane
+  holds its perk names while it's up. The judgement word steps right of the combo counter; "Combo 25!" stamps above
+  the counter, not on it.
+- **Q19 HP readouts read**: the gauge skips its notches and end cap under the readout and puts a dark inset behind it
+  (`GaugeOpts.label`); a foe plate keeps one format the whole fight, chosen by its max HP (`foeHpText`: "71/90", or
+  both halves in thousands, "7.7k/12.3k"). In a scene during a fight (a boss's phase line) Skip rests on the dialogue
+  box's top edge at the end away from the portrait, never on the foe's plate.
 - **Q2-1 A top-bar strip too long for the bar pages** (`CampKit.stripRow`, the hero select's faces and the skill
   tree's): 15 px faces, then 13 px, and when even those don't fit (sixteen heroes beside a Dynamic Island), a window of
   13 px faces between two small arrows that page it; the window follows the hero on view. Chosen over two rows (9 px
@@ -1532,5 +1632,34 @@ F16. **A new player's first relic pick is two plain cards** (`CORE:` run.ts, the
 F17. **The newcomer bot spends skill points** (`tests/smoke/first10.spec.ts`): from the first chest on, whenever a
     point is waiting on the map it taps Camp, opens Skills, learns down one branch and goes back (`F10_SKILLS=0` never
     does), so its boss result compares with the balance bot, which spends them after every loot.
+
+F18. **The Mapmaker's Edits** (the lead's request; `CORE:` b092f75): five opt-in hardships a player draws into the
+    next act once Region 1 is restored (off by default; never in the first ten minutes): Swift Reds, Iron Hides, Thin
+    Mercy, Sharp Edges, Last Life. They pay +15% XP per point of weight and gems the first time each act is cleared
+    under each (no timers, energy or money). Chosen at camp (an oxblood Edits key right of the top bar's middle; its
+    glyph alone when the purse leaves no room) or from the act picker's key (top left of the panel, with the count),
+    on the Atlas study's stage: one iron plate per Edit (a socket round its glyph, an oxblood wax seal once drawn in),
+    the ledger on the right (a big seal with the count, the XP and gems the next act pays, the seals won). In a fight
+    the act plate carries an oxblood "2 Edits" tag beside it; the plate no longer shows the map row ("1/8", a riddle
+    to the reviewers: the skulls under it count the foes). Unit tests: each with/without, the rewards, the save, each
+    line fits its row, and the bot at 75% (each costs more; Last Life: Act 2 lost 10 of 16 times, 5 without).
+    Test lab: "The Mapmaker's Edits" (camp) and "All Edits, one fight".
+
+F19. **The first finisher's reveal keeps its promise** (review 2, high; `CORE:` combat.ts `Combat.calm`). It stamped
+    "Hits all, clears reds." while the boar's Charge! was already winding up under the letterbox, and two reds were back
+    within 2 s of the show. The reveal now calls a calm beat: the wind-up is called off, and no special or pattern red
+    comes through the show and 2.5 s after it (`REVEAL_CALM_SEC`; yellows keep coming); the show doesn't stamp its
+    name a second time over the fading reveal, and the act plate and skulls hide under the letterbox. View-called only
+    (the sim and the bot never call it). Measured (newcomer bot, seeds 7 and 9): no shout under the reveal, an empty
+    bar of reds 3 s after the blow.
+F20. **The first tips out of the fighters' way** (review 1). Fight tip cards sit at the very top of the stage (over the
+    act plate while the fight waits), their "Tap to continue" on the top edge beside TIP, so the card ends above
+    Rowan's and Pip's heads; an arrow that would run down through them is only its head, just over the block (the gold
+    window still rings it). The meter's "SWIPE!" waits for the finisher's lesson (a full meter before it is quiet,
+    its gems lit). The bounty tip sits at the top (`TipDef.top`): the goal, the reward and Take it stay in view. The
+    travelling trader's stall gets her own tip; the shop's waits for a real shop (it was spent on her stall, and hers
+    never showed; unit test). The map tip's window takes Rowan in.
+F21. **The first map says "tap here"** (review 1): until the first step, a bright chevron bobs over each spot Rowan
+    can go to, and "Tap a glowing spot" is drawn at full strength (it was the faintest words on the screen).
 
 (first10: end of section)

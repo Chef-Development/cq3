@@ -36,7 +36,7 @@ import { BAND_H, COL, DASH_MS, DEATH_CHARGE_MS, inRect, kindCol, stackCol, tintG
 import { Stage } from './view/stage';
 import { TipsView } from './view/tips';
 import { FinisherGallery } from './view/finisher-gallery';
-import { FinisherReveal, REVEAL_MS } from './view/finisher-reveal';
+import { FinisherReveal, REVEAL_CALM_SEC, REVEAL_MS } from './view/finisher-reveal';
 import { Transition } from './view/transition';
 
 export class FightScene extends Phaser.Scene implements View {
@@ -82,6 +82,7 @@ export class FightScene extends Phaser.Scene implements View {
   private pending: Pending[] = [];
   private lastCombat: Combat | null = null;
   private pauseShown = true;
+  private titleShown = false;
   // modules
   readonly fx = new Effects(this);
   readonly barView = new BarView(this);
@@ -595,8 +596,14 @@ export class FightScene extends Phaser.Scene implements View {
           fx.floatNum(GAME_W / 2, 44, 'BOOM!', 0xff8a3a, 2);
           break;
         case 'finisher': {
+          // what each foe really took (a shell halves it): the show sums them into one number
+          const dealt = new Map<number, number>();
+          for (let j = i + 1; j < events.length; j++) {
+            const x = events[j];
+            if (x.type === 'enemyHurt' && x.source === 'finisher') dealt.set(x.enemyId, (dealt.get(x.enemyId) ?? 0) + x.damage);
+          }
           if (!this.reveal.wanted()) {
-            f.heroFinisher(e.damage, e.stacks, e.targets);
+            f.heroFinisher(e.damage, e.stacks, e.targets, dealt);
             hold = Math.max(hold, f.superMs);
             break;
           }
@@ -605,10 +612,15 @@ export class FightScene extends Phaser.Scene implements View {
           const def = heroDef((this.app.run.hero.build?.id ?? 'rowan') as HeroId);
           this.reveal.start(def.finisher.name, def.finisher.short, f.h.x + 2, this.ground - 20);
           const show = finisherShowMs(Math.max(1, Math.min(5, Math.round(e.stacks) || 1)));
+          // it promises "clears reds": the special a foe was winding up is called off, and no special or red comes
+          // through the show and a beat after it, so the cleared bar is there to see (Combat.calm, fight time: the
+          // clock holds through the reveal itself)
+          this.app.run.combat?.calm(show / 1000 + REVEAL_CALM_SEC);
           f.superFinalAt = this.anim + REVEAL_MS + show * FINISHER_BLOW_AT;
           f.setHeroPose('windup', REVEAL_MS);
           const { damage, stacks, targets } = e;
-          this.later(REVEAL_MS, () => f.heroFinisher(damage, stacks, targets));
+          // (the name was just stamped in big: the show doesn't shout it again over the fading reveal)
+          this.later(REVEAL_MS, () => f.heroFinisher(damage, stacks, targets, dealt, false));
           hold = Math.max(hold, REVEAL_MS + show);
           break;
         }
@@ -694,8 +706,13 @@ export class FightScene extends Phaser.Scene implements View {
           break;
         }
         case 'revive':
-          fx.screenFlash(0x9af0a0, now, 320);
-          fx.floatNum(this.heroHome + 10, this.ground - 50, 'Revived!', 0x9af0a0, 2);
+          // a warm, brief light, not a lime wash over the stage (L7: warm light is an accent): a short amber breath on
+          // the scene, the glow and a ring on the hero where it happened
+          fx.screenFlash(0xffc890, now, 130);
+          fx.glow(this.heroHome, this.ground - 18, 30, 0xffc070, 700, this.ground);
+          fx.ring(this.heroHome, this.ground - 18, 26, 0xffd8a0, true);
+          fx.burst(this.heroHome, this.ground - 18, 0xffd8a0, 10, true, 0.8);
+          fx.floatNum(this.heroHome + 10, this.ground - 50, 'Revived!', 0xffe0a0, 2);
           break;
         case 'telegraph':
           f.telegraph(e.enemyId, e.name, e.sec);
@@ -865,6 +882,12 @@ export class FightScene extends Phaser.Scene implements View {
         this.pending.splice(i--, 1);
         p.fn();
       }
+    }
+    // on the title the HTML buttons move to the top-right corner, off the logo's rule (style.css html.on-title)
+    const onTitle = this.app.run.phase === 'title';
+    if (onTitle !== this.titleShown) {
+      this.titleShown = onTitle;
+      document.documentElement.classList.toggle('on-title', onTitle);
     }
     // the pause button only makes sense in a fight
     const pause = this.app.run.phase === 'fight';

@@ -188,6 +188,8 @@ export function installLab(app: App, getScene: () => FightScene | null): LabUi {
       case 'completion':
         camp.go('progress', now);
         return camp.progress.open(now, 0); // (Region 1's card)
+      case 'edits':
+        return camp.go('edits', now);
     }
   }
 

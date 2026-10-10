@@ -53,6 +53,16 @@ body {
   z-index: 30;
 }
 
+/* the title: the buttons sit in the top-right corner, clear of the logo (the pause button is hidden there) */
+html.on-title #hud {
+  left: auto;
+  right: calc(var(--game-right, 0px) + var(--gpx, 2.667px) * 3);
+  transform: none;
+}
+html.on-title #btn-pause {
+  display: none;
+}
+
 .hud-btn {
   width: calc(var(--gpx, 2.667px) * 14);
   height: calc(var(--gpx, 2.667px) * 15);

@@ -9,31 +9,38 @@ import { questText } from '../../core/quests';
 import type { FightScene } from '../scene';
 import { textWidth } from '../font';
 import { bagPal, glyph, glyphSize } from './overlays';
-import { button3d, glow, hudIcon, iconSize, panel } from './pixels';
+import { button3d, glow, hudIcon, iconSize } from './pixels';
 import { clamp01, easeBack, inRect, pulse, WHITE, type Rect } from './shared';
-import { FACE, isPressed, notePress, parchment, ribbon, RIBBON, TextPool } from './ui';
+import { FACE, ImagePool, isPressed, notePress, parchment, ribbon, RIBBON, TextPool } from './ui';
+import { glass, stopLight } from './ui-modern';
+import { wrapText } from './items';
 
 type G = Phaser.GameObjects.Graphics;
 
 export class StopScreens {
   private g!: G;
   private texts: TextPool;
+  /** The board's sprite on the stage. */
+  private pool: ImagePool;
   private phaseAt = 0;
   private lastPhase = '';
 
   constructor(private readonly s: FightScene) {
     this.texts = new TextPool(s, 32);
+    this.pool = new ImagePool(s);
   }
 
   build(): void {
     this.g?.destroy();
     this.g = this.s.add.graphics().setDepth(31.4);
+    this.pool.destroy();
   }
 
+  /** The notice's plate, right of the board itself (which stands on the stage at the left, in a lantern's light). */
   private board(): Rect {
     const s = this.s;
-    const w = Math.min(250, s.R - s.L - 6);
-    return { x: Math.round((s.L + s.R) / 2 - w / 2), y: 26, w, h: 92 };
+    const x = s.L + 90;
+    return { x, y: 26, w: Math.min(240, s.R - 4 - x), h: 100 };
   }
 
   /** Take it (0, left) and Pass (1, right), under the notice. */
@@ -68,26 +75,34 @@ export class StopScreens {
     if (ph !== 'bounty') {
       this.g.clear();
       this.texts.hide();
+      this.pool.begin();
+      this.pool.end();
       return;
     }
     const g = this.g;
     g.clear();
     this.texts.begin();
+    this.pool.begin();
     this.drawBoard(g, now);
     this.texts.end();
+    this.pool.end();
   }
 
   private drawBoard(g: G, now: number): void {
     const s = this.s;
     const run = s.app.run;
     const def = questById(run.bountyOffer ?? '');
-    g.fillStyle(0x05040a, 0.5);
-    g.fillRect(0, 0, s.R + s.L + 1000, s.B + 200);
+    // a place, not a form: the board itself (the map's, at 3x) in a lantern's pool on the stage, the notice on glass
+    const ek = clamp01((now - this.phaseAt) / 260);
+    const fx = s.L + 44;
+    stopLight(g, s, fx, s.ground, 0xffc880, now, ek);
+    const [bw, bh] = this.pool.size('mn_board');
+    this.pool.scaled('mn_board', Math.round(fx - (bw * 3) / 2), s.ground + 2 - bh * 3, 31.42, 3, ek);
     const b0 = this.board();
     const k = easeBack((now - this.phaseAt) / 240, 1.5);
     const sc = 0.8 + 0.2 * k;
     const b: Rect = { x: Math.round(b0.x + (b0.w * (1 - sc)) / 2), y: Math.round(b0.y + (b0.h * (1 - sc)) / 2), w: Math.round(b0.w * sc), h: Math.round(b0.h * sc) };
-    panel(g, b, { trim: 'full', alpha: clamp01(k * 2) });
+    glass(g, b, { alpha: clamp01(k * 2), clear: 0.12 });
     if (!def || k < 0.98) return;
     const T = this.texts;
     ribbon(g, b.x + b.w / 2, b.y - 6, Math.max(96, textWidth(def.title, 1, true) + 24), 12, RIBBON.red);
@@ -99,27 +114,28 @@ export class StopScreens {
     const bob = Math.round(Math.sin(now / 400));
     hudIcon(g, def.icon, note.x + 8, note.y + Math.round((note.h - ih * 2) / 2) + bob, 2);
     const tx = note.x + 8 + iw * 2 + 8;
-    T.text(questText(run.tuning, def), tx, note.y + 13, 0x4a2a12, { bold: true, oy: 0.5 });
+    const goal = wrapText(questText(run.tuning, def), note.x + note.w - 6 - tx, true).slice(0, 2);
+    goal.forEach((line, i) => T.text(line, tx, note.y + (goal.length > 1 ? 9 : 13) + i * 10, 0x2a1608, { bold: true, oy: 0.5 }));
     // the reward: an icon and one word
-    const ry = note.y + 30;
-    T.text('Reward', tx, ry, 0x5a3a1e, { oy: 0.5 });
+    const ry = note.y + 32;
+    T.text('Reward', tx, ry, 0x3a2410, { oy: 0.5 });
     const rx = tx + textWidth('Reward', 1, false) + 5;
     if (def.reward === 'gear') {
       const [gw, gh] = glyphSize('bag');
       glyph(g, 'bag', rx, ry - Math.round(gh / 2), 1, bagPal(RARITY_INFO.rare.face));
-      T.text('Rare gear', rx + gw + 3, ry, 0x2a5ac0, { bold: true, oy: 0.5 });
+      T.text('Rare gear', rx + gw + 3, ry, 0x1a2a5a, { bold: true, oy: 0.5 });
     } else if (def.reward === 'coins') {
       const [cw, ch] = glyphSize('coin');
       glyph(g, 'coin', rx, ry - Math.round(ch / 2));
-      T.text(signed(run.tuning.quests.coins * (run.actIndex + 1)), rx + cw + 3, ry, 0x9a5a14, { bold: true, oy: 0.5 });
+      T.text(signed(run.tuning.quests.coins * (run.actIndex + 1)), rx + cw + 3, ry, 0x3a1a04, { bold: true, oy: 0.5 });
     } else {
       const [sw, sh] = iconSize('star');
       hudIcon(g, 'star', rx, ry - Math.round(sh / 2));
-      T.text('Relic pick', rx + sw + 3, ry, 0x6e30a8, { bold: true, oy: 0.5 });
+      T.text('Relic pick', rx + sw + 3, ry, 0x3a1458, { bold: true, oy: 0.5 });
     }
     // a story bounty: who posted it, and why (one line under the notice)
     const story = questStory(run.regionDef.id, def.id);
-    if (story) T.text(story.frame, b.x + b.w / 2, note.y + note.h + 5.5, 0xe8dcc0, { ox: 0.5, oy: 0.5 });
+    if (story) wrapText(story.frame, b.w - 12).slice(0, 2).forEach((line, i) => T.text(line, b.x + b.w / 2, note.y + note.h + 5.5 + i * 8, 0xe8dcc0, { ox: 0.5, oy: 0.5 }));
     // Take it / Pass
     const since = now - this.phaseAt;
     (['Take it', 'Pass'] as const).forEach((label, i) => {
