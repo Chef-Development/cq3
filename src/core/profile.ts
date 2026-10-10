@@ -65,6 +65,9 @@ export interface Profile {
    *  reached its `known` is skipped. Still v4: missing reads as none yet. */
   tipsDone: Partial<Record<TipId, number>>;
   sparkles: number[]; // the map sparkles picked up (core/sparkle.ts: their keys, newest last): never paid twice
+  /** The Atlas pages found (src/data/atlas-pages.ts: the acts whose hidden treasure held one), in the order found.
+   *  Still v4: missing reads as none. */
+  pages: number[];
   worldTour: boolean; // the world map's first-visit reveal (a glide over the whole world) has played
   /** The world map's wandering foe (core/skirmish.ts): fights won since the last skirmish, skirmishes so far, and
    *  whether one is on the road now. Still v3: missing reads as none yet. */
@@ -146,6 +149,7 @@ export function newProfile(): Profile {
     tipsOff: false,
     tipsDone: {},
     sparkles: [],
+    pages: [],
     worldTour: false,
     wander: { fights: 0, n: 0, up: false },
     neveMet: false,
@@ -172,12 +176,28 @@ const int = (v: unknown, lo: number, hi: number) => (typeof v === 'number' && Nu
  * Rowan gets the XP of the acts already cleared and their relics are unlocked. Anything else starts over.
  * A profile from before the tips that has cleared an act has the basics' tips marked seen (readTips).
  */
+/** The Atlas pages found, as saved: whole act numbers, each once (anything else is dropped). */
+export function readPages(v: unknown): number[] {
+  if (!Array.isArray(v)) return [];
+  const out: number[] = [];
+  for (const a of v) if (typeof a === 'number' && Number.isInteger(a) && a >= 0 && a < 1000 && !out.includes(a)) out.push(a);
+  return out;
+}
+
+/** Keep an Atlas page found (act `act`'s): true the first time. */
+export function findPage(p: Profile, act: number): boolean {
+  if (p.pages.includes(act)) return false;
+  p.pages.push(act);
+  return true;
+}
+
 export function readProfile(data: unknown, t?: Tuning): Profile {
   const d = data as Record<string, unknown> | null;
   if (!d || typeof d !== 'object' || (d.v !== 1 && d.v !== 2 && d.v !== 3 && d.v !== 4)) return newProfile();
   const p = readFields(d, t);
   readTips(p, d);
   p.sparkles = readSparkles(d.sparkles); // still v3: missing reads as none
+  p.pages = readPages(d.pages); // still v4: missing reads as none found
   p.worldTour = d.worldTour === true; // still v3: missing reads as not yet (the bigger world map shows itself once)
   readV4(p, d);
   return p;
