@@ -6,8 +6,10 @@ import { MINI_ICONS } from './icons';
 import { clamp01, INK, mix, WHITE, type Rect } from './shared';
 
 /** UI ramps, dark to light: the navy of every panel, and the gold of their trims. */
-export const NAVY = [0x0b0814, 0x130f22, 0x1b1530, 0x241d3e, 0x2f2650, 0x413668, 0x5e5090, 0x8a7cc0] as const;
-export const GOLD = [0x5a3410, 0x9a5a14, 0xd8901c, 0xf2c230, 0xfff0a0] as const;
+/** The plates' ink (L7/L8: deep ink, a step darker and less purple than the round-6 navy). */
+export const NAVY = [0x07060c, 0x0d0b16, 0x13101f, 0x191529, 0x211c34, 0x2e2746, 0x4a4166, 0x72698e] as const;
+/** Trim gold (L8: antique brass, not candy gold; reward text keeps its own 0xffe680). */
+export const GOLD = [0x4a2c10, 0x7e5018, 0xb47e2a, 0xd8aa4c, 0xf0d896] as const;
 /** Gauge fills [hi, base, lo, deep]. */
 export const RAMP = {
   hp: [0xc8ff8a, 0x62d444, 0x2e9a34, 0x1a6a2a],
@@ -316,8 +318,9 @@ export function button3d(g: G, r: Rect, face: readonly [number, number, number, 
     g.fillRect(r.x + 2, y + r.h, r.w - 4, 1);
   }
   if (rim) {
-    rows(g, r.x, y, r.w, r.h, 2, 0xc8d0dc);
-    g.fillStyle(WHITE, 1);
+    // (L8: a worn iron rim, lit on its top and left, not a bright silver one)
+    rows(g, r.x, y, r.w, r.h, 2, 0x5e5a66);
+    g.fillStyle(0x9c96a0, 1);
     g.fillRect(r.x + 2, y, r.w - 4, 1);
     g.fillRect(r.x, y + 2, 1, r.h - 4);
     g.fillRect(r.x + 1, y + 1, 1, 1);
@@ -328,15 +331,15 @@ export function button3d(g: G, r: Rect, face: readonly [number, number, number, 
   const ih = r.h - (rim ? 2 : 0);
   const [hi, base, lo, deep] = face;
   rows(g, ix, iy, iw, ih, rim ? 1 : 2, base);
-  g.fillStyle(hi, 1);
-  g.fillRect(ix + 1, iy, iw - 2, Math.max(1, Math.floor(ih * 0.4)));
+  // (L8: a narrow lit lip, not a glossy band; one dull glint)
+  g.fillStyle(mix(hi, base, 0.45), 1);
+  g.fillRect(ix + 1, iy, iw - 2, Math.max(1, Math.min(2, Math.floor(ih * 0.2))));
   g.fillStyle(lo, 1);
   g.fillRect(ix + 1, iy + ih - 3, iw - 2, 2);
   g.fillStyle(deep, 1);
   g.fillRect(ix + 1, iy + ih - 1, iw - 2, 1);
-  g.fillStyle(WHITE, 0.9);
-  g.fillRect(ix + iw - 5, iy + 1, 3, 1);
-  g.fillRect(ix + 2, iy + ih - 3, 2, 1);
+  g.fillStyle(hi, 0.55);
+  g.fillRect(ix + iw - 5, iy + 1, 2, 1);
 }
 
 /**

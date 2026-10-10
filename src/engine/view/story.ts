@@ -34,12 +34,13 @@ const LEFT: Speaker[] = [
 const ALLY: Speaker[] = ['smith', 'keeper'];
 /** Portrait backdrop [top, bottom] and name ribbon per side. */
 const LOOK = {
-  narrator: { bg: [0x3a3060, 0x1e1836], ribbon: RIBBON.purple, name: 0xf0e0ff },
-  hero: { bg: [0x3a6aa8, 0x1a2c52], ribbon: RIBBON.blue, name: 0xfff07a },
-  foe: { bg: [0x8a2a3a, 0x3a1020], ribbon: RIBBON.red, name: 0xffe0c0 },
-  ally: { bg: [0xa8642a, 0x3e2014], ribbon: RIBBON.green, name: 0xfff6c0 },
+  // (L7: deep, moody grounds behind the portraits; the head lit by its own soft light)
+  narrator: { bg: [0x2c2448, 0x120e20], ribbon: RIBBON.purple, name: 0xf0e0ff },
+  hero: { bg: [0x26446e, 0x0e1a30], ribbon: RIBBON.blue, name: 0xfff07a },
+  foe: { bg: [0x5e1e2a, 0x220a12], ribbon: RIBBON.red, name: 0xffe0c0 },
+  ally: { bg: [0x6e4220, 0x26140c], ribbon: RIBBON.green, name: 0xfff6c0 },
   /** The Mapmaker: the Atlas's ink behind him, a gold ribbon (his lines glow gold). */
-  mapmaker: { bg: [0x2e2240, 0x1a1026], ribbon: RIBBON.gold, name: 0x2e2240 },
+  mapmaker: { bg: [0x261c38, 0x0e0a16], ribbon: RIBBON.gold, name: 0x2e2240 },
 } as const;
 
 export class StoryView {

@@ -218,8 +218,9 @@ export function glass(g: G, r: Rect, o: GlassOpts = {}): void {
   // a faint lighter top half and the lit top edge
   band(g, r.x, r.y, r.w, r.h, 2, 0, Math.max(2, Math.round(r.h * 0.35)), mix(body, 0x8a7cc0, 0.18), 0.5 * op * a);
   band(g, r.x, r.y, r.w, r.h, 2, 0, 1, mix(body, WHITE, 0.35), 0.8 * a);
-  g.fillStyle(WHITE, 0.5 * a);
-  g.fillRect(r.x + r.w - 7, r.y + 1, 3, 1);
+  // (L8: one dull glint, not a shine)
+  g.fillStyle(WHITE, 0.22 * a);
+  g.fillRect(r.x + r.w - 7, r.y + 1, 2, 1);
 }
 
 export interface IconCardOpts {

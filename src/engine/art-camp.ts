@@ -19,7 +19,7 @@
 // and last the buildings and props as outlined sprites (each carrying its own firelight), smoke and fireflies.
 // The top ~16 px and the bottom ~20 px stay calm for the UI; nothing important sits in the 23 px safe areas.
 import { grid, put, stamp, toCanvas, type Grid, type Pal } from './art';
-import { and, ell, fill, lambert, not, or, rect, rimShade, sphere, stroke, tone, type Inside } from './art-paint';
+import { and, ell, fill, lambert, moodGrade, not, or, rect, rimShade, sphere, stroke, tone, type Inside } from './art-paint';
 import { SABLE_FIST, SABLE_HEAD, SABLE_PAL, SABLE_TORSO, sableArm, sableDagger, scarfTail } from './art-sable';
 import { PORTRAIT_SIZE } from './art-story';
 import { bay, clamp01, col, conifer, fbm, hash, level, mass, mix, noise, pick, Pix, ramp, rng, tree, type Blob, type Col, type Ramp } from './backdrop';
@@ -1316,7 +1316,8 @@ function magsPortrait(): HTMLCanvasElement {
 // ------------------------------------------------------------------ build
 
 export function buildCampArt(add: Add, w: number, h: number): void {
-  add('camp_bg', backdrop(w, h));
+  // (L7: the camp in the mood's darker, cooler night; the forge and the fire keep their glow)
+  add('camp_bg', moodGrade(backdrop(w, h), 0.16));
   for (let i = 0; i < 4; i++) add(`camp_fire${i}`, flameFrame(i));
   for (const [k, pose] of Object.entries(MAGS_POSES)) add(`smith_${k}`, magsFrame(pose));
   add('camp_rowan0', rowanFrame(0));
