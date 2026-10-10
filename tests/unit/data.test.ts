@@ -167,7 +167,7 @@ describe('story', () => {
     // once a region is wired in, STORY takes these very scenes (Object.assign), never a second copy
     for (const [id, boxes] of Object.entries(NOON_STORY)) expect(!(id in STORY) || STORY[id] === boxes, id).toBe(true);
     // the sixth region's, drafted ahead of its data: the same rules; its boss's phases are his edits
-    for (const id of ['hush1', 'shears', 'hushCamp', 'hush2', 'slowcoach', 'hush3', 'yew', 'yew2', 'yew3', 'hushVictory']) expect(HUSH_STORY[id], id).toBeDefined();
+    for (const id of ['hush1', 'shears', 'hushCamp', 'hush2', 'hollowfang', 'hush3', 'yew', 'yew2', 'yew3', 'hushVictory']) expect(HUSH_STORY[id], id).toBeDefined();
     for (const id of ['yew2', 'yew3', 'hushVictory']) expect(HUSH_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
     // the seventh's and eighth's too (the eighth's Act 2 opening is the river twist: he never names his son)
     for (const id of ['reach1', 'ropewright', 'reachCamp', 'reach2', 'squall', 'reach3', 'kestrel', 'kestrel2', 'kestrel3', 'reachVictory']) expect(REACH_STORY[id], id).toBeDefined();

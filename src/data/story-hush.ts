@@ -1,7 +1,7 @@
 // Region 6's story scenes, DRAFTED AHEAD of its data (SPOILERS: docs/story-bible.md section 8, "Hushwood", and its
 // outline there). NOT IN PLAY: no region data exists yet. The ids are the outline's, for the content team's data to
 // point at (rename anything and tell the story team): `startScene` hush1-3; the mini-bosses' `bossScene` shears (Act 1)
-// and slowcoach (Act 2); the camp's scene after Act 1, hushCamp (like duskCamp); the boss's `bossScene` yew and
+// and hollowfang (Act 2); the camp's scene after Act 1, hushCamp (like duskCamp); the boss's `bossScene` yew and
 // `phaseScenes` { 2: 'yew2', 3: 'yew3' }; the region's `victoryScene` hushVictory. Same rules as story.ts
 // (tests/unit/data.test.ts). The phase hints follow the outline's rule ideas (growth; gusts) and change with the rules
 // as built.
@@ -48,13 +48,14 @@ export const HUSH_STORY: Record<string, StoryBox[]> = {
     { who: 'rowan', text: 'Moved? By who? Who else draws?' },
     { who: 'pip', text: 'Nobody. Nobody should.' },
   ],
-  // Act 2 mini-boss: a giant snail who followed his sea road from the continent, a month, for a lettuce
-  slowcoach: [
-    { who: 'narrator', text: 'Across the path lies a snail the size of a\ncart. Behind it grows a single lettuce.' },
-    { who: 'slowcoach', text: '...Mine.' },
-    { who: 'sable', text: "It's a snail. We can walk round it.\n...Why are we not walking round it?" },
-    { who: 'pip', text: 'He crossed the whole sea on that road.\nIt took him a month. For one lettuce.' },
-    { who: 'slowcoach', text: '...Very. ...Much. ...Mine.' },
+  // Act 2 mini-boss: the isle's last wolf, out hunting on the far shore when the isle went blank; a month in a wood
+  // with nothing living in it (he can't draw creatures), and starving
+  hollowfang: [
+    { who: 'narrator', text: 'Between the white patches, a grey wolf\nwatches them. Its ribs show.' },
+    { who: 'hollowfang', text: 'A month. Not one living thing in this wood.\nNot a deer. Not a bird. And now, four.' },
+    { who: 'rowan', text: "We're not here to hurt you.\nWe're here to wake the wood." },
+    { who: 'hollowfang', text: 'Then wake it. After I have eaten.' },
+    { who: 'pip', text: "It's starving, Rowan. It won't stop.\nBeat it. Then wake the wood for it." },
   ],
   // Act 3 start: the Yew Grove; the Stopper in her branches; he is drawing more trees
   hush3: [

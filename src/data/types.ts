@@ -209,7 +209,7 @@ export type Speaker =
   // Region 5's (src/data/story-noon.ts; portrait: the art for its mini-boss)
   | 'sphinx'
   // Region 6's, drafted ahead (src/data/story-hush.ts)
-  | 'slowcoach'
+  | 'hollowfang'
   // Regions 7-8's, drafted ahead (src/data/story-reach.ts, story-wick.ts)
   | 'squall'
   | 'press'

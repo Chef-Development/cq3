@@ -493,15 +493,16 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   wider, then hardens into bark that takes two taps: hit it young) and *brambles* (a hit can drop a seed that grows
   into a yellow, or a bramble trap). His last edit lets a little wind out: *gusts* push every block one way.
 - **Mini-bosses:** **the Shears** (Act 1: great garden shears walking on their points, drawn to keep his rows tidy;
-  they snip whatever grows out of line; no speech). **Old Slowcoach** (Act 2: a giant snail who followed his sea road
-  from the continent for a month; the only living thing in the wood; slow, polite, very territorial: "...Mine.").
+  they snip whatever grows out of line; no speech). **Hollowfang** (Act 2: the isle's last wolf, out hunting on the far
+  shore when the isle went blank; a month in a wood with nothing living in it; starving, and grave: "A month. Not one
+  living thing in this wood. And now, four.").
 - **Boss: Mother Yew**, the isle's oldest yew, the first thing he drew back, drawn to walk so she can keep the wood as
   he likes it. Keystone: **the Stopper**, a stone jar with the isle's wind corked in it, held in her branches.
   - Phase 2 edit: "Hush." Everything grows twice as fast.
   - Phase 3 edit: losing, he pulls the cork a little to knock Rowan down: "Just a breath." Gusts.
 - **Restoring:** the Stopper cracks; the wind pours out; every leaf held for months falls at once; birds, wakened
   under the blank, start up all together; the blank pockets fill in and the villagers wake on their doorsteps.
-- **Scenes (drafted in full ahead of the data: `src/data/story-hush.ts`, speaker `slowcoach` "Old Slowcoach"; the
+- **Scenes (drafted in full ahead of the data: `src/data/story-hush.ts`, speaker `hollowfang` "Hollowfang"; the
   outline below is what they say):**
   - `hush1` (Act 1 start): off his sea road into a silent wood; no birds, no wind, leaves hanging. Rowan: "Listen.
     ...Nothing. Not one bird." Pip: "He can't draw birds. Nobody can. So he left them out." Sable: "A forest that
@@ -513,7 +514,7 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   - `hush2` (Act 2 start): the first blank pocket: a white village inside the green, people asleep mid-step. Rowan
     walks in. The scale: from the ridge, dozens of white pockets. Pip reads the impression under the white: "This
     river was moved once. Long before him." Rowan: "Who else draws?" Pip: "Nobody. Nobody should." (twist 2 seed)
-  - `slowcoach` (Act 2 mini-boss): the snail, a month from home, will not give up the only lettuce on the isle.
+  - `hollowfang` (Act 2 mini-boss): the starving wolf; it can't stop. Pip: "Beat it. Then wake the wood for it."
   - `hush3` (Act 3 start): the Yew Grove; the Stopper in her branches; the Mapmaker drawing new trees in a ring.
   - `yew` (boss intro): he is no longer gentle. "Storms dropped trees on these roofs every autumn. Count the graves,
     knight, then tell me about wind." Rowan: "And they called the spirits, and the spirits warned them. You took
@@ -627,7 +628,7 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
 - **Acts (suggested):** 1 **The Dark Harbor**; 2 **The Wreck Shore** (the hulls of every ship the dark sea wrecked);
   3 **The Beacon Stair**.
 - **Mini-bosses (suggested):** **Old Barnacle** (`barnacle`, Act 1: a giant hermit crab from the open sea, wearing a
-  wrecked rowboat for a shell; proud and slow: "MY boat. Found it. Keeping it."); **the Lampless** (`lampless`, Act 2:
+  wrecked rowboat for a shell; it lives off the wrecks the dark sea brings: "More every night. All MINE."); **the Lampless** (`lampless`, Act 2:
   an empty lantern on long legs he drew to snuff every light but his own, so no one relights the harbor; no speech).
 - **Rule hooks (ideas):** *the turning light* (the beacon's beam sweeps the bar: a block hit while it's in the beam is worth
   double; not Region 4's dark) and *wreckage* (a hit
@@ -710,7 +711,7 @@ Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
 - **Art (Team 2):** done: `portrait_mapmaker`, `portrait_keeper` (art-portraits-atlas.ts), the world map's and the
   region victory's words. Still to do: Region 4-5's speakers' portraits (`portrait_bellybog`,
   `portrait_sluiceKeeper`, `portrait_sphinx`: a gold desert sphinx, eyes half shut against the glare); the drafted
-  regions' (`slowcoach`, `squall`, `press`) when they're built. The pictures that still draw the old premise (section
+  regions' (`hollowfang`, `squall`, `press`, `gale`) when they're built. The pictures that still draw the old premise (section
   9): the narrator's portrait (the Pendulum's bob, `art-story.ts`), the Boar King's crown bob (`art-story.ts`,
   `art-foes.ts`), the Bandit Captain's pendulum weight and the golem's pendulum rune (`art-story.ts`), the shrine's and
   camp's pendulum emblem (`art-shrine.ts`, `art-camp.ts`), Bellows's anvil weight (`art-ash.ts`), the Keystone Shard's
@@ -728,6 +729,6 @@ Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
   `sphinx` ("Noon Sphinx", needs a portrait), and `banter-noon.ts` (already read by `core/banter.ts`; it shows once the
   region is in play). Regions 6-10 are outlined in section 8 with scene ids, mini-bosses, bosses, his edits and rule
   ideas, and Regions 6-8's scenes are drafted in full (`story-hush.ts`, `story-reach.ts`, `story-wick.ts`; speakers
-  `slowcoach`, `squall`, `press`) with their camp banter (`banter-isles.ts`: correct `ISLES_SCENE_ACT` to the acts as
+  `hollowfang`, `squall`, `press`) with their camp banter (`banter-isles.ts`: correct `ISLES_SCENE_ACT` to the acts as
   built): the rule hooks are ideas; rename anything and tell the story team so the scenes
   follow.

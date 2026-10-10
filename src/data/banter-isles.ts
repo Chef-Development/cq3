@@ -15,7 +15,7 @@ export interface IslesBanterLine extends HeroBanterLine {
 /** The acts cleared by the time each scene has played, if the regions take global acts 15-17, 18-20, 21-23, 24-26 (a
  *  mini-boss's scene counts from its act's clear, as Region 4's do). Correct these when the regions are built. */
 export const ISLES_SCENE_ACT: Record<string, number> = {
-  hush1: 15, shears: 16, hushCamp: 16, hush2: 16, slowcoach: 17, hush3: 17, yew: 18, yew2: 18, yew3: 18, hushVictory: 18,
+  hush1: 15, shears: 16, hushCamp: 16, hush2: 16, hollowfang: 17, hush3: 17, yew: 18, yew2: 18, yew3: 18, hushVictory: 18,
   reach1: 18, ropewright: 19, reachCamp: 19, reach2: 19, squall: 20, reach3: 20, kestrel: 21, kestrel2: 21, kestrel3: 21, reachVictory: 21,
   wick1: 21, polisher: 22, wickCamp: 22, wick2: 22, press: 23, wick3: 23, mender: 24, mender2: 24, mender3: 24, wickVictory: 24,
   salt1: 24, saltworks: 25, saltCamp: 25, salt2: 25, gale: 26, salt3: 26, brine: 27, brine2: 27, brine3: 27, saltVictory: 27,
@@ -25,7 +25,7 @@ export const ISLES_BANTER: IslesBanterLine[] = [
   // Hushwood
   { who: 'moss', text: "The trees here don't even whisper.", after: 'hush1' },
   { who: 'yara', text: 'My village. Asleep. I sang to them.', after: 'hush2' },
-  { who: 'sable', text: 'I still think about that lettuce.', after: 'slowcoach' },
+  { who: 'sable', text: 'I left that wolf my rations. Shush.', after: 'hollowfang' },
   { who: 'yara', text: 'They woke up arguing. Home!', after: 'hushVictory' },
   { who: 'rowan', text: 'Birds! Loud ones! I missed loud.', after: 'hushVictory' },
   // Kestrel Reach
