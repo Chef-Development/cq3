@@ -62,7 +62,7 @@ test("the later regions' act maps and the world map's wandering foe: every foe d
     await a((x) => {
       x.profile.actsCleared = 9;
       x.profile.weights = 2;
-      x.profile.seen.push('unveil:frostpeaks', 'unveil:ashfell'); // (their reveals already played)
+      x.profile.seen.push('unveil:frostpeaks', 'unveil:ashfell', 'unveil:duskmire'); // (their reveals already played)
       x.profile.wander.up = true;
     });
     const act = (await page.evaluate((region) => {
