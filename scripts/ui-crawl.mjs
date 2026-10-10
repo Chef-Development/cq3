@@ -10,7 +10,8 @@
 //   - the numbers safety net's violations (window.__cq3.textViolations: a long decimal drawn);
 //   - foes a map drew without a mini (window.__cq3.miniMisses);
 //   - missing textures: every key the game asked Phaser for that doesn't exist (drawn as Phaser's missing-texture box);
-//   - text out of bounds: a bitmap text reaching past the canvas's edge, an HTML panel's text wider than its box;
+//   - text out of bounds: a bitmap text that stays past the canvas's edge (5 scans in the same spot: sliding in or
+//     out doesn't count), an HTML panel's text wider than its box;
 //   - a screen that doesn't change for 40 s (a softlock).
 // Exits 1 when it found anything.
 import { mkdirSync } from 'node:fs';
@@ -26,7 +27,7 @@ const INSTALL = () => {
   const w = window;
   if (w.__crawl) return;
   const sc = w.__cq3.game.scene.getScene('fight');
-  const C = (w.__crawl = { taps: 0, fins: 0, missingTex: {}, offText: {} });
+  const C = (w.__crawl = { taps: 0, fins: 0, missingTex: {}, offText: {}, offSeen: {} });
   // every texture asked for that isn't there (Phaser hands back its missing-texture box)
   const tm = sc.textures;
   const get = tm.get.bind(tm);
@@ -47,8 +48,10 @@ const INSTALL = () => {
         const y0 = b.y + dy;
         const y1 = y0 + b.height;
         if (x0 < -1 || y0 < -1 || x1 > 328 || y1 > 151) {
+          // (a text sliding in or out passes the edge for a moment: only one that stays put there counts)
           const k = `${o.text.slice(0, 30)} @ ${Math.round(x0)},${Math.round(y0)} w${Math.round(b.width)}`;
-          C.offText[k] = w.__cq3.app.run.phase;
+          const seen = (C.offSeen[k] = (C.offSeen[k] ?? 0) + 1);
+          if (seen >= 5) C.offText[k] = w.__cq3.app.run.phase;
         }
       }
     };
@@ -152,8 +155,8 @@ while (Date.now() < until) {
   } else await page.keyboard.press('Enter');
   await page.waitForTimeout(300);
 }
-const played = await ev('return { acts: x.profile.actsCleared, phase: x.run.phase, level: x.run.hero.level, items: x.profile.items.length, coins: x.profile.coins }');
-console.log(`played ${((Date.now() - t0) / 1000).toFixed(0)} s: ${played.acts} act(s) cleared, now ${played.phase}; level ${played.level}, ${played.items} items`);
+const played = await ev('return { acts: x.profile.actsCleared, phase: x.run.phase, xp: x.profile.heroes[x.profile.hero]?.xp, items: x.profile.items.length, coins: x.profile.coins }');
+console.log(`played ${((Date.now() - t0) / 1000).toFixed(0)} s: ${played.acts} act(s) cleared, now ${played.phase}; ${played.xp} XP, ${played.items} items`);
 
 // every camp screen and its tabs
 const SCREENS = [
