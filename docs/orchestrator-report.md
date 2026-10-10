@@ -12,7 +12,9 @@ Spoilers (the story, the new regions' content) are only in `docs/story-bible.md`
   has only the first commit). Merge it; #1-#7 can be closed.
 - **How to check it:** open the **Test lab** (title screen, top left). "New" holds this round's items (the region and
   story ones under "Show spoilers"); then "Copy report" for the planning chat.
-- **Tests:** 1,260 Vitest unit tests in 72 files, all green; the Playwright suite's final run: (pending).
+- **Tests:** 1,260 Vitest unit tests in 72 files and 154 Playwright smoke, screenshot and lab tests, all green on the
+  final code (one more Playwright test is the every-enemy walk's slot for a region not yet in play, skipped by design);
+  every push tonight also passed a boot check at phone and desktop size and GitHub's full unit run.
 
 ### What changed
 1. **A new story and a name.** The pendulum plot is replaced by the approved living-map premise (the world is a map

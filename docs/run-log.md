@@ -278,3 +278,6 @@ One PR at the end supersedes #1-#7.
   pushed. Re-freeze: baselines regenerating, then the full unit and Playwright suites. Every agent is done for good.
 - 04:50 EDT: the fights' baselines regenerated after a look (75 pictures; 111 of 111 passing). The final full unit and
   Playwright suites running on the final code; then the report, the PR's test section and the final message at 06:45.
+- 05:09 EDT: the final suites on the final code: 1,260 unit tests (72 files) green; Playwright 154 passed, 1 skipped (a
+  region slot not yet in play), 0 failed. CI green on PR #8. Report and PR updated. Nothing new starts now; the
+  final message at 06:45.
