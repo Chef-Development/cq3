@@ -1141,6 +1141,16 @@ C12. **The region card's tabs fall back to short names** (Green, Frost, Ash, Dus
 - **Q14 The boot check in the repo** (`scripts/boot-check.mjs`, `npm run boot-check -- <port>`): proposed as a CI
   step after the build (the deploy workflow: install Chromium, preview, run it; about a minute) so a boot crash never
   reaches the live build; a jsdom version in `npm test` can't paint (no canvas or WebGL).
+- **Q15 The UI crawl, part 2.** New game through Act 3 (871 s of real play with fast taps and tips on, two defeats
+  retried), every camp screen, the world map (each cleared act's card, the region chip and its picker, a drag) and
+  all 105 Test lab scenarios (spoilers included): no page or console error, no long decimal, no foe without a map
+  sprite, no missing texture, no stuck screen, no HTML text wider than its box. Its text-past-the-edge check now counts
+  only text partly on screen (bars and plates park wholly off screen between their slide-ins; the world map's land
+  names are cut by the edge on purpose as it pans).
+- **Q16 The sharper chest reveal is a chunk of its own** (38 KB, 16 KB gzip), downloaded beside the boot like the
+  region packs (`loadChestHd`); `ChestOpening.view` reads 'old' in the moment before it's in and `__cq3.ready` waits
+  for it, so the reveal and the tests behave as before. The chest-hd spec's side-by-side screenshot fails on the run
+  branch's own code too (the old reveal's sparkles land elsewhere: a stale baseline for the lead to regenerate).
 (qa: end of section)
 
 
