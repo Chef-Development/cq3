@@ -1,5 +1,5 @@
-// Region 4's camp banter (SPOILERS: docs/content-bible.md section 7). NOT IN PLAY YET: not merged into HERO_BANTER
-// (src/data/banter.ts). Like Ashfell's, a line plays only once its speaker and everyone in `with` are at the camp, and
+// Region 4's camp banter (SPOILERS: docs/content-bible.md section 7). Played by the camp (view/camp.ts banterLines).
+// Like Ashfell's, a line plays only once its speaker and everyone in `with` are at the camp, and
 // only once the story has reached `after` (a Region 4 scene id from src/data/story-dusk.ts). Each line fits the
 // camp's bubble in two short lines (tests/unit/duskmire-data.test.ts). The Mapmaker may be named (docs/story-bible.md
 // section 4 gives his voice).

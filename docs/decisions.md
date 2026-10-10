@@ -899,6 +899,16 @@ C4. **Region 4's names are the first version's** (lead's L3): Duskmire; Lanternf
 C5. **Region 5's two rules are built ahead of its art** (core, tests, bar pictures, tips, lab items, data and map
     minis), on the story bible's hook for the region; their design and a bot probe are in the content bible
     (section 8). Neither rule moves anything under the cursor at the last moment.
+C6. **The fourth region is in play** (global acts 9-11, after the third region's victory; its land opens on the
+    world map once the third is won, with the generic `landOpen`). Everything joined the game's tables (foes, scenes,
+    relics, gear, camp lines, a camp scene after its first act), its relic numbers moved into `tuning.relics.n`, and its
+    set and signature effects are in the core (`CORE:` commit, `tuning.effects` with sliders). Its world-map act spots
+    are placeholders on what the land already shows (`WORLD_ACTS_DUSK`, art-world-lands.ts) for the art team to move.
+C7. **Stand-ins until a region's art lands, never a missing texture or a silent crash**: a foe with no sprite fights
+    in an earlier foe's set (`SPRITE_STAND_IN`, view/fighters.ts; used only while its own `_idle0` doesn't exist), a
+    telegraph sound not built yet plays the generic wind-up, a speaker with no portrait speaks from an empty frame, the
+    acts wear earlier themes (`DUSK_STAND_IN`), and the music falls back to the last act theme it has. Each one switches
+    itself off as the art team's textures and tracks arrive (no flag to flip).
 
 (content: end of section)
 

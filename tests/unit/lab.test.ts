@@ -369,7 +369,7 @@ describe('the late-game stress test (playtest round 7: "spam, spam, finisher x5,
     expect(s.group).toBe('fights');
     expect(s.spoiler).toBeFalsy();
     const f = labFight(s)!;
-    expect(f.act).toBe(ALL_ACTS.length - 1);
+    expect(f.act).toBe(8); // the third region's last act (pinned: later regions' numbers are tuned for their own bar rules)
     expect(f.stage).toBeLessThan(GREENMARCH.acts.length);
     const r1 = new Set(GREENMARCH.acts.flatMap((a) => [...a.fights.early.flat(), ...a.fights.late.flat(), ...a.elites.flat()]));
     for (const k of f.waves.flat()) expect(r1.has(k), k).toBe(true);

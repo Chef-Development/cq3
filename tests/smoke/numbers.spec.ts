@@ -64,7 +64,7 @@ const HELPERS = `
     p.smithMet = p.sableMet = p.neveMet = true;
     p.actsCleared = Math.max(p.actsCleared, 4);
     p.weights = Math.max(p.weights, 1);
-    for (const id of ['frostpeaks', 'ashfell']) if (!p.seen.includes('unveil:' + id)) p.seen.push('unveil:' + id);
+    for (const id of ['frostpeaks', 'ashfell', 'duskmire']) if (!p.seen.includes('unveil:' + id)) p.seen.push('unveil:' + id);
     Object.keys(p.heroes).forEach((id, i) => {
       const h = p.heroes[id];
       h.unlocked = true;

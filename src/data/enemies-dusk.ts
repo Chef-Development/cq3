@@ -1,9 +1,8 @@
-// Region 4's enemies (SPOILERS: docs/content-bible.md section 7). NOT IN PLAY YET: this table is not merged into
-// ENEMIES (src/data/enemies.ts) until the region has its art (sprites, telegraph poses, map minis) and its telegraph
-// sounds. Each foe's special changes how the bar plays with them: dark shapes that land (some of them traps), yellows
+// Region 4's enemies (SPOILERS: docs/content-bible.md section 7), merged into ENEMIES (src/data/enemies.ts). Until
+// their art and telegraph sounds land, each fights in a stand-in's sprite set (view/fighters.ts SPRITE_STAND_IN) and
+// a sound not built yet plays a generic wind-up. Each foe's special changes how the bar plays with them: dark shapes that land (some of them traps), yellows
 // put in the dark, the lantern dimmed, the water sent rushing up (or in from the other end, or from both).
-// Names are working names until the story team fixes them (docs/story-bible.md). Numbers are first guesses for the
-// balance bot, about a tenth above Ashfell's foes.
+// Numbers tuned with the bot (tests/unit/bot-region4.test.ts).
 
 import type { EnemyDef, FormationEntry } from './types';
 

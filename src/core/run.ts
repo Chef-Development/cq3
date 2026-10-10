@@ -516,11 +516,12 @@ export class Run {
   }
 
   /** The scene the camp should play first, if any: after a region's first act, Sable's arrival (Greenmarch), Neve's
-   *  (the Frostpeaks), Mags's tale (Ashfell). */
+   *  (the Frostpeaks), Mags's tale (Ashfell), a night at camp (the fourth region). */
   get campScene(): string | null {
     if (this.profile.actsCleared >= 1 && !this.profile.sableMet) return 'sableJoin';
     if (this.profile.actsCleared >= 4 && !this.profile.neveMet) return 'neveJoin';
     if (this.profile.actsCleared >= 7 && !this.profile.seen.includes('magsTale')) return 'magsTale';
+    if (this.profile.actsCleared >= 10 && !this.profile.seen.includes('duskCamp')) return 'duskCamp';
     return null;
   }
 
@@ -529,6 +530,7 @@ export class Run {
     if (!this.profile.sableMet) meetSable(this.profile);
     else if (!this.profile.neveMet) meetNeve(this.profile);
     else if (!this.profile.seen.includes('magsTale')) this.profile.seen.push('magsTale');
+    else if (!this.profile.seen.includes('duskCamp')) this.profile.seen.push('duskCamp');
   }
 
   /** The act's live-tuned enemy scaling. */

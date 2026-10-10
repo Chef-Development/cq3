@@ -79,7 +79,26 @@ const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally', 'spir
 /** Allies whose perk is a blow or a heal: the bolt starts at the ally (not the hero). */
 const ALLY_PERK = new Set(['thornling', 'glowmoth', 'seedling', 'spiritWolf', 'spiritStag']);
 /** Perks that heal (their amount is HP; any relic tagged Sustain does too). */
-const HEAL_PERKS = new Set(['photosynthesis', 'vampiricFang', 'glowmoth', 'mend', 'rimewalker', 'sanctuary', 'hotCocoa']);
+/** Until the fourth region's foes are painted (art-dusk*.ts), each fights in an earlier foe's sprite set (its poses,
+ *  flash and phase looks), so a fight never shows a missing texture. Used only while `${key}_idle0` doesn't exist. */
+const SPRITE_STAND_IN: Record<string, string> = {
+  bogwisp: 'aurorawisp',
+  miretoad: 'slime',
+  reedling: 'shaman',
+  peatgolem: 'golem',
+  bellybog: 'bigslime',
+  mudskipper: 'slimelet',
+  stiltheron: 'crow',
+  lamplighter: 'frostweaver',
+  oldsnapper: 'glaciertortoise',
+  sluicekeeper: 'drifttroll',
+  inkeel: 'magmaeel',
+  duskmoths: 'prismbat',
+  boghag: 'hailcaller',
+  sunkensentinel: 'chainsentinel',
+  lighthouse: 'bellows',
+};
+const HEAL_PERKS = new Set(['photosynthesis', 'vampiricFang', 'glowmoth', 'mend', 'rimewalker', 'emberwright', 'lamplighter', 'sanctuary', 'hotCocoa']);
 
 export class Fighters {
   h: HeroAnim;
@@ -270,8 +289,14 @@ export class Fighters {
       const def = s.app.tuning.enemies[e.key];
       // the third region's foes are painted in idle time after boot: one that's needed sooner is finished now
       if (!s.textures.exists(`${def.sprite}_idle0`) && isAshArtKey(`${def.sprite}_idle0`)) s.ensureAshArt();
+      // a foe whose art isn't painted yet (the fourth region's, until its art lands) wears a stand-in's sprite set
       if (!s.textures.exists(`${def.sprite}_idle0`) && isDuskArtKey(`${def.sprite}_idle0`)) s.ensureDuskArt();
-      const img = s.add.image(0, 0, `${def.sprite}_idle0`).setOrigin(0.5, 1).setScale(SPRITE_SCALE);
+      let sprite = def.sprite;
+      if (!s.textures.exists(`${sprite}_idle0`) && SPRITE_STAND_IN[sprite]) {
+        sprite = SPRITE_STAND_IN[sprite];
+        if (!s.textures.exists(`${sprite}_idle0`) && isAshArtKey(`${sprite}_idle0`)) s.ensureAshArt();
+      }
+      const img = s.add.image(0, 0, `${sprite}_idle0`).setOrigin(0.5, 1).setScale(SPRITE_SCALE);
       const rim = this.makeRim();
       s.actors.add([img, rim]);
       this.enemyRims.set(e.id, rim);
@@ -282,7 +307,7 @@ export class Fighters {
       if (wave) this.waveIn.set(e.id, false);
       this.enemies.set(e.id, {
         id: e.id,
-        sprite: def.sprite,
+        sprite,
         img,
         homeX: x,
         x,

@@ -96,6 +96,7 @@ export const PERK_AT: Record<string, readonly PerkTarget[]> = {
   rimewalker: ['heal'],
   sanctuary: ['heal'],
   emberwright: ['heal'],
+  lamplighter: ['heal'],
   // ---- the Test lab's banked stacks
   testLab: ['meter'],
   // ---- the anti-spam rules (playtest round 7): the fight's heals used up; no more misses forgiven this fight

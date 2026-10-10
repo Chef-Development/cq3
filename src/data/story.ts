@@ -6,6 +6,7 @@
 
 import type { Speaker, StoryBox } from './types';
 import { ASH_STORY } from './story-ash';
+import { DUSK_STORY } from './story-dusk';
 
 export const SPEAKER_NAME: Record<Speaker, string> = {
   narrator: '',
@@ -322,6 +323,8 @@ export const STORY: Record<string, StoryBox[]> = {
 
 // the third region's scenes (src/data/story-ash.ts)
 Object.assign(STORY, ASH_STORY);
+// the fourth region's scenes (src/data/story-dusk.ts)
+Object.assign(STORY, DUSK_STORY);
 
 // ---- Gorm and Tess (Part 6): their first chest reveals
 Object.assign(STORY, {

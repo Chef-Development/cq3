@@ -1587,7 +1587,7 @@ test("world map: a wandering foe from the third region, its skirmish card wider 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const app = (window as any).__cq3.app;
     Object.assign(app.profile, { actsCleared: 9, weights: 2, sableMet: true });
-    app.profile.seen.push('unveil:frostpeaks', 'unveil:ashfell'); // (their reveals already played)
+    app.profile.seen.push('unveil:frostpeaks', 'unveil:ashfell', 'unveil:duskmire'); // (their reveals already played)
     app.profile.wander = { fights: 99, n: 0, up: true }; // (the first one out: two of the cinder flats' foes, then its elite)
     app.newRun();
   });
