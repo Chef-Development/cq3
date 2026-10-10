@@ -1140,7 +1140,7 @@ export class Combat {
     const reach = this.lightReach();
     const cpos = this.cursorPos();
     const far = this.blocks
-      .filter((b) => (b.kind === 'yellow' || b.kind === 'green') && !b.link && !unlit(b) && !this.inLight(b, reach) && !this.sunk(b))
+      .filter((b) => (b.kind === 'yellow' || b.kind === 'green') && !b.link && !b.target && !unlit(b) && !this.inLight(b, reach) && !this.sunk(b))
       .sort((a, b) => Math.abs(b.pos - cpos) - Math.abs(a.pos - cpos));
     const n = count > 0 ? Math.min(count, far.length) : far.length;
     for (let i = 0; i < n; i++) {
@@ -1164,10 +1164,15 @@ export class Combat {
     return pos < w.l || pos > 1 - w.r;
   }
 
-  /** A still block (anything but a red or ice) whose centre is under water at sim time t: sunk, out of reach. */
+  /** Whether a block can sink under the tide: still blocks do; reds wade, ice floats (a frozen block, Neve's Flash
+   *  Freeze or a frost foe's), and a Marksman's target stands above the water on its post. */
+  canSink(b: Block): boolean {
+    return !isRed(b.kind) && b.kind !== 'frozen' && !b.target;
+  }
+
+  /** A block that can sink whose centre is under water at sim time t: sunk, out of reach. */
   sunk(b: Block, t = this.time): boolean {
-    // (ice floats: a frozen block, Neve's Flash Freeze or a frost foe's, bobs on the water and can still be hit)
-    if (isRed(b.kind) || b.kind === 'frozen') return false;
+    if (!this.canSink(b)) return false;
     const w = this.waterAt(t);
     if (w.l <= 0 && w.r <= 0) return false;
     const p = this.blockPosAt(b, t);
@@ -2377,7 +2382,7 @@ export class Combat {
     const wetAny = water.l > 0 || water.r > 0;
     for (const b of this.blocks) {
       if (b.bornAt > t + 1e-9 || untappable(b.kind) || b.id === this.holding?.id) continue;
-      if (wetAny && !isRed(b.kind) && b.kind !== 'frozen') {
+      if (wetAny && this.canSink(b)) {
         const bp = this.blockPosAt(b, t);
         if (bp < water.l || bp > 1 - water.r) continue;
       }
