@@ -109,6 +109,8 @@ export class Fighters {
   /** Anim times of the last blow taken and the last landing (squash and stretch), and the last frame's lift. */
   private hurtAt = -1e9;
   private landAt = -1e9;
+  /** Foes landing from a wave's hops: id -> anim time (their squash). */
+  private foeLandAt = new Map<number, number>();
   private lastLift = 0;
   /** Gear light under and around Rowan (additive, behind the actors), and a glowing silhouette just behind him. */
   private gAura!: G;
@@ -230,6 +232,7 @@ export class Fighters {
 
   /** Forget every enemy view and reset the hero (their images went with the old layout). */
   reset(): void {
+    this.foeLandAt.clear();
     this.enemies.clear();
     this.enemyRims.clear();
     this.waveIn.clear();
@@ -238,6 +241,7 @@ export class Fighters {
 
   /** A new fight: old enemy views go, the hero starts fresh. */
   newFight(): void {
+    this.foeLandAt.clear();
     for (const v of this.enemies.values()) v.img.destroy();
     for (const r of this.enemyRims.values()) r.destroy();
     this.enemies.clear();
@@ -1221,6 +1225,7 @@ export class Fighters {
           if (wave === false) {
             // a wave lands: a puff of dust (and a soft thump of air under a flier)
             this.waveIn.delete(v.id);
+            if (!v.fly) this.foeLandAt.set(v.id, a);
             s.fx.dust(x, v.y + v.fly, v.fly ? 4 : 7, 0, v.fly ? 0.8 : 1.1);
             if (!v.fly) s.fx.shock(x, s.ground, 16, 0xe8dcc0);
           }
@@ -1305,7 +1310,10 @@ export class Fighters {
       }
       // squash on impact: wide and short for a few frames, then a little stretch back
       const sq = (a - v.kickAt) / 150;
-      const amt = sq >= 0 && sq < 1 ? Math.sin(sq * Math.PI) * (sq < 0.5 ? 0.16 : -0.06) * Math.min(1.6, v.kickDist / 8) : 0;
+      let amt = sq >= 0 && sq < 1 ? Math.sin(sq * Math.PI) * (sq < 0.5 ? 0.16 : -0.06) * Math.min(1.6, v.kickDist / 8) : 0;
+      // a walker landing from its wave's hops squashes wide for a moment (at most 100 ms, docs/art-style.md section 7)
+      const lq = (a - (this.foeLandAt.get(v.id) ?? -1e9)) / 100;
+      if (lq >= 0 && lq < 1) amt += Math.sin(lq * Math.PI) * 0.12;
       const hover = v.fly ? Math.round(Math.sin((a + v.phase) / 260) * 2) : 0;
       const tellK = a < v.tellUntil ? (a - v.tellAt) / Math.max(1, v.tellUntil - v.tellAt) : -1;
       const tremble = tellK > 0.6 ? Math.round(Math.sin(a / 18)) : 0; // shakes as the special is about to land
