@@ -1,0 +1,214 @@
+// Map events: a short text and two choices, each with a small risk or reward (src/core/run.ts applies them).
+// Text boxes hold two short lines; keep each line within about 46 characters. The first six can turn up anywhere;
+// the rest belong to one region (`region`): its redraw and its people, a real choice between two costs.
+
+import { REGIONS } from './regions';
+import type { ActDef, EventDef } from './types';
+
+export const EVENTS: EventDef[] = [
+  {
+    id: 'well',
+    title: 'Wishing Well',
+    text: 'A mossy well. Something glints at the bottom.\nPip: "Statistically, wells keep the coins."',
+    choices: [
+      {
+        label: 'Toss 15 coins',
+        cost: 15,
+        outcomes: [
+          { chance: 1, text: 'Something glints its way back up.', boost: 'rare' },
+          { chance: 1, text: 'Nothing. Pip: "Told you."' },
+        ],
+      },
+      { label: 'Walk on', outcomes: [{ text: 'You keep your coins. Wise, says Pip.' }] },
+    ],
+  },
+  {
+    id: 'mushroom',
+    title: 'Suspicious Mushroom',
+    text: 'A mushroom the size of a helmet. It smells\nlike fresh bread, and you are very hungry.',
+    choices: [
+      {
+        label: 'Eat it',
+        outcomes: [
+          { chance: 2, text: 'Delicious. You feel much better.', heal: 0.3 },
+          { chance: 1, text: 'Your tongue goes numb. Then your knees.', hp: -12 },
+        ],
+      },
+      { label: 'Leave it', outcomes: [{ text: 'You leave it. Pip looks relieved.' }] },
+    ],
+  },
+  {
+    id: 'dummy',
+    title: 'Training Dummy',
+    text: 'An old straw dummy in a crown marked "KING".\nSomeone round here dislikes kings.',
+    choices: [
+      { label: 'Practice', outcomes: [{ text: 'Good swings, and a few splinters.\nYou hit a little harder now.', atk: 1, hp: -8 }] },
+      { label: 'Salute it', outcomes: [{ text: 'It does not salute back. Five coins are\ntucked in its straw.', coins: 5 }] },
+    ],
+  },
+  {
+    id: 'merchant',
+    title: 'Lost Merchant',
+    text: 'A merchant hangs upside down in a hedge.\n"A little help? I can pay. Some."',
+    choices: [
+      { label: 'Pull him out', outcomes: [{ text: 'He gives you a tonic, and the hedge gives\nyou a scratch. Max HP up.', maxHp: 10, hp: -5 }] },
+      {
+        label: 'Ask for coins',
+        outcomes: [
+          { chance: 1, text: 'He pays 30 coins, grumbling.', coins: 30 },
+          { chance: 1, text: 'He pays 15, and a kick for your trouble.', coins: 15, hp: -10 },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'shiny',
+    title: 'Pip Found Something',
+    text: 'Pip lands with a shiny button. "Consulting\nfee," Pip says, and won\'t let go.',
+    choices: [
+      { label: 'Let Pip keep it', outcomes: [{ text: 'Pip is pleased. His pecks land harder.', pet: 3 }] },
+      { label: 'Sell it', outcomes: [{ text: 'It was a real gold button. +25 coins.', coins: 25 }] },
+    ],
+  },
+  {
+    id: 'shrine',
+    title: 'Waymark Shrine',
+    text: 'A roadside stone carved with an old map.\nA sign says "Offerings keep the lines bright."',
+    choices: [
+      { label: 'Offer 20 coins', cost: 20, outcomes: [{ text: 'The carved lines brighten. You feel lucky.', boost: 'rare' }] },
+      { label: 'Trace the map', outcomes: [{ text: "The groove's sharp edge cuts your thumb.\nTen coins were wedged in it.", hp: -6, coins: 10 }] },
+    ],
+  },
+  // ---- Greenmarch: the farms asleep in the fields, the road drawn straight
+  {
+    id: 'sleepingFarmer',
+    region: 'greenmarch',
+    title: 'Asleep at the Plough',
+    text: 'A farmer asleep mid-furrow, where the blank\ncaught her. Her purse hangs open at her belt.',
+    choices: [
+      { label: 'Tie it shut', outcomes: [{ text: 'You tie it shut and move her into the shade.\nPip says nothing. His pecks land harder.', pet: 2 }] },
+      { label: 'Take a few coins', outcomes: [{ text: 'Twenty-five coins. Nobody will ever know.\nPip looks away.', coins: 25 }] },
+    ],
+  },
+  {
+    id: 'straightRoad',
+    region: 'greenmarch',
+    title: 'The Straight Road',
+    text: "The Mapmaker's road cuts straight through\nan orchard. The old lane winds beside it.",
+    choices: [
+      { label: 'Take his road', outcomes: [{ text: 'Smooth, quick, easy going.\nYou arrive rested, and uneasy.', heal: 0.2 }] },
+      {
+        label: 'Take the old lane',
+        outcomes: [
+          { chance: 1, text: 'Under an old milestone, someone hid\ntheir savings. Thirty coins.', coins: 30 },
+          { chance: 1, text: 'Brambles and a ditch. You lose an hour,\nand some skin.', hp: -8 },
+        ],
+      },
+    ],
+  },
+  // ---- the Frostpeaks: the snow held still, the ice that holds whatever touches it
+  {
+    id: 'heldFast',
+    region: 'frostpeaks',
+    title: 'Held Fast',
+    text: "A pedlar's boots are frozen into the ice.\nHe has stood here for days.",
+    choices: [
+      { label: 'Chip him free', outcomes: [{ text: 'Your hands go numb. He presses his\nwhetstone on you. You hit harder now.', hp: -10, atk: 1 }] },
+      { label: 'Take his purse', outcomes: [{ text: 'He gives you his purse to fetch help.\nThere is no help to fetch. You both know it.', coins: 20 }] },
+    ],
+  },
+  {
+    id: 'tenPastThree',
+    region: 'frostpeaks',
+    title: 'Ten Past Three',
+    text: 'In a mountain village every clock says ten\npast three. An old woman winds hers anyway.',
+    choices: [
+      { label: 'Sit with her', outcomes: [{ text: 'Tea, a warm stove, an hour of quiet.\nHer clock ticks once, and stops.', heal: 0.25 }] },
+      { label: 'Ask the way up', outcomes: [{ text: 'She draws the glacier in the frost on her\nwindow. You learn its ways.', boost: 'common' }] },
+    ],
+  },
+  // ---- Ashfell: the drifting land, everything chained in pairs
+  {
+    id: 'chainedPair',
+    region: 'ashfell',
+    title: 'Chained Pair',
+    text: 'Two strangers, chained wrist to wrist by his\ndrawing. One of them is badly burned.',
+    choices: [
+      { label: 'Break the chain', outcomes: [{ text: 'The links burn your hands, but they break.\nThey walk on together anyway. Max HP up.', hp: -12, maxHp: 8 }] },
+      { label: 'Pay for a healer', cost: 15, outcomes: [{ text: 'The healer works through the night. At dawn\nthe pair give you a forge-charm.', boost: 'rare' }] },
+    ],
+  },
+  {
+    id: 'driftingHouse',
+    region: 'ashfell',
+    title: 'Drifting House',
+    text: 'A house floats past on its stone, a family\nat the window. The gap is wide, and hot.',
+    choices: [
+      {
+        label: 'Jump across',
+        outcomes: [
+          { chance: 2, text: 'You land hard, and help them onto solid\nground. They feed you before you go.', heal: 0.25 },
+          { chance: 1, text: 'You land short. The lava is close enough\nto blister.', hp: -15 },
+        ],
+      },
+      { label: 'Let it go', outcomes: [{ text: 'It drifts out of sight. You will think\nof that window later.' }] },
+    ],
+  },
+  // ---- the Duskmire: the lanterns, the tide on a timetable
+  {
+    id: 'lanternPost',
+    region: 'duskmire',
+    title: 'The Crossing Light',
+    text: 'A lamp hangs at a crossing, dry and dark.\nThe fen-folk say this light once saved lives.',
+    choices: [
+      { label: 'Buy oil, light it', cost: 15, outcomes: [{ text: 'It burns. On the far bank, someone waves.\nThey leave you dried fish and a blessing.', heal: 0.25 }] },
+      { label: 'Take the lamp', outcomes: [{ text: 'The brass sells well. The crossing stays\ndark behind you.', coins: 25 }] },
+    ],
+  },
+  {
+    id: 'tideReader',
+    region: 'duskmire',
+    title: 'The Tide-Reader',
+    text: 'An old tide-reader: "His timetable says\nit\'s safe. The old tide doesn\'t agree."',
+    choices: [
+      { label: 'Wait with her', outcomes: [{ text: 'An hour on, the old tide breaks through\nhis lines. She was right. You rested, at least.', heal: 0.2 }] },
+      {
+        label: 'Trust the timetable',
+        outcomes: [
+          { chance: 2, text: 'You cross on time, dry. Someone dropped a\npurse on the boards.', coins: 20 },
+          { chance: 1, text: 'The old tide breaks through his lines. You\ncrawl out soaked and bruised.', hp: -12 },
+        ],
+      },
+    ],
+  },
+  // ---- Noonspire (ready for when the region joins REGIONS: until then no act is in it, so neither turns up)
+  {
+    id: 'lostCaravan',
+    region: 'noonspire',
+    title: 'The Lost Caravan',
+    text: 'A caravan has walked in circles for days.\nWith no shadows, nobody can find north.',
+    choices: [
+      { label: 'Guide them', outcomes: [{ text: 'Hours in the glare leave you burned. At the\nroad they press a sun-charm into your hand.', hp: -12, boost: 'rare' }] },
+      { label: 'Sell them your map', outcomes: [{ text: 'They pay well. You hope a map is enough\nwhere nothing casts a shadow.', coins: 25 }] },
+    ],
+  },
+  {
+    id: 'coldSpring',
+    region: 'noonspire',
+    title: 'The Last Cold Spring',
+    text: 'A spring that still runs cold, kept by an\nold woman with a ladle and a tally.',
+    choices: [
+      { label: 'Pay for a drink', cost: 10, outcomes: [{ text: 'It is the best thing you have ever tasted.\nShe marks the tally. One more day.', heal: 0.3 }] },
+      { label: 'Ask about nights', outcomes: [{ text: '"We froze, some winters. We also slept."\nShe tells you where the sentries stand.', boost: 'common' }] },
+    ],
+  },
+];
+
+export const EVENT_IDS = EVENTS.map((e) => e.id);
+
+/** The events an act's map can hold: the ones for anywhere, and its own region's. */
+export function eventIdsFor(act: ActDef): string[] {
+  const region = REGIONS.find((r) => r.acts.some((a) => a === act || a.name === act.name))?.id;
+  return EVENTS.filter((e) => !e.region || e.region === region).map((e) => e.id);
+}
+export const eventById = (id: string): EventDef | undefined => EVENTS.find((e) => e.id === id);

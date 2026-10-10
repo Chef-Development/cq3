@@ -1,0 +1,285 @@
+// Story scenes: the speaker's portrait in a gold frame standing on a navy text box, a ribbon name plate, the
+// text typing itself out (with a caret), a bouncing "next" arrow, progress pips and a Skip button. The box
+// slides up when a scene starts; a new speaker's portrait slides in from their side. Tap: finish the box, then
+// the next box. Used for the run's scenes (Run phase 'scene') and for a boss's scene in the middle of a fight
+// (App.storyOverlay).
+import type Phaser from 'phaser';
+import { SPEAKER_NAME, STORY } from '../../data/story';
+import type { Speaker } from '../../data/types';
+import type { FightScene } from '../scene';
+import { textWidth } from '../font';
+import { band, button3d, chevron, GOLD, NAVY, panel, rows } from './pixels';
+import { clamp01, easeBack, inRect, INK, mix, WHITE, type Rect } from './shared';
+import { hdFor, screenCovered } from './hd-text';
+import { FACE, isPressed, notePress, ribbon, TextPool } from './ui';
+import { bigLines } from '../../core/a11y';
+import { A11Y } from '../a11y';
+import { StoryStage } from './story-stage';
+
+/** The story text's width every box's lines fit (tests/unit/data.test.ts STORY_TEXT_W). */
+const STORY_TEXT_W = 256;
+
+type G = Phaser.GameObjects.Graphics;
+
+/** Characters per second the text types out at. */
+const TYPE_CPS = 55;
+/** Speakers whose portrait stands on the left (the heroes, Pip and the narrator); villains stand on the right. */
+const LEFT: Speaker[] = [
+  'narrator', 'rowan', 'pip', 'sable', 'neve', 'moss', 'tam', 'hollis', 'vesper', 'torva',
+  // part6:A
+  'solenne', 'wren',
+  // part6:B
+  'yara', 'dell',
+  // part6:C
+  'gorm', 'tess',
+  // part6:D
+  'fizz', 'brann',
+];
+/** Friends who aren't heroes (Mags the smith, Hesper the High Keeper): on the right like a villain, but in warm colors. */
+const ALLY: Speaker[] = ['smith', 'keeper'];
+/** Every speaker's name tab: an ink plate with a brass rim and brass letters, one look for all (they were candy
+ *  pills in blue, red, green and purple: L8.4). */
+const TAB = [0xbe8e3a, 0x262040, 0x1c1830, 0x100c1c] as const;
+const TAB_NAME = 0xe8c878;
+/** Portrait backdrop [top, bottom] per side, and the name tab. */
+const LOOK = {
+  // (L7: deep, moody grounds behind the portraits; the head lit by its own soft light)
+  narrator: { bg: [0x2c2448, 0x120e20], ribbon: TAB, name: TAB_NAME },
+  hero: { bg: [0x26446e, 0x0e1a30], ribbon: TAB, name: TAB_NAME },
+  foe: { bg: [0x5e1e2a, 0x220a12], ribbon: TAB, name: TAB_NAME },
+  ally: { bg: [0x6e4220, 0x26140c], ribbon: TAB, name: TAB_NAME },
+  /** The Mapmaker: the Atlas's ink behind him. */
+  mapmaker: { bg: [0x261c38, 0x0e0a16], ribbon: TAB, name: TAB_NAME },
+  /** Pip: a dark teal ground (his portrait was a bright blue ball on bright blue). */
+  pet: { bg: [0x1c4042, 0x08161a], ribbon: TAB, name: TAB_NAME },
+} as const;
+
+export class StoryView {
+  /** The scene's dim behind everything (under the stage's cast), and the box, frame and pips over them. */
+  private gDim!: G;
+  private g!: G;
+  /** Who speaks stands on the stage (view/story-stage.ts). */
+  private readonly stage: StoryStage;
+  private portrait: Phaser.GameObjects.Image | null = null;
+  private texts: TextPool;
+  private key = '';
+  private boxAt = 0;
+  private revealAll = false;
+  private sceneKey = '';
+  private sceneAt = 0;
+  private who: Speaker | null = null;
+  private whoAt = 0;
+
+  constructor(private readonly s: FightScene) {
+    this.texts = new TextPool(s, 32.5);
+    this.stage = new StoryStage(s);
+  }
+
+  /** New layout: the graphics and portrait image go with the old textures. */
+  build(): void {
+    this.gDim?.destroy();
+    this.g?.destroy();
+    this.portrait?.destroy();
+    this.gDim = this.s.add.graphics().setDepth(32.2);
+    this.g = this.s.add.graphics().setDepth(32.25);
+    this.stage.build();
+    this.portrait = this.s.add.image(0, 0, 'portrait_rowan').setOrigin(0.5, 1).setDepth(32.3).setVisible(false);
+  }
+
+  /** The box's top edge and which end its portrait stands at (set as it draws; the Skip button sits by them). */
+  private edge: { x: number; y: number; w: number; portraitLeft: boolean } | null = null;
+
+  private skipRect(): Rect {
+    // a scene in the middle of a fight (a boss's phase line): Skip rests on the box's top edge, at the end away from
+    // the portrait, never on the foe's plate (review round 8: it covered the boss's HP the moment it mattered)
+    const e = this.edge;
+    if (this.s.app.storyOverlay && e) return { x: e.portraitLeft ? e.x + e.w - 44 : e.x + 6, y: e.y - 11, w: 38, h: 14 };
+    return { x: this.s.R - 44, y: 4, w: 38, h: 14 };
+  }
+
+  storySkipAt(x: number, y: number): boolean {
+    const hit = !!this.s.app.storyId && inRect(this.skipRect(), x, y, 4);
+    if (hit) notePress(this.skipRect());
+    return hit;
+  }
+
+  /** A tap while the box is still typing shows all of it (returns true: the tap is used up). */
+  reveal(): boolean {
+    const box = this.box();
+    if (!box || this.revealAll || this.typed(performance.now()) >= box.text.length) return false;
+    this.revealAll = true;
+    return true;
+  }
+
+  private box() {
+    const id = this.s.app.storyId;
+    return id ? STORY[id]?.[this.s.app.storyBox] : undefined;
+  }
+
+  private typed(now: number): number {
+    return this.revealAll ? Infinity : Math.floor(((now - this.boxAt) / 1000) * TYPE_CPS);
+  }
+
+  draw(now: number): void {
+    const s = this.s;
+    const g = this.g;
+    g.clear();
+    this.gDim.clear();
+    this.texts.begin();
+    const id = s.app.storyId;
+    const box = this.box();
+    if (!id || !box) {
+      this.portrait?.setVisible(false);
+      this.stage.hide();
+      this.sceneKey = '';
+      this.texts.end();
+      return;
+    }
+    // the sharper text (view/hd-text.ts) unless a wipe or a tip covers the box
+    this.texts.hd = hdFor(s, 'story', screenCovered(s, now));
+    const key = `${id}:${s.app.storyBox}`;
+    if (key !== this.key) {
+      this.key = key;
+      this.boxAt = now;
+      this.revealAll = false;
+    }
+    if (id !== this.sceneKey) {
+      this.sceneKey = id;
+      this.sceneAt = now;
+      this.who = null;
+    }
+    if (box.who !== this.who) {
+      this.who = box.who;
+      this.whoAt = now;
+    }
+    const W = s.R - s.L;
+    const inK = easeBack((now - this.sceneAt) / 280, 1.3);
+    const lift = Math.round((1 - inK) * 60);
+    // the world dims behind the scene (a mid-fight scene keeps the fight visible), darker toward the bottom
+    const dimA = (s.app.storyOverlay ? 0.3 : 0.4) * clamp01((now - this.sceneAt) / 160);
+    const gd = this.gDim;
+    gd.fillStyle(INK, dimA);
+    gd.fillRect(0, 0, s.R + s.L + 1000, s.B + 200);
+    for (let i = 0; i < 5; i++) {
+      gd.fillStyle(INK, dimA * 0.35);
+      gd.fillRect(0, s.B - 24 - i * 10, s.R + s.L + 1000, 24 + i * 10 + 200);
+    }
+
+    // text box along the bottom (larger text: the bold letters; a box whose lines don't fit them is re-wrapped into
+    // three and the box grows a line)
+    const big = A11Y.big ? bigLines(box.text, STORY_TEXT_W, (l, b) => textWidth(l, 1, b)) : null;
+    const lines = big ?? box.text.split('\n');
+    const bx = s.L + 4;
+    const bw = W - 8;
+    const bh = 38 + 11 * Math.max(0, lines.length - 2);
+    const by = s.B - bh - 3 + lift;
+    // who speaks stands on the stage (over the dim, under the box)
+    this.stage.draw(now, id, s.app.storyBox, s.B - bh - 3);
+    panel(g, { x: bx, y: by, w: bw, h: bh }, { trim: 'full' });
+    this.edge = { x: bx, y: by, w: bw, portraitLeft: LEFT.includes(box.who) };
+
+    // portrait in a gold frame standing on the box; a new speaker slides in from their side
+    const left = LEFT.includes(box.who);
+    const look = box.who === 'narrator' ? LOOK.narrator : box.who === 'mapmaker' ? LOOK.mapmaker : box.who === 'pip' ? LOOK.pet : left ? LOOK.hero : ALLY.includes(box.who) ? LOOK.ally : LOOK.foe;
+    const fw = 46;
+    const wk = easeBack((now - this.whoAt) / 240, 1.6);
+    const slide = Math.round((1 - wk) * (left ? -26 : 26));
+    const fx = (left ? bx + 6 : bx + bw - fw - 6) + slide;
+    const fy = by - fw + 9;
+    const typing = this.typed(now) < box.text.length;
+    rows(g, fx - 1, fy + 2, fw + 2, fw + 1, 3, INK, 0.5);
+    rows(g, fx - 1, fy - 1, fw + 2, fw + 2, 3, INK);
+    rows(g, fx, fy, fw, fw, 2, GOLD[2]);
+    band(g, fx, fy, fw, fw, 2, 0, 1, GOLD[4]);
+    g.fillStyle(GOLD[3], 1);
+    g.fillRect(fx, fy + 2, 1, fw - 4);
+    band(g, fx, fy, fw, fw, 2, fw - 1, fw, GOLD[0]);
+    g.fillStyle(GOLD[1], 1);
+    g.fillRect(fx + fw - 1, fy + 2, 1, fw - 4);
+    rows(g, fx + 2, fy + 2, fw - 4, fw - 4, 1, INK);
+    const [bgTop, bgBot] = look.bg;
+    g.fillStyle(bgBot, 1);
+    g.fillRect(fx + 3, fy + 3, fw - 6, fw - 6);
+    for (let i = 0; i < 4; i++) {
+      g.fillStyle(mix(bgBot, bgTop, (i + 1) / 4), 1);
+      g.fillRect(fx + 3, fy + 3 + i * 5, fw - 6, 5);
+    }
+    // a soft light behind the head
+    g.fillStyle(WHITE, 0.08);
+    g.fillCircle(fx + fw / 2, fy + fw / 2 - 2, 14);
+    g.fillStyle(WHITE, 0.06);
+    g.fillCircle(fx + fw / 2, fy + fw / 2 - 2, 9);
+    const bob = typing && Math.floor(now / 140) % 2 === 0 ? 1 : 0;
+    if (this.portrait) {
+      // the third region's speakers are painted in idle time after boot: finish them now if this scene comes sooner
+      if (!this.s.textures.exists(`portrait_${box.who}`)) this.s.ensureRegionPacks(`portrait_${box.who}`);
+      // (a speaker not painted yet, as the fourth region's until its art lands, speaks from an empty frame)
+      const has = this.s.textures.exists(`portrait_${box.who}`);
+      const p = this.portrait.setTexture(has ? `portrait_${box.who}` : 'portrait_rowan').setPosition(Math.round(fx + fw / 2), fy + fw - 3 - bob).setVisible(has);
+      // keep the portrait inside its frame
+      const over = Math.max(0, p.height - (fw - 6));
+      p.setCrop(0, over, p.width, p.height - over);
+    }
+    // gold corner studs on the frame
+    g.fillStyle(GOLD[4], 1);
+    for (const [px, py] of [
+      [fx + 1, fy + 1],
+      [fx + fw - 2, fy + 1],
+    ])
+      g.fillRect(px, py, 1, 1);
+
+    // name ribbon on the box's top edge, beside the portrait
+    const name = SPEAKER_NAME[box.who];
+    if (name) {
+      const nw = textWidth(name, 1, true) + 14;
+      const ncx = left ? fx + fw + 6 + nw / 2 : fx - 6 - nw / 2;
+      ribbon(g, ncx, by - 6, nw, 11, look.ribbon, 1, false);
+      this.texts.text(name, ncx, by - 0.5, look.name, { bold: true, ox: 0.5, oy: 0.5 });
+    }
+
+    // the text types itself out, with a caret at the end (larger text: the bold letters, when the box's lines fit)
+    let left2 = this.typed(now);
+    let caret: { x: number; y: number } | null = null;
+    lines.forEach((line, i) => {
+      const shown = line.slice(0, Math.max(0, left2));
+      left2 -= line.length + 1;
+      const ty = by + 15 + i * 11;
+      if (shown.length) this.texts.text(shown, bx + 9, ty, WHITE, { oy: 0.5, bold: !!big, full: line });
+      if (typing && shown.length < line.length && !caret) caret = { x: bx + 9 + (shown.length ? textWidth(shown, 1, !!big) : 1), y: ty };
+    });
+    const cr = caret as { x: number; y: number } | null;
+    if (cr && Math.floor(now / 200) % 2 === 0) {
+      g.fillStyle(GOLD[3], 1);
+      g.fillRect(cr.x, cr.y - 3, 2, 6);
+    }
+    if (!typing) {
+      // next: a gold chevron bouncing in the corner
+      const ax = bx + bw - 13;
+      const ay = by + bh - 12 + (Math.floor(now / 160) % 4 < 2 ? 0 : 1);
+      chevron(g, ax, ay, 7, GOLD[3], 1, 1, true);
+      chevron(g, ax + 4, ay, 7, GOLD[4], 1, 1, true);
+    }
+    // where we are in the scene: a pip per box, the current one a longer gold pill
+    const n = STORY[id].length;
+    let px = bx + bw - 8;
+    for (let i = n - 1; i >= 0; i--) {
+      const cur = i === s.app.storyBox;
+      const w = cur ? 6 : 2;
+      px -= w;
+      g.fillStyle(INK, 1);
+      g.fillRect(px - 1, by + 4, w + 2, 4);
+      g.fillStyle(cur ? GOLD[3] : i < s.app.storyBox ? NAVY[7] : NAVY[5], 1);
+      g.fillRect(px, by + 5, w, 2);
+      px -= 2;
+    }
+
+    // Skip
+    const sr = this.skipRect();
+    const pressed = isPressed(sr, now);
+    button3d(g, sr, FACE.navy, pressed);
+    this.texts.text('Skip', sr.x + 5, sr.y + sr.h / 2 + (pressed ? 2 : 0), WHITE, { bold: true, oy: 0.5 });
+    chevron(g, sr.x + sr.w - 10, sr.y + 4 + (pressed ? 2 : 0), 5, GOLD[3], 1, 1, false);
+    chevron(g, sr.x + sr.w - 7, sr.y + 4 + (pressed ? 2 : 0), 5, GOLD[4], 1, 1, false);
+    this.texts.end();
+  }
+}

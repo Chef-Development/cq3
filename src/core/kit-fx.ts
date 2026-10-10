@@ -1,0 +1,960 @@
+// The heroes' kits as fight hooks (core/hooks.ts): each hero's signature mechanic, green-block ability, passive,
+// finisher twist, star moves (3 and 5 stars) and soft strengths, on top of their style's shared rule
+// (core/styles.ts). One cursor for every hero. Numbers: tuning.hero (Rowan) and tuning.kits.<id>; words:
+// src/data/heroes.ts.
+
+import { heroDef, type HeroId } from '../data/heroes';
+import { isAttack, isRed } from './blocks';
+import type { Block, Combat, Enemy } from './combat';
+import type { HeroBuild } from './heroes';
+import type { FightHooks } from './hooks';
+import { addFocus, addGuard, allyPower, chainOf, dropKeg, focusCap, focusOf, guardOf, powerShot, spendGuard } from './styles';
+import { BRANN_KIT, FIZZ_KIT } from './kit-fizz-brann';
+
+const K = (c: Combat) => c.tuning.kits;
+const ability = (c: Combat): boolean => c.hero.abilityTimer > 0;
+
+// ---------------------------------------------------------------- shared kit pieces
+
+/** The next block ahead of the cursor in the way it's moving (Shadow Dash's target): any block but traps and
+ *  mirrors, the nearest first. */
+export function nextBlockAhead(c: Combat, skip?: Block): Block | null {
+  const p = c.cursorPos();
+  const dir = c.cursorDirAt(c.time);
+  let best: Block | null = null;
+  let bestD = Infinity;
+  for (const b of c.blocks) {
+    if (b === skip || b.kind === 'purple' || b.kind === 'mirror' || c.sunk(b)) continue; // (a block under water is out of reach)
+    const near = b.pos - (dir * b.width) / 2;
+    const d = (near - p) * dir;
+    if (d > 0 && d < bestD) (best = b), (bestD = d);
+  }
+  return best;
+}
+
+/**
+ * Shadow Dash: after a Perfect hit the cursor bursts ahead (tuning.kits.sable.dashMult times its speed) toward the
+ * next block, slowing back to normal `lead` seconds of travel before it (counted through any patch on the way), so a
+ * chain of Perfects comes fast and risky. The burst is a short-lived 'dash' patch from the cursor to that point (so
+ * timing, the bot and the view all see it). Where it lands the cursor slows down for a moment (a 'land' patch at
+ * kits.sable.landMult, about landSec long, ending at the block's near edge), so the block it dashed to can be read
+ * and hit. It stops short of a red (to block it), ends before a hold's near edge, skips traps, and never runs past a
+ * wall.
+ */
+export function shadowDash(c: Combat, lead = K(c).sable.dashLead): boolean {
+  const b = nextBlockAhead(c);
+  if (!b) return false;
+  for (const z of c.zones.slice()) if (z.kind === 'dash' || z.kind === 'land') c.removeZone(z);
+  const dir = c.cursorDirAt(c.time);
+  const p = c.cursorPos();
+  const edge = b.pos - (dir * b.width) / 2;
+  // walk back from the edge until `lead` seconds of normal travel are left (patches change how far that is)
+  const v = c.cursorSpeed();
+  let target = edge;
+  for (let i = 0; i < 24 && c.travelTime(target, edge, dir) < lead; i++) target -= dir * Math.max(0.004, v * c.zoneMultAt(target) * (lead / 24));
+  if ((target - p) * dir <= 0.03) return false; // already that close: no dash
+  const lo = Math.min(p, target);
+  const hi = Math.max(p, target);
+  const dashSec = c.travelTime(p, target, dir) / Math.max(1, K(c).sable.dashMult);
+  const z = c.addZone('dash', (lo + hi) / 2, hi - lo, 0.05 + dashSec + 0.2);
+  z.lo = lo;
+  z.hi = hi;
+  landing(c, target, edge, dir, dashSec);
+  c.events.push({ type: 'dash', from: p, to: target });
+  if (c.stars >= 3) c.perk.afterimage = 1; // 3 stars: the dash leaves an afterimage that stops the next red
+  return true;
+}
+
+/** Where a dash lands, the cursor slows (kits.sable.landMult) for about landSec: a 'land' patch from the landing spot
+ *  on, never past the block's near edge. Sable's step hook takes it away once the cursor is through it. */
+function landing(c: Combat, at: number, edge: number, dir: number, dashSec: number): void {
+  const S = K(c).sable;
+  if (S.landSec <= 0 || S.landMult >= 1 || S.landMult <= 0) return;
+  const room = (edge - at) * dir;
+  if (room <= 0.002) return;
+  const d = Math.min(room, S.landSec * c.cursorSpeed() * c.zoneMultAt(at) * S.landMult);
+  const lo = Math.min(at, at + dir * d);
+  const hi = Math.max(at, at + dir * d);
+  const z = c.addZone('land', (lo + hi) / 2, hi - lo, dashSec + S.landSec * 2 + 0.3);
+  z.lo = lo;
+  z.hi = hi;
+  c.perk.landDir = dir;
+}
+
+/** Torva's Wind-Up smash multiplier right now: a base, plus a step for every combo, up to a cap (the view can show
+ *  it on the armed mark). */
+export function windUpMult(c: Combat): number {
+  const k = K(c).torva;
+  return Math.max(1, Math.min(k.windUpMax, k.windUpBase + k.windUpStep * Math.max(0, c.combo)));
+}
+
+/** Glacier: every red on the bar freezes solid where it is (it waits, still a red to block), and the bar slows: all of
+ *  it for a moment (kits.neve.glacierBarSec), then the middle patch for the rest of slowSec (5 stars: all of it). */
+function glacier(c: Combat): void {
+  const k = K(c).neve;
+  let n = 0;
+  for (const b of c.blocks)
+    if (isRed(b.kind)) {
+      c.holdRed(b, k.glacierSec);
+      n++;
+    }
+  const w = c.stars >= 5 ? 1 : Math.max(0, Math.min(1, k.slowWidth));
+  if (w > 0) c.addZone('slow', 0.5, w, k.slowSec);
+  const side = (1 - w) / 2;
+  if (side > 0.01 && k.glacierBarSec > 0) {
+    c.addZone('slow', side / 2, side, k.glacierBarSec);
+    c.addZone('slow', 1 - side / 2, side, k.glacierBarSec);
+  }
+  c.perkFx('glacier', n);
+}
+
+/** Whether the cursor can get to block b: no mirror shard (it bounces the cursor back) between them. */
+const reachable = (c: Combat, b: Block): boolean => {
+  const p = c.cursorPos();
+  return !c.blocks.some((m) => m.kind === 'mirror' && (m.pos - p) * (b.pos - m.pos) > 0);
+};
+
+/** A Shield Slam's share of attack: a plain block's, or a Perfect block's (any block's at 5 stars). */
+export const slamShare = (c: Combat, perfect: boolean): number => (perfect || c.stars >= 5 ? K(c).hollis.slamPerfect : K(c).hollis.slam);
+
+/** Soft strengths: an edge against some kinds of foes (more damage to them, or less from them). */
+function strengthHooks(id: HeroId): FightHooks {
+  const list = heroDef(id).strengths;
+  const tagged = (c: Combat, e: Enemy | undefined, kind: 'dmg' | 'guard'): number => {
+    if (!e) return 0;
+    const tags = c.tuning.enemies[e.key]?.tags ?? [];
+    let n = 0;
+    for (const s of list) if (s.kind === kind && tags.includes(s.tag)) n += s.n;
+    return n * c.tuning.hero.strengthScale;
+  };
+  return {
+    damageTaken: (c, e, _src, v) => v * (1 + tagged(c, e, 'dmg')),
+    hurt: (c, amount, source, enemyId) => (source === 'miss' || source === 'perk' ? amount : amount * (1 - tagged(c, c.enemyById(enemyId), 'guard'))),
+  };
+}
+
+// ---------------------------------------------------------------- the kits
+
+export const KIT_HOOKS: Record<HeroId, FightHooks> = {
+  rowan: {
+    // Battle Focus: while the green ability is on, hits crit more often (5 stars: and count 2 combo)
+    critChance: (c, _x, v) => (ability(c) ? v + c.tuning.hero.abilityCritBonus : v),
+    comboGain: (c, from, _p, n) => (from === 'hit' && ability(c) && c.stars >= 5 ? n + 1 : n),
+    // Knight's Resolve: the first hit taken each fight doesn't break the combo
+    comboBreak: (c, x) => {
+      if (x.cause !== 'hurt' || c.perk.resolve) return;
+      c.perk.resolve = 1;
+      x.keepCombo = x.combo;
+      x.keepStacks = x.stacks;
+      x.keepMeter = x.meter;
+      c.perkFx('resolve');
+    },
+    // Whirlwind hits every foe (the core's default); 3 stars: +1 combo per foe it hits
+    afterFinisher: (c, x) => {
+      if (c.stars >= 3 && x.targets.length) {
+        c.combo += x.targets.length;
+        c.perkFx('wideSweep', x.targets.length);
+      }
+    },
+  },
+  sable: {
+    // Shadow Dash: a Perfect hit dashes the cursor ahead
+    afterHit: (c, x) => {
+      if (!x.echo && x.perfect && !c.result) shadowDash(c);
+    },
+    // Smoke Veil: while the green ability is on, a miss doesn't break the combo (or the chain)
+    step: (c) => {
+      c.perk.veil = ability(c) && c.forgiveLeft() > 0 ? 1 : 0;
+      // a dash's landing slow-down is over once the cursor is through it (or has turned)
+      for (const z of c.zones)
+        if (z.kind === 'land') {
+          const d = c.perk.landDir || 1;
+          const p = c.cursorPos();
+          if ((d > 0 ? p > z.hi + 1e-6 : p < z.lo - 1e-6) || c.cursorDirAt(c.time) !== d) c.removeZone(z);
+          break;
+        }
+    },
+    miss: (c, x) => {
+      if (!ability(c) || !c.canForgive()) return; // (every effect together forgives only so many misses a fight)
+      x.breaks = false;
+      x.damage = 0;
+      c.perkFx('smokeVeil');
+    },
+    // Silent Step: Perfect hits fill the meter more
+    meter: (c, source, v) => ((source === 'hit' || source === 'green') && c.hitNow?.perfect && !c.hitNow.echo ? v * (1 + K(c).sable.silentStep) : v),
+    // 3 stars: the afterimage a dash leaves stops the next red that reaches her
+    impact: (c) => {
+      if (!c.perk.afterimage) return false;
+      c.perk.afterimage = 0;
+      c.perkFx('afterimage');
+      return true;
+    },
+    // Twin Fang: the finisher strikes the target alone, harder; a kill keeps a stack; 5 stars: it strikes twice
+    finisher: (c, x, v) => {
+      const target = c.currentTarget();
+      if (target) x.targets = [target];
+      return v * K(c).sable.fangMult;
+    },
+    afterFinisher: (c, x) => {
+      if (c.stars >= 5) {
+        const t = x.targets.find((e) => e.alive);
+        if (t) c.strike(t, x.damage * 0.5, 'fangAndClaw');
+      }
+      if (x.killed > 0 && (c.enemies.some((e) => e.alive) || c.nextWaveIn >= 0)) c.bankStacks(Math.round(K(c).sable.fangKeep), 'twinFang');
+    },
+  },
+  neve: {
+    // Flash Freeze: blocking a red can freeze it in place (always on a Perfect block)
+    afterBlock: (c, x) => {
+      if (x.cracked || x.echo || x.block.kind === 'bomb' || c.result) return;
+      const chance = c.stars >= 3 ? K(c).neve.freeze3 : K(c).neve.freeze;
+      if (!x.perfect && c.rand() >= chance) return;
+      const f = c.spawnBlock('frozen', x.block.pos, x.block.ownerId, Math.max(x.block.width, c.tuning.blocks.attackWidth));
+      c.events.push({ type: 'iceBlock', id: f.id, pos: f.pos });
+      c.perkFx('flashFreeze', 0, 0, f.pos);
+    },
+    // Cold Snap: ice patches bother her half as much; shattered ice fills only part of a hit's meter (it used to fill
+    // a green's: playtest round 6 found her meter filling too fast)
+    zoneMult: (c, z, v) => (z.kind === 'ice' ? 1 + (v - 1) * K(c).neve.iceResist : v),
+    meter: (c, source, v) => (source === 'hit' && c.hitNow?.block.kind === 'frozen' && !c.hitNow.echo ? v * K(c).neve.iceMeter : v),
+    // Chill: while the green ability is on, the cursor moves slower
+    cursorMult: (c, v) => (ability(c) ? v * K(c).neve.chill : v),
+    // Glacier: hits every foe (a little less), freezes every red on the bar solid, slows the bar (all of it for a
+    // moment, then the middle); her Big Freeze node turns the frozen reds into ice to smash instead
+    finisher: (c, x, v) => {
+      x.reds = 'keep';
+      return v * K(c).neve.glacierMult;
+    },
+    afterFinisher: (c) => glacier(c),
+  },
+  moss: {
+    // Deep Roots: with 2+ allies out, hits deal more
+    hitMult: (c, x, v) => (!x.echo && c.allies.length >= 2 ? v * (1 + K(c).moss.roots) : v),
+    // Overgrowth: hits every foe, more per ally out; vines slow the reds that come in the next few seconds
+    finisher: (c, _x, v) => v * (1 + K(c).moss.overgrowth * c.allies.length),
+    afterFinisher: (c) => {
+      c.perk.vines = K(c).moss.vineSec;
+    },
+    step: (c) => {
+      if (c.perk.vines > 0) c.perk.vines = Math.max(0, c.perk.vines - 1 / 120);
+    },
+    spawned: (c, b) => {
+      if (c.perk.vines > 0 && isRed(b.kind)) c.chillRed(b, c.perk.vines + 1, K(c).moss.vineMult);
+    },
+  },
+  tam: {
+    start: (c) => {
+      c.perk.chainFuse = 1; // Chain Fuse: kegs set each other off
+    },
+    // Fuse Up: green hits drop a keg on the bar
+    afterHit: (c, x) => {
+      if (x.green && !x.echo && dropKeg(c)) c.perkFx('fuseUp');
+    },
+    // Blast Shield: enemy bombs that reach you deal half
+    hurt: (c, amount, source) => (source === 'bomb' ? amount * (1 - K(c).tam.blastShield) : amount),
+    // 5 stars: kegs blast twice as wide
+    kegRadius: (c, r) => (c.stars >= 5 ? r * K(c).tam.wide5 : r),
+    // Big Bang: hits every foe, then drops kegs on the bar
+    afterFinisher: (c) => {
+      let n = 0;
+      for (let i = 0; i < Math.round(K(c).tam.bangKegs); i++) if (dropKeg(c)) n++;
+      if (n) c.perkFx('bigBang', n);
+    },
+  },
+  hollis: {
+    // Shield Slam: every block hits the red's owner back (a Perfect one harder; 5 stars: every one as hard), with a
+    // hit-stop of its own
+    afterBlock: (c, x) => {
+      if (x.echo) return;
+      // Brace: while the green ability is on, blocks store double Guard
+      if (ability(c) && !x.cracked) addGuard(c, 1);
+      if (!x.owner?.alive || c.result) return;
+      c.strike(x.owner, c.stats().atk * slamShare(c, x.perfect), 'shieldSlam', false, x.block.pos);
+      c.hitStopFor(c.tuning.juice.slamStopMs);
+    },
+    meter: (c, source, v) => (source === 'block' && ability(c) ? v * 2 : v),
+    // Iron Hide: reds that reach you deal less
+    hurt: (c, amount, source) => (source === 'red' || source === 'bomb' ? amount * (1 - K(c).hollis.ironHide) : amount),
+    // Rampart: one big hit with all the Guard; then reds bounce off the left end for a while
+    finisher: (c, x, v) => {
+      const target = c.currentTarget();
+      if (target) x.targets = [target];
+      const g = guardOf(c);
+      return g > 0 ? v * (1 + spendGuard(c) * K(c).hollis.rampartGuard) : v;
+    },
+    afterFinisher: (c) => {
+      c.perk.rampart = K(c).hollis.rampartSec;
+    },
+    step: (c) => {
+      if (c.perk.rampart > 0) c.perk.rampart = Math.max(0, c.perk.rampart - 1 / 120);
+    },
+    atWall: (c) => c.perk.rampart > 0,
+  },
+  vesper: {
+    start: (c) => {
+      c.perk.eagle = 1; // Eagle Eye: Perfects store double Focus
+      c.perk.pierce = 1; // Piercing Shot: the Power Shot also hits the foe behind
+      c.perk.patience = 1; // Patience: Focus is kept between waves; a full Focus crits
+    },
+    // Patience, on a crowded bar: at full Focus with no green out to fire it (none on the bar, or only behind a mirror
+    // shard the cursor bounces off), a Perfect hit fires it (a crit)
+    afterHit: (c, x) => {
+      if (x.echo || x.green || !x.perfect || c.result || focusCap(c) <= 0) return;
+      if (focusOf(c) < focusCap(c) * 0.999 || c.blocks.some((b) => b.kind === 'green' && reachable(c, b))) return;
+      const dmg = powerShot(c, true);
+      if (dmg > 0) c.perkFx('patience', dmg, 0, x.block.pos);
+    },
+    // Volley: arrows on every foe (Focus spent, x1.5), and every red on the bar is pinned in place
+    finisher: (c, x, v) => {
+      x.reds = 'keep';
+      const f = focusOf(c);
+      if (f <= 0 || x.damage <= 0) return v;
+      c.perk.focus = 0;
+      c.perkFx('volley', f);
+      return v * (1 + (f * K(c).vesper.volleyFocus) / Math.max(1, x.damage * Math.max(1, x.targets.length)));
+    },
+    afterFinisher: (c) => {
+      clearWalls(c);
+      // (an icicle is pinned too: its fuse waits, like a red's strike at the left end)
+      const sec = K(c).vesper.pinSec * (c.stars >= 5 ? 2 : 1);
+      for (const b of c.blocks) if (isRed(b.kind)) c.holdRed(b, sec);
+      addFocus(c, 0);
+    },
+  },
+  torva: {
+    // Quake: a Perfect hit (3 stars: or block) knocks every red back
+    afterHit: (c, x) => {
+      if (x.echo) return;
+      if (x.perfect) quake(c);
+      // Wind-Up: a green hit winds up the next one
+      if (x.green) c.perk.windUp = 1;
+    },
+    afterBlock: (c, x) => {
+      if (c.stars >= 3 && x.perfect && !x.echo) quake(c);
+    },
+    // ...the smash grows with the combo (windUpMult); its perk event's amount is the multiplier x100
+    hitMult: (c, x, v) => {
+      if (x.echo || x.green || !c.perk.windUp) return v;
+      c.perk.windUp = 0;
+      const m = windUpMult(c);
+      if (x.target) c.stun(x.target, K(c).torva.stunSec);
+      c.perkFx('windUp', m * 100, x.target?.id ?? 0, x.block.pos);
+      return v * m;
+    },
+    // Unstoppable: each hit taken adds damage for the rest of the fight
+    hurt: (c, amount, source) => {
+      if (amount > 0 && source !== 'miss' && source !== 'perk') c.perk.unstoppable = Math.min(K(c).torva.unstoppableMax, (c.perk.unstoppable ?? 0) + 1);
+      return amount;
+    },
+    damageTaken: (c, _e, source, v) => (source === 'hit' && c.perk.unstoppable ? v * (1 + K(c).torva.unstoppable * c.perk.unstoppable) : v),
+    // Earthsplitter: hits every foe, clears every block off the bar, and no reds come for a moment; 5 stars: keeps a
+    // stack
+    finisher: (_c, x, v) => {
+      x.reds = 'all';
+      return v;
+    },
+    afterFinisher: (c) => {
+      for (const e of c.enemies) if (e.alive) e.spawnTimer = Math.max(e.spawnTimer, K(c).torva.calmSec);
+      if (c.stars >= 5) c.bankStacks(1, 'secondSwing');
+    },
+  },
+  // part6:A
+  solenne: {
+    start: (c) => {
+      c.perk.sunrise = 0;
+    },
+    // Sunrise: every sunEvery combo her blade burns (and Radiance slows the reds while it does)
+    combo: (c, before, after) => {
+      const n = sunEvery(c);
+      if (after > 0 && Math.floor(after / n) > Math.floor(before / n)) ignite(c, sunSec(c));
+    },
+    step: (c) => {
+      if (c.perk.sunrise > 0) c.perk.sunrise = Math.max(0, c.perk.sunrise - 1 / 120);
+    },
+    // ...hits cut every other foe while it burns
+    afterHit: (c, x) => {
+      if (x.echo || c.result) return;
+      if (x.green) gleam(c);
+      if (GILDED.has(x.block)) {
+        GILDED.delete(x.block);
+        c.perk.gildedHit = x.block.id;
+        c.perkFx('gilded', K(c).solenne.gleamCombo, x.target?.id ?? 0, x.block.pos);
+      }
+      if (c.perk.sunrise > 0 && x.damage > 0) for (const e of c.aliveFoes()) if (e !== x.target) c.strike(e, x.damage * K(c).solenne.sunCut, 'sunCut', false, x.block.pos);
+    },
+    // Radiance: a red that comes onto the bar while the blade burns moves slower too
+    spawned: (c, b) => {
+      if (c.perk.sunrise > 0 && isRed(b.kind)) c.chillRed(b, c.perk.sunrise, K(c).solenne.radiance);
+      // Sunfall's gilding waits for yellows that weren't on the bar yet
+      if (b.kind === 'yellow' && c.perk.gildNext > 0) {
+        c.perk.gildNext--;
+        GILDED.add(b);
+      }
+    },
+    // Gleam: a gilded yellow adds combo and meter
+    comboGain: (c, from, _p, n) => (from === 'hit' && gildedHit(c) ? n + Math.max(0, Math.round(K(c).solenne.gleamCombo)) : n),
+    meter: (c, source, v) => (source === 'hit' && gildedHit(c) ? v + K(c).solenne.gleamMeter : v),
+    // Dawn Oath: at oathAt+ combo, a miss keeps half the combo (the stacks and the meter still go)
+    comboBreak: (c, x) => {
+      if (x.cause !== 'miss' || x.combo < oathAt(c)) return;
+      const keep = Math.floor(x.combo * K(c).solenne.oathKeep);
+      if (keep <= x.keepCombo) return;
+      x.keepCombo = keep;
+      c.perkFx('dawnOath', keep);
+    },
+    // Sunfall: every foe (the core's default), bigger with the combo; the reds go (the usual); then it gilds yellows
+    finisher: (c, x, v) => v * (1 + Math.min(K(c).solenne.sunfallMax, K(c).solenne.sunfallStep * Math.max(0, x.combo))),
+    afterFinisher: (c) => {
+      // (the cursor starts again from the left: the yellows nearest that end are the next ones; 5 stars: every one)
+      const want = c.stars >= 5 ? Infinity : Math.max(0, Math.round(K(c).solenne.sunfallGild));
+      const list = c.blocks.filter((b) => b.kind === 'yellow' && !GILDED.has(b)).sort((a, b) => a.pos - b.pos);
+      let n = 0;
+      for (const b of list) {
+        if (n >= want) break;
+        GILDED.add(b);
+        n++;
+      }
+      if (want !== Infinity && n < want) c.perk.gildNext = want - n;
+      c.perkFx('sunfall', n);
+    },
+  },
+  wren: {
+    // Light Feet and Slip read the Chain going into the hit (the style resets it on a hit that isn't Perfect)
+    hitMult: (c, x, v) => {
+      if (!x.echo) c.perk.feetWas = chainOf(c);
+      return v;
+    },
+    critChance: (c, x, v) => (c.perk.grapple && !x.echo ? 1 : v),
+    afterHit: (c, x) => {
+      if (x.echo) return;
+      if (c.perk.grapple) {
+        c.perk.grapple = 0;
+        c.perkFx('grapple', 0, x.target?.id ?? 0, x.block.pos);
+      }
+      // Smoke Pop: a green's smoke drifts over the bar (the green ability's window is the smoke)
+      if (x.green) c.perkFx('smokePop', c.blocks.filter((b) => isRed(b.kind)).length, 0, x.block.pos);
+      if (x.perfect) {
+        c.perk.feetUsed = 0;
+        // Slip: every slipEvery Perfect hits in a row ready a dodge (one at a time)
+        c.perk.slipRun = (c.perk.slipRun ?? 0) + 1;
+        if (c.perk.slipRun >= slipEvery(c)) {
+          c.perk.slipRun = 0;
+          if ((c.perk.slip ?? 0) < slipMax(c)) {
+            c.perk.slip = (c.perk.slip ?? 0) + 1;
+            c.perk.slipReadyHit = x.block.id;
+            c.perkFx('slipReady', c.perk.slip, 0, x.block.pos);
+          }
+        }
+        return;
+      }
+      // Light Feet: the Chain (and Slip's run) survives a Good hit or two between Perfects
+      const was = c.perk.feetWas ?? 0;
+      if (was > 0 && (c.perk.feetUsed ?? 0) < feetMax(c)) {
+        c.perk.feetUsed = (c.perk.feetUsed ?? 0) + 1;
+        c.perk.chain = was;
+        c.perk.feetHit = x.block.id;
+        c.perkFx('lightFeet', was, x.target?.id ?? 0, x.block.pos);
+      } else c.perk.slipRun = 0;
+    },
+    miss: (c) => {
+      if (!c.perk.veil) c.perk.slipRun = 0;
+    },
+    comboBreak: (c) => {
+      c.perk.slipRun = 0;
+    },
+    // Slip: the ready dodge takes the next red (or bomb) that reaches her; Smoke Pop: one that hits her in the smoke
+    // deals less (hurt, below)
+    impact: (c, b) => {
+      if ((c.perk.slip ?? 0) > 0) {
+        c.perk.slip--;
+        // (the dodges so far and whose red it was: Tumble hits back)
+        c.perk.slips = (c.perk.slips ?? 0) + 1;
+        c.perk.slipOwner = b.ownerId;
+        if (c.stars >= 3) c.perk.grapple = 1;
+        c.perkFx('slip', 0, b.ownerId, b.pos);
+        return true;
+      }
+      if (ability(c)) c.perk.smokeHit = c.tick;
+      return false;
+    },
+    hurt: (c, amount, source, enemyId) => {
+      if ((source !== 'red' && source !== 'bomb') || c.perk.smokeHit !== c.tick || amount <= 0) return amount;
+      c.perk.smokeHit = -1;
+      const cut = amount * Math.max(0, Math.min(1, K(c).wren.smokeCut));
+      c.perkFx('smokeFade', cut, enemyId, 0);
+      return amount - cut;
+    },
+    // Rooftop Drop: the target alone, harder; then every Chain link throws a knife at every foe (dropLink of the
+    // finisher each, one strike per foe)
+    finisher: (c, x, v) => {
+      const target = c.currentTarget();
+      if (target) x.targets = [target];
+      return v * K(c).wren.dropMult;
+    },
+    afterFinisher: (c, x) => {
+      const links = chainOf(c);
+      const base = x.damage / Math.max(0.01, K(c).wren.dropMult);
+      if (links > 0 && base > 0 && !c.result) for (const e of c.aliveFoes()) c.strike(e, base * K(c).wren.dropLink * links, 'dropHit');
+      // 5 stars: the drop readies a dodge
+      if (c.stars >= 5 && (c.perk.slip ?? 0) < slipMax(c)) {
+        c.perk.slip = (c.perk.slip ?? 0) + 1;
+        c.perkFx('roofHop', c.perk.slip);
+      }
+    },
+  },
+  // part6:B
+  // ---- Yara (Part 6): Spirit Bond and Call are the Summoner style's (core/styles.ts: her Wolf, Tortoise and Wisps)
+  yara: {
+    // Kinship: each spirit out adds crit chance (named when a hit crits with spirits out)
+    critChance: (c, x, v) => (x.echo ? v : v + K(c).yara.kinship * c.allies.length),
+    afterHit: (c, x) => {
+      if (x.crit && !x.echo && c.allies.length) c.perkFx('kinship', c.allies.length, x.target?.id ?? 0, x.block.pos);
+      greatSpirit(c);
+    },
+    // Great Spirit (her Mythic gift): a Rally calls the stag, which strikes every foe while it stays
+    step: (c) => {
+      greatSpirit(c);
+      stepStag(c);
+    },
+    // the Tortoise's shell took its share of this red (core/styles.ts: impact): the rest lands (a hit: the combo breaks)
+    hurt: (c, amount, source) => {
+      if ((source !== 'red' && source !== 'bomb') || c.perk.shellSoakAt !== c.time) return amount;
+      c.perk.shellSoakAt = -1;
+      return amount * (1 - (c.perk.shellSoak ?? 1));
+    },
+    // Spirit Stampede: every foe, more per spirit out; the reds go (the core's), and the spirits trample the traps
+    finisher: (c, _x, v) => v * (1 + K(c).yara.stampede * c.allies.length),
+    afterFinisher: (c) => {
+      let n = 0;
+      for (const b of c.blocks.slice())
+        if (b.kind === 'purple') {
+          c.removeBlock(b, 'perk');
+          n++;
+        }
+      c.perkFx('spiritStampede', n);
+    },
+  },
+  // ---- Dell (Part 6): Focus and the Power Shot are the Marksman style's
+  dell: {
+    // Lucky Shot: a Perfect green crits, so the Power Shot it fires does too (the style fires it with the hit's crit)
+    critChance: (_c, x, v) => (x.green && x.perfect && !x.echo ? Math.max(v, 1) : v),
+    afterHit: (c, x) => {
+      if (!x.green || x.echo) return;
+      if (x.perfect) {
+        c.perkFx('luckyShot', 0, x.target?.id ?? 0, x.block.pos);
+        // 5 stars: the Lucky Shot stuns its foe
+        if (c.stars >= 5 && x.target?.alive && !c.result) c.stun(x.target, K(c).dell.luckyStun);
+      }
+      // Ricochet: the Power Shot just fired bounces on
+      ricochet(c);
+    },
+    // Pocketful: a miss keeps the meter's fill toward the next stack (the combo and the stacks still go)
+    comboBreak: (c, x) => {
+      if (x.cause !== 'miss' || x.stacks >= c.maxStacks() || x.meter <= 0) return;
+      x.keepMeter = Math.max(x.keepMeter, Math.min(x.meter, 0.999));
+      c.perkFx('pocketful');
+    },
+    // Pebble Storm: every foe; the reds stay on the bar to be knocked back, and one knocked past the far end goes
+    // off it (as does an icicle, which can't move: it shatters)
+    finisher: (c, x, v) => {
+      x.reds = 'keep';
+      return v * K(c).dell.stormMult;
+    },
+    afterFinisher: (c) => {
+      const d = K(c).dell.stormKnock * (c.perk.stormKnock ?? 1);
+      let n = 0;
+      for (const b of c.blocks.filter((r) => isRed(r.kind)).sort((a, b) => b.pos - a.pos)) {
+        if (b.still || b.pos + b.push + d > 1 - b.width / 2) c.removeBlock(b, 'perk');
+        else c.pushBack(b, d);
+        n++;
+      }
+      c.perkFx('pebbleStorm', n);
+    },
+  },
+  // part6:C
+  gorm: {
+    // Rockfall: every n-th hit (3 stars: sooner) lands heavy and shoves the nearest red back
+    hitMult: (c, x, v) => {
+      if (x.echo || (c.perk.rockfall ?? 0) + 1 < rockEvery(c)) return v;
+      c.perk.rockNow = x.block.id;
+      return v * K(c).gorm.rockMult;
+    },
+    afterHit: (c, x) => {
+      if (x.echo) return;
+      if (c.perk.rockNow === x.block.id) {
+        c.perk.rockNow = 0;
+        c.perk.rockfall = 0;
+        rockfall(c, x.damage, x.target?.id ?? 0, x.block.pos, x.block.id);
+      } else c.perk.rockfall = (c.perk.rockfall ?? 0) + 1;
+      // Roar: a green hit makes the foes flinch: the reds on the bar slow for a moment
+      if (x.green && !c.result) roar(c);
+    },
+    // Thick Skin: the first hit taken each wave deals less (c.perk.skinNow: the tick it did, for the Hide nodes)
+    hurt: (c, amount, source) => {
+      if (amount <= 0 || source === 'miss' || source === 'perk' || c.perk.skinWave === c.waveIndex + 1) return amount;
+      c.perk.skinWave = c.waveIndex + 1;
+      c.perk.skinNow = c.tick;
+      const cut = amount * K(c).gorm.skin;
+      c.perkFx('stoneSkin', cut);
+      return amount - cut;
+    },
+    // Landslide: boulders hit every foe and smash every red (the core's usual clear); then rubble lies over the bar's
+    // right end for a while (5 stars: twice as long), and reds crossing it slow down
+    afterFinisher: (c) => {
+      const k = K(c).gorm;
+      c.perk.rubble = c.perk.rubbleMax = k.rubbleSec * (c.stars >= 5 ? 2 : 1);
+      c.perkFx('rubble', 0, 0, 1 - k.rubbleWidth / 2);
+    },
+    step: (c) => {
+      if (!(c.perk.rubble > 0)) return;
+      c.perk.rubble = Math.max(0, c.perk.rubble - 1 / 120);
+      rubbleSlow(c);
+    },
+  },
+  tess: {
+    // Steady Hands: ice and snow patches change her cursor's speed less
+    zoneMult: (c, z, v) => (z.kind === 'ice' || z.kind === 'snow' ? 1 + (v - 1) * K(c).tess.steady : v),
+    spawned: (_c, b) => {
+      if (isRed(b.kind) && b.still) FUSE.set(b, b.impactTimer); // an icicle's fuse, for Rewind
+    },
+    afterHit: (c, x) => {
+      if (x.echo || c.result) return;
+      // Slow Time: a green hit slows every red on the bar (and the ones that come) while the ability lasts
+      if (x.green) {
+        const n = slowReds(c);
+        c.perkFx('slowTime', n, 0, x.block.pos);
+      }
+      // Stopwatch: every n hits (3 stars: sooner), time stops for the reds
+      c.perk.tick = (c.perk.tick ?? 0) + 1;
+      if (c.perk.tick >= stopEvery(c)) {
+        c.perk.tick = 0;
+        c.perk.stopHit = x.block.id;
+        stopwatch(c, x.block.pos);
+      }
+    },
+    step: (c) => {
+      if (c.perk.stop > 0) {
+        c.perk.stop = Math.max(0, c.perk.stop - 1 / 120);
+        if (c.perk.stop > 0) holdReds(c, c.perk.stop);
+      }
+      if (ability(c)) slowReds(c);
+    },
+    // Rewind: hits every foe; the reds on their way are undone (kits.tess.rewindClear), the ones just sent wind back to
+    // where they started (5 stars: then time stops)
+    finisher: (_c, x, v) => {
+      x.reds = 'keep';
+      return v;
+    },
+    afterFinisher: (c) => {
+      clearWalls(c);
+      const n = rewindReds(c, K(c).tess.rewindClear);
+      c.perkFx('rewind', n);
+      if (c.stars >= 5 && !c.result) stopwatch(c, 0.5, 'secondHand');
+    },
+  },
+  // part6:D
+  fizz: FIZZ_KIT,
+  brann: BRANN_KIT,
+};
+
+// ---------------------------------------------------------------- Yara and Dell (Part 6)
+
+const DT = 1 / 120;
+
+/** Great Spirit: a Rally (core/styles.ts counts them in c.perk.rallies) calls the great spirit stag, or keeps it longer
+ *  if it's out. Its state: c.perk.stag (seconds left), stagTimer (to its next strike), stagId (its 'ally' events'). */
+function greatSpirit(c: Combat): void {
+  const n = c.perk.rallies ?? 0;
+  if (n === (c.perk.stagRally ?? 0)) return;
+  c.perk.stagRally = n;
+  if (c.result) return;
+  const sec = K(c).yara.stagSec * (c.stars >= 5 ? 2 : 1);
+  if (!(c.perk.stag > 0)) {
+    c.perk.stagId = c.perk.allyId = (c.perk.allyId ?? 0) + 1;
+    c.perk.stagTimer = Math.min(0.3, K(c).yara.stagEvery);
+    c.events.push({ type: 'ally', kind: 'spiritStag', action: 'call', id: c.perk.stagId, power: allyPower(c) });
+  }
+  c.perk.stag = sec;
+  c.perkFx('greatSpirit');
+}
+
+/** The stag strikes every foe every kits.yara.stagEvery s while it stays (waiting between waves), then goes. */
+function stepStag(c: Combat): void {
+  if (!(c.perk.stag > 0)) return;
+  c.perk.stag -= DT;
+  if (c.perk.stag <= 0) {
+    c.perk.stag = 0;
+    c.events.push({ type: 'ally', kind: 'spiritStag', action: 'leave', id: c.perk.stagId });
+    return;
+  }
+  c.perk.stagTimer -= DT;
+  if (c.perk.stagTimer > 0 || !c.frontEnemy() || c.result) return;
+  c.perk.stagTimer = K(c).yara.stagEvery;
+  const power = allyPower(c);
+  const dmg = c.stats().atk * K(c).yara.stagDmg * power;
+  const foes = c.aliveFoes();
+  for (const e of foes) c.strike(e, dmg, 'spiritStag');
+  c.events.push({ type: 'ally', kind: 'spiritStag', action: 'act', id: c.perk.stagId, amount: Math.round(dmg), power });
+  c.perk.stagStrikes = (c.perk.stagStrikes ?? 0) + 1;
+}
+
+/** Whether the great spirit stag is out now. */
+export const stagOut = (c: Combat): boolean => c.perk.stag > 0;
+
+/** The Power Shot a green just fired (the style's afterHit fires it before the kit's): its damage, foe and crit,
+ *  read from the events since the green's own 'hit'. */
+function lastShot(c: Combat): { dmg: number; target: Enemy | undefined; crit: boolean } | null {
+  let dmg = 0;
+  let target: Enemy | undefined;
+  let crit = false;
+  for (let i = c.events.length - 1; i >= 0; i--) {
+    const e = c.events[i];
+    if (e.type === 'hit') break;
+    if (e.type === 'enemyHurt' && e.perk === 'powerShot') crit = e.crit;
+    if (e.type === 'perk' && e.id === 'powerShot') {
+      dmg = e.amount;
+      target = c.enemyById(e.enemyId);
+    }
+  }
+  return dmg > 0 ? { dmg, target, crit } : null;
+}
+
+/**
+ * Ricochet: the Power Shot bounces on to the weakest other foe (the least HP left) for kits.dell.ricochet of it (Hard
+ * Bounce: more); 3 stars: on to one more; Pinball: to every other foe. Lucky Bounce: a crit shot's bounces crit too.
+ * Skill nodes set c.perk.ricochetShare, pinball and luckyBounce at the start of the fight.
+ */
+function ricochet(c: Combat): void {
+  if (c.result) return;
+  const shot = lastShot(c);
+  if (!shot) return;
+  const others = c.aliveFoes().filter((e) => e !== shot.target).sort((a, b) => a.hp - b.hp || a.slot - b.slot);
+  const n = c.perk.pinball ? others.length : c.stars >= 3 ? 2 : 1;
+  const share = c.perk.ricochetShare ?? K(c).dell.ricochet;
+  const crit = shot.crit && !!c.perk.luckyBounce;
+  for (const e of others.slice(0, n)) c.strike(e, shot.dmg * share, 'ricochetShot', crit);
+}
+
+function quake(c: Combat): void {
+  let n = 0;
+  for (const b of c.blocks)
+    if (isRed(b.kind) && !b.still) {
+      c.pushBack(b, K(c).torva.quake);
+      n++;
+    }
+  if (n) c.perkFx('quake', 0);
+}
+
+/** The hooks a hero's kit brings to a fight: the kit itself, their stars' stat steps, their soft strengths. */
+export function kitHooks(build: HeroBuild): FightHooks[] {
+  return [KIT_HOOKS[build.id] ?? KIT_HOOKS.rowan, strengthHooks(build.id)];
+}
+
+/** Whether a block is one of your own attack blocks a perk may hit for you (never a hold, nor half a linked pair). */
+export const perkHittable = (b: Block): boolean => isAttack(b.kind) && b.kind !== 'hold' && !b.link;
+
+// ---- Solenne and Wren (Part 6)
+
+/** Solenne's gilded yellows (Gleam, Sunfall): hitting one adds combo and meter. The view draws them gold. */
+const GILDED = new WeakSet<Block>();
+export const isGilded = (b: Block): boolean => GILDED.has(b);
+
+/** Whether the hit being resolved is on a gilded yellow (not a perk's echo). */
+const gildedHit = (c: Combat): boolean => !!c.hitNow && !c.hitNow.echo && GILDED.has(c.hitNow.block);
+
+/** Sunrise's combo step (Early Light lowers it: c.perk.sunEvery), its burn (3 stars, Long Morning: longer). */
+export const sunEvery = (c: Combat): number => Math.max(2, Math.round(c.perk.sunEvery || K(c).solenne.sunEvery));
+export const sunSec = (c: Combat): number => (c.stars >= 3 ? K(c).solenne.sunSec3 : K(c).solenne.sunSec) + (c.perk.sunBonus ?? 0);
+/** Dawn Oath's combo line (Firm Oath lowers it: c.perk.oathAt). */
+export const oathAt = (c: Combat): number => Math.max(1, Math.round(c.perk.oathAt || K(c).solenne.oathAt));
+
+/**
+ * Sunrise: her blade burns for `sec` (refreshed, never shortened). Radiance: every red on the bar slows for as long
+ * (and the ones that come while it burns: the kit's spawned hook). Returns whether it lit (it wasn't burning).
+ */
+export function ignite(c: Combat, sec: number): boolean {
+  if (sec <= 0 || c.result) return false;
+  const was = c.perk.sunrise > 0;
+  c.perk.sunrise = Math.max(c.perk.sunrise ?? 0, sec);
+  // (how many times it has lit: Solar Flare and Long Morning answer each one)
+  if (!was) c.perk.sunLits = (c.perk.sunLits ?? 0) + 1;
+  let n = 0;
+  for (const b of c.blocks)
+    if (isRed(b.kind) && !b.still) {
+      c.chillRed(b, c.perk.sunrise, K(c).solenne.radiance);
+      n++;
+    }
+  c.perkFx('sunrise', 0, 0);
+  if (n) c.perkFx('radiance', n);
+  return !was;
+}
+
+/** The yellows on the bar in the order the cursor will reach them (turning at the wall), not gilded yet. */
+export function yellowsAhead(c: Combat): Block[] {
+  const p = c.cursorPos();
+  const dir = c.cursorDirAt(c.time);
+  const along = (b: Block): number => ((b.pos - p) * dir >= 0 ? (b.pos - p) * dir : dir > 0 ? 1 - p + (1 - b.pos) : p + b.pos);
+  return c.blocks.filter((b) => b.kind === 'yellow' && !GILDED.has(b)).sort((a, b) => along(a) - along(b));
+}
+
+/** Gleam: gild the next yellow the cursor reaches (Twin Gleam: c.perk.gleams of them); with none on the bar, the next
+ *  ones to come. */
+function gleam(c: Combat): void {
+  const want = Math.max(1, Math.round(c.perk.gleams || 1));
+  const list = yellowsAhead(c).slice(0, want);
+  for (const b of list) GILDED.add(b);
+  if (list.length < want) c.perk.gildNext = Math.max(c.perk.gildNext ?? 0, want - list.length);
+  c.perkFx('gleam', list.length, 0, list[0]?.pos);
+}
+
+/** Gild one more yellow (Midas Touch): the next the cursor reaches. */
+export function gildNext(c: Combat): Block | null {
+  const b = yellowsAhead(c)[0] ?? null;
+  if (b) GILDED.add(b);
+  return b;
+}
+
+/** Wren's Slip: Perfect hits in a row per dodge (Quick Slip: c.perk.slipEvery), dodges held at once (Untouchable),
+ *  and the Good hits Light Feet lets the Chain survive (Nimble: c.perk.feet). */
+export const slipEvery = (c: Combat): number => Math.max(1, Math.round(c.perk.slipEvery || K(c).wren.slipEvery));
+export const slipMax = (c: Combat): number => Math.max(1, Math.round(c.perk.slipMax || 1));
+export const feetMax = (c: Combat): number => Math.max(0, Math.round(c.perk.feet || K(c).wren.feet));
+// ---- Gorm and Tess (Part 6)
+
+/** Hits from one Rockfall to the next (Gorm's 3 stars: one sooner). */
+export const rockEvery = (c: Combat): number => Math.max(2, Math.round(c.stars >= 3 ? K(c).gorm.rockEvery3 : K(c).gorm.rockEvery));
+
+/** The red nearest the hero (the furthest left) still on its way: not an icicle, not one already striking at the
+ *  left end (any push would start its strike over: a free save every few hits). */
+export function nearestRed(c: Combat): Block | null {
+  let best: Block | null = null;
+  for (const b of c.blocks) if (onItsWay(b) && (!best || b.pos < best.pos)) best = b;
+  return best;
+}
+
+/** A red travelling the bar (or being pushed back): not an icicle, not one at the left end about to strike. */
+export const onItsWay = (b: Block): boolean => isRed(b.kind) && !b.still && b.impactTimer < 0;
+
+/** A Rockfall: the heavy blow landed (its perk event: the blow's damage, its foe, where on the bar), and it shoves the
+ *  nearest red back (c.perk.rockRed: that red's id, for the view; c.perk.rockHit: the hit, for the skill nodes). */
+function rockfall(c: Combat, dmg: number, enemyId: number, pos: number, hitId: number): void {
+  const r = nearestRed(c);
+  c.perk.rockRed = r && c.pushBack(r, K(c).gorm.shove) > 0 ? r.id : 0;
+  c.perk.rockHit = hitId;
+  c.perkFx('rockfall', dmg, enemyId, pos);
+}
+
+/** Roar: every red on the bar slows (kits.gorm.roarMult) while the green ability lasts. Returns how many. */
+export function roar(c: Combat, sec = c.abilitySec()): number {
+  let n = 0;
+  for (const b of c.blocks)
+    if (isRed(b.kind) && !b.still) {
+      c.chillRed(b, sec, K(c).gorm.roarMult);
+      n++;
+    }
+  c.perkFx('roar', n);
+  return n;
+}
+
+/** Landslide's rubble over the bar's right end: a red in it with no slow on it slows (kits.gorm.rubbleMult) for as long
+ *  as it takes to cross it at that speed (so the bot, and a player, can read where it will be). */
+function rubbleSlow(c: Combat): void {
+  const k = K(c).gorm;
+  const lo = 1 - rubbleWidth(c);
+  for (const b of c.blocks) {
+    if (!isRed(b.kind) || b.still || b.push > 0 || b.chill > 0 || b.pos < lo) continue;
+    const v = Math.abs(c.redVel(b.width, b.speed)) * Math.max(0.05, k.rubbleMult);
+    c.chillRed(b, (b.pos - lo) / v + 0.05, k.rubbleMult);
+    c.perkFx('rubbleSlow', 0, 0, b.pos);
+  }
+}
+
+/** How much of the bar's right end Landslide's rubble covers. */
+export const rubbleWidth = (c: Combat): number => Math.max(0.05, Math.min(0.6, K(c).gorm.rubbleWidth));
+
+/** An icicle's fuse when it landed (Rewind winds it back to that). */
+const FUSE = new WeakMap<Block, number>();
+
+/** Hits from one Stopwatch to the next (Tess's 3 stars: sooner). */
+export const stopEvery = (c: Combat): number => Math.max(2, Math.round(c.stars >= 3 ? K(c).tess.stopEvery3 : K(c).tess.stopEvery));
+
+/** Hold every red still for `sec` (an icicle's fuse waits): a red already held keeps the longer hold; a slowed one
+ *  stops (its slow comes back after if Slow Time is still on). */
+export function holdReds(c: Combat, sec: number): number {
+  let n = 0;
+  for (const b of c.blocks) {
+    if (!isRed(b.kind)) continue;
+    n++;
+    if (b.chill > 0 && b.chillMult <= 0) {
+      if (b.chill < sec) b.chill = sec;
+    } else {
+      b.chill = sec;
+      b.chillMult = 0;
+    }
+  }
+  return n;
+}
+
+/** The Stopwatch: time stops for the reds (kits.tess.stopSec; longer if it's already stopped for longer). `id` names
+ *  it (a node's or a star's stopwatch). c.perk.stop is the seconds left; c.perk.stops counts them. */
+export function stopwatch(c: Combat, pos?: number, id = 'stopwatch', sec = K(c).tess.stopSec): number {
+  c.perk.stop = Math.max(c.perk.stop ?? 0, sec);
+  c.perk.stops = (c.perk.stops ?? 0) + 1;
+  const n = holdReds(c, c.perk.stop);
+  c.perkFx(id, n, 0, pos);
+  return n;
+}
+
+/** Slow Time: every moving red with no slow or hold on it slows (kits.tess.slowMult) for what's left of the ability. */
+function slowReds(c: Combat): number {
+  const left = c.hero.abilityTimer;
+  if (left <= 0) return 0;
+  let n = 0;
+  for (const b of c.blocks)
+    if (isRed(b.kind) && !b.still && !(b.chill > 0)) {
+      c.chillRed(b, left, K(c).tess.slowMult);
+      n++;
+    }
+  return n;
+}
+
+/** A finisher that keeps the reds (Volley pins them, Rewind winds them back) still breaks the walls a foe puts up where
+ *  the cursor is heading (a still shield: three taps before it falls, e.g. a dam or a slab), as every other finisher
+ *  does: keeping them cost those heroes the fights that raise them (the later regions' mini-bosses and bosses).
+ *  Returns how many. */
+export function clearWalls(c: Combat): number {
+  let n = 0;
+  for (const b of c.blocks.slice())
+    if (b.kind === 'shield' && b.still) {
+      c.removeBlock(b, 'finisher');
+      n++;
+    }
+  return n;
+}
+
+/** Rewind: every red winds back to where it came onto the bar (the right end: the furthest first, so they queue up
+ *  behind each other), over kits.tess.rewindSec; an icicle's fuse winds back to full. A moving red already within
+ *  `clearNear` of the left end (the finisher's: kits.tess.rewindClear) is wound out of the fight instead (cleared, as
+ *  a finisher clears reds). Returns how many. */
+export function rewindReds(c: Combat, clearNear = 0): number {
+  let n = 0;
+  const reds = c.blocks.filter((b) => isRed(b.kind)).sort((a, b) => b.pos - a.pos);
+  for (const b of reds) {
+    if (!b.still && b.pos < clearNear) {
+      c.removeBlock(b, 'finisher');
+      n++;
+      continue;
+    }
+    if (b.still) {
+      const f = FUSE.get(b);
+      if (f !== undefined && b.impactTimer < f) {
+        b.impactTimer = f;
+        n++;
+      }
+      continue;
+    }
+    const d = b.from - b.pos - b.push;
+    if (d > 0.005 && c.pushBack(b, d, K(c).tess.rewindSec) > 0) n++;
+  }
+  return n;
+}
