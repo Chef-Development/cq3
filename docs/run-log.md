@@ -273,3 +273,6 @@ One PR at the end supersedes #1-#7.
   passing alone (2.9 min, every scenario): the lab's Done sat off the screen over the title (the HUD moves to the
   corner there; Done now sits on its left), and the walk didn't know the lab's new 'event' scenarios' start. A
   playtester would have been stuck on "New title screen": found and fixed before they saw it.
+- 04:40 EDT: merged dusk-art's last chunk (Pip smaller and leaner in fights, below the Act 1 foes; HP gauges a step
+  deeper; an event's prose in the bold letters when it fits; the treasure screen's band a glass panel). Boot-checked,
+  pushed. Re-freeze: baselines regenerating, then the full unit and Playwright suites. Every agent is done for good.
