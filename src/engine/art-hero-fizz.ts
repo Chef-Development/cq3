@@ -6,7 +6,7 @@ import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './a
 import { and, ell, fill, not, or, rimShade, sphere } from './art-paint';
 
 const INK_C = '#140c1c';
-import { along, pole, sparkle, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose } from './art-rig';
+import { along, type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, pole, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -83,6 +83,8 @@ const TORSO = [
   '.wwwwwwwwwBfw.',
   '.wwwwwwwwBbww.',
   '..wwwwwwBowww.',
+  '..wwwwwwBowww.',
+  '..wwwwwwBowww.',
   '..wwwwwBbwwww.',
   '..wwwwBgwywww.',
   '..wwwBbwwYwww.',
@@ -90,55 +92,8 @@ const TORSO = [
 ];
 
 // The coat's tails to the knees over dark trousers and scuffed boots; 13 wide, the feet centred on x = 6.
-const LEGS: Record<string, string[]> = {
-  stand: [
-    '..vvvvvvvvvv.',
-    '..vvvvvvvvvvv',
-    '.vvvvvvvvvvvv',
-    '...ppp..ppp..',
-    '...ppp..ppp..',
-    '..eeeee.eeeee',
-    '..eeeee.eeeeee',
-  ],
-  run: [
-    '...vvvvvvvvvv',
-    '..vvvvvvvvvvv',
-    '.ppp...vvvvvv',
-    'eee.....ppp..',
-    'ee......ppp..',
-    '.......eeeee.',
-    '.......eeeeee',
-  ],
-  lunge: [
-    '...vvvvvvvvvv',
-    '..vvvvvvvvvvvv',
-    '.vvvvv..vvvvv',
-    '.ppp.....ppp.',
-    'ppp......ppp.',
-    'eeee.....eeeee',
-    'eeee.....eeeeee',
-  ],
-  crouch: [
-    '..vvvvvvvvvv.',
-    '.vvvvvvvvvvvv',
-    '.ppp....ppp..',
-    'eeee....eeee.',
-    'eeeee...eeeeee',
-  ],
-  tuck: [
-    '..vvvvvvvvvv.',
-    '..vvvvvvvvvvv',
-    '....eeeeeeee.',
-    '....eeeee.eee',
-  ],
-  // sat down hard, legs out in front
-  kneel: [
-    '..vvvvvvvvvv.',
-    '..vvvvpppppp.',
-    '..vvvppppppee',
-    '..........eee',
-  ],
-};
+// the shared jointed legs (art-rig.ts STANCES, playtest round 8: L8, about three heads tall)
+const LEGS = matureLegs({ leg: 'p', legBack: '8', boot: 'e', bootBack: '9', sole: '9', skirt: 'v' });
 
 const FIST = ['FF', 'uU'];
 const ARM_NEAR: Array<[number, ...string[]]> = [
@@ -153,12 +108,12 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 ];
 
 export const FIZZ_RIG: Rig = {
-  pal: FIZZ_PAL,
+  pal: { ...FIZZ_PAL, '8': TROUSER[1], '9': BOOT[0] },
   shades: FIZZ_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [0, 1]}),
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 6,
+  legsFeetX: LEG_FEET_X,
   torsoX: -7,
   torsoOverlap: 1,
   headX: -2,
@@ -283,16 +238,16 @@ const spark =
 const P = (p: RigPose): RigPose => p;
 export const FIZZ_POSES: Record<string, RigPose> = {
   // the ladle on her far shoulder, a fire flask swirled in the near hand
-  idle0: P({ near: { at: [8, 8] }, far: { at: [3, 13], item: ladle('ul', 14, 3), behind: true }, front: [flaskHeld('near', 'fire')] }),
-  idle1: P({ near: { at: [8, 9] }, far: { at: [3, 12], item: ladle('ul', 14, 3), behind: true }, dy: 1, front: [flaskHeld('near', 'fire', 2, -2), drops([[12, 17]], 'fire')] }),
+  idle0: P({ near: { at: [8, 17] }, far: { at: [3, 22], item: ladle('ul', 14, 3), behind: true }, front: [flaskHeld('near', 'fire')] }),
+  idle1: P({ near: { at: [8, 18] }, far: { at: [3, 21], item: ladle('ul', 14, 3), behind: true }, dy: 1, front: [flaskHeld('near', 'fire', 2, -2), drops([[12, 17]], 'fire')] }),
   // the flask settles back into her hand a frame behind the breath, the brew still sloshing
-  idle2: P({ near: { at: [8, 8] }, far: { at: [3, 12], item: ladle('ul', 14, 3), behind: true }, dy: 1, front: [flaskHeld('near', 'fire', 2, 0), drops([[11, 21]], 'fire')] }),
-  idle3: P({ near: { at: [8, 8] }, far: { at: [3, 13], item: ladle('ul', 14, 3), behind: true }, front: [flaskHeld('near', 'fire', 2, -1)] }),
-  dash: P({ near: { at: [6, 10] }, far: { at: [-4, 12], item: ladle('l', 13, 2), behind: true }, legs: 'run', dx: 1, lean: 1, front: [flaskHeld('near', 'frost', 1, -1)] }),
+  idle2: P({ near: { at: [8, 17] }, far: { at: [3, 21], item: ladle('ul', 14, 3), behind: true }, dy: 1, front: [flaskHeld('near', 'fire', 2, 0), drops([[11, 21]], 'fire')] }),
+  idle3: P({ near: { at: [8, 17] }, far: { at: [3, 22], item: ladle('ul', 14, 3), behind: true }, front: [flaskHeld('near', 'fire', 2, 0), drops([[11, 18]], 'fire')] }),
+  dash: P({ near: { at: [6, 19] }, far: { at: [-4, 21], item: ladle('l', 13, 2), behind: true }, legs: 'run', dx: 1, lean: 1, front: [flaskHeld('near', 'frost', 1, -1)] }),
   // an overhand toss: the flask just leaving her hand, spinning
   slashA: P({
-    near: { at: [11, 14] },
-    far: { at: [-3, 12], item: ladle('ul', 12, 2), behind: true },
+    near: { at: [11, 23] },
+    far: { at: [-3, 21], item: ladle('ul', 12, 2), behind: true },
     legs: 'lunge',
     dx: 1,
     lean: 1,
@@ -301,8 +256,8 @@ export const FIZZ_POSES: Record<string, RigPose> = {
   }),
   // a scooping swing of the ladle, brew splashing off it
   slashB: P({
-    near: { at: [10, 10], item: ladle('ur', 13, 3, 'spark') },
-    far: { at: [8, 9] },
+    near: { at: [10, 19], item: ladle('ur', 13, 3, 'spark') },
+    far: { at: [8, 18] },
     legs: 'lunge',
     dx: 2,
     lean: 1,
@@ -310,18 +265,18 @@ export const FIZZ_POSES: Record<string, RigPose> = {
     front: [splash(14, 18, 11, 1.9, 0.5, 'spark')],
   }),
   // a flask heaved back over her head
-  windup: P({ near: { at: [-6, 20] }, far: { at: [10, 11], item: ladle('r', 9, 3) }, legs: 'crouch', armsUp: true, head: 'grin', front: [flaskHeld('near', 'spark', -2, -2), drops([[-6, 26], [-3, 27]], 'spark')] }),
+  windup: P({ near: { at: [-6, 29] }, far: { at: [10, 20], item: ladle('r', 9, 3) }, legs: 'crouch', armsUp: true, head: 'grin', front: [flaskHeld('near', 'spark', -2, -2), drops([[-6, 26], [-3, 27]], 'spark')] }),
   // the ladle held crosswise, braced, eyes screwed shut
-  parry: P({ near: { at: [4, 13], item: ladle('ur', 12, 4) }, far: { at: [10, 15] }, legs: 'crouch', dy: 1, head: 'squint', farFront: true }),
+  parry: P({ near: { at: [4, 22], item: ladle('ur', 12, 4) }, far: { at: [10, 24] }, legs: 'crouch', dy: 1, head: 'squint', farFront: true }),
   hurt: P({
-    near: { at: [-5, 10] },
-    far: { at: [8, 14], item: ladle('dr', 9, 3) },
+    near: { at: [-5, 19] },
+    far: { at: [8, 23], item: ladle('dr', 9, 3) },
     dx: -1,
     lean: -1,
     dy: 1,
     head: 'squint',
   }),
-  leap: P({ near: { at: [0, 24] }, far: { at: [6, 23], item: ladle('u', 9, 3) }, legs: 'tuck', armsUp: true, head: 'grin', front: [flaskAt(-3, 27, 'frost', 2, false)] }),
+  leap: P({ near: { at: [0, 33] }, far: { at: [6, 32], item: ladle('u', 9, 3) }, legs: 'tuck', armsUp: true, head: 'grin', front: [flaskAt(-3, 27, 'frost', 2, false)] }),
   // knocked out: sat down hard, sooty, green fumes curling up, a cracked flask rolled away
   down: P({
     near: { at: [8, 3] },
@@ -334,8 +289,8 @@ export const FIZZ_POSES: Record<string, RigPose> = {
   }),
   // the finisher: three flasks thrown up at once from both hands, each in its own brew
   fin: P({
-    near: { at: [-1, 21] },
-    far: { at: [8, 21] },
+    near: { at: [-1, 30] },
+    far: { at: [8, 30] },
     legs: 'lunge',
     armsUp: true,
     head: 'grin',
@@ -343,8 +298,8 @@ export const FIZZ_POSES: Record<string, RigPose> = {
   }),
   // Toss: a flask flicked up out of the near hand, a fizz of sparks
   cast: P({
-    near: { at: [7, 15] },
-    far: { at: [3, 12], item: ladle('ul', 13, 3), behind: true },
+    near: { at: [7, 24] },
+    far: { at: [3, 21], item: ladle('ul', 13, 3), behind: true },
     head: 'grin',
     front: [flaskAt(11, 24, 'frost'), drops([[9, 19], [10, 21]], 'frost'), spark(14, 27, '#62b0ff')],
   }),
@@ -353,15 +308,15 @@ export const FIZZ_POSES: Record<string, RigPose> = {
 /** Hero select card: a fire flask held up to the light with a grin, the ladle on her shoulder, before a teal glow with
  *  a pale green heart. */
 export const FIZZ_CARD: HeroCardSpec = {
-  pose: { near: { at: [9, 13] }, far: { at: [3, 13], item: ladle('ul', 14, 3), behind: true }, head: 'grin', front: [flaskHeld('near', 'fire', 1, -2)] },
+  pose: { near: { at: [9, 22] }, far: { at: [3, 22], item: ladle('ul', 14, 3), behind: true }, head: 'grin', front: [flaskHeld('near', 'fire', 1, -2)] },
   glow: ['#c8ffe0', '#1aa896'],
   motes: [[5, 14], [34, 10], [34, 29]],
 };
 
 /** By the campfire (two breaths): stirring the ladle in a bubbling flask held low. */
 export const FIZZ_CAMP: [RigPose, RigPose] = [
-  P({ near: { at: [7, 9] }, far: { at: [9, 12], item: ladle('d', 8, 4) }, farFront: true, front: [flaskHeld('near', 'spark', 1, 0, 3)] }),
-  P({ near: { at: [7, 8] }, far: { at: [10, 11], item: ladle('d', 8, 4) }, farFront: true, dy: 1, front: [flaskHeld('near', 'spark', 1, -1, 3), drops([[10, 15], [12, 17]], 'spark')] }),
+  P({ near: { at: [7, 18] }, far: { at: [9, 21], item: ladle('d', 8, 4) }, farFront: true, front: [flaskHeld('near', 'spark', 1, 0, 3)] }),
+  P({ near: { at: [7, 17] }, far: { at: [10, 20], item: ladle('d', 8, 4) }, farFront: true, dy: 1, front: [flaskHeld('near', 'spark', 1, -1, 3), drops([[10, 15], [12, 17]], 'spark')] }),
 ];
 
 // ------------------------------------------------------------------ the portrait

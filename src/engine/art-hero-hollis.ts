@@ -3,7 +3,8 @@
 // broad sword. Fight frames `hollis_${pose}` on the shared rig (art-rig.ts). The shield is held out in front on the
 // far arm, so most poses draw the far hand in front of the body.
 import { put, stamp, type Pal, type Shade } from './art';
-import { dir8, sparkle, stampAt, type Dir, type HeroCardSpec, type Item, type Layer, type Rig, type RigPose, type Sprite } from './art-rig';
+import { swordMap } from './art-sword';
+import { type Dir, type HeroCardSpec, type Item, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Rig, type RigPose, sparkle, stampAt } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -65,6 +66,8 @@ const TORSO = [
   'mmmmmmccVccmmmmmm.',
   '.mmmmcccVcccmmmm..',
   '..cccccVvcccccc...',
+  '..cccccVvcccccc...',
+  '..cccccVvcccccc...',
   '..ccccccVcccccc...',
   '..ccccccVvccccc...',
   '..llllllXXllllll..',
@@ -72,69 +75,8 @@ const TORSO = [
 ];
 
 // The surcoat's skirt over steel greaves and sabatons; 17 wide, the feet centred on x = 8.
-const LEGS: Record<string, string[]> = {
-  stand: [
-    '..cccccccVccccc..',
-    '..ccccccVvcccccc.',
-    '.cccccccVccccccc.',
-    '...mmmm...mmmm...',
-    '...mmmm...mmmm...',
-    '...mMmm...mMmm...',
-    '...mmmm...mmmm...',
-    '...mmmm...mmmm...',
-    '..mmmmmm.mmmmmm..',
-    '..mmmmmmm.mmmmmmm',
-  ],
-  run: [
-    '...ccccccVcccccc.',
-    '..cccccccVvccccc.',
-    '.ccccccccVcccccc.',
-    'mmm.......mmmm...',
-    'mm.........mmmm..',
-    'mm..........mmmm.',
-    '............mmmm.',
-    '............mmmm.',
-    '...........mmmmmm',
-    '...........mmmmmmm',
-  ],
-  lunge: [
-    '...ccccccVcccccc.',
-    '..cccccccVvcccccc',
-    '.ccccccccVccccccc',
-    '.mmm.......mmmm..',
-    'mmm.........mmmm.',
-    'mmm.........mmmm.',
-    'mmm.........mmmm.',
-    'mmm.........mmmm.',
-    'mmmm.......mmmmmm',
-    'mmmmm......mmmmmmm',
-  ],
-  crouch: [
-    '..cccccccVccccc..',
-    '.ccccccccVvcccccc',
-    '.mmmm.......mmmm.',
-    'mmmm........mmmm.',
-    'mmmm........mmmm.',
-    'mmmmm......mmmmmm',
-    'mmmmmm.....mmmmmmm',
-  ],
-  tuck: [
-    '..cccccccVccccc..',
-    '.ccccccccVvccccc.',
-    '..mmmmmmm.mmmmm..',
-    '.....mmmmm.mmmm..',
-    '.....mmmmmmmmmmm.',
-    '......mmmmm.mmmm.',
-  ],
-  kneel: [
-    '..cccccccVccccc..',
-    '.ccccccccVvcccccc',
-    '..mmmmmm....mmmm.',
-    'mmmmmmmmm...mmmm.',
-    'mmmmmmmmm..mmmmmm',
-    '...........mmmmmm',
-  ],
-};
+// the shared jointed legs (art-rig.ts STANCES, playtest round 8: L8, about three heads tall)
+const LEGS = matureLegs({ leg: 'm', legBack: '8', boot: 'm', bootBack: '8', sole: 'K', cop: 'X', skirt: 'c', fold: 'N', hem: 'V' });
 
 const GAUNTLET = ['RRr', 'Rrq', 'rqq'];
 const ARM_NEAR: Array<[number, ...string[]]> = [
@@ -144,12 +86,12 @@ const ARM_NEAR: Array<[number, ...string[]]> = [
 const ARM_FAR: Array<[number, ...string[]]> = [[1, HOLLIS_STEEL[3], HOLLIS_STEEL[2], HOLLIS_STEEL[1]]];
 
 export const HOLLIS_RIG: Rig = {
-  pal: HOLLIS_PAL,
+  pal: { ...HOLLIS_PAL, '8': HOLLIS_STEEL[1] },
   shades: HOLLIS_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [1, 3]}),
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 8,
+  legsFeetX: LEG_FEET_X,
   torsoX: -9,
   torsoOverlap: 1,
   headX: 1,
@@ -207,15 +149,16 @@ const shield =
   (g, x, y) =>
     shieldAt(g, x, y, glow);
 
-const SWORD_R: Sprite = { rows: ['...G........', '...gAAAAAAA.', 'PhHgLLLLLLLAt', '...yCCCCCCCA.', '...Y........'], grip: [1, 2] };
-const SWORD_UR: Sprite = {
-  rows: ['.........t', '........AA', '.......ALC', '......ALC.', '.....ALC..', '....ALC...', '..GALC....', '...gY.....', '..H..y....', '.h........', 'P.........'],
-  grip: [2, 8],
+/** His short broad sword at 8x: art-sword.ts's 4 px blade in his steel, a blue stone in the brass guard. */
+const SWORD_PAL: Pal = {
+  ...HOLLIS_PAL,
+  A: HOLLIS_STEEL[4], L: HOLLIS_STEEL[3], M: HOLLIS_STEEL[2], C: HOLLIS_STEEL[1], T: '#ffffff', p: '#9a5a14',
+  R: HOLLIS_BLUE[4], r: HOLLIS_BLUE[2],
 };
 const sword =
   (dir: Dir): Item =>
   (g, x, y) =>
-    stampAt(g, dir8(SWORD_R, SWORD_UR, dir), HOLLIS_PAL, x, y);
+    stampAt(g, swordMap(dir, 11), SWORD_PAL, x, y);
 
 // ------------------------------------------------------------------ effects
 
@@ -249,22 +192,22 @@ const glint =
     sparkle(g, a.fx + x, a.fy - y, HOLLIS_STEEL[3]);
 
 /** The sword lying on the ground (knocked out). */
-const droppedSword: Layer = (g, a) => stampAt(g, SWORD_R, HOLLIS_PAL, a.fx - 15, a.fy - 1);
+const droppedSword: Layer = (g, a) => stampAt(g, swordMap('r', 11), SWORD_PAL, a.fx - 15, a.fy - 1);
 
 // ------------------------------------------------------------------ poses
 
 export const HOLLIS_POSES: Record<string, RigPose> = {
-  idle0: { near: { at: [-4, 11], item: sword('u') }, far: { at: [11, 10], item: shield(), over: true }, farFront: true },
-  idle1: { near: { at: [-4, 10], item: sword('u') }, far: { at: [11, 9], item: shield(), over: true }, farFront: true, dy: 1 },
+  idle0: { near: { at: [-4, 17], item: sword('u') }, far: { at: [11, 16], item: shield(), over: true }, farFront: true },
+  idle1: { near: { at: [-4, 16], item: sword('u') }, far: { at: [11, 15], item: shield(), over: true }, farFront: true, dy: 1 },
   // the sword and shield settle a frame behind the breath
-  idle2: { near: { at: [-4, 9], item: sword('u') }, far: { at: [11, 8], item: shield(), over: true }, farFront: true, dy: 1 },
-  idle3: { near: { at: [-4, 10], item: sword('u') }, far: { at: [11, 9], item: shield(), over: true }, farFront: true },
+  idle2: { near: { at: [-4, 15], item: sword('u') }, far: { at: [11, 14], item: shield(), over: true }, farFront: true, dy: 1 },
+  idle3: { near: { at: [-4, 16], item: sword('u') }, far: { at: [11, 15], item: shield(), over: true }, farFront: true },
   // charging behind the shield
-  dash: { near: { at: [-6, 12], item: sword('l') }, far: { at: [13, 12], item: shield(), over: true }, farFront: true, legs: 'run', dx: 1, lean: 1 },
+  dash: { near: { at: [-6, 18], item: sword('l') }, far: { at: [13, 18], item: shield(), over: true }, farFront: true, legs: 'run', dx: 1, lean: 1 },
   // a thrust over the top of the shield
   slashA: {
-    near: { at: [12, 21], item: sword('r') },
-    far: { at: [12, 9], item: shield(), over: true },
+    near: { at: [12, 27], item: sword('r') },
+    far: { at: [12, 15], item: shield(), over: true },
     farFront: true,
     legs: 'lunge',
     dx: 1,
@@ -273,8 +216,8 @@ export const HOLLIS_POSES: Record<string, RigPose> = {
   },
   // a shield bash
   slashB: {
-    near: { at: [-6, 13], item: sword('l') },
-    far: { at: [15, 13], item: shield(), over: true },
+    near: { at: [-6, 19], item: sword('l') },
+    far: { at: [15, 19], item: shield(), over: true },
     farFront: true,
     legs: 'lunge',
     dx: 2,
@@ -283,8 +226,8 @@ export const HOLLIS_POSES: Record<string, RigPose> = {
     front: [glint(23, 22), glint(22, 6)],
   },
   windup: {
-    near: { at: [-3, 23], item: sword('ul') },
-    far: { at: [13, 9], item: shield(), over: true },
+    near: { at: [-3, 29], item: sword('ul') },
+    far: { at: [13, 15], item: shield(), over: true },
     farFront: true,
     armsUp: true,
     legs: 'crouch',
@@ -292,16 +235,16 @@ export const HOLLIS_POSES: Record<string, RigPose> = {
   },
   // hunkered down behind the raised shield
   parry: {
-    near: { at: [5, 13], hidden: true },
-    far: { at: [12, 11], item: shield(), over: true },
+    near: { at: [5, 19], hidden: true },
+    far: { at: [12, 17], item: shield(), over: true },
     farFront: true,
     legs: 'crouch',
     dy: 2,
     front: [glint(4, 23)],
   },
   hurt: {
-    near: { at: [-6, 12], item: sword('dl') },
-    far: { at: [11, 12], item: shield(), over: true },
+    near: { at: [-6, 18], item: sword('dl') },
+    far: { at: [11, 18], item: shield(), over: true },
     farFront: true,
     dx: -1,
     lean: -1,
@@ -309,8 +252,8 @@ export const HOLLIS_POSES: Record<string, RigPose> = {
     head: 'squint',
   },
   leap: {
-    near: { at: [2, 24], item: sword('u') },
-    far: { at: [12, 11], item: shield(), over: true },
+    near: { at: [2, 30], item: sword('u') },
+    far: { at: [12, 17], item: shield(), over: true },
     farFront: true,
     armsUp: true,
     legs: 'tuck',
@@ -329,8 +272,8 @@ export const HOLLIS_POSES: Record<string, RigPose> = {
   },
   // the finisher: the shield slammed edge-first into the ground, a shockwave rolling out
   fin: {
-    near: { at: [-5, 20], item: sword('ul') },
-    far: { at: [15, 7], item: shield(), over: true },
+    near: { at: [-5, 26], item: sword('ul') },
+    far: { at: [15, 13], item: shield(), over: true },
     farFront: true,
     armsUp: true,
     legs: 'lunge',
@@ -342,8 +285,8 @@ export const HOLLIS_POSES: Record<string, RigPose> = {
   },
   // Brace: the shield planted, glowing blue, the sword held upright behind it
   cast: {
-    near: { at: [-4, 12], item: sword('u') },
-    far: { at: [12, 9], item: shield(true), over: true },
+    near: { at: [-4, 18], item: sword('u') },
+    far: { at: [12, 15], item: shield(true), over: true },
     farFront: true,
     legs: 'crouch',
     dy: 1,
@@ -353,13 +296,13 @@ export const HOLLIS_POSES: Record<string, RigPose> = {
 
 /** Hero select card: the sword raised behind the tower shield, before a royal-blue glow with a pale heart. */
 export const HOLLIS_CARD: HeroCardSpec = {
-  pose: { near: { at: [-4, 14], item: sword('u') }, far: { at: [10, 10], item: shield(), over: true }, farFront: true },
+  pose: { near: { at: [-4, 20], item: sword('u') }, far: { at: [10, 16], item: shield(), over: true }, farFront: true },
   glow: ['#e0f6ff', '#2a5ac0'],
   motes: [[5, 12], [34, 9], [35, 30]],
 };
 
 /** By the campfire (two breaths): the tower shield stood on the ground, both hands resting on its rim. */
 export const HOLLIS_CAMP: [RigPose, RigPose] = [
-  { near: { at: [5, 19] }, far: { at: [8, 10], item: shield(), over: true, hidden: true }, farFront: true },
-  { near: { at: [5, 19] }, far: { at: [8, 10], item: shield(), over: true, hidden: true }, farFront: true, dy: 1 },
+  { near: { at: [5, 25] }, far: { at: [8, 16], item: shield(), over: true, hidden: true }, farFront: true },
+  { near: { at: [5, 25] }, far: { at: [8, 16], item: shield(), over: true, hidden: true }, farFront: true, dy: 1 },
 ];

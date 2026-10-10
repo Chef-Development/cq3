@@ -747,8 +747,10 @@ export class HeroesScreen {
     const kit = this.kit;
     const owned = this.owned(id);
     const S = STAGE_SCALE;
-    // the two idle frames: breathing
-    const key = this.artKey(id, Math.floor(now / 520) % 2 ? 'idle1' : 'idle0');
+    // the four idle frames: the breath, the plume, cape, hair or weapon a frame behind (art team 2, A2B-2)
+    // (a hero drawn without the extra two keeps the two-frame breath: artKey would fall back to Rowan's)
+    const four = this.kit.has(`${HEROES[id].art}_idle3`);
+    const key = this.artKey(id, four ? `idle${Math.floor(now / 340) % 4}` : Math.floor(now / 520) % 2 ? 'idle1' : 'idle0');
     const X = this.footX(id) + off - HERO_FEET_X * S;
     const Y = this.floorY() + 1 - (HERO_H - 1) * S - lift;
     // crop to the stage, so a hero sliding in or out never walks over the column

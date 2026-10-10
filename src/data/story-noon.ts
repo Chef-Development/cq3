@@ -1,8 +1,10 @@
 // Region 5's story scenes (SPOILERS: docs/story-bible.md section 8, "Noonspire", and section 5: the midpoint twist).
 // NOT IN PLAY YET: the region's data (src/data/noonspire.ts, enemies-noon.ts; docs/content-bible.md section 8) points
 // at these ids but isn't wired in; when it is, `Object.assign(STORY, NOON_STORY)`. Acts: `startScene` noon1-3; the
-// mini-bosses' `bossScene` sphinx (Act 1) and brassLion (Act 2); the Gnomon's `bossScene` noonBoss and `phaseScenes`
-// { 2: 'noonBoss2', 3: 'noonBoss3' }; the region's `victoryScene` noonVictory. Same rules as story.ts
+// mini-bosses' `bossScene` sphinx (Act 1) and brassLion (Act 2); the camp's scene after Act 1, noonCamp (to wire like
+// duskCamp: run.ts campScene and sableJoined, actsCleared >= 13, once; core/lab.ts marks it seen); the Gnomon's
+// `bossScene` noonBoss and `phaseScenes` { 2: 'noonBoss2', 3: 'noonBoss3' }; the region's `victoryScene` noonVictory.
+// Same rules as story.ts
 // (tests/unit/data.test.ts). The hints follow the rules as built: mirages (a yellow hops to the ghost outline shown
 // first) from Act 1, heat (blazing yellows hit hard and burn; a green cools) from Act 2; the Gnomon's phase 2 is the
 // glare (every yellow blazes), phase 3 the sun drawn down (everything a mirage, the blaze stays).
@@ -21,8 +23,8 @@ export const NOON_STORY: Record<string, StoryBox[]> = {
     { who: 'narrator', text: 'Noonspire. White towers on a high plateau,\nand the sun nailed straight overhead.' },
     { who: 'rowan', text: 'Nobody has a shadow. Not the towers, not\nthe people. Not me.' },
     { who: 'pip', text: 'He pinned the sun at noon, so nobody freezes\nin the desert dark. No night. No cold.' },
-    { who: 'sable', text: "And no shade. I'm cooking. Neve has\nturned into a puddle." },
-    { who: 'neve', text: 'I am NOT a puddle. I am a mage with a\ndamp hat. There is a difference.' },
+    { who: 'sable', text: "And no shade. I'm cooking." },
+    { who: 'neve', text: 'Look at their eyes. Nobody here has\nslept in the dark for a MONTH.' },
     { who: 'pip', text: "With no shadows, they can't tell the time or\nthe way. And the heat paints lakes on the road." },
   ],
   // Act 1 mini-boss: the Noon Sphinx keeps the White Road with a riddle nobody can answer any more
@@ -34,13 +36,21 @@ export const NOON_STORY: Record<string, StoryBox[]> = {
     { who: 'sphinx', text: 'The road is full of mirages, and I do not\nlet them pass. Not one.' },
     { who: 'pip', text: 'The haze is her trick. Strike where the\nshimmer lands, not where it was.' },
   ],
+  // camp, after Act 1 (like the fourth region's duskCamp: run.ts campScene, once): no night to sleep in; Pip apart
+  noonCamp: [
+    { who: 'narrator', text: 'Camp, under a noon that will not end.\nNobody can sleep.' },
+    { who: 'sable', text: 'I put a blanket over my face.\nThe light comes straight through.' },
+    { who: 'neve', text: "Pip's been on that rock for an hour,\nlooking west. He hasn't said a word." },
+    { who: 'rowan', text: 'Pip? Are you all right?' },
+    { who: 'pip', text: 'Fine. Just remembering someone.\nTry to sleep, Rowan.' },
+  ],
   // Act 2 start: the Dawn Order still faces east; Pip has gone quiet (a seed)
   noon2: [
     { who: 'narrator', text: 'On the tallest spire, the Dawn Order stands\nfacing east, as it has for a month.' },
     { who: 'rowan', text: "They're waiting for a sunrise. Every day.\nAnd it never comes." },
     { who: 'neve', text: "They swore to greet every dawn. He took the\ndawns away. They're STILL keeping the oath." },
     { who: 'rowan', text: "Then we'll give them one to greet." },
-    { who: 'narrator', text: 'Pip has been quiet all day. When Rowan\nlooks up, the owl looks away.' },
+    { who: 'narrator', text: 'Pip has said nothing since the camp. When\nRowan looks up, the owl looks away.' },
   ],
   // Act 2 mini-boss: the Dawn Order's brass lion, which roared the sun up, has had no sunrise for a month
   brassLion: [
@@ -60,7 +70,7 @@ export const NOON_STORY: Record<string, StoryBox[]> = {
   // Act 3 boss: he defends the long safe day; then he greets the owl
   noonBoss: [
     { who: 'narrator', text: 'The Gnomon turns its brass face to the sun,\nand the light comes off it like a blade.' },
-    { who: 'mapmaker', text: 'No one has frozen in this desert for a\nmonth. Not one. You may count them.' },
+    { who: 'mapmaker', text: 'No one has frozen in this desert for a\nmonth. Not one. I have counted.' },
     { who: 'rowan', text: "And nobody has seen a sunrise. They've\nstopped counting days." },
     { who: 'mapmaker', text: 'Days are how you count losses, knight.\n...Hello, Pip. You have grown.' },
     { who: 'pip', text: 'Hello, Ambrose.' },
@@ -70,7 +80,7 @@ export const NOON_STORY: Record<string, StoryBox[]> = {
   noonBoss2: [
     { who: 'mapmaker', text: 'Too bright to see? Then do not look.' },
     { who: 'narrator', text: "He turns the sun's glare onto the fight.\nEvery stone blazes white." },
-    { who: 'neve', text: 'The blazing ones hit hard, and they burn.\nA green cools you off. Pick your strikes!' },
+    { who: 'neve', text: 'The blazing ones hit hard, and they burn.\nChoose your strikes.' },
   ],
   // phase 3 (his second edit, Sun Drawn Down!): everything a mirage, the blaze stays; Pip finds his voice
   noonBoss3: [

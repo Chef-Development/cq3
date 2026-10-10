@@ -6,7 +6,7 @@ import { grid, put, stamp, toCanvas, type Grid, type Pal, type Shade } from './a
 import { and, ell, fill, or, rimShade, sphere } from './art-paint';
 
 const INK_B = '#140c1c';
-import { sparkle, type HeroCardSpec, type Layer, type Rig, type RigPose } from './art-rig';
+import { type HeroCardSpec, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -72,6 +72,8 @@ const TORSO = [
   'yyyyymmmmoomyyyyyy',
   '.yyyymmmmmOmmyyyy.',
   '..yymmmmmmmmmmyy..',
+  '..yymmmmmmmmmmyy..',
+  '..yymmmmmmmmmmyy..',
   '..yymmmmmmmmmmmy..',
   '..yyyyyyyyqyyyyy..',
   '..mmmmmmmmQmmmmm..',
@@ -79,73 +81,8 @@ const TORSO = [
 ];
 
 // The robe to the ankles with a saffron hem, sandals; 17 wide, the feet centred on x = 8.
-const LEGS: Record<string, string[]> = {
-  stand: [
-    '..vvvvvvvvvvvvv..',
-    '..vvvvvvvvvvvvv..',
-    '.vvvvvvvvvvvvvvv.',
-    '.vvvvvvvvvvvvvvv.',
-    '.vvvvvvvvvvvvvvv.',
-    'vvvvvvvvvvvvvvvvv',
-    'hhhhhhhhhhhhhhhhh',
-    '..eeee....eeee...',
-    '..eeeFe...eeeFe..',
-  ],
-  run: [
-    '...vvvvvvvvvvvvv.',
-    '..vvvvvvvvvvvvvv.',
-    '.vvvvvvvvvvvvvvv.',
-    'vvvvvvvvvvvvvvvv.',
-    'hhhhhh.vvvvvvvvvv',
-    'ee.....hhhhhhhhhh',
-    'ee.........eeee..',
-    '...........eeeee.',
-    '...........eeeeFe',
-  ],
-  lunge: [
-    '...vvvvvvvvvvvvv.',
-    '..vvvvvvvvvvvvvvv',
-    '.vvvvvvvvvvvvvvvv',
-    '.vvvvvvv.vvvvvvvv',
-    'vvvvvvv...vvvvvvv',
-    'hhhhhh....hhhhhhh',
-    'eee.........eeee.',
-    'eeee........eeeee',
-    'eeeFe.......eeeeFe',
-  ],
-  crouch: [
-    '..vvvvvvvvvvvvv..',
-    '.vvvvvvvvvvvvvvv.',
-    'vvvvvvvvvvvvvvvvv',
-    'vvvvvvvvvvvvvvvvv',
-    'hhhhhhhhhhhhhhhhh',
-    'eeeee......eeeee.',
-    'eeeeFe.....eeeeFe',
-  ],
-  tuck: [
-    '..vvvvvvvvvvvvv..',
-    '.vvvvvvvvvvvvvvv.',
-    '.vvvvvvvvvvvvvvv.',
-    '..hhhhhhhhhhhhh..',
-    '.....eeeee.eeee..',
-    '.....eeeeeeeeeee.',
-  ],
-  kneel: [
-    '..vvvvvvvvvvvvv..',
-    '.vvvvvvvvvvvvvvv.',
-    'vvvvvvvvvvvvvvvvv',
-    'hhhhhhhhhhvvvvvv.',
-    'eeee......hhhhhh.',
-    '..........eeeeFe.',
-  ],
-  // sat cross-legged (camp)
-  lotus: [
-    '..vvvvvvvvvvvvv..',
-    '.vvvvvvvvvvvvvvvv',
-    'vvvvvvvvvvvvvvvvv',
-    'hhhhhhhhhhhhhhhhh',
-  ],
-};
+// the shared jointed legs (art-rig.ts STANCES, playtest round 8: L8, about three heads tall)
+const LEGS = matureLegs({ leg: 'm', legBack: '8', boot: 'e', bootBack: '9', sole: '9', skirt: 'v', hem: 'h', robe: 2 });
 
 const FIST = ['FFf', 'Fff', 'ffu'];
 const ARM_NEAR: Array<[number, ...string[]]> = [
@@ -158,12 +95,12 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 ];
 
 export const BRANN_RIG: Rig = {
-  pal: BRANN_PAL,
+  pal: { ...BRANN_PAL, '8': BRANN_MAROON[1], '9': SANDAL[0] },
   shades: BRANN_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [0, 3]}),
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 8,
+  legsFeetX: LEG_FEET_X,
   torsoX: -9,
   torsoOverlap: 1,
   headX: 1,
@@ -308,22 +245,22 @@ const spark =
 const P = (p: RigPose): RigPose => p;
 export const BRANN_POSES: Record<string, RigPose> = {
   // palms pressed together at his chest, the bell on his back
-  idle0: P({ near: { at: [5, 14] }, far: { at: [6, 14] }, farFront: true, back: [bellOnBack()] }),
-  idle1: P({ near: { at: [5, 13] }, far: { at: [6, 13] }, farFront: true, dy: 1, back: [bellOnBack(0, 1)] }),
+  idle0: P({ near: { at: [5, 21] }, far: { at: [6, 21] }, farFront: true, back: [bellOnBack()] }),
+  idle1: P({ near: { at: [5, 20] }, far: { at: [6, 20] }, farFront: true, dy: 1, back: [bellOnBack(0, 1)] }),
   // the bell on his back swings a frame behind the breath
-  idle2: P({ near: { at: [5, 13] }, far: { at: [6, 13] }, farFront: true, dy: 1, back: [bellOnBack(-1, 1, -0.2)] }),
-  idle3: P({ near: { at: [5, 14] }, far: { at: [6, 14] }, farFront: true, back: [bellOnBack(0, 0, -0.04)] }),
-  dash: P({ near: { at: [-6, 12] }, far: { at: [9, 13] }, legs: 'run', dx: 1, lean: 1, back: [bellOnBack(-1, 0, -0.3)] }),
+  idle2: P({ near: { at: [5, 20] }, far: { at: [6, 20] }, farFront: true, dy: 1, back: [bellOnBack(-1, 1, -0.2)] }),
+  idle3: P({ near: { at: [5, 21] }, far: { at: [6, 21] }, farFront: true, back: [bellOnBack(0, 0, -0.04)] }),
+  dash: P({ near: { at: [-6, 19] }, far: { at: [9, 20] }, legs: 'run', dx: 1, lean: 1, back: [bellOnBack(-1, 0, -0.3)] }),
   // the bell swung by its crown into the foe
-  slashA: P({ near: { at: [12, 14], hidden: true }, far: { at: [17, 17], hidden: true }, legs: 'lunge', dx: 2, lean: 1, head: 'shout', front: [bellShield(15, 24, 1), rings(22, 15, [3, 5, 7])] }),
+  slashA: P({ near: { at: [12, 21], hidden: true }, far: { at: [17, 24], hidden: true }, legs: 'lunge', dx: 2, lean: 1, head: 'shout', front: [bellShield(15, 24, 1), rings(22, 15, [3, 5, 7])] }),
   // a palm strike, the air ringing ahead of it
-  slashB: P({ near: { at: [15, 16] }, far: { at: [-3, 12] }, legs: 'lunge', dx: 2, lean: 1, head: 'shout', back: [bellOnBack(-1, 0, -0.25)], front: [rings(19, 16, [3, 5, 7])] }),
+  slashB: P({ near: { at: [15, 23] }, far: { at: [-3, 19] }, legs: 'lunge', dx: 2, lean: 1, head: 'shout', back: [bellOnBack(-1, 0, -0.25)], front: [rings(19, 16, [3, 5, 7])] }),
   // the bell heaved up over his head
-  windup: P({ near: { at: [-2, 25] }, far: { at: [8, 25] }, legs: 'crouch', dy: 1, armsUp: true, front: [(g, a) => bellSprite(g, a.fx + 3, a.fy - 38, 12, 13, 0)] }),
+  windup: P({ near: { at: [-2, 32] }, far: { at: [8, 32] }, legs: 'crouch', dy: 1, armsUp: true, front: [(g, a) => bellSprite(g, a.fx + 3, a.fy - 38, 12, 13, 0)] }),
   // braced behind the bell held up as a shield
-  parry: P({ near: { at: [6, 14], hidden: true }, far: { at: [13, 15], hidden: true }, legs: 'crouch', dy: 1, front: [bellShield(14, 23)] }),
-  hurt: P({ near: { at: [-6, 11] }, far: { at: [9, 15] }, dx: -1, lean: -1, dy: 1, head: 'squint', back: [bellOnBack(-1, 1, -0.35)] }),
-  leap: P({ near: { at: [0, 26] }, far: { at: [7, 26] }, legs: 'tuck', armsUp: true, front: [(g, a) => bellSprite(g, a.fx + 3, a.fy - 38, 12, 13, 0)] }),
+  parry: P({ near: { at: [6, 21], hidden: true }, far: { at: [13, 22], hidden: true }, legs: 'crouch', dy: 1, front: [bellShield(14, 23)] }),
+  hurt: P({ near: { at: [-6, 18] }, far: { at: [9, 22] }, dx: -1, lean: -1, dy: 1, head: 'squint', back: [bellOnBack(-1, 1, -0.35)] }),
+  leap: P({ near: { at: [0, 33] }, far: { at: [7, 33] }, legs: 'tuck', armsUp: true, front: [(g, a) => bellSprite(g, a.fx + 3, a.fy - 38, 12, 13, 0)] }),
   // knocked out: on his knees, head bowed, the bell set down mouth-first beside him
   down: P({
     near: { at: [7, 7] },
@@ -338,28 +275,28 @@ export const BRANN_POSES: Record<string, RigPose> = {
   }),
   // the finisher: the great bell raised high, ringing
   fin: P({
-    near: { at: [-2, 27] },
-    far: { at: [8, 27] },
+    near: { at: [-2, 34] },
+    far: { at: [8, 34] },
     legs: 'lunge',
     armsUp: true,
     head: 'shout',
     front: [(g, a) => bellSprite(g, a.fx + 3, a.fy - 38, 12, 13, 0, 1), spark(-9, 33, BRONZE[4], true), spark(16, 30, BRONZE[4])],
   }),
   // Peal: a palm laid on the bell held before him, the bronze ringing out
-  cast: P({ near: { at: [9, 15] }, far: { at: [14, 22] }, farFront: true, front: [bellIn('far', 0, 13, 16, 1), rings(23, 14, [3, 5, 7])] }),
+  cast: P({ near: { at: [9, 22] }, far: { at: [14, 29] }, farFront: true, front: [bellIn('far', 0, 13, 16, 1), rings(23, 14, [3, 5, 7])] }),
 };
 
 /** Hero select card: palms together, eyes calm, the bell on his back, before a saffron glow with a pale gold heart. */
 export const BRANN_CARD: HeroCardSpec = {
-  pose: { near: { at: [5, 14] }, far: { at: [6, 14] }, farFront: true, back: [bellOnBack()], front: [beadsIn] },
+  pose: { near: { at: [5, 21] }, far: { at: [6, 21] }, farFront: true, back: [bellOnBack()], front: [beadsIn] },
   glow: ['#ffe8a0', '#c0601a'],
   motes: [[5, 14], [34, 10], [34, 29]],
 };
 
 /** By the campfire (two breaths): sat cross-legged in meditation, palms together, the bell set down behind him. */
 export const BRANN_CAMP: [RigPose, RigPose] = [
-  P({ near: { at: [5, 13] }, far: { at: [6, 13] }, farFront: true, legs: 'lotus', back: [(g, a) => bellSprite(g, a.fx - 10, a.fy - 15, 13, 16, 0)] }),
-  P({ near: { at: [5, 12] }, far: { at: [6, 12] }, farFront: true, legs: 'lotus', dy: 1, back: [(g, a) => bellSprite(g, a.fx - 10, a.fy - 15, 13, 16, 0)] }),
+  P({ near: { at: [5, 20] }, far: { at: [6, 20] }, farFront: true, legs: 'lotus', back: [(g, a) => bellSprite(g, a.fx - 10, a.fy - 15, 13, 16, 0)] }),
+  P({ near: { at: [5, 19] }, far: { at: [6, 19] }, farFront: true, legs: 'lotus', dy: 1, back: [(g, a) => bellSprite(g, a.fx - 10, a.fy - 15, 13, 16, 0)] }),
 ];
 
 // ------------------------------------------------------------------ the portrait

@@ -55,7 +55,11 @@ export type LabSetup =
   | { kind: 'gallery'; act: number; foes: string[]; hero?: HeroId }
   /** The title screen, as a new player sees it, `hero` standing on its map (a tap starts a run on the lab's save, which
    *  ends the scenario). */
-  | { kind: 'title'; hero?: HeroId };
+  | { kind: 'title'; hero?: HeroId }
+  /** The world map (the Great Atlas), with these one-time moments to play again on arrival (`seen` keys: a land's
+   *  restoring 'restore:<id>', its unveiling 'unveil:<id>'), `weights` regions won (restored) at least. Over once the
+   *  run leaves it. */
+  | { kind: 'world'; replay?: string[]; weights?: number };
 
 /** What the lab's profile holds for a scenario (core/lab.ts builds it on a fresh profile). */
 export interface LabProfileSpec {
@@ -286,12 +290,14 @@ const ROUND7: LabScenario[] = [
  *  Reworked items carry a new rev: a rating given to their earlier version shows as "Reworked" with the old rating. */
 export const LAB_NEW: LabScenario[] = [
   // ---- story (team 1): the new story's first region, by act number only (spoilers)
-  { id: 'r8Story1', group: 'spoiler', spoiler: true, label: 'Act 1 story (new)', secs: 60, try: 'Read the scenes. A quick, clear start?', setup: { kind: 'story', act: 0, scenes: ['intro', 'act1', 'road', 'captain', 'sableJoin'] } },
+  { id: 'r8Story1', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 1 story (new)', secs: 60, try: 'Read the scenes. A quick, clear start?', setup: { kind: 'story', act: 0, scenes: ['intro', 'act1', 'road', 'captain', 'sableJoin'] } },
   { id: 'r8Story2', group: 'spoiler', spoiler: true, label: 'Act 2 story (new)', secs: 45, try: 'Read the scenes.', setup: { kind: 'story', act: 1, scenes: ['act2', 'golem'] } },
-  { id: 'r8Story3', group: 'spoiler', spoiler: true, label: 'Act 3 story (new)', secs: 90, try: 'Read the scenes. Does the ending pull you on?', setup: { kind: 'story', act: 2, scenes: ['act3', 'boarKing', 'boarKing2', 'boarKing3', 'victory'] } },
-  { id: 'r8Arrivals', group: 'spoiler', spoiler: true, label: 'Newest arrivals', secs: 90, try: 'Read how each arrives. Funny? Short enough?', setup: { kind: 'story', act: 1, scenes: ['meetSolenne', 'meetWren', 'meetYara', 'meetDell', 'meetGorm', 'meetTess', 'meetFizz', 'meetBrann'] } },
+  { id: 'r8Story3', group: 'spoiler', spoiler: true, rev: 1, label: 'Act 3 story (new)', secs: 90, try: 'Read the scenes. Does the ending pull you on?', setup: { kind: 'story', act: 2, scenes: ['act3', 'boarKing', 'boarKing2', 'boarKing3', 'victory'] } },
+  { id: 'r8Arrivals', group: 'spoiler', spoiler: true, rev: 1, label: 'Newest arrivals', secs: 90, try: 'Read how each arrives. Funny? Short enough?', setup: { kind: 'story', act: 1, scenes: ['meetSolenne', 'meetWren', 'meetYara', 'meetDell', 'meetGorm', 'meetTess', 'meetFizz', 'meetBrann'] } },
   // ---- art (team 2)
-  { id: 'titleAtlas', group: 'camp', label: 'New title screen', secs: 30, try: 'Watch it settle (logo, map, fog), then tap to start.', setup: { kind: 'title' }, profile: { actsCleared: 0 } },
+  { id: 'titleAtlas', group: 'camp', rev: 2, label: 'New title screen', secs: 30, try: 'Key art now: watch it come alive, then tap.', setup: { kind: 'title' }, profile: { actsCleared: 0 } },
+  { id: 'atlasMap', group: 'camp', label: 'The Atlas map', secs: 45, try: 'Drag the map: ink, paper, erased land.', setup: { kind: 'world' }, profile: { actsCleared: 1 } },
+  { id: 'atlasRestore', group: 'camp', label: 'A land comes back', secs: 30, try: 'A land restored: its colour floods back.', setup: { kind: 'world', replay: ['restore:greenmarch'], weights: 1 }, profile: { actsCleared: 2 } },
   // Rowan redrawn on the shared rig (plume and cape that lag his breath, every pose), the four-frame idles, squash and
   // stretch on cuts, blows and landings
   heroFight('rowanLook', 'rowan', 'Rowan: new look', 'Watch him breathe, cut, get hit. Finish!', [['slime', 'crow'], ['wolf', 'archer'], ['bandit', 'slime'], ['boar', 'crow'], ['archer', 'wolf'], ['knight', 'slime']], { rev: 0 }),
@@ -326,6 +332,25 @@ export const LAB_NEW: LabScenario[] = [
     try: 'Gear: Clean capture On. Hold the top middle to undo.',
     setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['dummy'], ['dummy'], ['dummy']], safe: true },
   },
+  // a boss's shout keeps its own lane: the damage numbers pop under it (they piled up at the top centre)
+  {
+    id: 'shoutLane',
+    group: 'fights',
+    label: 'Boss shout',
+    secs: 45,
+    try: 'Hit him while he shouts: numbers clear of it?',
+    setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['captain']], safe: true },
+  },
+  // later regions' art loads on its own now (region-art.ts): a fight there straight after launch must look whole
+  {
+    id: 'lateArtFirst',
+    group: 'spoiler',
+    spoiler: true,
+    label: 'Act 7 at once',
+    secs: 40,
+    try: 'Reopen the app, come straight here: all drawn?',
+    setup: { kind: 'fight', hero: 'rowan', act: 6, waves: [['cinderling', 'cragCrab'], ['cinderKite'], ['cinderling', 'cinderling']], safe: true },
+  },
   // ---- the first 10 minutes (team 5)
   {
     id: 'firstFight',
@@ -335,6 +360,15 @@ export const LAB_NEW: LabScenario[] = [
     try: 'Your first fight again. Does the finisher finish?',
     setup: { kind: 'fight', hero: 'rowan', act: 0, waves: [['crow'], ['boar'], ['slime']] },
     profile: { tips: ['tapYellow', 'blockRed', 'green', 'purple', 'finisher'] },
+  },
+  {
+    id: 'heroReveal',
+    group: 'fights',
+    label: "Sable's 1st finisher",
+    secs: 45,
+    try: "Sable's first finisher: is the name moment there?",
+    setup: { kind: 'fight', hero: 'sable', act: 0, waves: [['crow'], ['boar'], ['slime']] },
+    profile: { tips: ['finisher'] },
   },
 ];
 

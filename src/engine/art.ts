@@ -3,14 +3,11 @@
 // hue-shifted. The hero is composed per pose from a body, legs, a cape and a pre-drawn sword at
 // clean 8-way pixel slopes; the slimes are shaded from their shape; HUD icons are native-size maps.
 import type Phaser from 'phaser';
-import { buildAshFoeArt } from './art-ash';
-import { buildDuskFoeArt } from './art-dusk';
 import { buildCampArt } from './art-camp';
 import { buildChestArt } from './art-chests';
 import { buildCompanionArt } from './art-companions';
 import { CURRENCY_ICONS } from './art-currency';
 import { buildFoeArt } from './art-foes';
-import { buildFrostFoeArt } from './art-frost';
 import { buildGearArt } from './art-gear';
 import { buildHeroArt } from './art-heroes';
 import { buildRarityArt } from './art-rarity';
@@ -20,6 +17,7 @@ import { buildSableArt } from './art-sable';
 import { buildShrineArt } from './art-shrine';
 import { buildDummyArt } from './art-dummy';
 import { buildStoryArt } from './art-story';
+import { regionPacks } from './region-art';
 
 export const OUTLINE = '#140c1c';
 export type Grid = (string | null)[][];
@@ -124,7 +122,9 @@ export function stampShaded(g: Grid, rows: string[], pal: Pal, shades: Record<st
 // ------------------------------------------------------------------ hero (Rowan, an armored blade knight)
 
 export const HERO_W = 54;
-export const HERO_H = 42;
+// (48 since playtest round 8's mature look: taller figures with raised weapons need the headroom; everything that
+// draws a hero frame anchors it at the feet, so the extra rows are at the top)
+export const HERO_H = 48;
 export const HERO_FEET_X = 23; // x of the feet center inside the frame
 
 // Rowan's frames are drawn on the shared rig: art-hero-rowan.ts (his sword: art-sword.ts).
@@ -977,9 +977,8 @@ export function buildArt(scene: Phaser.Scene, w: number): void {
   add('chest_open', mapFrame(CHEST_OPEN, CHEST_PAL));
   add('clouds', drawClouds(w));
   buildFoeArt(add);
-  buildFrostFoeArt(add);
-  buildAshFoeArt(add);
-  buildDuskFoeArt(add);
+  // the later regions' foes come in their own chunks (region-art.ts): a relayout adds again those already drawn
+  for (const p of regionPacks()) p.addArt(add, false);
   buildStoryArt(add);
   buildGearArt(add);
   buildSableArt(add);

@@ -106,3 +106,79 @@ within this machine's noise.)
    are painted lazily: ~20-30% of the game's chunk is art data that a first session never draws.
 4. **Frame time**: profile a fight's frame (the menus and bar redraw their Graphics every frame) once a real phone
    trace is available; this container's software WebGL is too slow and noisy to judge 60 fps by.
+
+## Round 8, second chunk: region art packs (team 4)
+
+### Region art packs (the pattern for every later region)
+
+A first session plays Greenmarch, so the later regions' art should neither download before the title nor paint at
+boot. Each later region's art is a **pack**, a chunk of its own (`src/engine/region-art.ts`):
+
+- `pack-<region>.ts` is the only file that imports the region's art files (`art-<region>.ts`, `backdrop-<region>.ts`,
+  ...). It exports `PACK: RegionArtPack`: `paintSlice(ms)` (draw whole sprites until `ms` have gone by; true when all is
+  drawn), `addArt(add, now)` (add the drawn art as textures; `now` draws what's left first; a relayout calls it again),
+  `isArtKey(key)`, `backdrop(scene, theme, ...)` (a fight theme's backdrop, painted the first time an act needs it) and
+  `col` (its foes' colours, merged into `view/shared` `ENEMY_COL` when it arrives).
+- `region-art.ts` lists the pack's loader (`LOADERS: { dusk: () => import('./pack-dusk') }`) and its fight themes
+  (`PACK_THEMES`, so the stage knows which pack a theme needs before it arrives).
+- `main.ts` starts every pack's `import()` before Phaser boots, so the packs download beside the main chunk (on a
+  return visit the service worker has them). The scene paints them in idle slices once the title is up (after the
+  world map's slices), and any screen of a later region finishes them at once (`App.setPhase` ->
+  `FightScene.ensureRegionPacks`, a no-op once all are in): no later region ever asks for a texture that isn't there,
+  and a Greenmarch player never waits for them (a Greenmarch fight included: the bar's later-region pieces, icicles
+  and mirror shards, are drawn only once they exist). A foe or portrait asked for
+  sooner finishes them too (fighters, story). `__cq3.ready` waits for the packs to arrive, so a test may jump anywhere.
+- **The one way to get it wrong**: a static `import` of a pack's file from anywhere else pulls it (and what it imports)
+  back into the main chunk. Check the build's chunk list (`npm run build` prints `pack-<region>-*.js`). Something the
+  game needs before the pack arrives (a theme list, a helper the act maps share, a palette) gets a small file of its
+  own: e.g. `backdrop-ice.ts` holds the ice shards and seracs the act maps (painted at boot) and Ashfell's backdrops
+  share with the Frostpeaks' backdrops.
+- `scripts/sw-template.js` needs nothing: the build plugin lists every file in `dist/` for the precache.
+
+Not split yet (next, in order of payoff): the later regions' **music** (about 40% of `music.ts`, ~28 KB raw: a pack
+could register its songs into `SONGS`, the cue falling back to the act's calm theme until it's in; music.ts is being
+extended for the new regions tonight, so moving 800 lines would collide), the **sharper chest reveal** (`chest-hd.ts`,
+`art-chests-hd.ts`, `art-reveal-hd.ts`: ~50 KB raw, off by default, but drawn into from every frame of a chest
+opening: six call sites to guard), the **Test lab** list (~30 KB).
+
+### Measured (CPU 4x, Fast 4G, median of 3; the machine at load 12-15 on 4 CPUs: expect 15-20% noise)
+
+Before: the run branch at `693e1d8` (Region 4 in play, no packs). After: this branch (the Frostpeaks, Ashfell and
+Region 4 as packs). Bundle sizes are exact; the timings are as noisy as the note says (the same build measured twice
+read 11.4 and 12.4 s to the title).
+
+| chunk | before raw | before gzip | after raw | after gzip |
+|---|---|---|---|---|
+| index.js (the game) | 2307 KB | 807 KB | **2119 KB** | **735 KB** (-9%) |
+| phaser.js | 1342 KB | 345 KB | 1342 KB | 345 KB |
+| pack-ash.js (Ashfell's foes, backdrops) | | | 73 KB | 29 KB |
+| pack-dusk.js (Region 4's foes, backdrops) | | | 48 KB | 20 KB |
+| art-frost.js (the Frostpeaks' foes; the toolkit the other packs share) | | | 44 KB | 17 KB |
+| pack-frost.js (the Frostpeaks' backdrops) | | | 25 KB | 11 KB |
+| **total** | 3660 KB | 1155 KB | 3662 KB | 1161 KB |
+
+| measure (CPU 4x, Fast 4G, no cache, median of 3) | before | after |
+|---|---|---|
+| load average while measuring (4 CPUs) | 20-22 | 20-21 |
+| DOMContentLoaded | 3384 | 3282 |
+| **title ready for a tap** | **12969** (runs 9635-13324) | **12074** (runs 10840-12998) |
+| later regions' art arrived (`__cq3.ready`) | 12969 (one chunk) | 12974 |
+| first fight on screen | 28645 | 27212 |
+
+What should change: the Frostpeaks' foes (~0.4 s at 1x, so ~1.6 s at 4x) no longer paint before the title, and the
+main chunk to download, parse and compile is 9% smaller. Measured: the title ~0.9 s sooner and the first fight ~1.4 s
+sooner, but the spread between runs of the same build (up to 3.7 s here) is larger than that: on this machine the
+direction is right and the size isn't proven. A phone-like measurement on a quiet machine (or a real device trace) is
+the next step. The packs arrive ~1 s after the title is up (their modules evaluate once the boot's long paint lets go
+of the main thread); nothing waits for them on the title, and the world map and Greenmarch never do.
+
+Frame rates at load 20 swung wildly between the two runs (the world map read 51 fps for the first build and 3.7 fps
+for the second; a busy fight 4.1 and 3.4 fps): not comparable, and not used.
+
+**Frame time** (a CPU profile of 6 s of a busy late fight, Act 9's forge hand, chain sentinel, stoker imp and magma eel
+with Space every 140 ms, and of the world map dragged; a non-minified build at CPU 1x): 75% of the fight's main thread
+and 94% of the world map's is native time outside the game's code (this container renders WebGL in software; an
+iPhone's GPU does that work). The game's own code costs about 4 ms a frame in the busy fight at 1x (the frame's update,
+the HUD panel, the actors, a tap's events and sounds) and under 1 ms on the world map: no cheap JS offender to fix. One-time
+costs seen: the first tap creates the AudioContext (~0.3 s at 1x, once), the first ambience bed (~85 ms, cached after),
+and the world map's idle slices still painting when a fight starts right after boot (sliced: no long frame).

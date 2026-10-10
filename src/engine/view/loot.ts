@@ -71,6 +71,7 @@ interface Drop {
   cardAfter: number;
   salvaged: boolean; // the bag was full: it went straight to scrap
   upgrade: boolean; // better than what Rowan wears in its slot
+  worn: boolean; // it went straight on (an empty slot: run.lootWorn)
   lines: string[]; // its name, in one or two lines
   moteAt: number; // the next sparkle in its beam
 }
@@ -257,6 +258,7 @@ export class LootView {
         cardAfter: T.cardAfter,
         salvaged: !inBag,
         upgrade: inBag && (!cur || itemPower(app.tuning, item) > itemPower(app.tuning, cur)),
+        worn: inBag && app.run.lootWorn.includes(item.uid),
         lines: lines[slot],
         moteAt: 0,
       };
@@ -672,13 +674,14 @@ export class LootView {
         this.texts.text(label, d.x + sh, ly, mix(d.face[0], WHITE, 0.3), { ox: 0.5, oy: 0.5, alpha: nk * 0.75 });
       }
     }
-    // NEW (or "Scrap" for one the full bag couldn't take): a tag on the top-right corner that pops on
+    // NEW (or "Worn" for one that went straight on, "Scrap" for one the full bag couldn't take): a tag on the
+    // top-right corner that pops on
     const bk = easeBack((age - 120) / 220, 2.2);
     if (bk > 0) {
-      const label = d.salvaged ? 'Scrap' : 'NEW';
+      const label = d.salvaged ? 'Scrap' : d.worn ? 'Worn' : 'NEW';
       const tw = textWidth(label, 1, false) + 4;
       const tr: Rect = { x: base.x + base.w - tw + 5 + sh, y: base.y - 5 - Math.round((1 - Math.min(1, bk)) * 4), w: tw, h: 8 };
-      tag(gf, tr, d.salvaged ? [0xb8c2d8, 0x7c86a6, 0x4a5272, 0x2a2f45] : [0xff9a80, 0xe0463c, 0xa8202c, 0x6a0f1e]);
+      tag(gf, tr, d.salvaged ? [0xb8c2d8, 0x7c86a6, 0x4a5272, 0x2a2f45] : d.worn ? [0xb4f070, 0x4caf3c, 0x2c7a2a, 0x164a1a] : [0xff9a80, 0xe0463c, 0xa8202c, 0x6a0f1e]);
       if (!d.salvaged && pulse(now, 900, d.slot * 200) > 0.8) {
         gf.fillStyle(WHITE, 0.35);
         gf.fillRect(tr.x, tr.y, tr.w, tr.h);

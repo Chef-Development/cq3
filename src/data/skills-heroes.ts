@@ -170,7 +170,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
         crit('hotCoals', 'Hot Coals', 6),
         rule('heavyPowder', 'Heavy Powder', 'Keg blasts deal {n}% more.', 'Blasts deal their usual damage.', 'Blasts deal +{n}% damage.', 40),
         rule('shockwave', 'Shockwave', 'A keg blast knocks every red back {n}% of the bar.', 'Blasts only clear reds nearby.', 'They push every red back {n}%.', 10),
-        cap('kaboom', 'Kaboom', 'Every keg blast fills {n}% of the meter.', "Blasts don't fill the meter.", 'Each blast fills {n}% of it.', 10),
+        cap('kaboom', 'Demolition', 'Every keg blast fills {n}% of the meter.', "Blasts don't fill the meter.", 'Each blast fills {n}% of it.', 10),
       ],
     },
   ],
@@ -421,7 +421,7 @@ export const HERO_TREES: Record<Exclude<HeroId, 'rowan'>, SkillBranch[]> = {
         crit('sharpEye', 'Sharp Eye', 6),
         rule('hardBounce', 'Hard Bounce', 'Ricochet bounces for {n}% of the shot.', 'It bounces for half.', 'It bounces for {n}%.', 75),
         rule('luckyBounce', 'Lucky Bounce', "A crit shot's bounces crit too.", 'A bounce never crits.', 'A crit shot bounces crits.'),
-        cap('pinball', 'Pinball', 'Ricochet bounces on to every foe.', 'It bounces to one foe.', 'It bounces to every foe.'),
+        cap('pinball', 'Carom', 'Ricochet bounces on to every foe.', 'It bounces to one foe.', 'It bounces to every foe.'),
       ],
     },
     {

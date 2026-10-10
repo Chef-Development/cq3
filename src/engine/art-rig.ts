@@ -62,6 +62,8 @@ export interface Rig {
   fistNear: string[];
   fistFar: string[];
   fistAt: Pt; // the fist map's top left relative to the hand point
+  /** The palette is already made for the dark stage (decision L7): no grade on its frames (Rowan's). */
+  graded?: boolean;
 }
 
 export interface Hand {
@@ -109,7 +111,7 @@ export function armLine(g: Grid, sx: number, sy: number, hx: number, hy: number,
 export function anchors(rig: Rig, p: RigPose): Anchors {
   const fx = HERO_FEET_X;
   const fy = feetRow();
-  const legs = rig.legs[p.legs ?? 'stand'];
+  const legs = rig.legs[p.legs ?? 'stand'] ?? rig.legs.stand;
   const ly = fy - legs.length + 1;
   const tx = fx + rig.torsoX + (p.dx ?? 0);
   const ty = ly - rig.torso.length + rig.torsoOverlap + (p.dy ?? 0);
@@ -123,7 +125,7 @@ export function anchors(rig: Rig, p: RigPose): Anchors {
 export function paintRig(g: Grid, rig: Rig, p: RigPose): Anchors {
   const a = anchors(rig, p);
   const sh = rig.shades ?? {};
-  const legs = rig.legs[p.legs ?? 'stand'];
+  const legs = rig.legs[p.legs ?? 'stand'] ?? rig.legs.stand;
   const head = rig.heads[p.head ?? 'base'] ?? rig.heads.base;
   const hand = (h: Hand, at: Pt, shoulder: Pt, style: ArmStyle, fist: string[]) => {
     if (h.item && !h.over && !h.behind) h.item(g, at[0], at[1]);
@@ -160,7 +162,40 @@ export interface HeroCardSpec {
 export function rigFrame(rig: Rig, p: RigPose): HTMLCanvasElement {
   const g = grid(HERO_W, HERO_H);
   paintRig(g, rig, p);
+  if (!rig.graded) gradeGrid(g);
   return toCanvas(g);
+}
+
+/**
+ * The mature grade (playtest round 8, decisions L7 and L8: darker, moodier): every colour of a painted frame goes down
+ * in value (the mids and darks more than the lights, so each hero keeps a light value that pops on a dark stage) and
+ * a little in saturation. Painted once, with the frames.
+ */
+export function gradeGrid(g: Grid): void {
+  const memo = new Map<string, string>();
+  for (const row of g)
+    for (let x = 0; x < row.length; x++) {
+      const c = row[x];
+      if (!c) continue;
+      let out = memo.get(c);
+      if (!out) {
+        const v = parseInt(c.slice(1), 16);
+        let r = ((v >> 16) & 255) / 255;
+        let gg = ((v >> 8) & 255) / 255;
+        let b = (v & 255) / 255;
+        const mx = Math.max(r, gg, b);
+        const k = 0.8 + 0.2 * mx; // the lights keep most of their value
+        const grey = (r + gg + b) / 3;
+        const sat = 0.88;
+        r = (grey + (r - grey) * sat) * k;
+        gg = (grey + (gg - grey) * sat) * k;
+        b = (grey + (b - grey) * sat) * k * 1.02; // shadows lean a touch cooler
+        const h2 = (n: number) => Math.max(0, Math.min(255, Math.round(n * 255))).toString(16).padStart(2, '0');
+        out = `#${h2(r)}${h2(gg)}${h2(b)}`;
+        memo.set(c, out);
+      }
+      row[x] = out;
+    }
 }
 
 // ------------------------------------------------------------------ shapes shared by the heroes' kits
@@ -180,8 +215,9 @@ export function sparkle(g: Grid, x: number, y: number, arm: string, heart = '#ff
 }
 
 /**
- * A pole (staff, haft) from the grip (x, y) running `len` px along `dir` and `back` px the other way, 2 px thick,
- * lit on its upper/left side. `ramp` = [dark, mid, lit]. Diagonals step cleanly (1:1).
+ * A pole (staff, haft) from the grip (x, y) running `len` px along `dir` and `back` px the other way, 3 px thick so it
+ * reads at 8x (playtest round 8), lit on its upper/left side, a mid tone down its middle, shaded on the other side.
+ * `ramp` = [dark, mid, lit]. Diagonals step cleanly (1:1).
  */
 export function pole(g: Grid, x: number, y: number, dir: Dir, len: number, back: number, ramp: string[]): void {
   const [sx, sy] = STEP[dir];
@@ -190,15 +226,18 @@ export function pole(g: Grid, x: number, y: number, dir: Dir, len: number, back:
     const px = x + sx * i;
     const py = y + sy * i;
     if (diag) {
-      // two pixels per step along the diagonal: the upper one lit, the lower one shaded
-      put(g, px, py, ramp[2]);
-      put(g, px + (sx === sy ? -1 : 1), py, ramp[1]);
-      put(g, px, py + 1, ramp[0]);
+      // three pixels per row along the diagonal: the upper side lit, the middle mid, the lower side shaded
+      const up = sx === sy ? 1 : -1; // the side of the row that faces up
+      put(g, px + up, py, ramp[2]);
+      put(g, px, py, ramp[1]);
+      put(g, px - up, py, ramp[0]);
     } else if (sx === 0) {
-      put(g, px, py, ramp[2]);
+      put(g, px - 1, py, ramp[2]);
+      put(g, px, py, ramp[1]);
       put(g, px + 1, py, ramp[0]);
     } else {
-      put(g, px, py, ramp[2]);
+      put(g, px, py - 1, ramp[2]);
+      put(g, px, py, ramp[1]);
       put(g, px, py + 1, ramp[0]);
     }
   }
@@ -316,3 +355,129 @@ export function block(g: Grid, cx: number, cy: number, ang: number, hu: number, 
 
 /** The direction's angle for `block` (the block's long axis across the direction). */
 export const dirAngle = (dir: Dir): number => Math.atan2(STEP[dir][1], STEP[dir][0]);
+
+// ------------------------------------------------------------------ the mature legs (playtest round 8, L8)
+
+/** A leg's joints in a leg map: hip, knee, ankle (x right, y down; the ground is the map's last row). */
+export type Joint = [number, number];
+export interface Stance {
+  h: number; // the map's height (the ground is its last row)
+  skirt: number; // the rows the garment over the thighs covers (a tunic's skirt, a tabard, a coat's tails)
+  flare: number; // how far it spreads past the hips at its hem
+  shift?: number; // its hem leans this far (back = negative)
+  back: [Joint, Joint, Joint];
+  front: [Joint, Joint, Joint];
+}
+/** Each hero's materials for their legs: map letters (shaded by the hero's own `shades`, or plain palette letters). */
+export interface LegLook {
+  leg: string; // thigh and shin (front leg)
+  legLit?: string; // the front leg's lit (left) edge, for materials without a shade
+  legBack: string; // the back leg, a value darker
+  boot: string;
+  bootLit?: string;
+  bootBack: string;
+  sole: string;
+  cop?: string; // a knee accent (a cop, a patch), front and back
+  copBack?: string;
+  skirt?: string; // the garment over the thighs, its folds and hem (none: bare trousers)
+  fold?: string;
+  hem?: string;
+  thigh?: number; // widths (default 4 and 3)
+  shin?: number;
+  bootRows?: number; // the boot's shaft (default 3)
+  /** A long garment (a robe, a dress) reaching this close to the ground in every stance (rows above the soles). */
+  robe?: number;
+}
+export const LEG_W = 21;
+export const LEG_FEET_X = 10;
+const LF = LEG_FEET_X;
+/** The stances every mature hero shares: about 14 px of leg under a 12 px torso, so a hero is about three heads. */
+export const STANCES: Record<string, Stance> = {
+  stand: { h: 14, skirt: 5, flare: 1, back: [[LF - 2, 2], [LF - 3, 8], [LF - 3, 13]], front: [[LF + 2, 2], [LF + 3, 8], [LF + 3, 13]] },
+  run: { h: 14, skirt: 4, flare: 2, shift: -2, back: [[LF - 1, 2], [LF - 5, 6], [LF - 9, 8]], front: [[LF + 2, 2], [LF + 5, 7], [LF + 5, 13]] },
+  lunge: { h: 14, skirt: 4, flare: 2, back: [[LF - 2, 2], [LF - 6, 8], [LF - 8, 13]], front: [[LF + 2, 2], [LF + 6, 7], [LF + 6, 13]] },
+  crouch: { h: 11, skirt: 4, flare: 2, back: [[LF - 2, 2], [LF - 6, 6], [LF - 4, 10]], front: [[LF + 2, 2], [LF + 6, 5], [LF + 5, 10]] },
+  tuck: { h: 10, skirt: 4, flare: 1, back: [[LF - 2, 2], [LF + 1, 5], [LF - 2, 9]], front: [[LF + 2, 2], [LF + 6, 4], [LF + 4, 9]] },
+  kneel: { h: 10, skirt: 4, flare: 2, back: [[LF - 2, 2], [LF - 4, 8], [LF - 9, 9]], front: [[LF + 2, 2], [LF + 6, 4], [LF + 6, 9]] },
+  // sitting cross-legged (Brann at the campfire)
+  lotus: { h: 7, skirt: 3, flare: 3, back: [[LF - 2, 1], [LF - 7, 4], [LF + 2, 6]], front: [[LF + 2, 1], [LF + 7, 4], [LF - 2, 6]] },
+};
+
+/** A leg map for a stance in a hero's materials (LEG_W wide, the feet centred on LEG_FEET_X). */
+export function jointLegs(o: Stance, L: LegLook): string[] {
+  const g: string[][] = Array.from({ length: o.h }, () => Array<string>(LEG_W).fill('.'));
+  const set = (x: number, y: number, c: string) => {
+    if (x >= 0 && y >= 0 && x < LEG_W && y < o.h) g[y][x] = c;
+  };
+  const limb = (a: Joint, b: Joint, w: number, c: string, lit?: string) => {
+    const n = Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]), 1);
+    for (let i = 0; i <= n; i++) {
+      const x = a[0] + ((b[0] - a[0]) * i) / n;
+      const y = Math.round(a[1] + ((b[1] - a[1]) * i) / n);
+      for (let k = 0; k < w; k++) set(Math.round(x - (w - 1) / 2 + k), y, k === 0 && lit ? lit : c);
+    }
+  };
+  const rows = L.bootRows ?? 3;
+  const leg = ([hip, knee, ank]: [Joint, Joint, Joint], back: boolean) => {
+    const c = back ? L.legBack : L.leg;
+    const b = back ? L.bootBack : L.boot;
+    const lit = back ? undefined : L.legLit;
+    limb(hip, knee, L.thigh ?? 4, c, lit);
+    limb(knee, ank, L.shin ?? 3, c, lit);
+    const cop = back ? (L.copBack ?? L.cop) : L.cop;
+    if (cop) {
+      set(knee[0], knee[1], cop);
+      set(knee[0] + 1, knee[1], cop);
+    }
+    // the boot: a shaft up the shin, a foot pointing forward, the sole dark
+    const bl = back ? b : (L.bootLit ?? b);
+    for (let y = ank[1] - rows; y < ank[1]; y++) for (let x = ank[0] - 1; x <= ank[0] + 1; x++) set(x, y, x === ank[0] - 1 ? bl : b);
+    for (let x = ank[0] - 2; x <= ank[0] + 2; x++) set(x, ank[1] - 1, b);
+    for (let x = ank[0] - 2; x <= ank[0] + 3; x++) set(x, ank[1], x === ank[0] + 3 ? b : L.sole);
+  };
+  leg(o.back, true);
+  leg(o.front, false);
+  if (L.skirt) {
+    // the garment over the thighs (a robe reaches down toward the feet), folds in shadow, a hem
+    const n = L.robe !== undefined ? Math.max(o.skirt, o.h - L.robe) : o.skirt;
+    for (let y = 0; y < n; y++) {
+      const t = y / Math.max(1, n - 1);
+      const lean = Math.round((o.shift ?? 0) * t);
+      const spread = L.robe !== undefined ? o.flare + 2 : o.flare;
+      const x0 = LF - 6 - Math.round(spread * t) + lean;
+      const x1 = LF + 6 + Math.round(spread * t * 0.6) + lean;
+      for (let x = x0; x <= x1; x++) {
+        const fold = L.fold && y > 0 && (x === LF - 2 + lean || x === LF + 3 + lean);
+        set(x, y, y === n - 1 && L.hem ? L.hem : fold ? L.fold! : L.skirt);
+      }
+    }
+  }
+  return g.map((r) => r.join(''));
+}
+
+/** Every stance's map in a hero's materials. */
+export const matureLegs = (L: LegLook): Record<string, string[]> => Object.fromEntries(Object.entries(STANCES).map(([k, st]) => [k, jointLegs(st, L)]));
+
+/** A pose made for the old proportions moved onto the mature ones: the hands (and what they hold) rise with the longer
+ *  body. Layers drawn from the anchors follow by themselves. */
+export const matureHands = (p: RigPose, lift = 4): RigPose => ({
+  ...p,
+  near: { ...p.near, at: [p.near.at[0], p.near.at[1] + lift] },
+  far: { ...p.far, at: [p.far.at[0], p.far.at[1] + lift] },
+});
+
+/**
+ * A head made for the old proportions, matured (playtest round 8, L8): `drop` rows taken out of the hair or hat's dome
+ * (every face variant alike, so their swaps stay in step), the eyes' glossy whites gone (a white next to an iris turns to
+ * skin: one small dark eye under the brow) and the blush gone (`blush` letters turn to skin). `skin` is the face's mid
+ * skin letter.
+ */
+export function matureHeads<K extends string>(heads: Record<K, string[]>, o: { drop: number[]; blush?: string; skin?: string }): Record<K, string[]> {
+  const skin = o.skin ?? 'S';
+  const fix = (r: string) => {
+    let out = r.replace(/W(?=[iejkg])/g, skin).replace(/(?<=k)W/g, skin);
+    for (const b of o.blush ?? '') out = out.split(b).join(skin);
+    return out;
+  };
+  return Object.fromEntries(Object.entries(heads).map(([k, rows]) => [k, (rows as string[]).filter((_, i) => !o.drop.includes(i)).map(fix)])) as Record<K, string[]>;
+}

@@ -12,12 +12,15 @@ import type { Settings, Tuning } from '../core/tuning';
 import { AMBIENCES, Synth, TELL_SOUNDS, type Ambience, type MusicTrack, type TellSound } from './audio';
 import { computeLayout, sameGameLayout, sameLayout, type ScreenLayout } from './layout';
 import { clearRunSave, eraseProgress, loadLabAcc, loadProfile, loadRunSave, saveSoon, setStorageSlot, writeLabAcc, writeProfile, writeRunSave } from './storage';
+import { regionOfAct } from '../data/regions';
 
 export interface View {
   /** Returns how long (ms) the next phase change should wait so a kill / finisher animation can play out. */
   onEvents(events: CombatEvent[]): number;
   onPhase(prev: Phase, next: Phase): void;
   onLayout(): void;
+  /** The later regions' art (region-art.ts), now: asked on every screen change past the title. */
+  ensureRegionPacks(key?: string): void;
   /** The tip card (view/tips.ts): TAP TO BEGIN asks it first (a pre-fight tip still due comes up instead). */
   readonly tips: { beforeBegin(now: number): boolean };
 }
@@ -410,6 +413,10 @@ export class App {
 
   private afterPhaseChange(prev: Phase): void {
     const now = performance.now();
+    // anything in a later region: every later region's art is in at once (region-art.ts; it's painted in idle slices
+    // from the title on, so a Greenmarch player never waits for it; a later foe or portrait met sooner, as in the Test
+    // lab, asks for it itself: fighters, story; the bar's later-region pieces are drawn only once they exist)
+    if (this.run.phase !== 'title' && regionOfAct(this.run.actIndex) > 0) this.view?.ensureRegionPacks();
     if (this.run.phase === 'fight' && this.run.combat && this.run.combat !== this.begunCombat) {
       // every fight from the map waits for TAP TO BEGIN (resumed ones too)
       this.begunCombat = this.run.combat;

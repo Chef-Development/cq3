@@ -3,10 +3,8 @@ import { hpOf } from '../../core/format';
 import Phaser from 'phaser';
 import { isRed, type BlockKind, type RemoveReason } from '../../core/combat';
 import type { BoostId } from '../../core/run';
-import { ASH_COL } from '../art-ash';
-import { DUSK_COL } from '../art-dusk';
 import { FOE_COL } from '../art-foes';
-import { FROST_COL } from '../art-frost';
+import { onRegionPack } from '../region-art';
 
 export const COL = {
   yellow: [0xeab22e, 0xffe680, 0xb8781a],
@@ -70,7 +68,9 @@ export interface Dying {
   style: DyingStyle;
   at: number; // anim time
 }
-export const ENEMY_COL: Record<string, number> = { slime: 0x4fc4a0, bigslime: 0x4fc4a0, boar: 0x8a5a34, bandit: 0x5a4a6a, ...FOE_COL, ...FROST_COL, ...ASH_COL, ...DUSK_COL };
+export const ENEMY_COL: Record<string, number> = { slime: 0x4fc4a0, bigslime: 0x4fc4a0, boar: 0x8a5a34, bandit: 0x5a4a6a, ...FOE_COL };
+// a later region's foes' colours come with its art pack (region-art.ts)
+onRegionPack((p) => Object.assign(ENEMY_COL, p.col));
 
 export const WHITE = 0xffffff;
 export const INK = 0x0a0812;
@@ -130,6 +130,8 @@ export interface EnemyView {
   fly: number; // hovers this many px above the ground
   tellAt: number; // anim time its special's telegraph started...
   tellUntil: number; // ...and ends (the 'tell' pose, the countdown ring)
+  shoutY?: number; // where its special's name sits while it's up (its damage numbers keep below it)...
+  shoutUntil?: number; // ...and until when (anim time; a stun ends the tell, not the shout)
   fleeAt: number; // anim time it started running off (0 = not fleeing)
   popAt: number; // anim time it split apart (0 = not splitting)
   enterFrom: number; // x it walks in from (the right edge, or the parent slime's spot for a split)

@@ -3,7 +3,7 @@
 // white-fletched arrows and dark green leathers. Fight frames `vesper_${pose}` on the shared rig (art-rig.ts). The
 // bow rides the far hand (in front of the body); the near hand draws the string.
 import { put, stamp, type Grid, type Pal, type Shade } from './art';
-import { ribbon, sparkle, type HeroCardSpec, type Layer, type Pt, type Rig, type RigPose } from './art-rig';
+import { type HeroCardSpec, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Pt, ribbon, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -66,6 +66,8 @@ const TORSO = [
   '.ccctttyttcc...',
   '..ttttyttttt...',
   '..tttytttttt...',
+  '..tttytttttt...',
+  '..tttytttttt...',
   '..ttyttNtttt...',
   '..tyttNttttt...',
   '..llllllYllll..',
@@ -73,72 +75,8 @@ const TORSO = [
 ];
 
 // Green leggings and tall brown boots; 15 wide, the feet centred on x = 7.
-const LEGS: Record<string, string[]> = {
-  stand: [
-    '..tttttttttt...',
-    '..ttttNtttttt..',
-    '...ppp...ppp...',
-    '...ppp...ppp...',
-    '...ppp...ppp...',
-    '...bbb...bbb...',
-    '...bbb...bbb...',
-    '...bbb...bbb...',
-    '..bbbbb..bbbbb.',
-    '..bbbbbb.bbbbbb',
-  ],
-  run: [
-    '...tttttttttt..',
-    '..ttttttNtttt..',
-    '.ppp......ppp..',
-    'ppp........ppp.',
-    'bb.........ppp.',
-    'bb..........bbb',
-    '............bbb',
-    '............bbb',
-    '...........bbbbb',
-    '...........bbbbbb',
-  ],
-  lunge: [
-    '...tttttttttt..',
-    '..ttttttNttttt.',
-    '..ppp......ppp.',
-    '.ppp.......ppp.',
-    '.ppp........ppp',
-    'bbb.........bbb',
-    'bbb.........bbb',
-    'bbb.........bbb',
-    'bbbb.......bbbbb',
-    'bbbbb......bbbbbb',
-  ],
-  crouch: [
-    '..tttttttttt...',
-    '.ttttttNttttt..',
-    '.ppp......ppp..',
-    'ppp.......ppp..',
-    'bbb.......bbb..',
-    'bbb.......bbb..',
-    'bbbb.....bbbbb.',
-    'bbbbb....bbbbbb',
-  ],
-  tuck: [
-    '..tttttttttt...',
-    '.ttttttNtttt...',
-    '..pppppp.pppp..',
-    '.....bbbbbbbbb.',
-    '.....bbbbb.bbbb',
-    '......bbbb.bbbb',
-  ],
-  // down on one knee (also her kneeling shot)
-  kneel: [
-    '..tttttttttt...',
-    '.ttttttNttttt..',
-    '..ppppppp..ppp.',
-    'bbbppppp...ppp.',
-    'bbbbbbbb...bbb.',
-    '...........bbb.',
-    '..........bbbbb',
-  ],
-};
+// the shared jointed legs (art-rig.ts STANCES, playtest round 8: L8, about three heads tall)
+const LEGS = matureLegs({ leg: 'p', legBack: '8', boot: 'b', bootBack: '9', sole: '9', skirt: 't', fold: 'N', bootRows: 5 });
 
 export const VESPER_FIST = ['VV', 'vu'];
 const ARM_NEAR: Array<[number, ...string[]]> = [
@@ -151,12 +89,12 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 ];
 
 export const VESPER_RIG: Rig = {
-  pal: VESPER_PAL,
+  pal: { ...VESPER_PAL, '8': GREEN[1], '9': LEATHER[0] },
   shades: VESPER_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [2, 4]}),
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 7,
+  legsFeetX: LEG_FEET_X,
   torsoX: -7,
   torsoOverlap: 1,
   headX: -1,
@@ -222,7 +160,7 @@ const quiver: Layer = (g, a) => {
 const tail =
   (a0: number, curl: number, n = 8): Layer =>
   (g, a) =>
-    ribbon(g, a.hx + 2, a.hy + 6, n, (t) => Math.PI * (a0 + curl * t), (t) => (t > 0.7 ? [HAIR[3], HAIR[1]] : [HAIR[4], HAIR[2], HAIR[0]]));
+    ribbon(g, a.hx + 2, a.hy + 4, n, (t) => Math.PI * (a0 + curl * t), (t) => (t > 0.7 ? [HAIR[3], HAIR[1]] : [HAIR[4], HAIR[2], HAIR[0]]));
 
 // ------------------------------------------------------------------ the bow and arrows
 
@@ -265,19 +203,24 @@ function paintBow(g: Grid, x: number, y: number, ang: number, drawTo?: Pt, slack
     line(g, tips[0], mid, str);
     line(g, mid, tips[1], str);
   }
-  // the limbs: lit on the side facing the light, a darker back
-  for (const [px, py] of pts) {
+  // the limbs: 3 px through the middle tapering to 2 at the tips (they read at 8x), lit on the side facing the light,
+  // a darker back
+  pts.forEach(([px, py], i) => {
+    const s = Math.abs(i / (pts.length - 1) - 0.5) * 2;
+    if (s < 0.75) put(g, Math.floor(px - fwd[0] * 0.9), Math.floor(py - fwd[1] * 0.9), VESPER_SILVER[3]);
     put(g, Math.floor(px), Math.floor(py), VESPER_SILVER[2]);
     put(g, Math.floor(px + fwd[0] * 0.9 + 0.3), Math.floor(py + fwd[1] * 0.9), VESPER_SILVER[1]);
-  }
+  });
   for (let k = 0; k < pts.length; k += 6) {
     const [px, py] = pts[k];
     if (Math.abs(k - pts.length / 2) > 18) put(g, Math.floor(px - 0.3), Math.floor(py), VESPER_SILVER[3]);
   }
   // gold nocks at the tips, the leather grip
   for (const [tx, ty] of tips) put(g, Math.floor(tx), Math.floor(ty), VESPER_GOLD[2]);
-  put(g, x, y - 1, LEATHER[2]);
-  put(g, x, y + 2, LEATHER[2]);
+  for (const dy of [-1, 2]) {
+    put(g, x, y + dy, LEATHER[2]);
+    put(g, x + 1, y + dy, LEATHER[1]);
+  }
 }
 
 /** An arrow from the nock (a) toward b: white fletching, a wooden shaft, a silver head. */
@@ -343,14 +286,14 @@ const droppedBow: Layer = (g, a) => paintBow(g, a.fx - 6, a.fy - 2, Math.PI / 2 
 // ------------------------------------------------------------------ poses
 
 export const VESPER_POSES: Record<string, RigPose> = {
-  idle0: { near: { at: [-1, 9] }, far: { at: [9, 12] }, farFront: true, back: [tail(0.7, 0.05), cloak('hang'), quiver], front: [bow()] },
-  idle1: { near: { at: [-1, 8] }, far: { at: [9, 11] }, farFront: true, dy: 1, back: [tail(0.72, 0.08), cloak('sway'), quiver], front: [bow()] },
+  idle0: { near: { at: [-1, 15] }, far: { at: [9, 18] }, farFront: true, back: [tail(0.7, 0.05), cloak('hang'), quiver], front: [bow()] },
+  idle1: { near: { at: [-1, 14] }, far: { at: [9, 17] }, farFront: true, dy: 1, back: [tail(0.72, 0.08), cloak('sway'), quiver], front: [bow()] },
   // the cloak and the hair swing a frame behind the breath
-  idle2: { near: { at: [-1, 8] }, far: { at: [9, 11] }, farFront: true, dy: 1, back: [tail(0.76, 0.1), cloak('sway'), quiver], front: [bow()] },
-  idle3: { near: { at: [-1, 9] }, far: { at: [9, 12] }, farFront: true, back: [tail(0.74, 0.08), cloak('hang'), quiver], front: [bow()] },
+  idle2: { near: { at: [-1, 14] }, far: { at: [9, 17] }, farFront: true, dy: 1, back: [tail(0.76, 0.1), cloak('sway'), quiver], front: [bow()] },
+  idle3: { near: { at: [-1, 15] }, far: { at: [9, 18] }, farFront: true, back: [tail(0.74, 0.08), cloak('hang'), quiver], front: [bow()] },
   dash: {
-    near: { at: [-6, 12] },
-    far: { at: [9, 12] },
+    near: { at: [-6, 18] },
+    far: { at: [9, 18] },
     farFront: true,
     legs: 'run',
     dx: 1,
@@ -360,8 +303,8 @@ export const VESPER_POSES: Record<string, RigPose> = {
   },
   // full draw: the string at her cheek, the arrow levelled
   slashA: {
-    near: { at: [3, 21] },
-    far: { at: [14, 20] },
+    near: { at: [3, 27] },
+    far: { at: [14, 26] },
     farFront: true,
     legs: 'lunge',
     head: 'aim',
@@ -370,8 +313,8 @@ export const VESPER_POSES: Record<string, RigPose> = {
   },
   // the loose: the string snaps back, the arrow streaks away, the drawing hand flies open behind her
   slashB: {
-    near: { at: [-4, 21] },
-    far: { at: [14, 20] },
+    near: { at: [-4, 27] },
+    far: { at: [14, 26] },
     farFront: true,
     legs: 'lunge',
     back: [tail(0.9, 0.05), cloak('flow'), quiver],
@@ -379,8 +322,8 @@ export const VESPER_POSES: Record<string, RigPose> = {
   },
   // reaching over her shoulder for an arrow
   windup: {
-    near: { at: [-4, 25] },
-    far: { at: [10, 12] },
+    near: { at: [-4, 31] },
+    far: { at: [10, 18] },
     farFront: true,
     armsUp: true,
     legs: 'crouch',
@@ -390,8 +333,8 @@ export const VESPER_POSES: Record<string, RigPose> = {
   },
   // the bow braced crosswise in both hands
   parry: {
-    near: { at: [5, 12] },
-    far: { at: [12, 12] },
+    near: { at: [5, 18] },
+    far: { at: [12, 18] },
     farFront: true,
     legs: 'crouch',
     dy: 1,
@@ -400,8 +343,8 @@ export const VESPER_POSES: Record<string, RigPose> = {
     front: [bow({ ang: 0.9 })],
   },
   hurt: {
-    near: { at: [-6, 11] },
-    far: { at: [6, 9] },
+    near: { at: [-6, 17] },
+    far: { at: [6, 15] },
     farFront: true,
     dx: -1,
     lean: -1,
@@ -411,8 +354,8 @@ export const VESPER_POSES: Record<string, RigPose> = {
     front: [bow({ ang: -0.4 })],
   },
   leap: {
-    near: { at: [4, 18] },
-    far: { at: [13, 16] },
+    near: { at: [4, 24] },
+    far: { at: [13, 22] },
     farFront: true,
     legs: 'tuck',
     head: 'aim',
@@ -432,8 +375,8 @@ export const VESPER_POSES: Record<string, RigPose> = {
   },
   // the finisher: drawing a volley of three arrows up at the sky
   fin: {
-    near: { at: [7, 20] },
-    far: { at: [15, 29] },
+    near: { at: [7, 26] },
+    far: { at: [15, 35] },
     farFront: true,
     legs: 'lunge',
     dx: -1,
@@ -444,8 +387,8 @@ export const VESPER_POSES: Record<string, RigPose> = {
   },
   // Piercing Shot: a kneeling shot with a glowing gold arrow
   cast: {
-    near: { at: [3, 17] },
-    far: { at: [14, 16] },
+    near: { at: [3, 23] },
+    far: { at: [14, 22] },
     farFront: true,
     legs: 'kneel',
     dy: 1,
@@ -457,7 +400,7 @@ export const VESPER_POSES: Record<string, RigPose> = {
 
 /** Hero select card: the longbow at her side, the cloak drifting, before a dusk-purple glow with a gold heart. */
 export const VESPER_CARD: HeroCardSpec = {
-  pose: { near: { at: [-1, 9] }, far: { at: [9, 12] }, farFront: true, back: [tail(0.7, 0.05), cloak('sway'), quiver], front: [bow()] },
+  pose: { near: { at: [-1, 15] }, far: { at: [9, 18] }, farFront: true, back: [tail(0.7, 0.05), cloak('sway'), quiver], front: [bow()] },
   glow: ['#fff0a0', '#7a58b0'],
   motes: [[5, 13], [34, 8], [35, 29]],
 };
@@ -465,15 +408,15 @@ export const VESPER_CARD: HeroCardSpec = {
 /** By the campfire (two breaths): the bow lowered, an arrow held up to check its fletching. */
 export const VESPER_CAMP: [RigPose, RigPose] = [
   {
-    near: { at: [8, 18] },
-    far: { at: [9, 11] },
+    near: { at: [8, 24] },
+    far: { at: [9, 17] },
     farFront: true,
     back: [tail(0.7, 0.05), cloak('hang'), quiver],
     front: [bow({ ang: 0.15 }), (g, a) => arrow(g, [a.near[0] - 1, a.near[1] + 4], [a.near[0] + 3, a.near[1] - 6])],
   },
   {
-    near: { at: [8, 17] },
-    far: { at: [9, 10] },
+    near: { at: [8, 23] },
+    far: { at: [9, 16] },
     farFront: true,
     dy: 1,
     back: [tail(0.72, 0.08), cloak('sway'), quiver],

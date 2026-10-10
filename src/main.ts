@@ -9,7 +9,11 @@ import { hudButtonImages } from './engine/chrome';
 import { applyCanvasLayout, applyFrame, GAME_H, GAME_W } from './engine/layout';
 import { FightScene } from './engine/scene';
 import { MINI_MISSES } from './engine/art-minis';
+import { loadRegionArt, regionArtLoaded } from './engine/region-art';
 import { loadSettings, loadTuning } from './engine/storage';
+
+// the later regions' art packs download beside the boot (region-art.ts, docs/perf.md)
+void loadRegionArt();
 
 const app = new App(loadTuning(), loadSettings());
 
@@ -58,8 +62,9 @@ game.events.once(Phaser.Core.Events.READY, () => {
 const handle: Record<string, unknown> = {
   app,
   game,
+  /** The title is up and the later regions' art packs have arrived (a test may jump anywhere at once). */
   get ready() {
-    return app.sceneReady;
+    return app.sceneReady && regionArtLoaded();
   },
   /** Foe sprites a map asked for that have no mini (drawn as the crossed swords): the tests expect none. */
   miniMisses: MINI_MISSES,

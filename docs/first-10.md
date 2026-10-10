@@ -114,12 +114,114 @@ The spec writes a screenshot of every beat to `test-results/first10/` (or `F10_O
 the tips, the phase log). The before/after runs and a contact sheet of the key beats (`first10-contact.png`: seed 9
 before, seed 7 after) are in the run's scratch folder (team-first10/).
 
+## Round 8, part 2: the story's road scene, a finisher that finishes, on to the first hero chest (F7-F13)
+
+What changed (docs/decisions.md F7-F13):
+
+1. **Pip's road scene** (the story team's: who Pip is, what the blank is) plays after a new player's first win, after
+   its loot, before the map; on Act 1's first playthrough, once per profile. "Follow it." leads onto the map and its
+   promised chest. The welcome back's id is `welcomeR8` (returning players meet the new story's welcome once).
+2. **The first win has no pick of its own** (`CORE:` run.ts): the chest right after it has one. Minute one had two relic
+   picks half a minute apart around a story scene; now the chest's pick is the first relic a newcomer meets.
+3. **The first finisher finishes.** The reveal named WHIRLWIND, then the boar stood there at 89 of 150 (seed 7). The
+   finisher's lesson now waits for the foe in front to be low enough to fall to the blow (at most 15 s).
+4. **The quiet start ends one tip per fight won** (it ended in a burst of five tips over four screens before the boss).
+5. **The act clear points at the hero chest:** Camp glows gold with a count bubble when a chest waits; its gains column
+   no longer runs under the headline.
+6. **The first hero chest is always someone new** (`CORE:` chests.ts): it was Sable's shards, a minute after Sable
+   joined in the story.
+7. **The spec plays on**: `F10_UNTIL=act` taps Camp at the act clear, reads Sable's scene, opens the vault and the hero
+   chest; it times the first red's spawn and the boss's arc (its first special, half and a fifth of its HP).
+
+### Measured (the same bot, 70%; seeds 7, 9, 11)
+
+| Beat | seed 7 | seed 9 | seed 11 | before (part 1, s7 / s9 / s11) |
+| --- | --- | --- | --- | --- |
+| First act map | 0:15 | 0:14 | 0:14 | 0:27 / 0:28 / 0:27 (the story was 11 boxes, now 4) |
+| **First fight on screen** | **0:22** | **0:19** | **0:20** | 0:32 / 0:34 / 0:32 |
+| TAP TO BEGIN (after "tap yellow") | 0:26 | 0:23 | 0:24 | |
+| First red: its tip at once | 0:27 | 0:25 | 0:25 | |
+| First finisher (named, held 1.5 s) | 0:57 | 0:56 | 0:48 | 0:59 / 1:02 / 1:00 |
+| ...and it kills the foe in front | yes | yes | yes | seed 7: no (the boar at 89 of 150) |
+| First win | 1:10 | 1:11 | 1:11 | 1:15 / 1:22 / 1:16 |
+| Road scene (6 boxes) | 1:14-1:28 | 1:13-1:26 | 1:13-1:26 | (new) |
+| **First chest** | **1:31** | **1:29** | **1:29** | 1:27 / 1:30 / 1:24 |
+| First relic pick (the chest's) | 1:38 | 1:33 | 1:32 | seed 7: 1:04 (the fight's) |
+| Map after the chest | 1:43 | 1:39 | 1:38 | 1:37 / 1:41 / 1:35 |
+| Taps / tips before the chest | 77 / 6 | 84 / 6 | 81 / 6 | 73 / 7, 76 / 6, 69 / 6 |
+| Act 1's boss (Bandit Captain) | lost at 18% of its HP | won at 5:34 | | |
+| Act clear, then Camp | | 5:40, 5:47 | | |
+| **First hero chest revealed** | | **6:12** (Tam, new) | | Sable's shards (part 2's first run) |
+
+Title to the first fight is about 20 s for a newcomer who reads every box and tip (the brief: under 45 s), and
+nothing on the way waits on reading: four story boxes (a tap each, Skip on screen), the world map's glide (a tap skips
+it), one map tip and "tap yellow" before TAP TO BEGIN. The road scene puts ~14 s of story between the first win and
+the first chest (the chest still comes at 1:30, the first pick it gained back).
+
+The newcomer bot lost the Bandit Captain on seed 7 (the one path through Act 1 with only three fights and two rests).
+The balance bot does not see it: Act 1 first try at 62% / 70% / 75% accuracy with a newcomer's reaction time (0.38 s)
+is 98% / 99% / 100% (300 runs each), and 91% / 99.5% at 62% / 70% never wearing found gear; with or without the first
+fight's pick the rates are the same within noise. The spec's player is cruder than the balance bot (it never wears
+gear or spends skill points, and aims at whatever comes next), so take its boss result as "close", not as a wall.
+
+### A picky newcomer, beat by beat (part 2; screenshots in the run's scratch folder, `team-first10/r2/b3-s9/`)
+
+- **Title** (`01-title.png`): the new logo, "Tap to start!", and three hints along the foot (yellow, red, purple).
+  Clear.
+- **World map** (`03-worldMap.png`): the glide from the far east reads well; the header plate says "Weights home:
+  0/12" in the first second: jargon for a newcomer (and is "weights" still the story's word?).
+- **Story** (`04-intro.png`): three narrator boxes and Pip's one; quick.
+- **First map** (`06-tip-map.png`, `07-firstChoice.png`): one tip, three "3 | Gear" tags, the bounty board's "!",
+  the packs, the captain's banner. It reads in one look because the glowing spots are the only bright things; the
+  three identical tags add little on the first step.
+- **First fight** (`09`-`19`): five lessons, each at its moment; the first red's tip comes the instant it spawns.
+- **First finisher** (`20`-`26`): the tip, the swipe, the letterbox and WHIRLWIND, then the whirlwind and the foe
+  goes down: the payoff the reveal promises.
+- **After the first win**: the loot (when one drops), the road scene (six boxes: the longest stretch of reading in
+  the first five minutes), then the map and the chest.
+- **The chest** (`30`-`34`): "Treasure!", the loot, then the first relic pick with its tip. Three cards with tags and
+  a RARE badge are still dense for a first pick.
+- **Act 1 to the boss**: fights, an event, a rest, the shop; the quiet start's tips now one per win (the packs after
+  the third win, Synergy! after the fourth, the skill point at camp).
+- **The Bandit Captain** (`48`-`52`): its intro scene (five boxes), then a real fight: bombs ("Boom...away!"), a call
+  for help ("Lads, help!"), a newcomer down to 16 of 122 HP at half its HP. Exciting; in `49-bossSpecial.png` and
+  `50-bossHalf.png` the special's shout and the damage numbers overlap at the top centre.
+- **Act clear** (`55-actClearOpen.png`): one headline, the line under it, the gains on the left (no longer under the
+  headline), the build card, the XP, and Camp with the chest bubble.
+- **Camp** (`56`-`58`): Sable's scene (six boxes) over the camp, then the camp with "Sable joined!", the Chests plate
+  glowing with its "1", the skill point's tip.
+- **The first hero chest** (`59`-`62`): the vault, "Tap the chest!", the build-up, **Tam, Rare**, new.
+
+### After the container restart: found gear goes on (F14), the merged build
+
+The runs above showed the newcomer bot dying in Act 1 more than the balance bot predicts. Two reasons:
+
+- **It never opens the camp, so it fought Act 1 in nothing** (every item found waited in the bag), while the balance
+  bot wears the best it finds after every loot. Now an item for an empty slot goes on as it drops (F14: "Worn" in
+  green on the loot screen; the loot tip says so). Worth, for a newcomer who never opens the camp (balance bot, 200
+  runs, 0.38 s reaction): Act 1 first try 84.5% -> 94.5% at 55% accuracy, 91.5% -> 98% at 60%.
+- **Tonight's machine is loaded** (seven teams), and the bot's in-page timers jitter: the game's own accuracy readout
+  on the act-clear screen measured the "70%" newcomer at 34-67%. Read its results as a struggling player's.
+
+| Run (build) | Readout | Act 1 | First hero chest |
+| --- | --- | --- | --- |
+| seed 9 (part 2) | 67% | cleared first try (boss won 5:34) | Tam, Rare, new (6:12) |
+| seed 7 (part 2) | | lost the boss (it was at 18% of its HP) | |
+| seed 7 (merged) | 51% | cleared first try (boss won 5:27) | Bun, Common, a new companion (6:04) |
+| seed 11 (merged) | | three defeats in normal fights (rows 2-5); stopped at its two retries | |
+| seed 7 (merged + F14) | 56% | a defeat in a row-2 fight and one at the boss; cleared on the third try (11:54) | Rare, new (12:25) |
+| seed 9 (merged + F14) | 34% | cleared first try (boss won 6:03) | Moss, Epic, a new hero (6:42) |
+The first five minutes hold in every run: first fight on screen at 0:19-0:22, the first finisher at 0:57-1:02 (the
+next foe walks in behind it), the first chest at 1:24-1:36, the first relic pick (the chest's) a few seconds later.
+
 ## Still to do (not ours, or next)
 
-- The story before the first fight: 11 boxes, 24 s, 11 taps (story team: at most 4 boxes).
-- The first relic pick is dense for minute 1 (three cards, tags, a RARE badge). A first pick of plain stat cards, or
-  two cards, would read faster.
-- The hero chest (the gacha reveal) first comes after the Act 1 boss (about 10 minutes in for a newcomer) and opens at
-  camp; a first hero chest within the first 10 minutes would show off the chest reveal early.
-- Two relic picks within 20 s around the first chest (the first fight's, then the chest's rare one).
-- Each new hero's first finisher could get the same reveal (Sable's, a chest hero's): one mark per hero.
+- The road scene is six boxes (~14 s) between the first win and the first chest; the captain's five and Sable's six
+  are the other long reads of the first ten minutes (story team: four would keep the pace).
+- The first relic pick (now the chest's) is still three dense cards with tags and a RARE badge for minute one.
+- The world map's "Weights home: 0/12" in a newcomer's first second (world map / story: a word a newcomer knows).
+- The boss fight's shouts and damage numbers overlap at the top centre (`b3-s9/49-bossSpecial.png`,
+  `50-bossHalf.png`; the fight view's floaters).
+- The newcomer bot is cruder than the balance bot (no gear, no skills): teaching it to wear what drops at camp would
+  make its boss result comparable.
+- Each new hero's first finisher now gets the same reveal (F15; Test lab: "Sable's 1st finisher").

@@ -35,7 +35,7 @@ import {
   type Theme,
   THEMES,
 } from './backdrop';
-import { cluster, serac, shard } from './backdrop-frost';
+import { cluster, serac, shard } from './backdrop-ice';
 import { MINIS } from './art-minis';
 
 type Add = (key: string, c: HTMLCanvasElement) => void;
@@ -47,35 +47,38 @@ const INK_S = '#140c1c';
 // ------------------------------------------------------------------ Rowan and Pip (map scale, facing right)
 
 const ROWAN_PAL: Pal = {
-  x: '#4a0f1a', R: '#8a1a22', r: '#d03030', q: '#f05a48', Q: '#ff9a80',
-  M: '#4a5272', m: '#7c86a6', s: '#b8c2d8', S: '#eef3fa', W: '#ffffff',
-  Y: '#9a5a14', y: '#d8901c', g: '#f2c230', G: '#fff0a0',
-  B: '#1a3c8a', b: '#2a6ad8', l: '#4aa0f0',
-  k: '#1c1430', e: '#4ad8ff',
-  d: '#4a2c18', h: '#6e4426',
-  c: '#6a1424', C: '#b42c34',
+  // (playtest round 8, L7/L8: the darker, worn look of his fight frames)
+  x: '#2a0810', R: '#52121c', r: '#7e1c24', q: '#a8302e', Q: '#c85448',
+  M: '#343a52', m: '#565e7c', s: '#8a92ae', S: '#c4c8d6', W: '#e8ecf4',
+  Y: '#5a3814', y: '#8a5a1e', g: '#b8862e', G: '#dcb45a',
+  B: '#13234c', b: '#1e3772', l: '#2f5096',
+  k: '#0e0a16', e: '#8ae0f4',
+  d: '#2e1e14', h: '#4a3020',
+  c: '#3a0c18', C: '#70222a',
 };
-// head to tabard, 11 wide: the plume streams back, the visor glows, the sword is held up in front
+// helm to hem, 12 wide: a small close helm under the plume (a slit with two points of light), broad pauldrons, the
+// navy tabard to the knee; the sword held up in front (a 2 px blade, lit on its left, a bronze guard)
 const ROWAN_TOP = [
-  '....rqQ....',
-  '..Rrrqq...W',
-  '.Rr.msSm..S',
-  '.R.msSWsM.S',
-  '.x.ygggyY.s',
-  '...mkekek.s',
-  '..cmsbbsmyg',
-  '.cCMbllbMs.',
-  '.cCygGgyY..',
-  '..cbllbB...',
+  '...rrq......',
+  '.Rrq.mm...W.',
+  'Rr..mSsm..Ws',
+  'x..msSsmM.Ss',
+  '...mkekeM.Ss',
+  '...ymmmmy.Ss',
+  '..cmMmmMmGgy',
+  '.cCsbllbMsm.',
+  '.cCmbGbbM...',
+  '.cCmbbbbm...',
+  '..cmybbym...',
 ];
-const ROWAN_CAPE_FLAP = ['..', 'C.', 'cC'];
+const ROWAN_CAPE_FLAP = ['..', 'C.', 'cC', 'c.'];
 const ROWAN_LEGS: Record<string, string[]> = {
-  stand: ['...sm.sm...', '...hd.hd...'],
-  a: ['..sm...sm..', '.hd.....hd.'],
-  pass: ['....smm....', '....hdd....'],
-  b: ['..ms...ms..', '.dh.....dh.'],
+  stand: ['...ms.ms...', '...ms.ms...', '...hd.hd...'],
+  a: ['...ms..ms..', '..ms....ms.', '.hd.....hd.'],
+  pass: ['....mss....', '....mss....', '....hdd....'],
+  b: ['..sm..sm...', '..sm...sm..', '.dh.....dh.'],
 };
-export const ROWAN_W = 13;
+export const ROWAN_W = 14;
 export const ROWAN_H = 16;
 /** Rowan's feet inside his frame (the view's origin). */
 export const ROWAN_FEET: Pt = [6, 14];
@@ -84,8 +87,8 @@ function rowanFrame(legs: string, bob: number, flap: boolean): HTMLCanvasElement
   const g = grid(ROWAN_W, ROWAN_H);
   const top = ROWAN_H - 2 - ROWAN_LEGS.stand.length - ROWAN_TOP.length + bob;
   stamp(g, ROWAN_TOP, ROWAN_PAL, 1, top);
-  if (flap) stamp(g, ROWAN_CAPE_FLAP, ROWAN_PAL, 0, top + 7);
-  stamp(g, ROWAN_LEGS[legs], ROWAN_PAL, 1, ROWAN_H - 2 - 2);
+  if (flap) stamp(g, ROWAN_CAPE_FLAP, ROWAN_PAL, 0, top + 6);
+  stamp(g, ROWAN_LEGS[legs], ROWAN_PAL, 1, ROWAN_H - 2 - ROWAN_LEGS[legs].length);
   return toCanvas(g);
 }
 
@@ -123,11 +126,13 @@ const SABLE_LEGS: Record<string, string[]> = {
 
 function sableFrame(legs: string, bob: number, flap: boolean): HTMLCanvasElement {
   const g = grid(ROWAN_W, ROWAN_H);
-  const top = ROWAN_H - 2 - SABLE_LEGS.stand.length - SABLE_TOP.length + bob;
+  // (a row longer in the leg, like her fight frames: playtest round 8, L8)
+  const leg = [SABLE_LEGS[legs][0], ...SABLE_LEGS[legs]];
+  const top = ROWAN_H - 2 - leg.length - SABLE_TOP.length + bob;
   const [tail, tx, ty] = SABLE_TAIL[flap ? 'flap' : 'rest'];
   stamp(g, tail, SABLE_PAL, 1 + tx, top + ty);
   stamp(g, SABLE_TOP, SABLE_PAL, 1, top);
-  stamp(g, SABLE_LEGS[legs], SABLE_PAL, 1, ROWAN_H - 2 - 2);
+  stamp(g, leg, SABLE_PAL, 1, ROWAN_H - 2 - leg.length);
   return toCanvas(g);
 }
 

@@ -12,8 +12,6 @@
 // boss shows its phase's look (`${sprite}${phase}_*`, when it has one) and a stunned foe sees stars. What each perk did
 // to its target (a mark on the foe, a box on the block, a burning foe's flames, Sunny's sweep) is view/onsite.ts.
 import Phaser from 'phaser';
-import { isAshArtKey } from '../art-ash';
-import { isDuskArtKey } from '../art-dusk';
 import { rimMask, STAGE_LIGHT } from '../art-stage';
 import { whole } from '../../core/format';
 import type { Combat } from '../../core/combat';
@@ -68,6 +66,10 @@ type Face = readonly [number, number, number, number];
 const mixWhite = (c: number) => mix(c, WHITE, 0.4);
 /** The four-frame idle's step (a 1.2 s loop: docs/art-style.md section 7). */
 const IDLE_STEP_MS = 300;
+/** The win's flourish holds the raised pose this long. */
+const CHEER_MS = 900;
+/** A foe's two idle frames each last this long. */
+const FOE_IDLE_MS = 460;
 /** Squash and stretch never lasts longer than this. */
 const SQUASH_MS = 100;
 /** A new wave's enemies hop (or drop) in over this long. */
@@ -78,7 +80,6 @@ const HERO_ALT: Record<string, string> = { slashX: 'slashB', fang: 'slashA', dow
 const QUIET_PERKS = new Set(['thornling', 'glowmoth', 'seedling', 'rally', 'spiritWolf', 'wispSwarm', 'spiritStag']);
 /** Allies whose perk is a blow or a heal: the bolt starts at the ally (not the hero). */
 const ALLY_PERK = new Set(['thornling', 'glowmoth', 'seedling', 'spiritWolf', 'spiritStag']);
-/** Perks that heal (their amount is HP; any relic tagged Sustain does too). */
 /** Until the fourth region's foes are painted (art-dusk*.ts), each fights in an earlier foe's sprite set (its poses,
  *  flash and phase looks), so a fight never shows a missing texture. Used only while `${key}_idle0` doesn't exist. */
 const SPRITE_STAND_IN: Record<string, string> = {
@@ -98,6 +99,7 @@ const SPRITE_STAND_IN: Record<string, string> = {
   sunkensentinel: 'chainsentinel',
   lighthouse: 'bellows',
 };
+/** Perks that heal (their amount is HP; any relic tagged Sustain does too). */
 const HEAL_PERKS = new Set(['photosynthesis', 'vampiricFang', 'glowmoth', 'mend', 'rimewalker', 'emberwright', 'lamplighter', 'sanctuary', 'hotCocoa']);
 
 export class Fighters {
@@ -129,6 +131,8 @@ export class Fighters {
   /** Anim times of the last blow taken and the last landing (squash and stretch), and the last frame's lift. */
   private hurtAt = -1e9;
   private landAt = -1e9;
+  /** Foes landing from a wave's hops: id -> anim time (their squash). */
+  private foeLandAt = new Map<number, number>();
   private lastLift = 0;
   /** Gear light under and around Rowan (additive, behind the actors), and a glowing silhouette just behind him. */
   private gAura!: G;
@@ -250,6 +254,7 @@ export class Fighters {
 
   /** Forget every enemy view and reset the hero (their images went with the old layout). */
   reset(): void {
+    this.foeLandAt.clear();
     this.enemies.clear();
     this.enemyRims.clear();
     this.waveIn.clear();
@@ -258,6 +263,7 @@ export class Fighters {
 
   /** A new fight: old enemy views go, the hero starts fresh. */
   newFight(): void {
+    this.foeLandAt.clear();
     for (const v of this.enemies.values()) v.img.destroy();
     for (const r of this.enemyRims.values()) r.destroy();
     this.enemies.clear();
@@ -287,15 +293,11 @@ export class Fighters {
     for (const e of c.enemies) {
       if (this.enemies.has(e.id) || !e.alive) continue;
       const def = s.app.tuning.enemies[e.key];
-      // the third region's foes are painted in idle time after boot: one that's needed sooner is finished now
-      if (!s.textures.exists(`${def.sprite}_idle0`) && isAshArtKey(`${def.sprite}_idle0`)) s.ensureAshArt();
+      // the later regions' foes are painted in idle time after boot (region-art.ts): one needed sooner is finished now
+      if (!s.textures.exists(`${def.sprite}_idle0`)) s.ensureRegionPacks(`${def.sprite}_idle0`);
       // a foe whose art isn't painted yet (the fourth region's, until its art lands) wears a stand-in's sprite set
-      if (!s.textures.exists(`${def.sprite}_idle0`) && isDuskArtKey(`${def.sprite}_idle0`)) s.ensureDuskArt();
       let sprite = def.sprite;
-      if (!s.textures.exists(`${sprite}_idle0`) && SPRITE_STAND_IN[sprite]) {
-        sprite = SPRITE_STAND_IN[sprite];
-        if (!s.textures.exists(`${sprite}_idle0`) && isAshArtKey(`${sprite}_idle0`)) s.ensureAshArt();
-      }
+      if (!s.textures.exists(`${sprite}_idle0`) && SPRITE_STAND_IN[sprite]) sprite = SPRITE_STAND_IN[sprite];
       const img = s.add.image(0, 0, `${sprite}_idle0`).setOrigin(0.5, 1).setScale(SPRITE_SCALE);
       const rim = this.makeRim();
       s.actors.add([img, rim]);
@@ -346,6 +348,28 @@ export class Fighters {
   }
 
   // ------------------------------------------------------------------ choreography
+
+  /**
+   * The fight is won: the hero steps back to their spot and raises their weapon (their `cast` pose, the ability's
+   * raised gesture) for a moment, a small flourish under whatever comes next. Never while knocked out or in a show.
+   */
+  cheer(): void {
+    const s = this.s;
+    const h = this.h;
+    if (h.down || h.state === 'super') return;
+    const wait = h.state === 'idle' ? 0 : RETURN_MS;
+    // (a new fight in the meantime replaces the hero's state: then nothing happens)
+    const still = () => this.h === h && !h.down && h.state !== 'super';
+    s.later(260, () => {
+      if (!still()) return;
+      this.heroReturn();
+      s.later(wait, () => {
+        if (!still()) return;
+        this.setHeroPose('cast', CHEER_MS);
+        this.landAt = s.anim; // a little settle as the weapon goes up
+      });
+    });
+  }
 
   setHeroPose(pose: string, ms: number): void {
     this.h.pose = pose;
@@ -589,7 +613,16 @@ export class Fighters {
     v.numLevel = recent ? (v.numLevel + 1) % 3 : 0;
     v.numAt = s.anim;
     // (a Coin Rush counts coins, not damage: the coins float up instead, from onsite.coins)
-    if (damage > 0 && !s.app.run.combat?.rush) fx.floatNum(v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2), v.y - v.img.displayHeight - 10 - v.numLevel * 11, whole(damage), col, numScale);
+    if (damage > 0 && !s.app.run.combat?.rush) {
+      const nx = v.x + (v.numLevel % 2 ? 8 : -6) + rand(-2, 2);
+      // while its special's name is up over its head (a boss's shout), the shout keeps that lane: the numbers pop just
+      // under it and settle, cascading downward (the playtest: shouts and numbers piled up at the top centre)
+      if (v.shoutY !== undefined && s.anim < (v.shoutUntil ?? 0)) {
+        const w = textWidth(whole(damage), numScale, true);
+        const x = Math.max(w / 2 + 2, Math.min(GAME_W - w / 2 - 2, nx));
+        fx.addFloater(x, v.shoutY + 6 + 4 * numScale + v.numLevel * 11, whole(damage), col, numScale, true, rand(-6, 6), -8, 40, 760, true);
+      } else fx.floatNum(nx, v.y - v.img.displayHeight - 10 - v.numLevel * 11, whole(damage), col, numScale);
+    }
     const tier = combo >= 50 ? 3 : combo >= 25 ? 2 : combo >= 10 ? 1 : 0;
     const slashCol = crit ? 0xffd23a : comboSlashCol(combo);
     // a weapon better than Common slashes in its rarity's colours (the combo's heat still shows in the inner band)
@@ -999,7 +1032,9 @@ export class Fighters {
     v.tellAt = s.anim;
     v.tellUntil = s.anim + sec * 1000;
     // (over a huge foe's head it would sit under the HUD's plates: it stays below them)
-    s.fx.addFloater(v.homeX, Math.max(38, v.y - v.img.displayHeight - 16), name, 0xff9a3a, 1, true, 0, -6, 0, sec * 1000 + 250, true);
+    v.shoutY = Math.max(38, v.y - v.img.displayHeight - 16);
+    v.shoutUntil = s.anim + sec * 1000 + 250;
+    s.fx.addFloater(v.homeX, v.shoutY, name, 0xff9a3a, 1, true, 0, -6, 0, sec * 1000 + 250, true);
   }
 
   tellOver(enemyId: number): void {
@@ -1145,7 +1180,9 @@ export class Fighters {
     // a small forward lunge on every slash
     const lk = (a - h.lungeAt) / 90;
     const lunge = lk >= 0 && lk < 1 ? Math.round(4 * Math.sin(lk * Math.PI)) : 0;
-    this.hero.setPosition(Math.round(h.x + knock + lunge), Math.round(s.ground + yOff));
+    // on guard between blows (the windup held): a 1 px ready bounce up onto the balls of the feet
+    const ready = h.state === 'engaged' && pose === 'windup' && a >= h.poseUntil && Math.floor((a - h.lastAction) / 240) % 2 ? 1 : 0;
+    this.hero.setPosition(Math.round(h.x + knock + lunge), Math.round(s.ground + yOff) - ready);
     const st = this.squash(a, !!sm);
     this.hero.setScale(SPRITE_SCALE * st, SPRITE_SCALE / st);
     // afterimages while dashing, returning or leaping
@@ -1183,7 +1220,7 @@ export class Fighters {
 
   /**
    * Squash and stretch (docs/art-style.md section 7: at most 100 ms, volume kept): the hero's width factor (the height
-   * is its inverse). A cut stretches him forward, a blow taken squashes him, a landing squashes him wide.
+   * is its inverse). A dash or a cut stretches him forward, a blow taken squashes him, a landing squashes him wide.
    */
   private squash(a: number, inShow: boolean): number {
     const bump = (t0: number, ms: number) => {
@@ -1192,7 +1229,9 @@ export class Fighters {
     };
     const land = bump(this.landAt, SQUASH_MS);
     if (inShow) return 1 + 0.14 * land;
-    return 1 + 0.14 * land + 0.08 * bump(this.h.lungeAt, 90) + 0.1 * bump(this.hurtAt, SQUASH_MS);
+    // (the dash's push-off stretches him forward too, for as long as the dash lasts)
+    const push = this.h.state === 'dash' ? 0.07 * bump(this.h.t0, DASH_MS) : 0;
+    return 1 + 0.14 * land + 0.08 * bump(this.h.lungeAt, 90) + 0.1 * bump(this.hurtAt, SQUASH_MS) + push;
   }
 
   /**
@@ -1248,6 +1287,7 @@ export class Fighters {
           if (wave === false) {
             // a wave lands: a puff of dust (and a soft thump of air under a flier)
             this.waveIn.delete(v.id);
+            if (!v.fly) this.foeLandAt.set(v.id, a);
             s.fx.dust(x, v.y + v.fly, v.fly ? 4 : 7, 0, v.fly ? 0.8 : 1.1);
             if (!v.fly) s.fx.shock(x, s.ground, 16, 0xe8dcc0);
           }
@@ -1304,7 +1344,8 @@ export class Fighters {
       if (kk >= 0 && kk < 1) x += Math.round(v.kickDist * Math.exp(-4.5 * kk) * Math.cos(kk * Math.PI * 2.2));
       v.x = x;
       const flash = a < v.flashUntil;
-      let pose = a < v.poseUntil ? v.pose : Math.floor((a + v.phase) / 380) % 2 ? 'idle1' : 'idle0';
+      // (the idle breath: a 920 ms loop, inside the bible's 900-1400 ms)
+      let pose = a < v.poseUntil ? v.pose : Math.floor((a + v.phase) / FOE_IDLE_MS) % 2 ? 'idle1' : 'idle0';
       // a boss's phase look (glacia2_*, glacia3_*) when it has one
       const phased = e.phase > 1 && s.textures.exists(`${v.sprite}${e.phase}_idle0`);
       const look = phased ? `${v.sprite}${e.phase}` : v.sprite;
@@ -1332,7 +1373,10 @@ export class Fighters {
       }
       // squash on impact: wide and short for a few frames, then a little stretch back
       const sq = (a - v.kickAt) / 150;
-      const amt = sq >= 0 && sq < 1 ? Math.sin(sq * Math.PI) * (sq < 0.5 ? 0.16 : -0.06) * Math.min(1.6, v.kickDist / 8) : 0;
+      let amt = sq >= 0 && sq < 1 ? Math.sin(sq * Math.PI) * (sq < 0.5 ? 0.16 : -0.06) * Math.min(1.6, v.kickDist / 8) : 0;
+      // a walker landing from its wave's hops squashes wide for a moment (at most 100 ms, docs/art-style.md section 7)
+      const lq = (a - (this.foeLandAt.get(v.id) ?? -1e9)) / 100;
+      if (lq >= 0 && lq < 1) amt += Math.sin(lq * Math.PI) * 0.12;
       const hover = v.fly ? Math.round(Math.sin((a + v.phase) / 260) * 2) : 0;
       const tellK = a < v.tellUntil ? (a - v.tellAt) / Math.max(1, v.tellUntil - v.tellAt) : -1;
       const tremble = tellK > 0.6 ? Math.round(Math.sin(a / 18)) : 0; // shakes as the special is about to land

@@ -2,7 +2,7 @@
 // frame box as the others), a cloak of overlapping leaves, a twig crown with two buds, a big soft nose and a crooked
 // wooden staff topped by a glowing seed. Fight frames `moss_${pose}` on the shared rig (art-rig.ts).
 import { put, stamp, type Grid, type Pal, type Shade } from './art';
-import { STEP, ribbon, sparkle, type Dir, type HeroCardSpec, type Item, type Layer, type Pt, type Rig, type RigPose } from './art-rig';
+import { type Dir, type HeroCardSpec, type Item, type Layer, matureHeads, type Pt, ribbon, type Rig, type RigPose, sparkle, STEP } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -123,7 +123,7 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 export const MOSS_RIG: Rig = {
   pal: MOSS_PAL,
   shades: MOSS_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [4], blush: 'p'}),
   torso: TORSO,
   legs: LEGS,
   legsFeetX: 8,
@@ -183,14 +183,18 @@ function staff(dir: Dir, len: number, back: number, o: { bright?: boolean; dim?:
       const X = x + sx * i + (diag ? 0 : px * k);
       const Y = y + sy * i + (diag ? 0 : py * k);
       const knot = i % 6 === 3;
+      // (3 px thick so it reads at 8x: a lit side, the bark, a shaded side)
       if (diag) {
+        put(g, X + (sx === sy ? 1 : -1), Y, B[4]);
         put(g, X, Y, knot ? B[4] : B[3]);
         put(g, X + (sx === sy ? -1 : 1), Y, B[2]);
         put(g, X, Y + 1, B[1]);
       } else if (sx === 0) {
+        put(g, X - 1, Y, B[4]);
         put(g, X, Y, knot ? B[4] : B[3]);
         put(g, X + 1, Y, B[1]);
       } else {
+        put(g, X, Y - 1, B[4]);
         put(g, X, Y, knot ? B[4] : B[3]);
         put(g, X, Y + 1, B[1]);
       }

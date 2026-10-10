@@ -742,53 +742,55 @@ export function hollowTree(c: WCtx, cx: number, base: number, fires: Pt[], eyes:
   claimBox(c, cx - 27, top - 20, 55, base - top + 24);
 }
 
-// ------------------------------------------------------------------ the capital round the Great Pendulum
+// ------------------------------------------------------------------ the capital round the Atlas Hall
 
-// the Great Pendulum: a clock tower with a slate spire, a big clock face (stopped at a quarter past twelve),
-// and an open belfry where the pendulum hangs (the view draws the pendulum, which swings as weights come home)
+// the Atlas Hall (docs/story-bible.md section 3): a domed hall, its slate-blue dome ribbed in gold under a gilt
+// lantern, a drum of tall arched windows (the view lights them: the Atlas's glow under the dome, brighter as regions
+// are restored), a colonnaded front and its great door
 const TOWER = [
   '......G......',
-  '......g......',
-  '.....bBn.....',
+  '.....gGy.....',
+  '......y......',
   '.....bBn.....',
   '....bbBnn....',
-  '....bBBnn....',
-  '...bbBBBnn...',
-  '...bBBBBnn...',
-  '..bbBBBBBnn..',
-  '.bbBBBBBBBnn.',
+  '...bbBgBnn...',
+  '..bbBgBgBnn..',
+  '..bBgBBBgBn..',
+  '.bbBgBBBgBnn.',
+  '.bBgBBBBBgBn.',
+  'bbBgBBBBBgBnn',
   'GgggggggggyyY',
-  '.sSSSSSSSSmm.',
-  '.sSSSgggSSmm.',
-  '.sSSgWkWgSmm.',
-  '.sSgWWkWwgmm.',
-  '.sSgWWkkwgmm.',
-  '.sSgWWWWwgmm.',
-  '.sSSgWWwgSmm.',
-  '.sSSSyyySSmm.',
-  '.sSSSSSSSSmm.',
-  'GgggggggggyyY',
-  '.sSSkkkkkSmm.',
-  '.sSkKKKKKkmm.',
-  '.sSkkkkkkkmm.',
-  '.sSkkkkkkkmm.',
-  '.sSkkkkkkkmm.',
-  '.sSkkkkkkkmm.',
-  '.sSSSSSSSSmm.',
+  '.sSSSSSSSSSm.',
+  '.sSKSSKSSKSm.',
+  '.sSkSSkSSkSm.',
+  '.sSkSSkSSkSm.',
+  '.sSkSSkSSkSm.',
+  '.sSSSSSSSSSm.',
   'GgggggggggyyY',
   'sSSSSSSSSSmmM',
-  'sSSSSkkkSSmmM',
+  'sWSmSWSmSWmmM',
+  'sWSmSWSmSWmmM',
+  'sWSmSWSmSWmmM',
+  'sWSmSWSmSWmmM',
+  'sWSmSWSmSWmmM',
+  'GgggggggggyyY',
+  'sSSSSKKKSSmmM',
+  'sSSSKkkkKSmmM',
+  'sSSSkkkkkSmmM',
+  'sSSSkkkkkSmmM',
+  'sSSSkkykkSmmM',
   'sSSSkkkkkSmmM',
   'sSSSkkkkkSmmM',
 ];
 const TOWER_PAL = P({ G: '#fff0a0', g: '#f2c230', y: '#d8901c', Y: '#9a5a14', b: '#6a92e0', B: '#3a62c0', n: '#22387a', s: '#f4ecd8', S: '#d4c6a8', m: '#a49478', M: '#746450', W: '#ffffff', w: '#c8d0e0', k: '#2a1c34', K: '#3e2c48' });
 const TURRET = ['..b..', '.bBn.', 'bbBnn', 'sSSmm', 'sSkmm', 'sSSmm', 'sSSmm', 'sSSmm'];
-/** The pendulum's pivot, relative to the tower sprite's top-left. */
-export const PENDULUM_AT: Pt = [6, 21];
+/** The middle window of the Atlas Hall's drum (where the view lights the Atlas's glow), relative to the sprite's
+ *  top-left. (Kept under its old name: the world spot is still `pendulum`.) */
+export const PENDULUM_AT: Pt = [6, 13];
 
 /**
  * The capital: an oval curtain wall with turrets and a gatehouse on the south, packed roofs inside round a
- * market square, and the Great Pendulum's tower rising from the middle. Returns the turret tops (pennants) and the
+ * market square, and the domed Atlas Hall rising from the middle. Returns the turret tops (pennants) and the
  * tower's top-left.
  */
 export function capital(c: WCtx, cx: number, cy: number, rx: number, ry: number): { turrets: Pt[]; tower: Pt } {

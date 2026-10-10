@@ -8,7 +8,10 @@
 // (art-world.ts paints that strip, FAR_SEA_W) lie the seven lands still to come (core/world-plan.ts): hazy island
 // silhouettes, each under a fog bank that thins as weights come home. All of it is small textures painted once with
 // the rest of the world map; the view (view/world.ts) places them, fades the fog and animates the glints.
-import { col, hash, mass, mix, noise, pick, Pix, ramp, rgba32, rng, wordCanvas, type Blob } from './backdrop';
+import { col, hash, mix, noise, pick, Pix, ramp, rgba32, wordCanvas } from './backdrop';
+
+/** The blank's vellum (art-world-atlas.ts FOG): paper, its lighter mottle, the impression of a line. */
+const PAPER = ['#a09488', '#ac9f92', '#8c8078'].map(col);
 import { INK, P, spr } from './art-world-sites';
 
 type Add = (key: string, c: HTMLCanvasElement) => void;
@@ -49,9 +52,6 @@ const FAR_BODY = ramp('#3a5276', '#486288', '#587498', '#6886a8', '#7c98ba');
 const FAR_LIT = col('#a0b6d4');
 const FAR_RIM = col('#c4d4ea');
 const FAR_SHORE = col('#b8d0e6');
-const FOG = ramp('#8c9cbe', '#aebcd8', '#cfdaec', '#eaf0fa');
-const FOG_EDGE = col('#7e8eb2');
-const HAZE = col('#b8c6e2');
 
 /** How high a far land stands above the waterline at column x (0..w-1), by its kind. */
 function relief(kind: FarKind, x: number, w: number, H: number, seed: number): number {
@@ -112,32 +112,29 @@ function farIsle(f: FarIsle, seed: number): HTMLCanvasElement {
   return p.canvas();
 }
 
-/** A far land's fog bank: a haze over all of it (dithered steps, thinner at the edges), and banks of cloud along its
- *  waterline and across its middle, leaving its heights showing through. */
+/** A far land erased (the Atlas's blank, docs/story-bible.md section 9): a patch of white-grey vellum over all of it,
+ *  its edge rubbed ragged (stepped and dithered), keeping only the faint impression of its old waterline and heights. */
 function farFog(f: FarIsle, seed: number): HTMLCanvasElement {
   const { w, h } = f.fog;
-  const r = rng(seed);
-  const cl = new Pix(w, h, -1);
-  const blobs: Blob[] = [];
-  for (let x = 3 + r() * 3; x < w - 3; x += 5 + r() * 4) blobs.push({ x, y: h - 5 - r() * 2.5, rx: 3 + r() * 2.6, ry: 1.8 + r() * 1.2 });
-  const midY = 4 + f.box.h * (0.62 + r() * 0.14);
-  for (let x = w * (0.15 + r() * 0.15); x < w * (0.6 + r() * 0.3); x += 4 + r() * 4) blobs.push({ x, y: midY + (r() - 0.5) * 2, rx: 2.4 + r() * 2, ry: 1.3 + r() * 0.8 });
-  mass(cl, blobs, { ramp: FOG, seed, bump: 0.14, tex: 0.1, vgrad: 0.45, light: 0.12, shadow: 0.18, band: 0.5, outline: FOG_EDGE });
+  const ox = f.box.x - f.fog.x;
+  const oy = f.box.y - f.fog.y;
+  // the impression: the land's own outline (its relief), pressed in a shade darker than the paper
+  const hs = Array.from({ length: f.box.w }, (_, x) => Math.round(relief(f.kind, x, f.box.w, f.box.h - 2, seed - 40)));
+  const wl = oy + f.box.h - 1;
   return wordCanvas(w, h, (u) => {
     for (let y = 0; y < h; y++)
       for (let x = 0; x < w; x++) {
         const i = y * w + x;
-        if (cl.buf[i] >= 0) {
-          u[i] = rgba32(cl.buf[i], 235);
-          continue;
-        }
         const dx = (x + 0.5 - w / 2) / (w / 2);
         const dy = (y + 0.5 - h * 0.58) / (h * 0.58);
-        const d = Math.sqrt(dx * dx + dy * dy);
+        const d = Math.sqrt(dx * dx + dy * dy) + (noise(x * 0.25, y * 0.3, seed) - 0.5) * 0.3;
         if (d >= 1) continue;
-        const q = (1 - d) * 1.6 - hash(x, y, seed) * 0.35;
-        const a = q > 0.8 ? 0.24 : q > 0.45 ? 0.16 : q > 0.15 ? 0.09 : 0;
-        if (a) u[i] = rgba32(mix(HAZE, FOG[3], noise(x * 0.2, y * 0.3, seed) * 0.6), Math.round(a * 255));
+        // stepped toward the edge: solid, a dithered half, a sparse quarter
+        if (d > 0.82 && hash(x, y, seed) > (d > 0.92 ? 0.25 : 0.5)) continue;
+        let c = noise(x * 0.08, y * 0.1, seed + 3) > 0.55 ? PAPER[1] : PAPER[0];
+        const lx = x - ox;
+        if (lx >= 0 && lx < hs.length && hs[lx] > 0 && (y === wl - hs[lx] || y === wl)) c = PAPER[2];
+        u[i] = rgba32(c);
       }
   });
 }

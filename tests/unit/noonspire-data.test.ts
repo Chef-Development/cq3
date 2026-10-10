@@ -16,6 +16,12 @@ import { DEFAULT_TUNING } from '../../src/core/tuning';
 import { TELL_SOUNDS } from '../../src/engine/audio';
 import { textWidth } from '../../src/engine/font';
 import { MINIS } from '../../src/engine/art-minis';
+import { NOON_BASE_ITEMS, NOON_EFFECTS, NOON_SETS, NOON_SIGNATURES } from '../../src/data/gear-noon';
+import { DUSK_BASE_ITEMS } from '../../src/data/gear-dusk';
+import { BASE_ITEMS, EFFECTS, SETS, SLOTS } from '../../src/data/gear';
+import { NOON_BUILD_NAME, NOON_PAIR_NAME, NOON_RELICS, NOON_RELIC_TAGS } from '../../src/data/relics-noon';
+import { DUSK_RELIC_TAGS } from '../../src/data/relics-dusk';
+import { BUILD_NAME, PAIR_NAME, RELICS, RELIC_TAGS } from '../../src/data/relics';
 
 const acts = NOONSPIRE.acts;
 const all = Object.entries(NOON_ENEMIES);
@@ -135,5 +141,71 @@ describe('Region 5: the foes', () => {
               expect(gap / Math.max(at(p).closing, at(q).closing), `${name}: reds ${i} and ${j} too close`).toBeGreaterThanOrEqual(0.16);
             }
         }
+  });
+});
+
+describe('Region 5: gear (not merged yet)', () => {
+  it("unique ids and names new to the game, every slot covered, a set and the boss's two signature Legendaries", () => {
+    const ids = NOON_BASE_ITEMS.map((b) => b.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const old = [...BASE_ITEMS, ...(DUSK_BASE_ITEMS as typeof BASE_ITEMS)];
+    const oldIds = new Set(old.map((b) => b.id));
+    const oldNames = new Set(old.map((b) => b.name));
+    const widestName = Math.max(...BASE_ITEMS.map((b) => textWidth(b.name, 1, true)));
+    for (const b of NOON_BASE_ITEMS) {
+      expect(oldIds.has(b.id), b.id).toBe(false);
+      expect(oldNames.has(b.name), b.name).toBe(false);
+      expect([12, 13, 14], b.id).toContain(b.act);
+      expect(textWidth(b.name, 1, true), b.name).toBeLessThanOrEqual(widestName);
+    }
+    const plain = NOON_BASE_ITEMS.filter((b) => !b.set && !b.signature);
+    expect(plain.length).toBeGreaterThanOrEqual(10);
+    for (const slot of SLOTS) expect(plain.some((b) => b.slot === slot), slot).toBe(true);
+    for (const [id, set] of Object.entries(NOON_SETS)) {
+      expect(id in SETS, id).toBe(false);
+      const pieces = set.pieces.map((p) => NOON_BASE_ITEMS.find((b) => b.id === p));
+      for (const [i, p] of pieces.entries()) expect(p?.set, set.pieces[i]).toBe(id);
+      expect(new Set(pieces.map((p) => p?.slot)).size).toBe(pieces.length);
+    }
+    const widestEffect = Math.max(...Object.values(EFFECTS).map((e) => textWidth(e.text, 1, false)));
+    for (const [id, e] of Object.entries(NOON_EFFECTS)) {
+      expect(id in EFFECTS, id).toBe(false);
+      expect(textWidth(e.text, 1, false), e.text).toBeLessThanOrEqual(widestEffect);
+    }
+    for (const [boss, items] of Object.entries(NOON_SIGNATURES)) {
+      expect(NOON_ENEMIES[boss]?.boss, boss).toBe(true);
+      expect(items).toHaveLength(2);
+      for (const it of items) {
+        const b = NOON_BASE_ITEMS.find((x) => x.id === it);
+        expect(b?.signature?.boss, it).toBe(boss);
+        expect(NOON_EFFECTS[b!.signature!.effect]).toBeDefined();
+      }
+    }
+  });
+});
+
+describe('Region 5: relics (data only, not merged yet)', () => {
+  const sub = (text: string, n?: number) => text.replace('{n}', String(n ?? ''));
+  it('fourteen Mirage and Heat relics: unique ids and names new to the game, one number at most, each fits a card', () => {
+    const ids = NOON_RELICS.map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const oldIds = new Set<string>(RELICS.map((r) => r.id));
+    const oldNames = new Set(RELICS.map((r) => r.name));
+    const widest = Math.max(...RELICS.map((r) => textWidth(sub(r.text, r.n), 1, false)));
+    for (const r of NOON_RELICS) {
+      expect(oldIds.has(r.id), r.id).toBe(false);
+      expect(oldNames.has(r.name), r.name).toBe(false);
+      expect((NOON_RELIC_TAGS as string[]).includes(r.tags[0]), r.id).toBe(true);
+      for (const t of r.tags.slice(1)) expect([...RELIC_TAGS, ...DUSK_RELIC_TAGS, ...NOON_RELIC_TAGS] as string[]).toContain(t);
+      expect(r.tags.length).toBeLessThanOrEqual(2);
+      expect(r.text.includes('{n}'), r.id).toBe(r.n !== undefined);
+      expect(r.from).toBe(NOON_FIRST_ACT);
+      if (r.unlock?.kind === 'act' || r.unlock?.kind === 'elite') expect([12, 13, 14], r.id).toContain(r.unlock.act);
+      expect(textWidth(sub(r.text, r.n), 1, false), `${r.id}: fits a card like the others`).toBeLessThanOrEqual(widest);
+    }
+    for (const tag of NOON_RELIC_TAGS) expect(NOON_RELICS.filter((r) => r.tags.includes(tag)).length, tag).toBeGreaterThanOrEqual(6);
+    const builds = new Set([...Object.values(BUILD_NAME), ...PAIR_NAME.map((p) => p[2])]);
+    for (const name of [...Object.values(NOON_BUILD_NAME), ...NOON_PAIR_NAME.map((p) => p[2])]) expect(builds.has(name), name).toBe(false);
+    for (const [a, b] of NOON_PAIR_NAME) expect([a, b].some((t) => (NOON_RELIC_TAGS as string[]).includes(t))).toBe(true);
   });
 });

@@ -24,6 +24,8 @@ commit titles, PR titles, the Test lab's labels and anything the playtester read
   south-east below the heartland, the sun plateau east; the far isles lie past the east coast.
 
 ### Voices (for writers and the editor pass)
+Round 8 (L8, the playtester): grown-up wit, not chirp. Jokes are dry, wry and character-driven; no baby talk, toy-like
+names, slapstick panic or exclamation-heavy cheer; at most one "!" a box (the Boar King may roar), and none in the narrator's (a data test).
 | Who | Voice | Never |
 |---|---|---|
 | Narrator | plain, concrete, present tense in scenes; one image per box | jokes, UI words ("bar", "tap") |
@@ -31,7 +33,7 @@ commit titles, PR titles, the Test lab's labels and anything the playtester read
 | Pip (plot) | dry, warm, brief; knows too much and lets it show a little; contractions; "Hoo." at most once a scene | bits, billing jokes (those are banter) |
 | The Mapmaker | gentle, courteous, precise; **no contractions** (until Region 11, when his composure breaks); craftsman's words (line, draft, smudge); compliments; "There. Better." rarely | shouting (until Region 11), threats, lies |
 | Hesper | terse, formal, few kind words; no contractions | explaining herself (until the end) |
-| Sable | quick, light-fingered, practical; one quip per scene | cruelty |
+| Sable | quick, light-fingered, practical; one dry quip per scene | cruelty; CAPITALS (Neve's); slapstick |
 | Brann | (vow of silence until his abbey's bell rings, Region 9) writes on a slate: `(writes on a slate)` in his arrival, `(writes)` in banter; calm, kind, few words | speaking aloud before Region 9 |
 | Neve | prickly, proud, CAPITALS for emphasis, secretly glad of company | admitting it |
 | Mags | gruff, warm underneath, forge talk | (she can joke: she's camp) |
@@ -260,9 +262,9 @@ isles find their families asleep. He is no longer gentle; he still never lies.
 ### The twists (where each is seeded and paid)
 | # | Twist | Seeded | Revealed |
 |---|---|---|---|
-| 1 | Pip was the Mapmaker's owl; the pen is Pip's feather | written: R1 Pip knows Rowan's name before they meet (`act1`, `road`) and warns "be careful of him" (`act3`); R2 he knows how Ambrose chooses ("He finds whoever will love his fix the most", `frost2`); R5 he goes quiet (`noon2`). To add: the pen drawn plainly as an owl feather (art) | R5 (`noonBoss`, `noonVictory`) |
-| 2 | The keepers moved the river themselves; Wend drowned because of the capital | written: R4 the fen-woman, "The river ran down from the north, once" (`duskVictory`). To add: Hesper never looks at the lake (her portrait, the R1 camp); R6 an erased isle's oldest lines are newer than they should be | R8 |
-| 3 | Rowan is the son Ambrose drew back: a cut through the page | written: the intro (the only one who woke); "Who drew you?" (`victory`); R4 Rowan can't swim, "since before I remember" (`dusk3`), and walks on the blank water (`dusk2`); at camp, "Why can't he erase me?" (`duskCamp`); and in camp banter, "They found me on some steps. Soaked." and Pip's "I've known you a long time." To add: R8, Ambrose tells of "my boy" and never says his name | R11 |
+| 1 | Pip was the Mapmaker's owl; the pen is Pip's feather | written: R1 Pip knows Rowan's name before they meet (`act1`, `road`) and warns "be careful of him" (`act3`); R2 he knows how Ambrose chooses ("He finds whoever will love his fix the most", `frost2`); R5 he sits apart at camp, "just remembering someone" (`noonCamp`), goes quiet (`noon2`), offers only "Don't touch the mane." (`brassLion`). To add: the pen drawn plainly as an owl feather (art) | R5 (`noonBoss`, `noonVictory`) |
+| 2 | The keepers moved the river themselves; Wend drowned because of the capital | written: R4 the fen-woman, "The river ran down from the north, once" (`duskVictory`). banter "Hesper never looks at that lake." (after `victory`). Outlined: R6 Pip reads a moved river in the impression, "Long before him." (`hush2`). To add: Hesper never looks at the lake (her portrait) | R8 (`wick2`) |
+| 3 | Rowan is the son Ambrose drew back: a cut through the page | written: the intro (the only one who woke); "Who drew you?" (`victory`); R4 Rowan can't swim, "since before I remember" (`dusk3`), and walks on the blank water (`dusk2`); at camp, "Why can't he erase me?" (`duskCamp`); and in camp banter, "They found me on some steps. Soaked." and Pip's "I've known you a long time." Outlined: R6 Pip stayed "for someone who needed watching over" (`hushCamp`); R7 the blank holds Rowan up, "It feels like paper" (`reach1`); R8 Ambrose tells of "my boy" and never says his name (`wick2`) | R11 |
 
 (Never let Ambrose say his son's name before Region 11. When he finally does, it is the end of the scene.)
 
@@ -289,10 +291,23 @@ Then the beat, in as few words as it takes:
 - And the turn: his son is alive, which means the Fair Copy can never hold him (a cut can't be copied onto a fresh
   sheet). If he finishes it, the son he got back is the one thing his perfect world leaves out. He doesn't stop. He
   can't, yet: "Then I'll draw you in by hand. I'll get it right this time." He leaves for the Margin.
-- Rowan's answer (the line the whole game has been walking toward): "You did get it right. You just didn't stay to
-  see it."
+- Rowan's answer (the line the whole game has been walking toward), said so Ambrose hears it as he goes: "You did get
+  it right. You just weren't there to see it." (Hesper sent him away; it was never his choice.) He stops on the road as
+  if to answer, and can't, yet.
 
 ---
+
+### Draft script: the beat (in code: `src/data/story-end.ts`, the single copy; editor-passed twice)
+Three short scenes after the Flood's last phase, played back to back. From the second, his plate reads "Ambrose"
+(speaker `ambrose`, the Mapmaker's portrait) and his composure breaks: contractions allowed from here on.
+- `floodEnd`: the levee gives; he turns his nib on Rowan to rub him out, close this time, and stops: "This is not a
+  line. It is a cut, through the page. ...I know this hand. It is mine." / "I pressed too hard..." / "You were six."
+  / Rowan: "Pip. Tell me. All of it."
+- `lowTruth`: Pip tells it (the night after the funeral; Hesper's lie; "That was the reason"); Rowan puts it together;
+  the scene ends on the name: "...Rowan."
+- `lowGoes`: "That's why the window is empty every morning. You were already here." (pays `flood`'s fading
+  portrait) / the Fair Copy can't hold a cut / "Then I'll draw you in by hand." / Rowan, so he hears it: "You did get
+  it right. You just weren't there to see it." / he stops on the road as if to answer, then goes on.
 
 ## 7. The finale and the ending (Region 12: the Margin)
 
@@ -312,9 +327,21 @@ Hesper tells the kingdom the truth about the river. The keepers will draw no new
 drawn by Hesper, that everyone agrees to: the word **Wend**, written on the lake. Ambrose is not exiled again. He
 lives by the lake and mends fences in Greenmarch the slow way, by hand. Pip splits his time. The last image: Rowan and
 Ambrose at the water's edge; Rowan takes his boots off and puts his feet in the lake for the first time; Pip on a
-branch above them. The Atlas keeps its one hole, and nobody patches it.
+branch above them. The Atlas keeps its one cut, and nobody patches it.
 
 ---
+
+### Draft script: the ending (in code: `src/data/story-end.ts`, with the Margin's `fairKnight`)
+- The Fair Copy is set up before the end: `yew` (they will wake in the Fair Copy, the kingdom drawn again, clean),
+  `wickVictory` (the isles don't hold ink enough for it), `farVictory` (when it's done, the old Atlas burns, "and every
+  grief in it"). So at the Margin one line would finish it, and burn the Atlas Rowan is cut into.
+- `marginEnd`: the Fair Knight fades; one line would finish the copy; Rowan does not fight him for the pen, he sits
+  down and waits; "...There's no lake in it. No flood. No you."; he burns the copy at the candle (his lamp was
+  Farlight's beacon, put out in Region 10).
+- `epilogue`: every land's lines come home; in the Atlas Hall, before all Meridian, Hesper confesses the river and the
+  lie; she writes one new line: Wend, on the lake.
+- `lastImage`: Ambrose mends fences by hand; Mags: "A mend should show, Ambrose. That's how you know someone cared." /
+  Rowan's feet in the lake: "Cold?" / "Yes. ...It's all right, though." / Pip says nothing. The Atlas keeps its one cut.
 
 ## 8. The regions
 
@@ -377,8 +404,7 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
   forged the chain for all of Ashfell ever since: every blow shakes the land.
 - **Bar rules:** **drifting blocks** (the unpinned land that won't hold still); **linked pairs** (his chains: hit one,
   then the other).
-- **Mini-bosses:** Rumbleback (paves the drifting flats every day, and every night they drift away); Hob & Nob (the
-  forge's two-headed hound: one guards, one wants to play, and their master hasn't patted them in ages).
+- **Mini-bosses:** Rumbleback (paves the drifting flats every day, and every night they drift away); Hob & Nob (the forge's two-headed hound: one guards, one only wants feeding; their master hasn't stopped long enough to feed them in years).
 - **Boss: Bellows, the Forge Titan.** Keystone: the anvil that never cools. Bellows was Mags's master.
   - Phase 2 edit: "Together. Always together." He pins the land still and doubles the chains.
   - Phase 3 edit: the volcano erupts *through* his drawing, the old land pushing back, and he redraws as fast as it
@@ -439,7 +465,7 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
   more until the last phase ("Steady, Rowan. I'm still here."); after it, the feather pen and Pip's half of the truth.
   Ambrose walks out over the sea, drawing a road as he goes, and far out the blank takes a shape: the first far isle,
   his draft there done (rule 10: it thinned while he drew it, from Region 4's restoring; its fog lifts and its name
-  shows on the world map now). Scenes: `src/data/story-noon.ts` (`noon1`, `sphinx`, `noon2`, `brassLion`, `noon3`,
+  shows on the world map now). Scenes: `src/data/story-noon.ts` (`noon1`, `sphinx`, `noonCamp`, `noon2`, `brassLion`, `noon3`,
   `noonBoss`-`noonBoss3`, `noonVictory`).
 
 ### Beyond the sea: who is awake on the isles (Regions 6-12)
@@ -464,15 +490,17 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   wider, then hardens into bark that takes two taps: hit it young) and *brambles* (a hit can drop a seed that grows
   into a yellow, or a bramble trap). His last edit lets a little wind out: *gusts* push every block one way.
 - **Mini-bosses:** **the Shears** (Act 1: great garden shears walking on their points, drawn to keep his rows tidy;
-  they snip whatever grows out of line; no speech). **Old Slowcoach** (Act 2: a giant snail who followed his sea road
-  from the continent for a month; the only living thing in the wood; slow, polite, very territorial: "...Mine.").
+  they snip whatever grows out of line; no speech). **Hollowfang** (Act 2: the isle's last wolf, out hunting on the far
+  shore when the isle went blank; a month in a wood with nothing living in it; starving, and grave: "A month. Not one
+  living thing in this wood. And now, four.").
 - **Boss: Mother Yew**, the isle's oldest yew, the first thing he drew back, drawn to walk so she can keep the wood as
   he likes it. Keystone: **the Stopper**, a stone jar with the isle's wind corked in it, held in her branches.
   - Phase 2 edit: "Hush." Everything grows twice as fast.
   - Phase 3 edit: losing, he pulls the cork a little to knock Rowan down: "Just a breath." Gusts.
 - **Restoring:** the Stopper cracks; the wind pours out; every leaf held for months falls at once; birds, wakened
   under the blank, start up all together; the blank pockets fill in and the villagers wake on their doorsteps.
-- **Scenes (ids; one line each of what happens, and lines to build on):**
+- **Scenes (drafted in full ahead of the data: `src/data/story-hush.ts`, speaker `hollowfang` "Hollowfang"; the
+  outline below is what they say):**
   - `hush1` (Act 1 start): off his sea road into a silent wood; no birds, no wind, leaves hanging. Rowan: "Listen.
     ...Nothing. Not one bird." Pip: "He can't draw birds. Nobody can. So he left them out." Sable: "A forest that
     doesn't creak. I hate it already."
@@ -483,7 +511,7 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   - `hush2` (Act 2 start): the first blank pocket: a white village inside the green, people asleep mid-step. Rowan
     walks in. The scale: from the ridge, dozens of white pockets. Pip reads the impression under the white: "This
     river was moved once. Long before him." Rowan: "Who else draws?" Pip: "Nobody. Nobody should." (twist 2 seed)
-  - `slowcoach` (Act 2 mini-boss): the snail, a month from home, will not give up the only lettuce on the isle.
+  - `hollowfang` (Act 2 mini-boss): the starving wolf; it can't stop. Pip: "Beat it. Then wake the wood for it."
   - `hush3` (Act 3 start): the Yew Grove; the Stopper in her branches; the Mapmaker drawing new trees in a ring.
   - `yew` (boss intro): he is no longer gentle. "Storms dropped trees on these roofs every autumn. Count the graves,
     knight, then tell me about wind." Rowan: "And they called the spirits, and the spirits warned them. You took
@@ -515,7 +543,7 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   - Phase 3 edit: "Hold on to each other." Every block tied to the next.
 - **Restoring:** the Tether snaps; the pieces come down to the sea and stand as cliffs again; the bridges sway; the
   sleepers wake on their own doorsteps; a gull chick tumbles off a ledge, and flies.
-- **Scenes:** `reach1` (Act 1 start: the steps hanging over nothing; between the pieces, white blank; Rowan steps out
+- **Scenes (drafted in full: `src/data/story-reach.ts`, speaker `squall`):** `reach1` (Act 1 start: the steps hanging over nothing; between the pieces, white blank; Rowan steps out
   onto it and it holds him. Neve: "You are standing on NOTHING." Rowan: "It isn't nothing. It feels like paper.");
   `ropewright`; `reachCamp` (camp: Sable and Neve on Rowan walking on the blank; Rowan: "I don't know what I am." Neve:
   "You're the one who carries us across. That'll do."); `reach2` (Act 2 start: Ropetown; every house tied to every
@@ -543,40 +571,77 @@ Pip, Sable, Neve, the Mapmaker); a chest hero's tie to an isle goes in banter ga
   - Phase 2 edit: "Nothing breaks." Everything mends faster.
   - Phase 3 edit: "Let me mend this fight." He winds everything at once.
 - **Restoring:** the Key snaps; a hinge squeaks, the first sound of wear; the makers wake and go back to work.
-- **Scenes:** `wick1` (Act 1 start: a town where nothing is worn; Sable: "Not one scuff. Who LIVES like this?"
+- **Scenes (drafted in full: `src/data/story-wick.ts`, speaker `press`):** `wick1` (Act 1 start: a town where nothing is worn; Sable: "Not one scuff. Who LIVES like this?"
   Pip: "Nobody. That's the trouble."); `polisher`; `wickCamp` (camp: Mags at her forge, cross about a town that never
-  needs a smith; "A mend should SHOW. That's how you know someone cared."); `wick2` (Act 2 start: the Hall of Copies;
-  he is waiting there, and he asks Rowan in, alone); `archive` (twist 2, below); `press`; `wick3` (Act 3 start: the
+  needs a smith; "A mend should SHOW. That's how you know someone cared."); `wick2` (Act 2 start: twist 2, below);
+  `press`; `wick3` (Act 3 start: the
   Mender under the town, the Key turning); `mender` (boss intro: "Nothing will ever wear out again. Nothing will ever
   be lost." Rowan: "Things get lost. People find them. That's most of what people do."); `mender2`, `mender3`;
   `wickVictory` (the Key snaps; the hinge; he, honest as ever: "These isles do not hold ink enough for what I am drawing,
   knight. I will find more." (it sets up Region 9's end) Pip, after he goes: "Rowan. There's more. It isn't mine to tell." The next isle takes shape).
-- **`archive` (the twist, 6 boxes, the whole region turns on it):** two great copies of the Atlas side by side under
+- **`wick2` (the twist, 6 boxes, the whole region turns on it):** two great copies of the Atlas side by side under
   the lamps, made a hundred years apart. "Look at the river. Here, it runs through Meridian. Here, it does not." A
   keeper moved it, a century ago, into a valley with a village in it: his. Wend. A spring flood came down it; he
   asked the High Keeper for a levee; she said keep the line, never make it; Wend drowned, "and my boy with it". (Never
   his son's name; never his age.) Rowan, after a long box of silence: "The world was unfair to you. You're right about
-  that. You're wrong about the rest." He: "Ask your High Keeper what she knew." (sets up Region 10)
+  that. You're wrong about the rest." At the boss, Rowan asks "Did Hesper know?" He: "Ask her, knight. She will tell you less than I have." (sets up
+  Region 10)
 - **Banter seeds:** Tess after `wick1`: "No clock wears out here. Disgusting." / after `wickVictory`: "A squeaky
-  hinge! Music." Rowan after `archive`: "He had a son. I keep thinking about it." Sprocket is from here (its bio).
+  hinge! Music." Rowan after `wick2`: "He had a son. I keep thinking about it." Sprocket is from here (its bio).
 
-### Region 9: Saltmarrow (far isle)
-- **Original:** a fishing isle in a stormy sea, a storm wall (Hollis) and a storm-bell abbey (Brann).
-- **His draft:** the sea drawn dead calm, flat as glass, until it crusted into salt.
-- **Boss (working): Old Brine**, a sea serpent caught in the still sea, salt-crusted. Keystone: **the Glass**, a pane
-  laid over the water.
-- **Restoring:** storms again, and the bell rings for a reason; Brann speaks his first words in the game.
-  **Beat:** Ambrose erases Meridian (section 5). The capital goes blank on the world map.
+### Region 9: Saltmarrow (far isle) — outline (the stakes peak)
+- **Original:** a fishing isle in a stormy sea, a storm wall (Hollis) and a storm-bell abbey (Brann) that rang when a
+  storm was coming.
+- **His draft:** "No boat will ever go down in a storm again." The sea drawn dead calm, flat as glass, until it
+  crusted into salt; no tide, no waves, no fish moving under it. The abbey bell has nothing to ring for.
+- **Acts (suggested):** 1 **The Salt Flats** (a sea you can walk on); 2 **The Storm Wall** (Hollis's wall, holding
+  back nothing); 3 **The Glass** (out where the deep water was, under a pane laid over the sea).
+- **Rule hooks (ideas):** *salt crust* (blocks crusted over: the first tap cracks the salt, the second hits) and
+  *glass calm* (a stretch of bar where nothing moves at all: blocks there wait until the cursor has passed once).
+- **Mini-bosses:** **the Saltworks** (`saltworks`, Act 1: a rake-armed thing he drew to keep the flats smooth; no speech); **Gale**
+  (Act 2: a storm petrel who was out at sea when the isle went blank and has flown ever since, looking for a storm to
+  ride: "No wind. No wave. Nowhere to land." It speaks; tired, proud).
+- **Boss: Old Brine**, a sea serpent who was out in the deep when the isle went blank, came home, and was caught when
+  he drew the sea still: salt crusts its coils. He gave it the Glass (keystone) to lie under. It doesn't speak; it
+  groans like a ship.
+  - Phase 2 edit: "Be still." The salt spreads. Phase 3 edit: "Stiller."
+- **Restoring:** the Glass cracks; the first wave in months; then a storm, a real one, and the abbey bell rings for a
+  reason. The fishing village wakes, soaked and furious and alive.
+- **The end of the region (the stakes peak, `saltVictory`, 6 boxes):** the storm passes; Rowan looks west; on the
+  horizon the capital goes white, the way the causeway did (`dusk2`). He took the ink he needed from the one place that
+  has plenty: **Meridian**, the Atlas Hall's galleries, Hesper, the knights' hall, all asleep in the blank. The Atlas
+  itself stays (a page can't erase itself), alone in white. Ambrose, honest: "The isles did not hold enough. I took it
+  from the one place that has plenty. They are sleeping, knight. Only sleeping." Rowan says nothing. Pip: "Rowan...
+  that was home." The camp is the only awake place Rowan has left (the world map: the capital blank).
+- **Scenes (drafted in full: `src/data/story-salt.ts`, speaker `gale`):** `salt1`, `saltworks`, `saltCamp`,
+  `salt2`, `gale`, `salt3`, `brine`, `brine2`, `brine3`, `saltVictory`. Brann's first words are banter (he may not be
+  at the camp; `banter-isles.ts`): "...The bell rang. So. Hello." (no "(writes)"). His `(writes)` lines in `banter.ts`
+  stop after `saltVictory` (`until`, read by `core/banter.ts`).
 
-### Region 10: Farlight (far isle)
+### Region 10: Farlight (far isle) — outline
 - **Original:** a beacon isle whose lighthouse guided ships home; Fizz's flame-brews fed its light.
-- **His draft:** a light that never goes out, turned inward: the lamp over his drawing table on the Margin, burning
-  the isle's own ink to keep it lit.
-- **Boss (working): the Wreckwarden**, a giant pieced together from the hulls of every ship the dark sea wrecked
-  after he turned the light inward; it guards the beacon stair. Keystone: **the Flame**. (Not a lighthouse: the
-  Duskmire already has one.)
-- **Restoring:** the beacon points out to sea again; and Meridian is restored (Rowan walks into the blank Atlas Hall
-  and wakes Hesper). **Beat:** the oldest law; Hesper's silence; Pip's anger at her.
+- **His draft:** "A light that never goes out." He turned the beacon inward: it is the lamp over his drawing table on
+  the Margin now, and its Flame burns the ink he scraped from Meridian to stay lit. Out at sea, ships wreck in the dark.
+- **Acts (suggested):** 1 **The Dark Harbor**; 2 **The Wreck Shore** (the hulls of every ship the dark sea wrecked);
+  3 **The Beacon Stair**.
+- **Mini-bosses (suggested):** **Old Barnacle** (`barnacle`, Act 1: a giant hermit crab from the open sea, wearing a
+  wrecked rowboat for a shell; it lives off the wrecks the dark sea brings: "More every night. All MINE."); **the Lampless** (`lampless`, Act 2:
+  an empty lantern on long legs he drew to snuff every light but his own, so no one relights the harbor; no speech).
+- **Rule hooks (ideas):** *the turning light* (the beacon's beam sweeps the bar: a block hit while it's in the beam is worth
+  double; not Region 4's dark) and *wreckage* (a hit
+  red breaks into two small ones).
+- **Boss: the Wreckwarden**, a giant pieced together from those hulls, drawn to guard the beacon stair. Keystone:
+  **the Flame**. (Not a lighthouse boss: the Duskmire has the one.)
+- **Restoring (and Meridian):** the Flame breaks; the beacon swings back out to sea; and the ink it was burning runs
+  home (rule 7): Meridian comes back, line by line, on the horizon. Rowan crosses on his road, walks into the waking
+  Atlas Hall, and finds Hesper on the gallery, just waking.
+- **The beat (`farVictory` and a Meridian scene, e.g. `hallWakes`):** Hesper tells Rowan the oldest law (never the
+  living) and that Ambrose broke it once, the night after the funeral, and no more. Pip begs her to tell the rest
+  ("He has a right to know, Hesper."); she won't: "Not today." Pip's anger is the first
+  time he raises his voice in the game. (Her secret, the river, waits for her confession at the end.)
+- **Scenes:** `far1`-`far3`, `barnacle`, `lampless`, `warden`, `warden2`, `warden3`, `farVictory`,
+  `hallWakes` (the last two drafted: `src/data/story-far.ts`). Fizz after
+  `farVictory`: "MY light! Pointing the RIGHT way!"
 
 ### Region 11: Lowmoor (far isle): section 6.
 - Original: a moorland isle of standing stones (Gorm's). His draft: Wend before the flood. Boss: **the Flood**.
@@ -620,8 +685,8 @@ gold lines while he's drawing there.
 
 ## 10. Scene plan and status, Regions 1-3 (ids stay stable)
 
-Region 1: `intro` (3 boxes), `act1` (1 box: Pip): together the 4 boxes before the first fight. Proposed new scene
-`road` (after the first fight is won: Pip explains the blank and the Atlas; needs a hook, see the report). `captain`,
+Region 1: `intro` (3 boxes), `act1` (1 box: Pip): together the 4 boxes before the first fight. The first minutes' other reads are 4 boxes each (the first 10 minutes team's measurements): `road`, `captain`, `sableJoin`. Proposed new scene
+`road` (after a new player's first win: Pip explains the blank and the Atlas; hooked by `winScene`). `captain`,
 `sableJoin` (camp), `act2`, `golem`, `act3`, `boarKing`, `boarKing2`, `boarKing3`, `victory` (ends in Meridian with
 Hesper). Region 2 and 3: the same ids as now (`frost1` ... `frostVictory`, `ash1` ... `ashVictory`), rewritten to this
 bible. New speakers: `mapmaker` ("The Mapmaker"), `keeper` ("Hesper"); both need portraits (art team).
@@ -630,32 +695,35 @@ Status (round 8, chunk 2): Regions 1-3 rewritten (`story.ts`, `story-ash.ts`) an
 twice; the chest heroes' arrivals say whose home was redrawn (Brann writes on a slate); the welcome back catches a
 returning player up; Region 4's ten scenes are in Team 3's ids (`story-dusk.ts`; speakers `bellybog`, `sluiceKeeper`
 need portraits); Region 5's nine scenes fit its data as built (`story-noon.ts`, incl. the mini-bosses' `sphinx` and
-`brassLion`; speaker `sphinx` needs a portrait). Camp banter follows the story (`core/banter.ts` gates each region's
+`brassLion`; speaker `sphinx` needs a portrait). Hesper speaks in the allies' warm look. Camp banter follows the story (`core/banter.ts` gates each region's
 lines on their scenes). Every player-facing data text was swept for the old premise (gear, meta, relics, events,
 quests, companions' bios, heroes' bios, act names, tips); the far isles' names are in `core/world-plan.ts` (shown
-once revealed). Still to do: the `road` hook (first 10 minutes team); the portraits (`portrait_mapmaker`,
-`portrait_keeper`, the Region 4-5 speakers'; until they exist the story view shows Phaser's missing-texture box);
-`keeper` belongs with the allies' warm look in `view/story.ts`; the world map's and title's words (art team, section 9).
+once revealed). Still to do: the Region 4-5 speakers' portraits (until they
+exist the story view shows Phaser's missing-texture box) and the old-premise pictures (section 11). Region 4 is in play now (its scenes and banter with it);
+Region 5's scenes and banter (`banter-noon.ts`) wait for its region.
 ---
 
 ## 11. What the story needs from other teams (round 8)
 
-- **Art (Team 2):** portraits `portrait_mapmaker` (section 4's look: tall, spare, near fifty, kind tired eyes,
-  ink-stained fingers, faded keeper's-blue coat with the badge torn off, an owl-feather pen with a silver tip) and
-  `portrait_keeper` (Hesper: silver-haired, upright, grey-blue keeper's robes, a heavy key on a chain). Until they
-  exist, the story view shows Phaser's missing-texture box in `boarKing*`, `victory`, `glacia2/3`, `frostVictory`,
-  `bellows2/3`, `ashVictory`. `keeper` belongs in `ALLY` in `view/story.ts` (warm look, not a foe's). The narrator's
-  portrait (now the Pendulum's bob) becomes a corner of the Atlas with a compass rose. The Mapmaker's edits, when
-  shown, are gold ink strokes hanging in the air. Every UI word in section 9.
-- **First 10 minutes (Team 5):** the `road` scene (6 boxes: who Pip is, what the blank is) is written for right after
-  the first fight is won, once (e.g. `profile.seen` 'road'); it needs a hook in the post-fight flow, which is yours.
-  If it costs the first minutes too much, cut it to 3 boxes or move it to the first rest: tell the story team.
-- **Lead:** `WELCOME_ID` in `src/data/tips.ts` is still `welcomeM4a`, so a returning player who saw the old welcome
-  won't see the new one (which now catches them up on the story); bumping it (e.g. `welcomeR8`) replays it once
-  (`tests/smoke/smoke.spec.ts` checks the id by name). The screenshot baseline `story.png` changes (the new intro).
-- **Content (Team 3):** Region 4 keeps your names (the Duskmire; Lanternfen, the Drowned Causeway, the Gloaming
-  Mere; Old Bellybog, the Sluice Keeper, the Gloaming Lighthouse). Its ten scenes are written in your
-  `src/data/story-dusk.ts` (same ids; your placeholders replaced); speakers `bellybog` ("Old Bellybog") and
-  `sluiceKeeper` ("Sluice Keeper") are in the `Speaker` union and need portraits; the lighthouse doesn't speak.
-  `banter-dusk.ts` can now name the Mapmaker. Region 5's scenes are drafted in `src/data/story-noon.ts` (ids for your
-  data to point at). Rename anything; tell the story team so the scenes follow.
+- **Art (Team 2):** done: `portrait_mapmaker`, `portrait_keeper` (art-portraits-atlas.ts), the world map's and the
+  region victory's words. Still to do: Region 4-5's speakers' portraits (`portrait_bellybog`,
+  `portrait_sluiceKeeper`, `portrait_sphinx`: a gold desert sphinx, eyes half shut against the glare); the drafted
+  regions' (`hollowfang`, `squall`, `press`, `gale`) when they're built. The pictures that still draw the old premise (section
+  9): the narrator's portrait (the Pendulum's bob, `art-story.ts`), the Boar King's crown bob (`art-story.ts`,
+  `art-foes.ts`), the Bandit Captain's pendulum weight and the golem's pendulum rune (`art-story.ts`), the shrine's and
+  camp's pendulum emblem (`art-shrine.ts`, `art-camp.ts`), Bellows's anvil weight (`art-ash.ts`), the Keystone Shard's
+  icon (`art-gear.ts`) and the capital's clock tower (`art-world-sites.ts`). The Mapmaker's edits, when shown, are
+  gold ink strokes hanging in the air.
+- **First 10 minutes (Team 5):** done: the `road` scene plays after a new player's first win (greenmarch.ts Act 1
+  `winScene`, once per profile).
+- **Lead:** done: `WELCOME_ID` is `welcomeR8` (first 10 minutes team), so a returning player sees the new welcome
+  once.
+- **Content (Team 3):** Region 5's nine scenes fit its data as built (`story-noon.ts`: the mini-bosses' `sphinx` and
+  `brassLion` are written, `story-noon-minis.ts` is empty); new: `noonCamp`, the camp's scene after Act 1 (wire it like
+  `duskCamp`: `run.ts` `campScene`/`sableJoined` at `actsCleared >= 13`, and `core/lab.ts` marks it seen), speaker
+  `sphinx` ("Noon Sphinx", needs a portrait), and `banter-noon.ts` (already read by `core/banter.ts`; it shows once the
+  region is in play). Regions 6-10 are outlined in section 8 with scene ids, mini-bosses, bosses, his edits and rule
+  ideas, and Regions 6-8's scenes are drafted in full (`story-hush.ts`, `story-reach.ts`, `story-wick.ts`; speakers
+  `hollowfang`, `squall`, `press`) with their camp banter (`banter-isles.ts`: correct `ISLES_SCENE_ACT` to the acts as
+  built): the rule hooks are ideas; rename anything and tell the story team so the scenes
+  follow.

@@ -92,6 +92,13 @@ function campFrame(rig: Rig, p: RigPose): HTMLCanvasElement {
   return c;
 }
 
+/** Every rig hero's rig and poses by art key (the unit tests check each has all of HERO_POSE_KEYS). */
+export const RIG_HEROES: Record<string, { rig: Rig; poses: Record<string, RigPose>; extra: RigPose[] }> = {
+  hero: { rig: ROWAN_RIG, poses: ROWAN_POSES, extra: [] },
+  // (extra: the card's and the camp's poses, painted at boot too)
+  ...Object.fromEntries(Object.entries(HEROES).map(([id, h]) => [id, { rig: h.rig, poses: h.poses, extra: [h.card.pose, ...h.camp] }])),
+};
+
 /** Where the point of Rowan's sword is in each of his fight frames, from the sprite's anchor (feet centre, bottom):
  *  filled when his frames are painted (the blade's glint, fighters.ts). */
 export const ROWAN_SWORD_TIP: Record<string, [number, number]> = {};
@@ -110,7 +117,8 @@ export function buildHeroArt(add: Add): void {
   buildRowanArt(add);
   // (every hero in the registry: the M5 six and round 7's, Part 6)
   for (const [id, h] of Object.entries(HEROES)) {
-    for (const k of HERO_POSE_KEYS) add(`${id}_${k}`, rigFrame(h.rig, h.poses[k]));
+    // (a pose a hero lacks is left out: the fight view falls back to their nearest one, never crashes the boot)
+    for (const k of HERO_POSE_KEYS) if (h.poses[k]) add(`${id}_${k}`, rigFrame(h.rig, h.poses[k]));
     add(`hero_card_${id}`, heroCard(h.card.glow, h.card.motes, rigFrame(h.rig, h.card.pose)));
     h.camp.forEach((p, i) => add(`camp_${id}${i}`, campFrame(h.rig, p)));
   }

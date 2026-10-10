@@ -7,6 +7,7 @@
 // contract as backdrop.ts (`bg_`, `frame_`, `fg_`/`fgo_` per sway frame); painted the first time an act needs one
 // (Stage.ensure), never at boot.
 import type Phaser from 'phaser';
+import { gradeLayer } from './art-mood';
 import {
   backlight,
   bay,
@@ -41,7 +42,7 @@ import {
   type Ramp,
   type Theme,
 } from './backdrop';
-import { cluster } from './backdrop-frost';
+import { cluster } from './backdrop-ice';
 
 export type AshTheme = 'cinder' | 'glass' | 'forge';
 export const ASH_BACKDROP_THEMES: AshTheme[] = ['cinder', 'glass', 'forge'];
@@ -176,7 +177,7 @@ function lavaRiver(p: Pix, w: number, yMid: (x: number) => number, half: (x: num
 }
 
 /** Basalt paving stones: hexagons in staggered rows, their tops lit, dark seams between (the road-roller's road). */
-function hexPaving(p: Pix, x0: number, x1: number, y0: number, y1: number, r: Ramp, seed: number, edge: (y: number) => number): void {
+function hexPaving(p: Pix, x0: number, x1: number, y0: number, y1: number, r: Ramp, seed: number, edge: (y: number) => number, calm?: [number, number]): void {
   const cw = 7;
   const ch = 4;
   for (let y = y0; y < y1; y++)
@@ -190,6 +191,8 @@ function hexPaving(p: Pix, x0: number, x1: number, y0: number, y1: number, r: Ra
       const seam = fx === 0 || fy === 0 || (fy === 1 && (fx === 1 || fx === cw - 1));
       const shade = hash(cx, row, seed);
       let v = seam ? 0.08 : 0.42 + shade * 0.22 + (fy === 1 ? 0.14 : fy === ch - 1 ? -0.1 : 0) - (fx === cw - 1 ? 0.1 : 0);
+      // (where the fighters stand the seams soften: the ground under the feet stays calm, docs/art-style.md section 8)
+      if (calm && y >= calm[0] && y <= calm[1]) v = seam ? 0.3 : 0.4 + shade * 0.08;
       v += (noise(x * 0.4, y * 0.4, seed) - 0.5) * 0.1;
       p.set(x, y, pick(r, v, x, y, 0.15));
     }
@@ -268,7 +271,8 @@ function volcano(p: Pix, cx: number, top: number, base: number, halfTop: number,
 }
 // ------------------------------------------------------------------ the Cinder Flats
 
-const SKY_CINDER = ramp('#1e1218', '#2c161c', '#3e1c20', '#562424', '#702c24', '#8e3a24', '#ae4c26', '#cc642c', '#e48236', '#f4a24a', '#fcc46a');
+// smoke-dark overhead (decision L7): the orange only low down, where the volcano and the river light the smoke
+const SKY_CINDER = ramp('#100a10', '#180e16', '#22121a', '#2e161c', '#3e1a1e', '#521e20', '#6c2620', '#8c3422', '#b04a26', '#d46a30', '#f0943e');
 const SMOKE = ramp('#140e12', '#22161a', '#30201e', '#422a24', '#5a3628', '#7a462a', '#a05c2e', '#c8783a');
 
 function cinder(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
@@ -285,7 +289,7 @@ function cinder(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const skyBot = G - 14;
   for (let y = 0; y < skyBot; y++)
     for (let x = 0; x < w; x++) {
-      const v = (y / (G - 22)) * 0.72 + glowSky(x, y) * 0.32 + (fbm(x * 0.02, y * 0.06, 7) - 0.5) * 0.16;
+      const v = (y / (G - 22)) ** 1.3 * 0.66 + glowSky(x, y) * 0.36 + (fbm(x * 0.02, y * 0.06, 7) - 0.5) * 0.16;
       p.set(x, y, pick(SKY_CINDER, v, x, y, 0.35));
     }
   // the volcano on the horizon, its plume of ash rolling off to the east
@@ -384,7 +388,7 @@ function cinder(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   // the road-roller's road: basalt pavers laid from the right, ending ragged halfway, a stack waiting to be laid
   const roadEnd = Math.round(w * 0.5);
   const roadTop = G - 5;
-  hexPaving(p, 0, w, roadTop, h, BASALT, 97, (y) => roadEnd + Math.round(noise(y * 0.4, 1, 97) * 10) - (y - roadTop) * 0.6);
+  hexPaving(p, 0, w, roadTop, h, BASALT, 97, (y) => roadEnd + Math.round(noise(y * 0.4, 1, 97) * 10) - (y - roadTop) * 0.6, [G - 4, G + 3]);
   for (let i = 0; i < 4; i++) {
     const sx = roadEnd - 14 + (i % 2) * 2;
     const sy = roadTop - 2 - i * 2;
@@ -452,6 +456,8 @@ function cinder(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   const nearBasalt = ramp('#06050a', '#0c0a10', '#141018', '#1c1822', '#26202c', '#342a36', '#46384a', '#5a4a5a');
   basaltColumns(p, [[w - 26, 18, 8], [w - 19, 4, 9], [w - 11, -2, 11], [w - 31, 34, 6]], G + 2, nearBasalt, 307, 0.75);
   const frame = changed(p, before);
+  gradeLayer('cinder', p, G);
+  gradeLayer('cinder', frame, G);
   for (const [x, y] of frameEmbers) glints.push({ x, y, c: 0xff7a2a });
   for (const [x, y] of embers) glints.push({ x, y, c: 0xff9a3a });
   for (const [x, y] of [...embers, ...frameEmbers]) p.set(x, y, LAVA[4]);
@@ -798,6 +804,8 @@ function glass(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
     }
   }
   const frame = changed(p, before);
+  gradeLayer('glass', p, G);
+  gradeLayer('glass', frame, G);
   return [p, frame, { torches, glints, drips }];
 }
 
@@ -1027,6 +1035,8 @@ function forge(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   }
   for (let y = 27; y < G + 2; y++) for (let x = w - 20 - Math.max(0, y - 60) * 0.3; x < w; x++) p.set(Math.round(x), y, pick(nearB, x < w - 18 ? 0.6 : 0.28 + (noise(x * 0.3, y * 0.1, 57) - 0.5) * 0.2, Math.round(x), y));
   const frame = changed(p, before);
+  gradeLayer('forge', p, G);
+  gradeLayer('forge', frame, G);
   return [p, frame, { torches, glints }];
 }
 
@@ -1154,6 +1164,7 @@ export function buildAshBackdrop(scene: Phaser.Scene, theme: AshTheme, w: number
   add(`frame_${theme}`, frame.canvas());
   for (let f = 0; f < FG_FRAMES; f++) {
     const fg = foregroundAsh(theme, w, h, f);
+    gradeLayer(theme, fg, 1e9);
     const top = new Pix(w, h, -1);
     top.buf.set(fg.buf.subarray(0, w * h));
     const over = new Pix(w, FG_OVERLAP, -1);
@@ -1167,7 +1178,9 @@ export function buildAshBackdrop(scene: Phaser.Scene, theme: AshTheme, w: number
 /** For tests and the art sheet: paint a theme's backdrop into plain pixel buffers (no scene). */
 export function paintAshBackdrop(theme: AshTheme, w: number, h: number, ground: number): { bg: Pix; frame: Pix; fg: Pix; info: Backdrop } {
   const [bg, frame, info] = PAINT[theme](w, h, ground);
-  return { bg, frame, fg: foregroundAsh(theme, w, h, 0), info };
+  const fg = foregroundAsh(theme, w, h, 0);
+  gradeLayer(theme, fg, 1e9);
+  return { bg, frame, fg, info };
 }
 
 void [lighten, understory, bay, mix];

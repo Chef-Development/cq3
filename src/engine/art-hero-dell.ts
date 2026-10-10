@@ -3,7 +3,7 @@
 // (art-rig.ts): a kid, a head shorter than the grown-ups. The slingshot rides the far hand (in front of the body);
 // the near hand pulls the band back.
 import { put, stamp, type Grid, type Pal, type Shade } from './art';
-import { sparkle, type HeroCardSpec, type Layer, type Pt, type Rig, type RigPose } from './art-rig';
+import { type HeroCardSpec, type Layer, LEG_FEET_X, matureHeads, matureLegs, type Pt, type Rig, type RigPose, sparkle } from './art-rig';
 
 // ------------------------------------------------------------------ palette
 
@@ -72,6 +72,8 @@ const TORSO = [
   'sssdmNNmdsss..',
   'ssddBdddBddss.',
   '.sdddddddddds.',
+  '.sdddddddddds.',
+  '.sdddddddddds.',
   '..dddddddPPd..',
   '..ddddddPpPd..',
   '..ddddddddd...',
@@ -79,56 +81,8 @@ const TORSO = [
 ];
 
 // Overall legs (a straw patch on one knee), rolled cuffs, scuffed boots; 14 wide, the feet centred on x = 7.
-const LEGS: Record<string, string[]> = {
-  stand: [
-    '..dddddddddd..',
-    '..ddddd.dddd..',
-    '..dddd..dddd..',
-    '..dQqd..dddd..',
-    '..cccc..cccc..',
-    '..bbbbb.bbbbb.',
-    '..bbbbbb.bbbbbb',
-  ],
-  run: [
-    '..ddddddddddd.',
-    '.ddddd...dddd.',
-    'ddQqd.....ddd.',
-    'ccc.......dddd',
-    'bbb........ccc',
-    '...........bbbb',
-    '...........bbbbb',
-  ],
-  lunge: [
-    '..ddddddddddd.',
-    '.ddddd...ddddd',
-    'dQqd.......ddd',
-    'cccc.......ddd',
-    'bbbb.......ccc',
-    'bbbbb.....bbbbb',
-    '..........bbbbbb',
-  ],
-  crouch: [
-    '.dddddddddddd.',
-    '.ddQqd...dddd.',
-    'cccc.....cccc.',
-    'bbbbb....bbbbb',
-    'bbbbbb...bbbbbb',
-  ],
-  tuck: [
-    '.dddddddddddd.',
-    '..ddQqddddddd.',
-    '.....cccccccc.',
-    '.....bbbbbbbbb',
-    '......bbbb.bbbb',
-  ],
-  // sat down (knocked out)
-  kneel: [
-    '.dddddddddddd.',
-    'ddQqdddd..dddd',
-    'cccbbbb...cccc',
-    '..........bbbbb',
-  ],
-};
+// the shared jointed legs (art-rig.ts STANCES, playtest round 8: L8, about three heads tall)
+const LEGS = matureLegs({ leg: 'd', legBack: '8', boot: 'b', bootBack: '9', sole: '9' });
 
 export const DELL_FIST = ['FF', 'vV'];
 const ARM_NEAR: Array<[number, ...string[]]> = [
@@ -141,12 +95,12 @@ const ARM_FAR: Array<[number, ...string[]]> = [
 ];
 
 export const DELL_RIG: Rig = {
-  pal: DELL_PAL,
+  pal: { ...DELL_PAL, '8': DELL_DENIM[1], '9': BOOT[0] },
   shades: DELL_SHADES,
-  heads: HEADS,
+  heads: matureHeads(HEADS, {drop: [1, 2], blush: 'f'}),
   torso: TORSO,
   legs: LEGS,
-  legsFeetX: 7,
+  legsFeetX: LEG_FEET_X,
   torsoX: -7,
   torsoOverlap: 1,
   headX: -2,
@@ -213,20 +167,29 @@ function sling(g: Grid, x: number, y: number, ang: number, drawTo?: Pt, loaded =
   const fy = Math.sin(ang);
   const W = DELL_WOOD;
   const at = (along: number, side: number): Pt => [Math.round(x + ax * along + fx * side), Math.round(y + ay * along + fy * side)];
-  // the handle (down from the grip), the crotch, the two prongs spreading up
+  // the handle (down from the grip), the crotch, the two prongs spreading up: 3 px of wood in the handle and 2 in
+  // each prong, lit on the side toward the light, so the fork reads at 8x
   for (let k = -3; k <= 1; k++) {
+    const [lx, ly] = at(k, -1);
     const [px, py] = at(k, 0);
+    const [dx, dy] = at(k, 1);
+    put(g, lx, ly, W[3]);
     put(g, px, py, W[2]);
-    put(g, px + 1, py, W[1]);
+    put(g, dx, dy, W[1]);
   }
   const tips: Pt[] = [];
   for (const side of [-1, 1]) {
-    for (let k = 1; k <= 5; k++) {
-      const s = side * Math.min(2.5, k * 0.7);
+    for (let k = 1; k <= 6; k++) {
+      const s = side * Math.min(3, k * 0.75);
       const [px, py] = at(1 + k, s);
-      put(g, px, py, k === 5 ? W[3] : side < 0 ? W[3] : W[2]);
-      if (k < 5) put(g, px + 1, py, W[0]);
-      if (k === 5) tips.push([px, py]);
+      const [qx, qy] = at(1 + k, s + side);
+      // the outer edge of the left prong and the inner edge of the right one face the light
+      put(g, px, py, side < 0 ? W[2] : W[3]);
+      put(g, qx, qy, side < 0 ? W[3] : W[1]);
+      if (k === 6) {
+        put(g, px, py, W[3]);
+        tips.push([px, py]);
+      }
     }
   }
   // the band (and its leather cup at the near fist when drawn)
@@ -308,28 +271,28 @@ const dizzy: Layer = (g, a) => {
 
 export const DELL_POSES: Record<string, RigPose> = {
   // the slingshot loose in his far hand, tossing a pebble with the near one
-  idle0: { near: { at: [-1, 10] }, far: { at: [8, 9] }, farFront: true, back: [kerchief(0.4), pouch], front: [slingshot({ ang: 0.3 }), tossed(2)] },
-  idle1: { near: { at: [-1, 9] }, far: { at: [8, 8] }, farFront: true, dy: 1, back: [kerchief(0.6), pouch], front: [slingshot({ ang: 0.3 }), tossed(5)] },
+  idle0: { near: { at: [-1, 19] }, far: { at: [8, 18] }, farFront: true, back: [kerchief(0.4), pouch], front: [slingshot({ ang: 0.3 }), tossed(2)] },
+  idle1: { near: { at: [-1, 18] }, far: { at: [8, 17] }, farFront: true, dy: 1, back: [kerchief(0.6), pouch], front: [slingshot({ ang: 0.3 }), tossed(5)] },
   // the pebble comes down, the kerchief settles a frame behind the breath
-  idle2: { near: { at: [-1, 9] }, far: { at: [8, 8] }, farFront: true, dy: 1, back: [kerchief(0.7), pouch], front: [slingshot({ ang: 0.3 }), tossed(4)] },
-  idle3: { near: { at: [-1, 10] }, far: { at: [8, 9] }, farFront: true, back: [kerchief(0.5), pouch], front: [slingshot({ ang: 0.3 }), tossed(1)] },
-  dash: { near: { at: [-5, 10] }, far: { at: [8, 11] }, farFront: true, legs: 'run', dx: 1, lean: 1, back: [kerchief(0.05), pouch], front: [slingshot({ ang: 0.6 })] },
+  idle2: { near: { at: [-1, 18] }, far: { at: [8, 17] }, farFront: true, dy: 1, back: [kerchief(0.7), pouch], front: [slingshot({ ang: 0.3 }), tossed(4)] },
+  idle3: { near: { at: [-1, 19] }, far: { at: [8, 18] }, farFront: true, back: [kerchief(0.5), pouch], front: [slingshot({ ang: 0.3 }), tossed(1)] },
+  dash: { near: { at: [-5, 19] }, far: { at: [8, 20] }, farFront: true, legs: 'run', dx: 1, lean: 1, back: [kerchief(0.05), pouch], front: [slingshot({ ang: 0.6 })] },
   // full draw: the band at his cheek, one eye shut
-  slashA: { near: { at: [2, 17] }, far: { at: [12, 16] }, farFront: true, legs: 'lunge', head: 'aim', back: [kerchief(0.2), pouch], front: [slingshot({ ang: 1.45, drawn: true })] },
+  slashA: { near: { at: [2, 26] }, far: { at: [12, 25] }, farFront: true, legs: 'lunge', head: 'aim', back: [kerchief(0.2), pouch], front: [slingshot({ ang: 1.45, drawn: true })] },
   // the snap: the pebble away, the band slack, the pulling hand flung back
-  slashB: { near: { at: [-5, 17] }, far: { at: [12, 16] }, farFront: true, legs: 'lunge', back: [kerchief(0.1), pouch], front: [slingshot({ ang: 1.45 }), flying(28, 17)] },
+  slashB: { near: { at: [-5, 26] }, far: { at: [12, 25] }, farFront: true, legs: 'lunge', back: [kerchief(0.1), pouch], front: [slingshot({ ang: 1.45 }), flying(28, 17)] },
   // digging in the pouch for a pebble
-  windup: { near: { at: [-2, 8] }, far: { at: [9, 13] }, farFront: true, legs: 'crouch', dy: 1, bow: 1, back: [kerchief(0.4), pouch], front: [slingshot({ ang: 0.9 }), (g, a) => pebble(g, a.near[0] - 1, a.near[1] - 2)] },
+  windup: { near: { at: [-2, 17] }, far: { at: [9, 22] }, farFront: true, legs: 'crouch', dy: 1, bow: 1, back: [kerchief(0.4), pouch], front: [slingshot({ ang: 0.9 }), (g, a) => pebble(g, a.near[0] - 1, a.near[1] - 2)] },
   // ducking behind a raised arm, the slingshot up
-  parry: { near: { at: [7, 18] }, far: { at: [11, 13] }, farFront: true, legs: 'crouch', dy: 1, dx: -1, head: 'squint', back: [kerchief(0.4), pouch], front: [slingshot({ ang: 0.2 })] },
-  hurt: { near: { at: [-6, 10] }, far: { at: [5, 8] }, farFront: true, dx: -1, lean: -1, dy: 1, head: 'squint', back: [kerchief(-0.3), pouch], front: [slingshot({ ang: -0.5 })] },
-  leap: { near: { at: [3, 16] }, far: { at: [12, 14] }, farFront: true, legs: 'tuck', head: 'aim', back: [kerchief(-0.2), pouch], front: [slingshot({ ang: 1.2, drawn: true })] },
+  parry: { near: { at: [7, 27] }, far: { at: [11, 22] }, farFront: true, legs: 'crouch', dy: 1, dx: -1, head: 'squint', back: [kerchief(0.4), pouch], front: [slingshot({ ang: 0.2 })] },
+  hurt: { near: { at: [-6, 19] }, far: { at: [5, 17] }, farFront: true, dx: -1, lean: -1, dy: 1, head: 'squint', back: [kerchief(-0.3), pouch], front: [slingshot({ ang: -0.5 })] },
+  leap: { near: { at: [3, 25] }, far: { at: [12, 23] }, farFront: true, legs: 'tuck', head: 'aim', back: [kerchief(-0.2), pouch], front: [slingshot({ ang: 1.2, drawn: true })] },
   // knocked out: sat down hard, hat off, dizzy
   down: { near: { at: [7, 4] }, far: { at: [-3, 4] }, legs: 'kneel', bow: 1, head: 'ko', back: [kerchief(0.6), droppedHat, droppedSling], front: [dizzy] },
   // the finisher: drawing straight up, a hail of pebbles in the air
   fin: {
-    near: { at: [6, 15] },
-    far: { at: [9, 26] },
+    near: { at: [6, 24] },
+    far: { at: [9, 35] },
     farFront: true,
     legs: 'lunge',
     head: 'aim',
@@ -337,18 +300,18 @@ export const DELL_POSES: Record<string, RigPose> = {
     front: [slingshot({ ang: 0.15, drawn: true }), hail([[-8, 30], [16, 33], [-12, 22], [20, 25], [3, 38], [12, 40]])],
   },
   // Lucky Shot: a kneeling shot with a glowing gold pebble, a four-leaf clover by it
-  cast: { near: { at: [1, 14] }, far: { at: [12, 13] }, farFront: true, legs: 'crouch', dy: 1, head: 'aim', back: [kerchief(0.3), pouch], front: [slingshot({ ang: 1.45, drawn: true, gold: true }), clover(18, 22)] },
+  cast: { near: { at: [1, 23] }, far: { at: [12, 22] }, farFront: true, legs: 'crouch', dy: 1, head: 'aim', back: [kerchief(0.3), pouch], front: [slingshot({ ang: 1.45, drawn: true, gold: true }), clover(18, 22)] },
 };
 
 /** Hero select card: tossing a pebble, the slingshot at his side, before a straw-gold glow with a denim-blue rim. */
 export const DELL_CARD: HeroCardSpec = {
-  pose: { near: { at: [-1, 12] }, far: { at: [8, 9] }, farFront: true, back: [kerchief(0.5), pouch], front: [slingshot({ ang: 0.3 }), tossed(6)] },
+  pose: { near: { at: [-1, 21] }, far: { at: [8, 18] }, farFront: true, back: [kerchief(0.5), pouch], front: [slingshot({ ang: 0.3 }), tossed(6)] },
   glow: ['#fff0a0', '#3a62b0'],
   motes: [[6, 12], [33, 10], [34, 28]],
 };
 
 /** By the campfire (two breaths): sat easy, whittling a fresh slingshot fork. */
 export const DELL_CAMP: [RigPose, RigPose] = [
-  { near: { at: [3, 12] }, far: { at: [8, 13] }, farFront: true, back: [kerchief(0.5), pouch], front: [slingshot({ ang: 0.6 }), tossed(1)] },
-  { near: { at: [3, 11] }, far: { at: [8, 12] }, farFront: true, dy: 1, back: [kerchief(0.6), pouch], front: [slingshot({ ang: 0.6 }), tossed(4)] },
+  { near: { at: [3, 21] }, far: { at: [8, 22] }, farFront: true, back: [kerchief(0.5), pouch], front: [slingshot({ ang: 0.6 }), tossed(1)] },
+  { near: { at: [3, 20] }, far: { at: [8, 21] }, farFront: true, dy: 1, back: [kerchief(0.6), pouch], front: [slingshot({ ang: 0.6 }), tossed(4)] },
 ];

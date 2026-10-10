@@ -11,9 +11,7 @@
 import Phaser from 'phaser';
 import type { FightScene } from '../scene';
 import { buildBackdrops, FG_FRAMES, type Backdrop, type Theme } from '../backdrop';
-import { buildAshBackdrop, isAsh } from '../backdrop-ash';
-import { buildDuskBackdrop, isDusk } from '../backdrop-dusk';
-import { buildFrostBackdrop, isFrost } from '../backdrop-frost';
+import { isAshTheme, isDuskTheme, packOfTheme, regionPack } from '../region-art';
 import { buildStageArt, buildStageTheme, STAGE_LIGHT } from '../art-stage';
 import { GAME_W } from '../layout';
 import { rand } from './shared';
@@ -45,6 +43,10 @@ const BEAMS: Array<[number, number]> = [
 const BEAM_SLOPE = 0.55;
 const FG_MS = 620; // one foreground sway frame
 const MAX_BITS = 220;
+
+/** Two colours multiplied (a tint over a tint). */
+const mulCol = (a: number, b: number): number =>
+  (Math.round((((a >> 16) & 255) * ((b >> 16) & 255)) / 255) << 16) | (Math.round((((a >> 8) & 255) * ((b >> 8) & 255)) / 255) << 8) | Math.round(((a & 255) * (b & 255)) / 255);
 
 export class Stage {
   /** The backdrops painted for this layout (Greenmarch's at once, the Frostpeaks' when an act first needs one). */
@@ -89,14 +91,17 @@ export class Stage {
     buildStageArt(this.s, GAME_W, this.s.splitY, this.s.ground);
   }
 
-  /** A theme's backdrop and light for this layout: the Frostpeaks' and Ashfell's are painted the first time an act
-   *  needs one. */
+  /** A theme's backdrop and light for this layout: a later region's (its art pack, region-art.ts) is painted the first
+   *  time an act needs one. (Its pack still on its way, on a first visit's very first seconds: the stage keeps the
+   *  theme it has until it's in.) */
   ensure(theme: Theme): void {
-    if (this.backdrops[theme] || !(isFrost(theme) || isAsh(theme) || isDusk(theme))) return;
+    const id = packOfTheme(theme);
+    if (this.backdrops[theme] || !id) return;
+    const pack = regionPack(id);
+    if (!pack) return;
     const t0 = performance.now();
-    const [w, h, g] = [GAME_W, this.s.splitY, this.s.ground];
-    this.backdrops[theme] = isAsh(theme) ? buildAshBackdrop(this.s, theme, w, h, g) : isDusk(theme) ? buildDuskBackdrop(this.s, theme, w, h, g) : buildFrostBackdrop(this.s, theme, w, h, g);
-    buildStageTheme(this.s, GAME_W, this.s.splitY, this.s.ground, theme);
+    this.backdrops[theme] = pack.backdrop(this.s, theme, GAME_W, this.s.splitY, this.s.ground);
+    buildStageTheme(this.s, GAME_W, this.s.splitY, this.s.ground, theme as Parameters<typeof buildStageTheme>[4]);
     this.paintMs[theme] = performance.now() - t0;
   }
 
@@ -142,12 +147,19 @@ export class Stage {
     this.frameImg.setTexture(`frame_${theme}`);
     this.raysImg.setTexture(`st_rays_${theme}`);
     this.gradeImg.setTexture(`st_grade_${theme}`);
+    // the act's mood (decision L7): the painted stage darker and cooler, the actors and the warm accents untouched
+    // (Greenmarch, the Frostpeaks and Ashfell have it baked into their pixels, art-mood.ts: only their air is tinted)
+    const mood = STAGE_LIGHT[theme].mood ?? 0xffffff;
+    const air = STAGE_LIGHT[theme].air ?? mood;
+    this.bgImg.setTint(mood);
+    this.frameImg.setTint(mood);
     for (const cl of this.clouds) {
       // the hollow's sunset sky has its own painted wisps, the caves a roof, the glacier the aurora: no cumulus there
       cl.setVisible(theme === 'forest' || theme === 'ruins' || theme === 'pass');
-      if (theme === 'ruins') cl.setTint(0x6a7090).setAlpha(0.45);
-      else if (theme === 'pass') cl.setTint(0xc4c0da).setAlpha(0.5);
-      else cl.clearTint().setAlpha(0.95);
+      if (theme === 'ruins') cl.setTint(mulCol(0x6a7090, air)).setAlpha(0.45);
+      else if (theme === 'pass') cl.setTint(mulCol(0x6a7498, air)).setAlpha(0.45);
+      // the forest's late day: the cumulus in shadow, mauve against the sunset
+      else cl.setTint(mulCol(0x9a7c94, air)).setAlpha(0.8);
     }
     this.prefill = theme === 'pass' || theme === 'glacier' || theme === 'cinder' || theme === 'forge';
     // cloud shadows sweep the meadow; mist banks roll through the ruins and the hollow
@@ -155,7 +167,11 @@ export class Stage {
       im.setTexture(theme === 'forest' ? 'st_cloudshade' : `st_mist_${theme}`);
       im.setBlendMode(theme === 'forest' ? Phaser.BlendModes.MULTIPLY : Phaser.BlendModes.NORMAL);
     }
-    for (const im of this.mistImgs) im.setTexture(`st_mist_${theme === 'forest' ? 'ruins' : theme}_near`).setVisible(theme !== 'forest');
+    for (const im of this.mistImgs) im.setTexture(`st_mist_${theme === 'forest' ? 'ruins' : theme}_near`).setVisible(theme !== 'forest').setTint(air);
+    for (const im of this.shadeImgs) if (theme !== 'forest') im.setTint(air);
+    else im.clearTint();
+    this.fgImg.setTint(mood);
+    this.fgOver?.setTint(mood);
     const L = STAGE_LIGHT[theme];
     // warm light pooled on the ground where the fighters meet
     this.poolImg
@@ -265,9 +281,9 @@ export class Stage {
         this.nextAmbient += 240;
       } else if (theme === 'pass' || theme === 'caves' || theme === 'glacier') {
         this.spawnFrost(a, ground, r);
-      } else if (isAsh(theme)) {
+      } else if (isAshTheme(theme)) {
         this.spawnAsh(a, ground, r);
-      } else if (isDusk(theme)) {
+      } else if (isDuskTheme(theme)) {
         this.spawnDusk(a, ground, r);
       } else {
         // rain: most of it far, a few heavy streaks close to the camera
