@@ -120,10 +120,9 @@ page.on('console', (m) => {
 const t0 = Date.now();
 await page.goto(URL);
 await page.waitForFunction(() => window.__cq3?.ready === true, null, { timeout: 120_000 });
-// New game: a fresh save (as the title's New game leaves it)
-await page.evaluate(() => {
-  window.__cq3.app.newGame();
-});
+// New game: a fresh save (as the title's New game leaves it: it wipes the save and reloads the page)
+await Promise.all([page.waitForEvent('load'), page.evaluate(() => void window.__cq3.app.newGame()).catch(() => undefined)]);
+await page.waitForFunction(() => window.__cq3?.ready === true, null, { timeout: 120_000 });
 await page.evaluate(INSTALL);
 const ev = (s) => page.evaluate(`(() => { const x = window.__cq3.app; ${s} })()`);
 const until = Date.now() + MINUTES * 60_000;
