@@ -127,7 +127,7 @@ const CROW_PAL: Pal = {
 // catches the late sun, so the crow reads by value against the dark trees, not only by its rim
 const CROW_GREY = ['#262434', '#484658', '#6c6a7e', '#9492a6', '#bcbacb', '#e2e0ea'];
 const CROW_SHADES: Record<string, Shade> = {
-  b: { ramp: CROW_GREY, same: 'hjEekfF', top: [4, 4], left: [4], right: [2], bottom: [1, 2], mid: 3 },
+  b: { ramp: CROW_GREY, same: 'hjEekfF', top: [5, 4], left: [4], right: [2], bottom: [2, 3], mid: 4 },
   q: { ramp: CROW, same: 'hjEekfFb', top: [4, 3], left: [3], right: [1], bottom: [0, 1], mid: 2 }, // the black hood
   w: { ramp: CROW, same: 'fFhj', top: [4, 3], left: [3], right: [1], bottom: [1, 1], mid: 2 },
 };
