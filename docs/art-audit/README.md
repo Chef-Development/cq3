@@ -100,4 +100,4 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | All nine stages side by side | | | `after/backdrops-mood.png` (left before, right after, the textures alone); `after/fight-mood-act1-desktop.png` (1440x900). |
 | Greenmarch foes | 4 (cute: blush, smiles, candy colours) | 4 | `after/foes-menace-greenmarch.png` (top before, bottom after). Slimes scowl with glowing eyes and teeth, a bone in the core; the boar, crow, bandit, captain, shaman, wolf and piglets darker with an edge; the Boar King's ember eye, fangs, hackles and jagged crown. |
 | Frostpeaks foes | 4 | 4 | `after/foes-menace-frostpeaks.png`. Glacia darker with a slit pupil and fangs; the yeti cub's dark face and glowing eyes. |
-| Pendulum symbols on foes | | | Gone from the Boar King (crown, portrait), the golem (rune), the captain's portrait (now an Atlas page) and Bellows (a white-hot blade on his anvil). |
+| Pendulum symbols on foes | | | Gone from the Boar King (crown, portrait), the golem's crown (a glowing compass-star rune) and Bellows (a white-hot blade on his anvil); the captain's and golem's portraits are 2A's (A19). |
