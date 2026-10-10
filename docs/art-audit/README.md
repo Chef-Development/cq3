@@ -88,3 +88,14 @@ placeholder). Contact sheets come from `scripts/art-audit.mjs` (run it by hand a
 | Backdrops: glass, forge | 3 | 4 | `after/backdrops-glass-forge.png`, in a fight at phone size `after/fight-act8-glass.png`, `after/fight-act9-forge.png`. The warren: a tall arch onto a hazy far cavern (pillars at two depths, heat shafts), the lake's light on the wall, embers rising. The forge: a far ridge, a heat plume lit from below, pilasters, a calm strip under the feet. |
 | Rowan's sword and polish (playtester: "the sword looks too thin") | 4 | 4 | `after/rowan-sword-before-after.png`. A 4 px blade with lit and shaded edges, an 8 px gold guard with a red stone, the sword in his forward hand (no arm across his chest), a thick plume, a warm specular dash on the helm; his map walker gets a 2 px blade and plume. |
 | Heroes' weapons and props at 8x | 3 | 4 | `after/heroes-weapons-1.png`, `-2.png`. Staves and hafts 3 px (Neve, Moss, Tess, Yara, Fizz's ladle, Torva's haft), daggers 3 px with a guard (Sable, Wren), Dell's slingshot fork, Vesper's bow limbs, Hollis's and Solenne's swords on Rowan's 4 px build. |
+
+## The mood pass and foes with menace (round 8, team 2C: decisions L7, L8, A2C-1..4)
+
+| Item | Before | After | Notes |
+| --- | --- | --- | --- |
+| Fight stages, Greenmarch | 4-5 (bright noon forest, peach sunset) | 4-5 | `after/fight-mood-greenmarch.png` (left before, right after, phone size; Acts 1-3, fights and bosses). The forest at late day (indigo to amber sky, dusk peaks with alpenglow, a dark castle with lit windows, gold shafts, deep teal shade, a darker path); the ruins a step darker; the hollow a blood-red evening. |
+| Fight stages, Frostpeaks and Ashfell | 4 | 4 | `after/fight-mood-frostpeaks-ashfell.png`. The pass a moonlit blue night (stars, a cold moon, moonlit snow); caves and glacier colder and darker; the cinder flats under a smoke-dark sky with the orange kept low; the warrens and the forge darker with their fires kept. |
+| All nine stages side by side | | | `after/backdrops-mood.png` (left before, right after, the textures alone); `after/fight-mood-act1-desktop.png` (1440x900). |
+| Greenmarch foes | 4 (cute: blush, smiles, candy colours) | 4 | `after/foes-menace-greenmarch.png` (top before, bottom after). Slimes scowl with glowing eyes and teeth, a bone in the core; the boar, crow, bandit, captain, shaman, wolf and piglets darker with an edge; the Boar King's ember eye, fangs, hackles and jagged crown. |
+| Frostpeaks foes | 4 | 4 | `after/foes-menace-frostpeaks.png`. Glacia darker with a slit pupil and fangs; the yeti cub's dark face and glowing eyes. |
+| Pendulum symbols on foes | | | Gone from the Boar King (crown, portrait), the golem (rune), the captain's portrait (now an Atlas page) and Bellows (a white-hot blade on his anvil). |

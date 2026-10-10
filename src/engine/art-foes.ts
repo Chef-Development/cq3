@@ -255,8 +255,9 @@ function crowParts(pose: string): Part[] {
 
 // ------------------------------------------------------------------ piglet (striped boarlet)
 
-const PIG = ['#4a2424', '#7a4430', '#a8683e', '#d08e52', '#f0b870'];
-const PIG_CREAM = ['#8a5a3a', '#b88a5a', '#e0bc84', '#f4daa4', '#fff0c8'];
+// (decision L8) the King's brood in his darker fur, their stripes dun rather than cream
+const PIG = ['#2e1418', '#522a2a', '#764234', '#9a5e42', '#ba7c54'];
+const PIG_CREAM = ['#5a3a2c', '#7e5a42', '#a07e5c', '#c09c74', '#d8b88a'];
 const PIG_PAL: Pal = {
   L: PIG[4], l: PIG[3], c: PIG[2], d: PIG[1], x: PIG[0], q: PIG[1],
   e: '#140c1c', r: '#ff5a3a', o: '#5a2430', t: '#f4e4c0',
@@ -265,7 +266,7 @@ const PIG_PAL: Pal = {
 const PIG_SHADES: Record<string, Shade> = {
   b: { ramp: PIG, same: 'sLlcdxertwq', top: [4, 3], left: [3], right: [1], bottom: [0, 1] },
   s: { ramp: PIG_CREAM, same: 'b', top: [4], left: [3], right: [1], bottom: [0, 1] },
-  p: { ramp: ['#5a2430', '#a85458', '#d88078', '#f4a898', '#ffd0c0'], same: 'o', top: [3], left: [4], right: [1], bottom: [0] },
+  p: { ramp: ['#3a1620', '#6a3238', '#8e4a4a', '#ae6a60', '#c88a7a'], same: 'o', top: [3], left: [4], right: [1], bottom: [0] },
 };
 // 15 wide, facing left: pink snout, floppy ear, striped barrel body, curly tail
 const PIG_BODY = [
