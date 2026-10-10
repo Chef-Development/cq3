@@ -269,3 +269,7 @@ One PR at the end supersedes #1-#7.
 - 04:11 EDT: with 2.5 h left, one more polish chunk (dusk-art, HARD STOP 05:30: Pip's size in fights, the HP green,
   events' prose, the treasure's empty band); re-freeze 05:45 (baselines for what changed, the suites again), final
   state by 06:30, the final message at 06:45.
+- 04:32 EDT: the final Playwright run on the frozen code: 153 passed, 1 skipped, 1 failed: the lab walk, now fixed and
+  passing alone (2.9 min, every scenario): the lab's Done sat off the screen over the title (the HUD moves to the
+  corner there; Done now sits on its left), and the walk didn't know the lab's new 'event' scenarios' start. A
+  playtester would have been stuck on "New title screen": found and fixed before they saw it.
