@@ -68,6 +68,8 @@ type Face = readonly [number, number, number, number];
 const mixWhite = (c: number) => mix(c, WHITE, 0.4);
 /** The four-frame idle's step (a 1.2 s loop: docs/art-style.md section 7). */
 const IDLE_STEP_MS = 300;
+/** The win's flourish holds the raised pose this long. */
+const CHEER_MS = 900;
 /** A foe's two idle frames each last this long. */
 const FOE_IDLE_MS = 460;
 /** Squash and stretch never lasts longer than this. */
@@ -352,6 +354,28 @@ export class Fighters {
   }
 
   // ------------------------------------------------------------------ choreography
+
+  /**
+   * The fight is won: the hero steps back to their spot and raises their weapon (their `cast` pose, the ability's
+   * raised gesture) for a moment, a small flourish under whatever comes next. Never while knocked out or in a show.
+   */
+  cheer(): void {
+    const s = this.s;
+    const h = this.h;
+    if (h.down || h.state === 'super') return;
+    const wait = h.state === 'idle' ? 0 : RETURN_MS;
+    // (a new fight in the meantime replaces the hero's state: then nothing happens)
+    const still = () => this.h === h && !h.down && h.state !== 'super';
+    s.later(260, () => {
+      if (!still()) return;
+      this.heroReturn();
+      s.later(wait, () => {
+        if (!still()) return;
+        this.setHeroPose('cast', CHEER_MS);
+        this.landAt = s.anim; // a little settle as the weapon goes up
+      });
+    });
+  }
 
   setHeroPose(pose: string, ms: number): void {
     this.h.pose = pose;
