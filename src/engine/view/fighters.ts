@@ -1187,7 +1187,7 @@ export class Fighters {
 
   /**
    * Squash and stretch (docs/art-style.md section 7: at most 100 ms, volume kept): the hero's width factor (the height
-   * is its inverse). A cut stretches him forward, a blow taken squashes him, a landing squashes him wide.
+   * is its inverse). A dash or a cut stretches him forward, a blow taken squashes him, a landing squashes him wide.
    */
   private squash(a: number, inShow: boolean): number {
     const bump = (t0: number, ms: number) => {
@@ -1196,7 +1196,9 @@ export class Fighters {
     };
     const land = bump(this.landAt, SQUASH_MS);
     if (inShow) return 1 + 0.14 * land;
-    return 1 + 0.14 * land + 0.08 * bump(this.h.lungeAt, 90) + 0.1 * bump(this.hurtAt, SQUASH_MS);
+    // (the dash's push-off stretches him forward too, for as long as the dash lasts)
+    const push = this.h.state === 'dash' ? 0.07 * bump(this.h.t0, DASH_MS) : 0;
+    return 1 + 0.14 * land + 0.08 * bump(this.h.lungeAt, 90) + 0.1 * bump(this.hurtAt, SQUASH_MS) + push;
   }
 
   /**
