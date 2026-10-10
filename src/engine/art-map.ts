@@ -137,9 +137,10 @@ function sableFrame(legs: string, bob: number, flap: boolean): HTMLCanvasElement
   return toCanvas(g);
 }
 
+// (playtest round 8, L8: the night-teal Pip of the fight frames, art.ts)
 const PIP_PAL: Pal = {
-  b: '#2a6ad8', B: '#1a3c8a', N: '#6aaef0', f: '#8ac4f6',
-  i: '#ffd84a', k: '#140c1c', g: '#ffe070', y: '#f2a020', c: '#efe2c4',
+  b: '#2c5a68', B: '#173040', N: '#4e8684', f: '#557a76',
+  i: '#d09a3a', k: '#140c1c', g: '#d0a85a', y: '#a8782a', c: '#b2a690',
 };
 const PIP_MINI = ['.N...N.', '.bNNNb.', 'bikbikb', 'bbbybbb', 'Bbcccbb', '.bcccb.', '..y.y..'];
 const PIP_WINGS = {

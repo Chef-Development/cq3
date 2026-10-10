@@ -847,10 +847,11 @@ function flameFrame(f: number): HTMLCanvasElement {
 
 // ------------------------------------------------------------------ Pip by the fire (perched on the log, facing right)
 
+// (playtest round 8, L8: the night-teal Pip of the fight frames, art.ts, amber eyes, a grey-cream belly)
 const PIPC: Record<string, string> = {
-  1: '#14204a', 2: '#1e3c8a', 3: '#2a6ad8', 4: '#4aa0f0', 5: '#9ad8ff',
-  f: '#8ac4f6', F: '#c8e4fa', k: '#140c1c', i: '#ffd84a', I: '#e89a20', W: '#ffffff',
-  g: '#ffe070', y: '#f2a020', Y: '#b0601a', c: '#efe2c4', v: '#c8b496', o: '#ffb070',
+  1: '#0c1620', 2: '#173040', 3: '#22495a', 4: '#33666e', 5: '#4e8684',
+  f: '#557a76', F: '#6e908a', k: '#140c1c', i: '#d09a3a', I: '#9a6220', W: '#f0e2c0',
+  g: '#d0a85a', y: '#a8782a', Y: '#6a4418', c: '#b2a690', v: '#7a7062', o: '#a8785a',
 };
 const PIP_OPEN = [
   '..5.......5...',

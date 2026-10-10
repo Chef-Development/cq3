@@ -1128,6 +1128,20 @@ A2B-13. **Map walkers 18 px tall** (the chest heroes' walkers in `art-hero-map.t
     to two more leg rows, so they stand about three heads tall like the fight frames, with the mature grade. The act
     map and the title anchor a walker at its feet from its own height (two rows up from the bottom), so walkers of any
     height share the ground line.
+
+A2B-14. **Heads no wider than the shoulders** (fresh-eyes review, F10: Brann ~2 heads at 3x, flat faces): the hero
+    select magnifies the fight frames 3x, so a head as wide as its torso reads chibi there however tall the body is.
+    Brann's head redrawn 12 x 10 (was 16 x 11) in weathered skin with an ear and a shaded face; Solenne and Yara
+    14 wide with the side plane of the face in shadow, sockets under the brows, a lit cheekbone and nose tip and a
+    shaded jaw; Rowan's helm a row and a column smaller (12 x 10, the plume a px shorter: the title, the hero select
+    and the fight show the same mature Rowan); Tam, Wren, Fizz and Dell lose two columns at the back of the head
+    (`narrowHeads`, every face variant narrowed alike; Dell's brim a px in at each end). Rule of thumb for a new
+    hero: head width <= torso width, a face with at least two skin tones.
+A2B-15. **Companions never outshine the hero** (review: Pip the brightest thing on every stage): Pip's frames (fight,
+    camp, maps, title) in a night teal with small amber eyes and a grey-cream belly; the other companions' frames
+    take `moodGrade` (art-companions.ts: a step below the heroes' `gradeGrid`, value and saturation down; their glow
+    passes and the bar's perk effects untouched, they are feedback). Flying companions hover 3 px lower (party.ts
+    `FLY_Y`). Pip's story portrait is 2A's (not changed here).
 A20. **The sharper text: where the fine layer went and where it didn't** (the chest reveal's 2x layer rolled out to
     what the player reads most; judged from side-by-side phone shots, 874x402 @3x, each crop at device pixels).
     *How:* a `TextPool` a surface hands the fine layer (`pool.hd`, view/hd-text.ts) draws each text it can on one DOM

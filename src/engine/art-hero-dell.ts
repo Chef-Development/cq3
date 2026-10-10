@@ -57,13 +57,18 @@ const HEAD = [
   '......zzSSSSz....',
 ];
 const face = (rows: string[], swap: Record<number, string>) => rows.map((r, y) => (swap[y] ? r.slice(0, 17 - swap[y].length) + swap[y] : r));
-const HEADS = {
+// (playtest round 8, L8, after the fresh-eyes review: the hat's brim a px in at each end and a column of hair out at
+// the back, so the head is no wider than the shoulders and the hero reads about three heads tall at 3x on the hero
+// select; the face keeps its place)
+const narrowHeads = (heads: Record<string, string[]>): Record<string, string[]> =>
+  Object.fromEntries(Object.entries(heads).map(([k, rows]) => [k, rows.map((r) => r.slice(1, 3) + r.slice(4, 16))]));
+const HEADS = narrowHeads({
   base: HEAD,
   squint: face(HEAD, { 5: 'ShhSSShhS..', 6: 'SSzzSSSzzS.', 9: 'SSxxxxSz...' }),
   ko: face(HEAD, { 5: 'SSSSSSSSS..', 6: 'SSkSkSSkSkS.', 9: 'SSSxSSz...' }),
   // one eye shut, tongue out, aiming
   aim: face(HEAD, { 5: 'ShhSSShhS..', 6: 'SSzzSSSSkS.', 9: 'SSxxPSz...' }),
-};
+});
 
 // The red neckerchief knotted at the throat, a cream shirt, the overalls' bib with brass buttons and a patch.
 const TORSO = [
@@ -103,7 +108,7 @@ export const DELL_RIG: Rig = {
   legsFeetX: LEG_FEET_X,
   torsoX: -7,
   torsoOverlap: 1,
-  headX: -2,
+  headX: 0,
   headOverlap: 2,
   shoulderNear: [3, 2],
   shoulderFar: [9, 2],

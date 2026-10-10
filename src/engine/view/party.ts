@@ -76,6 +76,8 @@ export const isSpirit = (kind: AllyKind): boolean => kind === 'spiritWolf' || ki
 /** The colour of the puff an ally comes and goes in. */
 const puffCol = (kind: AllyKind): number => (isSpirit(kind) ? 0x9ae8ff : 0x78a83c);
 const WALK_MS = 170;
+/** How high a flying companion hovers over the ground (its centre): low enough that it never crowds the hero's head. */
+const FLY_Y = 21;
 
 interface PetView {
   id: CompanionId;
@@ -156,7 +158,7 @@ export class Party {
       if (rim.parentContainer) rim.parentContainer.remove(rim);
       s.actors.addAt([img, rim], i * 2);
       const x = s.heroHome - 30 - i * 24;
-      return { id, img, rim, flies, state: 'idle', t0: 0, x, y: flies ? s.ground - 24 : s.ground, fromX: 0, fromY: 0, toX: 0, toY: 0, actUntil: 0, hopAt: -1e9 } as PetView;
+      return { id, img, rim, flies, state: 'idle', t0: 0, x, y: flies ? s.ground - FLY_Y : s.ground, fromX: 0, fromY: 0, toX: 0, toY: 0, actUntil: 0, hopAt: -1e9 } as PetView;
     });
     for (const p of old.values()) {
       p.img.destroy();
@@ -182,7 +184,7 @@ export class Party {
     this.pets.forEach((P, i) => {
       const homeX = heroX - 30 - i * 24;
       const flier = P.flies;
-      const homeY = flier ? s.ground - 24 + Math.sin((a + i * 400) / 260) * 2 : s.ground;
+      const homeY = flier ? s.ground - FLY_Y + Math.sin((a + i * 400) / 260) * 2 : s.ground;
       const period = P.id === 'pip' ? 110 : flier ? 130 : 340;
       let tex = this.tex(P.id, Math.floor((a + (P.id === 'pip' ? 0 : i * 170)) / period) % 2 ? 'idle1' : 'idle0');
       if (P.state === 'swoop') {
