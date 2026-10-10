@@ -862,6 +862,12 @@ C7. **Stand-ins until a region's art lands, never a missing texture or a silent 
     telegraph sound not built yet plays the generic wind-up, a speaker with no portrait speaks from an empty frame, the
     acts wear earlier themes (`DUSK_STAND_IN`), and the music falls back to the last act theme it has. Each one switches
     itself off as the art team's textures and tracks arrive (no flag to flip).
+C8. **The fourth region balanced at 75% from a typical end-of-third-region hero** (`npm run region-tune` with
+    REGION=3, then `tests/unit/bot-region4.test.ts` as the guard, 40 runs). Its first-guess numbers were far too easy:
+    the mini-bosses decide each act (first try = the boss's first fight), so the levers were their HP and attack plus
+    each act's red speed; act attack alone moved little. The numbers and measurements are in the content bible (as
+    wired). The next region's first-guess numbers were lifted to stay a step above it (its data test asks that).
+C9. **The next region's gear is written as data** (not merged; a data test), so its wiring is one merge like this one.
 
 (content: end of section)
 

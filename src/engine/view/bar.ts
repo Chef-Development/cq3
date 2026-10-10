@@ -449,13 +449,15 @@ export class BarView {
     this.drawMarks(g, gt, now, bx);
     const group = c.enemies.length > 1;
     this.drawGhosts(g, c, now, bx);
-    for (const b of c.blocks) if (!isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
+    // (ice floats on the tide: frozen blocks are drawn over the water with the reds, never under it)
+    const afloat = (b: Block) => b.kind === 'frozen' && (c.waterL > 0 || c.waterR > 0);
+    for (const b of c.blocks) if (!isRed(b.kind) && !afloat(b)) this.drawBlock(g, b, c, t, now, group, bx);
     drawBarRules(g, c, t, now, s.bar, bx); // linked pairs' chains, drifting blocks' chevrons
     drawWater(g, c, t, now, s.bar, bx); // the tide: over the still blocks (they lie under it), under the reds
     drawMirages(g, c, t, now, s.bar, bx); // the fifth region's mirages: their shimmer and landing ghosts
     drawHeat(g, c, s.fighters.h.x, s.ground, now); // ...and the hero's Heat
     this.drawGuard(g, c, t, now, bx);
-    for (const b of c.blocks) if (isRed(b.kind)) this.drawBlock(g, b, c, t, now, group, bx);
+    for (const b of c.blocks) if (isRed(b.kind) || afloat(b)) this.drawBlock(g, b, c, t, now, group, bx);
     this.drawLandTarget(g, c, t, now, bx);
 
     this.drawDying(g, bx);
