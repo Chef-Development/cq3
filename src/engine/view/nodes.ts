@@ -499,7 +499,7 @@ export class NodeScreens {
         const after = Math.min(max, H.hp + Math.round(max * run.tuning.map.potionHeal));
         if (item.sold) val = `${signedPct(run.tuning.map.potionHeal)} HP`;
         else if (after > H.hp) preview = { stat: 'HP', before: hpNow(H.hp, max), after: hpNow(after, max) };
-        else val = 'HP full';
+        else val = 'At full HP'; // ("HP full" read as "heals to full")
         // a half row too tight for "100 -> 130": the share it heals
         if (preview && r.x + 25 + textWidth(name, 1, true) + previewWidth(preview) > tx - 4) {
           preview = null;

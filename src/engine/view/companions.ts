@@ -619,7 +619,8 @@ export class CompanionsScreen {
     } else {
       title = def.name;
       lines = [
-        { text: `${def.kind}. ${def.role}.`, bold: true, col: 0xffd890 },
+        // its kind alone ("Sky whale. Tides." read like a note: round 8's review); what it does is the lines below
+        { text: def.kind, bold: true, col: 0xffd890 },
         { text: def.bio, col: 0xfff0c0 },
         { text: `${attackText(id)}.`, icon: 'crit' },
       ];
