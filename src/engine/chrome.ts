@@ -220,6 +220,9 @@ export function buildBoard(scene: Phaser.Scene, key: string, w: number, h: numbe
   scene.textures.addCanvas(key, c);
 }
 
+/** The settings button's cog, 9x9. */
+const COG = ['...###...', '.#..#..#.', '..#####..', '#.#...#.#', '###...###', '#.#...#.#', '..#####..', '.#..#..#.', '...###...'];
+
 /** HUD button art for the DOM pause / gear buttons (14x14 game px, returned as data URLs). */
 export function hudButtonImages(): Record<'pause' | 'pauseOn' | 'gear' | 'gearOn', string> {
   const make = (icon: 'pause' | 'gear', on: boolean) => {
@@ -248,15 +251,11 @@ export function hudButtonImages(): Record<'pause' | 'pauseOn' | 'gear' | 'gearOn
         p.rect(8, 3 + oy, 2, 6, col);
         return;
       }
-      // cog: ring with four teeth (and four diagonal nubs) around an open hub
-      for (let y = 0; y < S; y++)
-        for (let x = 0; x < S; x++) {
-          const dx = x + 0.5 - 7;
-          const dy = y + 0.5 - 6.5;
-          const d = Math.hypot(dx, dy);
-          const tooth = Math.cos(Math.atan2(dy, dx) * 4) > 0.45;
-          if (d >= 1.6 && (d <= 3.2 || (tooth && d <= 4.6))) p.px(x, y + oy, col);
-        }
+      // a cog drawn by hand (the old round one read as a compass): eight teeth, square ones on the axes and nubs
+      // on the diagonals, round a body with a hole in its hub
+      COG.forEach((row, y) => {
+        for (let x = 0; x < row.length; x++) if (row[x] === '#') p.px(2 + x, 2 + y + oy, col);
+      });
     };
     mark(shadow, 1);
     mark(glyph, 0);
