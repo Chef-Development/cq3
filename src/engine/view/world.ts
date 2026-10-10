@@ -1834,19 +1834,22 @@ export class WorldView {
     // Noonspire: the island floats, its waterfall pours, the sun on its spire twinkles
     const dy = Math.round(Math.sin(t * 0.7) * 1.4);
     const io = WORLD_SPOTS.isle;
-    this.at(this.isle, io.x, io.y + dy);
+    // (until its land opens it is erased like the others, review round 8: in full colour it read as a finished
+    // region: drained to the vellum's grey, still, its falls and its sun quiet)
+    const noon = landOpen(this.s.app.progress, 'noonspire');
+    this.at(this.isle, io.x, io.y + dy).setTint(noon ? 0xffffff : 0x8a8078);
     const nsince = now - (this.rattle.get('noonspire') ?? -1e9);
     const npeek = nsince < 2200 ? Math.sin(Math.min(1, nsince / 2200) * Math.PI) : 0;
-    this.at(this.isleVeil, io.x, io.y + dy).setAlpha(1 - 0.5 * npeek);
+    this.at(this.isleVeil, io.x, io.y + dy).setAlpha(1 - (noon ? 0.5 : 0.1) * npeek);
     const fl = WORLD_SPOTS.isleFalls;
-    if (this.seen(fl.x, fl.y0, 30))
+    if (noon && this.seen(fl.x, fl.y0, 30))
       for (let j = 0; j < 4; j++) {
         const y = fl.y0 + ((t * 18 + j * 5.5) % (fl.y1 - fl.y0 - 4));
         g.fillStyle(WHITE, 0.9);
         g.fillRect(fl.x + (j % 2), Math.round(y) + dy, 1, 2);
       }
     const sun = WORLD_SPOTS.sun;
-    if (this.seen(sun.x, sun.y)) {
+    if (noon && this.seen(sun.x, sun.y)) {
       const diag = Math.floor(t * 1.6) % 2 === 1;
       ga.fillStyle(0xfff0a0, 0.9);
       const rays = diag
@@ -2026,13 +2029,15 @@ export class WorldView {
 
     // header: the Great Atlas and the regions restored (a small compass rose per region, lit once restored;
     // docs/story-bible.md section 9)
+    // (review round 8: "Regions restored: 0/12" was the first number a new player read, on the biggest plate on screen:
+    // the count shows only once a region is restored; until then the name and the twelve roses, on a smaller plate)
     const L = s.L + 4;
-    const restored = `Regions restored: ${whole(P.weights)}/${whole(WEIGHTS_TOTAL)}`;
-    const hw = Math.max(textWidth('The Great Atlas', 1, true), textWidth(restored, 1, false), WEIGHTS_TOTAL * 7 - 2) + 14;
-    this.panel(g, L, 4, hw, 29, 1);
+    const restored = P.weights > 0 ? `Restored ${whole(P.weights)}/${whole(WEIGHTS_TOTAL)}` : '';
+    const hw = Math.max(textWidth('The Great Atlas', 1, true), restored ? textWidth(restored, 1, false) : 0, WEIGHTS_TOTAL * 7 - 2) + 14;
+    this.panel(g, L, 4, hw, restored ? 29 : 22, 1);
     this.texts.text('The Great Atlas', L + 7, 10, WHITE, { bold: true, oy: 0.5 });
-    this.texts.text(restored, L + 7, 19, 0xf2c230, { oy: 0.5 });
-    for (let i = 0; i < WEIGHTS_TOTAL; i++) roseIcon(g, L + 7 + i * 7, 24, i < P.weights);
+    if (restored) this.texts.text(restored, L + 7, 19, 0xf2c230, { oy: 0.5 });
+    for (let i = 0; i < WEIGHTS_TOTAL; i++) roseIcon(g, L + 7 + i * 7, restored ? 24 : 17, i < P.weights);
 
     // the region chip (top right): the region in view and how complete it is; a tap opens its act picker
     const chip = this.regionChip();
