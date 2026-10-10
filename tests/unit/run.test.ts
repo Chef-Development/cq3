@@ -8,7 +8,7 @@ import { makeItem } from '../../src/core/gear';
 import { addItem, equip } from '../../src/core/profile';
 import { Rng } from '../../src/core/rng';
 import { FIRST_PICK, Run, rarityMult } from '../../src/core/run';
-import { relicById } from '../../src/data/relics';
+import { relicById, STARTER_RELICS } from '../../src/data/relics';
 import { restoreRun, snapshotRun } from '../../src/core/save';
 import { cloneTuning, DEFAULT_SETTINGS, type Tuning } from '../../src/core/tuning';
 
@@ -185,6 +185,8 @@ describe('the map', () => {
       const ta = relicById((a as { relic: string }).relic as never)!.tags;
       const tb = relicById((b as { relic: string }).relic as never)!.tags;
       expect(ta.some((tg) => tb.includes(tg)), `seed ${seed}: ${ta} / ${tb}`).toBe(false);
+      // plain rules from the starter list (no bombs, trade-offs or shops in minute one)
+      for (const o of r.boostChoices) expect(STARTER_RELICS, `seed ${seed}`).toContain((o as { relic: string }).relic);
       r.pickBoost(0);
       expect(r.profile.seen).toContain(FIRST_PICK);
       expect(r.simplePick).toBe(false);

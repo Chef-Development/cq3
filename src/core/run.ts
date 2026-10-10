@@ -15,7 +15,7 @@ import { questById, type QuestId } from '../data/quests';
 import type { ActDef, BarRules, EventOutcome, RegionDef } from '../data/types';
 import { HEROES, type HeroId } from '../data/heroes';
 import type { PetBuild } from './roster';
-import { RELICS, relicById, type RelicId } from '../data/relics';
+import { RELICS, relicById, STARTER_RELICS, type RelicId } from '../data/relics';
 import { skillById } from '../data/skills';
 import { recordActAccuracy, addSamples, type AccEntry } from './accuracy';
 import { Combat, heroMaxHp, heroStats, killCoins, newHero, type Hero, type SavedFoe } from './combat';
@@ -300,9 +300,13 @@ export const FIRST_PICK = 'pick:first';
  * A new player's first relic pick: two relics (`min` rare or better for the first, as the pick asked), the second one
  * sharing no tag with the first, so the two cards are two different ways to play (falls back to any other relic).
  */
-export function rollFirstPick(rng: Rng, t: Tuning, pool: readonly RelicId[], min: boolean | Rarity = false): BoostOffer[] {
-  if (!t.relics.on) return rollPick(rng, t, pool, [], min, { n: 2 });
+export function rollFirstPick(rng: Rng, t: Tuning, all: readonly RelicId[], min: boolean | Rarity = false): BoostOffer[] {
+  if (!t.relics.on) return rollPick(rng, t, all, [], min, { n: 2 });
   const want: Rarity = min === true ? 'rare' : min === false ? 'common' : min;
+  // the starter relics when they can make the pick (two tags, one rare enough), else the whole pool
+  const starters = all.filter((id) => STARTER_RELICS.includes(id));
+  const rareEnough = (id: RelicId) => RARITIES.indexOf(relicById(id)!.rarity as Rarity) >= RARITIES.indexOf(want);
+  const pool = starters.length >= 2 && starters.some(rareEnough) ? starters : all;
   const [a] = rollRelics(rng, t, pool, [], 1, want === 'common' ? undefined : want);
   if (!a) return rollPick(rng, t, pool, [], min, { n: 2 });
   const tags = relicById(a)!.tags;
