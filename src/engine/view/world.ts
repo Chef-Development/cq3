@@ -1333,14 +1333,25 @@ export class WorldView {
       if (!this.seen(x + 30, y + 8, 60)) return;
       this.at(this.pool.at(`wm_shadow${k}`, 0, 0, DEPTH.shadow, 0.18), x, y);
     });
+    // (no cloud drifts over an erased land: it is blank paper, still; a cloud fades out as it drifts onto one)
+    const clear = (x: number, y: number) => {
+      let a = 1;
+      for (const [id, b] of Object.entries(VEIL_BOXES)) {
+        const d = Math.min(x - b.x, b.x + b.w - x, y - b.y, b.y + b.h - y);
+        if (d > 0 && this.veilOf(id, performance.now()) >= 1) a = Math.min(a, Math.max(0, 1 - d / 24));
+      }
+      return a;
+    };
     CLOUDS.forEach(([k, y, speed, ph], i) => {
       const span = W + 140;
       const x = Math.round(((ph + t * speed) % span) - 70);
       const sy = y + Math.round(Math.sin(t * 0.5 + i) * 0.6);
       if (!this.seen(x + 30, sy + 10, 60)) return;
-      this.at(this.pool.at(`wm_cloudsh${k % CLOUD_KINDS}`, 0, 0, DEPTH.shadow, 0.24), x + 6, sy + 13);
+      const ca = clear(x + 30, sy + 10);
+      if (ca <= 0) return;
+      this.at(this.pool.at(`wm_cloudsh${k % CLOUD_KINDS}`, 0, 0, DEPTH.shadow, 0.24 * ca), x + 6, sy + 13);
       // (L7: dusk clouds, a muted lavender grey rather than bright white)
-      this.at(this.pool.at(`wm_cloud${k % CLOUD_KINDS}`, 0, 0, DEPTH.cloud, 0.85, 0xa49cb4), x, sy);
+      this.at(this.pool.at(`wm_cloud${k % CLOUD_KINDS}`, 0, 0, DEPTH.cloud, 0.85 * ca, 0xa49cb4), x, sy);
     });
     // (the painted map's cloud band along the far north: not on the Atlas, whose sheet ends in its neatline)
     this.rim.setVisible(false);
@@ -1733,8 +1744,9 @@ export class WorldView {
         v.img.setVisible(false);
         continue;
       }
-      // (erased land is blank paper: it lies still; a peek thins it to show the impression's land beneath)
-      this.at(v.img, b.x, b.y).setAlpha((1 - 0.55 * peek) * thick);
+      // (erased land is blank paper: it lies still; a peek only breathes it, never showing the coloured land beneath:
+      // review round 8, an erased land's rivers showed through in full colour)
+      this.at(v.img, b.x, b.y).setAlpha((1 - 0.1 * peek) * thick);
     }
     if (this.reveal) this.revealMotes(now, t);
     // Frostpeaks: snow falling over the range (what's in view), a plume blown off the highest summit
