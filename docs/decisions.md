@@ -770,6 +770,21 @@ L6. **The world map keeps its painted lands** (after the Atlas pass at phone siz
     open lands read as noise at the map's real zoom; playable lands are painted (the Atlas frames them: parchment sea,
     inked coasts, names, the neatline), erased lands are blank vellum, and restoring a region paints it back.
 
+L7. **Mood: darker, not bright and peachy** (playtester, round 8: "the atmosphere of everything needs to be slightly
+    more dark and not all bright and peachy"). Rules for every screen (the art bible's new "Mood" section, owned by
+    art 2A; backdrops and fight lighting by art 2B; Region 4+ by the content art helpers):
+    1. Values drop: a scene's average brightness about 20-30% lower; skies are dusk, overcast, storm or night, never a
+       flat bright noon; the brightest values are kept for light sources (sun, lanterns, magic, fire) and the actors'
+       highlights.
+    2. Midtones lean cool and a step less saturated (blue, teal, violet); saturated colour lives in light pools and
+       accents.
+    3. Shadows are deep and cool (indigo, teal) and take more of the frame; vignettes are stronger.
+    4. Warm light is an accent, not a wash: no large peach, beige or cream fills (parchment is aged and darker with
+       burnt edges; UI plates are deep ink).
+    5. Actors stay readable: a rim light and a clear value step from the backdrop; the ground strip under them is calm
+       and darker.
+    6. Darker never means muddy: every material keeps 3+ hue-shifted tones and the scene keeps strong contrast.
+
 (lead: end of section)
 
 

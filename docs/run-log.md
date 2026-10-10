@@ -85,3 +85,6 @@ One PR at the end supersedes #1-#7.
 - 21:36 EDT: looked at merge 4 at phone and desktop size: the title key art reads well; the Atlas's ink-draft lands
   read as noise at the map's zoom: L6 (painted lands framed as an Atlas page, blank vellum for erased lands, restore
   = paint spreading back), sent to art 2A.
+- 21:40 EDT: playtester note: "the atmosphere of everything needs to be slightly more dark and not all bright and
+  peachy": decision L7 (mood rules) sent to art 2A (bible, title, world map, menus, camp, UI), art 2B (every fight
+  backdrop and fight lighting, foes) and dusk-art (Region 4).
