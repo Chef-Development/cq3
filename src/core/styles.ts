@@ -275,7 +275,11 @@ export const STYLE_HOOKS: Record<StyleId, FightHooks> = {
   marksman: {
     blockWidth: (c, kind, w) => (kind === 'green' ? w * S(c).targetWidth : w),
     spawned: (_c, b) => {
-      if (b.kind === 'green') b.target = true;
+      if (b.kind !== 'green') return;
+      b.target = true;
+      // a target lights itself (never dark) and stands above the tide on its post (Combat.canSink)
+      b.dark = false;
+      b.litAt = 0;
     },
     hitMult: (c, x, v) => (x.echo || x.green ? v : v * S(c).focusShare),
     afterHit: (c, x) => {

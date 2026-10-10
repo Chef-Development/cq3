@@ -449,8 +449,8 @@ export class BarView {
     this.drawMarks(g, gt, now, bx);
     const group = c.enemies.length > 1;
     this.drawGhosts(g, c, now, bx);
-    // (ice floats on the tide: frozen blocks are drawn over the water with the reds, never under it)
-    const afloat = (b: Block) => b.kind === 'frozen' && (c.waterL > 0 || c.waterR > 0);
+    // (what can't sink is drawn over the water with the reds: ice floats, a Marksman's target stands on its post)
+    const afloat = (b: Block) => !isRed(b.kind) && !c.canSink(b) && (c.waterL > 0 || c.waterR > 0);
     for (const b of c.blocks) if (!isRed(b.kind) && !afloat(b)) this.drawBlock(g, b, c, t, now, group, bx);
     drawBarRules(g, c, t, now, s.bar, bx); // linked pairs' chains, drifting blocks' chevrons
     drawWater(g, c, t, now, s.bar, bx); // the tide: over the still blocks (they lie under it), under the reds
