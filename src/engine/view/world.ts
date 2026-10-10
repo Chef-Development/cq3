@@ -1626,24 +1626,23 @@ export class WorldView {
     }
   }
 
-  // ------------------------------------------------------------------ the capital and the Great Pendulum
+  // ------------------------------------------------------------------ the capital and the Atlas Hall
 
   private drawCapital(t: number): void {
     const g = this.gLand;
     const P = this.s.app.progress;
     const pv = WORLD_SPOTS.pendulum;
     if (!this.seen(pv.x, pv.y, 60)) return;
-    // the pendulum: hangs still while its weights are missing; swings wider the more come home
-    const amp = P.weights / WEIGHTS_TOTAL;
-    const off = Math.round(Math.sin(t * TAU * 0.6) * 2.4 * amp);
-    g.fillStyle(0xd8901c, 1);
-    for (let k = 0; k < 3; k++) g.fillRect(pv.x + Math.round((off * k) / 4), pv.y + k, 1, 1);
-    g.fillStyle(0xf2c230, 1);
-    g.fillRect(pv.x + off - 1, pv.y + 3, 3, 2);
-    g.fillStyle(0xfff0a0, 1);
-    g.fillRect(pv.x + off - 1, pv.y + 3, 1, 1);
-    g.fillStyle(0x9a5a14, 1);
-    g.fillRect(pv.x + off + 1, pv.y + 4, 1, 1);
+    // the Atlas's light glowing in the Hall's three windows under the dome: faint while its lines fade, brighter the
+    // more regions are restored (docs/story-bible.md section 9)
+    const lit = 0.3 + 0.7 * (P.weights / WEIGHTS_TOTAL);
+    const breathe = 0.82 + 0.18 * Math.sin(t * 1.7);
+    for (const dx of [-3, 0, 3]) {
+      g.fillStyle(0xf2c230, lit * breathe);
+      g.fillRect(pv.x + dx, pv.y + 1, 1, 3);
+      g.fillStyle(0xfff0a0, lit * breathe);
+      g.fillRect(pv.x + dx, pv.y, 1, 1);
+    }
     // pennants on the turrets
     WORLD_SPOTS.turrets.forEach(([tx, ty], i) => {
       const fr = Math.floor(t * 5 + i) % 2;
@@ -1655,12 +1654,12 @@ export class WorldView {
       g.fillStyle(0x8a1a22, 1);
       g.fillRect(tx + 3, ty - (fr ? 4 : 3), 1, 1);
     });
-    // a glint runs up the spire's gold finial now and then
+    // a glint runs over the lantern's gold finial now and then
     const k = frac(t / 4.5);
     if (k < 0.12) {
       g.fillStyle(WHITE, 1 - k / 0.12);
-      g.fillRect(pv.x, pv.y - 21, 1, 1);
-      g.fillRect(pv.x - 1, pv.y - 20, 3, 1);
+      g.fillRect(pv.x, pv.y - 13, 1, 1);
+      g.fillRect(pv.x - 1, pv.y - 12, 3, 1);
     }
     // the town's smoke: a few columns drifting east over the roofs
     WORLD_SPOTS.capitalSmoke.forEach(([cx, cy], i) => {
