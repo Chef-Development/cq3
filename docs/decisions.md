@@ -1095,4 +1095,12 @@ F13. **The newcomer bot goes on to the first hero chest** (`F10_UNTIL=act`): the
     scene, the vault, the reveal. It also times the first red's spawn and the first boss's arc (its first special,
     half and a fifth of its HP).
 
+F14. **Found gear for an empty slot goes on at once** (`CORE:` run.ts, tuning.ts `gear.autoWear` with a slider). A
+    newcomer plays Act 1 without opening the camp, so every item found waited in the bag and Rowan met the Bandit
+    Captain in nothing (the newcomer bot lost him on one seed); the balance bot wears the best it finds after every
+    loot, so the balance was set for a player who does. An item whose slot is empty now goes on as it drops (it never
+    replaces anything: choices stay at camp), the loot screen tags it "Worn" in green instead of NEW, and the loot tip
+    says "Gear for a free slot goes on. / Spares wait in your bag at camp." The bot is unchanged (it wore them anyway);
+    its "without gear" ablation turns this off (`Run.autoWear`).
+
 (first10: end of section)
