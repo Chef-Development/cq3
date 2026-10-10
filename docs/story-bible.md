@@ -32,9 +32,10 @@ commit titles, PR titles, the Test lab's labels and anything the playtester read
 | The Mapmaker | gentle, courteous, precise; **no contractions** (until Region 11, when his composure breaks); craftsman's words (line, draft, smudge); compliments; "There. Better." rarely | shouting (until Region 11), threats, lies |
 | Hesper | terse, formal, few kind words; no contractions | explaining herself (until the end) |
 | Sable | quick, light-fingered, practical; one quip per scene | cruelty |
+| Brann | (vow of silence until his abbey's bell rings, Region 9) writes on a slate: `(writes on a slate)` in his arrival, `(writes)` in banter; calm, kind, few words | speaking aloud before Region 9 |
 | Neve | prickly, proud, CAPITALS for emphasis, secretly glad of company | admitting it |
 | Mags | gruff, warm underneath, forge talk | (she can joke: she's camp) |
-| Bosses | each their own: the Boar King and the golem shout in capitals; Rimehorn and the golem speak without contractions; Glacia says "darling"; Bellybog is slow and greedy ("Mmf."); the Sluice Keeper talks in timetables | winking at the player |
+| Bosses | each their own: the Boar King and the golem shout in capitals; Rimehorn and the golem speak without contractions; Glacia says "darling"; Bellybog is slow and greedy ("Mmf."); the Sluice Keeper talks in timetables; the Noon Sphinx speaks in riddles, formal and sad | winking at the player |
 
 ---
 
@@ -416,20 +417,30 @@ change); Regions 5-12 have no rules yet: the rule hooks are ideas, not decisions
   `dusk1`, `bellybog`, `duskCamp`, `dusk2`, `sluiceKeeper`, `dusk3`, `lighthouse`, `lighthouse2`, `lighthouse3`,
   `duskVictory`).
 
-### Region 5: Noonspire (working id `noonspire`)
+### Region 5: Noonspire (The White Road, The Spire Steps, The Great Sundial; Team 3 built its data)
 - **Original:** a high desert plateau of white stone towers and great sundials; the people kept time and direction by
   shadows. Cold, deadly desert nights. The Dawn Order (Solenne) greets every sunrise from the tallest spire.
 - **His redraw:** "No one will freeze in the desert dark again." He drove a nail through the sun and pinned it at
   noon: no night, no cold, and no shadows. Without shadows nobody can tell the time or find the way; the heat never
   breaks; the Dawn Order has no dawn.
-- **Rule hook (later):** glare and mirages (blocks that blaze or lie), shadowless timing; open.
-- **Boss (working): the Gnomon**, the great sundial's needle, stood up as a brass sentinel. Keystone: **the Nail**.
-  Edits: he turns the sun's glare on the bar; then he pulls the sun lower and hotter.
-- **Restoring:** the sun sets for the first time in months; the first dawn; Solenne's order greets it.
-- **Beat: twist 1 (Pip).** Pip goes quiet all region; Rowan asks him straight at the sundial ("After this one. I
-  promise."); Ambrose greets him by name before the fight; after it, the feather pen and Pip's half of the truth.
-  Ambrose walks out over the sea, drawing a road as he goes, and the first far isle's fog lifts. Drafted in
-  `src/data/story-noon.ts`.
+- **Bar rules (built, content bible section 8):** **mirages** (the haze lies about where things are: a yellow hops to
+  a ghost outline shown first) and **heat** (blazing yellows hit hard and burn the hero; a green cools).
+- **Mini-bosses:** the Noon Sphinx (keeps the White Road with a riddle: "Long at dawn, gone at noon, long again at
+  dusk." A shadow. Rowan answers, but a traveler with no shadow is a mirage to her, and she lets no mirage pass); the
+  Brass Lion (the Dawn Order's lion that roared the sun up every morning; a month with no morning, in this heat; it
+  doesn't speak).
+- **Boss: the Gnomon**, the great sundial's needle, stood up as a brass sentinel (it doesn't speak). Keystone: **the
+  Nail** through the sun above it.
+  - Phase 2 edit: "Too bright to see? Then do not look." The glare: every yellow blazes.
+  - Phase 3 edit: "Closer, then." He draws the sun down, low and huge: everything is a mirage, and the blaze stays.
+- **Restoring:** the sun sets for the first time in a month; the first dawn; Solenne's order greets it.
+- **Beat: twist 1 (Pip).** Pip goes quiet in Act 2 ("Don't touch the mane." is all he offers); Rowan asks him straight
+  at the sundial ("After this one. I promise."); Ambrose greets him by name before the fight, and Pip says nothing
+  more until the last phase ("Steady, Rowan. I'm still here."); after it, the feather pen and Pip's half of the truth.
+  Ambrose walks out over the sea, drawing a road as he goes, and far out the blank takes a shape: the first far isle,
+  his draft there done (rule 10: it thinned while he drew it, from Region 4's restoring; its fog lifts and its name
+  shows on the world map now). Scenes: `src/data/story-noon.ts` (`noon1`, `sphinx`, `noon2`, `brassLion`, `noon3`,
+  `noonBoss`-`noonBoss3`, `noonVictory`).
 
 ### Region 6: Hushwood (far isle)
 - **Original:** a forest isle of giant trees and great storms; the storms toppled trees on villages; Yara's people
@@ -516,16 +527,16 @@ Region 1: `intro` (3 boxes), `act1` (1 box: Pip): together the 4 boxes before th
 Hesper). Region 2 and 3: the same ids as now (`frost1` ... `frostVictory`, `ash1` ... `ashVictory`), rewritten to this
 bible. New speakers: `mapmaker` ("The Mapmaker"), `keeper` ("Hesper"); both need portraits (art team).
 
-Status (round 8, chunk 1): Regions 1-3 rewritten (`story.ts`, `story-ash.ts`), editor-passed, tests updated; the
-chest heroes' arrivals say whose home was redrawn; the welcome back catches a returning player up; Region 4's scenes
-are written into Team 3's ids in `src/data/story-dusk.ts` (not in play until the region is wired in; new speakers
-`bellybog` and `sluiceKeeper` need portraits), and Region 5's are drafted in `src/data/story-noon.ts`
-(`noon1`-`noon3`, `noonBoss`-`noonBoss3`, `noonVictory`; its phase hints are placeholders until its rules exist). Banter that follows the story is written in
-`src/data/banter-story.ts` (lines gated on scenes, like `banter-ash.ts` and `banter-dusk.ts`; none of the three is
-wired yet: the camp needs to know which scenes have played). Still to do: the `road` hook; wiring the gated banter; Region 5's
-mini-bosses' scenes (once its foes exist); the bosses' portraits and the two new speakers' (`portrait_mapmaker`, `portrait_keeper`: until they exist the
-story view shows Phaser's missing-texture box); `keeper` belongs with the allies' warm look in `view/story.ts`.
-
+Status (round 8, chunk 2): Regions 1-3 rewritten (`story.ts`, `story-ash.ts`) and passed by an independent editor
+twice; the chest heroes' arrivals say whose home was redrawn (Brann writes on a slate); the welcome back catches a
+returning player up; Region 4's ten scenes are in Team 3's ids (`story-dusk.ts`; speakers `bellybog`, `sluiceKeeper`
+need portraits); Region 5's nine scenes fit its data as built (`story-noon.ts`, incl. the mini-bosses' `sphinx` and
+`brassLion`; speaker `sphinx` needs a portrait). Camp banter follows the story (`core/banter.ts` gates each region's
+lines on their scenes). Every player-facing data text was swept for the old premise (gear, meta, relics, events,
+quests, companions' bios, heroes' bios, act names, tips); the far isles' names are in `core/world-plan.ts` (shown
+once revealed). Still to do: the `road` hook (first 10 minutes team); the portraits (`portrait_mapmaker`,
+`portrait_keeper`, the Region 4-5 speakers'; until they exist the story view shows Phaser's missing-texture box);
+`keeper` belongs with the allies' warm look in `view/story.ts`; the world map's and title's words (art team, section 9).
 ---
 
 ## 11. What the story needs from other teams (round 8)

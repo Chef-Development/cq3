@@ -150,8 +150,9 @@ describe('story', () => {
   });
 
   it("drafts the fifth region's scenes to the same rules (not in play yet: story-noon.ts); the fourth's are written", () => {
-    for (const id of ['noon1', 'noon2', 'noon3', 'noonBoss', 'noonBoss2', 'noonBoss3', 'noonVictory']) expect(NOON_STORY[id], id).toBeDefined();
+    for (const id of ['noon1', 'sphinx', 'noon2', 'brassLion', 'noon3', 'noonBoss', 'noonBoss2', 'noonBoss3', 'noonVictory']) expect(NOON_STORY[id], id).toBeDefined();
     for (const id of ['noonBoss2', 'noonBoss3']) expect(NOON_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
+    for (const [id, boxes] of Object.entries(NOON_STORY)) expect(boxes.some((b) => b.text.includes('(Scene to come)')), id).toBe(false);
     // the fourth region's scenes are the story's, not stand-ins; its boss's phases are his edits
     for (const [id, boxes] of Object.entries(DUSK_STORY)) expect(boxes.some((b) => b.text.includes('(Scene to come)')), id).toBe(false);
     for (const id of ['lighthouse2', 'lighthouse3', 'duskVictory']) expect(DUSK_STORY[id].some((b) => b.who === 'mapmaker'), id).toBe(true);

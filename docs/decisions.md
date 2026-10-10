@@ -798,6 +798,25 @@ S8. **Region 4 keeps Team 3's names** (the Duskmire, its acts Lanternfen, the Dr
     shore onto a timetable), so the story follows it. Its scenes are written into their ids (`story-dusk.ts`); S7's
     separate draft is gone.
 
+S9. **One lighthouse boss; the far isles have names.** The Duskmire's Gloaming Lighthouse is the only lighthouse
+    boss; the beacon isle (Region 10) gets the Wreckwarden, a giant of wrecked hulls guarding the beacon stair. The
+    seven far isles' names (Hushwood, Kestrel Reach, Thimblewick, Saltmarrow, Farlight, Lowmoor, the Margin) are in
+    `core/world-plan.ts` and show only once a land is revealed (the map shows "?" until then).
+S10. **The editor's pass (45 notes) is applied, a few with changes; none rejected outright.** Changed: `noonVictory`'s
+    last line is "Far out, the blank takes a shape" (not "gold lines touch the blank"): the world plan lifts the first
+    far isle's fog right after this scene (it thinned from Region 4 on while he drew it), so the line says what the map
+    shows and rule 10 holds. `noonBoss2`'s hint goes to Neve, not Pip (after "Hello, Ambrose" Pip is silent until the
+    last phase: "Steady, Rowan. I'm still here."). Pip's "Maps never sleep" is replaced, not cut. Kept: Rowan's "Then
+    we'll give them one to greet." and "Then we go out to it." (the others are varied). Sprocket's kind was "Clockwork"
+    (the editor found it fine); it is "Wind-up toy" so the old premise's word is gone from player text. Brann writes on
+    a slate (`(writes on a slate)` in his arrival, `(writes)` in banter) until Region 9. The refrain "There. Better."
+    is used twice (the Boar King's first edit, the Lighthouse's first), never more than once a region.
+S11. **Region 5's scenes fit its data as built.** The Noon Sphinx speaks (speaker `sphinx`, a portrait needed): her
+    riddle's answer is a shadow, and a traveler with no shadow is a mirage to her, which is why she fights. The Brass
+    Lion doesn't speak (the Dawn Order's lion that roared the sun up). `story-noon-minis.ts` is empty; its
+    placeholders are written into `story-noon.ts`. Each phase hint names the rule it brings (the glare's blazing
+    yellows and the green that cools; the sun drawn down's outlines).
+
 (story: end of section)
 
 

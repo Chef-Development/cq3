@@ -203,6 +203,8 @@ export type Speaker =
   // Region 4's speakers (src/data/story-dusk.ts; portraits: Team 3)
   | 'bellybog'
   | 'sluiceKeeper'
+  // Region 5's (src/data/story-noon.ts; portrait: the art for its mini-boss)
+  | 'sphinx'
   | 'captain'
   | 'golem'
   | 'boarking'
