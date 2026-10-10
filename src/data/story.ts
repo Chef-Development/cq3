@@ -21,6 +21,7 @@ export const SPEAKER_NAME: Record<Speaker, string> = {
   squall: 'Squall',
   press: 'The Press',
   gale: 'Gale',
+  ambrose: 'Ambrose',
   captain: 'Bandit Captain',
   golem: 'Ruin Golem',
   boarking: 'Boar King',

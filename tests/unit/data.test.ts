@@ -16,6 +16,7 @@ import { REACH_STORY } from '../../src/data/story-reach';
 import { WICK_STORY } from '../../src/data/story-wick';
 import { SALT_STORY } from '../../src/data/story-salt';
 import { FAR_STORY } from '../../src/data/story-far';
+import { END_STORY } from '../../src/data/story-end';
 import { BANTER, HERO_BANTER, type CampSpeaker } from '../../src/data/banter';
 import { HEROES } from '../../src/data/heroes';
 import { TIER_INFO } from '../../src/data/rarity';
@@ -174,8 +175,12 @@ describe('story', () => {
     for (const id of ['kestrel2', 'kestrel3', 'mender2', 'mender3']) expect({ ...REACH_STORY, ...WICK_STORY }[id].some((b) => b.who === 'mapmaker'), id).toBe(true);
     for (const id of ['salt1', 'saltworks', 'saltCamp', 'salt2', 'gale', 'salt3', 'brine', 'brine2', 'brine3', 'saltVictory']) expect(SALT_STORY[id], id).toBeDefined();
     for (const id of ['farVictory', 'hallWakes']) expect(FAR_STORY[id], id).toBeDefined();
-    const drafts = [NOON_STORY, HUSH_STORY, REACH_STORY, WICK_STORY, SALT_STORY, FAR_STORY];
-    for (const [id, boxes] of Object.entries({ ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY })) {
+    // the end: he is named only once, at the end of lowTruth (the first 'ambrose' box), and never before it
+    const named = END_STORY.lowTruth;
+    expect(named[named.length - 1]).toEqual({ who: 'ambrose', text: '...Rowan.' });
+    for (const [id, boxes] of Object.entries({ ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY })) for (const b of boxes) expect(b.who, id).not.toBe('ambrose');
+    const drafts = [NOON_STORY, HUSH_STORY, REACH_STORY, WICK_STORY, SALT_STORY, FAR_STORY, END_STORY];
+    for (const [id, boxes] of Object.entries({ ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY, ...END_STORY })) {
       expect(!(id in STORY) || STORY[id] === boxes, id).toBe(true);
       expect(drafts.filter((d) => id in d).length, `${id}: one region's id`).toBe(1);
       for (const b of boxes) if (b.who === 'mapmaker') expect(b.text, id).not.toMatch(/\bRowan\b/);
@@ -190,7 +195,7 @@ describe('story', () => {
   });
 
   it("keeps the Mapmaker's and the High Keeper's voices: no contractions (docs/story-bible.md, Voices)", () => {
-    const all = { ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY };
+    const all = { ...STORY, ...DUSK_STORY, ...NOON_STORY, ...HUSH_STORY, ...REACH_STORY, ...WICK_STORY, ...SALT_STORY, ...FAR_STORY, ...END_STORY };
     for (const [id, boxes] of Object.entries(all)) {
       for (const b of boxes) if (b.who === 'mapmaker' || b.who === 'keeper') expect(b.text, `${id}: ${b.text}`).not.toMatch(/\b(it|that|he|she|there|what|who|here|let)'s\b|n't\b|'(re|ll|ve|d|m)\b/i); // a possessive is fine
     }

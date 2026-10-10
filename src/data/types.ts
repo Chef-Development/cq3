@@ -215,6 +215,8 @@ export type Speaker =
   | 'press'
   // Region 9's, drafted ahead (src/data/story-salt.ts)
   | 'gale'
+  // the Mapmaker under his own name, from the late beat on (src/data/story-end.ts)
+  | 'ambrose'
   | 'captain'
   | 'golem'
   | 'boarking'

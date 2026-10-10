@@ -294,7 +294,7 @@ Then the beat, in as few words as it takes:
 
 ---
 
-### Draft script: the beat (for review; boxes as the game shows them, `/` = the line break)
+### Draft script: the beat (for review; in code as `src/data/story-end.ts`, which wins if the two differ; `/` = the line break)
 Three short scenes after the Flood's last phase, played back to back. From the second, his plate reads "Ambrose"
 (a new speaker `ambrose`, the Mapmaker's portrait) and his composure breaks: contractions allowed from here on.
 - `floodEnd`: narrator "The levee gives. The river goes down to its / bed, and is only a river again." · narrator "He
@@ -331,7 +331,7 @@ branch above them. The Atlas keeps its one hole, and nobody patches it.
 
 ---
 
-### Draft script: the ending (for review)
+### Draft script: the ending (for review; in code as `src/data/story-end.ts`, with the Margin's `fairKnight`)
 - `marginEnd` (after the Fair Knight fades): narrator "The Fair Knight fades mid-stroke, like breath / on glass.
   Ambrose stands at his table." · narrator "One line would finish the Fair Copy. / The ink is on his nib." · narrator
   "Rowan doesn't fight him for the pen. He sits / down beside the table, and waits." · ambrose "...There's no lake in
