@@ -176,9 +176,9 @@ The user playtests on an iPhone 16 Pro and does not read long output; a separate
   Duskmire 9-11; each region's data in its own files: `frostpeaks.ts` + `enemies-frost.ts`, `ashfell.ts` +
   `enemies-ash.ts`, `story-ash.ts`, `relics-ash.ts`, `gear-ash.ts`, `banter-ash.ts`, and the `-dusk` set likewise
   (`duskmire.ts`, `relic-fx-dusk.ts`...), merged into the game's tables; a region whose art hasn't landed yet fights in
-  stand-in sprites, `view/fighters.ts` `SPRITE_STAND_IN`, on earlier themes, `DUSK_STAND_IN`; Noonspire, acts 12-14, is
-  wired behind `src/data/flags.ts` `NOON_ON`: off in the game and the unit tests, `CQ3_REGION5=1` turns it on for the
-  balance tools); the run walks
+  stand-in sprites, `view/fighters.ts` `SPRITE_STAND_IN`, on earlier themes, `DUSK_STAND_IN`; Noonspire, acts 12-14 (the
+  `-noon` set; mirages and heat, `bar.mirage`/`bar.heat`), is in play: `src/data/flags.ts` `NOON_ON`, on unless
+  `CQ3_REGION5=0`); the run walks
   `CAMPAIGN` and a region's last act ends in its own victory scene (`profile.weights` = regions won). A region starts a
   fresh run (relic picks only for acts behind within the region). An act's **bar rules** (`acts[i].bar`, introduced
   from a map row: ice and snow patches that change the cursor's speed, hold blocks; drifting blocks (`b.vel` on a
