@@ -1432,6 +1432,25 @@ C16. **Tess's and Vesper's gaps in the fourth region aren't a rule meeting their
   region packs (`loadChestHd`); `ChestOpening.view` reads 'old' in the moment before it's in and `__cq3.ready` waits
   for it, so the reveal and the tests behave as before. The chest-hd spec's side-by-side screenshot fails on the run
   branch's own code too (the old reveal's sparkles land elsewhere: a stale baseline for the lead to regenerate).
+- **Q17 An event's outcome shows each change where it lands**: a chip per change (HP, max HP, coins, Attack, Companion
+  Power) under the outcome's text, each with its number rising off it (`view/nodes.ts`; the chips are tall enough
+  for the heart icon).
+- **Q18 Fight text gets lanes** (review 2's top findings; `view/num-lanes.ts`, pure, unit-tested). Every damage number
+  and short word over the stage (`fx.num`, which `floatNum` now is) takes the free box nearest where it wants to be
+  (up first, then aside, then down) that no live number, shout or finisher name holds and the HUD keeps (`hud.keepOut()`:
+  the plates, the act plate and wave pips, the relic belt, the name lane, the combo counter; nothing floats above
+  y 30); numbers rise 10 px at a steady pace instead of the old arc, so the box they hold is known. A finisher's blows
+  are summed into one number above the foes' heads (what each foe really took, from the batch's enemyHurt events),
+  counting up a step per foe hit with a swell each (no more "36?367"). A foe's special name (`fx.shout`) gets its
+  own box on a dark plate, clear of the plates and pips and of other shouts (aside first), numbers already there fade
+  out and none enter it while it's up; a foe's new shout replaces its last. The finisher's name is bold 2 (1 when
+  over 200 px), pale gold, the stacks a small "x3" tag after it, over the foes and under the plates; the name lane
+  holds its perk names while it's up. The judgement word steps right of the combo counter; "Combo 25!" stamps above
+  the counter, not on it.
+- **Q19 HP readouts read**: the gauge skips its notches and end cap under the readout and puts a dark inset behind it
+  (`GaugeOpts.label`); a foe plate keeps one format the whole fight, chosen by its max HP (`foeHpText`: "71/90", or
+  both halves in thousands, "7.7k/12.3k"). In a scene during a fight (a boss's phase line) Skip rests on the dialogue
+  box's top edge at the end away from the portrait, never on the foe's plate.
 (qa: end of section)
 
 
