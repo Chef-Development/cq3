@@ -223,3 +223,5 @@ One PR at the end supersedes #1-#7.
   first finisher's reveal clean; tips moved off the first pick's second card, the event's first choice and the trader's
   wares; the Edits screen's riddles fixed). Boot-checked, pushed. First10's last chunk (04:00): the pick tip beside the
   cards, the level-up ribbon off the HP plate.
+- 03:11 EDT: content's C20 merged (Vesper: more HP or longer pins don't close her boss-act gaps; her numbers left);
+  a last probe of her style's parts until 03:50.
