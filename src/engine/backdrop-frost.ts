@@ -907,8 +907,10 @@ function glacier(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
   // the wyrm's hoard on the horizon: a hill of gold under a skin of ice, a crown and a goblet on top, glinting
   const hx = Math.round(w * 0.165);
   const hb = G - 21;
-  const goldR = haze(ramp('#3a1e14', '#6a3a16', '#a2641a', '#d89a26', '#f6cc4a', '#fff0a0'), hz, 0.12);
-  torchLight(p, hx + 0.5, hb - 6, 30, 15, col('#ffa040'), 0.14);
+  // (A2C-17, the review: the brightest warm thing on a cold stage, at foe height, it read as an actor) the hoard sits
+  // back in the blue haze, a dull far gold with a few glints, not a lit shape
+  const goldR = haze(ramp('#3a1e14', '#6a3a16', '#a2641a', '#d89a26', '#f6cc4a', '#fff0a0'), hz, 0.42);
+  torchLight(p, hx + 0.5, hb - 6, 30, 15, col('#ffa040'), 0.04);
   for (let y = hb - 10; y <= hb; y++)
     for (let x = hx - 18; x <= hx + 18; x++) {
       const dx = (x + 0.5 - hx) / 18;
@@ -917,12 +919,12 @@ function glacier(w: number, h: number, G: number): [Pix, Pix, Backdrop] {
       let v = 0.3 + 0.6 * lambert(dx * 0.9, dy * 1.4);
       if ((x + (y % 2) * 2) % 4 === 0 && hash(x, y, 79) > 0.4) v += 0.18; // coins
       const iced = y > hb - 4 + Math.sin(x * 0.4) * 1.5; // the ice has crept over its foot
-      p.set(x, y, iced ? pick(farIce, 0.5 + v * 0.3, x, y) : pick(haze(goldR, hz, 0.15), v, x, y));
+      p.set(x, y, iced ? pick(farIce, 0.5 + v * 0.3, x, y) : pick(haze(goldR, hz, 0.2), v * 0.8, x, y));
     }
   bitsAt(p, ['g.g.g', 'gGgGg', 'yyyyy'], { g: goldR[4], G: goldR[5], y: goldR[2] }, hx - 7, hb - 13);
   bitsAt(p, ['GgG', 'yGy', '.g.', 'ggy'], { g: goldR[4], G: goldR[5], y: goldR[2] }, hx + 4, hb - 13);
   bitsAt(p, ['.s', 's.', 'y.'], { s: col('#c8d4e8'), y: goldR[3] }, hx + 11, hb - 12);
-  for (let i = 0; i < 8; i++) glints.push({ x: hx - 13 + Math.floor(hash(i, 1, 81) * 26), y: hb - 3 - Math.floor(hash(i, 2, 81) * 6), c: 0xfff4b0 });
+  for (let i = 0; i < 4; i++) glints.push({ x: hx - 13 + Math.floor(hash(i, 1, 81) * 26), y: hb - 3 - Math.floor(hash(i, 2, 81) * 6), c: 0xfff4b0 });
   // spindrift haze along the glacier's far edge
   for (let y = G - 28; y < G - 14; y++)
     for (let x = 0; x < w; x++) {
