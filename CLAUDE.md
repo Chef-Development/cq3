@@ -484,6 +484,18 @@ scripts/       make-icons.mjs, sw-template.js (service worker, precache list inj
 tests/perf/    perf.mjs: load and frame times at CPU 4x + Fast 4G over CDP, run by hand (docs/perf.md)
 ```
 
+Round 8 added (beside the map above): the later regions' sets `-dusk` (Region 4) and `-noon` (Region 5) in data/, core
+(`relic-fx-noon.ts`) and engine (`art-dusk.ts`/`art-noon.ts`, `backdrop-dusk.ts`/`backdrop-noon.ts`, `pack-dusk.ts`/
+`pack-noon.ts`, `view/bar-dusk.ts`/`bar-noon.ts` their bar rules' looks, `art-relics-noon.ts`); the story's drafts of
+Regions 6-12 and the ending (`story-salt.ts`, `story-reach.ts`, `story-wick.ts`, `story-hush.ts`, `story-far.ts`,
+`story-end.ts`, `banter-isles.ts`: data only, not in play), `banter-story.ts`, `atlas-pages.ts` (a lore page per act,
+in its hidden treasure); New Game+ (`remixes.ts`, `enemies-remix.ts`) and the Mapmaker's Edits (`data/edits.ts`,
+`view/edits.ts`); `art-mood.ts` (the mood grade baked into each stage's pixels), `art-title-key.ts` + `art-title.ts`
+(the title's key art and the logo from `GAME_NAME`), `art-portraits-atlas.ts`, `art-skill-emblems.ts` (skill nodes
+without a painted icon), `hd-canvas.ts` (the fine layer's canvas, shared by the sharper reveal and the sharper text),
+`view/story-stage.ts` (scenes staged from their speakers), `view/num-lanes.ts` (pure: every floating number and shout
+gets a free spot), `view/finisher-reveal.ts` (the first finisher's moment).
+
 ## Commands
 
 ```
