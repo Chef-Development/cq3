@@ -158,6 +158,13 @@ test('the first 10 minutes: a newcomer from New game to the first chest (beats t
             setTimeout(() => (S.reveal = { active: !!view.reveal?.active, held: x.holdUntil > P.now() }), 300);
           }
           if (e.type === 'kill') beat('firstKill');
+          // the first boss's arc: its first special, then its HP at a half and at a fifth
+          const boss = x.run.node?.type === 'boss' ? x.run.combat?.enemies.find((q: Any) => q.alive) : null;
+          if (boss) {
+            if (e.type === 'telegraph') beat('bossSpecial', boss.key);
+            if (boss.hp < boss.maxHp * 0.5) beat('bossHalf', `${Math.round(boss.hp)} of ${boss.maxHp}`);
+            if (boss.hp < boss.maxHp * 0.2) beat('bossLow', `${Math.round(boss.hp)} of ${boss.maxHp}`);
+          }
         }
         return onEvents(events);
       };
