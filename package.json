@@ -22,7 +22,8 @@
     "campaign": "vitest run --config vitest.balance.config.ts tests/balance/campaign.run.ts",
     "region-tune": "vitest run --config vitest.balance.config.ts tests/balance/region-tune.run.ts",
     "spam": "vitest run --config vitest.balance.config.ts tests/balance/spam.run.ts",
-    "crawl": "vitest run --config vitest.balance.config.ts tests/balance/crawl.run.ts"
+    "crawl": "vitest run --config vitest.balance.config.ts tests/balance/crawl.run.ts",
+    "boot-check": "node scripts/boot-check.mjs"
   },
   "dependencies": {
     "phaser": "^4.2.1"

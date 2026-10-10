@@ -11,6 +11,11 @@ import { textWidth } from '../font';
 import { band, button3d, chevron, GOLD, NAVY, panel, rows } from './pixels';
 import { clamp01, easeBack, inRect, INK, mix, WHITE, type Rect } from './shared';
 import { FACE, isPressed, notePress, ribbon, RIBBON, TextPool } from './ui';
+import { bigFits } from '../../core/a11y';
+import { A11Y } from '../a11y';
+
+/** The story text's width every box's lines fit (tests/unit/data.test.ts STORY_TEXT_W). */
+const STORY_TEXT_W = 256;
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -198,15 +203,16 @@ export class StoryView {
       this.texts.text(name, ncx, by - 0.5, look.name, { bold: true, ox: 0.5, oy: 0.5 });
     }
 
-    // the text types itself out, with a caret at the end
+    // the text types itself out, with a caret at the end (larger text: the bold letters, when the box's lines fit)
+    const big = A11Y.big && bigFits(box.text.split('\n'), STORY_TEXT_W, (l, b) => textWidth(l, 1, b));
     let left2 = this.typed(now);
     let caret: { x: number; y: number } | null = null;
     box.text.split('\n').forEach((line, i) => {
       const shown = line.slice(0, Math.max(0, left2));
       left2 -= line.length + 1;
       const ty = by + 15 + i * 11;
-      if (shown.length) this.texts.text(shown, bx + 9, ty, WHITE, { oy: 0.5 });
-      if (typing && shown.length < line.length && !caret) caret = { x: bx + 9 + (shown.length ? textWidth(shown, 1, false) : 1), y: ty };
+      if (shown.length) this.texts.text(shown, bx + 9, ty, WHITE, { oy: 0.5, bold: big });
+      if (typing && shown.length < line.length && !caret) caret = { x: bx + 9 + (shown.length ? textWidth(shown, 1, big) : 1), y: ty };
     });
     const cr = caret as { x: number; y: number } | null;
     if (cr && Math.floor(now / 200) % 2 === 0) {

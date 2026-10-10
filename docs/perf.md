@@ -137,9 +137,12 @@ boot. Each later region's art is a **pack**, a chunk of its own (`src/engine/reg
 
 Not split yet (next, in order of payoff): the later regions' **music** (about 40% of `music.ts`, ~28 KB raw: a pack
 could register its songs into `SONGS`, the cue falling back to the act's calm theme until it's in; music.ts is being
-extended for the new regions tonight, so moving 800 lines would collide), the **sharper chest reveal** (`chest-hd.ts`,
-`art-chests-hd.ts`, `art-reveal-hd.ts`: ~50 KB raw, off by default, but drawn into from every frame of a chest
-opening: six call sites to guard), the **Test lab** list (~30 KB).
+extended for the new regions tonight, so moving 800 lines would collide), the **Test lab** list (~30 KB).
+
+**The sharper chest reveal** (round 8, chunk 3) is a chunk of its own now: `chest-hd.ts` and `art-chests-hd.ts`
+(38 KB, 16 KB gzip) download beside the boot like the region packs (`loadChestHd` in main.ts; `__cq3.ready` waits for
+them; `ChestOpening.view` reads 'old' in the moment before they're in; `REVEAL_STAR_AT` lives in chest-opening.ts so
+nothing in the main chunk imports chest-hd.ts). The main chunk: 2205 -> 2169 KB, 771 -> 756 KB gzip.
 
 ### Measured (CPU 4x, Fast 4G, median of 3; the machine at load 12-15 on 4 CPUs: expect 15-20% noise)
 

@@ -16,6 +16,7 @@ import { GAME_H, GAME_W } from '../layout';
 import { GOLD, NAVY, panel } from './pixels';
 import { clamp01, COL, easeBack, INK, mix, pulse, WHITE, type Rect } from './shared';
 import { tag, TextPool } from './ui';
+import { A11Y } from '../a11y';
 
 type G = Phaser.GameObjects.Graphics;
 type Dir = 'up' | 'down' | 'left' | 'right';
@@ -392,8 +393,11 @@ export class TipsView {
     const tipW = textWidth('TIP', 1, true) + 10;
     const hintW = textWidth(HINT, 1, false) + 10;
     // the panel: the lines with a margin, and room for the TIP tab (top left) and the hint tab (bottom right)
-    const w = Math.max(...lines.map((l) => textWidth(l, 1, false)), tipW + hintW - 4) + 16;
-    const h = 12 + lines.length * 10;
+    // (larger text: the bold letters on an 11 px pitch; the card grows to hold them)
+    const big = A11Y.big;
+    const pitch = big ? 11 : 10;
+    const w = Math.max(...lines.map((l) => textWidth(l, 1, big)), tipW + hintW - 4) + 16;
+    const h = 12 + lines.length * pitch;
     const a = this.anchorRect(cue, def.anchor);
     const box = this.place(w, h + 12, a);
     const r: Rect = { x: box.r.x, y: box.r.y + 6, w, h };
@@ -418,7 +422,7 @@ export class TipsView {
     const tr: Rect = { x: r.x + 7, y: r.y - 6, w: tipW, h: 11 };
     tag(g, tr, [GOLD[4], GOLD[3], GOLD[2], GOLD[1]]);
     this.texts.text('TIP', tr.x + tipW / 2, tr.y + 5.5, 0x3a1e08, { bold: true, ox: 0.5, oy: 0.5 });
-    lines.forEach((line, i) => this.line(line, r.x + 8, r.y + 11 + i * 10));
+    lines.forEach((line, i) => this.line(line, r.x + 8, r.y + 11 + i * pitch, big));
     const hr: Rect = { x: r.x + w - 7 - hintW, y: r.y + h - 5, w: hintW, h: 11 };
     tag(g, hr, [NAVY[6], NAVY[4], NAVY[3], NAVY[1]]);
     const live = since > DISMISS_MS;
@@ -426,7 +430,7 @@ export class TipsView {
   }
 
   /** One line of the card, its colour words lit (each part drawn where it falls in the whole line). */
-  private line(text: string, x: number, y: number): void {
+  private line(text: string, x: number, y: number, big = false): void {
     const parts: Array<{ t: string; col: number }> = [];
     let rest = text;
     while (rest.length) {
@@ -446,8 +450,8 @@ export class TipsView {
     let cx = x;
     for (const p of parts) {
       // a leading or trailing space has no ink: measure it as part of the text before it
-      if (p.t.trim().length) this.texts.text(p.t, cx, y, p.col, { oy: 0.5 });
-      cx += textWidth(p.t, 1, false) - 1;
+      if (p.t.trim().length) this.texts.text(p.t, cx, y, p.col, { oy: 0.5, bold: big });
+      cx += textWidth(p.t, 1, big) - 1;
     }
   }
 

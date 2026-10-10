@@ -1247,6 +1247,29 @@ C12. **The region card's tabs fall back to short names** (Green, Frost, Ash, Dus
   damage numbers pop just under it and settle (cascading down, not up) until the shout is gone (`view/fighters.ts`).
   The vault said "No chests yet" after the first chest was opened: once any has been opened it says "No chests
   waiting" (`view/chests.ts`).
+- **Q12 Smoke tests that grow with the content.** The intro test clicked ~110 Sound lab buttons one Playwright click at
+  a time and passed its 150 s; it now clicks three for real and plays every one in the page, a beat apart (57 s). The
+  every-enemy walk is one test per region (each about a minute; regions not in play skip; a region past six fails).
+- **Q13 Accessibility.** Block marks on by default (one small chevron on a plain red: the only kind told from a yellow
+  by colour alone; every other kind has a glyph or a shape) and Motion Auto/Less/Full (Less: no shake, kick or white
+  frames, shorter flashes; Auto follows the device). Their own storage key, kept through a New game. **Larger text**
+  (off by default): the pixel fonts scale only in whole steps (2x would need four lines in a two-line box), so it uses
+  the bold display letters (caps 7 px, not 5), which the story's 11 px pitch holds: a story box takes them when all its
+  lines fit the 256 px text area in them (258 of 274 boxes; the other 16 keep the small letters), and the tip card
+  grows to hold them. A third line or paging for the rest is the story view's owners' call.
+- **Q14 The boot check in the repo** (`scripts/boot-check.mjs`, `npm run boot-check -- <port>`): proposed as a CI
+  step after the build (the deploy workflow: install Chromium, preview, run it; about a minute) so a boot crash never
+  reaches the live build; a jsdom version in `npm test` can't paint (no canvas or WebGL).
+- **Q15 The UI crawl, part 2.** New game through Act 3 (871 s of real play with fast taps and tips on, two defeats
+  retried), every camp screen, the world map (each cleared act's card, the region chip and its picker, a drag) and
+  all 105 Test lab scenarios (spoilers included): no page or console error, no long decimal, no foe without a map
+  sprite, no missing texture, no stuck screen, no HTML text wider than its box. Its text-past-the-edge check now counts
+  only text partly on screen (bars and plates park wholly off screen between their slide-ins; the world map's land
+  names are cut by the edge on purpose as it pans).
+- **Q16 The sharper chest reveal is a chunk of its own** (38 KB, 16 KB gzip), downloaded beside the boot like the
+  region packs (`loadChestHd`); `ChestOpening.view` reads 'old' in the moment before it's in and `__cq3.ready` waits
+  for it, so the reveal and the tests behave as before. The chest-hd spec's side-by-side screenshot fails on the run
+  branch's own code too (the old reveal's sparkles land elsewhere: a stale baseline for the lead to regenerate).
 (qa: end of section)
 
 

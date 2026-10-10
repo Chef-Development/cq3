@@ -27,7 +27,7 @@ import { HERO_FEET_X } from '../art';
 import { BIG_CHEST } from '../art-chests';
 import { textWidth } from '../font';
 import { D, familyChipW, GOLD_TXT, type CampKit } from './camp-kit';
-import { ChestHd, REVEAL_STAR_AT, type HdScene } from './chest-hd';
+import type { ChestHd, HdScene } from './chest-hd';
 import { loadChestReveal } from '../storage';
 import type { HdLayerRect } from '../hd-layer';
 import { star } from './loot';
@@ -176,6 +176,22 @@ const DD = {
  * default), the sharper test on a finer grid ('hd', chest-hd.ts; the 'cq3.chestReveal' setting), or both side by
  * side ('split': the Test lab's compare, old in the left half, new in the right).
  */
+/** The sharper reveal's chunk (chest-hd.ts: only ever imported here, with import()): main.ts asks for it beside the
+ *  boot, like the region art packs, and `__cq3.ready` waits for it (a test opens chests exactly as before). */
+let hdModule: typeof import('./chest-hd') | null = null;
+let hdLoading: Promise<void> | null = null;
+export function loadChestHd(): Promise<void> {
+  hdLoading ??= import('./chest-hd').then(
+    (m) => void (hdModule = m),
+    () => void (hdLoading = null), // (a dropped connection: asked again next time)
+  );
+  return hdLoading;
+}
+export const chestHdLoaded = (): boolean => hdModule !== null;
+
+/** The shards' star pops this long after the reveal (both reveals: chest-hd.ts reads it from here). */
+export const REVEAL_STAR_AT = 1000;
+
 export type RevealView = 'old' | 'hd' | 'split';
 
 /** What the Test lab draws over the reveal on the fine layer (its buttons), and whether a tap was its. */
@@ -206,16 +222,32 @@ export class ChestOpening {
   private rng: Rng | null = null;
   /** The Test lab's demo: the opened chests are made up, nothing is granted. */
   private demoMode = false;
-  /** The sharper reveal (its own canvas over the game's), the reveal on screen, the lab's buttons over it. */
-  private readonly hd: ChestHd;
-  view: RevealView = loadChestReveal();
+  /** The sharper reveal (its own canvas over the game's), the reveal on screen, the lab's buttons over it: a chunk of
+   *  its own (chest-hd.ts, loaded beside the boot: loadChestHd), made the first time it's asked for once it's in. */
+  private hdMade: ChestHd | null = null;
+  private viewSet: RevealView = loadChestReveal();
   extra: RevealExtra | null = null;
   /** The lab's compare loops its chests with no summary. */
   private noSummary = false;
 
   constructor(private readonly kit: CampKit) {
     this.imgs = new FxImages(kit.s);
-    this.hd = new ChestHd(kit);
+  }
+
+  /** The sharper reveal, once its chunk is in. */
+  private get hd(): ChestHd | null {
+    if (!this.hdMade && hdModule) this.hdMade = new hdModule.ChestHd(this.kit);
+    return this.hdMade;
+  }
+
+  /** The reveal on screen: the one asked for (the old one in the moment before the sharper one's chunk is in). */
+  get view(): RevealView {
+    return hdModule ? this.viewSet : 'old';
+  }
+
+  set view(v: RevealView) {
+    this.viewSet = v;
+    if (v !== 'old') void loadChestHd();
   }
 
   /** The reveal the setting picks (the lab's compare is over). */
@@ -395,7 +427,7 @@ export class ChestOpening {
     }
     const t = tierIndex(item.prize.tier);
     this.cur = { item, t, tl: timeline(t), at: now, skip: 0, fired: 0, shakes: [], spin: this.opened.length % 2 ? -1 : 1, starPopped: false, outAt: 0 };
-    if (this.view !== 'old' || this.extra) this.hd.prepare(item.kind, item.prize.tier);
+    if (this.view !== 'old' || this.extra) this.hd?.prepare(item.kind, item.prize.tier);
     this.opened.push(item);
     this.kit.app.audio.whoosh();
   }
@@ -440,7 +472,7 @@ export class ChestOpening {
   hide(): void {
     this.imgs.begin();
     this.imgs.end();
-    this.hd.hide();
+    this.hd?.hide();
   }
 
   // ------------------------------------------------------------------ events
@@ -540,8 +572,8 @@ export class ChestOpening {
     if (this.summary && this.summary.outAt && now - this.summary.outAt >= 200) this.finish();
     if (!this.active) {
       this.imgs.end();
-      if (this.view !== 'old') this.hd.warmChests();
-      this.hd.frame(null, this.extraDraw(now));
+      if (this.view !== 'old') this.hd?.warmChests();
+      this.hd?.frame(null, this.extraDraw(now));
       // the arrival scenes of the chest heroes met, one after another
       const app = kit.app;
       if (this.scenes.length && !app.storyOverlay) {
@@ -572,7 +604,7 @@ export class ChestOpening {
       const sm = this.summary;
       sc = { now, veil: k * (1 - out), run: null, cx: this.hdCentre(), clip: null, opaque: false, summary: { items: sm.items, at: sm.at, outAt: sm.outAt, title: this.demoMode ? 'Demo' : 'Opened' } };
     }
-    this.hd.frame(sc, this.extraDraw(now));
+    this.hd?.frame(sc, this.extraDraw(now));
     this.imgs.end();
   }
 
