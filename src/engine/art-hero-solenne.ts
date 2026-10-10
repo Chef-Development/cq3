@@ -41,7 +41,7 @@ export const SOLENNE_SHADES: Record<string, Shade> = {
 // A cropped crop of silver-white hair swept back, a gold circlet over the brow with a sun-stone at the front, warm
 // brown skin, amber eyes under a level brow.
 // (playtest round 8, L8, by hand: white hair under the gold circlet, level brows over one dark iris each, a long
-// straight nose and a firm jaw: a knight, not a girl) 16 x 11.
+// straight nose and a firm jaw: a knight, not a girl)
 const HEAD = [
   '..hh.hhhh.....',
   'hhLLhhLhhhhh..',
