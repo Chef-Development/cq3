@@ -55,8 +55,8 @@ const RELIC_ICONS: Record<string, string[]> = {
   // a castle standing in the air over the dunes, the haze under it
   fataMorgana: ['.T.T..T.T.', '.TTT..TTT.', '.TCTTTTCT.', '.TTTkkTTT.', '..t.t.t.t.', '.t.t.t.t..', '..........', '....33....', '..334443..', '3344444433'],
   // ---------------------------------------------------------------- Heat
-  // a parasol and the cool pool of shade under it
-  sunshade: ['...oOOo...', '..oOpOpo..', '.oOpOpOpo.', '..o..h..o.', '.....h....', '.....h....', '.....h....', '.....h....', '..AAAhAA..', '.AAAAAAAA.'],
+  // a parasol, flat and scalloped, on a slanting pole with a crook (it read as a mushroom), its cool shade below
+  sunshade: ['..oOOOo...', '.oOpOpOo..', 'oOpOpOpOo.', 'o.o.o.o.o.', '....h.....', '.....h....', '......h...', '......h.h.', '.AAAAA.hh.', 'AAAAAAA...'],
   // a drop of spring water over its pool, a green heal
   coolSpring: ['...s....E.', '..sDs..EfE', '..sDs...E.', '.sDDDs....', '.DDsDD....', '..ADA.....', '..........', '..s.DD.s..', '.ADDDDDDA.', '..AAAAAA..'],
   // a flame on crossed sticks, the meter's spark

@@ -1396,6 +1396,12 @@ C-ART-12. **Checked at phone size with Region 5 on: its relic pick and its regio
     hero, lit from her left with the far side in the headdress's shadow, the jaw tapering, fangs when she speaks or
     strikes (her portrait is the Atlas's, unchanged).
 
+C-ART-13. **The shop is a place too** (backlog "art polish on the weakest screens", after 2A's stops): the act's stage
+    in view with its edges in shadow, the stall (the map's, at 3x) in a lantern's pool on the left, the wares on glass
+    as tall as their rows; the stage's hero and party step aside as at the trader. The shop's focal column (trader or
+    stall) sits 8 px further left than an event's so the plate keeps the width a relic's one line of text needs (at
+    the event's width most relics showed only "Tap to read"). The Sunshade icon is a parasol with a crook now.
+
 (content: end of section)
 
 
