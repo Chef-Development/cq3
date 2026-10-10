@@ -641,6 +641,11 @@ export const DEFAULT_TUNING = {
     emberDrift: 0.2, // Emberwright 2-piece: hits on drifting blocks deal this much more...
     emberHeal: 0.02, // ...4-piece: a finished pair heals this share of max HP
     bellowsMeter: 2, // Bellows Heart: drifting blocks you hit fill this much meter
+    lampDark: 0.2, // the Lamplighter's set, 2 pieces: hits on dark blocks deal this much more...
+    lampHeal: 0.02, // ...4 pieces: blocking a red in the water heals this share of max HP
+    sunlamp: 0.5, // Sunlamp: the light reaches this much further
+    riptide: 3, // Breaker's Edge: blocks just up out of the water take this many times the damage...
+    riptideSec: 1.5, // ...for this many seconds after they come up
     // Divine auras
     radiance: 0.1, // Radiance: foes take this much more damage
     sanctuarySec: 4, // Sanctuary: every this many seconds...
@@ -1298,6 +1303,11 @@ export function sliderGroups(t: Tuning): SliderGroup[] {
       s('effects.emberDrift', 'Emberwright 2: drift damage', 0, 1, 0.05),
       s('effects.emberHeal', 'Emberwright 4: pair heals', 0, 0.2, 0.005),
       s('effects.bellowsMeter', 'Bellows Heart: drift meter x', 1, 4, 0.1),
+      s('effects.lampDark', 'Lamplighter 2: dark damage +', 0, 1, 0.05),
+      s('effects.lampHeal', 'Lamplighter 4: water block heals', 0, 0.2, 0.005),
+      s('effects.sunlamp', 'Sunlamp: light reach +', 0, 2, 0.05),
+      s('effects.riptide', "Breaker's Edge: surfaced x", 1, 5, 0.1),
+      s('effects.riptideSec', "Breaker's Edge: window (s)", 0.2, 4, 0.1),
       s('effects.radiance', 'Aura Radiance: foes take +', 0, 1, 0.01),
       s('effects.sanctuarySec', 'Aura Sanctuary: every (s)', 1, 20, 0.5),
       s('effects.sanctuaryHeal', 'Aura Sanctuary: heals', 0, 0.1, 0.005),
