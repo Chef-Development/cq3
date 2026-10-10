@@ -634,6 +634,18 @@ export interface StripRow {
 /** A strip's paging arrow: as tall as a tab. */
 export const STRIP_ARROW_W = 9;
 
+/** The first tab of a strip's window of `k` tabs (of `n`): it moves only to bring `sel` into view when `sel` changed
+ *  since the last call (paging by the arrows leaves it alone), and never past either end. Pure. */
+export function stripWindow(n: number, k: number, sel: number, page: StripPage): number {
+  if (page.sel !== sel) {
+    if (sel >= 0 && sel < page.first) page.first = sel;
+    else if (sel >= page.first + k) page.first = sel - k + 1;
+    page.sel = sel;
+  }
+  page.first = Math.max(0, Math.min(n - k, page.first));
+  return page.first;
+}
+
 /** Turn a strip's page by `dir` windows (clamped to the ends). */
 export function pageStrip(page: StripPage, row: StripRow, dir: number): void {
   page.first = Math.max(0, Math.min(row.cells.length - row.k, page.first + dir * row.k));
@@ -1144,12 +1156,7 @@ export class CampKit {
     while (k > 1 && !(rs = this.topRow([A, ...Array(k).fill(13), A], x0, right, 1))) k--;
     rs ??= this.topRow([A, 13, A], x0, 1e9, 1)!;
     k = rs.length - 2;
-    if (page.sel !== sel) {
-      if (sel >= 0 && sel < page.first) page.first = sel;
-      else if (sel >= page.first + k) page.first = sel - k + 1;
-      page.sel = sel;
-    }
-    page.first = Math.max(0, Math.min(n - k, page.first));
+    stripWindow(n, k, sel, page);
     const cells: Array<Rect | null> = Array(n).fill(null);
     for (let i = 0; i < k; i++) cells[page.first + i] = rs[1 + i];
     return { cells, prev: rs[0], next: rs[k + 1], k };
