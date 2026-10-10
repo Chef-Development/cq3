@@ -291,6 +291,7 @@ function wispParts(pose: string): Part[] {
       const along = Math.max(0, ((x - hx) * (tail[0] - hx) + (y - hy) * (tail[1] - hy)) / ((tail[0] - hx) ** 2 + (tail[1] - hy) ** 2));
       let k = d < 0.3 ? 4 : d < 0.55 ? 3 : d < 0.85 ? 2 : 1;
       k = Math.min(k, along > 0.75 ? 1 : along > 0.45 ? 2 : 4);
+      if ((!body(x, y - 1) || !body(x - 1, y)) && along > 0.2) k = Math.min(3, k + 1); // the tail's lit top edge
       if (!body(x, y + 1) || !body(x + 1, y)) k = Math.max(0, Math.min(k, 1)); // the shadow edges (bottom, right)
       pts[T[Math.max(0, k - dim)]].push([x, y]);
     }
