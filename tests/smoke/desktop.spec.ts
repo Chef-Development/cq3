@@ -248,3 +248,51 @@ test('clean capture: C and the gear panel hide the buttons, a long press brings 
   await page.mouse.up();
   await expect(page.locator('#btn-gear')).toBeVisible();
 });
+
+test('desktop: the vault, the region card and build mode by keyboard (chests, seals and spots are on the ring)', async ({ page }) => {
+  await ready(page);
+  const a = app(page);
+  await a((x) => {
+    const p = x.profile;
+    p.actsCleared = 3;
+    p.seen.push('campIntro', 'camp');
+    p.chests = { hero: 1, rare: 0, region: 0 };
+    x.newRun();
+    x.openCamp();
+  });
+  await expect.poll(() => a((x) => x.run.phase)).toBe('camp');
+  for (let i = 0; i < 3; i++) {
+    await page.waitForTimeout(100);
+    await a((x) => x.storySkip());
+  }
+  // Tab until the ring sits on one of the screen's own targets (camp.focusTargets), then Enter
+  const tabTo = async (pick: number): Promise<void> => {
+    const t = (await a((x) => x.view.camp.focusTargets().map((r: Any) => [r.x + r.w / 2, r.y + r.h / 2]))) as number[][];
+    expect(t.length).toBeGreaterThan(pick);
+    let on = false;
+    for (let i = 0; i < 40 && !on; i++) {
+      await page.keyboard.press('Tab');
+      await page.waitForTimeout(50);
+      const r = await ringAt(page);
+      on = !!r && Math.abs(r.x - t[pick][0]) < 3 && Math.abs(r.y - t[pick][1]) < 3;
+    }
+    expect(on).toBe(true);
+    await page.keyboard.press('Enter');
+  };
+  await a((x) => x.view.camp.go('chests', performance.now()));
+  await page.waitForTimeout(700);
+  await tabTo(0); // the hero chest
+  await expect.poll(() => a((x) => x.view.camp.chests.opening.active)).toBe(true);
+  await a((x) => {
+    x.view.camp.chests.opening.cur && (x.view.camp.chests.opening.cur.skip += 1e5);
+    x.view.camp.go('home', performance.now());
+    x.view.camp.go('progress', performance.now());
+  });
+  await page.waitForTimeout(700);
+  await tabTo(0); // a seal: it names itself
+  await expect.poll(() => a((x) => x.view.camp.progress.tipText())).not.toBeNull();
+  await a((x) => x.view.camp.go('upgrades', performance.now()));
+  await page.waitForTimeout(700);
+  await tabTo(0); // a spot: its card opens
+  await expect.poll(() => a((x) => x.view.camp.upgrades.sel)).not.toBeNull();
+});

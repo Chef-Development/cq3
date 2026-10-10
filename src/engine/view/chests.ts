@@ -85,6 +85,12 @@ export class ChestScreen {
     return { x, y, open: { x: x - 30, y: y - BIG_CHEST.h - 4, w: 60, h: BIG_CHEST.h + 16 } };
   }
 
+  /** The keyboard's targets: the three chests (drawn as chests, not buttons); none while one is opening. */
+  focusTargets(): Rect[] {
+    if (this.opening.active) return [];
+    return CHEST_KINDS.map((_, i) => this.slot(i).open);
+  }
+
   /** "Open all" (when more than one chest waits). */
   allRect(): Rect {
     const s = this.kit.s;

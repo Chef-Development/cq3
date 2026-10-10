@@ -183,6 +183,15 @@ export class ProgressScreen {
     });
   }
 
+  /** The keyboard's targets: the seals in view (drawn as seals, not buttons; a tap names the nearest within 8 px).
+   *  None while an Atlas page is open. */
+  focusTargets(): Rect[] {
+    if (this.sheet.open) return [];
+    return this.marks()
+      .filter((m) => m.vis > 0.3)
+      .map((m) => ({ x: Math.round(m.x) - 5, y: Math.round(m.y) - 5, w: 10, h: 10 }));
+  }
+
   /** The marks as drawn (tests: one per counted item; `vis` > 0 when in view). */
   markList(): Array<{ key: CompletionKey; n: number; done: boolean; x: number; y: number; vis: number }> {
     return this.marks().map(({ key, n, done, x, y, vis }) => ({ key, n, done, x, y, vis }));

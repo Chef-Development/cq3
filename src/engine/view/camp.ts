@@ -399,11 +399,14 @@ export class CampView {
 
   /** The keyboard's targets that aren't drawn as buttons (input.ts focusExtras): on the camp home the plates over the
    *  shrine, the chests, the Training Dummy and the companion along (Bag and Forge have their buttons in the band); the
-   *  bag's, the forge's and the relic log's cells. */
+   *  bag's, the forge's and the relic log's cells, the vault's chests, the region card's seals, build mode's spots. */
   focusTargets(): Rect[] {
     if (this.mode === 'bag') return this.bag.focusTargets();
     if (this.mode === 'forge') return this.forge.focusTargets();
     if (this.mode === 'relics') return this.relics.focusTargets();
+    if (this.mode === 'chests') return this.chests.focusTargets();
+    if (this.mode === 'progress') return this.progress.focusTargets();
+    if (this.mode === 'upgrades') return this.upgrades.focusTargets();
     if (this.mode !== 'home') return [];
     return this.plates()
       .filter((pl) => pl.id !== 'bag' && pl.id !== 'forge')

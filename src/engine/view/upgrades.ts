@@ -93,6 +93,18 @@ export class UpgradesScreen {
     return { x: at.x - (w >> 1), y: at.y - h, w, h };
   }
 
+  /** The keyboard's targets: each spot's hammer marker (drawn as a marker, not a button; a built one's object), except
+   *  under the open card. */
+  focusTargets(): Rect[] {
+    const card = this.cardRect();
+    return CAMP_UPGRADE_IDS.map((id) => {
+      // (one built has no marker: its object)
+      if (this.state(id) === 'bought') return this.objectRect(id);
+      const m = this.markerAt(id);
+      return { x: Math.round(m.x) - 7, y: Math.round(m.y) - 7, w: 14, h: 14 };
+    }).filter((r) => !card || r.x + r.w <= card.x || r.x >= card.x + card.w || r.y + r.h <= card.y || r.y >= card.y + card.h);
+  }
+
   /** Where a spot is tapped: its object, and the marker over it. */
   spotRect(id: CampUpgradeId): Rect {
     const r = this.objectRect(id);
