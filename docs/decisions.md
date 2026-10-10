@@ -889,6 +889,25 @@ A2B-8. **The four-frame idle shows on the hero select too** (heroes.ts, at 340 m
     hair lagging the breath read best there. Foes landing from a wave's hops squash wide for 100 ms, and the cinderling
     joins the foes with Ashfell's ember rim (it sank into the plain's dark ground at phone size).
 
+A2B-9. **Weapons with heft at 8x** (playtester: "the sword looks too thin"): Rowan's sword is a 4 px blade band (a
+    warm white lit edge, pale and mid steel, a violet-shaded edge), an 8 px bronze guard with a stone, a wrapped grip
+    and a pommel (`art-sword.ts`, shared by Hollis and Solenne in their own colours); a 3 px dagger map for Sable and
+    Wren; the rig's `pole()` and every hero's staff 3 px (lit, mid, shaded); Dell's slingshot fork and Vesper's bow
+    limbs thickened. hero-frames.test.ts fails on a palette miss (magenta).
+A2B-10. **The mature look (L8)** comes from shared parts in `art-rig.ts`, so the sixteen stay one cast: `STANCES` +
+    `jointLegs`/`matureLegs` (legs from hip, knee and ankle in each hero's materials, the back leg a value darker,
+    robes for Neve, Tess and Brann), `matureHeads` (two rows out of the hair or hat's dome, glossy eye whites to single
+    dark irises under a brow, blush to skin) and `gradeGrid` (values down, the darks more than the lights, a little
+    desaturated; Rowan's hand-made palette skips it). HERO_H grew to 48 for the taller figures' raised weapons
+    (every view anchors a frame at the feet). Rowan and Sable (and Neve's head) were redrawn by hand as the
+    reference; the rest were converted by a script and checked by eye. Moss stays a gnome (face only).
+A2B-11. **Portraits follow** (`art-hero-portraits.ts maturePortrait` + hand-narrowed eyes): one row of iris under the
+    lid, no white glints, blush gone, the same grade; Rowan's portrait redrawn (a smaller dented helm on broad
+    pauldrons, a narrow lit slit), Sable's eyes narrowed. Map walkers get a row more of leg.
+A2B-12. **Finishers wind up and follow through**: the dash and guard kits hold the windup for 120 ms before the big
+    blow and drop to a low follow-through 180 ms after it; a won fight ends with the hero stepping back and raising
+    their weapon (their cast pose).
+
 (art: end of section)
 
 
