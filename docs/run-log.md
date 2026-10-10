@@ -184,3 +184,9 @@ One PR at the end supersedes #1-#7.
   queueing, relic pick cards), dusk-art (Region 5's pick and card at phone size, Region 4's gear icons), first10 (the
   whole first 10 minutes on the merged build, phone and desktop), QA-menus (the UI crawl, keyboard reach). QA-fight
   (03:30) and content (03:45) still on theirs. Then: freeze ~04:15, baselines, full suites, report, PR.
+- 02:20 EDT: merged QA-fight (bar-rule markers readable at phone size, holds copper, impact frames off the HUD; a
+  conflict with dusk-art on the unlit dark block: QA's no-glyph slate kept, per the block-marks rule); boot-checked,
+  pushed. QA-fight's last chunk (HARD STOP 04:00): the world map's skip-tap regression, then the functional specs one
+  by one. Lead's look on the merged build (Act 1 fight and map at dusk, an event as a place, the Edits screen, Act 10's
+  bar rule): good; two Edits-screen riddles sent to first10. CLAUDE.md: the name and round 8 in the intro. The round 8
+  status report drafted (filled in after the final suites).
